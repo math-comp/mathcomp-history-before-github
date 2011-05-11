@@ -1441,7 +1441,7 @@ move=> P l; move: (perm_eq_refl l); rewrite -(perm_filterC P).
 by move/free_perm_eq<-; exact: free_catl.
 Qed.
 
-Lemma addv_free : forall l1 l2,  
+Lemma free_add : forall l1 l2,  
   directv (span l1 + span l2) -> free (l1 ++ l2) = free l1 && free l2.
 Proof.
 move=> l1 l2; move/directv_addP=> Hd; apply/idP/andP.
@@ -1450,7 +1450,7 @@ case; rewrite /free size_cat.
 by rewrite span_cat (dimv_disjoint_sum Hd); move/eqP->; move/eqP->.
 Qed.
 
-Lemma free_uniq : forall l, free l -> uniq l.
+Lemma uniq_free : forall l, free l -> uniq l.
 Proof.
 elim=> //= t s IH Hf.
 rewrite {}IH 1?(@free_catr [::t]) // andbT.
@@ -1490,7 +1490,7 @@ Proof.
 by move=> vs m t v; rewrite /is_span; move/eqP=> <- H1; apply coord_span.
 Qed.
 
-Lemma addv_is_span : forall vs1 vs2 l1 l2, 
+Lemma is_span_add : forall vs1 vs2 l1 l2, 
   is_span vs1 l1 -> is_span vs2 l2 -> is_span (vs1 + vs2)%VS (l1 ++ l2).
 Proof.
 rewrite /is_span=> vs1 vs2 l1 l2 Hb1 Hb2.
@@ -1500,10 +1500,10 @@ Qed.
 (* Notion of basis *)
 Definition is_basis vs l := is_span vs l && free l.
 
-Lemma is_basis_span : forall vs l,  is_basis vs l -> is_span vs l.
+Lemma is_span_is_basis : forall vs l,  is_basis vs l -> is_span vs l.
 Proof. by move=> vs l; case/andP. Qed.
 
-Lemma is_basis_free : forall vs l, is_basis vs l -> free l.
+Lemma free_is_basis : forall vs l, is_basis vs l -> free l.
 Proof. by move=> vs l; case/andP. Qed.
 
 Lemma is_basis_nil : is_basis 0%:VS [::].
@@ -1514,20 +1514,20 @@ Proof. by move=> v Hv; rewrite /is_basis is_span_seq1 // free_seq1. Qed.
 
 Lemma is_basis_notin0 : forall v vs l, is_basis vs l -> v \in l -> v != 0.
 Proof.
-by move=> v vs l Hf Hi; apply: free_notin0 Hi; apply: is_basis_free Hf.
+by move=> v vs l Hf Hi; apply: free_notin0 Hi; apply: free_is_basis Hf.
 Qed.
 
 Lemma memv_is_basis : forall v vs l, is_basis vs l -> v \in l -> v \in vs.
 Proof.
-by move=> v vs l Hf Hi; apply: memv_is_span Hi; apply: is_basis_span.
+by move=> v vs l Hf Hi; apply: memv_is_span Hi; apply: is_span_is_basis.
 Qed.
 
-Lemma addv_is_basis : forall vs1 vs2 l1 l2, 
+Lemma is_basis_add : forall vs1 vs2 l1 l2, 
   directv (vs1 + vs2) -> is_basis vs1 l1 -> is_basis vs2 l2 -> 
   is_basis (vs1 + vs2)%VS (l1 ++ l2).
 Proof.
 move=> vs1 vs2 l1 l2 Hd; case/andP=> Hb1 Hf1; case/andP=> Hb2 Hf2.
-rewrite /is_basis addv_is_span // addv_free //; first by rewrite Hf1.
+rewrite /is_basis is_span_add // free_add //; first by rewrite Hf1.
 by move: Hb1 Hb2; rewrite /is_span; move/eqP->; move/eqP->.
 Qed.
 
@@ -1552,7 +1552,7 @@ elim: {vs}(\dim vs) {-2 4 5}vs (erefl (\dim vs))=> /= [|m Hrec] vs.
 move=> Hs.
 have->: forall (a : V) l, a::l = [::a] ++ l by done.
 rewrite -{1}(addv_diff_cap_eq vs (vpick vs)%:VS) addvC //.
-apply: addv_is_basis => //.
+apply: is_basis_add => //.
 - rewrite directv_addE /directv_def /= !eqxx !andTb.
   move: (memv_pick vs); rewrite /in_mem /= capvKr; move/eqP->.
   by rewrite capvC capv_diff.
@@ -1609,7 +1609,7 @@ Proof.
 move=> P k_ vs_; rewrite /directv_def /=.
 elim: index_enum => [|t s Hrec]; first by rewrite !big_nil is_span_nil.
 rewrite !big_cons; case Pt: (P t) => Hi; last by apply: Hrec.
-by apply: addv_is_span; [apply: Hi | apply: Hrec].
+by apply: is_span_add; [apply: Hi | apply: Hrec].
 Qed.
 
 Lemma bigaddv_is_basis : forall P l_ (vs_ : I -> {vspace V}),
@@ -1623,13 +1623,13 @@ rewrite bigaddv_is_span.
   apply: bigaddv_free.
     move: Hd; rewrite /directv_def /= -/vs.
     have<-: (\sum_(i | P i) span (l_ i) = vs)%VS.
-      apply: eq_big => // i Pi; apply/eqP; exact: (is_basis_span (Hi _ Pi)).
+      apply: eq_big => // i Pi; apply/eqP; exact: (is_span_is_basis (Hi _ Pi)).
     have<-: (\sum_(i | P i) \dim (span (l_ i)) = \sum_(i | P i) \dim (vs_ i))%N.
       apply: eq_big => // i Pi; apply/eqP.
-      by move: (is_basis_span (Hi _ Pi)); rewrite /is_span; move/eqP->.
+      by move: (is_span_is_basis (Hi _ Pi)); rewrite /is_span; move/eqP->.
     by done.
-  by move=> i Pi; apply: (is_basis_free (Hi _ Pi)).
-by move=> i Pi; apply: (is_basis_span (Hi _ Pi)).
+  by move=> i Pi; apply: (free_is_basis (Hi _ Pi)).
+by move=> i Pi; apply: (is_span_is_basis (Hi _ Pi)).
 Qed.
 
 End BigSumBasis.
@@ -2533,7 +2533,7 @@ exists (fun r => Subv (v_in r)).
   by rewrite /= {2}(coord_basis F1); apply: eq_big=> // i _; rewrite mxE.
 move=> v1; apply/rowP=> [] i.
 rewrite /subvect_v2rv /v /=  mxE coord_sumE.
-have F1 := is_basis_free (is_basis_vbasis vs).
+have F1 := free_is_basis (is_basis_vbasis vs).
 rewrite (bigD1 i) //= linearZ ffunE /= free_coordt // eqxx [_ *: _]mulr1.
 rewrite big1 ?addr0 // => k.
 rewrite linearZ ffunE free_coordt //.

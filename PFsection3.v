@@ -35,9 +35,9 @@ Definition cyclicTIhypothesis :=
 
 
 Definition cycTIirr_row :=
-  (irr1 W : {cfun gT})
-    :: filter [pred xi | (Wi \subset cker W xi) && (xi != irr1 W)]
-              (base_irr G).
+  ('1_W : {cfun gT})
+    :: filter [pred xi | (Wi \subset cker W xi) && (xi != '1_W)]
+              (irr G).
 
 Definition cyclicTIset of cyclicTIhypothesis := W :\: (W1 :|: W2).
 
@@ -59,9 +59,9 @@ Definition cycTIirr_mx of cyclicTIhypothesis G W W1 W2 :=
 
 Local Notation ww := (cycTIirr_mx tiW).
 
-Lemma cycTIirr00 : ww 0 0 = irr1 W.
+Lemma cycTIirr00 : ww 0 0 = '1_W.
 Proof.
-by apply/ffunP=> x; rewrite mxE !(irr1E, ffunE) -natr_mul mulnb andbb.
+by apply/ffunP=> x; rewrite mxE !(cfuniE, ffunE) -natr_mul mulnb andbb.
 Qed.
 
 End MoreDefinitions.

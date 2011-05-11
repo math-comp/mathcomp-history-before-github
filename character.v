@@ -16,25 +16,30 @@ Local Open Scope ring_scope.
 (*                                                                        *)
 (* This file contains the basic notions of character theory               *)
 (*                                                                        *)
-(*  irr G : irreducible character of G                                    *)
+(*         irr G : Tuple of {cfun gT} that contains all the irreducible   *)
+(*               characters                                               *)
 (*                                                                        *)
-(*  i%:CF : the {cfun gT} corresponding to the character i                *)
-(*          irr G coerces to {cfun gT} but sometimes the coercing must be *)
-(*          explicit so that Coq can figure out the vector space structure*)
-(*          of {cfun gT}                                                  *)
+(*        Nirr G : Number of irreducible character                        *)
 (*                                                                        *)
-(* 'Irr(G) : the basis for characters, i.e the tuple of all irreducible   *)
-(*           characters as {cfun gT}                                      *)
+(*        Iirr G : Ordinal 'I_(Nirr G). Nirr and Iirr are defined in such *)
+(*                 a way that 0 \in Iirr G                                *)
 (*                                                                        *)
-(*  is_char G f : predicates that tells if the function f is a character  *)
+(*        'xi_i  : the ith character with i : Iirr G                      *)
 (*                                                                        *)
-(*  cker G f : the kernel of G i.e g \in G such that f g = f 1            *)
+(*        '1_G   : the indicator function of G as a class function        *)
+(*                 its convertible to 'xi[G]_0                            *)
+(*      'xi[G]_i : the ith character with an explicite reference to the   *)
+(*                unlying group G                                         *)
 (*                                                                        *)
-(* is_comp i f : the irreducible character i is a constituent of f        *)
+(*   is_char G f : predicates that tells if the function f is a character *)
 (*                                                                        *)
-(* ccenter G f: the center i.e g \in G such that |f g| = f 1              *)
+(*      cker G f : the kernel of G i.e g \in G such that f g = f 1        *)
 (*                                                                        *)
-(* cfaithful G f: the class function f is faithfull, i.e its center       *)
+(*   is_comp i f : the irreducible character 'xi_i is a constituent of f  *)
+(*                                                                        *)
+(*   ccenter G f : the center i.e g \in G such that |f g| = f 1           *)
+(*                                                                        *)
+(* cfaithful G f : the class function f is faithfull, i.e its center      *)
 (*                 is trivial                                             *)
 (*                                                                        *)
 (**************************************************************************)
@@ -656,242 +661,262 @@ Qed.
 
 End Char.
 
-Section IrrClass.
-
-Variable (gT : finGroupType).
-
 Section IrrClassDef.
 
-Variable (G : {set gT}).
+Variable (gT : finGroupType) (G : {set gT}).
 
 Let sG := DecSocleType (regular_repr algC <<G>>).
 
-Inductive irr : predArgType := IrrClass of sG.
-Definition socle_of_irr (theta : irr) := let: IrrClass s := theta in s.
-Definition irr_of_socle := IrrClass.
+Definition pred_Nirr := #|classes G|.-1.
 
-Canonical Structure irr_subType :=
-  Eval hnf in [newType for socle_of_irr by irr_rect].
-Definition irr_eqMixin := Eval hnf in [eqMixin of irr by <:].
-Canonical Structure irr_eqType := 
-  Eval hnf in EqType irr irr_eqMixin.
-Definition irr_choiceMixin := [choiceMixin of irr by <:].
-Canonical Structure irr_choiceType :=
-  Eval hnf in ChoiceType irr irr_choiceMixin.
-Definition irr_countMixin := [countMixin of irr by <:].
-Canonical Structure irr_countType :=
-  Eval hnf in CountType irr irr_countMixin.
-Canonical Structure irr_subCountType :=
-  Eval hnf in [subCountType of irr].
-Definition irr_finMixin := [finMixin of irr by <:].
-Canonical Structure irr_finType :=
-  Eval hnf in FinType irr irr_finMixin.
-Canonical Structure irr_subFinType :=
-  Eval hnf in [subFinType of irr].
+Definition base_irr :=
+   (map (fun x => char_of_repr <<G>> (irr_repr x)) (enum sG)).
 
-Coercion cfun_of_irr theta := 
-  char_of_repr <<G>> (irr_repr (@socle_of_irr theta)).
+Definition cfuni : {cfun gT} :=
+    [ffun g => (nat_of_bool (g \in pred_of_set <<G>>))%:R].
+ 
+Local Notation "'1" := cfuni.
 
-Identity Coercion fun_of_cfun : cfun >-> finfun_of.
+Lemma cfuni_in_base_irr : '1 \in base_irr.
+Proof.
+suff->: '1 = char_of_repr <<G>> (irr_repr (principal_comp sG)).
+  by apply: map_f=> //; rewrite mem_enum.
+apply/ffunP=> g; rewrite !ffunE.
+case: (boolP (_ \in _))=> GiG; last by rewrite mul0r.
+by rewrite irr1_repr // mxtrace1 degree_irr1 mul1r.
+Qed.
 
-Definition irr1 := IrrClass (principal_comp sG).
-  
-Definition get_irr f :=
-  odflt irr1 [pick theta | (theta : irr) == f :> {cfun _}].
+Definition nonprincipal_irr := 
+  let (i,s,_) := rot_to cfuni_in_base_irr in
+  let v := [tuple of nseq (pred_Nirr) (0 : {cfun _})] in 
+  odflt v (insub s). 
+
+Definition irr : pred_Nirr.+1.-tuple {cfun gT} :=
+  [tuple of '1 :: nonprincipal_irr].
+
+Definition irr_representation (i : 'I_pred_Nirr.+1)  := 
+  oapp (fun x => Representation (irr_repr x))
+     grepr0
+     (pick (fun j : sG => 
+                 (tnth irr i%R) == char_of_repr <<G>> (irr_repr j))).
 
 End IrrClassDef.
 
-Local Notation "i %:CF" := (cfun_of_irr i) (at level 8).
+Notation Nirr G := (pred_Nirr G).+1.
+Notation Iirr G := 'I_(Nirr G).
+Notation "''1_' G" := (cfuni G)
+    (at level 8, G at level 2, format "''1_' G") : ring_scope.
+Notation "''xi_' i" := 
+  (tnth (irr _) i%R) (at level 8, i at level 2, format "''xi_' i") : ring_scope.
+Notation "''xi[' G ]_ i" := 
+  (tnth (irr G) i%R) (at level 8, i at level 2, only parsing) : ring_scope.
+Notation "''Xi_' i" := 
+  (irr_representation i%R) (at level 8, i at level 2, format "''Xi_' i").
 
-Variable (G : {group gT}).
+Section IrrClass.
 
-Let sG := DecSocleType (regular_repr algC <<G>>).
+Variable (gT : finGroupType) (G : {group gT}).
 
-Lemma irr_reprE : forall (theta : irr G),
-   exists i : DecSocleType (regular_repr algC G),
-   theta%:CF = char_of_repr G (irr_repr i). 
+Lemma cfuniE : forall g, '1_G g = (g \in G)%:R.
+Proof. by  move=> g; rewrite ffunE genGid. Qed.
+
+Lemma cfuni_xi0 : '1_G = 'xi[G]_0.
+Proof. by []. Qed.
+
+Lemma irr_cfuni : '1_G \in irr G.
+Proof. by rewrite inE eqxx. Qed.
+
+Lemma NirrE : Nirr G = #|classes G|.
+Proof. by rewrite /pred_Nirr (cardD1 [1]) classes1. Qed.
+
+Let sG := DecSocleType (regular_repr algC G).
+Let sG' := DecSocleType (regular_repr algC <<G>>).
+
+Let base_irr :=
+   (map (fun x => char_of_repr <<G>> (irr_repr x)) (enum sG')).
+
+Lemma perm_eq_irr : perm_eq (irr G) base_irr.
 Proof.
-move=> theta.
-have: exists i : DecSocleType (regular_repr algC <<G>>),
-          theta%:CF = char_of_repr <<G>> (irr_repr i).
-  by exists (socle_of_irr theta).
-by rewrite !(genGidG,genGid).
+rewrite /irr /nonprincipal_irr; case: rot_to=> n s' HH.
+rewrite perm_eq_sym -(perm_rot n base_irr) HH /=.
+case: (insubP _)=> /= [u _ -> // |].
+rewrite -eqSS (_: (size s').+1 = size('1_G::s')) // -{1}HH.
+rewrite size_rot size_map -cardE NirrE.
+by rewrite card_irr genGidG ?(pGroupG, eqxx) //; last exact: groupC.
 Qed.
 
-Lemma irr1E : forall g, irr1 G g = (g \in G)%:R.
+Lemma irrP: forall f : {cfun gT},
+   reflect (exists i : sG, char_of_repr G (irr_repr i) = f)
+           (f \in irr G).
 Proof.
-move=> g; case: (boolP (_ \in _))=> GiG; last first.
-  by rewrite (cfun0 (memc_char_of_repr _)) ?genGidG.
-rewrite ffunE {1}genGid GiG mul1r irr1_repr ?genGidG //.
-by rewrite mxtrace1 degree_irr1.
-Qed.
-
-Lemma card_irr : #|irr G| = #|classes G|.
-Proof.
-rewrite -{6}[G]genGidG.
-rewrite -(card_irr sG) ?pGroupG //; last exact: groupC.
-by rewrite card_sub; apply: eq_card=> i; rewrite !inE.
-Qed.
-
-Lemma irr_val1 : forall theta : irr G, 
-  theta 1%g = (irr_degree (socle_of_irr theta))%:R.
-Proof.
-by move=> theta; rewrite ffunE group1 mul1r repr_mx1 mxtrace1.
-Qed.
-
-Lemma irr1_neq0 : forall theta : irr G, theta 1%g != 0.
-Proof.
-move=> theta; rewrite irr_val1 -neq0N_neqC.
-by case: irr_degree (irr_degree_gt0 (socle_of_irr theta)).
-Qed.
-
-(* \sum_(i < #|classes G|) 'xi_i 1 ^+ 2 =  *)
-(* + irr G : #|classes G|.-tuple (cfun _ _) *) 
-Lemma irr_sum_square : \sum_(theta : irr G) (theta 1%g) ^+ 2 = #|G|%:R.
-Proof.
-rewrite -{6}[G]genGidG.
-rewrite -(sum_irr_degree sG) ?pGroupG //; last exact: groupC.
-rewrite (big_morph _ (@natr_add _) (erefl _)).
-rewrite (reindex (@socle_of_irr G)); last by exists (@irr_of_socle G)=> [] [].
-by apply: eq_bigr=> theta _; rewrite irr_val1 natr_exp.
-Qed.
-
-Lemma memc_irr : forall theta : irr G, theta%:CF \in 'CF(G).
-Proof.
-move=> theta; case: (irr_reprE theta)=> rG ->.
-by apply: memc_char_of_repr.
-Qed.
-
-Definition is_irr (G : {set gT}) (f : {cfun _}) := 
-  existsb theta : irr G, f == theta.
-
-Lemma is_irr_irr: forall theta : irr G, is_irr G theta.
-Proof. by move=> theta; apply/existsP; exists theta. Qed.
-
-Lemma is_irrP : forall f : {cfun gT}, 
-  reflect (exists theta : irr G, f = theta) (is_irr G f).
-Proof.
-by move=> f; apply: (iffP (@existsP _ _))=>[[theta Ht]|[theta ->]];
-   exists theta=> //; apply/eqP.
-Qed.
-
-Lemma is_irr_reprP : forall f, 
-  reflect (exists i : DecSocleType (regular_repr algC G),
-             f = char_of_repr G (irr_repr i))
-          (is_irr G f).
-Proof.
-move=> f; apply: (iffP idP)=>[|[i->]].
-  case/is_irrP=> chi.
-  by case: (irr_reprE chi)=> i -> ->; exists i.
-move: i.
-suff: forall i : DecSocleType (regular_repr algC <<G>>),
-         is_irr G (char_of_repr <<G>> (irr_repr i)).
-  by rewrite !(genGid,genGidG).
-by move=> i; apply/is_irrP; exists (irr_of_socle i).
-Qed.
-
-Lemma get_irrE : forall f, is_irr G f -> (get_irr G f)%:CF = f.
-Proof.
-move=> f; case/is_irrP=> theta Ht; rewrite /get_irr; case: pickP=> /=.
-  by move=> theta'; move/eqP.
-by move/(_ theta); rewrite Ht eqxx.
+move=> i; move: (perm_eq_mem perm_eq_irr).
+rewrite /base_irr /sG' !genGid !genGidG=> ->.
+(apply: (iffP mapP)=> [] [] j)=> [Jh->|<-]; exists j=> //.
+by rewrite mem_enum.
 Qed.
  
-Lemma reg_cfun_sum : 
-  reg_cfun G = \sum_(theta : irr G) theta (1%g) *: theta%:CF.
+Lemma irr_xi : forall i : Iirr G, 'xi_i \in irr G.
+Proof. by move=> i; apply: mem_nth; rewrite size_tuple. Qed.
+
+Lemma irrIP: forall f : {cfun gT},
+   reflect (exists i : Iirr G, 'xi_i = f)
+           (f \in irr G).
 Proof.
-apply/ffunP=> g; rewrite !ffunE.
-rewrite -{1}[G]genGidG.
-case Ig: (_ \in _); last first.
-  rewrite mul0r sum_ffunE ffunE big1 // => theta _.
-  by rewrite ffunE [_ g](cfun0 (memc_char_of_repr _)) (scaler0,Ig).
-rewrite mul1r (mxtrace_regular sG (pGroupG _)) //; last by exact: groupC.
-rewrite sum_ffunE ffunE.
-  (* Too slow 
-rewrite {1}(reindex (@socle_of_irr G)).
-*)
-pose reindex := (@reindex _ _ (GRing.add_comoid algC)).
-rewrite (reindex _  _ (@socle_of_irr G)) //=; last first.
-  by exists (@irr_of_socle G)=> [] [].
-by apply: eq_bigr => i _; rewrite irr_val1 !ffunE Ig mul1r // -mulr_natl.
+move=> f; apply: (iffP idP)=> [|[i <-]]; last exact: irr_xi.
+case/(nthP 0)=> j; rewrite size_tuple => Hj <-.
+by exists (Ordinal Hj); rewrite (tnth_nth 0).
 Qed.
 
-Lemma xchar_is_linear : forall theta : irr G, linear (@xchar _ G theta).
+
+Definition socle_of_Iirr (i : Iirr G) : sG :=
+  odflt  [1 sG]%irr (pick (fun j => 'xi_i == char_of_repr G (irr_repr j))).
+
+Lemma socle_of_IirrE :  forall (i : Iirr G),
+   char_of_repr G (irr_repr (socle_of_Iirr i)) = 'xi_i.
 Proof.
-move=> theta k m n.
+move=> i; rewrite /socle_of_Iirr; case: pickP=> [x |]; first by move/eqP.
+by case/irrP: (irr_xi i)=> j <-; move/(_ j); rewrite eqxx.
+Qed.
+
+Definition irr_of_socle (i : sG) : Iirr G :=
+  odflt 0 (pick (fun j : Iirr G => 'xi_j == char_of_repr G (irr_repr i))).
+
+Lemma irr_of_socleE :  forall (i : sG),
+   'xi_(irr_of_socle i) = char_of_repr G (irr_repr i).
+Proof.
+move=> i; rewrite /irr_of_socle; case: pickP=> [x |]; first by move/eqP.
+have: char_of_repr G (irr_repr i) \in irr G.
+  rewrite (perm_eq_mem perm_eq_irr).
+  rewrite /base_irr /sG' genGid genGidG; apply: map_f; apply: mem_enum.
+case/(nthP 0)=> j; rewrite size_tuple => Hj <-.
+by move/(_ (Ordinal Hj)); rewrite (tnth_nth 0) eqxx.
+Qed.
+
+Lemma irr_sumE : 
+  forall (R : Type) (idx : R) (op : Monoid.com_law idx) (F : _ -> R),
+       \big[op/idx]_(i < Nirr G) F 'xi_i = 
+       \big[op/idx]_(i : sG) F (char_of_repr G (irr_repr i)).
+Proof.
+move=> R idx op F.
+apply: (@trans_equal _ _ (\big[op/idx]_(i <- irr G) F i)).
+  apply: sym_equal; rewrite (big_nth 0) big_mkord size_tuple.
+  by apply: eq_bigr=> i _; rewrite  (tnth_nth 0).
+by rewrite (eq_big_perm _ perm_eq_irr) big_map /sG' !(genGid,genGidG) enumT.
+Qed.
+
+Lemma irr_sum_square : \sum_(i < Nirr G) ('xi_i 1%g) ^+ 2 = #|G|%:R.
+Proof.
+rewrite (irr_sumE _ (fun f => (f 1%g) ^+ 2)) /=.
+rewrite -[X in X%:R](sum_irr_degree sG) ?pGroupG //; last exact: groupC.
+rewrite natr_sum; apply: eq_bigr=> i _.
+by rewrite ffunE group1 mul1r repr_mx1 mxtrace1 natr_exp.
+Qed.
+
+Lemma irr1_degree : forall i : Iirr G, 
+  'xi_i 1%g = (irr_degree (socle_of_Iirr i))%:R.
+Proof.
+move=> i; case/irrP: (irr_xi i)=> j Hj.
+rewrite /socle_of_Iirr; case: pickP=> [k|].
+  move/eqP-> => /=.
+  by rewrite ffunE group1 mul1r repr_mx1 mxtrace1.
+by move/(_ j); rewrite Hj eqxx.
+Qed.
+
+Lemma isNatC_irr1 : forall i : Iirr G, isNatC ('xi_i 1%g).
+Proof. by move=> i; rewrite irr1_degree isNatC_nat. Qed.
+
+Lemma irr1_neq0 : forall i : Iirr G, 'xi_i 1%g != 0.
+Proof.
+move=> i; rewrite irr1_degree.
+case: irr_degree (irr_degree_gt0 (socle_of_Iirr i))=> // n _. 
+by rewrite -(eqN_eqC _ 0).
+Qed.
+
+Lemma ltC_irr1: forall i : Iirr G, 0 < 'xi_i 1%g.
+Proof.
+move=> i.
+case/isNatCP: (isNatC_irr1 i) (irr1_neq0 i).
+by move=> n /= ->; rewrite /ltC => ->; exact: posC_nat.
+Qed.
+
+Lemma memc_irr : forall i : Iirr G, 'xi_i \in 'CF(G).
+Proof.
+by move=> i; case/irrP: (irr_xi i)=> j <-; apply: memc_char_of_repr.
+Qed.
+
+Lemma reg_cfun_sum : 
+  reg_cfun G = \sum_(i < Nirr G) 'xi_i (1%g) *: 'xi_i.
+Proof.
+rewrite (irr_sumE _ (fun f => (f 1%g) *: f)) /=.
+apply/ffunP=> g; rewrite !ffunE genGidG.
+case (boolP (_ \in _))=> GiG; last first.
+  rewrite mul0r; rewrite (cfun0 _ GiG) // memv_suml // => i _.
+  by apply: memvZl; apply: memc_char_of_repr.
+rewrite mul1r (mxtrace_regular sG (pGroupG _)) //; last by exact: groupC.
+rewrite sum_ffunE ffunE.
+apply: eq_bigr => i _.
+by rewrite !ffunE repr_mx1 mxtrace1 {1}group1 {1}GiG !mul1r -mulr_natl.
+Qed.
+
+Lemma xchar_is_linear : forall i : sG,
+  linear (@xchar _ G (char_of_repr G (irr_repr i))).
+Proof.
+move=> i k m n.
 rewrite scaler_sumr -big_split /=; apply: eq_bigr=> l _.
 by rewrite scaler_mull -mulr_addl !mxE.
 Qed.
 
-Canonical Structure xchar_linear (theta : irr G) := 
-  Linear (xchar_is_linear theta).
+Canonical Structure xchar_linear i := Linear (xchar_is_linear i).
 
-Local Notation "'E_" := 
-  ((@Wedderburn_id _ _ _ _) \o (@socle_of_irr _)) (at level 0).
-Local Notation "'R_":= 
-  ((@Wedderburn_subring _ _ _ _) \o (@socle_of_irr _)) (at level 0).
-
-Lemma xchar_subring : forall (theta1 theta2 : irr G) A, 
-  theta1 != theta2 -> (A \in 'R_theta2)%MS -> xchar theta1 (gring_row A) = 0.
+Local Notation "'E_" := Wedderburn_id.
+Local Notation "'R_":= Wedderburn_subring.
+ 
+Lemma xchar_subring : forall (i1 i2 : sG) A, 
+  i1 != i2 -> (A \in 'R_i2)%MS ->
+   xchar (char_of_repr G (irr_repr i1)) (gring_row A) = 0.
 Proof.
-move=> theta1 theta2 A Ht HA.
-pose s := @socle_of_irr G.
-rewrite xchar_trace -(mxtrace0 _ (irr_degree (s theta1))); congr (\tr _).
-have F1: s theta2 != irr_comp sG (irr_repr (s theta1)).
+move=> i1 i2 A Ht HA.
+rewrite xchar_trace -(mxtrace0 _ (irr_degree i1)); congr (\tr _).
+have F1: i2 != irr_comp sG (irr_repr i1).
   rewrite irr_reprK ?pGroupG //.
-  apply/eqP=> HH; case/eqP: Ht; apply/val_eqP.
-  by rewrite eq_sym; apply/eqP.
+  by apply/eqP=> HH; case/eqP: Ht.
 apply: irr_comp'_op0 F1 _; first by exact: pGroupG.
   by apply: socle_irr.
 rewrite gring_rowK // -(Wedderburn_sum sG (pGroupG _)).
-apply/memmx_sumsP; exists (fun ss => (ss == s theta2)%:R *: A).
-  rewrite (bigD1 (s theta2)) //= eqxx scale1r big1 ?addr0 // => k.
-  by case: (k == s theta2); rewrite // scale0r.
-by move=> k; case E1: (k == s theta2); 
+apply/memmx_sumsP; exists (fun i => (i == i2)%:R *: A).
+  rewrite (bigD1 i2) //= eqxx scale1r big1 ?addr0 // => k.
+  by case: (k == i2); rewrite // scale0r.
+by move=> k; case E1: (k == i2); 
   [move/eqP: E1->; rewrite scale1r | rewrite scale0r mem0mx].
 Qed.
 
-Lemma xchar_id : forall theta1 theta2 : irr G,
-  xchar theta1 (gring_row ('E_ theta2)) = 
-   if theta1 == theta2 then theta1 1%g else 0.
+Lemma xchar_id : forall (i1 i2 : sG) (f1 := char_of_repr G (irr_repr i1)),
+  xchar f1 (gring_row ('E_ i2)) = if i1 == i2 then f1 1%g else 0.
 Proof.
-move=> theta1 theta2; case: eqP=> [->|Ht]; last first.
+move=> i1 i2 f1; rewrite /f1; case: eqP=> [->|Ht]; last first.
   by apply: xchar_subring (Wedderburn_id_mem _); apply/eqP.
 rewrite ffunE group1 mul1r -gring_opG //.
-have R1 := (envelop_mx_id (regular_repr algC <<G>>) (group1 <<G>>)).
+have R1 := (envelop_mx_id (regular_repr algC G) (group1 G)).
 rewrite -[regular_repr algC _ 1%g]gring_rowK // -xchar_trace.
 rewrite -[regular_repr _ _ _]mul1mx -(Wedderburn_sum_id sG (pGroupG _)).
-have->: regular_repr algC <<G>> 1%g = 1%:M.
-  by apply/matrixP=> i1 j1; rewrite !mxE !eqxx mulg1 gring_valK eq_sym.
-pose s := @socle_of_irr G.
-rewrite mulmx1 !linear_sum.
-have HL: forall theta : irr G, linear (@xchar _ <<G>> theta).
-  by rewrite genGid; exact: xchar_is_linear.
-pose f theta := Linear (HL theta).
-rewrite (@linear_sum _ _ _ (f _)) /= (bigD1 (s theta2)) //= big1=> [|k].
-  by rewrite addr0.
+have->: regular_repr algC G 1%g = 1%:M.
+  by apply/matrixP=> x y; rewrite !mxE !eqxx mulg1 gring_valK eq_sym.
+rewrite mulmx1 !linear_sum /= (bigD1 i2) //= big1 ?addr0 // => k.
 rewrite eq_sym => Hij.
-have F1: theta2 != irr_of_socle k by apply/eqP; move/val_eqP=> HH; case/negP: Hij.
-exact: (xchar_subring F1 (Wedderburn_id_mem k)).
+exact: (xchar_subring Hij (Wedderburn_id_mem k)).
 Qed.
 
-Lemma irr_e_mul : forall (theta : irr G) A, (A \in group_ring algC <<G>>)%MS ->
- xchar theta (gring_row ('E_ theta *m A)) = xchar theta (gring_row A).
+Lemma irr_e_mul : forall (i : sG) A (f := char_of_repr G (irr_repr i)), 
+ (A \in group_ring algC G)%MS ->
+   xchar f (gring_row ('E_i *m A)) = xchar f (gring_row A).
 Proof.
-move=> theta A HA.
+move=> i A f HA.
 rewrite -{2}[A]mul1mx -(Wedderburn_sum_id sG); last exact: pGroupG.
-rewrite mulmx_suml linear_sum.
-have HL: forall theta : irr G, linear (@xchar _ <<G>> theta).
-  by rewrite genGid; exact: xchar_is_linear.
-pose f theta := Linear (HL theta).
-rewrite (@linear_sum _ _ _ (f _)) /= (bigD1 (socle_of_irr theta)) //=.
-rewrite big1 ?addr0 // => ss; rewrite eq_sym => Hss.
-have F1: theta != irr_of_socle ss by apply/eqP; move/val_eqP=> HH; case/negP: Hss.
-apply: (xchar_subring F1).
-case/andP: (Wedderburn_ideal ss)=> _ Hj.
-apply: submx_trans Hj=> //.
-apply: mem_mulsmx=> //.
-exact: Wedderburn_id_mem.
+rewrite mulmx_suml !linear_sum /= (bigD1 i) //= big1 ?addr0 // => j.
+rewrite eq_sym => Hj.
+apply: (xchar_subring Hj).
+case/andP: (Wedderburn_ideal j)=> _ Ij.
+by apply: submx_trans Ij=> //; apply: (mem_mulsmx (Wedderburn_id_mem _)).
 Qed.
 
 Lemma xchar_singleton : forall n g (rG : mx_representation algC G n),  
@@ -907,16 +932,16 @@ by case: (i == _)=> //; rewrite mul0r.
 Qed.
 
 (* This corresponds to Isaacs' Th. 2.12 *)
-Lemma gring_row_e : forall theta : irr G, 
-  gring_row ('E_ theta) = \row_i (#|G|%:R^-1 * theta 1%g * theta ((enum_val i)^-1)%g).
+Lemma gring_row_e : forall (i : sG) (f := char_of_repr G (irr_repr i)), 
+  gring_row ('E_i) = \row_j (#|G|%:R^-1 * f 1%g * f ((enum_val j)^-1)%g).
 Proof.
-move=> theta; apply/rowP=> i.
-set g:= ((enum_val i)^-1)%g.
-have GiG: (g \in <<G>>)%g by rewrite groupV enum_valP.
-pose rG := regular_repr algC <<G>> g.
-have: xchar (reg_cfun G) (gring_row ('E_ theta *m rG)) = 
-        #|G|%:R * gring_row ('E_ theta) 0 i.
-  rewrite /xchar (bigD1 (gring_index <<G>> 1%g)) //= big1; last first.
+move=> i f; apply/rowP=> j.
+set g:= ((enum_val j)^-1)%g.
+have GiG: (g \in G)%g by rewrite groupV enum_valP.
+pose rG := regular_repr algC G g.
+have: xchar (reg_cfun G) (gring_row ('E_i *m rG)) = 
+        #|G|%:R * gring_row ('E_i) 0 j.
+  rewrite /xchar (bigD1 (gring_index G 1%g)) //= big1; last first.
     move=> k Hk; rewrite reg_cfunE.
     case: eqP; last by rewrite mulr0.
     by move=> Hk'; case/negP: Hk; rewrite -Hk' gring_valK.
@@ -925,66 +950,32 @@ have: xchar (reg_cfun G) (gring_row ('E_ theta *m rG)) =
   (* This takes ages 
   rewrite {1}mxE {1}(bigD1 j) //= {1}big1.
   *)
-  rewrite {1}mxE {1}(@bigD1 _ _ (GRing.add_comoid algC) _ i) //= big1.
+  rewrite {1}mxE {1}(@bigD1 _ _ (GRing.add_comoid algC) _ j) //= big1.
     by rewrite !mxE mulgV !eqxx mulr1 addr0.
   move=> k Hk.
   rewrite !mxE eqxx; case: eqP; last by rewrite mulr0.
   move=> Hi; case/negP: Hk.
   apply/eqP; apply: enum_val_inj; apply/eqP; rewrite eq_mulgV1.
   rewrite eq_sym; apply/eqP.
-  apply: (can_in_inj (@gring_indexK _ <<G>>))=> //.
+  apply: (can_in_inj (@gring_indexK _ G))=> //.
   by rewrite !(groupM,enum_valP).
 rewrite reg_cfun_sum xcharbE linear_sum /=.
-rewrite (bigD1 theta) //= big1 ?addr0; last first.
+rewrite (irr_sumE _ (fun f => xcharb (gring_row ('E_ i *m rG)) (f 1%g *: f))) /=.
+rewrite (bigD1 i) //= big1 ?addr0; last first.
   move=> k Hki.
   rewrite linearZ /= -xcharbE.
   rewrite (xchar_subring Hki) //; first by rewrite scaler0.
-  case/andP: (Wedderburn_ideal (socle_of_irr theta))=> _ Hi.
+  case/andP: (Wedderburn_ideal i)=> _ Hi.
   apply: submx_trans Hi; apply: mem_mulsmx; first by exact: Wedderburn_id_mem.
   by apply: envelop_mx_id; rewrite groupV enum_valP.
 rewrite linearZ /= -xcharbE.
 rewrite irr_e_mul; last first.
   by apply: envelop_mx_id; rewrite groupV enum_valP.
-have->: forall n g (rG : mx_representation algC <<G>> n),  
-    g \in <<G>> -> 
-    xchar (char_of_repr <<G>> rG) (gring_row (regular_repr algC <<G>> g)) = 
-    char_of_repr <<G>> rG g; last by [].
-  rewrite !genGid genGidG.
-  by exact: xchar_singleton.
-rewrite !mxE // /GRing.scale /= -mulrA => ->.
-by rewrite !mulrA mulVf ?mul1r // neq0GC.
-Qed.
-
-Definition to_socle n (rG : mx_representation algC <<G>> n) (j: DecSocleType rG) := 
-  irr_comp sG (socle_repr j).
-
-Lemma to_socle_inj : forall n (rG : mx_representation algC <<G>> n),
-  injective (@to_socle n rG).
-Proof.
-move=> n rG x y Hxy; apply/eqP; apply/socle_rsimP.
-apply: (mx_rsim_trans (rsim_irr_comp sG _ (socle_irr _))).
-  by exact: pGroupG.
-apply: mx_rsim_sym; move: Hxy; rewrite /to_socle=>->.
-by apply: (rsim_irr_comp sG _ (socle_irr _)); exact: pGroupG.
-Qed.
-
-Definition irr_coef n (rG : mx_representation algC <<G>> n) theta :=
-let s :=  socle_of_irr theta in
-oapp (fun x => socle_mult x) 0%N [pick j | s == to_socle (j: DecSocleType rG)].
-
-Lemma char_of_standard_grepr : forall n (rG : mx_representation algC <<G>> n),
-  char_of_repr <<G>> (standard_grepr rG)
-    = \sum_(theta : irr G)
-         (standard_irr_coef rG (val theta))%:R *: theta%:CF.
-Proof.
-move=> n rG; rewrite char_of_dsum_grepr.
-rewrite (reindex (@IrrClass _)) /=; last by exists val => // [[]].
-by apply: eq_bigr => i _; rewrite scaler_nat char_of_n_grepr.
+rewrite xchar_singleton // !mxE //= -mulrA=> HH.
+by rewrite[f 1%g * _]HH !mulrA mulVf ?mul1r // neq0GC.
 Qed.
 
 End IrrClass.
-
-Notation "i %:CF" := (cfun_of_irr i) (only parsing, at level 8).
 
 Section VectorSpace.
 
@@ -994,81 +985,103 @@ Section VectorSpaceDef.
 
 Variable (G : {set gT}).
 
-Lemma size_enum_irr : size (map (@cfun_of_irr gT G) (enum (irr G))) == #|irr G|.
-Proof. by rewrite size_map -cardE. Qed.
-
-Definition base_irr := Tuple (size_enum_irr).
-
-Definition ncoord (i: irr G) c : algC^o := coord base_irr c (enum_rank i).
+Definition ncoord x i := coord (irr G) i x.
 
 End VectorSpaceDef.
 
-Local Notation "'Irr( G )" := (base_irr G) (at level 2).
 
 Variable (G : {group gT}).
 
-Local Notation "'E_" := 
-  ((@Wedderburn_id _ _ _ _) \o (@socle_of_irr _ _)) (at level 0).
-Local Notation "'R_":= 
-  ((@Wedderburn_subring _ _ _ _) \o (@socle_of_irr _ _)) (at level 0).
+Local Notation "'E_" :=  Wedderburn_id.
+Local Notation "'R_":=  Wedderburn_subring.
+Let sG := DecSocleType (regular_repr algC G).
   
-Lemma free_base_irr : free 'Irr(G).
+Lemma free_irr : free (irr G).
 Proof.
+rewrite (free_perm_eq (perm_eq_irr G)).
+rewrite !(genGid,genGidG).
 apply/freeP=> s; set ss := \sum_(i<_) _ => Hs j.
 pose j' := enum_val j.
-suff: xchar ss (gring_row ('E_ j')) = s j * j' 1%g.
+suff: xchar ss (gring_row ('E_ j')) = s j *  char_of_repr G (irr_repr j') 1%g.
   rewrite /xchar big1 //.
     move/eqP; rewrite eq_sym mulf_eq0; case/orP; first by move/eqP.
-    rewrite irr_val1 -(eqN_eqC _ 0)=> He.
-    by move: (irr_degree_gt0 (socle_of_irr j')); rewrite (eqP He).
+    rewrite ffunE group1 mul1r repr_mx1 mxtrace1.
+    by case: irr_degree (irr_degree_gt0 j')=> // n _; rewrite -(eqN_eqC _ 0).
   by move=> i _; rewrite Hs ffunE mulr0.
-rewrite xcharbE linear_sum; rewrite (bigD1 j) //= big1.
-  rewrite  addr0 (nth_map (irr1 G)) //; last by rewrite -cardE.
+rewrite xcharbE linear_sum; rewrite (bigD1 j) //= big1 ?addr0.
+  rewrite (nth_map ([1 sG]%irr)) //; last by rewrite -cardE.
   rewrite linearZ /= -xcharbE.
-  suff->: (nth (irr1 G) (enum (irr G)) j) = j'
+  suff->: (nth [1 sG]%irr (enum sG) j) = j'
     by rewrite  xchar_id eqxx.
-  by move: (nth_enum_rank (irr1 G) j'); rewrite enum_valK.
+  by move: (nth_enum_rank [1 sG]%irr j'); rewrite enum_valK.
 move=> i Hij.
 pose i' := enum_val i.
-rewrite  (nth_map (irr1 G)) //; last by rewrite -cardE.
+rewrite  (nth_map [1 sG]%irr) //; last by rewrite -cardE.
 rewrite linearZ /= -xcharbE.
-have->: (nth (irr1 G) (enum (irr G)) i) = i'.
-  by move: (nth_enum_rank (irr1 G) i'); rewrite enum_valK.
+have->: (nth [1 sG]%irr (enum sG) i) = i'.
+  by move: (nth_enum_rank [1 sG]%irr i'); rewrite enum_valK.
 rewrite  xchar_id; case: eqP; last by rewrite scaler0.
 move/eqP=> HH; case/negP: Hij.
-by move: HH; rewrite (bij_eq (enum_val_bij (irr_finType G))).
+by move: HH; rewrite (bij_eq (enum_val_bij (socle_finType sG))).
 Qed.
 
-Lemma cfun_of_irr_inj : injective (@cfun_of_irr _ G).
-Proof. exact: injectiveP (free_uniq free_base_irr). Qed.
+Lemma xi_inj : forall i j : Iirr G, 'xi_i = 'xi_j -> i = j.
+Proof.
+move=> i j HH; apply/val_eqP; move/eqP: HH.
+by rewrite !(tnth_nth 0) (nth_uniq 0 _ _ (uniq_free free_irr)) ?size_tuple.
+Qed.
+
+Definition socle_of_cfun (f : {cfun gT}) : sG :=
+  odflt  [1 sG]%irr (pick (fun i : sG => f == char_of_repr G (irr_repr i))).
+
+Lemma socle_of_cfunE :  forall (i : sG),
+   socle_of_cfun (char_of_repr G (irr_repr i)) = i.
+Proof.
+move=> i; rewrite /socle_of_cfun; case: pickP=> [x |]; last first.
+  by move/(_ i); rewrite eqxx.
+rewrite eq_sym; move/eqP; move: free_irr.
+rewrite (free_perm_eq (perm_eq_irr G)) genGid genGidG.
+move/uniq_free; move/injectiveP; apply.
+Qed.
+
+Lemma char_of_standard_grepr : forall n (rG : mx_representation algC G n),
+  char_of_repr G (standard_grepr rG)
+    = \sum_(i < Nirr G)
+         (standard_irr_coef rG (socle_of_cfun 'xi_i))%:R *: 'xi_i.
+Proof.
+move=> n rG; rewrite char_of_dsum_grepr.
+rewrite (irr_sumE _ _ (fun f => (standard_irr_coef rG (socle_of_cfun f))%:R *: f)).
+by apply: eq_bigr => i _; rewrite scaler_nat char_of_n_grepr socle_of_cfunE.
+Qed.
 
 Lemma char_of_repr_inj : forall n1 n2,
   forall rG1 : mx_representation algC G n1,
   forall rG2 : mx_representation algC G n2,
   char_of_repr G rG1 = char_of_repr G rG2 -> mx_rsim rG1 rG2.
 Proof.
-rewrite -(genGidG G) => n1 n2 rG1 rG2 /= eq_char12.
+move=> n1 n2 rG1 rG2 /= eq_char12.
 have [rsim1 rsim2] := (mx_rsim_standard rG1, mx_rsim_standard rG2).
-pose c rG (xi : 'I_#|irr G|) : algC := (standard_irr_coef rG (val (enum_val xi)))%:R.
+pose c n (rG : mx_representation algC G n) (i : Iirr G) : algC := 
+  (standard_irr_coef rG (socle_of_cfun 'xi_i))%:R.
 apply: mx_rsim_trans (rsim1) (mx_rsim_sym _).
 suffices ->: standard_grepr rG1 = standard_grepr rG2 by [].
-apply: eq_bigr => theta _; congr (n_grepr _ _).
+apply: eq_bigr => i _; congr (n_grepr _ _).
 apply/eqP; rewrite eqN_eqC.
-move: (free_coords (c _ rG1) (enum_rank (IrrClass theta)) free_base_irr).
-rewrite /c /= enum_rankK /= => <-.
-suff charE : forall n (rG: mx_representation algC <<G>>%G n),
- char_of_repr <<G>> (standard_grepr rG) = 
-   \sum_(i < #|irr G|) c n rG i *: 'Irr(G)`_i.
-  rewrite -charE -(char_of_repr_sim rsim1) eq_char12 (char_of_repr_sim rsim2) charE.
-  rewrite (free_coords (c _ rG2) (enum_rank (IrrClass theta)) free_base_irr).
-  by rewrite /c /= enum_rankK.
-move=> n rG.
-rewrite char_of_standard_grepr (big_nth (irr1 G)) big_mkord.
-rewrite -[index_enum _]enumT -cardE; apply: eq_bigr=> i _.
-rewrite -enum_val_nth /=.
-suff ->: enum_val i = (map (@cfun_of_irr _ G) (enum (irr G)))`_i :> {cfun _}.
-   by [].
-by rewrite (nth_map (irr1 G)) -?enum_val_nth // -cardE.
+rewrite -[i]socle_of_cfunE -irr_of_socleE.
+suff: c n1 rG1 (irr_of_socle i) == c n2 rG2 (irr_of_socle i) by [].
+pose FF1 := @free_coords  _ _  _ (irr G).
+have FF2 := free_irr.
+pose f n (rG : mx_representation algC G n) i :=  c n rG i *: 'xi_i.
+pose g n (rG : mx_representation algC G n) i :=  c n rG i *: (irr G)`_i.
+have FF3: forall n rG i, f n rG i = g n rG i.
+  by move=> n rG j; rewrite /f /g (tnth_nth 0).
+rewrite -FF1 //.
+rewrite (eq_bigr (f n1 rG1))=> [|j _]; last by rewrite FF3.
+rewrite -(char_of_standard_grepr rG1) -(char_of_repr_sim rsim1).
+rewrite eq_char12.
+rewrite (char_of_repr_sim rsim2) (char_of_standard_grepr rG2).
+rewrite (eq_bigr (g n2 rG2))=> [|j _]; last by rewrite -FF3.
+by rewrite FF1.
 Qed.
 
 Lemma char_of_repr_rsimP : forall m n (rG1 : mx_representation algC G m)
@@ -1081,85 +1094,66 @@ case E1: (g \in G); last by rewrite !mul0r.
 by rewrite !mul1r; apply: mxtrace_rsim.
 Qed.
 
-Lemma base_irr_basis : is_basis 'CF(G) 'Irr(G).
+Lemma is_basis_irr : is_basis 'CF(G) (irr G).
 Proof.
-rewrite /is_basis free_base_irr andbT /is_span -dimv_leqif_eq.
+rewrite /is_basis free_irr andbT /is_span -dimv_leqif_eq.
   rewrite dim_cfun.
-  move: free_base_irr; rewrite /free; move/eqP->.
-  by rewrite size_map -cardE card_irr.
-rewrite -span_subsetl; apply/allP=> i; case/mapP=> j _ ->.
-by rewrite -{2 3}genGid memc_char_of_repr.
+  move: free_irr; rewrite /free; move/eqP->.
+  by rewrite size_tuple NirrE.
+rewrite -span_subsetl; apply/allP=> i.
+by case/irrIP=> k <-; apply: memc_irr.
 Qed.
 
 Lemma ncoord_sum : forall A (x : {cfun gT}), x \in 'CF(G,A) -> 
-  x = \sum_(theta : irr G) ncoord theta x *: theta%:CF.
+  x = \sum_(i < Nirr G) ncoord i x *: 'xi_i.
 Proof.
 move=> A x Hx.
-have F2: x \in span 'Irr(G).
-  move: (is_basis_span base_irr_basis).
+have F2: x \in span (irr G).
+  move: (is_span_is_basis is_basis_irr).
   by rewrite /is_span; move/eqP->; exact: (memcW Hx).
 rewrite {1}(coord_span F2).
-rewrite (big_nth (irr1 G)) big_mkord -[index_enum (irr_finType _)]enumT -cardE.
-apply: eq_bigr=> i _.
-rewrite /ncoord -enum_val_nth enum_valK.
-suff ->: (enum_val i)%:CF = (map (@cfun_of_irr _ G) (enum (irr G)))`_i.
-   by [].
-by rewrite (nth_map (irr1 G)) -?enum_val_nth // -cardE.
+by apply: eq_bigr=> i _; rewrite (tnth_nth 0).
 Qed.
 
-Lemma ncoord_is_linear : forall theta : irr G, linear (ncoord theta).
+Lemma ncoord_is_linear : forall i : Iirr G, linear (ncoord i).
 Proof. by move=> i k c1 c2; rewrite /ncoord linearD linearZ !ffunE. Qed.
 
-Canonical Structure ncoord_linear (theta : irr G) :=
-  Linear (ncoord_is_linear theta).
+Canonical Structure ncoord_linear i := Linear (ncoord_is_linear i).
 
-Lemma ncoordE : forall  (c : irr G -> algC) theta, 
-  ncoord theta (\sum_theta (c theta) *: theta%:CF) = c theta.
+Lemma ncoordE : forall  (c : Iirr G -> algC) (i : Iirr G), 
+  ncoord i (\sum_(j < Nirr G) (c j) *: 'xi_j) = c i.
 Proof.
-move=> c theta.
-rewrite (big_nth (irr1 G)) big_mkord.
-rewrite -[index_enum _]enumT -cardE.
-rewrite (eq_bigr (fun i => c (enum_val i) *: 'Irr(G)`_i)).
-  rewrite /ncoord (free_coords (c \o enum_val) (enum_rank _) free_base_irr).
-  by rewrite /= enum_rankK.
-move=> i _; rewrite  -enum_val_nth; congr (_ *: _).
-by rewrite (nth_map (irr1 G)) -?enum_val_nth // -cardE.
+move=> c i.
+rewrite (eq_bigr (fun j => c j *: (irr G)`_j))=> [|j _].
+  by apply: free_coords free_irr.
+by rewrite (tnth_nth 0).
 Qed.
 
-Lemma ncoord0 : forall theta : irr G, ncoord theta 0 = 0.
+Lemma ncoord0 : forall i: Iirr G, ncoord i 0 = 0.
 Proof.
-move=> theta.
-suff {1}<-: \sum_(theta : irr G) 0 *: theta%:CF = 0 by rewrite ncoordE.
-by rewrite big1 // => j _; exact: scale0r.
+move=> i.
+by move: (ncoordE (fun i => 0) i); rewrite big1 // => j _; rewrite scale0r.
 Qed.
 
-Lemma ncoord_irr : forall theta1 theta2 : irr G, 
-  ncoord theta1 theta2 = (theta1 == theta2)%:R.
+Lemma ncoord_irr : forall i j : Iirr G, ncoord i 'xi_j = (i == j)%:R.
 Proof.
-move=> theta1 theta2.
-suff {1}<-: 
-  \sum_(theta : irr G) (theta == theta2)%:R *: theta%:CF = theta2.
-  by rewrite ncoordE.
-rewrite (bigD1 theta2) // big1 /= ?(addr0,eqxx,scale1r) // => theta.
-by rewrite eq_sym; case: (_ == _)=> //; rewrite scale0r.
+move=> i j.
+move: (ncoordE (fun k => (k == j)%:R) i).
+rewrite (bigD1 j) //= big1 ?(eqxx, scale1r, addr0) // => k /negPf->.
+by rewrite scale0r. 
 Qed.
 
 Lemma isNatC_ncoord_repr :
-  forall n (rG : mx_representation algC G n) (theta : irr G),
-    isNatC(ncoord theta (char_of_repr G rG)).
+  forall n (rG : mx_representation algC G n) (i : Iirr G),
+    isNatC (ncoord i (char_of_repr G rG)).
 Proof.
-suff: forall n (rG : mx_representation algC <<G>> n) (theta : irr G),
-  isNatC(ncoord theta (char_of_repr <<G>> rG)) by rewrite genGid.
 move=> n rG theta.
-pose sG':= DecSocleType rG.
 rewrite (char_of_repr_sim (mx_rsim_standard rG)).
 rewrite char_of_standard_grepr ncoordE.
 by apply: isNatC_nat.
 Qed.
 
 End VectorSpace.
-
-Notation "'Irr( G )" := (base_irr G) (at level 2).
 
 Section Restrict.
 
@@ -1180,15 +1174,8 @@ Section IsChar.
 
 Variable (gT : finGroupType).
 
-Section IsCharDef.
-
-Variable G : {set gT}.
-
-Definition is_char (f : {cfun gT}) :=
-  (forallb theta : irr G, isNatC (ncoord theta f)) &&
-  (f \in 'CF(<<G>>)).
-
-End IsCharDef.
+Definition is_char (G : {set gT}) (f : {cfun gT}) :=
+  (forallb i : Iirr G, isNatC (ncoord i f)) && (f \in 'CF(G)).
 
 Variable G : {group gT}.
 
@@ -1198,25 +1185,21 @@ Lemma is_charP : forall f,
           (is_char G f).
 Proof.
 move=> f.
-suff: reflect (exists n, exists rG : mx_representation algC <<G>> n, 
-               char_of_repr <<G>> rG = f)
-              (is_char G f) by rewrite genGid.
 apply: (iffP andP); last first.
   case=> n [rG <-]; split; last exact: memc_char_of_repr.
   apply/forallP=> chi.
-  move: rG; rewrite genGid=> rG.
   by exact: isNatC_ncoord_repr.
 case; move/forallP=> Ha Hf.
-pose n' (j : irr G) := getNatC (ncoord j f).
-have->: f = \sum_(j : irr G) (n' j)%:R *: j%:CF.
-  move: (Hf); rewrite genGid=> Hf'.
-  rewrite {1}(ncoord_sum Hf'); apply: eq_bigr=> i _.
+pose n' (j : Iirr G) := getNatC (ncoord j f).
+have->: f = \sum_(j < Nirr G) (n' j)%:R *: 'xi_j.
+  rewrite {1}(ncoord_sum Hf) //.
+  apply: eq_bigr=> i _.
   by congr (_ *: _); apply/eqP; apply: Ha.
 elim: {n'}(\sum_j (n' j))%N {-2}n' (leqnn (\sum_j (n' j)))=> [| N IH] n' HS.
   exists 0%N; exists grepr0.
   apply/ffunP=> i; rewrite sum_ffunE !ffunE mxtrace1 mulr0 big1 // => j Hj.
   by move: HS; rewrite (bigD1 j) //=; case: (n' j)=> //; rewrite scale0r ffunE.
-case: (boolP (all (fun i => n' i == 0%N) (enum (irr G)))).
+case: (boolP (all (fun i => n' i == 0%N) (enum (Iirr G)))).
   move/allP=> HH.
   exists 0%N; exists grepr0.
   apply/ffunP=> i; rewrite sum_ffunE !ffunE mxtrace1 mulr0 big1 // => j Hj.
@@ -1227,15 +1210,21 @@ have F1: (\sum_j (n' j) = 1 + \sum_j n'' j)%N.
   rewrite (bigD1 k) //[(\sum_j n'' j)%N](bigD1 k) //.
   rewrite addnA /n'' eqxx add1n prednK; last by case: (n' k) Hk.
   by congr (_ + _)%N; apply: eq_bigr=> i; case: (i == k).
-have F2: \sum_j (n' j)%:R *: j%:CF  = k%:CF + \sum_j (n'' j)%:R *: j%:CF.
+have F2: \sum_j (n' j)%:R *: 'xi_j  = 'xi_k + \sum_j (n'' j)%:R *: 'xi_j.
   rewrite (bigD1 k) //[(\sum_j (n'' j)%:R *: _)](bigD1 k) // addrA; congr (_ + _).
     rewrite /n'' eqxx; case: (n' _) Hk=> //= n _.
     by rewrite -add1n natr_add scaler_addl scale1r.
   by apply: eq_bigr=> i; rewrite /n''; case: (i == k).
 case: (IH n''); first by  rewrite -ltnS -add1n -F1.
-intros n [rG HrG]; pose i := socle_of_irr k; exists ((irr_degree i) + n)%N.
+intros n [rG HrG]; pose i := socle_of_cfun G ('xi_k); exists ((irr_degree i) + n)%N.
 exists (dadd_grepr (Representation (irr_repr i)) (Representation rG)).
-by rewrite (char_of_dadd_grepr (Representation _) (Representation _)) HrG F2.
+rewrite (char_of_dadd_grepr (Representation _) (Representation _)) HrG F2.
+suff ->: char_of_repr G (irr_repr (socle_of_cfun G 'xi_k)) = 'xi_k by [].
+rewrite /socle_of_cfun; case: pickP=> [k1|] /=; first by move/eqP.
+have: 'xi_k \in irr G by rewrite (tnth_nth 0) mem_nth // size_tuple.
+rewrite (perm_eq_mem (perm_eq_irr G)); case/mapP.
+rewrite genGid genGidG /= => i1 _ ->.
+by  move/(_ i1); rewrite eqxx.
 Qed.
 
 Lemma is_char_char_of_repr : forall n (rG : mx_representation algC G n),
@@ -1245,17 +1234,15 @@ Proof. by move=> n rG; apply/is_charP; exists n; exists rG. Qed.
 Lemma is_char_reg : is_char G (reg_cfun G).
 Proof.  rewrite /reg_cfun genGidG; exact: is_char_char_of_repr. Qed.
 
-Lemma is_char_irr : forall theta : irr G, is_char G theta.
+Lemma is_char_irr : forall i : Iirr G, is_char G 'xi_i.
 Proof. 
-move=> theta; apply/is_charP; pose i := socle_of_irr theta.
-suff: exists n : nat,
-  exists rG : mx_representation algC <<G>> n, char_of_repr <<G>> rG = theta.
-    by rewrite genGid.
-by exists (irr_degree i); exists (irr_repr i).
+move=> i; apply/is_charP.
+case/irrP: (irr_xi i)=> j <-.
+by exists (irr_degree j); exists (irr_repr j).
 Qed.
 
-Lemma isNatC_ncoord_char : forall (theta : irr G) (f : {cfun _}),
- is_char G f -> isNatC (ncoord theta f).
+Lemma isNatC_ncoord_char : forall (i : Iirr G) (f : {cfun _}),
+ is_char G f -> isNatC (ncoord i f).
 Proof.
 move=> i f; case/is_charP=> n [rG <-].
 by exact: isNatC_ncoord_repr.
@@ -1263,6 +1250,9 @@ Qed.
 
 Lemma is_char0 : is_char G 0.
 Proof. by rewrite -(char_of_grepr0 G) is_char_char_of_repr. Qed.
+
+Lemma is_char1 : is_char G '1_G.
+Proof.  case/irrP: (irr_cfuni G)=> i <-; exact: is_char_char_of_repr. Qed.
 
 Lemma character0_eq0 : forall chi,
   is_char G chi -> (chi == 0) = (chi 1%g == 0).
@@ -1325,7 +1315,7 @@ Qed.
 
 Lemma is_char_cbP : forall f,
   reflect 
-    (exists n, f = \sum_(theta : irr G) (n theta)%:R *: theta%:CF)
+    (exists n, f = \sum_(i < Nirr G) (n i)%:R *: 'xi_i)
     (is_char G f).
 Proof.
 move=> f; apply: (iffP idP)=> [HH|[n ->]]; last first.
@@ -1338,71 +1328,63 @@ by congr (_ *: _); apply/eqP; apply: isNatC_ncoord_char.
 Qed.
 
 Lemma is_char_indu : forall (P: {cfun gT} -> Prop), P 0 -> 
-  (forall (theta : irr G) chi, 
-      is_char G chi -> P chi -> P (theta%:CF + chi)) ->
+  (forall (i : Iirr G) chi, 
+      is_char G chi -> P chi -> P ('xi_i + chi)) ->
   forall chi, is_char G chi -> P chi.
 Proof.
 move=> P P0 IH chi; case/is_char_cbP=> n ->.
 elim: {n}(\sum_t (n t))%N {-2}n (leqnn (\sum_t (n t)))=>[n HH|N IH1 n].
   rewrite big1 // => i _.
   by move: HH; rewrite (bigD1 i) //=; case: (n i)=> //; rewrite scale0r.
-case: (boolP (all (fun t => n t == 0%N) (enum (irr G)))).
+case: (boolP (all (fun t => n t == 0%N) (enum (Iirr G)))).
   move/allP=> Ht _; rewrite big1 // => theta _.
   move: (Ht theta); rewrite mem_enum.
   by move/(_ is_true_true); move/eqP->; rewrite scale0r.
-case/allPn=> theta; rewrite mem_enum=> Ht Nt0 HH.
-pose n' (t : irr G) := if (t == theta) then (n t).-1 else n t.
+case/allPn=> i; rewrite mem_enum=> Ht Nt0 HH.
+pose n' (t : Iirr G) := if (t == i) then (n t).-1 else n t.
 have F1: (\sum_t (n t) = (\sum_t (n' t)).+1)%N.
-  rewrite (bigD1 theta) // [(\sum_t n' t)%N](bigD1 theta) //= -add1n addnA.
-  congr (_ + _)%N; first by rewrite /n' eqxx; case: (n theta) Nt0.
+  rewrite (bigD1 i) // [(\sum_t n' t)%N](bigD1 i) //= -[X in _ = X]add1n addnA.
+  congr (_ + _)%N; first by rewrite /n' eqxx; case: (n i) Nt0.
   by apply: eq_bigr=> j Hj; rewrite /n' (negPf Hj).
-have F2: \sum_t (n t)%:R *: t%:CF  = theta%:CF + \sum_t (n' t)%:R *: t%:CF.
-  rewrite  [X in _ + X](bigD1 theta) //= (bigD1 theta) //=.
+have F2: \sum_(t < Nirr G) (n t)%:R *: 'xi_t = 
+            'xi_i + \sum_(t < Nirr G) (n' t)%:R *: 'xi_t.
+  rewrite  [X in _ + X](bigD1 i) //= (bigD1 i) //=.
   rewrite addrA; congr (_ + _).
-    rewrite /n' eqxx; case: (n theta) Nt0=> // m' _.
+    rewrite /n' eqxx; case: (n i) Nt0=> // m' _.
     by rewrite -{1}add1n natr_add scaler_addl scale1r.
   by apply: eq_bigr=> j Hj; rewrite /n' (negPf Hj).
 rewrite F2; apply: IH.
-  by apply: is_char_sum=> i _; rewrite scaler_nat is_char_scal // is_char_irr.
+  by apply: is_char_sum=> j _; rewrite scaler_nat is_char_scal // is_char_irr.
 by apply: IH1; rewrite -ltnS -F1.
 Qed.
 
 Lemma isNatC_char1 : forall chi, is_char G chi -> isNatC (chi 1%g).
 Proof.
-apply: is_char_indu=> [|theta chi IH HH].
+apply: is_char_indu=> [|i chi IH HH].
   by rewrite ffunE (isNatC_nat 0).
-by rewrite ffunE isNatC_add // irr_val1 isNatC_nat.
+rewrite ffunE isNatC_add //.
+by apply: isNatC_irr1.
 Qed.
 
 Lemma posC_char1 : forall chi, is_char G chi -> 0 <= chi 1%g.
 Proof. by move=> chi HH; apply: posC_isNatC; apply: (isNatC_char1 _). Qed.
 
-Lemma ltC_irr1: forall (theta : irr G), 0 < theta 1%g.
-Proof.
-move=> theta.
-case/isNatCP: (isNatC_char1 (is_char_irr theta)) (irr1_neq0 theta).
-by move=> n /= ->; rewrite /ltC => ->; exact: posC_nat.
-Qed.
-
-Lemma is_irr_crestrict : forall (H : {group gT}) chi,
- is_char G chi -> H \subset G -> is_irr H ('Res[H] chi) -> is_irr G chi.
+Lemma irr_crestrict : forall (H : {group gT}) chi,
+ is_char G chi -> H \subset G -> 'Res[H] chi \in irr H -> chi \in irr G.
 Proof.
 move=> H chi; case/is_charP.
-suff: forall n : nat,
-  (exists rG : mx_representation algC <<G>> n, char_of_repr <<G>> rG = chi) ->
-   <<H>> \subset <<G>> -> is_irr H ('Res[<<H>>] chi) -> is_irr G chi.
-  by rewrite !genGid.
 move=> n [rG <-] HsG.
 rewrite (crestrict_subg _ HsG).
-case/is_irrP=> i Hi; apply/is_irrP.
-pose sG := DecSocleType (regular_repr algC <<G>>).
-exists (irr_of_socle (irr_comp sG rG)).
+case/irrP=> i Hi; apply/irrP.
+pose sG := DecSocleType (regular_repr algC G).
+exists (irr_comp sG rG).
 apply/eqP;apply/char_of_repr_rsimP=> /=.
+apply: mx_rsim_sym.
 apply: rsim_irr_comp; first by exact: pGroupG.
 apply: (@subg_mx_irr _ _ _ _ _ _ HsG).
 move/eqP: Hi.
-move/char_of_repr_rsimP.
-move/mx_rsim_sym; move/mx_rsim_irr; apply.
+move/(char_of_repr_rsimP).
+move/mx_rsim_irr; apply.
 by apply: socle_irr.
 Qed.
 
@@ -1477,46 +1459,53 @@ by rewrite exprS mulr1.
 Qed.
 
 Lemma char_abelianP : 
-  reflect (forall (theta : irr G), clinear G theta) (abelian G).
+  reflect (forall (i : Iirr G), clinear G 'xi_i) (abelian G).
 Proof.
-apply: (iffP idP)=> [HH theta|HH].
-  rewrite /clinear genGid irr_val1 irr_degree_abelian ?genGidG //; last first.
-    by exact: groupC.
-  by rewrite is_char_irr // eqxx.
+apply: (iffP idP)=> [HH i|HH].
+  rewrite /clinear genGid is_char_irr /=.
+  case/irrP: (irr_xi i)=> j <-.
+  rewrite ffunE group1 mul1r repr_mx1 mxtrace1 irr_degree_abelian //.
+  by exact: groupC.
 rewrite card_classes_abelian.
-rewrite eqN_eqC -irr_sum_square // (eq_bigr (fun i => 1)) //=.
-  by rewrite sumr_const // -card_irr.
+rewrite eqN_eqC -irr_sum_square // (eq_bigr (fun i : Iirr G => 1)) //=.
+  rewrite sumr_const // -NirrE.
+by rewrite cardT -cardE card_ord.
 by move=> i _; case/andP: (HH i)=> _ HH'; rewrite (eqP HH') exprS mulr1.
 Qed.
 
-Lemma irr_repr_linear : forall (theta : irr G) g, g \in G -> 
-  clinear G theta -> irr_repr (socle_of_irr theta) g = (theta g)%:M.
+Lemma irr_repr_linear : forall (i : Iirr G) g, g \in G -> 
+  clinear G 'xi_i -> irr_repr (socle_of_Iirr i) g = ('xi_i g)%:M.
 Proof.
-move=> theta g GiG AbG.
-rewrite ffunE genGid GiG mul1r.
-move: (irr_repr (socle_of_irr theta)).
-case/andP: AbG=> _; rewrite irr_val1.
-rewrite -(eqN_eqC _ 1);move/eqP->.
+move=> i g GiG; move: (irr1_degree i).
+rewrite /socle_of_Iirr; case: pickP=> [j|]; last first.
+  by case/irrP: (irr_xi i)=> k <-; move/(_ k); rewrite eqxx.
+rewrite [odflt _ _]/= => HH1 HH2 AbG.
+rewrite (eqP HH1) ffunE GiG mul1r.
+move: (irr_repr _).
+case/andP: AbG=> _; rewrite irr1_degree.
+have->: j = (socle_of_Iirr i).
+  move: (sym_equal (socle_of_IirrE i)); rewrite (eqP HH1).
+  move: (free_irr G); rewrite (free_perm_eq (perm_eq_irr G)).
+  rewrite genGid genGidG; move/uniq_free.
+  by move/injectiveP; apply.
+rewrite -(eqN_eqC _ 1); move/eqP->.
 move=> irr_repr; rewrite trace_mx11.
 apply/matrixP=> [] [[|] Hi1] // [[|] Hj1] //.
 by rewrite !mxE /= mulr1n; congr fun_of_matrix; apply/eqP.
 Qed.
 
-Lemma clinear_is_irr : is_irr G f.
+Lemma clinear_irr : f \in irr G.
 Proof.
 case/andP: (CFf); rewrite genGid => Hc Hf.
 case/is_charP: Hc => n [].
-suff: forall rG : mx_representation algC <<G>> n, 
-          char_of_repr <<G>> rG = f -> is_irr G f.
-  by rewrite genGid.
 move=> rG HrG.
 move: Hf; rewrite -HrG char_of_repr1 -(eqN_eqC _ 1%N).
 move/eqP=> Hn; move: rG HrG; rewrite Hn.
-move=> rG HrG; apply/is_irrP.
-pose sG := DecSocleType (regular_repr algC <<G>>).
-exists (irr_of_socle (irr_comp sG rG)).
+move=> rG HrG; apply/irrP.
+pose sG := DecSocleType (regular_repr algC G).
+exists (irr_comp sG rG).
 apply/eqP; apply/char_of_repr_rsimP=> /=.
-apply: rsim_irr_comp; first by exact: pGroupG.
+apply: mx_rsim_sym; apply: rsim_irr_comp; first by exact: pGroupG.
 apply/mx_irrP; split=> // U HU HU1.
 move: HU1 (rank_leq_row U); rewrite -mxrank_eq0 /row_full.
 by case: (\rank _)=> // [] [|].
@@ -1550,14 +1539,13 @@ have Hf: forall g1, g1 \in <[g]> ->
   by move=> g1 Hg1; rewrite !ffunE Hg1; move/subsetP: (F1)->.
 rewrite !Hf ?(cycle_id,group1) // (ncoord_sum (memc_char_of_repr _)).
 rewrite !sum_ffunE 2!ffunE.
-pose nc (i: irr <[g]>) := ncoord i (char_of_repr <[g]> rG').
-suff->: \sum_i (nc i *: i%:CF) 1%g = \sum_i normC ((nc i *: i%:CF) g%g).
+pose nc (i: Iirr <[g]>) := ncoord i (char_of_repr <[g]> rG').
+suff->: \sum_i (nc i *: 'xi_i) 1%g = \sum_i normC ((nc i *: 'xi_i) g%g).
   by apply: normC_sum.
 have F2 := cycle_abelian g.
 apply: eq_bigr=> i _.
-rewrite ffunE irr_val1 irr_degree_abelian ?genGidG //; last first.
-  by exact: groupC.
-have CFf: clinear <[g]> i by move/char_abelianP: F2; apply.
+have CFf: clinear <[g]> 'xi_i by move/char_abelianP: F2; apply.
+rewrite ffunE (clinear1 CFf).
 rewrite ffunE normC_mul (clinear_norm  CFf) ?cycle_id //.
 by rewrite normC_pos // /nc posC_isNatC // isNatC_ncoord_repr.
 Qed.
@@ -1566,98 +1554,83 @@ Qed.
 Lemma clinear_norm_scalar : 
   forall n (rG : mx_representation algC G n) g,
    g \in G -> 
-   (forall (theta : irr G), clinear G theta) ->
+   (forall (i : Iirr G), clinear G 'xi_i) ->
    normC (char_of_repr G rG g) = char_of_repr G rG 1%g ->
    exists2 c, normC c = (n != 0%N)%:R & rG g = c%:M.
 Proof.
 suff Hf: forall f, is_char G f ->
   forall (n : nat) (rG : mx_representation algC G n) (g : gT),
     g \in G -> f = char_of_repr G rG -> 
-    (forall theta : irr G, clinear G theta) -> normC (f g) = f 1%g ->
+    (forall i : Iirr G, clinear G 'xi_i) -> normC (f g) = f 1%g ->
     exists2 c : algC, normC c = (n != 0%N)%:R & rG g = c%:M.
   move=> n rG g GiG HP HN.
   suff: is_char G (char_of_repr G rG) by move/Hf; apply.
   by apply: is_char_char_of_repr.
-apply: is_char_indu=> [|theta chi IC IH] n.
+apply: is_char_indu=> [|i chi IC IH] n.
    move=> rG g GiG H0.
    have: mx_rsim rG (@grepr0 algC _ G).
      by apply/char_of_repr_rsimP; rewrite -H0 char_of_grepr0.
    move/mxrank_rsim=> HH; move: {H0}rG; rewrite HH=> rG.
    exists 0; first by rewrite eqxx normC0.
    by rewrite (flatmx0 (rG g)) (flatmx0 _%:M) .
-suff: forall (rG : mx_representation algC <<G>> n) (g : gT),
-       g \in G -> theta%:CF + chi = char_of_repr <<G>> rG ->
-       (forall theta : irr G, clinear G theta) ->
-       normC ((theta%:CF + chi) g) = (theta%:CF + chi) 1%g ->
-       exists2 c : algC, normC c = (n != 0%N)%:R & rG g = c%:M.
-  by rewrite genGid.
 move=> rG g GiG H0 CL; rewrite ffunE [_ 1%g]ffunE=> NN.
-have GiG': g \in <<G>> by rewrite genGid.
-have F1: normC (theta g + chi g) = normC (theta g) + normC (chi g).
+have F1: normC ('xi_i g + chi g) = normC ('xi_i g) + normC (chi g).
   apply: (leC_anti (normC_add _ _)); rewrite NN.
   apply: leC_add; [apply: is_char_norm | apply: is_char_norm] => //.
   by apply: is_char_irr.
 have F2 : normC (chi g) = chi 1%g.
   apply: (leC_anti (is_char_norm _ _))=> //.
-  rewrite -(leC_add2l (theta 1%g)) -NN F1 leC_add2r is_char_norm //.
+  rewrite -(leC_add2l ('xi_i 1%g)) -NN F1 leC_add2r is_char_norm //.
   by apply: is_char_irr.
-have F3: normC(theta g) = theta 1%g.
+have F3: normC('xi_i g) = 'xi_i 1%g.
   by apply: (@addIr _ (normC (chi g))); rewrite -F1 NN F2.
-have F4 := (irr_repr_linear GiG (CL theta)).
-have F5: theta 1%g = 1 by case: (CL theta); case/andP=> _;move/eqP.
+have F4 := (irr_repr_linear GiG (CL i)).
+have F5: 'xi_i 1%g = 1 by case: (CL i); case/andP=> _;move/eqP.
 case/is_charP: IC=> m [].
-suff: forall rG1 : mx_representation algC <<G>> m,
-          char_of_repr <<G>> rG1 = chi ->
-          exists2 c : algC, normC c = (n != 0%N)%:R & rG g = c%:M.
-  by move: {H0}rG; rewrite genGid.
 move=> rG1 Hc.
-have IH': forall (n : nat) (rG : mx_representation algC <<G>> n) (g : gT),
-     g \in G ->
-     chi = char_of_repr <<G>> rG ->
-     (forall theta : irr G, clinear G theta) ->
-     normC (chi g) = chi 1%g ->
-     exists2 c : algC, normC c = (n != 0%N)%:R & rG g = c%:M.
-  by rewrite genGid.
-case: (IH' _ _ _ GiG (sym_equal Hc) CL F2)=> c H1c H2c.
+case: (IH _ _ _ GiG (sym_equal Hc) CL F2)=> c H1c H2c.
 move: H1c; case: eqP=> Hm H1c.
-  have F6: mx_rsim rG (irr_repr (socle_of_irr theta)).
+  have F6: mx_rsim rG (irr_repr (socle_of_Iirr i)).
     apply/char_of_repr_rsimP; rewrite -H0.
-    suff->: chi = 0 :> {cfun _} by rewrite addr0.
+    rewrite socle_of_IirrE.
+    suff->: chi = 0 by rewrite addr0.
     rewrite -Hc; move: {Hc H2c}rG1; rewrite Hm=> rG1.
     by apply/ffunP=> h; rewrite !ffunE (flatmx0 (rG1 _)) mxtrace0 mulr0.
-  exists (theta g); last by apply: (mx_rsim_scalar GiG' (mx_rsim_sym F6)).
-  rewrite F3; case/andP: (CL theta)=> _; move/eqP->.
+  exists ('xi_i g); last first.
+    by apply: (mx_rsim_scalar GiG (mx_rsim_sym F6)).
+  rewrite F3; case/andP: (CL i)=> _; move/eqP->.
   case: eqP=> //; move/eqP; rewrite eqN_eqC.
-  move/mxrank_rsim: F6->; rewrite -(irr_val1 theta) F5.
+  move/mxrank_rsim: F6->; rewrite -irr1_degree F5.
   by rewrite -(eqN_eqC 1 0).
-have F6 : theta g = c.
+have F6 : 'xi_i g = c.
   case/normC_add_eq: F1=> k Hk.
   case/andP; move/eqP=> H1k; move/eqP=> H2k.
   rewrite H1k F3 F5 mul1r.
   move/eqP: Hm; rewrite neq0N_neqC;move/mulfI; apply.
-  move: H2k; rewrite -Hc ffunE GiG' mul1r H2c.
+  move: H2k; rewrite -Hc ffunE GiG mul1r H2c.
   rewrite mxtrace_scalar -mulr_natr normC_mul H1c mul1r.
   by rewrite normC_pos ?posC_nat // mulrC.
-pose rG' := dadd_grepr (Representation (irr_repr (socle_of_irr theta)))
+pose rG' := dadd_grepr (Representation (irr_repr (socle_of_Iirr i)))
                        (Representation rG1).
 have F7: mx_rsim rG rG'.
   apply/char_of_repr_rsimP; rewrite -H0.
-  by rewrite (char_of_dadd_grepr (Representation _) (Representation _)) Hc.
+  rewrite (char_of_dadd_grepr (Representation _) (Representation _)) Hc.
+  by rewrite socle_of_IirrE.
 have F8 : rG' g = c%:M.
-  have->: rG' g= block_mx (irr_repr (socle_of_irr theta) g) 0 0 (rG1 g).
+  have->: rG' g= block_mx (irr_repr (socle_of_Iirr i) g) 0 0 (rG1 g).
    by [].
   by rewrite H2c F4 F6 -scalar_mx_block.
-exists c; last by by apply: (mx_rsim_scalar GiG' (mx_rsim_sym F7)).
+exists c; last by by apply: (mx_rsim_scalar GiG (mx_rsim_sym F7)).
 rewrite H1c; case/mxrank_rsim: F7; move/eqP.
-rewrite eqN_eqC natr_add -(irr_val1 theta) F5 -(natr_add _ 1%N m) -eqN_eqC.
+rewrite eqN_eqC natr_add -(irr1_degree i) F5 -(natr_add _ 1%N m) -eqN_eqC.
 by case: {rG H0}n.
 Qed.
 
 Lemma clinear_cker_mx1 : 
   forall n (rG : mx_representation algC G n) g,
    g \in G -> 
-   (forall (theta : irr G), clinear G theta) ->
-   char_of_repr G rG g = char_of_repr G rG 1%g ->  rG g = 1%:M.
+   (forall i : Iirr G, clinear G 'xi_i) ->
+   char_of_repr G rG g = char_of_repr G rG 1%g -> rG g = 1%:M.
 Proof.
 move=> n rG g GiG Ht HC.
 case/isNatCP: (isNatC_char1 (is_char_char_of_repr rG))=> k Hk.
@@ -1676,36 +1649,36 @@ by rewrite normC_mul normC_inv normC_pos ?posC_nat // normC_nat.
 Qed.
 
 (* we could extend it to is_comp f g := is_char G (g - f) *)
-Definition is_comp (G : {set gT}) (theta : irr G) (f : {cfun gT}) := 
-  ncoord theta f != 0.
+Definition is_comp (G : {set gT}) (i : Iirr G) (f : {cfun gT}) := 
+  ncoord i f != 0.
 
-Lemma is_compE : forall (i : irr G) f, is_comp i f = (ncoord i f != 0).
+Lemma is_compE : forall (i : Iirr G) f, is_comp i f = (ncoord i f != 0).
 Proof. by []. Qed.
 
-Lemma is_comp_charP : forall (theta : irr G) chi,
+Lemma is_comp_charP : forall (i : Iirr G) chi,
   is_char G chi ->
-  reflect (exists2 chi', is_char G chi' & chi = theta%:CF + chi') 
-          (is_comp theta chi).
+  reflect (exists2 chi', is_char G chi' & chi = 'xi_i + chi') 
+          (is_comp i chi).
 Proof.
-move=> theta chi IC; apply: (iffP idP)=>[HH|[chi' IC' ->]]; last first.
+move=> i chi IC; apply: (iffP idP)=>[HH|[chi' IC' ->]]; last first.
   rewrite /is_comp linearD /= ncoord_irr eqxx.
-  case/isNatCP: (isNatC_ncoord_char theta IC')=> n ->.
+  case/isNatCP: (isNatC_ncoord_char i IC')=> n ->.
   by rewrite -natr_add -neq0N_neqC.
-exists (chi - theta%:CF); last by rewrite addrC subrK.
+exists (chi - 'xi_i); last by rewrite addrC subrK.
 apply/andP; split; last first.
-  by apply: memv_sub; rewrite genGid ?(memc_is_char, is_char_irr).
+  by apply: memv_sub; rewrite ?(memc_is_char, is_char_irr).
 apply/forallP=> t.
 rewrite linearD linearN /= ncoord_irr.
 case: (_ =P _)=> [->|_]; last first.
   by rewrite subr0 isNatC_ncoord_char.
 move: HH; rewrite /is_comp.
-case/isNatCP: (isNatC_ncoord_char theta IC)=>  [] [|n] ->.
+case/isNatCP: (isNatC_ncoord_char i IC)=>  [] [|n] ->.
   by case/negP.
 by rewrite -addn1 natr_add addrK isNatC_nat.
 Qed.
 
 Lemma is_comp_neq0 : forall (A : {set gT}) (f : {cfun _}), 
-  f \in 'CF(G,A) -> f != 0  -> exists i : irr G, is_comp i f.
+  f \in 'CF(G,A) -> f != 0  -> exists i : Iirr G, is_comp i f.
 Proof.
 move=> A f FCF Nf0; case: (pickP ((@is_comp G)^~ f)) => [i Hi | HH].
   by exists i.
@@ -1714,16 +1687,16 @@ move: (ncoord_sum FCF); rewrite big1=> [|i Hi]; first by move=> ->.
 by move/eqP: (HH i)->; rewrite scale0r.
 Qed.
 
-Lemma is_comp_irr1_char1 : forall (theta : irr G) chi, 
-  is_char G chi ->  is_comp theta chi -> theta 1%g <= chi 1%g.
+Lemma is_comp_irr1_char1 : forall (i : Iirr G) chi, 
+  is_char G chi ->  is_comp i chi -> 'xi_i 1%g <= chi 1%g.
 Proof.
-move=> theta chi IC; rewrite is_compE => Hn.
-rewrite (ncoord_sum (memc_is_char IC)) (bigD1 theta) //=.
-set n := theta 1%g; rewrite 2!ffunE {}/n -leC_sub addrC addrA.
+move=> i chi IC; rewrite is_compE => Hn.
+rewrite (ncoord_sum (memc_is_char IC)) (bigD1 i) //=.
+set n := 'xi_i 1%g; rewrite 2!ffunE {}/n -leC_sub addrC addrA.
 apply: posC_add.
   rewrite -mulN1r -mulr_addl posC_mul //; last first.
     by rewrite posC_isNatC // (isNatC_char1 (is_char_irr _)).
-  case/isNatCP: (isNatC_ncoord_char theta IC) Hn=> [] [|n] -> //.
+  case/isNatCP: (isNatC_ncoord_char i IC) Hn=> [] [|n] -> //.
     by rewrite /is_comp; case/negP.
   by move=> _; rewrite -add1n natr_add addrA addNr add0r posC_nat.
 rewrite sum_ffunE ffunE posC_sum // => t Ht.
@@ -1760,7 +1733,7 @@ have F2: forall g1, g1 \in <[g]> ->
 rewrite !F2 ?(groupVr,cycle_id) //. 
 rewrite (ncoord_sum (memc_char_of_repr _)).
 rewrite sum_ffunE 2!ffunE rmorph_sum; apply: eq_bigr=> i _.
-have Cf: clinear <[g]> i by move/char_abelianP: (cycle_abelian g); move/(_ i).
+have Cf: clinear <[g]> 'xi_i by move/char_abelianP: (cycle_abelian g); move/(_ i).
 rewrite ffunE (clinearV_norm Cf) ?cycle_id //.
 have F3: isNatC (ncoord i (char_of_repr <[g]> rG'))
   by apply: isNatC_ncoord_repr.
@@ -1776,49 +1749,55 @@ Let card_neq0 : #|G|%:R^-1 != 0 :> algC.
 Proof. by rewrite invr_eq0 neq0GC. Qed.
 
 (* Painfully following Isaacs' proof 2.14 *)
-Lemma irr_first_orthogonal_relation : forall theta1 theta2 : irr G,
- #|G|%:R^-1 * (\sum_(g \in G) theta1 g * (theta2 g)^*) = (theta1 == theta2)%:R.
+Lemma irr_first_orthogonal_relation : forall i j : Iirr G,
+ #|G|%:R^-1 * (\sum_(g \in G) 'xi_i g * ('xi_j g)^*) = (i == j)%:R.
 Proof.
-move=> theta1 theta2.
+move=> i j.
 rewrite (reindex invg) /=; last by apply: onW_bij; apply: inv_bij; exact invgK.
-pose e (theta : irr G) :=  Wedderburn_id (socle_of_irr theta).
-have F1 : e theta1 *m e theta2 = (theta1 == theta2)%:R *: e theta1.
+pose e (j : Iirr G) :=  Wedderburn_id (socle_of_Iirr j).
+have F1 : e i *m e j = (i == j)%:R *: e i.
   case: eqP=> [<-|Hij]; [rewrite scale1r | rewrite scale0r].
-    case: (Wedderburn_is_id (pGroupG _) (socle_of_irr theta1))=> _ Hi Hj _.
+    case: (Wedderburn_is_id (pGroupG _) (socle_of_Iirr i))=> _ Hi Hj _.
     by exact: Hj.
-  move/eqP: Hij=> HH; apply: (Wedderburn_mulmx0 HH); exact: Wedderburn_id_mem.
-have F2: #|G|%:R^-1 * theta1 1%g * theta2 1%g != 0.
+  have Hsij: socle_of_Iirr i != socle_of_Iirr j.
+    apply/eqP=> HH; case: Hij; apply/val_eqP.
+    rewrite -(nth_uniq 0 _ _ (uniq_free (free_irr G))) ?size_tuple //=.
+    by rewrite -!tnth_nth -socle_of_IirrE HH socle_of_IirrE.
+  apply: (Wedderburn_mulmx0 Hsij); exact: Wedderburn_id_mem.
+have F2: #|G|%:R^-1 * 'xi_i 1%g * 'xi_j 1%g != 0.
   by do 2 (apply: mulf_neq0; last by exact: irr1_neq0).
 apply: (mulIf F2).
-pose r1 (u: 'M[algC]_#|<<G>>|) := gring_row u 0 (gring_index <<G>> 1%g).
-apply: (@etrans _ _ (r1 (e theta1 *m e theta2))); last first.
+pose r1 (u: 'M[algC]_#|G|) := gring_row u 0 (gring_index G 1%g).
+apply: (@etrans _ _ (r1 (e i *m e j))); last first.
   rewrite F1 /=; case: eqP=> [->|_].
-    by rewrite scale1r mul1r /r1 gring_row_e !mxE gring_indexK // invg1.
+    rewrite scale1r mul1r /r1 gring_row_e !mxE gring_indexK // invg1.
+    by rewrite socle_of_IirrE.
   rewrite scale0r mul0r /r1.
-  suff->: @gring_row algC _ <<G>> 0 = 0 by rewrite mxE.
+  suff->: @gring_row algC _ G 0 = 0 by rewrite mxE.
   by apply/rowP=> k; rewrite !mxE.
-pose gr i g := gring_row (e i) 0 (gring_index <<G>> g). 
+pose gr k g := gring_row (e k) 0 (gring_index G g). 
 suff->:
-    r1 (e theta1 *m e theta2) = \sum_(g \in G) gr theta1 g * gr theta2 (g^-1)%g.
+    r1 (e i *m e j) = \sum_(g \in G) gr i g * gr j (g^-1)%g.
   rewrite -mulr_sumr -mulr_suml.
   apply: eq_big=> [g|i1]; first by rewrite /= groupV.
-  have HH: forall (n : nat) (rG : mx_representation algC <<G>> n) (g : gT),
+(*
+  have Hi1: forall (n : nat) (rG : mx_representation algC <<G>> n) (g : gT),
        char_of_repr <<G>> rG (g^-1)%g = (char_of_repr <<G>> rG g)^*.
     by rewrite genGid; exact: char_inv.
+*)
   move=> Hi1.
   rewrite  /gr {1}gring_row_e {1}gring_row_e !mxE !gring_indexK 
-           // ?genGidG // -1?groupV //.
+           // -1?groupV //.
+  rewrite !socle_of_IirrE.
   (* mimicking ring *)
   rewrite invgK; rewrite -!mulrA; congr (_ * _).
   apply: sym_equal; rewrite mulrC -!mulrA; congr (_ * _).
-  have->: (theta2 (i1^-1)%g)^* = theta2 i1.
-    by rewrite HH conjCK.
-  apply: sym_equal; rewrite [theta2 _ * _]mulrC -!mulrA; congr (_ * _).
+  have->: ('xi_j (i1^-1)%g)^* = 'xi_j i1.
+    by rewrite -socle_of_IirrE char_inv conjCK.
+  apply: sym_equal; rewrite ['xi_j _ * _]mulrC -!mulrA; congr (_ * _).
   by rewrite mulrC -!mulrA; congr (_ * _).
-rewrite (eq_bigl (fun g => g \in <<G>>)); last first.
-  by rewrite genGid.
 rewrite /r1 gring_row_mul.
-have F3: (e theta2 \in group_ring algC <<G>>)%MS.
+have F3: (e j \in group_ring algC G)%MS.
   apply: (submx_trans (Wedderburn_id_mem _)).
   by rewrite /Wedderburn_subring genmxE submxMl.
 rewrite -{1}(gring_rowK F3) mxE.
@@ -1826,8 +1805,8 @@ rewrite -{1}(gring_rowK F3) mxE.
 rewrite {1}(reindex (@enum_val _ (fun x=> x \in G))) /=; last first.
   *)
 rewrite {1}(@reindex _ _ (GRing.add_comoid algC) _ _
-     (@enum_val _ (fun x=> x \in <<G>>))) /=; last first.
-  by exists (gring_index <<G>>)=> g Hg;
+     (@enum_val _ (fun x=> x \in G))) /=; last first.
+  by exists (gring_index G)=> g Hg;
         [exact: gring_valK | apply: gring_indexK].
 apply: eq_big=> [g|i1 _]; first by rewrite enum_valP.
 rewrite  /gr !gring_valK; congr (_ * _).
@@ -1836,51 +1815,44 @@ rewrite 2!mxE.
 rewrite {1}(@bigD1 (gring_index G (enum_val i1)^-1)) //=.
   *)
 rewrite {1}(@bigD1 _ _  (GRing.add_comoid algC) _ 
-                        (gring_index <<G>> (enum_val i1)^-1)) //=.
+                        (gring_index G (enum_val i1)^-1)) //=.
 set u := gring_row _ _ _ .
 rewrite {1}big1 ?addr0.
   rewrite !(mxE,mxvecE) gring_indexK; last by rewrite groupV enum_valP.
   by rewrite mulgV !eqxx mulr1.
 move=> i2 Hi2.
 rewrite !(mxE,mxvecE).
-case: (gring_index <<G>> 1 =P _); last by rewrite andbF mulr0.
+case: (gring_index G 1 =P _); last by rewrite andbF mulr0.
 move=> HH; case/negP: Hi2.
-have F5: (enum_val i1 * enum_val i2)%g \in <<G>>.
+have F5: (enum_val i1 * enum_val i2)%g \in G.
   by apply: groupM; exact: enum_valP.
 rewrite -[_^-1%g]mulg1.
-rewrite (can_in_inj (@gring_indexK _ <<G>>) (group1 <<G>>) F5 HH).
+rewrite (can_in_inj (@gring_indexK _ G) (group1 G) F5 HH).
 by rewrite mulgA mulVg mul1g gring_valK.
 Qed.
 
 Lemma irr_second_orthogonal_relation : forall (g h: gT), 
  g \in G -> h \in G ->
- \sum_(theta : irr G) theta g * (theta h)^* =
+ \sum_(i < Nirr G) 'xi_i g * ('xi_i h)^* =
    if g \in (h ^: G) then #|'C_G[h]|%:R else 0.
 Proof.
 move=> g h GiG HiG.
-have F0: forall j, (j < #|irr G| -> j < #|classes G|)%N 
-  by move=> j; rewrite card_irr.
+have F0: forall j, (j < Nirr G -> j < #|classes G|)%N 
+  by move=> j; rewrite NirrE.
 pose x i := Ordinal (F0 _ (ltn_ord i)).
-have G0: forall j, (j < #|classes G| -> j < #|irr G|)%N 
-  by move=> j1; rewrite card_irr.
+have G0: forall j, (j < #|classes G| -> j < Nirr G)%N 
+  by move=> j1; rewrite NirrE.
 pose y i := Ordinal (G0 _ (ltn_ord i)).
 have XY: forall i, x (y i) = i by move=> i; apply/val_eqP.
 have YX: forall i, y (x i) = i by move=> i; apply/val_eqP.
-pose X := \matrix_(i < #|irr G|, j < #|irr G|) 
-  ((enum_val i) (repr (enum_val (x j)))).
-pose Y := \matrix_(i < #|irr G|, j < #|irr G|) 
-  let C := enum_val (x i) in #|C|%:R * (#|G|%:R^-1 * (enum_val j) (repr C))^*.
-have HH: forall (n : nat) (rG : mx_representation algC <<G>> n) (g : gT),
-     char_of_repr <<G>> rG (g^-1)%g = (char_of_repr <<G>> rG g)^*.
-  by rewrite genGid; exact: char_inv.
+pose X := \matrix_(i < Nirr G, j < Nirr G) 
+  ('xi_i (repr (enum_val (x j)))).
+pose Y := \matrix_(i < Nirr G, j < Nirr G) 
+  let C := enum_val (x i) in #|C|%:R * (#|G|%:R^-1 * 'xi_j (repr C))^*.
 have F2: X *m Y = 1%:M.
   apply/matrixP=> i j; rewrite !mxE.
-  have->: (i == j) = (enum_val i == enum_val j).
-    by apply/eqP/eqP; [move-> | exact: enum_val_inj].
   rewrite -irr_first_orthogonal_relation -mulr_sumr cfun_sum; last first.
-    move=> g1 g2 Hg1 Hg2.
-    by rewrite -!HH  -conjVg  !(cfunJ _ (memc_char_of_repr _)) 
-                ?(groupV,genGidG).
+    by move=> g1 g2 Hg1 Hg2; rewrite !(cfunJ _ (memc_irr _)). 
   rewrite (reindex y) /=; last by apply: onW_bij; exists x=> i1; apply/val_eqP.
   rewrite (reindex (@enum_val _ (fun x => x \in classes G))) /=; last first.
     by apply: (enum_val_bij_in (mem_classes (group1 G))).
@@ -1889,7 +1861,7 @@ have F2: X *m Y = 1%:M.
   (* mimicking ring *)
   rewrite mulrC -!mulrA; congr (_ * _).
   rewrite rmorphM fmorphV ?conjC_nat //.
-  by rewrite -mulrA [enum_val i _ * _]mulrC.
+  by rewrite -mulrA ['xi_i _ * _]mulrC.
 have Hi1: #|h ^: G|%:R != 0 :> algC.
   by rewrite -neq0N_neqC (cardsD1 h) class_refl.
 apply: (mulfI (mulf_neq0 Hi1 card_neq0)); rewrite -mulr_sumr.
@@ -1909,79 +1881,74 @@ have<-:  (y (toC h) == y (toC g)) = (g \in h ^: G)=> [|<-].
   move/(can_in_inj (enum_rankK_in (classes1 G)) 
          (mem_classes HiG) (mem_classes GiG))->.
   exact: class_refl.
-rewrite (reindex (fun i: irr G => enum_rank i)); last first.
-  by apply: onW_bij; apply: enum_rank_bij.
 apply: eq_bigr=> t _.
-rewrite !mxE /= !XY  /toC !enum_rankK !enum_rankK_in ?mem_classes //.
+rewrite !mxE /= !XY  /toC !enum_rankK_in ?mem_classes //.
 case: (repr_class G g)=> g1 Hg1->.
 case: (repr_class G h)=> h1 Hh1->.
-rewrite !(cfunJ _ (memc_char_of_repr _)) ?genGidG //.
-rewrite -!mulrA; congr (_ * _).
-by rewrite rmorphM fmorphV ?conjC_nat // -mulrA [t _ * _]mulrC.
+rewrite !(cfunJ _ (memc_irr _)) // -!mulrA; congr (_ * _).
+by rewrite rmorphM fmorphV ?conjC_nat // -mulrA ['xi_t _ * _]mulrC.
 Qed.
 
 Lemma irr_conjugate : forall (g h: gT), g \in G -> h \in G ->
-  reflect (forall theta : irr G, theta g = theta h) (g \in (h ^: G)).
+  reflect (forall i : Iirr G, 'xi_i g = 'xi_i h) (g \in (h ^: G)).
 Proof.
 move=> g h GiG HiG; apply: (iffP idP)=> [HH chi|HH].
   case/imsetP: HH=> x Hx ->.
   by rewrite (cfunJ _ (memc_irr _)).
 move: (irr_second_orthogonal_relation GiG HiG); case: (_ \in _)=> // HH1.
-move: (fun I=> posC_sum_eq0 I HH1).
-have F1:  forall chi : irr G, 
-  (chi \in index_enum (irr_finType G)) && xpredT chi -> 
-     0 <= chi g * (chi h)^*.
-  by move=> chi _; rewrite HH /leC subr0 repC_pconj.
+move: (fun I=> posC_sum_eq0 I HH1) => /=.
+rewrite -[index_enum _]enumT.
+have F1:  forall i : Iirr G, 
+  (i \in enum (ordinal_finType (Nirr G))) && (xpredT i) -> 
+     0 <= 'xi_i g * ('xi_i h)^*.
+  by move=> i _; rewrite HH /leC subr0 repC_pconj.
 case/eqP: (nonzero1r algC).
-move: (posC_sum_eq0 F1 HH1); move/(_ (irr1 G)).
-rewrite !irr1E GiG HiG conjC1 mul1r; apply=> //.
-by rewrite  /index_enum -enumT mem_enum.
+move: (posC_sum_eq0 F1)=> /=.
+move: HH1; rewrite -[index_enum _]enumT => HH1.
+move/(_ HH1); move/(_ 0)=> /=.
+rewrite !cfuniE GiG HiG conjC1 mul1r; apply=> //.
+by rewrite  mem_enum.
 Qed.
 
 (* This corresponds to Isaacs' 6.32 *)
 Lemma action_irr_class_card : 
-  forall (ito : action A (irr G))  (cto : action A {set gT}) a,
+  forall (ito : action A (Iirr G))  (cto : action A {set gT}) a,
     a \in A -> [acts A, on (classes G) | cto] -> 
-   (forall c (theta : irr G),
-       c \in classes G -> theta (repr c) = ito theta a (repr (cto c a))) ->
+   (forall c (i : Iirr G),
+       c \in classes G -> 'xi_i (repr c) = 'xi_(ito i a) (repr (cto c a))) ->
      #|'Fix_ito[a]| = #|'Fix_(classes G| cto)[a]|.
 Proof.
 move=> ito cto a AiA Acto H.
  (* borrowed to the second orthogonality proof *)
-have F0: forall j, (j < #|irr G| -> j < #|classes G|)%N 
-  by move=> j; rewrite card_irr.
+have F0: forall j, (j < Nirr G -> j < #|classes G|)%N 
+  by move=> j; rewrite NirrE.
 pose f i := Ordinal (F0 _ (ltn_ord i)).
-have G0: forall j, (j < #|classes G| -> j < #|irr G|)%N 
-  by move=> j1; rewrite card_irr.
+have G0: forall j, (j < #|classes G| -> j < Nirr G)%N 
+  by move=> j1; rewrite NirrE.
 pose g i := Ordinal (G0 _ (ltn_ord i)).
 have FG: forall i, f (g i) = i by move=> i; apply/val_eqP.
 have GF: forall i, g (f i) = i by move=> i; apply/val_eqP.
-pose X := \matrix_(i < #|irr G|, j < #|irr G|) 
-  ((enum_val i) (repr (enum_val (f j)))).
-pose Y := \matrix_(i < #|irr G|, j < #|irr G|) 
-  (let C := enum_val (f i) in #|C|%:R * (#|G|%:R^-1 * (enum_val j) (repr C))^*).
-have Hc: forall (n : nat) (rG : mx_representation algC <<G>> n) (g : gT),
-     char_of_repr <<G>> rG (g^-1)%g = (char_of_repr <<G>> rG g)^*.
-  by rewrite genGid; exact: char_inv.
+pose X := \matrix_(i < Nirr G, j < Nirr G) 
+  (('xi_i) (repr (enum_val (f j)))).
+pose Y := \matrix_(i < Nirr G, j < Nirr G) 
+  (let C := enum_val (f i) in #|C|%:R * (#|G|%:R^-1 * ('xi_j) (repr C))^*).
 have F2: X *m Y = 1%:M.
   apply/matrixP=> i j; rewrite !mxE.
-  have->: (i == j) = (enum_val i == enum_val j).
-    by apply/eqP/eqP; [move-> | exact: enum_val_inj].
   rewrite -irr_first_orthogonal_relation -mulr_sumr cfun_sum; last first.
     move=> g1 g2 Hg1 Hg2.
-    by rewrite -!Hc -conjVg !(cfunJ _ (memc_irr _)) ?groupV.
+    by rewrite !(cfunJ _ (memc_irr _)) ?groupV.
   rewrite (reindex g) /=; last by apply: onW_bij; exists f=> i1; apply/val_eqP.
   rewrite (reindex (@enum_val _ (fun x => x \in classes G))) /=; last first.
     by apply: (enum_val_bij_in (mem_classes (group1 G))).
   apply: eq_big=> [i1|i1 _]; first by rewrite enum_valP.
   rewrite !mxE /= FG mulrC -!mulrA; congr (_ * _).
-  by rewrite rmorphM fmorphV ?conjC_nat // -mulrA [enum_val i _ * _]mulrC.
+  by rewrite rmorphM fmorphV ?conjC_nat // -mulrA ['xi_i _ * _]mulrC.
  (****************************************)
 pose Pa : 'M[algC]_ _ := 
-  \matrix_(i < #|irr G|, j < #|irr G|) (ito (enum_val i) a == (enum_val j))%:R.
+  \matrix_(i < Nirr G, j < Nirr G) (ito i a == j)%:R.
 apply/eqP; rewrite eqN_eqC.
 have <-: \tr Pa = #|'Fix_ito[a]|%:R.
-  rewrite /mxtrace (bigID (fun u => (enum_val u) \in 'Fix_ito[a])) /=.
+  rewrite /mxtrace (bigID (fun u => u \in 'Fix_ito[a])) /=.
   rewrite (eq_bigr (fun u => 1%:R)); last first.
     move=> i; rewrite inE mxE; move/subsetP=> Hi.
     case: eqP=> // Hv; case: Hv; apply/eqP.
@@ -1990,11 +1957,9 @@ have <-: \tr Pa = #|'Fix_ito[a]|%:R.
     move=> i; rewrite inE mxE; move/subsetP=> Hi.
     by case: eqP=> // Hv; case: Hi=> b; rewrite !inE; move/eqP->; rewrite Hv.
   rewrite -mulr_natl mulr1 /= -(card_imset  (pred_of_set 'Fix_ito[a]) (@enum_rank_inj _)).
-  apply/eqP; rewrite -eqN_eqC; apply/eqP; apply: eq_card=> i.
-  apply/idP/imsetP; first by move=> j; exists (enum_val i)=> //; rewrite enum_valK.
-  by case=> j Hj ->; rewrite /in_mem /= enum_rankK.
+  by apply/eqP; rewrite -eqN_eqC; apply/eqP; apply: eq_card=> i.
 pose Qa : 'M[algC]_ _ := 
-  \matrix_(i < #|irr G|, j < #|irr G|) (cto (enum_val (f i)) a == (enum_val (f j)))%:R.
+  \matrix_(i < Nirr G, j < Nirr G) (cto (enum_val (f i)) a == (enum_val (f j)))%:R.
 have <-: \tr Qa = #|'Fix_(classes G | cto)[a]|%:R.
   rewrite /mxtrace (bigID (fun u => (enum_val (f u)) \in 'Fix_(classes G | cto)[a])) /=.
   rewrite (eq_bigr (fun u => 1%:R)); last first.
@@ -2024,8 +1989,10 @@ have [otc H1co H2co]: bijective (cto ^~a).
   apply: injF_bij; apply: act_inj.
 have Hv : otc (enum_val (f v)) \in classes G.
   by rewrite -(acts_act Acto AiA) H2co enum_valP.
-pose i1 := enum_rank (ito (enum_val u) a). 
-have Hi1: ito (enum_val u) a = enum_val i1 by rewrite enum_rankK.
+pose i1 := ito u a. 
+(*
+have Hi1: ito u a = enum_val i1 by rewrite enum_rankK.
+*)
 pose j1 := g (enum_rank_in (classes1 G) (otc (enum_val (f v)))).
 have Hj1: cto (enum_val (f j1)) a = enum_val (f v).
   by rewrite FG enum_rankK_in ?H2co.
@@ -2035,12 +2002,12 @@ rewrite (bigD1 j1) // big1 /= ?addr0 => [|i Dii1]; last first.
  (* too slow ! 
 rewrite (bigD1 i1) // big1 /= ?addr0=> [|i Dii1]; last first.
  *)
- have->: \sum_(j < #|irr G|) Pa u j * X j v = Pa u i1 * X i1 v.
+have->: \sum_(j < Nirr G) Pa u j * X j v = Pa u i1 * X i1 v.
   rewrite {1}(bigD1 i1) // big1 /= ?addr0=> [|i Dii1] //.
-  rewrite !mxE; case: eqP; rewrite ?mul0r // Hi1.
-  by move/enum_val_inj=> HH; case/eqP: Dii1.
-rewrite !mxE Hi1 Hj1 !(eqxx, mulr1, mul1r).
-by rewrite H FG enum_rankK_in // H2co  enum_rankK.
+  rewrite !mxE; case: eqP; rewrite ?mul0r // => HH.
+  by case/negP: Dii1; rewrite -HH.
+rewrite !mxE Hj1 !(eqxx, mulr1, mul1r).
+by rewrite H FG enum_rankK_in // H2co.
 Qed.
 
 End OrthogonalRelations.
@@ -2052,23 +2019,23 @@ Variable (gT : finGroupType) (G : {group gT}).
 Let card_neq0 : #|G|%:R^-1 != 0 :> algC.
 Proof. by rewrite invr_eq0 neq0GC. Qed.
 
-Lemma irr_orthonormal : forall (theta1 theta2: irr G),
-   '[theta1,theta2]_G = (theta1 == theta2)%:R.
+Lemma irr_orthonormal : forall (i j: Iirr G),
+   '['xi_i,'xi_j]_G = (i == j)%:R.
 Proof. by move=> *; rewrite -irr_first_orthogonal_relation. Qed.
 
-Lemma ncoord_inner_prod : forall A (f : {cfun _}) (theta : irr G),
-   f \in 'CF(G,A) -> ncoord theta f = '[f,theta]_G.
+Lemma ncoord_inner_prod : forall A (f : {cfun _}) (i : Iirr G),
+   f \in 'CF(G,A) -> ncoord i f = '[f,'xi_i]_G.
 Proof.
-move=> A f theta FiC.
+move=> A f i FiC.
 rewrite {2}(ncoord_sum FiC) -inner_prodbE linear_sum.
-by rewrite (bigD1 theta) // big1=> [|j Hj]; 
+by rewrite (bigD1 i) // big1=> [|j Hj]; 
    rewrite /= ?addr0 linearZ /= inner_prodbE irr_orthonormal;
     [rewrite eqxx /GRing.scale /= mulr1|rewrite (negPf Hj) scaler0].
 Qed.
 
 Lemma inner_prod_cf : forall A (f1 f2 : {cfun gT}),
    f1 \in 'CF(G,A)-> f2 \in  'CF(G,A)->
-   '[f1, f2]_G = \sum_(theta: irr G) ncoord theta f1 * (ncoord theta f2)^* .
+   '[f1, f2]_G = \sum_(i < Nirr G) ncoord i f1 * (ncoord i f2)^* .
 Proof.
 move=> A f1 f2; case/(ncoord_sum)=>{1}->;case/(ncoord_sum)=>{1}->.
 rewrite -inner_prodbE {1}linear_sum /=.
@@ -2081,7 +2048,7 @@ Qed.
 Lemma inner_prod_char : forall chi1 chi2,  
   is_char G chi1 -> is_char G chi2 ->
    '[chi1,chi2]_G = 
-       \sum_(theta : irr G) (ncoord theta chi1) * (ncoord theta chi2).
+       \sum_(i < Nirr G) (ncoord i chi1) * (ncoord i chi2).
 Proof.
 move=> ch1 ch2 IC1 IC2.
 rewrite (inner_prod_cf (memc_is_char IC1) (memc_is_char IC2)).
@@ -2104,15 +2071,15 @@ move=> chi1 chi2 IC1 IC2.
 by rewrite !inner_prod_char //; apply: eq_bigr=> i _; rewrite mulrC.
 Qed.
 
-Lemma is_irr_inner_prod_charE : forall chi,
-  is_char G chi -> is_irr G chi = ('[chi, chi]_G == 1).
+Lemma irr_inner_prod_charE : forall chi,
+  is_char G chi -> chi \in irr G = ('[chi, chi]_G == 1).
 Proof.
-move=> chi IC; apply/is_irrP/eqP=> [[theta ->]|].
+move=> chi IC; apply/irrIP/eqP=> [[i <-]|].
   by rewrite irr_orthonormal eqxx.
 rewrite inner_prod_char //.
 case/is_char_cbP: (IC)=> n Hchi HH.
 case: (isNatC_sum_eq1 _ _ HH).
-- move=> theta _; apply: isNatC_mul;
+- move=> i _; apply: isNatC_mul;
      rewrite Hchi linear_sum isNatC_sum //= => j _; rewrite linearZ /= ?ncoord_irr;
        apply: isNatC_mul; apply: isNatC_nat.
 - by rewrite /index_enum -enumT; exact: enum_uniq.
@@ -2120,9 +2087,9 @@ move=> t [Htn _ HF HG]; exists t.
 apply/val_eqP=> /=; apply/eqP.
 rewrite (ncoord_sum (memc_is_char IC)).
 rewrite (bigD1 t) //= big1 ?addr0=> [|t' Ht']; last first.
-  have F1: t' \in index_enum (irr_finType G).
-    rewrite /index_enum -enumT.
-    apply/(nthP (irr1 G)); exists (enum_rank t')=> //.
+  have F1: t' \in index_enum (ordinal_finType (Nirr G)).
+    rewrite -[index_enum _]enumT.
+    apply/(nthP 0); exists (enum_rank t')=> //.
       case: enum_rank=> /= m; first by rewrite cardT /=.
     by apply/val_eqP; rewrite nth_enum_rank.
   move: (HG _ Ht' F1 is_true_true); move/eqP; rewrite mulf_eq0.
@@ -2132,25 +2099,13 @@ move: HH1; rewrite -natr_mul -(eqN_eqC _ 1); case: m=> //; case => //.
 by rewrite scale1r.
 Qed.
 
-Lemma is_irr_conjC : forall (theta : irr G),  is_irr G (theta^*)%CH.
+Lemma irr_conjC : forall (i: Iirr G),  (('xi_i)^*)%CH \in irr G.
 Proof.
-move=> theta; rewrite is_irr_inner_prod_charE; last first.
+move=> i; rewrite irr_inner_prod_charE; last first.
   by apply: is_char_conjC; exact: is_char_irr.
 rewrite cfun_conjC_inner.
 rewrite -conjC1; apply/eqP; congr (_^*); apply/eqP.
-by rewrite -is_irr_inner_prod_charE ?(is_irr_irr, is_char_irr).
-Qed.
- 
-Definition irr_conjC (G : {group gT}) (theta : irr G) := 
-  get_irr G (theta^*)%CH.
-
-Lemma irr_conjCE : forall theta : irr G,
-  irr_conjC theta = (theta^*)%CH :> {cfun _}.
-Proof. by move=> i; rewrite get_irrE // is_irr_conjC. Qed.
-
-Lemma irr_conjCK : involutive (@irr_conjC G).
-Proof.
-by move=> i; apply: cfun_of_irr_inj; rewrite !irr_conjCE cfun_conjCK.
+by rewrite -irr_inner_prod_charE ?(irr_xi,is_char_irr).
 Qed.
 
 End InnerProduct.
@@ -2160,11 +2115,11 @@ Section MoreInnerProd.
 Variable gT : finGroupType.
 
 Lemma is_comp_inner_prod_le : 
-  forall (G  H : {group gT}) (theta : irr H) (chi : irr G) psi,
-  is_char G psi -> H \subset G -> is_comp chi psi -> 
-    '['Res[H] chi, theta]_H <= '['Res[H] psi, theta]_H.
+  forall (G  H : {group gT}) (i : Iirr H) (j : Iirr G) psi,
+  is_char G psi -> H \subset G -> is_comp j psi -> 
+    '['Res[H]  'xi_j, 'xi_i]_H <= '['Res[H] psi, 'xi_i]_H.
 Proof.
-move=> G H theta chi psi IC HsG.
+move=> G H i j psi IC HsG.
 case/(is_comp_charP _ IC)=> chi' IC' ->.
 rewrite linearD -!inner_prodbE linearD /= !inner_prodbE.
 rewrite addrC -leC_sub addrK.
@@ -2175,18 +2130,18 @@ by apply: (is_char_restrict HsG).
 Qed.
 
 Lemma is_comp_restrict :
-  forall (G H : {group gT}) (theta : irr H) (chi : irr G) psi,
-    is_char G psi -> H \subset G -> is_comp chi psi -> 
-    is_comp theta ('Res[H] chi) -> is_comp theta ('Res[H] psi).
+  forall (G H : {group gT}) (i : Iirr H) (j : Iirr G) psi,
+    is_char G psi -> H \subset G -> is_comp j psi -> 
+    is_comp i ('Res[H] 'xi_j) -> is_comp i ('Res[H] psi).
 Proof.
-move=> G H theta chi psi IC HsG Cchi Ctheta.
-have CC := is_comp_inner_prod_le theta IC HsG Cchi.
+move=> G H i j psi IC HsG Cj Ci.
+have CC := is_comp_inner_prod_le i IC HsG Cj.
 have FF := (memc_restrict HsG (memc_is_char IC)).
 rewrite is_compE (ncoord_inner_prod _ FF).
-have CF1 : 'Res[H] chi \in 'CF(H).
+have CF1 : 'Res[H] 'xi_j \in 'CF(H).
   by apply: (memc_restrict HsG (memc_irr _)).
 apply/negP=> HH.
-move: Ctheta.
+move: Ci.
 rewrite is_compE (ncoord_inner_prod _ CF1) //.
 case/eqP; apply: leC_anti; first by rewrite -(eqP HH) //.
 rewrite -(ncoord_inner_prod _ CF1) // posC_isNatC // isNatC_ncoord_char //.
@@ -2215,9 +2170,9 @@ rewrite /cker genGid; case: (boolP (is_char G chi))=> [IC|_]; last first.
 by rewrite inE; case/andP=> _; move/eqP.
 Qed.
 
-Lemma cker_irrE : forall (theta : irr G),
-  cker G theta = [set g \in G | theta g == theta 1%g].
-Proof.  by move=> t; rewrite /cker genGid is_char_irr. Qed.
+Lemma cker_irrE : forall (i : Iirr G),
+  cker G 'xi_i = [set g \in G | 'xi_i g == 'xi_i 1%g].
+Proof.  by move=> i; rewrite /cker genGid is_char_irr. Qed.
 
 Lemma cker_NcharE : forall f, ~is_char G f -> cker G f = 1%G.
 Proof. by move=> f Hf; rewrite /cker genGid; move/eqP: Hf; case: is_char. Qed.
@@ -2236,7 +2191,7 @@ Qed.
 Lemma ckerE : forall chi,
   is_char G chi -> 
   cker G chi = if chi == 0 then (G : {set _}) else
-               \bigcap_(theta : irr G | is_comp theta chi) cker G theta.
+               \bigcap_(i < Nirr G | is_comp i chi) cker G 'xi_i.
 Proof.
 move=> chi IC; rewrite cker_charE //.
 case: eqP=> [->|].
@@ -2257,14 +2212,14 @@ rewrite NS !sum_ffunE !ffunE.
 move/eqP=> Hs t; rewrite cker_irrE // !inE InG.
 have->:
    [ffun x : gT => 
-                  \sum_(t:irr G) (ncoord t chi *: t%:CF) x] = chi.
+                  \sum_(i < Nirr G) (ncoord i chi *: 'xi_i) x] = chi.
   by apply/ffunP=> x; rewrite ffunE {2}NS sum_ffunE ffunE.
 move=> Hd.
-pose c := ncoord t chi *: t%:CF. 
+pose c := ncoord t chi *: 'xi_t. 
 have F: c g =  c 1%g.
   have F1: 0 <= ncoord t chi by apply: posC_isNatC; rewrite isNatC_ncoord_char.
   apply: (normC_sum_upper _ Hs)=> [t' Ht'|]; last first.
-    by rewrite /index_enum -enumT mem_enum.
+    by rewrite -[index_enum _]enumT mem_enum.
   have F2: 0 <= ncoord t' chi
     by apply: posC_isNatC; rewrite isNatC_ncoord_char.
   rewrite ffunE [_ 1%g]ffunE !normC_mul //.
@@ -2274,12 +2229,12 @@ apply/eqP; apply: (mulfI Hd).
 by move: F; rewrite /c ffunE [_ 1%g]ffunE.
 Qed. 
 
-Lemma cker_all1 : \bigcap_(theta : irr G) cker G theta = 1%G.
+Lemma cker_all1 : \bigcap_(i < Nirr G) cker G 'xi_i = 1%G.
 Proof.
 apply/setP=> g; apply/idP/idP; rewrite inE; last first.
   move/eqP->; apply/bigcapP=> i _.
   by rewrite cker_irrE // inE group1 eqxx.
-have F1: (\bigcap_(theta : irr G) cker G theta) \subset cker G (reg_cfun G).
+have F1: (\bigcap_(i < Nirr G) cker G 'xi_i) \subset cker G (reg_cfun G).
   rewrite ckerE ?is_char_reg //.
   case: eqP=> Heq.
     have: reg_cfun G 1%g = 0 by rewrite Heq ffunE.
@@ -2292,11 +2247,11 @@ case/andP=> InG; rewrite eqxx; case: (g == 1%g)=> //.
 by rewrite eq_sym (negPf (neq0GC G)).
 Qed.
 
-Lemma is_comp_cker : forall (theta : irr G) chi,
-  is_char G chi -> is_comp theta chi -> cker G chi \subset cker G theta.
+Lemma is_comp_cker : forall (i : Iirr G) chi,
+  is_char G chi -> is_comp i chi -> cker G chi \subset cker G 'xi_i.
 Proof.
-move=> theta chi IC HC.
-rewrite ckerE //; case: eqP=> HH; last by apply: (bigcap_min theta).
+move=> i chi IC HC.
+rewrite ckerE //; case: eqP=> HH; last by apply: (bigcap_min i).
 by case/eqP: HC; rewrite HH ncoord0.
 Qed.
 
@@ -2465,7 +2420,7 @@ rewrite /cker genGid F1 inE GiG !cfunqE ?group1 //.
 by apply: (subsetP (normal_norm HN)).
 Qed.
 
-Lemma cfunq_id : forall (G N : {group gT}) f,
+Lemma cfunqK : forall (G N : {group gT}) f,
  is_char (G/N)%G f -> N <| G -> (f^()/ N)%CH = f.
 Proof.
 move=> G N f Cf HN.
@@ -2481,7 +2436,7 @@ rewrite (@qfuncE G) //  cfunqE //.
 by apply: (subsetP (normal_norm HN)).
 Qed.
 
-Lemma qfunc_id : forall (G N : {group gT}) f,
+Lemma qfuncK : forall (G N : {group gT}) f,
  is_char G f -> N <| G -> N \subset cker G f -> ((f/N)^())%CH = f.
 Proof.
 move=> G N f Cf HN Hc.
@@ -2495,17 +2450,17 @@ rewrite cfunqE ?(@qfuncE G) //.
 by apply: (subsetP (normal_norm HN)).
 Qed.
 
-Lemma qfunc_irr : forall (G N : {group gT}) (theta : irr G),
- N <| G -> N \subset cker G theta -> is_irr (G/N)%G (theta/N)%CH.
+Lemma irr_qfunc : forall (G N : {group gT}) (i : Iirr G),
+ N <| G -> N \subset cker G 'xi_i -> ('xi_i/N)%CH \in irr (G/N)%G.
 Proof.
-move=> G N theta.
-case: (irr_reprE theta)=> i -> NnG.
+move=> G N i.
+case/irrP: (irr_xi i)=> j <- NnG.
 rewrite char_rkerP=> Cf.
 pose rG := quo_repr Cf (normal_norm NnG).
-apply/is_irr_reprP.
+apply/irrIP.
 pose sG := DecSocleType (regular_repr algC (G/N)%G).
-exists (irr_comp sG rG).
-apply/ffunP=> x.
+exists (irr_of_socle (irr_comp sG rG)).
+apply/ffunP=> x;rewrite irr_of_socleE.
 have F1: mx_irreducible rG.
   by apply/quo_mx_irr=> //; apply: socle_irr.
 have F2: ([char algC]^').-group (G / N)%G.
@@ -2515,17 +2470,18 @@ move/char_of_repr_rsimP; move/eqP<-.
 by rewrite /rG !ffunE repr_quo_fact1.
 Qed.
 
-Lemma cfunq_irr : forall (G N : {group gT}) (theta : irr (G/N)%G),
- N <| G ->  is_irr G (theta^())%CH.
+Lemma irr_cfunq : forall (G N : {group gT}) (i : Iirr (G/N)%G),
+ N <| G ->  (('xi_i)^())%CH \in irr G.
 Proof.
-move=> G N theta; case: (irr_reprE theta)=> i -> NnG.
-pose rG := coset_repr (irr_repr i) NnG.
+move=> G N i; case/irrP: (irr_xi i)=> j <- NnG.
+pose rG := coset_repr (irr_repr j) NnG.
 pose sG := DecSocleType (regular_repr algC G).
-apply/is_irr_reprP; exists (irr_comp sG rG).
+apply/irrIP; exists (irr_of_socle (irr_comp sG rG)).
+rewrite irr_of_socleE.
 apply/ffunP=> x.
 have F1: mx_irreducible rG.
-  apply/(quo_mx_irr (coset_repr_rker (irr_repr i) NnG) (normal_norm NnG)).
-  apply: (mx_rsim_irr (mx_rsim_sym (rsim_quo_coset (irr_repr i) NnG))).
+  apply/(quo_mx_irr (coset_repr_rker (irr_repr j) NnG) (normal_norm NnG)).
+  apply: (mx_rsim_irr (mx_rsim_sym (rsim_quo_coset (irr_repr j) NnG))).
   by apply: socle_irr.
 move/(rsim_irr_comp sG (pGroupG G)): F1.
 move/char_of_repr_rsimP; move/eqP<-.
@@ -2533,69 +2489,77 @@ rewrite /rG !ffunE.
 by rewrite  mulrA -natr_mul mulnb repr_quo_fact2.
 Qed.
 
-Definition cirrq (G H : {group gT}) (theta : irr (G/H)%G) := 
-  get_irr G (theta^())%CH.
-
-Lemma cirrqE : forall (G H : {group gT}) (theta : irr (G/H)%G), 
-  H <| G -> cirrq theta = (theta^())%CH :> {cfun _}.
-Proof. by move=> *; rewrite /cirrq get_irrE // cfunq_irr. Qed.
-
-Definition qirrc (G H : {group gT}) (theta : irr G) := 
-  get_irr (G/H)%G (theta/H)%CH.
-
-Lemma qirrcE : forall (G H : {group gT}) (theta : irr G), 
- H <| G  -> H \subset cker G theta -> qirrc H theta = (theta/H)%CH :> {cfun _}.
-Proof. by move=> *; rewrite /qirrc get_irrE // qfunc_irr. Qed.
-
-Lemma cirrqK : forall (G H : {group gT}),
-  H <| G -> cancel (@cirrq G H) (@qirrc G H).
-Proof.
-move=> G H HnG theta; apply: cfun_of_irr_inj.
-have F1 := is_char_irr theta.
-by rewrite qirrcE // cirrqE ?cker_cfunq // (cfunq_id F1).
-Qed.
-
-Lemma qirrcK : forall (G H : {group gT}) (theta : irr G),
-  H <| G ->  H \subset cker G theta -> cirrq (qirrc H theta) = theta.
-Proof.
-move=> G H theta HnG Hi; apply: cfun_of_irr_inj.
-have F1 := is_char_irr theta.
-by rewrite cirrqE // qirrcE // (qfunc_id F1).
-Qed.
-
 Lemma norm_cap_cker : forall (G N : {group gT}), N <| G ->  
-   N = \bigcap_(t : irr G | N \subset cker G t) (cker G t) :> {set _}.
+   N = \bigcap_(i < Nirr G | N \subset cker G 'xi_i) (cker G 'xi_i) :> {set _}.
 Proof.
 move=> G N NnG; apply/eqP; rewrite eqEsubset; apply/andP; split.
   by  apply/bigcapsP.
 apply/subsetP=> g; move/bigcapP=> Hg.
 have InG : g \in G.
-  case/is_irrP: (cfunq_irr (irr1 _) NnG)=> j Hj.
-  apply: (subsetP (cker_sub G j)). 
-  by apply: Hg; rewrite -Hj; apply: cker_cfunq=>//; exact: is_char_irr.
+  case/irrIP: (irr_cfunq 0 NnG)=> j Hj.
+  apply: (subsetP (cker_sub G 'xi_j)). 
+  apply: Hg; rewrite Hj; apply: cker_cfunq=>//; exact: is_char_irr.
 have InN: g \in 'N(N) by apply: (subsetP (normal_norm NnG)).
-suff: coset N g \in \bigcap_(t : irr (G/N)%G) cker (G/N)%G t.
+suff: coset N g \in \bigcap_(i < Nirr (G/N)%G) cker (G/N)%G 'xi_i.
   by rewrite cker_all1; move/set1P; move/coset_idr; apply.
 apply/bigcapP=> i _.
-case/is_irrP: (cfunq_irr i NnG)=> j Hj.
-have: g \in cker G j by apply: Hg; rewrite -Hj cker_cfunq // is_char_irr.
+case/irrIP: (irr_cfunq i NnG)=> j Hj.
+have: g \in cker G 'xi_j by apply: Hg; rewrite Hj cker_cfunq // is_char_irr.
 rewrite /cker !genGid !(is_char_irr) !inE -(repr_quo_fact2 _ NnG) InN.
-rewrite -Hj !cfunqE ?group1 //.
+rewrite Hj !cfunqE ?group1 //.
 suff->: coset N 1%g  = 1%g by [].
 by apply: coset_id; exact: group1.
 Qed.
 
+Definition cirrq (G H : {group gT}) (i : Iirr (G/H)%G) := 
+  irr_of_socle (socle_of_cfun G (('xi_i) ^())%CH).
+
+Lemma cirrqE : forall (G H : {group gT}) (i : Iirr (G/H)%G), 
+  H <| G -> 'xi_(cirrq i) = ('xi_i)^()%CH.
+Proof. 
+move=> G H i HnG; case/irrP: (irr_cfunq i HnG)=> j Hj.
+by rewrite /cirrq -Hj socle_of_cfunE irr_of_socleE Hj.
+Qed.
+
+Definition qirrc (G H : {group gT}) (i : Iirr G) := 
+  irr_of_socle (socle_of_cfun (G/H)%G (('xi_i) / H)%CH).
+
+Lemma qirrcE : forall (G H : {group gT}) (i : Iirr G), 
+  H <| G -> H \subset cker G 'xi_i -> 'xi_(qirrc H i) = (('xi_i)/H)%CH.
+Proof.
+move=> G H i HnG HsC; case/irrP: (irr_qfunc HnG HsC)=> j Hj.
+by rewrite /qirrc -Hj socle_of_cfunE irr_of_socleE Hj.
+Qed.
+
+Lemma cirrqK : forall (G H : {group gT}),
+  H <| G -> cancel (@cirrq G H) (@qirrc G H).
+Proof.
+move=> G H HnG i.
+apply: xi_inj; rewrite qirrcE // cirrqE ?cker_cfunq //.
+  rewrite (cfunqK (is_char_irr _)) //.
+by exact: is_char_irr.
+Qed.
+
+Lemma qirrcK : forall (G H : {group gT}) (i : Iirr G),
+  H <| G ->  H \subset cker G 'xi_i -> cirrq (qirrc H i) = i.
+Proof.
+move=> G H i HnG HsC; apply: xi_inj.
+have Ii := is_char_irr i.
+by rewrite cirrqE // qirrcE // (qfuncK Ii).
+Qed.
+
 Lemma sum_norm_quo : forall (H G : {group gT}) g,
    g \in G -> H <| G ->
-    \sum_(t : irr (G/H)%G) (t (coset H g)) * (t (coset H g))^* =
-    \sum_(t : irr G | H \subset cker G t) (t g) * (t g)^*.
+    \sum_(i < Nirr (G/H)%G) ('xi_i (coset H g)) * ('xi_i (coset H g))^* =
+    \sum_(i < Nirr G | H \subset cker G 'xi_i) ('xi_i g) * ('xi_i g)^*.
 Proof.
 move=> H G g GiG HnG.
 rewrite (reindex (@cirrq G H)) //=.
-apply: eq_big=> i'; first by rewrite cirrqE // cker_cfunq // is_char_irr.
+  apply: eq_big=> i.
+    by rewrite cirrqE // cker_cfunq // is_char_irr.
   by move=> _; rewrite cirrqE // cfunqE // (subsetP (normal_norm HnG)).
-exists (qirrc H)=> i' HH; first by apply: cirrqK.
-by apply: qirrcK.
+exists (@qirrc G H)=> i; rewrite !inE => HH; first by rewrite cirrqK //.
+by rewrite qirrcK.
 Qed.
 
 Lemma norm_cker : forall (G N : {group gT}), N <| G ->  
@@ -2621,39 +2585,40 @@ Section Derive.
 
 Variable gT : finGroupType.
 
-Lemma clinear_commutator_irr : forall (G : {group gT}) (theta : irr G),
-  clinear G theta = (G^`(1) \subset cker G theta)%g.
+Lemma clinear_commutator_irr : forall (G : {group gT}) (i : Iirr G),
+  clinear G 'xi_i = (G^`(1) \subset cker G 'xi_i)%g.
 Proof.
-move=> G theta; apply/idP/idP=> [|NN]; first by apply: clinear_commutator.
-case/is_irrP: (qfunc_irr (der_normal 1 G) NN)=> j Hj.
+move=> G i; apply/idP/idP=> [|GsC]; first by apply: clinear_commutator.
 have F1 : abelian (G/G^`(1)) := der_abelian 0 G.
-move/char_abelianP: F1; move/(_ j)=> HH.
+move/char_abelianP: F1; move/(_ (qirrc (G^`(1))%G i))=> HH.
 rewrite /clinear genGid is_char_irr.
-rewrite -(qfunc_id (is_char_irr _) (der_normal 1 G) NN).
-rewrite cfunqE ?group1 //  Hj.
-suff->: coset (G^`(1))%G 1%g = 1%g by case/andP: HH.
-by apply: coset_id; exact: group1.
+rewrite -(qfuncK (is_char_irr _) (der_normal 1 G) GsC).
+rewrite cfunqE ?group1 //.
+have->: coset (G^`(1))%G 1%g = 1%g.
+  by apply: coset_id; exact: group1.
+by case/andP: HH; rewrite qirrcE // der_normal.
 Qed.
 
 (* This corresponds to Isaacs' 2.23(a) *) 
 Lemma derive_at_cap : forall (G : {group gT}),
-   (G^`(1) = \bigcap_(t : irr G | clinear G t) cker G t)%g.
+   (G^`(1) = \bigcap_(i < Nirr G | clinear G 'xi_i) cker G 'xi_i)%g.
 Proof.
 move=> G; rewrite (norm_cap_cker (der_normal 1 G)).
-by apply: eq_bigl=> t; rewrite clinear_commutator_irr.
+by apply: eq_bigl=> i; rewrite clinear_commutator_irr.
 Qed.
 
 (* Isaacs' 2.23(b) *)
 Lemma card_linear : forall (G : {group gT}),
-  #|[pred theta : irr G | clinear G theta]| = #|G : G^`(1)%g|.
+  #|[pred i : Iirr G | clinear G 'xi_i]| = #|G : G^`(1)%g|.
 Proof.
 move=> G.
 have F1 := der_normal 1 G.
 rewrite -card_quotient ?normal_norm //.
 move: (der_abelian 0 G); rewrite card_classes_abelian; move/eqP<-. 
-rewrite -card_irr.
+rewrite -NirrE.
 have->: (G^`(0) = G)%G by apply/val_eqP=> //.
-rewrite -(card_imset _ (can_inj (cirrqK F1))) //.
+rewrite -[X in _ = X]card_ord.
+rewrite -(card_imset _ (can_inj (cirrqK F1))).
 apply: eq_card=> i.
 rewrite !inE clinear_commutator_irr.
 apply/idP/imsetP=> [HH|[j H1 ->]]; last first.
@@ -2670,7 +2635,7 @@ move: (irr_second_orthogonal_relation InG InG); rewrite class_refl => <-.
 have InN : coset N g \in (G/N)%g by apply: mem_quotient.
 move: (irr_second_orthogonal_relation InN InN); rewrite class_refl => <-.
 rewrite sum_norm_quo //.
-rewrite [\sum_i(_)](bigID (fun theta : irr G => N \subset cker G theta)) //=.
+rewrite [\sum_i(_)](bigID (fun i : Iirr G => N \subset cker G 'xi_i)) //=.
 rewrite -{1}[\sum_(i|_)(_)]addr0 leC_add2l.
 apply: posC_sum=> i _.
 by rewrite /leC subr0; exact: repC_pconj.
@@ -2746,10 +2711,10 @@ case/is_charP: Hf=> n [rG <-]; rewrite char_rcenterP //.
 by exact: rcenter_group_set.
 Qed.
 
-Lemma irr_ccenterE : forall (theta : irr G) g,
-  g \in G -> g \in ccenter G theta = (normC (theta g) == theta 1%g).
+Lemma irr_ccenterE : forall (i : Iirr G) g,
+  g \in G -> g \in ccenter G 'xi_i = (normC ('xi_i g) == 'xi_i 1%g).
 Proof.
-by move=> t g GiG; rewrite /ccenter genGid (is_char_irr t) inE GiG.
+by move=> i g GiG; rewrite /ccenter genGid (is_char_irr i) inE GiG.
 Qed.
 
 Lemma char_ccenterE : forall chi g,
@@ -2774,10 +2739,10 @@ Canonical Structure ccenter_group f := Group (ccenter_group_set f).
 (* Isaacs' 2.27b *)
 Lemma ccenter_sub : forall f, ccenter G f \subset G.
 Proof.
-move=> f; case: (boolP (is_char G f))=> Hf; last first.
-  rewrite /ccenter genGid (negPf Hf).
-  by apply/subsetP=> g; rewrite inE; move/eqP->; exact: group1.
-by rewrite /ccenter genGid Hf; apply/subsetP=> g; rewrite inE; case/andP.
+move=> f; case: (boolP (is_char G f))=> Hf.
+  by rewrite /ccenter genGid Hf; apply/subsetP=> g; rewrite inE; case/andP.
+rewrite /ccenter genGid (negPf Hf).
+by apply/subsetP=> g; rewrite inE; move/eqP->; exact: group1.
 Qed.
 
 Lemma cker_center_normal : forall f, cker G f <| ccenter G f.
@@ -2812,16 +2777,16 @@ Lemma ccenter_restrict : forall chi,
 Proof.
 move=> chi.
 case: (boolP (is_char G chi))=> IC; last first.
-  rewrite /ccenter genGid (negPf IC).
-  exists (irr1 1%G).
-    by rewrite /clinear genGid is_char_irr irr1E group1 eqxx.
-   apply/ffunP=> g; case: (boolP (g \in 1%G)); last first.
-     rewrite 3!ffunE genGid.
-     by move/negPf->; rewrite !mul0r scaler0.
-   by move/set1gP->; rewrite 2!ffunE irr1E group1 mul1r [_ *: _]mulr1.
+  rewrite /ccenter genGid (negPf IC) //.
+  exists ('1_1%G).
+    by rewrite /clinear /cfuni {1}genGid is_char1 genGid ffunE group1 eqxx.
+  apply/ffunP=> g; case: (boolP (g \in 1%G)); last first.
+    rewrite 3!ffunE genGid.
+    by move/negPf->; rewrite !mul0r scaler0.
+  by move/set1gP->; rewrite 2!ffunE cfuniE group1 mul1r [_ *: _]mulr1.
 case/is_charP: IC=> [] [|n] [rG Hc].
-  exists (irr1 [group of ccenter G chi]).
-    by  rewrite /clinear genGid is_char_irr irr1E group1 eqxx.
+  exists ('1_[group of ccenter G chi]).
+    by rewrite /clinear /cfuni {1}genGid is_char1 !genGid ffunE group1 eqxx.
   apply/ffunP=> g.
   by rewrite -Hc !ffunE !(flatmx0 (rG _)) mxtrace0 !mulr0 scale0r.
 pose repr g := ((rG g 0 0)%:M : 'M_(1,1)).
@@ -2915,13 +2880,12 @@ by rewrite mulgV repr_mx1 eqxx.
 Qed.
 
 (* Isaacs' 2.27f*)
-Lemma ccenter_eq_center : forall theta : irr G, 
-  (ccenter G theta/cker G theta)%g ='Z(G/cker G theta)%g.
+Lemma ccenter_eq_center : forall i : Iirr G, 
+  (ccenter G 'xi_i / cker G 'xi_i)%g ='Z(G / cker G 'xi_i)%g.
 Proof.
-move=> t; case: (irr_reprE t)=> i-> {t}.
-set t := char_of_repr _ _.
+move=> i.
 apply/eqP; rewrite eqEsubset.
-rewrite ccenter_subset_center ?is_char_char_of_repr //.
+rewrite ccenter_subset_center ?is_char_irr //.
 apply/subsetP=> C1; case: (@cosetP _ _ C1)=> g Hg -> HH.
 have GiG: g \in G.
   move: HH; rewrite inE; case/andP.
@@ -2930,36 +2894,36 @@ have GiG: g \in G.
   case/rcosetP=> l H1l -> _; rewrite groupM //.
   by move: l H1l; apply/subsetP; exact: cker_sub.
 apply: mem_quotient.
-suff: g \in ccenter G t by [].
-rewrite char_rcenterP /rcenter inE GiG.
-have F1:  mx_absolutely_irreducible (irr_repr i).
+suff: g \in ccenter G 'xi_i by [].
+case/irrP: (irr_xi i)=> j Hj.
+rewrite -Hj char_rcenterP /rcenter inE GiG.
+have F1:  mx_absolutely_irreducible (irr_repr j).
   by apply: groupC; apply: socle_irr.
 apply: (mx_abs_irr_cent_scalar F1).
 apply/subsetP=> h HiG.
-have HiN: h \in 'N(cker G t).
-  by apply: (subsetP (normal_norm (cker_normal G t))).
-set rGi := irr_repr _.
+have HiN: h \in 'N(cker G 'xi_i).
+  by apply: (subsetP (normal_norm (cker_normal G 'xi_i))).
+set rGj := irr_repr _.
 rewrite inE HiG -{1}repr_mxM //.
-have F2 : (g * h)%g  \in (coset (cker G t) g * coset (cker G t) h)%g.
+have F2 : (g * h)%g  \in (coset (cker G 'xi_i) g * coset (cker G 'xi_i) h)%g.
   apply/imset2P=> /=.
   by exists (g : gT) (h : gT)=> //;
      rewrite val_coset //; apply/rcosetP; exists 1%g; rewrite // mul1g.
-move: F2; case/centerP: HH=> _; move/(_ (coset (cker G t) h))->; last first.
+move: F2; case/centerP: HH=> _; move/(_ (coset (cker G 'xi_i) h))->; last first.
   by apply: mem_quotient.
 case/imset2P=> g1 h1.
 rewrite val_coset //; case/rcosetP=> g2 Hg2 ->.
 rewrite val_coset //; case/rcosetP=> h2 Hh2 -> ->.
-rewrite !repr_mxM ?groupM // ?(subsetP (cker_sub G t)) //.
-have: g2 \in rker rGi. 
-  by rewrite -char_rkerP /=.
+rewrite !repr_mxM ?groupM // ?(subsetP (cker_sub G 'xi_i)) //.
+have: g2 \in rker rGj by rewrite -char_rkerP Hj.
 rewrite inE; case/andP=> _; rewrite {1}mul1mx; move/eqP->; rewrite {1}mul1mx.
-have: h2 \in rker rGi by rewrite -char_rkerP.
+have: h2 \in rker rGj by rewrite -char_rkerP Hj.
 rewrite inE; case/andP=> _; rewrite {1}mul1mx; move/eqP->; rewrite {1}mul1mx.
 by rewrite eqxx.
 Qed.
 
 Lemma center_sub_quo : forall (M N : {group gT}),
-  N <| M -> ('Z(M)/N \subset 'Z(M/N))%g.
+  N <| M -> ('Z(M) / N \subset 'Z(M / N))%g.
 Proof.
 move=> M N NM; apply/subsetP=> C.
 case/imsetP=> g; rewrite inE; case/andP=> H1g H2g -> /=.
@@ -2972,57 +2936,56 @@ by case/centerP: H2g=> InG; move/(_ _ H2h); rewrite /commute => ->.
 Qed.
   
 (* This is 2.28 *)
-Lemma center_bigcap : 'Z(G) = \bigcap_(theta : irr G) ccenter G theta.
+Lemma center_bigcap : 'Z(G) = \bigcap_(i < Nirr G) ccenter G 'xi_i.
 Proof.
 apply/setP=> g; apply/idP/idP=> [GiZ|].
   have GiG: g \in G by apply: (subsetP (center_sub G)).
-  apply/bigcapP=> t _.
-  case: (irr_reprE t) (ccenter_eq_center t)=> i -> {t}.
-  set t := char_of_repr _ _ => Ct.
-  have: coset (cker G t) g \in (ccenter G t/(cker G t))%g.
-    rewrite Ct.
-    apply: (subsetP ( center_sub_quo (cker_normal _ _))).
+  apply/bigcapP=> i _.
+  have: coset (cker G 'xi_i) g \in (ccenter G 'xi_i/(cker G 'xi_i))%g.
+    rewrite ccenter_eq_center.
+    apply: (subsetP (center_sub_quo (cker_normal _ _))).
     by apply: mem_quotient.
   case/imsetP=> h; rewrite inE; case/andP=> H1h H2h /=.
   move/val_eqP; rewrite /= !val_coset //; last first.
-    by apply: (subsetP (normal_norm (cker_normal G t))).
+    by apply: (subsetP (normal_norm (cker_normal G 'xi_i))).
   move=> HH; move: GiG.
-  have: g \in  cker_group G t :* g.
+  have: g \in  cker_group G 'xi_i :* g.
     by apply/rcosetP; exists (1%g); rewrite ?(group1,mul1g).
   rewrite (eqP HH); case/rcosetP=> l /= LiC -> LHiG.
-  have LiG: l \in G by apply: (subsetP (cker_sub G t)).
-  have HiG: h \in G by apply: (subsetP (ccenter_sub t)).
-  rewrite char_rcenterP inE LHiG.
-  move: LiC; rewrite char_rkerP inE mul1mx {1}repr_mxM //.
+  have LiG: l \in G by apply: (subsetP (cker_sub G 'xi_i)).
+  have HiG: h \in G by apply: (subsetP (ccenter_sub 'xi_i)).
+  case/irrP: (irr_xi i)=> j Hj.
+  rewrite -Hj char_rcenterP inE LHiG.
+  move: LiC; rewrite -Hj char_rkerP inE mul1mx {1}repr_mxM //.
   case/andP=> InL; move/eqP->; rewrite mul1mx.
-  by move: H2h; rewrite char_rcenterP inE; case/andP.
+  by move: H2h; rewrite -Hj char_rcenterP inE; case/andP.
 move/bigcapP=> HH.
 have GiG: g \in G.
-  by apply: (subsetP (ccenter_sub (irr1 G))); apply: HH.
+  apply: (subsetP (ccenter_sub ('1_G))).
+  by case/irrIP: (irr_cfuni G)=> i <-; apply: HH.
 apply/centerP; split=> //.
 move=> h HiG; apply/commgP.
 suff: [~ g, h] \in 1%G by rewrite inE.
-rewrite -(cker_all1 G); apply/bigcapP=> t _.
-case: (irr_reprE t) (HH t is_true_true) => i -> {t}.
-set t := char_of_repr _ _ => Ct.
-rewrite char_rkerP inE groupR // mul1mx.
-set rGi := irr_repr _.
+rewrite -(cker_all1 G); apply/bigcapP=> i _.
+case/irrP: (irr_xi i)=> j Hj.
+rewrite -Hj char_rkerP inE groupR // mul1mx.
+set rGj := irr_repr _.
 rewrite !repr_mxM ?(groupV,groupJ,groupM) //.
-have: is_scalar_mx (rGi g).
-  by move: Ct; rewrite char_rcenterP inE GiG.
+have: is_scalar_mx (rGj g).
+  by move: (HH i is_true_true); rewrite -Hj char_rcenterP inE GiG.
 case/is_scalar_mxP=> k Hk; rewrite Hk -scalar_mxC {1}mulmxA {1}mulmxA.
 rewrite -Hk andTb; apply/eqP.
   (* Too slow
 rewrite  {1}(repr_mxKV rGi InH).
 *)
-have->: rGi (g^-1)%g *m rGi (h^-1)%g *m rGi h *m rGi g = rGi (g^-1)%g *m rGi g.
-   by congr (_ *m _); apply: (repr_mxKV rGi HiG).
+have->: rGj (g^-1)%g *m rGj (h^-1)%g *m rGj h *m rGj g = rGj (g^-1)%g *m rGj g.
+   by congr (_ *m _); apply: (repr_mxKV rGj HiG).
 by rewrite -repr_mxM ?groupV // mulVg repr_mx1.
 Qed.
  
 Lemma inner_subl: forall (H : {group gT}) (f1 f2 : {cfun _}), 
   H \subset G ->  (forall g, g \in G :\: H -> f1 g = 0) -> 
-  '[f1,f2]_H = #|G : H|%:R * '[f1,f2]_G.
+  '[f1, f2]_H = #|G : H|%:R * '[f1, f2]_G.
 Proof.
 move=> H f1 f2 HsG Hi; apply: sym_equal.
 rewrite !inner_prodE {1}(bigID (fun x => x \in H)) /= addrC.
@@ -3036,7 +2999,7 @@ Qed.
 
 (* This is 2.29 *)
 Lemma crestrict_sub_inner_bound : forall (H : {group gT}) f,
-  H \subset G ->  '['Res[H] f,'Res[H] f]_H <= #|G : H|%:R * '[f,f]_G ?= iff
+  H \subset G ->  '['Res[H] f,'Res[H] f]_H <= #|G : H|%:R * '[f, f]_G ?= iff
       (forallb g : gT, (g \in G:\:H) ==> (f g == 0)).
 Proof.
 move=> H f HsG; rewrite inner_subl // => [|i]; last first.
@@ -3065,76 +3028,77 @@ by rewrite !ffunE; case: (_ \in _);
 Qed.
 
 (* This is 2.30 *)
-Lemma irr1_bound : forall (theta : irr G),
-  (theta 1%g)^+2 <= #|G:ccenter G theta|%:R ?= iff
-      (forallb g : gT, (g \in G:\:ccenter G theta) ==> (theta g == 0)).
+Lemma irr1_bound : forall (i : Iirr G),
+  ('xi_i 1%g) ^+ 2 <= #|G : ccenter G 'xi_i|%:R ?= iff
+      (forallb g : gT, (g \in G:\:ccenter G 'xi_i) ==> ('xi_i g == 0)).
 Proof.
-move=> theta.
-pose CG := (ccenter G theta).
+move=> i.
+pose CG := (ccenter G 'xi_i).
 have F1 : CG \subset G by apply: (ccenter_sub _).
 rewrite -[_%:R]mulr1.
-have: is_irr G theta by apply: is_irr_irr.
-rewrite is_irr_inner_prod_charE ?is_char_irr //.
+have:= (irr_xi i).
+rewrite irr_inner_prod_charE ?is_char_irr //.
 move/eqP=>HH; rewrite -{2}HH.
-suff{HH}->: (theta 1%g)^+2 = '['Res[CG] theta,'Res[CG] theta]_CG.
+suff{HH}->: ('xi_i 1%g)^+2 = '['Res[CG] 'xi_i, 'Res[CG] 'xi_i]_CG.
   by apply: crestrict_sub_inner_bound.
-case (@ccenter_restrict theta)=> l Hl ->.
+case (@ccenter_restrict 'xi_i)=> l Hl ->.
 rewrite inner_prodZ -inner_prodbE linearZ /= inner_prodbE.
-move: (clinear_is_irr Hl).
-rewrite is_irr_inner_prod_charE ?is_char_linear //.
+move: (clinear_irr Hl).
+rewrite irr_inner_prod_charE ?is_char_linear //.
 move/eqP->.
 rewrite ?expr2 isNatC_conj /GRing.scale /= ?mulr1 //.
 by apply: (isNatC_char1 (is_char_irr _)).
 Qed.
   
 (* This is 2.31 *)
-Lemma irr1_abelian_bound : forall (theta : irr G),
-  abelian (G/ccenter G theta) -> (theta 1%g)^+2 = #|G:ccenter G theta|%:R.
+Lemma irr1_abelian_bound : forall (i : Iirr G),
+   abelian (G / ccenter G 'xi_i) -> 
+     ('xi_i 1%g) ^+ 2 = #|G : ccenter G 'xi_i|%:R.
 Proof.
-move=> theta AbGc; apply/eqP; rewrite irr1_bound.
+move=> i AbGc; apply/eqP; rewrite irr1_bound.
 apply/forall_inP=> g; rewrite inE; case/andP=> NInC GiG.
-have GiN := subsetP (normal_norm (cker_normal G theta)) _ GiG.
-pose CC := ccenter G theta.
-have: coset (cker G theta) g \notin ([group of CC]/cker G theta)%G.
+have GiN := subsetP (normal_norm (cker_normal G 'xi_i)) _ GiG.
+pose CC := ccenter G 'xi_i.
+have: coset (cker G 'xi_i) g \notin ([group of CC]/cker G 'xi_i)%G.
   apply/negP; case/imsetP=> /= h; rewrite inE; case/andP=> HiN HiC.
-  have HiG: h \in G by apply: (subsetP (ccenter_sub theta)).
+  have HiG: h \in G by apply: (subsetP (ccenter_sub 'xi_i)).
   move/rcoset_kercosetP; move/(_ GiN HiN); case/rcosetP=> u Hu Hg.
-  have UiG: u \in G by apply: (subsetP (cker_sub G theta)).
+  have UiG: u \in G by apply: (subsetP (cker_sub G 'xi_i)).
   case/negP: NInC; rewrite Hg.
   rewrite irr_ccenterE ?groupM // (char_ckerMr (is_char_irr _)) //.
   by rewrite -irr_ccenterE.
-rewrite  /= (ccenter_eq_center theta) => H.
+rewrite  /= (ccenter_eq_center i) => H.
 case: (boolP (existsb h: gT, 
-               (h \in G) && ([ ~ g, h] \notin cker G theta))); last first.
+               (h \in G) && ([ ~ g, h] \notin cker G 'xi_i))); last first.
   rewrite negb_exists_in; move/forall_inP=> HH.
   case/negP: H; apply/centerP; split=> /=.
     by apply: mem_quotient.
   move=> N; case: (@cosetP _ _ N)=> h H1h -> H2h.
   apply/commgP.
-  suff<-: coset (cker G theta) [~ g,h] = 1%g.
+  suff<-: coset (cker G 'xi_i) [~ g,h] = 1%g.
     by rewrite /commg /conjg !morphM ?(groupM,groupV) // !morphV.
   have HiG: h \in G.
     case/imsetP: H2h=> l; rewrite inE; case/andP=> H1l H2l.
     move/(rcoset_kercosetP H1h H1l).
     case/rcosetP=> k Hk ->; rewrite groupM //.
-    by apply: (subsetP (normal_sub (cker_normal _ theta))).
+    by apply: (subsetP (normal_sub (cker_normal _ 'xi_i))).
   by apply: coset_id; move: (HH _ HiG); rewrite negbK.
 case/existsP=> h; case/andP=> HiG CNiK.
-have HiN: h \in 'N(ccenter G theta).
+have HiN: h \in 'N(ccenter G 'xi_i).
   by apply: (subsetP (normal_norm (ccenter_normal _))).
-have GiNc: g \in 'N(ccenter G theta).
+have GiNc: g \in 'N(ccenter G 'xi_i).
   by apply: (subsetP (normal_norm (ccenter_normal _))).
-have CiC :  [~ g, h] \in ccenter G theta.
+have CiC :  [~ g, h] \in ccenter G 'xi_i.
   apply: coset_idr; first by rewrite groupR.
   rewrite /commg /conjg !morphM ?(groupM,groupV,morphV) //=.
-  suff->: commute (coset (ccenter G theta) g) (coset (ccenter G theta) h).
+  suff->: commute (coset (ccenter G 'xi_i) g) (coset (ccenter G 'xi_i) h).
     by rewrite !mulgA mulgKV mulVg.
   move: AbGc; rewrite abelianE; move/subsetP.
   move/(_ _ (mem_quotient [group of CC] GiG)); move/centP.     
   by move/(_ _ (mem_quotient [group of CC] HiG)).
-have: theta (g * [~ g, h])%g = theta (g).
-  by rewrite -conjg_mulR (cfunJ _ (memc_irr theta)).
-case/is_charP: (is_char_irr theta)=> //= n [rG HrG].
+have: 'xi_i (g * [~ g, h])%g = 'xi_i (g).
+  by rewrite -conjg_mulR (cfunJ _ (memc_irr i)).
+case/is_charP: (is_char_irr i)=> //= n [rG HrG].
 move: CiC CNiK; rewrite -!HrG char_rkerP inE mul1mx=> CiC.
 have RiG: [~ g, h] \in G by rewrite groupR.
 rewrite !ffunE ?RiG groupM ?(GiG,RiG,group1,mul1r) // repr_mxM //.
@@ -3150,28 +3114,27 @@ Lemma cfaithfulE : forall f, cfaithful G f = (cker G f \subset 1%G).
 Proof. by []. Qed.
 
 (* 2.32a *)
-Lemma irr_faithful_center: forall theta : irr G,
-  cfaithful G theta -> cyclic ('Z(G)).
+Lemma irr_faithful_center: forall i : Iirr G, cfaithful G 'xi_i -> cyclic ('Z(G)).
 Proof.
-move=> theta; move/trivgP=> HH.
+move=> i; move/trivgP=> HH.
 rewrite (isog_cyclic (isog_center (quotient1_isog G))) -HH.
 rewrite /= -ccenter_eq_center.
 apply: ccenter_cyclic; first by apply: is_char_irr.
 apply/negP; move/eqP; move/ffunP; move/(_ 1%g)=> HH1.
-by case/negP: (irr1_neq0 theta); rewrite HH1 ffunE.
+by case/negP: (irr1_neq0 i); rewrite HH1 ffunE.
 Qed.
 
 (* 2.32b *)
 Lemma pgroup_cyclic_faithful: forall p : nat, 
-  p.-group G -> cyclic 'Z(G) -> exists theta : irr G, cfaithful G theta.
+  p.-group G -> cyclic 'Z(G) -> exists i : Iirr G, cfaithful G 'xi_i.
 Proof.
  (* Lengthly Proof!! *)
 move=> p PG CZG.
 case: (boolP (G == 1%g :> {set _}))=> [HG1|DG].
-  exists (irr1 G); rewrite /cfaithful /=.
+  exists 0; rewrite /cfaithful /=.
   by move/eqP: HG1<-; exact: cker_sub.
 case/(pgroup_pdiv PG): (DG) => Pp Dp [m Hm].
-case: (boolP (forallb theta : irr G, cker G theta != 1%g)); last first.
+case: (boolP (forallb i : Iirr G, cker G 'xi_i != 1%g)); last first.
   rewrite negb_forall; case/existsP=> i; rewrite negbK=> Hi.
   by exists i; apply/trivGP; apply/eqP.
 move/forallP=> Hi.
@@ -3262,23 +3225,23 @@ apply: isNatC_sum => j _; rewrite isNatC_mul // isNatC_ncoord_char //.
 by apply: (is_char_restrict HsG (is_char_irr _)).
 Qed.
 
-Lemma is_comp_irr_restrict : forall theta : irr H,
-  H \subset G -> exists j : irr G, is_comp theta ('Res[H] j).
+Lemma is_comp_irr_restrict : forall i : Iirr H,
+  H \subset G -> exists j : Iirr G, is_comp i ('Res[H] 'xi_j).
 Proof.
-move=> t HsG.
-case: (boolP ('Ind[G, H] t == 0))=> [HH|].
-  have: ('Ind[G, H] t) 1%g == 0 by rewrite (eqP HH) ffunE.
+move=> i HsG.
+case: (boolP ('Ind[G, H] 'xi_i == 0))=> [HH|].
+  have: ('Ind[G, H] 'xi_i) 1%g == 0 by rewrite (eqP HH) ffunE.
   rewrite /= cinduced1 //.
   rewrite mulf_eq0 (negPf (irr1_neq0 _)) orbF -(eqN_eqC _ 0).
   by case: indexg (indexg_gt0 G H).
-have ICI: is_char G ('Ind[G, H]t).
+have ICI: is_char G ('Ind[G, H] 'xi_i).
   by apply: is_char_induced=> //; exact: is_char_irr.
 case/(is_comp_neq0 (memc_is_char ICI))=> j Hj; exists j.
 have FF := memc_is_char (is_char_restrict HsG (is_char_irr j)).
 rewrite is_compE  (ncoord_inner_prod _ FF).
 rewrite inner_prod_charC  // ?(is_char_restrict HsG, is_char_irr) //.
 rewrite (frobenius_reciprocity HsG) ?memc_irr //.
-have FF1 := memc_induced HsG (memc_irr t).
+have FF1 := memc_induced HsG (memc_irr i).
 by rewrite -(ncoord_inner_prod _ FF1).
 Qed.
 

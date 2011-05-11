@@ -592,10 +592,10 @@ exists (fun r => Suba (memv_vr r)).
 move=> v1; apply/rowP=> i.
 rewrite /subvect_v2rv /v /=  mxE coord_sumE.
 rewrite (bigD1 i) //= linearZ ffunE /=.
-   rewrite (free_coordt _ _ (is_basis_free (is_basis_vbasis _)))
+   rewrite (free_coordt _ _ (free_is_basis (is_basis_vbasis _)))
          eqxx [_ *: _]mulr1 big1 ?addr0 //.
 move=> k.
-rewrite linearZ ffunE (free_coordt _ _ (is_basis_free (is_basis_vbasis _))).
+rewrite linearZ ffunE (free_coordt _ _ (free_is_basis (is_basis_vbasis _))).
 by move/(negPf)=> ->; rewrite [_ *: _]mulr0.
 Qed.
 

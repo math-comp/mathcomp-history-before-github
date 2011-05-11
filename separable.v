@@ -411,7 +411,7 @@ rewrite (_ : (K * (x ^+ i)%:VS)%VS =
              span (map (fun y => (y * x ^+ i)) (vbasis K))).
  move/(coord_span) => Hv.
  rewrite {1}Hv {Hv} /MinPoly_coef.
- rewrite -GRing.mulr_suml.
+ rewrite -mulr_suml.
  apply: eq_bigr => j _.
  by rewrite (nth_map 0) ?scaler_mull // size_tuple.
 apply: subv_anti.
@@ -581,7 +581,8 @@ Lemma DerivationMul :
   forall u v, u \in K -> v \in K -> D (u * v) = D u * v + u * D v.
 Proof.
 move/all_nthP: HD; rewrite size_tuple=> Dmult u v Hu Hv.
-have Hspan : (is_span K (vbasis K)) by rewrite is_basis_span ?is_basis_vbasis.
+have Hspan : (is_span K (vbasis K)).
+  by rewrite is_span_is_basis ?is_basis_vbasis.
 rewrite (is_span_span Hspan Hu) (is_span_span Hspan Hv).
 rewrite !linear_sum -big_split /=.
 apply: eq_bigr => j _.

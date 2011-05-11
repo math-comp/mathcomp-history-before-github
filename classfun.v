@@ -310,7 +310,7 @@ Lemma cfun_conjCE : forall (gT : finGroupType) (f : {cfun gT}) g,
   (f^*)%CH g = (f g)^*.
 Proof. by move=> gT f g; rewrite ffunE. Qed.
 
-Lemma cfun_conjCK: forall (gT : finGroupType) (f : {cfun gT}), (f^*^*)%CH = f.
+Lemma cfun_conjCK : forall (gT : finGroupType), involutive (@cfun_conjC gT).
 Proof. by move=> gT f; apply/ffunP=> g; rewrite !ffunE conjCK. Qed.
 
 Section Restrict.

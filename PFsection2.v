@@ -757,7 +757,7 @@ Qed.
 End DadeExpansion.
 
 (* This is Peterfalvi (2.6)(b) *)
-Lemma Dade_vchar alpha : alpha \in 'Z['Irr(L), A] -> alpha^\tau \in 'Z['Irr(G)].
+Lemma Dade_vchar alpha : alpha \in 'Z[irr L, A] -> alpha^\tau \in 'Z[irr G].
 Proof.
 move=> VCaa; move: (VCaa); rewrite vchar_split; case/andP=> VCa _.
 have CFaa := memc_vchar VCaa.
@@ -767,7 +767,7 @@ have{dB} dB: B \in calP.
   have [x Lx ->]: exists2 x, x \in L & B = B0 :^ x.
     by apply/imsetP; rewrite defB (mem_repr B0) ?orbit_refl.
   by rewrite inE -cards_eq0 cardJg cards_eq0 -(normsP nAL x Lx) conjSg sB0A.
-set aaBt := 'Ind[G, _] _; suff ZGaaBt: aaBt \in 'Z['Irr(G)].
+set aaBt := 'Ind[G, _] _; suff ZGaaBt: aaBt \in 'Z[irr G].
   by rewrite -signr_odd; case: odd; rewrite ?scale1r // scaleN1r vchar_opp.
 apply: vchar_induced => /=.
   have [sBA /set0Pn[b Bb]] := setIdP dB; have Ab := subsetP sBA b Bb.
