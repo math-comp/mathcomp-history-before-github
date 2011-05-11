@@ -2,7 +2,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq tuple.
 Require Import fintype finfun bigop ssralg poly polydiv.
 Require Import zmodp vector algebra fieldext.
 Require Import fingroup perm finset matrix mxalgebra.
-Require Import separable.
+Require Import separable choice.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -73,8 +73,8 @@ Section Definitions.
 Variables (K E: {vspace L}) (f : 'End(L)).
 
 Definition normal : Prop :=
- forall x, x \in E -> exists2 r, all (fun y => y \in E) r &
-                                 minPoly K x = \prod_(y <- r) ('X - y%:P).
+ forall x, x \in E -> exists r, all (fun y => y \in E) r &&
+                                (minPoly K x == \prod_(y <- r) ('X - y%:P)).
 
 Definition galois : Prop := normal /\ separable K E.
 
@@ -193,9 +193,11 @@ move/eqP ->.
 by rewrite mul0r nonzero1r.
 Qed.
 
-Lemma kHom_dim : kHom K E f -> \dim (f @: E) = \dim E.
+Hypothesis Hf : kHom K E f.
+Hypothesis HKE : (K <= E)%VS.
+
+Lemma kHom_dim : \dim (f @: E) = \dim E.
 Proof.
-move => Hf.
 case/kHomP: (Hf) => HK HE.
 apply/limg_dim_eq/eqP.
 rewrite -subv0.
@@ -206,32 +208,41 @@ apply: contraLR => Hv.
 by rewrite -unitfE unitrE -kHom_inv // -HE -?memv_inv // mulfV // HK // memv1.
 Qed.
 
-Lemma kAutE : kAut K E f = kHom K E f && (f @: E <= E)%VS.
-Proof.
-apply/andP/andP; case => Hhom.
- move/eqP ->; split => //.
- by rewrite subv_refl.
-move => Hf; split => //.
-by rewrite -(dimv_leqif_eq Hf) kHom_dim.
-Qed.
-
-Variables (x y : L).
-Hypothesis HKE : (K <= E)%VS.
-Hypothesis Hf : kHom K E f.
-Hypothesis Hy : root (map_poly f (minPoly E x)) y.
-
-Lemma kHomExtendExt : forall z, z \in E -> kHomExtend E f x y z = f z.
-Proof.
-move => z Hz.
-by rewrite kHomExtendE poly_for_K // map_polyC hornerC.
-Qed.
-
 Lemma kHomRmorph_subproof : rmorphism (f \o (sa_val (als:=E))).
 Proof.
 case/kHomP: Hf => HK HE.
 split; first by move => a b; rewrite /= linear_sub.
 split; first by move => a b; rewrite /= HE // subaP.
 by rewrite /= aunit_eq1 HK // memv1.
+Qed.
+
+Lemma kHom_root : forall p x, polyOver E p -> x \in E ->
+ root p x -> root (map_poly f p) (f x).
+Proof.
+rewrite/root.
+move => ? x.
+case/polyOver_suba => p -> Hx.
+set (f' := (RMorphism kHomRmorph_subproof)).
+set (g := (RMorphism (sa_val_rmorph E))).
+rewrite -[x]/(sa_val (Suba Hx)) -map_poly_comp (horner_map f') (horner_map g).
+move/eqP => /= ->.
+by rewrite linear0.
+Qed.
+
+Lemma kHom_rootK : forall p x, polyOver K p -> x \in E ->
+ root p x -> root p (f x).
+Proof.
+move => p x Hp Hx Hroot.
+by rewrite -(kHomFixedPoly Hf Hp) kHom_root // (polyOver_subset HKE).
+Qed.
+
+Variables (x y : L).
+Hypothesis Hy : root (map_poly f (minPoly E x)) y.
+
+Lemma kHomExtendExt : forall z, z \in E -> kHomExtend E f x y z = f z.
+Proof.
+move => z Hz.
+by rewrite kHomExtendE poly_for_K // map_polyC hornerC.
 Qed.
 
 Lemma kHomExtend_poly : forall p,
@@ -280,6 +291,17 @@ Qed.
 
 End kHomExtend.
 
+Lemma kAutE : forall (K E : {algebra L}) f,
+  kAut K E f = kHom K E f && (f @: E <= E)%VS.
+Proof.
+move => K E f.
+apply/andP/andP; case => Hhom.
+ move/eqP ->; split => //.
+ by rewrite subv_refl.
+move => HfE; split => //.
+by rewrite -(dimv_leqif_eq HfE) (kHom_dim Hhom).
+Qed.
+
 Lemma kHomExtendAuto : forall (K E J : {algebra L}) f,
   (K <= E)%VS -> (K <= J)%VS -> kHom K E f -> (f @: E <= J)%VS ->
   normal K J -> exists g, kAut K J g && (E <= lker (g - f))%VS.
@@ -322,8 +344,9 @@ rewrite -(size_map_poly (RMorphism Hmorph)) !map_poly_comp -Hp /=.
 rewrite [map_poly f (minPoly K x)](kHomFixedPoly Hf) -?Hq; last first.
  by apply: minPolyOver.
 clear p Hp q Hq Hmorph.
-case: (HJ _ HxJ) => r.
-move/allP => Hr -> Hdiv Hsz.
+case: (HJ _ HxJ) => r; case/andP.
+move/allP => Hr.
+move/eqP => -> Hdiv Hsz.
 have [y] : exists2 y, y \in J & root (map_poly f (minPoly E x)) y.
  clear -Hr Hdiv Hsz.
  elim: r Hr (map_poly f (minPoly E x)) Hdiv Hsz => [|z r IH] Hr p.
@@ -413,12 +436,11 @@ rewrite -[fun_of_lapp f]/(GRing.RMorphism.apply (RMorphism (GRing.LRMorphism.bas
 by rewrite (rmorph1 (RMorphism Hf)).
 Qed.
 
-(*
-Hypothesis NormalFieldExt : normal (fullv L) F.
+Hypothesis NormalFieldExt : normal F (aspacef L).
 
-Definition LAut_enum : seq {lrmorphism L -> L}.
-let x := 
-*)
+Definition LAut_enum :=
+(* foldr (fun a r => allpairs (fun x l => cons_tuple x l) a r)  [::] *)
+[tuple of (map (fun x => xchoose (NormalFieldExt (memvf x))) (vbasis (fullv L)))].
 
 (*
 Definition FieldAutomorphism (E:{vspace L}) (f : 'End(L) ) : bool :=
