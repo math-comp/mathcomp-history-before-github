@@ -219,6 +219,12 @@ Hypothesis HKE : (K <= E)%VS.
 Hypothesis Hf : kHom K E f.
 Hypothesis Hy : root (map_poly f (minPoly E x)) y.
 
+Lemma kHomExtendExt : forall z, z \in E -> kHomExtend E f x y z = f z.
+Proof.
+move => z Hz.
+by rewrite kHomExtendE poly_for_K // map_polyC hornerC.
+Qed.
+
 Lemma kHomRmorph_subproof : rmorphism (f \o (sa_val (als:=E))).
 Proof.
 case/kHomP: Hf => HK HE.
@@ -273,7 +279,6 @@ Qed.
 
 End kHomExtend.
 
-(*
 Lemma kHomExtendAuto : forall (K E J : {algebra L}) f,
   (K <= E)%VS -> (K <= J)%VS -> kHom K E f -> (f @: E <= J)%VS ->
   normal K J -> exists g, kAut K J g && (E <= lker (g - f))%VS.
@@ -289,7 +294,8 @@ case (eqVneq (\dim (J :\: E)) 0%N).
  exists f.
  rewrite kAutE subrr -lkerE lim0g eq_refl andbT (kHom_subv HJE) //=.
  by rewrite (subv_trans _ HfE) // limg_monotone.
-move => Hdim Hm HKE HKJ Hf HfE HJ.
+move => Hdim Hm HKE HKJ Hf.
+move/subvP => HfE HJ.
 have [x [Hx Hx0]] : exists x, x \in (J :\: E)%VS /\ x != 0.
  exists (vpick (J :\: E)%VS); split; first by apply: memv_pick.
  by rewrite vpick0 -dimv_eq0.
@@ -305,16 +311,46 @@ have HxE : x \notin E.
  by apply: capv_diff.
 have HminE : polyOver E (minPoly K x).
  by rewrite (polyOver_subset HKE) // minPolyOver.
+have : (1 < size (minPoly E x)) by rewrite size_minPoly ltnS elementDegreegt0.
 move: (minPoly_dvdp HminE (root_minPoly K x)).
 case/polyOver_suba : HminE => p Hp.
 case/polyOver_suba : (minPolyOver E x) => q Hq.
 have Hmorph := (kHomRmorph_subproof Hf).
-rewrite Hp Hq dvdp_map -(dvdp_map (RMorphism Hmorph)) !map_poly_comp -Hp.
-rewrite /= [map_poly f (minPoly K x)](kHomFixedPoly Hf) -?Hq; last first.
+rewrite Hp Hq dvdp_map size_map_poly -(dvdp_map (RMorphism Hmorph)).
+rewrite -(size_map_poly (RMorphism Hmorph)) !map_poly_comp -Hp /=.
+rewrite [map_poly f (minPoly K x)](kHomFixedPoly Hf) -?Hq; last first.
  by apply: minPolyOver.
 clear p Hp q Hq Hmorph.
-(* HERE *)
-case: (IH (Fadjoin E x) (kHomExtend E f x x)).
+case: (HJ _ HxJ) => r.
+move/allP => Hr -> Hdiv Hsz.
+have [y] : exists2 y, y \in J & root (map_poly f (minPoly E x)) y.
+ clear -Hr Hdiv Hsz.
+ elim: r Hr (map_poly f (minPoly E x)) Hdiv Hsz => [|z r IH] Hr p.
+  rewrite big_nil.
+  move/(size_dvdp (nonzero1r _)).
+  rewrite size_poly1 leqNgt.
+  by move/negbTE ->.
+ rewrite big_cons mulrC.
+ case (eqVneq (size (gcdp p ('X - z%:P))) 1%N).
+  move/eqP/gauss <-.
+  apply: IH => a Ha.
+  apply: Hr.
+  by rewrite in_cons Ha orbT.
+ rewrite size_gcdp1 => Hcoprime _ _.
+ exists z; first by apply Hr; rewrite in_cons eq_refl.
+ move: Hcoprime.
+ apply: contraR.
+ rewrite root_factor_theorem.
+ move/(conj (dvdpp ('X - z%:P)))/andP.
+ rewrite dvdp_gdco -?size_poly_eq0 ?size_XMa //.
+ case: gdcopP => q _.
+ rewrite -size_poly_eq0 size_XMa orbF.
+ move/coprimepP => Hpq Hq Hzq.
+ apply/coprimepP => d Hdp Hdz.
+ apply: Hpq; last done.
+ by rewrite (dvdp_trans Hdz).
+move => HyJ Hy. 
+case: (IH (Fadjoin E x) (kHomExtend E f x y)).
 - rewrite ltnS in Hm.
   apply: (leq_trans _ Hm).
   rewrite -(ltn_add2l (\dim (J :&: Fadjoin E x))) dimv_cap_compl addnC.
@@ -329,11 +365,32 @@ case: (IH (Fadjoin E x) (kHomExtend E f x x)).
   rewrite !memv_cap memx_Fadjoin andbT.
   by case/(_ HxJ)/andP.
 - by rewrite (subv_trans HKE) // subsetKFadjoin.
-- by done.
-- rewrite kHomExtendkHom //.
-*)
-
-
+- done.
+- by rewrite kHomExtendkHom.
+- apply/subvP => ?.
+  case/memv_imgP => ?; case.
+  case/poly_Fadjoin => p [Hp ->] ->.
+  rewrite (kHomExtend_poly Hf) //.
+  apply: (memv_horner _ (subv_refl _)) => //.
+  apply/polyOverP => i.
+  rewrite coef_map HfE // memv_img //.
+  by move/polyOverP: Hp.
+- done.
+move => g.
+rewrite -lkerE -subv0.
+case/andP => Hg.
+move/subvP => Hker.
+exists g.
+rewrite Hg -lkerE -subv0.
+apply/subvP => ?.
+case/memv_imgP => z [Hz ->].
+apply: Hker.
+apply/memv_imgP.
+exists z; split; first by rewrite memK_Fadjoin.
+rewrite !add_lappE !opp_lappE.
+congr (_ - _).
+by rewrite kHomExtendExt.
+Qed.
 
 (*
 Definition FieldAutomorphism (E:{vspace L}) (f : 'End(L) ) : bool :=
