@@ -167,6 +167,7 @@ apply/kHomP; split => // x y Hx Hy.
 by apply: HE1; apply: HE.
 Qed.
 
+(* :TODO: Generalize and move this to poly.v *)
 Lemma map_poly_comp : forall (aR bR cR : ringType) 
  (f : {additive bR -> cR}) (g : {additive aR -> bR}) (p : {poly aR}),
  map_poly (f \o g) p = map_poly f (map_poly g p).
@@ -391,6 +392,33 @@ rewrite !add_lappE !opp_lappE.
 congr (_ - _).
 by rewrite kHomExtendExt.
 Qed.
+
+Lemma LAut_lrmorph : forall f : 'End(L), 
+  reflect (lrmorphism f) (kHom F (fullv L) f).
+Proof.
+move => f.
+apply: (iffP (kHomP _ _ _)).
+ case => HF HL.
+ repeat split => //.
+ - by apply: linear_sub.
+ - by move => x y; apply: HL; rewrite memvf.
+ - by rewrite HF // memv1.
+ - by apply: linearZ.
+move => Hf.
+split; last by move => x y _ _; apply: (rmorphM (RMorphism Hf)).
+move => ?; case/injvP => k ->.
+rewrite linearZ /=.
+(* There has got to be a better way than this *)
+rewrite -[fun_of_lapp f]/(GRing.RMorphism.apply (RMorphism (GRing.LRMorphism.base Hf))).
+by rewrite (rmorph1 (RMorphism Hf)).
+Qed.
+
+(*
+Hypothesis NormalFieldExt : normal (fullv L) F.
+
+Definition LAut_enum : seq {lrmorphism L -> L}.
+let x := 
+*)
 
 (*
 Definition FieldAutomorphism (E:{vspace L}) (f : 'End(L) ) : bool :=
