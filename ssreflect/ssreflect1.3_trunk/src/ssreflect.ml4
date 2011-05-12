@@ -5968,3 +5968,4 @@ END
 (* consequence the extended ssreflect grammar.                             *)
 let () = Lexer.unfreeze frozen_lexer ;;
 
+(* vim: set filetype=ocaml: *)
