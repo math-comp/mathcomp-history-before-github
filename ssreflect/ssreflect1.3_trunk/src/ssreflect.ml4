@@ -614,6 +614,10 @@ let pf_abs_evars gl (sigma, c0) =
  *)
 let ssrautoprop_tac = ref (fun gl -> assert false)
 
+(* Thanks to Arnaud Spiwack for this snippet *)
+let call_on_evar tac e s =
+  let { it = gs ; sigma = s } = tac { it = Goal.build e ; sigma = s } in gs, s
+
 let pf_abs_evars_pirrel gl (sigma, c0) =
   pp(lazy(str"==PF_ABS_EVARS_PIRREL=="));
   pp(lazy(str"c0= " ++ pr_constr c0));
@@ -648,15 +652,8 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
     if evplist = [] then evlist, [], sigma else
     List.fold_left (fun (ev, evp, sigma) (i, (_,t,_) as p) ->
       try 
-        let proof = ref (fun _ -> assert false) in
-        let t = Evarutil.nf_evar sigma t in
-        let tac gl = 
-          let gl = !ssrautoprop_tac gl in
-          (* FIXME *)
-          if sig_it gl = [] then (proof := assert false; gl) else errorstrm (str"XX") in
-        ignore(tclTHENS (Tactics.cut t) [tclIDTAC; tac] gl);
-        let c = assert false in
-        let sigma = Evd.define i c sigma in
+        let ng, sigma = call_on_evar !ssrautoprop_tac i sigma in
+        if (ng <> []) then errorstrm (str "Should we tell the user?");
         List.filter (fun (j,_) -> j <> i) ev, evp, sigma
       with _ -> ev, p::evp, sigma) (evlist, [], sigma) (List.rev evplist) in
   let c0 = Evarutil.nf_evar sigma c0 in
