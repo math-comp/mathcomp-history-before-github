@@ -18,6 +18,7 @@ multiview.v
 occarrow.v
 patnoX.v
 rewpatterns.v
+set_lamda.v
 ssrsyntax1.v
 ssrsyntax2.v
 testmx.v

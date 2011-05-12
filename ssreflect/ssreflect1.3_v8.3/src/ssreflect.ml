@@ -3067,6 +3067,7 @@ type upattern = {
   up_f : constr;
   up_a : constr array;
   up_t : constr;                      (* equation proof term or matched term *)
+  up_dir : ssrdir;                    (* direction of the rule *)
   up_ok : constr -> evar_map -> bool; (* progess test for rewrite *)
   }
 
@@ -3087,7 +3088,7 @@ exception UndefPat
 
 (* Compile a match pattern from a term; t is the term to fill. *)
 (* p_origin can be passed to obtain a better error message     *)
-let mk_upat ?(hack=false) env sigma0 ise t ok ?p_origin p =
+let mk_upat ?(hack=false) env sigma0 ise t ok ?p_origin dir p =
   let k, f, a =
     let f, a = Reductionops.whd_betaiota_stack ise p in
     match kind_of_term f with
@@ -3107,7 +3108,9 @@ let mk_upat ?(hack=false) env sigma0 ise t ok ?p_origin p =
     | _ -> KpatRigid, f, a in
   let aa = Array.of_list a in
   let ise', p' = evars_for_FO ~hack env sigma0 ise (mkApp (f, aa)) in
-  {up_k = k; up_FO = p'; up_f = f; up_a = aa; up_ok = ok; up_t = t}, ise'
+  { up_k = k; up_FO = p'; up_f = f; 
+    up_a = aa; up_ok = ok; up_dir = dir; up_t = t}, 
+  ise'
 
 (* Specialize a pattern after a successful match: assign a precise head *)
 (* kind and arity for Proj and Flex patterns.                           *)
@@ -3281,10 +3284,6 @@ let mk_pmatcher ?(raise_NoMatch=false) sigma0 occ ?upats_origin (upats, ise) =
     | KpatFixed -> (=) u.up_f
     | KpatConst -> eq_constr u.up_f
     | _ -> unif_EQ env sigma u.up_f in
-  let get_direction r =
-    match kind_of_term r with
-    | Lambda (Anonymous, ty, r') when eq_constr mkProp ty -> R2L, r'
-    | _ -> L2R, r in
 (fun env c h ~k -> 
   do_once upat_that_matched (fun () -> 
     (* XXX Ask Georges: Why sigma0 and not ise! seems just a way to tell
@@ -3326,7 +3325,7 @@ let mk_pmatcher ?(raise_NoMatch=false) sigma0 occ ?upats_origin (upats, ise) =
     | Some x -> x | None when raise_NoMatch -> raise NoMatch
     | None -> anomaly "companion function never called" in
   let p' = mkApp (pf, pa) in
-  if max_occ <= !nocc then let d, r = get_direction u.up_t in p', d, (sigma, r)
+  if max_occ <= !nocc then p', u.up_dir, (sigma, u.up_t)
   else errorstrm (str"Only " ++ int !nocc ++ str" < " ++ int max_occ ++
         str(plural !nocc " occurence") ++ match upats_origin with
         | None -> str" of" ++ spc() ++ pr_constr_pat p'
@@ -3338,7 +3337,7 @@ let fake_pmatcher_end () = mkProp, L2R, (Evd.empty, mkProp)
 
 let pf_fill_occ env concl occ sigma0 p (sigma, t) ok h =
  let ise = create_evar_defs sigma in
- let u, ise = mk_upat env sigma0 ise t ok p in
+ let u, ise = mk_upat env sigma0 ise t ok L2R p in
  let find_U, end_U = mk_pmatcher ~raise_NoMatch:true sigma0 occ ([u], ise) in
  let concl = find_U env concl h (fun _ _ _ -> mkRel) in
  let rdx, _, (sigma, p) = end_U () in
@@ -4473,7 +4472,7 @@ let eval_redexmod env0 sigma0 concl0 redexmod occ do_subst =
   let ex_value hole =
     match kind_of_term hole with Evar (e,_) -> e | _ -> assert false in
   let mk_upat_for ?hack env sigma0 (sigma,t) ?(p=t) ok =
-    let pat, sigma = mk_upat ?hack env sigma0 sigma p ok t in
+    let pat, sigma = mk_upat ?hack env sigma0 sigma p ok L2R t in
     [pat], sigma in
   match redexmod with
   | None -> do_subst env0 concl0 1
@@ -4676,7 +4675,7 @@ let unfoldintac occ rdx t (kt,_) gl =
   let unfold, conclude = match rdx with
   | Some (In_T _ | In_X_In_T _) | None -> 
     let ise = create_evar_defs sigma in
-    let u, ise = mk_upat env0 sigma0 ise t all_ok t in
+    let u, ise = mk_upat env0 sigma0 ise t all_ok L2R t in
     let find_T, end_T = mk_pmatcher ~raise_NoMatch:true sigma0 occ ([u],ise) in
     (fun env c h -> 
       try find_T env c h (fun env _ c _ -> body env t c)
@@ -4719,7 +4718,7 @@ let foldtac occ rdx ft gl =
   | Some (In_T _ | In_X_In_T _) | None -> 
     let ise = create_evar_defs sigma in
     let ut = try Tacred.red_product env0 sigma t with _ -> t in
-    let ut, ise = mk_upat env0 sigma0 ise t all_ok ut in
+    let ut, ise = mk_upat env0 sigma0 ise t all_ok L2R ut in
     let find_T, end_T = mk_pmatcher ~raise_NoMatch:true sigma0 occ ([ut],ise) in
     (fun env c h -> try find_T env c h (fun env _ t _ -> t) with NoMatch -> c),
     (fun () -> try end_T () with NoMatch -> fake_pmatcher_end ())
@@ -4928,8 +4927,7 @@ let rwrxtac occ rdx_pat dir rule gl =
   | Some (In_T _ | In_X_In_T _) | None -> 
       let upats_origin = dir, snd rule in
       let rpat env sigma0 (pats, sigma) (d, r, lhs, rhs) =
-        let r' = if d = L2R then r else mkLambda (Anonymous, mkProp, r) in
-        let pat, sigma = mk_upat env sigma0 sigma r' (rw_progress rhs) lhs in
+        let pat, sigma = mk_upat env sigma0 sigma r (rw_progress rhs) d lhs in
         pats @ [pat], sigma in
       let rpats = List.fold_left (rpat env0 sigma0) ([], r_sigma) rules in
       let find_R, end_R = mk_pmatcher sigma0 occ ~upats_origin rpats in
