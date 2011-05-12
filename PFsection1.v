@@ -298,7 +298,7 @@ move=> t HnG; apply/ffunP=> h.
 pose GI := ([group of 'I_(G)['xi_t]])%CH.
 rewrite big_map big_filter.
 case: (boolP (h \in H))=> [HiH|HniH]; last first.
-  rewrite ffunE (negPf HniH) mul0r ffunE sum_ffunE ffunE.
+  rewrite ffunE cfuniE (negPf HniH) mul0r ffunE sum_ffunE ffunE.
   rewrite big1 ?(scaler0,ffunE,mulr0) // => C1.
   case/rcosetsP=> h1 H1iG ->.
   have RiG: repr (GI :* h1) \in G.

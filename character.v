@@ -26,8 +26,6 @@ Local Open Scope ring_scope.
 (*                                                                        *)
 (*        'xi_i  : the ith character with i : Iirr G                      *)
 (*                                                                        *)
-(*        '1_G   : the indicator function of G as a class function        *)
-(*                 its convertible to 'xi[G]_0                            *)
 (*      'xi[G]_i : the ith character with an explicite reference to the   *)
 (*                unlying group G                                         *)
 (*                                                                        *)
@@ -672,14 +670,9 @@ Definition pred_Nirr := #|classes G|.-1.
 Definition base_irr :=
    (map (fun x => char_of_repr <<G>> (irr_repr x)) (enum sG)).
 
-Definition cfuni : {cfun gT} :=
-    [ffun g => (nat_of_bool (g \in pred_of_set <<G>>))%:R].
- 
-Local Notation "'1" := cfuni.
-
-Lemma cfuni_in_base_irr : '1 \in base_irr.
+Lemma cfuni_in_base_irr : '1_<<G>> \in base_irr.
 Proof.
-suff->: '1 = char_of_repr <<G>> (irr_repr (principal_comp sG)).
+suff->: '1_<<G>> = char_of_repr <<G>> (irr_repr (principal_comp sG)).
   by apply: map_f=> //; rewrite mem_enum.
 apply/ffunP=> g; rewrite !ffunE.
 case: (boolP (_ \in _))=> GiG; last by rewrite mul0r.
@@ -692,7 +685,7 @@ Definition nonprincipal_irr :=
   odflt v (insub s). 
 
 Definition irr : pred_Nirr.+1.-tuple {cfun gT} :=
-  [tuple of '1 :: nonprincipal_irr].
+  [tuple of '1_<<G>> :: nonprincipal_irr].
 
 Definition irr_representation (i : 'I_pred_Nirr.+1)  := 
   oapp (fun x => Representation (irr_repr x))
@@ -704,8 +697,6 @@ End IrrClassDef.
 
 Notation Nirr G := (pred_Nirr G).+1.
 Notation Iirr G := 'I_(Nirr G).
-Notation "''1_' G" := (cfuni G)
-    (at level 8, G at level 2, format "''1_' G") : ring_scope.
 Notation "''xi_' i" := 
   (tnth (irr _) i%R) (at level 8, i at level 2, format "''xi_' i") : ring_scope.
 Notation "''xi[' G ]_ i" := 
@@ -717,14 +708,11 @@ Section IrrClass.
 
 Variable (gT : finGroupType) (G : {group gT}).
 
-Lemma cfuniE : forall g, '1_G g = (g \in G)%:R.
-Proof. by  move=> g; rewrite ffunE genGid. Qed.
-
 Lemma cfuni_xi0 : '1_G = 'xi[G]_0.
-Proof. by []. Qed.
+Proof.  by rewrite (tnth_nth 0) /= genGid. Qed.
 
 Lemma irr_cfuni : '1_G \in irr G.
-Proof. by rewrite inE eqxx. Qed.
+Proof. by rewrite inE genGid eqxx. Qed.
 
 Lemma NirrE : Nirr G = #|classes G|.
 Proof. by rewrite /pred_Nirr (cardD1 [1]) classes1. Qed.
@@ -740,7 +728,7 @@ Proof.
 rewrite /irr /nonprincipal_irr; case: rot_to=> n s' HH.
 rewrite perm_eq_sym -(perm_rot n base_irr) HH /=.
 case: (insubP _)=> /= [u _ -> // |].
-rewrite -eqSS (_: (size s').+1 = size('1_G::s')) // -{1}HH.
+rewrite -eqSS (_: (size s').+1 = size('1_<<G>>::s')) // -{1}HH.
 rewrite size_rot size_map -cardE NirrE.
 by rewrite card_irr genGidG ?(pGroupG, eqxx) //; last exact: groupC.
 Qed.
@@ -1399,11 +1387,14 @@ Definition clinear (G : {set gT}) f := is_char <<G>> f && (f 1%g == 1).
 
 Hypothesis CFf : clinear G f.
 
-Lemma clinear1: f 1%g = 1.
+Lemma clinear_val1: f 1%g = 1.
 Proof. by apply/eqP; case/andP: CFf. Qed.
 
 Lemma is_char_linear : is_char G f.
 Proof. by case/andP: CFf; rewrite genGid. Qed.
+
+Lemma clinear1 : clinear G '1_G.
+Proof. by rewrite /clinear genGid is_char1 /= ffunE group1. Qed.
 
 Lemma clinearM: forall g h,
   g \in G -> h \in G -> f (g * h)%g = f g * f h.
@@ -1428,19 +1419,21 @@ Qed.
 Lemma clinearV: forall g, g \in G -> f (g^-1)%g = (f g)^-1.
 Proof.
 move=> g InG.
-have F1: f g * f (g^-1%g) = 1 by rewrite -clinearM ?groupV // mulgV clinear1.
+have F1: f g * f (g^-1%g) = 1 
+  by rewrite -clinearM ?groupV // mulgV clinear_val1.
 have F2 := clinear_neq0 InG.
 by apply: (mulfI F2); rewrite F1 divff.
 Qed.
 
 Lemma clinearX : forall g n, g \in G -> (f g)^+n = f (g^+n)%g.
 Proof.
-move=> g n Hin; elim: n=> [|n IH]; first by rewrite expr0 expg0 clinear1.
+move=> g n Hin; elim: n=> [|n IH].
+  by rewrite expr0 expg0 clinear_val1.
 by rewrite exprS expgS clinearM ?groupX // IH.
 Qed.
 
 Lemma clinear_unit : forall g, g \in G -> f g ^+ #[g] = 1.
-Proof. by move=> g InG; rewrite clinearX // expg_order clinear1. Qed.
+Proof. by move=> g InG; rewrite clinearX // expg_order clinear_val1. Qed.
 
 Lemma clinear_norm : forall g, g \in G -> normC (f g) = 1%:R.
 Proof.
@@ -1545,7 +1538,7 @@ suff->: \sum_i (nc i *: 'xi_i) 1%g = \sum_i normC ((nc i *: 'xi_i) g%g).
 have F2 := cycle_abelian g.
 apply: eq_bigr=> i _.
 have CFf: clinear <[g]> 'xi_i by move/char_abelianP: F2; apply.
-rewrite ffunE (clinear1 CFf).
+rewrite ffunE (clinear_val1 CFf).
 rewrite ffunE normC_mul (clinear_norm  CFf) ?cycle_id //.
 by rewrite normC_pos // /nc posC_isNatC // isNatC_ncoord_repr.
 Qed.
@@ -1906,7 +1899,7 @@ case/eqP: (nonzero1r algC).
 move: (posC_sum_eq0 F1)=> /=.
 move: HH1; rewrite -[index_enum _]enumT => HH1.
 move/(_ HH1); move/(_ 0)=> /=.
-rewrite !cfuniE GiG HiG conjC1 mul1r; apply=> //.
+rewrite !cfuniE genGid GiG HiG conjC1 mul1r; apply=> //.
 by rewrite  mem_enum.
 Qed.
 
@@ -2798,15 +2791,13 @@ Proof.
 move=> chi.
 case: (boolP (is_char G chi))=> IC; last first.
   rewrite /ccenter genGid (negPf IC) //.
-  exists ('1_1%G).
-    by rewrite /clinear /cfuni {1}genGid is_char1 genGid ffunE group1 eqxx.
-  apply/ffunP=> g; case: (boolP (g \in 1%G)); last first.
-    rewrite 3!ffunE genGid.
-    by move/negPf->; rewrite !mul0r scaler0.
-  by move/set1gP->; rewrite 2!ffunE cfuniE group1 mul1r [_ *: _]mulr1.
+  exists ('1_1%G); first exact: clinear1.
+  apply/ffunP=> g; rewrite !ffunE.
+  case: (boolP (g \in 1%G)); last first.
+    by rewrite mul0r [_ *: _]mulr0.
+  by move/set1gP->; rewrite mulrC.
 case/is_charP: IC=> [] [|n] [rG Hc].
-  exists ('1_[group of ccenter G chi]).
-    by rewrite /clinear /cfuni {1}genGid is_char1 !genGid ffunE group1 eqxx.
+  exists ('1_[group of ccenter G chi]); first exact: clinear1.
   apply/ffunP=> g.
   by rewrite -Hc !ffunE !(flatmx0 (rG _)) mxtrace0 !mulr0 scale0r.
 pose repr g := ((rG g 0 0)%:M : 'M_(1,1)).
@@ -2859,20 +2850,20 @@ have Fm : forall C,  C  \in (ccenter G chi / cker CG l)%g ->
   rewrite /m /= !val_coset //.
   case: repr_rcosetP=> g /= GiK.
   rewrite !(clinearM H1l) //.
-    by rewrite (cker_char1 GiK) (clinear1 H1l) mul1r.
+    by rewrite (cker_char1 GiK) (clinear_val1 H1l) mul1r.
   by rewrite (subsetP (normal_sub (cker_center_normal _))) // F2 F3.
 apply: (@field_mul_group_cyclic _ _ _ m).
   move=> /= C1 C2; case/Fm=> c1 [H1c1 H2c1 -> ->]; case/Fm=> c2 [H1c2 H2c2 -> ->].
   rewrite /m /= !val_coset // rcoset_mul //.
   case: repr_rcosetP=> k InK.
-  rewrite !(clinearM H1l) ?groupM // ?(cker_char1 InK, clinear1 H1l, mul1r) //.
-  by rewrite (subsetP (normal_sub (cker_center_normal _))) // F2 F3.
+  by rewrite !(clinearM H1l) ?groupM // 
+             ?(cker_char1 InK, clinear_val1 H1l, mul1r) //
+             (subsetP (normal_sub (cker_center_normal _))) // F2 F3.
 move=> C; case/Fm=> c [H1c H2c -> ->].
-split.
-  move=> HH; rewrite coset_id // cker_charE ?is_char_linear //.
-  by rewrite inE HH (clinear1 H1l) eqxx andbT.
-move/(coset_idr H1c).
-rewrite /= cker_charE  ?is_char_linear // inE (clinear1 H1l)  //.
+split=> [HH|/(coset_idr H1c)].
+  rewrite coset_id // cker_charE ?is_char_linear //.
+  by rewrite inE HH (clinear_val1 H1l) eqxx andbT.
+rewrite /= cker_charE  ?is_char_linear // inE (clinear_val1 H1l)  //.
 by case/andP=> _ HH1; apply/eqP.
 Qed.
 
@@ -3023,11 +3014,11 @@ Lemma crestrict_sub_inner_bound : forall (H : {group gT}) f,
       (forallb g : gT, (g \in G:\:H) ==> (f g == 0)).
 Proof.
 move=> H f HsG; rewrite inner_subl // => [|i]; last first.
-  by rewrite ffunE inE; case/andP; move/negPf->; rewrite mul0r.
+  by rewrite !ffunE inE; case/andP; move/negPf->; rewrite mul0r.
 apply/leCifP; case: (boolP (forallb b:_, _)).
   move/forall_inP=> Hi; apply/eqP.
   congr(_ * _); rewrite !inner_prodE; congr (_ * _); apply: eq_bigr=> g InG.
-  rewrite ffunE; case E1: (g \in H); rewrite (mul0r,mul1r) //.
+  rewrite !ffunE; case E1: (g \in H); rewrite (mul0r,mul1r) //.
   have: g \in G:\:H by rewrite inE E1.
   by move/Hi; move/eqP->; rewrite !mul0r.
 rewrite negb_forall_in; case/existsP=> g; case/andP=> H1g H2g.
@@ -3041,7 +3032,7 @@ rewrite -mulr_subr sposC_mul //.
 rewrite -addrA sposC_addr //.
   by rewrite ltCE posC_pconj andbT mulf_neq0 // conjC_eq0.
 have: g \notin H by move: H1g; rewrite inE; case/andP.
-rewrite ffunE; move/negPf->; rewrite !mul0r add0r.
+rewrite !ffunE; move/negPf->; rewrite !mul0r add0r.
 rewrite -sumr_sub posC_sum // => i; case/andP=> _;case/andP=> HH _.
 by rewrite !ffunE; case: (_ \in _); 
    rewrite !(mul0r,mul1r,subrr,subr0, (posC_nat 0),posC_pconj).

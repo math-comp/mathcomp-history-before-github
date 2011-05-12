@@ -428,7 +428,7 @@ rewrite /= Dade_reciprocity ?Dade_cfun => // [|a Aa u Hu]; last first.
   by rewrite !(DadeE CFbeta Aa) ?sub_supp ?rcoset_refl // mem_rcoset mulgK.
 congr (_ * _); apply: eq_bigr => x Lx.
 have [Ax | notAx] := boolP (x \in A); last by rewrite (cfunS0 CFalpha) ?mul0r.
-by rewrite ffunE Lx mul1r (DadeE CFbeta Ax) // sub_supp ?rcoset_refl.
+by rewrite ffunE cfuniE Lx mul1r (DadeE CFbeta Ax) // sub_supp ?rcoset_refl.
 Qed.
 
 (* Supplement to Peterfalvi (2.3)/(2.6)(a); implies Isaacs Lemma 7.7. *)

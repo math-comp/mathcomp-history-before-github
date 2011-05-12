@@ -369,12 +369,12 @@ Proof.
 move=> chi HnG IC; apply/subsetP=> h HiH.
 rewrite cker_irrE inE (subsetP (normal_sub HnG)) //.
 move: (is_comp_clifford HnG IC).
-rewrite cconjugates1 // big_cons big_nil addr0=> HH.
+rewrite -cfuni_xi0 cconjugates1 // big_cons big_nil addr0=> HH.
 move/ffunP: (HH); move/(_ 1%g).
-rewrite ffunE group1 mul1r.
+rewrite ffunE !cfuniE group1 mul1r.
 rewrite [X in _ = X]ffunE cfuniE group1 [_ *: _]mulr1=> HH1.
 move/ffunP: HH; move/(_ h).
-rewrite -HH1 ffunE HiH mul1r => ->.
+rewrite -HH1 ffunE !cfuniE HiH mul1r => ->.
 by rewrite ffunE cfuniE HiH [_ *: _]mulr1 eqxx.
 Qed.
 
@@ -544,7 +544,7 @@ Qed.
 Let He1 : 'xi_c 1%g = e * #|G : T|%:R * ('xi_t 1%g).
 Proof.
 move/ffunP: He; move/(_ 1%g).
-rewrite ffunE group1 mul1r => ->.
+rewrite ffunE !cfuniE group1 mul1r => ->.
 rewrite ffunE sum_ffunE ffunE -mulrA; congr (_ * _).
 rewrite -cconjugates_sum //=.
 rewrite (eq_bigr (fun (i: Iirr H) => 'xi_t 1%g))=> [|i]; last first.
@@ -566,7 +566,7 @@ rewrite (eq_bigr (fun (c : gT) => 'xi_p 1%g))=> [|g GiG]; last first.
   by rewrite conj1g.
 rewrite sumr_const.
 move/ffunP: Hf; move/(_ 1%g).
-rewrite ffunE group1 mul1r => ->.
+rewrite ffunE !cfuniE group1 mul1r => ->.
 rewrite ffunE.
 apply: (mulfI (neq0GC T)).
 rewrite mulrA mulfV ?neq0GC // mul1r. 
