@@ -302,7 +302,7 @@ move => HfE; split => //.
 by rewrite -(dimv_leqif_eq HfE) (kHom_dim Hhom).
 Qed.
 
-Lemma kHomExtendAuto : forall (K E J : {algebra L}) f,
+Lemma kHomExtendAut : forall (K E J : {algebra L}) f,
   (K <= E)%VS -> (K <= J)%VS -> kHom K E f -> (f @: E <= J)%VS ->
   normal K J -> exists g, kAut K J g && (E <= lker (g - f))%VS.
 Proof.
@@ -438,9 +438,50 @@ Qed.
 
 Hypothesis NormalFieldExt : normal F (aspacef L).
 
+(* Techinically undup isn't necessary as the list is already uniq. 
+   It is easier to call undup rather than prove the list is uniq. *)
 Definition LAut_enum :=
-(* foldr (fun a r => allpairs (fun x l => cons_tuple x l) a r)  [::] *)
-[tuple of (map (fun x => xchoose (NormalFieldExt (memvf x))) (vbasis (fullv L)))].
+ let b := vbasis (fullv L) in
+ let mkEnd (b' : seq L) := lapp_of_fun 
+  (fun v : L => \sum_i coord b v i *: b'`_i) in
+ undup (filter (kHom F (fullv L))
+   (map mkEnd (foldr (allpairs cons) [:: [::]]
+     (map (fun x => xchoose (NormalFieldExt (memvf x))) b)))).
+
+Lemma LAut_is_enum : forall f : 'End(L), 
+  reflect (lrmorphism f) (f \in LAut_enum).
+Proof.
+move => f.
+rewrite /LAut_enum mem_undup mem_filter.
+apply: (iffP idP).
+ rewrite andbC.
+ case/andP.
+ case/mapP => x Hx ->.
+ by move/LAut_lrmorph.
+move/LAut_lrmorph => Hf.
+rewrite Hf.
+apply/mapP.
+exists (map f (vbasis (fullv L))).
+ elim: (tval (vbasis (fullv L))) => [//|v vs IH].
+ apply/allpairsP.
+ exists (f v, map f vs); split => //.
+ case/andP: (xchooseP (NormalFieldExt (memvf v))) => _.
+ rewrite -root_prod_factors.
+ move/eqP <-.
+ by rewrite (kHom_rootK Hf) ?subvf ?minPolyOver ?memvf ?root_minPoly.
+apply/eqP/eq_lapp => v.
+rewrite lapp_of_funK; last first.
+ move => x a b.
+ rewrite linear_sum -big_split.
+ apply: eq_bigr => i _ /=.
+ by rewrite scalerA -scaler_addl coord_is_linear !ffunE.
+have Hv := coord_basis (memvf v).
+rewrite {1}Hv linear_sum.
+apply: eq_bigr => i _.
+rewrite linearZ (nth_map 0) //.
+case : vbasis => ? /=.
+by move/eqP ->.
+Qed. 
 
 (*
 Definition FieldAutomorphism (E:{vspace L}) (f : 'End(L) ) : bool :=
