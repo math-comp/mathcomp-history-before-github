@@ -210,7 +210,7 @@ Lemma huppert_blackburn_5_9 : forall gT p (A X : {group gT}),
   exists2 s : {set {group gT}}, \big[dprod/1]_(B \in s) B = A
       & forall B, B \in s -> [/\ homocyclic B, X \subset 'N(B)
         & acts_irreducibly X (B / 'Phi(B)) 'Q].
-Proof.
+Proof. Admitted. (*
 move=> gT p A X; move: {2}_.+1 (ltnSn #|A|) => m.
 elim: m => // m IHm in gT A X *; rewrite ltnS => leAm cAA pA p'X nAX.
 have [n1 eA]: {n | exponent A = p ^ n}%N by apply p_natP; rewrite pnat_exponent.
@@ -399,7 +399,7 @@ rewrite 2!inE /= qact_domE ?subsetT // astabsJ.
 rewrite (subsetP (char_norm_trans (Phi_char _) nKuX)) ?mem_quotient //=.
 apply/subsetP=> fy; case/morphimP=> y Dy Yy ->{fy}.
 by rewrite inE /= -act_f // morphimEsub // mem_imset // (acts_act actsXY).
-Qed.
+Qed. *)
 
 
 
@@ -579,7 +579,7 @@ Lemma huppert_blackburn_12_3 gT (V G : {group gT}) p m :
   isom V (W / 'Mho^1(W)) f
   & exists toW : groupAction G W,
     {in V & G, morph_act 'J (toW / 'Mho^1(W)) f (idm G)}.
-Proof.
+Proof. Admitted. (*
 move=> minV copG abelV m_gt0; set q := (p ^ m)%N => W.
 have [ntV nVG] := andP (mingroupp minV).
 have [p_pr pVdvdn [n Vpexpn]] := pgroup_pdiv (abelem_pgroup abelV) ntV.
@@ -797,7 +797,7 @@ rewrite -mulmxA hJ // mulmxA rVabelemJ //; congr (_ ^ x).
 apply: set1_inj; rewrite -(morphim_set1 (Morphism f3M)) ?in_setT //.
 rewrite -im_f' quotient_set1 // morphim_set1 ?mem_quotient ?in_setT //.
 by rewrite -def_fv def_f invmK // im_f' im_f3.
-Qed.
+Qed. *)
 
 
 End HuppertBlackburn_12_3.
@@ -945,6 +945,7 @@ have{minV} minV: minnormal V G.
   by rewrite join_subG (sub_abelian_norm (abelem_abelian pabV)).
 have hb123 := huppert_blackburn_12_3 minV coppG pabV.
 apply: (exprdiv_eq (prime_gt1 primep)) => k lt0k.
+pose q := (p ^ k)%N.
 have {hb123} [fVW isomfVW [/= toW htoW]] := (hb123 _ lt0k).
 have toWlin: forall g, linear (toW^~ (val (subg G g))).
   move=> g z /= x y; rewrite gactM ?in_setT ?subgP //; congr (_ * _). 
@@ -955,7 +956,7 @@ have is_action_rW : (mx_repr G rW).
     by apply/matrixP=> i j /=; rewrite mxE /= subgK // act1 !mxE eqxx eq_sym.
   move=> x y Gx Gy /=; apply/row_matrixP=> i; rewrite row_mul mul_rV_lin1 /=.
   by rewrite subgK // !rowK /= !subgK ?groupM // actMin. 
-have pk_gt1 : p ^ k > 1 by rewrite  -(exp1n k) ltn_exp2r // prime_gt1.
+have pk_gt1 : q > 1 by rewrite  -(exp1n k) ltn_exp2r // prime_gt1.
 suff tr_rW_Ai : forall i, 0 < m i + n i  ->
   {in A i, forall x : gT, \tr (rW x) = (f i)%:R}.
   pose gamma i := \sum_(x \in A i) rW x.
@@ -996,13 +997,15 @@ have hcent_com :  [~: Wbar, Aibar] \x 'C_(Wbar)(Aibar) = Wbar.
   - apply: coprime_morphl; apply: coprime_morphr; apply:(coprimegS (sAiG _ hi)).
     by rewrite cardsT /= card_matrix mul1n /= card_ord Zp_cast ?coprime_expl.
   - by apply: morphim_abelian; apply: zmod_abelian.
+have homoWbar : homocyclic Wbar.
+  have := (sub_isog (subxx _) (injm_sdpair1 toW)); move/isog_homocyclic<-.
+  exact: mx_group_homocyclic.
+have pWbar : p.-group Wbar.
+  apply: morphim_pgroup; rewrite -pnat_exponent exponent_mx_group // pnat_exp.
+  by rewrite pnat_id.
 have [hc_com  hc_cent] : 
   homocyclic [~: Wbar, Aibar] /\ homocyclic 'C_Wbar(Aibar).
-  apply: (@dprod_homocyclic _ p _ _ _ hcent_com).
-  - apply: morphim_pgroup; rewrite -pnat_exponent exponent_mx_group // pnat_exp.
-    by rewrite pnat_id.
-  - have := (sub_isog (subxx _) (injm_sdpair1 toW)); move/isog_homocyclic<-.
-    exact: mx_group_homocyclic.
+  apply: (@dprod_homocyclic _ p _ _ _ hcent_com) => //.
 have abelCbar : abelian 'C_Wbar(Aibar).
   by rewrite (abelianS (subsetIl _ _)) // morphim_abelian // zmod_abelian.
 have rCbar : 'r('C_Wbar(Aibar)) = f i.
@@ -1045,4 +1048,24 @@ have rCbar : 'r('C_Wbar(Aibar)) = f i.
   rewrite {2}def_fv -(cAv x Ax) htoW // -def_fv def_fv_w !qactE //.
     by rewrite qact_domE ?Mho_sub // (subsetP actsAi).
   by rewrite qact_domE ?Mho_sub // (subsetP actsAi_r).
+have expWbar : exponent Wbar = q.
+  rewrite exponent_injm ?subxx ?injm_sdpair1 //; exact: exponent_mx_group.
+have := (abelian_type_dprod_homocyclic hcent_com pWbar homoWbar).
+rewrite expWbar => [] [atypel atyper].
+have isor : 'C_Wbar(Aibar) \isog [set: 'rV['Z_q]_(f i)].
+  rewrite eq_abelian_type_isog // ?zmod_abelian // atyper rCbar.
+  by rewrite abelian_type_mx_group // mul1n eqxx.
+pose dV := 'dim V.
+have abel_com : abelian [~: Wbar, Aibar] by case/andP: hc_com.
+have isol : [~: Wbar, Aibar] \isog [set: 'rV['Z_q]_(dV - (f i))%N].
+  rewrite eq_abelian_type_isog // ?zmod_abelian // atypel.
+  rewrite  abelian_type_mx_group // mul1n.
+  suff -> :  'r([~: Wbar, Aibar]%G) = (dV - f i)%N by rewrite eqxx.
+  have := (card_homocyclic homoWbar); rewrite -{1}(dprod_card hcent_com).
+  rewrite (card_homocyclic hc_com) (card_homocyclic hc_cent) expWbar.
+  rewrite rCbar;   case triv_com : ([~: Wbar, Aibar] == 1).
+    move: hcent_com; rewrite (eqP triv_com); case/dprodP; rewrite mul1g=> _ e _ _.
+    rewrite /= (eqP triv_com) rank1 expn0 mul1n e expWbar; move/(expnI pk_gt1)->.
+    by rewrite injm_rank ?injm_sdpair1 // rank_mx_group mul1n subnn.
+  rewrite (exponent_isog isor) exponent_mx_group //; admit.
 Admitted.
