@@ -167,12 +167,6 @@ apply/kHomP; split => // x y Hx Hy.
 by apply: HE1; apply: HE.
 Qed.
 
-(* :TODO: Generalize and move this to poly.v *)
-Lemma map_poly_comp : forall (aR bR cR : ringType) 
- (f : {additive bR -> cR}) (g : {additive aR -> bR}) (p : {poly aR}),
- map_poly (f \o g) p = map_poly f (map_poly g p).
-Proof. by move => aR bR cR f g p; apply/polyP => i; rewrite !coef_map. Qed.
-
 Section kHomExtend.
 
 Variables (K E : {algebra L}) (f : 'End(L)).
@@ -438,8 +432,6 @@ Qed.
 
 Hypothesis NormalFieldExt : normal F (aspacef L).
 
-(* Techinically undup isn't necessary as the list is already uniq. 
-   It is easier to call undup rather than prove the list is uniq. *)
 Definition LAut_enum :=
  let b := vbasis (fullv L) in
  let mkEnd (b' : seq L) := lapp_of_fun 

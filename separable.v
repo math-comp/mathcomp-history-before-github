@@ -113,7 +113,146 @@ by apply: dvdp_mul; first rewrite GRing.addrC GRing.mulrC;
  rewrite dvdp_gcdl.
 Qed.
 
+Lemma separable_root : forall x,
+ separablePolynomial (p * ('X - x%:P)) -> ~~ root p x.
+Proof.
+move => x.
+apply: contraL.
+case/factor_theorem => pp ->.
+case: (eqVneq pp 0) => [->|Hpp].
+ by rewrite !mul0r /separablePolynomial coprime0p deriv0 -eqp_polyC eq_refl.
+apply/coprimepPn.
+ by rewrite !mulf_eq0 !negb_orb Hpp -!size_poly_eq0 !size_XMa.
+exists ('X - x%:P).
+rewrite dvdp_gcd eqp_sym -dvdp_size_eqp ?dvd1p // size_XMa size_poly1.
+rewrite !(derivM, derivD) !dvdp_add ?(dvdp_mull _ (dvdpp _)) //.
+by rewrite dvdp_mulr // dvdp_mull // dvdpp.
+Qed.
+
 End SeparablePoly.
+
+(* :TODO: Generalize and move this to poly.v *)
+Lemma map_poly_comp : forall (aR bR cR : ringType)
+ (f : {additive bR -> cR}) (g : {additive aR -> bR}) (p : {poly aR}),
+ map_poly (f \o g) p = map_poly f (map_poly g p).
+Proof. by move => aR bR cR f g p; apply/polyP => i; rewrite !coef_map. Qed.
+
+(*
+
+Section InfinitePrimitiveElementTheorem.
+
+Local Notation "p ^ f" := (map_poly f p) : ring_scope.
+Local Notation "'Y" := 'X%:P : ring_scope.
+
+Hypothesis coprime_pT_q_subproof : forall (F : fieldType) (p q : {poly F}),
+  q`_0 != 0 -> coprimep ((p ^ polyC) \Po ('Y * 'X)) (q ^ polyC).
+
+Variables (F L: fieldType) (iota : {rmorphism F -> L}).
+Variables (x y : L) (p q : {poly F}).
+Hypotheses (pne0 : p != 0) (qne0 : q != 0).
+Hypotheses (Hpx : root (p ^ iota) x) (Hqy : root (q ^ iota) y).
+Hypothesis (Hsep : separablePolynomial q).
+
+Lemma PET_Infinite_Case : exists r : {poly L}, r != 0 /\
+  forall t, ~~root r (iota t) ->
+  (exists p0, (p0 ^ iota).[iota t * y - x] = x) /\ 
+  (exists q0, (q0 ^ iota).[iota t * y - x] = y).
+Proof.
+set p' := (p ^ iota) \Po ('X + x%:P).
+have [qq Hqq] := (factor_theorem _ _ Hqy).
+set q' := qq \Po ('X + y%:P).
+move: Hsep.
+rewrite /separablePolynomial -gcdp_eqp1 -(eqp_map iota) rmorph1 gcdp_map.
+rewrite -deriv_map Hqq gcdp_eqp1.
+move/separable_root.
+rewrite /root {1}(_ : y = ('X + y%:P).[0]); last by rewrite !horner_lin.
+rewrite -horner_poly_comp -/q'.
+rewrite -{1}(horner0 0) -horner_poly_comp poly_comp0 hornerC.
+move: (egcdpPW (p' ^ polyC \Po 'Y * 'X) (q' ^ polyC)) => [u [v Huv]].
+move/(coprime_pT_q_subproof p').
+rewrite -gcdp_eqp1.
+move/(eqp_trans Huv) => {Huv}.
+rewrite -size1_dvdp1.
+case/size1P => r [Hr0 Hr].
+exists r.
+split => // t Ht.
+suff Hq0 : (exists q0 : {poly F}, (q0 ^ iota).[iota t * y - x] = y).
+ split => //.
+ case: Hq0 => q0 Hq0.
+ exists (t *: q0 - 'X).
+ rewrite rmorph_sub [_ 'X]map_polyX [_ (_ *: _)]map_poly_scaler !horner_lin.
+ by rewrite Hq0 oppr_sub addrC addrNK.
+have Hcomm: (commr_rmorph idfun (iota t)) by apply: mulrC.
+move/(f_equal (map_poly (horner_morph Hcomm))) : Hr.
+rewrite rmorphD !rmorphM map_polyC /= /poly_comp -horner_map rmorphM.
+rewrite [_ 'Y]map_polyC [_ 'X]horner_morphX [_ 'X]map_polyX.
+rewrite -map_poly_comp -[(q' ^ _) ^ _]map_poly_comp.
+rewrite ![GRing.Additive.apply _]/=.
+rewrite [_ ^ (map_poly _ \o _)]map_polyE.
+rewrite (_ : (map (map_poly (horner_morph Hcomm) \o polyC) (p' ^ polyC))
+           = (map (polyC \o (horner_morph Hcomm)) (p' ^ polyC))); last first.
+ by rewrite (eq_map (map_polyC _)).
+rewrite -map_polyE -map_poly_comp.
+rewrite -[((polyC \o horner_morph Hcomm) \o polyC)]
+        /(polyC \o (horner_morph Hcomm \o polyC)).
+rewrite map_poly_comp ![GRing.Additive.apply _]/=.
+rewrite !map_polyE !(eq_map (horner_morphC _)) !map_id -!map_polyE.
+rewrite !polyseqK -/(poly_comp ((iota t)%:P  * 'X) p').
+set u1 := (u ^ _).
+set v1 := (v ^ _).
+set p1 := (_ \Po _).
+rewrite /horner_morph map_polyE map_id polyseqK.
+move => Hlincomb.
+have : (coprimep p1 q').
+ apply/coprimepPW.
+ exists u1.
+ exists v1.
+ by rewrite Hlincomb -eqp_polyC.
+clear -Hpx Hqy pne0 qne0 Hqq.
+move/(coprimep_poly_comp ('X - y%:P)).
+rewrite /q' [(qq \Po _) \Po _]poly_compA poly_comp_translateK poly_compX.
+rewrite -gcdp_eqp1.
+set p2 := (_ \Po _) => Hp2.
+have: (gcdp p2 (q ^ iota) %= ('X - y%:P)).
+ apply/andP; split; last first.
+  rewrite -root_factor_theorem root_gcd Hqy andbT /root /p2 /p1 /p'.
+  by rewrite !(horner_poly_comp, horner_lin) subrr mulr0 add0r.
+ rewrite -[_ - _]mul1r.
+ apply: (@dvdp_trans _ (gcdp (p2 * ('X - y%:P)) (q ^ iota))).
+  rewrite dvdp_gcd dvdp_gcdr (dvdp_trans (dvdp_gcdl _ _)) // dvdp_mulr //.
+  by rewrite dvdpp.
+ case/andP: Hp2.
+ rewrite Hqq -(eqp_dvdl _ (mulp_gcdl _ _ _)) dvdp_mul2r //.
+ by rewrite -size_poly_eq0 size_XMa.
+move/eqpP => [c1 [c2 [Hc1 Hc2]]].
+move/(f_equal (fun x : {poly L} => (c2^-1 *: x)`_0))/eqP.
+rewrite (scalerK Hc2) scalerA coef_scaler coef_sub coefX add0r -eqr_oppC.
+rewrite coefC eq_refl.
+set z := iota t * y - x.
+have Hcomm : commr_rmorph iota z by move => a; apply: mulrC.
+pose (Q := (q ^ polyC)).
+rewrite (_ : q ^ iota = Q ^ (horner_morph Hcomm)); last first.
+ by rewrite /Q -map_poly_comp !map_polyE (eq_map (horner_morphC _)).
+pose (P := (p ^ polyC) \Po (t%:P *: 'X - 'Y)).
+rewrite (_ : p2 = P ^ (horner_morph Hcomm)); last first.
+ rewrite /P.
+ rewrite -!horner_map rmorph_sub ![GRing.RMorphism.apply _]/=.
+ rewrite map_poly_scaler map_polyC map_polyX.
+ rewrite -map_poly_comp ![GRing.Additive.apply _]/=.
+ rewrite [_ t%:P]horner_morphC horner_morphX.
+ rewrite !map_polyE (eq_map (map_polyC _)) -!map_polyE map_poly_comp.
+ rewrite -[(p ^ _) ^ _]map_poly_comp.
+ rewrite !map_polyE (eq_map (horner_morphC _)) -!map_polyE.
+ rewrite ![GRing.Additive.apply _]/=.
+ rewrite /p2 /p1 /p' !poly_compA {2 3}/poly_comp.
+ rewrite rmorphM rmorphD ![GRing.RMorphism.apply _]/= !map_polyX !map_polyC.
+ rewrite !horner_lin mulr_addr -addrA -polyC_opp -polyC_mul polyC_add oppr_add.
+ by rewrite -!polyC_opp opprK mulrN mul_polyC.
+rewrite -(gcdp_map (RMorphism (horner_is_rmorphism Hcomm)) P Q).
+
+End InfinitePrimitiveElementTheorem.
+
+*)
 
 Section Separable.
 
