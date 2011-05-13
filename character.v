@@ -2182,6 +2182,13 @@ Proof.  by move=> i; rewrite /cker genGid is_char_irr. Qed.
 Lemma cker_NcharE : forall f, ~is_char G f -> cker G f = 1%G.
 Proof. by move=> f Hf; rewrite /cker genGid; move/eqP: Hf; case: is_char. Qed.
 
+Lemma cker1 : cker G '1_G = G.
+Proof.
+rewrite cfuni_xi0 cker_irrE -cfuni_xi0.
+apply/setP=> g; rewrite inE !ffunE group1.
+by case: (_ \in _)=> //; rewrite eqxx.
+Qed.
+
 Definition cfaithful (G : {set gT}) f := cker G f \subset 1%G.
 
 Lemma cfaithful_reg : cfaithful G (reg_cfun G).

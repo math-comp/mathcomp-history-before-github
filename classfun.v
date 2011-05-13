@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset.
 Require Import fingroup morphism perm automorphism quotient finalg action.
-Require Import zmodp commutator cyclic center pgroup sylow.
+Require Import gproduct zmodp commutator cyclic center pgroup sylow.
 Require Import vector algC matrix.
 
 Set Implicit Arguments.
@@ -660,8 +660,94 @@ by rewrite H1f2 ?mulr0 // inE.
 Qed.
 
 Lemma memc_prod : forall (A : {set gT}) (f1 f2 : {cfun gT}) , 
-  f1 \in 'CF(G,A) -> f2 \in 'CF(G,A) -> f1 * f2 \in 'CF(G, A).
+  f1 \in 'CF(G, A) -> f2 \in 'CF(G, A) -> f1 * f2 \in 'CF(G, A).
 Proof. by move=> A f1 f2 Hf1 Hf2; rewrite -[A]setIid memc_prodI. Qed.
 
 End Product.
+
+Section DProduct. 
+
+Variable (gT : finGroupType) (G : {group gT}).
+
+Lemma sum_dprodl : forall (H1 H2 : {group gT}),
+ forall (R : Type) (idx : R) (op : Monoid.com_law idx) 
+        (F : gT -> R),
+       H1 \x H2 = G ->
+       \big[op/idx]_(g \in G) F g =
+       \big[op/idx]_(h1 \in H1) \big[op/idx]_(h2 \in H2) F (h1 * h2)%g.
+Proof.
+move=> H1 H2 R idx op F H1dH2.
+rewrite pair_big_dep.
+pose f (g : gT) := (divgr H1 H2 g, remgr H1 H2 g).
+have Hf: {on [pred i | (i.1 \in H1) && (i.2 \in H2)], bijective f}.
+  case/dprodP: H1dH2=> _ _ _ HH.
+  exists (fun p => (p.1 * p.2)%g)=> [g|[g h] /andP [] /= Hg Hh].
+    by rewrite !inE -?divgr_eq.
+  by rewrite /f ?(divgrMid,remgrMid).
+rewrite (reindex f) //.
+apply: eq_big; last first.
+  by move=> g GiG; rewrite /= -divgr_eq.
+move=> g /=; apply/idP/idP=> [GiG | /andP [] DiH1 DiH2].
+  rewrite [g](divgr_eq H1 H2).
+  by rewrite !(mem_divgr,mem_remgr) // -divgr_eq; case/dprodP: H1dH2=> _ ->.
+rewrite [g](divgr_eq H1 H2).
+case/dprodP: H1dH2=> _ <- _ _.
+by apply: mem_mulg.
+Qed.
+
+Lemma sum_dprodr : forall (H1 H2 : {group gT}),
+ forall (R : Type) (idx : R) (op : Monoid.com_law idx) 
+        (F : gT -> R),
+       H1 \x H2 = G ->
+       \big[op/idx]_(g \in G) F g =
+       \big[op/idx]_(h2 \in H2) \big[op/idx]_(h1 \in H1) F (h1 * h2)%g.
+Proof.
+move=> H1 H2 R idx op F H1dH2.
+rewrite pair_big_dep.
+pose f (g : gT) := (remgr H1 H2 g, divgr H1 H2 g).
+have Hf: {on [pred i | (i.1 \in H2) && (i.2 \in H1)], bijective f}.
+  case/dprodP: H1dH2=> _ _ _ HH.
+  exists (fun p => (p.2 * p.1)%g)=> [g|[g h] /andP [] /= Hg Hh].
+    by rewrite !inE -?divgr_eq.
+  by rewrite /f ?(divgrMid,remgrMid).
+rewrite (reindex f) //.
+apply: eq_big; last first.
+  by move=> g GiG; rewrite /= -divgr_eq.
+move=> g /=; apply/idP/idP=> [GiG | /andP [] DiH1 DiH2].
+  rewrite [g](divgr_eq H1 H2).
+  by rewrite !(mem_divgr,mem_remgr) // -divgr_eq; case/dprodP: H1dH2=> _ ->.
+rewrite [g](divgr_eq H1 H2).
+case/dprodP: H1dH2=> _ <- _ _.
+by apply: mem_mulg.
+Qed.
+
+Definition cfun_dprod
+  (H1 H2 : {set gT}) (f1 f2 : {cfun gT}) : {cfun gT} :=
+  [ffun g => f1 (divgr H1 H2 g) * (f2 (remgr H1 H2 g))].
+
+
+Lemma inner_prod_dprod :
+   forall (H1 H2 : {group gT}) (f1 f2 f'1 f'2 : {cfun gT}),
+     H1 \x H2 = G ->
+     f1 \in 'CF(H1) -> f2 \in 'CF(H2) ->
+    f'1 \in 'CF(H1) -> f'2 \in 'CF(H2) ->
+  '[cfun_dprod H1 H2 f1 f2, cfun_dprod H1 H2 f'1 f'2]_G = 
+     '[f1, f'1]_H1 * '[f2, f'2]_H2.
+Proof.
+move=> H1 H2 f1 f2 f'1 f'2 H1xH2 Cf1 Cf2 Cf'1 Cf'2.
+rewrite inner_prodE -(dprod_card H1xH2) natr_mul.
+rewrite invf_mul -mulrA -mulr_sumr.
+rewrite (sum_dprodl _ _ H1xH2) /=.
+rewrite inner_prodE -mulrA; congr (_ * _).
+rewrite -mulr_suml; apply: eq_bigr=> h1 H1iH1.
+rewrite inner_prodE -!mulr_sumr.
+apply: eq_bigr=> h2 H2iH2.
+case/dprodP: (H1xH2)=> _ _ _ HH.
+rewrite !ffunE !(divgrMid,remgrMid) //.
+rewrite mulrCA -!mulrA; congr (_ * _).
+rewrite mulrCA [X in _ = X]mulrCA; congr (_ * _).
+by rewrite mulrCA rmorphM.
+Qed.
+
+End DProduct.
 
