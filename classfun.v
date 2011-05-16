@@ -667,20 +667,19 @@ End Product.
 
 Section DProduct. 
 
-Variable (gT : finGroupType) (G : {group gT}).
+Variable (gT : finGroupType) (G H1 H2 : {group gT}).
+Hypothesis H1xH2 : H1 \x H2 = G.
 
-Lemma sum_dprodl : forall (H1 H2 : {group gT}),
- forall (R : Type) (idx : R) (op : Monoid.com_law idx) 
-        (F : gT -> R),
-       H1 \x H2 = G ->
+Lemma sum_dprodl :  
+  forall (R : Type) (idx : R) (op : Monoid.com_law idx) (F : gT -> R),
        \big[op/idx]_(g \in G) F g =
        \big[op/idx]_(h1 \in H1) \big[op/idx]_(h2 \in H2) F (h1 * h2)%g.
 Proof.
-move=> H1 H2 R idx op F H1dH2.
+move=> R idx op F.
 rewrite pair_big_dep.
 pose f (g : gT) := (divgr H1 H2 g, remgr H1 H2 g).
 have Hf: {on [pred i | (i.1 \in H1) && (i.2 \in H2)], bijective f}.
-  case/dprodP: H1dH2=> _ _ _ HH.
+  case/dprodP: H1xH2=> _ _ _ HH.
   exists (fun p => (p.1 * p.2)%g)=> [g|[g h] /andP [] /= Hg Hh].
     by rewrite !inE -?divgr_eq.
   by rewrite /f ?(divgrMid,remgrMid).
@@ -689,24 +688,22 @@ apply: eq_big; last first.
   by move=> g GiG; rewrite /= -divgr_eq.
 move=> g /=; apply/idP/idP=> [GiG | /andP [] DiH1 DiH2].
   rewrite [g](divgr_eq H1 H2).
-  by rewrite !(mem_divgr,mem_remgr) // -divgr_eq; case/dprodP: H1dH2=> _ ->.
+  by rewrite !(mem_divgr,mem_remgr) // -divgr_eq; case/dprodP: H1xH2=> _ ->.
 rewrite [g](divgr_eq H1 H2).
-case/dprodP: H1dH2=> _ <- _ _.
+case/dprodP: H1xH2=> _ <- _ _.
 by apply: mem_mulg.
 Qed.
 
-Lemma sum_dprodr : forall (H1 H2 : {group gT}),
- forall (R : Type) (idx : R) (op : Monoid.com_law idx) 
-        (F : gT -> R),
-       H1 \x H2 = G ->
+Lemma sum_dprodr : 
+  forall (R : Type) (idx : R) (op : Monoid.com_law idx) (F : gT -> R),
        \big[op/idx]_(g \in G) F g =
        \big[op/idx]_(h2 \in H2) \big[op/idx]_(h1 \in H1) F (h1 * h2)%g.
 Proof.
-move=> H1 H2 R idx op F H1dH2.
+move=> R idx op F.
 rewrite pair_big_dep.
 pose f (g : gT) := (remgr H1 H2 g, divgr H1 H2 g).
 have Hf: {on [pred i | (i.1 \in H2) && (i.2 \in H1)], bijective f}.
-  case/dprodP: H1dH2=> _ _ _ HH.
+  case/dprodP: H1xH2=> _ _ _ HH.
   exists (fun p => (p.2 * p.1)%g)=> [g|[g h] /andP [] /= Hg Hh].
     by rewrite !inE -?divgr_eq.
   by rewrite /f ?(divgrMid,remgrMid).
@@ -715,38 +712,86 @@ apply: eq_big; last first.
   by move=> g GiG; rewrite /= -divgr_eq.
 move=> g /=; apply/idP/idP=> [GiG | /andP [] DiH1 DiH2].
   rewrite [g](divgr_eq H1 H2).
-  by rewrite !(mem_divgr,mem_remgr) // -divgr_eq; case/dprodP: H1dH2=> _ ->.
+  by rewrite !(mem_divgr,mem_remgr) // -divgr_eq; case/dprodP: H1xH2=> _ ->.
 rewrite [g](divgr_eq H1 H2).
-case/dprodP: H1dH2=> _ <- _ _.
+case/dprodP: H1xH2=> _ <- _ _.
 by apply: mem_mulg.
 Qed.
 
-Definition cfun_dprod
-  (H1 H2 : {set gT}) (f1 f2 : {cfun gT}) : {cfun gT} :=
-  [ffun g => f1 (divgr H1 H2 g) * (f2 (remgr H1 H2 g))].
+Definition cfun_div (H1xH2 : H1 \x H2 = G) (f : {cfun gT}) : {cfun gT} :=
+  '1_G * [ffun g => f (divgr H1 H2 g)].
 
+Definition cfun_rem (H1xH2 : H1 \x H2 = G) (f : {cfun gT}) : {cfun gT} :=
+  '1_G * [ffun g => f (remgr H1 H2 g)].
 
-Lemma inner_prod_dprod :
-   forall (H1 H2 : {group gT}) (f1 f2 f'1 f'2 : {cfun gT}),
-     H1 \x H2 = G ->
-     f1 \in 'CF(H1) -> f2 \in 'CF(H2) ->
+Definition cfun_dprod (f1 f2 : {cfun gT}) : {cfun gT} :=
+  cfun_div H1xH2 f1 * cfun_rem H1xH2 f2.
+
+Lemma mem_dprod : forall g,
+   g \in G = ((divgr H1 H2 g \in H1) && (remgr H1 H2 g \in H2)).
+Proof.
+move=> g; apply/idP/idP=> [|/andP [] Hrem Hdiv]; last first.
+  case/dprodP: H1xH2=> _ <- _ _.
+  apply/imset2P; exists (divgr H1 H2 g) (remgr H1 H2 g) => //.
+  apply: divgr_eq.
+case/dprodP: H1xH2=> _ <- _ DH1H2.
+case/imset2P=> y1 y2 Y1iH1 Y2iH2 ->.
+by rewrite divgrMid // remgrMid // Y1iH1.
+Qed.
+
+Lemma cfun_dprod1r : forall f, cfun_dprod f '1_H2 = cfun_div H1xH2 f.
+Proof.
+move=> f; apply/ffunP=> g; rewrite !ffunE mem_dprod.
+by set u := remgr _ _ _ \in H2; set v := divgr _ _ _ \in H1;
+   case u; case v=> /=; rewrite !(mul0r,mul1r,mulr1).
+Qed.
+
+Lemma cfun_dprod1l : forall f, cfun_dprod '1_H1 f = cfun_rem H1xH2 f.
+Proof.
+move=> f; apply/ffunP=> g; rewrite !ffunE mem_dprod.
+by set u := remgr _ _ _ \in H2; set v := divgr _ _ _ \in H1;
+   case u; case v=> /=; rewrite !(mul0r,mul1r,mulr1).
+Qed.
+
+Lemma inner_prod_dprod :forall (f1 f2 f'1 f'2 : {cfun gT}),
+     f1 \in 'CF(H1) ->  f2 \in 'CF(H2) ->
     f'1 \in 'CF(H1) -> f'2 \in 'CF(H2) ->
-  '[cfun_dprod H1 H2 f1 f2, cfun_dprod H1 H2 f'1 f'2]_G = 
+  '[cfun_dprod f1 f2, cfun_dprod f'1 f'2]_G = 
      '[f1, f'1]_H1 * '[f2, f'2]_H2.
 Proof.
-move=> H1 H2 f1 f2 f'1 f'2 H1xH2 Cf1 Cf2 Cf'1 Cf'2.
+move=> f1 f2 f'1 f'2 Cf1 Cf2 Cf'1 Cf'2.
 rewrite inner_prodE -(dprod_card H1xH2) natr_mul.
 rewrite invf_mul -mulrA -mulr_sumr.
-rewrite (sum_dprodl _ _ H1xH2) /=.
+rewrite sum_dprodl /=.
 rewrite inner_prodE -mulrA; congr (_ * _).
 rewrite -mulr_suml; apply: eq_bigr=> h1 H1iH1.
 rewrite inner_prodE -!mulr_sumr.
 apply: eq_bigr=> h2 H2iH2.
 case/dprodP: (H1xH2)=> _ _ _ HH.
 rewrite !ffunE !(divgrMid,remgrMid) //.
-rewrite mulrCA -!mulrA; congr (_ * _).
+have->: (h1 * h2)%g \in G.
+  by case/dprodP: H1xH2=> _ <- _ _; apply: mem_mulg.
+rewrite !mul1r mulrCA -!mulrA; congr (_ * _).
 rewrite mulrCA [X in _ = X]mulrCA; congr (_ * _).
 by rewrite mulrCA rmorphM.
+Qed.
+
+Lemma inner_prod_rem :forall (f1 f2 : {cfun gT}),
+     f1 \in 'CF(H2) ->  f2 \in 'CF(H2) ->
+  '[cfun_rem H1xH2 f1, cfun_rem H1xH2 f2]_G = '[f1, f2]_H2.
+Proof.
+move=> f1 f2 Cf1 Cf2.
+rewrite -!cfun_dprod1l inner_prod_dprod ?memc1 //.
+by rewrite inner_prod1 !setIid mulfV ?mul1r // neq0GC.
+Qed.
+
+Lemma inner_prod_div :forall (f1 f2 : {cfun gT}),
+     f1 \in 'CF(H1) ->  f2 \in 'CF(H1) ->
+  '[cfun_div H1xH2 f1, cfun_div H1xH2 f2]_G = '[f1, f2]_H1.
+Proof.
+move=> f1 f2 Cf1 Cf2.
+rewrite -!cfun_dprod1r inner_prod_dprod ?memc1 //.
+by rewrite inner_prod1 !setIid mulfV ?mulr1 // neq0GC.
 Qed.
 
 End DProduct.

@@ -287,12 +287,26 @@ Lemma remgrM : {in G &, {morph remgr K H : x y / x * y}}.
 Proof.
 case/normalP: nKG => _; case/complP: complH_K => tiKH <- nK_KH x y KHx KHy.
 rewrite {1}(divgr_eq K H y) mulgA (conjgCV x) {2}(divgr_eq K H x) -2!mulgA.
-rewrite mulgA remgrMl; last by rewrite groupMl -?mem_conjg ?nK_KH ?mem_divgr.
-by rewrite remgr_id // groupMl ?mem_remgr.
+by rewrite mulgA remgrMid // groupMl ?mem_remgr //
+           ?((I, mem_conjg), nK_KH, mem_divgr).
+Qed.
+
+Hypothesis complK_H : K \in [complements to H in G].
+Hypothesis nHG : H <| G.
+Hypothesis CHK : H \subset 'C(K).
+
+Lemma divgrM : {in G &, {morph divgr K H : x y / x * y}}.
+Proof.
+case/normalP: nHG => _; case/complP: complH_K => tiKH <- nH_KH x y KHx KHy.
+rewrite {1}(divgr_eq K H x) -mulgA (conjgC(remgr _ _ _)) {1}[y](divgr_eq K H).
+rewrite -mulgA mulgA divgrMid // groupMl ?mem_divgr // 
+        ?((I, mem_conjgV), nH_KH, mem_remgr) //.
+case/imset2P: KHy=> k h KiK HiH ->.
+move/(subsetP CHK): (HiH).
+by move/centP; move/(_ _ KiK)<-; rewrite invMg mem_mulg // groupV.
 Qed.
 
 End NormalComplement.
-
 
 (* Semi-direct product *)
 

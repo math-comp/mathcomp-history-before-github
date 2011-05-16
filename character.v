@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
-Require Import fintype tuple finfun bigop prime ssralg poly finset.
+Require Import fintype tuple finfun bigop prime ssralg poly finset gproduct.
 Require Import fingroup morphism perm automorphism quotient finalg action.
 Require Import zmodp commutator cyclic center pgroup sylow matrix mxalgebra.
 Require Import mxpoly mxrepresentation vector algC classfun.
@@ -755,7 +755,6 @@ case/(nthP 0)=> j; rewrite size_tuple => Hj <-.
 by exists (Ordinal Hj); rewrite (tnth_nth 0).
 Qed.
 
-
 Definition socle_of_Iirr (i : Iirr G) : sG :=
   odflt  [1 sG]%irr (pick (fun j => 'xi_i == char_of_repr G (irr_repr j))).
 
@@ -830,6 +829,33 @@ Qed.
 Lemma memc_irr : forall i : Iirr G, 'xi_i \in 'CF(G).
 Proof.
 by move=> i; case/irrP: (irr_xi i)=> j <-; apply: memc_char_of_repr.
+Qed.
+
+Definition irr_idx (f : {cfun gT} -> {cfun gT}) (G H : {set gT}) (i : Iirr H)
+  : Iirr G :=
+  odflt 0 (pick (fun j : Iirr G =>  'xi_j == f ('xi_i))).
+
+Lemma irr_idxE : forall (H : {group gT}) (f : {cfun gT} -> {cfun gT}),
+  (forall i : Iirr H, f 'xi_i \in irr G) ->
+   forall (i : Iirr H), 'xi_(irr_idx f G i) = f 'xi_i.
+Proof.
+move=> H f HH i.
+rewrite /irr_idx; case: pickP=> [j|]; first by move/eqP.
+by case/irrIP: (HH i)=> j <-; move/(_ j); rewrite eqxx.
+Qed.
+
+Definition irr_idx2 (f : {cfun gT} -> {cfun gT} -> {cfun gT})
+                     (G H1 H2 : {set gT}) (i : Iirr H1) (j : Iirr H2) :
+     Iirr G :=
+  odflt 0 (pick (fun k : Iirr G =>  'xi_k == f 'xi_i 'xi_j )).
+
+Lemma irr_idx2E : forall (f : {cfun gT} -> {cfun gT} -> {cfun gT}) H1 H2,
+  (forall (i : Iirr H1) (j : Iirr H2), f 'xi_i 'xi_j \in irr G) ->
+   forall (i : Iirr H1) (j : Iirr H2), 'xi_(irr_idx2 f G i j) = f 'xi_i 'xi_j.
+Proof.
+move=> f H1 H2 HH i j.
+rewrite /irr_idx2; case: pickP=> [k|]; first by move/eqP.
+by case/irrIP: (HH i j)=> k <-; move/(_ k); rewrite eqxx.
 Qed.
 
 Lemma reg_cfun_sum : 
@@ -1378,6 +1404,61 @@ Qed.
 
 End IsChar.
 
+Section DProd.
+
+Variables (gT : finGroupType) (G H1 H2: {group gT}).
+Hypothesis H1xH2 : H1 \x H2 = G.
+
+Lemma is_char_rem f : is_char H2 f -> is_char G (cfun_rem H1xH2 f).
+Proof.
+move/is_charP=> [n [rG <-]].
+suff Mf' : mx_repr G (fun g => rG (remgr H1 H2 g)).
+  apply/is_charP; exists n; exists (MxRepresentation Mf').
+  apply/ffunP=> g; rewrite !ffunE /=.
+  by rewrite (mem_dprod H1xH2); case: (remgr _ _ _ \in _);
+     rewrite ?andbF ?mul0r // andbT mul1r.
+have FM : {in G &, {morph remgr H1 H2 : x y / (x * y)%g}}.
+  apply: remgrM.
+    by rewrite inE; case/dprodP: H1xH2=> _ -> _ ->; first by rewrite !eqxx.
+  by case (dprod_normal2 H1xH2).
+pose mf := Morphism FM.
+split=> [| g1 g2 G1iG G2iG]; rewrite  /=.
+  by move: (morph1 mf)=> /= ->; rewrite repr_mx1.
+move: (morphM (Morphism FM))=> /= -> //; rewrite repr_mxM //.
+  by move: G1iG; rewrite (mem_dprod H1xH2); case/andP.
+by move: G2iG; rewrite (mem_dprod H1xH2); case/andP.
+Qed.
+
+Lemma is_char_div f : is_char H1 f -> is_char G (cfun_div H1xH2 f).
+Proof.
+move/is_charP=> [n [rG <-]].
+suff Mf' : mx_repr G (fun g => rG (divgr H1 H2 g)).
+  apply/is_charP; exists n; exists (MxRepresentation Mf').
+  apply/ffunP=> g; rewrite !ffunE /=.
+  by rewrite (mem_dprod H1xH2); case: (divgr _ _ _ \in _); 
+     rewrite ?(mul0r, mul1r).
+have FM : {in G &, {morph divgr H1 H2 : x y / (x * y)%g}}.
+  move=> g h GiG HiG.
+  case (dprod_normal2 H1xH2)=> H1nG H2nG.
+  apply: (divgrM _ H2nG)=> //.
+    by rewrite inE; case/dprodP: H1xH2=> _ -> _ ->; first by rewrite !eqxx.
+  by case/dprodP: H1xH2.
+pose mf := Morphism FM.
+split=> [| g1 g2 G1iG G2iG]; rewrite /=.
+  by move: (morph1 mf)=> /= ->; rewrite repr_mx1.
+move: (morphM (Morphism FM))=> /= -> //; rewrite repr_mxM //.
+  by move: G1iG; rewrite (mem_dprod H1xH2); case/andP.
+by move: G2iG; rewrite (mem_dprod H1xH2); case/andP.
+Qed.
+
+Lemma is_char_dprod f1 f2 :
+  is_char H1 f1 -> is_char H2 f2 -> is_char G (cfun_dprod H1xH2 f1 f2).
+Proof.
+move=> Cf1 Cf2.
+by apply: is_char_mul; [apply: is_char_div | apply: is_char_rem].
+Qed.
+
+End DProd.
 
 Section Linear.
 
@@ -2101,17 +2182,13 @@ rewrite -conjC1; apply/eqP; congr (_^*); apply/eqP.
 by rewrite -irr_inner_prod_charE ?(irr_xi,is_char_irr).
 Qed.
 
-Definition irrC (G : {set gT}) (i : Iirr G) :=
-  odflt 0 (pick (fun j : Iirr G =>  'xi_j == ('xi_i)^*)%CH).
+Definition conj_idx (G : {set gT}) := @irr_idx _ (@cfun_conjC gT) G G.
 
-Lemma irrCE : forall (i : Iirr G), 'xi_(irrC i) = ('xi_i)^*%CH.
-Proof.
-move=> i; rewrite /irrC; case: pickP=> [j|]; first by move/eqP.
-by case/irrIP: (irr_conjC i)=> j <-; move/(_ j); rewrite eqxx.
-Qed.
+Lemma conj_idxE : forall (i : Iirr G), 'xi_(conj_idx i) = ('xi_i)^*%CH.
+Proof. by move=> i; apply: irr_idxE; exact: irr_conjC. Qed.
 
-Lemma irrCK : involutive (@irrC G).
-Proof. by move=> i; apply: xi_inj; rewrite !irrCE cfun_conjCK. Qed.
+Lemma conj_idxK : involutive (@conj_idx G).
+Proof. by move=> i; apply: xi_inj; rewrite !conj_idxE cfun_conjCK. Qed.
 
 End InnerProduct.
 
@@ -2151,6 +2228,106 @@ rewrite is_compE (ncoord_inner_prod _ CF1) //.
 case/eqP; apply: leC_anti; first by rewrite -(eqP HH) //.
 rewrite -(ncoord_inner_prod _ CF1) // posC_isNatC // isNatC_ncoord_char //.
 by apply: is_char_restrict (is_char_irr _).
+Qed.
+
+Variable (G H1 H2 : {group gT}) (H1xH2 : H1 \x H2 = G).
+
+Lemma irr_dprod : forall (i : Iirr H1) (j: Iirr H2),
+  cfun_dprod H1xH2 'xi_i 'xi_j \in irr G.
+Proof.
+move=> i j.
+rewrite irr_inner_prod_charE; last first.
+  by apply: is_char_dprod; exact: is_char_irr.
+rewrite inner_prod_dprod ?memc_irr //.
+by rewrite !irr_orthonormal !eqxx mul1r.
+Qed.
+
+Lemma irr_div : forall (i : Iirr H1), cfun_div H1xH2 'xi_i \in irr G.
+Proof. by move=> i; rewrite -cfun_dprod1r cfuni_xi0 irr_dprod. Qed.
+
+Lemma irr_rem : forall (i : Iirr H2), cfun_rem H1xH2 'xi_i \in irr G.
+Proof. by move=> i; rewrite -cfun_dprod1l cfuni_xi0 irr_dprod. Qed.
+
+Definition div_idx := @irr_idx _ (cfun_div H1xH2) G H1.
+
+Lemma div_idxE : forall i, 'xi_(div_idx i) = cfun_div H1xH2 'xi_i.
+Proof. by move=> i; apply: irr_idxE; apply: irr_div. Qed.
+
+Definition rem_idx := @irr_idx _ (cfun_rem H1xH2) G H2.
+
+Lemma rem_idxE : forall i, 'xi_(rem_idx i) = cfun_rem H1xH2 'xi_i.
+Proof. by move=> i; apply: irr_idxE; apply: irr_rem. Qed.
+
+Definition dprod_idx := @irr_idx2 _ (cfun_dprod H1xH2) G H1 H2.
+
+Lemma dprod_idxE : forall i j,
+  'xi_(dprod_idx i j) = cfun_dprod H1xH2 'xi_i 'xi_j.
+Proof. by move=> i j; apply: irr_idxE; apply: irr_dprod. Qed.
+
+Lemma dprod_idx_inj : forall i1 i2 j1 j2 ,
+  dprod_idx i1 j1 = dprod_idx i2 j2 -> (i1 == i2) && (j1 == j2).
+Proof.
+move=> i1 i2 j1 j2 HH.
+move: (inner_prod_dprod H1xH2 (memc_irr i1) (memc_irr j1) (memc_irr i2) (memc_irr j2)).
+rewrite -!dprod_idxE HH !irr_orthonormal eqxx.
+by (do 2 case: eqP)=> // _ _; move/eqP; rewrite (mul0r,mulr0) -(eqN_eqC 1 0).
+Qed.
+
+Let inv_dprod_idx (i : Iirr G) := 
+  odflt (0,0) (pick (fun p : Iirr H1 * Iirr H2 => dprod_idx p.1 p.2 == i)).
+
+Lemma dprod_idxK : cancel (fun p => dprod_idx p.1 p.2) inv_dprod_idx.
+Proof.
+move=> [i j] /=.
+rewrite /inv_dprod_idx; case: pickP=> [[i1 j1]|] /=.
+  by move/eqP; move/dprod_idx_inj; case/andP=> /eqP-> /eqP->.
+by move/(_ (i,j)); rewrite eqxx.
+Qed.
+
+Lemma inv_dprod_idxK : cancel inv_dprod_idx (fun p => dprod_idx p.1 p.2).
+Proof.
+pose P i := existsb p, dprod_idx p.1 p.2 == i.
+set f := fun p => dprod_idx p.1 p.2.
+have F : {in [pred i | P i], cancel inv_dprod_idx f}.
+  move=> i; rewrite inE /=; case/existsP=> [] p /eqP <-.
+  rewrite /inv_dprod_idx; case: pickP=> [p1 /eqP //|].
+  by move/(_ p); rewrite eqxx.
+have F1 : {on [pred i | P i], bijective f}.
+  by exists inv_dprod_idx=> // i _; exact: dprod_idxK.
+move=> i; apply: F; rewrite inE /=.
+case: (boolP (P i))=> // HP.
+move: (irr_sum_square G).
+rewrite (bigID P) /= (reindex _ F1) /= (eq_bigl xpredT); last first.
+  by move=> p; apply/existsP; exists p.
+have->: \sum_i0 'xi_(f i0) 1%g ^+ 2 = #|G|%:R.
+  rewrite -(pair_bigA _ (fun i j => 'xi_(dprod_idx i j) 1%g ^+ 2)) /=.
+  rewrite -(dprod_card H1xH2) natr_mul -(irr_sum_square H1) -mulr_suml.
+  apply: eq_bigr=> i1 _.
+  rewrite -(irr_sum_square H2) -mulr_sumr.
+  apply: eq_bigr=> j1 _.
+  rewrite dprod_idxE !ffunE group1 !mul1r.
+  have FMd : {in G &, {morph divgr H1 H2 : x y / (x * y)%g}}.
+    move=> g h GiG HiG.
+    case (dprod_normal2 H1xH2)=> H1nG H2nG.
+    apply: (divgrM _ H2nG)=> //=; last by case/dprodP: H1xH2.
+    by rewrite inE; case/dprodP: H1xH2=> _ -> _ ->; first by rewrite !eqxx.
+  move: (morph1 (Morphism FMd))=> /= ->.
+  have FMr : {in G &, {morph remgr H1 H2 : x y / (x * y)%g}}.
+    move=> g h GiG HiG.
+    case (dprod_normal2 H1xH2)=> H1nG H2nG.
+    apply: (remgrM _ H1nG) => //=.
+    by rewrite inE; case/dprodP: H1xH2=> _ -> _ ->; first by rewrite !eqxx.
+  move: (morph1 (Morphism FMr))=> /= ->.
+  rewrite !(expr1,exprS) -!mulrA; congr (_ * _).
+  by rewrite mulrC -!mulrA.
+rewrite -[X in _ = X]addr0; move/addrI=> HH.
+have: 'xi_i 1%g ^+ 2 != 0.
+  move: (ltC_irr1 i); case/andP=> HH1 _.
+  by move: (mulf_neq0 HH1 HH1).
+case/eqP.
+move/(posC_sum_eq0): HH; apply; last first.
+  by rewrite -[index_enum _]enumT mem_enum .
+by move=> j _; apply: posC_mul; apply: ltCW; apply: ltC_irr1.
 Qed.
 
 End MoreInnerProd.
