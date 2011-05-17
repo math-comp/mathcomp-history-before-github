@@ -4110,6 +4110,8 @@ let newssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
       else concl in
     concl, gen_eq_tac, clr, gl in
   pp(lazy(str"elim_pred=" ++ pp_term gl elim_pred));
+  let pty = Typing.type_of (pf_env gl) (project gl) elim_pred in
+  pp(lazy(str"elim_pred_ty=" ++ pp_term gl pty));
   let gl = pf_unify_HO gl pred elim_pred in
   (* check that the patterns do not contain non instantiated dependent metas *)
   let () = 
