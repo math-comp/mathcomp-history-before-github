@@ -2273,7 +2273,7 @@ rewrite -!dprod_idxE HH !irr_orthonormal eqxx.
 by (do 2 case: eqP)=> // _ _; move/eqP; rewrite (mul0r,mulr0) -(eqN_eqC 1 0).
 Qed.
 
-Let inv_dprod_idx (i : Iirr G) := 
+Definition inv_dprod_idx (i : Iirr G) := 
   odflt (0,0) (pick (fun p : Iirr H1 * Iirr H2 => dprod_idx p.1 p.2 == i)).
 
 Lemma dprod_idxK : cancel (fun p => dprod_idx p.1 p.2) inv_dprod_idx.
