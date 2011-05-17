@@ -29,10 +29,10 @@ move=> G t OG; apply/eqP/eqP=> [Ht|->]; last first.
   by apply/ffunP=> g; rewrite ffunE cfuniE conjC_nat.
 pose a := (@Zp1 1).
 have Aito:
-    is_action <[a]> (fun (t : Iirr G) v => if v == a then conj_idx t else t).
+    is_action <[a]> (fun (t : Iirr G) v => if v == a then irrC t else t).
   split=> [[[|[]]] //= _  t1 t2 Hj |j [[|[]]] // HH1 [[|[]]] // HH2 ] //=.
-    by apply: (inv_inj (@conj_idxK _ _)).
-  by rewrite conj_idxK.
+    by apply: (inv_inj (@irrCK _ _)).
+  by rewrite irrCK.
 pose ito := Action Aito.
 have Acto:
     is_action <[a]> (fun (c : {set gT}) v => if v == a then c^-1%g else c).
@@ -49,7 +49,7 @@ have F1: [acts <[a]>, on (classes G) | cto].
 have F2:  forall c (t : Iirr G),  c \in classes G ->
    'xi_t (repr c) = 'xi_(ito t a) (repr (cto c a)).
   move=> c t' CiG /=.
-  rewrite conj_idxE cfun_conjCE /= -(invg_is_char _ (is_char_irr t')).
+  rewrite irrCE cfun_conjCE /= -(invg_is_char _ (is_char_irr t')).
   case/imsetP: CiG=> g GiG ->; rewrite class_inv.
   case: (repr_class G g)=> h1 H1iG ->.
   case: (repr_class G g^-1)=> h2 H2iG ->.
@@ -90,13 +90,13 @@ rewrite (cardD1 (0 : Iirr _)).
 have->: 0 \in 'Fix_ito[a].
   apply/afixP=> b; rewrite !inE; move/eqP->; rewrite /=.
   apply: xi_inj; apply/ffunP=> g.
-  by rewrite conj_idxE cfun_conjCE !cfuniE conjC_nat.
+  by rewrite irrCE cfun_conjCE !cfuniE conjC_nat.
 rewrite (cardD1 t) //.
 suff->: t \in [predD1 'Fix_ito[a] & 0] by [].
 rewrite inE /= Hd.
 apply/afixP=> b; rewrite !inE; move/eqP->; rewrite /=.
 apply: xi_inj; apply/ffunP=> g.
-by rewrite conj_idxE Ht.
+by rewrite irrCE Ht.
 Qed.
 
 Variable (G H : {group gT}).
@@ -235,9 +235,43 @@ case eqP=>[->|HH1]; case eqP=>[->|HH2]; case eqP=>[->|HH3];
 by exists (e1,e3,e4); exists false; rewrite expr0 !scale1r.
 Qed.
 
+Let  base4 : forall (eps : bool) i j k n m
+             (f1 :=  ('xi[G]_j - 'xi[G]_i))
+             (f2 :=  ('xi[G]_k - 'xi[G]_i))
+             (f3 := 'xi[G]_n - 'xi[G]_m), j != k -> i != j -> i != k -> n != m ->
+             '[f3, f1]_G = (-(1%:R))^+eps -> '[f3, f2]_G = (-(1%:R))^+eps -> 
+             if eps then n == i else m == i.
+Proof.
+move=> eps i j k n m  f1 f2 f3 Hjk Hij Hik Hnm.   
+rewrite /f1 /f2 /f3 !raddf_sub /= -!inner_prodbE !linear_sub /= !inner_prodbE.
+rewrite !irr_orthonormal.
+have H0: 0 <> (-(1%:R))^+eps :> algC. 
+  case: eps.
+   by move/eqP;rewrite eq_sym oppr_eq0 -(eqN_eqC 1 0).
+   by move/eqP; rewrite -(eqN_eqC 0 1). 
+have H1: true%:R + true%:R <> (1 *- 1) ^+ eps :> algC.
+  rewrite -natr_add; case: {H0} eps => //. 
+    by move/eqP;  rewrite -subr_eq0 opprK  -natr_add  -(eqN_eqC _ 0).
+  by move/eqP; rewrite -(eqN_eqC _ 1).
+have H2: 1 *- 1 <> 1 :> algC.
+by move/eqP; rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1%N) -(eqN_eqC _ 0).
+have H3: 1 *- 1 - 1 <> -1 :> algC.
+  move/eqP;rewrite -[X in _ == X]addr0;move/eqP; move/addrI.
+  by move/eqP; rewrite oppr_eq0 -(eqN_eqC 1 0).
+move=> HH HH1; move: Hnm Hik Hij Hjk; move: (HH); rewrite -{1}HH1; move: HH HH1.
+do 6 (try (case: (boolP (_ == _)); [move/eqP->| move=> HH HH1 HH2 HH3; 
+      move: HH1 HH2 HH3 HH];
+      rewrite ?(eqxx,subrr,subr0,sub0r,opprK, raddf0, add0r, addr0) //=)).
+  + by move=> _ _; move/(@sym_equal _ _ _).
+  + by move=> _ _; move/(@sym_equal _ _ _).
+  + by case: {H0 H1} eps .
+by case: {H0 H1} eps; move/(@sym_equal _ _ _).
+Qed.
+
 (* This is PF 1.4 *)
 Lemma vchar_isometry_base : 
-  forall m (Chi : m.+2.-tuple {cfun gT}) (tau : 'End({cfun gT})) (chi1 := Chi`_0), 
+  forall m (Chi : m.-tuple {cfun gT}) (tau : 'End({cfun gT})) (chi1 := Chi`_0), 
+    (1 < m)%N -> 
     {subset Chi <= irr H} -> free Chi ->
     (forall chi, chi \in Chi -> chi 1%g = chi1 1%g) ->
     (forall f, f \in 'Z[Chi, H^#]-> tau f \in 'Z[irr G, G^#]) ->
@@ -245,47 +279,184 @@ Lemma vchar_isometry_base :
                    '[tau f1, tau f2]_G = '[f1,f2]_H) ->
     exists mu : {cfun gT} -> Iirr G,
     exists epsilon : bool,
-    forall i : 'I_m.+2,
+    forall i : 'I_m,
         tau (Chi`_i - chi1) =
           (-(1%R))^+epsilon *: ('xi_(mu (Chi`_i)) - 'xi_(mu chi1)).
 Proof. 
-elim=> [[[|chi1 [|chi2[|]]]] // SChi tau /= SubC|].
-   have F1: chi1 \in irr H.
-     by apply: SubC; rewrite /in_mem /= eqxx.
-   have F2: chi2 \in irr H.
-     by apply: SubC; rewrite /in_mem /= eqxx orbT.
-   move: F1 F2 {SubC}SChi.
-   case/irrIP=> i1 <-.
-   case/irrIP=> i2 <- => {chi1 chi2}SChi HF /=.
-  pose T := Tuple SChi.
-  move: (uniq_free HF); rewrite /= inE andbT=> HD Hs Ho Him.
-  pose d : {cfun _} := 'xi_i2 - 'xi_i1.
-  have iD : d \in 'Z[T,H^#].
-    rewrite vchar_split; apply/andP; split.
-    apply: vchar_sub; apply:  memv_vchar=> //.
-    - by apply/forall_inP=> i; rewrite inE.
-    - by rewrite /in_mem /= eqxx orbT.
-    - by apply/forall_inP=> i; rewrite inE.
-    - by rewrite /in_mem /= eqxx.
-    apply/forall_inP=> g; rewrite !inE negb_and negbK.
-    case/orP=>[| HH].
-      move/eqP->; rewrite /d ffunE (Hs 'xi_i2).
-      by rewrite [X in _ + X]ffunE addrN.
-      by rewrite /in_mem /= eqxx orbT.
-    rewrite /d ffunE (cfun0 _ HH) ?memc_irr //.
-    by rewrite ffunE (cfun0 _ HH) ?(addrN,memc_irr).
-  have: '[d,d]_H = 2%:R.
-    rewrite /d raddf_sub /= -!inner_prodbE !linear_sub /= !inner_prodbE.
-    rewrite !irr_orthonormal !eqxx eq_sym.
-    case: (boolP (_ == _))=> HH; first by case/negP: HD; rewrite (eqP HH).
-    by rewrite subr0 sub0r opprK -natr_add.
- rewrite -Him //; case/(vchar_isometry_base2 (Ho _ iD))=> e2 [] e1 Ht. 
-  pose mu x:= if x == 'xi_i1 then e1 else if x == 'xi_i2 then e2 else 0.
-  exists mu; exists false.
-  (do 2 case=> //)=> [|[]] //= _.
-    by rewrite !subrr linear0 scaler0.
-  by rewrite /mu !eqxx eq_sym (negPf HD) Ht scale1r.
-admit.
+do 2 (case=> //); move=> m Chi tau chi1 Hm SubC HF Chi1 Htau Hiso.
+pose F (i: 'I_m.+2):= Chi`_i - chi1.
+pose tp := is_true_true.
+have inchi1:  chi1 \in Chi by rewrite mem_nth // size_tuple //.
+have ch1_irr: chi1 \in irr H  by apply:SubC.
+have Chi_in_chi: forall i:'I_m.+2, Chi`_i \in Chi.
+  by move=> i;rewrite mem_nth // size_tuple.
+have Chi_in_irr: forall i:'I_m.+2, Chi`_i \in irr H by move=>i;apply:SubC.
+have FID: forall  i:'I_m.+2, (F i) \in 'Z[Chi, H^#].
+  move=> i; rewrite vchar_split; apply/andP;split.
+    by apply:vchar_sub; apply: memv_vchar=> //;apply/forall_inP=> x; 
+     rewrite !inE //.  
+  apply/forall_inP=> g; rewrite !inE negb_and negbK.
+  case/orP=>[| HH].
+    by move/eqP->; rewrite /F !ffunE Chi1 // subrr. 
+  rewrite !ffunE !(cfun0 _ HH) ?subrr //.
+    by case/irrIP: ch1_irr=> x <-; rewrite memc_irr.
+  by case/irrIP: (Chi_in_irr i)=> x <-; rewrite memc_irr.
+have htau2 : forall i:'I_m.+2 , 
+            Chi`_i != chi1 -> '[tau (F i), tau (F i)]_G = 2%:R.
+  move=> i Hchi;  rewrite Hiso //.
+  rewrite /F !raddf_sub /= -!inner_prodbE !linear_sub /= !inner_prodbE.
+  move: Hchi; case/irrIP: ch1_irr=> x <-;case/irrIP: (Chi_in_irr i)=> y <-.
+  rewrite !irr_orthonormal !eqxx.
+  move=> Hxi;rewrite eq_sym;case:(boolP (_ == _)).
+    by move/eqP=> he; case/eqP : Hxi;rewrite he.
+  by rewrite subr0 sub0r opprK -natr_add.
+have HChi_ij: forall i j: 'I_m.+2, i != j -> Chi`_i != Chi`_j.
+  by move => i j ; case : (boolP (_ == _));
+    rewrite /= nth_uniq ?size_tuple ?(uniq_free HF).
+case: (boolP (m == 0%N)).
+  have H10: Chi`_1 != Chi`_0  by apply:(HChi_ij 1 0).
+  move:(htau2 1 H10);case/(vchar_isometry_base2 (Htau _ (FID 1)))=>e2 [] e1 Ht.
+  pose mu x:= if x == chi1 then e1 else if x == Chi`_1 then e2 else 0.
+  exists mu; exists false => /=.
+  (do 2 case=> //)=> [|[]].
+    + by move=> i; rewrite /chi1 /mu eqxx !subrr linear0 expr0 scale1r.
+    + move => i; rewrite /mu /chi1  !eqxx  expr0 scale1r.
+      case :(boolP (Chi`_(Ordinal i) == Chi`_0)).
+        by move/eqP -> ;rewrite !subrr linear0 //.
+      by rewrite -Ht /F //=.
+  move => n Hn => //.
+  by simpl; rewrite (eqP p) in Hn => //.
+move => mneq0.
+have mgt0: (2 < m.+2)%N.
+ by move: mneq0; clear; case: m.
+have H2inChi: Chi`_2 \in Chi by apply: (Chi_in_chi (Ordinal mgt0)).
+have htau1 : forall i j:'I_m.+2 , Chi`_j != chi1 -> Chi`_j != Chi`_i ->
+            Chi`_i != chi1 -> '[tau (F i), tau (F j)]_G = 1%:R.
+  move=> i j ;  rewrite Hiso //.
+  rewrite /F  !raddf_sub /= -!inner_prodbE !linear_sub /= !inner_prodbE.
+  case/irrIP: ch1_irr=> x1 <-; case/irrIP: (Chi_in_irr i)=> xi <-.
+  case/irrIP: (Chi_in_irr j) => xj <-.
+  rewrite !irr_orthonormal !eqxx.
+  move=> Hxj1 Hxji Hxi1;rewrite eq_sym;case:(boolP (_ == _)).
+    by move/eqP=> he; case/eqP : Hxji;rewrite he.
+  move=> _ ; rewrite eq_sym;case:(boolP (_ == _)).
+    by move/eqP=> he; case/eqP : Hxj1;rewrite he.
+  move=> _ ;case:(boolP (_ == _)).
+    by move/eqP=> he; case/eqP : Hxi1;rewrite he.
+  by rewrite /= subr0 !sub0r opprK //.
+case: (@vchar_isometry_base3 (tau (Chi`_1 - chi1))(tau (Chi`_2 - chi1))).
+  + apply: (Htau _ (FID 1)).
+  + by apply:(htau2 1); apply (HChi_ij _ 0).
+  + by apply:Htau; apply: (FID (Ordinal mgt0) ). 
+  + by apply: (htau2 (Ordinal mgt0)); apply : (HChi_ij _ 0).
+  rewrite Hiso; last by apply: (FID (Ordinal mgt0) ).
+    move: (HChi_ij 1 0 tp)(HChi_ij (Ordinal mgt0) 0 tp)
+          (HChi_ij (Ordinal mgt0) 1 tp).
+    rewrite /chi1;case/irrIP: (Chi_in_irr 0) => e0 <-.
+    case/irrIP: (Chi_in_irr 1)=> e1 <-.
+    case/irrIP: (Chi_in_irr (Ordinal mgt0))   => e2 <-.
+    rewrite !raddf_sub  /= -!inner_prodbE !linear_sub /= !inner_prodbE.
+    rewrite !irr_orthonormal !eqxx.
+    move=> Hxi2 Hxi1 Hxi3;rewrite eq_sym;case:(boolP (_ == _)).
+      by move/eqP=> he;move:Hxi3;rewrite he //;move/eqP.
+    move => H21'; rewrite eq_sym;case:(boolP (_ == _)).
+      by move/eqP=> he20; move:Hxi1;  rewrite he20 ;move/eqP.
+    move=> _; case:(boolP (_ == _)).
+      by move/eqP=> he10;move:Hxi2;rewrite he10; move/eqP.
+    by move=> _; rewrite subr0 !sub0r opprK. 
+  by apply: (FID 1) . 
+have HFi: forall i:'I_m.+2, exists mum: (Iirr G), 
+                     exists mun : (Iirr G), tau (Chi`_i - chi1) = 'xi_mun - 'xi_mum.
+  move=> i;case: (boolP (i == 0)).
+    by move/eqP->; exists 0 ; exists 0; rewrite /chi1 linear_sub !subrr.
+  move=> neqi0;case:(htau2 i ( HChi_ij _ _ neqi0)).
+  case/(vchar_isometry_base2 (Htau _ (FID i)))=> mum[mun HFi].
+  exists mun; exists  mum; rewrite -HFi //.
+move=>x [] eps.
+set e1:= x.2;set e2 := x.1.1;set e3 := x.1.2; move=>[H1_0 H2_0].
+have H1: forall i:'I_m.+2, exists mun : (Iirr G), tau (Chi`_i - chi1) = (1 *- 1) ^+ eps *:('xi_mun - 'xi_e1).
+  move=> i;case: (boolP (i == 0)).
+      by move/eqP->; exists e1; rewrite /chi1 linear_sub !subrr scaler0.
+    move=> neqi0;case:(htau2 i ( HChi_ij _ _ neqi0)).
+    case/(vchar_isometry_base2 (Htau _ (FID i)))=> mum[mun HFi'].
+  case: (boolP (i == 1));first by move/eqP->;  exists e2.
+  move=> neqi1.
+  case: (boolP (i == (Ordinal mgt0))); first by move/eqP->;  exists e3.
+  move=> neqi2.
+  have h12: e1!=e2.
+    move: H1_0 (htau2 1 (HChi_ij 1 0 tp)).
+    case : (boolP (e1 == e2)) => //;move/eqP ->.
+    rewrite subrr scaler0 /F=> ->;rewrite !raddf0  //=.
+    by move/eqP;rewrite -(eqN_eqC 0).
+  have h13: e1!=e3.
+    move: H2_0 (htau2 (Ordinal mgt0) (HChi_ij (Ordinal mgt0) 0 tp)).
+    case : (boolP (e1 == e3)) => //;move/eqP ->.
+    rewrite subrr scaler0 /F=> ->;rewrite !raddf0  //=.
+    by move/eqP;rewrite - (eqN_eqC 0).
+  have h23: e2!=e3.
+    move:(htau1 1 (Ordinal mgt0)(HChi_ij (Ordinal mgt0) 0 tp)
+                            (HChi_ij (Ordinal mgt0) 1 tp)
+                            (HChi_ij 1 0 tp)).
+    rewrite /F H1_0 H2_0.
+    case : (boolP (e2 == e3)) => //;move/eqP ->.
+    rewrite  -H2_0 (htau2 (Ordinal mgt0)).
+      by move/eqP; rewrite  -eqN_eqC.
+    by rewrite (HChi_ij (Ordinal mgt0) 0 tp).
+  have hnm: mum != mun.
+    move:(htau2 i (HChi_ij _ _ neqi0 )).
+    rewrite  HFi'.
+    case : (boolP (mum == mun)) => //;move/eqP ->.
+    by rewrite subrr !raddf0; move/eqP;rewrite -(eqN_eqC 0).
+  move:(@base4 eps e1 e2 e3 mum mun h23 h12 h13 hnm).
+  move: (htau1 i 1  (HChi_ij 1 0 tp ) ); rewrite eq_sym => H1.
+  have Hip: forall (x y: {cfun gT}) (e: bool) , 
+              '[ x, (1 *- 1) ^+ e *: y ]_G =  (1 *- 1) ^+ e* '[x, y]_G.
+    move => x0 y e; rewrite inner_prodZ;congr (_ *_); rewrite isZC_conj //. 
+    by case: e; rewrite ?(expr1,expr0) -?mulNrn ?(mulr1n, isZC_opp,(isZC_nat 1)).
+  have Hip' : forall e : bool, (1 *- 1) ^+ e * ( 1 *- 1) ^+ e = 1.
+  by move=> T e;
+   case: e; rewrite ?(expr1,expr0)-?mulNrn ?(mulr1n ,mulrN,mulNr,opprK,mulr1).
+  move: (H1 (HChi_ij i 1 neqi1) (HChi_ij i 0 neqi0)).
+  have : ('xi_e2 - 'xi_e1) = ((1 *- 1) ^+ eps) *: ((( 1 *- 1) ^+ eps) *: ('xi_e2 - 'xi_e1)).
+    by rewrite scalerA Hip' scale1r.
+  move  => ->;rewrite Hip  -HFi' -H1_0  => ->.
+  rewrite !mulr1 => Ho.
+  have Hif: if eps then mum == e1 else mun == e1. 
+    apply: Ho => //.
+    have ->: ('xi_e3 - 'xi_e1) = ((1 *- 1) ^+ eps) *: ((( 1 *- 1) ^+ eps) *: ('xi_e3 - 'xi_e1)).
+      by rewrite scalerA Hip' scale1r //.
+    rewrite Hip -H2_0.
+    move: (htau1 i (Ordinal mgt0)  (HChi_ij (Ordinal mgt0) 0 tp ) ); rewrite eq_sym => H2.
+    rewrite H2; first by  rewrite  mulr1.
+      by apply: HChi_ij.
+    by apply: (HChi_ij i 0).
+  pose mu := if eps then mun  else mum; exists mu.
+  rewrite HFi' /mu.
+  case:eps {H1_0 H2_0 mu Ho } Hif => /eqP Hif.
+    by rewrite expr1  -mulNrn mulr1n scaleNr scale1r oppr_sub Hif.
+  by rewrite expr0 scale1r Hif.
+pose mu  := (fun i : {cfun gT}=> 
+            odflt e1 (pick (fun mun : Iirr G =>  
+                      (tau (i - chi1) == (1 *- 1) ^+ eps *: ('xi_mun - 'xi_e1))))).
+exists mu;exists eps => i.
+case: (H1 i)=> xi;rewrite -mulNrn => Hxi.
+suff -> : (mu Chi`_i) = xi.
+  suff -> : (mu chi1) = e1 by done.
+  rewrite /mu;case:pickP; last by done.
+  move=> x0; rewrite subrr linear0.
+  case : (boolP (x0 == e1)); first by  move/eqP->.
+  move => H01;rewrite eq_sym scaler_eq0;case/orP.
+    clear;case: eps; last by rewrite expr0 oner_eq0.
+    by rewrite expr1 -mulNrn mulr1n oppr_eq0 oner_eq0.
+ by rewrite subr_eq0;move/eqP; move/xi_inj.
+rewrite /mu;  case :pickP; last by move/(_ xi); rewrite Hxi eqxx.
+move=> x0.
+case : (boolP (x0 == xi));first  by move/eqP->.
+move => H01. rewrite Hxi.
+rewrite -subr_eq0 -scaler_subr scaler_eq0;case/orP.
+  clear;case: eps; last by rewrite expr0 oner_eq0.
+  by rewrite expr1 mulr1n oppr_eq0 oner_eq0.
+by rewrite subr_eq0; move/eqP/addIr/xi_inj.
 Qed.
 
 (* This is PF 1.5(a) *)
@@ -418,12 +589,12 @@ Lemma odd_induced_orthogonal :  forall t, H <| G -> odd #|G| ->
   t != 0 -> '['Ind[G,H] 'xi[H]_t, ('Ind[G,H] 'xi_t)^*%CH]_G = 0. 
 Proof.
 move=> t HnG OG Dii1.
-move: (cconjugates_irr_induced t (conj_idx t) HnG).
+move: (cconjugates_irr_induced t (irrC t) HnG).
 case: (boolP (_ \in _)); last first.
   rewrite cinduced_conjC => _ <-.
   rewrite !inner_prodE; congr (_ * _); apply: eq_bigr=> g GiG.
-  by rewrite conj_idxE.
-case/cconjugatesP=> g GiG; rewrite conj_idxE=> HH.
+  by rewrite irrCE.
+case/cconjugatesP=> g GiG; rewrite irrCE=> HH.
 have OH: odd #|H|.
   by apply: (dvdn_odd _ OG); apply: cardSg; apply: normal_sub.
 case/eqP: Dii1; apply: xi_inj; rewrite -cfuni_xi0; apply/eqP.
