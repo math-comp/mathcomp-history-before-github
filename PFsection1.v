@@ -29,10 +29,10 @@ move=> G t OG; apply/eqP/eqP=> [Ht|->]; last first.
   by apply/ffunP=> g; rewrite ffunE cfuniE conjC_nat.
 pose a := (@Zp1 1).
 have Aito:
-    is_action <[a]> (fun (t : Iirr G) v => if v == a then irrC t else t).
+    is_action <[a]> (fun (t : Iirr G) v => if v == a then conj_idx t else t).
   split=> [[[|[]]] //= _  t1 t2 Hj |j [[|[]]] // HH1 [[|[]]] // HH2 ] //=.
-    by apply: (inv_inj (@irrCK _ _)).
-  by rewrite irrCK.
+    by apply: (inv_inj (@conj_idxK _ _)).
+  by rewrite conj_idxK.
 pose ito := Action Aito.
 have Acto:
     is_action <[a]> (fun (c : {set gT}) v => if v == a then c^-1%g else c).
@@ -49,7 +49,7 @@ have F1: [acts <[a]>, on (classes G) | cto].
 have F2:  forall c (t : Iirr G),  c \in classes G ->
    'xi_t (repr c) = 'xi_(ito t a) (repr (cto c a)).
   move=> c t' CiG /=.
-  rewrite irrCE cfun_conjCE /= -(invg_is_char _ (is_char_irr t')).
+  rewrite conj_idxE cfun_conjCE /= -(invg_is_char _ (is_char_irr t')).
   case/imsetP: CiG=> g GiG ->; rewrite class_inv.
   case: (repr_class G g)=> h1 H1iG ->.
   case: (repr_class G g^-1)=> h2 H2iG ->.
@@ -90,13 +90,13 @@ rewrite (cardD1 (0 : Iirr _)).
 have->: 0 \in 'Fix_ito[a].
   apply/afixP=> b; rewrite !inE; move/eqP->; rewrite /=.
   apply: xi_inj; apply/ffunP=> g.
-  by rewrite irrCE cfun_conjCE !cfuniE conjC_nat.
+  by rewrite conj_idxE cfun_conjCE !cfuniE conjC_nat.
 rewrite (cardD1 t) //.
 suff->: t \in [predD1 'Fix_ito[a] & 0] by [].
 rewrite inE /= Hd.
 apply/afixP=> b; rewrite !inE; move/eqP->; rewrite /=.
 apply: xi_inj; apply/ffunP=> g.
-by rewrite irrCE Ht.
+by rewrite conj_idxE Ht.
 Qed.
 
 Variable (G H : {group gT}).
@@ -270,7 +270,7 @@ Qed.
 
 (* This is PF 1.4 *)
 Lemma vchar_isometry_base : 
-  forall m (Chi : m.-tuple {cfun gT}) (tau : 'End({cfun gT})) (chi1 := Chi`_0), 
+  forall m (Chi : m.-tuple {cfun gT}) (tau : 'End({cfun gT})) (chi1 := Chi`_0),
     (1 < m)%N -> 
     {subset Chi <= irr H} -> free Chi ->
     (forall chi, chi \in Chi -> chi 1%g = chi1 1%g) ->
@@ -589,12 +589,12 @@ Lemma odd_induced_orthogonal :  forall t, H <| G -> odd #|G| ->
   t != 0 -> '['Ind[G,H] 'xi[H]_t, ('Ind[G,H] 'xi_t)^*%CH]_G = 0. 
 Proof.
 move=> t HnG OG Dii1.
-move: (cconjugates_irr_induced t (irrC t) HnG).
+move: (cconjugates_irr_induced t (conj_idx t) HnG).
 case: (boolP (_ \in _)); last first.
   rewrite cinduced_conjC => _ <-.
   rewrite !inner_prodE; congr (_ * _); apply: eq_bigr=> g GiG.
-  by rewrite irrCE.
-case/cconjugatesP=> g GiG; rewrite irrCE=> HH.
+  by rewrite conj_idxE.
+case/cconjugatesP=> g GiG; rewrite conj_idxE=> HH.
 have OH: odd #|H|.
   by apply: (dvdn_odd _ OG); apply: cardSg; apply: normal_sub.
 case/eqP: Dii1; apply: xi_inj; rewrite -cfuni_xi0; apply/eqP.
