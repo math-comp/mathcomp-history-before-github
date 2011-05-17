@@ -10,6 +10,7 @@ first_n.v
 havesuff.v
 have_view_idiom.v
 indetLHS.v
+intro_beta.v
 ipatalternation.v
 ltac_in.v
 multiview.v

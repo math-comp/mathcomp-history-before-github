@@ -219,8 +219,6 @@ let msgtac gl = pf_msg gl; tclIDTAC gl
 
 (** Tactic utilities *)
 
-let introid = intro_mustbe_force
-
 let last_goal gls = let sigma, gll = Refiner.unpackage gls in
    Refiner.repackage sigma (List.nth gll (List.length gll - 1))
 
@@ -242,6 +240,22 @@ let reduct_in_concl t = reduct_in_concl (t, DEFAULTcast)
 let havetac id = pose_proof (Name id)
 let settac id c = letin_tac None (Name id) c None
 let posetac id cl = settac id cl nowhere
+
+(* we reduce head beta redexes *)
+let betared env = 
+  Closure.create_clos_infos 
+    (Closure.RedFlags.red_add Closure.RedFlags.no_red Closure.RedFlags.fBETA)
+    env
+;;
+let introid name = tclTHEN (fun gl ->
+   let g, env = pf_concl gl, pf_env gl in
+   match kind_of_term g with
+   | App (hd, _) when isLambda hd -> 
+     let g = Closure.whd_val (betared env) (Closure.inject g) in
+     convert_concl_no_check g gl
+   | _ -> tclIDTAC gl)
+  (intro_mustbe_force name)
+;;
 
 (** look up a name in the ssreflect internals module *)
 
