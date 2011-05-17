@@ -2306,18 +2306,8 @@ have->: \sum_i0 'xi_(f i0) 1%g ^+ 2 = #|G|%:R.
   rewrite -(irr_sum_square H2) -mulr_sumr.
   apply: eq_bigr=> j1 _.
   rewrite dprod_idxE !ffunE group1 !mul1r.
-  have FMd : {in G &, {morph divgr H1 H2 : x y / (x * y)%g}}.
-    move=> g h GiG HiG.
-    case (dprod_normal2 H1xH2)=> H1nG H2nG.
-    apply: (divgrM _ H2nG)=> //=; last by case/dprodP: H1xH2.
-    by rewrite inE; case/dprodP: H1xH2=> _ -> _ ->; first by rewrite !eqxx.
-  move: (morph1 (Morphism FMd))=> /= ->.
-  have FMr : {in G &, {morph remgr H1 H2 : x y / (x * y)%g}}.
-    move=> g h GiG HiG.
-    case (dprod_normal2 H1xH2)=> H1nG H2nG.
-    apply: (remgrM _ H1nG) => //=.
-    by rewrite inE; case/dprodP: H1xH2=> _ -> _ ->; first by rewrite !eqxx.
-  move: (morph1 (Morphism FMr))=> /= ->.
+  rewrite (divgr_id _ (group1 _)) (remgr_id _ (group1 _)); last first.
+     by case/dprodP: H1xH2.
   rewrite !(expr1,exprS) -!mulrA; congr (_ * _).
   by rewrite mulrC -!mulrA.
 rewrite -[X in _ = X]addr0; move/addrI=> HH.
