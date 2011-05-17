@@ -4037,7 +4037,7 @@ let ssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
              | AtomicType (hd, _) when eq_constr hd protectC -> 
                 tclTHENLIST [unprotecttac; introid ipat] gl
              | _ -> tclTHENLIST [ iD "IA"; introstac [IpatAnon]; intro_eq] gl)
-          |_ -> assert false in
+          |_ -> errorstrm (str "Too many names in intro pattern") in
           intro_eq
       | Some (IpatId ipat) -> 
         let name gl = mk_anon_id "K" gl in
