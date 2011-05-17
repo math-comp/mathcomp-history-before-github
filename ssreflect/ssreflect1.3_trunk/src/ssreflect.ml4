@@ -3931,7 +3931,7 @@ let refine_with ?with_evars oc gl =
  *    generalize the equality in case eqid is not None
  * 4. build the tactic handle intructions and clears as required in ipats and
  *    by eqid *)
-let newssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
+let ssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
   let orig_gl, concl, c_ty, orig_clr = gl, pf_concl gl, pf_type_of gl c, clr in
   pp(lazy(str(if is_case then "==CASE==" else "==ELIM==")));
   pp(lazy(pp_concat (str"clr= ") (List.map pr_hyp clr)));
@@ -4182,8 +4182,8 @@ let newssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
   tclTHENLIST [gen_eq_tac; elim_intro_tac] orig_gl
 ;;
 
-let simplest_newelim x = newssrelim ~is_case:false [] ([], x) None [] []
-let simplest_newcase x = newssrelim ~is_case:true [] ([], x) None [] []
+let simplest_newelim x = ssrelim ~is_case:false [] ([], x) None [] []
+let simplest_newcase x = ssrelim ~is_case:true [] ([], x) None [] []
 let _ = simplest_newcase_ref := simplest_newcase
 
 let check_casearg = function
@@ -4209,7 +4209,7 @@ let ssrcasetac (view, (eqid, (dgens, (ipats, ctx)))) =
       let deps, clr, occ = 
         if view <> [] && eqid <> None && deps = [] then [gen], [], []
         else deps, clr, occ in
-      newssrelim ~is_case:true ~ist deps (occ, vc) eqid clr ipats gl
+      ssrelim ~is_case:true ~ist deps (occ, vc) eqid clr ipats gl
   in
   with_dgens dgens (ndefectcasetac view eqid ipats) ist
 
@@ -4231,7 +4231,7 @@ let ssrelimtac (view, (eqid, (dgens, (ipats, ctx)))) =
   let ndefectelimtac view eqid ipats deps ((_, occ), _ as gen) ist gl =
     let cl, c, clr = pf_interp_gen ist gl true gen in
     let elim = match view with [v] -> Some (force_term ist gl v) | _ -> None in
-    newssrelim ~ist deps (occ, c) ?elim eqid clr ipats gl
+    ssrelim ~ist deps (occ, c) ?elim eqid clr ipats gl
   in
   with_dgens dgens (ndefectelimtac view eqid ipats) ist 
 
