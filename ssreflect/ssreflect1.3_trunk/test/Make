@@ -2,6 +2,7 @@
 -I ../src/
 absevarprop.v
 binders.v
+binders_of.v
 caseview.v
 congr.v
 deferclear.v

@@ -5323,6 +5323,15 @@ ARGUMENT EXTEND ssrbinder TYPED AS ssrfwdfmt * constr PRINTED BY pr_ssrbinder
    [ (FwdPose,[BFdef false]), CLetIn (loc,bvar_lname id, v,CHole (loc,None)) ]
 END
 
+GEXTEND Gram
+  GLOBAL: ssrbinder;
+  ssrbinder: [
+  [  ["of" | "&"]; c = operconstr LEVEL "99" ->
+     (FwdPose, [BFvar]),
+     CLambdaN (loc,[[loc,Anonymous],Default Explicit,c],CHole (loc,None)) ]
+  ];
+END
+
 let rec binders_fmts = function
   | ((_, h), _) :: bs -> h @ binders_fmts bs
   | _ -> []
