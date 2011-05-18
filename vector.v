@@ -127,6 +127,11 @@ Notation vectType R := (@type _ (Phant R)).
 Notation VectType R m :=
    (@pack _ (Phant R) _ _ m _ _ id _ id).
 Notation VectMixin := Mixin.
+Notation "[ 'vectType' R 'of' T 'for' cT ]" := (@clone _ (Phant R) T cT _ idfun)
+  (at level 0, format "[ 'vectType'  R  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'vectType' R 'of' T ]" := (@clone _ (Phant R) T _ _ idfun)
+  (at level 0, format "[ 'vectType'  R  'of'  T ]") : form_scope.
+
 End Exports.
 
 End VectorType.
