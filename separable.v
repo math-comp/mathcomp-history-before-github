@@ -155,7 +155,7 @@ exists 1.
 exists qq.
 by rewrite nonzero1r Hqq scale1r.
 Qed.
-(*
+
 Section InfinitePrimitiveElementTheorem.
 
 Local Notation "p ^ f" := (map_poly f p) : ring_scope.
@@ -219,7 +219,15 @@ have [[u v]] :
  rewrite -(size_scaler q' Hc2) -(size_scaler p' Hc1) Hv1 Hu1.
  rewrite !size_mul_id // -(subnK Hp'q') !addnA !addn2 !ltnS !leq_addr.
  by rewrite !lt0n !size_poly_eq0 !andbT.
-case => /= Huv Hv Hu.
+move: {2}(size v + size (lead_coef v))%N
+      (refl_equal (size v + size (lead_coef v))%N) => n.
+elim: n p u v {Hp0} @p' Hp'0 {Hp'q'} 
+     => [|n IH] p u v p' Hp'0 Hszv /= [Huv Hu Hv].
+ case/andP: Hv.
+ move/eqP: Hszv.
+ rewrite addn_eq0.
+ case/andP.
+ by move/eqP ->.
 have Hcomm : commr_rmorph idfun (0:F) by apply: mulrC.
 pose Y0 := horner_morph Hcomm.
 move: (f_equal (map_poly Y0) Huv).
@@ -236,7 +244,7 @@ case (eqVneq p.[0] 0) => Hp00; last first.
  case (eqVneq (v ^ Y0) 0) => HvY0; last first.
   rewrite size_mul_id // eqn_leq.
   case/andP => _ Hsz.
-  case/andP: Hv => _.
+  case/andP: Hu => _.
   apply: contraLR => _.
   rewrite -leqNgt size_map_poly (@leq_trans (size (u ^ Y0))) ?size_poly //.
   rewrite (leq_trans _ Hsz) //.
@@ -252,8 +260,39 @@ move/eqP: (f_equal (fun p : {poly {poly F}} => p.[0]) Huv).
 rewrite !(horner_lin, horner_poly_comp) -{2 4}polyC0 !horner_map Hp00 /=.
 rewrite polyC0 mulr0 eq_sym mulf_eq0 polyC_eq0.
 case/orP => //.
-(*...*) 
- 
+case/factor_theorem => vx Hvvx.
+move/eqP: Hp00.
+case/factor_theorem => px Hppx.
+rewrite !subr0 in Hvvx Hppx.
+have Hpx : p' = (px ^ polyC \Po 'Y * 'X) * ('Y * 'X).
+ by rewrite /p' Hppx rmorphM /= map_polyX poly_comp_mull poly_comXp.
+apply: (IH px (u * 'Y) vx).
+  move: Hp'0.
+  rewrite Hpx mulf_eq0 negb_orb.
+  by case/andP.
+ case/andP: Hv Hszv.
+ rewrite Hvvx lt0n size_poly_eq0 mulf_eq0 negb_orb.
+ case/andP => Hvx _ _.
+ rewrite size_mul_monic ?lead_coef_mul_monic ?monicX // size_polyX addn2 addSn.
+ by move/succn_inj.
+split => /=.
+  move: Huv.
+  rewrite Hvvx Hpx -[_ * q']mulrA [_ * q']mulrC [vx * _]mulrA.
+  rewrite [_ * ('Y * _)]mulrA [_ * 'Y]mulrC 2!mulrA.
+  move/mulIf.
+  apply.
+  by rewrite -size_poly_eq0 size_polyX.
+ by rewrite mulrC mul_polyC size_scaler // -size_poly_eq0 size_polyX.
+case/andP: Hv.
+rewrite Hvvx.
+rewrite !lt0n !size_poly_eq0 mulf_eq0 negb_orb.
+case/andP => Hvx0 HX.
+move : Hp'0.
+rewrite Hvx0 size_mul_monic ?monicX // size_polyX addn2 Hpx mulf_eq0 negb_orb.
+case/andP => Hpx0 HXX0.
+rewrite size_mul_id // mul_polyC size_scaler // -?size_poly_eq0 size_polyX //.
+by rewrite addn2 ltnS.
+Qed. 
 
 Variables (F L: fieldType) (iota : {rmorphism F -> L}).
 Variables (x y : L) (p q : {poly F}).
