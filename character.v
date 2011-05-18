@@ -831,32 +831,22 @@ Proof.
 by move=> i; case/irrP: (irr_xi i)=> j <-; apply: memc_char_of_repr.
 Qed.
 
-Definition irr_idx (f : {cfun gT} -> {cfun gT}) (G H : {set gT}) (i : Iirr H)
-  : Iirr G :=
-  odflt 0 (pick (fun j : Iirr G =>  'xi_j == f ('xi_i))).
+Definition irr_idx (G : {set gT}) (A : Type) (f : A -> {cfun gT}) (a : A) :=
+  odflt (0 : Iirr G) (pick (fun j : Iirr G =>  'xi_j == f a)).
 
-Lemma irr_idxE : forall (H : {group gT}) (f : {cfun gT} -> {cfun gT}),
-  (forall i : Iirr H, f 'xi_i \in irr G) ->
-   forall (i : Iirr H), 'xi_(irr_idx f G i) = f 'xi_i.
+Lemma irr_idxPE : forall (A : Type) f P,
+  (forall a : A, P a -> f a \in irr G) ->
+   forall a, P a -> 'xi_(irr_idx G f a) = f a.
 Proof.
-move=> H f HH i.
+move=> A f P HH a Pa.
 rewrite /irr_idx; case: pickP=> [j|]; first by move/eqP.
-by case/irrIP: (HH i)=> j <-; move/(_ j); rewrite eqxx.
+by case/irrIP: (HH a Pa)=> j <-; move/(_ j); rewrite eqxx.
 Qed.
 
-Definition irr_idx2 (f : {cfun gT} -> {cfun gT} -> {cfun gT})
-                     (G H1 H2 : {set gT}) (i : Iirr H1) (j : Iirr H2) :
-     Iirr G :=
-  odflt 0 (pick (fun k : Iirr G =>  'xi_k == f 'xi_i 'xi_j )).
-
-Lemma irr_idx2E : forall (f : {cfun gT} -> {cfun gT} -> {cfun gT}) H1 H2,
-  (forall (i : Iirr H1) (j : Iirr H2), f 'xi_i 'xi_j \in irr G) ->
-   forall (i : Iirr H1) (j : Iirr H2), 'xi_(irr_idx2 f G i j) = f 'xi_i 'xi_j.
-Proof.
-move=> f H1 H2 HH i j.
-rewrite /irr_idx2; case: pickP=> [k|]; first by move/eqP.
-by case/irrIP: (HH i j)=> k <-; move/(_ k); rewrite eqxx.
-Qed.
+Lemma irr_idxE : forall (A : Type) f,
+  (forall a : A, f a \in irr G) ->
+   forall a, 'xi_(irr_idx G f a) = f a.
+Proof. by move=> A f HH a; apply: (@irr_idxPE _ _ xpredT). Qed.
 
 Lemma reg_cfun_sum : 
   reg_cfun G = \sum_(i < Nirr G) 'xi_i (1%g) *: 'xi_i.
@@ -2182,10 +2172,11 @@ rewrite -conjC1; apply/eqP; congr (_^*); apply/eqP.
 by rewrite -irr_inner_prod_charE ?(irr_xi,is_char_irr).
 Qed.
 
-Definition conj_idx (G : {set gT}) := @irr_idx _ (@cfun_conjC gT) G G.
+Definition conj_idx (G : {set gT}) := 
+  irr_idx G (fun i : Iirr G => @cfun_conjC gT 'xi_i).
 
 Lemma conj_idxE : forall (i : Iirr G), 'xi_(conj_idx i) = ('xi_i)^*%CH.
-Proof. by move=> i; apply: irr_idxE; exact: irr_conjC. Qed.
+Proof.  by move=> i; apply: irr_idxE; exact: irr_conjC. Qed.
 
 Lemma conj_idxK : involutive (@conj_idx G).
 Proof. by move=> i; apply: xi_inj; rewrite !conj_idxE cfun_conjCK. Qed.
@@ -2248,21 +2239,22 @@ Proof. by move=> i; rewrite -cfun_dprod1r cfuni_xi0 irr_dprod. Qed.
 Lemma irr_rem : forall (i : Iirr H2), cfun_rem H1xH2 'xi_i \in irr G.
 Proof. by move=> i; rewrite -cfun_dprod1l cfuni_xi0 irr_dprod. Qed.
 
-Definition div_idx := @irr_idx _ (cfun_div H1xH2) G H1.
+Definition div_idx := irr_idx G (fun i : Iirr H1 => (cfun_div H1xH2 'xi_i)).
 
 Lemma div_idxE : forall i, 'xi_(div_idx i) = cfun_div H1xH2 'xi_i.
-Proof. by move=> i; apply: irr_idxE; apply: irr_div. Qed.
+Proof. move=> i; apply: irr_idxE; exact: irr_div. Qed.
 
-Definition rem_idx := @irr_idx _ (cfun_rem H1xH2) G H2.
+Definition rem_idx := irr_idx G (fun i : Iirr H2 => cfun_rem H1xH2 'xi_i).
 
 Lemma rem_idxE : forall i, 'xi_(rem_idx i) = cfun_rem H1xH2 'xi_i.
-Proof. by move=> i; apply: irr_idxE; apply: irr_rem. Qed.
+Proof. by move=> i; apply: irr_idxE; exact: irr_rem. Qed.
 
-Definition dprod_idx := @irr_idx2 _ (cfun_dprod H1xH2) G H1 H2.
+Definition dprod_idx (i : Iirr H1) := 
+  irr_idx G (fun j : Iirr H2 => cfun_dprod H1xH2 'xi_i 'xi_j).
 
 Lemma dprod_idxE : forall i j,
   'xi_(dprod_idx i j) = cfun_dprod H1xH2 'xi_i 'xi_j.
-Proof. by move=> i j; apply: irr_idxE; apply: irr_dprod. Qed.
+Proof. move=> i j; apply: irr_idxE; exact: irr_dprod. Qed.
 
 Lemma dprod_idx_inj : forall i1 i2 j1 j2 ,
   dprod_idx i1 j1 = dprod_idx i2 j2 -> (i1 == i2) && (j1 == j2).
@@ -2273,8 +2265,8 @@ rewrite -!dprod_idxE HH !irr_orthonormal eqxx.
 by (do 2 case: eqP)=> // _ _; move/eqP; rewrite (mul0r,mulr0) -(eqN_eqC 1 0).
 Qed.
 
-Definition inv_dprod_idx (i : Iirr G) := 
-  odflt (0,0) (pick (fun p : Iirr H1 * Iirr H2 => dprod_idx p.1 p.2 == i)).
+Definition inv_dprod_idx (i : Iirr G) : Iirr H1 * Iirr H2 := 
+  odflt (0,0) (pick (fun p => dprod_idx p.1 p.2 == i)).
 
 Lemma dprod_idxK : cancel (fun p => dprod_idx p.1 p.2) inv_dprod_idx.
 Proof.
@@ -2698,41 +2690,39 @@ suff->: coset N 1%g  = 1%g by [].
 by apply: coset_id; exact: group1.
 Qed.
 
-Definition cirrq (G H : {group gT}) (i : Iirr (G/H)%G) := 
-  irr_of_socle (socle_of_cfun G (('xi_i) ^())%CH).
+Definition cfunq_idx (G H : {set gT}) :=
+  irr_idx G (fun i : Iirr (G/H)%g => cfun_of_qfun 'xi_i).
 
-Lemma cirrqE : forall (G H : {group gT}) (i : Iirr (G/H)%G), 
-  H <| G -> 'xi_(cirrq i) = ('xi_i)^()%CH.
-Proof. 
-move=> G H i HnG; case/irrP: (irr_cfunq i HnG)=> j Hj.
-by rewrite /cirrq -Hj socle_of_cfunE irr_of_socleE Hj.
-Qed.
+Lemma cfunq_idxE : forall (G H : {group gT}) (i : Iirr (G/H)%g), 
+  H <| G -> 'xi_(cfunq_idx i) = ('xi_i)^()%CH.
+Proof.  by move=> G H i HnG; apply: irr_idxE=> a; exact: irr_cfunq. Qed.
 
-Definition qirrc (G H : {group gT}) (i : Iirr G) := 
-  irr_of_socle (socle_of_cfun (G/H)%G (('xi_i) / H)%CH).
+Definition qfunc_idx (G H : {set gT}) := 
+  irr_idx (G/H)%g (fun i : Iirr G => qfun_of_cfun H 'xi_i).
 
-Lemma qirrcE : forall (G H : {group gT}) (i : Iirr G), 
-  H <| G -> H \subset cker G 'xi_i -> 'xi_(qirrc H i) = (('xi_i)/H)%CH.
+Lemma qfunc_idxE : forall (G H : {group gT}) (i : Iirr G), 
+  H <| G -> H \subset cker G 'xi_i -> 'xi_(qfunc_idx H i) = (('xi_i)/H)%CH.
 Proof.
-move=> G H i HnG HsC; case/irrP: (irr_qfunc HnG HsC)=> j Hj.
-by rewrite /qirrc -Hj socle_of_cfunE irr_of_socleE Hj.
+move=> G H i HnG HsK.
+apply: (@irr_idxPE _ _ _ _ (fun i => H \subset cker G 'xi_i))=> // a HH.
+by exact: irr_qfunc.
 Qed.
 
-Lemma cirrqK : forall (G H : {group gT}),
-  H <| G -> cancel (@cirrq G H) (@qirrc G H).
+Lemma cfunq_idxK : forall (G H : {group gT}),
+  H <| G -> cancel (@cfunq_idx G H) (@qfunc_idx G H).
 Proof.
 move=> G H HnG i.
-apply: xi_inj; rewrite qirrcE // cirrqE ?cker_cfunq //.
+apply: xi_inj; rewrite qfunc_idxE // cfunq_idxE ?cker_cfunq //.
   rewrite (cfunqK (is_char_irr _)) //.
 by exact: is_char_irr.
 Qed.
 
-Lemma qirrcK : forall (G H : {group gT}) (i : Iirr G),
-  H <| G ->  H \subset cker G 'xi_i -> cirrq (qirrc H i) = i.
+Lemma qfunc_idxK : forall (G H : {group gT}) (i : Iirr G),
+  H <| G ->  H \subset cker G 'xi_i -> cfunq_idx (qfunc_idx H i) = i.
 Proof.
 move=> G H i HnG HsC; apply: xi_inj.
 have Ii := is_char_irr i.
-by rewrite cirrqE // qirrcE // (qfuncK Ii).
+by rewrite cfunq_idxE // qfunc_idxE // (qfuncK Ii).
 Qed.
 
 Lemma sum_norm_quo : forall (H G : {group gT}) g,
@@ -2741,12 +2731,13 @@ Lemma sum_norm_quo : forall (H G : {group gT}) g,
     \sum_(i < Nirr G | H \subset cker G 'xi_i) ('xi_i g) * ('xi_i g)^*.
 Proof.
 move=> H G g GiG HnG.
-rewrite (reindex (@cirrq G H)) //=.
+rewrite (reindex (@cfunq_idx G H)) //=.
   apply: eq_big=> i.
-    by rewrite cirrqE // cker_cfunq // is_char_irr.
-  by move=> _; rewrite cirrqE // cfunqE // (subsetP (normal_norm HnG)).
-exists (@qirrc G H)=> i; rewrite !inE => HH; first by rewrite cirrqK //.
-by rewrite qirrcK.
+    by rewrite cfunq_idxE // cker_cfunq // is_char_irr.
+  by move=> _; rewrite cfunq_idxE // cfunqE // (subsetP (normal_norm HnG)).
+exists (@qfunc_idx G H)=> i.
+rewrite !inE => HH; first by rewrite cfunq_idxK //.
+by exact: qfunc_idxK.
 Qed.
 
 Lemma norm_cker : forall (G N : {group gT}), N <| G ->  
@@ -2777,13 +2768,13 @@ Lemma clinear_commutator_irr : forall (G : {group gT}) (i : Iirr G),
 Proof.
 move=> G i; apply/idP/idP=> [|GsC]; first by apply: clinear_commutator.
 have F1 : abelian (G/G^`(1)) := der_abelian 0 G.
-move/char_abelianP: F1; move/(_ (qirrc (G^`(1))%G i))=> HH.
+move/char_abelianP: F1; move/(_ (qfunc_idx (G^`(1))%G i))=> HH.
 rewrite /clinear genGid is_char_irr.
 rewrite -(qfuncK (is_char_irr _) (der_normal 1 G) GsC).
 rewrite cfunqE ?group1 //.
 have->: coset (G^`(1))%G 1%g = 1%g.
   by apply: coset_id; exact: group1.
-by case/andP: HH; rewrite qirrcE // der_normal.
+by case/andP: HH; rewrite qfunc_idxE // der_normal.
 Qed.
 
 (* This corresponds to Isaacs' 2.23(a) *) 
@@ -2805,12 +2796,12 @@ move: (der_abelian 0 G); rewrite card_classes_abelian; move/eqP<-.
 rewrite -NirrE.
 have->: (G^`(0) = G)%G by apply/val_eqP=> //.
 rewrite -[X in _ = X]card_ord.
-rewrite -(card_imset _ (can_inj (cirrqK F1))).
+rewrite -(card_imset _ (can_inj (cfunq_idxK F1))).
 apply: eq_card=> i.
 rewrite !inE clinear_commutator_irr.
 apply/idP/imsetP=> [HH|[j H1 ->]]; last first.
-  by rewrite cirrqE // cker_cfunq // is_char_irr.
-by exists (qirrc _ i)=> //; rewrite qirrcK.
+  by rewrite cfunq_idxE // cker_cfunq // is_char_irr.
+by exists (qfunc_idx _ i)=> //; rewrite qfunc_idxK.
 Qed.
 
 (* This is 2.24 *)

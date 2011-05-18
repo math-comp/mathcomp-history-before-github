@@ -710,7 +710,7 @@ have BsKi : B \subset cker C 'xi_i1.
   have F: g \in C by rewrite (subsetP (subset_trans BsD _)).
   rewrite cker_charE // inE F !crestrictE //.
   by move: (subsetP BsK _ GiG); rewrite cker_irrE inE (subsetP CsG) ?F.
-pose i2 := qirrc B i1.
+pose i2 := qfunc_idx B i1.
 have ZsC: 'Z(C/B)%g \subset  ccenter (C/B)%G 'xi_i2.
     by rewrite (center_bigcap (C/B)); apply: bigcap_inf.
 have CBsH: C :&: B \subset D.
@@ -719,7 +719,7 @@ have CBsH: C :&: B \subset D.
 have I1B: 'xi_i1 1%g ^+ 2 <= #|C:D|%:R.
   case: (irr1_bound i2)=> HH _; move: HH.
   have->: 'xi_i2 1%g = 'xi_i1 1%g.
-    by rewrite qirrcE // -(coset_id (group1 B)) (qfuncE _ BnC) ?is_char_irr.
+    by rewrite qfunc_idxE // -(coset_id (group1 B)) (qfuncE _ BnC) ?is_char_irr.
   move/leC_trans; apply.
   rewrite -leq_leC // -(index_quotient_eq CBsH) ?normal_norm //.
   rewrite -(@leq_pmul2l #|ccenter (C / B)%G 'xi_i2|) ?cardG_gt0 ?ccenter_sub //.
