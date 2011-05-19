@@ -1,8 +1,8 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq tuple.
 Require Import fintype finfun bigop ssralg poly polydiv.
 Require Import zmodp vector algebra fieldext.
-Require Import fingroup perm finset matrix mxalgebra.
-Require Import div cyclic prime binomial.
+Require Import fingroup perm finset matrix mxalgebra mxpoly.
+Require Import div cyclic prime binomial choice generic_quotient.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -155,7 +155,7 @@ exists 1.
 exists qq.
 by rewrite nonzero1r Hqq scale1r.
 Qed.
-(*
+
 Section InfinitePrimitiveElementTheorem.
 
 Local Notation "p ^ f" := (map_poly f p) : ring_scope.
@@ -325,10 +325,212 @@ by rewrite addn2 ltnS.
 Qed. 
 
 Variables (F L: fieldType) (iota : {rmorphism F -> L}).
+
+Section SubFieldExtension.
+
+Local Open Scope quotient_scope.
+
+Variables (z : L) (p : {poly F}).
+Hypothesis (pne0 : p != 0).
+Hypothesis (Hpz : root (p ^ iota) z).
+
+Let p' := (lead_coef p)^-1 *: p.
+
+Let Hpsz : size p' = size p.
+Proof. by rewrite size_scaler // invr_neq0 // lead_coef_eq0. Qed.
+
+Let p'_mon : monic p'.
+Proof.
+rewrite /monic /p' /lead_coef coef_scaler.
+by rewrite size_scaler ?mulVf ?invr_neq0 // -/(lead_coef p) lead_coef_eq0.
+Qed.
+
+Let p'ne0 : p' != 0.
+Proof. by rewrite monic_neq0 // p'_mon. Qed.
+
+Let Hp'z : root (p' ^ iota) z.
+Proof.
+rewrite map_poly_scaler /root horner_scaler mulf_eq0 -/(root (p ^ iota) z) Hpz.
+by rewrite orbT.
+Qed.
+
+Let H1p' : 0 < (size p).-1.
+Proof.
+rewrite -ltnS -polySpred // -/(size [:: z]) -(size_map_poly iota).
+by rewrite (max_poly_roots) ?map_poly_eq0 // /= Hpz.
+Qed.
+
+Let iotaz : commr_rmorph iota z.
+Proof. move => x; apply: mulrC. Qed.
+
+Let e : equiv_rel [choiceType of ('rV[F]_(size p).-1)].
+apply: (@EquivRel _ (fun x y =>
+  (horner_morph iotaz (rVpoly x)) == (horner_morph iotaz (rVpoly y))))
+  => [x | x y | x y w] //.
+apply: eq_op_trans.
+Defined.
+
+Definition subFExtend : Type := [mod e].
+Canonical Structure subFExtend_eqType := [eqType of subFExtend].
+Canonical Structure subFExtend_choiceType := [choiceType of subFExtend].
+
+Lemma subfext_addm : mop2_spec (fun x y => x + y) subFExtend.
+Proof.
+move => x y /=.
+apply/equivP/eqP.
+rewrite !linearD !rmorphD /=.
+by congr (_ + _); apply/eqP;
+ (rewrite -[_ == _]/(e (repr (\pi_subFExtend _)) _)
+ ;apply/equivP
+ ;rewrite reprK
+ ).
+Qed.
+
+Lemma subfext_oppm : mop1_spec (fun x => - x) subFExtend.
+Proof.
+move => y /=.
+apply/equivP/eqP.
+rewrite !linearN !rmorphN /=.
+congr (- _); apply/eqP.
+rewrite -[_ == _]/(e (repr (\pi_subFExtend _)) _).
+apply/equivP.
+by rewrite reprK.
+Qed.
+
+Local Notation subfext_add := (mop2 subfext_addm).
+Local Notation subfext_opp := (mop1 subfext_oppm).
+Local Notation subfext0 := (\pi_subFExtend 0).
+
+Lemma addfxA : associative subfext_add.
+Proof.
+elim/quotW=> x; elim/quotW=> y; elim/quotW=> w.
+rewrite !mopP; apply/equivP.
+by rewrite addrA.
+Qed.
+
+Lemma addfxC : commutative subfext_add.
+Proof.
+elim/quotW=> x; elim/quotW=> y.
+rewrite !mopP; apply/equivP.
+by rewrite addrC.
+Qed.
+
+Lemma add0fx : left_id subfext0 subfext_add.
+Proof.
+elim/quotW=> x.
+rewrite !mopP; apply/equivP.
+by rewrite add0r.
+Qed.
+
+Lemma addfxN : left_inverse subfext0 subfext_opp subfext_add.
+Proof.
+elim/quotW=> x.
+rewrite !mopP; apply/equivP.
+by rewrite addNr.
+Qed.
+
+Definition subfext_zmodMixin :=  ZmodMixin addfxA addfxC add0fx addfxN.
+Canonical Structure subfext_zmodType :=
+  Eval hnf in ZmodType subFExtend subfext_zmodMixin.
+
+Lemma poly_rV_K_modp_subproof : forall q, 
+  rVpoly (poly_rV (q %% p') : 'rV[F]_(size p).-1) = q %% p'.
+Proof.
+move => q.
+apply: poly_rV_K.
+have Hl : (lead_coef p)^-1 != 0.
+ by rewrite invr_neq0 // lead_coef_eq0.
+by rewrite -(size_scaler p Hl) -ltnS -polySpred // modp_spec.
+Qed.
+
+Definition subfx_mul_rep (x y : 'rV[F]_(size p).-1) : 'rV[F]_(size p).-1
+ := poly_rV ((rVpoly x) * (rVpoly y) %% p').
+
+Lemma subfext_mulm : mop2_spec subfx_mul_rep subFExtend.
+Proof.
+move => x y /=.
+apply/equivP/eqP.
+rewrite !poly_rV_K_modp_subproof.
+set q := (_ * _).
+transitivity (horner_morph iotaz q).
+ rewrite {2}(divp_mon_spec q p'_mon) rmorphD rmorphM /= {3}/horner_morph.
+ move/eqP: Hp'z ->.
+ by rewrite mulr0 add0r.
+symmetry.
+set q' := (_ * _).
+transitivity (horner_morph iotaz q').
+ rewrite {2}(divp_mon_spec q' p'_mon) rmorphD rmorphM /= {3}/horner_morph.
+ move/eqP: Hp'z ->.
+ by rewrite mulr0 add0r.
+rewrite 2!rmorphM.
+symmetry.
+by congr (_ * _); apply/eqP;
+ (rewrite -[_ == _]/(e (repr (\pi_subFExtend _)) _)
+ ;apply/equivP
+ ;rewrite reprK
+ ).
+Qed.
+
+Local Notation subfext_mul := (mop2 subfext_mulm).
+Local Notation subfext1 := (\pi_subFExtend (poly_rV 1)).
+
+Lemma mulfxA : associative subfext_mul.
+Proof.
+elim/quotW=> x; elim/quotW=> y; elim/quotW=> w.
+rewrite !mopP; apply/equivP.
+rewrite /= !poly_rV_K_modp_subproof [_ %% p' * _ w]mulrC.
+by rewrite !monic_modp_mulmr // mulrA [_ * _ w]mulrC [_ w * (_ x * _ y)]mulrC.
+Qed.
+
+Lemma mulfxC : commutative subfext_mul.
+Proof.
+elim/quotW=> x; elim/quotW=> y.
+rewrite !mopP; apply/equivP.
+rewrite /= !poly_rV_K_modp_subproof.
+by rewrite mulrC.
+Qed.
+
+Lemma mul1fx : left_id subfext1 subfext_mul.
+Proof.
+elim/quotW=> x.
+rewrite !mopP; apply/equivP.
+rewrite /= poly_rV_K_modp_subproof.
+rewrite poly_rV_K ?mul1r ?modp_size ?size_poly1 ?H1p' //.
+apply (leq_ltn_trans (size_poly _ _)).
+by rewrite Hpsz -ltnS -polySpred.
+Qed.
+
+Lemma mulfx_addl : left_distributive subfext_mul subfext_add.
+elim/quotW=> x; elim/quotW=> y; elim/quotW=> w.
+rewrite !mopP; apply/equivP.
+rewrite /= linearD /= !poly_rV_K_modp_subproof -monic_modp_add //.
+by rewrite -mulr_addl linearD.
+Qed.
+
+Lemma nonzero1fx : subfext1 != subfext0.
+Proof.
+move: (nonzero1r L).
+apply: contra.
+move/eqP/equivP.
+by rewrite /= linear0 poly_rV_K ?rmorph1 ?rmorph0 // size_poly1 H1p'.
+Qed.
+
+Definition subfext_comRingMixin := ComRingMixin (R:=[zmodType of subFExtend])
+  mulfxA mulfxC mul1fx mulfx_addl nonzero1fx.
+Canonical Structure  sbufext_Ring :=
+  Eval hnf in RingType subFExtend subfext_comRingMixin.
+Canonical Structure subfext_comRing :=
+  Eval hnf in ComRingType subFExtend mulfxC.
+
+End SubFieldExtension.
+(*
 Variables (x y : L) (p q : {poly F}).
 Hypotheses (pne0 : p != 0) (qne0 : q != 0).
 Hypotheses (Hpx : root (p ^ iota) x) (Hqy : root (q ^ iota) y).
 Hypothesis (Hsep : separablePolynomial q).
+
+
+
 
 Lemma PET_Infinite_Case : exists r : {poly L}, r != 0 /\
   forall t, ~~root r (iota t) ->
@@ -461,10 +663,8 @@ Focus 2.
   
   
 rewrite -(gcdp_map (RMorphism (horner_is_rmorphism Hcomm)) P Q).
-
-End InfinitePrimitiveElementTheorem.
-
 *)
+End InfinitePrimitiveElementTheorem.
 
 Section Separable.
 
