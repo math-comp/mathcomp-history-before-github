@@ -251,8 +251,39 @@ case (eqVneq p.[0] 0) => Hp00; last first.
   move/polySpred: HvY0 ->.
   by rewrite addSn leq_addl.
  rewrite HvY0 mul0r size_poly0 size_poly_eq0.
- (*...*)
-Focus 2.
+ move/eqP => HuY0.
+ have HYfactor : forall f, f ^ Y0 = 0 -> exists g, f = g * 'Y.
+  move => f Hf.
+  exists (Poly (map (fun p => p %/ 'X) f)).
+  apply/polyP => i.
+  rewrite mulrC mul_polyC coef_scaler coef_Poly.
+  case (leqP (size f) i) => Hsz.
+   by rewrite !nth_default ?size_map // mulr0.
+  rewrite (nth_map 0 0 _ Hsz) mulrC -[_ * _]addr0.
+  rewrite -{3}(@modp_dvd _ f`_i 'X) -?divp_mon_spec ?monicX //.
+  move/eqP : (f_equal (fun p : {poly F} => p`_i) Hf).
+  rewrite coef0 coef_map.
+  case/factor_theorem.
+  rewrite map_polyE map_id polyseqK subr0 => ? ->.
+  by rewrite dvdp_mulIr.
+ case: (HYfactor _ HvY0) => v' Hv'.
+ case: (HYfactor _ HuY0) => u' Hu'.
+ apply: (IH p u' v') => //.
+  move: Hszv.
+  rewrite Hv' mulrC mul_polyC /lead_coef !size_scaler; last first.
+   by rewrite -size_poly_eq0 size_polyX.
+  rewrite coef_scaler size_monic_mul ?monicX //; last first.
+   case/andP: Hv.
+   rewrite -/(lead_coef v') lead_coef_eq0 lt0n size_poly_eq0 Hv' mulf_eq0.
+   rewrite negb_orb.
+   by case/andP.
+  rewrite size_polyX add2n addnS.
+  by move/succn_inj.
+ move: Huv Hu Hv.
+ rewrite -/p' Hv' Hu' ![_ * 'Y]mulrC -2!mulrA /=.
+ move/mulfI ->.
+  by rewrite !mul_polyC !size_scaler -?size_poly_eq0 ?size_polyX //.
+ by rewrite polyC_eq0 monic_neq0 // monicX.
 rewrite Hp00 scale0r size_poly0 eq_sym size_poly_eq0.
 rewrite mulf_eq0 -[q == 0]negbK Hq0 orbF.
 move/eqP => HvY0.
@@ -284,8 +315,7 @@ split => /=.
   by rewrite -size_poly_eq0 size_polyX.
  by rewrite mulrC mul_polyC size_scaler // -size_poly_eq0 size_polyX.
 case/andP: Hv.
-rewrite Hvvx.
-rewrite !lt0n !size_poly_eq0 mulf_eq0 negb_orb.
+rewrite Hvvx !lt0n !size_poly_eq0 mulf_eq0 negb_orb.
 case/andP => Hvx0 HX.
 move : Hp'0.
 rewrite Hvx0 size_mul_monic ?monicX // size_polyX addn2 Hpx mulf_eq0 negb_orb.
