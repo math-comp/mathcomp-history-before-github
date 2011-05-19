@@ -155,7 +155,7 @@ exists 1.
 exists qq.
 by rewrite nonzero1r Hqq scale1r.
 Qed.
-
+(*
 Section InfinitePrimitiveElementTheorem.
 
 Local Notation "p ^ f" := (map_poly f p) : ring_scope.
