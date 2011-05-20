@@ -3105,7 +3105,7 @@ let unif_end env sigma0 ise0 pt ok =
       let s, t = nf_open_term sigma0 ise pt in
       let ise1 = create_evar_defs s in
       let ise2 = Typeclasses.resolve_typeclasses ~fail:true env ise1 in
-      if not (ok ise2) then raise NoMatch else (* RW progress check *)
+      if not (ok ise) then raise NoMatch else (* RW progress check *)
       if ise2 == ise1 then (s, t) else nf_open_term sigma0 ise2 t in
    loop sigma0 ise0 10
    *)
@@ -3119,7 +3119,7 @@ let unif_end env sigma0 ise0 pt ok =
       let s, t = nf_open_term sigma0 ise pt in
       let ise1 = create_evar_defs s in
       let ise2 = Typeclasses.resolve_typeclasses ~fail:true env ise1 in
-      if not (ok ise2) then raise NoMatch else (* RW progress check *)
+      if not (ok ise) then raise NoMatch else (* RW progress check *)
       if ise2 == ise1 then (s, t) else nf_open_term sigma0 ise2 t
     else if m = 0 then raise NoMatch
     else let ise' = Evarconv.consider_remaining_unif_problems env ise in
