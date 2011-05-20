@@ -24,8 +24,8 @@ Reserved Notation "x <> y %[m Q ]" (at level 70, y at next level,
 (*   no associativity,   format "'[hv ' x '/'  !=  y '/'  %[mod  r ] ']'"). *)
 (* Reserved Notation "x <> y %[mod r ]" (at level 70, y at next level, *)
 (*   no associativity,   format "'[hv ' x '/'  <>  y '/'  %[mod  r ] ']'"). *)
-Reserved Notation "[m T %/ e ]" (at level 0, T at level 0,
-  format "[m T  %/  e ]", only parsing).
+Reserved Notation "[qT T %/ e ]" (at level 0, T at level 0,
+  format "[qT T  %/  e ]", only parsing).
 Reserved Notation "[mod e ]" (at level 0, format "[mod  e ]").
 (* Reserved Notation "\compat1_ Q" (at level 0, format "\compat1_ Q"). *)
 (* Reserved Notation "\compat2_ Q" (at level 0, format "\compat2_ Q"). *)
@@ -163,8 +163,10 @@ Record equiv_rel := EquivRel {
 Lemma eq_op_trans : forall T : eqType, transitive (@eq_op T).
 Proof. by move=> T' x y z; move/eqP->; move/eqP->. Qed.
 
+(*
 Canonical Structure eq_op_Equiv :=
   @EquivRel _ (@eqxx _) (@eq_sym _) (@eq_op_trans _).
+*)
 
 Variable e : equiv_rel.
 
@@ -225,7 +227,7 @@ Proof. by move=> x y; rewrite equivE; apply: (iffP eqP). Qed.
 
 End EquivRel.
 
-Notation "[m T %/ e ]" := (equivQuot_of (Phant T) (Phantom (rel T) e)) (only parsing) : quotient_scope.
+Notation "[qT T %/ e ]" := (equivQuot_of (Phant T) (Phantom (rel T) e)) (only parsing) : quotient_scope.
 Notation "[mod e ]" := (equivQuot_of (Phant _) (Phantom (rel _) e)) : quotient_scope.
 Notation "x == y %[mod r ]" := (x == y %[m [mod r]]) : quotient_scope.
 Notation "x = y %[mod r ]" := (x = y %[m [mod r]]) : quotient_scope.
@@ -238,9 +240,9 @@ Implicit Arguments equivP [T e x y].
 
 (* Section Test. *)
 
-(* Check [m nat %/ eq_op]. *)
+(* Check [qT nat %/ eq_op]. *)
 
-(* Goal forall x y : nat, reflect (x = y) (x == y %[m [m nat %/ eq_op]]). *)
+(* Goal forall x y : nat, reflect (x = y) (x == y %[m [qT nat %/ eq_op]]). *)
 (* Proof. *)
 (* move=> x y /=. *)
 (* move=> x y; apply: (iffP idP); last by move->. *)
