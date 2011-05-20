@@ -168,15 +168,14 @@ Lemma TIconjP : forall G H,
           (trivIset (H^# :^: G)).
 Proof.
 move=> G H; have defH := setD1K (group1 H).
-apply: (iffP trivIsetP) => [tiHG x y Gx Gy | tiHG Hx Hy].
-  have [||defHx|tiHxy] := tiHG (H^# :^ x) (H^# :^ y); rewrite ?mem_imset //.
-    left; rewrite !inE groupM ?groupV //=.
-    by rewrite -defH conjUg conjs1g conjsgM defHx actK.
-  by right; apply/trivgP; rewrite -setD_eq0 setDIl -!conjD1g disjoint_setI0.
-case/imsetP=> x Gx ->{Hx}; case/imsetP=> y Gy ->{Hy}.
+apply: (iffP trivIsetP) => [tiHG x y Gx Gy | tiHG].
+  rewrite inE groupMl // groupVr // -normD1 (sameP normP eqP) actM.
+  rewrite (canF_eq (actKV _ _)); case: (altP eqP) => neqHxy; [by left | right].
+  by apply/trivgP; rewrite -setD_eq0 setDIl -!conjD1g setI_eq0 tiHG ?mem_imset.
+move=> _ _ /imsetP[x Gx ->] /imsetP[y Gy ->].
+rewrite -(canF_eq (actKV _ _)) -actM (sameP eqP normP) normD1.
 rewrite -setI_eq0 !conjD1g -setDIl setD_eq0.
-have [nHxy|->] := tiHG x y Gx Gy; [left | by right].
-by case/setIP: nHxy => _ nHxy; rewrite -{2}(normP nHxy) actM actKV.
+by have [/setIP[_ ->] | ->] := tiHG x y Gx Gy.
 Qed.
 Implicit Arguments TIconjP [G H].
 
@@ -268,10 +267,9 @@ have tiKHG: forall Hx, Hx \in HG -> [disjoint K & Hx].
   move=> Hx; case/imsetP=> x Kx ->{Hx}; rewrite -setI_eq0.
   by rewrite conjD1g -(conjGid Kx) setDE setIA -conjIg tiKH conjs1g setICr.
 have{tiKHG} tiKHG: trivIset KHG.
-  apply/trivIsetP=> U V.
-  case/setU1P=> [-> | HG_U]; case/setU1P=> [-> | HG_V]; auto.
-    by right; rewrite disjoint_sym tiKHG.
-  by apply: (trivIsetP tiHG); rewrite -defHG.
+  case/trivIsetU1: tiKHG => //; first by rewrite defHG.
+  apply/imsetP=> [[x _ /eqP/idPn[]]]; rewrite eq_sym -cards_eq0 cardJg {x}.
+  by rewrite cards_eq0 setD_eq0 subG1.
 apply/and3P; split=> //; last first.
   rewrite !inE eqEcard cards0 leqNgt cardG_gt0 andbF /=.
   apply/imsetP=> [[x _]]; move/eqP; apply/negP.

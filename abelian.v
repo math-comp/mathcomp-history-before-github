@@ -611,9 +611,9 @@ apply/and3P; split; last 1 first.
   apply/bigcupP; exists <[x]>^#; last by rewrite !inE ntx cycle_id.
   apply/imsetP; exists <[x]>%G; rewrite ?p1ElemE // !inE cycle_subG Ex /=.
   by rewrite -orderE (abelem_order_p abelE).
-apply/trivIsetP=> X' Y'; case/imsetP=> X EpX ->; case/imsetP=> Y EpY ->.
-apply/predU1P; rewrite (inj_eq groupD1_inj) -setI_eq0 -setDIl setD_eq0 subG1.
-by rewrite (sameP eqP (TIp1ElemP EpX EpY)) orbN.
+apply/trivIsetP=> _ _ /imsetP[X EpX ->] /imsetP[Y EpY ->]; apply/implyP.
+rewrite (inj_eq groupD1_inj) -setI_eq0 -setDIl setD_eq0 subG1.
+by rewrite (sameP eqP (TIp1ElemP EpX EpY)) implybb.
 Qed.
 
 Lemma card_p1Elem_p2Elem : forall p A E, E \in 'E_p^2(A) -> #|'E_p^1(E)| = p.+1.

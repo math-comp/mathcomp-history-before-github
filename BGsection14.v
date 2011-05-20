@@ -1169,8 +1169,7 @@ set MsG := class_support (M`_\sigma)^# G; pose P := [set x *: 'R[x] | x <- MsG].
 have ellMsG: forall x, x \in MsG -> \ell_\sigma(x) == 1%N.
   by move=> ?; case/imset2P=> x z ? _ ->; rewrite ell_sigmaJ (Msigma_ell1 maxM).
 have tiP: trivIset P.
-  apply/trivIsetP=> xR yR; case/imsetP=> x MsGx ->; case/imsetP=> y MsGy ->.
-  apply/predU1P; rewrite -implyNb; apply/implyP=> neq_xRyR.
+  apply/trivIsetP=> _ _ /imsetP[x MsGx ->] /imsetP[y MsGy ->] neq_xRyR.
   by rewrite sigma_cover_disjoint ?ellMsG //; apply: contraNneq neq_xRyR => ->.
 have->: class_support M^~~ G = cover P.
   apply/setP=> az; apply/imset2P/bigcupP=> [[a z] | [xRz]].
@@ -1592,11 +1591,10 @@ have [tiT defNT]: trivIset (T :^: G) /\ 'N(T) = Z.
     split; last first.
       apply/eqP; rewrite eqEsubset nTZ andbT.
       by apply/subsetP=> a nTa; rewrite tiT // (normP nTa) setIid.
-    apply/trivIsetP=> Tx Ty; case/imsetP=> x _ ->; case/imsetP=> y _ ->.
+    apply/trivIsetP=> _ _ /imsetP[x _ ->] /imsetP[y _ ->]; apply: contraR.
     rewrite -setI_eq0 -(inj_eq (@conjsg_inj _ x^-1)) conjIg conjsgK.
-    rewrite [set0 :^ _]imset0 -conjsgM; set a := y * x^-1.
-    have [Za |] := boolP (a \in Z); last by right; exact: contraR (tiT a) _.
-    by left; rewrite -{1}(normsP nTZ _ Za) conjsgM conjsgKV.
+    rewrite [set0 :^ _]imset0 -conjsgM => /tiT/(normsP nTZ){1}<-.
+    by rewrite conjsgM conjsgKV.
   move=> a; case/set0Pn=> t; case/setIP=> Tt; rewrite mem_conjg => Tta.
   have{Tta} [Zt Zta] := (sTZ t Tt, sTZ _ Tta).
   move: Tt; rewrite -defT; case/bigcupP=> Mi MXi; case/mulsgP=> y y'.
@@ -1884,8 +1882,9 @@ rewrite defZhat {1}defKs; split; first 2 [by split].
   rewrite (subsetP (cyclic_abelian cycZ)) //; last first.
     by rewrite /Z -genM_join mem_gen // mem_mulg.
   rewrite -defNT; apply/normsP=> a cxy_a.
-  case: (trivIsetP tiT (T :^ a) T); rewrite ?orbit_refl ?mem_orbit ?inE //.
-  case/pred0Pn; exists (x * y); rewrite /= mem_conjg /conjg mulgA invgK.
+  apply: (contraNeq (trivIsetP tiT _ _ _ _));
+    rewrite ?orbit_refl ?mem_orbit ?inE //.
+  apply/pred0Pn; exists (x * y); rewrite /= mem_conjg /conjg mulgA invgK.
   rewrite (cent1P cxy_a) mulgK andbb -defT big_setU1 //= inE Ks0 K0.
   by have [_ cKy] := setIP Ks_y; rewrite -(centP cKy) // mem_mulg.
 split=> // [||H PmaxH].
@@ -2000,8 +1999,7 @@ move=> Pcover; have notPcover0: set0 \notin Pcover.
   rewrite class_supportEl; apply/bigcupP; exists x; last exact: class_refl.
   by apply/bigcupP; exists x; [exact/setD1P | exact: lcoset_refl].
 have tiPcover: trivIset Pcover.
-  apply/trivIsetP=> clM clH; case/imsetP=> M maxM ->; case/imsetP=> H maxH ->.
-  apply/predU1P; rewrite -implyNb; apply/implyP=> notMGH.
+  apply/trivIsetP=> _ _ /imsetP[M maxM ->] /imsetP[H maxH ->] notMGH.
   rewrite -setI_eq0 !{1}class_supportEr big_distrr big1 //= => a Ga.
   rewrite big_distrl big1 //= => b Gb; apply/eqP.
   rewrite -!{1}sigma_supportJ setI_eq0 sigma_support_disjoint ?mmaxJ //.

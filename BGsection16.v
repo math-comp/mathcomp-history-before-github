@@ -422,11 +422,10 @@ split=> // B; have nBM: M \subset 'N(B).
   apply/bigcupsP=> x A1x; rewrite -sub_conjg conjDg conjIg -normJ !conjg_set1.
   rewrite conj1g (normsP (der_norm _ M)) // (bigcup_max (x ^ y)) ?memJ_norm //.
   exact: subsetP nA1M y My.
-split=> //; apply/trivIsetP=> T1 T2.
-case/imsetP=> a1 _ ->; case/imsetP=> a2 _ ->{T1 T2}.
+split=> //; apply/trivIsetP=> _ _ /imsetP[a1 _ ->] /imsetP[a2 _ ->].
 rewrite -setI_eq0 -(conjsgKV a2 (_ :^ a1)) -(conjsgM _ a1) -conjIg.
-move: {a1}(a1 * a2^-1) => a.
-have [Ma | notMa] := boolP (a \in M); first by left; rewrite (normsP nBM).
+rewrite (inj_eq (act_inj _ _)) (sameP eqP normP).
+move: {a1}(a1 * a2^-1) => a /(contra (subsetP nBM a)) notMa.
 have uniqB: forall y (u := y.`_\sigma(M)^'), y \in B -> 'M('C[u]) = [set M].
   move=> y u; case/setDP; case/bigcupP=> x; case/setD1P=> ntx.
   rewrite def_FTcore // => Ms_x; case/setD1P=> nty; set M' := M^`(_).
@@ -447,11 +446,10 @@ have uniqB: forall y (u := y.`_\sigma(M)^'), y \in B -> 'M('C[u]) = [set M].
     by rewrite (mem_normal_Hall hallMs).
   rewrite -(normsP nMsM' z M'z) centJ -conjIg (isog_eq1 (conj_isog _ _)).
   by apply/trivgPn; exists x; rewrite //= inE Ms_x cent_cycle cent1C groupX.
-right; apply: contraR notMa; case/set0Pn=> x.
-rewrite mem_conjg; move: {x}(x ^ _) => x.
-rewrite inE mem_conjg andbC; case/andP; move/uniqB=> defM; move/uniqB.
-move/(def_uniq_mmaxJ a); rewrite consttJ -normJ conjg_set1 conjgKV {}defM.
-by move/set1_inj=> defM; rewrite -(norm_mmax maxM) inE {2}defM.
+apply: contraR notMa => /set0Pn[_ /imsetP[x /setIP[Bax /uniqB defM] _]].
+move: Bax; rewrite mem_conjg => /uniqB/(def_uniq_mmaxJ a); rewrite consttJ.
+rewrite -normJ conjg_set1 conjgKV {}defM => /set1_inj=> defM.
+by rewrite -(norm_mmax maxM) inE {2}defM.
 Qed.
 
 Let Z := K <*> Kstar.
@@ -566,19 +564,18 @@ split; last 1 first.
       exact: (group1_contra notKz).
     rewrite (sub_mmax_proper maxM) // gen_subG class_support_subG //.
     by rewrite subDset setUC subsetU ?sZM.
-  apply/trivIsetP=> Zx Zy; case/imsetP=> x _ ->; case/imsetP=> y _ ->{Zx Zy}.
+  apply/trivIsetP=> _ _ /imsetP[x _ ->] /imsetP[y _ ->].
   rewrite -setI_eq0 -(mulgKV y x) conjsgM -conjIg; move: {x}(x * _) => x.
-  have [Mx | notMx] := boolP (x \in M); [left | right].
-    by rewrite (normsP (class_support_normG _ _) x Mx).
+  have [Mx | notMx _] := boolP (x \in M).
+    by rewrite (normsP (class_support_normG _ _) x Mx) eqxx.
   rewrite -subset0 sub_conjg {2}class_supportEr big_distrr /=.
   apply/bigcupsP=> a Ma; rewrite -(mulgKV x a) conjsgM -conjIg sub_conjg.
   rewrite class_supportEr big_distrl /=; apply/bigcupsP=> b Mb.
   rewrite ![set0 :^ _]imset0 subset0 setI_eq0.
   have inZHG: Zhat :^ _ \in Zhat :^: G by move=> c; rewrite mem_imset ?inE.
-  have [|//] := trivIsetP tiZhat _ _ (inZHG b) (inZHG (a * x^-1)).
-  move/(canLR (conjsgK _)); rewrite -conjsgM invMg invgK; move/normP.
-  rewrite NZhat; move/(subsetP sZM); rewrite groupMl // groupMr ?groupV //.
-  by rewrite (negPf notMx).
+  apply: (trivIsetP tiZhat) => //; rewrite (canF_eq (conjsgK _)). 
+  rewrite -conjsgM eq_sym (sameP eqP normP) NZhat -/Z.
+  by rewrite (contra (subsetP sZM _)) // -mulgA -invMg !(groupMl, groupV) //.
 rewrite (trivg_kappa_compl maxM complU) => notP1maxM.
 have P2maxM: M \in 'M_'P2 by exact/setDP.
 split; first by have [_ _ _ _ []] := Ptype_structure PmaxM hallK.
@@ -951,10 +948,10 @@ have defNsV: forall X : {set gT}, X \subset V -> X != set0 -> 'N(X) = W.
     exact: subsetDl.
   apply/subsetP=> x nXx; rewrite -defNV inE.
   have VG_V: V \in V :^: G := orbit_refl 'Js _ V.
-  have VG_Vx:  V :^ x \in V :^: G := mem_orbit 'Js V (in_setT x).
-  have [<- // | ] := trivIsetP tiV _ _ VG_V VG_Vx; rewrite -setI_eq0 => tiVVx.
-  case/negP: neX; rewrite -subset0 -(eqP tiVVx) subsetI sXV -(normP nXx).
-  by rewrite conjSg.
+  have VG_Vx: V :^ x \in V :^: G := mem_orbit 'Js V (in_setT x).
+  rewrite -(contraNeq (trivIsetP tiV _ _ VG_V VG_Vx)) // -setI_eq0.
+  apply: contra neX => tiVVx; rewrite -subset0 -(eqP tiVVx) subsetI sXV.
+  by rewrite-(normP nXx) conjSg. 
 have [sHM' nsM'M] := (subset_trans sHMs sMsM', der_normal 1 M : M' <| M).
 have hallM': \kappa(M)^'.-Hall(M) M' by exact/(sdprod_normal_pHallP _ hallK).
 have [sM'M k'M' _] := and3P hallM'.
@@ -1061,9 +1058,9 @@ exists (S, T); split=> //.
   apply/subsetP=> x nXx; rewrite -/W -defNV inE.
   have VG_V: V \in V :^: G := orbit_refl 'Js _ V.
   have VG_Vx:  V :^ x \in V :^: G := mem_orbit 'Js V (in_setT x).
-  have [<- // | ] := trivIsetP tiV _ _ VG_V VG_Vx; rewrite -setI_eq0 => tiVVx.
-  case/negP: neX; rewrite -subset0 -(eqP tiVVx) subsetI sXV -(normP nXx).
-  by rewrite conjSg.
+  rewrite -(contraNeq (trivIsetP tiV _ _ VG_V VG_Vx)) // -setI_eq0.
+  apply: contra neX => /eqP tiVVx; rewrite -subset0 -tiVVx subsetI sXV.
+  by rewrite -(normP nXx) conjSg.
 - move=> M maxM; rewrite /= -FTtype_Pmax //; move/PmaxST.
   by case/setUP; case/imsetP=> x _ ->; exists x; by [left | right].
 - by rewrite -!{1}FTtype_P2max.
@@ -1141,9 +1138,8 @@ have tiA0: forall x a, x \in 'A0(M) :\: 'A1(M) -> x ^ a \in 'A0(M) -> a \in M.
     rewrite -sub1set norms_gen // sub1set -groupV inE.
     have BG_B: B \in B :^: G by exact: orbit_refl.
     have BG_Ba: B :^ a^-1 \in B :^: G by exact: mem_orbit (in_setT a^-1).
-    have [<- // | ] := trivIsetP tiB _ _ BG_B BG_Ba.
-    rewrite -setI_eq0; case/set0Pn; exists x.
-    rewrite inE Bx mem_conjgV inE /=; apply/andP; split.
+    rewrite -(contraNeq (trivIsetP tiB _ _ BG_B BG_Ba)) // -setI_eq0.
+    apply/set0Pn; exists x; rewrite inE Bx mem_conjgV inE /=; apply/andP; split.
       apply: contra notA1x; case/setD1P=> _; rewrite !inE ntx def_FTcore //.
       move/(mem_p_elt (pcore_pgroup _ _)); rewrite p_eltJ => sMx.
       by rewrite (mem_Hall_pcore (Msigma_Hall maxM)).
@@ -1155,9 +1151,8 @@ have tiA0: forall x a, x \in 'A0(M) :\: 'A1(M) -> x ^ a \in 'A0(M) -> a \in M.
   set B := _ :\: _ in tiB *; have Bx: x \in B by exact/setDP.
   have BG_B: B \in B :^: G by exact: orbit_refl.
   have BG_Ba: B :^ a^-1 \in B :^: G by exact: mem_orbit (in_setT a^-1).
-  rewrite -groupV inE; have [<- // | ] := trivIsetP tiB _ _ BG_B BG_Ba.
-  rewrite -setI_eq0; case/set0Pn; exists x; rewrite inE Bx /= mem_conjgV.
-  by rewrite inE tiA0A.
+  rewrite -groupV inE -(contraNeq (trivIsetP tiB _ _ BG_B BG_Ba)) // -setI_eq0.
+  by apply/set0Pn; exists x; rewrite inE Bx /= mem_conjgV inE tiA0A.
 have sDA1: D \subset 'A1(M).
   apply/subsetPn=> [[x]]; case/setIdP=> A0x not_sCxM notA1x.
   case/negP: not_sCxM; apply/subsetP=> a cxa.

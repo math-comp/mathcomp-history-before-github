@@ -15,10 +15,8 @@ Require Import fingroup action gseries.
 (*                 action to on n.-tuples. via n_act to n.                    *)
 (*  n.-dtuple S == the set of n-tuples with distinct values in S.             *)
 (*  [transitive^n A, on S | to] <=>                                           *)
-(*       A is n-transitive on S, i.e., A is transitive on n.-dtuple S         80
- == the set of n-tuples with distinct values in S.             *)
-
-
+(*       A is n-transitive on S, i.e., A is transitive on n.-dtuple S         *)
+(*              == the set of n-tuples with distinct values in S.             *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -81,14 +79,11 @@ apply/forallP/maximal_eqP=> /= [primG | [_ maxCx] Q].
       by rewrite !(actsP (atrans_acts trG)) //; exact: subsetP Hb.
     case: (atransP2 trG Sx Sy) => a Ga ->.
     by exists ((to^*)%act X a); apply: mem_imset; rewrite // orbit_refl.
-  apply/trivIsetP=> Y Z; case/imsetP=> a Ga ->; case/imsetP=> b Gb ->{Y Z}.
-  case dab: [disjoint _ & _]; [by right | left].
-  apply: (canRL (actKV _ _)); rewrite -actM; apply/astab1P.
+  apply/trivIsetP=> _ _ /imsetP[a Ga ->] /imsetP[b Gb ->].
+  apply: contraR => /existsP[_ /andP[/imsetP[_ /imsetP[a1 Ha1 ->] ->]]].
+  case/imsetP=> _ /imsetP[b1 Hb1 ->] /(canLR (actK _ _)) /(canLR (actK _ _)).
+  rewrite -(canF_eq (actKV _ _)) -!actM (sameP eqP astab1P) => /astab1P Cab.
   rewrite astab1_set (subsetP (subsetIr G _)) //= defH.
-  case/existsP: dab => y; case/andP.
-  case/imsetP=> z; case/imsetP=> a1 Ha1 -> ->{y z}.
-  case/imsetP=> t; case/imsetP=> b1 Hb1 ->{t}.
-  do 2!move/(canLR (actK _ _)); rewrite -!actM; move/astab1P => Cab.
   rewrite -(groupMr _ (groupVr Hb1)) -mulgA -(groupMl _ Ha1).
   by rewrite (subsetP sCH) // inE Cab !groupM ?groupV // (subsetP sHG).
 apply/and3P=> [[]]; case/and3P; set sto := (to^*)%act.
@@ -96,9 +91,9 @@ move/eqP=> defS tIQ ntQ actQ; rewrite !ltnNge -negb_or; case/orP.
 pose X := cover_at x Q; have Xx: x \in X by rewrite mem_cover_at defS.
 have QX: X \in Q by rewrite cover_at_mem ?defS.
 have toX: forall Y a, Y \in Q -> a \in G -> to x a \in Y -> sto X a = Y.
-  move=> Y a QY Ga Yxa; case: (trivIsetP tIQ Y (sto X a)) => //.
+  move=> Y a QY Ga Yxa; rewrite -(contraNeq (trivIsetP tIQ Y (sto X a) _ _)) //.
     by rewrite (actsP actQ).
-  by case/existsP; exists (to x a); rewrite /= Yxa; exact: mem_imset.
+  by apply/existsP; exists (to x a); rewrite /= Yxa; exact: mem_imset.
 have defQ: Q = orbit (to^*)%act G X.
   apply/eqP; rewrite eqEsubset andbC acts_sub_orbit // QX.
   apply/subsetP=> Y QY; have:= sub0set Y; rewrite subEproper.

@@ -5,23 +5,24 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(*****************************************************************************)
-(* Tuples, i.e., lists with a fixed (known) length. We define:               *)
-(*   n.-tuple T   : the type of n-tuples of elements of type T.              *)
-(*   [tuple of s] : the tuple whose underlying sequence (value) is s, which  *)
-(*                  must have a known size; specifically, Coq must be able   *)
-(*                  to infer a tuple whose Canonical Projection is s, e.g.,  *)
-(*     [tuple]            is the empty tuple, and                            *)
-(*     [tuple x1; ..; xn] the explicit n.-tuple <x1; ..; xn>.                *)
-(* As n.-tuple T coerces to seq t, all operations for seq (size, nth, ...)   *)
-(* can be applied to t : n.-tuple T; we provide a few specialized instances  *)
-(* when this avoids the need for a default value.                            *)
-(*   tsize t      : the size of t (the n in n.-tuple T)                      *)
-(*   tnth t i     : the i'th component of t, where i : 'I_n.                 *)
-(*   [tnth t i]   : the i'th component of t, where i : nat.                  *)
-(*   thead t      : the first element of t, when n is canonically positive.  *)
-(* Most seq constructors (behead, cat, belast, take, drop, rot, map, ...)    *)
-(* can be used to build tuples via the [tuple of s] construct.               *)
+(******************************************************************************)
+(* Tuples, i.e., sequences with a fixed (known) length. We define:            *)
+(*         n.-tuple T == the type of n-tuples of elements of type T.          *)
+(*       [tuple of s] == the tuple whose underlying sequence (value) is s.    *)
+(*                       The size of s must be known: specifically, Coq must  *)
+(*                       be able to infer a Canonical tuple projecting on s.  *)
+(*         in_tuple s == the (size s)-tuple with value s.                     *)
+(*            [tuple] == the empty tuple, and                                 *)
+(* [tuple x1; ..; xn] == the explicit n.-tuple <x1; ..; xn>.                  *)
+(* As n.-tuple T coerces to seq t, all operations for seq (size, nth, ...)    *)
+(* can be applied to t : n.-tuple T; we provide a few specialized instances   *)
+(* when this avoids the need for a default value.                             *)
+(*            tsize t == the size of t (the n in n.-tuple T)                  *)
+(*           tnth t i == the i'th component of t, where i : 'I_n.             *)
+(*         [tnth t i] == the i'th component of t, where i : nat.              *)
+(*            thead t == the first element of t, when n is m.+1 for some m.   *)
+(* Most seq constructors (cons, behead, cat, rcons, belast, take, drop, rot,  *)
+(* map, ...) can be used to build tuples via the [tuple of s] construct.      *)
 (*   Tuples are actually a subType of seq, and inherit all combinatorial     *)
 (* structures, including the finType structure.                              *)
 (*   Some useful lemmas and definitions:                                     *)
@@ -88,10 +89,9 @@ Notation "[ 'tuple' 'of' s ]" := (tuple (fun sP => @Tuple _ _ s sP))
 Notation "[ 'tnth' t i ]" := (tnth t (@Ordinal (tsize t) i (erefl true)))
   (at level 0, t, i at level 8, format "[ 'tnth'  t  i ]") : form_scope.
 
-Canonical nil_tuple T :=
-   Tuple (erefl _ : @size T [::] == 0).
+Canonical nil_tuple T := Tuple (isT : @size T [::] == 0).
 Canonical cons_tuple n T x (t : n.-tuple T) :=
-   Tuple (valP t : size (x :: t) == n.+1).
+  Tuple (valP t : size (x :: t) == n.+1).
 
 Notation "[ 'tuple' x1 ; .. ; xn ]" := [tuple of x1 :: .. [:: xn] ..]
   (at level 0, format "[ 'tuple' '['  x1 ; '/'  .. ; '/'  xn ']' ]")

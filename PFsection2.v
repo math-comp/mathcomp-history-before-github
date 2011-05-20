@@ -55,16 +55,16 @@ Lemma normedTI_P :
            /\ L \subset 'N_G(A)) (normedTI A G L).
 Proof.
 apply: (iffP andP) => [[/trivIsetP tiAG /eqP <-] | [tiAG sLN]].
-  split=> // g Gg; rewrite inE Gg (sameP normP eqP) /= eq_sym; apply/implyP.
-  by rewrite implyNb orbC; apply/predU1P/tiAG; rewrite ?mem_orbit ?orbit_refl.
+  split=> // g Gg; rewrite inE Gg (sameP normP eqP) /= eq_sym; apply: contraR.
+  by apply: tiAG; rewrite ?mem_orbit ?orbit_refl.
 have [/set0Pn[a Aa] /subsetIP[_ nAL]] := (notA0, sLN); split; last first.
   rewrite eqEsubset sLN andbT; apply/subsetP=> x /setIP[Gx nAx].
   by apply/tiAG/pred0Pn=> //; exists a; rewrite /= (normP nAx) Aa.
-apply/trivIsetP=> _ _ /imsetP[x Gx ->] /imsetP[y Gy ->].
-apply/predU1P; rewrite -setI_eq0 -(mulgKV x y) conjsgM; set g := (y * x^-1)%g.
-rewrite -conjIg (inj_eq (act_inj 'Js x)) eq_sym (sameP eqP normP).
-rewrite -cards_eq0 cardJg cards_eq0 setI_eq0 orbC -implyNb.
-by apply/implyP=> /tiAG Lg; rewrite (subsetP nAL) ?Lg // groupM ?groupV.
+apply/trivIsetP=> _ _ /imsetP[x Gx ->] /imsetP[y Gy ->]; apply: contraR.
+rewrite -setI_eq0 -(mulgKV x y) conjsgM; set g := (y * x^-1)%g.
+rewrite -conjIg (inj_eq (act_inj 'Js x)) (eq_sym A) (sameP eqP normP).
+rewrite -cards_eq0 cardJg cards_eq0 setI_eq0 => /tiAG => /implyP.
+by rewrite groupMl ?groupVr // => /(subsetP nAL).
 Qed.
 
 Lemma normedTI_memJ_P :
