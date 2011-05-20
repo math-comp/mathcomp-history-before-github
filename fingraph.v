@@ -427,7 +427,7 @@ Lemma fconnect_cycle : fconnect f x =i p.
 Proof.
 move=> y; have [i q def_p] := rot_to p_x; rewrite -(mem_rot i p) def_p.
 have{i def_p} /andP[/eqP q_x f_q]: (f (last x q) == x) && fpath f x q.
-  by rewrite -(cycle_rot i) def_p (cycle_path x) in f_p.
+  by have:= f_p; rewrite -(cycle_rot i) def_p (cycle_path x).
 apply/idP/idP=> [/connectP[_ /fpathP[j ->] ->] | ]; last exact: path_connect.
 case/fpathP: f_q q_x => n ->; rewrite !last_traject -iterS => def_x.
 by apply: (@loopingP _ f x n.+1); rewrite /looping def_x /= mem_head.
