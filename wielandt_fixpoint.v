@@ -1052,20 +1052,66 @@ have expWbar : exponent Wbar = q.
   rewrite exponent_injm ?subxx ?injm_sdpair1 //; exact: exponent_mx_group.
 have := (abelian_type_dprod_homocyclic hcent_com pWbar homoWbar).
 rewrite expWbar => [] [atypel atyper].
-have isor : 'C_Wbar(Aibar) \isog [set: 'rV['Z_q]_(f i)].
+have /isogP [isor injm_isor isor_im] : 'C_Wbar(Aibar) \isog [set: 'rV['Z_q]_(f i)].
   rewrite eq_abelian_type_isog // ?zmod_abelian // atyper rCbar.
   by rewrite abelian_type_mx_group // mul1n eqxx.
 pose dV := 'dim V.
+pose isoW := (sdpair1_morphism toW).
+have injm_isoW : 'injm isoW by exact: injm_sdpair1.
+pose rC := 'r([~: Wbar, Aibar]).
 have abel_com : abelian [~: Wbar, Aibar] by case/andP: hc_com.
-have isol : [~: Wbar, Aibar] \isog [set: 'rV['Z_q]_(dV - (f i))%N].
+have /isogP [isol injm_isol isol_im] : 
+  [~: Wbar, Aibar] \isog [set: 'rV['Z_q]_(rC)%N].
   rewrite eq_abelian_type_isog // ?zmod_abelian // atypel.
-  rewrite  abelian_type_mx_group // mul1n.
-  suff -> :  'r([~: Wbar, Aibar]%G) = (dV - f i)%N by rewrite eqxx.
-  have := (card_homocyclic homoWbar); rewrite -{1}(dprod_card hcent_com).
-  rewrite (card_homocyclic hc_com) (card_homocyclic hc_cent) expWbar.
-  rewrite rCbar;   case triv_com : ([~: Wbar, Aibar] == 1).
-    move: hcent_com; rewrite (eqP triv_com); case/dprodP; rewrite mul1g=> _ e _ _.
-    rewrite /= (eqP triv_com) rank1 expn0 mul1n e expWbar; move/(expnI pk_gt1)->.
-    by rewrite injm_rank ?injm_sdpair1 // rank_mx_group mul1n subnn.
-  rewrite (exponent_isog isor) exponent_mx_group //; admit.
-Admitted.
+  by rewrite abelian_type_mx_group // mul1n eqxx.
+have mkMxM m1 m2 D (g : {morphism gval D >-> 'rV['Z_q]_m2}) :
+  [set: 'rV['Z_q]_m1] \subset 'dom g -> linear g.
+- move/subsetP=> sTD z x y; rewrite morphM ?sTD ?in_setT //.
+  by rewrite -(natr_Zp z) !scaler_nat -zmodXgE morphX ?sTD ?in_setT.
+pose mkMx sDT := lin1_mx (Linear (mkMxM _ _ _ _ sDT)).
+have dom_fPu: setT \subset 'dom (invm injm_isoW \o invm injm_isol).
+  rewrite /dom morphpre_invm -isol_im morphimS // -/Wbar.
+  by case/dprodP: hcent_com => _ /mulG_sub[].
+pose Pu := mkMx _ _ _ _ dom_fPu.
+have dom_fPd: setT \subset 'dom (invm injm_isoW \o invm injm_isor).
+   by rewrite /dom morphpre_invm -isor_im morphimS // subsetIl.
+pose Pd := mkMx _ _ _ _ dom_fPd.
+have comWbar: (@pair1g _ _ \o isor) @* 'C_Wbar(Aibar) \subset
+        'C((@pairg1 _ _ \o isol) @* [~: Wbar, Aibar]).
+  rewrite !morphim_comp morphim_pair1g morphim_pairg1.
+  set Ur := isor @* _; set Ul := isol @* _.
+  by case/dprodP: (setX_dprod [group of Ul] [group of Ur]).
+set fUr := @pair1g _ _ \o _ in comWbar.
+have /domP [fUr' [_ _ _ imfUr']] : 
+    'dom fUr =  'C_Wbar(Aibar) by rewrite /dom -isor_im injmK.
+set fUl := @pairg1 _ _ \o _ in comWbar.
+have /domP [fUl' [_ _ _ imfUl']] : 
+    'dom fUl = [~: Wbar, Aibar] by rewrite /dom -isol_im injmK.
+rewrite -imfUr' -imfUl' in comWbar.
+pose isoWbar := dprodm hcent_com comWbar.
+have := (morphim_dprodm hcent_com comWbar (subxx _) (subxx _)).
+rewrite imfUl' imfUr' /= !morphim_comp /= isol_im isor_im morphim_pair1g.
+rewrite morphim_pairg1 setX_prod.
+have <- : 
+    [set: 'rV['Z_q]_rC * 'rV['Z_q]_(f i)] = setX [set: 'rV_rC]%G [set: 'rV_(f i)]%G.
+    by apply/setP=> x; rewrite !inE.
+move=> im_isoWbar.
+have im_isoW : isoW @* [set: 'rV['Z_q](V)] = ([~: Wbar, Aibar] * 'C_Wbar(Aibar)).
+  by rewrite /isoW; case/dprodP: (hcent_com) => _  /= {5}<-.
+pose fPl := (@fst_morphism _ _ ) \o (isoWbar \o (isoW)).
+have dom_fPl : setT \subset 'dom fPl.
+  rewrite /dom /= morphpre_comp /= -sub_morphim_pre //.
+  rewrite -im_isoWbar morphimK; last by case/dprodP: (hcent_com) => _ ->.
+  rewrite -im_isoW; exact: mulG_subr.
+pose Pl := mkMx _ _ _ _ dom_fPl.
+pose fPr := (@snd_morphism _ _ ) \o (isoWbar \o (isoW)).
+have dom_fPr : setT \subset 'dom fPr.
+  rewrite /dom /= morphpre_comp /= -sub_morphim_pre // -im_isoWbar.
+  rewrite  morphimK; last by case/dprodP: (hcent_com) => _ ->.
+  rewrite -im_isoW; exact: mulG_subr.
+pose Pr := mkMx _ _ _ _ dom_fPr.
+pose P1 := row_mx Pl Pr; pose P2 := col_mx Pu Pd.
+have P12_id : P1 *m P2 = 1%R.
+  rewrite mul_row_col.
+(*rewrite -(mulr1 (rW a)) -P12_id.*)
+Admitted. 
