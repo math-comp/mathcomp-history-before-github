@@ -87,6 +87,7 @@ zint.v
 orderedalg.v
 orderedzint.v
 qnum.v
+interval.v
 closed_field.v
 complex.v
 # polyorder.v
