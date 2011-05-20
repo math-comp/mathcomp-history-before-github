@@ -198,7 +198,7 @@ Lemma pffun_onP y D R f :
   reflect (y.-support f \subset D /\ {subset [image f of D] <= R})
           (f \in pffun_on_mem y (mem D) (mem R)).
 Proof.
-apply: (iffP (pfamilyP _ _ _ _)) => [] [-> f_fam]; split=> //.
+apply: (iffP (pfamilyP y D (fun _ => R) f)) => [] [-> f_fam]; split=> //.
   by move=>  _ /imageP[x Ax ->]; exact: f_fam.
 by move=> x Ax; apply: f_fam; apply/imageP; exists x.
 Qed.
