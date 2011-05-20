@@ -85,7 +85,7 @@ have dvdpL : forall (p q : {poly R}), q %| p * q.
  by move => p0 q0; rewrite dvdp_mull // dvdpp.
 rewrite /separablePolynomial.
 rewrite derivM.
-rewrite -!gcdp_eqp1 !eqp1_dvd1.
+rewrite -!gcdp_eqp1 -!dvdp1.
 have dvdp_or : forall (d n m : {poly R}), (d %| n) || (d %| m) -> d %| m * n.
  move => d n m.
  by move/orP => [H|H]; [apply:dvdp_mull|apply: dvdp_mulr].
@@ -120,11 +120,11 @@ move => x.
 apply: contraL.
 case/factor_theorem => pp ->.
 case: (eqVneq pp 0) => [->|Hpp].
- by rewrite !mul0r /separablePolynomial coprime0p deriv0 -eqp_polyC eq_refl.
+ by rewrite !mul0r /separablePolynomial coprime0p deriv0 eqp01.
 apply/coprimepPn.
- by rewrite !mulf_eq0 !negb_or Hpp -!size_poly_eq0 !size_XMa.
+ by rewrite !mulf_eq0 !negb_or Hpp -!size_poly_eq0 !size_factor.
 exists ('X - x%:P).
-rewrite dvdp_gcd eqp_sym -dvdp_size_eqp ?dvd1p // size_XMa size_poly1.
+rewrite dvdp_gcd eqp_sym -dvdp_size_eqp ?dvd1p // size_factor size_poly1.
 rewrite !(derivM, derivD) !dvdp_add ?(dvdp_mull _ (dvdpp _)) //.
 by rewrite dvdp_mulr // dvdp_mull // dvdpp.
 Qed.
@@ -178,9 +178,10 @@ Lemma egcdp_map:
     (map_poly f (egcdp p q).1, map_poly f (egcdp p q).2) =
     (egcdp (map_poly f p) (map_poly f q)).
 Proof.
-move => F R f p q.
-rewrite /egcdp size_map_poly.
-by apply: egcdp_rec_map.
+move => F R f p q; rewrite /egcdp !size_map_poly.
+case: ifP=> /= hspq; first by apply: egcdp_rec_map.
+move: (egcdp_rec_map f q p (size p)).
+by case: (egcdp_rec (map_poly _ _) _ _)=> [a b [-> ->]].
 Qed.
 
 Section InfinitePrimitiveElementTheorem.
@@ -718,7 +719,7 @@ have: (gcdp p2 (q ^ iota) %= ('X - y%:P)).
   by rewrite dvdpp.
  case/andP: Hp2.
  rewrite Hqq -(eqp_dvdl _ (mulp_gcdl _ _ _)) dvdp_mul2r //.
- by rewrite -size_poly_eq0 size_XMa.
+ by rewrite -size_poly_eq0 size_factor.
 set z := iota t * y - x.
 have Hcomm : commr_rmorph iota z by move => a; apply: mulrC.
 pose (Q := (q ^ polyC)).
@@ -1330,7 +1331,7 @@ apply: poly_ind => [|p c IHp].
 move/polyOverP => Hp.
 have Hp0: (polyOver E p).
  apply/polyOverP => i; move: (Hp i.+1).
- by rewrite coef_add_poly coef_mulX coefC /= addr0.
+ by rewrite coef_add coef_mulX coefC /= addr0.
 have->: map_poly D (p * 'X + c%:P) = map_poly D p * 'X + (D c)%:P.
  apply/polyP => i.
  by rewrite !(coef_add, coef_mulX, coefC, (coef_map [linear of D])) ?linear0
@@ -1848,7 +1849,7 @@ wlog: q p Kp Kq nzp nzq szpq pq0 / (q.[x] == 0).
 move => qx0.
 apply/orP; right.
 have nzq' : size q != 0%N by rewrite size_poly_eq0.
-rewrite -size1_dvdp1 eqn_leq.
+rewrite -size_poly_eq1 eqn_leq.
 apply/andP; split; last by rewrite (polySpred nzp).
 rewrite -(leq_add2r (size q)).
 move: (size_mul_id nzp nzq); case: (_ + _)%N=> //= _ <-.
@@ -1864,7 +1865,7 @@ have gcdK : polyOver K (gcdp (minPoly K x) p).
  by rewrite gcdp_polyOver ?minPolyOver //.
 have [gcd_eqK|gcd_eq1] := orP (minPoly_irr gcdK (dvdp_gcdl (minPoly K x) p)).
  by rewrite -(eqp_dvdl _ gcd_eqK) dvdp_gcdr.
-case/negP: (root1n x).
+case/negP: (root1 x).
 by rewrite -(eqp_root gcd_eq1) root_gcd rootp root_minPoly.
 Qed.
 
@@ -1900,12 +1901,12 @@ rewrite /separableElement /separablePolynomial.
 apply/idP/idP.
  apply: contraL.
  move/eqP ->.
- by rewrite coprimep0 -size1_dvdp1 size_minPoly eqSS -lt0n elementDegreegt0.
+ by rewrite coprimep0 -size_poly_eq1 size_minPoly eqSS -lt0n elementDegreegt0.
 move => Hderiv.
 have gcdl := (dvdp_gcdl (minPoly K x) (deriv (minPoly K x))).
 have gcdK : polyOver K (gcdp (minPoly K x) (minPoly K x)^`()).
  by rewrite gcdp_polyOver ?deriv_polyOver // minPolyOver.
-rewrite -gcdp_eqp1 eqp1_dvd1.
+rewrite -gcdp_eqp1 -dvdp1.
 case/orP: (minPoly_irr gcdK gcdl); last first.
  rewrite /eqp.
  by case/andP.
@@ -2045,7 +2046,6 @@ rewrite lapp_of_funK; last by apply: DerivationExtend_body_linear.
 rewrite /DerivationExtend_body poly_for_K // derivC horner0 mul0r addr0.
 rewrite -[D y](hornerC _ x) /horner_morph.
 congr (_.[x]).
-apply: f_equal.
 apply/polyP => i.
 by rewrite (coef_map [linear of D]) ?linear0 //= !coefC [D _]fun_if linear0.
 Qed.
@@ -2279,7 +2279,7 @@ rewrite Hg size_poly_comp_id ltnS.
 rewrite size_polyXn.
 case: (leqP (size g) 1) Hg.
  move/size1_polyC ->.
- rewrite poly_compC => Hg.
+ rewrite poly_comCp => Hg.
  have : size (minPoly K x) <= 1 by rewrite Hg size_polyC leq_b1.
  by rewrite size_minPoly ltnS leqNgt elementDegreegt0.
 move => Hszg _.
@@ -2347,17 +2347,9 @@ case/and3P => _ _ Hc.
  rewrite /g polyC_exp -!(Frobenius_autE Hp') -rmorph_sub.
  rewrite [_ (_ - _)]Frobenius_autE -(prednK (prime_gt0 (charf_prime Hp))).
  elim: p.-1 => [|n]; first by rewrite expr1.
- (* TODO: abstract out coprime p q -> coprime p r -> coprime p (q*r) *)
- rewrite -gcdp_eqp1 => IH.
- move: (egcdpPW c (('X - x%:P) ^+ n.+1)) => [s [t]].
- rewrite (eqp_transr IH) -(@eqp_mul2r _ ('X - x%:P)); last first.
-  by rewrite monic_neq0 // monic_factor.
- rewrite mul1r mulr_addl -[t * _ * _]mulrA -exprSr => Hcn.
- apply/coprimepP => d Hdc Hdn.
- move/coprimepP: Hc; apply; first done.
- by rewrite -(eqp_dvdr _ Hcn) -mulrA dvdp_add // dvdp_mull // dvdp_mulr.
+ by rewrite [_ ^+ _.+2]exprS coprimep_mulr Hc.
 move/coprimepP/(_ _ (dvdpp c))/(_ (dvdp_trans (dvdp_mulr _ (dvdpp c)) Hcg)).
-rewrite -size1_dvdp1.
+rewrite -size_poly_eq1.
 move/eqP => Hszc.
 move: HK'c (Hszc).
 rewrite (size1_polyC (eq_leq Hszc)) size_polyC mulr_addr -polyC_opp -polyC_mul.
@@ -2721,7 +2713,7 @@ have H : size (p`_(size p).-1 *: ('X + z%:P) ^+ (size p).-1) = (size p).-1.+1.
   by rewrite expf_neq0 // -size_poly_eq0 Sa.
 rewrite addrC size_addl // H ltnS (leq_trans (size_sum _ _ _)) //.
 apply/bigmax_leqP => i _.
-rewrite coef_map poly_mulC.
+rewrite coef_map mulrC.
 have [->|nzpi] := (eqVneq p`_i 0); first by rewrite mulr0 size_poly0.
 by rewrite mulrC mul_polyC size_scaler // (leq_trans (size_exp _ _)) // Sa
    mul1n.
@@ -2807,7 +2799,7 @@ apply/eqP/eqP => [->|].
  have -> : b = lead_coef(f0) ^+ m *: 'X ^+ (n * m).
   rewrite -mul_polyC rmorphX exprn_mulr -commr_exp_mull;
    last by rewrite /GRing.comm mulrC.
-  rewrite -[ m]card_ord -prodr_const.
+  rewrite -[m]card_ord -prodr_const.
   apply: eq_bigr => i _.
   by rewrite col_mxEd mxE perm1 leq_addl addnK lead_coefE szf0_subproof
      -mul_polyC.
@@ -3055,7 +3047,7 @@ have RM1 : GRing.morphism (horner_morph polyC (t *: ('X - y%:P))).
 *)
 have -> : t *: ('X - y%:P) + x%:P =
           ('X + x%:P) \Po (t *: ('X - y%:P)).
-  by rewrite poly_comp_addl poly_comXp poly_compC.
+  by rewrite poly_comp_addl poly_comXp poly_comCp.
 rewrite -poly_compA -/f0.
 (*
 have RM2 : GRing.morphism (horner_morph polyC ('X - y%:P)).
@@ -3069,7 +3061,7 @@ rewrite -/(f1 t) -{2}['X-y%:P]poly_comXp dvdp_poly_comp //.
 apply (@dvdp_trans _ (gcdp ((f1 t) * 'X) (g0 * 'X))).
  by rewrite dvdp_gcd dvdp_gcdr dvdp_mulr // dvdp_gcdl.
 rewrite -(eqp_dvdl _ (mulp_gcdl _ _ _)) -{2}['X]mul1r dvdp_mul2r
-        -?size_poly_eq0 ?size_polyX // -eqp1_dvd1 gcdp_eqp1.
+        -?size_poly_eq0 ?size_polyX // dvdp1 gcdp_eqp1.
 apply: contraR troot.
 apply: root_det_coprime_subproof.
 Qed.
@@ -3105,7 +3097,7 @@ have Hy : (y \in Fadjoin K z).
  rewrite (_ : y = (- (gcdp h g)`_0)/(gcdp h g)`_1).
    by rewrite polyOverC  // memv_mul -?memv_inv // memvN.
  have szgcd : size (gcdp h g) = 2.
-  by rewrite (size_eqp gcdhg_subproof) size_XMa.
+  by rewrite (size_eqp gcdhg_subproof) size_factor.
  apply: (canRL (mulrK _)).
   by rewrite unitfE -[1%N]/(2.-1) -szgcd -lead_coefE lead_coef_eq0
              -size_poly_eq0 szgcd.

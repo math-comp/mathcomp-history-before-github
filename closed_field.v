@@ -3,21 +3,13 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 Require Import bigop ssralg poly polydiv.
 
 Import GRing.
+Import PolyDivPreClosedField.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Open Scope ring_scope.
-
-Section SeqExtension.
-
-Lemma all_map : forall (A R : Type) p (f: A -> R) s,
-  all p (map f s) = all (p \o f) s.
-Proof. by move=> A R p f; elim=> [|a s]=> //= ->. Qed.
-
-End SeqExtension.
-
 
 Section TermEqType.
 
@@ -272,7 +264,6 @@ move=> p n e; elim: p; rewrite //= ?mul0rn // => c p ->.
 rewrite mulrn_addl mulr_natl polyC_natmul; congr (_+_). 
 by rewrite -mulr_natl mulrAC -mulrA mulr_natl mulrC.
 Qed.
-
 
 Fixpoint edivp_rec_loopT (q : polyF) sq cq (k : nat * polyF * polyF -> fF)
   (c : nat) (qq r : polyF) (n : nat) {struct n}:=
@@ -663,10 +654,10 @@ Qed.
 
 Lemma holds_conj : forall e i x ps, all (@rterm _) ps ->
   (holds (set_nth 0 e i x) (foldr (fun t : term F => And (t == 0)) True ps)
-  <-> all (fun p => root p x) (map (eval_poly e \o abstrX i) ps)).
+  <-> all ((@root _)^~ x) (map (eval_poly e \o abstrX i) ps)).
 Proof.
 move=> e i x; elim=> [|p ps ihps] //=.
-case/andP=> rp rps; rewrite {1}/root abstrXP //.
+case/andP=> rp rps; rewrite rootE abstrXP //.
 constructor; first by case=> -> hps; rewrite eqxx /=; apply/ihps.
 by case/andP; move/eqP=> -> psr; split=> //; apply/ihps. 
 Qed.
@@ -676,7 +667,7 @@ Lemma holds_conjn : forall e i x ps, all (@rterm _) ps ->
   <-> all (fun p => ~~root p x) (map (eval_poly e \o abstrX i) ps)).
 Proof.
 move=> e i x; elim=> [|p ps ihps] //=.
-case/andP=> rp rps; rewrite {1}/root abstrXP //.
+case/andP=> rp rps; rewrite rootE abstrXP //.
 constructor; first by case; case/eqP=> -> hps /=; apply/ihps.
 by case/andP=> pr psr; split; first apply/eqP=> //; apply/ihps. 
 Qed.
@@ -700,19 +691,18 @@ case g0: (\big[(@gcdp F)/0%:P]_(j <- map (eval_poly e \o abstrX i) ps) j == 0).
   constructor; move/negP:m0; move/negP=>m0.
   case: (ex_px_neq0 axiom m0)=> x {m0}.
   rewrite abstrX_bigmul eval_bigmul -bigmap_id.
-  rewrite -[_ == 0]/(root _ x).
-  rewrite root_bigmul=> m0.
+    rewrite root_bigmul=> m0.
   exists x; do 2?constructor=> //.
     by apply/holds_conj; rewrite //= -root_biggcd (eqP g0) root0.
   by apply/holds_conjn.
 apply:(iffP (root_size_neq1 axiom _)); case=> x Px; exists x; move:Px => //=.
-  rewrite -root_gdco ?g0 // root_biggcd.
+  rewrite root_gdco ?g0 // root_biggcd.
   rewrite abstrX_bigmul eval_bigmul -bigmap_id root_bigmul.
   case/andP=> psr qsr.
   do 2?constructor.
     by apply/holds_conj.
   by apply/holds_conjn.
-rewrite -root_gdco ?g0 // root_biggcd.
+rewrite root_gdco ?g0 // root_biggcd.
 rewrite abstrX_bigmul eval_bigmul -bigmap_id root_bigmul=> [[] // [hps hqs]].
 apply/andP; constructor.
   by apply/holds_conj.
@@ -726,4 +716,3 @@ Definition closed_fields_QEMixin :=
   QE.Mixin wf_ex_elim holds_ex_elim.
 
 End ClosedFieldQE.
-

@@ -1,6 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div fintype tuple.
-Require Import finfun bigop fingroup perm ssralg zmodp matrix mxalgebra poly.
+Require Import finfun bigop fingroup perm ssralg zmodp matrix mxalgebra.
+Require Import poly polydiv.
 
 (******************************************************************************)
 (*   This file provides basic support for formal computation with matrices,   *)
@@ -332,7 +333,7 @@ Qed.
 
 Lemma char_poly_monic : monic char_poly.
 Proof.
-rewrite /monic -(eqP (prod_factors_monic diagA)) !lead_coefE size_char_poly.
+rewrite /monic -(eqP (monic_prod_factors diagA)) !lead_coefE size_char_poly.
 have [q <- lt_q_n] := split_diagA; have le_q_n := leq_trans lt_q_n (leq_pred n).
 by rewrite size_prod_factors size_diagA coef_add (nth_default 0 le_q_n) addr0.
 Qed.
@@ -347,7 +348,7 @@ rewrite -size_diagA {}/p; elim: diagA => [|x d IHd].
   by rewrite !big_nil mulr1 coefX oppr0.
 rewrite !big_cons coef_Xmul mulr_subl coef_sub IHd oppr_add addrC.
 congr (- _ + _); rewrite mul_polyC coef_scaler [size _]/=. 
-by rewrite -size_prod_factors -lead_coefE (eqP (prod_factors_monic d)) mulr1.
+by rewrite -size_prod_factors -lead_coefE (eqP (monic_prod_factors d)) mulr1.
 Qed.
 
 Lemma char_poly_det : char_poly`_0 = (- 1) ^+ n * \det A.
@@ -405,7 +406,7 @@ Theorem Cayley_Hamilton : forall (R : comRingType) n' (A : 'M[R]_n'.+1),
   horner_mx A (char_poly A) = 0.
 Proof.
 move=> R n' A; have [phi [_ phiZ phiC _]] := mx_poly_ring_isom R n'.
-apply/eqP; apply/factor_theorem; rewrite -phiZ -mul_adj_mx rmorphM.
+apply/rootP/factor_theorem; rewrite -phiZ -mul_adj_mx rmorphM.
 by move: (phi _) => q; exists q; rewrite rmorph_sub phiC phiZ map_polyX.
 Qed.
 

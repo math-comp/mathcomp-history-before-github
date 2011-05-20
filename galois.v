@@ -143,7 +143,7 @@ rewrite /kHomExtendF poly_for_linear raddfD horner_lin.
 congr (_ + _).
 rewrite -[(map_poly f (poly_for_Fadjoin E x a)).[y]]mul1r.
 rewrite scaler_mull -horner_scaler.
-congr ((polyseq _).[_]).
+congr (_.[_]).
 apply/polyP => i.
 rewrite !(coef_scaler, coef_map [linear of f]).
 by rewrite -!scaler_mull !mul1r /= linearZ.
@@ -218,7 +218,7 @@ move => ? x.
 case/polyOver_suba => p -> Hx.
 set (f' := (RMorphism kHomRmorph_subproof)).
 set (g := (RMorphism (sa_val_rmorph E))).
-rewrite -[x]/(sa_val (Suba Hx)) -map_poly_comp (horner_map f') (horner_map g).
+rewrite -[x]/(sa_val (Suba Hx)) -map_poly_comp (horner_map f') horner_map.
 move/eqP => /= ->.
 by rewrite linear0.
 Qed.
@@ -274,7 +274,7 @@ move => a b.
 case/poly_Fadjoin => p [Hp ->].
 case/poly_Fadjoin => q [Hq ->].
 rewrite -horner_mul !kHomExtend_poly ?mulp_polyOver // -horner_mul.
-congr ((polyseq _).[_]).
+congr (_.[_]).
 apply/polyP => i.
 rewrite coef_map !coef_mul /= linear_sum.
 apply: eq_bigr => j _.
@@ -350,19 +350,19 @@ have [y] : exists2 y, y \in J & root (map_poly f (minPoly E x)) y.
   by move/negbTE ->.
  rewrite big_cons mulrC.
  case (eqVneq (size (gcdp p ('X - z%:P))) 1%N).
-  move/eqP/gauss <-.
+  move/eqP/gaussp ->.
   apply: IH => a Ha.
   apply: Hr.
   by rewrite in_cons Ha orbT.
- rewrite size_gcdp1 => Hcoprime _ _.
+ rewrite -coprimep_def => Hcoprime _ _.
  exists z; first by apply Hr; rewrite in_cons eq_refl.
  move: Hcoprime.
  apply: contraR.
  rewrite root_factor_theorem.
  move/(conj (dvdpp ('X - z%:P)))/andP.
- rewrite dvdp_gdco -?size_poly_eq0 ?size_XMa //.
+ rewrite -dvdp_gdco -?size_poly_eq0 ?size_factor //.
  case: gdcopP => q _.
- rewrite -size_poly_eq0 size_XMa orbF.
+ rewrite -size_poly_eq0 size_factor orbF.
  move/coprimepP => Hpq Hq Hzq.
  apply/coprimepP => d Hdp Hdz.
  apply: Hpq; last done.
