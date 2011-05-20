@@ -1,24 +1,29 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 
-(*****************************************************************************)
-(* This file contains the definitions of:                                    *)
-(*  - choiceType : interface for type with choice operator                   *)
-(*  - countType : interface for countable type                               *)
-(* In addition to the lemmas relevant to these definitions, this file also   *)
-(* contains definitions of Canonical Structure of choiceType for nat and     *)
-(* subtype / option type / seq type / sigma type of a choice type. It also   *)
-(* contains definitions of Canonical Structure of countType for nat, bool    *)
-(* and subtype / option type / seq type / sigma type of a countable type and *)
-(* sum and prod types of two countable types.                                *)
-(*****************************************************************************)
+(******************************************************************************)
+(* This file contains the definitions of:                                     *)
+(*   choiceType == interface for types with a choice operator                 *)
+(*    countType == interface for countable types                              *)
+(*  xchoose exP == a standard x such that P x, given exP : exists x : T, P x  *)
+(*                 when T is a choiceType. The choice depends only on the     *)
+(*                 extent of P (in particular, it is independent of exP).     *)
+(*   choose P x0 == if P x0, a standard x such that P x.                      *)
+(*      pickle x == a nat encoding the value x : T, where T is a countType.   *)
+(*    unpickle n == a partial inverse to pickle: unpickle (pickle x) = Some x *)
+(*  pickle_inv n == a sharp partial inverse to pickle pickle_inv n = Some x   *)
+(*                  if and only if pickle x = n.                              *)
+(* In addition to the lemmas relevant to these definitions, this file also    *)
+(* contains definitions of a Canonical choiceType and countType instances for *)
+(* all basic datatypes (e.g., nat, bool, subTypes, pairs, sums, etc.).        *)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 (* Technical definitions about coding and decoding of  list. This results are*)
-(* useful for the definition of Canonical Structure of choice and countable  *)
+(* useful for the definition of Canonical of choice and countable  *)
 (* types. *)
 
 Module CodeSeq.
@@ -178,7 +183,7 @@ End OtherEncodings.
 (* countably many elements. The two concepts are closely linked: we  *)
 (* indeed make Countable a subclass of Choice, as countable choice   *)
 (* is valid in CiC. This apparent redundancy is needed to ensure the *)
-(* consistency of the Canonical Structure inference, as the          *)
+(* consistency of the Canonical inference, as the          *)
 (* canonical Choice for a given type may differ from the countable   *)
 (* choice for its canonical Countable structure, e.g., for options.  *)
 (* Nevertheless for most standard datatype constructors, including   *)
@@ -313,7 +318,7 @@ Coercion base : class_of >->  Equality.class_of.
 Coercion mixin0 : class_of >-> mixin_of.
 Coercion sort : type >-> Sortclass.
 Coercion eqType : type >-> Equality.type.
-Canonical Structure eqType.
+Canonical eqType.
 Notation choiceType := type.
 Notation ChoiceMixin := Mixin.
 Notation ChoiceType T m := (@pack T m _ _ id).
@@ -340,12 +345,12 @@ Proof. exact: Choice.xchooseP. Qed.
 Lemma eq_xchoose : Choice.extensional xchoose.
 Proof. exact: Choice.eq_xchoose. Qed.
 
-Lemma sigW : forall P, (exists x, P x) -> {x | P x}.
-Proof. by move=> P exP; exists (xchoose exP); exact: xchooseP. Qed.
+Lemma sigW P : (exists x, P x) -> {x | P x}.
+Proof. by move=> exP; exists (xchoose exP); exact: xchooseP. Qed.
 
-Lemma sig2W : forall P Q, (exists2 x, P x & Q x) -> {x | P x & Q x}.
+Lemma sig2W P Q : (exists2 x, P x & Q x) -> {x | P x & Q x}.
 Proof.
-move=> P Q exPQ; have [|x] := @sigW (predI P Q); last by case/andP; exists x.
+move=> exPQ; have [|x /andP[]] := @sigW (predI P Q); last by exists x.
 by have [x Px Qx] := exPQ; exists x; exact/andP.
 Qed.
 
@@ -354,20 +359,17 @@ Definition choose P x0 :=
     xchoose (ex_intro [eta P] x Px)
   else x0.
 
-Lemma chooseP : forall P x0, P x0 -> P (choose P x0).
-Proof. by move=> P x0 Px0; rewrite /choose (insubT [eta P] Px0) xchooseP. Qed.
+Lemma chooseP P x0 : P x0 -> P (choose P x0).
+Proof. by move=> Px0; rewrite /choose insubT xchooseP. Qed.
 
-Lemma choose_id : forall P x0 y0, P x0 -> P y0 -> choose P x0 = choose P y0.
-Proof.
-rewrite /choose => P x0 y0 Px0 Py0.
-rewrite (insubT [eta P] Px0) (insubT [eta P] Py0) /=; exact: eq_xchoose.
-Qed.
+Lemma choose_id P x0 y0 : P x0 -> P y0 -> choose P x0 = choose P y0.
+Proof. by move=> Px0 Py0; rewrite /choose !insubT /=; exact: eq_xchoose. Qed.
 
-Lemma eq_choose : forall P Q, P =1 Q -> choose P =1 choose Q.
+Lemma eq_choose P Q : P =1 Q -> choose P =1 choose Q.
 Proof.
-rewrite /choose => P Q eqPQ x0.
+rewrite /choose => eqPQ x0.
 do [case: insubP; rewrite eqPQ] => [[x Px] Qx0 _| ?]; last by rewrite insubN.
-rewrite (insubT [eta Q] Qx0); exact: eq_xchoose.
+by rewrite insubT; exact: eq_xchoose.
 Qed.
 
 Definition PcanChoiceMixin sT f f' (fK : @pcancel T sT f f') :=
@@ -382,7 +384,7 @@ Variables (P : pred T) (sT : subType P).
 
 Definition sub_choiceMixin := PcanChoiceMixin (@valK T P sT).
 Definition sub_choiceClass := @Choice.Class sT (sub_eqMixin sT) sub_choiceMixin.
-Canonical Structure sub_choiceType := Choice.Pack sub_choiceClass sT.
+Canonical sub_choiceType := Choice.Pack sub_choiceClass sT.
 
 End SubChoice.
 
@@ -394,22 +396,20 @@ Notation "[ 'choiceMixin' 'of' T 'by' <: ]" :=
     (sub_choiceMixin _ : Choice.mixin_of (seq (seq T)))
   (at level 0, format "[ 'choiceMixin'  'of'  T  'by'  <: ]") : form_scope.
 
-(* Canonical Structure of choiceType *)
+(* Canonical of choiceType *)
 Section SomeChoiceTypes.
 
 Variables (T : choiceType) (P : pred T).
 
 Definition seq_choiceMixin := Choice.CanMixin2 (@CodeSeq.Seq2.codeK T).
-Canonical Structure seq_choiceType :=
-  Eval hnf in ChoiceType (seq T) seq_choiceMixin.
+Canonical seq_choiceType := Eval hnf in ChoiceType (seq T) seq_choiceMixin.
 
 Definition option_choiceMixin := CanChoiceMixin (@seq_of_optK T).
-Canonical Structure option_choiceType :=
+Canonical option_choiceType :=
   Eval hnf in ChoiceType (option T) option_choiceMixin.
 
 Definition sig_choiceMixin := [choiceMixin of {x | P x} by <:].
-Canonical Structure sig_choiceType :=
-  Eval hnf in ChoiceType {x | P x} sig_choiceMixin.
+Canonical sig_choiceType := Eval hnf in ChoiceType {x | P x} sig_choiceMixin.
 
 End SomeChoiceTypes.
 
@@ -464,9 +464,9 @@ Coercion base : class_of >-> Choice.class_of.
 Coercion mixin : class_of >-> mixin_of.
 Coercion sort : type >-> Sortclass.
 Coercion eqType : type >-> Equality.type.
-Canonical Structure eqType.
+Canonical eqType.
 Coercion choiceType : type >-> Choice.type.
-Canonical Structure choiceType.
+Canonical choiceType.
 Notation countType := type.
 Notation CountType T m := (@pack T m _ _ id).
 Notation CountMixin := Mixin.
@@ -504,9 +504,9 @@ Qed.
 Lemma pickleK_inv : pcancel pickle pickle_inv.
 Proof. by rewrite /pickle_inv => x; rewrite pickleK /= eqxx. Qed.
 
-Lemma pcan_pickleK : forall sT f f',
+Lemma pcan_pickleK sT f f' :
   @pcancel T sT f f' -> pcancel (pickle \o f) (pcomp f' unpickle).
-Proof. by move=> sT f f' fK x; rewrite /pcomp pickleK /= fK. Qed.
+Proof. by move=> fK x; rewrite /pcomp pickleK /= fK. Qed.
 
 Definition PcanCountMixin sT f f' (fK : pcancel f f') :=
   @CountMixin sT _ _ (pcan_pickleK fK).
@@ -517,8 +517,7 @@ Definition CanCountMixin sT f f' (fK : cancel f f') :=
 Definition sub_countMixin P sT := PcanCountMixin (@valK T P sT).
 
 Definition seq_countMixin := CountMixin (Countable.pickle_seqK pickleK).
-Canonical Structure seq_countType :=
-  Eval hnf in CountType (seq T) seq_countMixin.
+Canonical seq_countType := Eval hnf in CountType (seq T) seq_countMixin.
 
 End CountableTheory.
 
@@ -536,7 +535,7 @@ Structure subCountType : Type :=
 
 Coercion sub_countType (sT : subCountType) :=
   Eval hnf in pack (let: SubCountType _ m := sT return mixin_of sT in m) id.
-Canonical Structure sub_countType.
+Canonical sub_countType.
 
 Definition pack_subCountType U :=
   fun sT cT & sub_sort sT * sort cT -> U * U =>
@@ -549,45 +548,39 @@ Notation "[ 'subCountType' 'of' T ]" :=
     (@pack_subCountType _ _ T _ _ id _ _ id)
   (at level 0, format "[ 'subCountType'  'of'  T ]") : form_scope.
 
-(* The remaining Canonical Structures for standard datatypes. *)
+(* The remaining Canonicals for standard datatypes. *)
 
 Lemma unit_pickleK : pcancel (fun _ => 0) (fun _ => Some tt).
 Proof. by case. Qed.
 Definition unit_countMixin := CountMixin unit_pickleK.
 Definition unit_choiceMixin := CountChoiceMixin unit_countMixin.
-Canonical Structure unit_choiceType :=
-  Eval hnf in ChoiceType unit unit_choiceMixin.
-Canonical Structure unit_countType :=
-  Eval hnf in CountType unit unit_countMixin.
+Canonical unit_choiceType := Eval hnf in ChoiceType unit unit_choiceMixin.
+Canonical unit_countType := Eval hnf in CountType unit unit_countMixin.
 
 Lemma bool_pickleK : pcancel nat_of_bool (some \o leq 1). Proof. by case. Qed.
 Definition bool_countMixin := CountMixin bool_pickleK.
 Definition bool_choiceMixin := CountChoiceMixin bool_countMixin.
-Canonical Structure bool_choiceType :=
-  Eval hnf in ChoiceType bool bool_choiceMixin.
-Canonical Structure bool_countType :=
-  Eval hnf in CountType bool bool_countMixin.
+Canonical bool_choiceType := Eval hnf in ChoiceType bool bool_choiceMixin.
+Canonical bool_countType := Eval hnf in CountType bool bool_countMixin.
 
 Lemma nat_pickleK : pcancel id (@Some nat). Proof. by []. Qed.
 Definition nat_countMixin := CountMixin nat_pickleK.
 Definition nat_choiceMixin := CountChoiceMixin nat_countMixin.
-Canonical Structure nat_choiceType :=
-  Eval hnf in ChoiceType nat nat_choiceMixin.
-Canonical Structure nat_countType :=
-  Eval hnf in CountType nat nat_countMixin.
+Canonical nat_choiceType := Eval hnf in ChoiceType nat nat_choiceMixin.
+Canonical nat_countType := Eval hnf in CountType nat nat_countMixin.
 
-Canonical Structure bitseq_choiceType := Eval hnf in [choiceType of bitseq].
-Canonical Structure bitseq_countType :=  Eval hnf in [countType of bitseq].
+Canonical bitseq_choiceType := Eval hnf in [choiceType of bitseq].
+Canonical bitseq_countType :=  Eval hnf in [countType of bitseq].
 
 Definition option_countMixin (T : countType) := CanCountMixin (@seq_of_optK T).
-Canonical Structure option_countType (T : countType) :=
+Canonical option_countType (T : countType) :=
   Eval hnf in CountType (option T) (option_countMixin T).
 
 Definition sig_countMixin (T : countType) (P : pred T) :=
   [countMixin of {x | P x} by <:].
-Canonical Structure sig_countType (T : countType) (P : pred T) :=
+Canonical sig_countType (T : countType) (P : pred T) :=
   Eval hnf in CountType {x | P x} (sig_countMixin P).
-Canonical Structure sig_subCountType (T : countType) (P : pred T) :=
+Canonical sig_subCountType (T : countType) (P : pred T) :=
   Eval hnf in [subCountType of {x | P x}].
 
 Section TagSeq.
@@ -605,28 +598,28 @@ End TagSeq.
 
 Definition tag_choiceMixin (I : choiceType) (T_ : I -> countType) :=
   PcanChoiceMixin (@seq_of_tag_countK I T_).
-Canonical Structure tag_choiceType (I : choiceType) (T_ : I -> countType) :=
+Canonical tag_choiceType (I : choiceType) (T_ : I -> countType) :=
   Eval hnf in ChoiceType {i : I & T_ i} (tag_choiceMixin T_).
 Definition tag_countMixin (I : countType) (T_ : I -> countType) :=
   PcanCountMixin (@seq_of_tag_countK I T_).
-Canonical Structure tag_countType (I : countType) (T_ : I -> countType) :=
+Canonical tag_countType (I : countType) (T_ : I -> countType) :=
   Eval hnf in CountType {i : I & T_ i} (tag_countMixin T_).
 
 Definition prod_choiceMixin (T1 : countType) (T2 : choiceType) :=
   CanChoiceMixin (@tag_of_pairK T1 T2).
-Canonical Structure prod_choiceType (T1 : countType) (T2 : choiceType) :=
+Canonical prod_choiceType (T1 : countType) (T2 : choiceType) :=
   Eval hnf in ChoiceType (T1 * T2) (prod_choiceMixin T1 T2).
 Definition prod_countMixin (T1 : countType) (T2 : countType) :=
   CanCountMixin (@tag_of_pairK T1 T2).
-Canonical Structure prod_countType (T1 : countType) (T2 : countType) :=
+Canonical prod_countType (T1 : countType) (T2 : countType) :=
   Eval hnf in CountType (T1 * T2) (prod_countMixin T1 T2).
 
 Definition sum_choiceMixin (T1 : countType) (T2 : choiceType) :=
   PcanChoiceMixin (@opair_of_injK T1 T2).
-Canonical Structure sum_choiceType (T1 : countType) (T2 : choiceType) :=
+Canonical sum_choiceType (T1 : countType) (T2 : choiceType) :=
   Eval hnf in ChoiceType (T1 + T2) (sum_choiceMixin T1 T2).
 Definition sum_countMixin (T1 : countType) (T2 : countType) :=
   PcanCountMixin (@opair_of_injK T1 T2).
-Canonical Structure sum_countType (T1 : countType) (T2 : countType) :=
+Canonical sum_countType (T1 : countType) (T2 : countType) :=
   Eval hnf in CountType (T1 + T2) (sum_countMixin T1 T2).
 

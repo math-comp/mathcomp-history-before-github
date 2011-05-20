@@ -300,7 +300,7 @@ have{sylP} sylP: p.-Sylow(G) P.
   rewrite pHallE (subset_trans sPH) //= (card_Hall sylP) eqn_dvd andbC.
   by rewrite -{1}(partn_part _ sppi) !partn_dvd ?cardSg ?cardG_gt0.
 rewrite partn_part ?partn_biglcm //.
-apply: (@big_prop _ (dvdn^~ _)) => [|m n|x Gx]; first exact: dvd1n.
+apply: (@big_ind _ (dvdn^~ _)) => [|m n|x Gx]; first exact: dvd1n.
   by rewrite dvdn_lcm => ->.
 rewrite -order_constt; have p_y := p_elt_constt p x; set y := x.`_p in p_y *.
 have sYG: <[y]> \subset G by rewrite cycle_subG groupX.

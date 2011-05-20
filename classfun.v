@@ -145,7 +145,7 @@ apply: (iffP idP)=> [|[Hg Hc]].
     rewrite sum_ffunE ffunE; apply: big1=> i _; rewrite ffunE.
     have: bGA`_i \in bGA by apply: mem_nth.
     rewrite mem_filter; case/andP=> Hs.
-    move: XniAG; rewrite inE negb_andb; case/orP=> [XniA|XniG].
+    move: XniAG; rewrite inE negb_and; case/orP=> [XniA|XniG].
       move/forall_inP: Hs; move/(_ x XniA).
       by move/eqP->; rewrite scaler0.
     case/mapP=> j Hj ->; rewrite !ffunE.
@@ -310,7 +310,7 @@ Proof.
 move=> A f; apply/cfun_memfP/andP=> [[Hs Hj]|[Hs Hc]]; split.
 - by apply/forall_inP=> x XniA; rewrite Hs // inE (negPf XniA).
 - by apply/cfun_memP; split=> // x XniA; rewrite Hs // inE (negPf XniA) andbF.
-- move=> x; rewrite inE negb_andb; case/orP=> HH; last by apply: cfun0.
+- move=> x; rewrite inE negb_and; case/orP=> HH; last by apply: cfun0.
   by apply/eqP; move/forall_inP: Hs; apply.
 by case/cfun_memP: Hc.
 Qed.
@@ -654,7 +654,7 @@ Proof.
 move=> A B f1 f2; case/cfun_memfP=> H1f1 H2f1; case/cfun_memfP=> H1f2 H2f2.
 apply/cfun_memfP; split=> [x|x y YiG]; rewrite !ffunE; last first.
   by rewrite H2f1 // H2f2.
-rewrite !inE -andbA negb_andb; case/orP=> HA.
+rewrite !inE -andbA negb_and; case/orP=> HA.
   by rewrite H1f1 ?mul0r // inE (negPf HA).
 by rewrite H1f2 ?mulr0 // inE.
 Qed.

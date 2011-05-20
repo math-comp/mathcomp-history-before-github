@@ -90,7 +90,7 @@ have vFpId: forall i, (vFp i == i :> nat) = xpred2 Fp1 Fpn1 i.
   by rewrite -eqn_mod_dvd // Fp_mod modn_addl -(vFpV _ ni0) eqxx.
 suffices [mod_fact]: toFp (p.-1)`! = Fpn1.
   by rewrite /dvdn -addn1 -modn_addml mod_fact addn1 prednK // modnn.
-rewrite dFact // (@big_morph _ _ _ Fp1 _ mFpM toFp) //; first last.
+rewrite dFact //. rewrite ((big_morph toFp) Fp1 mFpM) //; first last.
 - by apply: val_inj; rewrite /= modn_small.
 - by move=> i j; apply: val_inj; rewrite /= modn_mul2m.
 rewrite big_mkord (eq_bigr id) => [|i _]; last by apply: val_inj => /=.
@@ -316,7 +316,7 @@ by rewrite all_predI all_predC has_pred1 andbC.
 Qed.
 
 Lemma card_inj_ffuns_on : forall D T (R : pred T),
-  #|[set f : {ffun D -> T} | ffun_on R f && injectiveb f]| = #|R| ^_ #|D|.
+  #|[set f : {ffun D -> T} | (f \in ffun_on R) && injectiveb f]| = #|R| ^_ #|D|.
 Proof.
 move=> D T R; rewrite -card_uniq_tuples.
 have bijFF: {on (_ : pred _), bijective (@Finfun D T)}.
@@ -330,7 +330,7 @@ Lemma card_inj_ffuns : forall D T,
   #|[set f : {ffun D -> T} | injectiveb f]| = #|T| ^_ #|D|.
 Proof.
 move=> D T; rewrite -card_inj_ffuns_on; apply: eq_card => f.
-by rewrite !inE; case: ffun_onP => // [].
+by rewrite 2!inE; case: ffun_onP => // [].
 Qed.
 
 Lemma card_draws : forall T k, #|[set A : {set T} | #|A| == k]| = 'C(#|T|, k).

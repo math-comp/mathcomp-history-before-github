@@ -611,7 +611,7 @@ Lemma summx_sub : forall m1 m2 n (B : 'M_(m2, n)),
   (forall i, P i -> A_ i <= B)%MS -> ((\sum_(i <- r | P i) A_ i)%R <= B)%MS.
 Proof.
 move=> m1 m2 n B; pose leB (A : 'M_(m1, n)) := (A <= B)%MS.
-apply: (@big_prop _ leB) => [| A1 A2]; [exact: sub0mx | exact: addmx_sub].
+apply: (@big_ind _ leB) => [| A1 A2]; [exact: sub0mx | exact: addmx_sub].
 Qed.
 
 Lemma scalemx_sub : forall m1 m2 n a (A : 'M_(m1, n)) (B : 'M_(m2, n)),
@@ -1157,7 +1157,7 @@ Lemma sumsmx_subP : forall P m n (A_ : I -> 'M_n) (B : 'M_(m, n)),
 Proof.
 move=> P m n A_ B; apply: (iffP idP) => [sAB i Pi | sAB].
   by apply: submx_trans sAB; apply: sumsmx_sup Pi _.
-by apply big_prop => // [|A1 A2 sA1B]; rewrite ?sub0mx // addsmx_sub sA1B.
+by apply big_ind => // [|A1 A2 sA1B]; rewrite ?sub0mx // addsmx_sub sA1B.
 Qed.
 
 Lemma summx_sub_sums : forall P m n (A : I -> 'M[F]_(m, n)) B,
@@ -1545,7 +1545,7 @@ Lemma sub_bigcapmxP : forall P m n (A : 'M_(m, n)) (B_ : I -> 'M_n),
 Proof.
 move=> P m n A B_; apply: (iffP idP) => [sAB i Pi | sAB].
   by apply: (submx_trans sAB); rewrite (bigcapmx_inf Pi).
-by apply big_prop => // [|B C sAC]; rewrite ?submx1 // sub_capmx sAC.
+by apply big_ind => // [|B C sAC]; rewrite ?submx1 // sub_capmx sAC.
 Qed.
 
 Lemma genmx_bigcap :  forall P n (A_ : I -> 'M_n),
@@ -2335,7 +2335,7 @@ rewrite (card_GL _ (ltn0Sn n.-1)) card_ord Fp_cast // big_add1 /=.
 pose p'gt0 m := m > 0 /\ logn p m = 0%N.
 suffices [Pgt0 p'P]: p'gt0 (\prod_(0 <= i < n.-1.+1) (p ^ i.+1 - 1))%N.
   by rewrite logn_mul // p'P pfactorK //; case n.
-apply big_prop => [|m1 m2 [m10 p'm1] [m20]|i _]; rewrite {}/p'gt0 ?logn1 //.
+apply big_ind => [|m1 m2 [m10 p'm1] [m20]|i _]; rewrite {}/p'gt0 ?logn1 //.
   by rewrite muln_gt0 m10 logn_mul ?p'm1.
 rewrite lognE -if_neg subn_gt0 p_pr /= -{1 2}(exp1n i.+1) ltn_exp2r // p_gt1.
 by rewrite dvdn_subr ?dvdn_exp // gtnNdvd.
@@ -2935,7 +2935,7 @@ Lemma map_mulsmx : forall m1 m2 n (E1 : 'A_(m1, n)) (E2 : 'A_(m2, n)),
   ((E1 * E2)%MS^f :=: E1^f * E2^f)%MS.
 Proof.
 rewrite /mulsmx => m1 m2 n E1 E2; pose Rf (P Pf : 'A_n) := (P^f :=: Pf)%MS.
-apply: (big_rel Rf) => [|P1 P1f P2 P2f ? ?|i _]; first by rewrite /Rf map_mx0.
+apply: (big_ind2 Rf) => [|P1 P1f P2 P2f ? ?|i _]; first by rewrite /Rf map_mx0.
   by apply: eqmx_trans (map_addsmx _ _) _; exact: adds_eqmx. 
 apply/eqmxP; rewrite !map_genmx // !genmxE map_mxM //.
 apply/rV_eqP=> u; congr (u <= _ *m _)%MS.

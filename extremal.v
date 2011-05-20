@@ -324,7 +324,7 @@ have [ms0 os0]: m s0 = (p ^ n).+1%:R /\ #[s0] = p.
     set f := (e + _)%N; set sum := (\sum_i _)%N.
     exists (sum %/ p ^ f.+2 * p + k)%N; first by rewrite modn_addl_mul.
     rewrite -(addnC k) muln_addl -mulnA -expnS divnK // {}/sum.
-    apply big_prop => [||[i _] /= _]; [exact: dvdn0 | exact: dvdn_add |].
+    apply big_ind => [||[i _] /= _]; [exact: dvdn0 | exact: dvdn_add |].
     rewrite exp1n mul1n /bump !add1n expn_mull mulnCA dvdn_mull // -expn_mulr.
     case: (ltnP f.+1 (f * i.+2)) => [le_f_fi|].
       by rewrite dvdn_mull ?dvdn_exp2l.

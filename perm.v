@@ -124,10 +124,10 @@ by apply: val_inj; apply/ffunP.
 Qed.
 
 Lemma pvalE : forall s, pval s = s :> (T -> T).
-Proof. by rewrite [@fun_of_perm _]unlock. Qed.
+Proof. by rewrite [@fun_of_perm]unlock. Qed.
 
 Lemma permE : forall f f_inj, @perm T f f_inj =1 f.
-Proof. by move=> f f_inj x; rewrite -pvalE [@perm _]unlock ffunE. Qed.
+Proof. by move=> f f_inj x; rewrite -pvalE [@perm]unlock ffunE. Qed.
 
 Lemma perm_inj : forall s, injective s.
 Proof. move=> s; rewrite -!pvalE; exact: (injectiveP _ (valP s)). Qed.
@@ -284,7 +284,7 @@ rewrite -!sum1dep_card -sum1_card (reindex_onto fA pfT) => [|f].
       by apply/permP=> x; rewrite -!pvalE insubdK fTAp //; exact: (valP p).
     apply/ffunP=> x; rewrite ffunE pvalE.
     by case: insubP => [u _ <- |]; [rewrite ffunE | move/out_perm->].
-  - by apply/forallP=> [[x Ax]]; rewrite ffunE /= [_ (p x)]perm_closed.
+  - by apply/forallP=> [[x Ax]]; rewrite ffunE /= perm_closed.
   - by apply/injectiveP=> u v; rewrite !ffunE; move/perm_inj; exact: val_inj.
   move/eqP=> <- _ _; apply/subsetP=> x; rewrite !inE -pvalE val_insubd fun_if.
   by rewrite if_arg ffunE; case: insubP; rewrite // pvalE perm1 if_same eqxx.

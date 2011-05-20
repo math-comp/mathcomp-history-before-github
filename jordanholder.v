@@ -4,7 +4,7 @@ Require Import bigop finset fingroup morphism automorphism quotient action.
 Require Import gseries.
 
 (******************************************************************************)
-(* This files establishes Jordan-Hölder theorems for finite groups. These     *)
+(* This files establishes Jordan-Holder theorems for finite groups. These     *)
 (* theorems state the uniqueness up to permutation and isomorphism for the    *)
 (* series of quotient built from the successive elements of any composition   *)
 (* series of the same group. These quotients are also called factors of the   *)
@@ -13,8 +13,8 @@ Require Import gseries.
 (* This library defines:                                                      *)
 (*         (G1 / G2)%sec == alias for the pair (G1, G2) of groups in the same *)
 (*                          finGroupType, coerced to the actual quotient group*)
-(*                          G1 / G2. We call this pseudo-quotient a section of*)
-(*                          G1 and G2.                                        *)
+(*                          group G1 / G2. We call this pseudo-quotient a     *)
+(*                          section of G1 and G2.                             *)
 (*    section_isog s1 s2 == s1 and s2 respectively coerce to isomorphic       *)
 (*                          quotient groups.                                  *)
 (*        section_repr s == canonical representative of the isomorphism class *)
@@ -22,7 +22,7 @@ Require Import gseries.
 (*         mksrepr G1 G2 == canonical representative of the isomorphism class *)
 (*                          of (G1 / G2)%sec.                                 *)
 (*         mkfactors G s == if s is [:: s1, s2, ..., sn], constructs the list *)
-(*                      [:: mksrepr G s1, mksrepr s1 s2, ..., mksrepr sn-1 sn]*)
+(*                     [:: mksrepr G s1, mksrepr s1 s2, ..., mksrepr sn-1 sn] *)
 (*             comps G s == s is a composition series for G i.e. s is a       *)
 (*                          decreasing sequence of subgroups of G             *)
 (*                          in which two adjacent elements are maxnormal one  *)
@@ -532,7 +532,7 @@ move=> G H sHD; case/maxgroupP; case/and3P=> nHG pHG aH Hmax.
 apply/asimpleP; split; first by rewrite -subG1 quotient_sub1 ?normal_norm.
 move=> K' nK'Q aK'.
 have : (K' \proper (G / H)) || (G / H == K').
-  by rewrite properE eqEsubset andbC (normal_sub nK'Q) !andbT orbC orb_negb_r.
+  by rewrite properE eqEsubset andbC (normal_sub nK'Q) !andbT orbC orbN.
 case/orP=> [ pHQ | eQH]; last by right; apply sym_eq; apply/eqP.
 left; pose K := ((coset H) @*^-1 K')%G.
 have eK'I : K' \subset (coset H) @* 'N(H).

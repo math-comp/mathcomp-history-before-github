@@ -445,7 +445,7 @@ have gn0 : gcdp p q != 0.
   by rewrite -size_poly_eq0 size_scaler ?scalp_Ineq0 //size_poly_eq0 p0.
 have sp' : size (p %/ (gcdp p q)) <= n.
   rewrite size_divp ?sgp // leq_sub_add (leq_trans hs)//.
-  rewrite -add1n leq_add2r lt0n eqPn0 negb_orb size_poly_eq0 gn0 /=.
+  rewrite -add1n leq_add2r lt0n eqPn0 negb_or size_poly_eq0 gn0 /=.
   by rewrite size_gcdp1 cop.
 case (ihn _ sp')=> r' dr'p'; first rewrite p'n0 orbF=> cr'q maxr'.
 constructor=> //=; rewrite ?p0 ?orbF //.

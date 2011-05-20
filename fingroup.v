@@ -861,7 +861,7 @@ suffices IHr: reflect (exists2 c, all (inA c) r & x = \prod_(i <- r) c i) RHS.
   rewrite mem_enum; exact: inAc.
 have: uniq r by [rewrite enum_uniq]; rewrite {}/RHS.
 elim: {P}r x => [x _|i r IHr x] //=; last case/andP=> r'i Ur.
-  rewrite ![@bigop _]unlock /=.
+  rewrite [@bigop]unlock /=.
   by apply: (iffP set1P) => [-> | [] //]; exists (fun _ => 1).
 rewrite big_cons; apply: (iffP idP) => [|[c]]; last first.
   case/andP=> Aci Ac ->; rewrite big_cons mem_mulg //.
@@ -1499,7 +1499,7 @@ Proof. by move=> x y Gx Gy; rewrite !in_group. Qed.
 
 Lemma group_prod : forall I r (P : pred I) F,
   (forall i, P i -> F i \in G) -> \prod_(i <- r | P i) F i \in G.
-Proof. exact: (@big_prop _ (fun x => x \in G)) group1 groupM. Qed.
+Proof. exact: (@big_ind _ (fun x => x \in G)) group1 groupM. Qed.
 
 (* Inverse is an anti-morphism. *)
 
@@ -1879,7 +1879,7 @@ Variables (I : finType) (P : pred I) (F : I -> {group gT}).
 
 Lemma group_set_bigcap : group_set (\bigcap_(i | P i) F i).
 Proof.
-apply: (@big_prop _ [eta group_set])=> [|G H gG gH|G _]; try exact: groupP.
+apply: (@big_ind _ [eta group_set])=> [|G H gG gH|G _]; try exact: groupP.
 exact: (@group_setI (group gG) (group gH)).
 Qed.
 
@@ -2341,7 +2341,7 @@ Lemma bigprodGEgen : forall I r (P : pred I) (F : I -> {set gT}),
   (\prod_(i <- r | P i) <<F i>>)%G :=: << \bigcup_(i <- r | P i) F i >>.
 Proof.
 move=> I r P F; pose R := [fun G A => @gval gT G = <<A>>].
-apply: (big_rel R) => //= [|_ A _ B -> ->]; first by rewrite gen0.
+apply: (big_ind2 R) => //= [|_ A _ B -> ->]; first by rewrite gen0.
 by rewrite joing_idl joing_idr.
 Qed.
 
@@ -2681,7 +2681,7 @@ Lemma norms_bigcap : forall (I : finType) (P : pred I) A (B_ : I -> {set gT}),
   A \subset \bigcap_(i | P i) 'N(B_ i) -> A \subset 'N(\bigcap_(i | P i) B_ i).
 Proof.
 move=> I P A B_ sAB; apply: subset_trans {A}sAB _.
-by apply: (big_rel (fun A B => A \subset 'N(B))) => *; rewrite ?normG ?normsIs.
+by apply: (big_ind2 (fun A B => A \subset 'N(B))) => *; rewrite ?normG ?normsIs.
 Qed.
 
 Lemma norms_bigcup : forall (I : finType) (P : pred I) A (B_ : I -> {set gT}),

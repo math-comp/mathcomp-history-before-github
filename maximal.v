@@ -395,7 +395,7 @@ Implicit Types G H : {group gT}.
 Lemma Fitting_normal : forall G, 'F(G) <| G.
 Proof.
 move=> G; rewrite -['F(G)](bigdprodEY (erefl 'F(G))).
-apply big_prop => [|A B nAG nBG|p _]; first by rewrite gen0 normal1.
+apply big_ind => [|A B nAG nBG|p _]; first by rewrite gen0 normal1.
   rewrite -joingE -joing_idl -joing_idr norm_joinEl ?normalM //.
   exact: subset_trans (normal_sub nAG) (normal_norm nBG).
 by rewrite genGid pcore_normal.
@@ -617,7 +617,7 @@ case/predU1P=> [defG|]; last case/andP=> sMG sGM.
   by rewrite mul_subG // cents_norm // (subset_trans cHK) ?centS.
 have defG: <<\bigcup_(f \in Aut G) f @: H>> = G.
   have sXG: \bigcup_(f \in Aut G) f @: H \subset G.
-    apply big_prop => [|A B sAG sBG|f Af]; first exact: sub0set.
+    apply big_ind => [|A B sAG sBG|f Af]; first exact: sub0set.
     - by rewrite subUset sAG.
     by rewrite -(im_autm Af) morphimEdom imsetS.
   apply: simG.
@@ -681,7 +681,7 @@ Proof.
 move=> G; case/charsimple_dprod=> H [sHG simH [I Aut_I defG]] solG.
 have p_pr: prime #|H| by exact: simple_sol_prime (solvableS sHG solG) simH.
 set p := #|H| in p_pr; apply/is_abelemP; exists p => //; move: (G) defG.
-apply big_prop => [_ <-|A1 A2 IH1 IH2 M|f If _ <-]; first exact: abelem1.
+apply big_ind => [_ <-|A1 A2 IH1 IH2 M|f If _ <-]; first exact: abelem1.
   move=> defM; rewrite (dprod_abelem p defM).
   case/dprodP: defM => [[G1 G2 dG1 dG2]] _ _ _.
   by rewrite dG1 IH1 // dG2 IH2.
@@ -1213,10 +1213,10 @@ have injf: {in A &, injective f}.
   apply/subsetP=> x Xx; have Sx := subsetP sXS x Xx.
   move/(_ x): eq_fyz; rewrite !ffunE Xx !norm_conj_autE //; move/mulgI=> xy_xz.
   by rewrite cent1C inE conjg_set1 conjgM xy_xz conjgK.
-have sfA_XS': f @: A \subset pffun_on 1 (mem X) (mem S^`(1)).
+have sfA_XS': f @: A \subset pffun_on 1 X S^`(1).
   apply/subsetP=> fa; case/imsetP=> a; case/morphimP=> y nSy Ry -> -> {fa a}.
-  apply/pffun_onP; split=> [x | z].
-    by apply: contraR; rewrite ffunE /=; move/negPf->.
+  apply/pffun_onP; split=> [|z].
+    by apply/subsetP=> x; apply: contraR; rewrite ffunE => /negPf->.
   case/imageP=> x /= Xx ->; have Sx := subsetP sXS x Xx.
   by rewrite ffunE Xx norm_conj_autE // (subsetP sSR_S') ?mem_commg.
 rewrite -(card_in_imset injf) (leq_trans (subset_leq_card sfA_XS')) // defS'.

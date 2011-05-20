@@ -442,7 +442,7 @@ Lemma bigcprodE : forall I (r : seq I) P F G,
   -> \prod_(i <- r | P i) F i = G.
 Proof.
 move=> I r P F; pose R A B := forall G, A = G -> B = G.
-apply: (big_rel R) => [|A1 B1 A2 B2 RA RB G | _ _ _] //.
+apply: (big_ind2 R) => [|A1 B1 A2 B2 RA RB G | _ _ _] //.
 by case/cprodP=> [[G1 G2 dG1 dG2] <- _]; rewrite dG1 dG2 (RA G1) ?(RB G2).
 Qed.
 
@@ -451,7 +451,7 @@ Lemma bigcprodEY : forall I (r : seq I) P F G,
   -> << \bigcup_(i <- r | P i) F i >> = G.
 Proof.
 move=> I r P F; pose R A B := forall G, A = G -> <<B>> = G.
-apply: (big_rel R) => [_ <-|A1 B1 A2 B2| i _ G ->]; rewrite ?gen0 ?genGid //.
+apply: (big_ind2 R) => [_ <-|A1 B1 A2 B2| i _ G ->]; rewrite ?gen0 ?genGid //.
 move=> RA RB G; case/cprodP=> [[G1 G2 dG1 dG2] <-]; rewrite dG1 dG2.
 by move/cent_joinEr <-; rewrite -(RA G1) // -(RB G2) ?joing_idl ?joing_idr.
 Qed.
@@ -598,7 +598,7 @@ Lemma bigdprodEcprod : forall I (r : seq I) P F G,
   \big[dprod/1]_(i <- r | P i) F i = G -> \big[cprod/1]_(i <- r | P i) F i = G.
 Proof.
 move=> I r P F; pose R A B := forall G, A :=: G -> B :=: G.
-apply: (big_rel R) => [|A1 A2 B1 B2 IH1 IH2 G | i _ G <-] //.
+apply: (big_ind2 R) => [|A1 A2 B1 B2 IH1 IH2 G | i _ G <-] //.
 case/dprodP=> [[G1 G2 defG1 defG2]] defG cA12 _.
 by rewrite (IH1 G1) // (IH2 G2) // cprodE -defG1 -defG2.
 Qed.
@@ -656,7 +656,7 @@ Lemma bigdprod_card : forall I r (P : pred I) E G,
   (\prod_(i <- r | P i) #|E i|)%N = #|G|.
 Proof.
 move=> rT I r P E; pose R A n := forall G, A = G -> n = #|G|.
-apply: (big_rel R) => [? <- | A1 n1 A2 n2 IH1 IH2 G defG | i Pi G -> //].
+apply: (big_ind2 R) => [? <- | A1 n1 A2 n2 IH1 IH2 G defG | i Pi G -> //].
   by rewrite cards1.
 have [[G1 G2 defG1 defG2] _ _ _] := dprodP defG.
 by rewrite -(dprod_card defG) defG1 defG2 -IH1 -?IH2.

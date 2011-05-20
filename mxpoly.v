@@ -312,7 +312,7 @@ have{nt_s} [i nfix_i]: exists i, s i != i.
   by apply/eqP; apply/permP=> i; apply/eqP; rewrite perm1 (forallP s_1).
 apply: leq_trans (_ : #|[pred j | s j == j]|.+1 <= n.-1).
   rewrite -sum1_card (@big_mkcond nat) /= size_sign_mul.
-  apply: (big_rel (fun p m => size p <= m.+1)) => [| p mp q mq IHp IHq | j _].
+  apply: (big_ind2 (fun p m => size p <= m.+1)) => [| p mp q mq IHp IHq | j _].
   - by rewrite size_poly1.
   - apply: leq_trans (size_mul _ _) _.
     by rewrite -subn1 -addnS leq_sub_add addnA leq_add.
@@ -688,11 +688,11 @@ Lemma eval_mulmx : forall e m n p (A : 'M[term]_(m, n)) (B : 'M_(n, p)),
   eval_mx e (mulmx_term A B) = eval_mx e A *m eval_mx e B.
 Proof.
 move=> e m n p A B; apply/matrixP=> i k; rewrite !mxE /=.
-rewrite (@big_morph _ _ _ 0 _ +%R (eval e)) //=.
+rewrite ((big_morph (eval e)) 0 +%R) //=.
 by apply: eq_bigr => j _; rewrite /= !mxE.
 Qed.
 
-Local Notation morphAnd := (@big_morph _ _ _ true _ andb).
+Local Notation morphAnd f := ((big_morph f) true andb).
 
 Let Schur m n (A : 'M[term]_(1 + m, 1 + n)) (a := A 0 0) :=
   \matrix_(i, j) (drsubmx A i j - a^-1 * dlsubmx A i 0%R * ursubmx A 0%R j)%T.

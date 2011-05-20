@@ -280,7 +280,7 @@ Lemma bigdprod_nil : forall I r (P : pred I) (A_ : I -> {set gT}) G,
   -> (forall i, P i -> nilpotent (A_ i)) -> nilpotent G.
 Proof.
 move=> I r P A_ G defG nilA; rewrite -defG; move: G defG.
-apply big_prop => [| A B IHA IHB G defG | i Pi]; rewrite ?nilpotent1 ?nilA //.
+apply big_ind => [| A B IHA IHB G defG | i Pi]; rewrite ?nilpotent1 ?nilA //.
 rewrite defG (dprod_nil defG).
 by case/dprodP: defG => [[H K]]; move/IHA->; move/IHB.
 Qed.

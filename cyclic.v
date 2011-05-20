@@ -716,7 +716,7 @@ rewrite -{1}[#|G|]sum_ncycle_phi (bigD1 ord_max) //= -addSn leq_add //.
   rewrite eq_card0 ?phi_gt0 ?cardG_gt0 // => C.
   apply/imsetP=> [[x]]; case/setIdP=> Gx; move/eqP=> oxG; case/cyclicP: ncG.
   by exists x; apply/eqP; rewrite eq_sym eqEcard cycle_subG Gx -oxG /=.
-apply: (big_rel (fun a b => a <= b)) => // [*|d _]; first exact: leq_add.
+apply: (big_ind2 (fun a b => a <= b)) => // [*|d _]; first exact: leq_add.
 set Gd := _ @: _; case: (set_0Vmem Gd) => [-> | [C]]; first by rewrite cards0.
 rewrite {}/Gd; case/imsetP=> x; case/setIdP=> Gx; move/eqP=> <- _ {C d}.
 rewrite order_dvdG // (@eq_card1 _ <[x]>) ?mul1n // => C.

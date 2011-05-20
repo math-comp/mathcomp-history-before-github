@@ -967,7 +967,7 @@ Lemma sumsmx_module : forall I r (P : pred I) U,
   (forall i, P i -> mxmodule (U i)) -> mxmodule (\sum_(i <- r | P i) U i)%MS.
 Proof.
 move=> I r P U modU.
-by apply big_prop; [exact: mxmodule0 | exact: addsmx_module | exact: modU].
+by apply big_ind; [exact: mxmodule0 | exact: addsmx_module | exact: modU].
 Qed.
 
 Lemma capmx_module : forall m1 m2 U V,
@@ -981,7 +981,7 @@ Lemma bigcapmx_module : forall I r (P : pred I) U,
   (forall i, P i -> mxmodule (U i)) -> mxmodule (\bigcap_(i <- r | P i) U i)%MS.
 Proof.
 move=> I r P U modU.
-by apply big_prop; [exact: mxmodule1 | exact: capmx_module | exact: modU].
+by apply big_ind; [exact: mxmodule1 | exact: capmx_module | exact: modU].
 Qed.
 
 (* Sub- and factor representations induced by a (sub)module. *)
@@ -1781,7 +1781,7 @@ Qed.
 Lemma sumsmx_semisimple : forall (I : finType) (P : pred I) V,
   (forall i, P i -> mxsemisimple (V i)) -> mxsemisimple (\sum_(i | P i) V i)%MS.
 Proof.
-move=> I P V ssimV; apply big_prop => //; first exact: mxsemisimple0.
+move=> I P V ssimV; apply big_ind => //; first exact: mxsemisimple0.
 exact: addsmx_semisimple.
 Qed.
 
@@ -4709,7 +4709,7 @@ Import MatrixFormula.
 Local Notation term := GRing.term.
 Local Notation True := GRing.True.
 Local Notation And := GRing.And (only parsing).
-Local Notation morphAnd := (@big_morph _ _ _ true _ andb).
+Local Notation morphAnd f := ((big_morph f) true andb).
 Local Notation eval := GRing.eval.
 Local Notation holds := GRing.holds.
 Local Notation qf_form := GRing.qf_form.
@@ -5605,7 +5605,7 @@ Local Notation Bool b := (GRing.Bool b%bool).
 Local Notation term := (GRing.term F).
 Local Notation form := (GRing.formula F).
 
-Local Notation morphAnd := (@big_morph _ _ _ true _ andb).
+Local Notation morphAnd f := ((big_morph f) true andb).
 
 Variables (gT : finGroupType) (G : {group gT}) (n' : nat).
 Local Notation n := n'.+1.

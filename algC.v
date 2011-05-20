@@ -621,7 +621,7 @@ Lemma isNatC_sum :
    forall (I : Type) (r : seq I) (P : pred I) (F : I -> algC),
    (forall i, P i -> isNatC  (F i)) -> isNatC (\sum_(j <- r | P j) F j).
 Proof.
-move=> i r P F1 H; apply big_prop=> //; first by exact: (isNatC_nat 0).
+move=> i r P F1 H; apply big_ind=> //; first by exact: (isNatC_nat 0).
 by exact: isNatC_add.
 Qed.
 
@@ -734,7 +734,7 @@ Lemma isZC_sum :
    forall (I : Type) (r : seq I) (P : pred I) (F : I -> algC),
    (forall i, P i -> isZC  (F i)) -> isZC (\sum_(j <- r | P j) F j).
 Proof.
-move=> i r P F1 H; apply big_prop=> //; first exact: (isZC_nat 0).
+move=> i r P F1 H; apply big_ind=> //; first exact: (isZC_nat 0).
 by exact: isZC_add.
 Qed.
 

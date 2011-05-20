@@ -131,7 +131,7 @@ case: (leqP (size p) 1)=> sp1; first by rewrite [p]size1_polyC ?sp1//.
 case: (@divFp_spec p ('X - a%:P))=> ->.
 set q := (_ *: _); set c := (_ *: _).
 have qnz : q != 0.
-  rewrite scaler_eq0 negb_orb invr_neq0; last by rewrite scalp_Ineq0.
+  rewrite scaler_eq0 negb_or invr_neq0; last by rewrite scalp_Ineq0.
   by rewrite divFp_eq0 -?size_poly_eq0 size_XMa// -leqNgt sp1.
 rewrite [c]size1_polyC; first last.
   rewrite -ltnS size_scaler; last by rewrite invr_neq0 // scalp_Ineq0.

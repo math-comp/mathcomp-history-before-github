@@ -223,7 +223,7 @@ Lemma center_bigcprod : forall I r P (F : I -> {set gT}) G,
   -> \big[cprod/1]_(i <- r | P i) 'Z(F i) = 'Z(G).
 Proof.
 move=> I r P F; pose R A C := forall G, A :=: G -> C = 'Z(G).
-apply (big_rel R) => [_ <-|A B C D IHA IHB G dG|_ _ G ->]; rewrite ?center1 //.
+apply (big_ind2 R) => [_ <-|A B C D IHA IHB G dG|_ _ G ->]; rewrite ?center1 //.
 case/cprodP: dG IHA IHB (dG) => [[H K -> ->] _ _] IHH IHK dG.
 by rewrite (IHH H) // (IHK K) // (center_cprod dG).
 Qed.
@@ -244,7 +244,7 @@ Lemma center_bigdprod : forall I r P (F: I -> {set gT}) G,
     -> \big[dprod/1]_(i <- r | P i) 'Z(F i) = 'Z(G).
 Proof.
 move=> I r P F; pose R A C := forall G, A :=: G -> C = 'Z(G).
-apply (big_rel R) => [_ <-|A B C D IHA IHB G dG|_ _ G ->]; rewrite ?center1 //.
+apply (big_ind2 R) => [_ <-|A B C D IHA IHB G dG|_ _ G ->]; rewrite ?center1 //.
 case/dprodP: dG IHA IHB (dG) => [[H K -> ->] _ _ _] IHH IHK dG.
 by rewrite (IHH H) // (IHK K) // (center_dprod dG).
 Qed.

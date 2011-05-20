@@ -488,7 +488,7 @@ Lemma size_sum : forall I r (P : pred I) (F : I -> {poly R}),
   size (\sum_(i <- r | P i) F i) <= \max_(i <- r | P i) size (F i).
 Proof.
 move=> I r P F; pose K p := [fun n => size p <= n : Prop].
-apply: (big_rel K) => //= [|p1 n1 p2 n2 IH1 IH2]; first by rewrite size_poly0.
+apply: (big_ind2 K) => //= [|p1 n1 p2 n2 IH1 IH2]; first by rewrite size_poly0.
 apply: leq_trans (size_add p1 p2) _.
 by rewrite -eqn_maxl maxnAC !maxnA -maxnA (maxnl IH1) (maxnr IH2).
 Qed.
@@ -1066,7 +1066,7 @@ have : (q1 - q * (lead_coef d ^+ k)%:P) * d = r * (lead_coef d ^+ k)%:P - r1.
   by rewrite mulr_addl mulNr !addrA [_ + (q1 * d)]addrC addrK -F -mulr_addl.
 move/eqP; rewrite -[_ == _ - _]subr_eq0 rreg_div0 //; first by case/andP.
 rewrite size_opp; apply: (leq_ltn_trans (@size_add _ _)).
-rewrite size_opp ltnNge leq_maxr negb_orb -!ltnNge Hs andbT.
+rewrite size_opp ltnNge leq_maxr negb_or -!ltnNge Hs andbT.
 apply: (leq_ltn_trans (@size_mul _ _)).
 rewrite size_polyC; case: (_ == _); last by rewrite addnS addn0.
 by rewrite addn0; apply: leq_ltn_trans lt_rd; case: size.
@@ -1534,7 +1534,7 @@ Qed.
 Lemma prod_factors_monic : forall rs : seq R,
   monic (\prod_(z <- rs) ('X - z%:P)).
 Proof.
-by move=> rs; apply big_prop=> *; rewrite (monic1, monic_factor, monic_mull).
+by move=> rs; apply big_ind=> *; rewrite (monic1, monic_factor, monic_mull).
 Qed.
 
 Lemma size_prod_factors : forall rs : seq R,
@@ -1940,14 +1940,14 @@ move=> I P F.
 move/prodf_neq0.
 rewrite cardE -filter_index_enum -!(big_filter _ P).
 elim: (filter P _) => {P} [|i r IHr]; first by rewrite !big_nil size_poly1.
-rewrite !big_cons /= mulf_eq0 negb_orb.
+rewrite !big_cons /= mulf_eq0 negb_or.
 move/andP => [Fine0 allne0].
 rewrite size_mul_id -?(prodf_neq0 r) // subSS IHr //.
 move/polySpred: Fine0 => ->.
 rewrite addSn /= addSnnS addn_subA //.
 clear -allne0.
 elim: r allne0 => [|i r IHr] /=; first by rewrite big_nil.
-rewrite !big_cons /= mulf_eq0 negb_orb.
+rewrite !big_cons /= mulf_eq0 negb_or.
 move/andP => [Fine0 allne0].
 rewrite -add1n -addnS leq_add //; last by apply: IHr.
 by rewrite lt0n size_poly_eq0.

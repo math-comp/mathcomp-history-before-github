@@ -396,7 +396,7 @@ move=> M H p X maxM maxH pX sXM sNH.
 apply: contraL => MG_H; have [x Gx defH] := imsetP MG_H.
 have [sMp | sM'p] := boolP (p \in \sigma(M)); last first.
   have:= prime_class_mmax_norm maxH pX sNH.
-  rewrite defH /= sigmaJ tau2J !negb_orb (negPf sM'p) /= => t2Mp.
+  rewrite defH /= sigmaJ tau2J !negb_or (negPf sM'p) /= => t2Mp.
   by rewrite (contraL (@tau2'1 _ p)) // [~~ _]tau3'2.
 rewrite 4!inE /= sMp inE /= sMp /= orbF negbK.
 have [_ transCX _] := sigma_group_trans maxM sMp pX.
@@ -1830,7 +1830,7 @@ suffices mkZ: forall S, {Z | ntE2sylow S ==> sameExp Z S && cyclicRegular Z}.
       rewrite coprime_cardMg ?(pnat_coprime pZ) //.
       by rewrite partn_mul // part_pnat_id // part_p'nat // muln1.
     pose p'inE2 X := X \subset E2 -> p^'.-group X.
-    apply: (@big_prop _ p'inE2) => // [_|X Y IHX IHY|T]; first exact: pgroup1.
+    apply: (@big_ind _ p'inE2) => // [_|X Y IHX IHY|T]; first exact: pgroup1.
       move; rewrite join_subG /=; case/andP=> sXE2 sYE2.
       by rewrite cent_joinEl ?(sub_abelian_cent2 cE2E2) // pgroupM IHX ?IHY.
     case/andP=> sylT neqTS; case: (mkZ T) => Y /=; rewrite sylT /=.

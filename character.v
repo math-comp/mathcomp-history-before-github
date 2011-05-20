@@ -99,7 +99,7 @@ Qed.
 Lemma invmxZ : forall (R : fieldType) (n : nat) (A : 'M[R]_n) a, 
  A \in unitmx -> invmx (a *: A) = a^-1 *: invmx A.
 Proof.
-move=> R [|n] A a HA; first by rewrite !(flatmx0 (_ *: _)); exact: flatmx0.
+move=> R [|n] A a HA; first by rewrite flatmx0 [_ *: _]flatmx0.
 case: (a =P 0)=> [->|].
   by rewrite invr0 !scale0r /invmx det0 invr0 scale0r if_same.
 move/eqP=> Ha.
@@ -1636,7 +1636,7 @@ apply: is_char_indu=> [|i chi IC IH] n.
      by apply/char_of_repr_rsimP; rewrite -H0 char_of_grepr0.
    move/mxrank_rsim=> HH; move: {H0}rG; rewrite HH=> rG.
    exists 0; first by rewrite eqxx normC0.
-   by rewrite (flatmx0 (rG g)) (flatmx0 _%:M) .
+   by rewrite flatmx0 [_%:M]flatmx0.
 move=> rG g GiG H0 CL; rewrite ffunE [_ 1%g]ffunE=> NN.
 have F1: normC ('xi_i g + chi g) = normC ('xi_i g) + normC (chi g).
   apply: (leC_anti (normC_add _ _)); rewrite NN.
@@ -3342,7 +3342,7 @@ have: N :&: 'Z(G) != 1%g.
     by rewrite expnS dvdn_mulr.
   move: Dp'; rewrite -(acts_sum_card_orbit Act).
   rewrite (bigID (fun S : {set _} => #|S| != 1%N)) dvdn_addr; last first.
-    elim/big_prop: _ => [|x y Hx Hy|]; rewrite ?(dvdn0,dvdn_addr) //=.
+    elim/big_ind: _ => [|x y Hx Hy|]; rewrite ?(dvdn0,dvdn_addr) //=.
     by move=> i; case/andP; case/imsetP=> g GiG -> HH; exact: DOr.
   rewrite (bigD1 1%g) ?(cards1,andbT) //=; last first.
     by apply/imsetP; exists 1%g; rewrite ?group1 // orbitJ (class1g (group1 _)).

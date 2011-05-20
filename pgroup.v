@@ -652,7 +652,7 @@ have{pG n leGn IHn} pZ: p %| #|'C_G(G)|.
   have:= pG; rewrite -(cardsID 'C(G)) dvdn_addl //.
   have: [acts G, on G :\: 'C(G) | 'J]; last move/acts_sum_card_orbit <-.
     by apply/actsP=> x Gx y; rewrite !inE -!mem_conjgV -centJ conjGid ?groupV.
-  apply big_prop => // [|C]; first exact: dvdn_add.
+  apply big_ind => // [|C]; first exact: dvdn_add.
   case/imsetP=> x; case/setDP=> Gx nCx ->{C}; rewrite card_orbit astab1J.
   move: pG; rewrite -(LaGrange (subsetIl G 'C[x]%G)) euclid //; case/orP => //.
   case/IHn=> [|y]; last first.
@@ -1350,7 +1350,7 @@ move=> pi G; apply/eqP; rewrite eqEsubset subsetI pcore_sub pcore_max /=.
   rewrite (dvdn_trans qGpi') ?cardSg ?subIset //= orbC.
   by rewrite (bigcap_inf (Ordinal ltqG)).
 rewrite /normal subsetIl normsI ?normG //.
-apply big_prop => [|H K nHG nKG|p _]; rewrite ?normsI ?gFnorm //.
+apply big_ind => [|H K nHG nKG|p _]; rewrite ?normsI ?gFnorm //.
 by rewrite normsG // subsetT.
 Qed.
 

@@ -2099,7 +2099,7 @@ wlog{H defH Hy' kHy'} Ky': K hallK / y' \in K.
   by rewrite class_supportGidl ?inE //; exact.
 rewrite -[x]conjg1 mem_imset2 ?group1 //.
 have [Mst _ [_ _ _ [cycZ _ defZ _ _] _]] := Ptype_embedding PmaxM hallK.
-rewrite -(mulKVg y x) -/y' 2!inE negb_orb andbC.
+rewrite -(mulKVg y x) -/y' 2!inE negb_or andbC.
 do [set Ks := 'C_(_)(K); set Z := K <*> _] in cycZ defZ *.
 have Ks_y: y \in Ks.
   have cKZ := sub_abelian_cent (cyclic_abelian cycZ) (joing_subl K Ks). 

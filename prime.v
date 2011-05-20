@@ -427,7 +427,7 @@ apply/mapP/andP=> [[[q e]]|[pr_p]] /=.
   case/mem_prime_decomp=> pr_q e_gt0; case/dvdnP=> u -> -> {p}.
   by rewrite -(prednK e_gt0) expnS mulnCA dvdn_mulr.
 rewrite {1}(prod_prime_decomp n_gt0) big_cond_seq /=.
-apply big_prop => [| u v IHu IHv | [q e] /= mem_qe dv_p_qe].
+apply big_ind => [| u v IHu IHv | [q e] /= mem_qe dv_p_qe].
 - by rewrite euclid1.
 - by rewrite euclid //; case/orP.
 exists (q, e) => //=; case/mem_prime_decomp: mem_qe => pr_q _ _.
@@ -742,7 +742,7 @@ have: (p, e) \in prime_decomp n.+1 by rewrite -def_f mem_nth.
 case/mem_prime_decomp=> pr_p _ _.
 rewrite (big_nth f0) big_mkord (bigD1 (Ordinal lt_i_n)) //=.
 rewrite def_f mulnC logn_gauss ?pfactorK //.
-apply big_prop => [|m1 m2 com1 com2| [j ltj] /=]; first exact: coprimen1.
+apply big_ind => [|m1 m2 com1 com2| [j ltj] /=]; first exact: coprimen1.
   by rewrite coprime_mulr com1.
 rewrite -val_eqE /= => nji; case def_j: (nth _ _ j) => [q e1] /=.
 have: (q, e1) \in prime_decomp n.+1 by rewrite -def_j mem_nth.
@@ -799,7 +799,7 @@ Lemma sub_in_partn : forall pi1 pi2 n,
   {in \pi(n), {subset pi1 <= pi2}} -> n`_pi1 %| n`_pi2.
 Proof.
 move=> pi1 pi2 n pi12; rewrite ![n`__]big_mkcond /=.
-apply (big_rel (fun m1 m2 => m1 %| m2)) => // [*|p _]; first exact: dvdn_mul.
+apply (big_ind2 (fun m1 m2 => m1 %| m2)) => // [*|p _]; first exact: dvdn_mul.
 rewrite lognE -mem_primes; case: ifP => pi1p; last exact: dvd1n.
 by case: ifP => pr_p; [rewrite pi12 | rewrite if_same].
 Qed.
@@ -880,7 +880,7 @@ case: (posnP n) => [-> | n_gt0]; first by rewrite partn0.
 apply: (eq_sorted_irr ltnT ltnn); rewrite ?(sorted_primes, sorted_filter) //.
 move=> p; rewrite mem_filter /= !mem_primes n_gt0 part_gt0 /=.
 apply/andP/and3P=> [[p_pr] | [pi_p p_pr dv_p_n]].
-  rewrite /partn; apply big_prop => [|n1 n2 IHn1 IHn2|q pi_q].
+  rewrite /partn; apply big_ind => [|n1 n2 IHn1 IHn2|q pi_q].
   - by rewrite dvdn1; case: eqP p_pr => // ->.
   - by rewrite euclid //; case/orP.
   rewrite -{1}(expn1 p) pfactor_dvdn // logn_exp muln_gt0.
@@ -954,7 +954,7 @@ Lemma partn_biglcm : forall (I : finType) (P : pred I) F pi,
   (\big[lcmn/1%N]_(i | P i) F i)`_pi = \big[lcmn/1%N]_(i | P i) (F i)`_pi.
 Proof.
 move=> I P F pi F_gt0; set m := \big[lcmn/1%N]_(i | P i) F i.
-have m_gt0: 0 < m by apply big_prop => // p q p_gt0; rewrite lcmn_gt0 p_gt0.
+have m_gt0: 0 < m by apply big_ind => // p q p_gt0; rewrite lcmn_gt0 p_gt0.
 apply/eqP; rewrite eqn_dvd andbC; apply/andP; split.
   by apply/dvdn_biglcmP=> i Pi; rewrite partn_dvd // (@biglcmn_sup _ i).
 rewrite -(dvdn_pmul2r (part_gt0 pi^' m)) partnC //.
@@ -1201,7 +1201,7 @@ have ndivs_p: p * _ \notin divs.
   move=> m; suff: p \notin divs; rewrite !mem_divs.
     by apply: contra; case/dvdnP=> n ->; rewrite mulnCA dvdn_mulr.
   have ndv_p_1: ~~(p %| 1) by rewrite dvdn1 neq_ltn orbC prime_gt1.
-  rewrite big_cond_seq /=; apply big_prop => [//|u v npu npv|[q f] /= pd_qf].
+  rewrite big_cond_seq /=; apply big_ind => [//|u v npu npv|[q f] /= pd_qf].
     by rewrite euclid //; apply/norP.
   elim: (f) => // f'; rewrite expnS euclid // orbC negb_or => -> {f'}/=.
   have pd_q: q \in unzip1 pd by apply/mapP; exists (q, f).
@@ -1249,7 +1249,7 @@ Proof. by move=> n n_gt0; rewrite -dvdn_divisors. Qed.
 
 Lemma dvdn_sum : forall d I r (K : pred I) F,
   (forall i, K i -> d %| F i) -> d %| \sum_(i <- r | K i) F i.
-Proof. move=> I r K F d dF; apply big_prop => //; exact: dvdn_add. Qed.
+Proof. move=> I r K F d dF; apply big_ind => //; exact: dvdn_add. Qed.
 
 Lemma dvdn_partP : forall n m : nat, 0 < n ->
   reflect (forall p, p \in \pi(n) -> n`_p %| m) (n %| m).
@@ -1259,7 +1259,7 @@ move=> n m n_gt0; apply: (iffP idP) => n_dvd_m => [p _|].
 case: (posnP m) => [-> // | m_gt0].
 rewrite -(partnT n_gt0) -(partnT m_gt0).
 rewrite !(@widen_partn (m + n)) ?leq_addl ?leq_addr // /in_mem /=.
-apply (big_rel (fun n m => n %| m)) => // [*|q _]; first exact: dvdn_mul.
+apply (big_ind2 (fun n m => n %| m)) => // [*|q _]; first exact: dvdn_mul.
 case: (posnP (logn q n)) => [-> // | ]; rewrite logn_gt0 => q_n.
 have pr_q: prime q by move: q_n; rewrite mem_primes; case/andP.
 by have:= n_dvd_m q q_n; rewrite p_part !pfactor_dvdn // pfactorK.

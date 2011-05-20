@@ -218,7 +218,7 @@ Canonical Structure set_of_finType := Eval hnf in [finType of {set T}].
 Canonical Structure set_of_subFinType := Eval hnf in [subFinType of {set T}].
 
 Lemma in_set : forall P x, x \in finset P = P x.
-Proof. by move=> P x; rewrite [@finset _]unlock unlock [x \in _]ffunE. Qed.
+Proof. by move=> P x; rewrite [@finset]unlock unlock [x \in _]ffunE. Qed.
 
 Lemma setP : forall A B : {set T}, A =i B <-> A = B.
 Proof.
@@ -261,6 +261,7 @@ Definition setI A B := [set x | (x \in A) && (x \in B)].
 Definition setC A := [set x | x \notin A].
 Definition setD A B := [set x | (x \notin B) && (x \in A)].
 Definition ssetI P D := [set A \in P | A \subset D].
+Definition powerset D := [set A : {set T} | A \subset D].
 
 End setOpsDefs.
 
@@ -471,7 +472,7 @@ Proof. by move=> A B C; rewrite setUA !(setUAC _ C) -(setUA _ C) setUid. Qed.
 Lemma setUUr : forall A B C, A :|: (B :|: C) = (A :|: B) :|: (A :|: C).
 Proof. by move=> A B C; rewrite !(setUC A) setUUl. Qed.
 
-(* intersect *)
+(* intersection *)
 
 (* setIdP is a generalisation of setIP that applies to comprehensions. *)
 Lemma setIdP : forall x (pA pB : pred T),
@@ -583,6 +584,9 @@ Qed.
 Lemma disjoints_subset : forall A B, [disjoint A & B] = (A \subset ~: B).
 Proof. by move=> A B; rewrite subsets_disjoint setCK. Qed.
 
+Lemma powersetCE A B : (A \in powerset (~: B)) = [disjoint A & B].
+Proof. by rewrite inE disjoints_subset. Qed.
+
 Lemma setCS : forall A B, (~: A \subset ~: B) = (B \subset A).
 Proof. by move=> A B; rewrite !subsets_disjoint setCK disjoint_sym. Qed.
 
@@ -663,6 +667,26 @@ Proof. by move=> A B C; rewrite !setDE setCU setIA. Qed.
 
 Lemma setDDr : forall A B C, A :\: (B :\: C) = (A :\: B) :|: (A :&: C).
 Proof. by move=> A B C; rewrite !setDE setCI setIUr setCK. Qed.
+
+(* powerset *)
+
+Lemma powersetE A B : (A \in powerset B) = (A \subset B).
+Proof. by rewrite inE. Qed.
+
+Lemma powersetS A B : (powerset A \subset powerset B) = (A \subset B).
+Proof.
+apply/subsetP/idP=> [sAB | sAB C]; last by rewrite !inE => /subset_trans ->.
+by rewrite -powersetE sAB // inE.
+Qed.
+
+Lemma powerset0 : powerset set0 = [set set0] :> {set {set T}}.
+Proof. by apply/setP=> A; rewrite !inE subset0. Qed.
+
+Lemma powersetT : powerset [set: T] = [set: {set T}].
+Proof. by apply/setP=> A; rewrite !inE subsetT. Qed.
+
+Lemma setI_powerset P A : P :&: powerset A = P ::&: A.
+Proof. by apply/setP=> B; rewrite !inE. Qed.
 
 (* cardinal lemmas for sets *)
 
@@ -768,6 +792,9 @@ move=> A x; rewrite eqEcard cards1 -cards_eq0 orbC andbC.
 by case: posnP => // A0; rewrite (cards0_eq A0) sub0set.
 Qed.
 
+Lemma powerset1 x : powerset [set x] = [set set0; [set x]].
+Proof. by apply/setP=> A; rewrite !inE subset1 orbC. Qed.
+
 Lemma setIidPl : forall A B, reflect (A :&: B = A) (A \subset B).
 Proof.
 move=> A B; apply: (iffP subsetP) => [sAB | <- x]; last by case/setIP.
@@ -813,6 +840,9 @@ Proof. by move=> A B; rewrite subsetI subxx. Qed.
 
 Lemma subsetIidr : forall A B, (B \subset A :&: B) = (B \subset A).
 Proof. by move=> A B; rewrite setIC subsetIidl. Qed.
+
+Lemma powersetI A B : powerset (A :&: B) = powerset A :&: powerset B.
+Proof. by apply/setP=> C; rewrite !inE subsetI. Qed.
 
 Lemma subUset : forall A B C,
   (B :|: C \subset A) = (B \subset A) && (C \subset A).
@@ -875,12 +905,12 @@ Qed.
 
 Lemma properIr :  forall A B, ~~ (B \subset A) -> A :&: B \proper B.
 Proof.
-by move=> A B nsAB; rewrite properE subsetIr subsetI negb_andb nsAB.
+by move=> A B nsAB; rewrite properE subsetIr subsetI negb_and nsAB.
 Qed.
 
 Lemma properIl : forall A B, ~~ (A \subset B) -> A :&: B \proper A.
 Proof.
-by move=> A B nsBA; rewrite properE subsetIl subsetI negb_andb nsBA orbT.
+by move=> A B nsBA; rewrite properE subsetIl subsetI negb_and nsBA orbT.
 Qed.
 
 Lemma properUr : forall A B, ~~ (A \subset B) ->  B \proper A :|: B.
@@ -1060,7 +1090,7 @@ Variables (f : aT -> rT) (f2 : aT -> aT2 -> rT).
 
 Lemma imsetP : forall D y,
   reflect (exists2 x, in_mem x D & y = f x) (y \in imset f D).
-Proof. move=> D y; rewrite [@imset _]unlock inE; exact: imageP. Qed.
+Proof. move=> D y; rewrite [@imset]unlock inE; exact: imageP. Qed.
 
 CoInductive imset2_spec D1 D2 y : Prop :=
   Imset2spec x1 x2 of in_mem x1 D1 & in_mem x2 (D2 x1) & y = f2 x1 x2.
@@ -1068,7 +1098,7 @@ CoInductive imset2_spec D1 D2 y : Prop :=
 Lemma imset2P : forall D1 D2 y,
   reflect (imset2_spec D1 D2 y) (y \in imset2 f2 D1 D2).
 Proof.
-move=> D1 D2 y; rewrite [@imset2 _]unlock inE.
+move=> D1 D2 y; rewrite [@imset2]unlock inE.
 apply: (iffP (imageP _ _ _)) => [[[x1 x2] Dx12] | [x1 x2 Dx1 Dx2]] -> {y}.
   by case/andP: Dx12; exists x1 x2.
 by exists (x1, x2); rewrite //= Dx1.
@@ -1343,7 +1373,7 @@ Variables (f : aT -> rT) (g : rT -> aT) (f2 : aT -> aT2 -> rT).
 Variables (D : pred aT) (D2 : pred aT).
 
 Lemma imset_card : #|f @: D| = #|[image f of D]|.
-Proof. by rewrite [@imset _]unlock cardsE. Qed.
+Proof. by rewrite [@imset]unlock cardsE. Qed.
 
 Lemma leq_imset_card : #|f @: D| <= #|D|.
 Proof. by rewrite imset_card leq_image_card. Qed.
@@ -1355,7 +1385,7 @@ Lemma card_imset : injective f -> #|f @: D| = #|D|.
 Proof. by move=> injf; rewrite imset_card card_image. Qed.
 
 Lemma imset_injP : reflect {in D &, injective f} (#|f @: D| == #|D|).
-Proof. by rewrite [@imset _]unlock cardsE; exact: image_injP. Qed.
+Proof. by rewrite [@imset]unlock cardsE; exact: image_injP. Qed.
 
 Lemma can2_in_imset_pre :
   {in D, cancel f g} -> {on D, cancel g & f} -> f @: D = g @^-1: D.
@@ -1392,6 +1422,17 @@ Proof.
 move=> T f A injf; apply: on_card_preimset; apply: onW_bij.
 have ontof: codom f _ by apply/(subset_cardP (card_codom injf)); exact/subsetP.
 by exists (fun x => iinv (ontof x)) => x; rewrite (f_iinv, iinv_f).
+Qed.
+
+Lemma card_powerset (T : finType) (A : {set T}) : #|powerset A| = 2 ^ #|A|.
+Proof.
+rewrite -card_bool -(card_pffun_on false) -(card_imset _ val_inj).
+apply: eq_card => f; pose sf := false.-support f; pose D := finset sf.
+have sDA: (D \subset A) = (sf \subset A) by apply: eq_subset; exact: in_set.
+have eq_sf x : sf x = f x by rewrite /= negb_eqb addbF.
+have valD: val D = f by rewrite /D unlock; apply/ffunP=> x; rewrite ffunE eq_sf.
+apply/imsetP/pffun_onP=> [[B] | [sBA _]]; last by exists D; rewrite // inE ?sDA.
+by rewrite inE -sDA -valD => sBA /val_inj->.
 Qed.
 
 Section FunImageComp.
@@ -1565,7 +1606,7 @@ Lemma bigcupP : forall x P F,
 Proof.
 move=> x P F; apply: (iffP idP) => [|[i Pi]]; last first.
   apply: subsetP x; exact: bigcup_sup.
-apply big_prop => [|U1 U2 IH1 IH2|i Pi]; try by [rewrite inE | exists i].
+apply big_ind => [|U1 U2 IH1 IH2|i Pi]; try by [rewrite inE | exists i].
 by case/setUP; [exact: IH1 | exact: IH2].
 Qed.
 
@@ -1617,7 +1658,7 @@ Lemma bigcapsP : forall U P F,
 Proof.
 move=> U P F; apply: (iffP idP) => [sUF i Pi | sUF].
   apply: subset_trans sUF _; exact: bigcap_inf.
-apply big_prop => // [|U1 U2 sU1 sU2]; first by apply/subsetP=> x; rewrite inE.
+apply big_ind => // [|U1 U2 sU1 sU2]; first by apply/subsetP=> x; rewrite inE.
 by apply/subsetP=> x Ux; rewrite inE !(subsetP _ x Ux).
 Qed.
 
@@ -1669,7 +1710,7 @@ Variables (D1 : pred aT1) (D2 : pred aT2).
 
 Lemma curry_imset2X : f @2: (A1, A2) = prod_curry f @: (setX A1 A2).
 Proof.
-rewrite [@imset _]unlock unlock; apply/setP=> x; rewrite !in_set.
+rewrite [@imset]unlock unlock; apply/setP=> x; rewrite !in_set.
 by apply: eq_image => u //=; rewrite inE.
 Qed.
 
@@ -1722,7 +1763,7 @@ Lemma leq_card_cover : forall P,
   #|cover P| <= \sum_(A \in P) #|A| ?= iff trivIset P.
 Proof.
 move=> P; split; last exact: eq_sym.
-apply: (big_rel (fun A n => #|A| <= n)) => // [|A n B m leA leB].
+apply: (big_ind2 (fun A n => #|A| <= n)) => // [|A n B m leA leB].
   by rewrite cards0.
 by apply: leq_trans (leq_add leA leB); rewrite leq_card_setU.
 Qed.
@@ -1806,15 +1847,14 @@ case/setU1P=> [-> | PB2]; last exact: (trivIsetP _ tiP).
 by right; rewrite disjoint_sym tiAP.
 Qed.
 
-Lemma cover_imset : forall J F,
-  cover [set F i | i <- J] = \bigcup_(i \in J) F i.
+Lemma cover_imset : forall J F, cover (F @: J) = \bigcup_(i \in J) F i.
 Proof.
 move=> J F; apply/setP=> x; apply/bigcupP/bigcupP=> [[Fi] | [i Ji Fi_x]].
   by case/imsetP=> i Ji ->; exists i.
 by exists (F i); first exact: mem_imset.
 Qed.
 
-Lemma trivIimset : forall J F (P := [set F i | i <- J]), 
+Lemma trivIimset : forall J F (P := F @: J),
     {in J &, forall i j, j != i -> [disjoint F i & F j]} -> set0 \notin P ->
   trivIset P /\ {in J &, injective F}.
 Proof.

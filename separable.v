@@ -91,7 +91,7 @@ have dvdp_or : forall (d n m : {poly R}), (d %| n) || (d %| m) -> d %| m * n.
  by move/orP => [H|H]; [apply:dvdp_mull|apply: dvdp_mulr].
 apply/idP/and3P => [H|[Hp Hq Hpq]].
  by split; apply: dvdp_trans H; rewrite dvdp_gcd; apply/andP; split;
-   rewrite ?(dvdp_add, dvdp_or, dvdp_gcdl, dvdp_gcdr) // orb_true_r.
+   rewrite ?(dvdp_add, dvdp_or, dvdp_gcdl, dvdp_gcdr) // orbT.
 set (c:=(deriv p * q + p * deriv q)).
 suff: (gcdp p c) * (gcdp q c) %| 1.
  apply: dvdp_trans.
@@ -122,7 +122,7 @@ case/factor_theorem => pp ->.
 case: (eqVneq pp 0) => [->|Hpp].
  by rewrite !mul0r /separablePolynomial coprime0p deriv0 -eqp_polyC eq_refl.
 apply/coprimepPn.
- by rewrite !mulf_eq0 !negb_orb Hpp -!size_poly_eq0 !size_XMa.
+ by rewrite !mulf_eq0 !negb_or Hpp -!size_poly_eq0 !size_XMa.
 exists ('X - x%:P).
 rewrite dvdp_gcd eqp_sym -dvdp_size_eqp ?dvd1p // size_XMa size_poly1.
 rewrite !(derivM, derivD) !dvdp_add ?(dvdp_mull _ (dvdpp _)) //.
@@ -180,7 +180,7 @@ have Hp'0 : p' != 0.
  rewrite coef_poly.
  move/polySpred: (Hp0) => Hp0'.
  rewrite {2}Hp0' ltnSn mulf_eq0 coef_map polyC_eq0 -lead_coefE lead_coef_eq0.
- by rewrite negb_orb Hp0 -size_poly_eq0 size_polyXn.
+ by rewrite negb_or Hp0 -size_poly_eq0 size_polyXn.
 have Hq'0 : q' != 0.
  rewrite map_poly_eq0.
  move: Hq0.
@@ -209,12 +209,12 @@ have [[u v]] :
  have Hu10 : u1 != 0.
   rewrite -polyC_eq0 in Hc1.
   move: (mulf_neq0 Hc1 Hp'0).
-  rewrite mul_polyC Hu1 mulf_eq0 negb_orb.
+  rewrite mul_polyC Hu1 mulf_eq0 negb_or.
   by case/andP.
  have Hv10 : v1 != 0.
   rewrite -polyC_eq0 in Hc2.
   move: (mulf_neq0 Hc2 Hq'0).
-  rewrite mul_polyC Hv1 mulf_eq0 negb_orb.
+  rewrite mul_polyC Hv1 mulf_eq0 negb_or.
   by case/andP.
  rewrite -(size_scaler q' Hc2) -(size_scaler p' Hc1) Hv1 Hu1.
  rewrite !size_mul_id // -(subnK Hp'q') !addnA !addn2 !ltnS !leq_addr.
@@ -275,7 +275,7 @@ case (eqVneq p.[0] 0) => Hp00; last first.
   rewrite coef_scaler size_monic_mul ?monicX //; last first.
    case/andP: Hv.
    rewrite -/(lead_coef v') lead_coef_eq0 lt0n size_poly_eq0 Hv' mulf_eq0.
-   rewrite negb_orb.
+   rewrite negb_or.
    by case/andP.
   rewrite size_polyX add2n addnS.
   by move/succn_inj.
@@ -299,10 +299,10 @@ have Hpx : p' = (px ^ polyC \Po 'Y * 'X) * ('Y * 'X).
  by rewrite /p' Hppx rmorphM /= map_polyX poly_comp_mull poly_comXp.
 apply: (IH px (u * 'Y) vx).
   move: Hp'0.
-  rewrite Hpx mulf_eq0 negb_orb.
+  rewrite Hpx mulf_eq0 negb_or.
   by case/andP.
  case/andP: Hv Hszv.
- rewrite Hvvx lt0n size_poly_eq0 mulf_eq0 negb_orb.
+ rewrite Hvvx lt0n size_poly_eq0 mulf_eq0 negb_or.
  case/andP => Hvx _ _.
  rewrite size_mul_monic ?lead_coef_mul_monic ?monicX // size_polyX addn2 addSn.
  by move/succn_inj.
@@ -315,10 +315,10 @@ split => /=.
   by rewrite -size_poly_eq0 size_polyX.
  by rewrite mulrC mul_polyC size_scaler // -size_poly_eq0 size_polyX.
 case/andP: Hv.
-rewrite Hvvx !lt0n !size_poly_eq0 mulf_eq0 negb_orb.
+rewrite Hvvx !lt0n !size_poly_eq0 mulf_eq0 negb_or.
 case/andP => Hvx0 HX.
 move : Hp'0.
-rewrite Hvx0 size_mul_monic ?monicX // size_polyX addn2 Hpx mulf_eq0 negb_orb.
+rewrite Hvx0 size_mul_monic ?monicX // size_polyX addn2 Hpx mulf_eq0 negb_or.
 case/andP => Hpx0 HXX0.
 rewrite size_mul_id // mul_polyC size_scaler // -?size_poly_eq0 size_polyX //.
 by rewrite addn2 ltnS.
@@ -820,7 +820,7 @@ Qed.
 Lemma sump_polyOver : forall (I : finType) (P : pred I) (p_ : I -> {poly L}),
   (forall i, P i -> polyOver K (p_ i)) -> polyOver K (\sum_(i | P i) p_ i).
 Proof.
-move=> I P p_ Hp; apply big_prop => //; first by apply polyOver0.
+move=> I P p_ Hp; apply big_ind => //; first by apply polyOver0.
 by exact: addp_polyOver.
 Qed.
 
@@ -1098,7 +1098,7 @@ move/(_ m).
 move/contra.
 rewrite -ltnNge mul1n.
 move/(_ (leqnn _)).
-rewrite negb_orb.
+rewrite negb_or.
 case/andP => _.
 rewrite -ltnNge.
 move/(leq_trans H).
@@ -1316,7 +1316,7 @@ apply: (mulIf (expf_neq0 i nzx)).
 case: (leqP (elementDegree K x) i) => Hi; last first.
  by apply/eqP; apply (Hpq (Ordinal Hi)).
 by rewrite (_ : p`_i = 0) ?mul0r; first rewrite (_ : q`_i = 0) ?mul0r //;
- apply/eqP; move: Hi; [move/(leq_trans szq)|move/(leq_trans szp)];
+ apply/eqP; move: Hi; [ move/(leq_trans szq) | move/(leq_trans szp) ];
  apply: contraLR; rewrite -ltnNge; apply: leq_coef_size.
 Qed.
 
@@ -1810,7 +1810,7 @@ Lemma separableNXp :
             exists2 g, (polyOver K g) & (minPoly K x) = g \Po 'X^p)
           (~~ (separableElement K x)).
 Proof.
-rewrite separable_nzdmp negb_involutive.
+rewrite separable_nzdmp negbK.
 apply: (iffP eqP); last first.
  move => [p Hp [g _ ->]].
  by rewrite deriv_poly_comp derivXn -scaler_nat (charf0 Hp) scale0r mulr0.
@@ -1858,15 +1858,12 @@ case: (leqP r.+1 s) => Hrs.
  apply: big1 => j _.
  rewrite coef_scaler -exprn_mulr coef_Xn.
  case: (eqVneq s j) => [Hsj|]; first by move: Hrs; rewrite Hsj ltnNge leq_ord.
- rewrite mulnC eqn_mul2l.
- move/negb_true_iff ->.
- by rewrite eqn0Ngt Hp0 mulr0.
+ by rewrite mulnC eqn_mul2l => /negbTE->; rewrite eqn0Ngt Hp0 mulr0.
 pose (s' := Ordinal Hrs).
 rewrite (bigD1 s') // coef_scaler -exprn_mulr coef_Xn {2}mulnC eq_refl mulr1.
-rewrite coef_Poly nth_mkseq // mulnC big1 ?[_ _ 0]addr0 // => j.
-move/negb_true_iff.
+rewrite coef_Poly nth_mkseq // mulnC big1 ?[_ _ 0]addr0 // => j /negPf.
 rewrite eq_sym => Hj.
-rewrite coef_scaler -exprn_mulr coef_Xn eqn_mul2l [(s == j)]Hj eqn0Ngt Hp0.
+rewrite coef_scaler -exprn_mulr coef_Xn eqn_mul2l [s == j]Hj eqn0Ngt Hp0.
 by rewrite mulr0.
 Qed.
 
@@ -2699,7 +2696,7 @@ apply/eqP/eqP => [->|].
  have -> : b = lead_coef(f0) ^+ m *: 'X ^+ (n * m).
   rewrite -mul_polyC rmorphX exprn_mulr -commr_exp_mull;
    last by rewrite /GRing.comm mulrC.
-  rewrite -[m]card_ord -prodr_const.
+  rewrite -[ m]card_ord -prodr_const.
   apply: eq_bigr => i _.
   by rewrite col_mxEd mxE perm1 leq_addl addnK lead_coefE szf0_subproof
      -mul_polyC.
@@ -2847,7 +2844,7 @@ have nzr2 : (0 < size r2).
   apply: contraL.
   rewrite size_poly_eq0.
   move/eqP ->.
-  by rewrite mul0r scaler_eq0 negb_orb -size_poly_eq0 szg0_subproof c2nz.
+  by rewrite mul0r scaler_eq0 negb_or -size_poly_eq0 szg0_subproof c2nz.
 have r1small : size r1 <= n.
   case (eqVneq (size r1) 0%N) => [->|] //.
   rewrite -lt0n => nzr1.
@@ -3099,7 +3096,7 @@ Lemma separable_sum : forall I r (P : pred I) (v_ : I -> L),
   (forall i, P i -> separableElement K (v_ i)) ->
   separableElement K (\sum_(i <- r | P i) v_ i).
 Proof.
-apply: (@big_prop L (separableElement K)).
+apply: (@big_ind L (separableElement K)).
  apply/separableinK/mem0v.
 apply: separable_add.
 Qed.
@@ -3121,7 +3118,7 @@ Lemma inseparable_sum : forall I r (P : pred I) (v_ : I -> L),
   (forall i, P i -> purelyInseparableElement K (v_ i)) ->
   purelyInseparableElement K (\sum_(i <- r | P i) v_ i).
 Proof.
-apply: (@big_prop L (purelyInseparableElement K)).
+apply: (@big_ind L (purelyInseparableElement K)).
  apply/inseparableinK/mem0v.
 apply: inseparable_add.
 Qed.

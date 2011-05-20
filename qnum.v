@@ -66,7 +66,7 @@ do 2!rewrite divn_mulCA ?(dvdn_gcdl, dvdn_gcdr) ?divnn //.
 by rewrite ?gcdn_gt0 ?lt0n ?n0 ?muln1.
 Qed.
 
-Definition fracq (x : zint * zint) := nosimpl @Qnum (_, _) (fracq_subproof x).
+Definition fracq (x : zint * zint) := nosimpl (@Qnum (_, _) (fracq_subproof x)).
 
 Lemma zint_qnumE : forall n, zint_qnum n = fracq (n, 1).
 Proof.

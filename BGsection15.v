@@ -46,7 +46,7 @@ Implicit Type p : nat.
 Lemma Fcore_normal : M`_\F <| M.
 Proof.
 rewrite -[M`_\F]bigprodGE.
-apply big_prop => [|P Q nsP nsG|P]; [exact: normal1 | | by case/andP].
+apply big_ind => [|P Q nsP nsG|P]; [exact: normal1 | | by case/andP].
 by rewrite /normal normsY ?normal_norm // join_subG ?normal_sub.
 Qed.
 Hint Resolve Fcore_normal.
@@ -91,7 +91,7 @@ Lemma Fcore_pcore_Sylow : forall p, p \in \pi(M`_\F) -> p.-Sylow(M) 'O_p(M).
 Proof.
 move=> p /=; rewrite -(bigdprod_card Fcore_dprod) mem_primes.
 case/and3P=> p_pr _; have ?: ~ p %| 1 by rewrite gtnNdvd ?prime_gt1.
-apply big_prop=> // [p1 p2 IH1 IH2|P].
+apply big_ind=> // [p1 p2 IH1 IH2|P].
   rewrite euclid //; case/orP; [exact: IH1 | exact: IH2].
 case/andP; case/SylowP=> q q_pr sylP nsPM p_dv_P; have qP := pHall_pgroup sylP.
 by rewrite (eqnP (pgroupP qP p p_pr p_dv_P)) (normal_Hall_pcore sylP).
@@ -330,7 +330,7 @@ suffices mkZ: forall S, {Z | ntUsylow S ==> sameExp Z S && cyclicRegular Z}.
       rewrite coprime_cardMg ?(pnat_coprime pZ) //.
       by rewrite partn_mul // part_pnat_id // part_p'nat // muln1.
     pose p'inU X := X \subset U -> p^'.-group X.
-    apply: (@big_prop _ p'inU) => // [_|X Y IHX IHY|T]; first exact: pgroup1.
+    apply: (@big_ind _ p'inU) => // [_|X Y IHX IHY|T]; first exact: pgroup1.
       rewrite /p'inU join_subG /=; case/andP=> sXE2 sYE2.
       by rewrite cent_joinEl ?(sub_abelian_cent2 cUU) // pgroupM IHX ?IHY.
     case/andP=> sylT neqTS; case: (mkZ T) => Y /=; rewrite sylT /=.

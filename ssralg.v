@@ -36,6 +36,7 @@ Require Import finfun bigop prime binomial.
 (*        \sum_<range> e == iterated sum for a Zmodule (cf bigop.v).          *)
 (*                  e`_i == nth 0 e i, when e : seq M and M has a zmodType    *)
 (*                          structure.                                        *)
+(*             support f == 0.-support f, i.e., [pred x | f x != 0],          *)
 (*                                                                            *)
 (*  * Ring (non-commutative rings):                                           *)
 (*              ringType == interface type for a Ring structure.              *)
@@ -1452,7 +1453,7 @@ Proof. by move=> n x /=; rewrite raddfN raddfMn. Qed.
 
 Lemma raddf_sum : forall I r (P : pred I) E,
   f (\sum_(i <- r | P i) E i) = \sum_(i <- r | P i) f (E i).
-Proof. exact: big_morph f raddfD raddf0. Qed.
+Proof. exact: (big_morph f raddfD raddf0). Qed.
 
 Lemma can2_additive : forall f', cancel f f' -> cancel f' f -> additive f'.
 Proof.
@@ -1600,7 +1601,7 @@ Lemma rmorphM : {morph f: x y  / x * y}. Proof. by case: rmorphismMP. Qed.
 
 Lemma rmorph_prod: forall I r (P : pred I) E,
   f (\prod_(i <- r | P i) E i) = \prod_(i <- r | P i) f (E i).
-Proof. exact: big_morph f rmorphM rmorph1. Qed.
+Proof. exact: (big_morph f rmorphM rmorph1). Qed.
 
 Lemma rmorphX : forall n, {morph f: x / x ^+ n}.
 Proof. by elim=> [|n IHn] x; rewrite ?rmorph1 // !exprS rmorphM IHn. Qed.
@@ -3164,7 +3165,7 @@ Lemma Pick_form_qf :
     qf_form else_f ->
   qf_form Pick.
 Proof.
-move=> qfp qft qfe; have mA := @big_morph _ _ _ true _ andb qf_form.
+move=> qfp qft qfe; have mA := (big_morph qf_form) true andb.
 rewrite mA // big1 //= => p _.
 rewrite mA // big1 => [|i _]; first by case: pick.
 by rewrite fun_if if_same /= qfp.
@@ -3174,14 +3175,14 @@ Lemma eval_Pick : forall e (qev := qf_eval e),
   let P i := qev (pred_f i) in
   qev Pick = (if pick P is Some i then qev (then_f i) else qev else_f).
 Proof.
-move=> e qev P; rewrite (@big_morph _ _ _ false _ orb qev) //= big_orE /=.
+move=> e qev P; rewrite ((big_morph qev) false orb) //= big_orE /=.
 apply/existsP/idP=> [[p] | true_at_P].
-  rewrite (@big_morph _ _ _ true _ andb qev) //= big_andE /=.
+  rewrite ((big_morph qev) true andb) //= big_andE /=.
   case/andP; move/forallP=> eq_p_P.
   rewrite (@eq_pick _ _ P) => [|i]; first by case: pick.
   by move/(_ i): eq_p_P => /=; case: (p i) => //=; move/negbTE.
 exists [ffun i => P i] => /=; apply/andP; split.
-  rewrite (@big_morph _ _ _ true _ andb qev) //= big_andE /=.
+  rewrite ((big_morph qev) true andb) //= big_andE /=.
   by apply/forallP=> i; rewrite /= ffunE; case Pi: (P i) => //=; apply: negbT.
 rewrite (@eq_pick _ _ P) => [|i]; first by case: pick true_at_P.
 by rewrite ffunE.
@@ -4322,6 +4323,7 @@ Notation "x - y" := (add x (- y)) : ring_scope.
 Notation "x *+ n" := (natmul x n) : ring_scope.
 Notation "x *- n" := (opp (x *+ n)) : ring_scope.
 Notation "s `_ i" := (seq.nth 0%R s%R i) : ring_scope.
+Notation support := 0.-support.
 
 Notation "1" := (one _) : ring_scope.
 Notation "- 1" := (opp 1) : ring_scope.
