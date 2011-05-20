@@ -176,7 +176,7 @@ apply/mapP/andP=> [[[q e]]|[pr_p]] /=.
   case/mem_prime_decomp=> pr_q e_gt0; case/dvdnP=> u -> -> {p}.
   by rewrite -(prednK e_gt0) expnS mulnCA dvdn_mulr.
 rewrite {1}(prod_prime_decomp n_gt0) big_cond_seq /=.
-elim/big_prop: _ => [| u v IHu IHv | [q e] /= mem_qe dv_p_qe].
+elim/big_ind: _ => [| u v IHu IHv | [q e] /= mem_qe dv_p_qe].
 - by rewrite euclid1.
 - by rewrite euclid //; case/orP.
 exists (q, e) => //=; case/mem_prime_decomp: mem_qe => pr_q _ _.
