@@ -288,7 +288,7 @@ Local Notation Atau := Dade_support.
 
 Lemma support_Dade alpha : has_support alpha^\tau Atau.
 Proof.
-apply/forall_inP=> x; rewrite ffunE.
+apply/subsetP=> x; rewrite !inE; apply: contraR; rewrite ffunE.
 by case: pickP => [a /andP[Aa Ha_x] /bigcupP[] | //=]; exists a.
 Qed.
 
@@ -302,7 +302,7 @@ by rewrite -groupV -(mul1g a^-1)%g -mem_rcoset -(conj1g x^-1) ux1 conjgK.
 Qed.
 
 Lemma Dade1 alpha : alpha^\tau 1%g = 0.
-Proof. exact: eqP (forall_inP (support_Dade _) _ not_support_Dade_1). Qed.
+Proof. by rewrite (off_support (support_Dade _) not_support_Dade_1). Qed.
 
 Lemma Dade_id1 : {in 'CF(L, A) & 1%g |: A,
   forall alpha a, alpha^\tau a = alpha a}.
@@ -321,10 +321,10 @@ Lemma Dade_cfunS alpha : alpha \in 'CF(L, A) -> alpha^\tau \in 'CF(G, Atau).
 Proof.
 move=> CFalpha; apply/cfun_memfP; split=> [u | u y Gy].
   rewrite (setIidPl Dade_support_sub).
-  by move/(forall_inP (support_Dade alpha))/eqP.
+  by move/(off_support (support_Dade alpha)).
 rewrite [alpha^\tau u]ffunE; have [a /= /andP[Aa Ha_u] | no_a /=] := pickP.
   by rewrite (DadeE CFalpha Aa) // -mem_conjgV class_supportGidr ?groupV.
-apply/eqP/(forall_inP (support_Dade _))/bigcupP=> [[a Aa]].
+apply/(off_support (support_Dade _))/bigcupP=> [[a Aa]].
 apply/negP/(contraFN _ (no_a a)); rewrite Aa -mem_conjgV.
 by rewrite class_supportGidr ?groupV.
 Qed.
@@ -841,4 +841,3 @@ by rewrite -!(Dade_Ind ddA) // Dade_isometry.
 Qed.
 
 End Frobenius.
-

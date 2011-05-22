@@ -83,7 +83,9 @@ Canonical Structure cfun_lmodType :=
 (* GG: this should either go in finfun, or be replaced with *)
 (* pffun_on 0 A predT (val f) *)
 Definition has_support (f : {cfun gT}) (A : {set gT}) :=
-  forallb x: gT, (x \notin A) ==> (f x == 0).
+(*  forallb x: gT, (x \notin A) ==> (f x == 0).*)
+support f \subset A.
+
 
 Definition cfuni (G : {set gT}) : {cfun gT} := [ffun g => (g \in G)%N%:R].
 
@@ -108,17 +110,15 @@ Lemma base_cfun_subset : forall (A : {set gT}),
  base_cfun G A = 
    map (fun i  => '1_(enum_val i)) (enum 'I_#|classes G|) :> seq _.
 Proof.
-move=> A GsA; apply/all_filterP.
-apply/allP=> /= f; case/mapP=> i Hi ->.
-apply/forall_inP=> x XiA; rewrite cfuniE.
-case: (boolP (_ \in _))=> // XinE; case/negP: XiA.
+move=> A GsA; apply/all_filterP;apply/allP=> /= f; case/mapP=> i Hi ->.
+apply/subsetP=> x;rewrite !inE ffunE;apply: contraR=> XniA.
+case: (boolP (_ \in _))=> // XinE; case/negP: XniA.
 move/subsetP: GsA; apply.
 suff: enum_val i \subset G by move/subsetP; apply.
-case/imsetP: (enum_valP i)=> g GiG ->.
-by apply: class_subG.
+by case/imsetP: (enum_valP i)=> g GiG ->;apply: class_subG.
 Qed.
  
-Canonical Structure cfunVectType := 
+Canonical cfunVectType := 
  (@VectorType.pack algC _ {cfun gT} _  _ _ _ idfun
   (@ffunVectMixin algC (regVectType algC) gT)
   idfun).
@@ -146,8 +146,8 @@ apply: (iffP idP)=> [|[Hg Hc]].
     have: bGA`_i \in bGA by apply: mem_nth.
     rewrite mem_filter; case/andP=> Hs.
     move: XniAG; rewrite inE negb_and; case/orP=> [XniA|XniG].
-      move/forall_inP: Hs; move/(_ x XniA).
-      by move/eqP->; rewrite scaler0.
+      move/off_support: Hs; move/(_ x XniA).
+      by move->; rewrite scaler0.
     case/mapP=> j Hj ->; rewrite !ffunE.
     have [y Gy ->] := imsetP (enum_valP j).
     move/subsetP: (class_subG Gy (subxx _)); move/(_ x); move/contra.
@@ -167,7 +167,8 @@ suff<-: \sum_(C \in (classes G))
     by move/eqP->; rewrite scale0r mem0v.
   apply: memvZl; apply: memv_span.
   rewrite mem_filter; apply/andP; split.
-    apply/forall_inP=> x XniA; rewrite ffunE.
+    apply/subsetP=> x; rewrite !inE ffunE.
+    apply: contraR=> XniA.
     case: (boolP (x \in i))=> //= XiI; case/eqP: Hr.
     case/imsetP: Hi XiI => g GiG ->; case/imsetP=> h HiG Hx.
     case: (repr_class G g)=> h1 H1iG ->.
@@ -266,27 +267,31 @@ Qed.
 (* cfun and support *)
 
 Lemma support1 : forall (A : {set gT}), has_support '1_A A.
-Proof. by move=> A; apply/forall_inP=> g; rewrite ffunE; move/negPf->. Qed.
+Proof.
+move=> A; apply/subsetP=> g; rewrite !inE !ffunE; apply: contraR.
+by move/negPf->; rewrite -(eqN_eqC _ 0).
+Qed.
 
 Lemma support_subset : forall (A B: {set gT}) f, 
        has_support f A -> A \subset B -> has_support f B.
 Proof.
-move=> A B f; move/forall_inP=> Hss AsB.
-apply/forall_inP=> x Hx; apply: Hss.
-move: Hx; apply: contra; exact: (subsetP AsB).
+move=> A B f; move/off_support=> Hss AsB;apply/subsetP=> x;rewrite !inE.
+apply: contraR=> HxB;rewrite  Hss //; move: HxB; apply: contra.
+exact: (subsetP AsB).
 Qed.
+
 
 Lemma support_memc : forall f B , f \in 'CF( G ,B) -> has_support f B.
 Proof.
-move=> f B;move/cfun_memfP=> [H1 _].
-by apply/forall_inP=> x XniA; rewrite H1 // inE (negPf XniA).
+move=> f B;move/cfun_memfP=> [H1 _];apply/subsetP=> x; rewrite !inE.
+by apply:contraR=> XniB;rewrite H1 // inE  (negPf XniB).
 Qed.
 
 Lemma memc1: '1_G \in 'CF(G).
 Proof.
-apply/cfun_memP; split=> [x XniG| x y XiG].
-  by apply/eqP; apply: (forall_inP (support1 G)).
-by rewrite !ffunE groupJr.
+apply/cfun_memP; split=> [x XniG| x y XiG]; last by rewrite !ffunE groupJr.
+by apply/eqP; move/subsetP: (support1 G);move/(_ x); rewrite !inE;
+ move/contra; rewrite negbK=> ->.
 Qed.
 
 Lemma memc_subset : forall (A B: {set gT}) f,
@@ -294,8 +299,8 @@ Lemma memc_subset : forall (A B: {set gT}) f,
 Proof.
 move=> A B f Hss; case/cfun_memfP=> H1 H2; apply/cfun_memfP.
 split=> {H2}// x XniAG; apply: H1.
-move: XniAG; apply: contra; rewrite !inE; case/andP.
-by move/(subsetP Hss)=> ->.
+move: XniAG; rewrite !inE !negb_and. case/orP => Hx;last by rewrite Hx orbT.
+by apply/orP;left; move: Hx; apply: contra; move/(subsetP Hss)=> ->.
 Qed.
 
 Lemma memcW : forall f A , f \in 'CF(G, A) -> f \in 'CF(G).
@@ -308,10 +313,11 @@ Lemma memcE : forall A f,
   f \in 'CF(G, A) = (has_support f A) && (f \in 'CF(G)).
 Proof.
 move=> A f; apply/cfun_memfP/andP=> [[Hs Hj]|[Hs Hc]]; split.
-- by apply/forall_inP=> x XniA; rewrite Hs // inE (negPf XniA).
+- by apply/subsetP=> x; rewrite !inE; apply:contraR => XniA;   rewrite Hs //;
+   rewrite  inE (negPf XniA).   
 - by apply/cfun_memP; split=> // x XniA; rewrite Hs // inE (negPf XniA) andbF.
 - move=> x; rewrite inE negb_and; case/orP=> HH; last by apply: cfun0.
-  by apply/eqP; move/forall_inP: Hs; apply.
+  by move/off_support: Hs ->.
 by case/cfun_memP: Hc.
 Qed.
 
@@ -573,7 +579,7 @@ Qed.
 Lemma has_support_induced : forall f : {cfun gT},
   f \in 'CF(H) -> H <| G -> has_support ('Ind[G,H] f) H.
 Proof.
-move=> f Cf HnG; apply/forall_inP=> h HniH.
+move=> f Cf HnG; apply/subsetP=> h. rewrite !inE; apply:contraR=> HniH.
 rewrite ffunE big1 ?mulr0 // => g GiG.
 by rewrite (cfun0 Cf) // memJ_norm // (subsetP (normal_norm HnG)).
 Qed.

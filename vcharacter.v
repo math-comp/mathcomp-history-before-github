@@ -45,7 +45,7 @@ move=> f; apply: (iffP andP); last first.
     move: (is_basis_irr G); rewrite /is_basis /is_span.
     case/andP; move/eqP=> -> _.
     by apply: memv_sub; apply: memc_is_char.
-  apply/andP; split; last by apply/forallP=> x; rewrite inE.
+  apply/andP; split; last by apply/subsetP=> x; rewrite inE.
   apply/forallP=> x; rewrite linearD linearN /= ffunE isZC_add //.
     rewrite isZCE; apply/orP;left.
     by exact: isNatC_ncoord_char.
@@ -114,14 +114,14 @@ Qed.
 Lemma vcharW : forall f A, f \in 'Z[irr G, A]-> f \in 'Z[irr G].
 Proof. 
 move=> f A;case/and3P=> Hspan Hc Hsup;apply/and3P;split => //.
-by apply/forallP=>x; rewrite inE.
+by apply/subsetP=>x; rewrite inE.
 Qed.
 
 Lemma vchar0 :  forall m (S : m.-tuple _) A,  0 \in 'Z[S, A].
 Proof. 
 move => m S A;rewrite !inE; apply/and3P;split; first by apply: mem0v.
   by apply/forallP=> i;rewrite linear0  ffunE (isZC_nat 0). 
-by apply/forall_inP=> x; rewrite ffunE eqxx.
+by apply/subsetP=> x; rewrite !inE ffunE eqxx.
 Qed.
 
 Lemma vchar_support :  forall f A,
@@ -131,29 +131,31 @@ move=> f A; apply/idP/idP=>H.
   move/memc_vchar: (H); rewrite memcE; case/andP=> -> HCF.
   rewrite andbT.
   case/and3P: H=> irrGaa ZGaa Aaa; apply/and3P; split=> //.
-  by apply/forallP=> x; rewrite inE.
+  by apply/subsetP=> x; rewrite inE.
 by case/andP:H; case/and3P=>irrGaa ZGaa Aaa Hs;apply/and3P.
 Qed.
 
 Lemma vchar_opp : forall m (S : m.-tuple _) A f ,
   f \in 'Z[S, A]-> (-f) \in 'Z[S, A].
 Proof.
-move=> m S A f;case/and3P=> Hspan; move/forallP=> HZC; move/forall_inP=> Hs.
+move=> m S A f;case/and3P=> Hspan; move/forallP=> HZC; move/subsetP=> Hs.
 apply/and3P;split;first by rewrite memvN.
   by apply/forallP=>i; rewrite linearN ffunE isZC_opp.
-by apply/forall_inP=> x H; rewrite ffunE (eqP (Hs _ H)) oppr0.
+apply/subsetP=> x. move: (Hs x);rewrite !inE ffunE=> Hsx HfN.
+by apply:Hsx; apply/negPf;rewrite -(negPf HfN) oppr_eq0.
 Qed.
+
 
 Lemma vchar_add : forall m (S : m.-tuple _) A f1 f2, 
                       f1 \in 'Z[S, A]-> f2  \in 'Z[S, A]-> (f1 + f2) \in 'Z[S, A].
 Proof.
 move=> m S A f1 f2.
-case/and3P=> Hspan1; move/forallP=> HZC1; move/forall_inP=> Hs1.
-case/and3P=> Hspan2; move/forallP=> HZC2; move/forall_inP=> Hs2.
+case/and3P=> Hspan1; move/forallP=> HZC1; move/off_support=> Hs1.
+case/and3P=> Hspan2; move/forallP=> HZC2; move/off_support=> Hs2.
 apply/and3P;split;first by rewrite  memvD.
   by apply/forallP=>i; rewrite linearD ffunE isZC_add.
-apply/forall_inP=> x Hx.
-by rewrite ffunE (eqP (Hs1 _ Hx)) (eqP (Hs2 _ Hx)) add0r.
+apply/subsetP=> x; rewrite !inE; apply:contraR=> Hx.
+by rewrite ffunE (Hs1 _ Hx)(Hs2 _ Hx) add0r.
 Qed.
 
 Lemma vchar_sub : forall m (S : m.-tuple _) A f1 f2, 
@@ -196,8 +198,8 @@ Proof.
 move=>  f g A; rewrite vchar_support; case/andP=> H1f H2f.
 rewrite vchar_support; case/andP=> H1g H2g.
 rewrite vchar_support; apply/andP; split; last first.
-  apply/forall_inP=> x XniA; rewrite ffunE.
-  by move/forall_inP: H2f; move/(_ _ XniA); move/eqP->; rewrite mul0r.
+  apply/subsetP=> x; rewrite !inE;apply:contraR=> XniA; rewrite ffunE.
+  by move/off_support: H2f; move/(_ _ XniA) ->; rewrite mul0r.
 case/vcharP:H1f=>f1; case=> f2 [Hf1 Hf2 ->].
 case/vcharP:H1g=>g1; case=> g2 [Hg1 Hg2 ->].
 apply/vcharP;exists ((f1 * g1) + (f2 * g2));exists ((f1 * g2 ) + (f2 * g1)).
@@ -261,7 +263,7 @@ Lemma vchar_split :  forall m (S : m.-tuple _) A (f : {cfun gT}),
 Proof.
 (move=> m S A f; apply/and3P/andP; case)=> [H1 H2 H3|H1 H2]; split=> //.
 - apply/and3P; split=> //.
-  by apply/forall_inP=> i; rewrite inE.
+  by apply/subsetP=> i; rewrite inE.
 - by case/and3P: H1.
 by case/and3P: H1.
 Qed.

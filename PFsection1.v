@@ -181,7 +181,7 @@ case E2: (h e2)=> [|[|k]] //.
 do 2 move/addnI; move/eqP; rewrite sum_nat_eq0.
 move/forall_inP=> HH1.
 have: f 1%g = 0.
-  apply/eqP; case/and3P: Hf=> _ _; move/forall_inP; apply.
+  case/and3P: Hf=> _ _. move/off_support;apply.
   by rewrite !inE eqxx.
 have Hfc: f = ncoord e1 f *: 'xi_e1 + ncoord e2 f *: 'xi_e2.
   rewrite {1}(ncoord_sum F1) (bigD1 e1) //; congr (_ + _).
@@ -294,9 +294,10 @@ have in_chi: forall i:'I_m.+2, Chi`_i \in Chi.
 have Chi_irr: forall i:'I_m.+2, Chi`_i \in irr H by move=>i;apply:SubC.
 have FID: forall  i j:'I_m.+2, (F i j) \in 'Z[Chi, H^#].
   move=> i j; rewrite vchar_split; apply/andP;split.
-    by apply:vchar_sub; apply: memv_vchar=> //;apply/forall_inP=> x; 
+    by apply:vchar_sub; apply: memv_vchar=> //;apply/subsetP=> x; 
      rewrite !inE. 
-  apply/forall_inP=> g; rewrite !inE negb_and negbK; case/orP=>[| HH].
+  apply/subsetP=> g; rewrite !inE;apply:contraR;rewrite negb_and negbK;
+    case/orP=>[| HH].
     by move/eqP->; rewrite /F !ffunE !Chi1 // subrr. 
   by rewrite /F !ffunE !(cfun0 _ HH) ?subrr //;
    [case/irrIP:  (Chi_irr j)|case/irrIP: (Chi_irr i)]=> x <-; rewrite memc_irr.
@@ -659,14 +660,14 @@ apply: (mulfI (neq0GC H)).
 case: (boolP (h \in (G/A)%g))=> HiGA; last first. 
   by rewrite (cfun0 CFiq HiGA) (cfun0 CFqi HiGA).
 case: (boolP (h \in (H/A)%g))=> HiHA; last first.
-  move/forall_inP: (has_support_induced (memc_is_char CHq) HAnGA).
-  move/(_ _ HiHA)=> /eqP ->.
+  move/off_support: (has_support_induced (memc_is_char CHq) HAnGA).
+  move/(_ _ HiHA)=> ->.
   case/imsetP: HiGA HiHA=> g; rewrite inE => /andP [] GiN GiG /= ->.
   rewrite (qfuncE CHi) // => HH.
   have GniH : g \notin H.
     by apply: contra HH; exact: mem_quotient.
-  move/forall_inP: (has_support_induced (memc_is_char CHt) HnG).
-  by move/(_ _ GniH)=> /eqP ->; rewrite !mulr0.
+  move/off_support: (has_support_induced (memc_is_char CHt) HnG).
+  by move/(_ _ GniH)=> ->; rewrite !mulr0.
 rewrite !ffunE !mulrA (divff ((neq0GC H))) mul1r.
 rewrite card_quotient ?normal_norm //.
 rewrite -(LaGrange AsH) natr_mul mulfK; last first.
