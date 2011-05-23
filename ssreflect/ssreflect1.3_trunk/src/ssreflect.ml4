@@ -3510,7 +3510,7 @@ let interp_clr = function
 | Some clr, _ -> clr
 | None, _ -> []
 
-let pf_interp_gen ist gl to_ind ((oclr, occ), t) =
+let pf_interp_gen_aux ist gl to_ind ((oclr, occ), t) =
   let sigma, c = interp_term ist gl t in
   let clr = interp_clr (oclr, (fst t, c)) in
   try
@@ -3529,12 +3529,12 @@ let pf_interp_gen ist gl to_ind ((oclr, occ), t) =
 let genclrtac cl cs clr = tclTHEN (apply_type cl cs) (cleartac clr)
 
 let gentac ist gen gl =
-  let conv, cl, c, clr = pf_interp_gen ist gl false gen in 
+  let conv, cl, c, clr = pf_interp_gen_aux ist gl false gen in 
   if conv then tclTHEN (convert_concl cl) (cleartac clr) gl
   else genclrtac cl [c] clr gl
 
 let pf_interp_gen ist gl to_ind gen =
-  let _, a, b ,c = pf_interp_gen ist gl to_ind gen in a, b ,c
+  let _, a, b ,c = pf_interp_gen_aux ist gl to_ind gen in a, b ,c
 
 (** Generalization (discharge) sequence *)
 
