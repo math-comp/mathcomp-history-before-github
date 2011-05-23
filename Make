@@ -90,9 +90,11 @@ qnum.v
 interval.v
 closed_field.v
 complex.v
-# polyorder.v
-# polyrcf.v
-# qe_rcf_th.v
+mxtens.v
+polyorder.v
+polyzint.v
+polyrcf.v
+qe_rcf_th.v
 inertia.v
 PFsection1.v
 PFsection2.v

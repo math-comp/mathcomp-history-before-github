@@ -68,7 +68,7 @@ Proof. by move=> m n; rewrite ltnNge ltrNge lez_nat. Qed.
 
 Definition ltez_nat := (lez_nat, ltz_nat).
 
-Lemma leNz_nat : forall m n, (- m%:Z <= n). Proof. by move=> [|?] []. Qed. 
+Lemma leNz_nat : forall m n, (- m%:Z <= n). Proof. by move=> [|?] []. Qed.
 
 Lemma ltNz_nat : forall m n, (- m%:Z < n) = (m != 0%N) || (n != 0%N).
 Proof. by move=> [|?] []. Qed.
@@ -76,7 +76,7 @@ Proof. by move=> [|?] []. Qed.
 Definition lteNz_nat := (leNz_nat, ltNz_nat).
 
 Lemma lezN_nat : forall m n, (m%:Z <= - n%:Z) = (m == 0%N) && (n == 0%N).
-Proof. by move=> [|?] []. Qed. 
+Proof. by move=> [|?] []. Qed.
 
 Lemma ltzN_nat : forall m n, (m%:Z < - n%:Z) = false.
 Proof. by move=> [|?] []. Qed.
@@ -102,9 +102,9 @@ Lemma sgrn : forall (n: nat), sgr n%:Z = (n != 0%N). Proof. by case. Qed.
 
 Lemma sgrSn : forall n, sgr n.+1%:Z = 1. Proof. by case. Qed.
 
-Lemma sgr_eq : forall (R R' : oIdomainType) (x : R) (y : R'), 
+Lemma sgr_eq : forall (R R' : oIdomainType) (x : R) (y : R'),
   (sgr x == sgr y) = ((x == 0) == (y == 0)) && ((0 < x) == (0 < y)).
-Proof. 
+Proof.
 move=> R R' x y; rewrite -?[0 < _]sgr_cp0 -?[x == 0]sgr_cp0 -?[y == 0]sgr_cp0.
 by do 2!case: sgrP.
 (* with ssr > 1.2 : by move=> R R' x y; do 2!case: sgrP. *)
@@ -184,3 +184,48 @@ Lemma absrz : forall m, `|m| = absz m. Proof. by case. Qed.
 Lemma absz_eq0 : forall m, (absz m == 0%N) = (m == 0). Proof. by case. Qed.
 
 End Absz.
+
+
+Section OrderedMorph.
+
+Variables (R : oIdomainType).
+
+Variable  (f : {rmorphism zint -> R}).
+Implicit Type n m : zint.
+
+(* + Lemma that states : f =1 GRing.zintmul 1 *)
+
+Lemma lez0M_sub : forall n, n > 0 -> f n > 0.
+Proof.
+elim=> //= [] [|n] ihn _; first by rewrite rmorph1 lter01.
+by rewrite -addn1 addzM rmorphD rmorph1 addr_gt0 //= ?lter01// ihn.
+Qed.
+
+Lemma rmorph_gez0 : forall n, (f n >= 0) = (n >= 0).
+Proof.
+move=> n; apply/idP/idP.
+  rewrite !lerNgt; apply: contra.
+  elim: n=> // n _; rewrite oppr_cp0/= => hn.
+  rewrite rmorphN  oppr_cp0 /=.
+  exact: lez0M_sub.
+case: (ltrP 0 n)=> //; first by move=> hn _; rewrite ltrW// lez0M_sub.
+move=> hn0 h0n; suff ->: n = 0 by rewrite rmorph0 // lerr.
+by apply/eqP; rewrite eqr_le hn0 h0n.
+Qed.
+
+Lemma rmorph_lez: forall m n, (f m <= f n) = (m <= n).
+Proof.
+by move=> m n; rewrite -subr_gte0 /= -rmorph_sub // rmorph_gez0 subr_gte0.
+Qed.
+
+Lemma rmorph_ltz: forall m n, (f m < f n) = (m < n).
+Proof. by move=> m n; rewrite ltrNge rmorph_lez -ltrNge. Qed.
+
+Lemma rmorph_lez0 : forall n, (f n <= 0) = (n <= 0).
+Proof. by move=> n; rewrite -rmorph_lez rmorph0. Qed.
+Lemma rmorph_gtz0 : forall n, (f n > 0) = (n > 0).
+Proof. by move=> n; rewrite -rmorph_ltz rmorph0. Qed.
+Lemma rmorph_ltz0 : forall n, (f n < 0) = (n < 0).
+Proof. by move=> n; rewrite -rmorph_ltz rmorph0. Qed.
+
+End OrderedMorph.

@@ -1,6 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice fintype.
-Require Import bigop ssralg finset fingroup zmodp zint poly.
+Require Import bigop ssralg finset fingroup zmodp zint.
+
+Require Import poly.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

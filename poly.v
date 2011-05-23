@@ -2168,6 +2168,9 @@ rewrite /poly_comp (horner_coef_wide _ (size_poly _ _))
 by apply: eq_bigr => i _; rewrite coef_map ?(horner_lin) ?horner_exp.
 Qed.
 
+Lemma root_comp : forall p q (x : R), root (p \Po q) x = root p (q.[x]).
+Proof. by move=> p q x; rewrite !rootE horner_poly_comp. Qed.
+
 Lemma poly_compA : forall p q r, (p \Po q) \Po r = p \Po (q \Po r).
 Proof.
 move => p q r; move: p.
