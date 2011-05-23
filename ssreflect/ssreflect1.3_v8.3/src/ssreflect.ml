@@ -3830,13 +3830,21 @@ let refine_with ?(with_evars=true) oc gl =
  *    generalize the equality in case eqid is not None
  * 4. build the tactic handle intructions and clears as required in ipats and
  *    by eqid *)
-let ssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
-  let orig_gl, concl, c_ty, orig_clr = gl, pf_concl gl, pf_type_of gl c, clr in
+let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
+  (* some sanity checks *)
+  let oc, orig_clr, occ = match what with
+  | `EConstr(_,_,t) when isEvar t -> anomaly "elim called on a constr evar"
+  | `EGen _ when ist = None -> anomaly "no ist and non simple elimination"
+  | `EGen (_,(_,(_,Some (CHole _)))) when elim = None ->
+       errorstrm(str"Indeterminate pattern and no eliminator")
+  | `EGen ((Some clr, occ),(_,(_,Some (CHole _)))) -> None, clr, occ
+  | `EGen ((None, occ),(_,(_,Some (CHole _)))) -> None, [], occ
+  | `EGen ((_, occ), t as gen) ->
+       let _, c, clr = pf_interp_gen (Option.get ist) gl true gen in
+       Some c, clr, occ
+  | `EConstr (clr, occ, c) -> Some c, clr, occ in
+  let orig_gl, concl = gl, pf_concl gl in
   pp(lazy(str(if is_case then "==CASE==" else "==ELIM==")));
-  pp(lazy(pp_concat (str"clr= ") (List.map pr_hyp clr)));
-  pp(lazy(pp_concat (str"deps= ") 
-    (List.map (fun (_,(_,(t,_))) -> pr_rawconstr t) deps)));
-  pp(lazy(str"c="++pr_constr c));
   (* Utils of local interest only *)
   let iD s ?t gl = let t = match t with None -> pf_concl gl | Some x -> x in
     pp(lazy(str s ++ pr_constr t)); tclIDTAC gl in
@@ -3850,13 +3858,14 @@ let ssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
     let env, sigma, si = pf_env gl, project gl, sig_it gl in
     let t, orig_t = fire_subst gl t, t in
     let n, t = pf_abs_evars orig_gl (sigma, t) in  
-    let t, _, _, sigma' = saturate env sigma t n in
+    let t, _, _, sigma' = saturate ~beta:true env sigma t n in
     pp(lazy(str"matching " ++ pr_constr_pat t));
     let sigma, t, cl, _ = pf_fill_occ env cl occ sigma t (sigma', t) all_ok h in
+    pp(lazy(str"  -> " ++ pr_constr_pat t));
     cl, pf_unify_HO (re_sig si sigma) orig_t t in
   (* finds the eliminator applies it to evars and c saturated as needed  *)
   (* obtaining "elim ??? (c ???)". pred is the higher order evar         *)
-  let c, elim, elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl =
+  let cty, elim, elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl =
     match elim with
     | Some elim ->
       let elimty = pf_type_of gl elim in
@@ -3865,9 +3874,9 @@ let ssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
       let elim, elimty, elim_args, gl =
         pf_saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
       let pred = List.assoc pred_id elim_args in
-      let fs = fire_subst gl in
-      fs c, fs elim, fs elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl
+      None, elim, elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl
     | None ->
+      let c = Option.get oc in let c_ty = pf_type_of gl c in
       let (kn, i) as ind, unfolded_c_ty = pf_reduce_to_quantified_ind gl c_ty in
       let sort = elimination_sort_of_goal gl in
       let elim = if not is_case then Indrec.lookup_eliminator ind sort
@@ -3880,11 +3889,9 @@ let ssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
       let c, c_ty, t_args, gl = pf_saturate gl c ~ty:c_ty n_c_args in
       let elim, elimty, elim_args, gl =
         pf_saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
-      let pred = List.assoc pred_id elim_args in
-      let fs = fire_subst gl in
-      fs c, fs elim, fs elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl
+      let pred, cty = List.assoc pred_id elim_args, Some (c, c_ty) in
+      cty, elim, elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl
   in
-  let c_ty = pf_type_of gl c in
   let inf_deps_r = match kind_of_type elimty with
     | AtomicType (_, args) -> List.rev (Array.to_list args)
     | _ -> assert false in
@@ -3894,14 +3901,16 @@ let ssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
       let gl' = f c c_ty gl in
       Some (c, c_ty, gl, gl')
     with NotEnoughProducts -> None | _ -> loop (n+1) in loop 0 in
-  let elim_is_dep, c, gl =
+  let elim_is_dep, gl = match cty with
+    | None -> true, gl
+    | Some (c, c_ty) ->
     let res = 
-      if elim_is_dep || (isEvar c) then None else
+      if elim_is_dep then None else
       let arg = List.assoc (n_elim_args - 1) elim_args in
       let arg_ty = pf_type_of gl arg in
       match saturate_until gl c c_ty (fun c c_ty gl ->
         pf_unify_HO (pf_unify_HO gl c_ty arg_ty) arg c) with
-      | Some (c, _, _, gl) -> Some (false, fire_subst gl c, gl)
+      | Some (c, _, _, gl) -> Some (false, gl)
       | None -> None in
     match res with
     | Some x -> x
@@ -3910,12 +3919,13 @@ let ssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
       let inf_arg_ty = pf_type_of gl inf_arg in
       match saturate_until gl c c_ty (fun _ c_ty gl ->
               pf_unify_HO gl c_ty inf_arg_ty) with
-      | Some (c, _, _,gl) -> true, fire_subst gl c, gl
+      | Some (c, _, _,gl) -> true, gl
       | None -> errorstrm (str"Unable to apply the eliminator to the term"++
       spc()++pr_constr c++spc()++str"or to unify it's type with"++
       pr_constr inf_arg_ty) in
-  pp(lazy(str"elim_is_dep=" ++ bool elim_is_dep));
-  pp(lazy(str"saturated_c=" ++ pr_constr_pat c));
+  pp(lazy(str"elim_is_dep= " ++ bool elim_is_dep));
+  pp(lazy(str"saturated_c= " ++
+    if cty = None then str "_" else pr_constr_pat (fst(Option.get cty))));
   let predty = pf_type_of gl pred in
   (* Patterns for the inductive types indexes to be bound in pred are computed
    * looking at the ones provided by the user and the inferred ones looking at
@@ -3938,13 +3948,17 @@ let ssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
           loop gl (patterns@[i,t,inf_t,must,occ]) 
             (clr_t @ clr) (i+1) (deps,inf_deps)
       | [], c :: inf_deps -> 
-          pp(lazy(str"adding pattern " ++ pr_constr_pat c));
+          pp(lazy(str"adding inferred pattern " ++ pr_constr_pat c));
           loop gl (patterns@[i,c,c,false,[noindex]]) clr (i+1) ([],inf_deps)
       | _::_, [] -> errorstrm (str "Too many dependent abstractions") in
-    let occ = if occ = [] then [noindex] else occ in
-    let head_p, inf_deps_r = if not elim_is_dep then [], inf_deps_r else
-      let inf_p, inf_deps_r = List.hd inf_deps_r, List.tl inf_deps_r in
-      [1,c,inf_p,false,occ], inf_deps_r in
+    let deps, head_p, inf_deps_r, clr = match what, elim_is_dep, cty with
+    | `EConstr _, _, None -> anomaly "Simple welim with no term"
+    | _, false, _ -> deps, [], inf_deps_r, orig_clr
+    | `EGen gen, true, None -> deps @ [gen], [], inf_deps_r, []
+    | _, true, Some (c, _) ->
+         let occ = if occ = [] then [noindex] else occ in
+         let inf_p, inf_deps_r = List.hd inf_deps_r, List.tl inf_deps_r in
+         deps, [1,c,inf_p,false,occ], inf_deps_r, orig_clr in
     let patterns, clr, gl = 
       loop gl [] clr (List.length head_p+1) (List.rev deps, inf_deps_r) in
     head_p @ patterns, clr, gl
@@ -4028,7 +4042,7 @@ let ssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
       let i = Intset.choose inter in
       let pat = List.find (fun t -> Intset.mem i (evars_of_term t)) patterns in
       errorstrm(str"Pattern"++spc()++pr_constr_pat pat++spc()++
-        str"was not completely instantiated and its variable "++int i++spc()++
+        str"was not completely instantiated and one of its variables"++spc()++
         str"occurs in the type of another non instantieted pattern variable");
     end
   in
@@ -4052,9 +4066,10 @@ let ssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
       | Some (IpatId ipat) -> 
         let name gl = mk_anon_id "K" gl in
         let intro_lhs gl = 
-          let elim_name = match orig_clr with 
-            | [SsrHyp(_, x)] -> x 
-            | _ -> match kind_of_term c with | Var n -> n | _ -> name gl in
+          let elim_name = match orig_clr, what with
+            | [SsrHyp(_, x)], _ -> x
+            | _, `EConstr(_,_,t) when isVar t -> destVar t
+            | _ -> name gl in
           if is_name_in_ipats elim_name ipats then introid (name gl) gl
           else introid elim_name gl
         in
@@ -4081,8 +4096,8 @@ let ssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
   tclTHENLIST [gen_eq_tac; elim_intro_tac] orig_gl
 ;;
 
-let simplest_newelim x = ssrelim ~is_case:false [] ([], x) None [] []
-let simplest_newcase x = ssrelim ~is_case:true [] ([], x) None [] []
+let simplest_newelim x = ssrelim ~is_case:false [] (`EConstr ([],[],x)) None []
+let simplest_newcase x = ssrelim ~is_case:true [] (`EConstr ([],[],x)) None []
 let _ = simplest_newcase_ref := simplest_newcase
 
 let check_casearg = function
@@ -4108,7 +4123,7 @@ let ssrcasetac (view, (eqid, (dgens, (ipats, ctx)))) =
       let deps, clr, occ = 
         if view <> [] && eqid <> None && deps = [] then [gen], [], []
         else deps, clr, occ in
-      ssrelim ~is_case:true ~ist deps (occ, vc) eqid clr ipats gl
+      ssrelim ~is_case:true ~ist deps (`EConstr (clr,occ, vc)) eqid ipats gl
   in
   with_dgens dgens (ndefectcasetac view eqid ipats) ist
 
@@ -4127,10 +4142,9 @@ END
 
 let ssrelimtac (view, (eqid, (dgens, (ipats, ctx)))) =
   let ist = get_ltacctx ctx in
-  let ndefectelimtac view eqid ipats deps ((_, occ), _ as gen) ist gl =
-    let cl, c, clr = pf_interp_gen ist gl true gen in
+  let ndefectelimtac view eqid ipats deps gen ist gl =
     let elim = match view with [v] -> Some (force_term ist gl v) | _ -> None in
-    ssrelim ~ist deps (occ, c) ?elim eqid clr ipats gl
+    ssrelim ~ist deps (`EGen gen) ?elim eqid ipats gl
   in
   with_dgens dgens (ndefectelimtac view eqid ipats) ist 
 

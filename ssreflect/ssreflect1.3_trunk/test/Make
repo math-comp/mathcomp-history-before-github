@@ -7,6 +7,7 @@ caseview.v
 congr.v
 deferclear.v
 elim.v
+elim2.v
 first_n.v
 havesuff.v
 have_view_idiom.v
