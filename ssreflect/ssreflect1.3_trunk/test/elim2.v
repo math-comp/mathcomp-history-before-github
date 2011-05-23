@@ -15,7 +15,6 @@ Lemma big_rec I r (P : pred I) F
     (Kop : forall i x, P i -> K x -> K (op (F i) x)) :
   K (\big[op/idx]_(i <- r | P i) F i).
 Proof.
-Set SsrDebug.
 elim/big_ind2: {-}_.
   ASSERT1. ASSERT2 K. match goal with |- (forall i : I, is_true (P i) -> K (F i)) => admit end. Undo 4.
 elim/big_ind2: _ / {-}_.
