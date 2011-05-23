@@ -373,25 +373,24 @@ rewrite Hvx0 size_mul_monic ?monicX // size_polyX addn2 Hpx mulf_eq0 negb_or.
 case/andP => Hpx0 HXX0.
 rewrite size_mul_id // mul_polyC size_scaler // -?size_poly_eq0 size_polyX //.
 by rewrite addn2 ltnS.
-Qed. 
-
-Variables (F L: fieldType) (iota : {rmorphism F -> L}).
+Qed.
 
 Section SubFieldExtension.
 
 Local Open Scope quotient_scope.
 
+Variables (F L: fieldType) (iota : {rmorphism F -> L}).
 Variables (z : L) (p : {poly F}).
-Hypothesis (pne0 : p != 0).
-Hypothesis (Hpz : root (p ^ iota) z).
 
-Let p' := (lead_coef p)^-1 *: p.
-
-Let Hpsz : size p' = size p.
-Proof. by rewrite size_scaler // invr_neq0 // lead_coef_eq0. Qed.
+Let p' := if ((p != 0) && (root (p ^ iota) z))
+          then  (lead_coef p)^-1 *: p
+          else 'X.
 
 Let p'_mon : monic p'.
 Proof.
+rewrite /p' fun_if monicX.
+case: ifP => //.
+case/andP => Hp0 _.
 rewrite /monic /p' /lead_coef coef_scaler.
 by rewrite size_scaler ?mulVf ?invr_neq0 // -/(lead_coef p) lead_coef_eq0.
 Qed.
@@ -399,22 +398,29 @@ Qed.
 Let p'ne0 : p' != 0.
 Proof. by rewrite monic_neq0 // p'_mon. Qed.
 
-Let Hp'z : root (p' ^ iota) z.
+Let z' := if ((p != 0) && (root (p ^ iota) z))
+          then z
+          else 0.
+
+Let Hp'z : root (p' ^ iota) z'.
 Proof.
+rewrite /p' /z'.
+case: ifP; last by rewrite map_polyX rootX.
+case/andP => _ Hpz.
 rewrite map_poly_scaler /root horner_scaler mulf_eq0 -/(root (p ^ iota) z) Hpz.
 by rewrite orbT.
 Qed.
 
-Let H1p' : 0 < (size p).-1.
+Let H1p' : 0 < (size p').-1.
 Proof.
-rewrite -ltnS -polySpred // -/(size [:: z]) -(size_map_poly iota).
-by rewrite (max_poly_roots) ?map_poly_eq0 // /= Hpz.
+rewrite -ltnS -polySpred // -/(size [:: z']) -(size_map_poly iota).
+by rewrite (max_poly_roots) ?map_poly_eq0 // /= Hp'z.
 Qed.
 
-Let iotaz : commr_rmorph iota z.
+Let iotaz : commr_rmorph iota z'.
 Proof. move => x; apply: mulrC. Qed.
 
-Let e : equiv_rel [choiceType of ('rV[F]_(size p).-1)].
+Let e : equiv_rel [choiceType of ('rV[F]_(size p').-1)].
 apply: (@EquivRel _ (fun x y =>
   (horner_morph iotaz (rVpoly x)) == (horner_morph iotaz (rVpoly y))))
   => [x | x y | x y w] //.
@@ -472,16 +478,16 @@ Canonical Structure subfext_zmodType :=
   Eval hnf in ZmodType subFExtend subfext_zmodMixin.
 
 Lemma poly_rV_K_modp_subproof : forall q, 
-  rVpoly (poly_rV (q %% p') : 'rV[F]_(size p).-1) = q %% p'.
+  rVpoly (poly_rV (q %% p') : 'rV[F]_(size p').-1) = q %% p'.
 Proof.
 move => q.
 apply: poly_rV_K.
-have Hl : (lead_coef p)^-1 != 0.
+have Hl : (lead_coef p')^-1 != 0.
  by rewrite invr_neq0 // lead_coef_eq0.
-by rewrite -(size_scaler p Hl) -ltnS -polySpred // modp_spec.
+by rewrite -(size_scaler _ Hl) -ltnS -polySpred // size_scaler // modp_spec //.
 Qed.
 
-Definition subfx_mul_rep (x y : 'rV[F]_(size p).-1) : 'rV[F]_(size p).-1
+Definition subfx_mul_rep (x y : 'rV[F]_(size p').-1) : 'rV[F]_(size p').-1
  := poly_rV ((rVpoly x) * (rVpoly y) %% p').
 
 Lemma horner_iotaz_modp_subproof : forall q,
@@ -531,7 +537,7 @@ rewrite !mopP; apply/equivP.
 rewrite /= poly_rV_K_modp_subproof.
 rewrite poly_rV_K ?mul1r ?modp_size ?size_poly1 ?H1p' //.
 apply (leq_ltn_trans (size_poly _ _)).
-by rewrite Hpsz -ltnS -polySpred.
+by rewrite -polySpred.
 Qed.
 
 Lemma mulfx_addl : left_distributive subfext_mul subfext_add.
@@ -558,7 +564,7 @@ Canonical Structure subfext_comRing :=
 
 Definition poly_invert (q : {poly F}) : {poly F} :=
   if (horner_morph iotaz q) == 0 then 0
-  else let g := gdcop q p in
+  else let g := gdcop q p' in
        let e := egcdp q g in
        let k := e.1 * q + e.2 * g in
        (k`_0)^-1 *: e.1.
@@ -570,11 +576,12 @@ move => q.
 rewrite /poly_invert.
 case: eqP => [->|]; first by rewrite rmorph0 invr0.
 move/eqP => Hqz.
-have : root ((gdcop q p) ^ iota) z = root (p ^ iota) z && ~~ root (q ^ iota) z.
+have : root ((gdcop q p') ^ iota) z' 
+     = root (p' ^ iota) z' && ~~ root (q ^ iota) z'.
  by rewrite -root_gdco ? map_poly_eq0 // gdcop_map.
 case: gdcopP => r.
 case/dvdpPf => qq Hrq.
-rewrite -[p == 0]negbK pne0 orbF coprimep_sym -gcdp_eqp1 eqp_sym => Hcoprime.
+rewrite -[p' == 0]negbK p'ne0 orbF coprimep_sym -gcdp_eqp1 eqp_sym => Hcoprime.
 move: (egcdpP q r) => Hgcd.
 move: {Hcoprime Hgcd} (eqp_trans Hcoprime Hgcd).
 rewrite eqp_sym -size_poly_eq1.
@@ -585,10 +592,10 @@ apply: (canRL (mulfK _)); first done.
 rewrite -(horner_morphC iotaz) -Hk rmorphD !rmorphM.
 suff /= -> : horner_morph iotaz r = 0 by rewrite mulr0 addr0.
 apply /eqP.
-by rewrite [_ == 0]Hroot Hpz Hqz.
+by rewrite [_ == 0]Hroot Hp'z Hqz.
 Qed.
 
-Definition subfx_inv_rep (x : 'rV[F]_(size p).-1) : 'rV[F]_(size p).-1 :=
+Definition subfx_inv_rep (x : 'rV[F]_(size p').-1) : 'rV[F]_(size p').-1 :=
   poly_rV (poly_invert (rVpoly x) %% p').
 
 Lemma subfext_invm : mop1_spec subfx_inv_rep subFExtend.
@@ -618,7 +625,7 @@ rewrite horner_iotaz_modp_subproof poly_invertE mulVf.
 move: Hx.
 apply: contra.
 rewrite -(rmorph0 (horner_rmorphism iotaz)).
-rewrite -(linear0 (rVpoly_linear _ (size p).-1)) -[_ == _]/(e _ _).
+rewrite -(linear0 (rVpoly_linear _ (size p').-1)) -[_ == _]/(e _ _).
 by move/equivP ->.
 Qed.
 
@@ -647,6 +654,8 @@ Canonical Structure subfext_fieldType :=
 
 End SubFieldExtension.
 (*
+Variables (F L: fieldType) (iota : {rmorphism F -> L}).
+
 Variables (x y : L) (p q : {poly F}).
 Hypotheses (pne0 : p != 0) (qne0 : q != 0).
 Hypotheses (Hpx : root (p ^ iota) x) (Hqy : root (q ^ iota) y).
