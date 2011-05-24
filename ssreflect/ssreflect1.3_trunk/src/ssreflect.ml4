@@ -3964,7 +3964,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
        errorstrm(str"Indeterminate pattern and no eliminator")
   | `EGen ((Some clr, occ),(_,(_,Some (CHole _)))) -> None, clr, occ
   | `EGen ((None, occ),(_,(_,Some (CHole _)))) -> None, [], occ
-  | `EGen ((_, occ), t as gen) ->
+  | `EGen ((_, occ), _ as gen) ->
        let _, c, clr = pf_interp_gen (Option.get ist) gl true gen in
        Some c, clr, occ
   | `EConstr (clr, occ, c) -> Some c, clr, occ in
@@ -4051,6 +4051,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   pp(lazy(str"elim_is_dep= " ++ bool elim_is_dep));
   pp(lazy(str"saturated_c= " ++
     if cty = None then str "_" else pr_constr_pat (fst(Option.get cty))));
+  pp(lazy(pp_concat (str"orig_clr=") (List.map pr_hyp orig_clr)));
   let predty = pf_type_of gl pred in
   (* Patterns for the inductive types indexes to be bound in pred are computed
    * looking at the ones provided by the user and the inferred ones looking at
@@ -4076,17 +4077,17 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
           pp(lazy(str"adding inferred pattern " ++ pr_constr_pat c));
           loop gl (patterns@[i,c,c,false,[noindex]]) clr (i+1) ([],inf_deps)
       | _::_, [] -> errorstrm (str "Too many dependent abstractions") in
-    let deps, head_p, inf_deps_r, clr = match what, elim_is_dep, cty with
+    let deps, head_p, inf_deps_r = match what, elim_is_dep, cty with
     | `EConstr _, _, None -> anomaly "Simple welim with no term"
-    | _, false, _ -> deps, [], inf_deps_r, orig_clr
-    | `EGen gen, true, None -> deps @ [gen], [], inf_deps_r, []
+    | _, false, _ -> deps, [], inf_deps_r
+    | `EGen gen, true, None -> deps @ [gen], [], inf_deps_r
     | _, true, Some (c, _) ->
          let occ = if occ = [] then [noindex] else occ in
          let inf_p, inf_deps_r = List.hd inf_deps_r, List.tl inf_deps_r in
-         deps, [1,c,inf_p,false,occ], inf_deps_r, orig_clr in
+         deps, [1,c,inf_p,false,occ], inf_deps_r in
     let patterns, clr, gl = 
-      loop gl [] clr (List.length head_p+1) (List.rev deps, inf_deps_r) in
-    head_p @ patterns, clr, gl
+      loop gl [] orig_clr (List.length head_p+1) (List.rev deps, inf_deps_r) in
+    head_p @ patterns, Util.list_uniquize clr, gl
   in
   pp(lazy(pp_concat (str"patterns=") (List.map pr_pat patterns)));
   pp(lazy(pp_concat (str"clr=") (List.map pr_hyp clr)));
