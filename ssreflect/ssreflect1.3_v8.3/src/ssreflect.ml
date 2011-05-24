@@ -3740,7 +3740,9 @@ let analyze_eliminator elimty =
   | CastType (t, _) -> loop t
   | AtomicType (hd, args) when isRel hd -> 
       destRel hd, not (noccurn 1 t), Array.length args
-  | _ -> assert false in
+  | _ -> errorstrm (str"The eliminator has the wrong shape."++spc()++
+         str"A (applied) bound variable was expected as the conclusion of "++
+         str"the eliminator's"++Pp.cut()++str"type:"++spc()++pr_constr elimty)in
   let pred_id, elim_is_dep, n_pred_args = loop concl in
   let n_elim_args = rel_context_length ctx in
   let is_rec_elim = 
