@@ -431,15 +431,24 @@ Definition subFExtend : Type := [mod e].
 Canonical Structure subFExtend_eqType := [eqType of subFExtend].
 Canonical Structure subFExtend_choiceType := [choiceType of subFExtend].
 
+Lemma subfext_injm : mfun1_spec
+  (fun (x: 'rV[F]_(size p').-1) => horner_morph iotaz (rVpoly x)) subFExtend.
+Proof.
+move => y /=.
+apply/eqP.
+rewrite -[_ == _]/(e _ _).
+apply/equivP.
+by rewrite reprK.
+Qed.
+
+Definition subfx_inj : subFExtend -> L := (mfun1 subfext_injm).
+
 Lemma subfext_addm : mop2_spec (fun x y => x + y) subFExtend.
 Proof.
 move => x y /=.
 apply/equivP/eqP.
 rewrite !linearD !rmorphD /=.
-by congr (_ + _); apply/eqP;
- rewrite -[_ == _]/(e _ _);
- apply/equivP;
- rewrite reprK.
+by congr (_ + _); apply subfext_injm.
 Qed.
 
 Lemma subfext_oppm : mop1_spec (fun x => - x) subFExtend.
@@ -447,10 +456,7 @@ Proof.
 move => y /=.
 apply/equivP/eqP.
 rewrite !linearN !rmorphN /=.
-congr (- _); apply/eqP.
-rewrite -[_ == _]/(e _ _).
-apply/equivP.
-by rewrite reprK.
+congr (- _); apply subfext_injm.
 Qed.
 
 Local Notation subfext_add := (mop2 subfext_addm).
@@ -505,10 +511,7 @@ move => x y /=.
 apply/equivP/eqP.
 rewrite !poly_rV_K_modp_subproof !horner_iotaz_modp_subproof.
 rewrite 2!rmorphM.
-by congr (_ * _); apply/eqP;
- rewrite -[_ == _]/(e _ _);
- apply/equivP;
- rewrite reprK.
+by congr (_ * _); apply subfext_injm.
 Qed.
 
 Local Notation subfext_mul := (mop2 subfext_mulm).
@@ -557,7 +560,7 @@ Qed.
 
 Definition subfext_comRingMixin := ComRingMixin (R:=[zmodType of subFExtend])
   mulfxA mulfxC mul1fx mulfx_addl nonzero1fx.
-Canonical Structure  sbufext_Ring :=
+Canonical Structure  subfext_Ring :=
   Eval hnf in RingType subFExtend subfext_comRingMixin.
 Canonical Structure subfext_comRing :=
   Eval hnf in ComRingType subFExtend mulfxC.
@@ -605,10 +608,7 @@ apply/equivP/eqP.
 rewrite 2!{1}poly_rV_K_modp_subproof 2!{1}horner_iotaz_modp_subproof.
 rewrite !poly_invertE.
 congr (_^-1).
-apply/eqP.
-rewrite -[_ == _]/(e _ _).
-apply/equivP.
-by rewrite reprK.
+apply subfext_injm.
 Qed.
 
 Local Notation subfext_inv := (mop1 subfext_invm).
@@ -652,17 +652,74 @@ Canonical Structure subfext_fieldType :=
   Eval hnf in FieldType subFExtend
                (@FieldMixin _ _ subfx_fieldAxiom subfx_inv0).
 
-End SubFieldExtension.
-(*
-Variables (F L: fieldType) (iota : {rmorphism F -> L}).
+Lemma subfx_inj_is_rmorphism : rmorphism subfx_inj.
+Proof.
+split=> [|].
+ elim/quotW=> x; elim/quotW=> y.
+ by rewrite /subfx_inj [- _]mop1P [_ + _]mop2P !mfun1P linear_sub rmorph_sub.
+split=> [|].
+ elim/quotW=> x; elim/quotW=> y.
+ rewrite /subfx_inj [_ * _]mop2P !mfun1P /subfx_mul_rep poly_rV_K_modp_subproof.
+ by rewrite horner_iotaz_modp_subproof rmorphM.
+by rewrite /subfx_inj mfun1P poly_rV_K ?rmorph1 // size_poly1 H1p'.
+Qed.
 
+Canonical Structure subfx_inj_additive := Additive subfx_inj_is_rmorphism.
+Canonical Structure subfx_inj_rmorphism := RMorphism subfx_inj_is_rmorphism.
+
+Definition subfx_eval (q : {poly F}) : subFExtend :=
+  \pi_subFExtend (poly_rV (q %% p')).
+
+Lemma subfx_eval_is_rmorphism : rmorphism subfx_eval.
+Proof.
+split=> [x y|].
+ symmetry.
+ rewrite /subfx_eval [- _]mop1P [_ + _]mop2P -linear_sub /= monic_modp_add //.
+ congr (\pi_subFExtend (poly_rV (_ + _))).
+ symmetry.
+ apply/eqP.
+ by rewrite -addr_eq0 -monic_modp_add // addNr mod0p.
+split=> [x y|].
+ symmetry.
+ rewrite /subfx_eval [_ * _]mop2P /subfx_mul_rep !poly_rV_K_modp_subproof.
+ by rewrite monic_modp_mulmr // mulrC monic_modp_mulmr // mulrC.
+by rewrite /subfx_eval modp_size // size_poly1 -subn_gt0 subn1 H1p'.
+Qed.
+
+Canonical Structure subfx_eval_additive := Additive subfx_eval_is_rmorphism.
+Canonical Structure subfx_eval_rmorphism := RMorphism subfx_eval_is_rmorphism.
+
+Lemma subfx_inj_eval : forall q : {poly F}, 
+  (p != 0) -> root (p ^ iota) z ->
+  subfx_inj (subfx_eval q) = (q ^ iota).[z].
+Proof.
+move => q Hp0 Hpz.
+rewrite /subfx_inj mfun1P poly_rV_K_modp_subproof horner_iotaz_modp_subproof.
+by rewrite /horner_morph /z' Hp0 Hpz.
+Qed.
+
+Definition inj_subfx := (subfx_eval \o polyC).
+
+Lemma subfxE : forall x, exists p, x = subfx_eval p.
+Proof.
+elim/quotW=> x.
+exists (rVpoly x).
+apply/equivP.
+by rewrite /= poly_rV_K_modp_subproof horner_iotaz_modp_subproof.
+Qed.
+
+End SubFieldExtension.
+
+Variables (F L: fieldType) (iota : {rmorphism F -> L}).
 Variables (x y : L) (p q : {poly F}).
 Hypotheses (pne0 : p != 0) (qne0 : q != 0).
 Hypotheses (Hpx : root (p ^ iota) x) (Hqy : root (q ^ iota) y).
 Hypothesis (Hsep : separablePolynomial q).
 
-
-
+Hypothesis resultant_hypothesis : forall (a b c: L) (pa pb pc : {poly F}),
+  pa != 0 -> pb != 0 -> pc != 0 ->
+  root (pa ^ iota) a -> root (pb ^ iota) b -> root (pc ^ iota) c ->
+  exists2 p, p != 0 & root (p ^ iota) (a*b - c).
 
 Lemma PET_Infinite_Case : exists r : {poly L}, r != 0 /\
   forall t, ~~root r (iota t) ->
@@ -686,9 +743,9 @@ have p'ne0 : p' != 0.
  by rewrite map_poly_eq0.
 move/(coprime_pT_q_subproof p'ne0).
 rewrite -gcdp_eqp1.
-move: (egcdpPW (p' ^ polyC \Po 'Y * 'X) (q' ^ polyC)) => [u [v Huv]].
+move: (bezoutp (p' ^ polyC \Po 'Y * 'X) (q' ^ polyC)) => [u [v Huv]].
 move/(eqp_trans Huv) => {Huv}.
-rewrite -size1_dvdp1.
+rewrite -size_poly_eq1.
 case/size1P => r [Hr0 Hr].
 exists r.
 split => // t Ht.
@@ -720,11 +777,10 @@ set p1 := (_ \Po _).
 rewrite /horner_morph map_polyE map_id polyseqK.
 move => Hlincomb.
 have : (coprimep p1 q').
- apply/coprimepPW.
- exists u1.
- exists v1.
- by rewrite Hlincomb -eqp_polyC.
-clear -Hpx Hqy pne0 qne0 Hqq.
+ apply/coprimep_bezout.
+ exists u1; exists v1.
+ by rewrite Hlincomb polyC_eqp1.
+clear -Hpx Hqy pne0 qne0 Hqq resultant_hypothesis.
 move/(coprimep_poly_comp ('X - y%:P)).
 rewrite /q' [(qq \Po _) \Po _]poly_compA poly_comp_translateK poly_compX.
 rewrite -gcdp_eqp1.
@@ -741,61 +797,86 @@ have: (gcdp p2 (q ^ iota) %= ('X - y%:P)).
  rewrite Hqq -(eqp_dvdl _ (mulp_gcdl _ _ _)) dvdp_mul2r //.
  by rewrite -size_poly_eq0 size_factor.
 set z := iota t * y - x.
-have Hcomm : commr_rmorph iota z by move => a; apply: mulrC.
-pose (Q := (q ^ polyC)).
-have HQ : q ^ iota = Q ^ (horner_morph Hcomm).
- by rewrite /Q -map_poly_comp !map_polyE (eq_map (horner_morphC _)).
-rewrite HQ.
-pose (P := (p ^ polyC) \Po (t%:P *: 'X - 'Y)).
-rewrite (_ : p2 = P ^ (horner_morph Hcomm)); last first.
- rewrite /P.
- rewrite -!horner_map rmorph_sub ![GRing.RMorphism.apply _]/=.
- rewrite map_poly_scaler map_polyC map_polyX.
- rewrite -map_poly_comp ![GRing.Additive.apply _]/=.
- rewrite [_ t%:P]horner_morphC horner_morphX.
- rewrite !map_polyE (eq_map (map_polyC _)) -!map_polyE map_poly_comp.
- rewrite -[(p ^ _) ^ _]map_poly_comp.
- rewrite !map_polyE (eq_map (horner_morphC _)) -!map_polyE.
- rewrite ![GRing.Additive.apply _]/=.
- rewrite /p2 /p1 /p' !poly_compA {2 3}/poly_comp.
+have Hpt : root (('X - t%:P) ^ iota) (iota t).
+ by rewrite rmorph_sub /= map_polyC map_polyX root_factor.
+have Hptne0 : ('X - t%:P) != 0.
+ by rewrite -size_poly_eq0 size_factor.
+case: (resultant_hypothesis Hptne0 qne0 pne0 Hpt Hqy Hpx) => [f Hf0 Hfz].
+set Fz := subFExtend iota z f.
+set kappa := (@subfx_inj _ _ _ _ _) : Fz -> L.
+pose (Q := (q ^ (inj_subfx iota z f))).
+have HQ : q ^ iota = Q ^ kappa.
+ rewrite /Q -map_poly_comp !map_polyE.
+ congr (Poly _).
+ apply: eq_map => a.
+ by rewrite /= subfx_inj_eval // map_polyC hornerC.
+pose (P := (p ^ (inj_subfx iota z f) \Po 
+  ((inj_subfx iota z f t) *: 'X - (subfx_eval iota z f 'X)%:P))).
+have HP : p2 = P ^ kappa.
+ rewrite -!horner_map rmorph_sub /= map_poly_scaler map_polyC map_polyX /=.
+ rewrite !subfx_inj_eval // map_polyX map_polyC hornerX hornerC -map_poly_comp.
+ rewrite !map_polyE (eq_map (map_polyC _)) -!map_polyE map_poly_comp /=.
+ rewrite -[(p ^ _) ^ _]map_poly_comp [p ^ _]map_polyE /=.
+ rewrite (eq_map (fun q => subfx_inj_eval (polyC q) Hf0 Hfz)).
+ rewrite (eq_map (horner_morphC _)); last by move => ?; apply: mulrC.
+ rewrite -!map_polyE /p2 /p1 /p' !poly_compA {2 3}/poly_comp.
  rewrite rmorphM rmorphD ![GRing.RMorphism.apply _]/= !map_polyX !map_polyC.
  rewrite !horner_lin mulr_addr -addrA -polyC_opp -polyC_mul polyC_add oppr_add.
  by rewrite -!polyC_opp opprK mulrN mul_polyC.
-have HPQ : gcdp (P ^ horner_morph Hcomm) (Q ^ horner_morph Hcomm) %=
-           gcdp P Q ^ horner_morph Hcomm.
- apply/andP; split.
-  case: (egcdpPW P Q) => u [v].
-  move/eqpP => [c1 [c2 [Hc1 Hc2 Huv]]].
-  apply: (@dvdp_trans _ ((u * P + v * Q) ^ horner_morph Hcomm)).
-   by rewrite rmorphD !rmorphM dvdp_add ?dvdp_mull ?dvdp_gcdl // dvdp_gcdr.
-  apply/dvdpPc.
-  exists (horner_morph Hcomm (gdcop c1 c2)).
-  case: gdcopP => c2'.
-  move/negbTE: Hc2 ->.
-  move/dvdpPf => [Hc2'' Hc2].
-  rewrite orbF => Hc2'c1 Hc2'.
-  
+rewrite HQ HP -gcdp_map /=.
+move/eqpP => [c1 [c2 [Hc1 Hc2]]].
+move/(canLR (scalerK Hc2)).
+rewrite scalerA.
+move/polyP => Hgcd.
+move:(Hgcd 1%N).
+rewrite coef_add coef_opp coefC coefX subr0 coef_scaler coef_map mulr1n.
+move => Hgcd1.
+move:(nonzero1r L).
+rewrite -Hgcd1 mulf_eq0 negb_or.
+move/andP => [Hc120 Hgcd10].
+move/eqP:(Hgcd 0%N).
+rewrite coef_add coef_opp coefC coefX coef_scaler coef_map sub0r -eqr_oppC.
+move:Hgcd1.
+move/(canRL (mulfK Hgcd10)) ->.
+rewrite mul1r -fmorphV -rmorphM -rmorphN.
+set y' := -_.
+case: (subfxE y') => [h ->].
+rewrite /= subfx_inj_eval //.
+move/eqP => Hh.
+by exists h.
+Qed.
 
-Focus 2.
- rewrite dvdp_gcd.
- suff HA : (gcdp P Q ^ horner_morph Hcomm %| Q ^ horner_morph Hcomm).
-  rewrite HA andbT.
-  case: (egcdpPW P Q) => u [v].
-  case/andP => HPQ1 HPQ2.
-  apply: (@dvdp_trans _ ((u * P + v * Q) ^ horner_morph Hcomm)); last first.
-  
-  rewrite dvdp_addr.
-  
-  
- 
- 
-  
+Lemma PET_char0 : [char F] =i pred0 -> exists t,
+  (exists p0, (p0 ^ iota).[iota t * y - x] = x) /\ 
+  (exists q0, (q0 ^ iota).[iota t * y - x] = y).
+Proof.
+move/charf0P => Hchar.
+case: PET_Infinite_Case => f [Hf0 Hf].
+pose s := mkseq (fun x => iota (x%:R : F)) (size f).
+have Hs : uniq_roots s.
+ rewrite uniq_rootsE.
+ apply: mkseq_uniq.
+ suff Hwlog: forall a b, iota (a%:R : F) = iota (b%:R : F) -> a <= b;
+  move => a b Hab.
+  apply/eqP.
+  rewrite eqn_leq.
+  rewrite !Hwlog //.
+ move/eqP: Hab.
+ apply: contraLR.
+ rewrite -ltnNge => Hab.
+ rewrite (inj_eq (fmorph_inj iota)) -subr_eq0 -mulrn_subr; last by rewrite ltnW.
+ move: Hab.
+ rewrite Hchar -subn_gt0.
+ by move/prednK <-.
+move/contra: (fun X => max_ring_poly_roots (rs:=s) Hf0 X Hs).
+rewrite -leqNgt size_mkseq.
+move/(_ (leqnn _)).
+case/allPn => ?.
+case/mapP => t _ -> Ht.
+exists t%:R.
+by apply: Hf.
+Qed.
 
-  
-  
-  
-rewrite -(gcdp_map (RMorphism (horner_is_rmorphism Hcomm)) P Q).
-*)
 End InfinitePrimitiveElementTheorem.
 
 Section Separable.
