@@ -846,9 +846,9 @@ move/eqP => Hh.
 by exists h.
 Qed.
 
-Lemma PET_char0 : [char F] =i pred0 -> exists t,
-  (exists p0, (p0 ^ iota).[iota t * y - x] = x) /\ 
-  (exists q0, (q0 ^ iota).[iota t * y - x] = y).
+Lemma PET_char0 : [char F] =i pred0 -> exists n,
+  (exists p0, (p0 ^ iota).[y *+ n - x] = x) /\ 
+  (exists q0, (q0 ^ iota).[y *+ n - x] = y).
 Proof.
 move/charf0P => Hchar.
 case: PET_Infinite_Case => f [Hf0 Hf].
@@ -873,7 +873,8 @@ rewrite -leqNgt size_mkseq.
 move/(_ (leqnn _)).
 case/allPn => ?.
 case/mapP => t _ -> Ht.
-exists t%:R.
+exists t.
+rewrite -mulr_natl -[1](rmorph1 iota) -rmorphMn.
 by apply: Hf.
 Qed.
 
