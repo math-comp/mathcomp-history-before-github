@@ -113,7 +113,7 @@ Proof. by move=> x y; apply:fsym_f0. Qed.
 
 Theorem Pythagore: forall u v, orthogonal u v -> f (u+v) (u+v)  = f u u  + f v v.
 Proof.
-move => u v Huv; elim:(ortho_sym  u v ) => Hvu _.
+move => u v Huv; case:(ortho_sym  u v ) => Hvu _.
 by rewrite !bilin1 !bilin2 Huv (Hvu Huv) add0r addr0.
 Qed.
 
@@ -148,7 +148,7 @@ Qed.
 Lemma dim_xbar :forall vs,(\dim vs ) -  1 <= \dim (vs :&: xbar).
 Proof. 
 move=> vs; rewrite -(addKn 1 (\dim (vs :&: xbar))) addnC leq_sub2r //.
-have H :\dim  (alpha_lapp @v: vs )<= 1 by rewrite -(dimR F) -dimvf dimvS // subsetvf.
+have H :\dim  (alpha_lapp @: vs )<= 1 by rewrite -(dimR F) -dimvf dimvS // subvf.
 by rewrite -(limg_ker_dim alpha_lapp vs)(leq_add (leqnn (\dim(vs :&: xbar)))). 
 Qed.
 
@@ -156,7 +156,7 @@ Qed.
 Lemma xbar_eqvs: forall vs,  (forall v , v \in vs -> orthogonal v x )-> \dim (vs :&: xbar)= (\dim vs ).
 move=> vs  Hvs.
 rewrite -(limg_ker_dim alpha_lapp vs).
-suff-> : \dim (alpha_lapp @v: vs) = 0%nat by rewrite addn0.
+suff-> : \dim (alpha_lapp @: vs) = 0%nat by rewrite addn0.
 apply/eqP; rewrite dimv_eq0; apply /vspaceP => w.
 rewrite memv0;apply/memv_imgP.
 case e: (w==0).
