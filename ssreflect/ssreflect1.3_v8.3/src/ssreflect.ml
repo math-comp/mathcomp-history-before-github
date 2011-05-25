@@ -3861,9 +3861,9 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
     let t, orig_t = fire_subst gl t, t in
     let n, t = pf_abs_evars orig_gl (sigma, t) in  
     let t, _, _, sigma' = saturate ~beta:true env sigma t n in
-    pp(lazy(str"matching " ++ pr_constr_pat t));
+    pp(lazy(str"matching: " ++ pr_constr_pat t));
     let sigma, t, cl, _ = pf_fill_occ env cl occ sigma t (sigma', t) all_ok h in
-    pp(lazy(str"  -> " ++ pr_constr_pat t));
+    pp(lazy(str"     got: " ++ pr_constr_pat t));
     cl, pf_unify_HO (re_sig si sigma) orig_t t in
   (* finds the eliminator applies it to evars and c saturated as needed  *)
   (* obtaining "elim ??? (c ???)". pred is the higher order evar         *)
@@ -3894,6 +3894,8 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
       let pred, cty = List.assoc pred_id elim_args, Some (c, c_ty) in
       cty, elim, elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl
   in
+  pp(lazy(str"elim= "++ pr_constr elim));
+  pp(lazy(str"elimty= "++ pr_constr elimty));
   let inf_deps_r = match kind_of_type elimty with
     | AtomicType (_, args) -> List.rev (Array.to_list args)
     | _ -> assert false in
@@ -3926,9 +3928,6 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
       spc()++pr_constr c++spc()++str"or to unify it's type with"++
       pr_constr inf_arg_ty) in
   pp(lazy(str"elim_is_dep= " ++ bool elim_is_dep));
-  pp(lazy(str"saturated_c= " ++
-    if cty = None then str "_" else pr_constr_pat (fst(Option.get cty))));
-  pp(lazy(pp_concat (str"orig_clr=") (List.map pr_hyp orig_clr)));
   let predty = pf_type_of gl pred in
   (* Patterns for the inductive types indexes to be bound in pred are computed
    * looking at the ones provided by the user and the inferred ones looking at
@@ -3967,7 +3966,6 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
     head_p @ patterns, Util.list_uniquize clr, gl
   in
   pp(lazy(pp_concat (str"patterns=") (List.map pr_pat patterns)));
-  pp(lazy(pp_concat (str"clr=") (List.map pr_hyp clr)));
   (* Predicate generation, and (if necessary) tactic to generalize the
    * equation asked by the user *)
   let elim_pred, gen_eq_tac, clr, gl = 
