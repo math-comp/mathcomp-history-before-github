@@ -1,4 +1,11 @@
 Require Import ssreflect eqtype ssrbool ssrnat seq div fintype finfun path bigop.
+
+Lemma big_load R (K K' : R -> Type) idx op I r (P : pred I) F :
+  let s := \big[op/idx]_(i <- r | P i) F i in
+  K s * K' s -> K' s.
+Proof. by move=> /= [_]. Qed.
+Implicit Arguments big_load [R K' idx op I r P F].
+
 Section Elim1.
 
 Variables (R : Type) (K : R -> Type) (f : R -> R).
@@ -32,6 +39,9 @@ Fail elim/big_rec2: {2}_.
 elim/big_rec2: (\big[op/idx]_(i <- r | P i) F i)
   / {1}(\big[op/idx]_(i <- r | P i) F i).
   Undo.
+
+elim/(big_load (phantom R)): _.
+Undo.
 
 Fail elim/big_rec2: _ / {2}(\big[op/idx]_(i <- r | P i) F i).
 Admitted.

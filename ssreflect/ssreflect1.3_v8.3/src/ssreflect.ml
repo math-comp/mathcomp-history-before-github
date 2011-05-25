@@ -3734,7 +3734,10 @@ let pf_saturate ?beta gl c ?ty m =
 (* TASSI: given the type of an elimination principle, it finds the higher order
  * argument (index), it computes it's arity and the arity of the eliminator and
  * checks if the eliminator is recursive or not *)
-let analyze_eliminator elimty =
+let analyze_eliminator elimty env sigma =
+  let elimty = Reductionops.clos_norm_flags 
+    (Closure.RedFlags.mkflags [Closure.RedFlags.fZETA]) 
+      env sigma elimty in
   let ctx, concl = decompose_prod_assum elimty in
   let rec loop t = match kind_of_type t with
   | CastType (t, _) -> loop t
@@ -3872,7 +3875,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
     | Some elim ->
       let elimty = pf_type_of gl elim in
       let pred_id, n_elim_args, is_rec, elim_is_dep, n_pred_args =
-        analyze_eliminator elimty in
+        analyze_eliminator elimty (pf_env gl) (project gl) in
       let elim, elimty, elim_args, gl =
         pf_saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
       let pred = List.assoc pred_id elim_args in
@@ -3885,7 +3888,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
         else pf_apply Indrec.build_case_analysis_scheme gl ind true sort in
       let elimty = pf_type_of gl elim in
       let pred_id,n_elim_args,is_rec,elim_is_dep,n_pred_args =
-        analyze_eliminator elimty in
+        analyze_eliminator elimty (pf_env gl) (project gl) in
       let rctx = fst (decompose_prod_assum unfolded_c_ty) in
       let n_c_args = rel_context_length rctx in
       let c, c_ty, t_args, gl = pf_saturate gl c ~ty:c_ty n_c_args in
