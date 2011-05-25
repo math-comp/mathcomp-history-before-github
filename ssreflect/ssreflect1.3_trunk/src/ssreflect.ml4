@@ -3827,7 +3827,7 @@ let saturate ?(beta=false) env sigma c ?(ty=Retyping.get_type_of env sigma c) m
         (Reductionops.whd_betadeltaiota env sigma) ty in
       match kind_of_type ty with
       | ProdType _ -> loop ty args sigma n
-      | _ -> assert false
+      | _ -> anomaly "saturate did not find enough products"
   in
    loop ty [] sigma m
 
