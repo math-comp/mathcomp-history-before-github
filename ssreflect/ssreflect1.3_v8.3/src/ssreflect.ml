@@ -3735,19 +3735,21 @@ let pf_saturate ?beta gl c ?ty m =
  * argument (index), it computes it's arity and the arity of the eliminator and
  * checks if the eliminator is recursive or not *)
 let analyze_eliminator elimty env sigma =
-  let elimty = Reductionops.clos_norm_flags 
-    (Closure.RedFlags.mkflags [Closure.RedFlags.fZETA]) 
-      env sigma elimty in
-  let ctx, concl = decompose_prod_assum elimty in
-  let rec loop t = match kind_of_type t with
-  | CastType (t, _) -> loop t
+  let rec loop ctx t = match kind_of_type t with
   | AtomicType (hd, args) when isRel hd -> 
-      destRel hd, not (noccurn 1 t), Array.length args
-  | _ -> errorstrm (str"The eliminator has the wrong shape."++spc()++
-         str"A (applied) bound variable was expected as the conclusion of "++
-         str"the eliminator's"++Pp.cut()++str"type:"++spc()++pr_constr elimty)in
-  let pred_id, elim_is_dep, n_pred_args = loop concl in
-  let n_elim_args = rel_context_length ctx in
+    ctx, destRel hd, not (noccurn 1 t), Array.length args
+  | CastType (t, _) -> loop ctx t
+  | ProdType (x, ty, t) -> loop ((x,None,ty) :: ctx) t
+  | LetInType (x,b,ty,t) -> loop ((x,Some b,ty) :: ctx) (subst1 b t)
+  | _ ->
+    let env' = Environ.push_rel_context ctx env in
+    let t' = Reductionops.whd_betadeltaiota env' sigma t in
+    if not (eq_constr t t') then loop ctx t' else
+      errorstrm (str"The eliminator has the wrong shape."++spc()++
+      str"A (applied) bound variable was expected as the conclusion of "++
+      str"the eliminator's"++Pp.cut()++str"type:"++spc()++pr_constr elimty) in
+  let ctx, pred_id, elim_is_dep, n_pred_args = loop [] elimty in
+  let n_elim_args = rel_context_nhyps ctx in
   let is_rec_elim = 
      let count_occurn n term =
        let count = ref 0 in
@@ -3873,12 +3875,13 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   let cty, elim, elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl =
     match elim with
     | Some elim ->
-      let elimty = pf_type_of gl elim in
+      let elimty, env = pf_type_of gl elim, pf_env gl in
       let pred_id, n_elim_args, is_rec, elim_is_dep, n_pred_args =
-        analyze_eliminator elimty (pf_env gl) (project gl) in
+        analyze_eliminator elimty env (project gl) in
       let elim, elimty, elim_args, gl =
         pf_saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
       let pred = List.assoc pred_id elim_args in
+      let elimty = Reductionops.whd_betadeltaiota env (project gl) elimty in
       None, elim, elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl
     | None ->
       let c = Option.get oc in let c_ty = pf_type_of gl c in
@@ -3886,18 +3889,19 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
       let sort = elimination_sort_of_goal gl in
       let elim = if not is_case then Indrec.lookup_eliminator ind sort
         else pf_apply Indrec.build_case_analysis_scheme gl ind true sort in
-      let elimty = pf_type_of gl elim in
+      let elimty, env = pf_type_of gl elim, pf_env gl in
       let pred_id,n_elim_args,is_rec,elim_is_dep,n_pred_args =
-        analyze_eliminator elimty (pf_env gl) (project gl) in
+        analyze_eliminator elimty env (project gl) in
       let rctx = fst (decompose_prod_assum unfolded_c_ty) in
       let n_c_args = rel_context_length rctx in
       let c, c_ty, t_args, gl = pf_saturate gl c ~ty:c_ty n_c_args in
       let elim, elimty, elim_args, gl =
         pf_saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
       let pred, cty = List.assoc pred_id elim_args, Some (c, c_ty) in
+      let elimty = Reductionops.whd_betadeltaiota env (project gl) elimty in
       cty, elim, elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl
   in
-  pp(lazy(str"elim= "++ pr_constr elim));
+  pp(lazy(str"elim= "++ pr_constr_pat elim));
   pp(lazy(str"elimty= "++ pr_constr elimty));
   let inf_deps_r = match kind_of_type elimty with
     | AtomicType (_, args) -> List.rev (Array.to_list args)
@@ -3935,7 +3939,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   (* Patterns for the inductive types indexes to be bound in pred are computed
    * looking at the ones provided by the user and the inferred ones looking at
    * the type of the elimination principle *)
-  let pr_pat (_,t,_,_,_) = pr_constr_pat t in
+  let pr_pat (_,t,_,_,_) = pr_constr t in
   let patterns, clr, gl =
     let rec loop gl patterns clr i = function
       | [],[] -> patterns, clr, gl
@@ -3974,7 +3978,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   let elim_pred, gen_eq_tac, clr, gl = 
     let error gl t inf_t = errorstrm (str"The given pattern matches the term"++
       spc()++pp_term gl t++spc()++str"while the inferred pattern"++
-      spc()++pr_constr_pat inf_t++spc()++str"doesn't") in
+      spc()++pr_constr_pat (fire_subst gl inf_t)++spc()++ str"doesn't") in
     let match_or_postpone (cl, gl, post) (h, t, inf_t, must, occ) =
       let gl =
         if is_undef_pat gl t then try pf_unify_HO gl inf_t t with _ -> gl
@@ -3998,7 +4002,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
         List.fold_left match_or_postpone (concl, gl, []) patterns in
       if postponed = [] then concl, gl
       else if List.length postponed = List.length patterns then
-        errorstrm (str "Some patterns are undefined even after"++spc()++
+        errorstrm (str "Some patterns are undefined even after all"++spc()++
           str"the defined ones matched")
       else match_all concl gl postponed in
     let concl, gl = match_all concl gl patterns in

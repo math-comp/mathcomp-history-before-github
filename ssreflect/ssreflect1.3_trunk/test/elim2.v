@@ -46,4 +46,13 @@ Undo.
 Fail elim/big_rec2: _ / {2}(\big[op/idx]_(i <- r | P i) F i).
 Admitted.
 
+Definition morecomplexthannecessary A (P : A -> A -> Prop) x y := P x y.
+
+Lemma grab A (P : A -> A -> Prop) n m : (n = m) -> (P n n) -> morecomplexthannecessary A P n m.
+by move->.
+Qed.
+
+Goal forall n m, m + (n + m) = m + (n * 1 + m).
+Proof. move=> n m; elim/grab : (_ * _) / {1}n => //; exact: muln1. Qed.
+
 End Elim1.
