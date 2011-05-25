@@ -254,7 +254,7 @@ let posetac id cl = settac id cl nowhere
 (* we reduce head beta redexes *)
 let betared env = 
   Closure.create_clos_infos 
-    (Closure.RedFlags.red_add Closure.RedFlags.no_red Closure.RedFlags.fBETA)
+   (Closure.RedFlags.mkflags [Closure.RedFlags.fBETA])
     env
 ;;
 let introid name = tclTHEN (fun gl ->
