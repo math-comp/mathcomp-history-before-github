@@ -140,6 +140,119 @@ rewrite mulf_eq0; case/orP=> //.
 by rewrite conjC_eq0.
 Qed.
 
+Lemma memc_class_ortho : forall (A : {set gT}) (u v : {cfun gT}),
+   u \in 'CF(H,A) -> v \in 'CF(H,H :\: A) -> '[u,v]_H = 0.
+Proof.
+move=> A u v; rewrite !class_funE /=.
+case/memv_sumP=> /= x_ [] Hx ->.
+case/memv_sumP=> /= y_ [] Hy ->.
+rewrite raddf_sum /=; apply: big1=> /= i Hi.
+move: (Hy _ Hi); case/injvP=> ky ->; rewrite inner_prodZ.
+rewrite -inner_prodbE linear_sum /= big1 ?mulr0 //= => j Hj.
+move: (Hx _ Hj); case/injvP=> kx ->.
+rewrite linearZ /= inner_prodbE inner_prod1.
+suff: H :&: enum_val j :&: enum_val i = set0.
+  move/eqP; rewrite -cards_eq0; move/eqP->.
+  by rewrite mul0r scaler0.
+apply/setP=> g; rewrite !inE.
+case: (boolP (_ \in _))=> // GiG.
+case: (boolP (_ \in _))=> // GiE.
+case: (boolP (_ \in _))=> // GiE'.
+move: (subsetP Hi); move/(_ _ GiE').
+move: (subsetP Hj); move/(_ _ GiE).
+by rewrite inE => ->.
+Qed.
+
+Lemma memc_class_compl : forall (A : {set gT}),
+  A \subset H -> class_support A H = A ->
+   ('CF(H,A) + 'CF(H,H :\: A))%VS = 'CF(H).
+Proof.
+move=> A AsH ClAH.
+rewrite [X in _ = X]class_funE.
+rewrite (bigID (fun i : 'I_#|classes H| => enum_val i \subset A)) /=.
+congr (_ + _)%VS; rewrite class_funE; apply: eq_bigl=> /= i.
+  case: (boolP (_ \subset _))=> [HH|]; last by rewrite andbF.
+  by apply: sym_equal; rewrite andbT; apply/idP; apply: subset_trans AsH.
+apply/idP/andP=> [HH|].
+  split; first by apply: subset_trans HH (subsetDl _ _).
+  move: HH; have [y YiG ->] := imsetP (enum_valP i).
+  move/subsetP; move/(_ _ (class_refl _ _)).
+  rewrite inE YiG andbT=> HH; apply/negP=> HH1; case/negP: HH.
+  by apply: (subsetP HH1); apply: class_refl.
+have [y YiG ->] := imsetP (enum_valP i)=> [] [] HH1 HH2.
+apply/subsetP=> g; case/imsetP=> h HiH ->.
+rewrite inE groupJ // andbT.
+apply/negP=> YHiA; case/negP: HH2.
+apply/subsetP=> k; case/imsetP=> k1 K1iH ->.
+rewrite -ClAH; apply/imset2P; exists (y^h) (h^-1 * k1)%g=> //.
+  by rewrite groupM ?groupV.
+by rewrite -conjgM mulgA mulgV mul1g.
+Qed.
+
+(* This PF 1.3a *)
+Lemma equiv_restrict_compl :  
+  forall (A : {set gT}) m (Phi : m.-tuple {cfun gT})
+                     ( mu : {cfun gT}) (d: Iirr H -> algC),
+  H \subset G ->
+  A \subset H ->
+  class_support A H = A ->
+   is_basis 'CF(H,A) Phi -> 
+   mu \in 'CF(G) -> 
+   ('Res[A] mu == 'Res[A] (\sum_(i : Iirr H) (d i) *: 'xi_i)) =
+   forallb j : 'I_m, 
+     \sum_(i : Iirr H) '[Phi`_j, 'xi_i]_H * (d i)^* ==
+     '['Ind[G,H] Phi`_j, mu]_G.
+Proof.
+move=> A m Phi mu d HsG AsH CsA BP Cmu.
+have CP : forall i: 'I_m, Phi`_ i \in 'CF(H,A).
+  move=> i; apply: (memv_is_basis BP _).
+  by apply: mem_nth; rewrite size_tuple.
+rewrite -(crestrict_subset _ AsH).
+pose D := 'Res[H] mu - \sum_(i < Nirr H) d i *: 'xi_i.
+have CD: D \in 'CF(H).
+  apply: memv_sub; first by apply: (memc_restrict HsG).
+  by apply: memv_suml=> i _; apply: memvZl; apply: memc_irr.
+set vL := _ == _.
+set vR := forallb i, _.
+have->: vL = (D \in 'CF(H, H :\: A)).
+  rewrite memcE  // CD andbT /vL -subr_eq0 -linear_sub /= -/D.
+  apply/eqP/subsetP=> [HH g| HH]; last first.
+    apply/ffunP=> g; rewrite ffunE [_ 0 g]ffunE.
+    move: (HH g); rewrite !inE.
+    case: (boolP (D g == 0))=> [/eqP->|_]; first by rewrite mulr0.
+    move/(_ is_true_true); case/andP.
+    by rewrite ffunE; move/negPf->; rewrite mul0r.
+  move/ffunP: HH; move/(_ g).
+  rewrite !inE 2!ffunE.
+  case: (_ \in _).
+    by rewrite mul1r !ffunE => ->; rewrite eqxx.
+  case/cfun_memP: CD; move/(_ g).
+  by case: (_ \in _)=> //; move/(_ is_true_true)=> ->; rewrite eqxx.
+have F0: forall j : 'I_m,
+   (\sum_(i < Nirr H) '[Phi`_j, 'xi_i]_H * (d i)^* ==
+   '['Ind[G, H] Phi`_j, mu]_G) = ('[Phi`_j, D]_H == 0).
+  move=> j.
+  rewrite raddf_sub raddf_sum /= (frobenius_reciprocity HsG) //; last first.
+    by apply: memcW.
+  rewrite subr_eq0 eq_sym; congr (_ == _)=> //.
+  by apply: eq_bigr=> i _; rewrite inner_prodZ mulrC.
+apply/idP/forallP=> [HH i| HH].
+  by rewrite F0; apply/eqP; apply: memc_class_ortho.
+have F1: forall j : 'I_m, '[Phi`_j, D]_H = 0.
+  by move=> j; move: (HH j); rewrite F0; move/eqP.
+move: CD F1; rewrite -(memc_class_compl AsH) //.
+case/memv_addP=> /= f [g []] Cf Cg -> F1.
+have: '[f,f+g]_H = 0.
+  case/andP: BP.
+  move/is_span_span; move/(_ _ Cf)=> {1}-> _.
+  rewrite -inner_prodbE linear_sum /=; apply: big1=> /= i _.
+  by rewrite linearZ /= inner_prodbE F1 scaler0.
+rewrite raddfD /= {1}(memc_class_ortho Cf Cg).
+rewrite addr0; move/eqP; rewrite  inner_prod0.
+  by move/eqP->; rewrite add0r.
+by apply: memcW Cf.
+Qed.
+
 Let vchar_isometry_base2 : forall f, f \in 'Z[irr G, G^#] -> '[f, f]_G = 2%:R ->
    exists e1, exists e2, (f = 'xi[G]_e1 - 'xi[G]_e2) /\ e2 != e1.
 Proof.
@@ -256,7 +369,7 @@ have H1: true%:R + true%:R <> (1 *- 1) ^+ eps :> algC.
     by move/eqP;  rewrite -subr_eq0 opprK  -natr_add  -(eqN_eqC _ 0).
   by move/eqP; rewrite -(eqN_eqC _ 1).
 have H2: 1 *- 1 <> 1 :> algC.
-by move/eqP; rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1%N) -(eqN_eqC _ 0).
+  by move/eqP; rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1%N) -(eqN_eqC _ 0).
 have H3: 1 *- 1 - 1 <> -1 :> algC.
   move/eqP;rewrite -[X in _ == X]addr0;move/eqP; move/addrI.
   by move/eqP; rewrite oppr_eq0 -(eqN_eqC 1 0).

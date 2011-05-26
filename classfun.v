@@ -129,6 +129,19 @@ Local Notation "'CF( G , A )" := (class_fun G A)
 Local Notation "'CF( G )" := (class_fun G G)
   (format "''CF(' G )").
 
+Lemma class_funE : forall (A : {set gT}),
+ 'CF(G,A) = 
+ (\sum_(i < #|classes G| | (enum_val i) \subset A) ('1_(enum_val i))%:VS)%VS.
+Proof.
+move=> A.
+rewrite  /class_fun /span /base_cfun /= big_filter /=  big_map /=.
+rewrite -[index_enum _]enumT /=; apply: eq_bigl=> g /=.
+apply/subsetP/subsetP=> HH h HiH; apply: HH.
+  by rewrite !inE ffunE HiH nonzero1r.
+move: HiH; rewrite !inE ffunE.
+by case: (_ \in _)=> //; case/negP.
+Qed.
+
 (* Definition 
    forall x, x \notin A -> f x = 0 (ajouter A \subset G) 
    forall x y, y \in G -> f (x ^ y) = f x)
@@ -281,7 +294,7 @@ exact: (subsetP AsB).
 Qed.
 
 
-Lemma support_memc : forall f B , f \in 'CF( G ,B) -> has_support f B.
+Lemma support_memc : forall f B , f \in 'CF(G ,B) -> has_support f B.
 Proof.
 move=> f B;move/cfun_memfP=> [H1 _];apply/subsetP=> x; rewrite !inE.
 by apply:contraR=> XniB;rewrite H1 // inE  (negPf XniB).
@@ -295,7 +308,7 @@ by apply/eqP; move/subsetP: (support1 G);move/(_ x); rewrite !inE;
 Qed.
 
 Lemma memc_subset : forall (A B: {set gT}) f,
- B \subset A -> f \in 'CF(G, B) -> f \in 'CF(G, A).
+  B \subset A -> f \in 'CF(G, B) -> f \in 'CF(G, A).
 Proof.
 move=> A B f Hss; case/cfun_memfP=> H1 H2; apply/cfun_memfP.
 split=> {H2}// x XniAG; apply: H1.
@@ -370,7 +383,7 @@ move=> g h hIn; rewrite !ffunE.
 by rewrite (cfunJ _ fC) ?(subsetP Hsub) // (groupJr _ hIn).
 Qed.
 
-Lemma crestrict_is_linear : forall (G : {group gT}), linear (crestrict G).
+Lemma crestrict_is_linear : forall (G : {set gT}), linear (crestrict G).
 Proof.
 move=> G c f1 f2; apply/ffunP=> g.
 by rewrite !ffunE mulr_addr mulrCA.
