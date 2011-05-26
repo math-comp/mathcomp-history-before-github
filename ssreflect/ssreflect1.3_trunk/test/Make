@@ -14,6 +14,7 @@ have_view_idiom.v
 indetLHS.v
 intro_beta.v
 ipatalternation.v
+ltac_have.v
 ltac_in.v
 multiview.v
 occarrow.v

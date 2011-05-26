@@ -1,5 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool eqtype.
+Require Import ssreflect ssrbool eqtype ssrnat.
 
 Lemma test (x : bool) : True.
 have H1 x := x.
@@ -29,4 +29,15 @@ suff H1 /= : true && true /\ True.
   by rewrite andbT; split; [exact: (@refl_equal _ y) | exact: I].
 match goal with |- is_true true /\ True => idtac end.
 by split.
+Qed.
+
+Lemma foo n : n >= 0.
+have f i (j := i + n) : j < n.
+  match goal with j := i + n |- _ => idtac end.
+Undo 2.
+suff f i (j := i + n) : j < n.
+  done.
+match goal with j := i + n |- _ => idtac end.
+Undo 3.
+done.
 Qed.

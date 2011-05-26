@@ -474,6 +474,8 @@ let mkCVar loc id = CRef (Ident (loc, id))
 let rec mkCHoles loc n =
   if n <= 0 then [] else CHole (loc, None) :: mkCHoles loc (n - 1)
 
+let mkCHole loc = CHole (loc, None)
+
 let rec isCHoles = function CHole _ :: cl -> isCHoles cl | cl -> cl = []
 
 let mkCExplVar loc id n =
@@ -2988,11 +2990,35 @@ END
 let pf_abs_ssrterm ist gl t =
   let n, c = pf_abs_evars gl (interp_term ist gl t) in pf_abs_cterm gl n c
 
-let pf_prod_ssrterm ist gl gt =
-    let n, c = pf_abs_evars gl (interp_term ist gl gt) in
-    match decompose_lam_n n (pf_abs_cterm gl n c) with
-    | (_, t) :: dc, cc when isCast cc -> compose_prod dc t
-    | _ -> anomaly "ssr cast hole deleted by typecheck"
+let pf_interp_ty ist gl ty =
+   let n_binders = ref 0 in
+   let ty = match ty with
+   | a, (t, None) ->
+     let rec force_type = function
+     | GProd (l, x, k, s, t) -> incr n_binders; GProd (l, x, k, s, force_type t)
+     | GLetIn (l, x, v, t) -> incr n_binders; GLetIn (l, x, v, force_type t)
+     | ty -> mkRCast ty mkRType in
+     a, (force_type t, None)
+   | _, (_, Some ty) ->
+     let rec force_type = function
+     | CProdN (l, abs, t) ->
+       n_binders := !n_binders +  List.length (List.flatten (List.map pi1 abs));
+       CProdN (l, abs, force_type t)
+     | CLetIn (l, n, v, t) -> incr n_binders; CLetIn (l, n, v, force_type t)
+     | ty -> mkCCast dummy_loc ty (mkCType dummy_loc) in
+     mk_term ' ' (force_type ty) in
+   let strip_cast (sigma, t) =
+     let rec aux t = match kind_of_type t with
+     | CastType (t, ty) when !n_binders = 0 && isSort ty -> t
+     | ProdType(n,s,t) -> decr n_binders; mkProd (n, s, aux t)
+     | LetInType(n,v,ty,t) -> decr n_binders; mkLetIn (n, v, ty, aux t)
+     | _ -> anomaly "pf_interp_ty: ssr Type cast deleted by typecheck" in
+     sigma, aux t in
+   let ty = strip_cast (interp_term ist gl ty) in
+   let n, c = pf_abs_evars gl ty in
+   let ctx, c = decompose_lam_n n (pf_abs_cterm gl n c) in
+   n, compose_prod ctx c
+;;
 
 let whd_app f args = Reductionops.whd_betaiota Evd.empty (mkApp (f, args))
 
@@ -5715,30 +5741,29 @@ let havetac ((((clr, pats), binders), simpl), ((((fk, _), t), ctx), hint))
  let simpltac = introstac ~ist simpl in
  let hint = hinttac ist true hint in
  let cuttac t gl = basecuttac "ssr_have" t gl in
- let interp_ty ty =
-   let ty = mk_term ' ' (mkCCast dummy_loc ty (mkCType dummy_loc)) in
-   let n, c = pf_abs_evars gl (interp_term ist gl ty) in
-   let ctx, c = decompose_lam_n n (pf_abs_cterm gl n c) in
-   n, compose_prod ctx c in
- let interp t = pf_abs_ssrterm ist gl (mk_term ' ' t) in
-(*  let name = match pats with [IpatId x] -> Name x | _ -> Anonymous in *)
-(*  let mkFkC loc ct = mkCCast loc ct (CHole (loc, None)) in *)
- let ct, cty, loc =
-   match t with
-   | (_, (_, Some (CCast (loc, ct, CastConv (_, cty))))) -> ct, cty, loc
-   | (_, (_, Some ct)) -> ct, (CHole (dummy_loc, None)), dummy_loc
-   | _ -> assert false in
+ let mkt t = mk_term ' ' t in
+ let mkl t = (' ', (t, None)) in
+ let interp t = pf_abs_ssrterm ist gl t in
+ let interp_ty t = pf_interp_ty ist gl t in
+ let combine t1 t2 f g = match t1, t2 with
+ | (_, (_, Some t1)), (_, (_, Some t2)) -> mkt (f t1 t2)
+ | (_, (t1, None)), (_, (t2, None)) -> mkl (g t1 t2)
+ | _ -> anomaly "have: mixed G-C constr" in
+ let ct, cty, hole, loc = match t with
+   | _, (_, Some (CCast (loc, ct, CastConv (_, cty)))) ->
+     mkt ct, mkt cty, mkt (mkCHole dummy_loc), loc
+   | _, (_, Some ct) ->
+     mkt ct, mkt (mkCHole dummy_loc), mkt (mkCHole dummy_loc), dummy_loc
+   | _, (GCast (loc, ct, CastConv (_, cty)), None) ->
+     mkl ct, mkl cty, mkl mkRHole, loc
+   | _, (t, None) -> mkl t, mkl mkRHole, mkl mkRHole, dummy_loc in
  let cut, sol, itac1, itac2 =
    match fk, namefst, suff with
    | FwdHave, true, true ->
      errorstrm (str"Suff have does not accept a proof term")
-(*
-     let t = interp (mkCLambda loc name cty (mkFkC loc ct)) in
-     pf_type_of gl t, apply t, id, clr
-*)
    | FwdHave, false, true ->
-     let cty = mkCArrow loc cty (CHole(dummy_loc,None)) in
-     let t = interp (mkCCast loc ct cty) in
+     let cty = combine cty hole (mkCArrow loc) mkRArrow in
+     let t = interp (combine ct cty (mkCCast loc) mkRCast) in
      let ty = pf_type_of gl t in
      let ctx, _ = decompose_prod_n 1 ty in
      let assert_is_conv gl =
@@ -5747,10 +5772,10 @@ let havetac ((((clr, pats), binders), simpl), ((((fk, _), t), ctx), hint))
          pr_constr (mkArrow (mkVar (id_of_string "_")) concl)) in
      ty, tclTHEN assert_is_conv (apply t), id, itac_c
    | FwdHave, false, false ->
-     let t = interp (mkCCast loc ct cty) in 
+     let t = interp (combine ct cty (mkCCast loc) mkRCast) in
      pf_type_of gl t, apply t, id, tclTHEN itac_c simpltac
-   | _, true, true   -> mkArrow (snd(interp_ty cty)) concl, hint, itac, clr
-   | _, false, true  -> mkArrow (snd(interp_ty cty)) concl, hint, id, itac_c
+   | _, true, true   -> mkArrow (snd (interp_ty cty)) concl, hint, itac, clr
+   | _, false, true  -> mkArrow (snd (interp_ty cty)) concl, hint, id, itac_c
    | _, false, false -> 
      let n, cty = interp_ty cty in
      cty, tclTHEN (binderstac n) hint, id, tclTHEN itac_c simpltac
@@ -5800,7 +5825,11 @@ END
 let sufftac ((((clr, pats),binders),simpl), (((_, c), ctx), hint)) =
   let ist = get_ltacctx ctx in
   let htac = tclTHEN (introstac ~ist pats) (hinttac ist true hint) in
-  let ctac gl = basecuttac "ssr_suff" (pf_prod_ssrterm ist gl c) gl in
+  let c = match c with
+  | (a, (b, Some (CCast (_, _, CastConv (_, cty))))) -> a, (b, Some cty)
+  | (a, (GCast (_, _, CastConv (_, cty)), None)) -> a, (cty, None)
+  | _ -> anomaly "suff: ssr cast hole deleted by typecheck" in
+  let ctac gl = basecuttac "ssr_suff" (snd (pf_interp_ty ist gl c)) gl in
   tclTHENS ctac [htac; tclTHEN (cleartac clr) (introstac ~ist (binders@simpl))]
 
 TACTIC EXTEND ssrsuff
@@ -5844,7 +5873,11 @@ let wlogtac (((clr0, pats),_),_) (gens, ((_, ct), ctx)) hint suff gl =
   in
   let mkclr (clr, (x, _)) clrs = cleartac clr :: cleartac [x] :: clrs in
   let mkpats (_, (SsrHyp (_, x), _)) pats = IpatId x :: pats in
-  let cl0 = mkArrow (pf_prod_ssrterm ist gl ct) (pf_concl gl) in
+  let ct = match ct with
+  | (a, (b, Some (CCast (_, _, CastConv (_, cty))))) -> a, (b, Some cty)
+  | (a, (GCast (_, _, CastConv (_, cty)), None)) -> a, (cty, None)
+  | _ -> anomaly "wlog: ssr cast hole deleted by typecheck" in
+  let cl0 = mkArrow (snd (pf_interp_ty ist gl ct)) (pf_concl gl) in
   let cl0 = if not suff then cl0 else let _,t,_ = destProd cl0 in t in
   let c = List.fold_right mkabs gens cl0 in
   let tac2clr = List.fold_right mkclr gens [cleartac clr0] in
