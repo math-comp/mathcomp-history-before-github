@@ -191,22 +191,17 @@ Qed.
 
 (* This PF 1.3a *)
 Lemma equiv_restrict_compl :  
-  forall (A : {set gT}) m (Phi : m.-tuple {cfun gT})
-                     ( mu : {cfun gT}) (d: Iirr H -> algC),
-  H \subset G ->
-  A \subset H ->
-  class_support A H = A ->
-   is_basis 'CF(H,A) Phi -> 
-   mu \in 'CF(G) -> 
-   ('Res[A] mu == 'Res[A] (\sum_(i : Iirr H) (d i) *: 'xi_i)) =
-   forallb j : 'I_m, 
-     \sum_(i : Iirr H) '[Phi`_j, 'xi_i]_H * (d i)^* ==
-     '['Ind[G,H] Phi`_j, mu]_G.
+  forall (A : {set gT}) m (Phi : m.-tuple {cfun gT}) 
+         (mu : {cfun gT}) (d: Iirr H -> algC),
+  H \subset G -> A \subset H -> class_support A H = A ->
+  is_basis 'CF(H,A) Phi ->   mu \in 'CF(G) -> 
+  ('Res[A] mu == 'Res[A] (\sum_(i : Iirr H) (d i) *: 'xi_i)) =
+  forallb j : 'I_m, 
+   \sum_(i : Iirr H) '[Phi`_j, 'xi_i]_H * (d i)^* == '['Ind[G,H] Phi`_j, mu]_G.
 Proof.
 move=> A m Phi mu d HsG AsH CsA BP Cmu.
 have CP : forall i: 'I_m, Phi`_ i \in 'CF(H,A).
-  move=> i; apply: (memv_is_basis BP _).
-  by apply: mem_nth; rewrite size_tuple.
+  by move=> i; apply: (memv_is_basis BP _); apply: mem_nth; rewrite size_tuple.
 rewrite -(crestrict_subset _ AsH).
 pose D := 'Res[H] mu - \sum_(i < Nirr H) d i *: 'xi_i.
 have CD: D \in 'CF(H).
@@ -251,6 +246,42 @@ rewrite raddfD /= {1}(memc_class_ortho Cf Cg).
 rewrite addr0; move/eqP; rewrite  inner_prod0.
   by move/eqP->; rewrite add0r.
 by apply: memcW Cf.
+Qed.
+
+(* This is PF 1.3b *)
+Lemma equiv_restrict_compl_ortho :  
+  forall (A : {set gT}) m (Phi : m.-tuple {cfun gT}) (mu_: Iirr H -> {cfun gT}),
+  H \subset G -> A \subset H -> class_support A H = A ->
+   is_basis 'CF(H,A) Phi -> 
+   (forall i  : Iirr H, mu_ i \in 'CF(G)) ->
+   (forall i j : Iirr H, '[mu_ i,mu_ j]_G = (i == j)%:R) ->
+   (forall j,
+     'Ind[G,H] Phi`_j = \sum_(i : Iirr H) '[Phi`_j, 'xi_i]_H *: mu_ i) ->
+  (forall i : Iirr H, 'Res[A] (mu_ i) = 'Res[A] 'xi_i) /\
+  (forall mu, mu \in 'CF(G) ->
+     (forall i : Iirr H, '[mu,mu_ i]_G = 0) -> 'Res[A] mu = 0).
+Proof.
+move=> A m Phi mu_ HsG AsH ClA BP Cm Mo IP; split=> [/= i| mu Cmu Om].
+  have->: 'xi_i = \sum_(j : Iirr H) ((fun j => (j==i)%:R) j) *: 'xi_j.
+    rewrite (bigD1 i) //= eqxx scale1r big1 ?addr0 // => j /negPf->.
+    by rewrite scale0r.
+  apply/eqP; rewrite (equiv_restrict_compl _ _ _ _ BP) //.
+  apply/forallP=> /= j; rewrite IP.
+  rewrite (bigD1 i) //= eqxx conjC_nat mulr1.
+  rewrite big1 ?addr0=> [|/= k]; last first.
+    by move/negPf->; rewrite conjC0 mulr0.
+  rewrite -[X in _==X]inner_prodbE linear_sum.
+  rewrite (bigD1 i) //= big1 ?addr0 => [|/= k KdI]; 
+          rewrite linearZ /= inner_prodbE Mo.
+    by rewrite eqxx [_ *: _]mulr1.
+  by rewrite (negPf KdI) scaler0.
+have->: 0 = 'Res[A] \sum_(j : Iirr H) 0 *: 'xi_j.
+  by rewrite big1 // => *; rewrite ?linear0 // scale0r.
+apply/eqP; rewrite (equiv_restrict_compl (fun j => 0) _ _ _ BP) //.
+apply/forallP=> /= i.
+rewrite big1=> [|j _]; last by rewrite conjC0 mulr0.
+rewrite IP -inner_prodbE linear_sum big1 //= => j _.
+by rewrite linearZ  /= inner_prodbE ['[_,_]_G]inner_conj Om conjC0 scaler0.
 Qed.
 
 Let vchar_isometry_base2 : forall f, f \in 'Z[irr G, G^#] -> '[f, f]_G = 2%:R ->
@@ -343,7 +374,7 @@ case eqP=>[->|/eqP H13];  case eqP=>[->|/eqP H23];rewrite ?(negPf H43);
 - by rewrite opprK -natr_add -eqN_eqC.
 - exists (e2,e4,e3); exists true; rewrite expr1 !scaleNr !scale1r !oppr_sub /=.
    by rewrite H23 H14 eq_sym H43.
-(*- by rewrite eq_sym -subr_eq0 opprK -natr_add -(eqN_eqC _ 0).*)
+ (*- by rewrite eq_sym -subr_eq0 opprK -natr_add -(eqN_eqC _ 0).*)
 - by rewrite eq_sym -subr_eq0 oppr_sub opprK -!natr_add -(eqN_eqC _ 0).
 - by rewrite eq_sym -subr_eq0 opprK -natr_add -(eqN_eqC _ 0).
 - by rewrite eq_sym -subr_eq0 opprK -natr_add -(eqN_eqC _ 0).
