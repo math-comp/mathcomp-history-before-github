@@ -804,13 +804,13 @@ apply: (mulfI (neq0GC H)).
 case: (boolP (h \in (G/A)%g))=> HiGA; last first. 
   by rewrite (cfun0 CFiq HiGA) (cfun0 CFqi HiGA).
 case: (boolP (h \in (H/A)%g))=> HiHA; last first.
-  move/off_support: (has_support_induced (memc_is_char CHq) HAnGA).
+  move/off_support: (support_induced (memc_is_char CHq) HAnGA).
   move/(_ _ HiHA)=> ->.
   case/imsetP: HiGA HiHA=> g; rewrite inE => /andP [] GiN GiG /= ->.
   rewrite (qfuncE CHi) // => HH.
   have GniH : g \notin H.
     by apply: contra HH; exact: mem_quotient.
-  move/off_support: (has_support_induced (memc_is_char CHt) HnG).
+  move/off_support: (support_induced (memc_is_char CHt) HnG).
   by move/(_ _ GniH)=> ->; rewrite !mulr0.
 rewrite !ffunE !mulrA (divff ((neq0GC H))) mul1r.
 rewrite card_quotient ?normal_norm //.

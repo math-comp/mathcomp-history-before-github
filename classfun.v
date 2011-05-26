@@ -80,13 +80,6 @@ Canonical Structure cfun_lmodType :=
   Eval hnf in LmodType algC {cfun gT} (
                  @ffun_lmodMixin algC gT (GRing.regular_lmodType algC)).
 
-(* GG: this should either go in finfun, or be replaced with *)
-(* pffun_on 0 A predT (val f) *)
-Definition has_support (f : {cfun gT}) (A : {set gT}) :=
-(*  forallb x: gT, (x \notin A) ==> (f x == 0).*)
-support f \subset A.
-
-
 Definition cfuni (G : {set gT}) : {cfun gT} := [ffun g => (g \in G)%N%:R].
 
 Local Notation "''1_' G" := (cfuni G) (at level 0).
@@ -102,7 +95,7 @@ Qed.
 
 Definition base_cfun (G A : {set gT}) : _.-tuple {cfun gT} :=
   tseq (filter
-    (has_support^~ A)
+    (fun f : {cfun gT} => (support f \subset A))
     (map (fun i => '1_(enum_val i)) (enum 'I_#|classes G|))).
 
 Lemma base_cfun_subset : forall (A : {set gT}),
@@ -279,22 +272,17 @@ Qed.
 
 (* cfun and support *)
 
-Lemma support1 : forall (A : {set gT}), has_support '1_A A.
+Lemma support1 : forall (A : {set gT}), support '1_A \subset A.
 Proof.
 move=> A; apply/subsetP=> g; rewrite !inE !ffunE; apply: contraR.
 by move/negPf->; rewrite -(eqN_eqC _ 0).
 Qed.
 
-Lemma support_subset : forall (A B: {set gT}) f, 
-       has_support f A -> A \subset B -> has_support f B.
-Proof.
-move=> A B f; move/off_support=> Hss AsB;apply/subsetP=> x;rewrite !inE.
-apply: contraR=> HxB;rewrite  Hss //; move: HxB; apply: contra.
-exact: (subsetP AsB).
-Qed.
+Lemma support_subset : forall (A B: {set gT}) (f: {cfun gT}), 
+       support f \subset A -> A \subset B -> support f \subset B.
+Proof. by move=>  f HfA HfB HAB; apply: subset_trans. Qed.
 
-
-Lemma support_memc : forall f B , f \in 'CF(G ,B) -> has_support f B.
+Lemma support_memc : forall f B , f \in 'CF(G ,B) -> support f \subset B.
 Proof.
 move=> f B;move/cfun_memfP=> [H1 _];apply/subsetP=> x; rewrite !inE.
 by apply:contraR=> XniB;rewrite H1 // inE  (negPf XniB).
@@ -323,7 +311,7 @@ by move=> x XniG; apply: H1; rewrite inE (negPf XniG) andbF.
 Qed.
 
 Lemma memcE : forall A f, 
-  f \in 'CF(G, A) = (has_support f A) && (f \in 'CF(G)).
+  f \in 'CF(G, A) = (support f \subset A) && (f \in 'CF(G)).
 Proof.
 move=> A f; apply/cfun_memfP/andP=> [[Hs Hj]|[Hs Hc]]; split.
 - by apply/subsetP=> x; rewrite !inE; apply:contraR => XniA;   rewrite Hs //;
@@ -589,8 +577,8 @@ apply: eq_big=> [l|l _]; first by rewrite groupMl // groupV.
 by rewrite -conjgM mulgA mulgV mul1g.
 Qed.
 
-Lemma has_support_induced : forall f : {cfun gT},
-  f \in 'CF(H) -> H <| G -> has_support ('Ind[G,H] f) H.
+Lemma support_induced : forall f : {cfun gT},
+  f \in 'CF(H) -> H <| G -> support ('Ind[G,H] f) \subset H.
 Proof.
 move=> f Cf HnG; apply/subsetP=> h. rewrite !inE; apply:contraR=> HniH.
 rewrite ffunE big1 ?mulr0 // => g GiG.

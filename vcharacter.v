@@ -29,7 +29,7 @@ Variable (gT : finGroupType) (G : {group gT}).
 
 Definition virtual_char_pred m (S : m.-tuple {cfun gT}) (A : {set gT}) :
   pred {cfun gT} :=
-  [pred x \in span S | (forallb i, isZC (coord S x i)) && has_support x A].
+  [pred x \in span S | (forallb i, isZC (coord S x i)) && (support x \subset A)].
 
 Local Notation " 'Z[ S , A ]" := 
   (virtual_char_pred S A) (format " ''Z[' S ,  A ]"). 
@@ -97,7 +97,7 @@ Lemma isZC_coord_vchar : forall m (S : m.-tuple _) A f i,
 Proof. by move=> m S B i f; case/and3P => _; move/forallP. Qed.
 
 Lemma support_vchar : forall m (S : m.-tuple _) A f,
-  f \in 'Z[S, A] -> has_support f A.
+  f \in 'Z[S, A] -> support f \subset A.
 Proof. by move=> m S B f; case/and3P. Qed.
 
 Lemma span_vchar : forall m (S : m.-tuple _) A f,
@@ -125,7 +125,7 @@ by apply/subsetP=> x; rewrite !inE ffunE eqxx.
 Qed.
 
 Lemma vchar_support :  forall f A,
-          f \in 'Z[irr G, A] =  (f \in 'Z[irr G]) && has_support f A.
+          f \in 'Z[irr G, A] =  (f \in 'Z[irr G]) && (support f \subset A).
 Proof.
 move=> f A; apply/idP/idP=>H.
   move/memc_vchar: (H); rewrite memcE; case/andP=> -> HCF.
@@ -259,7 +259,7 @@ by move=> j; rewrite /c; move/negPf->; exact: scale0r.
 Qed.
 
 Lemma vchar_split :  forall m (S : m.-tuple _) A (f : {cfun gT}), 
-          f \in 'Z[S, A] =  (f \in 'Z[S]) && has_support f A.
+          f \in 'Z[S, A] =  (f \in 'Z[S]) && (support f \subset A).
 Proof.
 (move=> m S A f; apply/and3P/andP; case)=> [H1 H2 H3|H1 H2]; split=> //.
 - apply/and3P; split=> //.
@@ -268,8 +268,8 @@ Proof.
 by case/and3P: H1.
 Qed.
 
-Lemma memv_vchar :  forall m (S : m.-tuple _) A (f : {cfun gT}), 
-          free S -> has_support f A -> f \in S -> f \in 'Z[S, A].
+Lemma memv_vchar :  forall m (S : m.-tuple _) (A: {set gT}) (f : {cfun gT}), 
+          free S -> (support f \subset A) -> f \in S -> f \in 'Z[S, A].
 Proof.
 move=> [|m] S A f HF HS FiS.
   by case: {HF}S FiS; case.

@@ -286,7 +286,7 @@ Qed.
 Definition Dade_support := \bigcup_(a \in A) dd1 a.
 Local Notation Atau := Dade_support.
 
-Lemma support_Dade alpha : has_support alpha^\tau Atau.
+Lemma support_Dade alpha : support alpha^\tau \subset Atau.
 Proof.
 apply/subsetP=> x; rewrite !inE; apply: contraR; rewrite ffunE.
 by case: pickP => [a /andP[Aa Ha_x] /bigcupP[] | //=]; exists a.
