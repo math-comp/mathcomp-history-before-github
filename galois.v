@@ -218,7 +218,8 @@ move => ? x.
 case/polyOver_suba => p -> Hx.
 set (f' := (RMorphism kHomRmorph_subproof)).
 set (g := (RMorphism (sa_val_rmorph E))).
-rewrite -[x]/(sa_val (Suba Hx)) -map_poly_comp (horner_map f') horner_map.
+rewrite -[x]/(sa_val (Suba Hx)) -map_poly_comp ?linear0 //.
+rewrite (horner_map f') horner_map.
 move/eqP => /= ->.
 by rewrite linear0.
 Qed.
@@ -255,7 +256,7 @@ move/eqP: Hy ->.
 rewrite mulr0 add0r.
 case/polyOver_suba: Hp => p' ->.
 case/polyOver_suba: (minPolyOver E x) => q' ->.
-rewrite -map_modp -!map_poly_comp /=.
+rewrite -map_modp -!map_poly_comp ?linear0 //=.
 have Hmorph := kHomRmorph_subproof.
 rewrite -[f \o sa_val_rmorphism E]/(GRing.RMorphism.apply (RMorphism Hmorph)).
 by rewrite map_modp !map_polyE /= 2![map (_ \o _) _]map_comp.
@@ -334,7 +335,7 @@ case/polyOver_suba : HminE => p Hp.
 case/polyOver_suba : (minPolyOver E x) => q Hq.
 have Hmorph := (kHomRmorph_subproof Hf).
 rewrite Hp Hq dvdp_map size_map_poly -(dvdp_map (RMorphism Hmorph)).
-rewrite -(size_map_poly (RMorphism Hmorph)) !map_poly_comp -Hp /=.
+rewrite -(size_map_poly (RMorphism Hmorph)) !map_poly_comp ?linear0 // -Hp /=.
 rewrite [map_poly f (minPoly K x)](kHomFixedPoly Hf) -?Hq; last first.
  by apply: minPolyOver.
 clear p Hp q Hq Hmorph.
