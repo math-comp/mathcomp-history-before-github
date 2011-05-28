@@ -155,15 +155,11 @@ rewrite -{1}[1%N]/(true:nat) -Hc0 -(size_polyC) -size_mul_id ?polyC_eq0 //.
 by rewrite gcdp_eq0 negb_and Hp0.
 Qed.
 
-(*This is a terrible proof, and the theorem shouldn't be restricted to
-  charateristic 0.  It can probably be replaced by using a classical
-  definition of irreducibility or by classically constructing a 
-  splitting field, or whatnot.  For now I just do this. *)
+(*This isn't a very nice proof :( *)
 Lemma make_separable : forall (R : idomainType) (p : {poly R}),
-  [char R] =i pred0 -> p != 0 ->
-  separablePolynomial (p %/ (gcdp p p^`())).
+  p != 0 -> separablePolynomial (p %/ (gcdp p p^`())).
 Proof.
-move => R p Hchar.
+move => R p.
 move: {2}(size p) (leqnn (size p)) => n.
 elim: n p => [p | n IH p Hp Hp0].
  rewrite leqn0 size_poly_eq0.
@@ -214,64 +210,37 @@ have := separable_dvd Hsepr (dvdp_gcdr k r).
 rewrite -/w => Hsepw.
 case (leqP (size w) 1); last first.
  move => Hw.
- (* This should be abstracted *)
- have : exists2 c, c != 0 & exists2 z, w ^+ z.1 * z.2 = c *: p & ~~ (w %| z.2).
-  move: w {Hsepw} Hw => w Hw.
-  clear -Hp0 Hw.
-  move: {2}(size p) (leqnn (size p)) Hp0 => n.
-  elim: n p => [|n IH] p.
-   rewrite leqn0 size_poly_eq0.
-   move/eqP ->.
-   by rewrite eqxx.
-  move => Hp Hp0.
-  case Hwp : (w %| p); last first.
-   move/negbT: Hwp.
-   exists 1; first by rewrite nonzero1r.
-   exists (0%N,p); last done.
-   by rewrite expr0 mul1r scale1r.
-  have := isT.
-  rewrite -Hwp.
-  move/dvdpPc => [c1 [r1 [Hc10]]].
-  move/eqP.
-  case (eqVneq r1 0) => [|Hr10].
-   move ->.
-   rewrite mul0r -mul_polyC mulf_eq0 -[_ || _]negbK negb_or Hp0 polyC_eq0.
-   by rewrite Hc10.
-  case (eqVneq w 0) => [|Hw0].
-   move ->.
-   rewrite mulr0 -mul_polyC mulf_eq0 -[_ || _]negbK negb_or Hp0 polyC_eq0.
-   by rewrite Hc10.
-  move/eqP => Hpw.
-  have Hr1n : (size r1 <= n).
-   move: Hp.
-   rewrite -[size p](size_scaler _ Hc10) Hpw size_mul_id // (polySpred Hr10).
-   rewrite addSn -(subnK Hw) addnA addn2 ltnS.
-   by move/(leq_ltn_trans (leq_addr _ _)).
-  move: (IH _ Hr1n Hr10) => [c2 Hc2 [[z1 z2] Hz1 Hz2]].
-  exists (c1 * c2).
-   by rewrite mulf_eq0 negb_or Hc10.
-  exists (z1.+1, z2); last done.
-  by rewrite exprS -mulrA Hz1 -scaler_mulr mulrC -Hpw scalerA mulrC.
- move => [x Hx0 [[[|m] a] Hwa Ha]].
-  move: Hwa Ha.
-  rewrite expr0 mul1r => ->.
-  rewrite (eqp_dvdr _ (eqp_mulC _ Hx0)) -(eqp_dvdr _ (eqp_mulC _ Hc0)).
-  rewrite Hpq -(eqp_dvdr _ (eqp_mulC _ Hb0)) scaler_mull Hqr -mulrA.
-  by rewrite dvdp_mulr // dvdp_gcdr.
+ have Hwp : exists n, ~~ (w ^+ n %| p).
+  exists (size p).
+  move: Hw.
+  apply: contraL.
+  move/(size_dvdp Hp0).
+  rewrite polySpred ?expf_eq0 ?negb_and ?separable_neq0 ?orbT // size_exp_id.
+  apply: contraL. 
+  move/subnK <-.
+  by rewrite addn2 mulSn -leqNgt leq_addr.
+ move: (ex_minnP Hwp) => [[|[|m]]].
+   by rewrite expr0 dvd1p.
+  rewrite expr1.
+  suff -> : (w %| p) by done.
+  rewrite (dvdp_trans (dvdp_gcdl _ _)) // (@dvdp_trans _ q) //.
+   by rewrite -(eqp_dvdr _ (eqp_mulC _ Hb0)) Hqr dvdp_mulIr.
+  by rewrite -(eqp_dvdr _ (eqp_mulC _ Hc0)) Hpq dvdp_mulIl.
+ move => Hwm2.
+ move/(_ m.+1)/contraR.
+ rewrite -leqNgt leqnn.
+ move/(_ isT) => Hwm1.
  have Hwm : w ^+ m %| gcdp p p^`().
-  rewrite dvdp_gcd -(eqp_dvdr _ (eqp_mulC _ Hx0)) -Hwa exprS [w * _]mulrC.
-  rewrite -mulrA dvdp_mulIl -(eqp_dvdr _ (eqp_mulC _ Hx0)) -derivZ -Hwa derivM.
-  rewrite deriv_exp -mulr_natr exprS -[w^`() * _]mulrC -[w * _]mulrC -!mulrA.
-  by rewrite -mulr_addr dvdp_mulIl.
+  rewrite dvdp_gcd (dvdp_trans _ Hwm1) ?exprS ?dvdp_mulIr //.
+  move/dvdpPc: Hwm1 => [a [x [Ha0 Hx]]].
+  rewrite -(eqp_dvdr _ (eqp_mulC _ Ha0)) -derivZ Hx derivM. 
+  by rewrite deriv_exp -mulr_natl exprS !mulrA -mulr_addl dvdp_mulIr.
  have Hw2 : w * w %| q.
   rewrite -(eqp_dvdr _ (eqp_mulC _ Hb0)) Hqr dvdp_mul ?dvdp_gcdl //.
   by rewrite dvdp_gcdr.
  move: (dvdp_mul Hw2 Hwm).
- rewrite -Hpq (eqp_dvdr _ (eqp_mulC _ Hc0)) -(eqp_dvdr _ (eqp_mulC _ Hx0)).
- rewrite -Hwa [_ * a]mulrC exprS mulrA.
- rewrite dvdp_mul2r ?expf_eq0 ?gcdp_eq0 ?negb_and ?Hr0 ?orbT //.
- rewrite dvdp_mul2r ?gcdp_eq0 ?negb_and ?Hr0 ?orbT //.
- by rewrite -[_ %| _]negbK Ha.
+ rewrite -Hpq (eqp_dvdr _ (eqp_mulC _ Hc0)).
+ by rewrite -mulrA -!exprS -[_ %| _]negbK Hwm2.
 rewrite 2!leq_eqVlt ltnS ltn0 orbF (inj_eq succn_inj).
 case/orP; last by rewrite size_poly_eq0 gcdp_eq0 -[r == 0]negbK Hr0 andbF.
 rewrite -[_ == 1%N]/(coprimep k r) => Hkr.
@@ -281,32 +250,33 @@ rewrite dvdp_addr ?dvdp_mulIr // mulrC gaussp //.
 case (eqVneq k^`() 0) => Hk'0; last first.
  by move/(size_dvdp Hk'0); rewrite leqNgt lt_size_deriv.
 move => _.
-rewrite /separablePolynomial /coprimep -/k.
-rewrite eqn_leq lt0n size_poly_eq0 Hk0 andbT.
-apply: leq_size_coef; case => [//|j] Hj.
-move/polyP/(_ j)/eqP: Hk'0.
-rewrite coef_deriv coef0.
-rewrite -mulr_natl.
-rewrite mulf_eq0.
-case/orP; last by move/eqP.
-clear -Hchar.
-rewrite {1}[j.+1](prod_prime_decomp) //.
-elim: (prime_decomp j.+1) (@mem_prime_decomp j.+1) => [|a b IH Hprime].
- by rewrite -[_ == 0]negbK big_nil mulr1n nonzero1r.
-rewrite big_cons natr_mul mulf_eq0.
-case/orP; last first.
- apply: IH.
- move => ? ? Hb.
- apply Hprime.
- by rewrite in_cons Hb orbT.
-move: (Hprime a.1 a.2).
-rewrite -surjective_pairing in_cons eqxx.
-case/(_ isT) => Ha1 Ha2 _.
-rewrite natr_exp expf_eq0 Ha2 [_ && _]/= => Hp.
-suff: a.1 \in pred0 by done.
-rewrite -Hchar.
-apply/andP.
-by rewrite Ha1 Hp.
+case (leqP (size k) 1).
+ rewrite 2!leq_eqVlt ltnS ltn0 orbF (inj_eq succn_inj).
+ by rewrite size_poly_eq0 -[_ == 0]negbK Hk0 orbF.
+move => Hk.
+have Hkp : exists n, ~~ (k ^+ n %| p).
+ exists (size p).
+ move: Hk.
+ apply: contraL.
+ move/(size_dvdp Hp0).
+ rewrite polySpred ?expf_eq0 ?negb_and ?Hk0 ?orbT // size_exp_id.
+ apply: contraL.
+ move/subnK <-.
+ by rewrite addn2 mulSn -leqNgt leq_addr.
+move: (ex_minnP Hkp) => [[|m]].
+ by rewrite expr0 dvd1p.
+move => Hkm1.
+move/(_ m)/contraR.
+rewrite -leqNgt leqnn.
+move/(_ isT) => Hkm.
+have : k ^+ m %| gcdp p p^`().
+ rewrite dvdp_gcd Hkm.
+ move/dvdpPc: Hkm => [a [x [Ha0 Hx]]].
+ rewrite -(eqp_dvdr _ (eqp_mulC _ Ha0)) -derivZ Hx derivM.
+ by rewrite deriv_exp Hk'0 !mul0r mul0rn mulr0 addr0 dvdp_mulIr.
+have Hkq : k %| q by rewrite -(eqp_dvdr _ (eqp_mulC _ Hb0)) Hqr dvdp_mulIr.  
+move/(dvdp_mul Hkq).
+by rewrite -Hpq -exprS (eqp_dvdr _ (eqp_mulC _ Hc0)) -[_ %| _]negbK Hkm1.
 Qed.
 
 (* :TODO: Move this to poly.v *)
@@ -1033,7 +1003,7 @@ Lemma PET_char0 : forall q : {poly F},
   (exists p0, (p0 ^ iota).[y *+ n - x] = x) /\
   (exists q0, (q0 ^ iota).[y *+ n - x] = y).
 Proof.
-move => q qne0 Hqy Hchar'; move/charf0P: (Hchar') => Hchar.
+move => q qne0 Hqy; move/charf0P => Hchar.
 case/dvdpPf: (dvdp_gcdl q q^`()) => qq Hq.
 have Hqqy : root (qq ^ iota) y.
  move: (qne0).
@@ -1068,7 +1038,7 @@ have Hqqy : root (qq ^ iota) y.
   by rewrite Hchar.
  by rewrite -[_ r y]negbK Hry.
 have Hsep: separablePolynomial qq.
- move: (make_separable Hchar' qne0).
+ move: (make_separable qne0).
  rewrite {1}Hq divp_mull ?gcdp_eq0 ?negb_and ?qne0 //.
  move/separable_dvd; apply.
  rewrite (eqp_dvdr _ (eqp_mulC _ _)) ?dvdpp //.
