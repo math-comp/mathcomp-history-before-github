@@ -1568,12 +1568,12 @@ rewrite -sub1set.
 by apply: (iffP (bigcapsP _ _ _)) => Fx i /Fx; rewrite sub1set.
 Qed.
 
-Lemma setC_bigcup r P F :
-  ~: (\bigcup_(i <- r | P i) F i) = \bigcap_(i <- r | P i) ~: F i.
+Lemma setC_bigcup J r (P : pred J) (F : J -> {set T}) :
+  ~: (\bigcup_(j <- r | P j) F j) = \bigcap_(j <- r | P j) ~: F j.
 Proof. by apply: big_morph => [A B|]; rewrite ?setC0 ?setCU. Qed.
 
-Lemma setC_bigcap r P F :
-  ~: (\bigcap_(i <- r | P i) F i) = \bigcup_(i <- r | P i) ~: F i.
+Lemma setC_bigcap J r (P : pred J) (F : J -> {set T}) :
+  ~: (\bigcap_(j <- r | P j) F j) = \bigcup_(j <- r | P j) ~: F j.
 Proof. by apply: big_morph => [A B|]; rewrite ?setCT ?setCI. Qed.
 
 Lemma bigcap_setU A B F :

@@ -509,14 +509,6 @@ case Mx: (x \in 'M(B)); last by rewrite mul0r.
 by rewrite (subsetP subNL) ?mul1r //; exact: mem_morphim.
 Qed.
 
-Lemma bigcapJ : forall I r (P : pred I) (B : I -> {set gT}) x,
-  \bigcap_(i <- r | P i) (B i :^ x) = (\bigcap_(i <- r | P i) B i) :^ x.
-Proof.
-move=> I r P B x; symmetry; apply: (big_morph (conjugate^~ x)) => [B1 B2|].
-  by rewrite conjIg.
-by apply/normP; rewrite inE subsetT.
-Qed.
-
 (* This is Peterfalvi (2.10.1) *)
 Lemma Dade_Ind_restr_J : {in L & calP, forall x B,
   'Ind[G, 'M(B :^ x)] 'aa_(B :^ x) = 'Ind[G, 'M(B)] 'aa_B}.

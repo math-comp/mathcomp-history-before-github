@@ -1428,11 +1428,7 @@ suff Mf' : mx_repr G (fun g => rG (divgr H1 H2 g)).
   by rewrite (mem_dprod H1xH2); case: (divgr _ _ _ \in _); 
      rewrite ?(mul0r, mul1r).
 have FM : {in G &, {morph divgr H1 H2 : x y / (x * y)%g}}.
-  move=> g h GiG HiG.
-  case (dprod_normal2 H1xH2)=> H1nG H2nG.
-  apply: (divgrM _ H2nG)=> //.
-    by rewrite inE; case/dprodP: H1xH2=> _ -> _ ->; first by rewrite !eqxx.
-  by case/dprodP: H1xH2.
+  by apply: divgrM; first apply/complP; case/dprodP: H1xH2.
 pose mf := Morphism FM.
 split=> [| g1 g2 G1iG G2iG]; rewrite /=.
   by move: (morph1 mf)=> /= ->; rewrite repr_mx1.
