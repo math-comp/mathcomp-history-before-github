@@ -45,17 +45,17 @@ have F1: [acts <[a]>, on (classes G) | cto].
   rewrite !inE Hj; apply/subsetP=> u.
   case/imsetP=> g GiG ->.
   by rewrite inE /=; case: (_ == _) => //;
-     rewrite ?class_inv mem_classes // ?groupV.
+     rewrite -?classVg mem_classes // ?groupV.
 have F2:  forall c (t : Iirr G),  c \in classes G ->
    'xi_t (repr c) = 'xi_(ito t a) (repr (cto c a)).
   move=> c t' CiG /=.
   rewrite conj_idxE cfun_conjCE /= -(invg_is_char _ (is_char_irr t')).
-  case/imsetP: CiG=> g GiG ->; rewrite class_inv.
+  case/imsetP: CiG=> g GiG ->; rewrite -classVg.
   case: (repr_class G g)=> h1 H1iG ->.
   case: (repr_class G g^-1)=> h2 H2iG ->.
   by rewrite conjVg invgK !(cfunJ _ (memc_irr _)).
 have F3: forall c, c \in classes G -> c^-1%g = c -> c = 1%g.
-  move=> c; case/imsetP => g GiG ->; rewrite class_inv => Hg.
+  move=> c; case/imsetP => g GiG ->; rewrite -classVg => Hg.
   move: (class_refl G g^-1); rewrite Hg; case/imsetP=> x XiG Hx.
   have F4: (x ^+ 2)%g \in 'C_G[g].
     apply/subcent1P; split; rewrite ?groupM //.

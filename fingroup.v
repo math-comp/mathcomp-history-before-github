@@ -1133,6 +1133,13 @@ move=> Ax; apply/setP=> y.
 by apply/imsetP/set1P=> [[a Aa]|] ->; last exists x; rewrite ?conj1g.
 Qed.
 
+Lemma classVg x A : x^-1 ^: A = (x ^: A)^-1. 
+Proof.
+apply/setP=> xy; rewrite inE; apply/imsetP/imsetP=> [] [y Ay def_xy].
+  by rewrite def_xy conjVg invgK; exists y.
+by rewrite -[xy]invgK def_xy -conjVg; exists y.
+Qed.
+
 Lemma mem_classes x A : x \in A -> x ^: A \in classes A.
 Proof. exact: mem_imset. Qed.
 

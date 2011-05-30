@@ -51,100 +51,6 @@ Proof. exact: group_closure_closed_field. Qed.
 
 End AlgC.
 
-Lemma class_inv: forall (gT : finGroupType) (G : {group gT}) g,
-  (g ^: G)^-1%g = g^-1 ^: G.
-Proof.
-move=> gT G g; apply/setP=> h; rewrite inE.
-apply/imsetP/imsetP; case=> l LiG H.
-  by exists l=> //; rewrite conjVg -H invgK.
-by exists l=> //; rewrite H conjVg invgK.
-Qed.
-
-(**
- This should be moved to matrix.v
-**)
-
-Lemma cofactor_mxZ : forall (R : comRingType) (n : nat) (A : 'M[R]_n) a i j, 
- cofactor (a *: A) i j = a^+n.-1 * cofactor A i j.
-Proof.
-move=> R n A a i j; rewrite !expand_cofactor.
-rewrite -mulr_sumr; apply: eq_bigr=> k Hk.
-rewrite [a^+_ * _]mulrC -mulrA; congr (_ * _).
-suff->: a ^+ n.-1 = \prod_(k0 | i != k0) a.
-  by rewrite -big_split; apply: eq_bigr=> i1 _; rewrite !mxE mulrC.
-rewrite prodr_const; congr (_ ^+ _).
-rewrite -{1}[n]card_ord -(cardsC1 i); apply: eq_card=> m.
-by rewrite !inE /in_mem /= eq_sym; case: (i == m).
-Qed.
-
-Lemma adj1 : forall (R : comRingType) (n : nat), \adj (1%:M) = 1%:M :> 'M[R]_n.
-Proof.
-by move=> R n; rewrite -{2}(det1 R n) -mul_adj_mx mulmx1.
-Qed.
-
-Lemma adj_mxZ : forall (R : comRingType) (n : nat) (A : 'M[R]_n) a, 
- \adj (a *: A) = a^+n.-1 *: \adj A.
-Proof.
-by move=> R n A a; apply/matrixP=> i j; rewrite !mxE cofactor_mxZ.
-Qed.
-
-Lemma unitmxZ : forall (R : comUnitRingType) n (A : 'M[R]_n) a,
-  GRing.unit a -> (a *: A) \in unitmx = (A \in unitmx).
-Proof.
-move=> R n A a Ha.
-rewrite !unitmxE det_scalemx commr_unit_mul ?unitr_exp //.
-exact: mulrC.
-Qed.
-
-Lemma invmxZ : forall (R : fieldType) (n : nat) (A : 'M[R]_n) a, 
- A \in unitmx -> invmx (a *: A) = a^-1 *: invmx A.
-Proof.
-move=> R [|n] A a HA; first by rewrite flatmx0 [_ *: _]flatmx0.
-case: (a =P 0)=> [->|].
-  by rewrite invr0 !scale0r /invmx det0 invr0 scale0r if_same.
-move/eqP=> Ha.
-have Ua: GRing.unit a by by rewrite unitfE.
-have Uan: GRing.unit (a^+n) by rewrite unitr_exp.
-have Uan1: GRing.unit (a^+n.+1) by rewrite unitr_exp.
-rewrite /invmx det_scalemx adj_mxZ unitmxZ // HA !scalerA invr_mul //.
-congr (_ *: _); rewrite -mulrA mulrC; congr (_ / _).
-by rewrite mulrC exprS invr_mul // mulrA divrr // mul1r.
-Qed.
-
-Lemma invmx1 : forall (R : fieldType) (n : nat), invmx 1%:M = 1%:M :> 'M[R]_n.
-Proof.
-by move=> R n; rewrite /invmx det1 invr1 scale1r adj1 if_same.
-Qed.
-
-Lemma invmx_scalar :
- forall (R : fieldType) (n : nat) (a: R), invmx (a%:M) = a^-1%:M :> 'M[R]_n.
-Proof.
-by move=> R n a; rewrite -scalemx1 invmxZ ?unitmx1 // invmx1 scalemx1.
-Qed.
-
-Lemma scalar_exp :
- forall (R : ringType) (m n : nat) (a: R), 
- (a^+m)%:M = a%:M^+ m :> 'M_n.+1.
-Proof.
-move=> R m n a; elim: m=> [|m IH]; first by rewrite !expr0.
-by rewrite !exprS scalar_mxM IH.
-Qed.
-
-Lemma row_is_linear : 
-  forall (R: ringType) m n (i : 'I_m), linear (@row R m n i).
-Proof.
-by move=> R m n i k A B; apply/matrixP=> x y; rewrite !mxE.
-Qed.
-
-Canonical Structure row_linear R m n i := Linear (@row_is_linear R m n i).
-
-Lemma gring_row_is_linear : 
-  forall (R: comUnitRingType) gT G, linear (@gring_row R gT G).
-Proof. move=> *; exact: row_is_linear. Qed.
-
-Canonical Structure gring_row_linear R gT G := 
-  Linear (@gring_row_is_linear R gT G).
-
 Section Tensor.
 
 Variable (F : fieldType).
@@ -2832,7 +2738,7 @@ Lemma rcenter_norm: forall (n : nat) (rG : mx_representation algC G n) g c,
 Proof.
 move=> [|n] // rG g c _ InG HrG.
 have F1: forall m, rG (g ^+ m)%g = (c ^+ m)%:M.
-  by move=> m; rewrite repr_mxX // HrG scalar_exp.
+  by move=> m; rewrite repr_mxX // HrG rmorphX.
 have F2: c ^+ #[g] = 1.
   move: (F1 #[g]); rewrite expg_order repr_mx1.
   by move/matrixP; move/(_ 0 0); rewrite !mxE eqxx mulr1n.
