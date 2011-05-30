@@ -474,7 +474,93 @@ apply: eq_bigr => i _.
 rewrite linearZ (nth_map 0) //.
 case : vbasis => ? /=.
 by move/eqP ->.
-Qed. 
+Qed.
+
+Definition aut := seq_sub LAut_enum.
+
+Lemma aut_is_rmorphism : forall f : aut, lrmorphism (ssval f).
+Proof. move => f. by apply/LAut_is_enum/ssvalP. Qed.
+
+Lemma aut_is_scalable : forall f : aut, scalable (ssval f).
+Proof. move => f. by apply/LAut_is_enum/ssvalP. Qed.
+
+Canonical Structure map_poly_rmorphism := 
+  fun f => RMorphism (aut_is_rmorphism f).
+Canonical Structure map_poly_lrmorphism := 
+  fun f => LRMorphism (aut_is_scalable f).
+
+Definition comp_in_aut : forall (f g : aut),
+ (ssval f \o ssval g)%VS \in LAut_enum.
+Proof.
+move => f g.
+apply/LAut_is_enum.
+split; last first.
+ move => a b.
+ by rewrite linearZ.
+split.
+ move => a b.
+ by rewrite linear_sub.
+by split;[move => a b|]; rewrite !lappE ?rmorph1 ?rmorphM.
+Qed.
+
+Definition id_in_aut : \1%VS \in LAut_enum.
+Proof.
+apply/LAut_is_enum.
+by repeat split;try (move => a b); rewrite !unit_lappE.
+Qed.
+
+Definition inv_in_aut : forall (f : aut),
+ (ssval f\^-1)%VS \in LAut_enum.
+Proof.
+move => f.
+move/LAut_is_enum/LAut_lrmorph: (ssvalP f) => Hf.
+apply/LAut_is_enum.
+apply:(@can2_lrmorphism _ _ _ [lrmorphism of (ssval f)]).
+ move => a.
+ rewrite -[_ (_ a)]comp_lappE inv_lker0 ?unit_lappE // -subv0.
+ apply/subvP => v.
+ rewrite memv_ker fmorph_eq0.
+ move/eqP ->.
+ by rewrite mem0v.
+move => a.
+move:(memvf a).
+rewrite -(addv_complf (ssval f @: fullv L)%VS).
+move/memv_addP => [? [z []]].
+case/memv_imgP => b [_ ->].
+rewrite (_ : (ssval f @: fullv L)^C = 0%:VS)%VS; last first.
+ apply/eqP.
+ by rewrite -dimv_eq0 dimv_compl (kHom_dim Hf) dimvf subnn.
+rewrite memv0.
+move/eqP => -> ->.
+rewrite addr0 -[_ (_ (_ b))]comp_lappE -[fun_of_lapp _ (_ b)]comp_lappE.
+by rewrite -comp_lappA inv_lapp_def.
+Qed.
+
+Definition comp_aut (f g : aut) : aut := SeqSub (comp_in_aut f g).
+Definition inv_aut (f : aut) : aut := SeqSub (inv_in_aut f).
+Definition id_aut : aut := SeqSub id_in_aut. 
+
+Lemma comp_autA : associative comp_aut.
+Proof. move => f g h. apply: val_inj. apply: comp_lappA. Qed.
+
+Lemma comp_1aut : left_id id_aut comp_aut.
+Proof. move => f. apply: val_inj. apply: comp_1lapp. Qed.
+
+Lemma comp_autK : left_inverse id_aut inv_aut comp_aut.
+Proof.
+move => f.
+apply: val_inj.
+simpl.
+rewrite inv_lker0 // -subv0.
+apply/subvP => v.
+rewrite memv_ker fmorph_eq0.
+move/eqP ->.
+by rewrite mem0v.
+Qed.
+
+Definition aut_finiteGroupMixin := FinGroup.Mixin
+   comp_autA comp_1aut comp_autK.
+
 
 (*
 Definition FieldAutomorphism (E:{vspace L}) (f : 'End(L) ) : bool :=
