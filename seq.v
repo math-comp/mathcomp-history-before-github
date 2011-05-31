@@ -98,7 +98,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 (*                     := drop n s ++ take n s                                *)
 (*            rotr n s == s rotated right n times (or s if size s <= n)       *)
 (*               rev s == the (linear time) reversal of s                     *)
-(*        catrev s2 s1 == the reversal of s1 followed by s2 (this is the      *)
+(*        catrev s1 s2 == the reversal of s1 followed by s2 (this is the      *)
 (*                        recursive form of rev)                              *)
 (*  ** iterators: for s == [:: x_1, ..., x_n], t == [:: y_1, ..., y_m],       *)
 (*        map f s == the sequence [:: f x_1, ..., f x_n]                      *)
@@ -709,14 +709,14 @@ Proof. by rewrite /rot /= take0 drop0 -cats1. Qed.
 
 (* (efficient) reversal *)
 
-Fixpoint catrev s2 s1 := if s1 is x :: s1' then catrev (x :: s2) s1' else s2.
+Fixpoint catrev s1 s2 := if s1 is x :: s1' then catrev s1' (x :: s2) else s2.
 
 End Sequences.
 
 (* rev must be defined outside a Section because Coq's end of section *)
 (* "cooking" removes the nosimpl guard.                               *)
 
-Definition rev T (s : seq T) := nosimpl (catrev [::] s).
+Definition rev T (s : seq T) := nosimpl (catrev s [::]).
 
 Implicit Arguments nilP [T s].
 Implicit Arguments all_filterP [T a s].
@@ -730,27 +730,31 @@ Infix "++" := cat : seq_scope.
 Section Rev.
 
 Variable T : Type.
-Implicit Type s : seq T.
+Implicit Types s t : seq T.
 
-Lemma rev_rcons s x : rev (rcons s x) = x :: (rev s).
-Proof. by rewrite /rev -cats1 /=; elim: s {-2}[::] => /=. Qed.
+Lemma catrev_catl s t u : catrev (s ++ t) u = catrev t (catrev s u).
+Proof. by elim: s u => /=. Qed.
+
+Lemma catrev_catr s t u : catrev s (t ++ u) = catrev s t ++ u.
+Proof. by elim: s t => //= x s IHs t; rewrite -IHs. Qed.
+
+Lemma catrevE s t : catrev s t = rev s ++ t.
+Proof. by rewrite -catrev_catr. Qed.
 
 Lemma rev_cons x s : rev (x :: s) = rcons (rev s) x.
-Proof.
-by elim/last_ind: s => // s y IHs; rewrite rev_rcons /= -IHs -rev_rcons.
-Qed.
+Proof. by rewrite -cats1 -catrevE. Qed.
 
 Lemma size_rev s : size (rev s) = size s.
 Proof. by elim: s => // x s IHs; rewrite rev_cons size_rcons IHs. Qed.
 
-Lemma rev_cat s1 s2 : rev (s1 ++ s2) = rev s2 ++ rev s1.
-Proof.
-elim: s1 => [|x s1 IHs] /=; first by rewrite cats0.
-by rewrite !rev_cons IHs -!cats1 catA.
-Qed.
+Lemma rev_cat s t : rev (s ++ t) = rev t ++ rev s.
+Proof. by rewrite -catrev_catr -catrev_catl. Qed.
+
+Lemma rev_rcons s x : rev (rcons s x) = x :: rev s.
+Proof. by rewrite -cats1 rev_cat. Qed.
 
 Lemma revK : involutive (@rev T).
-Proof. by elim=> [|x s IHs] //=; rewrite rev_cons rev_rcons IHs. Qed.
+Proof. by elim=> //= x s IHs; rewrite rev_cons rev_rcons IHs. Qed.
 
 Lemma nth_rev x0 n s :
   n < size s -> nth x0 (rev s) n = nth x0 s (size s - n.+1).
