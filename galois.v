@@ -3,6 +3,7 @@ Require Import fintype finfun bigop ssralg poly polydiv.
 Require Import zmodp vector algebra fieldext.
 Require Import fingroup perm finset matrix mxalgebra.
 Require Import separable choice.
+Require Import quotient morphism.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -427,7 +428,8 @@ split; last by move => x y _ _; apply: (rmorphM (RMorphism Hf)).
 move => ?; case/injvP => k ->.
 rewrite linearZ /=.
 (* There has got to be a better way than this *)
-rewrite -[fun_of_lapp f]/(GRing.RMorphism.apply (RMorphism (GRing.LRMorphism.base Hf))).
+rewrite -[fun_of_lapp f]/(GRing.RMorphism.apply 
+                          (RMorphism (GRing.LRMorphism.base Hf))).
 by rewrite (rmorph1 (RMorphism Hf)).
 Qed.
 
@@ -476,20 +478,28 @@ case : vbasis => ? /=.
 by move/eqP ->.
 Qed.
 
-Definition aut := seq_sub LAut_enum.
+Definition LAut := seq_sub LAut_enum.
 
-Lemma aut_is_rmorphism : forall f : aut, lrmorphism (ssval f).
+Canonical Structure LAut_subType := Eval hnf in [subType of LAut].
+Canonical Structure LAut_eqType := Eval hnf in [eqType of LAut].
+Canonical Structure LAut_choiceType := Eval hnf in [choiceType of LAut].
+Canonical Structure LAut_countType := Eval hnf in [countType of LAut].
+Canonical Structure LAut_subCountType := Eval hnf in [subCountType of LAut].
+Canonical Structure LAut_finType := Eval hnf in [finType of LAut].
+Canonical Structure LAut_subFinType := Eval hnf in [subFinType of LAut].
+
+Lemma LAut_is_rmorphism : forall f : LAut, lrmorphism (ssval f).
 Proof. move => f. by apply/LAut_is_enum/ssvalP. Qed.
 
-Lemma aut_is_scalable : forall f : aut, scalable (ssval f).
+Lemma LAut_is_scalable : forall f : LAut, scalable (ssval f).
 Proof. move => f. by apply/LAut_is_enum/ssvalP. Qed.
 
 Canonical Structure map_poly_rmorphism := 
-  fun f => RMorphism (aut_is_rmorphism f).
+  fun f => RMorphism (LAut_is_rmorphism f).
 Canonical Structure map_poly_lrmorphism := 
-  fun f => LRMorphism (aut_is_scalable f).
+  fun f => LRMorphism (LAut_is_scalable f).
 
-Definition comp_in_aut : forall (f g : aut),
+Definition comp_in_LAut : forall (f g : LAut),
  (ssval f \o ssval g)%VS \in LAut_enum.
 Proof.
 move => f g.
@@ -503,13 +513,24 @@ split.
 by split;[move => a b|]; rewrite !lappE ?rmorph1 ?rmorphM.
 Qed.
 
-Definition id_in_aut : \1%VS \in LAut_enum.
+Definition id_in_LAut : \1%VS \in LAut_enum.
 Proof.
 apply/LAut_is_enum.
 by repeat split;try (move => a b); rewrite !unit_lappE.
 Qed.
 
-Definition inv_in_aut : forall (f : aut),
+Lemma LAut_ker0 : forall (f : LAut), lker (ssval f) = 0%:VS.
+Proof.
+move => f.
+apply/eqP.
+rewrite -subv0.
+apply/subvP => v.
+rewrite memv_ker fmorph_eq0.
+move/eqP ->.
+by rewrite mem0v.
+Qed.
+
+Definition inv_in_LAut : forall (f : LAut),
  (ssval f\^-1)%VS \in LAut_enum.
 Proof.
 move => f.
@@ -518,10 +539,7 @@ apply/LAut_is_enum.
 apply:(@can2_lrmorphism _ _ _ [lrmorphism of (ssval f)]).
  move => a.
  rewrite -[_ (_ a)]comp_lappE inv_lker0 ?unit_lappE // -subv0.
- apply/subvP => v.
- rewrite memv_ker fmorph_eq0.
- move/eqP ->.
- by rewrite mem0v.
+ by rewrite LAut_ker0 subv_refl.
 move => a.
 move:(memvf a).
 rewrite -(addv_complf (ssval f @: fullv L)%VS).
@@ -536,31 +554,104 @@ rewrite addr0 -[_ (_ (_ b))]comp_lappE -[fun_of_lapp _ (_ b)]comp_lappE.
 by rewrite -comp_lappA inv_lapp_def.
 Qed.
 
-Definition comp_aut (f g : aut) : aut := SeqSub (comp_in_aut f g).
-Definition inv_aut (f : aut) : aut := SeqSub (inv_in_aut f).
-Definition id_aut : aut := SeqSub id_in_aut. 
+Definition comp_LAut (f g : LAut) : LAut := SeqSub (comp_in_LAut f g).
+Definition inv_LAut (f : LAut) : LAut := SeqSub (inv_in_LAut f).
+Definition id_LAut : LAut := SeqSub id_in_LAut. 
 
-Lemma comp_autA : associative comp_aut.
+Lemma comp_LAutA : associative comp_LAut.
 Proof. move => f g h. apply: val_inj. apply: comp_lappA. Qed.
 
-Lemma comp_1aut : left_id id_aut comp_aut.
+Lemma comp_1LAut : left_id id_LAut comp_LAut.
 Proof. move => f. apply: val_inj. apply: comp_1lapp. Qed.
 
-Lemma comp_autK : left_inverse id_aut inv_aut comp_aut.
+Lemma comp_LAutK : left_inverse id_LAut inv_LAut comp_LAut.
 Proof.
 move => f.
 apply: val_inj.
-simpl.
-rewrite inv_lker0 // -subv0.
-apply/subvP => v.
-rewrite memv_ker fmorph_eq0.
-move/eqP ->.
-by rewrite mem0v.
+by rewrite /= inv_lker0 // -subv0 LAut_ker0 subv_refl.
 Qed.
 
-Definition aut_finiteGroupMixin := FinGroup.Mixin
-   comp_autA comp_1aut comp_autK.
+Definition LAut_baseFinGroupMixin := FinGroup.Mixin
+   comp_LAutA comp_1LAut comp_LAutK.
 
+Canonical LAut_baseFinGroupType := Eval hnf in 
+   BaseFinGroupType LAut LAut_baseFinGroupMixin.
+Canonical LAut_finGroupType := Eval hnf in
+   @FinGroupType LAut_baseFinGroupType comp_LAutK.
+
+Canonical LAut_of_baseFinGroupType := Eval hnf in
+   [baseFinGroupType of LAut].
+Canonical LAut_of_finGroupType := Eval hnf in
+   [finGroupType of LAut].
+
+(* can I remove val below? *)
+Lemma kAut_normal : forall K E : {algebra L},
+ ([set x : LAut | kAut K E (val x)] \subset
+   'N([set x : LAut | kHom K (fullv L) (val x)]))%g.
+Proof.
+move => K E.
+apply/subsetP.
+move => x.
+rewrite !{1}in_set.
+case/andP.
+case/kHomP => Hx1 Hx2 _.
+apply/subsetP => ?.
+case/imsetP => y.
+rewrite !in_set.
+case/kHomP => Hy _ ->.
+apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
+move => a Ha.
+rewrite -{2}[a](unit_lappE) -[\1%VS]/(val (1%g : LAut)) -(mulVg x).
+rewrite !SubK !lappE /=.
+apply: f_equal.
+rewrite lappE.
+apply Hy.
+by rewrite Hx1.
+Qed.
+
+Definition Aut (E K : {vspace L}) :=
+  ([set x : LAut | kAut K E (val x)] /
+             [set x : LAut | kHom K (fullv L) (val x)])%g.
+
+Reserved Notation "''Aut' ( A , B )" (at level 8, format "''Aut' ( A , B )").
+Notation "''Aut' ( A , B )" := (Aut A B) : group_scope.
+
+Lemma kAut_group_set : forall K E : {algebra L}, 
+  group_set [set x : LAut | kAut K E (val x)].
+Proof.
+move => K E.
+apply/group_setP; split.
+ rewrite in_set kAutE.
+ apply/andP; split; last by rewrite SubK lim1g subv_refl.
+ apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
+ move => a _.
+ by rewrite SubK unit_lappE.
+move => x y.
+rewrite !in_set !kAutE.
+case/andP; case/kHomP => Hx1 Hx2 Hx3.
+case/andP; case/kHomP => Hy1 Hy2 Hy3.
+apply/andP; split; last first.
+ by rewrite SubK limg_comp (subv_trans _ Hx3) // limg_ker0 // LAut_ker0.
+apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
+move => a Ha.
+by rewrite SubK lappE /comp Hy1 // Hx1.
+Qed.
+
+Lemma Aut_group_set : forall K E : {algebra L}, 
+  group_set ('Aut  ( E , K ) )%g.
+Proof.
+move => K E.
+rewrite /Aut.
+apply/isgroupP.
+by exists (group (kAut_group_set K E) / 
+            [set x : LAut | kHom K (fullv L) (val x)])%G.
+Qed.
+
+Notation "''Aut' ( A , B )" := (group (Aut_group_set A B)) : subgroup_scope.
+
+(* Test our ability to state part of Galois's great theorem. *)
+Hypothesis foo : forall (E Q K: {algebra L}), normal E K -> normal Q K ->
+  ('Aut (Q , K) \isog ('Aut (E , K) / 'Aut (E , Q)))%G.
 
 (*
 Definition FieldAutomorphism (E:{vspace L}) (f : 'End(L) ) : bool :=
