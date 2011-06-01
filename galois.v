@@ -73,12 +73,6 @@ Section Definitions.
 
 Variables (K E: {vspace L}) (f : 'End(L)).
 
-Definition normal : Prop :=
- forall x, x \in E -> exists r, all (fun y => y \in E) r &&
-                                (minPoly K x == \prod_(y <- r) ('X - y%:P)).
-
-Definition galois : Prop := normal /\ separable K E.
-
 (* Should I make this canonical by setting fixing (f @: E)^C ? *)
 Definition kHom : pred 'End(L) :=
 fun f => (K <= eigenspace f 1)%VS &&
@@ -297,7 +291,7 @@ apply/andP/andP; case => Hhom.
 move => HfE; split => //.
 by rewrite -(dimv_leqif_eq HfE) (kHom_dim Hhom).
 Qed.
-
+(*
 Lemma kHomExtendAut : forall (K E J : {algebra L}) f,
   (K <= E)%VS -> (K <= J)%VS -> kHom K E f -> (f @: E <= J)%VS ->
   normal K J -> exists g, kAut K J g && (E <= lker (g - f))%VS.
@@ -411,7 +405,7 @@ rewrite !add_lappE !opp_lappE.
 congr (_ - _).
 by rewrite kHomExtendExt.
 Qed.
-
+*)
 Lemma LAut_lrmorph : forall f : 'End(L), 
   reflect (lrmorphism f) (kHom F (fullv L) f).
 Proof.
@@ -433,7 +427,8 @@ rewrite -[fun_of_lapp f]/(GRing.RMorphism.apply
 by rewrite (rmorph1 (RMorphism Hf)).
 Qed.
 
-Hypothesis NormalFieldExt : normal F (aspacef L).
+Hypothesis NormalFieldExt : forall x : L,
+  exists r : seq L, minPoly F x == \prod_(y <- r) ('X - y%:P).
 
 Definition LAut_enum :=
  let b := vbasis (fullv L) in
@@ -441,7 +436,7 @@ Definition LAut_enum :=
   (fun v : L => \sum_i coord b v i *: b'`_i) in
  undup (filter (kHom F (fullv L))
    (map mkEnd (foldr (allpairs cons) [:: [::]]
-     (map (fun x => xchoose (NormalFieldExt (memvf x))) b)))).
+     (map (fun x => xchoose (NormalFieldExt x)) b)))).
 
 Lemma LAut_is_enum : forall f : 'End(L), 
   reflect (lrmorphism f) (f \in LAut_enum).
@@ -460,7 +455,7 @@ exists (map f (vbasis (fullv L))).
  elim: (tval (vbasis (fullv L))) => [//|v vs IH].
  apply/allpairsP.
  exists (f v, map f vs); split => //.
- case/andP: (xchooseP (NormalFieldExt (memvf v))) => _.
+ case: (xchooseP (NormalFieldExt v)).
  rewrite -root_prod_factors.
  move/eqP <-.
  by rewrite (kHom_rootK Hf) ?subvf ?minPolyOver ?memvf ?root_minPoly.
@@ -609,12 +604,16 @@ apply Hy.
 by rewrite Hx1.
 Qed.
 
+(* In most definitions I give the smaller field first, since the larger
+   field can be seen as algebra over the smaller, and so in some moral sense
+   the larger field depends on the smaller one.  However standard mathematical
+   notation for Aut(E/K) puts the larger field first. *)
 Definition Aut (E K : {vspace L}) :=
   ([set x : LAut | kAut K E (val x)] /
-             [set x : LAut | kHom K (fullv L) (val x)])%g.
+             [set x : LAut | kHom E (fullv L) (val x)])%g.
 
-Reserved Notation "''Aut' ( A , B )" (at level 8, format "''Aut' ( A , B )").
-Notation "''Aut' ( A , B )" := (Aut A B) : group_scope.
+Reserved Notation "''Aut' ( A | B )" (at level 8, format "''Aut' ( A | B )").
+Notation "''Aut' ( A | B )" := (Aut A B) : group_scope.
 
 Lemma kAut_group_set : forall K E : {algebra L}, 
   group_set [set x : LAut | kAut K E (val x)].
@@ -638,20 +637,22 @@ by rewrite SubK lappE /comp Hy1 // Hx1.
 Qed.
 
 Lemma Aut_group_set : forall K E : {algebra L}, 
-  group_set ('Aut  ( E , K ) )%g.
+  group_set ('Aut  ( E | K ) )%g.
 Proof.
 move => K E.
 rewrite /Aut.
 apply/isgroupP.
 by exists (group (kAut_group_set K E) / 
-            [set x : LAut | kHom K (fullv L) (val x)])%G.
+            [set x : LAut | kHom E (fullv L) (val x)])%G.
 Qed.
 
-Notation "''Aut' ( A , B )" := (group (Aut_group_set A B)) : subgroup_scope.
+Notation "''Aut' ( A | B )" := (group (Aut_group_set B A)) : subgroup_scope.
 
-(* Test our ability to state part of Galois's great theorem. *)
-Hypothesis foo : forall (E Q K: {algebra L}), normal E K -> normal Q K ->
-  ('Aut (Q , K) \isog ('Aut (E , K) / 'Aut (E , Q)))%G.
+(* Test our ability to state parts of Galois's great theorem. *)
+Hypothesis foo : forall (E Q K: {algebra L}), (K <= Q)%VS ->
+  ('Aut (E | Q) \subset 'Aut (E | K))%g.
+Hypothesis bar : forall (E Q K: {algebra L}),
+  ('Aut (Q | K) \isog ('Aut (E | K) / 'Aut (E | Q)))%G.
 
 (*
 Definition FieldAutomorphism (E:{vspace L}) (f : 'End(L) ) : bool :=
