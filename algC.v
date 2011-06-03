@@ -183,7 +183,7 @@ Lemma ltC_add2l :  forall p m n, (p + m < p + n) = (m < n).
 Proof.
 move=> p m n; rewrite ltCE leC_add2l; congr (_ && _).
 apply/negP/negP=> HH HH1; case: HH; first by rewrite (eqP HH1).
-by apply/eqP; apply: (addrI (eqP HH1)).
+by apply/eqP; apply: (addrI _ (eqP HH1)).
 Qed.
 
 Lemma ltC_add2r :  forall p m n, (m + p < n + p) = (m < n).
@@ -665,7 +665,7 @@ case: n Hn=> [|n Hn]; case: m Hm=>[|m Hm].
     by exact: HF0.
   move=> n _ _.
   rewrite -[1%:R]add0r add0n -addn1 natr_add => HH.
-  by move/eqP: (addIr HH); rewrite -(eqN_eqC _ 0).
+  by move/eqP: (addIr _ HH); rewrite -(eqN_eqC _ 0).
 - case: n Hn=> [Hn Hs _|n Hn Hs].
     exists y; split=> //; first by rewrite in_cons eqxx.
     move=> j Hjy; rewrite in_cons; case/orP; first by rewrite (negPf Hjy).
@@ -673,9 +673,9 @@ case: n Hn=> [|n Hn]; case: m Hm=>[|m Hm].
     move=> i; case/andP=> HNI HPI; apply: posC_isNatC; first by exact: HN.
     by rewrite Hj.
   rewrite -[1%:R]add0r addn0 -addn1 natr_add => HH.
-  by move/eqP: (addIr HH); rewrite -(eqN_eqC _ 0).
+  by move/eqP: (addIr _ HH); rewrite -(eqN_eqC _ 0).
 rewrite -[1%:R]add0r addnS -addn1 natr_add => HH.
-by move/eqP: (addIr HH); rewrite -(eqN_eqC _ 0).
+by move/eqP: (addIr _ HH); rewrite -(eqN_eqC _ 0).
 Qed.
 
 (* We mimic Z by a sign and a natural number *)

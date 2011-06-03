@@ -2267,7 +2267,7 @@ case: (leqP r.+1 s) => Hrs.
  by rewrite mulnC eqn_mul2l => /negbTE->; rewrite eqn0Ngt Hp0 mulr0.
 pose (s' := Ordinal Hrs).
 rewrite (bigD1 s') // coef_scaler -exprn_mulr coef_Xn {2}mulnC eq_refl mulr1.
-rewrite coef_Poly nth_mkseq // mulnC big1 ?[_ _ 0]addr0 // => j /negPf.
+rewrite coef_poly Hrs mulnC big1 ?[_ _ 0]addr0 // => j /negPf.
 rewrite eq_sym => Hj.
 rewrite coef_scaler -exprn_mulr coef_Xn eqn_mul2l [s == j]Hj eqn0Ngt Hp0.
 by rewrite mulr0.

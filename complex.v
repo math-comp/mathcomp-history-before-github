@@ -495,10 +495,8 @@ Variable R : rcfType.
 Local Notation C := (cplx R).
 
 Definition C_closedFieldAxiom := closed_form_ivt (@poly_ivt R).
-Definition C_QEmixin := closed_fields_QEMixin C_closedFieldAxiom.
-Canonical Structure C_QE :=  @GRing.QE.pack C _ C_QEmixin _ _ id _ id.
-Definition C_DecFieldMixin := (GRing.QEDecidableFieldMixin C_QE).
-Canonical Structure C_DecField := DecFieldType C C_DecFieldMixin.
+Definition C_decFieldMixin := closed_fields_QEMixin C_closedFieldAxiom.
+Canonical Structure C_decField := DecFieldType C C_decFieldMixin.
 Canonical Structure C_closedField := ClosedFieldType C C_closedFieldAxiom.
 
 

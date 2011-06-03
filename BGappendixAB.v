@@ -147,7 +147,7 @@ have cAG: centgmx rG A.
   rewrite /centgmx gen_subG subUset !sub1set !inE Gx Gy /=; apply/andP.
   rewrite -[rG x](subrK 1%R) -[rG y](subrK 1%R) -/Ax -/Ay.
   rewrite 2!(mulmx_addl _ 1 A) 2!(mulmx_addr A _ 1) !mulmx1 !mul1mx.
-  rewrite !(inj_eq (@addIr _ A)) ![_ *m A]mulmx_addr ![A *m _]mulmx_addl.
+  rewrite !(inj_eq (addIr A)) ![_ *m A]mulmx_addr ![A *m _]mulmx_addl.
   by rewrite -!mulmxA Ax2 Ay2 !mulmx0 !mulmxA Ax2 Ay2 !mul0mx !addr0 !add0r.
 have irrG: mx_irreducible rG by exact/abelem_mx_irrP.
 pose rAG := gen_repr irrG cAG; pose inFA := in_gen irrG cAG.

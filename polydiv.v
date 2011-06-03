@@ -89,7 +89,7 @@ by rewrite subKn ?addrN // -subn1 leq_sub_add add1n -Hqq.
 Qed.
 
 Lemma edivp_eq : forall d q r: {poly R},
-  GRing.comm d (lead_coef d)%:P -> rreg (lead_coef d) -> size r < size d ->
+  GRing.comm d (lead_coef d)%:P -> GRing.rreg (lead_coef d) -> size r < size d ->
   let k := (edivp (q * d + r) d).1.1 in
   let c := (lead_coef d ^+ k)%:P in
   edivp (q * d + r) d = (k, q * c, r * c).
@@ -188,7 +188,7 @@ Lemma dvdpn0 : forall p q, p %| q -> q != 0 -> p != 0.
 Proof. by move=> p q pq hq; apply: contraL pq=> /eqP ->; rewrite dvd0p. Qed.
 
 (* Todo : rewrite this *)
-Lemma comm_dvdpP : forall p q, GRing.comm q (lead_coef q)%:P -> rreg (lead_coef q) ->
+Lemma comm_dvdpP : forall p q, GRing.comm q (lead_coef q)%:P -> GRing.rreg (lead_coef q) ->
   reflect (exists nq: nat * {poly R}, p * ((lead_coef q)^+nq.1)%:P= nq.2 * q)
           (q %| p).
 Proof.
@@ -196,9 +196,7 @@ move=> p q; set lq := lead_coef q; move=> Cq Rq; apply: (iffP idP).
   rewrite /dvdp; move/eqP=> Dqp.
   by exists (scalp p q, p %/ q); rewrite {1}divp_spec // Dqp !simp.
 move=> [[k q1] /= Hq].
-case: (q =P 0)=> [Hq0|]; [|move/eqP=>Hnq0].
-  case/eqP: (nonzero1r R); apply: Rq; rewrite simp; apply/eqP.
-  by rewrite /lq lead_coef_eq0 Hq0.
+have Hnq0 := rreg_lead0 Rq.
 pose v := scalp p q; pose m := maxn v k.
 rewrite /dvdp -(rreg_scale0 _ (@rregX _ _ (m - v) Rq)).
 suff:
@@ -278,7 +276,7 @@ Lemma dvd1p : forall p, 1 %| p.
 Proof. move=> p; apply/eqP; exact: modp1. Qed.
 
 Lemma rreg_dvdp_mull : forall p q,
-  GRing.comm q (lead_coef q)%:P -> rreg (lead_coef q) -> q %| p * q.
+  GRing.comm q (lead_coef q)%:P -> GRing.rreg (lead_coef q) -> q %| p * q.
 Proof.
 by move=> p q Cq Rq; apply/comm_dvdpP=> //; exists (0%N,p); rewrite expr0 simp.
 Qed.
@@ -467,10 +465,7 @@ Proof. move=> p; apply/eqP; exact: modpp. Qed.
 Lemma divp_mull : forall p q, q != 0 ->
   p * q %/ q = lead_coef q ^+ scalp (p * q) q *: p.
 Proof.
-move=> p q nz_q.
-move: (divCp_spec (p*q) q); rewrite modIp_mull simp scaler_mull.
-move: nz_q. move/rregP=> Rq;move/eqP; rewrite -subr_eq0 -mulr_subl; move/eqP; move/Rq.
-by move/eqP; rewrite subr_eq0; move/eqP.
+by move=> p q /rregP; apply; rewrite -scaler_mull divCp_spec modIp_mull addr0.
 Qed.
 
 (******************************************************************)
@@ -1648,7 +1643,7 @@ have: (size (1 + p) != 1%N).
 move/root_size_neq1 => [x rx]; exists x.
 move: rx; rewrite rootE horner_add hornerC.
 rewrite addrC -(inj_eq (@addIr _ (-1))) addrK sub0r rootE.
-move/eqP->; rewrite eq_sym -(inj_eq (@addrI _ 1)).
+move/eqP->; rewrite eq_sym -(inj_eq (addrI 1)).
 by rewrite addr0 subrr oner_eq0.
 Qed.
 

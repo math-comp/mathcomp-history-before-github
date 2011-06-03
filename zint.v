@@ -282,7 +282,7 @@ Admitted.
 
 Lemma mulzN : forall (m n : zint), (m * (- n))%Z = - (m * n)%Z.
 Proof.
-move=> m n; apply: (@addrI _ (m * n)%Z). 
+move=> m n; apply: (addrI (m * n)%Z). 
 by rewrite ![(m*_)%Z]mulzC -mulz_addl !subrr mul0z.
 Qed.
 Lemma mulNz : forall (m n : zint), ((- m) * n)%Z = - (m * n)%Z.

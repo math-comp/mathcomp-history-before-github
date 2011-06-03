@@ -205,9 +205,7 @@ Qed.
 Definition actr_sum x := big_morph _ (actAr x) (act0r x).
 
 Lemma actNr : forall x, {morph actr^~ x : u / - u}.
-Proof.
-by move=> x u; apply: (@addrI _ (u ^@ x)); rewrite -actAr !subrr act0r.
-Qed.
+Proof. by move=> x u; apply: (addrI (u ^@ x)); rewrite -actAr !subrr act0r. Qed.
 
 Lemma actZr : forall x n, {morph actr^~ x : u / u *+ n}.
 Proof.
@@ -482,7 +480,7 @@ Definition coset_transversal X :=
 Lemma transfer_indep : forall X, coset_transversal X -> {in G, transfer =1 V X}.
 Proof.
 move=> X repsX g Gg.
-apply: (@addrI _ (\sum_(Hx \in rcosets H G) fmalpha (repr Hx * (X Hx)^-1))).
+apply: (addrI (\sum_(Hx \in rcosets H G) fmalpha (repr Hx * (X Hx)^-1))).
 rewrite {1}(reindex_acts 'Rs _ Gg) ?actsRs_rcosets // -!big_split /=.
 apply: eq_bigr => Hx; case/rcosetsP=> x Gx ->{Hx}; rewrite !rcosetE -!rcosetM.
 case: repr_rcosetP => h1 Hh1; case: repr_rcosetP => h2 Hh2.

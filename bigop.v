@@ -759,7 +759,7 @@ Lemma big_cons i r (P : pred I) F :
   \big[op/idx]_(j <- i :: r | P j) F j = if P i then op (F i) x else x.
 Proof. by rewrite unlock. Qed.
 
-Lemma big_map (J : eqType) (h : J -> I) r (P : pred I) F :
+Lemma big_map J (h : J -> I) r (P : pred I) F :
   \big[op/idx]_(i <- map h r | P i) F i
      = \big[op/idx]_(j <- r | P (h j)) F (h j).
 Proof. by rewrite unlock; elim: r => //= j r ->. Qed.

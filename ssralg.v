@@ -61,6 +61,8 @@ Require Import finfun bigop prime binomial.
 (*                           i.e., x * (x * .. (x * x)..) (n factors); x ^+ 1 *)
 (*                           is thus convertible to x, and x ^+ 2 to x * x.   *)
 (*         GRing.comm x y <-> x and y commute, i.e., x * y = y * x.           *)
+(*           GRing.lreg x <-> x if left-regular, i.e., *%R x is injective.    *)
+(*           GRing.rreg x <-> x if right-regular, i.e., *%R x is injective.   *)
 (*               [char R] == the characteristic of R, defined as the set of   *)
 (*                           prime numbers p such that p%:R = 0 in R. The set *)
 (*                           [char p] has a most one element, and is          *)
@@ -161,9 +163,11 @@ Require Import finfun bigop prime binomial.
 (*                           ==>, ==, and != to formulae; GRing.True/False    *)
 (*                           and GRing.Bool b denote constant formulae, and   *)
 (*                           quantifiers are written 'forall/'exists 'X_k, f. *)
-(*                           GRing.Unit x tests for ring units, and the       *)
-(*                           construct Pick p_f t_f e_f can be used to        *)
-(*                           emulate the pick function defined in fintype.v.  *)
+(*                             GRing.Unit x tests for ring units              *)
+(*                             GRing.If p_f t_f e_f emulates if-then-else     *)
+(*                             GRing.Pick p_f t_f e_f emulates fintype.pick   *)
+(*                             foldr GRing.Exists/Forall q_f xs can be used   *)
+(*                               to write iterated quantifiers.               *)
 (*         GRing.eval e t == the value of term t with valuation e : seq R     *)
 (*                           (e maps 'X_i to e`_i).                           *)
 (*  GRing.same_env e1 e2 <-> environments e1 and e2 are extensionally equal.  *)
@@ -174,6 +178,12 @@ Require Import finfun bigop prime binomial.
 (*          GRing.sat e f == valuation e satisfies f (only in a decField).    *)
 (*          GRing.sol n f == a sequence e of size n such that e satisfies f,  *)
 (*                           if one exists, or [::] if there is no such e.    *)
+(* QEdecFieldMixin wfP okP == a decidable field Mixin built from a quantifier *)
+(*                           eliminator p and proofs wfP : GRing.wf_QE_proj p *)
+(*                           and okP : GRing.valid_QE_proj p that p returns   *)
+(*                           well-formed and valid formulae: p i (us, vs)     *)
+(*                           should be a quntifier free formula equivalent to *)
+(*        'exists 'X_i, u1 == 0 /\ ... /\ u_m == 0 /\ v1 != 0 ... /\ v_n != 0 *)
 (*                                                                            *)
 (*  * ClosedField (algebraically closed fields):                              *)
 (*        closedFieldType == interface type for the ClosedField structure.    *)
@@ -537,6 +547,8 @@ Lemma addIr : @left_injective V V V +%R.
 Proof. move=> y; exact: can_inj (addrK y). Qed.
 Lemma opprK : @involutive V -%R.
 Proof. by move=> x; apply: (@addIr (- x)); rewrite addNr addrN. Qed.
+Lemma oppr_inj : @injective V V -%R.
+Proof. exact: inv_inj opprK. Qed.
 Lemma oppr0 : -0 = 0 :> V.
 Proof. by rewrite -[-0]add0r subrr. Qed.
 Lemma oppr_eq0 x : (- x == 0) = (x == 0).
@@ -642,6 +654,10 @@ Proof. by rewrite big_const -iteropE. Qed.
 
 End ZmoduleTheory.
 
+Implicit Arguments addrI [V x1 x2].
+Implicit Arguments addIr [V x1 x2].
+Implicit Arguments oppr_inj [[V] x1 x2].
+
 Module Ring.
 
 Record mixin_of (R : zmodType) : Type := Mixin {
@@ -711,6 +727,8 @@ Definition one (R : ringType) : R := Ring.one (Ring.class R).
 Definition mul (R : ringType) : R -> R -> R := Ring.mul (Ring.class R).
 Definition exp R x n := nosimpl iterop _ n (@mul R) x (one R).
 Definition comm R x y := @mul R x y = mul y x.
+Definition lreg R x := injective (@mul R x).
+Definition rreg R x := injective ((@mul R)^~ x).
 
 Local Notation "1" := (one _) : ring_scope.
 Local Notation "- 1" := (- (1)) : ring_scope.
@@ -722,8 +740,6 @@ Local Notation "x ^+ n" := (exp x n) : ring_scope.
 Local Notation "\prod_ ( i <- r | P ) F" := (\big[*%R/1]_(i <- r | P) F).
 Local Notation "\prod_ ( i | P ) F" := (\big[*%R/1]_(i | P) F).
 Local Notation "\prod_ ( i \in A ) F" := (\big[*%R/1]_(i \in A) F).
-
-Prenex Implicits comm.
 
 (* The ``field'' characteristic; the definition, and many of the theorems,   *)
 (* has to apply to rings as well; indeed, we need the Frobenius automorphism *)
@@ -754,16 +770,16 @@ Lemma oner_eq0 : (1 == 0 :> R) = false. Proof. exact: negbTE nonzero1r. Qed.
 
 Lemma mul0r : @left_zero R R 0 *%R.
 Proof.
-by move=> x; apply: (@addIr _ (1 * x)); rewrite -mulr_addl !add0r mul1r.
+by move=> x; apply: (addIr (1 * x)); rewrite -mulr_addl !add0r mul1r.
 Qed.
 Lemma mulr0 : @right_zero R R 0 *%R.
 Proof.
-by move=> x; apply: (@addIr _ (x * 1)); rewrite -mulr_addr !add0r mulr1.
+by move=> x; apply: (addIr (x * 1)); rewrite -mulr_addr !add0r mulr1.
 Qed.
 Lemma mulrN x y : x * (- y) = - (x * y).
-Proof. by apply: (@addrI _ (x * y)); rewrite -mulr_addr !subrr mulr0. Qed.
+Proof. by apply: (addrI (x * y)); rewrite -mulr_addr !subrr mulr0. Qed.
 Lemma mulNr x y : (- x) * y = - (x * y).
-Proof. by apply: (@addrI _ (x * y)); rewrite -mulr_addl !subrr mul0r. Qed.
+Proof. by apply: (addrI (x * y)); rewrite -mulr_addl !subrr mul0r. Qed.
 Lemma mulrNN x y : (- x) * (- y) = x * y.
 Proof. by rewrite mulrN mulNr opprK. Qed.
 Lemma mulN1r x : -1 * x = - x.
@@ -886,6 +902,9 @@ elim: m => [|m IHm]; first by rewrite exp1rn.
 by rewrite mulSn exprn_addr IHm exprS commr_exp_mull //; exact: commr_exp.
 Qed.
 
+Lemma exprnC x m n : (x ^+ m) ^+ n = (x ^+ n) ^+ m.
+Proof. by rewrite -!exprn_mulr mulnC. Qed.
+
 Lemma exprn_mod n x i : x ^+ n = 1 -> x ^+ (i %% n) = x ^+ i.
 Proof.
 move=> xn1; rewrite {2}(divn_eq i n) exprn_addr mulnC exprn_mulr xn1.
@@ -917,6 +936,32 @@ Proof. by rewrite -mulN1r commr_exp_mull // /comm mulN1r mulrN mulr1. Qed.
 
 Lemma sqrrN x : (- x) ^+ 2 = x ^+ 2.
 Proof. exact: mulrNN. Qed.
+
+Lemma mulrI_eq0 x y : lreg x -> (x * y == 0) = (y == 0).
+Proof. by move=> reg_x; rewrite -{1}(mulr0 x) (inj_eq reg_x). Qed.
+
+Lemma lreg_neq0 x : lreg x -> x != 0.
+Proof. by move=> reg_x; rewrite -[x]mulr1 mulrI_eq0 ?oner_eq0. Qed.
+
+Lemma mulrI0_lreg x : (forall y, x * y = 0 -> y = 0) -> lreg x.
+Proof.
+move=> reg_x y z eq_xy_xz; apply/eqP; rewrite -subr_eq0 [y - z]reg_x //.
+by rewrite mulr_subr eq_xy_xz subrr.
+Qed.
+
+Lemma lregN x : lreg x -> lreg (- x).
+Proof. by move=> reg_x y z; rewrite !mulNr => /oppr_inj/reg_x. Qed.
+
+Lemma lreg1 : lreg (1 : R).
+Proof. by move=> x y; rewrite !mul1r. Qed.
+
+Lemma lregM x y : lreg x -> lreg y -> lreg (x * y).
+Proof. by move=> reg_x reg_y z t; rewrite -!mulrA => /reg_x/reg_y. Qed.
+
+Lemma lregX x n : lreg x -> lreg (x ^+ n).
+Proof.
+by move=> reg_x; elim: n => [|n]; [exact: lreg1 | rewrite exprS; exact: lregM].
+Qed.
 
 Lemma prodr_const (I : finType) (A : pred I) (x : R) :
   \prod_(i \in A) x = x ^+ #|A|.
@@ -1079,6 +1124,38 @@ Canonical converse_ringType := RingType R^c converse_ringMixin.
 
 End RingTheory.
 
+Section RightRegular.
+
+Variable R : ringType.
+Implicit Types x y : R.
+Let Rc := converse_ringType R.
+
+Lemma mulIr_eq0 x y : rreg x -> (y * x == 0) = (y == 0).
+Proof. exact: (@mulrI_eq0 Rc). Qed.
+
+Lemma mulIr0_rreg x : (forall y, y * x = 0 -> y = 0) -> rreg x.
+Proof. exact: (@mulrI0_lreg Rc). Qed.
+
+Lemma rreg_neq0 x : rreg x -> x != 0.
+Proof. exact: (@lreg_neq0 Rc). Qed.
+
+Lemma rregN x : rreg x -> rreg (- x).
+Proof. exact: (@lregN Rc). Qed.
+
+Lemma rreg1 : rreg (1 : R).
+Proof. exact: (@lreg1 Rc). Qed.
+
+Lemma rregM x y : rreg x -> rreg y -> rreg (x * y).
+Proof. by move=> reg_x reg_y; exact: (@lregM Rc). Qed.
+
+Lemma revrX x n : (x : Rc) ^+ n = (x : R) ^+ n.
+Proof. by elim: n => // n IHn; rewrite exprS exprSr IHn. Qed.
+
+Lemma rregX x n : rreg x -> rreg (x ^+ n).
+Proof. by move/(@lregX Rc x n); rewrite revrX. Qed.
+
+End RightRegular.
+
 Module Lmodule.
 
 Structure mixin_of (R : ringType) (V : zmodType) : Type := Mixin {
@@ -1147,8 +1224,7 @@ Local Notation "a *: v" := (scale a v) : ring_scope.
 Section LmoduleTheory.
 
 Variables (R : ringType) (V : lmodType R).
-Implicit Type a b c : R.
-Implicit Type u v : V.
+Implicit Types (a b c : R) (u v : V).
 
 Local Notation "*:%R" := (@scale R V).
 
@@ -1165,19 +1241,19 @@ Lemma scaler_addl v : {morph *:%R^~ v : a b / a + b}.
 Proof. by case: V v => ? [] ? []. Qed.
 
 Lemma scale0r v : 0 *: v = 0.
-Proof. by apply: (@addIr _ (1 *: v)); rewrite -scaler_addl !add0r. Qed.
+Proof. by apply: (addIr (1 *: v)); rewrite -scaler_addl !add0r. Qed.
 
 Lemma scaler0 a : a *: 0 = 0 :> V.
 Proof. by rewrite -{1}(scale0r 0) scalerA mulr0 scale0r. Qed.
 
 Lemma scaleNr a v : - a *: v = - (a *: v).
-Proof. by apply: (@addIr _ (a *: v)); rewrite -scaler_addl !addNr scale0r. Qed.
+Proof. by apply: (addIr (a *: v)); rewrite -scaler_addl !addNr scale0r. Qed.
 
 Lemma scaleN1r v : (- 1) *: v = - v.
 Proof. by rewrite scaleNr scale1r. Qed.
 
 Lemma scalerN a v : a *: (- v) = - (a *: v).
-Proof. by apply: (@addIr _ (a *: v)); rewrite -scaler_addr !addNr scaler0. Qed.
+Proof. by apply: (addIr (a *: v)); rewrite -scaler_addr !addNr scaler0. Qed.
 
 Lemma scaler_subl a b v : (a - b) *: v = a *: v - b *: v.
 Proof. by rewrite scaler_addl scaleNr. Qed.
@@ -2034,8 +2110,7 @@ Import Algebra.Exports.
 Section AlgebraTheory.
 
 Variables (R : comRingType) (A : algType R).
-Implicit Types k : R.
-Implicit Types x y : A.
+Implicit Types (k : R) (x y : A).
 
 Lemma scaler_mulr k x y : k *: (x * y) = x * (k *: y).
 Proof. by case: A k x y => T []. Qed.
@@ -2326,6 +2401,8 @@ Canonical regular_unitRingType := [unitRingType of R^o].
 
 End UnitRingTheory.
 
+Implicit Arguments invr_inj [[R] x1 x2].
+
 Section UnitRingMorphism.
 
 Variables (R S : unitRingType) (f : {rmorphism R -> S}).
@@ -2355,10 +2432,10 @@ Variables (R : comRingType) (unit : pred R) (inv : R -> R).
 Hypothesis mulVx : {in unit, left_inverse 1 inv *%R}.
 Hypothesis unitPl : forall x y, y * x = 1 -> unit x.
 
-Lemma mulC_mulrV : {in unit, right_inverse 1 inv *%R}.
+Fact mulC_mulrV : {in unit, right_inverse 1 inv *%R}.
 Proof. by move=> x Ux /=; rewrite mulrC mulVx. Qed.
 
-Lemma mulC_unitP x y : y * x = 1 /\ x * y = 1 -> unit x.
+Fact mulC_unitP x y : y * x = 1 /\ x * y = 1 -> unit x.
 Proof. case=> yx _; exact: unitPl yx. Qed.
 
 Definition Mixin := UnitRingMixin mulVx mulC_mulrV mulC_unitP.
@@ -2509,8 +2586,7 @@ End ComUnitRingTheory.
 Section UnitAlgebraTheory.
 
 Variable (R : comUnitRingType) (A : unitAlgType R).
-Implicit Types k : R.
-Implicit Types x y : A.
+Implicit Types (k : R) (x y : A).
 
 Lemma scaler_injl k : unit k -> @injective _ A ( *:%R k).
 Proof.
@@ -3078,6 +3154,26 @@ elim: bcs => //= [[cl1 cl2] bcs ->]; rewrite {2}/dnf_rterm /=; congr (_ && _).
 by congr andb; [elim: cl1 | elim: cl2] => //= t cl ->; rewrite andbT.
 Qed.
 
+Section If.
+
+Variables (pred_f then_f else_f : formula R).
+
+Definition If := (pred_f /\ then_f \/ ~ pred_f /\ else_f)%T.
+
+Lemma If_form_qf :
+  qf_form pred_f -> qf_form then_f -> qf_form else_f -> qf_form If.
+Proof. by move=> /= -> -> ->. Qed.
+
+Lemma If_form_rf :
+  rformula pred_f -> rformula then_f -> rformula else_f -> rformula If.
+Proof. by move=> /= -> -> ->. Qed.
+
+Lemma eval_If e :
+  let ev := qf_eval e in ev If = (if ev pred_f then ev then_f else ev else_f).
+Proof. by rewrite /=; case: ifP => _; rewrite ?orbF. Qed. 
+
+End If.
+
 Section Pick.
 
 Variables (I : finType) (pred_f then_f : I -> formula R) (else_f : formula R).
@@ -3121,8 +3217,7 @@ End Pick.
 Section MultiQuant.
 
 Variable f : formula R.
-Implicit Type I : seq nat.
-Implicit Type e : seq R.
+Implicit Types (I : seq nat) (e : seq R).
 
 Lemma foldExistsP I e :
   (exists2 e', {in [predC I], same_env e e'} & holds e' f)
@@ -3272,9 +3367,18 @@ Lemma expfS_eq1 x n :
   (x ^+ n.+1 == 1) = (x == 1) || (\sum_(i < n.+1) x ^+ i == 0).
 Proof. by rewrite -![_ == 1]subr_eq0 subr_expn_1 mulf_eq0. Qed.
 
+Lemma lregP x : reflect (lreg x) (x != 0).
+Proof. by apply: (iffP idP) => [/mulfI | /lreg_neq0]. Qed.
+
+Lemma rregP x : reflect (rreg x) (x != 0).
+Proof. by apply: (iffP idP) => [/mulIf | /rreg_neq0]. Qed.
+
 Canonical regular_idomainType := [idomainType of R^o].
 
 End IntegralDomainTheory.
+
+Implicit Arguments lregP [R x].
+Implicit Arguments rregP [R x].
 
 Module Field.
 
@@ -3294,12 +3398,12 @@ Definition axiom := forall x, x != 0 -> inv x * x = 1.
 Hypothesis mulVx : axiom.
 Hypothesis inv0 : inv 0 = 0.
 
-Lemma intro_unit (x y : R) : y * x = 1 -> x != 0.
+Fact intro_unit (x y : R) : y * x = 1 -> x != 0.
 Proof.
 by move=> yx1; apply: contraNneq (nonzero1r R) => x0; rewrite -yx1 x0 mulr0.
 Qed.
 
-Lemma inv_out : {in predC (predC1 0), inv =1 id}.
+Fact inv_out : {in predC (predC1 0), inv =1 id}.
 Proof. by move=> x /negbNE/eqP->. Qed.
 
 Definition UnitMixin := ComUnitRing.Mixin mulVx intro_unit inv_out.
@@ -3491,8 +3595,7 @@ Canonical regular_fieldType := [fieldType of F^o].
 Section ModuleTheory.
 
 Variable V : lmodType F.
-Implicit Type a : F.
-Implicit Type v : V.
+Implicit Types (a : F) (v : V).
 
 Lemma scalerK a : a != 0 -> cancel ( *:%R a : V -> V) ( *:%R a^-1).
 Proof. by move=> nz_a v; rewrite scalerA mulVf // scale1r. Qed.
@@ -3595,7 +3698,7 @@ Definition sat := DecidableField.sat (DecidableField.class F).
 Lemma satP : DecidableField.axiom sat.
 Proof. exact: DecidableField.satP. Qed.
 
-Lemma sol_subproof n f :
+Fact sol_subproof n f :
   reflect (exists s, (size s == n) && sat s f)
           (sat [::] (foldr Exists f (iota 0 n))).
 Proof.
@@ -3648,105 +3751,29 @@ End DecidableFieldTheory.
 Implicit Arguments satP [F e f].
 Implicit Arguments solP [F n f].
 
-(* Structure of field with quantifier elimination *)
-Module QE.
+Section QE_Mixin.
 
-Section Axioms.
+Variable F : Field.type.
+Implicit Type f : formula F.
 
-Variable R : unitRingType.
-Variable proj : nat -> seq (term R) * seq (term R) -> formula R.
+Variable proj : nat -> seq (term F) * seq (term F) -> formula F.
 (* proj is the elimination of a single existential quantifier *)
 
-Definition wf_proj_axiom :=
-  forall i bc (bc_i := proj i bc), 
-    dnf_rterm bc -> qf_form bc_i && rformula bc_i : Prop.
+(* The elimination projector is well_formed. *)
+Definition wf_QE_proj :=
+  forall i bc (bc_i := proj i bc),
+  dnf_rterm bc -> qf_form bc_i && rformula bc_i.
 
-(* The elimination operator p preserves  validity *)
-Definition holds_proj_axiom :=
+(* The elimination projector is valid *)
+Definition valid_QE_proj :=
   forall i bc (ex_i_bc := ('exists 'X_i, dnf_to_form [:: bc])%T) e,
   dnf_rterm bc -> reflect (holds e ex_i_bc) (qf_eval e (proj i bc)).
 
-End Axioms.
-
-Record mixin_of (R : unitRingType) : Type := Mixin {
-  proj : nat -> (seq (term R) * seq (term R)) -> formula R;
-  wf_proj : wf_proj_axiom proj;
-  holds_proj : holds_proj_axiom proj
-}.
-
-Section ClassDef.
-
-Record class_of (F : Type) : Type :=
-  Class {base : Field.class_of F; mixin : mixin_of (UnitRing.Pack base F)}.
-Local Coercion base : class_of >-> Field.class_of.
-
-Structure type := Pack {sort; _ : class_of sort; _ : Type}.
-Local Coercion sort : type >-> Sortclass.
-Variable (T : Type) (cT : type).
-Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
-Definition clone c of phant_id class c := @Pack T c T.
-
-Definition pack b0 (m0 : mixin_of (@UnitRing.Pack T b0 T)) :=
-  fun bT b & phant_id (Field.class bT) b =>
-  fun    m & phant_id m0 m => Pack (@Class T b m) T.
-
-Definition eqType := Equality.Pack class cT.
-Definition choiceType := Choice.Pack class cT.
-Definition zmodType := Zmodule.Pack class cT.
-Definition ringType := Ring.Pack class cT.
-Definition comRingType := ComRing.Pack class cT.
-Definition unitRingType := UnitRing.Pack class cT.
-Definition comUnitRingType := ComUnitRing.Pack class cT.
-Definition idomainType := IntegralDomain.Pack class cT.
-Definition fieldType := Field.Pack class cT.
-
-End ClassDef.
-
-Module Exports.
-Coercion base : class_of >-> Field.class_of.
-Coercion mixin : class_of >-> mixin_of.
-Coercion sort : type >-> Sortclass.
-Bind Scope ring_scope with sort.
-Coercion eqType : type >-> Equality.type.
-Canonical eqType.
-Coercion choiceType : type >-> Choice.type.
-Canonical choiceType.
-Coercion zmodType : type >-> Zmodule.type.
-Canonical zmodType.
-Coercion ringType : type >-> Ring.type.
-Canonical ringType.
-Coercion comRingType : type >-> ComRing.type.
-Canonical comRingType.
-Coercion unitRingType : type >-> UnitRing.type.
-Canonical unitRingType.
-Coercion comUnitRingType : type >-> ComUnitRing.type.
-Canonical comUnitRingType.
-Coercion idomainType : type >-> IntegralDomain.type.
-Canonical idomainType.
-Coercion fieldType : type >-> Field.type.
-Canonical fieldType.
-End Exports.
-
-End QE.
-Import QE.Exports.
-
-Section QE_theory.
-
-Variable F : QE.type.
-
-Definition proj := QE.proj (QE.class F).
-
-Lemma wf_proj : QE.wf_proj_axiom proj.
-Proof. exact: QE.wf_proj. Qed.
-
-Lemma holds_proj : QE.holds_proj_axiom proj.
-Proof. exact: QE.holds_proj. Qed.
-
-Implicit Type f : formula F.
+Hypotheses (wf_proj : wf_QE_proj) (ok_proj : valid_QE_proj).
 
 Let elim_aux f n := foldr Or False (map (proj n) (qf_to_dnf f false)).
 
-Fixpoint quantifier_elim (f : formula F) : formula F :=
+Fixpoint quantifier_elim f :=
   match f with
   | f1 /\ f2 => (quantifier_elim f1) /\ (quantifier_elim f2)
   | f1 \/ f2 => (quantifier_elim f1) \/ (quantifier_elim f2)
@@ -3796,7 +3823,7 @@ have auxP f0 e0 n0: qf_form f0 && rformula f0 ->
   elim: {f0 cf}bcs => [|bc bcs IHbcs] /=; first by right; case.
   case/andP=> r_bc /IHbcs {IHbcs}bcsP.
   have f_qf := dnf_to_form_qf [:: bc].
-  case: holds_proj => //= [ex_x|no_x].
+  case: ok_proj => //= [ex_x|no_x].
     left; case: ex_x => x /(qf_evalP _ f_qf); rewrite /= orbF => bc_x.
     by exists x; rewrite /= bc_x.
   apply: (iffP bcsP) => [[x bcs_x] | [x]] /=.
@@ -3828,13 +3855,9 @@ move=> e f; have fP := quantifier_elim_rformP e (to_rform_rformula f).
 by apply: (iffP fP); move/to_rformP.
 Qed.
 
-Definition QEDecidableFieldMixin := DecidableField.Mixin proj_satP.
+Definition QEdecFieldMixin := DecidableField.Mixin proj_satP.
 
-(* To be exported *)
-Definition QEDecidableField :=
-  DecidableField.Pack (DecidableField.Class QEDecidableFieldMixin) F.
-
-End QE_theory.
+End QE_Mixin.
 
 Module ClosedField.
 
@@ -3937,7 +3960,11 @@ Definition addrNK := addrNK.
 Definition subrK := subrK.
 Definition addrI := addrI.
 Definition addIr := addIr.
+Implicit Arguments addrI [V x1 x2].
+Implicit Arguments addIr [V x1 x2].
 Definition opprK := opprK.
+Definition oppr_inj := @oppr_inj.
+Implicit Arguments oppr_inj [[V] x1 x2].
 Definition oppr0 := oppr0.
 Definition oppr_eq0 := oppr_eq0.
 Definition oppr_add := oppr_add.
@@ -4017,6 +4044,7 @@ Definition commr_exp_mull := commr_exp_mull.
 Definition commr_sign := commr_sign.
 Definition exprn_mulnl := exprn_mulnl.
 Definition exprn_mulr := exprn_mulr.
+Definition exprnC := exprnC.
 Definition exprn_mod := exprn_mod.
 Definition exprn_dvd := exprn_dvd.
 Definition signr_odd := signr_odd.
@@ -4024,6 +4052,23 @@ Definition signr_eq0 := signr_eq0.
 Definition signr_addb := signr_addb.
 Definition exprN := exprN.
 Definition sqrrN := sqrrN.
+Definition mulrI_eq0 := mulrI_eq0.
+Definition lreg_neq0 := lreg_neq0.
+Definition mulrI0_lreg := mulrI0_lreg.
+Definition lregN := lregN.
+Definition lreg1 := lreg1.
+Definition lregM := lregM.
+Definition lregX := lregX.
+Definition lregP := @lregP.
+Definition mulIr_eq0 := mulIr_eq0.
+Definition mulIr0_rreg := mulIr0_rreg.
+Definition rreg_neq0 := rreg_neq0.
+Definition rregN := rregN.
+Definition rreg1 := rreg1.
+Definition rregM := rregM.
+Definition revrX := revrX.
+Definition rregX := rregX.
+Definition rregP := @rregP.
 Definition exprn_addl_comm := exprn_addl_comm.
 Definition exprn_subl_comm := exprn_subl_comm.
 Definition subr_expn_comm := subr_expn_comm.
@@ -4077,7 +4122,8 @@ Definition mulIr := mulIr.
 Definition commr_inv := commr_inv.
 Definition unitrE := unitrE.
 Definition invrK := invrK.
-Definition invr_inj := invr_inj.
+Definition invr_inj := @invr_inj.
+Implicit Arguments invr_inj [[R] x1 x2].
 Definition unitr_inv := unitr_inv.
 Definition unitr1 := unitr1.
 Definition invr1 := invr1.
@@ -4215,6 +4261,8 @@ Definition bij_linear := bij_linear.
 Definition can2_lrmorphism := can2_lrmorphism.
 Definition bij_lrmorphism := bij_lrmorphism.
 
+Implicit Arguments lregP [R x].
+Implicit Arguments rregP [R x].
 Implicit Arguments satP [F e f].
 Implicit Arguments solP [F n f]. 	 
 
@@ -4231,8 +4279,8 @@ Export Zmodule.Exports Ring.Exports Lmodule.Exports Lalgebra.Exports.
 Export Additive.Exports RMorphism.Exports Linear.Exports LRMorphism.Exports.
 Export ComRing.Exports Algebra.Exports UnitRing.Exports UnitAlgebra.Exports.
 Export ComUnitRing.Exports IntegralDomain.Exports Field.Exports.
-Export DecidableField.Exports QE.Exports ClosedField.Exports.
-Canonical QEDecidableField.
+Export DecidableField.Exports ClosedField.Exports.
+Notation QEdecFieldMixin := QEdecFieldMixin.
 
 Notation "0" := (zero _) : ring_scope.
 Notation "-%R" := (@opp _) : ring_scope.
@@ -4415,13 +4463,13 @@ Definition ffun_zero := [ffun a : aT => (0 : rT)].
 Definition ffun_opp f := [ffun a => - f a].
 Definition ffun_add f g := [ffun a => f a + g a].
 
-Lemma ffun_addA : associative ffun_add.
-Proof.  by move=> f1 f2 f3; apply/ffunP=> a; rewrite !ffunE addrA. Qed.
-Lemma ffun_addC : commutative ffun_add.
+Fact ffun_addA : associative ffun_add.
+Proof. by move=> f1 f2 f3; apply/ffunP=> a; rewrite !ffunE addrA. Qed.
+Fact ffun_addC : commutative ffun_add.
 Proof. by move=> f1 f2; apply/ffunP=> a; rewrite !ffunE addrC. Qed.
-Lemma ffun_add0 : left_id ffun_zero ffun_add.
+Fact ffun_add0 : left_id ffun_zero ffun_add.
 Proof. by move=> f; apply/ffunP=> a; rewrite !ffunE add0r. Qed.
-Lemma ffun_addN : left_inverse ffun_zero ffun_opp ffun_add.
+Fact ffun_addN : left_inverse ffun_zero ffun_opp ffun_add.
 Proof. by move=> f; apply/ffunP=> a; rewrite !ffunE addNr. Qed.
 
 Definition ffun_zmodMixin :=
@@ -4492,14 +4540,14 @@ Implicit Types f g : {ffun aT -> rT}.
 
 Definition ffun_scale k f := [ffun a => k *: f a].
 
-Lemma ffun_scaleA k1 k2 f : 
+Fact ffun_scaleA k1 k2 f : 
   ffun_scale k1 (ffun_scale k2 f) = ffun_scale (k1 * k2) f.
 Proof. by apply/ffunP=> a; rewrite !ffunE scalerA. Qed.
-Lemma ffun_scale1 : left_id 1 ffun_scale.
+Fact ffun_scale1 : left_id 1 ffun_scale.
 Proof. by move=> f; apply/ffunP=> a; rewrite !ffunE scale1r. Qed.
-Lemma ffun_scale_addr k : {morph (ffun_scale k) : x y / x + y}.
+Fact ffun_scale_addr k : {morph (ffun_scale k) : x y / x + y}.
 Proof. by move=> f g; apply/ffunP=> a; rewrite !ffunE scaler_addr. Qed.
-Lemma ffun_scale_addl u : {morph (ffun_scale)^~ u : k1 k2 / k1 + k2}.
+Fact ffun_scale_addl u : {morph (ffun_scale)^~ u : k1 k2 / k1 + k2}.
 Proof. by move=> k1 k2; apply/ffunP=> a; rewrite !ffunE scaler_addl. Qed.
 
 Definition ffun_lmodMixin := 

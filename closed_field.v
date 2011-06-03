@@ -10,7 +10,7 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Open Scope ring_scope.
-
+(*
 Section TermEqType.
 
 Variable R : UnitRing.type.
@@ -53,7 +53,7 @@ Qed.
 Canonical Structure term_eqType := EqType (term R) (EqMixin term_eq_axiom).
 
 End TermEqType.
-
+*)
 Section ClosedFieldQE.
 
 Variable F : Field.type.
@@ -63,6 +63,7 @@ Variable axiom : ClosedField.axiom F.
 Notation fF := (formula  F).
 Notation qf f := (qf_form f && rformula f).
 
+(*
 Definition ifF (th el f: fF) : fF :=
   ((f /\ th) \/ ((~ f) /\ el))%T.
 
@@ -75,7 +76,7 @@ by case: (qf_eval _ _).
 Qed.
 Lemma ifF_qf : forall th el f & qf th & qf el & qf f, qf (ifF th el f).
 Proof. by move=> ? ? ?  /=; do ?[case/andP=> -> ->]. Qed.
-
+*)
 Definition polyF := seq (term F).
 Fixpoint eval_poly (e:seq F) pf := 
   if pf is c::qf then (eval_poly e qf)*'X + (eval e c)%:P else 0.
@@ -94,7 +95,7 @@ Fixpoint sizeT (k : nat -> fF) (p:polyF) :=
   if p is c::q then 
     sizeT (fun n => 
       if n is m.+1 then k m.+2 
-        else ifF (k 0%N) (k 1%N) (Equal c (Const 0))) q 
+        else GRing.If (c == 0) (k 0%N) (k 1%N)) q 
     else k O%N.
 
 Lemma sizeTP : forall k, 
@@ -103,11 +104,8 @@ Proof.
 move=> k pf e. 
 elim: pf e k; first by move=> *; rewrite size_poly0.
 move=> c qf Pqf e k; rewrite Pqf.
-move: (erefl (size (eval_poly e qf))).
-case: {-1}(size (eval_poly e qf))=> /= [|n].
-  rewrite size_amulX => ->.
-  by case c0: (eval e c == 0); rewrite // orbF.
-by rewrite [eval_poly e _]/= size_amulX => ->.
+rewrite size_amulX -(size_poly_eq0 (eval_poly _ _)).
+by case: (size (eval_poly e qf))=> //=; case: eqP; rewrite // orbF.
 Qed.
 Lemma sizeT_qf : forall k p, (forall n, qf (k n))
   -> rpoly p -> qf (sizeT k p).
@@ -115,10 +113,12 @@ Proof.
 move=> k p; elim: p k => /= [|c q ihp] k kP rp; first exact: kP.
 case/andP: rp=> rc rq.
 apply: ihp; rewrite ?rq //; case=> [|n]; last exact: kP.
-by apply: ifF_qf=> //=; do ?apply kP; rewrite rc.
+have [/andP[qf0 rf0] /andP[qf1 rf1]] := (kP 0, kP 1)%N.
+by rewrite If_form_qf ?If_form_rf //= andbT.
 Qed.
 
-Definition isnull (k : bool -> fF) (p: polyF) := sizeT (fun n => k (n == 0%N)) p.
+Definition isnull (k : bool -> fF) (p: polyF) :=
+  sizeT (fun n => k (n == 0%N)) p.
 Lemma isnullP : forall k,
   forall p e, qf_eval e (isnull k p) = qf_eval e (k (eval_poly e p == 0)).
 Proof. by move=> k p e; rewrite sizeTP size_poly_eq0. Qed.
@@ -133,24 +133,21 @@ Definition lt_sizeT (k : bool -> fF) (p q : polyF) : fF :=
 Definition lift (p : {poly F}) := let: q := p in map Const q.
 Lemma eval_lift : forall e p, eval_poly e (lift p) = p.
 Proof.
-move=> e; elim/poly_ind; first by rewrite /lift seq_poly0 /=.
-move=> p c.
-rewrite -poly_cons_def /lift polyseq_cons.
+move=> e p; elim/poly_ind: p => [|p c]; first by rewrite /lift polyseq0.
+rewrite -poly_cons_def /lift polyseq_cons /nilp.
 case pn0: (_==_)=> /=. 
   move=> _; rewrite polyseqC.
   case c0: (_==_)=> /=.
     move: pn0; rewrite (eqP c0) size_poly_eq0; move/eqP->. 
-    by apply:val_inj=> /=; rewrite polyseq_cons // size_poly0 eqxx.
+    by apply:val_inj=> /=; rewrite polyseq_cons // polyseq0.
   rewrite mul0r add0r.
-  by apply:val_inj=> /=; rewrite polyseq_cons // pn0.
+  by apply:val_inj=> /=; rewrite polyseq_cons // /nilp pn0.
 by move->; rewrite -poly_cons_def.
 Qed.
 
 Fixpoint lead_coefT (k : term F -> fF) p :=  
   if p is c::q then 
-    lead_coefT (fun l =>
-      ifF (k c) (k l) (Equal l (Const 0))
-    ) q 
+    lead_coefT (fun l => GRing.If (l == 0) (k c) (k l)) q 
     else k (Const 0).
 
 Lemma lead_coefTP : forall k,
@@ -162,7 +159,7 @@ move=> k Pk p e.
 elim: p k Pk => /=; first by move=> *; rewrite lead_coef0.
 move=> a p' Pp' k Pk. 
 rewrite Pp'; last by move=> *; rewrite //= -Pk.
-rewrite ifFP /= lead_coef_eq0.
+rewrite GRing.eval_If /= lead_coef_eq0.
 case p'0: (_ == _).
   by rewrite (eqP p'0) mul0r add0r lead_coefC -Pk.
 rewrite lead_coef_addl ?lead_coef_mulX //.
@@ -179,7 +176,8 @@ Proof.
 move=> k p; elim: p k => /= [|c q ihp] k kP rp; first exact: kP.
 move: rp; case/andP=> rc rq.
 apply: ihp; rewrite ?rq // => l rl .
-by apply: ifF_qf; do ?apply: kP; rewrite /= ?rl ?rc.
+have [/andP[qfc rfc] /andP[qfl rfl]] := (kP c rc, kP l rl).
+by rewrite If_form_qf ?If_form_rf //= andbT.
 Qed.
 
 Fixpoint amulXnT (a:term F) (n:nat) : polyF:=
@@ -673,7 +671,7 @@ by case/andP=> pr psr; split; first apply/eqP=> //; apply/ihps.
 Qed.
 
 
-Lemma holds_ex_elim : QE.holds_proj_axiom ex_elim.
+Lemma holds_ex_elim : GRing.valid_QE_proj ex_elim.
 Proof.
 move=> i [ps qs] /= e; case/andP=> /= rps rqs.
 rewrite ex_elim_seqP big_map.
@@ -709,10 +707,10 @@ apply/andP; constructor.
 by apply/holds_conjn.
 Qed.
 
-Lemma wf_ex_elim : QE.wf_proj_axiom ex_elim.
+Lemma wf_ex_elim : GRing.wf_QE_proj ex_elim.
 Proof. by move=> i bc /= rbc; apply: ex_elim_qf. Qed.
 
 Definition closed_fields_QEMixin := 
-  QE.Mixin wf_ex_elim holds_ex_elim.
+  QEdecFieldMixin wf_ex_elim holds_ex_elim.
 
 End ClosedFieldQE.
