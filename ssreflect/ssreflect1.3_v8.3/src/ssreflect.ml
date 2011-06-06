@@ -5729,10 +5729,14 @@ let wlogtac (((clr0, pats),_),_) (gens, ((_, ct), ctx)) hint suff gl =
   let cl0 = mkArrow (snd (pf_interp_ty ist gl ct)) (pf_concl gl) in
   let cl0 = if not suff then cl0 else let _,t,_ = destProd cl0 in t in
   let c = List.fold_right mkabs gens cl0 in
-  let tac2clr = List.fold_right mkclr gens [cleartac clr0] in
-  let tac2ipat = introstac ~ist (List.fold_right mkpats gens pats) in
-  let tac2 = tclTHENLIST (List.rev (tac2ipat :: tac2clr)) in
-  tclTHENS (basecuttac "ssr_wlog" c) [hinttac ist true hint; tac2] gl
+  let tacipat = introstac ~ist pats in
+  let tacigens = 
+    tclTHEN (tclTHENLIST (List.rev(List.fold_right mkclr gens [cleartac clr0])))
+      (introstac ~ist (List.fold_right mkpats gens [])) in
+  let hinttac = hinttac ist true hint in
+  tclTHENS (basecuttac "ssr_wlog" c)
+    (if suff then [tclTHEN hinttac tacipat; tacigens]
+     else [hinttac; tclTHEN tacigens tacipat]) gl
 
 TACTIC EXTEND ssrwlog
 | [ "wlog" ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->

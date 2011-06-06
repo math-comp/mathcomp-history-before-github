@@ -26,4 +26,5 @@ ssrsyntax2.v
 testmx.v
 unkeyed.v
 wlogletin.v
+wlong_intro.v
 wlog_suff.v
