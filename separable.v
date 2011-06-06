@@ -9,9 +9,19 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 (******************************************************************************)
-(* This file is supposed to provide galois theory, however it is currently    *)
-(* almost entirely about field extentions and the contents should perahps be  *)
-(* moved there.                                                               *)
+(* This file is supposed to provide theory of separable and inseparable field *)
+(* extensions, however it is currently half about general field extentions    *)
+(* and this half should perhaps be move elsewhere.                            *)
+(*                                                                            *)
+(*    subFExtend iota z p == Given a field morphism iota : F -> L, this is a  *)
+(*                           type for the field F^iota(z). It requires        *)
+(*                           p : {poly F} be non-zero and z be a root of      *)
+(*                           p^iota otherwise the field F^iota is returned.   *)
+(*                           p need not be irredicible.                       *)
+(*            subfx_inj x == The injection of F^iota(z) into L.               *)
+(*   inj_subfx iota z p x == The injection of F into F^iota(z).               *)
+(*  subfx_eval iota z p q == Given q : {poly F} returns q.[z] as a valule of  *)
+(*                           type F^iota(z).                                  *)
 (*                                                                            *)
 (*           polyOver K p == the coefficents of p lie in the subspace K       *)
 (*          FadjoinVS K x == K(x) as a vector space                           *)
@@ -113,22 +123,6 @@ by apply: dvdp_mul; first rewrite GRing.addrC GRing.mulrC;
  rewrite dvdp_gcdl.
 Qed.
 
-Lemma separable_root : forall x,
- separablePolynomial (p * ('X - x%:P)) -> ~~ root p x.
-Proof.
-move => x.
-apply: contraL.
-case/factor_theorem => pp ->.
-case: (eqVneq pp 0) => [->|Hpp].
- by rewrite !mul0r /separablePolynomial coprime0p deriv0 eqp01.
-apply/coprimepPn.
- by rewrite !mulf_eq0 !negb_or Hpp -!size_poly_eq0 !size_factor.
-exists ('X - x%:P).
-rewrite dvdp_gcd eqp_sym -dvdp_size_eqp ?dvd1p // size_factor size_poly1.
-rewrite !(derivM, derivD) !dvdp_add ?(dvdp_mull _ (dvdpp _)) //.
-by rewrite dvdp_mulr // dvdp_mull // dvdpp.
-Qed.
-
 Lemma separable_neq0 : separablePolynomial p -> p != 0.
 Proof.
 apply: contraL.
@@ -137,6 +131,79 @@ by rewrite /separablePolynomial deriv0 coprime0p eqp01.
 Qed.
 
 End SeparablePoly.
+
+(* :TODO: Move this to poly.v *)
+Lemma factor_irr : forall (R : idomainType) x (d : {poly R}),
+ d %| 'X - x%:P -> (d %= 'X - x%:P) || (d %= 1).
+Proof.
+move => R x d.
+move/dvdpPc => [c [q [Hc Hq]]].
+have: q * d != 0.
+ by rewrite -Hq -mul_polyC mulf_eq0 negb_or polyC_eq0 Hc factor_eq0.
+rewrite mulf_eq0 negb_or.
+case/andP => Hq0 Hd0.
+move/(f_equal (fun z : {poly R} => size z)): (Hq).
+rewrite size_scaler // size_factor.
+rewrite size_mul_id //.
+rewrite -size_poly_eq1.
+move: (size_poly_eq0 d).
+case: (size d) => [|[|[|n]]].
+- by rewrite -[d == 0]negbK Hd0.
+- by rewrite eqxx orbT.
+- rewrite !addn2 => _.
+  case.
+  move/eqP.
+  rewrite eq_sym size_poly_eq1 -(eqp_mul2r _ _ Hd0) -Hq mul1r.
+  by rewrite (eqp_ltrans (eqp_mulC _ Hc)) eqp_sym => ->.
+- rewrite !addnS => _.
+  case.
+  move/eqP.
+  by rewrite eq_sym addn_eq0 size_poly_eq0 -[q == 0]negbK Hq0.
+Qed.
+
+Lemma separable_root : forall (R : idomainType) (p : {poly R}) x,
+ separablePolynomial (p * ('X - x%:P)) = separablePolynomial p && ~~ root p x.
+Proof.
+move => R p x.
+rewrite separable_mul.
+congr (_ && _).
+rewrite /separablePolynomial derivE coprimep1.
+simpl.
+rewrite -gcdp_eqp1.
+case/factor_irr/orP: (dvdp_gcdr p ('X - x%:P)) => Hp.
+ move/eqp_root: (Hp).
+ move/(_ x).
+ rewrite root_gcd root_factor eqxx andbT => ->.
+ rewrite (eqp_ltrans Hp).
+ apply/negbTE/negP.
+ move/size_eqp.
+ by rewrite size_poly1 size_factor.
+rewrite Hp.
+symmetry.
+apply/negbT/negbTE.
+move: Hp.
+rewrite gcdp_eqp1.
+case (eqVneq p 0) => [->|Hp0].
+ rewrite coprime0p.
+ move/size_eqp.
+ by rewrite size_poly1 size_factor.
+apply: contraL => Hp.
+apply/coprimepPn => //.
+exists ('X - x%:P).
+rewrite -root_factor_theorem root_gcd root_factor eqxx Hp /=.
+apply/negP.
+move/size_eqp.
+by rewrite size_poly1 size_factor.
+Qed.
+
+Lemma separable_factors : forall (R : idomainType) (r : seq R),
+  separablePolynomial (\prod_(x <- r) ('X - x%:P)) = uniq r.
+Proof.
+move => R.
+elim => [|x r IH].
+ by rewrite big_nil /separablePolynomial coprime1p.
+by rewrite big_cons mulrC separable_root IH root_prod_factors andbC.
+Qed.
 
 Lemma separable_dvd : forall (R : idomainType) (p q : {poly R}),
   separablePolynomial p -> q %| p ->
@@ -881,8 +948,8 @@ have [qq Hqq] := (factor_theorem _ _ Hqy).
 set q' := qq \Po ('X + y%:P).
 move: Hsep.
 rewrite /separablePolynomial -gcdp_eqp1 -(eqp_map iota) rmorph1 gcdp_map.
-rewrite -deriv_map Hqq gcdp_eqp1.
-move/separable_root.
+rewrite -deriv_map Hqq gcdp_eqp1 [coprimep _ _]separable_root.
+case/andP => _.
 rewrite /root {1}(_ : y = ('X + y%:P).[0]); last by rewrite !horner_lin.
 rewrite -horner_poly_comp -/q'.
 have p'ne0 : p' != 0.

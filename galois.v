@@ -325,7 +325,7 @@ Qed.
    Actually, it suffices to prove 
     (forall x, x \in basis -> NormalFieldExt F x)
    for some basis of L.
-   The proof that this suffices should be done eventually. *)
+   The proof that this suffices should eventually be done. *)
 Hypothesis NormalFieldExt : forall K x,
   exists r : seq L, minPoly K x == \prod_(y <- r) ('X - y%:P).
 
@@ -580,31 +580,6 @@ congr (_ - _).
 by rewrite kHomExtendExt.
 Qed.
 
-(* can I remove val below? *)
-Lemma kAut_normal : forall K E : {algebra L},
- ([set x : LAut | kAut K E (val x)] \subset
-   'N([set x : LAut | kHom K (fullv L) (val x)]))%g.
-Proof.
-move => K E.
-apply/subsetP.
-move => x.
-rewrite !{1}in_set.
-case/andP.
-case/kHomP => Hx1 Hx2 _.
-apply/subsetP => ?.
-case/imsetP => y.
-rewrite !in_set.
-case/kHomP => Hy _ ->.
-apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
-move => a Ha.
-rewrite -{2}[a](unit_lappE) -[\1%VS]/(val (1%g : LAut)) -(mulVg x).
-rewrite !SubK !lappE /=.
-apply: f_equal.
-rewrite lappE.
-apply Hy.
-by rewrite Hx1.
-Qed.
-
 (* In most definitions I give the smaller field first, since the larger
    field can be seen as algebra over the smaller, and so in some moral sense
    the larger field depends on the smaller one.  However standard mathematical
@@ -613,7 +588,8 @@ Definition Aut (E K : {vspace L}) :=
   ([set x : LAut | kAut K E (val x)] /
              [set x : LAut | kHom E (fullv L) (val x)])%g.
 
-Reserved Notation "''Aut' ( A | B )" (at level 8, format "''Aut' ( A | B )").
+Reserved Notation "''Aut' ( A | B )"
+  (at level 8, format "''Aut' ( A  |  B )").
 Notation "''Aut' ( A | B )" := (Aut A B) : group_scope.
 
 Lemma kAut_group_set : forall K E : {algebra L}, 
@@ -635,6 +611,31 @@ apply/andP; split; last first.
 apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
 move => a Ha.
 by rewrite SubK lappE /comp Hy1 // Hx1.
+Qed.
+
+(* can I remove val below? *)
+Lemma kAut_normal : forall K E : {algebra L},
+ ([set x : LAut | kAut K E (val x)] \subset
+   'N([set x : LAut | kHom E (fullv L) (val x)]))%g.
+Proof.
+move => K E.
+apply/subsetP.
+move => x.
+rewrite !{1}in_set.
+case/andP => _.
+move/eqP => Hx.
+apply/subsetP => ?.
+case/imsetP => y.
+rewrite !in_set.
+case/kHomP => Hy _ ->.
+apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
+move => a Ha.
+rewrite -{2}[a](unit_lappE) -[\1%VS]/(val (1%g : LAut)) -(mulVg x).
+rewrite !SubK !lappE /=.
+apply: f_equal.
+rewrite lappE.
+apply Hy.
+by rewrite -Hx memv_img.
 Qed.
 
 Lemma Aut_group_set : forall K E : {algebra L}, 
@@ -732,7 +733,40 @@ move/subvP: Hzy; apply.
 by rewrite memx_Fadjoin.
 Qed.
 
-Definition galois K E := normal K E && separable K E.
+Definition galois K E := separable K E && normal K E.
+
+(*
+Lemma separable_dim : forall (K : {algebra L}) x, separableElement K x ->
+  normal K (Fadjoin K x) -> elementDegree K x = #|'Aut(K | Fadjoin K x)%g|.
+Proof.
+move => K x Hsep.
+case/normalP/(_ _ (memx_Fadjoin K x)) => r.
+move/allP => Hr Hmin.
+apply/succn_inj.
+rewrite -size_minPoly Hmin size_prod_factors.
+congr (_.+1).
+apply/eqP.
+move: Hsep.
+rewrite /separableElement Hmin separable_factors => Huniq.
+rewrite [#|_|]card_quotient.
+rewrite eqn_leq.
+apply/andP; split.
+ 
+ apply max_poly_roots.
+
+
+
+Lemma galois_dim : forall (K E : {algebra L}), (K <= E)%VS -> galois K E ->
+ \dim E = (\dim K * #|'Aut(K | E)%g|)%N.
+Proof.
+move => K E HKE.
+case/andP.
+move/(separableSeparableGenerator)/(_ HKE) => -> Hnorm.
+rewrite dim_Fadjoin.
+congr (_ * _)%N.
+by rewrite separable_dim // separableGeneratorSep.
+Qed.
+*)
 
 (*
 Definition FieldAutomorphism (E:{vspace L}) (f : 'End(L) ) : bool :=
