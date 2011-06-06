@@ -2522,7 +2522,7 @@ let rec is_name_in_ipats name = function
   | _ :: tl -> is_name_in_ipats name tl
   | [] -> false
 
-let move_top_with_view = ref (fun _ _ _ -> assert false)
+let move_top_with_view = ref (fun _ -> assert false)
 
 (* introstac: for "move" and "clear", tclEQINTROS: for "case" and "elim" *)
 (* This block hides the spaghetti-code needed to implement the only two  *)
@@ -2539,6 +2539,20 @@ let introstac, tclEQINTROS =
       let clear_ww = clear_with_wilds !wild_ids in           
       [fun gl -> clear_ww (hyps_ids (List.flatten (List.map (!) k))) gl]
     | x :: xs -> let k, x = f k xs x in x :: map_acc_k f k xs in
+  let rename force to_clr rest clr gl = 
+    let hyps = pf_hyps gl in
+    pp(lazy(str"rename " ++ pr_clear spc clr));
+    let () = if not force then List.iter (check_hyp_exists hyps) clr in
+    if List.exists (fun x -> force || is_name_in_ipats (hyp_id x) rest) clr then
+      let ren_clr, ren = 
+        List.split (List.map (fun x -> let x = hyp_id x in
+          let x' = mk_anon_id (string_of_id x) gl in
+          SsrHyp (dummy_loc, x'), (x, x')) clr) in
+      let () = to_clr := ren_clr in
+      rename_hyp ren gl 
+    else
+      let () = to_clr := clr in
+      tclIDTAC gl in
   let rec ipattac ?ist k rest = function
     | IpatWild -> k, introid (new_wild_id ())
     | IpatCase iorpat -> k, tclIORPAT ?ist k (with_top ssrscasetac) iorpat
@@ -2546,27 +2560,20 @@ let introstac, tclEQINTROS =
     | IpatId id -> k, introid id
     | IpatSimpl (clr, sim) ->
       let to_clr = ref [] in
-      let rename gl = 
-        let hyps, concl, env = pf_hyps gl, pf_concl gl, pf_env gl in
-        let () = List.iter (check_hyp_exists hyps) clr in
-        if List.exists (fun x -> is_name_in_ipats (hyp_id x) rest) clr then
-          let ren_clr, ren = 
-            List.split (List.map (fun x -> let x = hyp_id x in
-              let x' = mk_anon_id (string_of_id x) gl in
-              SsrHyp (dummy_loc, x'), (x, x')) clr) in
-          let () = to_clr := ren_clr in
-          rename_hyp ren gl 
-        else
-          let () = to_clr := clr in
-          tclIDTAC gl in
-      to_clr :: k, tclTHEN rename (simpltac sim)
+      to_clr :: k, tclTHEN (rename false to_clr rest clr) (simpltac sim)
     | IpatAll -> k, intro_all
     | IpatAnon -> k, intro_anon
     | IpatView v -> match ist with
         | None -> anomaly "ipattac with no ist but view"
         | Some ist -> match rest with
-            | (IpatCase _ | IpatRw _)::_ -> k, !move_top_with_view (false,v) ist
-            | _ -> k, !move_top_with_view (true,v) ist
+            | (IpatCase _ | IpatRw _)::_ -> 
+              let to_clr = ref [] in let top_id = ref top_id in
+              to_clr :: k, 
+              tclTHEN
+                (!move_top_with_view false top_id (false,v) ist)
+                (fun gl -> 
+                  rename true to_clr rest [SsrHyp (dummy_loc, !top_id)]gl)
+            | _ -> k, !move_top_with_view true (ref top_id) (true,v) ist
   and tclIORPAT ?ist k tac = function
     | [[]] -> tac
     | orp -> 
@@ -3677,12 +3684,18 @@ ARGUMENT EXTEND ssrmovearg TYPED AS ssrarg PRINTED BY pr_ssrarg
 | [ ssrarg(arg) ] -> [ check_movearg arg ]
 END
 
-let viewmovetac (_, vl as v) _ gen ist gl =
+let viewmovetac_aux clear name_ref (_, vl as v) _ gen ist gl =
   let cl, c, clr = pf_interp_gen ist gl false gen in
   let cl, c = if vl = [] then cl, c else pf_with_view ist gl v cl c in
+  let clr = if clear then clr else [] in
+  name_ref := (match gen with _,(_,(RRef(_,VarRef id),None))-> id| _ -> top_id);
   genclrtac cl [c] clr gl
 
-let () = move_top_with_view := (fun v -> with_defective (viewmovetac v) [] [])
+let () = move_top_with_view := 
+   (fun c r v -> with_defective (viewmovetac_aux c r v) [] [])
+
+let viewmovetac v deps gen ist gl = 
+  viewmovetac_aux true (ref top_id) v deps gen ist gl
 
 let eqmovetac _ gen ist gl =
   let cl, c, _ = pf_interp_gen ist gl false gen in pushmoveeqtac cl c gl
