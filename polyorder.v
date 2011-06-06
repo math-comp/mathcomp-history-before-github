@@ -10,19 +10,19 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Open Scope ring_scope.
+Local Open Scope ring_scope.
 
 Section PolyoIdomain.
 
 (* This should be replaced by a 0-characteristic condition + integrality *)
 Variable R : oIdomainType.
 
-Lemma size_deriv : forall (p : {poly R}), size p^`() = (size p).-1.
+Lemma size_deriv (p : {poly R}) : size p^`() = (size p).-1.
 Proof.
-move=> p; rewrite /deriv; case e :(size p) => [| sp]; first by rewrite /= size_poly0.
-case e': sp => [| sp']; first by rewrite /= size_poly0.
-rewrite [_.+2.-1]/= size_poly_eq // [_.+1.-1]/= natmulP mulrz_eq0.
-by rewrite -{1}e' -[sp]/(sp.+1.-1) -e lead_coef_eq0 -size_poly_eq0 e orbb.
+have [lep1|lt1p] := leqP (size p) 1.
+  by rewrite {1}[p]size1_polyC // derivC size_poly0 -subn1 (eqnP lep1).
+rewrite size_poly_eq // natmulP mulrz_eq0 orbF -subn2 -leq_subS // subn2.
+by rewrite lead_coef_eq0 -size_poly_eq0 -(subnKC lt1p).
 Qed.
 
 Lemma derivn_poly0 : forall (p : {poly R}) n, (size p <= n)%N = (p^`(n) == 0).

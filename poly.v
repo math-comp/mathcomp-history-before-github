@@ -231,27 +231,30 @@ by elim: s i => [|c s IHs] /= [|i]; rewrite !(coefC, eqxx, coef_cons) /=.
 Qed.
 
 (* Builds a polynomial from an infinite seq of coef and a bound *)
-Definition poly n E := Poly (mkseq E n).
+Definition poly n E := locked Poly (mkseq E n).
 
 Local Notation "\poly_ ( i < n ) E" := (poly n (fun i : nat => E)).
+
+Lemma polyE n E : poly n E = Poly (mkseq E n).
+Proof. by rewrite /poly -lock. Qed.
 
 Lemma polyseq_poly n E :
   E n.-1 != 0 -> \poly_(i < n) E i = mkseq [eta E] n :> seq R.
 Proof.
-case: n => [|n] nzEn; first by rewrite polyseqC eqxx.
-by rewrite (@PolyK 0) // -nth_last nth_mkseq size_mkseq.
+case: n => [|n] nzEn; first by rewrite polyE polyseqC eqxx.
+by rewrite polyE (@PolyK 0) // -nth_last nth_mkseq size_mkseq.
 Qed.
 
 Lemma size_poly n E : size (\poly_(i < n) E i) <= n.
-Proof. by rewrite (leq_trans (size_Poly _)) ?size_mkseq. Qed.
+Proof. by rewrite polyE (leq_trans (size_Poly _)) ?size_mkseq. Qed.
 
 Lemma size_poly_eq n E : E n.-1 != 0 -> size (\poly_(i < n) E i) = n.
 Proof. move/polyseq_poly->; exact: size_mkseq. Qed.
 
 Lemma coef_poly n E k : (\poly_(i < n) E i)`_k = (if k < n then E k else 0).
 Proof.
-have [lt_kn | le_nk] := ltnP k n; first by rewrite coef_Poly nth_mkseq.
-by rewrite coef_Poly nth_default // size_mkseq.
+have [lt_kn | le_nk] := ltnP k n; first by rewrite polyE coef_Poly nth_mkseq.
+by rewrite polyE coef_Poly nth_default // size_mkseq.
 Qed.
 
 Lemma lead_coef_poly n E :
@@ -817,9 +820,10 @@ Proof. by rewrite -commr_polyXn coef_mulXn. Qed.
 (* Expansion of a polynomial as an indexed sum *)
 Lemma poly_def n E : \poly_(i < n) E i = \sum_(i < n) E i *: 'X^i.
 Proof.
-elim: n => [|n IHn] in E *; first by rewrite big_ord0.
-rewrite big_ord_recl /poly /= poly_cons_def addrC expr0 scale_poly1.
-congr (_ + _); rewrite (iota_addl 1 0) -map_comp [Poly _]IHn big_distrl /=.
+elim: n => [|n IHn] in E *; first by rewrite polyE big_ord0.
+rewrite big_ord_recl polyE /= poly_cons_def addrC expr0 scale_poly1.
+congr (_ + _); rewrite (iota_addl 1 0) -map_comp.
+rewrite  -[Poly _]polyE IHn big_distrl /=.
 by apply: eq_bigr => i _; rewrite -scaler_mull exprSr.
 Qed.
 
@@ -1252,7 +1256,7 @@ Definition map_poly (p : {poly aR}) := \poly_(i < size p) f p`_i.
 (* instance of size_poly.                                                   *)
 Lemma map_polyE p : map_poly p = Poly (map f p).
 Proof.
-congr Poly.
+rewrite /map_poly polyE; congr Poly.
 apply: (@eq_from_nth _ 0); rewrite size_mkseq ?size_map // => i lt_i_p.
 by rewrite (nth_map 0) ?nth_mkseq.
 Qed.

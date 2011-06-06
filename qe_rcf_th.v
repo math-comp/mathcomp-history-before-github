@@ -1401,16 +1401,6 @@ Definition bounding_poly (sq : seq {poly R}) :=
 (* Lemma bounding_poly_eq0 sq : bounding_poly sq == 0 = ((\prod_(q <- sq) q)^`()) == 0. *)
 
 (* Todo : move in polyrcf *)
-Lemma polyrN0_int (p : {poly R}) (i : interval R) :
-   {in i, forall x : R, ~~ root p x} ->
-   forall y x : R, y \in i -> x \in i -> sgr p.[x] = sgr p.[y].
-Proof.
-move=> hi y x hy hx; wlog xy: x y hx hy / x <= y=> [hwlog|].
-  by case/orP: (ler_total x y)=> xy; [|symmetry]; apply: hwlog.
-apply: polyrealN0_sg=> // z hz /=; apply: hi; apply: subintP hz.
-by case: i hx hy=> [] [[] a|] [[] b|] /=; do?[move/intP->|move=>_].
-Qed.
-
 Notation noroot p := (forall x, ~~ root p x).
 
 (* Definition neighp (p : {poly R}) (x : R) : interval R :=  *)
@@ -1487,7 +1477,7 @@ case: (lerP x (-bnd))=> hxMbnd.
   exists (-bnd); rewrite 2!horner_mul {1}horner_factor subrr !mul0r eqxx /=.
   rewrite big_cond_seq big_mkcond big_seq_andE /=; apply/allP=> r /hsq.
   rewrite -!sgr_cp0=> /eqP <-; case: ifP=> // hr.
-  apply/eqP; apply: (@polyrN0_sg_same _ _ (x - 1) (-bnd + 1)).
+  apply/eqP; apply: (@polyrN0_int _ `](x - 1), (-bnd + 1)[).
   * move=> y hy /=; apply/negP=> /rootP ry0.
     have /(cauchy_boundP q0) : q.[y] = 0.
       apply/eqP; rewrite horner_prod prodf_seq_eq0 /=.
@@ -1502,7 +1492,7 @@ case: (lerP bnd x)=> hxPbnd.
   exists bnd; rewrite 2!horner_mul !{1}horner_factor subrr !(mulr0,mul0r) eqxx /=.
   rewrite big_cond_seq big_mkcond big_seq_andE /=; apply/allP=> r /hsq.
   rewrite -!sgr_cp0=> /eqP <-; case: ifP=> // hr.
-  apply/eqP; apply: (@polyrN0_sg_same _ _ (bnd - 1) (x + 1)).
+  apply/eqP; apply: (@polyrN0_int _ `](bnd - 1), (x + 1)[).
   * move=> y hy /=; apply/negP=> /rootP ry0.
     have /(cauchy_boundP q0) : q.[y] = 0.
       apply/eqP; rewrite horner_prod prodf_seq_eq0 /=.
@@ -1528,7 +1518,7 @@ case: (prev_rootP q (-bnd) x) q0; first by move->; rewrite eqxx.
     move=> y hy q'y0; exists y; rewrite horner_lin q'y0 !mulr0 eqxx /=.
     rewrite big_cond_seq big_mkcond big_seq_andE /=; apply/allP=> r /hsq.
     rewrite -!sgr_cp0=> /eqP <-; case: ifP=> // rsq.
-    apply/eqP; apply: (@polyrN0_sg_same _ _ a b)=> //.
+    apply/eqP; apply: (@polyrN0_int _ `]a, b[)=> //.
     move=> z /=; rewrite (@int_splitU2 _ x) // => /or3P [|/eqP->|].
     * move/hqa; apply: contra; rewrite !rootE horner_prod=> rz.
       by rewrite prodf_seq_eq0 /=; apply/hasP; exists r.

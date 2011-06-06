@@ -1621,7 +1621,7 @@ move => p x Hp Hx.
 (* Why do I have to move first? *)
 move: p Hp.
 apply: poly_ind => [|p c IHp].
-  by rewrite /map_poly size_polyC eqxx derivC !horner0 mul0r add0r linear0.
+  by rewrite !raddf0 horner0 mul0r add0r linear0.
 move/polyOverP => Hp.
 have Hp0: (polyOver E p).
  apply/polyOverP => i; move: (Hp i.+1).
@@ -2279,7 +2279,7 @@ Proof.
 rewrite separable_nzdmp size_elementDegree.
   by case: (_ == 0).
  by rewrite deriv_polyOver // minPolyOver.
-by rewrite (leq_trans (size_Poly _)) // size_mkseq size_minPoly leqnn.
+by rewrite (leq_trans (size_poly _ _)) // size_minPoly leqnn.
 Qed.
 
 Lemma DerivationSeparable : forall D, Derivation Fadjoin D -> 
