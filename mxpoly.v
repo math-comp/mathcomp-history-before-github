@@ -71,7 +71,7 @@ Proof. by rewrite coef_rVpoly valK. Qed.
 
 Lemma rVpoly_delta i : rVpoly (delta_mx 0 i) = 'X^i.
 Proof.
-apply/polyP=> j; rewrite coef_rVpoly coef_Xn.
+apply/polyP=> j; rewrite coef_rVpoly coefXn.
 case: insubP => [k _ <- | j_ge_d]; first by rewrite mxE.
 by case: eqP j_ge_d => // ->; rewrite ltn_ord.
 Qed.
@@ -87,13 +87,13 @@ by rewrite -ltnNge => le_d_l; rewrite nth_default ?(leq_trans le_p_d).
 Qed.
 
 Lemma poly_rV_is_linear : linear poly_rV.
-Proof. by move=> a p q; apply/rowP=> i; rewrite !mxE coef_add coef_scaler. Qed.
+Proof. by move=> a p q; apply/rowP=> i; rewrite !mxE coefD coefZ. Qed.
 Canonical poly_rV_additive := Additive poly_rV_is_linear.
 Canonical poly_rV_linear := Linear poly_rV_is_linear.
 
 Lemma rVpoly_is_linear : linear rVpoly.
 Proof.
-move=> a u v; apply/polyP=> k; rewrite coef_add coef_scaler !coef_rVpoly.
+move=> a u v; apply/polyP=> k; rewrite coefD coefZ !coef_rVpoly.
 by case: insubP => [i _ _ | _]; rewrite ?mxE // mulr0 addr0.
 Qed.
 Canonical rVpoly_additive := Additive rVpoly_is_linear.
@@ -118,7 +118,7 @@ Lemma Sylvester_mxE (i j : 'I_dS) :
   Sylvester_mx i j = match split i with inl k => S_ p k | inr k => S_ q k end.
 Proof.
 move=> S_; rewrite mxE; case: {i}(split i) => i; rewrite !mxE /=;
-  by rewrite rVpoly_delta coef_Xn_mul ltnNge if_neg -mulrb.
+  by rewrite rVpoly_delta coefXnM ltnNge if_neg -mulrb.
 Qed.
 
 Definition resultant := \det Sylvester_mx.
@@ -157,19 +157,19 @@ have{Ss u} ->: Ss = Ss_ dS.
   apply/matrixP=> i j; rewrite mxE [in X in _ = X]mxE; case: (j == j0) => {j}//.
   apply/polyP=> k; rewrite coef_poly Sylvester_mxE mxE.
   have [k_ge_dS | k_lt_dS] := leqP dS k.
-    case: (split i) => {i}i; rewrite !mxE coef_mulXn;
+    case: (split i) => {i}i; rewrite !mxE coefMXn;
       rewrite (contraNeq (@leq_coef_size _ _ _)) ?if_same // -leqNgt.
     - rewrite -(ltn_predK p_nc) -/dp -ltn_add_sub (leq_trans _ k_ge_dS) //.
       by rewrite ltn_add2r.
     rewrite -(ltn_predK q_nc) -/dq -ltn_add_sub (leq_trans _ k_ge_dS) //.
     by rewrite addnC ltn_add2l.
   by rewrite insubdK //; case: (split i) => {i}i;
-     rewrite !mxE coef_mulXn; case: leqP.
+     rewrite !mxE coefMXn; case: leqP.
 elim: {-2}dS (leqnn dS) (dS_gt0) => // dj IHj dj_lt_dS _.
 pose j1 := Ordinal dj_lt_dS; pose rj0T (A : 'M[{poly R}]_dS) := row j0 A^T.
 have: rj0T (Ss_ dj.+1) = 'X^dj *: rj0T (S_ j1) + 1 *: rj0T (Ss_ dj).
   apply/rowP=> i; apply/polyP=> k; rewrite scale1r !(Sylvester_mxE, mxE) eqxx.
-  rewrite coef_add coef_Xn_mul coefC !coef_poly ltnS subn_eq0 ltn_neqAle andbC.
+  rewrite coefD coefXnM coefC !coef_poly ltnS subn_eq0 ltn_neqAle andbC.
   case: (leqP k dj) => [k_le_dj | k_gt_dj] /=; last by rewrite addr0.
   rewrite Sylvester_mxE insubdK; last exact: leq_ltn_trans (dj_lt_dS).
   by case: eqP => [-> | _]; rewrite (addr0, add0r).
@@ -332,30 +332,30 @@ Lemma char_poly_monic : monic char_poly.
 Proof.
 rewrite /monic -(eqP (monic_prod_factors diagA)) !lead_coefE size_char_poly.
 have [q <- lt_q_n] := split_diagA; have le_q_n := leq_trans lt_q_n (leq_pred n).
-by rewrite size_prod_factors size_diagA coef_add (nth_default 0 le_q_n) addr0.
+by rewrite size_prod_factors size_diagA coefD (nth_default 0 le_q_n) addr0.
 Qed.
 
 Lemma char_poly_trace : n > 0 -> char_poly`_n.-1 = - \tr A.
 Proof.
 move=> n_gt0; have [q <- lt_q_n] := split_diagA; set p := \prod_(x <- _) _.
-rewrite coef_add {q lt_q_n}(nth_default 0 lt_q_n) addr0.
-have{n_gt0} ->: p`_n.-1 = ('X * p)`_n by rewrite coef_Xmul eqn0Ngt n_gt0.
+rewrite coefD {q lt_q_n}(nth_default 0 lt_q_n) addr0.
+have{n_gt0} ->: p`_n.-1 = ('X * p)`_n by rewrite coefXM eqn0Ngt n_gt0.
 have ->: \tr A = \sum_(x <- diagA) x by rewrite big_map enumT.
 rewrite -size_diagA {}/p; elim: diagA => [|x d IHd].
   by rewrite !big_nil mulr1 coefX oppr0.
-rewrite !big_cons coef_Xmul mulr_subl coef_sub IHd oppr_add addrC.
-congr (- _ + _); rewrite mul_polyC coef_scaler [size _]/=. 
+rewrite !big_cons coefXM mulr_subl coef_sub IHd oppr_add addrC.
+congr (- _ + _); rewrite mul_polyC coefZ [size _]/=. 
 by rewrite -size_prod_factors -lead_coefE (eqP (monic_prod_factors d)) mulr1.
 Qed.
 
 Lemma char_poly_det : char_poly`_0 = (- 1) ^+ n * \det A.
 Proof.
 rewrite big_distrr coef_sum [0%N]lock /=; apply: eq_bigr => s _.
-rewrite -{1}rmorphN -rmorphX mul_polyC coef_scaler /=.
+rewrite -{1}rmorphN -rmorphX mul_polyC coefZ /=.
 rewrite mulrA -exprn_addr addnC exprn_addr -mulrA -lock; congr (_ * _).
 transitivity (\prod_(i < n) - A i (s i)); last by rewrite prodr_opp card_ord.
 elim: (index_enum _) => [|i e IHe]; rewrite !(big_nil, big_cons) ?coef1 //.
-rewrite coef_mul big_ord1 IHe !mxE coef_sub coefC coef_natmul coefX.
+rewrite coefM big_ord1 IHe !mxE coef_sub coefC coefMn coefX.
 by rewrite mul0rn sub0r.
 Qed.
 
@@ -376,13 +376,13 @@ have coef_phi A i j k: (phi A)`_k i j = (A i j)`_k.
   apply: leq_trans (leq_trans (leq_bigmax i) le_m_k); exact: (leq_bigmax j).
 have phi_is_rmorphism : rmorphism phi.
   do 2?[split=> [A B|]]; apply/polyP=> k; apply/matrixP=> i j; last 1 first.
-  - rewrite coef_phi mxE coef_natmul !coefC.
+  - rewrite coef_phi mxE coefMn !coefC.
     by case: (k == _); rewrite ?mxE ?mul0rn.
-  - by rewrite !(coef_phi, mxE, coef_add, coef_opp).
-  rewrite !coef_phi !mxE !coef_mul summxE coef_sum.
+  - by rewrite !(coef_phi, mxE, coefD, coefN).
+  rewrite !coef_phi !mxE !coefM summxE coef_sum.
   pose F k1 k2 := (A i k1)`_k2 * (B k1 j)`_(k - k2).
   transitivity (\sum_k1 \sum_(k2 < k.+1) F k1 k2); rewrite {}/F.
-    by apply: eq_bigr=> k1 _; rewrite coef_mul.
+    by apply: eq_bigr=> k1 _; rewrite coefM.
   rewrite exchange_big /=; apply: eq_bigr => k2 _.
   by rewrite mxE; apply: eq_bigr => k1 _; rewrite !coef_phi.
 have bij_phi: bijective phi.
@@ -394,7 +394,7 @@ have bij_phi: bijective phi.
   by case: leqP => // P_le_k; rewrite nth_default ?mxE.
 exists (RMorphism phi_is_rmorphism).
 split=> // [p | A]; apply/polyP=> k; apply/matrixP=> i j.
-  by rewrite coef_phi coef_map !mxE coef_natmul.
+  by rewrite coef_phi coef_map !mxE coefMn.
 by rewrite coef_phi !mxE !coefC; case k; last rewrite /= mxE.
 Qed.
 
@@ -499,7 +499,7 @@ Proof. by rewrite size_addl ?size_polyXn // size_opp ltnS size_poly. Qed.
 
 Lemma mxminpoly_monic : monic p_A.
 Proof.
-rewrite /monic /lead_coef size_mxminpoly coef_sub coef_Xn eqxx /=.
+rewrite /monic /lead_coef size_mxminpoly coef_sub coefXn eqxx /=.
 by rewrite nth_default ?size_poly // subr0.
 Qed.
 

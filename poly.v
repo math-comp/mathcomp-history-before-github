@@ -37,7 +37,7 @@ Require Import bigop ssralg binomial.
 (*            monic p == p is monic, i.e., lead_coef p = 1 (0 is not monic)   *)
 (*             p.[x]  == the evaluation of a polynomial p at a point x using  *)
 (*                       the Horner scheme                                    *)
-(*                   *** The multi-rule horner_lin (resp. horner_lin_com)     *)
+(*                   *** The multi-rule horner_lin (resp. horner_lin_comm)    *)
 (*                       unwinds horner evaluation of a polynomial expression *)
 (*                       (resp. in a non commutative ring, under appropriate  *)
 (*                       assumptions).                                        *)
@@ -46,11 +46,11 @@ Require Import bigop ssralg binomial.
 (*            p^`N(n) == formal n-derivative of p divided by n!               *)
 (*            p \Po q == polynomial composition                               *)
 (*                       \sum(i < size p) p`_i *: q ^+ i                      *)
-(*       com_poly p x == x and p.[x] commute; this is a sufficient condition  *)
+(*      comm_poly p x == x and p.[x] commute; this is a sufficient condition  *)
 (*                       for evaluating (q * p).[x] as q.[x] * p.[x] when R   *)
 (*                       is not commutative.                                  *)
-(*       com_coef p x == x commutes with all the coefficients of p (clearly,  *)
-(*                       this implies com_poly p x).                          *)
+(*      comm_coef p x == x commutes with all the coefficients of p (clearly,  *)
+(*                       this implies comm_poly p x).                         *)
 (*           root p x == x is a root of p, i.e., p.[x] = 0                    *)
 (*    n.-unity_root x == x is an nth root of unity, i.e., a root of 'X^n - 1  *)
 (* n.-primitive_root x == x is a primitive nth root of unity, i.e., n is the  *)
@@ -77,6 +77,10 @@ Require Import bigop ssralg binomial.
 (*       morphisms whose domain is a field (thus ensuring injectivity).       *)
 (* We prove the factor_theorem, and the max_poly_roots inequality relating    *)
 (* the number of distinct roots of a polynomial and its size.                 *)
+(*   The some polynomial lemmas use following suffix interpretation :         *)
+(*   C - constant polynomial (as in polyseqC : a%:P = nseq (a != 0) a).       *)
+(*   X - the polynomial variable 'X (as in coefX : 'X`_i = (i == 1%N)).       *)
+(*   Xn - power of 'X (as in monicXn : monic 'X^n).                           *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -120,7 +124,7 @@ Lemma poly_inj : injective polyseq. Proof. exact: val_inj. Qed.
 Definition poly_of of phant R := polynomial.
 Identity Coercion type_poly_of : poly_of >-> polynomial.
 
-Definition pcoef_head h i (p : poly_of (Phant R)) := let: tt := h in p`_i.
+Definition coefp_head h i (p : poly_of (Phant R)) := let: tt := h in p`_i.
 
 End Polynomial.
 
@@ -130,14 +134,14 @@ Bind Scope ring_scope with poly_of.
 Bind Scope ring_scope with polynomial.
 Arguments Scope polyseq [_ ring_scope].
 Arguments Scope poly_inj [_ ring_scope ring_scope _].
-Arguments Scope pcoef_head [_ _ nat_scope ring_scope _].
+Arguments Scope coefp_head [_ _ nat_scope ring_scope _].
 Notation "{ 'poly' T }" := (poly_of (Phant T)).
-Notation pcoef i := (pcoef_head tt i).
+Notation coefp i := (coefp_head tt i).
 
 Section PolynomialTheory.
 
 Variable R : ringType.
-Implicit Types p q : {poly R}.
+Implicit Types (a b c x y z : R) (p q r d : {poly R}).
 
 Canonical poly_subType := Eval hnf in [subType of {poly R}].
 Canonical poly_eqType := Eval hnf in [eqType of {poly R}].
@@ -161,8 +165,8 @@ Proof. by rewrite polyseqC size_nseq. Qed.
 Lemma coefC c i : c%:P`_i = if i == 0%N then c else 0.
 Proof. by rewrite polyseqC; case: i => [|[]]; case: eqP. Qed.
 
-Lemma polyCK : cancel polyC (pcoef 0).
-Proof. by move=> c; rewrite [pcoef 0 _]coefC. Qed.
+Lemma polyCK : cancel polyC (coefp 0).
+Proof. by move=> c; rewrite [coefp 0 _]coefC. Qed.
 
 Lemma polyC_inj : injective polyC.
 Proof. by move=> c1 c2 eqc12; have:= coefC c2 0; rewrite -eqc12 coefC. Qed.
@@ -206,7 +210,7 @@ Proof.
 by case: p i => [[|c' s] _] [] //=; rewrite polyseqC; case: eqP => //= _ [].
 Qed.
 
-(* Builds a polynomial from a bare list of coefficients *)
+(* Build a polynomial directly from a list of coefficients. *)
 Definition Poly := foldr poly_cons 0%:P.
 
 Lemma PolyK c s : last c s != 0 -> Poly s = s :> seq R.
@@ -230,31 +234,29 @@ Proof.
 by elim: s i => [|c s IHs] /= [|i]; rewrite !(coefC, eqxx, coef_cons) /=.
 Qed.
 
-(* Builds a polynomial from an infinite seq of coef and a bound *)
-Definition poly n E := locked Poly (mkseq E n).
+(* Build a polynomial from an infinite sequence of coefficients and a bound. *)
+Definition poly := locked (fun n E => Poly (mkseq E n)).
 
 Local Notation "\poly_ ( i < n ) E" := (poly n (fun i : nat => E)).
-
-Lemma polyE n E : poly n E = Poly (mkseq E n).
-Proof. by rewrite /poly -lock. Qed.
 
 Lemma polyseq_poly n E :
   E n.-1 != 0 -> \poly_(i < n) E i = mkseq [eta E] n :> seq R.
 Proof.
-case: n => [|n] nzEn; first by rewrite polyE polyseqC eqxx.
-by rewrite polyE (@PolyK 0) // -nth_last nth_mkseq size_mkseq.
+unlock poly; case: n => [|n] nzEn; first by rewrite polyseqC eqxx.
+by rewrite (@PolyK 0) // -nth_last nth_mkseq size_mkseq.
 Qed.
 
 Lemma size_poly n E : size (\poly_(i < n) E i) <= n.
-Proof. by rewrite polyE (leq_trans (size_Poly _)) ?size_mkseq. Qed.
+Proof. by unlock poly; rewrite (leq_trans (size_Poly _)) ?size_mkseq. Qed.
 
 Lemma size_poly_eq n E : E n.-1 != 0 -> size (\poly_(i < n) E i) = n.
-Proof. move/polyseq_poly->; exact: size_mkseq. Qed.
+Proof. by move/polyseq_poly->; exact: size_mkseq. Qed.
 
 Lemma coef_poly n E k : (\poly_(i < n) E i)`_k = (if k < n then E k else 0).
 Proof.
-have [lt_kn | le_nk] := ltnP k n; first by rewrite polyE coef_Poly nth_mkseq.
-by rewrite polyE coef_Poly nth_default // size_mkseq.
+unlock poly; rewrite coef_Poly.
+have [lt_kn | le_nk] := ltnP k n; first by rewrite nth_mkseq.
+by rewrite nth_default // size_mkseq.
 Qed.
 
 Lemma lead_coef_poly n E :
@@ -268,67 +270,45 @@ Proof.
 by apply/polyP=> i; rewrite coef_poly; case: ltnP => // /(nth_default 0)->.
 Qed.
 
-End PolynomialTheory.
-
-Notation "\poly_ ( i < n ) E" := (poly n (fun i => E)) : ring_scope.
-Prenex Implicits polyC Poly.
-Notation "c %:P" := (polyC c) : ring_scope.
-
-Module PolynomialZmodule.
-Section PolynomialZmodule.
-
-Variable R : ringType.
-
-Implicit Types p q : {poly R}.
-
 (* Zmodule structure for polynomial *)
 Definition add_poly p q := \poly_(i < maxn (size p) (size q)) (p`_i + q`_i).
 
 Definition opp_poly p := \poly_(i < size p) - p`_i.
 
-Lemma coef_add_poly p q i : (add_poly p q)`_i = p`_i + q`_i.
+Fact coef_add_poly p q i : (add_poly p q)`_i = p`_i + q`_i.
 Proof.
 rewrite coef_poly; case: leqP => //; rewrite leq_maxl => /andP[le_p_i le_q_i].
 by rewrite !nth_default ?add0r.
 Qed.
 
-Lemma coef_opp_poly p i : (opp_poly p)`_i = - p`_i.
+Fact coef_opp_poly p i : (opp_poly p)`_i = - p`_i.
 Proof.
 by rewrite coef_poly /=; case: leqP => // le_p_i; rewrite nth_default ?oppr0.
 Qed.
 
-Lemma add_polyA : associative add_poly.
+Fact add_polyA : associative add_poly.
 Proof. by move=> p q r; apply/polyP=> i; rewrite !coef_add_poly addrA. Qed.
 
-Lemma add_polyC : commutative add_poly.
+Fact add_polyC : commutative add_poly.
 Proof. by move=> p q; apply/polyP=> i; rewrite !coef_add_poly addrC. Qed.
 
-Lemma add_poly0 : left_id 0%:P add_poly.
+Fact add_poly0 : left_id 0%:P add_poly.
 Proof.
 by move=> p; apply/polyP=> i; rewrite coef_add_poly coefC if_same add0r.
 Qed.
 
-Lemma add_poly_opp : left_inverse 0%:P opp_poly add_poly.
+Fact add_poly_opp : left_inverse 0%:P opp_poly add_poly.
 Proof.
 move=> p; apply/polyP=> i.
 by rewrite coef_add_poly coef_opp_poly coefC if_same addNr.
 Qed.
 
-Definition mixin := ZmodMixin add_polyA add_polyC add_poly0 add_poly_opp.
+Definition poly_zmodMixin :=
+  ZmodMixin add_polyA add_polyC add_poly0 add_poly_opp.
 
-End PolynomialZmodule.
-End PolynomialZmodule.
-
-Canonical poly_zmodType (R: ringType) :=
-  Eval hnf in ZmodType {poly R} (PolynomialZmodule.mixin R).
-Canonical polynomial_zmodType (R: ringType) :=
-  Eval hnf in [zmodType of polynomial R for (poly_zmodType R)].
-
-Section PolynomialZmodTheory.
-
-Variable R : ringType.
-Implicit Types (a b c x y : R) (p q : {poly R}).
-Local Notation polyC := (@polyC R).
+Canonical poly_zmodType := Eval hnf in ZmodType {poly R} poly_zmodMixin.
+Canonical polynomial_zmodType :=
+  Eval hnf in ZmodType (polynomial R) poly_zmodMixin.
 
 (* Properties of the zero polynomial *)
 Lemma polyC0 : 0%:P = 0 :> {poly R}. Proof. by []. Qed.
@@ -383,33 +363,33 @@ Qed.
 Lemma leq_coef_size p i : p`_i != 0 -> i < size p.
 Proof. by rewrite ltnNge; apply: contra => /(nth_default 0)->. Qed.
 
-Lemma coef_add p q i : (p + q)`_i = p`_i + q`_i.
-Proof. exact: PolynomialZmodule.coef_add_poly. Qed.
+Lemma coefD p q i : (p + q)`_i = p`_i + q`_i.
+Proof. exact: coef_add_poly. Qed.
 
-Lemma coef_opp p i : (- p)`_i = - p`_i.
-Proof. exact: PolynomialZmodule.coef_opp_poly. Qed.
+Lemma coefN p i : (- p)`_i = - p`_i.
+Proof. exact: coef_opp_poly. Qed.
 
 Lemma coef_sub p q i : (p - q)`_i = p`_i - q`_i.
-Proof. by rewrite coef_add coef_opp. Qed.
+Proof. by rewrite coefD coefN. Qed.
 
-Canonical pcoef_additive i :=
-  Additive ((fun p => (coef_sub p)^~ i) : additive (pcoef i)).
+Canonical coefp_additive i :=
+  Additive ((fun p => (coef_sub p)^~ i) : additive (coefp i)).
 
-Lemma coef_natmul p n i : (p *+ n)`_i = p`_i *+ n.
-Proof. exact: (raddfMn (pcoef_additive i)). Qed.
+Lemma coefMn p n i : (p *+ n)`_i = p`_i *+ n.
+Proof. exact: (raddfMn (coefp_additive i)). Qed.
 
-Lemma coef_negmul p n i : (p *- n)`_i = p`_i *- n.
-Proof. by rewrite coef_opp coef_natmul. Qed.
+Lemma coefMNn p n i : (p *- n)`_i = p`_i *- n.
+Proof. by rewrite coefN coefMn. Qed.
 
-Lemma coef_sum I r (P : pred I) (F : I -> {poly R}) k :
+Lemma coef_sum I (r : seq I) (P : pred I) (F : I -> {poly R}) k :
   (\sum_(i <- r | P i) F i)`_k = \sum_(i <- r | P i) (F i)`_k.
-Proof. exact: (raddf_sum (pcoef_additive k)). Qed.
+Proof. exact: (raddf_sum (coefp_additive k)). Qed.
 
 Lemma polyC_add : {morph polyC : a b / a + b}.
-Proof. by move=> a b; apply/polyP=> [[|i]]; rewrite coef_add !coefC ?addr0. Qed.
+Proof. by move=> a b; apply/polyP=> [[|i]]; rewrite coefD !coefC ?addr0. Qed.
 
 Lemma polyC_opp : {morph polyC : c / - c}.
-Proof. by move=> c; apply/polyP=> [[|i]]; rewrite coef_opp !coefC ?oppr0. Qed.
+Proof. by move=> c; apply/polyP=> [[|i]]; rewrite coefN !coefC ?oppr0. Qed.
 
 Lemma polyC_sub : {morph polyC : a b / a - b}.
 Proof. by move=> a b; rewrite polyC_add polyC_opp. Qed.
@@ -423,7 +403,7 @@ Lemma size_opp p : size (- p) = size p.
 Proof. by apply/eqP; rewrite eqn_leq -{3}(opprK p) !size_poly. Qed.
 
 Lemma lead_coef_opp p : lead_coef (- p) = - lead_coef p.
-Proof. by rewrite /lead_coef size_opp coef_opp. Qed.
+Proof. by rewrite /lead_coef size_opp coefN. Qed.
 
 Lemma size_add p q : size (p + q) <= maxn (size p) (size q).
 Proof. exact: size_poly. Qed.
@@ -434,7 +414,7 @@ move=> ltqp; rewrite size_poly_eq maxnl 1?ltnW //.
 by rewrite addrC nth_default ?simp ?nth_last //; case: p ltqp => [[]].
 Qed.
 
-Lemma size_sum I r (P : pred I) (F : I -> {poly R}) :
+Lemma size_sum I (r : seq I) (P : pred I) (F : I -> {poly R}) :
   size (\sum_(i <- r | P i) F i) <= \max_(i <- r | P i) size (F i).
 Proof.
 elim/big_rec2: _ => [|i p q _ IHp]; first by rewrite size_poly0.
@@ -443,21 +423,16 @@ Qed.
 
 Lemma lead_coef_addl p q : size p > size q -> lead_coef (p + q) = lead_coef p.
 Proof.
-move=> ltqp; rewrite /lead_coef coef_add size_addl //.
+move=> ltqp; rewrite /lead_coef coefD size_addl //.
 by rewrite addrC nth_default ?simp // -ltnS (ltn_predK ltqp).
 Qed.
 
-End PolynomialZmodTheory.
-
-Module PolynomialRing.
-Section PolynomialRing.
-(* And now the Ring structure. *)
-Variable R : ringType.
+(* Polynomial ring structure. *)
 
 Definition mul_poly (p q : {poly R}) :=
   \poly_(i < (size p + size q).-1) (\sum_(j < i.+1) p`_j * q`_(i - j)).
 
-Lemma coef_mul_poly p q i :
+Fact coef_mul_poly p q i :
   (mul_poly p q)`_i = \sum_(j < i.+1) p`_j * q`_(i - j)%N.
 Proof.
 rewrite coef_poly -subn1 -ltn_add_sub add1n; case: leqP => // le_pq_i1.
@@ -467,14 +442,14 @@ rewrite nth_default ?mul0r // -(leq_add2r (size q)) (leq_trans le_pq_i1) //.
 by rewrite -leq_sub_add ltn_subS.
 Qed.
 
-Lemma coef_mul_poly_rev p q i :
+Fact coef_mul_poly_rev p q i :
   (mul_poly p q)`_i = \sum_(j < i.+1) p`_(i - j)%N * q`_j.
 Proof.
 rewrite coef_mul_poly (reindex_inj rev_ord_inj) /=.
 by apply: eq_bigr => j _; rewrite (sub_ordK j).
 Qed.
 
-Lemma mul_polyA : associative mul_poly.
+Fact mul_polyA : associative mul_poly.
 Proof.
 move=> p q r; apply/polyP=> i; rewrite coef_mul_poly coef_mul_poly_rev.
 pose coef3 j k := p`_j * (q`_(i - j - k)%N * r`_k).
@@ -489,50 +464,40 @@ rewrite (big_ord_narrow_leq (leq_subr _ _)) coef_mul_poly big_distrl /=.
 by apply: eq_bigr => j _; rewrite /coef3 !subn_sub addnC mulrA.
 Qed.
 
-Lemma mul_1poly : left_id 1%:P mul_poly.
+Fact mul_1poly : left_id 1%:P mul_poly.
 Proof.
 move=> p; apply/polyP => i; rewrite coef_mul_poly big_ord_recl subn0.
 by rewrite big1 => [|j _]; rewrite coefC !simp.
 Qed.
 
-Lemma mul_poly1 : right_id 1%:P mul_poly.
+Fact mul_poly1 : right_id 1%:P mul_poly.
 Proof.
 move=> p; apply/polyP => i; rewrite coef_mul_poly_rev big_ord_recl subn0.
 by rewrite big1 => [|j _]; rewrite coefC !simp.
 Qed.
 
-Lemma mul_poly_addl : left_distributive mul_poly +%R.
+Fact mul_poly_addl : left_distributive mul_poly +%R.
 Proof.
-move=> p q r; apply/polyP=> i; rewrite coef_add !coef_mul_poly -big_split.
-by apply: eq_bigr => j _; rewrite coef_add mulr_addl.
+move=> p q r; apply/polyP=> i; rewrite coefD !coef_mul_poly -big_split.
+by apply: eq_bigr => j _; rewrite coefD mulr_addl.
 Qed.
 
-Lemma mul_poly_addr : right_distributive mul_poly +%R.
+Fact mul_poly_addr : right_distributive mul_poly +%R.
 Proof.
-move=> p q r; apply/polyP=> i; rewrite coef_add !coef_mul_poly -big_split.
-by apply: eq_bigr => j _; rewrite coef_add mulr_addr.
+move=> p q r; apply/polyP=> i; rewrite coefD !coef_mul_poly -big_split.
+by apply: eq_bigr => j _; rewrite coefD mulr_addr.
 Qed.
 
-Lemma nonzero_poly1 : 1%:P != 0 :> {poly R}.
+Fact nonzero_poly1 : 1%:P != 0 :> {poly R}.
 Proof. by rewrite polyC_eq0 nonzero1r. Qed.
 
-Definition mixin :=
+Definition poly_ringMixin :=
   RingMixin mul_polyA mul_1poly mul_poly1 mul_poly_addl mul_poly_addr
             nonzero_poly1.
 
-End PolynomialRing.
-End PolynomialRing.
-
-Canonical poly_ringType (R : ringType) :=
-  Eval hnf in RingType {poly R} (PolynomialRing.mixin R).
-Canonical polynomial_ringType (R : ringType) :=
-  Eval hnf in [ringType of polynomial R for (poly_ringType R)].
-
-Section PolynomialRingTheory.
-
-Variable R : ringType.
-Implicit Types p q : {poly R}.
-Local Notation polyC := (@polyC R).
+Canonical poly_ringType := Eval hnf in RingType {poly R} poly_ringMixin.
+Canonical polynomial_ringType :=
+  Eval hnf in RingType (polynomial R) poly_ringMixin.
 
 Lemma polyC1 : 1%:P = 1 :> {poly R}. Proof. by []. Qed.
 
@@ -547,11 +512,11 @@ Proof. by case: i => [|i]; rewrite polyseq1 /= ?nth_nil. Qed.
 
 Lemma lead_coef1 : lead_coef 1 = 1 :> R. Proof. exact: lead_coefC. Qed.
 
-Lemma coef_mul p q i : (p * q)`_i = \sum_(j < i.+1) p`_j * q`_(i - j)%N.
-Proof. exact: PolynomialRing.coef_mul_poly. Qed.
+Lemma coefM p q i : (p * q)`_i = \sum_(j < i.+1) p`_j * q`_(i - j)%N.
+Proof. exact: coef_mul_poly. Qed.
 
-Lemma coef_mul_rev p q i : (p * q)`_i = \sum_(j < i.+1) p`_(i - j)%N * q`_j.
-Proof. exact: PolynomialRing.coef_mul_poly_rev. Qed.
+Lemma coefMr p q i : (p * q)`_i = \sum_(j < i.+1) p`_(i - j)%N * q`_j.
+Proof. exact: coef_mul_poly_rev. Qed.
 
 Lemma size_mul p q : size (p * q) <= (size p + size q).-1.
 Proof. exact: size_poly. Qed.
@@ -560,15 +525,15 @@ Lemma mul_lead_coef p q :
   lead_coef p * lead_coef q = (p * q)`_(size p + size q).-2.
 Proof.
 pose dp := (size p).-1; pose dq := (size q).-1.
-have [-> | nz_p] := poly0Vpos p; first by rewrite lead_coef0 !mul0r coef0.
-have [-> | nz_q] := poly0Vpos q; first by rewrite lead_coef0 !mulr0 coef0.
+have [-> | nz_p] := eqVneq p 0; first by rewrite lead_coef0 !mul0r coef0.
+have [-> | nz_q] := eqVneq q 0; first by rewrite lead_coef0 !mulr0 coef0.
 have ->: (size p + size q).-2 = (dp + dq)%N.
-  by rewrite -(prednK nz_p) -(prednK nz_q) addnS.
+  by do 2! rewrite polySpred // addSn addnC.
 have lt_p_pq: dp < (dp + dq).+1 by rewrite ltnS leq_addr.
-rewrite coef_mul (bigD1 (Ordinal lt_p_pq)) ?big1 ?simp ?addKn //= => i.
+rewrite coefM (bigD1 (Ordinal lt_p_pq)) ?big1 ?simp ?addKn //= => i.
 rewrite -val_eqE neq_ltn /= => /orP[lt_i_p | gt_i_p]; last first.
-  by rewrite nth_default ?mul0r //; rewrite prednK in gt_i_p.
-rewrite [q`__]nth_default ?mulr0 //= -subSS -{1}addnS prednK //.
+  by rewrite nth_default ?mul0r //; rewrite -polySpred in gt_i_p.
+rewrite [q`__]nth_default ?mulr0 //= -subSS -{1}addnS -polySpred //.
 by rewrite addnC -addn_subA ?leq_addr.
 Qed.
 
@@ -588,25 +553,26 @@ Lemma size_prod (I : finType) (P : pred I) (F : I -> {poly R}) :
 Proof.
 rewrite -sum1_card.
 elim/big_rec3: _ => [|i n m p _ IHp]; first by rewrite size_poly1.
-case: (poly0Vpos p) => [-> | nz_p]; first by rewrite mulr0 size_poly0.
+have [-> | nz_p] := eqVneq p 0; first by rewrite mulr0 size_poly0.
 rewrite (leq_trans (size_mul _ _)) // -predn_sub -!subn1 leq_sub2r // -addnS.
-by rewrite -addn_subA ?leq_add2l // ltnW // -subn_gt0 (leq_trans nz_p).
+rewrite -addn_subA ?leq_add2l // ltnW // -subn_gt0 (leq_trans _ IHp) //.
+by rewrite polySpred.
 Qed.
 
-Lemma coef_Cmul c p i : (c%:P * p)`_i = c * p`_i.
+Lemma coefCM c p i : (c%:P * p)`_i = c * p`_i.
 Proof.
-rewrite coef_mul big_ord_recl subn0.
+rewrite coefM big_ord_recl subn0.
 by rewrite big1 => [|j _]; rewrite coefC !simp.
 Qed.
 
-Lemma coef_mulC c p i : (p * c%:P)`_i = p`_i * c.
+Lemma coefMC c p i : (p * c%:P)`_i = p`_i * c.
 Proof.
-rewrite coef_mul_rev big_ord_recl subn0.
+rewrite coefMr big_ord_recl subn0.
 by rewrite big1 => [|j _]; rewrite coefC !simp.
 Qed.
 
 Lemma polyC_mul : {morph polyC : a b / a * b}.
-Proof. by move=> a b; apply/polyP=> [[|i]]; rewrite coef_Cmul !coefC ?simp. Qed.
+Proof. by move=> a b; apply/polyP=> [[|i]]; rewrite coefCM !coefC ?simp. Qed.
 
 Fact polyC_multiplicative : multiplicative polyC.
 Proof. by split; first exact: polyC_mul. Qed.
@@ -628,90 +594,71 @@ Proof.
 by rewrite -signr_odd; case: (odd n); rewrite ?mul1r // mulN1r size_opp.
 Qed.
 
-Lemma pcoef0_multiplicative : multiplicative (pcoef 0 : {poly R} -> R).
+Fact coefp0_multiplicative : multiplicative (coefp 0 : {poly R} -> R).
 Proof.
 split=> [p q|]; last by rewrite polyCK.
-by rewrite [pcoef 0 _]coef_mul big_ord_recl big_ord0 addr0.
+by rewrite [coefp 0 _]coefM big_ord_recl big_ord0 addr0.
 Qed.
 
-Canonical pcoef0_rmorphism := AddRMorphism pcoef0_multiplicative.
+Canonical coefp0_rmorphism := AddRMorphism coefp0_multiplicative.
 
-End PolynomialRingTheory.
-
-Module PolynomialLalg.
-Section PolynomialLalg.
-
-Variable R : ringType.
-
+(* Algebra structure of polynomials. *)
 Definition scale_poly a (p : {poly R}) := \poly_(i < size p) (a * p`_i).
 
-Lemma scale_polyE a p : scale_poly a p = a%:P * p.
+Fact scale_polyE a p : scale_poly a p = a%:P * p.
 Proof.
-apply/polyP=> n; rewrite coef_poly coef_Cmul.
+apply/polyP=> n; rewrite coef_poly coefCM.
 by case: leqP => // le_p_n; rewrite nth_default ?mulr0.
 Qed.
 
-Lemma scale_polyA a b p : scale_poly a (scale_poly b p) = scale_poly (a * b) p.
+Fact scale_polyA a b p : scale_poly a (scale_poly b p) = scale_poly (a * b) p.
 Proof. by rewrite !scale_polyE mulrA polyC_mul. Qed.
 
-Lemma scale_1poly : left_id 1 scale_poly.
+Fact scale_1poly : left_id 1 scale_poly.
 Proof. by move=> p; rewrite scale_polyE mul1r. Qed.
 
-Lemma scale_poly_addr a : {morph scale_poly a : p q / p + q}.
+Fact scale_poly_addr a : {morph scale_poly a : p q / p + q}.
 Proof. by move=> p q; rewrite !scale_polyE mulr_addr. Qed.
 
-Lemma scale_poly_addl p : {morph scale_poly^~ p : a b / a + b}.
+Fact scale_poly_addl p : {morph scale_poly^~ p : a b / a + b}.
 Proof. by move=> a b /=; rewrite !scale_polyE raddfD mulr_addl. Qed.
 
-Lemma scale_poly_mull a p q : scale_poly a (p * q) = scale_poly a p * q.
+Fact scale_poly_mull a p q : scale_poly a (p * q) = scale_poly a p * q.
 Proof. by rewrite !scale_polyE mulrA. Qed.
 
-Definition mixin :=
+Definition poly_lmodMixin :=
   LmodMixin scale_polyA scale_1poly scale_poly_addr scale_poly_addl.
 
-End PolynomialLalg.
-End PolynomialLalg.
-
-Canonical poly_lmodType (R: ringType) :=
-  Eval hnf in LmodType R {poly R} (PolynomialLalg.mixin R).
-Canonical polynomial_lmodType (R : ringType) :=
-  Eval hnf in [lmodType R of polynomial R for (poly_lmodType R)].
-Canonical poly_lalgType (R: ringType) :=
-  Eval hnf in LalgType R {poly R} (@PolynomialLalg.scale_poly_mull R).
-Canonical polynomial_lalgType (R : ringType) :=
-  Eval hnf in [lalgType R of polynomial R for (poly_lalgType R)].
-
-Section PolynomialLalgTheory.
-
-Variable R : ringType.
-
-Implicit Types p q : {poly R}.
+Canonical poly_lmodType :=
+  Eval hnf in LmodType R {poly R} poly_lmodMixin.
+Canonical polynomial_lmodType :=
+  Eval hnf in LmodType R (polynomial R) poly_lmodMixin.
+Canonical poly_lalgType :=
+  Eval hnf in LalgType R {poly R} scale_poly_mull.
+Canonical polynomial_lalgType :=
+  Eval hnf in LalgType R (polynomial R) scale_poly_mull.
 
 Lemma mul_polyC a p : a%:P * p = a *: p.
-Proof. by rewrite -PolynomialLalg.scale_polyE. Qed.
+Proof. by rewrite -scale_polyE. Qed.
 
 Lemma scale_poly1 a : a *: 1 = a%:P :> {poly R}.
 Proof. by rewrite -mul_polyC mulr1. Qed.
 
-Lemma coef_scaler a p i : (a *: p)`_i = a * p`_i.
-Proof. by rewrite coef_poly; case: leqP => // le_p_n; rewrite nth_default ?mulr0. Qed.
+Lemma coefZ a p i : (a *: p)`_i = a * p`_i.
+Proof.
+by rewrite coef_poly; case: leqP => // le_p_n; rewrite nth_default ?mulr0.
+Qed.
 
-Canonical pcoef_linear i :=
-  AddLinear ((fun a => (coef_scaler a) ^~ i) : scalable (pcoef i : {poly R} -> R^o)).
+Canonical coefp_linear i :=
+  AddLinear ((fun a => (coefZ a) ^~ i) : scalable (coefp i : {poly R} -> R^o)).
 
-End PolynomialLalgTheory.
-
-Section PolynomialX.
-(* Indeterminate, at last! *)
-Variable R : ringType.
-Implicit Types (a b c : R) (p q : {poly R}).
-
-Definition polyX : {poly R} := Poly [:: 0; 1].
+(* The indeterminate, at last! *)
+Definition polyX : {poly R} := locked Poly [:: 0; 1].
 
 Local Notation "'X" := polyX.
 
 Lemma polyseqX : 'X = [:: 0; 1] :> seq R.
-Proof. by rewrite !polyseq_cons nil_poly eqxx /= polyseq1. Qed.
+Proof. by unlock polyX; rewrite !polyseq_cons nil_poly eqxx /= polyseq1. Qed.
 
 Lemma size_polyX : size 'X = 2. Proof. by rewrite polyseqX. Qed.
 
@@ -723,23 +670,23 @@ Proof. by rewrite /lead_coef polyseqX. Qed.
 
 Lemma commr_polyX p : GRing.comm p 'X.
 Proof.
-apply/polyP=> i; rewrite coef_mul_rev coef_mul.
+apply/polyP=> i; rewrite coefMr coefM.
 by apply: eq_bigr => j _; rewrite coefX commr_nat.
 Qed.
 
-Lemma coef_mulX p i : (p * 'X)`_i = (if (i == 0)%N then 0 else p`_i.-1).
+Lemma coefMX p i : (p * 'X)`_i = (if (i == 0)%N then 0 else p`_i.-1).
 Proof.
-rewrite coef_mul_rev big_ord_recl coefX ?simp.
+rewrite coefMr big_ord_recl coefX ?simp.
 case: i => [|i]; rewrite ?big_ord0 //= big_ord_recl polyseqX subn1 /=.
 by rewrite big1 ?simp // => j _; rewrite nth_nil !simp.
 Qed.
 
-Lemma coef_Xmul p i : ('X * p)`_i = (if (i == 0)%N then 0 else p`_i.-1).
-Proof. by rewrite -commr_polyX coef_mulX. Qed.
+Lemma coefXM p i : ('X * p)`_i = (if (i == 0)%N then 0 else p`_i.-1).
+Proof. by rewrite -commr_polyX coefMX. Qed.
 
 Lemma poly_cons_def p a : poly_cons a p = p * 'X + a%:P.
 Proof.
-apply/polyP=> i; rewrite coef_cons coef_add coef_mulX coefC.
+apply/polyP=> i; rewrite coef_cons coefD coefMX coefC.
 by case: ifP; rewrite !simp.
 Qed.
 
@@ -768,7 +715,7 @@ Lemma size_amulX p c :
   size (p * 'X + c%:P) = (if (p == 0) && (c == 0) then 0%N else (size p).+1).
 Proof. by rewrite -poly_cons_def size_poly_cons nil_poly. Qed.
 
-Lemma seq_mul_polyX p : p != 0 -> p * 'X = 0 :: p :> seq R.
+Lemma polyseq_mulX p : p != 0 -> p * 'X = 0 :: p :> seq R.
 Proof.
 by move=> nz_p; rewrite -[p * _]addr0 -poly_cons_def polyseq_cons nil_poly nz_p.
 Qed.
@@ -776,68 +723,57 @@ Qed.
 Lemma lead_coef_mulX p : lead_coef (p * 'X) = lead_coef p.
 Proof.
 have [-> | nzp] := eqVneq p 0; first by rewrite mul0r.
-by rewrite /lead_coef !nth_last seq_mul_polyX.
+by rewrite /lead_coef !nth_last polyseq_mulX.
 Qed.
 
 Local Notation "''X^' n" := ('X ^+ n).
 
-Lemma coef_Xn n i : 'X^n`_i = (i == n)%:R.
+Lemma coefXn n i : 'X^n`_i = (i == n)%:R.
 Proof.
-by elim: n i => [|n IHn] [|i]; rewrite ?coef1 // exprS coef_Xmul ?IHn.
+by elim: n i => [|n IHn] [|i]; rewrite ?coef1 // exprS coefXM ?IHn.
 Qed.
 
-Lemma seq_polyXn n : 'X^n = rcons (nseq n 0) 1 :> seq R.
+Lemma polyseqXn n : 'X^n = rcons (nseq n 0) 1 :> seq R.
 Proof.
 elim: n => [|n IHn]; rewrite ?polyseq1 // exprSr.
-by rewrite seq_mul_polyX -?size_poly_eq0 IHn ?size_rcons.
+by rewrite polyseq_mulX -?size_poly_eq0 IHn ?size_rcons.
 Qed.
 
 Lemma size_polyXn n : size 'X^n = n.+1.
-Proof. by rewrite seq_polyXn size_rcons size_nseq. Qed.
+Proof. by rewrite polyseqXn size_rcons size_nseq. Qed.
 
 Lemma commr_polyXn p n : GRing.comm p 'X^n.
 Proof. by apply: commr_exp; exact: commr_polyX. Qed.
 
 Lemma lead_coefXn n : lead_coef 'X^n = 1.
-Proof. by rewrite /lead_coef nth_last seq_polyXn last_rcons. Qed.
+Proof. by rewrite /lead_coef nth_last polyseqXn last_rcons. Qed.
 
 Lemma polyseq_mulXn n p : p != 0 -> p * 'X^n = ncons n 0 p :> seq R.
 Proof.
 case: n => [|n] nz_p; first by rewrite mulr1.
-elim: n => [|n IHn]; first exact: seq_mul_polyX.
-by rewrite exprSr mulrA seq_mul_polyX -?nil_poly IHn.
+elim: n => [|n IHn]; first exact: polyseq_mulX.
+by rewrite exprSr mulrA polyseq_mulX -?nil_poly IHn.
 Qed.
 
-Lemma coef_mulXn n p i : (p * 'X^n)`_i = if i < n then 0 else p`_(i - n).
+Lemma coefMXn n p i : (p * 'X^n)`_i = if i < n then 0 else p`_(i - n).
 Proof.
 have [-> | /polyseq_mulXn->] := eqVneq p 0; last exact: nth_ncons.
 by rewrite mul0r !coef0 if_same.
 Qed.
 
-Lemma coef_Xn_mul n p i : ('X^n * p)`_i = if i < n then 0 else p`_(i - n).
-Proof. by rewrite -commr_polyXn coef_mulXn. Qed.
+Lemma coefXnM n p i : ('X^n * p)`_i = if i < n then 0 else p`_(i - n).
+Proof. by rewrite -commr_polyXn coefMXn. Qed.
 
 (* Expansion of a polynomial as an indexed sum *)
 Lemma poly_def n E : \poly_(i < n) E i = \sum_(i < n) E i *: 'X^i.
 Proof.
-elim: n => [|n IHn] in E *; first by rewrite polyE big_ord0.
-rewrite big_ord_recl polyE /= poly_cons_def addrC expr0 scale_poly1.
-congr (_ + _); rewrite (iota_addl 1 0) -map_comp.
-rewrite  -[Poly _]polyE IHn big_distrl /=.
+unlock poly; elim: n => [|n IHn] in E *; first by rewrite big_ord0.
+rewrite big_ord_recl /= poly_cons_def addrC expr0 scale_poly1.
+congr (_ + _); rewrite (iota_addl 1 0) -map_comp IHn big_distrl /=.
 by apply: eq_bigr => i _; rewrite -scaler_mull exprSr.
 Qed.
 
-End PolynomialX.
-
-Notation "'X" := (polyX _) : ring_scope.
-Notation "''X^' n" := ('X ^+ n) : ring_scope.
-
-Section PolynomialMonic.
 (* Monic predicate *)
-Variable R : ringType.
-
-Implicit Types p q : {poly R}.
-
 Definition monic p := lead_coef p == 1.
 
 Lemma monicP p : reflect (lead_coef p = 1) (monic p).
@@ -887,14 +823,7 @@ Proof.
 by move=> mon_p; elim: n => [|n IHn]; rewrite ?monic1 // exprS monic_mull.
 Qed.
 
-End PolynomialMonic.
-
-Implicit Arguments monicP [R p].
-
-Section PolynomialReg.
-(* Some fact about regular elements *)
-Variable R : ringType.
-Implicit Types p q r d : {poly R}.
+(* Some facts about regular elements. *)
 
 Lemma lreg_lead p : GRing.lreg (lead_coef p) ->  GRing.lreg p.
 Proof.
@@ -949,15 +878,8 @@ Lemma monic_comreg p :
   monic p -> GRing.comm p (lead_coef p)%:P /\ GRing.rreg (lead_coef p).
 Proof. by move/monicP->; split; [exact: commr1 | exact: rreg1]. Qed.
 
-End PolynomialReg.
-
 (* Horner evaluation of polynomials *)
-
-Section EvalPolynomial.
-
-Variable R : ringType.
-Implicit Types (p q : {poly R}) (x a c : R) (s rs : seq R).
-
+Implicit Types s rs : seq R.
 Fixpoint horner_rec s x := if s is a :: s' then horner_rec s' x * x + a else 0.
 Definition horner p := horner_rec p.
 
@@ -1028,7 +950,7 @@ Qed.
 Lemma horner_factor a x : ('X - a%:P).[x] = x - a.
 Proof. by rewrite horner_add horner_opp hornerC hornerX. Qed.
 
-Lemma horner_sum I r (P : pred I) F x :
+Lemma horner_sum I (r : seq I) (P : pred I) F x :
   (\sum_(i <- r | P i) F i).[x] = \sum_(i <- r | P i) (F i).[x].
 Proof. by elim/big_rec2: _ => [|i _ p _ <-]; rewrite (horner0, horner_add). Qed.
 
@@ -1044,49 +966,49 @@ Proof. by rewrite -mul_polyC horner_Cmul. Qed.
 Lemma horner_mulrn n p x : (p *+ n).[x] = p.[x] *+ n.
 Proof. by elim: n => [| n IHn]; rewrite ?horner0 // !mulrS horner_add IHn. Qed.
 
-Definition com_coef p x := forall i, p`_i * x = x * p`_i.
+Definition comm_coef p x := forall i, p`_i * x = x * p`_i.
 
-Definition com_poly p x := x * p.[x] = p.[x] * x.
+Definition comm_poly p x := x * p.[x] = p.[x] * x.
 
-Lemma com_coef_poly p x : com_coef p x -> com_poly p x.
+Lemma comm_coef_poly p x : comm_coef p x -> comm_poly p x.
 Proof.
-move=> cpx; rewrite /com_poly !horner_coef big_distrl big_distrr /=.
+move=> cpx; rewrite /comm_poly !horner_coef big_distrl big_distrr /=.
 by apply: eq_bigr => i _; rewrite /= mulrA -cpx -!mulrA commr_exp.
 Qed.
 
-Lemma com_poly0 x : com_poly 0 x.
-Proof. by rewrite /com_poly !horner0 !simp. Qed.
+Lemma comm_poly0 x : comm_poly 0 x.
+Proof. by rewrite /comm_poly !horner0 !simp. Qed.
 
-Lemma com_poly1 x : com_poly 1 x.
-Proof. by rewrite /com_poly !hornerC !simp. Qed.
+Lemma comm_poly1 x : comm_poly 1 x.
+Proof. by rewrite /comm_poly !hornerC !simp. Qed.
 
-Lemma com_polyX x : com_poly 'X x.
-Proof. by rewrite /com_poly !hornerX. Qed.
+Lemma comm_polyX x : comm_poly 'X x.
+Proof. by rewrite /comm_poly !hornerX. Qed.
 
-Lemma horner_mul_com p q x : com_poly q x -> (p * q).[x] = p.[x] * q.[x].
+Lemma horner_mul_comm p q x : comm_poly q x -> (p * q).[x] = p.[x] * q.[x].
 Proof.
-move=> com_qx.
+move=> comm_qx.
 elim/poly_ind: p => [|p c IHp]; first by rewrite !(simp, horner0).
 rewrite mulr_addl horner_add horner_Cmul -mulrA -commr_polyX mulrA horner_mulX.
-by rewrite {}IHp -mulrA -com_qx mulrA -mulr_addl horner_amulX.
+by rewrite {}IHp -mulrA -comm_qx mulrA -mulr_addl horner_amulX.
 Qed.
 
-Lemma horner_exp_com p x n : com_poly p x -> (p ^+ n).[x] = p.[x] ^+ n.
+Lemma horner_exp_comm p x n : comm_poly p x -> (p ^+ n).[x] = p.[x] ^+ n.
 Proof.
-move=> com_px; elim: n => [|n IHn]; first by rewrite hornerC.
-by rewrite !exprSr -IHn horner_mul_com.
+move=> comm_px; elim: n => [|n IHn]; first by rewrite hornerC.
+by rewrite !exprSr -IHn horner_mul_comm.
 Qed.
 
 Lemma hornerXn x n : ('X^n).[x] = x ^+ n.
-Proof. by rewrite horner_exp_com /com_poly hornerX. Qed.
+Proof. by rewrite horner_exp_comm /comm_poly hornerX. Qed.
 
-Definition horner_lin_com :=
+Definition horner_lin_comm :=
   (horner_add, horner_opp, hornerX, hornerC, horner_pcons,
    simp, horner_Cmul, horner_scaler,
-   (fun p x => horner_mul_com p (com_polyX x))).
+   (fun p x => horner_mul_comm p (comm_polyX x))).
 
 Lemma factor0 c : ('X - c%:P).[c] = 0.
-Proof. by rewrite !horner_lin_com addrN. Qed.
+Proof. by rewrite !horner_lin_comm addrN. Qed.
 
 Lemma monic_factor c : monic ('X - c%:P).
 Proof. by rewrite /monic /lead_coef seq_factor. Qed.
@@ -1132,9 +1054,9 @@ Proof. by rewrite -root_factor rmorphN opprK. Qed.
 Theorem factor_theorem p a : reflect (exists q, p = q * ('X - a%:P)) (root p a).
 Proof.
 apply: (iffP eqP) => [pa0 | [q ->]]; last first.
-  by rewrite horner_mul_com /com_poly factor0 ?simp.
+  by rewrite horner_mul_comm /comm_poly factor0 ?simp.
 exists (\poly_(i < size p) horner_rec (drop i.+1 p) a).
-apply/polyP=> i; rewrite mulr_subr coef_sub coef_mulX coef_mulC !coef_poly.
+apply/polyP=> i; rewrite mulr_subr coef_sub coefMX coefMC !coef_poly.
 apply: canRL (addrK _) _; rewrite addrC; have [le_p_i | lt_i_p] := leqP.
   rewrite nth_default // !simp drop_oversize ?if_same //.
   exact: leq_trans (leqSpred _).
@@ -1161,7 +1083,7 @@ Qed.
 Lemma monic_Xn_sub_1 n : n > 0 -> monic ('X^n - 1 : {poly R}).
 Proof.
 move=> n_gt0; rewrite /monic lead_coefE size_Xn_sub_1 // coef_sub.
-by rewrite coef_Xn coef1 eqxx eqn0Ngt n_gt0 subr0.
+by rewrite coefXn coef1 eqxx eqn0Ngt n_gt0 subr0.
 Qed.
 
 Definition root_of_unity n : pred R := root ('X^n - 1).
@@ -1229,12 +1151,18 @@ move/(congr1 ( *%R (z ^+ (n - j %% n)))); rewrite mulrA -exprn_addr.
 by rewrite subnK ?prim_expr_order ?mul1r // ltnW ?ltn_mod.
 Qed.
 
-End EvalPolynomial.
+End PolynomialTheory.
 
+Prenex Implicits polyC Poly lead_coef monic root horner.
+Notation "\poly_ ( i < n ) E" := (poly n (fun i => E)) : ring_scope.
+Notation "c %:P" := (polyC c) : ring_scope.
+Notation "'X" := (polyX _) : ring_scope.
+Notation "''X^' n" := ('X ^+ n) : ring_scope.
 Notation "p .[ x ]" := (horner p x) : ring_scope.
 Notation "n .-unity_root" := (root_of_unity n) : ring_scope.
 Notation "n .-primitive_root" := (primitive_root_of_unity n) : ring_scope.
 
+Implicit Arguments monicP [R p].
 Implicit Arguments rootP [R p x].
 Implicit Arguments rootPf [R p x].
 Implicit Arguments rootPt [R p x].
@@ -1243,11 +1171,9 @@ Implicit Arguments unity_rootP [R n z].
 (* Container morphism. *)
 Section MapPoly.
 
-Variables (aR rR : ringType).
-
 Section Definitions.
 
-Variable f : aR -> rR.
+Variables (aR rR : ringType) (f : aR -> rR).
 
 Definition map_poly (p : {poly aR}) := \poly_(i < size p) f p`_i.
 
@@ -1256,9 +1182,14 @@ Definition map_poly (p : {poly aR}) := \poly_(i < size p) f p`_i.
 (* instance of size_poly.                                                   *)
 Lemma map_polyE p : map_poly p = Poly (map f p).
 Proof.
-rewrite /map_poly polyE; congr Poly.
+unlock map_poly poly; congr Poly.
 apply: (@eq_from_nth _ 0); rewrite size_mkseq ?size_map // => i lt_i_p.
 by rewrite (nth_map 0) ?nth_mkseq.
+Qed.
+
+Lemma coef_map_id0_poly p i : f 0 = 0 -> (map_poly p)`_i = f p`_i.
+Proof.
+by move=> f0; rewrite coef_poly; case: ltnP => // le_p_i; rewrite nth_default.
 Qed.
 
 Definition commr_rmorph u := forall x, GRing.comm u (f x).
@@ -1267,9 +1198,23 @@ Definition horner_morph u of commr_rmorph u := fun p => (map_poly p).[u].
 
 End Definitions.
 
+Variables (aR rR : ringType).
+
+Lemma eq_map_poly (f g : aR -> rR) : f =1 g -> map_poly f =1 map_poly g.
+Proof. by move=> eq_fg p; rewrite !map_polyE (eq_map eq_fg). Qed.
+
+Lemma map_poly_comp_id0 (iR : ringType) (f : aR -> rR) (g : iR -> aR) p :
+  f 0 = 0 -> map_poly (f \o g) p = map_poly f (map_poly g p).
+Proof.
+move=> f0; apply/polyP => i; rewrite !coef_poly.
+have [lt_i_p | _] := ifP; last by rewrite f0 if_same.
+case: ifPn => //=; apply: contraNeq => nz_fgpi; apply: leq_coef_size.
+by rewrite coef_poly lt_i_p; apply: contraNneq nz_fgpi => ->; rewrite f0.
+Qed.
+
 Section Additive.
 
-Variable f : {additive aR -> rR}.
+Variables (iR : ringType) (f : {additive aR -> rR}).
 
 Local Notation "p ^f" := (map_poly f p) : ring_scope.
 
@@ -1278,7 +1223,11 @@ Proof.
 by rewrite coef_poly; case: ltnP => // le_p_i; rewrite nth_default ?raddf0.
 Qed.
 
-Lemma map_poly_is_additive : additive (map_poly f).
+Lemma map_poly_comp (g : iR -> aR) p :
+  map_poly (f \o g) p = map_poly f (map_poly g p).
+Proof. exact: map_poly_comp_id0 (raddf0 f). Qed.
+
+Fact map_poly_is_additive : additive (map_poly f).
 Proof.
 by move=> p q; apply/polyP=> i; rewrite !(coef_map, coef_sub) raddf_sub.
 Qed.
@@ -1302,12 +1251,12 @@ Implicit Types p : {poly aR}.
 
 Local Notation "p ^f" := (map_poly f p) : ring_scope.
 
-Lemma map_poly_is_rmorphism : GRing.rmorphism (map_poly f).
+Fact map_poly_is_rmorphism : GRing.rmorphism (map_poly f).
 Proof.
 split; first exact: map_poly_is_additive.
 split=> [p q|]; apply/polyP=> i; last first.
   by rewrite !(coef_map, coef1) /= rmorph_nat.
-rewrite coef_map /= !coef_mul /= !rmorph_sum; apply: eq_bigr => j _.
+rewrite coef_map /= !coefM /= !rmorph_sum; apply: eq_bigr => j _.
 by rewrite !coef_map rmorphM.
 Qed.
 Canonical map_poly_rmorphism := RMorphism map_poly_is_rmorphism.
@@ -1319,7 +1268,7 @@ Lemma map_polyXn n : ('X^n)^f = 'X^n.
 Proof. by rewrite rmorphX /= map_polyX. Qed.
 
 Lemma map_poly_scaler k (p : {poly aR}) : (k *: p)^f = f k *: (p^f).
-Proof. by apply/polyP=> i; rewrite !(coef_map, coef_scaler) /= rmorphM. Qed.
+Proof. by apply/polyP=> i; rewrite !(coef_map, coefZ) /= rmorphM. Qed.
 
 Lemma horner_map p x : p^f.[f x] = f p.[x].
 Proof.
@@ -1328,10 +1277,10 @@ rewrite horner_amulX !rmorphD !rmorphM /=.
 by rewrite map_polyX map_polyC horner_amulX IHp.
 Qed.
 
-Lemma map_com_poly p x : com_poly p x -> com_poly p^f (f x).
-Proof. by rewrite /com_poly horner_map -!rmorphM // => ->. Qed.
+Lemma map_comm_poly p x : comm_poly p x -> comm_poly p^f (f x).
+Proof. by rewrite /comm_poly horner_map -!rmorphM // => ->. Qed.
 
-Lemma map_com_coef p x : com_coef p x -> com_coef p^f (f x).
+Lemma map_comm_coef p x : comm_coef p x -> comm_coef p^f (f x).
 Proof. by move=> cpx i; rewrite coef_map -!rmorphM ?cpx. Qed.
 
 Lemma root_map_poly p x : root p x -> root p^f (f x).
@@ -1352,12 +1301,12 @@ Proof. by rewrite /horner_morph map_polyC hornerC. Qed.
 Lemma horner_morphX : horner_morph cfu 'X = u.
 Proof. by rewrite /horner_morph map_polyX hornerX. Qed.
 
-Lemma horner_is_rmorphism : GRing.rmorphism (horner_morph cfu).
+Fact horner_is_rmorphism : GRing.rmorphism (horner_morph cfu).
 Proof.
 split=> [p q|]; first by rewrite /horner_morph rmorph_sub horner_add horner_opp.
 split=> [p q|]; last by rewrite /horner_morph rmorph1 hornerC.
-rewrite /horner_morph rmorphM /= horner_mul_com //.
-by apply: com_coef_poly => i; rewrite coef_map cfu.
+rewrite /horner_morph rmorphM /= horner_mul_comm //.
+by apply: comm_coef_poly => i; rewrite coef_map cfu.
 Qed.
 Canonical horner_additive := Additive horner_is_rmorphism.
 Canonical horner_rmorphism := RMorphism horner_is_rmorphism.
@@ -1381,40 +1330,29 @@ Qed.
 
 End MorphPoly.
 
-Module PolynomialComRing.
 Section PolynomialComRing.
 
 Variable R : comRingType.
 Implicit Types p q : {poly R}.
 
-Lemma axiom p q : p * q = q * p.
+Fact poly_mul_comm p q : p * q = q * p.
 Proof.
-apply/polyP=> i; rewrite coef_mul coef_mul_rev.
+apply/polyP=> i; rewrite coefM coefMr.
 by apply: eq_bigr => j _; rewrite mulrC.
 Qed.
 
-End PolynomialComRing.
-End PolynomialComRing.
-
-Canonical poly_comRingType (R: comRingType) :=
-  Eval hnf in ComRingType {poly R} (@PolynomialComRing.axiom R).
-Canonical polynomial_comRingType (R: comRingType) :=
-  Eval hnf in [comRingType of polynomial R for (poly_comRingType R)].
-Canonical poly_algType (R: comRingType) :=
-  Eval hnf in CommAlgType R {poly R}.
-Canonical polynomial_algType (R: comRingType) :=
-  Eval hnf in [algType R of polynomial R for (poly_algType R)].
-
-Section PolynomialComRingTheory.
-
-Variable R : comRingType.
-Implicit Types p q : {poly R}.
+Canonical poly_comRingType := Eval hnf in ComRingType {poly R} poly_mul_comm.
+Canonical polynomial_comRingType :=
+  Eval hnf in ComRingType (polynomial R) poly_mul_comm.
+Canonical poly_algType := Eval hnf in CommAlgType R {poly R}.
+Canonical polynomial_algType :=
+  Eval hnf in [algType R of polynomial R for poly_algType].
 
 Lemma horner_mul p q x : (p * q).[x] = p.[x] * q.[x].
-Proof. by rewrite horner_mul_com //; exact: mulrC. Qed.
+Proof. by rewrite horner_mul_comm //; exact: mulrC. Qed.
 
 Lemma horner_exp p x n : (p ^+ n).[x] = p.[x] ^+ n.
-Proof. by rewrite horner_exp_com //; exact: mulrC. Qed.
+Proof. by rewrite horner_exp_comm //; exact: mulrC. Qed.
 
 Lemma horner_prod I r (P : pred I) (F : I -> {poly R}) x :
   (\prod_(i <- r | P i) F i).[x] = \prod_(i <- r | P i) (F i).[x].
@@ -1424,23 +1362,20 @@ Definition horner_lin :=
   (horner_add, horner_opp, hornerX, hornerC, horner_pcons,
    simp, horner_Cmul, horner_scaler, horner_mul).
 
-End PolynomialComRingTheory.
+End PolynomialComRing.
 
-Module PolynomialIdomain.
 Section PolynomialIdomain.
 
-(* idomain structure on poly *)
-
+(* Integral domain structure on poly *)
 Variable R : idomainType.
-
-Implicit Types p q r m n d : {poly R}.
+Implicit Types (a b x y : R) (p q r m : {poly R}).
 
 Lemma size_mul_id p q : p != 0 -> q != 0 -> size (p * q) = (size p + size q).-1.
 Proof.
 by move=> nz_p nz_q; rewrite -size_proper_mul ?mulf_neq0 ?lead_coef_eq0.
 Qed.
 
-Lemma mixin p q : p * q = 0 -> (p == 0) || (q == 0).
+Fact poly_idomainAxiom p q : p * q = 0 -> (p == 0) || (q == 0).
 Proof.
 move=> pq0; apply/norP=> [[p_nz q_nz]]; move/eqP: (size_mul_id p_nz q_nz).
 by rewrite eq_sym pq0 size_poly0 (polySpred p_nz) (polySpred q_nz) addnS.
@@ -1451,17 +1386,17 @@ Definition poly_unit : pred {poly R} :=
 
 Definition poly_inv p := if poly_unit p then (p`_0)^-1%:P else p.
 
-Lemma poly_mulVp : {in poly_unit, left_inverse 1 poly_inv *%R}.
+Fact poly_mulVp : {in poly_unit, left_inverse 1 poly_inv *%R}.
 Proof.
 move=> p Up; rewrite /poly_inv [poly_unit p]Up.
 by case/andP: Up => /size1P[c [_ ->]]; rewrite coefC -polyC_mul => /mulVr->.
 Qed.
 
-Lemma poly_intro_unit p q : q * p = 1 -> poly_unit p.
+Fact poly_intro_unit p q : q * p = 1 -> poly_unit p.
 Proof.
 move=> pq1; apply/andP; split; last first.
   apply/unitrP; exists q`_0.
-  by rewrite 2!mulrC -!/(pcoef 0 _) -rmorphM pq1 rmorph1.
+  by rewrite 2!mulrC -!/(coefp 0 _) -rmorphM pq1 rmorph1.
 have: size (q * p) == 1%N by rewrite pq1 size_poly1.
 have [-> | nz_p] := eqVneq p 0; first by rewrite mulr0 size_poly0.
 have [-> | nz_q] := eqVneq q 0; first by rewrite mul0r size_poly0.
@@ -1469,39 +1404,28 @@ rewrite size_mul_id // (polySpred nz_p) (polySpred nz_q) addnS addSn !eqSS.
 by rewrite addn_eq0 => /andP[].
 Qed.
 
-Lemma poly_inv_out : {in predC poly_unit, poly_inv =1 id}.
+Fact poly_inv_out : {in predC poly_unit, poly_inv =1 id}.
 Proof. by rewrite /poly_inv => p /negbTE->. Qed.
 
-Definition comUnitMixin :=
+Definition poly_comUnitMixin :=
   ComUnitRingMixin poly_mulVp poly_intro_unit poly_inv_out.
 
-End PolynomialIdomain.
-End PolynomialIdomain.
+Canonical poly_unitRingType :=
+  Eval hnf in UnitRingType {poly R} poly_comUnitMixin.
+Canonical polynomial_unitRingType :=
+  Eval hnf in [unitRingType of polynomial R for poly_unitRingType].
 
-Canonical poly_unitRingType (R : idomainType) :=
-  Eval hnf in UnitRingType {poly R} (PolynomialIdomain.comUnitMixin R).
-Canonical polynomial_unitRingType (R : idomainType) :=
-  Eval hnf in [unitRingType of polynomial R for (poly_unitRingType R)].
+Canonical poly_unitAlgType := Eval hnf in [unitAlgType R of {poly R}].
+Canonical polynomial_unitAlgType := Eval hnf in [unitAlgType R of polynomial R].
 
-Canonical poly_unitAlgType (R : idomainType) :=
-  Eval hnf in [unitAlgType R of {poly R}].
-Canonical polynomial_unitAlgType (R : idomainType) :=
-  Eval hnf in [unitAlgType R of polynomial R].
-
-Canonical poly_comUnitRingType (R : idomainType) :=
-  Eval hnf in [comUnitRingType of {poly R}].
-Canonical polynomial_comUnitRingType (R : idomainType) :=
+Canonical poly_comUnitRingType := Eval hnf in [comUnitRingType of {poly R}].
+Canonical polynomial_comUnitRingType :=
   Eval hnf in [comUnitRingType of polynomial R].
 
-Canonical poly_idomainType (R : idomainType) :=
-  Eval hnf in IdomainType {poly R} (@PolynomialIdomain.mixin R).
-Canonical polynomial_idomainType (R : idomainType) :=
-  Eval hnf in [idomainType of polynomial R for (poly_idomainType R)].
-
-Section PolynomialIdomainTheory.
-
-Variable R : idomainType.
-Implicit Types (a c x y : R) (p q r : {poly R}).
+Canonical poly_idomainType :=
+  Eval hnf in IdomainType {poly R} poly_idomainAxiom.
+Canonical polynomial_idomainType :=
+  Eval hnf in [idomainType of polynomial R for poly_idomainType].
 
 Lemma poly_unitE p : GRing.unit p = (size p == 1%N) && GRing.unit p`_0.
 Proof. by []. Qed.
@@ -1520,9 +1444,6 @@ Proof. by rewrite !rootE horner_mul mulf_eq0. Qed.
 
 Lemma root_scaler x a p : a != 0 -> root (a *: p) x = root p x.
 Proof. by move=> nz_a; rewrite -mul_polyC root_mul rootC (negPf nz_a). Qed.
-
-Lemma size_mul_id p q : p != 0 -> q != 0 -> size (p * q) = (size p + size q).-1.
-Proof. exact: PolynomialIdomain.size_mul_id. Qed.
 
 Lemma size_scaler a p : a != 0 -> size (a *: p) = size p.
 Proof. by move/lregP/lreg_size->. Qed.
@@ -1581,7 +1502,7 @@ rewrite -[size _]prednK ?size_exp_id ?size_factor ?mul1n //.
 by rewrite lt0n size_poly_eq0 expf_eq0 factor_eq0 andbF.
 Qed.
 
-End PolynomialIdomainTheory.
+End PolynomialIdomain.
 
 Section MapFieldPoly.
 
@@ -1613,8 +1534,8 @@ Qed.
 Lemma map_monic p : monic p^f = monic p.
 Proof. by rewrite /monic lead_coef_map -(inj_eq (fmorph_inj f)) rmorph1. Qed.
 
-Lemma map_poly_com p x : com_poly p^f (f x).
-Proof. exact: map_com_poly (mulrC x _). Qed.
+Lemma map_poly_com p x : comm_poly p^f (f x).
+Proof. exact: map_comm_poly (mulrC x _). Qed.
 
 Lemma fmorph_root p x : root p^f (f x) = root p x.
 Proof. by rewrite rootE horner_map // fmorph_eq0. Qed.
@@ -1651,8 +1572,8 @@ have [|q' def_q] := factor_theorem q z _; last first.
 rewrite {p}def_p in rpz.
 elim/last_ind: rs drs rpz => [|rs t IHrs] /=; first by rewrite big_nil mulr1.
 rewrite all_rcons => /andP[/andP[/eqP czt Uzt] /IHrs {IHrs}IHrs].
-rewrite -cats1 big_cat big_seq1 /= mulrA rootE horner_mul_com; last first.
-  by rewrite /com_poly horner_factor mulr_subl mulr_subr czt.
+rewrite -cats1 big_cat big_seq1 /= mulrA rootE horner_mul_comm; last first.
+  by rewrite /comm_poly horner_factor mulr_subl mulr_subr czt.
 rewrite horner_factor -oppr_sub mulrN oppr_eq0 -(mul0r (t - z)).
 by rewrite (inj_eq (mulIr Uzt)) => /IHrs.
 Qed.
@@ -1834,15 +1755,6 @@ rewrite (leq_trans (size_poly _ _)) // (leq_trans (size_exp _ _)) // ltnS.
 by rewrite mulnC leq_mul // -{2}(subnKC (valP i)) leq_addr.
 Qed.
 
-Lemma map_poly_comp (bR cR : ringType) (f : bR -> cR) (g : R -> bR) p :
-  f 0 = 0 -> map_poly (f \o g) p = map_poly f (map_poly g p).
-Proof.
-move=> f0; apply/polyP => i; rewrite /map_poly !coef_poly.
-have [lt_i_p | _] := ifP; last by rewrite f0 if_same.
-case: ifPn => //=; apply: contraNeq => nz_fgpi; apply: leq_coef_size.
-by rewrite coef_poly lt_i_p; apply: contraNneq nz_fgpi => ->; rewrite f0.
-Qed.
-
 End PolyCompose.
 
 Notation "p \Po q" := (poly_comp q p) (at level 50).
@@ -1852,7 +1764,7 @@ Section ComPolyCompose.
 Variable R : comRingType.
 Implicit Types (p q r : {poly R}) (x : R).
 
-Lemma poly_comp_multiplicative p : multiplicative (poly_comp p).
+Fact poly_comp_multiplicative p : multiplicative (poly_comp p).
 Proof.
 split=> [q r|]; last by rewrite poly_comCp.
 by rewrite /poly_comp rmorphM horner_mul.
@@ -1929,14 +1841,14 @@ Proof. by apply/polyP=> [[|i]]; rewrite coef_deriv coef1 coefX ?mul0rn. Qed.
 Lemma derivXn n : 'X^n^`() = 'X^n.-1 *+ n.
 Proof.
 case: n => [|n]; first exact: derivC.
-apply/polyP=> i; rewrite coef_deriv coef_natmul !coef_Xn eqSS.
+apply/polyP=> i; rewrite coef_deriv coefMn !coefXn eqSS.
 by case: eqP => [-> // | _]; rewrite !mul0rn.
 Qed.
 
 Fact deriv_is_linear : linear deriv.
 Proof.
 move=> k p q; apply/polyP=> i.
-by rewrite !(coef_deriv, coef_add, coef_scaler) mulrn_addl mulrnAr.
+by rewrite !(coef_deriv, coefD, coefZ) mulrn_addl mulrnAr.
 Qed.
 
 Canonical deriv_additive := Additive deriv_is_linear.
@@ -1968,7 +1880,7 @@ Proof. by rewrite !mul_polyC derivZ. Qed.
 
 Lemma derivM p q : (p * q)^`() = p^`() * q + p * q^`().
 Proof.
-apply/polyP=> i; rewrite !(coef_deriv, coef_add, coef_mul).
+apply/polyP=> i; rewrite !(coef_deriv, coefD, coefM).
 pose pq j a b :=  p`_j *+ a * (q`_(i.+1 - j) *+ b).
 transitivity (\sum_(j < i.+2) (pq j j 1%N + pq j 1%N (i.+1 - j)%N)).
   rewrite -sumr_muln; apply: eq_bigr => j _.
@@ -2042,7 +1954,7 @@ Proof. exact: linearZ. Qed.
 
 Lemma derivnXn m n : 'X^m^`(n) = 'X^(m - n) *+ m ^_ n.
 Proof.
-apply/polyP=>i; rewrite coef_derivn coef_natmul !coef_Xn.
+apply/polyP=>i; rewrite coef_derivn coefMn !coefXn.
 case: (ltnP m n) => [lt_m_n | le_m_n].
   by rewrite eqn_leq leqNgt ltn_addr // mul0rn ffact_small.
 by rewrite -{1 3}(subnKC le_m_n) eqn_addl; case: eqP => [->|]; rewrite ?mul0rn.
@@ -2082,7 +1994,7 @@ Qed.
 Lemma nderivn_def n p : p^`(n) = p^`N(n) *+ n`!.
 Proof.
 apply/polyP=> i.
-by rewrite coef_natmul coef_nderivn coef_derivn -mulrnA bin_ffact.
+by rewrite coefMn coef_nderivn coef_derivn -mulrnA bin_ffact.
 Qed.
 
 Lemma nderivn0 p : p^`N(0) = p.
@@ -2099,7 +2011,7 @@ Qed.
 
 Lemma nderivnXn m n : 'X^m^`N(n) = 'X^(m - n) *+ 'C(m, n).
 Proof.
-apply/polyP=> i; rewrite coef_nderivn coef_natmul !coef_Xn.
+apply/polyP=> i; rewrite coef_nderivn coefMn !coefXn.
 have [lt_m_n | le_n_m] := ltnP m n.
   by rewrite eqn_leq leqNgt ltn_addr // mul0rn bin_small.
 by rewrite -{1 3}(subnKC le_n_m) eqn_addl; case: eqP => [->|]; rewrite ?mul0rn.
@@ -2108,7 +2020,7 @@ Qed.
 Fact nderivn_is_linear n : linear (nderivn n).
 Proof.
 move=> k p q; apply/polyP=> i.
-by rewrite !(coef_nderivn, coef_add, coef_scaler) mulrn_addl mulrnAr.
+by rewrite !(coef_nderivn, coefD, coefZ) mulrn_addl mulrnAr.
 Qed.
 Canonical nderivn_additive n := Additive(nderivn_is_linear n).
 Canonical nderivn_linear n := Linear (nderivn_is_linear n).
@@ -2134,7 +2046,7 @@ Proof. exact: linearZ. Qed.
 Lemma nderivn_amulX n p c :
   (p * 'X + c%:P)^`N(n.+1) = p^`N(n) + p^`N(n.+1) * 'X.
 Proof.
-apply/polyP=> i; rewrite coef_nderivn !coef_add !coef_mulX coefC.
+apply/polyP=> i; rewrite coef_nderivn !coefD !coefMX coefC.
 rewrite !addSn /= !coef_nderivn addr0 binS mulrn_addr addrC; congr (_ + _).
 by rewrite addSnnS; case: i; rewrite // addn0 bin_small.
 Qed.
@@ -2161,7 +2073,7 @@ rewrite nderivn0  /bump /(addn 1) /=; congr (_ + _).
 rewrite !big_ord_recr /= nderivn_amulX -mulrA -exprSr -polySpred // !addrA.
 congr (_ + _); last by rewrite (nderivn_poly0 (leqnn _)) !simp.
 rewrite addrC -big_split /=; apply: eq_bigr => i _.
-by rewrite nderivn_amulX !horner_lin_com /= mulr_addl -!mulrA -exprSr cxh.
+by rewrite nderivn_amulX !horner_lin_comm /= mulr_addl -!mulrA -exprSr cxh.
 Qed.
 
 Lemma nderiv_taylor_wide n p x h :

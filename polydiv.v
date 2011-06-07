@@ -75,7 +75,7 @@ apply: IHn=> [|Cda]; last first.
   by rewrite mulr_addl addrAC -addrA subrK exprSr polyC_mul
              mulrA Heq // mulr_addl -mulrA Cda mulrA.
 apply: leq_size_coef => j Hj.
-rewrite  coef_add coef_opp -!mulrA coef_mulC coef_Cmul coef_Xn_mul.
+rewrite  coefD coefN -!mulrA coefMC coefCM coefXnM.
 move/ltP: Hlt; rewrite -leqNgt=> Hlt.
 move: Hj; rewrite leq_eqVlt; case/predU1P => [<-{j} | Hj]; last first.
   rewrite nth_default ?(leq_trans Hqq) // ?simp; last by apply: (leq_trans Hr).

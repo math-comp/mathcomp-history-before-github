@@ -19,8 +19,8 @@ Implicit Types m n : zint.
 Implicit Types i j k : nat.
 Implicit Types p q r : {poly R}.
 
-Lemma coef_mulrz : forall p n i, (p *~ n)`_i = (p`_i *~ n).
-Proof. by move=> p [] n i; rewrite ?NegzE (coef_negmul, coef_natmul). Qed.
+Lemma coefMrz : forall p n i, (p *~ n)`_i = (p`_i *~ n).
+Proof. by move=> p [] n i; rewrite ?NegzE (coefMNn, coefMn). Qed.
 
 Lemma polyC_mulrz : forall n, {morph (@polyC R) : c / c *~ n}.
 Proof.

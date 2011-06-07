@@ -140,7 +140,7 @@ rewrite -[(map_poly f (poly_for_Fadjoin E x a)).[y]]mul1r.
 rewrite scaler_mull -horner_scaler.
 congr (_.[_]).
 apply/polyP => i.
-rewrite !(coef_scaler, coef_map [linear of f]).
+rewrite !(coefZ, coef_map [linear of f]).
 by rewrite -!scaler_mull !mul1r /= linearZ.
 Qed.
 
@@ -280,7 +280,7 @@ case/poly_Fadjoin => q [Hq ->].
 rewrite -horner_mul !kHomExtend_poly ?mulp_polyOver // -horner_mul.
 congr (_.[_]).
 apply/polyP => i.
-rewrite coef_map !coef_mul /= linear_sum.
+rewrite coef_map !coefM /= linear_sum.
 apply: eq_bigr => j _.
 move/polyOverP: Hp => Hp.
 move/polyOverP: Hq => Hq.
