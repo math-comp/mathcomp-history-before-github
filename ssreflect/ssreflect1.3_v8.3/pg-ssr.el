@@ -22,9 +22,9 @@
 (defcustom coq-user-commands-db
   '(("Prenex Implicits" "pi" "Prenex Implicits #" t "Prenex\\s-+Implicits")
     ("Hint View for" "hv" "Hint View for #" t "Hint\\s-+View\\s-+for")
-    ("Canonical" "can" "Canonical #" t "Canonical")
     ("inside" "ins" nil f "inside")
     ("outside" "outs" nil f "outside")
+     ("Canonical " nil "Canonical  #." t "Canonical")
 )
    "Extended list of commands, includings ssr and user defined ones")
 
