@@ -1965,11 +1965,7 @@ have Hj1: cto (enum_val (f j1)) a = enum_val (f v).
 rewrite (bigD1 j1) // big1 /= ?addr0 => [|i Dii1]; last first.
   rewrite !mxE; case: eqP; rewrite ?mulr0 // -Hj1.
   by move/(can_inj H1co); move/enum_val_inj; move/val_eqP=> /==> HH; case/negP: Dii1.
- (* too slow ! 
 rewrite (bigD1 i1) // big1 /= ?addr0=> [|i Dii1]; last first.
- *)
-have->: \sum_(j < Nirr G) Pa u j * X j v = Pa u i1 * X i1 v.
-  rewrite {1}(bigD1 i1) // big1 /= ?addr0=> [|i Dii1] //.
   rewrite !mxE; case: eqP; rewrite ?mul0r // => HH.
   by case/negP: Dii1; rewrite -HH.
 rewrite !mxE Hj1 !(eqxx, mulr1, mul1r).
@@ -3053,11 +3049,7 @@ have: is_scalar_mx (rGj g).
   by move: (HH i is_true_true); rewrite -Hj char_rcenterP inE GiG.
 case/is_scalar_mxP=> k Hk; rewrite Hk -scalar_mxC {1}mulmxA {1}mulmxA.
 rewrite -Hk andTb; apply/eqP.
-  (* Too slow
-rewrite  {1}(repr_mxKV rGi InH).
-*)
-have->: rGj (g^-1)%g *m rGj (h^-1)%g *m rGj h *m rGj g = rGj (g^-1)%g *m rGj g.
-   by congr (_ *m _); apply: (repr_mxKV rGj HiG).
+rewrite  {1}[X in X *m _ = _](repr_mxKV rGj HiG).
 by rewrite -repr_mxM ?groupV // mulVg repr_mx1.
 Qed.
  
@@ -3077,8 +3069,8 @@ Qed.
 
 (* This is 2.29 *)
 Lemma crestrict_sub_inner_bound : forall (H : {group gT}) f,
-  H \subset G ->  '['Res[H] f,'Res[H] f]_H <= #|G : H|%:R * '[f, f]_G ?= iff
-      (forallb g : gT, (g \in G:\:H) ==> (f g == 0)).
+  H \subset G ->  '['Res[H] f, 'Res[H] f]_H <= #|G : H|%:R * '[f, f]_G ?= iff
+      (forallb g : gT, (g \in G :\: H) ==> (f g == 0)).
 Proof.
 move=> H f HsG; rewrite inner_subl // => [|i]; last first.
   by rewrite !ffunE inE; case/andP; move/negPf->; rewrite mul0r.
