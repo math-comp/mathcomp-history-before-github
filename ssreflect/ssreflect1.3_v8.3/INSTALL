@@ -65,7 +65,7 @@ coq_makefile,...) accessible (by default they are put in
     a dynamically loadable plugin located in the src/ subdirectory
   + .vo compiled libraries in the theories/ subdirectory
 
-- If you generated a dinamically lodable plugin, you may want to install it
+- If you generated a dynamically loadable plugin, you may want to install it
   in a directory scanned by the Coq system when a "Declare ML Module" directive
   is executed typing:
          make install
