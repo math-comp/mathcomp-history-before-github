@@ -40,6 +40,18 @@ Module SsrSyntax.
 Reserved Notation "(* x 'is' y 'of' // /= //= *)" (at level 8).
 Reserved Notation "(* 69 *)" (at level 69).
 
+(* Reserve the notation for rewrite patterns so that the user is not allowed  *)
+(* to declare it at a different level.                                        *)
+Reserved Notation "( a 'in' b )"        (at level 0).
+Reserved Notation "( a 'as' b )"        (at level 0).
+Reserved Notation "( a 'in' b 'in' c )" (at level 0).
+Reserved Notation "( a 'as' b 'in' c )" (at level 0).
+
+(* Notation for a term encoded version of "X in _ = X" and "X in X = _"       *)
+(* allowing to write [t in RHS] in place of [t in X in _ = X].                *)
+Notation "'RHS'" := (_ : fun X => _ = X).
+Notation "'LHS'" := (_ : fun X => X = _).
+
 End SsrSyntax.
 
 Export SsrSyntax.

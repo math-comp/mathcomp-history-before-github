@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 
 (* This line is read by the Makefile's dist target: do not remove. *)
-let ssrversion = "1.3pl1";; 
+let ssrversion = "1.3pl1";;
 let () = Mltop.add_known_module "ssreflect";;
 let () = 
   if Flags.is_verbose () && not !Flags.batch_mode && 
@@ -401,6 +401,8 @@ let mkCProp loc = CSort (loc, RProp Null)
 let mkCType loc = CSort (loc, RType None)
 
 let mkCVar loc id = CRef (Ident (loc, id))
+let isCVar = function CRef (Ident _) -> true | _ -> false
+let destCVar = function CRef (Ident (_, id)) -> id | _ -> anomaly "not a CRef"
 
 let rec mkCHoles loc n =
   if n <= 0 then [] else CHole (loc, None) :: mkCHoles loc (n - 1)
@@ -444,6 +446,8 @@ let mkRArrow rt1 rt2 = RProd (dummy_loc, Anonymous, Explicit, rt1, rt2)
 let mkRConstruct c = RRef (dummy_loc, ConstructRef c)
 
 let mkRInd mind = RRef (dummy_loc, IndRef mind)
+
+let mkRLambda n s t = RLambda (dummy_loc, n, Explicit, s, t)
 
 (** Constructors for constr *)
 
@@ -493,6 +497,18 @@ let splay_app ise =
   | App (f, a) -> loop f a
   | Cast _ | Evar _ -> loop c [| |]
   | _ -> c, [| |]
+
+(* ssrterm conbinators *)
+
+let combineCG t1 t2 f g = match t1, t2 with
+ | (x, (t1, None)), (_, (t2, None)) -> x, (g t1 t2, None)
+ | (x, (_, Some t1)), (_, (_, Some t2)) -> x, (mkRHole, Some (f t1 t2))
+ | _, (_, (_, None)) -> anomaly "have: mixed C-G constr"
+ | _ -> anomaly "have: mixed G-C constr"
+
+let loc_ofCG = function
+ | (_, (s, None)) -> Rawterm.loc_of_rawconstr s
+ | (_, (_, Some s)) -> Topconstr.constr_loc s
 
 (** Open term to lambda-term coercion *)
 
@@ -1588,13 +1604,15 @@ let input_ssrtermkind strm = match Stream.npeek 1 strm with
 
 let ssrtermkind = Gram.Entry.of_parser "ssrtermkind" input_ssrtermkind
 
-let id_of_term = function
-  | CRef (Ident (_,x)) -> x 
-  | CAppExpl (_, (_, Ident (_, x)), []) -> x
-  | x -> loc_error (constr_loc x) "Only identifiers are allowed here"
+let id_of_Cterm = function
+  | _,(_,Some (CRef (Ident (_, x)))) -> x
+  | _,(_,Some (CAppExpl (_, (_, Ident (_, x)), []))) -> x
+  | _,(_,Some x) -> loc_error (constr_loc x) "Only identifiers are allowed here"
+  | _,(RRef (_, VarRef x) ,None) -> x
+  | _ -> anomaly "not a cterm nor a GRef(VarRef _)"
 
 let ssrhyp_of_ssrterm = function
-  | k, (_, Some c) -> SsrHyp (constr_loc c, id_of_term c), String.make 1 k
+  | k, (_, Some c) as o -> SsrHyp (constr_loc c, id_of_Cterm o), String.make 1 k
   | _, (_, None) -> assert false
 
 (* terms *)
@@ -1656,6 +1674,76 @@ END
 GEXTEND Gram
   GLOBAL: ssrterm;
   ssrterm: [[ k = ssrtermkind; c = constr -> mk_term k c ]];
+END
+
+(* This piece of code asserts the following notations are reserved *)
+(* Reserved Notation "( a 'in' b )"        (at level 0).           *)
+(* Reserved Notation "( a 'as' b )"        (at level 0).           *)
+(* Reserved Notation "( a 'in' b 'in' c )" (at level 0).           *)
+(* Reserved Notation "( a 'as' b 'in' c )" (at level 0).           *)
+let glob_ssrpattern gs p =
+  pp(lazy(str"globbing pattern: " ++ pr_term p));
+  let glob x = snd (glob_ssrterm gs (mk_lterm x)) in
+  let encode k s l =
+    let name = Name (id_of_string ("_ssrpat_" ^ s)) in
+    k, (mkRCast mkRHole (mkRLambda name mkRHole (mkRApp mkRHole l)), None) in
+  let bind_in t1 t2 =
+    let d = dummy_loc in let n = Name (destCVar t1) in
+    fst (glob (mkCCast d (mkCHole d) (mkCLambda d n (mkCHole d) t2))) in
+  let check_var t2 = if not (isCVar t2) then
+    loc_error (constr_loc t2) "Only identifiers are allowed here" in
+  match p with
+  | _, (_, None) as x -> x
+  | k, (v, Some t) as orig ->
+     if k = 'x' then glob_ssrterm gs ('(', (v, Some t)) else
+     match t with
+     | CNotation(_, "( _ in _ )", ([t1; t2], [], [])) ->
+         (try match glob t1, glob t2 with
+         | (r1, None), (r2, None) -> encode k "In" [r1;r2]
+         | (r1, Some _), (r2, Some _) when isCVar t1 ->
+             encode k "In" [r1; r2; bind_in t1 t2]
+         | (r1, Some _), (r2, Some _) -> encode k "In" [r1; r2]
+         | _ -> anomaly "where are we?"
+         with _ when isCVar t1 -> encode k "In" [bind_in t1 t2])
+     | CNotation(_, "( _ in _ in _ )", ([t1; t2; t3], [], [])) ->
+         check_var t2; encode k "In" [fst (glob t1); bind_in t2 t3]
+     | CNotation(_, "( _ as _ )", ([t1; t2], [], [])) ->
+         encode k "As" [fst (glob t1); fst (glob t2)]
+     | CNotation(_, "( _ as _ in _ )", ([t1; t2; t3], [], [])) ->
+         check_var t2; encode k "As" [fst (glob t1); bind_in t2 t3]
+     | _ -> glob_ssrterm gs orig
+;;
+
+ARGUMENT EXTEND ssrpattern
+     TYPED AS ssrtermrep PRINTED BY pr_ssrterm
+     INTERPRETED BY interp_ssrterm
+     GLOBALIZED BY glob_ssrpattern SUBSTITUTED BY subst_ssrterm
+     RAW_TYPED AS ssrtermrep RAW_PRINTED BY pr_ssrterm
+     GLOB_TYPED AS ssrtermrep GLOB_PRINTED BY pr_ssrterm
+| [ "(**)" constr(c) ] -> [ mk_lterm c ]
+END
+
+GEXTEND Gram
+  GLOBAL: ssrpattern;
+  ssrpattern: [[ k = ssrtermkind; c = constr ->
+    let pattern = mk_term k c in
+    if loc_ofCG pattern <> loc && k = '(' then mk_term 'x' c else pattern ]];
+END
+
+ARGUMENT EXTEND ssrlpattern
+     TYPED AS ssrtermrep PRINTED BY pr_ssrterm
+     INTERPRETED BY interp_ssrterm
+     GLOBALIZED BY glob_ssrpattern SUBSTITUTED BY subst_ssrterm
+     RAW_TYPED AS ssrtermrep RAW_PRINTED BY pr_ssrterm
+     GLOB_TYPED AS ssrtermrep GLOB_PRINTED BY pr_ssrterm
+| [ "(**)" lconstr(c) ] -> [ mk_lterm c ]
+END
+
+GEXTEND Gram
+  GLOBAL: ssrlpattern;
+  ssrlpattern: [[ k = ssrtermkind; c = lconstr ->
+    let pattern = mk_term k c in
+    if loc_ofCG pattern <> loc && k = '(' then mk_term 'x' c else pattern ]];
 END
 
 (** The "in" pseudo-tactical *)
@@ -2937,8 +3025,9 @@ let pf_interp_ty ist gl ty =
      sigma, aux t in
    let ty = strip_cast (interp_term ist gl ty) in
    let n, c = pf_abs_evars gl ty in
-   let ctx, c = decompose_lam_n n (pf_abs_cterm gl n c) in
-   n, compose_prod ctx c
+   let lam_c = pf_abs_cterm gl n c in
+   let ctx, c = decompose_lam_n n lam_c in
+   n, compose_prod ctx c, lam_c
 ;;
 
 let whd_app f args = Reductionops.whd_betaiota Evd.empty (mkApp (f, args))
@@ -3360,6 +3449,7 @@ let mk_pmatcher ?(raise_NoMatch=false) sigma0 occ ?upats_origin (upats, ise) =
       | _, [] | None, _::_::_ -> anomaly "mk_pmatcher with no upats_origin")
       ++ str "does not match any subterm of the goal"));
   let sigma, ({up_f = pf; up_a = pa} as u) = assert_done upat_that_matched in
+  if !skip_occ then (ignore(k env u.up_t u.up_t 0); c) else
   let match_EQ = match_EQ env sigma u in
   let pn = Array.length pa in
   let rec subst_loop (env,h as acc) c' = 
@@ -3403,8 +3493,7 @@ let pf_fill_occ env concl occ sigma0 p (sigma, t) ok h =
 let fill_occ_term env cl occ sigma0 (sigma, t) =
   try
     let sigma',t',cl,_ = pf_fill_occ env cl occ sigma0 t (sigma, t) all_ok 1 in
-    if sigma' != sigma0 then error "matching impacts evars" else cl, (sigma',t')
-  with NoMatch -> try
+    if sigma' != sigma0 then error "matching impacts evars" else cl, (sigma',t') with NoMatch -> try
     let sigma', t' =
       unif_end env sigma0 (create_evar_defs sigma) t (fun _ -> true) in
     if sigma' != sigma0 then raise NoMatch else cl, (sigma', t')
@@ -3417,6 +3506,269 @@ let pf_fill_occ_term gl occ t =
   let cl,(_,t) = fill_occ_term env concl occ sigma0 t in
   cl, t
 
+(* TASSI: sound HO unification *)
+let unify_HO env sigma0 t1 t2 =
+  let sigma = unif_HO env sigma0 t1 t2 in
+  let sigma, _ = unif_end env sigma0 sigma t2 (fun _ -> true) in
+  sigma
+
+let pf_unify_HO gl t1 t2 =
+  let env, sigma0, si = pf_env gl, project gl, sig_it gl in
+  let sigma = unify_HO env sigma0 t1 t2 in
+  re_sig si sigma
+
+(* TASSI: given (c : ty), generates (c ??? : ty[???/...]) with m evars *)
+exception NotEnoughProducts
+let saturate ?(beta=false) env sigma c ?(ty=Retyping.get_type_of env sigma c) m 
+=
+  let rec loop ty args sigma n = 
+  if n = 0 then 
+    let args = List.rev args in
+     (if beta then Reductionops.whd_beta sigma else fun x -> x)
+      (mkApp (c, Array.of_list (List.map snd args))), ty, args, sigma 
+  else match kind_of_type ty with
+  | ProdType (_, src, tgt) ->
+      let sigma, x = Evarutil.new_evar (create_evar_defs sigma) env src in
+      loop (subst1 x tgt) ((m - n,x) :: args) sigma (n-1)
+  | CastType (t, _) -> loop t args sigma n 
+  | LetInType (_, v, _, t) -> loop (subst1 v t) args sigma n
+  | SortType _ -> assert false
+  | AtomicType _ ->
+      let ty = Reductionops.whd_betadeltaiota env sigma ty in
+      match kind_of_type ty with
+      | ProdType _ -> loop ty args sigma n
+      | _ -> anomaly "saturate did not find enough products"
+  in
+   loop ty [] sigma m
+
+let pf_saturate ?beta gl c ?ty m = 
+  let env, sigma, si = pf_env gl, project gl, sig_it gl in
+  let t, ty, args, sigma = saturate ?beta env sigma c ?ty m in
+  t, ty, args, re_sig si sigma 
+
+(** Rewrite redex switch *)
+
+type ('ident, 'term) a_ssrpattern = 
+  | T of 'term
+  | In_T of 'term
+  | X_In_T of 'ident * 'term     
+  | In_X_In_T of 'ident * 'term     
+  | E_In_X_In_T of 'term * 'ident * 'term     
+  | E_As_X_In_T of 'term * 'ident * 'term     
+        
+let pr_pattern = function
+  | T t -> prl_term t
+  | In_T t -> str "in " ++ prl_term t
+  | X_In_T (x,t) -> prl_term x ++ str " in " ++ prl_term t
+  | In_X_In_T (x,t) -> str "in " ++ prl_term x ++ str " in " ++ prl_term t
+  | E_In_X_In_T (e,x,t) ->
+      prl_term e ++ str " in " ++ prl_term x ++ str " in " ++ prl_term t
+  | E_As_X_In_T (e,x,t) ->
+      prl_term e ++ str " as " ++ prl_term x ++ str " in " ++ prl_term t
+
+let pr_pattern_w_ids = function
+  | T t -> prl_term t
+  | In_T t -> str "in " ++ prl_term t
+  | X_In_T (x,t) -> pr_id x ++ str " in " ++ prl_term t
+  | In_X_In_T (x,t) -> str "in " ++ pr_id x ++ str " in " ++ prl_term t
+  | E_In_X_In_T (e,x,t) ->
+      prl_term e ++ str " in " ++ pr_id x ++ str " in " ++ prl_term t
+  | E_As_X_In_T (e,x,t) ->
+      prl_term e ++ str " as " ++ pr_id x ++ str " in " ++ prl_term t
+
+let pr_option f = function None -> mt() | Some x -> f x
+let pr_ssrpattern _ _ _ = pr_option pr_pattern
+let pr_pattern_squarep = pr_option (fun r -> str "[" ++ pr_pattern r ++ str "]")
+let pr_ssrpattern_squarep _ _ _ = pr_pattern_squarep
+let pr_pattern_roundp = pr_option (fun r -> str "(" ++ pr_pattern r ++ str ")")
+let pr_ssrpattern_roundp  _ _ _ = pr_pattern_roundp
+
+(* type ssrpattern = (ssrtermrep, ssrtermrep) a_ssrpattern *)
+
+let wit_ssrctxpattern, globwit_ssrctxpattern, rawwit_ssrctxpattern =
+  add_genarg "ssrctxpattern" pr_pattern
+
+ARGUMENT EXTEND ssrpattern_ne TYPED AS ssrctxpattern option PRINTED BY pr_ssrpattern
+  | [ lconstr(c) ] -> [ Some (T (mk_lterm c)) ]
+  | [ "in" lconstr(c) ] -> [ Some (In_T (mk_lterm c)) ]
+  | [ lconstr(x) "in" lconstr(c) ] -> 
+    [ Some (X_In_T (mk_lterm x, mk_lterm c)) ]
+  | [ "in" lconstr(x) "in" lconstr(c) ] -> 
+    [ Some (In_X_In_T (mk_lterm x, mk_lterm c)) ]
+  | [ lconstr(e) "in" lconstr(x) "in" lconstr(c) ] -> 
+    [ Some (E_In_X_In_T (mk_lterm e, mk_lterm x, mk_lterm c)) ]
+  | [ lconstr(e) "as" lconstr(x) "in" lconstr(c) ] -> 
+    [ Some (E_As_X_In_T (mk_lterm e, mk_lterm x, mk_lterm c)) ]
+END
+
+ARGUMENT EXTEND ssrpattern_squarep
+TYPED AS ssrpattern_ne PRINTED BY pr_ssrpattern_squarep
+  | [ "[" ssrpattern_ne(rdx) "]" ] -> [ rdx ]
+  | [ ] -> [ None ]
+END
+
+ARGUMENT EXTEND ssrpattern_ne_squarep
+TYPED AS ssrpattern_ne PRINTED BY pr_ssrpattern_squarep
+  | [ "[" ssrpattern_ne(rdx) "]" ] -> [ rdx ]
+END
+
+
+let interp_pattern ist gl red redty =
+  pp(lazy(str"interpreting: " ++ pr_pattern red));
+  let xInT x y = X_In_T(x,y) and inXInT x y = In_X_In_T(x,y) in
+  let inT x = In_T x and eInXInT e x t = E_In_X_In_T(e,x,t) in
+  let eAsXInT e x t = E_As_X_In_T(e,x,t) in
+  let mkG ?(k=' ') x = k,(x,None) in
+  let decode t f g =
+    try match (pf_intern_term ist gl t) with
+    | RCast(_,RHole _,CastConv(_,RLambda(_,Name x,_,RHole _,c))) -> 
+        f x (' ',(c,None))
+    | it -> g t with _ -> g t in
+  let decodeG t f g = decode (mkG t) f g in
+  let bad_enc id _ = anomaly ("bad encoding for pattern " ^ id) in
+  let red = match red with
+    | T(k,(RCast (_,RHole _,(CastConv(_, RLambda (_,Name id,_,_,t)))),None))
+        when let id = string_of_id id in let len = String.length id in
+        (len > 8 && String.sub id 0 8 = "_ssrpat_") ->
+        let id = string_of_id id in let len = String.length id in
+        (match String.sub id 8 (len - 8), t with
+        | "In", RApp(_, _, [t]) -> decodeG t xInT (fun x -> T x)
+        | "In", RApp(_, _, [e; t]) -> decodeG t (eInXInT (mkG e)) (bad_enc id)
+        | "In", RApp(_, _, [e; t; e_in_t]) ->
+            decodeG t (eInXInT (mkG e))
+              (fun _ -> decodeG e_in_t xInT (fun _ -> assert false))
+        | "As", RApp(_, _, [e; t]) -> decodeG t (eAsXInT (mkG e)) (bad_enc id)
+        | _ -> bad_enc id ())
+    | T t -> decode t xInT (fun x -> T x)
+    | In_T t -> decode t inXInT inT
+    | X_In_T (e,t) -> decode t (eInXInT e) (fun x -> xInT (id_of_Cterm e) x)
+    | In_X_In_T (e,t) -> inXInT (id_of_Cterm e) t
+    | E_In_X_In_T (e,x,rp) -> eInXInT e (id_of_Cterm x) rp
+    | E_As_X_In_T (e,x,rp) -> eAsXInT e (id_of_Cterm x) rp in
+  pp(lazy(str"decoded as: " ++ pr_pattern_w_ids red));
+  let red = match redty with None -> red | Some ty -> match red with
+  | T t -> T (combineCG t ty (mkCCast (loc_ofCG t)) mkRCast)
+  | X_In_T (x,t) ->
+      let ty = pf_intern_term ist gl ty in
+      E_As_X_In_T (mkG (mkRCast mkRHole ty), x, t)
+  | E_In_X_In_T (e,x,t) ->
+      let ty = mkG (pf_intern_term ist gl ty) in
+      E_In_X_In_T (combineCG e ty (mkCCast (loc_ofCG t)) mkRCast, x, t)
+  | E_As_X_In_T (e,x,t) ->
+      let ty = mkG (pf_intern_term ist gl ty) in
+      E_As_X_In_T (combineCG e ty (mkCCast (loc_ofCG t)) mkRCast, x, t)
+  | red -> red in
+  pp(lazy(str"typed as: " ++ pr_pattern_w_ids red));
+  let mkXLambda loc x (a,(g,c)) = match c with
+  | Some b -> a,(g,Some (mkCLambda loc x (CHole(loc,None)) b))
+  | None -> a,(RLambda (loc,x,Explicit,(RHole (loc, BinderType x)), g), None) in
+  match red with
+  | T t -> T(interp_term ist gl t)
+  | In_T x -> In_T(interp_term ist gl x)
+  | X_In_T (x,rp) ->
+    let rp = mkXLambda dummy_loc (Name x) rp in
+    let sigma, rp = interp_term ist gl rp in
+    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
+    X_In_T (List.assoc 0 args, (sigma, rp))
+  | In_X_In_T (x,rp) ->
+    let rp = mkXLambda dummy_loc (Name x) rp in
+    let sigma, rp = interp_term ist gl rp in
+    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
+    In_X_In_T (List.assoc 0 args, (sigma, rp))
+  | E_In_X_In_T (e,x,rp) ->
+    let rp = mkXLambda dummy_loc (Name x) rp in
+    let sigma, rp = interp_term ist gl rp in
+    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
+    let e_sigma, e = interp_term ist gl e in
+    E_In_X_In_T ((e_sigma, e) ,List.assoc 0 args, (sigma, rp))
+  | E_As_X_In_T (e,x,rp) ->
+    let rp = mkXLambda dummy_loc (Name x) rp in
+    let sigma, rp = interp_term ist gl rp in
+    let rp, _, args, rp_sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
+    let hole = List.assoc 0 args in
+    let si = sig_it gl in
+    let e_sigma, e = interp_term ist (re_sig si rp_sigma) e in
+    E_As_X_In_T ((e_sigma, e) , hole, (rp_sigma, rp))
+;;
+
+(* calls do_subst on every sub-term identified by (pattern,occ) *)
+let eval_pattern ?raise_NoMatch env0 sigma0 concl0 pattern occ do_subst =
+  let fs sigma x = snd (nf_open_term sigma sigma x) in
+  let pop_evar sigma e p =
+    let { Evd.evar_body = e_body } as e_def = Evd.find sigma e in
+    let e_body = match e_body with Evar_defined c -> c
+    | _ -> errorstrm (str "Matching the pattern " ++ pr_constr p ++
+          str " did not instantiate ?" ++ pr_int e ++ spc () ++
+          str "Does the variable bound by the \"in\" construct occur "++
+          str "in the pattern?") in
+    let sigma = 
+      Evd.add (Evd.remove sigma e) e {e_def with Evd.evar_body = Evar_empty} in
+    sigma, e_body in
+  let ex_value hole =
+    match kind_of_term hole with Evar (e,_) -> e | _ -> assert false in
+  let mk_upat_for ?hack env sigma0 (sigma,t) ?(p=t) ok =
+    let pat, sigma = mk_upat ?hack env sigma0 sigma p ok L2R t in
+    [pat], sigma in
+  match pattern with
+  | None -> do_subst env0 concl0 1
+  | Some (T rp | In_T rp) ->
+    let occ = match pattern with Some (T _) -> occ | _ -> [noindex] in
+    let rp = mk_upat_for env0 sigma0 rp all_ok in
+    let find_T, end_T = mk_pmatcher ?raise_NoMatch sigma0 occ rp in
+    let concl = find_T env0 concl0 1 (fun env _ -> do_subst env) in
+    let _ = end_T () in
+    concl
+  | Some (X_In_T (hole, (p_sigma, p as srp)) |
+       In_X_In_T (hole, (p_sigma, p as srp))) ->
+    let occ = match pattern with Some (X_In_T _) -> occ | _ -> [noindex] in
+    let ex = ex_value hole in
+    let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
+    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
+    (* we start from sigma, so hole is considered a rigid head *)
+    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
+    let find_X, end_X = mk_pmatcher ?raise_NoMatch p_sigma occ holep in
+    let concl = find_T env0 concl0 1 (fun env _ c h ->
+      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
+      let sigma, e_body = pop_evar p_sigma ex p in
+      fs p_sigma (find_X env (fs sigma p) h 
+        (fun env _ _ -> do_subst env e_body))) in
+    let _ = end_X () in let _ = end_T () in 
+    concl
+  | Some (E_In_X_In_T (ep, hole, (p_sigma, p as srp))) ->
+    let ex = ex_value hole in
+    let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
+    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
+    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
+    let find_X, end_X = mk_pmatcher p_sigma [noindex] holep in
+    let re = mk_upat_for env0 sigma0 ep all_ok in
+    let find_E, end_E = mk_pmatcher ?raise_NoMatch sigma0 occ re in
+    let concl = find_T env0 concl0 1 (fun env _ c h ->
+      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
+      let sigma, e_body = pop_evar p_sigma ex p in
+      fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
+        find_E env e_body h (fun env _ -> do_subst env)))) in
+    let _ = end_E () in let _ = end_X () in let _ = end_T () in
+    concl
+  | Some (E_As_X_In_T ((e_sigma, e), hole, (p_sigma, p))) ->
+    let ex = ex_value hole in
+    let rp = 
+      let e_sigma = unify_HO env0 e_sigma hole e in
+      e_sigma, fs e_sigma p in
+    let rp = mk_upat_for ~hack:true env0 sigma0 rp all_ok in
+    let find_TE, end_TE = mk_pmatcher sigma0 [noindex] rp in
+    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
+    let find_X, end_X = mk_pmatcher p_sigma occ holep in
+    let concl = find_TE env0 concl0 1 (fun env _ c h ->
+      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
+      let sigma, e_body = pop_evar p_sigma ex p in
+      fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
+        let e_sigma = unify_HO env e_sigma e_body e in
+        let e_body = fs e_sigma e in
+        do_subst env e_body h))) in
+    let _ = end_X () in let _ = end_TE () in
+    concl
+;;
+
 (** Generalization (discharge) item *)
 
 (* An item is a switch + term pair.                                     *)
@@ -3427,9 +3779,9 @@ let pr_gen (docc, dt) = pr_docc docc ++ pr_term dt
 
 let pr_ssrgen _ _ _ = pr_gen
 
-ARGUMENT EXTEND ssrgen TYPED AS ssrdocc * ssrterm PRINTED BY pr_ssrgen
-| [ ssrdocc(docc) ssrterm(dt) ] -> [ docc, dt ]
-| [ ssrterm(dt) ] -> [ nodocc, dt ]
+ARGUMENT EXTEND ssrgen TYPED AS ssrdocc * ssrpattern PRINTED BY pr_ssrgen
+| [ ssrdocc(docc) ssrpattern(dt) ] -> [ docc, dt ]
+| [ ssrpattern(dt) ] -> [ nodocc, dt ]
 END
 
 let has_occ ((_, occ), _) = occ <> []
@@ -3441,21 +3793,41 @@ let interp_clr = function
 | Some clr, _ -> clr
 | None, _ -> []
 
+let redex_of_pattern = function
+  | In_T _ | In_X_In_T _ -> anomaly "pattern without redex"
+  | T e | X_In_T (_, e) | E_As_X_In_T (e, _, _) | E_In_X_In_T (e, _, _) -> e
+
+let is_redexless = function In_T _ | In_X_In_T _ -> true | _ -> false
+ 
+let capture_gen ist gl occ grx grxty =
+  let grx = interp_pattern ist gl grx grxty in
+  let env0, concl0, sigma0 = pf_env gl, pf_concl gl, project gl in
+  let find_R, conclude = 
+    let e = redex_of_pattern grx in let r = ref None in
+    (fun env c h -> do_once r (fun () -> sigma0, c); mkRel h),
+    (fun _ -> if !r = None then e else assert_done r) in
+  let cl = try
+    eval_pattern ~raise_NoMatch:true env0 sigma0 concl0 (Some grx) occ find_R
+    with NoMatch -> concl0 in
+  let c = conclude cl in
+  cl, c
+;;
+
 let pf_interp_gen_aux ist gl to_ind ((oclr, occ), t) =
-  let sigma, c = interp_term ist gl t in
+  let cl, (sigma, c) = capture_gen ist gl occ (T t) None in
   let clr = interp_clr (oclr, (fst t, c)) in
-  try
-    let cl, c = pf_fill_occ_term gl occ (sigma, c) in
+  if not(occur_existential c) then
     if fst t = '@' then 
       if not (isVar c) then errorstrm (str "@ can be used with variables only")
       else match pf_get_hyp gl (destVar c) with
       | _, None, _ -> errorstrm (str "@ can be used with let-ins only")
       | name, Some bo, ty -> true, mkLetIn (Name name, bo, ty, cl), c, clr
     else false, pf_mkprod gl c cl, c, clr
-  with err when to_ind && occ = [] ->
+  else if to_ind && occ = [] then
     let nv, p = pf_abs_evars gl (sigma, c) in
-    if nv = 0 then raise err else
+    if nv = 0 then anomaly "occur_existential but no evars" else
     false, mkProd (constr_name c, pf_type_of gl p, pf_concl gl), p, clr
+  else loc_error (loc_ofCG t) "generalized term didn't match"
 
 let genclrtac cl cs clr = tclTHEN (apply_type cl cs) (cleartac clr)
 
@@ -3481,7 +3853,7 @@ let pf_interp_gen ist gl to_ind gen =
 
 let gens_sep = function [], [] -> mt | _ -> spc
 
-let rec pr_dgens (gensl, clr) =
+let pr_dgens pr_gen (gensl, clr) =
   let prgens s gens = str s ++ pr_list spc pr_gen gens in
   let prdeps deps = prgens ": " deps ++ spc () ++ str "/" in
   match gensl with
@@ -3490,7 +3862,7 @@ let rec pr_dgens (gensl, clr) =
   | [gens] -> prgens ": " gens ++ pr_clear spc clr
   | _ -> pr_clear pr_spc clr
 
-let pr_ssrdgens _ _ _ = pr_dgens
+let pr_ssrdgens _ _ _ = pr_dgens pr_gen
 
 let cons_gen gen = function
   | gens :: gensl, clr -> (gen :: gens) :: gensl, clr
@@ -3636,7 +4008,7 @@ let pushelimeqtac gl =
 
 let pr_ssrarg _ _ _ (view, (eqid, (dgens, ipats))) =
   let pri = pr_intros (gens_sep dgens) in
-  pr_view view ++ pr_eqid eqid ++ pr_dgens dgens ++ pri ipats
+  pr_view view ++ pr_eqid eqid ++ pr_dgens pr_gen dgens ++ pri ipats
 
 ARGUMENT EXTEND ssrarg TYPED AS ssrview * (ssreqid * (ssrdgens * ssrintros))
    PRINTED BY pr_ssrarg
@@ -3688,7 +4060,9 @@ let viewmovetac_aux clear name_ref (_, vl as v) _ gen ist gl =
   let cl, c, clr = pf_interp_gen ist gl false gen in
   let cl, c = if vl = [] then cl, c else pf_with_view ist gl v cl c in
   let clr = if clear then clr else [] in
-  name_ref := (match gen with _,(_,(RRef(_,VarRef id),None))-> id| _ -> top_id);
+  name_ref := (match gen with
+   | _, (_, (RRef (_, VarRef id), None)) -> id
+   | _ -> top_id);
   genclrtac cl [c] clr gl
 
 let () = move_top_with_view := 
@@ -3729,46 +4103,6 @@ TACTIC EXTEND ssrmove
   [ introstac ~ist:(get_ltacctx ctx) [pat] ]
 | [ "move" ] -> [ movehnftac ]
     END
-
-(* TASSI: sound HO unification *)
-let unify_HO env sigma0 t1 t2 =
-  let sigma = unif_HO env sigma0 t1 t2 in
-  let sigma, _ = unif_end env sigma0 sigma t2 (fun _ -> true) in
-  sigma
-
-let pf_unify_HO gl t1 t2 =
-  let env, sigma0, si = pf_env gl, project gl, sig_it gl in
-  let sigma = unify_HO env sigma0 t1 t2 in
-  re_sig si sigma
-
-(* TASSI: given (c : ty), generates (c ??? : ty[???/...]) with m evars *)
-exception NotEnoughProducts
-let saturate ?(beta=false) env sigma c ?(ty=Retyping.get_type_of env sigma c) m 
-=
-  let rec loop ty args sigma n = 
-  if n = 0 then 
-    let args = List.rev args in
-     (if beta then Reductionops.whd_beta sigma else fun x -> x)
-      (mkApp (c, Array.of_list (List.map snd args))), ty, args, sigma 
-  else match kind_of_type ty with
-  | ProdType (_, src, tgt) ->
-      let sigma, x = Evarutil.new_evar (create_evar_defs sigma) env src in
-      loop (subst1 x tgt) ((m - n,x) :: args) sigma (n-1)
-  | CastType (t, _) -> loop t args sigma n 
-  | LetInType (_, v, _, t) -> loop (subst1 v t) args sigma n
-  | SortType _ -> assert false
-  | AtomicType _ ->
-      let ty = Reductionops.whd_betadeltaiota env sigma ty in
-      match kind_of_type ty with
-      | ProdType _ -> loop ty args sigma n
-      | _ -> anomaly "saturate did not find enough products"
-  in
-   loop ty [] sigma m
-
-let pf_saturate ?beta gl c ?ty m = 
-  let env, sigma, si = pf_env gl, project gl, sig_it gl in
-  let t, ty, args, sigma = saturate ?beta env sigma c ?ty m in
-  t, ty, args, re_sig si sigma 
 
 (* TASSI: given the type of an elimination principle, it finds the higher order
  * argument (index), it computes it's arity and the arity of the eliminator and
@@ -3883,8 +4217,8 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   | `EGen _ when ist = None -> anomaly "no ist and non simple elimination"
   | `EGen (_,(_,(_,Some (CHole _)))) when elim = None ->
        errorstrm(str"Indeterminate pattern and no eliminator")
-  | `EGen ((Some clr, occ),(_,(_,Some (CHole _)))) -> None, clr, occ
-  | `EGen ((None, occ),(_,(_,Some (CHole _)))) -> None, [], occ
+  | `EGen ((Some clr,occ),(_,(_,Some (CHole _)|RHole _,None))) -> None, clr, occ
+  | `EGen ((None, occ),(_,(_,Some (CHole _)|RHole _,None))) -> None, [], occ
   | `EGen ((_, occ), _ as gen) ->
        let _, c, clr = pf_interp_gen (Option.get ist) gl true gen in
        Some c, clr, occ
@@ -4205,12 +4539,17 @@ END
 
 (** The "apply" tactic *)
 
-ARGUMENT EXTEND ssragen TYPED AS ssrgen PRINTED BY pr_ssrgen
+let pr_agen (docc, dt) = pr_docc docc ++ pr_term dt
+let pr_ssragen _ _ _ = pr_agen
+let pr_ssragens _ _ _ = pr_dgens pr_agen
+
+ARGUMENT EXTEND ssragen TYPED AS ssrdocc * ssrterm PRINTED BY pr_ssragen
 | [ "{" ne_ssrhyp_list(clr) "}" ssrterm(dt) ] -> [ mkclr clr, dt ]
 | [ ssrterm(dt) ] -> [ nodocc, dt ]
 END
 
-ARGUMENT EXTEND ssragens TYPED AS ssrdgens PRINTED BY pr_ssrdgens
+ARGUMENT EXTEND ssragens TYPED AS ssragen list list * ssrclear 
+PRINTED BY pr_ssragens
 | [ "{" ne_ssrhyp_list(clr) "}" ssrterm(dt) ssragens(agens) ] ->
   [ cons_gen (mkclr clr, dt) agens ]
 | [ "{" ne_ssrhyp_list(clr) "}" ] -> [ [[]], clr]
@@ -4221,7 +4560,13 @@ END
 
 let mk_applyarg views agens intros = views, (None, (agens, intros))
 
-ARGUMENT EXTEND ssrapplyarg TYPED AS ssrarg PRINTED BY pr_ssrarg
+let pr_ssraarg _ _ _ (view, (eqid, (dgens, ipats))) =
+  let pri = pr_intros (gens_sep dgens) in
+  pr_view view ++ pr_eqid eqid ++ pr_dgens pr_agen dgens ++ pri ipats
+
+ARGUMENT EXTEND ssrapplyarg 
+TYPED AS ssrview * (ssreqid * (ssragens * ssrintros))
+PRINTED BY pr_ssraarg
 | [ ":" ssragen(gen) ssragens(dgens) ssrintros(intros) ] ->
   [ mk_applyarg [] (cons_gen gen dgens) intros ]
 | [ ssrclear_ne(clr) ssrintros(intros) ] ->
@@ -4314,7 +4659,7 @@ END
 
 let mk_exactarg views dgens = mk_applyarg views dgens ([], rawltacctx)
 
-ARGUMENT EXTEND ssrexactarg TYPED AS ssrarg PRINTED BY pr_ssrarg
+ARGUMENT EXTEND ssrexactarg TYPED AS ssrapplyarg PRINTED BY pr_ssraarg
 | [ ":" ssragen(gen) ssragens(dgens) ] ->
   [ mk_exactarg [] (cons_gen gen dgens) ]
 | [ ssrview(view) ssrclear(clr) ] ->
@@ -4337,7 +4682,7 @@ type ssrcongrarg = open_constr * (int * constr)
 
 let pr_ssrcongrarg _ _ _ (_, ((n, f), dgens)) =
   (if n <= 0 then mt () else str " " ++ pr_int n) ++
-  str " " ++ pr_term f ++ pr_dgens dgens
+  str " " ++ pr_term f ++ pr_dgens pr_gen dgens
 
 ARGUMENT EXTEND ssrcongrarg TYPED AS ssrltacctx * ((int * ssrterm) * ssrdgens)
   PRINTED BY pr_ssrcongrarg
@@ -4461,166 +4806,6 @@ ARGUMENT EXTEND ssrmult TYPED AS ssrmult_ne PRINTED BY pr_ssrmult
   | [ ] -> [ nomult ]
 END
 
-(** Rewrite redex switch *)
-
-(* type ssrredex = ssrterm option *)
-
-type ('identifier, 'ssrtermrep) a_ssrredexmod = 
-  | T of 'ssrtermrep
-  | In_T of 'ssrtermrep
-  | X_In_T of 'identifier * 'ssrtermrep     
-  | In_X_In_T of 'identifier * 'ssrtermrep     
-  | E_In_X_In_T of 'ssrtermrep * 'identifier * 'ssrtermrep     
-  | E_As_X_In_T of 'ssrtermrep * 'identifier * 'ssrtermrep     
-        
-let pr_redex = function
-  | None -> mt ()
-  | Some (T t) -> str "[" ++ prl_term t ++ str "]"
-  | Some (In_T t) -> str "[ in " ++ prl_term t ++ str "]"
-  | Some (X_In_T (x,t)) -> 
-      str "[" ++ pr_id x ++ str " in " ++ prl_term t ++ str "]"
-  | Some (In_X_In_T (x,t)) -> 
-      str "[ in " ++ pr_id x ++ str " in " ++ prl_term t ++ str "]"
-  | Some (E_In_X_In_T (e,x,t)) -> 
-      str "[" ++ prl_term e ++ str " in " ++ 
-        pr_id x ++ str " in " ++ prl_term t ++ str "]"
-  | Some (E_As_X_In_T (e,x,t)) -> 
-      str "[" ++ prl_term e ++ str " as " ++ 
-        pr_id x ++ str " in " ++ prl_term t ++ str "]"
-
-let pr_ssrredex _ _ _ = pr_redex
-
-type ssrredexmod = (identifier, ssrtermrep) a_ssrredexmod
-
-let wit_ssrredexmod, globwit_ssrredexmod, rawwit_ssrredexmod =
-  add_genarg "ssrredexmod" (fun x -> pr_redex (Some x))
-
-ARGUMENT EXTEND ssrredex_ne TYPED AS ssrredexmod option PRINTED BY pr_ssrredex
-  | [ "[" lconstr(c) "]" ] -> [ Some (T (mk_lterm c)) ]
-  | [ "[" "in" lconstr(c) "]" ] -> [ Some (In_T (mk_lterm c)) ]
-  | [ "[" lconstr(x) "in" lconstr(c) "]" ] -> 
-    [ Some (X_In_T (id_of_term x,mk_lterm c)) ]
-  | [ "[" "in" lconstr(x) "in" lconstr(c) "]" ] -> 
-    [ Some (In_X_In_T (id_of_term x,mk_lterm c)) ]
-  | [ "[" lconstr(e) "in" lconstr(x) "in" lconstr(c) "]" ] -> 
-    [ Some (E_In_X_In_T (mk_lterm e,id_of_term x,mk_lterm c)) ]
-  | [ "[" lconstr(e) "as" lconstr(x) "in" lconstr(c) "]" ] -> 
-    [ Some (E_As_X_In_T (mk_lterm e,id_of_term x,mk_lterm c)) ]
-END
-
-ARGUMENT EXTEND ssrredex TYPED AS ssrredex_ne PRINTED BY pr_ssrredex
-  | [ ssrredex_ne(rdx) ] -> [ rdx ]
-  | [ ] -> [ None ]
-END
-
-let interp_redexmod ist gl = function
-  | T x -> T(interp_term ist gl x)
-  | In_T x -> In_T(interp_term ist gl x)
-  | X_In_T (x,(_,(_,Some rp))) ->
-    let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
-    let sigma, rp = interp_term ist gl (mk_lterm rp) in
-    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
-    X_In_T (List.assoc 0 args, (sigma, rp))
-  | In_X_In_T (x,(_,(_,Some rp))) ->
-    let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
-    let sigma, rp = interp_term ist gl (mk_lterm rp) in
-    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
-    In_X_In_T (List.assoc 0 args, (sigma, rp))
-  | E_In_X_In_T (e,x,(_,(_,Some rp))) ->
-    let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
-    let sigma, rp = interp_term ist gl (mk_lterm rp) in
-    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
-    let e_sigma, e = interp_term ist gl e in
-    E_In_X_In_T ((e_sigma, e) ,List.assoc 0 args, (sigma, rp))
-  | E_As_X_In_T (e,x,(_,(_,Some rp))) ->
-    let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
-    let sigma, rp = interp_term ist gl (mk_lterm rp) in
-    let rp, _, args, rp_sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
-    let hole = List.assoc 0 args in
-    let si = sig_it gl in
-    let e_sigma, e = interp_term ist (re_sig si rp_sigma) e in
-    E_As_X_In_T ((e_sigma, e) , hole, (rp_sigma, rp))
-  | _ -> anomaly "malformed redexmod"
-;;
-
-(* calls do_subst on every sub-term identified by (redexmod,occ) *)
-let eval_redexmod env0 sigma0 concl0 redexmod occ do_subst =
-  let fs sigma x = snd (nf_open_term sigma sigma x) in
-  let pop_evar sigma e p =
-    let { Evd.evar_body = e_body } as e_def = Evd.find sigma e in
-    let e_body = match e_body with Evar_defined c -> c
-    | _ -> errorstrm (str "Matching the pattern " ++ pr_constr p ++
-          str " did not instantiate ?" ++ pr_int e ++ spc () ++
-          str "Does the variable bound by the \"in\" construct occur "++
-          str "in the pattern?") in
-    let sigma = 
-      Evd.add (Evd.remove sigma e) e {e_def with Evd.evar_body = Evar_empty} in
-    sigma, e_body in
-  let ex_value hole =
-    match kind_of_term hole with Evar (e,_) -> e | _ -> assert false in
-  let mk_upat_for ?hack env sigma0 (sigma,t) ?(p=t) ok =
-    let pat, sigma = mk_upat ?hack env sigma0 sigma p ok L2R t in
-    [pat], sigma in
-  match redexmod with
-  | None -> do_subst env0 concl0 1
-  | Some (T rp | In_T rp) ->
-    let occ = match redexmod with Some (T _) -> occ | _ -> [noindex] in
-    let rp = mk_upat_for env0 sigma0 rp all_ok in
-    let find_T, end_T = mk_pmatcher sigma0 occ rp in
-    let concl = find_T env0 concl0 1 (fun env _ -> do_subst env) in
-    let _ = end_T () in
-    concl
-  | Some (X_In_T (hole, (p_sigma, p as srp)) |
-       In_X_In_T (hole, (p_sigma, p as srp))) ->
-    let occ = match redexmod with Some (X_In_T _) -> occ | _ -> [noindex] in
-    let ex = ex_value hole in
-    let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
-    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
-    (* we start from sigma, so hole is considered a rigid head *)
-    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
-    let find_X, end_X = mk_pmatcher p_sigma occ holep in
-    let concl = find_T env0 concl0 1 (fun env _ c h ->
-      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
-      let sigma, e_body = pop_evar p_sigma ex p in
-      fs p_sigma (find_X env (fs sigma p) h 
-        (fun env _ _ -> do_subst env e_body))) in
-    let _ = end_X () in let _ = end_T () in 
-    concl
-  | Some (E_In_X_In_T (ep, hole, (p_sigma, p as srp))) ->
-    let ex = ex_value hole in
-    let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
-    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
-    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
-    let find_X, end_X = mk_pmatcher p_sigma [noindex] holep in
-    let re = mk_upat_for env0 sigma0 ep all_ok in
-    let find_E, end_E = mk_pmatcher sigma0 occ re in
-    let concl = find_T env0 concl0 1 (fun env _ c h ->
-      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
-      let sigma, e_body = pop_evar p_sigma ex p in
-      fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
-        find_E env e_body h (fun env _ -> do_subst env)))) in
-    let _ = end_E () in let _ = end_X () in let _ = end_T () in
-    concl
-  | Some (E_As_X_In_T ((e_sigma, e), hole, (p_sigma, p))) ->
-    let ex = ex_value hole in
-    let rp = 
-      let e_sigma = unify_HO env0 e_sigma hole e in
-      e_sigma, fs e_sigma p in
-    let rp = mk_upat_for ~hack:true env0 sigma0 rp all_ok in
-    let find_TE, end_TE = mk_pmatcher sigma0 [noindex] rp in
-    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
-    let find_X, end_X = mk_pmatcher p_sigma occ holep in
-    let concl = find_TE env0 concl0 1 (fun env _ c h ->
-      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
-      let sigma, e_body = pop_evar p_sigma ex p in
-      fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
-        let e_sigma = unify_HO env e_sigma e_body e in
-        let e_body = fs e_sigma e in
-        do_subst env e_body h))) in
-    let _ = end_X () in let _ = end_TE () in
-    concl
-;;
-
 (** Rewrite clear/occ switches *)
 
 let pr_rwocc = function
@@ -4671,10 +4856,10 @@ END
 
 (** Rewrite arguments *)
 
-(* type ssrrwarg = (ssrdir * ssrmult) * ((ssrdocc * ssrredex) * ssrrule) *)
+(* type ssrrwarg = (ssrdir * ssrmult) * ((ssrdocc * ssrpattern) * ssrrule) *)
 
 let pr_rwarg ((d, m), ((docc, rx), r)) =
-  pr_rwdir d ++ pr_mult m ++ pr_rwocc docc ++ pr_redex rx ++ pr_rule r
+  pr_rwdir d ++ pr_mult m ++ pr_rwocc docc ++ pr_pattern_squarep rx ++ pr_rule r
 
 let pr_ssrrwarg _ _ _ = pr_rwarg
 
@@ -4705,23 +4890,23 @@ END
 
 
 ARGUMENT EXTEND ssrrwarg
-  TYPED AS (ssrdir * ssrmult) * ((ssrdocc * ssrredex) * ssrrule)
+  TYPED AS (ssrdir * ssrmult) * ((ssrdocc * ssrctxpattern option) * ssrrule)
   PRINTED BY pr_ssrrwarg
-  | [ "-" ssrmult(m) ssrrwocc(docc) ssrredex(rx) ssrrule_ne(r) ] ->
+  | [ "-" ssrmult(m) ssrrwocc(docc) ssrpattern_squarep(rx) ssrrule_ne(r) ] ->
     [ mk_rwarg (R2L, m) (docc, rx) r ]
   | [ "-/" ssrterm(t) ] ->     (* just in case '-/' should become a token *)
     [ mk_rwarg (R2L, nomult) norwocc (RWdef, t) ]
-  | [ ssrmult_ne(m) ssrrwocc(docc) ssrredex(rx) ssrrule_ne(r) ] ->
+  | [ ssrmult_ne(m) ssrrwocc(docc) ssrpattern_squarep(rx) ssrrule_ne(r) ] ->
     [ mk_rwarg (L2R, m) (docc, rx) r ]
-  | [ "{" ne_ssrhyp_list(clr) "}" ssrredex_ne(rx) ssrrule_ne(r) ] ->
+  | [ "{" ne_ssrhyp_list(clr) "}" ssrpattern_ne_squarep(rx) ssrrule_ne(r) ] ->
     [ mk_rwarg norwmult (mkclr clr, rx) r ]
   | [ "{" ne_ssrhyp_list(clr) "}" ssrrule(r) ] ->
     [ mk_rwarg norwmult (mkclr clr, None) r ]
-  | [ "{" ssrocc(occ) "}" ssrredex(rx) ssrrule_ne(r) ] ->
+  | [ "{" ssrocc(occ) "}" ssrpattern_squarep(rx) ssrrule_ne(r) ] ->
     [ mk_rwarg norwmult (mkocc occ, rx) r ]
-  | [ "{" "}" ssrredex(rx) ssrrule_ne(r) ] ->
+  | [ "{" "}" ssrpattern_squarep(rx) ssrrule_ne(r) ] ->
     [ mk_rwarg norwmult (nodocc, rx) r ]
-  | [ ssrredex_ne(rx) ssrrule_ne(r) ] ->
+  | [ ssrpattern_ne_squarep(rx) ssrrule_ne(r) ] ->
     [ mk_rwarg norwmult (noclr, rx) r ]
   | [ ssrrule_ne(r) ] ->
     [ mk_rwarg norwmult norwocc r ]
@@ -4731,7 +4916,7 @@ let simplintac occ rdx sim gl =
   let simptac gl = 
     let sigma0, concl0, env0 = project gl, pf_concl gl, pf_env gl in
     let simp env c _ = red_safe Tacred.simpl env sigma0 c in
-    convert_concl_no_check (eval_redexmod env0 sigma0 concl0 rdx occ simp) gl in
+    convert_concl_no_check (eval_pattern env0 sigma0 concl0 rdx occ simp) gl in
   match sim with
   | Simpl -> simptac gl
   | SimplCut -> tclTHEN simptac (tclTRY donetac) gl
@@ -4792,7 +4977,7 @@ let unfoldintac occ rdx t (kt,_) gl =
         with _ -> errorstrm (str "The term " ++
           pr_constr c ++spc()++ str "does not unify with " ++ pr_constr_pat t)),
     fake_pmatcher_end in
-  let concl = beta env0 (eval_redexmod env0 sigma0 concl0 rdx occ unfold) in
+  let concl = beta env0 (eval_pattern env0 sigma0 concl0 rdx occ unfold) in
   let _ = conclude () in
   convert_concl concl gl
 ;;
@@ -4814,7 +4999,7 @@ let foldtac occ rdx ft gl =
     with _ -> errorstrm (str "fold pattern " ++ pr_constr_pat t ++ spc ()
       ++ str "does not match redex " ++ pr_constr_pat c)), 
     fake_pmatcher_end in
-  let concl = eval_redexmod env0 sigma0 concl0 rdx occ fold in
+  let concl = eval_pattern env0 sigma0 concl0 rdx occ fold in
   let _ = conclude () in
   convert_concl concl gl
 ;;
@@ -4931,6 +5116,9 @@ let ssr_is_setoid env =
     Rewrite.is_applied_rewrite_relation env 
       sigma [] (mkApp (r, args)) <> None
 
+let closed0_check cl p gl =
+  if closed0 cl then errorstrm (str"No occurrence of redex "++pf_pr_constr gl p)
+
 let rwrxtac occ rdx_pat dir rule gl =
   let env = pf_env gl in
   let coq_prod = lz_coq_prod () in
@@ -5008,8 +5196,6 @@ let rwrxtac occ rdx_pat dir rule gl =
         with _ -> rwtac rs in
      rwtac rules in
   let sigma0, env0, concl0 = project gl, pf_env gl, pf_concl gl in
-  let closed0_check concl p = if closed0 concl then 
-    errorstrm (str "No occurrence of redex " ++ pf_pr_constr gl p) in
   let find_R, conclude = match rdx_pat with
   | Some (In_T _ | In_X_In_T _) | None -> 
       let upats_origin = dir, snd rule in
@@ -5019,13 +5205,13 @@ let rwrxtac occ rdx_pat dir rule gl =
       let rpats = List.fold_left (rpat env0 sigma0) ([], r_sigma) rules in
       let find_R, end_R = mk_pmatcher sigma0 occ ~upats_origin rpats in
       find_R ~k:(fun _ _ _ h -> mkRel h), 
-      fun concl -> let rdx,d,r = end_R () in closed0_check concl rdx; (d,r),rdx
+      fun cl -> let rdx,d,r = end_R () in closed0_check cl rdx gl; (d,r),rdx
   | Some (T (_, rdx) | X_In_T (_,(_, rdx)) | 
           E_As_X_In_T ((_,rdx),_,_) | E_In_X_In_T ((_,rdx),_,_)) -> 
       let r = ref None in
       (fun env c h -> do_once r (fun () -> find_rule c, c); mkRel h),
-      (fun concl -> closed0_check concl rdx; assert_done r) in
-  let concl = eval_redexmod env0 sigma0 concl0 rdx_pat occ find_R in
+      (fun concl -> closed0_check concl rdx gl; assert_done r) in
+  let concl = eval_pattern env0 sigma0 concl0 rdx_pat occ find_R in
   let (d, r), rdx = conclude concl in
   rwcltac concl rdx d r gl
 ;;
@@ -5036,13 +5222,13 @@ let _ =
 
 let rwargtac ist ((dir, mult), (((oclr, occ), grx), (kind, gt))) gl =
   let fail = ref false in
-  let interp_redexmod ist gl gc =
-    try interp_redexmod ist gl gc
+  let interp_pattern ist gl gc =
+    try interp_pattern ist gl gc None
     with _ when snd mult = May -> fail := true; T (project gl, mkProp) in
   let interp gc =
     try interp_term ist gl gc
     with _ when snd mult = May -> fail := true; (project gl, mkProp) in
-  let rx = Option.map (interp_redexmod ist gl) grx in
+  let rx = Option.map (interp_pattern ist gl) grx in
   let t = interp gt in
   let rwtac = match kind with
   | RWred sim -> simplintac occ rx sim
@@ -5317,9 +5503,11 @@ let wit_ssrfwdfmt, globwit_ssrfwdfmt, rawwit_ssrfwdfmt =
 (* type ssrfwd = ssrfwdfmt * ssrterm *)
 
 let mkFwdVal fk c = ((fk, []), mk_term ' ' c), rawltacctx
+let mkssrFwdVal fk c = ((fk, []), (c,None)), rawltacctx
 
 let mkFwdCast fk loc t c =
   ((fk, [BFcast]), mk_term ' ' (CCast (loc, c, dC t))), rawltacctx
+let mkssrFwdCast fk loc t c = ((fk, [BFcast]), (c, Some t)), rawltacctx
 
 let mkFwdHint s t =
   let loc = constr_loc t in mkFwdCast (FwdHint s) loc t (CHole (loc, None))
@@ -5519,26 +5707,39 @@ let guard_setrhs s i = s.[i] = '{'
 let pr_setrhs occ prc prlc c =
   if occ = nodocc then pr_guarded guard_setrhs prlc c else pr_docc occ ++ prc c
 
-let pr_ssrsetfwd _ _ _ (fwd, docc) =
+let pr_ssrsetfwd _ _ _ (((fmt,(t,ty)),ctx), docc) =
+  let fwd = match ty with
+  | Some ty -> (fmt, combineCG t ty (mkCCast dummy_loc) mkRCast), ctx
+  | None -> (fmt, t), ctx in
   pr_fwd_guarded (pr_setrhs docc) (pr_setrhs docc) fwd
 
-ARGUMENT EXTEND ssrsetfwd TYPED AS ssrfwd * ssrdocc PRINTED BY pr_ssrsetfwd
-| [ ":" lconstr(t) ":=" "{" ssrocc(occ) "}" constr(c) ] ->
-  [ mkFwdCast FwdPose loc t c, mkocc occ ]
-| [ ":" lconstr(t) ":=" lconstr(c) ] -> [ mkFwdCast FwdPose loc t c, nodocc ]
-| [ ":=" "{" ssrocc(occ) "}" constr(c) ] -> [ mkFwdVal FwdPose c, mkocc occ ]
-| [ ":=" lconstr(c) ] -> [ mkFwdVal FwdPose c, nodocc ]
+ARGUMENT EXTEND ssrsetfwd
+TYPED AS ((ssrfwdfmt * (ssrpattern * ssrterm option)) * ssrltacctx) * ssrdocc
+PRINTED BY pr_ssrsetfwd
+| [ ":" lconstr(t) ":=" "{" ssrocc(occ) "}" ssrpattern(c) ] ->
+  [ mkssrFwdCast FwdPose loc (mk_lterm t) c, mkocc occ ]
+| [ ":" lconstr(t) ":=" ssrlpattern(c) ] ->
+  [ mkssrFwdCast FwdPose loc (mk_lterm t) c, nodocc ]
+| [ ":=" "{" ssrocc(occ) "}" ssrpattern(c) ] ->
+  [ mkssrFwdVal FwdPose c, mkocc occ ]
+| [ ":=" ssrlpattern(c) ] -> [ mkssrFwdVal FwdPose c, nodocc ]
 END
 
-let ssrsettac id (((_, t), ctx), (_, occ)) gl =
-  let nc = interp_term (get_ltacctx ctx) gl t in
-  let cl, c = pf_fill_occ_term gl occ nc in
-  let cl' = mkLetIn (Name id, c, pf_type_of gl c, cl) in
+let ssrsettac id (((_, (grx, grxty)), ctx), (_, occ)) gl =
+  let ist = get_ltacctx ctx in
+  let cl, (_, c) = capture_gen ist gl occ (T grx) grxty in
+  if occur_existential c then errorstrm(str"The pattern"++spc()++
+    pr_constr_pat c++spc()++str"did not match and has holes."++spc()++
+    str"Did you mean pose?") else
+  let c, cty =  match kind_of_term c with
+  | Cast(t, DEFAULTcast, ty) -> t, ty
+  | _ -> c, pf_type_of gl c in
+  let cl' = mkLetIn (Name id, c, cty, cl) in
   tclTHEN (convert_concl cl') (introid id) gl
 
 TACTIC EXTEND ssrset
 | [ "set" ssrfwdid(id) ssrsetfwd(fwd) ssrclauses(clauses) ] ->
-  [ tclCLAUSES (ssrsettac id fwd) clauses ]    
+  [ tclCLAUSES (ssrsettac id fwd) clauses ]
 END
 
 (** The "have" tactic *)
@@ -5607,11 +5808,7 @@ let havetac ((((clr, pats), binders), simpl), ((((fk, _), t), ctx), hint))
  let mkt t = mk_term ' ' t in
  let mkl t = (' ', (t, None)) in
  let interp t = pf_abs_ssrterm ist gl t in
- let interp_ty t = pf_interp_ty ist gl t in
- let combine t1 t2 f g = match t1, t2 with
- | (_, (_, Some t1)), (_, (_, Some t2)) -> mkt (f t1 t2)
- | (_, (t1, None)), (_, (t2, None)) -> mkl (g t1 t2)
- | _ -> anomaly "have: mixed G-C constr" in
+ let interp_ty t = let a,b,_ = pf_interp_ty ist gl t in a, b in
  let ct, cty, hole, loc = match t with
    | _, (_, Some (CCast (loc, ct, CastConv (_, cty)))) ->
      mkt ct, mkt cty, mkt (mkCHole dummy_loc), loc
@@ -5625,8 +5822,8 @@ let havetac ((((clr, pats), binders), simpl), ((((fk, _), t), ctx), hint))
    | FwdHave, true, true ->
      errorstrm (str"Suff have does not accept a proof term")
    | FwdHave, false, true ->
-     let cty = combine cty hole (mkCArrow loc) mkRArrow in
-     let t = interp (combine ct cty (mkCCast loc) mkRCast) in
+     let cty = combineCG cty hole (mkCArrow loc) mkRArrow in
+     let t = interp (combineCG ct cty (mkCCast loc) mkRCast) in
      let ty = pf_type_of gl t in
      let ctx, _ = decompose_prod_n 1 ty in
      let assert_is_conv gl =
@@ -5635,7 +5832,7 @@ let havetac ((((clr, pats), binders), simpl), ((((fk, _), t), ctx), hint))
          pr_constr (mkArrow (mkVar (id_of_string "_")) concl)) in
      ty, tclTHEN assert_is_conv (apply t), id, itac_c
    | FwdHave, false, false ->
-     let t = interp (combine ct cty (mkCCast loc) mkRCast) in
+     let t = interp (combineCG ct cty (mkCCast loc) mkRCast) in
      pf_type_of gl t, apply t, id, tclTHEN itac_c simpltac
    | _, true, true   -> mkArrow (snd (interp_ty cty)) concl, hint, itac, clr
    | _, false, true  -> mkArrow (snd (interp_ty cty)) concl, hint, id, itac_c
@@ -5691,7 +5888,7 @@ let sufftac ((((clr, pats),binders),simpl), (((_, c), ctx), hint)) =
   | (a, (b, Some (CCast (_, _, CastConv (_, cty))))) -> a, (b, Some cty)
   | (a, (RCast (_, _, CastConv (_, cty)), None)) -> a, (cty, None)
   | _ -> anomaly "suff: ssr cast hole deleted by typecheck" in
-  let ctac gl = basecuttac "ssr_suff" (snd (pf_interp_ty ist gl c)) gl in
+  let ctac gl = basecuttac "ssr_suff" (pi2 (pf_interp_ty ist gl c)) gl in
   tclTHENS ctac [htac; tclTHEN (cleartac clr) (introstac ~ist (binders@simpl))]
 
 TACTIC EXTEND ssrsuff
@@ -5739,7 +5936,7 @@ let wlogtac (((clr0, pats),_),_) (gens, ((_, ct), ctx)) hint suff gl =
   | (a, (b, Some (CCast (_, _, CastConv (_, cty))))) -> a, (b, Some cty)
   | (a, (RCast (_, _, CastConv (_, cty)), None)) -> a, (cty, None)
   | _ -> anomaly "wlog: ssr cast hole deleted by typecheck" in
-  let cl0 = mkArrow (snd (pf_interp_ty ist gl ct)) (pf_concl gl) in
+  let cl0 = mkArrow (pi2 (pf_interp_ty ist gl ct)) (pf_concl gl) in
   let cl0 = if not suff then cl0 else let _,t,_ = destProd cl0 in t in
   let c = List.fold_right mkabs gens cl0 in
   let tacipat = introstac ~ist pats in

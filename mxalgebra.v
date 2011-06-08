@@ -2128,7 +2128,7 @@ elim: {n'}n => [|n IHn].
   rewrite !big_geq // mul1n (@eq_card _ _ predT) ?card_matrix //= => M.
   by rewrite {1}[M]flatmx0 -(flatmx0 1%:M) unitmx1.
 rewrite !big_nat_recr /= expn_add mulnAC mulnA -{}IHn -mulnA mulnC.
-set LHS := #|_|; rewrite -[n.+1]muln1 -{2}[n]mul1n {}/LHS.
+set lhs := #|_|; rewrite -[n.+1]muln1 -{2}[n]mul1n {}/lhs.
 rewrite -!card_matrix subn1 -(cardC1 0) -mulnA; set nzC := predC1 _.
 rewrite -sum1_card (partition_big lsubmx nzC) => [|A]; last first.
   rewrite unitmxE unitfE; apply: contra; move/eqP=> v0.
