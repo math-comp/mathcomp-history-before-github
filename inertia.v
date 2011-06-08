@@ -19,7 +19,7 @@ Local Open Scope ring_scope.
 (*                                                                        *)
 (*  (f ^ g)%CH : the group conjugate function                             *)
 (*                                                                        *)
-(* 'I_(G)[f] :  the set of elements of G such that f^g=f                  *)
+(* 'I_(G)[f] :  the set of elements of G such that f ^ g = f              *)
 (*                                                                        *)
 (* cconjugates G f : the sequence of all distinct conjugates of f         *)
 (*                   by elements of G                                     *)

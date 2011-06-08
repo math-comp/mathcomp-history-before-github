@@ -1352,7 +1352,7 @@ by move/eqP; rewrite subr_eq0; move/eqP->.
 Qed.
 
 Lemma free_coords : forall m (t : m.-tuple V) s j, 
-  free t -> coord t (\sum_(i < m) s i *:(t`_i)) j  =  s j.
+  free t -> coord t (\sum_(i < m) s i *: (t`_i)) j  =  s j.
 Proof.
 move=> m t s j Hf.
 rewrite linear_sum (bigD1 j) //= ffunE sum_ffunE.
