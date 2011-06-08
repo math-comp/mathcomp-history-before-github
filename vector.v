@@ -228,6 +228,8 @@ Structure vspace : Type := VSpace {
 }.
 
 Definition vspace_of of phant V := vspace.
+Identity Coercion type_vspace_of : vspace_of >-> vspace.
+
 Local Notation "{ 'vspace' T }" := (vspace_of (Phant T)) : type_scope.
 
 Canonical Structure vspace_subType :=
