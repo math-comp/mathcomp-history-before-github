@@ -24,8 +24,7 @@ Unset Printing Implicit Defensive.
 (*                           type F^iota(z).                                  *)
 (*                                                                            *)
 (*           polyOver K p == the coefficents of p lie in the subspace K       *)
-(*          FadjoinVS K x == K(x) as a vector space                           *)
-(*            Fadjoin K x == same as FadjoinVS K but of subalgebra type       *)
+(*            Fadjoin K x == K(x) as a vector space                           *)
 (*            minPoly K x == the monic minimal polynomial of x over the       *)
 (*                           subfield K                                       *)
 (*      elementDegree K x == the degree of the minimial polynomial or the     *)
@@ -1176,6 +1175,42 @@ move/(nth_index _).
 by move/(_ 0) <-.
 Qed.
 
+Lemma addp_polyOver (K : {vspace L}) (p q : {poly L}) :
+  polyOver K p -> polyOver K q -> polyOver K (p + q).
+Proof.
+move=> /polyOverP Hp /polyOverP Hq.
+apply/polyOverP => i.
+by rewrite coefD memvD.
+Qed.
+
+Lemma opp_polyOver (K : {vspace L}) (p : {poly L}) :
+  polyOver K p -> polyOver K (- p).
+Proof.
+move=> /polyOverP Hp.
+apply/polyOverP => i.
+by rewrite coefN memvN.
+Qed.
+
+Lemma polyOver0 (K : {vspace L}) : polyOver K 0.
+Proof.
+apply/polyOverP => i.
+by rewrite coef0 mem0v.
+Qed.
+
+Lemma sump_polyOver (K : {vspace L}) (I : finType) (P : pred I) 
+  (p_ : I -> {poly L}) :
+  (forall i, P i -> polyOver K (p_ i)) -> polyOver K (\sum_(i | P i) p_ i).
+Proof.
+move=> Hp; apply big_ind => //; first by apply polyOver0.
+by exact: addp_polyOver.
+Qed.
+
+Lemma polyOverC (K : {vspace L}) c : c \in K -> polyOver K (c%:P).
+Proof.
+move => cK; apply/polyOverP => i.
+by rewrite coefC; case: (_ == _) => //; apply: mem0v.
+Qed.
+
 Section SubAlgebra.
 
 Variable K : {algebra L}.
@@ -1239,19 +1274,6 @@ move/(contraR).
 by apply.
 Qed.
 
-Lemma addp_polyOver : forall p q : {poly L},
-  polyOver K p -> polyOver K q -> polyOver K (p + q).
-Proof.
-move => ? ?; move/polyOver_suba => [p ->]; move/polyOver_suba => [q ->].
-by apply/polyOver_suba; exists (p + q); rewrite rmorphD.
-Qed.
-
-Lemma opp_polyOver : forall p : {poly L}, polyOver K p -> polyOver K (- p).
-Proof.
-move => ?; move/polyOver_suba => [p ->].
-by apply/polyOver_suba; exists (- p); rewrite rmorphN.
-Qed.
-
 Lemma mulp_polyOver : forall p q : {poly L},
   polyOver K p -> polyOver K q -> polyOver K (p * q).
 Proof.
@@ -1274,26 +1296,10 @@ apply/polyOver_suba; exists ((Suba cK) *: q).
 by rewrite -!mul_polyC rmorphM /= map_polyC.
 Qed.
 
-Lemma polyOver0 : polyOver K 0.
-Proof. by apply/polyOver_suba; exists 0; rewrite map_polyC. Qed.
-
 Lemma polyOverX : polyOver K 'X.
 Proof.
 apply/polyOverP => i.
 by rewrite coefX; case: (_ == _); [apply: memv1 | apply: mem0v].
-Qed.
-
-Lemma polyOverC : forall c, c \in K -> polyOver K (c%:P).
-Proof.
-move => c cK; apply/polyOverP => i.
-by rewrite coefC; case: (_ == _) => //; apply: mem0v.
-Qed.
-
-Lemma sump_polyOver : forall (I : finType) (P : pred I) (p_ : I -> {poly L}),
-  (forall i, P i -> polyOver K (p_ i)) -> polyOver K (\sum_(i | P i) p_ i).
-Proof.
-move=> I P p_ Hp; apply big_ind => //; first by apply polyOver0.
-by exact: addp_polyOver.
 Qed.
 
 Lemma poly_polyOver : forall n (E : nat -> L),
