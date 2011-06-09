@@ -833,14 +833,14 @@ Lemma prodsgP (I : finType) (P : pred I) (A : I -> {set gT}) x :
           (x \in \prod_(i | P i) A i).
 Proof.
 rewrite -big_filter filter_index_enum; set r := enum P.
-pose inA c i := c i \in A i; set rhs := x \in _.
-suffices IHr: reflect (exists2 c, all (inA c) r & x = \prod_(i <- r) c i) rhs.
+pose inA c i := c i \in A i; set RHS := x \in _.
+suffices IHr: reflect (exists2 c, all (inA c) r & x = \prod_(i <- r) c i) RHS.
   apply: (iffP IHr) => [][c inAc ->].
     rewrite -[r]filter_index_enum big_filter; exists c => // i Pi.
     by apply: (allP inAc); rewrite mem_enum.
   rewrite -big_filter filter_index_enum; exists c => //; apply/allP=> i.
   rewrite mem_enum; exact: inAc.
-have: uniq r by [rewrite enum_uniq]; rewrite {}/rhs.
+have: uniq r by [rewrite enum_uniq]; rewrite {}/RHS.
 elim: {P}r x => /= [x _|i r IHr x /andP[r'i Ur]].
   by rewrite unlock; apply: (iffP set1P) => [-> | [] //]; exists (fun _ => 1).
 rewrite big_cons; apply: (iffP idP) => [|[c /andP[Aci Ac] ->]]; last first.
