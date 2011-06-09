@@ -548,7 +548,7 @@ have [b] : exists b, root (map_poly x (minPoly E a)) b.
  apply: Hpq; last done.
  by rewrite (dvdp_trans Hdz).
 move => Hb.
-case: (IH (Fadjoin E a) (kHomExtend E x a b)).
+case: (IH (Fadjoin_aspace E a) (kHomExtend E x a b)).
 - rewrite ltnS in Hm.
   apply: (leq_trans _ Hm).
   rewrite -(ltn_add2l (\dim (Fadjoin E a))).
