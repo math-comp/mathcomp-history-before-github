@@ -3520,10 +3520,10 @@ Qed.
 
 Section SeparableAndInseparableExtensions.
 
-Definition separable K E : bool :=
+Definition separable (K E : {vspace L}) : bool :=
  all (separableElement K) (vbasis E).
 
-Definition purelyInseparable K E : bool :=
+Definition purelyInseparable (K E : {vspace L}) : bool :=
  all (purelyInseparableElement K) (vbasis E).
 
 Variable (K : {algebra L}).
@@ -3619,10 +3619,8 @@ End SeparableAndInseparableExtensions.
 
 Section SeparableInseparableDecomposition.
 
-Implicit Types K : {algebra L}.
-
 Lemma separableSeparableExtension : forall K x,
- separableElement K x -> separable K (Fadjoin_aspace K x).
+ separableElement K x -> separable K (Fadjoin K x).
 Proof.
 move => K x.
 move/allSeparableElement => Hsep.
@@ -3631,7 +3629,7 @@ Qed.
 
 Lemma separableInseparableDecomposition : forall E K ,
  exists x, [&& x \in E, separableElement K x & 
-             purelyInseparable (Fadjoin_aspace K x) E].
+             purelyInseparable (Fadjoin K x) E].
 Proof.
 move => E K.
 wlog: K / (K <= E)%VS => [|HKE].
@@ -3653,7 +3651,8 @@ have Hsep : all (separableElement K) s.
  rewrite /f.
  by case ex_minnP => m; case/andP.
 set (K' := foldr (fun x y => Fadjoin_aspace y x) K s).
-have: exists x, [&& x \in E, separableElement K x & K' == Fadjoin_aspace K x].
+have: exists x, [&& x \in E, separableElement K x
+                  & K' == Fadjoin K x :> {vspace _}].
  rewrite /K' {K'}.
  have: all (fun x => x \in E) s.
   apply/allP => ?.
@@ -3666,10 +3665,8 @@ have: exists x, [&& x \in E, separableElement K x & K' == Fadjoin_aspace K x].
   exists 0.
   apply/and3P; split => //; first by rewrite mem0v.
    by rewrite separableinK // mem0v.
-  rewrite eq_sym /=.
-  rewrite -val_eqE /=.
-  rewrite -FadjoinxK.
-  apply: mem0v.
+  rewrite eq_sym -FadjoinxK.
+  by apply: mem0v.
  case/andP => Ht Hs.
  case/andP => HtE HsE.
  case: (IH Hs HsE) => y.
@@ -3685,7 +3682,7 @@ have: exists x, [&& x \in E, separableElement K x & K' == Fadjoin_aspace K x].
   move/allSeparableElement: (subsetSeparable (subsetKFadjoin K y) Ht).
   by apply.
  move/eqP: Hy => /= ->.
- by rewrite -val_eqE /= Hx.
+ by apply/eqP.
 case => x.
 case/and3P => HxE Hsepx.
 move/eqP => HK'.
@@ -3729,7 +3726,7 @@ by case/and3P: (choice.xchooseP
 Qed.
 
 Lemma separableGeneratorMaximal : forall E K, 
- purelyInseparable (Fadjoin_aspace K (separableGenerator K E)) E.
+ purelyInseparable (Fadjoin K (separableGenerator K E)) E.
 Proof.
 move => E K.
 by case/and3P: (choice.xchooseP 
