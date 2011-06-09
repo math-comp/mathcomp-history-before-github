@@ -437,8 +437,9 @@ Lemma Dade_Ind : {in A, forall a, H a :=: 1%g} ->
 Proof.
 move=> trivH aa CFaaA; have CFaa := memcW CFaaA.
 have [CFaa1 CFaa2] := (Dade_cfun CFaaA, memc_induced sLG CFaa).
-rewrite (ncoord_sum CFaa1) (ncoord_sum CFaa2); apply: eq_bigr => xi _.
-rewrite !(@ncoord_inner_prod _ _ G) // -frobenius_reciprocity ?memc_irr //.
+rewrite -(sum_inner_prodE CFaa1) -(sum_inner_prodE CFaa2).
+apply: eq_bigr => xi _.
+rewrite -frobenius_reciprocity ?memc_irr //.
 rewrite -Dade_reciprocity ?memc_irr // => a Aa u.
 by rewrite trivH // => /set1P ->; rewrite mul1g.
 Qed.
