@@ -86,7 +86,7 @@ Variable (p q : {poly R}).
 
 Definition separablePolynomial (p:{poly R}) := coprimep p (deriv p).
 
-Lemma separable_mul : separablePolynomial (p * q) = 
+Lemma separable_mul : separablePolynomial (p * q) =
  [&& separablePolynomial p, separablePolynomial q & coprimep p q].
 Proof.
 have dvdpR : forall (p q : {poly R}), p %| p * q.
@@ -283,7 +283,7 @@ case (leqP (size w) 1); last first.
   apply: contraL.
   move/(size_dvdp Hp0).
   rewrite polySpred ?expf_eq0 ?negb_and ?separable_neq0 ?orbT // size_exp_id.
-  apply: contraL. 
+  apply: contraL.
   move/subnK <-.
   by rewrite addn2 mulSn -leqNgt leq_addr.
  move: (ex_minnP Hwp) => [[|[|m]]].
@@ -300,7 +300,7 @@ case (leqP (size w) 1); last first.
  have Hwm : w ^+ m %| gcdp p p^`().
   rewrite dvdp_gcd (dvdp_trans _ Hwm1) ?exprS ?dvdp_mulIr //.
   move/dvdpPc: Hwm1 => [a [x [Ha0 Hx]]].
-  rewrite -(eqp_dvdr _ (eqp_mulC _ Ha0)) -derivZ Hx derivM. 
+  rewrite -(eqp_dvdr _ (eqp_mulC _ Ha0)) -derivZ Hx derivM.
   by rewrite deriv_exp -mulr_natl exprS !mulrA -mulr_addl dvdp_mulIr.
  have Hw2 : w * w %| q.
   rewrite -(eqp_dvdr _ (eqp_mulC _ Hb0)) Hqr dvdp_mul ?dvdp_gcdl //.
@@ -341,7 +341,7 @@ have : k ^+ m %| gcdp p p^`().
  move/dvdpPc: Hkm => [a [x [Ha0 Hx]]].
  rewrite -(eqp_dvdr _ (eqp_mulC _ Ha0)) -derivZ Hx derivM.
  by rewrite deriv_exp Hk'0 !mul0r mul0rn mulr0 addr0 dvdp_mulIr.
-have Hkq : k %| q by rewrite -(eqp_dvdr _ (eqp_mulC _ Hb0)) Hqr dvdp_mulIr.  
+have Hkq : k %| q by rewrite -(eqp_dvdr _ (eqp_mulC _ Hb0)) Hqr dvdp_mulIr.
 move/(dvdp_mul Hkq).
 by rewrite -Hpq -exprS (eqp_dvdr _ (eqp_mulC _ Hc0)) -[_ %| _]negbK Hkm1.
 Qed.
@@ -469,7 +469,7 @@ have [[u v]] :
  move/dvdpPc: (dvdp_gcdl p' q') => [c1 [u1 [Hc1 Hu1]]].
  move/dvdpPc: (dvdp_gcdr p' q') => [c2 [v1 [Hc2 Hv1]]].
  exists (c1 *: v1, c2 *: u1).
- rewrite !size_scaler // -!scaler_mull !scaler_mulr Hu1 Hv1 !mulrA.
+ rewrite !{1}size_scaler // -!{1}scaler_mull !scaler_mulr Hu1 Hv1 !mulrA.
  rewrite [v1 * _]mulrC.
  have Hu10 : u1 != 0.
   rewrite -polyC_eq0 in Hc1.
@@ -482,11 +482,11 @@ have [[u v]] :
   rewrite mul_polyC Hv1 mulf_eq0 negb_or.
   by case/andP.
  rewrite -(size_scaler q' Hc2) -(size_scaler p' Hc1) Hv1 Hu1.
- rewrite !size_mul_id // -(subnK Hp'q') !addnA !addn2 !ltnS !leq_addr.
+ rewrite !{1}size_mul_id // -(subnK Hp'q') !{1}addnA !{1}addn2 !{1}ltnS !{1}leq_addr.
  by rewrite !lt0n !size_poly_eq0 !andbT.
 move: {2}(size v + size (lead_coef v))%N
       (refl_equal (size v + size (lead_coef v))%N) => n.
-elim: n p u v {Hp0} @p' Hp'0 {Hp'q'} 
+elim: n p u v {Hp0} @p' Hp'0 {Hp'q'}
      => [|n IH] p u v p' Hp'0 Hszv /= [Huv Hu Hv].
  case/andP: Hv.
  move/eqP: Hszv.
@@ -547,7 +547,7 @@ case (eqVneq p.[0] 0) => Hp00; last first.
  move: Huv Hu Hv.
  rewrite -/p' Hv' Hu' ![_ * 'Y]mulrC -2!mulrA /=.
  move/mulfI ->.
-  by rewrite !mul_polyC !size_scaler -?size_poly_eq0 ?size_polyX //.
+  by rewrite !{1}mul_polyC !{1}size_scaler -?{1}size_poly_eq0 ?size_polyX //.
  by rewrite polyC_eq0 monic_neq0 // monicX.
 rewrite Hp00 scale0r size_poly0 eq_sym size_poly_eq0.
 rewrite mulf_eq0 -[q == 0]negbK Hq0 orbF.
@@ -697,7 +697,7 @@ Definition subfext_zmodMixin :=  ZmodMixin addfxA addfxC add0fx addfxN.
 Canonical Structure subfext_zmodType :=
   Eval hnf in ZmodType subFExtend subfext_zmodMixin.
 
-Lemma poly_rV_K_modp_subproof : forall q, 
+Lemma poly_rV_K_modp_subproof : forall q,
   rVpoly (poly_rV (q %% p') : 'rV[F]_(size p').-1) = q %% p'.
 Proof.
 move => q.
@@ -786,14 +786,14 @@ Definition poly_invert (q : {poly F}) : {poly F} :=
        let k := e.1 * q + e.2 * g in
        (k`_0)^-1 *: e.1.
 
-Lemma poly_invertE : forall q, 
+Lemma poly_invertE : forall q,
  horner_morph iotaz (poly_invert q) = (horner_morph iotaz q)^-1.
 Proof.
 move => q.
 rewrite /poly_invert.
 case: eqP => [->|]; first by rewrite rmorph0 invr0.
 move/eqP => Hqz.
-have : root ((gdcop q p') ^ iota) z' 
+have : root ((gdcop q p') ^ iota) z'
      = root (p' ^ iota) z' && ~~ root (q ^ iota) z'.
  by rewrite -root_gdco ? map_poly_eq0 // gdcop_map.
 case: gdcopP => r.
@@ -827,7 +827,7 @@ Qed.
 
 Local Notation subfext_inv := (mop1 subfext_invm).
 
-Lemma subfx_fieldAxiom : GRing.Field.axiom 
+Lemma subfx_fieldAxiom : GRing.Field.axiom
   (subfext_inv : subFExtend -> subFExtend).
 Proof.
 elim/quotW => x Hx.
@@ -851,11 +851,11 @@ rewrite /= /subfx_inv_rep linear0 /poly_invert rmorph0 eqxx mod0p !linear0.
 by rewrite rmorph0.
 Qed.
 
-Canonical Structure subfext_unitRing := 
-  Eval hnf in UnitRingType subFExtend 
+Canonical Structure subfext_unitRing :=
+  Eval hnf in UnitRingType subFExtend
     (FieldUnitMixin subfx_fieldAxiom subfx_inv0).
 
-Canonical Structure subfext_comUnitRing := 
+Canonical Structure subfext_comUnitRing :=
   Eval hnf in [comUnitRingType of subFExtend].
 
 Canonical Structure subfext_idomainType :=
@@ -903,7 +903,7 @@ Qed.
 Canonical Structure subfx_eval_additive := Additive subfx_eval_is_rmorphism.
 Canonical Structure subfx_eval_rmorphism := RMorphism subfx_eval_is_rmorphism.
 
-Lemma subfx_inj_eval : forall q : {poly F}, 
+Lemma subfx_inj_eval : forall q : {poly F},
   (p != 0) -> root (p ^ iota) z ->
   subfx_inj (subfx_eval q) = (q ^ iota).[z].
 Proof.
@@ -974,7 +974,7 @@ suff Hq0 : (exists q0 : {poly F}, (q0 ^ iota).[iota t * y - x] = y).
  by rewrite Hq0 oppr_sub addrC addrNK.
 have Hcomm: (commr_rmorph idfun (iota t)) by apply: mulrC.
 move/(f_equal (map_poly (horner_morph Hcomm))) : Hr.
-rewrite rmorphD !rmorphM map_polyC /= /poly_comp -horner_map rmorphM.
+rewrite rmorphD !{1}rmorphM map_polyC /= /poly_comp -horner_map rmorphM.
 rewrite [_ 'Y]map_polyC [_ 'X]horner_morphX [_ 'X]map_polyX.
 rewrite -map_poly_comp ?rmorph0 // -[(q' ^ _) ^ _]map_poly_comp ?rmorph0 //.
 rewrite ![GRing.Additive.apply _]/=.
@@ -1027,18 +1027,18 @@ have HQ : q ^ iota = Q ^ kappa.
  congr (Poly _).
  apply: eq_map => a.
  by rewrite /= /kappa subfx_inj_eval // map_polyC hornerC.
-pose (P := (p ^ (inj_subfx iota z f) \Po 
+pose (P := (p ^ (inj_subfx iota z f) \Po
   ((inj_subfx iota z f t) *: 'X - (subfx_eval iota z f 'X)%:P))).
 have HP : p2 = P ^ kappa.
  rewrite -!horner_map rmorph_sub /= map_poly_scaler map_polyC map_polyX /=.
  rewrite !subfx_inj_eval // map_polyX map_polyC hornerX hornerC.
  rewrite -map_poly_comp ?rmorph0 //.
- rewrite !map_polyE (eq_map (map_polyC _)) -!map_polyE.
+ rewrite (eq_map_poly (map_polyC _)).
  rewrite map_poly_comp ?rmorph0 //=.
- rewrite -[(p ^ _) ^ _]map_poly_comp ?rmorph0 // [p ^ _]map_polyE /=.
- rewrite (eq_map (fun q => subfx_inj_eval (polyC q) Hf0 Hfz)).
- rewrite (eq_map (horner_morphC _)); last by move => ?; apply: mulrC.
- rewrite -!map_polyE /p2 /p1 /p' !poly_compA {2 3}/poly_comp.
+ rewrite -[(p ^ _) ^ _]map_poly_comp ?rmorph0 //.
+ rewrite (eq_map_poly (fun q => subfx_inj_eval (polyC q) Hf0 Hfz)).
+ rewrite (eq_map_poly (horner_morphC _)); last by move => ?; apply: mulrC.
+ rewrite /p2 /p1 /p' !poly_compA {2 3}/poly_comp.
  rewrite rmorphM rmorphD ![GRing.RMorphism.apply _]/= !map_polyX !map_polyC.
  rewrite !horner_lin mulr_addr -addrA -polyC_opp -polyC_mul polyC_add oppr_add.
  by rewrite -!polyC_opp opprK mulrN mul_polyC.
@@ -1156,8 +1156,7 @@ have: forall (K:{vspace L}) x, x != 0 -> \dim (K * x%:VS) <= \dim K.
  by rewrite (leq_trans (dim_prodv _ _)) // dim_injv Hx muln1.
 move => suff K x Hx.
 apply: anti_leq.
-(* why do I need the {vspace L} annotation? *)
-by rewrite suff //= -{1}[K:{vspace L}]prodv1 -(mulfV Hx) prodv_inj prodvA
+by rewrite suff //= -{1}[K]prodv1 -(mulfV Hx) prodv_inj prodvA
            suff // invr_neq0.
 Qed.
 
@@ -1364,16 +1363,16 @@ Definition elementDegree := ex_minn Pholds.
 
 Definition FadjoinVS := (\sum_(i < elementDegree) (K * (x ^+ i)%:VS))%VS.
 
-Definition MinPoly_coef i v := 
+Definition MinPoly_coef i v :=
   \sum_j coord [tuple of map (fun y => (y * x ^+ i))
                 (vbasis K)] v j *: (vbasis K)`_j.
 
-Definition poly_for_Fadjoin (v : L) := 
-  \sum_(i < elementDegree) (MinPoly_coef i (sumv_pi 
+Definition poly_for_Fadjoin (v : L) :=
+  \sum_(i < elementDegree) (MinPoly_coef i (sumv_pi
      (fun (i : 'I_elementDegree) => (K * (x ^+ i)%:VS)%VS) predT i v))%:P *
    'X^i.
 
-Definition minPoly : {poly L} := 
+Definition minPoly : {poly L} :=
   'X^elementDegree - poly_for_Fadjoin (x ^+ elementDegree).
 
 Definition separableElement := separablePolynomial minPoly.
@@ -1431,7 +1430,7 @@ Lemma memv_MinPoly_coef : forall i v, v \in (K * (x ^+ i)%:VS)%VS ->
  v = (MinPoly_coef i v) * x ^+ i.
 Proof.
 move => i v.
-rewrite (_ : (K * (x ^+ i)%:VS)%VS = 
+rewrite (_ : (K * (x ^+ i)%:VS)%VS =
              span (map (fun y => (y * x ^+ i)) (vbasis K))).
  move/(coord_span) => Hv.
  rewrite {1}Hv {Hv} /MinPoly_coef.
@@ -1455,8 +1454,8 @@ apply/mapP.
 by exists x1.
 Qed.
 
-Lemma MinPoly_coef_linear : forall i a u v, 
- MinPoly_coef i (a *: u + v) = 
+Lemma MinPoly_coef_linear : forall i a u v,
+ MinPoly_coef i (a *: u + v) =
  a *: MinPoly_coef i u + MinPoly_coef i v.
 Proof.
 move => i a u v.
@@ -1512,8 +1511,8 @@ by exists (poly_for_Fadjoin v); (split; [apply: poly_for_polyOver | split]);
     [apply: size_poly_for | apply: poly_for_eq].
 Qed.
 
-Lemma poly_for_linear : forall a u v, 
- poly_for_Fadjoin (a *: u + v) = 
+Lemma poly_for_linear : forall a u v,
+ poly_for_Fadjoin (a *: u + v) =
  (a *: 1) *: poly_for_Fadjoin u + poly_for_Fadjoin v.
 Proof.
 move => a u v.
@@ -1547,7 +1546,7 @@ Qed.
 
 End FadjoinDefinitions.
 
-Lemma memXED_Fadjoin_subproof : forall x, 
+Lemma memXED_Fadjoin_subproof : forall x,
   x ^+ elementDegree F x \in FadjoinVS F x.
 Proof.
 move => x.
@@ -1593,10 +1592,10 @@ Variables (K : {vspace L}) (D:'End(L)).
 
 (* A deriviation only needs to be additive and satify lebniz's law, but all the
    deriviation I will use are going to be linear, so we just define a
-   derivation to be linear. *) 
+   derivation to be linear. *)
 Definition Derivation : bool :=
  let s := vbasis K in
- (all (fun v1 => all (fun v2 => D (v1 * v2) == D v1 * v2 + v1 * D v2) 
+ (all (fun v1 => all (fun v2 => D (v1 * v2) == D v1 * v2 + v1 * D v2)
                      s) s).
 
 Hypothesis (HD : Derivation).
@@ -1622,7 +1621,7 @@ Lemma Derivation_addp : forall p q, polyOver K p -> polyOver K q ->
  map_poly D (p + q) = map_poly D p + map_poly D q.
 Proof.
 move => p q. move/polyOverP => ?; move/polyOverP => ?.
-by apply/polyP => i; rewrite !(coefD,coef_map [linear of D]) /= linearD.
+by apply/polyP => i; rewrite !{1}(coefD,coef_map [linear of D]) /= linearD.
 Qed.
 
 Lemma Derivation_mulp : forall p q, polyOver K p -> polyOver K q ->
@@ -1632,7 +1631,7 @@ move => p q; move/polyOverP => ?; move/polyOverP => ?.
 apply/polyP => i.
 rewrite coefD (coef_map [linear of D]) /=  ?linear0 //.
 rewrite !coefM linear_sum /= -big_split; apply: eq_bigr => j _ /=.
-by rewrite !(coef_map [linear of D]) DerivationMul.
+by rewrite !{1}(coef_map [linear of D]) DerivationMul.
 Qed.
 
 End Derivation.
@@ -1697,7 +1696,7 @@ have->: map_poly D (p * 'X + c%:P) = map_poly D p * 'X + (D c)%:P.
  apply/polyP => i.
  by rewrite !(coefD, coefMX, coefC, (coef_map [linear of D])) ?linear0
             //= linearD /= ![D (if _ then _ else _)]fun_if linear0.
-rewrite horner_amulX linearD /= (DerivationMul HD) ?(memv_horner Hp0) 
+rewrite horner_amulX linearD /= (DerivationMul HD) ?(memv_horner Hp0)
         ?subv_refl //.
 rewrite (IHp Hp0) deriv_amulX !horner_add !horner_mul !hornerX !hornerC.
 rewrite !mulr_addl -!addrA; congr (_ + _).
@@ -1753,7 +1752,7 @@ rewrite /elementDegree.
 case: ex_minnP.
 case => // m _ Hm _ xK.
 apply/eqP.
-rewrite eqSS -leqn0 -ltnS Hm // !big_ord_recl big_ord0 expr1 expr0 addv0 
+rewrite eqSS -leqn0 -ltnS Hm // !big_ord_recl big_ord0 expr1 expr0 addv0
         prodv1.
 apply/orP; right.
 apply (@leq_trans (\dim K).+1).
@@ -1876,7 +1875,7 @@ symmetry;apply/idP.
 have xED : x ^+ elementDegree F x \in FadjoinVS F x.
  by apply: memXED_Fadjoin_subproof.
 have: (FadjoinVS F x <= K)%VS.
- by rewrite -subsetFadjoinE_subproof // xK sub1v. 
+ by rewrite -subsetFadjoinE_subproof // xK sub1v.
 move/subvP; apply.
 case (eqVneq x 0) => [->|nzx]; first by rewrite invr0 mem0v.
 move: (size_minPoly F x) (nzx) (root_minPoly_subproof xED).
@@ -1900,7 +1899,7 @@ Qed.
 Lemma memv_invl : forall x, x \in K -> x^-1 \in K.
 Proof. by move => x; rewrite memv_inv. Qed.
 
-Definition suba_inv (x : suba_of K) : suba_of K := 
+Definition suba_inv (x : suba_of K) : suba_of K :=
  Suba (memv_invl (subaP x)).
 
 Lemma suba_fieldAxiom : GRing.Field.axiom suba_inv.
@@ -1921,12 +1920,12 @@ Canonical Structure suba_comUnitRingType :=
   Eval hnf in [comUnitRingType of (suba_of K)].
 
 Canonical Structure suba_idomainType :=
-  Eval hnf in IdomainType (suba_of K) 
+  Eval hnf in IdomainType (suba_of K)
               (FieldIdomainMixin
                (@FieldMixin _ _ suba_fieldAxiom suba_inv0)).
 
 Canonical Structure suba_fieldType :=
-  Eval hnf in FieldType (suba_of K) 
+  Eval hnf in FieldType (suba_of K)
                (@FieldMixin _ _ suba_fieldAxiom suba_inv0).
 
 (*:TODO: FieldExtType *)
@@ -2000,7 +1999,7 @@ move/memv_MinPoly_coef ->.
 by rewrite mulrA memv_prod ?memv_inj // memv_mul // MinPoly_coefK.
 Qed.
 
-Lemma root_minPoly : root (minPoly K x) x. 
+Lemma root_minPoly : root (minPoly K x) x.
 Proof. by rewrite root_minPoly_subproof // XED_subproof. Qed.
 
 Lemma minPolyxx : (minPoly K x).[x] = 0.
@@ -2024,7 +2023,7 @@ rewrite ltnS => szpx0.
 move/polyOverP => Kp.
 case/poly_Fadjoin_small: XED_subproof => r; case.
 move/polyOverP => Kr [szr rxED].
-set q := (\poly_(i < (size p).-1) (p`_i)) + 
+set q := (\poly_(i < (size p).-1) (p`_i)) +
          (p`_(size p).-1)%:P * r * 'X ^+ ((size p).-1 - elementDegree K x).
 have -> : (p.[x] = q.[x]).
  rewrite !(horner_lin,horner_mul).
@@ -2119,7 +2118,7 @@ apply (@poly_Fadjoin_small_uniq K x).
    by rewrite modp_polyOver // minPolyOver.
   by apply: size_poly_for.
  by rewrite -ltnS -size_minPoly modp_spec // -size_poly_eq0 size_minPoly.
-by rewrite -poly_for_eq ?mempx_Fadjoin // 
+by rewrite -poly_for_eq ?mempx_Fadjoin //
            {1}(divp_mon_spec p (monic_minPoly K x)) horner_add horner_mul
            minPolyxx mulr0 add0r.
 Qed.
@@ -2154,15 +2153,15 @@ case: (negP (@nonzero1r L)).
 by rewrite -memv0 -K0 memv1.
 Qed.
 
-Lemma size_elementDegree : forall p, polyOver K p -> 
+Lemma size_elementDegree : forall p, polyOver K p ->
  size p <= elementDegree K x -> root p x = (p == 0).
 Proof.
 move => p Kp szp.
 rewrite /root.
 apply/eqP/eqP => Hp; last by rewrite Hp horner0.
-by apply: (@poly_Fadjoin_small_uniq K x); 
+by apply: (@poly_Fadjoin_small_uniq K x);
     rewrite ?polyOver0 ?size_poly0 ?horner0.
-Qed. 
+Qed.
 
 Lemma minPoly_irr : forall p, polyOver K p ->
  dvdp p (minPoly K x) -> (p %= minPoly K x) || (p %= 1).
@@ -2230,9 +2229,9 @@ case/negP: (root1 x).
 by rewrite -(eqp_root gcd_eq1) root_gcd rootp root_minPoly.
 Qed.
 
-Lemma separableElementP :  
-  reflect 
-  (exists f, polyOver K f /\ root f x /\ separablePolynomial f) 
+Lemma separableElementP :
+  reflect
+  (exists f, polyOver K f /\ root f x /\ separablePolynomial f)
    (separableElement K x).
 Proof.
 apply: (iffP idP).
@@ -2278,8 +2277,8 @@ move: (leq_trans Hsz (size_poly _ _)).
 by rewrite size_minPoly ltnn.
 Qed.
 
-Lemma separableNXp : 
-  reflect (exists2 p, p \in [char L] & 
+Lemma separableNXp :
+  reflect (exists2 p, p \in [char L] &
             exists2 g, (polyOver K g) & (minPoly K x) = g \Po 'X^p)
           (~~ (separableElement K x)).
 Proof.
@@ -2340,7 +2339,7 @@ rewrite coefZ -exprn_mulr coefXn eqn_mul2l [s == j]Hj eqn0Ngt Hp0.
 by rewrite mulr0.
 Qed.
 
-Lemma separableNrootdmp : 
+Lemma separableNrootdmp :
   (separableElement K x) != (root (deriv (minPoly K x)) x).
 Proof.
 rewrite separable_nzdmp size_elementDegree.
@@ -2349,7 +2348,7 @@ rewrite separable_nzdmp size_elementDegree.
 by rewrite (leq_trans (size_poly _ _)) // size_minPoly leqnn.
 Qed.
 
-Lemma DerivationSeparable : forall D, Derivation Fadjoin D -> 
+Lemma DerivationSeparable : forall D, Derivation Fadjoin D ->
  (separableElement K x) ->
  D x = - (map_poly D (minPoly K x)).[x] / ((minPoly K x)^`()).[x].
 Proof.
@@ -2391,11 +2390,11 @@ move : (poly_for_Fadjoin _ _ _) => pv.
 rewrite (_ : map_poly D ((a *: 1)%:P * pu + pv)
            = (a *: 1)%:P * map_poly D pu + map_poly D pv); last first.
   apply/polyP => i; rewrite !(coef_map [linear of D]) ?linear0 // !coefD.
-  by rewrite  !coefCM  !(coef_map [linear of D]) ?linear0 //= -!scaler_mull
+  by rewrite  !{1}coefCM  !{1}(coef_map [linear of D]) ?{1}linear0 //= -!{1}scaler_mull
               !mul1r linearP.
-by rewrite !horner_lin_comm -scaler_mull mul1r mulr_addl scaler_addr 
+by rewrite !{1}horner_lin_comm -scaler_mull mul1r mulr_addl scaler_addr
            -scaler_mull -addrA [(_.[x] + _)]addrA [_ + (a *: (_ * _))]addrC /=
-           !addrA.
+           !{1}addrA.
 Qed.
 
 Hypothesis HD: Derivation K D.
@@ -2421,9 +2420,9 @@ rewrite negb_eqb addbC /root sep addbT {sep} => sep.
 rewrite lapp_of_funK; last by apply: DerivationExtend_body_linear.
 rewrite {-1}(divp_mon_spec p (monic_minPoly K x)) /DerivationExtend_body.
 rewrite poly_for_modp // /horner_morph (@Derivation_addp K)
-        ?(Derivation_mulp HD)
-        ?(mulp_polyOver, divp_polyOver, modp_polyOver, minPolyOver) //.
-rewrite derivD derivM !horner_add !horner_mul minPolyxx !mulr0 !add0r.
+        ?{1}(Derivation_mulp HD)
+        ?{1}(mulp_polyOver, divp_polyOver, modp_polyOver, minPolyOver) //.
+rewrite derivD derivM !{1}horner_add !{1}horner_mul minPolyxx !{1}mulr0 !{1}add0r.
 rewrite mulr_addl addrA [_ + (_ * _ * _)]addrC {2}/Dx /horner_morph -mulrA -/Dx.
 by rewrite [((minPoly K x)^`()).[x] * _]mulrC (mulfVK sep) mulrN addKr.
 Qed.
@@ -2436,17 +2435,17 @@ apply/allP => u; move/memv_basis => Hu.
 apply/allP => v; move/memv_basis => Hv.
 apply/eqP.
 rewrite (poly_for_eq Hu) (poly_for_eq Hv) -horner_mul !{1}DerivationExtend_Poly
-        ?mulp_polyOver ?poly_for_polyOver // /horner_morph (Derivation_mulp HD)
-        ?poly_for_polyOver // derivM !horner_add !horner_mul !mulr_addl 
-        !mulr_addr -!addrA; congr (_ + _).
+        ?{1}mulp_polyOver ?{1}poly_for_polyOver // /horner_morph (Derivation_mulp HD)
+        ?{1}poly_for_polyOver // derivM !{1}horner_add !{1}horner_mul !{1}mulr_addl
+        !{1}mulr_addr -!addrA; congr (_ + _).
 move:Dx => Dx0.
-rewrite -!mulrA [(Dx0 _) * _]mulrC !addrA; congr (_ + _).
+rewrite -!{1}mulrA [(Dx0 _) * _]mulrC !{1}addrA; congr (_ + _).
 by rewrite addrC.
 Qed.
 
 End DerivationExtend.
 
-(* Reference: 
+(* Reference:
 http://www.math.uconn.edu/~kconrad/blurbs/galoistheory/separable2.pdf *)
 Lemma separableDerivationP :
   reflect (forall D, Derivation Fadjoin D ->
@@ -2464,7 +2463,7 @@ apply introP.
   apply/polyP => i.
   apply/eqP.
   by rewrite (coef_map [linear of D]) ?linear0 //= coef0 -memv_ker K0.
- by rewrite memv_ker (DerivationPoly DD) ?memx_Fadjoin 
+ by rewrite memv_ker (DerivationPoly DD) ?memx_Fadjoin
          ?(polyOver_subset subsetKFadjoin Hp) // (DerivationSeparable DD sep)
          /horner_morph !HD0 ?minPolyOver // horner0 oppr0 mul0r mulr0 addr0.
 move => nsep.
@@ -2480,14 +2479,14 @@ have Dlin : linear D_body.
 pose D := lapp_of_fun D_body.
 have DF : (K <= lker D)%VS.
  apply/subvP => v vK.
- by rewrite memv_ker lapp_of_funK // /D //= /D_body poly_for_K // derivC 
+ by rewrite memv_ker lapp_of_funK // /D //= /D_body poly_for_K // derivC
             horner0.
 have DDeriv : Derivation Fadjoin D.
  apply/allP => u; move/memv_basis => Hu.
  apply/allP => v; move/memv_basis => Hv.
  by rewrite !lapp_of_funK // /D //= /D_body {-2}(poly_for_eq Hu)
-            {-3}(poly_for_eq Hv) -!horner_mul -horner_add -derivM 
-            poly_for_modp ?mulp_polyOver ?poly_for_polyOver // 
+            {-3}(poly_for_eq Hv) -!horner_mul -horner_add -derivM
+            poly_for_modp ?mulp_polyOver ?poly_for_polyOver //
             {2}(divp_mon_spec (_ * _) (monic_minPoly K x)) derivD derivM
             !horner_add !horner_mul Hroot minPolyxx !mulr0 !add0r.
 have Dx : D x = 1.
@@ -2527,7 +2526,7 @@ Qed.
 
 End MoreFadjoin.
 
-Lemma subsetSeparable : forall (K E : {algebra L}) x, (K <= E)%VS -> 
+Lemma subsetSeparable : forall (K E : {algebra L}) x, (K <= E)%VS ->
  separableElement K x -> separableElement E x.
 Proof.
 move => K E x KE.
@@ -2558,7 +2557,7 @@ have KyxEqKx : (Fadjoin (Fadjoin K (q.[x])) x = Fadjoin K x).
  apply/eqP.
  apply: subv_anti.
  by rewrite -!{1}subsetFadjoinE mempx_Fadjoin //
-         (subv_trans _ (subsetKFadjoin (Fadjoin K _) _)) subsetKFadjoin 
+         (subv_trans _ (subsetKFadjoin (Fadjoin K _) _)) subsetKFadjoin
          // !{1}memx_Fadjoin.
 rewrite -horner_poly_comp.
 move: (DerivationExtendDerivation DD sepFyx).
@@ -2573,7 +2572,7 @@ have hmD : forall t, polyOver K t ->
  move/polyOverP => Ht.
  rewrite /horner_morph (_ : map_poly _ _ = 0); first by rewrite horner0.
  apply/polyP => i.
- rewrite coef0 (coef_map [linear of (DerivationExtend _ _ _)]) 
+ rewrite coef0 (coef_map [linear of (DerivationExtend _ _ _)])
          ?linear0 //= DerivationExtended.
   apply/eqP.
   by rewrite -memv_ker KD0.
@@ -2597,7 +2596,7 @@ rewrite -!subsetFadjoinE memx_Fadjoin memK_Fadjoin ?memx_Fadjoin //.
 by rewrite (@subv_trans _ _ (Fadjoin K y)) // subsetKFadjoin.
 Qed.
 
-Lemma subsetFadjoin : forall x (K E : {algebra L}), 
+Lemma subsetFadjoin : forall x (K E : {algebra L}),
   (K <= E)%VS -> (Fadjoin K x <= Fadjoin E x)%VS.
 Proof.
 move => x K E HKE.
@@ -2611,7 +2610,7 @@ Section SeparableInCharP.
 
 Variable (K : {algebra L}).
 
-Lemma separablePower : forall x, 
+Lemma separablePower : forall x,
  exists n, [char L].-nat n && separableElement K (x ^+ n).
 Proof.
 move => x.
@@ -2749,7 +2748,7 @@ Section PurelyInseparableElement.
 
 Variable K : {algebra L}.
 
-Lemma purelyInseparableElementP : forall x, reflect 
+Lemma purelyInseparableElementP : forall x, reflect
  (exists2 n, [char L].-nat n & x ^+ n \in K)
  (purelyInseparableElement K x).
 Proof.
@@ -2781,7 +2780,7 @@ by move/eqP <-.
 Qed.
 
 (*
-Lemma purelyInseparableElementP : forall x, reflect 
+Lemma purelyInseparableElementP : forall x, reflect
  (forall n, [char L].-nat n -> separableElement K (x ^+ n) -> x ^+ n \in K)
  (purelyInseparableElement x).
 Proof.
@@ -2802,7 +2801,7 @@ by rewrite -!p_part !part_pnat_id // -(eq_pnat _ (charf_eq Hp)).
 Qed.
 *)
 
-Lemma separableInseparableElement: forall x, 
+Lemma separableInseparableElement: forall x,
  (x \in K) = separableElement K x && purelyInseparableElement K x.
 Proof.
 move => x.
@@ -2917,7 +2916,7 @@ rewrite /h !ffunE.
 by move/(f_equal val) => /=.
 Qed.
 
-Lemma PET_finiteCase_subproof : 
+Lemma PET_finiteCase_subproof :
   KisBig \/ exists z, Fadjoin (Fadjoin K y) x = Fadjoin K z.
 Proof.
 case (eqVneq x 0) => [->|Hx0].
@@ -2969,7 +2968,7 @@ have HinvT : forall i:fT, (val i)^-1 \in l.
  case => ? /=; move/allpairsP => [[ix iy] [_ _ ->]].
  rewrite /h0 /=.
  rewrite invf_mul.
- rewrite -[x ^- ix]mul1r -Hxa -{1}[a.+2](subnK (ltnW (ltn_ord ix))) 
+ rewrite -[x ^- ix]mul1r -Hxa -{1}[a.+2](subnK (ltnW (ltn_ord ix)))
          exprn_addr mulfK ?expf_neq0 //.
  by rewrite -[y ^- iy]mul1r -Hyb -{1}[b.+2](subnK (ltnW (ltn_ord iy)))
             exprn_addr mulfK ?expf_neq0.
@@ -2991,7 +2990,7 @@ have mulVgT : left_inverse onegT invgT mulgT.
  apply/val_inj => /=.
  apply: mulVf.
  by apply: Hl0.
-pose gT := @FinGroupType (BaseFinGroupType fT 
+pose gT := @FinGroupType (BaseFinGroupType fT
               (FinGroup.Mixin mulgTA mul1gT mulVgT)) mulVgT.
 pose h := fun i:gT => (val i).
 have Mh1: {in [set: gT] &, {morph h : u v/ (u * v)%g >-> u * v}} by done.
@@ -3063,10 +3062,7 @@ Proof.
 move => p z nzp.
 have Sa: size ('X + z%:P) = 2.
   by rewrite size_addl // !(size_polyX, size_polyC) //; case: eqP.
-rewrite /poly_comp horner_coef.
-have -> : size (map_poly polyC p) = size p.
- by rewrite map_polyE (PolyK (c:=0%:P)) ?size_map // last_map polyC_eq0
-            -nth_last -lead_coefE lead_coef_eq0.
+rewrite /poly_comp horner_coef size_map_poly.
 rewrite (polySpred nzp) big_ord_recr /= coef_map mul_polyC.
 have H : size (p`_(size p).-1 *: ('X + z%:P) ^+ (size p).-1) = (size p).-1.+1.
   rewrite size_scaler -?lead_coefE ?lead_coef_eq0 //.
@@ -3098,7 +3094,7 @@ rewrite negb_eqb sep /root -/g.
 apply: contra.
 have <- : g0.[0] = g0`_0.
  rewrite -[g0`_0]addr0.
- rewrite horner_coef szg0_subproof /m -(prednK (elementDegreegt0 _ _)) 
+ rewrite horner_coef szg0_subproof /m -(prednK (elementDegreegt0 _ _))
          big_ord_recl expr0 mulr1.
  congr (_ + _).
  apply: big1 => i _.
@@ -3129,7 +3125,7 @@ rewrite (leq_trans (size_prod _ _)) // eq_cardT // size_enum_ord big_split_ord
  pose p := fun i => M (lshift m i) (s (lshift m i)).
  have : forall i, predT i -> size (p i) <= 1.
   move => i _.
-  by rewrite /p col_mxEu /Mg mxE !(fun_if, if_arg) size_polyC size_poly0 
+  by rewrite /p col_mxEu /Mg mxE !(fun_if, if_arg) size_polyC size_poly0
              leq_b1 if_same.
  move/leq_sum.
  move/leq_trans => -> //.
@@ -3256,7 +3252,7 @@ have Ha : size a = (n * m).+1.
             -?eq_size_prodM_subproof.
 rewrite size_addl // Ha ltnS (leq_trans (size_sum _ _ _)) //.
 apply/bigmax_leqP => s.
-rewrite -polyC_opp -polyC_exp mul_polyC size_scaler ?signr_eq0 // 
+rewrite -polyC_opp -polyC_exp mul_polyC size_scaler ?signr_eq0 //
         eq_size_prodM_subproof.
 move/negbTE => szneq.
 move: (leq_size_prodM_subproof s).
@@ -3315,12 +3311,12 @@ have r1small : size r1 <= n.
   rewrite -(prednK szgcd0) ltnS in szgcd.
   rewrite -ltnS (leq_trans _ szf1t) //.
   by rewrite -[size f1t](size_scaler _ c1nz) Hr1 size_mul_id
-             -?size_poly_eq0 -?lt0n // -(prednK szgcd0) addnS -(prednK szgcd) 
+             -?size_poly_eq0 -?lt0n // -(prednK szgcd0) addnS -(prednK szgcd)
              addnS ltnS leq_addr.
 have r2small : size r2 <= m.
   rewrite -(prednK szgcd0) ltnS in szgcd.
   by rewrite -ltnS -szg0_subproof -[size g0](size_scaler _ c2nz) Hr2 size_mul_id
-             -?size_poly_eq0 -?lt0n // -(prednK szgcd0) addnS -(prednK szgcd) 
+             -?size_poly_eq0 -?lt0n // -(prednK szgcd0) addnS -(prednK szgcd)
              addnS ltnS leq_addr.
 apply/det0P.
 exists (row_mx (\row_i ((c2 *: r1)`_i)) (-(\row_i ((c1 *: r2)`_i)))).
@@ -3372,7 +3368,7 @@ have matrixPolyMul: forall (h r : {poly L}) k z c, size r <= k ->
   case: ifP; rewrite hornerC //.
   move/negbT.
   rewrite -ltnNge => Hij.
-  by rewrite coefZ nth_default ?mulr0 ?mul0r // (leq_trans _ Hij) // 
+  by rewrite coefZ nth_default ?mulr0 ?mul0r // (leq_trans _ Hij) //
              (leq_trans _ ilarge).
 rewrite (matrixPolyMul g0) //.
 rewrite (matrixPolyMul f1t) //.
@@ -3397,9 +3393,9 @@ Proof.
 apply/andP; split; last first.
  rewrite dvdp_gcd.
  apply/andP; split; rewrite -root_factor_theorem; last by rewrite root_minPoly.
- by rewrite /root /h horner_poly_comp ![_.[y]]horner_lin /z addrC subrK 
+ by rewrite /root /h horner_poly_comp ![_.[y]]horner_lin /z addrC subrK
             minPolyxx.
-rewrite /h /z polyC_add [x%:P + _]addrC polyC_opp polyC_mul -mul_polyC addrA 
+rewrite /h /z polyC_add [x%:P + _]addrC polyC_opp polyC_mul -mul_polyC addrA
         -mulr_subr mul_polyC.
 (*
 have PCRM := polyC_RM.
@@ -3449,10 +3445,10 @@ have Hy : (y \in Fadjoin K z).
   by apply: memvNl.
  rewrite addp_polyOver ?polyOverX // opp_polyOver //.
  have: (polyOver (Fadjoin K z) (gcdp h g)).
-  rewrite gcdp_polyOver ?compose_polyOver //; 
+  rewrite gcdp_polyOver ?compose_polyOver //;
    try solve [by rewrite (polyOver_subset (subsetKFadjoin _ _)) // minPolyOver].
   by rewrite addp_polyOver ?polyOverC ?memx_Fadjoin //
-             (polyOver_subset (subsetKFadjoin _ _)) // scalep_polyOver 
+             (polyOver_subset (subsetKFadjoin _ _)) // scalep_polyOver
              ?polyOverX.
  move/polyOverP => HKz.
  rewrite (_ : y = (- (gcdp h g)`_0)/(gcdp h g)`_1).
@@ -3490,7 +3486,7 @@ apply: PET_infiniteCase_subproof => //.
 by apply: HKl.
 Qed.
 
-Lemma separableFadjoinExtend : separableElement (Fadjoin K y) x -> 
+Lemma separableFadjoinExtend : separableElement (Fadjoin K y) x ->
   separableElement K x.
 Proof.
 move/separableDerivationP => sepx.
@@ -3643,7 +3639,7 @@ by apply/separableP.
 Qed.
 
 Lemma separableInseparableDecomposition : forall E K ,
- exists x, [&& x \in E, separableElement K x & 
+ exists x, [&& x \in E, separableElement K x &
              purelyInseparable (Fadjoin K x) E].
 Proof.
 move => E K.
@@ -3657,7 +3653,7 @@ wlog: K / (K <= E)%VS => [|HKE].
  apply/purelyInseparableP => y Hy.
  apply: subsetInseparable; last by apply Hinsep.
  by apply/subsetFadjoin/capvSl.
-set (f := fun i => 
+set (f := fun i =>
       (vbasis E)`_i ^+ ex_minn (separablePower K (vbasis E)`_i)).
 set (s := mkseq f (\dim E)).
 have Hsep : all (separableElement K) s.
@@ -3721,29 +3717,29 @@ Qed.
 
 (* Are these defintions not needed? *)
 
-Definition separableGenerator (K E:{algebra L}) : L:= 
+Definition separableGenerator (K E:{algebra L}) : L:=
   choice.xchoose (separableInseparableDecomposition E K).
 
 Lemma separableGeneratorInE : forall E K, separableGenerator K E \in E.
 Proof.
 move => E K.
-by case/and3P: (choice.xchooseP 
+by case/and3P: (choice.xchooseP
   (separableInseparableDecomposition E K)).
 Qed.
 
-Lemma separableGeneratorSep : forall E K, 
+Lemma separableGeneratorSep : forall E K,
  separableElement K (separableGenerator K E).
 Proof.
 move => E K.
-by case/and3P: (choice.xchooseP 
+by case/and3P: (choice.xchooseP
   (separableInseparableDecomposition E K)).
 Qed.
 
-Lemma separableGeneratorMaximal : forall E K, 
+Lemma separableGeneratorMaximal : forall E K,
  purelyInseparable (Fadjoin K (separableGenerator K E)) E.
 Proof.
 move => E K.
-by case/and3P: (choice.xchooseP 
+by case/and3P: (choice.xchooseP
   (separableInseparableDecomposition E K)).
 Qed.
 

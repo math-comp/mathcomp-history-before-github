@@ -296,8 +296,10 @@ Definition injv (v: V) : {vspace V} := mx2vs (v2rv v).
 Local Notation "v %:VS" := (injv v) : ring_scope.
 
 (* This injection allows us to define a notion of membership *)
-Canonical Structure vpredType := mkPredType (fun vs v => (v%:VS <= vs)%VS).
+Definition vpredType := mkPredType (fun vs v => (v%:VS <= vs)%VS).
 
+Definition pred_of_vspace : vspace -> pred_sort vpredType := id.
+Coercion pred_of_vspace: vspace >-> pred_sort.
 Lemma vs2mx0 : vs2mx 0%:VS = 0.
 Proof. by rewrite /injv linear0 /= genmx0. Qed.
 

@@ -399,8 +399,8 @@ Canonical Structure aspace_of_subType := Eval hnf in [subType of {algebra A}].
 Canonical Structure aspace_of_eqType := Eval hnf in [eqType of {algebra A}].
 Canonical Structure aspace_for_choiceType :=  Eval hnf in [choiceType of {algebra A}].
 
-Canonical Structure apredType := 
-  mkPredType (fun (al: {algebra A}) (a: A) => (a%:VS <= al)%VS).
+(* Canonical Structure apredType :=  *)
+(*   mkPredType (fun (al: {algebra A}) (a: A) => (a%:VS <= al)%VS). *)
 
 Implicit Type gs: {algebra A}.
 
