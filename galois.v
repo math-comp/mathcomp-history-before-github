@@ -71,7 +71,7 @@ Let F : {algebra L} := aspace1 _.
 
 Section Definitions.
 
-Variables (K E: {vspace L}) (f : 'End(L)).
+Variables (K E: {vspace L}).
 
 (* Should I make this canonical by setting fixing (f @: E)^C ? *)
 Definition kHom : pred 'End(L) :=
@@ -79,7 +79,7 @@ fun f => (K <= eigenspace f 1)%VS &&
   (all (fun v1 => all (fun v2 => f (v1 * v2) == f v1 * f v2) (vbasis E))
        (vbasis E)).
 
-Lemma kHomP :
+Lemma kHomP (f : 'End(L)) :
  reflect ((forall x, x \in K -> f x = x) /\
           (forall x y, x \in E -> y \in E -> f (x * y) = f x * f y))
  (kHom f).
@@ -115,6 +115,11 @@ move/all_nthP.
 apply.
 by rewrite (size_tuple (vbasis _)).
 Qed.
+
+Lemma kHom1 : kHom \1%VS.
+Proof. apply/kHomP. by split; move => ? ?; rewrite !unit_lappE. Qed.
+
+Variable (f : 'End(L)).
 
 Lemma kHomFixedPoly : forall p, kHom f -> (polyOver K p) -> map_poly f p = p.
 Proof.
@@ -408,10 +413,7 @@ by split;[move => a b|]; rewrite !lappE ?rmorph1 ?rmorphM.
 Qed.
 
 Definition id_in_LAut : \1%VS \in LAut_enum.
-Proof.
-apply/LAut_is_enum.
-by repeat split;try (move => a b); rewrite !unit_lappE.
-Qed.
+Proof. apply/LAut_is_enum/LAut_lrmorph. by apply: kHom1. Qed.
 
 Lemma LAut_ker0 : forall (f : LAut), lker (ssval f) = 0%:VS.
 Proof.
@@ -846,10 +848,9 @@ by rewrite memx_Fadjoin.
 Qed.
 
 Definition galois K E := separable K E && normal K E.
-
 (*
 Lemma separable_dim : forall (K : {algebra L}) x, separableElement K x ->
-  normal K (Fadjoin K x) -> elementDegree K x = #|'Aut(K | Fadjoin K x)%g|.
+  normal K (Fadjoin K x) -> elementDegree K x = #|'Aut(Fadjoin K x | K)%g|.
 Proof.
 move => K x Hsep.
 case/normalP/(_ _ (memx_Fadjoin K x)) => r.
@@ -860,16 +861,38 @@ congr (_.+1).
 apply/eqP.
 move: Hsep.
 rewrite /separableElement Hmin separable_factors => Huniq.
-rewrite [#|_|]card_quotient.
 rewrite eqn_leq.
 apply/andP; split.
- 
- apply max_poly_roots.
+ pose f := kHomExtend K \1%VS x.
 
-
+Focus 2.
+rewrite cardE.
+pose f (y : coset_of [set g : LAut | kAut (Fadjoin K x) (fullv L) (val g)]) :=
+   val (repr y) x.
+rewrite -(size_map f).
+apply: uniq_leq_size.
+ rewrite map_inj_in_uniq ?enum_uniq //.
+ move => a b.
+ rewrite 2!mem_enum => Ha Hb Hab.
+ apply/eqP/(Aut_eq (subsetKFadjoin _ _) Ha Hb
+                   (mem_repr_coset _) (mem_repr_coset _)) => ?.
+ case/poly_Fadjoin => p [Hp ->].
+ rewrite -!horner_map /= -/(f a) -/(f b) Hab.
+ case/andP: (Aut_kAut (subsetKFadjoin _ _) Ha (mem_repr_coset _)).
+ move/(kHomFixedPoly)/(_ Hp) => -> _.
+ case/andP: (Aut_kAut (subsetKFadjoin _ _) Hb (mem_repr_coset _)).
+ by move/(kHomFixedPoly)/(_ Hp) => -> _.
+move => ? /mapP [a Ha ->].
+rewrite mem_enum in Ha.
+rewrite -root_prod_factors -Hmin /f.
+case/andP: (Aut_kAut (subsetKFadjoin _ _) Ha (mem_repr_coset _)).
+move/(kHom_rootK)/(_ (subsetKFadjoin _ _) _ _
+                     (minPolyOver K x) (memx_Fadjoin _ _)) => Hroot _.
+by rewrite Hroot // root_minPoly.
+Qed.
 
 Lemma galois_dim : forall (K E : {algebra L}), (K <= E)%VS -> galois K E ->
- \dim E = (\dim K * #|'Aut(K | E)%g|)%N.
+ \dim E = (\dim K * #|'Aut(E | K)%g|)%N.
 Proof.
 move => K E HKE.
 case/andP.
