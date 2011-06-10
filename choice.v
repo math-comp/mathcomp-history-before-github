@@ -32,6 +32,11 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 (*                        function g and fK : pcancel f g.                    *)
 (*    CanCountMixin fK == Count mixin for T, given f : T -> cT, g and         *)
 (*                        fK : cancel f g.                                    *)
+(*      GenTree.tree T == generic n-ary tree type with nat-labeled nodes and  *)
+(*                        T-labeled nodes. It is equipped with canonical      *)
+(*                        eqType, choiceType, and countType instances, and so *)
+(*                        can be used to similarly equip simple datatypes     *)
+(*                        by using the mixins above.                          *)
 (* In addition to the lemmas relevant to these definitions, this file also    *)
 (* contains definitions of a Canonical choiceType and countType instances for *)
 (* all basic datatypes (e.g., nat, bool, subTypes, pairs, sums, etc.).        *)
@@ -193,7 +198,8 @@ Lemma pair_of_tagK : cancel pair_of_tag tag_of_pair. Proof. by case. Qed.
 
 Definition opair_of_inj (s : T1 + T2) :=
   match s with inl x => (Some x, None) | inr y => (None, Some y) end.
-Definition inj_of_opair p := oapp (some \o @inr T1 T2) (omap (@inl _ T2) p.1) p.2.
+Definition inj_of_opair p :=
+  oapp (some \o @inr T1 T2) (omap (@inl _ T2) p.1) p.2.
 Lemma opair_of_injK : pcancel opair_of_inj inj_of_opair. Proof. by case. Qed.
 
 End OtherEncodings.
@@ -642,3 +648,71 @@ Definition sum_countMixin (T1 : countType) (T2 : countType) :=
 Canonical sum_countType (T1 : countType) (T2 : countType) :=
   Eval hnf in CountType (T1 + T2) (sum_countMixin T1 T2).
 
+Module GenTree.
+
+Unset Elimination Schemes.
+Section Def.
+
+Variable T : Type.
+
+Inductive tree := Leaf of T | Node of nat & seq tree.
+
+Definition tree_rect K IH_leaf IH_node :=
+  fix loop t : K t := match t with
+  | Leaf x => IH_leaf x
+  | Node n f0 =>
+    let fix iter_pair f : foldr (fun t => prod (K t)) unit f :=
+      if f is t :: f' then (loop t, iter_pair f') else tt in
+    IH_node n f0 (iter_pair f0)
+  end.
+Definition tree_rec (K : tree -> Set) := @tree_rect K.
+Definition tree_ind K IH_leaf IH_node :=
+  fix loop t : K t : Prop := match t with
+  | Leaf x => IH_leaf x
+  | Node n st0 =>
+    let fix iter_conj st : foldr (fun t => and (K t)) True st :=
+        if st is t :: st' then conj (loop t) (iter_conj st') else Logic.I
+      in IH_node n st0 (iter_conj st0)
+    end.
+
+Fixpoint encode t : seq (nat + T) :=
+  match t with
+  | Leaf x => [:: inr _ x]
+  | Node n f => inl _ n.+1 :: rcons (flatten (map encode f)) (inl _ 0)
+  end.
+
+Definition decode_step c fs := 
+  match c with
+  | inr x => (Leaf x :: fs.1, fs.2)
+  | inl 0 => ([::], fs.1 :: fs.2)
+  | inl n.+1 => (Node n fs.1 :: head [::] fs.2, behead fs.2)
+  end.
+
+Definition decode c := ohead (foldr decode_step ([::], [::]) c).1.
+
+Lemma codeK : pcancel encode decode.
+Proof.
+move=> t; rewrite /decode; set fs := (_, _).
+suffices ->: foldr decode_step fs (encode t) = (t :: fs.1, fs.2) by [].
+do [elim t => //={t} n f IHt] in (fs) *; elim: f IHt => //= t f IHf [].
+by rewrite rcons_cat foldr_cat => -> /= /IHf[-> -> ->].
+Qed.
+
+End Def.
+
+Definition tree_eqMixin (T : eqType) := PcanEqMixin (@codeK T).
+Canonical tree_eqType (T : eqType) := EqType (tree T) (tree_eqMixin T).
+
+Definition tree_choiceMixin (T : choiceType) := PcanChoiceMixin (@codeK T).
+Canonical tree_choiceType (T : choiceType) :=
+  ChoiceType (tree T) (tree_choiceMixin T).
+
+Definition tree_countMixin (T : countType) := PcanCountMixin (@codeK T).
+Canonical tree_countType (T : countType) :=
+  CountType (tree T) (tree_countMixin T).
+
+End GenTree.
+
+Canonical GenTree.tree_eqType.
+Canonical GenTree.tree_choiceType.
+Canonical GenTree.tree_countType.
