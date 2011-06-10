@@ -329,7 +329,7 @@ Qed.
 Hypothesis NormalFieldExt : forall K x,
   exists r : seq L, minPoly K x == \prod_(y <- r) ('X - y%:P).
 
-Definition LAut_enum :=
+Definition LAut_enum : seq 'End(L):=
  let b := vbasis (fullv L) in
  let mkEnd (b' : seq L) := lapp_of_fun 
   (fun v : L => \sum_i coord b v i *: b'`_i) in
@@ -548,8 +548,8 @@ have [b] : exists b, root (map_poly x (minPoly E a)) b.
  apply: Hpq; last done.
  by rewrite (dvdp_trans Hdz).
 move => Hb.
-case: (IH (Fadjoin_aspace E a) (kHomExtend E x a b)).
-- rewrite ltnS in Hm.
+case: (IH _ _ _ _ (kHomExtendkHom Hx HKE Hb)).
+  rewrite ltnS in Hm.
   apply: (leq_trans _ Hm).
   rewrite -(ltn_add2l (\dim (Fadjoin E a))).
   rewrite dimv_compl subnKC; last by rewrite -dimvf dimvS // subvf.
@@ -562,8 +562,7 @@ case: (IH (Fadjoin_aspace E a) (kHomExtend E x a b)).
   move/subvP/(_ a).
   rewrite memx_Fadjoin.
   by apply.
-- by rewrite (subv_trans HKE) // subsetKFadjoin.
-- by rewrite kHomExtendkHom.
+ by rewrite (subv_trans HKE) // subsetKFadjoin.
 move => g.
 rewrite -lkerE -subv0.
 case/andP => Hg.
@@ -586,7 +585,7 @@ Qed.
    notation for Aut(E/K) puts the larger field first. *)
 Definition Aut (E K : {vspace L}) :=
   ([set x : LAut | kAut K E (val x)] /
-             [set x : LAut | kHom E (fullv L) (val x)])%g.
+             [set x : LAut | kAut E (fullv L) (val x)])%g.
 
 Reserved Notation "''Aut' ( A | B )"
   (at level 8, format "''Aut' ( A  |  B )").
@@ -613,10 +612,11 @@ move => a Ha.
 by rewrite SubK lappE /comp Hy1 // Hx1.
 Qed.
 
-(* can I remove val below? *)
+Canonical kAut_group K E := Eval hnf in group (kAut_group_set K E).
+
 Lemma kAut_normal : forall K E : {algebra L},
  ([set x : LAut | kAut K E (val x)] \subset
-   'N([set x : LAut | kHom E (fullv L) (val x)]))%g.
+   'N([set x : LAut | kAut E (fullv L) (val x)]))%g.
 Proof.
 move => K E.
 apply/subsetP.
@@ -627,7 +627,9 @@ move/eqP => Hx.
 apply/subsetP => ?.
 case/imsetP => y.
 rewrite !in_set.
-case/kHomP => Hy _ ->.
+case/andP.
+case/kHomP => Hy _ _ ->.
+rewrite kAutE subvf andbT.
 apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
 move => a Ha.
 rewrite -{2}[a](unit_lappE) -[\1%VS]/(val (1%g : LAut)) -(mulVg x).
@@ -638,8 +640,9 @@ apply Hy.
 by rewrite -Hx memv_img.
 Qed.
 
+(*
 Lemma Aut_group_set : forall K E : {algebra L}, 
-  group_set ('Aut  ( E | K ) )%g.
+  group_set ('Aut( E | K ))%g.
 Proof.
 move => K E.
 rewrite /Aut.
@@ -648,7 +651,116 @@ by exists (group (kAut_group_set K E) /
             [set x : LAut | kHom E (fullv L) (val x)])%G.
 Qed.
 
-Notation "''Aut' ( A | B )" := (group (Aut_group_set B A)) : subgroup_scope.
+Notation "''Aut' ( E | K )" := (group (Aut_group_set K E)) : subgroup_scope.
+*)
+
+(* Move this to vector.v *)
+Lemma eqvP (V : {vspace L}) (f g: 'End(L)) :
+  reflect (forall a, a \in V -> f a = g a)
+          (V <= lker (f - g))%VS.
+Proof.
+apply: (iffP idP).
+ rewrite -lkerE.
+ move/eqP => Hfg a /(memv_img (f - g)).
+ rewrite Hfg memv0 lappE opp_lappE subr_eq0.
+ by move/eqP.
+move => Hfg.
+apply/subvP => v Hv.
+rewrite memv_ker lappE opp_lappE subr_eq0.
+apply/eqP.
+by apply: Hfg.
+Qed.
+
+Section Automorphism.
+
+Variables K E : {algebra L}.
+Hypothesis HKE : (K <= E)%VS.
+
+Lemma kAut_Aut f : kAut K E f -> exists2 x, x \in 'Aut(E | K)%g &
+  forall g, g \in x -> forall a, a \in E -> f a = val g a.
+Proof.
+move => Hf.
+case/andP: (Hf) => HfHom /eqP HfE.
+case: (kHomExtendLAut HKE HfHom) => g /andP [HKg /eqvP HEgf].
+have Hgf : (val g @: E <= E)%VS.
+ rewrite -{2}HfE.
+ apply/subvP => ? /memv_imgP [v [Hv ->]].
+ move/HEgf: (Hv) ->.
+ by rewrite memv_img.
+exists (coset _ g).
+ rewrite /Aut -imset_coset. 
+ apply: mem_imset.
+ by rewrite inE kAutE (kHom_subv (subvf _)).
+move => h.
+rewrite val_coset.
+ case/rcosetP => {h} h Hh -> a HaE.
+ rewrite -HEgf // comp_lappE.
+ move: Hh.
+ rewrite inE.
+ case/andP.
+ case/kHomP => Hh _ _.
+ by rewrite [X in _ = X]Hh // HEgf // -HfE memv_img.
+move/subsetP: (kAut_normal K E).
+apply.
+rewrite inE kAutE Hgf andbT.
+apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
+by case/kHomP: HKg.
+Qed.
+
+Lemma Aut_kAut x f : x \in 'Aut(E | K)%g -> f \in x -> kAut K E (val f).
+Proof.
+rewrite /Aut -imset_coset.
+case/imsetP => {x} x Hx ->.
+rewrite val_coset; last by move/subsetP: (kAut_normal K E); apply.
+case/rcosetP => {f} f Hf ->.
+rewrite kAutE.
+move: Hx Hf; rewrite !inE.
+case/andP => /kHomP [Hx _] /eqP HxE.
+case/andP => /kHomP [Hf _] _.
+apply/andP; split; last first.
+ apply/subvP => ? /memv_imgP [a [Ha ->]].
+ by rewrite comp_lappE /= Hf -HxE; apply: memv_img.
+apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
+move => a Ha.
+rewrite comp_lappE /= Hx // Hf //.
+move/subvP: HKE.
+by apply.
+Qed.
+
+Lemma Aut_eq x y (f g : LAut) : x \in 'Aut(E | K)%g -> y \in 'Aut(E | K)%g ->
+  f \in x -> g \in y ->
+  reflect (forall a, a \in E -> val f a = val g a)%VS (x == y).
+Proof.
+move => Hx Hy Hf Hg.
+move/subsetP/(_ _ Hf): (coset_norm x) => HfN.
+move/subsetP/(_ _ Hg): (coset_norm y) => HgN.
+apply: (iffP idP).
+ move/eqP => Hxy.
+ case/andP: (Aut_kAut Hx Hf) => _ /eqP HfE.
+ move: Hf Hg.
+ rewrite Hxy.
+ move/coset_mem <-.
+ rewrite val_coset //.
+ case/rcosetP => h.
+ rewrite inE kAutE subvf andbT.
+ case/kHomP => Hh _ -> a Ha.
+ by rewrite /= lappE /= Hh // -HfE memv_img.
+move/coset_mem: Hf <-.
+move/coset_mem: (Hg) => <- Hfg.
+apply/eqP/coset_mem.
+rewrite val_coset // mem_rcoset.
+case/andP: (Aut_kAut Hy Hg) => HgK /eqP HgE.
+rewrite inE kAutE subvf andbT.
+apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
+move => a.
+rewrite - HgE.
+case/memv_imgP => {a} a [Ha ->].
+rewrite -[X in X = _]comp_lappE -comp_lappA.
+rewrite inv_lker0; last by rewrite LAut_ker0 eqxx.
+by rewrite comp_lapp1 Hfg.
+Qed.
+
+End Automorphism.
 
 (* Test our ability to state parts of Galois's great theorem. *)
 (*
