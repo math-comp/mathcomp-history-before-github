@@ -149,8 +149,8 @@ case/cyclicP=> a Ga; case: (cosetP a) => /= z Nz def_a.
 have G_Zz: G :=: 'Z(G) * <[z]>.
   rewrite -quotientK ?cycle_subG ?quotient_cycle //=.
   by rewrite -def_a -Ga quotientGK // center_normal.
-rewrite G_Zz abelianM cycle_abelian center_abelian subIset ?centS ?orbT //.
-by rewrite G_Zz mulG_subr.
+rewrite G_Zz abelianM cycle_abelian center_abelian centsC /= G_Zz.
+by rewrite subIset ?centS ?orbT ?mulG_subr.
 Qed.
 
 Lemma cyclic_factor_abelian H G :

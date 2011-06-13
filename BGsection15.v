@@ -1216,7 +1216,7 @@ have [_ mulPHp' cPHp' _] := dprodP (nilpotent_pcoreC p nilH : P \x _ = H).
 have cHp'Hp': abelian 'O_p^'(H).
   by rewrite (abelianS _ cC1C1) // subsetI pcore_sub (centsS sX1P).
 have not_cPP: ~~ abelian P.
-  by apply: contra not_cHH => cPP; rewrite -mulPHp' abelianM cPP cHp'Hp' centsC.
+  by apply: contra not_cHH => cPP; rewrite -mulPHp' abelianM cPP cHp'Hp'.
 have{E1X_facts} pX: p.-group X.
   apply: sub_pgroup (pgroup_pi _) => q; rewrite -p_rank_gt0.
   case/p_rank_geP=> X2 EqX2; have [_ _ cC2C2] := E1X_facts _ _ EqX2.

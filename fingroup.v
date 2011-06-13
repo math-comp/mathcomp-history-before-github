@@ -2643,39 +2643,42 @@ Lemma normalG G : G <| 'N(G).
 Proof. by rewrite /(G <| _) normG subxx. Qed.
 
 Lemma normalSG G H : H \subset G -> H <| 'N_G(H).
-Proof.
-by move=> sHG; rewrite /(H <| _) subsetI sHG normG subIset // subxx orbT.
-Qed.
+Proof. by move=> sHG; rewrite /normal subsetI sHG normG subsetIr. Qed.
 
 Lemma normalJ A B x : (A :^ x <| B :^ x) = (A <| B).
 Proof. by rewrite /normal normJ !conjSg. Qed.
 
-Lemma normalM G H K : H <| G -> K <| G -> H * K <| G.
+Lemma normalM G A B : A <| G -> B <| G -> A * B <| G.
 Proof.
-by case/andP=> sHG nHG /andP[sKG nKG]; rewrite /normal mul_subG ?normsM.
+by case/andP=> sAG nAG /andP[sBG nBG]; rewrite /normal mul_subG ?normsM.
 Qed.
 
-Lemma normalI G H K : H <| G -> K <| G -> H :&: K <| G.
+Lemma normalY G A B : A <| G -> B <| G -> A <*> B <| G.
 Proof.
-by case/andP=> sHG nHG /andP[_ nKG]; rewrite /normal subIset ?sHG // normsI.
+by case/andP=> sAG ? /andP[sBG ?]; rewrite /normal join_subG sAG sBG ?normsY.
 Qed.
 
-Lemma norm_normalI G H : G \subset 'N(H) -> G :&: H <| G.
-Proof. by move=> nHG; rewrite /normal subsetIl normsI ?normG. Qed.
-
-Lemma normalGI G H K : H \subset G -> K <| G -> H :&: K <| H.
+Lemma normalI G A B : A <| G -> B <| G -> A :&: B <| G.
 Proof.
-by move=> sHG nsKG; rewrite norm_normalI ?(subset_trans sHG) ?normal_norm.
+by case/andP=> sAG nAG /andP[_ nBG]; rewrite /normal subIset ?sAG // normsI.
+Qed.
+
+Lemma norm_normalI G A : G \subset 'N(A) -> G :&: A <| G.
+Proof. by move=> nAG; rewrite /normal subsetIl normsI ?normG. Qed.
+
+Lemma normalGI G H A : H \subset G -> A <| G -> H :&: A <| H.
+Proof.
+by move=> sHG /andP[_ nAG]; exact: norm_normalI (subset_trans sHG nAG).
 Qed.
 
 Lemma normal_subnorm G H : (H <| 'N_G(H)) = (H \subset G).
 Proof. by rewrite /normal subsetIr subsetI normG !andbT. Qed.
 
-Lemma normalYG G H : (H <| H <*> G) = (G \subset 'N(H)).
+Lemma normalYl G H : (H <| H <*> G) = (G \subset 'N(H)).
 Proof. by rewrite /normal joing_subl join_subG normG. Qed.
 
-Lemma normalGY G H : (H <| G <*> H) = (G \subset 'N(H)).
-Proof. by rewrite joingC normalYG. Qed.
+Lemma normalYr G H : (H <| G <*> H) = (G \subset 'N(H)).
+Proof. by rewrite joingC normalYl. Qed.
 
 Lemma gcore_sub A G : gcore A G \subset A.
 Proof. by rewrite (bigcap_min 1) ?conjsg1. Qed.
@@ -2858,12 +2861,16 @@ Proof. by rewrite /abelian centJ conjSg. Qed.
 Lemma abelian_gen A : abelian <<A>> = abelian A.
 Proof. by rewrite /abelian cent_gen gen_subG. Qed.
 
-Lemma abelianM G H :
-  abelian (G * H) = [&& abelian G, abelian H & G \subset 'C(H)].
+Lemma abelianY A B :
+  abelian (A <*> B) = [&& abelian A, abelian B & B \subset 'C(A)].
 Proof.
-rewrite /abelian mulG_subG /= centM !subsetI -!andbA.
-by congr (_ && _); rewrite andbCA centsC andbA andbb andbC.
+rewrite /abelian join_subG /= centY !subsetI -!andbA; congr (_ && _).
+by rewrite centsC andbA andbb andbC.
 Qed.
+
+Lemma abelianM G H :
+  abelian (G * H) = [&& abelian G, abelian H & H \subset 'C(G)].
+Proof. by rewrite -abelian_gen genM_join abelianY. Qed.
 
 Section SubAbelian.
 

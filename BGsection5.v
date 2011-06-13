@@ -379,7 +379,7 @@ have tiHS: H :&: S = 1.
   have cZHS: S \subset 'C('Z(H)) by rewrite centsC (centsS sSH) ?subsetIr.
   pose U := S <*> 'Z(H).
   have sUH: U \subset H by rewrite join_subG sSH subsetIl.
-  have cUU: abelian U  by rewrite [U]cent_joinEl // abelianM cSS center_abelian.
+  have cUU: abelian U  by rewrite abelianY cSS center_abelian centsC.
   have abelU: p.-abelem U by rewrite abelemE // cUU -eH exponentS.
   have sUR: U \subset R := subset_trans sUH sHR.
   have rU: 'r_p(U) <= 'r_p('C_R(S)).

@@ -871,7 +871,7 @@ elim: c  => // c IHc in I gT A G V n m *;
  rewrite ltnS => leVm sAiG nVG copVG solV hGA *.
 have [V1 | ntV] := eqsVneq V 1.
   by rewrite V1 !big1 // => i _; rewrite setI1g set1gE cards1 exp1n.
-have nVP : V <| V <*> G by rewrite normalYG.
+have nVP : V <| V <*> G by rewrite normalYl.
 wlog minV: / minnormal V (V <*> G).
   have [B minB sBV]: {B : {group gT} | minnormal B (V <*> G) & B \subset V}.
     by apply: mingroup_exists; rewrite ntV normal_norm.

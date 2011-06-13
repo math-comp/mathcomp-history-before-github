@@ -257,7 +257,7 @@ Qed.
 Lemma divgrM : H \subset 'C(K) -> {in G &, {morph divgr K H : x y / x * y}}.
 Proof.
 move=> cKH; have /complP[_ defG] := complH_K.
-have nsKG: K <| G by rewrite -defG -cent_joinEr // normalYG cents_norm.
+have nsKG: K <| G by rewrite -defG -cent_joinEr // normalYl cents_norm.
 move=> x y Gx Gy; rewrite {1}/divgr remgrM // invMg -!mulgA (mulgA y).
 by congr (_ * _); rewrite -(centsP cKH) ?groupV ?(mem_remgr, mem_divgr, defG).
 Qed.
@@ -386,7 +386,7 @@ Proof. by move=> cGH; rewrite cprodE ?cent_joinEr. Qed.
 Lemma cprod_normal2 K H G : K \* H = G -> K <| G /\ H <| G.
 Proof.
 case/cprodP=> _ <- cKH; rewrite -cent_joinEr //.
-by rewrite normalYG normalGY !cents_norm // centsC.
+by rewrite normalYl normalYr !cents_norm // centsC.
 Qed.
 
 Lemma bigcprodE I (r : seq I) P F G :

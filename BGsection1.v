@@ -123,39 +123,32 @@ Notation "''L' ( G )" := (Puig G)
 
 Section BGsection1.
 
-Implicit Type gT : finGroupType.
-Implicit Type p : nat.
+Implicit Types (gT : finGroupType) (p : nat).
 
+(* This is B & G, Lemma 1.1, first part. *)
+Lemma minnormal_solvable_abelem gT (M G : {group gT}) :
+  minnormal M G -> solvable M -> is_abelem M.
+Proof. by move=> minM solM; case: (minnormal_solvable minM (subxx _) solM). Qed.
 
-(* First part of Elementary lemma 1.1 is covered by minnormal_solvable.
-Here just for sake of convenience *)
-Lemma minnormal_solvable_abelem : forall gT (M G : {group gT}),
-  minnormal M G ->  solvable M -> is_abelem M.
-Proof.
-by move=> gT M G minM solM; case: (minnormal_solvable minM (subxx _) solM).
-Qed.
-
-(* Second part of lemma 1.1 *)
-Lemma minnormal_solvable_Fitting_center : forall gT (M G : {group gT}),
+(* This is B & G, Lemma 1.2, second part. *)
+Lemma minnormal_solvable_Fitting_center gT (M G : {group gT}) :
   minnormal M G ->  M \subset G -> solvable M -> M \subset 'Z('F(G)).
 Proof.
-move=> gT M G minM sMG solM.
-have nZG : 'Z('F(G)) <| G.
-  apply: (char_normal_trans (center_char _)); exact: Fitting_normal.
-suff: M :&: 'Z('F(G)) = M by move<-; apply: subsetIr.
-case/mingroupP: (minM); case/andP=> ntM nMG minM'.
-apply: (minM'); last exact:subsetIl.
-apply/andP; split; last by apply: normsI => //; apply: normal_norm.
+have nZG: 'Z('F(G)) <| G.
+  by apply: (char_normal_trans (center_char _)); exact: Fitting_normal.
+move=> minM sMG solM; have[/andP[ntM nMG] minM'] := mingroupP minM.
+apply/setIidPl/minM'; last exact: subsetIl.
+apply/andP; split; last by rewrite normsI // normal_norm.
 apply: meet_center_nil => //; first by apply: Fitting_nil.
 apply/andP; split; last by apply: subset_trans nMG; exact: Fitting_sub.
 apply: Fitting_max; rewrite // /normal ?sMG //; apply: abelian_nil. 
-by case: (minnormal_solvable_abelem minM solM); move/abelem_abelian.
+by case: (minnormal_solvable_abelem minM solM) => /abelem_abelian.
 Qed.
 
-Lemma sol_chief_abelem : forall gT (G V U : {group gT}), 
+Lemma sol_chief_abelem gT (G V U : {group gT}) : 
   solvable G -> chief_factor G V U -> is_abelem (U / V).
 Proof.
-move=> gT G V U solG chiefUV; have minUV := chief_factor_minnormal chiefUV.
+move=> solG chiefUV; have minUV := chief_factor_minnormal chiefUV.
 have [|//] := minnormal_solvable minUV (quotientS _ _) (quotient_sol _ solG).
 by case/and3P: chiefUV.
 Qed.
@@ -178,11 +171,11 @@ Let H' :=
 (* This is B & G Proposition 1.2, non trivial inclusion of the first equality.*)
 Proposition Fitting_stab_chief : 'F(G') \subset H.
 Proof.
-apply/bigcapsP=> [[U V] /=  UVchief]; have [/= Vmax sUG nUG] := and3P UVchief. 
-case/maxgroupP: Vmax; do 2![case/andP] => sVU prVU nVG maxV.
+apply/bigcapsP=> [[U V] /= chiefUV].
+have [/maxgroupp/andP[_ nVG] sUG nUG] := and3P chiefUV.
 rewrite sub_astabQ (subset_trans (normal_sub nsF'G) nVG) /=.
 suffices: U / V \subset 'Z('F(G / V)).
-  rewrite subsetI centsC; case/andP=> _; apply: subset_trans.
+  rewrite subsetI centsC => /andP[_]; apply: subset_trans.
   by rewrite Fitting_max ?quotient_normal ?quotient_nil ?Fitting_nil.
 have: solvable (U / V) by rewrite quotient_sol // (solvableS sUG).
 apply: minnormal_solvable_Fitting_center (quotientS V sUG).
@@ -195,34 +188,33 @@ Proposition chief_stab_sub_Fitting : H' \subset 'F(G').
 Proof.
 have nsH'G : H' <| G.
   rewrite /normal subIset ?sG'G ?normsI ?norms_bigcap //; apply/bigcapsP.
-  case=> U V; do 4![case/andP | move/maxgroupp] => /= _ nVG; case/andP=> _ nUG.
+  case=> U V /andP[/and3P[/= /maxgroupp/andP[_ nVG] _ nUG]].
   by rewrite (subset_trans _ (astab_norm _ _)) ?actsQ.
 apply/idPn=> s'H'F.
 have [K]: {K | [min K | (K <| G) && ~~ (K \subset 'F(G'))] & K \subset H'}.
   by apply: mingroup_exists; rewrite nsH'G.
-case/mingroupP; case/andP=> nsKG s'KF minK; have [sKG nKG] := andP nsKG.
-rewrite subsetI; case/andP=> sKG' stabF'K; have nsKG' := normalS sKG' sG'G nsKG.
+case/mingroupP=> /andP[nsKG s'KF] minK; have [sKG nKG] := andP nsKG.
+case/subsetIP=> sKG' stabF'K; have nsKG' := normalS sKG' sG'G nsKG.
 have{nsKG'} nil'K: ~~ nilpotent K by apply: contra s'KF; exact: Fitting_max.
-case/forallP: (nil'K) => L; apply/implyP; rewrite subsetI; case/andP=> sLK sLR.
-apply/idPn=> ntL; pose U := <<class_support [~: L, K] G>>.
-have ntK : K :!=: 1 by apply: contra ntL; rewrite -!subG1; exact: subset_trans.
+case/forall_inP: (nil'K) => L /subsetIP[sLK sLR]; apply/idPn=> ntL.
+pose U := <<class_support [~: L, K] G>>.
+have ntK: K :!=: 1 by apply: contra ntL; rewrite -!subG1; exact: subset_trans.
 have{sLR} sLU: L \subset U.
   by rewrite sub_gen ?(subset_trans sLR) ?sub_class_support.
-have{ntL} ntU: U != 1.
-  by apply: contra ntL; rewrite -!subG1; apply: subset_trans.
+have{ntL} ntU: U != 1 := subG1_contra sLU ntL.
 have sUK: U \subset K by rewrite gen_subG class_support_sub_norm ?comm_subG.
 have nUG: G \subset 'N(U) by rewrite norms_gen ?class_support_normG.
 have [sUG nsUG]: U \subset G /\ U <| G by rewrite /normal !(subset_trans sUK).
 have defU: U = [~: U, K].
   apply/eqP; rewrite eqEsubset commg_subl ?(subset_trans sKG) //=.
   by rewrite gen_subG class_support_sub_norm ?commSg ?normsR.
-have prUK: U \proper K.
+have ltUK: U \proper K.
   by rewrite defU (sub_proper_trans (commSg K sUK)) ?(sol_der1_proper solG).
-have{prUK} sUF': U \subset 'F(G').
-  by case/andP: prUK => _; apply: contraR => s'UF; rewrite [U]minK ?nsUG.
+have{ltUK} sUF': U \subset 'F(G').
+  by case/andP: ltUK => _; apply: contraR => s'UF; rewrite [U]minK ?nsUG.
 have [V maxV]: {V : {group gT} | maxnormal V U G}.
   by apply: ex_maxgroup; exists 1%G; rewrite proper1G ntU norms1.
-case/andP: (maxgroupp maxV); case/andP=> sVU s'UV nVG; case/negP: s'UV.
+case/andP: (maxgroupp maxV) => /andP[sVU not_sUV] nVG; case/negP: not_sUV.
 rewrite defU commGC -sub_astabQR ?(subset_trans _ nVG) //.
 by rewrite (bigcapsP stabF'K (_, _)) /Gchief //= -/U -andbA maxV nsUG.
 Qed.
@@ -230,23 +222,23 @@ Qed.
 End HallLemma.
 
 (* This is B & G, Proposition 1.3 (due to P. Hall). *)
-Proposition cent_sub_Fitting : forall gT (G : {group gT}),
+Proposition cent_sub_Fitting gT (G : {group gT}) :
   solvable G -> 'C_G('F(G)) \subset 'F(G).
 Proof.
-move=> gT G solG; apply: subset_trans (chief_stab_sub_Fitting solG _) => //.
+move=> solG; apply: subset_trans (chief_stab_sub_Fitting solG _) => //.
 rewrite subsetI subsetIl; apply/bigcapsP=> [[U V]] /=.
-do 4![case/andP | move/maxgroupp] => _ nVG _ sUF.
+case/andP=> /andP[/maxgroupp/andP[_ nVG] _] sUF.
 by rewrite astabQ (subset_trans _ (morphpre_cent _ _)) // setISS ?centS.
 Qed.
 
 (* This is B & G, Proposition 1.4, for internal actions.                      *)
-Proposition coprime_trivg_cent_Fitting : forall gT (A G : {group gT}),
+Proposition coprime_trivg_cent_Fitting gT (A G : {group gT}) :
     A \subset 'N(G) -> coprime #|G| #|A| -> solvable G -> 
   'C_A(G) = 1 -> 'C_A('F(G)) = 1.
 Proof.
-move=> gT A G nGA coGA solG regAG; wlog cycA: A nGA coGA regAG / cyclic A.
-  move=> IH; apply/trivgP; apply/subsetP=> a; rewrite -!cycle_subG subsetI.
-  case/andP=> saA; move/setIidPl <-.
+move=> nGA coGA solG regAG; without loss cycA: A nGA coGA regAG / cyclic A.
+  move=> IH; apply/trivgP/subsetP=> a; rewrite -!cycle_subG subsetI.
+  case/andP=> saA /setIidPl <-.
   rewrite {}IH ?cycle_cyclic ?(coprimegS saA) ?(subset_trans saA) //.
   by apply/trivgP; rewrite -regAG setSI.
 pose X := G <*> A; pose F := 'F(X); pose pi := \pi(A); pose Q := 'O_pi(F).
@@ -266,13 +258,13 @@ have sQA: Q \subset A.
   by apply: normal_sub_max_pgroup (Hall_max hallA) (pcore_pgroup _ _) nsQX.
 have pi'F: 'O_pi(F) = 1.
   suff cQG: G \subset 'C(Q) by apply/trivgP; rewrite -regAG subsetI sQA centsC.
-  apply/commG1P; apply/trivgP; rewrite -(coprime_TIg coGA) subsetI commg_subl.
+  apply/commG1P/trivgP; rewrite -(coprime_TIg coGA) subsetI commg_subl.
   rewrite (subset_trans sQA) // (subset_trans _ sQA) // commg_subr.
   by rewrite (subset_trans _ (normal_norm nsQX)) ?joing_subl.
 have sFG: F \subset G.
   rewrite (sub_normal_Hall hallG) ?Fitting_sub //= -/X.
-  have: nilpotent F := Fitting_nil _; move/(nilpotent_pcoreC pi) => /=.
-  by case/dprodP=> _ <- _ _; rewrite pi'F mul1g pcore_pgroup.
+  have /(nilpotent_pcoreC pi)/dprodP[_ /= <- _ _]: nilpotent F := Fitting_nil _.
+  by rewrite pi'F mul1g pcore_pgroup.
 have <-: F = 'F(G).
   apply/eqP; rewrite eqEsubset -{1}(setIidPr sFG) FittingS ?joing_subl //=.
   by rewrite Fitting_max ?Fitting_nil // (char_normal_trans (Fitting_char _)).
@@ -282,12 +274,12 @@ by rewrite setSI ?joing_subr.
 Qed.
 
 (* A "contrapositive" of Proposition 1.4 above.                               *)
-Proposition coprime_cent_Fitting : forall gT (A G : {group gT}),
+Proposition coprime_cent_Fitting gT (A G : {group gT}) :
     A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
   'C_A('F(G)) \subset 'C(G).
 Proof.
-move=> gT A G nGA coGA solG; apply/setIidPl; rewrite -setIA setIIr.
-apply/setIidPl; set C := 'C_A(G); rewrite -quotient_sub1 /= -/C; last first.
+move=> nGA coGA solG; apply: subset_trans (subsetIr A _); set C := 'C_A(G).
+rewrite -quotient_sub1 /= -/C; last first.
   by rewrite subIset // normsI ?normG // norms_cent.
 apply: subset_trans (quotient_subcent _ _ _) _; rewrite /= -/C.
 have nCG: G \subset 'N(C) by rewrite cents_norm // centsC subsetIr.
@@ -315,33 +307,32 @@ Qed.
 (*  1.5e -> coprime_comm_pcore (internal action only)                         *)
 
 (* A stronger variant of B & G, Proposition 1.6(a). *)
-Proposition coprimeR_cent_prod : forall gT (A G : {group gT}),
+Proposition coprimeR_cent_prod gT (A G : {group gT}) :
     A \subset 'N(G) -> coprime #|[~: G, A]| #|A| -> solvable [~: G, A] ->
   [~: G, A] * 'C_G(A) = G.
 Proof.
-move=> gT A G nGA coRA solR.
-have nRG: [~: G, A] <| G by rewrite /normal commg_subl nGA commg_norml.
-apply/eqP; rewrite eqEsubset mulG_subG commg_subl nGA subsetIl /=.
-rewrite -quotientSK ?commg_norml ?coprime_norm_quotient_cent ?commg_normr //=.
+move=> nGA coRA solR; apply/eqP; rewrite eqEsubset mulG_subG commg_subl nGA.
+rewrite subsetIl -quotientSK ?commg_norml //=.
+rewrite coprime_norm_quotient_cent ?commg_normr //=.
 by rewrite subsetI subxx quotient_cents2r.
 Qed.
 
 (* This is B & G, Proposition 1.6(a). *)
-Proposition coprime_cent_prod : forall gT (A G : {group gT}),
+Proposition coprime_cent_prod gT (A G : {group gT}) :
     A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
   [~: G, A] * 'C_G(A) = G.
 Proof.
-move=> gT A G nGA; have sRG: [~: G, A] \subset G by rewrite commg_subl.
-rewrite -(LaGrange sRG) coprime_mull; case/andP=> coRA _; move/(solvableS sRG).
+move=> nGA; have sRG: [~: G, A] \subset G by rewrite commg_subl.
+rewrite -(LaGrange sRG) coprime_mull => /andP[coRA _] /(solvableS sRG).
 exact: coprimeR_cent_prod.
 Qed.
 
 (* This is B & G, Proposition 1.6(b). *)
-Proposition coprime_commGid : forall gT (A G : {group gT}),
+Proposition coprime_commGid gT (A G : {group gT}) :
     A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
   [~: G, A, A] = [~: G, A].
 Proof.
-move=> gT A G nGA coGA solG; apply/eqP; rewrite eqEsubset commSg ?commg_subl //.
+move=> nGA coGA solG; apply/eqP; rewrite eqEsubset commSg ?commg_subl //.
 have nAC: 'C_G(A) \subset 'N(A) by rewrite subIset ?cent_sub ?orbT.
 rewrite -{1}(coprime_cent_prod nGA) // commMG //=; first 1 last.
   by rewrite !normsR // subIset ?normG.
@@ -349,92 +340,88 @@ by rewrite (commG1P (subsetIr _ _)) mulg1.
 Qed.
 
 (* This is B & G, Proposition 1.6(c). *)
-Proposition coprime_commGG1P : forall gT (A G : {group gT}),
+Proposition coprime_commGG1P gT (A G : {group gT}) :
     A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
   [~: G, A, A] = 1 -> A \subset 'C(G).
 Proof.
-by move=> gT A G nGA coGA solG; rewrite centsC coprime_commGid //; move/commG1P.
+by move=> nGA coGA solG; rewrite centsC coprime_commGid // => /commG1P.
 Qed.
 
 (* This is B & G, Proposition 1.6(d), TI-part, from finmod.v *)
 Definition coprime_abel_cent_TI := coprime_abel_cent_TI.
 
 (* This is B & G, Proposition 1.6(d) (direct product) *)
-Proposition coprime_abelian_cent_dprod : forall gT (A G : {group gT}),
+Proposition coprime_abelian_cent_dprod gT (A G : {group gT}) :
     A \subset 'N(G) -> coprime #|G| #|A| -> abelian G ->
   [~: G, A] \x 'C_G(A) = G.
 Proof.
-move=> gT A G nGA coGA abelG; rewrite dprodE ?coprime_cent_prod ?abelian_sol //.
+move=> nGA coGA abelG; rewrite dprodE ?coprime_cent_prod ?abelian_sol //.
   by rewrite subIset 1?(subset_trans abelG) // centS // commg_subl.
 by apply/trivgP; rewrite /= setICA coprime_abel_cent_TI ?subsetIr.
 Qed.
 
-(* This is B & G, Proposition 1.6(e), which generalises Aschbacher 24.3. *)
-Proposition coprime_abelian_faithful_Ohm1 : forall gT (A G : {group gT}),
+(* This is B & G, Proposition 1.6(e), which generalises Aschbacher (24.3). *)
+Proposition coprime_abelian_faithful_Ohm1 gT (A G : {group gT}) :
     A \subset 'N(G) -> coprime #|G| #|A| -> abelian G ->
   A \subset 'C('Ohm_1(G)) -> A \subset 'C(G).
 Proof.
-move=> gT A G nGA coGA abG; rewrite centsC => cGAp; rewrite centsC.
-case/dprodP: (coprime_abelian_cent_dprod nGA coGA abG) => _ defG _ TI_G.
+move=> nGA coGA cGG; rewrite !(centsC A) => cAG1.
+have /dprodP[_ defG _ tiRC] := coprime_abelian_cent_dprod nGA coGA cGG.
 have sRG: [~: G, A] \subset G by rewrite commg_subl.
 rewrite -{}defG -(setIidPl sRG) TI_Ohm1 ?mul1g ?subsetIr //.
-by apply/trivgP; rewrite -{}TI_G setIS // subsetI Ohm_sub.
+by apply/trivgP; rewrite -{}tiRC setIS // subsetI Ohm_sub.
 Qed.
 
 (* B & G, Lemma 1.7 is covered by several lemmas in maximal.v :               *)
 (*   1.7a -> Phi_nongen                                                       *)
 (*   1.7b -> Phi_quotient_abelem                                              *)
-(*   1.7c -> trivg_Phin                                                       *)
+(*   1.7c -> trivg_Phi                                                        *)
 (*   1.7d -> Phi_joing                                                        *)
 
 (* This is B & G, Proposition 1.8, or Aschbacher 24.1. Note that the coprime  *)
 (* assumption is slightly weaker than requiring that A be a p'-group.         *)
-Proposition coprime_cent_Phi : forall gT p (A G : {group gT}),
+Proposition coprime_cent_Phi gT p (A G : {group gT}) :
     p.-group G -> coprime #|G| #|A| -> [~: G, A] \subset 'Phi(G) ->
   A \subset 'C(G).
 Proof.
-move=> gT p A G pG coGA sRphi; rewrite centsC; apply/setIidPl.
-rewrite -['C_G(A)]genGid; apply: Phi_nongen; apply/eqP.
+move=> pG coGA sRphi; rewrite centsC; apply/setIidPl.
+rewrite -['C_G(A)]genGid; apply/Phi_nongen/eqP.
 rewrite eqEsubset join_subG Phi_sub subsetIl -genM_join sub_gen //=.
-have [sPhiG nPhiG] := andP (char_normal (Phi_char G)).
-have nPhiA: A \subset 'N('Phi(G)).
-  by rewrite -commg_subl (subset_trans _ sRphi) ?commSg.
-rewrite -quotientSK // coprime_quotient_cent ?(pgroup_sol pG) // subsetI subxx.
-by rewrite (sameP commG1P trivgP) /= -morphimR ?quotient_sub1 // comm_subG.
+rewrite -{1}(coprime_cent_prod _ coGA) ?(pgroup_sol pG) ?mulSg //.
+by rewrite -commg_subl (subset_trans sRphi) ?Phi_sub.
 Qed.
 
 (* This is B & G, Proposition 1.9, base (and most common) case, for internal  *)
 (* coprime action.                                                            *)
-Proposition stable_factor_cent : forall gT (A G H : {group gT}),
+Proposition stable_factor_cent gT (A G H : {group gT}) :
     A \subset 'C(H) -> stable_factor A H G ->
     coprime #|G| #|A| -> solvable G ->
   A \subset 'C(G).
 Proof.
-move=> gT A G H cHA; case/and3P=> sRH sHG nHG coGA solG.
+move=> cHA /and3P[sRH sHG nHG] coGA solG.
 suffices: G \subset 'C_G(A) by rewrite subsetI subxx centsC.
 rewrite -(quotientSGK nHG) ?subsetI ?sHG 1?centsC //.
 by rewrite coprime_quotient_cent ?cents_norm ?subsetI ?subxx ?quotient_cents2r.
 Qed.
 
 (* This is B & G, Proposition 1.9 (for internal coprime action) *)
-Proposition stable_series_cent : forall gT (A G : {group gT}) s,
+Proposition stable_series_cent gT (A G : {group gT}) s :
    last 1%G s :=: G -> (A.-stable).-series 1%G s ->
    coprime #|G| #|A| -> solvable G ->
   A \subset 'C(G).
 Proof.
-move=> gT A _ s <-; elim/last_ind: s => /= [| s G IHs]; first by rewrite cents1.
-rewrite last_rcons path_rcons /=.
-case/andP; move/IHs {IHs}; move: {s}(last _ _) => H IH_H nHGA coGA solG.
-have [_ sHG _] := and3P nHGA.
+move=> <-{G}; elim/last_ind: s => /= [|s G IHs]; first by rewrite cents1.
+rewrite last_rcons path_rcons /= => /andP[/IHs{IHs}].
+move: {s}(last _ _) => H IH_H nHGA coGA solG; have [_ sHG _] := and3P nHGA.
 by rewrite (stable_factor_cent _ nHGA) ?IH_H ?(solvableS sHG) ?(coprimeSg sHG).
 Qed.
 
 (* This is B & G, Proposition 1.10. *)
-Proposition coprime_nil_faithful_cent_stab : forall gT (A G : {group gT}),
+Proposition coprime_nil_faithful_cent_stab gT (A G : {group gT}) :
      A \subset 'N(G) -> coprime #|G| #|A| -> nilpotent G ->
   let C := 'C_G(A) in 'C_G(C) \subset C -> A \subset 'C(G).
 Proof.
-move=> gT A G nGA coGA nilG C; rewrite subsetI subsetIl centsC /= -/C => cCA.
+move=> nGA coGA nilG C; rewrite subsetI subsetIl centsC /= -/C => cCA.
 pose N := 'N_G(C); have sNG: N \subset G by rewrite subsetIl.
 have sCG: C \subset G by rewrite subsetIl.
 suffices cNA : A \subset 'C(N).
@@ -448,32 +435,32 @@ by rewrite cents_norm 1?centsC ?subsetIr.
 Qed.
 
 (* B & G, Theorem 1.11, via Aschbacher 24.7 rather than Gorenstein 5.3.10. *)
-Theorem coprime_odd_faithful_Ohm1 : forall gT p (A G : {group gT}),
+Theorem coprime_odd_faithful_Ohm1 gT p (A G : {group gT}) :
     p.-group G -> A \subset 'N(G) -> coprime #|G| #|A| -> odd #|G| ->
   A \subset 'C('Ohm_1(G)) -> A \subset 'C(G).
 Proof.
-move=> gT p A G pG nGA coGA oddG; rewrite !(centsC A) => cAG1.
-case: (eqsVneq G 1) => [-> | ntG]; first exact: sub1G.
+move=> pG nGA coGA oddG; rewrite !(centsC A) => cAG1.
+have [-> | ntG] := eqsVneq G 1; first exact: sub1G.
 have{oddG ntG} [p_pr oddp]: prime p /\ odd p.
   have [p_pr p_dv_G _] := pgroup_pdiv pG ntG.
   by rewrite !odd_2'nat in oddG *; rewrite pnatE ?(pgroupP oddG).
-wlog defR: G pG nGA coGA cAG1 / [~: G, A] = G.
+without loss defR: G pG nGA coGA cAG1 / [~: G, A] = G.
   move=> IH; have solG := pgroup_sol pG.
   rewrite -(coprime_cent_prod nGA) ?mul_subG ?subsetIr //=.
   have sRG: [~: G, A] \subset G by rewrite commg_subl.
   rewrite IH ?coprime_commGid ?(pgroupS sRG) ?commg_normr ?(coprimeSg sRG) //.
   by rewrite (subset_trans (OhmS 1 sRG)).
 have [|[defPhi defG'] defC] := abelian_charsimple_special pG coGA defR.
-  apply/bigcupsP=> H; case/andP=> chH abH; have sHG := char_sub chH.
+  apply/bigcupsP=> H /andP[chH abH]; have sHG := char_sub chH.
   have nHA := char_norm_trans chH nGA.
   rewrite centsC coprime_abelian_faithful_Ohm1 ?(coprimeSg sHG) //.
   by rewrite centsC (subset_trans (OhmS 1 sHG)).
-have elemZ: p.-abelem 'Z(G) by exact: center_special_abelem.
+have abelZ: p.-abelem 'Z(G) by exact: center_special_abelem.
 have cAZ: {in 'Z(G), centralised A} by apply/centsP; rewrite -defC subsetIr.
 have cGZ: {in 'Z(G), centralised G} by apply/centsP; rewrite subsetIr.
 have defG1: 'Ohm_1(G) = 'Z(G).
   apply/eqP; rewrite eqEsubset -{1}defC subsetI Ohm_sub cAG1 /=.
-  by rewrite -(Ohm1_id elemZ) OhmS ?center_sub.
+  by rewrite -(Ohm1_id abelZ) OhmS ?center_sub.
 rewrite (subset_trans _ (subsetIr G _)) // defC -defG1 -{1}defR gen_subG /=.
 apply/subsetP=> xa; case/imset2P=> x a Gx Aa ->{xa}; rewrite commgEl.
 set u := x^-1; set v := x ^ a; pose w := [~ v, u].
@@ -481,20 +468,19 @@ have [Gu Gv]: u \in G /\ v \in G by rewrite groupV memJ_norm ?(subsetP nGA).
 have Zw: w \in 'Z(G) by rewrite -defG' mem_commg.
 rewrite (OhmE 1 pG) mem_gen // !inE expn1 groupM //=.
 rewrite expMg_Rmul /commute ?(cGZ w) // bin2odd // expgn_mul.
-case/(abelemP p_pr): elemZ => _; move/(_ w)=> -> //.
-rewrite exp1gn mulg1 expVgn -conjXg (sameP commgP eqP) cAZ //.
-rewrite -defPhi (Phi_joing pG) (MhoE 1 pG) joing_idr mem_gen // !inE.
-by rewrite orbC expn1 (mem_imset (expgn^~ p)).
+case/(abelemP p_pr): abelZ => _ /(_ w)-> //.
+rewrite exp1gn mulg1 expVgn -conjXg (sameP commgP eqP) cAZ // -defPhi.
+by rewrite (Phi_joing pG) joingC mem_gen // inE (Mho_p_elt 1) ?(mem_p_elt pG).
 Qed.
 
 (* This is B & G, Corollary 1.12. *)
-Corollary coprime_odd_faithful_cent_abelem : forall gT p (A G E : {group gT}),
+Corollary coprime_odd_faithful_cent_abelem gT p (A G E : {group gT}) :
     E \in 'E_p(G) -> p.-group G ->
     A \subset 'N(G) -> coprime #|G| #|A| -> odd #|G| ->
   A \subset 'C('Ldiv_p('C_G(E))) -> A \subset 'C(G).
 Proof.
-move=> gT p A G E; rewrite inE; case/andP=> sEG elemE pG nGA coGA oddG cCEA.
-case: (eqsVneq G 1) => [-> | ntG]; first by rewrite cents1.
+case/pElemP=> sEG abelE pG nGA coGA oddG cCEA.
+have [-> | ntG] := eqsVneq G 1; first by rewrite cents1.
 have [p_pr _ _] := pgroup_pdiv pG ntG.
 have{cCEA} cCEA: A \subset 'C('Ohm_1('C_G(E))).
   by rewrite (OhmE 1 (pgroupS _ pG)) ?subsetIl ?cent_gen.
@@ -505,62 +491,57 @@ rewrite (coprime_odd_faithful_Ohm1 pCC) ?(coprimeSg sCCG) ?(oddSg sCCG) //.
   by rewrite !(normsI, norms_cent, normG).
 rewrite (subset_trans cCEA) // centS // OhmS // setIS // centS //.
 rewrite subsetI sEG /= centsC (subset_trans cCEA) // centS //.
-have abelE: abelian E by case/and3P: elemE.
-by rewrite -{1}(Ohm1_id elemE) OhmS // subsetI sEG.
+have cEE: abelian E := abelem_abelian abelE.
+by rewrite -{1}(Ohm1_id abelE) OhmS // subsetI sEG.
 Qed.
 
 (* This is B & G, Theorem 1.13.                                               *)
-Theorem critical_odd : forall  gT p (G : {group gT}), 
+Theorem critical_odd  gT p (G : {group gT}) : 
     p.-group G -> odd #|G| -> G :!=: 1 ->
   {H : {group gT} |
      [/\ H \char G, [~: H, G] \subset 'Z(H), nil_class H <= 2, exponent H = p
        & p.-group 'C(H | [Aut G])]}.
 Proof.
-move=> gT p G pG oddG ntG; have [H krH]:= Thompson_critical pG.
+move=> pG oddG ntG; have [H krH]:= Thompson_critical pG.
 have [chH sPhiZ sGH_Z scH] := krH; have clH := critical_class2 krH.
 have sHG := char_sub chH; set D := 'Ohm_1(H)%G; exists D.
-have chD: D \char G := char_trans (Ohm_char _ _) chH.
-have sDH: D \subset H := Ohm_sub _ _.
+have chD: D \char G := char_trans (Ohm_char 1 H) chH.
+have sDH: D \subset H := Ohm_sub 1 H.
 have sDG_Z: [~: D, G] \subset 'Z(D).
   rewrite subsetI commg_subl char_norm // commGC.
   apply: subset_trans (subset_trans sGH_Z _); first by rewrite commgS.
   by rewrite subIset // orbC centS.
-rewrite nil_class2 sDG_Z (subset_trans (commgS _ _) sDG_Z) // ?char_sub //.
+rewrite nil_class2 !(subset_trans (commgS D _) sDG_Z) ?(char_sub chD) {sDH}//.
 have [p_pr p_dv_G _] := pgroup_pdiv pG ntG; have odd_p := dvdn_odd p_dv_G oddG.
-split=> //.
+split=> {chD sDG_Z}//.
   apply/prime_nt_dvdP=> //; last by rewrite exponent_Ohm1_class2 ?(pgroupS sHG).
   rewrite -dvdn1 -trivg_exponent /= Ohm1_eq1; apply: contraNneq ntG => H1.
   by rewrite -(setIidPl (cents1 G)) -{1}H1 scH H1 center1.
-apply/pgroupP=> q pr_q; case/Cauchy=> // f; rewrite /= astab_ract. 
-case/setIdP=> Af cDf ofq.
-apply/idPn=> nqp {sDG_Z chD sDH}; suffices: f \in 'C(H | [Aut G]).
-  move/(mem_p_elt (critical_p_stab_Aut krH pG)); move/pnatP=> pf.
-  by rewrite pf // ofq in nqp.
+apply/pgroupP=> q q_pr /Cauchy[] //= f.
+rewrite astab_ract => /setIdP[Af cDf] ofq; apply: wlog_neg => p'q.
+suffices: f \in 'C(H | [Aut G]).
+  move/(mem_p_elt (critical_p_stab_Aut krH pG))/pnatP=> -> //.
+  by rewrite ofq.
 rewrite astab_ract inE Af; apply/astabP=> x Hx; rewrite /= /aperm /=.
 rewrite nil_class2 in clH; have pH := pgroupS sHG pG.
-have: p.-elt x by apply: mem_p_elt Hx.
-case/p_natP=> // i ox; have:= expg_order x; rewrite {}ox.
+have /p_natP[i ox]: p.-elt x by apply: mem_p_elt Hx.
+have{ox}: x ^+ (p ^ i) = 1 by rewrite -ox expg_order.
 elim: i x Hx => [|[|i] IHi] x Hx xp1.
-- by rewrite expg1 in xp1; rewrite xp1 -(autmE Af) morph1.
-- apply: (astabP cDf); rewrite /=.
-  by rewrite (OhmE 1 pH) mem_gen // !inE Hx xp1 eqxx.
+- by rewrite [x]xp1 -(autmE Af) morph1.
+- by apply: (astabP cDf); rewrite (OhmE 1 pH) mem_gen // !inE Hx xp1 eqxx.
 have expH': {in H &, forall y z, [~ y, z] ^+ p = 1}.
-  move=> y z Hy Hz.
-  have: [~ y, z] \in 'Z(H) by rewrite (subsetP clH) // mem_commg.
-  case/setIP=> _; move/centP=> Cyz.
-  rewrite -commXg; last by apply: commute_sym; exact: Cyz.
-  have: y ^+ p \in 'Z(H).
-    rewrite (subsetP sPhiZ) // (Phi_joing pH) mem_gen // inE orbC.
-    rewrite (MhoE 1 pH) expn1 mem_gen //; exact: mem_imset.
-  case/setIP=> _; move/centP=> Cyp; apply/eqP; apply/commgP; exact: Cyp.
+  move=> y z Hy Hz; apply/eqP.
+  have /setIP[_ cHyz]: [~ y, z] \in 'Z(H) by rewrite (subsetP clH) // mem_commg.
+  rewrite -commXg; last exact/commute_sym/(centP cHyz).
+  suffices /setIP[_ cHyp]: y ^+ p \in 'Z(H) by exact/commgP/(centP cHyp).
+  rewrite (subsetP sPhiZ) // (Phi_joing pH) mem_gen // inE orbC.
+  by rewrite (Mho_p_elt 1) ?(mem_p_elt pH).
 have Hfx: f x \in H.
-  case/charP: chH => _ chH.
-  rewrite -(chH _ (injm_autm Af) (im_autm Af)) -{1}(autmE Af).
-  rewrite mem_morphim // (subsetP sHG) //.
+  case/charP: chH => _ /(_ _ (injm_autm Af) (im_autm Af)) <-.
+  by rewrite -{1}(autmE Af) mem_morphim // (subsetP sHG).
 set y := x^-1 * f x; set z := [~ f x, x^-1].
 have Hy: y \in H by rewrite groupM ?groupV.
-have: z \in 'Z(H); last case/centerP=> _ Zz.
-  by rewrite (subsetP clH) // mem_commg ?groupV.
+have /centerP[_ Zz]: z \in 'Z(H) by rewrite (subsetP clH) // mem_commg ?groupV.
 have fy: f y = y.
   apply: (IHi); first by rewrite groupM ?groupV.
   rewrite expMg_Rmul; try by apply: commute_sym; apply: Zz; rewrite ?groupV.
@@ -568,14 +549,14 @@ have fy: f y = y.
   rewrite exp1gn mulg1 expVgn -(autmE Af) -morphX ?(subsetP sHG) //= autmE.
   rewrite IHi ?mulVg ?groupX // {2}expnS expgn_mul -(expgn_mul x _ p) -expnSr.
   by rewrite xp1 exp1gn.
-have: (f ^+ q) x = x * y ^+ q.
+have /eqP: (f ^+ q) x = x * y ^+ q.
   elim: (q) => [|j IHj]; first by rewrite perm1 mulg1.
   rewrite expgSr permM {}IHj -(autmE Af).
   rewrite morphM ?morphX ?groupX ?(subsetP sHG) //= autmE.
   by rewrite fy expgS mulgA mulKVg.
-move/eqP; rewrite -{1}ofq expg_order perm1 eq_mulVg1 mulKg -order_dvdn.
-case: (primeP pr_q) => _ dv_q; move/dv_q; rewrite order_eq1 -eq_mulVg1.
-case: eqP => //= _; move/eqP=> oyq; case/negP: nqp.
+rewrite -{1}ofq expg_order perm1 eq_mulVg1 mulKg -order_dvdn.
+case: (primeP q_pr) => _ dv_q /dv_q; rewrite order_eq1 -eq_mulVg1.
+case/pred2P=> // oyq; case/negP: p'q.
 by apply: (pgroupP pH); rewrite // -oyq order_dvdG.
 Qed.
 
@@ -595,7 +576,7 @@ Hypotheses (nMT : T \subset 'N(M)) (coMT : coprime #|M| #|T|).
 (* This is B & G, Lemma 1.14, for a global normaliser.                        *)
 Lemma coprime_norm_quotient_pgroup : 'N(T / M) = 'N(T) / M.
 Proof.
-case: (eqsVneq T 1) => [-> | ntT].
+have [-> | ntT] := eqsVneq T 1.
   by rewrite quotient1 !norm1 -quotientInorm setTI quotientT.
 have [p_pr _ [m oMpm]] := pgroup_pdiv pT ntT.
 apply/eqP; rewrite eqEsubset morphim_norms // andbT; apply/subsetP=> Mx.
@@ -620,8 +601,8 @@ Qed.
 Lemma coprime_cent_quotient_pgroup : 'C(T / M) = 'C(T) / M.
 Proof.
 symmetry; rewrite -quotientInorm -quotientMidl -['C(T / M)]cosetpreK.
-congr (_ / M); set Cq := _ @*^-1 _; set C := 'N__(M).
-suff <-: 'N_Cq(T) = C.
+congr (_ / M); set Cq := _ @*^-1 _; set C := 'N_('C(T))(M).
+suffices <-: 'N_Cq(T) = C.
   rewrite setIC group_modl ?sub_cosetpre //= -/Cq; apply/setIidPr.
   rewrite -quotientSK ?subsetIl // cosetpreK.
   by rewrite -coprime_norm_quotient_pgroup cent_sub.
@@ -672,7 +653,7 @@ Qed.
 Proposition p_stable_abelian_constrained :
   p.-constrained G -> p.-stable G -> p.-abelian_constrained G.
 Proof.
-move=> constrG stabG P A sylP cAA; case/andP=> sAP nAP.
+move=> constrG stabG P A sylP cAA /andP[sAP nAP].
 have [sPG pP _] := and3P sylP; have sAG := subset_trans sAP sPG.
 set K2 := 'O_{p^', p}(G); pose K1 := 'O_p^'(G); pose Q := P :&: K2.
 have sQG: Q \subset G by rewrite subIset ?sPG.
@@ -708,11 +689,11 @@ Qed.
 End Constrained.
 
 (* This is B & G, Proposition 1.15b (due to D. Goldschmith). *)
-Proposition p'core_cent_pgroup : forall gT p (G R : {group gT}),
+Proposition p'core_cent_pgroup gT p (G R : {group gT}) :
   p.-subgroup(G) R -> solvable G -> 'O_p^'('C_G(R)) \subset 'O_p^'(G).
 Proof.
-move=> gT p G R; case/andP=> sRG pR solG.
-wlog p'G1: gT G R sRG pR solG / 'O_p^'(G) = 1.
+case/andP=> sRG pR solG.
+without loss p'G1: gT G R sRG pR solG / 'O_p^'(G) = 1.
   have nOG_CR: 'C_G(R) \subset 'N('O_p^'(G)) by rewrite subIset ?gFnorm.
   move=> IH; rewrite -quotient_sub1 ?(subset_trans (pcore_sub _ _)) //.
   apply: subset_trans (morphimF _ _ nOG_CR) _; rewrite /= -quotientE.
@@ -722,8 +703,7 @@ wlog p'G1: gT G R sRG pR solG / 'O_p^'(G) = 1.
   have p'Gq1 : 'O_p^'(G / 'O_p^'(G)) = 1 := trivg_pcore_quotient p^' G.
   by rewrite -p'Gq1 IH ?morphimS ?morphim_pgroup ?morphim_sol.
 set M := 'O_p^'('C_G(R)); pose T := 'O_p(G).
-have [sMG cMR]: M \subset G /\ M \subset 'C(R).
-  by apply/andP; rewrite -subsetI pcore_sub.
+have /subsetIP[sMG cMR]: M \subset 'C_G(R) by exact: pcore_sub.
 have [p'M pT]: p^'.-group M /\ p.-group T by rewrite !pcore_pgroup.
 have nRT: R \subset 'N(T) by rewrite (subset_trans sRG) ?gFnorm.
 have pRT: p.-group (R <*> T).
@@ -735,8 +715,7 @@ have coRT_M: coprime #|R <*> T| #|M| := pnat_coprime pRT p'M.
 have cMcR: 'C_(R <*> T)(R) \subset 'C(M).
   apply/commG1P; apply/trivgP; rewrite -(coprime_TIg coRT_M) subsetI commg_subr.
   rewrite (subset_trans (commSg _ (subsetIl _ _))) ?commg_subl //= -/M.
-  apply: subset_trans (gFnorm _ _).
-  by rewrite setSI // join_subG sRG pcore_sub.
+  by apply: subset_trans (gFnorm _ _); rewrite setSI // join_subG sRG pcore_sub.
 have cRT_M: M \subset 'C(R <*> T).
   rewrite coprime_nil_faithful_cent_stab ?(pgroup_nil pRT) //= -/M.
   rewrite subsetI subsetIl (subset_trans _ cMcR) // ?setIS ?centS //.
@@ -752,12 +731,11 @@ Qed.
 (* we derive this directly, rather than by induction on the first, because   *)
 (* this is actually how the proof is done in Gorenstein. Note that the non   *)
 (* cyclic assumption for A is not needed here.                               *)
-Proposition coprime_abelian_gen_cent : forall gT (A G : {group gT}),
+Proposition coprime_abelian_gen_cent gT (A G : {group gT}) :
    abelian A -> A \subset 'N(G) -> coprime #|G| #|A| ->
   <<\bigcup_(B : {group gT} | cyclic (A / B) && (B <| A)) 'C_G(B)>> = G.
 Proof.
-move=> gT A G abelA nGA coGA; symmetry.
-move: {2}_.+1 (ltnSn #|G|) => n.
+move=> abelA nGA coGA; symmetry; move: {2}_.+1 (ltnSn #|G|) => n.
 elim: n gT => // n IHn gT in A G abelA nGA coGA *; rewrite ltnS => leGn.
 without loss nilG: G nGA coGA leGn / nilpotent G.
   move=> {IHn} IHn; apply/eqP; rewrite eqEsubset gen_subG.
@@ -767,18 +745,18 @@ without loss nilG: G nGA coGA leGn / nilpotent G.
   - by rewrite inE -!andbA; case/and4P.
   - have [//|P sylP nPA] := sol_coprime_Sylow_exists p (abelian_sol abelA) nGA.
     by exists P; rewrite ?inE ?(p_Sylow sylP).
-  rewrite gen_subG; apply/bigcupsP=> P; rewrite {T}inE.
-  case/andP; case/SylowP=> p _ sylP nPA; have sPG := pHall_sub sylP.
-  rewrite (IHn P) ?(pgroup_nil (pHall_pgroup sylP)) ?(coprimeSg sPG) ?genS //.
+  rewrite gen_subG; apply/bigcupsP=> P {T}/setIdP[/SylowP[p _ sylP] nPA].
+  have [sPG pP _] := and3P sylP.
+  rewrite (IHn P) ?(pgroup_nil pP) ?(coprimeSg sPG) ?genS //.
     by apply/bigcupsP=> B cycBq; rewrite (bigcup_max B) ?setSI.
   by rewrite (leq_trans (subset_leq_card sPG)).
 apply/eqP; rewrite eqEsubset gen_subG.
 apply/andP; split; last by apply/bigcupsP=> B _; exact: subsetIl.
-case: (eqsVneq 'Z(G) 1) => [Z1 | ntZ].
+have [Z1 | ntZ] := eqsVneq 'Z(G) 1.
   by rewrite (TI_center_nil _ (normal_refl G)) ?Z1 ?(setIidPr _) ?sub1G.
 have nZA: A \subset 'N('Z(G)) := char_norm_trans (center_char G) nGA.
 have{ntZ nZA} [M /= minM] := minnormal_exists ntZ nZA.
-rewrite subsetI centsC; case/andP=> sMG; move/cents_norm=> nMG. 
+rewrite subsetI centsC => /andP[sMG /cents_norm nMG]. 
 have coMA := coprimeSg sMG coGA; have{nilG} solG := nilpotent_sol nilG.
 have [nMA ntM abelM] := minnormal_solvable minM sMG solG.
 set GC := <<_>>; have sMGC: M \subset GC.
@@ -791,7 +769,7 @@ rewrite -(quotientSGK nMG sMGC).
 have: A / M \subset 'N(G / M) by rewrite morphim_norms.
 move/IHn->; rewrite ?morphim_abelian ?coprime_morph {IHn}//; first 1 last.
   by rewrite (leq_trans _ leGn) ?ltn_quotient.
-rewrite gen_subG; apply/bigcupsP=> Bq; rewrite andbC; case/andP.
+rewrite gen_subG; apply/bigcupsP=> Bq; rewrite andbC => /andP[].
 have: M :&: A = 1 by rewrite coprime_TIg.
 move/(quotient_isom nMA); case/isomP=> /=; set qM := restrm _ _ => injqM <-.
 move=> nsBqA; have sBqA := normal_sub nsBqA.
@@ -804,19 +782,18 @@ by rewrite quotientS ?sub_gen // (bigcup_max [group of B]) ?cycBA.
 Qed.
 
 (* B & G, Proposition 1.16, first assertion. *)
-Proposition coprime_abelian_gen_cent1 : forall gT (A G : {group gT}),
+Proposition coprime_abelian_gen_cent1 gT (A G : {group gT}) :
    abelian A -> ~~ cyclic A -> A \subset 'N(G) -> coprime #|G| #|A| ->
   <<\bigcup_(a \in A^#) 'C_G[a]>> = G.
 Proof.
-move=> gT A G abelA ncycA nGA coGA.
+move=> abelA ncycA nGA coGA.
 apply/eqP; rewrite eq_sym eqEsubset /= gen_subG.
 apply/andP; split; last by apply/bigcupsP=> B _; exact: subsetIl.
 rewrite -{1}(coprime_abelian_gen_cent abelA nGA) ?genS //.
-apply/bigcupsP=> B; case: (eqsVneq B 1) => [-> |].
+apply/bigcupsP=> B; have [-> | /trivgPn[a Ba n1a]] := eqsVneq B 1.
   by rewrite injm_cyclic ?coset1_injm ?norms1 ?(negbTE ncycA).
-case/trivgPn=> a Ba n1a; case/and3P=> _ sBA _.
-rewrite (bigcup_max a) ?inE ?n1a ?(subsetP sBA) // setIS //=.
-by rewrite -cent_set1 centS // sub1set.
+case/and3P=> _ sBA _; rewrite (bigcup_max a) ?inE ?n1a ?(subsetP sBA) //.
+by rewrite setIS // -cent_set1 centS // sub1set.
 Qed.
 
 Section Focal_Subgroup.
@@ -824,7 +801,7 @@ Section Focal_Subgroup.
 Variables (gT : finGroupType) (G S : {group gT}) (p : nat).
 Hypothesis sylS : p.-Sylow(G) S.
 
-Import finalg FiniteModule.
+Import finalg FiniteModule GRing.Theory.
 
 (* This is B & G, Theorem 1.17 ("Focal Subgroup Theorem", D. G. Higman), also *)
 (* Gorenstein Theorem 7.3.4 and Aschbacher (37.4).                            *)
@@ -833,33 +810,31 @@ Theorem focal_subgroup_gen :
 Proof.
 set K := <<_>>; set G' := G^`(1); have [sSG coSiSG] := andP (pHall_Hall sylS).
 apply/eqP; rewrite eqEsubset gen_subG andbC; apply/andP; split.
-  apply/subsetP=> xu; case/imset2P=> x u Sx; case/setIdP=> Gu Sxu ->{xu}.
+  apply/subsetP=> _ /imset2P[x u Sx /setIdP[Gu Sxu] ->].
   by rewrite inE groupM ?groupV // mem_commg // (subsetP sSG).
-apply/subsetP=> g; case/setIP=> Sg G'g; have Gg := subsetP sSG g Sg.
+apply/subsetP=> g /setIP[Sg G'g]; have Gg := subsetP sSG g Sg.
 have nKS: S \subset 'N(K).
   rewrite norms_gen //; apply/subsetP=> y Sy; rewrite inE.
-  apply/subsetP=> xuy; case/imsetP=> xu; case/imset2P=> x u Sx.
-  case/setIdP=> Gu Sxu ->{xu} ->{xuy}; rewrite conjRg mem_imset2 ?groupJ //.
-  by rewrite inE -conjJg /= 2?groupJ // (subsetP sSG).
+  apply/subsetP=> _ /imsetP[_ /imset2P[x u Sx /setIdP[Gu Sxu] ->] ->].
+  have Gy: y \in G := subsetP sSG y Sy.
+  by rewrite conjRg mem_imset2 ?groupJ // inE -conjJg /= 2?groupJ.
 set alpha := restrm_morphism nKS (coset_morphism K).
 have alphim: (alpha @* S) = (S / K) by rewrite morphim_restrm setIid.
 have abelSK : abelian (alpha @* S).
   rewrite alphim sub_der1_abelian // genS //.
-  apply/subsetP=> xy; case/imset2P=> x y Sx Sy ->{xy}.
+  apply/subsetP=> _ /imset2P[x y Sx Sy ->].
   by rewrite mem_imset2 // inE (subsetP sSG) ?groupJ.
 set ker_trans := 'ker (transfer G abelSK).
 have G'ker : G' \subset ker_trans.
   rewrite gen_subG; apply/subsetP=> h; case/imset2P=> h1 h2 Gh1 Gh2 ->{h}.
-  rewrite !inE groupR // morphR //; apply/commgP.
-  exact: (GRing.addrC (transfer _ _ _)).
+  by rewrite !inE groupR // morphR //; apply/commgP; exact: addrC.
 have transg0: transfer G abelSK g = 0%R.
-  by move/kerP: (subsetP G'ker g G'g); apply.
+  by move/kerP: (subsetP G'ker g G'g); exact.
 case: (rcosets_pcycle_transversal_exists sSG Gg) => X n_ transX.
 case: (transX)=> _ sXG _.
 have gGSeq0: (fmod abelSK (alpha g) *+ #|G : S| = 0)%R.
   rewrite -transg0 (transfer_pcycle_def abelSK Gg transX).
-  rewrite -(sum_card_rcosets_pcycles Gg transX).
-  rewrite -GRing.sumr_muln_r /restrm.
+  rewrite -(sum_card_rcosets_pcycles Gg transX) -sumr_muln_r /restrm.
   apply: eq_bigr=> x Xx; rewrite -[(_ *+ _)%R]morphX ?mem_morphim //=.
   rewrite -morphX //= /restrm; congr fmod.
   apply/rcoset_kercosetP; rewrite /= -/K.
@@ -882,8 +857,9 @@ Theorem Burnside_normal_complement :
   'N_G(S) \subset 'C(S) -> 'O_p^'(G) ><| S = G.
 Proof.
 move=> cSN; set K := 'O_p^'(G); have [sSG pS _] := and3P sylS.
-have [p'K]:  p^'.-group K /\ K <| G by rewrite pcore_pgroup pcore_normal.
-case/andP=> sKG nKG; have{nKG} nKS := subset_trans sSG nKG.
+have /andP[sKG nKG]: K <| G by exact: pcore_normal.
+have{nKG} nKS := subset_trans sSG nKG.
+have p'K: p^'.-group K by exact: pcore_pgroup.
 have{pS p'K} tiKS: K :&: S = 1 by rewrite setIC coprime_TIg ?(pnat_coprime pS).
 suffices{tiKS nKS} hallK: p^'.-Hall(G) K.
   rewrite sdprodE //= -/K; apply/eqP; rewrite eqEcard ?mul_subG //=.
@@ -898,16 +874,16 @@ suffices{nsG'G} tiSG': S :&: G' = 1.
   rewrite /pgroup -[#|_|](partnC p) ?cardG_gt0 // -{sylG'S}(card_Hall sylG'S).
   by rewrite /= setIC tiSG' cards1 mul1n part_pnat.
 apply/trivgP; rewrite /= focal_subgroup_gen ?(p_Sylow sylS) // gen_subG.
-apply/subsetP=> z; case/imset2P=> x u Sx; case/setIdP=> Gu Sxu ->{z}.
-have cSS: forall y, y \in S -> S \subset 'C_G[y].
-  move=> y; rewrite subsetI sSG -cent_set1 centsC sub1set; apply: subsetP.
+apply/subsetP=> _ /imset2P[x u Sx /setIdP[Gu Sxu] ->].
+have cSS y: y \in S -> S \subset 'C_G[y].
+  rewrite subsetI sSG -cent_set1 centsC sub1set; apply: subsetP.
   by apply: subset_trans cSN; rewrite subsetI sSG normG.
 have{cSS} [v]: exists2 v, v \in 'C_G[x ^ u | 'J] & S :=: (S :^ u) :^ v.
   have sylSu : p.-Sylow(G) (S :^ u) by rewrite pHallJ.
   have [sSC sCG] := (cSS _ Sxu, subsetIl G 'C[x ^ u]).
   rewrite astab1J; apply: (@Sylow_trans p); apply: pHall_subl sCG _ => //=.
   by rewrite -conjg_set1 normJ -(conjGid Gu) -conjIg conjSg cSS.
-rewrite in_set1 -conjsgM; case/setIP=> Gv; move/astab1P=> cx_uv nSuv.
+rewrite in_set1 -conjsgM => /setIP[Gv /astab1P cx_uv] nSuv.
 apply/conjg_fixP; rewrite -cx_uv /= -conjgM; apply: astabP Sx.
 by rewrite astabJ (subsetP cSN) // !inE -nSuv groupM /=.
 Qed.
@@ -920,10 +896,9 @@ move=> cycS; have [sSG pS _] := and3P sylS.
 have nsSN: S <| 'N_G(S) by rewrite normalSG.
 have hallSN: Hall 'N_G(S) S.
   by apply: pHall_Hall (pHall_subl _ _ sylS); rewrite ?subsetIl ?normal_sub.
-case/splitsP: (SchurZassenhaus_split hallSN nsSN) => K.
-case/complP=> /= tiSK defN.
+have /splitsP[K /complP[tiSK /= defN]] := SchurZassenhaus_split hallSN nsSN.
 have sKN: K \subset 'N_G(S) by rewrite -defN mulG_subr.
-have [sKG nSK]: K \subset G /\ K \subset 'N(S) by apply/andP; rewrite -subsetI.
+have [sKG nSK] := subsetIP sKN.
 have coSK: coprime #|S| #|K|.
   by case/andP: hallSN => sSN; rewrite -divgS //= -defN TI_cardMg ?mulKn.
 have:= coprime_abelian_cent_dprod nSK coSK (cyclic_abelian cycS).
@@ -931,7 +906,7 @@ case/(cyclic_pgroup_dprod_trivg pS cycS) => [[_ cSK]|[_ <-]]; last first.
   by right; rewrite commgSS.
 have cSN: 'N_G(S) \subset 'C(S).
   by rewrite -defN mulG_subG -abelianE cyclic_abelian // centsC -cSK subsetIr.
-case/sdprodP: (Burnside_normal_complement cSN) => _ /= defG _ _.
+have /sdprodP[_ /= defG _ _] := Burnside_normal_complement cSN.
 set Q := 'O_p^'(G) in defG; have nQG: G \subset 'N(Q) := gFnorm _ _.
 left; rewrite coprime_TIg ?(pnat_coprime pS) //.
 apply: pgroupS (pcore_pgroup _ G); rewrite /= -/Q.
@@ -943,17 +918,17 @@ Qed.
 End Focal_Subgroup.
 
 (* This is B & G, Corollary 1.19(b). *)
-Corollary Zgroup_der1_Hall : forall gT (G : {group gT}),
+Corollary Zgroup_der1_Hall gT (G : {group gT}) :
   Zgroup G -> Hall G G^`(1).
 Proof.
-move=> gT G ZgG; set G' := G^`(1).
+move=> ZgG; set G' := G^`(1).
 rewrite /Hall der_sub coprime_sym coprime_pi' ?cardG_gt0 //=.
-apply/pgroupP=> p p_pr pG'; have [P sylP]:= Sylow_exists p G.
+apply/pgroupP=> p p_pr pG'; have [P sylP] := Sylow_exists p G.
 have cycP: cyclic P by have:= forallP ZgG P; rewrite (p_Sylow sylP).
 case: (cyclic_Sylow_tiVsub_der1 sylP cycP) => [tiPG' | sPG'].
   have: p.-Sylow(G') (P :&: G').
     by rewrite setIC (Sylow_setI_normal _ sylP) ?gFnormal.
-  move/card_Hall; move/eqP; rewrite /= tiPG' cards1 eq_sym.
+  move/card_Hall/eqP; rewrite /= tiPG' cards1 eq_sym.
   by rewrite partn_eq1 ?cardG_gt0 // p'natE ?pG'.
 rewrite inE /= mem_primes p_pr indexg_gt0 -?p'natE // -partn_eq1 //.
 have sylPq: p.-Sylow(G / G') (P / G') by rewrite morphim_pHall ?normsG.
@@ -964,12 +939,12 @@ Qed.
 (* This is B & G, Theorem 1.20 (Maschke's Theorem) for internal action on     *)
 (* elementary abelian subgroups; a more general case, for linear              *)
 (* represenations on matrices, can be found in mxrepresentation.v.            *)
-Theorem Maschke_abelem : forall gT p (G V U : {group gT}),
+Theorem Maschke_abelem gT p (G V U : {group gT}) :
   p.-abelem V -> p^'.-group G -> U \subset V ->
     G \subset 'N(V) -> G \subset 'N(U) ->
   exists2 W : {group gT}, U \x W = V & G \subset 'N(W).
 Proof.
-move=> gT p G V U pV p'G sUV nVG nUG.
+move=> pV p'G sUV nVG nUG.
 have splitU: [splits V, over U] := abelem_splits pV sUV.
 case/and3P: pV => pV abV; have cUV := subset_trans sUV abV.
 have sVVG := joing_subl V G.
@@ -979,9 +954,9 @@ rewrite -{nUVG}(Gaschutz_split nUVG) ?(abelianS sUV) // in splitU; last first.
   rewrite -divgS ?joing_subl //= norm_joinEr //.
   have coVG: coprime #|V| #|G| := pnat_coprime pV p'G.
   by rewrite coprime_cardMg // mulnC mulnK // (coprimeSg sUV).
-case/splitsP: splitU => WG; case/complP=> trUWG /= defVG.
+case/splitsP: splitU => WG /complP[tiUWG /= defVG].
 exists (WG :&: V)%G.
-  rewrite dprodE; last by rewrite setIA trUWG (setIidPl _) ?sub1G.
+  rewrite dprodE; last by rewrite setIA tiUWG (setIidPl _) ?sub1G.
     by rewrite group_modl // defVG (setIidPr _).
   by rewrite subIset // orbC centsC cUV.
 rewrite (subset_trans (joing_subr V _)) // -defVG mul_subG //.
@@ -1001,65 +976,64 @@ Implicit Types G H : {group gT}.
 Lemma plength1_1 : p.-length_1 (1 : {set gT}).
 Proof. by rewrite -[_ 1]subG1 pseries_sub. Qed.
 
-Lemma plength1_p'group : forall G, p^'.-group G -> p.-length_1 G.
+Lemma plength1_p'group G : p^'.-group G -> p.-length_1 G.
 Proof.
-move=> G p'G; rewrite [p.-length_1 G]eqEsubset pseries_sub /=.
+move=> p'G; rewrite [p.-length_1 G]eqEsubset pseries_sub /=.
 by rewrite -{1}(pcore_pgroup_id p'G) -pseries1 pseries_sub_catl.
 Qed.
 
-Lemma plength1_nonprime : forall G, ~~ prime p -> p.-length_1 G.
+Lemma plength1_nonprime G : ~~ prime p -> p.-length_1 G.
 Proof.
-move=> G p_nonpr; rewrite plength1_p'group // /pgroup p'natEpi // mem_primes.
-by rewrite (negPf p_nonpr).
+move=> not_p_pr; rewrite plength1_p'group // p'groupEpi mem_primes.
+by rewrite (negPf not_p_pr).
 Qed.
 
-Lemma plength1_pcore_quo_Sylow : forall G (Gb := G / 'O_p^'(G)),
+Lemma plength1_pcore_quo_Sylow G (Gb := G / 'O_p^'(G)) :
   p.-length_1 G = p.-Sylow(Gb) 'O_p(Gb).
 Proof.
-move=> G; rewrite /plength_1 eqEsubset pseries_sub /=.
+rewrite /plength_1 eqEsubset pseries_sub /=.
 rewrite (pseries_rcons _ [:: _; _]) -sub_quotient_pre ?gFnorm //=.
 rewrite /pHall pcore_sub pcore_pgroup /= -card_quotient ?gFnorm //=.
-rewrite -quotient_pseries2 /= -(pseries1 _ G).
+rewrite -quotient_pseries2 /= {}/Gb -(pseries1 _ G).
 rewrite (card_isog (third_isog _ _ _)) ?pseries_normal ?pseries_sub_catl //.
 apply/idP/idP=> p'Gbb; last by rewrite (pcore_pgroup_id p'Gbb).
 exact: pgroupS p'Gbb (pcore_pgroup _ _).
 Qed.
 
-Lemma plength1_pcore_Sylow : forall G,
+Lemma plength1_pcore_Sylow G :
   'O_p^'(G) = 1 -> p.-length_1 G = p.-Sylow(G) 'O_p(G).
 Proof.
-move=> G p'G1; rewrite plength1_pcore_quo_Sylow -quotient_pseries2.
+move=> p'G1; rewrite plength1_pcore_quo_Sylow -quotient_pseries2.
 by rewrite p'G1 pseries_pop2 // pquotient_pHall ?normal1 ?pgroup1.
 Qed.
 
 (* This is the characterization given in Section 10 of B & G, p. 75, just     *)
 (* before Theorem 10.6.                                                       *)
-Lemma plength1_pseries2_quo : forall G,
-  p.-length_1 G = p^'.-group (G / 'O_{p^', p}(G)).
+Lemma plength1_pseries2_quo G : p.-length_1 G = p^'.-group (G / 'O_{p^', p}(G)).
 Proof.
-move=> G; rewrite /plength_1 eqEsubset pseries_sub lastI pseries_rcons /=.
+rewrite /plength_1 eqEsubset pseries_sub lastI pseries_rcons /=.
 rewrite -sub_quotient_pre ?gFnorm //.
 by apply/idP/idP=> pl1G; rewrite ?pcore_pgroup_id ?(pgroupS pl1G) ?pcore_pgroup.
 Qed.
 
 (* This is B & G, Lemma 1.21(a). *)
-Lemma plength1S : forall G H, H \subset G -> p.-length_1 G -> p.-length_1 H.
+Lemma plength1S G H : H \subset G -> p.-length_1 G -> p.-length_1 H.
 Proof.
-  rewrite /plength_1 => G H sHG pG1; rewrite eqEsubset pseries_sub.
+rewrite /plength_1 => sHG pG1; rewrite eqEsubset pseries_sub.
 by apply: subset_trans (pseriesS _ sHG); rewrite (eqP pG1) (setIidPr _).
 Qed.
 
-Lemma plength1_quo : forall G H, p.-length_1 G -> p.-length_1 (G / H).
+Lemma plength1_quo G H : p.-length_1 G -> p.-length_1 (G / H).
 Proof.
-rewrite /plength_1 => G H pG1; rewrite eqEsubset pseries_sub.
+rewrite /plength_1 => pG1; rewrite eqEsubset pseries_sub.
 by rewrite -{1}(eqP pG1) morphim_pseries.
 Qed.
 
 (* This is B & G, Lemma 1.21(b). *)
-Lemma p'quo_plength1 : forall G H,
+Lemma p'quo_plength1 G H :
   H <| G -> p^'.-group H -> p.-length_1 (G / H) = p.-length_1 G.
 Proof.
-rewrite /plength_1 => G H nHG p'H; apply/idP/idP; last exact: plength1_quo.
+rewrite /plength_1 => nHG p'H; apply/idP/idP; last exact: plength1_quo.
 move=> pGH1; rewrite eqEsubset pseries_sub.
 have nOG: 'O_{p^'}(G) <| G by exact: pseries_normal.
 rewrite -(quotientSGK (normal_norm nOG)) ?(pseries_sub_catl [:: _]) //.
@@ -1071,11 +1045,11 @@ by rewrite -quotient_pseries_cat /= (eqP pGH1).
 Qed.
 
 (* This is B & G, Lemma 1.21(c). *)
-Lemma pquo_plength1 : forall G H,
+Lemma pquo_plength1 G H :
     H <| G -> p.-group H -> 'O_p^'(G / H) = 1->
   p.-length_1 (G / H) = p.-length_1 G.
 Proof.
-rewrite /plength_1 => G H nHG pH trO; apply/idP/idP; last exact: plength1_quo.
+rewrite /plength_1 => nHG pH trO; apply/idP/idP; last exact: plength1_quo.
 rewrite (pseries_pop _ trO) => pGH1; rewrite eqEsubset pseries_sub /=.
 rewrite pseries_pop //; last first.
   apply/eqP; rewrite -subG1; have <-: H :&: 'O_p^'(G) = 1.
@@ -1092,23 +1066,23 @@ rewrite {f f_inj}morphimS // pseries1 -pquotient_pcore // -(pseries1 p) /=.
 by rewrite -quotient_pseries /= (eqP pGH1).
 Qed.
 
-Canonical Structure p_elt_gen_group A : {group gT} :=
+Canonical p_elt_gen_group A : {group gT} :=
   Eval hnf in [group of p_elt_gen p A].
 
 (* Note that p_elt_gen could be a functor. *)
-Lemma p_elt_gen_normal : forall G, p_elt_gen p G <| G.
+Lemma p_elt_gen_normal G : p_elt_gen p G <| G.
 Proof.
-move=> G; apply/normalP; split=> [|x Gx].
+apply/normalP; split=> [|x Gx].
   by rewrite gen_subG; apply/subsetP=> x; rewrite inE; case/andP.
 rewrite -genJ; congr <<_>>; apply/setP=> y; rewrite mem_conjg !inE.
 by rewrite p_eltJ -mem_conjg conjGid.
 Qed.
 
 (* This is B & G, Lemma 1.21(d). *)
-Lemma p_elt_gen_length1 : forall G,
+Lemma p_elt_gen_length1 G :
   p.-length_1 G = p^'.-Hall(p_elt_gen p G) 'O_p^'(p_elt_gen p G).
 Proof.
-move=> G; rewrite /pHall pcore_sub pcore_pgroup pnatNK /= /plength_1.
+rewrite /pHall pcore_sub pcore_pgroup pnatNK /= /plength_1.
 have nUG := p_elt_gen_normal G; have [sUG nnUG]:= andP nUG.
 apply/idP/idP=> [p1G | pU].
   apply: (@pnat_dvd _ #|p_elt_gen p G : 'O_p^'(G)|).
@@ -1131,7 +1105,7 @@ rewrite (quotient_pseries [::_;_]) pcore_max //.
 rewrite /pgroup card_quotient ?normal_norm //.
 apply: (@pnat_dvd _ #|G : p_elt_gen p G|); last first.
   case p_pr: (prime p); last by rewrite p'natEpi // mem_primes p_pr.
-  rewrite -card_quotient // p'natE //; apply/negP; case/Cauchy=> // Ux.
+  rewrite -card_quotient // p'natE //; apply/negP=> /Cauchy[] // Ux.
   case/morphimP=> x Nx Gx -> /= oUx_p; have:= prime_gt1 p_pr.
   rewrite -(part_pnat_id (pnat_id p_pr)) -{1}oUx_p {oUx_p} -order_constt.
   rewrite -morph_constt //= coset_id ?order1 //.
@@ -1149,38 +1123,36 @@ Qed.
 End Plength1.
 
 (* This is B & G, Lemma 1.21(e). *)
-Lemma quo2_plength1 : forall gT p (G H K : {group gT}),
+Lemma quo2_plength1 gT p (G H K : {group gT}) :
   H <| G -> K <| G -> H :&: K = 1 ->
      p.-length_1 (G / H) && p.-length_1 (G / K) = p.-length_1 G.
 Proof.
-move=> gT p G H K nHG nKG trHK.
+move=> nHG nKG trHK.
 have [p_pr | p_nonpr] := boolP (prime p); last by rewrite !plength1_nonprime.
 apply/andP/idP=> [[pH1 pK1] | pG1]; last by rewrite !plength1_quo.
 pose U := p_elt_gen p G; have nU : U <| G by exact: p_elt_gen_normal.
-have exB: forall N : {group gT},
+have exB (N : {group gT}) :
    N <| G -> p.-length_1 (G / N) ->
      exists B : {group gT},
        [/\ U \subset 'N(B),
            forall x, x \in B -> #[x] = p -> x \in N
          & forall Q : {group gT}, p^'.-subgroup(U) Q -> Q \subset B].
-- move=> N nNG; have [sNG nnNG] := andP nNG.
+- move=> nsNG; have [sNG nNG] := andP nsNG.
   rewrite p_elt_gen_length1 // (_ : p_elt_gen _ _ = U / N); last first.
     rewrite /quotient morphim_gen -?quotientE //; last first.
-      by apply/subsetP=> x; rewrite inE; case/andP; move/(subsetP nnNG).
-    congr <<_>>; apply/setP=> Nx; rewrite inE.
-    apply/andP/morphimP=> [[]|[x NNx]].
-      case/morphimP=> x NNx Gx ->{Nx} pNx.
-      exists x.`_p; first exact: groupX.
-        by rewrite inE p_elt_constt groupX.
-      by rewrite morph_constt // constt_p_elt.
-    rewrite inE; case/andP=> Gx p_x ->{Nx}.
-    by rewrite morph_p_elt // -sub1set -morphim_set1 // morphimS ?sub1set.
-  have nNU: U \subset 'N(N) := subset_trans (normal_sub nU) nnNG.
+      by rewrite setIdE subIset ?nNG.
+    congr <<_>>; apply/setP=> Nx; rewrite inE setIdE quotientGI // inE.
+    apply: andb_id2l => /morphimP[x NNx Gx ->{Nx}] /=.
+    apply/idP/idP=> [pNx | /morphimP[y NNy]]; last first.
+      by rewrite inE => p_y ->; exact: morph_p_elt.
+    rewrite -(constt_p_elt pNx) -morph_constt // mem_morphim ?groupX //.
+    by rewrite inE p_elt_constt.
+  have nNU: U \subset 'N(N) := subset_trans (normal_sub nU) nNG.
   have nN_UN: U <*> N \subset 'N(N) by rewrite gen_subG subUset normG nNU.
   case/(inv_quotientN _): (pcore_normal p^' [group of U <*> N / N]) => /= [|B].
     by rewrite /normal sub_gen ?subsetUr.
   rewrite /= quotientYidr //= /U => defB sNB; case/andP=> sB nB hallB.
-  exists B; split=> [|x Ux p_x|Q].
+  exists B; split=> [| x Ux p_x | Q /andP[sQU p'Q]].
   - by rewrite (subset_trans (sub_gen _) nB) ?subsetUl.
   - have nNx: x \in 'N(N) by rewrite (subsetP nN_UN) ?(subsetP sB).
     apply: coset_idr => //; rewrite -[coset N x](consttC p).
@@ -1188,7 +1160,7 @@ have exB: forall N : {group gT},
       by rewrite morph_p_elt // /p_elt p_x pnat_id.
     have: coset N x \in B / N by apply/morphimP; exists x.
     by apply: mem_p_elt; rewrite /= -defB pcore_pgroup.
-  case/andP=> sQU p'Q; rewrite -(quotientSGK (subset_trans sQU nNU) sNB).
+  rewrite -(quotientSGK (subset_trans sQU nNU) sNB).
   by rewrite -defB (sub_Hall_pcore hallB) ?quotientS ?quotient_pgroup.
 have{pH1} [A [nAU pA p'A]] := exB H nHG pH1.
 have{pK1 exB} [B [nBU pB p'B]] := exB K nKG pK1.
@@ -1198,8 +1170,8 @@ move=> Q p'Q sOQ; apply/eqP; rewrite eqEsubset sOQ andbT.
 apply: subset_trans (_ : U :&: (A :&: B) \subset _); last rewrite /U.
   by rewrite !subsetI p'A ?p'B //; case/andP: p'Q => ->.
 apply: pcore_max; last by rewrite /normal subsetIl !normsI ?normG.
-rewrite /pgroup p'natE //; apply/negP; case/Cauchy=> // x.
-case/setIP=> _; case/setIP=> Ax Bx oxp.
+rewrite /pgroup p'natE //.
+apply/negP=> /Cauchy[] // x /setIP[_ /setIP[Ax Bx]] oxp.
 suff: x \in 1%G by move/set1P=> x1; rewrite -oxp x1 order1 in p_pr.
 by rewrite /= -trHK inE pA ?pB.
 Qed.
@@ -1207,11 +1179,11 @@ Qed.
 (* B & G Lemma 1.22 is covered by sylow.normal_pgroup. *)
 
 (* Encapsulation of the use of the order of GL_2(p), via abelem groups. *)
-Lemma logn_quotient_cent_abelem : forall gT p (A E : {group gT}),
+Lemma logn_quotient_cent_abelem gT p (A E : {group gT}) :
     A \subset 'N(E) -> p.-abelem E -> logn p #|E| <= 2 ->
   logn p #|A : 'C_A(E)| <= 1.
 Proof.
-move=> gT p A E nEA abelE maxdimE; case: (eqsVneq E 1) => [-> | ntE].
+move=> nEA abelE maxdimE; have [-> | ntE] := eqsVneq E 1.
   by rewrite (setIidPl (cents1 _)) indexgg logn1.
 pose rP := abelem_repr abelE ntE nEA.
 have [p_pr _ _] := pgroup_pdiv (abelem_pgroup abelE) ntE.
@@ -1228,14 +1200,14 @@ Section PuigSeriesGroups.
 
 Implicit Type gT : finGroupType.
 
-Canonical Structure Puig_succ_group gT (D E : {set gT}) := [group of 'L_[D](E)].
+Canonical Puig_succ_group gT (D E : {set gT}) := [group of 'L_[D](E)].
 
-Lemma Puig_at_group_set : forall n gT D, @group_set gT 'L_{n}(D).
-Proof. case=> [|n] gT G; exact: groupP. Qed.
+Fact Puig_at_group_set n gT D : @group_set gT 'L_{n}(D).
+Proof. case: n => [|n]; exact: groupP. Qed.
 
-Canonical Structure Puig_at_group n gT D := Group (@Puig_at_group_set n gT D).
-Canonical Structure Puig_inf_group gT (D : {set gT}) := [group of 'L_*(D)].
-Canonical Structure Puig_group gT (D : {set gT}) := [group of 'L(D)].
+Canonical Puig_at_group n gT D := Group (@Puig_at_group_set n gT D).
+Canonical Puig_inf_group gT (D : {set gT}) := [group of 'L_*(D)].
+Canonical Puig_group gT (D : {set gT}) := [group of 'L(D)].
 
 End PuigSeriesGroups.
 
@@ -1249,87 +1221,81 @@ Notation "''L' ( G )" := (Puig_group G) : subgroup_scope.
 Section PuigBasics.
 
 Variable gT : finGroupType.
-Implicit Types D E : {set gT}.
-Implicit Types G H : {group gT}.
+Implicit Types (D E : {set gT}) (G H : {group gT}).
 
-Lemma Puig0 : forall D, 'L_{0}(D) = 1. Proof. by []. Qed.
-Lemma PuigS : forall n D, 'L_{n.+1}(D) = 'L_[D]('L_{n}(D)). Proof. by []. Qed.
-Lemma Puig_recE : forall n D, Puig_rec n D = 'L_{n}(D). Proof. by []. Qed.
-Lemma Puig_def : forall D, 'L(D) = 'L_[D]('L_*(D)). Proof. by []. Qed.
+Lemma Puig0 D : 'L_{0}(D) = 1. Proof. by []. Qed.
+Lemma PuigS n D : 'L_{n.+1}(D) = 'L_[D]('L_{n}(D)). Proof. by []. Qed.
+Lemma Puig_recE n D : Puig_rec n D = 'L_{n}(D). Proof. by []. Qed.
+Lemma Puig_def D : 'L(D) = 'L_[D]('L_*(D)). Proof. by []. Qed.
 
 Local Notation "D --> E" := (generated_by (norm_abelian D) E)
   (at level 70, no associativity) : group_scope.
 
-Lemma Puig_gen : forall D E, E --> 'L_[D](E).
-Proof. by move=> D E; apply/existsP; exists (subgroups D). Qed.
+Lemma Puig_gen D E : E --> 'L_[D](E).
+Proof. by apply/existsP; exists (subgroups D). Qed.
 
-Lemma Puig_max : forall G D E,
-  D --> E -> E \subset G -> E \subset 'L_[G](D).
+Lemma Puig_max G D E : D --> E -> E \subset G -> E \subset 'L_[G](D).
 Proof.
-move=> G D E; case/existsP=> gE; move/eqP=> <-{E}; rewrite !gen_subG.
+case/existsP=> gE /eqP <-{E}; rewrite !gen_subG.
 move/bigcupsP=> sEG; apply/bigcupsP=> A gEA; have [_ abnA]:= andP gEA.
 by rewrite sub_gen // bigcup_sup // inE sEG.
 Qed.
 
-Lemma norm_abgenS : forall D1 D2 E, D1 \subset D2 -> D2 --> E -> D1 --> E.
+Lemma norm_abgenS D1 D2 E : D1 \subset D2 -> D2 --> E -> D1 --> E.
 Proof.
-move=> D1 D2 E sD12; case/existsP=> gE; move/eqP=> <-{E}.
+move=> sD12 /existsP[gE /eqP <-{E}].
 apply/existsP; exists [set A \in gE | norm_abelian D2 A].
 apply/eqP; congr <<_>>; apply: eq_bigl => A; rewrite !inE.
-case: (@andP (A \in _)) => //= [] [_]; case/andP=> nAD cAA.
+apply: andb_idr => /and3P[_ nAD cAA].
 by apply/andP; rewrite (subset_trans sD12).
 Qed.
 
-Lemma Puig_succ_sub : forall G D, 'L_[G](D) \subset G.
-Proof.
-by move=> G D; rewrite gen_subG; apply/bigcupsP=> A; case/andP; rewrite inE.
-Qed.
+Lemma Puig_succ_sub G D : 'L_[G](D) \subset G.
+Proof. by rewrite gen_subG; apply/bigcupsP=> A /andP[]; rewrite inE. Qed.
 
-Lemma Puig_at_sub : forall n G, 'L_{n}(G) \subset G.
-Proof. by case=> [|n] G; rewrite ?sub1G ?Puig_succ_sub. Qed.
+Lemma Puig_at_sub n G : 'L_{n}(G) \subset G.
+Proof. by case: n => [|n]; rewrite ?sub1G ?Puig_succ_sub. Qed.
 
 (* This is B & G, Lemma B.1(d), first part. *)
-Lemma Puig_inf_sub : forall G, 'L_*(G) \subset G.
-Proof. move=> G; exact: Puig_at_sub. Qed.
+Lemma Puig_inf_sub G : 'L_*(G) \subset G.
+Proof. exact: Puig_at_sub. Qed.
 
-Lemma Puig_sub : forall G, 'L(G) \subset G.
-Proof. move=> G; exact: Puig_at_sub. Qed.
+Lemma Puig_sub G : 'L(G) \subset G.
+Proof. exact: Puig_at_sub. Qed.
 
 (* This is part of B & G, Lemma B.1(b). *)
-Lemma Puig1 : forall G, 'L_{1}(G) = G.
+Lemma Puig1 G : 'L_{1}(G) = G.
 Proof.
-move=> G; apply/eqP; rewrite eqEsubset Puig_at_sub.
-apply/subsetP=> x Gx; rewrite -cycle_subG sub_gen //.
-rewrite -[<[x]>]/(gval _) bigcup_sup //= inE cycle_subG Gx /= /norm_abelian.
-by rewrite cycle_abelian sub1G.
+apply/eqP; rewrite eqEsubset Puig_at_sub; apply/subsetP=> x Gx.
+rewrite -cycle_subG sub_gen // -[<[x]>]/(gval _) bigcup_sup //=.
+by rewrite inE cycle_subG Gx /= /norm_abelian cycle_abelian sub1G.
 Qed.
 
 End PuigBasics.
 
 (* Functoriality of the Puig series. *)
 
-Lemma Puig_at_cont : forall n, GFunctor.iso_continuous (Puig_at n).
+Fact Puig_at_cont n : GFunctor.iso_continuous (Puig_at n).
 Proof.
-elim=> [|n IHn] aT rT G f injf; first by rewrite morphim1.
+elim: n => [|n IHn] aT rT G f injf; first by rewrite morphim1.
 have IHnS := Puig_at_sub n; pose func_n := [igFun by IHnS & !IHn].
 rewrite !PuigS sub_morphim_pre ?Puig_succ_sub // gen_subG; apply/bigcupsP=> A.
-rewrite inE; case/and3P=> sAG nAL cAA; rewrite -sub_morphim_pre ?sub_gen //.
+rewrite inE => /and3P[sAG nAL cAA]; rewrite -sub_morphim_pre ?sub_gen //.
 rewrite -[f @* A]/(gval _) bigcup_sup // inE morphimS // /norm_abelian.
 rewrite morphim_abelian // -['L_{n}(_)](injmF func_n injf) //=.
 by rewrite morphim_norms.
 Qed.
 
-Canonical Structure Puig_at_igFun n :=
-  [igFun by Puig_at_sub^~ n & !Puig_at_cont n].
+Canonical Puig_at_igFun n := [igFun by Puig_at_sub^~ n & !Puig_at_cont n].
 
-Lemma Puig_inf_cont : GFunctor.iso_continuous Puig_inf.
+Fact Puig_inf_cont : GFunctor.iso_continuous Puig_inf.
 Proof.
 by move=> aT rT G f injf; rewrite /Puig_inf card_injm // Puig_at_cont.
 Qed.
 
-Canonical Structure Puig_inf_igFun := [igFun by Puig_inf_sub & !Puig_inf_cont].
+Canonical Puig_inf_igFun := [igFun by Puig_inf_sub & !Puig_inf_cont].
 
-Lemma Puig_cont : GFunctor.iso_continuous Puig.
+Fact Puig_cont : GFunctor.iso_continuous Puig.
 Proof. by move=> aT rT G f injf; rewrite /Puig card_injm // Puig_at_cont. Qed.
 
-Canonical Structure Puig_igFun := [igFun by Puig_sub & !Puig_cont].
+Canonical Puig_igFun := [igFun by Puig_sub & !Puig_cont].

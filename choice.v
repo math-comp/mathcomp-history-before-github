@@ -669,10 +669,10 @@ Definition tree_rec (K : tree -> Set) := @tree_rect K.
 Definition tree_ind K IH_leaf IH_node :=
   fix loop t : K t : Prop := match t with
   | Leaf x => IH_leaf x
-  | Node n st0 =>
-    let fix iter_conj st : foldr (fun t => and (K t)) True st :=
-        if st is t :: st' then conj (loop t) (iter_conj st') else Logic.I
-      in IH_node n st0 (iter_conj st0)
+  | Node n f0 =>
+    let fix iter_conj f : foldr (fun t => and (K t)) True f :=
+        if f is t :: f' then conj (loop t) (iter_conj f') else Logic.I
+      in IH_node n f0 (iter_conj f0)
     end.
 
 Fixpoint encode t : seq (nat + T) :=

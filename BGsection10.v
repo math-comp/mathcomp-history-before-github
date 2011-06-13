@@ -1365,7 +1365,7 @@ have [Y [{cplA1C} cycY sZ0Y defC cCC]]: exists Y, cplA1C Y.
     rewrite abelian_rank1_cyclic // -ltnNge (rank_pgroup pY).
     by rewrite (p_rank_abelian p cYY) defY1 -dimA lognSg.
   have cAY: Y \subset 'C(A) by exact: centSS _ _ cEY.
-  have cCC: abelian C by rewrite -defC abelianM cAA cYY centsC.
+  have cCC: abelian C by rewrite -defC abelianM cAA cYY.
   have{EpZ01} [eqZ10 EpZ1] := EpZ01 cCC; rewrite -eqZ10 in EpZ1.
   have sZ0Y: Z0 \subset Y by rewrite -eqZ10 -defY Ohm_sub.
   have{EpA1} EpA1 := EpA1 (card_pnElem EpZ1).

@@ -594,7 +594,7 @@ have{eR' def_r cTT} defR': R' = <[r]>.
   rewrite der1_min // -defR -defTX -joingA.
   rewrite norm_joinEr ?(subset_trans sXYR) ?normal_norm //.
   rewrite quotientMl ?(subset_trans sTR) // abelianM quotient_abelian //=.
-  rewrite centsC quotient_cents //= -der1_joing_cycles ?der_abelian //.
+  rewrite quotient_cents //= -der1_joing_cycles ?der_abelian //.
   by rewrite -sub_cent1 (subset_trans sXYR).
 have [S maxS sR'S] : {S | [max S | (S \subset R) && cyclic S] & (R' \subset S)}.
   by apply: maxgroup_exists; rewrite sR'R /= -/R' defR' cycle_cyclic.
@@ -989,8 +989,8 @@ have defT: S' * <[z]> = T.
   by rewrite quotientGK // (normalS _ sTR) // proper_sub.
 have nt_yz: [~ y, z] != 1.
   apply: contra not_cSS; rewrite (sameP commgP cent1P) => cyz.
-  rewrite -defS abelianM cTT cycle_abelian /= -/T -defT defS' mulG_subG.
-  by rewrite subIset ?centS ?orbT // cycle_subG // -sub_cent1 cycle_subG.
+  rewrite -defS abelianM cTT cycle_abelian /= -/T -defT centM /= -/S' defS'.
+  by rewrite cent_cycle subsetI centsC subIset ?centS ?cycle_subG ?orbT.
 have sS'X1: S' \subset 'Ohm_1(X) by rewrite -defC1 OhmS.
 have i_neq0: i != 0 %[mod p].
   have: 'Ohm_1(X) != 1 by rewrite (subG1_contra sS'X1) //= -cardG_gt1 oS'.

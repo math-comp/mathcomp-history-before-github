@@ -435,7 +435,7 @@ case/cprodP=> [[H K -> ->{A B}] defG cHK].
 apply/idP/andP=> [abelG | []].
   by rewrite !(abelemS _ abelG) // -defG (mulG_subl, mulG_subr).
 case/and3P=> pH cHH expHp; case/and3P=> pK cKK expKp.
-rewrite -defG /abelem pgroupM pH pK abelianM cHH centsC cHK cKK /=.
+rewrite -defG /abelem pgroupM pH pK abelianM cHH cKK cHK /=.
 apply/exponentP=> _ /imset2P[x y Hx Ky ->].
 rewrite expMgn; last by red; rewrite -(centsP cHK).
 by rewrite (exponentP expHp) // (exponentP expKp) // mul1g.
@@ -1696,7 +1696,7 @@ move: b => b1 pG defG1 ntb1.
 have cGG: abelian G.
   elim: (b1) {pG}G defG1 => [_ <-|x b IHb G]; first by rewrite big_nil abelian1.
   rewrite big_cons; case/dprodP=> [[_ H _ defH]] <-; rewrite defH => cxH _.
-  by rewrite abelianM cycle_abelian centsC IHb.
+  by rewrite abelianM cycle_abelian IHb.
 have p_bG b: \big[dprod/1]_(x <- b) <[x]> = G -> all (p_elt p) b.
   elim: b {defG1 cGG}G pG => //= x b IHb G pG; rewrite big_cons.
   case/dprodP=> [[_ H _ defH]]; rewrite defH andbC => defG _ _.

@@ -1154,8 +1154,7 @@ have{defK} defK: E3 \x E2 = K.
   rewrite dprodEsdprod // (sameP commG1P trivgP) -tiE32 subsetI commg_subr nE32.
   by rewrite commg_subl (subset_trans sE3E) ?normal_norm.
 have cKK: abelian K.
-  have [_ <- cE23 _] := dprodP defK.
-  by rewrite abelianM centsC cE2E2 cyclic_abelian.
+  by have [_ <- cE23 _] := dprodP defK; rewrite abelianM cE2E2 cyclic_abelian.
 have [_ sNS'F _ sCS_E defFN] :=
   abelian_tau2_sub_Fitting maxM hallE t2Mp Ep2A sylS sAS cSS.
 have{sCS_E} sSE2: S \subset E2.
