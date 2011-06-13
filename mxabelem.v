@@ -44,7 +44,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GroupScope GRing.Theory.
+Import GroupScope GRing.Theory FinRing.Theory.
 Local Open Scope ring_scope.
 
 (* Special results for representations on a finite field. In this case, the   *)
@@ -55,7 +55,38 @@ Local Open Scope ring_scope.
 (* (this is only surjective when F is a prime field 'F_p), with moduleules    *)
 (* corresponding to subgroups stabilized by the external action.              *)
 
-Section FiniteRepr.
+Section FinRingRepr.
+
+Variable (R : finComUnitRingType) (gT : finGroupType).
+Variables (G : {group gT}) (n : nat) (rG : mx_representation R G n).
+
+Definition mx_repr_act (u : 'rV_n) x := u *m rG (val (subg G x)).
+
+Lemma mx_repr_actE u x : x \in G -> mx_repr_act u x = u *m rG x.
+Proof. by move=> Gx; rewrite /mx_repr_act /= subgK. Qed.
+
+Fact mx_repr_is_action : is_action G mx_repr_act.
+Proof.
+split=> [x | u x y Gx Gy]; first exact: can_inj (repr_mxK _ (subgP _)).
+by rewrite !mx_repr_actE ?groupM // -mulmxA repr_mxM.
+Qed.
+Canonical Structure mx_repr_action := Action mx_repr_is_action.
+
+Fact mx_repr_is_groupAction : is_groupAction [set: 'rV[R]_n] mx_repr_action.
+Proof.
+move=> x Gx /=; rewrite !inE.
+apply/andP; split; first by apply/subsetP=> u; rewrite !inE.
+by apply/morphicP=> /= u v _ _; rewrite !actpermE /= /mx_repr_act mulmx_addl.
+Qed.
+Canonical Structure mx_repr_groupAction := GroupAction mx_repr_is_groupAction.
+
+End FinRingRepr.
+
+Notation "''MR' rG" := (mx_repr_action rG)
+  (at level 10, rG at level 8) : action_scope.
+Local Notation "''MR' rG" := (mx_repr_groupAction rG) : groupAction_scope.
+
+Section FinFieldRepr.
 
 Variable F : finFieldType.
 
@@ -232,30 +263,6 @@ apply/setP=> x; rewrite !inE mul1mx; apply: andb_id2l => Gx.
 by rewrite -val_eqE val_reprGLm.
 Qed.
 
-Definition mx_repr_act (u : 'rV_n) x := u *m val (reprGLm x).
-
-Lemma mx_repr_actE u x : x \in G -> mx_repr_act u x = u *m rG x.
-Proof. by move=> Gx; rewrite /mx_repr_act val_reprGLm. Qed.
-
-Fact mx_repr_is_action : is_action G mx_repr_act.
-Proof.
-split=> [x | u x y Gx Gy]; last by rewrite /mx_repr_act -mulmxA reprGLmM.
-apply: can_inj (mulmx^~ (GLval (reprGLm x))^-1) _ => u.
-by rewrite mulmxK ?GL_unitmx.
-Qed.
-Canonical mx_repr_action := Action mx_repr_is_action.
-
-Fact mx_repr_is_groupAction : is_groupAction setT mx_repr_action.
-Proof.
-move=> x Gx /=; rewrite !inE.
-apply/andP; split; first by apply/subsetP=> u; rewrite !inE.
-by apply/morphicP=> /= u v _ _; rewrite !actpermE /= /mx_repr_act mulmx_addl.
-Qed.
-Canonical mx_repr_groupAction := GroupAction mx_repr_is_groupAction.
-
-Local Notation "''MR' 'rG'" := mx_repr_action (at level 10) : action_scope.
-Local Notation "''MR' 'rG'" := mx_repr_groupAction : groupAction_scope.
-
 Lemma astab_rowg_repr m (A : 'M_(m, n)) : 'C(rowg A | 'MR rG) = rstab rG A.
 Proof.
 apply/setP=> x; rewrite !inE /=; apply: andb_id2l => Gx.
@@ -298,13 +305,66 @@ Lemma gacent_repr (H : {set gT}) :
   H \subset G -> 'C_(| 'MR rG)(H) = rowg (rfix_mx rG H).
 Proof. by move=> sHG; rewrite gacentE // setTI afix_repr. Qed.
 
-End FiniteRepr.
+End FinFieldRepr.
 
 Notation "''Zm'" := (scale_action _ _ _) (at level 0) : action_scope.
 Notation "''Zm'" := (scale_groupAction _ _ _) : groupAction_scope.
-Notation "''MR' rG" := (mx_repr_action rG)
-  (at level 10, rG at level 8, format "''MR'  rG") : action_scope.
-Notation "''MR' rG" := (mx_repr_groupAction rG) : groupAction_scope.
+
+Section MatrixGroups.
+
+Implicit Types m n p q : nat.
+
+Lemma exponent_mx_group m n q :
+  m > 0 -> n > 0 -> q > 1 -> exponent [set: 'M['Z_q]_(m, n)] = q.
+Proof.
+move=> m_gt0 n_gt0 q_gt1; apply/eqP; rewrite eqn_dvd; apply/andP; split.
+  apply/exponentP=> x _; apply/matrixP=> i j; rewrite mulmxnE !mxE.
+  by rewrite -mulr_natr -Zp_nat_mod // modnn mulr0.
+pose cmx1 := const_mx 1%R : 'M['Z_q]_(m, n).
+apply: dvdn_trans (dvdn_exponent (in_setT cmx1)). 
+have/matrixP/(_ (Ordinal m_gt0))/(_ (Ordinal n_gt0))/eqP := expg_order cmx1.
+by rewrite mulmxnE !mxE -order_dvdn order_Zp1 Zp_cast.
+Qed.
+
+Lemma rank_mx_group m n q : 'r([set: 'M['Z_q]_(m, n)]) = (m * n)%N.
+Proof.
+wlog q_gt1: q / q > 1 by case: q => [|[|q -> //]] /(_ 2)->.
+set G := setT; have cGG: abelian G := zmod_abelian _.
+have [mn0 | ] := posnP (m * n).
+  by rewrite [G](card1_trivg _) ?rank1 // cardsT card_matrix mn0.
+rewrite muln_gt0 => /andP[m_gt0 n_gt0].
+have expG: exponent G = q := exponent_mx_group m_gt0 n_gt0 q_gt1.
+apply/eqP; rewrite eqn_leq andbC -(leq_exp2l _ _ q_gt1) -{2}expG.
+have ->: (q ^ (m * n))%N = #|G| by rewrite cardsT card_matrix card_ord Zp_cast.
+rewrite max_card_abelian //= -grank_abelian //= -/G.
+pose B := [set (delta_mx ij.1 ij.2 : 'M['Z_q]_(m, n)) | ij <- {: 'I_m * 'I_n}].
+suffices ->: G = <<B>>.
+  have ->: (m * n)%N = #|{: 'I_m * 'I_n}| by rewrite card_prod !card_ord. 
+  exact: leq_trans (grank_min _) (leq_imset_card _ _).
+apply/setP=> v; rewrite inE (matrix_sum_delta v).
+rewrite group_prod // => i _; rewrite group_prod // => j _.
+rewrite -[v i j]natr_Zp scaler_nat groupX // mem_gen //.
+by apply/imsetP; exists (i, j).
+Qed.
+
+Lemma mx_group_homocyclic m n q : homocyclic [set: 'M['Z_q]_(m, n)].
+Proof.
+wlog q_gt1: q / q > 1 by case: q => [|[|q -> //]] /(_ 2)->.
+set G := setT; have cGG: abelian G := zmod_abelian _.
+rewrite -max_card_abelian //= rank_mx_group cardsT card_matrix card_ord -/G.
+rewrite {1}Zp_cast //; have [-> // | ] := posnP (m * n).
+by rewrite muln_gt0 => /andP[m_gt0 n_gt0]; rewrite exponent_mx_group.
+Qed.
+
+Lemma abelian_type_mx_group m n q :
+  q > 1 -> abelian_type [set: 'M['Z_q]_(m, n)] = nseq (m * n) q.
+Proof.
+rewrite (abelian_type_homocyclic (mx_group_homocyclic m n q)) rank_mx_group.
+have [-> // | ] := posnP (m * n); rewrite muln_gt0 => /andP[m_gt0 n_gt0] q_gt1.
+by rewrite exponent_mx_group.
+Qed.
+
+End MatrixGroups.
 
 Definition abelem_dim' (gT : finGroupType) (E : {set gT}) :=
   (logn (pdiv #|E|) #|E|).-1.
@@ -322,8 +382,6 @@ Notation "''M[' F ] ( E )" := 'M[F]_('dim E)
 
 Section AbelemRepr.
 
-Import FinRing.Theory.
-
 Section FpMatrix.
 
 Variables p m n : nat.
@@ -332,7 +390,7 @@ Local Notation Mmn := 'M['F_p]_(m, n).
 Lemma mx_Fp_abelem : prime p -> p.-abelem [set: Mmn].
 Proof.
 move=> p_pr; apply/abelemP=> //; rewrite zmod_abelian.
-split=> //= v _; rewrite FinRing.zmodXgE -scaler_nat.
+split=> //= v _; rewrite zmodXgE -scaler_nat.
 by case/andP: (char_Fp p_pr) => _ /eqP->; rewrite scale0r.
 Qed.
 

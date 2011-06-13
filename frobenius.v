@@ -14,6 +14,9 @@ Require Import cyclic center pgroup abelian.
 (*       the internal action of H on K is "prime", i.e., an element of K that *)
 (*       centralises a nontrivial element of H must actually centralise all   *)
 (*       of H.                                                                *)
+(*    normedTI A G L <=>                                                      *)
+(*       A is strictly disjoint from its conjugates in G, and has normaliser  *)
+(*       L in G.                                                              *)
 (*    [Frobenius G = K ><| H] <=>                                             *)
 (*       G is (isomorphic to) a Frobenius group with kernel K and complement  *)
 (*       H. This is an effective predicate (in bool), which tests the         *)
@@ -47,13 +50,15 @@ Import GroupScope.
 Section Definitions.
 
 Variable gT : finGroupType.
-Implicit Types G K H : {set gT}.
+Implicit Types A G K H L : {set gT}.
 
 (* Corresponds to "H acts on K in a regular manner" in B & G. *)
 Definition semiregular K H := {in H^#, forall x, 'C_K[x] = 1}.
 
 (* Corresponds to "H acts on K in a prime manner" in B & G. *)
 Definition semiprime K H := {in H^#, forall x, 'C_K[x] = 'C_K(H)}.
+
+Definition normedTI A G L := trivIset (A :^: G) && ('N_G(A) == L).
 
 Definition Frobenius_group_with_complement G H :=
   [&& H \proper G, trivIset (H^# :^: G) & 'N_G(H) == H].
@@ -93,7 +98,7 @@ Notation "[ 'Frobenius' G = K ><| H ]" :=
 Section FrobeniusBasics.
 
 Variable gT : finGroupType.
-Implicit Type G H K R X : {group gT}.
+Implicit Types G H K L R X : {group gT}.
 
 Lemma semiregular1l H : semiregular 1 H.
 Proof. by move=> x _ /=; rewrite setI1g. Qed.
@@ -196,6 +201,53 @@ rewrite eqEsubset subsetI sHG normG !andbT -setD_eq0 setDE setIAC -setDE.
 apply: contraR ntH; case/set0Pn=> x /setIP[Gx nHx].
 by rewrite -(sntiHG x Gx) (normP nHx) setIid.
 Qed.
+
+Section NormedTI.
+
+Variables (A : {set gT}) (G L : {group gT}).
+Hypothesis notA0 : A != set0.
+
+Lemma normedTI_P : 
+  reflect [/\ {in G, forall g, ~~ [disjoint A & A :^ g] -> g \in L}
+            & L \subset 'N_G(A)]
+          (normedTI A G L).
+Proof.
+apply: (iffP andP) => [[/trivIsetP tiAG /eqP <-] | [tiAG sLN]].
+  split=> // g Gg; rewrite inE Gg (sameP normP eqP) /= eq_sym; apply: contraR.
+  by apply: tiAG; rewrite ?mem_orbit ?orbit_refl.
+have [/set0Pn[a Aa] /subsetIP[_ nAL]] := (notA0, sLN); split; last first.
+  rewrite eqEsubset sLN andbT; apply/subsetP=> x /setIP[Gx nAx].
+  by apply/tiAG/pred0Pn=> //; exists a; rewrite /= (normP nAx) Aa.
+apply/trivIsetP=> _ _ /imsetP[x Gx ->] /imsetP[y Gy ->]; apply: contraR.
+rewrite -setI_eq0 -(mulgKV x y) conjsgM; set g := (y * x^-1)%g.
+rewrite -conjIg (inj_eq (act_inj 'Js x)) (eq_sym A) (sameP eqP normP).
+rewrite -cards_eq0 cardJg cards_eq0 setI_eq0 => /tiAG => /implyP.
+by rewrite groupMl ?groupVr // => /(subsetP nAL).
+Qed.
+
+Lemma normedTI_memJ_P :
+  reflect ({in A & G, forall a g, (a ^ g \in A) = (g \in L)} /\ L \subset G)
+          (normedTI A G L).
+Proof.
+apply: (iffP normedTI_P) => [[tiAG /subsetIP[sLG nAL]] | [tiAG sLG]].
+  split=> // a g Aa Gg; apply/idP/idP=> [Aag | Lg]; last first.
+    by rewrite memJ_norm ?(subsetP nAL).
+  by apply/tiAG/pred0Pn=> //; exists (a ^ g)%g; rewrite /= Aag memJ_conjg.
+split=> [g Gg /pred0Pn[ag /=] | ].
+  by rewrite andbC => /andP[/imsetP[a Aa ->]]; rewrite tiAG.
+apply/subsetP=> g Lg; have Gg := subsetP sLG g Lg.
+by rewrite !inE Gg; apply/subsetP=> _ /imsetP[a Aa ->]; rewrite tiAG.
+Qed.
+
+Lemma partition_class_support :
+  trivIset (A :^: G) -> partition (A :^: G) (class_support A G).
+Proof.
+move=> tiAG; apply/and3P; split=> {tiAG}//.
+  by rewrite cover_imset -class_supportEr.
+by apply: contra notA0 => /imsetP[x _ /eqP]; rewrite eq_sym -!cards_eq0 cardJg.
+Qed.
+
+End NormedTI.
 
 Lemma Frobenius_actionP G H :
   reflect (has_Frobenius_action G H) [Frobenius G with complement H].
@@ -381,6 +433,10 @@ Admitted.
 *)
 
 End FrobeniusBasics.
+
+Implicit Arguments TIconjP [gT G H].
+Implicit Arguments normedTI_P [gT A G L].
+Implicit Arguments normedTI_memJ_P [gT A G L].
 
 Theorem Frobenius_Ldiv (gT : finGroupType) (G : {group gT}) n :
   n %| #|G| -> n %| #|'Ldiv_n(G)|.

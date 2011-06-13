@@ -262,9 +262,8 @@ have pi'F: 'O_pi(F) = 1.
   rewrite (subset_trans sQA) // (subset_trans _ sQA) // commg_subr.
   by rewrite (subset_trans _ (normal_norm nsQX)) ?joing_subl.
 have sFG: F \subset G.
-  rewrite (sub_normal_Hall hallG) ?Fitting_sub //= -/X.
-  have /(nilpotent_pcoreC pi)/dprodP[_ /= <- _ _]: nilpotent F := Fitting_nil _.
-  by rewrite pi'F mul1g pcore_pgroup.
+  have /dprodP[_ defF _ _]: _ = F := nilpotent_pcoreC pi (Fitting_nil _).
+  by rewrite (sub_normal_Hall hallG) ?gFsub //= -defF pi'F mul1g pcore_pgroup.
 have <-: F = 'F(G).
   apply/eqP; rewrite eqEsubset -{1}(setIidPr sFG) FittingS ?joing_subl //=.
   by rewrite Fitting_max ?Fitting_nil // (char_normal_trans (Fitting_char _)).

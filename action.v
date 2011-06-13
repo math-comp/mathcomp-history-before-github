@@ -2227,8 +2227,114 @@ Notation "to / H" := (quotient_groupAction to H) : groupAction_scope.
 Notation "to %% H" := (mod_groupAction to H) : groupAction_scope.
 Notation "to \o f" := (comp_groupAction to f) : groupAction_scope.
 
-(* Conjugation and right translation actions. *)
+(* Operator group isomorphism. *)
+Section MorphAction.
 
+Variables (aT1 aT2 : finGroupType) (rT1 rT2 : finType).
+Variables (D1 : {group aT1}) (D2 : {group aT2}).
+Variables (to1 : action D1 rT1) (to2 : action D2 rT2).
+Variables (A : {set aT1}) (R S : {set rT1}).
+Variables (h : rT1 -> rT2) (f : {morphism D1 >-> aT2}).
+Hypotheses (actsDR : {acts D1, on R | to1}) (injh : {in R &, injective h}).
+Hypothesis defD2 : f @* D1 = D2.
+Hypotheses (sSR : S \subset R) (sAD1 : A \subset D1).
+Hypothesis hfJ : {in S & D1, morph_act to1 to2 h f}.
+
+Lemma morph_astabs : f @* 'N(S | to1) = 'N(h @: S | to2).
+Proof.
+apply/setP=> fx; apply/morphimP/idP=> [[x D1x nSx ->] | nSx].
+  rewrite 2!inE -{1}defD2 mem_morphim //=; apply/subsetP=> _ /imsetP[u Su ->].
+  by rewrite inE -hfJ ?mem_imset // (astabs_act _ nSx).
+have [|x D1x _ def_fx] := morphimP (_ : fx \in f @* D1).
+  by rewrite defD2 (astabs_dom nSx).
+exists x => //; rewrite !inE D1x; apply/subsetP=> u Su.
+have /imsetP[u' Su' /injh def_u']: h (to1 u x) \in h @: S.
+  by rewrite hfJ // -def_fx (astabs_act _ nSx) mem_imset.
+by rewrite inE def_u' ?actsDR ?(subsetP sSR).
+Qed.
+
+Lemma morph_astab : f @* 'C(S | to1) = 'C(h @: S | to2).
+Proof.
+apply/setP=> fx; apply/morphimP/idP=> [[x D1x cSx ->] | cSx].
+  rewrite 2!inE -{1}defD2 mem_morphim //=; apply/subsetP=> _ /imsetP[u Su ->].
+  by rewrite inE -hfJ // (astab_act cSx).
+have [|x D1x _ def_fx] := morphimP (_ : fx \in f @* D1).
+  by rewrite defD2 (astab_dom cSx).
+exists x => //; rewrite !inE D1x; apply/subsetP=> u Su.
+rewrite inE -(inj_in_eq injh) ?actsDR ?(subsetP sSR) ?hfJ //.
+by rewrite -def_fx (astab_act cSx) ?mem_imset.
+Qed.
+
+Lemma morph_afix : h @: 'Fix_(S | to1)(A) = 'Fix_(h @: S | to2)(f @* A).
+Proof.
+apply/setP=> hu; apply/imsetP/setIP=> [[u /setIP[Su cAu] ->]|].
+  split; first by rewrite mem_imset.
+  by apply/afixP=> _ /morphimP[x D1x Ax ->]; rewrite -hfJ ?(afixP cAu).
+case=> /imsetP[u Su ->] /afixP c_hu_fA; exists u; rewrite // inE Su.
+apply/afixP=> x Ax; have Dx := subsetP sAD1 x Ax.
+by apply: injh; rewrite ?actsDR ?(subsetP sSR) ?hfJ // c_hu_fA ?mem_morphim.
+Qed.
+
+End MorphAction.
+
+Section MorphGroupAction.
+
+Variables (aT1 aT2 rT1 rT2 : finGroupType).
+Variables (D1 : {group aT1}) (D2 : {group aT2}).
+Variables (R1 : {group rT1}) (R2 : {group rT2}).
+Variables (to1 : groupAction D1 R1) (to2 : groupAction D2 R2).
+Variables (h : {morphism R1 >-> rT2}) (f : {morphism D1 >-> aT2}).
+Hypotheses (iso_h : isom R1 R2 h) (iso_f : isom D1 D2 f).
+Hypothesis hfJ : {in R1 & D1, morph_act to1 to2 h f}.
+Implicit Types (A : {set aT1}) (S : {set rT1}) (M : {group rT1}).
+
+Lemma morph_gastabs S : S \subset R1 -> f @* 'N(S | to1) = 'N(h @* S | to2).
+Proof.
+have [[_ defD2] [injh _]] := (isomP iso_f, isomP iso_h).
+move=> sSR1; rewrite (morphimEsub _ sSR1).
+apply: (morph_astabs (gact_stable to1) (injmP _ injh)) => // u x.
+by move/(subsetP sSR1); exact: hfJ.
+Qed.
+
+Lemma morph_gastab S : S \subset R1 -> f @* 'C(S | to1) = 'C(h @* S | to2).
+Proof.
+have [[_ defD2] [injh _]] := (isomP iso_f, isomP iso_h).
+move=> sSR1; rewrite (morphimEsub _ sSR1).
+apply: (morph_astab (gact_stable to1) (injmP _ injh)) => // u x.
+by move/(subsetP sSR1); exact: hfJ.
+Qed.
+
+Lemma morph_gacent A : A \subset D1 -> h @* 'C_(|to1)(A) = 'C_(|to2)(f @* A).
+Proof.
+have [[_ defD2] [injh defR2]] := (isomP iso_f, isomP iso_h).
+move=> sAD1; rewrite !gacentE //; last by rewrite -defD2 morphimS.
+rewrite morphimEsub ?subsetIl // -{1}defR2 morphimEdom.
+exact: (morph_afix (gact_stable to1) (injmP _ injh)).
+Qed.
+
+Lemma morph_gact_irr A M :
+    A \subset D1 -> M \subset R1 -> 
+  acts_irreducibly (f @* A) (h @* M) to2 = acts_irreducibly A M to1.
+Proof.
+move=> sAD1 sMR1.
+have [[injf defD2] [injh defR2]] := (isomP iso_f, isomP iso_h).
+have h_eq1 := morphim_injm_eq1 injh.
+apply/mingroupP/mingroupP=> [] [/andP[ntM actAM] minM].
+  split=> [|U]; first by rewrite -h_eq1 // ntM -(injmSK injf) ?morph_gastabs.
+  case/andP=> ntU acts_fAU sUM; have sUR1 := subset_trans sUM sMR1.
+  apply: (injm_morphim_inj injh) => //; apply: minM; last exact: morphimS.
+  by rewrite h_eq1 // ntU -morph_gastabs ?morphimS.
+split=> [|U]; first by rewrite h_eq1 // ntM -morph_gastabs ?morphimS.
+case/andP=> ntU acts_fAU sUhM.
+have sUhR1 := subset_trans sUhM (morphimS h sMR1).
+have sU'M: h @*^-1 U \subset M by rewrite sub_morphpre_injm.
+rewrite /= -(minM _ _ sU'M) ?morphpreK // -h_eq1 ?subsetIl // -(injmSK injf) //.
+by rewrite morph_gastabs ?(subset_trans sU'M) // morphpreK ?ntU.
+Qed.
+
+End MorphGroupAction.
+
+(* Conjugation and right translation actions. *)
 Section InternalActionDefs.
 
 Variable gT : finGroupType.

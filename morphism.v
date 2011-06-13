@@ -762,6 +762,14 @@ rewrite -sub_morphpre_injm ?subsetIl // morphpreI injmK // setIS //.
 by rewrite -{2}(injmK sAD) morphpre_norm.
 Qed.
 
+Lemma injm_norms A B :
+  A \subset D -> B \subset D -> (f @* A \subset 'N(f @* B)) = (A \subset 'N(B)).
+Proof. by move=> sAD sBD; rewrite -injmSK // injm_norm // subsetI morphimS. Qed.
+
+Lemma injm_normal A B :
+  A \subset D -> B \subset D -> (f @* A <| f @* B) = (A <| B).
+Proof. by move=> sAD sBD; rewrite /normal injmSK ?injm_norms. Qed.
+
 Lemma injm_subnorm A B : B \subset D -> f @* 'N_A(B) = 'N_(f @* A)(f @* B).
 Proof. by move=> sBD; rewrite injmI injm_norm // setICA setIA morphimIim. Qed.
 
@@ -778,6 +786,10 @@ apply/subsetP=> fx; case/setIP; case/morphimP=> x Dx _ ->{fx} cAfx.
 rewrite mem_morphim // inE Dx -sub1set centsC cent_set1 -injmSK //.
 by rewrite injm_cent1 // subsetI morphimS // -cent_set1 centsC sub1set.
 Qed.
+
+Lemma injm_cents A B :
+  A \subset D -> B \subset D -> (f @* A \subset 'C(f @* B)) = (A \subset 'C(B)).
+Proof. by move=> sAD sBD; rewrite -injmSK // injm_cent // subsetI morphimS. Qed.
 
 Lemma injm_subcent A B : B \subset D -> f @* 'C_A(B) = 'C_(f @* A)(f @* B).
 Proof. by move=> sBD; rewrite injmI injm_cent // setICA setIA morphimIim. Qed.

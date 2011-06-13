@@ -1510,8 +1510,7 @@ End OhmProps.
 Section AbelianStructure.
 
 Variable gT : finGroupType.
-Implicit Type p : nat.
-Implicit Type G H E : {group gT}.
+Implicit Types (p : nat) (G H K E : {group gT}).
 
 Lemma abelian_splits x G :
   x \in G -> #[x] = exponent G -> abelian G -> [splits G, over <[x]>].
@@ -1585,7 +1584,7 @@ rewrite -subG1 -tiHKL -setIA setIS; last by rewrite subsetI -defK mulG_subr /=.
 by rewrite -(setIidPr sHG) -defG -group_modl ?cycle_subG //= setIC -mulgA defK.
 Qed.
 
-Lemma abelian_type_subproof G :
+Fact abelian_type_subproof G :
   {H : {group gT} & abelian G -> {x | #[x] = exponent G & <[x]> \x H = G}}.
 Proof.
 case cGG: (abelian G); last by exists G.
@@ -1898,6 +1897,9 @@ apply/allP=> _ /mapP[x b_x ->] /=; rewrite (abelem_order_p abelG) //.
 by rewrite -order_gt1 [_ > 1](allP b_gt1) ?map_f.
 Qed.
 
+Lemma homocyclic1 : homocyclic [1 gT].
+Proof. exact: abelem_homocyclic (abelem1 _ 2). Qed.
+
 Lemma Ohm1_homocyclicP p G : p.-group G -> abelian G ->
   reflect ('Ohm_1(G) = 'Mho^(logn p (exponent G)).-1(G)) (homocyclic G).
 Proof.
@@ -1923,6 +1925,70 @@ case: (eqVneq G 1%G) => [-> | ntG]; first by rewrite rank1.
 congr nseq; apply/eqP; rewrite eqn_dvd; have [pG _ ->] := and3P abelG.
 have [p_pr] := pgroup_pdiv pG ntG; case/Cauchy=> // x Gx <- _.
 exact: dvdn_exponent.
+Qed.
+
+Lemma max_card_abelian G :
+  abelian G -> #|G| <= exponent G ^ 'r(G) ?= iff homocyclic G.
+Proof.
+move=> cGG; have [b defG def_tG] := abelian_structure cGG.
+have Gb: all (mem G) b.
+  apply/allP=> x b_x; rewrite -(bigdprodEY defG); have [b1 b2] := splitPr b_x.
+  by rewrite big_cat big_cons /= mem_gen // setUCA inE cycle_id.
+have ->: homocyclic G = all (pred1 (exponent G)) (abelian_type G).
+  rewrite /homocyclic cGG /abelian_type; case: #|G| => //= n.
+  by move: (_ (tag _)) => t; case: ifP => //= _; rewrite genGid eqxx.
+rewrite -size_abelian_type // -{}def_tG -{defG}(bigdprod_card defG) size_map.
+rewrite unlock; elim: b Gb => //= x b IHb; case/andP=> Gx Gb.
+have eGgt0: exponent G > 0 := exponent_gt0 G.
+have le_x_G: #[x] <= exponent G by rewrite dvdn_leq ?dvdn_exponent.
+have:= leqif_mul (leqif_eq le_x_G) (IHb Gb).
+by rewrite -expnS expn_eq0 eqn0Ngt eGgt0.
+Qed.
+
+Lemma card_homocyclic G : homocyclic G -> #|G| = (exponent G ^ 'r(G))%N.
+Proof.
+by move=> homG; have [cGG _] := andP homG; apply/eqP; rewrite max_card_abelian.
+Qed.
+
+Lemma abelian_type_dprod_homocyclic p K H G :
+    K \x H = G -> p.-group G -> homocyclic G ->
+     abelian_type K = nseq 'r(K) (exponent G)
+  /\ abelian_type H = nseq 'r(H) (exponent G).
+Proof.
+move=> defG pG homG; have [cGG _] := andP homG.
+have /mulG_sub[sKG sHG]: K * H = G by case/dprodP: defG.
+have [cKK cHH] := (abelianS sKG cGG, abelianS sHG cGG).
+suffices: all (pred1 (exponent G)) (abelian_type K ++ abelian_type H).
+  rewrite all_cat => /andP[/all_pred1P-> /all_pred1P->].
+  by rewrite !size_abelian_type.
+suffices def_atG: abelian_type K ++ abelian_type H =i abelian_type G.
+  rewrite (eq_all_r def_atG); apply/all_pred1P.
+  by rewrite size_abelian_type // -abelian_type_homocyclic.
+have [bK defK atK] := abelian_structure cKK.
+have [bH defH atH] := abelian_structure cHH.
+apply: perm_eq_mem; rewrite -atK -atH -map_cat.
+apply: (perm_eq_abelian_type pG); first by rewrite big_cat defK defH.
+have: all [pred m | m > 1] (map order (bK ++ bH)).
+  by rewrite map_cat all_cat atK atH !abelian_type_gt1.
+by rewrite all_map (eq_all (@order_gt1 _)) all_predC has_pred1.
+Qed.
+
+Lemma dprod_homocyclic p K H G :
+  K \x H = G -> p.-group G -> homocyclic G -> homocyclic K /\ homocyclic H.
+Proof.
+move=> defG pG homG; have [cGG _] := andP homG.
+have /mulG_sub[sKG sHG]: K * H = G by case/dprodP: defG.
+have [abtK abtH] := abelian_type_dprod_homocyclic defG pG homG.
+by rewrite /homocyclic !(abelianS _ cGG) // abtK abtH !constant_nseq.
+Qed.
+
+Lemma exponent_dprod_homocyclic p K H G :
+    K \x H = G -> p.-group G -> homocyclic G -> K :!=: 1 ->
+  exponent K = exponent G.
+Proof.
+move=> defG pG homG ntK; have [homK _] := dprod_homocyclic defG pG homG.
+have [] := abelian_type_dprod_homocyclic defG pG homG.
+by rewrite abelian_type_homocyclic // -['r(K)]prednK ?rank_gt0 => [[]|].
 Qed.
 
 End AbelianStructure.
@@ -2039,6 +2105,12 @@ have sPD: 'O_p(H) \subset D by rewrite (subset_trans sPH) ?subsetIl.
 rewrite -(p_rank_Sylow (morphim_pHall f sPD sylP)) -(p_rank_Sylow sylP) //.
 rewrite -!rank_pgroup ?morphim_pgroup ?pcore_pgroup //.
 by rewrite morphim_rank_abelian ?(abelianS sPH).
+Qed.
+
+Lemma isog_homocyclic G H : G \isog H -> homocyclic G = homocyclic H.
+Proof.
+move=> isoGH.
+by rewrite /homocyclic (isog_abelian isoGH) (isog_abelian_type isoGH).
 Qed.
 
 End IsogAbelian.

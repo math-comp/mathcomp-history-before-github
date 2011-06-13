@@ -270,53 +270,65 @@ End MinProps.
 Section MorphPreMax.
 
 Variables (gT rT : finGroupType) (D : {group gT}) (f : {morphism D >-> rT}).
-Implicit Types Q R : {group rT}.
+Variables (M G : {group rT}).
+Hypotheses (dM : M \subset f @* D) (dG : G \subset f @* D).
 
-Lemma morphpre_maximal Q R :
-    Q \subset f @* D -> R \subset f @* D ->
-  maximal (f @*^-1 Q) (f @*^-1 R) = maximal Q R.
+Lemma morphpre_maximal : maximal (f @*^-1 M) (f @*^-1 G) = maximal M G.
 Proof.
-move=> dQ dR.
-apply/maxgroupP/maxgroupP; rewrite morphpre_proper //= => [] [sQR maxQ].
-  split=> // M sMR sQM; have dM := subset_trans (proper_sub sMR) dR.
-  rewrite -(morphpreK dQ) -(maxQ (f @*^-1 M)%G) ?morphpreK ?morphpreSK //.
+apply/maxgroupP/maxgroupP; rewrite morphpre_proper //= => [] [ltMG maxM].
+  split=> // H ltHG sMH; have dH := subset_trans (proper_sub ltHG) dG.
+  rewrite -(morphpreK dH) [f @*^-1 H]maxM ?morphpreK ?morphpreSK //.
   by rewrite morphpre_proper.
-split=> // M sMR sQM; have dM: M \subset D.
-  apply: subset_trans (proper_sub sMR) _; exact: subsetIl.
-have defM: f @*^-1 (f @* M) = M.
-  apply: morphimGK dM; apply: subset_trans sQM; exact: ker_sub_pre.
-rewrite -defM; congr (f @*^-1 _); apply: maxQ.
-  by rewrite -defM morphpre_proper ?morphimS in sMR.
-by rewrite -(morphpreK dQ) morphimS.
+split=> // H ltHG sMH.
+have dH: H \subset D := subset_trans (proper_sub ltHG) (subsetIl D _).
+have defH: f @*^-1 (f @* H) = H.
+  by apply: morphimGK dH; apply: subset_trans sMH; exact: ker_sub_pre.
+rewrite -defH morphpre_proper ?morphimS // in ltHG.
+by rewrite -defH [f @* H]maxM // -(morphpreK dM) morphimS.
 Qed.
 
-Lemma morphpre_maximal_eq Q R :
-    Q \subset f @* D -> R \subset f @* D ->
-  maximal_eq (f @*^-1 Q) (f @*^-1 R) = maximal_eq Q R.
-Proof.
-by move=> dQ dR; rewrite /maximal_eq morphpre_maximal // !eqEsubset !morphpreSK.
-Qed.
+Lemma morphpre_maximal_eq : maximal_eq (f @*^-1 M) (f @*^-1 G) = maximal_eq M G.
+Proof. by rewrite /maximal_eq morphpre_maximal !eqEsubset !morphpreSK. Qed.
 
 End MorphPreMax.
 
 Section InjmMax.
 
 Variables (gT rT : finGroupType) (D : {group gT}) (f : {morphism D >-> rT}).
-Variables G H K : {group gT}.
+Variables M G L : {group gT}.
 
 Hypothesis injf : 'injm f.
+Hypotheses (dM : M \subset D) (dG : G \subset D) (dL : L \subset D).
 
-Lemma injm_maximal :
-  G \subset D -> H \subset D -> maximal (f @* G) (f @* H) = maximal G H.
+Lemma injm_maximal : maximal (f @* M) (f @* G) = maximal M G.
 Proof.
-move=> dG dH; rewrite -(morphpre_invm injf) -(morphpre_invm injf H).
+rewrite -(morphpre_invm injf) -(morphpre_invm injf G).
 by rewrite morphpre_maximal ?morphim_invm.
 Qed.
 
-Lemma injm_maximal_eq :
-  G \subset D -> H \subset D -> maximal (f @* G) (f @* H) = maximal G H.
+Lemma injm_maximal_eq : maximal_eq (f @* M) (f @* G) = maximal_eq M G.
+Proof. by rewrite /maximal_eq injm_maximal // !eqEsubset !injmSK. Qed.
+
+Lemma injm_maxnormal : maxnormal (f @* M) (f @* G) (f @* L) = maxnormal M G L.
 Proof.
-by move=> dG dH; rewrite /maximal_eq injm_maximal // !eqEsubset !injmSK.
+pose injfm := (injm_proper injf, injm_norms, injmSK injf, subsetIl).
+apply/maxgroupP/maxgroupP; rewrite !injfm // => [[nML maxM]].
+  split=> // H nHL sMH; have [/proper_sub sHG _] := andP nHL.
+  have dH := subset_trans sHG dG; apply: (injm_morphim_inj injf) => //.
+  by apply: maxM; rewrite !injfm.
+split=> // fH nHL sMH; have [/proper_sub sfHG _] := andP nHL.
+have{sfHG} dfH: fH \subset f @* D := subset_trans sfHG (morphim_sub f G).
+by rewrite -(morphpreK dfH) !injfm // in nHL sMH *; rewrite (maxM _ nHL).
+Qed.
+
+Lemma injm_minnormal : minnormal (f @* M) (f @* G) = minnormal M G.
+Proof.
+pose injfm := (morphim_injm_eq1 injf, injm_norms, injmSK injf, subsetIl).
+apply/mingroupP/mingroupP; rewrite !injfm // => [[nML minM]].
+  split=> // H nHG sHM; have dH := subset_trans sHM dM.
+  by apply: (injm_morphim_inj injf) => //; apply: minM; rewrite !injfm.
+split=> // fH nHG sHM; have dfH := subset_trans sHM (morphim_sub f M).
+by rewrite -(morphpreK dfH) !injfm // in nHG sHM *; rewrite (minM _ nHG).
 Qed.
 
 End InjmMax.

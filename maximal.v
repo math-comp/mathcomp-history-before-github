@@ -299,6 +299,9 @@ have nPhi_x: x \in 'N('Phi(P)) by exact: (subsetP nPhiP).
 by rewrite coset_idr ?groupX ?morphX ?x1P ?mem_morphim.
 Qed.
 
+Lemma Phi_Mho : abelian P -> 'Phi(P) = 'Mho^1(P).
+Proof. by move=> cPP; rewrite Phi_joing (derG1P cPP) joing1G. Qed.
+
 End Frattini3.
 
 Section Frattini4.

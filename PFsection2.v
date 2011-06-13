@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset center.
 Require Import fingroup morphism perm automorphism quotient action zmodp.
-Require Import gfunctor gproduct cyclic pgroup.
+Require Import gfunctor gproduct cyclic pgroup frobenius.
 Require Import matrix mxalgebra mxrepresentation vector algC classfun character.
 Require Import inertia vcharacter PFsection1.
 
@@ -40,60 +40,6 @@ Import Prenex Implicits.
 
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
-
-Section MoreFrobenius.
-
-Variable gT : finGroupType.
-
-Definition normedTI (A G L : {set gT}) := trivIset (A :^: G) && ('N_G(A) == L).
-
-Variables (A : {set gT}) (G L : {group gT}).
-Hypothesis notA0 : A != set0.
-
-Lemma normedTI_P : 
-  reflect ({in G, forall g, ~~ [disjoint A & A :^ g] -> g \in L}
-           /\ L \subset 'N_G(A)) (normedTI A G L).
-Proof.
-apply: (iffP andP) => [[/trivIsetP tiAG /eqP <-] | [tiAG sLN]].
-  split=> // g Gg; rewrite inE Gg (sameP normP eqP) /= eq_sym; apply: contraR.
-  by apply: tiAG; rewrite ?mem_orbit ?orbit_refl.
-have [/set0Pn[a Aa] /subsetIP[_ nAL]] := (notA0, sLN); split; last first.
-  rewrite eqEsubset sLN andbT; apply/subsetP=> x /setIP[Gx nAx].
-  by apply/tiAG/pred0Pn=> //; exists a; rewrite /= (normP nAx) Aa.
-apply/trivIsetP=> _ _ /imsetP[x Gx ->] /imsetP[y Gy ->]; apply: contraR.
-rewrite -setI_eq0 -(mulgKV x y) conjsgM; set g := (y * x^-1)%g.
-rewrite -conjIg (inj_eq (act_inj 'Js x)) (eq_sym A) (sameP eqP normP).
-rewrite -cards_eq0 cardJg cards_eq0 setI_eq0 => /tiAG => /implyP.
-by rewrite groupMl ?groupVr // => /(subsetP nAL).
-Qed.
-
-Lemma normedTI_memJ_P :
-  reflect ({in A & G, forall a g, (a ^ g \in A) = (g \in L)} /\ L \subset G)
-          (normedTI A G L).
-Proof.
-apply: (iffP normedTI_P) => [[tiAG /subsetIP[sLG nAL]] | [tiAG sLG]].
-  split=> // a g Aa Gg; apply/idP/idP=> [Aag | Lg]; last first.
-    by rewrite memJ_norm ?(subsetP nAL).
-  by apply/tiAG/pred0Pn=> //; exists (a ^ g)%g; rewrite /= Aag memJ_conjg.
-split=> [g Gg /pred0Pn[ag /=] | ].
-  by rewrite andbC => /andP[/imsetP[a Aa ->]]; rewrite tiAG.
-apply/subsetP=> g Lg; have Gg := subsetP sLG g Lg.
-by rewrite !inE Gg; apply/subsetP=> _ /imsetP[a Aa ->]; rewrite tiAG.
-Qed.
-
-Lemma partition_class_support :
-  trivIset (A :^: G) -> partition (A :^: G) (class_support A G).
-Proof.
-move=> tiAG; apply/and3P; split=> {tiAG}//.
-  by rewrite cover_imset -class_supportEr.
-by apply: contra notA0 => /imsetP[x _ /eqP]; rewrite eq_sym -!cards_eq0 cardJg.
-Qed.
-
-End MoreFrobenius.
-
-Implicit Arguments normedTI_P [gT A G L].
-Implicit Arguments normedTI_memJ_P [gT A G L].
-Prenex Implicits normedTI_P normedTI_memJ_P.
 
 Section Two.
 

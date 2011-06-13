@@ -23,148 +23,9 @@ Import GroupScope GRing.Theory.
 Import FinRing.Theory.
 
 (*
-Section MorphAction.
-
-Variables (aT1 aT2 : finGroupType) (rT1 rT2 : finType).
-Variables (D1 : {group aT1}) (D2 : {group aT2}).
-Variables (to1 : action D1 rT1) (to2 : action D2 rT2).
-Variables (A : {set aT1})(R S : {set rT1}).
-Variables (h : rT1 -> rT2) (f : {morphism D1 >-> aT2}).
-Hypotheses (actsDR : {acts D1, on R | to1}) (injh : {in R &, injective h}).
-Hypothesis defD2 : f @* D1 = D2.
-Hypotheses (sSR : S \subset R) (sAD1 : A \subset D1).
-Hypothesis hfJ : {in S & D1, morph_act to1 to2 h f}.
-
-Lemma morph_astabs : f @* 'N(S | to1) = 'N(h @: S | to2).
-Proof.
-apply/setP=> fx; apply/morphimP/idP=> [[x D1x nSx ->] | nSx].
-  rewrite 2!inE -{1}defD2 mem_morphim //=; apply/subsetP=> hu.
-  by case/imsetP=> u Su ->; rewrite inE -hfJ ?mem_imset // (astabs_act _ nSx).
-have [|x D1x _ def_fx] := morphimP (_ : fx \in f @* D1).
-  by rewrite defD2 (astabs_dom nSx).
-exists x => //; rewrite !inE D1x; apply/subsetP=> u Su.
-have: h (to1 u x) \in h @: S.
-  by rewrite hfJ // -def_fx (astabs_act _ nSx) mem_imset.
-rewrite inE; case/imsetP=> u' Su'.
-by move/injh=> -> //; rewrite ?actsDR ?(subsetP sSR).  
-Qed.
-
-Lemma morph_astab : f @* 'C(S | to1) = 'C(h @: S | to2).
-Proof.
-apply/setP=> fx; apply/morphimP/idP=> [[x D1x cSx ->] | cSx].
-  rewrite 2!inE -{1}defD2 mem_morphim //=; apply/subsetP=> hu.
-  by case/imsetP=> u Su ->; rewrite inE -hfJ // (astab_act cSx).
-have [|x D1x _ def_fx] := morphimP (_ : fx \in f @* D1).
-  by rewrite defD2 (astab_dom cSx).
-exists x => //; rewrite !inE D1x; apply/subsetP=> u Su.
-rewrite inE -(inj_in_eq injh) ?actsDR ?(subsetP sSR) ?hfJ //.
-by rewrite -def_fx (astab_act cSx) ?mem_imset.
-Qed.
-
-Lemma morph_afix : h @: 'Fix_(S | to1)(A) = 'Fix_(h @: S | to2)(f @* A).
-Proof.
-apply/setP=> hu; apply/imsetP/setIP=> [[u] | []].
-  case/setIP=> Su cAu ->{hu}; split; first by rewrite mem_imset.
-  by apply/afixP=> fx; case/morphimP=> x D1x Ax ->; rewrite -hfJ ?(afixP cAu).
-case/imsetP=> u Su -> cfAhu; exists u; rewrite // inE Su.
-apply/afixP=> x Ax; have Dx := subsetP sAD1 x Ax.
-apply: injh; rewrite ?actsDR ?(subsetP sSR) ?hfJ //.
-by rewrite (afixP cfAhu) ?mem_morphim.
-Qed.
-
-End MorphAction.
-
-Section MorphGroupAction.
-
-Variables (aT1 aT2 rT1 rT2 : finGroupType).
-Variables (D1 : {group aT1}) (D2 : {group aT2}).
-Variables (R1 : {group rT1}) (R2 : {group rT2}).
-Variables (to1 : groupAction D1 R1) (to2 : groupAction D2 R2).
-Variables (h : {morphism R1 >-> rT2}) (f : {morphism D1 >-> aT2}).
-Hypotheses (iso_h : isom R1 R2 h) (iso_f : isom D1 D2 f).
-Hypothesis hfJ : {in R1 & D1, morph_act to1 to2 h f}.
-
-Lemma morph_gastabs : forall S : {set rT1},
-  S \subset R1 -> f @* 'N(S | to1) = 'N(h @* S | to2).
-Proof.
-have [[_ defD2] [injh _]] := (isomP iso_f, isomP iso_h).
-move=> S sSR1; rewrite (morphimEsub _ sSR1).
-apply: (morph_astabs (gact_stable to1) (injmP _ injh)) => // u x.
-by move/(subsetP sSR1); exact: hfJ.
-Qed.
-
-Lemma morph_gastab : forall S : {set rT1},
-  S \subset R1 -> f @* 'C(S | to1) = 'C(h @* S | to2).
-Proof.
-have [[_ defD2] [injh _]] := (isomP iso_f, isomP iso_h).
-move=> S sSR1; rewrite (morphimEsub _ sSR1).
-apply: (morph_astab (gact_stable to1) (injmP _ injh)) => // u x.
-by move/(subsetP sSR1); exact: hfJ.
-Qed.
-
-Lemma morph_gacent : forall (A : {set aT1}),
-  A \subset D1 -> h @* 'C_(|to1)(A) = 'C_(|to2)(f @* A).
-Proof.
-have [[_ defD2] [injh defR2]] := (isomP iso_f, isomP iso_h).
-move=> A sAD1; rewrite !gacentE //; last by rewrite -defD2 morphimS.
-rewrite morphimEsub ?subsetIl // -{1}defR2 morphimEdom.
-exact: (morph_afix (gact_stable to1) (injmP _ injh)).
-Qed.
-
-Lemma morph_gact_irr : forall (A : {set aT1}) (S : {group rT1}),
-    A \subset D1 -> S \subset R1 -> 
-  acts_irreducibly (f @* A) (h @* S) to2 = acts_irreducibly A S to1.
-Proof.
-move=> A S sAD1 sSR1.
-have [[injf defD2] [injh defR2]] := (isomP iso_f, isomP iso_h).
-have h_eq1 := morphim_injm_eq1 injh.
-apply/mingroupP/mingroupP; case; case/andP=> ntS actAS minS.
-  split=> [|U]; first by rewrite -h_eq1 // ntS -(injmSK injf) ?morph_gastabs.
-  case/andP=> ntU acts_fAU sUS; have sUR1 := subset_trans sUS sSR1.
-  apply: (injm_morphim_inj injh) => //; apply: minS; last exact: morphimS.
-  by rewrite h_eq1 // ntU -morph_gastabs ?morphimS.
-split=> [|U]; first by rewrite h_eq1 // ntS -morph_gastabs ?morphimS.
-case/andP=> ntU acts_fAU sUhS.
-have sUhR1 := subset_trans sUhS (morphimS h sSR1).
-have sU'S: h @*^-1 U \subset S by rewrite sub_morphpre_injm.
-rewrite /= -(minS _ _ sU'S) ?morphpreK // -h_eq1 ?subsetIl // -(injmSK injf) //.
-by rewrite morph_gastabs ?(subset_trans sU'S) // morphpreK ?ntU.
-Qed.
-
-End MorphGroupAction.
-*)
-(*
 Section ExtrasForHuppertBlackburn_5_9.
 
 Implicit Type gT : finGroupType.
-
-(* This proof's really ugly *)
-Lemma morphpre_minnormal : forall gT gT',
-  forall (D : {group gT})(f : {morphism D >-> gT'})(R S : {group gT}), 
-    'injm f -> R \subset D -> S \subset D -> 
-  (minnormal (f @* R)  (f @* S)) = (minnormal R S).
-Proof.
-move=> gT gT' D f R S injf sRfD sSfD; apply/mingroupP/mingroupP; case. 
-- case/andP=> h1 h2 h3.
-  have [R1 | ntR] := eqsVneq R 1.
-    by move: h1; rewrite /= !R1 morphim1 eqxx.
-  rewrite ntR /=; split; first by move/(morphpre_norms f): h2; rewrite !injmK.
-  move=> H; case/andP=> Hnt sSNH sHR; apply/eqP; rewrite eqEsubset sHR /=.
-  rewrite -(injmSK injf) // (h3 [group of (f @* H)]) ?subxx // ?morphimS //=.
-  by rewrite morphim_norms // andbT morphim_injm_eq1 //; apply: subset_trans sRfD.
-- case/andP=> ntR sSNR h; rewrite morphim_injm_eq1 // ntR morphim_norms //. 
-  split => // H; case/andP=> ntH fSNHS HfRS; apply/eqP; rewrite eqEsubset HfRS /=.
-  have HfDS : H \subset f @* D.
-    by apply: subset_trans HfRS _; apply: morphimS.
-  rewrite -(h [group of (f@*^-1 H)]) /= ?morphpreK ?subxx //. 
-  + have pfHnt : f @*^-1 H != 1. 
-      apply/negP; move/eqP; move/trivgP. 
-      rewrite sub_morphpre_injm //; last by rewrite sub1set group1.
-      by rewrite morphim1; move/trivgP=> eH1; rewrite eH1 eqxx in ntH.
-    rewrite pfHnt /=; apply: subset_trans (morphpre_norm _ _). 
-    by rewrite -sub_morphim_pre.
-  + by rewrite sub_morphpre_im //= ker_injm // sub1set group1.
-Qed.
 
 Lemma  bigprod_expg : forall gT I r (P : pred I) (F : I -> gT)(G : {group gT}) n, 
   abelian G -> (forall i, P i -> F i \in G) -> 
@@ -191,27 +52,15 @@ End ExtrasForHuppertBlackburn_5_9.
 
 Section HuppertBlackburn_5_9.
 
-Implicit Type gT : finGroupType.
-Implicit Type p : nat.
+Implicit Types (gT : finGroupType) (p : nat).
 
-Lemma Phi_Mho : forall gT p (A : {group gT}),
-  p.-group A -> abelian A -> 'Phi(A) = 'Mho^1(A).
-Proof. by move=> ? p A pA cAA; rewrite (Phi_joing pA) (derG1P cAA) joing1G. Qed.
-
-Lemma isog_homocyclic : forall gT1 gT2 (G1 : {group gT1}) (G2 : {group gT2}),
-  G1 \isog G2 -> homocyclic G1 = homocyclic G2.
-Proof.
-move=> gT1 gT2 G1 G2 isoG12.
-by rewrite /homocyclic (isog_abelian isoG12) (isog_abelian_type isoG12).
-Qed.
-
-Lemma huppert_blackburn_5_9 : forall gT p (A X : {group gT}),
-  abelian A -> p.-group A -> p^'.-group X -> X \subset 'N(A) -> 
+Lemma huppert_blackburn_5_9 gT p (A X : {group gT}) :
+    abelian A -> p.-group A -> p^'.-group X -> X \subset 'N(A) -> 
   exists2 s : {set {group gT}}, \big[dprod/1]_(B \in s) B = A
       & forall B, B \in s -> [/\ homocyclic B, X \subset 'N(B)
         & acts_irreducibly X (B / 'Phi(B)) 'Q].
 Proof. Admitted. (*
-move=> gT p A X; move: {2}_.+1 (ltnSn #|A|) => m.
+move: {2}_.+1 (ltnSn #|A|) => m.
 elim: m => // m IHm in gT A X *; rewrite ltnS => leAm cAA pA p'X nAX.
 have [n1 eA]: {n | exponent A = p ^ n}%N by apply p_natP; rewrite pnat_exponent.
 have [-> | ntA] := eqsVneq A 1.
@@ -401,182 +250,17 @@ apply/subsetP=> fy; case/morphimP=> y Dy Yy ->{fy}.
 by rewrite inE /= -act_f // morphimEsub // mem_imset // (acts_act actsXY).
 Qed. *)
 
-
-
-
-
 End HuppertBlackburn_5_9.
 
 Section HuppertBlackburn_12_3.
 
 Implicit Types (gT : finGroupType) (m n p q : nat).
 
-Lemma exponent_mx_group m n q :
-  m > 0 -> n > 0 -> q > 1 -> exponent [set: 'M['Z_q]_(m, n)] = q.
-Proof.
-move=> m_gt0 n_gt0 q_gt1; apply/eqP; rewrite eqn_dvd; apply/andP; split.
-  apply/exponentP=> x _; apply/matrixP=> i j; rewrite mulmxnE !mxE.
-  by rewrite -mulr_natr -Zp_nat_mod // modnn mulr0.
-pose cmx1 := const_mx 1%R : 'M['Z_q]_(m, n).
-apply: dvdn_trans (dvdn_exponent (in_setT cmx1)). 
-have/matrixP/(_ (Ordinal m_gt0))/(_ (Ordinal n_gt0))/eqP := expg_order cmx1.
-by rewrite mulmxnE !mxE -order_dvdn order_Zp1 Zp_cast.
-Qed.
-
-Lemma max_card_abelian gT (G : {group gT}) :
-  abelian G -> #|G| <= exponent G ^ 'r(G) ?= iff homocyclic G.
-Proof.
-move=> cGG; have [b defG def_tG] := abelian_structure cGG.
-have Gb: all (mem G) b.
-  apply/allP=> x b_x; rewrite -(bigdprodEY defG); have [b1 b2] := splitPr b_x.
-  by rewrite big_cat big_cons /= mem_gen // setUCA inE cycle_id.
-have ->: homocyclic G = all (pred1 (exponent G)) (abelian_type G).
-  rewrite /homocyclic cGG /abelian_type; case: #|G| => //= n.
-  by move: (_ (tag _)) => t; case: ifP => //= _; rewrite genGid eqxx.
-rewrite -size_abelian_type // -{}def_tG -{defG}(bigdprod_card defG) size_map.
-rewrite unlock; elim: b Gb => //= x b IHb; case/andP=> Gx Gb.
-have eGgt0: exponent G > 0 := exponent_gt0 G.
-have le_x_G: #[x] <= exponent G by rewrite dvdn_leq ?dvdn_exponent.
-have:= leqif_mul (leqif_eq le_x_G) (IHb Gb).
-by rewrite -expnS expn_eq0 eqn0Ngt eGgt0.
-Qed.
-
-Lemma card_homocyclic gT (G : {group gT}) :
-  homocyclic G -> #|G| = (exponent G ^ 'r(G))%N.
-Proof.
-by move=> homG; have [cGG _] := andP homG; apply/eqP; rewrite max_card_abelian.
-Qed.
-
-Lemma rank_mx_group m n q : 'r([set: 'M['Z_q]_(m, n)]) = (m * n)%N.
-Proof.
-wlog q_gt1: q / q > 1 by case: q => [|[|q -> //]] /(_ 2)->.
-set G := setT; have cGG: abelian G := zmod_abelian _.
-have [mn0 | ] := posnP (m * n).
-  by rewrite [G](card1_trivg _) ?rank1 // cardsT card_matrix mn0.
-rewrite muln_gt0 => /andP[m_gt0 n_gt0].
-have expG: exponent G = q := exponent_mx_group m_gt0 n_gt0 q_gt1.
-apply/eqP; rewrite eqn_leq andbC -(leq_exp2l _ _ q_gt1) -{2}expG.
-have ->: (q ^ (m * n))%N = #|G| by rewrite cardsT card_matrix card_ord Zp_cast.
-rewrite max_card_abelian //= -grank_abelian //= -/G.
-pose B := [set (delta_mx ij.1 ij.2 : 'M['Z_q]_(m, n)) | ij <- {: 'I_m * 'I_n}].
-suffices ->: G = <<B>>.
-  have ->: (m * n)%N = #|{: 'I_m * 'I_n}| by rewrite card_prod !card_ord. 
-  exact: leq_trans (grank_min _) (leq_imset_card _ _).
-apply/setP=> v; rewrite inE (matrix_sum_delta v).
-rewrite group_prod // => i _; rewrite group_prod // => j _.
-rewrite -[v i j]natr_Zp scaler_nat groupX // mem_gen //.
-by apply/imsetP; exists (i, j).
-Qed.
-
-Lemma mx_group_homocyclic m n q : homocyclic [set: 'M['Z_q]_(m, n)].
-Proof.
-wlog q_gt1: q / q > 1 by case: q => [|[|q -> //]] /(_ 2)->.
-set G := setT; have cGG: abelian G := zmod_abelian _.
-rewrite -max_card_abelian //= rank_mx_group cardsT card_matrix card_ord -/G.
-rewrite {1}Zp_cast //; have [-> // | ] := posnP (m * n).
-by rewrite muln_gt0 => /andP[m_gt0 n_gt0]; rewrite exponent_mx_group.
-Qed.
-
-Lemma abelian_type_mx_group m n q :
-  q > 1 -> abelian_type [set: 'M['Z_q]_(m, n)] = nseq (m * n) q.
-Proof.
-rewrite (abelian_type_homocyclic (mx_group_homocyclic m n q)) rank_mx_group.
-have [-> // | ] := posnP (m * n); rewrite muln_gt0 => /andP[m_gt0 n_gt0] q_gt1.
-by rewrite exponent_mx_group.
-Qed.
-
-(*
-Lemma mx_group_abelem : forall n m p,
-  prime p -> p.-abelem [set: 'M['Z_p]_(m, n)].
-Proof.
-move=> n m p p_pr; set G := setT.
-have [mn0 | ] := posnP (m * n).
-  by rewrite [G](card1_trivg _) ?abelem1 // cardsT card_matrix mn0.
-rewrite muln_gt0; case/andP=> m_gt0 n_gt0.
-by rewrite abelemE // zmod_abelian exponent_mx_group ?prime_gt1 //=.
-Qed.
-*)
-
-Lemma abelian_type_dprod_homocyclic gT p (K H G : {group gT}) :
-    K \x H = G -> p.-group G -> homocyclic G ->
-     abelian_type K = nseq 'r(K) (exponent G)
-  /\ abelian_type H = nseq 'r(H) (exponent G).
-Proof.
-move=> defG pG homG; have [cGG _] := andP homG.
-have /mulG_sub[sKG sHG]: K * H = G by case/dprodP: defG.
-have [cKK cHH] := (abelianS sKG cGG, abelianS sHG cGG).
-suffices: all (pred1 (exponent G)) (abelian_type K ++ abelian_type H).
-  rewrite all_cat => /andP[/all_pred1P-> /all_pred1P->].
-  by rewrite !size_abelian_type.
-suffices def_atG: abelian_type K ++ abelian_type H =i abelian_type G.
-  rewrite (eq_all_r def_atG); apply/all_pred1P.
-  by rewrite size_abelian_type // -abelian_type_homocyclic.
-have [bK defK atK] := abelian_structure cKK.
-have [bH defH atH] := abelian_structure cHH.
-apply: perm_eq_mem; rewrite -atK -atH -map_cat.
-apply: (perm_eq_abelian_type pG); first by rewrite big_cat defK defH.
-have: all [pred m | m > 1] (map order (bK ++ bH)).
-  by rewrite map_cat all_cat atK atH !abelian_type_gt1.
-by rewrite all_map (eq_all (@order_gt1 _)) all_predC has_pred1.
-Qed.
-
-(*
-Lemma exponent_dprod_homocyclic gT p (K H G : {group gT}) :
-    K \x H = G -> p.-group G -> homocyclic G -> K :!=: 1 ->
-  homocyclic K /\ exponent K = exponent G.
-*)
-
-Lemma homocyclic1 gT : homocyclic [1 gT].
-Proof. exact: abelem_homocyclic (abelem1 _ 2). Qed.
-
-Lemma dprod_homocyclic gT p (K H G : {group gT}) :
-  K \x H = G -> p.-group G -> homocyclic G -> homocyclic K /\ homocyclic H.
-Proof.
-move=> defG pG homG; have [cGG _] := andP homG.
-have /mulG_sub[sKG sHG]: K * H = G by case/dprodP: defG.
-have [abtK abtH] := abelian_type_dprod_homocyclic defG pG homG.
-by rewrite /homocyclic !(abelianS _ cGG) // abtK abtH !constant_nseq.
-Qed.
-
-Section MxRepr.
-
-Variable (R : finComUnitRingType) (gT : finGroupType).
-Variables (G : {group gT}) (n : nat) (rG : mx_representation R G n).
-
-Definition mx_repr_act (u : 'rV_n) x := u *m rG (val (subg G x)).
-
-Lemma mx_repr_actE u x : x \in G -> mx_repr_act u x = u *m rG x.
-Proof. by move=> Gx; rewrite /mx_repr_act /= subgK. Qed.
-
-Lemma mx_repr_is_action : is_action G mx_repr_act.
-Proof.
-split=> [x | u x y Gx Gy]; first exact: can_inj (repr_mxK _ (subgP _)).
-by rewrite !mx_repr_actE ?groupM // -mulmxA repr_mxM.
-Qed.
-Canonical Structure mx_repr_action := Action mx_repr_is_action.
-
-Lemma mx_repr_is_groupAction : is_groupAction [set: 'rV[R]_n] mx_repr_action.
-Proof.
-move=> x Gx /=; rewrite !inE.
-apply/andP; split; first by apply/subsetP=> u; rewrite !inE.
-by apply/morphicP=> /= u v _ _; rewrite !actpermE /= /mx_repr_act mulmx_addl.
-Qed.
-Canonical Structure mx_repr_groupAction := GroupAction mx_repr_is_groupAction.
-
-End MxRepr.
-
-Notation "''MR' rG" := (mx_repr_action rG)
-  (at level 10, rG at level 8) : action_scope.
-Local Notation "''MR' rG" := (mx_repr_groupAction rG) : groupAction_scope.
-
 Lemma huppert_blackburn_12_3 gT (V G : {group gT}) p m :
-  minnormal V G -> 
-  coprime p #|G| ->
-  p.-abelem V ->
-  m > 0 ->
-  let W := [set: 'rV['Z_(p ^ m)](V)]%G in
+    minnormal V G -> coprime p #|G| -> p.-abelem V -> m > 0 ->
+    let W := [set: 'rV['Z_(p ^ m)](V)]%G in
   exists2 f : {morphism V >-> coset_of 'Mho^1(W)},
-  isom V (W / 'Mho^1(W)) f
+    isom V (W / 'Mho^1(W)) f
   & exists toW : groupAction G W,
     {in V & G, morph_act 'J (toW / 'Mho^1(W)) f (idm G)}.
 Proof. Admitted. (*
