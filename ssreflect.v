@@ -362,8 +362,8 @@ Section ApplyIff.
 Variables P Q : Prop.
 Hypothesis eqPQ : P <-> Q.
 
-Lemma iffLR : P -> Q. Proof. by case eqPQ. Qed.
-Lemma iffRL : Q -> P. Proof. by case eqPQ. Qed.
+Lemma iffLR : P -> Q. Proof. by case: eqPQ. Qed.
+Lemma iffRL : Q -> P. Proof. by case: eqPQ. Qed.
 
 Lemma iffLRn : ~P -> ~Q. Proof. by move=> nP tQ; case: nP; case: eqPQ tQ. Qed.
 Lemma iffRLn : ~Q -> ~P. Proof. by move=> nQ tP; case: nQ; case: eqPQ tP. Qed.
