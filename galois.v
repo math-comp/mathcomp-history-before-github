@@ -889,7 +889,7 @@ move/subvP: Hzy; apply.
 by rewrite memx_Fadjoin.
 Qed.
 
-Definition galois K E := separable K E && normal K E.
+Definition galois K E := [&& (K <= E)%VS, separable K E & normal K E].
 
 Lemma separable_dim : forall (K : {algebra L}) x, separableElement K x ->
   normal K (Fadjoin K x) -> elementDegree K x = #|'Aut(Fadjoin K x | K)%g|.
@@ -981,15 +981,57 @@ case/poly_Fadjoin: (Hr _ Hb) => q [Hq ->].
 by rewrite -horner_poly_comp mempx_Fadjoin ?compose_polyOver.
 Qed.
 
-Lemma galois_dim : forall (K E : {algebra L}), (K <= E)%VS -> galois K E ->
+Lemma galois_dim : forall (K E : {algebra L}), galois K E ->
  \dim E = (\dim K * #|'Aut(E | K)%g|)%N.
 Proof.
-move => K E HKE.
-case/andP.
+move => K E.
+case/and3P => HKE.
 move/(separableSeparableGenerator)/(_ HKE) => -> Hnorm.
 rewrite dim_Fadjoin.
 congr (_ * _)%N.
 by rewrite separable_dim // separableGeneratorSep.
+Qed.
+
+Lemma GaloisUnfixedField (K E : {algebra L}) : galois K E ->
+ forall a, a \in E -> a \notin K -> exists x, (x \in 'Aut(E | K)%g) && 
+   (val (repr x) a != a).
+Proof.
+case/and3P => [HKE Hsep Hnorm] a HaE.
+rewrite elemDeg1 -eqSS -size_minPoly.
+case/normalP/(_ a HaE): (Hnorm) (root_minPoly K a) => r Hr Hmin.
+rewrite Hmin root_prod_factors => Har.
+move: (size_prod_factors r) => Hsz1 Hsz2.
+have [b Hbr Hba] : exists2 b, b \in r & b != a.
+ move/separableP/(_ _ HaE): Hsep.
+ rewrite /separableElement Hmin separable_factors.
+ move: r {Hr Hmin} Har Hsz1 Hsz2 => [//|x [|y r]]; first by move => _ ->.
+ rewrite /= !inE.
+ case: (eqVneq a x) => [->|Hax] _ _ _.
+  rewrite negb_or.
+  move => /andP [/andP [Hxy _] _].
+  exists y; last by rewrite eq_sym.
+  by rewrite !inE eqxx orbT.
+ move => _.
+ exists x; last by rewrite eq_sym.
+ by rewrite !inE eqxx.
+have: kHom K (Fadjoin K a) (kHomExtend K \1%VS a b).
+ rewrite kHomExtendkHom ?kHom1 ?subv_refl //.
+ rewrite (eq_map_poly (fun x => unit_lappE x)) map_polyE map_id polyseqK.
+ by rewrite Hmin root_prod_factors.
+case/(kHomExtendLAut (subsetKFadjoin K a)) => f /andP [HKf /eqvP Hf].
+move/forallP/(_ f)/implyP/(_ HKf): Hnorm => HfE.
+have: kAut K E (val f).
+ by rewrite /kAut HfE andbT (kHom_subv _ HKf) // subvf.
+case/(kAut_Aut HKE) => x HxAut /(_ _ (mem_repr_coset _)) Hx.
+exists x.
+rewrite HxAut -Hx // Hf ?memx_Fadjoin //.
+rewrite -{2}[a]hornerX.
+have Hminb : root (map_poly \1%VS (minPoly K a)) b.
+ rewrite (eq_map_poly (fun x => unit_lappE x)) map_polyE map_id polyseqK.
+ by rewrite Hmin root_prod_factors.
+rewrite (kHomExtend_poly (kHom1 K K) Hminb) ?polyOverX //.
+rewrite (eq_map_poly (fun x => unit_lappE x)) map_polyE map_id polyseqK.
+by rewrite hornerX.
 Qed.
 
 (*
