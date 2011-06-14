@@ -8,6 +8,7 @@ congr.v
 deferclear.v
 elim.v
 elim2.v
+elim_pattern.v
 first_n.v
 gen_pattern.v
 havesuff.v

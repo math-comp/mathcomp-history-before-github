@@ -3353,7 +3353,9 @@ let match_upats_FO upats env sigma0 ise =
            let lhs = mkSubApp f i a in
            let pt' = unif_end env sigma0 ise' u.up_t (u.up_ok lhs) in
            raise (FoundUnif (ungen_upat lhs pt' u))
-       with FoundUnif _ as sigma_u -> raise sigma_u | _ -> () in
+       with FoundUnif _ as sigma_u -> raise sigma_u 
+       | Not_found -> anomaly "incomplete ise in match_upats_FO"
+       | _ -> () in
     List.iter one_match fpats
   done;
   iter_constr_LR loop f; Array.iter loop a in
@@ -3576,6 +3578,18 @@ let pr_pattern_w_ids = function
   | E_As_X_In_T (e,x,t) ->
       prl_term e ++ str " as " ++ pr_id x ++ str " in " ++ prl_term t
 
+let pr_pattern_aux pr_constr = function
+  | T t -> pr_constr t
+  | In_T t -> str "in " ++ pr_constr t
+  | X_In_T (x,t) -> pr_constr x ++ str " in " ++ pr_constr t
+  | In_X_In_T (x,t) -> str "in " ++ pr_constr x ++ str " in " ++ pr_constr t
+  | E_In_X_In_T (e,x,t) ->
+      pr_constr e ++ str " in " ++ pr_constr x ++ str " in " ++ pr_constr t
+  | E_As_X_In_T (e,x,t) ->
+      pr_constr e ++ str " as " ++ pr_constr x ++ str " in " ++ pr_constr t
+let pp_pattern (sigma, p) =
+  pr_pattern_aux (fun t -> pr_constr (snd (nf_open_term sigma sigma t))) p
+
 let pr_option f = function None -> mt() | Some x -> f x
 let pr_ssrpattern _ _ _ = pr_option pr_pattern
 let pr_pattern_squarep = pr_option (fun r -> str "[" ++ pr_pattern r ++ str "]")
@@ -3663,32 +3677,22 @@ let interp_pattern ist gl red redty =
   | Some b -> a,(g,Some (mkCLambda loc x (CHole(loc,None)) b))
   | None -> a,(RLambda (loc,x,Explicit,(RHole (loc, BinderType x)), g), None) in
   match red with
-  | T t -> T(interp_term ist gl t)
-  | In_T x -> In_T(interp_term ist gl x)
-  | X_In_T (x,rp) ->
+  | T t -> let sigma, t = interp_term ist gl t in sigma, T t
+  | In_T t -> let sigma, t = interp_term ist gl t in sigma, In_T t
+  | X_In_T (x, rp) | In_X_In_T (x, rp) ->
+    let mk x p = match red with X_In_T _ -> X_In_T(x,p) | _ -> In_X_In_T(x,p) in
     let rp = mkXLambda dummy_loc (Name x) rp in
     let sigma, rp = interp_term ist gl rp in
     let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
-    X_In_T (List.assoc 0 args, (sigma, rp))
-  | In_X_In_T (x,rp) ->
+    sigma, mk (List.assoc 0 args) rp
+  | E_In_X_In_T(e, x, rp) | E_As_X_In_T (e, x, rp) ->
+    let mk e x p =
+      match red with E_In_X_In_T _ ->E_In_X_In_T(e,x,p)|_->E_As_X_In_T(e,x,p) in
     let rp = mkXLambda dummy_loc (Name x) rp in
     let sigma, rp = interp_term ist gl rp in
     let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
-    In_X_In_T (List.assoc 0 args, (sigma, rp))
-  | E_In_X_In_T (e,x,rp) ->
-    let rp = mkXLambda dummy_loc (Name x) rp in
-    let sigma, rp = interp_term ist gl rp in
-    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
-    let e_sigma, e = interp_term ist gl e in
-    E_In_X_In_T ((e_sigma, e) ,List.assoc 0 args, (sigma, rp))
-  | E_As_X_In_T (e,x,rp) ->
-    let rp = mkXLambda dummy_loc (Name x) rp in
-    let sigma, rp = interp_term ist gl rp in
-    let rp, _, args, rp_sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
-    let hole = List.assoc 0 args in
-    let si = sig_it gl in
-    let e_sigma, e = interp_term ist (re_sig si rp_sigma) e in
-    E_As_X_In_T ((e_sigma, e) , hole, (rp_sigma, rp))
+    let sigma, e = interp_term ist (re_sig (sig_it gl) sigma) e in
+    sigma, mk e (List.assoc 0 args) rp
 ;;
 
 (* calls do_subst on every sub-term identified by (pattern,occ) *)
@@ -3706,63 +3710,67 @@ let eval_pattern ?raise_NoMatch env0 sigma0 concl0 pattern occ do_subst =
     sigma, e_body in
   let ex_value hole =
     match kind_of_term hole with Evar (e,_) -> e | _ -> assert false in
-  let mk_upat_for ?hack env sigma0 (sigma,t) ?(p=t) ok =
-    let pat, sigma = mk_upat ?hack env sigma0 sigma p ok L2R t in
+  let mk_upat_for ?hack env sigma0 (sigma, t) ?(p=t) ok =
+    let pat, sigma = mk_upat ?hack env sigma0 sigma p ok L2R (fs sigma t) in
     [pat], sigma in
   match pattern with
   | None -> do_subst env0 concl0 1
-  | Some (T rp | In_T rp) ->
-    let occ = match pattern with Some (T _) -> occ | _ -> [noindex] in
-    let rp = mk_upat_for env0 sigma0 rp all_ok in
+  | Some (sigma, (T rp | In_T rp)) -> 
+    let rp = fs sigma rp in
+    let ise = create_evar_defs sigma in
+    let occ = match pattern with Some (_, T _) -> occ | _ -> [noindex] in
+    let rp = mk_upat_for env0 sigma0 (ise, rp) all_ok in
     let find_T, end_T = mk_pmatcher ?raise_NoMatch sigma0 occ rp in
     let concl = find_T env0 concl0 1 (fun env _ -> do_subst env) in
     let _ = end_T () in
     concl
-  | Some (X_In_T (hole, (p_sigma, p as srp)) |
-       In_X_In_T (hole, (p_sigma, p as srp))) ->
-    let occ = match pattern with Some (X_In_T _) -> occ | _ -> [noindex] in
+  | Some (sigma, (X_In_T (hole, p) | In_X_In_T (hole, p))) ->
+    let p = fs sigma p in
+    let occ = match pattern with Some (_, X_In_T _) -> occ | _ -> [noindex] in
     let ex = ex_value hole in
-    let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
+    let rp = mk_upat_for ~hack:true env0 sigma0 (sigma, p) all_ok in
     let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
     (* we start from sigma, so hole is considered a rigid head *)
-    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
-    let find_X, end_X = mk_pmatcher ?raise_NoMatch p_sigma occ holep in
+    let holep = mk_upat_for env0 sigma (sigma, hole) all_ok in
+    let find_X, end_X = mk_pmatcher ?raise_NoMatch sigma occ holep in
     let concl = find_T env0 concl0 1 (fun env _ c h ->
-      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
+      let p_sigma = unify_HO env (create_evar_defs sigma) c p in
       let sigma, e_body = pop_evar p_sigma ex p in
       fs p_sigma (find_X env (fs sigma p) h 
         (fun env _ _ -> do_subst env e_body))) in
     let _ = end_X () in let _ = end_T () in 
     concl
-  | Some (E_In_X_In_T (ep, hole, (p_sigma, p as srp))) ->
+  | Some (sigma, E_In_X_In_T (e, hole, p)) ->
+    let p, e = fs sigma p, fs sigma e in
     let ex = ex_value hole in
-    let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
+    let rp = mk_upat_for ~hack:true env0 sigma0 (sigma, p) all_ok in
     let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
-    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
-    let find_X, end_X = mk_pmatcher p_sigma [noindex] holep in
-    let re = mk_upat_for env0 sigma0 ep all_ok in
+    let holep = mk_upat_for env0 sigma (sigma, hole) all_ok in
+    let find_X, end_X = mk_pmatcher sigma [noindex] holep in
+    let re = mk_upat_for env0 sigma0 (sigma, e) all_ok in
     let find_E, end_E = mk_pmatcher ?raise_NoMatch sigma0 occ re in
     let concl = find_T env0 concl0 1 (fun env _ c h ->
-      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
+      let p_sigma = unify_HO env (create_evar_defs sigma) c p in
       let sigma, e_body = pop_evar p_sigma ex p in
       fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
         find_E env e_body h (fun env _ -> do_subst env)))) in
     let _ = end_E () in let _ = end_X () in let _ = end_T () in
     concl
-  | Some (E_As_X_In_T ((e_sigma, e), hole, (p_sigma, p))) ->
+  | Some (sigma, E_As_X_In_T (e, hole, p)) ->
+    let p, e = fs sigma p, fs sigma e in
     let ex = ex_value hole in
     let rp = 
-      let e_sigma = unify_HO env0 e_sigma hole e in
+      let e_sigma = unify_HO env0 sigma hole e in
       e_sigma, fs e_sigma p in
     let rp = mk_upat_for ~hack:true env0 sigma0 rp all_ok in
     let find_TE, end_TE = mk_pmatcher sigma0 [noindex] rp in
-    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
-    let find_X, end_X = mk_pmatcher p_sigma occ holep in
+    let holep = mk_upat_for env0 sigma (sigma, hole) all_ok in
+    let find_X, end_X = mk_pmatcher sigma occ holep in
     let concl = find_TE env0 concl0 1 (fun env _ c h ->
-      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
+      let p_sigma = unify_HO env (create_evar_defs sigma) c p in
       let sigma, e_body = pop_evar p_sigma ex p in
       fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
-        let e_sigma = unify_HO env e_sigma e_body e in
+        let e_sigma = unify_HO env sigma e_body e in
         let e_body = fs e_sigma e in
         do_subst env e_body h))) in
     let _ = end_X () in let _ = end_TE () in
@@ -3793,51 +3801,51 @@ let interp_clr = function
 | Some clr, _ -> clr
 | None, _ -> []
 
-let redex_of_pattern = function
+let redex_of_pattern (sigma, p) = let e = match p with
   | In_T _ | In_X_In_T _ -> anomaly "pattern without redex"
-  | T e | X_In_T (_, e) | E_As_X_In_T (e, _, _) | E_In_X_In_T (e, _, _) -> e
+  | T e | X_In_T (e, _) | E_As_X_In_T (e, _, _) | E_In_X_In_T (e, _, _) -> e in
+  snd (nf_open_term sigma sigma e)
 
-let is_redexless = function In_T _ | In_X_In_T _ -> true | _ -> false
- 
-let capture_gen ist gl occ grx grxty =
-  let grx = interp_pattern ist gl grx grxty in
-  let env0, concl0, sigma0 = pf_env gl, pf_concl gl, project gl in
-  let find_R, conclude = 
-    let e = redex_of_pattern grx in let r = ref None in
-    (fun env c h -> do_once r (fun () -> sigma0, c); mkRel h),
-    (fun _ -> if !r = None then e else assert_done r) in
-  let cl = try
-    eval_pattern ~raise_NoMatch:true env0 sigma0 concl0 (Some grx) occ find_R
-    with NoMatch -> concl0 in
-  let c = conclude cl in
-  cl, c
+let fill_occ_pattern ?raise_NoMatch env sigma pat occ h cl =
+  let find_R, conclude = let r = ref None in
+    (fun env c h' -> do_once r (fun () -> c); mkRel (h'+h-1)),
+    (fun _ -> if !r = None then redex_of_pattern pat else assert_done r) in
+  let cl = eval_pattern ?raise_NoMatch env sigma cl (Some pat) occ find_R in
+  let e = conclude cl in
+  e, cl
 ;;
 
+(* XXX the k of the redex should percolate out *)
 let pf_interp_gen_aux ist gl to_ind ((oclr, occ), t) =
-  let cl, (sigma, c) = capture_gen ist gl occ (T t) None in
+  let pat = interp_pattern ist gl (T t) None in (* UGLY API *)
+  let c = redex_of_pattern pat in
+  let cl, env, sigma = pf_concl gl, pf_env gl, project gl in
+  let c, cl = 
+    try fill_occ_pattern ~raise_NoMatch:true env sigma pat occ 1 cl
+    with NoMatch -> c, cl in
   let clr = interp_clr (oclr, (fst t, c)) in
   if not(occur_existential c) then
     if fst t = '@' then 
       if not (isVar c) then errorstrm (str "@ can be used with variables only")
       else match pf_get_hyp gl (destVar c) with
       | _, None, _ -> errorstrm (str "@ can be used with let-ins only")
-      | name, Some bo, ty -> true, mkLetIn (Name name, bo, ty, cl), c, clr
-    else false, pf_mkprod gl c cl, c, clr
+      | name, Some bo, ty -> true, pat, mkLetIn (Name name, bo, ty, cl), c, clr
+    else false, pat, pf_mkprod gl c cl, c, clr
   else if to_ind && occ = [] then
-    let nv, p = pf_abs_evars gl (sigma, c) in
+    let nv, p = pf_abs_evars gl (fst pat, c) in
     if nv = 0 then anomaly "occur_existential but no evars" else
-    false, mkProd (constr_name c, pf_type_of gl p, pf_concl gl), p, clr
+    false, pat, mkProd (constr_name c, pf_type_of gl p, pf_concl gl), p, clr
   else loc_error (loc_ofCG t) "generalized term didn't match"
 
 let genclrtac cl cs clr = tclTHEN (apply_type cl cs) (cleartac clr)
 
 let gentac ist gen gl =
-  let conv, cl, c, clr = pf_interp_gen_aux ist gl false gen in 
+  let conv, _, cl, c, clr = pf_interp_gen_aux ist gl false gen in 
   if conv then tclTHEN (convert_concl cl) (cleartac clr) gl
   else genclrtac cl [c] clr gl
 
 let pf_interp_gen ist gl to_ind gen =
-  let _, a, b ,c = pf_interp_gen_aux ist gl to_ind gen in a, b ,c
+  let _, _, a, b ,c = pf_interp_gen_aux ist gl to_ind gen in a, b ,c
 
 (** Generalization (discharge) sequence *)
 
@@ -3874,15 +3882,15 @@ let cons_dep (gensl, clr) =
 
 ARGUMENT EXTEND ssrdgens_tl TYPED AS ssrgen list list * ssrclear
                             PRINTED BY pr_ssrdgens
-| [ "{" ne_ssrhyp_list(clr) "}" ssrterm(dt) ssrdgens_tl(dgens) ] ->
+| [ "{" ne_ssrhyp_list(clr) "}" ssrpattern(dt) ssrdgens_tl(dgens) ] ->
   [ cons_gen (mkclr clr, dt) dgens ]
 | [ "{" ne_ssrhyp_list(clr) "}" ] ->
   [ [[]], clr ]
-| [ "{" ssrocc(occ) "}" ssrterm(dt) ssrdgens_tl(dgens) ] ->
+| [ "{" ssrocc(occ) "}" ssrpattern(dt) ssrdgens_tl(dgens) ] ->
   [ cons_gen (mkocc occ, dt) dgens ]
 | [ "/" ssrdgens_tl(dgens) ] ->
   [ cons_dep dgens ]
-| [ ssrterm(dt) ssrdgens_tl(dgens) ] ->
+| [ ssrpattern(dt) ssrdgens_tl(dgens) ] ->
   [ cons_gen (nodocc, dt) dgens ]
 | [ ] ->
   [ [[]], [] ]
@@ -4212,43 +4220,52 @@ let refine_with ?(with_evars=true) oc gl =
  *    by eqid *)
 let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   (* some sanity checks *)
-  let oc, orig_clr, occ = match what with
+  let oc, orig_clr, occ, c_gen = match what with
   | `EConstr(_,_,t) when isEvar t -> anomaly "elim called on a constr evar"
   | `EGen _ when ist = None -> anomaly "no ist and non simple elimination"
   | `EGen (_,(_,(_,Some (CHole _)))) when elim = None ->
        errorstrm(str"Indeterminate pattern and no eliminator")
-  | `EGen ((Some clr,occ),(_,(_,Some (CHole _)|RHole _,None))) -> None, clr, occ
-  | `EGen ((None, occ),(_,(_,Some (CHole _)|RHole _,None))) -> None, [], occ
-  | `EGen ((_, occ), _ as gen) ->
+  | `EGen ((Some clr,occ),(_,(_,Some (CHole _)|RHole _,None))) -> 
+       None, clr, occ, None
+  | `EGen ((None, occ),(_,(_,Some (CHole _)|RHole _,None))) -> None,[],occ,None
+  | `EGen ((_, occ), p as gen) ->
        let _, c, clr = pf_interp_gen (Option.get ist) gl true gen in
-       Some c, clr, occ
-  | `EConstr (clr, occ, c) -> Some c, clr, occ in
-  let orig_gl, concl = gl, pf_concl gl in
+       Some c, clr, occ, Some p
+  | `EConstr (clr, occ, c) -> Some c, clr, occ, None in
+  let orig_gl, concl, env = gl, pf_concl gl, pf_env gl in
   pp(lazy(str(if is_case then "==CASE==" else "==ELIM==")));
   (* Utils of local interest only *)
   let iD s ?t gl = let t = match t with None -> pf_concl gl | Some x -> x in
     pp(lazy(str s ++ pr_constr t)); tclIDTAC gl in
   let eq, protectC = build_coq_eq (), mkSsrConst "protect_term" in
   let fire_subst gl t = snd (nf_open_term (project gl) (project gl) t) in
-  let is_undef_pat gl t = 
-    match kind_of_term (fire_subst gl(Reductionops.whd_beta(project gl) t)) with
-    | Evar _ -> true | _ -> false in
-  let match_pat gl cl (occ, t) h =                
-    (* t and cl live in gl, each occ of t in cl is replaced by Rel h *)
-    let env, sigma, si = pf_env gl, project gl, sig_it gl in
-    let t, orig_t = fire_subst gl t, t in
-    let n, t = pf_abs_evars orig_gl (sigma, t) in  
-    let t, _, _, sigma' = saturate ~beta:true env sigma t n in
-    pp(lazy(str"matching: " ++ pr_constr_pat t));
-    let sigma, t, cl, _ = pf_fill_occ env cl occ sigma t (sigma', t) all_ok h in
-    pp(lazy(str"     got: " ++ pr_constr_pat t));
-    cl, pf_unify_HO (re_sig si sigma) orig_t t in
+  let fire_sigma sigma t = snd (nf_open_term sigma sigma t) in
+  let is_undef_pat = function
+  | sigma, T t ->  
+      (match kind_of_term (fire_sigma sigma t) with Evar _ -> true | _ -> false)
+  | _ -> false in
+  let match_pat env p occ h cl = 
+    let sigma0 = project orig_gl in
+    pp(lazy(str"matching: " ++ pp_pattern p));
+    let c, cl = fill_occ_pattern ~raise_NoMatch:true env sigma0 p occ h cl in
+    pp(lazy(str"     got: " ++ pr_constr c));
+    c, cl in
+  let mkTpat gl t = (* takes a term, refreshes it and makes a T pattern *)
+    let n, t = pf_abs_evars orig_gl (project gl, fire_subst gl t) in 
+    let t, _, _, sigma = saturate ~beta:true env (project gl) t n in
+    sigma, T t in
+  let unif_redex gl (sigma, r as p) t = (* t is a hint for the redex of p *)
+    let n, t = pf_abs_evars orig_gl (project gl, fire_subst gl t) in 
+    let t, _, _, sigma = saturate ~beta:true env sigma t n in
+    match r with
+    | X_In_T (e, p) -> sigma, E_As_X_In_T (t, e, p)
+    | _ -> try unify_HO env sigma t (redex_of_pattern p), r with _ -> p in
   (* finds the eliminator applies it to evars and c saturated as needed  *)
   (* obtaining "elim ??? (c ???)". pred is the higher order evar         *)
   let cty, elim, elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl =
     match elim with
     | Some elim ->
-      let elimty, env = pf_type_of gl elim, pf_env gl in
+      let elimty = pf_type_of gl elim in
       let pred_id, n_elim_args, is_rec, elim_is_dep, n_pred_args =
         analyze_eliminator elimty env (project gl) in
       let elim, elimty, elim_args, gl =
@@ -4262,7 +4279,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
       let sort = elimination_sort_of_goal gl in
       let elim = if not is_case then Indrec.lookup_eliminator ind sort
         else pf_apply Indrec.build_case_analysis_scheme gl ind true sort in
-      let elimty, env = pf_type_of gl elim, pf_env gl in
+      let elimty = pf_type_of gl elim in
       let pred_id,n_elim_args,is_rec,elim_is_dep,n_pred_args =
         analyze_eliminator elimty env (project gl) in
       let rctx = fst (decompose_prod_assum unfolded_c_ty) in
@@ -4270,7 +4287,11 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
       let c, c_ty, t_args, gl = pf_saturate gl c ~ty:c_ty n_c_args in
       let elim, elimty, elim_args, gl =
         pf_saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
-      let pred, cty = List.assoc pred_id elim_args, Some (c, c_ty) in
+      let pred = List.assoc pred_id elim_args in
+      let pc = match n_c_args, c_gen with
+        | 0, Some p -> interp_pattern (Option.get ist) orig_gl (T p) None 
+        | _ -> mkTpat gl c in
+      let cty = Some (c, c_ty, pc) in
       let elimty = Reductionops.whd_betadeltaiota env (project gl) elimty in
       cty, elim, elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl
   in
@@ -4287,7 +4308,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
     with NotEnoughProducts -> None | _ -> loop (n+1) in loop 0 in
   let elim_is_dep, gl = match cty with
     | None -> true, gl
-    | Some (c, c_ty) ->
+    | Some (c, c_ty, _) ->
     let res = 
       if elim_is_dep then None else
       let arg = List.assoc (n_elim_args - 1) elim_args in
@@ -4312,63 +4333,64 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   (* Patterns for the inductive types indexes to be bound in pred are computed
    * looking at the ones provided by the user and the inferred ones looking at
    * the type of the elimination principle *)
-  let pr_pat (_,t,_,_,_) = pr_constr t in
+  let pp_pat (_,p,_,_,_) = pp_pattern p in
+  let pp_inf_pat gl (_,_,t,_,_) = pr_constr_pat (fire_subst gl t) in
   let patterns, clr, gl =
-    let rec loop gl patterns clr i = function
+    let rec loop patterns clr i = function
       | [],[] -> patterns, clr, gl
-      | ((oclr, occ), (xx ,_ as t)):: deps, inf_t :: inf_deps ->
-          let env, sigma, si, orig_gl = pf_env gl, project gl, sig_it gl, gl in
+      | ((oclr, occ), (k ,_ as t)):: deps, inf_t :: inf_deps ->
           let ist = match ist with Some x -> x | None -> assert false in
-          let sigma, t = interp_term ist gl t in
-          let clr_t = interp_clr (oclr, (xx, t)) in
+          let p = interp_pattern ist orig_gl (T t) None in
+          let clr_t = interp_clr (oclr, (k, redex_of_pattern p)) in
           (* if we are the index for the equation we do not clear *)
           let clr_t = if deps = [] && eqid <> None then [] else clr_t in
-          let gl = re_sig si sigma in
-          let t, inf_t, must, gl = 
-            if is_undef_pat gl t then inf_t, inf_t, false, orig_gl 
-            else t, inf_t, true, gl in
-          loop gl (patterns@[i,t,inf_t,must,occ]) 
-            (clr_t @ clr) (i+1) (deps,inf_deps)
+          let p, must = 
+            if is_undef_pat p then mkTpat gl inf_t, false else p, true in
+          loop (patterns @ [i, p, inf_t, must, occ]) 
+            (clr_t @ clr) (i+1) (deps, inf_deps)
       | [], c :: inf_deps -> 
           pp(lazy(str"adding inferred pattern " ++ pr_constr_pat c));
-          loop gl (patterns@[i,c,c,false,[noindex]]) clr (i+1) ([],inf_deps)
+          loop (patterns @ [i, mkTpat gl c, c, false, [noindex]]) 
+            clr (i+1) ([], inf_deps)
       | _::_, [] -> errorstrm (str "Too many dependent abstractions") in
     let deps, head_p, inf_deps_r = match what, elim_is_dep, cty with
     | `EConstr _, _, None -> anomaly "Simple welim with no term"
     | _, false, _ -> deps, [], inf_deps_r
     | `EGen gen, true, None -> deps @ [gen], [], inf_deps_r
-    | _, true, Some (c, _) ->
+    | _, true, Some (c, _, pc) ->
          let occ = if occ = [] then [noindex] else occ in
          let inf_p, inf_deps_r = List.hd inf_deps_r, List.tl inf_deps_r in
-         deps, [1,c,inf_p,false,occ], inf_deps_r in
+         deps, [1, pc, inf_p, false, occ], inf_deps_r in
     let patterns, clr, gl = 
-      loop gl [] orig_clr (List.length head_p+1) (List.rev deps, inf_deps_r) in
+      loop [] orig_clr (List.length head_p+1) (List.rev deps, inf_deps_r) in
     head_p @ patterns, Util.list_uniquize clr, gl
   in
-  pp(lazy(pp_concat (str"patterns=") (List.map pr_pat patterns)));
+  pp(lazy(pp_concat (str"patterns=") (List.map pp_pat patterns)));
+  pp(lazy(pp_concat (str"inf. patterns=") (List.map (pp_inf_pat gl) patterns)));
   (* Predicate generation, and (if necessary) tactic to generalize the
    * equation asked by the user *)
   let elim_pred, gen_eq_tac, clr, gl = 
     let error gl t inf_t = errorstrm (str"The given pattern matches the term"++
       spc()++pp_term gl t++spc()++str"while the inferred pattern"++
       spc()++pr_constr_pat (fire_subst gl inf_t)++spc()++ str"doesn't") in
-    let match_or_postpone (cl, gl, post) (h, t, inf_t, must, occ) =
-      let gl =
-        if is_undef_pat gl t then try pf_unify_HO gl inf_t t with _ -> gl
-        else gl in
-      if is_undef_pat gl t then
-        let () = pp(lazy(str"postponing " ++ pr_constr_pat t)) in
-        cl, gl, post @ [h, t, inf_t, must, occ]
+    let match_or_postpone (cl, gl, post) (h, p, inf_t, must, occ) =
+      let p = unif_redex gl p inf_t in
+      if is_undef_pat p then
+        let () = pp(lazy(str"postponing " ++ pp_pattern p)) in
+        cl, gl, post @ [h, p, inf_t, must, occ]
       else try
-        let cl, gl =  match_pat gl cl (occ, t) h in
-        let gl = try pf_unify_HO gl inf_t t with _ -> error gl t inf_t in
+        let c, cl =  match_pat env p occ h cl in
+        let gl = try pf_unify_HO gl inf_t c with _ -> error gl c inf_t in
         cl, gl, post
       with 
       | NoMatch when not must ->
-          let gl = try pf_unify_HO gl inf_t t with _ -> error gl t inf_t in
+          let e = redex_of_pattern p in
+          let n, e =  pf_abs_evars gl (fst p, e) in
+          let e, _, _, gl = pf_saturate ~beta:true gl e n in 
+          let gl = try pf_unify_HO gl inf_t e with _ -> error gl e inf_t in
           cl, gl, post
       | NoMatch -> 
-          errorstrm (str "pattern "++pr_constr_pat t++spc()++str"didn't match")
+          errorstrm (str "pattern "++pp_pattern p++spc()++str"didn't match")
     in        
     let rec match_all concl gl patterns =
       let concl, gl, postponed = 
@@ -4404,7 +4426,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
       else concl in
     concl, gen_eq_tac, clr, gl in
   pp(lazy(str"elim_pred=" ++ pp_term gl elim_pred));
-  let pty = Typing.type_of (pf_env gl) (project gl) elim_pred in
+  let pty = Typing.type_of env (project gl) elim_pred in
   pp(lazy(str"elim_pred_ty=" ++ pp_term gl pty));
   let gl = pf_unify_HO gl pred elim_pred in
   (* check that the patterns do not contain non instantiated dependent metas *)
@@ -4945,7 +4967,7 @@ let unfoldintac occ rdx t (kt,_) gl =
   let red_flags = if easy then Closure.betaiotazeta else Closure.betaiota in
   let beta env = Reductionops.clos_norm_flags red_flags env sigma0 in
   let unfold, conclude = match rdx with
-  | Some (In_T _ | In_X_In_T _) | None -> 
+  | Some (_, (In_T _ | In_X_In_T _)) | None ->
     let ise = create_evar_defs sigma in
     let u, ise = mk_upat env0 sigma0 ise t all_ok L2R t in
     let find_T, end_T = mk_pmatcher ~raise_NoMatch:true sigma0 occ ([u],ise) in
@@ -4987,11 +5009,11 @@ let foldtac occ rdx ft gl =
   let sigma0, concl0, env0 = project gl, pf_concl gl, pf_env gl in
   let sigma, t = ft in
   let fold, conclude = match rdx with
-  | Some (In_T _ | In_X_In_T _) | None -> 
+  | Some (_, (In_T _ | In_X_In_T _)) | None ->
     let ise = create_evar_defs sigma in
     let ut = try Tacred.red_product env0 sigma t with _ -> t in
     let ut, ise = mk_upat env0 sigma0 ise t all_ok L2R ut in
-    let find_T, end_T = mk_pmatcher ~raise_NoMatch:true sigma0 occ ([ut],ise) in
+    let find_T,end_T= mk_pmatcher ~raise_NoMatch:true sigma0 occ ([ut],ise) in
     (fun env c h -> try find_T env c h (fun env _ t _ -> t) with NoMatch -> c),
     (fun () -> try end_T () with NoMatch -> fake_pmatcher_end ())
   | _ -> 
@@ -5197,7 +5219,7 @@ let rwrxtac occ rdx_pat dir rule gl =
      rwtac rules in
   let sigma0, env0, concl0 = project gl, pf_env gl, pf_concl gl in
   let find_R, conclude = match rdx_pat with
-  | Some (In_T _ | In_X_In_T _) | None -> 
+  | Some (_, (In_T _ | In_X_In_T _)) | None ->
       let upats_origin = dir, snd rule in
       let rpat env sigma0 (pats, sigma) (d, r, lhs, rhs) =
         let pat, sigma = mk_upat env sigma0 sigma r (rw_progress rhs) d lhs in
@@ -5206,11 +5228,10 @@ let rwrxtac occ rdx_pat dir rule gl =
       let find_R, end_R = mk_pmatcher sigma0 occ ~upats_origin rpats in
       find_R ~k:(fun _ _ _ h -> mkRel h), 
       fun cl -> let rdx,d,r = end_R () in closed0_check cl rdx gl; (d,r),rdx
-  | Some (T (_, rdx) | X_In_T (_,(_, rdx)) | 
-          E_As_X_In_T ((_,rdx),_,_) | E_In_X_In_T ((_,rdx),_,_)) -> 
+  | Some(_, (T e | X_In_T (_,e) | E_As_X_In_T (e,_,_) | E_In_X_In_T (e,_,_))) ->
       let r = ref None in
       (fun env c h -> do_once r (fun () -> find_rule c, c); mkRel h),
-      (fun concl -> closed0_check concl rdx gl; assert_done r) in
+      (fun concl -> closed0_check concl e gl; assert_done r) in
   let concl = eval_pattern env0 sigma0 concl0 rdx_pat occ find_R in
   let (d, r), rdx = conclude concl in
   rwcltac concl rdx d r gl
@@ -5224,7 +5245,7 @@ let rwargtac ist ((dir, mult), (((oclr, occ), grx), (kind, gt))) gl =
   let fail = ref false in
   let interp_pattern ist gl gc =
     try interp_pattern ist gl gc None
-    with _ when snd mult = May -> fail := true; T (project gl, mkProp) in
+    with _ when snd mult = May -> fail := true; project gl, T mkProp in
   let interp gc =
     try interp_term ist gl gc
     with _ when snd mult = May -> fail := true; (project gl, mkProp) in
@@ -5725,9 +5746,13 @@ PRINTED BY pr_ssrsetfwd
 | [ ":=" ssrlpattern(c) ] -> [ mkssrFwdVal FwdPose c, nodocc ]
 END
 
-let ssrsettac id (((_, (grx, grxty)), ctx), (_, occ)) gl =
+let ssrsettac id (((_, (pat, pty)), ctx), (_, occ)) gl =
   let ist = get_ltacctx ctx in
-  let cl, (_, c) = capture_gen ist gl occ (T grx) grxty in
+  let pat = interp_pattern ist gl (T pat) pty in
+  let cl, sigma, env = pf_concl gl, project gl, pf_env gl in
+  let c, cl = 
+    try fill_occ_pattern ~raise_NoMatch:true env sigma pat occ 1 cl
+    with NoMatch -> redex_of_pattern pat, cl in
   if occur_existential c then errorstrm(str"The pattern"++spc()++
     pr_constr_pat c++spc()++str"did not match and has holes."++spc()++
     str"Did you mean pose?") else
