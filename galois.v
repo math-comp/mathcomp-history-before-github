@@ -764,6 +764,48 @@ Qed.
 
 End Automorphism.
 
+(* kAut_pick is another way of phrasing kAut_Aut *)
+Lemma kAut_pick_subproof (K E : {algebra L}) f :
+ exists x, (x \in 'Aut(E | K)%g) && (((K <= E)%VS && kAut K E f) ==> 
+    forallb g, (g \in x) ==> (E <= lker (f - val g))%VS).
+Proof.
+case Hf : ((K <= E)%VS && kAut K E f); last first.
+ exists 1%g.
+ by rewrite group1.
+case/andP: Hf => HKE /(kAut_Aut HKE) [x Hx1 Hx2].
+exists x.
+rewrite Hx1.
+apply/forallP => g.
+apply/implyP => Hg.
+apply/eqvP.
+by apply: Hx2.
+Qed.
+
+(* TODO: make E not an algebra *)
+Definition kAut_pick K0 (E : {algebra L}) f : 
+  coset_of [set x : LAut | kAut E (fullv L) (val x)] :=
+  if insub K0 is Some K 
+     then xchoose (kAut_pick_subproof K E f)
+     else (coset_one _).
+
+Lemma kAut_pick_Aut (K E : {algebra L}) f : kAut_pick K E f \in 'Aut(E | K)%g.
+Proof.
+rewrite /kAut_pick valK.
+by case/andP: (xchooseP (kAut_pick_subproof K E f)).
+Qed.
+
+Lemma kAut_pick_eq (K E : {algebra L}) f : (K <= E)%VS -> kAut K E f -> 
+  forall g, g \in kAut_pick K E f -> forall a, a \in E -> f a = val g a.
+Proof.
+move => HKE Hf g.
+rewrite /kAut_pick valK.
+case/andP: (xchooseP (kAut_pick_subproof K E f)) => _.
+move/andP: (conj HKE Hf) => HKEf.
+move/implyP/(_ HKEf)/forallP/(_ g)/implyP => Hpick Hg.
+apply/eqvP.
+by apply: Hpick.
+Qed.
+
 (* Test our ability to state parts of Galois's great theorem. *)
 (*
 Hypothesis foo : forall (E Q K: {algebra L}), (K <= Q)%VS ->
@@ -848,11 +890,12 @@ by rewrite memx_Fadjoin.
 Qed.
 
 Definition galois K E := separable K E && normal K E.
-(*
+
 Lemma separable_dim : forall (K : {algebra L}) x, separableElement K x ->
   normal K (Fadjoin K x) -> elementDegree K x = #|'Aut(Fadjoin K x | K)%g|.
 Proof.
 move => K x Hsep.
+set E := Fadjoin K x.
 case/normalP/(_ _ (memx_Fadjoin K x)) => r.
 move/allP => Hr Hmin.
 apply/succn_inj.
@@ -862,33 +905,80 @@ apply/eqP.
 move: Hsep.
 rewrite /separableElement Hmin separable_factors => Huniq.
 rewrite eqn_leq.
-apply/andP; split.
- pose f := kHomExtend K \1%VS x.
-
-Focus 2.
-rewrite cardE.
-pose f (y : coset_of [set g : LAut | kAut (Fadjoin K x) (fullv L) (val g)]) :=
-   val (repr y) x.
-rewrite -(size_map f).
-apply: uniq_leq_size.
- rewrite map_inj_in_uniq ?enum_uniq //.
- move => a b.
- rewrite 2!mem_enum => Ha Hb Hab.
- apply/eqP/(Aut_eq (subsetKFadjoin _ _) Ha Hb
-                   (mem_repr_coset _) (mem_repr_coset _)) => ?.
- case/poly_Fadjoin => p [Hp ->].
- rewrite -!horner_map /= -/(f a) -/(f b) Hab.
+apply/andP; split; last first.
+ rewrite cardE.
+ pose f (y : coset_of [set g : LAut | kAut E (fullv L) (val g)]) :=
+    val (repr y) x.
+ rewrite -(size_map f).
+ apply: uniq_leq_size.
+  rewrite map_inj_in_uniq ?enum_uniq //.
+  move => a b.
+  rewrite 2!mem_enum => Ha Hb Hab.
+  apply/eqP/(Aut_eq (subsetKFadjoin _ _) Ha Hb
+                    (mem_repr_coset _) (mem_repr_coset _)) => ?.
+  case/poly_Fadjoin => p [Hp ->].
+  rewrite -!horner_map /= -/(f a) -/(f b) Hab.
+  case/andP: (Aut_kAut (subsetKFadjoin _ _) Ha (mem_repr_coset _)).
+  move/(kHomFixedPoly)/(_ Hp) => -> _.
+  case/andP: (Aut_kAut (subsetKFadjoin _ _) Hb (mem_repr_coset _)).
+  by move/(kHomFixedPoly)/(_ Hp) => -> _.
+ move => ? /mapP [a Ha ->].
+ rewrite mem_enum in Ha.
+ rewrite -root_prod_factors -Hmin /f.
  case/andP: (Aut_kAut (subsetKFadjoin _ _) Ha (mem_repr_coset _)).
- move/(kHomFixedPoly)/(_ Hp) => -> _.
- case/andP: (Aut_kAut (subsetKFadjoin _ _) Hb (mem_repr_coset _)).
- by move/(kHomFixedPoly)/(_ Hp) => -> _.
-move => ? /mapP [a Ha ->].
-rewrite mem_enum in Ha.
-rewrite -root_prod_factors -Hmin /f.
-case/andP: (Aut_kAut (subsetKFadjoin _ _) Ha (mem_repr_coset _)).
-move/(kHom_rootK)/(_ (subsetKFadjoin _ _) _ _
-                     (minPolyOver K x) (memx_Fadjoin _ _)) => Hroot _.
-by rewrite Hroot // root_minPoly.
+ move/(kHom_rootK)/(_ (subsetKFadjoin _ _) _ _
+                      (minPolyOver K x) (memx_Fadjoin _ _)) => Hroot _.
+ by rewrite Hroot // root_minPoly.
+pose f y := kAut_pick K (Fadjoin_aspace K x) (kHomExtend K \1%VS x y).
+rewrite -(size_map f).
+suff/card_uniqP <- : uniq (map f r).
+ apply: subset_leq_card.
+ apply/subsetP.
+ move => ? /mapP [a [_ ->]].
+ by apply: kAut_pick_Aut.
+rewrite map_inj_in_uniq // => a b Ha Hb.
+rewrite /f.
+set fa := (kHomExtend _ _ x a).
+set fb := (kHomExtend _ _ x b).
+move => Hab.
+have Hroot : forall c, c \in r -> root (map_poly \1%VS (minPoly K x)) c.
+ move => c Hc.
+ rewrite (eq_map_poly (fun x => unit_lappE x)).
+ rewrite map_polyE map_id polyseqK.
+ by rewrite Hmin root_prod_factors.
+have Hpoly : forall c, c \in r -> c = (kHomExtend K \1%VS x c) x.
+ move => c Hc.
+ rewrite -{2}[x]hornerX.
+ rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Hc) (polyOverX _)).
+ rewrite (eq_map_poly (fun x => unit_lappE x)).
+ rewrite map_polyE map_id polyseqK.
+ by rewrite hornerX.
+rewrite (Hpoly _ Ha) (Hpoly _ Hb) {Hpoly} -/fa -/fb.
+pose g := val (repr (kAut_pick K (Fadjoin_aspace K x) fa)).
+have HAuta : kAut K (Fadjoin K x) fa.
+ rewrite kAutE (kHomExtendkHom (kHom1 K K) (subv_refl K) (Hroot _ Ha)).
+ apply/subvP => ? /memv_imgP [? [/poly_Fadjoin [p [Hp ->]] ->]].
+ rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Ha) Hp).
+ rewrite (eq_map_poly (fun x => unit_lappE x)).
+ rewrite map_polyE map_id polyseqK.
+ case/poly_Fadjoin: (Hr _ Ha) => q [Hq ->].
+ by rewrite -horner_poly_comp mempx_Fadjoin ?compose_polyOver.
+transitivity (g x).
+ apply: (kAut_pick_eq (subsetKFadjoin K x) HAuta).
+  by apply: mem_repr_coset.
+ by apply: memx_Fadjoin.
+rewrite /g Hab.
+symmetry.
+apply: (kAut_pick_eq (subsetKFadjoin K x)); first last.
+  by apply: memx_Fadjoin.
+ by apply: mem_repr_coset.
+rewrite kAutE (kHomExtendkHom (kHom1 K K) (subv_refl K) (Hroot _ Hb)).
+apply/subvP => ? /memv_imgP [? [/poly_Fadjoin [p [Hp ->]] ->]].
+rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Hb) Hp).
+rewrite (eq_map_poly (fun x => unit_lappE x)).
+rewrite map_polyE map_id polyseqK.
+case/poly_Fadjoin: (Hr _ Hb) => q [Hq ->].
+by rewrite -horner_poly_comp mempx_Fadjoin ?compose_polyOver.
 Qed.
 
 Lemma galois_dim : forall (K E : {algebra L}), (K <= E)%VS -> galois K E ->
@@ -901,7 +991,6 @@ rewrite dim_Fadjoin.
 congr (_ * _)%N.
 by rewrite separable_dim // separableGeneratorSep.
 Qed.
-*)
 
 (*
 Definition FieldAutomorphism (E:{vspace L}) (f : 'End(L) ) : bool :=
