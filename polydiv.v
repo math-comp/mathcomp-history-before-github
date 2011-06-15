@@ -843,6 +843,17 @@ move=> p q n pq; elim: n=> [|n ihn]; first by rewrite !expr0 eqpxx.
 by rewrite !exprS (@eqp_trans (q * p ^+ n)) // (eqp_mulr, eqp_mull).
 Qed.
 
+Lemma eqp_gcdr (r p q : {poly R}) : q %= r -> gcdp p q %= gcdp p r.
+Proof.
+move=> eqr; rewrite /eqp !(dvdp_gcd, dvdp_gcdl, andbT) /=.
+by rewrite -(eqp_dvdr _ eqr) dvdp_gcdr (eqp_dvdr _ eqr) dvdp_gcdr.
+Qed.
+
+Lemma eqp_gcdl (q p r : {poly R}) :  p %= q -> gcdp p r %= gcdp q r.
+move=> eqr; rewrite /eqp !(dvdp_gcd, dvdp_gcdr, andbT) /=.
+by rewrite -(eqp_dvdr _ eqr) dvdp_gcdl (eqp_dvdr _ eqr) dvdp_gcdl.
+Qed.
+
 Lemma dvdp_size_eqp : forall p q, p %| q -> size p == size q = (p %= q).
 Proof.
 move=> p q pq; apply/idP/idP; last by move/size_eqp->.
@@ -901,32 +912,6 @@ move=> gpq0; rewrite -dvd0p.
 apply: dvdp_trans (dvdp_gcdl p q).
 by rewrite dvd0p.
 Qed.
-
-
-Lemma mulp_gcdl : forall p q r, (gcdp p q) * r %= gcdp (p * r) (q * r).
-Proof.
-move => p q r.
-apply/andP;split.
- by rewrite dvdp_gcd !dvdp_mul // ?dvdpp // ?dvdp_gcdr // dvdp_gcdl.
-case: (eqVneq r 0) => [->|nzr].
- by rewrite !GRing.mulr0 dvdp0.
-have : r %| gcdp (p * r) (q * r).
- by rewrite dvdp_gcd !dvdp_mull // dvdpp.
-move/dvdpPc => [c [x [Hc Hx]]].
-have: gcdp (p * r) (q * r) %| x * r.
- apply/dvdpPc.
- exists 1; exists (c%:P); split; first by rewrite GRing.nonzero1r.
- by rewrite GRing.scale1r mul_polyC Hx.
-move/(dvdp_trans); apply.
-apply dvdp_mul; rewrite ?dvdpp //.
-rewrite dvdp_gcd -![x %| _](dvdp_mul2r _ _ nzr) -dvdp_gcd
-        -[(gcdp _ _)]GRing.mul1r -Hx -mul_polyC.
-apply: dvdp_mul; rewrite ?dvdpp //.
-by rewrite dvdp1 polyC_eqp1.
-Qed.
-
-Lemma mulp_gcdr : forall p q r, r * (gcdp p q) %= gcdp (r * p) (r * q).
-Proof. by move => p q r; rewrite ![r * _]GRing.mulrC; apply mulp_gcdl. Qed.
 
 Lemma gcdp_addl_mul: forall p q r, gcdp r (p * r + q) %= gcdp r q.
 Proof.
@@ -1060,6 +1045,39 @@ Lemma bezoutp : forall p q, exists u, exists v, u * p + v * q %= (gcdp p q).
 Proof.
 move=> p q; pose e := egcdp p q; exists e.1; exists e.2.
 by rewrite eqp_sym egcdpP.
+Qed.
+
+Lemma gcdp_mul2l p q r : gcdp (p * q) (p * r) %= (p * gcdp q r).
+Proof.
+case: (eqVneq p 0)=> [->|hp]; first by rewrite !mul0r gcdp0 eqpxx.
+rewrite /eqp !dvdp_gcd !dvdp_mul2l // dvdp_gcdr dvdp_gcdl !andbT.
+move: (bezoutp q r) => [u] [v] huv.
+rewrite eqp_sym in huv; rewrite (eqp_dvdr _ (eqp_mull _ huv)).
+rewrite mulr_addr ![p * (_ * _)]mulrCA.
+by apply: dvdp_add; rewrite dvdp_mull// (dvdp_gcdr, dvdp_gcdl).
+Qed.
+
+Lemma gcdp_mul2r q r p : gcdp (q * p) (r * p) %= (gcdp q r * p).
+Proof. by rewrite ![_ * p]GRing.mulrC gcdp_mul2l. Qed.
+
+Lemma mulp_gcdr p q r : r * (gcdp p q) %= gcdp (r * p) (r * q).
+Proof. by rewrite eqp_sym gcdp_mul2l. Qed.
+
+Lemma mulp_gcdl p q r : (gcdp p q) * r %= gcdp (p * r) (q * r).
+Proof. by  rewrite eqp_sym gcdp_mul2r. Qed.
+
+Lemma coprimep_div_gcd p q : (p != 0) || (q != 0) ->
+  coprimep (p %/ (gcdp p q)) (q %/ gcdp p q).
+Proof.
+move=> hpq.
+have gpq0: gcdp p q != 0 by rewrite gcdp_eq0 negb_and.
+rewrite -gcdp_eqp1 -(@eqp_mul2r (gcdp p q)) // mul1r.
+have: gcdp p q %| p by rewrite dvdp_gcdl.
+have: gcdp p q %| q by rewrite dvdp_gcdr.
+rewrite -!dvdpP eq_sym; move/eqP=> hq; rewrite eq_sym; move/eqP=> hp.
+rewrite (eqp_ltrans (mulp_gcdl _ _ _)) hq hp.
+rewrite (eqp_ltrans (@eqp_gcdl p _ _ _)) ?eqp_mulC ?scalp_Ineq0 //.
+by rewrite (eqp_ltrans (@eqp_gcdr q _ _ _)) ?eqp_mulC ?scalp_Ineq0 // eqpxx.
 Qed.
 
 Lemma coprimep_bezout : forall p q,
@@ -1597,6 +1615,19 @@ End Multiplicity.
 
 Notation "'\mu_' x" := (multiplicity x)
   (at level 8, format "'\mu_' x") : ring_scope.
+
+Section PolyField.
+
+Variable F : fieldType.
+
+Lemma dvdpfP (p q : {poly F}) :
+  (p ==  lead_coef q ^- scalp p q *: (p %/ q) * q) = (q %| p).
+Proof.
+rewrite -dvdpP.
+by rewrite !(can2_eq (scalerK _) (scalerKV _)) ?scalp_Ineq0 // -scaler_mull.
+Qed.
+
+End PolyField.
 
 Module PolyDivPreClosedField.
 Section PolyDivPreClosedField.

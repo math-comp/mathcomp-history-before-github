@@ -99,6 +99,7 @@ inertia.v
 PFsection1.v
 PFsection2.v
 PFsection3.v
+fraction.v
 
 COQC = ssrcoq
 COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"

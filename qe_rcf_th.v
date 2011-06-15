@@ -14,16 +14,6 @@ Open Scope ring_scope.
 
 Section extra.
 
-Lemma gcdp_mul2l : forall (R : idomainType) (p q r : {poly R}),
-  p != 0 -> gcdp (p * q) (p * r) %= (p * gcdp q r).
-Proof.
-move=> R p q r hp; rewrite /eqp.
-rewrite !dvdp_gcd !dvdp_mul2l // dvdp_gcdr dvdp_gcdl !andbT.
-move: (bezoutp q r) => [u] [v] huv.
-rewrite eqp_sym in huv; rewrite (eqp_dvdr _ (eqp_mull _ huv)).
-rewrite mulr_addr ![p * (_ * _)]mulrCA.
-by apply: dvdp_add; rewrite dvdp_mull// (dvdp_gcdr, dvdp_gcdl).
-Qed.
 
 Lemma sgp_rightc : forall (R : rcfType) (x c : R),
   sgp_right c%:P x = sgr c.
@@ -50,44 +40,8 @@ Qed.
 
 (* Todo : move in polydiv *)
 (* Todo : in polydiv, exchange eqp_mull and eqp_mulr *)
-Lemma eqp_gcdr (R : idomainType) (r p q : {poly R}) :
-  q %= r -> gcdp p q %= gcdp p r.
-Proof.
-move=> eqr; rewrite /eqp !(dvdp_gcd, dvdp_gcdl, andbT) /=.
-by rewrite -(eqp_dvdr _ eqr) dvdp_gcdr (eqp_dvdr _ eqr) dvdp_gcdr.
-Qed.
 
-(* Todo : move in polydiv *)
-Lemma eqp_gcdl (R : idomainType) (q p r : {poly R}) :
-  p %= q -> gcdp p r %= gcdp q r.
-move=> eqr; rewrite /eqp !(dvdp_gcd, dvdp_gcdr, andbT) /=.
-by rewrite -(eqp_dvdr _ eqr) dvdp_gcdl (eqp_dvdr _ eqr) dvdp_gcdl.
-Qed.
 
-Lemma coprimep_div_gcd : forall (R : fieldType) (p q : {poly R}),
-  (p != 0) || (q != 0) ->
-  coprimep (p %/ (gcdp p q)) (q %/ gcdp p q).
-Proof.
-move=> R p q hpq.
-have gpq0: gcdp p q != 0 by rewrite gcdp_eq0 negb_and.
-rewrite -gcdp_eqp1 -(@eqp_mul2l R (gcdp p q)) // mulr1.
-have: gcdp p q %| p by rewrite dvdp_gcdl.
-have: gcdp p q %| q by rewrite dvdp_gcdr.
-rewrite -!dvdpP eq_sym; move/eqP=> hq; rewrite eq_sym; move/eqP=> hp.
-rewrite -(eqp_ltrans (gcdp_mul2l _ _ gpq0)).
-rewrite ![gcdp _ _ * _]mulrC hp hq.
-have hscal: forall (p q : {poly R}), (lead_coef q ^+ (scalp p q)) *: p %= p.
-  by move=> p' q'; rewrite eqp_mulC // scalp_Ineq0.
-rewrite (eqp_trans (eqp_gcdl _ (hscal _ _))) //.
-by rewrite (eqp_trans (eqp_gcdr _ (hscal _ _))) // eqpxx.
-Qed.
-
-Lemma dvdpfP : forall (R : fieldType) (p q : {poly R}),
-  (p ==  lead_coef q ^- scalp p q *: (p %/ q) * q) = (q %| p).
-Proof.
-move=> R' p q; rewrite -dvdpP.
-by rewrite !(can2_eq (scalerK _) (scalerKV _)) ?scalp_Ineq0 // -scaler_mull.
-Qed.
 
 End extra.
 
