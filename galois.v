@@ -1059,34 +1059,18 @@ rewrite (eq_map_poly (fun x => unit_lappE x)) map_polyE map_id polyseqK.
 by rewrite hornerX.
 Qed.
 
-Lemma galois_factors (K E : {algebra L}) : (K <= E)%VS ->
- reflect (forall a, a \in E -> 
+Lemma galois_factors_subproof (K E : {algebra L}) : (K <= E)%VS ->
+ (forall a, a \in E -> a \notin K -> exists x, (x \in 'Aut(E | K)%g) && 
+   (val (repr x) a != a)) ->
+ (forall a, a \in E -> 
    exists r, [/\
      r \subset 'Aut(E | K)%g,
      uniq (map (fun i : coset_of [set x : LAut | kAut E (fullv L) (val x)] =>
                          ((val (repr i)) a)) r) &
-     minPoly K a = \prod_(i <- r)('X - (val (repr i) a)%:P)])
-   (galois K E).
+     minPoly K a = \prod_(i <- r)('X - (val (repr i) a)%:P)]).
 Proof.
 pose f (j : L) := ('X - j%:P).
-move => HKE.
-apply: (iffP idP); last first.
- move => H.
- apply/and3P; split; first done.
-  apply/separableP => a /H [r [_ Hr Hmin]].
-  pose h (i : coset_of [set x : LAut | kAut E (fullv L) (val x)])
-        := ((val (repr i)) a).
-  by rewrite /separableElement Hmin -(big_map h predT f) separable_factors.
- apply/normalP => a Ha.
- case/H: (Ha) => r [/subsetP Haut Hr Hmin].
- pose h (i : coset_of [set x : LAut | kAut E (fullv L) (val x)])
-       := ((val (repr i)) a).
- exists (map h r); last by rewrite big_map.
- apply/allP => ? /mapP [x [Hx ->]].
- case/andP: (Aut_kAut HKE (Haut _ Hx) (mem_repr_coset _)) => _.
- move/eqP <-.
- by rewrite memv_img.
-move => Hgal a HaE.
+move => HKE Hgal a HaE.
 pose h (i : coset_of [set x : LAut | kAut E (fullv L) (val x)])
       := ((val (repr i)) a).
 suff : forall n, n.+1 < size (minPoly K a) -> 
@@ -1130,7 +1114,7 @@ have/allP : polyOver E g.
  case/(_ _ (mem_repr_coset _))/andP => _ /eqP => HE.
  by rewrite -[X in (_ \in X)]HE memv_img.
 move/(_ _ Hcg) => HcE.
-case/GaloisUnfixedField/(_ _ HcE HcK): Hgal => x /andP [Hx Hxc].
+case/(_ _ HcE HcK): Hgal => x /andP [Hx Hxc].
 have/allPn : ~~(all (fun x => x \in (map h r)) (map (val (repr x)) (map h r))).
  move: Hxc.
  apply: contra.
@@ -1177,6 +1161,72 @@ exists (cons (x * y)%g r); split.
   case/orP; last by move: z; apply/subsetP.
   move/eqP ->.
   by rewrite groupM.
+Qed.
+
+Lemma galois_factors (K E : {algebra L}) : 
+ reflect ((K <= E)%VS /\ (forall a, a \in E -> 
+   exists r, [/\
+     r \subset 'Aut(E | K)%g,
+     uniq (map (fun i : coset_of [set x : LAut | kAut E (fullv L) (val x)] =>
+                         ((val (repr i)) a)) r) &
+     minPoly K a = \prod_(i <- r)('X - (val (repr i) a)%:P)]))
+   (galois K E).
+Proof.
+pose f (j : L) := ('X - j%:P).
+apply: (iffP idP).
+ move => Hgal.
+ case/and3P: (Hgal) => HKE _ _.
+ split; first done.
+ move/GaloisUnfixedField: Hgal => Hgal.
+ by apply: galois_factors_subproof.
+move => [HKE H].
+apply/and3P; split; first done.
+ apply/separableP => a /H [r [_ Hr Hmin]].
+ pose h (i : coset_of [set x : LAut | kAut E (fullv L) (val x)])
+       := ((val (repr i)) a).
+ by rewrite /separableElement Hmin -(big_map h predT f) separable_factors.
+apply/normalP => a Ha.
+case/H: (Ha) => r [/subsetP Haut Hr Hmin].
+pose h (i : coset_of [set x : LAut | kAut E (fullv L) (val x)])
+      := ((val (repr i)) a).
+exists (map h r); last by rewrite big_map.
+apply/allP => ? /mapP [x [Hx ->]].
+case/andP: (Aut_kAut HKE (Haut _ Hx) (mem_repr_coset _)) => _.
+move/eqP <-.
+by rewrite memv_img.
+Qed.
+
+Lemma galois_fixedField (K E : {algebra L}) : reflect
+ ((K <= E)%VS /\ (forall a, a \in E -> (forall x, (x \in 'Aut(E | K)%g) ->
+                   (val (repr x) a = a)) -> a \in K))
+ (galois K E).
+Proof.
+apply: (iffP idP).
+ move => Hgal.
+ split; first by case/and3P: Hgal.
+ move => a HaE HFF.
+ rewrite -[_ \in _]negbK.
+ apply/negP.
+ move/GaloisUnfixedField/(_ _ HaE): Hgal => Hgal.
+ case/Hgal => x /andP [Hx].
+ apply/negP.
+ rewrite negbK.
+ apply/eqP.
+ by apply HFF.
+move => [HKE H].
+apply/galois_factors.
+split; first done.
+apply: galois_factors_subproof => //.
+move => a HaE HaK.
+apply/existsP.
+move: HaK.
+apply: contraR.
+rewrite negb_exists.
+move/forallP => Hall.
+apply: H => // x Hx.
+apply/eqP.
+move: (Hall x).
+by rewrite negb_and Hx negbK.
 Qed.
 
 (*
