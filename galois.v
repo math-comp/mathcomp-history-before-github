@@ -762,6 +762,23 @@ rewrite inv_lker0; last by rewrite LAut_ker0 eqxx.
 by rewrite comp_lapp1 Hfg.
 Qed.
 
+Lemma Aut_mul x y : x \in 'Aut(E | K)%g -> y \in 'Aut(E | K)%g ->
+ forall a, a \in E -> val (repr (x*y)%g) a = val (repr x) (val (repr y) a).
+Proof.
+move => Hx Hy a Ha.
+have Hxy := groupM Hx Hy.
+transitivity (val (repr x * repr y)%g a); last by rewrite /= comp_lappE.
+move: a Ha.
+apply/(Aut_eq Hxy Hxy) => //; first by rewrite mem_repr_coset.
+rewrite -{2}(coset_mem (mem_repr_coset x)).
+rewrite -{2}(coset_mem (mem_repr_coset y)).
+rewrite -coset_morphM ?repr_coset_norm //.
+rewrite val_coset; first by apply: rcoset_refl.
+by apply: groupM; apply: repr_coset_norm.
+Qed.
+
+(* I probably should write an Aut_inv lemma and maybe an Aut1 lemma. *)
+
 End Automorphism.
 
 (* kAut_pick is another way of phrasing kAut_Aut *)
@@ -992,6 +1009,14 @@ congr (_ * _)%N.
 by rewrite separable_dim // separableGeneratorSep.
 Qed.
 
+(* This theorem is stated backwards from the usual theorem.  This is 
+   because I was folling theorem VI.8.7(ii) from "A Course in
+   Constructive Algebra".  They give the result this way because it is,
+   in general, a stronger form than saying that K is the fixed field of
+   'Aut(E | K).  However, we are not in a general setting and all our
+   subfields are detachable subfields.  In our case the ususal
+   formulation is equivalent.  I should rewrite this theorem in the
+   usual way. *)
 Lemma GaloisUnfixedField (K E : {algebra L}) : galois K E ->
  forall a, a \in E -> a \notin K -> exists x, (x \in 'Aut(E | K)%g) && 
    (val (repr x) a != a).
@@ -1032,6 +1057,126 @@ have Hminb : root (map_poly \1%VS (minPoly K a)) b.
 rewrite (kHomExtend_poly (kHom1 K K) Hminb) ?polyOverX //.
 rewrite (eq_map_poly (fun x => unit_lappE x)) map_polyE map_id polyseqK.
 by rewrite hornerX.
+Qed.
+
+Lemma galois_factors (K E : {algebra L}) : (K <= E)%VS ->
+ reflect (forall a, a \in E -> 
+   exists r, [/\
+     r \subset 'Aut(E | K)%g,
+     uniq (map (fun i : coset_of [set x : LAut | kAut E (fullv L) (val x)] =>
+                         ((val (repr i)) a)) r) &
+     minPoly K a = \prod_(i <- r)('X - (val (repr i) a)%:P)])
+   (galois K E).
+Proof.
+pose f (j : L) := ('X - j%:P).
+move => HKE.
+apply: (iffP idP); last first.
+ move => H.
+ apply/and3P; split; first done.
+  apply/separableP => a /H [r [_ Hr Hmin]].
+  pose h (i : coset_of [set x : LAut | kAut E (fullv L) (val x)])
+        := ((val (repr i)) a).
+  by rewrite /separableElement Hmin -(big_map h predT f) separable_factors.
+ apply/normalP => a Ha.
+ case/H: (Ha) => r [/subsetP Haut Hr Hmin].
+ pose h (i : coset_of [set x : LAut | kAut E (fullv L) (val x)])
+       := ((val (repr i)) a).
+ exists (map h r); last by rewrite big_map.
+ apply/allP => ? /mapP [x [Hx ->]].
+ case/andP: (Aut_kAut HKE (Haut _ Hx) (mem_repr_coset _)) => _.
+ move/eqP <-.
+ by rewrite memv_img.
+move => Hgal a HaE.
+pose h (i : coset_of [set x : LAut | kAut E (fullv L) (val x)])
+      := ((val (repr i)) a).
+suff : forall n, n.+1 < size (minPoly K a) -> 
+        exists r, let r' := 
+           map (fun i : coset_of [set x : LAut | kAut E (fullv L) (val x)] =>
+                         ((val (repr i)) a)) r 
+         in [/\ r \subset 'Aut(E | K)%g,  uniq r',
+                (size r') = n.+1 &
+                \prod_(i <- r')('X - i%:P) %| minPoly K a].
+ rewrite size_minPoly.
+ move/prednK: (elementDegreegt0 K a) <-.
+ case/(_ _ (leqnn _)) => r [Haut Hr Hnr Hmin].
+ exists r; split => //.
+ apply/eqP.
+ rewrite -(big_map h predT f).
+ rewrite -eqpMP ?monic_minPoly ?monic_prod_factors //.
+ rewrite eqp_sym -dvdp_size_eqp // size_prod_factors.
+ by rewrite size_minPoly -(prednK (elementDegreegt0 K a)) -Hnr.
+elim => [|n IH] Hn.
+ exists [:: 1%g]; split => //; last first.
+  rewrite big_cons big_nil mulr1 dvdp_factorl repr_coset1 /= unit_lappE.
+  by rewrite root_minPoly.
+ apply/subsetP.
+ move => x.
+ rewrite inE.
+ move/eqP ->.
+ apply: group1.
+case/(ltn_trans (leqnn _))/IH: (Hn) => {IH} r [Haut Hr Hnr Hmin].
+set g := \prod_ (i <- _) _ in Hmin.
+have := (minPoly_irr _ Hmin).
+move/contra.
+rewrite negb_or -size_poly_eq1 {2}/g size_prod_factors Hnr andbT.
+rewrite -(dvdp_size_eqp Hmin) {1}/g size_prod_factors Hnr neq_ltn Hn.
+case/(_ isT)/allPn => c Hcg HcK.
+have/allP : polyOver E g.
+ rewrite /g big_map.
+ rewrite (big_nth 1%g) big_mkord.
+ apply: prodp_polyOver => i _.
+ rewrite polyOver_factor //.
+ move/subsetP/allP/(all_nthP 1%g)/(_ _ (@ltn_ord _ i))/(Aut_kAut HKE): Haut.
+ case/(_ _ (mem_repr_coset _))/andP => _ /eqP => HE.
+ by rewrite -[X in (_ \in X)]HE memv_img.
+move/(_ _ Hcg) => HcE.
+case/GaloisUnfixedField/(_ _ HcE HcK): Hgal => x /andP [Hx Hxc].
+have/allPn : ~~(all (fun x => x \in (map h r)) (map (val (repr x)) (map h r))).
+ move: Hxc.
+ apply: contra.
+ move/allP => Hsubset.
+ case/(nthP 0): Hcg => i _ <-.
+ rewrite -coef_map.
+ apply/eqP.
+ move: i.
+ apply/polyP.
+ rewrite rmorph_prod.
+ transitivity (\prod_(i <- map h r)('X - (val (repr x) i)%:P)).
+  apply: eq_bigr => i _.
+  by rewrite rmorph_sub /= map_polyX map_polyC.
+ rewrite -(big_map (val (repr x)) predT f).
+ apply/eqP.
+ rewrite -eqpMP ?monic_prod_factors // -dvdp_size_eqp.
+  by rewrite !size_prod_factors size_map.
+ apply: uniq_roots_dvd.
+  apply/allP => b Hb.
+  rewrite root_prod_factors.
+  by apply: Hsubset.
+ rewrite uniq_rootsE map_inj_uniq //.
+ (* TODO: abstract this *)
+ move => b d Hbd.
+ rewrite -[b](unit_lappE) -[d](unit_lappE).
+ move/eqP/inv_lker0: (LAut_ker0 (repr x)) <-.
+ by rewrite !comp_lappE /= Hbd.
+rewrite -map_comp.
+case => ? /mapP [y Hyr ->] Hyx.
+have Hy : y \in ('Aut(E | K))%g by move/subsetP: Haut; apply.
+have Huniq : uniq (map h ((x * y)%g :: r)).
+ by rewrite /= Hr andbT [h _](Aut_mul HKE).
+exists (cons (x * y)%g r); split.
+- by rewrite subset_all /= -subset_all Haut groupM.
+- by apply: Huniq.
+- by rewrite /= Hnr.
+- rewrite uniq_roots_dvd //; last by rewrite uniq_rootsE; apply: Huniq.
+  apply/allP => ? /mapP [z [Hz ->]].
+  apply: (kHom_rootK _ HKE); rewrite ?minPolyOver ?root_minPoly //.
+  suff HyAut : z \in 'Aut(E | K)%g.
+   by case/andP: (Aut_kAut HKE HyAut (mem_repr_coset _)).
+  move: Hz.
+  rewrite inE.
+  case/orP; last by move: z; apply/subsetP.
+  move/eqP ->.
+  by rewrite groupM.
 Qed.
 
 (*

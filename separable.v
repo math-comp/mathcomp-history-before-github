@@ -1281,6 +1281,14 @@ move => ? ?; move/polyOver_suba => [p ->]; move/polyOver_suba => [q ->].
 by apply/polyOver_suba; exists (p * q); rewrite rmorphM.
 Qed.
 
+Lemma prodp_polyOver (I : finType) (P : pred I) 
+  (p_ : I -> {poly L}) :
+  (forall i, P i -> polyOver K (p_ i)) -> polyOver K (\prod_(i | P i) p_ i).
+Proof.
+move=> Hp; apply big_ind => //; first by rewrite polyOverC // memv1.
+by exact: mulp_polyOver.
+Qed.
+
 Lemma exp_polyOver : forall (p : {poly L}) n, polyOver K p ->
   polyOver K (p ^+ n).
 Proof.
@@ -1300,6 +1308,12 @@ Lemma polyOverX : polyOver K 'X.
 Proof.
 apply/polyOverP => i.
 by rewrite coefX; case: (_ == _); [apply: memv1 | apply: mem0v].
+Qed.
+
+Lemma polyOver_factor c : c \in K -> polyOver K ('X - c%:P).
+Proof.
+move => Hc.
+by rewrite addp_polyOver ?polyOverX // opp_polyOver // polyOverC.
 Qed.
 
 Lemma poly_polyOver : forall n (E : nat -> L),

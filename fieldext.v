@@ -9,6 +9,15 @@ Require Import finfun ssralg matrix zmodp vector algebra.
 (*                         as a algFType over F.                             *)
 (*****************************************************************************)
 
+(* Some remarks about subfields:  In a finite dimensional field extension,   *)
+(* the subfields are exactly the subalgebras.  So you can use {algebra E}    *)
+(* where you'd want to use {field E}.                                        *)
+(*                                                                           *)
+(* Also note that not all constructive subfields have type {algebra E} in    *)
+(* the same way that not all constructive subspaces have type {vector E}.    *)
+(* These types only include the so called "detachable" subspaces (and        *)
+(* subalgebras).                                                             *)
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
