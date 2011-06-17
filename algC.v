@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq bigop div fintype.
-Require Import prime ssralg.
+Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq choice div fintype.
+Require Import bigop prime ssralg.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -28,23 +28,40 @@ Local Open Scope ring_scope.
 (**************************************************************************)
 
 Parameter algC : closedFieldType.
-(* Axiom Cchar : [char algC] =i pred0. *)
-
 Parameter conjC : {rmorphism algC -> algC}.
+Parameter repC : algC -> bool. (* C -> R^+ *)
+
 Notation "x ^* " := (conjC x) (at level 2, format "x ^*") : C_scope.
 Open Scope C_scope.
 Delimit Scope C_scope with C.
 
 Axiom conjCK : involutive conjC.
-
-Parameter repC : algC -> bool. (* C -> R^+ *)
 Axiom repCD : forall x y, repC x -> repC y -> repC (x + y).
 Axiom repCMl : forall x y, x != 0 -> repC x -> repC (x * y) = repC y.
 Axiom repC_anti : forall x, repC x -> repC (- x) -> x = 0.
-Axiom repC_unit_exp : forall x n, repC x -> (x ^+ n.+1 == 1) = (x == 1).
 Axiom repC_pconj : forall x, repC (x * x ^*).
-Axiom repC_conjI : forall x, repC x -> x^* = x.
-(* Axiom repC1 : repC 1. *)
+Axiom realC_archimedean : forall x, repC x ->
+  exists n, [&& repC (x - n%:R), repC (n.+1%:R - x) & x != n.+1%:R].
+
+(*   All these are redundant axioms / parametere.                             *)
+(* Axiom Cchar : [char algC] =i pred0.                                        *)
+(* Axiom Cchar : [char algC] =i pred0.                                        *)
+(* Axiom repC_unit_exp : forall x n, repC x -> (x ^+ n.+1 == 1) = (x == 1).   *)
+(* Axiom repC_conjI : forall x, repC x -> x^* = x.                            *)
+(* Axiom repC1 : repC 1.                                                      *)
+(* Variable sqrtC : algC -> algC.                                             *)
+(* Axiom sqrtCK : forall c, (sqrtC c) ^+ 2 = c.                               *)
+(* Axiom repC_sqrt : forall c, repC (sqrtC c) = repC c.                       *)
+(* Axiom sqrtC_mul : {morph sqrtC: x y / x * y}. GG -- This is inconsistent!  *)
+(* Axiom normC_add : forall x y,  normC (x + y) <= normC x + normC y.         *)
+(* Axiom normC_add_eq : forall x y : algC,                                    *)
+(*     normC (x + y) = normC(x) + normC(y) ->                                 *)
+(*   exists2 k, normC k = 1 & ((x == normC x * k) && (y == normC y * k)).     *)
+(* Parameter getNatC : algC -> nat.                                           *)
+(* Axiom getNatC_def : forall c,                                              *)
+(*  if (0 <= c) then ((getNatC c)%:R <= c) && (c < (getNatC c + 1)%:R)        *)
+(*  else getNatC c == 0%N.                                                    *)
+
 Lemma repC1 : repC 1.
 Proof. by rewrite -(mulr1 1) -{2}(rmorph1 conjC) repC_pconj. Qed.
 
@@ -56,9 +73,12 @@ move/eqP=> Hx; apply/idP/idP=> Hp.
 by rewrite -(repCMl _ Hx) // mulfV // repC1.
 Qed.
 
-Lemma repC_conj x : repC (x ^*) = repC (x).
+Lemma repC_conj x : repC x^* = repC x.
 Proof.
-by apply/idP/idP=>Hp; first rewrite -[x]conjCK; rewrite (repC_conjI Hp).
+wlog suffices: x / repC x -> repC x^*.
+  by move=> IH; apply/idP/idP=> /IH; rewrite ?conjCK.
+have [-> | nz_x pos_x] := eqVneq x 0; first by rewrite rmorph0.
+by rewrite -(repCMl _ nz_x pos_x) repC_pconj.
 Qed.
 
 Lemma repC0 : repC 0.
@@ -72,13 +92,13 @@ Qed.
 Lemma conjC_nat n : (n%:R)^* = n%:R.
 Proof. exact: rmorph_nat. Qed.
 
-Lemma conjC0 : 0 ^* = 0.
+Lemma conjC0 : 0^* = 0.
 Proof. exact: (conjC_nat 0). Qed.
 
-Lemma conjC1 : 1 ^* = 1.
+Lemma conjC1 : 1^* = 1.
 Proof. exact: (conjC_nat 1). Qed.
 
-Lemma conjC_eq0 x : (x ^* == 0) = (x == 0).
+Lemma conjC_eq0 x : (x^* == 0) = (x == 0).
 Proof.
 apply/eqP/eqP=> H; last by rewrite H (conjC_nat 0).
 by rewrite -[x]conjCK H (conjC_nat 0).
@@ -127,13 +147,13 @@ move=> Hx Hy.
 by apply: (@leC_trans (z + y)); [rewrite leC_add2r | rewrite leC_add2l].
 Qed.
 
-Lemma posC_mulr x y : 0 < x -> 0 <= x * y = (0 <= y).
+Lemma posC_mulr x y : 0 < x -> (0 <= x * y) = (0 <= y).
 Proof.
 case/andP; rewrite /leC !subr0; move=>*.
 by apply: repCMl; rewrite // eq_sym. 
 Qed.
 
-Lemma posC_mull x y : 0 < x -> 0 <= y * x = (0 <= y).
+Lemma posC_mull x y : 0 < x -> (0 <= y * x) = (0 <= y).
 Proof. rewrite mulrC; exact: posC_mulr. Qed.
 
 Lemma posC_mul x y : 0 <= x -> 0 <= y -> 0 <= x * y.
@@ -234,21 +254,11 @@ Qed.
 Lemma leC_pmul2r m n1 n2 : 0 < m -> (n1 * m  <= n2 * m) = (n1 <= n2).
 Proof. by move=> H; rewrite ![_* m]mulrC leC_pmul2l. Qed.
 
-Lemma leC_square a b : 0 <= a -> a <= b -> (a^+2 <= b^+2).
+Lemma leC_square a b : 0 <= a -> a <= b -> a ^+ 2 <= b ^+ 2.
 Proof.
-move=> Ha Hb; rewrite -leC_sub.
-have->: b^+2 - a^+2 = (b - a) * (b + a).
-  rewrite mulr_addr !mulr_subl -!addrA; congr (_ + _).
-  by rewrite [a*b]mulrC addrA addNr add0r.
-apply: posC_mul; first by rewrite leC_sub.
-by apply: posC_add=> //; apply: leC_trans Hb.
+move=> Ha Hb; rewrite -leC_sub subr_sqr posC_mul ?leC_sub ?posC_add //.
+exact: leC_trans Ha Hb.
 Qed.
-
-Lemma posC_unit_exp x n : 0 <= x -> (x ^+ n.+1 == 1) = (x == 1).
-Proof. by move=> Hx; apply: repC_unit_exp; rewrite -[x]subr0. Qed.
-
-Lemma posC_conjK x : 0 <= x -> x^* = x.
-Proof. by move=> Hx; apply: repC_conjI; rewrite -[x]subr0. Qed.
 
 Lemma posC_inv x : (0 <= x^-1) = (0 <= x).
 Proof. rewrite /leC !subr0; exact: repC_inv. Qed.
@@ -266,40 +276,28 @@ Proof. rewrite /leC !subr0; exact: repC_conj. Qed.
 Lemma posC_sum (I : eqType) (r : seq I) (P : pred I) (F : I -> algC) :
    (forall i, (i \in r) && P i -> 0 <= F i) -> 0 <= \sum_(j <- r | P j) F j.
 Proof.
-elim: r=> [|y r Hrec] H; first by rewrite big_nil=> *; exact: leC_refl.
-rewrite big_cons; case E1: (P _); last first.
-  by apply: Hrec=> j; case/andP=> H1j H2j; apply: H; rewrite in_cons H1j orbT.
-apply: posC_add; first by apply: H; rewrite in_cons eqxx.
-by apply: Hrec=> j; case/andP=> H1j H2j; apply: H; rewrite in_cons H1j orbT.
+rewrite big_cond_seq => posF.
+elim/big_rec: _ => [|i x Pi pos_x]; first exact: leC_refl.
+by rewrite posC_add ?posF // andbC.
 Qed.
 
 Lemma posC_add_eq0 x y :
-  0 <= x -> 0 <= y -> (x + y == 0) = ((x == 0) && (y == 0)).
+  0 <= x -> 0 <= y -> (x + y == 0) = (x == 0) && (y == 0).
 Proof.
-move=> Hx Hy; apply/eqP/andP=>[Hxy|]; last first.
-  by case; do 2 move/eqP->; exact: addr0.
-split; apply/eqP; apply: leC_anti=> //.
-  by rewrite -(leC_add2r y) Hxy add0r.
-by rewrite -(leC_add2l x) Hxy addr0.
+move=> Hx Hy; apply/eqP/andP=> [Hxy | [/eqP-> /eqP->]]; last exact: addr0.
+suffices x0: x = 0 by rewrite x0 add0r in Hxy *; rewrite Hxy.
+by rewrite (leC_anti Hx) // -(leC_add2r y) Hxy add0r.
 Qed.
 
 Lemma posC_sum_eq0 (I : eqType) (r : seq I) (P : pred I) (F : I -> algC) :
    (forall i, (i \in r) && P i -> 0 <= F i) ->
    \sum_(j <- r | P j) F j = 0 -> (forall i, (i \in r) && P i -> F i = 0).
 Proof.
-elim: r=> [|y r Hrec] // HN.
-rewrite big_cons; case HP: (P _)=> Hs; last first.
-  move=> i; rewrite in_cons.
-  case/andP; case/orP=> [|Hi Hn]; first by move/eqP->; rewrite HP.
-  apply: Hrec=> //; last by rewrite Hi.
-  by move=> j; case/andP=> H1j H2j; apply: HN; rewrite in_cons H1j orbT.
-have F1: 0 <= \sum_(j <- r | P j) F j.
-  by apply: posC_sum=> i; case/andP=> H1i H2i; rewrite HN // in_cons H1i orbT.
-move/eqP: Hs; rewrite posC_add_eq0 ?HN //; last by rewrite in_cons eqxx.
-case/andP; move/eqP=> HH1; move/eqP=> HH2.
-move=> i; rewrite in_cons; case/andP; case/orP; first by move/eqP->.
-move=> H1i H2i; apply: Hrec=> //; last by rewrite H1i.
-by move=> j; case/andP=> H1j H2j; apply: HN; rewrite in_cons H1j orbT.
+move=> posF sumF0 i /andP[r_i Pi]; apply: leC_anti; last by rewrite posF ?r_i.
+have lt_i_r: (index i r < size r)%N by rewrite index_mem.
+rewrite -{}sumF0 (big_nth i) big_mkord -leC_sub.
+rewrite (bigD1 (Ordinal lt_i_r)) ?nth_index //= addrC addKr posC_sum //.
+by move=> j /and3P[_ Pj _]; rewrite posF ?mem_nth.
 Qed.
 
 Lemma sposC_addl m n : 0 <= m -> 0 < n -> 0 < m + n.
@@ -338,135 +336,227 @@ case c; [move/eqP-> |]; split; rewrite ?eqxx //; first exact: leC_refl.
 by move: H; rewrite ltCE eq_sym; case: eqP.
 Qed.
 
-Variable sqrtC : algC -> algC.
-Axiom sqrtCK : forall c, (sqrtC c) ^+ 2 = c.
-Axiom repC_sqrt : forall c, repC (sqrtC c) = repC c.
-(* Axiom sqrtC_mul : {morph sqrtC: x y / x * y}. GG -- This is inconsistent! *)
-
-Lemma sqrtC_sqr c : (sqrtC (c^+2) == c) || (sqrtC (c^+2) == -c).
+Fact sqrtC_subproof x : exists y : algC, y ^+ 2 == x.
 Proof.
-set sc := sqrtC _; suff: (sc - c) * (sc + c) == 0.
-  rewrite mulf_eq0; case/orP; first by rewrite subr_eq0=>->.
-  by rewrite orbC -{1}[c]opprK subr_eq0=>->.
-rewrite mulr_addr !mulr_subl addrA [c * _]mulrC subrK subr_eq0.
-by rewrite -{2}[sc]expr1 -exprS sqrtCK.
+have [//|y def_y2] := @solve_monicpoly algC 2 [fun i => 0 with 0%N |-> x].
+by exists y; rewrite def_y2 !big_ord_recl big_ord0 /= mulr1 mul0r !addr0.
 Qed.
 
-Lemma sqrtC0 : sqrtC 0 = 0.
-Proof. 
-have:= sqrtCK 0; rewrite exprS expr1.
-by move/eqP; rewrite mulf_eq0; case/orP; move/eqP.
-Qed.
+Definition sqrtC := locked (fun x =>
+  let y := xchoose (sqrtC_subproof x) in if 0 <= y then y else - y).
 
-Lemma sqrtC_eq0 c : (sqrtC c == 0) = (c == 0).
+Lemma sqrtCK x : sqrtC x ^+ 2 = x.
 Proof.
-apply/eqP/eqP; last by move->; exact: sqrtC0.
-by rewrite -{2}[c]sqrtCK=>->; rewrite exprS mul0r.
+unlock sqrtC; rewrite (fun_if (fun y => y ^+ 2)) sqrrN if_same.
+exact/eqP/(xchooseP (sqrtC_subproof x)).
 Qed.
 
-Lemma sqrtC_pos c : (0 <= sqrtC c) = (0 <= c).
-Proof. by rewrite /leC !subr0 repC_sqrt. Qed.
+Lemma sqrtC_sqr c : (sqrtC (c ^+ 2) == c) || (sqrtC (c ^+ 2) == - c).
+Proof. by rewrite -subr_eq0 -addr_eq0 -mulf_eq0 -subr_sqr sqrtCK subrr. Qed.
 
 Lemma sqrtC_sqr_pos c : 0 <= c -> sqrtC (c ^+ 2) = c.
 Proof.
-move=> Hc; case/orP: (sqrtC_sqr c)=>[|HH]; first by move/eqP.
-suff->: c = 0 by rewrite exprS mul0r sqrtC0.
-apply: leC_anti=> //; rewrite /leC sub0r.
-rewrite -(eqP HH) repC_sqrt -[_^+_]subr0; by apply: posC_mul.
+move=> le0c; case/pred2P: (sqrtC_sqr c) => //; unlock sqrtC.
+case: ifPn => le0rc def_c; move: le0rc; last by rewrite (oppr_inj def_c) le0c.
+by rewrite def_c -sub0r leC_sub => /leC_anti->; rewrite ?subrr.
+Qed.
+
+Lemma sqrtC0 : sqrtC 0 = 0.
+Proof. by rewrite -{1}(mulr0 0) sqrtC_sqr_pos ?leC_refl. Qed.
+
+Lemma sqrtC_eq0 c : (sqrtC c == 0) = (c == 0).
+Proof.
+apply/eqP/eqP=> [|->]; last exact: sqrtC0.
+by rewrite -{2}[c]sqrtCK => ->; rewrite exprS mul0r.
 Qed.
 
 Lemma sqrtC1 : sqrtC 1 = 1.
-Proof. by rewrite -{2}(sqrtC_sqr_pos posC1) exprS mul1r. Qed. 
- 
+Proof. by rewrite -{2}(sqrtC_sqr_pos posC1) exp1rn. Qed. 
+
 Definition normC x := sqrtC (x * x^*).
 
-Axiom normC_add : forall x y,  normC (x + y) <= normC x + normC y.
-Axiom normC_add_eq : forall x y : algC, 
-  normC (x + y) = normC(x) + normC(y) -> 
-  exists2 k, normC k = 1 & ((x == normC x * k) && (y == normC y * k)).
-
-Lemma posC_norm x : 0 <= normC x.
-Proof. by rewrite /leC !subr0 repC_sqrt; exact: repC_pconj. Qed.
-
-Lemma normC_pos c : 0 <= c -> normC c = c.
-Proof. by move=> Hc; rewrite /normC posC_conjK // (sqrtC_sqr_pos Hc). Qed.
-
-Lemma normC_nat n : normC n%:R = n%:R.
-Proof. by apply: normC_pos; exact: posC_nat. Qed.
-
-Lemma normC0 : normC 0 = 0.
-Proof. by rewrite normC_pos // leC_refl. Qed.
-
-Lemma normC_eq0 c : (normC c == 0) = (c == 0).
+Fact conjCid_norm z : (normC z)^* = normC z.
 Proof.
-apply/idP/eqP; last by move->; rewrite normC0.
-rewrite sqrtC_eq0 mulf_eq0; case/orP; first by move/eqP.
-by rewrite conjC_eq0; move/eqP.
+set y := normC z; have [// | def_y]: y^* = y \/ y^* = - y.
+  apply/pred2P; rewrite -subr_eq0 -addr_eq0 -mulf_eq0 -subr_sqr.
+  by rewrite -rmorphX sqrtCK rmorphM conjCK mulrC subrr.
+suffices /eqP: y ^+ 2 = 0 by rewrite expf_eq0 => /=/eqP->; rewrite rmorph0.
+apply: leC_anti; last by rewrite sqrtCK posC_pconj.
+by rewrite -leC_sub sub0r -mulrN -def_y posC_pconj.
 Qed.
 
+Fact leC_real_total x : x^* = x -> x <= 0 \/ 0 <= x.
+Proof.
+move=> Rx; pose y := sqrtC x; apply/orP; rewrite -leC_sub sub0r.
+suffices [<- | <-]: y * y^* = x \/ y * y^* = - x by rewrite posC_pconj ?orbT.
+apply/pred2P; rewrite -subr_eq0 -addr_eq0 -mulf_eq0 -subr_sqr.
+by rewrite exprn_mull -rmorphX sqrtCK Rx subrr.
+Qed.
+
+Lemma normC_nat n : normC n%:R = n%:R.
+Proof. by rewrite /normC rmorph_nat sqrtC_sqr_pos ?posC_nat. Qed.
+
+Lemma normC0 : normC 0 = 0.
+Proof. exact: normC_nat 0%N. Qed.
+
 Lemma normC1 : normC 1 = 1.
-Proof. by rewrite normC_pos // posC1. Qed.
+Proof. exact: normC_nat 1%N. Qed.
+
+Lemma posC_norm x : 0 <= normC x.
+Proof.
+have [| //] := leC_real_total (conjCid_norm x); rewrite -leC_sub sub0r.
+by unlock normC sqrtC; case: ifP; rewrite // opprK => ->.
+Qed.
+
+Lemma normC_eq0 c : (normC c == 0) = (c == 0).
+Proof. by rewrite -[_ == 0](expf_eq0 _ 2) sqrtCK mulf_eq0 conjC_eq0 orbb. Qed.
 
 Lemma normC_mul : {morph normC: x y / x * y}.
 Proof.
 move=> x y; rewrite {1}/normC rmorphM mulrCA -mulrA mulrCA mulrA.
 rewrite -[x * _]sqrtCK -[y * _]sqrtCK -exprn_mull sqrtC_sqr_pos //.
-by rewrite posC_mul // sqrtC_pos posC_pconj.
+by rewrite posC_mul //; exact: posC_norm.
 Qed.
 
 Lemma normC_exp x n : normC (x ^+ n) = normC x ^+ n.
 Proof.
-elim: n=> [|n IH]; first by rewrite !expr0 normC1.
+elim: n => [|n IH]; first exact: normC1.
 by rewrite exprS normC_mul IH exprS.
 Qed.
 
-Lemma normC_conj x : normC (x^*) = normC x.
+Lemma normC_conj x : normC x^* = normC x.
 Proof. by rewrite /normC conjCK mulrC. Qed.
 
-Lemma normC_inv x : normC (x^-1) = normC x ^- 1.
+Lemma normC_inv x : normC x^-1 = (normC x)^-1.
 Proof.
-case: (normC x =P 0); move/eqP.
-  by rewrite normC_eq0; move/eqP->; rewrite !(normC0,invr0).
-move=> HH; apply: (mulIf HH).
-by rewrite mulVf // -normC_mul mulVf ?normC1 // -normC_eq0.
+have [|nz_x] := boolP (normC x == 0).
+  by rewrite normC_eq0 => /eqP->; rewrite !(normC0, invr0).
+by apply: (mulIf nz_x); rewrite mulVf // -normC_mul mulVf ?normC1 // -normC_eq0.
 Qed.
 
 Lemma invC_norm x : x^-1 = (normC x)^-2 * x^*.
 Proof.
-case: (x =P 0)=> [->| /eqP Hx]; first by rewrite conjC0 mulr0 invr0.
-have F1: normC x ^+ 2 != 0.
-  by rewrite exprS expr1; apply: mulf_neq0; rewrite normC_eq0.
-apply: (mulfI F1); rewrite mulrA divff // mul1r sqrtCK [x * _]mulrC.
-by rewrite -mulrA divff // mulr1.
+have [-> | nx_x] := eqVneq x 0; first by rewrite conjC0 mulr0 invr0.
+by rewrite sqrtCK invf_mul divfK ?conjC_eq0.
 Qed.
 
 Lemma conjC_inv x : (x^-1)^* = (x^*)^-1.
+Proof. exact: fmorphV. Qed.
+
+(* This is the first use of Archimedean axiom. *)
+Lemma normC_pos x : 0 <= x -> normC x = x.
 Proof.
-rewrite invC_norm rmorphM conjCK.
-rewrite (invC_norm x^*) conjCK; congr (_ * _).
-rewrite normC_conj; apply: posC_conjK.
-by rewrite posC_inv exprS expr1 posC_mul // posC_norm.
+move=> le0x; have [-> | nzx] := eqVneq x 0; first by rewrite normC0.
+rewrite -{2}[x]mul1r; apply: canRL (divfK nzx) _; set y := normC x / x.
+have le0y: 0 <= y by rewrite posC_mul ?posC_inv ?posC_norm.
+have ley1_sym: (y <= 1) = (1 <= y).
+  rewrite -leC_sub -posC_conj rmorph_sub rmorph1 leC_sub.
+  have lt0y: 0 < y by rewrite ltCE mulf_eq0 invr_eq0 normC_eq0 orbb nzx.
+  rewrite -(leC_pmul2l _ _ lt0y) mulr1 fmorph_div conjCid_norm mulrCA !mulrA.
+  by rewrite -expr2 sqrtCK (mulrC x) mulfK // divff ?conjC_eq0.
+suffices ley1: y <= 1 by rewrite (leC_anti ley1) -?ley1_sym.
+rewrite /leC subr0 in le0y.
+have [[/and3P[] //| n /andP[le_n1_y _]]] := realC_archimedean le0y.
+by rewrite ley1_sym (leC_trans _ le_n1_y) -?(leq_leC 1).
 Qed.
 
-Lemma normC_sum (I : eqType) (r : seq I) (P : pred I) (F : I -> algC) :
+Lemma posC_conjK x : 0 <= x -> x^* = x.
+Proof. by move/normC_pos <-; rewrite conjCid_norm. Qed.
+
+Lemma sqrtC_pos x : (0 <= sqrtC x) = (0 <= x).
+Proof.
+apply/idP/idP=> [le0rx | le0x]; first by rewrite -[x]sqrtCK posC_mul.
+have [-> | nzx] := eqVneq x 0; first by rewrite sqrtC0 leC_refl.
+pose y := sqrtC x * (sqrtC x)^*; suffices ->: x = y by exact: posC_norm.
+have: x ^+ 2 == y ^+ 2 by rewrite exprn_mull -rmorphX sqrtCK posC_conjK.
+rewrite -subr_eq0 subr_sqr mulf_eq0 subr_eq0 => /predU1P[] // /idPn[].
+suffices: 0 < x + y by case/andP.
+by rewrite sposC_addr ?posC_pconj // ltCE nzx.
+Qed.
+
+Lemma posC_unit_exp x n : 0 <= x -> (x ^+ n.+1 == 1) = (x == 1).
+Proof.
+move=> le0x; apply/idP/eqP=> [|->]; last by rewrite exp1rn.
+apply: contraTeq => neq_x_1.
+suffices: x ^+ n.+1 < 1 \/ 1 < x ^+ n.+1.
+  by move/orP; rewrite ltCE eq_sym -andb_orr => /andP[].
+have{neq_x_1}: x < 1 \/ 1 < x.
+  rewrite !ltCE eq_sym neq_x_1 -(leC_sub 1) -leC_sub -oppr_sub -sub0r leC_sub.
+  by apply: leC_real_total; rewrite rmorph_sub rmorph1 posC_conjK.
+case=> [ltx1 | lt1x]; [left | right]; elim: n => // n /ltCW IHn.
+  by apply: leC_ltC_trans ltx1; rewrite -{2}[x]mulr1 leC_mul2l. 
+by apply: ltC_leC_trans lt1x _; rewrite -{1}[x]mulr1 leC_mul2l. 
+Qed.
+
+Lemma normC_add x y : normC (x + y) <= normC x + normC y.
+Proof.
+have [-> | ntx] := eqVneq x 0; first by rewrite normC0 !add0r leC_refl.
+have [-> | nty] := eqVneq y 0; first by rewrite normC0 !addr0 leC_refl.
+have /leC_pmul2r ltMxy: 0 < normC x + normC y + normC (x + y).
+  by rewrite !sposC_addr ?ltCE ?posC_norm //= normC_eq0 ntx.
+rewrite -leC_sub -{}ltMxy mul0r -subr_sqr sqrr_add !sqrtCK leC_sub rmorphD.
+rewrite mulr_addl !mulr_addr addrA leC_add2r -addrA leC_add2l -normC_mul.
+set z := _ + _; set p := _ *+ 2.
+have le0p: 0 <= p by rewrite posC_add ?posC_norm.
+have Rz: z^* = z by rewrite !(rmorphD, rmorphM) !conjCK mulrC addrC (mulrC _ x).
+case/leC_real_total: Rz => [/leC_trans-> // | le0z].
+have /leC_pmul2r ltMxy: 0 < p + z.
+  by rewrite !sposC_addr ?ltCE ?posC_norm // normC_eq0 mulf_neq0.
+rewrite -leC_sub -{}ltMxy mul0r -subr_sqr leC_sub -[p]mulr_natr exprn_mull.
+rewrite -natr_exp mulr_natr sqrtCK rmorphM mulrA mulrC -mulrA mulrCA mulrA.
+rewrite -subr_sqr_add_sub addrC -leC_sub addrK -mulNr oppr_sub.
+rewrite -[_ - _]conjCK rmorph_sub !rmorphM !conjCK mulrC (mulrC x) (mulrC y).
+exact: posC_pconj.
+Qed.
+
+Lemma normC_add_eq x y : 
+    normC (x + y) = normC(x) + normC(y) -> 
+  exists2 k, normC k = 1 & ((x == normC x * k) && (y == normC y * k)).
+Proof.
+pose s z := z / normC z; have congr_sqr := congr1 (fun z => z ^+ 2).
+have norm1 z: z != 0 -> normC (s z) = 1 /\ z == normC z * s z.
+  rewrite -normC_eq0 => nzz; rewrite mulrC divfK // /normC fmorph_div //.
+  rewrite conjCid_norm mulrCA -mulrA -invf_mul mulrCA mulrA -expr2 -expr_inv.
+  by rewrite -[z * _]sqrtCK -exprn_mull divff // exp1rn sqrtC1.
+move=> def_Nxy; have [-> | ntx] := eqVneq x 0.
+  have [-> | nty] := eqVneq y 0.
+    by exists 1; rewrite ?normC1 // !normC0 mul0r eqxx.
+  by have [? ?] := norm1 y nty; exists (s y); rewrite // normC0 mul0r eqxx.
+have [ns1 def_x] := norm1 x ntx; exists (s x); rewrite ?def_x //=.
+move/congr_sqr: def_Nxy; rewrite sqrr_add !sqrtCK rmorphD mulr_addl !mulr_addr.
+rewrite addrA => /addIr; rewrite -addrA -normC_mul -mulr_natr => /addrI def2xy.
+have eq_xy: x * y^* = y * x^*.
+  apply/eqP; rewrite -subr_eq0 -normC_eq0 sqrtC_eq0 rmorph_sub !rmorphM !conjCK.
+  rewrite -(mulrC x) -(mulrC y) [_ * _]mulrC -[_ - _]oppr_sub mulNr -expr2.
+  move/congr_sqr/esym/eqP: def2xy; rewrite exprn_mull sqrtCK -natr_exp.
+  rewrite mulr_natr rmorphM mulrA [_ * _]mulrC -mulrA mulrCA mulrA.
+  by rewrite -subr_sqr_add_sub addrC -[_ == _]subr_eq0 addrK.
+have{eq_xy def2xy} def_xy: y * x^* = normC (x * y).
+  apply: (@mulIf _ 2%:R); first by rewrite -(eqN_eqC 2 0).
+  by rewrite mulr_natr mulrS -{1}eq_xy.
+apply/eqP/(@mulfI _ (normC x ^+ 2)); first by rewrite expf_eq0 normC_eq0.
+rewrite {1}sqrtCK mulrAC -mulrA def_xy normC_mul mulrC -!mulrA; congr (_ * _).
+by rewrite mulrCA; congr (_ * _); rewrite mulrC divfK ?normC_eq0.
+Qed.
+
+Lemma normC_sum I (r : seq I) (P : pred I) (F : I -> algC) :
    normC (\sum_(i <- r | P i) F i) <= \sum_(i <- r | P i) normC(F i).
 Proof.
-elim: r=> [|i r Hrec]; first by rewrite !big_nil normC0 leC_refl.
-rewrite !big_cons; case HP: (P _)=> //.
+elim/big_rec2: _ => [|i u x _ le_ux]; first by rewrite normC0 leC_refl.
 by apply: (leC_trans (normC_add _ _)); rewrite leC_add2l.
 Qed.
 
 Lemma normC_sum_eq (I : eqType) (r : seq I) (P : pred I) (F : I -> algC) :
-   normC (\sum_(j <- r | P j) F j) = (\sum_(j <- r | P j) normC(F j)) ->
+     normC (\sum_(j <- r | P j) F j) = (\sum_(j <- r | P j) normC(F j)) ->
    exists2 k, normC k = 1 &
               forall i, (i \in r) && P i -> F i = normC (F i) * k.
 Proof.
 elim: r=> [|j r IH]; first by rewrite !big_nil; exists 1=> //; exact: normC1.
 rewrite !big_cons; case HP: (P _)=> HH; last first.
   case: IH=> // k Hk Hr; exists k=> // j1.
-  rewrite in_cons; case/andP; case/orP; first by move/eqP->; rewrite HP.
-  by move=> *; apply Hr; apply/andP; split.
-have F1: normC(\sum_(j <- r | P j) F j) = \sum_(j <- r | P j) normC (F j).
+  rewrite inE => /andP[/predU1P[-> | r_j1] Pj1]; first by rewrite HP in Pj1.
+  by rewrite -Hr ?r_j1.
+have F1: normC (\sum_(j <- r | P j) F j) = \sum_(j <- r | P j) normC (F j).
   apply: leC_anti; first by apply: normC_sum.
   by rewrite -(leC_add2l (normC (F j))) -HH normC_add.
 move: HH; rewrite -F1; case/normC_add_eq=> k1 H1k1; case/andP=> H2k1 H3k1.
@@ -481,7 +571,7 @@ have HH: \sum_(j <- r | P j) F j = (\sum_(j <- r | P j) normC (F j)) * k2.
   by case E1: (P _)=> //; rewrite {1}Hr ?(in_cons,eqxx) // mulr_addl.
 rewrite {1}HH F1; move/eqP=> HH1.
 case: ((\sum_(j0 <- r | P j0) normC (F j0)) =P 0)=> HH2.
-  suff: normC (F j1) = 0.
+suff: normC (F j1) = 0.
     by move/eqP; rewrite normC_eq0; move/eqP->; rewrite normC0 mul0r.
   apply: (posC_sum_eq0 _ HH2); last by rewrite Hj1.
   move=> j2; case/andP=> H1j2 H2j2 //.
@@ -543,15 +633,22 @@ rewrite -(leC_add2r (F j)) add0r subrK H2 //.
 by rewrite F3 mulr1 Hn.
 Qed.
 
-Parameter getNatC : algC -> nat.
+Definition getNatC x :=
+  if insub x : {? c | repC c} is Some c then
+    val (sigW (realC_archimedean (valP c)))
+  else 0%N.
 
-Axiom getNatC_def : forall c,
-  if (0 <= c) then ((getNatC c)%:R <= c) && (c < (getNatC c + 1)%:R)
-  else getNatC c == 0%N.
+Lemma getNatC_def x (n := getNatC x) :
+  if (0 <= x) then (n%:R <= x) && (x < (n + 1)%:R) else n == 0%N.
+Proof.
+rewrite {}/n /getNatC /ltC /leC subr0 addn1 eq_sym (andbC (~~ _)).
+case: ifPn => [le0x | not_le0x]; last by rewrite insubN.
+by rewrite insubT //=; case: (sigW _).
+Qed.
 
 Lemma getNatC_nat n : getNatC (n%:R) = n.
 Proof.
-move: (getNatC_def n%:R); rewrite posC_nat -leq_leC -ltn_ltC.
+have:= getNatC_def n%:R; rewrite /= posC_nat -leq_leC -ltn_ltC.
 case/andP=> H1 H2; apply: anti_leq => //.
 by rewrite H1 // -ltnS -[(getNatC _).+1]addn1.
 Qed.
@@ -599,7 +696,7 @@ Lemma isNatC_sum_eq1 (I : eqType) (r : seq I) (P : pred I) (F : I -> algC) :
    (forall i, P i -> isNatC (F i)) -> uniq r ->
    \sum_(j <- r | P j) F j = 1%:R ->
    (exists i, [/\ i \in r, P i, F i = 1 &
-               forall j, j!=i -> j \in r -> P j -> F j = 0]).
+               forall j, j != i -> j \in r -> P j -> F j = 0]).
 Proof.
 move=> HN; elim: r=> [_|y r Hrec].
   by rewrite big_nil; move/eqP; rewrite eq_sym (negPf (nonzero1r _)).
@@ -614,12 +711,11 @@ have: isNatC (\sum_(j <- r | P j) F j) by apply: isNatC_sum.
 case/isNatCP=> m Hm.
 move: Hs; rewrite Hn Hm -natr_add.
 case: n Hn=> [|n Hn]; case: m Hm=>[|m Hm].
-- by move=> _ _; move/eqP; rewrite eq_sym (negPf (nonzero1r _)).
+- by move=> _ _; move/eqP; rewrite eq_sym oner_eq0.
 - case: m Hm.
     move=> Hs HF _; case: Hrec=> // => j [HInj HPj HFj HF0].
     exists j; split=> //; first by rewrite in_cons HInj orbT.
-    move=> k Hk; rewrite in_cons; case/orP; first by move/eqP->.
-    by exact: HF0.
+    by move=> k Hk /predU1P[-> // | ]; exact: HF0.
   move=> n _ _.
   rewrite -[1%:R]add0r add0n -addn1 natr_add => HH.
   by move/eqP: (addIr _ HH); rewrite -(eqN_eqC _ 0).

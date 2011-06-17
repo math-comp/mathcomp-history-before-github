@@ -328,7 +328,7 @@ have: f 1%g = 0.
 have Hfc: f = '[f, 'xi_e1]_G *: 'xi_e1 + '[f, 'xi_e2]_G *: 'xi_e2.
   rewrite -{1}(sum_inner_prodE F1) (bigD1 e1) //; congr (_ + _).
   rewrite (bigD1 e2) // big1 /= ?addr0 // => i Hi.
-  case Ei: (h i) (HH1 _ Hi)=> //.
+  case Ei: (h i) (HH1 _ Hi)=> // _.
   by move/eqP: Ei; rewrite eqN_eqC Hh absC_eq0; move/eqP->; rewrite scale0r.
 rewrite Hfc ffunE [_ 1%g]ffunE [(_ (_ *: _)) 1%g]ffunE.
 have F: 0 < 'xi_e1 1%g + 'xi_e2 1%g.
