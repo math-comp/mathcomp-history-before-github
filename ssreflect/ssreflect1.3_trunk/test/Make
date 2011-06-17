@@ -15,6 +15,7 @@ havesuff.v
 have_view_idiom.v
 indetLHS.v
 intro_beta.v
+intro_noop.v
 ipatalternation.v
 ltac_have.v
 ltac_in.v

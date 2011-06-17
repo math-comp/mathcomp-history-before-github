@@ -2372,6 +2372,7 @@ type ssripat =
   | IpatAll
   | IpatAnon
   | IpatView of ssrtermrep list
+  | IpatNoop
 and ssripats = ssripat list
 
 let remove_loc = snd
@@ -2398,6 +2399,7 @@ let rec pr_ipat = function
   | IpatWild -> str "_"
   | IpatAnon -> str "?"
   | IpatView v -> pr_view v
+  | IpatNoop -> str "-"
 and pr_iorpat iorpat = pr_list pr_bar pr_ipats iorpat
 and pr_ipats ipats = pr_list spc pr_ipat ipats
 
@@ -2456,6 +2458,10 @@ let pushIpatRw = function
   | pats :: orpat -> (IpatRw ([noindex], L2R) :: pats) :: orpat
   | [] -> []
 
+let pushIpatNoop = function
+  | pats :: orpat -> (IpatNoop :: pats) :: orpat
+  | [] -> []
+
 ARGUMENT EXTEND ssripat TYPED AS ssripatrep list PRINTED BY pr_ssripats
   INTERPRETED BY interp_ipats
   GLOBALIZED BY intern_ipats
@@ -2475,6 +2481,14 @@ ARGUMENT EXTEND ssripat TYPED AS ssripatrep list PRINTED BY pr_ssripats
       | _ -> loc_error loc "Only identifiers are allowed here"]
   | [ "->" ] -> [ [IpatRw ([noindex], L2R)] ]
   | [ "<-" ] -> [ [IpatRw ([noindex], R2L)] ]
+  | [ "-" ] -> [ [IpatNoop] ]
+  | [ "-/" "=" ] -> [ [IpatNoop;IpatSimpl([],Simpl)] ]
+  | [ "-/=" ] -> [ [IpatNoop;IpatSimpl([],Simpl)] ]
+  | [ "-/" "/" ] -> [ [IpatNoop;IpatSimpl([],Cut)] ]
+  | [ "-//" ] -> [ [IpatNoop;IpatSimpl([],Cut)] ]
+  | [ "-/" "/=" ] -> [ [IpatNoop;IpatSimpl([],SimplCut)] ]
+  | [ "-//" "=" ] -> [ [IpatNoop;IpatSimpl([],SimplCut)] ]
+  | [ "-//=" ] -> [ [IpatNoop;IpatSimpl([],SimplCut)] ]
   | [ ssrview(v) ] -> [ [IpatView v] ]
 END
 
@@ -2486,6 +2500,7 @@ END
 ARGUMENT EXTEND ssriorpat TYPED AS ssripat list PRINTED BY pr_ssriorpat
 | [ ssripats(pats) "|" ssriorpat(orpat) ] -> [ pats :: orpat ]
 | [ ssripats(pats) "|-" ">" ssriorpat(orpat) ] -> [ pats :: pushIpatRw orpat ]
+| [ ssripats(pats) "|-" ssriorpat(orpat) ] -> [ pats :: pushIpatNoop orpat ]
 | [ ssripats(pats) "|->" ssriorpat(orpat) ] -> [ pats :: pushIpatRw orpat ]
 | [ ssripats(pats) "||" ssriorpat(orpat) ] -> [ pats :: [] :: orpat ]
 | [ ssripats(pats) "|||" ssriorpat(orpat) ] -> [ pats :: [] :: [] :: orpat ]
@@ -2723,6 +2738,7 @@ let introstac, tclEQINTROS =
       to_clr :: k, tclTHEN (rename false to_clr rest clr) (simpltac sim)
     | IpatAll -> k, intro_all
     | IpatAnon -> k, intro_anon
+    | IpatNoop -> k, tclIDTAC
     | IpatView v -> match ist with
         | None -> anomaly "ipattac with no ist but view"
         | Some ist -> match rest with
