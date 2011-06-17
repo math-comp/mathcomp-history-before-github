@@ -28,7 +28,7 @@ Local Open Scope ring_scope.
 (**************************************************************************)
 
 Parameter algC : closedFieldType.
-Axiom Cchar : [char algC] =i pred0.
+(* Axiom Cchar : [char algC] =i pred0. *)
 
 Parameter conjC : {rmorphism algC -> algC}.
 Notation "x ^* " := (conjC x) (at level 2, format "x ^*") : C_scope.
@@ -40,11 +40,13 @@ Axiom conjCK : involutive conjC.
 Parameter repC : algC -> bool. (* C -> R^+ *)
 Axiom repCD : forall x y, repC x -> repC y -> repC (x + y).
 Axiom repCMl : forall x y, x != 0 -> repC x -> repC (x * y) = repC y.
-Axiom repC_anti : forall x, repC x -> repC (-x) -> x = 0.
-Axiom repC_unit_exp : forall x n, repC x -> ((x^+n.+1 == 1) = (x == 1)).
+Axiom repC_anti : forall x, repC x -> repC (- x) -> x = 0.
+Axiom repC_unit_exp : forall x n, repC x -> (x ^+ n.+1 == 1) = (x == 1).
 Axiom repC_pconj : forall x, repC (x * x ^*).
 Axiom repC_conjI : forall x, repC x -> x^* = x.
-Axiom repC1 : repC 1.
+(* Axiom repC1 : repC 1. *)
+Lemma repC1 : repC 1.
+Proof. by rewrite -(mulr1 1) -{2}(rmorph1 conjC) repC_pconj. Qed.
 
 Lemma repC_inv x : repC (x^-1) = repC x.
 Proof.
@@ -62,7 +64,7 @@ Qed.
 Lemma repC0 : repC 0.
 Proof. by rewrite -[0](mul0r (0 ^*)) repC_pconj. Qed.
 
-Lemma repC_nat n : repC (n%:R).
+Lemma repC_nat n : repC n%:R.
 Proof.
 by elim: n=> [|n IH]; [exact: repC0 | rewrite -addn1 natr_add repCD // repC1].
 Qed.
@@ -147,32 +149,31 @@ move=> Hx Hy; apply/eqP; rewrite -subr_eq0; apply/eqP.
 by apply: repC_anti; rewrite // oppr_sub.
 Qed.
 
+Lemma posC1 : 0 <= 1.
+Proof. by rewrite /leC subr0 repC1. Qed.
+
 Lemma leq_leC a b : (a <= b)%N = (a%:R <= b%:R).
 Proof.
-elim: a b=> [b |a IH [|b]]; first 2 last.
-- rewrite -{2}add1n natr_add -{2}[b.+1]add1n natr_add leC_add2l.
-  by exact: IH.
-- by apply: sym_equal; rewrite leq0n; apply: posC_nat.
-apply: sym_equal; rewrite ltn0; apply/idP=> HH.
-have: a.+1%:R = 0%:R :> algC by apply: leC_anti=> //; apply: posC_nat.
-by move/eqP; move/GRing.charf0P: Cchar=> ->.
+elim: a b => [b | a IH [|b]]; first 2 last.
+- by rewrite -{2}add1n natr_add -{2}[b.+1]add1n natr_add leC_add2l -IH.
+- by rewrite posC_nat.
+apply/esym; apply: contraFF (oner_eq0 algC) => le_a1_0.
+rewrite (leC_anti posC1) // -(leC_add2l a%:R) -mulrSr addr0.
+exact: leC_trans (posC_nat a).
 Qed.
 
 Lemma eqN_eqC (a b : nat) : (a == b) = (a%:R == b%:R :> algC).
 Proof.
-apply/eqP/eqP=> [->| Hr] //.
-wlog le: a b Hr / (a <= b)%N.
-  by move=> H; case/orP: (leq_total a b)=> HH; last apply: sym_equal;
-     apply: H.
-have: b%:R - a%:R = 0 :> algC by rewrite Hr subrr.
-rewrite -natr_sub //; move/eqP; move/GRing.charf0P: Cchar=> -> HH.
-by apply anti_leq; rewrite le.
+apply/idP/eqP=> [/eqP-> // |]; rewrite eqn_leq !leq_leC => ->.
+by rewrite !leC_refl.
 Qed.
 
 Lemma neq0N_neqC (a : nat) : (a != 0%N) = (a%:R != 0 :> algC).
+Proof. by rewrite eqN_eqC. Qed.
+
+Lemma Cchar : [char algC] =i pred0.
 Proof.
-by apply/idP/idP; move/negP=> HH; apply/negP=> HH1; case: HH;
-   move: HH1; rewrite (eqN_eqC _ 0).
+by move=> p; apply/andP=> [[/prime_gt0]]; rewrite lt0n neq0N_neqC => /negP.
 Qed.
 
 Lemma ltC_add2l p m n : (p + m < p + n) = (m < n).
@@ -243,14 +244,11 @@ apply: posC_mul; first by rewrite leC_sub.
 by apply: posC_add=> //; apply: leC_trans Hb.
 Qed.
 
-Lemma posC_unit_exp x n : 0 <= x ->  (x ^+ n.+1 == 1) = (x == 1).
+Lemma posC_unit_exp x n : 0 <= x -> (x ^+ n.+1 == 1) = (x == 1).
 Proof. by move=> Hx; apply: repC_unit_exp; rewrite -[x]subr0. Qed.
 
 Lemma posC_conjK x : 0 <= x -> x^* = x.
 Proof. by move=> Hx; apply: repC_conjI; rewrite -[x]subr0. Qed.
-
-Lemma posC1 : 0 <= 1.
-Proof. by rewrite /leC subr0 repC1. Qed.
 
 Lemma posC_inv x : (0 <= x^-1) = (0 <= x).
 Proof. rewrite /leC !subr0; exact: repC_inv. Qed.
@@ -262,7 +260,7 @@ apply/idP/idP=>[HH|]; last by exact: invr_neq0.
 by apply/eqP=> HH1;case/eqP: HH; rewrite HH1 invr0.
 Qed.
 
-Lemma posC_conj x : (0 <= x ^*) = (0 <= x).
+Lemma posC_conj x : (0 <= x^*) = (0 <= x).
 Proof. rewrite /leC !subr0; exact: repC_conj. Qed.
 
 Lemma posC_sum (I : eqType) (r : seq I) (P : pred I) (F : I -> algC) :
@@ -343,7 +341,7 @@ Qed.
 Variable sqrtC : algC -> algC.
 Axiom sqrtCK : forall c, (sqrtC c) ^+ 2 = c.
 Axiom repC_sqrt : forall c, repC (sqrtC c) = repC c.
-Axiom sqrtC_mul : {morph sqrtC: x y / x * y}.
+(* Axiom sqrtC_mul : {morph sqrtC: x y / x * y}. GG -- This is inconsistent! *)
 
 Lemma sqrtC_sqr c : (sqrtC (c^+2) == c) || (sqrtC (c^+2) == -c).
 Proof.
@@ -369,7 +367,7 @@ Qed.
 Lemma sqrtC_pos c : (0 <= sqrtC c) = (0 <= c).
 Proof. by rewrite /leC !subr0 repC_sqrt. Qed.
 
-Lemma sqrtC_sqr_pos c : 0 <= c -> sqrtC (c^+2) = c.
+Lemma sqrtC_sqr_pos c : 0 <= c -> sqrtC (c ^+ 2) = c.
 Proof.
 move=> Hc; case/orP: (sqrtC_sqr c)=>[|HH]; first by move/eqP.
 suff->: c = 0 by rewrite exprS mul0r sqrtC0.
@@ -411,11 +409,12 @@ Proof. by rewrite normC_pos // posC1. Qed.
 
 Lemma normC_mul : {morph normC: x y / x * y}.
 Proof.
-move=> x y; rewrite /normC rmorphM -sqrtC_mul -!mulrA; 
-by congr sqrtC; congr (_ * _); rewrite mulrC -!mulrA [y * _]mulrC.
+move=> x y; rewrite {1}/normC rmorphM mulrCA -mulrA mulrCA mulrA.
+rewrite -[x * _]sqrtCK -[y * _]sqrtCK -exprn_mull sqrtC_sqr_pos //.
+by rewrite posC_mul // sqrtC_pos posC_pconj.
 Qed.
 
-Lemma normC_exp x n : normC (x^+n) = normC x ^+ n.
+Lemma normC_exp x n : normC (x ^+ n) = normC x ^+ n.
 Proof.
 elim: n=> [|n IH]; first by rewrite !expr0 normC1.
 by rewrite exprS normC_mul IH exprS.
