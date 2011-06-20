@@ -2066,7 +2066,7 @@ let inv_dir = function L2R -> R2L | R2L -> L2R
 
 let rewritetac dir c =
   (* Due to the new optional arg ?tac, application shouldn't be too partial *)
-  Equality.general_rewrite (dir = L2R) all_occurrences false c
+  Equality.general_rewrite (dir = L2R) all_occurrences true false c
 
 let wit_ssrdir, globwit_ssrdir, rawwit_ssrdir =
   add_genarg "ssrdir" pr_dir
