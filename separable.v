@@ -2094,28 +2094,27 @@ by apply: mulp_polyOver.
 Qed.
 
 Canonical Structure Fadjoin_aspace : {algebra L} := ASpace Fadjoin_is_aspace.
-Local Notation FadjoinA := (Fadjoin K x).
 
 Lemma subsetFadjoinE: forall E : {algebra L},
-   (K <= E)%VS && (x \in E) = (FadjoinA <= E)%VS.
+   (K <= E)%VS && (x \in E) = (Fadjoin K x <= E)%VS.
 Proof. by move => E; rewrite subsetFadjoinE_subproof // XED_subproof. Qed.
 
-Lemma memx_Fadjoin : x \in FadjoinA.
+Lemma memx_Fadjoin : x \in Fadjoin K x.
 Proof.
-by move: (subv_refl FadjoinA); rewrite -subsetFadjoinE; case/andP.
+by move: (subv_refl (Fadjoin K x)); rewrite -subsetFadjoinE; case/andP.
 Qed.
 
-Lemma subsetKFadjoin : (K <= FadjoinA)%VS.
+Lemma subsetKFadjoin : (K <= Fadjoin K x)%VS.
 Proof.
-by move: (subv_refl FadjoinA); rewrite -subsetFadjoinE; case/andP.
+by move: (subv_refl (Fadjoin K x)); rewrite -subsetFadjoinE; case/andP.
 Qed.
 
-Lemma memK_Fadjoin : forall y, y \in K -> y \in FadjoinA.
+Lemma memK_Fadjoin : forall y, y \in K -> y \in Fadjoin K x.
 Proof.
 by move/subvP: subsetKFadjoin.
 Qed.
 
-Lemma mempx_Fadjoin : forall p, polyOver K p -> p.[x] \in FadjoinA.
+Lemma mempx_Fadjoin : forall p, polyOver K p -> p.[x] \in Fadjoin K x.
 Proof. move => p pK; apply/poly_Fadjoin; by exists p. Qed.
 
 Lemma poly_for_K : forall v, v \in K -> poly_for_Fadjoin K x v = v%:P.
@@ -2149,12 +2148,12 @@ Proof.
 apply/idP/eqP.
  apply: elemDeg1_subproof.
 move => ed1.
-suff <-: (FadjoinA = K) by apply: memx_Fadjoin.
+suff <-: (Fadjoin K x = K) by apply: memx_Fadjoin.
 symmetry; apply/eqP.
 by rewrite -(dimv_leqif_eq subsetKFadjoin) dim_Fadjoin ed1 muln1.
 Qed.
 
-Lemma FadjoinxK : (x \in K) = (FadjoinA == K).
+Lemma FadjoinxK : (x \in K) = (Fadjoin K x == K).
 Proof.
 rewrite elemDeg1.
 apply/eqP/eqP.
@@ -2365,7 +2364,7 @@ rewrite separable_nzdmp size_elementDegree.
 by rewrite (leq_trans (size_poly _ _)) // size_minPoly leqnn.
 Qed.
 
-Lemma DerivationSeparable : forall D, Derivation FadjoinA D -> 
+Lemma DerivationSeparable : forall D, Derivation (Fadjoin K x) D -> 
  (separableElement K x) ->
  D x = - (map_poly D (minPoly K x)).[x] / ((minPoly K x)^`()).[x].
 Proof.
@@ -2445,7 +2444,7 @@ by rewrite [((minPoly K x)^`()).[x] * _]mulrC (mulfVK sep) mulrN addKr.
 Qed.
 
 Lemma DerivationExtendDerivation :
- (separableElement K x) -> Derivation FadjoinA (DerivationExtend K).
+ (separableElement K x) -> Derivation (Fadjoin K x) (DerivationExtend K).
 Proof.
 move => sep.
 apply/allP => u; move/memv_basis => Hu.
@@ -2465,8 +2464,8 @@ End DerivationExtend.
 (* Reference: 
 http://www.math.uconn.edu/~kconrad/blurbs/galoistheory/separable2.pdf *)
 Lemma separableDerivationP :
-  reflect (forall D, Derivation FadjoinA D ->
-                     (K <= lker D)%VS -> (FadjoinA <= lker D)%VS)
+  reflect (forall D, Derivation (Fadjoin K x) D ->
+                     (K <= lker D)%VS -> (Fadjoin K x <= lker D)%VS)
           (separableElement K x).
 Proof.
 apply introP.
@@ -2498,7 +2497,7 @@ have DF : (K <= lker D)%VS.
  apply/subvP => v vK.
  by rewrite memv_ker lapp_of_funK // /D //= /D_body poly_for_K // derivC 
             horner0.
-have DDeriv : Derivation FadjoinA D.
+have DDeriv : Derivation (Fadjoin K x) D.
  apply/allP => u; move/memv_basis => Hu.
  apply/allP => v; move/memv_basis => Hv.
  by rewrite !lapp_of_funK // /D //= /D_body {-2}(poly_for_eq Hu)
