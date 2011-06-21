@@ -581,6 +581,22 @@ congr (_ - _).
 by rewrite kHomExtendExt.
 Qed.
 
+Definition LAut_FixedField (f : LAut) : {vspace L} :=
+  eigenspace (val f) 1.
+
+Lemma LAut_FixedField_is_aspace_subproof f : let FF := LAut_FixedField f in
+  (has_aunit FF  && (FF * FF <= FF)%VS).
+Proof.
+apply/andP; split.
+ by rewrite has_aunit1 // eigenspaceIn rmorph1 scale1r eqxx.
+apply/prodvP => a b.
+rewrite !eigenspaceIn !scale1r rmorphM /=.
+by do 2 move/eqP ->.
+Qed.
+
+Canonical Structure LAut_FixedField_aspace f : {algebra L} :=
+  ASpace (LAut_FixedField_is_aspace_subproof f).
+
 (* In most definitions I give the smaller field first, since the larger
    field can be seen as algebra over the smaller, and so in some moral sense
    the larger field depends on the smaller one.  However standard mathematical
@@ -673,6 +689,37 @@ apply/eqP.
 by apply: Hfg.
 Qed.
 
+Lemma Aut_eq (E : {algebra L}) 
+  (x y : coset_of [set x : LAut | kAut E (fullv L) (val x)]) (f g : LAut) : 
+  f \in x -> g \in y ->
+  reflect (forall a, a \in E -> val f a = val g a)%VS (x == y).
+Proof.
+move => Hf Hg.
+move/subsetP/(_ _ Hf): (coset_norm x) => HfN.
+move/subsetP/(_ _ Hg): (coset_norm y) => HgN.
+apply: (iffP idP).
+ move/eqP => Hxy.
+ move: Hf Hg.
+ rewrite Hxy.
+ move/coset_mem <-.
+ rewrite val_coset // norm_rlcoset //.
+ case/lcosetP => h.
+ rewrite inE kAutE subvf andbT.
+ case/kHomP => Hh _ -> a Ha.
+ rewrite /= lappE /= Hh //.
+move/coset_mem: Hf <-.
+move/coset_mem: (Hg) => <- Hfg.
+apply/eqP/coset_mem.
+rewrite val_coset // norm_rlcoset // mem_lcoset /=.
+rewrite inE kAutE subvf andbT.
+apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
+move => a Ha.
+rewrite comp_lappE /= Hfg //.
+rewrite -[X in X = _]comp_lappE.
+rewrite inv_lker0; last by rewrite LAut_ker0 eqxx.
+by rewrite unit_lappE.
+Qed.
+
 Section Automorphism.
 
 Variables K E : {algebra L}.
@@ -729,39 +776,6 @@ move/subvP: HKE.
 by apply.
 Qed.
 
-Lemma Aut_eq x y (f g : LAut) : x \in 'Aut(E | K)%g -> y \in 'Aut(E | K)%g ->
-  f \in x -> g \in y ->
-  reflect (forall a, a \in E -> val f a = val g a)%VS (x == y).
-Proof.
-move => Hx Hy Hf Hg.
-move/subsetP/(_ _ Hf): (coset_norm x) => HfN.
-move/subsetP/(_ _ Hg): (coset_norm y) => HgN.
-apply: (iffP idP).
- move/eqP => Hxy.
- case/andP: (Aut_kAut Hx Hf) => _ /eqP HfE.
- move: Hf Hg.
- rewrite Hxy.
- move/coset_mem <-.
- rewrite val_coset //.
- case/rcosetP => h.
- rewrite inE kAutE subvf andbT.
- case/kHomP => Hh _ -> a Ha.
- by rewrite /= lappE /= Hh // -HfE memv_img.
-move/coset_mem: Hf <-.
-move/coset_mem: (Hg) => <- Hfg.
-apply/eqP/coset_mem.
-rewrite val_coset // mem_rcoset.
-case/andP: (Aut_kAut Hy Hg) => HgK /eqP HgE.
-rewrite inE kAutE subvf andbT.
-apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
-move => a.
-rewrite - HgE.
-case/memv_imgP => {a} a [Ha ->].
-rewrite -[X in X = _]comp_lappE -comp_lappA.
-rewrite inv_lker0; last by rewrite LAut_ker0 eqxx.
-by rewrite comp_lapp1 Hfg.
-Qed.
-
 Lemma Aut_mul x y : x \in 'Aut(E | K)%g -> y \in 'Aut(E | K)%g ->
  forall a, a \in E -> val (repr (x*y)%g) a = val (repr x) (val (repr y) a).
 Proof.
@@ -769,7 +783,7 @@ move => Hx Hy a Ha.
 have Hxy := groupM Hx Hy.
 transitivity (val (repr x * repr y)%g a); last by rewrite /= comp_lappE.
 move: a Ha.
-apply/(Aut_eq Hxy Hxy) => //; first by rewrite mem_repr_coset.
+apply/(@Aut_eq _ (x*y) (x*y)) => //; first by rewrite mem_repr_coset.
 rewrite -{2}(coset_mem (mem_repr_coset x)).
 rewrite -{2}(coset_mem (mem_repr_coset y)).
 rewrite -coset_morphM ?repr_coset_norm //.
@@ -830,6 +844,54 @@ Hypothesis foo : forall (E Q K: {algebra L}), (K <= Q)%VS ->
 Hypothesis bar : forall (E Q K: {algebra L}),
   ('Aut (Q | K) \isog ('Aut (E | K) / 'Aut (E | Q)))%G.
 *)
+
+Definition FixedField (E : {vspace L})
+  (s : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :=
+  (E :&: \bigcap_( i \in cover [set (set_of_coset x) | x <- s])
+          (LAut_FixedField i))%VS.
+
+Lemma FixedFieldP (E : {algebra L})
+   (s : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) a :
+ reflect (a \in E /\ forall x, (x \in s) -> (val (repr x) a = a))
+         (a \in FixedField s).
+Proof.
+rewrite /FixedField.
+have big_andT := eq_bigl _ _ (fun _ => andbT _).
+rewrite -big_andT big_trivIset {big_andT}; last first.
+ apply/trivIsetP => ? ? /imsetP [x Hx ->] /imsetP [y Hy ->].
+ by apply: contraR => /pred0Pn [f /andP [/coset_mem <- /coset_mem <-]].
+rewrite memv_cap.
+case HaE : (a \in E); last first.
+ apply: ReflectF.
+ by case.
+apply: (iffP (subv_bigcapP _ _ _)).
+ move => Hcap; split; first done.
+ move => x Hx.
+ apply/eqP.
+ move/subv_bigcapP/(_ (repr x)): (Hcap _ (mem_imset _ Hx)).
+ rewrite andbT.
+ move/(_ (mem_repr_coset _)).
+ by rewrite [(_ <= _)%VS]eigenspaceIn scale1r.
+move => [_ HFixed] ? /imsetP [x Hx ->].
+apply/subv_bigcapP => i.
+rewrite andbT [(_ <= _)%VS]eigenspaceIn scale1r => Hi.
+rewrite -{2}(HFixed x) //.
+apply/eqP.
+move: {HFixed} a HaE.
+apply/(@Aut_eq _ x x) => //.
+apply: mem_repr_coset.
+Qed.
+
+Lemma galoisAdjuctionA (K E : {algebra L}) :
+  (K <= E)%VS ->
+  (K <= FixedField ('Aut(E | K))%g)%VS.
+Proof.
+move => HKE.
+apply/subvP => a HaK.
+apply/FixedFieldP; split; first by move/subvP: HKE; apply.
+move => x Hx.
+by move: (Aut_kAut HKE Hx (mem_repr_coset _)) => /andP [/kHomP [->]].
+Qed.
 
 Definition normal (K E : {vspace L}) :=
  forallb x : LAut, kHom K (fullv L) (val x) ==> ((val x) @: E == E)%VS.
@@ -931,8 +993,7 @@ apply/andP; split; last first.
   rewrite map_inj_in_uniq ?enum_uniq //.
   move => a b.
   rewrite 2!mem_enum => Ha Hb Hab.
-  apply/eqP/(Aut_eq (subsetKFadjoin _ _) Ha Hb
-                    (mem_repr_coset _) (mem_repr_coset _)) => ?.
+  apply/eqP/(Aut_eq (mem_repr_coset _) (mem_repr_coset _)) => ?.
   case/poly_Fadjoin => p [Hp ->].
   rewrite -!horner_map /= -/(f a) -/(f b) Hab.
   case/andP: (Aut_kAut (subsetKFadjoin _ _) Ha (mem_repr_coset _)).
@@ -1146,7 +1207,7 @@ rewrite -map_comp.
 case => ? /mapP [y Hyr ->] Hyx.
 have Hy : y \in ('Aut(E | K))%g by move/subsetP: Haut; apply.
 have Huniq : uniq (map h ((x * y)%g :: r)).
- by rewrite /= Hr andbT [h _](Aut_mul HKE).
+ by rewrite /= Hr andbT [h _](Aut_mul Hx Hy).
 exists (cons (x * y)%g r); split.
 - by rewrite subset_all /= -subset_all Haut groupM.
 - by apply: Huniq.
@@ -1197,14 +1258,16 @@ by rewrite memv_img.
 Qed.
 
 Lemma galois_fixedField (K E : {algebra L}) : reflect
- ((K <= E)%VS /\ (forall a, a \in E -> (forall x, (x \in 'Aut(E | K)%g) ->
-                   (val (repr x) a = a)) -> a \in K))
+ ((K <= E)%VS /\ FixedField 'Aut(E | K)%g = K)
  (galois K E).
 Proof.
 apply: (iffP idP).
  move => Hgal.
- split; first by case/and3P: Hgal.
- move => a HaE HFF.
+ case/and3P: (Hgal) => HKE _ _.
+ split; first done.
+ apply: subv_anti.
+ apply/andP; split; last by apply: galoisAdjuctionA.
+ apply/subvP => a /FixedFieldP [HaE HFF].
  rewrite -[_ \in _]negbK.
  apply/negP.
  move/GaloisUnfixedField/(_ _ HaE): Hgal => Hgal.
@@ -1221,9 +1284,10 @@ move => a HaE HaK.
 apply/existsP.
 move: HaK.
 apply: contraR.
-rewrite negb_exists.
+rewrite negb_exists -{2}H.
 move/forallP => Hall.
-apply: H => // x Hx.
+apply/FixedFieldP; split; first done.
+move => // x Hx.
 apply/eqP.
 move: (Hall x).
 by rewrite negb_and Hx negbK.
