@@ -12,292 +12,267 @@ Unset Printing Implicit Defensive.
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
-(**************************************************************************)
-(*                                                                        *)
-(* This file contains the basic notions of virtual character theory       *)
-(*                                                                        *)
-(* 'Z[T, A]      : integer combinations of elements of the tuple T        *)
-(*                 that have support in A                                 *)
-(* 'Z[T]         : integer combinations of elements of the tuple T        *)
-(*                                                                        *)
-(*                                                                        *)
-(**************************************************************************)
+(******************************************************************************)
+(* This file provides basic notions of virtual character theory:              *)
+(* 'Z[S, A]      : integer combinations of elements of S : seq {cfun gT that  *)
+(*                 have support in A.                                         *)
+(* 'Z[T]         : integer combinations of elements S                         *)
+(******************************************************************************)
+
+Reserved Notation "''Z[' S , A ]" (at level 0, format "''Z[' S ,  A ]"). 
+Reserved Notation "''Z[' S ]" (at level 0, format "''Z[' S ]").
+
+Lemma subseq_filter (T : eqType) (s1 s2 : seq T) (p : pred T) :
+  subseq s1 (filter p s2) = all p s1 && subseq s1 s2.
+Proof.
+elim: s2 s1 => [|x s2 IHs] [|y s1] //=; rewrite ?andbF ?sub0seq //.
+case: ifP => [px | pxF] /=; first by case: eqP => [-> | _]; rewrite IHs ?px.
+by rewrite IHs /=; case: eqP => // ->; rewrite pxF.
+Qed.
+
+Lemma subseq_uniqP (T : eqType) (s1 s2 : seq T) :
+  uniq s2 -> reflect (s1 = filter (mem s1) s2) (subseq s1 s2).
+Proof.
+move=> uniq_s2; apply: (iffP idP) => [ss12 | ->]; last exact: filter_subseq.
+apply/eqP; rewrite -size_subseq_leqif ?subseq_filter ?(introT allP) //.
+apply/eqP/esym/perm_eq_size.
+rewrite uniq_perm_eq ?filter_uniq ?(subseq_uniq ss12) // => x.
+by rewrite mem_filter; apply: andb_idr; exact: (mem_subseq ss12).
+Qed.
+
+Definition tcast m n T (eq_mn : m = n) t :=
+  let: erefl in _ = n := eq_mn return n.-tuple T in t.
+
+Lemma tcastE m n T (eq_mn : m = n) t i :
+  tnth (tcast eq_mn t) i = tnth t (cast_ord (esym eq_mn) i) :> T.
+Proof. by case: n / eq_mn in i *; rewrite cast_ord_id. Qed.
+
+Lemma tcast_id T n eq_nn t : tcast eq_nn t = t :> n.-tuple T.
+Proof. by rewrite (eq_axiomK eq_nn). Qed.
+
+Lemma tcastK T m n eq_mn : cancel (@tcast m n T eq_mn) (tcast (esym eq_mn)).
+Proof. by case: n / eq_mn. Qed.
+
+Lemma tcastKV T m n eq_mn : cancel (tcast (esym eq_mn)) (@tcast m n T eq_mn).
+Proof. by case: n / eq_mn. Qed.
+
+Lemma tcast_trans T m n p eq_mn (eq_np : n = p) (t : m.-tuple T) :
+  tcast (etrans eq_mn eq_np) t = tcast eq_np (tcast eq_mn t).
+Proof. by case: n / eq_mn eq_np; case: p /. Qed.
+
+Lemma tvalK n T (t : n.-tuple T) : in_tuple t = tcast (esym (size_tuple t)) t.
+Proof. by apply: val_inj => /=; case: _ / (esym _). Qed.
+
+Lemma subsetT_hint (T : finType) mA : subset mA (mem [set: T]).
+Proof. by rewrite unlock; apply/pred0P=> x; rewrite !inE. Qed.
+Hint Resolve subsetT_hint.
 
 Section IsVChar.
 
 Variable (gT : finGroupType) (G : {group gT}).
+Implicit Types (A : {set gT}) (f : {cfun gT}) (S : seq {cfun gT}).
 
-Definition virtual_char_pred m (S : m.-tuple {cfun gT}) (A : {set gT}) :
-  pred {cfun gT} :=
-  [pred x \in span S | (forallb i, isZC (coord S x i)) && (support x \subset A)].
+Definition virtual_char_pred S A :=
+  [pred f \in span S | [&& forallb i, isZC (coord (in_tuple S) f i)
+                         & support f \subset A]].
 
-Local Notation " 'Z[ S , A ]" := 
-  (virtual_char_pred S A) (format " ''Z[' S ,  A ]"). 
-
-Local Notation " 'Z[ S ]" :=  (virtual_char_pred S setT) (format " ''Z[' S ]"). 
-
-Implicit Type f : {cfun gT}.
+Local Notation "''Z[' S , A ]" := (virtual_char_pred S A) : group_scope.
+Local Notation "''Z[' S ]" := 'Z[S, setT] : group_scope.
 
 Lemma vcharP f :
-  reflect (exists f1, exists f2, [/\ is_char G f1, is_char G f2 & f = f1 - f2])
+  reflect (exists2 f1, is_char G f1 & exists2 f2, is_char G f2 & f = f1 - f2)
           (f \in 'Z[irr G]).
 Proof.
-apply: (iffP andP); last first.
-  case=> f1; case=> f2 [Hf1 Hf2 ->]; split.
-    move: (is_basis_irr G); rewrite /is_basis /is_span.
-    case/andP; move/eqP=> -> _.
-    by apply: memv_sub; apply: memc_is_char.
-  apply/andP; split; last by apply/subsetP=> x; rewrite inE.
-  apply/forallP=> x; rewrite linearD linearN /= ffunE isZC_add //.
-    rewrite isZCE; apply/orP; left.
-    rewrite (coord_inner_prodE _ (memc_is_char _)) //.
-    by  exact: isNatC_coord_char.
-  rewrite ffunE isZC_opp //; rewrite isZCE; apply/orP; left.
-  rewrite (coord_inner_prodE _ (memc_is_char _)) //.
-  by exact: isNatC_coord_char.
-case=> Hs; case/andP; move/forallP=> Hc Hss.
-pose f1 := \sum_(i < Nirr G) 
-               (if isNatC('[f, 'xi_i]_G) then '[f, 'xi_i]_G  else 0) *: 'xi_i.
-pose f2 := \sum_(i < Nirr G) 
-              (if isNatC (-'[f, 'xi_i]_G) then -'[f, 'xi_i]_G else 0) *: 'xi_i.
-exists f1; exists f2; split.
-- apply: is_char_sum=> i _.
-  case: (boolP (isNatC _)); last by rewrite scale0r is_char0.
-  by case/isNatCP=> n ->; rewrite scaler_nat is_char_scal // is_char_irr.
-- apply: is_char_sum=> i _.
-  case: (boolP (isNatC _)); last by rewrite scale0r is_char0.
-  by case/isNatCP=> n ->; rewrite scaler_nat is_char_scal // is_char_irr.
-rewrite -sumr_sub.
-have Hf : f \in 'CF(G).
-   by case/andP: (is_basis_irr G) Hs; rewrite /is_span;move/eqP => ->.
-rewrite -{1}(sum_inner_prodE Hf); apply: eq_bigr=> i _.
+rewrite 2!inE tvalK /tcast; case: _ / (esym _).
+have /andP[/(span _ =P _)-> _] := is_basis_irr G.
+apply: (iffP and3P) => [[CFf VCf Af] | [f1 Hf1 [f2 Hf2 ->]]]; last first.
+  split=> //; first by rewrite memv_sub ?memc_is_char.
+  apply/forallP=> i; rewrite linearD linearN !ffunE.
+  have dot_i := coord_inner_prodE i (memc_is_char _).
+  by rewrite isZC_add ?isZC_opp // isZCE dot_i ?isNatC_coord_char.
+pose Nf (i : Iirr G) := isNatC('[f, 'xi_i]_G).
+rewrite -(sum_inner_prodE CFf) (bigID Nf) /=.
+set f1 := \sum_(i | _) _; set f2 := \sum_(i | _) _; exists f1.
+  apply: is_char_sum => i /andP[/isNatCP[n ->] _].
+  by rewrite scaler_nat is_char_scal ?is_char_irr.
+exists (- f2); last by rewrite opprK.
+rewrite -sumr_opp is_char_sum // => i /andP[notNfi _]; rewrite -scaleNr.
 have: isZC ('[f, 'xi_i]_G).
-  by move: (Hc i); rewrite (coord_inner_prodE _ Hf).
-rewrite isZCE; case/orP=> HH; rewrite HH; case: (boolP (isNatC _))=> HH1.
-- suff->: '[f, 'xi_i]_G = 0 by rewrite oppr0 !scale0r subrr.
-  apply: leC_anti; last by apply posC_isNatC.
-  by rewrite -leC_sub sub0r posC_isNatC.
-- by rewrite scale0r subr0.
-- suff->: '[f, 'xi_i]_G = 0 by rewrite oppr0 !scale0r subrr.
-  apply: leC_anti; last by apply posC_isNatC.
-  by rewrite -leC_sub sub0r posC_isNatC.
-by rewrite scale0r sub0r scaleNr opprK.
+  by have:= forallP VCf i; rewrite (coord_inner_prodE _ CFf).
+rewrite isZCE [isNatC _](negbTE notNfi) => /isNatCP[n ->].
+by rewrite scaler_nat is_char_scal ?is_char_irr.
 Qed.
 
 Lemma vchar_char f : is_char G f -> f \in 'Z[irr G].
 Proof.
-move=> Hf; apply/vcharP; exists f; exists 0.
-by split; [ done | exact: is_char0 | rewrite subr0].
+by move=> Hf; apply/vcharP; exists f => //; exists 0; rewrite ?is_char0 ?subr0.
 Qed.
 
 Lemma vchar_irr i : 'xi[G]_i \in 'Z[irr G].
 Proof. by apply: vchar_char; apply: is_char_irr. Qed.
 
-Lemma isZC_inner_prod_vchar (A : {set gT}) (i : Iirr G) (f : {cfun _}) :
+Lemma support_vchar S A f : f \in 'Z[S, A] -> support f \subset A.
+Proof. by case/and3P. Qed.
+
+Lemma span_vchar S A : {subset 'Z[S, A] <= span S}.
+Proof. by move=> f /and3P[]. Qed.
+
+Lemma vcharW S A : {subset 'Z[S, A] <= 'Z[S]}.
+Proof. by move=> f /and3P[Sf VCf _]; exact/and3P. Qed.
+
+Lemma memc_Zirr : {subset 'Z[irr G] <= 'CF(G)}.
+Proof.
+by move=> _ /vcharP[f1 ch1 [f2 ch2 ->]]; rewrite memv_sub ?memc_is_char.
+Qed.
+
+Lemma vchar_split S A f :
+  f \in 'Z[S, A] = (f \in 'Z[S]) && (support f \subset A).
+Proof. by rewrite !inE subsetT_hint -!andbA. Qed.
+
+Lemma memc_vchar A : {subset 'Z[irr G, A] <= 'CF(G, A)}.
+Proof. by move=> f; rewrite vchar_split memcE => /andP[/memc_Zirr-> ->]. Qed.
+
+Lemma memv_vchar S A f : 
+  free S -> support f \subset A -> f \in S -> f \in 'Z[S, A].
+Proof.
+move=> freeS Af Sf; apply/and3P; split=> //; first exact: memv_span.
+have lt_f_S: (index f S < size S)%N by rewrite index_mem.
+apply/forallP=> i; rewrite -(nth_index 0 Sf) (free_coordt (Ordinal _)) //.
+exact: isZC_nat.
+Qed.
+
+Lemma isZC_inner_prod_vchar A (i : Iirr G) f :
   f \in 'Z[irr G, A] -> isZC ('[f, 'xi_i]_G).
-Proof. 
-case/and3P=> Hc; move/forallP => HH Hf.
-have CFf:  f \in 'CF(G).
-  move: (is_span_is_basis (is_basis_irr G)).
-  by rewrite /is_span; move/eqP<-.
-by move: (HH i); rewrite -(coord_inner_prodE _ CFf).
+Proof.
+move=> VCf; have /and3P[_ /forallP] := VCf.
+rewrite tvalK /tcast; case: _ / (esym _) => Zf _.
+by rewrite -(coord_inner_prodE _ (memc_Zirr (vcharW VCf))) Zf.
 Qed.
 
 Lemma isZC_coord_vchar m (S : m.-tuple _) A f i : 
   f \in 'Z[S, A] -> isZC (coord S f i).
-Proof. by case/and3P => _; move/forallP. Qed.
+Proof. by case/and3P; rewrite tvalK; case: _ / (esym _) => _ /forallP->. Qed.
 
-Lemma support_vchar m (S : m.-tuple _) A f :
-  f \in 'Z[S, A] -> support f \subset A.
-Proof. by case/and3P. Qed.
-
-Lemma span_vchar m (S : m.-tuple _) A f : f \in 'Z[S, A] -> f \in span S.
-Proof. by case/and3P. Qed.
-
-Lemma memc_vchar f A : f \in 'Z[irr G, A]-> f \in 'CF(G, A).
+Lemma inner_prod_vchar A f1 f2 :
+    f1 \in 'Z[irr G, A] -> f2 \in 'Z[irr G, A] ->
+  '[f1, f2]_G = \sum_(i < Nirr G) '[f1, 'xi_i]_G * '[f2, 'xi_i]_G.
 Proof.
-case/and3P=> Hspan; move/forallP => Hc Hsup.
-case/andP: (is_basis_irr G) Hspan; rewrite /is_span;move/eqP => -> _ HH.
-by rewrite memcE Hsup.
+move=> /vcharW CFf1 /vcharW CFf2.
+rewrite (inner_prod_cf (memc_Zirr CFf1)) ?memc_Zirr //.
+by apply: eq_bigr=> t _; rewrite isZC_conj ?(isZC_inner_prod_vchar _ CFf2).
 Qed.
 
-Lemma vcharW f A : f \in 'Z[irr G, A]-> f \in 'Z[irr G].
+Lemma isZC_inner_Zirr : {in 'Z[irr G] &, forall phi psi, isZC ('[phi, psi]_G)}.
 Proof.
-case/and3P=> Hspan Hc Hsup;apply/and3P;split => //.
-by apply/subsetP=>x; rewrite inE.
+move=> phi psi Zphi Zpsi; rewrite /= (inner_prod_vchar Zphi Zpsi).
+by apply: isZC_sum => k _; rewrite isZC_mul ?(@isZC_inner_prod_vchar setT).
 Qed.
 
-Lemma vchar0 m (S : m.-tuple _) A : 0 \in 'Z[S, A].
+Lemma vchar0 S A : 0 \in 'Z[S, A].
 Proof.
-rewrite !inE; apply/and3P;split; first by apply: mem0v.
+rewrite !inE; apply/and3P; split; first by apply: mem0v.
   by apply/forallP=> i;rewrite linear0  ffunE (isZC_nat 0). 
 by apply/subsetP=> x; rewrite !inE ffunE eqxx.
 Qed.
 
-Lemma vchar_support f A:
-  f \in 'Z[irr G, A] =  (f \in 'Z[irr G]) && (support f \subset A).
+Lemma vchar_opp S A f : (- f \in 'Z[S, A]) = (f \in 'Z[S, A]).
 Proof.
-apply/idP/idP=>H; last first.
-  by case/andP:H; case/and3P=>irrGaa ZGaa Aaa Hs;apply/and3P.
-move/memc_vchar: (H); rewrite memcE; case/andP=> -> HCF.
-rewrite andbT.
-case/and3P: H=> irrGaa ZGaa Aaa; apply/and3P; split=> //.
-by apply/subsetP=> x; rewrite inE.
+wlog suff: f / f \in 'Z[S, A] -> - f \in 'Z[S, A].
+  by move=> IH; apply/idP/idP=> /IH //; rewrite opprK.
+case/and3P=> Sf /forallP VCf Af; rewrite !inE memvN {}Sf linearN /=.
+apply/andP; split; first by apply/forallP=> i; rewrite ffunE isZC_opp.
+by apply: etrans Af; apply: eq_subset => a; rewrite !inE ffunE oppr_eq0.
 Qed.
 
-Lemma vchar_opp m (S : m.-tuple _) A f : f \in 'Z[S, A]-> (-f) \in 'Z[S, A].
+Lemma vchar_add S A f1 f2 :
+  f1 \in 'Z[S, A]-> f2 \in 'Z[S, A]-> (f1 + f2) \in 'Z[S, A].
 Proof.
-case/and3P=> Hspan; move/forallP=> HZC; move/subsetP=> Hs.
-apply/and3P;split;first by rewrite memvN.
-  by apply/forallP=>i; rewrite linearN ffunE isZC_opp.
-apply/subsetP=> x. move: (Hs x);rewrite !inE ffunE=> Hsx HfN.
-by apply:Hsx; apply/negPf;rewrite -(negPf HfN) oppr_eq0.
+case/and3P=> Sf1 /forallP VCf1 /off_support Af1.
+case/and3P=> Sf2 /forallP VCf2 /off_support Af2.
+rewrite !inE memvD //=; apply/andP; split.
+  by apply/forallP=> a; rewrite linearD ffunE isZC_add.
+by apply/subsetP=> a; apply: contraR => notAa; rewrite ffunE Af1 // add0r Af2.
 Qed.
 
-Lemma vchar_add m (S : m.-tuple _) A f1 f2 :
-  f1 \in 'Z[S, A]-> f2  \in 'Z[S, A]-> (f1 + f2) \in 'Z[S, A].
+Lemma vchar_sub S A f1 f2 : 
+   f1 \in 'Z[S, A] -> f2 \in 'Z[S, A] -> (f1 - f2) \in 'Z[S, A]. 
+Proof. by move=> Hf1 Hf2; rewrite vchar_add ?vchar_opp. Qed.
+
+Lemma vchar_scal S A f n : f \in 'Z[S, A] -> (f *+ n) \in 'Z[S, A].
 Proof.
-case/and3P=> Hspan1; move/forallP=> HZC1; move/off_support=> Hs1.
-case/and3P=> Hspan2; move/forallP=> HZC2; move/off_support=> Hs2.
-apply/and3P;split;first by rewrite  memvD.
-  by apply/forallP=>i; rewrite linearD ffunE isZC_add.
-apply/subsetP=> x; rewrite !inE; apply:contraR=> Hx.
-by rewrite ffunE (Hs1 _ Hx)(Hs2 _ Hx) add0r.
+by move=> Hf; elim: n => [|n Hn]; rewrite ?vchar0 // mulrS vchar_add.
 Qed.
 
-Lemma vchar_sub m (S : m.-tuple _) A f1 f2 : 
-   f1  \in 'Z[S, A]  -> f2 \in 'Z[S, A] -> (f1 - f2) \in 'Z[S, A]. 
-Proof. by move=> Hf1 Hf2; apply: vchar_add=> //; exact: vchar_opp. Qed.
+Lemma vchar_scaln S A f n : f \in 'Z[S, A] -> (f *- n) \in 'Z[S, A].
+Proof. by move=> Hf; rewrite vchar_opp vchar_scal. Qed.
 
-Lemma vchar_scal m (S : m.-tuple _) A f n :
-  f \in 'Z[S, A] -> (f *+ n) \in 'Z[S, A].
+Lemma vchar_scalZ S A f a : isZC a -> f \in 'Z[S, A] -> a *: f \in 'Z[S, A].
 Proof.
-move=> Hf; elim: n=> [|n Hn]; first by rewrite mulr0n  vchar0.
-by rewrite mulrS vchar_add.
+move/eqP=> -> /vchar_scal Sf.
+by case: getZC => [[] n]; rewrite ?mulNr mul1r ?scaleNr ?vchar_opp scaler_nat.
 Qed.
 
-Lemma vchar_scaln m (S : m.-tuple _) A f n :
-  f \in 'Z[S, A] -> (f *- n) \in 'Z[S, A].
+Lemma vchar_sum S A I r (P : pred I) F :
+  (forall i, P i -> F i \in 'Z[S, A]) -> \sum_(i <- r | P i) F i \in 'Z[S, A].
 Proof.
-move=> Hf; elim: n=> [|n Hn]; first by rewrite oppr0 vchar0.
-by rewrite -mulNrn mulrS mulNrn vchar_add // vchar_opp.
-Qed.
-
-Lemma vchar_sum m (S : m.-tuple _) A (I : eqType) r (P : I -> bool) 
-                  (F : I -> {cfun _}) :
-  (forall i, ((P i) && (i \in r)) -> (F i) \in 'Z[S, A]) -> 
-    (\sum_(i <- r | P i)  F i) \in 'Z[S, A].
-Proof.
-elim: r=> [| a r IH HH]; first by rewrite big_nil vchar0.
-have HF : (\sum_(i <- r | P i) F i) \in 'Z[S, A].
-  by apply: IH=> i; case/andP=> HH1 HH2; apply: HH; rewrite HH1 inE HH2 orbT.
-rewrite big_cons; case: (boolP (P a))=> HP //; rewrite vchar_add //.
-by rewrite HH // inE eqxx andbT.
+by move=> S_F; elim/big_rec: _ => [|i f Pi Sf]; rewrite ?vchar0 ?vchar_add ?S_F.
 Qed.
 
 Lemma vchar_mul f g A : 
-  f \in 'Z[irr G, A]-> g  \in 'Z[irr G, A]->  (f * g) \in 'Z[irr G, A].
+  f \in 'Z[irr G, A]-> g \in 'Z[irr G, A]-> (f * g) \in 'Z[irr G, A].
 Proof.
-rewrite vchar_support; case/andP=> H1f H2f.
-rewrite vchar_support; case/andP=> H1g H2g.
-rewrite vchar_support; apply/andP; split; last first.
-  apply/subsetP=> x; rewrite !inE;apply:contraR=> XniA; rewrite ffunE.
-  by move/off_support: H2f; move/(_ _ XniA) ->; rewrite mul0r.
-case/vcharP:H1f=>f1; case=> f2 [Hf1 Hf2 ->].
-case/vcharP:H1g=>g1; case=> g2 [Hg1 Hg2 ->].
-apply/vcharP;exists ((f1 * g1) + (f2 * g2));exists ((f1 * g2 ) + (f2 * g1)).
-split;rewrite ?(is_char_add, is_char_mul)//.
-rewrite !mulr_addl !mulr_subr -!addrA; congr  (_ + _).
-rewrite addrC -!addrA !mulNr opprK addrC -!addrA;congr (_ + _). 
-by rewrite oppr_add.
+rewrite !(vchar_split _ A) => /andP[/vcharP[f1 Cf1 [f2 Cf2 def_f]] Af].
+case/andP=> [/vcharP[g1 Cg1 [g2 Cg2 ->]] _].
+apply/andP; split; last first.
+  apply/subsetP=> a; rewrite !inE; apply: contraR => notAa.
+  by rewrite ffunE (off_support Af) ?mul0r.
+have isch := (is_char_add, is_char_mul); apply/vcharP.
+exists (f1 * g1 + f2 * g2); first by rewrite !isch.
+exists (f1 * g2 + f2 * g1); first by rewrite !isch.
+by rewrite mulr_subr def_f !mulr_subl addrAC oppr_sub -!addrA -oppr_add.
 Qed.
 
-Lemma vchar_subset m n (S1 : m.-tuple {cfun gT}) (S2 : n.-tuple _) A :
+Lemma vchar_trans S1 S2 A B :
+    free S1 -> free S2 -> {subset S1 <= 'Z[S2, B]} ->
+  {subset 'Z[S1, A] <= 'Z[S2, A]}.
+Proof.
+move=> freeS1 freeS2 sS12 f /and3P[S1f VCf Af]; rewrite !inE {}Af andbT.
+rewrite (@coord_span _ _ _ (in_tuple S1) f) ?memv_suml // => [|i _]; last first.
+  by rewrite memvZ (span_vchar (sS12 _ _)) ?mem_nth ?orbT.
+apply/forallP=> i; rewrite coord_sumE isZC_sum // => j _.
+rewrite linearZ !ffunE /= isZC_mul ?(forallP VCf) //.
+by have/and3P[_ /forallP-> _]: S1`_j \in 'Z[S2, B] by rewrite sS12 ?mem_nth.
+Qed.
+
+Lemma vchar_sub_irr S A :
+  free S -> {subset S <= 'Z[irr G]} -> {subset 'Z[S, A] <= 'Z[irr G, A]}.
+Proof. by move/vchar_trans; apply; exact: free_irr. Qed.
+
+Lemma vchar_subset S1 S2 A :
   free S1 -> free S2 -> {subset S1 <= S2} -> {subset 'Z[S1, A] <= 'Z[S2, A]}.
 Proof.
-move=> FS1 FS2 Hs f; case/and3P=> Hf Cf Sf; apply/and3P; split=> //.
-  by move/subvP: (span_subset Hs); apply.
-apply/forallP=> /= i.
-case: m S1 FS1 Hs Hf {Sf}Cf=> [|m S1 FS1 Hs Hf Cf].
-  (do 2 case)=> //= _ _ _ HH _; move: HH; rewrite span_nil.
-  case/injvP=> k; rewrite scaler0=> ->.
-  by rewrite linear0 ffunE (isZC_nat 0).
-case: n i S2 FS2 Hs=> [|n] i S2 FS2 Hs.
-  by move: (uniq_leq_size (uniq_free FS1) Hs); rewrite !size_tuple.
-pose g (i : 'I_n.+1) : 'I_m.+1 := locked (inZp (index S2`_i S1)).
-pose h (i : 'I_m.+1) : 'I_n.+1 := locked (inZp (index S1`_i S2)).
-pose c (i : 'I_n.+1) := if S2`_ i \in S1 then (coord S1 f) (g i) else 0.
-suff->: f = \sum_(i < n.+1) c i *: (S2`_i).
-  rewrite free_coords // /c /=; case: (boolP (_ \in _))=> Hi; last first.
-    by rewrite (isZC_nat 0).
-  by move/forallP: Cf; apply.
-rewrite (bigID (fun i : 'I_n.+1 =>  S2`_i \in S1)) /= [X in _ + X]big1 ?addr0.
-  have F0: forall j : 'I_m.+1, S1`_j \in S2.
-    by move=> j;  rewrite Hs // mem_nth // size_tuple.
-  have F1: forall j : 'I_m.+1,S2`_(h j) = S1`_j.
-    move=> j; rewrite /h; unlock; rewrite /= modn_small ?nth_index //.
-    by move: (F0 j); rewrite -index_mem size_tuple.
-  have F2: forall j : 'I_n.+1, S2`_j \in S1 -> S1`_(g j) = S2`_j.
-    move=> j FF; rewrite /g; unlock; rewrite /= modn_small ?nth_index //.
-    by move: FF; rewrite -index_mem size_tuple.
-  have F3: forall j, g (h j) = j. 
-    move=> j; rewrite /g; unlock; rewrite F1.
-    apply/val_eqP=> /= ; rewrite /= modn_small.
-      by rewrite index_uniq ?size_tuple // uniq_free.
-    by rewrite -{4}(size_tuple S1) index_mem // mem_nth // size_tuple.
-  rewrite (eq_bigr (fun i => (coord S1 f) (g i) *: S1`_(g i))); last first.
-     by move=> j SiS; rewrite /c SiS F2.
-  rewrite (reindex h) /=.
-    rewrite (coord_span Hf).
-    apply: eq_big=> /= [j|j _].
-      by rewrite F1 mem_nth // size_tuple.
-    by rewrite F3 free_coords.
-  exists g=> u; rewrite inE ? F3 //=.
-  move=> FF; rewrite /h; unlock; rewrite F2 //.
-  apply/val_eqP=> /= ; rewrite /= modn_small.
-   by rewrite index_uniq ?size_tuple // uniq_free.
-  by rewrite -{4}(size_tuple S2) index_mem // mem_nth // size_tuple.
-by move=> j; rewrite /c; move/negPf->; exact: scale0r.
+move=> freeS1 freeS2 sS12; apply: vchar_trans setT _ _ _ => // f /sS12 S2f.
+exact: memv_vchar.
 Qed.
 
-Lemma vchar_split m (S : m.-tuple _) A (f : {cfun gT}) : 
-  f \in 'Z[S, A] =  (f \in 'Z[S]) && (support f \subset A).
+Lemma vchar_subseq S1 S2 A :
+  free S2 -> subseq S1 S2 -> {subset 'Z[S1, A] <= 'Z[S2, A]}.
 Proof.
-(apply/and3P/andP; case)=> [H1 H2 H3|H1 H2]; split=> //.
-- apply/and3P; split=> //.
-  by apply/subsetP=> i; rewrite inE.
-- by case/and3P: H1.
-by case/and3P: H1.
+move=> freeS2 sS12; apply: vchar_subset (mem_subseq sS12) => //.
+by rewrite (subseq_uniqP _ (uniq_free freeS2) sS12) free_filter.
 Qed.
 
-Lemma memv_vchar m (S : m.-tuple _) (A: {set gT}) (f : {cfun gT}) : 
-  free S -> (support f \subset A) -> f \in S -> f \in 'Z[S, A].
+Lemma vchar_filter S A (p : pred {cfun gT}) :
+  free S -> {subset 'Z[filter p S, A] <= 'Z[S, A]}.
 Proof.
-case: m S=> [|m] S HF HS FiS; first by case: {HF}S FiS; case.
-apply/and3P; split=> //; first by apply: memv_span.
-apply/forallP=> i.
-have->: f = S`_(inZp (index f S): 'I_m.+1).
-  by rewrite /= modn_small ?nth_index // -{2}(size_tuple S) index_mem.
-by rewrite (free_coordt _ _ HF) isZC_nat.
-Qed.
-
-Lemma inner_prod_vchar A (chi1 chi2 : {cfun gT}) :
-   chi1 \in 'Z[irr G, A] -> chi2 \in 'Z[irr G, A] ->
-   '[chi1, chi2]_G = \sum_(i < Nirr G) '[chi1, 'xi_i]_G * '[chi2, 'xi_i]_G.
-Proof.
-move=> H1 H2.
-move/memc_vchar: (H1)=>/memcW H1CF; move/memc_vchar:(H2)=>/memcW H2CF.
-rewrite (inner_prod_cf H1CF) //.
-apply: eq_bigr=> t _; rewrite isZC_conj //.
-by apply: isZC_inner_prod_vchar H2.
+move=> freeS; apply: vchar_subset; rewrite ?free_filter // => f.
+by rewrite mem_filter => /andP[].
 Qed.
 
 End IsVChar.
 
-Notation " 'Z[ S , A ]" := 
-  (virtual_char_pred S A) (format " ''Z[' S ,  A ]").
-
-Notation " 'Z[ S ]" :=  (virtual_char_pred S [set : _]) (format " ''Z[' S ]"). 
+Notation "''Z[' S , A ]" := (virtual_char_pred S A) : group_scope.
+Notation "''Z[' S ]" := 'Z[S, setT] : group_scope.
 
 Section MoreIsVChar.
 
@@ -307,16 +282,15 @@ Variable G H : {group gT}.
 Lemma vchar_restrict f : 
   H \subset G -> f \in 'Z[irr G] -> 'Res[H] f \in 'Z[irr H].
 Proof.
-move=> HsG; case/vcharP=> f1; case=> f2 [Hf1 Hf2 ->].
-by rewrite linearD linearN vchar_sub // vchar_char // (is_char_restrict HsG).
+move=> HsG /vcharP[f1 Cf1 [f2 Cf2 ->]].
+by rewrite linear_sub vchar_sub // vchar_char // (is_char_restrict HsG).
 Qed.
 
-Lemma vchar_induced chi :
-   H \subset G -> chi \in 'Z[irr H] -> 'Ind[G,H] chi \in 'Z[irr G].
+Lemma vchar_induced f :
+  H \subset G -> f \in 'Z[irr H] -> 'Ind[G, H] f \in 'Z[irr G].
 Proof.
-move=> HsG; case/vcharP=> f1; case=> f2 [Hf1 Hf2 ->].
-by rewrite linearD linearN vchar_add ?vchar_opp //
-           vchar_char // is_char_induced.
+move=> HsG /vcharP[f1 Cf1 [f2 Cf2 ->]].
+by rewrite linear_sub vchar_sub // vchar_char // is_char_induced.
 Qed.
 
 End MoreIsVChar.

@@ -354,15 +354,7 @@ Variables (gT : finGroupType) (m : nat).
 Implicit Types (G : {group gT}) (A : {set gT}) (S : m.-tuple {cfun gT}).
 
 Lemma vchar_sign S A xi n : ((-1) ^+ n *: xi \in 'Z[S, A]) = (xi \in 'Z[S, A]).
-Proof.
-rewrite -signr_odd scaler_sign; case: ifP => // _.
-by apply/idP/idP=> /vchar_opp; rewrite ?opprK.
-Qed.
-
-Lemma memc_Zirr G : {subset 'Z[irr G] <= 'CF(G)}.
-Proof.
-by move=> _ /vcharP[xi1 [xi2 [? ? ->]]]; rewrite memv_sub ?memc_is_char.
-Qed.
+Proof. by rewrite -signr_odd scaler_sign; case: ifP; rewrite ?vchar_opp. Qed.
 
 Lemma isZC_inner_Zirr G :
   {in 'Z[irr G] &, forall phi psi, isZC ('[phi, psi]_G)}.
@@ -491,7 +483,7 @@ Variable gT : finGroupType.
 (* This is Peterfalvi, Definition (5.1). *)
 (* It is unclear whether the non-triviality condiiton is used at all. *)
 Definition coherent m L G (S : m.-tuple {cfun gT}) A tau
-                           of {in 'Z[S, A], isometry L G tau} :=
+                           of {in 'Z[S, A] &, isometry L G tau} :=
   [/\ exists2 theta, theta \in 'Z[S, A] & theta != 0
     & exists tau1 : {additive {cfun gT} -> {cfun gT}},
       [/\ {in 'Z[S] &, isometry L G tau1},
@@ -501,10 +493,10 @@ Definition coherent m L G (S : m.-tuple {cfun gT}) A tau
 (* This is Peterfalvi, Hypothesis (5.2). *)
 (* The Z-linearity constraint on tau will be expressed by an additive or      *)
 (* linear structure on tau. Also, we allow S to contain virtual character.    *)
-Definition precoherent m L G (S : m.-tuple {cfun gT}) tau R :=
+Definition precoherent R m L G (S : m.-tuple {cfun gT}) tau
+    of {in 'Z[S, L^#] &, isometry L G tau} :=
   [/\ (*a*) {subset S <= 'Z[irr L]} /\ conjC_closed S,
-      (*b*) {in 'Z[S, L^#] &, isometry L G tau}
-            /\ {in 'Z[S, L^#], forall phi, tau phi \in 'Z[irr G, G^#]},
+      (*b*) {in 'Z[S, L^#], forall phi, tau phi \in 'Z[irr G, G^#]},
       (*c*) pairwise_orthogonal L S,
       (*d*) {in S, forall xi : {cfun gT},
               [/\ {subset R xi <= 'Z[irr G]}, orthonormal G (R xi)
@@ -514,13 +506,13 @@ Definition precoherent m L G (S : m.-tuple {cfun gT}) tau R :=
               orthogonal G (R phi) (R xi)}].
 
 (* This is Peterfalvi (5.2)(a). *)
-Lemma irr_precoherent m (L G : {group gT}) (S : m.-tuple {cfun gT}) tau :
+Lemma irr_precoherent m (L G : {group gT}) (S : m.-tuple {cfun gT}) tau 
+                      (isoL : {in 'Z[S, L^#] &, isometry L G tau}) :
     [/\ uniq S, {subset S <= irr L} & conjC_closed S] ->
-    {in 'Z[S, L^#] &, isometry L G tau}
-      /\ {in 'Z[S, L^#], forall phi, tau phi \in 'Z[irr G, G^#]} ->
-  {R : {cfun gT} -> seq {cfun gT} | precoherent L G S tau R}.
+    {in 'Z[S, L^#], forall phi, tau phi \in 'Z[irr G, G^#]} ->
+  {R : {cfun gT} -> seq {cfun gT} | precoherent R isoL}.
 Proof.
-move=> [U_S irrS clC_S] [iso_tau VCtau].
+move=>  [U_S irrS clC_S] VCtau.
 pose beta xi := tau (xi - xi^*)%CH.
 pose R xi :=
   filter (predC1 0) [seq '[beta xi, 'xi_i]_G *: 'xi_i | i <- enum (Iirr G)].
@@ -552,7 +544,7 @@ have szR: {in S, forall xi,
     rewrite big_filter big_map [in R in _ = R]big_mkcond enumT.
     by apply: eq_bigr => j _ /=; case: eqP.
   have norm_beta: '[beta xi]_G = 2%:R.
-    rewrite iso_tau ?dom_beta // -inner_prodbE linear_sub /= !inner_prodbE.
+    rewrite isoL ?dom_beta // -inner_prodbE linear_sub /= !inner_prodbE.
     rewrite !raddf_sub /= opprK -def_xi -conj_idxE !irr_orthonormal !eqxx.
     rewrite eq_sym -(inj_eq (@xi_inj _ L)) conj_idxE def_xi (negbTE neq_xi_b).
     by rewrite !addrA !subr0.
@@ -588,7 +580,7 @@ have szR: {in S, forall xi,
   by rewrite count_predT -Monoid.iteropE.
 split=> // [xi /szR[] // | xi phi Sxi Sphi /= /andP[/and3P[opx opx' _] _]].
 have obpx: '[beta phi, beta xi]_G = 0.
-  rewrite iso_tau ?dom_beta // inner_prodDl inner_prodNl !raddf_sub //=.
+  rewrite isoL ?dom_beta // inner_prodDl inner_prodNl !raddf_sub //=.
   rewrite -{3}[xi]cfun_conjCK !cfun_conjC_inner (eqP opx) (eqP opx').
   by rewrite rmorph0 !oppr0 !addr0.
 case: (R phi) (szR _ Sphi) => /= [|a [|b [|? ?]]] [dbp Zab o_ab // _].
@@ -597,7 +589,7 @@ suffices: orthonormal G [:: a; - b; c; d].
   rewrite (orthonormal_cat G [:: a; _]) andbA; case/andP=> _ /=.
   by rewrite !inner_prodNl !oppr_eq0 !andbT.
 apply: (@vchar_pairs_orthonormal _ G _ _ _ _ 1 (-1)).
-- by split=> //; apply/allP; case/allP/and3P: Zab => /= -> /vchar_opp->.
+- by split=> //; apply/allP; rewrite /= vchar_opp; move/allP: Zab.
 - rewrite o_cd andbT /orthonormal /= inner_normN inner_prodNr !oppr_eq0.
   by rewrite memvN.
 - by rewrite /isRealC oppr_eq0 oner_eq0 rmorphN rmorph1 !eqxx.
@@ -605,5 +597,41 @@ rewrite !big_cons !big_nil !addr0 in dbp dbx.
 rewrite scale1r scaleN1r !opprK -dbp -dbx obpx eqxx /=.
 by rewrite !(cfunS0 (memc_vchar (VCtau _ _))) ?dom_beta ?inE ?eqxx.
 Qed.
+
+(*
+Section PreCoherentProperties.
+
+Variable R : {cfun gT} -> seq {cfun gT}.
+Variables (m : nat) (L G : {group gT}) (S : m.-tuple {cfun gT}).
+Variable tau : {additive {cfun gT} -> {cfun gT}}.
+Hypothesis isoL : {in 'Z[S, L^#] &, isometry L G tau}.
+Hypothesis cohR : precoherent R isoL.
+
+Lemma precoherent_split xi beta :
+    xi \in S -> beta \in 'Z[irr G] ->
+    exists X : {cfun gT}, exists Y : {cfun gT},
+  [/\ beta = X - Y, X \in 'Z[R xi] & orthogonal G [:: Y] (R xi)].
+Proof.
+move=> Sxi VCbeta.
+
+(* This is Peterfalvi (5.4) *)
+Lemma precoherent_norm xi psi (tau1 : {additive {cfun gT} -> {cfun gT}}) X Y :
+    [/\ xi \in S, psi \in 'Z[irr G] & orthogonal L [:: xi; xi^*%CH] [:: psi]] ->
+    let S0 := [:: xi - psi; xi - xi^*%CH] in
+    {in 'Z[S0] &, isometry L G tau1}
+      /\ {in 'Z[S0], forall phi, tau1 phi \in 'Z[irr G]} ->
+    tau1 (xi - xi^*%CH) = tau (xi - xi^*%CH) ->
+    [/\ tau1 (xi - psi) = X - Y, X \in 'Z[R xi]
+      & orthogonal G [:: Y] (R xi)] ->
+ [/\ (*a*) '[xi]_L <= '[X]_G
+   & (*b*) '[psi]_L <= '[Y]_G ->
+           [/\ '[X]_G = '[xi]_L, '[Y]_G = '[psi]_L
+             & exists2 E, subseq E (R xi) & X = \sum_(alpha <- E) alpha]].
+Proof.
+
+                           of {in 'Z[S, A], isometry L G tau} :
+
+End PreCoherentProperties.
+*)
 
 End Five.

@@ -698,9 +698,8 @@ End DadeExpansion.
 (* This is Peterfalvi (2.6)(b) *)
 Lemma Dade_vchar alpha : alpha \in 'Z[irr L, A] -> alpha^\tau \in 'Z[irr G].
 Proof.
-move=> VCaa; move: (VCaa); rewrite vchar_split; case/andP=> VCa _.
-have CFaa := memc_vchar VCaa.
-rewrite Dade_expansion // vchar_opp // vchar_sum // => B /andP[dB _].
+move=> VCaa; have [VCa CFaa] := (vcharW VCaa, memc_vchar VCaa).
+rewrite Dade_expansion // vchar_opp // vchar_sum // => B dB.
 have{dB} dB: B \in calP.
   case/imsetP: dB => B0; case/setIdP=> sB0A notB00 defB.
   have [x Lx ->]: exists2 x, x \in L & B = B0 :^ x.
@@ -711,7 +710,7 @@ set aaBt := 'Ind[G, _] _; suff ZGaaBt: aaBt \in 'Z[irr G].
 apply: vchar_induced => /=.
   have [sBA /set0Pn[b Bb]] := setIdP dB; have Ab := subsetP sBA b Bb.
   by rewrite gen_subG subUset (bigcap_min b) ?sHG // subIset ?sLG.
-have [a1 [a2 [ch_a1 ch_a2 ->]]] := vcharP _ _ VCa.
+have [a1 ch_a1 [a2 ch_a2 ->]] := vcharP _ _ VCa.
 set rB := Dade_cfun_restriction.
 have ->: rB (a1 - a2) B = rB a1 B - rB a2 B.
   by apply/ffunP=> x; rewrite !ffunE; case: (x \in 'M(B)) => //; rewrite subr0.

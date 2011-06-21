@@ -575,7 +575,7 @@ Definition nonprincipal_irr :=
   odflt v (insub s). 
 
 Definition irr : pred_Nirr.+1.-tuple {cfun gT} :=
-  [tuple of '1_<<G>> :: nonprincipal_irr].
+  locked [tuple of '1_<<G>> :: nonprincipal_irr].
 
 Definition irr_representation (i : 'I_pred_Nirr.+1)  := 
   oapp (fun x => Representation (irr_repr x))
@@ -599,10 +599,10 @@ Section IrrClass.
 Variable (gT : finGroupType) (G : {group gT}).
 
 Lemma cfuni_xi0 : '1_G = 'xi[G]_0.
-Proof.  by rewrite (tnth_nth 0) /= genGid. Qed.
+Proof.  by unlock irr; rewrite (tnth_nth 0) /= genGid. Qed.
 
 Lemma irr_cfuni : '1_G \in irr G.
-Proof. by rewrite inE genGid eqxx. Qed.
+Proof. by rewrite cfuni_xi0 (tnth_nth 0) mem_nth ?size_tuple. Qed.
 
 Lemma NirrE : Nirr G = #|classes G|.
 Proof. by rewrite /pred_Nirr (cardD1 [1]) classes1. Qed.
@@ -615,7 +615,7 @@ Let base_irr :=
 
 Lemma perm_eq_irr : perm_eq (irr G) base_irr.
 Proof.
-rewrite /irr /nonprincipal_irr; case: rot_to=> n s' HH.
+unlock irr nonprincipal_irr; case: rot_to=> n s' HH.
 rewrite perm_eq_sym -(perm_rot n base_irr) HH /=.
 case: (insubP _)=> /= [u _ -> // |].
 rewrite -eqSS (_: (size s').+1 = size('1_<<G>>::s')) // -{1}HH.
@@ -646,7 +646,7 @@ by exists (Ordinal Hj); rewrite (tnth_nth 0).
 Qed.
 
 Definition socle_of_Iirr (i : Iirr G) : sG :=
-  odflt  [1 sG]%irr (pick (fun j => 'xi_i == char_of_repr G (irr_repr j))).
+  odflt [1 sG]%irr [pick j | 'xi_i == char_of_repr G (irr_repr j)].
 
 Lemma socle_of_IirrE (i : Iirr G) :
   char_of_repr G (irr_repr (socle_of_Iirr i)) = 'xi_i.
@@ -656,7 +656,7 @@ by case/irrP: (irr_xi i)=> j <-; move/(_ j); rewrite eqxx.
 Qed.
 
 Definition irr_of_socle (i : sG) : Iirr G :=
-  odflt 0 (pick (fun j : Iirr G => 'xi_j == char_of_repr G (irr_repr i))).
+  odflt 0 [pick j : Iirr G | 'xi_j == char_of_repr G (irr_repr i)].
 
 Lemma irr_of_socleE i : 'xi_(irr_of_socle i) = char_of_repr G (irr_repr i).
 Proof.
@@ -1603,9 +1603,8 @@ have F1:  forall i : Iirr G,
 case/eqP: (nonzero1r algC).
 move: (posC_sum_eq0 F1)=> /=.
 move: HH1; rewrite -[index_enum _]enumT => HH1.
-move/(_ HH1); move/(_ 0)=> /=.
-rewrite !cfuniE genGid GiG HiG conjC1 mul1r; apply=> //.
-by rewrite  mem_enum.
+move/(_ HH1)/(_ 0)=> /=; rewrite mem_enum => /(_ isT).
+by rewrite -cfuni_xi0 !ffunE GiG HiG conjC1 mul1r.
 Qed.
 
 (* This corresponds to Isaacs' 6.32 *)

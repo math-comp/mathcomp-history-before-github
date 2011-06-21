@@ -90,7 +90,7 @@ rewrite (cardD1 (0 : Iirr _)).
 have->: 0 \in 'Fix_ito[a].
   apply/afixP=> b; rewrite !inE; move/eqP->; rewrite /=.
   apply: xi_inj; apply/ffunP=> g.
-  by rewrite conj_idxE cfun_conjCE !cfuniE conjC_nat.
+  by rewrite conj_idxE cfun_conjCE -cfuni_xi0 ffunE conjC_nat.
 rewrite (cardD1 t) //.
 suff->: t \in [predD1 'Fix_ito[a] & 0] by [].
 rewrite inE /= Hd.
