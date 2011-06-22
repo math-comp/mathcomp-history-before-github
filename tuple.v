@@ -14,22 +14,23 @@ Unset Printing Implicit Defensive.
 (*         in_tuple s == the (size s)-tuple with value s.                     *)
 (*            [tuple] == the empty tuple, and                                 *)
 (* [tuple x1; ..; xn] == the explicit n.-tuple <x1; ..; xn>.                  *)
-(* As n.-tuple T coerces to seq t, all operations for seq (size, nth, ...)    *)
-(* can be applied to t : n.-tuple T; we provide a few specialized instances   *)
-(* when this avoids the need for a default value.                             *)
+(*        tcast Emn t == the m-tuple t cast as an n-tuple using Emn : m = n.  *)
+(* As n.-tuple T coerces to seq t, all seq operations (size, nth, ...) can be *)
+(* applied to t : n.-tuple T; we provide a few specialized instances when     *)
+(* avoids the need for a default value.                                       *)
 (*            tsize t == the size of t (the n in n.-tuple T)                  *)
 (*           tnth t i == the i'th component of t, where i : 'I_n.             *)
 (*         [tnth t i] == the i'th component of t, where i : nat.              *)
 (*            thead t == the first element of t, when n is m.+1 for some m.   *)
 (* Most seq constructors (cons, behead, cat, rcons, belast, take, drop, rot,  *)
 (* map, ...) can be used to build tuples via the [tuple of s] construct.      *)
-(*   Tuples are actually a subType of seq, and inherit all combinatorial     *)
-(* structures, including the finType structure.                              *)
-(*   Some useful lemmas and definitions:                                     *)
-(*     tuple0 : [tuple] is the only 0.-tuple                                 *)
-(*     tupleP : elimination view for n.+1.-tuple                             *)
-(*     ord_tuple n : the n.-tuple of all i : 'I_n                            *)
-(*****************************************************************************)
+(*   Tuples are actually a subType of seq, and inherit all combinatorial      *)
+(* structures, including the finType structure.                               *)
+(*   Some useful lemmas and definitions:                                      *)
+(*     tuple0 : [tuple] is the only 0.-tuple                                  *)
+(*     tupleP : elimination view for n.+1.-tuple                              *)
+(*     ord_tuple n : the n.-tuple of all i : 'I_n                             *)
+(******************************************************************************)
 
 Section Def.
 
@@ -100,7 +101,36 @@ Notation "[ 'tuple' x1 ; .. ; xn ]" := [tuple of x1 :: .. [:: xn] ..]
 Notation "[ 'tuple' ]" := [tuple of [::]]
   (at level 0, format "[ 'tuple' ]") : form_scope.
 
-Definition in_tuple T (s : seq T) := Tuple (eqxx (size s)).
+Section CastTuple.
+
+Variable T : Type.
+
+Definition in_tuple (s : seq T) := Tuple (eqxx (size s)).
+
+Definition tcast m n (eq_mn : m = n) t :=
+  let: erefl in _ = n := eq_mn return n.-tuple T in t.
+
+Lemma tcastE m n (eq_mn : m = n) t i :
+  tnth (tcast eq_mn t) i = tnth t (cast_ord (esym eq_mn) i).
+Proof. by case: n / eq_mn in i *; rewrite cast_ord_id. Qed.
+
+Lemma tcast_id n (eq_nn : n = n) t : tcast eq_nn t = t.
+Proof. by rewrite (eq_axiomK eq_nn). Qed.
+
+Lemma tcastK m n (eq_mn : m = n) : cancel (tcast eq_mn) (tcast (esym eq_mn)).
+Proof. by case: n / eq_mn. Qed.
+
+Lemma tcastKV m n (eq_mn : m = n) : cancel (tcast (esym eq_mn)) (tcast eq_mn).
+Proof. by case: n / eq_mn. Qed.
+
+Lemma tcast_trans m n p (eq_mn : m = n) (eq_np : n = p) t:
+  tcast (etrans eq_mn eq_np) t = tcast eq_np (tcast eq_mn t).
+Proof. by case: n / eq_mn eq_np; case: p /. Qed.
+
+Lemma tvalK n (t : n.-tuple T) : in_tuple t = tcast (esym (size_tuple t)) t.
+Proof. by apply: val_inj => /=; case: _ / (esym _). Qed.
+
+End CastTuple.
 
 Section SeqTuple.
 
@@ -211,6 +241,9 @@ Canonical tuple_predType :=
 
 Lemma memtE (t : n.-tuple T) : mem t = mem (tval t).
 Proof. by []. Qed.
+
+Lemma mem_tnth i (t : n.-tuple T) : tnth t i \in t.
+Proof. by rewrite mem_nth ?size_tuple. Qed.
 
 End EqTuple.
 

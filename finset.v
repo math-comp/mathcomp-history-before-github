@@ -299,6 +299,10 @@ Qed.
 Lemma subsetT A : A \subset setT.
 Proof. by apply/subsetP=> x; rewrite inE. Qed.
 
+Lemma subsetT_hint mA : subset mA (mem [set: T]).
+Proof. by rewrite unlock; apply/pred0P=> x; rewrite !inE. Qed.
+Hint Resolve subsetT_hint.
+
 Lemma subTset A : (setT \subset A) = (A == setT).
 Proof. by rewrite eqEsubset subsetT. Qed.
 
@@ -891,6 +895,7 @@ Implicit Arguments subsetDP [T A B C].
 Implicit Arguments subsetD1P [T A B x].
 Prenex Implicits set1P set1_inj set2P setU1P setD1P setIdP setIP setUP setDP.
 Prenex Implicits cards1P setCP setIidPl setIidPr setUidPl setUidPr setDidPl.
+Hint Resolve subsetT_hint.
 
 Section setOpsAlgebra.
 
@@ -1757,18 +1762,30 @@ Qed.
 Section BigOps.
 
 Variables (R : Type) (idx : R) (op : Monoid.com_law idx).
-Let rhs P K E := \big[op/idx]_(A \in P) \big[op/idx]_(x \in A | K x) E x.
+Let rhs_cond P K E := \big[op/idx]_(A \in P) \big[op/idx]_(x \in A | K x) E x.
+Let rhs P E := \big[op/idx]_(A \in P) \big[op/idx]_(x \in A) E x.
 
-Lemma big_trivIset P (K : pred T) (E : T -> R) :
-  trivIset P -> \big[op/idx]_(x \in cover P | K x) E x = rhs P K E.
+Lemma big_trivIset_cond P (K : pred T) (E : T -> R) :
+  trivIset P -> \big[op/idx]_(x \in cover P | K x) E x = rhs_cond P K E.
 Proof.
 move=> tiP; rewrite (partition_big (cover_at^~ P) (mem P)) -/op => [|x].
   by apply: eq_bigr => A PA; apply: eq_bigl => x; rewrite andbAC cover_at_eq.
 by case/andP=> Px _; exact: cover_at_mem.
 Qed.
 
-Lemma set_partition_big P D (K : pred T) (E : T -> R) :
-  partition P D -> \big[op/idx]_(x \in D | K x) E x = rhs P K E.
+Lemma big_trivIset P (E : T -> R) :
+  trivIset P -> \big[op/idx]_(x \in cover P) E x = rhs P E.
+Proof.
+have biginT := eq_bigl _ _ (fun _ => andbT _) => tiP.
+by rewrite -biginT big_trivIset_cond //; apply: eq_bigr => A _; exact: biginT.
+Qed.
+
+Lemma set_partition_big_cond P D (K : pred T) (E : T -> R) :
+  partition P D -> \big[op/idx]_(x \in D | K x) E x = rhs_cond P K E.
+Proof. by case/and3P=> /eqP <- tI_P _; exact: big_trivIset_cond. Qed.
+
+Lemma set_partition_big P D (E : T -> R) :
+  partition P D -> \big[op/idx]_(x \in D) E x = rhs P E.
 Proof. by case/and3P=> /eqP <- tI_P _; exact: big_trivIset. Qed.
 
 End BigOps.
@@ -1806,8 +1823,10 @@ Qed.
 End Partitions.
 
 Implicit Arguments trivIsetP [T P].
-Implicit Arguments big_trivIset [T R idx op K E].
-Implicit Arguments set_partition_big [T R idx op D K E].
+Implicit Arguments big_trivIset_cond [T R idx op K E].
+Implicit Arguments set_partition_big_cond [T R idx op D K E].
+Implicit Arguments big_trivIset [T R idx op E].
+Implicit Arguments set_partition_big [T R idx op D E].
 
 Prenex Implicits cover trivIset partition cover_at trivIsetP.
 Prenex Implicits preim_at preim_partition.

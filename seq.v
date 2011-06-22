@@ -1723,8 +1723,34 @@ End Map.
 Lemma filter_mask T a (s : seq T) : filter a s = mask (map a s) s.
 Proof. by elim: s => //= x s <-; case: (a x). Qed.
 
-Lemma filter_subseq T a s : @subseq T (filter a s) s.
+Section FilterSubseq.
+
+Variable T : eqType.
+Implicit Types (s : seq T) (a : pred T).
+
+Lemma filter_subseq a s : subseq (filter a s) s.
 Proof. by apply/subseqP; exists (map a s); rewrite ?size_map ?filter_mask. Qed.
+
+Lemma subseq_filter s1 s2 a :
+  subseq s1 (filter a s2) = all a s1 && subseq s1 s2.
+Proof.
+elim: s2 s1 => [|x s2 IHs] [|y s1] //=; rewrite ?andbF ?sub0seq //.
+by case a_x: (a x); rewrite /= !IHs /=; case: eqP => // ->; rewrite a_x.
+Qed.
+
+Lemma subseq_uniqP s1 s2 :
+  uniq s2 -> reflect (s1 = filter (mem s1) s2) (subseq s1 s2).
+Proof.
+move=> uniq_s2; apply: (iffP idP) => [ss12 | ->]; last exact: filter_subseq.
+apply/eqP; rewrite -size_subseq_leqif ?subseq_filter ?(introT allP) //.
+apply/eqP/esym/perm_eq_size.
+rewrite uniq_perm_eq ?filter_uniq ?(subseq_uniq ss12) // => x.
+by rewrite mem_filter; apply: andb_idr; exact: (mem_subseq ss12).
+Qed.
+
+End FilterSubseq.
+
+Implicit Arguments subseq_uniqP [T s1 s2].
 
 Section EqMap.
 

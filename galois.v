@@ -298,9 +298,7 @@ Lemma kAutE : forall (K E : {algebra L}) f,
   kAut K E f = kHom K E f && (f @: E <= E)%VS.
 Proof.
 move => K E f.
-apply/andP/andP; case => Hhom.
- move/eqP ->; split => //.
- by rewrite subv_refl.
+apply/andP/andP; case => Hhom; first by move/eqP->.
 move => HfE; split => //.
 by rewrite -(dimv_leqif_eq HfE) (kHom_dim Hhom).
 Qed.
@@ -865,9 +863,7 @@ Lemma FixedFieldP (E : {algebra L})
  reflect (a \in E /\ forall x, (x \in s) -> (val (repr x) a = a))
          (a \in FixedField s).
 Proof.
-rewrite /FixedField.
-have big_andT := eq_bigl _ _ (fun _ => andbT _).
-rewrite -big_andT big_trivIset {big_andT}; last first.
+rewrite /FixedField big_trivIset; last first.
  apply/trivIsetP => ? ? /imsetP [x Hx ->] /imsetP [y Hy ->].
  by apply: contraR => /pred0Pn [f /andP [/coset_mem <- /coset_mem <-]].
 rewrite memv_cap.
@@ -879,12 +875,11 @@ apply: (iffP (subv_bigcapP _ _ _)).
  move => x Hx.
  apply/eqP.
  move/subv_bigcapP/(_ (repr x)): (Hcap _ (mem_imset _ Hx)).
- rewrite andbT.
  move/(_ (mem_repr_coset _)).
  by rewrite [(_ <= _)%VS]eigenspaceIn scale1r.
 move => [_ HFixed] ? /imsetP [x Hx ->].
 apply/subv_bigcapP => i.
-rewrite andbT [(_ <= _)%VS]eigenspaceIn scale1r => Hi.
+rewrite [(_ <= _)%VS]eigenspaceIn scale1r => Hi.
 rewrite -{2}(HFixed x) //.
 apply/eqP.
 move: {HFixed} a HaE.
@@ -962,9 +957,7 @@ have H1 : kHom K K (val (1:LAut))%g.
  move => x _ /=.
  by rewrite unit_lappE.
 rewrite -(kHomExtend_poly H1 Hab) ?polyOverX // hornerX -/y.
-have Hy : kHom K (Fadjoin K a) y.
- apply: kHomExtendkHom => //.
- by rewrite subv_refl.
+have Hy : kHom K (Fadjoin K a) y by exact: kHomExtendkHom.
 case: (kHomExtendLAut (subsetKFadjoin K a) Hy) => z.
 case/andP => Hz Hzy.
 move/implyP/(_ Hz)/eqP: (Hnorm z) (subv_refl E) => HzE.

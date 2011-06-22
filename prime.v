@@ -423,7 +423,7 @@ rewrite andbCA; case: posnP => [-> // | /= n_gt0].
 apply/mapP/andP=> [[[q e]]|[pr_p]] /=.
   case/mem_prime_decomp=> pr_q e_gt0; case/dvdnP=> u -> -> {p}.
   by rewrite -(prednK e_gt0) expnS mulnCA dvdn_mulr.
-rewrite {1}(prod_prime_decomp n_gt0) big_cond_seq /=.
+rewrite {1}(prod_prime_decomp n_gt0) big_seq.
 apply big_ind => [| u v IHu IHv | [q e] /= mem_qe dv_p_qe].
 - by rewrite euclid1.
 - by rewrite euclid // => /orP[].
@@ -1169,7 +1169,7 @@ have ndivs_p m: p * m \notin divs.
   suffices: p \notin divs; rewrite !mem_divs.
     by apply: contra => /dvdnP[n ->]; rewrite mulnCA dvdn_mulr.
   have ndv_p_1: ~~(p %| 1) by rewrite dvdn1 neq_ltn orbC prime_gt1.
-  rewrite big_cond_seq /=; apply big_ind => [//|u v npu npv|[q f] /= pd_qf].
+  rewrite big_seq; elim/big_ind: _ => [//|u v npu npv|[q f] /= pd_qf].
     by rewrite euclid //; apply/norP.
   elim: (f) => // f'; rewrite expnS euclid // orbC negb_or => -> {f'}/=.
   have pd_q: q \in unzip1 pd by apply/mapP; exists (q, f).
@@ -1252,7 +1252,7 @@ Qed.
 
 Lemma phi_gt0 n : (0 < phi n) = (0 < n).
 Proof.
-case: n => // n; rewrite phiE // big_cond_seq prodn_cond_gt0 // => p.
+case: n => // n; rewrite phiE // big_seq_cond prodn_cond_gt0 // => p.
 by rewrite mem_primes muln_gt0 expn_gt0; case: p => [|[|]].
 Qed.
 
@@ -1271,7 +1271,7 @@ have /(eq_big_perm _)->: perm_eq (primes (m * n)) (primes m ++ primes n).
   apply: uniq_perm_eq => [||p]; first exact: primes_uniq.
     by rewrite cat_uniq !primes_uniq -coprime_has_primes // co_mn.
   by rewrite mem_cat primes_mul.
-rewrite big_cat /= !(big_cond_seq xpredT) /=.
+rewrite big_cat /= !big_seq.
 congr (_ * _); apply: eq_bigr => p; rewrite mem_primes => /and3P[_ _ dvp].
   rewrite (mulnC m) logn_gauss //; move: co_mn.
   by rewrite -(divnK dvp) coprime_mull => /andP[].

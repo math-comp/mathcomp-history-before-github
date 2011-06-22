@@ -849,7 +849,7 @@ case/mulsgP=> y _ Ai_y /IHr[//| c Ac ->] ->{x}.
 exists [eta c with i |-> y] => /=.
   rewrite /inA /= eqxx Ai_y; apply/allP=> j rj.
   by case: eqP rj r'i => [-> -> // | _ rj _]; exact: (allP Ac).
-rewrite big_cons eqxx !(big_cond_seq xpredT) /=; congr (_ * _).
+rewrite big_cons eqxx !big_seq; congr (_ * _).
 by apply: eq_bigr => j rj; case: eqP rj r'i => // -> ->.
 Qed.
 

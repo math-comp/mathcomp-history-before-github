@@ -12,35 +12,32 @@ Unset Printing Implicit Defensive.
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
-(**************************************************************************)
-(*                                                                        *)
-(* This file contains the basic notions of class functions                *)
-(*                                                                        *)
-(*  {cfun gT} : the type of functions from gT to algC                     *)
-(*                                                                        *)
-(*        '1_G   : the indicator function of G as a class function        *)
-(*                                                                        *)
-(*  (f ^* )%CH  : the conjugate function                                  *)
-(*                                                                        *)
-(*  'CF(G,A)    : the vector space of class functions of G with support   *)
-(*                                                                        *)
-(*  'CF(G)      : the vector space of class functions of G over algC      *)
-(*                                                                        *)
-(*  '[f,g]_G : the inner product of f g such that irr G is                *)
-(*                     an orthonormal basis of 'CF(G)                     *)
-(*                                                                        *)
-(*   (f/N)%CH  :  if f \in 'CF(G) and N <| G, the corresponding class     *)
-(*                function on the cosets of N                             *)
-(*                                                                        *)
-(*  (f^())%CH  : if f \in 'CF(G/N), the corresponding class function      *)
-(*               on G                                                     *)
-(*                                                                        *)
-(* 'Res[H] f: restrict the function to H, i.e f x = 0 for x \notin H      *)
-(*                                                                        *)
-(* 'Ind[G,H] f: the induced function from H to G                          *)
-(*                                                                        *)
-(*                                                                        *)
-(**************************************************************************)
+(******************************************************************************)
+(* This file contains the basic notions of class functions                    *)
+(*    {cfun gT} == the type of functions from the finGroupType gT to algC.    *)
+(*         '1_G == the indicator function of G as a class function.           *)
+(*       f^*%CH == the function conjugate to f.                               *)
+(*    'CF(G, A) == the vector space of class functions of G with support A.   *)
+(*       'CF(G) == the vector space of class functions of G with support G.   *)
+(*    '[f, g]_G == the convolution product of f and g, normalised so that     *)
+(*                 irr G is an orthonormal basis of 'CF(G).                   *)
+(*   (f / N)%CH == if f \in 'CF(G) and N <| G, the corresponding class        *)
+(*                 function on the cosets of N.                               *)
+(*  (f %% N)%CH == the class function on G corresponding to f \in 'CF(G / N). *)
+(*    'Res[H] f == the restriction of f to H: 'Res[H] f x = f x if x \in H,   *)
+(*                 and 'Res[H] f x = 0 if x \notin H.                         *)
+(* 'Ind[G, H] f == the class function induced by f from H to G.               *)
+(******************************************************************************)
+
+Reserved Notation "'CF( G , A )" (at level 8, format "''CF(' G ,  A )").
+Reserved Notation "'CF( G )" (at level 8, format "''CF(' G )").
+Reserved Notation "''1_' G" (at level 8, G at level 2, format "''1_' G").
+Reserved Notation "''Res[' H ]" (at level 8, format "''Res[' H ]").
+Reserved Notation "''Ind[' G , H ]" (at level 8, format "''Ind[' G ,  H ]").
+Reserved Notation "'[ u , v ]_ G"
+  (at level 8, G at level 2, format "'[hv' ''[' u ,  '/' v ]_ G ']'").
+Reserved Notation "'[ u ]_ G"
+  (at level 8, G at level 2, format "''[' u ]_ G").
 
 Section AlgC.
 
@@ -63,26 +60,27 @@ End AlgC.
 
 Delimit Scope character_scope with CH.
 
-Definition cfun (gT : finGroupType) of (phant gT) := {ffun gT -> algC}.
+Definition cfun (gT : finGroupType) of phant gT := {ffun gT -> algC}.
 
-Notation "{ 'cfun' T }" := (cfun (Phant T)) (format "{ 'cfun'  T }").
+Notation "{ 'cfun' T }" := (cfun (Phant T))
+  (at level 0, format "{ 'cfun'  T }") : type_scope.
 
 Section ClassFun. 
 
 Variable (gT : finGroupType) (G : {group gT}).
 
-Canonical Structure cfun_eqType := [eqType of {cfun gT}].
-Canonical Structure cfun_choiceType := [eqType of {cfun gT}].
-Canonical Structure cfun_zmodType := [zmodType of {cfun gT}].
-Canonical Structure cfun_ringType := 
+Canonical cfun_eqType := [eqType of {cfun gT}].
+Canonical cfun_choiceType := [eqType of {cfun gT}].
+Canonical cfun_zmodType := [zmodType of {cfun gT}].
+Canonical cfun_ringType := 
   Eval hnf in RingType {cfun gT} (@ffun_ringMixin gT algC 1%g).
-Canonical Structure cfun_lmodType := 
+Canonical cfun_lmodType := 
   Eval hnf in LmodType algC {cfun gT} (
                  @ffun_lmodMixin algC gT (GRing.regular_lmodType algC)).
 
 Definition cfuni (G : {set gT}) : {cfun gT} := [ffun g => (g \in G)%N%:R].
 
-Local Notation "''1_' G" := (cfuni G) (at level 0).
+Local Notation "''1_' G" := (cfuni G).
  
 Lemma cfuniE (A : {set gT}) g : '1_A g = (g \in A)%:R.
 Proof. by rewrite ffunE. Qed.
@@ -113,14 +111,12 @@ Qed.
  
 Canonical cfunVectType := 
  (@VectorType.pack algC _ {cfun gT} _  _ _ _ idfun
-  (@ffunVectMixin algC (regVectType algC) gT)
-  idfun).
+   (@ffunVectMixin algC (regVectType algC) gT)
+    idfun).
 
 Definition class_fun G  A := span (base_cfun G A).
-Local Notation "'CF( G , A )" := (class_fun G A)
-  (format "''CF(' G ,  A )").
-Local Notation "'CF( G )" := (class_fun G G)
-  (format "''CF(' G )").
+Local Notation "'CF( G , A )" := (class_fun G A) : ring_scope.
+Local Notation "'CF( G )" := (class_fun G G) : ring_scope.
 
 Lemma class_funE (A : {set gT}) :
  'CF(G,A) = 
@@ -322,16 +318,17 @@ Qed.
 
 End ClassFun.
 
-Notation "'CF( G , A )" := (class_fun G A)
-  (format "''CF(' G ,  A )").
-Notation "'CF( G )" := (class_fun G G)
-  (format "''CF(' G )").
-Notation "''1_' G" := (cfuni G)
-    (at level 8, G at level 2, format "''1_' G") : ring_scope.
+Arguments Scope class_fun [_ group_scope group_scope].
+Notation "'CF( G , A )" := (class_fun G A) : ring_scope.
+Notation "'CF( G )" := (class_fun G G) : ring_scope.
 
-Definition cfun_conjC (gT: finGroupType) (f : {cfun gT}) : {cfun gT} :=
-  [ffun h => (f h) ^*].
+Arguments Scope cfuni [_ group_scope].
+Notation "''1_' G" := (cfuni G) : ring_scope.
 
+Definition cfun_conjC (gT : finGroupType) (f : {cfun gT}) : {cfun gT} :=
+  [ffun h => (f h)^*].
+
+Arguments Scope cfuni [_ character_scope].
 Notation "f ^*" := (cfun_conjC f) : character_scope.
 
 Lemma cfun_conjCE (gT : finGroupType) (f : {cfun gT}) g : 
@@ -351,7 +348,7 @@ Variable (gT : finGroupType).
 
 Definition crestrict (G : {set gT}) (f : {cfun gT}) : {cfun gT} := '1_G * f.
 
-Local Notation "''Res[' G ]  f " := (crestrict G f) (at level 24).
+Local Notation "''Res[' H ]" := (crestrict H) : ring_scope.
 
 Lemma crestrictE (G : {set gT}) f : {in G, 'Res[G] f =1 f}.
 Proof. by move=> g GiG; rewrite /= !ffunE GiG mul1r. Qed.
@@ -374,10 +371,9 @@ move=> c f1 f2; apply/ffunP=> g.
 by rewrite !ffunE mulr_addr mulrCA.
 Qed.
 
-Canonical Structure crestrit_linear G :=
-  Linear (crestrict_is_linear G).
+Canonical crestrit_linear G := Linear (crestrict_is_linear G).
 
-Lemma crestrict_subset (G  H : {set gT}) (f : {cfun gT}) :
+Lemma crestrict_subset (G H : {set gT}) (f : {cfun gT}) :
   H \subset G -> 'Res[H] ('Res[G] f) = 'Res[H] f.
 Proof.
 move=> HsG; apply/ffunP=> g.
@@ -387,7 +383,8 @@ Qed.
 
 End Restrict.
 
-Notation "''Res[' G ]  f " := (crestrict G f) (at level 24).
+Arguments Scope crestrict [_ group_scope character_scope].
+Notation "''Res[' H ]" := (crestrict H) : ring_scope.
 
 Section InnerProduct.
 
@@ -399,11 +396,11 @@ Proof. by rewrite invr_eq0 neq0GC. Qed.
 Definition inner_prod (G : {set gT}) (f g : {cfun gT}) :=
   #|G|%:R^-1 * \sum_(i \in G) f i * (g i)^*.
 
-Local Notation "'[ u , v ]_ G":=  (inner_prod G u v) (at level 10,
-  format "'[hv' ''[' u ,  '/' v ]_ G ']'").
+Local Notation "''[' u , v ]_ G":= (inner_prod G u v) : ring_scope.
+Local Notation "''[' u ]_ G" := '[u , u]_G : ring_scope.
 
 Lemma inner_prodE (f g : {cfun gT}) :
-  '[f,g]_G = #|G|%:R^-1 * \sum_(i \in G) f i * (g i)^*.
+  '[f, g]_G = #|G|%:R^-1 * \sum_(i \in G) f i * (g i)^*.
 Proof. by []. Qed.
 
 Lemma inner_prod1 (H1 H2 : {set gT}) :
@@ -433,7 +430,7 @@ congr (_ * _); rewrite rmorph_sum; apply: eq_bigr=> i _.
 by rewrite rmorphM conjCK mulrC.
 Qed.
  
-Lemma posC_inner_prod f : 0 <= '[f, f]_G.
+Lemma posC_inner_prod f : 0 <= '[f]_G.
 Proof. 
 apply: posC_mul; first by rewrite posC_inv posC_nat.
 by rewrite posC_sum // => i _; rewrite /leC subr0 repC_pconj.
@@ -452,7 +449,7 @@ by rewrite ffunE conjC0 mulr0.
 Qed.
 
 Lemma inner_prod0 (f : {cfun gT}) : 
-  f \in 'CF(G) -> ('[f, f]_G == 0) = (f == 0).
+  f \in 'CF(G) -> ('[f]_G == 0) = (f == 0).
 Proof.
 move=> Hf; apply/eqP/eqP=> Hp; last first.
   by rewrite Hp /inner_prod big1 ?mulr0 // => i _; rewrite !ffunE mul0r.
@@ -481,7 +478,7 @@ rewrite {1}scaler_sumr /= -{1}big_split /=; apply: eq_bigr=> i _.
 by rewrite scaler_mull -mulr_addl !ffunE.
 Qed.
 
-Canonical Structure inner_prodb_linear f :=
+Canonical inner_prodb_linear f :=
   Linear (inner_prodb_is_linear f).
 
 Lemma inner_prod_is_additive f : additive (inner_prod G f).
@@ -493,8 +490,7 @@ rewrite -sumr_sub; apply: eq_bigr=> i _.
 by rewrite !ffunE rmorph_sub // mulr_subr.
 Qed.
 
-Canonical Structure inner_prod_additive f := 
-  Additive (inner_prod_is_additive f).
+Canonical inner_prod_additive f := Additive (inner_prod_is_additive f).
 
 Lemma inner_prodZ k (f g : {cfun gT}) : '[f, k *: g]_G = k^* * '[f, g]_G.
 Proof.
@@ -513,8 +509,9 @@ Qed.
 
 End InnerProduct.
 
-Notation "'[ u , v ]_ G":=  (inner_prod G u v) (at level 10,
-  format "'[hv' ''[' u ,  '/' v ]_ G ']'").
+Arguments Scope inner_prod [_ group_scope character_scope character_scope].
+Notation "''[' u , v ]_ G":=  (inner_prod G u v) : ring_scope.
+Notation "''[' u ]_ G":= '[u, u]_G : ring_scope.
 
 Section Coset.
 
@@ -522,36 +519,37 @@ Variable (gT : finGroupType).
 
 Implicit Type G : {group gT}.
 
-Definition qfun_of_cfun (N: {set gT}) (f : {cfun gT}) :=
+Definition qfun_of_cfun (N : {set gT}) (f : {cfun gT}) :=
   [ffun x : coset_of N => f (repr x)].
 
-Local Notation "f '/' N" := (qfun_of_cfun N f) : character_scope.
+Local Notation "f / N" := (qfun_of_cfun N f) : character_scope.
 
-Definition cfun_of_qfun (N: {set gT}) (f : {cfun (coset_of N)}) : {cfun gT} :=
+Definition cfun_of_qfun (N : {set gT}) (f : {cfun (coset_of N)}) : {cfun gT} :=
   [ffun x : gT => (x \in 'N(N))%:R * f (coset N x)].
 
-Local Notation " f '^()'" := (cfun_of_qfun f) (at level 2) : character_scope.
+Local Notation "f %% N" := (@cfun_of_qfun N f) : character_scope.
 
 Lemma cfunqE (N : {group gT}) f x :
- x \in 'N(N) -> (f ^())%CH x = f (coset N x).
+  x \in 'N(N) -> (f %% N)%CH x = f (coset N x).
 Proof. by move=> XiNN; rewrite !ffunE XiNN // mul1r. Qed.
 
 End Coset.
 
-Notation "f '/' N" := (qfun_of_cfun N f) : character_scope.
-Notation " f '^()'" := (cfun_of_qfun f) (at level 2) : character_scope.
-
+Arguments Scope qfun_of_cfun [_ group_scope character_scope].
+Arguments Scope cfun_of_qfun [_ group_scope character_scope].
+Notation "f / N" := (qfun_of_cfun N f) : character_scope.
+Notation "f %% N" := (@cfun_of_qfun _ N f) : character_scope.
 
 Section Induced.
 
-Variable (gT : finGroupType).
+Variable gT : finGroupType.
 
 Definition cinduced  (G H : {set gT}) (f : {cfun gT}) : {cfun gT} :=
  [ffun g =>  #|H|%:R^-1 * \sum_(c | c \in G) f (g ^ c)].
 
-Local Notation "'Ind[ G , H ] f" := (cinduced G H f) (at level 24).
+Local Notation "'Ind[ G , H ]" := (cinduced G H) : ring_scope.
 
-Variable (G H : {group gT}).
+Variables G H : {group gT}.
 
 Lemma memc_induced (f : {cfun gT}) :
   H \subset G -> f \in 'CF(H) -> 'Ind[G,H] f \in 'CF(G).
@@ -568,7 +566,7 @@ apply: eq_big=> [l|l _]; first by rewrite groupMl // groupV.
 by rewrite -conjgM mulgA mulgV mul1g.
 Qed.
 
-Lemma support_induced (f : {cfun gT}) :
+Lemma support_induced f :
   f \in 'CF(H) -> H <| G -> support ('Ind[G,H] f) \subset H.
 Proof.
 move=> Cf HnG; apply/subsetP=> h. rewrite !inE; apply:contraR=> HniH.
@@ -592,14 +590,12 @@ rewrite !ffunE [_ *: (_ * _)]mulrCA -mulr_addr.
 rewrite -[c * _]mulr_sumr -big_split; congr (_ * _).
 by apply: eq_bigr=> h HiG; rewrite !ffunE.
 Qed.
-
-Canonical Structure cinduced_linear :=
-  Linear cinduced_is_linear.
+Canonical cinduced_linear := Linear cinduced_is_linear.
 
 (* Isaacs' 5.2 *)
 Lemma frobenius_reciprocity f1 f2 :
-  H \subset G -> f1 \in 'CF(H) -> f2 \in 'CF(G)->
-   '[f1, 'Res[H] f2]_H = '['Ind[G, H] f1, f2]_G.
+    H \subset G -> f1 \in 'CF(H) -> f2 \in 'CF(G)->
+  '[f1, 'Res[H] f2]_H = '['Ind[G, H] f1, f2]_G.
 Proof.
 move=> HsG F1iC F2iC.
 apply: sym_equal; rewrite !inner_prodE.
@@ -630,7 +626,7 @@ apply: eq_big=> [g|g]; rewrite negbK.
 by case/andP=> _ GiH; rewrite crestrictE.
 Qed.
 
-Lemma cinduced_conjC f : ('Ind[G, H] f)^*%CH = 'Ind[G, H] (f^*)%CH.
+Lemma cinduced_conjC f : ('Ind[G, H] f)^*%CH = 'Ind[G, H] f^*%CH.
 Proof.
 apply/ffunP=> g.
 rewrite !ffunE rmorphM conjC_inv conjC_nat; congr (_ * _).
@@ -640,14 +636,15 @@ Qed.
 
 End Induced.
 
-Notation "''Ind[' G , H ]  f " := (cinduced G H f) (at level 24).
+Arguments Scope cinduced [_ group_scope group_scope character_scope].
+Notation "''Ind[' G , H ]" := (cinduced G H) : ring_scope.
 
 Section Product.
 
 Variable (gT : finGroupType) (G : {group gT}).
 
 Lemma memc_prodI (A B : {set gT}) (f1 f2 : {cfun gT}) : 
-  f1 \in 'CF(G,A) -> f2 \in 'CF(G,B) -> f1 * f2 \in 'CF(G, A :&: B).
+  f1 \in 'CF(G, A) -> f2 \in 'CF(G, B) -> f1 * f2 \in 'CF(G, A :&: B).
 Proof.
 case/cfun_memfP=> H1f1 H2f1; case/cfun_memfP=> H1f2 H2f2.
 apply/cfun_memfP; split=> [x|x y YiG]; rewrite !ffunE; last first.
@@ -669,8 +666,8 @@ Variable (gT : finGroupType) (G H1 H2 : {group gT}).
 Hypothesis H1xH2 : H1 \x H2 = G.
 
 Lemma sum_dprodl (R : Type) (idx : R) (op : Monoid.com_law idx) (F : gT -> R) :
-       \big[op/idx]_(g \in G) F g =
-       \big[op/idx]_(h1 \in H1) \big[op/idx]_(h2 \in H2) F (h1 * h2)%g.
+   \big[op/idx]_(g \in G) F g =
+      \big[op/idx]_(h1 \in H1) \big[op/idx]_(h2 \in H2) F (h1 * h2)%g.
 Proof.
 rewrite pair_big_dep.
 pose f (g : gT) := (divgr H1 H2 g, remgr H1 H2 g).
@@ -691,8 +688,8 @@ by apply: mem_mulg.
 Qed.
 
 Lemma sum_dprodr (R : Type) (idx : R) (op : Monoid.com_law idx) (F : gT -> R) :
-       \big[op/idx]_(g \in G) F g =
-       \big[op/idx]_(h2 \in H2) \big[op/idx]_(h1 \in H1) F (h1 * h2)%g.
+  \big[op/idx]_(g \in G) F g =
+    \big[op/idx]_(h2 \in H2) \big[op/idx]_(h1 \in H1) F (h1 * h2)%g.
 Proof.
 rewrite pair_big_dep.
 pose f (g : gT) := (remgr H1 H2 g, divgr H1 H2 g).
@@ -780,7 +777,7 @@ by rewrite inner_prod1 !setIid mulfV ?mul1r // neq0GC.
 Qed.
 
 Lemma inner_prod_div (f1 f2 : {cfun gT}) :
-     f1 \in 'CF(H1) ->  f2 \in 'CF(H1) ->
+     f1 \in 'CF(H1) -> f2 \in 'CF(H1) ->
   '[cfun_div H1xH2 f1, cfun_div H1xH2 f2]_G = '[f1, f2]_H1.
 Proof.
 move=> Cf1 Cf2.

@@ -311,8 +311,7 @@ have [tiP_G inj_dd1]: trivIset P_G /\ {in T &, injective dd1}.
     by exists (a ^ 1)%g; apply: mem_imset2; rewrite ?group1 ?rcoset_refl.
   rewrite !dd1_id //; apply: contraR.
   by case/Dade_support1_TI=> // x Lx ->; rewrite classGidl.
-have big_andT := eq_bigl _ _ (fun _ => andbT _).
-rewrite add0r -big_andT big_trivIset //= big_imset {P_G tiP_G inj_dd1}//=.
+rewrite add0r big_trivIset //= big_imset {P_G tiP_G inj_dd1}//=.
 symmetry; rewrite inner_prodE (big_setID A) (setIidPr sAL) /= addrC.
 rewrite big1 ?add0r => [|x /setDP[_ notAx]]; last first.
   by rewrite (cfunS0 CFalpha) ?mul0r.
@@ -328,11 +327,11 @@ have [tiP_A injFA]: trivIset P_A /\ {in T &, injective (class^~ L)}.
     by apply/imsetP=> [[a _ /esym/eqP/set0Pn[]]]; exists a; exact: class_refl.
   rewrite !rLid; apply: contraR => /pred0Pn[c /andP[/=]].
   by do 2!move/class_transr <-.
-rewrite -big_andT big_trivIset //= big_imset {P_A tiP_A injFA}//=.
+rewrite big_trivIset //= big_imset {P_A tiP_A injFA}//=.
 apply: canRL (mulKf (neq0GC G)) _; rewrite mulrA big_distrr /=.
 apply: eq_bigr => a /sTA=> {T sTA}Aa.
 have [La def_Ca] := (subsetP sAL a Aa, defCa Aa).
-rewrite !big_andT (eq_bigr (fun _ => alpha a * (psi a)^*)) => [|ax]; last first.
+rewrite (eq_bigr (fun _ => alpha a * (psi a)^*)) => [|ax]; last first.
   by case/imsetP=> x Lx ->{ax}; rewrite (cfunJ _ CFalpha) ?(cfunJ _ CFpsi).
 rewrite sumr_const -index_cent1 mulrC -mulr_natr -!mulrA.
 rewrite (eq_bigr (fun xa => alpha a * (xi xa)^*)) => [|xa Fa_xa]; last first.
@@ -342,9 +341,9 @@ rewrite mulrC mulrA -natr_mul mulnC -(LaGrange (subsetIl G 'C[a])).
 rewrite -mulnA mulnCA -(sdprod_card def_Ca) -mulnA LaGrange ?subsetIl //.
 rewrite mulnA natr_mul mulfK ?neq0GC // -conjC_nat -rmorphM; congr (_ ^*).
 have /andP[tiHa _] := Dade_cover_TI Aa.
-rewrite -big_andT (set_partition_big _ (partition_class_support _ _)) //=.
+rewrite (set_partition_big _ (partition_class_support _ _)) //=.
 rewrite (eq_bigr (fun _ => \sum_(x \in H a) xi (x * a)%g)) => [|Vx]; last first.
-  case/imsetP=> x Gx ->{Vx}; rewrite big_andT -rcosetE.
+  case/imsetP=> x Gx ->{Vx}; rewrite -rcosetE.
   rewrite (big_imset _ (in2W (conjg_inj x))) (big_imset _ (in2W (mulIg a))) /=.
   by apply: eq_bigr => u Hu; rewrite (cfunJ _ CFxi) ?groupM ?(subsetP sLG a).
 rewrite sumr_const card_orbit astab1Js norm_Dade_cover //.
@@ -673,15 +672,15 @@ have [|/= partHBa nbHBa] := partition_cent_rcoset nHa.
   have [sBA] := setIdP dB; case/set0Pn=> b Bb; have Ab := subsetP sBA b Bb.
   rewrite (coprime_dvdr (order_dvdG Ca)) //= ['H(B)](bigD1 b) //=.
   by rewrite (coprimeSg (subsetIl _ _)) ?coHL. 
-pose pHBa := [pred y \in 'H(B) :* a | true].
+pose pHBa := mem ('H(B) :* a).
 rewrite -sum1_card (partition_big (fun x => g ^ x) pHBa) /= => [|x]; last first.
   by case/setIdP=> _ ->.
 rewrite (set_partition_big _ partHBa) /= -nbHBa -sum_nat_const.
 apply: eq_bigr => _ /imsetP[x Hx ->].
-rewrite (eq_bigl _ _ (fun _ => andbT _)) (big_imset _ (in2W (conjg_inj x))) /=.
+rewrite (big_imset _ (in2W (conjg_inj x))) /=.
 rewrite -(card_rcoset _ x) -sum1_card; symmetry; set HBaa := 'C_(_)[a] :* a.
-rewrite (partition_big (fun y => g ^ (y * x^-1)) (mem HBaa)) => [|y]; last first.
-  by rewrite mem_rcoset => /setIdP[].
+rewrite (partition_big (fun y => g ^ (y * x^-1)) (mem HBaa)); last first.
+  by move=> y; rewrite mem_rcoset => /setIdP[].
 apply: eq_bigr => /= u Ca_u; apply: eq_bigl => z.
 rewrite -(canF_eq (conjgKV x)) -conjgM; apply: andb_id2r; move/eqP=> def_u.
 have sHBG: 'H(B) \subset G.

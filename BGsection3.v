@@ -168,9 +168,8 @@ have fixsum: forall H : {group gT}, H \subset G -> (gsum H <= rfix_mx rG H)%MS.
   by apply:eq_bigr=> y; move/sHG=> Gy; rewrite repr_mxM.
 have: gsum G + rG 1 *+ #|K| = gsum K + \sum_(x \in K) gsum (R :^ x).
   rewrite -gring_opG // -sumr_const -!linear_sum -!linearD; congr gring_op.
-  have bigTE := eq_bigl _ _ (fun _ => andbT _); rewrite {1}/gset_mx -bigTE.
-  rewrite (set_partition_big _ (Frobenius_partition frobG)) /=.
-  rewrite big_setU1 ?bigTE -?addrA /=; last first.
+  rewrite {1}/gset_mx (set_partition_big _ (Frobenius_partition frobG)) /=.
+  rewrite big_setU1 -?addrA /=; last first.
     apply: contraL (group1 K); case/imsetP=> x _ ->.
     by rewrite conjD1g !inE eqxx.
   congr (_ + _); rewrite big_imset /=; last first.
@@ -180,7 +179,7 @@ have: gsum G + rG 1 *+ #|K| = gsum K + \sum_(x \in K) gsum (R :^ x).
     rewrite -[[set 1]]tiKR -snRG setIA inE -defG (setIidPl (mulG_subl _ _)).
     by rewrite groupM ?groupV //= -normD1 inE conjsgM eqRxy actK.
   rewrite -big_split; apply: eq_bigr => x Kx /=.
-  by rewrite bigTE addrC conjD1g -big_setD1 ?group1.
+  by rewrite addrC conjD1g -big_setD1 ?group1.
 have ->: gsum G = 0.
   apply/eqP; rewrite -submx0 -fixR0; apply: submx_trans (rfix_mxS rG sRG).
   exact: fixsum.

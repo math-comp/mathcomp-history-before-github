@@ -18,129 +18,6 @@ Import Prenex Implicits.
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
-Lemma mulr_sign (R : ringType) (b : bool) (x : R) :
-  (-1) ^+ b * x = (if b then - x else x).
-Proof. by case: b; rewrite ?mulNr mul1r. Qed.
-
-Lemma scaler_sign (R : ringType) (V : lmodType R) (b : bool) (u : V) :
-  (-1) ^+ b *: u = (if b then - u else u).
-Proof. by case: b; rewrite ?scaleNr scale1r. Qed.
-
-Section MoreVector.
-
-Variables (F : fieldType) (V : vectType F).
-
-Lemma scalev_eq0 (a : F) (v : V) : (a *: v == 0) = (a == 0) || (v == 0).
-Proof. by rewrite -!memv0 memvZ. Qed.
-
-End MoreVector.
-
-Section MoreAlgC.
-
-Implicit Types (x y z : algC) (m n p : nat) (b : bool).
-
-Lemma leC_opp x y : (- x <= - y) = (y <= x).
-Proof. by rewrite -leC_sub opprK addrC leC_sub. Qed.
-
-Lemma ltC_opp x y : (- x < - y) = (y < x).
-Proof. by rewrite ltC_sub opprK addrC -ltC_sub. Qed.
-
-Lemma posC_opp x : (0 <= - x) = (x <= 0).
-Proof. by rewrite -{1}oppr0 leC_opp. Qed.
-
-Lemma sposC_opp x : (0 < - x) = (x < 0).
-Proof. by rewrite -{1}oppr0 ltC_opp. Qed.
-
-Lemma sposC1 : 0 < 1.
-Proof. by rewrite -(ltn_ltC 0 1). Qed.
-
-Lemma ltC_geF x y : x < y -> (y <= x) = false.
-Proof. by case/andP=> neq_yx le_xy; apply: contraNF neq_yx => /leC_anti->. Qed.
-
-Lemma leC_gtF x y : x <= y -> (y < x) = false.
-Proof. by apply: contraTF => /ltC_geF->. Qed.
-
-Lemma leC_eqVlt x y : (x <= y) = (x == y) || (x < y).
-Proof. by rewrite /ltC eq_sym ; case: eqP => // ->; exact: leC_refl. Qed.
-
-Lemma eqC_leC x y : (x == y) = (x <= y) && (y <= x).
-Proof.
-by apply/eqP/andP=> [-> | [le_xy le_yx]]; [rewrite leC_refl | exact: leC_anti].
-Qed.
-
-Lemma signC_inj : injective (fun b => (-1) ^+ b : algC).
-Proof.
-apply: can_inj (fun x => ~~ (0 <= x)) _ => [[]]; rewrite ?posC1 //.
-by rewrite posC_opp // ltC_geF ?sposC1.
-Qed.
-
-Lemma normC_opp x : normC (- x) = normC x.
-Proof. by rewrite /normC rmorphN mulrN mulNr opprK. Qed.
-
-Lemma normCK x : normC x ^+ 2 = x * x^*.
-Proof. exact: sqrtCK. Qed.
-
-Lemma normC_mul_sign n x : normC ((-1) ^+ n * x) = normC x.
-Proof. by rewrite -signr_odd mulr_sign fun_if normC_opp if_same. Qed.
-
-Definition isRealC x := (x^* == x).
-
-Lemma isZC_real x : isZC x -> isRealC x.
-Proof. by move/isZC_conj/eqP. Qed.
-
-Lemma realC_leP x : reflect (x <= 0 \/ 0 <= x) (isRealC x).
-Proof.
-rewrite -posC_opp; apply: (iffP eqP) => [r_x | [] /posC_conjK//]; last first.
-  by rewrite rmorphN => /oppr_inj.
-apply/orP; suffices: normC x \in pred2 x (- x).
-  by case/pred2P=> <-; rewrite posC_norm ?orbT.
-by rewrite !inE -addr_eq0 -(subr_eq0 _ x) -mulf_eq0 -subr_sqr normCK r_x subrr.
-Qed.
-
-Lemma real_normCK x : isRealC x -> normC x ^+ 2 = x ^+ 2.
-Proof. by rewrite normCK => /eqP->. Qed.
-
-Lemma int_normCK x : isZC x -> normC x ^+ 2 = x ^+ 2.
-Proof. by move/isZC_real/real_normCK. Qed.
-
-Lemma real_signE x : isRealC x -> x = (-1) ^+ (x < 0)%C * normC x.
-Proof.
-rewrite mulr_sign; case/realC_leP=> [ge0x | le0x]; last first.
-  by rewrite normC_pos ?leC_gtF.
-rewrite ltCE ge0x andbT -normC_opp normC_pos ?opprK ?posC_opp //.
-by case: eqP => // <-; rewrite oppr0.
-Qed.
-
-Lemma isZC_signE x : isZC x -> x = (-1) ^+ (x < 0)%C * normC x.
-Proof. by move/isZC_real/real_signE. Qed.
-
-Lemma isZC_opp x : isZC (- x) = isZC x.
-Proof. by rewrite !isZCE opprK orbC. Qed.
-
-Lemma isZC_mulr_sign n x : isZC ((-1) ^+ n * x) = isZC x.
-Proof. by rewrite -signr_odd mulr_sign fun_if isZC_opp if_same. Qed.
-
-Lemma isZC_sign n : isZC ((-1) ^+ n).
-Proof. by rewrite -[_ ^+ _]mulr1 isZC_mulr_sign (isZC_nat 1). Qed.
-
-Lemma normCZ_nat x : isZC x -> isNatC (normC x).
-Proof.
-by rewrite isZCE => /orP[]/eqP => [|/(canRL (@opprK _))] ->;
-  rewrite ?normC_opp normC_nat isNatC_nat.
-Qed.
-
-Lemma isNatC_Zpos x : isNatC x = isZC x && (0 <= x).
-Proof.
-apply/idP/andP=> [Nx | [Zx x_ge0]]; first by rewrite (eqP Nx) isZC_nat posC_nat.
-by rewrite (isZC_signE Zx) mulr_sign leC_gtF // normCZ_nat.
-Qed.
-
-End MoreAlgC.
-
-(* Notation for the norm; level should be 8, but classfun WRONGLY sets 10. *)
-Notation "''[' phi ]_ G" := ('[phi, phi]_G)
-  (at level 10, G at level 2, format "''[' phi ]_ G").
-
 Section MoreCfun.
 
 Variable gT : finGroupType.
@@ -576,8 +453,8 @@ have szR: {in S, forall xi,
     by rewrite addrC -leC_sub addrK posC_sum // => b _; exact: posC_inner_prod.
   split=> //; first by apply/andP; split=> //; apply/allP=> a /= /normR->.
   apply/eqP; rewrite eqN_eqC -norm_beta def_beta inner_norm_orthogonal //.
-  rewrite big_cond_seq (eq_bigr _ normR) -(big_cond_seq xpredT) big_const_seq.
-  by rewrite count_predT -Monoid.iteropE.
+  rewrite big_seq (eq_bigr _ normR) -big_seq big_const_seq count_predT.
+  by rewrite -Monoid.iteropE.
 split=> // [xi /szR[] // | xi phi Sxi Sphi /= /andP[/and3P[opx opx' _] _]].
 have obpx: '[beta phi, beta xi]_G = 0.
   rewrite isoL ?dom_beta // inner_prodDl inner_prodNl !raddf_sub //=.

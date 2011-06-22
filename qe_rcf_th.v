@@ -426,7 +426,7 @@ Proof.
 move=> a b hab p q r p0 q0 r0; rewrite /cind.
 rewrite (eq_big_perm _ (roots_mul _ _ _))//= big_cat/=.
 rewrite -[\sum_(x <- _) _ p _ _]addr0; congr (_+_).
-  rewrite !(big_cond_seq xpredT)/=; apply: congr_big=> // x hx.
+  rewrite !big_seq; apply: congr_big => // x hx.
   by rewrite jump_mul2r.
 rewrite big1_seq//= => x hx; rewrite jump_mul2r // /jump.
 suff ->: \mu_x q = 0%N by rewrite andbF.
@@ -451,7 +451,7 @@ Lemma cind_pmulC : forall a b, a < b -> forall p q c, p != 0 -> q != 0 ->
 Proof.
 move=> a b hab p q c p0 q0.
 case c0: (c == 0); first by rewrite (eqP c0) scale0r sgr0 mul0r cindpc.
-rewrite /cind big_distrr (* ![\sum_(x <- _) _]big_cond_seq *).
+rewrite /cind big_distrr (* ![\sum_(x <- _) _]big_seq_cond *).
 set rcq := roots  _ _ _; set rq := roots  _ _ _.
 have hrcq: rcq = rq.
   apply/roots_eq=> //; first by rewrite scaler_eq0 c0.
@@ -481,12 +481,12 @@ Lemma cind_seq_mids : forall a b, a < b -> forall p q, p != 0 -> q != 0 ->
   nb_var (map (horner (p * q)) (seq_mids a (roots (p * q) a b) b)).
 Proof.
 move=> a b hab p q p0 q0 cpq.
-rewrite /cind /nb_var 2!(big_cond_seq xpredT)/=.
+rewrite /cind /nb_var 2!big_seq.
 have jumpP : forall (p q : {poly R}), p != 0 -> coprimep p q  ->
   forall x, x \in roots p a b -> jump q p x = sjump q p x.
   by move=> ? ? ? ? ?; move/root_roots=> ?; rewrite jump_coprime.
 rewrite !(eq_bigr _ (jumpP _ _ _ _))// 1?coprimep_sym//.
-rewrite -!(big_cond_seq xpredT) (eq_bigr _ (fun x _ => sjumpC q p x)).
+rewrite -!big_seq (eq_bigr _ (fun x _ => sjumpC q p x)).
 rewrite -big_cat /= -(eq_big_perm _ (roots_mul_coprime _ _ _ _)) //=.
 move: {1 4}a (erefl (roots (p * q) a b))=> //=.
 elim: (roots _ _ _)=> [|x s /= ihs] a' hxs.
@@ -673,8 +673,8 @@ Lemma taq_cind : forall a b, a < b -> forall p q,
   taq (roots p a b) q = cind a b (p^`() * q) p.
 Proof.
 move=> a b hab p q.
-rewrite /taq /cind /jump big_cond_seq [\sum_(x <- _ | true) _]big_cond_seq.
-apply: congr_big => // x; rewrite andTb=> hxz.
+rewrite /taq /cind /jump !big_seq.
+apply: eq_bigr => x hxz.
 have rpx: root p x by case:(root_roots hxz).
 case p'q0: (p^`()*q == 0) => //.
   rewrite (eqP p'q0) mulr0n /=.
@@ -1245,28 +1245,16 @@ Definition ccount_weak  p (sq : seq {poly R}) : R :=
               r))) + 1 in
         prod_staq_coefs p (-bound) bound sq.
 
-Lemma big_seq_andE (I : eqType) (s : seq I) (P : pred I) (B : I -> bool) :
-       \big[andb/true]_(i <- s | P i) B i = (all (fun i => P i ==> B i) s).
-Proof.
-by elim: s=> [|x s ihs]; rewrite (big_nil, big_cons) //= ihs; case: ifP.
-Qed.
-
-Lemma big_seq_orE (I : eqType) (s : seq I) (P : pred I) (B : I -> bool) :
-       \big[orb/false]_(i <- s | P i) B i = (has (fun i => P i && B i) s).
-Proof.
-by elim: s=> [|x s ihs]; rewrite (big_nil, big_cons) //= ihs; case: ifP.
-Qed.
-
 Lemma prodf_seq_eq0 (R' : idomainType) (I : eqType)
   (s : seq I) (P : pred I) (F : I -> R') :
    (\prod_(i <- s | P i) F i == 0) = (has (fun i => P i && (F i == 0)) s).
-Proof. by rewrite (big_morph _ (@mulf_eq0 _) (oner_eq0 _)) big_seq_orE. Qed.
+Proof. by rewrite (big_morph _ (@mulf_eq0 _) (oner_eq0 _)) big_has_cond. Qed.
 
 Lemma prodf_seq_neq0 (R' : idomainType) (I : eqType)
   (s : seq I) (P : pred I) (F : I -> R') :
    (\prod_(i <- s | P i) F i != 0) = (all (fun i => P i ==> (F i != 0)) s).
 Proof.
-rewrite prodf_seq_eq0 -all_predC; apply: eq_all=> i /=.
+rewrite prodf_seq_eq0 -all_predC; apply: eq_all => i /=.
 by rewrite implybE negb_and.
 Qed.
 
@@ -1345,8 +1333,7 @@ Qed.
 
 Lemma sum_seq_nat_eq0 (I : eqType) (s : seq I) (P : pred I) (E : I -> nat) :
    (((\sum_(i <- s | P i) E i) == 0) = (all (fun i => P i ==> (E i == 0)) s))%N.
-Proof. by rewrite (big_morph _ addn_eq0 (eqxx _)) big_seq_andE. Qed.
-
+Proof. by rewrite (big_morph _ addn_eq0 (eqxx _)) big_all_cond. Qed.
 
 Definition bounding_poly (sq : seq {poly R}) :=
   let b := cauchy_bound (\prod_(q <- sq) q) + 1 in
@@ -1421,7 +1408,7 @@ Let shrink (sq : seq {poly R}) :
      <-> exists x, \big[andb/true]_(q <- sq) (q.[x] > 0)).
 Proof.
 split=> [] [x]; first by case/andP=> [] *; exists x.
-rewrite big_seq_andE /= => /allP hsq.
+rewrite big_all => /allP hsq.
 rewrite /bounding_poly; set q := \prod_(q <- _) _; set bnd := _ + 1.
 have sqn0 : {in sq, forall q, q != 0}.
   by move=> q' /= /hsq; apply: contraL=> /eqP->; rewrite horner0 ltrr.
@@ -1429,8 +1416,8 @@ case: (boolP (q == 0))=> [|q0].
   by rewrite prodf_seq_eq0=> /hasP [q' /= /sqn0 /negPf->].
 case: (lerP x (-bnd))=> hxMbnd.
   exists (-bnd); rewrite 2!horner_mul {1}horner_factor subrr !mul0r eqxx /=.
-  rewrite big_cond_seq big_mkcond big_seq_andE /=; apply/allP=> r /hsq.
-  rewrite -!sgr_cp0=> /eqP <-; case: ifP=> // hr.
+  rewrite big_all; apply/allP=> r hr; have:= hsq r hr.
+  rewrite -!sgr_cp0 => /eqP <-.
   apply/eqP; apply: (@polyrN0_int _ `](x - 1), (-bnd + 1)[).
   * move=> y hy /=; apply/negP=> /rootP ry0.
     have /(cauchy_boundP q0) : q.[y] = 0.
@@ -1444,8 +1431,8 @@ case: (lerP x (-bnd))=> hxMbnd.
     by rewrite addrC gtr0_ler_add ?ltr01.
 case: (lerP bnd x)=> hxPbnd.
   exists bnd; rewrite 2!horner_mul !{1}horner_factor subrr !(mulr0,mul0r) eqxx /=.
-  rewrite big_cond_seq big_mkcond big_seq_andE /=; apply/allP=> r /hsq.
-  rewrite -!sgr_cp0=> /eqP <-; case: ifP=> // hr.
+  rewrite big_all; apply/allP=> r hr; have:= hsq r hr.
+  rewrite -!sgr_cp0=> /eqP <-.
   apply/eqP; apply: (@polyrN0_int _ `](bnd - 1), (x + 1)[).
   * move=> y hy /=; apply/negP=> /rootP ry0.
     have /(cauchy_boundP q0) : q.[y] = 0.
@@ -1470,8 +1457,8 @@ case: (prev_rootP q (-bnd) x) q0; first by move->; rewrite eqxx.
     * by rewrite (intP hx).
     * by rewrite qa0 qb0.
     move=> y hy q'y0; exists y; rewrite horner_lin q'y0 !mulr0 eqxx /=.
-    rewrite big_cond_seq big_mkcond big_seq_andE /=; apply/allP=> r /hsq.
-    rewrite -!sgr_cp0=> /eqP <-; case: ifP=> // rsq.
+    rewrite big_all; apply/allP=> r rsq; have:= hsq r rsq.
+    rewrite -!sgr_cp0=> /eqP <-.
     apply/eqP; apply: (@polyrN0_int _ `]a, b[)=> //.
     move=> z /=; rewrite (@int_splitU2 _ x) // => /or3P [|/eqP->|].
     * move/hqa; apply: contra; rewrite !rootE horner_prod=> rz.
@@ -1481,10 +1468,9 @@ case: (prev_rootP q (-bnd) x) q0; first by move->; rewrite eqxx.
     by rewrite prodf_seq_eq0 /=; apply/hasP; exists r.
   move=> b q0 _ {b} hqb _; exists bnd.
   rewrite 2!horner_mul !{1}horner_factor subrr !(mul0r,mulr0) eqxx /=.
-  rewrite big_cond_seq big_mkcond big_seq_andE /=; apply/allP=> r /hsq.
-  rewrite -!sgr_cp0=> /eqP <-; case: ifP=> // hr.
-  apply/eqP; apply: (@polyrN0_int _ `[x, bnd])=> //.
-  move=> y /=.
+  rewrite big_all; apply/allP=> r hr.
+  have:= hsq r hr; rewrite -!sgr_cp0; congr (_ == 1).
+  apply: (@polyrN0_int _ `[x, bnd]) => //= y.
   rewrite (@int_splitU _ bnd false) // int_xx /= inE /=.
   case=> /orP [|/eqP ->]; last first.
     suff: ~~ root q bnd.
@@ -1500,10 +1486,9 @@ case: (prev_rootP q (-bnd) x) q0; first by move->; rewrite eqxx.
   by apply/hasP; exists r.
 move=> a q0 _ {a} hqa _; exists (-bnd).
 rewrite 2!horner_mul {1}horner_factor subrr !mul0r eqxx /=.
-rewrite big_cond_seq big_mkcond big_seq_andE /=; apply/allP=> r /hsq.
-rewrite -!sgr_cp0=> /eqP <-; case: ifP=> // hr.
-apply/eqP; apply: (@polyrN0_int _ `[(- bnd), x])=> //.
-move=> y /=.
+rewrite big_all; apply/allP=> r hr.
+have:= hsq r hr; rewrite -!sgr_cp0; congr (_ == 1).
+apply: (@polyrN0_int _ `[(- bnd), x]) => //= y.
 rewrite (@int_splitU _ (- bnd) true) // int_xx /= inE /=.
 case=> /orP [/eqP ->|].
   suff: ~~ root q (- bnd).
@@ -1533,30 +1518,30 @@ Proof.
 rewrite /ccount.
 case: (boolP (_ == 0))=> hsp /=.
   move: hsp; rewrite (big_morph  _ (@gcdp_eq0 _) (eqxx _)).
-  rewrite big_seq_andE /= => /allP /= hsp.
+  rewrite big_all => /allP /= hsp.
   case: (boolP (_ == 0))=> bq0 /=.
     apply: (iffP (ex_roots_weak _ _)).
     * by rewrite -size_poly_eq0 size_polyX.
     * case=> x; rewrite hornerX=> /andP [/eqP hx].
       rewrite hx; exists x; rewrite hx b andbT.
-      rewrite big_seq_andE; apply/allP=> /= p hp.
+      rewrite big_all; apply/allP=> /= p hp.
       by rewrite (eqP (hsp _ hp)) horner0.
-    case=> x; rewrite !big_seq_andE /= => /andP [/allP hspx /allP hsq].
+    case=> x; rewrite !big_all => /andP[/allP hspx /allP hsq].
     exists 0; rewrite hornerX eqxx /=.
     move: bq0; rewrite !mulf_eq0 !{1}factor_eq0 /=.
     rewrite -size_poly_eq0 size_deriv -leqn0.
     rewrite size_prod_seq_id; last first.
       by move=> i /hsq hi _; apply: contraTneq hi=> ->; rewrite horner0 ltrr.
     rewrite leqn0 sum_seq_nat_eq0 /= => /allP ssq.
-    rewrite big_seq_andE; apply/allP=> q hq /=.
-    move: (ssq _ hq) (hsq _ hq). rewrite -subn1 subn_eq0=> /size1_polyC->.
+    rewrite big_all; apply/allP=> q hq /=.
+    move: (ssq _ hq) (hsq _ hq); rewrite -subn1 subn_eq0 => /size1_polyC->.
     by rewrite !hornerC.
   apply: (iffP (ex_roots_weak _ _))=> //; last first.
     by case=> x /andP [_ hsq]; apply/shrink=> //; exists x.
   case/shrink=> x hx; exists x; rewrite hx andbT.
-  by rewrite big_seq_andE /=; apply/allP=> y /hsp /eqP ->; rewrite horner0.
+  by rewrite big_all; apply/allP=> y /hsp /eqP ->; rewrite horner0.
 by apply: (iffP (ex_roots_weak _ _))=> [] // [x hx];
-exists x; move: hx; rewrite [_ == _]root_biggcd !big_seq_andE /=.
+exists x; move: hx; rewrite [_ == _]root_biggcd !big_all.
 Qed.
 
 

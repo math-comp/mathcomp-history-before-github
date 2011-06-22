@@ -471,6 +471,10 @@ rewrite mem_iota; case le_m_i: (m <= i) => //=.
 by rewrite -leq_sub_add leq_subS // -subn_gt0 subn_sub subnKC // subn_gt0.
 Qed.
 
+Lemma mem_index_enum T i : i \in index_enum T.
+Proof. by rewrite -[index_enum T]enumT mem_enum. Qed.
+Hint Resolve mem_index_enum.
+
 Lemma filter_index_enum T P : filter P (index_enum T) = enum P.
 Proof. by []. Qed.
 
@@ -735,7 +739,13 @@ Qed.
 Lemma eq_bigl r (P1 P2 : pred I) F :
     P1 =1 P2 ->
   \big[op/idx]_(i <- r | P1 i) F i = \big[op/idx]_(i <- r | P2 i) F i.
-Proof. by move=> eqP12; rewrite -big_filter (eq_filter eqP12) big_filter. Qed.
+Proof. by move=> eqP12; rewrite -!(big_filter r) (eq_filter eqP12). Qed.
+
+(* A lemma to permute aggregate conditions. *)
+Lemma big_andbC r (P Q : pred I) F :
+  \big[op/idx]_(i <- r | P i && Q i) F i
+    = \big[op/idx]_(i <- r | Q i && P i) F i.
+Proof. by apply: eq_bigl => i; exact: andbC. Qed.
 
 Lemma eq_bigr r (P : pred I) F1 F2 : (forall i, P i -> F1 i = F2 i) ->
   \big[op/idx]_(i <- r | P i) F1 i = \big[op/idx]_(i <- r | P i) F2 i.
@@ -806,20 +816,19 @@ Proof. by rewrite unlock; elim: r => //= i r ->; case: (P i). Qed.
 
 End SeqExtension.
 
-(* The following lemma can be used to localise extensionality to     *)
-(* the specific index sequence. This is done by ssreflect rewriting, *)
-(* before applying congruence or induction lemmas. This is important *)
-(* for the latter, because ssreflect 1.1 still relies on primitive   *)
-(* Coq matching unification for second-order application (e.g., for  *)
-(* elim), and the latter can't handle the eqType constraint on I, as *)
-(* it doesn't recognize canonical projections.                       *)
-Lemma big_cond_seq (I : eqType) r (P : pred I) F :
+(* The following lemmas can be used to localise extensionality to a specific  *)
+(* index sequence. This is done by ssreflect rewriting, before applying       *)
+(* congruence or induction lemmas.                                            *)
+Lemma big_seq_cond (I : eqType) r (P : pred I) F :
   \big[op/idx]_(i <- r | P i) F i
-    = \big[op/idx]_(i <- r | P i && (i \in r)) F i.
+    = \big[op/idx]_(i <- r | (i \in r) && P i) F i.
 Proof.
-rewrite -!(big_filter r); congr bigop.
-by apply: eq_in_filter => i ->; rewrite andbT.
+by rewrite -!(big_filter r); congr bigop; apply: eq_in_filter => i ->.
 Qed.
+
+Lemma big_seq (I : eqType) (r : seq I) F :
+  \big[op/idx]_(i <- r) F i = \big[op/idx]_(i <- r | i \in r) F i.
+Proof. by rewrite big_seq_cond big_andbC. Qed.
 
 Lemma congr_big_nat m1 n1 m2 n2 P1 P2 F1 F2 :
     m1 = m2 -> n1 = n2 ->
@@ -828,10 +837,10 @@ Lemma congr_big_nat m1 n1 m2 n2 P1 P2 F1 F2 :
   \big[op/idx]_(m1 <= i < n1 | P1 i) F1 i
     = \big[op/idx]_(m2 <= i < n2 | P2 i) F2 i.
 Proof.
-move=> <- <- eqP12 eqF12.
-rewrite big_cond_seq (big_cond_seq _ P2).
-apply: eq_big => i; rewrite ?inE /= !mem_index_iota; last exact: eqF12.
-case inmn1_i: (m1 <= i < n1); rewrite ?(andbT, andbF) //; exact: eqP12.
+move=> <- <- eqP12 eqF12; rewrite big_seq_cond (big_seq_cond _ P2).
+apply: eq_big => i; rewrite ?inE /= !mem_index_iota.
+  by apply: andb_id2l; exact: eqP12.
+by rewrite andbC; exact: eqF12.
 Qed.
 
 Lemma big_geq m n (P : pred nat) F :
@@ -1010,8 +1019,7 @@ Lemma eq_big_idx idx' (I : finType) i0 (P : pred I) F :
      P i0 -> right_id idx' *%M ->
   \big[*%M/idx']_(i | P i) F i =\big[*%M/1]_(i | P i) F i.
 Proof.
-move=> Pi0 op_idx'; apply: eq_big_idx_seq => //.
-by apply/hasP; exists i0; first rewrite /index_enum -enumT mem_enum.
+by move=> Pi0 op_idx'; apply: eq_big_idx_seq => //; apply/hasP; exists i0.
 Qed.
 
 Lemma big1_eq I r (P : pred I) : \big[*%M/1]_(i <- r | P i) 1 = 1.
@@ -1019,14 +1027,14 @@ Proof.
 by rewrite big_const_seq; elim: (count _ _) => //= n ->; exact: mul1m.
 Qed.
 
-Lemma big1 (I : finType) (P : pred I) F :
-  (forall i, P i -> F i = 1) -> \big[*%M/1]_(i | P i) F i = 1.
-Proof. by move=> eq_F_1; rewrite (eq_bigr _ _ _ eq_F_1) big1_eq. Qed.
+Lemma big1 I r (P : pred I) F :
+  (forall i, P i -> F i = 1) -> \big[*%M/1]_(i <- r | P i) F i = 1.
+Proof. by move/(eq_bigr _)->; exact: big1_eq. Qed.
 
 Lemma big1_seq (I : eqType) r (P : pred I) F :
     (forall i, P i && (i \in r) -> F i = 1) ->
   \big[*%M/1]_(i <- r | P i) F i = 1.
-Proof. by move=> eqF1; rewrite big_cond_seq (eq_bigr _ _ _ eqF1) big1_eq. Qed.
+Proof. by move=> eqF1; rewrite big_seq_cond big_andbC big1. Qed.
 
 Lemma big_seq1 I (i : I) F : \big[*%M/1]_(j <- [:: i]) F j = F i.
 Proof. by rewrite unlock /= mulm1. Qed.
@@ -1307,7 +1315,7 @@ Implicit Arguments eq_big [R op idx I r P1 F1].
 Implicit Arguments eq_bigl [R op idx  I r P1].
 Implicit Arguments eq_bigr [R op idx I r  P F1].
 Implicit Arguments eq_big_idx [R op idx idx' I P F].
-Implicit Arguments big_cond_seq [R op idx I r].
+Implicit Arguments big_seq_cond [R op idx I r].
 Implicit Arguments congr_big_nat [R op idx m1 n1 P1 F1].
 Implicit Arguments big_map [R op idx I J r].
 Implicit Arguments big_nth [R op idx I r].
@@ -1394,7 +1402,7 @@ apply: eq_bigr => j Qij.
 rewrite (reindex_onto (seti j) (seti j0)) => [|f /andP[_ /eqP fi]]; last first.
   by apply/ffunP=> k; rewrite !ffunE; case: eqP => // ->.
 rewrite big_distrr; apply: eq_big => [f | f eq_f]; last first.
-  rewrite big_cons ffunE eqxx !(big_cond_seq predT) /=; congr (_ * _).
+  rewrite big_cons ffunE eqxx !big_seq; congr (_ * _).
   by apply: eq_bigr => k; rewrite ffunE; case: eqP nri => // -> ->.
 rewrite !ffunE !eqxx andbT; apply/andP/familyP=> /= [[Pjf fij0] k | Pff].
   have:= familyP Pjf k; rewrite /= ffunE inE; case: eqP => // -> _.
@@ -1448,19 +1456,39 @@ Implicit Arguments bigA_distr_bigA [R zero one times plus I J].
 
 Section BigBool.
 
-Variables (I : finType) (P : pred I).
+Section Seq.
 
-Lemma big_orE B : \big[orb/false]_(i | P i) B i = (existsb i, P i && B i).
+Variables (I : Type) (r : seq I) (P B : pred I).
+
+Lemma big_has : \big[orb/false]_(i <- r) B i = has B r.
+Proof. by rewrite unlock. Qed.
+
+Lemma big_all : \big[andb/true]_(i <- r) B i = all B r.
+Proof. by rewrite unlock. Qed.
+
+Lemma big_has_cond : \big[orb/false]_(i <- r | P i) B i = has (predI P B) r.
+Proof. by rewrite big_mkcond unlock. Qed.
+
+Lemma big_all_cond :
+  \big[andb/true]_(i <- r | P i) B i = all [pred i | P i ==> B i] r.
+Proof. by rewrite big_mkcond unlock. Qed.
+
+End Seq.
+
+Section FinType.
+
+Variables (I : finType) (P B : pred I).
+
+Lemma big_orE : \big[orb/false]_(i | P i) B i = (existsb i, P i && B i).
+Proof. by rewrite big_has_cond; apply/hasP/existsP=> [] [i]; exists i. Qed.
+
+Lemma big_andE : \big[andb/true]_(i | P i) B i = (forallb i, P i ==> B i).
 Proof.
-case: existsP => [[i /andP[Pi Bi]] | no_i]; first by rewrite (bigD1 i) ?Bi.
-by rewrite big1 // => i Pi; apply/idP=> Bi; case: no_i; exists i; rewrite Pi.
+rewrite big_all_cond; apply/allP/forallP=> /= allB i; rewrite allB //.
+exact: mem_index_enum.
 Qed.
 
-Lemma big_andE B : \big[andb/true]_(i | P i) B i = (forallb i, P i ==> B i).
-Proof.
-apply: negb_inj; rewrite (big_morph negb negb_and (erefl (~~ true))).
-by rewrite big_orE negb_forall; apply: eq_existsb => i; case: (P i).
-Qed.
+End FinType.
 
 End BigBool.
 
@@ -1493,9 +1521,9 @@ move=> leE12; rewrite -big_andE.
 by elim/big_rec3: _ => // i Ci m1 m2 /leE12; exact: leqif_add.
 Qed.
 
-Lemma leq_sum (I : finType) (P : pred I) (E1 E2 : I -> nat) :
+Lemma leq_sum I r (P : pred I) (E1 E2 : I -> nat) :
     (forall i, P i -> E1 i <= E2 i) ->
-  \sum_(i | P i) E1 i <= \sum_(i | P i) E2 i.
+  \sum_(i <- r | P i) E1 i <= \sum_(i <- r | P i) E2 i.
 Proof. by move=> leE12; elim/big_ind2: _ => // m1 m2 n1 n2; exact: leq_add. Qed.
 
 Lemma sum_nat_eq0 (I : finType) (P : pred I) (E : I -> nat) :

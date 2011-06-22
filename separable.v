@@ -3136,28 +3136,16 @@ Proof.
 move => s.
 rewrite (leq_trans (size_prod _ _)) // eq_cardT // size_enum_ord big_split_ord
         /= leq_sub_add addnS ltnS -addnA leq_add //.
- pose p := fun i => M (lshift m i) (s (lshift m i)).
- have : forall i, predT i -> size (p i) <= 1.
-  move => i _.
-  by rewrite /p col_mxEu /Mg mxE !(fun_if, if_arg) size_polyC size_poly0 
-             leq_b1 if_same.
- move/leq_sum.
- move/leq_trans => -> //.
- by rewrite sum_nat_const eq_cardT // size_enum_ord muln1.
-pose p := fun i => M (rshift n i) (s (rshift n i)).
-have : forall i, predT i -> (size (p i)) <= n.+1.
- move => i _.
- rewrite /p col_mxEd /Mf mxE.
- case: ifP => [_|_]; last by rewrite size_poly0.
- set j := (_ - _)%N.
- have [big|small] := (leqP (size f0) j).
-  by rewrite (nth_default _ big) scale0r size_poly0.
- have [->|f0neq0] := (eqVneq f0`_j 0).
-  by rewrite scale0r size_poly0.
- by rewrite size_scaler // size_polyXn -ltnS -szf0_subproof.
-move/leq_sum.
-move/leq_trans => -> //.
-by rewrite sum_nat_const eq_cardT // size_enum_ord mulnS mulnC.
+  apply: (@leq_trans #|'I_n|); last by rewrite card_ord.
+  rewrite -sum1_card leq_sum // => i _.
+  rewrite col_mxEu mxE !(fun_if, if_arg) size_polyC size_poly0.
+  by rewrite leq_b1 if_same.
+rewrite -mulSn mulnC -[m in muln m]card_ord -sum_nat_const leq_sum // => i _. 
+rewrite col_mxEd mxE; case: ifP => _; last by rewrite size_poly0.
+set j := (_ - _)%N.
+have [-> | f0neq0] := eqVneq f0`_j 0; first by rewrite scale0r size_poly0.
+rewrite size_scaler // size_polyXn -szf0_subproof ltnNge.
+by apply: contra f0neq0 => /(nth_default 0)->.
 Qed.
 
 Lemma eq_size_prodM_subproof : forall s:'S_(n + m),
@@ -3237,23 +3225,12 @@ rewrite leqNgt -{1}Hm -leqNgt mulnS leq_add //.
  rewrite size_polyXn.
  by rewrite -{4 8}[n](prednK (elementDegreegt0 _ _)) -/n addSn !ltnS leq_sub_add
             [(n.-1 + _)%N]addnC.
-suff: forall i0, (i0 != i) -> size (M (rshift n i0) (s (rshift n i0))) <= n.+1.
- move/leq_sum; move/leq_trans; apply.
- move: (cardC (pred1 i)).
- rewrite sum_nat_const card_ord card1 => Hcard.
- by rewrite leqNgt -{1}Hcard mulnC ltnn.
- (* by rewrite -[m in m.-1]Hcard add1n /= mulnC. *)
-move => j _.
-rewrite col_mxEd mxE.
-case: ifP; last by rewrite size_poly0.
+rewrite -[m in m.-1]card_ord -(cardC1 i) mulnC -sum_nat_const leq_sum // => j _.
+rewrite col_mxEd mxE; case: ifP => _; last by rewrite size_poly0.
 case: (eqVneq f0`_(s (rshift n j) - j) 0) => [->|Hf0].
  by rewrite scale0r size_poly0.
-rewrite size_scaler // size_polyXn-szf0_subproof.
-apply: contraLR.
-rewrite -leqNgt.
-move/(nth_default 0) => H.
-move:H Hf0 ->.
-by rewrite eq_refl.
+rewrite size_scaler // size_polyXn -szf0_subproof ltnNge.
+by apply: contra Hf0 => /(nth_default 0)->.
 Qed.
 
 Let size_detM : size (\det M) = (n * m).+1.

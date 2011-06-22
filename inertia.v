@@ -19,12 +19,15 @@ Local Open Scope ring_scope.
 (*                                                                        *)
 (*  (f ^ g)%CH : the group conjugate function                             *)
 (*                                                                        *)
-(* 'I_(G)[f] :  the set of elements of G such that f ^ g = f              *)
+(* 'I_G[f] :  the set of elements g of G such that f ^ g = f              *)
 (*                                                                        *)
 (* cconjugates G f : the sequence of all distinct conjugates of f         *)
 (*                   by elements of G                                     *)
 (*                                                                        *)
 (**************************************************************************)
+
+Reserved Notation "''I_' G [ f ]"
+  (at level 8, G at level 2, format "''I_' G [ f ]").
 
 Section Conj.
 
@@ -32,16 +35,16 @@ Variable gT : finGroupType.
 
 Implicit Type f : {cfun gT}.
 
-Definition cfun_conj f (g : gT) : {cfun _} := [ffun h => f (h^(g^-1))].
+Definition cfun_conj f (g : gT) : {cfun _} := [ffun h => f (h ^ g^-1)].
 
 Notation "f ^ g" := (cfun_conj f g) : character_scope.
 
-Lemma cfun_conjE f g h : (f ^ g)%CH h = f (h^(g^-1)).
+Lemma cfun_conjE f g h : (f ^ g)%CH h = f (h ^ g^-1)%g.
 Proof. by rewrite ffunE. Qed.
 
 (* Isaacs' 6.1.a *)
 Lemma memc_cfun_conj (G : {group gT}) f g :
-  g \in G -> f \in 'CF(G) -> (f^g)%CH \in 'CF(G).
+  g \in G -> f \in 'CF(G) -> (f ^ g)%CH \in 'CF(G).
 Proof.
 move=> GiG CFf.
 apply/cfun_memP; split=> [h HniG|h1 h2 H2iG].
@@ -54,17 +57,18 @@ Qed.
 Lemma cfun_conjM f (g h : gT) : (f ^ (g * h) = (f ^ g) ^ h)%CH.
 Proof. by apply/ffunP=> k; rewrite !cfun_conjE invMg conjgM. Qed.
 
-Lemma cfun_conj1 f : (f^1)%CH = f.
+Lemma cfun_conj1 f : (f ^ 1)%CH = f.
 Proof. by apply/ffunP=> g; rewrite ffunE invg1 conjg1. Qed.
 
-Lemma cfun_conj_val1 f g : (f^g)%CH 1%g = f 1%g.
+Lemma cfun_conj_val1 f g : (f ^ g)%CH 1%g = f 1%g.
 Proof. by rewrite ffunE conj1g. Qed.
 
-Lemma cfun_conj_conjC f (g : gT) : (f^g)^*%CH = (f^* ^ g)%CH.
+Lemma cfun_conj_conjC f (g : gT) : (f ^ g)^*%CH = (f^* ^ g)%CH.
 Proof. by apply/ffunP=> h; rewrite !ffunE. Qed.
 
 End Conj.
 
+Arguments Scope cfun_conj [_ character_scope group_scope].
 Notation "f ^ g" := (cfun_conj f g) : character_scope.
 
 Section Inertia.
@@ -74,9 +78,9 @@ Variable gT : finGroupType.
 Definition inertia (G : {set gT}) (f : {cfun gT}) :=  
   [set g \in G | (f ^ g)%CH == f].
 
-Local Notation "'I_( G )[ f ]" := (inertia G f).
+Local Notation "''I_' G [ f ]" := (inertia G f) : group_scope.
 
-Lemma group_set_inertia (G : {group gT}) f : group_set 'I_(G)[f].
+Lemma group_set_inertia (G : {group gT}) f : group_set 'I_G[f].
 Proof.
 rewrite /inertia; apply/andP; split.
   rewrite inE group1; apply/eqP; apply/ffunP=> g.
@@ -90,15 +94,15 @@ Qed.
 
 Canonical Structure inertia_group G f := Group (group_set_inertia G f).
 
-Local Notation "'I_( G )[ f ]" := (inertia_group G f) : subgroup_scope.
+Local Notation "''I_' G [ f ]" := (inertia_group G f) : subgroup_scope.
 
 Variable (G H : {group gT}).
 
-Lemma inertia_sub f : 'I_(G)[f] \subset G.
+Lemma inertia_sub f : 'I_G[f] \subset G.
 Proof. by apply/subsetP=> g; rewrite inE; case/andP. Qed.
 
 Lemma cfun_conj_eqE f (g h : gT) : 
-  g \in G -> h \in G -> (f^g == f^h)%CH = (h \in ('I_(G)[f] :* g)).
+  g \in G -> h \in G -> (f^g == f^h)%CH = (h \in ('I_G[f] :* g)).
 Proof.
 move=> GiG HiG; apply/eqP/rcosetP=> [Hx|]; last first.
   case=> g'; rewrite inE; case/andP=> G'iG; move/eqP=> CCi ->.
@@ -111,7 +115,7 @@ move/ffunP: Hx; move/(_ (g'^g)); rewrite !cfun_conjE => <-.
 by rewrite -conjgM mulgV conjg1.
 Qed.
 
-Lemma inertia_center f : f \in 'CF(H) -> H <| G -> 'Z(G) \subset ('I_(G)[f]).
+Lemma inertia_center f : f \in 'CF(H) -> H <| G -> 'Z(G) \subset 'I_G[f].
 Proof.
 move=> FcF HnG.
 apply/subsetP=> g; case/centerP=> GiG Cg; rewrite inE GiG.
@@ -123,7 +127,7 @@ rewrite !(cfun0 FcF) //.
 by rewrite memJ_norm // (subsetP (normal_norm HnG)) // groupV.
 Qed.
 
-Lemma subset_inertia f : f \in 'CF(H) -> H <| G -> H \subset 'I_(G)[f].
+Lemma subset_inertia f : f \in 'CF(H) -> H <| G -> H \subset 'I_G[f].
 Proof.
 move=> FcF HnG; apply/subsetP=> h1 H1iH.
 rewrite inE (subsetP (normal_sub HnG)) //.
@@ -191,7 +195,7 @@ by rewrite /irr_conj -Hj socle_of_cfunE irr_of_socleE Hj.
 Qed.
 
 Lemma is_irr_inner (i : Iirr H) g : H <| G -> g \in G -> 
-  '['xi_i, (('xi_i) ^ g)%CH]_H = (g \in 'I_(G)['xi_i])%:R.
+  '['xi_i, 'xi_i ^ g]_H = (g \in 'I_G['xi_i])%:R.
 Proof.
 move=> HnG GiG.
 rewrite -(irr_conjE i HnG GiG) irr_orthonormal.
@@ -201,28 +205,23 @@ by apply/eqP/eqP=> [->|] //; exact: xi_inj.
 Qed.
 
 Definition cconjugates (G : {set gT}) (f : {cfun gT}) := 
- map (fun i => (f ^ (repr i))%CH)
-  (filter (fun i => i \in (mem (rcosets 'I_(G)[f] G)))
-   (index_enum (set_of_finType (FinGroup.finType gT)))).
+  [seq (f ^ repr Tx)%CH | Tx <- enum (rcosets 'I_G[f] G)].
 
 Lemma cconjugatesP f1 f2 :
   reflect (exists2 g : gT, g \in G & f2 = (f1 ^ g)%CH) 
           (f2 \in cconjugates G f1).
 Proof.
-have F1: forall g, g \in G -> repr ('I_(G)[f1] :* g) \in G.
-  move=> g GiG; suff: 'I_(G)[f1] :* g \subset G.
+have F1: forall g, g \in G -> repr ('I_G[f1] :* g) \in G.
+  move=> g GiG; suff: 'I_G[f1] :* g \subset G.
     by move/subsetP; apply; exact: mem_repr_rcoset.
   apply/subsetP=> h; case/rcosetP=> h1 H1iG->; rewrite groupM //.
   by apply: (subsetP (inertia_sub f1)).
 apply: (iffP idP)=> [|[g GiG ->]].
-  case/mapP=> C; rewrite mem_filter.
-  case/andP; case/rcosetsP=> g GiG -> _ ->.
-  by exists (repr ('I_(G)[f1] :* g))=> //; exact: F1.
-have:= (mem_repr_rcoset ('I_(G)[f1]) g).
-rewrite -cfun_conj_eqE ?F1 //.
-move/eqP->; apply: map_f.
-  rewrite mem_filter; apply/andP; split; first by apply/rcosetsP; exists g.
-by rewrite /index_enum -enumT mem_enum.
+  case/mapP=> C; rewrite mem_enum => /rcosetsP[g GiG ->] ->.
+  by exists (repr ('I_G[f1] :* g)) => //; exact: F1.
+have:= mem_repr_rcoset ('I_G[f1]) g.
+rewrite -cfun_conj_eqE ?F1 // => /eqP->.
+by apply: map_f; rewrite mem_enum; apply/rcosetsP; exists g.
 Qed.
 
 Lemma mem_cconjugates f : f \in cconjugates G f.
@@ -232,8 +231,8 @@ Lemma unique_cconjugates f : uniq (cconjugates G f).
 Proof.
 rewrite map_inj_in_uniq.
   by apply: filter_uniq; rewrite /index_enum -enumT; exact: enum_uniq.
-have F1: forall g, g \in G -> repr ('I_(G)[f] :* g) \in G.
-  move=> g GiG; suff: 'I_(G)[f] :* g \subset G.
+have F1: forall g, g \in G -> repr ('I_G[f] :* g) \in G.
+  move=> g GiG; suff: 'I_G[f] :* g \subset G.
     by move/subsetP; apply; exact: mem_repr_rcoset.
   apply/subsetP=> h; case/rcosetP=> h1 H1iG->; rewrite groupM //.
   by apply: (subsetP (inertia_sub f)).
@@ -242,13 +241,13 @@ rewrite mem_filter; case/andP; case/rcosetsP=> h1 H1iG -> _.
 rewrite mem_filter; case/andP; case/rcosetsP=> h2 H2iG -> _.
 move=> HH; apply: sym_equal; apply: rcoset_transl.
 rewrite -cfun_conj_eqE //.
-have: (f ^ h1)%CH == (f ^ repr ('I_(G)[f] :* h1))%CH.
+have: (f ^ h1)%CH == (f ^ repr ('I_G[f] :* h1))%CH.
   by rewrite cfun_conj_eqE ?(mem_repr_rcoset,F1).
 move/eqP->.
 by rewrite HH eq_sym cfun_conj_eqE ?(mem_repr_rcoset,F1).
 Qed.
 
-Lemma cconjugates1 : H <| G ->  cconjugates G ('1_H) = [::'1_H].
+Lemma cconjugates1 : H <| G ->  cconjugates G '1_H = [:: '1_H].
 Proof.
 move=> HnG.
 have: forall f, f \in cconjugates G ('1_H) -> f = '1_H .
@@ -284,9 +283,7 @@ apply: uniq_perm_eq; try apply: unique_cconjugates.
 move=> j; apply/idP/idP; rewrite mem_filter; first by case/andP.
 move=> HH; apply/andP; split=> //.
 case/cconjugatesP: HH => g GiG->.
-rewrite -(irr_conjE _ HnG GiG).
-apply: map_f=> //.
-by rewrite /index_enum -enumT  mem_enum.
+by rewrite -(irr_conjE _ HnG GiG) map_f.
 Qed.
 
 (* This is Isaacs 6.2 *)
@@ -403,7 +400,7 @@ by move=> h1 /=; rewrite groupMr // groupV.
 Qed.
 
 Lemma cconjugates_size (i : Iirr H) : 
-  size (cconjugates G 'xi_i) =  #|G : 'I_(G)['xi_i]|.
+  size (cconjugates G 'xi_i) =  #|G : 'I_G['xi_i]|.
 Proof.
 suff->: size(cconjugates G 'xi_i) = 
        \big[addn/0%N]_(i <- cconjugates G 'xi_i) 1%N.
@@ -414,20 +411,19 @@ Qed.
 
 End Inertia.
 
-Notation "''I_(' G ) [ f ] " := (inertia G f) 
-  (at level 8, format "''I_(' G ) [ f ]").
-
-Notation "''I_(' G ) [ f ] " := (inertia_group G f) 
-  (at level 8, format "''I_(' G ) [ f ]") : subgroup_scope.
+Arguments Scope inertia [_ group_scope character_scope].
+Notation "''I_' G [ f ] " := (inertia G f) : group_scope. 
+Arguments Scope inertia_group [_ subgroup_scope character_scope].
+Notation "''I_' G [ f ] " := (inertia_group G f) : subgroup_scope.
 
 Section MoreInertia.
 
 Variable gT : finGroupType.
 
 Lemma cconjugates_inertia (G H : {group gT}) (i : Iirr H) :
-   cconjugates 'I_(G)['xi_i] 'xi_i = [::'xi_i].
+   cconjugates 'I_G['xi_i] 'xi_i = [::'xi_i].
 Proof.
-set T := 'I_(G)['xi_i]%G.
+set T := 'I_G['xi_i]%G.
 have : forall f, f \in cconjugates T 'xi_i -> f = 'xi_i.
   move=> f; case/cconjugatesP=> g.
   by rewrite inE; case/andP=> _; move/eqP->.
@@ -449,7 +445,7 @@ Variable (H G : {group gT}).
 
 Variable t : Iirr H.
 
-Let T := 'I_(G)['xi_t]%G.
+Let T := 'I_G['xi_t]%G.
 
 Hypothesis HnG : H <| G.
 
@@ -618,12 +614,12 @@ by case/negP: (irr1_neq0 p); rewrite HH1 ffunE.
 Qed.
 
 (* This is 6.11 (a) *)
-Lemma irr_is_comp_inertia : 'Ind[G, 'I_(G)['xi_t]] 'xi_p \in irr G.
+Lemma irr_is_comp_inertia : 'Ind[G, 'I_G['xi_t]] 'xi_p \in irr G.
 Proof. by rewrite (is_comp_inertia_induced_is_comp Hp Hc); apply: irr_xi. Qed.
 
 (* This is 6.11 (d) *)
 Lemma inner_prod_is_comp_inertia : 
- '['Res[H] 'xi_p, 'xi_t]_H = '['Res[H] ('Ind[G, 'I_(G)['xi_t]] 'xi_p), 'xi_t]_H.
+ '['Res[H] 'xi_p, 'xi_t]_H = '['Res[H] ('Ind[G, 'I_G['xi_t]] 'xi_p), 'xi_t]_H.
 Proof. 
 rewrite (is_comp_inertia_induced_is_comp Hp Hc).
 by rewrite (inner_prod_is_comp_inertia_is_comp Hp Hc).
@@ -631,7 +627,7 @@ Qed.
 
 (* This is 6.11 (b) the domain of the induction is B *)
 Lemma is_comp_is_comp_inertia :
-  is_comp t ('Res[H] ('Ind[G, 'I_(G)['xi_t]] 'xi_p)).
+  is_comp t ('Res[H] ('Ind[G, 'I_G['xi_t]] 'xi_p)).
 Proof. 
 rewrite (is_comp_inertia_induced_is_comp Hp Hc).
 by rewrite (is_comp_inertia_restrict_is_comp_g Hp Hc).
@@ -639,7 +635,7 @@ Qed.
 
 (* This is 6.11 c *)
 Lemma unique_is_comp_inertia (p': Iirr T) :
-   is_comp p' ('Res['I_(G)['xi_t]] ('Ind[G, 'I_(G)['xi_t]] 'xi_p)) ->
+   is_comp p' ('Res['I_G['xi_t]] ('Ind[G, 'I_G['xi_t]] 'xi_p)) ->
    is_comp t ('Res[H] 'xi_p') -> p' = p.
 Proof.
 rewrite (is_comp_inertia_induced_is_comp Hp Hc)=> Cp' Ct.
@@ -674,18 +670,18 @@ End S611A.
 (* This is 6.11 b it is an injection *)
 Lemma injective_is_comp_inertia (G H : {group gT}) (t : Iirr H) :
  H <| G ->
- {in [pred p: Iirr 'I_(G)['xi_t] | is_comp t ('Res[H] 'xi_p)] &,
-    injective (fun p : Iirr 'I_(G)['xi_t] => 
-                  'Ind[G, 'I_(G)['xi_t]] 'xi_p)}.
+ {in [pred p: Iirr 'I_G['xi_t] | is_comp t ('Res[H] 'xi_p)] &,
+    injective (fun p : Iirr 'I_G['xi_t] => 
+                  'Ind[G, 'I_G['xi_t]] 'xi_p)}.
 Proof.
 move=> HnG p p' Hp Hp' Heq.
 have TsG := inertia_sub G 'xi_t.
 apply: (unique_is_comp_inertia HnG Hp' _ Hp).
 have FF := memc_restrict TsG (memc_induced TsG (memc_irr p)).
-have IC1: is_char G ('Ind[G, 'I_(G)['xi_t]] 'xi_p).
+have IC1: is_char G ('Ind[G, 'I_G['xi_t]] 'xi_p).
   by apply: is_char_induced=> //; exact: is_char_irr.
-have IC2: is_char 'I_(G)['xi_t]
-            ('Res['I_(G)['xi_t]] ('Ind[G, 'I_(G)['xi_t]] 'xi_p)).
+have IC2: is_char 'I_G['xi_t]
+            ('Res['I_G['xi_t]] ('Ind[G, 'I_G['xi_t]] 'xi_p)).
   by apply: is_char_restrict TsG _.
 rewrite -Heq /is_comp inner_prod_charC  ?is_char_irr //.
 rewrite (frobenius_reciprocity TsG) ?(memc_is_char,is_char_irr) //.
@@ -701,16 +697,16 @@ Qed.
 Definition inertia_induced_inv (G H : {group gT})
                 (t : Iirr H) (chi : {cfun gT}) :=
   odflt 0
-           (pick [pred t' : Iirr 'I_(G)['xi_t] |
+           (pick [pred t' : Iirr 'I_G['xi_t] |
                    is_comp t ('Res[H] 'xi_t') && 
-                   is_comp t' ('Res['I_(G)['xi_t]] chi)]).
+                   is_comp t' ('Res['I_G['xi_t]] chi)]).
 
 Let inertia_coord :
  forall (G H : {group gT}) (t : Iirr H) (c : Iirr G),
     H <| G ->
-   [pred p : Iirr 'I_(G)['xi_t] | 
+   [pred p : Iirr 'I_G['xi_t] | 
                  is_comp t ('Res[H] 'xi_p) &&
-                 is_comp p ('Res['I_(G)['xi_t]] 'xi_c)] =1 xpred0 ->
+                 is_comp p ('Res['I_G['xi_t]] 'xi_c)] =1 xpred0 ->
    '['Res[H] 'xi_c, 'xi_t]_H == 0.
 Proof.
 move=> G H t c HnG HH.
@@ -739,7 +735,7 @@ Qed.
 Lemma inertia_induces_inv_is_comp_i (G H : {group gT}) (t : Iirr H) 
                                                        (c : Iirr G) :
     H <| G -> is_comp t ('Res[H] 'xi_c) ->
-    is_comp (inertia_induced_inv G t 'xi_c) ('Res['I_(G)['xi_t]] 'xi_c).
+    is_comp (inertia_induced_inv G t 'xi_c) ('Res['I_G['xi_t]] 'xi_c).
 Proof.
 move=> HnG Ct.
 rewrite /inertia_induced_inv; case: pickP=> [c'| HH]; first by case/andP.
@@ -749,7 +745,7 @@ Qed.
 (* This is 6.11 b the surjective part *)
 Lemma inertia_induced_invE (G H : {group gT}) (t : Iirr H) (c : Iirr G) :
     H <| G -> is_comp t ('Res[H] 'xi_c) ->
-    'Ind[G,'I_(G)['xi_t]] 'xi_(inertia_induced_inv G t 'xi_c) = 'xi_c.
+    'Ind[G,'I_G['xi_t]] 'xi_(inertia_induced_inv G t 'xi_c) = 'xi_c.
 Proof.
 move=> HnG Cc.
 apply: is_comp_inertia_induced_is_comp=> //.

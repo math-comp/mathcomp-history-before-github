@@ -928,8 +928,11 @@ Qed.
 Lemma signr_eq0 n : ((-1) ^+ n == 0 :> R) = false.
 Proof. by rewrite -signr_odd; case: odd; rewrite ?oppr_eq0 oner_eq0. Qed.
 
+Lemma mulr_sign (b : bool) x : (-1) ^+ b * x = (if b then - x else x).
+Proof. by case: b; rewrite ?mulNr mul1r. Qed.
+
 Lemma signr_addb b1 b2 : (-1) ^+ (b1 (+) b2) = (-1) ^+ b1 * (-1) ^+ b2 :> R.
-Proof. by case: b1 b2 => [] []; rewrite ?expr1 ?mulN1r ?mul1r ?opprK. Qed.
+Proof. by rewrite mulr_sign; case: b1 b2 => [] []; rewrite ?opprK. Qed.
 
 Lemma exprN x n : (- x) ^+ n = (-1) ^+ n * x ^+ n :> R.
 Proof. by rewrite -mulN1r commr_exp_mull // /comm mulN1r mulrN mulr1. Qed.
@@ -992,7 +995,7 @@ Qed.
 
 Lemma exprn_subl_comm x y n (cxy : comm x y) :
   (x - y) ^+ n =
-      \sum_(i < n.+1) ((-1) ^+ i * x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
+    \sum_(i < n.+1) ((-1) ^+ i * x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
 Proof.
 rewrite exprn_addl_comm; last exact: commr_opp.
 by apply: eq_bigr => i _; congr (_ *+ _); rewrite -commr_sign -mulrA -exprN.
@@ -1266,6 +1269,9 @@ Proof.
 elim: n => /= [|n ]; first by rewrite scale0r.
 by rewrite !mulrS scaler_addl ?scale1r => ->.
 Qed.
+
+Lemma scaler_sign (b : bool) v: (-1) ^+ b *: v = (if b then - v else v).
+Proof. by case: b; rewrite ?scaleNr scale1r. Qed.
 
 Lemma scaler_mulrnl a v n : a *: v *+ n = (a *+ n) *: v.
 Proof.
@@ -4049,6 +4055,7 @@ Definition exprn_mod := exprn_mod.
 Definition exprn_dvd := exprn_dvd.
 Definition signr_odd := signr_odd.
 Definition signr_eq0 := signr_eq0.
+Definition mulr_sign := mulr_sign.
 Definition signr_addb := signr_addb.
 Definition exprN := exprN.
 Definition sqrrN := sqrrN.
@@ -4239,6 +4246,7 @@ Definition scalerKV := scalerKV.
 Definition scalerI := scalerI.
 Definition scaler_mull := scaler_mull.
 Definition scaler_mulr := scaler_mulr.
+Definition scaler_sign := scaler_sign.
 Definition scaler_swap := scaler_swap.
 Definition scaler_exp := scaler_exp.
 Definition scaler_prodl := scaler_prodl.

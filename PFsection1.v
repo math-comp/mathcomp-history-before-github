@@ -12,7 +12,6 @@ Import Prenex Implicits.
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
-
 (**************************************************************************)
 (* This file contains the proof of Section1 of Peterfalvi's book          *)
 (**************************************************************************)
@@ -59,22 +58,22 @@ have F3: forall c, c \in classes G -> c^-1%g = c -> c = 1%g.
   move: (class_refl G g^-1); rewrite Hg; case/imsetP=> x XiG Hx.
   have F4: (x ^+ 2)%g \in 'C_G[g].
     apply/subcent1P; split; rewrite ?groupM //.
-    apply: (mulgI (x * x * g)^-1%g).
+    apply: (mulgI (x * x * g)^-1)%g.
     rewrite mulVg !invMg Hx conjgE !mulgA mulgK.
     rewrite -[(_ * g * x)%g]mulgA -[(_ * (g * _))%g]mulgA -conjgE.
     by rewrite -Hx mulgK mulVg.
   have F5 : x \in 'C_G[g].
-    suff->: (x = (x ^+ 2)^+ (#|G| %/2).+1)%g by apply: groupX.
+    suff->: (x = (x ^+ 2) ^+ (#|G| %/2).+1)%g by apply: groupX.
     rewrite -expgn_mul -[(_%/_).+1]addn1 muln_addr muln1 -{3}addn1 addnA.
     move: (modn2 #|G|); rewrite {1}OG /= => HH; rewrite -{3}HH.
     rewrite [(2 * _)%N]mulnC -divn_eq expgn_add expg1.
     by move: (order_dvdG XiG); rewrite order_dvdn; move/eqP->; rewrite mul1g.
   move: Hx; rewrite conjgE; case/subcent1P: F5=> _ ->.
   rewrite mulgA mulVg mul1g => HH.
-  have F6: (g^+2 == 1)%g by rewrite expgS -{1}HH expg1 mulVg.
+  have F6: (g ^+ 2 == 1)%g by rewrite expgS -{1}HH expg1 mulVg.
   suff: #[g] == 1%N by rewrite order_eq1; move/eqP->; apply: class1G.
   move: F6 (order_gt0 g) (order_dvdG GiG); rewrite -order_dvdn.
-  move/(dvdn_leq (is_true_true: (0 < 2)%N)); case: #[_]=> // [[|[]]] //.
+  move/(dvdn_leq (isT : (0 < 2)%N)); case: #[_]=> // [[|[]]] //.
   by rewrite dvdn2 OG.
 apply/eqP; case: (boolP (t == 0))=> // Hd.
   by move/eqP: Hd->; rewrite cfuni_xi0.
@@ -120,8 +119,7 @@ have: (#|'C_G[g]| <= #|'C_(G/H)[coset H g]|)%N.
       by move/subcent1P: H2; case.
     apply/subcent1P; split=> //.
     by apply: (subsetP (normal_sub HnG)).
-have F1: coset H g \in (G/H)%g.
-  by rewrite -imset_coset; apply/imsetP; exists g.
+have F1: coset H g \in (G / H)%g by exact: mem_quotient.
 rewrite leq_leC.
 move: (irr_second_orthogonal_relation GiG GiG).
 rewrite class_refl=> <-.
@@ -141,7 +139,7 @@ by rewrite conjC_eq0.
 Qed.
 
 Lemma memc_class_ortho (A : {set gT}) (u v : {cfun gT}) :
-   u \in 'CF(H,A) -> v \in 'CF(H,H :\: A) -> '[u,v]_H = 0.
+   u \in 'CF(H, A) -> v \in 'CF(H, H :\: A) -> '[u, v]_H = 0.
 Proof.
 rewrite !class_funE /=.
 case/memv_sumP=> /= x_ [] Hx ->.
@@ -165,7 +163,7 @@ Qed.
 
 Lemma memc_class_compl (A : {set gT}) :
   A \subset H -> class_support A H = A ->
-   ('CF(H,A) + 'CF(H,H :\: A))%VS = 'CF(H).
+   ('CF(H, A) + 'CF(H, H :\: A)%SET)%VS = 'CF(H).
 Proof.
 move=> AsH ClAH.
 rewrite [X in _ = X]class_funE.
@@ -236,7 +234,7 @@ have F1: forall j : 'I_m, '[Phi`_j, D]_H = 0.
   by move=> j; move: (HH j); rewrite F0; move/eqP.
 move: CD F1; rewrite -(memc_class_compl AsH) //.
 case/memv_addP=> /= f [g []] Cf Cg -> F1.
-have: '[f,f+g]_H = 0.
+have: '[f, f + g]_H = 0.
   case/andP: BP.
   move/is_span_span; move/(_ _ Cf)=> {1}-> _.
   rewrite -inner_prodbE linear_sum /=; apply: big1=> /= i _.
@@ -253,12 +251,12 @@ Lemma equiv_restrict_compl_ortho (A : {set gT}) m
   H \subset G -> A \subset H -> class_support A H = A ->
    is_basis 'CF(H,A) Phi -> 
    (forall i  : Iirr H, mu_ i \in 'CF(G)) ->
-   (forall i j : Iirr H, '[mu_ i,mu_ j]_G = (i == j)%:R) ->
+   (forall i j : Iirr H, '[mu_ i, mu_ j]_G = (i == j)%:R) ->
    (forall j,
      'Ind[G,H] Phi`_j = \sum_(i : Iirr H) '[Phi`_j, 'xi_i]_H *: mu_ i) ->
   (forall i : Iirr H, 'Res[A] (mu_ i) = 'Res[A] 'xi_i) /\
   (forall mu, mu \in 'CF(G) ->
-     (forall i : Iirr H, '[mu,mu_ i]_G = 0) -> 'Res[A] mu = 0).
+     (forall i : Iirr H, '[mu, mu_ i]_G = 0) -> 'Res[A] mu = 0).
 Proof.
 move=> HsG AsH ClA BP Cm Mo IP; split=> [/= i| mu Cmu Om].
   have->: 'xi_i = \sum_(j : Iirr H) ((fun j => (j==i)%:R) j) *: 'xi_j.
@@ -274,52 +272,50 @@ move=> HsG AsH ClA BP Cm Mo IP; split=> [/= i| mu Cmu Om].
           rewrite linearZ /= inner_prodbE Mo.
     by rewrite eqxx [_ *: _]mulr1.
   by rewrite (negPf KdI) scaler0.
-have->: 0 = 'Res[A] \sum_(j : Iirr H) 0 *: 'xi_j.
+have->: 0 = 'Res[A] (\sum_(j : Iirr H) 0 *: 'xi_j).
   by rewrite big1 // => *; rewrite ?linear0 // scale0r.
 apply/eqP; rewrite (equiv_restrict_compl (fun j => 0) _ _ _ BP) //.
 apply/forallP=> /= i.
 rewrite big1=> [|j _]; last by rewrite conjC0 mulr0.
 rewrite IP -inner_prodbE linear_sum big1 //= => j _.
-by rewrite linearZ  /= inner_prodbE ['[_,_]_G]inner_conj Om conjC0 scaler0.
+by rewrite linearZ  /= inner_prodbE ['[_, _]_G]inner_conj Om conjC0 scaler0.
 Qed.
 
-Let vchar_isometry_base2 f : f \in 'Z[irr G, G^#] -> '[f, f]_G = 2%:R ->
+Let vchar_isometry_base2 f : f \in 'Z[irr G, G^#] -> '[f]_G = 2%:R ->
    exists e1, exists e2, (f = 'xi[G]_e1 - 'xi[G]_e2) /\ e2 != e1.
 Proof.
 move=> Hf.
 rewrite (inner_prod_vchar Hf) //.
 move/memc_vchar: (Hf)=>/memcW F1.
 move=> HH.
-pose h (t : Iirr G) := getNatC (absC('[f, 'xi_t]_G)).
-have Hh: forall t, (h t)%:R = absC('[f, 'xi_t]_G).
-  move=> t; rewrite /h.
-  case/isNatCP: (isNatC_absC (isZC_inner_prod_vchar t Hf))=> n ->.
-  by rewrite getNatC_nat.
+pose h (t : Iirr G) := getNatC `|'[f, 'xi_t]_G|.
+have Hh t: (h t)%:R = `|'[f, 'xi_t]_G|.
+  exact/esym/eqP/normCZ_nat/(isZC_inner_prod_vchar t Hf).
 have: (\sum_t (h t) * h t = 2)%N.
   apply/eqP; rewrite eqN_eqC -HH natr_sum; apply/eqP.
-  apply: eq_bigr=> i _; rewrite natr_mul.
-  by rewrite Hh -absC_square // (isZC_inner_prod_vchar _ Hf).
+  apply: eq_bigr=> i _; rewrite natr_mul Hh -expr2 int_normCK //.
+  exact: (isZC_inner_prod_vchar _ Hf).
 case: (boolP (forallb i : Iirr G, '[f, 'xi_i]_G == 0)).
   move/forallP=> {HH}HH.
   rewrite big1=> // i _.
   apply/eqP; rewrite eqN_eqC natr_mul Hh.
-  by rewrite (eqP (HH i)) (absC_nat 0) mul0r.
+  by rewrite (eqP (HH i)) normC0 mul0r.
 rewrite negb_forall; case/existsP=> /= e1 He1.
 rewrite (bigD1 e1) //=.
 case E1: (h e1)=> [|[|k]] //; first 2 last.
   - by rewrite !mulnS addnA !addnS.
-  - by move/eqP: E1; rewrite eqN_eqC Hh absC_eq0 (negPf He1).
+  - by move/eqP: E1; rewrite eqN_eqC Hh normC_eq0 (negPf He1).
 case: (boolP (forallb i, (i == e1) || ('[f, 'xi_i]_G == 0))).
   move/forallP=> {HH}HH.
   rewrite big1=> // i Hi.
   apply/eqP; rewrite eqN_eqC natr_mul Hh.
   move: (HH i); rewrite (negPf Hi) /=; move/eqP->.
-  by rewrite (absC_nat 0) mul0r.
+  by rewrite normC0 mul0r.
 rewrite negb_forall; case/existsP=> /= e2; rewrite negb_or.
 case/andP=> Hd He2.
 rewrite (bigD1 e2) //=.
 case E2: (h e2)=> [|[|k]] //.
-  by move/eqP: E2; rewrite eqN_eqC Hh absC_eq0 (negPf He2).
+  by move/eqP: E2; rewrite eqN_eqC Hh normC_eq0 (negPf He2).
 do 2 move/addnI; move/eqP; rewrite sum_nat_eq0.
 move/forall_inP=> HH1.
 have: f 1%g = 0.
@@ -329,37 +325,27 @@ have Hfc: f = '[f, 'xi_e1]_G *: 'xi_e1 + '[f, 'xi_e2]_G *: 'xi_e2.
   rewrite -{1}(sum_inner_prodE F1) (bigD1 e1) //; congr (_ + _).
   rewrite (bigD1 e2) // big1 /= ?addr0 // => i Hi.
   case Ei: (h i) (HH1 _ Hi)=> // _.
-  by move/eqP: Ei; rewrite eqN_eqC Hh absC_eq0; move/eqP->; rewrite scale0r.
+  by move/eqP: Ei; rewrite eqN_eqC Hh normC_eq0; move/eqP->; rewrite scale0r.
 rewrite Hfc ffunE [_ 1%g]ffunE [(_ (_ *: _)) 1%g]ffunE.
-have F: 0 < 'xi_e1 1%g + 'xi_e2 1%g.
+have /andP[/negP F _]: 0 < 'xi_e1 1%g + 'xi_e2 1%g.
   apply: sposC_addl; try apply: ltCW; apply/andP; split;
      try exact:irr1_neq0; rewrite irr1_degree ; apply: posC_nat.
-move/eqP: E1; rewrite eqN_eqC Hh /absC; case: (_ <= _).
-  move/eqP->.
-  move/eqP: E2; rewrite eqN_eqC Hh /absC; case: (_ <= _).
-    move/eqP->; rewrite !scale1r=> HHf.
-    by move: F; rewrite HHf -(ltn_ltC 0 0).
-  rewrite -{2 3}['[_,'xi_e2]_G]opprK; move/eqP=> -> _.
-  by exists e1; exists e2; rewrite scaleNr !scale1r.
-rewrite -{2 3}['[_, 'xi_e1]_G]opprK; move/eqP=> ->.
-move/eqP: E2; rewrite eqN_eqC Hh /absC; case: (_ <= _).
-  move/eqP=> -> _.
-  exists e2; exists e1; rewrite addrC scaleNr !scale1r.
-  by rewrite eq_sym Hd.
-rewrite -{2 3}['[_,'xi_e2]_G]opprK; move/eqP->.
-rewrite /= -mulr_addr mulN1r=> HH2.
-by move: F; rewrite -[X in _ < X]opprK HH2 oppr0 -(ltn_ltC 0 0).
+rewrite (isZC_signE (isZC_inner_prod_vchar e1 Hf)) -Hh E1 mulr1 !scaler_sign.
+rewrite (isZC_signE (isZC_inner_prod_vchar e2 Hf)) -Hh E2 mulr1 !scaler_sign.
+move/eqP; do 2![case: ifP => _] => //; last by exists e1, e2.
+  by rewrite -oppr_add oppr_eq0.
+by exists e2, e1; rewrite addrC eq_sym.
 Qed.
 
 Let vchar_isometry_base3 f f' : 
-  f \in 'Z[irr G, G^#] -> '[f, f]_G = 2%:R ->
-  f' \in 'Z[irr G, G^#] -> '[f', f']_G = 2%:R ->
+  f \in 'Z[irr G, G^#] -> '[f]_G = 2%:R ->
+  f' \in 'Z[irr G, G^#] -> '[f']_G = 2%:R ->
   '[f, f']_G = 1%:R ->
    exists es, 
-   exists epsilon: bool,
-     [/\  f = (-(1%:R))^+epsilon *: ('xi[G]_es.1.1 - 'xi[G]_es.2),
-          f' = (-(1%:R))^+epsilon *: ('xi[G]_es.1.2 - 'xi[G]_es.2),
-          es.1.1 != es.2,es.1.2 != es.2 & es.1.1 != es.1.2].
+   exists epsilon : bool,
+     [/\  f = (-1) ^+ epsilon *: ('xi[G]_es.1.1 - 'xi[G]_es.2),
+          f' = (-1) ^+ epsilon *: ('xi[G]_es.1.2 - 'xi[G]_es.2),
+          es.1.1 != es.2, es.1.2 != es.2 & es.1.1 != es.1.2].
 Proof.
 move=> Hf H2f Hf1 H2f1.
 case/(vchar_isometry_base2 Hf): ( H2f) => e1 [e2] [-> Hn21].
@@ -384,7 +370,7 @@ Let  vchar_isometry_base4 (eps : bool) i j k n m
              (f2 :=  ('xi[G]_k - 'xi[G]_i))
              (f3 := 'xi[G]_n - 'xi[G]_m) :
   j != k -> j != i -> k != i -> n != m ->
- '[f3, f1]_G = (-(1%:R))^+eps -> '[f3, f2]_G = (-(1%:R))^+eps -> 
+ '[f3, f1]_G = (-1) ^+ eps -> '[f3, f2]_G = (-1) ^+ eps -> 
   if eps then n == i else m == i.
 Proof.
 move=> Hjk Hij Hik Hnm.   
@@ -396,7 +382,7 @@ have H0: 0 <> (-(1%:R))^+eps :> algC.
    by move/eqP; rewrite -(eqN_eqC 0 1). 
 have H1: true%:R + true%:R <> (1 *- 1) ^+ eps :> algC.
   rewrite -natr_add; case: {H0} eps => //. 
-    by move/eqP;  rewrite -subr_eq0 opprK  -natr_add  -(eqN_eqC _ 0).
+    by move/eqP;  rewrite -subr_eq0 opprK  -natr_add -(eqN_eqC _ 0).
   by move/eqP; rewrite -(eqN_eqC _ 1).
 have H2: 1 *- 1 <> 1 :> algC.
   by move/eqP; rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1%N) -(eqN_eqC _ 0).
@@ -415,19 +401,18 @@ Qed.
 
 (* This is PF 1.4 *)
 Lemma vchar_isometry_base m (Chi : m.-tuple {cfun gT}) 
-                         (tau : 'End({cfun gT})) (chi1 := Chi`_0) :
+                            (tau : 'End({cfun gT})) (chi1 := Chi`_0) :
     (1 < m)%N -> 
     {subset Chi <= irr H} -> free Chi ->
     (forall chi, chi \in Chi -> chi 1%g = chi1 1%g) ->
-    (forall f, f \in 'Z[Chi, H^#]-> tau f \in 'Z[irr G, G^#]) ->
-    (forall f1 f2, f1 \in 'Z[Chi, H^#] -> f2 \in 'Z[Chi, H^#] -> 
-                   '[tau f1, tau f2]_G = '[f1,f2]_H) ->
+    {in 'Z[Chi, H^#], forall f, tau f \in 'Z[irr G, G^#]} ->
+    {in 'Z[Chi, H^#] &, forall f1 f2, '[tau f1, tau f2]_G = '[f1, f2]_H} ->
     exists mu : {cfun gT} -> Iirr G,
     exists epsilon : bool,
     (forall i : 'I_m,
         tau (Chi`_i - chi1) =
-          (-(1%R))^+epsilon *: ('xi_(mu (Chi`_i)) - 'xi_(mu chi1))) /\
-      (forall i j:'I_m, ((mu (Chi`_i)) == (mu (Chi`_j)))== (i == j)).
+          (-1) ^+ epsilon *: ('xi_(mu (Chi`_i)) - 'xi_(mu chi1))) /\
+      (forall i j : 'I_m, (mu Chi`_i == mu Chi`_j) == (i == j)).
 Proof. 
 rewrite {}/chi1; move: m Chi tau.
 do 2 (case=> //); move=> m Chi tau _ SubC HF Chi1 Htau Hiso.
@@ -444,9 +429,8 @@ have FID: forall  i j:'I_m.+2, (F i j) \in 'Z[Chi, H^#].
   rewrite negb_and negbK; case/orP=>[| HH].
     by move/eqP->; rewrite /F !ffunE !Chi1 // subrr. 
   by rewrite /F !ffunE !(cfun0 _ HH) ?subrr //;
-   [case/irrIP:  (Chi_irr j)|case/irrIP: (Chi_irr i)]=> x <-; rewrite memc_irr.
-have htau2 : forall i j:'I_m.+2 , 
-            Chi`_i != Chi`_j-> '[tau (F i j), tau (F i j)]_G = 2%:R.
+   [case/irrIP: (Chi_irr j) | case/irrIP: (Chi_irr i)]=> x <-; rewrite memc_irr.
+have htau2 : forall i j : 'I_m.+2, Chi`_i != Chi`_j-> '[tau (F i j)]_G = 2%:R.
   move=> i j Hchij;  rewrite Hiso //.
   rewrite /F !raddf_sub /= -!inner_prodbE !linear_sub /= !inner_prodbE.
   move: Hchij; case/irrIP: (Chi_irr j)=> x <-; case/irrIP: (Chi_irr i)=> y <-.
@@ -454,7 +438,7 @@ have htau2 : forall i j:'I_m.+2 ,
   move=> Hxij; rewrite eq_sym; case: (boolP (_ == _)).
     by move/eqP=> he; case/eqP : Hxij; rewrite he.
   by rewrite subr0 sub0r opprK -natr_add.
-have htau1 (i j: 'I_m.+2) : Chi`_j != Chi`_0 -> Chi`_j != Chi`_i ->
+have htau1 (i j : 'I_m.+2) : Chi`_j != Chi`_0 -> Chi`_j != Chi`_i ->
             Chi`_i != Chi`_0 -> '[tau (F i 0), tau (F j 0)]_G = 1%:R.
   rewrite Hiso // /F !raddf_sub.
   case/irrIP: (Chi_irr 0)=> x1 <-; case/irrIP: (Chi_irr i)=> xi <-;
@@ -533,8 +517,8 @@ have HFti: forall i:'I_m.+2, exists mun : (Iirr G),
   move=> neqi2.
   move:(@vchar_isometry_base4 eps e1 e2 e3 mum mun H23 H21 H31 Hmn).
   move: (htau1 i 1  (HChi_ij 1 0 tp ) ); rewrite eq_sym => H1.
-  have Hips: forall (x y: {cfun gT}) (e: bool) , 
-              '[ x, (1 *- 1) ^+ e *: y ]_G =  (1 *- 1) ^+ e* '[x, y]_G.
+  have Hips: forall (x y : {cfun gT}) (e : bool) , 
+              '[x, (1 *- 1) ^+ e *: y]_G =  (1 *- 1) ^+ e* '[x, y]_G.
     move => x0 y e; rewrite inner_prodZ;congr (_ *_); rewrite isZC_conj //. 
     by case: e;rewrite ?(expr1,expr0) -?mulNrn ?(mulr1n,isZC_opp,(isZC_nat 1)).
   have Hinv1 : forall e : bool, (1 *- 1) ^+ e * ( 1 *- 1) ^+ e = 1.
@@ -595,10 +579,10 @@ Qed.
 (* This is PF 1.5(a) *)
 Lemma induced_sum_rcosets t :  H <| G ->
   'Res[H] ('Ind[G,H] 'xi[H]_t) = 
-     #|('I_(G)['xi_t])%CH : H|%:R *: \sum_(f <- cconjugates G 'xi_t) f.
+     #|('I_G['xi_t])%CH : H|%:R *: \sum_(f <- cconjugates G 'xi_t) f.
 Proof.
 move=> HnG; apply/ffunP=> h.
-pose GI := ([group of 'I_(G)['xi_t]])%CH.
+pose GI := ([group of 'I_G['xi_t]])%CH.
 rewrite big_map big_filter.
 case: (boolP (h \in H))=> [HiH|HniH]; last first.
   rewrite ffunE cfuniE (negPf HniH) mul0r ffunE sum_ffunE ffunE.
@@ -616,7 +600,7 @@ rewrite (reindex invg) /=; last by exists invg=> g; rewrite invgK.
 rewrite (eq_bigr (fun j => ('xi_t ^ j)%CH h)); last first.
   by move=> g Hg; rewrite cfun_conjE.
 have F1: forall g : gT, g^-1%g \in G -> 
-  ('I_(G)['xi_t])%CH :* g \in rcosets ('I_(G)['xi_t]) G.
+  ('I_G['xi_t])%CH :* g \in rcosets ('I_G['xi_t]) G.
   move=> g; rewrite groupV // => GiG; apply/imsetP; exists g=> //.
   by rewrite rcosetE.
 rewrite {1}(partition_big _  _ F1) /=.
@@ -624,12 +608,12 @@ apply: eq_bigr=> N; case/imsetP=> x XiG ->.
 set a := repr _.
 rewrite (eq_bigr (fun _ => ('xi_t ^ a)%CH h)); last first.
   move=> i1; case/andP; rewrite groupV /a // => Hi1; move/eqP=> <-.
-  suff: ('xi_t ^ i1 == 'xi_t ^ (repr ('I_(G)['xi_t] :* i1)))%CH by move/eqP<-.
+  suff: ('xi_t ^ i1 == 'xi_t ^ (repr ('I_G['xi_t] :* i1)))%CH by move/eqP<-.
   rewrite (cfun_conj_eqE _ Hi1) ?mem_repr_rcoset //.
-  have: ('I_(G)['xi_t])%CH :* i1 \subset G.
+  have: ('I_G['xi_t])%CH :* i1 \subset G.
     apply/subsetP=> g; case/imset2P=> h1 h2;rewrite !inE.
     by case/andP=> H1iG _ Eh2 ->; rewrite groupM // (eqP Eh2).
-  by move/subsetP; apply; apply: (mem_repr_rcoset [group of 'I_(G)['xi_t]] i1).
+  by move/subsetP; apply; apply: (mem_repr_rcoset [group of 'I_G['xi_t]] i1).
 rewrite -(card_rcoset _ x) -sum1_card natr_sum -!mulr_suml.
 apply: eq_big=> [i1|i1]; last by rewrite mul1r.
 rewrite rcosetE; apply/andP/idP=>[|HH]; last first.
@@ -637,37 +621,37 @@ rewrite rcosetE; apply/andP/idP=>[|HH]; last first.
   case/rcosetP: HH=> h1 H1iI ->; rewrite groupV groupM //.
   by apply: (subsetP (inertia_sub G 'xi_t)).
 case=> I1iG; move/eqP<-; apply/rcosetP.
-by exists 1%g; rewrite ?mul1g // ?(group1 [group of 'I_(G)[t]]).
+by exists 1%g; rewrite ?mul1g // ?(group1 [group of 'I_G[t]]).
 Qed.
 
 (*  This 1.5b *)
-Lemma induced_prod_index t :  H <| G -> 
-    '['Ind[G,H] 'xi[H]_t,'Ind[G,H] 'xi_t]_G = #|('I_(G)['xi_t])%CH : H|%:R.
+Lemma induced_prod_index t :
+  H <| G -> '['Ind[G,H] 'xi[H]_t]_G = #|('I_G['xi_t])%CH : H|%:R.
 Proof.
 move=> HnG; have CFi := memc_irr t; have HsG := normal_sub HnG.
 rewrite -frobenius_reciprocity ?memc_induced //.
 have->: '['xi_t, 'Res[H] ('Ind[G,H] 'xi_t)]_H =
-  #|('I_(G)['xi_t])%CH : H|%:R * '['xi_t, (\sum_(f <- cconjugates G 'xi_t) f)]_H.
+  #|('I_G['xi_t])%CH : H|%:R * '['xi_t, (\sum_(f <- cconjugates G 'xi_t) f)]_H.
  rewrite !inner_prodE mulrA [_%:R * _]mulrC -mulrA -[_%:R * _]mulr_sumr.
  congr (_ * _); apply: eq_bigr=> h HiH.
  rewrite mulrA [_%:R * _]mulrC -mulrA; congr (_ * _).
  by rewrite (induced_sum_rcosets _ HnG) // !ffunE rmorphM conjC_nat.
 rewrite big_map big_filter.
-rewrite raddf_sum (bigD1 ('I_(G)['xi_t] :* 1%g)%CH) /=; last first.
+rewrite raddf_sum (bigD1 ('I_G['xi_t] :* 1%g)%CH) /=; last first.
   by apply/rcosetsP; exists 1%g; rewrite ?group1.
-have F1: repr ('I_(G)['xi_t] :* 1) \in 'I_(G)['xi_t].
+have F1: repr ('I_G['xi_t] :* 1) \in 'I_G['xi_t].
   by rewrite -{2}[('I_(_)[_])%CH]rcoset1 mem_repr_rcoset.
 rewrite big1 ?addr0=> [|j].
   by rewrite (is_irr_inner _ HnG) ?(F1,mulr1,subsetP (inertia_sub G 'xi_t)).
 case/andP; case/rcosetsP=> g GiG -> Heq.
 rewrite (is_irr_inner _ HnG); last first.
-  have: ('I_(G)['xi_t] :* g \subset G)%CH.
+  have: ('I_G['xi_t] :* g \subset G)%CH.
     apply/subsetP=> h; case/rcosetP=> k KiI ->.
     by rewrite groupM // (subsetP (inertia_sub G 'xi_t)).
   by move/subsetP; apply; apply: mem_repr_rcoset.
 case E1: (_ \in _)=> //; case/eqP: Heq.
 rewrite rcoset1 rcoset_id //.
-have: repr ([group of 'I_(G)['xi_t]] :* g) \in 'I_(G)['xi_t]%CH by [].
+have: repr ([group of 'I_G['xi_t]] :* g) \in 'I_G['xi_t]%CH by [].
 by case: repr_rcosetP=> h HiI HGiH; rewrite -(groupMl _ HiI).
 Qed.
 
@@ -686,7 +670,7 @@ rewrite big_map big_filter big1 ?mulr0 //=.
 move=> C1 HC1.
 have RiG: repr C1 \in G.
   case/rcosetsP: HC1=> g GiG ->.
-  have: ('I_(G)['xi_t2])%CH :* g \subset G.
+  have: ('I_G['xi_t2])%CH :* g \subset G.
     apply/subsetP=> h; case/rcosetP=> k KiI ->.
     by rewrite groupM // (subsetP (inertia_sub G 'xi_t2)).
   by move/subsetP; apply; apply: mem_repr_rcoset.
@@ -699,8 +683,8 @@ Qed.
 
 (* This is PF 1.5(d) *)
 Lemma induced_sum_rcosets1 t : H <| G ->
-  let chi :=  'Ind[G,H] 'xi[H]_t in
-  (chi 1%g / '[chi, chi]_G) *: 'Res[H] chi  = #|G : H|%:R *:
+  let chi := 'Ind[G,H] 'xi[H]_t in
+  (chi 1%g / '[chi]_G) *: 'Res[H] chi  = #|G : H|%:R *:
        (\sum_(f <- cconjugates G 'xi_t) f 1%g *: f).
 Proof.
 move=> HnG chi.
@@ -770,7 +754,7 @@ rewrite scaler_sumr -cconjugates_sum //=.
 rewrite big_mkcond /=.
 pose f (i : Iirr H) := 
   (if 'xi_i \in cconjugates G 'xi_t
-       then #|'I_(G)['xi_t] : H|%:R else 0) *: 'xi_i.
+       then #|'I_G['xi_t] : H|%:R else 0) *: 'xi_i.
 rewrite (eq_bigr f) /f => [|i _]; last first.
   by case: (_ \in _); rewrite // scale0r.
 rewrite /is_comp -inner_prodbE linear_sum (bigD1 t) // big1 //= ?addr0.
@@ -778,7 +762,7 @@ rewrite /is_comp -inner_prodbE linear_sum (bigD1 t) // big1 //= ?addr0.
     by apply/cconjugatesP; exists 1%g; rewrite ?(group1, cfun_conj1).
   rewrite linearZ /= inner_prodbE irr_orthonormal eqxx [_ *: _]mulr1.
   rewrite -(eqN_eqC _ 0).
-  by case: #|_ : _| (indexg_gt0 'I_(G)['xi_t] H).
+  by case: #|_ : _| (indexg_gt0 'I_G['xi_t] H).
 move=> i Dit.
 by rewrite linearZ /= inner_prodbE irr_orthonormal (negPf Dit) scaler0.
 Qed.
@@ -786,7 +770,7 @@ Qed.
 (* This is PF 1.6b *)
 Lemma induced_quotientE (A : {group gT}) t :
   H <| G -> A <| G -> A \subset cker H 'xi[H]_t ->
-   'Ind[(G/A)%g,(H/A)%g] ('xi_t/A)%CH = ('Ind[G,H] 'xi_t/A)%CH.
+   'Ind[G / A, H / A] ('xi_t / A)%CH = ('Ind[G,H] 'xi_t / A)%CH.
 Proof.
 move=> HnG AnG AsK.
 have AsH := subset_trans AsK (cker_sub _ _).
@@ -803,9 +787,9 @@ have CFiq := memc_is_char CHiq.
 have CFqi := memc_is_char CHqi.
 apply/ffunP=> /= h.
 apply: (mulfI (neq0GC H)).
-case: (boolP (h \in (G/A)%g))=> HiGA; last first. 
+case: (boolP (h \in (G / A)%g)) => HiGA; last first. 
   by rewrite (cfun0 CFiq HiGA) (cfun0 CFqi HiGA).
-case: (boolP (h \in (H/A)%g))=> HiHA; last first.
+case: (boolP (h \in (H / A)%g))=> HiHA; last first.
   move/off_support: (support_induced (memc_is_char CHq) HAnGA).
   move/(_ _ HiHA)=> ->.
   case/imsetP: HiGA HiHA=> g; rewrite inE => /andP [] GiN GiG /= ->.
@@ -872,7 +856,7 @@ have BsKi : B \subset cker C 'xi_i1.
   rewrite cker_charE // inE F !crestrictE //.
   by move: (subsetP BsK _ GiG); rewrite cker_irrE inE (subsetP CsG) ?F.
 pose i2 := qfunc_idx B i1.
-have ZsC: 'Z(C/B)%g \subset  ccenter (C/B)%G 'xi_i2.
+have ZsC: 'Z(C / B)%g \subset  ccenter (C / B)%G 'xi_i2.
     by rewrite (center_bigcap (C/B)); apply: bigcap_inf.
 have CBsH: C :&: B \subset D.
     apply/subsetP=> g; rewrite inE; case/andP=> _ HH.
@@ -885,7 +869,7 @@ have I1B: 'xi_i1 1%g ^+ 2 <= #|C:D|%:R.
   rewrite -leq_leC // -(index_quotient_eq CBsH) ?normal_norm //.
   rewrite -(@leq_pmul2l #|ccenter (C / B)%G 'xi_i2|) ?cardG_gt0 ?ccenter_sub //.
   rewrite  LaGrange ?quotientS ?ccenter_sub //.
-  rewrite -(@leq_pmul2l #|(D/B)%g|) ?cardG_gt0 //.
+  rewrite -(@leq_pmul2l #|(D / B)%g|) ?cardG_gt0 //.
   rewrite mulnA mulnAC LaGrange ?quotientS //.
   rewrite mulnC leq_pmul2l ?cardG_gt0 // subset_leq_card //.
   by apply: (subset_trans QsZ).

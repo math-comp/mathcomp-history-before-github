@@ -2,11 +2,9 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div.
 Require Import fintype bigop prime binomial finset ssralg fingroup finalg.
 Require Import morphism perm automorphism quotient action commutator gproduct.
-Require Import zmodp cyclic center pgroup gseries nilpotent sylow finalg finmodule.
-Require Import abelian frobenius maximal extremal hall finmodule.
+Require Import zmodp cyclic center pgroup gseries nilpotent sylow finalg.
+Require Import finmodule abelian frobenius maximal extremal hall finmodule.
 Require Import matrix mxalgebra mxrepresentation mxabelem BGsection1.
-
-
 
 (******************************************************************************)
 (*   This file is a placeholder for the proof of the Wielandt fixpoint order  *)
@@ -532,24 +530,19 @@ Theorem solvable_Wielandt_fixpoint : forall (I : finType) (gT : finGroupType),
 Proof.
 move=> I gT A n m G V; move: {2}_.+1 (ltnSn #|V|) => c.
 rewrite (bigID (fun i => 0 < m i + n i)) /=.
-rewrite (big1 (fun i => ~~ (0 < m i + n i))); last first.
-  move=> j; rewrite -eqn0Ngt addn_eq0; case/andP; move/eqP->.
-  by rewrite mul0n expn0.
-rewrite [(\prod_i _)%N](bigID (fun i => 0 < m i + n i)) /=.
-rewrite (big1 (fun i => ~~ (0 < m i + n i))); last first.
-  move=> j; rewrite -eqn0Ngt addn_eq0; case/andP=> _; move/eqP->.
-  by rewrite mul0n expn0.    
-rewrite !muln1 => leVm sAiG nVG copVG solV hGA *.
+rewrite mulnC big1 ?mul1n => [|j]; last first.
+  by rewrite -eqn0Ngt addn_eq0 => /andP[/eqP-> _].
+rewrite [in R in _ = R](bigID (fun i => 0 < m i + n i)) /=.
+rewrite [R in (_ * R)%N]big1 ?muln1 => [|j]; last first.
+  by rewrite addnC; case: (n j).
+move=> leVm sAiG nVG copVG solV hGA *.
 have {hGA} hGA : {in G, forall a : gT,
   (\sum_(i | (a \in A i) && (0 < m i + n i)) m i)%N = 
   (\sum_(i | (a \in A i) && (0 < m i + n i)) n i)%N}.
-  move=> g Gg /=; move: (hGA g Gg).
-  rewrite (bigID (fun i => 0 < m i + n i)) /=.
-  rewrite (big1 (fun i => _ && ~~ (0 < m i + n i))); last first.
-    by move=> j; case/andP=> _; rewrite -eqn0Ngt addn_eq0; case/andP; move/eqP.
-  rewrite addn0 => ->; rewrite (bigID (fun i => 0 < m i + n i)) /=.
-  rewrite (big1 (fun i => _ && ~~ (0 < m i + n i))) //. 
-  by move=> j; case/andP=> _; rewrite -eqn0Ngt addn_eq0; case/andP=> _; move/eqP.
+  move=> g Gg /=; rewrite -!big_filter_cond !(big_mkcond (fun _ => 0 < _)%N).
+  rewrite !big_filter; apply: etrans (etrans (hGA g Gg) (esym _)).
+    by apply: eq_bigr => i _; case: (m i); rewrite // if_same.
+  by apply: eq_bigr => i _; rewrite addnC; case: (n i); rewrite // if_same.
 move: leVm sAiG nVG copVG solV hGA.
 elim: c  => // c IHc in I gT A G V n m *;
  rewrite ltnS => leVm sAiG nVG copVG solV hGA *.
