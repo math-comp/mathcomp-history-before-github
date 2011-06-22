@@ -450,21 +450,33 @@ rewrite addr0 -[_ (_ (_ b))]comp_lappE -[fun_of_lapp _ (_ b)]comp_lappE.
 by rewrite -comp_lappA inv_lapp_def.
 Qed.
 
-Definition comp_LAut (f g : LAut) : LAut := SeqSub (comp_in_LAut f g).
+(* the group operation is the categorical composition operation *)
+Definition comp_LAut (f g : LAut) : LAut := SeqSub (comp_in_LAut g f).
 Definition inv_LAut (f : LAut) : LAut := SeqSub (inv_in_LAut f).
-Definition id_LAut : LAut := SeqSub id_in_LAut. 
+Definition id_LAut : LAut := SeqSub id_in_LAut.
 
 Lemma comp_LAutA : associative comp_LAut.
-Proof. move => f g h. apply: val_inj. apply: comp_lappA. Qed.
+Proof. move => f g h. apply: val_inj. symmetry. apply: comp_lappA. Qed.
 
 Lemma comp_1LAut : left_id id_LAut comp_LAut.
-Proof. move => f. apply: val_inj. apply: comp_1lapp. Qed.
+Proof. move => f. apply: val_inj. apply: comp_lapp1. Qed.
 
 Lemma comp_LAutK : left_inverse id_LAut inv_LAut comp_LAut.
 Proof.
 move => f.
 apply: val_inj.
-by rewrite /= inv_lker0 // -subv0 LAut_ker0 subv_refl.
+(* TODO: abstract this into vector. v *)
+apply/eqP/eq_lapp => v.
+rewrite unit_lappE /=.
+move: (memvf v).
+rewrite -(addv_complf (val f @: (fullv L))%VS).
+suff/eqP -> : ((val f @: fullv L)^C == 0%:VS)%VS.
+ rewrite addv0.
+ move/memv_imgP => [x [_ ->]].
+ by rewrite -[X in X = _]comp_lappE -comp_lappA inv_lapp_def.
+rewrite -dimv_eq0.
+rewrite dimv_compl.
+by rewrite limg_dim_eq ?dimvf ?subnn // capfv LAut_ker0.
 Qed.
 
 Definition LAut_baseFinGroupMixin := FinGroup.Mixin
@@ -624,7 +636,7 @@ rewrite !in_set !kAutE.
 case/andP; case/kHomP => Hx1 Hx2 Hx3.
 case/andP; case/kHomP => Hy1 Hy2 Hy3.
 apply/andP; split; last first.
- by rewrite SubK limg_comp (subv_trans _ Hx3) // limg_ker0 // LAut_ker0.
+ by rewrite SubK limg_comp (subv_trans _ Hy3) // limg_ker0 // LAut_ker0.
 apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
 move => a Ha.
 by rewrite SubK lappE /comp Hy1 // Hx1.
@@ -651,11 +663,10 @@ rewrite kAutE subvf andbT.
 apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
 move => a Ha.
 rewrite -{2}[a](unit_lappE) -[\1%VS]/(val (1%g : LAut)) -(mulVg x).
-rewrite !SubK !lappE /=.
-apply: f_equal.
-rewrite lappE.
-apply Hy.
-by rewrite -Hx memv_img.
+rewrite !SubK !lappE /= lappE [X in ((val x) X) = _]Hy //.
+rewrite -Hx in Ha.
+case/memv_imgP: Ha => [b [Hb ->]].
+by rewrite -[X in X \in _]comp_lappE inv_lker0 ?unit_lappE // LAut_ker0.
 Qed.
 
 (*
@@ -702,15 +713,15 @@ apply: (iffP idP).
  move: Hf Hg.
  rewrite Hxy.
  move/coset_mem <-.
- rewrite val_coset // norm_rlcoset //.
- case/lcosetP => h.
+ rewrite val_coset //.
+ case/rcosetP => h.
  rewrite inE kAutE subvf andbT.
  case/kHomP => Hh _ -> a Ha.
  rewrite /= lappE /= Hh //.
 move/coset_mem: Hf <-.
 move/coset_mem: (Hg) => <- Hfg.
 apply/eqP/coset_mem.
-rewrite val_coset // norm_rlcoset // mem_lcoset /=.
+rewrite val_coset // mem_rcoset /=.
 rewrite inE kAutE subvf andbT.
 apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
 move => a Ha.
@@ -748,7 +759,7 @@ rewrite val_coset.
  rewrite inE.
  case/andP.
  case/kHomP => Hh _ _.
- by rewrite [X in _ = X]Hh // HEgf // -HfE memv_img.
+ by rewrite [X in _ = (val g X)]Hh // HEgf // -HfE memv_img.
 move/subsetP: (kAut_normal K E).
 apply.
 rewrite inE kAutE Hgf andbT.
@@ -768,16 +779,15 @@ case/andP => /kHomP [Hx _] /eqP HxE.
 case/andP => /kHomP [Hf _] _.
 apply/andP; split; last first.
  apply/subvP => ? /memv_imgP [a [Ha ->]].
- by rewrite comp_lappE /= Hf -HxE; apply: memv_img.
+ by rewrite comp_lappE /= Hf // -HxE; apply: memv_img.
 apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
 move => a Ha.
-rewrite comp_lappE /= Hx // Hf //.
-move/subvP: HKE.
-by apply.
+move/subvP/(_ _ Ha): HKE => HaE.
+by rewrite comp_lappE /= Hf // Hx.
 Qed.
 
 Lemma Aut_mul x y : x \in 'Aut(E | K)%g -> y \in 'Aut(E | K)%g ->
- forall a, a \in E -> val (repr (x*y)%g) a = val (repr x) (val (repr y) a).
+ forall a, a \in E -> val (repr (x*y)%g) a = val (repr y) (val (repr x) a).
 Proof.
 move => Hx Hy a Ha.
 have Hxy := groupM Hx Hy.
@@ -1206,9 +1216,9 @@ have/allPn : ~~(all (fun x => x \in (map h r)) (map (val (repr x)) (map h r))).
 rewrite -map_comp.
 case => ? /mapP [y Hyr ->] Hyx.
 have Hy : y \in ('Aut(E | K))%g by move/subsetP: Haut; apply.
-have Huniq : uniq (map h ((x * y)%g :: r)).
- by rewrite /= Hr andbT [h _](Aut_mul Hx Hy).
-exists (cons (x * y)%g r); split.
+have Huniq : uniq (map h ((y * x)%g :: r)).
+ by rewrite /= Hr andbT [h _](Aut_mul Hy Hx).
+exists (cons (y * x)%g r); split.
 - by rewrite subset_all /= -subset_all Haut groupM.
 - by apply: Huniq.
 - by rewrite /= Hnr.
