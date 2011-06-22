@@ -5100,9 +5100,7 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
           | _ -> None) 
           (List.combine (Array.to_list args) names)
     | _ -> anomaly "rewrite rule not an application" in
-    let err = Himsg.explain_refiner_error (Logic.UnresolvedBindings miss) in
-    errorstrm (err++spc()++str"The interested rewriting rule is:"++
-      spc()++pr_constr_pat c)
+    errorstrm (Himsg.explain_refiner_error (Logic.UnresolvedBindings miss))
 ;;
 
 let rwcltac cl rdx dir sr gl =
