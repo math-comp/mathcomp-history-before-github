@@ -6,6 +6,7 @@ binders_of.v
 caseview.v
 congr.v
 deferclear.v
+dependent_type_err.v
 elim.v
 elim2.v
 elim_pattern.v

@@ -5207,8 +5207,26 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
     try Typing.type_of env sigma proof with _ -> raise PRtype_error in
   pp(lazy(str"pirrel_rewrite proof term of type: " ++ pr_constr proof_ty));
   try refine_with ~with_evars:false (sigma, proof) gl
-  with _ -> raise (PRindetermined_rhs (Reductionops.clos_norm_flags
-    Closure.beta env sigma (snd (nf_open_term sigma sigma new_rdx))))
+  with _ -> 
+    (* we generate a msg like: "Unable to find an instance for the variable" *)
+    let c = snd(nf_open_term sigma sigma c) in
+    let miss = match kind_of_term c with
+    | App (hd, args) -> 
+        let hd_ty = Retyping.get_type_of env sigma hd in
+        let names = let rec aux t = function 0 -> [] | n ->
+          let t = Reductionops.whd_betadeltaiota env sigma t in
+          match kind_of_type t with
+          | ProdType (name, _, t) -> name :: aux t (n-1)
+          | _ -> assert false in aux hd_ty (Array.length args) in
+        Util.list_map_filter (fun (t, name) -> match kind_of_term t with 
+          | Evar (k, _) when InProp <> Retyping.get_sort_family_of
+            env sigma (Evd.evar_concl (Evd.find sigma k)) -> Some name 
+          | _ -> None) 
+          (List.combine (Array.to_list args) names)
+    | _ -> anomaly "rewrite rule not an application" in
+    let err = Himsg.explain_refiner_error (Logic.UnresolvedBindings miss) in
+    errorstrm (err++spc()++str"The interested rewriting rule is:"++
+      spc()++pr_constr_pat c)
 ;;
 
 let rwcltac cl rdx dir sr gl =
@@ -5247,9 +5265,7 @@ let rwcltac cl rdx dir sr gl =
       then errorstrm (str "Rewriting impacts evars")
       else errorstrm (str "Dependent type error in rewrite of "
         ++ pf_pr_constr gl (mkNamedLambda pattern_id rdxt cl))
-    | PRindetermined_rhs t -> errorstrm (str "Indetermined " ++
-      pr_dir_side (inv_dir dir) ++ str". The term" ++ spc() ++ pr_constr t ++
-      spc() ++ str "contains evars.")
+    | Util.UserError _ as e -> raise e
     | e -> anomaly ("cvtac's exception: " ^ Printexc.to_string e);
   in
   tclTHEN cvtac' rwtac gl
