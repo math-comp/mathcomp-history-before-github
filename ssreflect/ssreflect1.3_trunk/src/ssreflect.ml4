@@ -2570,11 +2570,9 @@ TYPED AS ((ssrclear * ssripat) * ssripat) * ssripat PRINTED BY pr_ssrhpats
   | [ ssripats(i) ] -> [ check_ssrhpats loc false i ]
 END
 
-let check_ssrrpat loc = function IpatRw _ -> () | ip ->
-  user_err_loc (loc,"",str"Intro pattern "++pr_ipat ip++str" not allowed here")
-
 ARGUMENT EXTEND ssrrpat TYPED AS ssripatrep PRINTED BY pr_ssripat
-  | [ ssripat(i) ] -> [ let i = single loc i in check_ssrrpat loc i; i ]
+  | [ "->" ] -> [ IpatRw ([noindex], L2R) ]
+  | [ "<-" ] -> [ IpatRw ([noindex], R2L) ]
 END
 
 type ssrintros = ssripats * ssrltacctx
@@ -4223,7 +4221,7 @@ TACTIC EXTEND ssrmove
 | [ "move" ssrrpat(pat) ssrltacctx(ctx) ] ->
   [ introstac ~ist:(get_ltacctx ctx) [pat] ]
 | [ "move" ] -> [ movehnftac ]
-    END
+END
 
 (* TASSI: given the type of an elimination principle, it finds the higher order
  * argument (index), it computes it's arity and the arity of the eliminator and

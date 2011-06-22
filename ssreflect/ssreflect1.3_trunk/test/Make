@@ -19,6 +19,7 @@ intro_noop.v
 ipatalternation.v
 ltac_have.v
 ltac_in.v
+move_after.v
 multiview.v
 occarrow.v
 patnoX.v
