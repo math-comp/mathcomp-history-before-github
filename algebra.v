@@ -124,8 +124,8 @@ Lemma amull_linear_p : forall u, linear ( *%R u).
 Proof. by move=> u k v w; rewrite mulr_addr scaler_mulr. Qed.
 Canonical Structure amull_linear u := Linear (amull_linear_p u).
 
-Definition amulr u: 'End(A) := lapp_of_fun ( *%R u).
-Local Notation "\*r a" := (amull a) (at level 10): vspace_scope.
+Definition amulr u: 'End(A) := lapp_of_fun ( *%R^~ u).
+Local Notation "\*r a" := (amulr a) (at level 10): vspace_scope.
 
 Lemma amulr_linear_p : forall u, linear ( *%R^~ u).
 Proof. by move=> u k v w; rewrite mulr_addl scaler_mull. Qed.

@@ -1829,6 +1829,12 @@ Proof. by apply: val_inj; exact: mulmx1. Qed.
 Lemma comp_lapp1 f : (f \o \1)%VS = f.
 Proof. by apply: val_inj; exact: mul1mx. Qed.
 
+Lemma comp_0lapp g : (\0 \o g = \0 :> linearApp W T)%VS.
+Proof. by apply: val_inj; exact: mulmx0. Qed.
+
+Lemma comp_lapp0 f : (f \o \0 = 0 :> linearApp W T)%VS.
+Proof. by apply: val_inj; exact: mul0mx. Qed.
+
 Lemma scale_lapp_Ar k f g : (k \*: (f \o g) = f \o (k \*: g))%VS.
 Proof. by apply: val_inj; exact: scalemxAl. Qed.
 
@@ -2291,6 +2297,30 @@ Qed.
 End Sumv_Pi.
 
 End Projection.
+
+Lemma neq_lapp (K : fieldType) (V W : vectType K) (f g : 'Hom(V,W)) : 
+  reflect (exists x, f x != g x) (f != g).
+Proof.
+apply: (iffP idP); last first.
+ case => x.
+ apply: contra.
+ by move/eq_lapp ->.
+case (eqVneq ((lker (f - g))^C)%VS 0%:VS) => Hfg.
+ suff: (f == g) by move ->.
+ apply/eq_lapp => v.
+ apply/eqP.
+ rewrite -subr_eq0 -opp_lappE -add_lappE -memv_ker.
+ move: (memvf v).
+ by rewrite -(addv_complf (lker (f - g))) Hfg addv0.
+move => _.
+exists (vpick (lker (f - g))^C)%VS.
+move: Hfg.
+rewrite -vpick0.
+apply: contra.
+rewrite -subr_eq0 -opp_lappE -add_lappE -memv_ker.
+move/(conj (memv_pick ((lker (f - g))^C)%VS))/andP.
+by rewrite -memv_cap capvC capv_compl memv0.
+Qed.
 
 Section SubVectorType.
 

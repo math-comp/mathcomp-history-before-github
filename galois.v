@@ -329,6 +329,7 @@ Qed.
     (forall x, x \in basis -> NormalFieldExt F x)
    for some basis of L.
    The proof that this suffices should eventually be done. *)
+
 Hypothesis NormalFieldExt : forall K x,
   exists r : seq L, minPoly K x == \prod_(y <- r) ('X - y%:P).
 
@@ -607,6 +608,125 @@ Qed.
 Canonical Structure LAut_FixedField_aspace f : {algebra L} :=
   ASpace (LAut_FixedField_is_aspace_subproof f).
 
+Lemma LAut_independent (E : {algebra L}) n (f_ : 'I_n -> LAut)
+  (c_ : 'I_n -> L) : (forall i, (val (f_ i) @: E)%VS = E) -> 
+  uniq [seq (val (f_ i) \o (projv E))%VS | i <- enum 'I_n] ->
+  (forall i, c_ i \in E) -> \sum_i (amull (c_ i) \o val (f_ i))%VS = \0%VS ->
+  (forall i, c_ i = 0).
+Proof.
+elim: n f_ c_ => [|n IH] f_ c_ Hf Huniq Hc Hsum; first by move => [].
+move => i; apply/eqP; move: i; apply/forallP.
+case: (altP forallP); first done.
+move/existsP => [i Hi].
+have [j /andP [Hji Hcj]] : exists j, (j != i) && (c_ j != 0).
+ apply/existsP.
+ case: (altP existsP); first done.
+ rewrite negb_exists.
+ move/forallP => Hci.
+ move: Hsum.
+ rewrite (bigD1 i) //= big1.
+  move: (introNf idP Hi) <-.
+  rewrite negbK addr0 => Hcfi.
+  rewrite -[c_ i]mulr1 -(rmorph1 ([rmorphism of (val (f_ i))])).
+  rewrite -(lapp_of_funK (amull_linear_p (c_ i))).
+  by rewrite -[_ (_ 1)]comp_lappE Hcfi lappE.
+ move => j Hji.
+ move: (Hci j).
+ rewrite negb_and Hji negbK.
+ move/eqP ->.
+ apply/eqP/eq_lapp => a.
+ rewrite !lappE /= /amull lapp_of_funK ?mul0r //.
+ by apply: amull_linear_p.
+have [a HaE] : exists2 a, a \in E & val (f_ j) a != val (f_ i) a.
+ move: Hji.
+ rewrite -(inj_eq (@ord_inj _)).
+ rewrite -(nth_uniq \0%VS _ _ Huniq) 1?size_map ?size_enum_ord ?ltn_ord //.
+ do 2 rewrite (nth_map ord0) ?size_enum_ord ?ltn_ord // nth_ord_enum.
+ case/neq_lapp => a.
+ rewrite !lappE => Ha.
+ exists (projv E a); last done.
+ by apply: memv_proj.
+rewrite -subr_eq0.
+pose f'_ := (f_ \o lift j).
+pose c'_ m := let m' := lift j m in (c_ m') * (val (f_ j) a - val (f_ m') a).
+have : forall i : 'I_n, c'_ i = 0.
+ apply: (IH f'_).
+ - by move => k; apply Hf.
+ - rewrite /f'_.
+   rewrite (@map_comp _ _ _ (fun i => val (f_ i) \o projv E)%VS (lift j)).
+   rewrite map_inj_uniq.
+    rewrite map_inj_uniq ?enum_uniq //.
+    apply: lift_inj.
+   move => k1 k2 /eqP Hk.
+   apply/eqP.
+   rewrite -[k1 == k2](nth_uniq \0%VS _ _ Huniq)
+           1?size_map ?size_enum_ord ?ordP ?ltn_ord //.
+   by do 2 rewrite (nth_map ord0) ?size_enum_ord ?ordP ?ltn_ord // nth_ord_enum.
+ - move => k.
+   apply: memv_mul; first by apply: Hc.
+   apply: memv_sub; first by rewrite -(Hf j) memv_img.
+   by rewrite -(Hf (lift j k)) memv_img.
+ - transitivity (\sum_i (amull ((c_ i) * (val (f_ j) a - val (f_ i) a))%R
+                         \o val (f_ i))%VS).
+   rewrite (bigD1 j) //= {1}subrr mulr0.
+   (* TODO abstract this into algebra.v *)
+   have -> : (amull 0 = \0%VS :> 'End(L)).
+    apply/eqP/eq_lapp => v.
+    rewrite {1}lapp_of_funK; last by apply: amull_linear_p.
+    by rewrite mul0r lappE.
+   rewrite comp_0lapp add0r.
+   set (G m := (amull (c_ m * ((ssval (f_ j)) a - (ssval (f_ m)) a))%R
+               \o ssval (f_ m))%VS).
+   set h := lift j.
+   have n_gt0 : 0 < n.
+    clear -Hji.
+    case : n i j Hji; last done.
+    by move => [[|//] Hi] [[|//] Hj].
+   set h' := odflt (Ordinal n_gt0) \o unlift j.
+   rewrite (reindex_onto h h' (F:=G)) /=; last first.
+    move => k.
+    rewrite /h /h' /=.
+    case: unliftP; last by move ->; rewrite eqxx.
+    by move => ? <-.
+   apply: eq_big => k; last done.
+   by rewrite /h /h' /= {1}eq_sym neq_lift liftK eqxx.
+ rewrite -[\0%VS]addr0 -[X in \0%VS + X]oppr0.
+ have <- : \sum_i (amull (c_ i * val (f_ j) a)%R \o val (f_ i))%VS = \0%VS.
+  rewrite -[X in _ = X](comp_lapp0 _ (amull (val (f_ j) a))).
+  rewrite -[X in (_ \o X)%VS]Hsum.
+  apply/eqP/eq_lapp => v.
+  rewrite comp_lappE /= !{1}sum_lappE linear_sum.
+  apply: eq_bigr => m _.
+  rewrite !{1}comp_lappE /=.
+  do 3 (rewrite lapp_of_funK; last by apply: amull_linear_p).
+  by rewrite [c_ m * _]mulrC mulrA.
+ have Hsum' : \sum_i (amull (c_ i * val (f_ i) a)%R \o val (f_ i))%VS = 0.
+  rewrite -[X in _ = X](comp_0lapp _ (amull a)).
+  rewrite -[X in (X \o _)%VS]Hsum.
+  apply/eqP/eq_lapp => v.
+  rewrite comp_lappE /= !{1}sum_lappE.
+  apply: eq_bigr => m _.
+  rewrite !{1}comp_lappE /=.
+  do 3 (rewrite {1}lapp_of_funK; last by apply: amull_linear_p).
+  by rewrite rmorphM mulrA.
+ rewrite -[X in (_ - X)]Hsum' -sumr_sub.
+ apply: eq_bigr => m _.
+ apply/eqP/eq_lapp => v.
+ rewrite !{1}(opp_lappE,lappE) /=.
+ do 3 (rewrite {1}lapp_of_funK; last by apply: amull_linear_p).
+ by rewrite mulr_subr mulr_subl.
+move : Hji.
+case/unlift_some => i' Hii' Hi'i.
+move/(_ i')/eqP.
+rewrite /c'_ mulf_eq0 -Hii'.
+case/orP.
+ move/eqP => Hci.
+ move: Hi.
+ by rewrite Hci eqxx.
+move/eqP ->.
+by rewrite eqxx.
+Qed.
+
 (* In most definitions I give the smaller field first, since the larger
    field can be seen as algebra over the smaller, and so in some moral sense
    the larger field depends on the smaller one.  However standard mathematical
@@ -732,6 +852,24 @@ Qed.
 Section Automorphism.
 
 Variables K E : {algebra L}.
+
+Lemma Aut_mul x y : x \in 'Aut(E | K)%g -> y \in 'Aut(E | K)%g ->
+ forall a, a \in E -> val (repr (x*y)%g) a = val (repr y) (val (repr x) a).
+Proof.
+move => Hx Hy a Ha.
+have Hxy := groupM Hx Hy.
+transitivity (val (repr x * repr y)%g a); last by rewrite /= comp_lappE.
+move: a Ha.
+apply/(@Aut_eq _ (x*y) (x*y)) => //; first by rewrite mem_repr_coset.
+rewrite -{2}(coset_mem (mem_repr_coset x)).
+rewrite -{2}(coset_mem (mem_repr_coset y)).
+rewrite -coset_morphM ?repr_coset_norm //.
+rewrite val_coset; first by apply: rcoset_refl.
+by apply: groupM; apply: repr_coset_norm.
+Qed.
+
+(* I probably should write an Aut_inv lemma and maybe an Aut1 lemma. *)
+
 Hypothesis HKE : (K <= E)%VS.
 
 Lemma kAut_Aut f : kAut K E f -> exists2 x, x \in 'Aut(E | K)%g &
@@ -783,23 +921,6 @@ move => a Ha.
 move/subvP/(_ _ Ha): HKE => HaE.
 by rewrite comp_lappE /= Hf // Hx.
 Qed.
-
-Lemma Aut_mul x y : x \in 'Aut(E | K)%g -> y \in 'Aut(E | K)%g ->
- forall a, a \in E -> val (repr (x*y)%g) a = val (repr y) (val (repr x) a).
-Proof.
-move => Hx Hy a Ha.
-have Hxy := groupM Hx Hy.
-transitivity (val (repr x * repr y)%g a); last by rewrite /= comp_lappE.
-move: a Ha.
-apply/(@Aut_eq _ (x*y) (x*y)) => //; first by rewrite mem_repr_coset.
-rewrite -{2}(coset_mem (mem_repr_coset x)).
-rewrite -{2}(coset_mem (mem_repr_coset y)).
-rewrite -coset_morphM ?repr_coset_norm //.
-rewrite val_coset; first by apply: rcoset_refl.
-by apply: groupM; apply: repr_coset_norm.
-Qed.
-
-(* I probably should write an Aut_inv lemma and maybe an Aut1 lemma. *)
 
 End Automorphism.
 
