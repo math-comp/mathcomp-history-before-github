@@ -180,14 +180,14 @@ Definition conjC_closed S :=
 
 Fact cfun_conjC_is_rmorphism : rmorphism (@cfun_conjC gT).
 Proof.
-split=> [phi xi|]; first by apply/ffunP=> x; rewrite !ffunE rmorph_sub.
-by split=> [phi xi|]; apply/ffunP=> x; rewrite !ffunE (rmorphM, rmorph1).
+split=> [phi xi|]; first by apply/cfunP=> x; rewrite !cfunE rmorph_sub.
+by split=> [phi xi|]; apply/cfunP=> x; rewrite !cfunE (rmorphM, rmorph1).
 Qed.
 Canonical cfun_conjC_additive := Additive cfun_conjC_is_rmorphism.
 Canonical cfun_conjC_rmorphism := RMorphism cfun_conjC_is_rmorphism.
 
 Lemma cfun_conjC_Z a phi : ((a *: phi)^*)%CH = a^* *: (phi^*)%CH.
-Proof. by apply/ffunP=> x; rewrite !ffunE rmorphM. Qed.
+Proof. by apply/cfunP=> x; rewrite !cfunE rmorphM. Qed.
 
 Lemma conjC_closed_not0 S : conjC_closed S -> 0 \notin S.
 Proof. by move=> clC_S; rewrite (contra (clC_S 0)) // rmorph0 !inE eqxx. Qed.
@@ -203,8 +203,8 @@ Lemma eq_scaled_irr a1 a2 i1 i2 :
   (a1 *: 'xi_i1 == a2 *: 'xi_i2) = (a1 == a2) && ((a1 == 0) || (i1 == i2)).
 Proof.
 apply/eqP/andP=> [|[/eqP-> /pred2P[]-> //]]; last by rewrite !scale0r.
-move/(congr1 (coord (irr G)))/ffunP; rewrite !linearZ=> eq_a12.
-move: {eq_a12}(eq_a12 i1) (esym (eq_a12 i2)); rewrite !ffunE /*:%R /=.
+move/(congr1 (coord (irr G)))/cfunP; rewrite !linearZ=> eq_a12.
+move: {eq_a12}(eq_a12 i1) (esym (eq_a12 i2)); rewrite !cfunE /*:%R /=.
 rewrite !(coord_inner_prodE _ (memc_irr _)) !irr_orthonormal !eqxx ?mulr1.
 by rewrite !mulr_natr eq_sym !mulrb orbC; case: ifP => _ -> -> /=. 
 Qed.
@@ -315,7 +315,7 @@ wlog suff: a b c d u v Za Zb Zc Zd o_ab o_cd r_u r_v nz_u nz_v o_abcd ab1 cd1 /
   '[a, c]_X == 0.
 - move=> IH; rewrite /= (IH a b c d u v) //.
   have vc_sym (e f : {cfun gT}) : ((e - f) 1%g == 0) = ((f - e) 1%g == 0).
-    by rewrite -oppr_sub ffunE oppr_eq0.
+    by rewrite -oppr_sub cfunE oppr_eq0.
   have ab_sym e: ('[b - a, e]_X == 0) = ('[a - b, e]_X == 0).
     by rewrite -oppr_sub inner_prodNl oppr_eq0.
   rewrite (IH b a c d u v) // 1?osym2 1?vc_sym ?ab_sym //=.
@@ -345,10 +345,10 @@ have{nz_bd} defd: d = '[b, d]_X *: b.
   rewrite scalerA inner_prodZl inner_prodZr rmorph_sign mulrA irr_orthonormal.
   have [-> _ | _] := ieb.1 =P ied.1; last by rewrite !mulr0 eqxx.
   by rewrite mulr1 mulrAC -!signr_addb addbb.
-rewrite defd scalerA def_vbd scaleNr opprK defc scalerA mulrC -raddfD ffunE.
-rewrite !mulf_neq0 ?signr_eq0 // -(subrK a b) -oppr_sub addrCA 2!ffunE.
-rewrite (eqP ab1) oppr0 add0r ffunE -mulr2n -mulr_natl mulf_eq0 -(eqN_eqC _ 0).
-by rewrite /= def_a ffunE mulf_eq0 signr_eq0 /= irr1_neq0.
+rewrite defd scalerA def_vbd scaleNr opprK defc scalerA mulrC -raddfD cfunE.
+rewrite !mulf_neq0 ?signr_eq0 // -(subrK a b) -oppr_sub addrCA 2!cfunE.
+rewrite (eqP ab1) oppr0 add0r cfunE -mulr2n -mulr_natl mulf_eq0 -(eqN_eqC _ 0).
+by rewrite /= def_a cfunE mulf_eq0 signr_eq0 /= irr1_neq0.
 Qed.
 
 End Four.
@@ -407,7 +407,7 @@ have dom_beta: {in S, forall xi, xi - (xi^*)%CH \in 'Z[S, L^#]}.
   have [/irrIP[i def_xi] /andP[_ Sxib]] := (irrS _ Sxi, clC_S _ Sxi).
   rewrite vchar_split vchar_sub ?memv_vchar ?subT //= -def_xi.
   rewrite -(eq_subset (in_set _)) subsetD1 (eq_subset (in_set _)).
-  rewrite !inE !ffunE negbK isNatC_conj ?isNatC_irr1 // subrr eqxx andbT.
+  rewrite !inE !cfunE negbK isNatC_conj ?isNatC_irr1 // subrr eqxx andbT.
   by rewrite (@support_memc _ L) // -conj_idxE memv_sub ?memc_irr.
 have szR: {in S, forall xi,
   [/\  beta xi = \sum_(alpha <- R xi) alpha,
@@ -472,7 +472,7 @@ apply: (@vchar_pairs_orthonormal _ G _ _ _ _ 1 (-1)).
 - by rewrite /isRealC oppr_eq0 oner_eq0 rmorphN rmorph1 !eqxx.
 rewrite !big_cons !big_nil !addr0 in dbp dbx.
 rewrite scale1r scaleN1r !opprK -dbp -dbx obpx eqxx /=.
-by rewrite !(cfunS0 (memc_vchar (VCtau _ _))) ?dom_beta ?inE ?eqxx.
+by rewrite -!/fcf !(cfunS0 (memc_vchar (VCtau _ _))) ?dom_beta ?inE ?eqxx.
 Qed.
 
 (*

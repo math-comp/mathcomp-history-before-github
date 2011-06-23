@@ -1048,6 +1048,10 @@ Lemma leq_b1 (b : bool) : b <= 1. Proof. by case: b. Qed.
 
 Lemma addn_negb (b : bool) : ~~ b + b = 1. Proof. by case: b. Qed.
 
+Lemma eqb0 (b : bool) : (b == 0%N :> nat) = ~~ b. Proof. by case: b. Qed.
+
+Lemma lt0b (b : bool) : (b > 0) = b. Proof. by case: b. Qed.
+
 Lemma sub1b (b : bool) : 1 - b = ~~ b. Proof. by case: b. Qed.
 
 Lemma mulnb (b1 b2 : bool) : b1 * b2 = b1 && b2.

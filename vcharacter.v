@@ -22,51 +22,6 @@ Local Open Scope ring_scope.
 Reserved Notation "''Z[' S , A ]" (at level 0, format "''Z[' S ,  A ]"). 
 Reserved Notation "''Z[' S ]" (at level 0, format "''Z[' S ]").
 
-Lemma subseq_filter (T : eqType) (s1 s2 : seq T) (p : pred T) :
-  subseq s1 (filter p s2) = all p s1 && subseq s1 s2.
-Proof.
-elim: s2 s1 => [|x s2 IHs] [|y s1] //=; rewrite ?andbF ?sub0seq //.
-case: ifP => [px | pxF] /=; first by case: eqP => [-> | _]; rewrite IHs ?px.
-by rewrite IHs /=; case: eqP => // ->; rewrite pxF.
-Qed.
-
-Lemma subseq_uniqP (T : eqType) (s1 s2 : seq T) :
-  uniq s2 -> reflect (s1 = filter (mem s1) s2) (subseq s1 s2).
-Proof.
-move=> uniq_s2; apply: (iffP idP) => [ss12 | ->]; last exact: filter_subseq.
-apply/eqP; rewrite -size_subseq_leqif ?subseq_filter ?(introT allP) //.
-apply/eqP/esym/perm_eq_size.
-rewrite uniq_perm_eq ?filter_uniq ?(subseq_uniq ss12) // => x.
-by rewrite mem_filter; apply: andb_idr; exact: (mem_subseq ss12).
-Qed.
-
-Definition tcast m n T (eq_mn : m = n) t :=
-  let: erefl in _ = n := eq_mn return n.-tuple T in t.
-
-Lemma tcastE m n T (eq_mn : m = n) t i :
-  tnth (tcast eq_mn t) i = tnth t (cast_ord (esym eq_mn) i) :> T.
-Proof. by case: n / eq_mn in i *; rewrite cast_ord_id. Qed.
-
-Lemma tcast_id T n eq_nn t : tcast eq_nn t = t :> n.-tuple T.
-Proof. by rewrite (eq_axiomK eq_nn). Qed.
-
-Lemma tcastK T m n eq_mn : cancel (@tcast m n T eq_mn) (tcast (esym eq_mn)).
-Proof. by case: n / eq_mn. Qed.
-
-Lemma tcastKV T m n eq_mn : cancel (tcast (esym eq_mn)) (@tcast m n T eq_mn).
-Proof. by case: n / eq_mn. Qed.
-
-Lemma tcast_trans T m n p eq_mn (eq_np : n = p) (t : m.-tuple T) :
-  tcast (etrans eq_mn eq_np) t = tcast eq_np (tcast eq_mn t).
-Proof. by case: n / eq_mn eq_np; case: p /. Qed.
-
-Lemma tvalK n T (t : n.-tuple T) : in_tuple t = tcast (esym (size_tuple t)) t.
-Proof. by apply: val_inj => /=; case: _ / (esym _). Qed.
-
-Lemma subsetT_hint (T : finType) mA : subset mA (mem [set: T]).
-Proof. by rewrite unlock; apply/pred0P=> x; rewrite !inE. Qed.
-Hint Resolve subsetT_hint.
-
 Section IsVChar.
 
 Variable (gT : finGroupType) (G : {group gT}).
@@ -87,7 +42,7 @@ rewrite 2!inE tvalK /tcast; case: _ / (esym _).
 have /andP[/(span _ =P _)-> _] := is_basis_irr G.
 apply: (iffP and3P) => [[CFf VCf Af] | [f1 Hf1 [f2 Hf2 ->]]]; last first.
   split=> //; first by rewrite memv_sub ?memc_is_char.
-  apply/forallP=> i; rewrite linearD linearN !ffunE.
+  apply/forallP=> i; rewrite linearD linearN !cfunE.
   have dot_i := coord_inner_prodE i (memc_is_char _).
   by rewrite isZC_add ?isZC_opp // isZCE dot_i ?isNatC_coord_char.
 pose Nf (i : Iirr G) := isNatC('[f, 'xi_i]_G).
@@ -171,8 +126,8 @@ Qed.
 Lemma vchar0 S A : 0 \in 'Z[S, A].
 Proof.
 rewrite !inE; apply/and3P; split; first by apply: mem0v.
-  by apply/forallP=> i;rewrite linear0  ffunE (isZC_nat 0). 
-by apply/subsetP=> x; rewrite !inE ffunE eqxx.
+  by apply/forallP=> i; rewrite linear0 ffunE (isZC_nat 0). 
+by apply/subsetP=> x; rewrite !inE cfunE eqxx.
 Qed.
 
 Lemma vchar_opp S A f : (- f \in 'Z[S, A]) = (f \in 'Z[S, A]).
@@ -181,7 +136,7 @@ wlog suff: f / f \in 'Z[S, A] -> - f \in 'Z[S, A].
   by move=> IH; apply/idP/idP=> /IH //; rewrite opprK.
 case/and3P=> Sf /forallP VCf Af; rewrite !inE memvN {}Sf linearN /=.
 apply/andP; split; first by apply/forallP=> i; rewrite ffunE isZC_opp.
-by apply: etrans Af; apply: eq_subset => a; rewrite !inE ffunE oppr_eq0.
+by apply: etrans Af; apply: eq_subset => a; rewrite !inE cfunE oppr_eq0.
 Qed.
 
 Lemma vchar_add S A f1 f2 :
@@ -191,7 +146,7 @@ case/and3P=> Sf1 /forallP VCf1 /off_support Af1.
 case/and3P=> Sf2 /forallP VCf2 /off_support Af2.
 rewrite !inE memvD //=; apply/andP; split.
   by apply/forallP=> a; rewrite linearD ffunE isZC_add.
-by apply/subsetP=> a; apply: contraR => notAa; rewrite ffunE Af1 // add0r Af2.
+by apply/subsetP=> a; apply: contraR => notAa; rewrite cfunE Af1 // add0r Af2.
 Qed.
 
 Lemma vchar_sub S A f1 f2 : 
@@ -225,7 +180,7 @@ rewrite !(vchar_split _ A) => /andP[/vcharP[f1 Cf1 [f2 Cf2 def_f]] Af].
 case/andP=> [/vcharP[g1 Cg1 [g2 Cg2 ->]] _].
 apply/andP; split; last first.
   apply/subsetP=> a; rewrite !inE; apply: contraR => notAa.
-  by rewrite ffunE (off_support Af) ?mul0r.
+  by rewrite cfunE -/fcf (off_support Af) ?mul0r.
 have isch := (is_char_add, is_char_mul); apply/vcharP.
 exists (f1 * g1 + f2 * g2); first by rewrite !isch.
 exists (f1 * g2 + f2 * g1); first by rewrite !isch.
@@ -259,7 +214,7 @@ Lemma vchar_subseq S1 S2 A :
   free S2 -> subseq S1 S2 -> {subset 'Z[S1, A] <= 'Z[S2, A]}.
 Proof.
 move=> freeS2 sS12; apply: vchar_subset (mem_subseq sS12) => //.
-by rewrite (subseq_uniqP _ (uniq_free freeS2) sS12) free_filter.
+by rewrite (subseq_uniqP (uniq_free freeS2) sS12) free_filter.
 Qed.
 
 Lemma vchar_filter S A (p : pred {cfun gT}) :

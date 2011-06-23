@@ -37,10 +37,10 @@ Hypothesis theta1 : theta 1%g = 0.
 
 Lemma ti_restrict_induced : 'Res[X] ('Ind[G, 'N_G(X)] theta) = theta.
 Proof.
-apply/ffunP=> g; case: (boolP (g \in X))=> [GiX|GniX]; last first.
-  by rewrite 2!ffunE (negPf GniX) mul0r (cfunS0 Ctheta).
-rewrite 2!ffunE GiX mul1r.
-rewrite !ffunE (bigID (fun g => g \in 'N_G(X))) /=.
+apply/cfunP=> g; case: (boolP (g \in X))=> [GiX|GniX]; last first.
+  by rewrite 2!cfunE (negPf GniX) mul0r (cfunS0 Ctheta).
+rewrite 2!cfunE GiX mul1r.
+rewrite !cfunE (bigID (fun g => g \in 'N_G(X))) /=.
 rewrite (eq_bigr (fun i : gT => theta g))=> [/= | h]; last first.
   by case/andP=> HiG HiN; rewrite (cfunJ _ Ctheta).
 rewrite sumr_const big1 ?addr0=> [| h].
@@ -86,11 +86,11 @@ have Fu : linear (u : _ -> algC^o) by apply: inner_prodb_is_linear.
 move: (linear_sub (Linear Fu))=> /= <-; rewrite /u inner_prodbE.
 rewrite inner_prodE big1 ?mulr0 // => g GiNG.
 case: (boolP (g \in X))=> [GiX | GniX]; last first.
-  by rewrite (cfunS0 Cphi) ?(ffunE,conjC0,mulr0,GniX,GiNG,inE).
-rewrite 3!ffunE GiNG mul1r.
-move/ffunP: ti_restrict_induced; move/(_ g).
-rewrite 2!ffunE GiX mul1r => ->.
-by rewrite !ffunE subrr mul0r.
+  by rewrite (cfunS0 Cphi) ?(cfunE,conjC0,mulr0,GniX,GiNG,inE).
+rewrite 3!cfunE GiNG mul1r.
+move/cfunP: ti_restrict_induced; move/(_ g).
+rewrite 2!cfunE GiX mul1r => ->.
+by rewrite !cfunE subrr mul0r.
 Qed.
 
 End TiInducedIso.
@@ -132,7 +132,7 @@ Local Notation ww := (cycTIirr_mx tiW).
 
 Lemma cycTIirr00 : ww 0 0 = '1_W.
 Proof.
-by apply/ffunP=> x; rewrite mxE !(cfuniE, ffunE) -natr_mul mulnb andbb.
+by apply/cfunP=> x; rewrite mxE !(cfuniE, cfunE) -natr_mul mulnb andbb.
 Qed.
 
 End MoreDefinitions.
