@@ -1085,7 +1085,7 @@ apply/idP/idP.
   move=> -> rax px0 rxb.
   move/(@roots_on_same _ s): rxb; move/(_ (mem_rev _))=> rxb.
   rewrite px0 (@roots_uniq p x b [::]) // (@roots_uniq p a x s) ?eqxx //=.
-  move: sxs; rewrite -[rcons _ _]revK sorted_rev rev_rcons /=.
+  move: sxs; rewrite -[rcons _ _]revK sorted_rev rev_rcons.
   by move/path_sorted; rewrite -sorted_rev revK.
 case: rootsP p0=> // p0 rax sax _.
 case/and3P=> hx hax; rewrite (eqP hax) in rax sax.

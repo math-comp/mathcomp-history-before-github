@@ -1900,9 +1900,9 @@ Proof. by rewrite deriv_sub derivX derivC subr0. Qed.
 
 (* Note : reorder derivE, *)
 (*    put factor factor before deriv_sub and derivM in the end *)
-Definition derivE := (derivZ, deriv_mulC, derivC, derivX,
-  deriv_amulX, derivM, deriv_sub, derivD, derivMn, derivN, derivXn,
-  deriv_factor).
+Definition derivE := Eval lazy beta delta [morphism_2 morphism_1] in
+  (derivZ, deriv_mulC, derivC, derivX, deriv_amulX, derivM, deriv_sub, 
+   derivD, derivMn, derivN, derivXn, deriv_factor).
 
 Definition derivn n p := iter n deriv p.
 
