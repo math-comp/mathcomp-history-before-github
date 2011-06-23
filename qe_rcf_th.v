@@ -425,7 +425,7 @@ Lemma cind_mul2r : forall a b, a < b -> forall p q (r : {poly R}),
 Proof.
 move=> a b hab p q r p0 q0 r0; rewrite /cind.
 rewrite (eq_big_perm _ (roots_mul _ _ _))//= big_cat/=.
-rewrite -[\sum_(x <- _) _ p _ _]addr0; congr (_+_).
+rewrite -[\sum_(x <- _) jump p _ _]addr0; congr (_+_).
   rewrite !big_seq; apply: congr_big => // x hx.
   by rewrite jump_mul2r.
 rewrite big1_seq//= => x hx; rewrite jump_mul2r // /jump.
