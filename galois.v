@@ -610,8 +610,9 @@ Canonical Structure LAut_FixedField_aspace f : {algebra L} :=
 
 Lemma LAut_independent (E : {algebra L}) n (f_ : 'I_n -> LAut)
   (c_ : 'I_n -> L) : (forall i, (val (f_ i) @: E)%VS = E) -> 
-  uniq [seq (val (f_ i) \o (projv E))%VS | i <- enum 'I_n] ->
-  (forall i, c_ i \in E) -> \sum_i (amull (c_ i) \o val (f_ i))%VS = \0%VS ->
+  uniq [seq (val (f_ i) \o projv E)%VS | i <- enum 'I_n] ->
+  (forall i, c_ i \in E) ->
+  (E <= lker (\sum_i (amull (c_ i) \o val (f_ i))))%VS ->
   (forall i, c_ i = 0).
 Proof.
 elim: n f_ c_ => [|n IH] f_ c_ Hf Huniq Hc Hsum; first by move => [].
@@ -629,7 +630,9 @@ have [j /andP [Hji Hcj]] : exists j, (j != i) && (c_ j != 0).
   rewrite negbK addr0 => Hcfi.
   rewrite -[c_ i]mulr1 -(rmorph1 ([rmorphism of (val (f_ i))])).
   rewrite -(lapp_of_funK (amull_linear_p (c_ i))).
-  by rewrite -[_ (_ 1)]comp_lappE Hcfi lappE.
+  rewrite -[_ (_ 1)]comp_lappE -memv_ker.
+  move/subvP: Hcfi; apply.
+  by rewrite memv1.
  move => j Hji.
  move: (Hci j).
  rewrite negb_and Hji negbK.
@@ -653,6 +656,7 @@ have : forall i : 'I_n, c'_ i = 0.
  apply: (IH f'_).
  - by move => k; apply Hf.
  - rewrite /f'_.
+   (* abstract this proof (same as in LAut_matrix) *)
    rewrite (@map_comp _ _ _ (fun i => val (f_ i) \o projv E)%VS (lift j)).
    rewrite map_inj_uniq.
     rewrite map_inj_uniq ?enum_uniq //.
@@ -666,55 +670,60 @@ have : forall i : 'I_n, c'_ i = 0.
    apply: memv_mul; first by apply: Hc.
    apply: memv_sub; first by rewrite -(Hf j) memv_img.
    by rewrite -(Hf (lift j k)) memv_img.
- - transitivity (\sum_i (amull ((c_ i) * (val (f_ j) a - val (f_ i) a))%R
-                         \o val (f_ i))%VS).
-   rewrite (bigD1 j) //= {1}subrr mulr0.
-   (* TODO abstract this into algebra.v *)
-   have -> : (amull 0 = \0%VS :> 'End(L)).
-    apply/eqP/eq_lapp => v.
-    rewrite {1}lapp_of_funK; last by apply: amull_linear_p.
-    by rewrite mul0r lappE.
-   rewrite comp_0lapp add0r.
-   set (G m := (amull (c_ m * ((ssval (f_ j)) a - (ssval (f_ m)) a))%R
-               \o ssval (f_ m))%VS).
-   set h := lift j.
-   have n_gt0 : 0 < n.
-    clear -Hji.
-    case : n i j Hji; last done.
-    by move => [[|//] Hi] [[|//] Hj].
-   set h' := odflt (Ordinal n_gt0) \o unlift j.
-   rewrite (reindex_onto h h' (F:=G)) /=; last first.
+ - set S := \sum_ _ _.
+   have -> : (S = (\sum_i (amull ((c_ i) * (val (f_ j) a - val (f_ i) a))%R
+                         \o val (f_ i))%VS)).
+    rewrite (bigD1 j) //= {1}subrr mulr0.
+    (* TODO abstract this into algebra.v *)
+    have -> : (amull 0 = \0%VS :> 'End(L)).
+     apply/eqP/eq_lapp => v.
+     rewrite {1}lapp_of_funK; last by apply: amull_linear_p.
+     by rewrite mul0r lappE.
+    rewrite comp_0lapp add0r.
+    set (G m := (amull (c_ m * ((ssval (f_ j)) a - (ssval (f_ m)) a))%R
+                \o ssval (f_ m))%VS).
+    set h := lift j.
+    have n_gt0 : 0 < n.
+     clear -Hji.
+     case : n i j Hji; last done.
+     by move => [[|//] Hi] [[|//] Hj].
+    set h' := odflt (Ordinal n_gt0) \o unlift j.
+    rewrite (reindex_onto h h' (F:=G)) /=.
+     apply: eq_big => k; last done.
+     by rewrite /h /h' /= {1}eq_sym neq_lift liftK eqxx.
     move => k.
     rewrite /h /h' /=.
     case: unliftP; last by move ->; rewrite eqxx.
     by move => ? <-.
-   apply: eq_big => k; last done.
-   by rewrite /h /h' /= {1}eq_sym neq_lift liftK eqxx.
- rewrite -[\0%VS]addr0 -[X in \0%VS + X]oppr0.
- have <- : \sum_i (amull (c_ i * val (f_ j) a)%R \o val (f_ i))%VS = \0%VS.
-  rewrite -[X in _ = X](comp_lapp0 _ (amull (val (f_ j) a))).
-  rewrite -[X in (_ \o X)%VS]Hsum.
-  apply/eqP/eq_lapp => v.
-  rewrite comp_lappE /= !{1}sum_lappE linear_sum.
-  apply: eq_bigr => m _.
-  rewrite !{1}comp_lappE /=.
-  do 3 (rewrite lapp_of_funK; last by apply: amull_linear_p).
-  by rewrite [c_ m * _]mulrC mulrA.
- have Hsum' : \sum_i (amull (c_ i * val (f_ i) a)%R \o val (f_ i))%VS = 0.
-  rewrite -[X in _ = X](comp_0lapp _ (amull a)).
-  rewrite -[X in (X \o _)%VS]Hsum.
-  apply/eqP/eq_lapp => v.
-  rewrite comp_lappE /= !{1}sum_lappE.
-  apply: eq_bigr => m _.
-  rewrite !{1}comp_lappE /=.
-  do 3 (rewrite {1}lapp_of_funK; last by apply: amull_linear_p).
-  by rewrite rmorphM mulrA.
- rewrite -[X in (_ - X)]Hsum' -sumr_sub.
- apply: eq_bigr => m _.
- apply/eqP/eq_lapp => v.
- rewrite !{1}(opp_lappE,lappE) /=.
- do 3 (rewrite {1}lapp_of_funK; last by apply: amull_linear_p).
- by rewrite mulr_subr mulr_subl.
+   apply/subvP => v Hv.
+   rewrite memv_ker.
+   rewrite -[X in _ == X]addr0 -[X in 0 + X]oppr0.
+   rewrite sum_lappE.
+   have HsumA : \sum_i (amull (c_ i * val (f_ j) a)%R \o val (f_ i))%VS v = 0.
+    move/subvP/(_ _ Hv): Hsum.
+    rewrite memv_ker.
+    move/eqP/(f_equal (fun x => val (f_ j) a * x)).
+    rewrite mulr0 => H0.
+    rewrite -[X in _ = X]H0 sum_lappE -mulr_sumr.
+    apply: eq_bigr => m _.
+    rewrite !{1}comp_lappE /=.
+    do 2 (rewrite lapp_of_funK; last by apply: amull_linear_p).
+    by rewrite [c_ m * _]mulrC mulrA.
+   have HsumB : \sum_i (amull (c_ i * val (f_ i) a)%R \o val (f_ i))%VS v = 0.
+    move/subvP/(_ _ (memv_mul HaE Hv)): Hsum.
+    rewrite memv_ker.
+    move/eqP => H0.
+    rewrite -[X in _ = X]H0 sum_lappE.
+    apply: eq_bigr => m _.
+    rewrite !{1}comp_lappE /=.
+    do 2 (rewrite lapp_of_funK; last by apply: amull_linear_p).
+    by rewrite !rmorphM mulrA.
+   rewrite -[X in (X - _)]HsumA -[X in (_ - X)]HsumB -sumr_sub.
+   apply/eqP.
+   apply: eq_bigr => m _.
+   rewrite !{1}(opp_lappE,lappE) /=.
+   do 3 (rewrite {1}lapp_of_funK; last by apply: amull_linear_p).
+   by rewrite mulr_subr mulr_subl.
 move : Hji.
 case/unlift_some => i' Hii' Hi'i.
 move/(_ i')/eqP.
@@ -726,6 +735,69 @@ case/orP.
 move/eqP ->.
 by rewrite eqxx.
 Qed.
+
+(*
+Lemma LAut_matrix_subproof (E : {algebra L}) n (f_ : 'I_n -> LAut) :
+  (forall i, (val (f_ i) @: E)%VS = E) ->
+  uniq [seq (val (f_ i) \o (projv E))%VS | i <- enum 'I_n] ->
+  exists2 w_ : 'I_n -> L, (forall j, w_ j \in E) &
+   \matrix_(i, j) (val (f_ i) (w_ j)) \in unitmx.
+Proof.
+elim: n f_ => [|n IH] f_ Hf Huniq.
+ exists (fun _ => 0).
+  by move => [].
+ by rewrite unitmxE det_mx00 unitr1.
+pose f'_ i := f_ (lift 0 i).
+case: (IH f'_ _ _).
+  by move => i; apply Hf.
+ (* abstract this proof (same as in LAut_independent) *)
+ rewrite (@map_comp _ _ _ (fun i => val (f_ i) \o projv E)%VS (lift 0)).
+ rewrite map_inj_uniq.
+  rewrite map_inj_uniq ?enum_uniq //.
+  apply: lift_inj.
+ move => k1 k2 /eqP Hk.
+ apply/eqP.
+ rewrite -[k1 == k2](nth_uniq \0%VS _ _ Huniq)
+         1?size_map ?size_enum_ord ?ordP ?ltn_ord //.
+ by do 2 rewrite (nth_map ord0) ?size_enum_ord ?ordP ?ltn_ord // nth_ord_enum.
+move => w'_ Hw'.
+set M' := \matrix_(_,_) _ => Hmatrix.
+pose x := \row_(j < n) (val (f_ 0) (w'_ j)).
+pose c' := (x *m invmx M').
+pose c_ i := if unlift 0 i is Some i' then c' ord0 i' else 1.
+pose comb := \sum_i (amull (c_ i) \o val (f_ i))%VS.
+have Hc : forall i, c_ i \in E.
+ move => i.
+ rewrite /c_.
+ case: unliftP; last by rewrite memv1.
+ move => i' _.
+
+Focus 2.
+case (eqVneq (E :\: lker comb)%VS 0%:VS).
+ move/eqP.
+ rewrite -subv_diffv0.
+ move/(LAut_independent Hf Huniq Hc)/(_ ord0)/eqP.
+ by rewrite /c_ unlift_none -[_ == _]negbK nonzero1r.
+rewrite -vpick0.
+set w0 := vpick _ => Hw0.
+have Hw0E : w0 \in E.
+ by apply: (subvP (diffvSl _ _) _ (memv_pick (E :\: lker comb)%VS)).
+have Hw0comb : comb w0 != 0.
+ move: Hw0.
+ apply: contra.
+ rewrite -memv_ker.
+ move/(conj (memv_pick (E :\: lker comb)%VS))/andP.
+ by rewrite -memv_cap capv_diff memv0 vpick0.
+pose w_ i := if unlift 0 i is Some i' then w'_ i' else w0.
+exists w_.
+ move => j.
+ rewrite /w_.
+ by case: unliftP.
+rewrite unitmxE.
+set M := \matrix_(_,_) _.
+*)
+
+
 
 (* In most definitions I give the smaller field first, since the larger
    field can be seen as algebra over the smaller, and so in some moral sense
