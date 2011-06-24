@@ -166,7 +166,7 @@ Proof.
 move => R p x.
 rewrite separable_mul.
 congr (_ && _).
-rewrite /separablePolynomial !derivE subr0 coprimep1 /= -gcdp_eqp1.
+rewrite /separablePolynomial !derivE ?subr0 coprimep1 /= -gcdp_eqp1.
 case/factor_irr/orP: (dvdp_gcdr p ('X - x%:P)) => Hp.
  move/eqp_root: (Hp).
  move/(_ x).

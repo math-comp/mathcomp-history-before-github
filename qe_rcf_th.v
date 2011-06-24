@@ -1157,7 +1157,7 @@ prod_staq_coefs p a b sq =
 Proof.
 rewrite castmxE mxE /= /prod_staq_coefs.
 transitivity (\sum_(0 <= i < 3 ^ size sq) staq p a b sq i * coefs (size sq) i).
-  rewrite unlock /reducebig /= -!foldr_map /= /index_iota subn0 foldr_map.
+  rewrite unlock /reducebig /= -foldr_map /= /index_iota subn0 foldr_map.
   elim: (3 ^ size sq)%N 0%R => [|n ihn] u //.
   by rewrite -[X in iota _ X]addn1 iota_add add0n /= foldr_cat ihn.
 rewrite big_mkord; apply: congr_big=> // i _.
