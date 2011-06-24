@@ -761,7 +761,7 @@ case: (IH f'_ _ _).
          1?size_map ?size_enum_ord ?ordP ?ltn_ord //.
  by do 2 rewrite (nth_map ord0) ?size_enum_ord ?ordP ?ltn_ord // nth_ord_enum.
 move => w'_ Hw'.
-set M' := \matrix_(_,_) _ => Hmatrix.
+set M' := \matrix_(_,_) _ => HM'.
 pose x := \row_(j < n) (val (f_ 0) (w'_ j)).
 pose c' := (x *m invmx M').
 pose c_ i := if unlift 0 i is Some i' then c' ord0 i' else 1.
@@ -771,8 +771,15 @@ have Hc : forall i, c_ i \in E.
  rewrite /c_.
  case: unliftP; last by rewrite memv1.
  move => i' _.
-
-Focus 2.
+ rewrite mxE.
+ apply: memv_suml => j _.
+ apply: memv_mul.
+  by rewrite mxE -(Hf 0) memv_img.
+ move: j i'.
+ apply/matrixOverP.
+ rewrite -invmx_matrixOver.
+ apply/matrixOverP => j i'.
+ by rewrite mxE -(Hf (lift 0 j)) memv_img.
 case (eqVneq (E :\: lker comb)%VS 0%:VS).
  move/eqP.
  rewrite -subv_diffv0.
@@ -794,7 +801,27 @@ exists w_.
  rewrite /w_.
  by case: unliftP.
 rewrite unitmxE.
+rewrite -[\det _]mul1r.
+pose B := block_mx 1 (-c') 0 1%:M.
+have <- : \det B = 1 by rewrite det_ublock !det1 mulr1.
 set M := \matrix_(_,_) _.
+rewrite -det_mulmx -[M](@submxK _ 1 n 1 n) mulmx_block.
+rewrite !mul0mx !mul1mx !add0r.
+set C := ursubmx (_) + - c' *m drsubmx (_).
+suff -> : C = 0.
+ rewrite det_lblock.
+ rewrite unitr_mul.
+ rewrite HM'.
+ rewrite /ulsubmx.
+ rewrite /usubmx.
+ rewrite /lshift.
+ rewrite mxE.
+
+1 -a1 -a2   f0 w0  f0 w1 f0 w2   1 f0 w0 - a1 f1 w0 - a2 f2 w0 , 1 f0 w1 - a1 f1 w1 - a2 f2 w1, 1 f0 w2 - a1 f1 w2 - a2 f2 w2
+0   1   0 * f1 w0  f1 w1 f1 w2 =   f1 w0                           f1 w1                         f2 w2
+0   0   1   f2 w0  f2 w1 f2 w2 
+
+
 *)
 
 
