@@ -1037,12 +1037,13 @@ Qed.
 Lemma tvec_cvec : forall z sq,
   tvec z sq = (cvec z sq) *m (ctmat (size sq)).
 Proof.
-move=> z sq; elim: sq z => [|q sq ihsq] z /=.
+move=> z sq; elim: sq z => [|q sq ihsq] z /=. 
   rewrite mulmx1; apply/rowP=> [] [i hi] /=; rewrite !mxE /=.
   move: hi; rewrite expn0 ltnS leqn0; move/eqP=> -> /=.
   rewrite /poly_comb big_ord0 /taq /croots /=.
   rewrite sumMz; apply: (congr_big)=> //= x _.
   by rewrite hornerC sgr1 big_ord0.
+rewrite /ctmat /ntensmx /=. (* simpl in trunk is "weaker" here *)
 case: sq ihsq=> /= [|q' sq] ihsq; first by apply: tvec_cvec1.
 rewrite cvec_rec tensmx_decl mulmxA tvec_rec.
 apply/eqP; rewrite (can2_eq (castmxK _ _) (castmxKV _ _)); apply/eqP.
