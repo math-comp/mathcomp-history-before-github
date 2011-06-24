@@ -282,8 +282,8 @@ apply: uniq_perm_eq; try apply: unique_cconjugates.
   by rewrite -[index_enum _]enumT enum_uniq.
 move=> j; apply/idP/idP; rewrite mem_filter; first by case/andP.
 move=> HH; apply/andP; split=> //.
-case/cconjugatesP: HH => g GiG->.
-by rewrite -(irr_conjE _ HnG GiG) map_f.
+case/cconjugatesP: HH => g GiG ->.
+by rewrite -(irr_conjE _ HnG GiG) map_f ?mem_index_enum.
 Qed.
 
 (* This is Isaacs 6.2 *)
