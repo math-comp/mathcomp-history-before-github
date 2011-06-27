@@ -736,7 +736,6 @@ move/eqP ->.
 by rewrite eqxx.
 Qed.
 
-(*
 Lemma LAut_matrix_subproof (E : {algebra L}) n (f_ : 'I_n -> LAut) :
   (forall i, (val (f_ i) @: E)%VS = E) ->
   uniq [seq (val (f_ i) \o (projv E))%VS | i <- enum 'I_n] ->
@@ -747,12 +746,15 @@ elim: n f_ => [|n IH] f_ Hf Huniq.
  exists (fun _ => 0).
   by move => [].
  by rewrite unitmxE det_mx00 unitr1.
-pose f'_ i := f_ (lift 0 i).
+pose f'_ i := f_ (rshift 1 i).
 case: (IH f'_ _ _).
   by move => i; apply Hf.
  (* abstract this proof (same as in LAut_independent) *)
- rewrite (@map_comp _ _ _ (fun i => val (f_ i) \o projv E)%VS (lift 0)).
+ rewrite /f'_.
+ rewrite (@map_comp _ _ _ (fun i => val (f_ i) \o projv E)%VS
+                          (fun i => rshift 1 i)).
  rewrite map_inj_uniq.
+  rewrite (eq_map (@rshift1 _)).
   rewrite map_inj_uniq ?enum_uniq //.
   apply: lift_inj.
  move => k1 k2 /eqP Hk.
@@ -764,14 +766,16 @@ move => w'_ Hw'.
 set M' := \matrix_(_,_) _ => HM'.
 pose x := \row_(j < n) (val (f_ 0) (w'_ j)).
 pose c' := (x *m invmx M').
-pose c_ i := if unlift 0 i is Some i' then c' ord0 i' else 1.
-pose comb := \sum_i (amull (c_ i) \o val (f_ i))%VS.
-have Hc : forall i, c_ i \in E.
+pose c_ := row_mx 1 (-c').
+pose comb := \sum_i (amull (c_ 0 i) \o val (f_ i))%VS.
+have Hc : forall i, c_ 0 i \in E.
  move => i.
- rewrite /c_.
- case: unliftP; last by rewrite memv1.
- move => i' _.
  rewrite mxE.
+ case: splitP.
+  move => ? _.
+  by rewrite ord1 mxE memv1.
+ move => i' _.
+ rewrite mxE memvN mxE.
  apply: memv_suml => j _.
  apply: memv_mul.
   by rewrite mxE -(Hf 0) memv_img.
@@ -779,12 +783,13 @@ have Hc : forall i, c_ i \in E.
  apply/matrixOverP.
  rewrite -invmx_matrixOver.
  apply/matrixOverP => j i'.
- by rewrite mxE -(Hf (lift 0 j)) memv_img.
+ by rewrite mxE -(Hf (rshift 1 j)) memv_img.
 case (eqVneq (E :\: lker comb)%VS 0%:VS).
  move/eqP.
  rewrite -subv_diffv0.
  move/(LAut_independent Hf Huniq Hc)/(_ ord0)/eqP.
- by rewrite /c_ unlift_none -[_ == _]negbK nonzero1r.
+ rewrite -[ord0](@lshift0 _ 0) row_mxEl mxE eqxx -[_ == _]negbK.
+ by rewrite nonzero1r.
 rewrite -vpick0.
 set w0 := vpick _ => Hw0.
 have Hw0E : w0 \in E.
@@ -795,11 +800,18 @@ have Hw0comb : comb w0 != 0.
  rewrite -memv_ker.
  move/(conj (memv_pick (E :\: lker comb)%VS))/andP.
  by rewrite -memv_cap capv_diff memv0 vpick0.
-pose w_ i := if unlift 0 i is Some i' then w'_ i' else w0.
-exists w_.
+pose w_ := row_mx (w0%:M) (\row_j w'_ j).
+exists (w_ 0).
  move => j.
  rewrite /w_.
- by case: unliftP.
+ rewrite mxE.
+ case: splitP.
+  move => ? ?.
+  rewrite mxE.
+  case: (_ == _); first done.
+  by rewrite mem0v.
+ move => ? _.
+ by rewrite mxE.
 rewrite unitmxE.
 rewrite -[\det _]mul1r.
 pose B := block_mx 1 (-c') 0 1%:M.
@@ -807,24 +819,31 @@ have <- : \det B = 1 by rewrite det_ublock !det1 mulr1.
 set M := \matrix_(_,_) _.
 rewrite -det_mulmx -[M](@submxK _ 1 n 1 n) mulmx_block.
 rewrite !mul0mx !mul1mx !add0r.
-set C := ursubmx (_) + - c' *m drsubmx (_).
-suff -> : C = 0.
- rewrite det_lblock.
- rewrite unitr_mul.
- rewrite HM'.
- rewrite /ulsubmx.
- rewrite /usubmx.
- rewrite /lshift.
- rewrite mxE.
-
-1 -a1 -a2   f0 w0  f0 w1 f0 w2   1 f0 w0 - a1 f1 w0 - a2 f2 w0 , 1 f0 w1 - a1 f1 w1 - a2 f2 w1, 1 f0 w2 - a1 f1 w2 - a2 f2 w2
-0   1   0 * f1 w0  f1 w1 f1 w2 =   f1 w0                           f1 w1                         f2 w2
-0   0   1   f2 w0  f2 w1 f2 w2 
-
-
-*)
-
-
+set DR := drsubmx _.
+have -> : DR = M'.
+ apply/matrixP => i j.
+ by rewrite /M' 4!mxE /w_ row_mxEr mxE.
+set C := ursubmx (_) + _.
+have -> : C = 0.
+ apply/matrixP => ? j.
+ by rewrite ord1 mxE mulNmx mulmxKV // !(row_mxEr, mxE) lshift0 subrr.
+rewrite det_lblock unitr_mul -[_ (_ M')]unitmxE HM' andbT.
+rewrite [_ + _](_ : _ = (comb w0)%:M); first by rewrite det_scalar1 unitfE.
+set UL := ulsubmx _.
+have -> : UL = (val (f_ 0) w0)%:M.
+ apply/matrixP => i j.
+ by rewrite !ord1 !(row_mxEl, mxE) lshift0.
+apply/matrixP => ? ?.
+rewrite !ord1 !mxE !eqxx /comb sum_lappE big_ord_recl {1}lappE.
+rewrite /= lapp_of_funK; last by apply: amull_linear_p.
+rewrite -[ord0](@lshift0 _ 0) row_mxEl mxE eqxx mul1r lshift0.
+congr (_ + _).
+apply eq_bigr => i _.
+rewrite -rshift1 row_mxEr {1}lappE.
+rewrite /= lapp_of_funK; last by apply: amull_linear_p.
+congr (_ * _).
+by rewrite !(row_mxEl, mxE).
+Qed.
 
 (* In most definitions I give the smaller field first, since the larger
    field can be seen as algebra over the smaller, and so in some moral sense
