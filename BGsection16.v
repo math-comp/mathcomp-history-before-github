@@ -553,7 +553,7 @@ split; last 1 first.
     rewrite -[Z](defCK _ K1ya) inE groupJ // cent1C -consttJ groupX ?cent1id //.
     by rewrite (contra (mem_p_elt su'K)) ?(contra (mem_p_elt suKs)) ?p_eltJ.
   split=> //; last first.
-    apply: mmax_max (class_support_normG _ _) => //.
+    apply: mmax_max (class_support_norm _ _) => //.
     apply: sub_proper_trans (norm_gen _) (mFT_norm_proper _ _).
       have: Zhat != set0.
         apply: contraNneq (proper_subn (sub_mmax_proper maxM sZM)).
@@ -567,7 +567,7 @@ split; last 1 first.
   apply/trivIsetP=> _ _ /imsetP[x _ ->] /imsetP[y _ ->].
   rewrite -setI_eq0 -(mulgKV y x) conjsgM -conjIg; move: {x}(x * _) => x.
   have [Mx | notMx _] := boolP (x \in M).
-    by rewrite (normsP (class_support_normG _ _) x Mx) eqxx.
+    by rewrite (normsP (class_support_norm _ _) x Mx) eqxx.
   rewrite -subset0 sub_conjg {2}class_supportEr big_distrr /=.
   apply/bigcupsP=> a Ma; rewrite -(mulgKV x a) conjsgM -conjIg sub_conjg.
   rewrite class_supportEr big_distrl /=; apply/bigcupsP=> b Mb.

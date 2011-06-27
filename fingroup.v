@@ -2527,8 +2527,11 @@ Proof. by move=> Nx; rewrite normJ -sub_conjgV (normP _) ?groupV. Qed.
 Lemma norm_gen A : 'N(A) \subset 'N(<<A>>).
 Proof. by apply/normsP=> x Nx; rewrite -genJ (normP Nx). Qed.
 
-Lemma class_normG x G : G \subset 'N(x ^: G).
+Lemma class_norm x G : G \subset 'N(x ^: G).
 Proof. by apply/normsP=> y; exact: classGidr. Qed.
+
+Lemma class_normal x G : x \in G -> x ^: G <| G.
+Proof. by move=> Gx; rewrite /normal class_norm class_subG. Qed.
 
 Lemma class_sub_norm G A x : G \subset 'N(A) -> (x ^: G \subset A) = (x \in A).
 Proof.
@@ -2536,7 +2539,7 @@ move=> nAG; apply/subsetP/idP=> [-> // | Ax xy]; first exact: class_refl.
 by case/imsetP=> y Gy ->; rewrite memJ_norm ?(subsetP nAG).
 Qed.
 
-Lemma class_support_normG A G : G \subset 'N(class_support A G).
+Lemma class_support_norm A G : G \subset 'N(class_support A G).
 Proof. by apply/normsP; exact: class_supportGidr. Qed.
 
 Lemma class_support_sub_norm A B G :

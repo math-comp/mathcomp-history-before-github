@@ -142,8 +142,8 @@ Qed.
 Lemma vchar_add S A f1 f2 :
   f1 \in 'Z[S, A]-> f2 \in 'Z[S, A]-> (f1 + f2) \in 'Z[S, A].
 Proof.
-case/and3P=> Sf1 /forallP VCf1 /off_support Af1.
-case/and3P=> Sf2 /forallP VCf2 /off_support Af2.
+case/and3P=> Sf1 /forallP VCf1 /supportP Af1.
+case/and3P=> Sf2 /forallP VCf2 /supportP Af2.
 rewrite !inE memvD //=; apply/andP; split.
   by apply/forallP=> a; rewrite linearD ffunE isZC_add.
 by apply/subsetP=> a; apply: contraR => notAa; rewrite cfunE Af1 // add0r Af2.
@@ -180,7 +180,7 @@ rewrite !(vchar_split _ A) => /andP[/vcharP[f1 Cf1 [f2 Cf2 def_f]] Af].
 case/andP=> [/vcharP[g1 Cg1 [g2 Cg2 ->]] _].
 apply/andP; split; last first.
   apply/subsetP=> a; rewrite !inE; apply: contraR => notAa.
-  by rewrite cfunE -/fcf (off_support Af) ?mul0r.
+  by rewrite cfunE -/fcf (supportP Af) ?mul0r.
 have isch := (is_char_add, is_char_mul); apply/vcharP.
 exists (f1 * g1 + f2 * g2); first by rewrite !isch.
 exists (f1 * g2 + f2 * g1); first by rewrite !isch.

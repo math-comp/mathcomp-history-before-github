@@ -248,7 +248,7 @@ by rewrite -groupV -(mul1g a^-1)%g -mem_rcoset -(conj1g x^-1) ux1 conjgK.
 Qed.
 
 Lemma Dade1 alpha : alpha^\tau 1%g = 0.
-Proof. by rewrite (off_support (support_Dade _) not_support_Dade_1). Qed.
+Proof. by rewrite (supportP (support_Dade _) _ not_support_Dade_1). Qed.
 
 Lemma Dade_id1 : {in 'CF(L, A) & 1%g |: A,
   forall alpha a, alpha^\tau a = alpha a}.
@@ -267,10 +267,10 @@ Lemma Dade_cfunS alpha : alpha \in 'CF(L, A) -> alpha^\tau \in 'CF(G, Atau).
 Proof.
 move=> CFalpha; apply/cfun_memfP; split=> [u | u y Gy].
   rewrite (setIidPl Dade_support_sub).
-  by move/(off_support (support_Dade alpha)).
+  by move/(supportP (support_Dade alpha)).
 rewrite [alpha^\tau u]cfunE; have [a /= /andP[Aa Ha_u] | no_a /=] := pickP.
   by rewrite (DadeE CFalpha Aa) // -mem_conjgV class_supportGidr ?groupV.
-apply/(off_support (support_Dade _))/bigcupP=> [[a Aa]].
+apply/(supportP (support_Dade _))/bigcupP=> [[a Aa]].
 apply/negP/(contraFN _ (no_a a)); rewrite Aa -mem_conjgV.
 by rewrite class_supportGidr ?groupV.
 Qed.

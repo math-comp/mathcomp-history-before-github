@@ -203,7 +203,7 @@ have{sLR} sLU: L \subset U.
   by rewrite sub_gen ?(subset_trans sLR) ?sub_class_support.
 have{ntL} ntU: U != 1 := subG1_contra sLU ntL.
 have sUK: U \subset K by rewrite gen_subG class_support_sub_norm ?comm_subG.
-have nUG: G \subset 'N(U) by rewrite norms_gen ?class_support_normG.
+have nUG: G \subset 'N(U) by rewrite norms_gen ?class_support_norm.
 have [sUG nsUG]: U \subset G /\ U <| G by rewrite /normal !(subset_trans sUK).
 have defU: U = [~: U, K].
   apply/eqP; rewrite eqEsubset commg_subl ?(subset_trans sKG) //=.

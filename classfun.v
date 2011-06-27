@@ -314,7 +314,7 @@ apply/cfun_memfP/andP=> [[Hs Hj]|[Hs Hc]]; split.
     rewrite -/fcf Hs // inE (negPf XniA).   
 - by apply/cfun_memP; split=> // x XniA; rewrite Hs // inE (negPf XniA) andbF.
 - move=> x; rewrite inE negb_and; case/orP=> HH; last by apply: cfun0.
-  by move/off_support: Hs; rewrite -/fcf => ->.
+  by move/supportP: Hs; rewrite -/fcf => ->.
 by case/cfun_memP: Hc.
 Qed.
 

@@ -171,8 +171,11 @@ Variables (aT : finType) (rT : eqType).
 Notation fT := {ffun aT -> rT}.
 Implicit Types (y : rT) (D : pred aT) (R : pred rT) (f : fT).
 
-Lemma off_support y D g x : y.-support g \subset D -> x \notin D -> g x = y.
-Proof. by move/subsetP/(_ x)/contraNeq. Qed.
+Lemma supportP y D g :
+  reflect (forall x, x \notin D -> g x = y) (y.-support g \subset D).
+Proof.
+by apply: (iffP subsetP) => Dg x; [apply: contraNeq | apply: contraR] => /Dg->.
+Qed.
 
 Definition finfun_eqMixin :=
   Eval hnf in [eqMixin of finfun_type aT rT by <:].
@@ -186,10 +189,10 @@ Lemma pfamilyP (pT : predType rT) y D (F : aT -> pT) f :
   reflect (y.-support f \subset D /\ {in D, forall x, f x \in F x})
           (f \in pfamily_mem y (mem D) (fmem F)).
 Proof.
-apply: (iffP familyP) => [/= f_pfam | [f_supp f_fam] x].
+apply: (iffP familyP) => [/= f_pfam | [/supportP f_supp f_fam] x].
   split=> [|x Ax]; last by have:= f_pfam x; rewrite Ax.
   by apply/subsetP=> x; case: ifP (f_pfam x) => //= _ fx0 /negP[].
-by case: ifPn => Ax /=; rewrite inE /= (f_fam, off_support f_supp).
+by case: ifPn => Ax /=; rewrite inE /= (f_fam, f_supp).
 Qed.
 
 Definition pffun_on_mem y mD mR := pfamily_mem y mD (fun _ => mR).
@@ -205,6 +208,7 @@ Qed.
 
 End EqTheory.
 
+Implicit Arguments supportP [aT rT y D g].
 Notation pfamily y D F := (pfamily_mem y (mem D) (fun_of_simpl (fmem F))).
 Notation pffun_on y D R := (pffun_on_mem y (mem D) (mem R)).
 

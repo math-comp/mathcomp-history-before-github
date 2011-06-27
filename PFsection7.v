@@ -116,7 +116,7 @@ have alpha_conjC : (alpha^*)%CH \in 'CF(L, A).
 case: (boolP (g \in Atau)) => [ | gnAtau].
   case/bigcupP => a aA gD1.
   by rewrite (DadeE alphaC aA gD1) (DadeE alpha_conjC aA gD1) cfunE.
-by rewrite !(off_support (support_Dade ddA _) gnAtau) conjC0.
+by rewrite !(supportP (support_Dade ddA _) _ gnAtau) conjC0.
 Qed.
 
 Lemma Dade0 : 0^\tau = 0.
@@ -225,7 +225,7 @@ case E2: (h e2)=> [|[|k]] //.
 do 2 move/addnI; move/eqP; rewrite sum_nat_eq0.
 move/forall_inP=> HH1.
 have: f 1%g = 0.
-  case/and3P: Hf=> _ _; move/off_support; apply.
+  case/and3P: Hf=> _ _; move/supportP; apply.
   by rewrite !inE eqxx.
 have Hfc: f = '[f, 'xi_e1]_G *: 'xi_e1 + '[f, 'xi_e2]_G *: 'xi_e2.
   rewrite -{1}(sum_inner_prodE F1) (bigD1 e1) //; congr (_ + _).
@@ -380,8 +380,8 @@ case: (boolP (g \in Atau)).
   case/bigcupP => a aA gD1.
   by rewrite (DadeE alphaC aA gD1) (DadeE alphauC aA gD1) cfunE.
 move => gnAtau.
-rewrite (off_support (support_Dade ddA alpha) gnAtau).
-by rewrite (off_support (support_Dade ddA (alpha^\u)) gnAtau) rmorph0.
+rewrite (supportP (support_Dade ddA alpha) _ gnAtau).
+by rewrite (supportP (support_Dade ddA (alpha^\u)) _ gnAtau) rmorph0.
 Qed.
 
 
@@ -436,7 +436,7 @@ rewrite vchar_split; apply/andP; split.
   by apply: vchar_sub; exact: val1scale.
 apply/subsetP => x; apply: contraR; rewrite inE negb_and in_set1 negbK.
 case/orP => [/eqP -> | xnL]; rewrite !cfunE; first by rewrite [_ *: _]mulrC subrr.
-by rewrite -!/fcf !(off_support (support_vchar (psiVC _)) xnL) // !scaler0 subrr.
+by rewrite -!/fcf !(supportP (support_vchar (psiVC _)) _ xnL) // !scaler0 subrr.
 Qed.
 
 
@@ -796,10 +796,10 @@ Qed.
 Lemma rho_cfunS chi : chi \in 'CF(G) -> chi^\rho \in 'CF(L, A).
 Proof.
 move => chiC; apply/cfun_memfP; split=> [a | a x xL].
-  by rewrite (setIidPl sAL) => aA; rewrite (off_support (support_rho chi)).
+  by rewrite (setIidPl sAL) => aA; rewrite (supportP (support_rho chi)).
 have aaxA: (a \in A) = (a ^ x \in A).
   by rewrite -mem_conjgV (normP _) // in_group (subsetP nAL x xL).
-case aA: (a \in A); last by rewrite !(off_support (support_rho chi)) -?aaxA ?aA.
+case aA: (a \in A); last by rewrite !(supportP (support_rho chi)) -?aaxA ?aA.
 rewrite !cfunE -aaxA aA (DadeJ ddA) // cardJg.
 congr (_ * _); rewrite big_imset /=; last first.
   by move=> y y0 _ _ /=; exact: conjg_inj.
@@ -866,7 +866,7 @@ move => supp_f sSK; rewrite inner_prodE.
 congr (_ * _); rewrite (big_setID S) /= addrC (setIidPr sSK) big1 ?add0r //.
 move => x /setDP [_ xnS].
 apply/eqP; rewrite mulf_eq0; apply/orP; left; apply/eqP.
-by apply: (off_support supp_f).
+by apply: (supportP supp_f).
 Qed.
 
 
@@ -944,7 +944,7 @@ apply/eqP/forallP.
 move => hyp; apply/ffunP => g.
 rewrite cfunE.
 case gAtau: (_ \in _); last first.
-  symmetry; apply (off_support (support_Dade ddA chi1^\rho)).
+  symmetry; apply (supportP (support_Dade ddA chi1^\rho)).
   by rewrite gAtau.
 case/bigcupP: gAtau => a aA.
 rewrite /Dade_support1 class_supportEr.
@@ -1144,7 +1144,7 @@ have psiC (f : {cfun gT}): f \in zi -> psi f \in 'CF(L, A).
   rewrite AK1 inE negb_and negbK in_set1 !cfunE -!/fcf.
   case/orP => [| gnK]; first by move/eqP ->; rewrite zi_val1 subrr.
   suff [-> ->]: f g = 0 /\ zi0 g = 0 by rewrite scaler0 subrr.
-  by split; apply: (off_support (support_memc (ziC _)) gnK).
+  by split; apply: (supportP (support_memc (ziC _)) _ gnK).
 have f_eq (f : {cfun gT}): f \in 'CF(L, A) -> f = e^-1 *: 'Ind[L, K] ('Res[K] f).
   move => fC; apply/cfunP => g; rewrite cfunE.
   case: (boolP (g \in K)) => gK.
@@ -1158,8 +1158,8 @@ have f_eq (f : {cfun gT}): f \in 'CF(L, A) -> f = e^-1 *: 'Ind[L, K] ('Res[K] f)
     rewrite -[f g *+ _]mulr_natl mulrA mulVf ?mul1r //.
     by rewrite -neq0N_neqC -lt0n cardG_gt0.
   have suppInd := support_induced (memc_restrict sKL (memcW fC)) nKL.
-  rewrite -!/fcf (off_support suppInd gK) scaler0.
-  apply: (off_support (support_memc fC)).
+  rewrite -!/fcf (supportP suppInd _ gK) scaler0.
+  apply: (supportP (support_memc fC)).
   by move: gK; apply: contra; rewrite AK1 inE => /andP [].
 have {f_eq} f_in_zi f: f \in 'CF(L, A) -> f \in (\sum_(g <- zi) g%:VS)%VS.
   move => fC; rewrite (f_eq f fC).
@@ -1379,7 +1379,7 @@ case S: calS => [| g t] //=.
 rewrite -addn1 -{2}[1%N]addn1 => /addIn /eqP; rewrite size_eq0 => /eqP t_nil.
 move/span_vchar: (fZ); rewrite S t_nil span_seq1.
 case/injvP => a f_ag; move/cfunP/(_ 1%g): (f_ag); rewrite cfunE.
-rewrite (off_support (support_vchar fZ) _); last first.
+rewrite (supportP (support_vchar fZ)); last first.
   by rewrite AK1 !inE negb_and negbK eqxx orTb.
 move/esym => /eqP; rewrite mulf_eq0; case/orP.
   by move/eqP => a0; move: f_ag fn0; rewrite a0 scale0r => ->; rewrite eqxx.
@@ -1446,7 +1446,7 @@ Proof.
 move => supp_f; rewrite !inner_prodE; congr (_ * _).
 apply: eq_bigr => x xX; rewrite !cfunE.
 case: (boolP (x \in Y)); first by rewrite mul1r.
-by move => xnY; rewrite (off_support supp_f xnY) !mul0r.
+by move => xnY; rewrite (supportP supp_f _ xnY) !mul0r.
 Qed.
 
 Let orthoS_1L psi : psi \in calS -> '[psi, '1_L]_L = 0.
@@ -1515,7 +1515,7 @@ rewrite AK1; apply/subsetP => x; apply: contraR.
 rewrite !inE !cfunE negb_and negbK -!/fcf.
 case/orP => [/eqP -> | xnK].
   by rewrite chi1 -[_ *: _]mulrA mulVf // mulr1 subrr.
-by rewrite !(off_support (support_vchar (psi_inZSK _)) xnK) // scaler0 subrr.
+by rewrite !(supportP (support_vchar (psi_inZSK _)) _ xnK) // scaler0 subrr.
 Qed.
 
 
@@ -1541,7 +1541,7 @@ rewrite AK1; apply/subsetP => x; apply: contraR.
 rewrite !inE cinduced_1 !cfunE negb_and negbK -!/fcf.
 case/orP => [/eqP -> | xnK].
   by rewrite chi1 in_group /GRing.scale /= mulr1 subrr.
-rewrite (off_support (support_vchar (psi_inZSK chiS)) xnK) subr0.
+rewrite (supportP (support_vchar (psi_inZSK chiS)) _ xnK) subr0.
 by move: xnK; case: (_ \in _); first by []; rewrite scaler0.
 Qed.
 
@@ -1904,7 +1904,7 @@ move => psiS; rewrite vchar_split (diff1_ZS psiS) andTb AK1.
 apply/subsetP => x; apply: contraR.
 rewrite !inE !cfunE negb_and negbK.
 case/orP => [/eqP -> | xnK]; first by rewrite [_ *: _]mulrC subrr.
-by rewrite -!/fcf !(off_support (support_vchar (psi_inZSK _)) xnK) // !scaler0 subr0.
+by rewrite -!/fcf !(supportP (support_vchar (psi_inZSK _)) _ xnK) // !scaler0 subr0.
 Qed.
 
 
@@ -1924,10 +1924,8 @@ rewrite vchar_split (diff2_ZS chiS) andTb AK1.
 apply/subsetP => x; apply: contraR.
 rewrite !inE (cinduced1 _ sKL) -/e !cfunE negb_and negbK in_group mulr1 -!/fcf.
 case/orP => [/eqP -> | xnK]; first by rewrite chi1 /GRing.scale /= mulrC subrr.
-by rewrite !(off_support (support_vchar (psi_inZSK _)) xnK) // !scaler0 subr0.
+by rewrite !(supportP (support_vchar (psi_inZSK _)) _ xnK) // !scaler0 subr0.
 Qed.
-
-
 
 Let c1 : c ('Ind[L, K] '1_K) = a.
 Proof.

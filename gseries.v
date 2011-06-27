@@ -112,7 +112,7 @@ apply: (iffP andP) => [[sHG snHG] | [s Hsn <-{G}]].
     by rewrite sub_gen // class_supportEr (bigD1 1) //= conjsg1 subsetUl.
   exists (rcons s G); rewrite ?last_rcons // -cats1 path_cat Hsn defG /=.
   rewrite /normal gen_subG class_support_subG //=.
-  by rewrite norms_gen ?class_support_normG.
+  by rewrite norms_gen ?class_support_norm.
 set f := fun _ => <<_>>; have idf: iter _ f H == H.
   by elim=> //= m IHm; rewrite (eqP IHm) /f class_support_id genGid.
 elim: {s}(size s) {-2}s (eqxx (size s)) Hsn => [[] //= | m IHm s].
@@ -164,7 +164,7 @@ have nKA: A \subset 'N(K) by rewrite norms_gen ?norms_class_support.
 have sHK: H \subset K by rewrite sub_gen ?sub_class_support.
 case/IHm=> // s Hsn defK; exists (rcons s G); last by rewrite last_rcons.
 rewrite path_rcons Hsn !andbA defK nGA nKA /= -/K.
-by rewrite gen_subG class_support_subG ?norms_gen ?class_support_normG.
+by rewrite gen_subG class_support_subG ?norms_gen ?class_support_norm.
 Qed.
 
 Lemma subnormalEsupport G H :

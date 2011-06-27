@@ -3925,7 +3925,7 @@ apply/eqmxP/andP; split.
   have [x Gx ->{k}] := imsetP (enum_valP k); have sxGG := groupCl Gx.
   rewrite summx_sub => [|y xGy]; last by rewrite envelop_mx_id ?sxGG.
   rewrite memmx_cent_envelop; apply/centgmxP=> y Gy.
-  rewrite {2}(reindex_acts 'J _ Gy) ?astabsJ ?class_normG //=.
+  rewrite {2}(reindex_acts 'J _ Gy) ?astabsJ ?class_norm //=.
   rewrite mulmx_suml mulmx_sumr; apply: eq_bigr => z; move/sxGG=> Gz.
   by rewrite -!repr_mxM ?groupJ -?conjgC.
 apply/memmx_subP=> A; rewrite sub_capmx memmx_cent_envelop.

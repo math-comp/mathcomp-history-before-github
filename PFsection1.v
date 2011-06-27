@@ -316,7 +316,7 @@ case E2: (h e2)=> [|[|k]] //.
 do 2 move/addnI; move/eqP; rewrite sum_nat_eq0.
 move/forall_inP=> HH1.
 have: f 1%g = 0.
-  case/and3P: Hf=> _ _; move/off_support; apply.
+  case/and3P: Hf=> _ _; move/supportP; apply.
   by rewrite !inE eqxx.
 have Hfc: f = '[f, 'xi_e1]_G *: 'xi_e1 + '[f, 'xi_e2]_G *: 'xi_e2.
   rewrite -{1}(sum_inner_prodE F1) (bigD1 e1) //; congr (_ + _).
@@ -787,13 +787,13 @@ apply: (mulfI (neq0GC H)).
 case: (boolP (h \in (G / A)%g)) => HiGA; last first. 
   by rewrite (cfun0 CFiq HiGA) (cfun0 CFqi HiGA).
 case: (boolP (h \in (H / A)%g))=> HiHA; last first.
-  move/off_support: (support_induced (memc_is_char CHq) HAnGA).
+  move/supportP: (support_induced (memc_is_char CHq) HAnGA).
   move/(_ _ HiHA)=> ->.
   case/imsetP: HiGA HiHA=> g; rewrite inE => /andP [] GiN GiG /= ->.
   rewrite /fcf (qfuncE CHi) // => HH.
   have GniH : g \notin H.
     by apply: contra HH; exact: mem_quotient.
-  move/off_support: (support_induced (memc_is_char CHt) HnG).
+  move/supportP: (support_induced (memc_is_char CHt) HnG).
   by move/(_ _ GniH)=> ->; rewrite !mulr0.
 rewrite !cfunE !mulrA (divff ((neq0GC H))) mul1r.
 rewrite card_quotient ?normal_norm //.
