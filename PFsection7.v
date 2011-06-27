@@ -394,7 +394,7 @@ Variable chi : {cfun gT}.
 Hypothesis size_ge2 : size calS >= 2.
 Hypothesis freeS : free calS.
 Hypothesis sSirrL : {subset calS <= irr L}.
-Hypothesis ZL_eq_ZA : 'Z[calS, L^#] = 'Z[calS, A].
+Hypothesis ZL_eq_ZA : 'Z[calS, L^#] =i 'Z[calS, A].
 Hypothesis S_inv : {in calS, forall f, f^\u \in calS}.
 Hypothesis tau1_to : {in 'Z[calS], forall f, tau1 f \in 'Z[irr G]}.
 Hypothesis tau1_isom : {in 'Z[calS] &, isometry L G tau1}.
@@ -721,7 +721,7 @@ Variable chi : {cfun gT}.
 Hypothesis size_ge2 : size calS >= 2. 
 Hypothesis freeS : free calS.
 Hypothesis sSirrL : {subset calS <= irr L}.
-Hypothesis ZL_eq_ZA : 'Z[calS, L^#] = 'Z[calS, A].
+Hypothesis ZL_eq_ZA : 'Z[calS, L^#] =i 'Z[calS, A].
 Hypothesis S_inv : forall f, f \in calS -> (f^*)%CH \in calS.
 Hypothesis tau1_to : {in 'Z[calS], forall f, tau1 f \in 'Z[irr G]}.
 Hypothesis tau1_isom : {in 'Z[calS] &, isometry L G tau1}.
@@ -1598,6 +1598,20 @@ Qed.
 
 (* 7.8(a)-2 *)
 
+Lemma dot_beta_1 : '[beta, '1_G]_G = 1.
+rewrite rho_Dade_reciprocity ?(cfuni_xi0, memc_irr) //; last first.
+  by rewrite -cfuni_xi0; exact: memc_vchar.
+rewrite -!cfuni_xi0 rho_1.
+set mu := _ - _.
+have ->: '[mu, '1_A]_L = '[mu, '1_L]_L.
+  rewrite [in X in _ = X](dot_support_res L _ (support_vchar beta_ZA)).
+  by rewrite crestrict1 (setIidPl sAL).
+rewrite inner_prodDl inner_prodNl (orthoS_1L chiS) subr0.
+rewrite -(frobenius_reciprocity sKL) ?(cfuni_xi0, memc_irr) //.
+rewrite -['xi[L]_0]cfuni_xi0 crestrict1 (setIidPl sKL) cfuni_xi0.
+by rewrite irr_orthonormal eqxx.
+Qed.
+
 
 
 Lemma pf78a2 : exists a, exists Gamma,
@@ -1638,19 +1652,7 @@ split.
   by rewrite mulVf ?mulr1 // norm_zi_unit ?sSzi.
 set SG := \sum_(_ <- _) _.
 set S := (_ + _) *: _.
-have ->: '[beta, '1_G]_G = 1.
-  rewrite rho_Dade_reciprocity ?(cfuni_xi0, memc_irr) //; last first.
-    by rewrite -cfuni_xi0; exact: memc_vchar.
-  rewrite -!cfuni_xi0 rho_1.
-  set mu := _ - _.
-  have ->: '[mu, '1_A]_L = '[mu, '1_L]_L.
-    rewrite [in X in _ = X](dot_support_res L _ (support_vchar beta_ZA)).
-    by rewrite crestrict1 (setIidPl sAL).
-  rewrite inner_prodDl inner_prodNl (orthoS_1L chiS) subr0.
-  rewrite -(frobenius_reciprocity sKL) ?(cfuni_xi0, memc_irr) //.
-  rewrite -['xi[L]_0]cfuni_xi0 crestrict1 (setIidPl sKL) cfuni_xi0.
-  by rewrite irr_orthonormal eqxx.
-rewrite scale1r [_ - _ - _]addrAC.
+rewrite dot_beta_1 scale1r [_ - _ - _]addrAC.
 rewrite -[_ - '1_G + _]addrA [- _ + _]addrC subrr addr0.
 rewrite -!addrA -{1}[beta]addr0; congr (_ + _).
 rewrite addrC; apply/eqP; rewrite eq_sym subr_eq0 eq_sym; apply/eqP.
