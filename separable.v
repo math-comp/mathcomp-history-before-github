@@ -1408,14 +1408,9 @@ Definition elementDegree := ex_minn Pholds.
 
 Definition Fadjoin := (\sum_(i < elementDegree) (K * (x ^+ i)%:VS))%VS.
 
-Definition MinPoly_coef i v := 
-  \sum_j coord [tuple of map (fun y => (y * x ^+ i))
-                (vbasis K)] v j *: (vbasis K)`_j.
-
 Definition poly_for_Fadjoin (v : L) := 
-  \sum_(i < elementDegree) (MinPoly_coef i (sumv_pi 
-     (fun (i : 'I_elementDegree) => (K * (x ^+ i)%:VS)%VS) predT i v))%:P *
-   'X^i.
+  \sum_(i < elementDegree) ((sumv_pi (fun (i : 'I_elementDegree) => 
+                       (K * (x ^+ i)%:VS)%VS) predT i v) / (x ^+ i))%:P * 'X^i.
 
 Definition minPoly : {poly L} := 
   'X^elementDegree - poly_for_Fadjoin (x ^+ elementDegree).
@@ -1464,60 +1459,35 @@ apply/directvP => /=.
 by apply: anti_leq; rewrite dimv_leq_sum dim_Fadjoin dim_Fadjoin_subproof.
 Qed.
 
-Lemma MinPoly_coefK : forall i v, MinPoly_coef i v \in K.
+Lemma prodv_inj_coefK y v : v \in (K * y%:VS)%VS -> v / y \in K.
 Proof.
-move => i v.
-rewrite /MinPoly_coef /= memv_suml => // j _.
-by rewrite memvZl // memv_basis // mem_nth // size_tuple.
+move/coord_span ->.
+rewrite -mulr_suml memv_suml // => i _.
+rewrite -scaler_mull memvZl //.
+have/(mem_nth 0)/allpairsP : (i < size (Tuple (size_prodv K y%:VS))).
+ rewrite size_tuple.
+ by case i.
+move => [[c d] [/memv_basis Hc /memv_basis/injvP [a ->]] ->].
+rewrite -mulrA -scaler_mull.
+case: (eqVneq y 0) => [-> | Hy0].
+ by rewrite invr0 mulr0 scaler0 mulr0 mem0v.
+by rewrite mulfV // mulrC -scaler_mull mul1r memvZl.
 Qed.
 
-Lemma memv_MinPoly_coef : forall i v, v \in (K * (x ^+ i)%:VS)%VS ->
- v = (MinPoly_coef i v) * x ^+ i.
+Lemma memv_prodv_inj_coef y v : v \in (K * y%:VS)%VS ->
+ v = v / y * y.
 Proof.
-move => i v.
-rewrite (_ : (K * (x ^+ i)%:VS)%VS = 
-             span (map (fun y => (y * x ^+ i)) (vbasis K))).
- move/(coord_span) => Hv.
- rewrite {1}Hv {Hv} /MinPoly_coef.
- rewrite -mulr_suml.
- apply: eq_bigr => j _.
- by rewrite (nth_map 0) ?scaler_mull // size_tuple.
-apply: subv_anti.
-rewrite -!span_subsetl.
-apply/andP; split; apply/allP; last first.
- move => ?.
- case/mapP => k.
- move/memv_basis => Hk ->.
- by rewrite memv_prod ?memv_inj.
-move => ?.
-case/allpairsP=> [[x1 x2]]; case=> I1 I2 ->.
-move/memv_basis: I2.
-case/injvP => c -> /=.
-rewrite -scaler_mulr memvZl //.
-apply memv_span.
-apply/mapP.
-by exists x1.
+case: (eqVneq y 0) => [-> | Hy0]; last by rewrite mulfVK.
+rewrite prodv0 memv0 => /eqP ->.
+by rewrite mulr0.
 Qed.
 
-Lemma MinPoly_coef_linear : forall i a u v, 
- MinPoly_coef i (a *: u + v) = 
- a *: MinPoly_coef i u + MinPoly_coef i v.
+Lemma poly_for_polyOver v : polyOver K (poly_for_Fadjoin v).
 Proof.
-move => i a u v.
-rewrite /MinPoly_coef.
-rewrite scaler_sumr -big_split.
-apply: eq_bigr => j _ /=.
-rewrite !linearP /=.
-move: (coord _) => f.
-by rewrite !ffunE scaler_addl scalerA.
-Qed.
-
-Lemma poly_for_polyOver : forall v, polyOver K (poly_for_Fadjoin v).
-Proof.
-move => v.
 apply/polyOverP => i.
 rewrite /poly_for_Fadjoin coef_sum memv_suml // => j _.
-by rewrite coefMXn coefC !(fun_if,if_arg) mem0v MinPoly_coefK !if_same.
+rewrite coefMXn coefC !(fun_if,if_arg) mem0v prodv_inj_coefK ?if_same //.
+by apply: memv_sum_pi.
 Qed.
 
 Lemma size_poly_for : forall v, size (poly_for_Fadjoin v) <= elementDegree.
@@ -1525,7 +1495,7 @@ Proof.
 move => v.
 rewrite (leq_trans (size_sum _ _ _)) //.
 apply/bigmax_leqP => i _.
-set c := (MinPoly_coef _ _).
+set c := (_ / _).
 case (eqVneq c 0).
  move ->.
  by rewrite mul0r size_poly0.
@@ -1538,7 +1508,7 @@ Proof.
 move => v Hv.
 rewrite /poly_for_Fadjoin horner_sum {1}(sumv_sum_pi Hv) sum_lappE.
 apply: eq_bigr => i _.
-by rewrite !horner_lin hornerXn -memv_MinPoly_coef // memv_sum_pi.
+by rewrite !horner_lin hornerXn -memv_prodv_inj_coef // memv_sum_pi.
 Qed.
 
 Lemma poly_Fadjoin_small : forall v,
@@ -1556,6 +1526,7 @@ by exists (poly_for_Fadjoin v); (split; [apply: poly_for_polyOver | split]);
     [apply: size_poly_for | apply: poly_for_eq].
 Qed.
 
+(* :TODO: make this lmorphism *)
 Lemma poly_for_linear : forall a u v, 
  poly_for_Fadjoin (a *: u + v) = 
  (a *: 1) *: poly_for_Fadjoin u + poly_for_Fadjoin v.
@@ -1563,8 +1534,8 @@ Proof.
 move => a u v.
 rewrite /poly_for_Fadjoin scaler_sumr -big_split.
 apply eq_bigr => i _ /=.
-by rewrite linearP MinPoly_coef_linear rmorphD mulr_addl
-           scaler_mull -mul_polyC -polyC_mul -scaler_mull mul1r.
+rewrite linearP mulr_addl -scaler_mull rmorphD mulr_addl /= -mul_polyC mulrA.
+by rewrite -polyC_mul -scaler_mull mul1r.
 Qed.
 
 Lemma size_minPoly : size minPoly = elementDegree.+1.
@@ -1586,7 +1557,7 @@ rewrite /root /minPoly !horner_lin_comm horner_sum hornerXn {1}(sumv_sum_pi HxED
         sum_lappE subr_eq0.
 apply/eqP.
 apply: eq_bigr => i _.
-by rewrite !horner_lin_comm hornerXn -memv_MinPoly_coef ?memv_sum_pi.
+by rewrite !horner_lin_comm hornerXn -memv_prodv_inj_coef ?memv_sum_pi.
 Qed.
 
 End FadjoinDefinitions.
@@ -2045,9 +2016,13 @@ set W := (_ :&: _)%VS.
 move: (memv_pick W).
 rewrite memv_cap.
 case/andP.
-move/memv_MinPoly_coef ->.
-set k := (MinPoly_coef _ _ _ _) => Hk.
-have: (k \in K) by apply: MinPoly_coefK.
+move/memv_prodv_inj_coef ->.
+set k := (_ / _) => Hk.
+have: (k \in K).
+ move: (memv_pick W).
+ rewrite memv_cap.
+ case/andP.
+ by move/prodv_inj_coefK.
 rewrite memv_inv mulf_eq0 negb_or => Hkinv.
 case/andP => nzk _.
 rewrite -[x ^+ _](mulKf nzk).
@@ -2055,9 +2030,9 @@ apply/memv_sumP.
 case/memv_sumP: Hk => v_ [Hv_1 Hv_2].
 exists (fun i => k^-1 * v_ i); split; last by rewrite Hv_2 mulr_sumr.
 move => i _.
-move/(_ i isT): Hv_1.
-move/memv_MinPoly_coef ->.
-by rewrite mulrA memv_prod ?memv_inj // memv_mul // MinPoly_coefK.
+move/(_ i isT): Hv_1 => Hv_1.
+move/memv_prodv_inj_coef: (Hv_1) ->.
+by rewrite mulrA memv_prod ?memv_inj // memv_mul // prodv_inj_coefK.
 Qed.
 
 Lemma root_minPoly : root (minPoly K x) x. 
