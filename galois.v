@@ -1535,6 +1535,79 @@ move: (Hall x).
 by rewrite negb_and Hx negbK.
 Qed.
 
+Section GaloisDim.
+
+Variable E : {algebra L}.
+
+Let g_ (i : coset_of [set x : LAut | kAut E (fullv L) (val x)]) := val (repr i).
+
+Lemma uniq_projv_subproof 
+  (s : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :
+  uniq [seq (g_ (enum_val i) \o (projv E))%VS | i <- enum 'I_#|s|].
+Proof.
+rewrite map_inj_uniq; first by rewrite enum_uniq.
+move => i j /= /eqP/eq_lapp Hij.
+apply: enum_val_inj.
+apply/eqP/(Aut_eq (mem_repr_coset _) (mem_repr_coset _)) => a /projv_id <-.
+by rewrite -[_ (_ a)]comp_lappE Hij comp_lappE.
+Qed.
+
+Lemma maxDim_FixedField 
+  (s : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :
+  (forall i, i \in s -> (g_ i @: E)%VS = E) ->
+  #|s|*\dim (FixedField s) <= \dim E.
+Proof.
+move => HE.
+pose f_ i := repr (@enum_val _ (pred_of_set s) i).
+case: (@LAut_matrix_subproof E _ f_).
+  move => i.
+  apply: HE.
+  by apply: enum_valP.
+ apply: uniq_projv_subproof.
+move => w_ HwE.
+set M := \matrix_(_,_) _ => Hw.
+pose K := FixedField s.
+rewrite [X in X <= _](_ : _ = \dim (\sum_(i < #|s|) K * (w_ i)%:VS)).
+ apply: dimvS.
+ apply/subvP => _ /memv_sumP [v [Hv ->]].
+ apply: memv_suml => i _.
+ move/memv_prodv_inj_coef: (Hv i isT) ->.
+ apply: memv_mul; last done.
+ by case/prodv_inj_coefK/FixedFieldP: (Hv i isT).
+have/directvP -> : (directv (\sum_i (K * (w_ i)%:VS))).
+ apply/directv_sum_independent => u_ Hu Hsum i _.
+ pose x := \col_j (u_ j / w_ j).
+ have : M *m x = 0.
+  apply/colP => j.
+  rewrite !{1}mxE -[X in _ = X](rmorph0 [rmorphism of (val (f_ j))]) -{2}Hsum.
+  rewrite rmorph_sum.
+  apply: eq_bigr => k _.
+  rewrite !mxE.
+  move: (Hu k isT) => Huk.
+  suff <- : val (f_ j) (u_ k / w_ k) = (u_ k / w_ k).
+   by rewrite -rmorphM mulrC -(memv_prodv_inj_coef Huk).
+  case/FixedFieldP: (prodv_inj_coefK Huk) => _; apply.
+  apply: enum_valP.
+ move/(f_equal (fun a => invmx M *m a)).
+ rewrite mulmx0 mulKmx // (memv_prodv_inj_coef (Hu i isT)).
+ move/colP/(_ i).
+ rewrite !mxE => ->.
+ by rewrite mul0r.
+rewrite -{1}[#|s|]subn0 -sum_nat_const_nat big_mkord.
+apply: eq_bigr => i _.
+rewrite /= dim_prodvf //.
+move: Hw.
+rewrite unitmxE unitfE.
+apply: contra => /eqP Hwi.
+rewrite (expand_det_col _ i).
+apply/eqP.
+apply: big1 => j _.
+by rewrite mxE Hwi rmorph0 mul0r.
+Qed.
+
+End GaloisDim.
+
+
 (*
 Definition FieldAutomorphism (E:{vspace L}) (f : 'End(L) ) : bool :=
  [&& (f @: E == E)%VS, (E^C <= eigenspace f 1)%VS &
