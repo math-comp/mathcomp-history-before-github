@@ -3283,7 +3283,7 @@ let iter_constr_LR f c = match kind_of_term c with
   | _ -> ()
 
 let pp_term gl t =
-  let _, t = nf_open_term (project gl)  (project gl) t in pr_constr t
+  let t = Reductionops.nf_evar (project gl) t in pr_constr t
 let pp_concat hd ?(sep=str", ") = function [] -> hd | x :: xs ->
   hd ++ List.fold_left (fun acc x -> acc ++ sep ++ x) x xs
 
@@ -3794,21 +3794,21 @@ let interp_pattern ist gl red redty =
     let mk x p = match red with X_In_T _ -> X_In_T(x,p) | _ -> In_X_In_T(x,p) in
     let rp = mkXLambda dummy_loc (Name x) rp in
     let sigma, rp = interp_term ist gl rp in
-    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
+    let rp, _, args, sigma = saturate (pf_env gl) sigma rp 1 in
     sigma, mk (List.assoc 0 args) rp
   | E_In_X_In_T(e, x, rp) | E_As_X_In_T (e, x, rp) ->
     let mk e x p =
       match red with E_In_X_In_T _ ->E_In_X_In_T(e,x,p)|_->E_As_X_In_T(e,x,p) in
     let rp = mkXLambda dummy_loc (Name x) rp in
     let sigma, rp = interp_term ist gl rp in
-    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
+    let rp, _, args, sigma = saturate (pf_env gl) sigma rp 1 in
     let sigma, e = interp_term ist (re_sig (sig_it gl) sigma) e in
     sigma, mk e (List.assoc 0 args) rp
 ;;
 
 (* calls do_subst on every sub-term identified by (pattern,occ) *)
 let eval_pattern ?raise_NoMatch env0 sigma0 concl0 pattern occ do_subst =
-  let fs sigma x = snd (nf_open_term sigma sigma x) in
+  let fs sigma x = Reductionops.nf_evar sigma x in
   let pop_evar sigma e p =
     let { Evd.evar_body = e_body } as e_def = Evd.find sigma e in
     let e_body = match e_body with Evar_defined c -> c
@@ -3915,7 +3915,7 @@ let interp_clr = function
 let redex_of_pattern (sigma, p) = let e = match p with
   | In_T _ | In_X_In_T _ -> anomaly "pattern without redex"
   | T e | X_In_T (e, _) | E_As_X_In_T (e, _, _) | E_In_X_In_T (e, _, _) -> e in
-  snd (nf_open_term sigma sigma e)
+  Reductionops.nf_evar sigma e
 
 let fill_occ_pattern ?raise_NoMatch env sigma pat occ h cl =
   let find_R, conclude = let r = ref None in
@@ -4369,8 +4369,8 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   let iD s ?t gl = let t = match t with None -> pf_concl gl | Some x -> x in
     pp(lazy(str s ++ pr_constr t)); tclIDTAC gl in
   let eq, protectC = build_coq_eq (), mkSsrConst "protect_term" in
-  let fire_subst gl t = snd (nf_open_term (project gl) (project gl) t) in
-  let fire_sigma sigma t = snd (nf_open_term sigma sigma t) in
+  let fire_subst gl t = Reductionops.nf_evar (project gl) t in
+  let fire_sigma sigma t = Reductionops.nf_evar sigma t in
   let is_undef_pat = function
   | sigma, T t ->  
       (match kind_of_term (fire_sigma sigma t) with Evar _ -> true | _ -> false)
@@ -4897,7 +4897,7 @@ let newssrcongrtac arg ist gl =
   pp(lazy(str"===newcongr==="));
   pp(lazy(str"concl=" ++ pr_constr (pf_concl gl)));
   (* utils *)
-  let fs gl t = snd (nf_open_term (project gl) (project gl) t) in
+  let fs gl t = Reductionops.nf_evar (project gl) t in
   let tclMATCH_GOAL (c, gl_c) proj t_ok t_fail gl =
     match try Some (pf_unify_HO gl_c (pf_concl gl) c) with _ -> None with  
     | Some gl_c -> tclTHEN (convert_concl (fs gl_c c)) (t_ok (proj gl_c)) gl
@@ -5096,7 +5096,7 @@ let strip_unfold_term ((sigma, t) as p) kt = match kind_of_term t with
   | _ -> p, false
 
 let unfoldintac occ rdx t (kt,_) gl = 
-  let fs sigma x = snd (nf_open_term sigma sigma x) in
+  let fs sigma x = Reductionops.nf_evar sigma x in
   let sigma0, concl0, env0 = project gl, pf_concl gl, pf_env gl in
   let (sigma, t), const = strip_unfold_term t kt in
   let body env t c = Tacred.unfoldn [(true, [1]), get_evalref t] env sigma0 c in
@@ -5142,7 +5142,7 @@ let unfoldintac occ rdx t (kt,_) gl =
 ;;
 
 let foldtac occ rdx ft gl = 
-  let fs sigma x = snd (nf_open_term sigma sigma x) in
+  let fs sigma x = Reductionops.nf_evar sigma x in
   let sigma0, concl0, env0 = project gl, pf_concl gl, pf_env gl in
   let sigma, t = ft in
   let fold, conclude = match rdx with
@@ -5209,7 +5209,7 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
   try refine_with ~with_evars:false (sigma, proof) gl
   with _ -> 
     (* we generate a msg like: "Unable to find an instance for the variable" *)
-    let c = snd(nf_open_term sigma sigma c) in
+    let c = Reductionops.nf_evar sigma c in
     let miss = match kind_of_term c with
     | App (hd, args) -> 
         let hd_ty = Retyping.get_type_of env sigma hd in
