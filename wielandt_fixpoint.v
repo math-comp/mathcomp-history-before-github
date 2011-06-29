@@ -759,10 +759,10 @@ have comWbar: (@pair1g _ _ \o isor) @* 'C_Wbar(Aibar) \subset
   set Ur := isor @* _; set Ul := isol @* _.
   by case/dprodP: (setX_dprod [group of Ul] [group of Ur]).
 set fUr := @pair1g _ _ \o _ in comWbar.
-have /domP [fUr' [_ _ _ imfUr']] : 
+have /domP [fUr' [efUr' kerfUr' invfUr' imfUr']] : 
     'dom fUr =  'C_Wbar(Aibar) by rewrite /dom -isor_im injmK.
 set fUl := @pairg1 _ _ \o _ in comWbar.
-have /domP [fUl' [_ _ _ imfUl']] : 
+have /domP [fUl' [efUl' kerfUl' invfUl' imfUl']] : 
     'dom fUl = [~: Wbar, Aibar] by rewrite /dom -isol_im injmK.
 rewrite -imfUr' -imfUl' in comWbar.
 pose isoWbar := dprodm hcent_com comWbar.
@@ -770,25 +770,39 @@ have := (morphim_dprodm hcent_com comWbar (subxx _) (subxx _)).
 rewrite imfUl' imfUr' /= !morphim_comp /= isol_im isor_im morphim_pair1g.
 rewrite morphim_pairg1 setX_prod.
 have <- : 
-    [set: 'rV['Z_q]_rC * 'rV['Z_q]_(f i)] = setX [set: 'rV_rC]%G [set: 'rV_(f i)]%G.
+    [set: 'rV['Z_q]_rC * 'rV['Z_q]_(f i)] = 
+    setX [set: 'rV_rC]%G [set: 'rV_(f i)]%G.
     by apply/setP=> x; rewrite !inE.
 move=> im_isoWbar.
-have im_isoW : isoW @* [set: 'rV['Z_q](V)] = ([~: Wbar, Aibar] * 'C_Wbar(Aibar)).
-  by rewrite /isoW; case/dprodP: (hcent_com) => _  /= {5}<-.
-pose fPl := (@fst_morphism _ _ ) \o (isoWbar \o (isoW)).
-have dom_fPl : setT \subset 'dom fPl.
-  rewrite /dom /= morphpre_comp /= -sub_morphim_pre //.
-  rewrite -im_isoWbar morphimK; last by case/dprodP: (hcent_com) => _ ->.
-  rewrite -im_isoW; exact: mulG_subr.
-pose Pl := mkMx _ _ _ _ dom_fPl.
-pose fPr := (@snd_morphism _ _ ) \o (isoWbar \o (isoW)).
-have dom_fPr : setT \subset 'dom fPr.
-  rewrite /dom /= morphpre_comp /= -sub_morphim_pre // -im_isoWbar.
-  rewrite  morphimK; last by case/dprodP: (hcent_com) => _ ->.
-  rewrite -im_isoW; exact: mulG_subr.
-pose Pr := mkMx _ _ _ _ dom_fPr.
+pose fPl := (@fst _ _)  \o (isoWbar \o isoW).
+pose fPr := (@snd _ _)  \o (isoWbar \o isoW).
+have dom_fPl : setT \subset 'dom fPl by rewrite -!sub_morphim_pre ?subsetT.
+have dom_fPr : setT \subset 'dom fPr by rewrite -!sub_morphim_pre ?subsetT.
+pose Pl := mkMx _ _ _ _ dom_fPl; pose Pr := mkMx _ _ _ _ dom_fPr.
 pose P1 := row_mx Pl Pr; pose P2 := col_mx Pu Pd.
+simpl in fPl, fUl, fUr, fPr, fUr', imfUr', fUl', imfUl', Pl, Pr, P1, P2 |- *.
+simpl in dom_fPl, dom_fPr |- *.
 have P12_id : P1 *m P2 = 1%R.
-  rewrite mul_row_col.
-(*rewrite -(mulr1 (rW a)) -P12_id.*)
+  apply/row_matrixP=> r.
+  rewrite rowE -row1 mul_row_col linearD /= !mulmxA !{1}mul_rV_lin1.
+  rewrite /=.
+  apply: (injmP _ injm_isoW); rewrite ?in_setT // morphM ?in_setT //.
+  rewrite efUl' efUr' /= mulg1 mul1g.
+(* this should come way earlier *)
+  case/dprodP: (hcent_com) => _ ep _ _.
+  have aux : sdpair1 toW (row r 1%:M) \in Wbar.
+    by apply: mem_morphim; rewrite in_setT.
+  have hinr : divgr [~: Wbar, Aibar]
+     'C_(Wbar)(Aibar) (sdpair1 toW (row r 1%:M)) \in Wbar.
+    rewrite -{3}ep; apply: (subsetP (mulG_subl _ _)); apply: mem_divgr. 
+    by rewrite ep.
+  have hinl : remgr [~: Wbar, Aibar]
+     'C_(Wbar)(Aibar) (sdpair1 toW (row r 1%:M)) \in Wbar.
+    rewrite -{3}ep; apply: (subsetP (mulG_subr _ _)); apply: mem_remgr. 
+    by rewrite ep.
+  rewrite invmE //=; last by apply: mem_divgr; rewrite ep.
+  rewrite !{1}invmK //; last first.
+    by rewrite invmE //; apply: mem_remgr; rewrite ep.
+  rewrite !invmE //; last by apply: mem_remgr; rewrite ep.
+  by rewrite -!divgr_eq.
 Admitted. 
