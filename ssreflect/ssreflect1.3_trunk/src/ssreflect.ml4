@@ -3794,14 +3794,14 @@ let interp_pattern ist gl red redty =
     let mk x p = match red with X_In_T _ -> X_In_T(x,p) | _ -> In_X_In_T(x,p) in
     let rp = mkXLambda dummy_loc (Name x) rp in
     let sigma, rp = interp_term ist gl rp in
-    let rp, _, args, sigma = saturate (pf_env gl) sigma rp 1 in
+    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
     sigma, mk (List.assoc 0 args) rp
   | E_In_X_In_T(e, x, rp) | E_As_X_In_T (e, x, rp) ->
     let mk e x p =
       match red with E_In_X_In_T _ ->E_In_X_In_T(e,x,p)|_->E_As_X_In_T(e,x,p) in
     let rp = mkXLambda dummy_loc (Name x) rp in
     let sigma, rp = interp_term ist gl rp in
-    let rp, _, args, sigma = saturate (pf_env gl) sigma rp 1 in
+    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
     let sigma, e = interp_term ist (re_sig (sig_it gl) sigma) e in
     sigma, mk e (List.assoc 0 args) rp
 ;;
