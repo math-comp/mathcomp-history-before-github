@@ -83,16 +83,14 @@ algC.v
 classfun.v
 character.v
 vcharacter.v
-zint.v
 orderedalg.v
-orderedzint.v
+zint.v
 qnum.v
 interval.v
 closed_field.v
 complex.v
 mxtens.v
 polyorder.v
-polyzint.v
 polyrcf.v
 qe_rcf_th.v
 inertia.v

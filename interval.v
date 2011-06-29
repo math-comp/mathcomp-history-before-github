@@ -151,7 +151,7 @@ Proof. by move=> x b1 b2; rewrite /le_boundr /= ltreifxx. Qed.
 
 Lemma int_xx : forall x bl br,
   Interval (BClose bl x) (BClose br x) =i if bl && br then pred1 x else pred0.
-Proof. by move=> x [] [] y /=; rewrite !inE 1?eq_sym (eqr_le, lter_asym). Qed.
+Proof. by move=> x [] [] y /=; rewrite !inE 1?eq_sym (eqr_le, lter_anti). Qed.
 
 Lemma int_gte : forall ba xa bb xb, (if ba && bb then xb < xa else xb <= xa)
   -> Interval (BClose ba xa) (BClose bb xb) =i pred0.
@@ -260,7 +260,7 @@ Lemma ltreifF : forall x y, x < y ?<= if false = (x < y). Proof. by []. Qed.
 
 Lemma ltreif_neg : forall x y b, cpable x y ->
   x < y ?<= if ~~b = ~~ (y < x ?<= if b).
-Proof. by move=> x y [] cxy /=; rewrite (ltrNge_po, lerNgt_po). Qed.
+Proof. by move=> x y [] cxy /=; rewrite (cpable_ltrNge, cpable_lerNgt). Qed.
 
 Lemma int_splitU_po : forall xc bc a b, xc \in Interval a b ->
   forall y, cpable y xc -> y \in Interval a b =
@@ -270,23 +270,23 @@ move=> xc bc [ba xa|] [bb xb|] cab y cyc; move: cab;
  rewrite !int_boundlr /le_boundl /le_boundr /=.
 * case/andP=> hac hcb; case hay: ltreif=> /=; case hyb: ltreif=> //=.
   + rewrite ?(andbF,andbT,orbF,orbT); symmetry.
-    by case: bc=> /=; case: lerP_po; rewrite // cpable_sym.
-  + rewrite ltreifN_po ?andbF // ltreifS // ltrNge_po 1?cpable_sym //.
+    by case: bc=> /=; case: cpable_lerP; rewrite // cpable_sym.
+  + rewrite ltreifN_po ?andbF // ltreifS // cpable_ltrNge 1?cpable_sym //.
     move/negP:hyb; move/negP; apply: contra.
     case: bb hcb=> /= hcb hyc; first exact: ler_trans hcb.
     exact: ler_lt_trans hcb.
   + move/ltreifW:hyb=> hyb; suff: false by [].
     by rewrite -hay -[ba]andbT (ltreif_trans hac).
 * rewrite !andbT; move=> hac; case hay: ltreif=> /=; symmetry.
-    by case: bc=> /=; case: lerP_po; rewrite // cpable_sym.
+    by case: bc=> /=; case: cpable_lerP; rewrite // cpable_sym.
   apply: negbTE; move/negP: hay; move/negP; apply: contra.
   by move/ltreifW; rewrite -[ba]andbT -ltreifT; move/(ltreif_trans _); apply.
 * move=> hcb; case hyb: ltreif=> /=; symmetry; rewrite ?(andbF, orbF).
-    by case: bc=> /=; case: lerP_po; rewrite // cpable_sym.
+    by case: bc=> /=; case: cpable_lerP; rewrite // cpable_sym.
   apply: negbTE; move/negP: hyb; move/negP; apply: contra.
   by move/ltreifW; rewrite -ltreifT; move/ltreif_trans; apply.
 * rewrite andbT=> _; symmetry.
-  by case: bc=> /=; case: lerP_po; rewrite // cpable_sym.
+  by case: bc=> /=; case: cpable_lerP; rewrite // cpable_sym.
 Qed.
 
 Lemma int_splitU2_po : forall x a b, x \in Interval a b ->

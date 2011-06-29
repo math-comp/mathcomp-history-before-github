@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div path fintype.
 Require Import bigop finset prime fingroup morphism perm automorphism quotient.
 Require Import action gproduct gfunctor pgroup cyclic center commutator.
 Require Import gseries nilpotent sylow abelian maximal hall frobenius.
-Require Import ssralg zint orderedalg orderedzint qnum.
+Require Import ssralg orderedalg zint qnum.
 Require Import BGsection1 BGsection3 BGsection4 BGsection5 BGsection6.
 Require Import BGsection7 BGsection9 BGsection10 BGsection12 BGsection13.
 
@@ -1647,9 +1647,9 @@ have [Mi MXi P2maxMi]: exists2 Mi, Mi \in MX & Mi \in 'M_'P2.
       rewrite (trivg_kappa_compl maxMi complU).
       by apply: contraR (allP1 _ MXi) => ?; exact/setDP.
     rewrite card_class_support_sigma // natr_mul natf_indexg ?subsetT // -/g.
-    rewrite mulrCA mulrC ler_pmul2lW ?ler0n // -subn1 natr_sub ?cardG_gt0 //.
+    rewrite mulrCA mulrC ler_wpmul2r ?ler0n // -subn1 natr_sub ?cardG_gt0 //.
     rewrite mulr1n mulr_subl -{1}(sdprod_card defMi) natr_mul invf_mul.
-    rewrite mulVKf ?natrG_neq0 // ler_add2r ler_opp2 -(mulr_natr _ 2) invf_mul.
+    rewrite mulVKf ?natrG_neq0 // ler_add2l ler_opp2 -(mulr_natr _ 2) invf_mul.
     rewrite ler_pdivr_mulr ?natrG_gt0 // mulrC mulrA.
     have sZM: Z \subset M by rewrite -defZ subsetIl.
     have sZMi: Z \subset Mi by rewrite -(defZX _ MXi) defZi subsetIl.
@@ -1705,11 +1705,11 @@ have [Mi MXi P2maxMi]: exists2 Mi, Mi \in MX & Mi \in 'M_'P2.
     exact: mem_sigma_cover_decomposition (Msigma_ell1 maxMi Mis_x) xR1.
   rewrite -(eqnP tiPG) big_setU1 ?big_imset //= natr_add natr_sum.
   suffices: (g <= #|TG|%:R + \sum_(i \in MX) ((k_ i)^-1 - (z *+ 2)^-1) * g)%R.
-    by move/ler_trans->; rewrite // ler_add2r ler_sum.
+    by move/ler_trans->; rewrite // ler_add2l ler_sum.
   rewrite -big_distrl /= oTG -/g -mulr_addl big_split /= sumr_const.
   rewrite addrA subrK -(mulr_natl _ 2) -[_ *+ _]mulr_natl invf_mul mulrN.
-  rewrite mulrA -addrA -mulr_subl -{1}(mul1r g) ler_pmul2lW ?ler0n //.
-  rewrite ler_addr -(mul0r z^-1)%R ler_pmul2lW ?invr_ge0 ?ler0n //.
+  rewrite mulrA -addrA -mulr_subl -{1}(mul1r g) ler_wpmul2r ?ler0n //.
+  rewrite ler_addl -(mul0r z^-1)%R ler_wpmul2r ?invr_ge0 ?ler0n //.
   rewrite subr_ge0 ler_pdivr_mulr ?(ltr0Sn _ 1) // -natr_mul ler_nat.
   by rewrite muln2 -addnn cardsU1 leq_add2r notMNX0 lt0n cards_eq0.
 have [prKi nilMis]: prime #|K_ Mi| /\ nilpotent Mi`_\sigma.
@@ -1800,13 +1800,13 @@ have hallKs: \sigma(M).-Hall(Mstar) Ks.
   by rewrite (subset_trans (pHall_sub hallK)) ?gFnorm.
 have oTGgt_g2: (g / 2%:R < #|TG|%:R)%R.
   rewrite oTG big_setU1 //= /n defMNX big_set1 cards1 mulrC mul1r.
-  rewrite ltr_pmul2l ?(ltr_nat _ 0) ?cardG_gt0 //  /k_ K0 -defKs.
+  rewrite ltr_pmul2r ?(ltr_nat _ 0) ?cardG_gt0 //  /k_ K0 -defKs.
   rewrite /z -defZ -(dprod_card defNK) natr_mul invf_mul oppr_add.
   pose hm u : qnum := (1 - u%:R^-1)%R; set lhs := (_^-1)%R.
   suffices: (lhs < hm #|K| * hm #|Ks|)%R.
     by rewrite mulr_subl !mulr_subr !mul1r mulr1 oppr_sub addrAC !addrA.
   have hm_inc: forall u v, 0 < u <= v -> (hm u <= hm v)%R.
-    move=> u v; case/andP=> u_gt0 le_uv; rewrite ler_add2r ler_opp2.
+    move=> u v; case/andP=> u_gt0 le_uv; rewrite ler_add2l ler_opp2.
     have v_gt0 := leq_trans u_gt0 le_uv.
     rewrite -(mul1r _^-1)%R ler_pdivr_mulr ?natr_gt0 //.
     by rewrite ler_pdivl_mull ?natr_gt0 // mulr1 ler_nat.
@@ -1815,7 +1815,7 @@ have oTGgt_g2: (g / 2%:R < #|TG|%:R)%R.
   have hm_pdiv := hm_inc _ _ (le_pdiv _).
   have hm_ge0: forall u, (0 <= hm u)%R.
     by case=> // u; rewrite subr_ge0 invr_le1 ?ltr0Sn ?(ler_nat _ 1).
-  do 2![rewrite mulrC (ltr_le_trans _ (ler_pmul2rW (hm_ge0 _) (hm_pdiv _))) //].
+  do 2![rewrite mulrC (ltr_le_trans _ (ler_wpmul2r (hm_ge0 _) (hm_pdiv _))) //].
   set p := pdiv #|K|; set q := pdiv #|Ks|.
   have [odd_p odd_q]: odd p /\ odd q.
     by split; apply: dvdn_odd (pdiv_dvd _) (mFT_odd _).
@@ -1832,8 +1832,10 @@ have oTGgt_g2: (g / 2%:R < #|TG|%:R)%R.
   have q_gt4: 4 < q.
     move: (leq_ltn_trans p_gt2 ltpq) odd_q; rewrite leqNgt.
     by case: ltngtP => // <-.
-  apply: ltr_le_trans (ler_pmul2lW (hm_ge0 _) (hm_inc 3 p p_gt2)).
-  by apply: ltr_le_trans (ler_pmul2rW (hm_ge0 _) (hm_inc 5 q q_gt4)).
+  (* bug ? the two following "apply: " do not terminate    *)
+  (*       if we remove the parenthesis and the underscore *)
+  apply: (ltr_le_trans _ (ler_wpmul2r (hm_ge0 _) (hm_inc 3 p p_gt2))).
+  by apply: (ltr_le_trans _ (ler_wpmul2l (hm_ge0 _) (hm_inc 5 q q_gt4))).
 have defZhat: Z :\: (K :|: Ks) = T.
   rewrite /T cover_imset big_setU1 //= defMNX big_set1 defKs_star Ks0.
   by rewrite -setDUl setDDl setUC setD1K // inE group1.

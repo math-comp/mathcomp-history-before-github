@@ -1,5 +1,5 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigop ssralg zint div orderedalg orderedzint.
+Require Import bigop ssralg zint div orderedalg.
 
 Import GRing.Theory.
 Import OrderedRing.Theory.
@@ -12,19 +12,19 @@ Local Open Scope ring_scope.
 
 Record qnum : Set := Qnum {
   valq : (zint * zint) ;
-  _ : (0 < valq.2) && (coprime (absz valq.1) (absz (valq.2))) 
+  _ : (0 < valq.2) && (coprime (absz valq.1) (absz (valq.2)))
 }.
 
 Definition zint_qnum (n : zint) := @Qnum (n, 1) (coprimen1 _).
 (* Coercion zint_qnum (n : zint) := @Qnum (n, 1) (coprimen1 _). *)
 
-Canonical Structure qnum_subType := Eval hnf in [subType for valq by qnum_rect].
+Canonical qnum_subType := Eval hnf in [subType for valq by qnum_rect].
 Definition qnum_eqMixin := [eqMixin of qnum by <:].
-Canonical Structure qnum_eqType := EqType qnum qnum_eqMixin.
+Canonical qnum_eqType := EqType qnum qnum_eqMixin.
 Definition qnum_countMixin := [countMixin of qnum by <:].
 Definition qnum_choiceMixin := CountChoiceMixin qnum_countMixin.
-Canonical Structure qnum_choiceType := ChoiceType qnum qnum_choiceMixin.
-Canonical Structure qnum_countType := CountType qnum qnum_countMixin.
+Canonical qnum_choiceType := ChoiceType qnum qnum_choiceMixin.
+Canonical qnum_countType := CountType qnum qnum_countMixin.
 
 Notation numq x := ((valq x).1).
 Notation denq x := ((valq x).2).
@@ -48,57 +48,54 @@ Lemma abszr : forall x, absz `|x| = absz x. Proof. by case. Qed.
 
 Lemma fracq_subproof : forall x : zint * zint,
   let n := if x.2 == 0 then 0 else
-    ((absz x.1) %/ gcdn (absz x.1) (absz x.2))%:Z *~ (sgr x.1 * sgr x.2) in
-    let d := if x.2 == 0 then 1 else 
+    (sgr x.1 * sgr x.2) * ((absz x.1) %/ gcdn (absz x.1) (absz x.2))%:Z in
+    let d := if x.2 == 0 then 1 else
       (absz x.2 %/ gcdn (absz (x.1)) (absz x.2))%:Z in
         (0 < d) && (coprime (absz n) (absz d)).
-Proof. 
+Proof.
 move=> [m n] /=; case: ifP=> n0; rewrite ?n0 // ltz_nat lt0n eq_sym.
 rewrite eqn_div ?dvdn_gcdr 1?eq_sym ?gcdn_gt0 ?mul0n
   1?orbC ?lt0n ?absz_eq0 ?n0 //=.
-rewrite -abszr absr_mulz absr_mul !absr_sg n0 mulr1.
-case m0: (_ == 0)=> /=.
-  by rewrite !(eqP m0) gcd0n divnn /= lt0n absz_eq0 n0.
-move: m0 n0; rewrite -!absz_eq0.
-move: (absz _) (absz _) => {n m} m n n0 m0; rewrite /coprime.
-rewrite -(@eqn_pmul2l (gcdn n m)) ?muln1 ?gcdn_gt0 ?lt0n ?n0 // -gcdn_mul2l.
+rewrite -abszr !absrM !absr_sg n0 mulr1.
+case: (altP (_ =P 0)) => [->|].
+  by rewrite gcd0n divnn /= lt0n absz_eq0 n0.
+move: n0; rewrite -!absz_eq0.
+move: (absz _) (absz _) => {n m} m n n0 m0; rewrite /coprime mul1r abszr absz_nat.
+rewrite -(@eqn_pmul2l (gcdn m n)) ?muln1 ?gcdn_gt0 ?lt0n ?n0 ?m0 //.
+rewrite -gcdn_mul2l.
 do 2!rewrite divn_mulCA ?(dvdn_gcdl, dvdn_gcdr) ?divnn //.
-by rewrite ?gcdn_gt0 ?lt0n ?n0 ?muln1.
+by rewrite ?gcdn_gt0 ?lt0n ?n0 ?m0 ?muln1.
 Qed.
 
 Definition fracq (x : zint * zint) := nosimpl (@Qnum (_, _) (fracq_subproof x)).
 
 Lemma zint_qnumE : forall n, zint_qnum n = fracq (n, 1).
 Proof.
-by move=> n; apply: val_inj; rewrite /= mulr1 gcdn1 !divn1 -absrz -absr_sgP. 
+by move=> n; apply: val_inj; rewrite /= mulr1 gcdn1 !divn1 abszE mulr_sg_abs.
 Qed.
 
 Lemma fracqK : forall x : qnum, fracq (valq x) = x.
-Proof. 
+Proof.
 move=> [[n d] /= Pnd]; apply: val_inj=> /=.
 move: Pnd; rewrite /coprime /fracq /=; case/andP=> hd; move/eqP=> hnd.
-rewrite ltrNW // hnd !divn1 -!absrz mulrzA -[_ *~ sgr n]absr_sgP.
-by rewrite ger0_abs ?ltrW // gtr0_sg //.
+rewrite ltrNW // hnd !divn1 mulrAC !abszE mulr_sg_abs.
+by rewrite gtr0_abs // gtr0_sg // mulr1.
 Qed.
 
 Lemma valq_frac : forall x (k := sgr x.2 * gcdn (absz x.1) (absz x.2)), x.2 != 0 ->
   x = (k * numq (fracq x), k *  denq (fracq x)).
 Proof.
 move=> [n d] /=; case d0: (d == 0)=> // _.
-rewrite !mulzzr mulrCA -!mulrA -!mulzM divn_mulCA ?dvdn_gcdr //.
-congr (_, _).
-  rewrite [sgr d * _]mulrC -!mulrA mulss d0 mulr1 mulrA.
-  rewrite -mulzM mulnC divn_mulCA ?dvdnn ?dvdn_gcdl // divnn.
-  rewrite gcdn_gt0 orbC lt0n absz_eq0 d0 muln1 {1}[n]absr_sgP.
-  by rewrite mulzzr absrz.
-rewrite divnn gcdn_gt0 orbC lt0n absz_eq0 d0 muln1.
-by rewrite {1}[d]absr_sgP mulzzr absrz mulrC.
+rewrite !mulrA [_ * sgr d]mulrC !mulrA mulr_sg d0 mul1r mulrC -!mulrA.
+rewrite -!PoszM ![(gcdn _ _ * _)%N]divn_mulCA ?(dvdn_gcdl, dvdn_gcdr) //.
+rewrite !PoszM !mulrA !abszE !mulr_sg_abs.
+by rewrite divnn gcdn_gt0 !lt0n !absz_eq0 d0 orbT !mulr1.
 Qed.
 
-CoInductive valq_spec (x : zint * zint) : zint * zint -> qnum -> Type := 
+CoInductive valq_spec (x : zint * zint) : zint * zint -> qnum -> Type :=
 | ValqSpecN of x.2 = 0 : valq_spec x (x.1, 0) (@Qnum (0, 1) isT)
-| ValqSpecP k fx of x.2 != 0 & k != 0 & k = sgr x.2 * gcdn (absz x.1) (absz x.2) 
-  & fx = fracq x & x = (k * numq fx, k * denq fx) : 
+| ValqSpecP k fx of x.2 != 0 & k != 0 & k = sgr x.2 * gcdn (absz x.1) (absz x.2)
+  & fx = fracq x & x = (k * numq fx, k * denq fx) :
   valq_spec x (k * numq fx, k * denq fx) (fx).
 
 Lemma valqP : forall x : zint * zint, valq_spec x x (fracq x).
@@ -113,7 +110,7 @@ rewrite {2}[x]valq_frac ?dx0 //; constructor; rewrite ?dx0 //.
   rewrite mulf_neq0 ?sgr_eq0 ?dx0 //.
   by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 dx0.
 by rewrite -valq_frac // dx0.
-Qed.  
+Qed.
 
 Lemma fracq_eq : forall x y, x.2 != 0 -> y.2 != 0 ->
   (fracq x == fracq y) = (x.1 * y.2 == y.1 * x.2).
@@ -124,7 +121,7 @@ move => // k fx hdx k0 hk hfx hx _; rewrite ?hx /=.
 rewrite {-1}[y]valq_frac //.
 rewrite [sgr _ * _]lock; set k' := locked _.
 rewrite [fracq y]lock; set fy := locked _=> /=.
-have k'0: k' != 0. 
+have k'0: k' != 0.
   rewrite /k'; unlock; rewrite mulf_neq0 ?sgr_cp0 //.
   by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdy.
 (* could be replaced in ssr > 1.2 by a case: valqP hdy *)
@@ -136,22 +133,21 @@ rewrite xpair_eqE; suff hnfx : (denq fx = denq fy).
   by move: hxy; rewrite hnfx eqxx andbT (inj_eq (mulIf _)) ?denq_eq0.
 rewrite -[denq fx]gtr0_abs ?denq_gt0 // -[denq fy]gtr0_abs ?denq_gt0 //.
 (* Todo : a bit theory about dvdz, comming later *)
-apply/eqP; rewrite !absrz eqz_nat eqn_dvd.
+apply/eqP; rewrite -!abszE eqz_nat eqn_dvd.
 rewrite -(@gauss _ (absz (numq fx))) 1?coprime_sym ?coprime_num_den // andbC.
 rewrite -(@gauss _ (absz (numq fy))) 1?coprime_sym ?coprime_num_den //.
 have h: (absz (numq fy) * absz (denq fx) = absz (numq fx) * absz (denq fy))%N.
-  by apply/eqP; rewrite -eqz_nat !mulzM -!absrz -!absr_mul (eqP hxy).
+  by apply/eqP; rewrite -eqz_nat !PoszM !abszE -!absrM (eqP hxy).
 by rewrite h dvdn_mull // -h dvdn_mull.
 Qed.
 
 Lemma frac0q : forall x, fracq (0, x) = fracq (0, 1).
 Proof.
-move=> x; rewrite /fracq; apply: val_inj=> //= (* Warning : without //= Qed fails) *).
-case: ifP=> x0; rewrite ?x0 //=.
-by rewrite !mul0r !mulr0z !gcd0n !divnn lt0n absz_eq0 x0.
+move=> x; rewrite /fracq; apply: val_inj=> //=.
+by case: ifP=> x0; rewrite ?x0 //= sgr0 !mul0r !gcd0n !divnn lt0n absz_eq0 x0.
 Qed.
 
-Lemma fracq0 : forall x, fracq (x, 0) = fracq (0, 1). 
+Lemma fracq0 : forall x, fracq (x, 0) = fracq (0, 1).
 Proof. by move=> x; apply/eqP. Qed.
 
 Lemma fracq_eq0 : forall x, (fracq x == fracq (0, 1)) = (x.1 == 0) || (x.2 == 0).
@@ -182,7 +178,7 @@ move=> x y hdx hdy; rewrite /add.
 rewrite {-1}[x]valq_frac //.
 rewrite [sgr _ * _]lock; set k := locked _.
 rewrite [fracq x]lock; set fx := locked _=> /=.
-have k0: k != 0. 
+have k0: k != 0.
   rewrite /k; unlock; rewrite mulf_neq0 ?sgr_cp0 //.
   by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdx.
 (* could be replaced in ssr > 1.2 by a case: valqP hdx *)
@@ -190,7 +186,7 @@ have k0: k != 0.
 rewrite {-1}[y]valq_frac //.
 rewrite [sgr _ * _]lock; set k' := locked _.
 rewrite [fracq y]lock; set fy := locked _=> /=.
-have k'0: k' != 0. 
+have k'0: k' != 0.
   rewrite /k'; unlock; rewrite mulf_neq0 ?sgr_cp0 //.
   by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdy.
 (* could be replaced in ssr > 1.2 by a case: valqP hdy *)
@@ -209,7 +205,7 @@ move=> x; rewrite /opp; case hdx: (x.2 == 0).
 rewrite {-1}[x]valq_frac ?hdx //.
 rewrite [sgr _ * _]lock; set k := locked _.
 rewrite [fracq x]lock; set fx := locked _=> /=.
-have k0: k != 0. 
+have k0: k != 0.
   rewrite /k; unlock; rewrite mulf_neq0 ?sgr_cp0 ?hdx //.
   by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdx.
 (* could be replaced in ssr > 1.2 by a case: valqP hdx *)
@@ -243,7 +239,7 @@ by rewrite fracq_eq ?mulf_neq0 ?denq_neq0 //= !mul0r.
 Qed.
 
 Definition qnum_ZmodMixin := ZmodMixin addqA addqC add0q addNq.
-Canonical Structure qnum_ZmodType := ZmodType qnum qnum_ZmodMixin.
+Canonical qnum_ZmodType := ZmodType qnum qnum_ZmodMixin.
 
 Definition mul (x y : zint * zint) := nosimpl (x.1 * y.1, x.2 * y.2).
 Definition mulq (x y : qnum) := nosimpl fracq (mul (valq x) (valq y)).
@@ -265,7 +261,7 @@ case hdx: (x.2 == 0).
 rewrite {-1}[x]valq_frac ?hdx //.
 rewrite [sgr _ * _]lock; set k := locked _.
 rewrite [fracq x]lock; set fx := locked _=> /=.
-have k0: k != 0. 
+have k0: k != 0.
   rewrite /k; unlock; rewrite mulf_neq0 ?sgr_cp0 ?hdx //.
   by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdx.
 (* could be replaced in ssr > 1.2 by a case: valqP hdx *)
@@ -275,7 +271,7 @@ case hdy: (y.2 == 0).
 rewrite {-1}[y]valq_frac ?hdy //.
 rewrite [sgr _ * _]lock; set k' := locked _.
 rewrite [fracq y]lock; set fy := locked _=> /=.
-have k'0: k' != 0. 
+have k'0: k' != 0.
   rewrite /k'; unlock; rewrite mulf_neq0 ?sgr_cp0 ?hdy //.
   by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdy.
 (* could be replaced in ssr > 1.2 by a case: valqP hdy *)
@@ -293,7 +289,7 @@ move=> x hnx hdx; rewrite /inv; move: hnx.
 rewrite {-2}[x]valq_frac //.
 rewrite [sgr _ * _]lock; set k := locked _.
 rewrite [fracq x]lock; set fx := locked _=> /=.
-have k0: k != 0. 
+have k0: k != 0.
   rewrite /k; unlock; rewrite mulf_neq0 ?sgr_cp0 //.
   by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdx.
 (* could be replaced in ssr > 1.2 by a case: valqP hdx *)
@@ -327,8 +323,8 @@ Lemma nonzero1q : (fracq (1, 1)) != (fracq (0, 1)). Proof. by []. Qed.
 
 Definition qnum_comRingMixin :=
   ComRingMixin mulqA mulqC mul1q mulq_addl nonzero1q.
-Canonical Structure  qnum_Ring := Eval hnf in RingType qnum qnum_comRingMixin.
-Canonical Structure qnum_comRing := Eval hnf in ComRingType qnum mulqC.
+Canonical  qnum_Ring := Eval hnf in RingType qnum qnum_comRingMixin.
+Canonical qnum_comRing := Eval hnf in ComRingType qnum mulqC.
 
 
 Lemma mulVq : forall x, x != (fracq (0, 1)) -> mulq (invq x) x = (fracq (1, 1)).
@@ -341,17 +337,17 @@ Qed.
 Lemma invq0 : invq (fracq (0, 1)) = (fracq (0, 1)). Proof. by apply/eqP. Qed.
 
 Definition QnumFieldUnitMixin := FieldUnitMixin mulVq invq0.
-Canonical Structure qnum_unitRing :=
+Canonical qnum_unitRing :=
   Eval hnf in UnitRingType qnum QnumFieldUnitMixin.
-Canonical Structure qnum_comUnitRing := Eval hnf in [comUnitRingType of qnum].
+Canonical qnum_comUnitRing := Eval hnf in [comUnitRingType of qnum].
 
 Lemma field_axiom : GRing.Field.mixin_of qnum_unitRing.
 Proof. exact. Qed.
 
 Definition QnumFieldIdomainMixin := (FieldIdomainMixin field_axiom).
-Canonical Structure qnum_iDomain :=
+Canonical qnum_iDomain :=
   Eval hnf in IdomainType qnum (FieldIdomainMixin field_axiom).
-Canonical Structure qnum_fieldMixin := FieldType qnum field_axiom.
+Canonical qnum_fieldType := FieldType qnum field_axiom.
 
 Lemma numq_eq0 : forall x, (numq x == 0) = (x == 0).
 Proof.
@@ -371,7 +367,7 @@ Qed.
 
 (* case: valqP=> //=. *)
 
-Definition pos (x : zint * zint) := posr (x.1 * x.2).
+Definition pos (x : zint * zint) := 0 <= (x.1 * x.2).
 Definition posq (x : qnum) := nosimpl (pos (valq x)).
 
 Lemma posq_frac : forall x, posq (fracq x) = pos x.
@@ -383,73 +379,68 @@ case hdx: (x.2 == 0).
 rewrite {-1}[x]valq_frac ?hdx //.
 rewrite [sgr _ * _]lock; set k := locked _.
 rewrite [fracq x]lock; set fx := locked _=> /=.
-have k0: k != 0. 
+have k0: k != 0.
   rewrite /k; unlock; rewrite mulf_neq0 ?sgr_cp0 ?hdx //.
   by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdx.
 (* could be replaced in ssr > 1.2 by a case: valqP hdx *)
 rewrite /pos /= mulrCA !mulrA -mulrA; symmetry.
-rewrite posr_ge0 -(mulr0 (k * k)) ler_pmul2r -?posr_ge0 //.
-by rewrite -sgr_cp0 sgr_mul mulss k0.
+rewrite -(mulr0 (k * k)) ler_pmul2l //.
+by rewrite -sgr_cp0 sgrM mulr_sg k0.
 Qed.
 
-Lemma posq0 : posq 0. Proof. done. Qed.
-
 Lemma posq_add : forall x y, posq x -> posq y -> posq (addq x y).
-Proof. 
+Proof.
 move=> x y; rewrite -[x]fracqK -[y]fracqK.
 rewrite !(addq_frac, posq_frac) ?denq_neq0 //.
-rewrite /pos /add /= => px py; rewrite mulr_addl posr_add //.
-  rewrite mulrCA !mulrA [_ * numq x]mulrC -mulrA posr_mul //.
-  by rewrite posr_ge0 ltrW // -sgr_cp0 sgr_mul mulss denq_neq0.
-rewrite !mulrA mulrC !mulrA [_ * numq y]mulrC -mulrA posr_mul //.
-by rewrite posr_ge0 ltrW // -sgr_cp0 sgr_mul mulss denq_neq0.
+rewrite /pos /add /= => px py; rewrite mulr_addl addr_ge0 //.
+  rewrite mulrCA !mulrA [_ * numq x]mulrC -mulrA mulr_ge0 //.
+  by rewrite ltrW // -sgr_cp0 sgrM mulr_sg denq_neq0.
+rewrite !mulrA mulrC !mulrA [_ * numq y]mulrC -mulrA mulr_ge0 //.
+by rewrite ltrW // -sgr_cp0 sgrM mulr_sg denq_neq0.
 Qed.
 
 Lemma posq_mul : forall x y, posq x -> posq y -> posq (mulq x y).
 Proof.
 move=> x y; rewrite -[x]fracqK -[y]fracqK.
 rewrite !(mulq_frac, posq_frac) ?denq_neq0 //.
-rewrite /pos /mul /= => px py. 
-by rewrite mulrAC !mulrA -mulrA [_ * numq _]mulrC posr_mul.
+rewrite /pos /mul /= => px py.
+by rewrite mulrAC !mulrA -mulrA [_ * numq _]mulrC mulr_ge0.
 Qed.
 
 Lemma posq_anti : forall x, posq x -> posq (oppq x) -> x = 0.
 Proof.
 move=> x; rewrite -[x]fracqK !(oppq_frac, posq_frac) ?denq_neq0 //.
-rewrite /pos /opp /= mulNr !posr_ge0 oppr_cp0=> px pNx.
+rewrite /pos /opp /= mulNr oppr_cp0=> px pNx.
 by apply/eqP; rewrite fracq_eq0 -mulf_eq0 eqr_le px pNx.
 Qed.
 
-Lemma posq_total : forall x, (posq (oppq x) || posq x).
+Lemma posq_total : forall x, (posq x || posq (oppq x)).
 Proof.
 move=> x; rewrite -[x]fracqK !(oppq_frac, posq_frac) ?denq_neq0 //.
-by rewrite /pos /opp /= mulNr !posr_ge0 oppr_cp0 ler_total.
+by rewrite /pos /opp /= mulNr oppr_cp0 ler_total.
 Qed.
 
-Definition qnum_POrderedMixin := PartialOrderMixin posq0
-  posq_add posq_mul posq_anti.
-Canonical Structure qnum_poIdomainType := POIdomainType qnum qnum_POrderedMixin.
+Definition le_q_total := TotalOrderPosMixin posq_total.
 
-Lemma le_q_total : (@total qnum) (<=%R).
-Proof. by move=> x y; rewrite !ler_pos -oppr_sub posq_total. Qed.
-
-Canonical Structure qnum_oIdomainType := OIdomainType qnum le_q_total.
+Definition qnum_POrderedMixin := TotalOrder_PartialPosMixin posq_add posq_mul posq_anti  posq_total.
+Canonical qnum_poIdomainType := POIdomainType qnum qnum_POrderedMixin.
+Canonical qnum_oIdomainType := OIdomainType qnum le_q_total.
+Canonical qnum_poFieldType := POFieldType qnum qnum_POrderedMixin.
+Canonical qnum_oFieldType := OFieldType qnum  le_q_total.
 
 End QnumField.
 
-Canonical Structure qnum_ZmodType := ZmodType qnum QnumField.qnum_ZmodMixin.
-Canonical Structure qnum_Ring := Eval hnf in RingType qnum QnumField.qnum_comRingMixin.
-Canonical Structure qnum_comRing := Eval hnf in ComRingType qnum QnumField.mulqC.
-Canonical Structure qnum_unitRing := Eval hnf in UnitRingType qnum QnumField.QnumFieldUnitMixin.
-Canonical Structure qnum_comUnitRing := Eval hnf in [comUnitRingType of qnum].
-Canonical Structure qnum_iDomain :=
-  Eval hnf in IdomainType qnum (FieldIdomainMixin QnumField.field_axiom).
-Canonical Structure qnum_fieldType := FieldType qnum QnumField.field_axiom.
-Canonical Structure qnum_poIdomainType := POIdomainType qnum QnumField.qnum_POrderedMixin.
-Canonical Structure qnum_oIdomainType := OIdomainType qnum QnumField.le_q_total.
-Canonical Structure qnum_poFieldType := POFieldType qnum QnumField.qnum_POrderedMixin.
-Canonical Structure qnum_oFieldType := OFieldType qnum QnumField.le_q_total.
-
+Canonical QnumField.qnum_ZmodType.
+Canonical QnumField.qnum_Ring.
+Canonical QnumField.qnum_comRing.
+Canonical QnumField.qnum_unitRing.
+Canonical QnumField.qnum_comUnitRing.
+Canonical QnumField.qnum_iDomain.
+Canonical QnumField.qnum_fieldType.
+Canonical QnumField.qnum_poIdomainType.
+Canonical QnumField.qnum_oIdomainType.
+Canonical QnumField.qnum_poFieldType.
+Canonical QnumField.qnum_oFieldType.
 
 Notation "n %:Q" := (zint_qnum n)
   (at level 2, left associativity, format "n %:Q")  : ring_scope.
@@ -474,7 +465,7 @@ Lemma mulqM : {morph zint_qnum : x y / x * y}.
 Proof. exact: QnumField.mulqM. Qed.
 
 Lemma mulz1q : forall n, n%:~R = n%:Q.
-Proof. 
+Proof.
 elim=> //=; first by rewrite mulr0z qnum0.
   by move=> n hn; rewrite zintS mulrz_addl addqM hn.
 by move=> n hn; rewrite zintS oppr_add mulrz_addl addqM hn !mulrNz oppqM.
@@ -495,7 +486,7 @@ Lemma fracqE : forall x, fracq x = x.1%:Q / x.2%:Q.
 Proof.
 move=> [m n] /=.
 case n0: (n == 0); first by rewrite (eqP n0) fracq0 qnum0 invr0 mulr0.
-rewrite -[m%:Q]fracqK -[n%:Q]fracqK. 
+rewrite -[m%:Q]fracqK -[n%:Q]fracqK.
 rewrite [_^-1]QnumField.invq_frac ?(denq_neq0, numq_eq0, eqq_zint, n0) //.
   rewrite [_ / _]QnumField.mulq_frac /= /QnumField.inv /QnumField.mul /=.
   by rewrite mulr1 mul1r.
@@ -508,7 +499,7 @@ by move=> x; rewrite -{3}[x]fracqK [valq _]surjective_pairing /= fracqE.
 Qed.
 
 CoInductive qnum_spec (x : qnum) : qnum -> zint -> zint -> Type :=
-  Qnum_spec (n : zint) (d : nat) & x = n%:Q / d%:Q & coprime (absz n) d 
+  Qnum_spec (n : zint) (d : nat) & x = n%:Q / d%:Q & coprime (absz n) d
   : qnum_spec x (n%:Q / d%:Q) n d.
 
 Lemma qnumP : forall x : qnum, qnum_spec x x (numq x) (denq x).
