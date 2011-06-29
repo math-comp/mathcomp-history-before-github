@@ -971,11 +971,10 @@ Section Automorphism.
 
 Variables K E : {algebra L}.
 
-Lemma Aut_mul x y : x \in 'Aut(E | K)%g -> y \in 'Aut(E | K)%g ->
+Lemma Aut_mul (x y : coset_of [set x : LAut | kAut E (fullv L) (val x)]) :
  forall a, a \in E -> val (repr (x*y)%g) a = val (repr y) (val (repr x) a).
 Proof.
-move => Hx Hy a Ha.
-have Hxy := groupM Hx Hy.
+move => a Ha.
 transitivity (val (repr x * repr y)%g a); last by rewrite /= comp_lappE.
 move: a Ha.
 apply/(@Aut_eq _ (x*y) (x*y)) => //; first by rewrite mem_repr_coset.
@@ -1449,7 +1448,7 @@ rewrite -map_comp.
 case => ? /mapP [y Hyr ->] Hyx.
 have Hy : y \in ('Aut(E | K))%g by move/subsetP: Haut; apply.
 have Huniq : uniq (map h ((y * x)%g :: r)).
- by rewrite /= Hr andbT [h _](Aut_mul Hy Hx).
+ by rewrite /= Hr andbT [h _]Aut_mul.
 exists (cons (y * x)%g r); split.
 - by rewrite subset_all /= -subset_all Haut groupM.
 - by apply: Huniq.
@@ -1552,10 +1551,11 @@ apply/eqP/(Aut_eq (mem_repr_coset _) (mem_repr_coset _)) => a /projv_id <-.
 by rewrite -[_ (_ a)]comp_lappE Hij comp_lappE.
 Qed.
 
-Lemma maxDim_FixedField 
+Lemma dim_FixedField_subproof
   (s : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :
   (forall i, i \in s -> (g_ i @: E)%VS = E) ->
-  #|s|*\dim (FixedField s) <= \dim E.
+  #|s|*\dim (FixedField s) <= \dim E /\ 
+  (group_set s -> \dim E <= #|s|*\dim (FixedField s)).
 Proof.
 move => HE.
 pose f_ i := repr (@enum_val _ (pred_of_set s) i).
@@ -1567,42 +1567,120 @@ case: (@LAut_matrix_subproof E _ f_).
 move => w_ HwE.
 set M := \matrix_(_,_) _ => Hw.
 pose K := FixedField s.
-rewrite [X in X <= _](_ : _ = \dim (\sum_(i < #|s|) K * (w_ i)%:VS)).
+rewrite [(_ * _)%N](_: _ = \dim (\sum_(i < #|s|) K * (w_ i)%:VS)); last first.
+ have/directvP -> : (directv (\sum_i (K * (w_ i)%:VS))).
+  apply/directv_sum_independent => u_ Hu Hsum i _.
+  pose x := \col_j (u_ j / w_ j).
+  have : M *m x = 0.
+   apply/colP => j.
+   rewrite !{1}mxE -[X in _ = X](rmorph0 [rmorphism of (val (f_ j))]) -{2}Hsum.
+   rewrite rmorph_sum.
+   apply: eq_bigr => k _.
+   rewrite !mxE.
+   move: (Hu k isT) => Huk.
+   suff <- : val (f_ j) (u_ k / w_ k) = (u_ k / w_ k).
+    by rewrite -rmorphM mulrC -(memv_prodv_inj_coef Huk).
+   case/FixedFieldP: (prodv_inj_coefK Huk) => _; apply.
+   apply: enum_valP.
+  move/(f_equal (fun a => invmx M *m a)).
+  rewrite mulmx0 mulKmx // (memv_prodv_inj_coef (Hu i isT)).
+  move/colP/(_ i).
+  rewrite !mxE => ->.
+  by rewrite mul0r.
+ rewrite -{1}[#|s|]subn0 -sum_nat_const_nat big_mkord.
+ apply: eq_bigr => i _.
+ rewrite /= dim_prodvf //.
+ move: Hw.
+ rewrite unitmxE unitfE.
+ apply: contra => /eqP Hwi.
+ rewrite (expand_det_col _ i).
+ apply/eqP.
+ apply: big1 => j _.
+ by rewrite mxE Hwi rmorph0 mul0r.
+split.
  apply: dimvS.
  apply/subvP => _ /memv_sumP [v [Hv ->]].
  apply: memv_suml => i _.
  move/memv_prodv_inj_coef: (Hv i isT) ->.
  apply: memv_mul; last done.
  by case/prodv_inj_coefK/FixedFieldP: (Hv i isT).
-have/directvP -> : (directv (\sum_i (K * (w_ i)%:VS))).
- apply/directv_sum_independent => u_ Hu Hsum i _.
- pose x := \col_j (u_ j / w_ j).
- have : M *m x = 0.
-  apply/colP => j.
-  rewrite !{1}mxE -[X in _ = X](rmorph0 [rmorphism of (val (f_ j))]) -{2}Hsum.
-  rewrite rmorph_sum.
-  apply: eq_bigr => k _.
-  rewrite !mxE.
-  move: (Hu k isT) => Huk.
-  suff <- : val (f_ j) (u_ k / w_ k) = (u_ k / w_ k).
-   by rewrite -rmorphM mulrC -(memv_prodv_inj_coef Huk).
-  case/FixedFieldP: (prodv_inj_coefK Huk) => _; apply.
-  apply: enum_valP.
- move/(f_equal (fun a => invmx M *m a)).
- rewrite mulmx0 mulKmx // (memv_prodv_inj_coef (Hu i isT)).
- move/colP/(_ i).
- rewrite !mxE => ->.
- by rewrite mul0r.
-rewrite -{1}[#|s|]subn0 -sum_nat_const_nat big_mkord.
-apply: eq_bigr => i _.
-rewrite /= dim_prodvf //.
-move: Hw.
-rewrite unitmxE unitfE.
-apply: contra => /eqP Hwi.
-rewrite (expand_det_col _ i).
+move => Hs.
+apply: dimvS.
+apply/subvP => v HvE.
+pose x := invmx M *m \col_i val (f_ i) v.
+have HMx : M *m x = \col_i val (f_ i) v by rewrite mulKVmx.
+have HMxj : forall j, M *m map_mx (val (f_ j)) x = \col_i val (f_ i) v.
+ move => j.
+ apply/colP => i.
+ rewrite !mxE.
+ have [k Hk] : exists k, forall z, z \in E -> 
+                         (val (f_ i) z) = (val ((f_ k) * (f_ j))%g z).
+  have: (enum_val i * (enum_val j)^-1)%g \in Group Hs.
+   by rewrite groupM ?groupV // enum_valP.
+  move => Hks.
+  move: (Hks).
+  rewrite -mem_enum -index_mem -cardE.
+  move => Hk.
+  exists (Ordinal Hk) => z HzE.
+  rewrite comp_lappE /= -Aut_mul //.
+  by rewrite {1}/enum_val nth_index ?mulgKV // mem_enum.
+ rewrite Hk // comp_lappE /=.
+ transitivity (val (f_ j) ((\col_i (val (f_ i)) v) k 0)); last by rewrite mxE.
+ rewrite -HMx.
+ rewrite mxE rmorph_sum.
+ apply: eq_bigr => l _.
+ rewrite rmorphM.
+ congr (_ * _); first by rewrite !mxE Hk // comp_lappE.
+ by rewrite mxE.
+move: (group1 (Group Hs)).
+rewrite -mem_enum -index_mem -cardE => H1.
+move/colP/(_ (Ordinal H1)): (HMx).
+rewrite !mxE /f_ /enum_val nth_index; last first.
+ by rewrite mem_enum; apply: group1 (Group Hs).
+rewrite repr_coset1 unit_lappE => <-.
+apply: memv_sumr => i _.
+rewrite mulrC memv_prod //; last first.
+ rewrite mxE /f_ /enum_val nth_index; last first.
+  by rewrite mem_enum; apply: group1 (Group Hs).
+ by rewrite repr_coset1 unit_lappE memv_inj.
+apply/FixedFieldP.
+split.
+ move: i (0 : 'I_1).
+ apply/matrixOverP.
+ by rewrite mulmx_matrixOver -?invmx_matrixOver //; apply/matrixOverP => i j;
+    rewrite mxE -(HE (enum_val i)) ?memv_img // enum_valP.
+move => y Hy.
+apply/eqP; rewrite -subr_eq0; apply/eqP.
+transitivity ((map_mx (val (repr y)) x - x) i 0).
+ by move: (x) => x'; rewrite !mxE.
+have <- : (0:'cV[L]_#|s|) i 0 = 0 by rewrite mxE.
+suff -> : map_mx (val (repr y)) x - x = 0; first done.
+move: (Hy).
+rewrite -mem_enum -index_mem -cardE => Hj.
+have <- : enum_val (Ordinal Hj) = y by rewrite /enum_val nth_index // mem_enum.
+rewrite -[X in X = _](mulKmx Hw) -[X in _ = X](mulmx0 _ (invmx M)).
+congr (_ *m _).
+by rewrite mulmx_subr HMx HMxj subrr.
+Qed.
+
+Lemma maxDim_FixedField 
+   (s : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :
+   (forall i, i \in s -> (g_ i @: E)%VS = E) ->
+   #|s|*\dim (FixedField s) <= \dim E.
+Proof.
+by case/dim_FixedField_subproof.
+Qed.
+
+Lemma dim_FixedField 
+  (s : {group coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :
+  (forall i, i \in s -> (g_ i @: E)%VS = E) ->
+  (#|s| * \dim (FixedField s) = \dim E)%N.
+Proof.
+case: s => s Hs.
+case/dim_FixedField_subproof => Hle1.
+move/(_ Hs) => Hle2.
 apply/eqP.
-apply: big1 => j _.
-by rewrite mxE Hwi rmorph0 mul0r.
+by rewrite eqn_leq Hle1 Hle2.
 Qed.
 
 End GaloisDim.

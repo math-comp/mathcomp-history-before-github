@@ -1209,10 +1209,10 @@ move => cK; apply/polyOverP => i.
 by rewrite coefC; case: (_ == _) => //; apply: mem0v.
 Qed.
 
-Definition matrixOver (K : {vspace L}) n (A : 'M_n) :=
+Definition matrixOver (K : {vspace L}) n m (A : 'M_(n,m)) :=
   forallb i, forallb j, A i j \in K.
 
-Lemma matrixOverP (K : {vspace L}) n (A : 'M_n) :
+Lemma matrixOverP (K : {vspace L}) n m (A : 'M_(n,m)) :
   reflect (forall i j, A i j \in K) (matrixOver K A).
 Proof.
 apply: (iffP forallP).
@@ -1221,8 +1221,6 @@ apply: (iffP forallP).
 move => H i.
 by apply/forallP.
 Qed.
-
-
 
 Section SubAlgebra.
 
@@ -1352,8 +1350,8 @@ move => ?; move/polyOver_suba => [p ->].
 by apply/polyOver_suba; exists (p^`()); apply: deriv_map.
 Qed.
 
-Lemma matrixOver_suba n (A : 'M_n) :
-  reflect (exists B : 'M_n, A = map_mx (@sa_val _ _ K) B)
+Lemma matrixOver_suba n m (A : 'M_(n,m)) :
+  reflect (exists B, A = map_mx (@sa_val _ _ K) B)
          (matrixOver K A).
 Proof.
 apply: (iffP (matrixOverP _ _)); last first.
@@ -1980,6 +1978,16 @@ Lemma gcdp_polyOver : forall p q : {poly L},
 Proof.
 move => ? ?; move/polyOver_suba => [p ->]; move/polyOver_suba => [q ->].
 by apply/polyOver_suba; exists (gcdp p q); rewrite gcdp_map.
+Qed.
+
+Lemma mulmx_matrixOver n m o (A : 'M_(n,m)) (B : 'M_(m,o)) :
+  matrixOver K A -> matrixOver K B -> matrixOver K (A *m B).
+Proof.
+move/matrixOverP => HA.
+move/matrixOverP => HB.
+apply/matrixOverP => i j.
+rewrite mxE memv_suml // => k _.
+by rewrite memv_mul.
 Qed.
 
 Lemma invmx_matrixOver n (A : 'M_n) :
