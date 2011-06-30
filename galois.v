@@ -1136,6 +1136,33 @@ move => x Hx.
 by move: (Aut_kAut HKE Hx (mem_repr_coset _)) => /andP [/kHomP [->]].
 Qed.
 
+Lemma FixedField_is_aspace_subproof  (E : {algebra L})
+   (s : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :
+  let FF := FixedField s in
+  (has_aunit FF  && (FF * FF <= FF)%VS).
+Proof.
+rewrite /FixedField -big_filter.
+move : (filter _ _) => {s} r.
+elim : r E => [|r rs IH] E; first by rewrite big_nil capvf; case: E.
+rewrite big_cons capvA.
+by apply: IH.
+Qed.
+
+Canonical Structure FixedField_aspace (E : {algebra L})
+   (s : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) : {algebra L}
+   := ASpace (FixedField_is_aspace_subproof s).
+
+Lemma FixedField_subset (E : {algebra L})
+   (s1 s2 : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :
+   (s1 \subset s2) -> (FixedField s2 <= FixedField s1)%VS.
+Proof.
+move => /subsetP Hs.
+apply/subvP => a /FixedFieldP [HaE Ha].
+apply/FixedFieldP; split; first done.
+move => x Hx.
+by rewrite Ha // Hs.
+Qed.
+
 Definition normal (K E : {vspace L}) :=
  forallb x : LAut, kHom K (fullv L) (val x) ==> ((val x) @: E == E)%VS.
 
@@ -1681,6 +1708,52 @@ case/dim_FixedField_subproof => Hle1.
 move/(_ Hs) => Hle2.
 apply/eqP.
 by rewrite eqn_leq Hle1 Hle2.
+Qed.
+
+Lemma Aut_FixedField 
+  (s : {group coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :
+  (forall i, i \in s -> (g_ i @: E)%VS = E) ->
+  'Aut(E | (FixedField s))%g = s.
+Proof.
+move => HE.
+symmetry.
+apply/eqP.
+rewrite eqEcard.
+suff HsAut : (s \subset ('Aut(E | FixedField s))%g).
+ rewrite HsAut.
+ suff : #|('Aut(E | FixedField s))%g| * \dim (FixedField s) <= 
+        #|s| * \dim (FixedField s).
+  rewrite leq_mul2r.
+  case/orP; last done.
+  rewrite dimv_eq0 -subv0.
+  move/subvP/(_ _ (memv1 _)).
+  by rewrite memv0 -[_ == _]negbK nonzero1r.
+ rewrite mulnC dim_FixedField // -galois_dim ?leqnn //.
+ apply/galois_fixedField.
+ have HFFE : (FixedField_aspace s <= E)%VS by apply: capvSl.
+ split; first done.
+ apply: subv_anti.
+ by rewrite galoisAdjuctionA // FixedField_subset.
+apply/subsetP => x.
+case: (cosetP x) => f Hf -> Hfs.
+rewrite mem_morphim //.
+rewrite inE.
+rewrite kAutE.
+have Hff : f \in coset [set x : LAut | kAut E (fullv L) (val x)] f.
+ by rewrite val_coset // rcoset_refl.
+apply/andP; split.
+ apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
+ move => a /FixedFieldP [HaE /(_ _ Hfs) Ha].
+ rewrite -[X in _ = X]Ha.
+ move: {Ha} a HaE. 
+ by apply/(Aut_eq Hff (mem_repr_coset _)).
+move: (HE _ Hfs) => HEfs.
+rewrite -[X in (_ <= X)%VS]HEfs.
+apply/subvP => _ /memv_imgP [a [Ha ->]].
+apply/memv_imgP.
+exists a; split; first done.
+move: {Ha} a Ha.
+by apply/(Aut_eq Hff (mem_repr_coset _)).
 Qed.
 
 End GaloisDim.
