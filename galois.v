@@ -1736,4 +1736,158 @@ Qed.
 
 End GaloisDim.
 
+Section FundamentalTheoremOfGaloisTheory.
+
+Variables E K : {algebra L}.
+Hypothesis HKE : galois K E.
+
+Section IntermediateField.
+
+Variable M : {algebra L}.
+Hypothesis HME : (M <= E)%VS.
+Hypothesis HKM : (K <= M)%VS.
+
+Lemma SubFieldGalois : galois M E.
+Proof.
+case/and3P : HKE => /subvP Hsub Hsep Hnorm.
+rewrite /galois HME /=.
+apply/andP; split.
+ apply/separableP => a Ha.
+ apply: (subsetSeparable HKM).
+ by move/separableP: Hsep; apply.
+apply/forallP => a.
+apply/implyP => Ha.
+by move/forallP/(_ a)/implyP/(_ (subv_kHom HKM Ha)): Hnorm.
+Qed.
+
+Lemma SubGroupGalois : 'Aut(E | M)%g \subset 'Aut(E | K)%g.
+Proof.
+rewrite quotientS //.
+apply/subsetP => a.
+rewrite !inE !kAutE.
+case/andP => Ha ->.
+rewrite andbT.
+by apply: subv_kHom HKM Ha.
+Qed.
+
+Lemma FixedField_of_Aut : FixedField 'Aut(E | M)%g = M.
+Proof.
+by case/galois_fixedField: SubFieldGalois.
+Qed.
+
+Lemma OrderGaloisGroup : (#|'Aut(E | M)%g| * \dim(M) = \dim(E))%N.
+Proof.
+move/galois_dim: SubFieldGalois ->.
+by rewrite mulnC.
+Qed.
+
+Hypothesis Hnorm : normal K M.
+
+Lemma NormalGalois : galois K M.
+Proof.
+rewrite /galois HKM Hnorm /= andbT.
+apply/separableP => a Ha.
+move/(subvP)/(_ _ Ha): HME => HaE.
+case/and3P: HKE => _.
+move/separableP => Hsep _.
+by apply: Hsep.
+Qed.
+
+Lemma NormalGaloisGroup : ('Aut(E | M) <| 'Aut(E | K))%g.
+Proof.
+apply/fingroup.normalP; split; first by apply: SubGroupGalois.
+move => x Hx.
+symmetry.
+apply/eqP.
+rewrite eqEcard cardJg leqnn andbT.
+apply/subsetP => y.
+rewrite mem_conjg => Hy.
+set z := (y ^ _)%g.
+rewrite -[z]coset_reprK.
+apply: mem_morphim; first by apply: repr_coset_norm.
+rewrite inE kAutE.
+move: (Aut_kAut HME Hy (mem_repr_coset _)).
+case/andP => /kHomP [HyME _] /eqP HyE.
+case/and3P: HKE => Hsub _ _.
+move: (Aut_kAut Hsub Hx (mem_repr_coset _)).
+case/andP => /kHomP [HxKE _] /eqP HxE.
+apply/andP; split.
+ apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
+ move => a Ha.
+ have HaE : a \in E by move/subvP: HME; apply.
+ have HaVE : a ^-1 \in E by rewrite -memv_inv.
+ have HxaM : (val (repr x)) a \in M.
+  have HxKf : kHom K (fullv L) (val (repr x)).
+   apply/kHomP; split; first done.
+   by move => ? ? _ _; rewrite rmorphM.
+  move/forallP/(_ (repr x))/implyP/(_ HxKf)/eqP : Hnorm <-.
+  by rewrite memv_img.
+ rewrite !Aut_mul // invgK //; last by move/subvP: HME; apply.
+ by rewrite HyME // -Aut_mul // mulgV repr_coset1 unit_lappE.
+apply/subvP => _ /memv_imgP [a [Ha ->]].
+have HxaE : (val (repr x)) a \in E.
+ by rewrite -[X in _ \in X]HxE memv_img.
+rewrite !Aut_mul ?invgK;[| done | done ].
+move: Hx.
+rewrite -groupV.
+move/(Aut_kAut Hsub)/(_ (mem_repr_coset _)).
+case/andP => /kHomP [HxVKE _] /eqP HxVE.
+rewrite -[X in _ \in X]HxVE memv_img; first done.
+by rewrite -[X in _ \in X]HyE memv_img.
+Qed.
+
+(*
+Lemma NormalGaloisGroupIso : ('Aut(E | K) / 'Aut(E | M) \isog 'Aut(M | K))%g.
+Proof.
+apply: (isog_trans (third_isog _ _ _)).
+rewrite /Aut.
+*)
+
+End IntermediateField.
+
+Section IntermediateGroup.
+
+Variable g : {group coset_of [set x : LAut | kAut E (fullv L) (val x)]}.
+Hypothesis Hg : g \subset 'Aut(E | K)%g.
+
+Lemma SubGaloisField : (K <= FixedField g <= E)%VS.
+Proof.
+rewrite capvSl andbT.
+apply/subvP => a Ha.
+case/and3P: HKE => Hsub _ _.
+apply/FixedFieldP; split.
+ by move/subvP: Hsub; apply.
+move => x Hxg.
+move/subsetP/(_ _ Hxg): Hg.
+move/(Aut_kAut Hsub)/(_ (mem_repr_coset _)).
+rewrite kAutE.
+by case/andP; case/kHomP; move/(_ _ Ha).
+Qed.
+
+Lemma Aut_of_FixedField : 'Aut (E | FixedField g)%g = g.
+Proof.
+apply: Aut_FixedField => x Hx.
+apply/eqP.
+case/and3P: HKE => Hsub _ _.
+move/subsetP/(_ _ Hx): Hg.
+move/(Aut_kAut Hsub)/(_ (mem_repr_coset _)).
+by case/andP.
+Qed.
+
+Lemma FixedField_dim : (#|g| * \dim (FixedField g))%N = \dim E.
+Proof.
+apply: dim_FixedField => x Hx.
+apply/eqP.
+case/and3P: HKE => Hsub _ _.
+move/subsetP/(_ _ Hx): Hg.
+move/(Aut_kAut Hsub)/(_ (mem_repr_coset _)).
+by case/andP.
+Qed.
+
+End IntermediateGroup.
+
+
+
+End FundamentalTheoremOfGaloisTheory.
+
 End Galois.
