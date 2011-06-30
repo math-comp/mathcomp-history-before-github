@@ -211,6 +211,35 @@ by rewrite !addrA !(support_mul1l, support_mul1r) //;
    apply: cfun0 (memc_irr _) HH).
 Qed.
 
+
+Definition inner_prod_w i j i' j' :
+  '[w_ i j, w_ i' j']_W = ((i == i') && (j == j'))%:R.
+Proof.
+apply/eqP; rewrite irr_orthonormal -eqN_eqC; apply/eqP.
+case: (boolP (dprod_idx _ _ _ == _)).
+  by move/eqP; move/dprod_idx_inj->.
+by case: (boolP (_ && _))=> //; case/andP=> /eqP-> /eqP->; case/negP.
+Qed.
+
+Definition inner_prod_alpha i j i' j' : i' != 0 -> j' != 0 ->
+  '[alpha_ i j, w_ i' j']_W = ((i == i') && (j == j'))%:R.
+Proof.
+move=> Di' Dj'.
+rewrite -inner_prodbE alphaE !linearD !linearN -w00 /= !inner_prodbE.
+rewrite !inner_prod_w.
+rewrite [0 == i']eq_sym (negPf Di') [0 == j']eq_sym (negPf Dj') !andbF !subr0.
+by rewrite add0r.
+Qed.
+
+Definition inner_prod_alpha00 i j : i != 0 -> j != 0 ->
+  '[alpha_ i j, '1_W]_W = 1.
+Proof.
+move=> Di Dj.
+rewrite -inner_prodbE alphaE !linearD !linearN -w00 /= !inner_prodbE.
+rewrite !inner_prod_w !eqxx /=.
+by rewrite (negPf Di) (negPf Dj) !andbF !subr0 addr0.
+Qed.
+
 Lemma memc_alpha i j : alpha_ i j \in 'CF(W, V).
 Proof.
 rewrite memcE; apply/andP; split; last first.
@@ -269,9 +298,9 @@ apply/ffunP=> h; rewrite !ffunE.
 by rewrite F0 ?(subsetP KsH) // inE eq_sym.
 Qed.
 
-Lemma dim_cfun : \dim 'CF(W, V) = ((Nirr W1).-1 * (Nirr W2).-1)%N.
+Lemma dim_cfun : \dim 'CF(W, V) = (#|Iirr W1|.-1 * #|Iirr W2|.-1)%N.
 Proof.
-rewrite abelian_dim_cfun ?(cyclic_abelian, subsetDl) //; last first.
+rewrite !card_ord abelian_dim_cfun ?(cyclic_abelian, subsetDl) //; last first.
 apply: (@addnI #|W1 :|: W2|).
 have /setIidPr {1}<-: (W1 :|: W2) \subset W.
   case/dprodP: W1xW2=> _ <- _ _. 
@@ -285,5 +314,9 @@ rewrite  cards1.
 case: #|_| (cardG_gt0 W1) (cardG_gt0 W2) => // m; case: #|_| => //= n _ _.
 by rewrite mulnS mulSn add1n -addnS -[(n + _).+1]addSn addnA.
 Qed.
+
+Definition base_alpha : _.-tuple {cfun gT} :=
+  [tuple of [seq (alpha_ i j) | i <- behead (enum (Iirr W1)),
+                                j <- behead (enum (Iirr W2))]].
 
 End Proofs.
