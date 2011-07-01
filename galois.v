@@ -1615,6 +1615,7 @@ apply/subvP => v HvE.
 pose x := invmx M *m \col_i val (f_ i) v.
 have HMx : M *m x = \col_i val (f_ i) v by rewrite mulKVmx.
 have HMxj : forall j, M *m map_mx (val (f_ j)) x = \col_i val (f_ i) v.
+ clear -Hs HMx HvE HwE.
  move => j.
  apply/colP => i.
  rewrite !mxE.
@@ -1628,11 +1629,10 @@ have HMxj : forall j, M *m map_mx (val (f_ j)) x = \col_i val (f_ i) v.
   move => Hk.
   exists (Ordinal Hk) => z HzE.
   rewrite comp_lappE /= -Aut_mul //.
-  by rewrite {1}/enum_val nth_index ?mulgKV // mem_enum.
+  by rewrite (enum_val_nth 1%g) nth_index ?mulgKV // mem_enum.
  rewrite Hk // comp_lappE /=.
  transitivity (val (f_ j) ((\col_i (val (f_ i)) v) k 0)); last by rewrite mxE.
- rewrite -HMx.
- rewrite mxE rmorph_sum.
+ rewrite -HMx mxE rmorph_sum.
  apply: eq_bigr => l _.
  rewrite rmorphM.
  congr (_ * _); first by rewrite !mxE Hk // comp_lappE.
@@ -1640,12 +1640,12 @@ have HMxj : forall j, M *m map_mx (val (f_ j)) x = \col_i val (f_ i) v.
 move: (group1 (Group Hs)).
 rewrite -mem_enum -index_mem -cardE => H1.
 move/colP/(_ (Ordinal H1)): (HMx).
-rewrite !mxE /f_ /enum_val nth_index; last first.
+rewrite !mxE /f_ (enum_val_nth 1%g) nth_index; last first.
  by rewrite mem_enum; apply: group1 (Group Hs).
 rewrite repr_coset1 unit_lappE => <-.
 apply: memv_sumr => i _.
 rewrite mulrC memv_prod //; last first.
- rewrite mxE /f_ /enum_val nth_index; last first.
+ rewrite mxE /f_ (enum_val_nth 1%g) nth_index; last first.
   by rewrite mem_enum; apply: group1 (Group Hs).
  by rewrite repr_coset1 unit_lappE memv_inj.
 apply/FixedFieldP.
@@ -1662,7 +1662,8 @@ have <- : (0:'cV[L]_#|s|) i 0 = 0 by rewrite mxE.
 suff -> : map_mx (val (repr y)) x - x = 0; first done.
 move: (Hy).
 rewrite -mem_enum -index_mem -cardE => Hj.
-have <- : enum_val (Ordinal Hj) = y by rewrite /enum_val nth_index // mem_enum.
+have <- : enum_val (Ordinal Hj) = y.
+ by rewrite (enum_val_nth 1%g) nth_index // mem_enum.
 rewrite -[X in X = _](mulKmx Hw) -[X in _ = X](mulmx0 _ (invmx M)).
 congr (_ *m _).
 by rewrite mulmx_subr HMx HMxj subrr.
