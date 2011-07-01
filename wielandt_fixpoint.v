@@ -805,4 +805,35 @@ have P12_id : P1 *m P2 = 1%R.
     by rewrite invmE //; apply: mem_remgr; rewrite ep.
   rewrite !invmE //; last by apply: mem_remgr; rewrite ep.
   by rewrite -!divgr_eq.
+rewrite -(mulmx1 (rW a)) idmxE -P12_id mulmxA mxtrace_mulC.
+rewrite mul_mx_row mul_col_row mxtrace_block.
+(* this should come way earlier *)
+case/dprodP: (hcent_com) => _ ep sp ip.
+have -> : Pd *m (rW a *m Pr) = 1%:M.
+  apply/row_matrixP=> j; rewrite rowE !mulmxA !mul_rV_lin1 /=.
+  rewrite efUl' efUr' /= mul1g sdpair_act ?in_setT //=; last exact: subgP.
+  rewrite invmK; last first.
+    rewrite -ep. apply: (subsetP (mulG_subr _ _)).
+    have : (delta_mx 0 j) \in [set: 'rV['Z_q]_(f i)]%G by rewrite in_setT.
+    by rewrite -isor_im -morphpre_invm; case/morphpreP.
+  rewrite remgr_id //; last first.
+    apply: groupJ.
+      have : (delta_mx 0 j) \in [set: 'rV['Z_q]_(f i)]%G by rewrite in_setT.
+      by rewrite -isor_im -morphpre_invm; case/morphpreP.
+    have ha : sgval (subg G a) \in A i.
+      rewrite -(subgmK (sAiG _ hi)).
+      apply: mem_morphim; first by rewrite inE.
+      by apply: mem_morphim; rewrite //; apply: (subsetP (sAiG _ hi)).
+    have {ha} ha : sdpair2 toW (sgval (subg G a)) \in Aibar.
+      by apply: mem_morphim=> //; apply: (subsetP (sAiG _ hi)).
+      rewrite -/Wbar.
+    admit.
+  rewrite morphJ; last first.
+    admit.
+    have : (delta_mx 0 j) \in [set: 'rV['Z_q]_(f i)]%G by rewrite in_setT.
+    by rewrite -isor_im -morphpre_invm; case/morphpreP.
+  rewrite invmK; last by rewrite isor_im in_setT.
+  by rewrite rowE mulmx1 /conjg /invg /mulg /= addrCA addNr addr0.
+suff -> : Pu *m (rW a *m Pl) = 0.
+  by rewrite mxtrace1 mxtrace0 add0r.
 Admitted. 
