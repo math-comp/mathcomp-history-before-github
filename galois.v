@@ -1610,7 +1610,8 @@ Section GaloisDim.
 
 Variable E : {algebra L}.
 
-Let Coset := coset_of [set x : LAut | kAut E (fullv L) (val x)].
+Let Coset :=
+ [finGroupType of coset_of [set x : LAut | kAut E (fullv L) (val x)]].
 
 Let g_ (i : Coset) := val (repr i).
 
@@ -1736,7 +1737,7 @@ by rewrite mem_enum.
 Qed.
 
 Lemma maxDim_FixedField 
-   (s : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :
+   (s : {set Coset}) :
    (forall i, i \in s -> (g_ i @: E)%VS = E) ->
    #|s|*\dim (FixedField s) <= \dim E.
 Proof.
@@ -1744,7 +1745,7 @@ by case/dim_FixedField_subproof.
 Qed.
 
 Lemma dim_FixedField 
-  (s : {group coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :
+  (s : {group Coset}) :
   (forall i, i \in s -> (g_ i @: E)%VS = E) ->
   (#|s| * \dim (FixedField s) = \dim E)%N.
 Proof.
@@ -1756,7 +1757,7 @@ by rewrite eqn_leq Hle1 Hle2.
 Qed.
 
 Lemma Aut_FixedField 
-  (s : {group coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :
+  (s : {group Coset}) :
   (forall i, i \in s -> (g_ i @: E)%VS = E) ->
   'Aut(E | (FixedField s))%g = s.
 Proof.
