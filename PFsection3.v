@@ -4,7 +4,7 @@ Require Import fintype tuple finfun bigop prime ssralg poly finset center.
 Require Import fingroup morphism perm automorphism quotient action zmodp.
 Require Import gfunctor gproduct cyclic pgroup.
 Require Import matrix mxalgebra mxrepresentation vector algC classfun character.
-Require Import inertia vcharacter PFsection1.
+Require Import inertia vcharacter frobenius PFsection1 PFsection2.
 
 (******************************************************************************)
 (* This file covers Peterfalvi, Section 3: TI-Subsets with Cyclic Normalizers *)
@@ -24,77 +24,6 @@ Import Prenex Implicits.
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
-(* This is Isaacs' 7.7 *)
-Section TiInducedIso.
-
-Variables (gT : finGroupType) (G : {group gT}) (X: {set gT}).
-Variables (phi theta : {cfun gT}).
-
-Hypothesis TiX :  trivIset (X^# :^: G).
-Hypothesis Cphi : phi \in 'CF('N_G(X), X).
-Hypothesis Ctheta : theta \in 'CF('N_G(X), X).
-Hypothesis theta1 : theta 1%g = 0.
-
-Lemma ti_restrict_induced : 'Res[X] ('Ind[G, 'N_G(X)] theta) = theta.
-Proof.
-apply/ffunP=> g; case: (boolP (g \in X))=> [GiX|GniX]; last first.
-  by rewrite 2!cfunE (negPf GniX) mul0r -(cfunS0 Ctheta GniX).
-rewrite 2!ffunE GiX mul1r.
-rewrite !ffunE (bigID (fun g => g \in 'N_G(X))) /=.
-rewrite (eq_bigr (fun i : gT => theta g))=> [/= | h]; last first.
-  by case/andP=> HiG HiN; rewrite (cfunJ _ Ctheta).
-rewrite sumr_const big1 ?addr0=> [| h].
-  set u := #|_|; suff->: u = #|'N_G(X)|.
-    by rewrite mulrC -[theta g *+ _]mulr_natr mulfK // neq0GC.
-  apply: eq_card=> i; rewrite [X in X = _]/= {1}/in_mem /=.
-  by case: (boolP (i \in _))=> //; rewrite inE; move/negPf->.
-case/andP=> HiG HiN.
-case: (boolP (g^h == 1%g))=> [/eqP-> //| Dgh].
-rewrite (cfunS0 Ctheta) //.
-apply/negP=> GHniX.
-suff: [disjoint X^# & (X :^ h)^#].
-  move/pred0P; move/(_ (g^h)%g)=> /=; rewrite !inE Dgh GHniX /=.
-  by move/idP; case; apply/imsetP; exists g.
-rewrite -conjD1g (trivIsetP TiX) //.
-- by apply/imsetP; exists 1%g; [exact: group1| rewrite conjsg1].
-- by apply/imsetP; exists h.
-rewrite conjD1g;  apply/eqP=> HH1; case/negP: HiN.
-rewrite !inE HiG /=.
-apply/subsetP=> k.
-case/imsetP=> k1 K1iX ->.
-case: (boolP (k1 == 1%g)) K1iX=> [/eqP-> | HH2 HH3].
-  by rewrite conj1g.
-have[/subsetP]: X^# \subset X by apply/subsetP=> x; rewrite !inE; case/andP.
-apply; rewrite HH1 !inE; apply/andP; split; last first.
-  by apply/imsetP; exists k1.
-apply/eqP=> HH4; case/eqP: HH2.
-by rewrite -(conj1g (h^-1)) -HH4 -conjgM mulgV conjg1.
-Qed.
-
-Lemma ti_induced_iso : 
- '['Ind[G, 'N_G(X)] theta, 'Ind[G, 'N_G(X)] phi]_G = '[theta, phi]_'N_G(X).
-Proof.
-have NsG: 'N_G(X) \subset G.
-  by apply/subsetP=> h; rewrite inE => /andP [].
-rewrite inner_conj -frobenius_reciprocity -?inner_conj //; last first.
-- by apply: memc_induced=> //; apply: memcW Ctheta.
-- by apply: memcW Cphi.
-apply/eqP; rewrite -subr_eq0 /=; apply/eqP.
- (* why this does not work rewrite -!inner_prodbE -linear_sub ? *)
-rewrite -!inner_prodbE;  set u := inner_prodb _ _.
-have Fu : linear (u : _ -> algC^o) by apply: inner_prodb_is_linear.
-move: (linear_sub (Linear Fu))=> /= <-; rewrite /u inner_prodbE.
-rewrite inner_prodE big1 ?mulr0 // => g GiNG.
-case: (boolP (g \in X))=> [GiX | GniX]; last first.
-  by rewrite (cfunS0 Cphi) ?(ffunE,conjC0,mulr0,GniX,GiNG,inE).
-rewrite 3!cfunE GiNG mul1r.
-move/ffunP: ti_restrict_induced; move/(_ g).
-rewrite 2!ffunE GiX mul1r => ->.
-by rewrite !ffunE subrr mul0r.
-Qed.
-
-End TiInducedIso.
-
 Section Definitions.
 
 Variables (gT : finGroupType) (G W W1 W2 Wi : {set gT}).
@@ -102,8 +31,7 @@ Variables (gT : finGroupType) (G W W1 W2 Wi : {set gT}).
 Definition cyclicTIhypothesis :=
   [/\ [/\ W1 \x W2 = W, cyclic W, odd #|W| & W \subset G],
       [/\ W1 != 1, W2 != 1 & coprime #|W1| #|W2| ]
-    & trivIset ((W :\: (W1 :|: W2)) :^: G)]%g.
-
+    & normedTI (W :\: (W1 :|: W2)) G W]%g.
 
 Definition cycTIirr_row :=
   ('1_W : {cfun gT})
@@ -200,7 +128,7 @@ move/subsetP: SsW; move/(_ g); rewrite /fun_of_cfun /= !inE.
 by case: (_ =P _)=> [->| _ -> //]; rewrite !(mul0r,mulr1).
 Qed.
 
-Definition alpha_ (i : Iirr W1) (j : Iirr W2) := 
+Definition alpha_ (i : Iirr W1) (j : Iirr W2) : {cfun gT} := 
  ('1_W - w_ i 0) * ('1_W - w_ 0 j).
 
 Lemma alphaE i j : alpha_ i j = '1_W - w_ i 0 - w_ 0 j + w_ i j.
@@ -211,6 +139,44 @@ by rewrite !addrA !(support_mul1l, support_mul1r) //;
    apply: cfun0 (memc_irr _) HH).
 Qed.
 
+Lemma vchar_alpha i j : alpha_ i j \in 'Z[irr W].
+Proof.
+rewrite alphaE; apply: vchar_add; last by apply: vchar_irr.
+do 2 (apply: vchar_sub; last by apply: vchar_irr).
+rewrite cfuni_xi0; apply: vchar_irr.
+Qed.
+
+Lemma memc_alpha i j : alpha_ i j \in 'CF(W, V).
+Proof.
+rewrite memcE; apply/andP; split; last first.
+  by apply: memc_prod; rewrite memv_subr !(memc_irr, memc1).
+apply/subsetP=> g; rewrite !inE !cfunE; apply: contraR.
+have F1 : W1 :&: W2 = 1%g by move/ dprodP: W1xW2; case.
+pose d i j := dprod_idx W1xW2 i j.
+rewrite negb_and negbK -orbA; case/or3P=> HH; last first.
+- rewrite (negPf HH).
+  move: (cfun0 (memc_irr (d i 0)) HH); rewrite /fun_of_cfun /= => ->.
+  move: (cfun0 (memc_irr (d 0 j)) HH); rewrite /fun_of_cfun /= => ->.
+  by rewrite !subr0 mul0r.
+- rewrite /w_ !dprod_idxE -!cfuni_xi0 cfun_dprod1r cfun_dprod1l !ffunE.
+  rewrite -{3}[g]mul1g divgrMid //.
+  have: clinear W1 ('xi_i) by apply/char_abelianP; apply: cyclic_abelian.
+  by move/clinear_val1=> ->; rewrite mulr1 subrr mul0r.
+rewrite /w_ !dprod_idxE -!cfuni_xi0 cfun_dprod1r cfun_dprod1l !ffunE.
+rewrite -{6}[g]mulg1 remgrMid //.
+have: clinear W2 ('xi_j) by apply/char_abelianP; apply: cyclic_abelian.
+by move/clinear_val1=> ->; rewrite mulr1 subrr mulr0.
+Qed.
+
+Definition beta_ (i : Iirr W1) (j : Iirr W2) : {cfun gT} := 
+  'Ind[G, W] (alpha_ i j) - '1_G.
+
+Lemma vchar_beta i j : beta_ i j \in 'Z[irr G].
+Proof.
+rewrite /beta_; apply: vchar_sub.
+  by apply: vchar_induced (vchar_alpha _ _); case: tiW; case.
+by rewrite cfuni_xi0; apply: vchar_irr.
+Qed.
 
 Definition inner_prod_w i j i' j' :
   '[w_ i j, w_ i' j']_W = ((i == i') && (j == j'))%:R.
@@ -221,7 +187,7 @@ case: (boolP (dprod_idx _ _ _ == _)).
 by case: (boolP (_ && _))=> //; case/andP=> /eqP-> /eqP->; case/negP.
 Qed.
 
-Definition inner_prod_alpha i j i' j' : i' != 0 -> j' != 0 ->
+Lemma inner_prod_alpha i j i' j' : i' != 0 -> j' != 0 ->
   '[alpha_ i j, w_ i' j']_W = ((i == i') && (j == j'))%:R.
 Proof.
 move=> Di' Dj'.
@@ -231,7 +197,7 @@ rewrite [0 == i']eq_sym (negPf Di') [0 == j']eq_sym (negPf Dj') !andbF !subr0.
 by rewrite add0r.
 Qed.
 
-Definition inner_prod_alpha00 i j : i != 0 -> j != 0 ->
+Lemma inner_prod_alpha00 i j : i != 0 -> j != 0 ->
   '[alpha_ i j, '1_W]_W = 1.
 Proof.
 move=> Di Dj.
@@ -240,25 +206,57 @@ rewrite !inner_prod_w !eqxx /=.
 by rewrite (negPf Di) (negPf Dj) !andbF !subr0 addr0.
 Qed.
 
-Lemma memc_alpha i j : alpha_ i j \in 'CF(W, V).
+Lemma norm_alpha i j :  i != 0 -> j != 0 ->'[alpha_ i j]_W = 4%:R.
 Proof.
-rewrite memcE; apply/andP; split; last first.
-  by apply: memc_prod; rewrite memv_subr !(memc_irr, memc1).
-apply/subsetP=> g; rewrite !inE !cfunE; apply: contraR.
-have F1 : W1 :&: W2 = 1%g by move/ dprodP: W1xW2; case.
-rewrite negb_and negbK -orbA; case/or3P=> HH; last first.
-- rewrite (negPf HH).
-  move: (cfun0 (memc_irr ((dprod_idx W1xW2 i 0))) HH); rewrite /fun_of_cfun /= => ->.
-  move: (cfun0 (memc_irr ((dprod_idx W1xW2 0 j))) HH); rewrite /fun_of_cfun /= => ->.
-  by rewrite !subr0 mul0r.
-- rewrite /w_ !dprod_idxE -!cfuni_xi0 cfun_dprod1r cfun_dprod1l !ffunE.
-  rewrite -{3}[g]mul1g divgrMid //.
-  have: clinear W1 ('xi_i) by apply/char_abelianP; apply: cyclic_abelian.
-  by move/clinear_val1=> ->; rewrite mulr1 subrr mul0r.
-rewrite /w_ !dprod_idxE -!cfuni_xi0 cfun_dprod1r cfun_dprod1l !ffunE.
-rewrite -{6}[g]mulg1 remgrMid //.
-have: clinear W2 ('xi_j) by apply/char_abelianP; apply: cyclic_abelian.
-by move/clinear_val1=> ->; rewrite mulr1 subrr mulr0.
+move=> Di Dj.
+rewrite alphaE !(raddf_sub,raddfD) /=.
+rewrite -!inner_prodbE !(linear_sub, linearD) -w00 /= !inner_prodbE.
+rewrite !inner_prod_w !eqxx ![0 == _]eq_sym (negPf Di) (negPf Dj).
+by rewrite !(subr0, sub0r, add0r, addr0) opprK -!natr_add.
+Qed.
+
+Lemma inner_prod_ind_alpha_1 i j : i != 0 -> j != 0 -> 
+  '['Ind[G, W] (alpha_ i j), '1_G]_G = 1.
+Proof.
+move=> Di Dj; have WsG : W \subset G by case: tiW; case.
+rewrite -frobenius_reciprocity //; last by apply: memc_is_char (is_char1 _).
+  by rewrite crestrict1; move/setIidPl: WsG->; rewrite inner_prod_alpha00.
+by apply: memc_Zirr (vchar_alpha _ _).
+Qed.
+
+Let VsG : V \subset G^#.
+Proof.
+apply/subsetP=> g; rewrite !inE negb_or -andbA; case/and3P=> [GniW1 GniW2 GiW].
+have WsG : W \subset G by case: tiW; case.
+by rewrite (subsetP WsG) // andbT; apply: contra GniW1; move/eqP->; exact: group1.
+Qed.
+
+(* This is the first equation of  PF 3.5.1 *)
+Lemma inner_prod_beta_1 i j : i != 0 -> j != 0 -> '[beta_ i j, '1_G]_G = 0.
+Proof.
+move=> Di Dj.
+rewrite /beta_ -inner_prodbE linear_sub /= !inner_prodbE.
+by rewrite inner_prod_ind_alpha_1 // cfuni_xi0 irr_orthonormal eqxx subrr.
+Qed.
+
+(* These are the other equations of PF 3.5.1 *)
+Lemma inner_prod_beta i j i' j' : i != 0 -> j != 0 -> i' != 0 -> j' != 0 -> 
+  '[beta_ i j, beta_ i' j']_G =
+    if (i == i') && (j == j') then 3%:R else ((i == i') + (j == j'))%:R.
+Proof.
+move=> Di Dj Di' Dj'. 
+rewrite /beta_ raddf_sub /= inner_prod_beta_1 // subr0.
+rewrite -inner_prodbE linear_sub /= !inner_prodbE.
+have nTi: normedTI (W :\: (W1 :|: W2)) G W by case: tiW.
+rewrite (Frobenius_isometry _ nTi) ?memc_alpha //.
+rewrite ['['1__,_]__]inner_conj inner_prod_ind_alpha_1 // conjC1.
+rewrite !alphaE !(raddf_sub,raddfD) /=.
+rewrite -!inner_prodbE !(linear_sub, linearD) -w00 /= !inner_prodbE.
+rewrite !inner_prod_w !eqxx ![0 == _]eq_sym.
+rewrite (negPf Di) (negPf Dj) (negPf Di') (negPf Dj').
+by do 2 case: (_ == _); 
+   rewrite !(subr0, sub0r, add0r, addr0, opprK,
+             (I,natr_add), (I, (@natr_sub _ _ 1))).
 Qed.
 
 Lemma abelian_dim_cfun (H : {group gT}) (K : {set gT}) : 
