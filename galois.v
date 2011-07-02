@@ -1861,55 +1861,133 @@ move/separableP => Hsep _.
 by apply: Hsep.
 Qed.
 
-Lemma NormalGaloisGroup : ('Aut(E | M) <| 'Aut(E | K))%g.
+Let f (y : coset_of [set x : LAut | kAut E (fullv L) (val x)]) :=
+     (coset [set x : LAut | kAut M (fullv L) (val x)] (repr y)).
+
+Let Aut_normal z : z \in 'Aut (E | K)%g -> kAut K M (val (repr z)).
 Proof.
-apply/fingroup.normalP; split; first by apply: SubGroupGalois.
-move => x Hx.
-symmetry.
-apply/eqP.
-rewrite eqEcard cardJg leqnn andbT.
-apply/subsetP => y.
-rewrite mem_conjg => Hy.
-set z := (y ^ _)%g.
-rewrite -[z]coset_reprK.
-apply: mem_morphim; first by apply: repr_coset_norm.
-rewrite inE kAutE.
-move: (Aut_kAut HME Hy (mem_repr_coset _)).
-case/andP => /kHomP [HyME _] /eqP HyE.
 case/and3P: HKE => Hsub _ _.
-move: (Aut_kAut Hsub Hx (mem_repr_coset _)).
-case/andP => /kHomP [HxKE _] /eqP HxE.
+move/(Aut_kAut Hsub)/(_ (mem_repr_coset _)) => /andP [HKz HEz].
 apply/andP; split.
  apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
- move => a Ha.
- have HaE : a \in E by move/subvP: HME; apply.
- have HaVE : a ^-1 \in E by rewrite -memv_inv.
- have HxaM : (val (repr x)) a \in M.
-  have HxKf : kHom K (fullv L) (val (repr x)).
-   apply/kHomP; split; first done.
-   by move => ? ? _ _; rewrite rmorphM.
-  move/forallP/(_ (repr x))/implyP/(_ HxKf)/eqP : Hnorm <-.
-  by rewrite memv_img.
- rewrite !Aut_mul // invgK //; last by move/subvP: HME; apply.
- by rewrite HyME // -Aut_mul // mulgV repr_coset1 unit_lappE.
-apply/subvP => _ /memv_imgP [a [Ha ->]].
-have HxaE : (val (repr x)) a \in E.
- by rewrite -[X in _ \in X]HxE memv_img.
-rewrite !Aut_mul ?invgK;[| done | done ].
-move: Hx.
-rewrite -groupV.
-move/(Aut_kAut Hsub)/(_ (mem_repr_coset _)).
-case/andP => /kHomP [HxVKE _] /eqP HxVE.
-rewrite -[X in _ \in X]HxVE memv_img; first done.
-by rewrite -[X in _ \in X]HyE memv_img.
+ by case/kHomP: HKz.
+move/forallP/(_ (repr z))/implyP: Hnorm; apply.
+apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
+by case/kHomP: HKz.
 Qed.
 
-(*
+Let in_f x : x \in ('Aut(E | K))%g -> repr x \in f x.
+move => Hfx.
+rewrite val_coset; first by apply: rcoset_refl.
+move/subsetP: (kAut_normal K M); apply.
+rewrite inE.
+by apply: Aut_normal.
+Qed.
+
+Let val_f x a : x \in ('Aut(E | K))%g -> a \in M ->
+                val (repr x) a = val (repr (f x)) a.
+Proof.
+move => Hx.
+move: a.
+apply/(Aut_eq (in_f Hx) (mem_repr_coset _)).
+by rewrite eqxx.
+Qed.
+
+Let f_is_morph :
+  {in 'Aut(E | K)%g &, {morph f : x y / (x * y)%g >-> (x * y)%g}}.
+Proof.
+move => x y Hx Hy /=.
+apply/eqP/(Aut_eq (in_f (groupM Hx Hy)) (mem_repr_coset _)) => b Hb.
+have HbE : b \in E by move/subvP: HME; apply.
+do 2 (rewrite Aut_mul; last done).
+rewrite (val_f Hx); last done.
+rewrite (val_f Hy); first done.
+rewrite -(val_f Hx); last done.
+case/andP: (Aut_normal Hx) => _.
+move/eqP <-.
+by rewrite memv_img.
+Qed.
+
+Let fmorph := Morphism f_is_morph.
+
+Let f_ker : ('ker fmorph = 'Aut(E | M))%g.
+Proof.
+apply/eqP.
+rewrite eqEsubset.
+apply/andP; split; apply/subsetP => x.
+ rewrite inE.
+ case/andP => Hx.
+ rewrite 2!inE.
+ move/(Aut_eq (in_f Hx) (mem_repr_coset _)) => HxM.
+ rewrite -[x]coset_reprK mem_quotient // inE.
+ apply/andP; split.
+  apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
+  move => a Ha.
+  by rewrite HxM // repr_coset1 unit_lappE.
+ case/and3P: HKE => Hsub _ _.
+ by case/andP: (Aut_kAut Hsub Hx (mem_repr_coset _)).
+move => Hx.
+have HxE : x \in ('Aut(E | K))%g by move/subsetP: SubGroupGalois; apply.
+apply/kerP; first done.
+apply/eqP.
+apply/(Aut_eq (in_f HxE) (mem_repr_coset _)).
+move => a Ha.
+rewrite repr_coset1.
+move/(Aut_kAut HME)/(_ (mem_repr_coset _))/andP : Hx => [/kHomP [Hx _] _].
+move:(Hx _ Ha) ->.
+by rewrite unit_lappE.
+Qed.
+
+Let f_img : (fmorph @* 'Aut(E | K) = 'Aut(M | K))%g.
+Proof.
+apply/eqP.
+rewrite eqEsubset.
+apply/andP; split; apply/subsetP => x.
+ case/imsetP => y.
+ rewrite inE.
+ case/andP => Hy _ ->.
+ case/(kAut_Aut HKM): (Aut_normal Hy) => z Hz /(_ _ (mem_repr_coset _)).
+ rewrite /=.
+ by move/(Aut_eq (in_f Hy) (mem_repr_coset _))/eqP ->.
+move => Hx.
+have HxKE : kAut K E (val (repr x)).
+ apply/andP; split.
+  apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
+  case/andP: (Aut_kAut HKM Hx (mem_repr_coset _)) => /kHomP.
+  by case.
+ case/and3P: HKE => _ _.
+ move/forallP/(_ (repr x))/implyP; apply.
+ apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
+ case/andP: (Aut_kAut HKM Hx (mem_repr_coset _)) => /kHomP.
+ by case.
+have : (coset _ (repr x)) \in ('Aut(E | K))%g.
+ apply: mem_quotient.
+ by rewrite inE.
+set y := coset _ (repr x) => Hy.
+suff -> : x = (fmorph y) by apply: mem_morphim.
+apply/eqP.
+apply/(Aut_eq (mem_repr_coset _) (mem_repr_coset _)).
+move => a Ha.
+rewrite -val_f //.
+have Hxy : (repr x) \in y.
+ rewrite val_coset; first by apply: rcoset_refl.
+ move/subsetP: (kAut_normal K E); apply.
+ by rewrite inE.
+apply/(Aut_eq Hxy (mem_repr_coset _)); first by rewrite eqxx.
+by move/subvP: HME; apply.
+Qed.
+
+Lemma NormalGaloisGroup : ('Aut(E | M) <| 'Aut(E | K))%g.
+Proof.
+rewrite -f_ker.
+apply: ker_normal.
+Qed.
+
 Lemma NormalGaloisGroupIso : ('Aut(E | K) / 'Aut(E | M) \isog 'Aut(M | K))%g.
 Proof.
-apply: (isog_trans (third_isog _ _ _)).
-rewrite /Aut.
-*)
+rewrite -f_ker -f_img.
+apply: first_isog.
+Qed.
 
 End IntermediateField.
 
