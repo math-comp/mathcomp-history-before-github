@@ -93,6 +93,22 @@ apply: cyclicS cyclicW.
 by case/dprodP: W1xW2=> _ <- _ _; apply: mulg_subr (group1 _).
 Qed.
 
+Let oddW1 : odd #|W1|.
+Proof. by case: tiW=> [[]] /dprod_card <- _; rewrite odd_mul; case/andP. Qed.
+
+Let oddW2 : odd #|W2|.
+Proof. by case: tiW=> [[]] /dprod_card <- _; rewrite odd_mul; case/andP. Qed.
+
+Let tLW1 : (2 < #|W1|)%N.
+Proof.
+by case: tiW=> _ []; rewrite -!cardG_gt1; case: #|_| oddW1=> [|[|[]]]. 
+Qed.
+
+Let tLW2 : (2 < #|W2|)%N.
+Proof.
+by case: tiW=> _ []; rewrite -!cardG_gt1; case: #|_| oddW2=> [|[|[]]]. 
+Qed.
+
 Definition w_ (i : Iirr W1) (j : Iirr W2) := 'xi_(dprod_idx W1xW2 i j).
 
 Lemma w00 : w_ 0 0 = '1_W.
@@ -316,5 +332,87 @@ Qed.
 Definition base_alpha : _.-tuple {cfun gT} :=
   [tuple of [seq (alpha_ i j) | i <- behead (enum (Iirr W1)),
                                 j <- behead (enum (Iirr W2))]].
+
+Let  diff_behead n k : k \in behead (enum 'I_n.+1) -> k != 0.
+Proof. 
+move=> KiB.
+move: (KiB); rewrite -index_mem size_behead -cardT card_ord /= => HH.
+move/(nth_index 0): KiB; rewrite nth_behead; move/val_eqP.
+set h := (index _ _).+1.
+by move: (@nth_enum_ord n.+1 0 h)=> /= -> //; case: (k =P _)=> [->|].
+Qed.
+
+(* Move to seq *)
+Lemma nth_allpairs (S T R : Type) (f : S -> T -> R) 
+   (s : seq S) (t : seq T) ds dt dr i (n := size s) (m := size t) :
+   (i < n * m)%N ->
+   nth dr (allpairs f s t) i = f (nth ds s (i %/ m)%N)
+                                 (nth dt t (i %% m)%N).
+Proof.
+rewrite {}/n /allpairs; elim: s i [::]=> //= a s IH i l iLp.
+rewrite nth_cat size_map -/m; case: leqP=> iLm; last first.
+  by rewrite divn_small //= modn_small // (nth_map dt).
+have mpos : (0 < m)%N by case: (m) iLp; rewrite ?muln0.
+rewrite -{2 3}(subnK iLm) divn_addr ?dvdnn // divnn mpos addnC /=.
+by rewrite modn_addr IH // -(ltn_add2l m) addnC subnK.
+Qed.
+
+Lemma free_base_alpha : free base_alpha.
+Proof.
+apply/freeP=> a Hs; set In := 'I__ => ij.
+pose l1 := behead (enum_tuple (Iirr W1)).
+have Ul1: uniq l1.
+  move: (enum_uniq (Iirr W1)); rewrite /l1 /=.
+  by case: (enum _)=> //= u v /andP [].
+pose l2 := behead (enum_tuple (Iirr W2)).
+have Ul2: uniq l2.
+  move: (enum_uniq (Iirr W2)); rewrite /l2 /=.
+  by case: (enum _)=> //= u v /andP [].
+have sl2_pos: (0 < size l2)%N.
+  rewrite size_behead -cardT card_ord /pred_Nirr.
+   move: (cyclic_abelian cyclicW2); rewrite card_classes_abelian; move/eqP->.
+   by case: #|_| tLW2=> [|[|]].
+have GijLs (ij1 : In) : (ij1 < size l1 * size l2)%N.
+  by case: ij1=> mm /=; rewrite !size_behead -!cardT.
+have GijdLs (ij1 : In) : (ij1 %/ size l2 < size l1)%N.
+  case: ij1=> mm /=; rewrite !size_behead -!cardT /= !card_ord /= /pred_Nirr.
+  move: (cyclic_abelian cyclicW1); rewrite card_classes_abelian; move/eqP->.
+  move: (cyclic_abelian cyclicW2); rewrite card_classes_abelian; move/eqP->.
+  move=> HH; have Hp: (0 < #|W2|.-1)%N by case: #|_| tLW2=> [|[|]].
+  by rewrite -(ltn_pmul2r Hp) (leq_ltn_trans (leq_floor _ _)).
+pose i := l1`_(ij %/ size l2).
+pose j := l2`_(ij %% size l2).
+have<-: '[0, w_ i j]_W = 0 by rewrite -inner_prodbE linear0.
+rewrite -Hs -inner_prodbE linear_sum /=.
+rewrite (bigD1 ij) //= (nth_allpairs _ 0 0) -/i -/j //.
+rewrite big1 ?addr0=> [|ij' Dij].
+  rewrite linearZ /= inner_prodbE.
+  rewrite inner_prod_alpha ?(diff_behead, mem_nth, ltn_pmod) //.
+  by rewrite !eqxx [_ *: _]mulr1.
+pose i' := l1`_(ij' %/ size l2).
+pose j' := l2`_(ij' %% size l2).
+rewrite linearZ /= inner_prodbE (nth_allpairs _ 0 0) // -/i' -/j'.
+rewrite inner_prod_alpha ?(diff_behead, mem_nth, ltn_pmod) //.
+case: (_ =P _); rewrite ?scaler0 //.
+case: (_ =P _); rewrite ?scaler0 //.
+move/eqP; rewrite nth_uniq ?ltn_mod // /eqP => Emod.
+move/eqP; rewrite nth_uniq // => /eqP Ediv.
+case/eqP: Dij.
+move: (divn_eq ij' (size l2)).
+rewrite Ediv (eqP Emod) -divn_eq /= => HH.
+by apply/val_eqP=> /=; rewrite HH.
+Qed.
+
+(* This is PF 3.4 *)
+Lemma is_basis_base_alpha : is_basis 'CF(W,V) base_alpha.
+Proof.
+rewrite /is_basis free_base_alpha andbT.
+rewrite /is_span -dimv_leqif_eq.
+  move: free_base_alpha; rewrite /free => /eqP->.
+  by rewrite size_tuple dim_cfun.
+rewrite -span_subsetl; apply/allP=> c.
+case/allpairsP=> [[i j] /= [] Hi Hj ->].
+by apply: memc_alpha.
+Qed.
 
 End Proofs.
