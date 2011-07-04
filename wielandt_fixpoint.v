@@ -634,9 +634,9 @@ have is_action_rW : (mx_repr G rW).
   move=> x y Gx Gy /=; apply/row_matrixP=> i; rewrite row_mul mul_rV_lin1 /=.
   by rewrite subgK // !rowK /= !subgK ?groupM // actMin. 
 have pk_gt1 : q > 1 by rewrite  -(exp1n k) ltn_exp2r // prime_gt1.
+pose gamma i := \sum_(x \in A i) rW x.
 suff tr_rW_Ai : forall i, 0 < m i + n i  ->
-  {in A i, forall x : gT, \tr (rW x) = (f i)%:R}.
-  pose gamma i := \sum_(x \in A i) rW x.
+  \tr (gamma i) = (f i * #|A i|)%:R.
   have: \sum_(i | 0 < m i + n i) (gamma i) *+ m i = 
         \sum_(i | 0 < m i + n i) (gamma i) *+ n i.
     have hp : forall mn i, 0 < m i + n i -> 
@@ -658,13 +658,11 @@ suff tr_rW_Ai : forall i, 0 < m i + n i  ->
   rewrite !(eq_bigr _ (hp _)); move/(f_equal mxtrace); rewrite !raddf_sum /=. 
   have {hp} hp : forall mn i, 0 < m i + n i -> 
     \tr (\sum_(x \in A i) rW x *+ mn i) = (f i * mn i * #|A i|)%:R.
-    move=> mn i hi; rewrite raddf_sum /= !natr_mul !mulr_natr.
-    have hp' : forall x, x \in A i -> \tr (rW x *+ mn i) = ((f i)%:R) *+ mn i.
-      by move=> x Aix; rewrite raddfMn /= (tr_rW_Ai _ hi _ Aix).
-    by rewrite (eq_bigr _ hp') /= sumr_const. 
+    move=> mn i hi; rewrite mulnAC natr_mul -tr_rW_Ai // mulrC -mxtraceZ.
+    by rewrite scaler_nat sumr_muln.
   rewrite !(eq_bigr _ (hp _)) !muln_sum; move/(f_equal (@nat_of_ord _)).
   by rewrite !val_Zp_nat.
-move=> i hi a Aia.
+move=> i hi.
 pose Aibar := (sdpair2 toW) @* (A i). 
 pose Wbar := ((sdpair1 toW) @* [set: 'rV(V)])%G.
 have hcent_com :  [~: Wbar, Aibar] \x 'C_(Wbar)(Aibar) = Wbar.
@@ -782,14 +780,14 @@ pose Pl := mkMx _ _ _ _ dom_fPl; pose Pr := mkMx _ _ _ _ dom_fPr.
 pose P1 := row_mx Pl Pr; pose P2 := col_mx Pu Pd.
 simpl in fPl, fUl, fUr, fPr, fUr', imfUr', fUl', imfUl', Pl, Pr, P1, P2 |- *.
 simpl in dom_fPl, dom_fPr |- *.
+(* this should come way earlier *)
+case/dprodP: (hcent_com) => _ ep sp ip.
 have P12_id : P1 *m P2 = 1%R.
   apply/row_matrixP=> r.
   rewrite rowE -row1 mul_row_col linearD /= !mulmxA !{1}mul_rV_lin1.
   rewrite /=.
   apply: (injmP _ injm_isoW); rewrite ?in_setT // morphM ?in_setT //.
   rewrite efUl' efUr' /= mulg1 mul1g.
-(* this should come way earlier *)
-  case/dprodP: (hcent_com) => _ ep _ _.
   have aux : sdpair1 toW (row r 1%:M) \in Wbar.
     by apply: mem_morphim; rewrite in_setT.
   have hinr : divgr [~: Wbar, Aibar]
@@ -805,35 +803,110 @@ have P12_id : P1 *m P2 = 1%R.
     by rewrite invmE //; apply: mem_remgr; rewrite ep.
   rewrite !invmE //; last by apply: mem_remgr; rewrite ep.
   by rewrite -!divgr_eq.
-rewrite -(mulmx1 (rW a)) idmxE -P12_id mulmxA mxtrace_mulC.
-rewrite mul_mx_row mul_col_row mxtrace_block.
-(* this should come way earlier *)
-case/dprodP: (hcent_com) => _ ep sp ip.
-have -> : Pd *m (rW a *m Pr) = 1%:M.
-  apply/row_matrixP=> j; rewrite rowE !mulmxA !mul_rV_lin1 /=.
+have eql a : a \in A i -> Pd *m (rW a *m Pr) = 1%:M.
+  move=> Aia; apply/row_matrixP=> j; rewrite rowE !mulmxA !mul_rV_lin1 /=.
   rewrite efUl' efUr' /= mul1g sdpair_act ?in_setT //=; last exact: subgP.
+  set a' :=  sgval (subg G a).
+  have ha' : a' \in A i.
+    rewrite -(subgmK (sAiG _ hi)).
+    apply: mem_morphim; first by rewrite inE.
+    by apply: mem_morphim; rewrite //; apply: (subsetP (sAiG _ hi)).
+  have s2a' : sdpair2 toW a' \in Aibar.
+    by rewrite mem_morphim //;apply: (subsetP (sAiG _ hi)).
   rewrite invmK; last first.
     rewrite -ep. apply: (subsetP (mulG_subr _ _)).
     have : (delta_mx 0 j) \in [set: 'rV['Z_q]_(f i)]%G by rewrite in_setT.
     by rewrite -isor_im -morphpre_invm; case/morphpreP.
   rewrite remgr_id //; last first.
-    apply: groupJ.
+    rewrite -/Wbar memJ_norm.
       have : (delta_mx 0 j) \in [set: 'rV['Z_q]_(f i)]%G by rewrite in_setT.
       by rewrite -isor_im -morphpre_invm; case/morphpreP.
-    have ha : sgval (subg G a) \in A i.
-      rewrite -(subgmK (sAiG _ hi)).
-      apply: mem_morphim; first by rewrite inE.
-      by apply: mem_morphim; rewrite //; apply: (subsetP (sAiG _ hi)).
-    have {ha} ha : sdpair2 toW (sgval (subg G a)) \in Aibar.
-      by apply: mem_morphim=> //; apply: (subsetP (sAiG _ hi)).
-      rewrite -/Wbar.
-    admit.
-  rewrite morphJ; last first.
-    admit.
+    apply: (subsetP (@normsI _ Aibar _ _ _ _)) => //.
+    - apply: subset_trans (im_sdpair_norm toW); exact: morphim_sub.
+    apply: subset_trans (cent_norm _); exact: normG.
+  set d := invm _ _.
+  have hd : d \in 'C_Wbar(Aibar).
     have : (delta_mx 0 j) \in [set: 'rV['Z_q]_(f i)]%G by rewrite in_setT.
     by rewrite -isor_im -morphpre_invm; case/morphpreP.
+  have -> : d ^ sdpair2 toW a' = d.
+    suff hC : commute d (sdpair2 toW a') by rewrite /conjg hC mulKg.
+    by move: hd; rewrite in_setI; case/andP=> _; move/centP; move/(_ _ s2a').
   rewrite invmK; last by rewrite isor_im in_setT.
-  by rewrite rowE mulmx1 /conjg /invg /mulg /= addrCA addNr addr0.
-suff -> : Pu *m (rW a *m Pl) = 0.
-  by rewrite mxtrace1 mxtrace0 add0r.
+  by rewrite rowE mulmx1.
+have eqr : \sum_(a \in A i) Pu *m (rW a *m Pl) = 0.
+  apply/row_matrixP=> j; rewrite rowE mulmx_sumr.
+  set  d := invm injm_isol (delta_mx 0 j).
+  have ha a : a \in A i -> 
+    delta_mx 0 j *m (Pu *m (rW a *m Pl)) = 
+    isol (d ^ sdpair2 toW (sgval (subg G a))).
+  move => Aia; set a' :=  sgval (subg G a).
+  have ha' : a' \in A i.
+    rewrite -(subgmK (sAiG _ hi)).
+    apply: mem_morphim; first by rewrite inE.
+    by apply: mem_morphim; rewrite //; apply: (subsetP (sAiG _ hi)).
+  have s2a' : sdpair2 toW a' \in Aibar.
+    by rewrite mem_morphim //;apply: (subsetP (sAiG _ hi)).
+  rewrite !mulmxA !mul_rV_lin1 /=.
+  rewrite efUl' efUr' /= mulg1 sdpair_act ?in_setT //=; last exact: subgP.
+  have hd : d \in [~: Wbar, Aibar].
+    have : (delta_mx 0 j) \in [set: 'rV['Z_q]_(_)]%G by rewrite in_setT.
+    by rewrite -isol_im -morphpre_invm; case/morphpreP.
+  rewrite invmK; last first.
+    by rewrite -/Wbar -{2}ep; apply: (subsetP (mulG_subl _ _)).
+  rewrite divgr_id //; last first.
+  rewrite -/Wbar memJ_norm //; exact: (subsetP (commg_normr _ _)).
+  rewrite (eq_bigr _ ha) {ha}.
+  have he a : a \in A i ->  
+    isol (d ^ sdpair2 toW (sgval (subg G a))) = isol (d ^ sdpair2 toW a).
+    move=> Aia; congr (fun x => isol (d ^ sdpair2 toW x)).
+    rewrite subgK //; exact: (subsetP (sAiG _ hi)).
+  rewrite (eq_bigr _ he).
+  have {he} he a : a \in A i -> invm (injm_sdpair2 toW) (sdpair2 toW a) = a.
+    move=> Aia. rewrite invmE //; exact: (subsetP (sAiG _ hi)).
+  rewrite (reindex_onto _ _ he) /= {he}.
+  transitivity (\sum_(a \in Aibar) isol (d ^ a)).
+    apply: congr_big => //.
+    - move=> a /=; apply/andP/idP => [[] hAi /eqP <- |Aibara].
+        apply: mem_morphim => //;  exact: (subsetP (sAiG _ hi)).
+      split; last by rewrite invmK //; apply: (subsetP (morphimS _ (sAiG _ hi))).
+      rewrite -(morphim_invm (injm_sdpair2 toW) (sAiG _ hi)).
+      by apply: mem_morphim => //; apply: (subsetP (morphimS _ (sAiG _ hi))).
+    - by move=> a /andP [_ /eqP -> ].
+  have hd : d \in [~: Wbar, Aibar].
+    have : (delta_mx 0 j) \in [set: 'rV['Z_q]_(_)]%G by rewrite in_setT.
+    by rewrite -isol_im -morphpre_invm; case/morphpreP.
+(* may be partition_big_imset is more efficient...*)
+  have he x : x \in commg_set Wbar Aibar ->
+                 \sum_(a \in Aibar) isol (x ^ a) = 0.
+    case/imset2P=> w a hw ha ->.
+    have he b : b \in Aibar -> 
+      isol ([~ w, a] ^ b) = isol [~ b, w] + isol [~ w, a * b].
+      have -> : [~ w, a] ^ b = [~ b, w] * [~ w, a * b].
+        by rewrite commgMJ mulgA -(invg_comm b w) mulgV mul1g.
+      move=> hb.
+      have dc1 : [~ b, w] \in [~: Wbar, Aibar].
+        rewrite -[[~ _, _]]invgK groupV invg_comm; exact: mem_commg.
+      have dc2 : [~ w, a * b] \in [~: Wbar, Aibar].
+        by apply: mem_commg=> //; rewrite groupM.
+      by rewrite morphM.
+    rewrite (eq_bigr _ he) {he} big_split /=.
+    rewrite (reindex_inj (mulgI a)) /=.
+    have he b : a * b \in Aibar = (b \in Aibar) by rewrite groupMl.
+    rewrite (eq_bigl _ _ he).
+    have {he} he b : b \in Aibar -> isol [~ a * b, w] = - isol [~ w, a * b].
+    move=> bAibar; rewrite -(invg_comm w (a * b)) morphV //.
+      by apply: mem_commg=> //; rewrite groupM.
+    by rewrite (eq_bigr _ he) sumr_opp addNr.
+  case/gen_prodgP: hd=> r [phi mem_phi] ->.
+  have he' a : a \in Aibar ->  
+    isol ((\prod_i0 phi i0) ^ a) =  isol (\prod_i0 (phi i0) ^ a).
+    move=> Aibara; congr (fun x => isol x); apply: (big_morph (conjg^~ a)).
+      by move=> u v /=; rewrite conjMg.
+    by rewrite conj1g.
+  rewrite (eq_bigr _ he') {he'}.
+  suff -> : \sum_(i0 \in Aibar) isol (\prod_i1 phi i1 ^ i0)%g = 
+    \prod_i1 (\sum_(i0 \in Aibar) isol  (phi i1 ^ i0)%g).
+    rewrite big1 //; first by rewrite rowE mulmx0.
+    by move=> t _; rewrite he.
+  rewrite exchange_big; apply: eq_bigr=> b bAibar /=.
 Admitted. 
