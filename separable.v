@@ -1226,17 +1226,17 @@ Section SubAlgebra.
 
 Variable K : {algebra L}.
 
-Lemma memv1 : 1 \in K.
+Lemma mem1v : 1 \in K.
 Proof.
 by rewrite -aunit1 -(can_eq (mulfK (anonzero1r K))) mul1r
            (aunitl (memv_unit K)).
 Qed.
 
 Lemma aunit_eq1 : aunit K = 1.
-Proof. by apply/eqP; rewrite aunit1 memv1. Qed.
+Proof. by apply/eqP; rewrite aunit1 mem1v. Qed.
 
 Lemma sub1v : (1%:VS <= K)%VS.
-Proof. by apply: memv1. Qed.
+Proof. by apply: mem1v. Qed.
 
 Lemma subv1 : ((K <= 1%:VS) = (K == F))%VS.
 Proof.
@@ -1249,7 +1249,7 @@ Lemma memv_exp : forall x i, x \in K -> x ^+ i \in K.
 Proof.
 move => x.
 elim => [|i Hi] Hx.
- by rewrite expr0 memv1.
+ by rewrite expr0 mem1v.
 by rewrite exprS memv_mul // Hi.
 Qed.
 
@@ -1296,7 +1296,7 @@ Lemma prodp_polyOver (I : finType) (P : pred I)
   (p_ : I -> {poly L}) :
   (forall i, P i -> polyOver K (p_ i)) -> polyOver K (\prod_(i | P i) p_ i).
 Proof.
-move=> Hp; apply big_ind => //; first by rewrite polyOverC // memv1.
+move=> Hp; apply big_ind => //; first by rewrite polyOverC // mem1v.
 by exact: mulp_polyOver.
 Qed.
 
@@ -1318,7 +1318,7 @@ Qed.
 Lemma polyOverX : polyOver K 'X.
 Proof.
 apply/polyOverP => i.
-by rewrite coefX; case: (_ == _); [apply: memv1 | apply: mem0v].
+by rewrite coefX; case: (_ == _); [apply: mem1v | apply: mem0v].
 Qed.
 
 Lemma polyOver_factor c : c \in K -> polyOver K ('X - c%:P).
@@ -1363,6 +1363,10 @@ by rewrite !mxE.
 Qed.
 
 End SubAlgebra.
+
+Lemma memv_prodl I r (P : pred I) (vs_ : I -> L) (K : {algebra L}) :
+  (forall i, P i -> vs_ i \in K) -> \prod_(i <- r | P i) vs_ i \in K.
+Proof. by move=> Hp; elim/big_ind: _ => //; [exact: mem1v | exact: memv_mul]. Qed.
 
 Section aspace_cap.
 
@@ -1669,7 +1673,7 @@ Hypothesis (HD : Derivation E D).
 Lemma Derivation1 : D 1 = 0.
 Proof.
 rewrite (@GRing.addIr _ (D 1) (D 1) 0) // GRing.add0r.
-by rewrite -{3}[1]mul1r (DerivationMul HD) ?memv1 // mulr1 mul1r.
+by rewrite -{3}[1]mul1r (DerivationMul HD) ?mem1v // mulr1 mul1r.
 Qed.
 
 Lemma DerivationF : forall x, x \in F -> D x = 0.
@@ -2108,7 +2112,7 @@ apply/andP; split.
  exists 1;split; last by rewrite horner_lin.
  apply/polyOverP => i.
  rewrite coefC.
- by case: ifP; rewrite ?mem0v ?memv1.
+ by case: ifP; rewrite ?mem0v ?mem1v.
 apply/prodvP => ? ?.
 case/poly_Fadjoin => p1 [Hp1 ->].
 case/poly_Fadjoin => p2 [Hp2 ->].
@@ -2190,7 +2194,7 @@ rewrite Fadjoin_eq_K -{1}[\dim K]muln1 eqn_mul2l dimv_eq0.
 case/orP; last by move/eqP ->.
 move/eqP => K0.
 case: (negP (@nonzero1r L)).
-by rewrite -memv0 -K0 memv1.
+by rewrite -memv0 -K0 mem1v.
 Qed.
 
 Lemma size_elementDegree : forall p, polyOver K p -> 
@@ -2970,7 +2974,7 @@ move/cyclicOrBig: (Hx0) => [|[[|a] Hxa]]; first by left.
  right; exists y.
  apply/eqP.
  rewrite -FadjoinxK Hxa.
- by apply: memv1.
+ by apply: mem1v.
 case (eqVneq y 0) => [->|Hy0].
  right; exists x.
  move: (mem0v K).
@@ -2979,7 +2983,7 @@ case (eqVneq y 0) => [->|Hy0].
 move/cyclicOrBig: (Hy0) => [|[[|b] Hyb]]; first by left.
  rewrite expr1 in Hyb.
  right; exists x.
- move: (memv1 K).
+ move: (mem1v K).
  rewrite FadjoinxK Hyb.
  by move/eqP ->.
 right.

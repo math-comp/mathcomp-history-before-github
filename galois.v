@@ -187,7 +187,7 @@ case (eqVneq x 0) => [->|Hx0]; first by rewrite linear0 invr0 linear0.
 move: (Hx).
 rewrite memv_inv.
 move/(HE _ _ Hx).
-rewrite divff // HK ?memv1 // => H1.
+rewrite divff // HK ?mem1v // => H1.
 rewrite -[(f x)^-1]mulr1 H1 mulrA mulVf ?mul1r //.
 move/eqP: H1.
 apply: contraL.
@@ -207,7 +207,7 @@ apply/subvP => v.
 rewrite memv_cap memv0 memv_ker.
 case/andP => HvE.
 apply: contraLR => Hv.
-by rewrite -unitfE unitrE -kHom_inv // -HE -?memv_inv // mulfV // HK // memv1.
+by rewrite -unitfE unitrE -kHom_inv // -HE -?memv_inv // mulfV // HK // mem1v.
 Qed.
 
 Lemma kHomRmorph_subproof : rmorphism (f \o (sa_val (als:=E))).
@@ -215,7 +215,7 @@ Proof.
 case/kHomP: Hf => HK HE.
 split; first by move => a b; rewrite /= linear_sub.
 split; first by move => a b; rewrite /= HE // subaP.
-by rewrite /= aunit_eq1 HK // memv1.
+by rewrite /= aunit_eq1 HK // mem1v.
 Qed.
 
 Lemma kHom_root : forall p x, polyOver E p -> x \in E ->
@@ -258,7 +258,7 @@ case/kHomP: Hf => HK HE.
 have Hfmin : monic (map_poly f (minPoly E x)).
  by rewrite /monic lead_coef_map_eq;
   move/eqP: (monic_minPoly E x) ->;
-  rewrite /= HK ?memv1 // nonzero1r.
+  rewrite /= HK ?mem1v // nonzero1r.
 rewrite (divp_mon_spec (map_poly f p) Hfmin) !horner_lin.
 move/eqP: Hy ->.
 rewrite mulr0 add0r.
@@ -312,7 +312,7 @@ apply: (iffP (kHomP _ _ _)).
  repeat split => //.
  - by apply: linear_sub.
  - by move => x y; apply: HL; rewrite memvf.
- - by rewrite HF // memv1.
+ - by rewrite HF // mem1v.
  - by apply: linearZ.
 move => Hf.
 split; last by move => x y _ _; apply: (rmorphM (RMorphism Hf)).
@@ -598,7 +598,7 @@ Lemma LAut_img_is_aspace (f : LAut) (K : {algebra L}) :
 Proof.
 apply/andP; split.
  apply has_aunit1.
- by rewrite -(rmorph1 [rmorphism of (val f)]) memv_img // memv1.
+ by rewrite -(rmorph1 [rmorphism of (val f)]) memv_img // mem1v.
 apply/prodvP => _ _ /memv_imgP [a [Ha ->]] /memv_imgP [b [Hb ->]].
 by rewrite -rmorphM memv_img // memv_mul.
 Qed.
@@ -646,7 +646,7 @@ have [j /andP [Hji Hcj]] : exists j, (j != i) && (c_ j != 0).
   rewrite -(lapp_of_funK (amull_linear_p (c_ i))).
   rewrite -[_ (_ 1)]comp_lappE -memv_ker.
   move/subvP: Hcfi; apply.
-  by rewrite memv1.
+  by rewrite mem1v.
  move => j Hji.
  move: (Hci j).
  rewrite negb_and Hji negbK.
@@ -787,7 +787,7 @@ have Hc : forall i, c_ 0 i \in E.
  rewrite mxE.
  case: splitP.
   move => ? _.
-  by rewrite ord1 mxE memv1.
+  by rewrite ord1 mxE mem1v.
  move => i' _.
  rewrite mxE memvN mxE.
  apply: memv_suml => j _.
@@ -1208,12 +1208,105 @@ move => x Hx.
 by rewrite Ha // Hs.
 Qed.
 
+Definition galoisTrace (K E : {vspace L}) a := 
+ \sum_(i | i \in ('Aut(E | K))%g) (val (repr i) a).
+
+Definition galoisNorm (K E : {vspace L}) a := 
+ \prod_(i | i \in ('Aut(E | K))%g) (val (repr i) a).
+
+Section TraceAndNorm.
+
+Variables (K E : {algebra L}).
+
+Lemma galoisTrace_is_additive : additive (galoisTrace K E).
+Proof.
+move => a b /=.
+rewrite -sumr_sub.
+apply: eq_bigr => i _.
+by rewrite rmorph_sub.
+Qed.
+
+Canonical galoisTrace_additive := Eval hnf in Additive galoisTrace_is_additive.
+
+Lemma autTraceFixedField a :
+ (K <= E)%VS -> a \in E -> galoisTrace K E a \in FixedField 'Aut(E | K)%g.
+Proof.
+move => HKE Ha.
+apply/FixedFieldP.
+split.
+ apply: memv_suml => i.
+ case/(Aut_kAut HKE)/(_ (mem_repr_coset _))/andP => _ /eqP HE.
+ by rewrite -[X in _ \in X]HE memv_img.
+move => x Hx.
+rewrite rmorph_sum /galoisTrace -{2}['Aut(E | K)%g](rcoset_id Hx).
+rewrite (reindex_inj (mulIg (x^-1)%g)).
+symmetry.
+apply: eq_big => i; first by rewrite /= mem_rcoset.
+by rewrite -[LAut_rmorphism _ _]Aut_mul // mulgKV.
+Qed.
+
+Lemma traceAut a x : a \in E -> x \in 'Aut(E | K)%g -> 
+  galoisTrace K E (val (repr x) a) = galoisTrace K E a.
+Proof.
+move => Ha Hx.
+rewrite /galoisTrace -{2}['Aut(E | K)%g](lcoset_id Hx).
+rewrite (reindex_inj (mulgI (x^-1)%g)).
+apply: eq_big => i;first by rewrite /= mem_lcoset.
+by rewrite -[LAut_rmorphism _ _]Aut_mul // mulKVg.
+Qed.
+
+Lemma galoisNormM : multiplicative (galoisNorm K E).
+Proof.
+split; last by apply big1 => i _; rewrite rmorph1.
+move => a b /=.
+rewrite -big_split.
+apply: eq_bigr => i _.
+by rewrite rmorphM.
+Qed.
+
+Lemma galoisNormV a : galoisNorm K E (a^-1) = (galoisNorm K E a)^-1.
+Proof.
+rewrite -prodf_inv.
+apply: eq_bigr => i _.
+by rewrite fmorphV //.
+Qed.
+
+Lemma autNormFixedField a :
+ (K <= E)%VS -> a \in E -> galoisNorm K E a \in FixedField 'Aut(E | K)%g.
+Proof.
+move => HKE Ha.
+apply/FixedFieldP.
+split.
+ apply: memv_prodl => i.
+ case/(Aut_kAut HKE)/(_ (mem_repr_coset _))/andP => _ /eqP HE.
+ by rewrite -[X in _ \in X]HE memv_img.
+move => x Hx.
+rewrite rmorph_prod /galoisNorm -{2}['Aut(E | K)%g](rcoset_id Hx).
+rewrite (reindex_inj (mulIg (x^-1)%g)).
+symmetry.
+apply: eq_big => i; first by rewrite /= mem_rcoset.
+by rewrite -[LAut_rmorphism _ _]Aut_mul // mulgKV.
+Qed.
+
+Lemma normAut a x : a \in E -> x \in 'Aut(E | K)%g -> 
+  galoisNorm K E (val (repr x) a) = galoisNorm K E a.
+Proof.
+move => Ha Hx.
+rewrite /galoisNorm -{2}['Aut(E | K)%g](lcoset_id Hx).
+rewrite (reindex_inj (mulgI (x^-1)%g)).
+apply: eq_big => i;first by rewrite /= mem_lcoset.
+by rewrite -[LAut_rmorphism _ _]Aut_mul // mulKVg.
+Qed.
+
+End TraceAndNorm.
+
 Definition normal (K E : {vspace L}) :=
  forallb x : LAut, kHom K (fullv L) (val x) ==> ((val x) @: E == E)%VS.
 
 (* Move this to poly.v *)
 Lemma eqpMP : forall (R : idomainType) (p q : {poly R}),
   monic p -> monic q -> (p %= q) = (p == q).
+
 Proof.
 move => R p q Hp Hq.
 case: eqP; first by move ->; rewrite eqpxx.
@@ -1606,6 +1699,22 @@ move: (Hall x).
 by rewrite negb_and Hx negbK.
 Qed.
 
+Lemma mem_galoisTrace (K E : {algebra L}) a :
+ galois K E -> a \in E -> galoisTrace K E a \in K.
+Proof.
+case/galois_fixedField => HKE HK.
+rewrite -{2}HK.
+by apply: autTraceFixedField.
+Qed.
+
+Lemma mem_galoisNorm (K E : {algebra L}) a :
+ galois K E -> a \in E -> galoisNorm K E a \in K.
+Proof.
+case/galois_fixedField => HKE HK.
+rewrite -{2}HK.
+by apply: autNormFixedField.
+Qed.
+
 Section GaloisDim.
 
 Variable E : {algebra L}.
@@ -1772,7 +1881,7 @@ suff HsAut : (s \subset ('Aut(E | FixedField s))%g).
   rewrite leq_mul2r.
   case/orP; last done.
   rewrite dimv_eq0 -subv0.
-  move/subvP/(_ _ (memv1 _)).
+  move/subvP/(_ _ (mem1v _)).
   by rewrite memv0 -[_ == _]negbK nonzero1r.
  rewrite mulnC dim_FixedField // -galois_dim ?leqnn //.
  apply/galois_fixedField.
