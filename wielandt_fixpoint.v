@@ -909,4 +909,16 @@ have eqr : \sum_(a \in A i) Pu *m (rW a *m Pl) = 0.
     rewrite big1 //; first by rewrite rowE mulmx0.
     by move=> t _; rewrite he.
   rewrite exchange_big; apply: eq_bigr=> b bAibar /=.
+  (* how to do this in one shot? *)
+  elim: r phi mem_phi => [|r ihr] phi mem_phi; first by rewrite !big_ord0 morph1.
+  rewrite !big_ord_recl morphM; first by congr (_ + _); exact: ihr.
+    rewrite memJ_norm; first by apply: mem_gen; exact: mem_phi.
+    exact: (subsetP (commg_normr _ _)).
+  have <- : (\prod_(i0 < r) phi (lift ord0 i0)) ^ b = 
+    \prod_(i0 < r) phi (lift ord0 i0) ^ b.
+    apply: (big_morph (conjg^~ b)); first by move=> u v /=; rewrite conjMg.
+    by rewrite conj1g.
+  rewrite memJ_norm.
+    apply: group_prod=> u _; apply: mem_gen; exact: mem_phi.
+  exact:  (subsetP (commg_normr _ _)).
 Admitted. 
