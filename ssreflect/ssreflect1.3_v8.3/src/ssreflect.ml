@@ -2,6 +2,7 @@
 
 (* This line is read by the Makefile's dist target: do not remove. *)
 let ssrversion = "1.3pl1";;
+let ssrAstVersion = 1;;
 let () = Mltop.add_known_module "ssreflect";;
 let () = 
   if Flags.is_verbose () && not !Flags.batch_mode && 
@@ -47,6 +48,22 @@ open Tactic
 open Extraargs
 open Ppconstr
 open Printer
+
+let inVersion, _ = Libobject.declare_object {
+  (Libobject.default_object "SSRASTVERSION") with
+  Libobject.load_function = (fun _ (_,v) -> 
+    if v <> ssrAstVersion then error "Please recompile your .vo files");
+  Libobject.classify_function = (fun v -> Libobject.Keep v);
+}
+
+let _ =
+  Goptions.declare_bool_option
+    { Goptions.optsync  = false;
+      Goptions.optname  = "ssreflect version";
+      Goptions.optkey   = ["SsrAstVersion"];
+      Goptions.optread  = (fun _ -> true);
+      Goptions.optwrite = (fun _ -> 
+        Lib.add_anonymous_leaf (inVersion ssrAstVersion)) }
 
 let tactic_expr = Tactic.tactic_expr
 let gallina_ext = Vernac_.gallina_ext 

@@ -1,5 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Declare ML Module "ssreflect".
+Set SsrAstVersion.
 
 (******************************************************************************)
 (* This file is the Gallina part of the ssreflect plugin implementation.      *)
