@@ -1136,6 +1136,29 @@ rewrite -Aut_mul // mulgA mulgKV Aut_mul; last done.
 by rewrite -Hfxb.
 Qed.
 
+Lemma memv_aut (K E : {algebra L}) x a : (K <= E)%VS ->
+ x \in 'Aut(E | K)%g -> a \in E -> val (repr x) a \in E.
+Proof.
+move => HKE.
+case/(Aut_kAut HKE)/(_ (mem_repr_coset _))/andP => _ /eqP HE HaE.
+by rewrite -[X in _ \in X]HE memv_img.
+Qed.
+
+Lemma uniq_aut (K E : {algebra L}) n f_ :
+ (forall i, f_ i \in 'Aut(E | K)%g) ->
+ uniq [seq f_ i | i <- enum 'I_n] ->
+ uniq [seq (val (repr (f_ i)) \o projv E)%VS |  i <- enum 'I_n].
+Proof.
+move => Hf.
+set (s := [seq f_ i |  i <- enum 'I_n]).
+set (g (x : coset_of [set x : LAut | kAut E (fullv L) (val x)]):= 
+     (val (repr x) \o projv E)%VS).
+suff Hs : {in s &, injective g} by rewrite -(map_inj_in_uniq Hs) -map_comp.
+move => x y Hx Hy => Hg.
+apply/eqP/(Aut_eq (mem_repr_coset _) (mem_repr_coset _)) => a /projv_id <-.
+by rewrite -[_ (projv E a)]comp_lappE [(_ \o _)%VS]Hg comp_lappE.
+Qed.
+
 Definition FixedField (E : {vspace L})
   (s : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :=
   (E :&: \bigcap_( i \in cover [set (set_of_coset x) | x <- s])
@@ -1269,6 +1292,17 @@ Proof.
 rewrite -prodf_inv.
 apply: eq_bigr => i _.
 by rewrite fmorphV //.
+Qed.
+
+Lemma galoisNorm0 : galoisNorm K E 0 = 0.
+Proof. by rewrite /galoisNorm (bigD1 1%g) ?group1 // rmorph0 /= mul0r. Qed.
+
+Lemma galoisNorm_eq0 a : (galoisNorm K E a == 0) = (a == 0).
+Proof.
+apply/idP/eqP; last by move ->; rewrite galoisNorm0.
+case/prodf_eq0 => i Hi.
+rewrite fmorph_eq0.
+by move/eqP.
 Qed.
 
 Lemma autNormFixedField a :
@@ -1713,6 +1747,127 @@ Proof.
 case/galois_fixedField => HKE HK.
 rewrite -{2}HK.
 by apply: autNormFixedField.
+Qed.
+
+Lemma HilbertsTheorem90 (K E : {algebra L}) x a :
+ galois K E -> (<[x]> = 'Aut(E | K))%g -> a \in E ->
+ reflect (exists2 b, b \in E /\ b != 0 & a = b / (val (repr x) b))
+         (galoisNorm K E a == 1).
+Proof.
+case/and3P => HKE _ _ Hx HaE.
+apply: (iffP eqP); last first.
+ case => b [HbE Hb0] ->.
+ have HxEK : x \in 'Aut(E | K)%g by rewrite -Hx cycle_id.
+ by rewrite galoisNormM galoisNormV normAut // mulfV // galoisNorm_eq0.
+move => Hnorm.
+have Ha0 : a != 0 by rewrite -(galoisNorm_eq0 K E) Hnorm nonzero1r.
+pose n := #[x]%g.
+pose c_ i := \prod_(j < i) (val (repr (x ^+ j)%g) a).
+have HcE i : c_ i \in E.
+ elim: i => [|i IH]; first by rewrite [c_ _]big_ord0 mem1v.
+ by rewrite /c_ big_ord_recr memv_mul // (memv_aut HKE) // -Hx mem_cycle.
+have Hxc i : (val (repr x) (c_ i)) = a ^-1 * (c_ i.+1).
+ rewrite rmorph_prod /c_ big_ord_recl expg0 repr_coset1 unit_lappE mulKf //.
+ apply: eq_bigr => j _.
+ by rewrite expgSr Aut_mul.
+pose f_ i := repr (x ^+ i)%g.
+have HxE i : (val (f_ i) @: E)%VS = E.
+ move: (mem_cycle x i).
+ rewrite Hx.
+ by case/(Aut_kAut HKE)/(_ (mem_repr_coset _))/andP => _ /eqP.
+have Hexp_inj : injective (fun i : ordinal_finType n => (x ^+ i)%g).
+ case Hxn : n => [|m]; first by case.
+ case: m Hxn => [|m] Hxn; first by move => i j; rewrite !ord1.
+ have Hxn' : m.+2 = #[x]%g.-2.+2 by rewrite [#[x]%g]Hxn.
+ rewrite Hxn'.
+ move => i j Hij.
+ by move/injmP: (cyclic.injm_Zpm x); apply; last done; 
+      rewrite /= /Zp [X in (1 < X)%N]Hxn inE.
+have Huniq : uniq [seq (val (f_ (nat_of_ord i)) \o projv E)%VS| i <- enum 'I_n].
+ apply: (@uniq_aut K) => [i |]; first by rewrite -Hx mem_cycle.
+ by rewrite map_inj_uniq ?enum_uniq.
+have Hexistb : (existsb i : 'I_n, c_ i != 0).
+ apply/existsP.
+ exists (Ordinal (order_gt0 _)).
+ by rewrite /c_ big_ord0 nonzero1r.
+pose Sigma := \sum_(i : 'I_n) (amull (c_ i) \o val (f_ i))%VS.
+have: ((E <= lker Sigma)%VS -> forallb i : 'I_n, c_ i == 0).
+ move => HE.
+ apply/forallP => i.
+ apply/eqP.
+ apply:(LAut_independent (fun i : 'I_n => HxE i) Huniq (fun i : 'I_n => HcE i)).
+ done.
+move/contra/(_ Hexistb).
+rewrite subv_diffv0.
+set V := (_ :\: _)%VS.
+move: (subvP (diffvSl _ _) _ (memv_pick V)) => HbE.
+rewrite -vpick0 => Hb.
+have : vpick V \notin lker Sigma.
+ apply: contra Hb.
+ move/(conj (memv_pick V))/andP.
+ by rewrite -memv_cap capv_diff memv0.
+rewrite memv_ker => HSigmaV.
+exists (Sigma (vpick V)).
+ split; last done.
+ rewrite sum_lappE.
+ apply: memv_suml => i _.
+ rewrite comp_lappE /= lapp_of_funK; last by apply: amull_linear_p.
+ by rewrite memv_mul // -[X in _ \in X](HxE i) memv_img.
+apply: (canRL (mulfK _)); first by rewrite fmorph_eq0.
+rewrite sum_lappE rmorph_sum -mulr_sumr /n -(prednK (order_gt0 x)).
+rewrite big_ord_recr /=; symmetry; rewrite addrC big_ord_recl.
+congr (_ + _).
+ do 2 (rewrite comp_lappE /= lapp_of_funK; last by apply: amull_linear_p).
+ rewrite [c_ 0%N]big_ord0 /f_ expg0 repr_coset1 unit_lappE.
+ rewrite rmorphM /= -Aut_mul //.
+ rewrite -expgSr (prednK (order_gt0 x)) expg_order repr_coset1 unit_lappE.
+ rewrite rmorph_prod -{1}Hnorm mulrA.
+ congr (_ * _).
+ rewrite /galoisNorm.
+ rewrite -Hx.
+ suff Hbij : {on [pred i | i \in <[x]>%g],
+                  bijective (fun i : 'I_n => (x ^+ i)%g)}.
+  rewrite (reindex _ Hbij) (eq_bigl _ _ (fun i : 'I_n => mem_cycle x i)).
+  rewrite -[n](prednK (order_gt0 x)) big_ord_recl.
+  rewrite expg0 repr_coset1 unit_lappE.
+  congr (_ * _).
+  apply: eq_bigr => i _.
+  by rewrite /= -Aut_mul // -expgSr.
+ rewrite -[n](prednK (order_gt0 x)).
+ (* This is way harder than it ought to be. *)
+ exists (fun y => inord (index y (map (fun i : 'I_#[x]%g.-1.+1 => (x ^+ i)%g)
+                                 (enum predT)))).
+  move => i /= Hi.
+  have -> : (x ^+ i)%g = nth 1%g [seq (x ^+ (nat_of_ord i0))%g
+                                 | i0 <- enum 'I_#[x]%g.-1.+1] i.
+   rewrite (nth_map ord0); first by rewrite [nth _ _ _]nth_ord_enum.
+   by rewrite size_enum_ord; case: i {Hi}.
+  rewrite index_uniq; first by apply: inord_val.
+   by rewrite size_map size_enum_ord; case: i {Hi}.
+  rewrite map_inj_uniq; first by apply: enum_uniq.
+  by rewrite (prednK (order_gt0 x)).
+ move => y /=.
+ rewrite inE /= => /cyclePmin [i].
+ rewrite -{1}(prednK (order_gt0 x)) => Hi.
+ rewrite -{1}(inordK Hi) => ->.
+ congr (x ^+ inord _)%g.
+ set j := inord _.
+ have -> : (x ^+ j)%g = nth 1%g [seq (x ^+ (nat_of_ord i0))%g
+                                | i0 <- enum 'I_#[x]%g.-1.+1] j.
+   rewrite (nth_map ord0); first by rewrite [nth _ _ _]nth_ord_enum.
+   by rewrite size_enum_ord; case: j.
+ rewrite index_uniq; first by apply: inordK.
+  by rewrite size_map size_enum_ord.
+ rewrite map_inj_uniq; first by apply: enum_uniq.
+ by rewrite (prednK (order_gt0 x)).
+apply: eq_bigr => i _.
+do 2 (rewrite comp_lappE /= lapp_of_funK; last by apply: amull_linear_p).
+rewrite rmorphM mulrA.
+rewrite rmorph_prod [c_ _]big_ord_recl expg0 repr_coset1 unit_lappE.
+congr (_ * _ * _).
+ apply eq_bigr => j _.
+ by rewrite /= -Aut_mul // -expgSr.
+by rewrite /= -Aut_mul // -expgSr.
 Qed.
 
 Section GaloisDim.
