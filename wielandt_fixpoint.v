@@ -921,4 +921,8 @@ have eqr : \sum_(a \in A i) Pu *m (rW a *m Pl) = 0.
   rewrite memJ_norm.
     apply: group_prod=> u _; apply: mem_gen; exact: mem_phi.
   exact:  (subsetP (commg_normr _ _)).
-Admitted. 
+rewrite -(mulmx1 (gamma i)) idmxE -P12_id mulmxA mxtrace_mulC mul_mx_row.
+rewrite mul_col_row mxtrace_block /gamma !mulmx_suml !mulmx_sumr eqr mxtrace0.
+rewrite add0r (eq_bigr _ eql) sumr_const raddfMn /= mxtrace1.
+by rewrite natr_mul /= mulr_natr.
+Qed.
