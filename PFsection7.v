@@ -3220,7 +3220,7 @@ by rewrite sposC_mul -?natr_add -?(ltn_ltC 0) ?cardG_gt0 // addn2.
 Qed.
 
 
-End PF7_10.
+End PF7_10_11.
 
 
 End Seven.
