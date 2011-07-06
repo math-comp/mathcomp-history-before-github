@@ -9,7 +9,7 @@ Require Import poly.
 (* cpable x y == x and y are comparable, i.e. x <= y or y <= x               *)
 (*      sgr x == sign of x, equals (0 : R) if and only x == 0,               *)
 (*            equals (1 : R) if x is positive, and -1 otherwise              *)
-(*     absr x == x if x is positive -x otherwise                             *)
+(*       `|x| == x if x is positive and - x otherwise                        *)
 (*   minr x y == minimum of x y                                              *)
 (*   maxr x y == maximum of x y                                              *)
 (*                                                                           *)
@@ -1118,7 +1118,7 @@ Proof. by move=> *; rewrite [_ + x]addrC ltr_snaddl. Qed.
 Lemma ltr_snsaddr y x z : x < 0 -> y < z -> y + x < z.
 Proof. by move=> *; rewrite [_ + x]addrC ltr_snsaddl. Qed.
 
-(* x and y have se same sign and their sum is null *)
+(* x and y have the same sign and their sum is null *)
 Lemma paddr_eq0 (x y : R) : 0 <= x -> 0 <= y ->
   (x + y == 0) = (x == 0) && (y == 0).
 Proof.
@@ -1267,6 +1267,9 @@ Proof. by rewrite ler_pmuln2l. Qed.
 
 Lemma ltr_nat m n : (m%:R < n%:R :> R) = (m < n)%N.
 Proof. by rewrite ltr_pmuln2l. Qed.
+
+Lemma eqr_nat  m n : (m%:R == n%:R :> R) = (m == n)%N.
+Proof. by rewrite (inj_eq (mulrIn _)) ?oner_eq0. Qed.
 
 Lemma cpablen m n : @cpable R n%:R m%:R.
 Proof. by rewrite /cpable !ler_nat leq_total. Qed.
@@ -2031,7 +2034,8 @@ case: n=> [|n]; first by rewrite mulr0n sgr0 mul0r.
 by rewrite mul1r /sgr mulrn_eq0 cpable_mulrn_ge0.
 Qed.
 
-(* smul section *)
+Lemma sgr_nat n : sgr (n%:R) = (n != 0%N)%:R :> R.
+Proof. by rewrite sgrMn sgr1 mulr1. Qed.
 
 Lemma sgr_id x : sgr (sgr x) = sgr x.
 Proof. by case: (sgrP x) => hx; rewrite sgrE. Qed.
@@ -2140,10 +2144,15 @@ Proof. by rewrite -oppr_sub absrN. Qed.
 Lemma absrM x y : `|x * y| = `|x| * `|y|.
 Proof. by rewrite !absr_dec sgrM -mulrA mulrAC [x * _]mulrC !mulrA. Qed.
 
+Lemma absr_nat n : `|n%:R| = n%:R :> R.
+Proof. by rewrite ger0_abs // ler0n. Qed.
+
+Lemma absrMn x n : `|x *+ n| = `|x| *+ n.
+Proof. by rewrite -mulr_natr absrM absr_nat mulr_natr. Qed.
+
 Lemma absrX n x : `|x ^+ n| = `|x| ^+ n.
 Proof. by elim: n=> [|n ihn]; rewrite ?absr1 // !exprS absrM ihn. Qed.
 
-(* Todo : rename *r_*_le in ler_*_* *)
 Lemma ler_abs_add x y : `| x + y | <= `|x| + `|y|.
 Proof.
 wlog : x y / (x > 0)=> [hxp | xp].
@@ -2164,8 +2173,11 @@ apply: (big_ind2 (fun a b => `| a | <= b)); rewrite // ?absr0 //.
 by move=> *; rewrite (ler_trans (ler_abs_add _ _)) // ler_add.
 Qed.
 
-Lemma ler_dist_add x y : `| x - y | <= `|x| + `|y|.
+Lemma ler_abs_sub x y : `| x - y | <= `|x| + `|y|.
 Proof. by rewrite (ler_trans (ler_abs_add _ _)) ?absrN. Qed.
+
+Lemma ler_dist_add (z x y : R) :  `| x - y | <= `| x - z | + `| z - y |.
+Proof. by rewrite (ler_trans _ (ler_abs_add _ _)) // addrA addrNK. Qed.
 
 Lemma ler_sub_absD x y : `|x| - `|y| <= `| x + y |.
 Proof.
@@ -2259,6 +2271,9 @@ Lemma eqr_absN x : (`|x| == -x) = (x <= 0).
 Proof. by rewrite eqr_absl opprK eqxx orbT oppr_cp0. Qed.
 
 Definition eqr_abs_idVN := (eqr_abs_id, eqr_absN).
+
+Lemma sgr_abs x : sgr `|x| = (x != 0)%:R.
+Proof. by rewrite absr_dec sgr_smul mulr_sg. Qed.
 
 (* ler/ltr and multiplication by a positive/negative *)
 

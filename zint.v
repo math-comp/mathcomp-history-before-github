@@ -789,6 +789,15 @@ move=> y z; rewrite -![x *~ _]mulrzr => /(mulfI hx).
 by apply: mono_inj y z; apply: ler_pmulz2l.
 Qed.
 
+Lemma ler_zint m n : (m%:~R <= n%:~R :> R) = (m <= n).
+Proof. by rewrite ler_pmulz2l. Qed.
+
+Lemma ltr_zint m n : (m%:~R < n%:~R :> R) = (m < n).
+Proof. by rewrite ltr_pmulz2l. Qed.
+
+Lemma eqr_zint m n : (m%:~R == n%:~R :> R) = (m == n).
+Proof. by rewrite (inj_eq (mulrIz _)) ?oner_eq0. Qed.
+
 Lemma ler0z n : (0 <= n%:~R :> R) = (0 <= n).
 Proof. by rewrite -(mulr0z 1) ler_pmulz2l. Qed.
 
@@ -1372,7 +1381,39 @@ Lemma absz_nat (m : nat) : absz m = m. Proof. by []. Qed.
 
 Lemma abszE (m : zint) : absz m = `|m| :> zint. Proof. by case: m. Qed.
 
-Lemma absz_eq0 : forall m, (absz m == 0%N) = (m == 0). Proof. by case. Qed.
+Lemma absz0 : absz 0 = 0%N. Proof. by []. Qed.
+
+Lemma abszN x : absz (- x) = absz x. Proof. by case: (zintP x). Qed.
+
+Lemma absz_eq0 x : (absz x == 0%N) = (x == 0). Proof. by case: (zintP x). Qed.
+
+Lemma absz_gt0 x : (absz x > 0)%N = (x != 0). Proof. by case: (zintP x). Qed.
+
+Lemma absz1 : absz 1 = 1%N. Proof. by []. Qed.
+
+Lemma abszN1 : absz (- 1) = 1%N. Proof. by []. Qed.
+
+Lemma absz_id x : absz (absz x) = absz x. Proof. by []. Qed.
+
+Lemma abszM x y : absz (x * y) = (absz x * absz y)%N.
+Proof. by case: x y=> [[|m]|m] [[|n]|n]; rewrite //= mulnS mulnC. Qed.
+
+Lemma abszX (n : nat) x : absz (x ^+ n) = (absz x ^ n)%N.
+Proof. by elim: n=> // n ihn; rewrite exprS expnS abszM ihn. Qed.
+
+Lemma absz_sg x : absz (sgr x) = (x != 0). Proof. by case: (zintP x). Qed.
+
+Lemma gez0_abs x : (0 <= x) -> absz x = x :> zint.
+Proof. by case: (zintP x). Qed.
+
+Lemma gtz0_abs x : (0 < x) -> absz x = x :> zint.
+Proof. by case: (zintP x). Qed.
+
+Lemma lez0_abs x : (x <= 0) -> absz x = - x :> zint.
+Proof. by case: (zintP x). Qed.
+
+Lemma ltz0_abs x : (x < 0) -> absz x = - x :> zint.
+Proof. by case: (zintP x). Qed.
 
 End Absz.
 
