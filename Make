@@ -73,6 +73,7 @@ burnside_app.v
 vector.v
 fib.v
 generic_quotient.v
+finfield.v
 separable.v
 galois.v
 amodule.v
