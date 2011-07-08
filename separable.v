@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq tuple.
 Require Import fintype finfun bigop ssralg poly polydiv.
-Require Import zmodp vector algebra fieldext.
+Require Import zmodp vector algebra fieldext finalg finfield.
 Require Import fingroup perm finset matrix mxalgebra mxpoly.
 Require Import div cyclic prime binomial choice generic_quotient.
 
@@ -3780,3 +3780,55 @@ Qed.
 End SeparableInseparableDecomposition.
 
 End Separable.
+
+Section FiniteSeparable.
+(* This could all be generalized to field extensions over an arbitrary finite *)
+(* field, but for now we restrict ourselves to field extensions of Z_p.       *)
+(* We do this because no theory of Finite Fields has yet been developed.      *)
+(* This is really the only case we care about anyways.                        *)
+
+Variable F : finFieldType.
+Variable L : fieldExtType F.
+
+Let pCharL : char F \in [char L].
+Proof. by rewrite charLF finField_char. Qed.
+
+Lemma FermatLittleTheorem  (x : L) : x ^+ (#|F| ^ vdim L) = x.
+Proof.
+pose m1 := (CanCountMixin (@v2rvK _ L)).
+pose m2 := (CanFinMixin (eT := CountType L m1) (@v2rvK _ L)).
+pose FL := @FinRing.Field.pack L _ _ id (FinType L m2) _ id.
+suff -> : #|F| ^ vdim L = #|FL| by apply: (@expf_card FL).
+pose f (x : FL) := coord (vbasis (fullv L)) x.
+rewrite -[vdim L]card_ord -card_ffun -dimvf.
+have/card_in_image <- : {in FL &, injective f}.
+ move => a b Ha Hb /ffunP Hab.
+ rewrite (coord_basis (memvf a)) (coord_basis (memvf b)).
+ apply: eq_bigr => i _.
+ by rewrite Hab.
+apply: eq_card => g.
+rewrite !inE.
+symmetry; apply/idP.
+apply/mapP.
+exists (\sum_i g i *: (vbasis (fullv L))`_i); first by rewrite mem_enum.
+apply/ffunP => i.
+by rewrite free_coords // (free_is_basis (is_basis_vbasis (fullv L))).
+Qed.
+
+Lemma separableFiniteField (K E : {algebra L}) : separable K E.
+Proof.
+apply/separableP => y _.
+rewrite (separableCharp _ _ 0 pCharL) expn1.
+rewrite -{1}[y]FermatLittleTheorem.
+ case: (p_natP (finField_card F)) => [[|n ->]].
+ move/eqP.
+ by rewrite expn0 -{1}(subnK (finField_card_gt1 F)) addnC.
+rewrite -expn_mulr.
+suff -> : (n.+1 * (vdim L))%N = (n.+1 * (vdim L)).-1.+1.
+ by rewrite expnS exprn_mulr memv_exp // memx_Fadjoin.
+rewrite prednK // muln_gt0.
+apply: (leq_trans (elementDegreegt0 (fullv L) 1)).
+apply: elementDegreeBound.
+Qed.
+
+End FiniteSeparable.
