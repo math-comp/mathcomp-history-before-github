@@ -926,10 +926,9 @@ Variables (x y : L) (p : {poly F}).
 Hypothesis (pne0 : p != 0).
 Hypothesis (Hpx : root (p ^ iota) x).
 
-Hypothesis resultant_hypothesis : forall (a b c: L) (pa pb pc : {poly F}),
-  pa != 0 -> pb != 0 -> pc != 0 ->
-  root (pa ^ iota) a -> root (pb ^ iota) b -> root (pc ^ iota) c ->
-  exists2 p, p != 0 & root (p ^ iota) (a*b - c).
+Hypothesis resultant_hypothesis : forall (a b: L) (pa pb : {poly F}),
+  pa != 0 -> pb != 0 -> root (pa ^ iota) a -> root (pb ^ iota) b -> 
+  exists2 p, p != 0 & root (p ^ iota) (a - b).
 
 Lemma PET_Infinite_Case : forall q : {poly F},
   root (q ^ iota) y -> separablePolynomial q ->
@@ -1011,11 +1010,30 @@ have: (gcdp p2 (q ^ iota) %= ('X - y%:P)).
  rewrite Hqq -(eqp_dvdl _ (mulp_gcdl _ _ _)) dvdp_mul2r //.
  by rewrite -size_poly_eq0 size_factor.
 set z := iota t * y - x.
-have Hpt : root (('X - t%:P) ^ iota) (iota t).
- by rewrite rmorph_sub /= map_polyC map_polyX root_factor.
-have Hptne0 : ('X - t%:P) != 0.
- by rewrite -size_poly_eq0 size_factor.
-case: (resultant_hypothesis Hptne0 qne0 pne0 Hpt Hqy Hpx) => [f Hf0 Hfz].
+have [qt qtne0 Hqt] : exists2 qt, qt != 0 & root (qt ^ iota) (iota t * y).
+ case (eqVneq t 0) => [-> | Ht].
+  exists 'X; first by rewrite -size_poly_eq0 size_polyX.
+  by rewrite rmorph0 mul0r /root map_polyX hornerX.
+ exists (q \Po (t^-1 *: 'X)).
+  move: qne0.
+  apply: contra.
+  move/eqP/polyP => Hqt.
+  apply/eqP/polyP => i.
+  rewrite coef0 -[X in _ = X](mulr0 (t ^+ i)) -[X in _ * X](coef0 _ i) -(Hqt i).
+  rewrite -coefZ poly_compE scaler_sumr -{1}[q]coefK poly_def !coef_sum.
+  apply: eq_bigr => j _.
+  rewrite scaler_exp !coefZ mulrA [t ^+ i * _]mulrC -mulrA coefXn.
+  case: (eqVneq i j) => [-> | Hij].
+   by rewrite expr_inv mulVKf // expf_eq0 negb_and Ht orbT.
+  by rewrite -[_ == _]negbK Hij !mulr0.
+ apply/eqP.
+ move/eqP: Hqy <-.
+ rewrite poly_compE rmorph_sum /root horner_sum horner_coef size_map_poly.
+ apply eq_bigr => i _ /=.
+ rewrite map_poly_scaler rmorphX /= map_poly_scaler map_polyX coef_map.
+ rewrite horner_scaler horner_exp horner_scaler hornerX.
+ by rewrite fmorphV mulKf // fmorph_eq0.
+case: (resultant_hypothesis qtne0 pne0 Hqt Hpx) => [f Hf0 Hfz].
 set Fz := subFExtend iota z f.
 set kappa := (@subfx_inj _ _ _ _ _) : Fz -> L.
 pose (Q := (q ^ (inj_subfx iota z f))).
