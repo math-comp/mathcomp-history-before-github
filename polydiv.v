@@ -392,10 +392,23 @@ Qed.
 
 Definition coprimep p q := size (gcdp p q) == 1%N.
 
-
 (* Equality up to a constant factor; this is only used when R is integral *)
 Definition eqp p q :=  (p %| q) && (q %| p).
 Notation "p %= q" := (eqp p q) : ring_scope.
+
+(* "gdcop Q P" is the Greatest Divisor of P which is coprime to Q *)
+(* if P null, we pose that gdcop returns 1 if Q null, 0 otherwise*)
+Fixpoint gdcop_rec q p n :=
+  if n is m.+1 then
+      if coprimep p q then p
+        else gdcop_rec q (p %/ (gcdp p q)) m
+    else (q == 0)%:R.
+Definition gdcop q p := gdcop_rec q p (size p).
+
+CoInductive gdcop_spec q p : {poly R} -> Type :=
+  GdcopSpec r of (r %| p) & ((coprimep r q) || (p == 0))
+  & (forall d,  d %| p -> coprimep d q -> d %| r)
+  : gdcop_spec q p r.
 
 End PolyDivRing.
 
@@ -1117,21 +1130,6 @@ Lemma coprimep_mull : forall (q r p : {poly R}),
   coprimep (q * r) p = (coprimep q p && coprimep r p).
 Proof. by move=> q r p; rewrite ![coprimep _ p]coprimep_sym coprimep_mulr. Qed.
 
-(* "gdcop Q P" is the Greatest Divisor of P which is coprime to Q *)
-(* if P null, we pose that gdcop returns 1 if Q null, 0 otherwise*)
-Fixpoint gdcop_rec q p n :=
-  if n is m.+1 then
-      if coprimep p q then p
-        else gdcop_rec q (p %/ (gcdp p q)) m
-    else (q == 0)%:R.
-Definition gdcop q p := gdcop_rec q p (size p).
-
-CoInductive gdcop_spec q p : {poly R} -> Type :=
-  GdcopSpec r of (r %| p) & ((coprimep r q) || (p == 0))
-  & (forall d,  d %| p -> coprimep d q -> d %| r)
-  : gdcop_spec q p r.
-
-
 Lemma gdcop0 : forall q, gdcop q 0 = (q == 0)%:R.
 Proof. by move=> q; rewrite /gdcop size_poly0. Qed.
 
@@ -1379,6 +1377,19 @@ rewrite gcdpE (gcdpE p^f) !size_map_poly lt_p_q -map_modp.
 case: (eqVneq p 0) => [-> | q_nz]; first by rewrite rmorph0 !gcdp0.
 by rewrite IHm ?(leq_trans lt_p_q) ?modp_spec.
 Qed.
+
+Lemma gdcop_rec_map : forall p q n, (gdcop_rec p q n)^f = (gdcop_rec p^f q^f n).
+Proof.
+move => p q n.
+elim: n p q => [|n IH] => /= p q.
+  by rewrite map_poly_eq0; case: eqP; rewrite ?rmorph1 ?rmorph0.
+rewrite /coprimep -gcdp_map size_map_poly.
+case: eqP => Hq0 //.
+by rewrite -map_divp -IH.
+Qed.
+
+Lemma gdcop_map : forall p q, (gdcop p q)^f = (gdcop p^f q^f).
+Proof. move => p q. by rewrite /gdcop gdcop_rec_map !size_map_poly. Qed.
 
 End FieldMap.
 
