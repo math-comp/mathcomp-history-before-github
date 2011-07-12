@@ -781,7 +781,10 @@ Lemma pairwise_orthogonal_cat R S :
     [&& pairwise_orthogonal R, pairwise_orthogonal S & orthogonal R S].
 Proof.
 elim: R => [|phi R /= ->]; rewrite ?andbT //.
-by rewrite orthogonal_cons orthogonal_catr -!andbA; do !bool_congr.
+(* ssreflect 1.3 pl2 regression here
+by rewrite orthogonal_cons orthogonal_catr -!andbA; do !bool_congr. *)
+rewrite orthogonal_cons orthogonal_catr -!andbA /=.
+by congr [&& _, _ & _]; case: (all _ _); rewrite ?andbF.
 Qed.
 
 Lemma cfnorm_orthogonal S :
