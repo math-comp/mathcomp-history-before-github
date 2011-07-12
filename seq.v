@@ -1364,6 +1364,28 @@ suffices: perm_eq s (undup s) by move/perm_eq_uniq->.
 by apply/allP=> x _; apply/eqP; rewrite (count_uniq_mem x Uus) mem_undup.
 Qed.
 
+Lemma catCA_perm_ind P :
+    (forall s1 s2 s3, P (s1 ++ s2 ++ s3) -> P (s2 ++ s1 ++ s3)) ->
+  (forall s1 s2, perm_eq s1 s2 -> P s1 -> P s2).
+Proof.
+move=> PcatCA s1 s2 eq_s12; rewrite -[s1]cats0 -[s2]cats0.
+elim: s2 nil => [| x s2 IHs] s3 in s1 eq_s12 *.
+  by case: s1 {eq_s12}(perm_eq_size eq_s12).
+have /rot_to[i s' def_s1]: x \in s1 by rewrite (perm_eq_mem eq_s12) mem_head.
+rewrite -(cat_take_drop i s1) -catA => /PcatCA.
+rewrite catA -/(rot i s1) def_s1 /= -cat1s => /PcatCA/IHs/PcatCA; apply.
+by rewrite -(perm_cons x) -def_s1 perm_rot.
+Qed.
+
+Lemma catCA_perm_subst R F :
+    (forall s1 s2 s3, F (s1 ++ s2 ++ s3) = F (s2 ++ s1 ++ s3) :> R) ->
+  (forall s1 s2, perm_eq s1 s2 -> F s1 = F s2).
+Proof.
+move=> FcatCA s1 s2 /catCA_perm_ind => ind_s12.
+(* To check on pl2: elim/ind_s12: s2 raises an Anomaly on 1.3pl1. *)
+by apply: (ind_s12 (eq _ \o F)) => //= *; rewrite FcatCA.
+Qed.
+
 End PermSeq.
 
 Notation perm_eql s1 s2 := (perm_eq s1 =1 perm_eq s2).
