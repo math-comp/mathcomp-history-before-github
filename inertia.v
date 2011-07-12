@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
-Require Import fintype tuple finfun bigop ssralg finset zmodp.
-Require Import fingroup morphism perm automorphism center.
+Require Import fintype tuple finfun bigop ssralg finset fingroup.
+Require Import morphism perm automorphism action quotient zmodp center.
 Require Import matrix mxalgebra mxrepresentation vector algC.
 Require Import classfun character.
 
@@ -12,425 +12,347 @@ Unset Printing Implicit Defensive.
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
-(**************************************************************************)
-(*                                                                        *)
-(* This file contains the definitions and properties of inertia group     *)
-(*                                                                        *)
-(*                                                                        *)
-(*  (f ^ g)%CH : the group conjugate function                             *)
-(*                                                                        *)
-(* 'I_G[f] :  the set of elements g of G such that f ^ g = f              *)
-(*                                                                        *)
-(* cconjugates G f : the sequence of all distinct conjugates of f         *)
-(*                   by elements of G                                     *)
-(*                                                                        *)
-(**************************************************************************)
+(******************************************************************************)
+(* This file contains the definitions and properties of inertia groups:       *)
+(*  (phi ^ y)%CH == the y-conjugate of phi : 'CF(G), i.e., the class function *)
+(*                  mapping x ^ y to phi x, provided y normalises G. We take  *)
+(*                  (phi ^ y)%CH = phi when y \notin 'N(G).                   *)
+(* (phi ^: G)%CH == the sequence of all distinct y-conjugates of phi : 'CF(H) *)
+(*                  for y in G.                                               *)
+(*     'I_G[phi] == the inertia group of phi : CF(H) in G, i.e., the set of y *)
+(*                  in G such that (phi ^ y)%CH = phi AND H :^ y = y.         *)
+(******************************************************************************)
 
 Reserved Notation "''I_' G [ f ]"
   (at level 8, G at level 2, format "''I_' G [ f ]").
 
+Section ConjDef.
+
+Variables (gT : finGroupType) (B : {set gT}) (phi : 'CF(B)) (y : gT).
+Local Notation G := <<B>>.
+
+Fact cfunConjg_subproof :
+  is_class_fun G [ffun x => phi (if y \in 'N(G) then x ^ y^-1 else x)].
+Proof.
+apply: intro_class_fun => [x z _ Gz | x notGx].
+  have [nGy | _] := ifP; last by rewrite cfunJgen.
+  by rewrite -conjgM conjgC conjgM cfunJgen // memJ_norm ?groupV.
+by rewrite cfun0gen //; case: ifP => // nGy; rewrite memJ_norm ?groupV.
+Qed.
+Definition cfunConjg := Cfun 1 cfunConjg_subproof.
+
+End ConjDef.
+
+Notation "f ^ y" := (cfunConjg f y) : character_scope.
+
 Section Conj.
 
-Variable gT : finGroupType.
+Variables (gT : finGroupType) (G : {group gT}).
+Implicit Type phi : 'CF(G).
 
-Implicit Type f : {cfun gT}.
+Lemma cfunConjgE phi y x : y \in 'N(G) -> (phi ^ y)%CH x = phi (x ^ y^-1)%g.
+Proof. by rewrite cfunElock genGid => ->. Qed.
 
-Definition cfun_conj f (g : gT) : {cfun _} := [ffun h => f (h ^ g^-1)].
+Lemma cfunConjgEnorm phi y x : y \in 'N(G) -> (phi ^ y)%CH (x ^ y) = phi x.
+Proof. by move/cfunConjgE->; rewrite conjgK. Qed.
 
-Notation "f ^ g" := (cfun_conj f g) : character_scope.
-
-Lemma cfun_conjE f g h : (f ^ g)%CH h = f (h ^ g^-1)%g.
-Proof. by rewrite cfunE. Qed.
-
-(* Isaacs' 6.1.a *)
-Lemma memc_cfun_conj (G : {group gT}) f g :
-  g \in G -> f \in 'CF(G) -> (f ^ g)%CH \in 'CF(G).
+Lemma cfunConjg_out phi y : y \notin 'N(G) -> (phi ^ y = phi)%CH.
 Proof.
-move=> GiG CFf.
-apply/cfun_memP; split=> [h HniG|h1 h2 H2iG].
-  rewrite cfunE (cfun0 CFf) //; apply/negP=> HGiG; case/negP: HniG.
-  by rewrite -(groupJr h (groupVr GiG)).
-by rewrite !cfunE !(cfunJ _ CFf, groupV) // groupJ.
+by move/negbTE=> notNy; apply/cfunP=> x; rewrite !cfunElock genGid notNy.
+Qed.
+
+Lemma cfunConjgMnorm phi :
+  {in 'N(G) &, forall y z, phi ^ (y * z) = (phi ^ y) ^ z}%CH.
+Proof.
+move=> y z nGy nGz.
+by apply/cfunP=> x; rewrite !cfunConjgE ?groupM // invMg conjgM.
 Qed.
 
 (* Isaacs' 6.1.b *)
-Lemma cfun_conjM f (g h : gT) : (f ^ (g * h) = (f ^ g) ^ h)%CH.
-Proof. by apply/cfunP=> k; rewrite !cfun_conjE invMg conjgM. Qed.
+Lemma cfunConjgM L phi :
+  G <| L -> {in L &, forall y z, phi ^ (y * z) = (phi ^ y) ^ z}%CH.
+Proof. by case/andP=> _ /subsetP nGL; exact: sub_in2 (cfunConjgMnorm phi). Qed.
 
-Lemma cfun_conj1 f : (f ^ 1)%CH = f.
-Proof. by apply/cfunP=> g; rewrite cfunE invg1 conjg1. Qed.
+Lemma cfunConjg1 phi : (phi ^ 1)%CH = phi.
+Proof. by apply/cfunP=> x; rewrite cfunConjgE ?group1 // invg1 conjg1. Qed.
 
-Lemma cfun_conj_val1 f g : (f ^ g)%CH 1%g = f 1%g.
-Proof. by rewrite cfunE conj1g. Qed.
+Lemma cfunConjgK y : cancel ((@cfunConjg _ G)^~ y) ((@cfunConjg _ G)^~ y^-1%g).
+Proof.
+move=> phi; apply/cfunP=> x; rewrite !cfunElock groupV /=.
+by case: ifP => -> //; rewrite conjgKV.
+Qed.
 
-Lemma cfun_conj_conjC f (g : gT) : (f ^ g)^*%CH = (f^* ^ g)%CH.
-Proof. by apply/cfunP=> h; rewrite !cfunE. Qed.
+Lemma cfunConjgKV y : cancel ((@cfunConjg _ G)^~ y^-1%g) ((@cfunConjg _ G)^~ y).
+Proof. by move=> phi /=; rewrite -{2}[y]invgK cfunConjgK. Qed.
+
+Lemma cfunConjg_cfun0 y : (0 ^ y)%CH = 0 :> 'CF(G).
+Proof. by apply/cfunP=> x; rewrite !cfunElock. Qed.
+
+Lemma cfunConjg_cfun1 y : (1 ^ y)%CH = 1 :> 'CF(G).
+Proof.
+apply/cfunP=> x; rewrite cfunElock // !cfun1E genGid.
+by case: ifP => // nGy; rewrite memJ_norm ?groupV.
+Qed.
+
+Lemma cfunConjg_val1 phi y : (phi ^ y)%CH 1%g = phi 1%g.
+Proof. by rewrite cfunElock conj1g if_same. Qed.
+
+Lemma cfunConjg_Aut phi u y : cfunAut u (phi ^ y) = (cfunAut u phi ^ y)%CH.
+Proof. by apply/cfunP=> x; rewrite !cfunElock. Qed.
+
+Lemma cfunConjg_conjC phi y : (phi ^ y)^*%CH = (phi^* ^ y)%CH.
+Proof. exact: cfunConjg_Aut. Qed.
 
 End Conj.
-
-Arguments Scope cfun_conj [_ character_scope group_scope].
-Notation "f ^ g" := (cfun_conj f g) : character_scope.
 
 Section Inertia.
 
 Variable gT : finGroupType.
 
-Definition inertia (G : {set gT}) (f : {cfun gT}) :=  
-  [set g \in G | (f ^ g)%CH == f].
+Definition inertia (B A : {set gT}) (phi : 'CF(B)) :=  
+  [set y \in 'N_A(B) | (phi ^ y)%CH == phi].
 
-Local Notation "''I_' G [ f ]" := (inertia G f) : group_scope.
+Local Notation "''I_' G [ phi ]" := (inertia G phi) : group_scope.
 
-Lemma group_set_inertia (G : {group gT}) f : group_set 'I_G[f].
+Fact group_set_inertia (H G : {group gT}) (phi : 'CF(H)) : group_set 'I_G[phi].
 Proof.
-rewrite /inertia; apply/andP; split.
-  rewrite inE group1; apply/eqP; apply/cfunP=> g.
-  by rewrite cfunE invg1 conjg1.
-apply/subsetP=> p; case/imset2P=> g1 g2; rewrite !inE.
-case/andP=> G1iG CF1; case/andP=> G2iG CF2 ->; rewrite groupM //.
-apply/eqP; apply/cfunP=> h; rewrite cfunE invMg conjgM.
-move/cfunP: (eqP CF1); move/(_ (h^(g2^-1))); rewrite cfunE => ->.
-by move/cfunP: (eqP CF2); move/(_ h); rewrite cfunE => ->.
+apply/group_setP; split; first by rewrite inE group1 /= cfunConjg1.
+move=> y z /setIdP[/setIP[Gy nHy] /eqP n_phi_y] /setIdP[/setIP[Gz nHz] n_phi_z].
+by rewrite 2!inE !groupM // cfunConjgMnorm // n_phi_y.
 Qed.
-
-Canonical Structure inertia_group G f := Group (group_set_inertia G f).
+Canonical inertia_group H G phi := Group (@group_set_inertia H G phi).
 
 Local Notation "''I_' G [ f ]" := (inertia_group G f) : subgroup_scope.
 
-Variable (G H : {group gT}).
+Variables (G H : {group gT}).
+Implicit Type phi : 'CF(H).
 
-Lemma inertia_sub f : 'I_G[f] \subset G.
-Proof. by apply/subsetP=> g; rewrite inE; case/andP. Qed.
+Lemma inertia_sub phi : 'I_G[phi] \subset G.
+Proof. by rewrite ['I_G[_]]setIdE -setIA subsetIl. Qed.
 
-Lemma cfun_conj_eqE f (g h : gT) : 
-  g \in G -> h \in G -> (f^g == f^h)%CH = (h \in ('I_G[f] :* g)).
+Lemma norm_inertia phi : 'I_G[phi] \subset 'N(H).
+Proof. by rewrite ['I_G[_]]setIdE setIAC subsetIr. Qed.
+
+Lemma cfunConjg_eqE phi :
+    H <| G ->
+  {in G &, forall y z, (phi ^ y == phi ^ z)%CH = (z \in 'I_G[phi] :* y)}.
 Proof.
-move=> GiG HiG; apply/eqP/rcosetP=> [Hx|]; last first.
-  case=> g'; rewrite inE; case/andP=> G'iG; move/eqP=> CCi ->.
-  apply/cfunP=> h'; rewrite cfunE -{1}CCi cfunE -conjgM.
-  by rewrite cfun_conjE invMg.
-exists (h * g^-1)%g; last by rewrite -mulgA mulVg mulg1.
-rewrite inE !(groupM,groupV) //; apply/eqP; apply/cfunP=> g'.
-rewrite cfunE invMg invgK conjgM.
-move/cfunP: Hx; move/(_ (g'^g)); rewrite !cfun_conjE => <-.
-by rewrite -conjgM mulgV conjg1.
+case/andP=> _ nHG y z; rewrite mem_rcoset inE (setIidPl nHG) -groupV => Gy' Gz.
+rewrite groupM // (can2_eq (cfunConjgK y) (cfunConjgKV y)) eq_sym.
+by rewrite cfunConjgMnorm ?(subsetP nHG).
 Qed.
 
-Lemma inertia_center f : f \in 'CF(H) -> H <| G -> 'Z(G) \subset 'I_G[f].
+Lemma inertia_center phi : H <| G -> 'Z(G) \subset 'I_G[phi].
 Proof.
-move=> FcF HnG.
-apply/subsetP=> g; case/centerP=> GiG Cg; rewrite inE GiG.
-apply/eqP; apply/cfunP=> h; rewrite cfunE.
-case: (boolP (h \in H))=> [HiG|HniG].
-  rewrite !conjgE invgK mulgA Cg ?(subsetP (normal_sub HnG)) //.
-  by rewrite -mulgA mulgV mulg1.
-rewrite !(cfun0 FcF) //.
-by rewrite memJ_norm // (subsetP (normal_norm HnG)) // groupV.
+case/andP=> sHG nHG; apply/subsetP=> y /centerP[Gy cGy].
+rewrite inE (setIidPl nHG) Gy.
+apply/eqP/cfun_inP=> x Hx; rewrite cfunConjgE ?(subsetP nHG) //.
+by rewrite /conjg invgK mulgA cGy ?mulgK // (subsetP sHG).
 Qed.
 
-Lemma subset_inertia f : f \in 'CF(H) -> H <| G -> H \subset 'I_G[f].
+Lemma sub_inertia phi : H <| G -> H \subset 'I_G[phi].
 Proof.
-move=> FcF HnG; apply/subsetP=> h1 H1iH.
-rewrite inE (subsetP (normal_sub HnG)) //.
-apply/eqP; apply/cfunP=> h2; case: (boolP (h2 \in H))=> [H2iH|H2niH].
-  by rewrite cfunE (cfunJ _ FcF) // groupV.
-rewrite cfunE !(cfun0 FcF) //.
-apply/negP=> HH; case/negP: H2niH.
-by rewrite -(groupJr _ (groupVr H1iH)).
+case/andP=> sHG nHG; apply/subsetP=> y Hy.
+rewrite inE (setIidPl nHG) (subsetP sHG) //=.
+by apply/eqP/cfunP=> x; rewrite cfunElock fun_if cfunJ ?groupV // if_same.
 Qed.
+
+Lemma normal_inertia phi : H <| G -> H <| 'I_G[phi].
+Proof. by move/sub_inertia=> sHT; rewrite /normal sHT norm_inertia. Qed.
 
 (* Isaacs' 6.1.c *)
-Lemma cfun_conj_inner (f1 f2 : {cfun gT}) g :
- H <| G -> g \in G -> ('[f1 ^ g, f2 ^ g]_H = '[f1, f2]_H)%CH.
+Lemma cfdot_Conjg phi psi y : '[phi ^ y, psi ^ y] = '[phi, psi].
 Proof.
-move=> HnG GiG; rewrite !inner_prodE; congr (_ * _).
-rewrite (reindex (conjg^~ g)); last first.
-  by exists (conjg^~ g^-1%g)=> h; rewrite -conjgM (mulVg,mulgV) conjg1.
-apply: eq_big=> [|h HiG].
-  by move=> h; apply: memJ_norm; apply: (subsetP (normal_norm HnG)).
-by rewrite !cfun_conjE -!conjgM mulgV conjg1.
+have [nHy | not_nHy] := boolP (y \in 'N(H)); last by rewrite !cfunConjg_out.
+congr (_ * _); rewrite -{1}(normP nHy).
+rewrite big_imset; last exact: in2W (conjg_inj y).
+by apply: eq_bigr=> x _; rewrite !cfunConjgEnorm.
 Qed.
  
 (* Isaacs' 6.1.d *)
-Lemma cfun_conj_inner_restrict (f1 f2 : {cfun gT}) g :
- H <| G -> f1 \in 'CF(G) ->  g \in G -> 
-   ('['Res[H] f1, f2 ^ g]_H = '['Res[H] f1, f2]_H)%CH.
+Lemma cfdot_Res_Conjg psi phi y :
+  y \in G -> '['Res[H, G] psi, phi ^ y] = '['Res[H] psi, phi].
 Proof.
-move=> HnG CFf GiG.
-rewrite -['[_,f2]_H](cfun_conj_inner _ _ HnG GiG).
-rewrite !inner_prodE; congr (_ * _); apply: eq_bigr => h HiH; congr (_ * _).
-rewrite !cfunE -!/fcf (cfunJ _ CFf) ?groupV //.
-by rewrite memJ_norm // (subsetP (normal_norm HnG)) // groupV.
+move=> Gy; rewrite -(cfdot_Conjg _ phi y).
+congr (_ * _); apply: eq_bigr => x Hx; congr (_ * _).
+rewrite !cfunElock !genGid Hx; case sHG: (H \subset G); rewrite ?andbF //.
+by case: ifP => nHy; rewrite ?memJ_norm ?cfunJ ?groupV ?Hx.
 Qed.
 
 (* Isaac's 6.1.e *)
-Lemma is_char_conj chi  g : 
-  is_char H chi -> H <| G -> g \in G -> is_char H (chi^g)%CH.
+Lemma is_char_Conjg (chi : 'CF(H)) y : is_char chi -> is_char (chi ^ y).
 Proof.
-case/is_charP=> n [rG <-] HnG GiG.
-have mx_reprj: mx_repr H (fun x => rG (x^(g^-1%g))).
-  split=> [|h1 h2 H1iH H2iH]; first by rewrite conj1g repr_mx1.
-  by rewrite conjMg repr_mxM ?(memJ_norm, groupV, (subsetP (normal_norm HnG))).
-apply/is_charP; exists n; exists (MxRepresentation mx_reprj).
-apply/cfunP=> h.
-by rewrite !cfunE ?(memJ_norm, groupV, (subsetP (normal_norm HnG))).
+have [nHy | /cfunConjg_out-> //] := boolP (y \in 'N(H)).
+case/is_charP=> rG ->; apply/is_charP.
+have rGyP: mx_repr H (fun x => rG (x ^ y^-1)%g).
+  split=> [|x1 x2 Hx1 Hx2]; first by rewrite conj1g repr_mx1.
+  by rewrite conjMg repr_mxM ?memJ_norm ?groupV.
+exists (Representation (MxRepresentation rGyP)) => /=.
+by apply/cfunP=> x; rewrite cfunConjgE // !cfunE memJ_norm ?groupV.
 Qed.
 
-Lemma irr_cfun_conj (i : Iirr H) g :
-  H <| G -> g \in G -> (('xi_i) ^ g)%CH \in irr H.
+Lemma irr_Conjg i y : ('chi_i ^ y)%CH \in irr H.
 Proof.
-move=> HnG GiG.
-rewrite irr_inner_prod_charE ?(is_char_conj,is_char_irr) //.
-by rewrite cfun_conj_inner // irr_orthonormal eqxx.
+rewrite irr_cfdot_charE; last by rewrite is_char_Conjg ?is_char_irr.
+by rewrite cfdot_Conjg cfdot_irr eqxx.
 Qed.
  
-Definition irr_conj (i : Iirr H) g := 
-  irr_of_socle (socle_of_cfun H (('xi_i)^g)%CH).
+Definition conjg_idx i y := irr_idx (fun i => 'chi[H]_i ^ y)%CH i.
 
-Lemma irr_conjE (i : Iirr H) g :
-  H <| G -> g \in G -> 'xi_(irr_conj i g) = (('xi_i) ^ g)%CH.
+Lemma conjg_idxE i y : 'chi_(conjg_idx i y) = ('chi_i ^ y)%CH.
+Proof. by apply: irr_idxE => j; exact: irr_Conjg. Qed.
+
+Lemma cfdot_irr_Conjg i y :
+  H <| G -> y \in G -> '['chi_i, 'chi_i ^ y]_H = (y \in 'I_G['chi_i])%:R.
 Proof.
-move=> HnG GiG.
-case/irrP: (irr_cfun_conj i HnG GiG)=> j Hj.
-by rewrite /irr_conj -Hj socle_of_cfunE irr_of_socleE Hj.
+move=> nsHG Gy; rewrite inE (setIidPl (normal_norm nsHG)) Gy eq_sym.
+by rewrite -conjg_idxE cfdot_irr inj_eq //; exact: chi_inj.
 Qed.
 
-Lemma is_irr_inner (i : Iirr H) g : H <| G -> g \in G -> 
-  '['xi_i, 'xi_i ^ g]_H = (g \in 'I_G['xi_i])%:R.
+Definition cfclass (A : {set gT}) (phi : 'CF(A)) (B : {set gT}) := 
+  [seq (phi ^ repr Tx)%CH | Tx <- enum (rcosets 'I_B[phi] B)%g].
+
+Local Notation "phi ^: G" := (cfclass phi G) : character_scope.
+
+Lemma cfclassP phi psi :
+  reflect (exists2 y, y \in G & psi = phi ^ y)%CH (psi \in phi ^: G)%CH.
 Proof.
-move=> HnG GiG.
-rewrite -(irr_conjE i HnG GiG) irr_orthonormal.
-rewrite inE GiG eq_sym /=; congr (_%:R); congr nat_of_bool.
-rewrite -irr_conjE //.
-by apply/eqP/eqP=> [->|] //; exact: xi_inj.
+apply: (iffP (imageP _ _ _)) => [[_ /rcosetsP[y Gy ->] ->] | [y Gy ->]].
+  case: repr_rcosetP => z /setIdP[/setIP[Gz _] _].
+  by exists (z * y)%g; rewrite ?groupM.
+without loss nHy: y Gy / y \in 'N(H).
+  have [nHy | /cfunConjg_out->] := boolP (y \in 'N(H)); first exact.
+  by move/(_ 1%g); rewrite !group1 !cfunConjg1; exact.
+exists ('I_G[phi] :* y); first by rewrite topredE -rcosetE mem_imset.
+case: repr_rcosetP => z /setIdP[/setIP[_ nHz] /eqP Tz].
+by rewrite cfunConjgMnorm ?Tz.
 Qed.
 
-Definition cconjugates (G : {set gT}) (f : {cfun gT}) := 
-  [seq (f ^ repr Tx)%CH | Tx <- enum (rcosets 'I_G[f] G)].
+Lemma cfclass_refl phi : phi \in (phi ^: G)%CH.
+Proof. by apply/cfclassP; exists 1%g => //; rewrite cfunConjg1. Qed.
 
-Lemma cconjugatesP f1 f2 :
-  reflect (exists2 g : gT, g \in G & f2 = (f1 ^ g)%CH) 
-          (f2 \in cconjugates G f1).
+Lemma cfclass_uniq phi : H <| G -> uniq (phi ^: G)%CH.
 Proof.
-have F1: forall g, g \in G -> repr ('I_G[f1] :* g) \in G.
-  move=> g GiG; suff: 'I_G[f1] :* g \subset G.
-    by move/subsetP; apply; exact: mem_repr_rcoset.
-  apply/subsetP=> h; case/rcosetP=> h1 H1iG->; rewrite groupM //.
-  by apply: (subsetP (inertia_sub f1)).
-apply: (iffP idP)=> [|[g GiG ->]].
-  case/mapP=> C; rewrite mem_enum => /rcosetsP[g GiG ->] ->.
-  by exists (repr ('I_G[f1] :* g)) => //; exact: F1.
-have:= mem_repr_rcoset ('I_G[f1]) g.
-rewrite -cfun_conj_eqE ?F1 // => /eqP->.
-by apply: map_f; rewrite mem_enum; apply/rcosetsP; exists g.
+case/andP=> _ /subsetP nHG.
+rewrite map_inj_in_uniq ?enum_uniq // => Ty Tz; rewrite !mem_enum.
+move=> {Ty}/rcosetsP[y Gy ->] {Tz}/rcosetsP[z Gz ->].
+rewrite -{2}(rcoset_repr _ y) -{2}(rcoset_repr _ z).
+case: repr_rcosetP => u /setIdP[/setIP[Gu _] _].
+case: repr_rcosetP => v /setIdP[/setIP[Gv _] _].
+move=> eq_phi_uy_vz; apply: rcoset_transl; rewrite mem_rcoset.
+rewrite 2!inE cfunConjgMnorm ?(groupM, groupV) ?nHG //=.
+by rewrite eq_phi_uy_vz cfunConjgK.
 Qed.
 
-Lemma mem_cconjugates f : f \in cconjugates G f.
-Proof. by apply/cconjugatesP; exists 1%g=> //; rewrite cfun_conj1. Qed.
-
-Lemma unique_cconjugates f : uniq (cconjugates G f).
+Lemma inertia1 : H <| G -> 'I_G[1 : 'CF(H)] = G.
 Proof.
-rewrite map_inj_in_uniq.
-  by apply: filter_uniq; rewrite /index_enum -enumT; exact: enum_uniq.
-have F1: forall g, g \in G -> repr ('I_G[f] :* g) \in G.
-  move=> g GiG; suff: 'I_G[f] :* g \subset G.
-    by move/subsetP; apply; exact: mem_repr_rcoset.
-  apply/subsetP=> h; case/rcosetP=> h1 H1iG->; rewrite groupM //.
-  by apply: (subsetP (inertia_sub f)).
-move=> g=> C.
-rewrite mem_filter; case/andP; case/rcosetsP=> h1 H1iG -> _.
-rewrite mem_filter; case/andP; case/rcosetsP=> h2 H2iG -> _.
-move=> HH; apply: sym_equal; apply: rcoset_transl.
-rewrite -cfun_conj_eqE //.
-have: (f ^ h1)%CH == (f ^ repr ('I_G[f] :* h1))%CH.
-  by rewrite cfun_conj_eqE ?(mem_repr_rcoset,F1).
-move/eqP->.
-by rewrite HH eq_sym cfun_conj_eqE ?(mem_repr_rcoset,F1).
+case/andP=> _ nHG; rewrite ['I_G[1]]setIdE (setIidPl nHG).
+by apply/setIidPl/subsetP=> x Gx; rewrite inE cfunConjg_cfun1.
 Qed.
 
-Lemma cconjugates1 : H <| G ->  cconjugates G '1_H = [:: '1_H].
+Lemma cfclass1 : H <| G -> (1 ^: G)%CH = [:: 1 : 'CF(H)].
 Proof.
-move=> HnG.
-have: forall f, f \in cconjugates G ('1_H) -> f = '1_H .
-  move=> f; case/cconjugatesP=> g GiG ->.
-  apply/cfunP=> h; rewrite cfunE !cfuniE.
-  (case: (boolP (_ \in _))=> HH; case: (boolP (_ \in _)))=> // [|HH1]; 
-       [case/negP|case/negP:HH]; last first.
-      case/normalP: HnG=> _; move/(_ _ (groupVr GiG))<-. 
-      by apply/imsetP; exists h.
-  rewrite -[h]conjg1 -[1%g](mulKg g) mulg1 conjgM.
-  case/normalP: HnG=> _; move/(_ _ (GiG))<-. 
-  by apply/imsetP; exists (h^g^-1)%g.
-move: (mem_cconjugates ('1_H)) (unique_cconjugates ('1_H)).
-case: cconjugates=> // f1 [|f2 s]; first by rewrite inE; move/eqP->.
-move=> _ /=; case/andP=> HH _ HH1; case/negP: HH.
-by rewrite /= (HH1 f1) ?(inE,eqxx) // (HH1 f2) ?(inE,eqxx,orTb,orbT).
+move=> nsHG; rewrite /cfclass inertia1 // rcosets_id enum_set1 /=.
+by rewrite cfunConjg_cfun1.
 Qed.
 
-Lemma cconjugates_sum (R : Type) (idx : R) (op : Monoid.com_law idx) 
-                      (F: _ -> R) (i : Iirr H) :
-   H <| G ->
-   \big[op/idx]_(j < Nirr H | 'xi_j \in cconjugates G 'xi_i) F 'xi_j = 
-   \big[op/idx]_(j <- cconjugates G 'xi_i) F j.
+Lemma cfclass_sum R idx (op : Monoid.com_law idx) (F : 'CF(H) -> R) i :
+     H <| G ->
+  \big[op/idx]_(j | 'chi_j \in ('chi_i ^: G)%CH) F 'chi_j
+     = \big[op/idx]_(chi <- ('chi_i ^: G)%CH) F chi.
 Proof.
-move=> HnG.
-set u := \big[op/idx]_(j <- cconjugates G 'xi_i) F j.
-rewrite -big_map -big_filter.
-apply: eq_big_perm. 
-apply: uniq_perm_eq; try apply: unique_cconjugates.
-  apply: filter_uniq.
-  rewrite map_inj_uniq; last exact: xi_inj.
-  by rewrite -[index_enum _]enumT enum_uniq.
-move=> j; apply/idP/idP; rewrite mem_filter; first by case/andP.
-move=> HH; apply/andP; split=> //.
-case/cconjugatesP: HH => g GiG ->.
-by rewrite -(irr_conjE _ HnG GiG) map_f ?mem_index_enum.
+move/cfclass_uniq=> chiGuniq; rewrite -big_map -big_filter; apply: eq_big_perm.
+rewrite -[index_enum _]enumT map_tnth_enum uniq_perm_eq // => [|chi].
+  by rewrite filter_uniq // uniq_free // free_irr.
+by rewrite mem_filter; apply: andb_idr => /imageP[Tx _ ->]; exact: irr_Conjg.
 Qed.
 
-(* This is Isaacs 6.2 *)
-Lemma is_comp_clifford i j :
-   H <| G -> is_comp j ('Res[H] 'xi[G]_i) ->
-  'Res[H] 'xi[G]_i = 
-     '['Res[H] 'xi_i, 'xi[H]_j]_H *: (\sum_(f <- cconjugates G 'xi[H]_j) f).
+(* This is Isaacs, Theorem (6.2) *)
+Lemma is_comp_Clifford i j :
+     H <| G -> is_comp j ('Res[H, G] 'chi_i) ->
+  'Res[H] 'chi_i = 
+     '['Res[H] 'chi_i, 'chi_j] *: (\sum_(chi <- ('chi_j ^: G)%CH) chi).
 Proof.
-move=> HnG IC.
-rewrite -(cconjugates_sum ) //=.
-have CFchi: 'Res[H] 'xi_i \in 'CF(H).
-  apply: memc_is_char; apply: is_char_restrict (is_char_irr _).
-  by apply: normal_sub.
-rewrite -{1}(sum_inner_prodE CFchi).
-rewrite (bigID (fun i : Iirr H => 'xi_i \in cconjugates G 'xi_j)) /=.
-rewrite [\sum_(i | _ \notin _)_]big1 ?addr0=> [|k HH].
-  rewrite scaler_sumr; apply: eq_bigr=> k Hk.
-  case/cconjugatesP: Hk => g GiG ->.
-  by rewrite cfun_conj_inner_restrict //; exact: memc_irr.
-have: '['Res[H] ('Ind[G,H] 'xi_j), 'xi_k]_H = 0.
-  have->: 'Res[H] ('Ind[G,H] 'xi_j) = 
-               #|H|%:R^-1 *: ((\sum_(c \in G) ('xi_j ^ c)%CH)).
-    rewrite (reindex invg); last by exists invg=> g; rewrite invgK.
-    apply/cfunP=> h; rewrite !(cfunE,sum_cfunE).
-    case: (boolP (_ \in _))=> HiH; last first.
-      rewrite mul0r big1 ?(scaler0) // => h1 H1iG.
-      rewrite cfunE (cfun0 (memc_irr _)) // invgK.
-      apply/negP=> HH1; case/negP: HiH.
-      rewrite -[h]conjg1 -[1%g](mulgK h1) mul1g conjgM.
-      move/normalP: HnG; case=> _; move/(_ _ H1iG) <-.
-      by apply/imsetP; exists (h^ h1)%g.
-    rewrite mul1r; congr (_ * _); apply: eq_big=> g1; first by rewrite groupV.
-    by rewrite !(cfunE,invgK).
-  rewrite -inner_prodbE linearZ linear_sum; rewrite big1 ?scaler0 // => g GiG.
-  rewrite /= inner_prodbE -(irr_conjE _ HnG GiG) irr_orthonormal.
-  case: eqP=> // HH1; case/negP: HH; rewrite -HH1 irr_conjE //.
-  by apply/cconjugatesP; exists g.
-have CFInd: ('Ind[G, H] 'xi_j) \in 'CF(G).
-   by apply: (memc_induced (normal_sub HnG)); exact: memc_irr.
-rewrite -{1}(sum_inner_prodE CFInd) linear_sum /=.
-rewrite -inner_prodbE linear_sum /= => HH1. 
-have: '['Res[H] ('['Ind[G, H] 'xi_j, 'xi_i]_G *: 'xi_i), 'xi_k]_H = 0.
-  apply: (posC_sum_eq0 _ HH1)=> [j1 _|]; last first.
-    by rewrite /index_enum -enumT mem_enum.
-  apply: posC_isNatC.
-  set u := 'Res[_] _; suff ICu: is_char H u.
-    by apply: isNatC_inner_prod_char=> //; exact: is_char_irr.
-  apply: (is_char_restrict (normal_sub HnG)).
-  have II: is_char G ('Ind[G, H] 'xi_j).
-    by apply: is_char_induced (is_char_irr _) (normal_sub _).
-  case/isNatCP: (isNatC_coord_char j1 II)=> /= n ->.
-  by rewrite scaler_nat is_char_scal // is_char_irr.
-rewrite linearZ /= -inner_prodbE linearZ /= inner_prodbE.
-move/eqP; rewrite mulf_eq0; case/orP; last first.
-  by move/eqP->; rewrite scale0r.
-move: IC; rewrite /is_comp.
-rewrite inner_prod_charC ?(is_char_restrict (normal_sub HnG), is_char_irr) //.
-rewrite (frobenius_reciprocity (normal_sub HnG)) ?memc_irr // => HH2 HH3.
-by case/negP: HH2.
+move=> nsHG chiHj; have [sHG /subsetP nHG] := andP nsHG.
+rewrite -cfclass_sum //= big_mkcond.
+rewrite {1}['Res _]cfun_cfdot_sum linear_sum /=; apply: eq_bigr => k _.
+have [[y Gy ->] | ] := altP (cfclassP _ _); first by rewrite cfdot_Res_Conjg.
+apply: contraNeq; rewrite scaler0 scalev_eq0 orbC => /norP[_ chiHk].
+have{chiHk chiHj}: '['Res[H] ('Ind[G] 'chi_j), 'chi_k] != 0.
+  rewrite /is_comp !cfdot_Res_l in chiHj chiHk *.
+  apply: contraNneq chiHk; rewrite cfdot_sum_irr => /posC_sum_eq0/(_ i isT)/eqP.
+  rewrite -cfdotC cfdotC mulf_eq0 conjC_eq0 (negbTE chiHj) /= => -> // i1.
+  rewrite -cfdotC posC_isNatC //.
+  by rewrite isNatC_mul ?isNatC_cfdot_char ?is_char_Ind ?is_char_irr //.
+have ->: 'Res ('Ind[G] 'chi_j) = #|H|%:R^-1 *: (\sum_(y \in G) 'chi_j ^ y)%CH.
+  rewrite (reindex_inj invg_inj); apply/cfun_inP=> x Hx.
+  rewrite cfunResE // cfunIndE // cfunE sum_cfunE; congr (_ * _).
+  by apply: eq_big => [y | y Gy]; rewrite ?cfunConjgE ?groupV ?invgK ?nHG.
+rewrite cfdotZl mulf_eq0 cfdot_suml => /norP[_]; apply: contraR => not_chjGk.
+rewrite big1 // => x Gx; apply: contraNeq not_chjGk.
+rewrite -conjg_idxE cfdot_irr -neq0N_neqC; case: (_ =P k) => // <- _.
+by rewrite conjg_idxE; apply/cfclassP; exists x.
 Qed.
 
 (* This is Isaacs' 6.7 *)
-Lemma cker_is_comp1 (i : Iirr G) : 
-  H <| G -> is_comp (0 : Iirr H) ('Res[H] 'xi[G]_i) -> H \subset cker G 'xi[G]_i.
+Lemma cfker_is_comp0 i : 
+  H <| G -> is_comp 0 ('Res[H] 'chi[G]_i) -> H \subset cfker 'chi[G]_i.
 Proof.
-move=> HnG IC; apply/subsetP=> h HiH.
-rewrite cker_irrE inE (subsetP (normal_sub HnG)) //.
-move: (is_comp_clifford HnG IC).
-rewrite -cfuni_xi0 cconjugates1 // big_cons big_nil addr0=> HH.
-move/cfunP: (HH); move/(_ 1%g).
-rewrite cfunE -/fcf !cfuniE group1 mul1r.
-rewrite [X in _ = X]cfunE -!/fcf cfuniE group1 [_ *: _]mulr1=> HH1.
-move/cfunP: HH; move/(_ h).
-rewrite -HH1 cfunE -!/fcf !cfuniE HiH mul1r => ->.
-by rewrite cfunE -!/fcf cfuniE HiH [_ *: _]mulr1 eqxx.
+move=> nsHG /(is_comp_Clifford nsHG); have [sHG nHG] := andP nsHG.
+rewrite chi0_1 cfdot_Res_l cfclass1 // big_seq1 cfunInd_normal1 //.
+rewrite cfdotZr conjC_nat => def_chiH.
+apply/subsetP=> x Hx; rewrite cfker_irrE inE (subsetP sHG) //=.
+by rewrite -!(cfunResE _ sHG) // def_chiH !cfunE !cfun1E Hx group1.
 Qed.
 
 (* This is Isaacs' 6.8 *)
 Lemma is_comp_val1_div i j : 
-  H <| G -> is_comp j ('Res[H] 'xi[G]_i) -> 
-    exists n: nat, 'xi[G]_i 1%g = n%:R * 'xi[H]_j 1%g.
+    H <| G -> is_comp j ('Res[H, G] 'chi_i) ->
+  exists n, 'chi_i 1%g = n%:R * 'chi_j 1%g.
 Proof.
-move=> HnG IC.
-exists (getNatC ('['Res[H] 'xi_i, 'xi_j]_ H) * (size (cconjugates G 'xi_j)))%N.
-rewrite natr_mul.
-have IC1: is_char H ('Res[H] 'xi_i).
-  by apply: is_char_restrict (normal_sub _) (is_char_irr _).
-move: (isNatC_inner_prod_char IC1 (is_char_irr j)).
-rewrite /isNatC; move/eqP<-.
-have->: 'xi_i 1%g = ('Res[H] 'xi_i) 1%g by rewrite !cfunE !(group1,mul1r).
-rewrite {1}(is_comp_clifford HnG IC).
-rewrite cfunE -mulrA; congr (_ * _).
-rewrite sum_cfunE cfunE.
-have: forall f, f \in cconjugates G 'xi_j -> f 1%g = 'xi_j 1%g.
-  by move=> f; case/cconjugatesP=> g GiG ->; rewrite cfunE conj1g.
-elim: (cconjugates _ _)=> [|f l IH HF]; first by rewrite big_nil mul0r.
-rewrite big_cons /fcf HF ?(inE, eqxx) // IH=> [|f1 Hf1].
-  by rewrite /= -[(size _).+1]add1n /= natr_add mulr_addl mul1r.
-by rewrite HF // inE Hf1 orbT.
+move=> nsHG chiHj; have [sHG nHG] := andP nsHG.
+rewrite -(cfunResE _ sHG) // {1}(is_comp_Clifford nsHG chiHj) cfunE sum_cfunE.
+have /isNatCP[n ->]: isNatC '['Res[H] 'chi_i, 'chi_j].
+  by rewrite isNatC_cfdot_char ?is_char_Res ?is_char_irr.
+exists (n * size ('chi_j ^: G)%CH)%N; rewrite natr_mul -mulrA; congr (_ * _).
+rewrite mulr_natl -[size _]card_ord big_tnth -sumr_const; apply: eq_bigr => k _.
+by have /cfclassP[y Gy ->]:=  mem_tnth k (in_tuple _); rewrite cfunConjg_val1.
 Qed.
 
-Lemma cconjugates_induced (f1 f2 : {cfun gT}) :
-   H <| G ->  f1 \in 'CF(H) -> f2 \in 'CF(H) -> f2 \in cconjugates G f1 ->  
-   'Ind[G,H] f1 = 'Ind[G,H] f2.
+Lemma cfclass_Ind phi psi :
+  H <| G ->  psi \in (phi ^: G)%CH -> 'Ind[G] phi = 'Ind[G] psi.
 Proof.
-move=> HnG Cf1 Cf2 HH; case/cconjugatesP: HH Cf2=> g GiG -> Cf2.
-apply/cfunP=> h; case: (boolP (h \in G))=> [HiG| HniG]; last first.
-rewrite !(cfun0 (memc_induced _ _)) ?(normal_sub HnG) //.
-rewrite !cfunE; congr (_ * _).
-rewrite (reindex (mulg^~ g^-1%g)); last first.
-  by exists (mulg^~ g)=> h1 _; rewrite -mulgA (mulgV,mulVg) mulg1.
-apply: eq_big=> [|h1 H1iG]; last by rewrite cfun_conjE conjgM.
-by move=> h1 /=; rewrite groupMr // groupV.
+move=> nsHG /cfclassP[y Gy ->]; have [sHG /subsetP nHG] := andP nsHG.
+apply/cfun_inP=> x Hx; rewrite !cfunIndE //; congr (_ * _).
+rewrite (reindex_acts 'R _ (groupVr Gy)) ?astabsR //=.
+by apply: eq_bigr => z Gz; rewrite conjgM cfunConjgE ?nHG.
 Qed.
 
-Lemma cconjugates_size (i : Iirr H) : 
-  size (cconjugates G 'xi_i) =  #|G : 'I_G['xi_i]|.
-Proof.
-suff->: size(cconjugates G 'xi_i) = 
-       \big[addn/0%N]_(i <- cconjugates G 'xi_i) 1%N.
-  rewrite big_map big_filter /= big_const /= /indexg.
-  by elim: #|_|=> //= n ->.
-by elim: cconjugates=> [|f1 l /= ->]; [rewrite big_nil | rewrite big_cons].
-Qed.
+Lemma cfclass_size i : size ('chi[H]_i ^: G)%CH =  #|G : 'I_G['chi_i]|.
+Proof. by rewrite size_map -cardE. Qed.
 
 End Inertia.
 
-Arguments Scope inertia [_ group_scope character_scope].
-Notation "''I_' G [ f ] " := (inertia G f) : group_scope. 
-Arguments Scope inertia_group [_ subgroup_scope character_scope].
-Notation "''I_' G [ f ] " := (inertia_group G f) : subgroup_scope.
+Arguments Scope inertia [_ group_scope group_scope character_scope].
+Arguments Scope cfclass [_ group_scope character_scope group_scope].
+Notation "''I_' G [ phi ] " := (inertia G phi) : group_scope.
+Notation "''I_' G [ phi ] " := (inertia_group G phi) : subgroup_scope.
+Notation "phi ^: G" := (cfclass phi G) : character_scope.
 
 Section MoreInertia.
 
-Variable gT : finGroupType.
+Variables (gT : finGroupType) (G H : {group gT}) (i : Iirr H).
+Let T := 'I_G['chi_i].
 
-Lemma cconjugates_inertia (G H : {group gT}) (i : Iirr H) :
-   cconjugates 'I_G['xi_i] 'xi_i = [::'xi_i].
+Lemma inertia_id : 'I_T['chi_i] = T.
 Proof.
-set T := 'I_G['xi_i]%G.
-have : forall f, f \in cconjugates T 'xi_i -> f = 'xi_i.
-  move=> f; case/cconjugatesP=> g.
-  by rewrite inE; case/andP=> _; move/eqP->.
-move: (mem_cconjugates T 'xi_i) (unique_cconjugates T 'xi_i) => /=. 
-case: cconjugates=> // f1 [|f2 s]; first by rewrite inE; move/eqP->.
-move=> _ /=; case/andP=> HH _ HH1; case/negP: HH.
-by rewrite /= (HH1 f1) ?(inE,eqxx) // (HH1 f2) ?(inE,eqxx,orTb,orbT).
+rewrite ['I_T[_]]setIdE -{1}[T](setIidPl (inertia_sub _ _)) -/T.
+by rewrite -!setIA (setIA G) -setIdE setIid.
+Qed.
+
+Lemma cfclass_inertia : ('chi[H]_i ^: T)%CH = [:: 'chi_i].
+Proof.
+by rewrite /cfclass inertia_id rcosets_id enum_set1 /= repr_group cfunConjg1.
 Qed.
 
 End MoreInertia.
@@ -445,321 +367,219 @@ Variable (H G : {group gT}).
 
 Variable t : Iirr H.
 
-Let T := 'I_G['xi_t]%G.
+Let T := 'I_G['chi_t]%G.
 
 Hypothesis HnG : H <| G.
 
-Let TsG := inertia_sub G 'xi_t.
+Let TsG := inertia_sub G 'chi_t.
 
 Let HsT : H \subset T.
-Proof. by apply: subset_inertia=> //; exact: memc_irr. Qed.
+Proof. exact: sub_inertia. Qed.
 
 Let HnT : H <| T.
-Proof.
-apply: normalS (HnG); last by exact: inertia_sub.
-by apply: subset_inertia=> //; exact: memc_irr.
-Qed.
+Proof. exact: normal_inertia. Qed.
 
 Section Chi.
 
 Variable p : Iirr T.
 
-Hypothesis Hp : is_comp t ('Res[H] 'xi_p).
+Hypothesis Hp : is_comp t ('Res[H] 'chi_p).
 
 Variable c : Iirr G.
 
-Hypothesis Hc : is_comp c ('Ind[G,T] 'xi_p).
+Hypothesis Hc : is_comp c ('Ind[G,T] 'chi_p).
 
-Let ITC : is_char T ('Res[T] 'xi_c).
-Proof. by apply: (is_char_restrict TsG (is_char_irr _)). Qed.
+Let ITC : is_char ('Res[T] 'chi_c).
+Proof. by rewrite is_char_Res ?is_char_irr. Qed.
 
-Let ITP : is_char T ('Res[T] 'xi_p).
-Proof. by apply: (is_char_restrict _ (is_char_irr _)). Qed.
+Let ITP : is_char ('Res[T] 'chi_p).
+Proof. by rewrite is_char_Res ?is_char_irr. Qed.
 
-Let IHC : is_char H ('Res[H] 'xi_c).
-Proof. by apply: (is_char_restrict (normal_sub _) (is_char_irr _)). Qed.
+Let IHC : is_char ('Res[H] 'chi_c).
+Proof. by rewrite is_char_Res ?is_char_irr. Qed.
 
-Let IHP : is_char H ('Res[H] 'xi_p).
-Proof. by apply: (is_char_restrict _ (is_char_irr _)). Qed.
+Let IHP : is_char ('Res[H] 'chi_p).
+Proof. by rewrite is_char_Res ?is_char_irr. Qed.
 
-Fact is_comp_inertia_restrict_is_comp_i : is_comp p ('Res[T] 'xi_c).
+Fact is_comp_inertia_restrict_is_comp_i : is_comp p ('Res[T] 'chi_c).
 Proof.
-have FF := memc_restrict TsG (memc_is_char (is_char_irr c)).
-move: Hc; rewrite /is_comp.
-have FF1 := memc_induced TsG (memc_irr p).
-rewrite -frobenius_reciprocity ?memc_irr //.
-by rewrite inner_prod_charC ?(is_char_restrict TsG,is_char_irr).
+by rewrite /is_comp cfdot_charC ?is_char_irr ?Frobenius_reciprocity.
 Qed.
 
-Fact is_comp_inertia_restrict_is_comp_g : is_comp t ('Res[H] 'xi_c).
+Fact is_comp_inertia_restrict_is_comp_g : is_comp t ('Res[H] 'chi_c).
 Proof.
-have: '['Res[H] 'xi_p, 'xi_t]_ H <= '['Res[H] ('Res[T] 'xi_c), 'xi_t]_ H.
-  by apply: is_comp_inner_prod_le is_comp_inertia_restrict_is_comp_i.
-rewrite crestrict_subset //.
-move: Hp; rewrite /is_comp /=.
-case/isNatCP: (isNatC_coord_char t IHP)=> n ->.
-case/isNatCP: (isNatC_coord_char t IHC)=> m ->.
-by rewrite -!neq0N_neqC -leq_leC; case: m=> //; case: n.
+rewrite -(cfunRes_subset _ HsT TsG).
+exact: is_comp_restrict is_comp_inertia_restrict_is_comp_i _.
 Qed.
 
-Let e := '['Res[H] 'xi_c, 'xi_t]_ H.
+Let e := '['Res[H] 'chi_c, 'chi_t].
 
-Let f := '['Res[H] 'xi_p, 'xi_t]_ H.
+Let f := '['Res[H] 'chi_p, 'chi_t].
 
-Let He : 'Res[H] 'xi_c = e *: ((\sum_(f <- cconjugates G 'xi_t) f)).
-Proof. exact: (is_comp_clifford HnG is_comp_inertia_restrict_is_comp_g). Qed.
+Let He : 'Res[H] 'chi_c = e *: (\sum_(f <- 'chi_t ^: G) f)%CH.
+Proof. exact: (is_comp_Clifford HnG is_comp_inertia_restrict_is_comp_g). Qed.
 
-Let Hf  : 'Res[H] 'xi_p = f *: 'xi_t.
+Let Hf : 'Res[H] 'chi_p = f *: 'chi_t.
+Proof. by have:= is_comp_Clifford HnT Hp; rewrite cfclass_inertia big_seq1. Qed.
+
+Let He1 : 'chi_c 1%g = e * #|G : T|%:R * 'chi_t 1%g.
 Proof.
-move: (is_comp_clifford  HnT Hp).
-by rewrite cconjugates_inertia big_cons big_nil addr0.
+rewrite -(cfunResE _ (normal_sub HnG)) // He cfunE -mulrA; congr (_ * _).
+rewrite mulr_natl -cfclass_size -[size _]card_ord sum_cfunE big_seq big_tnth.
+rewrite -sumr_const; apply: eq_big => k; first exact: mem_tnth.
+by case/cfclassP=> y Gy ->; rewrite cfunConjg_val1.
 Qed.
 
-Let He1 : 'xi_c 1%g = e * #|G : T|%:R * ('xi_t 1%g).
-Proof.
-move/cfunP: He; move/(_ 1%g).
-rewrite cfunE -!/fcf !cfuniE group1 mul1r => ->.
-rewrite cfunE sum_cfunE cfunE -mulrA; congr (_ * _).
-rewrite -cconjugates_sum //=.
-rewrite (eq_bigr (fun (i: Iirr H) => 'xi_t 1%g))=> [|i]; last first.
-  case/cconjugatesP=> g GiG ->.
-  by rewrite cfun_conj_val1.
-rewrite (cconjugates_sum _ (fun i : {cfun _} => 'xi_t 1%g)) //=.
-rewrite -cconjugates_size.
-elim: cconjugates=> [|f1 l IH]; first by rewrite big_nil mul0r.
-by rewrite big_cons IH /= -[(size _).+1]add1n natr_add mulr_addl mul1r.
-Qed.
+Let Hpsi1  : ('Ind[G] 'chi_p) 1%g = f * #|G : T|%:R * ('chi_t 1%g).
+Proof. by rewrite -mulrA mulrCA cfunInd1 // -(cfunResE _ HsT) // Hf cfunE. Qed.
 
-Let Hpsi1  : ('Ind[G, T] 'xi_p) 1%g = f * #|G : T|%:R * ('xi_t 1%g).
+Fact cfdot_is_comp_inertia_is_comp : f = e.
 Proof.
-have IGI: is_char G ('Ind[G,T] 'xi_p).
-  by apply: is_char_induced=> //; exact: is_char_irr.
-rewrite cfunE.
-rewrite (eq_bigr (fun (c : gT) => 'xi_p 1%g))=> [|g GiG]; last first.
-  by rewrite conj1g.
-rewrite sumr_const.
-move/cfunP: Hf; move/(_ 1%g).
-rewrite cfunE -!/fcf !cfuniE group1 mul1r => ->.
-rewrite cfunE.
-apply: (mulfI (neq0GC T)).
-rewrite mulrA mulfV ?neq0GC // mul1r. 
-rewrite mulrCA  mulrA -[_ *+ #|_|]mulr_natl mulrA; congr (_ * _).
-rewrite [_ * f]mulrC -[(f * _) * _]mulrA [#|_ : _|%:R * _]mulrC.
-by rewrite -natr_mul LaGrange.
-Qed.
-
-Fact inner_prod_is_comp_inertia_is_comp : f = e.
-have F3 : f <= e.
-  have: '['Res[H] 'xi_p, 'xi_t]_ H <= '['Res[H] ('Res[T] 'xi_c), 'xi_t]_ H.
-    by apply: is_comp_inner_prod_le is_comp_inertia_restrict_is_comp_i.
-  rewrite Hf /= crestrict_subset // He.
-  rewrite -!inner_prodbE linearZ [inner_prodb _ _ _]linearZ /= !inner_prodbE.
-  rewrite irr_orthonormal eqxx {1}/GRing.scale /= mulr1.
-  rewrite -cconjugates_sum //=.
-  rewrite (bigD1 t) /=; last first.
-    apply/cconjugatesP; exists 1%g; first by exact: group1.
-    by rewrite cfun_conj1.
-  rewrite-!inner_prodbE linearD /= !inner_prodbE.
-  rewrite scaler_addr irr_orthonormal eqxx {1}/GRing.scale /= mulr1.
-  rewrite -!inner_prodbE linear_sum.
-  rewrite big1=> [|i Hi]; first by rewrite scaler0 addr0.
-  rewrite /= inner_prodbE irr_orthonormal.
-  by case/andP: Hi=> _; move/negPf->.    
+have le_f_e: f <= e.
+  have: '['Res 'chi_p, 'chi_t] <= '['Res[H] ('Res[T] 'chi_c), 'chi_t].
+    by apply: is_comp_cfdot_le is_comp_inertia_restrict_is_comp_i.
+  rewrite Hf /= cfunRes_subset // He !cfdotZl cfdot_irr eqxx mulr1.
+  rewrite -cfclass_sum // cfdot_suml (bigD1 t) ?cfclass_refl //= cfdot_irr eqxx.
+  rewrite big1 ?addr0 ?mulr1 // => i /andP[_ neq_it].
+  by rewrite cfdot_irr (negbTE neq_it).
 apply: leC_anti=> //.
-have: 0 <  #|G : T|%:R *  'xi_t 1%g.
-  rewrite sposC_mul // ?ltC_irr1 //.
-  rewrite /ltC -neq0N_neqC posC_nat.
-  by case: #|_:_| (indexg_gt0 G T).
-move/leC_pmul2r=> <-.
-rewrite mulrA -He1 mulrA -Hpsi1.
-have IIP: is_char G ('Ind[G, T] 'xi_p).
-  by apply: is_char_induced=> //; exact: is_char_irr.
-case/(is_comp_charP _ IIP): Hc=> chi' /= IC' ->.
-rewrite [X in _ <= X]cfunE.
-rewrite addrC -leC_sub addrK.
-by apply: posC_isNatC; apply: isNatC_char1 IC'.
+have: 0 < #|G : T|%:R * 'chi_t 1%g.
+  by rewrite sposC_mul // ?ltC_irr1 // -(ltn_ltC 0).
+move/leC_pmul2r=> <-; rewrite mulrA -He1 mulrA -Hpsi1.
+have IIP: is_char ('Ind[G] 'chi_p) := is_char_Ind G (is_char_irr p).
+case/(is_comp_charP _ IIP): Hc => chi' /= IC' ->.
+by rewrite cfunE addrC -leC_sub addrK posC_isNatC ?isNatC_char1.
 Qed.
 
-Fact is_comp_inertia_induced_is_comp : 'Ind[G, T] 'xi_p = 'xi_c.
+Fact is_comp_inertia_induced_is_comp : 'Ind[G] 'chi_p = 'chi_c.
 Proof.
-have ICI: is_char G ('Ind[G, T] 'xi_p).
-  by apply: is_char_induced (is_char_irr _) _.
+have ICI: is_char ('Ind[G] 'chi_p) := is_char_Ind G (is_char_irr p).
 case/(is_comp_charP _ ICI): Hc => chi' IC' /= Hchi'.
-rewrite Hchi'; move/cfunP: Hchi'; move/(_ 1%g).
-rewrite Hpsi1 inner_prod_is_comp_inertia_is_comp -He1.
-rewrite [X in _ = X]cfunE -{1}['xi_c _]addr0; move/addrI.
-move/eqP; rewrite eq_sym -(character0_eq0 IC'); move/eqP->.
-by rewrite addr0.
+rewrite Hchi'; move/cfunP/(_ 1%g)/esym/eqP: Hchi'.
+rewrite Hpsi1 cfdot_is_comp_inertia_is_comp -He1 cfunE addrC -subr_eq0 addrK.
+by rewrite char1_eq0 // => /eqP->; rewrite addr0.
 Qed.
 
 End Chi.
 
 Variable p : Iirr T.
 
-Hypothesis Hp : is_comp t ('Res[H] 'xi_p).
+Hypothesis Hp : is_comp t ('Res[H] 'chi_p).
 
-Let c := (odflt 0 (pick ((@is_comp _ G)^~ ('Ind[G,T] 'xi_p)))).
+Let cP : 'Ind[G] 'chi_p != 0.
+Proof. by rewrite cfunInd_eq0 -?char1_eq0 ?is_char_irr ?irr1_neq0. Qed.
 
-Let Hc : is_comp c ('Ind[G,T] 'xi_p).
-Proof.
-rewrite /c; case: pickP=> // HH.
-have: 'Ind[G, T] 'xi_p == 0.
-  rewrite -(sum_inner_prodE (memc_induced _ _)) ?memc_irr //.
-  rewrite big1 // => i _.
-  move: (HH i); rewrite /is_comp; move/idP; move/negP.
-  by rewrite negbK; move/eqP->; rewrite scale0r.
-rewrite cinduced_eq0 ?is_char_irr //.
-move/eqP; move/cfunP; move/(_ 1%g)=> HH1.
-by case/negP: (irr1_neq0 p); rewrite HH1 cfunE.
-Qed.
+Let c := val (sigW (is_comp_neq0 cP)).
+
+Let Hc : is_comp c ('Ind[G] 'chi_p).
+Proof. exact: valP (sigW (is_comp_neq0 cP)). Qed.
 
 (* This is 6.11 (a) *)
-Lemma irr_is_comp_inertia : 'Ind[G, 'I_G['xi_t]] 'xi_p \in irr G.
-Proof. by rewrite (is_comp_inertia_induced_is_comp Hp Hc); apply: irr_xi. Qed.
+Lemma irr_is_comp_inertia : 'Ind[G] 'chi_p \in irr G.
+Proof. by rewrite (is_comp_inertia_induced_is_comp Hp Hc); exact: irr_chi. Qed.
 
 (* This is 6.11 (d) *)
-Lemma inner_prod_is_comp_inertia : 
- '['Res[H] 'xi_p, 'xi_t]_H = '['Res[H] ('Ind[G, 'I_G['xi_t]] 'xi_p), 'xi_t]_H.
+Lemma cfdot_is_comp_inertia : 
+ '['Res 'chi_p, 'chi_t] = '['Res ('Ind[G] 'chi_p), 'chi_t].
 Proof. 
 rewrite (is_comp_inertia_induced_is_comp Hp Hc).
-by rewrite (inner_prod_is_comp_inertia_is_comp Hp Hc).
+by rewrite (cfdot_is_comp_inertia_is_comp Hp Hc).
 Qed.
 
 (* This is 6.11 (b) the domain of the induction is B *)
-Lemma is_comp_is_comp_inertia :
-  is_comp t ('Res[H] ('Ind[G, 'I_G['xi_t]] 'xi_p)).
+Lemma is_comp_is_comp_inertia : is_comp t ('Res ('Ind[G] 'chi_p)).
 Proof. 
 rewrite (is_comp_inertia_induced_is_comp Hp Hc).
 by rewrite (is_comp_inertia_restrict_is_comp_g Hp Hc).
 Qed.
 
 (* This is 6.11 c *)
-Lemma unique_is_comp_inertia (p': Iirr T) :
-   is_comp p' ('Res['I_G['xi_t]] ('Ind[G, 'I_G['xi_t]] 'xi_p)) ->
-   is_comp t ('Res[H] 'xi_p') -> p' = p.
+Lemma unique_is_comp_inertia (p' : Iirr T) :
+  is_comp p' ('Res ('Ind[G] 'chi_p)) -> is_comp t ('Res 'chi_p') -> p' = p.
 Proof.
-rewrite (is_comp_inertia_induced_is_comp Hp Hc)=> Cp' Ct.
-have IC: is_char T ('Res[T] 'xi_c).
-  by apply: is_char_restrict (is_char_irr _).
+rewrite (is_comp_inertia_induced_is_comp Hp Hc) => Cp' Ct.
+have IC: is_char ('Res[T] 'chi_c) := is_char_Res T (is_char_irr c).
 case/(is_comp_charP _ IC): Cp' => chi1 IC1 Hchi1.
-apply/eqP; case: (_ =P _)=> //; move/eqP=> Dpsi.
-have: is_comp p chi1.
-  have: is_comp p ('Res[T] 'xi_c).
-    by apply: is_comp_inertia_restrict_is_comp_i.
-  rewrite /is_comp.
-  by rewrite Hchi1 -inner_prodbE linearD ![inner_prodb_linear _ _ _] /= 
-            !inner_prodbE irr_orthonormal (negPf Dpsi) add0r.
-case/(is_comp_charP _ IC1)=> chi2 IC2 Hchi2.
-have: '['Res[H] 'xi_p, 'xi_t]_H < '['Res[H] ('Res[T] 'xi_c), 'xi_t]_H.
-  rewrite Hchi1 addrC Hchi2 2!linearD /=.
-  rewrite -!inner_prodbE 2!linearD /= !inner_prodbE.
+apply: contraTeq isT => Dpsi.
+have /(is_comp_charP _ IC1)[chi2 IC2 Hchi2]: is_comp p chi1.
+  have: is_comp p ('Res[T] 'chi_c).
+    exact: is_comp_inertia_restrict_is_comp_i.
+  by rewrite /is_comp Hchi1 cfdotDl cfdot_irr (negPf Dpsi) add0r.
+have: '['Res[H] 'chi_p, 'chi_t] < '['Res[H] ('Res[T] 'chi_c), 'chi_t].
+  rewrite Hchi1 addrC Hchi2 !linearD !cfdotDl /=.
   rewrite -addrA addrC ltC_sub addrK sposC_addl //.
-    have FF := memc_restrict HsT (memc_is_char IC2).
-    apply: posC_isNatC; apply: isNatC_coord_char.
-    by apply: (is_char_restrict HsT).
-  have FF := memc_restrict HsT (memc_is_char (is_char_irr p')).
-  move: Ct; rewrite /is_comp /ltC => ->.
-  apply: posC_isNatC; apply: isNatC_coord_char.
-  by apply: (is_char_restrict HsT); exact: is_char_irr.
-rewrite inner_prod_is_comp_inertia (is_comp_inertia_induced_is_comp Hp Hc).
-by rewrite crestrict_subset // ltC_sub subrr /ltC eqxx.
+    by rewrite posC_isNatC ?isNatC_cfdot_char_irr ?is_char_Res.
+  rewrite ltCE [~~ _]Ct posC_isNatC ?isNatC_cfdot_char_irr //.
+  by rewrite is_char_Res ?is_char_irr.
+rewrite cfdot_is_comp_inertia (is_comp_inertia_induced_is_comp Hp Hc).
+by rewrite cfunRes_subset // ltCE eqxx.
 Qed.
 
 End S611A.
 
 (* This is 6.11 b it is an injection *)
 Lemma injective_is_comp_inertia (G H : {group gT}) (t : Iirr H) :
- H <| G ->
- {in [pred p: Iirr 'I_G['xi_t] | is_comp t ('Res[H] 'xi_p)] &,
-    injective (fun p : Iirr 'I_G['xi_t] => 
-                  'Ind[G, 'I_G['xi_t]] 'xi_p)}.
+   H <| G ->
+ {in [pred p | is_comp t ('Res[H, 'I_G['chi_t]] 'chi_p)] &,
+    injective (fun p => 'Ind[G, 'I_G['chi_t]] 'chi_p)}.
 Proof.
-move=> HnG p p' Hp Hp' Heq.
-have TsG := inertia_sub G 'xi_t.
+move=> HnG p p' Hp Hp' Heq; set T := 'I_G[_].
+have TsG: T \subset G := inertia_sub G 'chi_t.
 apply: (unique_is_comp_inertia HnG Hp' _ Hp).
-have FF := memc_restrict TsG (memc_induced TsG (memc_irr p)).
-have IC1: is_char G ('Ind[G, 'I_G['xi_t]] 'xi_p).
-  by apply: is_char_induced=> //; exact: is_char_irr.
-have IC2: is_char 'I_G['xi_t]
-            ('Res['I_G['xi_t]] ('Ind[G, 'I_G['xi_t]] 'xi_p)).
-  by apply: is_char_restrict TsG _.
-rewrite -Heq /is_comp inner_prod_charC  ?is_char_irr //.
-rewrite (frobenius_reciprocity TsG) ?(memc_is_char,is_char_irr) //.
-rewrite inner_prod0; last first.
-  by apply: memc_induced=> //; exact: memc_irr.
-rewrite cinduced_eq0 ?is_char_irr //.
-apply/eqP; move/cfunP; move/(_ 1%g).
-rewrite /= [_ 0 _]cfunE=> HH.
-by case/eqP: (irr1_neq0 p).
+have IC1: is_char ('Ind[G] 'chi_p) := is_char_Ind G (is_char_irr p).
+have IC2: is_char ('Res[T] ('Ind[G] 'chi_p)) := is_char_Res _ IC1.
+rewrite -Heq /is_comp cfdot_charC ?is_char_irr //.
+rewrite Frobenius_reciprocity /= cfnorm_eq0 cfunInd_eq0 ?is_char_irr //.
+exact: (free_notin0 (free_irr _) (irr_chi p)).
 Qed.
 
 (* 6.11 b the inverse function *)
-Definition inertia_induced_inv (G H : {group gT})
-                (t : Iirr H) (chi : {cfun gT}) :=
-  odflt 0
-           (pick [pred t' : Iirr 'I_G['xi_t] |
-                   is_comp t ('Res[H] 'xi_t') && 
-                   is_comp t' ('Res['I_G['xi_t]] chi)]).
+Definition inertia_induced_inv (G H : {group gT}) t (chi : 'CF(G)) :=
+  odflt 0 (pick [pred t' | is_comp t ('Res[H] 'chi_t') && 
+                           is_comp t' ('Res['I_G['chi_t]] chi)]).
 
-Let inertia_coord :
- forall (G H : {group gT}) (t : Iirr H) (c : Iirr G),
-    H <| G ->
-   [pred p : Iirr 'I_G['xi_t] | 
-                 is_comp t ('Res[H] 'xi_p) &&
-                 is_comp p ('Res['I_G['xi_t]] 'xi_c)] =1 xpred0 ->
-   '['Res[H] 'xi_c, 'xi_t]_H == 0.
+Let inertia_coord (G H : {group gT}) (t : Iirr H) (c : Iirr G) :
+    H <| G -> [pred p | is_comp t ('Res[H] 'chi_p) &&
+                        is_comp p ('Res['I_G['chi_t]] 'chi_c)] =1 xpred0 ->
+   '['Res[H] 'chi_c, 'chi_t] == 0.
 Proof.
-move=> G H t c HnG HH.
-have FF := memc_restrict (normal_sub HnG) (memc_irr c).
-have HsT := subset_inertia (memc_irr t) HnG.
-rewrite -(crestrict_subset 'xi_c HsT).
-rewrite -(sum_inner_prodE (memc_restrict (inertia_sub G 'xi_t) (memc_irr _))).
-rewrite linear_sum -inner_prodbE linear_sum big1 //= => chi1 _.
-rewrite inner_prodbE linearZ -inner_prodbE linearZ /= inner_prodbE.
-have FF1 := memc_restrict HsT (memc_irr chi1).
-move: (HH chi1); rewrite inE !is_compE.
-case: (_ =P _)=> [->|/= _]; first by rewrite scaler0.
-by move/eqP->; rewrite scale0r.
+set T := 'I_G['chi_t] => HnG HH.
+have HsT: H \subset T := sub_inertia 'chi_t HnG.
+rewrite -(cfunRes_subset _ HsT) ?inertia_sub //= -/T.
+rewrite ['Res 'chi_c]cfun_cfdot_sum linear_sum cfdot_suml big1 //= => i _.
+move/negbT: (HH i); apply: contraNeq; rewrite linearZ cfdotZl mulf_eq0 //=.
+by rewrite orbC negb_or.
 Qed.
 
-Lemma inertia_induced_inv_is_comp_h (G H : {group gT}) (t : Iirr H) 
-                                                       (c : Iirr G) :
-    H <| G -> is_comp t ('Res[H] 'xi_c) ->
-    is_comp t ('Res[H] 'xi_(inertia_induced_inv G t 'xi_c)).
+Lemma inertia_induced_inv_is_comp_h (G H : {group gT}) t c :
+    H <| G -> is_comp t ('Res[H, G] 'chi_c) ->
+  is_comp t ('Res[H] 'chi_(inertia_induced_inv t 'chi_c)).
 Proof.
 move=> HnG Ct.
-rewrite /inertia_induced_inv; case: pickP=> [c'| HH]; first by case/andP.
+rewrite /inertia_induced_inv; case: pickP => [_ /andP[] //| HH].
 by case/negP: Ct; apply: inertia_coord.
 Qed.
 
-Lemma inertia_induces_inv_is_comp_i (G H : {group gT}) (t : Iirr H) 
-                                                       (c : Iirr G) :
-    H <| G -> is_comp t ('Res[H] 'xi_c) ->
-    is_comp (inertia_induced_inv G t 'xi_c) ('Res['I_G['xi_t]] 'xi_c).
+Lemma inertia_induces_inv_is_comp_i (G H : {group gT}) t c :
+    H <| G -> is_comp t ('Res[H, G] 'chi_c) ->
+  is_comp (inertia_induced_inv t 'chi_c) ('Res['I_G['chi_t]] 'chi_c).
 Proof.
 move=> HnG Ct.
-rewrite /inertia_induced_inv; case: pickP=> [c'| HH]; first by case/andP.
+rewrite /inertia_induced_inv; case: pickP => [_ /andP[] //| HH].
 by case/negP: Ct; apply: inertia_coord.
 Qed.
 
 (* This is 6.11 b the surjective part *)
 Lemma inertia_induced_invE (G H : {group gT}) (t : Iirr H) (c : Iirr G) :
-    H <| G -> is_comp t ('Res[H] 'xi_c) ->
-    'Ind[G,'I_G['xi_t]] 'xi_(inertia_induced_inv G t 'xi_c) = 'xi_c.
+    H <| G -> is_comp t ('Res[H] 'chi_c) ->
+  'Ind[G] 'chi_(inertia_induced_inv t 'chi_c) = 'chi_c.
 Proof.
 move=> HnG Cc.
-apply: is_comp_inertia_induced_is_comp=> //.
-  by apply: inertia_induced_inv_is_comp_h.
-have FF := memc_induced (inertia_sub G 'xi_t) (memc_irr _).
-rewrite /is_comp -frobenius_reciprocity; first last.
-- by apply: memc_irr.
-- by apply: memc_irr.
-- by apply:inertia_sub.
-move: (inertia_induces_inv_is_comp_i HnG Cc).
-have FF1 := memc_restrict (inertia_sub G 'xi_t) (memc_irr c).
-rewrite /is_comp inner_prod_charC ?is_char_irr //.
-apply: is_char_restrict (is_char_irr _).
-by apply: inertia_sub.
+apply: is_comp_inertia_induced_is_comp => //.
+  exact: inertia_induced_inv_is_comp_h.
+rewrite /is_comp -Frobenius_reciprocity.
+rewrite cfdot_charC ?is_char_Res ?is_char_irr //.
+exact: inertia_induces_inv_is_comp_i.
 Qed.
 
 End S611.

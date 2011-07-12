@@ -1117,6 +1117,8 @@ apply: contraLR; rewrite -lt0n -leqNgt => nm_gt0; apply: m_min.
 by rewrite nm_gt0 /= exprn_mod ?zn1.
 Qed.
 
+Section OnePrimitive.
+
 Variables (n : nat) (z : R).
 Hypothesis prim_z : n.-primitive_root z.
 
@@ -1149,6 +1151,25 @@ rewrite -{1}(subnKC le_ji) exprn_addr -prim_expr_mod eqn_mod_dvd //.
 rewrite prim_order_dvd; apply/eqP/eqP=> [|->]; last by rewrite mulr1.
 move/(congr1 ( *%R (z ^+ (n - j %% n)))); rewrite mulrA -exprn_addr.
 by rewrite subnK ?prim_expr_order ?mul1r // ltnW ?ltn_mod.
+Qed.
+
+End OnePrimitive.
+
+Lemma prim_root_exp_coprime n z k :
+  n.-primitive_root z -> n.-primitive_root (z ^+ k) = coprime k n.
+Proof.
+move=> prim_z;have n_gt0 := prim_order_gt0 prim_z.
+apply/idP/idP=> [prim_zk | co_k_n].
+  set d := gcdn k n; have dv_d_n: (d %| n)%N := dvdn_gcdr _ _.
+  rewrite /coprime -/d -(eqn_pmul2r n_gt0) mul1n -{2}(gcdn_mull n d).
+  rewrite -{2}(divnK dv_d_n) (mulnC _ d) gcdn_mul2l dvdn_gcd_idr //.
+  rewrite (prim_order_dvd prim_zk) -exprn_mulr -(prim_order_dvd prim_z).
+  by rewrite gcdn_divnC dvdn_mulr.
+have zkn_1: z ^+ k ^+ n = 1 by rewrite exprnC (prim_expr_order prim_z) exp1rn.
+have{zkn_1} [m prim_zk dv_m_n]:= prim_order_exists n_gt0 zkn_1.
+suffices /eqP <-: m == n by [].
+rewrite eqn_dvd dv_m_n -(@gauss n k m) 1?coprime_sym //=.
+by rewrite (prim_order_dvd prim_z) exprn_mulr (prim_expr_order prim_zk).
 Qed.
 
 End PolynomialTheory.
@@ -1687,6 +1708,34 @@ by rewrite map_diff_roots -negb_or.
 Qed.
 
 End MapPolyRoots.
+
+Section AutPolyRoot.
+(* The action of automorphisms on roots of unity. *)
+
+Variable F : fieldType.
+Implicit Types u v : {rmorphism F -> F}.
+
+Lemma aut_prim_rootP u z n :
+  n.-primitive_root z -> {k | coprime k n & u z = z ^+ k}.
+Proof.
+move=> prim_z; have:= prim_z; rewrite -(fmorph_primitive_root u) => prim_uz.
+have [[k _] /= def_uz] := prim_rootP prim_z (prim_expr_order prim_uz).
+by exists k; rewrite // -(prim_root_exp_coprime _ prim_z) -def_uz.
+Qed.
+
+Lemma aut_unity_rootP u z n : n > 0 -> z ^+ n = 1 -> {k | u z = z ^+ k}.
+Proof.
+by move=> _ /prim_order_exists[// | m /(aut_prim_rootP u)[k]]; exists k.
+Qed.
+
+Lemma aut_unity_rootC u v z n : n > 0 -> z ^+ n = 1 -> u (v z) = v (u z).
+Proof.
+move=> n_gt0 /(aut_unity_rootP _ n_gt0) def_z.
+have [[i def_uz] [j def_vz]] := (def_z u, def_z v).
+by rewrite !(def_uz, def_vz, rmorphX) exprnC.
+Qed.
+
+End AutPolyRoot.
 
 Section PolyCompose.
 

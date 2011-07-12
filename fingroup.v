@@ -1652,6 +1652,16 @@ move=> Gx sAG; apply/subsetP=> _ /imsetP[y Ay ->].
 by rewrite groupJ // (subsetP sAG).
 Qed.
 
+Lemma repr_classesP xG :
+  reflect (repr xG \in G /\ xG = repr xG ^: G) (xG \in classes G).
+Proof.
+apply: (iffP imsetP) => [[x Gx ->] | []]; last by exists (repr xG).
+by have [y Gy ->] := repr_class x; rewrite classGidl ?groupJ.
+Qed.
+
+Lemma mem_repr_classes xG : xG \in classes G -> repr xG \in xG.
+Proof. by case/repr_classesP=> _ {2}->; exact: class_refl. Qed.
+
 Lemma class_supportGidl A x :
   x \in G -> class_support (A :^ x) G = class_support A G.
 Proof.
@@ -1811,6 +1821,7 @@ Implicit Arguments trivGP [gT G].
 Implicit Arguments mulGidPl [gT G H].
 Implicit Arguments mulGidPr [gT G H].
 Implicit Arguments comm_group_setP [gT G H].
+Implicit Arguments repr_classesP [gT G xG].
 Prenex Implicits trivgP trivGP comm_group_setP.
 
 Section GroupInter.
@@ -1948,6 +1959,12 @@ Proof. by rewrite -!divgI -conjIg !cardJg. Qed.
 
 Lemma indexgg G : #|G : G| = 1%N.
 Proof. by rewrite -divgS // divnn cardG_gt0. Qed.
+
+Lemma rcosets_id G : rcosets G G = [set (G : {set gT})].
+Proof.
+apply/esym/eqP; rewrite eqEcard sub1set [#|_|]indexgg cards1 andbT.
+by apply/rcosetsP; exists 1; rewrite ?mulg1.
+Qed.
 
 Lemma LaGrange_index G H K :
   H \subset G -> K \subset H -> (#|G : H| * #|H : K|)%N = #|G : K|.

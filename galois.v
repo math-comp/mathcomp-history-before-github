@@ -1154,7 +1154,7 @@ set (s := [seq f_ i |  i <- enum 'I_n]).
 set (g (x : coset_of [set x : LAut | kAut E (fullv L) (val x)]):= 
      (val (repr x) \o projv E)%VS).
 suff Hs : {in s &, injective g} by rewrite -(map_inj_in_uniq Hs) -map_comp.
-move => x y Hx Hy => Hg.
+move=> x y Hx Hy /= Hg.
 apply/eqP/(Aut_eq (mem_repr_coset _) (mem_repr_coset _)) => a /projv_id <-.
 by rewrite -[_ (projv E a)]comp_lappE [(_ \o _)%VS]Hg comp_lappE.
 Qed.

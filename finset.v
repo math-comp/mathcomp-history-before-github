@@ -321,6 +321,9 @@ Proof. by rewrite inE. Qed.
 Lemma set1_inj : injective (@set1 T).
 Proof. by move=> a b eqsab; apply/set1P; rewrite -eqsab set11. Qed.
 
+Lemma enum_set1 a : enum [set a] = [:: a].
+Proof. by rewrite (eq_enum (in_set _)) enum1. Qed.
+
 Lemma setU1P x a B : reflect (x = a \/ x \in B) (x \in a |: B).
 Proof. by rewrite !inE; exact: predU1P. Qed.
 

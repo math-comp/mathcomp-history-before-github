@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset.
 Require Import fingroup morphism perm automorphism quotient finalg action.
 Require Import gproduct zmodp commutator cyclic center pgroup sylow.
-Require Import vector algC matrix.
+Require Import vector algebra algC matrix.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -14,30 +14,78 @@ Local Open Scope ring_scope.
 
 (******************************************************************************)
 (* This file contains the basic notions of class functions                    *)
-(*    {cfun gT} == the type of functions from the finGroupType gT to algC.    *)
-(*         '1_G == the indicator function of G as a class function.           *)
-(*       f^*%CH == the function conjugate to f.                               *)
-(*    'CF(G, A) == the vector space of class functions of G with support A.   *)
-(*       'CF(G) == the vector space of class functions of G with support G.   *)
-(*    '[f, g]_G == the convolution product of f and g, normalised so that     *)
-(*                 irr G is an orthonormal basis of 'CF(G).                   *)
-(*   (f / N)%CH == if f \in 'CF(G) and N <| G, the corresponding class        *)
-(*                 function on the cosets of N.                               *)
-(*  (f %% N)%CH == the class function on G corresponding to f \in 'CF(G / N). *)
-(*    'Res[H] f == the restriction of f to H: 'Res[H] f x = f x if x \in H,   *)
-(*                 and 'Res[H] f x = 0 if x \notin H.                         *)
-(* 'Ind[G, H] f == the class function induced by f from H to G.               *)
+(*          'CF(G) == the type of class functions on G : {group gT}, i.e.,    *)
+(*                    which map gT to the type algC of complex algebraics,    *)
+(*                    have support in G, and are constant on each conjugacy   *)
+(*                    class of G. 'CF(G) implements the algebraType interface *)
+(*                    of finite-dimensional F-algebras.                       *)
+(*                    The identity 1 : 'CF(G) is the indicator function of G, *)
+(*                    and (later) the principal character).                   *)
+(*       'CF(G)%VS == the (total) vector space of 'CF(G).                     *)
+(*       'CF(G, A) == the subspace of functions in 'CF(G) with support in A.  *)
+(*           phi x == the image of x : gT under phi : 'CF(G).                 *)
+(*       cfker phi == the kernel of phi : 'CF(G); note that cfker phi <| G.   *)
+(*   cfaithful phi <=>  phi : 'CF(G) is faithful (has a trivial kernel).      *)
+(*            '1_A == the indicator function of A as a function of 'CF(G).    *)
+(*                    (Provided A \subset G; G is determined by the context.) *)
+(*        phi^*%CH == the function conjugate to phi : 'CF(G).                 *)
+(*                    (The %CH scope is bound to the 'CF(_) types.)           *)
+(*           phi^u == the function conjugate to phi by an algC-automorphism u *)
+(*   cfunAut u phi    The notation "_ ^u" is only reserved; it is up to       *)
+(*                    clients to set Notation "phi ^u" := (cfunAut u phi).    *)
+(*     '[phi, psi] == the convolution of phi, psi : 'CF(G) over G, normalised *)
+(*   '[phi, psi]_G    by #|G| so that '[1, 1]_G = 1 (G is usually inferred).  *)
+(*  cfdotr psi phi == '[phi, psi] (self-expanding).                           *)
+(* '[phi], '[phi]_G == the squared norm '[phi, phi] of phi : 'CF(G).          *)
+(* orthogonal R S <=> each phi in R : seq 'CF(G) is orthogonal to each psi in *)
+(*                    S, i.e., '[phi, psi] = 0. As 'CF(G) coerces to seq, one *)
+(*                    can write orthogonal phi S and orthogonal phi psi.      *)
+(* pairwise_orthogonal S <=> the class functions in S are pairwise orhtogonal *)
+(*                    AND non-zero.                                           *)
+(*   orthonormal S <=> S is pairwise orthogonal and all class functions in S  *)
+(*                    have norm 1.                                            *)
+(*    isometry tau <-> tau : 'CF(D) -> 'CF(R) is an isometry, mapping         *)
+(*                    '[_, _]_D to '[_, _]_R.                                 *)
+(* {in CD, isometry tau, to CR} <-> in the domain CD, tau is an isometry      *)
+(*                    whose range is contained in CR.                         *)
+(* conjC_closed S <-> S : seq 'CF(G) is closed under DISTINCT conjugates: for *)
+(*                    eact phi \in S, phi^*%CH != phi is also in S.           *)
+(*     'Res[H] phi == the restriction of phi : 'CF(G) to a function of 'CF(H) *)
+(*  'Res[H, G] phi    'Res[H] phi x = phi x if x \in H (when H \subset G),    *)
+(*        'Res phi    'Res[H] phi x = 0 if x \notin H.                        *)
+(*     'Ind[G] phi == the class function of 'CF(G) induced by phi : 'CF(H),   *)
+(*  'Ind[G, H] phi    when H \subset G. As with 'Res phi, both G and H can    *)
+(*        'Ind phi    be inferred, thou usually G isn't.                      *)
+(*   cfunMorph phi == the class function in 'CF(G) that maps x to phi (f x),  *)
+(*                    where phi : 'CF(f @* G), provided G \subset 'dom f.     *)
+(*   (phi %% H)%CH == special case of cfunMorph phi, when phi : 'CF(G / H).   *)
+(*    (phi / H)%CH == the class function in 'CF(G / H) that coincides with    *)
+(*                    phi : 'CF(G) on cosets of H on which phi is constant.   *)
+(* For a group G that is a direct product (with KxH : K \x H = G), we set     *)
+(*  cfun_dprodl KxH phi == for phi : 'CF(K), the class function of 'CF(G)     *)
+(*                         that maps k * h to phi k when k \in K and h \in H. *)
+(*  cfun_dprodr KxH psi == for psi : 'CF(H), the class function of 'CF(G)     *)
+(*                         that maps k * h to psi h when k \in K and h \in H. *)
+(*  cfun_dprod KxH phi psi == the class function of 'CF(G) that maps k * h to *)
+(*                         to phi k * psi h (this is the product of the above *)
+(*                         two).                                              *)
 (******************************************************************************)
 
 Reserved Notation "''CF' ( G , A )" (at level 8, format "''CF' ( G ,  A )").
 Reserved Notation "''CF' ( G )" (at level 8, format "''CF' ( G )").
 Reserved Notation "''1_' G" (at level 8, G at level 2, format "''1_' G").
+Reserved Notation "''Res[' H , G ]" (at level 8, only parsing).
 Reserved Notation "''Res[' H ]" (at level 8, format "''Res[' H ]").
-Reserved Notation "''Ind[' G , H ]" (at level 8, format "''Ind[' G ,  H ]").
-Reserved Notation "'[ u , v ]_ G"
-  (at level 8, G at level 2, format "'[hv' ''[' u ,  '/' v ]_ G ']'").
-Reserved Notation "'[ u ]_ G"
-  (at level 8, G at level 2, format "''[' u ]_ G").
+Reserved Notation "''Res'" (at level 0, only parsing).
+Reserved Notation "''Ind[' G , H ]" (at level 8, only parsing).
+Reserved Notation "''Ind[' G ]" (at level 8, format "''Ind[' G ]").
+Reserved Notation "''Ind'" (at level 0, only parsing).
+Reserved Notation "'[ phi , psi ]_ G" (at level 2, only parsing).
+Reserved Notation "'[ phi , psi ]"
+  (at level 2, format "'[hv' ''[' phi ,  '/' psi ] ']'").
+Reserved Notation "'[ phi ]_ G" (at level 2, only parsing).
+Reserved Notation "'[ phi ]" (at level 2, format "''[' phi ]").
+Reserved Notation "phi ^u" (at level 3, format "phi ^u").
 
 Section AlgC.
 
@@ -60,730 +108,1152 @@ End AlgC.
 
 Delimit Scope character_scope with CH.
 
-Definition cfun (gT : finGroupType) of phant gT := {ffun gT -> algC}.
-Bind Scope character_scope with cfun.
+Section Defs.
 
-Notation "{ 'cfun' T }" := (cfun (Phant T))
-  (at level 0, format "{ 'cfun'  T }") : type_scope.
+Variable gT : finGroupType.
 
-Section FunOfCfun.
+Definition is_class_fun (B : {set gT}) (f : {ffun gT -> algC}) :=
+  (forallb x, forallb y, (y \in B) ==> (f (x ^ y) == f x))
+  && (support f \subset B).
 
-Implicit Type gT : finGroupType.
+Lemma intro_class_fun (G : {group gT}) f :
+    {in G &, forall x y, f (x ^ y) = f x} ->
+    (forall x, x \notin G -> f x = 0) ->
+  is_class_fun G (finfun f).
+Proof.
+move=> fJ Gf; apply/andP; split; last first.
+  by apply/supportP=> x notAf; rewrite ffunE Gf.
+apply/forallP=> x; apply/forall_inP=> y Gy; apply/eqP; rewrite !ffunE.
+by have [/fJ-> // | notGx] := boolP (x \in G); rewrite !Gf ?groupJr.
+Qed.
 
-Definition fun_of_cfun gT phT (f : @cfun gT phT) := f : gT -> algC.
-Coercion fun_of_cfun : cfun >-> Funclass.
+Variable B : {set gT}.
+Local Notation G := <<B>>.
 
-Lemma cfunE gT (f : gT -> algC) x :
-  ((finfun f : {cfun gT}) x = f x) * (finfun f x = f x).
-Proof. by split; exact: ffunE. Qed.
+Record classfun : predArgType :=
+  Classfun {cfun_val; _ : is_class_fun G cfun_val}.
+Implicit Types phi psi xi : classfun.
+(* The default expansion lemma cfunE requires key = 0. *)
+Definition Cfun := locked (fun key : nat => Classfun).
 
-Lemma cfunP gT (f1 f2 : {cfun gT}) : f1 =1 f2 <-> f1 = f2.
-Proof. exact: ffunP. Qed.
+Canonical cfun_subType := Eval hnf in [subType for cfun_val by classfun_rect].
+Definition cfun_eqMixin := Eval hnf in [eqMixin of classfun by <:].
+Canonical cfun_eqType := Eval hnf in EqType classfun cfun_eqMixin.
+Canonical cfun_choiceMixin := Eval hnf in [choiceMixin of classfun by <:].
+Canonical cfun_choiceType := Eval hnf in ChoiceType classfun cfun_choiceMixin.
 
-End FunOfCfun.
+Definition fun_of_cfun phi := cfun_val phi : gT -> algC.
+Coercion fun_of_cfun : classfun >-> Funclass.
 
-(* Temporary kludge to compensate the cloning of the ffun Lmodule instance. *)
-(* Bizzarre behavior of pattern matching: omitting the (Phant _) pattern    *)
-(* triggers an "undeclared evar" anomaly when trying to do rewrite -/fcf in *)
-(* a DIFFERENT file (it works fin in classfun !!!).                         *)
-Notation fcf := (@fun_of_cfun _ (Phant _) _).
+Lemma cfunElock k f fP : @Cfun k (finfun f) fP =1 f.
+Proof. by unlock Cfun; exact: ffunE. Qed.
+
+Lemma cfunE f fP : @Cfun 0 (finfun f) fP =1 f.
+Proof. exact: cfunElock. Qed.
+
+Lemma cfunP phi psi : phi =1 psi <-> phi = psi.
+Proof. by split=> [/ffunP/val_inj | ->]. Qed.
+
+Lemma cfun0gen phi x : x \notin G -> phi x = 0.
+Proof. by case: phi => f fP; case: (andP fP) => _ /supportP; exact. Qed.
+
+Lemma cfun_in_genP phi psi : {in G, phi =1 psi} -> phi = psi.
+Proof.
+move=> eq_phi; apply/cfunP=> x.
+by have [/eq_phi-> // | notAx] := boolP (x \in G); rewrite !cfun0gen.
+Qed.
+
+Lemma cfunJgen phi x y : y \in G -> phi (x ^ y) = phi x.
+Proof.
+case: phi => f fP Gy; apply/eqP.
+by case: (andP fP) => /forallP/(_ x)/forall_inP->.
+Qed.
+
+Fact cfun_zero_subproof : is_class_fun G (0 : {ffun _}).
+Proof. exact: intro_class_fun. Qed.
+Definition cfun_zero := Cfun 0 cfun_zero_subproof.
+
+Fact cfun_comp_subproof f phi :
+  f 0 = 0 -> is_class_fun G [ffun x => f (phi x)].
+Proof.
+by move=> f0; apply: intro_class_fun => [x y _ /cfunJgen | x /cfun0gen] ->.
+Qed.
+Definition cfun_comp f f0 phi := Cfun 0 (@cfun_comp_subproof f phi f0).
+Definition cfun_opp := cfun_comp (oppr0 _).
+
+Fact cfun_add_subproof phi psi : is_class_fun G [ffun x => phi x + psi x].
+Proof.
+apply: intro_class_fun => [x y Gx Gy | x notGx]; rewrite ?cfunJgen //.
+by rewrite !cfun0gen ?add0r.
+Qed.
+Definition cfun_add phi psi := Cfun 0 (cfun_add_subproof phi psi).
+
+Fact cfun_indicator_subproof (A : {set gT}) :
+  is_class_fun G [ffun x => ((x \in G) && (x ^: G \subset A))%:R].
+Proof.
+apply: intro_class_fun => [x y Gx Gy | x /negbTE/= -> //].
+by rewrite groupJr ?classGidl.
+Qed.
+Definition cfun_indicator A := Cfun 1 (cfun_indicator_subproof A).
+Local Notation "''1_' A" := (cfun_indicator A) : ring_scope.
+
+Lemma cfun1Egen x : '1_G x = (x \in G)%:R.
+Proof. by rewrite cfunElock andb_idr // => /class_subG->. Qed.
+
+Fact cfun_mul_subproof phi psi : is_class_fun G [ffun x => phi x * psi x].
+Proof.
+apply: intro_class_fun => [x y Gx Gy | x notGx]; rewrite ?cfunJgen //.
+by rewrite cfun0gen ?mul0r.
+Qed.
+Definition cfun_mul phi psi := Cfun 0 (cfun_mul_subproof phi psi).
+
+Definition cfun_unit :=
+  [pred phi : classfun | forallb x, (x \in G) ==> (phi x != 0)].
+Definition cfun_inv phi :=
+  if phi \in cfun_unit then cfun_comp (invr0 _) phi else phi.
+
+Definition cfun_scale a := cfun_comp (mulr0 a).
+
+Fact cfun_addA : associative cfun_add.
+Proof. by move=> phi psi xi; apply/cfunP=> x; rewrite !cfunE addrA. Qed.
+Fact cfun_addC : commutative cfun_add.
+Proof. by move=> phi psi; apply/cfunP=> x; rewrite !cfunE addrC. Qed.
+Fact cfun_add0 : left_id cfun_zero cfun_add.
+Proof. by move=> phi; apply/cfunP=> x; rewrite !cfunE add0r. Qed.
+Fact cfun_addN : left_inverse cfun_zero cfun_opp cfun_add.
+Proof. by move=> phi; apply/cfunP=> x; rewrite !cfunE addNr. Qed.
+
+Definition cfun_zmodMixin := ZmodMixin cfun_addA cfun_addC cfun_add0 cfun_addN.
+Canonical cfun_zmodType := ZmodType classfun cfun_zmodMixin.
+
+Lemma muln_cfunE phi n x : (phi *+ n) x = phi x *+ n.
+Proof. by elim: n => [|n IHn]; rewrite ?mulrS !cfunE ?IHn. Qed.
+
+Lemma sum_cfunE I r (P : pred I) (phi : I -> classfun) x :
+  (\sum_(i <- r | P i) phi i) x = \sum_(i <- r | P i) (phi i) x.
+Proof. by elim/big_rec2: _ => [|i _ psi _ <-]; rewrite cfunE. Qed.
+
+Fact cfun_mulA : associative cfun_mul.
+Proof. by move=> phi psi xi; apply/cfunP=> x; rewrite !cfunE mulrA. Qed.
+Fact cfun_mulC : commutative cfun_mul.
+Proof. by move=> phi psi; apply/cfunP=> x; rewrite !cfunE mulrC. Qed.
+Fact cfun_mul1 : left_id '1_G cfun_mul.
+Proof.
+by move=> phi; apply: cfun_in_genP => x Gx; rewrite !cfunE cfun1Egen Gx mul1r.
+Qed.
+Fact cfun_mulD : left_distributive cfun_mul cfun_add.
+Proof. by move=> phi psi xi; apply/cfunP=> x; rewrite !cfunE mulr_addl. Qed.
+Fact cfun_nz1 : '1_G != 0.
+Proof.
+by apply/eqP=> /cfunP/(_ 1%g)/eqP; rewrite cfun1Egen cfunE group1 oner_eq0.
+Qed.
+
+Definition cfun_ringMixin :=
+  ComRingMixin cfun_mulA cfun_mulC cfun_mul1 cfun_mulD cfun_nz1.
+Canonical cfun_ringType := RingType classfun cfun_ringMixin.
+Canonical cfun_comRingType := ComRingType classfun cfun_mulC.
+
+Fact cfun_mulV : {in cfun_unit, left_inverse 1 cfun_inv *%R}.
+Proof.
+move=> phi Uphi; rewrite /cfun_inv Uphi; apply/cfun_in_genP=> x Gx.
+by rewrite !cfunE cfun1Egen Gx mulVf ?(forall_inP Uphi).
+Qed.
+Fact cfun_unitP phi psi : psi * phi = 1 -> phi \in cfun_unit.
+Proof.
+move/cfunP=> phiK; apply/forall_inP=> x Gx; rewrite -unitfE; apply/unitrP.
+by exists (psi x); have:= phiK x; rewrite !cfunE cfun1Egen Gx mulrC.
+Qed.
+Fact cfun_inv0id : {in [predC cfun_unit], cfun_inv =1 id}.
+Proof. by rewrite /cfun_inv => phi /negbTE/= ->. Qed.
+
+Definition cfun_unitMixin := ComUnitRingMixin cfun_mulV cfun_unitP cfun_inv0id.
+Canonical cfun_unitRingType := UnitRingType classfun cfun_unitMixin.
+Canonical cfun_comUnitRingType := [comUnitRingType of classfun].
+
+Fact cfun_scaleA a b phi :
+  cfun_scale a (cfun_scale b phi) = cfun_scale (a * b) phi.
+Proof. by apply/cfunP=> x; rewrite !cfunE mulrA. Qed.
+Fact cfun_scale1 : left_id 1 cfun_scale.
+Proof. by move=> phi; apply/cfunP=> x; rewrite !cfunE mul1r. Qed.
+Fact cfun_scaleDr : right_distributive cfun_scale +%R.
+Proof. by move=> a phi psi; apply/cfunP=> x; rewrite !cfunE mulr_addr. Qed.
+Fact cfun_scaleDl phi : {morph cfun_scale^~ phi : a b / a + b}.
+Proof. by move=> a b; apply/cfunP=> x; rewrite !cfunE mulr_addl. Qed.
+
+Definition cfun_lmodMixin :=
+  LmodMixin cfun_scaleA cfun_scale1 cfun_scaleDr cfun_scaleDl.
+Canonical cfun_lmodType := LmodType algC classfun cfun_lmodMixin.
+
+Fact cfun_scaleAl a phi psi : a *: (phi * psi) = (a *: phi) * psi.
+Proof. by apply/cfunP=> x; rewrite !cfunE mulrA. Qed.
+Fact cfun_scaleAr a phi psi : a *: (phi * psi) = phi * (a *: psi).
+Proof. by rewrite !(mulrC phi) cfun_scaleAl. Qed.
+
+Canonical cfun_lalgType := LalgType algC classfun cfun_scaleAl.
+Canonical cfun_algType := AlgType algC classfun cfun_scaleAr.
+Canonical cfun_unitAlgType := [unitAlgType algC of classfun].
+
+Section Automorphism.
+
+Variable u : {rmorphism algC -> algC}.
+
+Definition cfunAut := cfun_comp (rmorph0 u).
+
+Lemma cfunAut1i A : cfunAut '1_A = '1_A.
+Proof. by apply/cfunP=> x; rewrite !cfunElock rmorph_nat. Qed.
+
+Lemma cfunAutZ a phi : cfunAut (a *: phi) = u a *: cfunAut phi.
+Proof. by apply/cfunP=> x; rewrite !cfunE rmorphM. Qed.
+
+Lemma cfunAut_is_rmorphism : rmorphism cfunAut.
+Proof.
+by do 2?split=> [phi psi|]; last exact: cfunAut1i;
+   apply/cfunP=> x; rewrite !cfunE (rmorph_sub, rmorphM).
+Qed.
+Canonical cfunAut_additive := Additive cfunAut_is_rmorphism.
+Canonical cfunAut_rmorhism := RMorphism cfunAut_is_rmorphism.
+
+End Automorphism.
+
+Definition cfun_v2rV phi := \row_(i < #|classes G|) phi (repr (enum_val i)).
+Fact cfun_v2rV_linear : linear cfun_v2rV.
+Proof. by move=> a phi psi; apply/rowP=> i; rewrite !(mxE, cfunE). Qed.
+Fact cfun_v2rV_bij : bijective cfun_v2rV.
+Proof.
+set n := #|_|; pose eK x : 'I_n := enum_rank_in (classes1 _) (x ^: G).
+have rV2vP v : is_class_fun G [ffun x => v (eK x) *+ (x \in G)].
+  apply: intro_class_fun => [x y Gx Gy | x /negbTE/=-> //].
+  by rewrite groupJr // /eK classGidl.
+exists (fun v : 'rV_n => Cfun 0 (rV2vP (v 0))) => [phi | v].
+  apply/cfun_in_genP=> x Gx; rewrite cfunE Gx mxE enum_rankK_in ?mem_classes //.
+  by have [y Gy ->] := repr_class <<B>> x; rewrite cfunJgen.
+apply/rowP=> i; rewrite mxE cfunE; have /imsetP[x Gx def_i] := enum_valP i.
+rewrite def_i; have [y Gy ->] := repr_class <<B>> x.
+by rewrite groupJ // /eK classGidl // -def_i enum_valK_in.
+Qed.
+
+Definition cfun_vectMixin := VectMixin cfun_v2rV_linear cfun_v2rV_bij.
+Canonical cfun_vectType := VectType algC cfun_vectMixin.
+Canonical cfun_fAlgType := AlgFType algC cfun_vectMixin.
+
+Definition base_cfun A : #|classes B ::&: A|.-tuple classfun :=
+  [tuple of [seq ('1_xB)%R | xB <- enum (classes B ::&: A)]].
+Definition classfun_on A := span (base_cfun A).
+
+Definition cfdot phi psi := #|B|%:R^-1 * \sum_(x \in B) phi x * (psi x)^*.
+Definition cfdotr_head k psi phi := let: tt := k in cfdot phi psi.
+
+End Defs.
+
+Bind Scope character_scope with classfun.
+
+Arguments Scope classfun [_ group_scope].
+Arguments Scope classfun_on [_ group_scope group_scope].
+Arguments Scope cfun_indicator [_ group_scope].
+Arguments Scope cfunAut [_ group_scope _ character_scope].
+Arguments Scope cfdot [_ group_scope character_scope character_scope].
+Arguments Scope cfdotr_head [_ group_scope _ character_scope character_scope].
+
+Notation "''CF' ( G )" := (classfun G) : type_scope.
+Notation "''CF' ( G )" := (fullv (cfun_vectType G)) : vspace_scope.
+Notation "''1_' A" := (cfun_indicator _ A) : ring_scope.
+Notation "''CF' ( G , A )" := (classfun_on G A) : ring_scope.
+Notation "phi ^*" := (cfunAut conjC phi) : character_scope.
+
+Notation "''[' u , v ]_ G":=  (@cfdot _ G u v) (only parsing) : ring_scope.
+Notation "''[' u , v ]" := (cfdot u v) : ring_scope.
+Notation "''[' u ]_ G" := '[u, u]_G (only parsing) : ring_scope.
+Notation "''[' u ]" := '[u, u] : ring_scope.
+Notation cfdotr := (cfdotr_head tt).
+
+(* Before section so the nosimple does not get "cooked" out. *)
+Definition orthogonal (gT : finGroupType) (D : {set gT}) (S R : seq 'CF(D)) :=
+  nosimpl (all [pred phi | all [pred psi | '[phi, psi] == 0] R] S).
+
+Coercion seq_of_cfun (gT : finGroupType) (D : {set gT}) (phi : 'CF(D)) :=
+  [:: phi].
+
+Section Predicates.
+
+Variables (gT rT : finGroupType) (D : {set gT}) (R : {set rT}).
+Implicit Types (phi psi : 'CF(D)) (S : seq 'CF(D)) (tau : 'CF(D) -> 'CF(R)).
+
+Definition cfker phi := [set x \in D | forallb y, phi (x * y)%g == phi y].
+
+Definition cfaithful phi := cfker phi \subset [1].
+
+(* We exclude 0 from pairwise orthogonal sets. *)
+Fixpoint pairwise_orthogonal S := 
+  if S is psi :: S' then
+    [&& psi != 0, orthogonal psi S' & pairwise_orthogonal S']
+  else true.
+
+Definition orthonormal S :=
+  all [pred psi | '[psi] == 1] S && pairwise_orthogonal S.
+
+Definition conjC_closed S :=
+  {in S, forall phi, (phi^*)%CH \in [predD1 S & phi]}.
+
+Definition isometry tau := forall phi psi, '[tau phi, tau psi] = '[phi, psi].
+
+Definition isometry_from_to mCFD tau mCFR :=
+   prop_in2 mCFD (inPhantom (isometry tau))
+  /\ prop_in1 mCFD (inPhantom (forall phi, in_mem (tau phi) mCFR)).
+
+End Predicates.
+
+Arguments Scope cfker [_ group_scope character_scope].
+Arguments Scope cfaithful [_ group_scope character_scope].
+Arguments Scope orthogonal [_ group_scope character_scope character_scope].
+Arguments Scope pairwise_orthogonal [_ group_scope character_scope].
+Arguments Scope orthonormal [_ group_scope character_scope].
+Arguments Scope isometry [_ _ group_scope group_scope character_scope].
+
+Notation "{ 'in' CFD , 'isometry' tau , 'to' CFR }" :=
+    (isometry_from_to (mem CFD) tau (mem CFR))
+  (at level 0, format "{ 'in'  CFD ,  'isometry'  tau ,  'to'  CFR }")
+     : type_scope.
 
 Section ClassFun. 
 
 Variables (gT : finGroupType) (G : {group gT}).
+Implicit Types (A B : {set gT}) (H K : {group gT}) (phi psi xi : 'CF(G)).
 
-Canonical cfun_eqType := [eqType of {cfun gT}].
-Canonical cfun_choiceType := [eqType of {cfun gT}].
-Canonical cfun_zmodType := [zmodType of {cfun gT}].
-Canonical cfun_ringType := 
-  Eval hnf in RingType {cfun gT} (@ffun_ringMixin gT algC 1%g).
-Canonical cfun_lmodType := 
-  Eval hnf in LmodType algC {cfun gT} (
-                 @ffun_lmodMixin algC gT (GRing.regular_lmodType algC)).
+Local Notation "''1_' A" := (cfun_indicator G A).
 
-Lemma sum_cfunE I r (P : pred I) (F : I -> {cfun gT}) :
-  \sum_(i <- r | P i) F i = [ffun x => \sum_(i <- r | P i) F i x].
-Proof. exact: sum_ffunE. Qed.
+Lemma cfun0 phi x : x \notin G -> phi x = 0.
+Proof. by rewrite -{1}(genGid G) => /(cfun0gen phi). Qed.
 
-Definition cfuni (G : {set gT}) : {cfun gT} := [ffun g => (g \in G)%N%:R].
+Lemma support_cfun phi : support phi \subset G.
+Proof. by apply/subsetP=> g; apply: contraR => /cfun0->. Qed.
 
-Local Notation "''1_' G" := (cfuni G).
- 
-Lemma cfuniE (A : {set gT}) g : '1_A g = (g \in A)%:R.
-Proof. by rewrite cfunE. Qed.
+Lemma cfunJ phi x y : y \in G -> phi (x ^ y) = phi x.
+Proof. by rewrite -{1}(genGid G) => /(cfunJgen phi)->. Qed.
 
-Lemma cfuniM (A B : {set gT}) : '1_A * '1_B = '1_(A :&: B).
+Lemma cfun_repr phi x : phi (repr (x ^: G)) = phi x.
+Proof. by have [y Gy ->] := repr_class G x; exact: cfunJ. Qed.
+
+Lemma cfun_inP phi psi : {in G, phi =1 psi} -> phi = psi.
+Proof. by rewrite -{1}genGid => /cfun_in_genP. Qed.
+
+Lemma cfuniE A x : A <| G -> '1_A x = (x \in A)%:R.
 Proof.
-apply/cfunP=> g; rewrite !cfunE inE.
-by do 2 (case: (_ \in _); rewrite ?(mul1r,mul0r)).
+case/andP=> sAG nAG; rewrite cfunElock genGid.
+by rewrite class_sub_norm // andb_idl // => /(subsetP sAG).
 Qed.
 
-Lemma support_cfuni (A : {set gT}) : support '1_A =i A.
-Proof. by move=> x; rewrite !inE cfunE -(eqN_eqC _ 0) -lt0n lt0b. Qed.
-
-Definition base_cfun (G A : {set gT}) : _.-tuple {cfun gT} :=
-  in_tuple (filter [pred f : {cfun gT} | support f \subset A]
-                   [seq '1_xG | xG <- enum (classes G)]).
-
-Lemma base_cfun_subset (A : {set gT}) :
-  G \subset A -> base_cfun G A = [seq '1_xG | xG <- enum (classes G)] :> seq _.
+Lemma cfun_classE x y : '1_(x ^: G) y = ((x \in G) && (y \in x ^: G))%:R.
 Proof.
-move=> sGA; apply/all_filterP/allP=> /= f /mapP[xG].
-rewrite mem_enum => /imsetP[x Gx ->] ->{xG}.
-by rewrite (eq_subset (support_cfuni _)) (subset_trans (class_subG Gx _)).
+rewrite cfunElock genGid class_sub_norm ?class_norm //; congr (_ : bool)%:R.
+by apply: andb_id2r => /imsetP[z Gz ->]; rewrite groupJr.
 Qed.
- 
-Canonical cfunVectType := 
- (@VectorType.pack algC _ {cfun gT} _  _ _ _ idfun
-   (@ffunVectMixin algC (regVectType algC) gT)
-    idfun).
 
-Definition class_fun G  A := span (base_cfun G A).
-Local Notation "''CF' ( G , A )" := (class_fun G A) : ring_scope.
-Local Notation "''CF' ( G )" := (class_fun G G) : ring_scope.
+Lemma cfuni1 : '1_G = 1.
+Proof. by rewrite -[G in '1_G]genGid. Qed.
 
-Lemma class_funE (A : {set gT}) :
-  'CF(G,A) = 
-     (\sum_(i < #|classes G| | enum_val i \subset A) ('1_(enum_val i))%:VS)%VS.
+Lemma cfun1E g : (1 : 'CF(G)) g = (g \in G)%:R.
+Proof. by rewrite -cfuni1 cfuniE. Qed.
+
+Lemma support_cfuni A : A <| G -> support '1_A =i A.
+Proof. by move=> nsAG x; rewrite !inE cfuniE // -(eqN_eqC _ 0) -lt0n lt0b. Qed.
+
+Lemma cfuniM A B : '1_A * '1_B = '1_(A :&: B) :> 'CF(G).
 Proof.
-rewrite /class_fun /span /base_cfun /= big_filter /= big_map /=.
-have bij_cG := enum_val_bij_in (classes1 G).
-rewrite big_filter_cond (reindex _ (subon_bij _ bij_cG)) => [|_ /andP[]] //=.
-by apply: eq_bigl => i; rewrite enum_valP (eq_subset (support_cfuni _)).
+apply/cfunP=> g; rewrite !cfunElock -natr_mul mulnb subsetI.
+by rewrite andbCA !andbA andbb.
 Qed.
 
-(* Definition 
-   forall x, x \notin A -> f x = 0 (ajouter A \subset G) 
-   forall x y, y \in G -> f (x ^ y) = f x)
- *)
-Lemma cfun_memfP (A : {set gT}) (f : {cfun gT}) :
-  reflect 
-    [/\ forall x, x \notin A :&: G -> f x = 0
-      & forall x y, y \in G -> f (x ^ y) = f x]
-    (f \in 'CF(G, A)).
+Lemma cfun_onE A :
+  'CF(G, A) = (\sum_(xG \in classes G | xG \subset A) ('1_xG)%:VS)%VS.
 Proof.
-pose bGA := base_cfun G A.
-apply: (iffP idP)=> [|[Hg Hc]].
-  move/coord_span->; split=> [x XniAG|x y YiG].
-    rewrite sum_cfunE cfunE; apply: big1 => i _; rewrite cfunE -/fcf -/bGA.
-    have: bGA`_i \in bGA by apply: mem_nth.
-    rewrite mem_filter => /andP[AbGAi /imageP[_ /imsetP[y Gy ->] def_bGAi]].
-    apply: contraNeq XniAG; rewrite mulf_eq0 inE => /norP[_ nz_bGAi_x].
-    rewrite (subsetP AbGAi) ?inE ?(subsetP (class_subG Gy (subxx _))) //.
-    by rewrite -support_cfuni -def_bGAi inE.
-  apply/eqP; rewrite -subr_eq0; apply/eqP.
-  rewrite !sum_cfunE !cfunE -sumr_sub; apply: big1=> i _.
-  set u := coord _ _ _; rewrite !cfunE.
-  have: bGA`_i \in bGA by apply: mem_nth.
-  rewrite mem_filter => /andP[Hs /imageP[_ /imsetP[z Gz ->] ->]].
-  by rewrite !cfunE (class_transl _ (memJ_class _ _)) // subrr.
-suff<-: \sum_(C \in (classes G)) 
-           (f (repr C)) *: ([ffun x : gT => (x \in C)%:R] : {cfun gT}) = f.
-  apply: memv_suml=> i Hi.
-  case: (boolP (f (repr i) == 0))=> [|Hr].
-    by move/eqP->; rewrite scale0r mem0v.
-  apply: memvZl; apply: memv_span.
-  rewrite mem_filter; apply/andP; split; last by apply/imageP; exists i.
-  apply/subsetP=> x; rewrite !inE cfunE.
-  apply: contraR=> XniA.
-  case: (boolP (x \in i))=> //= XiI; case/eqP: Hr.
-  case/imsetP: Hi XiI => g GiG ->; case/imsetP=> h HiG Hx.
-  case: (repr_class G g)=> h1 H1iG ->.
-  by rewrite Hc // -(Hc _ _ HiG) // -Hx Hg // inE (negPf XniA).
-apply/cfunP=> g; rewrite sum_cfunE cfunE.
-case GiG: (g \in G); last first.
-  rewrite Hg ?(inE,GiG,andbF) //; apply: big1=> i Hi; rewrite !cfunE.
-  have [x Gx ->] := imsetP Hi.
-  case Hgx: (_ \in _); last by rewrite scaler0.
-  move/subsetP: (class_subG Gx (subxx G)) GiG.
-  by move/(_ g (idP Hgx))=> ->.
-rewrite (bigD1 (g ^: G : set_of_finType _)) /=; last by apply/imsetP; exists g.
-rewrite !cfunE big1.
-  rewrite class_refl.
-  by case: (repr_class G g)=> x Hx ->; rewrite Hc // addr0; exact: mulr1.
-move=> i; case/andP; case/imsetP=> y Hy -> Hz.
-rewrite !cfunE; case E1: (_ \in _); last by rewrite scaler0.
-by case/negP: Hz; rewrite eq_sym; apply/eqP; apply: class_transr.
+by rewrite ['CF(G, A)]big_map big_filter; apply: eq_bigl => xG; rewrite !inE.
 Qed.
 
-Lemma cfun_memP (f : {cfun gT}) :
-  reflect 
-    ((forall x, x \notin G -> f x = 0) /\
-        (forall x y, y \in G -> f (x ^ y) = f x))
-    (f \in 'CF(G)).
-Proof. by apply: (iffP (cfun_memfP G f)); rewrite setIid. Qed.
-
-Lemma cfunS0 A (f : {cfun gT}) x : f \in 'CF(G,A) -> x \notin A -> f x = 0.
-Proof. 
-case/cfun_memfP=> HH _ XniA; apply: HH.
-by rewrite inE (negPf XniA).
+Lemma cfun_memfP A phi :
+  reflect (forall x, x \notin A -> phi x = 0) (phi \in 'CF(G, A)).
+Proof.
+apply: (iffP idP) => [/coord_span-> x notAx | Aphi].
+  set b := base_cfun G A; rewrite sum_cfunE big1 // => i _; rewrite cfunE.
+  have /mapP[xG]: b`_i \in b by rewrite -tnth_nth mem_tnth.
+  rewrite mem_enum => /setIdP[/imsetP[y Gy ->] Ay] ->.
+  by rewrite cfun_classE Gy (contraNF (subsetP Ay x)) ?mulr0.
+suffices <-: \sum_(xG \in classes G) phi (repr xG) *: '1_xG = phi.
+  apply: memv_suml => _ /imsetP[x Gx ->]; rewrite memvZ cfun_repr.
+  have [s_xG_A | /subsetPn[_ /imsetP[y Gy ->]]] := boolP (x ^: G \subset A).
+    by rewrite cfun_onE [_ \in _](sumv_sup (x ^: G)) ?mem_classes ?orbT.
+  by move/Aphi; rewrite cfunJ // => ->; rewrite eqxx.
+apply/cfun_inP=> x Gx; rewrite sum_cfunE (bigD1 (x ^: G)) ?mem_classes //=.
+rewrite cfunE cfun_repr cfun_classE Gx class_refl mulr1.
+rewrite big1 ?addr0 // => _ /andP[/imsetP[y Gy ->]]; apply: contraNeq.
+rewrite cfunE cfun_repr cfun_classE Gy mulf_eq0 => /norP[_].
+by rewrite -(eqN_eqC _ 0) -lt0n lt0b => /class_transr->.
 Qed.
+Implicit Arguments cfun_memfP [A phi].
 
-Lemma cfun0 (f : {cfun gT}) x : f \in 'CF(G) -> x \notin G -> f x = 0.
-Proof. exact: cfunS0. Qed.
-
-Lemma cfunJ A (f : {cfun gT}) x y : 
-   f \in 'CF(G,A) -> y \in G -> f (x ^ y) = f x.
-Proof. by case/cfun_memfP=> _ HH; exact: HH. Qed.
+Lemma cfunS0 A phi x : phi \in 'CF(G, A) -> x \notin A -> phi x = 0.
+Proof. by move/cfun_memfP; exact. Qed.
 
 Lemma cfun_sum (F : gT -> algC) :
-  (forall g h, g \in G -> h \in G -> F (g ^ h) = F g) ->
-  \sum_(g \in G) F g = \sum_(C \in classes G) #|C|%:R * (F (repr C)).
+    {in G &, forall g h, F (g ^ h) = F g} ->
+  \sum_(g \in G) F g = \sum_(xG \in classes G) #|xG|%:R * F (repr xG).
 Proof.
-move=> HF.
-rewrite {1}(partition_big _  _ ((@mem_classes gT)^~ G)) /=.
-apply: eq_bigr=> cl Hcl.
-rewrite (eq_bigr (fun _ => F (repr cl))); last first.
-  move=> i1; case/andP=> Hi1; move/eqP=> <-.
-  by case: (repr_class G i1)=> z Hz ->; rewrite HF.
-rewrite -sum1_card natr_sum -!mulr_suml.
-apply: eq_big=> [i1|i1]; last by rewrite mul1r.
-case/imsetP: Hcl=> z Hz ->; apply/idP/idP=>[|Hi].
-  by case/andP=> Hi; move/eqP<-; exact: class_refl.
-move/subsetP: (class_subG Hz (subxx _)); move/(_ _ Hi)->.
-by apply/eqP; apply: class_transr.
+move=> FJ; rewrite {1}(partition_big _  _ ((@mem_classes gT)^~ G)) /=.
+apply: eq_bigr => _ /imsetP[x Gx ->]; have [y Gy ->] := repr_class G x.
+rewrite mulr_natl -sumr_const FJ {y Gy}//; apply/esym/eq_big=> y /=.
+  apply/idP/andP=> [xGy | [Gy /eqP<-]]; last exact: class_refl.
+  by rewrite (class_transr xGy) (subsetP (class_subG Gx (subxx _))).
+by case/imsetP=> z Gz ->; rewrite FJ.
 Qed.
 
 Lemma cfun_free A : free (base_cfun G A).
 Proof.
-apply: free_filter; apply /freeP => s S0 i.
-move/cfunP/(_ (repr (enum_val i))): S0.
-rewrite sum_cfunE !cfunE (bigD1 i) //= big1 ?addr0 => [|j].
-  pose i0 := @enum_default _ [eta _] i.
-  rewrite (nth_map i0) -/(enum_val i) -?cardE // !cfunE [_ *: _]mulr_natr.
-  by have /imsetP[x _ ->] := enum_valP i; rewrite (mem_repr x) ?class_refl.
-pose j0 := @enum_default _ [eta _] j.
-rewrite (nth_map j0) -?cardE // -/(enum_val j) !cfunE.
-apply: contraNeq; rewrite mulf_eq0 -(eqN_eqC _ 0) eqb0 => /norP[_ /negbNE].
+have b_i (i : 'I_#|classes G ::&: A|) : (base_cfun G A)`_i = '1_(enum_val i).
+  by rewrite /enum_val -!tnth_nth tnth_map.
+apply/freeP => s S0 i; move/cfunP/(_ (repr (enum_val i))): S0.
+rewrite sum_cfunE (bigD1 i) //= big1 ?addr0 => [|j].
+  rewrite b_i !cfunE; have /setIdP[/imsetP[x Gx ->] _] := enum_valP i.
+  by rewrite cfun_repr cfun_classE Gx class_refl mulr1.
+apply: contraNeq; rewrite b_i !cfunE mulf_eq0 => /norP[_].
 rewrite -(inj_eq (@enum_val_inj _ _)).
-have /imsetP[y _ ->] := enum_valP i; have /imsetP[z _ ->] := enum_valP j.
-move/class_transr <-; apply/eqP/class_transr.
-by rewrite (mem_repr y _) ?class_refl.
+have /setIdP[/imsetP[x _ ->] _] := enum_valP i; rewrite cfun_repr.
+have /setIdP[/imsetP[y Gy ->] _] := enum_valP j; rewrite cfun_classE Gy.
+by rewrite -(eqN_eqC _ 0) -lt0n lt0b => /class_transr->.
 Qed.
 
 Lemma dim_cfun : \dim 'CF(G) = #|classes G|.
-Proof.
-by rewrite (eqnP (cfun_free G)) base_cfun_subset // size_map -cardE.
-Qed.
+Proof. by rewrite dimvf /vdim //= genGid. Qed.
 
 (* cfun and support *)
 
-Lemma support1 (A : {set gT}) : support '1_A \subset A.
+Lemma support1 A : support '1_A \subset A.
 Proof.
-apply/subsetP=> g; rewrite !inE !cfunE; apply: contraR.
-by move/negPf->; rewrite -(eqN_eqC _ 0).
+apply/supportP=> x notAx; rewrite cfunElock genGid.
+by case: andP => // [[_ s_xG_A]]; rewrite (subsetP s_xG_A) ?class_refl in notAx.
 Qed.
 
-Lemma support_subset (A B: {set gT}) (f: {cfun gT}) : 
-       support f \subset A -> A \subset B -> support f \subset B.
-Proof. by apply: subset_trans. Qed.
+Lemma memcE phi A : (phi \in 'CF(G, A)) = (support phi \subset A).
+Proof. exact: (sameP cfun_memfP supportP). Qed.
 
-Lemma support_memc f B : f \in 'CF(G ,B) -> support f \subset B.
+Lemma memc_support phi A : phi \in 'CF(G, A) -> support phi \subset A.
+Proof. by rewrite memcE. Qed.
+
+Lemma memc_subset A B phi :
+  B \subset A -> phi \in 'CF(G, B) -> phi \in 'CF(G, A).
+Proof. by rewrite !memcE => sBA /subset_trans->. Qed.
+
+Lemma cfun_conjCE phi x : (phi^*)%CH x = (phi x)^*.
+Proof. by rewrite cfunE. Qed.
+
+Lemma cfun_conjCK : involutive (fun phi => phi^*)%CH.
+Proof. by move=> phi; apply/cfunP=> x; rewrite !cfunE conjCK. Qed.
+
+Lemma cfun_conjC1 : (1^*)%CH = 1 :> 'CF(G).
+Proof. exact: rmorph1. Qed.
+
+(* Class function kernel and faithful class functions *)
+
+Fact cfker_is_group phi : group_set (cfker phi).
 Proof.
-move/cfun_memfP=> [H1 _]; apply/subsetP=> x; rewrite !inE -/fcf.
-by apply: contraR => XniB; rewrite H1 // inE (negPf XniB).
+apply/group_setP; split=> [|x y]; rewrite !inE ?group1.
+  by apply/forallP=> y; rewrite mul1g.
+case/andP=> Gx /forallP Kx /andP[Gy /forallP Ky]; rewrite groupM //.
+by apply/forallP=> z; rewrite -mulgA (eqP (Kx _)) Ky.
+Qed.
+Canonical cfker_group phi := Group (cfker_is_group phi).
+
+Lemma cfker_sub phi : cfker phi \subset G.
+Proof. by rewrite /cfker setIdE subsetIl. Qed.
+
+Lemma cfker_norm phi : G \subset 'N(cfker phi).
+Proof.
+apply/subsetP=> z Gz; have phiJz := cfunJ phi _ (groupVr Gz).
+rewrite inE; apply/subsetP=> _ /imsetP[x /setIdP[Gx /forallP Kx] ->].
+rewrite inE groupJ //; apply/forallP=> y.
+by rewrite -(phiJz y) -phiJz conjMg conjgK Kx.
 Qed.
 
-Lemma memc1: '1_G \in 'CF(G).
+Lemma cfker_normal phi : cfker phi <| G.
+Proof. by rewrite /normal cfker_sub cfker_norm. Qed.
+
+Lemma cfkerMl phi x y : x \in cfker phi -> phi (x * y)%g = phi y.
+Proof. by case/setIdP=> _ /forallP/(_ y)/eqP. Qed.
+
+Lemma cfkerMr phi x y : x \in cfker phi -> phi (y * x)%g = phi y.
 Proof.
-apply/cfun_memP; split=> [x XniG| x y XiG]; last by rewrite !cfunE groupJr.
-by apply/eqP; move/subsetP: (support1 G);move/(_ x); rewrite !inE;
- move/contra; rewrite negbK=> ->.
+by move=> Kx; rewrite conjgC cfkerMl ?cfunJ ?(subsetP (cfker_sub phi)).
 Qed.
 
-Lemma memc_subset (A B: {set gT}) f :
-  B \subset A -> f \in 'CF(G, B) -> f \in 'CF(G, A).
+Lemma cfker1 phi x : x \in cfker phi -> phi x = phi 1%g.
+Proof. by move=> Kx; rewrite -[x]mulg1 cfkerMl. Qed.
+
+Lemma cfker_constant H phi (Hx : coset_of H) :
+  H \subset cfker phi -> Hx \subset [set y | phi y == phi (repr Hx)].
 Proof.
-move=> Hss; case/cfun_memfP=> H1 H2; apply/cfun_memfP.
-split=> {H2}// x XniAG; apply: H1.
-move: XniAG; rewrite !inE !negb_and => /orP[] => Hx; last by rewrite Hx orbT.
-by apply/orP;left; move: Hx; apply: contra; move/(subsetP Hss)=> ->.
+move/subsetP=> sHK; rewrite -{1}(coset_reprK Hx) val_coset ?repr_coset_norm //.
+by apply/subsetP=> _ /rcosetP[y Hy ->]; rewrite inE cfkerMl ?sHK.
 Qed.
 
-Lemma memcW f A : f \in 'CF(G, A) -> f \in 'CF(G).
+Lemma cfker_cfun1 : @cfker _ G 1 = G.
 Proof.
-move/cfun_memfP=> [H1 H2];apply/cfun_memP;split=> //.
-by move=> x XniG; apply: H1; rewrite inE (negPf XniG) andbF.
+apply/setP=> x; rewrite !inE andb_idr // => Gx; apply/forallP=> y.
+by rewrite !cfun1E groupMl.
 Qed.
 
-Lemma memcE A f : 
-  f \in 'CF(G, A) = (support f \subset A) && (f \in 'CF(G)).
-Proof.
-apply/cfun_memfP/andP=> [[Hs Hj]|[Hs Hc]]; split.
-- by apply/subsetP=> x; rewrite !inE; apply: contraR => XniA;
-    rewrite -/fcf Hs // inE (negPf XniA).   
-- by apply/cfun_memP; split=> // x XniA; rewrite Hs // inE (negPf XniA) andbF.
-- move=> x; rewrite inE negb_and; case/orP=> HH; last by apply: cfun0.
-  by move/supportP: Hs; rewrite -/fcf => ->.
-by case/cfun_memP: Hc.
-Qed.
+Lemma cfaithfulE phi : cfaithful phi = (cfker phi \subset [1]).
+Proof. by []. Qed.
 
 End ClassFun.
 
-Arguments Scope class_fun [_ group_scope group_scope].
-Notation "''CF' ( G , A )" := (class_fun G A) : ring_scope.
-Notation "''CF' ( G )" := (class_fun G G) : ring_scope.
+Arguments Scope classfun_on [_ group_scope group_scope].
+Notation "''CF' ( G , A )" := (classfun_on G A) : ring_scope.
 
-Arguments Scope cfuni [_ group_scope].
-Notation "''1_' G" := (cfuni G) : ring_scope.
+Implicit Arguments cfun_memfP [gT G A phi].
 
-Definition cfun_conjC (gT : finGroupType) (f : {cfun gT}) : {cfun gT} :=
-  [ffun h => (f h)^*].
+Section DotProduct.
 
-Arguments Scope cfuni [_ character_scope].
-Notation "f ^*" := (cfun_conjC f) : character_scope.
+Variable (gT : finGroupType) (G : {group gT}).
+Implicit Types (phi psi xi : 'CF(G)) (R S : seq 'CF(G)).
 
-Lemma cfun_conjCE (gT : finGroupType) (f : {cfun gT}) g : 
-  (f^*)%CH g = (f g)^*.
-Proof. by rewrite cfunE. Qed.
+Lemma cfdotE phi psi :
+  '[phi, psi] = #|G|%:R^-1 * \sum_(x \in G) phi x * (psi x)^*.
+Proof. by []. Qed.
 
-Lemma cfun_conjCK (gT : finGroupType) : involutive (@cfun_conjC gT).
-Proof. by move=> f; apply/cfunP=> g; rewrite !cfunE conjCK. Qed.
+Lemma cfdot1i A B :
+  A <| G -> B <| G -> '['1_A, '1_B]_G = #|A :&: B|%:R / #|G|%:R.
+Proof.
+move=> nsAG nsBG; rewrite cfdotE mulrC (big_setID (A :&: B)) /=; congr (_ / _).
+rewrite addrC big1 ?add0r => [|x /setDP[_]]; last first.
+  by rewrite inE !cfuniE // rmorph_nat -natr_mul mulnb => /negbTE->.
+rewrite (setIidPr _) ?subIset ?(normal_sub nsAG) // -sum1_card natr_sum.
+by apply: eq_bigr => x /setIP[Ax Bx]; rewrite !cfuniE // Ax Bx rmorph1 mulr1.
+Qed.
 
-Lemma cfun_conjC1 (gT : finGroupType) (G : {set gT}) : 
-  (('1_G)^*)%CH = '1_G.
-Proof. by apply/cfunP=> g; rewrite !cfunE conjC_nat. Qed.
+Lemma cfnorm1 : '[1]_G = 1.
+Proof. by rewrite cfdot1i ?genGid // setIid divff ?neq0GC. Qed.
+
+Lemma cfdotrE psi phi : cfdotr psi phi = '[phi, psi]. Proof. by []. Qed.
+
+Lemma cfdotr_is_linear xi : linear (cfdotr xi : 'CF(G) -> algC^o).
+Proof.
+move=> a phi psi; rewrite scaler_mulr -mulr_addr; congr (_ * _).
+rewrite linear_sum -big_split; apply: eq_bigr => x _ /=.
+by rewrite !cfunE mulr_addl -mulrA.
+Qed.
+Canonical cfdotr_additive xi := Additive (cfdotr_is_linear xi).
+Canonical cfdotr_linear xi := Linear (cfdotr_is_linear xi).
+
+Lemma cfdot0l xi : '[0, xi] = 0.
+Proof. by rewrite -cfdotrE linear0. Qed.
+Lemma cfdotNl xi phi : '[- phi, xi] = - '[phi, xi].
+Proof. by rewrite -!cfdotrE linearN. Qed.
+Lemma cfdotDl xi phi psi : '[phi + psi, xi] = '[phi, xi] + '[psi, xi].
+Proof. by rewrite -!cfdotrE linearD. Qed.
+Lemma cfdot_subl xi phi psi : '[phi - psi, xi] = '[phi, xi] - '[psi, xi].
+Proof. by rewrite -!cfdotrE linear_sub. Qed.
+Lemma cfdotMnl xi phi n : '[phi *+ n, xi] = '[phi, xi] *+ n.
+Proof. by rewrite -!cfdotrE linearMn. Qed.
+Lemma cfdot_suml xi I r (P : pred I) (phi : I -> 'CF(G)) :
+  '[\sum_(i <- r | P i) phi i, xi] = \sum_(i <- r | P i) '[phi i, xi].
+Proof. by rewrite -!cfdotrE linear_sum. Qed.
+Lemma cfdotZl xi a phi : '[a *: phi, xi] = a * '[phi, xi].
+Proof. by rewrite -!cfdotrE linearZ. Qed.
+
+Lemma cfdotC phi psi : '[phi, psi] = ('[psi, phi])^*.
+Proof.
+rewrite /cfdot rmorphM fmorphV rmorph_nat rmorph_sum; congr (_ * _).
+by apply: eq_bigr=> x _; rewrite rmorphM conjCK mulrC.
+Qed.
+ 
+Lemma cfdot_subr xi phi psi : '[xi, phi - psi] = '[xi, phi] - '[xi, psi].
+Proof. by rewrite !(cfdotC xi) -rmorph_sub cfdot_subl. Qed.
+Canonical cfun_dot_additive xi := Additive (cfdot_subr xi).
+
+Lemma cfdot0r xi : '[xi, 0] = 0. Proof. exact: raddf0. Qed.
+Lemma cfdotNr xi phi : '[xi, - phi] = - '[xi, phi].
+Proof. exact: raddfN. Qed.
+Lemma cfdotDr xi phi psi : '[xi, phi + psi] = '[xi, phi] + '[xi, psi].
+Proof. exact: raddfD. Qed.
+Lemma cfdotMnr xi phi n : '[xi, phi *+ n] = '[xi, phi] *+ n.
+Proof. exact: raddfMn. Qed.
+Lemma cfdot_sumr xi I r (P : pred I) (phi : I -> 'CF(G)) :
+  '[xi, \sum_(i <- r | P i) phi i] = \sum_(i <- r | P i) '[xi, phi i].
+Proof. exact: raddf_sum. Qed.
+Lemma cfdotZr a xi phi : '[xi, a *: phi] = a^* * '[xi, phi].
+Proof. by rewrite !(cfdotC xi) cfdotZl rmorphM. Qed.
+
+Lemma cfdot_cfunAut_r u phi psi : 
+    {in [image psi of G], algC_Aut u} ->
+  '[cfunAut u phi, cfunAut u psi] = u '[phi, psi].
+Proof.
+move=> uC; rewrite rmorphM fmorphV rmorph_nat rmorph_sum; congr (_ * _).
+by apply: eq_bigr => x Gx; rewrite !cfunE rmorphM uC ?map_f ?mem_enum.
+Qed.
+
+Lemma cfdot_cfunAut u phi psi : 
+  algC_Aut u -> '[cfunAut u phi, cfunAut u psi]_G = u '[phi, psi].
+Proof. by move=> uC; rewrite cfdot_cfunAut_r // => a _. Qed.
+
+Lemma conj_cfdot phi psi : '[phi, psi]^* = '[phi^*, psi^*].
+Proof. by rewrite cfdot_cfunAut. Qed.
+
+Lemma posC_cfnorm phi : 0 <= '[phi].
+Proof.
+by rewrite posC_mul ?posC_inv ?posC_nat ?posC_sum // => x _; exact: posC_pconj.
+Qed.
+
+Lemma cfnorm_eq0 phi : ('[phi] == 0) = (phi == 0).
+Proof.
+apply/idP/eqP=> [|->]; last by rewrite cfdot0r.
+rewrite mulf_eq0 invr_eq0 (negbTE (neq0GC G)) /= => /eqP/posC_sum_eq0 phi0.
+apply/cfun_inP=> x Gx; apply/eqP; rewrite cfunE -normC_eq0 sqrtC_eq0.
+by rewrite phi0 // => y _; exact: posC_pconj.
+Qed.
+
+Lemma cfnormZ a phi : '[a *: phi]= `|a| ^+ 2 * '[phi]_G.
+Proof. by rewrite cfdotZl cfdotZr mulrA normCK. Qed.
+
+Lemma cfnormN phi : '[- phi] = '[phi].
+Proof. by rewrite cfdotNl raddfN opprK. Qed.
+
+Lemma cfnormD phi psi :
+  let d := '[phi, psi] in '[phi + psi] = '[phi] + '[psi] + (d + d^*).
+Proof. by rewrite /= addrAC -cfdotC cfdotDl !cfdotDr !addrA. Qed.
+
+Lemma orthogonal_cons phi R S :
+  orthogonal (phi :: R) S = orthogonal phi S && orthogonal R S.
+Proof. by rewrite /orthogonal /= andbT. Qed.
+
+Lemma orthogonal1P phi psi : reflect ('[phi, psi] = 0) (orthogonal phi psi).
+Proof. rewrite /orthogonal /= !andbT; exact: eqP. Qed.
+
+Lemma orthogonalP S R :
+  reflect {in S & R, forall phi psi, '[phi, psi] = 0} (orthogonal S R).
+Proof.
+apply: (iffP allP) => oSR phi => [psi /oSR/allP opS /opS/eqP // | /oSR opS].
+by apply/allP=> psi /= /opS->.
+Qed.
+
+Lemma orthogonal_sym : symmetric (@orthogonal _ G).
+Proof.
+apply: symmetric_from_pre => R S /orthogonalP oRS.
+by apply/orthogonalP=> phi psi Rpsi Sphi; rewrite cfdotC oRS ?rmorph0.
+Qed.
+
+Lemma eq_orthogonal R1 R2 S1 S2 :
+  R1 =i R2 -> S1 =i S2 -> orthogonal R1 S1 = orthogonal R2 S2.
+Proof.
+move=> eqR eqS; apply/orthogonalP/orthogonalP=> oRS phi psi;
+  by rewrite ?eqR ?eqS => *; rewrite oRS ?eqR ?eqS.
+Qed.
+
+Lemma orthogonal_catl R1 R2 S :
+  orthogonal (R1 ++ R2) S = orthogonal R1 S && orthogonal R2 S.
+Proof. exact: all_cat. Qed.
+
+Lemma orthogonal_catr R S1 S2 :
+  orthogonal R (S1 ++ S2) = orthogonal R S1 && orthogonal R S2.
+Proof. by rewrite !(orthogonal_sym R) orthogonal_catl. Qed.
+
+Lemma pairwise_orthogonalP S :
+  reflect (uniq (0 :: S)
+             /\ {in S &, forall phi psi, phi != psi -> '[phi, psi] = 0})
+          (pairwise_orthogonal S).
+Proof.
+elim: S => [|phi S IH] /=; first by left.
+rewrite inE eq_sym /orthogonal /= andbT.
+have [_ | /= nz_phi] := altP eqP; first by right; case.
+have [opS | not_opS] := altP allP; last first.
+  right=> [[/and3P[_ notSp _] opS]].
+  have [psi Spsi /eqP[]] := allPn not_opS.
+  by rewrite opS ?mem_head 1?mem_behead //; apply: contraNneq notSp => ->.
+have -> /=: (phi \notin S).
+  by apply: contra nz_phi => /opS /=; rewrite cfnorm_eq0.
+apply: (iffP IH) => [] [uniqS oSS]; last first.
+  by split=> // psi xi Spsi Sxi; apply: oSS; exact: mem_behead.
+split=> // psi xi /predU1P[-> // | ].
+  by case/predU1P=> [-> | /opS] /eqP.
+move=> Spsi /predU1P[-> _ | Sxi /oSS-> //]; move/opS/eqP: Spsi => o_phi_psi.
+by rewrite cfdotC o_phi_psi rmorph0.
+Qed.
+
+Lemma pairwise_orthogonal_cat R S :
+  pairwise_orthogonal (R ++ S) =
+    [&& pairwise_orthogonal R, pairwise_orthogonal S & orthogonal R S].
+Proof.
+elim: R => [|phi R /= ->]; rewrite ?andbT //.
+by rewrite orthogonal_cons orthogonal_catr -!andbA; do !bool_congr.
+Qed.
+
+Lemma cfnorm_orthogonal S :
+  pairwise_orthogonal S -> '[\sum_(phi <- S) phi] = \sum_(phi <- S) '[phi].
+Proof.
+case/pairwise_orthogonalP=> [/=/andP[_ uniqS] oSS].
+rewrite raddf_sum /= !(big_tnth _ _ S); apply: eq_bigr => i _.
+rewrite cfdot_suml (bigD1 i) // big1 /= ?addr0 // => j neq_ji.
+by rewrite !(tnth_nth 0) /= oSS ?mem_nth ?nth_uniq.
+Qed.
+
+Lemma orthogonal_free S : pairwise_orthogonal S -> free S.
+Proof.
+case/pairwise_orthogonalP=> [/=/andP[notS0 uniqS] oSS].
+apply/(freeP (in_tuple S)) => a aS0 i; have S_i: S`_i \in S by exact: mem_nth.
+have /eqP: '[S`_i, 0]_G = 0 := cfdot0r _.
+rewrite -{2}aS0 raddf_sum /= (bigD1 i) //= big1 => [|j neq_ji]; last 1 first.
+  by rewrite cfdotZr oSS ?mulr0 ?mem_nth // eq_sym nth_uniq.
+rewrite addr0 cfdotZr mulf_eq0 conjC_eq0 cfnorm_eq0.
+by case/pred2P=> // Si0; rewrite -Si0 S_i in notS0.
+Qed.
+
+Lemma orthonormal_cat R S :
+  orthonormal (R ++ S) = [&& orthonormal R, orthonormal S & orthogonal R S].
+Proof.
+by rewrite /orthonormal pairwise_orthogonal_cat all_cat -!andbA; do !bool_congr.
+Qed.
+
+Lemma orthonormal_orthogonal S : orthonormal S -> pairwise_orthogonal S.
+Proof. by case/andP. Qed.
+
+Lemma orthonormal_free S : orthonormal S -> free S.
+Proof. by move/orthonormal_orthogonal/orthogonal_free. Qed.
+
+Lemma orthonormalP S :
+  reflect (uniq S /\ {in S &, forall phi psi, '[phi, psi]_G = (phi == psi)%:R})
+          (orthonormal S).
+Proof.
+rewrite /orthonormal; have [normS | not_normS] := altP allP; last first.
+  right=> [[_ o1S]]; have [phi Sphi /eqP[]] := allPn not_normS.
+  by rewrite o1S ?eqxx.
+apply: (iffP (pairwise_orthogonalP S)) => [] [uniqS oSS].
+  split=> // [|phi psi]; first by case/andP: uniqS.
+  by have [-> _ /normS/eqP | /oSS] := altP eqP.
+split=> // [|phi psi Sphi Spsi /negbTE]; last by rewrite oSS // => ->.
+rewrite /= uniqS andbT; apply/negP=> S_0.
+by move/eqP: (oSS 0 0 S_0 S_0); rewrite cfdot0r eq_sym eqxx oner_eq0.
+Qed.
+
+Lemma cfun_conjC_Z a phi : ((a *: phi)^*)%CH = a^* *: (phi^*)%CH.
+Proof. by apply/cfunP=> x; rewrite !cfunE rmorphM. Qed.
+
+Lemma conjC_closed_not0 S : conjC_closed S -> 0 \notin S.
+Proof. by move=> clC_S; rewrite (contra (clC_S 0)) // rmorph0 !inE eqxx. Qed.
+
+End DotProduct.
 
 Section Restrict.
 
-Variable (gT : finGroupType).
+Variables (gT : finGroupType) (A B : {set gT}).
+Local Notation H := <<A>>.
+Local Notation G := <<B>>.
 
-Definition crestrict (G : {set gT}) (f : {cfun gT}) : {cfun gT} := '1_G * f.
-
-Local Notation "''Res[' H ]" := (crestrict H) : ring_scope.
-
-Lemma crestrictE (G : {set gT}) f : {in G, 'Res[G] f =1 f}.
-Proof. by move=> g GiG; rewrite /= !cfunE GiG mul1r. Qed.
- 
-Lemma crestrict1 (G H : {set gT}) : 'Res[H] '1_G = '1_(H :&: G).
-Proof. by exact: cfuniM. Qed.
- 
-Lemma memc_restrict (f : {cfun gT}) (G H : {group gT}) : 
-  H \subset G -> f \in 'CF(G) -> 'Res[H] f \in 'CF(H).
+Fact cfunRes_subproof (phi : 'CF(B)) :
+  is_class_fun H [ffun x => phi x *+ ((x \in H) && (H \subset G))].
 Proof.
-move=> Hsub fC; apply/cfun_memP; split.
-  by move=> g; rewrite !cfunE; case: (_ \in _)=> //; rewrite mul0r.
-move=> g h hIn; rewrite !cfunE -/fcf.
-by rewrite (cfunJ _ fC) ?(subsetP Hsub) // (groupJr _ hIn).
+apply: intro_class_fun => /= [x y Hx Hy | x /negbTE/=-> //].
+by rewrite Hx groupJ //; case: subsetP => // sHG; rewrite cfunJgen ?sHG.
 Qed.
+Definition cfunRes phi := Cfun 1 (cfunRes_subproof phi).
 
-Lemma crestrict_is_linear (G : {set gT}) : linear (crestrict G).
+Lemma cfunResE phi : A \subset B -> {in A, cfunRes phi =1 phi}.
+Proof. by move=> sAB x Ax; rewrite cfunElock mem_gen ?genS. Qed.
+ 
+Lemma cfunRes_is_linear : linear cfunRes.
 Proof.
-move=> c f1 f2; apply/cfunP=> g.
-by rewrite !cfunE mulr_addr mulrCA.
+by move=> a phi psi; apply/cfunP=> x; rewrite !cfunElock mulrnAr mulrn_addl.
 Qed.
+Canonical cfunRes_additive := Additive cfunRes_is_linear.
+Canonical cfunRes_linear := Linear cfunRes_is_linear.
 
-Canonical crestrit_linear G := Linear (crestrict_is_linear G).
-
-Lemma crestrict_subset (G H : {set gT}) (f : {cfun gT}) :
-  H \subset G -> 'Res[H] ('Res[G] f) = 'Res[H] f.
+Lemma cfunRes1 : A \subset B -> cfunRes 1 = 1.
 Proof.
-move=> HsG; apply/cfunP=> g.
-by rewrite !cfunE; case: (boolP (_ \in _))=> [HH|]; 
-   rewrite ?mul0r // (subsetP HsG) // !mul1r.
+move/genS=> sHG; apply: cfun_in_genP => x Hx.
+by rewrite cfunElock Hx sHG !cfun1Egen Hx (subsetP sHG).
 Qed.
 
 End Restrict.
 
-Arguments Scope crestrict [_ group_scope character_scope].
-Notation "''Res[' H ]" := (crestrict H) : ring_scope.
+Arguments Scope cfunRes [_ group_scope group_scope character_scope].
+Notation "''Res[' H , G ]" := (@cfunRes _ H G) (only parsing) : ring_scope.
+Notation "''Res[' H ]" := 'Res[H, _] : ring_scope.
+Notation "''Res'" := 'Res[_] (only parsing) : ring_scope.
 
-Section InnerProduct.
+Section MoreRestrict.
 
-Variable (gT : finGroupType) (G : {group gT}).
+Variables (gT : finGroupType) (G H : {group gT}) (A : {set gT}).
 
-Let card_neq0 : #|G|%:R^-1 != 0 :> algC.
-Proof. by rewrite invr_eq0 neq0GC. Qed.
-
-Definition inner_prod (G : {set gT}) (f g : {cfun gT}) :=
-  #|G|%:R^-1 * \sum_(i \in G) f i * (g i)^*.
-
-Local Notation "''[' u , v ]_ G":= (inner_prod G u v) : ring_scope.
-Local Notation "''[' u ]_ G" := '[u , u]_G : ring_scope.
-
-Lemma inner_prodE (f g : {cfun gT}) :
-  '[f, g]_G = #|G|%:R^-1 * \sum_(i \in G) f i * (g i)^*.
-Proof. by []. Qed.
-
-Lemma inner_prod1 (H1 H2 : {set gT}) :
- '['1_H1, '1_H2]_G =  #|G :&: H1 :&: H2|%:R / #|G|%:R.
+Lemma cfunRes_subset (phi : 'CF(G)) :
+  A \subset H -> H \subset G -> 'Res[A] ('Res[H] phi) = 'Res[A] phi.
 Proof.
-rewrite inner_prodE big_mkcond /=.
-rewrite (bigID [pred x \in G :&: H1 :&: H2]) /=.
-rewrite (eq_bigr (fun i : gT => 1))=> [|i]; last first.
-  rewrite -setIA inE; case: (_ \in _)=> //=.
-  rewrite -cfun_conjCE // cfun_conjC1.
-  move: (cfuniE (H1 :&: H2) i).
-  by rewrite -cfuniM cfunE => ->; case: (_ \in _).
-rewrite sumr_const big1 ?(addr0) //; first by exact: mulrC.
-move=> i; rewrite -setIA inE; case: (_ \in _)=> //=.
-rewrite -cfun_conjCE // cfun_conjC1.
-move: (cfuniE (H1 :&: H2) i).
-by rewrite -cfuniM cfunE => ->; case: (_ \in _).
+move=> sAH sHG; apply/cfunP=> x; rewrite !cfunElock !genGid !gen_subG sAH sHG.
+rewrite (subset_trans sAH) // !andbT -mulrnA mulnb.
+by rewrite (andb_idl (subsetP _ x)) ?gen_subG.
 Qed.
- 
-Let card_conj : (#|G|%:R^-1)^* = #|G|%:R^-1.
-Proof. by rewrite posC_conjK // posC_inv posC_nat. Qed.
 
-Lemma inner_conj f g : '[f, g]_G = ('[g, f]_G)^*.
+Lemma cfunRes_id phi : 'Res[A] phi = phi.
+Proof. by apply/cfun_in_genP=> x Gx; rewrite cfunElock Gx subxx. Qed.
+
+End MoreRestrict.
+
+Section Morphim.
+
+Variables (aT rT : finGroupType) (G D : {group aT}) (f : {morphism D >-> rT}).
+
+Fact cfunMorph_subproof (phi : 'CF(f @* G)) :
+  is_class_fun <<G>> [ffun x => phi (f x) *+ ((x \in G) && (G \subset D))].
 Proof.
-rewrite /inner_prod rmorphM card_conj.
-congr (_ * _); rewrite rmorph_sum; apply: eq_bigr=> i _.
-by rewrite rmorphM conjCK mulrC.
+rewrite genGid; apply: intro_class_fun => [x y Gx Gy | x /negbTE/= ->//].
+rewrite Gx groupJ //; case dG: (G \subset D) => //.
+by rewrite morphJ ?cfunJ ?mem_morphim ?(subsetP dG).
 Qed.
- 
-Lemma posC_inner_prod f : 0 <= '[f]_G.
-Proof. 
-apply: posC_mul; first by rewrite posC_inv posC_nat.
-by rewrite posC_sum // => i _; rewrite /leC subr0 repC_pconj.
-Qed.
+Definition cfunMorph phi := Cfun 1 (cfunMorph_subproof phi).
 
-Lemma inner_prod0l f : '[0, f]_G = 0.
+Lemma cfunMorphE phi x : G \subset D -> x \in G -> cfunMorph phi x = phi (f x).
+Proof. by rewrite cfunElock => -> ->. Qed.
+
+Fact cfunMorph_is_linear : linear cfunMorph.
 Proof.
-rewrite inner_prodE big1 ?mulr0 // => i.
-by rewrite cfunE mul0r.
+by move=> a phi psi; apply/cfunP=> x; rewrite !cfunElock mulrnAr -mulrn_addl.
 Qed.
+Canonical cfunMorph_additive := Additive cfunMorph_is_linear.
+Canonical cfunMorph_linear := Linear cfunMorph_is_linear.
 
-Lemma inner_prod0r f : '[f, 0]_G = 0.
+Lemma cfunMorph1 : G \subset D -> cfunMorph 1 = 1.
 Proof.
-rewrite inner_prodE big1 ?mulr0 // => i.
-by rewrite cfunE conjC0 mulr0.
+move=> dG; apply/cfun_inP=> x Gx.
+by rewrite cfunMorphE // !cfun1E /= morphimEsub // mem_imset Gx.
 Qed.
 
-Lemma inner_prod0 (f : {cfun gT}) : 
-  f \in 'CF(G) -> ('[f]_G == 0) = (f == 0).
-Proof.
-move=> Hf; apply/eqP/eqP=> Hp; last first.
-  by rewrite Hp /inner_prod big1 ?mulr0 // => i _; rewrite !cfunE mul0r.
-apply/cfunP=> g; rewrite cfunE.
-case: (boolP (g \in G))=> Hin; last by rewrite (cfun0 Hf).
-suff: f g * (f g)^* == 0.
-  by rewrite mulf_eq0; case/orP; [move/eqP|rewrite conjC_eq0;move/eqP].
-move: Hp; move/eqP; rewrite /inner_prod mulf_eq0; case/orP=> [|Hp].
-  by rewrite (negPf card_neq0).
-apply/eqP; apply: (posC_sum_eq0 _ (eqP Hp))=> //.
- by move=>*; rewrite -sqrtC_pos; exact: posC_norm.
-by rewrite /index_enum -enumT mem_enum.
-Qed.
+End Morphim.
 
-Definition inner_prodb f := (@inner_prod G)^~ f.
-
-Lemma inner_prodbE f g : inner_prodb f g = inner_prod G g f.
-Proof. by []. Qed.
-
-Lemma inner_prodb_is_linear f : linear (inner_prodb f : _ -> algC^o).
-Proof.
-move=> k g1 g2.
-rewrite /inner_prodb /inner_prod.
-rewrite {1}scaler_mulr -{1}scaler_addr; congr (_ * _).
-rewrite {1}scaler_sumr /= -{1}big_split /=; apply: eq_bigr=> i _.
-by rewrite scaler_mull -mulr_addl !cfunE.
-Qed.
-
-Canonical inner_prodb_linear f := Linear (inner_prodb_is_linear f).
-
-Lemma inner_prod_is_additive f : additive (inner_prod G f).
-Proof.
-move=> g1 g2.
-rewrite /inner_prod /inner_prod.
-rewrite -mulr_subr; congr (_ * _).
-rewrite -sumr_sub; apply: eq_bigr=> i _.
-by rewrite !cfunE rmorph_sub // mulr_subr.
-Qed.
-
-Canonical inner_prod_additive f := Additive (inner_prod_is_additive f).
-
-Lemma inner_prodZ k (f g : {cfun gT}) : '[f, k *: g]_G = k^* * '[f, g]_G.
-Proof.
-rewrite /inner_prod mulrCA; congr (_ * _).
-rewrite -mulr_sumr; apply: eq_bigr=> i _.
-by rewrite !cfunE rmorphM mulrCA.
-Qed.
-
-Lemma cfun_conjC_inner (f1 f2 : {cfun gT}) :
-  ('[f1^*, f2^*]_G)%CH = ('[f1, f2]_G)^*.
-Proof.
-rewrite !inner_prodE rmorphM conjC_inv conjC_nat.
-congr (_ * _); rewrite (big_morph _ (rmorphD conjC) conjC0); apply: eq_bigr.
-by move=> g GiG; rewrite !cfunE rmorphM.
-Qed.
-
-End InnerProduct.
-
-Arguments Scope inner_prod [_ group_scope character_scope character_scope].
-Notation "''[' u , v ]_ G":=  (inner_prod G u v) : ring_scope.
-Notation "''[' u ]_ G":= '[u, u]_G : ring_scope.
+Prenex Implicits cfunMorph.
 
 Section Coset.
 
-Variable (gT : finGroupType).
+Variables (gT : finGroupType) (G : {group gT}) (B : {set gT}).
+Implicit Type rT : finGroupType.
+Local Notation H := <<B>>%g.
 
-Implicit Type G : {group gT}.
+Definition ffun_Quo (phi : 'CF(G)) :=
+  [ffun Bx : coset_of B => phi (repr Bx) *+ [&& B <| G & B \subset cfker phi]].
+Fact cfunQuo_subproof phi : is_class_fun <<G / B>> (ffun_Quo phi).
+Proof.
+rewrite genGid; apply: intro_class_fun => [|Hx].
+  move=> _ _ /morphimP[x Nx _ ->] /morphimP[z Nz Gz ->].
+  rewrite -morphJ ?val_coset_prim ?groupJ // -gen_subG andbC.
+  have [sHK | //] := altP subsetP; do 2!case: repr_rcosetP => _ /sHK/cfkerMl->.
+  by rewrite cfunJ.
+have [x Nx -> notGx] := cosetP Hx; rewrite -gen_subG val_coset_prim // andbC.
+have [sHK | //] := altP subsetP; case: repr_rcosetP => _ /sHK/cfkerMl->.
+by rewrite cfun0 ?mul0rn //; apply: contra notGx; exact: mem_morphim.
+Qed.
+Definition cfunQuo phi := Cfun 1 (cfunQuo_subproof phi).
 
-Definition qfun_of_cfun (N : {set gT}) (f : {cfun gT}) :=
-  [ffun x : coset_of N => f (repr x)].
+Definition cfunMod : 'CF(G / B) -> 'CF(G) := @cfunMorph _ _ _ _ _.
 
-Local Notation "f / N" := (qfun_of_cfun N f) : character_scope.
+Local Notation "phi /  'B'" := (cfunQuo phi) (at level 40) : character_scope.
+Local Notation "phi %%  'B'" := (cfunMod phi) (at level 40) : character_scope.
 
-Definition cfun_of_qfun (N : {set gT}) (f : {cfun (coset_of N)}) : {cfun gT} :=
-  [ffun x : gT => (x \in 'N(N))%:R * f (coset N x)].
+Lemma cfunQuoE (phi : 'CF(G)) x :
+  B <| G -> B \subset cfker phi -> x \in G -> (phi / B)%CH (coset B x) = phi x.
+Proof.
+rewrite cfunElock -gen_subG => nsBG sHK Gx; rewrite nsBG sHK.
+rewrite val_coset_prim ?(subsetP (normal_norm nsBG)) //.
+by case: repr_rcosetP => _ /(subsetP sHK)/cfkerMl->.
+Qed.
 
-Local Notation "f %% N" := (@cfun_of_qfun N f) : character_scope.
+Lemma cfunModE phi x : B <| G -> x \in G -> (phi %% B)%CH x = phi (coset B x).
+Proof. by move/normal_norm=> nBG; exact: cfunMorphE. Qed.
 
-Lemma cfunqE (N : {group gT}) f x :
-  x \in 'N(N) -> (f %% N)%CH x = f (coset N x).
-Proof. by move=> XiNN; rewrite !cfunE XiNN // mul1r. Qed.
+Canonical cfunMod_additive := [additive of cfunMod].
+Canonical cfunMod_linear := [linear of cfunMod].
+
+Lemma cfunMod1 : B <| G -> (1 %% B)%CH = 1.
+Proof. by move/normal_norm=> nBG; exact: cfunMorph1. Qed.
+
+(* cfunQuo is only linear on the class functions that have H in their kernel. *)
+
+Lemma cfker_Morph rT (A D : {group gT}) (f : {morphism D >-> rT})
+                  (phi : 'CF(f @* A)) :
+  A \subset D -> 'ker_A f \subset cfker (cfunMorph phi).
+Proof.
+move=> dG; apply/subsetP=> x /setIP[Ax Kx]; rewrite inE Ax /=.
+apply/forallP=> y; rewrite !cfunElock dG groupMl //= andbT !mulrb.
+by case: ifP => // /(subsetP dG) Dy; rewrite mkerl.
+Qed.
+
+Lemma cfker_Mod (phi : 'CF(G / _)) : B <| G -> B \subset cfker (phi %% B).
+Proof.
+rewrite /normal -!(gen_subG B) => /andP[/setIidPr <- nBG].
+by rewrite -(setIidPl nBG) setIAC -setIA -ker_coset_prim cfker_Morph.
+Qed.
+
+Lemma cfunModK (phi : 'CF(G / _)) : B <| G -> (phi %% B / B)%CH = phi.
+Proof.
+move=> nsBG; apply/cfun_inP=> _ /morphimP[x Nx Gx ->] //.
+by rewrite cfunQuoE ?cfker_Mod ?cfunModE.
+Qed.
+
+Lemma cfunQuoK (phi : 'CF(G)) :
+  B <| G -> B \subset cfker phi -> (phi / B %% B)%CH = phi.
+Proof.
+by move=> nsHG sHK; apply/cfun_inP=> x Gx; rewrite cfunModE ?cfunQuoE.
+Qed.
 
 End Coset.
 
-Arguments Scope qfun_of_cfun [_ group_scope character_scope].
-Arguments Scope cfun_of_qfun [_ group_scope character_scope].
-Notation "f / N" := (qfun_of_cfun N f) : character_scope.
-Notation "f %% N" := (@cfun_of_qfun _ N f) : character_scope.
+Arguments Scope cfunQuo [_ subgroup_scope group_scope character_scope].
+Arguments Scope cfunMod [_ subgroup_scope group_scope character_scope].
+Notation "phi / H" := (cfunQuo H phi) : character_scope.
+Notation "phi %% H" := (@cfunMod _ _ H phi) : character_scope.
 
 Section Induced.
 
 Variable gT : finGroupType.
 
-Definition cinduced  (G H : {set gT}) (f : {cfun gT}) : {cfun gT} :=
- [ffun g =>  #|H|%:R^-1 * \sum_(c | c \in G) f (g ^ c)].
+Section Def.
 
-Local Notation "'Ind[ G , H ]" := (cinduced G H) : ring_scope.
+Variables B A : {set gT}.
+Local Notation G := <<B>>.
+Local Notation H := <<A>>.
+
+Definition ffun_cfInd (phi : 'CF(A)) :=
+  [ffun x => #|A|%:R^-1 * (\sum_(y \in G) phi (x ^ y)) *+ (<<A>> \subset G)].
+
+Fact cfunInd_subproof phi : is_class_fun G (ffun_cfInd phi).
+Proof.
+apply: intro_class_fun => [x y Gx Gy | x notGx //].
+  congr (_ * _ *+ _); rewrite (reindex_inj (mulgI y^-1)%g) /=.
+  apply: eq_big => [z | z Gz]; first by rewrite groupMl ?groupV.
+  by rewrite -conjgM mulKVg.
+case: subsetP => // sHG; rewrite big1 ?mulr0 // => y Gy.
+by rewrite cfun0gen // (contra (sHG _)) // groupJr.
+Qed.
+Definition cfunInd phi := Cfun 1 (cfunInd_subproof phi).
+
+Lemma cfunInd_is_linear : linear cfunInd.
+Proof.
+move=> c phi psi; apply/cfunP=> x.
+rewrite !cfunElock -!mulrnAl mulrCA -mulr_addr /=; congr (_ * _).
+by rewrite big_distrr -big_split /=; apply: eq_bigr => y Gy /=; rewrite !cfunE.
+Qed.
+Canonical cfunInd_additive := Additive cfunInd_is_linear.
+Canonical cfunInd_linear := Linear cfunInd_is_linear.
+
+End Def.
+
+Local Notation "''Ind[' B , A ]" := (@cfunInd B A) : ring_scope.
+Local Notation "''Ind[' B ]" := 'Ind[B, _] : ring_scope.
 
 Variables G H : {group gT}.
+Implicit Types (phi : 'CF(H)) (psi : 'CF(G)).
 
-Lemma memc_induced (f : {cfun gT}) :
-  H \subset G -> f \in 'CF(H) -> 'Ind[G,H] f \in 'CF(G).
-Proof.
-move=> HsG Hf; apply/cfun_memP; split=> [g Hg|g h HiG].
-  rewrite !cfunE big1 ?mulr0 // => h HiG.
-  rewrite (cfun0 Hf) //.
-  apply/negP; move/(subsetP HsG)=> GHiH; case/negP: Hg.
-  by rewrite -[g]conjg1 -[1%g](mulgV h) conjgM groupJ // groupV.
-rewrite !cfunE; congr (_ * _).
-rewrite (reindex (fun x => h^-1 * x)%g) //=; last first.
-  by exists (mulg h)=> l; rewrite mulgA (mulgV,mulVg) mul1g.
-apply: eq_big=> [l|l _]; first by rewrite groupMl // groupV.
-by rewrite -conjgM mulgA mulgV mul1g.
-Qed.
+Lemma cfunIndE phi x :
+  H \subset G -> 'Ind[G] phi x = #|H|%:R^-1 * (\sum_(y \in G) phi (x ^ y)).
+Proof. by move=> sHG; rewrite cfunElock !genGid sHG. Qed.
 
-Lemma support_induced f :
-  f \in 'CF(H) -> H <| G -> support ('Ind[G,H] f) \subset H.
+Lemma support_Ind_normal phi : H <| G -> support ('Ind[G] phi) \subset H.
 Proof.
-move=> Cf HnG; apply/subsetP=> h. rewrite !inE; apply:contraR=> HniH.
-rewrite cfunE big1 ?mulr0 // => g GiG.
-by rewrite (cfun0 Cf) // memJ_norm // (subsetP (normal_norm HnG)).
+case/andP=> sHG nHG; apply/supportP=> x notHx; rewrite cfunIndE //.
+by rewrite big1 ?mulr0 // => y Gy; rewrite cfun0 // memJ_norm ?(subsetP nHG).
 Qed.
  
-Lemma cinduced1 f : 
-  H \subset G -> ('Ind[G, H] f) 1%g = #|G : H|%:R * f 1%g.
+Lemma cfunInd1 phi : H \subset G -> 'Ind[G] phi 1%g = #|G : H|%:R * phi 1%g.
 Proof.
-move=> HsG; rewrite cfunE (eq_bigr (fun _ => f 1%g)).
-  rewrite sumr_const -[(f _) *+ _]mulr_natl mulrA -(LaGrange HsG).
-  by rewrite natr_mul mulrA mulVf ?mul1r // neq0GC.
-by move=> i; rewrite conj1g.
+move=> sHG; rewrite cfunIndE //; apply: canLR (mulKf (neq0GC H)) _.
+rewrite mulrA -natr_mul LaGrange // mulr_natl -sumr_const; apply: eq_bigr => x.
+by rewrite conj1g.
 Qed.
 
-Lemma cinduced_is_linear : linear (cinduced G H).
+Lemma cfunInd_normal1 : H <| G -> 'Ind[G, H] 1 = #|G : H|%:R *: '1_H.
 Proof.
-move=> c f1 f2; apply/cfunP=> g.
-rewrite !cfunE [_ *: (_ * _)]mulrCA -mulr_addr.
-rewrite -[c * _]mulr_sumr -big_split; congr (_ * _).
-by apply: eq_bigr=> h HiG; rewrite !cfunE.
-Qed.
-Canonical cinduced_linear := Linear cinduced_is_linear.
-
-(* Isaacs' 5.2 *)
-Lemma frobenius_reciprocity f1 f2 :
-    H \subset G -> f1 \in 'CF(H) -> f2 \in 'CF(G)->
-  '[f1, 'Res[H] f2]_H = '['Ind[G, H] f1, f2]_G.
-Proof.
-move=> HsG F1iC F2iC.
-apply: sym_equal; rewrite !inner_prodE.
-pose f3 i :=  #|H|%:R^-1 * \sum_(g \in G) f1 (i ^g) * (f2 i)^*.
-rewrite (eq_bigr f3) =>[/=|g GiG]; rewrite {}/f3; last first.
-  by rewrite cfunE -mulrA -mulr_suml.
-rewrite mulr_sumr exchange_big /=.
-pose f3 i :=  \sum_(g \in G) f1 (g ^ i) * (f2 (g ^ i))^*.
-rewrite (eq_bigr f3) =>[/=|g GiG]; rewrite {}/f3; last first.
-  by apply: eq_bigr=> h HiG; rewrite -!/fcf (cfunJ _ F2iC).
-rewrite  pair_big /= .
-rewrite (reindex (fun p => (p.1,p.2^(p.1^-1))%g)) /=; last first.
-  by exists (fun p => (p.1,p.2^(p.1))%g)=> [] [g h];
-     rewrite -conjgM ?(mulgV, mulVg,conjg1) //=.
-rewrite (eq_bigl (fun j => (j.1 \in G) && (j.2 \in G))); last first.
-  move=> [g h]; case E1: (g \in G)=> //; move/idP: E1 => E1.
-  by rewrite groupMl !(groupMr,groupV).
-rewrite (eq_bigr (fun i =>  f1 i.2 * (f2 i.2)^*)); last first.
-  by move=> [g h]; rewrite -conjgM ?(mulgV, mulVg,conjg1).
-rewrite -(pair_big (fun g => g \in G) (fun g => g \in G)
-                 (fun i j =>  f1 j * (f2 j)^*)) /=.
-rewrite sumr_const (bigID (fun g => g \notin H)) big1 //= ?add0r; last first.
-  by move=> g; case/andP=> GiG GniH; rewrite -/fcf (cfun0 F1iC) ?mul0r.
-set u := _%:R; set v := _%:R; rewrite -mulr_natl -/u.
-rewrite !mulrA [_/_]mulrC mulfVK ?neq0GC //; congr (_ * _).
-apply: eq_big=> [g|g]; rewrite negbK.
-  by case E1: (g \in H); rewrite ?andbF // (subsetP HsG _ (idP E1)).
-by case/andP=> _ GiH; rewrite crestrictE.
+move=> nsHG; have [sHG nHG] := andP nsHG.
+apply/cfunP=> x; rewrite cfunIndE // cfunE cfuniE //.
+apply: canLR (mulKf (neq0GC H)) _; rewrite mulrA -natr_mul LaGrange //.
+rewrite mulr_natl -sumr_const; apply: eq_bigr => y Gy.
+by rewrite cfun1E -{1}(normsP nHG y Gy) memJ_conjg.
 Qed.
 
-Lemma cinduced_conjC f : ('Ind[G, H] f)^*%CH = 'Ind[G, H] f^*%CH.
+(* This is Isaacs, Lemma (5.2). *)
+Lemma Frobenius_reciprocity phi psi : '[phi, 'Res[H] psi] = '['Ind[G] phi, psi].
 Proof.
-apply/cfunP=> g.
-rewrite !cfunE rmorphM conjC_inv conjC_nat; congr (_ * _).
-rewrite rmorph_sum; apply: eq_bigr=> h HiG.
-by rewrite cfunE.
+case sHG: (H \subset G); last first.
+  rewrite /cfdot !big1 ?mulr0 // => x; rewrite cfunElock !genGid sHG ?mul0r //.
+  by rewrite andbF conjC0 mulr0.
+transitivity (#|H|%:R^-1 * \sum_(x \in G) phi x * (psi x)^*).
+  rewrite (big_setID H) /= (setIidPr sHG) addrC big1 ?add0r; last first.
+    by move=> x /setDP[_ /cfun0->]; rewrite mul0r.
+  by congr (_ * _); apply: eq_bigr => x Hx; rewrite cfunResE.
+set h' := _^-1; apply: canRL (mulKf (neq0GC G)) _.
+transitivity (h' * \sum_(y \in G) \sum_(x \in G) phi (x ^ y) * (psi (x ^ y))^*).
+  rewrite mulrCA mulr_natl -sumr_const; congr (_ * _); apply: eq_bigr => y Gy.
+  by rewrite (reindex_acts 'J _ Gy) ?astabsJ ?normG.
+rewrite exchange_big big_distrr; apply: eq_bigr => x _; rewrite cfunIndE //=.
+by rewrite -mulrA big_distrl; congr (_ * _); apply: eq_bigr => y /(cfunJ psi)->.
 Qed.
+Definition cfdot_Res_r := Frobenius_reciprocity.
+
+Lemma cfdot_Res_l psi phi : '['Res[H] psi, phi] = '[psi, 'Ind[G] phi].
+Proof. by rewrite cfdotC cfdot_Res_r -cfdotC. Qed.
 
 End Induced.
 
-Arguments Scope cinduced [_ group_scope group_scope character_scope].
-Notation "''Ind[' G , H ]" := (cinduced G H) : ring_scope.
+Arguments Scope cfunInd [_ group_scope group_scope character_scope].
+Notation "''Ind[' G , H ]" := (@cfunInd _ G H) : ring_scope.
+Notation "''Ind[' G ]" := (@cfunInd _ G _) : ring_scope.
+Notation "''Ind'" := (@cfunInd _ _) (at level 0, only parsing) : ring_scope.
+
+Section FieldAutomorphism.
+
+Variables (u : {rmorphism algC -> algC}) (gT : finGroupType) (G H : {group gT}).
+Local Notation "phi ^u" := (cfunAut u phi) (at level 3, format "phi ^u").
+
+Lemma cfunAutRes (phi : 'CF(G)) : ('Res[H] phi)^u = 'Res phi^u.
+Proof. by apply/cfunP=> x; rewrite !cfunElock rmorphMn. Qed.
+
+Lemma cfker_Aut (phi : 'CF(G)) : cfker phi^u = cfker phi.
+Proof.
+apply/setP=> x; rewrite !inE; apply: andb_id2l => Gx.
+by apply/forallP/forallP=> Kx y;
+  have:= Kx y; rewrite !cfunE (inj_eq (fmorph_inj u)).
+Qed.
+
+Lemma cfunAutQuo (phi : 'CF(G)) : (phi / H)^u = (phi^u / H)%CH.
+Proof. by apply/cfunP=> Hx; rewrite !cfunElock cfker_Aut rmorphMn. Qed.
+
+Lemma cfunAutMod (phi : 'CF(G / H)) : (phi %% H)^u = (phi^u %% H)%CH.
+Proof. by apply/cfunP=> x; rewrite !cfunElock rmorphMn. Qed.
+
+Lemma cfunAutInd (phi : 'CF(H)) : ('Ind[G] phi)^u = 'Ind phi^u.
+Proof.
+apply/cfunP=> x; rewrite !cfunElock rmorphMn rmorphM fmorphV rmorph_nat.
+by congr (_ * _ *+ _); rewrite rmorph_sum; apply: eq_bigr => y; rewrite !cfunE.
+Qed.
+
+End FieldAutomorphism.
+
+Definition conj_cfunRes := cfunAutRes conjC.
+Definition conj_cfunQuo := cfunAutQuo conjC.
+Definition conj_cfunMod := cfunAutMod conjC.
+Definition conj_cfunInd := cfunAutInd conjC.
 
 Section Product.
 
 Variable (gT : finGroupType) (G : {group gT}).
 
-Lemma memc_prodI (A B : {set gT}) (f1 f2 : {cfun gT}) : 
-  f1 \in 'CF(G, A) -> f2 \in 'CF(G, B) -> f1 * f2 \in 'CF(G, A :&: B).
+Lemma memc_prodI A B phi psi : 
+  phi \in 'CF(G, A) -> psi \in 'CF(G, B) -> phi * psi \in 'CF(G, A :&: B).
 Proof.
-case/cfun_memfP=> H1f1 H2f1; case/cfun_memfP=> H1f2 H2f2.
-apply/cfun_memfP; split=> [x|x y YiG]; rewrite !cfunE -!/fcf; last first.
-  by rewrite H2f1 // H2f2.
-rewrite !inE -andbA negb_and; case/orP=> HA.
-  by rewrite H1f1 ?mul0r // inE (negPf HA).
-by rewrite H1f2 ?mulr0 // inE.
+rewrite !memcE => Aphi Bpsi; apply/subsetP=> x; rewrite !inE cfunE mulf_eq0.
+by case/norP=> /(subsetP Aphi)-> /(subsetP Bpsi).
 Qed.
 
-Lemma memc_prod (A : {set gT}) (f1 f2 : {cfun gT}) : 
-  f1 \in 'CF(G, A) -> f2 \in 'CF(G, A) -> f1 * f2 \in 'CF(G, A).
-Proof. by move=> Hf1 Hf2; rewrite -[A]setIid memc_prodI. Qed.
+Lemma memc_prod A phi psi : 
+  phi \in 'CF(G, A) -> psi \in 'CF(G, A) -> phi * psi \in 'CF(G, A).
+Proof. by move=> Aphi Bpsi; rewrite -[A]setIid memc_prodI. Qed.
 
 End Product.
 
 Section DProduct. 
 
-Variable (gT : finGroupType) (G H1 H2 : {group gT}).
-Hypothesis H1xH2 : H1 \x H2 = G.
+Variables (gT : finGroupType) (G K H : {group gT}).
+Hypothesis KxH : K \x H = G.
 
-Lemma sum_dprodl (R : Type) (idx : R) (op : Monoid.com_law idx) (F : gT -> R) :
+Lemma sum_dprodl R idx (op : Monoid.com_law idx) (F : gT -> R) :
    \big[op/idx]_(g \in G) F g =
-      \big[op/idx]_(h1 \in H1) \big[op/idx]_(h2 \in H2) F (h1 * h2)%g.
+      \big[op/idx]_(k \in K) \big[op/idx]_(h \in H) F (k * h)%g.
 Proof.
-rewrite pair_big_dep.
-pose f (g : gT) := (divgr H1 H2 g, remgr H1 H2 g).
-have Hf: {on [pred i | (i.1 \in H1) && (i.2 \in H2)], bijective f}.
-  case/dprodP: H1xH2=> _ _ _ HH.
-  exists (fun p => (p.1 * p.2)%g)=> [g|[g h] /andP [] /= Hg Hh].
-    by rewrite !inE -?divgr_eq.
-  by rewrite /f ?(divgrMid,remgrMid).
-rewrite (reindex f) //.
-apply: eq_big; last first.
-  by move=> g GiG; rewrite /= -divgr_eq.
-move=> g /=; apply/idP/idP=> [GiG | /andP [] DiH1 DiH2].
-  rewrite [g](divgr_eq H1 H2).
-  by rewrite !(mem_divgr,mem_remgr) // -divgr_eq; case/dprodP: H1xH2=> _ ->.
-rewrite [g](divgr_eq H1 H2).
-case/dprodP: H1xH2=> _ <- _ _.
-by apply: mem_mulg.
+have /mulgmP/misomP[fM /isomP[injf im_f]] := KxH.
+rewrite pair_big_dep (reindex_onto (morphm fM) (invm injf)); last first.
+  by move=> u KHu; rewrite invmK ?im_f.
+apply: eq_big => [[x y] | []//]; rewrite -in_setX.
+apply/andP/idP=> [[Gfu f'fu] | KHu].
+  by rewrite -(im_invm injf) -(eqP f'fu) mem_morphim //= im_f.
+by rewrite -[in G in _ \in G]im_f mem_morphim ?invmE.
 Qed.
 
-Lemma sum_dprodr (R : Type) (idx : R) (op : Monoid.com_law idx) (F : gT -> R) :
+Lemma sum_dprodr R idx (op : Monoid.com_law idx) (F : gT -> R) :
   \big[op/idx]_(g \in G) F g =
-    \big[op/idx]_(h2 \in H2) \big[op/idx]_(h1 \in H1) F (h1 * h2)%g.
+    \big[op/idx]_(h \in H) \big[op/idx]_(k \in K) F (k * h)%g.
+Proof. by rewrite sum_dprodl exchange_big. Qed.
+
+Let fP := misomP (introT mulgmP KxH).
+Let f := morphm (tag fP).
+Let injf : 'injm f := proj1 (isomP (tagged fP)).
+Let im_f : f @* setX K H = G := proj2 (isomP (tagged fP)).
+Fact dom_dprod_inv_morph : G \subset f @* setX K H. Proof. by rewrite im_f. Qed.
+Definition dprod_inv_morph := restrm dom_dprod_inv_morph (invm injf).
+Canonical dprod_inv_morphism := [morphism of dprod_inv_morph].
+Local Notation f' := dprod_inv_morph.
+Lemma im_dprod_inv_morph : f' @* G = setX K H.
+Proof. by rewrite im_restrm -[G in _ @* G = _]im_f im_invm. Qed.
+Local Notation im_f' := im_dprod_inv_morph.
+Local Notation pK := (@fst gT gT).
+Local Notation pH := (@snd gT gT).
+
+Definition cfun_dprodl := cfunMorph \o cfunMorph \o 'Res[pK @* (f' @* G), K].
+Definition cfun_dprodr := cfunMorph \o cfunMorph \o 'Res[pH @* (f' @* G), H].
+Definition cfun_dprod phi psi := cfun_dprodl phi * cfun_dprodr psi.
+
+Let imK : pK @* (f' @* G) \subset K.
+Proof. by rewrite im_dprod_inv_morph morphim_fstX. Qed.
+
+Let imH : pH @* (f' @* G) \subset H.
+Proof. by rewrite im_dprod_inv_morph morphim_sndX. Qed.
+
+Lemma cfun_dprod1r phi : cfun_dprod phi 1 = cfun_dprodl phi.
 Proof.
-rewrite pair_big_dep.
-pose f (g : gT) := (remgr H1 H2 g, divgr H1 H2 g).
-have Hf: {on [pred i | (i.1 \in H2) && (i.2 \in H1)], bijective f}.
-  case/dprodP: H1xH2=> _ _ _ HH.
-  exists (fun p => (p.2 * p.1)%g)=> [g|[g h] /andP [] /= Hg Hh].
-    by rewrite !inE -?divgr_eq.
-  by rewrite /f ?(divgrMid,remgrMid).
-rewrite (reindex f) //.
-apply: eq_big; last first.
-  by move=> g GiG; rewrite /= -divgr_eq.
-move=> g /=; apply/idP/idP=> [GiG | /andP [] DiH1 DiH2].
-  rewrite [g](divgr_eq H1 H2).
-  by rewrite !(mem_divgr,mem_remgr) // -divgr_eq; case/dprodP: H1xH2=> _ ->.
-rewrite [g](divgr_eq H1 H2).
-case/dprodP: H1xH2=> _ <- _ _.
-by apply: mem_mulg.
+by rewrite /cfun_dprod /cfun_dprodr /= cfunRes1 ?cfunMorph1 ?mulr1 ?subsetT.
 Qed.
 
-Definition cfun_div (H1xH2 : H1 \x H2 = G) (f : {cfun gT}) : {cfun gT} :=
-  '1_G * [ffun g => f (divgr H1 H2 g)].
-
-Definition cfun_rem (H1xH2 : H1 \x H2 = G) (f : {cfun gT}) : {cfun gT} :=
-  '1_G * [ffun g => f (remgr H1 H2 g)].
-
-Definition cfun_dprod (f1 f2 : {cfun gT}) : {cfun gT} :=
-  cfun_div H1xH2 f1 * cfun_rem H1xH2 f2.
-
-Lemma mem_dprod g :
-   g \in G = ((divgr H1 H2 g \in H1) && (remgr H1 H2 g \in H2)).
+Lemma cfun_dprod1l psi : cfun_dprod 1 psi = cfun_dprodr psi.
 Proof.
-apply/idP/idP=> [|/andP [] Hrem Hdiv]; last first.
-  case/dprodP: H1xH2=> _ <- _ _.
-  apply/imset2P; exists (divgr H1 H2 g) (remgr H1 H2 g) => //.
-  apply: divgr_eq.
-case/dprodP: H1xH2=> _ <- _ DH1H2.
-case/imset2P=> y1 y2 Y1iH1 Y2iH2 ->.
-by rewrite divgrMid // remgrMid // Y1iH1.
+by rewrite /cfun_dprod /cfun_dprodl /= cfunRes1 ?cfunMorph1 ?mul1r ?subsetT.
 Qed.
 
-Lemma cfun_dprod1r f : cfun_dprod f '1_H2 = cfun_div H1xH2 f.
+Lemma cfun_dprodE phi psi :
+  {in K & H, forall h k, cfun_dprod phi psi (h * k)%g = phi h * psi k}.
 Proof.
-apply/cfunP=> g; rewrite !cfunE mem_dprod.
-by set u := remgr _ _ _ \in H2; set v := divgr _ _ _ \in H1;
-   case u; case v=> /=; rewrite !(mul0r,mul1r,mulr1).
+move=> k h Kk Hh /=; move def_u: (k, h) => u.
+have ->: (k * h)%g = f u by rewrite -def_u.
+have{Kk Hh} KHu: u \in setX K H by rewrite -def_u inE Kk Hh.
+have Gfu: f u \in G by rewrite -im_f morphimEsub // mem_imset.
+rewrite cfunE !cfunMorphE ?cfunResE ?subsetT ?mem_morphim ?in_setT //=.
+by rewrite [f' _]invmE // -def_u.
 Qed.
 
-Lemma cfun_dprod1l f : cfun_dprod '1_H1 f = cfun_rem H1xH2 f.
+Lemma cfun_dprodEl phi :
+  {in K & H, forall k h, cfun_dprodl phi (k * h)%g = phi k}.
 Proof.
-apply/cfunP=> g; rewrite !cfunE mem_dprod.
-by set u := remgr _ _ _ \in H2; set v := divgr _ _ _ \in H1;
-   case u; case v=> /=; rewrite !(mul0r,mul1r,mulr1).
+by move=> k h Kk Hh; rewrite -cfun_dprod1r cfun_dprodE // cfun1E Hh mulr1.
 Qed.
 
-Lemma inner_prod_dprod (f1 f2 f'1 f'2 : {cfun gT}) :
-     f1 \in 'CF(H1) ->  f2 \in 'CF(H2) ->
-    f'1 \in 'CF(H1) -> f'2 \in 'CF(H2) ->
-  '[cfun_dprod f1 f2, cfun_dprod f'1 f'2]_G = 
-     '[f1, f'1]_H1 * '[f2, f'2]_H2.
+Lemma cfun_dprodEr psi :
+  {in K & H, forall k h, cfun_dprodr psi (k * h)%g = psi h}.
 Proof.
-move=> Cf1 Cf2 Cf'1 Cf'2.
-rewrite inner_prodE -(dprod_card H1xH2) natr_mul.
-rewrite invf_mul -mulrA -mulr_sumr.
-rewrite sum_dprodl /=.
-rewrite inner_prodE -mulrA; congr (_ * _).
-rewrite -mulr_suml; apply: eq_bigr=> h1 H1iH1.
-rewrite inner_prodE -!mulr_sumr.
-apply: eq_bigr=> h2 H2iH2.
-case/dprodP: (H1xH2)=> _ _ _ HH.
-rewrite !cfunE !(divgrMid,remgrMid) //.
-have->: (h1 * h2)%g \in G.
-  by case/dprodP: H1xH2=> _ <- _ _; apply: mem_mulg.
-rewrite !mul1r mulrCA -!mulrA; congr (_ * _).
-rewrite mulrCA [X in _ = X]mulrCA; congr (_ * _).
-by rewrite mulrCA rmorphM.
+by move=> k h Kk Hh; rewrite -cfun_dprod1l cfun_dprodE // cfun1E Kk mul1r.
 Qed.
 
-Lemma inner_prod_rem (f1 f2 : {cfun gT}) :
-     f1 \in 'CF(H2) ->  f2 \in 'CF(H2) ->
-  '[cfun_rem H1xH2 f1, cfun_rem H1xH2 f2]_G = '[f1, f2]_H2.
+Lemma cfdot_dprod phi1 phi2 psi1 psi2 :
+  '[cfun_dprod phi1 psi1, cfun_dprod phi2 psi2] = '[phi1, phi2] * '[psi1, psi2].
 Proof.
-move=> Cf1 Cf2.
-rewrite -!cfun_dprod1l inner_prod_dprod ?memc1 //.
-by rewrite inner_prod1 !setIid mulfV ?mul1r // neq0GC.
+rewrite !cfdotE mulrCA -mulrA mulrCA mulrA -invf_mul -natr_mul (dprod_card KxH).
+congr (_ * _); rewrite big_distrl sum_dprodl /=; apply: eq_bigr => k Kk.
+rewrite big_distrr; apply: eq_bigr => h Hh /=.
+by rewrite mulrCA -mulrA -rmorphM mulrCA mulrA !cfun_dprodE.
 Qed.
 
-Lemma inner_prod_div (f1 f2 : {cfun gT}) :
-     f1 \in 'CF(H1) -> f2 \in 'CF(H1) ->
-  '[cfun_div H1xH2 f1, cfun_div H1xH2 f2]_G = '[f1, f2]_H1.
+Canonical cfun_dprodl_additive := [additive of cfun_dprodl].
+Canonical cfun_dprodl_linear := [linear of cfun_dprodl].
+Canonical cfun_dprodr_additive := [additive of cfun_dprodr].
+Canonical cfun_dprodr_linear := [linear of cfun_dprodr].
+
+Lemma cfdot_dprodl : isometry cfun_dprodl.
 Proof.
-move=> Cf1 Cf2.
-rewrite -!cfun_dprod1r inner_prod_dprod ?memc1 //.
-by rewrite inner_prod1 !setIid mulfV ?mulr1 // neq0GC.
+by move=> phi1 phi2; rewrite -!cfun_dprod1r cfdot_dprod cfnorm1 mulr1.
+Qed.
+
+Lemma cfdot_dprodr : isometry cfun_dprodr.
+Proof.
+by move=> psi1 psi2; rewrite -!cfun_dprod1l cfdot_dprod cfnorm1 mul1r.
 Qed.
 
 End DProduct.

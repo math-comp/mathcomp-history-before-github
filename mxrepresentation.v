@@ -37,8 +37,10 @@ Require Import commutator cyclic center pgroup matrix mxalgebra mxpoly.
 (*                 trivial).                                                  *)
 (* rfix_mx rG H == an n x n matrix whose row space is the set of vectors      *)
 (*                 fixed (centralised) by the representation of H by rG.      *)
-(*   rcent rG A == the subgroup of G whose representation via r commutes with *)
-(*                 the square matrix A.                                       *)
+(*   rcent rG A == the subgroup of G whose representation via rG commutes     *)
+(*                 with the square matrix A.                                  *)
+(*   rcenter rG == the subgroup of G whose representation via rG consists of  *)
+(*                 scalar matrices.                                           *)
 (* mxcentg rG f <=> f commutes with every matrix in the representation of G   *)
 (*                 (i.e., f is a total rG-homomorphism).                      *)
 (*   rstab rG U == the subgroup of G whose representation via r fixes all     *)
@@ -164,7 +166,8 @@ Require Import commutator cyclic center pgroup matrix mxalgebra mxpoly.
 (*      irr_repr i == the irreducible representation corresponding to the     *)
 (*                 index i : irrType sG                                       *)
 (*                 := socle_repr i as i coerces to a component matrix.        *)
-(*    irr_degree i == the degree of irr_repr i                                *)
+(* 'n_i, irr_degree i == the degree of irr_repr i; the notation is only       *)
+(*                 active after Open Scope group_ring_scope.                  *)
 (*   linear_irr sG == the set of sG-indices of linear irreducible             *)
 (*                 representations of G.                                      *)
 (*  irr_comp sG rG == the sG-index of the unique irreducible representation   *)
@@ -177,17 +180,18 @@ Require Import commutator cyclic center pgroup matrix mxalgebra mxpoly.
 (*                 and irr_mode is in the %irr scope. This notation may be    *)
 (*                 replaced locally by an interpretation of 1%irr as [1 sG]   *)
 (*                 for some specific irrType sG.                              *)
-(* Wedderburn_subring i == the subring (indeed, the component) of the free    *)
-(*                 group ring of G that corresponds to the component i : sG   *)
+(* 'R_i, Wedderburn_subring i == the subring (indeed, the component) of the   *)
+(*                 free group ring of G corresponding to the component i : sG *)
 (*                 of the regular FG-module, where sG : irrType F g. In       *)
 (*                 coprime characteristic the Wedderburn structure theorem    *)
 (*                 asserts that the free group ring is the direct sum of      *)
-(*                 these subrings.                                            *)
-(* Wedderburn_id_mx i == the projection of the identity matrix 1%:M on the    *)
+(*                 these subrings; as with 'n_i above, the notation is only   *)
+(*                 active in group_ring_scope.                                *)
+(* 'e_i, Wedderburn_id i == the projection of the identity matrix 1%:M on the *)
 (*                 Wedderburn subring of i : sG (with sG a socleType). In     *)
 (*                 coprime characteristic this is the identity element of     *)
-(*                 the subring, and the basis of its center if the field F    *)
-(*                 is a splitting field.                                      *)
+(*                 the subring, and the basis of its center if the field F is *)
+(*                 a splitting field. As 'R_i, 'e_i is in group_ring_scope.   *)
 (* subg_repr rG sHG == the restriction to H of the representation rG of G;    *)
 (*                 here sHG : H \subset G.                                    *)
 (* eqg_repr rG eqHG == the representation rG of G viewed a a representation   *)
@@ -259,6 +263,10 @@ Unset Printing Implicit Defensive.
 
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
+
+Reserved Notation "''n_' i" (at level 8, i at level 2, format "''n_' i").
+Reserved Notation "''R_' i" (at level 8, i at level 2, format "''R_' i").
+Reserved Notation "''e_' i" (at level 8, i at level 2, format "''e_' i").
 
 Delimit Scope irrType_scope with irr.
 
@@ -388,6 +396,27 @@ rewrite !inE groupR //= /commg mulgA -invMg repr_mxM ?groupV ?groupM //.
 rewrite mulmxA (can2_eq (repr_mxK _) (repr_mxKV _)) ?groupM //.
 rewrite !repr_mxV ?repr_mxM ?groupM //; move: (rG x) (rG y).
 by rewrite n1 => rx ry; rewrite (mx11_scalar rx) scalar_mxC.
+Qed.
+
+(* Representation center. *)
+
+Definition rcenter := [set g \in G | is_scalar_mx (rG g)].
+
+Fact rcenter_group_set : group_set rcenter.
+Proof.
+apply/group_setP; split=> [|x y].
+  by rewrite inE group1 repr_mx1 scalar_mx_is_scalar.
+move=> /setIdP[Gx /is_scalar_mxP[a defx]] /setIdP[Gy /is_scalar_mxP[b defy]].
+by rewrite !inE groupM ?repr_mxM // defx defy -scalar_mxM ?scalar_mx_is_scalar.
+Qed.
+Canonical rcenter_group := Group rcenter_group_set.
+
+Lemma rcenter_normal : rcenter <| G.
+Proof.
+rewrite /normal /rcenter {1}setIdE subsetIl; apply/subsetP=> x Gx; rewrite inE.
+apply/subsetP=> _ /imsetP[y /setIdP[Gy /is_scalar_mxP[c rGy]] ->].
+rewrite inE !repr_mxM ?groupM ?groupV //= mulmxA rGy scalar_mxC repr_mxKV //.
+exact: scalar_mx_is_scalar.
 Qed.
 
 End OneRepresentation.
@@ -3068,6 +3097,13 @@ case/mx_rsim_def=> B [B' B'B def_rG1] x Gx.
 by rewrite def_rG1 // mxtrace_mulC mulmxA B'B mul1mx.
 Qed.
 
+Lemma mx_rsim_scalar n1 n2 (rG1 : reprG n1) (rG2 : reprG n2) x c :
+   x \in G -> mx_rsim rG1 rG2 -> rG1 x = c%:M -> rG2 x = c%:M.
+Proof.
+move=> Gx /mx_rsim_sym[B _ Bfree rG2_B] rG1x.
+by apply: (row_free_inj Bfree); rewrite rG2_B // rG1x scalar_mxC.
+Qed.
+
 End Similarity.
 
 Section Socle.
@@ -3967,14 +4003,14 @@ Identity Coercion type_of_irrType : irrType >-> socleType.
 Variable sG : irrType.
 
 Definition irr_degree (i : sG) := \rank (socle_base i).
-Lemma irr_degreeE i : irr_degree i = \rank (socle_base i).
-Proof. by []. Qed.
-Local Notation n_ := irr_degree.
+Local Notation "'n_ i" := (irr_degree i) : group_ring_scope.
+Local Open Scope group_ring_scope.
 
-Lemma irr_degree_gt0 i : n_ i > 0.
+Lemma irr_degreeE i : 'n_i = \rank (socle_base i). Proof. by []. Qed.
+Lemma irr_degree_gt0 i : 'n_i > 0.
 Proof. by rewrite lt0n mxrank_eq0; case: (socle_simple i). Qed.
 
-Definition irr_repr i : mx_representation F G (n_ i) := socle_repr i.
+Definition irr_repr i : mx_representation F G 'n_i := socle_repr i.
 Lemma irr_reprE i x : irr_repr i x = submod_mx (socle_module i) x.
 Proof. by []. Qed.
 
@@ -4030,7 +4066,7 @@ apply/eqP; rewrite eqn_leq lt0n mxrank_eq0 nz_socle andbT.
 by rewrite irr1_rfix rfix_regular rank_leq_row.
 Qed.
 
-Lemma degree_irr1 : n_ 1 = 1%N.
+Lemma degree_irr1 : 'n_1 = 1%N.
 Proof.
 apply/eqP; rewrite eqn_leq irr_degree_gt0 -rank_irr1.
 by rewrite mxrankS ?component_mx_id //; exact: socle_simple.
@@ -4038,9 +4074,9 @@ Qed.
 
 Definition Wedderburn_subring (i : sG) := <<i *m R_G>>%MS.
 
-Local Notation R_ := Wedderburn_subring.
+Local Notation "''R_' i" := (Wedderburn_subring i) : group_ring_scope.
 
-Let sums_R : (\sum_i R_ i :=: Socle sG *m R_G)%MS.
+Let sums_R : (\sum_i 'R_i :=: Socle sG *m R_G)%MS.
 Proof.
 apply/eqmxP; set R_S := (_ <= _)%MS.
 have sRS: R_S by apply/sumsmx_subP=> i; rewrite genmxE submxMr ?(sumsmx_sup i).
@@ -4049,7 +4085,7 @@ rewrite -(submxMfree _ _ gring_free) -(mulmxA _ _ R_G) mulmxKpV //.
 by rewrite (sumsmx_sup i) ?genmxE.
 Qed.
 
-Lemma Wedderburn_ideal i : mx_ideal R_G (R_ i).
+Lemma Wedderburn_ideal i : mx_ideal R_G 'R_i.
 Proof.
 apply/andP; split; last first.
   rewrite /right_mx_ideal genmxE (muls_eqmx (genmxE _) (eqmx_refl _)).
@@ -4064,20 +4100,20 @@ apply/rV_subP=> v _; apply/hom_mxP=> x Gx.
 by rewrite !mul_rV_lin1 /f /= gring_mxJ ?mulmxA.
 Qed.
 
-Lemma Wedderburn_direct : mxdirect (\sum_i R_ i)%MS.
+Lemma Wedderburn_direct : mxdirect (\sum_i 'R_i)%MS.
 Proof.
 apply/mxdirectP; rewrite /= sums_R mxrankMfree ?gring_free //.
 rewrite (mxdirectP (Socle_direct sG)); apply: eq_bigr=> i _ /=.
 by rewrite genmxE mxrankMfree ?gring_free.
 Qed.
 
-Lemma Wedderburn_disjoint i j : i != j -> (R_ i :&: R_ j)%MS = 0.
+Lemma Wedderburn_disjoint i j : i != j -> ('R_i :&: 'R_j)%MS = 0.
 Proof.
 move=> ne_ij; apply/eqP; rewrite -submx0 capmxC.
 by rewrite -(mxdirect_sumsP Wedderburn_direct j) // capmxS // (sumsmx_sup i).
 Qed.
 
-Lemma Wedderburn_annihilate i j : i != j -> (R_ i * R_ j)%MS = 0.
+Lemma Wedderburn_annihilate i j : i != j -> ('R_i * 'R_j)%MS = 0.
 Proof.
 move=> ne_ij; apply/eqP; rewrite -submx0 -(Wedderburn_disjoint ne_ij).
 rewrite sub_capmx; apply/andP; split.
@@ -4088,7 +4124,7 @@ by rewrite mulsmxS // genmxE submxMl.
 Qed.
 
 Lemma Wedderburn_mulmx0 i j A B :
-  i != j -> (A \in R_ i)%MS -> (B \in R_ j)%MS -> A *m B = 0.
+  i != j -> (A \in 'R_i)%MS -> (B \in 'R_j)%MS -> A *m B = 0.
 Proof.
 move=> ne_ij RiA RjB; apply: memmx0.
 by rewrite -(Wedderburn_annihilate ne_ij) mem_mulsmx.
@@ -4099,15 +4135,15 @@ Hypothesis F'G : [char F]^'.-group G.
 Lemma irr_mx_sum : (\sum_(i : sG) i = 1%:M)%MS.
 Proof. by apply: reducible_Socle1; exact: mx_Maschke. Qed.
  
-Lemma Wedderburn_sum : (\sum_i R_ i :=: R_G)%MS.
+Lemma Wedderburn_sum : (\sum_i 'R_i :=: R_G)%MS.
 Proof. by apply: eqmx_trans sums_R _; rewrite /Socle irr_mx_sum mul1mx. Qed.
 
 Definition Wedderburn_id i :=
-  vec_mx (mxvec 1%:M *m proj_mx (R_ i) (\sum_(j | j != i) R_ j)%MS).
+  vec_mx (mxvec 1%:M *m proj_mx 'R_i (\sum_(j | j != i) 'R_j)%MS).
 
-Local Notation e_ := Wedderburn_id.
+Local Notation "''e_' i" := (Wedderburn_id i) : group_ring_scope.
 
-Lemma Wedderburn_sum_id : \sum_i e_ i = 1%:M.
+Lemma Wedderburn_sum_id : \sum_i 'e_i = 1%:M.
 Proof.
 rewrite -linear_sum; apply: canLR mxvecK _.
 have: (1%:M \in R_G)%MS := envelop_mx1 aG.
@@ -4117,12 +4153,12 @@ rewrite (bigD1 i) // mulmx_addl proj_mx_id ?Re // proj_mx_0 ?addr0 //=.
 by rewrite summx_sub // => j ne_ji; rewrite (sumsmx_sup j) ?Re.
 Qed.
 
-Lemma Wedderburn_id_mem i : (e_ i \in R_ i)%MS.
+Lemma Wedderburn_id_mem i : ('e_i \in 'R_i)%MS.
 Proof. by rewrite vec_mxK proj_mx_sub. Qed.
 
-Lemma Wedderburn_is_id i : mxring_id (R_ i) (e_ i).
+Lemma Wedderburn_is_id i : mxring_id 'R_i 'e_i.
 Proof.
-have ideRi A: (A \in R_ i)%MS -> e_ i *m A = A.
+have ideRi A: (A \in 'R_i)%MS -> 'e_i *m A = A.
   move=> RiA; rewrite -{2}[A]mul1mx -Wedderburn_sum_id mulmx_suml.
   rewrite (bigD1 i) //= big1 ?addr0 // => j ne_ji.
   by rewrite (Wedderburn_mulmx0 ne_ji) ?Wedderburn_id_mem.
@@ -4135,9 +4171,9 @@ rewrite big1 ?addr0 // => j; rewrite eq_sym => ne_ij.
 by rewrite (Wedderburn_mulmx0 ne_ij) ?Wedderburn_id_mem.
 Qed.
 
-Lemma Wedderburn_closed i : (R_ i * R_ i = R_ i)%MS.
+Lemma Wedderburn_closed i : ('R_i * 'R_i = 'R_i)%MS.
 Proof.
-rewrite -{3}[R_ i]genmx_id -/(R_ i) -genmx_muls; apply/genmxP.
+rewrite -{3}['R_i]genmx_id -/'R_i -genmx_muls; apply/genmxP.
 have [idlRi idrRi] := andP (Wedderburn_ideal i).
 apply/andP; split.
   by apply: submx_trans idrRi; rewrite mulsmxS // genmxE submxMl.
@@ -4145,22 +4181,23 @@ have [_ Ri_e ideRi _] := Wedderburn_is_id i.
 by apply/memmx_subP=> A RiA; rewrite -[A]ideRi ?mem_mulsmx.
 Qed.
 
-Lemma Wedderburn_is_ring i : mxring (R_ i).
+Lemma Wedderburn_is_ring i : mxring 'R_i.
 Proof.
 rewrite /mxring /left_mx_ideal Wedderburn_closed submx_refl.
-by apply/mxring_idP; exists (e_ i); exact: Wedderburn_is_id.
+by apply/mxring_idP; exists 'e_i; exact: Wedderburn_is_id.
 Qed.
 
 Lemma Wedderburn_min_ideal m i (E : 'A_(m, nG)) :
-  E != 0 -> (E <= R_ i)%MS -> mx_ideal R_G E -> (E :=: R_ i)%MS.
+  E != 0 -> (E <= 'R_i)%MS -> mx_ideal R_G E -> (E :=: 'R_i)%MS.
 Proof.
 move=> nzE sE_Ri /andP[idlE idrE]; apply/eqmxP; rewrite sE_Ri.
 pose M := E *m pinvmx R_G; have defE: E = M *m R_G.
   by rewrite mulmxKpV // (submx_trans sE_Ri) // genmxE submxMl.
 have modM: mxmodule aG M by rewrite regular_module_ideal -defE.
 have simSi := socle_simple i; set Si := socle_base i in simSi.
-have [I [W isoW defW]]:= component_mx_def simSi; rewrite /R_ /socle_val /= defW.
-rewrite genmxE defE submxMr //; apply/sumsmx_subP=> j _.
+have [I [W isoW defW]]:= component_mx_def simSi.
+rewrite /'R_i /socle_val /= defW genmxE defE submxMr //.
+apply/sumsmx_subP=> j _.
 have simW := mx_iso_simple (isoW j) simSi; have [modW _ minW] := simW.
 have [{minW}dxWE | nzWE] := eqVneq (W j :&: M)%MS 0; last first.
   by rewrite (sameP capmx_idPl eqmxP) minW ?capmxSl ?capmx_module.
@@ -4190,7 +4227,7 @@ Variables (n : nat) (rG : mx_representation F G n).
 Local Notation E_G := (enveloping_algebra_mx rG).
 
 Let not_rsim_op0 (iG j : sG) A :
-    mx_rsim rG (socle_repr iG) -> iG != j -> (A \in R_ j)%MS ->
+    mx_rsim rG (socle_repr iG) -> iG != j -> (A \in 'R_j)%MS ->
   gring_op rG A = 0.
 Proof.
 case/mx_rsim_def=> f [f' _ hom_f] ne_iG_j RjA.
@@ -4204,7 +4241,7 @@ rewrite (Wedderburn_mulmx0 ne_iG_j) ?linear0 // genmxE mem_gring_mx.
 by rewrite (row_subP _) // val_submod1 component_mx_id //; exact: socle_simple.
 Qed.
 
-Definition irr_comp := odflt 1%irr [pick i | gring_op rG (e_ i) != 0].
+Definition irr_comp := odflt 1%irr [pick i | gring_op rG 'e_i != 0].
 Local Notation iG := irr_comp.
 
 Hypothesis irrG : mx_irreducible rG.
@@ -4227,7 +4264,7 @@ have{modM rsimM} rsimM: mx_rsim rG (socle_repr i).
   apply: (component_mx_iso (socle_simple _)) => //.
   by rewrite [component_mx _ _]PackSocleK component_mx_id.
 have [<- // | ne_i_iG] := eqVneq i iG.
-suffices {i M simM ne_i_iG rsimM}: gring_op rG (e_ iG) != 0.
+suffices {i M simM ne_i_iG rsimM}: gring_op rG 'e_iG != 0.
   by rewrite (not_rsim_op0 rsimM ne_i_iG) ?Wedderburn_id_mem ?eqxx.
 rewrite /iG; case: pickP => //= G0.
 suffices: rG 1%g == 0.
@@ -4236,10 +4273,10 @@ rewrite -gring_opG // repr_mx1 -Wedderburn_sum_id linear_sum big1 // => j _.
 by move/eqP: (G0 j).
 Qed.
 
-Lemma irr_comp'_op0 j A : j != iG -> (A \in R_ j)%MS -> gring_op rG A = 0.
+Lemma irr_comp'_op0 j A : j != iG -> (A \in 'R_j)%MS -> gring_op rG A = 0.
 Proof. by rewrite eq_sym; exact: not_rsim_op0 rsim_irr_comp. Qed.
 
-Lemma irr_comp_envelop : (R_ iG *m lin_mx (gring_op rG) :=: E_G)%MS.
+Lemma irr_comp_envelop : ('R_iG *m lin_mx (gring_op rG) :=: E_G)%MS.
 Proof.
 apply/eqmxP/andP; split; apply/row_subP=> i.
   by rewrite row_mul mul_rV_lin gring_mxP.
@@ -4250,7 +4287,7 @@ apply/sumsmx_subP => j ne_j_iG; apply/memmx_subP=> A RjA; apply/sub_kermxP.
 by rewrite mul_vec_lin /= (irr_comp'_op0 ne_j_iG RjA) linear0.
 Qed.
 
-Lemma ker_irr_comp_op : (R_ iG :&: kermx (lin_mx (gring_op rG)))%MS = 0.
+Lemma ker_irr_comp_op : ('R_iG :&: kermx (lin_mx (gring_op rG)))%MS = 0.
 Proof.
 apply/eqP; rewrite -submx0; apply/memmx_subP=> A.
 rewrite sub_capmx /= submx0 mxvec_eq0 => /andP[R_A].
@@ -4274,14 +4311,14 @@ by rewrite gring_opG // -hom_f // val_submodJ // gring_mxJ.
 Qed.
 
 Lemma regular_op_inj :
-  {in [pred A | A \in R_ iG]%MS &, injective (gring_op rG)}.
+  {in [pred A | A \in 'R_iG]%MS &, injective (gring_op rG)}.
 Proof.
 move=> A B RnA RnB /= eqAB; apply/eqP; rewrite -subr_eq0 -mxvec_eq0 -submx0.
 rewrite -ker_irr_comp_op sub_capmx (sameP sub_kermxP eqP) mul_vec_lin.
 by rewrite 2!linear_sub /= eqAB subrr linear0 addmx_sub ?eqmx_opp /=.
 Qed.
 
-Lemma rank_irr_comp : \rank (R_ iG) = \rank E_G. 
+Lemma rank_irr_comp : \rank 'R_iG = \rank E_G. 
 Proof.
 symmetry; rewrite -{1}irr_comp_envelop; apply/mxrank_injP.
 by rewrite ker_irr_comp_op.
@@ -4295,7 +4332,7 @@ Proof.
 case=> f eq_n12; rewrite -eq_n12 in rG2 f * => inj_f hom_f.
 congr (odflt _ _); apply: eq_pick => i; rewrite -!mxrank_eq0.
 rewrite -(mxrankMfree _ inj_f); symmetry; rewrite -(eqmxMfull _ inj_f).
-have /envelop_mxP[e ->{i}]: (e_ i \in R_G)%MS.
+have /envelop_mxP[e ->{i}]: ('e_i \in R_G)%MS.
   by rewrite -Wedderburn_sum (sumsmx_sup i) ?Wedderburn_id_mem.
 congr (\rank _ != _); rewrite !(mulmx_suml, linear_sum); apply: eq_bigr => x Gx.
 by rewrite !linearZ -scalemxAl /= !gring_opG ?hom_f.
@@ -4305,6 +4342,19 @@ Lemma irr_reprK i : irr_comp (irr_repr i) = i.
 Proof.
 apply/eqP; apply/component_mx_isoP; try exact: socle_simple.
 by move/mx_rsim_iso: (rsim_irr_comp (socle_irr i)); exact: mx_iso_sym.
+Qed.
+
+Lemma irr_repr'_op0 i j A :
+  j != i -> (A \in 'R_j)%MS -> gring_op (irr_repr i) A = 0.
+Proof.
+by move=> neq_ij /irr_comp'_op0-> //; [exact: socle_irr | rewrite irr_reprK].
+Qed.
+
+Lemma op_Wedderburn_id i : gring_op (irr_repr i) 'e_i = 1%:M.
+Proof.
+rewrite -(gring_op1 (irr_repr i)) -Wedderburn_sum_id.
+rewrite linear_sum (bigD1 i) //= addrC big1 ?add0r // => j neq_ji.
+exact: irr_repr'_op0 (Wedderburn_id_mem j).
 Qed.
 
 Lemma irr_comp_id (M : 'M_nG) (modM : mxmodule aG M) (iM : sG) :
@@ -4324,55 +4374,55 @@ Qed.
 
 Hypothesis splitG : group_splitting_field G.
 
-Lemma rank_Wedderburn_subring i : \rank (R_ i) = (n_ i ^ 2)%N.
+Lemma rank_Wedderburn_subring i : \rank 'R_i = ('n_i ^ 2)%N.
 Proof.
 apply/eqP; rewrite -{1}[i]irr_reprK; have irrSi := socle_irr i.
 by case/andP: (splitG irrSi) => _; rewrite rank_irr_comp.
 Qed.
 
-Lemma sum_irr_degree : (\sum_i n_ i ^ 2 = nG)%N.
+Lemma sum_irr_degree : (\sum_i 'n_i ^ 2 = nG)%N.
 Proof.
 apply: etrans (eqnP gring_free).
 rewrite -Wedderburn_sum (mxdirectP Wedderburn_direct) /=.
 by apply: eq_bigr => i _; rewrite rank_Wedderburn_subring.
 Qed.
 
-Lemma irr_mx_mult i : socle_mult i = n_ i.
+Lemma irr_mx_mult i : socle_mult i = 'n_i.
 Proof.
 rewrite /socle_mult -(mxrankMfree _ gring_free) -genmxE.
 by rewrite rank_Wedderburn_subring mulKn ?irr_degree_gt0.
 Qed.
 
 Lemma mxtrace_regular :
-  {in G, forall x, \tr (aG x) = \sum_i \tr (socle_repr i x) *+ n_ i}.
+  {in G, forall x, \tr (aG x) = \sum_i \tr (socle_repr i x) *+ 'n_i}.
 Proof.
 move=> x Gx; have soc1: (Socle sG :=: 1%:M)%MS by rewrite -irr_mx_sum.
 rewrite -(mxtrace_submod1 (Socle_module sG) soc1) // mxtrace_Socle //.
 by apply: eq_bigr => i _; rewrite irr_mx_mult.
 Qed.
 
-Definition linear_irr := [set i | n_ i == 1%N].
+Definition linear_irr := [set i | 'n_i == 1%N].
 
-Lemma irr_degree_abelian : abelian G -> forall i, n_ i = 1%N.
+Lemma irr_degree_abelian : abelian G -> forall i, 'n_i = 1%N.
 Proof. by move=> cGG i; exact: mxsimple_abelian_linear (socle_simple i). Qed.
 
-Lemma linear_irr_comp i : n_ i = 1%N -> (i :=: socle_base i)%MS.
+Lemma linear_irr_comp i : 'n_i = 1%N -> (i :=: socle_base i)%MS.
 Proof.
-move=> ni1; apply/eqmxP; rewrite andbC -mxrank_leqif_eq -/(n_ i).
+move=> ni1; apply/eqmxP; rewrite andbC -mxrank_leqif_eq -/'n_i.
   by rewrite -(mxrankMfree _ gring_free) -genmxE rank_Wedderburn_subring ni1.
 exact: component_mx_id (socle_simple i).
 Qed.
 
-Lemma Wedderburn_subring_center i : ('Z(R_ i) :=: mxvec (e_ i))%MS.
+Lemma Wedderburn_subring_center i : ('Z('R_i) :=: mxvec 'e_i)%MS.
 Proof.
 have [nz_e Re ideR idRe] := Wedderburn_is_id i.
-have Ze: (mxvec (e_ i) <= 'Z(R_ i))%MS.
+have Ze: (mxvec 'e_i <= 'Z('R_i))%MS.
   rewrite sub_capmx [(_ <= _)%MS]Re.
   by apply/cent_mxP=> A R_A; rewrite ideR // idRe.
 pose irrG := socle_irr i; set rG := socle_repr i in irrG.
 pose E_G := enveloping_algebra_mx rG; have absG := splitG irrG.
 apply/eqmxP; rewrite andbC -(geq_leqif (mxrank_leqif_eq Ze)).
-have ->: \rank (mxvec (e_ i)) = (0 + 1)%N.
+have ->: \rank (mxvec 'e_i) = (0 + 1)%N.
   by apply/eqP; rewrite eqn_leq rank_leq_row lt0n mxrank_eq0 mxvec_eq0.
 rewrite -(mxrank_mul_ker _ (lin_mx (gring_op rG))) addnC leq_add //.
   rewrite leqn0 mxrank_eq0 -submx0 -(ker_irr_comp_op irrG) capmxS //.
@@ -4383,15 +4433,15 @@ rewrite mulmxA mul_rV_lin /=; set A := vec_mx _.
 rewrite memmx1 (mx_abs_irr_cent_scalar absG) // -memmx_cent_envelop.
 apply/cent_mxP=> Br; rewrite -(irr_comp_envelop irrG) irr_reprK.
 case/submxP=> b /(canRL mxvecK) ->{Br}; rewrite mulmxA mx_rV_lin /=.
-set B := vec_mx _; have RiB: (B \in R_ i)%MS by rewrite vec_mxK submxMl.
-have sRiR: (R_ i <= R_G)%MS by rewrite -Wedderburn_sum (sumsmx_sup i).
-have: (A \in 'Z(R_ i))%MS by rewrite vec_mxK submxMl.
+set B := vec_mx _; have RiB: (B \in 'R_i)%MS by rewrite vec_mxK submxMl.
+have sRiR: ('R_i <= R_G)%MS by rewrite -Wedderburn_sum (sumsmx_sup i).
+have: (A \in 'Z('R_i))%MS by rewrite vec_mxK submxMl.
 rewrite sub_capmx => /andP[RiA /cent_mxP cRiA].
 by rewrite -!gring_opM ?(memmx_subP sRiR) 1?cRiA.
 Qed.
 
 Lemma Wedderburn_center :
-  ('Z(R_G) :=: \matrix_(i < #|sG|) mxvec (e_ (enum_val i)))%MS.
+  ('Z(R_G) :=: \matrix_(i < #|sG|) mxvec 'e_(enum_val i))%MS.
 Proof.
 have:= mxdirect_sums_center Wedderburn_sum Wedderburn_direct Wedderburn_ideal.
 move/eqmx_trans; apply; apply/eqmxP/andP; split.
@@ -4618,6 +4668,9 @@ Notation "[ 1 sG ]" := (principal_comp sG) : irrType_scope.
 Arguments Scope irr_degree [_ _ subgroup_scope _ irrType_scope].
 Arguments Scope irr_repr [_ _ subgroup_scope _ irrType_scope group_scope].
 Arguments Scope irr_mode [_ _ subgroup_scope _ irrType_scope group_scope].
+Notation "''n_' i" := (irr_degree i) : group_ring_scope.
+Notation "''R_' i" := (Wedderburn_subring i) : group_ring_scope.
+Notation "''e_' i" := (Wedderburn_id i) : group_ring_scope.
 
 Section DecideRed.
 

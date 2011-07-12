@@ -3820,7 +3820,7 @@ suff -> : #|F| ^ vdim L = #|FL| by apply: (@expf_card FL).
 pose f (x : FL) := coord (vbasis (fullv L)) x.
 rewrite -[vdim L]card_ord -card_ffun -dimvf.
 have/card_in_image <- : {in FL &, injective f}.
- move => a b Ha Hb /ffunP Hab.
+ move => a b Ha Hb /= /ffunP Hab.
  rewrite (coord_basis (memvf a)) (coord_basis (memvf b)).
  apply: eq_bigr => i _.
  by rewrite Hab.
