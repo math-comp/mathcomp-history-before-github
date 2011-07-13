@@ -323,7 +323,7 @@ rewrite -card_uniq_tuples.
 have bijFF: {on (_ : pred _), bijective (@Finfun D T)}.
   by exists val => // x _; exact: val_inj.
 rewrite -(on_card_preimset (bijFF _)); apply: eq_card => t.
-rewrite !inE -(map_ffun_enum (Finfun t)); congr (_ && _); apply: negb_inj.
+rewrite !inE -(codom_ffun (Finfun t)); congr (_ && _); apply: negb_inj.
 by rewrite -has_predC has_map enumT has_filter -size_eq0 -cardE.
 Qed.
 
@@ -346,13 +346,9 @@ rewrite (partition_big imIk (fun A => #|A| == k)) /= => [|f]; last first.
   by move/injectiveP=> inj_f; rewrite card_imset ?card_ord.
 apply/eqP; apply: eq_bigr => A /eqP cardAk.
 have [f0 inj_f0 im_f0]: exists2 f, injective f & f @: 'I_k = A.
-  rewrite -cardAk; exists (tnth [tuple of enum (mem A)]) => [i j|].
-    set u := {-}(tnth _ i); rewrite !(tnth_nth u) /=.
-    by move/eqP; rewrite nth_uniq ?enum_uniq -?cardE // => /eqP/val_inj.
-  apply/setP=> x; apply/imsetP/idP=> [[i _ ->] | ].
-    by rewrite -mem_enum (tnth_nth x) mem_nth -?cardE.
-  rewrite -mem_enum; case/(nthP x)=> i /=; rewrite -{1}cardE => lt_i_A <-.
-  by exists (Ordinal lt_i_A); rewrite // (tnth_nth x).
+  rewrite -cardAk; exists enum_val; first exact: enum_val_inj.
+  apply/setP=> a; apply/imsetP/idP=> [[i _ ->] | Aa]; first exact: enum_valP.
+  by exists (enum_rank_in Aa a); rewrite ?enum_rankK_in.
 rewrite (reindex (fun p : {ffun _} => [ffun i => f0 (p i)])) /=; last first.
   pose ff0' f i := odflt i [pick j | f i == f0 j].
   exists (fun f => [ffun i => ff0' f i]) => [p _ | f].
@@ -381,13 +377,13 @@ have [-> | n_gt0] := posnP n; last pose i0 := Ordinal n_gt0.
   by apply: (@eq_card1 _ [tuple]) => t; rewrite [t]tuple0 inE.
 rewrite -{12}[n]card_ord -card_draws.
 pose f_t (t : m.-tuple 'I_n) := [set i | i \in t].
-pose f_A (A : {set 'I_n}) := [tuple of mkseq (nth i0 (enum (mem A))) m].
-have val_fA (A : {set 'I_n}) : #|A| = m -> val (f_A A) = enum (mem A).
+pose f_A (A : {set 'I_n}) := [tuple of mkseq (nth i0 (enum A)) m].
+have val_fA (A : {set 'I_n}) : #|A| = m -> val (f_A A) = enum A.
   by move=> Am; rewrite -[enum _](mkseq_nth i0) -cardE Am.
-have inc_A (A : {set 'I_n}) : sorted ltn (map val (enum (mem A))).
+have inc_A (A : {set 'I_n}) : sorted ltn (map val (enum A)).
   rewrite -[enum _](eq_filter (mem_enum _)).
   rewrite -(eq_filter (mem_map val_inj _)) -filter_map.
-  by rewrite (sorted_filter ltn_trans) // unlock val_ord_enum sorted_ltn_iota.
+  by rewrite (sorted_filter ltn_trans) // unlock val_ord_enum iota_ltn_sorted.
 rewrite -!sum1dep_card (reindex_onto f_t f_A) /= => [|A]; last first.
   by move/eqP=> cardAm; apply/setP=> x; rewrite inE -(mem_enum (mem A)) -val_fA.
 apply: eq_bigl => t; apply/idP/idP=> [inc_t|]; last first.

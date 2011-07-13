@@ -381,7 +381,7 @@ pose f (p : col_squares) := (p x, p z); rewrite -(@card_in_image _ _ f).
   rewrite (cat_uniq [::x; y]) in Uxt; case/and3P: Uxt => _.
   rewrite /= !orbF !andbT; case/norP; rewrite !inE => nxzt nyzt _.
   exists [ffun i => if pred2 x y i then c else d].
-    by rewrite !inE /= !ffunE !eqxx orbT (negbTE nxzt) (negbTE nyzt) !eqxx.
+    by rewrite inE !ffunE /= !eqxx orbT (negbTE nxzt) (negbTE nyzt) !eqxx.
   by rewrite {}/f !ffunE /= eqxx (negbTE nxzt).
 move=> p1 p2; rewrite !inE.
 case/andP=> p1y p1t; case/andP=> p2y p2t [px pz].
@@ -721,8 +721,8 @@ Definition seq_iso_L := [::
 
 Lemma seqs1 : forall f injf, sop (@perm _ f injf) = map f ecubes.
 Proof.
-move=> f ?; rewrite ecubes_def /sop /= -map_ffun_enum pvalE.
-apply: eq_map; exact: permE.
+move=> f ?; rewrite ecubes_def /sop /= -codom_ffun pvalE.
+apply: eq_codom; exact: permE.
 Qed.
 
 Lemma Lcorrect : seq_iso_L == map sop [:: id3; s05; s14; s23; r05; r14; r23;

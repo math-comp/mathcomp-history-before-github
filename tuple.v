@@ -276,27 +276,26 @@ Section FinTuple.
 Variables (n : nat) (T : finType).
 
 Definition enum : seq (n.-tuple T) :=
-  let extend e := flatten (map (fun x => map (cons x) e) (Finite.enum T)) in
+  let extend e := flatten (codom (fun x => map (cons x) e)) in
   pmap insub (iter n extend [::[::]]).
 
 Lemma enumP : Finite.axiom enum.
 Proof.
 case=> /= t t_n; rewrite -(count_map val (pred1 t)).
-rewrite (pmap_filter (@insubK _ _ _)) count_filter -filter_predI -enumT.
+rewrite (pmap_filter (@insubK _ _ _)) count_filter -filter_predI.
 rewrite -count_filter -(@eq_count _ (pred1 t)) => [|s /=]; last first.
   by rewrite isSome_insub; case: eqP=> // ->.
 elim: n t t_n => [|m IHm] [|x t] //= {IHm}/IHm; move: (iter m _ _) => em IHm.
-transitivity (x \in T : nat); rewrite // -mem_enum.
-have:= enum_uniq T; rewrite enumT.
-elim: (Finite.enum T) => //= y e IHe; case/andP; move/negPf=> ney.
+transitivity (x \in T : nat); rewrite // -mem_enum codomE.
+elim: (fintype.enum T)  (enum_uniq T) => //= y e IHe /andP[/negPf ney].
 rewrite count_cat count_map inE /preim /= {1}/eq_op /= eq_sym => /IHe->.
 by case: eqP => [->|_]; rewrite ?(ney, count_pred0, IHm).
 Qed.
 
 Lemma size_enum : size enum = #|T| ^ n.
 Proof.
-rewrite /= cardE size_pmap_sub enumT; elim: n => //= m IHm.
-rewrite expnS; elim: {2 3}(Finite.enum T) => //= x e IHe.
+rewrite /= cardE size_pmap_sub; elim: n => //= m IHm.
+rewrite expnS /codom /image_mem; elim: {2 3}(fintype.enum T) => //= x e IHe.
 by rewrite count_cat {}IHe count_map IHm.
 Qed.
 
@@ -329,6 +328,11 @@ Proof.
 apply: val_inj; rewrite (tnth_nth i) -(nth_map _ 0) ?size_tuple //.
 by rewrite /= enumT unlock val_ord_enum nth_iota.
 Qed.
+
+Variables (T' : Type) (f : T -> T') (A : pred T).
+
+Canonical image_tuple : #|A|.-tuple T' := [tuple of image f A].
+Canonical codom_tuple : #|T|.-tuple T' := [tuple of codom f].
 
 End UseFinTuple.
 

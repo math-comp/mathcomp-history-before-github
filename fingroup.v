@@ -42,7 +42,7 @@ Require Import div path bigop prime finset.
 (* FinGroup.sort gT.                                                          *)
 (*   The notations below are declared in two scopes:                          *)
 (*      group_scope (delimiter %g) for point operations and set constructs.   *)
-(*   subgroup_scope (delimiter %G) for explicit {group gT} structures.        *)
+(*   Group_scope (delimiter %G) for explicit {group gT} structures.        *)
 (* These scopes should not be opened globally, athough group_scope is often   *)
 (* opened locally in group-theory files (via Import GroupScope).              *)
 (*   As {group gT} is both a subtype and an interface structure for {set gT}, *)
@@ -69,7 +69,7 @@ Require Import div path bigop prime finset.
 (*  Operations on subsets/subgroups of a finite group:                        *)
 (*                H * G == {xy | x \in H, y \in G}.                           *)
 (*   1 or [1] or [1 gT] == the unit group.                                    *)
-(*          [set: gT]%G == the group of all x : gT (in subgroup_scope).       *)
+(*          [set: gT]%G == the group of all x : gT (in Group_scope).       *)
 (*             [subg G] == the subtype, set, or group of all x \in G: this    *)
 (*                         notation is defined simultaneously in %type, %g    *)
 (*                         and %G scopes, and G must denote a {group gT}      *)
@@ -129,7 +129,7 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Delimit Scope group_scope with g.
-Delimit Scope subgroup_scope with G.
+Delimit Scope Group_scope with G.
 
 (* This module can be imported to open the scope for group element *)
 (* operations locally to a file, without exporing the Open to      *)
@@ -1288,11 +1288,11 @@ Notation "{ 'group' gT }" := (group_of (Phant gT))
 Notation "[ 'group' 'of' G ]" := (clone_group (@group _ G))
   (at level 0, format "[ 'group'  'of'  G ]") : form_scope.
 
-Bind Scope subgroup_scope with group_type.
-Bind Scope subgroup_scope with group_of.
-Notation "1" := (one_group _) : subgroup_scope.
-Notation "[ 1 gT ]" := (1%G : {group gT}) : subgroup_scope.
-Notation "[ 'set' : gT ]" := (setT_group (Phant gT)) : subgroup_scope.
+Bind Scope Group_scope with group_type.
+Bind Scope Group_scope with group_of.
+Notation "1" := (one_group _) : Group_scope.
+Notation "[ 1 gT ]" := (1%G : {group gT}) : Group_scope.
+Notation "[ 'set' : gT ]" := (setT_group (Phant gT)) : Group_scope.
 
 (* Helper notation for defining new groups that need a bespoke finGroupType. *)
 (* The actual group for such a type (say, my_gT) will be the full group,     *)
@@ -1807,11 +1807,11 @@ Hint Resolve group1 group1_class1 group1_class12 group1_class12.
 Hint Resolve group1_eqType group1_finType.
 Hint Resolve cardG_gt0 cardG_gt0_reduced indexg_gt0.
 
-Notation "G :^ x" := (conjG_group G x) : subgroup_scope.
+Notation "G :^ x" := (conjG_group G x) : Group_scope.
 
 Notation "[ 'subg' G ]" := (subg_of G) : type_scope.
 Notation "[ 'subg' G ]" := [set: subg_of G] : group_scope.
-Notation "[ 'subg' G ]" := [set: subg_of G]%G : subgroup_scope.
+Notation "[ 'subg' G ]" := [set: subg_of G]%G : Group_scope.
 
 Prenex Implicits subg sgval subg_of.
 Bind Scope group_scope with subg_of.
@@ -1872,40 +1872,40 @@ Definition subgroups (gT : finGroupType) (G : {set gT}) :=
 
 Arguments Scope generated_group [_ group_scope].
 
-Notation "G :&: H" := (setI_group G H) : subgroup_scope.
-Notation "<< A >>"  := (generated_group A) : subgroup_scope.
-Notation "<[ x ] >"  := (cycle_group x) : subgroup_scope.
+Notation "G :&: H" := (setI_group G H) : Group_scope.
+Notation "<< A >>"  := (generated_group A) : Group_scope.
+Notation "<[ x ] >"  := (cycle_group x) : Group_scope.
 Notation "[ ~: A1 , A2 , .. , An ]" :=
-  (commutator_group .. (commutator_group A1 A2) .. An) : subgroup_scope.
-Notation "G <*> H" := (joinG G H) : subgroup_scope.
+  (commutator_group .. (commutator_group A1 A2) .. An) : Group_scope.
+Notation "G <*> H" := (joinG G H) : Group_scope.
 Prenex Implicits joinG.
 
 Notation "\prod_ ( <- r | P ) F" :=
-  (\big[joinG/1%G]_(<- r | P%B) F%G) : subgroup_scope.
+  (\big[joinG/1%G]_(<- r | P%B) F%G) : Group_scope.
 Notation "\prod_ ( i <- r | P ) F" :=
-  (\big[joinG/1%G]_(i <- r | P%B) F%G) : subgroup_scope.
+  (\big[joinG/1%G]_(i <- r | P%B) F%G) : Group_scope.
 Notation "\prod_ ( i <- r ) F" :=
-  (\big[joinG/1%G]_(i <- r) F%G) : subgroup_scope.
+  (\big[joinG/1%G]_(i <- r) F%G) : Group_scope.
 Notation "\prod_ ( m <= i < n | P ) F" :=
-  (\big[joinG/1%G]_(m <= i < n | P%B) F%G) : subgroup_scope.
+  (\big[joinG/1%G]_(m <= i < n | P%B) F%G) : Group_scope.
 Notation "\prod_ ( m <= i < n ) F" :=
-  (\big[joinG/1%G]_(m <= i < n) F%G) : subgroup_scope.
+  (\big[joinG/1%G]_(m <= i < n) F%G) : Group_scope.
 Notation "\prod_ ( i | P ) F" :=
-  (\big[joinG/1%G]_(i | P%B) F%G) : subgroup_scope.
+  (\big[joinG/1%G]_(i | P%B) F%G) : Group_scope.
 Notation "\prod_ i F" :=
-  (\big[joinG/1%G]_i F%G) : subgroup_scope.
+  (\big[joinG/1%G]_i F%G) : Group_scope.
 Notation "\prod_ ( i : t | P ) F" :=
-  (\big[joinG/1%G]_(i : t | P%B) F%G) (only parsing) : subgroup_scope.
+  (\big[joinG/1%G]_(i : t | P%B) F%G) (only parsing) : Group_scope.
 Notation "\prod_ ( i : t ) F" :=
-  (\big[joinG/1%G]_(i : t) F%G) (only parsing) : subgroup_scope.
+  (\big[joinG/1%G]_(i : t) F%G) (only parsing) : Group_scope.
 Notation "\prod_ ( i < n | P ) F" :=
-  (\big[joinG/1%G]_(i < n | P%B) F%G) : subgroup_scope.
+  (\big[joinG/1%G]_(i < n | P%B) F%G) : Group_scope.
 Notation "\prod_ ( i < n ) F" :=
-  (\big[joinG/1%G]_(i < n) F%G) : subgroup_scope.
+  (\big[joinG/1%G]_(i < n) F%G) : Group_scope.
 Notation "\prod_ ( i \in A | P ) F" :=
-  (\big[joinG/1%G]_(i \in A | P%B) F%G) : subgroup_scope.
+  (\big[joinG/1%G]_(i \in A | P%B) F%G) : Group_scope.
 Notation "\prod_ ( i \in A ) F" :=
-  (\big[joinG/1%G]_(i \in A) F%G) : subgroup_scope.
+  (\big[joinG/1%G]_(i \in A) F%G) : Group_scope.
 
 Section LaGrange.
 
@@ -2928,16 +2928,16 @@ Prenex Implicits normP normsP cent1P normalP centP centsP commG1P.
 Arguments Scope normaliser_group [_ group_scope].
 Arguments Scope centraliser_group [_ group_scope].
 
-Notation "''N' ( A )" := (normaliser_group A) : subgroup_scope.
-Notation "''C' ( A )" := (centraliser_group A) : subgroup_scope.
-Notation "''C' [ x ]" := (normaliser_group [set x%g]) : subgroup_scope.
-Notation "''N_' G ( A )" := (setI_group G 'N(A)) : subgroup_scope.
-Notation "''C_' G ( A )" := (setI_group G 'C(A)) : subgroup_scope.
+Notation "''N' ( A )" := (normaliser_group A) : Group_scope.
+Notation "''C' ( A )" := (centraliser_group A) : Group_scope.
+Notation "''C' [ x ]" := (normaliser_group [set x%g]) : Group_scope.
+Notation "''N_' G ( A )" := (setI_group G 'N(A)) : Group_scope.
+Notation "''C_' G ( A )" := (setI_group G 'C(A)) : Group_scope.
 Notation "''C_' ( G ) ( A )" := (setI_group G 'C(A))
-  (only parsing) : subgroup_scope.
-Notation "''C_' G [ x ]" := (setI_group G 'C[x]) : subgroup_scope.
+  (only parsing) : Group_scope.
+Notation "''C_' G [ x ]" := (setI_group G 'C[x]) : Group_scope.
 Notation "''C_' ( G ) [ x ]" := (setI_group G 'C[x])
-  (only parsing) : subgroup_scope.
+  (only parsing) : Group_scope.
 
 Hint Resolve normG normal_refl.
 
@@ -2945,7 +2945,7 @@ Section MinMaxGroup.
 
 Variable gT : finGroupType.
 Variable gP : pred {group gT}.
-Arguments Scope gP [subgroup_scope].
+Arguments Scope gP [Group_scope].
 
 Definition maxgroup := maxset (fun A => group_set A && gP <<A>>).
 Definition mingroup := minset (fun A => group_set A && gP <<A>>).

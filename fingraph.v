@@ -108,10 +108,10 @@ suffices not_p1v2: [disjoint x1 :: p & v2].
   by move: not_pv; rewrite disjoint_cons def_x1 => /andP[].
 apply: contraR not_v2y => /pred0Pn[x2 /andP[/= p_x2 v2x2]].
 case/splitPl: p_x2 p_y g_p not_pv => p0 p2 p0x2.
-rewrite last_cat path_cat -cat_cons lastI cat_rcons {}p0x2 => p2y /andP[_ g_p2].
+rewrite last_cat cat_path -cat_cons lastI cat_rcons {}p0x2 => p2y /andP[_ g_p2].
 rewrite disjoint_cat disjoint_cons => /and3P[{p0}_ not_vx2 not_p2v].
 have{not_vx2 v2x2} [p1 g_p1 p1_x2 not_p1v] := IHn _ _ v le_v'_n not_vx2 v2x2.
-apply/IHn=> //; exists (p1 ++ p2); rewrite ?path_cat ?last_cat -?p1_x2 ?g_p1 //.
+apply/IHn=> //; exists (p1 ++ p2); rewrite ?cat_path ?last_cat -?p1_x2 ?g_p1 //.
 by rewrite -cat_cons disjoint_cat not_p1v.
 Qed.
 
@@ -143,7 +143,7 @@ Qed.
 Lemma connect_trans : transitive connect.
 Proof.
 move=> x y z /connectP[p e_p ->] /connectP[q e_q ->]; apply/connectP.
-by exists (p ++ q); rewrite ?path_cat ?e_p ?last_cat.
+by exists (p ++ q); rewrite ?cat_path ?e_p ?last_cat.
 Qed.
 
 Lemma connect0 x : connect x x.
@@ -158,7 +158,7 @@ Proof. by move=> e_xy; apply/connectP; exists [:: y]; rewrite /= ?e_xy. Qed.
 Lemma path_connect x p : path e x p -> subpred (mem (x :: p)) (connect x).
 Proof.
 move=> e_p y p_y; case/splitPl: p / p_y e_p => p q <-.
-by rewrite path_cat => /andP[e_p _]; apply/connectP; exists p.
+by rewrite cat_path => /andP[e_p _]; apply/connectP; exists p.
 Qed.
 
 Definition root x := odflt x (pick (connect x)).
@@ -272,7 +272,7 @@ Proof.
 suff crev e': subrel (connect (fun x : T => e'^~ x)) (fun x => (connect e')^~x).
   by move=> x y; rewrite sym_e; apply/idP/idP; exact: crev.
 move=> x y /connectP[p e_p p_y]; apply/connectP.
-exists (rev (belast x p)); first by rewrite p_y path_rev.
+exists (rev (belast x p)); first by rewrite p_y rev_path.
 by rewrite -(last_cons x) -rev_rcons p_y -lastI rev_cons last_rcons.
 Qed.
 
@@ -427,7 +427,7 @@ Lemma fconnect_cycle : fconnect f x =i p.
 Proof.
 move=> y; have [i q def_p] := rot_to p_x; rewrite -(mem_rot i p) def_p.
 have{i def_p} /andP[/eqP q_x f_q]: (f (last x q) == x) && fpath f x q.
-  by have:= f_p; rewrite -(cycle_rot i) def_p (cycle_path x).
+  by have:= f_p; rewrite -(rot_cycle i) def_p (cycle_path x).
 apply/idP/idP=> [/connectP[_ /fpathP[j ->] ->] | ]; last exact: path_connect.
 case/fpathP: f_q q_x => n ->; rewrite !last_traject -iterS => def_x.
 by apply: (@loopingP _ f x n.+1); rewrite /looping def_x /= mem_head.
@@ -441,7 +441,7 @@ Proof.
 have [i q def_p] := rot_to p_x; exists i.
 rewrite /orbit order_cycle -(size_rot i) def_p.
 suffices /fpathP[j ->]: fpath f x q by rewrite /= size_traject.
-by move: f_p; rewrite -(cycle_rot i) def_p (cycle_path x); case/andP.
+by move: f_p; rewrite -(rot_cycle i) def_p (cycle_path x); case/andP.
 Qed.
 
 End Loop.
@@ -495,7 +495,7 @@ Qed.
 
 Lemma fpath_finv x p : fpath finv x p = fpath f (last x p) (rev (belast x p)).
 Proof.
-elim: p x => //= y p IHp x; rewrite rev_cons path_rcons -{}IHp andbC /=.
+elim: p x => //= y p IHp x; rewrite rev_cons rcons_path -{}IHp andbC /=.
 rewrite (canF_eq finv_f) eq_sym; congr (_ && (_ == _)).
 by case: p => //= z p; rewrite rev_cons last_rcons.
 Qed.
@@ -651,7 +651,7 @@ apply/andP/imageP=> [[/eqP ? a_x] | [x' /andP[/eqP r_x' a_x'] ->]]; last first.
 have [y' e_xy]:= Aee' x a_x; pose x' := root e' y'.
 have ay': a (h y') by rewrite -(ccl_a e_xy).
 have e_yx: connect e (h y') (h x') by rewrite -Ae'e ?connect_root.
-exists x'; first by rewrite /= !inE -(ccl_a e_yx) ?roots_root.
+exists x'; first by rewrite inE /= -(ccl_a e_yx) ?roots_root.
 by rewrite /= -(rootP sym_e e_yx) -(rootP sym_e e_xy).
 Qed.
 

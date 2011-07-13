@@ -179,11 +179,11 @@ Implicit Arguments OhmPredP [n gT x].
 
 Notation "''Ohm_' n ( G )" := (Ohm n G)
   (at level 8, n at level 2, format "''Ohm_' n ( G )") : group_scope.
-Notation "''Ohm_' n ( G )" := (Ohm_group n G) : subgroup_scope.
+Notation "''Ohm_' n ( G )" := (Ohm_group n G) : Group_scope.
 
 Notation "''Mho^' n ( G )" := (Mho n G)
   (at level 8, n at level 2, format "''Mho^' n ( G )") : group_scope.
-Notation "''Mho^' n ( G )" := (Mho_group n G) : subgroup_scope.
+Notation "''Mho^' n ( G )" := (Mho_group n G) : Group_scope.
 
 Section ExponentAbelem.
 
@@ -1739,7 +1739,7 @@ rewrite lognE p_pr order_gt0 (dvdn_trans (pdiv_dvd _)) //.
 case/predU1P: b_y => [-> // | b'_y].
 have:= abelian_type_dvdn_sorted G; rewrite -def_t def_b.
 case/splitPr: b'_y => b1 b2; rewrite -cat_rcons rcons_cat map_cat !map_rcons.
-rewrite headI /= path_cat -(last_cons 2) -headI last_rcons.
+rewrite headI /= cat_path -(last_cons 2) -headI last_rcons.
 case/andP=> _ /order_path_min min_y.
 apply: (allP (min_y _)) => [? ? ? ? dv|]; first exact: (dvdn_trans dv).
 by rewrite mem_rcons mem_head.
@@ -2020,7 +2020,7 @@ have (p): path leq 0 (map (logn p) (rev (abelian_type G))).
   case: (abelian_type_gt1 G) (abelian_type_dvdn_sorted G).
   case: abelian_type => //= m t; rewrite rev_cons map_rcons.
   elim: t m => //= n t IHt m /andP[/ltnW m_gt0 nt_gt1].
-  rewrite -cats1 path_cat rev_cons map_rcons last_rcons /=.
+  rewrite -cats1 cat_path rev_cons map_rcons last_rcons /=.
   by case/andP=> /dvdn_leq_log-> // /IHt->.
 have{cGG} [b defG <- b_sorted] := abelian_structure cGG.
 rewrite size_map => ltib; rewrite (nth_map 1 _ _ ltib); set x := nth 1 b i.
@@ -2041,21 +2041,21 @@ suffices lti_lnO e: (i < lnO p e _ G) = (e < logn p #[x]).
   by rewrite (@bigmax_sup _ (Ordinal lexpG)) ?(prednK, lti_lnO).
 rewrite /lnO -(count_logn_dprod_cycle _ _ defG).
 case: (ltnP e _) (b_sorted p) => [lt_e_x | le_x_e].
-  rewrite -(cat_take_drop i.+1 b) -map_rev rev_cat !map_cat path_cat.
+  rewrite -(cat_take_drop i.+1 b) -map_rev rev_cat !map_cat cat_path.
   case/andP=> _ ordb; rewrite count_cat ((count _ _ =P i.+1) _) ?leq_addr //.
   rewrite -{2}(size_takel ltib) -all_count.
   move: ordb; rewrite (take_nth 1 ltib) -/x rev_rcons all_rcons /= lt_e_x.
   case/andP=> _ /=; move/(order_path_min leq_trans); apply: contraLR.
   rewrite -!has_predC !has_map; case/hasP=> y b_y /= le_y_e; apply/hasP.
   by exists y; rewrite ?mem_rev //=; apply: contra le_y_e; exact: leq_trans.
-rewrite -(cat_take_drop i b) -map_rev rev_cat !map_cat path_cat.
+rewrite -(cat_take_drop i b) -map_rev rev_cat !map_cat cat_path.
 case/andP=> ordb _; rewrite count_cat -{1}(size_takel (ltnW ltib)) ltnNge.
 rewrite addnC ((count _ _ =P 0) _) ?count_size //.
 rewrite eqn0Ngt -has_count; apply/hasPn=> y b_y /=; rewrite -leqNgt.
 apply: leq_trans le_x_e; have ->: x = last x (rev (drop i b)).
   by rewrite (drop_nth 1 ltib) rev_cons last_rcons.
 rewrite -mem_rev in b_y; case/splitPr: (rev _) / b_y ordb => b1 b2.
-rewrite !map_cat path_cat last_cat /=; case/and3P=> _ _.
+rewrite !map_cat cat_path last_cat /=; case/and3P=> _ _.
 move/(order_path_min leq_trans); case/lastP: b2 => // b3 x'.
 by move/allP; apply; rewrite ?map_f ?last_rcons ?mem_rcons ?mem_head.
 Qed.

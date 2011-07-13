@@ -48,7 +48,7 @@ Canonical derived_at_group G n := Group (der_group_set G n).
 
 End DerivedBasics.
 
-Notation "G ^` ( n )" := (derived_at_group G n) : subgroup_scope.
+Notation "G ^` ( n )" := (derived_at_group G n) : Group_scope.
 
 Section Basic_commutator_properties.
 

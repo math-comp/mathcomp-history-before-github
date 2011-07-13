@@ -22,8 +22,8 @@ Local Open Scope ring_scope.
 (*  isNatC z <=> z is a natural number.                                       *)
 (*  getNatC x == the n such that x = n%:R if isNatC x, else 0.                *)
 (*  isRealC x == x is a real number, i.e., x^* == x.                          *)
-(*     isZC x == x is an integer.                                             *)
-(*    getZC x == a pair (n, b) such that x = (-1) ^+ b * n%:R, if isZC x.     *)
+(*     isIntC x == x is an integer.                                             *)
+(*    getIntC x == a pair (n, b) such that x = (-1) ^+ b * n%:R, if isIntC x.     *)
 (******************************************************************************)
 
 Parameter algC : closedFieldType.
@@ -726,14 +726,14 @@ by case: eqP => // <-; rewrite oppr0.
 Qed.
 
 (* We mimic Z by a sign and a natural number *)
-Definition getZC (c : algC) :=
+Definition getIntC (c : algC) :=
  if 0 <= c then (false, getNatC c) else (true, getNatC (-c)).
 
-Definition isZC c := c == (let: (b, n) := getZC c in (-1) ^+ b * n%:R).
+Definition isIntC c := c == (let: (b, n) := getIntC c in (-1) ^+ b * n%:R).
 
-Lemma isZCE c : isZC c = isNatC c || isNatC (- c).
+Lemma isIntCE c : isIntC c = isNatC c || isNatC (- c).
 Proof.
-rewrite /isZC /getZC.
+rewrite /isIntC /getIntC.
 case: (boolP (0 <= c))=> H.
   case: (boolP (isNatC (-c)))=> H1; last by rewrite orbF expr0 mul1r.
   suff->: c = 0 by rewrite (getNatC_nat 0) mulr0 eqxx orbT.
@@ -742,15 +742,15 @@ case: (boolP (isNatC c))=> H1; first by case/negP: H; apply: posC_isNatC.
 by rewrite expr1 mulNr -{1}[c]opprK eqr_opp mul1r.
 Qed.
 
-Lemma isZC_nat n : isZC (n%:R).
-Proof. by rewrite isZCE isNatC_nat. Qed.
+Lemma isIntC_nat n : isIntC (n%:R).
+Proof. by rewrite isIntCE isNatC_nat. Qed.
 
-Lemma isZC_opp x : isZC (- x) = isZC x.
-Proof. by rewrite !isZCE opprK orbC. Qed.
+Lemma isIntC_opp x : isIntC (- x) = isIntC x.
+Proof. by rewrite !isIntCE opprK orbC. Qed.
 
-Lemma isZC_add c1 c2 : isZC c1 -> isZC c2 -> isZC (c1 + c2).
+Lemma isIntC_add c1 c2 : isIntC c1 -> isIntC c2 -> isIntC (c1 + c2).
 Proof.
-rewrite !isZCE oppr_add.
+rewrite !isIntCE oppr_add.
 case/orP; case/isNatCP=> n Hn; case/orP; case/isNatCP=> m Hm; rewrite !Hn !Hm.
 - by rewrite -natr_add isNatC_nat.
 - rewrite -[c2]opprK Hm.
@@ -764,54 +764,54 @@ case/orP; case/isNatCP=> n Hn; case/orP; case/isNatCP=> m Hm; rewrite !Hn !Hm.
 by rewrite -natr_add isNatC_nat orbT.
 Qed.
 
-Lemma isZC_sub c1 c2 : isZC c1 -> isZC c2 -> isZC (c1 - c2).
-Proof. by move=> Hc1 HC2; rewrite isZC_add ?isZC_opp. Qed.
+Lemma isIntC_sub c1 c2 : isIntC c1 -> isIntC c2 -> isIntC (c1 - c2).
+Proof. by move=> Hc1 HC2; rewrite isIntC_add ?isIntC_opp. Qed.
 
-Lemma isZC_mul c1 c2 : isZC c1 -> isZC c2 -> isZC (c1 * c2).
+Lemma isIntC_mul c1 c2 : isIntC c1 -> isIntC c2 -> isIntC (c1 * c2).
 Proof.
-rewrite 2!isZCE.
+rewrite 2!isIntCE.
 case/orP; case/isNatCP=> n Hn; case/orP; case/isNatCP=> m Hm; rewrite ?Hn ?Hm.
-- by rewrite -natr_mul isZC_nat.
-- by rewrite -[c2]opprK Hm mulrN isZC_opp // -natr_mul isZC_nat.
-- by rewrite -[c1]opprK Hn mulNr isZC_opp // -natr_mul isZC_nat.
-by rewrite -mulrNN Hn Hm -natr_mul isZC_nat.
+- by rewrite -natr_mul isIntC_nat.
+- by rewrite -[c2]opprK Hm mulrN isIntC_opp // -natr_mul isIntC_nat.
+- by rewrite -[c1]opprK Hn mulNr isIntC_opp // -natr_mul isIntC_nat.
+by rewrite -mulrNN Hn Hm -natr_mul isIntC_nat.
 Qed.
 
-Lemma isZC_sum (I : Type) (r : seq I) (P : pred I) (F : I -> algC) :
-   (forall i, P i -> isZC  (F i)) -> isZC (\sum_(j <- r | P j) F j).
+Lemma isIntC_sum (I : Type) (r : seq I) (P : pred I) (F : I -> algC) :
+   (forall i, P i -> isIntC  (F i)) -> isIntC (\sum_(j <- r | P j) F j).
 Proof.
-by move=> H; apply big_ind=> //; [exact: (isZC_nat 0) | exact: isZC_add].
+by move=> H; apply big_ind=> //; [exact: (isIntC_nat 0) | exact: isIntC_add].
 Qed.
 
-Lemma isZC_conj c : isZC c -> c^* = c.
+Lemma isIntC_conj c : isIntC c -> c^* = c.
 Proof.
-rewrite isZCE; case/orP=> Hc; first exact: isNatC_conj.
+rewrite isIntCE; case/orP=> Hc; first exact: isNatC_conj.
 by rewrite -{1}[c]opprK rmorphN isNatC_conj // opprK.
 Qed.
 
-Lemma isZC_real x : isZC x -> isRealC x.
-Proof. by move/isZC_conj/eqP. Qed.
+Lemma isIntC_Real x : isIntC x -> isRealC x.
+Proof. by move/isIntC_conj/eqP. Qed.
 
-Lemma int_normCK x : isZC x -> `|x| ^+ 2 = x ^+ 2.
-Proof. by move/isZC_real/real_normCK. Qed.
+Lemma int_normCK x : isIntC x -> `|x| ^+ 2 = x ^+ 2.
+Proof. by move/isIntC_Real/real_normCK. Qed.
 
-Lemma isZC_signE x : isZC x -> x = (-1) ^+ (x < 0)%C * `|x|.
-Proof. by move/isZC_real/real_signE. Qed.
+Lemma isIntC_signE x : isIntC x -> x = (-1) ^+ (x < 0)%C * `|x|.
+Proof. by move/isIntC_Real/real_signE. Qed.
 
-Lemma isZC_mulr_sign n x : isZC ((-1) ^+ n * x) = isZC x.
-Proof. by rewrite -signr_odd mulr_sign fun_if isZC_opp if_same. Qed.
+Lemma isIntC_mulr_sign n x : isIntC ((-1) ^+ n * x) = isIntC x.
+Proof. by rewrite -signr_odd mulr_sign fun_if isIntC_opp if_same. Qed.
 
-Lemma isZC_sign n : isZC ((-1) ^+ n).
-Proof. by rewrite -[_ ^+ _]mulr1 isZC_mulr_sign (isZC_nat 1). Qed.
+Lemma isIntC_sign n : isIntC ((-1) ^+ n).
+Proof. by rewrite -[_ ^+ _]mulr1 isIntC_mulr_sign (isIntC_nat 1). Qed.
 
-Lemma normCZ_nat x : isZC x -> isNatC `|x|.
+Lemma normIntC_Nat x : isIntC x -> isNatC `|x|.
 Proof.
-by rewrite isZCE => /orP[]/eqP => [|/(canRL (@opprK _))] ->;
+by rewrite isIntCE => /orP[]/eqP => [|/(canRL (@opprK _))] ->;
   rewrite ?normC_opp normC_nat isNatC_nat.
 Qed.
 
-Lemma isNatC_Zpos x : isNatC x = isZC x && (0 <= x).
+Lemma isNatC_posInt x : isNatC x = isIntC x && (0 <= x).
 Proof.
-apply/idP/andP=> [Nx | [Zx x_ge0]]; first by rewrite (eqP Nx) isZC_nat posC_nat.
-by rewrite (isZC_signE Zx) mulr_sign leC_gtF // normCZ_nat.
+apply/idP/andP=> [Nx | [Zx x_ge0]]; first by rewrite (eqP Nx) isIntC_nat posC_nat.
+by rewrite (isIntC_signE Zx) mulr_sign leC_gtF // normIntC_Nat.
 Qed.

@@ -2049,12 +2049,12 @@ pose V : 'M[F]_n := 0; have: mxsemisimple V by exact: mxsemisimple0.
 have: n - \rank V < n.+1 by rewrite mxrank0 subn0.
 elim: _.+1 V => // n' IHn' V; rewrite ltnS => le_nV_n' ssimV.
 case=> // maxV; apply: (maxV); have [I /= U simU defV _] := ssimV.
-exists (map U (enum I)) => [M | M simM]; first by case/mapP=> i _ ->.
+exists (codom U) => [M | M simM]; first by case/mapP=> i _ ->.
 suffices sMV: (M <= V)%MS.
   rewrite -defV -(mulmx1 (\sum_i _)%MS) in sMV.
   have [//| i _] := hom_mxsemisimple_iso simM _ (scalar_mx_hom _ _) sMV.
-  move/mx_iso_sym=> isoM; rewrite has_map; apply/hasP.
-  by exists i; [exact: mem_enum | exact/mxsimple_isoP].
+  move/mx_iso_sym=> isoM; apply/hasP.
+  exists (U i); [exact: codom_f | exact/mxsimple_isoP].
 have ssimMV := addsmx_semisimple (mxsimple_semisimple simM) ssimV.
 apply: contraLR isT => nsMV; apply: IHn' ssimMV _ maxV.
 apply: leq_trans le_nV_n'; rewrite ltn_sub2l //.
@@ -3601,17 +3601,17 @@ apply: (noV); exists U; split => //; first split=> // i lt_iU; last first.
   - by rewrite size_rcons addSnnS.
   - by rewrite (subseq_trans sU0U) ?subseq_rcons.
   - by rewrite /mx_subseries all_rcons mxmodule1.
-  by rewrite path_rcons ltmxEneq neU1 submx1 !andbT.
+  by rewrite rcons_path ltmxEneq neU1 submx1 !andbT.
 set U'i := _`_i; set Ui := _`_i; have defU := cat_take_drop i U.
 have defU'i: U'i = last 0 (take i U).
   rewrite (last_nth 0) /U'i -{1}defU -cat_cons nth_cat /=.
   by rewrite size_take lt_iU leqnn.
-move: incU; rewrite -defU path_cat (drop_nth 0) //= -/Ui -defU'i.
+move: incU; rewrite -defU cat_path (drop_nth 0) //= -/Ui -defU'i.
 set U' := take i U; set U'' := drop _ U; case/and3P=> incU' ltUi incU''.
 split=> // W [modW ltUW ltWV]; case: notF.
 apply: {IH_U}(IH_U (U' ++ W :: Ui :: U'')) noV; last 2 first.
 - by rewrite /mx_subseries -drop_nth // all_cat /= modW -all_cat defU.
-- by rewrite path_cat /= -defU'i; exact/and4P.
+- by rewrite cat_path /= -defU'i; exact/and4P.
 - by rewrite -drop_nth // size_cat /= addnS -size_cat defU addSnnS.
 by rewrite (subseq_trans sU0U) // -defU subseq_cat // -drop_nth ?subseq_cons.
 Qed.
@@ -3947,7 +3947,7 @@ rewrite -{}v0 !linear_sum (bigD1 k) //= !linearZ /= rowK mxvecK def_k.
 rewrite linear_sum (bigD1 x) ?class_refl //= gring_projE // eqxx.
 rewrite !big1 ?addr0 ?mxE ?mulr1 // => [k' | y /andP[xGy ne_yx]]; first 1 last.
   by rewrite gring_projE ?(groupCl Gx xGy) // eq_sym (negPf ne_yx).
-rewrite rowK !linearZ /= mxvecK -(inj_eq (@enum_val_inj _ _)) def_k eq_sym.
+rewrite rowK !linearZ /= mxvecK -(inj_eq enum_val_inj) def_k eq_sym.
 have [z Gz ->] := imsetP (enum_valP k').
 move/eqP=> not_Gxz; rewrite linear_sum big1 ?scaler0 //= => y zGy.
 rewrite gring_projE ?(groupCl Gz zGy) //.
@@ -4665,9 +4665,9 @@ Notation "'Cl" := (Clifford_action _) : action_scope.
 
 Bind Scope irrType_scope with socle_sort.
 Notation "[ 1 sG ]" := (principal_comp sG) : irrType_scope.
-Arguments Scope irr_degree [_ _ subgroup_scope _ irrType_scope].
-Arguments Scope irr_repr [_ _ subgroup_scope _ irrType_scope group_scope].
-Arguments Scope irr_mode [_ _ subgroup_scope _ irrType_scope group_scope].
+Arguments Scope irr_degree [_ _ Group_scope _ irrType_scope].
+Arguments Scope irr_repr [_ _ Group_scope _ irrType_scope group_scope].
+Arguments Scope irr_mode [_ _ Group_scope _ irrType_scope group_scope].
 Notation "''n_' i" := (irr_degree i) : group_ring_scope.
 Notation "''R_' i" := (Wedderburn_subring i) : group_ring_scope.
 Notation "''e_' i" := (Wedderburn_id i) : group_ring_scope.

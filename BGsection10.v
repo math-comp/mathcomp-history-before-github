@@ -62,15 +62,15 @@ End Def.
 
 Notation "\alpha ( M )" := (alpha M) : group_scope.
 Notation "M `_ \alpha" := (alpha_core M) : group_scope.
-Notation "M `_ \alpha" := (alpha_core_group M) : subgroup_scope.
+Notation "M `_ \alpha" := (alpha_core_group M) : Group_scope.
 
 Notation "\beta ( M )" := (beta M) : group_scope.
 Notation "M `_ \beta" := (beta_core M) : group_scope.
-Notation "M `_ \beta" := (beta_core_group M) : subgroup_scope.
+Notation "M `_ \beta" := (beta_core_group M) : Group_scope.
 
 Notation "\sigma ( M )" := (sigma M) : group_scope.
 Notation "M `_ \sigma" := (sigma_core M) : group_scope.
-Notation "M `_ \sigma" := (sigma_core_group M) : subgroup_scope.
+Notation "M `_ \sigma" := (sigma_core_group M) : Group_scope.
 
 Section CoreTheory.
 

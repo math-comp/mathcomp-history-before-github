@@ -308,9 +308,9 @@ Let feq_lshift : forall vs T (f1 f2 : _ -> T) (i : 'I_(\dim vs)),
   tnth (feq vs f1 f2) (lshift _ i) = f1 b`_i.
 Proof.
 move=> vs T f1 f2 i b.
-rewrite /tnth /= !fgraph_map nth_cat /=.
+rewrite /tnth /= !fgraph_codom nth_cat /=.
 rewrite size_map -cardT card_ord  (ltn_ord i).
-by rewrite map_ffun_enum // nth_fgraph_ord ffunE -tnth_nth.
+by rewrite codom_ffun // nth_fgraph_ord ffunE -tnth_nth.
 Qed.
 
 Let feq_rshift : forall vs T (f1 f2: _ -> T) i,
@@ -318,9 +318,9 @@ Let feq_rshift : forall vs T (f1 f2: _ -> T) i,
   tnth (feq vs f1 f2) (rshift _ i) = f2 b`_i.
 Proof.
 move=> vs T f1 f2 i b.
-rewrite /tnth /= !fgraph_map nth_cat /=.
+rewrite /tnth /= !fgraph_codom nth_cat /=.
 rewrite size_map -cardT card_ord ltnNge leq_addr /= addKn.
-by rewrite map_ffun_enum // nth_fgraph_ord ffunE -tnth_nth.
+by rewrite codom_ffun // nth_fgraph_ord ffunE -tnth_nth.
 Qed.
 
 Definition has_aunit vs := 

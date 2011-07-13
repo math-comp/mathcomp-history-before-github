@@ -614,7 +614,7 @@ rewrite ltnS => leGn pG; pose xpG := [pred x \in G | #[x] == p].
 have [x /andP[Gx /eqP] | no_x] := pickP xpG; first by exists x.
 have{pG n leGn IHn} pZ: p %| #|'C_G(G)|.
   have:= pG; rewrite -(cardsID 'C(G)) dvdn_addl //.
-  have: [acts G, on G :\: 'C(G) | 'J]; last move/acts_sum_card_orbit <-.
+  have /acts_sum_card_orbit <-: [acts G, on G :\: 'C(G) | 'J].
     by apply/actsP=> x Gx y; rewrite !inE -!mem_conjgV -centJ conjGid ?groupV.
   elim/big_ind: _ => //; first exact: dvdn_add.
   move=> _ /imsetP[x /setDP[Gx nCx] ->]; rewrite card_orbit astab1J.
@@ -847,7 +847,7 @@ End PcoreDef.
 
 Notation "''O_' pi ( G )" := (pcore pi G)
   (at level 8, pi at level 2, format "''O_' pi ( G )") : group_scope.
-Notation "''O_' pi ( G )" := (pcore_group pi G) : subgroup_scope.
+Notation "''O_' pi ( G )" := (pcore_group pi G) : Group_scope.
 
 Section PseriesDefs.
 
@@ -871,7 +871,7 @@ Notation "''O_{' p1 , .. , pn } ( A )" :=
   (pseries (ConsPred p1 .. (ConsPred pn [::]) ..) A)
   (at level 8, format "''O_{' p1 , .. , pn } ( A )") : group_scope.
 Notation "''O_{' p1 , .. , pn } ( A )" :=
-  (pseries_group (ConsPred p1 .. (ConsPred pn [::]) ..) A) : subgroup_scope.
+  (pseries_group (ConsPred p1 .. (ConsPred pn [::]) ..) A) : Group_scope.
 
 Section PCoreProps.
 

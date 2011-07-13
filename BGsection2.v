@@ -503,7 +503,7 @@ have diff_n_1: all (fun i => dn1 i == 1%N) diff_n.
   case def_i: (dn1 i) => [|[|ni]] //=; case/splitPr=> e e' _.
   by rewrite big_cat big_cons /= addnCA def_i -add2n sqrn_add.
 have: sorted ltn diff_n.
-  by rewrite (sorted_filter ltn_trans) // /index_iota subn0 sorted_ltn_iota.
+  by rewrite (sorted_filter ltn_trans) // /index_iota subn0 iota_ltn_sorted.
 have: all (ltn^~ h) diff_n.
   by apply/allP=> i; rewrite mem_filter mem_index_iota; case/andP.
 have: size diff_n = 2%N.

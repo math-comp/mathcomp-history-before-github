@@ -104,9 +104,9 @@ Definition precoherent L G S tau R :=
       (*c*) pairwise_orthogonal S,
       (*d*) {in S, forall xi : 'CF(L : {set gT}),
               [/\ {subset R xi <= 'Z[irr G]}, orthonormal (R xi)
-                & tau (xi - xi^*)%CH = \sum_(alpha <- R xi) alpha]}
+                & tau (xi - xi^*)%CF = \sum_(alpha <- R xi) alpha]}
     & (*e*) {in S &, forall xi phi : 'CF(L),
-              orthogonal phi (xi :: xi^*%CH) -> orthogonal (R phi) (R xi)}].
+              orthogonal phi (xi :: xi^*%CF) -> orthogonal (R phi) (R xi)}].
 
 (* This is Peterfalvi (5.2)(a). *)
 Lemma irr_precoherent (L G : {group gT}) S tau :
@@ -116,19 +116,18 @@ Lemma irr_precoherent (L G : {group gT}) S tau :
 Proof.
 move=> [U_S irrS clC_S] [isoL Ztau].
 have vcS: {subset S <= 'Z[irr L]}.
-  move=> _ /irrS/irrP[i ->]; exact: vchar_irr.
+  move=> _ /irrS/irrP[i ->]; exact: irr_vchar.
 have orthS: pairwise_orthogonal S.
   apply/orthonormal_orthogonal/orthonormalP.
   split=> //= _ _ /irrS/irrP[i ->] /irrS/irrP[j ->].
   by rewrite (inj_eq (@chi_inj _ L)) cfdot_irr.
 have freeS := orthogonal_free orthS.
-pose beta chi := tau (chi - chi^*)%CH; pose eqBP := _ =P beta _.
-have Zbeta: {in S, forall chi, chi - (chi^*)%CH \in 'Z[S, L^#]}.
+pose beta chi := tau (chi - chi^*)%CF; pose eqBP := _ =P beta _.
+have Zbeta: {in S, forall chi, chi - (chi^*)%CF \in 'Z[S, L^#]}.
   move=> chi Schi.
   have [/irrP[i def_chi] /andP[_ /= Schi']] := (irrS _ Schi, clC_S _ Schi).
-  rewrite vchar_split vchar_sub ?memv_vchar ?subT //= def_chi.
-  rewrite -(eq_subset (in_set _)) subsetD1 (eq_subset (in_set _)) support_cfun.
-  by rewrite /= !inE negbK !cfunE isNatC_conj ?isNatC_irr1 ?subrr.
+  rewrite vchar_split cfunD1E sub_vchar ?mem_vchar ?subT //= def_chi.
+  by rewrite !cfunE isNatC_conj ?isNatC_irr1 ?subrr.
 pose sum_beta chi R := \sum_(alpha <- R) alpha == beta chi. 
 pose Zortho R := all (mem 'Z[irr G]) R && orthonormal R.
 have R chi: {R : 2.-tuple 'CF(G) | (chi \in S) ==> sum_beta chi R && Zortho R}.
@@ -136,8 +135,8 @@ have R chi: {R : 2.-tuple 'CF(G) | (chi \in S) ==> sum_beta chi R && Zortho R}.
   move/(_ _ Schi) in Zbeta; have /irrP[i def_chi] := irrS _ Schi.
   have: '[beta chi] = 2%:R.
     have /andP[/= /negbTE odd_chi Schi'] := clC_S _ Schi.
-    rewrite isoL // cfnormD cfnormN cfdotNr def_chi -conjC_idxE !cfdot_irr.
-    rewrite !eqxx -(inj_eq (@chi_inj _ L)) conjC_idxE -def_chi eq_sym odd_chi.
+    rewrite isoL // cfnormD cfnormN cfdotNr def_chi -conjC_IirrE !cfdot_irr.
+    rewrite !eqxx -(inj_eq (@chi_inj _ L)) conjC_IirrE -def_chi eq_sym odd_chi.
     by rewrite oppr0 rmorph0 !addr0 -natr_add.
   case/vchar_small_norm; rewrite ?(vcharW (Ztau _ _)) // => R [oR ZR sumR].
   by exists R; apply/and3P; split; [exact/eqP | exact/allP | ].
@@ -145,7 +144,7 @@ exists (fun xi => val (val (R xi))); split=> // [chi Schi | chi phi Schi Sphi].
   by case: (R chi) => Rc /=; rewrite Schi => /and3P[/eqBP-> /allP].
 case/andP => /and3P[/= /eqP opx /eqP opx' _] _.
 have{opx opx'} obpx: '[beta phi, beta chi] = 0.
-  rewrite isoL ?Zbeta // cfdot_subl !cfdot_subr -{3}[chi]cfun_conjCK.
+  rewrite isoL ?Zbeta // cfdot_subl !cfdot_subr -{3}[chi]cfConjCK.
   by rewrite -!conj_cfdot opx opx' rmorph0 !subr0.
 case: (R phi) => [[[|a [|b []]] //= _]].
 rewrite Sphi => /and3P[/eqBP sum_ab Zab o_ab].
@@ -155,12 +154,12 @@ suffices: orthonormal [:: a; - b; c; d].
   rewrite (orthonormal_cat [:: a; _]) => /and3P[_ _].
   by rewrite /orthogonal /= !cfdotNl !oppr_eq0.
 apply: vchar_pairs_orthonormal 1 (-1) _ _ _ _.
-- by split; apply/allP; rewrite //= vchar_opp.
+- by split; apply/allP; rewrite //= opp_vchar.
 - by rewrite o_cd andbT /orthonormal/= cfnormN /orthogonal /= cfdotNr !oppr_eq0.
 - by rewrite oppr_eq0 oner_eq0 /isRealC rmorphN rmorph1 !eqxx.
 rewrite !(big_seq1, big_cons) in sum_ab sum_cd.
 rewrite scale1r scaleN1r !opprK sum_ab sum_cd obpx eqxx /=.
-by rewrite !(cfunS0 (memc_vchar (Ztau _ _))) ?Zbeta ?inE ?eqxx.
+by rewrite !(cfun_on0 (vchar_on (Ztau _ _))) ?Zbeta ?inE ?eqxx.
 Qed.
 
 (*
@@ -181,11 +180,11 @@ move=> Sxi VCbeta.
 
 (* This is Peterfalvi (5.4) *)
 Lemma precoherent_norm xi psi (tau1 : {additive {cfun gT} -> {cfun gT}}) X Y :
-    [/\ xi \in S, psi \in 'Z[irr G] & orthogonal L [:: xi; xi^*%CH] [:: psi]] ->
-    let S0 := [:: xi - psi; xi - xi^*%CH] in
+    [/\ xi \in S, psi \in 'Z[irr G] & orthogonal L [:: xi; xi^*%CF] [:: psi]] ->
+    let S0 := [:: xi - psi; xi - xi^*%CF] in
     {in 'Z[S0] &, isometry L G tau1}
       /\ {in 'Z[S0], forall phi, tau1 phi \in 'Z[irr G]} ->
-    tau1 (xi - xi^*%CH) = tau (xi - xi^*%CH) ->
+    tau1 (xi - xi^*%CF) = tau (xi - xi^*%CF) ->
     [/\ tau1 (xi - psi) = X - Y, X \in 'Z[R xi]
       & orthogonal G [:: Y] (R xi)] ->
  [/\ (*a*) '[xi]_L <= '[X]_G

@@ -654,7 +654,7 @@ Lemma roots_on_rcons : forall p a b r s,
   sorted >%R (rcons s r) -> roots_on p `]a, b[ (rcons s r)
   -> roots_on p `]a, r[ s.
 Proof.
-move=> p a b r s; rewrite -{1}[s]revK -!rev_cons sorted_rev /=.
+move=> p a b r s; rewrite -{1}[s]revK -!rev_cons rev_sorted /=.
 move=> hrs hr.
 have := (order_path_min (rev_trans (@ltr_trans _)) hrs)=> allrrs.
 have allrs: (all (<%R r) s).
@@ -665,7 +665,7 @@ by move=> x; rewrite mem_rcons.
 Qed.
 
 
-(* move=> p a b r s; rewrite -{1}[s]revK -!rev_cons sorted_rev. *)
+(* move=> p a b r s; rewrite -{1}[s]revK -!rev_cons rev_sorted. *)
 (* rewrite  [r :: _]lock /=; unlock; move=> hp hr x; apply/andP/idP. *)
 (*   have:= (order_path_min (rev_trans (@ltr_trans _)) hp) => /=. *)
 (*   case/andP=> ar1 _; case; move/oointP=> axr rpx. *)
@@ -1067,20 +1067,20 @@ apply/idP/idP.
     by move=> y; rewrite mem_rcons !in_cons mem_rev.
   move/(roots_on_same _ _ hsx).
   case/max_roots_on.
-    move: sxs; rewrite -[rcons _ _]revK sorted_rev rev_rcons.
+    move: sxs; rewrite -[rcons _ _]revK rev_sorted rev_rcons.
     by apply: order_path_min=> u v w /=; move/(ltr_trans _); apply.
   move=> -> rax px0 rxb.
   move/(@roots_on_same _ s): rxb; move/(_ (mem_rev _))=> rxb.
   rewrite px0 (@roots_uniq p x b [::]) // (@roots_uniq p a x s) ?eqxx //=.
-  move: sxs; rewrite -[rcons _ _]revK sorted_rev rev_rcons.
-  by move/path_sorted; rewrite -sorted_rev revK.
+  move: sxs; rewrite -[rcons _ _]revK rev_sorted rev_rcons.
+  by move/path_sorted; rewrite -rev_sorted revK.
 case: rootsP p0=> // p0 rax sax _.
 case/and3P=> hx hax; rewrite (eqP hax) in rax sax.
 case: rootsP p0=> // p0 rxb sxb _.
 case/andP=> px0 hxb; rewrite (eqP hxb) in rxb sxb.
 rewrite [rcons _ _](@roots_uniq p a b) //; last first.
-  rewrite -[rcons _ _]revK sorted_rev rev_rcons /= path_min_sorted.
-    by rewrite -sorted_rev revK.
+  rewrite -[rcons _ _]revK rev_sorted rev_rcons /= path_min_sorted.
+    by rewrite -rev_sorted revK.
   move=> y; rewrite mem_rev; rewrite -(eqP hxb).
   by move/roots_in; move/intP->.
 move=> y; rewrite (int_splitU2 hx) mem_rcons in_cons !andb_orl.

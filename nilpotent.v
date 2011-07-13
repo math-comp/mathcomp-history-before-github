@@ -268,7 +268,7 @@ Qed.
 
 End LowerCentral.
 
-Notation "''L_' n ( G )" := (lower_central_at_group n G) : subgroup_scope.
+Notation "''L_' n ( G )" := (lower_central_at_group n G) : Group_scope.
 
 Lemma lcn_cont n : GFunctor.continuous (lower_central_at n).
 Proof.
@@ -316,7 +316,7 @@ Lemma ucn_normal : 'Z_n(G) <| G. Proof. exact: gFnormal. Qed.
 
 End UpperCentralFunctor.
 
-Notation "''Z_' n ( G )" := (upper_central_at_group n G) : subgroup_scope.
+Notation "''Z_' n ( G )" := (upper_central_at_group n G) : Group_scope.
 
 Section UpperCentral.
 

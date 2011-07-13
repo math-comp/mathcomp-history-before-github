@@ -99,11 +99,11 @@ Prenex Implicits maximal simple charsimple critical special extraspecial.
 
 Notation "''Phi' ( A )" := (Frattini A)
   (at level 8, format "''Phi' ( A )") : group_scope.
-Notation "''Phi' ( G )" := (Frattini_group G) : subgroup_scope.
+Notation "''Phi' ( G )" := (Frattini_group G) : Group_scope.
 
 Notation "''F' ( G )" := (Fitting G)
   (at level 8, format "''F' ( G )") : group_scope.
-Notation "''F' ( G )" := (Fitting_group G) : subgroup_scope.
+Notation "''F' ( G )" := (Fitting_group G) : Group_scope.
 
 Notation "''SCN' ( B )" := (SCN B)
   (at level 8, format "''SCN' ( B )") : group_scope.

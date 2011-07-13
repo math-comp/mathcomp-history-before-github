@@ -112,7 +112,7 @@ Qed.
 End Automorphism.
 
 Notation "[ 'Aut' G ]" := (Aut_group G)
-  (at level 0, format "[ 'Aut'  G ]") : subgroup_scope.
+  (at level 0, format "[ 'Aut'  G ]") : Group_scope.
 Notation "[ 'Aut' G ]" := (Aut G)
   (at level 0, only parsing) : group_scope.
 

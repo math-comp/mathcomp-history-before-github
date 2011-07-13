@@ -367,7 +367,7 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
         exact: pnat_coprime (pcore_pgroup _ _).
       have{last_s_DL}: last 1%G s \subset D :&: L by rewrite last_s_DL.
       rewrite /= -/P0; elim/last_ind: s ch_s => //= s U IHs.
-      rewrite !path_rcons last_rcons /=; set V := last _ s.
+      rewrite !rcons_path last_rcons /=; set V := last _ s.
       case/andP=> ch_s chUV sUDL; have [maxU _ nU_LM] := and3P chUV.
       case/andP: {maxU}(maxgroupp maxU); case/andP=> sVU _ nV_LM.
       have nVU := subset_trans sUDL (subset_trans sDL nV_LM).

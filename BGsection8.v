@@ -25,7 +25,7 @@ Implicit Types p q r : nat.
 
 Local Notation "K ` p" := 'O_(nat_pred_of_nat p)(K)
   (at level 8, q at level 2, format "K ` p") : group_scope.
-Local Notation "K ` p" := 'O_(nat_pred_of_nat p)(K)%G : subgroup_scope.
+Local Notation "K ` p" := 'O_(nat_pred_of_nat p)(K)%G : Group_scope.
 
 (* This is B & G, Theorem 8.1(a). *)
 Theorem non_pcore_Fitting_Uniqueness : forall p M A0,

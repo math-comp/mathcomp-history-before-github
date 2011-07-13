@@ -817,11 +817,11 @@ Qed.
 
 End MorphismTheory.
 
-Notation "''ker' f" := (ker_group (MorPhantom f)) : subgroup_scope.
-Notation "''ker_' G f" := (G :&: 'ker f)%G : subgroup_scope.
-Notation "f @* G" := (morphim_group (MorPhantom f) G) : subgroup_scope.
-Notation "f @*^-1 M" := (morphpre_group (MorPhantom f) M) : subgroup_scope.
-Notation "f @: D" := (morph_dom_group f D) : subgroup_scope.
+Notation "''ker' f" := (ker_group (MorPhantom f)) : Group_scope.
+Notation "''ker_' G f" := (G :&: 'ker f)%G : Group_scope.
+Notation "f @* G" := (morphim_group (MorPhantom f) G) : Group_scope.
+Notation "f @*^-1 M" := (morphpre_group (MorPhantom f) M) : Group_scope.
+Notation "f @: D" := (morph_dom_group f D) : Group_scope.
 
 Section IdentityMorphism.
 

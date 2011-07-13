@@ -942,10 +942,11 @@ Implicit Arguments setXP [x1 x2 fT1 fT2 A1 A2].
 Prenex Implicits setXP.
 
 Notation Local imset_def :=
-  (fun (aT rT : finType) f (D : mem_pred aT) => [set y \in @image aT rT f D]).
+  (fun (aT rT : finType) f mD => [set y \in @image_mem aT rT f mD]).
 Notation Local imset2_def :=
   (fun (aT1 aT2 rT : finType) f (D1 : mem_pred aT1) (D2 : _ -> mem_pred aT2) =>
-     [set y \in @image _ rT (prod_curry f) [pred u | D1 u.1 && D2 u.1 u.2]]).
+     [set y \in @image_mem _ rT (prod_curry f)
+                           (mem [pred u | D1 u.1 && D2 u.1 u.2])]).
 
 Module Type ImsetSig.
 Parameter imset : forall aT rT : finType,
@@ -1020,7 +1021,7 @@ Proof.
 rewrite [@imset2]unlock inE.
 apply: (iffP (imageP _ _ _)) => [[[x1 x2] Dx12] | [x1 x2 Dx1 Dx2]] -> {y}.
   by case/andP: Dx12; exists x1 x2.
-by exists (x1, x2); rewrite //= Dx1.
+by exists (x1, x2); rewrite //= !inE Dx1.
 Qed.
 
 Lemma mem_imset (D : pred aT) x : x \in D -> f x \in f @: D.
@@ -1227,7 +1228,7 @@ Lemma big_imset h A G :
      {in A &, injective h} ->
   \big[aop/idx]_(j \in h @: A) G j = \big[aop/idx]_(i \in A) G (h i).
 Proof.
-move=> injh; pose hA := [image h of A].
+move=> injh; pose hA := mem (image h A).
 have [-> | [x0 Ax0]] := set_0Vmem A.
   by rewrite imset0 !big_pred0 // => x /=; rewrite inE.
 rewrite (eq_bigl hA) => [|j]; last by exact/imsetP/imageP.
@@ -1281,7 +1282,7 @@ Variables aT aT2 rT : finType.
 Variables (f : aT -> rT) (g : rT -> aT) (f2 : aT -> aT2 -> rT).
 Variables (D : pred aT) (D2 : pred aT).
 
-Lemma imset_card : #|f @: D| = #|[image f of D]|.
+Lemma imset_card : #|f @: D| = #|image f D|.
 Proof. by rewrite [@imset]unlock cardsE. Qed.
 
 Lemma leq_imset_card : #|f @: D| <= #|D|.
@@ -1321,7 +1322,7 @@ Lemma can_imset_pre (T : finType) f g (A : {set T}) :
   cancel f g -> f @: A = g @^-1: A :> {set T}.
 Proof.
 move=> fK; apply: can2_imset_pre => // x.
-suffices fx: codom f x by rewrite -(f_iinv fx) fK.
+suffices fx: x \in codom f by rewrite -(f_iinv fx) fK.
 move: x; apply/(subset_cardP (card_codom (can_inj fK))); exact/subsetP.
 Qed.
 
@@ -1329,7 +1330,7 @@ Lemma card_preimset (T : finType) (f : T -> T) (A : {set T}) :
   injective f -> #|f @^-1: A| = #|A|.
 Proof.
 move=> injf; apply: on_card_preimset; apply: onW_bij.
-have ontof: codom f _ by exact/(subset_cardP (card_codom injf))/subsetP.
+have ontof: _ \in codom f by exact/(subset_cardP (card_codom injf))/subsetP.
 by exists (fun x => iinv (ontof x)) => x; rewrite (f_iinv, iinv_f).
 Qed.
 
@@ -1615,8 +1616,8 @@ Variables (D1 : pred aT1) (D2 : pred aT2).
 
 Lemma curry_imset2X : f @2: (A1, A2) = prod_curry f @: (setX A1 A2).
 Proof.
-rewrite [@imset]unlock unlock; apply/setP=> x; rewrite !in_set.
-by apply: eq_image => u //=; rewrite inE.
+rewrite [@imset]unlock unlock; apply/setP=> x; rewrite !in_set; congr (x \in _).
+by apply: eq_image => u //=; rewrite !inE.
 Qed.
 
 Lemma curry_imset2l : f @2: (D1, D2) = \bigcup_(x1 \in D1) f x1 @: D2.

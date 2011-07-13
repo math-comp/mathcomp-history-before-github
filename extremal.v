@@ -156,19 +156,19 @@ End SpecializeExtremals.
 
 Notation "''Mod_' m" := (modular_gtype m) : type_scope.
 Notation "''Mod_' m" := [set: gsort 'Mod_m] : group_scope.
-Notation "''Mod_' m" := [set: gsort 'Mod_m]%G : subgroup_scope.
+Notation "''Mod_' m" := [set: gsort 'Mod_m]%G : Group_scope.
 
 Notation "''D_' m" := (dihedral_gtype m) : type_scope.
 Notation "''D_' m" := [set: gsort 'D_m] : group_scope.
-Notation "''D_' m" := [set: gsort 'D_m]%G : subgroup_scope.
+Notation "''D_' m" := [set: gsort 'D_m]%G : Group_scope.
 
 Notation "''SD_' m" := (semidihedral_gtype m) : type_scope.
 Notation "''SD_' m" := [set: gsort 'SD_m] : group_scope.
-Notation "''SD_' m" := [set: gsort 'SD_m]%G : subgroup_scope.
+Notation "''SD_' m" := [set: gsort 'SD_m]%G : Group_scope.
 
 Notation "''Q_' m" := (quaternion_gtype m) : type_scope.
 Notation "''Q_' m" := [set: gsort 'Q_m] : group_scope.
-Notation "''Q_' m" := [set: gsort 'Q_m]%G : subgroup_scope.
+Notation "''Q_' m" := [set: gsort 'Q_m]%G : Group_scope.
 
 Section ExtremalTheory.
 
@@ -184,7 +184,7 @@ Lemma cyclic_pgroup_Aut_structure gT p (G : {group gT}) :
   exists m : {perm gT} -> 'Z_q,
   [/\ [/\ {in A & G, forall a x, x ^+ m a = a x},
           m 1 = 1%R /\ {in A &, {morph m : a b / a * b >-> (a * b)%R}},
-          {in A &, injective m} /\ [image m of A] =i GRing.unit,
+          {in A &, injective m} /\ image m A =i GRing.unit,
           forall k, {in A, {morph m : a / a ^+ k >-> (a ^+ k)%R}}
         & {in A, {morph m : a / a^-1 >-> (a^-1)%R}}],
       [/\ abelian A, cyclic F, #|F| = p.-1
@@ -233,7 +233,7 @@ have mX k: {in A, {morph m : a / a ^+ k >-> (a ^+ k)%R}}.
 have inj_m: {in A &, injective m}.
   apply: can_in_inj (fun u => m' (insubd (1 : {unit 'Z_q}) u)) _ => a Aa.
   by rewrite valKd invmK ?defA.
-have{defA} im_m: [image m of A] =i GRing.unit.
+have{defA} im_m: image m A =i GRing.unit.
   move=> u; apply/imageP/idP=> [[a Aa ->]| Uu]; first exact: valP.
   exists (m' (Sub u Uu)) => /=; first by rewrite -defA mem_morphim ?inE.
   by rewrite /m invmE ?inE.

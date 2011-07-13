@@ -410,7 +410,7 @@ Proposition stable_series_cent gT (A G : {group gT}) s :
   A \subset 'C(G).
 Proof.
 move=> <-{G}; elim/last_ind: s => /= [|s G IHs]; first by rewrite cents1.
-rewrite last_rcons path_rcons /= => /andP[/IHs{IHs}].
+rewrite last_rcons rcons_path /= => /andP[/IHs{IHs}].
 move: {s}(last _ _) => H IH_H nHGA coGA solG; have [_ sHG _] := and3P nHGA.
 by rewrite (stable_factor_cent _ nHGA) ?IH_H ?(solvableS sHG) ?(coprimeSg sHG).
 Qed.
@@ -1210,11 +1210,11 @@ Canonical Puig_group gT (D : {set gT}) := [group of 'L(D)].
 
 End PuigSeriesGroups.
 
-Notation "''L_[' G ] ( L )" := (Puig_succ_group G L) : subgroup_scope.
+Notation "''L_[' G ] ( L )" := (Puig_succ_group G L) : Group_scope.
 Notation "''L_{' n } ( G )" := (Puig_at_group n G)
-  (at level 8, format "''L_{' n } ( G )") : subgroup_scope.
-Notation "''L_*' ( G )" := (Puig_inf_group G) : subgroup_scope.
-Notation "''L' ( G )" := (Puig_group G) : subgroup_scope.
+  (at level 8, format "''L_{' n } ( G )") : Group_scope.
+Notation "''L_*' ( G )" := (Puig_inf_group G) : Group_scope.
+Notation "''L' ( G )" := (Puig_group G) : Group_scope.
 
 (* Elementary properties of the Puig series. *)
 Section PuigBasics.

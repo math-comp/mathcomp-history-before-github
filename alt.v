@@ -85,7 +85,7 @@ apply/imsetP; pose t1 := [tuple of enum T].
 have dt1: t1 \in n.-dtuple(setT) by rewrite inE enum_uniq; apply/subsetP.
 exists t1 => //; apply/setP=> t; apply/idP/imsetP=> [|[a _ ->{t}]]; last first.
   by apply: n_act_dtuple => //; apply/astabsP=> x; rewrite !inE.
-case/dtuple_onP=> injt _; have injf := inj_comp injt (@enum_rank_inj _).
+case/dtuple_onP=> injt _; have injf := inj_comp injt enum_rank_inj.
 exists (perm injf); first by rewrite inE.
 apply: eq_from_tnth => i; rewrite tnth_map /= [aperm _ _]permE; congr tnth.
 by rewrite (tnth_nth (enum_default i)) enum_valK.
@@ -116,11 +116,11 @@ End SymAltDef.
 
 Notation "''Sym_' T" := (Sym (Phant T))
   (at level 8, T at level 2, format "''Sym_' T") : group_scope.
-Notation "''Sym_' T" := (Sym_group (Phant T)) : subgroup_scope.
+Notation "''Sym_' T" := (Sym_group (Phant T)) : Group_scope.
 
 Notation "''Alt_' T" := (Alt (Phant T))
   (at level 8, T at level 2, format "''Alt_' T") : group_scope.
-Notation "''Alt_' T" := (Alt_group (Phant T)) : subgroup_scope.
+Notation "''Alt_' T" := (Alt_group (Phant T)) : Group_scope.
 
 Lemma trivial_Alt_2 (T : finType) : #|T| <= 2 -> 'Alt_T = 1.
 Proof.

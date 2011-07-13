@@ -504,7 +504,7 @@ Lemma max_pdiv_max n p : p \in \pi(n) -> p <= max_pdiv n.
 Proof.
 rewrite /max_pdiv !inE => n_p.
 case/splitPr: n_p (sorted_primes n) => p1 p2; rewrite last_cat -cat_rcons /=.
-rewrite headI /= path_cat -(last_cons 0) -headI last_rcons; case/andP=> _.
+rewrite headI /= cat_path -(last_cons 0) -headI last_rcons; case/andP=> _.
 move/(order_path_min ltn_trans); case/lastP: p2 => //= p2 q.
 by rewrite all_rcons last_rcons ltn_neqAle -andbA => /and3P[].
 Qed.
@@ -882,7 +882,7 @@ Qed.
 Lemma filter_pi_of n m : n < m -> filter \pi(n) (index_iota 0 m) = primes n.
 Proof.
 move=> lt_n_m; have ltnT := ltn_trans; apply: (eq_sorted_irr ltnT ltnn).
-- by rewrite sorted_filter // sorted_ltn_iota.
+- by rewrite sorted_filter // iota_ltn_sorted.
 - exact: sorted_primes.
 move=> p; rewrite mem_filter mem_index_iota /= mem_primes; case: and3P => //.
 case=> _ n_gt0 dv_p_n; apply: leq_ltn_trans lt_n_m; exact: dvdn_leq.
@@ -1181,8 +1181,8 @@ move: (iter e _ _) => divs' [Udivs' Odivs' mem_divs']; split=> [||d].
 - rewrite merge_uniq cat_uniq map_inj_uniq // Udivs Udivs' andbT /=.
   apply/hasP=> [[d dv_d /mapP[d' _ def_d]]].
   by case/idPn: dv_d; rewrite def_d natTrecE.
-- rewrite (sorted_merge leq_total) //; case: (divs') Odivs' => //= d ds.
-  rewrite (@path_map _ _ _ _ leq xpred0) ?has_pred0 // => u v _.
+- rewrite (merge_sorted leq_total) //; case: (divs') Odivs' => //= d ds.
+  rewrite (@map_path _ _ _ _ leq xpred0) ?has_pred0 // => u v _.
   by rewrite !natTrecE leq_pmul2l.
 rewrite mem_merge mem_cat; case dv_d_p: (p %| d).
   case/dvdnP: dv_d_p => d' ->{d}; rewrite mulnC (negbTE (ndivs_p d')) orbF.
@@ -1200,7 +1200,7 @@ Lemma divisors_uniq n : uniq (divisors n).
 Proof. by case: (posnP n) => [-> | /divisors_correct[]]. Qed.
 
 Lemma sorted_divisors_ltn n : sorted ltn (divisors n).
-Proof. by rewrite sorted_ltn_uniq_leq divisors_uniq sorted_divisors. Qed.
+Proof. by rewrite ltn_sorted_uniq_leq divisors_uniq sorted_divisors. Qed.
 
 Lemma dvdn_divisors d m : 0 < m -> (d %| m) = (d \in divisors m).
 Proof. by case/divisors_correct. Qed.
@@ -1299,7 +1299,7 @@ have ->: phi np = #|[pred d : 'I_np | coprime np d]|.
   apply: (@addnI (1 * q)); rewrite -muln_addl [1 + _]prednK // mul1n.
   have def_np: np = p * q by rewrite -expnS prednK // -p_part.
   pose mulp := [fun d : 'I_q => in_mod _ np0 (p * d)].
-  rewrite -def_np -{1}[np]card_ord -(cardC [image mulp of predT]).
+  rewrite -def_np -{1}[np]card_ord -(cardC (mem (codom mulp))).
   rewrite card_in_image => [|[d1 ltd1] [d2 ltd2] /= _ _ []]; last first.
     move/eqP; rewrite def_np !modn_pmul2l ?modn_small //.
     by rewrite eqn_pmul2l // => eq_op12; exact/eqP.

@@ -211,7 +211,7 @@ Implicit Types (C D : {set coset_of H}) (L M : {group coset_of H}).
 Canonical quotient_group G A : {group coset_of A} :=
   Eval hnf in [group of G / A].
 
-Infix "/" := quotient_group : subgroup_scope.
+Infix "/" := quotient_group : Group_scope.
 
 Lemma val_coset x : x \in 'N(H) -> coset H x :=: H :* x.
 Proof. by move=> Nx; rewrite val_coset_prim // genGid. Qed.
@@ -587,7 +587,7 @@ End Injective.
 
 End CosetOfGroupTheory.
 
-Notation "A / H" := (quotient_group A H) : subgroup_scope.
+Notation "A / H" := (quotient_group A H) : Group_scope.
 
 Section Quotient1.
 

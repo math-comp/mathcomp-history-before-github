@@ -294,9 +294,9 @@ Implicit Types p q : {poly R}.
 Definition char_poly_mx := 'X%:M - map_mx (@polyC R) A.
 Definition char_poly := \det char_poly_mx.
 
-Let diagA := map (fun i => A i i) (enum 'I_n).
+Let diagA := [image A i i | i <- 'I_n].
 Let size_diagA : size diagA = n.
-Proof. by rewrite size_map -cardE card_ord. Qed.
+Proof. by rewrite size_image card_ord. Qed.
 
 Let split_diagA :
   exists2 q, \prod_(x <- diagA) ('X - x%:P) + q = char_poly & size q <= n.-1.
@@ -779,7 +779,7 @@ Lemma eval_row_var e k : eval_mx (row_env e) (row_var k) = e`_k :> 'rV_d.
 Proof. by apply/rowP=> i; rewrite !mxE /= nth_row_env. Qed.
 
 Definition Exists_row_form k (f : form) :=
-  foldr GRing.Exists f (map (fun i : 'I_d => k * d + i)%N (enum 'I_d)).
+  foldr GRing.Exists f (codom (fun i : 'I_d => k * d + i)%N).
 
 Lemma Exists_rowP e k f :
   d > 0 ->
@@ -791,7 +791,7 @@ have d_eq j: (j = j %/ d * d + i_ j)%N := divn_eq j d.
 split=> [[v f_v] | ]; last case/GRing.foldExistsP=> e' ee' f_e'.
   apply/GRing.foldExistsP; exists (row_env (set_nth 0 e k v)) => {f f_v}// j.
   rewrite [j]d_eq !nth_row_env nth_set_nth /=; case: eqP => // ->.
-  by case/mapP; exists (i_ j); rewrite ?mem_enum.
+  by case/imageP; exists (i_ j).
 exists (\row_i e'`_(k * d + i)); apply: eq_holds f_e' => j /=.
 move/(_ j): ee'; rewrite [j]d_eq !nth_row_env nth_set_nth /=.
 case: eqP => [-> | ne_j_k -> //]; first by rewrite mxE.

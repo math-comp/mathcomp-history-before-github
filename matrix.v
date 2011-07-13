@@ -1305,7 +1305,7 @@ Qed.
 Lemma vec_mx_delta m n i j :
   vec_mx (delta_mx 0 (mxvec_index i j)) = delta_mx i j :> 'M_(m, n).
 Proof.
-by apply/matrixP=> i' j'; rewrite !mxE /= [_ == _](inj_eq (@enum_rank_inj _)).
+by apply/matrixP=> i' j'; rewrite !mxE /= [_ == _](inj_eq enum_rank_inj).
 Qed.
 
 Lemma mxvec_delta m n i j :
@@ -2630,8 +2630,8 @@ Notation "''GL_' n [ R ]" := (GLgroup n (Phant R))
 Notation "''GL_' n ( p )" := 'GL_n['F_p]
   (at level 8, n at level 2, p at level 10,
    format "''GL_' n ( p )") : group_scope.
-Notation "''GL_' n [ R ]" := (GLgroup_group n (Phant R)) : subgroup_scope.
-Notation "''GL_' n ( p )" := (GLgroup_group n (Phant 'F_p)) : subgroup_scope.
+Notation "''GL_' n [ R ]" := (GLgroup_group n (Phant R)) : Group_scope.
+Notation "''GL_' n ( p )" := (GLgroup_group n (Phant 'F_p)) : Group_scope.
 
 (*****************************************************************************)
 (********************** Matrices over a domain *******************************)

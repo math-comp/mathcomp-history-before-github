@@ -89,12 +89,13 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 (*      A \subset B == all x \in A satisfy x \in B.                           *)
 (*      A \proper B == all x \in A satisfy x \in B but not the converse.      *)
 (* [disjoint A & B] == no x \in A satisfies x \in B.                          *)
-(*        image f P == the (collective) predicate that selects the y : T      *)
-(*                     equal to f x for some x such that P x; P here is an    *)
-(*                     applicative predicate on the domain D of f, which can  *)
-(*                     be an arbitrary predArgType.                           *)
-(*          codom f == the codomain predicate for f (:= image f D).           *)
-(*   [image f of A] == the collective version of image.                       *)
+(*        image f A == the sequence of f x for all x : T such that x \in A    *)
+(*                     (where a is an applicative predicate), of length #|P|. *)
+(*                     The codomain of F can be any type, but image f A can   *)
+(*                     only be used as a collective predicate is it is an     *)
+(*                     eqType.                                                *)
+(*          codom f == a sequence spanning the codomain of f (:= image f T).  *)
+(*  [image F | x <- A] == syntax for image (fun x => F) A.                    *)
 (*        iinv im_y == some x such that P x holds and f x = y, given          *)
 (*                     im_y : y \in image f P.                                *)
 (*     invF inj_f y == the x such that f x = y, for inj_j : injective f with  *)
@@ -878,85 +879,104 @@ Proof. apply: (iffP (dinjectiveP _)) => injf x y => [|_ _]; exact: injf. Qed.
 
 End Injectiveb.
 
+Definition image_mem T T' f mA : seq T' := map f (@enum_mem T mA).
+Notation image f A := (image_mem f (mem A)).
+Notation "[ 'image' F | x <- A ]" := (image (fun x => F) A)
+  (at level 0,
+   format "'[hv' [ 'image'  F  '/ '  |  x  <-  A ] ']'") : form_scope.
+Definition codom T T' f := @image_mem T T' f (mem T).
+
 Section Image.
 
-Variables (T : finType) (T' : eqType) (f : T -> T').
+Variable T : finType.
+Implicit Type A : pred T.
 
-Section Def.
+Section SizeImage.
 
-Variable A : pred T.
+Variables (T' : Type) (f : T -> T').
 
-Definition image : pred T' := mem (map f (enum A)).
+Lemma size_image A : size (image f A) = #|A|.
+Proof. by rewrite size_map -cardE. Qed.
 
-Lemma imageP y : reflect (exists2 x, A x & y = f x) (image y).
+Lemma size_codom : size (codom f) = #|T|.
+Proof. exact: size_image. Qed.
+
+Lemma codomE : codom f = map f (enum T).
+Proof. by []. Qed.
+
+End SizeImage.
+
+Variables (T' : eqType) (f : T -> T').
+
+Lemma imageP A y : reflect (exists2 x, x \in A & y = f x) (y \in image f A).
 Proof.
 by apply: (iffP mapP) => [] [x Ax y_fx]; exists x; rewrite // mem_enum in Ax *.
 Qed.
 
-Remark iinv_proof y : image y -> {x : T | A x & f x = y}.
+Remark iinv_proof A y : y \in image f A -> {x | x \in A & f x = y}.
 Proof.
 move=> fy; pose b x := A x && (f x == y).
 case: (pickP b) => [x /andP[Ax /eqP] | nfy]; first by exists x.
 by case/negP: fy => /imageP[x Ax fx_y]; case/andP: (nfy x); rewrite fx_y.
 Qed.
 
-Definition iinv y fAy := s2val (@iinv_proof y fAy).
+Definition iinv A y fAy := s2val (@iinv_proof A y fAy).
 
-Lemma f_iinv y fAy : f (@iinv y fAy) = y.
+Lemma f_iinv A y fAy : f (@iinv A y fAy) = y.
 Proof. exact: s2valP' (iinv_proof fAy). Qed.
 
-Lemma mem_iinv y fAy : A (@iinv y fAy).
+Lemma mem_iinv A y fAy : @iinv A y fAy \in A.
 Proof. exact: s2valP (iinv_proof fAy). Qed.
 
-Lemma in_iinv_f : {in A &, injective f} ->
-  forall x fAfx, A x -> @iinv (f x) fAfx = x.
+Lemma in_iinv_f A : {in A &, injective f} ->
+  forall x fAfx, x \in A -> @iinv A (f x) fAfx = x.
 Proof.
 move=> injf x fAfx Ax; apply: injf => //; [exact: mem_iinv | exact: f_iinv].
 Qed.
 
-Lemma preim_iinv B y fAy : preim f B (@iinv y fAy) = B y.
+Lemma preim_iinv A B y fAy : preim f B (@iinv A y fAy) = B y.
 Proof. by rewrite /= f_iinv. Qed.
 
-Lemma mem_image x : A x -> image (f x).
+Lemma mem_image A x : x \in A -> f x \in image f A.
 Proof. by move=> Ax; apply/imageP; exists x. Qed.
+
+Lemma codom_f x : f x \in codom f.
+Proof. by exact: mem_image. Qed.
+
+Lemma image_codom A : {subset image f A <= codom f}.
+Proof. by move=> _ /imageP[x _ ->]; exact: codom_f. Qed.
+
+Lemma image_pred0 : image f pred0 =i pred0.
+Proof. by move=> x; rewrite /image_mem /= enum0. Qed.
+
+Section Injective.
 
 Hypothesis injf : injective f.
 
-Lemma image_f x : image (f x) = A x.
-Proof. by rewrite /image /= mem_map ?mem_enum. Qed.
+Lemma image_f A x : (f x \in image f A) = (x \in A).
+Proof. by rewrite mem_map ?mem_enum. Qed.
 
-Lemma pre_image : preim f image =1 A.
-Proof. by move=> x; rewrite /= image_f. Qed.
+Lemma pre_image A : [preim f of image f A] =i A.
+Proof. by move=> x; rewrite inE /= image_f. Qed.
 
-End Def.
+Lemma image_iinv A y (fTy : y \in codom f) :
+  (y \in image f A) = (iinv fTy \in A).
+Proof. by rewrite -image_f ?f_iinv. Qed.
 
-Definition codom := image T.
+Lemma iinv_f x fTfx : @iinv T (f x) fTfx = x.
+Proof. by apply: in_iinv_f; first exact: in2W. Qed.
 
-Lemma codom_f x : codom (f x).
-Proof. by exact: mem_image. Qed.
+Lemma image_pre (B : pred T') : image f [preim f of B] =i [predI B & codom f].
+Proof. by move=> y; rewrite /image_mem -filter_map /= mem_filter -enumT. Qed.
 
-Lemma iinv_f x fTfx : injective f -> @iinv T (f x) fTfx = x.
-Proof. by move=> injf; apply: in_iinv_f; first exact: in2W. Qed.
-
-Lemma image_codom A y : image A y -> codom y.
-Proof. case/imageP=> x _ ->; exact: codom_f. Qed.
-
-Lemma image_iinv : injective f ->
-  forall A y (fTy : codom y), image A y = A (iinv fTy).
-Proof. by move=> injf A y fTy; rewrite -image_f ?f_iinv. Qed.
-
-Lemma image_pred0 : image pred0 =1 pred0.
-Proof. by move=> x; rewrite /image /= enum0. Qed.
-
-Lemma image_pre B : injective f -> image (preim f B) =1 predI B codom.
-Proof. by move=> injf y; rewrite /image -filter_map /= mem_filter -enumT. Qed.
+End Injective.
 
 Fixpoint preim_seq s :=
   if s is y :: s' then
     (if pick (preim f (pred1 y)) is Some x then cons x else id) (preim_seq s')
     else [::].
 
-Lemma map_preim (s : seq T') : {subset s <= codom} -> map f (preim_seq s) = s.
+Lemma map_preim (s : seq T') : {subset s <= codom f} -> map f (preim_seq s) = s.
 Proof.
 elim: s => //= y s IHs; case: pickP => [x /eqP fx_y | nfTy] fTs.
   by rewrite /= fx_y IHs // => z s_z; apply: fTs; exact: predU1r.
@@ -965,28 +985,23 @@ Qed.
 
 End Image.
 
-Prenex Implicits codom iinv image.
-
-Notation "[ 'image' f 'of' A ]" := (image f [mem A])
-  (at level 0, format "[ 'image'  f  'of'  A ]") : form_scope.
+Prenex Implicits codom iinv.
 
 Section CardFunImage.
 
 Variables (T T' : finType) (f : T -> T').
 Implicit Type A : pred T.
 
-Lemma leq_image_card A : #|[image f of A]| <= #|A|.
+Lemma leq_image_card A : #|image f A| <= #|A|.
 Proof. by rewrite (cardE A) -(size_map f) card_size. Qed.
 
-Lemma card_in_image A :
-  {in A &, injective f} -> #|[image f of A]| = #|A|.
+Lemma card_in_image A : {in A &, injective f} -> #|image f A| = #|A|.
 Proof.
 move=> injf; rewrite (cardE A) -(size_map f); apply/card_uniqP.
 rewrite map_inj_in_uniq ?enum_uniq // => x y; rewrite !mem_enum; exact: injf.
 Qed.
 
-Lemma image_injP A :
-  reflect {in A &, injective f} (#|[image f of A]| == #|A|).
+Lemma image_injP A : reflect {in A &, injective f} (#|image f A| == #|A|).
 Proof.
 apply: (iffP eqP) => [eqfA |]; last exact: card_in_image.
 by apply/dinjectiveP; apply/card_uniqP; rewrite size_map -cardE.
@@ -994,16 +1009,16 @@ Qed.
 
 Hypothesis injf : injective f.
 
-Lemma card_image A : #|[image f of A]| = #|A|.
+Lemma card_image A : #|image f A| = #|A|.
 Proof. apply: card_in_image; exact: in2W. Qed.
 
 Lemma card_codom : #|codom f| = #|T|.
 Proof. exact: card_image. Qed.
 
-Lemma card_preim B : #|preim f B| = #|predI (codom f) B|.
+Lemma card_preim (B : pred T') : #|[preim f of B]| = #|[predI codom f & B]|.
 Proof.
 rewrite -card_image /=; apply: eq_card => y.
-by rewrite [y \in _]image_pre //= andbC.
+by rewrite [y \in _]image_pre !inE andbC.
 Qed.
 
 End CardFunImage.
@@ -1018,7 +1033,7 @@ Section Inv.
 
 Hypothesis injf : injective f.
 
-Lemma injF_codom y : codom f y.
+Lemma injF_codom y : y \in codom f.
 Proof. by move: y; apply/subset_cardP; rewrite ?card_codom ?subset_predT. Qed.
 
 Definition invF y := iinv (injF_codom y).
@@ -1049,19 +1064,18 @@ End FinCancel.
 
 Section EqImage.
 
-Variables (T : finType) (T' : eqType).
+Variables (T : finType) (T' : Type).
 
 Lemma eq_image (A B : pred T) (f g : T -> T') :
-  A =1 B -> f =1 g -> image f A =1 image g B.
+  A =i B -> f =1 g -> image f A = image g B.
 Proof.
-by move=> eqAB eqfg x; congr (x \in _); rewrite (eq_enum eqAB); exact: eq_map.
+by move=> eqAB eqfg; rewrite /image_mem (eq_enum eqAB) (eq_map eqfg).
 Qed.
 
-Lemma eq_codom (f g : T -> T') : f =1 g -> codom f =1 codom g.
+Lemma eq_codom (f g : T -> T') : f =1 g -> codom f = codom g.
 Proof. exact: eq_image. Qed.
 
-Lemma eq_invF f g injf injg :
-  f =1 g -> @invF T f injf =1 @invF T g injg.
+Lemma eq_invF f g injf injg : f =1 g -> @invF T f injf =1 @invF T g injg.
 Proof.
 by move=> eq_fg x; apply: (canLR (invF_f injf)); rewrite eq_fg f_invF.
 Qed.
@@ -1415,6 +1429,14 @@ Proof. by rewrite -mem_enum mem_nth -?cardE. Qed.
 Lemma enum_val_nth A x i : @enum_val A i = nth x (enum A) i.
 Proof. by apply: set_nth_default; rewrite cardE in i *; exact: ltn_ord. Qed.
 
+Lemma nth_image T' y0 (f : T -> T') A (i : 'I_#|A|) :
+  nth y0 (image f A) i = f (enum_val i).
+Proof. by rewrite -(nth_map _ y0) // -cardE. Qed.
+
+Lemma nth_codom T' y0 (f : T -> T') (i : 'I_#|T|) :
+  nth y0 (codom f) i = f (enum_val i).
+Proof. exact: nth_image. Qed.
+
 Lemma nth_enum_rank_in x00 x0 A Ax0 :
   {in A, cancel (@enum_rank_in x0 A Ax0) (nth x00 (enum A))}.
 Proof.
@@ -1462,6 +1484,8 @@ Proof. by move: enum_rankK enum_valK; exists enum_rank. Qed.
 
 End EnumRank.
 
+Implicit Arguments enum_val_inj [[T] [A] x1 x2].
+Implicit Arguments enum_rank_inj [[T] x1 x2].
 Prenex Implicits enum_val enum_rank.
 
 Lemma enum_rank_ord n i : enum_rank i = cast_ord (esym (card_ord n)) i.

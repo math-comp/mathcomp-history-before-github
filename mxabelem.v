@@ -884,7 +884,8 @@ apply/eqP; move/eqP: (sum_irr_degree sS F'S splitF).
 rewrite (bigID (mem linS)) /= -/irr_degree.
 rewrite (eq_bigr (fun _ => 1%N)) => [|i]; last by rewrite !inE; move/eqP->.
 rewrite sum1_card nb_lin.
-rewrite (eq_bigl (codom iphi)) // => [|i]; last by rewrite -in_setC -im_iphi.
+rewrite (eq_bigl (mem (codom iphi))) // => [|i]; last first.
+  by rewrite -in_setC -im_iphi.
 rewrite (eq_bigr (fun _ => d ^ 2))%N => [|_ /imageP[i _ ->]]; last first.
   by rewrite deg_phi.
 rewrite sum_nat_const card_image // card_ord oSpn (expnS p) -{3}[p]prednK //.

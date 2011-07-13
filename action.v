@@ -828,16 +828,16 @@ Implicit Arguments orbit1P [aT D rT to G x].
 Implicit Arguments contra_orbit [aT D rT x y].
 Prenex Implicits orbit1P.
 
-Notation "''C' ( S | to )" := (astab_group to S) : subgroup_scope.
-Notation "''C_' A ( S | to )" := (setI_group A 'C(S | to)) : subgroup_scope.
+Notation "''C' ( S | to )" := (astab_group to S) : Group_scope.
+Notation "''C_' A ( S | to )" := (setI_group A 'C(S | to)) : Group_scope.
 Notation "''C_' ( A ) ( S | to )" := (setI_group A 'C(S | to))
-  (only parsing) : subgroup_scope.
-Notation "''C' [ x | to ]" := (astab_group to [set x%g]) : subgroup_scope.
-Notation "''C_' A [ x | to ]" := (setI_group A 'C[x | to]) : subgroup_scope.
+  (only parsing) : Group_scope.
+Notation "''C' [ x | to ]" := (astab_group to [set x%g]) : Group_scope.
+Notation "''C_' A [ x | to ]" := (setI_group A 'C[x | to]) : Group_scope.
 Notation "''C_' ( A ) [ x | to ]" := (setI_group A 'C[x | to])
-  (only parsing) : subgroup_scope.
-Notation "''N' ( S | to )" := (astabs_group to S) : subgroup_scope.
-Notation "''N_' A ( S | to )" := (setI_group A 'N(S | to)) : subgroup_scope.
+  (only parsing) : Group_scope.
+Notation "''N' ( S | to )" := (astabs_group to S) : Group_scope.
+Notation "''N_' A ( S | to )" := (setI_group A 'N(S | to)) : Group_scope.
 
 Section TotalActions.
 (* These lemmas are only established for total actions (domain = [set: rT]) *)
@@ -2214,12 +2214,12 @@ End CompAct.
 
 End GroupActionTheory.
 
-Notation "''C_' ( | to ) ( A )" := (gacent_group to A) : subgroup_scope.
+Notation "''C_' ( | to ) ( A )" := (gacent_group to A) : Group_scope.
 Notation "''C_' ( G | to ) ( A )" :=
-  (setI_group G 'C_(|to)(A)) : subgroup_scope.
-Notation "''C_' ( | to ) [ a ]" := (gacent_group to [set a%g]) : subgroup_scope.
+  (setI_group G 'C_(|to)(A)) : Group_scope.
+Notation "''C_' ( | to ) [ a ]" := (gacent_group to [set a%g]) : Group_scope.
 Notation "''C_' ( G | to ) [ a ]" :=
-  (setI_group G 'C_(|to)[a]) : subgroup_scope.
+  (setI_group G 'C_(|to)[a]) : Group_scope.
 
 Notation "to \ sAD" := (ract_groupAction to sAD) : groupAction_scope.
 Notation "<[ nGA ] >" := (actby_groupAction nGA) : groupAction_scope.
@@ -2580,15 +2580,21 @@ have: x \in x ^: G by rewrite -{1}(conjg1 x) mem_imset.
 by case/mem_repr/imsetP=> y Gy ->; rewrite index_cent1 classGidl.
 Qed.
 
+Lemma abelian_classP : reflect {in G, forall x, x ^: G = [set x]} (abelian G).
+Proof.
+rewrite /abelian -astabJ astabC.
+by apply: (iffP subsetP) => cGG x Gx; apply /orbit1P; exact: cGG.
+Qed.
+
 Lemma card_classes_abelian : abelian G = (#|classes G| == #|G|).
 Proof.
 have cGgt0 C: C \in classes G -> 1 <= #|C| ?= iff (#|C| == 1)%N.
   by case/imsetP=> x _ ->; rewrite eq_sym -index_cent1.
 rewrite -sum_card_class -sum1_card (leqif_sum cGgt0).
-apply/idP/forall_inP=> [cGG _ /imsetP[x Gx ->] | cG1].
-  by apply/cards1P; exists x; apply/cent_classP/(subsetP cGG).
-apply/subsetP=> x Gx; apply/cent_classP/esym/eqP.
-by rewrite eqEcard sub1set class_refl cards1 leq_eqVlt cG1 // mem_classes.
+apply/abelian_classP/forall_inP=> [cGG _ /imsetP[x Gx ->]| cGG x Gx].
+  by rewrite cGG ?cards1.
+apply/esym/eqP; rewrite eqEcard sub1set cards1 class_refl leq_eqVlt cGG //.
+exact: mem_imset.
 Qed.
 
 End CardClass.

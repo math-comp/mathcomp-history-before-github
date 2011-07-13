@@ -2291,11 +2291,11 @@ Let size_loop Vs : size (loop Vs) = size Vs.
 Proof. by elim: Vs => // j js IH /=; rewrite size_map IH. Qed.
 
 Definition sumv_pi (i : I) : 'End(V) :=
-  nth \0%VS (loop (map V_ (enum P))) (index i (enum P)).
+  nth \0%VS (loop (image V_ P)) (index i (enum P)).
 
 Lemma memv_sum_pi i v : sumv_pi i v \in V_ i.
 Proof.
-rewrite /sumv_pi -[loop _]map_id -(eq_map (fun x => comp_lapp1 x)).
+rewrite /sumv_pi -[loop _]map_id -(eq_map (fun x => comp_lapp1 x)) /(image _ _).
 elim: (enum P) \1%VS => /=; first by rewrite zero_lappE mem0v.
 move => j js IH F; case: eqP => [->|_] /=.
   by rewrite comp_lappE; apply: memv_pi1.
@@ -2305,7 +2305,7 @@ Qed.
 Lemma sumv_sum_pi v :
   v \in (\sum_(i | P i) V_ i)%VS -> v = (\sum_(i | P i) sumv_pi i) v.
 Proof.
-rewrite -!(big_filter _ P) /sumv_pi filter_index_enum.
+rewrite -!(big_filter _ P) /sumv_pi filter_index_enum /(image _ _).
 elim: (enum P) v (enum_uniq P) => [|j js IH] v /=.
  by rewrite !big_nil memv0 zero_lappE => _ /eqP.
 case/andP => jnjs uniq.

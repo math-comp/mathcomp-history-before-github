@@ -85,19 +85,19 @@ End Pextraspecial.
 
 Notation "p ^{1+2}" := (Pextraspecial.gtype p) : type_scope.
 Notation "p ^{1+2}" := [set: gsort p^{1+2}] : group_scope.
-Notation "p ^{1+2}" := [set: gsort p^{1+2}]%G : subgroup_scope.
+Notation "p ^{1+2}" := [set: gsort p^{1+2}]%G : Group_scope.
 
 Notation "p ^{1+2* n }" := (Pextraspecial.ngtype p n) : type_scope.
 Notation "p ^{1+2* n }" := [set: gsort p^{1+2*n}] : group_scope.
-Notation "p ^{1+2* n }" := [set: gsort p^{1+2*n}]%G : subgroup_scope.
+Notation "p ^{1+2* n }" := [set: gsort p^{1+2*n}]%G : Group_scope.
 
 Notation "''D^' n" := (Pextraspecial.ngtype 2 n) : type_scope.
 Notation "''D^' n" := [set: gsort 'D^n] : group_scope.
-Notation "''D^' n" := [set: gsort 'D^n]%G : subgroup_scope.
+Notation "''D^' n" := [set: gsort 'D^n]%G : Group_scope.
 
 Notation "''D^' n * 'Q'" := (Pextraspecial.ngtypeQ n) : type_scope.
 Notation "''D^' n * 'Q'" := [set: gsort 'D^n*Q] : group_scope.
-Notation "''D^' n * 'Q'" := [set: gsort 'D^n*Q]%G : subgroup_scope.
+Notation "''D^' n * 'Q'" := [set: gsort 'D^n*Q]%G : Group_scope.
 
 Section ExponentPextraspecialTheory.
 

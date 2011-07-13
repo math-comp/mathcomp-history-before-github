@@ -52,8 +52,7 @@ Notation "{ 'ffun' fT }" := (finfun_of (Phant fT))
 Notation Local fun_of_fin_def :=
   (fun aT rT f x => tnth (@fgraph aT rT f) (enum_rank x)).
 
-Notation Local finfun_def :=
-  (fun aT rT f => @Finfun aT rT [tuple of map f (enum aT)]).
+Notation Local finfun_def := (fun aT rT f => @Finfun aT rT (codom_tuple f)).
 
 Module Type FunFinfunSig.
 Parameter fun_of_fin : forall aT rT, finfun_type aT rT -> aT -> rT.
@@ -108,19 +107,19 @@ move=> x; rewrite [@finfun]unlock unlock tnth_map.
 by rewrite -[tnth _ _]enum_val_nth enum_rankK.
 Qed.
 
-Lemma fgraph_map f : fgraph f = [tuple of map f (enum aT)].
+Lemma fgraph_codom f : fgraph f = codom_tuple f.
 Proof.
 apply: eq_from_tnth => i; rewrite [@fun_of_fin]unlock tnth_map.
 by congr tnth; rewrite -[tnth _ _]enum_val_nth enum_valK.
 Qed.
 
-Lemma map_ffun_enum f : map f (enum aT) = val f.
-Proof. by rewrite /= fgraph_map. Qed.
+Lemma codom_ffun f : codom f = val f.
+Proof. by rewrite /= fgraph_codom. Qed.
 
 Lemma ffunP f1 f2 : f1 =1 f2 <-> f1 = f2.
 Proof.
 split=> [eq_f12 | -> //]; do 2!apply: val_inj => /=.
-by rewrite -!map_ffun_enum (eq_map eq_f12).
+by rewrite !fgraph_codom /= (eq_codom eq_f12).
 Qed.
 
 Lemma ffunK : cancel (@fun_of_fin aT rT) (@finfun aT rT).
@@ -198,7 +197,7 @@ Qed.
 Definition pffun_on_mem y mD mR := pfamily_mem y mD (fun _ => mR).
 
 Lemma pffun_onP y D R f :
-  reflect (y.-support f \subset D /\ {subset [image f of D] <= R})
+  reflect (y.-support f \subset D /\ {subset image f D <= R})
           (f \in pffun_on_mem y (mem D) (mem R)).
 Proof.
 apply: (iffP (pfamilyP y D (fun _ => R) f)) => [] [-> f_fam]; split=> //.

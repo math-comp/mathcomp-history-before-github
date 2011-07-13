@@ -81,7 +81,7 @@ Notation "A .-central" := (central_factor A)
 Notation "G .-chief" := (chief_factor G)
   (at level 2, format "G .-chief") : group_rel_scope.
 
-Arguments Scope group_rel_of [_ group_rel_scope subgroup_scope subgroup_scope].
+Arguments Scope group_rel_of [_ group_rel_scope Group_scope Group_scope].
 
 Notation "r .-series" := (path (rel_of_simpl_rel (group_rel_of r)))
   (at level 2, format "r .-series") : group_scope.
@@ -110,13 +110,13 @@ apply: (iffP andP) => [[sHG snHG] | [s Hsn <-{G}]].
     by exists [::]; last by apply/eqP; rewrite eq_sym.
   rewrite iterSr => /IHm[|s Hsn defG].
     by rewrite sub_gen // class_supportEr (bigD1 1) //= conjsg1 subsetUl.
-  exists (rcons s G); rewrite ?last_rcons // -cats1 path_cat Hsn defG /=.
+  exists (rcons s G); rewrite ?last_rcons // -cats1 cat_path Hsn defG /=.
   rewrite /normal gen_subG class_support_subG //=.
   by rewrite norms_gen ?class_support_norm.
 set f := fun _ => <<_>>; have idf: iter _ f H == H.
   by elim=> //= m IHm; rewrite (eqP IHm) /f class_support_id genGid.
 elim: {s}(size s) {-2}s (eqxx (size s)) Hsn => [[] //= | m IHm s].
-case/lastP: s => // s G; rewrite size_rcons last_rcons -cats1 path_cat /=.
+case/lastP: s => // s G; rewrite size_rcons last_rcons -cats1 cat_path /=.
 set K := last H s => def_m /and3P[Hsn /andP[sKG nKG] _].
 have:= sKG; rewrite subEproper; case/predU1P=> [<-|prKG]; first exact: IHm.
 pose L := [group of f G].
@@ -135,7 +135,7 @@ Proof. by apply/subnormalP; exists [::]. Qed.
 Lemma subnormal_trans K H G : H <|<| K -> K <|<| G -> H <|<| G.
 Proof.
 case/subnormalP=> [s1 Hs1 <-] /subnormalP[s2 Hs12 <-].
-by apply/subnormalP; exists (s1 ++ s2); rewrite ?last_cat // path_cat Hs1.
+by apply/subnormalP; exists (s1 ++ s2); rewrite ?last_cat // cat_path Hs1.
 Qed.
 
 Lemma normal_subnormal H G : H <| G -> H <|<| G.
@@ -163,7 +163,7 @@ rewrite iterSr; set K := <<_>>.
 have nKA: A \subset 'N(K) by rewrite norms_gen ?norms_class_support.
 have sHK: H \subset K by rewrite sub_gen ?sub_class_support.
 case/IHm=> // s Hsn defK; exists (rcons s G); last by rewrite last_rcons.
-rewrite path_rcons Hsn !andbA defK nGA nKA /= -/K.
+rewrite rcons_path Hsn !andbA defK nGA nKA /= -/K.
 by rewrite gen_subG class_support_subG ?norms_gen ?class_support_norm.
 Qed.
 
@@ -181,7 +181,7 @@ Lemma subnormalEr G H : H <|<| G ->
 Proof.
 case/subnormalP=> s Hs <-{G}.
 elim/last_ind: s Hs => [|s G IHs]; first by left.
-rewrite last_rcons -cats1 path_cat /= andbT; set K := last H s.
+rewrite last_rcons -cats1 cat_path /= andbT; set K := last H s.
 case/andP=> Hs nsKG; have:= normal_sub nsKG; rewrite subEproper.
 case/predU1P=> [<- | prKG]; [exact: IHs | right; exists K; split=> //].
 by apply/subnormalP; exists s.
@@ -506,7 +506,7 @@ have /andP[ltVU nVG] := maxgroupp maxV.
 have [||s ch_s defV] := IHm V; first exact: leq_trans (proper_card ltVU) _.
   by rewrite /normal (subset_trans (proper_sub ltVU) (normal_sub nsUG)).
 exists (rcons s U); last by rewrite last_rcons.
-by rewrite path_rcons defV /= ch_s /chief_factor; exact/and3P.
+by rewrite rcons_path defV /= ch_s /chief_factor; exact/and3P.
 Qed.
 
 End Chiefs.

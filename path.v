@@ -61,7 +61,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 (*                 the "base" predicate b:                                    *)
 (*                    e' (h x) (h y) = e x y UNLESS b (h x) holds             *)
 (*                 This is the statement of the side condition of the path    *)
-(*                 functorial mapping lemma path_map.                         *)
+(*                 functorial mapping lemma map_path.                         *)
 (* fun_base f f' h b <-> the function h is a functor from function f to f',   *)
 (*                 except at the preimage of predicate b under h.             *)
 (* We also provide three segmenting dependently-typed lemmas (splitP, splitPl *)
@@ -85,7 +85,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 (* last x p'.                                                                 *)
 (*   Note that although all "path" functions actually operate on the          *)
 (* underlying sequence, we provide a series of lemmas that define their       *)
-(* interaction with thepath and cycle predicates, e.g., the path_cat equation *)
+(* interaction with thepath and cycle predicates, e.g., the cat_path equation *)
 (* can be used to split the path predicate after splitting the underlying     *)
 (* sequence.                                                                  *)
 (******************************************************************************)
@@ -105,11 +105,11 @@ Variables (x0_cycle : T) (e : rel T).
 Fixpoint path x (p : seq T) :=
   if p is y :: p' then e x y && path y p' else true.
 
-Lemma path_cat x p1 p2 : path x (p1 ++ p2) = path x p1 && path (last x p1) p2.
+Lemma cat_path x p1 p2 : path x (p1 ++ p2) = path x p1 && path (last x p1) p2.
 Proof. by elim: p1 x => [|y p1 Hrec] x //=; rewrite Hrec -!andbA. Qed.
 
-Lemma path_rcons x p y : path x (rcons p y) = path x p && e (last x p) y.
-Proof. by rewrite -cats1 path_cat /= andbT. Qed.
+Lemma rcons_path x p y : path x (rcons p y) = path x p && e (last x p) y.
+Proof. by rewrite -cats1 cat_path /= andbT. Qed.
 
 Lemma pathP x p x0 :
   reflect (forall i, i < size p -> e (nth x0 (x :: p) i) (nth x0 p i))
@@ -123,18 +123,18 @@ Qed.
 Definition cycle p := if p is x :: p' then path x (rcons p' x) else true.
 
 Lemma cycle_path p : cycle p = path (last x0_cycle p) p.
-Proof. by case: p => //= x p; rewrite path_rcons andbC. Qed.
+Proof. by case: p => //= x p; rewrite rcons_path andbC. Qed.
 
-Lemma cycle_rot p : cycle (rot n0 p) = cycle p.
+Lemma rot_cycle p : cycle (rot n0 p) = cycle p.
 Proof.
 case: n0 p => [|n] [|y0 p] //=; first by rewrite /rot /= cats0.
-rewrite /rot /= -{3}(cat_take_drop n p) -cats1 -catA path_cat.
-case: (drop n p) => [|z0 q]; rewrite /= -cats1 !path_cat /= !andbT andbC //.
+rewrite /rot /= -{3}(cat_take_drop n p) -cats1 -catA cat_path.
+case: (drop n p) => [|z0 q]; rewrite /= -cats1 !cat_path /= !andbT andbC //.
 by rewrite last_cat; repeat bool_congr.
 Qed.
 
-Lemma cycle_rotr p : cycle (rotr n0 p) = cycle p.
-Proof. by rewrite -cycle_rot rotrK. Qed.
+Lemma rot_cycler p : cycle (rotr n0 p) = cycle p.
+Proof. by rewrite -rot_cycle rotrK. Qed.
 
 End Path.
 
@@ -147,10 +147,10 @@ Proof. by move=> ee' [|x p] //=; exact: eq_path. Qed.
 Lemma sub_path e e' : subrel e e' -> forall x p, path e x p -> path e' x p.
 Proof. by move=> ee' x p; elim: p x => //= y p IHp x /andP[/ee'-> /IHp]. Qed.
 
-Lemma path_rev e x p :
+Lemma rev_path e x p :
   path e (last x p) (rev (belast x p)) = path (fun z => e^~ z) x p.
 Proof.
-elim: p x => //= y p IHp x; rewrite rev_cons path_rcons -{}IHp andbC.
+elim: p x => //= y p IHp x; rewrite rev_cons rcons_path -{}IHp andbC.
 by rewrite -(last_cons x) -rev_rcons -lastI rev_cons last_rcons.
 Qed.
 
@@ -266,11 +266,11 @@ elim: p {1 5}y0 => [|z p IHp] y /=; rewrite ?inE.
 by case/andP=> eyz /IHp; case: (x =P z) => // ->.
 Qed.
 
-Lemma ucycle_rot p : ucycle (rot n0 p) = ucycle p.
-Proof. by rewrite /ucycle rot_uniq cycle_rot. Qed.
+Lemma rot_ucycle p : ucycle (rot n0 p) = ucycle p.
+Proof. by rewrite /ucycle rot_uniq rot_cycle. Qed.
 
-Lemma ucycle_rotr p : ucycle (rotr n0 p) = ucycle p.
-Proof. by rewrite /ucycle rotr_uniq cycle_rotr. Qed.
+Lemma rotr_ucycle p : ucycle (rotr n0 p) = ucycle p.
+Proof. by rewrite /ucycle rotr_uniq rot_cycler. Qed.
 
 (* The "appears no later" partial preorder defined by a path. *)
 
@@ -467,7 +467,7 @@ Fixpoint merge s1 :=
     merge_s1
   else id.
 
-Lemma path_merge x s1 s2 :
+Lemma merge_path x s1 s2 :
   path leT x s1 -> path leT x s2 -> path leT x (merge s1 s2).
 Proof.
 elim: s1 s2 x => //= x1 s1 IHs1.
@@ -476,12 +476,12 @@ case: ifP => le_x21 /=; first by rewrite le_x_x2 {}IHs2 // le_x21.
 by rewrite le_x_x1 IHs1 //=; have:= leT_total x2 x1; rewrite le_x21 /= => ->.
 Qed.
 
-Lemma sorted_merge s1 s2 : sorted s1 -> sorted s2 -> sorted (merge s1 s2).
+Lemma merge_sorted s1 s2 : sorted s1 -> sorted s2 -> sorted (merge s1 s2).
 Proof.
 case: s1 s2 => [|x1 s1] [|x2 s2] //= ord_s1 ord_s2.
 case: ifP => le_x21 /=.
-  by apply: (@path_merge x2 (x1 :: s1)) => //=; rewrite le_x21.
-by apply: path_merge => //=; have:= leT_total x2 x1; rewrite le_x21 /= => ->.
+  by apply: (@merge_path x2 (x1 :: s1)) => //=; rewrite le_x21.
+by apply: merge_path => //=; have:= leT_total x2 x1; rewrite le_x21 /= => ->.
 Qed.
 
 Lemma perm_merge s1 s2 : perm_eql (merge s1 s2) (s1 ++ s2).
@@ -518,19 +518,19 @@ Fixpoint merge_sort_rec ss s :=
 
 Definition sort := merge_sort_rec [::].
 
-Lemma sorted_sort s : sorted (sort s).
+Lemma sort_sorted s : sorted (sort s).
 Proof.
 rewrite /sort; have allss: all sorted [::] by [].
 elim: {s}_.+1 {-2}s [::] allss (ltnSn (size s)) => // n IHn s ss allss.
 have: sorted s -> sorted (merge_sort_pop s ss).
   elim: ss allss s => //= s2 ss IHss /andP[ord_s2 ord_ss] s ord_s.
-  exact: IHss ord_ss _ (sorted_merge ord_s ord_s2).
+  exact: IHss ord_ss _ (merge_sorted ord_s ord_s2).
 case: s => [|x1 [|x2 s _]]; try by auto.
 move/ltnW/IHn; apply=> {n IHn s}; set s1 := if _ then _ else _.
-have: sorted s1 by exact: (@sorted_merge [::x2] [::x1]).
+have: sorted s1 by exact: (@merge_sorted [::x2] [::x1]).
 elim: ss {x1 x2}s1 allss => /= [|s2 ss IHss] s1; first by rewrite andbT.
 case/andP=> ord_s2 ord_ss ord_s1.
-by case: {1}s2=> /= [|_ _]; [rewrite ord_s1 | exact: IHss (sorted_merge _ _)].
+by case: {1}s2=> /= [|_ _]; [rewrite ord_s1 | exact: IHss (merge_sorted _ _)].
 Qed.
 
 Lemma perm_sort s : perm_eql (sort s) s.
@@ -565,17 +565,17 @@ Lemma perm_sortP : transitive leT -> antisymmetric leT ->
 Proof.
 move=> leT_tr leT_asym s1 s2.
 apply: (iffP idP) => eq12; last by rewrite -perm_sort eq12 perm_sort.
-apply: eq_sorted; rewrite ?sorted_sort //.
+apply: eq_sorted; rewrite ?sort_sorted //.
 by rewrite perm_sort (perm_eqlP eq12) -perm_sort.
 Qed.
 
 End SortSeq.
 
-Lemma sorted_rev (T : eqType) (leT : rel T) s :
+Lemma rev_sorted (T : eqType) (leT : rel T) s :
   sorted leT (rev s) = sorted (fun y x => leT x y) s.
-Proof. by case: s => //= x p; rewrite -path_rev lastI rev_rcons. Qed.
+Proof. by case: s => //= x p; rewrite -rev_path lastI rev_rcons. Qed.
 
-Lemma sorted_ltn_uniq_leq s : sorted ltn s = uniq s && sorted leq s.
+Lemma ltn_sorted_uniq_leq s : sorted ltn s = uniq s && sorted leq s.
 Proof.
 case: s => //= n s; elim: s n => //= m s IHs n.
 rewrite inE ltn_neqAle negb_or IHs -!andbA.
@@ -584,11 +584,11 @@ rewrite andbF; apply/and5P=> [[ne_nm lenm _ _ le_ms]]; case/negP: ne_nm.
 rewrite eqn_leq lenm; exact: (allP (order_path_min leq_trans le_ms)).
 Qed.
 
-Lemma sorted_iota i n : sorted leq (iota i n).
+Lemma iota_sorted i n : sorted leq (iota i n).
 Proof. by elim: n i => // [[|n] //= IHn] i; rewrite IHn leqW. Qed.
 
-Lemma sorted_ltn_iota i n : sorted ltn (iota i n).
-Proof. by rewrite sorted_ltn_uniq_leq sorted_iota iota_uniq. Qed.
+Lemma iota_ltn_sorted i n : sorted ltn (iota i n).
+Proof. by rewrite ltn_sorted_uniq_leq iota_sorted iota_uniq. Qed.
 
 (* Function trajectories. *)
 
@@ -660,7 +660,7 @@ apply: (iffP idP) => loop_n; last exact: loop_n.
 case: n => // n in loop_n *; elim=> [|m /= IHm]; first exact: mem_head.
 move: (fpath_traject x n) loop_n; rewrite /looping !iterS -last_traject /=.
 move: (iter m f x) IHm => y /splitPl[p1 p2 def_y].
-rewrite path_cat last_cat def_y; case: p2 => // z p2 /and3P[_ /eqP-> _] _.
+rewrite cat_path last_cat def_y; case: p2 => // z p2 /and3P[_ /eqP-> _] _.
 by rewrite inE mem_cat mem_head !orbT.
 Qed.
 
@@ -749,14 +749,14 @@ Qed.
 
 Lemma next_rot : next (rot n0 p) =1 next p.
 Proof.
-move=> x; have n_p := cycle_next; rewrite -(cycle_rot n0) in n_p.
+move=> x; have n_p := cycle_next; rewrite -(rot_cycle n0) in n_p.
 case p_x: (x \in p); last by rewrite !next_nth mem_rot p_x.
 by rewrite (eqP (next_cycle n_p _)) ?mem_rot.
 Qed.
 
 Lemma prev_rot : prev (rot n0 p) =1 prev p.
 Proof.
-move=> x; have p_p := cycle_prev; rewrite -(cycle_rot n0) in p_p.
+move=> x; have p_p := cycle_prev; rewrite -(rot_cycle n0) in p_p.
 case p_x: (x \in p); last by rewrite !prev_nth mem_rot p_x.
 by rewrite (eqP (prev_cycle p_p _)) ?mem_rot.
 Qed.
@@ -802,7 +802,7 @@ Variables (T T' : Type) (h : T' -> T) (e : rel T) (e' : rel T').
 Definition rel_base (b : pred T) :=
   forall x' y', ~~ b (h x') -> e (h x') (h y') = e' x' y'.
 
-Lemma path_map b x' p' (Bb : rel_base b) :
+Lemma map_path b x' p' (Bb : rel_base b) :
     ~~ has (preim h b) (belast x' p') ->
   path e (h x') (map h p') = path e' x' p'.
 Proof. by elim: p' x' => [|y' p' IHp'] x' //= /norP[/Bb-> /IHp'->]. Qed.

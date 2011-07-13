@@ -163,7 +163,7 @@ Definition FTkernel0 M (su := \pi(M^`(FTtype M != 1%N))) :=
 End Definitions.
 
 Notation "M `_ \s" := (FTcore M) (at level 3, format "M `_ \s") : group_scope.
-Notation "M `_ \s" := (FTcore_group M) : subgroup_scope.
+Notation "M `_ \s" := (FTcore_group M) : Group_scope.
 
 Notation "''A1' ( M )" := (FTkernel1 M)
   (at level 8, format "''A1' ( M )") : group_scope.

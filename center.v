@@ -52,7 +52,7 @@ Canonical center_group (G : {group gT}) : {group gT} :=
 End Defs.
 
 Notation "''Z' ( A )" := (center A) : group_scope.
-Notation "''Z' ( H )" := (center_group H) : subgroup_scope.
+Notation "''Z' ( H )" := (center_group H) : Group_scope.
 
 Lemma morphim_center : GFunctor.pcontinuous center.
 Proof. move=> gT rT G D f; exact: morphim_subcent. Qed.
