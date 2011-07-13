@@ -139,7 +139,7 @@ Let kHomExtendF_linear : forall x y,
  linear (kHomExtendF x y).
 Proof.
 move => x y k a b.
-rewrite /kHomExtendF poly_for_linear raddfD horner_lin.
+rewrite /kHomExtendF poly_is_linear raddfD horner_lin.
 congr (_ + _).
 rewrite -[(map_poly f (poly_for_Fadjoin E x a)).[y]]mul1r.
 rewrite scaler_mull -horner_scaler.
@@ -523,7 +523,7 @@ have HaE : a \notin E.
  by rewrite capvC capv_compl subv_refl.
 have HminE : polyOver E (minPoly K a).
  by rewrite (polyOver_subset HKE) // minPolyOver.
-have : (1 < size (minPoly E a)) by rewrite size_minPoly ltnS elementDegreegt0.
+have : (1 < size (minPoly E a)) by rewrite size_minPoly ltnS.
 move: (minPoly_dvdp HminE (root_minPoly K a)).
 case/polyOver_suba : HminE => p Hp.
 case/polyOver_suba : (minPolyOver E a) => q Hq.
@@ -1582,14 +1582,13 @@ suff : forall n, n.+1 < size (minPoly K a) ->
                 (size r') = n.+1 &
                 \prod_(i <- r')('X - i%:P) %| minPoly K a].
  rewrite size_minPoly.
- move/prednK: (elementDegreegt0 K a) <-.
  case/(_ _ (leqnn _)) => r [Haut Hr Hnr Hmin].
  exists r; split => //.
  apply/eqP.
  rewrite -(big_map h predT f).
  rewrite -eqpMP ?monic_minPoly ?monic_prod_factors //.
  rewrite eqp_sym -dvdp_size_eqp // size_prod_factors.
- by rewrite size_minPoly -(prednK (elementDegreegt0 K a)) -Hnr.
+ by rewrite size_minPoly Hnr.
 elim => [|n IH] Hn.
  exists [:: 1%g]; split => //; last first.
   rewrite big_cons big_nil mulr1 dvdp_factorl repr_coset1 /= unit_lappE.
