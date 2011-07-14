@@ -24,6 +24,7 @@ Variable Q : {group gT}.
 Hypothesis HQ : Q \in ('E_q(G))%g.
 
 Variable W2 : {group gT}. 
+Hypothesis HW2P : W2 \subset P.
 Hypothesis HFpQ : W2 \subset 'N(Q)%g.
 
 Variable y : gT.
