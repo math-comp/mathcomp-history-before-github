@@ -67,6 +67,7 @@ BGsection13.v
 BGsection14.v
 BGsection15.v
 BGsection16.v
+BGappendixC.v
 polydiv.v
 alt.v
 burnside_app.v
