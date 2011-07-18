@@ -22,8 +22,8 @@ Local Open Scope ring_scope.
 (*  isNatC z <=> z is a natural number.                                       *)
 (*  getNatC x == the n such that x = n%:R if isNatC x, else 0.                *)
 (*  isRealC x == x is a real number, i.e., x^* == x.                          *)
-(*     isIntC x == x is an integer.                                             *)
-(*    getIntC x == a pair (n, b) such that x = (-1) ^+ b * n%:R, if isIntC x.     *)
+(*     isIntC x == x is an integer.                                           *)
+(*    getIntC x == a pair (n, b) such that x = (-1) ^+ b * n%:R, if isIntC x. *)
 (******************************************************************************)
 
 Parameter algC : closedFieldType.
