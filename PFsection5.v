@@ -719,7 +719,196 @@ rewrite [r in _ = r](big_nth 0) !big_mkord; apply: eq_bigr => /= i _.
 by rewrite !linearZ; congr (_ *: _); rewrite -(nth_map _ 0) // t3S1 (nth_map 0).
 Qed.
 
-End SubCoherentProperties.
+Lemma cfnorm_conjC phi : '[phi^*]_L = '[phi].
+Proof. by rewrite -conj_cfdot posC_conjK // cfnorm_posC. Qed.
 
+Lemma cfnorm_orthonormal S1 :
+  orthonormal S1 -> '[\sum_(xi <- S1) xi]_G = (size S1)%:R.
+Proof.
+case/andP=> /allP/= nS1 oS1; rewrite -[size S1]card_ord cfnorm_orthogonal //.
+rewrite big_tnth -sumr_const; apply: eq_bigr => i _.
+by apply/eqP; rewrite nS1 ?mem_tnth.
+Qed.
+
+Lemma vchar_trans_on (S1 S2 : seq 'CF(L)) A :
+  {subset S1 <= 'Z[S2, A]} -> {subset 'Z[S1] <= 'Z[S2, A]}.
+Proof.
+move=> sS12 _ /vchar_expansion[z Zz ->]; rewrite big_seq sum_vchar // => phi /sS12.
+exact: scale_vchar.
+Qed.
+
+(* This is Peterfalvi (5.7). *)
+(* This is almost a superset of (1.4): we could use it to get a coherent      *)
+(* isometry, which would necessarily map irreducibles to signed irreducibles. *)
+(* It would then only remain to show that the signs are chosen consistently,  *)
+(* by considering the degrees of the differences.                             *)
+Lemma uniform_degree_coherence chi :
+    chi \in S -> {in S, forall xi : 'CF(L), xi 1%g = chi 1%g} ->
+  coherent S L^# tau.
+Proof.
+move=> Schi unifS; have [[/allP N_S ccS] IZtau oS R_P oR] := cohS.
+have [Itau Ztau] := IZtau.
+have freeS := orthogonal_free oS; have /mem_vchar Z_S := freeS.
+have Zd: {in S &, forall xi1 xi2, xi1 - xi2 \in 'Z[S, L^#]}.
+  move=> xi1 xi2 Sxi1 Sxi2 /=.
+  by rewrite vcharD1E sub_vchar ?Z_S //= !cfunE !unifS ?subrr.
+have /andP[neq_chic /= Schic] := ccS _ Schi.
+split; first by exists (chi - chi^*%CF); rewrite ?Zd // subr_eq0 eq_sym.
+have [_ ooS] := pairwise_orthogonalP oS.
+pose S' xi := [predD1 S & xi]; pose S'c xi := predD1 (S' xi) xi^*%CF.
+have{oR} oR xi1 xi2: xi1 \in S -> xi2 \in S'c xi1 -> orthogonal (R xi1) (R xi2).
+  move=> Sxi1 /and3P[/= neq_xi21c neq_xi21 Sxi2].
+  rewrite orthogonal_sym oR // /orthogonal /= !ooS ?eqxx //.
+  by case/andP: (ccS _ Sxi1).
+have oSc xi: xi \in S -> '[xi, xi^*] = 0.
+  by move=> Sxi; have /andP[neq_xic Sxic] := ccS _ Sxi; rewrite ooS // eq_sym.
+pose D xi := tau (chi - xi).
+have Z_D xi: xi \in S -> D xi \in 'Z[irr G] by move/(Zd _ _ Schi)/Ztau/vcharW.
+have /isNatCP[N defN]: isNatC '[chi] by rewrite cfdot_char_Nat ?N_S.
+have dotD: {in S' chi &, forall xi1 xi2, '[D xi1, D xi2] = N%:R + '[xi1, xi2]}.
+- move=> xi1 xi2 /andP[ne_xi1chi Sxi1] /andP[ne_xi2chi Sxi2].
+  rewrite Itau ?Zd // cfdot_subl !cfdot_subr defN.
+  by rewrite 2?ooS // 1?eq_sym // oppr_sub !subr0.
+have /R_P[ZRchi onRchi defRchi] := Schi; have frRchi := orthonormal_free onRchi.
+have szRchi: size (R chi) = (N + N)%N.
+  apply: (can_inj getNatC_nat); rewrite -cfnorm_orthonormal // -defRchi.
+  by rewrite dotD ?ccS // cfnorm_conjC defN -natr_add.
+pose sub_Rchi X := exists2 E, subseq E (R chi) & X = \sum_(a <- E) a.
+pose Xspec X := [/\ X \in 'Z[R chi], '[X]_G = N%:R & sub_Rchi X].
+pose Xi_spec X xi := X - D xi \in 'Z[R xi] /\ '[X, D xi] = N%:R.
+have haveX xi: xi \in S'c chi -> exists2 X, Xspec X & Xi_spec X xi.
+  move=> S'xi; have /and3P[/= ne_xi_chi' ne_xi_chi Sxi] := S'xi.
+  have /andP[neq_xi' /= Sxi'] := ccS xi Sxi.
+  have [X [Y1 defXY1]] := subcoherent_split Schi (Z_D _ Sxi).
+  have [eqXY1 RchiX oY1chi] := defXY1; have sRchiX := vchar_span RchiX.
+  have Z_Y1: Y1 \in 'Z[irr G].
+    rewrite -[Y1](subrK X) -oppr_sub -eqXY1 addrC sub_vchar ?Z_D //.
+    exact: (vchar_trans ZRchi).
+  have [X1 [Y defX1Y]] := subcoherent_split Sxi Z_Y1; pose Y2 := X + Y.
+  have [eqX1Y RxiX1 oYxi] := defX1Y; pose D2 := tau (xi - chi).
+  have defX1Y2: [/\ D2 = X1 - Y2, X1 \in 'Z[R xi] & orthogonal Y2 (R xi)].
+    rewrite -oppr_sub -addrA -oppr_sub -eqX1Y -eqXY1 -linearN oppr_sub.
+    split=> //; apply/orthogonalP=> _ a /predU1P[-> | //] Rxi_a.
+    rewrite cfdotDl (span_orthogonal (oR _ _ _ S'xi)) ?(memv_span Rxi_a) //.
+    by rewrite add0r (orthogonalP oYxi) ?mem_head.
+  have [||minX eqX1] := subcoherent_norm _ _ (erefl _) defXY1.
+  - by rewrite char_vchar ?N_S /orthogonal //= !ooS ?eqxx // eq_sym.
+  - apply: sub_iso_to IZtau; last exact: vcharW.
+    by apply: vchar_trans_on; apply/allP; rewrite /= !Zd.
+  have [||minX1 _]:= subcoherent_norm _ _ (erefl _) defX1Y2.
+  - rewrite char_vchar ?N_S /orthogonal //= !ooS ?eqxx //.
+    by rewrite (inv_eq (@cfConjCK _ _)).
+  - apply: sub_iso_to IZtau; last exact: vcharW.
+    by apply: vchar_trans_on; apply/allP; rewrite /= !Zd.
+  pose span_head := memv_span (mem_head _ _).
+  have Y0: Y = 0.
+    apply/eqP; rewrite -cfnorm_eq0 eqC_leC cfnorm_posC andbT.
+    rewrite -(leC_add2l ('[X] + '[X1])) -!addrA.
+    rewrite -2?cfnorm_subd -?eqX1Y -?eqXY1 ?addr0; first last.
+    - rewrite cfdotC (span_orthogonal oYxi) ?rmorph0 ?span_head //.
+      exact: vchar_span RxiX1.
+    - by rewrite cfdotC (span_orthogonal oY1chi) ?rmorph0 ?span_head.
+    by rewrite dotD ?inE ?ne_xi_chi // -defN leC_add.
+  rewrite eqX1Y Y0 subr0 defN in eqX1.
+  have [nX _ defX] := eqX1 minX1; exists X => //; red.
+  rewrite eqXY1 eqX1Y Y0 subr0 oppr_add opprK addNKr cfdot_subr nX.
+  by rewrite (span_orthogonal (oR _ _ _ S'xi)) ?subr0 ?(vchar_span RxiX1).
+pose X_spec X := forall xi, X - D xi \in 'Z[irr G] /\ '[X, D xi] = N%:R.
+have [X [RchiX nX defX] X_S'c]: exists2 X, Xspec X & {in S'c chi, X_spec X}.
+  have [S_chi | /allPn[xi1 Sxi1]] := altP (@allP _ (pred2 chi chi^*%CF) S).
+    pose E := take N (R chi); pose Ec := drop N (R chi).
+    have eqRchi: E ++ Ec = R chi by rewrite cat_take_drop.
+    have:= onRchi; rewrite -eqRchi orthonormal_cat => /and3P[onE onEc oEEc].
+    exists (\sum_(a <- E) a) => [|xi /and3P[? ? /S_chi/norP[] //]].
+    split; last by exists E; rewrite // -[E]cats0 -eqRchi subseq_cat ?sub0seq.
+      rewrite big_seq sum_vchar // => a Ea.
+      by rewrite mem_vchar // -eqRchi mem_cat Ea.
+    by rewrite cfnorm_orthonormal //= size_takel ?szRchi ?leq_addl.
+  case/norP=> ne_xi1chi ne_xi1chi'; have S'xi1: xi1 \in S'c chi by exact/and3P.
+  have [X [RchiX nX defX] [Rxi1X1 XD_N]] := haveX _ S'xi1.
+  exists X => // xi S'xi; have [ne_xi_chi' ne_xi_chi /= Sxi] := and3P S'xi.
+  have /R_P[ZRxi1 _ defRxi1] := Sxi1.
+  have [-> | ne_xi_xi1] := eqVneq xi xi1; first by rewrite (vchar_trans ZRxi1).
+  have [sRchiX sRxi1X1] := (vchar_span RchiX, vchar_span Rxi1X1).
+  have [-> | ne_xi_xi1'] := eqVneq xi xi1^*%CF.
+    rewrite /D -[chi](subrK xi1) -addrA linearD cfdotDr XD_N oppr_add addrA.
+    rewrite defRxi1 big_seq (span_orthogonal (oR _ _ _ S'xi1)) ?addr0 //.
+      by rewrite sub_vchar ?sum_vchar // (vchar_trans ZRxi1).
+    by rewrite memv_suml // => a /memv_span.
+  have [X' [RchiX' nX' _] [RxiX' X'D_N]] := haveX _ S'xi.
+  have /R_P[ZRxi _ _] := Sxi.
+  have [ZXi sRxiX'] := (vchar_trans ZRxi RxiX', vchar_span RxiX').
+  suffices: '[X - X'] == 0 by rewrite cfnorm_eq0 subr_eq0 => /eqP->.
+  rewrite cfnorm_sub subr_eq0 nX nX' isIntC_conj -?mulr2n; last first.
+    by rewrite cfdot_vchar_Int ?(vchar_trans ZRchi).
+  apply/eqP; congr (_ *+ _); transitivity '[D xi1, D xi].
+    by rewrite dotD ?inE ?ne_xi_chi ?ne_xi1chi ?ooS ?addr0 // eq_sym.
+  rewrite -[D xi](subrK X') -oppr_sub addrC -[D _](subrK X) -oppr_sub addrC.
+  rewrite cfdot_subr cfdot_subl -addrA addrC -addrA addrCA cfdot_subl oppr_sub.
+  rewrite (span_orthogonal (oR xi1 xi _ _)) //; last exact/and3P.
+  rewrite (span_orthogonal (oR chi xi _ _)) // subrr add0r.
+  rewrite cfdotC (span_orthogonal (oR chi xi1 _ _)) ?rmorph0 ?oppr0 ?add0r //.
+  exact: (vchar_span RchiX').
+have ZX: X \in 'Z[irr G] := vchar_trans ZRchi RchiX.
+have{defX X_S'c} X_S': {in S' chi, X_spec X}.
+  move=> xi.
+  have [-> _| ne_xi_chi' S'xi] := eqVneq xi chi^*%CF; last exact/X_S'c/andP.
+  rewrite /D defRchi {1}big_seq sub_vchar ?sum_vchar //.
+  have{defX} [E sER defX] := defX; pose Ec := filter [predC E] (R chi).
+  have eqRchi: perm_eq (R chi) (E ++ Ec).
+    by rewrite -(perm_filterC (mem E)) -(subseq_uniqP _ _) ?uniq_free.
+  have:= onRchi; rewrite (eq_orthonormal eqRchi) orthonormal_cat.
+  case/and3P=> onE _ oEEc.
+  rewrite (eq_big_perm _ eqRchi) big_cat /= -defX cfdotDr nX defX !big_seq.
+  by rewrite (span_orthogonal oEEc) ?addr0 // memv_suml // => ? /memv_span.
+pose X_ xi := X - D xi.
+have X_chi: X_ chi = X by rewrite /X_ /D subrr linear0 subr0.
+have ZX_ xi: xi \in S -> X_ xi \in 'Z[irr G].
+  have [-> _ | ne_xi_chi Sxi] := eqVneq xi chi; first by rewrite X_chi.
+  by have [|//] := X_S' xi; exact/andP.
+have{X_S'} X_iso: {in S &, isometry X_}.
+  have dotXD_N xi: xi \in S' chi -> '[X, D xi] = N%:R by case/X_S'.
+  move=> xi1 xi2; have [-> _ | ne_xi1_chi Sxi1] := eqVneq xi1 chi.
+    have [-> _ | S'xi2 Sxi2] := eqVneq xi2 chi; first by rewrite X_chi nX.
+    by rewrite X_chi cfdot_subr nX dotXD_N ?inE ?S'xi2 // subrr ooS // eq_sym.
+  have S'xi1: xi1 \in S' chi by exact/andP.
+  have [-> _ | ne_xi2_chi Sxi2] := eqVneq xi2 chi.
+    by rewrite X_chi cfdot_subl nX cfdotC dotXD_N // conjC_nat subrr ooS.
+  have S'xi2: xi2 \in S' chi by exact/andP.
+  rewrite cfdot_subl !cfdot_subr nX (cfdotC _ X) !dotXD_N // conjC_nat.
+  by rewrite oppr_sub subrr add0r dotD // addrC addKr.
+pose S1 := map X_ S.
+have ZS1: {subset S1 <= 'Z[irr G]} by move=> _ /mapP[xi Sxi ->]; exact: ZX_.
+have oS1: pairwise_orthogonal S1.
+  apply/pairwise_orthogonalP.
+  split=> [|_ _ /mapP[xi1 Sxi1 ->] /mapP[xi2 Sxi2 ->] neq_xi12]; last first.
+    by rewrite X_iso // ooS //; apply: contraNneq neq_xi12 => ->.
+  rewrite /=; apply/andP; split.
+    apply/mapP=> [[xi Sxi /eqP/idPn[]]]; rewrite eq_sym -cfnorm_eq0 X_iso //.
+    by rewrite cfnorm_eq0 (memPn (conjC_closed_not0 ccS)).
+  rewrite map_inj_in_uniq ?uniq_free // => xi1 xi2 Sx1 Sx2 /= /addrI/eqP.
+  rewrite -addr_eq0 addrC -linear_sub addrAC oppr_add addNKr opprK.
+  by rewrite -cfnorm_eq0 Itau ?Zd // cfnorm_eq0 subr_eq0 => /eqP.
+have nS1: map cfnorm S = map cfnorm S1.
+  by rewrite -map_comp; apply: eq_in_map => xi Sxi; rewrite /= X_iso.
+have [t1 defS1 It1] := Zisometry_of_cfnorm oS oS1 nS1 ZS1.
+have t1S: {in S, t1 =1 X_}.
+  move=> xi Sxi; rewrite -(nth_index 0 Sxi).
+  by rewrite -(nth_map _ 0) ?index_mem // defS1 (nth_map 0) ?index_mem.
+exists t1 => // phi; rewrite vcharD1E => /andP[/vchar_expansion[z Zz ->]] {phi}.
+rewrite (eq_big_perm _ (perm_to_rem Schi)) big_cons /= !cfunE addr_eq0 => eq_z.
+have{eq_z} ->: z chi = - \sum_(xi <- rem chi S) z xi.
+  have nz_chi1: chi 1%g != 0.
+    by rewrite char1_eq0 ?N_S // (memPn (conjC_closed_not0 ccS)).
+  apply: (mulIf nz_chi1); rewrite (eqP eq_z) sum_cfunE mulNr -mulr_suml.
+  rewrite !big_seq; congr (- _); apply: eq_bigr => xi Sxi.
+  by rewrite cfunE unifS // (mem_subseq (rem_subseq chi _)).
+rewrite scaleNr scaler_suml addrC -oppr_sub -sumr_sub !linearN !linear_sum /=.
+rewrite !big_seq; apply: eq_bigr => xi /(mem_subseq (rem_subseq chi _)) Sxi.
+rewrite -scaler_subr !linearZ /= -/(D _); congr (_ *: - _).
+by rewrite linear_sub !t1S // X_chi oppr_add addNKr opprK.
+Qed.
+  
+End SubCoherentProperties.
 
 End Five.
