@@ -774,7 +774,7 @@ Lemma ind_irrs1_sum1 : \sum_(f <- induced_irrs1) (f 1%g / e) ^+ 2 / '[f]_L =
   (#|K|%:R - 1) / e.
 Proof.
 have := ind_irrs_sum1.
-rewrite (big_rem _ _ _ one_in_ind_irrs) /= -ind_irrs1_rem.
+rewrite (big_rem _ one_in_ind_irrs) /= -ind_irrs1_rem.
 rewrite cfnorm_Ind1 // cfInd1 ?normal_sub // cfun1E in_group.
 rewrite mulr1 mulfV ?neq0GiC // expr2 mulr1.
 by move/eqP; rewrite eq_sym addrC -subr_eq -mulr_subl => /eqP ->.
@@ -2203,7 +2203,7 @@ have S_ortho a : orthonormal (S a).
   apply/orthonormal2P; rewrite ?memc_Zirr ?nu_to ?ind_irrs1_vcharW ?ind_irrs1_conjC //.
   split; rewrite nu_isom ?ind_irrs1_vcharW ?ind_irrs1_conjC // ?cfdot_irr ?eqxx ?chiS //.
     by rewrite (ind_irrs1_conjC_ortho (nKL a)) ?chiS ?(oddSg (sLG a) oddG).
-  by rewrite -conj_cfdot cfdot_irr eqxx conjC1.
+  by rewrite cfdot_conjC cfdot_irr eqxx conjC1.
 have sSZirr a : {subset S a <= 'Z[irr G]}.
   by move => f; rewrite 2!inE; case/orP => /eqP ->;
     rewrite nu_to ?ind_irrs1_vcharW ?ind_irrs1_conjC ?chiS.
@@ -2308,7 +2308,7 @@ have ->: sum0 = 0.
 suff ->: sum2 = sum1 by rewrite add0r.
 rewrite /sum2 /sum1 big_map big_seq_cond [in X in _ = X]big_seq_cond.
 apply: eq_bigr => f /andP []; case/mapP => t _ -> _.
-do 2 rewrite cfdotC conj_cfdot cfConjCK cfdotC mulrC.
+do 2 rewrite cfdotC -cfdot_conjC cfConjCK cfdotC mulrC.
 by rewrite !d_conjC !isIntC_conj // cfdot_vchar_Int ?irr_vchar.
 Qed.
 
