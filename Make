@@ -101,7 +101,8 @@ PFsection2.v
 PFsection3.v
 PFsection4.v
 PFsection5.v
-PFsection7.v
+# PFsection7.v
+PFsection8.v
 fraction.v
 
 COQC = ssrcoq
