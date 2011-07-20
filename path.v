@@ -411,7 +411,7 @@ Qed.
 Lemma order_path_min x s : path leT x s -> all (leT x) s.
 Proof.
 move/subseq_order_path=> le_x_s; apply/allP=> y.
-by rewrite -subseq_seq1 => /le_x_s/andP[].
+by rewrite -sub1seq => /le_x_s/andP[].
 Qed.
 
 Lemma subseq_sorted s1 s2 : subseq s1 s2 -> sorted s2 -> sorted s1.

@@ -83,6 +83,9 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 (* subfilter s : seq sT == when sT has a subType p structure, the sequence    *)
 (*                         of items of type sT corresponding to items of s    *)
 (*                         for which p holds                                  *)
+(*              rem x s == the subsequence of s, where the first occurrence   *)
+(*                         of x has been removed (compare filter (predC1 x) s *)
+(*                         where ALL occurrences of x are removed.            *)
 (*              undup s == the subsequence of s containing only the first     *)
 (*                         occurrence of each item in s, i.e., s with all     *)
 (*                         duplicates removed.                                *)
@@ -1242,6 +1245,8 @@ Qed.
 Notation perm_eql s1 s2 := (perm_eq s1 =1 perm_eq s2).
 Notation perm_eqr s1 s2 := (perm_eq^~ s1 =1 perm_eq^~ s2).
 
+Lemma perm_eqlE s1 s2 : perm_eql s1 s2 -> perm_eq s1 s2. Proof. by move->. Qed.
+
 Lemma perm_eqlP s1 s2 : reflect (perm_eql s1 s2) (perm_eq s1 s2).
 Proof.
 apply: (iffP idP) => [eq12 s3 | -> //].
@@ -1625,17 +1630,23 @@ Lemma subseq_refl s : subseq s s.
 Proof. by elim: s => //= x s IHs; rewrite eqxx. Qed.
 Hint Resolve subseq_refl.
 
-Lemma subseq_cat s1 s2 s3 s4 :
+Lemma cat_subseq s1 s2 s3 s4 :
   subseq s1 s3 -> subseq s2 s4 -> subseq (s1 ++ s2) (s3 ++ s4).
 Proof.
 case/subseqP=> m1 sz_m1 ->; case/subseqP=> m2 sz_m2 ->; apply/subseqP.
 by exists (m1 ++ m2); rewrite ?size_cat ?mask_cat ?sz_m1 ?sz_m2.
 Qed.
 
+Lemma prefix_subseq s1 s2 : subseq s1 (s1 ++ s2).
+Proof. by rewrite -{1}[s1]cats0 cat_subseq ?sub0seq. Qed.
+
+Lemma suffix_subseq s1 s2 : subseq s2 (s1 ++ s2).
+Proof. by rewrite -{1}[s2]cat0s cat_subseq ?sub0seq. Qed.
+
 Lemma mem_subseq s1 s2 : subseq s1 s2 -> {subset s1 <= s2}.
 Proof. by case/subseqP=> m _ -> x; exact: mem_mask. Qed.
 
-Lemma subseq_seq1 x s : subseq [:: x] s = (x \in s).
+Lemma sub1seq x s : subseq [:: x] s = (x \in s).
 Proof.
 by elim: s => //= y s; rewrite inE; case: (x == y); rewrite ?sub0seq.
 Qed.
@@ -1653,10 +1664,10 @@ by move/(@all_pred1P _ true)->; rewrite sz_m mask_true.
 Qed.
 
 Lemma subseq_cons s x : subseq s (x :: s).
-Proof. by exact: (@subseq_cat [::] s [:: x]). Qed.
+Proof. by exact: (@cat_subseq [::] s [:: x]). Qed.
 
 Lemma subseq_rcons s x : subseq s (rcons s x).
-Proof. by rewrite -{1}[s]cats0 -cats1 subseq_cat. Qed.
+Proof. by rewrite -{1}[s]cats0 -cats1 cat_subseq. Qed.
 
 Lemma subseq_uniq s1 s2 : subseq s1 s2 -> uniq s2 -> uniq s1.
 Proof. by case/subseqP=> m _ -> Us2; exact: mask_uniq. Qed.
@@ -1667,6 +1678,47 @@ Prenex Implicits subseq.
 Implicit Arguments subseqP [T s1 s2].
 
 Hint Resolve subseq_refl.
+
+Section Rem.
+
+Variables (T : eqType) (x : T).
+
+Fixpoint rem s := if s is y :: t then (if y == x then t else y :: rem t) else s.
+
+Lemma rem_id s : x \notin s -> rem s = s.
+Proof.
+by elim: s => //= y s IHs /norP[neq_yx /IHs->]; rewrite eq_sym (negbTE neq_yx).
+Qed.
+
+Lemma perm_to_rem s : x \in s -> perm_eq s (x :: rem s).
+Proof.
+elim: s => // y s IHs; rewrite inE /= eq_sym perm_eq_sym.
+case: eqP => [-> // | _ /IHs].
+by rewrite (perm_catCA [:: x] [:: y]) perm_cons perm_eq_sym.
+Qed.
+
+Lemma size_rem s : x \in s -> size (rem s) = (size s).-1.
+Proof. by move/perm_to_rem/perm_eq_size->. Qed.
+
+Lemma rem_subseq s : subseq (rem s) s.
+Proof.
+elim: s => //= y s IHs; rewrite eq_sym.
+by case: ifP => _; [exact: subseq_cons | rewrite eqxx].
+Qed.
+
+Lemma mem_rem s : {subset rem s <= s}.
+Proof. exact: mem_subseq (rem_subseq s). Qed.
+
+Lemma rem_filter s : uniq s -> rem s = filter (predC1 x) s.
+Proof.
+elim: s => //= y s IHs /andP[not_s_y /IHs->].
+by case: eqP => //= <-; apply/esym/all_filterP; rewrite all_predC has_pred1.
+Qed.
+
+Lemma mem_rem_uniq s : uniq s -> rem s =i [predD1 s & x].
+Proof. by move/rem_filter=> -> y; rewrite mem_filter. Qed.
+
+End Rem.
 
 Section Map.
 
@@ -1770,6 +1822,15 @@ rewrite uniq_perm_eq ?filter_uniq ?(subseq_uniq ss12) // => x.
 by rewrite mem_filter; apply: andb_idr; exact: (mem_subseq ss12).
 Qed.
 
+Lemma perm_to_subseq s1 s2 :
+  subseq s1 s2 -> {s3 | perm_eq s2 (s1 ++ s3)}.
+Proof.
+elim Ds2: s2 s1 => [|y s2' IHs] [|x s1] //=; try by exists s2; rewrite Ds2.
+case: eqP => [-> | _] /IHs[s3 perm_s2] {IHs}.
+  by exists s3; rewrite perm_cons.
+by exists (rcons s3 y); rewrite -cat_cons -perm_rcons -!cats1 catA perm_cat2r.
+Qed.
+
 End FilterSubseq.
 
 Implicit Arguments subseq_uniqP [T s1 s2].
@@ -1816,6 +1877,14 @@ case/subseqP=> m sz_m ->; apply/subseqP.
 by exists m; rewrite ?size_map ?map_mask.
 Qed.
 
+Lemma nth_index_map s x0 x :
+  {in s &, injective f} -> x \in s -> nth x0 s (index (f x) (map f s)) = x.
+Proof.
+elim: s => //= y s IHs inj_f s_x; rewrite (inj_in_eq inj_f) ?mem_head //.
+move: s_x; rewrite inE eq_sym; case: eqP => [-> | _] //=; apply: IHs.
+by apply: sub_in2 inj_f => z; exact: predU1r.
+Qed.
+
 Hypothesis Hf : injective f.
 
 Lemma mem_map s x : (f x \in map f s) = (x \in s).
@@ -1832,6 +1901,13 @@ End EqMap.
 Implicit Arguments mapP [T1 T2 f s y].
 Prenex Implicits mapP.
 
+Lemma map_of_seq (T1 : eqType) T2 (s : seq T1) (fs : seq T2) (y0 : T2) :
+  {f | uniq s -> size fs = size s -> map f s = fs}.
+Proof.
+exists (fun x => nth y0 fs (index x s)) => uAs eq_sz.
+apply/esym/(@eq_from_nth _ y0); rewrite ?size_map eq_sz // => i ltis.
+have x0 : T1 by [case: (s) ltis]; by rewrite (nth_map x0) // index_uniq.
+Qed.
 
 Section MapComp.
 

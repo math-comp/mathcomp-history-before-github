@@ -69,6 +69,9 @@ Lemma vchar_split S A phi :
   phi \in 'Z[S, A] = (phi \in 'Z[S]) && (phi \in 'CF(G, A)).
 Proof. by rewrite !inE cfun_onT /= -!andbA; do !bool_congr. Qed.
 
+Lemma vcharD1E phi S : (phi \in 'Z[S, G^#]) = (phi \in 'Z[S]) && (phi 1%g == 0).
+Proof. by rewrite vchar_split cfunD1E. Qed.
+
 Lemma vchar_span S A : {subset 'Z[S, A] <= span S}.
 Proof. by move=> phi /andP[]. Qed.
 
@@ -115,29 +118,6 @@ Proof.
 apply/orthonormalP; split; first exact: uniq_free (irr_free G).
 move=> _ _ /irrP[i ->] /irrP[j ->].
 by rewrite cfdot_irr (inj_eq (@chi_inj _ G)).
-Qed.
-
-Lemma cfdot_orthonormal S1 c psi :
-  orthonormal S1 -> psi \in S1 -> '[\sum_(a <- S1) c a *: a, psi]_G = c psi.
-Proof.
-move=> orthS1 /rot_to[k S2 defS2].
-have{k defS2} defS1: perm_eq (psi :: S2) S1 by rewrite -defS2 perm_rot.
-rewrite cfdot_suml -(eq_big_perm _ defS1) big_cons cfdotZl //=.
-move: orthS1; rewrite -(eq_orthonormal defS1) => /andP[/andP[/eqP-> _]].
-case/and3P=> _ /orthogonalP o_psi_S2 _; rewrite mulr1 big_seq big1 ?addr0 //.
-by move=> a S2a; rewrite cfdotZl cfdotC o_psi_S2 ?inE // rmorph0 mulr0.
-Qed.
-
-Lemma orthonormal_span S1 psi :
-  orthonormal S1 -> psi \in span S1 -> psi = \sum_(a <- S1) '[psi, a]_G *: a.
-Proof.
-pose T1 := in_tuple S1 => onT1 /(@coord_span _ _ _ T1) def_psi.
-pose c a := oapp (coord T1 psi) 0 (insub (index a S1)).
-have [uS1 _] := orthonormalP onT1.
-have{def_psi} ->: psi = \sum_(a <- S1) c a *: a.
-  rewrite /= big_tnth {1}def_psi; apply: eq_bigr => i _.
-  by rewrite -tnth_nth /c index_uniq // valK.
-by rewrite 2!{1}big_seq; apply: eq_bigr => a S1a; rewrite cfdot_orthonormal.
 Qed.
 
 Lemma coord_vchar_Int m (S : m.-tuple _) A phi i : 
@@ -234,6 +214,13 @@ Proof.
 move=> sS12 phi; rewrite !(vchar_split _ A) andbC => /andP[->].
 case/vchar_expansion=> z Zz ->; rewrite big_seq sum_vchar // => a S1a.
 by rewrite scale_vchar //; exact: vcharW (sS12 a S1a).
+Qed.
+
+Lemma vchar_trans_on S1 S2 A :
+  {subset S1 <= 'Z[S2, A]} -> {subset 'Z[S1] <= 'Z[S2, A]}.
+Proof.
+move=> sS12 _ /vchar_expansion[z Zz ->].
+rewrite big_seq sum_vchar // => phi /sS12; exact: scale_vchar.
 Qed.
 
 Lemma vchar_sub_irr S A :
@@ -363,6 +350,53 @@ by exists j, i; rewrite 1?eq_sym // addrC.
 Qed.
 
 End IsVChar.
+
+Section Isometries.
+
+Variables (gT : finGroupType) (L G : {group gT}).
+Implicit Types (S : seq 'CF(L)).
+
+Lemma Zisometry_of_cfnorm S tauS :
+    pairwise_orthogonal S -> pairwise_orthogonal tauS ->
+    map cfnorm tauS = map cfnorm S -> {subset tauS <= 'Z[irr G]} ->
+  {tau : {linear 'CF(L) -> 'CF(G)} | map tau S = tauS
+       & {in 'Z[S], isometry tau, to 'Z[irr G]}}.
+Proof.
+move=> oS oT eq_nTS Z_T.
+have [tau defT Itau] := isometry_of_cfnorm oS oT eq_nTS.
+exists tau => //; split; first exact: (sub_in2 (@vchar_span _ _ S _)).
+move=> _ /vchar_expansion[z Zz ->].
+rewrite big_seq linear_sum sum_vchar // => xi Sxi.
+by rewrite linearZ scale_vchar ?Z_T // -defT map_f.
+Qed.
+
+Lemma Zisometry_inj S A (tau : {additive 'CF(L) -> 'CF(G)}) :
+    {in 'Z[S, A] &, isometry tau} -> {in 'Z[S, A] &, injective tau}.
+Proof. by move/isometry_inj; apply; exact: sub_vchar. Qed.
+
+Lemma map_pairwise_orthogonal S (tau : {additive 'CF(L) -> 'CF(G)}) :
+    {in 'Z[S] &, isometry tau} ->
+  pairwise_orthogonal S -> pairwise_orthogonal (map tau S).
+Proof.
+move=> Itau oS; have freeS := orthogonal_free oS.
+apply/pairwise_orthogonalP; have{oS} [uS oS] := pairwise_orthogonalP oS.
+have inj_tau: {in 0 :: S &, injective tau}.
+  apply: sub_in2 (Zisometry_inj Itau) => xi.
+  by case/predU1P=> [-> | /mem_vchar->]; rewrite ?cfun0_vchar.
+split; first by rewrite -(map_inj_in_uniq inj_tau) /= raddf0 in uS.
+move=> _ _ /mapP[xi1 S1xi1 ->] /mapP[xi2 S1xi2 ->] neq_tau_xi.
+by rewrite Itau ?mem_vchar ?oS //; apply: contraNneq neq_tau_xi => ->.
+Qed.
+
+Lemma map_orthonormal S (tau : {additive 'CF(L) -> 'CF(G)}) :
+  {in 'Z[S] &, isometry tau} -> orthonormal S -> orthonormal (map tau S).
+Proof.
+move=> Itau1 /andP[/allP/=nS oS]; have freeS := orthogonal_free oS.
+apply/andP; split; last exact: map_pairwise_orthogonal.
+by apply/allP=> _ /mapP[xi S1xi -> /=]; rewrite Itau1 ?mem_vchar ?nS.
+Qed.
+
+End Isometries.
 
 Section MoreIsVChar.
 

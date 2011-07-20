@@ -3613,7 +3613,7 @@ apply: {IH_U}(IH_U (U' ++ W :: Ui :: U'')) noV; last 2 first.
 - by rewrite /mx_subseries -drop_nth // all_cat /= modW -all_cat defU.
 - by rewrite cat_path /= -defU'i; exact/and4P.
 - by rewrite -drop_nth // size_cat /= addnS -size_cat defU addSnnS.
-by rewrite (subseq_trans sU0U) // -defU subseq_cat // -drop_nth ?subseq_cons.
+by rewrite (subseq_trans sU0U) // -defU cat_subseq // -drop_nth ?subseq_cons.
 Qed.
 
 Lemma mx_second_rsim U V (modU : modG U) (modV : modG V) :

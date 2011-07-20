@@ -1408,6 +1408,21 @@ rewrite addr0 (eqP HH) -scaler_addl subrr scale0r.
 by move/(_ (refl_equal _) 0); rewrite eqxx; move/eqP; rewrite oner_eq0.
 Qed.
 
+Lemma linear_of_free (W : lmodType K) (B : seq V) (fB : seq W) :
+  {f : {linear V -> W} | free B -> size fB = size B -> map f B = fB}.
+Proof.
+pose f u := \sum_i coord (in_tuple B) u i *: fB`_i.
+have lin_f: linear f.
+  move=> k u v; rewrite scaler_sumr -big_split; apply: eq_bigr => i _.
+  by rewrite /= scalerA -scaler_addl linearP !ffunE.
+exists (Linear lin_f) => freeB eq_sz.
+apply/esym/(@eq_from_nth _ 0); rewrite ?size_map eq_sz // => i ltiB.
+rewrite (nth_map 0) //= /f (bigD1 (Ordinal ltiB)) //=.
+rewrite big1 => [|j /negbTE neqji]; rewrite (free_coordt (Ordinal _)) //.
+  by rewrite eqxx scale1r addr0.
+by rewrite eq_sym neqji scale0r.
+Qed.
+
 (* Notion of is_basis *)
 Definition is_span vs l := span l == vs.
 

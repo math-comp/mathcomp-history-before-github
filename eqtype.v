@@ -165,21 +165,36 @@ Hint Resolve eq_refl eq_sym.
 
 Section Contrapositives.
 
-Variables (T : eqType) (b : bool) (x y : T).
+Variable T : eqType.
+Implicit Types (A : pred T) (b : bool) (x : T).
 
-Lemma contraTeq : (x != y -> ~~ b) -> b -> x = y.
+Lemma contraTeq b x y : (x != y -> ~~ b) -> b -> x = y.
 Proof. by move=> imp hyp; apply/eqP; exact: contraTT hyp. Qed.
 
-Lemma contraNeq : (x != y -> b) -> ~~ b -> x = y.
+Lemma contraNeq b x y : (x != y -> b) -> ~~ b -> x = y.
 Proof. by move=> imp hyp; apply/eqP; exact: contraNT hyp. Qed.
 
-Lemma contraTneq : (x = y -> ~~ b) -> b -> x != y.
-Proof. by move=> imp; apply: contraTN; move/eqP. Qed.
+Lemma contraFeq b x y : (x != y -> b) -> b = false -> x = y.
+Proof. by move=> imp /negbT; exact: contraNeq. Qed.
 
-Lemma contraNneq : (x = y -> b) -> ~~ b -> x != y.
-Proof. by move=> imp; apply: contraNN; move/eqP. Qed.
+Lemma contraTneq b x y : (x = y -> ~~ b) -> b -> x != y.
+Proof. by move=> imp; apply: contraTN => /eqP. Qed.
+
+Lemma contraNneq b x y : (x = y -> b) -> ~~ b -> x != y.
+Proof. by move=> imp; apply: contraNN => /eqP. Qed.
+
+Lemma contraFneq b x y : (x = y -> b) -> b = false -> x != y.
+Proof. by move=> imp /negbT; exact: contraNneq. Qed.
+
+Lemma memPn A x : reflect {in A, forall y, y != x} (x \notin A).
+Proof.
+apply: (iffP idP) => [notDx y | notDx]; first by apply: contraTneq => ->.
+by apply/negP=> /notDx/eqP[].
+Qed.
 
 End Contrapositives.
+
+Implicit Arguments memPn [T A x].
 
 Theorem eq_irrelevance (T : eqType) x y : forall e1 e2 : x = y :> T, e1 = e2.
 Proof.
@@ -232,6 +247,9 @@ Lemma negb_eqb b1 b2 : (b1 != b2) = b1 (+) b2.
 Proof. by rewrite -addNb negbK. Qed.
 
 Lemma eqb_id b : (b == true) = b.
+Proof. by case: b. Qed.
+
+Lemma eqbF_neg b : (b == false) = ~~ b.
 Proof. by case: b. Qed.
 
 (* Equality-based predicates.       *)

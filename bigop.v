@@ -830,6 +830,10 @@ Lemma big_seq (I : eqType) (r : seq I) F :
   \big[op/idx]_(i <- r) F i = \big[op/idx]_(i <- r | i \in r) F i.
 Proof. by rewrite big_seq_cond big_andbC. Qed.
 
+Lemma eq_big_seq (I : eqType) (r : seq I) F1 F2 :
+  {in r, F1 =1 F2} -> \big[op/idx]_(i <- r) F1 i = \big[op/idx]_(i <- r) F2 i.
+Proof. by move=> eqF; rewrite !big_seq (eq_bigr _ eqF). Qed.
+
 Lemma congr_big_nat m1 n1 m2 n2 P1 P2 F1 F2 :
     m1 = m2 -> n1 = n2 ->
     (forall i, m1 <= i < n2 -> P1 i = P2 i) ->
@@ -1135,6 +1139,22 @@ move=> uniq_r; rewrite -(big_filter _ _ _ (mem r)); apply: eq_big_perm.
 by rewrite filter_index_enum uniq_perm_eq ?enum_uniq // => i; rewrite mem_enum.
 Qed.
 
+Lemma big_index_uniq (I : eqType) (r : seq I) (E : 'I_(size r) -> R) :
+    uniq r ->
+  \big[*%M/1]_i E i = \big[*%M/1]_(x <- r) oapp E idx (insub (index x r)).
+Proof.
+move=> Ur; apply/esym; rewrite big_tnth; apply: eq_bigr => i _.
+by rewrite index_uniq // valK.
+Qed.
+
+Lemma big_rem (I : eqType) r x (P : pred I) F :
+    x \in r ->
+  \big[*%M/1]_(y <- r | P y) F y
+    = (if P x then F x else 1) * \big[*%M/1]_(y <- rem x r | P y) F y.
+Proof.
+by move/perm_to_rem/(eq_big_perm _)->; rewrite !(big_mkcond _ _ P) big_cons.
+Qed.
+
 Lemma big_split I r (P : pred I) F1 F2 :
   \big[*%M/1]_(i <- r | P i) (F1 i * F2 i) =
     \big[*%M/1]_(i <- r | P i) F1 i * \big[*%M/1]_(i <- r | P i) F2 i.
@@ -1316,6 +1336,7 @@ Implicit Arguments eq_bigl [R op idx  I r P1].
 Implicit Arguments eq_bigr [R op idx I r  P F1].
 Implicit Arguments eq_big_idx [R op idx idx' I P F].
 Implicit Arguments big_seq_cond [R op idx I r].
+Implicit Arguments eq_big_seq [R op idx I r F1].
 Implicit Arguments congr_big_nat [R op idx m1 n1 P1 F1].
 Implicit Arguments big_map [R op idx I J r].
 Implicit Arguments big_nth [R op idx I r].
@@ -1341,6 +1362,7 @@ Implicit Arguments big1 [R op idx I].
 Implicit Arguments big_pred1 [R op idx I P F].
 Implicit Arguments eq_big_perm [R op idx I r1 P F].
 Implicit Arguments big_uniq [R op idx I F].
+Implicit Arguments big_rem [R op idx I r P F].
 Implicit Arguments bigID [R op idx I r].
 Implicit Arguments bigU [R op idx I].
 Implicit Arguments bigD1 [R op idx I P F].

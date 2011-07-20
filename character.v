@@ -874,6 +874,7 @@ Qed.
 
 End IsChar.
 Arguments Scope is_char [_ group_scope cfun_scope].
+Prenex Implicits is_char.
 Implicit Arguments is_charP [gT G phi].
 
 Section Restrict.
