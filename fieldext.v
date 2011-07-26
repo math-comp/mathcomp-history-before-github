@@ -568,6 +568,16 @@ Section FieldExtTheory.
 Variable F0 : fieldType.
 Variable L : fieldExtType F0.
 
+Lemma dim_prodvf : forall (K:{vspace L}) x, x != 0 -> \dim (K * x%:VS) = \dim K.
+Proof.
+have (K:{vspace L}) x : x != 0 -> \dim (K * x%:VS) <= \dim K.
+  by move => Hx; rewrite (leq_trans (dim_prodv _ _)) // dim_injv Hx muln1.
+move => suff K x Hx.
+apply: anti_leq.
+rewrite suff //= -{1}[K]prodv1 -(mulfV Hx) prodv_inj prodvA suff //.
+by rewrite invr_neq0.
+Qed.
+
 Definition polyOver (K : {vspace L}) := [pred p : {poly L} | all (mem K) p].
 
 Definition matrixOver (K : {vspace L}) n m (A : 'M_(n,m)) :=
@@ -623,10 +633,170 @@ Lemma matrixOverP (K : {vspace L}) n m (A : 'M_(n,m)) :
   reflect (forall i j, A i j \in K) (matrixOver K A).
 Proof.
 apply: (iffP forallP).
- move => H i.
- by move/forallP: (H i).
+  move => H i.
+  by move/forallP: (H i).
 move => H i.
 by apply/forallP.
+Qed.
+
+Section SubAlgebra.
+
+Variable K : {algebra L}.
+
+Lemma mem1v : 1 \in K.
+Proof.
+by rewrite -aunit1 -(can_eq (mulfK (anonzero1r K))) mul1r aunitl // memv_unit.
+Qed.
+
+Lemma aunit_eq1 : aunit K = 1.
+Proof. by apply/eqP; rewrite aunit1 mem1v. Qed.
+
+Lemma sub1v : (1%:VS <= K)%VS.
+Proof. by apply: mem1v. Qed.
+
+Lemma memv_exp : forall x i, x \in K -> x ^+ i \in K.
+Proof.
+move => x.
+elim => [|i Hi] Hx; first by rewrite expr0 mem1v.
+by rewrite exprS memv_mul // Hi.
+Qed.
+
+Lemma memv_prodl I r (P : pred I) (vs_ : I -> L) :
+  (forall i, P i -> vs_ i \in K) -> \prod_(i <- r | P i) vs_ i \in K.
+Proof.
+by move=> Hp; elim/big_ind: _ => //; [exact: mem1v | exact: memv_mul].
+Qed.
+
+Lemma sa_val_rmorph : rmorphism (@sa_val _ _ K).
+Proof.
+split => //=; split => //=; exact: aunit_eq1.
+Qed.
+
+Canonical Structure sa_val_additive := Additive sa_val_rmorph.
+Canonical Structure sa_val_rmorphism := RMorphism sa_val_rmorph.
+
+Lemma suba_mul_com : commutative (@suba_mul _ _ K).
+Proof. move=> u v; apply: val_inj; exact: mulrC. Qed.
+
+Canonical Structure suba_comRingType :=
+  Eval hnf in ComRingType (suba_of K) suba_mul_com.
+
+Lemma polyOver_suba : forall p : {poly L},
+  reflect (exists q : {poly (suba_of K)}, p = map_poly (@sa_val _ _ K) q)
+          (polyOver K p).
+Proof.
+move => p.
+apply: (iffP (polyOverP _ _)); last first.
+  by move => [q ->] i; rewrite coef_map // subaP.
+move => Hp.
+exists (\poly_(i < size p) (Suba (Hp i))).
+rewrite -{1}[p]coefK.
+apply/polyP => i.
+rewrite coef_map !coef_poly.
+by case: ifP.
+Qed.
+
+Lemma mulp_polyOver : forall p q : {poly L},
+  polyOver K p -> polyOver K q -> polyOver K (p * q).
+Proof.
+move => ? ?; move/polyOver_suba => [p ->]; move/polyOver_suba => [q ->].
+by apply/polyOver_suba; exists (p * q); rewrite rmorphM.
+Qed.
+
+Lemma prodp_polyOver (I : finType) (P : pred I) (p_ : I -> {poly L}) :
+  (forall i, P i -> polyOver K (p_ i)) -> polyOver K (\prod_(i | P i) p_ i).
+Proof.
+move=> Hp; apply big_ind => //; first by rewrite polyOverC // mem1v.
+by exact: mulp_polyOver.
+Qed.
+
+Lemma exp_polyOver : forall (p : {poly L}) n, polyOver K p ->
+  polyOver K (p ^+ n).
+Proof.
+move => ? n; move/polyOver_suba => [p ->].
+by apply/polyOver_suba; exists (p ^+ n); rewrite rmorphX.
+Qed.
+
+Lemma scalep_polyOver : forall (c : L) (q : {poly L}),
+  c \in K -> polyOver K q -> polyOver K (c *: q).
+Proof.
+move => ? ? cK; move/polyOver_suba => [q ->].
+apply/polyOver_suba; exists ((Suba cK) *: q).
+by rewrite -!mul_polyC rmorphM /= map_polyC.
+Qed.
+
+Lemma polyOverX : polyOver K 'X.
+Proof.
+apply/polyOverP => i.
+by rewrite coefX; case: (_ == _); [apply: mem1v | apply: mem0v].
+Qed.
+
+Lemma polyOver_factor c : c \in K -> polyOver K ('X - c%:P).
+Proof.
+move => Hc.
+by rewrite addp_polyOver ?polyOverX // opp_polyOver // polyOverC.
+Qed.
+
+Lemma poly_polyOver : forall n (E : nat -> L),
+  (forall i, E i \in K) -> polyOver K (\poly_(i < n) E i).
+Proof.
+move => n E HE.
+rewrite poly_def.
+apply: sump_polyOver => i _.
+by rewrite scalep_polyOver // exp_polyOver // polyOverX.
+Qed.
+
+Lemma compose_polyOver : forall p q : {poly L},
+  polyOver K p -> polyOver K q -> polyOver K (p \Po q).
+Proof.
+move => p q; move/polyOverP => Hp Hq.
+rewrite poly_compE sump_polyOver // => i _.
+by rewrite scalep_polyOver // exp_polyOver.
+Qed.
+
+Lemma deriv_polyOver :  forall (p : {poly L}), polyOver K p -> polyOver K p^`().
+Proof.
+move => ?; move/polyOver_suba => [p ->].
+by apply/polyOver_suba; exists (p^`()); apply: deriv_map.
+Qed.
+
+Lemma matrixOver_suba n m (A : 'M_(n,m)) :
+  reflect (exists B, A = map_mx (@sa_val _ _ K) B)
+          (matrixOver K A).
+Proof.
+apply: (iffP (matrixOverP _ _)); last first.
+  by move => [B ->] i j; rewrite mxE subaP.
+move => HA.
+exists (\matrix_(i, j) (Suba (HA i j))).
+apply/matrixP => i j.
+by rewrite !mxE.
+Qed.
+
+End SubAlgebra.
+
+Section aspace_cap.
+
+Variable A B : {algebra L}.
+
+Canonical Structure fspace_cap : {algebra L} :=
+  Eval hnf in (aspace_cap (trans_eq (aunit_eq1 A) (sym_eq (aunit_eq1 B)))).
+
+End aspace_cap.
+
+Lemma polyOver_subset : forall (K E : {vspace L}) p, (K <= E)%VS ->
+  polyOver K p -> polyOver E p.
+Proof.
+move => K E p; move/subvP => KE; move/polyOverP => Kp.
+by apply/polyOverP => i; rewrite KE.
+Qed.
+
+Lemma memv_horner: forall (K E : {algebra L}) p, polyOver K p -> (K <= E)%VS ->
+  forall x, x \in E -> p.[x] \in E.
+Proof.
+move => K E p; move/polyOverP => x HE pK Hx.
+rewrite horner_coef memv_suml // => i _.
+rewrite memv_mul //; last by rewrite memv_exp.
+by move/subvP : HE; apply.
 Qed.
 
 Section FadjoinDefinitions.
@@ -787,6 +957,154 @@ by rewrite !horner_lin_comm hornerXn -memv_prodv_inj_coef ?memv_sum_pi.
 Qed.
 
 End FadjoinDefinitions.
+
+Section Fadjoin.
+
+Variable (K : {algebra L}).
+Variable (x : L).
+
+Lemma elementDegreeBound : elementDegree K x <= vdim L.
+Proof.
+rewrite /elementDegree prednK; last first.
+  case: ex_minnP => [[|//]].
+  by rewrite muln1 big_ord1 expr0 prodv1 !ltnn.
+case: ex_minnP => m _. apply.
+apply/orP; right.
+apply: (@leq_trans ((vdim L).+1)); first by rewrite ltnS -dimvf dimvS // subvf.
+rewrite leq_pmull // lt0n dimv_eq0 -subv0.
+apply: contra (nonzero1r L).
+rewrite -memv0.
+move/(subv_trans (sub1v K)).
+move/subvP; apply.
+by apply: memv_inj.
+Qed.
+
+Lemma capv_KxED_subproof :
+  (x == 0) = ((K * (x ^+ elementDegree K x)%:VS :&: Fadjoin K x)%VS == 0%:VS).
+Proof.
+apply/eqP/eqP => [->|/eqP H]; first by rewrite exprS mul0r prodv0 cap0v.
+apply/eqP; move: H.
+apply: contraLR => nzx.
+rewrite -subv0 -dimv_sum_leqif neq_ltn.
+apply/orP; left.
+rewrite dim_Fadjoin dim_prodvf ?expf_neq0 // -{1}[\dim K]muln1 -muln_addr add1n.
+move: elementDegreeBound.
+rewrite /Fadjoin /elementDegree.
+case: ex_minnP => [[|m]]; first by rewrite muln1 big_ord1 expr0 prodv1 !ltnn.
+rewrite leqNgt.
+case/orP => [|Hm _ _]; first by rewrite ltnS; move/negbTE ->.
+apply: (leq_trans _ Hm).
+by rewrite [(\sum_(i < m.+2) _)%VS]big_ord_recr addvC.
+Qed.
+
+Lemma elemDeg1_subproof : (x \in K) -> elementDegree K x = 1%N.
+Proof.
+rewrite /elementDegree.
+case: ex_minnP => [[|m _ Hm xK]].
+  by rewrite muln1 big_ord1 expr0 prodv1 !ltnn.
+apply/eqP.
+rewrite eqSS -leqn0 -ltnS Hm //.
+rewrite !big_ord_recl big_ord0 expr1 expr0 addv0 prodv1.
+apply/orP; right.
+apply (@leq_trans (\dim K).+1).
+  rewrite ltnS dimvS // subv_add subv_refl (subv_trans _ (asubv K)) //.
+  by rewrite prodv_monor.
+rewrite -addn1 mulnC -[(2 * _)%N]/(\dim K + (\dim K + 0))%N leq_add2l addn0.
+by rewrite -(dimv1 L) dimvS // sub1v.
+Qed.
+
+Lemma minPolyOver : polyOver K (minPoly K x).
+Proof.
+rewrite /minPoly addp_polyOver ?exp_polyOver ?polyOverX // opp_polyOver //.
+by rewrite poly_for_polyOver.
+Qed.
+
+(* This lemma could be generalized if I instead defined elementDegree 0 x = 0 *)
+Lemma poly_Fadjoin_small_uniq : forall p q, polyOver K p -> polyOver K q ->
+  size p <= elementDegree K x -> size q <= elementDegree K x ->
+  p.[x] = q.[x] -> p = q.
+Proof.
+case (eqVneq x 0).
+  move/eqP; rewrite -memv0 => x0.
+  move: (subv_trans x0 (sub0v K)).
+  move/elemDeg1_subproof => -> p q pK qK.
+  by do 2 move/size1_polyC ->; rewrite !horner_lin => ->.
+move => nzx p q; move/polyOverP => pK; move/polyOverP => qK szp szq.
+rewrite (horner_coef_wide _ szp) (horner_coef_wide _ szq).
+move/eqP; move: (direct_Fadjoin K x); move/directv_sum_unique => sumUniq.
+rewrite sumUniq {sumUniq}; do ? move => i _; rewrite ?memv_prod ?memv_inj //.
+move/forall_inP => Hpq.
+apply/polyP => i.
+apply: (mulIf (expf_neq0 i nzx)).
+case: (leqP (elementDegree K x) i) => Hi; last first.
+  by apply/eqP; apply (Hpq (Ordinal Hi)).
+by rewrite (_ : p`_i = 0) ?mul0r; first rewrite (_ : q`_i = 0) ?mul0r //;
+ apply/eqP; move: Hi; [ move/(leq_trans szq) | move/(leq_trans szp) ];
+ apply: contraLR; rewrite -ltnNge; apply: leq_coef_size.
+Qed.
+
+Hypothesis HxED : x ^+ (elementDegree K x) \in (Fadjoin K x).
+
+Lemma minPoly_coef0_subproof : ((minPoly K x)`_0 == 0) = (x == 0).
+Proof.
+case (@eqP _ x 0) => Hx.
+  move: Hx (root_minPoly_subproof HxED) ->.
+  rewrite /root horner_coef size_minPoly big_ord_recl big1
+          ?expr0 ?mulr1 ?addr0 // => i _.
+  by rewrite exprSr !mulr0.
+move: (minPoly K x) minPolyOver (root_minPoly_subproof HxED)
+      (size_minPoly K x) => p.
+move/polyOverP => pK rootp sizep.
+do 2 apply/negP.
+have: (lead_coef p != 0) by rewrite lead_coef_eq0 -size_poly_eq0 sizep.
+apply: contra.
+move/eqP => p0.
+move/directv_sumP: (direct_Fadjoin K x).
+move/eqP: Hx rootp => Hx.
+rewrite /root horner_coef sizep big_ord_recl p0 mul0r add0r
+        -(can_eq (mulfVK Hx)) -GRing.mulr_suml mul0r => sump.
+have Hxi : x ^+ ((elementDegree K x).-1) != 0.
+  by rewrite expf_eq0 negb_and Hx orbT.
+rewrite -(can_eq (mulfK Hxi)) mul0r -memv0.
+move/(_ ord_max isT) <-.
+rewrite memv_cap lead_coefE sizep.
+apply/andP; split; first by rewrite memv_prod ?memv_inj //.
+move: sump.
+(* why is this line so slow? *)
+rewrite (bigID (fun j => j == ord_max)).
+rewrite big_pred1_eq eq_sym -subr_eq add0r eq_sym exprSr mulrA  (mulfK Hx).
+rewrite /ord_max.
+move/eqP ->.
+apply: memvNr.
+apply: memv_sumr=> i _.
+by rewrite exprSr mulrA (mulfK Hx) memv_prod ?memv_inj.
+Qed.
+
+Lemma subsetFadjoinE_subproof: forall E : {algebra L},
+  (K <= E)%VS && (x \in E) = (Fadjoin K x <= E)%VS.
+Proof.
+move => E.
+apply/idP/idP.
+  case/andP => KE xE.
+  apply/subv_sumP => i _.
+  apply: (subv_trans _ (asubv _)).
+  apply: (subv_trans (prodv_monol _ _) (prodv_monor _ _)) => //.
+  by apply: memv_exp.
+move => HFxE.
+apply/andP; split; apply: (subv_trans _ HFxE).
+  by rewrite /Fadjoin big_ord_recl expr0 prodv1 addvSl.
+move: HxED.
+rewrite /Fadjoin /elementDegree.
+rewrite exprS.
+case: _.-1 => [|d]; first by rewrite expr0 mulr1.
+move => _.
+rewrite !big_ord_recl.
+apply: (subv_trans _ (addvSr _ _)).
+apply: (subv_trans _ (addvSl _ _)).
+by rewrite -{1}[x%:VS]prod1v prodv_monol // sub1v.
+Qed.
+
+End Fadjoin.
 
 End FieldExtTheory.
 
