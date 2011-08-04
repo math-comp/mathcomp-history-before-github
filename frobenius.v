@@ -166,6 +166,18 @@ move=> nKH regH.
 by rewrite (coprime_dvdr (regular_norm_dvd_pred nKH regH)) ?coprimenP.
 Qed.
 
+Lemma semiregularJ K H x : semiregular K H -> semiregular (K :^ x) (H :^ x).
+Proof.
+move=> regH yx; rewrite -conjD1g => /imsetP[y Hy ->].
+by rewrite cent1J -conjIg regH ?conjs1g.
+Qed.
+
+Lemma semiprimeJ K H x : semiprime K H -> semiprime (K :^ x) (H :^ x).
+Proof.
+move=> prH yx; rewrite -conjD1g => /imsetP[y Hy ->].
+by rewrite cent1J centJ -!conjIg prH.
+Qed.
+
 Lemma TIconjP G H :
   reflect {in G &, forall x y, x * y^-1 \in 'N_G(H) \/ H :^ x :&: H :^ y = 1}
           (trivIset (H^# :^: G)).
@@ -424,6 +436,18 @@ Proof.
 move=> frobG; have [defG _ _ _ ltHG] := Frobenius_context frobG.
 rewrite /Hall -divgS (proper_sub ltHG) //= -(sdprod_card defG) mulnK //.
 by rewrite coprime_sym; exact: Frobenius_coprime frobG.
+Qed.
+
+Lemma FrobeniusJ K H L x :
+  [Frobenius L = K ><| H] -> [Frobenius L :^ x = K :^ x ><| H :^ x].
+Proof.
+move=> frobL; have [defL _ ntH _ ltHL] := Frobenius_context frobL.
+have sHL := proper_sub ltHL.
+have [_ _ /(TIconj_SN_P ntH sHL) tiHL] := and3P frobL.
+apply/and3P; rewrite -sdprodJ defL properJ; split=> //.
+apply/TIconj_SN_P; rewrite ?conjsg_eq1 ?conjSg // -conjDg => y.
+rewrite mem_conjg -conjsgM conjgCV conjsgM -conjIg => /tiHL->.
+by rewrite conjs1g.
 Qed.
 
 (*

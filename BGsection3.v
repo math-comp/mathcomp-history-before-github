@@ -1642,19 +1642,17 @@ have partG: {in G, forall a,
     by rewrite A1 inE (negbTE nt_a) in Aa.
   have [partG tiG _] := and3P (Frobenius_partition frobG).
   do [rewrite -(eqP partG); set pG := _ |: _] in Ga tiG.
-  pose A := cover_at a pG.
-  rewrite (bigD1 <<A>>%G) /=; last by rewrite mem_gen // mem_cover_at.
+  rewrite (bigD1 <<pblock pG a>>%G) /=; last by rewrite mem_gen // mem_pblock.
   rewrite big1 => [|B]; last first.
     case/andP=> Ba neqBA; rewrite -/(false : nat); congr (nat_of_bool _).
     apply: contraTF neqBA; rewrite negbK -val_eqE /=.
-    case/setU1P=> [BK |]; last case/imsetP=> x Kx defB.
-      rewrite BK -(cover_at_eq _ tiG) ?Ga -/A ?setU11 //= in Ba.
-      by rewrite BK (eqP Ba) genGid.
-    have Rx_a: a \in R^# :^ x by rewrite conjD1g !inE nt_a -(congr_group defB).
-    rewrite -(cover_at_eq _ tiG) ?Ga -/A /= ?inE ?mem_imset ?orbT // in Rx_a.
-    by rewrite defB (eqP Rx_a) /= conjD1g genD1 ?group1 // genGid.
-  rewrite /n /A !inE -val_eqE /= -/(true : nat); congr ((_ : bool) + _)%N.
-  case/setU1P: (cover_at_mem Ga) => [-> |]; first by rewrite genGid eqxx.
+    case/setU1P=> [BK | /imsetP[x Kx defB]].
+      by rewrite (def_pblock tiG _ Ba) BK ?setU11 ?genGid.
+    have Rxa: a \in R^# :^ x by rewrite conjD1g !inE nt_a -(congr_group defB).
+    rewrite (def_pblock tiG _ Rxa) ?setU1r ?mem_imset // conjD1g.
+    by rewrite genD1 ?group1 // genGid defB.
+  rewrite /n !inE -val_eqE /= -/(true : nat); congr ((_ : bool) + _)%N.
+  case/setU1P: (pblock_mem Ga) => [-> |]; first by rewrite genGid eqxx.
   case/imsetP=> x Kx ->; symmetry; apply/orP; right.
   apply/imsetP; exists x => //.
   by apply: val_inj; rewrite conjD1g /= genD1 ?group1 // genGid.

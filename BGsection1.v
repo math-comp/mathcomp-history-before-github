@@ -829,11 +829,12 @@ have G'ker : G' \subset ker_trans.
   by rewrite !inE groupR // morphR //; apply/commgP; exact: addrC.
 have transg0: transfer G abelSK g = 0%R.
   by move/kerP: (subsetP G'ker g G'g); exact.
-case: (rcosets_pcycle_transversal_exists sSG Gg) => X n_ transX.
-case: (transX)=> _ sXG _.
+have partX := rcosets_cycle_partition sSG Gg.
+have trX := transversalP partX; set X := transversal _ _ in trX.
+have /and3P[_ sXG _] := trX.
 have gGSeq0: (fmod abelSK (alpha g) *+ #|G : S| = 0)%R.
-  rewrite -transg0 (transfer_pcycle_def abelSK Gg transX).
-  rewrite -(sum_card_rcosets_pcycles Gg transX) -sumr_muln_r /restrm.
+  rewrite -transg0 (transfer_cycle_expansion sSG abelSK Gg trX).
+  rewrite -(sum_index_rcosets_cycle sSG Gg trX) -sumr_muln_r /restrm.
   apply: eq_bigr=> x Xx; rewrite -[(_ *+ _)%R]morphX ?mem_morphim //=.
   rewrite -morphX //= /restrm; congr fmod.
   apply/rcoset_kercosetP; rewrite /= -/K.

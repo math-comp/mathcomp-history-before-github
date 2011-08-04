@@ -44,7 +44,7 @@ Import GroupScope GRing.Theory.
 Section Cyclic.
 
 Variable gT : finGroupType.
-Implicit Types (a x y : gT) (A B : {set gT}) (G H : {group gT}).
+Implicit Types (a x y : gT) (A B : {set gT}) (G K H : {group gT}).
 
 Definition cyclic A := existsb x, A == <[x]>.
 
@@ -131,6 +131,19 @@ move=> cab co_ab; apply/eqP; rewrite eqEsubset -(cent_joinEl (cents_cycle cab)).
 rewrite join_subG {3}cab !cycleMsub // 1?coprime_sym //.
 by rewrite -genM_join cycle_subG mem_gen // mem_imset2 ?cycle_id.
 Qed.
+
+Lemma cyclicM A B :
+    cyclic A -> cyclic B -> B \subset 'C(A) -> coprime #|A| #|B| ->
+  cyclic (A * B).
+Proof.
+move=> /cyclicP[a ->] /cyclicP[b ->]; rewrite cent_cycle cycle_subG => cab coab.
+by rewrite -cycleM ?cycle_cyclic //; exact/esym/cent1P.
+Qed.
+
+Lemma cyclicY K H :
+    cyclic K -> cyclic H -> H \subset 'C(K) -> coprime #|K| #|H| ->
+  cyclic (K <*> H).
+Proof. by move=> cycK cycH cKH coKH; rewrite cent_joinEr // cyclicM. Qed.
 
 (***********************************************************************)
 (*        Order properties                                             *)

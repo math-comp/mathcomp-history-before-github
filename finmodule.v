@@ -437,16 +437,19 @@ Variable alpha : {morphism H >-> aT}.
 
 Hypotheses (sHG : H \subset G) (abelA : abelian (alpha @* H)).
 
-Lemma transfer_morph_subproof : H \subset alpha @*^-1 (alpha @* H).
+Local Notation HG := (rcosets (gval H) (gval G)).
+
+Fact transfer_morph_subproof : H \subset alpha @*^-1 (alpha @* H).
 Proof. by rewrite -sub_morphim_pre. Qed.
 
 Let fmalpha := restrm transfer_morph_subproof (fmod abelA \o alpha).
 
-Let V X g := \sum_(Hx \in rcosets H G) fmalpha (X Hx * g * (X (Hx :* g))^-1).
+Let V (rX : {set gT} -> gT) g :=
+  \sum_(Hx \in rcosets H G) fmalpha (rX Hx * g * (rX (Hx :* g))^-1).
 
 Definition transfer g := V repr g.
 
-(* Aschbacher 37.2 *)
+(* This is Aschbacher (37.2). *)
 Lemma transferM : {in G &, {morph transfer : x y / (x * y)%g >-> x + y}}.
 Proof.
 move=> s t Gs Gt /=.
@@ -459,20 +462,18 @@ Qed.
 
 Canonical transfer_morphism := Morphism transferM.
 
-Definition coset_transversal X := 
-  {in rcosets H G, forall Hx : {set gT}, X Hx \in Hx}.
-
-(* Aschbacher 37.1 *)
-Lemma transfer_indep X : coset_transversal X -> {in G, transfer =1 V X}.
+(* This is Aschbacher (37.1). *)
+Lemma transfer_indep X (rX := transversal_repr 1 X) :
+  is_transversal X HG G -> {in G, transfer =1 V rX}.
 Proof.
-move=> repsX g Gg.
-apply: (addrI (\sum_(Hx \in rcosets H G) fmalpha (repr Hx * (X Hx)^-1))).
+move=> trX g Gg; have mem_rX := repr_mem_pblock trX 1; rewrite -/rX in mem_rX.
+apply: (addrI (\sum_(Hx \in HG) fmalpha (repr Hx * (rX Hx)^-1))).
 rewrite {1}(reindex_acts 'Rs _ Gg) ?actsRs_rcosets // -!big_split /=.
 apply: eq_bigr => _ /rcosetsP[x Gx ->]; rewrite !rcosetE -!rcosetM.
 case: repr_rcosetP => h1 Hh1; case: repr_rcosetP => h2 Hh2.
 have: H :* (x * g) \in rcosets H G by rewrite -rcosetE mem_imset ?groupM.
 have: H :* x \in rcosets H G by rewrite -rcosetE mem_imset.
-case/repsX/rcosetP=> h3 Hh3 -> /repsX/rcosetP[h4 Hh4 ->].
+case/mem_rX/rcosetP=> h3 Hh3 -> /mem_rX/rcosetP[h4 Hh4 ->].
 rewrite -!(mulgA h1) -!(mulgA h2) -!(mulgA h3) !(mulKVg, invMg).
 by rewrite addrC -!zmodMgE -!morphM ?groupM ?groupV // -!mulgA !mulKg.
 Qed.
@@ -482,137 +483,129 @@ Section FactorTransfer.
 Variable g : gT.
 Hypothesis Gg : g \in G.
 
-Let Gcycg : <[g]> \subset G. Proof. by rewrite cycle_subG. Qed.
-Let H_g_rcosets x := rcosets (H :* x) <[g]>.
-Let n_ x := #|H_g_rcosets x|.
+Let sgG : <[g]> \subset G. Proof. by rewrite cycle_subG. Qed.
+Let H_g_rcosets x : {set {set gT}} := rcosets (H :* x) <[g]>.
+Let n_ x := #|<[g]> : H :* x|.
 
 Lemma mulg_exp_card_rcosets x : x * (g ^+ n_ x) \in H :* x.
 Proof.
-rewrite /n_ /H_g_rcosets -orbitRs -pcycle_actperm ?inE //.
+rewrite /n_ /indexg -orbitRs -pcycle_actperm ?inE //.
 rewrite -{2}(iter_pcycle (actperm 'Rs g) (H :* x)) -permX -morphX ?inE //.
 by rewrite actpermE //= rcosetE -rcosetM rcoset_refl. 
 Qed.
 
-Definition rcosets_pcycle_transversal (X : {set gT}) :=
-  [/\ {in X &, injective H_g_rcosets}, X \subset G & G \subset H * X * <[ g ]>].
+Let HGg : {set {set {set gT}}} := orbit 'Rs <[g]> @: rcosets H G.
 
-CoInductive rcosets_pcycle_transversal_witness : Prop :=
-   RcosetPcycleTransversalWitness X (n_ := n_) of rcosets_pcycle_transversal X.
+Let partHG : partition HG G := rcosets_partition sHG.
+Let actsgHG : [acts <[g]>, on HG | 'Rs].
+Proof. exact: subset_trans sgG (actsRs_rcosets H G). Qed.
+Let partHGg : partition HGg HG := orbit_partition actsgHG.
 
-Lemma rcosets_pcycle_transversal_exists : rcosets_pcycle_transversal_witness.
+Let injHGg : {in HGg &, injective cover}.
+Proof. by have [] := partition_partition partHG partHGg. Qed.
+
+Let defHGg : HG :* <[g]> = cover @: HGg.
 Proof.
-pose r1 x := repr (H_g_rcosets x); pose r2 x := repr (r1 x).
-have mem_r1 x: x \in G -> r1 x \in H_g_rcosets x.
-  by move=> Gx; apply: (mem_repr (H :* x)); apply: orbit_refl.
-have id_r2 x: x \in G -> H_g_rcosets (r2 x) = H_g_rcosets x.
-  move=> Gx; apply: orbit_transl; rewrite /r2.
-  case/rcosetsP: (mem_r1 x Gx) => gi Ggi ->.
-  by rewrite -rcosetM rcoset_repr rcosetM -rcosetE mem_orbit. 
-exists (r2 @: G); split=> [_ _ /imsetP[x Gx ->] /imsetP[y Gy ->]||].
-- by rewrite !id_r2 /r2 /r1 // => ->.
-- apply/subsetP=> _ /imsetP[x Gx ->]; rewrite /r2.
-  case/rcosetsP: (mem_r1 x Gx) => _ /cycleP[i ->] ->.
-  rewrite -rcosetM; apply: subsetP (mem_repr_rcoset H _).
-  by rewrite mul_subG // sub1set groupM ?groupX.
-apply/subsetP=> x Gx; case/rcosetsP: (mem_r1 x Gx) => y gy def_r1x.
-rewrite -[x](mulgK y) mem_mulg ?groupV // -sub1set -mulGS.
-by rewrite -rcoset_repr mulgS // sub1set rcosetM -def_r1x -/(r2 x) mem_imset.
+rewrite -imset_comp [_ :* _]imset2_set1r; apply: eq_imset => Hx /=.
+by rewrite cover_imset -curry_imset2r.
 Qed.
+
+Lemma rcosets_cycle_partition : partition (HG :* <[g]>) G.
+Proof. by rewrite defHGg; have [] := partition_partition partHG partHGg. Qed.
 
 Variable X : {set gT}.
-Hypothesis trX : rcosets_pcycle_transversal X.
+Hypothesis trX : is_transversal X (HG :* <[g]>) G.
 
-Lemma im_rcosets_pcycle_transversal :
-  H_g_rcosets @: X = orbit 'Rs <[g]> @: rcosets H G.
+Let sXG : {subset X <= G}. Proof. exact/subsetP/(transversal_sub trX). Qed.
+
+Lemma rcosets_cycle_transversal : H_g_rcosets @: X = HGg.
 Proof.
-have [_ /subsetP sXG /subsetP sGHXg] := trX.
-apply/setP=> Hxg; apply/imsetP/imsetP=> [[x Xx ->{Hxg}]|[Hx]] /=.
-  by exists (H :* x); rewrite // -rcosetE mem_imset ?sXG.
-case/rcosetsP=> _ /sGHXg/mulsgP[_ gi /mulsgP[h x Hh Xx ->] g_gi ->] -> ->.
-exists x => //; apply: orbit_transl.
-by rewrite !rcosetM rcoset_id // -rcosetE mem_orbit.
+have sHXgHGg x: x \in X -> H_g_rcosets x \in HGg.
+  by move/sXG=> Gx; apply: mem_imset; rewrite -rcosetE mem_imset.
+apply/setP=> Hxg; apply/imsetP/idP=> [[x /sHXgHGg HGgHxg -> //] | HGgHxg].
+have [_ /rcosetsP[z Gz ->] ->] := imsetP HGgHxg.
+pose Hzg := H :* z * <[g]>; pose x := transversal_repr 1 X Hzg.
+have HGgHzg: Hzg \in HG :* <[g]>.
+  by rewrite mem_mulg ?set11 // -rcosetE mem_imset.
+have Hzg_x: x \in Hzg by rewrite (repr_mem_pblock trX).
+exists x; first by rewrite (repr_mem_transversal trX).
+case/mulsgP: Hzg_x => y u /rcoset_transl <- /(orbit_act 'Rs) <- -> /=.
+by rewrite rcosetE -rcosetM.
 Qed.
 
-Local Notation imHg_eq := im_rcosets_pcycle_transversal.
+Local Notation defHgX := rcosets_cycle_transversal.
 
-Lemma sum_card_rcosets_pcycles : (\sum_(x \in X) n_ x)%N = #|G : H|.
+Let injHg: {in X &, injective H_g_rcosets}.
 Proof.
-have [injHg _ _]:= trX.
-transitivity (\sum_(Hxg \in orbit 'Rs <[g]> @: rcosets H G) #|Hxg|)%N. 
-  by rewrite -imHg_eq big_imset.
-exact: (acts_sum_card_orbit (subset_trans Gcycg (actsRs_rcosets _ _))).
+apply/imset_injP; rewrite defHgX (card_transversal trX) defHGg.
+by rewrite (card_in_imset injHGg).
 Qed.
 
-Lemma transfer_pcycle_def :
-  transfer g = \sum_(x \in X) fmalpha ((g ^+ n_ x) ^ x^-1).
+Lemma sum_index_rcosets_cycle : (\sum_(x \in X) n_ x)%N = #|G : H|.
+Proof. by rewrite [#|G : H|](card_partition partHGg) -defHgX big_imset. Qed.
+
+Lemma transfer_cycle_expansion :
+   transfer g = \sum_(x \in X) fmalpha ((g ^+ n_ x) ^ x^-1).
 Proof.
-have [injHg sXG /subsetP sGHXg] := trX.
-pose repset := \bigcup_(x \in X) [set x * g ^+ (i : 'I__) | i <- 'I_(n_ x)].
-pose transX Hy := repr (Hy :&: repset).
+pose Y := \bigcup_(x \in X) [set x * g ^+ (i : 'I__) | i <- 'I_(n_ x)].
+pose rY := transversal_repr 1 Y.
 pose pcyc x := pcycle (actperm 'Rs g) (H :* x).
 pose traj x := traject (actperm 'Rs g) (H :* x) #|pcyc x|.
 have Hgr_eq x: H_g_rcosets x = pcyc x.
   by rewrite /H_g_rcosets -orbitRs -pcycle_actperm ?inE.
 have pcyc_eq x: pcyc x =i traj x by exact: pcycle_traject.
 have uniq_traj x: uniq (traj x) by apply: uniq_traject_pcycle.
-have n_eq x: n_ x = #|pcyc x| by rewrite /n_ Hgr_eq.
+have n_eq x: n_ x = #|pcyc x| by rewrite -Hgr_eq.
 have size_traj x: size (traj x) = n_ x by rewrite n_eq size_traject.
 have nth_traj x j: j < n_ x -> nth (H :* x) (traj x) j = H :* (x * g ^+ j). 
   move=> lt_j_x; rewrite nth_traject -?n_eq //.
   by rewrite  -permX -morphX ?inE // actpermE //= rcosetE rcosetM.
-have transX_mem y: y \in G -> transX (H :* y) \in H :* y :&: repset.
-  case/sGHXg/mulsgP=> _ g0 /mulsgP[h x Hh Xx ->] cycGg0 ->{y}.
-  rewrite -mulgA rcosetM rcoset_id //.
-  pose j := index (H :* (x * g0)) (traj x).
-  have lt_j_x: j < n_ x.
-    by rewrite -size_traj index_mem rcosetM -rcosetE -pcyc_eq -Hgr_eq mem_imset.
-  apply: (subsetP _ _ (mem_repr (x * g ^+ j) _)); first by [].
-  rewrite inE rcoset_sym -nth_traj // nth_index ?rcoset_refl //=; last first.
-    by rewrite -pcyc_eq -Hgr_eq rcosetM -rcosetE mem_imset.
-  by apply/bigcupP; exists x => //; apply/imsetP; exists (Ordinal lt_j_x).
-have coset_transversal_transX : coset_transversal transX.
-  move=> Hy HG_Hy /=; have [y Gy ->] := rcosetsP HG_Hy.
-  exact: (subsetP (subsetIl _ _) _ (transX_mem _ _)).
-have transXE x i : 
-    x \in X -> i < n_ x -> transX (H :* x :* g ^+ i) = x * g ^+ i.
-- move=> Xx lt_i_x; rewrite -rcosetM.
-  have Gxgi : x * g ^+ i \in G by rewrite groupM ?(subsetP sXG x) // ?groupX. 
-  case/setIP: (transX_mem _ Gxgi) => Hxgi_transX {Gxgi}.
-  case/bigcupP=> x' Xx' /imsetP[j Ij transX_eq]; rewrite transX_eq.
-  have xx' : x = x'.
-    apply: injHg => //; apply: orbit_transl; apply/orbitP. 
-    exists (g ^+ j * g ^- i) => /=.
-      by rewrite ?groupM ?groupV ?groupX //= ?cycle_id //.
-    rewrite rcosetE -rcosetM mulgA rcosetM -transX_eq.
-    by rewrite (rcoset_transl Hxgi_transX) -rcosetM mulgK.
-  have lt_j_x : j < n_ x by rewrite xx'.
-  rewrite xx'; congr (_ * _ ^+ _).
-  apply/eqP; rewrite -(@nth_uniq _ (H :* x) (traj x)) ?size_traj //.
-  apply/eqP; rewrite !nth_traj // -?size_traj //.
-  by apply: rcoset_transl; rewrite {1}xx' -transX_eq.
-rewrite (transfer_indep coset_transversal_transX Gg) /V.
-rewrite (partition_big_imset (orbit 'Rs <[g]>)) /=.
-rewrite -imHg_eq big_imset //=; apply eq_bigr=> x Xx.
-rewrite (eq_bigl (mem (H_g_rcosets x))) //= => [|Hx]; last first.
-  rewrite /H_g_rcosets orbit_eq_mem //=.
-  apply/andP/idP; [case=> // | split=> //].
-  apply: subsetP H0; apply/subsetP=> _ /orbitP[g0 cycgg0 <-].
-  rewrite //= rcosetE -rcosetM -rcosetE mem_imset //.
-  by rewrite groupM ?(subsetP sXG x) ?(subsetP Gcycg g0).
-rewrite Hgr_eq (eq_bigl _ _ (pcyc_eq x)) -big_uniq // /traj /n_ Hgr_eq /=.
-case def_n: {-}(#|_|) => [|n].
-  by rewrite (cardD1 (H :* x)) pcycle_id in def_n.
+have sYG: Y \subset G.
+  apply/bigcupsP=> x Xx; apply/subsetP=> _ /imsetP[i _ ->].
+  by rewrite groupM ?groupX // sXG.
+have trY: is_transversal Y HG G.
+  apply/and3P; split=> //; apply/forall_inP=> Hy.
+  have /and3P[/eqP <- _ _] := partHGg; rewrite -defHgX cover_imset.
+  case/bigcupP=> x Xx; rewrite Hgr_eq pcyc_eq => /trajectP[i].
+  rewrite -n_eq -permX -morphX ?in_setT // actpermE /= rcosetE -rcosetM => lti.
+  set y := x * _ => ->{Hy}; pose oi := Ordinal lti.
+  have Yy: y \in Y by apply/bigcupP; exists x => //; apply/imsetP; exists oi.
+  apply/cards1P; exists y; apply/esym/eqP.
+  rewrite eqEsubset sub1set inE Yy rcoset_refl.
+  apply/subsetP=> _ /setIP[/bigcupP[x' Xx' /imsetP[j _ ->]] Hy_x'gj].
+  have eq_xx': x = x'.
+    apply: (pblock_inj trX) => //; have /andP[/and3P[_ tiX _] _] := trX.
+    have HGgHyg: H :* y * <[g]> \in HG :* <[g]>.
+      by rewrite mem_mulg ?set11 // -rcosetE mem_imset ?(subsetP sYG).
+    rewrite !(def_pblock tiX HGgHyg) //.
+      by rewrite -[x'](mulgK (g ^+ j)) mem_mulg // groupV mem_cycle.
+    by rewrite -[x](mulgK (g ^+ i)) mem_mulg ?rcoset_refl // groupV mem_cycle.
+  apply/set1P; rewrite /y eq_xx'; congr (_ * _ ^+ _) => //; apply/eqP.
+  rewrite -(@nth_uniq _ (H :* x) (traj x)) ?size_traj // ?eq_xx' //.
+  by rewrite !nth_traj ?(rcoset_transl Hy_x'gj) // -eq_xx'.
+have rYE x i : x \in X -> i < n_ x -> rY (H :* x :* g ^+ i) = x * g ^+ i.
+  move=> Xx lt_i_x; rewrite -rcosetM; apply: (canLR_in (pblockK trY 1)).
+    by apply/bigcupP; exists x => //; apply/imsetP; exists (Ordinal lt_i_x).
+  apply/esym/def_pblock; last exact: rcoset_refl; first by case/and3P: partHG.
+  by rewrite -rcosetE mem_imset ?groupM ?groupX // sXG.
+rewrite (transfer_indep trY Gg) /V -/rY (set_partition_big _ partHGg) /=.
+rewrite -defHgX big_imset /=; last first.
+  apply/imset_injP; rewrite defHgX (card_transversal trX) defHGg.
+  by rewrite (card_in_imset injHGg).
+apply eq_bigr=> x Xx; rewrite Hgr_eq (eq_bigl _ _ (pcyc_eq x)) -big_uniq //=.
+have n_gt0: 0 < n_ x by rewrite indexg_gt0.
+rewrite /traj -n_eq; case def_n: (n_ x) (n_gt0) => // [n] _.
 rewrite conjgE invgK -{1}[H :* x]rcoset1 -{1}(expg0 g).
-rewrite def_n; elim: {1 3}n 0%N (addn0 n) => [|m IHm] i def_i /=.
-  rewrite big_cons big_nil addr0 {i}[i]def_i transXE // ?n_eq ?def_n //.
+elim: {1 3}n 0%N (addn0 n) => [|m IHm] i def_i /=.
+  rewrite big_seq1 {i}[i]def_i rYE // ?def_n //.
   rewrite  -(mulgA _ _ g) -rcosetM -expgSr -[(H :* x) :* _]rcosetE. 
-  rewrite -actpermE morphX ?inE // permX // -def_n iter_pcycle mulgA.
-  by rewrite -[H :* x]rcoset1 (transXE _ 0%N) ?mulg1 // n_eq def_n.
-rewrite big_cons transXE //; last by rewrite n_eq def_n -def_i ltnS leq_addl. 
+  rewrite -actpermE morphX ?inE // permX // -{2}def_n n_eq iter_pcycle mulgA.
+  by rewrite -[H :* x]rcoset1 (rYE _ 0%N) ?mulg1.
+rewrite big_cons rYE //; last by rewrite def_n -def_i ltnS leq_addl.
 rewrite permE /= rcosetE -rcosetM -(mulgA _ _ g) -expgSr.
-rewrite addSnnS in def_i; rewrite transXE //; last first.
-  by rewrite n_eq def_n -def_i ltnS leq_addl.
-by rewrite mulgV [fmalpha 1]morph1 add0r IHm.
+rewrite addSnnS in def_i; rewrite IHm //.
+rewrite rYE //; last by rewrite def_n -def_i ltnS leq_addl.
+by rewrite mulgV [fmalpha 1]morph1 add0r.
 Qed.
 
 End FactorTransfer.

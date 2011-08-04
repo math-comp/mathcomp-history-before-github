@@ -126,6 +126,7 @@ Require Import ssreflect ssrfun.
 (*            transitive R <-> R is transitive.                               *)
 (*       left_transitive R <-> R is a congruence on its left hand side.       *)
 (*      right_transitive R <-> R is a congruence on its right hand side.      *)
+(*       equivalence_rel R <-> R is an equivalence relation.                  *)
 (* Localization of (Prop) predicates; if P1 is convertible to forall x, Qx,   *)
 (* P2 to forall x y, Qxy and P3 to forall x y z, Qxyz :                       *)
 (*            {for y, P1} <-> Qx{y / x}.                                      *)
@@ -1104,6 +1105,8 @@ Definition irreflexive := forall x, R x x = false.
 Definition left_transitive := forall x y, R x y -> R x =1 R y.
 Definition right_transitive := forall x y, R x y -> R^~ x =1 R^~ y.
 
+Section PER.
+
 Hypotheses (symR : symmetric) (trR : transitive).
 
 Lemma sym_left_transitive : left_transitive.
@@ -1111,6 +1114,19 @@ Proof. by move=> x y Rxy z; apply/idP/idP; apply: trR; rewrite // symR. Qed.
 
 Lemma sym_right_transitive : right_transitive.
 Proof. by move=> x y /sym_left_transitive Rxy z; rewrite !(symR z) Rxy. Qed.
+
+End PER.
+
+(* We define the equivalence property with prenex quantification so that it   *)
+(* can be localized using the {in ..., ..} form defined below.                *)
+
+Definition equivalence_rel := forall x y z, R z z * (R x y -> R x z = R y z).
+
+Lemma equivalence_relP : equivalence_rel <-> reflexive /\ left_transitive.
+Proof.
+split=> [eqiR | [Rxx trR] x y z]; last by split=> [|/trR->].
+by split=> [x | x y Rxy z]; [rewrite (eqiR x x x) | rewrite (eqiR x y z)].
+Qed.
 
 End RelationProperties.
 
@@ -1366,3 +1382,12 @@ Lemma sub_in21 T T3 d d' d3 d3' (P : T -> T -> T3 -> Prop) :
   sub_mem d d' -> sub_mem d3 d3' ->
   forall Ph : ph {all3 P}, prop_in21 d' d3' Ph -> prop_in21 d d3 Ph.
 Proof. by move=> /= sub sub3; exact: sub_in111. Qed.
+
+Lemma equivalence_relP_in T (R : rel T) (A : pred T) :
+  {in A & &, equivalence_rel R}
+   <-> {in A, reflexive R} /\ {in A &, forall x y, R x y -> {in A, R x =1 R y}}.
+Proof.
+split=> [eqiR | [Rxx trR] x y z *]; last by split=> [|/trR-> //]; exact: Rxx.
+by split=> [x Ax|x y Ax Ay Rxy z Az]; [rewrite (eqiR x x) | rewrite (eqiR x y)].
+Qed.
+

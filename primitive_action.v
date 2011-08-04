@@ -88,8 +88,8 @@ apply/forallP/maximal_eqP=> /= [primG | [_ maxCx] Q].
   by rewrite (subsetP sCH) // inE Cab !groupM ?groupV // (subsetP sHG).
 apply/and3P=> [[/and3P[/eqP defS tIQ ntQ]]]; set sto := (to^*)%act => actQ.
 rewrite !ltnNge -negb_or => /orP[].
-pose X := cover_at x Q; have Xx: x \in X by rewrite mem_cover_at defS.
-have QX: X \in Q by rewrite cover_at_mem ?defS.
+pose X := pblock Q x; have Xx: x \in X by rewrite mem_pblock defS.
+have QX: X \in Q by rewrite pblock_mem ?defS.
 have toX Y a: Y \in Q -> a \in G -> to x a \in Y -> sto X a = Y.
   move=> QY Ga Yxa; rewrite -(contraNeq (trivIsetP tIQ Y (sto X a) _ _)) //.
     by rewrite (actsP actQ).

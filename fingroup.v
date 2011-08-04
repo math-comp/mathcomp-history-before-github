@@ -1082,11 +1082,17 @@ Proof. by rewrite [_ :^ _]imset_set1. Qed.
 Lemma conjs1g x : 1 :^ x = 1.
 Proof. by rewrite conjg_set1 conj1g. Qed.
 
+Lemma conjsg_eq1 A x : (A :^ x == 1%g) = (A == 1%g).
+Proof. by rewrite (canF_eq (conjsgK x)) conjs1g. Qed.
+
 Lemma conjsMg A B x : (A * B) :^ x = A :^ x * B :^ x.
 Proof. by rewrite !conjsgE !mulgA rcosetK. Qed.
 
 Lemma conjIg A B x : (A :&: B) :^ x = A :^ x :&: B :^ x.
 Proof. by rewrite !conjg_preim preimsetI. Qed.
+
+Lemma conj0g x : set0 :^ x = set0.
+Proof. exact: imset0. Qed.
 
 Lemma conjTg x : [set: gT] :^ x = [set: gT].
 Proof. by rewrite conjg_preim preimsetT. Qed.
@@ -1590,11 +1596,11 @@ Qed.
 
 (* Conjugates. *)
 
+Lemma group_setJ A x : group_set (A :^ x) = group_set A.
+Proof. by rewrite /group_set mem_conjg conj1g -conjsMg conjSg. Qed.
+
 Lemma group_set_conjG x : group_set (G :^ x).
-Proof.
-apply/group_setP; split=> [|y z]; rewrite !mem_conjg ?conj1g ?group1 ?conjMg //.
-exact: groupM.
-Qed.
+Proof. by rewrite group_setJ groupP. Qed.
 
 Canonical conjG_group x := group (group_set_conjG x).
 
@@ -1915,7 +1921,7 @@ Implicit Types G H K : {group gT}.
 Lemma LaGrangeI G H : (#|G :&: H| * #|G : H|)%N = #|G|.
 Proof.
 rewrite -[#|G|]sum1_card (partition_big_imset (rcoset H)) /=.
-rewrite mulnC -sum_nat_const; apply: eq_bigr=> A; case/rcosetsP=> x Gx ->{A}.
+rewrite mulnC -sum_nat_const; apply: eq_bigr => _ /rcosetsP[x Gx ->].
 rewrite -(card_rcoset _ x) -sum1_card; apply: eq_bigl => y.
 rewrite rcosetE eqEcard mulGS !card_rcoset leqnn andbT.
 by rewrite group_modr sub1set // inE.
@@ -2009,14 +2015,27 @@ congr #|(_ : {set _})|; apply/eqP; rewrite eqEsubset andbC imsetS ?mulG_subr //.
 by apply/subsetP=> _ /imsetP[x GAx ->]; rewrite rcosetE mem_rcosets.
 Qed.
 
+Lemma rcosets_partition_mul G H : partition (rcosets H G) (H * G).
+Proof.
+have eqiR: {in H * G & &, equivalence_rel [rel x y | y \in rcoset H x]}.
+  by move=> *; rewrite /= !rcosetE rcoset_refl; split=> // /rcoset_transl->.
+congr (partition _ _): (equivalence_partitionP eqiR); apply/setP=> Hx.
+apply/imsetP/idP=> [[x HGx defHx] | /rcosetsP[x Gx ->]].
+  suffices ->: Hx = H :* x by rewrite mem_rcosets.
+  apply/setP=> y; rewrite defHx inE /= rcosetE andb_idl //.
+  by apply: subsetP y; rewrite mulGS sub1set.
+exists (1 * x); rewrite ?mem_mulg // mul1g.
+apply/setP=> y; rewrite inE /= rcosetE andb_idl //.
+by apply: subsetP y; rewrite mulgS ?sub1set.
+Qed.
+
+Lemma rcosets_partition G H : H \subset G -> partition (rcosets H G) G.
+Proof. by move/mulSGid=> {2}<-; exact: rcosets_partition_mul. Qed.
+
 Lemma LaGrangeMl G H : (#|G| * #|H : G|)%N = #|G * H|.
 Proof.
-symmetry; rewrite mulnC -sum_nat_const /= -sum1_card.
-rewrite (partition_big (fun x => G :* x) (mem (rcosets G H))) /=; last first.
-  by move=> x; rewrite mem_rcosets.
-apply: eq_bigr => _ /imsetP[y Hy ->]; rewrite -(card_rcoset G y) -sum1_card.
-apply: eq_bigl => x; rewrite rcosetE eqEcard !card_rcoset leqnn andbT mulGS.
-by rewrite sub1set; apply: andb_idl; apply: subsetP; rewrite mulgS ?sub1set.
+rewrite mulnC -(card_uniform_partition _ (rcosets_partition_mul H G)) //.
+by move=> _ /rcosetsP[x Hx ->]; rewrite card_rcoset.
 Qed.
 
 Lemma LaGrangeMr G H : (#|G : H| * #|H|)%N = #|G * H|.
@@ -2759,6 +2778,9 @@ Canonical centraliser_group A : {group _} := Eval hnf in [group of 'C(A)].
 
 Lemma cent_set1 x : 'C([set x]) = 'C[x].
 Proof. by apply: big_pred1 => y /=; rewrite inE. Qed.
+
+Lemma cent1J x y : 'C[x ^ y] = 'C[x] :^ y.
+Proof. by rewrite -conjg_set1 normJ. Qed.
 
 Lemma centP A x : reflect (centralises x A) (x \in 'C(A)).
 Proof. by apply: (iffP bigcapP) => cxA y /cxA/cent1P. Qed.

@@ -302,6 +302,15 @@ rewrite -(partn_exponentS sHG) -?(card_Hall hallH) ?part_pnat_id //.
 by apply: pnat_dvd piH; exact: exponent_dvdn.
 Qed.
 
+Lemma exponent_Zgroup G : Zgroup G -> exponent G = #|G|.
+Proof.
+move/forall_inP=> ZgG; apply/eqP; rewrite eqn_dvd exponent_dvdn.
+apply/(dvdn_partP _ (cardG_gt0 _)) => p _.
+have [S sylS] := Sylow_exists p G; rewrite -(card_Hall sylS).
+have /cyclicP[x defS]: cyclic S by rewrite ZgG ?(p_Sylow sylS).
+by rewrite defS dvdn_exponent // -cycle_subG -defS (pHall_sub sylS).
+Qed.
+
 Lemma cprod_exponent A B G :
   A \* B = G -> lcmn (exponent A) (exponent B) = (exponent G).
 Proof.

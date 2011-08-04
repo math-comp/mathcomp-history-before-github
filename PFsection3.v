@@ -43,6 +43,9 @@ Variables (gT : finGroupType) (G W W1 W2 : {group gT}).
 
 Hypothesis tiW : cyclicTIhypothesis G W W1 W2.
 
+Lemma cyclicTIhyp_sym : cyclicTIhypothesis G W W2 W1.
+Proof. by case: tiW; rewrite dprodC coprime_sym setUC => ? []. Qed.
+
 Let w1 := #|W1|.
 Let w2 := #|W2|.
 Let V := cyclicTIset tiW.

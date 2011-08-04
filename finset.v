@@ -29,8 +29,17 @@ Require Import finfun bigop.
 (*                      A, see bigop.v).                                      *)
 (* \bigcap_<range> A == the intersection of all A, for i in <range>.          *)
 (*           cover P == the union of the set of sets P.                       *)
-(*        trivIset P == the elements of P are pairwise disjoint.              *)
-(*     partition P A == P is a partition of A.                                *)
+(*        trivIset P <=> the elements of P are pairwise disjoint.             *)
+(*     partition P A <=> P is a partition of A.                               *)
+(*        pblock P x == a block of P containing x, or else set0.              *)
+(* equivalence_partition R D == the partition induced on D by the relation R  *)
+(*                       (provided R is an equivalence relation in D).        *)
+(*       preim_partition f D == the partition induced on D by the equivalence *)
+(*                              [rel x y | f x == f y].                       *)
+(*    is_transversal X P D <=> X is a transversal of the partition P of D.    *)
+(*   transversal P D == a transversal of P, provided P is a partition of D.   *)
+(*  transversal_repr x0 X B == a representative of B \in P selected by the    *)
+(*                      tranversal X of P, or else x0.                        *)
 (*        powerset A == the set of all subset of A                            *)
 (*          P ::&: A == those sets in P that are subsets of A.                *)
 (*         f @^-1: R == the preimage of the collective predicate R under f.   *)
@@ -675,11 +684,20 @@ Proof. by rewrite cardsE card1. Qed.
 Lemma cardsUI A B : #|A :|: B| + #|A :&: B| = #|A| + #|B|.
 Proof. by rewrite !cardsE cardUI. Qed.
 
+Lemma cardsU A B : #|A :|: B| = (#|A| + #|B| - #|A :&: B|)%N.
+Proof. by rewrite -cardsUI addnK. Qed.
+
+Lemma cardsI A B : #|A :&: B| = (#|A| + #|B| - #|A :|: B|)%N.
+Proof. by rewrite  -cardsUI addKn. Qed.
+
 Lemma cardsT : #|[set: T]| = #|T|.
 Proof. by rewrite cardsE. Qed.
 
 Lemma cardsID B A : #|A :&: B| + #|A :\: B| = #|A|.
 Proof. by rewrite !cardsE cardID. Qed.
+
+Lemma cardsD A B : #|A :\: B| = (#|A| - #|A :&: B|)%N.
+Proof. by rewrite -(cardsID B A) addKn. Qed.
 
 Lemma cardsC A : #|A| + #|~: A| = #|T|.
 Proof. by rewrite cardsE cardC. Qed.
@@ -755,6 +773,9 @@ Implicit Arguments setIidPl [A B].
 
 Lemma setIidPr A B : reflect (A :&: B = B) (B \subset A).
 Proof. rewrite setIC; exact: setIidPl. Qed.
+
+Lemma cardsDS A B : B \subset A -> #|A :\: B| = (#|A| - #|B|)%N.
+Proof. by rewrite cardsD => /setIidPr->. Qed.
 
 Lemma setUidPl A B : reflect (A :|: B = A) (B \subset A).
 Proof.
@@ -896,7 +917,8 @@ Implicit Arguments subsetIP [T A B C].
 Implicit Arguments subUsetP [T A B C].
 Implicit Arguments subsetDP [T A B C].
 Implicit Arguments subsetD1P [T A B x].
-Prenex Implicits set1P set1_inj set2P setU1P setD1P setIdP setIP setUP setDP.
+Prenex Implicits set1 set1_inj.
+Prenex Implicits set1P set2P setU1P setD1P setIdP setIP setUP setDP.
 Prenex Implicits cards1P setCP setIidPl setIidPr setUidPl setUidPr setDidPl.
 Hint Resolve subsetT_hint.
 
@@ -1029,6 +1051,12 @@ Proof. by move=> Dx; apply/imsetP; exists x. Qed.
 
 Lemma imset0 : f @: set0 = set0.
 Proof. by apply/setP => y; rewrite inE; apply/imsetP=> [[x]]; rewrite inE. Qed.
+
+Lemma imset_eq0 (A : {set aT}) : (f @: A == set0) = (A == set0).
+Proof.
+have [-> | [x Ax]] := set_0Vmem A; first by rewrite imset0 !eqxx.
+by rewrite -!cards_eq0 (cardsD1 x) Ax (cardsD1 (f x)) mem_imset.
+Qed.
 
 Lemma imset_set1 x : f @: [set x] = [set f x].
 Proof.
@@ -1326,6 +1354,9 @@ suffices fx: x \in codom f by rewrite -(f_iinv fx) fK.
 move: x; apply/(subset_cardP (card_codom (can_inj fK))); exact/subsetP.
 Qed.
 
+Lemma imset_id (T : finType) (A : {set T}) : [set x | x <- A] = A.
+Proof. by apply/setP=> x; rewrite (@can_imset_pre _ _ id) ?inE. Qed.
+
 Lemma card_preimset (T : finType) (f : T -> T) (A : {set T}) :
   injective f -> #|f @^-1: A| = #|A|.
 Proof.
@@ -1497,10 +1528,7 @@ Notation "\bigcap_ ( i \in A ) F" :=
 Section BigSetOps.
 
 Variables T I : finType.
-Implicit Type U : pred T.
-Implicit Type P : pred I.
-Implicit Types A B : {set I}.
-Implicit Type F :  I -> {set T}.
+Implicit Types (U : pred T) (P : pred I) (A B : {set I}) (F :  I -> {set T}).
 
 (* It is very hard to use this lemma, because the unification fails to *)
 (* defer the F j pattern (even though it's a Miller pattern!).         *)
@@ -1648,15 +1676,19 @@ End ImsetCurry.
 
 Section Partitions.
 
-Variable T I : finType.
-Implicit Types A B D : {set T}.
-Implicit Type J : {set I}.
-Implicit Types F : I -> {set T}.
-Implicit Types P Q : {set {set T}}.
+Variables T I : finType.
+Implicit Types (x y z : T) (A B D X : {set T}) (P Q : {set {set T}}).
+Implicit Types (J : pred I) (F : I -> {set T}).
 
-Definition cover P := \bigcup_(A \in P) A.
-Definition trivIset P := \sum_(A \in P) #|A| == #|cover P|.
+Definition cover P := \bigcup_(B \in P) B.
+Definition pblock P x := odflt set0 (pick [pred B \in P | x \in B]).
+Definition trivIset P := \sum_(B \in P) #|B| == #|cover P|.
 Definition partition P D := [&& cover P == D, trivIset P & set0 \notin P].
+
+Definition is_transversal X P D :=
+  [&& partition P D, X \subset D & forallb B, (B \in P) ==> (#|X :&: B| == 1)].
+Definition transversal P D := [set odflt x [pick y \in pblock P x] | x <- D].
+Definition transversal_repr x0 X B := odflt x0 [pick x \in X :&: B].
 
 Lemma leq_card_setU A B : #|A :|: B| <= #|A| + #|B| ?= iff [disjoint A & B].
 Proof.
@@ -1691,47 +1723,50 @@ by case/setU1P: PC PB => [->|PC] /setU1P[->|PB]; try by [exact: tI | case/eqP];
   first rewrite disjoint_sym; rewrite disjoints_subset disjA.
 Qed.
 
+Lemma trivIsetS P Q : P \subset Q -> trivIset Q -> trivIset P.
+Proof. by move/subsetP/sub_in2=> sPQ /trivIsetP/sPQ/trivIsetP. Qed.
+
 Lemma trivIsetI P D : trivIset P -> trivIset (P ::&: D).
-Proof.
-move/trivIsetP=> tI; apply/trivIsetP => A B /setIdP[PA _] /setIdP[PB _].
-exact: tI.
-Qed.
+Proof. by apply: trivIsetS; rewrite -setI_powerset subsetIl. Qed.
 
 Lemma cover_setI P D : cover (P ::&: D) \subset cover P :&: D.
 Proof.
-apply/bigcupsP=> A /setIdP[PA sAD].
-by rewrite subsetI sAD andbT (bigcup_max A).
+by apply/bigcupsP=> A /setIdP[PA sAD]; rewrite subsetI sAD andbT (bigcup_max A).
 Qed.
 
-Definition cover_at x P := odflt set0 (pick [pred A \in P | x \in A]).
-
-Lemma mem_cover_at P x : (x \in cover_at x P) = (x \in cover P).
+Lemma mem_pblock P x : (x \in pblock P x) = (x \in cover P).
 Proof.
-rewrite /cover_at; symmetry; apply/bigcupP.
+rewrite /pblock; apply/esym/bigcupP.
 case: pickP => /= [A /andP[PA Ax]| noA]; first by rewrite Ax; exists A.
 by rewrite inE => [[A PA Ax]]; case/andP: (noA A).
 Qed.
 
-Lemma cover_at_mem P x : x \in cover P -> cover_at x P \in P.
+Lemma pblock_mem P x : x \in cover P -> pblock P x \in P.
 Proof.
-rewrite -mem_cover_at /cover_at.
-by case: pickP => [A /andP[]| _] //=; rewrite inE.
+by rewrite -mem_pblock /pblock; case: pickP => [A /andP[]| _] //=; rewrite inE.
 Qed.
 
-Lemma cover_at_eq P A x :
-  trivIset P -> A \in P -> (x \in cover P) && (cover_at x P == A) = (x \in A).
+Lemma def_pblock P B x : trivIset P -> B \in P -> x \in B -> pblock P x = B.
 Proof.
-move/trivIsetP=> tI PA; rewrite -mem_cover_at /cover_at.
-case: pickP => /= [B /andP[PB Bx]| /(_ A)]; last by rewrite /= inE PA.
-rewrite Bx; apply/eqP/idP=> [<- // | Ax].
-by apply/(contraNeq (tI B A PB PA))/pred0Pn; exists x; exact/andP.
+move/trivIsetP=> tiP PB Bx; have Px: x \in cover P by apply/bigcupP; exists B.
+apply: (contraNeq (tiP _ _ _ PB)); first by rewrite pblock_mem.
+by apply/pred0Pn; exists x; rewrite /= mem_pblock Px.
 Qed.
 
-Lemma same_cover_at P x y :
-  trivIset P -> x \in cover_at y P -> cover_at x P = cover_at y P.
+Lemma same_pblock P x y :
+  trivIset P -> x \in pblock P y -> pblock P x = pblock P y.
 Proof.
-rewrite {1 3}/cover_at => tI; case: pickP => [A|]; last by rewrite inE.
-by case/andP=> PA _{y} /=; rewrite -(cover_at_eq _ tI) // => /andP[_ /eqP].
+rewrite {1 3}/pblock => tI; case: pickP => [A|]; last by rewrite inE.
+by case/andP=> PA _{y} /= Ax; exact: def_pblock.
+Qed.
+
+Lemma eq_pblock P x y :
+    trivIset P -> x \in cover P ->
+  (pblock P x == pblock P y) = (y \in pblock P x).
+Proof.
+move=> tiP Px; apply/eqP/idP=> [eq_xy | /same_pblock-> //].
+move: Px; rewrite -mem_pblock eq_xy /pblock.
+by case: pickP => [B /andP[] // | _]; rewrite inE.
 Qed.
 
 Lemma trivIsetU1 A P :
@@ -1763,6 +1798,18 @@ apply: contraNeq notPset0 => neq_ij; apply/imsetP; exists i => //; apply/eqP.
 by rewrite eq_sym -[F i]setIid setI_eq0 {1}eqFij tiF.
 Qed.
 
+Lemma cover_partition P D : partition P D -> cover P = D.
+Proof. by case/and3P=> /eqP. Qed.
+
+Lemma card_partition P D : partition P D -> #|D| = \sum_(A \in P) #|A|.
+Proof. by case/and3P=> /eqP <- /eqnP. Qed.
+
+Lemma card_uniform_partition n P D :
+  {in P, forall A, #|A| = n} -> partition P D -> #|D| = #|P| * n.
+Proof.
+by move=> uniP /card_partition->; rewrite -sum_nat_const; exact: eq_bigr.
+Qed.
+
 Section BigOps.
 
 Variables (R : Type) (idx : R) (op : Monoid.com_law idx).
@@ -1772,9 +1819,11 @@ Let rhs P E := \big[op/idx]_(A \in P) \big[op/idx]_(x \in A) E x.
 Lemma big_trivIset_cond P (K : pred T) (E : T -> R) :
   trivIset P -> \big[op/idx]_(x \in cover P | K x) E x = rhs_cond P K E.
 Proof.
-move=> tiP; rewrite (partition_big (cover_at^~ P) (mem P)) -/op => [|x].
-  by apply: eq_bigr => A PA; apply: eq_bigl => x; rewrite andbAC cover_at_eq.
-by case/andP=> Px _; exact: cover_at_mem.
+move=> tiP; rewrite (partition_big (pblock P) (mem P)) -/op => /= [|x].
+  apply: eq_bigr => A PA; apply: eq_bigl => x; rewrite andbAC; congr (_ && _).
+  rewrite -mem_pblock; apply/andP/idP=> [[Px /eqP <- //] | Ax].
+  by rewrite (def_pblock tiP PA Ax).
+by case/andP=> Px _; exact: pblock_mem.
 Qed.
 
 Lemma big_trivIset P (E : T -> R) :
@@ -1794,35 +1843,153 @@ Proof. by case/and3P=> /eqP <- tI_P _; exact: big_trivIset. Qed.
 
 End BigOps.
 
+Section Equivalence.
+
+Variables (R : rel T) (D : {set T}).
+
+Let Px x := [set y \in D | R x y].
+Definition equivalence_partition := [set Px x | x <- D].
+Local Notation P := equivalence_partition.
+Hypothesis eqiR : {in D & &, equivalence_rel R}.
+
+Let Pxx x : x \in D -> x \in Px x.
+Proof. by move=> Dx; rewrite !inE Dx (eqiR Dx Dx). Qed.
+Let PPx x : x \in D -> Px x \in P := fun Dx => mem_imset _ Dx.
+
+Lemma equivalence_partitionP : partition P D.
+Proof.
+have defD: cover P == D.
+  rewrite eqEsubset; apply/andP; split.
+    by apply/bigcupsP=> _ /imsetP[x Dx ->]; rewrite /Px setIdE subsetIl.
+  by apply/subsetP=> x Dx; apply/bigcupP; exists (Px x); rewrite (Pxx, PPx).
+have tiP: trivIset P.
+  apply/trivIsetP=> _ _ /imsetP[x Dx ->] /imsetP[y Dy ->]; apply: contraR.
+  case/pred0Pn=> z /andP[]; rewrite !inE => /andP[Dz Rxz] /andP[_ Ryz].
+  apply/eqP/setP=> t; rewrite !inE; apply: andb_id2l => Dt.
+  by rewrite (eqiR Dx Dz Dt) // (eqiR Dy Dz Dt).
+rewrite /partition tiP defD /=.
+by apply/imsetP=> [[x /Pxx Px_x Px0]]; rewrite -Px0 inE in Px_x.
+Qed.
+
+Lemma pblock_equivalence_partition :
+  {in D &, forall x y, (y \in pblock P x) = R x y}.
+Proof.
+have [_ tiP _] := and3P equivalence_partitionP. 
+by move=> x y Dx Dy; rewrite /= (def_pblock tiP (PPx Dx) (Pxx Dx)) inE Dy.
+Qed.
+
+End Equivalence.
+
+Lemma pblock_equivalence P D :
+  partition P D -> {in D & &, equivalence_rel (fun x y => y \in pblock P x)}.
+Proof.
+case/and3P=> /eqP <- tiP _ x y z Px Py Pz.
+by rewrite mem_pblock; split=> // /same_pblock->.
+Qed.
+
+Lemma equivalence_partition_pblock P D :
+  partition P D -> equivalence_partition (fun x y => y \in pblock P x) D = P.
+Proof.
+case/and3P=> /eqP <-{D} tiP notP0; apply/setP=> B /=; set D := cover P.
+have defP x: x \in D -> [set y \in D | y \in pblock P x] = pblock P x.
+  by move=> Dx; apply/setIidPr; rewrite (bigcup_max (pblock P x)) ?pblock_mem.
+apply/imsetP/idP=> [[x Px ->{B}] | PB]; first by rewrite defP ?pblock_mem.
+have /set0Pn[x Bx]: B != set0 := memPn notP0 B PB.
+have Px: x \in cover P by apply/bigcupP; exists B.
+by exists x; rewrite // defP // (def_pblock tiP PB Bx).
+Qed.
+
 Section Preim.
 
 Variables (rT : eqType) (f : T -> rT).
 
-Definition preim_at x := f @^-1: pred1 (f x).
-Definition preim_partition D := [set D :&: preim_at x | x <- D].
+Definition preim_partition := equivalence_partition (fun x y => f x == f y).
 
 Lemma preim_partitionP D : partition (preim_partition D) D.
-Proof.
-apply/and3P; split.
-- apply/eqP/setP=> x; apply/bigcupP/idP=> [[_ /imsetP[y _ ->] /setIP[]//] | Dx].
-  by exists (D :&: preim_at x); [exact: mem_imset | rewrite !inE Dx /=].
-- apply/trivIsetP=> _ _ /imsetP[x _ ->] /imsetP[y _ ->]; apply: contraR.
-  case/existsP=> z; rewrite !inE /preim_at -andbA => /andP[-> /=] /andP[].
-  by do 2!move/eqP->.
-apply/imsetP=> [[x Dx /eqP]]; rewrite eq_sym.
-by case/set0Pn; exists x; rewrite !inE Dx /=.
-Qed.
+Proof. by apply/equivalence_partitionP; split=> // /eqP->. Qed.
 
 End Preim.
 
-Lemma card_partition D P : partition P D -> #|D| = \sum_(A \in P) #|A|.
-Proof. by case/and3P=> /eqP <- /eqnP. Qed.
-
-Lemma card_uniform_partition D P n :
-  {in P, forall A, #|A| = n} -> partition P D -> #|D| = #|P| * n.
+Lemma preim_partition_pblock P D :
+  partition P D -> preim_partition (pblock P) D = P.
 Proof.
-by move=> uniP /card_partition->; rewrite -sum_nat_const; exact: eq_bigr.
+move=> partP; have [/eqP defD tiP _] := and3P partP.
+rewrite -{2}(equivalence_partition_pblock partP); apply: eq_in_imset => x Dx.
+by apply/setP=> y; rewrite !inE eq_pblock ?defD.
 Qed.
+
+Lemma transversalP P D : partition P D -> is_transversal (transversal P D) P D.
+Proof.
+case/and3P=> /eqP <- tiP notP0; apply/and3P; split; first exact/and3P.
+  apply/subsetP=> _ /imsetP[x Px ->]; case: pickP => //= y Pxy.
+  by apply/bigcupP; exists (pblock P x); rewrite ?pblock_mem //.
+apply/forall_inP=> B PB; have /set0Pn[x Bx]: B != set0 := memPn notP0 B PB.
+apply/cards1P; exists (odflt x [pick y \in pblock P x]); apply/esym/eqP.
+rewrite eqEsubset sub1set inE -andbA; apply/andP; split.
+  by apply/mem_imset/bigcupP; exists B.
+rewrite (def_pblock tiP PB Bx); case def_y: _ / pickP => [y By | /(_ x)/idP//].
+rewrite By /=; apply/subsetP=> _ /setIP[/imsetP[z Pz ->]].
+case: {1}_ / pickP => [t zPt Bt | /(_ z)/idP[]]; last by rewrite mem_pblock.
+by rewrite -(same_pblock tiP zPt) (def_pblock tiP PB Bt) def_y set11.
+Qed.
+
+Section Transversals.
+
+Variables (X : {set T}) (P : {set {set T}}) (D : {set T}).
+Hypothesis trPX : is_transversal X P D.
+
+Lemma transversal_sub : X \subset D. Proof. by case/and3P: trPX. Qed.
+
+Let tiP : trivIset P. Proof. by case/andP: trPX => /and3P[]. Qed.
+
+Let sXP : {subset X <= cover P}.
+Proof. by case/and3P: trPX => /andP[/eqP-> _] /subsetP. Qed.
+
+Let trX : {in P, forall B, #|X :&: B| == 1}.
+Proof. by case/and3P: trPX => _ _ /forall_inP. Qed.
+
+Lemma setI_transversal_pblock x0 B :
+  B \in P -> X :&: B = [set transversal_repr x0 X B].
+Proof.
+by case/trX/cards1P=> x defXB; rewrite /transversal_repr defXB /pick enum_set1.
+Qed.
+
+Lemma repr_mem_pblock x0 B : B \in P -> transversal_repr x0 X B \in B.
+Proof. by move=> PB; rewrite -sub1set -setI_transversal_pblock ?subsetIr. Qed.
+
+Lemma repr_mem_transversal x0 B : B \in P -> transversal_repr x0 X B \in X.
+Proof. by move=> PB; rewrite -sub1set -setI_transversal_pblock ?subsetIl. Qed.
+
+Lemma transversal_reprK x0 : {in P, cancel (transversal_repr x0 X) (pblock P)}.
+Proof. by move=> B PB; rewrite /= (def_pblock tiP PB) ?repr_mem_pblock. Qed.
+
+Lemma pblockK x0 : {in X, cancel (pblock P) (transversal_repr x0 X)}.
+Proof.
+move=> x Xx; have /bigcupP[B PB Bx] := sXP Xx; rewrite (def_pblock tiP PB Bx).
+by apply/esym/set1P; rewrite -setI_transversal_pblock // inE Xx.
+Qed.
+
+Lemma pblock_inj : {in X &, injective (pblock P)}.
+Proof. by move=> x0; exact: (can_in_inj (pblockK x0)). Qed.
+
+Lemma pblock_transversal : pblock P @: X = P.
+Proof.
+apply/setP=> B; apply/imsetP/idP=> [[x Xx ->] | PB].
+  by rewrite pblock_mem ?sXP.
+have /cards1P[x0 _] := trX PB; set x := transversal_repr x0 X B.
+by exists x; rewrite ?transversal_reprK ?repr_mem_transversal.
+Qed.
+
+Lemma card_transversal : #|X| = #|P|.
+Proof. rewrite -pblock_transversal card_in_imset //; exact: pblock_inj. Qed.
+
+Lemma im_transversal_repr x0 : transversal_repr x0 X @: P = X.
+Proof.
+rewrite -{2}[X]imset_id -pblock_transversal -imset_comp.
+by apply: eq_in_imset; exact: pblockK.
+Qed.
+
+End Transversals.
 
 End Partitions.
 
@@ -1832,8 +1999,26 @@ Implicit Arguments set_partition_big_cond [T R idx op D K E].
 Implicit Arguments big_trivIset [T R idx op E].
 Implicit Arguments set_partition_big [T R idx op D E].
 
-Prenex Implicits cover trivIset partition cover_at trivIsetP.
-Prenex Implicits preim_at preim_partition.
+Prenex Implicits cover trivIset partition pblock trivIsetP.
+
+Lemma partition_partition (T : finType) (D : {set T}) P Q :
+    partition P D -> partition Q P ->
+  partition (cover @: Q) D /\ {in Q &, injective cover}.
+Proof.
+move=> /and3P[/eqP defG tiP notP0] /and3P[/eqP defP tiQ notQ0].
+have sQP E: E \in Q -> {subset E <= P}.
+  by move=> Q_E; apply/subsetP; rewrite -defP (bigcup_max E).
+rewrite /partition cover_imset -(big_trivIset _ tiQ) defP -defG eqxx /= andbC.
+have{notQ0} notQ0: set0 \notin cover @: Q.
+  apply: contra notP0 => /imsetP[E Q_E E0].
+  have /set0Pn[/= A E_A] := memPn notQ0 E Q_E.
+  congr (_ \in P): (sQP E Q_E A E_A).
+  by apply/eqP; rewrite -subset0 E0 (bigcup_max A).
+rewrite notQ0; apply: trivIimset => // E F Q_E Q_F.
+apply: contraR => /pred0Pn[x /andP[/bigcupP[A E_A Ax] /bigcupP[B F_B Bx]]].
+rewrite -(def_pblock tiQ Q_E E_A) -(def_pblock tiP _ Ax) ?(sQP E) //.
+by rewrite -(def_pblock tiQ Q_F F_B) -(def_pblock tiP _ Bx) ?(sQP F).
+Qed.
 
 (**********************************************************************)
 (*                                                                    *)

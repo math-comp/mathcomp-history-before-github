@@ -575,10 +575,6 @@ Variable (gT : finGroupType) (G : {group gT}).
 Implicit Type i : Iirr G.
 Open Scope group_ring_scope.
 
-(* Should move to cfun *)
-Lemma cfRes_id (B : {set gT}) phi : 'Res[B] phi = phi.
-Proof. by apply/cfun_in_genP=> x Gx; rewrite cfunElock Gx subxx. Qed.
-
 Lemma cfun_Chi i : cfRepr 'Chi_i = 'chi[G]_i.
 Proof.
 unlock irr; rewrite (tnth_nth 0) nth_mkseq // -[<<G>>]/(gval _) genGidG.
@@ -766,9 +762,11 @@ Qed.
 
 End IrrClass.
 
+Implicit Arguments chi_inj [[gT] [G] x1 x2].
+
 Section IsChar.
 
-Variable (gT : finGroupType).
+Variable gT : finGroupType.
 
 Definition is_char (G : {set gT}) (phi : 'CF(G)) :=
   forallb i, isNatC (coord (irr G) phi i).

@@ -23,6 +23,8 @@ Require Import bigop finset fingroup morphism perm automorphism quotient.
 (*                          toAut : actm to @* D \subset Aut R (actm to is    *)
 (*                          the morphism to {perm rT} associated to 'to').    *)
 (*      orbit to A x == the orbit of x under the action of A via to.          *)
+(* orbit_transversal to A S == a transversal of the partition orbit to A @: S *)
+(*                      of S, provided A acts on S via to.                    *)
 (*    amove to A x y == the set of a in A whose action send x to y.           *)
 (*      'C_A[x | to] == the stabiliser of x : rT in A :&: D.                  *)
 (*      'C_A(S | to) == the point-wise stabiliser of S : {set rT} in D :&: A. *)
@@ -551,6 +553,14 @@ Proof.
 by move=> sGD Gxy; rewrite !(orbit_in_sym _ z) ?(orbit_in_transl _ Gxy).
 Qed.
 
+Lemma orbit_act_in x a G :
+  G \subset D -> a \in G -> orbit to G (to x a) = orbit to G x.
+Proof. by move=> sGD /mem_orbit/orbit_in_transl->. Qed.
+
+Lemma orbit_actr_in x a G y :
+  G \subset D -> a \in G -> (to y a \in orbit to G x) = (y \in orbit to G x).
+Proof. by move=> sGD /mem_orbit/orbit_in_transr->. Qed.
+
 Lemma orbit_inv_in A x y :
   A \subset D -> (y \in orbit to A^-1 x) = (x \in orbit to A y).
 Proof.
@@ -596,6 +606,40 @@ Lemma card_orbit1 G x : #|orbit to G x| = 1%N -> orbit to G x = [set x].
 Proof.
 move=> orb1; apply/eqP; rewrite eq_sym eqEcard {}orb1 cards1.
 by rewrite sub1set orbit_refl.
+Qed.
+
+Lemma orbit_partition G S :
+  [acts G, on S | to] -> partition (orbit to G @: S) S.
+Proof.
+move=> actsGS; have sGD := acts_dom actsGS.
+have eqiG: {in S & &, equivalence_rel [rel x y | y \in orbit to G x]}.
+  by move=> x y z * /=; rewrite orbit_refl; split=> // /orbit_in_transl->.
+congr (partition _ _): (equivalence_partitionP eqiG).
+apply: eq_in_imset => x Sx; apply/setP=> y.
+by rewrite inE /= andb_idl // => /acts_in_orbit->.
+Qed.
+
+Definition orbit_transversal A S := transversal (orbit to A @: S) S.
+
+Lemma orbit_transversalP G S (P := orbit to G @: S)
+                             (X := orbit_transversal G S) :
+  [acts G, on S | to] ->
+ [/\ is_transversal X P S, X \subset S,
+     {in X &, forall x y, (y \in orbit to G x) = (x == y)}
+   & forall x, x \in S -> exists2 a, a \in G & to x a \in X].
+Proof.
+move/orbit_partition; rewrite -/P => partP.
+have [/eqP defS tiP _] := and3P partP.
+have trXP: is_transversal X P S := transversalP partP.
+have sXS: X \subset S := transversal_sub trXP.
+split=> // [x y Xx Xy /= | x Sx].
+  have Sx := subsetP sXS x Xx.
+  rewrite -(inj_in_eq (pblock_inj trXP)) // eq_pblock ?defS //.
+  by rewrite (def_pblock tiP (mem_imset _ Sx)) ?orbit_refl.
+have /imsetP[y Xy defxG]: orbit to G x \in pblock P @: X.
+  by rewrite (pblock_transversal trXP) ?mem_imset.
+suffices /orbitP[a Ga def_y]: y \in orbit to G x by exists a; rewrite ?def_y.
+by rewrite defxG mem_pblock defS (subsetP sXS).
 Qed.
 
 Lemma group_set_astab S : group_set 'C(S | to).
@@ -736,12 +780,7 @@ Proof. by move=> sGD; rewrite mulnC card_orbit_in ?LaGrange ?subsetIl. Qed.
 
 Lemma acts_sum_card_orbit G S :
   [acts G, on S | to] -> \sum_(T \in orbit to G @: S) #|T| = #|S|.
-Proof.
-move=> GactS; rewrite -sum1_card (partition_big_imset (orbit to G)) /=.
-apply: eq_bigr => _ /imsetP[x Sx ->]; rewrite -sum1_card.
-apply: eq_bigl=> y; apply/idP/andP=> [xGy|[_ /eqP <-]]; last exact: orbit_refl.
-by rewrite (orbit_in_transl (acts_dom GactS) xGy) (acts_in_orbit _ xGy).
-Qed.
+Proof. by move/orbit_partition/card_partition. Qed.
 
 Lemma astab_setact_in S a : a \in D -> 'C(to^* S a | to) = 'C(S | to) :^ a.
 Proof.
@@ -760,11 +799,8 @@ move=> GactS; have sGD := acts_dom GactS.
 transitivity (\sum_(a \in G) \sum_(x \in 'Fix_(S | to)[a]) 1%N).
   by apply: eq_bigr => a _; rewrite -sum1_card.
 rewrite (exchange_big_dep (mem S)) /= => [|a x _]; last by case/setIP.
-set orbG := orbit to G; rewrite (partition_big_imset orbG) -sum_nat_const /=.
+rewrite (set_partition_big _ (orbit_partition GactS)) -sum_nat_const /=.
 apply: eq_bigr => _ /imsetP[x Sx ->].
-rewrite (eq_bigl (mem (orbG x))) => [|y] /=; last first.
-  apply/andP/idP=> [[_ /eqP <-]|xGy]; first exact: orbit_refl.
-  by rewrite /orbG (orbit_in_transl sGD xGy) (acts_in_orbit GactS xGy).
 rewrite -(card_orbit_in_stab x sGD) -sum_nat_const.
 apply: eq_bigr => y; rewrite orbit_in_sym // => /imsetP[a Ga defx].
 rewrite defx astab1_act_in ?(subsetP sGD) //.
@@ -883,6 +919,13 @@ Qed.
 Lemma orbit_transr G x y z :
   y \in orbit to G x -> (y \in orbit to G z) = (x \in orbit to G z).
 Proof. by move=> Gxy; rewrite orbit_sym (orbit_transl Gxy) orbit_sym. Qed.
+
+Lemma orbit_act G a x: a \in G -> orbit to G (to x a) = orbit to G x.
+Proof. by move/mem_orbit/orbit_transl; exact. Qed.
+  
+Lemma orbit_actr G a x y :
+  a \in G -> (to y a \in orbit to G x) = (y \in orbit to G x).
+Proof. by move/mem_orbit/orbit_transr; exact. Qed.
 
 Lemma orbit_eq_mem G x y :
   (orbit to G x == orbit to G y) = (x \in orbit to G y).
@@ -2570,8 +2613,11 @@ Variable G : {group gT}.
 Lemma index_cent1 x : #|G : 'C_G[x]| = #|x ^: G|.
 Proof. by rewrite -astab1J -card_orbit. Qed.
 
+Lemma classes_partition : partition (classes G) G.
+Proof. by apply: orbit_partition; apply/actsP=> x Gx y; exact: groupJr. Qed.
+
 Lemma sum_card_class : \sum_(C \in classes G) #|C| = #|G|.
-Proof. apply: acts_sum_card_orbit; apply/actsP=> x Gx y; exact: groupJr. Qed.
+Proof. by apply: acts_sum_card_orbit; apply/actsP=> x Gx y; exact: groupJr. Qed.
 
 Lemma class_formula : \sum_(C \in classes G) #|G : 'C_G[repr C]| = #|G|.
 Proof.
@@ -2583,7 +2629,7 @@ Qed.
 Lemma abelian_classP : reflect {in G, forall x, x ^: G = [set x]} (abelian G).
 Proof.
 rewrite /abelian -astabJ astabC.
-by apply: (iffP subsetP) => cGG x Gx; apply /orbit1P; exact: cGG.
+by apply: (iffP subsetP) => cGG x Gx; apply/orbit1P; exact: cGG.
 Qed.
 
 Lemma card_classes_abelian : abelian G = (#|classes G| == #|G|).

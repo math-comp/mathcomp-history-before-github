@@ -157,6 +157,12 @@ Qed.
 Lemma pprodEY K H : H \subset 'N(K) -> pprod K H = K <*> H.
 Proof. by move=> nKH; rewrite pprodE ?norm_joinEr. Qed.
 
+Lemma pprodJ A B x : pprod A B :^ x = pprod (A :^ x) (B :^ x).
+Proof.
+rewrite /pprod !conjsg_eq1 !group_setJ normJ conjSg -conjsMg.
+by do 3?case: ifP => // _; exact: conj0g.
+Qed.
+
 (* Properties of the remainders *)
 
 Lemma remgrMl K B x y : y \in K -> remgr K B (y * x) = remgr K B x.
@@ -286,6 +292,12 @@ Proof. by move=> nKH tiKH; rewrite /sdprod tiKH subxx pprodE. Qed.
 Lemma sdprodEY K H : H \subset 'N(K) -> K :&: H = 1 -> K ><| H = K <*> H.
 Proof. by move=> nKH tiKH; rewrite sdprodE ?norm_joinEr. Qed.
 
+Lemma sdprodJ A B x : (A ><| B) :^ x = A :^ x ><| B :^ x.
+Proof.
+rewrite /sdprod -conjIg sub_conjg conjs1g -pprodJ.
+by case: ifP => _ //; exact: imset0.
+Qed.
+
 Lemma sdprod_context G K H : K ><| H = G ->
   [/\ K <| G, H \subset G, K * H = G, H \subset 'N(K) & K :&: H = 1].
 Proof.
@@ -382,6 +394,11 @@ Proof. by move=> cGH; rewrite /cprod cGH pprodE ?cents_norm. Qed.
 
 Lemma cprodEY G H : H \subset 'C(G) -> G \* H = G <*> H.
 Proof. by move=> cGH; rewrite cprodE ?cent_joinEr. Qed.
+
+Lemma cprodJ A B x : (A \* B) :^ x = A :^ x \* B :^ x.
+Proof.
+by rewrite /cprod centJ conjSg -pprodJ; case: ifP => _ //; exact: imset0.
+Qed.
 
 Lemma cprod_normal2 K H G : K \* H = G -> K <| G /\ H <| G.
 Proof.
@@ -491,6 +508,12 @@ Proof. by rewrite /dprod /cprod => ->. Qed.
 
 Lemma dprodEY G H : H \subset 'C(G) -> G :&: H = 1 -> G \x H = G <*> H.
 Proof. by move=> cGH trGH; rewrite /dprod trGH subxx cprodEY. Qed.
+
+Lemma dprodJ A B x : (A \x B) :^ x = A :^ x \x B :^ x.
+Proof.
+rewrite /dprod -conjIg sub_conjg conjs1g -cprodJ.
+by case: ifP => _ //; exact: imset0.
+Qed.
 
 Lemma dprod_normal2 K H G : K \x H = G -> K <| G /\ H <| G.
 Proof. by case/dprodP=> _ KH cKH _; apply: cprod_normal2; rewrite cprodE. Qed.

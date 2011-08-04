@@ -17,36 +17,48 @@ Require Import BGsection13 BGsection14 BGsection15.
 (*                    with normalizer (and centralizer) W if non-empty.       *)
 (*    of_typeF M U <-> M = M`_\F ><| U is of type F, in the sense of          *)
 (*                     Petervalvi (8.1) rather than B & G section 14.         *)
+(* is_typeF_complement M U U0 <-> U0 is a subgroup of U with the same         *)
+(*                     exponent as U, such that M`_\F ><| U0 is a Frobenius   *)
+(*                     group; this corresponds to Peterfalvi (8.1)(c).        *)
+(*    is_typeF_inertia M U U1 <-> U1 <| U is abelian and contains 'C_U[x] for *)
+(*                     all x in M`_\F^#, and thus the inertia groups of all   *)
+(*                     nonprincipal irreducible characters of M`_\F; this     *)
+(*                     corresponds to Peterfalvi (8.1)(b).                    *)
 (* of_typeP M U W1 <-> M = M`_\F ><| U ><| W1 is of type P, in the sense of   *)
 (*                     Peterfalvi (8.4) rather than B & G section 14.         *)
-(*      of_typeI M <-> M is of type I, in the sense of Peterfalvi (8.3); this *)
-(*                     is almost identical to B & G conditions (Ii) - (Iv),   *)
-(*                     except that (Iiv) is dropped, as is the condition      *)
-(*                     p \in \pi* in (Iv)(c). Also, the condition 'O_p^'(M)   *)
-(*                     cyclic, present in both B & G and Peterfalvi, is       *)
-(*                     weakened to 'O_p^'(M`_\F) cyclic, because this is the  *)
-(*                     statement established in B & G, Theorem 15.7, and we   *)
-(*                     could not see how to strengthen it. This seams to be a *)
-(*                     typo in B & G that was copied over to Petrfalvi (8.3). *)
-(*                     It appears to be of no consequence because (8.3) is    *)
-(*                     only used in (12.6) and (12.10) and neither use the    *)
-(*                     assumption that 'O_p^'(M) is cyclic, or 'O_p^'(M`_\F)! *)
+(*    of_typeI M U <-> M = M`_\F ><| U is of type I, in the sense of          *)
+(*                     Peterfalvi (8.3); this definition is almost identical  *)
+(*                     to B & G conditions (Ii) - (Iv), except that (Iiv) is  *)
+(*                     dropped, as is the condition p \in \pi* in (Iv)(c).    *)
+(*                     Also, the condition 'O_p^'(M) cyclic, present in both  *)
+(*                     B & G and Peterfalvi, is weakened to 'O_p^'(M`_\F)     *)
+(*                     cyclic, because B & G, Theorem 15.7 only proves the    *)
+(*                     weaker statement, and we did not manage to improve it. *)
+(*                     This appears to be a typo in B & G that was copied     *)
+(*                     over to Petrfalvi (8.3). It is probably no consequence *)
+(*                     because (8.3) is only used in (12.6) and (12.10) and   *)
+(*                     neither use the assumption that 'O_p^'(M) is cyclic.   *)
 (* of_typeII_IV M U W1 <-> M = M`_\F ><| U ><| W1 is of type II, III, or IV,  *)
 (*                     in the sense of Peterfalvi (8.6)(a). This is almost    *)
 (*                     exactly the contents of B & G, (T1)-(T7), except that  *)
 (*                     (T6) is dropped, and 'C_(M`_\F)(W1) \subset M^`(2) is  *)
 (*                     added (PF, (8.4)(d) and B & G, Theorem C(3)).          *)
-(*     of_typeII M <-> M is of type II in the sense of Peterfalvi (8.6); this *)
-(*                     differs from B & G by dropping the rank 2 clause in    *)
-(*                     IIiii and replacing IIv by B(2)(3) (note that IIv is   *)
-(*                     stated incorrectly: M' should be M'^#).                *)
-(*    of_typeIII M <-> M is of type III in the sense of Peterfalvi (8.6).     *)
-(*     of_typeIV M <-> M is of type IV in the sense of Peterfalvi (8.6).      *)
-(*      of_typeV M <-> M is of type V in the sense of Peterfalvi (8.7); this  *)
-(*                     differs from B & G (V) by dropping the p \in \pi*      *)
-(*                     condition in clauses (V)(b) and (V)(c).                *)
+(*    of_typeII M U W1 <-> M = M`_\F ><| U ><| W1 is of type II in the sense  *)
+(*                     of Peterfalvi (8.6); this differs from B & G by        *)
+(*                     dropping the rank 2 clause in IIiii and replacing IIv  *)
+(*                     by B(2)(3) (note that IIv is stated incorrectly: M'    *)
+(*                     should be M'^#).                                       *)
+(*   of_typeIII M U W1 <-> M = M`_\F ><| U ><| W1 is of type III in the sense *)
+(*                     of Peterfalvi (8.6).                                   *)
+(*    of_typeIV M U W1 <-> M = M`_\F ><| U ><| W1 is of type IV in the sense  *)
+(*                     of Peterfalvi (8.6).                                   *)
+(*       of_typeV M W1 <-> M = M`_\F ><| W1 is of type V in the sense of      *)
+(*                     Peterfalvi (8.7); this differs from B & G (V) by       *)
+(*                     dropping the p \in \pi* condition in clauses (V)(b)    *)
+(*                     and (V)(c).                                            *)
 (* FTtype_spec i M <-> M is of type i, for 0 < i <= 5, in the sense of the    *)
-(*                     predicates above.                                      *)
+(*                     predicates above, for the appropriate complements to   *)
+(*                     M`_\F and M^`(1).                                      *)
 (*        FTtype M == the type of M, in the sense above, when M is a maximal  *)
 (*                    subgroup of G (this is an iteger i between 1 and 5).    *)
 (*           M`_\s == an alternative, combinatorial definition of M`_\sigma   *)
@@ -58,6 +70,7 @@ Require Import BGsection13 BGsection14 BGsection15.
 (*                    (this differs from B & G by excluding 1).               *)
 (*          'A0(M) == the "outer Dade kernel" of M, as defined in Peterfalvi  *)
 (*                    (8.10) (this differs from B & G by excluding 1).        *)
+(*            'M^G == a tranversal of the conjugacy classes of 'M.            *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -82,19 +95,23 @@ Implicit Types M U V W X : {set gT}.
 
 Definition normTIset V W := forall X, X \subset V -> X != set0 -> 'N(X) = W.
 
+Definition is_typeF_inertia M U (H := M`_\F) U1 :=
+  [/\ U1 <| U, abelian U1 & {in H^#, forall x, 'C_U[x] \subset U1}].
+
+Definition is_typeF_complement M U (H := M`_\F) U0 :=
+  [/\ U0 \subset U, exponent U0 = exponent U & [Frobenius H <*> U0 = H ><| U0]].
+
 Definition of_typeF M U (H := M`_\F) :=
  [/\ (*a*) [/\ H != 1, U :!=: 1 & H ><| U = M],
-     (*b*) exists2 U1 : {group gT}, U1 <| U /\ abelian U1
-                & {in H^#, forall x, 'C_U[x] \subset U1}
-   & (*c*) exists2 U0 : {group gT}, U0 \subset U /\ exponent U0 = exponent U
-                & [Frobenius H <*> U0 = H ><| U0]].
+     (*b*) exists U1 : {group gT}, is_typeF_inertia M U U1
+   & (*c*) exists U0 : {group gT}, is_typeF_complement M U U0].
 
-Definition of_typeI M (H := M`_\F) :=
- exists2 U : {group gT}, of_typeF M U
-  & [\/ (*a*) trivIset (H^# :^: G),
-        (*b*) abelian H /\ 'r(H) = 2
-      | (*c*) {in \pi(H), forall p, exponent U %| p.-1}
-           /\ (exists2 p, p \in \pi(H) & cyclic 'O_p^'(H))].
+Definition of_typeI M (H := M`_\F) U :=
+    of_typeF M U
+  /\ [\/ (*a*) trivIset (H^# :^: G),
+         (*b*) abelian H /\ 'r(H) = 2
+       | (*c*) {in \pi(H), forall p, exponent U %| p.-1}
+            /\ (exists2 p, p \in \pi(H) & cyclic 'O_p^'(H))].
 
 Definition of_typeP M U W1 (H := M`_\F) (M' := M^`(1)) (W2 := 'C_H(W1)) :=
   [/\ (*a*) [/\ cyclic W1, Hall M W1, W1 != 1 & M' ><| W1 = M],
@@ -105,36 +122,33 @@ Definition of_typeP M U W1 (H := M`_\F) (M' := M^`(1)) (W2 := 'C_H(W1)) :=
               & {in W1^#, forall x, 'C_M'[x] = W2}]
     & (*e*) let W := W1 <*> W2 in let V := W :\: (W1 :|: W2) in normTIset V W].
 
-Definition of_typeII_IV  M U W1 :=
+Definition of_typeII_IV M U W1 :=
   [/\ of_typeP M U W1, U != 1, prime #|W1| & trivIset ('F(M)^# :^: G)].
 
-Definition of_typeII M (H := M`_\F) (M' := M^`(1)) :=
-  exists UW1 : {group gT} * {group gT}, let: (U, W1) := UW1 in
-    [/\ of_typeII_IV M U W1, abelian U, ~~ ('N(U) \subset M),
-        of_typeF M' U & M'`_\F = H].
+Definition of_typeII M (H := M`_\F) (M' := M^`(1)) U W1 :=
+  [/\ of_typeII_IV M U W1, abelian U, ~~ ('N(U) \subset M),
+      of_typeF M' U & M'`_\F = H].
 
-Definition of_typeIII M :=
-  exists UW1 : {group gT} * {group gT}, let: (U, W1) := UW1 in
-    [/\ of_typeII_IV M U W1, abelian U & 'N(U) \subset M].
+Definition of_typeIII M U W1 :=
+  [/\ of_typeII_IV M U W1, abelian U & 'N(U) \subset M].
 
-Definition of_typeIV M :=
-  exists UW1 : {group gT} * {group gT}, let: (U, W1) := UW1 in
-    [/\ of_typeII_IV M U W1, ~~ abelian U & 'N(U) \subset M].
+Definition of_typeIV M U W1 :=
+  [/\ of_typeII_IV M U W1, ~~ abelian U & 'N(U) \subset M].
 
-Definition of_typeV M (H := M`_\F) :=
-  exists2 W1 : {group gT}, of_typeP M 1 W1
-  & [\/ (*a*) trivIset (H^# :^: G),
-        (*b*) exists2 p, p \in \pi(H) & #|W1| %| p.-1 /\ cyclic 'O_p^'(H)
-     |  (*c*) exists2 p, p \in \pi(H)
-              & [/\ #|'O_p(H)| = (p ^ 3)%N, #|W1| %| p.+1 & cyclic 'O_p^'(H)]].
+Definition of_typeV M (H := M`_\F) W1 :=
+     of_typeP M 1 W1
+  /\ [\/ (*a*) trivIset (H^# :^: G),
+         (*b*) exists2 p, p \in \pi(H) & #|W1| %| p.-1 /\ cyclic 'O_p^'(H)
+      |  (*c*) exists2 p, p \in \pi(H)
+               & [/\ #|'O_p(H)| = (p ^ 3)%N, #|W1| %| p.+1 & cyclic 'O_p^'(H)]].
 
 Definition FTtype_spec i M :=
   match i with
-  | 1%N => of_typeI M
-  | 2 => of_typeII M
-  | 3 => of_typeIII M
-  | 4 => of_typeIV M
-  | 5 => of_typeV M
+  | 1%N => exists U : {group gT}, of_typeI M U
+  | 2 => exists U : {group gT}, exists W1 : {group gT}, of_typeII M U W1
+  | 3 => exists U : {group gT}, exists W1 : {group gT}, of_typeIII M U W1
+  | 4 => exists U : {group gT}, exists W1 : {group gT}, of_typeIV M U W1
+  | 5 => exists W1 : {group gT}, of_typeV M W1
   | _ => False
   end.
 
@@ -144,35 +158,40 @@ Definition FTtype M :=
   if M`_\F == M`_\sigma then 5 else
   if abelian (M`_\sigma / M`_\F) then 3 else 4.
 
-Lemma FTtype_range : forall M, 0 < FTtype M <= 5.
-Proof. by rewrite /FTtype => M; do 4!case: ifP => // _. Qed.
+Lemma FTtype_range M : 0 < FTtype M <= 5.
+Proof. by rewrite /FTtype; do 4!case: ifP => // _. Qed.
 
 Definition FTcore M := if 0 < FTtype M <= 2 then M`_\F else M^`(1).
-Fact FTcore_is_group : forall M, group_set (FTcore M).
-Proof. rewrite /FTcore => M; case: ifP => _; exact: groupP. Qed.
+Fact FTcore_is_group M : group_set (FTcore M).
+Proof. rewrite /FTcore; case: ifP => _; exact: groupP. Qed.
 Canonical Structure FTcore_group M := Group (FTcore_is_group M).
 
-Definition FTkernel1 M := (FTcore M)^#.
+Definition FTsupport1 M := (FTcore M)^#.
 
-Definition FTkernel M :=
-  \bigcup_(x \in FTkernel1 M) 'C_(M^`(FTtype M != 1%N))[x]^#.
+Definition FTsupport M :=
+  \bigcup_(x \in FTsupport1 M) 'C_(M^`(FTtype M != 1%N))[x]^#.
 
-Definition FTkernel0 M (su := \pi(M^`(FTtype M != 1%N))) :=
-  FTkernel M :|: [set x \in M | ~~ (su.-elt x) && ~~ (su^'.-elt x)].
+Definition FTsupport0 M (su := \pi(M^`(FTtype M != 1%N))) :=
+  FTsupport M :|: [set x \in M | ~~ (su.-elt x) && ~~ (su^'.-elt x)].
+
+Definition mmax_transversal U := orbit_transversal 'JG U 'M.
 
 End Definitions.
 
 Notation "M `_ \s" := (FTcore M) (at level 3, format "M `_ \s") : group_scope.
 Notation "M `_ \s" := (FTcore_group M) : Group_scope.
 
-Notation "''A1' ( M )" := (FTkernel1 M)
+Notation "''A1' ( M )" := (FTsupport1 M)
   (at level 8, format "''A1' ( M )") : group_scope.
 
-Notation "''A' ( M )" := (FTkernel M)
+Notation "''A' ( M )" := (FTsupport M)
   (at level 8, format "''A' ( M )") : group_scope.
 
-Notation "''A0' ( M )" := (FTkernel0 M)
+Notation "''A0' ( M )" := (FTsupport0 M)
   (at level 8, format "''A0' ( M )") : group_scope.
+
+Notation "''M^' G" := (mmax_transversal G)
+  (at level 3, format "''M^' G") : group_scope.
 
 Section Section16.
 
@@ -181,6 +200,19 @@ Local Notation G := (TheMinSimpleOddGroup gT).
 Implicit Types p q q_star r : nat.
 Implicit Types x y z : gT.
 Implicit Types A E H K L M Mstar N P Q Qstar R S T U V W X Y Z : {group gT}.
+
+(* Structural properties of the M`_\s definition. *)
+Lemma FTcore_char M : M`_\s \char M.
+Proof. by rewrite /FTcore; case: ifP => _; exact: gFchar. Qed.
+
+Lemma FTcore_normal M : M`_\s <| M.
+Proof. by rewrite char_normal ?FTcore_char. Qed.
+
+Lemma FTcore_norm M : M \subset 'N(M`_\s).
+Proof. by rewrite char_norm ?FTcore_char. Qed.
+
+Lemma FTcore_sub M : M`_\s \subset M.
+Proof. by rewrite char_sub ?FTcore_char. Qed.
 
 (* This section covers the characterization of the F, P, P1 and P2 types of   *)
 (* maximal subgroups summarized at the top of p. 125. in B & G.               *)
@@ -305,6 +337,69 @@ by rewrite FTtype_gt2; case/andP: (FTtype_range M).
 Qed.
 
 End FTtypeClassification.
+
+(* Internal automorphism. *)
+Lemma FTtypeJ M x : FTtype (M :^ x) = FTtype M.
+Proof.
+rewrite /FTtype (eq_p'group _ (kappaJ _ _)) pgroupJ MsigmaJ FcoreJ derJ.
+rewrite !(can_eq (conjsgK x)); do 4!congr (if _ then _ else _).
+rewrite -quotientInorm normJ -conjIg /= setIC -{1 3}(setIidPr (normG M`_\F)).
+rewrite -!morphim_conj -morphim_quotm ?normalG //= => nsMFN.
+by rewrite injm_abelian /= ?quotientT // injm_quotm ?injm_conj.
+Qed.
+
+Lemma FTcoreJ M x : (M :^ x)`_\s = M`_\s :^ x.
+Proof. by rewrite /FTcore FTtypeJ FcoreJ derJ; case: ifP. Qed. 
+
+Lemma FTsupp1J M x : 'A1(M :^ x) = 'A1(M) :^ x.
+Proof. by rewrite conjD1g -FTcoreJ. Qed.
+
+Lemma FTsuppJ M x : 'A(M :^ x) = 'A(M) :^ x.
+Proof.
+rewrite -bigcupJ /'A(_) FTsupp1J big_imset /=; last exact: in2W (conjg_inj x).
+by apply: eq_bigr => y _; rewrite FTtypeJ derJ cent1J -conjIg conjD1g.
+Qed.
+
+Lemma FTsupp0J M x : 'A0(M :^ x) = 'A0(M) :^ x.
+Proof.
+apply/setP=> y; rewrite mem_conjg !inE FTsuppJ !mem_conjg; congr (_ || _ && _).
+by rewrite FTtypeJ !p_eltJ derJ /= cardJg.
+Qed.
+
+(* Inclusion/normality of class function supports. *)
+
+Lemma FTsupp_sub M : 'A(M) \subset 'A0(M).
+Proof. exact: subsetUl. Qed.
+
+Lemma FTsupp0_sub M : 'A0(M) \subset M^#.
+Proof.
+rewrite subUset andbC subsetD1 setIdE subsetIl !inE p_elt1 andbF /=.
+by apply/bigcupsP=> x _; rewrite setSD ?subIset ?der_sub.
+Qed.
+
+Lemma FTsupp1_norm M : M \subset 'N('A1(M)).
+Proof. by rewrite normD1 (normal_norm (FTcore_normal M)). Qed.
+
+Lemma FTsupp_norm M : M \subset 'N('A(M)).
+Proof.
+apply/subsetP=> y My; rewrite inE -bigcupJ; apply/bigcupsP=> x A1x.
+rewrite (bigcup_max (x ^ y)) ?memJ_norm ?(subsetP (FTsupp1_norm M)) //.
+by rewrite conjD1g conjIg cent1J (normsP _ y My) ?gFnorm.
+Qed.
+
+Lemma FTsupp0_norm M : M \subset 'N('A0(M)).
+Proof.
+rewrite normsU ?FTsupp_norm // setIdE normsI //.
+by apply/normsP=> x _; apply/setP=> y; rewrite mem_conjg !inE !p_eltJ.
+Qed.
+
+Lemma FTsupp_eq1 M : M \in 'M -> (2 < FTtype M)%N -> 'A(M) = 'A1(M).
+Proof.
+move=> maxM typeM; rewrite /'A(M) -(subnKC typeM) /= -FTcore_eq_der1 //.
+apply/setP=> y; apply/bigcupP/idP=> [[x A1x /setD1P[nty /setIP[Ms_y _]]] | A1y].
+  exact/setD1P.
+by exists y; rewrite // inE in_setI cent1id andbT -in_setD.
+Qed.
 
 Section SingleGroupSummaries.
 
@@ -589,7 +684,19 @@ Qed.
 
 End SingleGroupSummaries.
 
-Theorem BGsummaryD : forall M, M \in 'M ->
+Lemma FTsupp1_sub M : M \in 'M -> 'A1(M) \subset 'A(M).
+Proof.
+move=> maxM; apply/subsetP=> x A1x; apply/bigcupP; exists x => //.
+have [ntx Ms_x] := setD1P A1x; rewrite 3!inE ntx cent1id.
+have [[U K] /= complU] := kappa_witness maxM.
+have /sdprod_context[/andP[/subsetP-> //]] := sdprod_FTder maxM complU.
+by rewrite /= -def_FTcore.
+Qed.
+
+Lemma FTsupp1_sub0 M : M \in 'M -> 'A1(M) \subset 'A0(M).
+Proof. move=> maxM; exact: subset_trans (FTsupp1_sub maxM) (FTsupp_sub M). Qed.
+
+Theorem BGsummaryD M : M \in 'M ->
  [/\ (*1*) {in M`_\sigma &, forall x y, y \in x ^: G -> y \in x ^: M},
      (*2*) forall g (Ms := M`_\sigma), g \notin M ->
            Ms:&: M :^ g = Ms :&: Ms :^ g /\ cyclic (Ms :&: M :^ g),
@@ -597,7 +704,7 @@ Theorem BGsummaryD : forall M, M \in 'M ->
             [/\ Hall 'C[x] 'C_M[x], 'R[x] ><| 'C_M[x] = 'C[x]
               & let MGx := [set Mg \in M :^: G | x \in Mg] in
                 [transitive 'R[x], on MGx | 'Js] /\ #|'R[x]| = #|MGx| ]}
-  & (*4*) {in M`_\sigma^#, forall x (N := 'N[x]), ~~ ('C[x] \subset M) ->
+   & (*4*) {in M`_\sigma^#, forall x (N := 'N[x]), ~~ ('C[x] \subset M) ->
            [/\ 'M('C[x]) = [set N] /\ N`_\F = N`_\sigma,
                x \in 'A(N) :\: 'A1(N) /\ N \in 'M_'F :|: 'M_'P2,
                \sigma(N)^'.-Hall(N) (M :&: N)
@@ -606,7 +713,7 @@ Theorem BGsummaryD : forall M, M \in 'M ->
                    exists2 E, [Frobenius M = M`_\sigma ><| gval E] & cyclic E
                  & ~~ trivIset ((M`_\F)^# :^: G)]]}].
 Proof.
-move=> M maxM; have [[U K] /= complU] := kappa_witness maxM.
+move=> maxM; have [[U K] /= complU] := kappa_witness maxM.
 have defSM: {in M`_\sigma^#, forall x,
   [set Mg \in M :^: G | x \in Mg] = val @: 'M_\sigma[x]}.
 - move=> x; case/setD1P=> ntx Ms_x.
@@ -691,6 +798,20 @@ rewrite -MsigmaJ (mem_Hall_pcore (Msigma_Hall _)) ?mmaxJ /= -?defMy //.
 by rewrite defMy (eq_p_elt _ (sigmaJ _ _)) (mem_p_elt (pcore_pgroup _ _) Ms_x).
 Qed.
 
+Lemma mmax_transversalP :
+  [/\ 'M^G \subset 'M, is_transversal 'M^G (orbit 'JG G @: 'M) 'M,
+      {in 'M^G &, injective (fun M => M :^: G)}
+    & {in 'M, forall M, exists x, (M :^ x)%G \in 'M^G}].
+Proof.
+have: [acts G, on 'M | 'JG] by apply/actsP=> x _ M; rewrite mmaxJ.
+case/orbit_transversalP; rewrite -/mmax_transversal => -> -> injMX memMX.
+split=> // [M H MX_M MX_H /= eqMH | M /memMX[x _]]; last by exists x.
+have /orbitP[x Gx defH]: val H \in M :^: G by rewrite eqMH orbit_refl.
+by apply/eqP; rewrite -injMX // -(group_inj defH) (mem_orbit 'JG).
+Qed.
+
+(* We are confirming to the statement of B & G, but we defer the introduction *)
+(* 'M^G to Peterfalvi (8.17), which requires several other changes.           *)
 Theorem BGsummaryE :
   [/\ (*1*) forall M, M \in 'M -> 
             #|class_support M^~~ G| = (#|M`_\sigma|.-1 * #|G : M|)%N,
@@ -738,49 +859,13 @@ apply/imsetP; exists M => //; apply/eqP; rewrite eq_sym -subset0 -PG0.
 by rewrite (bigcup_max (class_support M^~~ G)) //; exact: mem_imset.
 Qed.
 
-(* This should go in PFsection8. *)
-Lemma of_typeP_sol : forall M U W1, of_typeP M U W1 -> solvable M.
-Proof.
-move=> M U K [_ [nilU _ _ defM'] _ _ _].
-have [nsHM' _ mulHU _ _] := sdprod_context defM'.
-rewrite (series_sol (der_normal 1 M)) (abelian_sol (der_abelian 0 M)) andbT.
-rewrite (series_sol nsHM') (nilpotent_sol (Fcore_nil M)).
-by rewrite -mulHU quotientMidl quotient_sol ?(nilpotent_sol nilU).
-Qed.
-
-(* This should also go in PFsection8. *)
-Lemma FTtypePF_exclusion : forall M U1 U W1,
-  ~ (of_typeF M U1 /\ of_typeP M U W1).
-Proof.
-move=> M U1 U W1 [[[ntH ntU1 defM1] _ [U0 [sU01 expU0] frobU0]] typeP_M].
-have [[cycW1 hallW1 ntW1 defM] [_ _ _ defM'] _ [_]] := typeP_M; case/negP.
-pose p := pdiv #|W1|; set H := M`_\F in defM' frobU0 *.
-have piW1p: p \in \pi(W1) by rewrite pi_pdiv cardG_gt1.
-have piU0p: p \in \pi(U0).
-  rewrite -pi_of_exponent expU0 pi_of_exponent (pi_of_dvd _ _ piW1p) //=.
-  rewrite -(@dvdn_pmul2l #|H|) ?cardG_gt0 // (sdprod_card defM1).
-  rewrite -(sdprod_card defM) dvdn_pmul2r ?cardSg //.
-  by case/sdprodP: defM' => _ <- _ _; exact: mulG_subl.
-have [|X EpX]:= @p_rank_geP _ p 1 U0 _; first by rewrite p_rank_gt0.
-have [ntX [sXU0 abelX _]] := (nt_pnElem EpX isT, pnElemP EpX).
-have piW1_X: \pi(W1).-group X by apply: pi_pgroup piW1p; case/andP: abelX.
-have sXM: X \subset M.
-  apply: subset_trans (subset_trans sXU0 sU01) _.
-  by case/sdprodP: defM1 => _ <- _ _; exact: mulG_subr.
-have nHM: M \subset 'N(H) by exact: gFnorm.
-have [regU0 solM] := (Frobenius_reg_ker frobU0, of_typeP_sol typeP_M).
-have [a Ma sXaW1] := Hall_Jsub solM (Hall_pi hallW1) sXM piW1_X.
-rewrite -subG1 -(conjs1g a) -(cent_semiregular regU0 sXU0 ntX) conjIg -centJ.
-by rewrite (normsP nHM) ?setIS ?centS.
-Qed.
-
-Let typePfacts: forall M U W1 (H := M`_\F) (Ms := M`_\sigma),
+Let typePfacts M U W1 (H := M`_\F) (Ms := M`_\sigma) :
      M \in 'M -> of_typeP M U W1 ->
   [/\ M \in 'M_'P, \kappa(M).-Hall(M) W1,
      (M \in 'M_'P1) = (U :==: 1) || ('N(U) \subset M)
     & Ms = M^`(1) -> (H == Ms) = (U :==: 1) /\ abelian (Ms / H) = abelian U].
 Proof.
-move=> M U K H Ms maxM; have [[_ sHMs sMsM' _] _] := Fcore_structure maxM.
+move: W1 => K maxM; have [[_ sHMs sMsM' _] _] := Fcore_structure maxM.
 move=> [[cycK hallK ntK defM] [nilU sUM' nUK defM'] _ [_ ntKs _ _ _] _].
 have [_ sKM mulM'K _ tiM'K] := sdprod_context defM.
 have{hallK} kK: \kappa(M).-group K.
@@ -849,13 +934,12 @@ by rewrite notP1type_Msigma_nil // in_setD notP1maxM PmaxM orbT.
 Qed.
 
 (* This is B & G, Lemma 16.1. *)
-Lemma FTtypeP : forall i M,
-  M \in 'M -> reflect (FTtype_spec i M) (FTtype M == i).
+Lemma FTtypeP i M : M \in 'M -> reflect (FTtype_spec i M) (FTtype M == i).
 Proof.
-move=> i M maxM; pose Ms := M`_\sigma; pose M' := M^`(1); pose H := M`_\F.
+move=> maxM; pose Ms := M`_\sigma; pose M' := M^`(1); pose H := M`_\F.
 have [[ntH sHMs sMsM' _] _] := Fcore_structure maxM.
 apply: (iffP eqP) => [<- | ]; last first.
-  case: i => [[] // | [[U [[_ _ defM] _ [U0 [sU0U expU0] frobM]] _] | ]].
+  case: i => [// | [[U [[[_ _ defM] _ [U0 [sU0U expU0 frobM]]] _]] | ]].
     apply/eqP; rewrite -FTtype_Fmax //; apply: wlog_neg => notFmaxM.
     have PmaxM: M \in 'M_'P by exact/setDP.
     apply/FtypeP; split=> // p; apply/idP=> kp.
@@ -874,18 +958,18 @@ apply: (iffP eqP) => [<- | ]; last first.
     have [ntKs _ _ sKsMF _] := Ptype_cyclics PmaxM hallK; case/negP: ntKs.
     rewrite -subG1 -(cent_semiregular (Frobenius_reg_ker frobM) sXU0 ntX).
     by rewrite subsetI sKsMF subIset // centS ?orbT.
-  case=> [[[U K] /= [[PtypeM ntU _ _] _ not_sNUM _ _] ] | ].
+  case=> [[U [K [[PtypeM ntU _ _] _ not_sNUM _ _] ]] | ].
     apply/eqP; rewrite -FTtype_P2max // inE.
     by have [-> _ -> _] := typePfacts maxM PtypeM; rewrite negb_or ntU not_sNUM.
-  case=> [[[U K] /= [[PtypeM ntU _ _] cUU sNUM] ] | ].
+  case=> [[U [K [[PtypeM ntU _ _] cUU sNUM] ]] | ].
     have [_ _] := typePfacts maxM PtypeM.
     rewrite (negPf ntU) sNUM FTtype_P1max // cUU /FTtype -/Ms -/M' -/H.
     by case: ifP => // _; case: (Ms =P M') => // -> _ [//|-> ->].
-  case=> [[[U K] /= [[PtypeM ntU _ _] not_cUU sNUM] ] | ].
+  case=> [[U [K [[PtypeM ntU _ _] not_cUU sNUM] ]] | ].
     have [_ _] := typePfacts maxM PtypeM.
     rewrite (negPf ntU) (negPf not_cUU) sNUM FTtype_P1max // /FTtype -/Ms -/M'.
     by case: ifP => // _; case: (Ms =P M') => // -> _ [//|-> ->].
-  case=> // [[K /= PtypeM _]]; have [_ _] := typePfacts maxM PtypeM.
+  case=> // [[K [PtypeM _]]]; have [_ _] := typePfacts maxM PtypeM.
   rewrite eqxx FTtype_P1max //= /FTtype -/Ms -/M' -/H.
   by case: ifP => // _; case: (Ms =P M') => // -> _ [//|-> _].
 have [[U K] /= complU] := kappa_witness maxM; have [hallU hallK _] := complU.
@@ -897,17 +981,16 @@ have [K1 | ntK] := eqsVneq K 1.
     by apply/Fcore_eq_Msigma; rewrite // notP1type_Msigma_nil ?FmaxM.
   have defM: H ><| U = M.
     by have [_] := kappa_compl_context maxM complU; rewrite defH K1 sdprodg1.
-  exists U.
+  exists U; split.
     have [_ _ _ cU1U1 exU0] := kappa_structure maxM complU.
-    split=> //; last by rewrite -/H defH; case: exU0 => // U0 []; exists U0.
-    exists [group of <<\bigcup_(x \in (M`_\sigma)^#) 'C_U[x]>>] => [|x Hx].
-      split=> //=; rewrite -big_distrr /= /normal gen_subG subsetIl.
-      rewrite norms_gen ?normsI ?normG //; apply/subsetP=> u Uu.
-      rewrite inE sub_conjg; apply/bigcupsP=> x Msx.
-      rewrite -sub_conjg -normJ conjg_set1 (bigcup_max (x ^ u)) //.
-      rewrite memJ_norm // normD1 (subsetP (gFnorm _ _)) //.
-      by rewrite (subsetP (pHall_sub hallU)).
-    by rewrite sub_gen //= -/Ms -defH (bigcup_max x).
+    split=> //; last by rewrite -/Ms -defH in exU0; exact: exU0.
+    exists [group of <<\bigcup_(x \in (M`_\sigma)^#) 'C_U[x]>>].
+    split=> //= [|x Hx]; last by rewrite sub_gen //= -/Ms -defH (bigcup_max x).
+    rewrite -big_distrr /= /normal gen_subG subsetIl.
+    rewrite norms_gen ?normsI ?normG //; apply/subsetP=> u Uu.
+    rewrite inE sub_conjg; apply/bigcupsP=> x Msx.
+    rewrite -sub_conjg -normJ conjg_set1 (bigcup_max (x ^ u)) ?memJ_norm //.
+    by rewrite normD1 (subsetP (gFnorm _ _)) // (subsetP (pHall_sub hallU)).
   have [|] := boolP (forallb y, (y \notin M) ==> ('F(M) :&: 'F(M) :^ y == 1)).
     move/forall_inP=> TI_F; constructor 1; apply/TIconjP=> x y _ _.
     rewrite setTI (mmax_normal maxM (Fcore_normal _)) //.
@@ -970,10 +1053,10 @@ have [Ueq1 | ntU] := eqsVneq U 1; last first.
     rewrite (Fcore_max (subHall_Hall hallM' _ (Fcore_Hall _))) ?Fcore_nil //.
       by move=> p piM'Fp; exact: pnatPpi k'M' (piSg (Fcore_sub _) piM'Fp).
     exact: char_normal_trans (Fcore_char _) nsM'M.
-  exists (U, K); split=> //; split; first by rewrite defM'F.
-    by exists U => // x _; exact: subsetIl.
-  have [_ _ _ _ [//|U0 [sU0U expU0 frobU0]]] := kappa_structure maxM complU.
-  by rewrite defM'F defH; exists U0.
+  exists U, K; split=> //; split; first by rewrite defM'F.
+    by exists U; split=> // x _; exact: subsetIl.
+  have [_ _ _ _ /(_ ntU)] := kappa_structure maxM complU.
+  by rewrite -/Ms -defH -defM'F.
 have P1maxM: M \in 'M_'P1 by rewrite -(trivg_kappa_compl maxM complU) Ueq1.
 have: 2 < FTtype M <= 5 by rewrite -FTtype_P1max.
 rewrite /FTtype -/H -/Ms; case: ifP => // _; case: eqP => //= defMs _.
@@ -990,8 +1073,8 @@ have [_ _ sNYG [//| defY1 ->]] := typePfacts maxM PtypeM.
 rewrite defY1; have [Y1 | ntY] := altP (Y :=P: 1); last first.
   move/esym: sNYG; rewrite (negPf ntY) P1maxM /= => sNYG.
   have [|_ tiFM prK] := types34; first by rewrite defY1.
-  by case: ifPn; exists (Y, K).
-exists K; first by rewrite -Y1.
+  by case: ifPn; exists Y, K.
+exists K; split; first by rewrite -Y1.
 have [|] := boolP (forallb y, (y \notin M) ==> ('F(M) :&: 'F(M) :^ y == 1)).
   move/forall_inP=> TI_F; constructor 1; apply/TIconjP=> x y _ _.
   rewrite setTI (mmax_normal maxM (Fcore_normal _)) //.
@@ -1068,23 +1151,22 @@ rewrite !{1}(ltn_neqAle 1) -!{1}andbA !{1}FTtype_range // !{1}andbT.
 by rewrite !{1}(eq_sym 1%N) -!{1}FTtype_Pmax.
 Qed.
 
-Lemma ker0_FTtypeI : forall M, M \in 'M -> of_typeI M -> 'A0(M) = 'A(M).
+Lemma FTsupp0_type1 M : FTtype M == 1%N -> 'A0(M) = 'A(M).
 Proof.
-move=> M maxM; move/(FTtypeP 1 maxM)=> typeI_M.
-apply/setUidPl; apply/subsetP=> x; rewrite typeI_M !inE; case/and3P=> Mx.
-by rewrite (mem_p_elt (pgroup_pi M)).
+move=> typeM; apply/setUidPl; apply/subsetP=> x; rewrite typeM !inE.
+by case/and3P=> Mx; rewrite (mem_p_elt (pgroup_pi M)).
 Qed.
 
-Lemma ker0_FTtypeP : forall M U W1 (H := M`_\F) (W2 := 'C_H(W1)),
+Lemma FTsupp0_typeP M U W1 (H := M`_\F) (W2 := 'C_H(W1)) :
     M \in 'M -> of_typeP M U W1 ->
     let W := W1 <*> W2 in let V := W :\: (W1 :|: W2) in
   'A0(M) :\: 'A(M) = class_support V M.
 Proof.
-move=> M U0 K H Ks maxM PtypeM /=; have [[_ _ ntK _] _ _ _ _] := PtypeM.
+move: W1 @W2 => K Ks maxM PtypeM /=; have [[_ _ ntK _] _ _ _ _] := PtypeM.
 have [PmaxM hallK _ _] := typePfacts maxM PtypeM.
 have [[_ sHMs _ _] _] := Fcore_structure maxM.
-have [U complU] := ex_kappa_compl maxM hallK.
-have [[_ [_ _ sKsH _] _] _ [_ [-> _ _] _ _]] := BGsummaryC maxM complU ntK.
+have [V complV] := ex_kappa_compl maxM hallK.
+have [[_ [_ _ sKsH _] _] _ [_ [-> _ _] _ _]] := BGsummaryC maxM complV ntK.
 by rewrite -(setIidPr sKsH) setIA (setIidPl sHMs).
 Qed.
 
@@ -1092,7 +1174,7 @@ Qed.
 (* Peterfalvi (8.7). We drop the considerations on the set of supporting      *)
 (* groups, in particular (Tii)(a), but do include additional information on D *)
 (* fact that D is included in 'A1(M), not just 'A(M).                         *)
-Theorem BGsummaryII : forall M (X : {set gT}),
+Theorem BGsummaryII M (X : {set gT}) :
     M \in 'M -> X \in pred2 'A(M) 'A0(M) ->
     let D := [set x \in X | ~~ ('C[x] \subset M)] in
  [/\       D \subset 'A1(M), (* was 'A(M) in B & G *)
@@ -1106,11 +1188,10 @@ Theorem BGsummaryII : forall M (X : {set gT}),
    & (*iii*) FTtype L == 2 ->
              exists2 E, [Frobenius M = M`_\F ><| gval E] & cyclic E]}].
 Proof.
-move=> M X maxM defX.
-have sAM: 'A(M) \subset M.
-  by apply/bigcupsP=> x _; rewrite setDE -setIA subIset ?der_sub.
-have sA0M: 'A0(M) \subset M by rewrite subUset sAM setIdE subsetIl.
-have sAA0: 'A(M) \subset 'A0(M) := subsetUl _ _.
+move=> maxM defX.
+have sA0M: 'A0(M) \subset M := subset_trans (FTsupp0_sub M) (subsetDl M 1).
+have sAA0: 'A(M) \subset 'A0(M) := FTsupp_sub M.
+have sAM: 'A(M) \subset M := subset_trans sAA0 sA0M.
 without loss {defX} ->: X / X = 'A0(M).
   case/pred2P: defX => ->; move/(_ _ (erefl _))=> //.
   set D0 := finset _ => [[sD0A1 tameA0 signD0]] D.
@@ -1146,7 +1227,7 @@ have tiA0: forall x a, x \in 'A0(M) :\: 'A1(M) -> x ^ a \in 'A0(M) -> a \in M.
     by apply: contraLR Ax => notAxa; rewrite -(conjgK a x) tiA0A // inE notAxa.
   have ntK: K :!=: 1.
     rewrite -(trivgFmax maxM complU) FTtype_Fmax //; apply: contra notAx.
-    by move/(FTtypeP 1 maxM); move/ker0_FTtypeI <-.
+    by move/FTsupp0_type1 <-.
   have [_ _ [_ [_ tiB <-] _ _]] := BGsummaryC maxM complU ntK.
   set B := _ :\: _ in tiB *; have Bx: x \in B by exact/setDP.
   have BG_B: B \in B :^: G by exact: orbit_refl.
@@ -1185,7 +1266,7 @@ have [FmaxM t2'M]: M \in 'M_'F /\ \tau2(M)^'.-group M.
   apply: (non_disjoint_signalizer_Frobenius ell1x MSx_gt1 SMxM).
   by apply: contra not_sNx'CMy; exact: pgroupS (subsetIl _ _).
 have defA0: 'A0(M) = Ms^#.
-  rewrite ker0_FTtypeI //; last by apply/(FTtypeP 1); rewrite -?FTtype_Fmax. 
+  rewrite FTsupp0_type1; last by rewrite -FTtype_Fmax. 
   rewrite /'A(M) /'A1(M) -FTtype_Fmax // FmaxM def_FTcore //= -/Ms.
   apply/setP => z; apply/bigcupP/idP=> [[t Ms1t] | Ms1z]; last first.
     have [ntz Ms_z] := setD1P Ms1z.
