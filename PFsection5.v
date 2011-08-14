@@ -354,7 +354,7 @@ have{defY leXchi lam Z Zlam oZS1 ub_chi1} defY: Y = a%:R *: t1 xi1.
     rewrite big_seq memv_sub ?memvZl ?memv_suml ?memv_span ?map_f //.
     by move=> theta S1theta; rewrite memvZl ?memv_span.
   rewrite -leC_sub cfnorm_sub cfnormZ normC_pos ?posC_nat // iso_t1 ?Z_S1 //.
-  rewrite -2!addrA oppr_add addNKr cfnormZ int_normCK // posC_opp.
+  rewrite -2!addrA (oppr_add (_ * _)) addNKr cfnormZ int_normCK // posC_opp.
   rewrite cfnorm_sum_orthogonal //; set sum_a := \sum_(xi <- _) _.
   rewrite -cfdotC cfdotC cfdotZl cfdotZr cfproj_sum_orthogonal ?map_f // a_xi1.
   rewrite iso_t1 ?Z_S1 // 3!rmorphM !rmorph_nat fmorphV isIntC_conj //.
