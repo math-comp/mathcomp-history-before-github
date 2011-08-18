@@ -35,10 +35,13 @@ Reserved Notation "( a 'as' b )"        (at level 0).
 Reserved Notation "( a 'in' b 'in' c )" (at level 0).
 Reserved Notation "( a 'as' b 'in' c )" (at level 0).
 
-(* Notation for a term encoded version of "X in _ = X" and "X in X = _"       *)
-(* allowing to write [t in RHS] in place of [t in X in _ = X].                *)
-Notation "'RHS'" := (_ : fun X => _ = X).
-Notation "'LHS'" := (_ : fun X => X = _).
+(* Notation to define shortcuts for the "X in t" part of a pattern.           *)
+Notation "( X 'in' t )" := (_ : fun X => t) : ssrpatternscope.
+Delimit Scope ssrpatternscope with pattern.
+
+(* Some shortcuts for recurrent "X in t" parts.                               *)
+Notation RHS := (X in _ = X)%pattern.
+Notation LHS := (X in X = _)%pattern.
 
 End SsrSyntax.
 
