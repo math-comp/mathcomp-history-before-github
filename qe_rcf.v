@@ -1,6 +1,6 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype path.
 Require Import bigop ssralg poly polydiv orderedalg zmodp div zint.
-Require Import orderedzint polyorder polyrcf interval.
+Require Import polyorder polyrcf interval.
 Require Import qe_rcf_th.
 
 Import GRing.Theory.
