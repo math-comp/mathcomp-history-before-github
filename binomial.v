@@ -275,6 +275,22 @@ by rewrite (mulnC b) -2!mulnA -expnSr -muln_addl.
 Qed.
 Definition expn_addl := Pascal.
 
+Lemma Vandermonde k l i :
+  \sum_(j < i.+1) 'C(k, j) * 'C(l, i - j) = 'C(k + l , i).
+Proof.
+pose f k i :=  \sum_(j < i.+1) 'C(k, j) * 'C(l, i - j).
+rewrite -/(f k i) ; move: k i.
+have fx0 k : f k 0 =  'C(k + l, 0).
+  by rewrite /f big_ord_recl big_ord0 addn0 !bin0 muln1.
+have f0x i : f 0 i = 'C(l, i).
+  rewrite /f big_ord_recl bin0 mul1n big1 ? addn0 ?subn0 //.
+suff fxx k i: f k.+1 i.+1 = f k i.+1 + f k i.
+  by elim  => [//| k h1]; elim => [//| i h2]; rewrite fxx h1 h1 - binS addSn.
+rewrite /f big_ord_recl (big_ord_recl (i.+1)) !bin0 !mul1n -addnA.
+rewrite -big_split /=; congr (_ + _).
+by apply: eq_bigr => j _ ; rewrite - muln_addl.
+Qed.
+
 Lemma subn_exp m n k :
   m ^ k - n ^ k = (m - n) * (\sum_(i < k) m ^ (k.-1 -i) * n ^ i).
 Proof.
