@@ -296,8 +296,8 @@ Qed.
 
 Lemma vchar_small_norm phi n :
     phi \in 'Z[irr G] -> '[phi] = n%:R -> (n < 4)%N ->
-  exists S : n.-tuple 'CF(G),
-    [/\ orthonormal S, {subset S <= 'Z[irr G]} & phi = \sum_(xi <- S) xi].
+  {S : n.-tuple 'CF(G) |
+    [/\ orthonormal S, {subset S <= 'Z[irr G]} & phi = \sum_(xi <- S) xi]}.
 Proof.
 move=> Zphi def_n lt_n_4.
 pose S := [image '[phi, 'chi_i] *: 'chi_i | i <- irr_constt phi].
