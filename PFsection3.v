@@ -243,7 +243,7 @@ rewrite -span_subsetl; apply/allP=> _ /imageP[[i j] _ ->].
 by exact: memc_acTIirr.
 Qed.
 
-Definition bcmp i j (v1 v2 v3 : 'CF(G)) :=
+Definition bcmp (i : Iirr W1) (j : Iirr W2) (v1 v2 v3 : 'CF(G)) :=
  [&& i !=0 , j != 0, orthonormal [::v1;v2;v3],  
    [&& v1 \in 'Z[irr G], v2 \in 'Z[irr G] & v3 \in 'Z[irr G]]
    & beta_ i j == v1 + v2 + v3].
@@ -320,7 +320,7 @@ Qed.
 
 Local Notation "v1 '<> v2" := ((v1 != v2) && (v1 != -v2))%R (at level 10).
 
-Lemma bcmp_diff v1 v2 v3 i j : bcmp i j v1 v2 v3 -> v1 '<> v2.
+Lemma bcmp_diff i j v1 v2 v3 : bcmp i j v1 v2 v3 -> v1 '<> v2.
 Proof.
 case/and5P=> Di Dj /orthonormalP /= [] /andP [].
 rewrite !inE negb_or=> /andP [] /= /negPf v1Dv2 /= _ _ Ho _ _.
@@ -328,6 +328,15 @@ rewrite (v1Dv2); apply/eqP=> HH.
 have: '[v1, v1] == 1 by rewrite Ho !(eq_refl, inE).
 rewrite {2}HH raddfN /= Ho ?(eqxx,orbT,in_cons) // v1Dv2 oppr0.
 by rewrite eq_sym oner_eq0.
+Qed.
+
+Lemma bcmp_diffs i j v1 v2 v3 : bcmp i j v1 v2 v3 -> 
+ [&& v1 '<> v2, v2 '<> v3 & v1 '<> v3].
+Proof.
+move=> HB.
+rewrite (bcmp_diff HB).
+rewrite (bcmp_diff (bcmp_swapr HB)).
+by rewrite (bcmp_diff (bcmp_swapr (bcmp_swapl HB))).
 Qed.
 
 Lemma signC_negb b : (-1) ^+ (negb b) = - ((-1) ^+ b) :> algC.
@@ -364,7 +373,7 @@ apply: ltC_trans AlB _.
 by rewrite -{1}[B]addr0 ltC_add2l -(ltn_ltC 0 1).
 Qed.
 
-Lemma in_bcTIirrE v1 v2 v3 i j v : 
+Lemma in_bcTIirrE i j v1 v2 v3 v : 
  bcmp i j v1 v2 v3 -> in_bcTIirr i j v -> [|| v == v1, v == v2 | v == v3].
 Proof.
 case/and5P=> Di Dj Ho /and3P [] VCv1 VCv2 VCv3 /eqP HB 
@@ -382,7 +391,7 @@ repeat apply: ltC_addbr.
 by rewrite -(ltn_ltC 0 1).
 Qed.
 
-Lemma in_bcTIirr_eq v1 v2 v3 i j v : 
+Lemma in_bcTIirr_eq i j v1 v2 v3 v : 
  bcmp i j v1 v2 v3 -> in_bcTIirr i j v = [|| v == v1, v == v2 | v == v3].
 Proof.
 move=> HB; apply/idP/idP=> HH; first by apply: in_bcTIirrE HB _.
@@ -391,7 +400,7 @@ by case/or3P: HH=> /eqP->;
                        | apply: bcmp_in (bcmp_rotate HB)].
 Qed.
 
-Lemma in_bcTIirr_comp v1 v2 v3 i j k :
+Lemma in_bcTIirr_cmp i j k v1 v2 v3 :
  k != 0 -> bcmp i j v1 v2 v3 -> 
  [|| in_bcTIirr i k v1, in_bcTIirr i k v2 | in_bcTIirr i k v3].
 Proof.
@@ -425,7 +434,7 @@ move/eqP; apply: ltC_neq; repeat apply: ltC_addbr.
 by rewrite -(ltn_ltC 0 1).
 Qed.
 
-Lemma in_bcTIirr_comp_sym  v1 v2 v3 i j k :
+Lemma in_bcTIirr_cmp_sym i j k v1 v2 v3 :
  k != 0 -> bcmp j i v1 v2 v3 -> 
  [|| in_bcTIirr k i v1, in_bcTIirr k i v2 | in_bcTIirr k i v3].
 Proof.
@@ -490,7 +499,7 @@ case: (vchar_norm1P VCv3 (eqP Nv3))=> b [i1 ->].
 by rewrite cfunE mulr_sign; case: b; rewrite ?oppr_eq0 (negPf (irr1_neq0 i1)).
 Qed.
 
-Lemma bcmp2_diff v1 v2 v3 v4 v5 i j k : 
+Lemma bcmp2_diff i j k v1 v2 v3 v4 v5 : 
  j != k -> bcmp i j v1 v2 v3 -> bcmp i k v1 v4 v5 -> v2 '<> v4.
 Proof.
 move=> Djk HB HB'.
@@ -542,7 +551,7 @@ case: (_ == _)=> /eqP.
 by rewrite eq_sym oner_eq0.
 Qed.
 
-Lemma bcmp2_diffs v1 v2 v3 v4 v5 i j k : 
+Lemma bcmp2_diffs i j k v1 v2 v3 v4 v5 : 
  j != k -> bcmp i j v1 v2 v3 -> bcmp i k v1 v4 v5 ->
  [&& v2 '<> v4, v2 '<> v5, v3 '<> v4 & v3 '<> v5].
 Proof.
@@ -553,7 +562,7 @@ rewrite (bcmp2_diff Djk (bcmp_swapr HB) HB').
 by rewrite (bcmp2_diff Djk (bcmp_swapr HB) (bcmp_swapr HB')).
 Qed.
 
-Lemma bcmp2_diff_sym v1 v2 v3 v4 v5 i j k : 
+Lemma bcmp2_diff_sym i j k v1 v2 v3 v4 v5 : 
  j != k -> bcmp j i v1 v2 v3 -> bcmp k i v1 v4 v5 -> v2 '<> v4.
 Proof.
 move=> Djk HB HB'.
@@ -605,7 +614,7 @@ case: (_ == _)=> /eqP.
 by rewrite eq_sym oner_eq0.
 Qed.
 
-Lemma bcmp2_diffs_sym v1 v2 v3 v4 v5 i j k : 
+Lemma bcmp2_diffs_sym i j k v1 v2 v3 v4 v5 : 
  j != k -> bcmp j i v1 v2 v3 -> bcmp k i v1 v4 v5 ->
  [&& v2 '<> v4, v2 '<> v5, v3 '<> v4 & v3 '<> v5].
 Proof.
@@ -616,13 +625,13 @@ rewrite (bcmp2_diff_sym Djk (bcmp_swapr HB) HB').
 by rewrite (bcmp2_diff_sym Djk (bcmp_swapr HB) (bcmp_swapr HB')).
 Qed.
 
-Lemma in_bcTIirr_opp  i j v : in_bcTIirr j i v -> in_bcTIirr j i (- v) -> false.
+Lemma in_bcTIirr_opp i j v : in_bcTIirr j i v -> in_bcTIirr j i (- v) -> false.
 Proof.
 case/and3P=> _ _ HH; case/and3P=> _ _; rewrite cfdotNl (eqP HH).
 by rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1 1) -(eqN_eqC _ 0).
 Qed.
 
-Lemma bcomp_in_opp  v1 v2 v3 i j k : 
+Lemma bcmp_in_opp i j k v1 v2 v3 : 
  j != 0 -> bcmp i k v1 v2 v3 ->
    [&& ~~ in_bcTIirr i j (-v1), ~~ in_bcTIirr i j (-v2)
      &  ~~ in_bcTIirr i j (-v3)].
@@ -635,7 +644,7 @@ case: (boolP (j == k))=> [/eqP -> | Djk].
   - by have:= in_bcTIirr_opp (bcmp_in (bcmp_swapl HB)) HH.
   by have:= in_bcTIirr_opp (bcmp_in (bcmp_rotate HB)) HH.
 wlog [[v4 v5] HB']: v1 v2 v3 HB / {p | bcmp i j v1 p.1 p.2}.
-  case/or3P: (in_bcTIirr_comp NZj HB)=> HH WL.
+  case/or3P: (in_bcTIirr_cmp NZj HB)=> HH WL.
   - by apply: WL HB (in_bcTIirr_exists _ _ _).
   - rewrite andbA [X in X && _]andbC -andbA. 
     by apply: WL (bcmp_swapl HB) (in_bcTIirr_exists _ _ _).
@@ -661,7 +670,7 @@ move: (bcmp2_diff Djk (bcmp_swapr HB') (bcmp_swapr HB)).
 by rewrite -vE; rewrite eqxx andbF.
 Qed.
 
-Lemma bcomp_in_sym_opp  v1 v2 v3 i j k : 
+Lemma bcmp_in_opp_sym i j k v1 v2 v3 : 
  j != 0 -> bcmp k i v1 v2 v3 ->
    [&& ~~ in_bcTIirr j i (-v1), ~~ in_bcTIirr j i (-v2)
      &  ~~ in_bcTIirr j i (-v3)].
@@ -674,7 +683,7 @@ case: (boolP (j == k))=> [/eqP -> | Djk].
   - by have:= in_bcTIirr_opp (bcmp_in (bcmp_swapl HB)) HH.
   by have:= in_bcTIirr_opp (bcmp_in (bcmp_rotate HB)) HH.
 wlog [[v4 v5] HB']: v1 v2 v3 HB / {p | bcmp j i v1 p.1 p.2}.
-  case/or3P: (in_bcTIirr_comp_sym NZj HB)=> HH WL.
+  case/or3P: (in_bcTIirr_cmp_sym NZj HB)=> HH WL.
   - by apply: WL HB (in_bcTIirr_exists _ _ _).
   - rewrite andbA [X in X && _]andbC -andbA. 
     by apply: WL (bcmp_swapl HB) (in_bcTIirr_exists _ _ _).
@@ -700,7 +709,7 @@ move: (bcmp2_diff_sym Djk (bcmp_swapr HB') (bcmp_swapr HB)).
 by rewrite -vE; rewrite eqxx andbF.
 Qed.
 
-Lemma bcmp_not_two v1 v2 v3 v4 i1 j1 i2 j2 : 
+Lemma bcmp_not_two i1 j1 i2 j2 v1 v2 v3 v4: 
  i1 != i2 -> j1 != j2 ->
  bcmp i1 j1 v1 v2 v3 -> bcmp i2 j2 v1 v2 v4 -> false.
 Proof.
@@ -734,7 +743,7 @@ rewrite cfdot_virr //; repeat (case: (_ == _)); move/eqP.
 by rewrite addr0 -(natr_add _ 1 1) -(eqN_eqC _ 0).
 Qed.
 
-Lemma bcmp_two_opp v1 v2 v3 v4 i1 j1 i2 j2 : 
+Lemma bcmp_two_opp i1 j1 i2 j2 v1 v2 v3 v4: 
  i1 != i2 -> j1 != j2 ->
  bcmp i1 j1 v1 v2 v3 -> bcmp i2 j2 v1 (-v2) v4 -> v3 '<> v4.
 Proof.
@@ -771,25 +780,28 @@ repeat (case: (_ == _))=> //; move/eqP.
 by rewrite eq_sym -subr_eq0 opprK add0r -(eqN_eqC 1 0).
 Qed.
 
-Lemma bcmp_diff_opp v1 v2 v3 v4 v5 i1 j1 i2 j2 : 
+Lemma bcmp_diff_opp i1 j1 i2 j2 v1 v2 v3 v4 v5 : 
  i1 != i2 -> j1 != j2 ->
  bcmp i1 j1 v1 v2 v3 -> bcmp i2 j2 v1 v4 v5 -> 
- [|| (v4 == - v2) && v3 '<> v5 , (v4 == - v3) && v2 '<> v5,
-     (v5 == - v2) && v3 '<> v4 | (v5 == - v3) && v2 '<> v4].
+ [|| (v4 == - v2) && v5 '<> v3 , (v4 == - v3) && v5 '<> v2,
+     (v5 == - v2) && v4 '<> v3 | (v5 == - v3) && v4 '<> v2].
 Proof.
 move=> Di1i2 Dj1j2 HB HB'.
 case: (boolP (_ == _))=> /eqP Hv4v2 /=.
   rewrite Hv4v2 in HB'.
-  by rewrite (bcmp_two_opp Di1i2 Dj1j2 HB HB').
+  by rewrite 2![v5 == _]eq_sym eqr_oppC (bcmp_two_opp Di1i2 Dj1j2 HB HB').
 case: (boolP (_ == _))=> /eqP Hv4v3 /=.
   rewrite Hv4v3 in HB'.
+  rewrite 2![v5 == _]eq_sym eqr_oppC.
   by rewrite (bcmp_two_opp Di1i2 Dj1j2 (bcmp_swapr HB) HB').
 case: (boolP (_ == _))=> /eqP Hv5v2 /=.
   rewrite Hv5v2 in HB'.
-  by rewrite (bcmp_two_opp Di1i2 Dj1j2 HB (bcmp_swapr HB')).
+  rewrite [v4 == _]eq_sym.
+  by case/andP: (bcmp_two_opp Di1i2 Dj1j2 HB (bcmp_swapr HB'))=> ->.
 case: (boolP (_ == _))=> /eqP Hv5v3 /=.
   rewrite Hv5v3 in HB'.
-  by rewrite (bcmp_two_opp Di1i2 Dj1j2 (bcmp_swapr HB) (bcmp_swapr HB')).
+  rewrite [v4 == _]eq_sym.
+  by case/andP: (bcmp_two_opp Di1i2 Dj1j2 (bcmp_swapr HB) (bcmp_swapr HB'))=>->.
 case/and5P: (HB)=> NZi1 NZj1 Ho /and3P [] VCv1 VCv2 VCv3 EB.
 case/and5P: (HB')=> NZi2 NZj2 Ho' /and3P [] _ VCv4 VCv5 EB'.
 move: (cfdot_bcTIirr NZi2 NZj2 NZi1 NZj1).
@@ -820,25 +832,31 @@ repeat apply: ltC_addbl.
 by rewrite -(ltn_ltC 0 1).
 Qed.
 
-Lemma bcmp_opp_diff v1 v2 v3 v4 v5 i1 j1 i2 j2 : 
+Lemma bcmp_opp_diff i1 j1 i2 j2 v1 v2 v3 v4 v5 : 
  i1 != i2 -> j1 != j2 ->
  bcmp i1 j1 v1 v2 v3 ->  bcmp i2 j2 (- v1) v4 v5 -> 
- [|| (v4 == v2) && v3 '<> v5 , (v4 == v3) && v2 '<> v5,
-     (v5 == v2) && v3 '<> v4 | (v5 == v3) && v2 '<> v4].
+ [|| (v4 == v2) && v5 '<> v3 , (v4 == v3) && v5 '<> v2,
+     (v5 == v2) && v4 '<> v3 | (v5 == v3) && v4 '<> v2].
 Proof.
 move=> Di1i2 Dj1j2 HB HB'.
+have HBL := bcmp_swapl HB; have HBR := bcmp_swapr HB.
+have HBr := bcmp_rotate HB.
 case: (boolP (_ == _))=> /eqP Hv4v2 /=.
   rewrite Hv4v2 in HB'.
-  by rewrite (bcmp_two_opp Di1i2 Dj1j2 (bcmp_swapl HB) (bcmp_swapl HB')).
+  rewrite 2![v5 == _]eq_sym eqr_oppC.
+  by rewrite (bcmp_two_opp Di1i2 Dj1j2 HBL (bcmp_swapl HB')).
 case: (boolP (_ == _))=> /eqP Hv4v3 /=.
   rewrite Hv4v3 in HB'.
-  by rewrite (bcmp_two_opp Di1i2 Dj1j2 (bcmp_rotate HB) (bcmp_swapl HB')).
+  rewrite 2![v5 == _]eq_sym eqr_oppC.
+  by rewrite (bcmp_two_opp Di1i2 Dj1j2 HBr (bcmp_swapl HB')).
 case: (boolP (_ == _))=> /eqP Hv5v2 /=.
   rewrite Hv5v2 in HB'.
-  by rewrite (bcmp_two_opp Di1i2 Dj1j2 (bcmp_swapl HB) (bcmp_rotate HB')).
+  rewrite 2![v4 == _]eq_sym eqr_oppC.
+  by case/andP: (bcmp_two_opp Di1i2 Dj1j2 HBL (bcmp_rotate HB'))=> _ ->.
 case: (boolP (_ == _))=> /eqP Hv5v3 /=.
   rewrite Hv5v3 in HB'.
-  by rewrite (bcmp_two_opp Di1i2 Dj1j2 (bcmp_rotate HB) (bcmp_rotate HB')).
+  rewrite [v4 == _]eq_sym eqr_oppC.
+  by case/andP: (bcmp_two_opp Di1i2 Dj1j2 HBr (bcmp_rotate HB'))=> _ ->.
 case/and5P: (HB)=> NZi1 NZj1 Ho /and3P [] VCv1 VCv2 VCv3 EB.
 case/and5P: (HB')=> NZi2 NZj2 Ho' /and3P [] _ VCv4 VCv5 EB'.
 move: (cfdot_bcTIirr NZi2 NZj2 NZi1 NZj1).
@@ -873,13 +891,13 @@ Qed.
 
 Section Main.
 
-Parameter R : ringType. 
+Let R := 'CF(G).
 
-Parameter m n p : nat.
+Variable m n p : nat.
 
-Parameter cmpR : 'I_m.-1.+1 -> 'I_n.-1.+1 -> R -> R -> R -> bool.
+Variable cmpR : 'I_m.-1.+1 -> 'I_n.-1.+1 -> R -> R -> R -> bool.
 
-Parameter inR : 'I_m.-1.+1 -> 'I_n.-1.+1 -> R -> bool.
+Variable inR : 'I_m.-1.+1 -> 'I_n.-1.+1 -> R -> bool.
 
 Local Notation "v1 '<> v2" := ((v1 != v2) && (v1 != -v2))%R (at level 10).
 
@@ -904,44 +922,44 @@ Hypothesis cmpR0 : forall i  j, i != 0 -> j != 0 ->
 Hypothesis cmpR0F : forall i j k, i != 0 -> j != 0 -> inR i j k ->
   { v | cmpR i j k v.1 v.2}.
 
-Hypothesis cmpR1 : forall v1 v2 v3 i j, 
+Hypothesis cmpR1 : forall i j v1 v2 v3, 
  cmpR i j v1 v2 v3 -> inR i j v1.
 
-Hypothesis cmpR2 : forall v1 v2 v3 i j, 
+Hypothesis cmpR2 : forall i j v1 v2 v3, 
  cmpR i j v1 v2 v3 -> [&& v1 '<> v2, v2 '<> v3 & v1 '<> v3].
 
-Hypothesis cmpR3 : forall v1 v2 v3 i j v, 
+Hypothesis cmpR3 : forall i j v1 v2 v3 v, 
  cmpR i j v1 v2 v3 -> inR i j v -> [|| v == v1, v == v2 | v == v3].
 
-Hypothesis cmpR4 : forall v1 v2 v3 v4 v5 i j k, 
+Hypothesis cmpR4 : forall i j k v1 v2 v3 v4 v5, 
  j != k -> cmpR i j v1 v2 v3 -> cmpR i k v1 v4 v5 -> 
   [&& v2 '<> v4, v2 '<> v5, v3 '<> v4 & v3 '<> v5].
 
-Hypothesis cmpR4b : forall v1 v2 v3 v4 v5 i j k,
+Hypothesis cmpR4b : forall i j k v1 v2 v3 v4 v5,
  j != k ->  cmpR j i v1 v2 v3 -> cmpR k i v1 v4 v5 ->
   [&& v2 '<> v4, v2 '<> v5, v3 '<> v4 &  v3 '<> v5].
 
-Hypothesis cmpR5 : forall v1 v2 v3 i j k, 
+Hypothesis cmpR5 : forall i j k v1 v2 v3, 
  k != 0 -> cmpR i j v1 v2 v3 -> [|| inR i k v1, inR i k v2 | inR i k v3].
 
-Hypothesis cmpR5b : forall v1 v2 v3 i j k, 
+Hypothesis cmpR5b : forall i j k v1 v2 v3, 
  k != 0 -> cmpR j i v1 v2 v3 -> [|| inR k i v1, inR k i v2 | inR k i v3].
 
-Hypothesis cmpR6 : forall v1 v2 v3 v4 v5 i1 j1 i2 j2, 
+Hypothesis cmpR6 : forall i1 j1 i2 j2 v1 v2 v3 v4 v5, 
  i1 != i2 -> j1 != j2 -> cmpR i1 j1 v1 v2 v3 -> cmpR i2 j2 v1 v4 v5 -> 
  [|| (v4 == - v2) && v5 '<> v3, (v4 == - v3) && v5 '<> v2,
      (v5 == - v2) && v4 '<> v3 | (v5 == - v3) && v4 '<> v2].
 
-Hypothesis cmpR6b : forall v1 v2 v3 v4 v5 i1 j1 i2 j2, 
+Hypothesis cmpR6b : forall i1 j1 i2 j2 v1 v2 v3 v4 v5, 
   i1 != i2 -> j1 != j2 -> cmpR i1 j1 v1 v2 v3 -> cmpR i2 j2 (- v1) v4 v5 -> 
  [|| (v4 == v2) && v5 '<> v3, (v4 == v3) && v5 '<> v2,
      (v5 == v2) && v4 '<> v3 | (v5 == v3) && v4 '<> v2].
 
-Hypothesis cmpR7 : forall v1 v2 v3 i j k, 
+Hypothesis cmpR7 : forall i j k v1 v2 v3, 
  j != 0 -> cmpR k i v1 v2 v3 ->
  [&& ~~ inR j i (-v1), ~~ inR j i (-v2) & ~~ inR j i (-v3)].
 
-Hypothesis cmpR7b : forall v1 v2 v3 i j k, 
+Hypothesis cmpR7b : forall i j k v1 v2 v3, 
   j != 0 -> cmpR i k v1 v2 v3 ->
    [&& ~~ inR i j (-v1), ~~ inR i j (-v2) &  ~~ inR i j (-v3)].
 
@@ -1085,7 +1103,7 @@ wlog: x' x4 x5 x6 Bi2j Bi3j / (x4 == x')=> WL.
   by apply: WL (cmpR_swapr Bi2j) (cmpR_swapr Bi3j) x5E.
 rewrite -(eqP WL) {x' WL} in Bi3j.
 have: (4 < #|'I_m.-1.+1|)%N.
-  by case: m H4Lm=> //= m; rewrite card_ord.
+  by case: m H4Lm=> //= m1; rewrite card_ord.
 rewrite (cardD1 (0: 'I__)) (cardD1 i1) (cardD1 i2) (cardD1 i3) !inE ?eq_refl.
 rewrite NZi1 NZi2 Di2i1 NZi3 Di3i1 Di3i2 !add1n !ltnS.
 case/card_gt0P=> i4; rewrite !inE=> /and5P [] Di4i3 Di4i2 Di4i1 NZi4 _.
@@ -1532,7 +1550,7 @@ have [i1 [NZi1 Dii1 [i2 [NZi2 Dii2 Di1i2 [i3 [NZi3 Dii3 Di1i3 Di2i3]]]]]] :
        [/\ i2 != 0, i != i2, i1 != i2 &
        exists i3,
          [/\ i3 !=0, i != i3, i1 != i3 & i2 != i3]]].
-  have: (4 < #|'I_m.-1.+1|)%N by case: m H4Lm=> //= m; rewrite card_ord.
+  have: (4 < #|'I_m.-1.+1|)%N by case: m H4Lm=> //= m1; rewrite card_ord.
   rewrite (cardD1 (0: 'I__)) (cardD1 i) !inE NZi !ltnS=> HH.
   case/card_gt0P: (ltn_trans (is_true_true : 0 < 2)%N HH)=> i1.
   rewrite !inE=> Hi1; exists i1.
@@ -1571,6 +1589,72 @@ by case/and3P: (cmpR4b Di2i3 Bi2j' Bi3j'); rewrite eq_refl.
 Qed.
     
 End Main.
+
+Let ONW1 : odd #|classes W1|.
+Proof.
+by have:= cyclic_abelian cyclicW1; rewrite card_classes_abelian => /eqP ->.
+Qed.
+
+Let ONW2 : odd #|classes W2|.
+by have:= cyclic_abelian cyclicW2; rewrite card_classes_abelian => /eqP ->.
+Qed.
+
+Let H2LNW1 : (2 < #|classes W1|)%N.
+by have:= cyclic_abelian cyclicW1; rewrite card_classes_abelian => /eqP ->.
+Qed.
+
+Let H2LNW2 : (2 < #|classes W2|)%N.
+by have:= cyclic_abelian cyclicW2; rewrite card_classes_abelian => /eqP ->.
+Qed.
+
+Let hcTIirr (i : Iirr W2) : 'CF(G) :=
+ (ccTIirr ONW1 H2LNW1 H2LNW2 bcmp_swapl bcmp_swapr bcmp_rotate
+  bcmp_exists in_bcTIirr_exists bcmp_in bcmp_diffs in_bcTIirrE
+  bcmp2_diffs bcmp2_diffs_sym in_bcTIirr_cmp in_bcTIirr_cmp_sym
+  bcmp_diff_opp bcmp_opp_diff bcmp_in_opp_sym bcmp_in_opp i).
+
+Let sbcmp_swapl i j := @bcmp_swapl j i.
+Let sbcmp_swapr i j := @bcmp_swapr j i.
+Let sbcmp_rotate i j := @bcmp_rotate j i.
+Let sbcmp_exists i j Hi Hj := @bcmp_exists j i Hj Hi.
+Let sin_bcTIirr_exists i j v Hi Hj := @in_bcTIirr_exists j i v Hj Hi.
+Let sbcmp_in i j := @bcmp_in j i.
+Let sbcmp_diffs i j := @bcmp_diffs j i.
+Let sin_bcTIirrE i j := @in_bcTIirrE j i.
+Let sbcmp_diff_opp i1 j1 i2 j2 v1 v2 v3 v4 v5 Hi1i2 Hj1j2 := 
+   @bcmp_diff_opp j1 i1 j2 i2 v1 v2 v3 v4 v5 Hj1j2 Hi1i2.
+Let sbcmp_opp_diff i1 j1 i2 j2 v1 v2 v3 v4 v5 Hi1i2 Hj1j2 := 
+   @bcmp_opp_diff j1 i1 j2 i2 v1 v2 v3 v4 v5 Hj1j2 Hi1i2.
+
+Let vcTIirr (i : Iirr W1) : 'CF(G) :=
+ (ccTIirr
+   ONW2 H2LNW2 H2LNW1 sbcmp_swapl sbcmp_swapr sbcmp_rotate
+   sbcmp_exists sin_bcTIirr_exists sbcmp_in sbcmp_diffs
+   sin_bcTIirrE bcmp2_diffs_sym bcmp2_diffs in_bcTIirr_cmp_sym
+   in_bcTIirr_cmp sbcmp_diff_opp sbcmp_opp_diff bcmp_in_opp
+   bcmp_in_opp_sym i).
+
+Let hcTIirrE: forall i j, i != 0 -> j != 0 -> in_bcTIirr i j (hcTIirr j) :=
+ (ccTIirrE ONW1 H2LNW1 H2LNW2 bcmp_swapl bcmp_swapr bcmp_rotate
+  bcmp_exists in_bcTIirr_exists bcmp_in bcmp_diffs in_bcTIirrE
+  bcmp2_diffs bcmp2_diffs_sym in_bcTIirr_cmp in_bcTIirr_cmp_sym
+  bcmp_diff_opp bcmp_opp_diff bcmp_in_opp_sym bcmp_in_opp).
+
+Let vcTIirrE i j (Hi : i != 0) (Hj : j != 0) : in_bcTIirr i j (vcTIirr i) :=
+ (ccTIirrE
+   ONW2 H2LNW2 H2LNW1 sbcmp_swapl sbcmp_swapr sbcmp_rotate
+   sbcmp_exists sin_bcTIirr_exists sbcmp_in sbcmp_diffs
+   sin_bcTIirrE bcmp2_diffs_sym bcmp2_diffs in_bcTIirr_cmp_sym
+   in_bcTIirr_cmp sbcmp_diff_opp sbcmp_opp_diff bcmp_in_opp
+   bcmp_in_opp_sym Hj Hi).
+
+Definition dcTIirr (i : Iirr W1) (j : Iirr W2) : 'CF(G) := 
+  if (i == 0) then 
+    if (j == 0) then '1_G else - hcTIirr j
+  else
+    if (j == 0) then - vcTIirr i else beta_ i j + hcTIirr j + vcTIirr i.
+
+Local Notation x_ := dcTIirr.
 
 End Proofs.
 
