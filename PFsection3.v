@@ -1607,6 +1607,12 @@ Let H2LNW2 : (2 < #|classes W2|)%N.
 by have:= cyclic_abelian cyclicW2; rewrite card_classes_abelian => /eqP ->.
 Qed.
 
+Let Hcoprime : (coprime  #|classes W1| #|classes W2|)%N.
+have:= cyclic_abelian cyclicW1; rewrite card_classes_abelian => /eqP ->.
+have:= cyclic_abelian cyclicW2; rewrite card_classes_abelian => /eqP ->.
+by case: tiW=> _ [].
+Qed.
+
 Let hcTIirr (i : Iirr W2) : 'CF(G) :=
  (ccTIirr ONW1 H2LNW1 H2LNW2 bcmp_swapl bcmp_swapr bcmp_rotate
   bcmp_exists in_bcTIirr_exists bcmp_in bcmp_diffs in_bcTIirrE
@@ -1648,13 +1654,87 @@ Let vcTIirrE i j (Hi : i != 0) (Hj : j != 0) : in_bcTIirr i j (vcTIirr i) :=
    in_bcTIirr_cmp sbcmp_diff_opp sbcmp_opp_diff bcmp_in_opp
    bcmp_in_opp_sym Hj Hi).
 
+Let hcTIirr_inP : forall (i : Iirr W1) (j j' : Iirr W2), 
+       (4 < #|classes W1|)%N -> i != 0 -> j != 0 -> j' != 0 -> j != j' ->
+       ~~ in_bcTIirr i j (hcTIirr j') :=
+ (ccTIirr_inP ONW1 H2LNW1 H2LNW2 bcmp_swapl bcmp_swapr bcmp_rotate
+  bcmp_exists in_bcTIirr_exists bcmp_in bcmp_diffs in_bcTIirrE
+  bcmp2_diffs bcmp2_diffs_sym in_bcTIirr_cmp in_bcTIirr_cmp_sym
+  bcmp_diff_opp bcmp_opp_diff bcmp_in_opp_sym bcmp_in_opp).
+
+Let hcTIirr_inN : forall (i : Iirr W1) (j j' : Iirr W2), 
+       i != 0 -> j != 0 -> j' != 0 -> j != j' ->
+       ~~ in_bcTIirr i j (- hcTIirr j') :=
+ (ccTIirr_inN ONW1 H2LNW1 H2LNW2 bcmp_swapl bcmp_swapr bcmp_rotate
+  bcmp_exists in_bcTIirr_exists bcmp_in bcmp_diffs in_bcTIirrE
+  bcmp2_diffs bcmp2_diffs_sym in_bcTIirr_cmp in_bcTIirr_cmp_sym
+  bcmp_diff_opp bcmp_opp_diff bcmp_in_opp_sym bcmp_in_opp).
+
+Let vcTIirr_inP : forall (j : Iirr W2) (i i' : Iirr W1), 
+       (4 < #|classes W2|)%N -> j != 0 -> i != 0 -> i' != 0 -> i != i' ->
+       ~~ in_bcTIirr i j (vcTIirr i') :=
+ (ccTIirr_inP
+   ONW2 H2LNW2 H2LNW1 sbcmp_swapl sbcmp_swapr sbcmp_rotate
+   sbcmp_exists sin_bcTIirr_exists sbcmp_in sbcmp_diffs
+   sin_bcTIirrE bcmp2_diffs_sym bcmp2_diffs in_bcTIirr_cmp_sym
+   in_bcTIirr_cmp sbcmp_diff_opp sbcmp_opp_diff bcmp_in_opp
+   bcmp_in_opp_sym).
+
+Let vcTIirr_inN : forall (j : Iirr W2) (i i' : Iirr W1), 
+       j != 0 -> i != 0 -> i' != 0 -> i != i' ->
+       ~~ in_bcTIirr i j (- vcTIirr i') :=
+ (ccTIirr_inN
+   ONW2 H2LNW2 H2LNW1 sbcmp_swapl sbcmp_swapr sbcmp_rotate
+   sbcmp_exists sin_bcTIirr_exists sbcmp_in sbcmp_diffs
+   sin_bcTIirrE bcmp2_diffs_sym bcmp2_diffs in_bcTIirr_cmp_sym
+   in_bcTIirr_cmp sbcmp_diff_opp sbcmp_opp_diff bcmp_in_opp
+   bcmp_in_opp_sym).
+
+Lemma hcTIirr_diff_vcTIrr i j : i != 0 -> j != 0 -> vcTIirr i <> hcTIirr j.
+Proof.
+move=> NZi NZj HH.
+move: (H2LNW1) (H2LNW2) Hcoprime ONW1 ONW2.
+rewrite leq_eqVlt; case/orP=> [/eqP {1}<- |].
+  rewrite leq_eqVlt; case/orP=> [/eqP {1}<- //|].
+  rewrite leq_eqVlt; case/orP=> [/eqP {2}<- //| HW2 _ _ _].
+  have [i' NZi' Di'i]: exists2 i', i' != 0 & i' != i.
+    have: (2 < #|Iirr W1|)%N by rewrite card_ord //  NirrE.
+    rewrite (cardD1 (0: 'I__)) (cardD1 i) !inE NZi !ltnS=> /card_gt0P=> [[i1]].
+    by rewrite !inE=> /and3P [] H1 H2 H3; exists i1.
+  case/negP: (vcTIirr_inP HW2 NZj NZi' NZi Di'i).
+  by rewrite HH hcTIirrE.
+rewrite leq_eqVlt; case/orP=> [/eqP {2}<- //| HW1 _ _ _].
+have [j' NZj' Dj'j]: exists2 j', j' != 0 & j' != j.
+  have: (2 < #|Iirr W2|)%N  by rewrite card_ord //  NirrE.
+  rewrite (cardD1 (0: 'I__)) (cardD1 j) !inE NZj !ltnS=> /card_gt0P=> [[j']].
+  by rewrite !inE=> /and3P [] H1 H2 H3; exists j'.
+case/negP: (hcTIirr_inP HW1 NZi NZj' NZj Dj'j).
+by rewrite -HH vcTIirrE.
+Qed.
+
 Definition dcTIirr (i : Iirr W1) (j : Iirr W2) : 'CF(G) := 
   if (i == 0) then 
     if (j == 0) then '1_G else - hcTIirr j
   else
-    if (j == 0) then - vcTIirr i else beta_ i j + hcTIirr j + vcTIirr i.
+    if (j == 0) then - vcTIirr i else beta_ i j - hcTIirr j - vcTIirr i.
 
 Local Notation x_ := dcTIirr.
+
+Lemma dcTIrrE i j : i != 0 -> j != 0 -> bcmp i j (- x_ i 0) (- x_ 0 j) (x_ i j).
+Proof.
+move=> NZi NZj.
+rewrite /dcTIirr !eq_refl (negPf NZi) (negPf NZj) !opprK.
+case: (in_bcTIirr_exists NZi NZj (vcTIirrE NZi NZj))=> [[v1 v2] /= Hv].
+case/or3P: (in_bcTIirrE Hv (hcTIirrE NZi NZj))=> [|/eqP->|/eqP->].
+- by rewrite eq_sym=> /eqP; have:= (hcTIirr_diff_vcTIrr NZi NZj).
+- suff->: beta_ i j - v1 - vcTIirr i = v2 by done.
+  case/and5P: Hv=> _ _ _ _ /eqP->.
+  by rewrite [_ + v2]addrC addrA !addrK.
+apply: bcmp_swapr.
+suff->: beta_ i j - v2 - vcTIirr i = v1 by done.
+case/and5P: Hv=> _ _ _ _ /eqP->.
+by rewrite addrK [_ + v1]addrC addrK.
+Qed.
 
 End Proofs.
 
