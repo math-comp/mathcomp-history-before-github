@@ -1714,7 +1714,7 @@ Qed.
 
 Definition dcTIirr (i : Iirr W1) (j : Iirr W2) : 'CF(G) := 
   if (i == 0) then 
-    if (j == 0) then '1_G else - hcTIirr j
+    if (j == 0) then 1 else - hcTIirr j
   else
     if (j == 0) then - vcTIirr i else beta_ i j - hcTIirr j - vcTIirr i.
 
@@ -1736,5 +1736,205 @@ case/and5P: Hv=> _ _ _ _ /eqP->.
 by rewrite addrK [_ + v1]addrC addrK.
 Qed.
 
-End Proofs.
+Lemma bcTIirr1 i j :  i != 0 -> j != 0 -> ~~ in_bcTIirr i j 1.
+Proof.
+move=> NZi NZj; apply/negP.
+by case/and3P=> _ _; rewrite cfdotC cfdot_bcTIirr_1 // conjC0 -(eqN_eqC 0 1).
+Qed.
 
+Lemma bcTIirrM1 i j :  i != 0 -> j != 0 -> ~~ in_bcTIirr i j (-1).
+Proof.
+move=> NZi NZj; apply/negP.
+case/and3P=> _ _; rewrite cfdotNl cfdotC cfdot_bcTIirr_1 //.
+by rewrite conjC0 oppr0 -(eqN_eqC 0 1).
+Qed.
+
+(* This is first part of PF 3.5 *)
+Lemma cfdot_dcTIirr : forall i j i' j', 
+  '[x_ i j, x_ i' j'] = ((i == i') && (j == j'))%:R.
+Proof.
+pose i1 : Iirr W1 := inZp 1.
+pose j1 : Iirr W2 := inZp 1.
+have NZi1 : i1 != 0.
+  apply/eqP; move/val_eqP=> /=.
+  rewrite modn_small // NirrE.
+  by case: #|_| H2LNW1=> // [] // [].
+have NZj1 : j1 != 0.
+  apply/eqP; move/val_eqP=> /=.
+  rewrite modn_small // NirrE.
+  by case: #|_| H2LNW2=> // [] // [].
+have Pirr i j: x_ i j \in 'Z[irr G].
+  case: (boolP (i == 0))=> [/eqP-> | NZi].
+    case: (boolP (j == 0))=> [/eqP-> | NZj]; first by rewrite cfun1_vchar .
+    rewrite -opp_vchar.
+    by case/and5P: (bcmp_swapl (dcTIrrE NZi1 NZj))=> _ _ _ /and3P [].
+  case: (boolP (j == 0))=> [/eqP-> | NZj].
+    rewrite -opp_vchar.
+    by case/and5P: (bcmp_swapl (dcTIrrE NZi NZj1))=> _ _ _ /and3P [].
+  by case/and5P: (bcmp_swapl (dcTIrrE NZi NZj))=> _ _ _ /and3P []. 
+have Pnorm i j : '[x_ i j] == 1.
+  case: (boolP (i == 0))=> [/eqP-> | NZi].
+    case: (boolP (j == 0))=> [/eqP-> | NZj]; first by rewrite cfnorm1.
+    rewrite -['[_]]opprK -cfdotNr -cfdotNl.
+    by case/and4P: (bcmp_swapl (dcTIrrE NZi1 NZj))=> 
+          _ _ /orthonormalP [] _ ->; rewrite ?inE eq_refl.
+  case: (boolP (j == 0))=> [/eqP-> | NZj].
+    rewrite -['[_]]opprK -cfdotNr -cfdotNl.
+    by case/and4P: (bcmp_swapl (dcTIrrE NZi NZj1))=> 
+          _ _ /orthonormalP [] _ ->; rewrite ?(inE, orbT, eq_refl).
+  by case/and4P: (bcmp_swapl (dcTIrrE NZi NZj))=> 
+          _ _ /orthonormalP [] _ ->; rewrite ?(inE, orbT, eq_refl).
+have PC i j i' j' : '[x_ i j, x_ i' j'] = '[x_ i' j', x_ i j].
+  by rewrite cfdot_virr // cfdot_virr // ![x_ i' j' == _]eq_sym eqr_oppC.
+have P1 i j : '[1, x_ i j] == ((i == 0) && (j == 0))%:R.
+  case: (boolP (i == 0))=> [/eqP-> | NZi].
+    case: (boolP (j == 0))=> [/eqP-> | NZj]; first by rewrite cfnorm1.
+    rewrite cfdot_virr ?(cfnorm1, cfun1_vchar) //.
+    case: (boolP (1 == _))=> [/eqP Hx| _].
+      case/negP: (bcTIirrM1 NZi1 NZj); rewrite Hx.
+      by apply: (bcmp_in (bcmp_swapl (dcTIrrE _ _))).
+    case: (boolP (1 == _))=> [/eqP Hx | //].
+    case/negP: (bcTIirr1 NZi1 NZj); rewrite Hx.
+    by apply: (bcmp_in (bcmp_swapl (dcTIrrE _ _))).
+  case: (boolP (j == 0))=> [/eqP-> | NZj].
+    rewrite cfdot_virr ?(cfnorm1, cfun1_vchar) //.
+    case: (boolP (1 == _))=> [/eqP Hx| _].
+      case/negP: (bcTIirrM1 NZi NZj1); rewrite Hx.
+      by apply: (bcmp_in (dcTIrrE _ _)).
+    case: (boolP (1 == _))=> [/eqP Hx | //].
+    case/negP: (bcTIirr1 NZi NZj1); rewrite Hx.
+    by apply: (bcmp_in (dcTIrrE _ _)).
+  rewrite cfdot_virr ?(cfnorm1, cfun1_vchar) //.
+  case: (boolP (1 == _))=> [/eqP Hx| _].
+    case/negP: (bcTIirr1 NZi NZj); rewrite Hx.
+    by apply: (bcmp_in (bcmp_rotate (dcTIrrE _ _))).
+  case: (boolP (1 == _))=> [/eqP Hx | //].
+  case/negP: (bcTIirrM1 NZi NZj); rewrite Hx opprK.
+  by apply: (bcmp_in (bcmp_rotate (dcTIrrE _ _))).
+have Pjj' j j' : '[x_ 0 j, x_ 0 j'] == (j == j')%:R.
+  case: (boolP (j == 0))=> [/eqP-> | NZj].
+    by rewrite [0 == _]eq_sym (eqP (P1 _ _)) !eqxx.
+  case: (boolP (j' == 0))=> [/eqP-> | NZj'].
+    by rewrite PC (eqP (P1 0 j)).
+  case: (boolP (j == j'))=> [/eqP<- // | Djj'].
+  rewrite cfdot_virr //.
+  case/and3P: (bcmp2_diffs Djj' (dcTIrrE NZi1 NZj) (dcTIrrE NZi1 NZj')).
+  by rewrite eqr_opp eqr_oppC opprK=> /andP [] /negPf-> /negPf->.
+have Pii' i i' : '[x_ i 0, x_ i' 0] == (i == i')%:R.
+  case: (boolP (i == 0))=> [/eqP-> | NZi].
+    by rewrite [0 == _]eq_sym (eqP (P1 _ _)) andbT.
+  case: (boolP (i' == 0))=> [/eqP-> | NZi'].
+    by rewrite PC (eqP (P1 i 0)) andbT.
+  case: (boolP (i == i'))=> [/eqP<- // | Dii'].
+  rewrite cfdot_virr //.
+  case/and3P: (bcmp2_diffs_sym Dii' 
+                 (bcmp_swapl (dcTIrrE NZi NZj1))
+                 (bcmp_swapl (dcTIrrE NZi' NZj1))).
+  by rewrite eqr_opp eqr_oppC opprK=> /andP [] /negPf-> /negPf->.
+have Pij i j : '[x_ i 0, x_ 0 j] == ((i == 0) && (j == 0))%:R.
+  case: (boolP (i == 0))=> [/eqP-> | NZi].
+    by rewrite (eqP (P1 _ _)).
+  case: (boolP (j == 0))=> [/eqP-> | NZj].
+    by rewrite PC (eqP (P1 _ _)) (negPf NZi) eqxx.
+  case/and3P: (bcmp_diffs (dcTIrrE NZi NZj))=> /andP [].
+  by rewrite cfdot_virr // eqr_opp eqr_oppC opprK=> /negPf-> /negPf->.
+have Pii'j i i' j : '[x_ i 0, x_ i' j] == ((i == i') && (j == 0))%:R.
+  case: (boolP (i == 0))=> [/eqP-> // | NZi].
+    by rewrite (eqP (P1 _ _)) ![0 == _]eq_sym.
+  case: (boolP (i' == 0))=> [/eqP-> // | NZi'].
+  case: (boolP (j == 0))=> [/eqP-> // | NZj]; first by rewrite andbT.
+  rewrite andbF -oppr_eq0 -cfdotNl.
+  case: (boolP (i == i'))=> [/eqP<- | Dii'].
+    case/and3P: (bcmp_diffs (dcTIrrE NZi NZj))=> _ _ /andP [].
+    rewrite cfdot_virr ?(opp_vchar, cfdotNr, cfdotNl, opprK) //.
+    by move=> /negPf-> /negPf->.
+  case/and4P: (bcmp2_diffs_sym Dii'
+                 (bcmp_swapl (dcTIrrE NZi NZj))
+                 (bcmp_swapl (dcTIrrE NZi' NZj)))=> _ /andP [].
+  rewrite cfdot_virr ?(opp_vchar, cfdotNr, cfdotNl, opprK) //.
+  by move=> /negPf-> /negPf->.
+have Pijj' i j j' : '[x_ 0 j, x_ i j'] == ((i == 0) && (j == j'))%:R.
+  case: (boolP (j == 0))=> [/eqP-> // | NZj].
+    by rewrite (eqP (P1 _ _)) ![0 == _]eq_sym.
+  case: (boolP (i == 0))=> [/eqP-> // | NZi].
+    by rewrite (eqP (Pjj' _ _)).
+  case: (boolP (j' == 0))=> [/eqP-> // | NZj'].
+    by rewrite PC // (eqP (Pij _ _)) (negPf NZi).
+  rewrite -oppr_eq0 -cfdotNl.
+  case: (boolP (j == j'))=> [/eqP<- | Djj'].
+    case/and3P: (bcmp_diffs (dcTIrrE NZi NZj))=> _ /andP [].
+    rewrite cfdot_virr ?(opp_vchar, cfdotNr, cfdotNl, opprK) //.
+    by move=> /negPf-> /negPf->.
+  case/and4P: (bcmp2_diffs Djj'
+                 (dcTIrrE NZi NZj)
+                 (dcTIrrE NZi NZj'))=> _ /andP [].
+  rewrite cfdot_virr ?(opp_vchar, cfdotNr, cfdotNl, opprK) //.
+  by move=> /negPf-> /negPf->.
+move=> i j i' j'; apply/eqP.
+case: (boolP (i == 0))=> [/eqP-> // | NZi].
+  by rewrite [0 == _]eq_sym; apply: Pijj'.
+case: (boolP (i' == 0))=> [/eqP-> // | NZi'].
+  by rewrite PC [j == _]eq_sym; apply: Pijj'.
+case: (boolP (j == 0))=> [/eqP-> | NZj].
+  by rewrite (eqP (Pii'j _ _ _)) [0 == _]eq_sym.
+case: (boolP (j' == 0))=> [/eqP-> | NZj'].
+  by rewrite PC (eqP (Pii'j _ _ _)) [i == _]eq_sym.
+case: (boolP (i == _))=> [/eqP<- | Dii'].
+  case: (boolP (j == _))=> [/eqP<- // | Djj'].
+  case/and4P: (bcmp2_diffs Djj'
+                 (dcTIrrE NZi NZj)
+                 (dcTIrrE NZi NZj'))=> _ _ _ /andP [].
+  by rewrite cfdot_virr // => /negPf-> /negPf->.
+case: (boolP (j == _))=> [/eqP<- // | Djj'].
+  case/and4P: (bcmp2_diffs_sym Dii'
+                 (bcmp_swapl (dcTIrrE NZi NZj))
+                 (bcmp_swapl (dcTIrrE NZi' NZj)))
+         => _ _ _ /andP [].
+  by rewrite cfdot_virr // => /negPf-> /negPf->.
+rewrite cfdot_virr //.
+case: (boolP (x_ _ _ == _)) 
+        (bcmp_rotate (dcTIrrE NZi NZj))
+        (bcmp_rotate (dcTIrrE NZi' NZj'))=> [/eqP-> HH | Hx].
+  move/(bcmp_diff_opp Dii' Djj' HH)=> /or4P [] /and3P [].
+  - rewrite opprK=> // /eqP HH1.
+    move: (Pii' i i'); rewrite (negPf Dii') -HH1 cfdotNl (eqP (Pnorm _ _)).
+    by rewrite eq_sym -subr_eq0 opprK add0r -(eqN_eqC 1 0).
+  - rewrite opprK=> // /eqP HH1.
+    move: (Pij i' j); rewrite (negPf NZi') -HH1 cfdotNr (eqP (Pnorm _ _)).
+    by rewrite eq_sym -subr_eq0 opprK add0r -(eqN_eqC 1 0).
+  - rewrite opprK=> // /eqP HH1.
+    move: (Pij i j'); rewrite (negPf NZi) -HH1 cfdotNl (eqP (Pnorm _ _)).
+    by rewrite eq_sym -subr_eq0 opprK add0r -(eqN_eqC 1 0).
+  rewrite opprK=> // /eqP HH1.
+  move: (Pjj' j j'); rewrite (negPf Djj') -HH1 cfdotNl (eqP (Pnorm _ _)).
+  by rewrite eq_sym -subr_eq0 opprK add0r -(eqN_eqC 1 0).
+case: (boolP (x_ _ _ == _))=> [/eqP-> HH HH1 | Hx' //].
+have Di'i : i' != i by rewrite eq_sym.
+have Dj'j : j' != j by rewrite eq_sym.
+case/or4P: (bcmp_opp_diff Di'i Dj'j HH1 HH)=> /and3P [].
+- rewrite eqr_opp=> // /eqP HH2.
+  move: (Pii' i i'); rewrite (negPf Dii') -HH2 (eqP (Pnorm _ _)).
+  by rewrite -(eqN_eqC 1 0).
+- rewrite eqr_opp=> // /eqP HH2.
+  move: (Pij i j'); rewrite (negPf NZi) -HH2 (eqP (Pnorm _ _)).
+  by rewrite -(eqN_eqC 1 0).
+- rewrite eqr_opp=> // /eqP HH2.
+  move: (Pij i' j); rewrite (negPf NZi') -HH2 (eqP (Pnorm _ _)).
+  by rewrite -(eqN_eqC 1 0).
+rewrite eqr_opp=> // /eqP HH2.
+move: (Pjj' j j'); rewrite (negPf Djj') -HH2 (eqP (Pnorm _ _)).
+by rewrite -(eqN_eqC 1 0).
+Qed.
+
+(* This is second_part of PF 3.5 *)
+Lemma dcTIirrE i j : i != 0 -> j != 0 ->
+  'Ind[G, W] (alpha_ i j) = 1 - x_ i 0 - x_ 0 j + x_ i j.
+Proof.
+move=> NZi NZj.
+rewrite -[X in X = _](subrK 1).
+move: (dcTIrrE NZi NZj); case/and5P=> _ _ _ _.
+rewrite /bcTIirr => /eqP->.
+by rewrite addrC !addrA.
+Qed.
+
+End Proofs.
