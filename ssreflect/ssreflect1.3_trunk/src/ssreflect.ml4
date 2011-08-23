@@ -1399,6 +1399,11 @@ GEXTEND Gram
   binder_constr: [
     [ "if"; c = operconstr LEVEL "200"; "is"; db1 = ssr_dthen; b2 = ssr_else ->
       let b1, ct, rt = db1 in CCases (loc, MatchStyle, rt, [c, ct], [b1; b2])
+    | "if"; c = operconstr LEVEL "200";"isn't";db1 = ssr_dthen; b2 = ssr_else ->
+      let b1, ct, rt = db1 in 
+      let b1, b2 = 
+        let (l1, p1, r1), (l2, p2, r2) = b1, b2 in (l1, p1, r2), (l2, p2, r1) in
+      CCases (loc, MatchStyle, rt, [c, ct], [b1; b2])
     | "let"; ":"; mp = ssr_mpat; ":="; c = lconstr; "in"; c1 = lconstr ->
       mk_let loc no_rt [c, no_ct] mp c1
     | "let"; ":"; mp = ssr_mpat; ":="; c = lconstr;

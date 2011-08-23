@@ -14,6 +14,7 @@ first_n.v
 gen_pattern.v
 havesuff.v
 have_view_idiom.v
+if_isnt.v
 indetLHS.v
 intro_beta.v
 intro_noop.v
