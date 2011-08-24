@@ -190,7 +190,7 @@ Qed.
 Lemma equiv_restrict_compl_ortho A m  (Phi : m.-tuple 'CF(H)) mu_ :
     H \subset G -> A <| H -> is_basis 'CF(H, A) Phi -> 
      (forall i j, '[mu_ i, mu_ j] = (i == j)%:R) ->
-     (forall j, 'Ind[G] Phi`_j = \sum_i '[Phi`_j, 'chi_i] *: mu_ i) ->
+     (forall j : 'I_m, 'Ind[G] Phi`_j = \sum_i '[Phi`_j, 'chi_i] *: mu_ i) ->
    [/\ forall i, {in A, mu_ i =1 'chi_i}
      & forall mu, (forall i, '[mu, mu_ i] = 0) -> {in A, forall x, mu x = 0}].
 Proof.

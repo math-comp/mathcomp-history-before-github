@@ -1071,7 +1071,7 @@ pose v_ j := if j == i then 0 else (v2_ j).
 have: \sum_(j | P j) u_ j == \sum_(j | P j) v_ j.
  rewrite !(bigD1 _ Pi) /=.
  by rewrite big1 /u_; 
-  first (rewrite /v_(eq_refl i) addr0 add0r Hv2_eq
+  first (rewrite /v_(eqxx i) addr0 add0r Hv2_eq
         ;apply/eqP
         ;apply: eq_bigr
         );
@@ -2324,7 +2324,7 @@ rewrite -!(big_filter _ P) /sumv_pi filter_index_enum /(image _ _).
 elim: (enum P) v (enum_uniq P) => [|j js IH] v /=.
  by rewrite !big_nil memv0 zero_lappE => _ /eqP.
 case/andP => jnjs uniq.
-rewrite !big_cons /= (eq_refl j) /= big_map.
+rewrite !big_cons /= (eqxx j) /= big_map.
 move/(addv_pi1_pi2) => Hv.
 rewrite {1}Hv !add_lappE; congr (_ + _).
 set V2 := (\sum_(j0 <- js) V_ j0)%VS.
