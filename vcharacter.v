@@ -65,12 +65,22 @@ Proof. by apply: char_vchar; apply: irr_char. Qed.
 Lemma cfun1_vchar : 1 \in 'Z[irr G].
 Proof. by rewrite char_vchar ?cfun1_char. Qed.
 
+Lemma vchar1_Int phi : phi \in 'Z[irr G] -> isIntC (phi 1%g).
+Proof.
+case/vcharP=> phi1 Nphi1 [phi2 Nphi2 ->].
+by rewrite !cfunE isIntC_add // isIntCE ?opprK char1_Nat ?orbT.
+Qed.
+
 Lemma vchar_split S A phi :
   phi \in 'Z[S, A] = (phi \in 'Z[S]) && (phi \in 'CF(G, A)).
 Proof. by rewrite !inE cfun_onT /= -!andbA; do !bool_congr. Qed.
 
 Lemma vcharD1E phi S : (phi \in 'Z[S, G^#]) = (phi \in 'Z[S]) && (phi 1%g == 0).
 Proof. by rewrite vchar_split cfunD1E. Qed.
+
+Lemma vcharD1 phi S A :
+  (phi \in 'Z[S, A^#]) = (phi \in 'Z[S, A]) && (phi 1%g == 0).
+Proof. by rewrite vchar_split cfun_onD1 andbA -vchar_split. Qed.
 
 Lemma vchar_span S A : {subset 'Z[S, A] <= span S}.
 Proof. by move=> phi /andP[]. Qed.
@@ -288,7 +298,7 @@ Lemma vchar_norm1P phi :
   exists b : bool, exists i : Iirr G, phi = (-1) ^+ b *: 'chi_i.
 Proof.
 move=> Zphi phiN1.
-have: orthonormal phi by rewrite /orthonormal/= -cfnorm_eq0 phiN1 eqxx oner_eq0.
+have: orthonormal phi by rewrite /orthonormal/= phiN1 eqxx.
 case/vchar_orthonormalP=> [xi /predU1P[->|] // | I [b def_phi]].
 have: phi \in (phi : seq _) := mem_head _ _.
 by rewrite (perm_eq_mem def_phi) => /mapP[i _ ->]; exists (b i), i.
@@ -318,10 +328,7 @@ have orthS: orthonormal S.
   rewrite cfdot_sum_irr (bigD1 i) //= -normCK def_m addrC -leC_sub addrK.
   by rewrite posC_sum // => ? _; exact: posC_pconj.
 have <-: size S = n.
-  apply/eqP; rewrite eqN_eqC -def_n def_phi.
-  have [/allP N1_S oS] := andP orthS; rewrite cfnorm_orthogonal // big_tnth.
-  rewrite (eq_bigr (fun k => 1)) ?sumr_const ?card_ord // => k _.
-  by rewrite (eqP (N1_S _ _)) ?mem_tnth.
+  by apply/eqP; rewrite eqN_eqC -def_n def_phi cfnorm_orthonormal.
 exists (in_tuple S); split=> // _ /mapP[i _ ->].
 by rewrite scale_vchar ?irr_vchar // cfdot_vchar_irr_Int.
 Qed.
@@ -332,13 +339,13 @@ Lemma vchar_norm2 phi :
 Proof.
 rewrite vchar_split cfunD1E => /andP[Zphi phi1_0].
 case/vchar_small_norm => // [[[|chi [|xi [|?]]] //= S2]].
-case=> /andP[/and3P[Nchi Nxi _] /and3P[_ ochi _]] /allP/and3P[Zchi Zxi _].
+case=> /andP[/and3P[Nchi Nxi _] /= ochi] /allP/and3P[Zchi Zxi _].
 rewrite big_cons big_seq1 => def_phi.
 have [b [i def_chi]] := vchar_norm1P Zchi (eqP Nchi).
 have [c [j def_xi]] := vchar_norm1P Zxi (eqP Nxi).
 have neq_ji: j != i.
-  apply: contraTneq ochi; rewrite /orthogonal /= !andbT def_chi def_xi => ->.
-  rewrite cfdotZl cfdotZr rmorph_sign cfdot_irr eqxx mulr1 -signr_addb.
+  apply: contraTneq ochi; rewrite !andbT def_chi def_xi => ->.
+  rewrite cfdotZl cfdotZr rmorph_sign cfnorm_irr mulr1 -signr_addb.
   by rewrite signr_eq0.
 have neq_bc: b != c.
   apply: contraTneq phi1_0; rewrite def_phi def_chi def_xi => ->.
@@ -391,12 +398,38 @@ Qed.
 Lemma map_orthonormal S (tau : {additive 'CF(L) -> 'CF(G)}) :
   {in 'Z[S] &, isometry tau} -> orthonormal S -> orthonormal (map tau S).
 Proof.
-move=> Itau1 /andP[/allP/=nS oS]; have freeS := orthogonal_free oS.
-apply/andP; split; last exact: map_pairwise_orthogonal.
-by apply/allP=> _ /mapP[xi S1xi -> /=]; rewrite Itau1 ?mem_vchar ?nS.
+rewrite !orthonormalE => Itau1 /andP[/allP/=nS oS].
+rewrite andbC map_pairwise_orthogonal //= all_map.
+by apply/allP=> xi Sxi /=; rewrite Itau1 ?mem_vchar ?nS ?orthogonal_free.
 Qed.
 
 End Isometries.
+
+Section AutVchar.
+
+Variables (u : {rmorphism algC -> algC}) (gT : finGroupType) (G : {group gT}).
+Local Notation "alpha ^u" := (cfAut u alpha).
+Implicit Type S : seq 'CF(G).
+
+Lemma cfAut_vchar S A psi : 
+  free S -> cfAut_closed u S -> psi \in 'Z[S, A] -> psi^u \in 'Z[S, A].
+Proof.
+rewrite [psi \in _]vchar_split => freeS SuS /andP[Zpsi Apsi].
+rewrite vchar_split cfAut_on {}Apsi andbT.
+have{psi Zpsi}[z Zz ->] := vchar_expansion Zpsi.
+rewrite rmorph_sum big_seq sum_vchar // => mu Smu /=.
+by rewrite cfAutZ_Int // scale_vchar // mem_vchar // SuS.
+Qed.
+
+Lemma sub_Aut_vchar S A psi :
+   {subset S <= 'Z[irr G]} -> psi \in 'Z[S, A] -> psi^u \in 'Z[S, A] ->
+  psi - psi^u \in 'Z[S, A^#].
+Proof.
+move=> Z_S Spsi Spsi_u; rewrite vcharD1 !cfunE subr_eq0 sub_vchar //=.
+by rewrite rmorph_IntC // vchar1_Int // (vchar_trans Z_S) ?(vcharW Spsi).
+Qed.
+
+End AutVchar.
 
 Section MoreIsVChar.
 
@@ -423,6 +456,15 @@ case sHG: (H \subset G); last first.
 by rewrite linear_sub sub_vchar // char_vchar // cfInd_char.
 Qed.
 
-(* to do: cfAut, etc. *)
+Lemma sub_conjC_vchar A phi :
+  phi \in 'Z[irr G, A] -> phi - (phi^*)%CF \in 'Z[irr G, A^#].
+Proof.
+move=> Zphi; rewrite sub_Aut_vchar ?cfAut_vchar ?irr_free // => _ /irrP[i ->].
+  exact: irr_vchar.
+exact: cfConjC_irr.
+Qed.
 
 End MoreIsVChar.
+
+
+

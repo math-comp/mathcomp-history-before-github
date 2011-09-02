@@ -245,6 +245,12 @@ Proof. by []. Qed.
 Lemma mem_tnth i (t : n.-tuple T) : tnth t i \in t.
 Proof. by rewrite mem_nth ?size_tuple. Qed.
 
+Lemma tnthP (t : n.-tuple T) x : reflect (exists i, x = tnth t i) (x \in t).
+Proof.
+apply: (iffP idP) => [/(nthP x)[i ltin <-] | [i ->]]; last exact: mem_tnth.
+by rewrite size_tuple in ltin; exists (Ordinal ltin); rewrite (tnth_nth x).
+Qed.
+
 End EqTuple.
 
 Definition tuple_choiceMixin n (T : choiceType) :=

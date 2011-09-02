@@ -2739,6 +2739,13 @@ move=> sBA nBG; apply/bigcapsP=> y Gy.
 by rewrite -sub_conjgV (normsP nBG) ?groupV.
 Qed.
 
+Lemma sub_gcore A B G :
+  G \subset 'N(B) -> (B \subset gcore A G) = (B \subset A).
+Proof.
+move=> nBG; apply/idP/idP=> [sBAG | sBA]; last exact: gcore_max.
+exact: subset_trans (gcore_sub A G).
+Qed.
+
 (* An elementary proof that subgroups of index 2 are normal; it is almost as  *)
 (* short as the "advanced" proof using group actions; besides, the fact that  *)
 (* the coset is equal to the complement is used in extremal.v.                *)

@@ -124,14 +124,16 @@ Qed.
 
 Definition leC x y := repC (y - x).
 
-Notation "x <= y" := (leC x y) : C_scope.
+Notation "x <= y" := (leC x y) : ring_scope.
+Notation "x >= y" := (leC y x) (only parsing) : ring_scope.
 
 Lemma leC_sub x y : (0 <= y - x) = (x <= y).
 Proof. by rewrite /leC subr0. Qed.
 
 Definition ltC x y := ((y != x) && (x <= y)).
 
-Notation " x < y " := (ltC x y) : C_scope.
+Notation "x < y" := (ltC x y) : ring_scope.
+Notation "x > y" := (ltC y x) (only parsing) : ring_scope.
 
 Lemma ltCE x y : (x < y) = ((y != x) && (x <= y)).
 Proof. by []. Qed.
@@ -154,6 +156,13 @@ Proof. by rewrite ![_ +z]addrC leC_add2l. Qed.
 
 Lemma posC_add x y : 0 <= x -> 0 <= y -> 0 <= x + y.
 Proof. by rewrite /leC !subr0; exact: repCD. Qed.
+
+Lemma posC_sum I r (P : pred I) (F : I -> algC) :
+  (forall i, P i -> 0 <= F i) -> 0 <= \sum_(j <- r | P j) F j.
+Proof.
+move=> posF; elim/big_rec: _ => [|i x Pi pos_x]; first exact: leC_refl.
+by rewrite posC_add ?posF // andbC.
+Qed.
 
 Lemma leC_trans : transitive leC.
 Proof.
@@ -211,11 +220,24 @@ case: (boolP (x == 0)); first by move/eqP->; rewrite mul0r leC_refl.
 by move=> Hdx; rewrite posC_mulr //; apply/andP.
 Qed.
 
+Lemma sposC_mul x y : 0 < x -> 0 < y -> 0 < x * y.
+Proof.
+by move=> /andP[nz_x le0x] /andP[nz_y le0y]; rewrite /ltC mulf_neq0 ?posC_mul.
+Qed.
+
 Lemma posC_nat n : 0 <= n%:R.
 Proof. by rewrite /leC subr0 repC_nat. Qed.
 
 Lemma posC1 : 0 <= 1.
 Proof. by rewrite /leC subr0 repC1. Qed.
+
+Lemma posC_exp n x : 0 <= x -> 0 <= x ^+ n.
+Proof.
+by move=> x_ge0; elim: n => [|n IHn]; rewrite ?posC1 // exprS posC_mul.
+Qed.
+
+Lemma sposC_exp n x : 0 < x -> 0 < x ^+ n.
+Proof. by case/andP=> nzx x_ge0; rewrite ltCE expf_neq0 ?posC_exp. Qed.
 
 Lemma leq_leC m n : (m <= n)%N = (m%:R <= n%:R).
 Proof.
@@ -271,6 +293,12 @@ Qed.
 Lemma ltC_trans y x z : x < y -> y < z -> x < z.
 Proof. by case/andP => _; exact: leC_ltC_trans. Qed.
 
+Lemma sposC_addl x y : 0 <= x -> 0 < y -> 0 < x + y.
+Proof. by rewrite -(ltC_add2l x 0 y) addr0; exact: leC_ltC_trans. Qed.
+
+Lemma sposC_addr x y : 0 < x -> 0 <= y -> 0 < x + y.
+Proof. by rewrite addrC => lt0x /sposC_addl ->. Qed.
+
 Lemma leC_mul2l x y z : 0 <= x -> y <= z -> x * y <= x * z.
 Proof.
 by move=> le0x le_yz; rewrite -leC_sub -mulr_subr posC_mul ?leC_sub.
@@ -285,6 +313,12 @@ Proof. by rewrite /leC !subr0; exact: repC_inv. Qed.
 Lemma sposC_inv x : (0 < x^-1) = (0 < x).
 Proof. by rewrite !ltCE posC_inv invr_eq0. Qed.
 
+Lemma posC_div x y : 0 <= x -> 0 <= y -> 0 <= x / y.
+Proof. by move=> le0x le0y; rewrite posC_mul ?posC_inv. Qed.
+
+Lemma sposC_div x y : 0 < x -> 0 < y -> 0 < x / y.
+Proof. by move=> lt0x lt0y; rewrite sposC_mul ?sposC_inv. Qed.
+
 Lemma leC_pmul2l x y z : 0 < x -> (x * y <= x * z) = (y <= z).
 Proof.
 case/andP=> nz_x le0x; apply/idP/idP; last exact: leC_mul2l.
@@ -294,30 +328,51 @@ Qed.
 Lemma leC_pmul2r x y z : 0 < x -> (y * x <= z * x) = (y <= z).
 Proof. by rewrite ![_* x]mulrC; exact: leC_pmul2l. Qed.
 
-Lemma leC_square x y : 0 <= x -> x <= y -> x ^+ 2 <= y ^+ 2.
+Lemma leC_exp2r n x y :
+  (n > 0)%N -> 0 <= x -> 0 <= y -> (x ^+ n <= y ^+ n) = (x <= y).
 Proof.
-move=> le0x le_xy; rewrite -leC_sub subr_sqr posC_mul ?leC_sub ?posC_add //.
-exact: leC_trans le0x le_xy.
+case: n => // n _ x_ge0 y_ge0.
+have [-> | nzx] := eqVneq x 0; first by rewrite exprS mul0r posC_exp.
+rewrite -leC_sub subr_expn posC_mull ?leC_sub // big_ord_recr /=.
+rewrite sposC_addl ?posC_sum // => [i _|]; first by rewrite posC_mul ?posC_exp.
+by rewrite subnn mul1r sposC_exp // ltCE nzx.
 Qed.
+
+Lemma ltC_exp2r n x y :
+  (n > 0)%N -> 0 <= x -> 0 <= y -> (x ^+ n < y ^+ n) = (x < y).
+Proof. by move=> n_gt0 x_ge0 y_ge0; rewrite !ltCE !eqC_leC !leC_exp2r. Qed.
+
+Lemma leC_expr n x y : 0 <= x -> x <= y -> x ^+ n <= y ^+ n.
+Proof.
+case: n => [|n] x_ge0 lexy; first exact: leC_refl.
+by rewrite leC_exp2r // (leC_trans x_ge0).
+Qed.
+
+Lemma ltC_expr n x y : (n > 0)%N -> 0 <= x -> x < y -> x ^+ n < y ^+ n.
+Proof.
+by move=> n_gt0 x_ge0 lexy; rewrite ltC_exp2r // (leC_trans x_ge0 (ltCW _)).
+Qed.
+
+Lemma leC1exp n x : (n > 0)%N -> 0 <= x -> (1 <= x ^+ n) = (1 <= x).
+Proof. by move=> n_gt0 x_ge0; rewrite -{1}(exp1rn _ n) leC_exp2r ?posC1. Qed.
+
+Lemma ltC1exp n x : (n > 0)%N -> 0 <= x -> (1 < x ^+ n) = (1 < x).
+Proof. by move=> n_gt0 x_ge0; rewrite -{1}(exp1rn _ n) ltC_exp2r ?posC1. Qed.
+
+Lemma geC1exp n x : (n > 0)%N -> 0 <= x -> (1 >= x ^+ n) = (1 >= x).
+Proof. by move=> n_gt0 x_ge0; rewrite -{1}(exp1rn _ n) leC_exp2r ?posC1. Qed.
+
+Lemma gtC1exp n x : (n > 0)%N -> 0 <= x -> (1 > x ^+ n) = (1 > x).
+Proof. by move=> n_gt0 x_ge0; rewrite -{1}(exp1rn _ n) ltC_exp2r ?posC1. Qed.
+
+Lemma leC_square x y : 0 <= x -> x <= y -> x ^+ 2 <= y ^+ 2.
+Proof. exact: leC_expr. Qed.
 
 Lemma posC_pconj x : 0 <= x * x ^*.
 Proof. by rewrite /leC subr0 repC_pconj. Qed.
 
 Lemma posC_conj x : (0 <= x^*) = (0 <= x).
 Proof. rewrite /leC !subr0; exact: repC_conj. Qed.
-
-Lemma posC_sum I r (P : pred I) (F : I -> algC) :
-  (forall i, P i -> 0 <= F i) -> 0 <= \sum_(j <- r | P j) F j.
-Proof.
-move=> posF; elim/big_rec: _ => [|i x Pi pos_x]; first exact: leC_refl.
-by rewrite posC_add ?posF // andbC.
-Qed.
-
-Lemma sposC_addl x y : 0 <= x -> 0 < y -> 0 < x + y.
-Proof. by rewrite -(ltC_add2l x 0 y) addr0; exact: leC_ltC_trans. Qed.
-
-Lemma sposC_addr x y : 0 < x -> 0 <= y -> 0 < x + y.
-Proof. by rewrite addrC => lt0x /sposC_addl ->. Qed.
 
 Lemma posC_add_eq0 x y :
   0 <= x -> 0 <= y -> (x + y == 0) = (x == 0) && (y == 0).
@@ -333,11 +388,6 @@ Proof.
 move=> posF sumF0 i Pi; apply: leC_anti; last exact: posF.
 rewrite -sumF0 (bigD1 i Pi) /= addrC -leC_sub addrK.
 by rewrite big_andbC -big_filter_cond posC_sum.
-Qed.
-
-Lemma sposC_mul x y : 0 < x -> 0 < y -> 0 < x * y.
-Proof.
-by move=> /andP[nz_x le0x] /andP[nz_y le0y]; rewrite /ltC mulf_neq0 ?posC_mul.
 Qed.
 
 Definition leCif x y c := ((x <= y) * ((x == y) = c))%type.
@@ -725,6 +775,16 @@ rewrite ltCE ge0x andbT -normC_opp normC_pos ?opprK ?posC_opp //.
 by case: eqP => // <-; rewrite oppr0.
 Qed.
 
+Lemma realC_ltNge x y : isRealC x -> isRealC y -> (x < y) = ~~ (x >= y).
+Proof.
+move=> r_x r_y; rewrite ltCE eqC_leC negb_and andb_orl andNb orbF andb_idr //.
+apply/implyP; rewrite implybE negbK -leC_sub orbC -leC_sub -oppr_sub posC_opp.
+by rewrite (sameP orP (realC_leP _)) /isRealC rmorph_sub (eqP r_x) (eqP r_y).
+Qed.
+
+Lemma realC_leNgt x y : isRealC x -> isRealC y -> (x <= y) = ~~ (x > y).
+Proof. by move=> r_x r_y; rewrite realC_ltNge ?negbK. Qed.
+
 (* We mimic Z by a sign and a natural number *)
 Definition getIntC (c : algC) :=
  if 0 <= c then (false, getNatC c) else (true, getNatC (-c)).
@@ -815,3 +875,42 @@ Proof.
 apply/idP/andP=> [Nx | [Zx x_ge0]]; first by rewrite (eqP Nx) isIntC_nat posC_nat.
 by rewrite (isIntC_signE Zx) mulr_sign leC_gtF // normIntC_Nat.
 Qed.
+
+Lemma isIntC_normC_ge1 a : isIntC a -> a != 0 -> 1 <= `|a|.
+Proof.
+rewrite -normC_eq0; case/normIntC_Nat/isNatCP=> n ->.
+by rewrite -neq0N_neqC -lt0n leq_leC.
+Qed.
+
+Lemma isIntC_expr2_ge1 a : isIntC a -> a != 0 -> 1 <= a ^+ 2.
+Proof.
+by move=> aZ nz_a; rewrite -int_normCK // leC1exp ?posC_norm ?isIntC_normC_ge1.
+Qed.
+
+Section AutC.
+
+Variable u : {rmorphism algC -> algC}.
+
+Lemma rmorph_NatC z : isNatC z -> u z = z.
+Proof. by case/isNatCP=> n ->; exact: rmorph_nat. Qed.
+
+Lemma rmorph_IntC z : isIntC z -> u z = z.
+Proof.
+by rewrite isIntCE => /orP[]/rmorph_NatC //; rewrite rmorphN => /oppr_inj.
+Qed.
+
+End AutC.
+
+Section AutLmodC.
+
+Variables (U V : lmodType algC) (f : {additive U -> V}).
+
+Lemma raddfZ_NatC a u : isNatC a -> f (a *: u) = a *: f u. 
+Proof. by case/isNatCP=> n ->; exact: raddfZnat. Qed.
+
+Lemma raddfZ_IntC a u : isIntC a -> f (a *: u) = a *: f u. 
+Proof.
+by move/eqP->; case: (getIntC a) => e n; rewrite -!scalerA raddfZsign raddfZnat.
+Qed.
+
+End AutLmodC.

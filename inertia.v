@@ -104,6 +104,16 @@ Proof. by apply/cfunP=> x; rewrite !cfunElock. Qed.
 Lemma cfConjg_conjC phi y : (phi ^ y)^*%CF = (phi^* ^ y)%CF.
 Proof. exact: cfConjg_Aut. Qed.
 
+Lemma cfker_conjg x phi : x \in 'N(G) -> cfker (phi ^ x) = cfker phi :^ x.
+Proof.
+move=> nGx; wlog suffices: phi x nGx / cfker phi :^ x \subset cfker (phi ^ x).
+  move=> IH; apply/eqP; rewrite eqEsubset -{2}(cfConjgK x phi) -sub_conjgV.
+  by rewrite !IH ?groupV.
+apply/subsetP=> _ /imsetP[y Ky ->].
+rewrite inE memJ_norm // (subsetP (cfker_sub phi)) //.
+by apply/forallP=> z; rewrite !cfConjgE // conjMg conjgK cfkerMl.
+Qed.
+
 End Conj.
 
 Section Inertia.
@@ -125,7 +135,7 @@ Canonical inertia_group H G phi := Group (@group_set_inertia H G phi).
 
 Local Notation "''I_' G [ f ]" := (inertia_group G f) : Group_scope.
 
-Variables (G H : {group gT}).
+Variables G H : {group gT}.
 Implicit Type phi : 'CF(H).
 
 Lemma inertia_sub phi : 'I_G[phi] \subset G.
@@ -203,6 +213,9 @@ Definition conjg_Iirr i y := irr_Iirr (fun i => 'chi[H]_i ^ y)%CF i.
 Lemma conjg_IirrE i y : 'chi_(conjg_Iirr i y) = ('chi_i ^ y)%CF.
 Proof. by apply: irr_IirrE => j; exact: irr_Conjg. Qed.
 
+Lemma conjg_Iirr0 x : conjg_Iirr 0 x = 0.
+Proof. by apply: chi_inj; rewrite conjg_IirrE chi0_1 cfConjg_cfun1. Qed.
+
 Lemma cfdot_irr_Conjg i y :
   H <| G -> y \in G -> '['chi_i, 'chi_i ^ y]_H = (y \in 'I_G['chi_i])%:R.
 Proof.
@@ -211,26 +224,48 @@ by rewrite -conjg_IirrE cfdot_irr inj_eq //; exact: chi_inj.
 Qed.
 
 Definition cfclass (A : {set gT}) (phi : 'CF(A)) (B : {set gT}) := 
-  [seq (phi ^ repr Tx)%CF | Tx <- enum (rcosets 'I_B[phi] B)%g].
+  [image (phi ^ repr Tx)%CF | Tx <- rcosets 'I_B[phi] B].
 
 Local Notation "phi ^: G" := (cfclass phi G) : cfun_scope.
 
-Lemma cfclassP phi psi :
-  reflect (exists2 y, y \in G & psi = phi ^ y)%CF (psi \in phi ^: G)%CF.
+Lemma cfclassP (A : {group gT}) phi psi :
+  reflect (exists2 y, y \in A & psi = phi ^ y)%CF (psi \in phi ^: A)%CF.
 Proof.
-apply: (iffP (imageP _ _ _)) => [[_ /rcosetsP[y Gy ->] ->] | [y Gy ->]].
-  case: repr_rcosetP => z /setIdP[/setIP[Gz _] _].
+apply: (iffP (imageP _ _ _)) => [[_ /rcosetsP[y Ay ->] ->] | [y Ay ->]].
+  case: repr_rcosetP => z /setIdP[/setIP[Az _] _].
   by exists (z * y)%g; rewrite ?groupM.
-without loss nHy: y Gy / y \in 'N(H).
+without loss nHy: y Ay / y \in 'N(H).
   have [nHy | /cfConjg_out->] := boolP (y \in 'N(H)); first exact.
   by move/(_ 1%g); rewrite !group1 !cfConjg1; exact.
-exists ('I_G[phi] :* y); first by rewrite -rcosetE mem_imset.
+exists ('I_A[phi] :* y); first by rewrite -rcosetE mem_imset.
 case: repr_rcosetP => z /setIdP[/setIP[_ nHz] /eqP Tz].
 by rewrite cfConjgMnorm ?Tz.
 Qed.
 
+Lemma cfclassInorm phi : (phi ^: 'N_G(H) =i phi ^: G)%CF.
+Proof.
+move=> xi; apply/cfclassP/cfclassP=> [[x /setIP[Gx _] ->] | [x Gx ->]].
+  by exists x.
+have [Nx | /cfConjg_out-> //] := boolP (x \in 'N(H)).
+  by exists x; first exact/setIP.
+by exists 1%g; rewrite ?group1 ?cfConjg1.
+Qed.
+
 Lemma cfclass_refl phi : phi \in (phi ^: G)%CF.
 Proof. by apply/cfclassP; exists 1%g => //; rewrite cfConjg1. Qed.
+
+Lemma cfclass_transl phi psi :
+  (psi \in phi ^: G)%CF -> (phi ^: G =i psi ^: G)%CF.
+Proof.
+rewrite -cfclassInorm; case/cfclassP=> x Gx -> xi; rewrite -!cfclassInorm.
+have nHN: {subset 'N_G(H) <= 'N(H)} by apply/subsetP; exact: subsetIr.
+apply/cfclassP/cfclassP=> [[y Gy ->] | [y Gy ->]].
+  by exists (x^-1 * y)%g; rewrite -?cfConjgMnorm ?groupM ?groupV ?nHN // mulKVg.
+by exists (x * y)%g; rewrite -?cfConjgMnorm ?groupM ?nHN.
+Qed.
+
+Lemma cfclass_sym phi psi : (psi \in phi ^: G)%CF = (phi \in psi ^: G)%CF.
+Proof. by apply/idP/idP=> /cfclass_transl <-; exact: cfclass_refl. Qed.
 
 Lemma cfclass_uniq phi : H <| G -> uniq (phi ^: G)%CF.
 Proof.
@@ -253,8 +288,8 @@ Qed.
 
 Lemma cfclass1 : H <| G -> (1 ^: G)%CF = [:: 1 : 'CF(H)].
 Proof.
-move=> nsHG; rewrite /cfclass inertia1 // rcosets_id enum_set1 /=.
-by rewrite cfConjg_cfun1.
+move=> nsHG; rewrite /cfclass inertia1 // rcosets_id.
+by rewrite /(image _ _) enum_set1 /= cfConjg_cfun1.
 Qed.
 
 Lemma cfclass_sum R idx (op : Monoid.com_law idx) (F : 'CF(H) -> R) i :
@@ -277,7 +312,7 @@ Proof.
 move=> nsHG chiHj; have [sHG /subsetP nHG] := andP nsHG.
 rewrite -cfclass_sum //= big_mkcond.
 rewrite {1}['Res _]cfun_sum_cfdot linear_sum /=; apply: eq_bigr => k _.
-have [[y Gy ->] | ] := altP (cfclassP _ _); first by rewrite cfdot_Res_Conjg.
+have [[y Gy ->] | ] := altP (cfclassP _ _ _); first by rewrite cfdot_Res_Conjg.
 apply: contraNeq; rewrite scaler0 scalev_eq0 orbC => /norP[_ chiHk].
 have{chiHk chiHj}: '['Res[H] ('Ind[G] 'chi_j), 'chi_k] != 0.
   rewrite !inE !cfdot_Res_l in chiHj chiHk *.
@@ -302,8 +337,8 @@ Proof.
 move=> nsHG /(Clifford_Res_sum_cfclass nsHG); have [sHG nHG] := andP nsHG.
 rewrite chi0_1 cfdot_Res_l cfclass1 // big_seq1 cfInd_cfun1 //.
 rewrite cfdotZr conjC_nat => def_chiH.
-apply/subsetP=> x Hx; rewrite cfker_irrE inE (subsetP sHG) //=.
-by rewrite -!(cfResE _ sHG) // def_chiH !cfunE !cfun1E Hx group1.
+apply/subsetP=> x Hx; rewrite cfker_irrE inE -!(cfResE _ sHG) //.
+by rewrite def_chiH !cfunE !cfun1E Hx group1.
 Qed.
 
 (* This is Isaacs' 6.8 *)
@@ -353,7 +388,8 @@ Qed.
 
 Lemma cfclass_inertia : ('chi[H]_i ^: T)%CF = [:: 'chi_i].
 Proof.
-by rewrite /cfclass inertia_id rcosets_id enum_set1 /= repr_group cfConjg1.
+rewrite /cfclass inertia_id rcosets_id /(image _ _) enum_set1 /=.
+by rewrite repr_group cfConjg1.
 Qed.
 
 End MoreInertia.
@@ -585,3 +621,74 @@ exact: inertia_Ind_inv_constt.
 Qed.
 
 End S611.
+
+Section Frobenius.
+
+Variables (gT : finGroupType) (G K : {group gT}).
+
+(* Because he only defines Frobenius groups in chapter 7, Isaacs can't state  *)
+(* these theorems using the Frobenius property; it might be better to do so.  *)
+Hypotheses (nsKG : K <| G) (regGK : {in K^#, forall x, 'C_G[x] \subset K}).
+Let sKG := normal_sub nsKG.
+Let nKG := normal_norm nsKG.
+
+(* This is Isaacs, Theorem 6.34(a1). *)
+Theorem inertia_Frobenius_ker i : i != 0 -> 'I_G['chi[K]_i] = K.
+Proof.
+move=> nzi; apply/eqP; rewrite eqEsubset sub_inertia // andbT.
+apply/subsetP=> x /setIdP[/setIP[Gx nKx] /eqP x_stab_i].
+have actIirrK: is_action G (@conjg_Iirr _ K).
+  split=> [y j k eq_jk | j y z Gy Gz].
+    by apply/chi_inj/(can_inj (cfConjgK y)); rewrite -!conjg_IirrE eq_jk.
+  by apply: chi_inj; rewrite !conjg_IirrE (cfConjgM _ nsKG).
+pose ito := Action actIirrK; pose cto := ('Js \ (subsetT G))%act.
+have acts_Js : [acts G, on classes K | 'Js].
+  apply/subsetP=> y Gy; have nKy := subsetP nKG y Gy.
+  rewrite !inE; apply/subsetP=> _ /imsetP[z Gz ->]; rewrite !inE /=.
+  rewrite -class_rcoset norm_rlcoset // class_lcoset.
+  by apply: mem_imset; rewrite memJ_norm.
+have acts_cto : [acts G, on classes K | cto] by rewrite astabs_ract subsetIidl.
+pose m := #|'Fix_(classes K | cto)[x]|.
+have def_m: #|'Fix_ito[x]| = m.
+  apply: card_afix_irr_classes => // j y _ Ky /imsetP[_ /imsetP[z Kz ->] ->].
+  by rewrite conjg_IirrE cfConjgEnorm // cfunJ.
+have: (m != 1)%N.
+  rewrite -def_m (cardD1 (0 : Iirr K)) (cardD1 i) !(inE, sub1set) /=.
+  by rewrite conjg_Iirr0 nzi eqxx -(inj_eq chi_inj) conjg_IirrE x_stab_i eqxx.
+apply: contraR => notKx; apply/cards1P; exists 1%g; apply/esym/eqP.
+rewrite eqEsubset !(sub1set, inE) classes1 /= conjs1g eqxx /=.
+apply/subsetP=> _ /setIP[/imsetP[y Ky ->] /afix1P /= cyKx].
+have /imsetP[z Kz def_yx]: y ^ x \in y ^: K.
+  by rewrite -cyKx; apply: mem_imset; exact: class_refl.
+rewrite inE classG_eq1; apply: contraR notKx => nty.
+rewrite -(groupMr x (groupVr Kz)).
+apply: (subsetP (@regGK y _)); first exact/setD1P.
+rewrite !inE groupMl // groupV (subsetP sKG) //=.
+by rewrite conjg_set1 conjgM def_yx conjgK.
+Qed.
+
+(* This is Isaacs, Theorem 6.34(a2) *)
+Theorem irr_induced_Frobenius_ker i : i != 0 -> 'Ind[G, K] 'chi_i \in irr G.
+Proof.
+move/inertia_Frobenius_ker/group_inj=> defK.
+have/(_ i):= cfInd_constt_inertia_irr nsKG; rewrite defK => -> //.
+by rewrite inE /= cfRes_id cfnorm_eq0 irr_neq0.
+Qed.
+
+(* This is Isaacs, Theorem 6.34(b) *)
+Theorem Frobenius_Ind_irrP j :
+  reflect (exists2 i, i != 0 & 'chi_j = 'Ind[G, K] 'chi_i)
+          (~~ (K \subset cfker 'chi_j)).
+Proof.
+apply: (iffP idP) => [not_chijK1 | [i nzi ->]]; last first.
+  by rewrite cfker_Ind_irr ?sub_gcore // subGcfker.
+have /neq0_has_constt[i chijKi]: 'Res[K] 'chi_j != 0 by exact: Res_irr_neq0.
+have nz_i: i != 0.
+  by apply: contraNneq not_chijK1 => i0; rewrite constt0_Res_cfker // -i0.
+have /irrP[k def_chik] := irr_induced_Frobenius_ker nz_i. 
+have: '['chi_j, 'chi_k] != 0 by rewrite -def_chik -cfdot_Res_l.
+by rewrite cfdot_irr -(eqN_eqC _ 0); case: (j =P k) => // ->; exists i.
+Qed.
+
+End Frobenius.
+

@@ -940,6 +940,12 @@ Proof. by rewrite -mulN1r commr_exp_mull // /comm mulN1r mulrN mulr1. Qed.
 Lemma sqrrN x : (- x) ^+ 2 = x ^+ 2.
 Proof. exact: mulrNN. Qed.
 
+Lemma sqrr_sign n : ((-1) ^+ n) ^+ 2 = 1 :> R.
+Proof. by rewrite exprnC sqrrN !exp1rn. Qed.
+
+Lemma signrMK n : @involutive R ( *%R ((-1) ^+ n)).
+Proof. by move=> x; rewrite mulrA -expr2 sqrr_sign mul1r. Qed.
+
 Lemma mulrI_eq0 x y : lreg x -> (x * y == 0) = (y == 0).
 Proof. by move=> reg_x; rewrite -{1}(mulr0 x) (inj_eq reg_x). Qed.
 
@@ -1273,6 +1279,9 @@ Qed.
 Lemma scaler_sign (b : bool) v: (-1) ^+ b *: v = (if b then - v else v).
 Proof. by case: b; rewrite ?scaleNr scale1r. Qed.
 
+Lemma signrZK n : @involutive V ( *:%R ((-1) ^+ n)).
+Proof. by move=> u; rewrite scalerA -expr2 sqrr_sign scale1r. Qed.
+
 Lemma scaler_mulrnl a v n : a *: v *+ n = (a *+ n) *: v.
 Proof.
 elim: n => [|n IHn]; first by rewrite !mulr0n scale0r.
@@ -1496,6 +1505,26 @@ Lemma bij_additive :
 Proof. by case=> f' fK f'K; exists (Additive (can2_additive fK f'K)). Qed.
 
 End Properties.
+
+Section RingProperties.
+
+Variables (R S : ringType) (f : {additive R -> S}).
+
+Lemma raddfMnat n x : f (n%:R * x) = n%:R * f x.
+Proof. by rewrite !mulr_natl raddfMn. Qed.
+
+Lemma raddfMsign n x : f ((-1) ^+ n * x) = (-1) ^+ n * f x.
+Proof. by rewrite !(mulr_sign, =^~ signr_odd) (fun_if f) raddfN. Qed.
+
+Variables (U : lmodType R) (V : lmodType S) (h : {additive U -> V}).
+
+Lemma raddfZnat n u : h (n%:R *: u) = n%:R *: h u.
+Proof. by rewrite !scaler_nat raddfMn. Qed.
+
+Lemma raddfZsign n u : h ((-1) ^+ n *: u) = (-1) ^+ n *: h u.
+Proof. by rewrite !(scaler_sign, =^~ signr_odd) (fun_if h) raddfN. Qed.
+
+End RingProperties.
 
 Section AddFun.
 
@@ -4059,6 +4088,8 @@ Definition mulr_sign := mulr_sign.
 Definition signr_addb := signr_addb.
 Definition exprN := exprN.
 Definition sqrrN := sqrrN.
+Definition sqrr_sign := sqrr_sign.
+Definition signrMK := signrMK.
 Definition mulrI_eq0 := mulrI_eq0.
 Definition lreg_neq0 := lreg_neq0.
 Definition mulrI0_lreg := mulrI0_lreg.
@@ -4193,6 +4224,8 @@ Definition raddf_sub := raddf_sub.
 Definition raddf_sum := raddf_sum.
 Definition raddfMn := raddfMn.
 Definition raddfMNn := raddfMNn.
+Definition raddfMnat := raddfMnat.
+Definition raddfMsign := raddfMsign.
 Definition can2_additive := can2_additive.
 Definition bij_additive := bij_additive.
 Definition rmorph0 := rmorph0.
@@ -4247,6 +4280,7 @@ Definition scalerI := scalerI.
 Definition scaler_mull := scaler_mull.
 Definition scaler_mulr := scaler_mulr.
 Definition scaler_sign := scaler_sign.
+Definition signrZK := signrZK.
 Definition scaler_swap := scaler_swap.
 Definition scaler_exp := scaler_exp.
 Definition scaler_prodl := scaler_prodl.
@@ -4255,6 +4289,8 @@ Definition scaler_prod := scaler_prod.
 Definition scaler_injl := scaler_injl.
 Definition scaler_unit := scaler_unit.
 Definition scaler_inv := scaler_inv.
+Definition raddfZnat := raddfZnat.
+Definition raddfZsign := raddfZsign.
 Definition linearP := linearP.
 Definition linear0 := linear0.
 Definition linearN := linearN.

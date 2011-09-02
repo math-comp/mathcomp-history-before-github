@@ -378,6 +378,22 @@ case: eqP => // <- /idPn[]; apply: contra not_ch1Gt2 => /cfclassP[y Gy ->].
 by apply/cfclassP; exists y^-1%g; rewrite ?groupV ?cfConjgK.
 Qed.
 
+(* A more useful reformulation of (1.5)(c) *)
+Lemma not_cfclass_Ind_ortho i j :
+    H <| G -> ('chi_i \notin 'chi_j ^: G)%CF ->
+  '['Ind[G, H] 'chi_i, 'Ind[G, H] 'chi_j] = 0. 
+Proof. by move/(cfclass_irr_induced i j); rewrite cfclass_sym; case: ifP. Qed.
+
+Lemma cfclass_Ind_irrP i j :
+    H <| G ->
+  reflect ('Ind[G, H] 'chi_i = 'Ind[G, H] 'chi_j) ('chi_i \in 'chi_j ^: G)%CF.
+Proof.
+move=> nsHG; have [sHG _] := andP nsHG.
+case: ifP (cfclass_irr_induced j i nsHG) => [|_ Oji]; first by left.
+right=> eq_chijG; have /negP[]: 'Ind[G] 'chi_i != 0 by exact: Ind_irr_neq0.
+by rewrite -cfnorm_eq0 {1}eq_chijG Oji.
+Qed.
+
 (* This is Peterfalvi (1.5) (d). *)
 Lemma induced_sum_rcosets1 t : H <| G ->
   let chiG := 'Ind[G] 'chi_t in
@@ -413,30 +429,19 @@ by rewrite -add1n -[1%N](congr1 nat_of_bool oddG) odd_double_half order_dvdG.
 Qed.
 
 (* This is Peterfalvi (1.6)(a). *)
-Lemma cfker_induced_irr_sub (A : {group gT}) t :
-    H <| G -> A <| G -> A \subset H ->
-  (A \subset cfker 'chi[H]_t) = (A \subset cfker ('Ind[G] 'chi_t)).
+Lemma sub_cfker_Ind_irr A i :
+    G \subset 'N(A) -> H \subset G ->
+  (A \subset cfker ('Ind[G, H] 'chi_i)) = (A \subset cfker 'chi_i).
+Proof. by move=> nAG sHG; rewrite cfker_Ind_irr ?sub_gcore. Qed.
+
+Lemma cfInd_irr_eq1 i :
+  H <| G -> ('Ind[G, H] 'chi_i == 'Ind[G, H] 1) = (i == 0).
 Proof.
-move=> HnG AnG AsH; have [HsG _ ] := andP HnG; have [sAG nAG] := andP AnG.
-have Cht := irr_char t.
-have Cit := cfInd_char G Cht; have Crt := cfRes_char H Cit.
-apply/idP/idP=> [AsC|AsI].
-  apply /subsetP=> g GiA; rewrite cfker_charE ?inE ?(subsetP sAG) //=.
-  rewrite !cfIndE //=; apply/eqP; congr (_ * _); apply: eq_bigr => h Gh.
-  by rewrite conj1g cfker1 ?(subsetP AsC) ?memJ_norm ?(subsetP nAG).
-have: A \subset cfker ('Res[H] ('Ind[G] 'chi_t)).
-  apply/subsetP=> g Ag.
-  move: (subsetP AsI _ Ag).
-  rewrite !cfker_charE ?inE // => /andP [] _ HH.
-  by rewrite !cfResE ?(subsetP AsH).
-move/subset_trans; apply.
-apply: cfker_constt => //; rewrite induced_sum_rcosets // scaler_sumr.
-rewrite -cfclass_sum //= inE /= cfdot_suml (bigD1 t) ?cfclass_refl //=.
-rewrite cfdotZl cfdot_irr eqxx mulr1 big1 ?addr0 => [|j /andP[_]].
-  by rewrite -(eqN_eqC _ 0) -lt0n.
-by rewrite cfdotZl cfdot_irr => /negbTE->; rewrite mulr0.
+case/andP=> sHG nHG; apply/eqP/idP=> [chi1 | /eqP->]; last by rewrite chi0_1.
+rewrite -subGcfker -(sub_cfker_Ind_irr _ nHG sHG) chi1 -chi0_1.
+by rewrite sub_cfker_Ind_irr ?cfker_chi0.
 Qed.
- 
+
 (* This is Peterfalvi (1.6)(b). *)
 Lemma induced_quotientE (A : {group gT}) t :
     H <| G -> A <| G -> A \subset cfker 'chi[H]_t ->
@@ -447,7 +452,7 @@ have AsH := subset_trans AsK (cfker_sub _).
 have [[HsG nHG] [sAG nAG]] := (andP HnG, andP AnG).
 have AnH := normalS AsH HsG AnG.
 have HAnGA := quotient_normal A HnG.
-move: (AsK); rewrite (cfker_induced_irr_sub t HnG) => // AsKI.
+move: (AsK); rewrite -(sub_cfker_Ind_irr t nAG HsG) => AsKI.
 have CHt := irr_char t.
 have CHq := cfQuo_char A CHt.
 have CHi := cfInd_char G CHt.
@@ -476,7 +481,7 @@ Qed.
 Lemma irr1_bound_quo (B C D : {group gT}) i :
     B <| C -> B \subset cfker 'chi[G]_i ->
     B \subset D -> D \subset C -> C \subset G -> (D / B \subset 'Z(C / B))%g ->
-  ('chi_i 1%g) ^+ 2 <= #|G|%:R ^+ 2 / #|C|%:R / #|D|%:R.
+  'chi_i 1%g <= #|G : C|%:R * sqrtC #|C : D|%:R.
 Proof.
 move=> BnC BsK BsD DsC CsG QsZ.
 case: (boolP ('Res[C] 'chi_i == 0))=> [HH|].
@@ -492,14 +497,14 @@ have BsKi : B \subset cfker 'chi_i1.
   apply/subsetP=> g GiG.
   have F: g \in C by rewrite (subsetP (subset_trans BsD _)).
   rewrite cfker_charE // inE F !cfResE //.
-  by move: (subsetP BsK _ GiG); rewrite cfker_irrE inE (subsetP CsG) ?F.
+  by move: (subsetP BsK _ GiG); rewrite cfker_irrE inE.
 pose i2 := quo_Iirr B i1.
 have ZsC: 'Z(C / B)%g \subset 'Z('chi_i2)%CF.
     by rewrite -(cap_cfcenter_irr (C / B)); apply: bigcap_inf.
 have CBsH: C :&: B \subset D.
     apply/subsetP=> g; rewrite inE; case/andP=> _ HH.
     by apply: (subsetP (BsD)).
-have I1B: 'chi_i1 1%g ^+ 2 <= #|C:D|%:R.
+have I1B: 'chi_i1 1%g ^+ 2 <= #|C : D|%:R.
   case: (irr1_bound i2)=> HH _; move: HH.
   have ->: 'chi_i2 1%g = 'chi_i1 1%g.
     by rewrite quo_IirrE // -(coset_id (group1 B)) cfQuoE.
@@ -512,15 +517,9 @@ have I1B: 'chi_i1 1%g ^+ 2 <= #|C:D|%:R.
   rewrite mulnC leq_pmul2l ?cardG_gt0 // subset_leq_card //.
   exact: subset_trans QsZ ZsC.
 have IC': is_char ('Ind[G] 'chi_i1) := cfInd_char G (irr_char i1).
-move: (char1_ge_constt IC' CIr); rewrite cfInd1 //= => HH1.
-apply: (leC_trans (leC_square (char1_pos (irr_char i)) HH1)).
-rewrite commr_exp_mull; last by apply: mulrC.
-have F8: 0 < #|C|%:R^+2 by apply: sposC_mul; apply sposGC.
-rewrite -(leC_pmul2l _ _ F8) mulrA -commr_exp_mull; last by apply: mulrC.
-rewrite -natr_mul LaGrange // [#|C|%:R ^+ 2 *_]mulrC -!mulrA.
-rewrite !(leC_pmul2l,sposGC) //  [#|D|%:R ^-1 * _]mulrC !mulrA.
-rewrite mulVf ?neq0GC // mul1r -(LaGrange DsC) mulrC.
-by rewrite natr_mul mulrA mulVf ?(mul1r,neq0GC).
+move: (char1_ge_constt IC' CIr); rewrite cfInd1 //= => /leC_trans-> //.
+have chi1_1_ge0: 0 <= 'chi_i1 1%g by rewrite ltCW ?ltC_irr1.
+by rewrite leC_pmul2l ?sposGiC // -(@leC_exp2r 2) ?sqrtC_pos ?posC_nat ?sqrtCK.
 Qed.
 
 End Main.

@@ -36,7 +36,11 @@ Require Import ssreflect ssrfun.
 (*                            boolP my_formula generates two subgoals with    *)
 (*                            assumtions my_formula and ~~ myformula. As      *)
 (*                            with altP, my_formula must be an application.   *)
-(*           classically P == hP : P can be assumed when proving is_true b    *)
+(*              unless C P <-> hP : P may be assumed when proving P.          *)
+(*                         := (P -> C) -> C (Pierce's law).                   *)
+(*                            This is slightly weaker but easier to use than  *)
+(*                            P \/ C when P C : Prop.                         *)
+(*           classically P <-> hP : P can be assumed when proving is_true b   *)
 (*                         := forall b : bool, (P -> b) -> b.                 *)
 (*                            This is equivalent to ~ (~ P) when P : Prop.    *)
 (*                  a && b == the boolean conjunction of a and b.             *)
@@ -492,8 +496,18 @@ Hint View for apply// equivPif|3 xorPif|3 equivPifn|3 xorPifn|3.
 (* Allow the direct application of a reflection lemma to a boolean assertion. *)
 Coercion elimT : reflect >-> Funclass.
 
+(* Pierce's law, a weak form of classical reasoning. *)
+Definition unless condition property := (property -> condition) -> condition.
+
+Lemma bind_unless C P {Q} : unless C P -> unless (unless C Q) P.
+Proof. by move=> haveP suffPQ suffQ; apply: haveP => /suffPQ; exact. Qed.
+
+Lemma unless_contra b C : (~~ b -> C) -> unless C b.
+Proof. by case: b => [_ haveC | haveC _]; exact: haveC. Qed.
+
 (* Classical reasoning becomes directly accessible for any bool subgoal.      *)
-Definition classically P := forall b : bool, (P -> b) -> b.
+(* Note that we cannot use "unless" here for lack of universe polymorphism.   *)
+Definition classically P : Prop := forall b : bool, (P -> b) -> b.
 
 Lemma classicP : forall P : Prop, classically P <-> ~ ~ P.
 Proof.

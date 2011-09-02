@@ -305,6 +305,9 @@ case: (pickP (mem A)) => [x Ax | A0]; [by right; exists x | left].
 apply/setP=> x; rewrite inE; exact: A0.
 Qed.
 
+Lemma enum_set0 : enum set0 = [::] :> seq T.
+Proof. by rewrite (eq_enum (in_set _)) enum0. Qed.
+
 Lemma subsetT A : A \subset setT.
 Proof. by apply/subsetP=> x; rewrite inE. Qed.
 
@@ -320,6 +323,9 @@ Proof. by rewrite properEneq subsetT andbT. Qed.
 
 Lemma set1P x a : reflect (x = a) (x \in [set a]).
 Proof. by rewrite inE; exact: eqP. Qed.
+
+Lemma enum_setT : enum [set: T] = Finite.enum T.
+Proof. by rewrite (eq_enum (in_set _)) enumT. Qed.
 
 Lemma in_set1 x a : (x \in [set a]) = (x == a).
 Proof. exact: in_set. Qed.
@@ -1840,6 +1846,24 @@ Proof. by case/and3P=> /eqP <- tI_P _; exact: big_trivIset_cond. Qed.
 Lemma set_partition_big P D (E : T -> R) :
   partition P D -> \big[op/idx]_(x \in D) E x = rhs P E.
 Proof. by case/and3P=> /eqP <- tI_P _; exact: big_trivIset. Qed.
+
+Lemma partition_disjoint_bigcup (F : I -> {set T}) E :
+    (forall i j, i != j -> [disjoint F i & F j]) ->
+  \big[op/idx]_(x \in \bigcup_i F i) E x =
+    \big[op/idx]_i \big[op/idx]_(x \in F i) E x.
+Proof.
+move=> disjF; pose P := [set F i | i <- I, F i != set0].
+have trivP: trivIset P.
+  apply/trivIsetP=> _ _ /imsetP[i _ ->] /imsetP[j _ ->] neqFij.
+  by apply: disjF; apply: contraNneq neqFij => ->.
+have ->: \bigcup_i F i = cover P.
+  apply/esym; rewrite cover_imset big_mkcond; apply: eq_bigr => i _.
+  by rewrite inE; case: eqP.
+rewrite big_trivIset // /rhs big_imset => [|i j _ /setIdP[_ notFj0] eqFij].
+  rewrite big_mkcond; apply: eq_bigr => i _; rewrite inE.
+  by case: eqP => //= ->; rewrite big_set0.
+by apply: contraNeq (disjF _ _) _; rewrite -setI_eq0 eqFij setIid.
+Qed.
 
 End BigOps.
 

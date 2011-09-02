@@ -82,10 +82,10 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 (*                         for which the (boolean) predicate p holds          *)
 (* subfilter s : seq sT == when sT has a subType p structure, the sequence    *)
 (*                         of items of type sT corresponding to items of s    *)
-(*                         for which p holds                                  *)
+(*                         for which p holds.                                 *)
 (*              rem x s == the subsequence of s, where the first occurrence   *)
 (*                         of x has been removed (compare filter (predC1 x) s *)
-(*                         where ALL occurrences of x are removed.            *)
+(*                         where ALL occurrences of x are removed).           *)
 (*              undup s == the subsequence of s containing only the first     *)
 (*                         occurrence of each item in s, i.e., s with all     *)
 (*                         duplicates removed.                                *)
@@ -1042,6 +1042,12 @@ elim: s => //= [y s IHs] /andP[/negbTE Hy /IHs-> {IHs}].
 by rewrite in_cons eq_sym; case: eqP => // ->; rewrite Hy.
 Qed.
 
+Lemma filter_pred1_uniq s x : uniq s -> x \in s -> filter (pred1 x) s = [:: x].
+Proof.
+move=> uniq_s s_x; rewrite (all_pred1P _ _ (filter_all _ _)).
+by rewrite -count_filter count_uniq_mem ?s_x.
+Qed.
+
 (* Removing duplicates *)
 
 Fixpoint undup s :=
@@ -1067,6 +1073,12 @@ Proof. by elim: s => //= x s IHs /andP[/negbTE-> /IHs->]. Qed.
 Lemma ltn_size_undup s : (size (undup s) < size s) = ~~ uniq s.
 Proof.
 by elim: s => //= x s IHs; case Hx: (x \in s); rewrite //= ltnS size_undup.
+Qed.
+
+Lemma filter_undup p s : filter p (undup s) = undup (filter p s).
+Proof.
+elim: s => //= x s IHs; rewrite (fun_if undup) fun_if /= mem_filter /=.
+by rewrite (fun_if (filter p)) /= IHs; case: ifP => -> //=; exact: if_same.
 Qed.
 
 (* Lookup *)
@@ -1302,47 +1314,49 @@ Proof. by move/perm_eqP=> eq12 x; rewrite -!has_pred1 !has_count eq12. Qed.
 Lemma perm_eq_size s1 s2 : perm_eq s1 s2 -> size s1 = size s2.
 Proof. by move/perm_eqP=> eq12; rewrite -!count_predT eq12. Qed.
 
+Lemma perm_eq_small s1 s2 : size s2 <= 1 -> perm_eq s1 s2 -> s1 = s2.
+Proof.
+move=> s2_le1 eqs12; move/perm_eq_size: eqs12 s2_le1 (perm_eq_mem eqs12).
+by case: s2 s1 => [|x []] // [|y []] // _ _ /(_ x); rewrite !inE eqxx => /eqP->.
+Qed.
+
 Lemma uniq_leq_size s1 s2 : uniq s1 -> {subset s1 <= s2} -> size s1 <= size s2.
 Proof.
-elim: s1 => [|x s1 IHs] /= in s2 *; [by case: s2 | case/andP=> Hx Hs1 Hs12].
-have [|i s2' Ds2'] := @rot_to T s2 x; first exact/Hs12/predU1l.
-rewrite -(size_rot i s2) (Ds2'); apply: IHs => // [y /= Hy].
-move: (Hs12 _ (predU1r _ _ Hy)); rewrite /= -(mem_rot i) Ds2'.
-by case/predU1P=> // Dy; rewrite -Dy Hy in Hx.
+elim: s1 s2 => //= x s1 IHs s2 /andP[not_s1x Us1] /allP/=/andP[s2x /allP ss12].
+have [i s3 def_s2] := rot_to s2x; rewrite -(size_rot i s2) def_s2.
+apply: IHs => // y s1y; have:= ss12 y s1y.
+by rewrite -(mem_rot i) def_s2 inE (negPf (memPn _ y s1y)).
 Qed.
 
 Lemma leq_size_uniq s1 s2 :
   uniq s1 -> {subset s1 <= s2} -> size s2 <= size s1 -> uniq s2.
 Proof.
-elim: s1 s2 => [|x s1 IHs] s2 Hs1 Hs12; first by case s2.
-case: (@rot_to T s2 x); [ by apply: Hs12; apply: predU1l | move=> i s2' Ds2' ].
-  rewrite -(size_rot i) -(rot_uniq i) Ds2' /=; case Hs2': (x \in s2').
-  rewrite ltnNge /=; case/negP; apply: (uniq_leq_size Hs1) => [y Hy].
-  by move: (Hs12 _ Hy); rewrite /= -(mem_rot i) Ds2'; case/predU1P=> // ->.
-move: Hs1 => /=; case/andP=> Hx Hs1; apply: IHs => // [y /= Hy].
-have:= Hs12 _ (predU1r _ _ Hy); rewrite /= -(mem_rot i) Ds2'.
-by case/predU1P=> // Dx; rewrite -Dx Hy in Hx.
+elim: s1 s2 => [[] | x s1 IHs s2] // Us1x; have /andP[not_s1x Us1] := Us1x.
+case/allP/andP=> /rot_to[i s3 def_s2] /allP ss12 le_s21.
+rewrite -(rot_uniq i) -(size_rot i) def_s2 /= in le_s21 *.
+have ss13 y (s1y : y \in s1): y \in s3.
+  by have:= ss12 y s1y; rewrite -(mem_rot i) def_s2 inE (negPf (memPn _ y s1y)).
+rewrite IHs // andbT; apply: contraL _ le_s21 => s3x; rewrite -leqNgt.
+by apply/(uniq_leq_size Us1x)/allP; rewrite /= s3x; exact/allP.
 Qed.
 
 Lemma uniq_size_uniq s1 s2 :
   uniq s1 -> s1 =i s2 -> uniq s2 = (size s2 == size s1).
 Proof.
-move=> Us1 Es12.
-rewrite eqn_leq andbC uniq_leq_size //= => [|y]; last by rewrite /= Es12.
-apply/idP/idP => [Hs2|]; first by apply uniq_leq_size => // y; rewrite /= Es12.
-by apply: leq_size_uniq => // y; rewrite /= Es12.
+move=> Us1 eqs12; apply/idP/idP=> [Us2 | /eqP eq_sz12].
+  by rewrite eqn_leq !uniq_leq_size // => y; rewrite eqs12.
+by apply: (leq_size_uniq Us1) => [y|]; rewrite (eqs12, eq_sz12).
 Qed.
 
 Lemma leq_size_perm s1 s2 :
     uniq s1 -> {subset s1 <= s2} -> size s2 <= size s1 ->
   s1 =i s2 /\ size s1 = size s2.
 Proof.
-move=> Us1 Hs1 Hs12; have Us2: uniq s2 by exact: leq_size_uniq Hs12.
+move=> Us1 ss12 le_s21; have Us2: uniq s2 := leq_size_uniq Us1 ss12 le_s21.
 suffices: s1 =i s2 by split; last by apply/eqP; rewrite -uniq_size_uniq.
-move=> x; apply/idP/idP=> [|Hxs2]; [exact: Hs1 | apply/idPn=> Hxs1].
-suffices: size (x :: s1) <= size s2 by rewrite /= ltnNge Hs12.
-apply: uniq_leq_size => [|y] /=; first by rewrite Hxs1.
-case/predU1P=> [-> //|]; exact: Hs1.
+move=> x; apply/idP/idP=> [/ss12// | s2x]; apply: contraLR le_s21 => not_s1x.
+rewrite -ltnNge (@uniq_leq_size (x :: s1)) /= ?not_s1x //.
+by apply/allP; rewrite /= s2x; exact/allP.
 Qed.
 
 Lemma perm_uniq s1 s2 : s1 =i s2 -> size s1 = size s2 -> uniq s1 = uniq s2.

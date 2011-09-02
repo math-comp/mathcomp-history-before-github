@@ -1191,6 +1191,11 @@ by apply: big_pred1 => i; rewrite /= andbC; case: eqP => // ->.
 Qed.
 Implicit Arguments bigD1 [I P F].
 
+Lemma bigD1_seq (I : eqType) (r : seq I) j F : 
+    j \in r -> uniq r ->
+  \big[*%M/1]_(i <- r) F i = F j * \big[*%M/1]_(i <- r | i != j) F i.
+Proof. by move=> /big_rem-> /rem_filter->; rewrite big_filter. Qed.
+
 Lemma cardD1x (I : finType) (A : pred I) j :
   A j -> #|SimplPred A| = 1 + #|[pred i | A i && (i != j)]|.
 Proof.
@@ -1366,6 +1371,7 @@ Implicit Arguments big_rem [R op idx I r P F].
 Implicit Arguments bigID [R op idx I r].
 Implicit Arguments bigU [R op idx I].
 Implicit Arguments bigD1 [R op idx I P F].
+Implicit Arguments bigD1_seq [R op idx I r F].
 Implicit Arguments partition_big [R op idx I J P F].
 Implicit Arguments reindex_onto [R op idx I J P F].
 Implicit Arguments reindex [R op idx I J P F].
@@ -1402,6 +1408,11 @@ Lemma big_distrr I r a (P : pred I) F :
   a * \big[+%M/0]_(i <- r | P i) F i = \big[+%M/0]_(i <- r | P i) (a * F i).
 Proof. by rewrite big_endo ?mulm0 // => x y; exact: mulm_addr. Qed.
 
+Lemma big_distrlr I J rI rJ (pI : pred I) (pJ : pred J) F G :
+  (\big[+%M/0]_(i <- rI | pI i) F i) * (\big[+%M/0]_(j <- rJ | pJ j) G j)
+   = \big[+%M/0]_(i <- rI | pI i) \big[+%M/0]_(j <- rJ | pJ j) (F i * G j).
+Proof. by rewrite big_distrl; apply: eq_bigr => i _; rewrite big_distrr. Qed.
+
 Lemma big_distr_big_dep (I J : finType) j0 (P : pred I) (Q : I -> pred J) F :
   \big[*%M/1]_(i | P i) \big[+%M/0]_(j | Q i j) F i j =
      \big[+%M/0]_(f | f \in pfamily j0 P Q) \big[*%M/1]_(i | P i) F i (f i).
@@ -1412,7 +1423,7 @@ transitivity (\big[+%M/0]_(f | f \in Pf r) \big[*%M/1]_(i <- r) F i (f i)).
   apply: eq_big => f; last by rewrite -big_filter filter_index_enum.
   by apply: eq_forallb => i; rewrite /= mem_enum.
 have: uniq r by exact: enum_uniq.
-elim: {P}r => /= [_|i r IHr].
+elim: {P}r => /= [_ | i r IHr].
   rewrite (big_pred1 [ffun => j0]) ?big_nil //= => f.
   apply/familyP/eqP=> /= [Df |->{f} i]; last by rewrite ffunE !inE.
   by apply/ffunP=> i; rewrite ffunE; exact/eqP/Df.

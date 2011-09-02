@@ -51,8 +51,7 @@ wlog suff: a b c d u v Za Zb Zc Zd o_ab o_cd r_u r_v nz_u nz_v o_abcd ab1 cd1 /
   rewrite -oppr_eq0 -cfdotNr oppr_sub in o_abcd.
   by rewrite (IH a b d c v u) ?(IH b a d c v u) // 1?osym2 1?vc_sym ?ab_sym.
 apply: contraLR cd1 => nz_ac.
-have /and4P[/and3P[/eqP a1 /eqP b1 _] _ /andP[/andP[/eqP ab0 _] _] _] := o_ab.
-have /and4P[/and3P[/eqP c1 /eqP d1 _] _ /andP[/andP[/eqP cd0 _] _] _] := o_cd.
+have [/orthonormal2P[ab0 a1 b1] /orthonormal2P[cd0 c1 d1]] := (o_ab, o_cd).
 have [ea [ia def_a]] := vchar_norm1P Za a1.
 have{nz_ac} [e defc]: exists e : bool, c = (-1) ^+ e *: a.
   have [ec [ic def_c]] := vchar_norm1P Zc c1; exists (ec (+) ea).

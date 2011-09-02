@@ -41,6 +41,8 @@ Import Prenex Implicits.
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
+Reserved Notation "alpha ^\tau" (at level 2, format "alpha ^\tau").
+
 Section Two.
 
 Variable gT : finGroupType.
@@ -239,6 +241,14 @@ apply/bigcupsP=> a Aa; rewrite class_support_subG // mul_subG ?sHG //.
 by rewrite sub1set (subsetP sLG) ?(subsetP sAL).
 Qed.
 
+Lemma Dade_support_norm : G \subset 'N(Atau).
+Proof.
+by rewrite norms_bigcup //; apply/bigcapsP=> a _; exact: class_support_norm.
+Qed.
+
+Lemma Dade_support_normal : Atau <| G.
+Proof. by rewrite /normal Dade_support_sub Dade_support_norm. Qed.
+
 Lemma Dade_support_subD1 : Atau \subset G^#.
 Proof. by rewrite subsetD1 Dade_support_sub not_support_Dade_1. Qed.
 
@@ -263,8 +273,7 @@ Qed.
 Canonical Dade_additive := Additive Dade_is_linear.
 Canonical Dade_linear := Linear Dade_is_linear.
 
-Local Notation "alpha ^\tau" := (Dade alpha)
-  (at level 2, format "alpha ^\tau").
+Local Notation "alpha ^\tau" := (Dade alpha).
 
 (* This is the validity of Peterfalvi, Definition (2.5) *)
 Lemma DadeE alpha a u : a \in A -> u \in dd1 a -> alpha^\tau u = alpha a.
@@ -302,6 +311,24 @@ Proof.
 move=> alpha a Aalpha; case/setU1P=> [-> |]; last exact: Dade_id.
 by rewrite Dade1 (cfun_on0 Aalpha).
 Qed.
+
+Section AutomorphismCFun.
+
+Variable u : {rmorphism algC -> algC}.
+Local Notation "alpha ^u" := (cfAut u alpha).
+
+Lemma Dade_aut alpha : (alpha^\tau)^u = (alpha^u)^\tau.
+Proof.
+apply/cfunP => g; rewrite cfunE.
+have [/bigcupP[a Aa A1g] | gnAtau] := boolP (g \in Atau).
+  by rewrite !(DadeE _ Aa A1g) cfunE.
+by rewrite !(cfun_on0 _ gnAtau) ?rmorph0 ?Dade_cfunS.
+Qed.
+
+End AutomorphismCFun.
+
+Lemma Dade_conjC alpha : ((alpha^\tau)^*)%CF = (alpha^*)%CF^\tau.
+Proof. exact: Dade_aut. Qed.
 
 (* This is Peterfalvi (2.7), main part *)
 Lemma general_Dade_reciprocity alpha (phi : 'CF(G)) (psi : 'CF(L)) :
