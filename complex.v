@@ -1,8 +1,7 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import bigop ssralg zint div orderedalg qnum poly.
 
-Import GRing.Theory.
-Import OrderedRing.Theory.
+Import GRing.Theory ORing.Theory AbsrNotation.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -140,34 +139,43 @@ Canonical Structure cplx_iDomain :=
   Eval hnf in IdomainType C (FieldIdomainMixin field_axiom).
 Canonical Structure cplx_fieldMixin := FieldType C field_axiom.
 
-Definition posc (x : C) := let: a +i* b := x in (b == 0) && (0 <= a).
+Definition lec (x y : C) :=
+  let: a +i* b := x in let: c +i* d := y in
+    (d == b) && (a <= c).
 
-Lemma posc0 : posc 0. Proof. by rewrite /= eqxx /=. Qed.
+Definition ltc (x y : C) :=
+  let: a +i* b := x in let: c +i* d := y in
+    (d == b) && (a < c).
 
-Lemma posc_add : forall x y, posc x -> posc y -> posc (addc x y).
+Lemma ltc01 : ltc 0 1. Proof. by rewrite /= eqxx ltr01. Qed.
+
+Lemma ltc0_add : forall x y, ltc 0 x -> ltc 0 y -> ltc 0 (x + y).
 Proof.
-move=> [a b] [c d]; case/andP; move/eqP=> -> pa; case/andP; move/eqP=> -> pc.
-by rewrite /= addr0 eqxx addr_ge0.
+move=> [a b] [c d] /= /andP [/eqP-> ha] /andP [/eqP-> hc].
+by rewrite addr0 eqxx addr_gt0.
 Qed.
 
-Lemma posc_mul : forall x y, posc x -> posc y -> posc (mulc x y).
+Lemma ltc0_mul : forall x y, ltc 0 x -> ltc 0 (x * y) = ltc 0 y.
 Proof.
-move=> [a b] [c d]; case/andP; move/eqP=> -> pa; case/andP; move/eqP=> -> pc.
-by rewrite /= !mulr0 mul0r addr0 subr0 eqxx mulr_ge0.
+move=> [a b] [c d] /= => /andP [/eqP-> a_gt0].
+by rewrite !mul0r addr0 subr0 mulf_eq0 gtr_eqF //= pmulr_rgt0.
 Qed.
 
-Lemma posc_anti : forall x, posc x -> posc (oppc x) -> x = 0.
+Lemma ltc0_anti : forall x,  ltc 0 x -> ~~ ltc 0 (-x).
 Proof.
-move=> [a b] /andP [/eqP-> pa] /= /andP [_]; rewrite oppr_cp0=> pNa.
-by apply/eqP; rewrite eq_cplx /= eqxx andbT eqr_le pNa.
+move=> [a b] /= /andP [/eqP-> ha]; rewrite oppr0 eqxx /= oppr_cp0.
+by case: ltrgtP ha.
 Qed.
 
-Lemma posc1 : posc C1. Proof. by rewrite /= eqxx ler01. Qed.
+Lemma subc_gt0  : forall x y, ltc 0 (y - x) = ltc x y.
+Proof. by move=> [a b] [c d] /=; rewrite subr_gt0 subr_eq0. Qed.
 
-Lemma poscR (x : R) : posc x = (0 <= x). Proof. by rewrite /= eqxx. Qed.
+Lemma lec_eqVlt : forall x y, lec x y = ((y == x) || ltc x y).
+Proof.
+by move=> [a b] [c d]; rewrite eq_cplx andbC -andb_orr /= ler_eqVlt.
+Qed.
 
-Definition cplx_POrderedMixin := PartialOrderPosMixin posc0 posc1
-  posc_add posc_mul posc_anti.
+Definition cplx_POrderedMixin := PartialOrderMixin ltc01 ltc0_add ltc0_mul ltc0_anti subc_gt0 lec_eqVlt.
 Canonical Structure cplx_poIdomainType := POIdomainType C cplx_POrderedMixin.
 
 End CplxField.
@@ -237,22 +245,13 @@ Qed.
 Lemma cplxI : injective (@cplx_of_R R). Proof. by move=> x y []. Qed.
 
 Lemma poscR (x : R) : (0 <= x%:C) = (0 <= x).
-Proof.
-rewrite -[_ <= _%:C]/(CplxField.posc (-0 + x%:C)).
-by rewrite oppr0 add0r CplxField.poscR.
-Qed.
+Proof. by rewrite -[_ <= _]/(_ && _) eqxx. Qed.
 
-Lemma lecE : forall x y : C, (x <= y) = (Im x == Im y) && (Re x <= Re y).
-Proof.
-move=> [a b] [c d] /=; rewrite -subr_ge0 -[0 <= _]/(_ && _).
-by rewrite oppr0 !add0r subr_eq0 subr_ge0 eq_sym.
-Qed.
+Lemma lecE : forall x y : C, (x <= y) = (Im y == Im x) && (Re x <= Re y).
+Proof. by move=> [a b] [c d]. Qed.
 
-Lemma ltcE : forall x y : C, (x < y) = (Im x == Im y) && (Re x < Re y).
-Proof.
-move=> [a b] [c d] /=; rewrite !ltr_neqAle lecE eq_cplx /= negb_and.
-by case: (a <= c); case: (b == d); rewrite ?(andbT, andbF) //= orbF.
-Qed.
+Lemma ltcE : forall x y : C, (x < y) = (Im y == Im x) && (Re x < Re y).
+Proof. by move=> [a b] [c d]. Qed.
 
 Lemma lecR : forall x y : R, (x%:C <= y%:C) = (x <= y).
 Proof. by move=> x y; rewrite lecE /= eqxx. Qed.
@@ -305,23 +304,13 @@ Qed.
 Lemma posc_is_real : forall x : C, 0 <= x -> Im x = 0.
 Proof. by move=> [a b]; rewrite lecE /=; case/andP; move/eqP<-. Qed.
 
-Lemma invc_ge0 : forall x : C, (0 <= x^-1) = (0 <= x).
-Proof.
-move=> [a b]; rewrite !lecE /= ![0 == _]eq_sym.
-rewrite -mulNr mulf_eq0 invr_eq0 paddr_eq0 ?exprn_even_ge0 //.
-rewrite !expf_eq0 /= eqr_oppC oppr0 andKb; apply: andb_id2l.
-move/eqP->; rewrite [0 ^+ _]mulr0 addr0.
-case: (0 <= a) (a < 0) / (lerP 0 a) => ha.
-  by rewrite mulr_ge0 // invr_ge0 exprn_ge0.
-by rewrite lerNgt mulr_lt0_gt0 // invr_gt0 mulr_lt0.
-Qed.
 (* Todo : extend theory of : *)
 (*   - exprn_even_gt *)
 (*   - signed exponents *)
 
 
 Lemma conj_ge0 : forall x : C, (0 <= x ^*) = (0 <= x).
-by  move=> [a b] /=; simpc; rewrite !lecE /= -eqr_oppC oppr0. Qed.
+Proof. by move=> [a b] /=; simpc; rewrite !lecE /= oppr_eq0. Qed.
 
 Lemma conjc_nat : forall n, (n%:R : C)^* = n%:R.
 Proof. exact: rmorph_nat. Qed.
@@ -372,9 +361,7 @@ case.
 * rewrite !horner_lin oppr_le0 px /=.
   rewrite subr_ge0 (@ler_trans _ (1 + x)) //.
     by rewrite ler_paddl ?ler01 ?lerr.
-  rewrite ler_pemulr //.
-    by rewrite addrC ler_paddl ?lerr.
-  by rewrite ler_paddl ?ler01.
+  by rewrite ler_pemulr // addrC -subr_ge0 ?addrK // subr0 ler_paddl ?ler01.
 * move=> y hy; rewrite /root !horner_lin; move/eqP.
   move/(canRL (@addrNK _ _)); rewrite add0r=> <-.
 by exists y; case/andP: hy=> -> _; rewrite eqxx.
@@ -401,7 +388,7 @@ End RcfDef.
 
 Require Import closed_field fintype.
 
-Import OrderedRing.Theory.
+Import ORing.Theory.
 
 Section CplxClosed.
 
@@ -513,10 +500,10 @@ Proof.
 move=> a b pb;apply/idP/idP=> HH; last first.
   rewrite ltr_neqAle ler_sqrt ?ltrW // andbT.
   case: (boolP (0 <= a))=> [pa|].
-    by rewrite eqr_sqrt // ?ltrW //; case/andP: HH.
+    by rewrite eqr_sqrt // ?ltrW // gtr_eqF //.
   rewrite -ltrNge; move/ltrW; rewrite -sqrtr_eq0; move/eqP->.
   apply/eqP=> HH1; move: (pb).
-  by rewrite -(sqr_sqrtr (ltrW pb)) -HH1 exprS mul0r ltrr.
+  by rewrite -(sqr_sqrtr (ltrW pb)) HH1 exprS mul0r ltrr.
 move: HH; rewrite !ltrNge=> HH; apply/negP=> HH1.
 by case/negP: HH; apply: sqrtr_monotone.
 Qed.
@@ -566,9 +553,10 @@ Qed.
 Lemma sqrtc_sqrtr :
   forall (x : C), 0 <= x -> sqrtc x = cplx_of_R (sqrtr (Re x)).
 Proof.
-move=> [a b] /andP []; rewrite oppr0 !add0r /sqrtc=> /eqP-> zLa.
-rewrite eqxx mul1r [0^+_]exprS mul0r addr0 sqrtr_sqr ger0_abs //.
-by rewrite subrr mul0r sqrtr0 -mulr2n -[_*+2]mulr_natr mulfK // pnatr_eq0.
+move=> [a b] /andP [/eqP->] /= a_ge0.
+rewrite eqxx mul1r [0 ^+ _]exprS mul0r addr0 sqrtr_sqr.
+rewrite ger0_abs // subrr mul0r sqrtr0 -mulr2n.
+by rewrite -[_*+2]mulr_natr mulfK // pnatr_eq0.
 Qed.
 
 Lemma sqrtc0 : sqrtc 0 = 0.
@@ -597,7 +585,7 @@ move=> x; apply/eqP/eqP=> [eqs|->]; last by rewrite sqrtc0.
 by rewrite -[x]sqr_sqrtc eqs exprS mul0r.
 Qed.
 
-Notation R1 := (OrderedRing.TotalOrder.Field.sort R).
+Notation R1 := (ORing.TField.sort R).
 
 Definition normc (x : C) : R :=
   let: a +i* b := x in sqrtr (a^+2 + b^+2).

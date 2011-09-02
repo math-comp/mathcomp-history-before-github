@@ -411,8 +411,17 @@ Section Morphism.
 
 Variables (aT rT sT : Type) (f : aT -> rT).
 
+(* Morphism property for unary and binary functions *)
 Definition morphism_1 aF rF := forall x, f (aF x) = rF (f x).
 Definition morphism_2 aOp rOp := forall x y, f (aOp x y) = rOp (f x) (f y).
+
+(* Homomorphism property for unary and binary relations *)
+Definition homomorphism_1 (aP rP : _ -> Prop) := forall x, aP x -> rP (f x).
+Definition homomorphism_2 (aR rR : _ -> _ -> Prop) := forall x y, aR x y -> rR (f x) (f y).
+
+(* Monoomorphism property for unary and binary relations *)
+Definition monomorphism_1 (aP rP : _ -> sT) := forall x, rP (f x) = aP x.
+Definition monomorphism_2 (aR rR : _ -> _ -> sT) := forall x y, rR (f x) (f y) = aR x y.
 
 End Morphism.
 
@@ -435,6 +444,56 @@ Notation "{ 'morph' f : x y / a }" :=
   (morphism_2 f (fun x y => a) (fun x y => a))
   (at level 0, f at level 99, x ident, y ident,
    format "{ 'morph'  f  :  x  y  /  a }") : type_scope.
+
+Notation "{ 'homo' f : x / a >-> r }" :=
+  (homomorphism_1 f (fun x => a) (fun x => r))
+  (at level 0, f at level 99, x ident,
+   format "{ 'homo'  f  :  x  /  a  >->  r }") : type_scope.
+
+Notation "{ 'homo' f : x / a }" :=
+  (homomorphism_1 f (fun x => a) (fun x => a))
+  (at level 0, f at level 99, x ident,
+   format "{ 'homo'  f  :  x  /  a }") : type_scope.
+
+Notation "{ 'homo' f : x y / a >-> r }" :=
+  (homomorphism_2 f (fun x y => a) (fun x y => r))
+  (at level 0, f at level 99, x ident, y ident,
+   format "{ 'homo'  f  :  x  y  /  a  >->  r }") : type_scope.
+
+Notation "{ 'homo' f : x y / a }" :=
+  (homomorphism_2 f (fun x y => a) (fun x y => a))
+  (at level 0, f at level 99, x ident, y ident,
+   format "{ 'homo'  f  :  x  y  /  a }") : type_scope.
+
+Notation "{ 'homo' f : x y /~ a }" :=
+  (homomorphism_2 f (fun y x => a) (fun x y => a))
+  (at level 0, f at level 99, x ident, y ident,
+   format "{ 'homo'  f  :  x  y  /~  a }") : type_scope.
+
+Notation "{ 'mono' f : x / a >-> r }" :=
+  (monomorphism_1 f (fun x => a) (fun x => r))
+  (at level 0, f at level 99, x ident,
+   format "{ 'mono'  f  :  x  /  a  >->  r }") : type_scope.
+
+Notation "{ 'mono' f : x / a }" :=
+  (monomorphism_1 f (fun x => a) (fun x => a))
+  (at level 0, f at level 99, x ident,
+   format "{ 'mono'  f  :  x  /  a }") : type_scope.
+
+Notation "{ 'mono' f : x y / a >-> r }" :=
+  (monomorphism_2 f (fun x y => a) (fun x y => r))
+  (at level 0, f at level 99, x ident, y ident,
+   format "{ 'mono'  f  :  x  y  /  a  >->  r }") : type_scope.
+
+Notation "{ 'mono' f : x y / a }" :=
+  (monomorphism_2 f (fun x y => a) (fun x y => a))
+  (at level 0, f at level 99, x ident, y ident,
+   format "{ 'mono'  f  :  x  y  /  a }") : type_scope.
+
+Notation "{ 'mono' f : x y /~ a }" :=
+  (monomorphism_2 f (fun y x => a) (fun x y => a))
+  (at level 0, f at level 99, x ident, y ident,
+   format "{ 'mono'  f  :  x  y  /~  a }") : type_scope.
 
 (* In an intuitionistic setting, we have two degrees of injectivity. The     *)
 (* weaker one gives only simplification, and the strong one provides a left  *)

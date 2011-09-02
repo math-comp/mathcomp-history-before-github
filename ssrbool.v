@@ -1405,3 +1405,87 @@ split=> [eqiR | [Rxx trR] x y z *]; last by split=> [|/trR-> //]; exact: Rxx.
 by split=> [x Ax|x y Ax Ay Rxy z Az]; [rewrite (eqiR x x) | rewrite (eqiR x y)].
 Qed.
 
+Section MonoHomoMorphismTheory.
+
+Variables (aT rT sT : Type) (f : aT -> rT) (g : rT -> aT).
+Variables (aP : pred aT) (rP : pred rT) (aR : rel aT) (rR : rel rT).
+
+Lemma monoW : {mono f : x / aP x >-> rP x} -> {homo f : x / aP x >-> rP x}.
+Proof. by move=> hf x ax; rewrite hf. Qed.
+
+Lemma mono2W : {mono f : x y / aR x y >-> rR x y} -> {homo f : x y / aR x y >-> rR x y}.
+Proof. by move=> hf x y axy; rewrite hf. Qed.
+
+Hypothesis fgK : cancel g f.
+
+Lemma homoRL : {homo f : x y / aR x y >-> rR x y} -> forall x y, aR (g x) y -> rR x (f y).
+Proof. by move=> Hf x y /Hf; rewrite fgK. Qed.
+
+Lemma homoLR : {homo f : x y / aR x y >-> rR x y} -> forall x y, aR x (g y) -> rR (f x) y.
+Proof. by move=> Hf x y /Hf; rewrite fgK. Qed.
+
+Lemma homo_mono : {homo f : x y / aR x y >-> rR x y} -> {homo g : x y / rR x y >-> aR x y}
+  -> {mono g : x y / rR x y >-> aR x y}.
+Proof.
+move=> mf mg x y; case: (boolP (rR _ _))=> [/mg //|].
+by apply: contraNF=> /mf; rewrite !fgK.
+Qed.
+
+Lemma monoLR : {mono f : x y / aR x y >-> rR x y} -> forall x y, rR (f x) y = aR x (g y).
+Proof. by move=> mf x y; rewrite -{1}[y]fgK mf. Qed.
+
+Lemma monoRL : {mono f : x y / aR x y >-> rR x y} -> forall x y, rR x (f y) = aR (g x) y.
+Proof. by move=> mf x y; rewrite -{1}[x]fgK mf. Qed.
+
+Lemma can_mono : {mono f : x y / aR x y >-> rR x y} -> {mono g : x y / rR x y >-> aR x y}.
+Proof. by move=> mf x y /=; rewrite -mf !fgK. Qed.
+
+End MonoHomoMorphismTheory.
+
+Section MonoHomoMorphismTheory_in.
+
+Variables (aT rT sT : predArgType) (f : aT -> rT) (g : rT -> aT).
+Variable (aD : pred aT).
+Variable (aP : pred aT) (rP : pred rT) (aR : rel aT) (rR : rel rT).
+
+Notation rD := [pred x | g x \in aD].
+
+Lemma monoW_in : {in aD &, {mono f : x y / aR x y >-> rR x y}}
+  -> {in aD &, {homo f : x y / aR x y >-> rR x y}}.
+Proof. by move=> hf x y hx hy axy; rewrite hf. Qed.
+
+Lemma mono2W_in : {in aD, {mono f : x / aP x >-> rP x}}
+  -> {in aD, {homo f : x / aP x >-> rP x}}.
+Proof. by move=> hf x hx ax; rewrite hf. Qed.
+
+Hypothesis fgK_on : {on aD, cancel g & f}.
+
+Lemma homoRL_in : {in aD &, {homo f : x y / aR x y >-> rR x y}} ->
+  forall x y, x \in rD -> y \in aD -> aR (g x) y -> rR x (f y).
+Proof. by move=> Hf x y hx hy /Hf; rewrite fgK_on //; apply. Qed.
+
+Lemma homoLR_in :  {in aD &, {homo f : x y / aR x y >-> rR x y}} ->
+  forall x y, x \in aD -> g y \in aD -> aR x (g y) -> rR (f x) y.
+Proof. by move=> Hf x y hx hy /Hf; rewrite fgK_on //; apply. Qed.
+
+Lemma homo_mono_in :  {in aD &, {homo f : x y / aR x y >-> rR x y}}
+  -> {in rD &, {homo g : x y / rR x y >-> aR x y}}
+  -> {in rD &, {mono g : x y / rR x y >-> aR x y}}.
+Proof.
+move=> mf mg x y hx hy; case: (boolP (rR _ _))=> [/mg //|]; first exact.
+by apply: contraNF=> /mf; rewrite !fgK_on //; apply.
+Qed.
+
+Lemma monoLR_in : {in aD &, {mono f : x y / aR x y >-> rR x y}}
+  -> forall x y, x \in aD -> y \in rD -> rR (f x) y = aR x (g y).
+Proof. by move=> mf x y hx hy; rewrite -{1}[y]fgK_on // mf. Qed.
+
+Lemma monoRL_in : {in aD &, {mono f : x y / aR x y >-> rR x y}}
+  -> forall x y, x \in rD -> y \in aD -> rR x (f y) = aR (g x) y.
+Proof. by move=> mf x y hx hy; rewrite -{1}[x]fgK_on // mf. Qed.
+
+Lemma can_mono_in : {in aD &, {mono f : x y / aR x y >-> rR x y}}
+  -> {in rD &, {mono g : x y / rR x y >-> aR x y}}.
+Proof. by move=> mf x y hx hy /=; rewrite -mf // !fgK_on. Qed.
+
+End MonoHomoMorphismTheory_in.

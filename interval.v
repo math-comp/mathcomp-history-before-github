@@ -7,7 +7,7 @@ Import Prenex Implicits.
 
 Local Open Scope ring_scope.
 Import GRing.Theory.
-Import OrderedRing.Theory.
+Import ORing.Theory.
 
 Section IntervalPo.
 
@@ -158,7 +158,7 @@ Lemma int_gte : forall ba xa bb xb, (if ba && bb then xb < xa else xb <= xa)
 Proof.
 move=> ba xa bb xb hx y; rewrite int_boundlr inE /=.
 apply/negP; case/andP; move/ltreif_trans=> hy; move/hy.
-by case: (_ && _) hx=> /=; [move/lerN_po->|move/ltrN_po->].
+by case: (_ && _) hx=> /=; [move/ltr_geF->|move/ler_gtF->].
 Qed.
 
 Lemma boundl_in_int : forall ba xa b,
@@ -175,14 +175,14 @@ Lemma intP : forall (x : R) (i : interval R), (x \in i) -> int_rewrite i x.
 Proof.
 move=> x [[[] a|] [[] b|]]; move/int_dec=> //= [hl hu];do ?[split=> //;
   do ?[by rewrite ltrW | by rewrite ltrWN | by rewrite ltrNW |
-    by rewrite (lerN_po, ltrN_po)]];
+    by rewrite (ltr_geF, ler_gtF)]];
   rewrite ?(bound_in_int) /le_boundl /le_boundr //=; do ?
     [ by rewrite (@ler_trans _ x)
     | by rewrite 1?ltrW // (@ltr_le_trans _ x)
     | by rewrite 1?ltrW // (@ler_lt_trans _ x) // 1?ltrW
-    | by apply: negbTE; rewrite ltrN_po // (@ler_trans _ x)
-    | by apply: negbTE; rewrite lerN_po // (@ltr_le_trans _ x) // 1?ltrW
-    | by apply: negbTE; rewrite lerN_po // (@ler_lt_trans _ x)].
+    | by apply: negbTE; rewrite ler_gtF // (@ler_trans _ x)
+    | by apply: negbTE; rewrite ltr_geF // (@ltr_le_trans _ x) // 1?ltrW
+    | by apply: negbTE; rewrite ltr_geF // (@ler_lt_trans _ x)].
 Qed.
 
 Hint Rewrite intP.
@@ -249,7 +249,7 @@ Lemma int_splitI : forall a b, forall x,
 Proof. by move=> [[] a|] [[] b|] x; rewrite ?inE ?andbT. Qed.
 
 Lemma ltreifN_po : forall x y b, y < x ?<= if ~~ b ->  x < y ?<= if b = false.
-Proof. by move=> x y [] /=; [apply: lerN_po|apply: ltrN_po]. Qed.
+Proof. by move=> x y [] /=; [apply: ltr_geF|apply: ler_gtF]. Qed.
 
 Lemma ltreifS : forall b x y, x < y -> x < y ?<= if b.
 Proof. by case=> x y //; move/ltrW. Qed.
@@ -258,39 +258,37 @@ Lemma ltreifT : forall x y, x < y ?<= if true = (x <= y). Proof. by []. Qed.
 
 Lemma ltreifF : forall x y, x < y ?<= if false = (x < y). Proof. by []. Qed.
 
-Lemma ltreif_neg : forall x y b, cpable x y ->
+Lemma ltreif_neg : forall x y b, ORing.cpable x y ->
   x < y ?<= if ~~b = ~~ (y < x ?<= if b).
 Proof. by move=> x y [] cxy /=; rewrite (cpable_ltrNge, cpable_lerNgt). Qed.
 
 Lemma int_splitU_po : forall xc bc a b, xc \in Interval a b ->
-  forall y, cpable y xc -> y \in Interval a b =
+  forall y, ORing.cpable y xc -> y \in Interval a b =
     (y \in Interval a (BClose bc xc)) || (y \in Interval (BClose (~~bc) xc) b).
 Proof.
 move=> xc bc [ba xa|] [bb xb|] cab y cyc; move: cab;
  rewrite !int_boundlr /le_boundl /le_boundr /=.
 * case/andP=> hac hcb; case hay: ltreif=> /=; case hyb: ltreif=> //=.
-  + rewrite ?(andbF,andbT,orbF,orbT); symmetry.
-    by case: bc=> /=; case: cpable_lerP; rewrite // cpable_sym.
+  + by case: bc=> /=; case: cpable3P cyc.
   + rewrite ltreifN_po ?andbF // ltreifS // cpable_ltrNge 1?cpable_sym //.
     move/negP:hyb; move/negP; apply: contra.
     case: bb hcb=> /= hcb hyc; first exact: ler_trans hcb.
     exact: ler_lt_trans hcb.
-  + move/ltreifW:hyb=> hyb; suff: false by [].
-    by rewrite -hay -[ba]andbT (ltreif_trans hac).
+  move/ltreifW:hyb=> hyb; suff: false by [].
+  by rewrite -hay -[ba]andbT (ltreif_trans hac).
 * rewrite !andbT; move=> hac; case hay: ltreif=> /=; symmetry.
-    by case: bc=> /=; case: cpable_lerP; rewrite // cpable_sym.
+    by case: bc=> /=; case: cpable3P cyc.
   apply: negbTE; move/negP: hay; move/negP; apply: contra.
   by move/ltreifW; rewrite -[ba]andbT -ltreifT; move/(ltreif_trans _); apply.
 * move=> hcb; case hyb: ltreif=> /=; symmetry; rewrite ?(andbF, orbF).
-    by case: bc=> /=; case: cpable_lerP; rewrite // cpable_sym.
+    by case: bc=> /=; case: cpable3P cyc.
   apply: negbTE; move/negP: hyb; move/negP; apply: contra.
   by move/ltreifW; rewrite -ltreifT; move/ltreif_trans; apply.
-* rewrite andbT=> _; symmetry.
-  by case: bc=> /=; case: cpable_lerP; rewrite // cpable_sym.
+by case: bc=> /=; case: cpable3P cyc.
 Qed.
 
 Lemma int_splitU2_po : forall x a b, x \in Interval a b ->
-  forall y, cpable y x -> y \in Interval a b =
+  forall y, ORing.cpable y x -> y \in Interval a b =
     [|| (y \in Interval a (BClose false x)), (y == x)
       | (y \in Interval (BClose false x) b)].
 Proof.
@@ -301,7 +299,7 @@ Qed.
 
 Lemma intUff : forall x y b1 b2 a b,
   x \in Interval (BClose b2 y) b -> y \in Interval a (BClose b1 x) ->
-  forall z, cpable z x -> cpable z y ->
+  forall z, ORing.cpable z x -> ORing.cpable z y ->
     (z \in Interval a (BClose b1 x)) || (z \in Interval (BClose b2 y) b)
       = (z \in Interval a b).
 Proof.

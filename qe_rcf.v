@@ -4,7 +4,7 @@ Require Import polyorder polyrcf interval.
 Require Import qe_rcf_th.
 
 Import GRing.Theory.
-Import OrderedRing.Theory.
+Import ORing.Theory.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

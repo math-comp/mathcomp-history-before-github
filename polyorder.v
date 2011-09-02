@@ -3,7 +3,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
 Require Import ssralg poly orderedalg zmodp polydiv interval.
 
 Import GRing.Theory.
-Import OrderedRing.Theory.
+Import ORing.Theory.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

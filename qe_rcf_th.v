@@ -3,7 +3,7 @@ Require Import bigop ssralg poly polydiv orderedalg zmodp div zint.
 Require Import polyorder polyrcf interval matrix mxtens perm.
 
 Import GRing.Theory.
-Import OrderedRing.Theory.
+Import ORing.Theory.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

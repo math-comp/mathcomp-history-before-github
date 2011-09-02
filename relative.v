@@ -5,7 +5,7 @@ Require Import bigop ssralg.
 Require Import generic_quotient zmodp.
 
 Require Import orderedalg.
-Import OrderedRing.Theory.
+Import ORing.Theory.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -253,7 +253,7 @@ by move/eqP->; rewrite mul0n.
 Qed.
 
 
-Definition z_oRingMixin := OrderedRing.Mixin leqz_anti 
+Definition z_oRingMixin := ORing.Mixin leqz_anti 
   leqz_trans leqz_total leqz_add2r leq0z_mul.
 Canonical Structure z_oIdomain := Eval hnf in OIdomainType relative z_oRingMixin.
 
@@ -321,7 +321,7 @@ zscaler_addrM zscaler_addzM.
 End zprojR.
 
 
-Section OrderedRingSign.
+Section ORingSign.
 Variable F : oIdomainType.
 Implicit Types x y z t : F.
 
@@ -332,7 +332,7 @@ Definition signr x : relative := if x==0 then 0 else if 0 <= x then 1 else -1.
 
 Definition absr x := (zprojr _ (signr x)) * x.
 
-End OrderedRingSign.
+End ORingSign.
 
 Section zprojp.
 

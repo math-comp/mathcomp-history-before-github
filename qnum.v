@@ -2,7 +2,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import bigop ssralg div orderedalg zint.
 
 Import GRing.Theory.
-Import OrderedRing.Theory.
+Import ORing.Theory.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -33,7 +33,7 @@ Notation denq x := ((valq x).2).
 
 Lemma denq_gt0  x : 0 < denq x. Proof. by case: x=> [[a b] /= /andP []]. Qed.
 
-Lemma denq_neq0 x : denq x != 0. Proof. by rewrite ltrNW ?denq_gt0. Qed.
+Lemma denq_neq0 x : denq x != 0. Proof. by rewrite gtr_eqF ?denq_gt0. Qed.
 
 Lemma denq_eq0 x : (denq x == 0) = false.
 Proof. exact: negPf (denq_neq0 _). Qed.
@@ -72,7 +72,7 @@ Lemma fracqK x : fracq (valq x) = x.
 Proof.
 move:x => [[n d] /= Pnd]; apply: val_inj=> /=.
 move: Pnd; rewrite /coprime /fracq /=; case/andP=> hd; move/eqP=> hnd.
-rewrite ltrNW // hnd !divn1 mulrAC !abszE mulr_sg_abs.
+rewrite gtr_eqF // hnd !divn1 mulrAC !abszE mulr_sg_abs.
 by rewrite gtr0_abs // gtr0_sg // mulr1.
 Qed.
 
@@ -289,18 +289,18 @@ Lemma posq_frac x : posq (fracq x) = (0 <= x.1 * x.2).
 Proof.
 rewrite /posq; case: fracqP=> /= [|k {x} x k0]; first by rewrite mulr0.
 rewrite mulrAC mulrA -{2}(mulr0 (k * k * denq x)) ler_pmul2l //.
-by rewrite mulr_gt0 ?denq_gt0 // -sgr_cp0 sgrM mulr_sg k0.
+by rewrite pmulr_rgt0 ?denq_gt0 // -sgr_cp0 sgrM mulr_sg k0.
 Qed.
 
 Lemma posq_add x y : posq x -> posq y -> posq (addq x y).
 Proof.
-rewrite /posq /= => hnx hny; rewrite ltrNW ?mulr_gt0 ?denq_gt0 //.
+rewrite /posq /= => hnx hny; rewrite gtr_eqF ?pmulr_rgt0 ?denq_gt0 //.
 by rewrite !mulr_ge0 // sgr_ge0 ?addr_ge0 ?mulr_ge0 // ltrW ?denq_gt0.
 Qed.
 
 Lemma posq_mul x y : posq x -> posq y -> posq (mulq x y).
 Proof.
-rewrite /posq /= => hnx hny; rewrite ltrNW ?mulr_gt0 ?denq_gt0 //.
+rewrite /posq /= => hnx hny; rewrite gtr_eqF ?pmulr_rgt0 ?denq_gt0 //.
 by rewrite !mulr_ge0 // sgr_ge0 mulr_ge0 // ltrW ?denq_gt0.
 Qed.
 
@@ -363,12 +363,12 @@ Lemma numq_eq0 x : (numq x == 0) = (x == 0).
 Proof. exact: QnumField.numq_eq0. Qed.
 
 Lemma numq_ge0 x : (0 <= numq x) = (0 <= x).
-Proof. by rewrite -[_ <= x]/(0 <= numq (_ + _)) oppr0 add0r. Qed.
+Proof. by rewrite -[_ <= x]/(0 <= numq (_ - _)) subr0. Qed.
 
 Lemma numqN x : numq (- x) = - numq x.
 Proof.
 case: x=> [[a b] /= /andP [hb]]; rewrite /coprime=> /eqP hab.
-rewrite ltrNW // (gtr0_sg hb) mulr1 sgrN abszN hab divn1.
+rewrite gtr_eqF // (gtr0_sg hb) mulr1 sgrN abszN hab divn1.
 by rewrite abszE mulNr mulr_sg_abs.
 Qed.
 

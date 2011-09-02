@@ -1,6 +1,6 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 Require Import bigop ssralg orderedalg poly.
-Import GRing.Theory OrderedRing.Theory.
+Import GRing.Theory ORing.Theory AbsrNotation.
 
  (****************************************************************)
  (* zint has two constructors : Posz for positive integers       *)
@@ -347,7 +347,7 @@ Proof. by move: n=> [[]|]. Qed.
 
 Lemma lez_nat (m n : nat) : (lez m n) = (m <= n)%N. Proof. by []. Qed.
 
-Lemma subz_ge0 m n : lez m n = lez 0 (n - m).
+Lemma subz_ge0 m n : lez 0 (n - m) = lez m n.
 Proof.
 case: (zintP m); case: (zintP n)=> // {m n} m n /=;
 rewrite ?ltnS -?oppr_add ?oppr_sub ?subzSS;
@@ -357,10 +357,11 @@ case: leqP=> // hmn; do
      move: hmn; rewrite -subn_gt0; case: (_ - _)%N].
 Qed.
 
-Lemma lez0_total n : lez 0 n || lez 0 (- n). Proof. by case: n. Qed.
+Lemma lez0_total n : lez 0 n || lez 0 (- n).
+Proof. by move: n=> [[]|]. Qed.
 
 Definition Mixin :=
-  TotalOrder_PartialMixin addz_ge0 mulz_ge0 lez0_anti subz_ge0 lez0_total.
+  TotalOrder_PartialLeMixin addz_ge0 mulz_ge0 lez0_anti subz_ge0 lez0_total.
 
 End zintOrdered.
 End zintOrdered.
@@ -373,7 +374,8 @@ Section zintOrderedTheory.
 Implicit Types m n p : nat.
 Implicit Types x y z : zint.
 
-Lemma lez_nat m n : (m <= n :> zint) = (m <= n)%N. Proof. by []. Qed.
+Lemma lez_nat m n : (m <= n :> zint) = (m <= n)%N.
+Proof. by []. Qed.
 
 Lemma ltz_nat  m n : (m < n :> zint) = (m < n)%N.
 Proof. by rewrite ltnNge ltrNge lez_nat. Qed.
@@ -695,7 +697,7 @@ Proof. by rewrite Frobenius_aut_mulz Frobenius_aut_1. Qed.
 
 End Frobenius.
 
-Section OrderedRingMorphism.
+Section ORingMorphism.
 
 Section PO.
 
@@ -713,20 +715,25 @@ by rewrite zintS !rmorphD !rmorph1 ihn.
 Qed.
 
 (* zintmul and ler/ltr *)
-Lemma ltr_wpmulz2r n (hn : 0 < n) : {wmono *~%R^~ n :/ (>%R : rel R)}.
+Lemma ler_pmulz2r n (hn : 0 < n) : {mono *~%R^~ n :x y / x <= y :> R}.
+Proof. by move=> x y; case: n hn=> [[]|] // n _; rewrite ler_pmuln2r. Qed.
+
+Lemma ltr_pmulz2r n (hn : 0 < n) : {mono *~%R^~ n : x y / x < y :> R}.
+Proof. exact: lerW_mono (ler_pmulz2r _). Qed.
+
+Lemma ler_nmulz2r n (hn : n < 0) : {mono *~%R^~ n : x y /~ x <= y :> R}.
 Proof.
-by move=> x y xy; case: (zintP n) hn=> // {n} n; rewrite ltr_wmuln2r.
+move=> x y /=; rewrite -![_ *~ n]mulNrNz.
+by rewrite ler_pmulz2r (oppr_cp0, ler_opp2).
 Qed.
 
-Lemma ler_wpmulz2r n (hn : 0 <= n) : {wmono *~%R^~ n :/ (>=%R : rel R)}.
+Lemma ltr_nmulz2r n (hn : n < 0) : {mono *~%R^~ n : x y /~ x < y :> R}.
+Proof. exact: lerW_nmono (ler_nmulz2r _). Qed.
+
+Lemma ler_wpmulz2r n (hn : 0 <= n) : {homo *~%R^~ n : x y / x <= y :> R}.
 Proof. by move=> x y xy; case: n hn=> [] // n _; rewrite ler_wmuln2r. Qed.
 
-Lemma ltr_wnmulz2r n (hn : n < 0) : {wmono *~%R^~ n :/~ (>%R : rel R)}.
-Proof.
-by move=> x y xy /=; rewrite -ltr_opp2 -!mulrNz ltr_wpmulz2r // oppr_gt0.
-Qed.
-
-Lemma ler_wnmulz2r n (hn : n <= 0) : {wmono *~%R^~ n :/~ (>=%R : rel R)}.
+Lemma ler_wnmulz2r n (hn : n <= 0) : {homo *~%R^~ n : x y /~ x <= y :> R}.
 Proof.
 by move=> x y xy /=; rewrite -ler_opp2 -!mulrNz ler_wpmulz2r // oppr_ge0.
 Qed.
@@ -743,45 +750,81 @@ Proof. by rewrite -(mul0rz _ n) ler_wnmulz2r. Qed.
 Lemma mulrz_le0_ge0 x n (x0 : x <= 0) (n0 : 0 <= n) : x *~ n <= 0.
 Proof. by rewrite -(mul0rz _ n) ler_wpmulz2r. Qed.
 
-Lemma mulrz_gt0 x n (x0 : 0 < x) (n0 : 0 < n) : 0 < x *~ n.
-Proof. by rewrite -(mul0rz _ n) ltr_wpmulz2r. Qed.
+Lemma pmulrz_lgt0 x n (n0 : 0 < n) : 0 < x *~ n = (0 < x).
+Proof. by rewrite -(mul0rz _ n) ltr_pmulz2r // mul0rz. Qed.
 
-Lemma mulrz_lt0 x n (x0 : x < 0) (n0 : n < 0) : 0 < x *~ n.
-Proof. by rewrite -(mul0rz _ n) ltr_wnmulz2r. Qed.
+Lemma nmulrz_lgt0 x n (n0 : n < 0) : 0 < x *~ n = (x < 0).
+Proof. by rewrite -(mul0rz _ n) ltr_nmulz2r // mul0rz. Qed.
 
-Lemma mulrz_gt0_lt0 x n (x0 : 0 < x) (n0 : n < 0) : x *~ n < 0.
-Proof. by rewrite -(mul0rz _ n) ltr_wnmulz2r. Qed.
+Lemma pmulrz_llt0 x n (n0 : 0 < n) : x *~ n < 0 = (x < 0).
+Proof. by rewrite -(mul0rz _ n) ltr_pmulz2r // mul0rz. Qed.
 
-Lemma mulrz_l0_gt0 x n (x0 : x < 0) (n0 : 0 < n) : x *~ n < 0.
-Proof. by rewrite -(mul0rz _ n) ltr_wpmulz2r. Qed.
+Lemma nmulrz_llt0 x n (n0 : n < 0) : x *~ n < 0 = (0 < x).
+Proof. by rewrite -(mul0rz _ n) ltr_nmulz2r // mul0rz. Qed.
 
-Lemma ler_wpmulz2l x (hx : 0 <= x) : {wmono *~%R x :/ >=%R}.
+Lemma pmulrz_lge0 x n (n0 : 0 < n) : 0 <= x *~ n = (0 <= x).
+Proof. by rewrite -(mul0rz _ n) ler_pmulz2r // mul0rz. Qed.
+
+Lemma nmulrz_lge0 x n (n0 : n < 0) : 0 <= x *~ n = (x <= 0).
+Proof. by rewrite -(mul0rz _ n) ler_nmulz2r // mul0rz. Qed.
+
+Lemma pmulrz_lle0 x n (n0 : 0 < n) : x *~ n <= 0 = (x <= 0).
+Proof. by rewrite -(mul0rz _ n) ler_pmulz2r // mul0rz. Qed.
+
+Lemma nmulrz_lle0 x n (n0 : n < 0) : x *~ n <= 0 = (0 <= x).
+Proof. by rewrite -(mul0rz _ n) ler_nmulz2r // mul0rz. Qed.
+
+Lemma ler_wpmulz2l x (hx : 0 <= x) : {homo *~%R x : x y / x <= y}.
 Proof.
 by move=> m n /= hmn; rewrite -subr_ge0 -mulrz_subr mulrz_ge0 // subr_ge0.
 Qed.
 
-Lemma ler_wnmulz2l x (hx : x <= 0) : {wmono *~%R x :/~ >=%R}.
+Lemma ler_wnmulz2l x (hx : x <= 0) : {homo *~%R x : x y /~ x <= y}.
 Proof.
 by move=> m n /= hmn; rewrite -subr_ge0 -mulrz_subr mulrz_le0 // subr_le0.
 Qed.
 
-Lemma ler_pmulz2l x (hx : 0 < x) : {mono *~%R x :/ >=%R}.
+Lemma ler_pmulz2l x (hx : 0 < x) : {mono *~%R x : x y / x <= y}.
 Proof.
-move=> m n; rewrite cpable_wmono_ler ?cpable_ordered // => {m n}.
-by move=> m n /= hmn; rewrite -subr_gt0 -mulrz_subr mulrz_gt0 // subr_gt0.
+move=> m n /=; rewrite cpable_homo_ler ?cpable_ordered // => {m n}.
+by move=> m n /= hmn; rewrite -subr_gt0 -mulrz_subr pmulrz_lgt0 // subr_gt0.
 Qed.
 
-Lemma ler_nmulz2l x (hx : x < 0) : {mono *~%R x :/~ >=%R}.
+Lemma ler_nmulz2l x (hx : x < 0) : {mono *~%R x : x y /~ x <= y}.
 Proof.
-move=> m n; rewrite cpable_wnmono_ler ?cpable_ordered // => {m n}.
-by move=> m n /= hmn; rewrite -subr_gt0 -mulrz_subr mulrz_lt0 // subr_lt0.
+move=> m n /=; rewrite cpable_nhomo_ler ?cpable_ordered // => {m n}.
+by move=> m n /= hmn; rewrite -subr_gt0 -mulrz_subr nmulrz_lgt0 // subr_lt0.
 Qed.
 
-Lemma ltr_pmulz2l x (hx : 0 < x) : {mono *~%R x :/ >%R}.
+Lemma ltr_pmulz2l x (hx : 0 < x) : {mono *~%R x : x y / x < y}.
 Proof. exact: lerW_mono (ler_pmulz2l _). Qed.
 
-Lemma ltr_nmulz2l x (hx : x < 0) : {mono *~%R x :/~ >%R}.
+Lemma ltr_nmulz2l x (hx : x < 0) : {mono *~%R x : x y /~ x < y}.
 Proof. exact: lerW_nmono (ler_nmulz2l _). Qed.
+
+Lemma pmulrz_rgt0 x n (x0 : 0 < x) : 0 < x *~ n = (0 < n).
+Proof. by rewrite -(mulr0z x) ltr_pmulz2l. Qed.
+
+Lemma nmulrz_rgt0 x n (x0 : x < 0) : 0 < x *~ n = (n < 0).
+Proof. by rewrite -(mulr0z x) ltr_nmulz2l. Qed.
+
+Lemma pmulrz_rlt0 x n (x0 : 0 < x) : x *~ n < 0 = (n < 0).
+Proof. by rewrite -(mulr0z x) ltr_pmulz2l. Qed.
+
+Lemma nmulrz_rlt0 x n (x0 : x < 0) : x *~ n < 0 = (0 < n).
+Proof. by rewrite -(mulr0z x) ltr_nmulz2l. Qed.
+
+Lemma pmulrz_rge0 x n (x0 : 0 < x) : 0 <= x *~ n = (0 <= n).
+Proof. by rewrite -(mulr0z x) ler_pmulz2l. Qed.
+
+Lemma nmulrz_rge0 x n (x0 : x < 0) : 0 <= x *~ n = (n <= 0).
+Proof. by rewrite -(mulr0z x) ler_nmulz2l. Qed.
+
+Lemma pmulrz_rle0 x n (x0 : 0 < x) : x *~ n <= 0 = (n <= 0).
+Proof. by rewrite -(mulr0z x) ler_pmulz2l. Qed.
+
+Lemma nmulrz_rle0 x n (x0 : x < 0) : x *~ n <= 0 = (0 <= n).
+Proof. by rewrite -(mulr0z x) ler_nmulz2l. Qed.
 
 Lemma mulrIz x (hx : x != 0) : injective ( *~%R x).
 Proof.
@@ -799,16 +842,16 @@ Lemma eqr_zint m n : (m%:~R == n%:~R :> R) = (m == n).
 Proof. by rewrite (inj_eq (mulrIz _)) ?oner_eq0. Qed.
 
 Lemma ler0z n : (0 <= n%:~R :> R) = (0 <= n).
-Proof. by rewrite -(mulr0z 1) ler_pmulz2l. Qed.
+Proof. by rewrite pmulrz_rge0. Qed.
 
 Lemma ltr0z n : (0 < n%:~R :> R) = (0 < n).
-Proof. by rewrite -(mulr0z 1) ltr_pmulz2l. Qed.
+Proof. by rewrite pmulrz_rgt0. Qed.
 
 Lemma lerz0 n : (n%:~R <= 0 :> R) = (n <= 0).
-Proof. by rewrite -(mulr0z 1) ler_pmulz2l. Qed.
+Proof. by rewrite pmulrz_rle0. Qed.
 
 Lemma ltrz0 n : (n%:~R < 0 :> R) = (n < 0).
-Proof. by rewrite -(mulr0z 1) ltr_pmulz2l. Qed.
+Proof. by rewrite pmulrz_rlt0. Qed.
 
 Lemma zintr_eq0 n : (n%:~R == 0 :> R) = (n == 0).
 Proof. by rewrite -(mulr0z 1) (inj_eq (mulrIz _)) // oner_eq0. Qed.
@@ -819,34 +862,13 @@ Proof. by rewrite -mulrzl mulf_eq0 zintr_eq0. Qed.
 Lemma mulrz_neq0 x n : x *~ n != 0 = ((n != 0) && (x != 0)).
 Proof. by rewrite mulrz_eq0 negb_or. Qed.
 
-Lemma cpablen m n : cpable (n%:~R : R) m%:~R.
+Lemma cpablen m n : ORing.cpable (n%:~R : R) m%:~R.
 Proof. by rewrite mono_cpable ?cpable_ordered //; apply: ler_pmulz2l. Qed.
 Hint Resolve cpablen.
 
 End PO.
 
-Section Total.
-
-Variables (R : oIdomainType).
-
-Implicit Types n m : zint.
-Implicit Types x y : R.
-
-Lemma ler_pmulz2r n (hn : 0 < n) : {mono *~%R^~ n :/ (>=%R : rel R)}.
-Proof. exact: wmono_mono (ltr_wpmulz2r _). Qed.
-
-Lemma ltr_pmulz2r n (hn : 0 < n) : {mono *~%R^~ n :/ (>%R : rel R)}.
-Proof. exact: lerW_mono (ler_pmulz2r _). Qed.
-
-Lemma ler_nmulz2r n (hn : n < 0) : {mono *~%R^~ n :/~ (>=%R : rel R)}.
-Proof. exact: wnmono_mono (ltr_wnmulz2r _). Qed.
-
-Lemma ltr_nmulz2r n (hn : n < 0) : {mono *~%R^~ n :/~ (>%R : rel R)}.
-Proof. exact: lerW_nmono (ler_nmulz2r _). Qed.
-
-End Total.
-
-End OrderedRingMorphism.
+End ORingMorphism.
 
 End MorphTheory.
 
@@ -1072,35 +1094,35 @@ Proof. by case: n=> n; rewrite ?NegzE -?invr_expz ?invr_gt0 ?exprn_gt0. Qed.
 Definition exprz_gte0 := (exprz_ge0, exprz_gt0).
 
 Lemma ler_wpiexpz2l x (x0 : 0 <= x) (x1 : x <= 1) :
-  {in >=%R 0 &, {wmono (exprz x) :/~ >=%R}}.
+  {in >=%R 0 &, {homo (exprz x) : x y /~ x <= y}}.
 Proof.
 move=> [] m [] n; rewrite -!topredE /= ?oppr_cp0 ?ltz_nat // => _ _.
 by rewrite lez_nat -?exprnP=> /ler_wiexpn2l; apply.
 Qed.
 
 Lemma ler_wniexpz2l x (x0 : 0 <= x) (x1 : x <= 1) :
-  {in <%R 0 &, {wmono (exprz x) :/~ >=%R}}.
+  {in <%R 0 &, {homo (exprz x) : x y /~ x <= y}}.
 Proof.
 move=> [] m [] n; rewrite ?NegzE -!topredE /= ?oppr_cp0 ?ltz_nat // => _ _.
 rewrite ler_opp2 lez_nat -?invr_expz=> hmn; move: (x0).
-rewrite ler_eqVlt=> /orP [/eqP<-|lx0]; first by rewrite !exp0rz invr0.
+rewrite ler_eqVlt=> /orP [/eqP->|lx0]; first by rewrite !exp0rz invr0.
 by rewrite ler_pinv -?topredE /= ?exprz_gt0 // ler_wiexpn2l.
 Qed.
 
-Fact ler_wpeexpz2l x (x1 : 1 <= x) : {in >=%R 0 &, {wmono (exprz x) :/ >=%R}}.
+Fact ler_wpeexpz2l x (x1 : 1 <= x) : {in >=%R 0 &, {homo (exprz x) : x y / x <= y}}.
 Proof.
 move=> [] m [] n; rewrite -!topredE /= ?oppr_cp0 ?ltz_nat // => _ _.
 by rewrite lez_nat -?exprnP=> /ler_weexpn2l; apply.
 Qed.
 
-Fact ler_wneexpz2l x (x1 : 1 <= x) : {in <=%R 0 &, {wmono (exprz x) :/ >=%R}}.
+Fact ler_wneexpz2l x (x1 : 1 <= x) : {in <=%R 0 &, {homo (exprz x) : x y / x <= y}}.
 Proof.
 move=> m n hm hn /= hmn.
 rewrite -ler_pinv -?topredE /= ?exprz_gt0 ?(ltr_le_trans ltr01) //.
 by rewrite !invr_expz ler_wpeexpz2l ?ler_opp2 -?topredE //= oppr_cp0.
 Qed.
 
-Lemma ler_weexpz2l x (x1 : 1 <= x) : {wmono (exprz x) :/ >=%R}.
+Lemma ler_weexpz2l x (x1 : 1 <= x) : {homo (exprz x) : x y / x <= y}.
 Proof.
 move=> m n /= hmn; case: (lerP 0 m)=> [|/ltrW] hm.
   by rewrite ler_wpeexpz2l // [_ \in _](ler_trans hm).
@@ -1120,50 +1142,50 @@ Lemma ieexprIz x (x0 : 0 < x) (nx1 : x != 1) : injective (exprz x).
 Proof.
 apply: wlog_ltr=> // m n hmn; first by move=> hmn'; rewrite hmn.
 move=> /(f_equal ( *%R^~ (x ^ (- n)))).
-rewrite -!expfz_addr ?ltrNW // subrr expr0z=> /eqP.
+rewrite -!expfz_addr ?gtr_eqF // subrr expr0z=> /eqP.
 by rewrite pexprz_eq1 ?(ltrW x0) // (negPf nx1) subr_eq0 orbF=> /eqP.
 Qed.
 
 Lemma ler_piexpz2l x (x0 : 0 < x) (x1 : x < 1) :
-  {in >=%R 0 &, {mono (exprz x) :/~ >=%R}}.
+  {in >=%R 0 &, {mono (exprz x) : x y /~ x <= y}}.
 Proof.
-apply: (wnmono_mono_in (wnmono_inj_in_lt _ _)).
-  by move=> n m hn hm /=; apply: ieexprIz; rewrite // ltrWN.
+apply: (nhomo_mono_in (nhomo_inj_in_lt _ _)).
+  by move=> n m hn hm /=; apply: ieexprIz; rewrite // ltr_eqF.
 by apply: ler_wpiexpz2l; rewrite ?ltrW.
 Qed.
 
 Lemma ltr_piexpz2l x (x0 : 0 < x) (x1 : x < 1) :
-  {in >=%R 0 &, {mono (exprz x) :/~ >%R}}.
+  {in >=%R 0 &, {mono (exprz x) : x y /~ x < y}}.
 Proof. exact: (lerW_nmono_in (ler_piexpz2l _ _)). Qed.
 
 Lemma ler_niexpz2l x (x0 : 0 < x) (x1 : x < 1) :
-  {in <%R 0 &, {mono (exprz x) :/~ >=%R}}.
+  {in <%R 0 &, {mono (exprz x) : x y /~ x <= y}}.
 Proof.
-apply: (wnmono_mono_in (wnmono_inj_in_lt _ _)).
-  by move=> n m hn hm /=; apply: ieexprIz; rewrite // ltrWN.
+apply: (nhomo_mono_in (nhomo_inj_in_lt _ _)).
+  by move=> n m hn hm /=; apply: ieexprIz; rewrite // ltr_eqF.
 by apply: ler_wniexpz2l; rewrite ?ltrW.
 Qed.
 
 Lemma ltr_niexpz2l x (x0 : 0 < x) (x1 : x < 1) :
-  {in <%R 0 &, {mono (exprz x) :/~ >%R}}.
+  {in <%R 0 &, {mono (exprz x) : x y /~ x < y}}.
 Proof. exact: (lerW_nmono_in (ler_niexpz2l _ _)). Qed.
 
-Lemma ler_eexpz2l x (x1 : 1 < x) : {mono (exprz x) :/ >=%R}.
+Lemma ler_eexpz2l x (x1 : 1 < x) : {mono (exprz x) : x y / x <= y}.
 Proof.
-apply: (wmono_mono (wmono_inj_lt _ _)).
-  by apply: ieexprIz; rewrite ?(ltr_trans ltr01) // ltrNW.
+apply: (homo_mono (homo_inj_lt _ _)).
+  by apply: ieexprIz; rewrite ?(ltr_trans ltr01) // gtr_eqF.
 by apply: ler_weexpz2l; rewrite ?ltrW.
 Qed.
 
-Lemma ltr_eexpz2l x (x1 : 1 < x) : {mono (exprz x) :/ >%R}.
+Lemma ltr_eexpz2l x (x1 : 1 < x) : {mono (exprz x) : x y / x < y}.
 Proof. exact: (lerW_mono (ler_eexpz2l _)). Qed.
 
 Lemma ler_wpexpz2r n (hn : 0 <= n) :
-{in >=%R 0 & , {wmono ((@exprz R)^~ n) :/ >=%R}}.
+{in >=%R 0 & , {homo ((@exprz R)^~ n) : x y / x <= y}}.
 Proof. by case: n hn=> // n _; apply: ler_expn2r. Qed.
 
 Lemma ler_wnexpz2r n (hn : n <= 0) :
-{in >%R 0 & , {wmono ((@exprz R)^~ n) :/~ >=%R}}.
+{in >%R 0 & , {homo ((@exprz R)^~ n) : x y /~ x <= y}}.
 Proof.
 move=> x y /= hx hy hxy; rewrite -ler_pinv ?[_ \in _]exprz_gt0 //.
 by rewrite !invr_expz ler_wpexpz2r  ?[_ \in _]ltrW // oppr_cp0.
@@ -1171,50 +1193,50 @@ Qed.
 
 Lemma pexpIrz n (n0 : n != 0) : {in >=%R 0 &, injective ((@exprz R)^~ n)}.
 Proof.
+move=> x y; rewrite ![_ \in _]ler_eqVlt=> /orP [/eqP-> _ /eqP|hx].
+  by rewrite exp0rz ?(negPf n0) eq_sym expfz_eq0=> /andP [_ /eqP->].
+case/orP=> [/eqP-> /eqP|hy].
+  by rewrite exp0rz ?(negPf n0) expfz_eq0=> /andP [_ /eqP].
+move=> /(f_equal ( *%R^~ (y ^ (- n)))) /eqP.
+rewrite -expfz_addr ?(gtr_eqF hy) // subrr expr0z -exprz_inv -expfz_mull.
+rewrite pexprz_eq1 ?(negPf n0) /= ?mulr_ge0 ?invr_ge0 ?ltrW //.
+by rewrite (can2_eq (mulrVK _) (mulrK _)) ?unitfE ?(gtr_eqF hy) // mul1r=> /eqP.
+Qed.
+
+Lemma nexpIrz n (n0 : n != 0) : {in <=%R 0 &, injective ((@exprz R)^~ n)}.
+Proof.
 move=> x y; rewrite ![_ \in _]ler_eqVlt => /orP [/eqP<- _ /eqP|hx].
   by rewrite exp0rz ?(negPf n0) eq_sym expfz_eq0=> /andP [_ /eqP->].
 case/orP=> [/eqP<- /eqP|hy].
   by rewrite exp0rz ?(negPf n0) expfz_eq0=> /andP [_ /eqP].
 move=> /(f_equal ( *%R^~ (y ^ (- n)))) /eqP.
-rewrite -expfz_addr ?(ltrNW hy) // subrr expr0z -exprz_inv -expfz_mull.
-rewrite pexprz_eq1 ?(negPf n0) /= ?mulr_ge0 ?invr_ge0 ?ltrW //.
-by rewrite (can2_eq (mulrVK _) (mulrK _)) ?unitfE ?(ltrNW hy) // mul1r=> /eqP.
-Qed.
-
-Lemma nexpIrz n (n0 : n != 0) : {in <=%R 0 &, injective ((@exprz R)^~ n)}.
-Proof.
-move=> x y; rewrite ![_ \in _]ler_eqVlt => /orP [/eqP-> _ /eqP|hx].
-  by rewrite exp0rz ?(negPf n0) eq_sym expfz_eq0=> /andP [_ /eqP->].
-case/orP=> [/eqP-> /eqP|hy].
-  by rewrite exp0rz ?(negPf n0) expfz_eq0=> /andP [_ /eqP].
-move=> /(f_equal ( *%R^~ (y ^ (- n)))) /eqP.
-rewrite -expfz_addr ?(ltrWN hy) // subrr expr0z -exprz_inv -expfz_mull.
+rewrite -expfz_addr ?(ltr_eqF hy) // subrr expr0z -exprz_inv -expfz_mull.
 rewrite pexprz_eq1 ?(negPf n0) /= ?mulr_le0 ?invr_le0 ?ltrW //.
-by rewrite (can2_eq (mulrVK _) (mulrK _)) ?unitfE ?(ltrWN hy) // mul1r=> /eqP.
+by rewrite (can2_eq (mulrVK _) (mulrK _)) ?unitfE ?(ltr_eqF hy) // mul1r=> /eqP.
 Qed.
 
 Lemma ler_pexpz2r n (hn : 0 < n) :
-  {in >=%R 0 & , {mono ((@exprz R)^~ n) :/ >=%R}}.
+  {in >=%R 0 & , {mono ((@exprz R)^~ n) : x y / x <= y}}.
 Proof.
-apply: wmono_mono_in (wmono_inj_in_lt _ _).
-  by move=> x y hx hy /=; apply: pexpIrz; rewrite // ltrNW.
+apply: homo_mono_in (homo_inj_in_lt _ _).
+  by move=> x y hx hy /=; apply: pexpIrz; rewrite // gtr_eqF.
 by apply: ler_wpexpz2r; rewrite ltrW.
 Qed.
 
 Lemma ltr_pexpz2r n (hn : 0 < n) :
-  {in >=%R 0 & , {mono ((@exprz R)^~ n) :/ >%R}}.
+  {in >=%R 0 & , {mono ((@exprz R)^~ n) : x y / x < y}}.
 Proof. exact: lerW_mono_in (ler_pexpz2r _). Qed.
 
 Lemma ler_nexpz2r n (hn : n < 0) :
-  {in >%R 0 & , {mono ((@exprz R)^~ n) :/~ >=%R}}.
+  {in >%R 0 & , {mono ((@exprz R)^~ n) : x y /~ x <= y}}.
 Proof.
-apply: wnmono_mono_in (wnmono_inj_in_lt _ _); last first.
+apply: nhomo_mono_in (nhomo_inj_in_lt _ _); last first.
   by apply: ler_wnexpz2r; rewrite ltrW.
-by move=> x y hx hy /=; apply: pexpIrz; rewrite ?[_ \in _]ltrW ?ltrWN.
+by move=> x y hx hy /=; apply: pexpIrz; rewrite ?[_ \in _]ltrW ?ltr_eqF.
 Qed.
 
 Lemma ltr_nexpz2r n (hn : n < 0) :
-  {in >%R 0 & , {mono ((@exprz R)^~ n) :/~ >%R}}.
+  {in >%R 0 & , {mono ((@exprz R)^~ n) : x y /~ x < y}}.
 Proof. exact: lerW_nmono_in (ler_nexpz2r _). Qed.
 
 Lemma eqr_expz2 n x y : n != 0 -> 0 <= x -> 0 <= y ->
@@ -1297,11 +1319,11 @@ Lemma sgzM x y : sgz (x * y) = sgz x  * sgz y.
 Proof.
 case: (sgzP x)=> hx; first by rewrite hx ?mul0r sgz0.
   case: (sgzP y)=> hy; first by rewrite hy !mulr0 sgz0.
-    by apply/eqP; rewrite mul1r sgz_cp0 mulr_gt0.
-  by apply/eqP; rewrite mul1r sgz_cp0 mulr_gt0_lt0.
+    by apply/eqP; rewrite mul1r sgz_cp0 pmulr_rgt0.
+  by apply/eqP; rewrite mul1r sgz_cp0 nmulr_llt0.
 case: (sgzP y)=> hy; first by rewrite hy !mulr0 sgz0.
-  by apply/eqP; rewrite mulr1 sgz_cp0 mulr_lt0_gt0.
-by apply/eqP; rewrite mulN1r opprK sgz_cp0 mulr_lt0.
+  by apply/eqP; rewrite mulr1 sgz_cp0 nmulr_rlt0.
+by apply/eqP; rewrite mulN1r opprK sgz_cp0 nmulr_rgt0.
 Qed.
 
 Lemma sgzX (n : nat) x : sgz (x ^+ n) = (sgz x) ^+ n.

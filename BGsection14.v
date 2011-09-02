@@ -66,7 +66,7 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
 Local Open Scope nat_scope.
-Import GRing.Theory OrderedRing.Theory GroupScope.
+Import GRing.Theory ORing.Theory GroupScope.
 
 Section Definitons.
 
@@ -1808,8 +1808,8 @@ have oTGgt_g2: (g / 2%:R < #|TG|%:R)%R.
   have hm_inc: forall u v, 0 < u <= v -> (hm u <= hm v)%R.
     move=> u v; case/andP=> u_gt0 le_uv; rewrite ler_add2l ler_opp2.
     have v_gt0 := leq_trans u_gt0 le_uv.
-    rewrite -(mul1r _^-1)%R ler_pdivr_mulr ?natr_gt0 //.
-    by rewrite ler_pdivl_mull ?natr_gt0 // mulr1 ler_nat.
+    rewrite -(mul1r _^-1)%R ler_pdivr_mulr ?ltr0n //.
+    by rewrite ler_pdivl_mull ?ltr0n // mulr1 ler_nat.
   have le_pdiv: forall H, 0 < pdiv #|H| <= #|H|.
     by move=> H; rewrite pdiv_gt0 dvdn_leq ?pdiv_dvd.
   have hm_pdiv := hm_inc _ _ (le_pdiv _).
