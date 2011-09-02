@@ -1657,6 +1657,78 @@ Lemma ltr_wpexpn2r n (hn : (0 < n)%N) :
   {in >=%R 0 & , {homo ((@GRing.exp R)^~ n) : x y / x < y}}.
 Proof. by move=> x y /= x0 y0 hxy; rewrite ltr_expn2r // -lt0n. Qed.
 
+Lemma ler_pexpn2r n : (0 <n)%N ->
+  {in >=%R 0 & , {mono ((@GRing.exp R)^~ n) : x y / x <= y}}.
+Proof.
+case: n => // n _ x y; rewrite -!topredE /= =>  x_ge0 y_ge0.
+have [-> | nzx] := eqVneq x 0; first by rewrite exprS mul0r exprn_ge0.
+rewrite -subr_ge0 subr_expn pmulr_lge0 ?subr_ge0 //= big_ord_recr /=.
+rewrite subnn expr0 mul1r /= ltr_spaddr // ?exprn_gt0 ?ltr_neqAle ?nzx //.
+by rewrite sumr_ge0 // => i _; rewrite mulr_ge0 ?exprn_ge0.
+Qed.
+
+Lemma ltr_pexpn2r n : (0 <n)%N ->
+  {in >=%R 0 & , {mono ((@GRing.exp R)^~ n) : x y / x < y}}.
+Proof.
+by move=> n_gt0 x y x_ge0 y_ge0; rewrite !ltr_neqAle !eqr_le !ler_pexpn2r.
+Qed.
+
+Definition lter_pexpn2r := (ler_pexpn2r, ltr_pexpn2r).
+
+Lemma pexpIrn n (hn : (0 < n)%N) : {in (>=%R 0) &, injective ((@GRing.exp R)^~ n)}.
+Proof. exact: mono_inj_in (ler_pexpn2r _). Qed.
+
+
+(* expr and ler/ltr *)
+Lemma exprS_le1 n x (x0 : 0 <= x) : (x ^+ n.+1 <= 1) = (x <= 1).
+Proof. by rewrite -{1}[1](exp1rn _ n.+1) ler_pexpn2r // [_ \in _]ler01. Qed.
+
+Lemma exprS_lt1 n x (x0 : 0 <= x) : (x ^+ n.+1 < 1) = (x < 1).
+Proof. by rewrite -{1}[1](exp1rn _ n.+1) ltr_pexpn2r // [_ \in _]ler01. Qed.
+
+Definition exprS_lte1 := (exprS_le1, exprS_lt1).
+
+Lemma exprS_ge1 n x (x0 : 0 <= x) : (1 <= x ^+ n.+1) = (1 <= x).
+Proof. by rewrite -{1}[1](exp1rn _ n.+1) ler_pexpn2r // [_ \in _]ler01. Qed.
+
+Lemma exprS_gt1 n x (x0 : 0 <= x) : (1 < x ^+ n.+1) = (1 < x).
+Proof. by rewrite -{1}[1](exp1rn _ n.+1) ltr_pexpn2r // [_ \in _]ler01. Qed.
+
+Definition exprS_gte1 := (exprS_ge1, exprS_gt1).
+
+Lemma pexprS_eq1 x n (x0 : 0 <= x) : (x ^+ n.+1 == 1) = (x == 1).
+Proof.
+have [-> | nzx] := eqVneq x 0; first by rewrite exprS mul0r.
+rewrite -subr_eq0 subr_expn_1 mulf_eq0 subr_eq0.
+case: (x == 1)=> //=; apply: negbTE.
+rewrite sumr_eq0 /=; last by move=> i _; rewrite exprn_ge0.
+apply/allPn; exists ord_max; first by rewrite mem_index_enum.
+by rewrite gtr_eqF // exprn_gt0 // ltr_neqAle nzx.
+Qed.
+
+Lemma pexprn_eq1 x n (x0 : 0 <= x) : (x ^+ n == 1) = ((n == 0%N) || (x == 1)).
+Proof. by case: n=> [|n]; last exact: pexprS_eq1; rewrite expr0 !eqxx. Qed.
+
+Lemma eqr_expn2 n x y : (0 < n)%N -> 0 <= x -> 0 <= y ->
+  (x ^+ n == y ^+ n) = (x == y).
+Proof. by  move=> *; rewrite (inj_in_eq (pexpIrn _)). Qed.
+
+Lemma sqrp_eq1 x (hx : 0 <= x) : (x ^+ 2 == 1) = (x == 1).
+Proof. by rewrite pexprS_eq1. Qed.
+
+Lemma sqrn_eq1 x (hx : x <= 0) : (x ^+ 2 == 1) = (x == -1).
+Proof. by rewrite -[_ ^+ 2]mulrNN sqrp_eq1 ?oppr_ge0 // eqr_oppC. Qed.
+
+Lemma ieexprIn x (x0 : 0 < x) (nx1 : x != 1) : injective (GRing.exp x).
+Proof.
+apply: wlog_ltn=> // m n; first by move=> hx hmn; rewrite hx.
+move/eqP; rewrite eq_sym -subr_eq0.
+case: m=> [|m].
+  by rewrite !add0n expr0 subr_eq0 pexprS_eq1 ?ltrW // (negPf nx1).
+rewrite exprn_addr -[X in _ - X]mulr1.
+rewrite -mulr_subr mulf_eq0 expf_eq0 gtr_eqF //= subr_eq0.
+by rewrite pexprS_eq1 ?ltrW // (negPf nx1).
+Qed.
 
 End PIntegralDomainOperationTheory.
 End PIntegralDomainTheory.
@@ -2625,59 +2697,6 @@ Qed.
 
 Lemma sqr_abs_eq1 x : (x ^+ 2 == 1) = (`|x| == 1).
 Proof. by rewrite sqrf_eq1 eqr_absl ler01 andbT. Qed.
-
-Lemma sqrp_eq1 x (hx : 0 <= x) : (x ^+ 2 == 1) = (x == 1).
-Proof. by rewrite sqr_abs_eq1 ger0_abs. Qed.
-
-Lemma sqrn_eq1 x (hx : x <= 0) : (x ^+ 2 == 1) = (x == -1).
-Proof. by rewrite sqr_abs_eq1 ler0_abs // eqr_oppC. Qed.
-
-(* expr and ler/ltr *)
-Lemma exprS_le1 n x (x0 : 0 <= x) : (x ^+ n.+1 <= 1) = (x <= 1).
-Proof. by apply: eqr_leRL=> [/exprn_ile1|/exprn_egt1]->. Qed.
-
-Lemma exprS_lt1 n x (x0 : 0 <= x) : (x ^+ n.+1 < 1) = (x < 1).
-Proof. by apply: eqr_ltRL=> [/exprn_ilt1|/exprn_ege1]->. Qed.
-
-Definition exprS_lte1 := (exprS_le1, exprS_lt1).
-
-Lemma exprS_ge1 n x (x0 : 0 <= x) : (1 <= x ^+ n.+1) = (1 <= x).
-Proof. by rewrite !lerNgt; congr negb; rewrite exprS_lte1. Qed.
-
-Lemma exprS_gt1 n x (x0 : 0 <= x) : (1 < x ^+ n.+1) = (1 < x).
-Proof. by rewrite !ltrNge; congr negb; rewrite exprS_lte1. Qed.
-
-Definition exprS_gte1 := (exprS_ge1, exprS_gt1).
-
-Lemma exprS_p_eq1 x n (x0 : 0 <= x) : (x ^+ n.+1 == 1) = (x == 1).
-Proof.
-case: ltrgtP=> hx; last by rewrite hx exp1rn eqxx.
-  by rewrite ltr_eqF // exprS_lte1.
-by rewrite gtr_eqF // exprS_gte1.
-Qed.
-
-Lemma pexprn_eq1 x n (x0 : 0 <= x) : (x ^+ n == 1) = ((n == 0%N) || (x == 1)).
-Proof. by rewrite ieexprn_weq1. Qed.
-
-Lemma ieexprIn x (x0 : 0 < x) (nx1 : x != 1) : injective (GRing.exp x).
-Proof. exact: ieexprIn_po. Qed.
-
-Lemma ler_pexpn2r n (hn : (0 < n)%N) :
-  {in >=%R 0 & , {mono ((@GRing.exp R)^~ n) : x y / x <= y}}.
-Proof. exact: homo_mono_in (ltr_wpexpn2r _). Qed.
-
-Lemma ltr_pexpn2r n (hn : (0 < n)%N) :
-  {in >=%R 0 & , {mono ((@GRing.exp R)^~ n) : x y / x < y}}.
-Proof. exact: lerW_mono_in (ler_pexpn2r _). Qed.
-
-Definition lter_pexpn2r := (ler_pexpn2r, ltr_pexpn2r).
-
-Lemma pexpIrn n (hn : (0 < n)%N) : {in (>=%R 0) &, injective ((@GRing.exp R)^~ n)}.
-Proof. exact: mono_inj_in (ler_pexpn2r _). Qed.
-
-Lemma eqr_expn2 n x y : (0 < n)%N -> 0 <= x -> 0 <= y ->
-  (x ^+ n == y ^+ n) = (x == y).
-Proof. by  move=> *; rewrite (inj_in_eq (pexpIrn _)). Qed.
 
 Section MinMax.
 
