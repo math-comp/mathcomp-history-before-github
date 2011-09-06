@@ -1172,9 +1172,9 @@ wlog: x x' x1 x2 x3 x4 x5 x6 x7 i1 i2 i3 i4
   wlog: x' x7 Bi4j / x' == x6 => [WL1 | x'E].
     case/or3P: (cmpR5b NZi4 Bi3j)=> xIi4.
     - rewrite xE in Bi4j; have Di1i4 : i1 != i4 by rewrite eq_sym.
-      by case/negP: (cmpR3F Di1i4 Bi1j Bi4j).
+      by case/negP: (cmpR3s Di1i4 Bi1j Bi4j).
     - rewrite xE in Bi4j; have Di2i4 : i2 != i4 by rewrite eq_sym.
-      by case/negP: (cmpR3F Di2i4 Bi2j Bi4j).
+      by case/negP: (cmpR3s Di2i4 Bi2j Bi4j).
     case/or3P: (cmpR3 Bi4j xIi4)=> /eqP x6E //.
     - rewrite x6E xE in Bi3j.
       case/and4P: (cmpR4bs Di3i1 (cmpR_rotate Bi3j) Bi1j).
