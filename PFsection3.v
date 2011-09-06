@@ -24,6 +24,29 @@ Import Prenex Implicits.
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
+
+(* Move to algC *)
+
+Lemma isNatC_exp c n : isNatC c -> isNatC (c ^+ n).
+Proof.
+move=> Hc; elim: n=> [|n IH]; first by exact: (isNatC_nat 1).
+by rewrite exprS isNatC_mul.
+Qed.
+
+Lemma isIntC_exp c n : isIntC c -> isIntC (c ^+ n).
+Proof.
+move=> Hc; elim: n=> [|n IH]; first by exact: (isIntC_nat 1).
+by rewrite exprS isIntC_mul.
+Qed.
+
+Lemma isNatC_isIntC_even c n : ~~odd n -> isIntC c ->  isNatC (c ^+ n).
+Proof.
+move=> Heven; rewrite isIntCE=> /orP []; first by exact: isNatC_exp.
+rewrite -[n]odd_double_half (negPf Heven) add0n -mul2n exprn_mulr exprS expr1.
+by move=> HH; apply: isNatC_exp; rewrite -mulrNN isNatC_mul.
+Qed.
+
+
 Section Definitions.
 
 Variables (gT : finGroupType) (G W W1 W2 Wi : {set gT}).
@@ -266,36 +289,10 @@ case/and5P=> V1 V2 V3 B HB; apply/and5P; split=> //.
 by rewrite -?addrA 1?[X in _ + X]addrC ?addrA.
 Qed.
 
-Lemma bcmp_rotate i j v1 v2 v3 : bcmp i j v1 v2 v3 ->  bcmp i j v3 v1 v2.
-Proof.
-have F1 := (perm_eqlE (perm_catCA [::v1 & v2] [::v3] [::])).
-case/and5P=> V1 V2 V3 B HB; apply/and5P; split=> //.
-- by rewrite -(eq_orthonormal F1).
-- by rewrite andbC -andbA.
-by rewrite -addrA addrC.
-Qed.
-
-Lemma isNatC_exp c n : isNatC c -> isNatC (c ^+ n).
-Proof.
-move=> Hc; elim: n=> [|n IH]; first by exact: (isNatC_nat 1).
-by rewrite exprS isNatC_mul.
-Qed.
-
-Lemma isIntC_exp c n : isIntC c -> isIntC (c ^+ n).
-Proof.
-move=> Hc; elim: n=> [|n IH]; first by exact: (isIntC_nat 1).
-by rewrite exprS isIntC_mul.
-Qed.
-
-Lemma isNatC_isIntC_even c n : ~~odd n -> isIntC c ->  isNatC (c ^+ n).
-Proof.
-move=> Heven; rewrite isIntCE=> /orP []; first by exact: isNatC_exp.
-rewrite -[n]odd_double_half (negPf Heven) add0n -mul2n exprn_mulr exprS expr1.
-by move=> HH; apply: isNatC_exp; rewrite -mulrNN isNatC_mul.
-Qed.
-
-Lemma bcmp_exists i j : 
-  i != 0 -> j != 0 -> {v | bcmp i j v.1.1 v.1.2 v.2}.
+Let bcmp_rotate i j v1 v2 v3 : bcmp i j v1 v2 v3 -> bcmp i j v3 v1 v2.
+Proof. by move=> HH; apply: bcmp_swapl (bcmp_swapr _). Qed.
+ 
+Lemma bcmp_exists i j :  i != 0 -> j != 0 -> {v | bcmp i j v.1.1 v.1.2 v.2}.
 Proof.
 move=> Di Dj.
 have: '[beta_ i j] = 3%:R by rewrite cfdot_bcTIirr // !eqxx.
@@ -328,15 +325,6 @@ rewrite (v1Dv2); apply/eqP=> HH.
 have: '[v1, v1] == 1 by rewrite Ho !(eqxx, inE).
 rewrite {2}HH raddfN /= Ho ?(eqxx,orbT,in_cons) // v1Dv2 oppr0.
 by rewrite eq_sym oner_eq0.
-Qed.
-
-Lemma bcmp_diffs i j v1 v2 v3 : bcmp i j v1 v2 v3 -> 
- [&& v1 '<> v2, v2 '<> v3 & v1 '<> v3].
-Proof.
-move=> HB.
-rewrite (bcmp_diff HB).
-rewrite (bcmp_diff (bcmp_swapr HB)).
-by rewrite (bcmp_diff (bcmp_swapr (bcmp_swapl HB))).
 Qed.
 
 Lemma signC_negb b : (-1) ^+ (negb b) = - ((-1) ^+ b) :> algC.
@@ -551,17 +539,6 @@ case: (_ == _)=> /eqP.
 by rewrite eq_sym oner_eq0.
 Qed.
 
-Lemma bcmp2_diffs i j k v1 v2 v3 v4 v5 : 
- j != k -> bcmp i j v1 v2 v3 -> bcmp i k v1 v4 v5 ->
- [&& v2 '<> v4, v2 '<> v5, v3 '<> v4 & v3 '<> v5].
-Proof.
-move=> Djk HB HB'.
-rewrite (bcmp2_diff Djk HB HB').
-rewrite (bcmp2_diff Djk HB (bcmp_swapr HB')).
-rewrite (bcmp2_diff Djk (bcmp_swapr HB) HB').
-by rewrite (bcmp2_diff Djk (bcmp_swapr HB) (bcmp_swapr HB')).
-Qed.
-
 Lemma bcmp2_diff_sym i j k v1 v2 v3 v4 v5 : 
  j != k -> bcmp j i v1 v2 v3 -> bcmp k i v1 v4 v5 -> v2 '<> v4.
 Proof.
@@ -614,99 +591,63 @@ case: (_ == _)=> /eqP.
 by rewrite eq_sym oner_eq0.
 Qed.
 
-Lemma bcmp2_diffs_sym i j k v1 v2 v3 v4 v5 : 
- j != k -> bcmp j i v1 v2 v3 -> bcmp k i v1 v4 v5 ->
- [&& v2 '<> v4, v2 '<> v5, v3 '<> v4 & v3 '<> v5].
+Lemma in_bcTIirr_opp i j v1 : in_bcTIirr i j v1 -> ~~ in_bcTIirr i j (-v1).
 Proof.
-move=> Djk HB HB'.
-rewrite (bcmp2_diff_sym Djk HB HB').
-rewrite (bcmp2_diff_sym Djk HB (bcmp_swapr HB')).
-rewrite (bcmp2_diff_sym Djk (bcmp_swapr HB) HB').
-by rewrite (bcmp2_diff_sym Djk (bcmp_swapr HB) (bcmp_swapr HB')).
-Qed.
-
-Lemma in_bcTIirr_opp i j v : in_bcTIirr j i v -> in_bcTIirr j i (- v) -> false.
-Proof.
-case/and3P=> _ _ HH; case/and3P=> _ _; rewrite cfdotNl (eqP HH).
+case/and3P=> _ _ HH.
+apply/negP; case/and3P=> _ _; rewrite cfdotNl (eqP HH).
 by rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1 1) -(eqN_eqC _ 0).
 Qed.
 
-Lemma bcmp_in_opp i j k v1 v2 v3 : 
- j != 0 -> bcmp i k v1 v2 v3 ->
-   [&& ~~ in_bcTIirr i j (-v1), ~~ in_bcTIirr i j (-v2)
-     &  ~~ in_bcTIirr i j (-v3)].
+Lemma bcmp_opp i j k v1 v2 v3 : 
+  j != 0 -> bcmp i k v1 v2 v3 -> ~~ in_bcTIirr i j (-v1).
 Proof.
 move=> NZj HB.
 have NZi : i != 0 by case/and3P: HB.
 case: (boolP (j == k))=> [/eqP -> | Djk].
-  apply/and3P; split; apply/negP=> HH.
-  - by have:= in_bcTIirr_opp (bcmp_in HB) HH.
-  - by have:= in_bcTIirr_opp (bcmp_in (bcmp_swapl HB)) HH.
-  by have:= in_bcTIirr_opp (bcmp_in (bcmp_rotate HB)) HH.
-wlog [[v4 v5] HB']: v1 v2 v3 HB / {p | bcmp i j v1 p.1 p.2}.
-  case/or3P: (in_bcTIirr_cmp NZj HB)=> HH WL.
-  - by apply: WL HB (in_bcTIirr_exists _ _ _).
-  - rewrite andbA [X in X && _]andbC -andbA. 
-    by apply: WL (bcmp_swapl HB) (in_bcTIirr_exists _ _ _).
-  rewrite andbA andbC.
-  by apply: WL (bcmp_rotate HB) (in_bcTIirr_exists _ _ _).
-apply/and3P; split; apply/negP=> HH.
-- by have:= in_bcTIirr_opp (bcmp_in HB') HH.
-- case/or3P: (in_bcTIirrE HB' HH)=> /eqP vE.
-  - suff F: in_bcTIirr i k (- v1).
-      by have:= in_bcTIirr_opp (bcmp_in HB) F.
-    by rewrite -vE opprK (bcmp_in (bcmp_swapl HB)).
-  - move: (bcmp2_diff Djk HB' HB).
-    by rewrite -vE; rewrite eqxx andbF.
-  move: (bcmp2_diff Djk (bcmp_swapr HB') HB).
-  by rewrite -vE; rewrite eqxx andbF.
-case/or3P: (in_bcTIirrE HB' HH)=> /eqP vE.
-- suff F: in_bcTIirr i k (- v1).
-    by have:= in_bcTIirr_opp (bcmp_in HB) F.
-  by rewrite -vE opprK (bcmp_in (bcmp_rotate HB)).
-- move: (bcmp2_diff Djk HB' (bcmp_swapr HB)).
-  by rewrite -vE eqxx andbF.
-move: (bcmp2_diff Djk (bcmp_swapr HB') (bcmp_swapr HB)).
-by rewrite -vE; rewrite eqxx andbF.
+  by apply: in_bcTIirr_opp (bcmp_in HB).
+apply/negP; case/(in_bcTIirr_exists NZi NZj)=> [[v4 v5] /= HB1].
+wlog v2Ev4: v1 v2 v3 v4 v5 HB HB1 / v2 = v4 => [HH|]; last first.
+  rewrite -v2Ev4 in HB1.
+  move: (bcmp2_diff Djk (bcmp_swapl HB1) (bcmp_swapl HB)).
+  by rewrite eqxx andbF.
+case/or3P: (in_bcTIirr_cmp NZj HB)=> Hi.
+  - by case/negP: (in_bcTIirr_opp Hi); apply: bcmp_in HB1.
+  - case/or3P: (in_bcTIirrE HB1 Hi)=> /eqP vE //.
+    - case/negP: (in_bcTIirr_opp (bcmp_in HB)).
+      by rewrite -vE (bcmp_in (bcmp_swapl HB)).
+    - by apply: HH HB HB1 vE.
+    by apply: HH HB (bcmp_swapr HB1) vE.
+case/or3P: (in_bcTIirrE HB1 Hi)=> /eqP vE //.
+- case/negP: (in_bcTIirr_opp (bcmp_in HB)).
+  by rewrite -vE (bcmp_in (bcmp_rotate HB)).
+- by apply: HH (bcmp_swapr HB) HB1 vE.
+by apply: HH (bcmp_swapr HB) (bcmp_swapr HB1) vE.
 Qed.
 
-Lemma bcmp_in_opp_sym i j k v1 v2 v3 : 
- j != 0 -> bcmp k i v1 v2 v3 ->
-   [&& ~~ in_bcTIirr j i (-v1), ~~ in_bcTIirr j i (-v2)
-     &  ~~ in_bcTIirr j i (-v3)].
+Lemma bcmp_opp_sym i j k v1 v2 v3 : 
+  j != 0 -> bcmp k i v1 v2 v3 -> ~~ in_bcTIirr j i (-v1).
 Proof.
 move=> NZj HB.
 have NZi : i != 0 by case/and3P: HB.
 case: (boolP (j == k))=> [/eqP -> | Djk].
-  apply/and3P; split; apply/negP=> HH.
-  - by have:= in_bcTIirr_opp (bcmp_in HB) HH.
-  - by have:= in_bcTIirr_opp (bcmp_in (bcmp_swapl HB)) HH.
-  by have:= in_bcTIirr_opp (bcmp_in (bcmp_rotate HB)) HH.
-wlog [[v4 v5] HB']: v1 v2 v3 HB / {p | bcmp j i v1 p.1 p.2}.
-  case/or3P: (in_bcTIirr_cmp_sym NZj HB)=> HH WL.
-  - by apply: WL HB (in_bcTIirr_exists _ _ _).
-  - rewrite andbA [X in X && _]andbC -andbA. 
-    by apply: WL (bcmp_swapl HB) (in_bcTIirr_exists _ _ _).
-  rewrite andbA andbC.
-  by apply: WL (bcmp_rotate HB) (in_bcTIirr_exists _ _ _).
-apply/and3P; split; apply/negP=> HH.
-- by have:= in_bcTIirr_opp (bcmp_in HB') HH.
-- case/or3P: (in_bcTIirrE HB' HH)=> /eqP vE.
-  - suff F: in_bcTIirr k i (- v1).
-      by have:= in_bcTIirr_opp (bcmp_in HB) F.
-    by rewrite -vE opprK (bcmp_in (bcmp_swapl HB)).
-  - move: (bcmp2_diff_sym Djk HB' HB).
-    by rewrite -vE; rewrite eqxx andbF.
-  move: (bcmp2_diff_sym Djk (bcmp_swapr HB') HB).
-  by rewrite -vE; rewrite eqxx andbF.
-case/or3P: (in_bcTIirrE HB' HH)=> /eqP vE.
-- suff F: in_bcTIirr k i (- v1).
-    by have:= in_bcTIirr_opp (bcmp_in HB) F.
-  by rewrite -vE opprK (bcmp_in (bcmp_rotate HB)).
-- move: (bcmp2_diff_sym Djk HB' (bcmp_swapr HB)).
-  by rewrite -vE eqxx andbF.
-move: (bcmp2_diff_sym Djk (bcmp_swapr HB') (bcmp_swapr HB)).
-by rewrite -vE; rewrite eqxx andbF.
+  by apply: in_bcTIirr_opp (bcmp_in HB).
+apply/negP; case/(in_bcTIirr_exists NZj NZi)=> [[v4 v5] /= HB1].
+wlog v2Ev4: v1 v2 v3 v4 v5 HB HB1 / v2 = v4 => [HH|]; last first.
+  rewrite -v2Ev4 in HB1.
+  move: (bcmp2_diff_sym Djk (bcmp_swapl HB1) (bcmp_swapl HB)).
+  by rewrite eqxx andbF.
+case/or3P: (in_bcTIirr_cmp_sym NZj HB)=> Hi.
+  - by case/negP: (in_bcTIirr_opp Hi); apply: bcmp_in HB1.
+  - case/or3P: (in_bcTIirrE HB1 Hi)=> /eqP vE //.
+    - case/negP: (in_bcTIirr_opp (bcmp_in HB)).
+      by rewrite -vE (bcmp_in (bcmp_swapl HB)).
+    - by apply: HH HB HB1 vE.
+    by apply: HH HB (bcmp_swapr HB1) vE.
+case/or3P: (in_bcTIirrE HB1 Hi)=> /eqP vE //.
+- case/negP: (in_bcTIirr_opp (bcmp_in HB)).
+  by rewrite -vE (bcmp_in (bcmp_rotate HB)).
+- by apply: HH (bcmp_swapr HB) HB1 vE.
+by apply: HH (bcmp_swapr HB) (bcmp_swapr HB1) vE.
 Qed.
 
 Lemma bcmp_not_two i1 j1 i2 j2 v1 v2 v3 v4: 
@@ -915,8 +856,8 @@ Hypothesis cmpR_swapl :
 Hypothesis cmpR_swapr :
   forall i j v1 v2 v3, cmpR i j v1 v2 v3 -> cmpR i j v1 v3 v2.
 
-Hypothesis cmpR_rotate :
-  forall i j v1 v2 v3,  cmpR i j v1 v2 v3 ->  cmpR i j v3 v1 v2.
+Let cmpR_rotate i j v1 v2 v3 :  cmpR i j v1 v2 v3 ->  cmpR i j v3 v1 v2.
+Proof. by move=> HH; apply: cmpR_swapl (cmpR_swapr _). Qed.
 
 Hypothesis cmpR0 : forall i  j, i != 0 -> j != 0 ->
   {v | cmpR i j v.1.1 v.1.2 v.2}.
@@ -924,22 +865,18 @@ Hypothesis cmpR0 : forall i  j, i != 0 -> j != 0 ->
 Hypothesis cmpR0F : forall i j k, i != 0 -> j != 0 -> inR i j k ->
   { v | cmpR i j k v.1 v.2}.
 
-Hypothesis cmpR1 : forall i j v1 v2 v3, 
- cmpR i j v1 v2 v3 -> inR i j v1.
+Hypothesis cmpR1 : forall i j v1 v2 v3,  cmpR i j v1 v2 v3 -> inR i j v1.
 
-Hypothesis cmpR2 : forall i j v1 v2 v3, 
- cmpR i j v1 v2 v3 -> [&& v1 '<> v2, v2 '<> v3 & v1 '<> v3].
+Hypothesis cmpR2 : forall i j v1 v2 v3,  cmpR i j v1 v2 v3 -> v1 '<> v2.
 
 Hypothesis cmpR3 : forall i j v1 v2 v3 v, 
  cmpR i j v1 v2 v3 -> inR i j v -> [|| v == v1, v == v2 | v == v3].
 
 Hypothesis cmpR4 : forall i j k v1 v2 v3 v4 v5, 
- j != k -> cmpR i j v1 v2 v3 -> cmpR i k v1 v4 v5 -> 
-  [&& v2 '<> v4, v2 '<> v5, v3 '<> v4 & v3 '<> v5].
+ j != k -> cmpR i j v1 v2 v3 -> cmpR i k v1 v4 v5 -> v2 '<> v4.
 
 Hypothesis cmpR4b : forall i j k v1 v2 v3 v4 v5,
- j != k ->  cmpR j i v1 v2 v3 -> cmpR k i v1 v4 v5 ->
-  [&& v2 '<> v4, v2 '<> v5, v3 '<> v4 &  v3 '<> v5].
+ j != k ->  cmpR j i v1 v2 v3 -> cmpR k i v1 v4 v5 -> v2 '<> v4.
 
 Hypothesis cmpR5 : forall i j k v1 v2 v3, 
  k != 0 -> cmpR i j v1 v2 v3 -> [|| inR i k v1, inR i k v2 | inR i k v3].
@@ -957,15 +894,21 @@ Hypothesis cmpR6b : forall i1 j1 i2 j2 v1 v2 v3 v4 v5,
  [|| (v4 == v2) && v5 '<> v3, (v4 == v3) && v5 '<> v2,
      (v5 == v2) && v4 '<> v3 | (v5 == v3) && v4 '<> v2].
 
-Hypothesis cmpR7 : forall i j k v1 v2 v3, 
- j != 0 -> cmpR k i v1 v2 v3 ->
- [&& ~~ inR j i (-v1), ~~ inR j i (-v2) & ~~ inR j i (-v3)].
+Hypothesis cmpR7 : forall i j k v1 v2 v3,
+ j != 0 -> cmpR i k v1 v2 v3 -> ~~ inR i j (-v1).
 
-Hypothesis cmpR7b : forall i j k v1 v2 v3, 
-  j != 0 -> cmpR i k v1 v2 v3 ->
-   [&& ~~ inR i j (-v1), ~~ inR i j (-v2) &  ~~ inR i j (-v3)].
+Hypothesis cmpR7b : forall i j k v1 v2 v3,
+ j != 0 -> cmpR k i v1 v2 v3 -> ~~ inR j i (-v1).
 
-Fact cmpR3F: forall i1 i2 j v1 v2 v3 v4 v5, 
+(* Useful derived facts *)
+Let cmpR2s i j v1 v2 v3 : 
+ cmpR i j v1 v2 v3 -> [&& v1 '<> v2, v2 '<> v3 & v1 '<> v3].
+Proof.
+move=> HB; have HB1 := cmpR_swapr HB; have HB2 := cmpR_swapr (cmpR_swapl HB).
+by rewrite !(cmpR2 HB, cmpR2 HB1, cmpR2 HB2).
+Qed.
+
+Let cmpR3s : forall i1 i2 j v1 v2 v3 v4 v5, 
    i1 != i2 -> cmpR i1 j v1 v2 v3 -> cmpR i2 j v1 v4 v5 -> 
    ~~ inR i2 j v2.
 Proof.
@@ -974,9 +917,43 @@ move/(cmpR3 Bi2j)=> /or3P [] /eqP HH;
     try (rewrite HH in Bi1j) ; try (rewrite HH in Bi2j).
 - by case: (cmpR2 Bi1j); rewrite eqxx.
 - by move: (cmpR4b Di1i2 Bi1j Bi2j); rewrite eqxx.
-by move: (cmpR4b Di1i2 Bi1j Bi2j); rewrite eqxx andbF.
+by move: (cmpR4b Di1i2 Bi1j (cmpR_swapr Bi2j)); rewrite eqxx.
 Qed.
 
+Let cmpR4s i j k v1 v2 v3 v4 v5 :
+ j != k -> cmpR i j v1 v2 v3 -> cmpR i k v1 v4 v5 ->
+ [&& v2 '<> v4, v2 '<> v5, v3 '<> v4 & v3 '<> v5].
+Proof.
+move=> Djk HB HB'; have HB1 := cmpR_swapr HB; have HB1' := cmpR_swapr HB'.
+by rewrite !(cmpR4 _ HB HB', cmpR4 _ HB HB1', cmpR4 _ HB1 HB', 
+             cmpR4 _ HB1 HB1').
+Qed.
+
+Let cmpR4bs i j k v1 v2 v3 v4 v5 :
+ j != k ->  cmpR j i v1 v2 v3 -> cmpR k i v1 v4 v5 ->
+  [&& v2 '<> v4, v2 '<> v5, v3 '<> v4 &  v3 '<> v5].
+move=> Djk HB HB'; have HB1 := cmpR_swapr HB; have HB1' := cmpR_swapr HB'.
+by rewrite !(cmpR4b _ HB HB', cmpR4b _ HB HB1', cmpR4b _ HB1 HB', 
+             cmpR4b _ HB1 HB1').
+Qed.
+
+Let cmpR7s i j k v1 v2 v3 : 
+ j != 0 -> cmpR i k v1 v2 v3 ->
+ [&& ~~ inR i j (-v1), ~~ inR i j (-v2) & ~~ inR i j (-v3)].
+Proof.
+move=> NZj HB.
+by rewrite !(cmpR7 _ HB, cmpR7 _ (cmpR_swapl HB), cmpR7 _ (cmpR_rotate HB)).
+Qed.
+
+Let cmpR7bs i j k v1 v2 v3 : 
+ j != 0 -> cmpR k i v1 v2 v3 ->
+ [&& ~~ inR j i (-v1), ~~ inR j i (-v2) & ~~ inR j i (-v3)].
+Proof.
+move=> NZj HB.
+by rewrite !(cmpR7b _ HB, cmpR7b _ (cmpR_swapl HB), cmpR7b _ (cmpR_rotate HB)).
+Qed.
+
+(* Technical lemmal *)
 Lemma main_aux : 
   forall i1 i2 i3 i4 j j' 
          x1 x2 x3 x4 x5 x6 x7,
@@ -1000,32 +977,32 @@ wlog: x x' x1 x4 x5  Bi1j Bi2j Bi3j Bi4j Bi1j'
 case=> xE; rewrite {x xE}(eqP xE) in Bi1j'.
   case/or4P: (cmpR6b Di3i1 Djj' (cmpR_swapl Bi3j) (cmpR_swapl Bi1j'))
           => /andP [] xE dE.
-  - by case/and3P: (cmpR2 Bi1j); rewrite (eqP xE) eqxx.
-  - by case/and3P: (cmpR2 Bi4j); rewrite (eqP xE) eqxx.
+  - by case/and3P: (cmpR2s Bi1j); rewrite (eqP xE) eqxx.
+  - by case/and3P: (cmpR2s Bi4j); rewrite (eqP xE) eqxx.
   - rewrite (eqP xE) in Bi1j'.
-    by case/and4P: (cmpR4 Djj' Bi1j Bi1j'); rewrite eqxx.
+    by case/and4P: (cmpR4s Djj' Bi1j Bi1j'); rewrite eqxx.
   rewrite (eqP xE) in Bi1j'.
   case/or4P: (cmpR6 Di4i1 Djj' Bi4j Bi1j')=> /andP [] x''E d''E.
-  - rewrite eqr_opp in x''E; case/and3P: (cmpR2 (cmpR_rotate Bi1j')).
+  - rewrite eqr_opp in x''E; case/and3P: (cmpR2s (cmpR_rotate Bi1j')).
     by rewrite (eqP x''E) opprK eqxx andbF.
   - by case/andP: d''E; rewrite eqxx.
-  - case/and3P: (cmpR7 NZi1 Bi1j').
+  - case/and3P: (cmpR7bs NZi1 Bi1j').
     rewrite -(eqP x''E)=> _ _ /negP [].
     by apply: cmpR1 (cmpR_rotate Bi1j').
-  by case/and3P: (cmpR2 Bi4j); rewrite (eqP x''E) eqxx andbF.
+  by case/and3P: (cmpR2s Bi4j); rewrite (eqP x''E) eqxx andbF.
 case/or4P: (cmpR6 Di4i1 Djj' Bi4j Bi1j')=> /andP [] xE dE.
-- case/and4P: (cmpR4b Di3i2 (cmpR_swapl Bi3j) (cmpR_swapl Bi2j)).
+- case/and4P: (cmpR4bs Di3i2 (cmpR_swapl Bi3j) (cmpR_swapl Bi2j)).
   by rewrite eqr_opp in xE; rewrite (eqP xE) eqxx.
-- case/and4P: (cmpR4b Di4i2 Bi4j Bi2j).
+- case/and4P: (cmpR4bs Di4i2 Bi4j Bi2j).
   by rewrite eqr_opp in xE; rewrite (eqP xE) eqxx.
 - rewrite (eqP xE) in Bi1j'.
   case/or4P: (cmpR6b Di3i1 Djj' (cmpR_rotate Bi3j) (cmpR_rotate Bi1j'))
         => /andP [] x'E d'E.
-  - by case/and3P: (cmpR2 Bi1j); rewrite (eqP x'E) eqxx.
-  - by case/and3P: (cmpR2 Bi2j); rewrite (eqP x'E) eqxx.
-  - case/and3P: (cmpR7 NZi1 Bi2j).
+  - by case/and3P: (cmpR2s Bi1j); rewrite (eqP x'E) eqxx.
+  - by case/and3P: (cmpR2s Bi2j); rewrite (eqP x'E) eqxx.
+  - case/and3P: (cmpR7bs NZi1 Bi2j).
     by rewrite (eqP x'E) (cmpR1 (cmpR_swapl Bi1j)).
-  by case/and3P: (cmpR2 Bi2j); rewrite -(eqP x'E) eqxx andbF.
+  by case/and3P: (cmpR2s Bi2j); rewrite -(eqP x'E) eqxx andbF.
 by rewrite (eqP xE) in Bi1j'.
 Qed.
 
@@ -1095,11 +1072,11 @@ case: (cmpR0F NZi3 NZj x2Ii3)=> {x2Ii3}[] [x' x6] /= Bi3j.
 wlog: x' x4 x5 x6 Bi2j Bi3j / (x4 == x')=> WL.
   case/or3P: (cmpR5b NZi3 Bi2j)=> x4Ii3; first by case/negP: x3NIi3.
     case/or3P: (cmpR3 Bi3j x4Ii3)=> x4E.
-    - by case/and4P: (cmpR4b Di2i1 Bi2j Bi1j); rewrite (eqP x4E) eqxx.
+    - by case/and4P: (cmpR4bs Di2i1 Bi2j Bi1j); rewrite (eqP x4E) eqxx.
     - by apply: WL Bi2j Bi3j x4E.
     by apply: WL Bi2j (cmpR_swapr Bi3j) x4E.
   case/or3P: (cmpR3 Bi3j x4Ii3)=> x5E.
-  - case/and4P: (cmpR4b Di2i1 (cmpR_swapr Bi2j) Bi1j).
+  - case/and4P: (cmpR4bs Di2i1 (cmpR_swapr Bi2j) Bi1j).
     by rewrite (eqP x5E) eqxx=> /negP [].
   - by apply: WL (cmpR_swapr Bi2j) Bi3j x5E.
   by apply: WL (cmpR_swapr Bi2j) (cmpR_swapr Bi3j) x5E.
@@ -1123,15 +1100,15 @@ wlog: x x' x1 x2 x3 x4 x5 x6 x7 i1 i2 i3 i4
     have x1NIi4: ~~(inR i4 j x1).
       apply/negP=> x1Ii4; rewrite x3E in Bi4j.
       case/or3P: (cmpR3 Bi4j x1Ii4)=> x4E.
-      - by case/and3P: (cmpR2 Bi1j)=> _ _ /andP [] /negP.
-      - case/and4P: (cmpR4b Di4i1 Bi4j (cmpR_rotate Bi1j)).
+      - by case/and3P: (cmpR2s Bi1j)=> _ _ /andP [] /negP.
+      - case/and4P: (cmpR4bs Di4i1 Bi4j (cmpR_rotate Bi1j)).
         by rewrite (eqP x4E) eqxx.
-      case/and4P: (cmpR4b Di4i1 Bi4j (cmpR_rotate Bi1j)).
+      case/and4P: (cmpR4bs Di4i1 Bi4j (cmpR_rotate Bi1j)).
       by rewrite (eqP x4E) eqxx.
     case: (boolP (inR i4 j x4))=> [x4Ii4 | x4NIi4].
       wlog: x' x7 Bi4j / x' = x4 => [WL1 | x'E].
         case/or3P: (cmpR3 Bi4j x4Ii4)=> /eqP x4E.
-        - case/and4P: (cmpR4b Di2i1 Bi2j Bi1j)=> //.
+        - case/and4P: (cmpR4bs Di2i1 Bi2j Bi1j)=> //.
           by rewrite -x3E x4E eqxx.
         - by apply: WL1 Bi4j _.
         by apply: WL1 (cmpR_swapr Bi4j) _.
@@ -1140,12 +1117,12 @@ wlog: x x' x1 x2 x3 x4 x5 x6 x7 i1 i2 i3 i4
       move: {Bi4j}(cmpR_swapl Bi4j)=> Bi4j.
       have x4Ni1: ~~ inR i1 j x4.
         have Di1i2 : i1 != i2 by rewrite eq_sym.
-        case/and4P: (cmpR4b Di2i1 Bi2j (cmpR_swapl Bi1j))=> 
+        case/and4P: (cmpR4bs Di2i1 Bi2j (cmpR_swapl Bi1j))=> 
            /andP [] Hv1 _ /andP [] Hv2 _ _ _.
         apply/negP=> x4Ii1.
         case/or3P: (cmpR3 (cmpR_swapl Bi1j) x4Ii1)=> x4E; 
             [| case/negP: Hv1 | case/negP: Hv2]=> //.
-        case/and3P: (cmpR2 Bi1j)=> /andP [] /negP []; rewrite eq_sym. 
+        case/and3P: (cmpR2s Bi1j)=> /andP [] /negP []; rewrite eq_sym. 
         by case/negP: x1NIi4; rewrite -(eqP x4E).
       apply: WL Bi3j (cmpR_swapl Bi2j) Bi1j Bi4j _; rewrite // eq_sym //.
       by left; split; apply /eqP.
@@ -1154,7 +1131,7 @@ wlog: x x' x1 x2 x3 x4 x5 x6 x7 i1 i2 i3 i4
         by case/negP: x4NIi4.
       case/or3P: (cmpR3 Bi4j xIi4)=> /eqP xE.
       - have Di1i2 : i1 != i2 by rewrite eq_sym.
-        case/and4P: (cmpR4b Di1i2 Bi1j Bi2j)=> _ _ _.
+        case/and4P: (cmpR4bs Di1i2 Bi1j Bi2j)=> _ _ _.
         by rewrite xE -x3E eqxx.
       - by apply: WL1 Bi4j _.
       by apply: WL1 (cmpR_swapr Bi4j) _.
@@ -1163,15 +1140,15 @@ wlog: x x' x1 x2 x3 x4 x5 x6 x7 i1 i2 i3 i4
        right; split; apply/eqP => //.
     rewrite x3E x'E in Bi4j.  
     case/or3P: (cmpR5b NZi4 Bi3j)=> xIi4.
-    - case/and4P: (cmpR4b Di4i1 Bi4j (cmpR_rotate Bi1j)).
+    - case/and4P: (cmpR4bs Di4i1 Bi4j (cmpR_rotate Bi1j)).
       by case/or3P: (cmpR3 Bi4j xIi4)=> /eqP xE;
-         first case: (cmpR2 (cmpR_rotate Bi1j))=> /and3P [] _ _ /andP [];
+         first case: (cmpR2s (cmpR_rotate Bi1j))=> /and3P [] _ _ /andP [];
          rewrite xE eqxx.
     - by case/negP: x4NIi4.
     case/or3P: (cmpR3 Bi4j xIi4)=> /eqP xE //.
-      case/and4P: (cmpR4b Di3i1 Bi3j (cmpR_swapl Bi1j)) => _ _ _.
+      case/and4P: (cmpR4bs Di3i1 Bi3j (cmpR_swapl Bi1j)) => _ _ _.
       by rewrite xE -x3E eqxx.
-    case/and4P: (cmpR4b Di3i2 (cmpR_swapl Bi3j) (cmpR_swapl Bi2j))=> _ _ _.
+    case/and4P: (cmpR4bs Di3i2 (cmpR_swapl Bi3j) (cmpR_swapl Bi2j))=> _ _ _.
     by rewrite xE eqxx.
   wlog: x x' x7 x1 x2 x3 x4 x5 x6 i1 i2 i3 
         NZi1 NZi2 NZi3 Di4i3 Di4i2 Di4i1 Di3i2 Di3i1 Di2i1
@@ -1200,7 +1177,7 @@ wlog: x x' x1 x2 x3 x4 x5 x6 x7 i1 i2 i3 i4
       by case/negP: (cmpR3F Di2i4 Bi2j Bi4j).
     case/or3P: (cmpR3 Bi4j xIi4)=> /eqP x6E //.
     - rewrite x6E xE in Bi3j.
-      case/and4P: (cmpR4b Di3i1 (cmpR_rotate Bi3j) Bi1j).
+      case/and4P: (cmpR4bs Di3i1 (cmpR_rotate Bi3j) Bi1j).
       by rewrite eqxx.
     - by apply: WL1 Bi4j _; rewrite x6E eqxx.
     by apply: WL1 (cmpR_swapr Bi4j) _; rewrite x6E eqxx.
@@ -1250,22 +1227,22 @@ case=> [[xE x'E] | [xE x'E x7E]]; last first.
   move: {Bi3j}(cmpR_swapl Bi3j)=> Bi3j.
   have Djj' : j != j' by rewrite eq_sym.
   case/or4P: (cmpR6b Di3i1 Djj' Bi3j Bi1j')=> /andP [] xE dE.
-  - by case/and3P: (cmpR2 Bi1j); rewrite (eqP xE) eqxx.
+  - by case/and3P: (cmpR2s Bi1j); rewrite (eqP xE) eqxx.
   - rewrite (eqP xE) in Bi1j.
-    by case/and4P: (cmpR4b Di3i1 (cmpR_rotate Bi3j) Bi1j); rewrite eqxx.
+    by case/and4P: (cmpR4bs Di3i1 (cmpR_rotate Bi3j) Bi1j); rewrite eqxx.
   - rewrite (eqP xE) in Bi1j'.
-    by case/and4P: (cmpR4 Djj' Bi1j (cmpR_swapl Bi1j')); rewrite eqxx.
+    by case/and4P: (cmpR4s Djj' Bi1j (cmpR_swapl Bi1j')); rewrite eqxx.
   rewrite (eqP xE) in Bi1j'.
   move: {Bi1j'}(cmpR_rotate Bi1j')=> Bi1j'.
   move: {Bi4j}(cmpR_rotate Bi4j)=> Bi4j.
   case/or4P: (cmpR6 Di4i1 Djj' Bi4j Bi1j')=> /andP [] x'E d'E.
   - rewrite eqr_opp in x'E.
-    case/and4P: (cmpR4b Di2i1 Bi2j Bi1j).
+    case/and4P: (cmpR4bs Di2i1 Bi2j Bi1j).
     by rewrite (eqP x'E) eqxx.
   - rewrite eqr_opp in x'E.
-    by case/and3P: (cmpR2 Bi2j); rewrite (eqP x'E) eqxx.
-  - by case/and3P: (cmpR2 Bi1j); rewrite -(eqP x'E) eqxx andbF.
-  by case/and3P: (cmpR2 Bi2j); rewrite -(eqP x'E) eqxx andbF.
+    by case/and3P: (cmpR2s Bi2j); rewrite (eqP x'E) eqxx.
+  - by case/and3P: (cmpR2s Bi1j); rewrite -(eqP x'E) eqxx andbF.
+  by case/and3P: (cmpR2s Bi2j); rewrite -(eqP x'E) eqxx andbF.
 rewrite -(eqP xE) -{x x' xE x'E}(eqP x'E) in Bi4j.
  (* This is 3.5.4.1 *)
 have F1: inR i1 j' x1 -> cmpR i1 j' x1 (-x5) (-x7).
@@ -1307,30 +1284,30 @@ case=> /eqP HH; rewrite {x}HH in Bi3j'.
   have Djj' : j != j' by rewrite eq_sym.
   case/or4P: (cmpR6b Di2i3 Djj' Bi2j Bi3j')=> 
     /andP [] x'E d'E.
-  - by case/and3P: (cmpR2 Bi3j); rewrite (eqP x'E) eqxx.
-  - case/and4P: (cmpR4b Di3i2 (cmpR_swapl Bi3j) (cmpR_swapl Bi2j)).
+  - by case/and3P: (cmpR2s Bi3j); rewrite (eqP x'E) eqxx.
+  - case/and4P: (cmpR4bs Di3i2 (cmpR_swapl Bi3j) (cmpR_swapl Bi2j)).
     by rewrite (eqP x'E) eqxx.
   - rewrite (eqP x'E) in Bi3j'.
     case/or4P: (cmpR6b Di4i3 Djj' Bi4j Bi3j')=> /andP [] x''E d''E.
-    - by case/and3P: (cmpR2 Bi3j); rewrite (eqP x''E) eqxx.
-    - by case/and4P: (cmpR4b Di4i1 Bi4j Bi1j); rewrite (eqP x''E) eqxx.
-    - by case/and3P: (cmpR2 Bi3j); rewrite (eqP x''E) eqxx.
-    by case/and4P: (cmpR4b Di4i2 Bi4j Bi2j); rewrite (eqP x''E) eqxx.
+    - by case/and3P: (cmpR2s Bi3j); rewrite (eqP x''E) eqxx.
+    - by case/and4P: (cmpR4bs Di4i1 Bi4j Bi1j); rewrite (eqP x''E) eqxx.
+    - by case/and3P: (cmpR2s Bi3j); rewrite (eqP x''E) eqxx.
+    by case/and4P: (cmpR4bs Di4i2 Bi4j Bi2j); rewrite (eqP x''E) eqxx.
   rewrite (eqP x'E) in Bi3j'.
   case/or4P: (cmpR6b Di4i3 Djj' Bi4j Bi3j')=> /andP [] x''E d''E.
-  - by case/and3P: (cmpR2 Bi3j); rewrite (eqP x''E) eq_refl.
-  - by case/and4P: (cmpR4b Di4i1 Bi4j Bi1j); rewrite (eqP x''E) eqxx.
-  - by case/and4P: (cmpR4b Di4i2 Bi4j Bi2j); rewrite (eqP x''E) eqxx.
-  by case/and4P: (cmpR4b Di4i2 Bi4j Bi2j); rewrite (eqP x''E) eqxx.
+  - by case/and3P: (cmpR2s Bi3j); rewrite (eqP x''E) eq_refl.
+  - by case/and4P: (cmpR4bs Di4i1 Bi4j Bi1j); rewrite (eqP x''E) eqxx.
+  - by case/and4P: (cmpR4bs Di4i2 Bi4j Bi2j); rewrite (eqP x''E) eqxx.
+  by case/and4P: (cmpR4bs Di4i2 Bi4j Bi2j); rewrite (eqP x''E) eqxx.
  (* This is 3.5.4.3 *)
 case/or3P: (cmpR5 NZj' Bi1j); first 2 last.
 - case/(cmpR0F NZi1 NZj')=> [] [x x'] /= Bi1j'.
-  by case/and3P: (cmpR7 NZi1 Bi3j'); rewrite opprK (cmpR1 Bi1j').
+  by case/and3P: (cmpR7bs NZi1 Bi3j'); rewrite opprK (cmpR1 Bi1j').
 - move/F1=> Bi1j'.
   case/or3P: (cmpR5b NZi3 Bi1j').
   - move/(cmpR3 Bi3j')=> /or3P [] xE.
-    - by case/and3P: (cmpR2 Bi1j); rewrite (eqP xE) eqxx.
-    - by case/and3P: (cmpR2 Bi1j); rewrite (eqP xE) eqxx andbF.
+    - by case/and3P: (cmpR2s Bi1j); rewrite (eqP xE) eqxx.
+    - by case/and3P: (cmpR2s Bi1j); rewrite (eqP xE) eqxx andbF.
    rewrite -(eqP xE) in Bi3j'.
    case/or4P: (cmpR6 Di3i1 Dj'j (cmpR_rotate Bi3j') Bi1j)=> /andP [] x'E d'E.
    - by case/andP: d'E; rewrite opprK eqxx.
@@ -1338,33 +1315,33 @@ case/or3P: (cmpR5 NZj' Bi1j); first 2 last.
    - by case/andP: d'E; rewrite (eqP x'E) opprK eqxx.
    by case/andP: d'E; rewrite eqxx.
   - move/(cmpR3 Bi3j')=> /or3P [] xE.
-    - rewrite -(eqP xE) in Bi3j; move: (cmpR7 NZi3 (cmpR_swapl Bi2j)).
+    - rewrite -(eqP xE) in Bi3j; move: (cmpR7bs NZi3 (cmpR_swapl Bi2j)).
       by rewrite (cmpR1 Bi3j) !andbF.
-    - rewrite eqr_opp in xE; case/and4P: (cmpR4b Di2i1 Bi2j Bi1j).
+    - rewrite eqr_opp in xE; case/and4P: (cmpR4bs Di2i1 Bi2j Bi1j).
       by rewrite (eqP xE) eqxx.
     rewrite -(eqP xE) in Bi3j'.
     have Djj' : j != j' by rewrite eq_sym.
     have Di2i3 : i2 != i3 by rewrite eq_sym.
     case/or4P: (cmpR6b Di2i3 Djj' (cmpR_rotate Bi2j) (cmpR_rotate Bi3j'))
           => /andP [] x'E d'E.
-    - by case/and3P: (cmpR2 Bi1j); rewrite (eqP x'E) eqxx.
-    - by case/and3P: (cmpR2 Bi3j); rewrite (eqP x'E) eqxx.
-    - by case/and3P: (cmpR2 Bi1j); rewrite -(eqP x'E) eqxx andbF.
-    move: (cmpR7 NZi2 Bi1j).
+    - by case/and3P: (cmpR2s Bi1j); rewrite (eqP x'E) eqxx.
+    - by case/and3P: (cmpR2s Bi3j); rewrite (eqP x'E) eqxx.
+    - by case/and3P: (cmpR2s Bi1j); rewrite -(eqP x'E) eqxx andbF.
+    move: (cmpR7bs NZi2 Bi1j).
     by rewrite (eqP x'E) (cmpR1 (cmpR_swapl Bi2j)) !andbF.
   move/(cmpR3 Bi3j')=> /or3P [] xE.
-  - rewrite -(eqP xE) in Bi3j; case/and3P: (cmpR7 NZi4 (cmpR_rotate Bi3j)).
+  - rewrite -(eqP xE) in Bi3j; case/and3P: (cmpR7bs NZi4 (cmpR_rotate Bi3j)).
     by rewrite opprK (cmpR1 (cmpR_rotate Bi4j)).
-  - rewrite eqr_opp in xE; case/and4P: (cmpR4b Di4i1 Bi4j Bi1j).
+  - rewrite eqr_opp in xE; case/and4P: (cmpR4bs Di4i1 Bi4j Bi1j).
     by rewrite (eqP xE) eqxx.
   rewrite -(eqP xE) in Bi3j'; have Djj' : j != j' by rewrite eq_sym.
   case/or4P: (cmpR6b Di4i3 Djj' (cmpR_rotate Bi4j) (cmpR_rotate Bi3j'))
        => /andP [] x'E d'E.
-  - by case/and3P: (cmpR2 Bi1j); rewrite (eqP x'E) eqxx.
-  - by case/and3P: (cmpR2 Bi3j); rewrite (eqP x'E) eqxx.
-  - by case/and3P: (cmpR2 Bi1j); rewrite -(eqP x'E) eqxx andbF.
+  - by case/and3P: (cmpR2s Bi1j); rewrite (eqP x'E) eqxx.
+  - by case/and3P: (cmpR2s Bi3j); rewrite (eqP x'E) eqxx.
+  - by case/and3P: (cmpR2s Bi1j); rewrite -(eqP x'E) eqxx andbF.
   rewrite -(eqP x'E) in Bi3j.
-  case/and3P: (cmpR7 NZi3 (cmpR_swapl Bi1j)).
+  case/and3P: (cmpR7bs NZi3 (cmpR_swapl Bi1j)).
   by rewrite (cmpR1 (cmpR_rotate Bi3j)).
 case/(cmpR0F NZi1 NZj')=> [] [x x'] /= Bi1j'.
 wlog: x x' x1 x2 x3 x4 x5 x6 x7 x8 i1 i2 i3 i4
@@ -1385,11 +1362,11 @@ move: {Bi1j'} (cmpR_swapl Bi1j')=> Bi1j'.
 move: {Bi2j} (cmpR_swapl Bi2j)=> Bi2j.
 have Djj' : j != j' by rewrite eq_sym.
 case/or4P: (cmpR6b Di2i1 Djj' Bi2j Bi1j')=> /andP [] x'E d'E.
-- by case/and3P: (cmpR2 Bi1j); rewrite (eqP x'E) eqxx.
-- case/and4P: (cmpR4b Di3i2 (cmpR_swapl Bi3j) Bi2j).
+- by case/and3P: (cmpR2s Bi1j); rewrite (eqP x'E) eqxx.
+- case/and4P: (cmpR4bs Di3i2 (cmpR_swapl Bi3j) Bi2j).
   by rewrite (eqP x'E) eqxx.
 - rewrite (eqP x'E) in Bi1j'.
-  case/and4P: (cmpR4 Dj'j (cmpR_rotate Bi1j') Bi1j).
+  case/and4P: (cmpR4s Dj'j (cmpR_rotate Bi1j') Bi1j).
   by rewrite eqxx.
 rewrite {x' x'E d'E}(eqP x'E) in Bi1j'.
 move: {Bi1j'} (cmpR_swapl Bi1j')=> Bi1j'.
@@ -1399,58 +1376,58 @@ case/or3P: (cmpR5 NZj' Bi2j).
 - move/F2=> Bi2j'.
   case/or3P: (cmpR5b NZi1 Bi2j'); move/(cmpR3 Bi1j'); 
          case/or3P=> /eqP xE //.
-  - by case/and3P: (cmpR2 Bi1j); rewrite xE eqxx.
-  - by case/and3P: (cmpR2 Bi2j); rewrite -xE eqxx andbF.
-  - by case/and3P: (cmpR2 Bi2j); rewrite  xE eqxx.
-  - by case/and3P: (cmpR2 Bi1j); rewrite -xE eqxx andbF.
-  - case/and4P: (cmpR4b Di3i1 Bi3j' Bi1j').
+  - by case/and3P: (cmpR2s Bi1j); rewrite xE eqxx.
+  - by case/and3P: (cmpR2s Bi2j); rewrite -xE eqxx andbF.
+  - by case/and3P: (cmpR2s Bi2j); rewrite  xE eqxx.
+  - by case/and3P: (cmpR2s Bi1j); rewrite -xE eqxx andbF.
+  - case/and4P: (cmpR4bs Di3i1 Bi3j' Bi1j').
     by rewrite xE eqxx.
-  - case/and4P: (cmpR4b Di3i1 Bi3j' Bi1j').
+  - case/and4P: (cmpR4bs Di3i1 Bi3j' Bi1j').
     by rewrite xE eqxx.
-  - case/and4P: (cmpR4b Di3i2 (cmpR_swapl Bi3j') (cmpR_swapl Bi2j')).
+  - case/and4P: (cmpR4bs Di3i2 (cmpR_swapl Bi3j') (cmpR_swapl Bi2j')).
     by rewrite -xE eqxx.
-  - case/and4P: (cmpR4 Dj'j Bi2j' Bi2j)=> _ _.
+  - case/and4P: (cmpR4s Dj'j Bi2j' Bi2j)=> _ _.
     by rewrite xE eqxx andbF.
-  case/and4P: (cmpR4 Dj'j Bi2j' Bi2j)=> _ _.
+  case/and4P: (cmpR4s Dj'j Bi2j' Bi2j)=> _ _.
   by rewrite xE eqxx.
-- move=> x4Ii2; case/and3P: (cmpR7 NZi2 Bi1j').
+- move=> x4Ii2; case/and3P: (cmpR7bs NZi2 Bi1j').
   by rewrite opprK=> _ /negP [].
 case/(cmpR0F NZi2 NZj')=> [[x x9] /= Bi2j'].
 wlog: x x9 Bi2j' / x = x8 => [WL | xE].
   case/or3P: (cmpR5b NZi2 Bi3j').
   - move=> x2Ii2; move: {Bi1j'}(cmpR_rotate Bi1j') => Bi1j'.
     case/or3P: (cmpR3 Bi2j' x2Ii2)=> x2E.
-    - by case/and3P: (cmpR2 Bi1j'); rewrite (eqP x2E) eqxx.  
-    - case/and4P: (cmpR4b Di2i1 Bi2j' Bi1j').
+    - by case/and3P: (cmpR2s Bi1j'); rewrite (eqP x2E) eqxx.  
+    - case/and4P: (cmpR4bs Di2i1 Bi2j' Bi1j').
       by rewrite (eqP x2E) eqxx.
-    case/and4P: (cmpR4b Di2i1 Bi2j' Bi1j').
+    case/and4P: (cmpR4bs Di2i1 Bi2j' Bi1j').
     by rewrite (eqP x2E) eqxx.
   - move=> x3Ii2.
     case/or3P: (cmpR3 Bi2j' x3Ii2)=> x3E.
-    - case/and4P: (cmpR4b Di3i1 Bi3j' Bi1j').
+    - case/and4P: (cmpR4bs Di3i1 Bi3j' Bi1j').
       by rewrite (eqP x3E) eqxx.
     - rewrite -(eqP x3E) in Bi2j'.
       have Di1i2 : i1 != i2 by rewrite eq_sym.
       case/or4P: (cmpR6b Di1i2 Djj' (cmpR_rotate Bi1j) (cmpR_swapl Bi2j'))
            => /andP [] xE dE.
-      - by case/and3P: (cmpR2 Bi2j); rewrite (eqP xE) eqxx.
-      - by case/and3P: (cmpR2 Bi1j'); rewrite (eqP xE) eqxx.
-      - case/and4P: (cmpR4 Dj'j Bi2j' (cmpR_rotate Bi2j)).
+      - by case/and3P: (cmpR2s Bi2j); rewrite (eqP xE) eqxx.
+      - by case/and3P: (cmpR2s Bi1j'); rewrite (eqP xE) eqxx.
+      - case/and4P: (cmpR4s Dj'j Bi2j' (cmpR_rotate Bi2j)).
         by rewrite (eqP xE) eqxx.
-      case/and4P: (cmpR4b Di2i1 Bi2j' (cmpR_rotate Bi1j')).
+      case/and4P: (cmpR4bs Di2i1 Bi2j' (cmpR_rotate Bi1j')).
       by rewrite (eqP xE) eqxx.
     rewrite -(eqP x3E) in Bi2j'.
     have Di1i2 : i1 != i2 by rewrite eq_sym.
     case/or4P: (cmpR6b Di1i2 Djj' (cmpR_rotate Bi1j) (cmpR_rotate Bi2j'))
         => /andP [] xE dE.
-    - by case/and3P: (cmpR2 Bi2j); rewrite (eqP xE) eqxx.
-    - by case/and3P: (cmpR2 Bi1j'); rewrite (eqP xE) eqxx.
+    - by case/and3P: (cmpR2s Bi2j); rewrite (eqP xE) eqxx.
+    - by case/and3P: (cmpR2s Bi1j'); rewrite (eqP xE) eqxx.
     - rewrite (eqP xE) in Bi2j'.
-      by case/and4P: (cmpR4 Dj'j (cmpR_swapl Bi2j') Bi2j); rewrite  eqxx.
+      by case/and4P: (cmpR4s Dj'j (cmpR_swapl Bi2j') Bi2j); rewrite  eqxx.
     rewrite (eqP xE) in Bi2j'.
-    by case/and4P: (cmpR4b Di2i1 (cmpR_swapl Bi2j') Bi1j'); rewrite eqxx.
+    by case/and4P: (cmpR4bs Di2i1 (cmpR_swapl Bi2j') Bi1j'); rewrite eqxx.
    move/(cmpR3 Bi2j')=> /or3P [] x3E.
-   - case/and4P: (cmpR4b Di3i1 Bi3j' Bi1j').
+   - case/and4P: (cmpR4bs Di3i1 Bi3j' Bi1j').
      by rewrite (eqP x3E) eqxx.
    - by apply: WL Bi2j' _; rewrite (eqP x3E).
    by apply: WL (cmpR_swapr Bi2j') _; rewrite (eqP x3E).
@@ -1459,27 +1436,27 @@ rewrite {x}xE in Bi2j'.
 pose II x := inR i4 j' x .
 have x1NIj4 : ~~ II x1.
   apply/negP=> /F3 Bi4j'.
-  case/and3P: (cmpR7 NZi4 Bi1j').
+  case/and3P: (cmpR7bs NZi4 Bi1j').
   by rewrite(cmpR1 (cmpR_rotate Bi4j')).
 have mx1NIj4 : ~~ II (- x1).
- by case/and3P: (cmpR7b NZj' Bi4j).
+ by case/and3P: (cmpR7s NZj' Bi4j).
 have [NIx2 NIx3] : ~II x2 /\ ~II (- x3).
   have NII: ~ (II x2 /\ II (- x3)).
     case; case/(cmpR0F NZi4 NZj')=> [[x x'] /= Bi4j' x3Ii4].
      wlog: x x' Bi4j' / x = - x3=> [WL|HH]; last rewrite {}HH in Bi4j'.
        case/or3P: (cmpR3 Bi4j' x3Ii4)=> xE.
-       - case/and3P: (cmpR2 Bi1j).
+       - case/and3P: (cmpR2s Bi1j).
          by rewrite -(eqP xE) eqxx andbF.
        - by apply: WL Bi4j' _; rewrite (eqP xE).
        by apply: WL (cmpR_swapr Bi4j') _; rewrite (eqP xE).
-     case/and4P: (cmpR4b Di4i3 Bi4j' Bi3j').
+     case/and4P: (cmpR4bs Di4i3 Bi4j' Bi3j').
      by rewrite eqxx.
   split.
     case/(cmpR0F NZi4 NZj')=> [[x x'] /= Bi4j'].
     case/or4P: (cmpR6 Di4i1 Dj'j Bi4j' (cmpR_swapl Bi1j))=> /andP [] xE dE.
-    - case/and3P: (cmpR7b NZj' Bi4j); rewrite (eqP xE) opprK.
+    - case/and3P: (cmpR7s NZj' Bi4j); rewrite (eqP xE) opprK.
       by rewrite (cmpR1 (cmpR_swapl Bi4j')).
-    - case/and3P: (cmpR7b NZj' Bi4j); rewrite (eqP xE) opprK.
+    - case/and3P: (cmpR7s NZj' Bi4j); rewrite (eqP xE) opprK.
       by rewrite (cmpR1 (cmpR_rotate Bi4j')).
     - case: NII; rewrite /II (cmpR1 Bi4j') (eqP xE) opprK.
       by rewrite (cmpR1 (cmpR_swapl Bi4j')).
@@ -1499,16 +1476,16 @@ case/(cmpR0F NZi4 NZj')=> [[x x'] /= Bi4j'].
 have NIx5: ~ II x5.
   move=> x5Ii4; wlog: x x' Bi4j' / x == x5=> [WL| /eqP HH].
     case/or3P: (cmpR3 Bi4j' x5Ii4)=> xE.
-    - by case/and3P: (cmpR2 (cmpR_swapl Bi2j')); rewrite (eqP xE) eqxx.
+    - by case/and3P: (cmpR2s (cmpR_swapl Bi2j')); rewrite (eqP xE) eqxx.
     - by apply: WL Bi4j' _; rewrite (eqP xE).
     by apply: WL (cmpR_swapr Bi4j') _; rewrite (eqP xE).
   rewrite {}HH in Bi4j'.
-  by case/and4P: (cmpR4b Di4i2 (cmpR_swapl Bi4j') Bi2j'); rewrite eqxx.
+  by case/and4P: (cmpR4bs Di4i2 (cmpR_swapl Bi4j') Bi2j'); rewrite eqxx.
 wlog: x x' Bi4j' / x == - x4=> [WL|HH].
   case/or3P: (cmpR5b NZi4 Bi1j')=> //.
   move/(cmpR3 Bi4j')=> /or3P [] xE.
   - rewrite -(eqP xE) in Bi3j'.
-    case/and4P: (cmpR4 Dj'j Bi3j' Bi3j).
+    case/and4P: (cmpR4s Dj'j Bi3j' Bi3j).
     by rewrite eqxx andbF.
   - by apply: WL Bi4j' _; rewrite (eqP xE).
   by apply: WL (cmpR_swapr Bi4j') _; rewrite (eqP xE).
@@ -1537,7 +1514,7 @@ Lemma ccTIirr_inN i j j' :
 Proof.
 move=> NZi NZj NZj' Djj'; apply/negP=> INg.
 case: (cmpR0F NZi NZj' (ccTIirrE NZi NZj'))=> [[v1 v2 /=] Hv].
-by case/andP: (cmpR7b NZj Hv)=> /negP.
+by case/andP: (cmpR7s NZj Hv)=> /negP.
 Qed.
 
 Lemma ccTIirr_inP i j j' : (4 < m)%N ->
@@ -1575,19 +1552,19 @@ case: (cmpR0F NZi2 NZj' (ccTIirrE NZi2 NZj'))=> [[v v4 /=] Bi2j'].
 wlog: v1 v2 v v4 Dv3v2 Bij Bi1j' Bi2j' / (v == -v2) && v4 '<> v1=> [WL|].
   case/or4P: (cmpR6 Dii2 Djj' Bij Bi2j').
   - case/andP=> /eqP HH DD; rewrite HH in Bi2j'.
-    by case/and3P: (cmpR4b Di1i2 Bi1j' Bi2j'); rewrite eqxx.
+    by case/and3P: (cmpR4bs Di1i2 Bi1j' Bi2j'); rewrite eqxx.
   - by apply: WL Bij Bi1j' Bi2j'.
   - case/andP=> /eqP HH DD; rewrite HH in Bi2j'.
-    by case/and3P: (cmpR4b Di1i2 Bi1j' Bi2j'); rewrite eqxx.
+    by case/and3P: (cmpR4bs Di1i2 Bi1j' Bi2j'); rewrite eqxx.
   by apply: WL Bij Bi1j' (cmpR_swapr Bi2j').
 case/andP=> /eqP HH Dv3v1; rewrite {v}HH in Bi2j'.
 case: (cmpR0F NZi3 NZj' (ccTIirrE NZi3 NZj'))=> [[v5 v6 /=] Bi3j'].
 case/or4P: (cmpR6 Dii3 Djj' Bij Bi3j'); case/andP=> /eqP HH DD; 
         rewrite HH in Bi3j'.
-- by case/and3P: (cmpR4b Di1i3 Bi1j' Bi3j'); rewrite eqxx.
-- by case/and3P: (cmpR4b Di2i3 Bi2j' Bi3j'); rewrite eqxx.
-- by case/and3P: (cmpR4b Di1i3 Bi1j' Bi3j'); rewrite eqxx.
-by case/and3P: (cmpR4b Di2i3 Bi2j' Bi3j'); rewrite eqxx.
+- by case/and3P: (cmpR4bs Di1i3 Bi1j' Bi3j'); rewrite eqxx.
+- by case/and3P: (cmpR4bs Di2i3 Bi2j' Bi3j'); rewrite eqxx.
+- by case/and3P: (cmpR4bs Di1i3 Bi1j' Bi3j'); rewrite eqxx.
+by case/and3P: (cmpR4bs Di2i3 Bi2j' Bi3j'); rewrite eqxx.
 Qed.
     
 End Main.
@@ -1616,18 +1593,17 @@ by case: tiW=> _ [].
 Qed.
 
 Let hcTIirr (i : Iirr W2) : 'CF(G) :=
- (ccTIirr ONW1 H2LNW1 H2LNW2 bcmp_swapl bcmp_swapr bcmp_rotate
-  bcmp_exists in_bcTIirr_exists bcmp_in bcmp_diffs in_bcTIirrE
-  bcmp2_diffs bcmp2_diffs_sym in_bcTIirr_cmp in_bcTIirr_cmp_sym
-  bcmp_diff_opp bcmp_opp_diff bcmp_in_opp_sym bcmp_in_opp i).
+ (ccTIirr ONW1 H2LNW1 H2LNW2 bcmp_swapl bcmp_swapr
+  bcmp_exists in_bcTIirr_exists bcmp_in bcmp_diff in_bcTIirrE
+  bcmp2_diff bcmp2_diff_sym in_bcTIirr_cmp in_bcTIirr_cmp_sym
+  bcmp_diff_opp bcmp_opp_diff bcmp_opp bcmp_opp_sym i).
 
 Let sbcmp_swapl i j := @bcmp_swapl j i.
 Let sbcmp_swapr i j := @bcmp_swapr j i.
-Let sbcmp_rotate i j := @bcmp_rotate j i.
 Let sbcmp_exists i j Hi Hj := @bcmp_exists j i Hj Hi.
 Let sin_bcTIirr_exists i j v Hi Hj := @in_bcTIirr_exists j i v Hj Hi.
 Let sbcmp_in i j := @bcmp_in j i.
-Let sbcmp_diffs i j := @bcmp_diffs j i.
+Let sbcmp_diffs i j := @bcmp_diff j i.
 Let sin_bcTIirrE i j := @in_bcTIirrE j i.
 Let sbcmp_diff_opp i1 j1 i2 j2 v1 v2 v3 v4 v5 Hi1i2 Hj1j2 := 
    @bcmp_diff_opp j1 i1 j2 i2 v1 v2 v3 v4 v5 Hj1j2 Hi1i2.
@@ -1636,61 +1612,60 @@ Let sbcmp_opp_diff i1 j1 i2 j2 v1 v2 v3 v4 v5 Hi1i2 Hj1j2 :=
 
 Let vcTIirr (i : Iirr W1) : 'CF(G) :=
  (ccTIirr
-   ONW2 H2LNW2 H2LNW1 sbcmp_swapl sbcmp_swapr sbcmp_rotate
+   ONW2 H2LNW2 H2LNW1 sbcmp_swapl sbcmp_swapr
    sbcmp_exists sin_bcTIirr_exists sbcmp_in sbcmp_diffs
-   sin_bcTIirrE bcmp2_diffs_sym bcmp2_diffs in_bcTIirr_cmp_sym
-   in_bcTIirr_cmp sbcmp_diff_opp sbcmp_opp_diff bcmp_in_opp
-   bcmp_in_opp_sym i).
+   sin_bcTIirrE bcmp2_diff_sym bcmp2_diff in_bcTIirr_cmp_sym
+   in_bcTIirr_cmp sbcmp_diff_opp sbcmp_opp_diff bcmp_opp_sym
+   bcmp_opp i).
 
 Let hcTIirrE: forall i j, i != 0 -> j != 0 -> in_bcTIirr i j (hcTIirr j) :=
- (ccTIirrE ONW1 H2LNW1 H2LNW2 bcmp_swapl bcmp_swapr bcmp_rotate
-  bcmp_exists in_bcTIirr_exists bcmp_in bcmp_diffs in_bcTIirrE
-  bcmp2_diffs bcmp2_diffs_sym in_bcTIirr_cmp in_bcTIirr_cmp_sym
-  bcmp_diff_opp bcmp_opp_diff bcmp_in_opp_sym bcmp_in_opp).
+ (ccTIirrE ONW1 H2LNW1 H2LNW2 bcmp_swapl bcmp_swapr
+  bcmp_exists in_bcTIirr_exists bcmp_in bcmp_diff in_bcTIirrE
+  bcmp2_diff bcmp2_diff_sym in_bcTIirr_cmp in_bcTIirr_cmp_sym
+  bcmp_diff_opp bcmp_opp_diff bcmp_opp bcmp_opp_sym).
 
 Let vcTIirrE i j (Hi : i != 0) (Hj : j != 0) : in_bcTIirr i j (vcTIirr i) :=
  (ccTIirrE
-   ONW2 H2LNW2 H2LNW1 sbcmp_swapl sbcmp_swapr sbcmp_rotate
+   ONW2 H2LNW2 H2LNW1 sbcmp_swapl sbcmp_swapr
    sbcmp_exists sin_bcTIirr_exists sbcmp_in sbcmp_diffs
-   sin_bcTIirrE bcmp2_diffs_sym bcmp2_diffs in_bcTIirr_cmp_sym
-   in_bcTIirr_cmp sbcmp_diff_opp sbcmp_opp_diff bcmp_in_opp
-   bcmp_in_opp_sym Hj Hi).
+   sin_bcTIirrE bcmp2_diff_sym bcmp2_diff in_bcTIirr_cmp_sym
+   in_bcTIirr_cmp sbcmp_diff_opp sbcmp_opp_diff bcmp_opp_sym bcmp_opp Hj Hi).
 
 Let hcTIirr_inP : forall (i : Iirr W1) (j j' : Iirr W2), 
        (4 < #|classes W1|)%N -> i != 0 -> j != 0 -> j' != 0 -> j != j' ->
        ~~ in_bcTIirr i j (hcTIirr j') :=
- (ccTIirr_inP ONW1 H2LNW1 H2LNW2 bcmp_swapl bcmp_swapr bcmp_rotate
-  bcmp_exists in_bcTIirr_exists bcmp_in bcmp_diffs in_bcTIirrE
-  bcmp2_diffs bcmp2_diffs_sym in_bcTIirr_cmp in_bcTIirr_cmp_sym
-  bcmp_diff_opp bcmp_opp_diff bcmp_in_opp_sym bcmp_in_opp).
+ (ccTIirr_inP ONW1 H2LNW1 H2LNW2 bcmp_swapl bcmp_swapr
+  bcmp_exists in_bcTIirr_exists bcmp_in bcmp_diff in_bcTIirrE
+  bcmp2_diff bcmp2_diff_sym in_bcTIirr_cmp in_bcTIirr_cmp_sym
+  bcmp_diff_opp bcmp_opp_diff bcmp_opp bcmp_opp_sym).
 
 Let hcTIirr_inN : forall (i : Iirr W1) (j j' : Iirr W2), 
        i != 0 -> j != 0 -> j' != 0 -> j != j' ->
        ~~ in_bcTIirr i j (- hcTIirr j') :=
- (ccTIirr_inN ONW1 H2LNW1 H2LNW2 bcmp_swapl bcmp_swapr bcmp_rotate
-  bcmp_exists in_bcTIirr_exists bcmp_in bcmp_diffs in_bcTIirrE
-  bcmp2_diffs bcmp2_diffs_sym in_bcTIirr_cmp in_bcTIirr_cmp_sym
-  bcmp_diff_opp bcmp_opp_diff bcmp_in_opp_sym bcmp_in_opp).
+ (ccTIirr_inN ONW1 H2LNW1 H2LNW2 bcmp_swapl bcmp_swapr
+  bcmp_exists in_bcTIirr_exists bcmp_in bcmp_diff in_bcTIirrE
+  bcmp2_diff bcmp2_diff_sym in_bcTIirr_cmp in_bcTIirr_cmp_sym
+  bcmp_diff_opp bcmp_opp_diff bcmp_opp bcmp_opp_sym).
 
 Let vcTIirr_inP : forall (j : Iirr W2) (i i' : Iirr W1), 
        (4 < #|classes W2|)%N -> j != 0 -> i != 0 -> i' != 0 -> i != i' ->
        ~~ in_bcTIirr i j (vcTIirr i') :=
  (ccTIirr_inP
-   ONW2 H2LNW2 H2LNW1 sbcmp_swapl sbcmp_swapr sbcmp_rotate
+   ONW2 H2LNW2 H2LNW1 sbcmp_swapl sbcmp_swapr
    sbcmp_exists sin_bcTIirr_exists sbcmp_in sbcmp_diffs
-   sin_bcTIirrE bcmp2_diffs_sym bcmp2_diffs in_bcTIirr_cmp_sym
-   in_bcTIirr_cmp sbcmp_diff_opp sbcmp_opp_diff bcmp_in_opp
-   bcmp_in_opp_sym).
+   sin_bcTIirrE bcmp2_diff_sym bcmp2_diff in_bcTIirr_cmp_sym
+   in_bcTIirr_cmp sbcmp_diff_opp sbcmp_opp_diff bcmp_opp_sym
+   bcmp_opp).
 
 Let vcTIirr_inN : forall (j : Iirr W2) (i i' : Iirr W1), 
        j != 0 -> i != 0 -> i' != 0 -> i != i' ->
        ~~ in_bcTIirr i j (- vcTIirr i') :=
  (ccTIirr_inN
-   ONW2 H2LNW2 H2LNW1 sbcmp_swapl sbcmp_swapr sbcmp_rotate
+   ONW2 H2LNW2 H2LNW1 sbcmp_swapl sbcmp_swapr
    sbcmp_exists sin_bcTIirr_exists sbcmp_in sbcmp_diffs
-   sin_bcTIirrE bcmp2_diffs_sym bcmp2_diffs in_bcTIirr_cmp_sym
-   in_bcTIirr_cmp sbcmp_diff_opp sbcmp_opp_diff bcmp_in_opp
-   bcmp_in_opp_sym).
+   sin_bcTIirrE bcmp2_diff_sym bcmp2_diff in_bcTIirr_cmp_sym
+   in_bcTIirr_cmp sbcmp_diff_opp sbcmp_opp_diff bcmp_opp_sym
+   bcmp_opp).
 
 Lemma hcTIirr_diff_vcTIrr i j : i != 0 -> j != 0 -> vcTIirr i <> hcTIirr j.
 Proof.
@@ -1830,8 +1805,8 @@ have Pjj' j j' : '[x_ 0 j, x_ 0 j'] == (j == j')%:R.
     by rewrite PC (eqP (P1 0 j)).
   case: (boolP (j == j'))=> [/eqP<- // | Djj'].
   rewrite cfdot_virr //.
-  case/and3P: (bcmp2_diffs Djj' (dcTIrrE NZi1 NZj) (dcTIrrE NZi1 NZj')).
-  by rewrite eqr_opp eqr_oppC opprK=> /andP [] /negPf-> /negPf->.
+  case/andP: (bcmp2_diff Djj' (dcTIrrE NZi1 NZj) (dcTIrrE NZi1 NZj')).
+  by rewrite eqr_opp eqr_oppC opprK=> /negPf-> /negPf->.
 have Pii' i i' : '[x_ i 0, x_ i' 0] == (i == i')%:R.
   case: (boolP (i == 0))=> [/eqP-> | NZi].
     by rewrite [0 == _]eq_sym (eqP (P1 _ _)) andbT.
@@ -1839,16 +1814,16 @@ have Pii' i i' : '[x_ i 0, x_ i' 0] == (i == i')%:R.
     by rewrite PC (eqP (P1 i 0)) andbT.
   case: (boolP (i == i'))=> [/eqP<- // | Dii'].
   rewrite cfdot_virr //.
-  case/and3P: (bcmp2_diffs_sym Dii' 
+  case/andP: (bcmp2_diff_sym Dii' 
                  (bcmp_swapl (dcTIrrE NZi NZj1))
                  (bcmp_swapl (dcTIrrE NZi' NZj1))).
-  by rewrite eqr_opp eqr_oppC opprK=> /andP [] /negPf-> /negPf->.
+  by rewrite eqr_opp eqr_oppC opprK=> /negPf-> /negPf->.
 have Pij i j : '[x_ i 0, x_ 0 j] == ((i == 0) && (j == 0))%:R.
   case: (boolP (i == 0))=> [/eqP-> | NZi].
     by rewrite (eqP (P1 _ _)).
   case: (boolP (j == 0))=> [/eqP-> | NZj].
     by rewrite PC (eqP (P1 _ _)) (negPf NZi) eqxx.
-  case/and3P: (bcmp_diffs (dcTIrrE NZi NZj))=> /andP [].
+  case/andP: (bcmp_diff (dcTIrrE NZi NZj)).
   by rewrite cfdot_virr // eqr_opp eqr_oppC opprK=> /negPf-> /negPf->.
 have Pii'j i i' j : '[x_ i 0, x_ i' j] == ((i == i') && (j == 0))%:R.
   case: (boolP (i == 0))=> [/eqP-> // | NZi].
@@ -1857,12 +1832,12 @@ have Pii'j i i' j : '[x_ i 0, x_ i' j] == ((i == i') && (j == 0))%:R.
   case: (boolP (j == 0))=> [/eqP-> // | NZj]; first by rewrite andbT.
   rewrite andbF -oppr_eq0 -cfdotNl.
   case: (boolP (i == i'))=> [/eqP<- | Dii'].
-    case/and3P: (bcmp_diffs (dcTIrrE NZi NZj))=> _ _ /andP [].
+    case/andP: (bcmp_diff (bcmp_swapr (dcTIrrE NZi NZj))).
     rewrite cfdot_virr ?(opp_vchar, cfdotNr, cfdotNl, opprK) //.
     by move=> /negPf-> /negPf->.
-  case/and4P: (bcmp2_diffs_sym Dii'
+  case/andP: (bcmp2_diff_sym Dii'
                  (bcmp_swapl (dcTIrrE NZi NZj))
-                 (bcmp_swapl (dcTIrrE NZi' NZj)))=> _ /andP [].
+                 (bcmp_swapr (bcmp_swapl (dcTIrrE NZi' NZj)))).
   rewrite cfdot_virr ?(opp_vchar, cfdotNr, cfdotNl, opprK) //.
   by move=> /negPf-> /negPf->.
 have Pijj' i j j' : '[x_ 0 j, x_ i j'] == ((i == 0) && (j == j'))%:R.
@@ -1874,12 +1849,12 @@ have Pijj' i j j' : '[x_ 0 j, x_ i j'] == ((i == 0) && (j == j'))%:R.
     by rewrite PC // (eqP (Pij _ _)) (negPf NZi).
   rewrite -oppr_eq0 -cfdotNl.
   case: (boolP (j == j'))=> [/eqP<- | Djj'].
-    case/and3P: (bcmp_diffs (dcTIrrE NZi NZj))=> _ /andP [].
+    case/andP: (bcmp_diff (bcmp_swapr (bcmp_swapl (dcTIrrE NZi NZj)))).
     rewrite cfdot_virr ?(opp_vchar, cfdotNr, cfdotNl, opprK) //.
     by move=> /negPf-> /negPf->.
-  case/and4P: (bcmp2_diffs Djj'
+  case/andP: (bcmp2_diff Djj'
                  (dcTIrrE NZi NZj)
-                 (dcTIrrE NZi NZj'))=> _ /andP [].
+                 (bcmp_swapr (dcTIrrE NZi NZj'))).
   rewrite cfdot_virr ?(opp_vchar, cfdotNr, cfdotNl, opprK) //.
   by move=> /negPf-> /negPf->.
 move=> i j i' j'; apply/eqP.
@@ -1893,15 +1868,14 @@ case: (boolP (j' == 0))=> [/eqP-> | NZj'].
   by rewrite PC (eqP (Pii'j _ _ _)) [i == _]eq_sym.
 case: (boolP (i == _))=> [/eqP<- | Dii'].
   case: (boolP (j == _))=> [/eqP<- // | Djj'].
-  case/and4P: (bcmp2_diffs Djj'
-                 (dcTIrrE NZi NZj)
-                 (dcTIrrE NZi NZj'))=> _ _ _ /andP [].
+  case/andP: (bcmp2_diff Djj'
+                 (bcmp_swapr (dcTIrrE NZi NZj))
+                 (bcmp_swapr (dcTIrrE NZi NZj'))).
   by rewrite cfdot_virr // => /negPf-> /negPf->.
 case: (boolP (j == _))=> [/eqP<- // | Djj'].
-  case/and4P: (bcmp2_diffs_sym Dii'
-                 (bcmp_swapl (dcTIrrE NZi NZj))
-                 (bcmp_swapl (dcTIrrE NZi' NZj)))
-         => _ _ _ /andP [].
+  case/andP: (bcmp2_diff_sym Dii'
+                 (bcmp_swapr (bcmp_swapl (dcTIrrE NZi NZj)))
+                 (bcmp_swapr (bcmp_swapl (dcTIrrE NZi' NZj)))).
   by rewrite cfdot_virr // => /negPf-> /negPf->.
 rewrite cfdot_virr //.
 case: (boolP (x_ _ _ == _)) 
