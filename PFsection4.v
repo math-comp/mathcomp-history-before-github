@@ -79,4 +79,16 @@ rewrite (eqP ab1) oppr0 add0r cfunE -mulr2n -mulr_natl mulf_eq0 -(eqN_eqC _ 0).
 by rewrite /= def_a cfunE mulf_eq0 signr_eq0 /= irr1_neq0.
 Qed.
 
+Lemma orthonormal_vchar_diff_ortho (X : {group gT}) (a b c d : 'CF(X)) :
+    {subset a :: b <= 'Z[irr X]} /\ {subset c :: d <= 'Z[irr X]} ->
+    orthonormal (a :: b) && orthonormal (c :: d) ->
+    [&& '[a - b, c - d] == 0, (a - b) 1%g == 0 & (c - d) 1%g == 0] ->
+  '[a, c] = 0.
+Proof.
+move=> Zabcd Oabcd; rewrite -[c - d]scale1r scaler_subr.
+move/(vchar_pairs_orthonormal Zabcd Oabcd) => /implyP.
+rewrite /isRealC conjC1 eqxx oner_eq0 (orthonormal_cat (a :: b)) /=.
+by case/and3P=> _ _ /andP[] /andP[] /eqP.
+Qed.
+
 End Four.

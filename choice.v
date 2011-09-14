@@ -379,6 +379,20 @@ move=> exPQ; have [|x /andP[]] := @sigW (predI P Q); last by exists x.
 by have [x Px Qx] := exPQ; exists x; exact/andP.
 Qed.
 
+Lemma sig_eqW (vT : eqType) (lhs rhs : T -> vT) :
+  (exists x, lhs x = rhs x) -> {x | lhs x = rhs x}.
+Proof.
+move=> exP; suffices [x /eqP Ex]: {x | lhs x == rhs x} by exists x.
+by apply: sigW; have [x /eqP Ex] := exP; exists x.
+Qed.
+
+Lemma sig2_eqW (vT : eqType) (P : pred T) (lhs rhs : T -> vT) :
+  (exists2 x, P x & lhs x = rhs x) -> {x | P x & lhs x = rhs x}.
+Proof.
+move=> exP; suffices [x Px /eqP Ex]: {x | P x & lhs x == rhs x} by exists x.
+by apply: sig2W; have [x Px /eqP Ex] := exP; exists x.
+Qed.
+
 Definition choose P x0 :=
   if insub x0 : {? x | P x} is Some (exist x Px) then
     xchoose (ex_intro [eta P] x Px)

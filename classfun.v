@@ -465,6 +465,12 @@ Qed.
 Lemma support_cfuni A : A <| G -> support '1_A =i A.
 Proof. by move=> nsAG x; rewrite !inE cfuniE // -(eqN_eqC _ 0) -lt0n lt0b. Qed.
 
+Lemma eq_mul_cfuni A phi : A <| G -> {in A, phi * '1_A =1 phi}.
+Proof. by move=> nsAG x Ax; rewrite cfunE cfuniE // Ax mulr1. Qed.
+
+Lemma eq_cfuni A : A <| G -> {in A, '1_A =1 (1 : 'CF(G))}.
+Proof. by rewrite -['1_A]mul1r; exact: eq_mul_cfuni. Qed.
+
 Lemma cfuniG : '1_G = 1.
 Proof. by rewrite -[G in '1_G]genGid. Qed.
 
@@ -561,6 +567,11 @@ apply/cfun_onP=> x notAx; rewrite cfunElock genGid.
 by case: andP => // [[_ s_xG_A]]; rewrite (subsetP s_xG_A) ?class_refl in notAx.
 Qed.
 
+Lemma mul_cfuni_on A phi : phi * '1_A \in 'CF(G, A).
+Proof.
+by apply/cfun_onP=> x /(cfun_onP (cfuni_on A)) Ax0; rewrite cfunE Ax0 mulr0.
+Qed.
+
 Lemma cfun_onE phi A : (phi \in 'CF(G, A)) = (support phi \subset A).
 Proof. exact: (sameP cfun_onP supportP). Qed.
 
@@ -650,7 +661,7 @@ Hint Resolve cfun_onT.
 Section DotProduct.
 
 Variable (gT : finGroupType) (G : {group gT}).
-Implicit Types (phi psi xi : 'CF(G)) (R S : seq 'CF(G)).
+Implicit Types (M : {group gT}) (phi psi xi : 'CF(G)) (R S : seq 'CF(G)).
 
 Lemma cfdotE phi psi :
   '[phi, psi] = #|G|%:R^-1 * \sum_(x \in G) phi x * (psi x)^*.
@@ -680,6 +691,13 @@ Proof. by move=> Apsi; rewrite (cfdotElr (cfun_onT phi) Apsi) setTI. Qed.
 Lemma cfnormE A phi :
   phi \in 'CF(G, A) -> '[phi] = #|G|%:R^-1 * (\sum_(x \in A) `|phi x| ^+ 2).
 Proof. by move/cfdotEl->; rewrite (eq_bigr _ (fun _ _ => normCK _)). Qed.
+
+Lemma eq_cfdotl A phi1 phi2 psi :
+  psi \in 'CF(G, A) -> {in A, phi1 =1 phi2} -> '[phi1, psi] = '[phi2, psi].
+Proof.
+move/cfdotEr=> eq_dot eq_phi; rewrite !eq_dot; congr (_ * _).
+by apply: eq_bigr => x Ax; rewrite eq_phi.
+Qed.
 
 Lemma cfdot_cfuni A B :
   A <| G -> B <| G -> '['1_A, '1_B]_G = #|A :&: B|%:R / #|G|%:R.
@@ -725,6 +743,10 @@ rewrite /cfdot rmorphM fmorphV rmorph_nat rmorph_sum; congr (_ * _).
 by apply: eq_bigr=> x _; rewrite rmorphM conjCK mulrC.
 Qed.
  
+Lemma eq_cfdotr A phi psi1 psi2 :
+  phi \in 'CF(G, A) -> {in A, psi1 =1 psi2} -> '[phi, psi1] = '[phi, psi2].
+Proof. by move=> Aphi /eq_cfdotl eq_dot; rewrite cfdotC eq_dot // -cfdotC. Qed.
+
 Lemma cfdot_subr xi phi psi : '[xi, phi - psi] = '[xi, phi] - '[xi, psi].
 Proof. by rewrite !(cfdotC xi) -rmorph_sub cfdot_subl. Qed.
 Canonical cfun_dot_additive xi := Additive (cfdot_subr xi).
@@ -816,6 +838,7 @@ Lemma orthoPl phi S :
 Proof.
 by rewrite [orthogonal _ S]andbT /=; apply: (iffP allP) => ophiS ? /ophiS/eqP.
 Qed.
+Implicit Arguments orthoPl [phi S].
 
 Lemma orthogonal_sym : symmetric (@orthogonal _ G).
 Proof.
@@ -827,7 +850,7 @@ Lemma orthoPr S psi :
   reflect {in S, forall phi, '[phi, psi] = 0} (orthogonal S psi).
 Proof.
 rewrite orthogonal_sym.
-by apply: (iffP (orthoPl _ _)) => oSpsi phi Sphi; rewrite cfdotC oSpsi ?conjC0.
+by apply: (iffP orthoPl) => oSpsi phi Sphi; rewrite cfdotC oSpsi ?conjC0.
 Qed.
 
 Lemma eq_orthogonal R1 R2 S1 S2 :
@@ -851,6 +874,32 @@ Proof.
 move/orthogonalP=> oS12; do 2!move/(@coord_span _ _ _ (in_tuple _))->.
 rewrite cfdot_suml big1 // => i _; rewrite cfdot_sumr big1 // => j _.
 by rewrite cfdotZl cfdotZr oS12 ?mem_nth ?mulr0.
+Qed.
+
+Lemma orthogonal_split S beta :
+  {X : 'CF(G) & {Y | [/\ beta = X + Y, X \in span S & orthogonal Y S]}}.
+Proof.
+elim: S beta => [|phi S IHS] beta; first by exists 0, beta; rewrite add0r mem0v.
+have [[U [V [-> S_U oVS]]] [X [Y [-> S_X oYS]]]] := (IHS phi, IHS beta).
+pose Z := '[Y, V] / '[V] *: V; exists (X + Z), (Y - Z).
+split; first by rewrite addrCA !addrA addrK addrC.
+  rewrite /Z -{4}(addKr U V) scaler_addr scalerN addrA addrC span_cons.
+  by rewrite memv_add ?memv_sub ?memvZl ?memv_inj.
+apply/orthoPl=> psi; rewrite !inE => /predU1P[-> | Spsi]; last first.
+  by rewrite cfdot_subl cfdotZl (orthoPl oVS _ Spsi) mulr0 subr0 (orthoPl oYS).
+rewrite cfdot_subl !cfdotDr (span_orthogonal oYS) // ?memv_span ?mem_head //.
+rewrite !cfdotZl (span_orthogonal oVS _ S_U) ?mulr0 ?memv_span ?mem_head //.
+have [-> | nzV] := eqVneq V 0; first by rewrite cfdot0r !mul0r subrr.
+by rewrite divfK ?cfnorm_eq0 ?subrr.
+Qed.
+
+Lemma map_orthogonal M (nu : 'CF(G) -> 'CF(M)) S R (A : pred 'CF(G)) :
+  {in A &, isometry nu} -> {subset S <= A} -> {subset R <= A} ->
+ orthogonal (map nu S) (map nu R) = orthogonal S R.
+Proof.
+move=> Inu sSA sRA; rewrite [orthogonal _ _]all_map.
+apply: eq_in_all => phi Sphi; rewrite /= all_map.
+by apply: eq_in_all => psi Rpsi; rewrite /= Inu ?(sSA phi) ?(sRA psi).
 Qed.
 
 Lemma pairwise_orthogonalP S :
@@ -897,41 +946,6 @@ Proof.
 move=> sS12 uniqS1 /pairwise_orthogonalP[/andP[notS2_0 _] oS2].
 apply/pairwise_orthogonalP; rewrite /= (contra (sS12 0)) //.
 by split=> //; exact: sub_in2 oS2.
-Qed.
-
-Lemma cfproj_sum_orthogonal z S phi :
-     pairwise_orthogonal S -> phi \in S ->
-  '[\sum_(xi <- S) z xi *: xi, phi] = z phi * '[phi].
-Proof.
-move=> oS /perm_to_rem defS.
-rewrite (eq_big_perm _ defS) big_cons /= cfdotDl cfdotZl big_seq.
-move: oS; rewrite (eq_pairwise_orthogonal defS) => /and3P[_ ophiS2 _].
-rewrite addrC cfdotC (span_orthogonal ophiS2) ?rmorph0 ?add0r //.
-  by rewrite memv_span ?mem_head.
-by rewrite memv_suml // => xi S2xi; rewrite memvZl ?memv_span.
-Qed.
-
-Lemma cfdot_sum_orthogonal z1 z2 S :
-     pairwise_orthogonal S ->
-  '[\sum_(xi <- S) z1 xi *: xi, \sum_(xi <- S) z2 xi *: xi]
-         = \sum_(xi <- S) z1 xi * (z2 xi)^* * '[xi].
-Proof.
-move=> oS; rewrite cfdot_sumr; apply: eq_big_seq => phi Sphi.
-by rewrite cfdotZr cfproj_sum_orthogonal // mulrCA mulrA.
-Qed.
-
-Lemma cfnorm_sum_orthogonal z S :
-     pairwise_orthogonal S ->
-  '[\sum_(xi <- S) z xi *: xi] = \sum_(xi <- S) `|z xi| ^+ 2 * '[xi].
-Proof.
-by move/cfdot_sum_orthogonal=> -> //; apply: eq_bigr => xi _; rewrite normCK.
-Qed.
-
-Lemma cfnorm_orthogonal S :
-  pairwise_orthogonal S -> '[\sum_(phi <- S) phi] = \sum_(phi <- S) '[phi].
-Proof.
-rewrite -(eq_bigr _ (in1W (@scale1r _ _))) => /cfnorm_sum_orthogonal->.
-by rewrite (normC_nat 1) exp1rn (eq_bigr _ (fun _ _ => mul1r _)).
 Qed.
 
 Lemma orthogonal_free S : pairwise_orthogonal S -> free S.
@@ -1001,48 +1015,6 @@ move=> sS12 uniqS1 /orthonormalP[_ oS1].
 by apply/orthonormalP; split; last exact: sub_in2 sS12 _ _.
 Qed.
 
-Lemma cfproj_sum_orthonormal z S phi :
-  orthonormal S -> phi \in S -> '[\sum_(xi <- S) z xi *: xi, phi] = z phi.
-Proof.
-rewrite orthonormalE => /andP[/allP nS oS] Sphi.
-by rewrite cfproj_sum_orthogonal // (eqP (nS _ Sphi)) mulr1.
-Qed.
-
-Lemma cfdot_sum_orthonormal z1 z2 S :
-     orthonormal S ->
-  '[\sum_(xi <- S) z1 xi *: xi, \sum_(xi <- S) z2 xi *: xi]
-         = \sum_(xi <- S) z1 xi * (z2 xi)^*.
-Proof.
-move=> oS; rewrite cfdot_sumr; apply: eq_big_seq => phi Sphi.
-by rewrite cfdotZr cfproj_sum_orthonormal // mulrC.
-Qed.
-
-Lemma cfnorm_sum_orthonormal z S :
-  orthonormal S -> '[\sum_(xi <- S) z xi *: xi] = \sum_(xi <- S) `|z xi| ^+ 2.
-Proof.
-by move/cfdot_sum_orthonormal=> -> //; apply: eq_bigr => xi _; rewrite normCK.
-Qed.
-
-Lemma orthonormal_span S psi :
-  orthonormal S -> psi \in span S -> psi = \sum_(xi <- S) '[psi, xi] *: xi.
-Proof.
-pose T := in_tuple S => onT /(@coord_span _ _ _ T) def_psi.
-pose c xi := oapp (coord T psi) 0 (insub (index xi S)).
-have [uS _] := orthonormalP _ onT.
-have{def_psi} ->: psi = \sum_(xi <- S) c xi *: xi.
-  rewrite /= big_tnth {1}def_psi; apply: eq_bigr => i _.
-  by rewrite -tnth_nth /c index_uniq // valK.
-by apply: eq_big_seq => chi Schi; rewrite cfproj_sum_orthonormal.
-Qed.
-
-Lemma cfnorm_orthonormal S :
-  orthonormal S -> '[\sum_(xi <- S) xi] = (size S)%:R.
-Proof.
-rewrite orthonormalE => /andP[/allP/= nS oS].
-rewrite -[size S]card_ord cfnorm_orthogonal // big_tnth -sumr_const.
-by apply: eq_bigr => i _; apply/eqP; rewrite nS ?mem_tnth.
-Qed.
-
 Lemma orthonormal2P phi psi :
   reflect [/\ '[phi, psi] = 0, '[phi] = 1 & '[psi] = 1]
           (orthonormal [:: phi; psi]).
@@ -1060,6 +1032,14 @@ move=> ccS /hasPn nrS oSS Schi; apply: sub_pairwise_orthogonal oSS.
 by rewrite /= inE eq_sym nrS.
 Qed.
 
+Lemma cfdot_real_conjC phi psi : cfReal phi -> '[phi, psi^*]_G = '[phi, psi]^*.
+Proof. by rewrite -cfdot_conjC => /eqcfP->. Qed.
+
+(* Note: other isometry lemmas, and the dot product lemmas for orthogonal     *)
+(* and orthonormal sequences are in vcharacter, because we need the 'Z[S]     *)
+(* notation for the isometry domains. Alternatively, this could be moved to   *)
+(* cfun.                                                                      *)
+
 End DotProduct.
 
 Implicit Arguments orthoP [gT G phi psi].
@@ -1069,7 +1049,7 @@ Implicit Arguments orthogonalP [gT G R S].
 Implicit Arguments pairwise_orthogonalP [gT G S].
 Implicit Arguments orthonormalP [gT G S].
 
-Section Isometries.
+Section BuildIsometries.
 
 Variable (gT : finGroupType) (L G : {group gT}).
 Implicit Types (phi psi xi : 'CF(L)) (R S : seq 'CF(L)).
@@ -1102,7 +1082,7 @@ have{oT} [/=/andP[_ uT] oT] := pairwise_orthogonalP oT.
 by rewrite oS ?oT ?mem_nth ? nth_uniq ?eq_sz.
 Qed.
 
-Lemma isometry_inj U (tau : {additive 'CF(L) -> 'CF(G)}) :
+Lemma isometry_raddf_inj U (tau : {additive 'CF(L) -> 'CF(G)}) :
     {in U &, isometry tau} -> {in U &, forall u v, u - v \in U} ->
   {in U &, injective tau}.
 Proof.
@@ -1110,7 +1090,7 @@ move=> Itau linU phi psi Uphi Upsi /eqP; rewrite -subr_eq0 -raddf_sub.
 by rewrite -cfnorm_eq0 Itau ?linU // cfnorm_eq0 subr_eq0 => /eqP.
 Qed.
 
-End Isometries.
+End BuildIsometries.
 
 Section Restrict.
 

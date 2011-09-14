@@ -318,7 +318,7 @@ have{chiHk chiHj}: '['Res[H] ('Ind[G] 'chi_j), 'chi_k] != 0.
   rewrite !inE !cfdot_Res_l in chiHj chiHk *.
   apply: contraNneq chiHk; rewrite cfdot_sum_irr => /posC_sum_eq0/(_ i isT)/eqP.
   rewrite -cfdotC cfdotC mulf_eq0 conjC_eq0 (negbTE chiHj) /= => -> // i1.
-  rewrite -cfdotC posC_isNatC //.
+  rewrite -cfdotC posC_Nat //.
   by rewrite isNatC_mul ?cfdot_char_Nat ?cfInd_char ?irr_char //.
 have ->: 'Res ('Ind[G] 'chi_j) = #|H|%:R^-1 *: (\sum_(y \in G) 'chi_j ^ y)%CF.
   rewrite (reindex_inj invg_inj); apply/cfun_inP=> x Hx.
@@ -485,7 +485,7 @@ have: 0 < #|G : T|%:R * 'chi_t 1%g.
 move/leC_pmul2r=> <-; rewrite mulrA -He1 mulrA -Hpsi1.
 have IIP: is_char ('Ind[G] 'chi_p) := cfInd_char G (irr_char p).
 case/(constt_charP _ IIP): Hc => chi' /= IC' ->.
-by rewrite cfunE addrC -leC_sub addrK posC_isNatC ?char1_Nat.
+by rewrite cfunE addrC -leC_sub addrK posC_Nat ?char1_Nat.
 Qed.
 
 Fact cfInd_constt_inertia_constt : 'Ind[G] 'chi_p = 'chi_c.
@@ -547,8 +547,8 @@ have /(constt_charP _ IC1)[chi2 IC2 Hchi2]: p \in irr_constt chi1.
 have: '['Res[H] 'chi_p, 'chi_t] < '['Res[H] ('Res[T] 'chi_c), 'chi_t].
   rewrite Hchi1 addrC Hchi2 !linearD !cfdotDl /=.
   rewrite -addrA addrC ltC_sub addrK sposC_addl //.
-    by rewrite posC_isNatC ?cfdot_char_irr_Nat ?cfRes_char.
-  rewrite ltCE [~~ _]Ct posC_isNatC ?cfdot_char_irr_Nat //.
+    by rewrite posC_Nat ?cfdot_char_irr_Nat ?cfRes_char.
+  rewrite ltCE [~~ _]Ct posC_Nat ?cfdot_char_irr_Nat //.
   by rewrite cfRes_char ?irr_char.
 rewrite cfdot_constt_inertia (cfInd_constt_inertia_constt Hp Hc).
 by rewrite cfResRes // ltCE eqxx.

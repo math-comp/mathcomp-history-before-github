@@ -24,32 +24,9 @@ Import Prenex Implicits.
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
-
-(* Move to algC *)
-
-Lemma isNatC_exp c n : isNatC c -> isNatC (c ^+ n).
-Proof.
-move=> Hc; elim: n=> [|n IH]; first by exact: (isNatC_nat 1).
-by rewrite exprS isNatC_mul.
-Qed.
-
-Lemma isIntC_exp c n : isIntC c -> isIntC (c ^+ n).
-Proof.
-move=> Hc; elim: n=> [|n IH]; first by exact: (isIntC_nat 1).
-by rewrite exprS isIntC_mul.
-Qed.
-
-Lemma isNatC_isIntC_even c n : ~~odd n -> isIntC c ->  isNatC (c ^+ n).
-Proof.
-move=> Heven; rewrite isIntCE=> /orP []; first by exact: isNatC_exp.
-rewrite -[n]odd_double_half (negPf Heven) add0n -mul2n exprn_mulr exprS expr1.
-by move=> HH; apply: isNatC_exp; rewrite -mulrNN isNatC_mul.
-Qed.
-
-
 Section Definitions.
 
-Variables (gT : finGroupType) (G W W1 W2 Wi : {set gT}).
+Variables (gT : finGroupType) (G W W1 W2 : {set gT}).
 
 Definition cyclicTIhypothesis :=
   [/\ [/\ W1 \x W2 = W, cyclic W, odd #|W| & W \subset G],
@@ -73,39 +50,24 @@ Let w1 := #|W1|.
 Let w2 := #|W2|.
 Let V := cyclicTIset tiW.
 
-Let W1xW2 :  W1 \x W2 = W.
-Proof. by case: tiW; case. Qed.
+Let W1xW2 : W1 \x W2 = W. Proof. by have [[]] := tiW. Qed.
+Let sW1W : W1 \subset W. Proof. by have [_ /mulG_sub[]] := dprodP W1xW2. Qed.
+Let sW2W : W2 \subset W. Proof. by have [_ /mulG_sub[]] := dprodP W1xW2. Qed.
 
-Let cyclicW : cyclic W.
-Proof. by case: tiW; case. Qed.
+Let cyclicW : cyclic W. Proof. by have [[]] := tiW. Qed.
+Let cyclicW1 : cyclic W1. Proof. exact: cyclicS cyclicW. Qed.
+Let cyclicW2 : cyclic W2. Proof. exact: cyclicS cyclicW. Qed.
 
-Let cyclicW1 : cyclic W1.
-Proof.
-apply: cyclicS cyclicW.
-by case/dprodP: W1xW2=> _ <- _ _; apply: mulg_subl (group1 _).
-Qed.
+Let oddW : odd #|W|. Proof. by have [[]] := tiW. Qed.
+Let oddW1 : odd w1. Proof. exact: oddSg oddW. Qed.
+Let oddW2 : odd w2. Proof. exact: oddSg oddW. Qed.
 
-Let cyclicW2 : cyclic W2.
-Proof.
-apply: cyclicS cyclicW.
-by case/dprodP: W1xW2=> _ <- _ _; apply: mulg_subr (group1 _).
-Qed.
+Let odd_neq2 m : odd m -> (2 == m)%N = false. Proof. by case: eqP => // <-. Qed.
+Let tLW1 : (2 < w1)%N.
+Proof. by rewrite ltn_neqAle cardG_gt1 odd_neq2 //; have [_ []] := tiW. Qed.
+Let tLW2 : (2 < w2)%N.
+Proof. by rewrite ltn_neqAle cardG_gt1 odd_neq2 //; have [_ []] := tiW. Qed.
 
-Let oddW1 : odd #|W1|.
-Proof. by case: tiW=> [[]] /dprod_card <- _; rewrite odd_mul; case/andP. Qed.
-
-Let oddW2 : odd #|W2|.
-Proof. by case: tiW=> [[]] /dprod_card <- _; rewrite odd_mul; case/andP. Qed.
-
-Let tLW1 : (2 < #|W1|)%N.
-Proof.
-by case: tiW=> _ []; rewrite -!cardG_gt1; case: #|_| oddW1=> [|[|[]]]. 
-Qed.
-
-Let tLW2 : (2 < #|W2|)%N.
-Proof.
-by case: tiW=> _ []; rewrite -!cardG_gt1; case: #|_| oddW2=> [|[|[]]]. 
-Qed.
 
 Definition cyclicTIirr i j := 'chi_(dprod_Iirr W1xW2 (i, j)).
 Local Notation w_ := cyclicTIirr.
@@ -233,11 +195,11 @@ Proof.
 rewrite !card_ord dim_cfun_on_abelian ?(cyclic_abelian, subsetDl) // !NirrE.
 have:= cyclic_abelian cyclicW1; rewrite card_classes_abelian => /eqP ->.
 have:= cyclic_abelian cyclicW2; rewrite card_classes_abelian => /eqP ->.
-apply: (@addnI (#|W1| + #|W2|)%N); rewrite -{1}cardsUI addnAC.
+apply: (@addnI (w1 + w2)%N); rewrite -{1}cardsUI addnAC.
 have [_ defW _ ->] := dprodP W1xW2; rewrite cards1.
 have /setIidPr <-: (W1 :|: W2) \subset W by rewrite subUset -mulG_subG defW.
-rewrite cardsID -(dprod_card W1xW2) -(prednK (cardG_gt0 W1)) /=.
-by rewrite addn1 !addSn addnAC -mulnS mulSnr prednK.
+rewrite cardsID -(dprod_card W1xW2) /w1 -(prednK (cardG_gt0 W1)) /= -/w1 -/w2.
+by rewrite addn1 !addSn addnAC -mulnS mulSnr prednK ?cardG_gt0.
 Qed.
 
 Definition acTIirr_base :=
@@ -267,7 +229,7 @@ by exact: memc_acTIirr.
 Qed.
 
 Definition bcmp (i : Iirr W1) (j : Iirr W2) (v1 v2 v3 : 'CF(G)) :=
- [&& i !=0 , j != 0, orthonormal [::v1;v2;v3],  
+ [&& i !=0 , j != 0, orthonormal [:: v1; v2; v3],  
    [&& v1 \in 'Z[irr G], v2 \in 'Z[irr G] & v3 \in 'Z[irr G]]
    & beta_ i j == v1 + v2 + v3].
 
@@ -1929,12 +1891,9 @@ Local Notation x_ := dcTIirr.
 
 Lemma card_cyclicTIset_pos : (0 < #|V|)%N.
 Proof.
-have F : (0 < #|W| - (#|W1| + #|W2|))%N.
-  rewrite -(dprod_card W1xW2).
-  case: #|W1| #|W2| tLW1 tLW2=> //= [] [|n] // [|[|m]] //.
-  rewrite !mulnS !mulSn !addSn !addnS !subSS.
-  rewrite [(n + (m + _))%N]addnCA addnA [X in (X - _)%N]addnC.
-  by rewrite addnK; case: n.
+have F : (0 < #|W| - (w1 + w2))%N.
+  rewrite -subn_sub -(dprod_card W1xW2) -/w2 -(subnKC tLW2) addSn -predn_sub.
+  by rewrite mulnSr addnK -/w1 -(subnKC tLW1) mulSnr addnK. 
 apply: (leq_trans F).
 rewrite cardsD leq_sub2l //.
 apply: (leq_trans (subset_leq_card (subsetIr _ _))).

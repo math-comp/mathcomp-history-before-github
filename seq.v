@@ -499,6 +499,29 @@ Proof. by move=> Ea s; rewrite !has_count (eq_count Ea). Qed.
 Lemma eq_all a1 a2 : a1 =1 a2 -> all a1 =1 all a2.
 Proof. by move=> Ea s; rewrite !all_count (eq_count Ea). Qed.
 
+Section SubPred.
+
+Variable (a1 a2 : pred T).
+Hypothesis s12 : subpred a1 a2.
+
+Lemma sub_find s : find a2 s <= find a1 s.
+Proof. by elim: s => //= x s IHs; case: ifP => // /(contraFF (@s12 x))->. Qed.
+
+Lemma sub_has s : has a1 s -> has a2 s.
+Proof. by rewrite !has_find; exact: leq_ltn_trans (sub_find s). Qed.
+
+Lemma sub_count s : count a1 s <= count a2 s.
+Proof.
+by elim: s => //= x s; apply: leq_add; case a1x: (a1 x); rewrite // s12.
+Qed.
+
+Lemma sub_all s : all a1 s -> all a2 s.
+Proof.
+by rewrite !all_count !eqn_leq !count_size => /leq_trans-> //; exact: sub_count.
+Qed.
+
+End SubPred.
+
 Lemma filter_pred0 s : filter pred0 s = [::]. Proof. by elim: s. Qed.
 
 Lemma filter_predT s : filter predT s = s.
@@ -940,12 +963,32 @@ Qed.
 
 End Filters.
 
-Lemma eq_in_filter (a1 a2 : pred T) s :
-  {in s, a1 =1 a2} -> filter a1 s = filter a2 s.
+Section EqIn.
+
+Variables a1 a2 : pred T.
+
+Lemma eq_in_filter s : {in s, a1 =1 a2} -> filter a1 s = filter a2 s.
 Proof.
 elim: s => //= x s IHs eq_a.
 rewrite eq_a ?mem_head ?IHs // => y s_y; apply: eq_a; exact: mem_behead.
 Qed.
+
+Lemma eq_in_find s : {in s, a1 =1 a2} -> find a1 s = find a2 s.
+Proof.
+elim: s => //= x s IHs eq_a12; rewrite eq_a12 ?mem_head // IHs // => y s'y.
+by rewrite eq_a12 // mem_behead.
+Qed.
+
+Lemma eq_in_count s : {in s, a1 =1 a2} -> count a1 s = count a2 s.
+Proof. by move/eq_in_filter=> eq_a12; rewrite !count_filter eq_a12. Qed.
+
+Lemma eq_in_all s : {in s, a1 =1 a2} -> all a1 s = all a2 s.
+Proof. by move=> eq_a12; rewrite !all_count eq_in_count. Qed.
+
+Lemma eq_in_has s : {in s, a1 =1 a2} -> has a1 s = has a2 s.
+Proof. by move/eq_in_filter=> eq_a12; rewrite !has_filter eq_a12. Qed.
+
+End EqIn.
 
 Lemma eq_has_r s1 s2 : s1 =i s2 -> has^~ s1 =1 has^~ s2.
 Proof.

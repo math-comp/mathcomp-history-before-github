@@ -24,6 +24,7 @@ Local Open Scope ring_scope.
 (*  isRealC x == x is a real number, i.e., x^* == x.                          *)
 (*     isIntC x == x is an integer.                                           *)
 (*    getIntC x == a pair (n, b) such that x = (-1) ^+ b * n%:R, if isIntC x. *)
+(*     dvdC x y == x divides y, i.e., y = z * x for some integer z.           *)
 (******************************************************************************)
 
 Parameter algC : closedFieldType.
@@ -709,6 +710,9 @@ Qed.
 
 Lemma isNatC_nat n : isNatC (n%:R).
 Proof. by apply/isNatCP; exists n. Qed.
+Lemma isNatC_0 : isNatC 0. Proof. exact: (isNatC_nat 0). Qed.
+Lemma isNatC_1 : isNatC 1. Proof. exact: (isNatC_nat 1). Qed.
+Hint Resolve isNatC_0 isNatC_1.
 
 Lemma isNatC_add c1 c2 : isNatC c1 -> isNatC c2 -> isNatC (c1 + c2).
 Proof.
@@ -720,19 +724,17 @@ Proof.
 by case/isNatCP=> n1 ->; case/isNatCP=> n2 ->; rewrite -natr_mul isNatC_nat.
 Qed.
 
+Lemma isNatC_exp x n : isNatC x -> isNatC (x ^+ n).
+Proof. by move=> Nx; elim: n => // n IHn; rewrite exprS isNatC_mul. Qed.
+
 Lemma isNatC_sum (I : Type) (r : seq I) (P : pred I) (F : I -> algC) :
    (forall i, P i -> isNatC (F i)) -> isNatC (\sum_(j <- r | P j) F j).
-Proof.
-by move=> H; apply big_ind=> //; [exact: (isNatC_nat 0) | exact: isNatC_add].
-Qed.
+Proof. by move=> H; apply big_ind=> //; exact: isNatC_add. Qed.
 
 Lemma isNatC_muln x n : isNatC x -> isNatC (x *+ n).
-Proof.
-elim: n => [|n IH Hx]; first by rewrite mulr0n (isNatC_nat 0).
-by rewrite mulrSr isNatC_add // IH.
-Qed.
+Proof. by elim: n => // n IH Hx; rewrite mulrSr isNatC_add // IH. Qed.
 
-Lemma posC_isNatC c : isNatC c -> 0 <= c.
+Lemma posC_Nat c : isNatC c -> 0 <= c.
 Proof. by case/isNatCP=> n ->; exact: posC_nat. Qed.
 
 Lemma isNatC_conj c : isNatC c -> c^* = c.
@@ -786,68 +788,69 @@ Lemma realC_leNgt x y : isRealC x -> isRealC y -> (x <= y) = ~~ (x > y).
 Proof. by move=> r_x r_y; rewrite realC_ltNge ?negbK. Qed.
 
 (* We mimic Z by a sign and a natural number *)
-Definition getIntC (c : algC) :=
- if 0 <= c then (false, getNatC c) else (true, getNatC (-c)).
+Definition getIntC x :=
+  if 0 <= x then (false, getNatC x) else (true, getNatC (- x)).
 
-Definition isIntC c := c == (let: (b, n) := getIntC c in (-1) ^+ b * n%:R).
+Definition isIntC x := x == (let: (b, n) := getIntC x in (-1) ^+ b * n%:R).
 
-Lemma isIntCE c : isIntC c = isNatC c || isNatC (- c).
+Lemma isIntCP x : isIntC x -> {e : bool & {n | x = (-1) ^+ e * n%:R}}.
+Proof. by move/(x =P _); case: (getIntC x) => e n; exists e, n. Qed.
+
+Lemma isIntCE x : isIntC x = isNatC x || isNatC (- x).
 Proof.
-rewrite /isIntC /getIntC.
-case: (boolP (0 <= c))=> H.
-  case: (boolP (isNatC (-c)))=> H1; last by rewrite orbF expr0 mul1r.
-  suff->: c = 0 by rewrite (getNatC_nat 0) mulr0 eqxx orbT.
-  by apply: leC_anti=> //; rewrite -leC_sub sub0r posC_isNatC.
-case: (boolP (isNatC c))=> H1; first by case/negP: H; apply: posC_isNatC.
-by rewrite expr1 mulNr -{1}[c]opprK eqr_opp mul1r.
+apply/idP/idP=> [/isIntCP[b [n ->]] | ].
+  by rewrite mulr_sign; case: b; rewrite ?opprK ?isNatC_nat ?orbT.
+rewrite /isIntC /getIntC => /orP[] /isNatCP[n def_x].
+  by rewrite def_x posC_nat mul1r getNatC_nat.
+rewrite -{-4}[x]opprK {x}def_x getNatC_nat posC_opp -(leq_leC n 0).
+by case: n => [|n]; rewrite /= ?mulN1r // mul1r oppr0 (getNatC_nat 0).
 Qed.
+
+Lemma isIntC_Nat x : isNatC x -> isIntC x.
+Proof. by rewrite isIntCE => ->. Qed.
 
 Lemma isIntC_nat n : isIntC (n%:R).
 Proof. by rewrite isIntCE isNatC_nat. Qed.
+Lemma isIntC_0 : isIntC 0. Proof. exact: (isIntC_nat 0). Qed.
+Lemma isIntC_1 : isIntC 1. Proof. exact: (isIntC_nat 1). Qed.
+Hint Resolve isIntC_0 isIntC_1.
 
 Lemma isIntC_opp x : isIntC (- x) = isIntC x.
 Proof. by rewrite !isIntCE opprK orbC. Qed.
 
-Lemma isIntC_add c1 c2 : isIntC c1 -> isIntC c2 -> isIntC (c1 + c2).
+Lemma isIntC_mul_sign n x : isIntC ((-1) ^+ n * x) = isIntC x.
+Proof. by rewrite -signr_odd mulr_sign fun_if isIntC_opp if_same. Qed.
+
+Lemma isIntC_sign n : isIntC ((-1) ^+ n).
+Proof. by rewrite -[_ ^+ _]mulr1 isIntC_mul_sign (isIntC_nat 1). Qed.
+
+Lemma isIntC_add x y : isIntC x -> isIntC y -> isIntC (x + y).
 Proof.
-rewrite !isIntCE oppr_add.
-case/orP; case/isNatCP=> n Hn; case/orP; case/isNatCP=> m Hm; rewrite !Hn !Hm.
-- by rewrite -natr_add isNatC_nat.
-- rewrite -[c2]opprK Hm.
-  case: (orP (leq_total n m))=> HH.
-    by rewrite [1 *- _ + _]addrC -natr_sub // isNatC_nat orbT.
-  by rewrite -natr_sub // isNatC_nat.
-- rewrite -[c1]opprK Hn.
-  case: (orP (leq_total n m))=> HH.
-    by rewrite [1 *- _ + _]addrC -[m%:R - _]natr_sub // isNatC_nat.
-  by rewrite -natr_sub // isNatC_nat orbT.
-by rewrite -natr_add isNatC_nat orbT.
+move=> /isIntCP[e [m ->]] /isIntCP[b [n ->]].
+without loss le_nm: e b m n / (n <= m)%N.
+  by move=> IH; case/orP: (leq_total n m) => /IH //; rewrite addrC.
+rewrite -(addKb e b) signr_addb -mulrA -mulr_addr isIntC_mul_sign mulr_sign.
+by case: ifP => _; rewrite -(natr_add, natr_sub) // isIntC_nat.
 Qed.
 
-Lemma isIntC_sub c1 c2 : isIntC c1 -> isIntC c2 -> isIntC (c1 - c2).
-Proof. by move=> Hc1 HC2; rewrite isIntC_add ?isIntC_opp. Qed.
+Lemma isIntC_sub x y : isIntC x -> isIntC y -> isIntC (x - y).
+Proof. by move=> Zx Zy; rewrite isIntC_add ?isIntC_opp. Qed.
 
-Lemma isIntC_mul c1 c2 : isIntC c1 -> isIntC c2 -> isIntC (c1 * c2).
+Lemma isIntC_mul x y : isIntC x -> isIntC y -> isIntC (x * y).
 Proof.
-rewrite 2!isIntCE.
-case/orP; case/isNatCP=> n Hn; case/orP; case/isNatCP=> m Hm; rewrite ?Hn ?Hm.
-- by rewrite -natr_mul isIntC_nat.
-- by rewrite -[c2]opprK Hm mulrN isIntC_opp // -natr_mul isIntC_nat.
-- by rewrite -[c1]opprK Hn mulNr isIntC_opp // -natr_mul isIntC_nat.
-by rewrite -mulrNN Hn Hm -natr_mul isIntC_nat.
+move=> /isIntCP[e [m ->]] /isIntCP[b [n ->]].
+by rewrite -mulrA isIntC_mul_sign mulrCA isIntC_mul_sign -natr_mul isIntC_nat.
 Qed.
+
+Lemma isIntC_exp x n : isIntC x -> isIntC (x ^+ n).
+Proof. by move=> Zx; elim: n => // n IHn; rewrite exprS isIntC_mul. Qed.
 
 Lemma isIntC_sum (I : Type) (r : seq I) (P : pred I) (F : I -> algC) :
-   (forall i, P i -> isIntC  (F i)) -> isIntC (\sum_(j <- r | P j) F j).
-Proof.
-by move=> H; apply big_ind=> //; [exact: (isIntC_nat 0) | exact: isIntC_add].
-Qed.
+   (forall i, P i -> isIntC (F i)) -> isIntC (\sum_(j <- r | P j) F j).
+Proof. by move=> Z_F; apply big_ind=> //; exact: isIntC_add. Qed.
 
 Lemma isIntC_conj c : isIntC c -> c^* = c.
-Proof.
-rewrite isIntCE; case/orP=> Hc; first exact: isNatC_conj.
-by rewrite -{1}[c]opprK rmorphN isNatC_conj // opprK.
-Qed.
+Proof. by case/isIntCP=> b [n ->]; rewrite rmorphM rmorph_sign rmorph_nat. Qed.
 
 Lemma isIntC_Real x : isIntC x -> isRealC x.
 Proof. by move/isIntC_conj/eqP. Qed.
@@ -858,34 +861,112 @@ Proof. by move/isIntC_Real/real_normCK. Qed.
 Lemma isIntC_signE x : isIntC x -> x = (-1) ^+ (x < 0)%C * `|x|.
 Proof. by move/isIntC_Real/real_signE. Qed.
 
-Lemma isIntC_mulr_sign n x : isIntC ((-1) ^+ n * x) = isIntC x.
-Proof. by rewrite -signr_odd mulr_sign fun_if isIntC_opp if_same. Qed.
-
-Lemma isIntC_sign n : isIntC ((-1) ^+ n).
-Proof. by rewrite -[_ ^+ _]mulr1 isIntC_mulr_sign (isIntC_nat 1). Qed.
-
 Lemma normIntC_Nat x : isIntC x -> isNatC `|x|.
 Proof.
-by rewrite isIntCE => /orP[]/eqP => [|/(canRL (@opprK _))] ->;
-  rewrite ?normC_opp normC_nat isNatC_nat.
+by case/isIntCP=> b [n ->]; rewrite normC_mul_sign normC_nat isNatC_nat.
 Qed.
+
+Lemma isIntC_pos x : 0 <= x -> isIntC x = isNatC x.
+Proof. by rewrite /isIntC /getIntC => ->; rewrite mul1r. Qed.
 
 Lemma isNatC_posInt x : isNatC x = isIntC x && (0 <= x).
 Proof.
-apply/idP/andP=> [Nx | [Zx x_ge0]]; first by rewrite (eqP Nx) isIntC_nat posC_nat.
-by rewrite (isIntC_signE Zx) mulr_sign leC_gtF // normIntC_Nat.
+by rewrite -(andb_idr (@posC_Nat x)); apply: andb_id2r => /isIntC_pos.
 Qed.
 
-Lemma isIntC_normC_ge1 a : isIntC a -> a != 0 -> 1 <= `|a|.
+Lemma isNatC_exp_even x n : ~~ odd n -> isIntC x -> isNatC (x ^+ n).
+Proof.
+rewrite -dvdn2 => /dvdnP[m ->] Zx; rewrite isNatC_posInt isIntC_exp //.
+by rewrite exprn_mulr -int_normCK ?isIntC_exp // posC_exp ?posC_norm.
+Qed.
+
+Lemma isIntC_normC_ge1 x : isIntC x -> x != 0 -> 1 <= `|x|.
 Proof.
 rewrite -normC_eq0; case/normIntC_Nat/isNatCP=> n ->.
 by rewrite -neq0N_neqC -lt0n leq_leC.
 Qed.
 
-Lemma isIntC_expr2_ge1 a : isIntC a -> a != 0 -> 1 <= a ^+ 2.
+Lemma isIntC_expr2_ge1 x : isIntC x -> x != 0 -> 1 <= x ^+ 2.
 Proof.
-by move=> aZ nz_a; rewrite -int_normCK // leC1exp ?posC_norm ?isIntC_normC_ge1.
+by move=> Zx nz_x; rewrite -int_normCK // leC1exp ?posC_norm ?isIntC_normC_ge1.
 Qed.
+
+Definition dvdC x y := if x == 0 then y == 0 else isIntC (y / x).
+Notation dvdNC n y := (dvdC n%:R y).
+
+Lemma dvdCP x y : reflect (exists2 z, isIntC z & y = z * x) (dvdC x y).
+Proof.
+rewrite /dvdC; have [-> | nz_x] := altP eqP.
+  by apply: (iffP eqP) => [-> | [z _ ->]]; first exists 0; rewrite ?mulr0.
+apply: (iffP idP) => [Zxp | [z Zz ->]]; last by rewrite mulfK.
+by exists (y / x); rewrite ?divfK.
+Qed.
+
+Lemma dvdCP_nat x y : 0 <= x -> 0 <= y -> dvdC x y -> {n | y = n%:R * x}.
+Proof.
+move=> x_ge0 y_ge0 x_dv_y; apply: sig_eqW.
+case/dvdCP: x_dv_y => z Zz -> in y_ge0 *; move: x_ge0 y_ge0 Zz.
+rewrite leC_eqVlt => /predU1P[<- | ]; first by exists 22; rewrite !mulr0.
+by move=> /posC_mull-> /isIntC_pos-> /isNatCP[n ->]; exists n.
+Qed.
+
+Lemma dvdC0 x : dvdC x 0.
+Proof. by rewrite /dvdC mul0r isIntC_0 eqxx if_same. Qed.
+
+Lemma dvd0C x : dvdC 0 x = (x == 0).
+Proof. by rewrite /dvdC eqxx. Qed.
+
+Lemma dvdC_opp x y : dvdC x (- y) = dvdC x y.
+Proof. by rewrite /dvdC mulNr isIntC_opp oppr_eq0. Qed.
+
+Lemma dvdC_mulrn p x : isIntC x -> dvdNC p (x *+ p).
+Proof. by move=> Zx; apply/dvdCP; exists x; rewrite ?mulr_natr ?IsIntC_nat. Qed.
+
+Lemma dvdC_mul_sign x e y : dvdC x ((-1) ^+ e * y) = dvdC x y.
+Proof. by rewrite -signr_odd mulr_sign fun_if dvdC_opp if_same. Qed.
+
+Lemma dvdC_nat p n : dvdNC p (n%:R) = (p %| n).
+Proof.
+rewrite /dvdC isIntC_pos ?posC_div ?posC_nat // -(eqN_eqC n 0) -dvd0n.
+have [|nz_p] := ifPn; first by rewrite -(eqN_eqC p 0) => /eqP->.
+apply/isNatCP/dvdnP=> [[q def_q] | [q ->]]; exists q.
+  by apply/eqP; rewrite eqN_eqC natr_mul -def_q divfK. 
+by rewrite natr_mul mulfK.
+Qed.
+
+Lemma dvdC_int p x : isIntC x -> dvdNC p x = (p %| getNatC `|x|).
+Proof.
+case/isIntCP=> e [n ->{x}]; rewrite dvdC_mul_sign {e}normC_mul_sign.
+by rewrite normC_nat getNatC_nat dvdC_nat.
+Qed.
+
+Lemma dvdC_add x y z : dvdC x y -> dvdC x z -> dvdC x (y + z).
+Proof.
+rewrite /dvdC; case: ifP => [_ /eqP-> | _ p_x p_y]; first by rewrite add0r.
+by rewrite mulr_addl isIntC_add.
+Qed.
+
+Lemma dvdC_addl x y z : dvdC x y -> dvdC x (y + z) = dvdC x z.
+Proof.
+move=> x_dv_y; apply/idP/idP; last exact: dvdC_add.
+by rewrite -{2}(addKr y z); apply: dvdC_add; rewrite dvdC_opp.
+Qed.
+
+Lemma dvdC_mull x y z : isIntC y -> dvdC x z -> dvdC x (y * z).
+Proof.
+move=> Zy /dvdCP[m Zm ->]; apply/dvdCP.
+by exists (y * m); rewrite ?mulrA ?isIntC_mul.
+Qed.
+
+Lemma dvdC_mulr x y z : isIntC y -> dvdC x z -> dvdC x (z * y).
+Proof. by rewrite mulrC; exact: dvdC_mull. Qed.
+
+Lemma dvdC_trans x y z : dvdC x y -> dvdC y z -> dvdC x z.
+Proof. by move=> x_dv_y /dvdCP[m Zm ->]; exact: dvdC_mull. Qed.
+
+Lemma dvdC_refl x : dvdC x x.
+Proof. by apply/dvdCP; exists 1; rewrite ?mul1r. Qed.
+Hint Resolve dvdC_refl.
 
 Section AutC.
 

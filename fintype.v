@@ -1482,6 +1482,23 @@ Proof. by move: enum_rankK enum_valK; exists (@enum_val T). Qed.
 Lemma enum_val_bij : bijective (@enum_val T).
 Proof. by move: enum_rankK enum_valK; exists enum_rank. Qed.
 
+(* Due to the limitations of the Coq unification patterns, P can only be      *)
+(* inferred from the premise of this lemma, not its conclusion. As a result   *)
+(* this lemma will only be usable in forward chaining style.                  *)
+Lemma fin_all_exists U (P : forall x : T, U x -> Prop) :
+  (forall x, exists u, P x u) -> (exists u, forall x, P x (u x)).
+Proof.
+move=> ex_u; pose Q m x := enum_rank x < m -> {ux | P x ux}.
+suffices: forall m, m <= #|T| -> exists w : forall x, Q m x, True.
+  case/(_ #|T|)=> // w _; pose u x := sval (w x (ltn_ord _)).
+  by exists u => x; rewrite {}/u; case: (w x _).
+elim=> [|m IHm] ltmX; first by have w x: Q 0 x by []; exists w.
+have{IHm} [w _] := IHm (ltnW ltmX); pose i := Ordinal ltmX.
+have [u Pu] := ex_u (enum_val i); suffices w' x: Q m.+1 x by exists w'.
+rewrite /Q ltnS leq_eqVlt (val_eqE _ i); case: eqP => [def_i _ | _ /w //].
+by rewrite -def_i enum_rankK in u Pu; exists u.
+Qed.
+
 End EnumRank.
 
 Implicit Arguments enum_val_inj [[T] [A] x1 x2].

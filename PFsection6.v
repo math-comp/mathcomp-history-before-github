@@ -62,7 +62,7 @@ by rewrite quo_IirrE // chi0_1 ?cfker_cfun1 ?cfQuo_cfun1.
 Qed.
 
 (* This is Peterfalvi (6.2). *)
-Lemma coherent_kerInd_bound (A B C D : {group gT}) :
+Lemma coherent_seqIndD_bound (A B C D : {group gT}) :
         [/\ A <| L, B <| L, C <| L & D <| L] ->
   (*a*) [/\ A \proper K, B \subset D, D \subset C, C \subset K
           & D / B \subset 'Z(C / B)]%g ->
@@ -100,8 +100,8 @@ have: [&& phi \in S1, psi \in calS & psi \notin S1].
   by rewrite mem_cat SAphi orbT (@sSS B).
 have /seqIndP[i /setDP[kBi _] def_psi] := SBpsi; rewrite inE in kBi.
 move/(extend_coherent scohS); apply; rewrite // {phi SAphi}phi1; split=> //.
-  by rewrite def_psi cfInd1 // mulrC mulKf ?neq0GiC ?isNatC_irr1.
-have Spos xi: xi \in calS -> 0 <= xi 1%g by move/seqInd1_Nat/posC_isNatC.
+  by rewrite def_psi cfInd1 // dvdC_mulr // isIntCE isNatC_irr1.
+have Spos xi: xi \in calS -> 0 <= xi 1%g by move/seqInd1_Nat/posC_Nat.
 rewrite big_cat sum_seqIndD_square //= ltC_sub -addrA sposC_addl //=.
   rewrite big_seq posC_sum // => xi S2xi.
   by rewrite !posC_mul ?posC_inv ?cfnorm_posC ?Spos ?sS1S // mem_cat S2xi.

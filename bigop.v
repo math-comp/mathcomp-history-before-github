@@ -1281,25 +1281,27 @@ Lemma pair_bigA (I J : finType) (F : I -> J -> R) :
   \big[*%M/1]_i \big[*%M/1]_j F i j = \big[*%M/1]_p F p.1 p.2.
 Proof. exact: pair_big_dep. Qed.
 
-Lemma exchange_big_dep (I J : finType) (P : pred I) (Q : I -> pred J)
+Lemma exchange_big_dep I J rI rJ (P : pred I) (Q : I -> pred J)
                        (xQ : pred J) F :
     (forall i j, P i -> Q i j -> xQ j) ->
-  \big[*%M/1]_(i | P i) \big[*%M/1]_(j | Q i j) F i j =
-    \big[*%M/1]_(j | xQ j) \big[*%M/1]_(i | P i && Q i j) F i j.
+  \big[*%M/1]_(i <- rI | P i) \big[*%M/1]_(j <- rJ | Q i j) F i j =
+    \big[*%M/1]_(j <- rJ | xQ j) \big[*%M/1]_(i <- rI | P i && Q i j) F i j.
 Proof.
 move=> PQxQ; pose p u := (u.2, u.1).
-rewrite !pair_big_dep (reindex_onto (p J I) (p I J)) => [|[//]].
-apply: eq_big => [] [j i] //=; symmetry; rewrite eq_refl andbC.
-case: (@andP (P i)) => //= [[]]; exact: PQxQ.
+rewrite (eq_bigr _ _ _ (fun _ _ => big_tnth _ _ rI _ _)) (big_tnth _ _ rJ).
+rewrite (eq_bigr _ _ _ (fun _ _ => (big_tnth _ _ rJ _ _))) big_tnth.
+rewrite !pair_big_dep (reindex_onto (p _ _) (p _ _)) => [|[]] //=.
+apply: eq_big => [] [j i] //=; symmetry; rewrite eqxx andbT andb_idl //.
+by case/andP; exact: PQxQ.
 Qed.
-Implicit Arguments exchange_big_dep [I J P Q F].
+Implicit Arguments exchange_big_dep [I J rI rJ P Q F].
 
-Lemma exchange_big  (I J : finType) (P : pred I) (Q : pred J) F :
-  \big[*%M/1]_(i | P i) \big[*%M/1]_(j | Q j) F i j =
-    \big[*%M/1]_(j | Q j) \big[*%M/1]_(i | P i) F i j.
+Lemma exchange_big I J rI rJ (P : pred I) (Q : pred J) F :
+  \big[*%M/1]_(i <- rI | P i) \big[*%M/1]_(j <- rJ | Q j) F i j =
+    \big[*%M/1]_(j <- rJ | Q j) \big[*%M/1]_(i <- rI | P i) F i j.
 Proof.
 rewrite (exchange_big_dep Q) //; apply: eq_bigr => i /= Qi.
-by apply: eq_bigl => j; rewrite [Q i]Qi andbT.
+by apply: eq_bigl => j; rewrite Qi andbT.
 Qed.
 
 Lemma exchange_big_dep_nat m1 n1 m2 n2 (P : pred nat) (Q : rel nat)
@@ -1309,15 +1311,11 @@ Lemma exchange_big_dep_nat m1 n1 m2 n2 (P : pred nat) (Q : rel nat)
     \big[*%M/1]_(m2 <= j < n2 | xQ j)
        \big[*%M/1]_(m1 <= i < n1 | P i && Q i j) F i j.
 Proof.
-move=> PQxQ; transitivity
-  (\big[*%M/1]_(i < n1 - m1| P (i + m1))
-    \big[*%M/1]_(j < n2 - m2 | Q (i + m1) (j + m2)) F (i + m1) (j + m2)).
-- rewrite -{1}[m1]add0n big_addn big_mkord; apply: eq_bigr => i _.
-  by rewrite -{1}[m2]add0n big_addn big_mkord.
-rewrite (exchange_big_dep (fun j: 'I__ => xQ (j + m2))) => [|i j]; last first.
-  by apply: PQxQ; rewrite leq_addl addnC -subn_gt0 -subn_sub subn_gt0 ltn_ord.
-symmetry; rewrite -{1}[m2]add0n big_addn big_mkord; apply: eq_bigr => j _.
-by rewrite -{1}[m1]add0n big_addn big_mkord.
+move=> PQxQ; rewrite (eq_bigr _ _ _ (fun _ _ => big_seq_cond _ _ _ _ _)).
+rewrite big_seq_cond /= (exchange_big_dep xQ) => [|i j]; last first.
+  by rewrite !mem_index_iota => /andP[mn_i Pi] /andP[mn_j /PQxQ->].
+rewrite 2!(big_seq_cond _ _ _ xQ); apply: eq_bigr => j /andP[-> _] /=.
+by rewrite [rhs in _ = rhs]big_seq_cond; apply: eq_bigl => i; rewrite -andbA.
 Qed.
 Implicit Arguments exchange_big_dep_nat [m1 n1 m2 n2 P Q F].
 
@@ -1326,7 +1324,7 @@ Lemma exchange_big_nat m1 n1 m2 n2 (P Q : pred nat) F :
     \big[*%M/1]_(m2 <= j < n2 | Q j) \big[*%M/1]_(m1 <= i < n1 | P i) F i j.
 Proof.
 rewrite (exchange_big_dep_nat Q) //.
-by apply: eq_bigr => i /= Qi; apply: eq_bigl => j; rewrite [Q i]Qi andbT.
+by apply: eq_bigr => i /= Qi; apply: eq_bigl => j; rewrite Qi andbT.
 Qed.
 
 End Abelian.
@@ -1378,7 +1376,7 @@ Implicit Arguments reindex [R op idx I J P F].
 Implicit Arguments reindex_inj [R op idx I h P F].
 Implicit Arguments pair_big_dep [R op idx I J].
 Implicit Arguments pair_big [R op idx I J].
-Implicit Arguments exchange_big_dep [R op idx I J P Q F].
+Implicit Arguments exchange_big_dep [R op idx I J rI rJ P Q F].
 Implicit Arguments exchange_big_dep_nat [R op idx m1 n1 m2 n2 P Q F].
 Implicit Arguments big_ord_recl [R op idx].
 Implicit Arguments big_ord_recr [R op idx].

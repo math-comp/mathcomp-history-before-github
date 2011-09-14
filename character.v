@@ -838,7 +838,7 @@ by rewrite isNatC_add ?isNatC_irr1.
 Qed.
 
 Lemma char1_pos chi : is_char chi -> 0 <= chi 1%g.
-Proof. by move/char1_Nat/posC_isNatC. Qed.
+Proof. by move/char1_Nat/posC_Nat. Qed.
 
 Lemma char1_eq0 chi : is_char chi -> (chi 1%g == 0) = (chi == 0).
 Proof.
@@ -1323,7 +1323,7 @@ move=> Nchi; apply/irrP/eqP=> [[i ->]|]; first by rewrite cfdot_irr eqxx.
 rewrite cfdot_sum_irr => /isNatC_sum_eq1[i _| i [_ ci1 cj0]].
   by rewrite isNatC_mul ?isNatC_conj ?cfdot_char_irr_Nat.
 exists i; rewrite [chi]cfun_sum_cfdot (bigD1 i) //=.
-rewrite -(normC_pos (posC_isNatC (cfdot_char_irr_Nat i Nchi))).
+rewrite -(normC_pos (posC_Nat (cfdot_char_irr_Nat i Nchi))).
 rewrite /normC {}ci1 sqrtC1 scale1r big1 ?addr0 // => j neq_ji.
 by rewrite (('[_] =P 0) _) ?scale0r // -normC_eq0 /normC cj0 ?sqrtC0.
 Qed.
@@ -1489,6 +1489,9 @@ Qed.
 Lemma cfConjC_irr i : (('chi_i)^*)%CF \in irr G.
 Proof. exact: cfAut_irr. Qed.
 
+Lemma irr_Aut_closed u : cfAut_closed u (irr G).
+Proof. move=> _ /irrP[i ->]; exact: cfAut_irr. Qed.
+
 Definition aut_Iirr u (B : {set gT}) := irr_Iirr (fun i => cfAut u 'chi[B]_i).
 
 Lemma aut_IirrE u i : 'chi[G]_(aut_Iirr u i) = cfAut u 'chi_i.
@@ -1515,7 +1518,7 @@ Lemma cfdot_Res_ge_constt (G H : {group gT}) i j psi :
   '['Res[H, G] 'chi_j, 'chi_i] <= '['Res[H] psi, 'chi_i].
 Proof.
 move=> {psi} _ /constt_charP[// | psi Npsi ->].
-rewrite linearD cfdotDl addrC -leC_sub addrK posC_isNatC //=.
+rewrite linearD cfdotDl addrC -leC_sub addrK posC_Nat //=.
 by rewrite cfdot_char_irr_Nat // cfRes_char.
 Qed.
 
@@ -1524,7 +1527,7 @@ Lemma constt_Res_trans (G H : {group gT}) j psi :
   {subset irr_constt ('Res[H, G] 'chi_j) <= irr_constt ('Res[H] psi)}.
 Proof.
 move=> Npsi Cj i; apply: contraNneq; rewrite eqC_leC => {1}<-.
-rewrite cfdot_Res_ge_constt ?posC_isNatC ?cfdot_char_irr_Nat //.
+rewrite cfdot_Res_ge_constt ?posC_Nat ?cfdot_char_irr_Nat //.
 by rewrite cfRes_char ?irr_char.
 Qed.
 
@@ -1648,7 +1651,7 @@ apply/eqP/bigcapP=> [Kx i Ci | Kx]; last first.
 rewrite cfker_irrE inE /= -(inj_eq (mulfI Ci)).
 have:= (normC_sum_upper _ Kx) i; rewrite !cfunE => -> // {i Ci} i _.
 have chi_i_ge0: 0 <= '[chi, 'chi_i].
-  by rewrite posC_isNatC ?cfdot_char_irr_Nat.
+  by rewrite posC_Nat ?cfdot_char_irr_Nat.
 by rewrite !cfunE normC_mul normC_pos ?leC_mul2l ?char1_ge_norm ?irr_char.
 Qed. 
 

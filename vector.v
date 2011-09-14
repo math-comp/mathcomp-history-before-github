@@ -1121,20 +1121,23 @@ Definition span (l : seq V) := (\sum_(i <- l) i%:VS)%VS.
 Lemma span_nil : span [::] = 0%:VS.
 Proof. by rewrite /span big_nil. Qed.
 
-Lemma span_seq1 v :  span [::v] = v%:VS.
+Lemma span_seq1 v :  span [:: v] = v%:VS.
 Proof. by rewrite /span big_cons big_nil addv0. Qed.
 
-Lemma span_cons v l : span (v::l) = (v%:VS + span l)%VS.
+Lemma span_cons v l : span (v :: l) = (v%:VS + span l)%VS.
 Proof. by rewrite /span big_cons. Qed.
 
 Lemma span_cat l1 l2 : span (l1 ++ l2) = (span l1 + span l2)%VS.
 Proof. by rewrite /span big_cat. Qed.
 
-Lemma memv_span l v :  v \in l -> v \in span l.
+Lemma memv_span l v : v \in l -> v \in span l.
 Proof.
 case/(nthP 0)=> i Hi <-; rewrite /span (big_nth 0) big_mkord.
 by apply: (@sumv_sup _ (Ordinal Hi)).
 Qed.
+
+Lemma memv_span1 v : v \in span [:: v].
+Proof. by rewrite memv_span ?mem_head. Qed.
 
 Lemma span_subset (l1 l2 : seq V) :
   {subset l1 <= l2} -> (span l1 <= span l2)%VS.
@@ -1256,9 +1259,7 @@ by move/eqP->; rewrite ltnn.
 Qed.
 
 Lemma freeP m (t : m.-tuple V) :  
-  reflect
-    (forall s, \sum_(i < m) s i *: t`_i =  0 -> s =1 fun _ => 0)
-     (free t).
+  reflect (forall s, \sum_(i < m) s i *: t`_i = 0 -> s =1 fun _ => 0) (free t).
 Proof.
 rewrite free_span_mx -kermx_eq0.
 apply: (iffP rowV0P)=> /= Hs.
@@ -1406,6 +1407,19 @@ rewrite( bigD1 (0:u)) // (bigD1 (1: u)) // big1 /s1 /=; last first.
   by case=> [[|[|m]]] //=; rewrite scale0r.
 rewrite addr0 (eqP HH) -scaler_addl subrr scale0r.
 by move/(_ (refl_equal _) 0); rewrite eqxx; move/eqP; rewrite oner_eq0.
+Qed.
+
+Lemma free_span l v (sum_l := fun c : V -> K => \sum_(u <- l) c u *: u) :
+    free l -> v \in span l ->
+  {c | v = sum_l c & forall d, v = sum_l d -> {in l, d =1 c}}.
+Proof.
+rewrite -{2}[l]/(tval (in_tuple l)) => free_l /coord_span def_v.
+pose c u := oapp (coord (in_tuple l) v) 0 (insub (index u l)).
+exists c => [|d {def_v}def_v _ /(nthP 0)[i lt_i_l <-]].
+  rewrite /sum_l (big_nth 0) big_mkord def_v; apply: eq_bigr => i _.
+  by rewrite /c index_uniq ?uniq_free // valK.
+rewrite /c /= index_uniq ?uniq_free // insubT //= def_v.
+by rewrite /sum_l (big_nth 0) big_mkord free_coords.
 Qed.
 
 Lemma linear_of_free (W : lmodType K) (B : seq V) (fB : seq W) :
