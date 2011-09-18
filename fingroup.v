@@ -42,8 +42,8 @@ Require Import div path bigop prime finset.
 (* FinGroup.sort gT.                                                          *)
 (*   The notations below are declared in two scopes:                          *)
 (*      group_scope (delimiter %g) for point operations and set constructs.   *)
-(*   Group_scope (delimiter %G) for explicit {group gT} structures.        *)
-(* These scopes should not be opened globally, athough group_scope is often   *)
+(*      Group_scope (delimiter %G) for explicit {group gT} structures.        *)
+(* These scopes should not be opened globally, although group_scope is often  *)
 (* opened locally in group-theory files (via Import GroupScope).              *)
 (*   As {group gT} is both a subtype and an interface structure for {set gT}, *)
 (* the fact that a given G : {set gT} is a group can (and usually should) be  *)
@@ -2697,6 +2697,12 @@ Proof.
 by case/andP=> sAG ? /andP[sBG ?]; rewrite /normal join_subG sAG sBG ?normsY.
 Qed.
 
+Lemma normalYl G H : (H <| H <*> G) = (G \subset 'N(H)).
+Proof. by rewrite /normal joing_subl join_subG normG. Qed.
+
+Lemma normalYr G H : (H <| G <*> H) = (G \subset 'N(H)).
+Proof. by rewrite joingC normalYl. Qed.
+
 Lemma normalI G A B : A <| G -> B <| G -> A :&: B <| G.
 Proof.
 by case/andP=> sAG nAG /andP[_ nBG]; rewrite /normal subIset ?sAG // normsI.
@@ -2713,11 +2719,8 @@ Qed.
 Lemma normal_subnorm G H : (H <| 'N_G(H)) = (H \subset G).
 Proof. by rewrite /normal subsetIr subsetI normG !andbT. Qed.
 
-Lemma normalYl G H : (H <| H <*> G) = (G \subset 'N(H)).
-Proof. by rewrite /normal joing_subl join_subG normG. Qed.
-
-Lemma normalYr G H : (H <| G <*> H) = (G \subset 'N(H)).
-Proof. by rewrite joingC normalYl. Qed.
+Lemma normalD1 A G : (A^# <| G) = (A <| G).
+Proof. by rewrite /normal normD1 subDset (setUidPr (sub1G G)). Qed.
 
 Lemma gcore_sub A G : gcore A G \subset A.
 Proof. by rewrite (bigcap_min 1) ?conjsg1. Qed.

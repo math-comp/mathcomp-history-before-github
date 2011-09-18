@@ -299,6 +299,9 @@ Proof. by rewrite eqEsubset sub0set andbT. Qed.
 Lemma proper0 A : (set0 \proper A) = (A != set0).
 Proof. by rewrite properE sub0set subset0. Qed.
 
+Lemma subset_neq0 A B : A \subset B -> A != set0 -> B != set0.
+Proof. by rewrite -!proper0 => sAB /proper_sub_trans->. Qed.
+
 Lemma set_0Vmem A : (A = set0) + {x : T | x \in A}.
 Proof.
 case: (pickP (mem A)) => [x Ax | A0]; [by right; exists x | left].

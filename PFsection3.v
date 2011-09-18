@@ -182,7 +182,7 @@ move=> Di Dj Di' Dj'.
 rewrite cfdot_subr cfdot_bcTIirr_1 // subr0.
 rewrite cfdot_subl (cfdotC 1) cfdot_Ind_acTIirr_1 // rmorph1.
 have nTi: normedTI (W :\: (W1 :|: W2)) G W by case: tiW.
-rewrite (Frobenius_isometry _ nTi) ?memc_acTIirr //.
+rewrite (normedTI_isometry _ nTi) ?memc_acTIirr //.
 rewrite (acTIirrE i') cfdotDr !cfdot_subr cfdot_acTIirr00 //.
 rewrite addrC -!addrA addKr acTIirrE -cTIirr00 !(cfdot_subl, cfdotDl).
 rewrite !cfdot_cTIirr !eqxx !(eq_sym 0) !andbT.

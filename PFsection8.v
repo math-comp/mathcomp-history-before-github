@@ -17,7 +17,7 @@ Require Import PFsection1 PFsection2 PFsection3 PFsection5.
 (* proof, as the B & G text has been adapted to fit the usage in Section 8.   *)
 (* Most of the definitions of Peterfalvi Section 8 are covered in BGsection7, *)
 (* BGsection15 and BGsection16; we only give here:                            *)
-(*   FT_Pstructure W W1 W2 S T <-> the groups W, W1, W2 S and T satisfy the   *)
+(*   FT_Pstructure W W1 W2 S T <-> the groups W, W1, W2, S, and T satisfy the *)
 (*                    conclusion of Theorem (8.8)(b), in particular,          *)
 (*                    W = W1 \x W2, S = S^(1) ><| W1, T = T^`(1) ><| W2, and  *)
 (*                    both S and T are of type P.                             *)
@@ -556,8 +556,7 @@ Qed.
 (* We have substituted the B & G notation for the unique maximal supergroup   *)
 (* of 'C[x], and specialized the lemma to X := 'A0(M).                        *)
 Lemma FTsupport_facts (X := 'A0(M)) (D := [set x \in X | ~~('C[x] \subset M)]) :
-  [/\ (*a*) {in X, forall x a,
-              x ^ a \in X -> exists2 y, y \in M & x ^ a = x ^ y},
+  [/\ (*a*) {in X &, forall x, {subset x ^: G <= x ^: M}},
       (*b*) D \subset 'A1(M) /\ {in D, forall x, 'M('C[x]) = [set 'N[x]]}
     & (*c*) {in D, forall x (L := 'N[x]) (H := L`_\F),
         [/\ (*c1*) H ><| (M :&: L) = L /\ 'C_H[x] ><| 'C_M[x] = 'C[x],
@@ -569,6 +568,9 @@ Lemma FTsupport_facts (X := 'A0(M)) (D := [set x \in X | ~~('C[x] \subset M)]) :
 Proof.
 have defX: X \in pred2 'A(M) 'A0(M) by rewrite !inE eqxx orbT.
 have [sDA1 part_a part_c] := BGsummaryII maxM defX.
+have{part_a} part_a: {in X &, forall x, {subset x ^: G <= x ^: M}}.
+  move=> x y A0x A0y /= /imsetP[g Gg def_y]; rewrite def_y.
+  by apply/imsetP/part_a; rewrite -?def_y.
 do [split=> //; first split=> //] => x /part_c[_ []] //.
 rewrite -(mem_iota 1) !inE => -> [-> ? -> -> L2_frob].
 by do 2![split=> //] => /L2_frob[U]; exists U.
@@ -601,18 +603,27 @@ rewrite /'R__ /= {1}cent1J conjSg; case: ifP => _ /=; first by rewrite conjs1g.
 by rewrite cent1J FT_signalizer_baseJ FcoreJ -conjIg.
 Qed.
 
-(* This is Peterfalvi (8.15), second assertion. *)
-Lemma FT_Dade0_hyp : Dade_hypothesis G M 'R_M 'A0(M).
+Let is_FTsignalizer : is_Dade_signalizer G M 'A0(M) 'R_M.
 Proof.
-rewrite /'R_M; have [part_a _ parts_bc] := FTsupport_facts.
-split; rewrite ?FTsupp0_sub ?norm_FTsupp0 ?setTI // => x *; first exact: part_a.
-  rewrite setTI.
-  case: ifPn => [sCxM | not_sCxM]; first by rewrite sdprod1g (setIidPr sCxM).
-  by have [| [] //] := parts_bc x; exact/setIdP.
-case: ifPn => [_ | not_sCxM]; first by rewrite cards1 coprime1n.
+rewrite /'R_M => x A0x /=; rewrite setTI.
+case: ifPn => [sCxM | not_sCxM]; first by rewrite sdprod1g (setIidPr sCxM).
+by have [_ _ /(_ x)[| [] //]] := FTsupport_facts; exact/setIdP.
+Qed.
+
+(* This is Peterfalvi (8.15), second assertion. *)
+Lemma FT_Dade0_hyp : Dade_hypothesis G M 'A0(M).
+Proof.
+have [part_a _ parts_bc] := FTsupport_facts.
+have /subsetD1P[sA0M notA0_1] := FTsupp0_sub M.
+split; rewrite // /normal ?sA0M ?norm_FTsupp0 //=.
+exists 'R_M => [|x y A0x A0y]; first exact: is_FTsignalizer.
+rewrite /'R_M; case: ifPn => [_ | not_sCxM]; first by rewrite cards1 coprime1n.
 rewrite (coprimeSg (subsetIl _ _)) //=.
 by have [| _ -> //] := parts_bc x; exact/setIdP.
 Qed.
+
+Lemma def_FTsignalizer : {in 'A0(M), Dade_signalizer FT_Dade0_hyp =1 'R_M}.
+Proof. exact: def_Dade_signalizer. Qed.
 
 Definition FT_Dade_hyp :=
   restr_Dade_hyp FT_Dade0_hyp (FTsupp_sub M) (FTsupp_norm M).
@@ -621,10 +632,16 @@ Definition FT_Dade1_hyp :=
   restr_Dade_hyp FT_Dade0_hyp (FTsupp1_sub0 maxM) (FTsupp1_norm M).
 
 Lemma FT_Dade1_supportE : Dade_support FT_Dade1_hyp = 'A1~(M).
-Proof. by []. Qed.
+Proof.
+rewrite restr_Dade_support; apply: eq_bigr => x A1x.
+by rewrite /Dade_support1 def_FTsignalizer // (subsetP (FTsupp1_sub0 maxM)).
+Qed.
 
 Lemma FT_Dade_supportE : Dade_support FT_Dade_hyp = 'A~(M).
-Proof. by []. Qed.
+Proof.
+rewrite restr_Dade_support; apply: eq_bigr => x Ax.
+by rewrite /Dade_support1 def_FTsignalizer // inE Ax.
+Qed.
 
 Lemma FT_Dade1_supportJ x : 'A1~(M :^ x) = 'A1~(M).
 Proof.
@@ -650,38 +667,35 @@ Lemma FTtypeII_ker_TI :
  [/\ normedTI 'A0(M) G M, normedTI 'A(M) G M & normedTI 'A1(M) G M].
 Proof.
 move=> typeM; have [sA1A sAA0] := (FTsupp1_sub maxM, FTsupp_sub M).
+have [sA10 sA0M] := (subset_trans sA1A sAA0, FTsupp0_sub M).
 have neA1: 'A1(M) != set0 by rewrite setD_eq0 def_FTcore ?subG1 ?Msigma_neq1.
 have neA: 'A(M) != set0 by apply: contraNneq neA1; rewrite -subset0 => <-.
+suffices nTI_A0: normedTI 'A0(M) G M.
+  by rewrite nTI_A0 !(normedTI_S _ _ _ nTI_A0) // ?FTsupp_norm ?FTsupp1_norm.
 have neA0: 'A0(M) != set0 by apply: contraNneq neA; rewrite -subset0 => <-.
-have sA0M := FTsupp0_sub M; have ddH := FT_Dade0_hyp.
+have sA0G1: 'A0(M) \subset G^# by exact: subset_trans (setSD _ (subsetT M)).  
 have [U [W1 [[typeM_P _ _ tiFM] _ _ _ _]]] := FTtypeP 2 maxM typeM.
-have R1: {in 'A0(M), forall x, 'R_M x :=: 1%g}.
-  rewrite /'R_M => x A0x /=; have [// | not_sCxM] := ifPn.
-  have [y cxy /negP[]] := subsetPn not_sCxM.
-  have /setD1P[ntx Ms_x]: x \in 'A1(M).
-    by have [_ [/subsetP-> // ]] := FTsupport_facts; exact/setIdP.
-  have Fx: x \in 'F(M)^#.
-    rewrite !inE ntx (subsetP (Fcore_sub_Fitting M)) //.
-    by rewrite (Fcore_eq_FTcore _ _) ?(eqP typeM).
-  rewrite -(mmax_normal maxM (Fitting_normal M)) //; last first.
-    by rewrite -subG1 -setD_eq0; apply/set0Pn; exists x.
-  rewrite -normD1 (sameP normP eqP); apply: wlog_neg => /(trivIsetP tiFM).
-  rewrite  mem_orbit ?orbit_refl // => /(_ isT isT) /pred0Pn[].
-  by exists x; rewrite /= mem_conjg /conjg mulgA invgK (cent1P cxy) mulgK Fx.
-have n1A0: 'A0(M) \subset G^# by exact: subset_trans (setSD _ (subsetT M)).
-have sA10 := subset_trans sA1A sAA0.
-have [n1A1 n1A] := (subset_trans sA10 n1A0, subset_trans sAA0 n1A0).
-split; apply/(Dade_TI_P _ _ _ (sub_in1 (subsetP _) R1)) => //.
-  exact: FT_Dade_hyp.
-exact: FT_Dade1_hyp.
+apply/Dade_normedTI_P=> //; exists FT_Dade0_hyp => x A0x.
+rewrite /= def_FTsignalizer /'R_M //=; have [// | not_sCxM] := ifPn.
+have [y cxy /negP[]] := subsetPn not_sCxM.
+have /setD1P[ntx Ms_x]: x \in 'A1(M).
+  by have [_ [/subsetP-> // ]] := FTsupport_facts; exact/setIdP.
+have Fx: x \in 'F(M)^#.
+  rewrite !inE ntx (subsetP (Fcore_sub_Fitting M)) //.
+  by rewrite (Fcore_eq_FTcore _ _) ?(eqP typeM).
+rewrite -(mmax_normal maxM (Fitting_normal M)) //; last first.
+  by rewrite -subG1 -setD_eq0; apply/set0Pn; exists x.
+rewrite -normD1 (sameP normP eqP); apply: wlog_neg => /(trivIsetP tiFM).
+rewrite  mem_orbit ?orbit_refl // => /(_ isT isT) /pred0Pn[].
+by exists x; rewrite /= mem_conjg /conjg mulgA invgK (cent1P cxy) mulgK Fx.
 Qed.
 
 End OneMaximal.
 
 (* This is Peterfalvi, Theorem (8.17). *)
 Theorem FT_Dade_support_partition :
-  [/\ (*a1*) \pi(G) =i [pred p |
-                existsb M : {group gT}, (M \in 'M) && (p \in \pi(M`_\s))],
+  [/\ (*a1*) \pi(G) =i [pred p | existsb M : {group gT},
+                                 (M \in 'M) && (p \in \pi(M`_\s))],
       (*a2*) {in 'M &, forall M L,
                 gval L \notin M :^: G -> coprime #|M`_\s| #|L`_\s| },
       (*b*) {in 'M, forall M, #|'A1~(M)| = (#|M`_\s|.-1 * #|G : M|)%N}
@@ -840,9 +854,10 @@ have part_b S T (maxS : S \in 'M) (maxT : T \in 'M) (ncST : NC S T) :
   exists z^-1%g; rewrite part_a1 ?mmaxJ //; last first.
     by rewrite /NC (orbit_transr _ (mem_orbit _ _ _)) ?inE.
   apply/pred0Pn; exists x1; rewrite /= A1Sx1 FTsuppJ mem_conjgV; apply/bigcupP.
-  have [sA1S _ _ /(_ _ A1Sx1)defCx1 /(_ _ _ A1Sx1 A1Sx1)] := FT_Dade1_hyp maxS.
-  rewrite coprime_pi' // => coHS.
-  have /setD1P[ntx1 Sx1] := subsetP sA1S _ A1Sx1.
+  pose ddS := FT_Dade1_hyp maxS; have [/andP[sA1S _] _ notA1_1 _ _] := ddS.
+  have [ntx1 Sx1] := (memPn notA1_1 _ A1Sx1, subsetP sA1S _ A1Sx1).
+  have [coHS defCx1] := (Dade_coprime ddS A1Sx1 A1Sx1, Dade_sdprod ddS A1Sx1).
+  rewrite (restr_Dade_signalizer _ _ (def_FTsignalizer maxS)) // in coHS defCx1.
   have[u Ts_u /setD1P[_ cT'ux2]] := bigcupP ATx2.
   exists u => {Ts_u}//; rewrite 2!inE -(conj1g z) (can_eq (conjgK z)) ntx1.
   suffices{u cT'ux2} ->: x1 = (y * x1).`_(\pi('R_S x1)^').
@@ -850,7 +865,8 @@ have part_b S T (maxS : S \in 'M) (maxT : T \in 'M) (ncST : NC S T) :
   have /setIP[_ /cent1P cx1y]: y \in 'C_G[x1].
     by case/sdprod_context: defCx1 => /andP[/subsetP->].
   rewrite consttM // (constt1P _) ?p_eltNK ?(mem_p_elt (pgroup_pi _)) // mul1g.
-  by rewrite constt_p_elt // (mem_p_elt coHS) // inE Sx1 cent1id.
+  have piR'_Cx1: \pi('R_S x1)^'.-group 'C_S[x1] by rewrite coprime_pi' in coHS.
+  by rewrite constt_p_elt ?(mem_p_elt piR'_Cx1) // inE Sx1 cent1id.
 move=> S T maxS maxT ncST; split; first split; auto.
 apply/orP/idPn; rewrite negb_or -part_b // => /andP[suppST /negP[]].
 without loss{suppST} suppST: T maxT ncST / FTsupports S T.

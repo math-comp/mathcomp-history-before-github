@@ -11,6 +11,9 @@ Require Import PFsection1 PFsection2 PFsection4 PFsection5 PFsection6.
 (* This file covers Peterfalvi, Section 7:                                    *)
 (* Non-existence of a Certain Type of Group of Odd Order                      *)
 (* Defined here:                                                              *)
+(*    inDade ddA == the right inverse to the Dade isometry with respect to G, *)
+(*                  L, A, given ddA : Dade_hypothesis G L A.                  *)
+(*      phi^\rho == locally-bindable Notation for invDade ddA phi.            *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -30,21 +33,22 @@ Implicit Types (L H P : {group gT}) (DH : gT -> {group gT}).
 (* Properties of the inverse to the Dade isometry (Peterfalvi (7.1) to (7.3). *)
 Section InverseDade.
 
-Variables (A : {set gT}) (L : {group gT}) (DH : gT -> {group gT}).
-Hypothesis ddA : Dade_hypothesis G L DH A.
+Variables (A : {set gT}) (L : {group gT}).
+Hypothesis ddA : Dade_hypothesis G L A.
 
 Local Notation "alpha ^\tau" := (Dade ddA alpha).
 Local Notation Atau := (Dade_support ddA).
+Local Notation H := (Dade_signalizer ddA).
 
-Let sAL : A \subset L. Proof. by have [/subsetD1P[]] := ddA. Qed.
-Let nAL : L \subset 'N(A). Proof. by have [_ /subsetIP[]] := ddA. Qed.
-Let sLG : L \subset G. Proof. by have [_ /subsetIP[]] := ddA. Qed.
-Let nsAL : A <| L. Proof. exact/andP. Qed.
+Let nsAL : A <| L. Proof. by have [] := ddA. Qed.
+Let sAL : A \subset L. Proof. exact: normal_sub nsAL. Qed.
+Let nAL : L \subset 'N(A). Proof. by exact: normal_norm nsAL. Qed.
+Let sLG : L \subset G. Proof. by have [] := ddA. Qed.
 
 (* This is the Definition embedded in Peterfalvi, Hypothesis (7.1). *)
 Fact invDade_subproof (chi : 'CF(G)) :
   is_class_fun <<L>>
-    [ffun a => #|DH a|%:R^-1 * (\sum_(x \in DH a) chi (x * a)%g) *+ (a \in A)].
+    [ffun a => #|H a|%:R^-1 * (\sum_(x \in H a) chi (x * a)%g) *+ (a \in A)].
 Proof.
 rewrite genGid; apply: intro_class_fun => [x y Lx Ly | x notLx]; last first.
   by rewrite (contraNF (subsetP sAL x)).
@@ -74,7 +78,7 @@ Proof.
 apply/cfunP=> x; rewrite cfuniE // cfunElock mulrb; case: ifP => //= Ax.
 apply: canLR (mulKf (neq0GC _)) _; rewrite mulr1 -sumr_const.
 apply: eq_bigr => u Hu; rewrite cfun1E (subsetP (subsetIl G 'C[x])) //.
-case: ddA => _ _ _ /(_ x Ax)/sdprodP[_ <- _ _ _].
+have /sdprodP[_ <- _ _] := Dade_sdprod ddA Ax.
 by rewrite mem_mulg // inE cent1id (subsetP sAL).
 Qed.
 
@@ -112,15 +116,15 @@ Qed.
 (* This is Peterfalvi (7.3). *)
 Lemma leC_cfnorm_invDade_support chi :
   '[chi^\rho] <= #|G|%:R^-1 * (\sum_(g \in Atau) `|chi g| ^+ 2)
-     ?= iff (forallb a, (a \in A) ==> (forallb u, (u \in DH a) ==>
+     ?= iff (forallb a, (a \in A) ==> (forallb u, (u \in H a) ==>
                         (chi (u * a)%g == chi a))).
 Proof.
-have nsAtauG: Atau <| G by rewrite /normal Dade_support_sub ?Dade_support_norm.
+have nsAtauG: Atau <| G := Dade_support_normal ddA.
 pose chi1 := chi * '1_Atau; set RHS := _ * _.
-have inA1 a x: a \in A -> x \in DH a -> (x * a)%g \in Dade_support1 ddA a.
-  by move=> Aa DHx; rewrite (subsetP (sub_class_support _ _)) ?mem_mulg ?set11.
-have chi1E a x: a \in A -> x \in DH a -> chi1 (x * a)%g = chi (x * a)%g.
-  move=> Aa DHx; rewrite cfunE cfuniE // mulr_natr mulrb.
+have inA1 a x: a \in A -> x \in H a -> (x * a)%g \in Dade_support1 ddA a.
+  by move=> Aa Hx; rewrite (subsetP (sub_class_support _ _)) ?mem_mulg ?set11.
+have chi1E a x: a \in A -> x \in H a -> chi1 (x * a)%g = chi (x * a)%g.
+  move=> Aa Hx; rewrite cfunE cfuniE // mulr_natr mulrb.
   by case: bigcupP => // [[]]; exists a; rewrite ?inA1.
 have ->: chi^\rho = chi1^\rho.
   apply/cfunP => a; rewrite !cfunElock !mulrb; case: ifP => // Aa.
@@ -136,9 +140,9 @@ apply/eqP/forall_inP=> [chi1_id a Aa | chi_id].
   by rewrite (DadeE _ Aa) ?inA1 ?Dade_id.
 apply/cfunP => g; rewrite cfunE cfuniE // mulr_natr mulrb.
 case: ifPn => [/bigcupP[a Aa] | /(cfun_onP (Dade_cfunS _ _))-> //].
-case/imset2P=> _ z /rcosetP[x DHx ->] Gz ->{g}; rewrite !cfunJ {z Gz}//.
+case/imset2P=> _ z /rcosetP[x Hx ->] Gz ->{g}; rewrite !cfunJ {z Gz}//.
 have{chi_id} chi_id := eqP (forall_inP (chi_id a Aa) _ _).
-rewrite chi_id // (DadeE _ Aa) ?inA1 {x DHx}// cfunElock mulrb Aa.
+rewrite chi_id // (DadeE _ Aa) ?inA1 {x Hx}// cfunElock mulrb Aa.
 apply: canRL (mulKf (neq0GC _)) _; rewrite mulr_natl -sumr_const.
 by apply: eq_bigr => x Hx; rewrite chi1E ?chi_id.
 Qed.
@@ -155,25 +159,17 @@ Section DadeCoverInequality.
 
 (* These declarations correspond to Peterfalvi, Hypothesis (7.4); as it is    *)
 (* only instantiated twice after this section we leave it unbundled.          *)
-Variables (I : finType) (L : I -> {group gT}).
-Variables (DH : I -> gT -> {group gT}) (A : I -> {set gT}).
+Variables (I : finType) (L : I -> {group gT}) (A : I -> {set gT}).
+Hypothesis ddA : forall i : I, Dade_hypothesis G (L i) (A i).
 
-Hypothesis ddA : forall i : I, Dade_hypothesis G (L i) (DH i) (A i).
 Local Notation Atau i := (Dade_support (ddA i)).
+Local Notation "alpha ^\rho" := (invDade (ddA _) alpha).
 Hypothesis disjointA : forall i j, i != j -> [disjoint Atau i & Atau j].
 
-Let G0 := G :\: \bigcup_i Atau i.
-
-Local Notation "alpha ^\tau_ i" := (Dade (ddA i) alpha)
-  (at level 2, format "alpha ^\tau_ i").
-
-Local Notation "alpha ^\rho_ i" := (invDade (ddA i) alpha)
-  (at level 2, format "alpha ^\rho_ i").
-
 (* This is Peterfalvi (7.5). *)
-Lemma Dade_cover_inequality r (chi := 'chi_r) :
+Lemma Dade_cover_inequality r (chi := 'chi_r) (G0 := G :\: \bigcup_i Atau i) :
   #|G|%:R^-1 * (\sum_(g \in G0) `|chi g| ^+ 2 - #|G0|%:R)
-    + \sum_i ('[chi^\rho_i] - #|A i|%:R / #|L i|%:R) <= 0.
+    + \sum_i ('[chi^\rho]_(L i) - #|A i|%:R / #|L i|%:R) <= 0.
 Proof.
 set vG := _^-1; rewrite sumr_sub /= addrCA mulr_subr -addrA.
 pose F t (B : {set gT}) := vG * \sum_(g \in B) `|'chi[G]_t g| ^+ 2.
@@ -184,11 +180,10 @@ have sumF t: F t G0 + \sum_i F t (Atau i) = 1.
   by rewrite -(setIidPr sUG) addrC -big_setID.
 have ->: \sum_i #|A i|%:R / #|L i|%:R = \sum_i F 0 (Atau i).
   apply: eq_bigr => i _; apply/eqP; rewrite /F chi0_1.
-  have [/subsetD1P[sAL _] /subsetIP[_ nAL] _ defCA _] := ddA i.
+  have [[/andP[sAL nAL] _ _ _ _] sHG] := (ddA i, Dade_signalizer_sub (ddA i)).
   rewrite -{1}[A i]setIid -cfdot_cfuni /normal ?sAL // -(invDade_cfun1 (ddA i)).
   rewrite leC_cfnorm_invDade_support; apply/forall_inP=> a Aa.
-  have /sdprodP[_ /mulG_sub[/subsetIP[sHG _] _] _ _] := defCA a Aa.
-  by apply/forall_inP=> x Hx; rewrite !cfun1E groupMl // (subsetP sHG).
+  by apply/forall_inP=> x Hx; rewrite !cfun1E groupMl // (subsetP (sHG a)).
 have ->: vG * #|G0|%:R = F 0 G0.
   congr (_ * _); rewrite -sumr_const; apply: eq_bigr => x /setDP[Gx _].
   by rewrite chi0_1 cfun1E Gx normC1 exp1rn.
@@ -202,9 +197,9 @@ End DadeCoverInequality.
 Section Dade_seqIndC1.
 
 (* In this section, A = H^# with H <| L. *)
-Variables (L H : {group gT}) (DH : gT -> {group gT}).
+Variables L H : {group gT}.
 Let A := H^#.
-Hypothesis ddA : Dade_hypothesis G L DH A.
+Hypothesis ddA : Dade_hypothesis G L A.
 
 Local Notation Atau := (Dade_support ddA).
 Local Notation "alpha ^\tau" := (Dade ddA alpha).
@@ -218,15 +213,9 @@ Let uniqS : uniq calS := seqInd_uniq _ _.
 Let h := #|H|%:R : algC.
 Let e := #|L : H|%:R : algC.
 
-Let sAL : A \subset L. Proof. by have [/subsetD1P[]] := ddA. Qed.
-Let nAL : L \subset 'N(A). Proof. by have [_ /subsetIP[]] := ddA. Qed.
-Let nsAL : A <| L. Proof. exact/andP. Qed.
-Let sLG : L \subset G. Proof. by have [_ /subsetIP[]] := ddA. Qed.
-
-Lemma Frobenius_Dade_kernel_normal : H <| L.
-Proof. by rewrite /normal -{1}(setD1K (group1 H)) subUset sub1G -normD1. Qed.
-
-Let nsHL := Frobenius_Dade_kernel_normal.
+Let nsAL : A <| L. Proof. by have [] := ddA. Qed.
+Let sLG : L \subset G. Proof. by have [] := ddA. Qed.
+Let nsHL : H <| L. Proof. by rewrite -normalD1. Qed.
 Let sHL := normal_sub nsHL.
 Let nHL := normal_norm nsHL.
 
@@ -501,12 +490,12 @@ Qed.
 
 Section DisjointDadeOrtho.
 
-Variables (L1 L2 H1 H2 : {group gT}) (DH1 DH2 : gT -> {group gT}).
+Variables (L1 L2 H1 H2 : {group gT}).
 Let A1 := H1^#.
 Let A2 := H2^#.
 
-Hypothesis ddA1 : Dade_hypothesis G L1 DH1 A1.
-Hypothesis ddA2 : Dade_hypothesis G L2 DH2 A2.
+Hypothesis ddA1 : Dade_hypothesis G L1 A1.
+Hypothesis ddA2 : Dade_hypothesis G L2 A2.
 Let Atau1 := Dade_support ddA1.
 Let tau1 := Dade ddA1.
 Let Atau2 := Dade_support ddA2.
@@ -520,11 +509,8 @@ rewrite (cfdot_complement (Dade_cfunS _ _)) ?(cfun_onS _ (Dade_cfunS _ _)) //.
 by rewrite subsetD disjoint_sym Dade_support_sub.
 Qed.
 
-Let odd_Dade_context L H DH : Dade_hypothesis G L DH H^# -> H <| L /\ odd #|L|.
-Proof.
-move=> ddA; have [_ /subsetIP[sLG _] _ _ _] := ddA.
-by split; [exact: Frobenius_Dade_kernel_normal ddA | exact: oddSg sLG oddG].
-Qed.
+Let odd_Dade_context L H : Dade_hypothesis G L H^# -> H <| L /\ odd #|L|.
+Proof. by case=> nsAL sLG _ _ _; rewrite -normalD1 (oddSg sLG). Qed.
 
 (* This lemma encapsulates most uses of lemma (4.1) in the rest of the proof. *)
 Lemma disjoint_coherent_ortho P1 P2 nu1 nu2 i1 i2 :
@@ -548,43 +534,38 @@ rewrite -!raddf_sub !(nu1tau, nu2tau) ?seqInd_sub_Aut_vchar //.
 by rewrite !Dade1 disjoint_Dade_ortho !eqxx.
 Qed.
 
-Let beta_ L H DH ddA zeta := @Dade _ G L DH H^# ddA ('Ind[L, H] 1 - zeta).
-Let Delta_ L H DH ddA nu zeta := @beta_ L H DH ddA zeta + nu zeta.
-
-(* Note that the Delta here corresponds to Delta - 1 in Petrfalvi (7.1).      *)
-Let Delta_context L H DH (A := H^#) (ddA : Dade_hypothesis G L DH A) nu r :
-    let S := seqIndD H L H 1 in let tau := Dade ddA in let zeta := 'chi_r in
-    coherent_with S A tau nu -> zeta \in S -> zeta 1%g = #|L : H|%:R ->
-  let Delta := Delta_ ddA nu zeta in
-  '[Delta, 1] = 1 /\ Delta \in 'Z[irr G] /\ cfReal Delta.
-Proof.
-move=> S tau zeta cohS Szeta zeta1 Delta.
-have [[nsHL oddL] [[_ Znu] nu_tau]] := (odd_Dade_context ddA, cohS).
-have ntS: (size S > 1)%N by exact: seqInd_nontrivial Szeta.
-have [[nuS1_0 beta1_1 Zbeta] _ _] := Dade_Ind1_sub_lin cohS ntS Szeta zeta1.
-rewrite cfdotDl {}beta1_1 {nuS1_0}(orthoPr nuS1_0) ?map_f // addr0.
-rewrite add_vchar ?{}Znu ?seqInd_vcharW {Zbeta}//; split=> //.
-rewrite /cfReal rmorphD /= -subr_eq0 oppr_add addrAC addrA -addrA addr_eq0.
-rewrite (cfConjC_Dade_coherent cohS) //; last exact: vcharD1_seqInd.
-rewrite oppr_add opprK Dade_conjC -!raddf_sub nu_tau ?seqInd_sub_Aut_vchar //=.
-by rewrite rmorph_sub /= conj_cfInd cfConjC1 oppr_sub addrC addrA subrK.
-Qed.
-
 (* This is Peterfalvi (7.9). *)
 (* We have inlined Hypothesis (7.4) because although it is readily available  *)
 (* for the proof of (7.10), it would be inconvenient to establish in (14.4).  *)
+(* Note that our Delta corresponds to Delta - 1 in the Peterfalvi proof.      *)
+Let beta L H ddA zeta := @Dade _ G L H^# ddA ('Ind[L, H] 1 - zeta).
 Lemma Dade_sub_lin_nonorthogonal nu1 nu2 i1 i2 :
     let S1 := seqIndD H1 L1 H1 1 in let S2 := seqIndD H2 L2 H2 1 in
     coherent_with S1 A1 tau1 nu1 -> coherent_with S2 A2 tau2 nu2 ->
     let zeta1 := 'chi_i1 in let zeta2 := 'chi_i2 in
     zeta1 \in S1 -> zeta1 1%g = #|L1 : H1|%:R ->
     zeta2 \in S2 -> zeta2 1%g = #|L2 : H2|%:R ->
-  '[beta_ ddA1 zeta1, nu2 zeta2] != 0 \/ '[beta_ ddA2 zeta2, nu1 zeta1] != 0.
+  '[beta ddA1 zeta1, nu2 zeta2] != 0 \/ '[beta ddA2 zeta2, nu1 zeta1] != 0.
 Proof.
-move=> S1 S2 cohS1 cohS2 zeta1 zeta2 Szeta1 zeta1_1 Szeta2 zeta2_1.
-apply/nandP; have: ~~ dvdNC 2 '[Delta_ ddA1 nu1 zeta1, Delta_ ddA2 nu2 zeta2].
-  have [Delta1_1 ZR_Delta1] := Delta_context cohS1 Szeta1 zeta1_1.
-  have [Delta2_1 ZR_Delta2] := Delta_context cohS2 Szeta2 zeta2_1.
+move=> S1 S2 cohS1 cohS2 zeta1 zeta2 Szeta1 zeta1_1 Szeta2 zeta2_1; apply/nandP.
+pose Delta ddA nu zeta := beta ddA zeta + nu zeta.
+have Delta_context L H (A := H^#) ddA nu r :
+    let S := seqIndD H L H 1 in let tau := Dade ddA in let zeta := 'chi_r in
+    coherent_with S A tau nu -> zeta \in S -> zeta 1%g = #|L : H|%:R ->
+  let D := Delta L H ddA nu zeta in '[D, 1] = 1 /\ D \in 'Z[irr G] /\ cfReal D.
+- move=> S tau zeta cohS Szeta zeta_1 D.
+  have [[nsHL oddL] [[_ Znu] nu_tau]] := (odd_Dade_context ddA, cohS).
+  have ntS: (size S > 1)%N by exact: seqInd_nontrivial Szeta.
+  have [[nuS1_0 beta1_1 Zbeta] _ _] := Dade_Ind1_sub_lin cohS ntS Szeta zeta_1.
+  rewrite cfdotDl {}beta1_1 {nuS1_0}(orthoPr nuS1_0) ?map_f // addr0.
+  rewrite add_vchar ?{}Znu ?seqInd_vcharW {Zbeta}// /cfReal; do !split=> //.
+  rewrite rmorphD /= -subr_eq0 oppr_add addrAC addrA -addrA addr_eq0 oppr_add.
+  rewrite (cfConjC_Dade_coherent cohS) //; last exact: vcharD1_seqInd.
+  rewrite opprK -Dade_conjC -!raddf_sub nu_tau ?seqInd_sub_Aut_vchar //=.
+  by rewrite rmorph_sub /= conj_cfInd cfConjC1 oppr_sub addrC addrA subrK.
+have: ~~ dvdNC 2 '[Delta L1 H1 ddA1 nu1 zeta1, Delta L2 H2 ddA2 nu2 zeta2].
+  have /Delta_context/(_ Szeta1 zeta1_1)[Delta1_1 ZR_Delta1] := cohS1.
+  have /Delta_context/(_ Szeta2 zeta2_1)[Delta2_1 ZR_Delta2] := cohS2.
   by rewrite cfdot_real_vchar_even // Delta1_1 Delta2_1 (dvdC_nat 2 1).
 rewrite cfdotDl !cfdotDr disjoint_Dade_ortho // add0r addrC cfdotC.
 apply: contra => /andP[/eqP-> /eqP->]; rewrite conjC0 add0r addr0.
@@ -643,22 +624,23 @@ have oddL i := oddSg (sLG i) oddG.
 have /all_and2[nsHL ntH] i: H i <| L i /\ H i :!=: 1%g.
   by case/Frobenius_context: (frobL i) => /sdprod_context[].
 have sHL i: H i \subset L i by case/andP: (nsHL i).
-have ddA i: Dade_hypothesis G (L i) (fun _ => 1)%G (A i).
-  apply/Dade_TI_P=> //; first by rewrite setSD ?(subset_trans (sHL i)).
-  by rewrite setD_eq0 subG1; have [] := Frobenius_context (frobL i).
+pose DH i := @Dade_signalizer gT G (L i) (A i).
+have /fin_all_exists[ddA DH1] i: exists dd, {in A i, forall a, DH i dd a = 1%G}.
+  have sAG1: A i \subset G^# := setSD _ (subset_trans (sHL i) (sLG i)).
+  by apply/Dade_normedTI_P=> //; rewrite setD_eq0 subG1.
 pose tau i := Dade (ddA i); pose rho i := invDade (ddA i).
 pose Atau i := Dade_support (ddA i).
 have defAtau i: Atau i = class_support (A i) G.
-  rewrite class_supportEl; apply: eq_bigr => x _.
-  by rewrite /Dade_support1 mul1g class_support_set1l.
+  rewrite class_supportEl; apply: eq_bigr => x Ax.
+  by rewrite /Dade_support1 -/(DH i) DH1 // mul1g class_support_set1l.
 have disjoint_Atau i j : i != j -> [disjoint Atau i & Atau j].
   move=> neq_ij; rewrite !defAtau !class_supportEr -setI_eq0 big_distrlr /=.
   rewrite pair_big big1 // => [[x y] _] /=; apply/eqP.
   by rewrite !conjD1g -setDIl setD_eq0 coprime_TIg // !cardJg card_coprime.
-have defG0: G0 = G :\: \bigcup_i Atau i.
+have{defAtau} defG0: G0 = G :\: \bigcup_i Atau i.
   by congr (_ :\: _); apply: eq_bigr => i; rewrite defAtau.
 pose S i := seqIndD (H i) (L i) (H i) 1.
-have irrS i : {subset S i <= irr (L i)}.
+have irrS i: {subset S i <= irr (L i)}.
   move=> _ /seqIndC1P[t nz_t ->]; rewrite irr_induced_Frobenius_ker //.
   exact: (Frobenius_cent1_ker (frobL i)).
 have /fin_all_exists[r lin_r] i: exists r, 'chi_r \in S i /\ 'chi_r 1%g = e_ i.
@@ -686,12 +668,12 @@ have /fin_all_exists[nu cohS] i: coherent (S i) (H i)^# 'Ind[G, L i].
   admit. (* This is the Sibley coherence theorem, Peterfalvi (6.8) *)
          (* (a) is sLiG, defLi, oddLi, ntHi, nilHi & tiAiL; (c1) is frobLi *)
 have{cohS} [/all_and2[Inu Znu] nu_Ind] := all_and2 cohS.
-have{nu_Ind} cohS i: coherent_with (S i) (H i)^# (tau i) (nu i).
-  by split=> // phi Sphi; rewrite /tau nu_Ind ?Dade_Ind ?(vchar_on Sphi).
-have normS i xi: xi \in S i -> '[xi] = 1.
+have{DH DH1 nu_Ind} cohS i: coherent_with (S i) (H i)^# (tau i) (nu i).
+  by split=> // phi Sphi; rewrite nu_Ind -?(Dade_Ind (DH1 i)) ?(vchar_on Sphi).
+have n1S i xi: xi \in S i -> '[xi] = 1.
   by case/irrS/irrP=> t ->; rewrite cfnorm_irr.
-have normSnu i xi: xi \in S i -> '[nu i xi] = 1.
-  by move=> Sxi; rewrite Inu ?normS ?seqInd_vcharW.
+have n1Snu i xi: xi \in S i -> '[nu i xi] = 1.
+  by move=> Sxi; rewrite Inu ?n1S ?seqInd_vcharW.
 have o_nu i j: i != j -> {in S i & S j, forall xi xj, '[nu i xi, nu j xj] = 0}.
   move/disjoint_Atau/disjoint_coherent_ortho=> o_ij xi xj Sxi Sxj.
   case/irrP: (irrS _ _ Sxi) (irrS _ _ Sxj) (Sxi) (Sxj) => ti -> /irrP[tj ->].
@@ -731,7 +713,7 @@ suffices{min_rho1} sumB_max: sumB <= (e - 1) / (h + 2%:R).
   rewrite -leC_sub oppr_sub addrCA -oppr_sub leC_sub; apply: leC_trans sumB_max.
   rewrite -leC_sub oppr_sub addrCA -(oppr_sub _ sumB) leC_sub.
   have Zchi1: chi i1 \in 'Z[irr G] by rewrite Znu ?seqInd_vcharW ?Sr.
-  have [eps [t def_chi1]] := vchar_norm1P Zchi1 (normSnu _ _ (Sr i1)).
+  have [eps [t def_chi1]] := vchar_norm1P Zchi1 (n1Snu i1 'chi_(r i1) (Sr i1)).
   pose sumG0 := \sum_(g \in G0) `|'chi_t g| ^+ 2.
   apply: (@leC_trans ((#|G0|%:R - sumG0) / #|G|%:R)); last first.
     rewrite leC_pmul2r ?sposC_inv ?sposGC // leC_add2l leC_opp.
@@ -777,7 +759,7 @@ have{betaP def_beta1} /cfnormDd->: '[Gamma1, X] = 0.
   rewrite cfdot_suml (bigD1 i) ?big1 //= => [|j /andP[_ neq_j]]; last first.
     by rewrite cfdotZl o_phi_nu ?mulr0.
   rewrite cfdotZl cfproj_sum_orthogonal ?seqInd_orthogonal //; last exact: Inu.
-  rewrite normS // divr1 mulr1 addr0 mulrC -(canLR (addKr _) def_beta1).
+  rewrite n1S // divr1 mulr1 addr0 mulrC -(canLR (addKr _) def_beta1).
   rewrite !(cfdotDl, cfdotNl) cfdotZl o_nu ?o_phi_nu ?Sr 1?eq_sym // mulr0.
   have[[/orthoPr oSnui_1 _ _] _ _] := betaP i; rewrite -/(S i) in oSnui_1.
   rewrite cfdotC oSnui_1 ?map_f // conjC0 !(add0r, oppr0).

@@ -98,7 +98,7 @@ Notation "[ 'Frobenius' G = K ><| H ]" :=
 Section FrobeniusBasics.
 
 Variable gT : finGroupType.
-Implicit Types G H K L R X : {group gT}.
+Implicit Types (A B : {set gT}) (G H K L R X : {group gT}).
 
 Lemma semiregular1l H : semiregular 1 H.
 Proof. by move=> x _ /=; rewrite setI1g. Qed.
@@ -260,6 +260,16 @@ by apply: contra notA0 => /imsetP[x _ /eqP]; rewrite eq_sym -!cards_eq0 cardJg.
 Qed.
 
 End NormedTI.
+
+Lemma normedTI_S A B G L : 
+    A != set0 -> L \subset 'N(A) -> A \subset B -> normedTI B G L ->
+  normedTI A G L.
+Proof.
+move=> nzA nAL sAB; have nzB := subset_neq0 sAB nzA.
+case/normedTI_P=> // tiB /subsetIP[sLG _]; apply/normedTI_P=> //.
+split=> [x Gx meetAAx|]; [apply: tiB => //; move: meetAAx | exact/subsetIP].
+by rewrite -!setI_eq0; apply: subset_neq0; rewrite setISS ?conjSg.
+Qed.
 
 Lemma Frobenius_actionP G H :
   reflect (has_Frobenius_action G H) [Frobenius G with complement H].

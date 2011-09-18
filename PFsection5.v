@@ -1012,9 +1012,9 @@ End SubCoherentProperties.
 
 Section DadeAut.
 
-Variables (L G : {group gT}) (A : {set gT}) (DH : gT -> {group gT}).
+Variables (L G : {group gT}) (A : {set gT}).
 Implicit Types K H M : {group gT}.
-Hypothesis ddA : Dade_hypothesis G L DH A.
+Hypothesis ddA : Dade_hypothesis G L A.
 
 Local Notation tau := (Dade ddA).
 Local Notation "alpha ^\tau" := (tau alpha).
@@ -1085,7 +1085,7 @@ Lemma cfConjC_Dade_coherent K H M (calS := seqIndD K L H M) tau1 i :
 Proof.
 move=> cohS defZA [oddG nsKL sHK] Schi; apply: (cfAut_Dade_coherent cohS) => //.
 split; [ | exact: seqInd_free | exact: cfAut_seqInd].
-have oddL: odd #|L| by apply: oddSg oddG; have [_ /subsetIP[]] := ddA.
+have oddL: odd #|L| by apply: oddSg oddG; have [_] := ddA.
 exact: seqInd_nontrivial_irr Schi.
 Qed.
 
@@ -1096,7 +1096,7 @@ Proof.
 have [Rchi | notRchi Achi] := eqVneq (conjC_Iirr i) i.
   by exists 0; rewrite chi0_1 cfConjC1 /phi -conjC_IirrE Rchi !subrr linear0.
 have Zphi: phi \in 'Z[irr L, A].
-  have notA1: 1%g \notin A by have [/subsetD1P[]] := ddA.
+  have notA1: 1%g \notin A by have [] := ddA.
   by rewrite -(setU1K notA1) sub_conjC_vchar // vchar_split irr_vchar.
 have Zphi_tau: phi^\tau \in 'Z[irr G, G^#].
   by rewrite vchar_split Dade_cfun Dade_vchar ?Zphi.
@@ -1107,7 +1107,7 @@ have [j [k [ne_kj phi_tau]]] := vchar_norm2 Zphi_tau norm_phi_tau.
 suffices def_k: conjC_Iirr j = k by exists j; rewrite -conjC_IirrE def_k.
 have/esym:= eq_subZnat_irr 1 1 k j (conjC_Iirr j) (conjC_Iirr k).
 rewrite (negPf ne_kj) orbF /= !scale1r !conjC_IirrE -rmorph_sub.
-rewrite -oppr_sub -phi_tau /= Dade_conjC // rmorph_sub /= cfConjCK.
+rewrite -oppr_sub -phi_tau /= -Dade_conjC // rmorph_sub /= cfConjCK.
 by rewrite -linearN oppr_sub eqxx => /andP[/eqP->].
 Qed.
 
