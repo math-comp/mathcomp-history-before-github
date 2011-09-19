@@ -668,11 +668,10 @@ Lemma FTtypeII_ker_TI :
 Proof.
 move=> typeM; have [sA1A sAA0] := (FTsupp1_sub maxM, FTsupp_sub M).
 have [sA10 sA0M] := (subset_trans sA1A sAA0, FTsupp0_sub M).
-have neA1: 'A1(M) != set0 by rewrite setD_eq0 def_FTcore ?subG1 ?Msigma_neq1.
-have neA: 'A(M) != set0 by apply: contraNneq neA1; rewrite -subset0 => <-.
+have nzA1: 'A1(M) != set0 by rewrite setD_eq0 def_FTcore ?subG1 ?Msigma_neq1.
+have [nzA nzA0] := (subset_neq0 sA1A nzA1, subset_neq0 sA10 nzA1).
 suffices nTI_A0: normedTI 'A0(M) G M.
   by rewrite nTI_A0 !(normedTI_S _ _ _ nTI_A0) // ?FTsupp_norm ?FTsupp1_norm.
-have neA0: 'A0(M) != set0 by apply: contraNneq neA; rewrite -subset0 => <-.
 have sA0G1: 'A0(M) \subset G^# by exact: subset_trans (setSD _ (subsetT M)).  
 have [U [W1 [[typeM_P _ _ tiFM] _ _ _ _]]] := FTtypeP 2 maxM typeM.
 apply/Dade_normedTI_P=> //; exists FT_Dade0_hyp => x A0x.

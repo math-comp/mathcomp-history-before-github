@@ -96,6 +96,7 @@ polyorder.v
 polyrcf.v
 qe_rcf_th.v
 inertia.v
+integral_char.v
 PFsection1.v
 PFsection2.v
 PFsection3.v
