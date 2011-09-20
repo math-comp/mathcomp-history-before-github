@@ -91,4 +91,34 @@ rewrite /isRealC conjC1 eqxx oner_eq0 (orthonormal_cat (a :: b)) /=.
 by case/and3P=> _ _ /andP[] /andP[] /eqP.
 Qed.
 
+Section Definitions.
+
+
+Section CyclicDade.
+
+Variables (L K W W1 W2 : {set gT}).
+
+Definition cyclicDade_hypothesis :=
+  [/\ [/\ K \x W1 = L, W1 != 1%g, Hall W1 L & cyclic W1],
+      [/\ W2 != 1%g, cyclic W2 & {in W1^#, forall x, 'C_K[x] = W2}]
+      & (W1 \x W2 = W /\ odd #|W|)].
+
+End CyclicDade.
+
+Section CentralDade.
+
+Variables (A G H L K W W1 W2 : {set gT}).
+
+Definition centralDade_hypothesis (cH : cyclicTIhypothesis G W W1 W2) :=
+  [/\ cyclicDade_hypothesis L K W W1 W2,
+      [/\ H <| L , W2 \subset H & H \subset K]
+   &  [/\ Dade_hypothesis G L A,
+          Dade_hypothesis G L (A :|: class_support (cyclicTIset cH) L),
+         \bigcup_(h \in H^#)('C_K[h]^#) \subset A
+       &  A \subset K^#]].
+
+End CentralDade.
+
+End Definitions.
+
 End Four.
