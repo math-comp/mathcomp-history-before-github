@@ -24,6 +24,40 @@ Import Prenex Implicits.
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
+
+(* Move to cyclic *)
+
+Lemma cyclic_dprod :
+   forall (gT : finGroupType) (K H G: {group gT}),
+   K \x H = G ->  cyclic K -> cyclic H -> cyclic G = coprime #|K| #|H| .
+Proof.
+move=> gT K H G KxH cK cH; apply/idP/idP=> [cW|Co]; last first.
+  by case/dprodP: KxH =>_ <- HH HH1; apply: cyclicM.
+move/dprod_card: (KxH).
+case/cyclicP: (cW)=> x defx.
+rewrite defx -orderE => Hx.
+move:(cycle_id x); rewrite -defx.
+case/(mem_dprod KxH)=> y [z [W1y W2z] Hx1 _].
+pose l := lcmn #|K| #|H|.
+suff: ((y * z) ^+ l)%g = 1%g.
+  move/eqP; rewrite -order_dvdn -Hx1 -Hx -muln_lcm_gcd.
+  by rewrite -[l]muln1 dvdn_pmul2l ?dvdn1 // lcmn_gt0 !cardG_gt0.
+have: (y ^+ l = 1)%g.
+  apply/eqP; rewrite -order_dvdn.
+  by apply: dvdn_trans (order_dvdG _) (dvdn_lcml _ _).
+have: (z ^+ l = 1)%g.
+ apply/eqP; rewrite -order_dvdn.
+ by apply: dvdn_trans (order_dvdG _) (dvdn_lcmr _ _).
+rewrite expMgn;first by  move=> -> ->; rewrite mulg1.
+have YiG : y \in G.
+  case/dprodP: KxH =>_ <- _ _; apply/imset2P; exists y (1%g : gT)=> //.
+  by rewrite mulg1.
+have ZiH : z \in G.
+  case/dprodP: KxH =>_ <- _ _; apply/imset2P; exists (1%g : gT) z => //.
+  by rewrite mul1g.
+by move: (cyclic_abelian cW)=> /subsetP /(_ _ YiG) /centP; apply.
+Qed.
+
 Section Definitions.
 
 Variables (gT : finGroupType) (G W W1 W2 : {set gT}).
@@ -68,29 +102,8 @@ Proof. by rewrite ltn_neqAle cardG_gt1 odd_neq2 //; have [_ []] := tiW. Qed.
 Let tLW2 : (2 < w2)%N.
 Proof. by rewrite ltn_neqAle cardG_gt1 odd_neq2 //; have [_ []] := tiW. Qed.
 
-Lemma cyclicTI_coprime: coprime #|W1| #|W2|.
-Proof.
-move/dprod_card: (W1xW2).
-case/cyclicP:cyclicW=> x defx.
-rewrite defx -orderE => Hx.
-move:(cycle_id x); rewrite -defx.
-case/(mem_dprod W1xW2 )=> y [z [W1y W2z] Hx1 _].
-suff:((y * z) ^+ (lcmn #|W1| #|W2|))%g = 1%g.
-  move/eqP; rewrite -order_dvdn -Hx1 -Hx -muln_lcm_gcd -{2}(muln1 (lcmn _ _)).
-  rewrite dvdn_pmul2l.
-    by rewrite dvdn1.
-  by rewrite lcmn_gt0 !cardG_gt0.
-have: (y ^+ lcmn #|W1| #|W2| )%g = 1%g.
-  apply/eqP; rewrite -order_dvdn.
-  by apply:(dvdn_trans (order_dvdG W1y)(dvdn_lcml #|W1| #|W2|)).
-have: (z ^+ lcmn #|W1| #|W2|)%g = 1%g.
- apply/eqP; rewrite -order_dvdn.
- by apply:(dvdn_trans (order_dvdG W2z) (dvdn_lcmr #|W1| #|W2|)).
-rewrite expMgn;first by  move=> -> ->; rewrite mulg1.
-move/subsetP: sW1W;move/(_ y W1y) =>Hy;move/subsetP: sW2W;move/(_ z W2z) =>Hz.
-move: (cyclic_abelian cyclicW);move/subsetP; move/(_ y Hy).
-by move/centP;apply.
-Qed.
+Let cyclicTI_coprime : coprime #|W1| #|W2|.
+Proof. by rewrite -(cyclic_dprod W1xW2). Qed.
 
 Definition cyclicTIirr i j := 'chi_(dprod_Iirr W1xW2 (i, j)).
 Local Notation w_ := cyclicTIirr.
