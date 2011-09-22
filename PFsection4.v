@@ -91,34 +91,109 @@ rewrite /isRealC conjC1 eqxx oner_eq0 (orthonormal_cat (a :: b)) /=.
 by case/and3P=> _ _ /andP[] /andP[] /eqP.
 Qed.
 
-Section Definitions.
-
 
 Section CyclicDade.
+
+Section Definitions.
 
 Variables (L K W W1 W2 : {set gT}).
 
 Definition cyclicDade_hypothesis :=
-  [/\ [/\ K \x W1 = L, W1 != 1%g, Hall W1 L & cyclic W1],
-      [/\ W2 != 1%g, cyclic W2 & {in W1^#, forall x, 'C_K[x] = W2}]
-      & (W1 \x W2 = W /\ odd #|W|)].
+  [/\ [/\ K ><| W1 = L, W1 != 1%g, Hall L W1 & cyclic W1],
+      [/\ W2 != 1%g, W2 \subset K, cyclic W2 & {in W1^#, forall x, 'C_K[x] = W2}]
+   &  [/\ W1 \x W2 = W & odd #|W|]].
+
+End Definitions.
+
+Variables (L K W W1 W2 : {group gT}).
+
+Hypothesis HC : cyclicDade_hypothesis L K W W1 W2.
+
+Let Hcoprime : coprime #|W1| #|W2|.
+Proof.
+case: HC=> [[SdP _ H_Hall _] [_ WsK _ _] _].
+apply: coprime_dvdr (cardSg WsK) _.
+by rewrite coprime_sym (coprime_sdprod_Hall SdP) (sdprod_Hall SdP).
+Qed.
+
+Let CW1 : cyclic W1.
+Proof. by case: HC=> [[]]. Qed.
+
+Let SdP :  K ><| W1 = L.
+Proof. by case: HC=> [[]]. Qed.
+
+Let HdP : W1 \x W2 = W.
+Proof. by case: HC=> [_ _ []]. Qed.
+
+Let Hcent : {in W1^#, forall x, 'C_K[x] = W2}.
+Proof. by case: HC=> [_ []]. Qed.
+
+Lemma cyclicDade_conj g x y : g \in L -> x \in W1^# -> y \in W2 ->
+  (x * y) ^ g \in W :\: W2 -> g \in W.
+Proof.
+move=> GiL XdiW.
+move: (XdiW); rewrite 2!inE=> /andP [Xd1 XiW] YiW.
+rewrite inE andbC => /andP [].
+case/(mem_dprod HdP)=> x1 [y1 [X1iW Y1iW XYeX1Y1] _ JJ].
+have XGeX1 : x^ g = x1.
+  case: (bezoutl #|W1| (cardG_gt0 W2))=> u Hu /dvdnP [] v.
+  move: Hcoprime; rewrite coprime_sym /coprime => /eqP-> HH.
+  have F1 x2 y2 : (x2 \in W1 -> y2 \in W2 -> (x2 * y2) ^+ (v * #|W2|)%N = x2)%g.
+    move=> X2iW Y2iW.
+    have: commute x2 y2.
+      case/dprodP: HdP=> _ _.
+      by move/subsetP /(_ _ Y2iW) /centP /(_ _ X2iW) /commute_sym.
+    move/expMgn=> ->.
+    rewrite -{1}HH expgn_add expg1 mulnC [(v * _)%N]mulnC !expgn_mul.
+    move/order_dvdG: X2iW=> /dvdnP=> [[k1 ->]].
+    move/order_dvdG: Y2iW=> /dvdnP=> [[k2 ->]].
+    by rewrite mulnC [(k2 * _)%N]mulnC !expgn_mul !expg_order !exp1gn !mulg1.
+  by rewrite -(F1 _ _ X1iW Y1iW) -XYeX1Y1 -conjXg F1.
+have : x ^ g \in L.
+  rewrite groupJ // -[x]mul1g; case/sdprodP: SdP=> _ <- _ _.
+  by apply/imset2P; exists (1%g : gT) x; rewrite //.
+case/(mem_sdprod SdP)=> k1 [x2 [K1iK X2iW _ Hu]].
+case: {Hu}(Hu _ _ (group1 _) (X1iW)) (Hu)=> [| <- <- Hu]; first by rewrite mul1g.
+case: (mem_sdprod SdP GiL) XGeX1 Hu => k [x3 [KiK X3iW] -> _] <- Hu.
+move: HdP; rewrite dprodC; case/dprodP=> _ <- _ _.
+apply/imset2P; exists k x3; rewrite //.
+rewrite -(Hcent XdiW); apply /subcent1P; split=> //.
+apply: (mulgI k^-1%g); rewrite !mulgA mulVg mul1g -mulgA -[(_ * _)%g]/(x ^ k).
+apply: (conjg_inj x3); rewrite -conjgM.
+move: (cyclic_abelian CW1)=> /subsetP /(_ _ X3iW) /centP /(_ _ XiW) Cxx3.
+rewrite [_ ^ x3]conjgE -Cxx3 mulgA mulVg mul1g.
+move: KiK; rewrite -(memJ_conjg _ x3).
+case/sdprodP: SdP=> _ _ /subsetP /(_ _ X3iW) /normP -> _ HH.
+pose k' := k ^ x3.
+move: (HH); rewrite -(memJ_conjg _ x^-1).
+case/sdprodP: SdP=> _ _ /subsetP /(_ _ (groupVr XiW)) /normP -> _ HH1.
+pose k'' := k' ^ x^-1.
+have: (k'^-1 * k'' \in K)%g by rewrite groupM // groupV.
+move/Hu=> /(_ _ XiW) []=> [| _ //].
+rewrite !conjgE -!mulgA mulVg mulg1 !mulgA; do 2 congr (_ * _)%g.
+rewrite /k' !conjgE !invMg !invgK.
+by rewrite  -!mulgA; do 2 congr (_ * _)%g; rewrite !mulgA Cxx3 mulgK.
+Qed.
 
 End CyclicDade.
 
 Section CentralDade.
+
+Section Definitions.
 
 Variables (A G H L K W W1 W2 : {set gT}).
 
 Definition centralDade_hypothesis (cH : cyclicTIhypothesis G W W1 W2) :=
   [/\ cyclicDade_hypothesis L K W W1 W2,
       [/\ H <| L , W2 \subset H & H \subset K]
+
    &  [/\ Dade_hypothesis G L A,
           Dade_hypothesis G L (A :|: class_support (cyclicTIset cH) L),
          \bigcup_(h \in H^#)('C_K[h]^#) \subset A
        &  A \subset K^#]].
 
-End CentralDade.
-
 End Definitions.
+
+End CentralDade.
 
 End Four.
