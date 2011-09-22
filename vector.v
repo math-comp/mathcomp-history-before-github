@@ -389,6 +389,7 @@ Proof. by rewrite /subsetv /eq_op /= linear0 genmx0 submx0. Qed.
 Lemma memv0 v : v \in 0%:VS = (v == 0).
 Proof. by apply/idP/eqP=> [/injvP[k ->] | ->]; rewrite (scaler0, mem0v). Qed.
 
+(* could be removed: duplication with scaler_eq0 *)
 Lemma scalev_eq0 k v : (k *: v == 0) = (k == 0) || (v == 0).
 Proof. by rewrite -!memv0 memvZ. Qed.
 

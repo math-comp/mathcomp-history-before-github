@@ -30,7 +30,7 @@ Variables (gT : finGroupType) (G W W1 W2 : {set gT}).
 
 Definition cyclicTIhypothesis :=
   [/\ [/\ W1 \x W2 = W, cyclic W, odd #|W| & W \subset G],
-      [/\ W1 != 1, W2 != 1 & coprime #|W1| #|W2| ]
+      [/\ W1 != 1 & W2 != 1]
     & normedTI (W :\: (W1 :|: W2)) G W]%g.
 
 Definition cyclicTIset of cyclicTIhypothesis := W :\: (W1 :|: W2).
@@ -44,7 +44,7 @@ Variables (gT : finGroupType) (G W W1 W2 : {group gT}).
 Hypothesis tiW : cyclicTIhypothesis G W W1 W2.
 
 Lemma cyclicTIhyp_sym : cyclicTIhypothesis G W W2 W1.
-Proof. by case: tiW; rewrite dprodC coprime_sym setUC => ? []. Qed.
+Proof. by case: tiW; rewrite dprodC setUC => ? []. Qed.
 
 Let w1 := #|W1|.
 Let w2 := #|W2|.
@@ -68,6 +68,29 @@ Proof. by rewrite ltn_neqAle cardG_gt1 odd_neq2 //; have [_ []] := tiW. Qed.
 Let tLW2 : (2 < w2)%N.
 Proof. by rewrite ltn_neqAle cardG_gt1 odd_neq2 //; have [_ []] := tiW. Qed.
 
+Lemma cyclicTI_coprime: coprime #|W1| #|W2|.
+Proof.
+move/dprod_card: (W1xW2).
+case/cyclicP:cyclicW=> x defx.
+rewrite defx -orderE => Hx.
+move:(cycle_id x); rewrite -defx.
+case/(mem_dprod W1xW2 )=> y [z [W1y W2z] Hx1 _].
+suff:((y * z) ^+ (lcmn #|W1| #|W2|))%g = 1%g.
+  move/eqP; rewrite -order_dvdn -Hx1 -Hx -muln_lcm_gcd -{2}(muln1 (lcmn _ _)).
+  rewrite dvdn_pmul2l.
+    by rewrite dvdn1.
+  by rewrite lcmn_gt0 !cardG_gt0.
+have: (y ^+ lcmn #|W1| #|W2| )%g = 1%g.
+  apply/eqP; rewrite -order_dvdn.
+  by apply:(dvdn_trans (order_dvdG W1y)(dvdn_lcml #|W1| #|W2|)).
+have: (z ^+ lcmn #|W1| #|W2|)%g = 1%g.
+ apply/eqP; rewrite -order_dvdn.
+ by apply:(dvdn_trans (order_dvdG W2z) (dvdn_lcmr #|W1| #|W2|)).
+rewrite expMgn;first by  move=> -> ->; rewrite mulg1.
+move/subsetP: sW1W;move/(_ y W1y) =>Hy;move/subsetP: sW2W;move/(_ z W2z) =>Hz.
+move: (cyclic_abelian cyclicW);move/subsetP; move/(_ y Hy).
+by move/centP;apply.
+Qed.
 
 Definition cyclicTIirr i j := 'chi_(dprod_Iirr W1xW2 (i, j)).
 Local Notation w_ := cyclicTIirr.
@@ -1551,7 +1574,7 @@ Qed.
 Let Hcoprime : (coprime  #|classes W1| #|classes W2|)%N.
 have:= cyclic_abelian cyclicW1; rewrite card_classes_abelian => /eqP ->.
 have:= cyclic_abelian cyclicW2; rewrite card_classes_abelian => /eqP ->.
-by case: tiW=> _ [].
+by apply: cyclicTI_coprime.
 Qed.
 
 Let hcTIirr (i : Iirr W2) : 'CF(G) :=

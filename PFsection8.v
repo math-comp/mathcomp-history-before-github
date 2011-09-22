@@ -473,7 +473,8 @@ Lemma def_cycTIcompl W W1 W2 S T :
   FT_Pstructure W W1 W2 S T -> 'C_(S`_\F)(W1) = W2.
 Proof.
 case=> [[cycW maxS _] [defS _ defST] _ [typeS _] _].
-have{cycW} [[/dprodP[_ defW cW12 _] _ _ _] [ntW1 _ coW12] /andP[_ nVW]] := cycW.
+have coW12 := (cyclicTI_coprime cycW).
+have{cycW} [[/dprodP[_ defW cW12 _] _ _ _] [ntW1 _ ] /andP[_ nVW]] := cycW.
 have{typeS}: FTtype S != 1%N by apply: contraTneq typeS => ->.
 case/(compl_of_typeP defS maxS)=> U []; set S' := S^`(1)%g; set K := 'C_(_)(W1).
 case=> cycW1 /Hall_pi hallW1 _ /sdprodP[_ _ _ tiS'W1] _ _ [cycK _ _ _ defK] _.
@@ -755,7 +756,7 @@ have hallW1: \kappa(S).-Hall(S) W1.
   rewrite {}defS' in defS_K.
   have /imsetP[x Sx defK] := of_typeP_compl_conj defS_K typeP_S.
   by have [_ hallK _] := complU1; rewrite defK pHallJ in hallK.
-have{cycW} [[/dprodP[_ defW cW12 _] cycW _ _] [ntW1 ntW2 _] _] := cycW.
+have{cycW} [[/dprodP[_ defW cW12 _] cycW _ _] [ntW1 ntW2 ] _] := cycW.
 have defW2: 'C_(S`_\sigma)(W1) = W2.
   have [U1 complU1] := ex_kappa_compl maxS hallW1.
   have [[_ [_ _ sW2'F] _] _ _ _] := BGsummaryC maxS complU1 ntW1.
