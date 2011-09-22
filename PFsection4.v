@@ -230,7 +230,7 @@ by rewrite mulgA mulVg mul1g.
 Qed.
 
 (* Second part of 4.3 a *)
-Lemma cyclicTI_Dade: cyclicTIhypothesis L W W1 W2.
+Lemma cyclicTI_Dade : cyclicTIhypothesis L W W1 W2.
 Proof.
 split; try split; rewrite ?(cyclic_dprod HdP) //; first by case: HC=> _ _ [].
 have F : W :\: (W1 :|: W2) != set0.

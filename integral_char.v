@@ -16,7 +16,7 @@ Local Open Scope ring_scope.
 (* This file should provide the standard results on character integrality,    *)
 (* and algebraic integers, including notations and lemmas for reasoning       *)
 (* "mod n" in the algebraics, and computing with class sums.                  *)
-(*  For now it is a placeholder for the theorem asserintg that the degree of  *)
+(*  For now it is a placeholder for the theorem asserting that the degree of  *)
 (* an irreducible character of G divides the order of G (Isaacs 3.11).        *)
 (******************************************************************************)
 
