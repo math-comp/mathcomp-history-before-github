@@ -116,8 +116,17 @@ apply: coprime_dvdr (cardSg WsK) _.
 by rewrite coprime_sym (coprime_sdprod_Hall SdP) (sdprod_Hall SdP).
 Qed.
 
+Let dW1 : W1 != 1%G.
+Proof. by case: HC=> [[]]. Qed.
+
+Let dW2 : W2 != 1%G.
+Proof. by case: HC=> [_ []]. Qed.
+
 Let CW1 : cyclic W1.
 Proof. by case: HC=> [[]]. Qed.
+
+Let CW2 : cyclic W2.
+Proof. by case: HC=> [_ []]. Qed.
 
 Let SdP :  K ><| W1 = L.
 Proof. by case: HC=> [[]]. Qed.
@@ -128,12 +137,16 @@ Proof. by case: HC=> [_ _ []]. Qed.
 Let Hcent : {in W1^#, forall x, 'C_K[x] = W2}.
 Proof. by case: HC=> [_ []]. Qed.
 
-Lemma cyclicDade_conj g x y : g \in L -> x \in W1^# -> y \in W2 ->
-  (x * y) ^ g \in W :\: W2 -> g \in W.
+Lemma cyclicDade_conj a g :
+  a \in W :\: W2 -> g \in L -> (a ^ g \in W :\: W2) -> (g \in W).
 Proof.
-move=> GiL XdiW.
-move: (XdiW); rewrite 2!inE=> /andP [Xd1 XiW] YiW.
-rewrite inE andbC => /andP [].
+rewrite inE=> /andP [] HH.
+case/(mem_dprod HdP)=> x [y [XiW YiW Hxy _]].
+move: HH; rewrite {}Hxy => HH GiL.
+have XdiW: x \in W1^#.
+  rewrite inE XiW andbT inE.
+  by apply: contra HH => /eqP->; rewrite mul1g.
+rewrite {HH}inE andbC => /andP [].
 case/(mem_dprod HdP)=> x1 [y1 [X1iW Y1iW XYeX1Y1] _ JJ].
 have XGeX1 : x^ g = x1.
   case: (bezoutl #|W1| (cardG_gt0 W2))=> u Hu /dvdnP [] v.
@@ -173,6 +186,73 @@ move/Hu=> /(_ _ XiW) []=> [| _ //].
 rewrite !conjgE -!mulgA mulVg mulg1 !mulgA; do 2 congr (_ * _)%g.
 rewrite /k' !conjgE !invMg !invgK.
 by rewrite  -!mulgA; do 2 congr (_ * _)%g; rewrite !mulgA Cxx3 mulgK.
+Qed.
+
+Let WsL : W \subset L.
+Proof.
+case/sdprodP: SdP=> _ <- _ _.
+move: HdP; rewrite dprodC => /dprodP [] _ <- _ _.
+by apply: mulSg; case: HC=> _ [].
+Qed.
+
+Let WmW1W2_neq0 : W :\: (W1 :|: W2) != set0.
+Proof.
+apply/eqP=> HS0.
+case/trivgPn: dW1=> x XiW1 Dx1; case/trivgPn: dW2=> y YiW2 Dy1.
+suff: (x * y)%g \in W :\: (W1 :|: W2) by rewrite HS0 inE.
+rewrite !inE negb_or.
+case: (boolP (_ \in W1))=> /= [XYiW1|XYniW1].
+   have: y \in W1 :&: W2 by rewrite inE YiW2 andbT -(groupMl _ XiW1).
+   by case/dprodP: HdP=> _ _ _ ->; rewrite inE (negPf Dy1).
+case: (boolP (_ \in W2))=> /= [XYiW2|XYniW2].
+   have: x \in W1 :&: W2 by rewrite inE XiW1 -(groupMr _ YiW2).
+   by case/dprodP: HdP=> _ _ _ ->; rewrite inE (negPf Dx1).
+by case/dprodP: HdP=> _ <- _ _; apply/imset2P; exists x y.
+Qed.
+
+Let WmW1W2sWmW2 :  W :\: (W1 :|: W2) \subset W :\: W2.
+Proof.
+by apply/subsetP=> i; rewrite !inE negb_or -andbA => /and3P [] _ ->.
+Qed.
+
+(* First part of 4.3 a *)
+Lemma normedTI_Dade_W2 : normedTI (W :\: W2) L W.
+Proof.
+have F : W :\: W2 != set0.
+  by apply: contra WmW1W2_neq0=> HH; rewrite -subset0 -(eqP HH).
+apply/(normedTI_memJ_P F); split=> // a g AdiW GiL; apply/idP/idP=> GG.
+  by apply: cyclicDade_conj GG.
+have: cyclic W by rewrite (cyclic_dprod HdP).
+move: (AdiW); rewrite inE => /andP [] _ AiW.
+rewrite conjgE.
+move/cyclic_abelian=> /subsetP /(_ _ AiW) /centP /(_ _ GG) ->.
+by rewrite mulgA mulVg mul1g.
+Qed.
+
+(* Second part of 4.3 a *)
+Lemma cyclicTI_Dade: cyclicTIhypothesis L W W1 W2.
+Proof.
+split; try split; rewrite ?(cyclic_dprod HdP) //; first by case: HC=> _ _ [].
+have F : W :\: (W1 :|: W2) != set0.
+  apply/eqP=> HS0.
+  case/trivgPn: dW1=> x XiW1 Dx1; case/trivgPn: dW2=> y YiW2 Dy1.
+  suff: (x * y)%g \in W :\: (W1 :|: W2) by rewrite HS0 inE.
+  rewrite !inE negb_or.
+  case: (boolP (_ \in W1))=> /= [XYiW1|XYniW1].
+     have: y \in W1 :&: W2 by rewrite inE YiW2 andbT -(groupMl _ XiW1).
+     by case/dprodP: HdP=> _ _ _ ->; rewrite inE (negPf Dy1).
+  case: (boolP (_ \in W2))=> /= [XYiW2|XYniW2].
+     have: x \in W1 :&: W2 by rewrite inE XiW1 -(groupMr _ YiW2).
+     by case/dprodP: HdP=> _ _ _ ->; rewrite inE (negPf Dx1).
+  by case/dprodP: HdP=> _ <- _ _; apply/imset2P; exists x y.
+apply/(normedTI_memJ_P F); split=> // a g AdiW GiL; apply/idP/idP=> GG.
+  pose SS := (subsetP WmW1W2sWmW2).
+  by apply: (cyclicDade_conj (SS _ _) _ (SS _ GG)).
+have: cyclic W by rewrite (cyclic_dprod HdP).
+move: (AdiW); rewrite inE => /andP [] _ AiW.
+rewrite conjgE.
+move/cyclic_abelian=> /subsetP /(_ _ AiW) /centP /(_ _ GG) ->.
+by rewrite mulgA mulVg mul1g.
 Qed.
 
 End CyclicDade.

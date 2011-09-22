@@ -102,7 +102,7 @@ Proof. by rewrite ltn_neqAle cardG_gt1 odd_neq2 //; have [_ []] := tiW. Qed.
 Let tLW2 : (2 < w2)%N.
 Proof. by rewrite ltn_neqAle cardG_gt1 odd_neq2 //; have [_ []] := tiW. Qed.
 
-Let cyclicTI_coprime : coprime #|W1| #|W2|.
+Lemma cyclicTI_coprime : coprime #|W1| #|W2|.
 Proof. by rewrite -(cyclic_dprod W1xW2). Qed.
 
 Definition cyclicTIirr i j := 'chi_(dprod_Iirr W1xW2 (i, j)).
