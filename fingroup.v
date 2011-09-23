@@ -1668,6 +1668,17 @@ Qed.
 Lemma mem_repr_classes xG : xG \in classes G -> repr xG \in xG.
 Proof. by case/repr_classesP=> _ {2}->; exact: class_refl. Qed.
 
+Lemma classes_gt0 : 0 < #|classes G|.
+Proof. by rewrite (cardsD1 1) classes1. Qed.
+
+Lemma classes_gt1 : (#|classes G| > 1) = (G :!=: 1).
+Proof.
+rewrite (cardsD1 1) classes1 ltnS lt0n cards_eq0.
+apply/set0Pn/trivgPn=> [[xG /setD1P[nt_xG]] | [x Gx ntx]].
+  by case/imsetP=> x Gx def_xG; rewrite def_xG classG_eq1 in nt_xG; exists x.
+by exists (x ^: G); rewrite !inE classG_eq1 ntx; exact: mem_imset.
+Qed.
+
 Lemma class_supportGidl A x :
   x \in G -> class_support (A :^ x) G = class_support A G.
 Proof.
@@ -1694,12 +1705,8 @@ Qed.
 
 Lemma class_supportD1 A : (class_support A G)^# =  cover (A^# :^: G).
 Proof.
-apply/setP=> x; apply/idP/idP.
-  case/setD1P=> nt_x /imset2P[y z Ay Gz def_x].
-  apply/bigcupP; exists (A^# :^ z); first by rewrite mem_imset.
-  by rewrite conjD1g !inE nt_x def_x memJ_conjg.
-case/bigcupP=> _ /imsetP[z Gz ->]; rewrite conjD1g 4!inE.
-by case/andP=> -> /imsetP[y Hy ->]; rewrite mem_imset2.
+rewrite cover_imset class_supportEr setDE big_distrl /=.
+by apply: eq_bigr => x _; rewrite -setDE conjD1g.
 Qed.
 
 (* Subgroup Type construction. *)

@@ -43,11 +43,11 @@ finmodule.v
 sylow.v
 abelian.v
 maximal.v
+hall.v
 extremal.v
 extraspecial.v
 primitive_action.v
 frobenius.v
-hall.v
 mxabelem.v
 wielandt_fixpoint.v
 BGsection1.v

@@ -382,9 +382,7 @@ by rewrite cfResE ?(subsetP sAL) // Dade_id.
 Qed.
 
 (* Supplement to Peterfalvi (2.3)/(2.6)(a); implies Isaacs Lemma 7.7. *)
-Lemma Dade_Ind :
-    {in A, forall a, H a = 1}%G -> 
-  {in 'CF(L, A), forall alpha, alpha^\tau = 'Ind[G] alpha}.
+Lemma Dade_Ind : {in A, forall a, H a = 1}%G -> {in 'CF(L, A), Dade =1 'Ind}.
 Proof.
 move=> trivH aa CFaaA; rewrite [aa^\tau]cfun_sum_cfdot ['Ind _]cfun_sum_cfdot.
 apply: eq_bigr => i _; rewrite -Frobenius_reciprocity -Dade_reciprocity //.

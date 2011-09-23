@@ -1763,6 +1763,9 @@ elim: s => //= y s IHs; rewrite eq_sym.
 by case: ifP => _; [exact: subseq_cons | rewrite eqxx].
 Qed.
 
+Lemma rem_uniq s : uniq s -> uniq (rem s).
+Proof. by apply: subseq_uniq; exact: rem_subseq. Qed.
+
 Lemma mem_rem s : {subset rem s <= s}.
 Proof. exact: mem_subseq (rem_subseq s). Qed.
 

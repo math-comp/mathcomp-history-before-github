@@ -304,7 +304,6 @@ case/setIP=> /(subsetP sM'M) Mz cKz defVz; exists (z * y)%g.
 by rewrite groupM // !conjsgM -defVz conjsgKV (normsP (cent_sub K) z cKz).
 Qed.
 
-
 (* This is Peterfalvi (8.5), with an extra clause in anticipation of (8.15). *)
 Lemma typeP_context M U W1 (H := M`_\F) (W2 := 'C_H(W1)) (W := W1 <*> W2) :
     of_typeP M U W1 ->

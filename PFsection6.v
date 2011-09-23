@@ -141,8 +141,7 @@ have [sBH sBL] := (subset_trans sBA sAH, subset_trans sBA sAL).
 have nsBL: B <| L by exact/andP.
 suffices{m IHm leAm} cohB: coherent (S B) L^# tau.
   apply: IHm cohB _ => //; first exact: leq_trans (proper_card ltBA) _.
-  rewrite (leq_trans lbHA) // -(divgS sBH) leq_divr // -(LaGrange sAH).
-  by rewrite mulnC leq_pmul2r // subset_leq_card.
+  by rewrite (leq_trans lbHA) // dvdn_leq // indexgS.
 have /andP[sHL nHL] := nsHL.
 have sAbZH: (A / B \subset 'Z(H / B))%g.
   have nBA := subset_trans sAL nBL; have nsBA : B <| A by exact/andP.
@@ -187,7 +186,18 @@ Qed.
 Definition odd_Frobenius_quotient M (H1 := K^`(1) <*> M) :=
   [/\ (*a*) odd #|L|,
       (*b*) [/\ M <| L, M \subset K & nilpotent (K / M)]
-    & (*c*) exists E1, [Frobenius L / H1 = (K / H1) ><| gval E1] ]%g.
+    & (*c*) [Frobenius L / H1 with kernel K / H1] ]%g.
+
+(*
+Lemma proper_odd_mod1 m d :
+  (odd m -> odd d -> m > 1 -> m == 1 %[mod d] -> 2 * d + 1 <= m)%N.
+Proof.
+move=> odd_m odd_d m_gt1; rewrite eqn_mod_dvd ?(ltnW m_gt1) //.
+rewrite -[m]odd_double_half odd_m subn1 /= -mul2n addn1 ltnS leq_pmul2l //.
+rewrite gauss; last by rewrite coprime_sym prime_coprime // dvdn2 odd_d.
+by apply: dvdn_leq; rewrite -(subnKC m_gt1).
+Qed.
+*)
 
 (* This is Peterfalvi (6.5). *)
 Lemma non_coherent_chief M (H1 := (K^`(1) <*> M)%G) :
@@ -198,6 +208,12 @@ Lemma non_coherent_chief M (H1 := (K^`(1) <*> M)%G) :
      & (*c*) ~~ (#|L : K| %| p - 1)].
 Proof.
 case=> oddL [nsML sMK nilKb]; rewrite /= -(erefl (gval H1)) => frobLb.
+set e := #|L : K|; have odd_e: odd e := dvdn_odd (dvdn_indexg L K) oddL.
+have{odd_e} mod1e_lb m: (odd m -> m > 1 -> m == 1 %[mod e] -> 2 * e + 1 <= m)%N.
+  move=> odd_m m_gt1; rewrite eqn_mod_dvd ?(ltnW m_gt1) //.
+  rewrite -[m]odd_double_half odd_m subn1 /= -mul2n addn1 ltnS leq_pmul2l //.
+  rewrite gauss; last by rewrite coprime_sym prime_coprime // dvdn2 odd_e.
+  by apply: dvdn_leq; rewrite -(subnKC m_gt1).
 have nsH1L: H1 <| L by rewrite normalY // (char_normal_trans (der_char 1 K)).
 have sH1K: H1 \subset K by rewrite join_subG der_sub.
 have cohH1: coherent (S H1) L^# tau.
@@ -207,16 +223,19 @@ have cohH1: coherent (S H1) L^# tau.
   by do 2![case/andP]=> _ /eqP chi1 _ ->; rewrite cfInd1 // chi1 mulr1.
 have sMH1: M \subset H1 by exact: joing_subr.
 have [ubK | lbK] := leqP; last by left; exact: bounded_seqIndD_coherent lbK.
+have{ubK} ubK: (#|K : H1| < (2 * e + 1) ^ 2)%N.
+  rewrite sqrn_add expn_mull (leq_ltn_trans ubK) // -subn_gt0 addKn.
+  by rewrite !muln_gt0 indexg_gt0.
 have [-> | neqMH1] := eqVneq M H1; [by left | right].
 have{neqMH1} ltMH1: M \proper H1 by rewrite properEneq neqMH1.
-have{frobLb} [[E1b frobLb] [sH1L nH1L]] := (frobLb, andP nsH1L).
+have{frobLb} [[E1b frobLb] [sH1L nH1L]] := (existsP frobLb, andP nsH1L).
 have [defLb ntKb _ _ /andP[sE1L _]] := Frobenius_context frobLb.
 have nH1K: K \subset 'N(H1) := subset_trans sKL nH1L.
 have chiefH1: chief_factor L H1 K.
   have ltH1K: H1 \proper K by rewrite /proper sH1K -quotient_sub1 ?subG1.
   rewrite /chief_factor nsKL andbT; apply/maxgroupP; rewrite ltH1K.
   split=> // H2 /andP[ltH2K nH2L] sH12; have sH2K := proper_sub ltH2K.
-  have /eqVproper[// | ltH21] := sH12; case/idPn: ubK; set e := #|L : K|.
+  have /eqVproper[// | ltH21] := sH12; case/idPn: ubK; rewrite -leqNgt.
   have dv_e H3: H1 \subset H3 -> H3 \subset K -> L \subset 'N(H3) ->
     #|H3 : H1| == 1 %[mod e].
   - move=> sH13 sH3K nH3L; rewrite eqn_mod_dvd // subn1.
@@ -224,36 +243,30 @@ have chiefH1: chief_factor L H1 K.
     rewrite -[#|_ : _|]divgS ?quotientS // -(sdprod_card defLb) mulKn //.
     rewrite -card_quotient ?(subset_trans (subset_trans sH3K sKL)) //.
     rewrite regular_norm_dvd_pred ?(subset_trans sE1L) ?quotient_norms //.
-    move=> x /(Frobenius_reg_ker frobLb) cKx1; apply/trivgP.
-    by rewrite -cKx1 setSI ?quotientS.
+    apply: semiregular_sym; apply: sub_in1 (Frobenius_reg_compl frobLb).
+    by apply/subsetP; rewrite setSD ?quotientS.
   have dv_H21 := dv_e H2 sH12 sH2K nH2L.
   have dv_KH2: #|K : H2| == 1 %[mod e].
     have:= dv_e K sH1K (subxx K) nKL; rewrite -(LaGrange_index sH2K sH12).
     by rewrite -modn_mulmr (eqP dv_H21) modn_mulmr muln1.
-  have lt_dv_e H3 H4 (m := #|H3 : H4|):
-    H4 \proper H3 -> H3 \subset K -> m == 1 %[mod e] -> (2 * e + 1 <= m)%N.
-  - move=> ltH43 sH3K; rewrite eqn_mod_dvd ?indexg_gt0 // -[m]odd_double_half.
-    rewrite (dvdn_odd (dvdn_indexg _ _)) ?(oddSg (subset_trans sH3K sKL)) //.
-    rewrite addnC addnK leq_add2r -mul2n leq_pmul2l // gauss.
-      by move/dvdn_leq->; rewrite ?(@half_leq 2) // indexg_gt1 proper_subn.
-    by rewrite coprime_sym prime_coprime // dvdn2 (dvdn_odd (dvdn_indexg _ _)).
-  rewrite -ltnNge -(LaGrange_index sH2K sH12).
-  apply: leq_trans (leq_mul (lt_dv_e _ _ _ _ _) (lt_dv_e _ _ _ _ _)) => //.
-  rewrite mulnn sqrn_add expn_mull -addnA ltn_add2l add1n muln1 ltnS.
-  by rewrite !muln_gt0 indexg_gt0.
-have nMK := subset_trans sKL (normal_norm nsML).
+  have odd_iK := dvdn_odd (dvdn_indexg _ _) (oddSg (subset_trans _ sKL) oddL).
+  have iK_gt1 H3 H4: H4 \proper H3 -> (#|H3 : H4| > 1)%N.
+    by rewrite indexg_gt1 => /andP[].
+  by rewrite -(LaGrange_index sH2K sH12) leq_mul ?mod1e_lb ?odd_iK ?iK_gt1.
+split=> //; have nMK := subset_trans sKL (normal_norm nsML).
 have not_abKb: ~~ abelian (K / M).
   apply: contra (proper_subn ltMH1) => /derG1P/trivgP.
   rewrite /= join_subG subxx andbT -quotient_der ?quotient_sub1 //.
   exact: subset_trans (der_sub 1 K) nMK.
-have [|_ _]:= minnormal_solvable (chief_factor_minnormal chiefH1) (subxx _).
-  exact: quotient_sol solK.
-case/is_abelemP=> p p_pr /and3P[pKb _ _].
+have /is_abelemP[p p_pr /and3P[pKb _ _]]: is_abelem (K / H1)%g.
+  have: solvable (K / H1)%g by exact: quotient_sol solK.
+  by case/(minnormal_solvable (chief_factor_minnormal chiefH1)).  
 have [_ p_dv_Kb _] := pgroup_pdiv pKb ntKb.
+have iso3M := third_isog sMH1 (normalS sMK sKL nsML) (normalS sH1K sKL nsH1L).
 have pKM: p.-group (K / M)%g.
   have /dprodP[_ defKM cKMpp' tiKMpp'] := nilpotent_pcoreC p nilKb.
   rewrite -defKM (eqP (forall_inP (nilpotent_sol nilKb) 'O_p^'(_)%G _)).
-    by rewrite  mulg1 pcore_pgroup.
+    by rewrite mulg1 pcore_pgroup.
   have /isomP[inj_quo im_quo] := quotient_isom (cents_norm cKMpp') tiKMpp'.
   rewrite subsetI pcore_sub /= -(injmSK inj_quo) // (morphim_der _ 1) //.
   rewrite {inj_quo}im_quo /= -[Q in Q^`(1)%g]quotientMidl defKM.
@@ -263,14 +276,11 @@ have pKM: p.-group (K / M)%g.
   apply: pnat_coprime (quotient_pgroup _ (pcore_pgroup _ _)).
   apply: pgroupS (quotientS _ (pcore_sub _ _)) _.
   rewrite /= -quotient_der // -(quotientYidr (subset_trans (der_sub 1 K) nMK)).
-  rewrite (isog_pgroup _ (third_isog _ _ _)) ?(normalS sMK sKL nsML) //.
-  exact: (normalS sH1K sKL nsH1L).
-split=> //; exists p => //.
-set e := #|L : K|; apply: contra not_abKb => e_dv_p1.
+  by rewrite (isog_pgroup _ iso3M) ?(normalS sMK sKL nsML).
+exists p => //; apply: contra not_abKb => e_dv_p1.
 rewrite cyclic_abelian // Phi_quotient_cyclic //.
 have /homgP[f <-]: (K / M / 'Phi(K / M) \homg K / H1)%g.
-  have:= third_isog sMH1 (normalS sMK sKL nsML) (normalS sH1K sKL nsH1L).
-  move/isog_hom; apply: homg_trans.
+  apply: homg_trans (isog_hom iso3M).
   rewrite homg_quotientS ?gFnorm ?quotient_norms //=.
   rewrite quotientYidr ?(subset_trans (der_sub 1 K)) // quotient_der //.
   by rewrite (Phi_joing pKM) joing_subl.
@@ -278,16 +288,9 @@ rewrite {f}morphim_cyclic // abelian_rank1_cyclic; last first.
   by rewrite sub_der1_abelian ?joing_subl.
 rewrite (rank_pgroup pKb) (leq_trans (p_rank_le_logn _ _)) //.
 rewrite -ltnS -(ltn_exp2l _ _ (prime_gt1 p_pr)) -p_part part_pnat_id //.
-rewrite card_quotient // (leq_ltn_trans ubK) //.
-have{e_dv_p1} lb_p: (2 * #|L : K| + 1 <= p)%N.
-  move: e_dv_p1; rewrite -[p]odd_double_half.
-  rewrite (dvdn_odd p_dv_Kb) ?quotient_odd ?(oddSg sKL) //.
-  rewrite addnC addnK leq_add2r -mul2n leq_pmul2l // gauss.
-    by move/dvdn_leq->; rewrite ?(@half_leq 2) // prime_gt1.
-  by rewrite coprime_sym prime_coprime // dvdn2 (dvdn_odd (dvdn_indexg _ _)).
-apply: leq_trans (leq_mul lb_p lb_p).
-rewrite mulnn sqrn_add expn_mull -addnA ltn_add2l add1n muln1 ltnS.
-by rewrite !muln_gt0 indexg_gt0.
+rewrite card_quotient // (leq_trans ubK) // leq_exp2r //.
+have odd_p: odd p := dvdn_odd p_dv_Kb (quotient_odd _ (oddSg sKL oddL)).
+by rewrite mod1e_lb // ?eqn_mod_dvd ?prime_gt0 ?prime_gt1.
 Qed.
 
 (* This is Peterfalvi (6.6). *)
@@ -317,13 +320,12 @@ split=> [chi|].
   by rewrite cfdot_irr -neq0N_neqC -lt0n; case: eqP => // ->.
 have [|[]] := non_coherent_chief Frob_quo1.
   by apply: subset_coherent; [exact: seqInd_sub | exact: orthogonal_free].
+have [oddL _] := Frob_quo1; rewrite /= joingG1 => frobLb _ [p []].
+set e := #|L : K|; have e_gt0: (e > 0)%N by exact: indexg_gt0.
 have isoK1 := isog_symr (quotient1_isog K).
-have [oddL _ []] := Frob_quo1; set e := #|L : K|.
-have e_gt0: (e > 0)%N by exact: indexg_gt0.
-rewrite /= joingG1 => Eb frobLb _ [p [pK not_abK] not_e_dv_p1].
-rewrite (isog_abelian isoK1) {isoK1}(isog_pgroup _ isoK1) in not_abK pK.
-have ntK: K :!=: 1%g by apply: contraNneq not_abK => ->; exact: abelian1.
-have{ntK not_abK} [p_pr p_dv_K _] := pgroup_pdiv pK ntK.
+rewrite (isog_abelian isoK1) {isoK1}(isog_pgroup _ isoK1).
+have [-> | ntK pK _ not_e_dv_p1] := eqsVneq K [1]; first by rewrite abelian1.
+have{ntK} [p_pr p_dv_K _] := pgroup_pdiv pK ntK.
 set Y := calX; pose d (xi : 'CF(L)) := logn p (getNatC (xi 1%g) %/ e).
 have: conjC_closed Y by exact: cfAut_seqInd.
 have: perm_eq (Y ++ [::]) calX by rewrite cats0.
@@ -354,24 +356,23 @@ have{homoY} /hasP[xi1 Yxi1 lt_xi1_chi]: has (fun xi => d xi < d chi)%N Y.
   rewrite all_map; apply/allP=> xi Yxi; rewrite /= !Ndg ?sYX // -eqN_eqC.
   rewrite eqn_pmul2l // eqn_exp2l ?prime_gt1 //.
   by rewrite eqn_leq leYchi //= leqNgt (hasPn geYchi).
-pose mrem := (inE, mem_rem_uniq, subseq_uniq (rem_subseq _ _)).
 pose Y' := rem chi^*%CF (rem chi Y); pose X'' := [:: chi, chi^*%CF & X'].
 have ccY': conjC_closed Y'.
-  move=> xi; rewrite !mrem // !(inv_eq (@cfConjCK _ _)) cfConjCK andbCA.
-  by case/and3P=> -> -> /ccY.
+  move=> xi; rewrite !(inE, mem_rem_uniq) ?rem_uniq //.
+  by rewrite !(inv_eq (@cfConjCK _ _)) cfConjCK => /and3P[-> -> /ccY->].
 have Xchi := sYX _ Ychi; have defY: perm_eq [:: chi, chi^*%CF & Y'] Y.
   rewrite (perm_eqrP (perm_to_rem Ychi)) perm_cons perm_eq_sym perm_to_rem //.
-  by rewrite !mrem ?ccY // (seqInd_conjC_neq _ _ _ Xchi).
+  by rewrite mem_rem_uniq ?inE ?ccY // (seqInd_conjC_neq _ _ _ Xchi).
 apply: perm_eq_coherent (defY) _ _.
   have: free calX by exact: seqInd_free.
   by rewrite (free_perm_eq defY) -(free_perm_eq defX); exact: free_catl. 
 have d_chic: d chi^*%CF = d chi.
   by rewrite /d cfunE isNatC_conj // (seqInd1_Nat Xchi).
 have /andP[uniqY' Y'x1]: uniq Y' && (xi1 \in Y').
-  rewrite ?mrem // Yxi1 andbT -negb_or.
+  rewrite !(inE, mem_rem_uniq) ?rem_uniq // Yxi1 andbT -negb_or.
   by apply: contraL lt_xi1_chi => /pred2P[] ->; rewrite ?d_chic ltnn.
-have{mrem} xi1P: [&& xi1 \in Y', chi \in calS & chi \notin Y'].
-  by rewrite Y'x1 sYS ?mrem // eqxx andbF.
+have xi1P: [&& xi1 \in Y', chi \in calS & chi \notin Y'].
+  by rewrite Y'x1 sYS ?(inE, mem_rem_uniq) ?rem_uniq // eqxx andbF.
 have sY'Y: {subset Y' <= Y} by move=> xi /mem_rem/mem_rem.
 apply: (extend_coherent scohS) xi1P _; first by split=> // xi /sY'Y/sYS. 
 have{defX} defX: perm_eq (Y' ++ X'') calX.
@@ -392,43 +393,34 @@ rewrite -!natr_mul; apply: (@ltC_leC_trans (e ^ 2 * (p ^ d chi) ^ 2)%:R).
 have [r] := seqIndP (sYX _ Ychi); rewrite !inE => /andP[nkerZr _] def_chi.
 have d_r: 'chi_r 1%g = (p ^ d chi)%:R.
   by apply: (mulfI (neq0GiC L K)); rewrite -cfInd1 // -def_chi -natr_mul Ndg.
-set sum_Y' := \sum_( xi <- Y') _.
-pose sum_X'' := (\sum_(xi <- X'') (e * p ^ d xi) ^ 2)%N.
-have def_sumX: sum_Y' + sum_X''%:R = (#|L : Z| * #|Z|.-1)%:R.
-  rewrite -subn1 -(indexg1 Z) natr_mul natr_sub //.
-  rewrite -(sum_seqIndD_square nsKL) ?normal1 ?sub1G // -/calX.
-  rewrite -(eq_big_perm _ defX) big_cat /= -/sum_Y'; congr (_ + _).
-  rewrite natr_sum; apply: eq_big_seq => xi X''xi.
-  have Xxi: xi \in calX by rewrite -(perm_eq_mem defX) mem_cat X''xi orbT.
-  by have /irrP[i {3 4}->] := irrX _ Xxi; rewrite cfnorm_irr divr1 natr_exp Ndg.
-have def_sumY': sum_Y' = (e ^ 2 * \sum_(xi <- Y') p ^ (d xi).*2)%:R.
-  rewrite big_distrr natr_sum /=; apply: eq_big_seq => xi /sY'Y/sYX Xxi.
-  rewrite -muln2 expn_mulr -expn_mull natr_exp -Ndg //.
+pose sum_p2d S := (\sum_(xi <- S) p ^ (d xi * 2))%N.
+pose sum_xi1 (S : seq 'CF(L)) := \sum_(xi <- S) xi 1%g ^+ 2 / '[xi].
+have def_sum_xi1 S: {subset S <= calX} -> sum_xi1 S = (e ^ 2 * sum_p2d S)%:R.
+  move=> sSX; rewrite big_distrr natr_sum /=; apply: eq_big_seq => xi /sSX Xxi.
+  rewrite expn_mulr -expn_mull natr_exp -Ndg //.
   by have /irrP[i ->] := irrX _ Xxi; rewrite cfnorm_irr divr1.
-rewrite -expn_mulr muln2 def_sumY' -leq_leC dvdn_leq //.
-  by rewrite muln_gt0 expn_gt0 e_gt0 /= (bigD1_seq xi1) //= addn_gt0 pos_p.
-rewrite gauss_inv ?coprime_expl ?coprime_expr //; last first.
-  have [defLb ntKb _ _ _] := Frobenius_context frobLb.
-  have ->: e = #|Eb|.
-    apply/eqP; rewrite -(eqn_pmul2l (cardG_gt0 K)) LaGrange //.
-    have /andP[sK'L nK'L] := char_normal_trans (der_char 1 K) nsKL.
-    rewrite -(LaGrange sK'L) -card_quotient // -(sdprod_card defLb).
-    by rewrite card_quotient ?der_norm // mulnA LaGrange ?der_sub.
-  have:= Frobenius_coprime frobLb.
+rewrite -/(sum_xi1 _) def_sum_xi1 -?leq_leC 1?dvdn_leq => [|||_ /sY'Y/sYX] //.
+  by rewrite muln_gt0 expn_gt0 e_gt0 [_ Y'](bigD1_seq xi1) //= addn_gt0 pos_p.
+have coep: coprime e p.
+  have:= Frobenius_ker_coprime frobLb; rewrite coprime_sym.
+  have /andP[_ nK'L] := char_normal_trans (der_char 1 K) nsKL.
+  rewrite index_quotient_eq ?subIset ?der_sub ?orbT {nK'L}// -/e.
+  have ntKb: (K / K^`(1))%g != 1%g by case/Frobenius_kerP: frobLb.
   have [_ _ [k ->]] := pgroup_pdiv (quotient_pgroup _ pK) ntKb.
-  by rewrite coprime_pexpl // coprime_sym.
-have dv_chi2_X'': p ^ (d chi).*2 %| sum_X''.
-  rewrite /sum_X'' big_seq dvdn_sum // => xi /le_chi_X'' le_chi_xi.
-  by rewrite expn_mull -expn_mulr -muln2 dvdn_mull // dvdn_exp2l ?leq_pmul2r.
-rewrite dvdn_mulr //= -(dvdn_addl _ dv_chi2_X'') -(getNatC_nat (_ + _)).
-rewrite natr_add -def_sumY' def_sumX getNatC_nat dvdn_mulr //.
-rewrite -(LaGrange_index sKL sZK) dvdn_mull //.
+  by rewrite coprime_pexpr.
+rewrite -expn_mulr gauss_inv ?coprime_expl ?coprime_expr {coep}// dvdn_mulr //=.
+have /dvdn_addl <-: p ^ (d chi * 2) %| e ^ 2 * sum_p2d X''.
+  rewrite big_distrr big_seq dvdn_sum //= => xi /le_chi_X'' le_chi_xi.
+  by rewrite dvdn_mull // dvdn_exp2l ?leq_pmul2r.
+rewrite -muln_addr -big_cat (eq_big_perm _ defX) -(getNatC_nat (e ^ 2 * _)) /=.
+rewrite -def_sum_xi1 // /sum_xi1 sum_seqIndD_square ?normal1 ?sub1G //.
+rewrite indexg1 -(natr_sub _ (cardG_gt0 Z)) -natr_mul getNatC_nat.
+rewrite -(LaGrange_index sKL sZK) mulnAC dvdn_mull //.
 have /p_natP[k defKZ]: p.-nat #|K : Z| by rewrite (pnat_dvd (dvdn_indexg K Z)).
 rewrite defKZ dvdn_exp2l // -(leq_exp2l _ _ (prime_gt1 p_pr)) -{k}defKZ.
-rewrite leq_leC -muln2 expn_mulr natr_exp -d_r -divgS //.
-rewrite (leC_trans (irr1_bound r).1) // -leq_leC leq_divr // mulnC.
-rewrite -(LaGrange (cfcenter_sub 'chi_r)) leq_pmul2r // subset_leq_card //.
-by rewrite (subset_trans sZ_ZK) // -cap_cfcenter_irr bigcap_inf.
+rewrite leq_leC expn_mulr natr_exp -d_r ?(leC_trans (irr1_bound r).1) //.
+rewrite -leq_leC dvdn_leq ?indexgS ?(subset_trans sZ_ZK) //=.
+by rewrite -cap_cfcenter_irr bigcap_inf.
 Qed.
 
 End GeneralCoherence.

@@ -1405,7 +1405,7 @@ End Induced.
 Arguments Scope cfInd [_ group_scope group_scope cfun_scope].
 Notation "''Ind[' G , H ]" := (@cfInd _ G H) : ring_scope.
 Notation "''Ind[' G ]" := (@cfInd _ G _) : ring_scope.
-Notation "''Ind'" := (@cfInd _ _) (at level 0, only parsing) : ring_scope.
+Notation "''Ind'" := (@cfInd _ _ _) (at level 0, only parsing) : ring_scope.
 
 Section FieldAutomorphism.
 

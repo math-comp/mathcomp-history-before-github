@@ -30,42 +30,7 @@ Implicit Type F : fieldType.
 Implicit Type gT : finGroupType.
 Implicit Type p : nat.
 
-(* This is B & G, Lemma 3.1. *)
-Lemma Frobenius_semiregularP : forall gT (G K R : {group gT}),
-    K ><| R = G -> K :!=: 1 -> R :!=: 1 ->
-  reflect (semiregular K R) [Frobenius G = K ><| R].
-Proof.
-move=> gT G K R defG ntK ntR.
-apply: (iffP idP)=> [|regG]; first exact: Frobenius_reg_ker.
-have [nsKG sRG defKR nKR tiKR]:= sdprod_context defG; have [sKG _]:= andP nsKG.
-apply/and3P; split; first by rewrite defG.
-  by rewrite properEcard sRG -(sdprod_card defG) ltn_Pmull ?cardG_gt1.
-apply/(TIconj_SN_P ntR sRG) => x; case/setDP=> Gx notRx.
-apply/trivgP; apply: contraR notRx; case/subsetPn=> y; case/setIP=> Hy.
-move: Gx; rewrite -defKR -(normC nKR); case/imset2P=> xr xk Rxr Kxk ->{x}.
-rewrite groupMl //= conjsgM {xr Rxr}(conjGid Rxr).
-case/imsetP=> z Rxz def_y nt_y; rewrite (subsetP (sub1G R)) //.
-rewrite -(regG y); last by rewrite !(nt_y, inE).
-rewrite inE Kxk -groupV cent1C (sameP cent1P commgP) -in_set1 -[[set 1]]tiKR.
-rewrite inE {1}commgEr invgK groupM ?memJ_norm ?groupV ?(subsetP nKR) //=.
-by rewrite commgEl {2}def_y actK groupM ?groupV.
-Qed.
-
-Lemma prime_FrobeniusP : forall gT (G K R : {group gT}),
-    K :!=: 1 -> prime #|R| ->
-  reflect (K ><| R = G /\ 'C_K(R) = 1) [Frobenius G = K ><| R].
-Proof.
-move=> gT G K R ntK R_pr; have ntR: R :!=: 1 by rewrite -cardG_gt1 prime_gt1.
-have [defG | not_sdG] := eqVneq (K ><| R) G; last first.
-  by apply: (iffP andP) => [] [defG]; rewrite defG ?eqxx in not_sdG.
-apply: (iffP (Frobenius_semiregularP defG ntK ntR)) => [|[_]] regR.
-  split=> //; have [x defR] := cyclicP (prime_cyclic R_pr).
-  by rewrite defR cent_cycle regR // !inE defR cycle_id andbT -cycle_eq1 -defR.
-move=> x; case/setD1P=> nt_x Rx; apply/trivgP.
-rewrite /= -cent_cycle -regR setIS ?centS //.
-apply: contraR nt_x; rewrite -cycle_eq1; move/(prime_TIg R_pr) <-.
-by rewrite (setIidPr _) ?cycle_subG.
-Qed.
+(* B & G, Lemma 3.1 is covered by frobenius.Frobenius_semiregularP. *)
 
 (* This is B & G, Lemma 3.2. *)
 Section FrobeniusQuotient.
@@ -1371,6 +1336,20 @@ rewrite morphpreIim -gacentEsd gacent_actby gacentQ (setIidPr sRG) /=.
 rewrite -coprime_quotient_cent ?(solvableS sXG) ?(subset_trans sRG) //.
   by rewrite {1}['C_X(R)](trivgP _) ?quotient1 ?sub1G // -regR setSI.
 by apply: coprimeSg sXK _; exact: Frobenius_coprime frobG.
+Qed.
+
+Corollary Frobenius_sol_kernel_nil gT (G K H : {group gT}) :
+  [Frobenius G = K ><| H] -> solvable G -> nilpotent K.
+Proof.
+move=> frobG solG; have [defG ntK ntH _ _] := Frobenius_context frobG.
+have{defG} /sdprodP[_ defG nKH tiKH] := defG.
+have[H1 | [p p_pr]] := trivgVpdiv H; first by case/eqP: ntH.
+case/Cauchy=> // x Hx ox; rewrite -ox in p_pr.
+have nKx: <[x]> \subset 'N(K) by rewrite cycle_subG (subsetP nKH).
+have tiKx: K :&: <[x]> = 1 by apply/trivgP; rewrite -tiKH setIS ?cycle_subG.
+apply: (prime_Frobenius_sol_kernel_nil (sdprodEY nKx tiKx)) => //.
+  by rewrite (solvableS _ solG) // join_subG -mulG_subG -defG mulgS ?cycle_subG.
+by rewrite cent_cycle (Frobenius_reg_ker frobG) // !inE -order_gt1 prime_gt1.
 Qed.
 
 (* This is B & G, Theorem 3.8. *)

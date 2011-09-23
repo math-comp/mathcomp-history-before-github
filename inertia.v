@@ -2,8 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop ssralg finset fingroup.
 Require Import morphism perm automorphism action quotient zmodp center.
-Require Import matrix mxalgebra mxrepresentation vector algC.
-Require Import classfun character.
+Require Import matrix mxrepresentation vector algC classfun character.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -622,19 +621,19 @@ Qed.
 
 End S611.
 
+Require Import frobenius BGsection3.
 Section Frobenius.
 
 Variables (gT : finGroupType) (G K : {group gT}).
 
-(* Because he only defines Frobenius groups in chapter 7, Isaacs can't state  *)
-(* these theorems using the Frobenius property; it might be better to do so.  *)
-Hypotheses (nsKG : K <| G) (regGK : {in K^#, forall x, 'C_G[x] \subset K}).
-Let sKG := normal_sub nsKG.
-Let nKG := normal_norm nsKG.
+(* Because he only defines Frobenius groups in chapter 7, Isaacs does not     *)
+(* state these theorems using the Frobenius property.                         *)
+Hypothesis frobGK : [Frobenius G with kernel K].
 
 (* This is Isaacs, Theorem 6.34(a1). *)
 Theorem inertia_Frobenius_ker i : i != 0 -> 'I_G['chi[K]_i] = K.
 Proof.
+have [_ _ nsKG regK] := Frobenius_kerP frobGK; have [sKG nKG] := andP nsKG.
 move=> nzi; apply/eqP; rewrite eqEsubset sub_inertia // andbT.
 apply/subsetP=> x /setIdP[/setIP[Gx nKx] /eqP x_stab_i].
 have actIirrK: is_action G (@conjg_Iirr _ K).
@@ -662,7 +661,7 @@ have /imsetP[z Kz def_yx]: y ^ x \in y ^: K.
   by rewrite -cyKx; apply: mem_imset; exact: class_refl.
 rewrite inE classG_eq1; apply: contraR notKx => nty.
 rewrite -(groupMr x (groupVr Kz)).
-apply: (subsetP (@regGK y _)); first exact/setD1P.
+apply: (subsetP (regK y _)); first exact/setD1P.
 rewrite !inE groupMl // groupV (subsetP sKG) //=.
 by rewrite conjg_set1 conjgM def_yx conjgK.
 Qed.
@@ -671,6 +670,7 @@ Qed.
 Theorem irr_induced_Frobenius_ker i : i != 0 -> 'Ind[G, K] 'chi_i \in irr G.
 Proof.
 move/inertia_Frobenius_ker/group_inj=> defK.
+have [_ _ nsKG _] := Frobenius_kerP frobGK.
 have/(_ i):= cfInd_constt_inertia_irr nsKG; rewrite defK => -> //.
 by rewrite inE /= cfRes_id cfnorm_eq0 irr_neq0.
 Qed.
@@ -680,6 +680,7 @@ Theorem Frobenius_Ind_irrP j :
   reflect (exists2 i, i != 0 & 'chi_j = 'Ind[G, K] 'chi_i)
           (~~ (K \subset cfker 'chi_j)).
 Proof.
+have [_ _ nsKG _] := Frobenius_kerP frobGK; have [sKG nKG] := andP nsKG.
 apply: (iffP idP) => [not_chijK1 | [i nzi ->]]; last first.
   by rewrite cfker_Ind_irr ?sub_gcore // subGcfker.
 have /neq0_has_constt[i chijKi]: 'Res[K] 'chi_j != 0 by exact: Res_irr_neq0.
@@ -691,4 +692,3 @@ by rewrite cfdot_irr -(eqN_eqC _ 0); case: (j =P k) => // ->; exists i.
 Qed.
 
 End Frobenius.
-

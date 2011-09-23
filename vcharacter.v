@@ -2,8 +2,8 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset.
 Require Import fingroup morphism perm automorphism quotient finalg action.
-Require Import zmodp commutator cyclic center pgroup sylow matrix mxalgebra.
-Require Import mxpoly mxrepresentation vector algC classfun character.
+Require Import gproduct zmodp commutator cyclic center pgroup sylow frobenius.
+Require Import vector algC classfun character.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -31,7 +31,7 @@ Notation "''Z[' S ]" := 'Z[S, setT]
 
 Section IsVChar.
 
-Variable (gT : finGroupType) (G : {group gT}).
+Variables (gT : finGroupType) (G : {group gT}).
 Implicit Types (A : {set gT}) (phi chi : 'CF(G)) (S : seq 'CF(G)).
 
 Lemma vcharP phi :
@@ -365,7 +365,7 @@ Lemma cfnorm_orthonormal S :
   orthonormal S -> '[\sum_(xi <- S) xi] = (size S)%:R.
 Proof. exact: cfnorm_map_orthonormal. Qed.
 
-Lemma vchar_orthonormalP (S : seq 'CF(G)) :
+Lemma vchar_orthonormalP S :
     {subset S <= 'Z[irr G]} ->
   reflect (exists I : {set Iirr G}, exists b : Iirr G -> bool,
            perm_eq S [seq (-1) ^+ b i *: 'chi_i | i <- enum I])
@@ -543,7 +543,7 @@ rewrite vchar_split; apply/andP; split.
 by apply/cfun_onP=> x /(cfun_onP Aphi); rewrite !cfunElock => ->; exact: mul0rn.
 Qed.
 
-Lemma cfInd_vchar phi : phi \in 'Z[irr H] -> 'Ind[G, H] phi \in 'Z[irr G].
+Lemma cfInd_vchar phi : phi \in 'Z[irr H] -> 'Ind[G] phi \in 'Z[irr G].
 Proof.
 move=> /vcharP[xi1 Nx1 [xi2 Nxi2 ->]].
 case sHG: (H \subset G); last first.
@@ -560,7 +560,71 @@ move=> Zphi; rewrite sub_Aut_vchar ?cfAut_vchar ?irr_free // => _ /irrP[i ->].
 exact: cfConjC_irr.
 Qed.
 
+Lemma Frobenius_kernel_exists :
+  [Frobenius G with complement H] -> {K : {group gT} | [Frobenius G = K ><| H]}.
+Proof.
+move=> frobG; have [/andP[sHG ltHG] ntiHG] := andP frobG.
+have [tiHG /eqP defNH] := andP ntiHG; rewrite -defNH subsetIidl in ltHG.
+suffices /sigW[K defG]: exists K, gval K ><| H == G by exists K; exact/andP.
+have{ltHG} ntH: H :!=: 1%g by apply: contraNneq ltHG => ->; exact: norms1.
+pose K1 := G :\: cover (H^# :^: G).
+have oK1:  #|K1| = #|G : H|.
+  rewrite cardsD (setIidPr _); last first.
+    rewrite cover_imset; apply/bigcupsP=> x Gx.
+    by rewrite sub_conjg conjGid ?groupV // (subset_trans (subsetDl _ _)).
+  rewrite -(eqnP tiHG) (eq_bigr (fun _ => #|H|.-1)); last first.
+    by move=> _ /imsetP[x _ ->]; rewrite cardJg (cardsD1 1%g H) group1.
+  rewrite sum_nat_const card_orbit astab1Js normD1 defNH.
+  by rewrite -subn1 muln_subr mulnC LaGrange // muln1 subKn ?leq_imset_card.
+suffices extG i: {j | {in H, 'chi[G]_j =1 'chi[H]_i} & K1 \subset cfker 'chi_j}.
+  pose K := [group of \bigcap_i cfker 'chi_(s2val (extG i))].
+  have nKH: H \subset 'N(K).
+    by apply/norms_bigcap/bigcapsP=> i _; exact: subset_trans (cfker_norm _).
+  have tiKH: K :&: H = 1%g.
+    apply/trivgP; rewrite -(TI_cfker_irr H) /= setIC; apply/bigcapsP=> i _.
+    apply/subsetP=> x /setIP[Hx /bigcapP/(_ i isT)/=]; rewrite !cfker_irrE !inE.
+    by case: (extG i) => /= j def_j _; rewrite !def_j.
+  exists K; rewrite sdprodE // eqEcard TI_cardMg // mul_subG //=; last first.
+    by rewrite (bigcap_min (0 : Iirr H)) ?cfker_sub.
+  rewrite -(LaGrange sHG) mulnC leq_pmul2r // -oK1 subset_leq_card //.
+  by apply/bigcapsP=> i _; case: (extG i).
+case i0: (i == 0).
+  exists 0 => [x Hx|]; last by rewrite chi0_1 cfker_cfun1 subsetDl.
+  by rewrite (eqP i0) !chi0_1 !cfun1E // (subsetP sHG) ?Hx.
+have ochi1: '['chi_i, 1] = 0 by rewrite -chi0_1 cfdot_irr i0.
+pose a := 'chi_i 1%g; have Za: isIntC a by rewrite isIntCE isNatC_irr1.
+pose theta := 'chi_i - a%:A; pose phi := 'Ind[G] theta + a%:A.
+have /cfun_onP theta0: theta \in 'CF(H, H^#).
+  by rewrite cfunD1E !cfunE cfun1E // group1 mulr1 subrr.
+have RItheta: 'Res ('Ind[G] theta) = theta.
+  apply/cfun_inP=> x Hx; rewrite cfResE ?cfIndE // (big_setID H) /= addrC.
+  apply: canLR (mulKf (neq0GC H)) _; rewrite (setIidPr sHG) mulr_natl.
+  rewrite big1 ?add0r => [|y /(TIconj_SN_P ntH sHG ntiHG) tiHy]; last first.
+    by rewrite theta0 // inE -set1gE -tiHy inE memJ_conjg Hx andbT andNb.
+  by rewrite -sumr_const; apply: eq_bigr => y Hy; rewrite cfunJ.
+have ophi1: '[phi, 1] = 0.
+  rewrite cfdotDl -cfdot_Res_r cfRes_cfun1 // cfdot_subl !cfdotZl !cfnorm1.
+  by rewrite ochi1 add0r addNr.
+have{ochi1} n1phi: '[phi] = 1.
+  have: '[phi - a%:A] = '[theta] by rewrite addrK -cfdot_Res_l RItheta.
+  rewrite !cfnorm_subd ?cfnormZ ?cfdotZr ?ophi1 ?ochi1 ?mulr0 //.
+  by rewrite !cfnorm1 cfnorm_irr => /addIr.
+have Zphi: phi \in 'Z[irr G].
+  rewrite ?(cfInd_vchar, sub_vchar, add_vchar, scale_vchar) ?cfun1_vchar //.
+  exact: irr_vchar.
+have def_phi: {in H, phi =1 'chi_i}.
+  move=> x Hx /=; rewrite !cfunE -[_ x](cfResE _ sHG) ?RItheta //.
+  by rewrite !cfunE !cfun1E ?(subsetP sHG) ?Hx ?subrK.
+have [j def_chi_j]: {j | 'chi_j = phi}.
+  apply/sig_eqW; have [[] [j]] := vchar_norm1P Zphi n1phi; last first.
+    by rewrite scale1r; exists j.
+  move/cfunP/(_ 1%g)/eqP; rewrite scaleN1r def_phi // cfunE -addr_eq0 eqC_leC.
+  by rewrite ltC_geF // sposC_addl ?ltCW ?ltC_irr1.
+exists j; rewrite ?cfker_irrE def_chi_j //; apply/subsetP => x /setDP[Gx notHx].
+rewrite inE cfunE def_phi // cfunE -/a cfun1E // Gx mulr1 cfIndE //.
+rewrite big1 ?mulr0 ?add0r // => y Gy; apply/theta0/(contra _ notHx) => Hxy.
+by rewrite -(conjgK y x) cover_imset -class_supportEr mem_imset2 ?groupV. 
+Qed.
+
 End MoreIsVChar.
-
-
 

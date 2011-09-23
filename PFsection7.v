@@ -642,7 +642,7 @@ have{defAtau} defG0: G0 = G :\: \bigcup_i Atau i.
 pose S i := seqIndD (H i) (L i) (H i) 1.
 have irrS i: {subset S i <= irr (L i)}.
   move=> _ /seqIndC1P[t nz_t ->]; rewrite irr_induced_Frobenius_ker //.
-  exact: (Frobenius_cent1_ker (frobL i)).
+  exact: FrobeniusWker (frobL i).
 have /fin_all_exists[r lin_r] i: exists r, 'chi_r \in S i /\ 'chi_r 1%g = e_ i.
   have lt1Hi: [1] \proper H i by rewrite proper1G.
   have solHi := solvableS (sHL i) (solL i).
@@ -653,18 +653,7 @@ have ntS i: (size (S i) > 1)%N by exact: seqInd_nontrivial (Sr i).
 have /fin_all_exists[nu cohS] i: coherent (S i) (H i)^# 'Ind[G, L i].
   have [[[frobLi tiAiL] sLiG] oddLi] := (frobL i, normedTI_A i, sLG i, oddL i).
   have [defLi ntHi ntEi _ _] := Frobenius_context frobLi.
-  have{ntEi} nilHi: nilpotent (H i).
-    have [E1 | [p p_pr p_dv_E]] := trivgVpdiv (E i); first by case/eqP: ntEi.
-    have [z Ez oz] := Cauchy p_pr p_dv_E; rewrite -oz in p_pr.
-    have [_ sELi _ nHE tiHE] := sdprod_context defLi.
-    have defHZ: H i ><| <[z]> = H i <*> <[z]>.
-      rewrite sdprodEY ?cycle_subG ?(subsetP nHE) //.
-      by apply/trivgP; rewrite -tiHE setIS ?cycle_subG.
-    apply: (prime_Frobenius_sol_kernel_nil defHZ) => //.
-      rewrite (solvableS _ (solL i)) // join_subG sHL cycle_subG.
-      exact: (subsetP sELi).
-    rewrite cent_cycle (Frobenius_reg_ker frobLi) //.
-    by rewrite !inE -order_gt1 prime_gt1.
+  have{ntEi} nilHi: nilpotent (H i) by exact: (Frobenius_sol_kernel_nil frobLi).
   admit. (* This is the Sibley coherence theorem, Peterfalvi (6.8) *)
          (* (a) is sLiG, defLi, oddLi, ntHi, nilHi & tiAiL; (c1) is frobLi *)
 have{cohS} [/all_and2[Inu Znu] nu_Ind] := all_and2 cohS.
