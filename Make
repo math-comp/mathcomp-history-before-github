@@ -106,6 +106,7 @@ PFsection6.v
 PFsection7.v
 PFsection8.v
 fraction.v
+cauchyreals.v
 
 COQC = ssrcoq
 COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
