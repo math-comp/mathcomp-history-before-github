@@ -293,6 +293,7 @@ Lemma cyclicDade_base :
       forall i j,
         tau (w_ i j) = (-1) ^+ (d j) *: 'chi_(m i j).
 Proof.
+(*
 pose Chi j := [tuple of [image (w_ i j) | i <- Iirr W1]].
 have F1 : (1 < #|Iirr W1|)%N.
   have F : (2 < #|classes W1|)%N.
@@ -329,6 +330,7 @@ move=> c1 c2 Zc1 Zc2 /=.
    (forall chi, chi \in Chi -> chi 1%g = Chi`_0 1%g) ->
    {in 'Z[Chi, H^#], isometry tau, to 'Z[irr G, G^#]} ->
 *)
+admit.
 Qed.
    
 End CyclicDade.
