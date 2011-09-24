@@ -255,6 +255,75 @@ move/cyclic_abelian=> /subsetP /(_ _ AiW) /centP /(_ _ GG) ->.
 by rewrite mulgA mulVg mul1g.
 Qed.
 
+Definition cyclicDade_tau := 
+ let (t,_) := (cTIirr_isometry cyclicTI_Dade) in t.
+
+Local Notation tau := cyclicDade_tau.
+Let V := cyclicTIset cyclicTI_Dade.
+
+Let cyclicDade_tau_prop :
+     [/\ {in 'Z[irr W], isometry tau, to 'Z[irr L]},
+        forall a, a \in 'CF(W,V) -> tau a = 'Ind[L, W] a,
+        tau 1 = 1,
+        forall a, {in V, tau a =1 a} &
+        forall z, (forall i, '[z, tau 'chi[W]_i] = 0) ->
+                  {in V, forall x, z x = 0}].
+Proof.
+by rewrite /tau; case: (cTIirr_isometry cyclicTI_Dade).
+Qed.
+
+Local Notation w_ := (cyclicTIirr cyclicTI_Dade).
+
+Let odd_neq2 m : odd m -> (2 == m)%N = false.
+Proof. by case: eqP => // <-. Qed.
+
+Let W1xW2 : W1 \x W2 = W. Proof. by have [[]] := cyclicTI_Dade. Qed.
+Let sW1W : W1 \subset W. Proof. by have [_ /mulG_sub[]] := dprodP W1xW2. Qed.
+Let sW2W : W2 \subset W. Proof. by have [_ /mulG_sub[]] := dprodP W1xW2. Qed.
+Let oddW : odd #|W|. Proof. by have [[]] := cyclicTI_Dade. Qed.
+Let oddW1 : odd #|W1|. Proof. exact: oddSg oddW. Qed.
+
+Lemma cyclicDade_base :
+  exists m : Iirr W1 -> Iirr W2 -> Iirr L,
+    exists d : Iirr W2 -> bool,
+      forall i j,
+       'Ind[L] (w_ i j - w_ 0 j) = 
+            (-1) ^+ (d j) *: ('chi_(m i j) - 'chi_(m 0 j))
+     /\
+      forall i j,
+        tau (w_ i j) = (-1) ^+ (d j) *: 'chi_(m i j)
+    .
+Proof.
+pose Chi j := [tuple of [image (w_ i j) | i <- Iirr W1]].
+have F1 : (1 < #|Iirr W1|)%N.
+  have F : (2 < #|classes W1|)%N.
+    have:= cyclic_abelian CW1; rewrite card_classes_abelian => /eqP ->.
+    by rewrite ltn_neqAle cardG_gt1 odd_neq2 //; have [ []] := cyclicTI_Dade.
+  by rewrite NirrE card_ord; case: #|_| F=> [|[]].
+have F2: forall j, {subset (Chi j) <= irr W}.
+  by move=> j c /imageP [k KiI ->]; exact: irr_chi.
+have F3: forall j, (forall chi, chi \in Chi j -> chi 1%g = (Chi j)`_0 1%g).
+  move=> j c /imageP [k KiI ->].
+  admit.
+have FF : {in 'CF(W, W :\: W2) &, isometry 'Ind[L]}.
+  apply: normedTI_isometry.
+   admit.
+  apply: normedTI_Dade_W2.
+
+
+have F4: forall j,
+ {in 'Z[Chi j, W^#], isometry 'Ind[L], to 'Z[irr L, L^#]}.
+move=> j.
+split.
+move=> c1 c2 Zc1 Zc2 /=.
+
+
+
+
+ (1 < m)%N -> {subset Chi <= irr H} -> free Chi ->
+   (forall chi, chi \in Chi -> chi 1%g = Chi`_0 1%g) ->
+   {in 'Z[Chi, H^#], isometry tau, to 'Z[irr G, G^#]} ->
+   
 End CyclicDade.
 
 Section CentralDade.
