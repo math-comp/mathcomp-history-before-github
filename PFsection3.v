@@ -1665,7 +1665,7 @@ Let vcTIirr_inN : forall (j : Iirr W2) (i i' : Iirr W1),
    in_bcTIirr_cmp sbcmp_diff_opp sbcmp_opp_diff bcmp_opp_sym
    bcmp_opp).
 
-Lemma hcTIirr_diff_vcTIrr i j : i != 0 -> j != 0 -> vcTIirr i <> hcTIirr j.
+Let hcTIirr_diff_vcTIrr i j : i != 0 -> j != 0 -> vcTIirr i <> hcTIirr j.
 Proof.
 move=> NZi NZj HH.
 move: (H2LNW1) (H2LNW2) Hcoprime ONW1 ONW2.

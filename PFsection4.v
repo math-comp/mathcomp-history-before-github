@@ -293,8 +293,6 @@ Lemma cyclicDade_base :
       forall i j,
         tau (w_ i j) = (-1) ^+ (d j) *: 'chi_(m i j).
 Proof.
-admit 
-(*
 pose Chi j := [tuple of [image (w_ i j) | i <- Iirr W1]].
 have F1 : (1 < #|Iirr W1|)%N.
   have F : (2 < #|classes W1|)%N.
@@ -305,11 +303,17 @@ have F2: forall j, {subset (Chi j) <= irr W}.
   by move=> j c /imageP [k KiI ->]; exact: irr_chi.
 have F3: forall j, (forall chi, chi \in Chi j -> chi 1%g = (Chi j)`_0 1%g).
   move=> j c /imageP [k KiI ->].
+  have linearX (i : Iirr W) : lin_char ('chi_i).
+    apply/char_abelianP.
+    by apply: cyclic_abelian; case: tiW; case.
+
+\rewrite !cfunE /cyclicTIirr.
   admit.
 have FF : {in 'CF(W, W :\: W2) &, isometry 'Ind[L]}.
   apply: normedTI_isometry.
-   admit.
+  admit.
   apply: normedTI_Dade_W2.
+
 
 
 have F4: forall j,
