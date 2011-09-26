@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset center.
 Require Import fingroup morphism perm automorphism quotient action zmodp.
-Require Import gfunctor gproduct cyclic pgroup.
+Require Import gfunctor gproduct cyclic pgroup abelian.
 Require Import matrix mxalgebra mxrepresentation vector algC classfun character.
 Require Import inertia vcharacter frobenius PFsection1 PFsection2.
 
@@ -25,37 +25,16 @@ Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
 
-(* Move to cyclic *)
-
-Lemma cyclic_dprod :
-   forall (gT : finGroupType) (K H G: {group gT}),
+(* Move to abelian? *)
+Lemma cyclic_dprod (gT : finGroupType) (K H G: {group gT}) :
    K \x H = G ->  cyclic K -> cyclic H -> cyclic G = coprime #|K| #|H| .
 Proof.
-move=> gT K H G KxH cK cH; apply/idP/idP=> [cW|Co]; last first.
-  by case/dprodP: KxH =>_ <- HH HH1; apply: cyclicM.
-move/dprod_card: (KxH).
-case/cyclicP: (cW)=> x defx.
-rewrite defx -orderE => Hx.
-move:(cycle_id x); rewrite -defx.
-case/(mem_dprod KxH)=> y [z [W1y W2z] Hx1 _].
-pose l := lcmn #|K| #|H|.
-suff: ((y * z) ^+ l)%g = 1%g.
-  move/eqP; rewrite -order_dvdn -Hx1 -Hx -muln_lcm_gcd.
-  by rewrite -[l]muln1 dvdn_pmul2l ?dvdn1 // lcmn_gt0 !cardG_gt0.
-have: (y ^+ l = 1)%g.
-  apply/eqP; rewrite -order_dvdn.
-  by apply: dvdn_trans (order_dvdG _) (dvdn_lcml _ _).
-have: (z ^+ l = 1)%g.
- apply/eqP; rewrite -order_dvdn.
- by apply: dvdn_trans (order_dvdG _) (dvdn_lcmr _ _).
-rewrite expMgn;first by  move=> -> ->; rewrite mulg1.
-have YiG : y \in G.
-  case/dprodP: KxH =>_ <- _ _; apply/imset2P; exists y (1%g : gT)=> //.
-  by rewrite mulg1.
-have ZiH : z \in G.
-  case/dprodP: KxH =>_ <- _ _; apply/imset2P; exists (1%g : gT) z => //.
-  by rewrite mul1g.
-by move: (cyclic_abelian cW)=> /subsetP /(_ _ YiG) /centP; apply.
+move=> KxH cK cH; apply/idP/idP=> [cW|Co]; last first.
+  by case/dprodP: KxH =>_ <- HH HH1; exact: cyclicM.
+rewrite coprime_sym coprime_pi' //; apply: sub_pgroup (pgroup_pi _) => p.
+rewrite !(=^~ p_rank_gt0, inE) => Hp; apply: contraL (cW) => /(leq_add Hp) {Hp}.
+rewrite (p_rank_dprod p KxH) abelian_rank1_cyclic ?cyclic_abelian // -ltnNge.
+by move/leq_trans; apply; exact: p_rank_le_rank.
 Qed.
 
 Section Definitions.
