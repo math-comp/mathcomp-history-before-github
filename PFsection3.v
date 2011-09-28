@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset center.
 Require Import fingroup morphism perm automorphism quotient action zmodp.
-Require Import gfunctor gproduct cyclic pgroup abelian.
+Require Import gfunctor gproduct cyclic pgroup.
 Require Import matrix mxalgebra mxrepresentation vector algC classfun character.
 Require Import inertia vcharacter frobenius PFsection1 PFsection2.
 
@@ -25,16 +25,37 @@ Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
 
-(* Move to abelian? *)
-Lemma cyclic_dprod (gT : finGroupType) (K H G: {group gT}) :
+(* Move to cyclic *)
+
+Lemma cyclic_dprod :
+   forall (gT : finGroupType) (K H G: {group gT}),
    K \x H = G ->  cyclic K -> cyclic H -> cyclic G = coprime #|K| #|H| .
 Proof.
-move=> KxH cK cH; apply/idP/idP=> [cW|Co]; last first.
-  by case/dprodP: KxH =>_ <- HH HH1; exact: cyclicM.
-rewrite coprime_sym coprime_pi' //; apply: sub_pgroup (pgroup_pi _) => p.
-rewrite !(=^~ p_rank_gt0, inE) => Hp; apply: contraL (cW) => /(leq_add Hp) {Hp}.
-rewrite (p_rank_dprod p KxH) abelian_rank1_cyclic ?cyclic_abelian // -ltnNge.
-by move/leq_trans; apply; exact: p_rank_le_rank.
+move=> gT K H G KxH cK cH; apply/idP/idP=> [cW|Co]; last first.
+  by case/dprodP: KxH =>_ <- HH HH1; apply: cyclicM.
+move/dprod_card: (KxH).
+case/cyclicP: (cW)=> x defx.
+rewrite defx -orderE => Hx.
+move:(cycle_id x); rewrite -defx.
+case/(mem_dprod KxH)=> y [z [W1y W2z] Hx1 _].
+pose l := lcmn #|K| #|H|.
+suff: ((y * z) ^+ l)%g = 1%g.
+  move/eqP; rewrite -order_dvdn -Hx1 -Hx -muln_lcm_gcd.
+  by rewrite -[l]muln1 dvdn_pmul2l ?dvdn1 // lcmn_gt0 !cardG_gt0.
+have: (y ^+ l = 1)%g.
+  apply/eqP; rewrite -order_dvdn.
+  by apply: dvdn_trans (order_dvdG _) (dvdn_lcml _ _).
+have: (z ^+ l = 1)%g.
+ apply/eqP; rewrite -order_dvdn.
+ by apply: dvdn_trans (order_dvdG _) (dvdn_lcmr _ _).
+rewrite expMgn;first by  move=> -> ->; rewrite mulg1.
+have YiG : y \in G.
+  case/dprodP: KxH =>_ <- _ _; apply/imset2P; exists y (1%g : gT)=> //.
+  by rewrite mulg1.
+have ZiH : z \in G.
+  case/dprodP: KxH =>_ <- _ _; apply/imset2P; exists (1%g : gT) z => //.
+  by rewrite mul1g.
+by move: (cyclic_abelian cW)=> /subsetP /(_ _ YiG) /centP; apply.
 Qed.
 
 Section Definitions.
@@ -1926,80 +1947,191 @@ apply: subset_trans HH _.
 by apply: subsetIr.
 Qed.
 
-(* This is PF 3.2 *)
-Lemma cTIirr_isometry :
-  {tau : {linear 'CF(W) -> 'CF(G)} |
-    [/\ {in 'Z[irr W], isometry tau, to 'Z[irr G]},
-        forall a, a \in 'CF(W,V) -> tau a = 'Ind[G, W] a,
-        tau 1 = 1,
-        forall a, {in V, tau a =1 a} &
-        forall z, (forall i, '[z, tau 'chi[W]_i] = 0) ->
-                  {in V, forall x, z x = 0}]}.
+Definition extIrrf (f : Iirr W -> 'CF(G)) (x : 'CF(W)) : 'CF(G) :=
+  \sum_(i : Iirr W)  '[x, 'chi_i] *: (f i).
+
+Lemma extIrrf_irr f i : extIrrf f 'chi_i = f i.
 Proof.
-pose tt f := 
-  let (i,j) := inv_dprod_Iirr W1xW2 (irr_Iirr id f) in x_ i j.
-have ttE i j : tt (w_ i j) = x_ i j.
-  rewrite /tt /cyclicTIirr /irr_Iirr.
-  case: pickP=> [u /eqP /chi_inj ->|] /=; first by rewrite dprod_IirrK.
-  by move/(_ (dprod_Iirr W1xW2 (i, j))); rewrite eqxx.
-have map_tt_orthonormal : orthonormal (map tt (irr W)).
-  have F x1 x2 y1 y2 : (x_ x1 y1 == x_ x2 y2) = ((x1 == x2) && (y1 == y2)).
-    apply/eqP/idP=> [Hxy| /andP [] /eqP-> /eqP-> //].
-    move: (cfdot_dcTIirr x1 y1 x2 y2); rewrite Hxy.
-    rewrite cfdot_dcTIirr !eqxx; case: (_ == _)=> [/= | /eqP].
-      by case: (_ == _)=> /eqP; rewrite // -(eqN_eqC 1 0).
-    by rewrite -(eqN_eqC 1 0).
-  apply/orthonormalP; split=> [|xx yy]; last first.
-    case/mapP=> /= x /irrP [i1 ->] ->; case/mapP=> /= y /irrP [i2 ->] ->.
-    rewrite -[i1](inv_dprod_IirrK W1xW2) -[i2](inv_dprod_IirrK W1xW2) !ttE.
-    by rewrite F cfdot_dcTIirr.
-  rewrite map_inj_in_uniq=> [| i1 i2]; first by apply: uniq_free (irr_free _).
-  case/irrP=> x->; case/irrP=> y->.
-  rewrite -[x](inv_dprod_IirrK W1xW2) -[y](inv_dprod_IirrK W1xW2) !ttE.
-  move/eqP; rewrite F.
-  by (do 2 case: (inv_dprod_Iirr _ _))=> /= x1 y1 x2 y2 /andP [] /eqP-> /eqP->.
-  have tt_norm : map cfnorm (map tt (irr W)) = map cfnorm (irr W).
-    rewrite -map_comp; apply: eq_in_map=> i /irrP [] i1 -> /=.
-    by rewrite cfdot_irr -[i1](inv_dprod_IirrK W1xW2) !ttE cfdot_dcTIirr !eqxx.
-case: (Zisometry_of_cfnorm
-        (orthonormal_orthogonal (irr_orthonormal _))
-        (orthonormal_orthogonal (map_tt_orthonormal)) tt_norm _) 
-      => [f /mapP [f1 /irrP [i ->] ->] | tau H1t H2t].
-  by rewrite -[i](inv_dprod_IirrK W1xW2) ttE dcTIirr_vchar.
-pose mu_ i := tau ('chi_i).
-have F1 i j : '[tau ('chi_i), tau ('chi_j)] = (i == j)%:R.
-  by case: H2t=> ->; rewrite 1?(cfdot_irr, irr_vchar).
-pose dl i := let (x, _) := inv_dprod_Iirr W1xW2 i in x.
-pose dr i := let (_, y) := inv_dprod_Iirr W1xW2 i in y.
-have Teq: [tuple of map tau (irr W)] = [tuple of map tt (irr W)].
-    by apply/val_eqP=> /=; rewrite H1t.
-have t2x i : tau 'chi_i = x_ (dl i) (dr i).
-  by rewrite -tnth_map Teq tnth_map -{1}[i](inv_dprod_IirrK W1xW2) ttE.
-have x2t i j : x_ i j  = tau 'chi_(dprod_Iirr W1xW2 (i, j)).
-  by rewrite t2x /dl /dr !dprod_IirrK.
-have tau1 : tau 1  = 1 by rewrite -cTIirr00 -x2t.
-have alpha_ind i j: i != 0 -> j != 0 -> tau (alpha_ i j) = 'Ind[G] (alpha_ i j).
-  move=> NZi NZj; rewrite dcTIirrE // acTIirrE !(linear_sub,linearD).
-  by rewrite tau1 -!x2t.
-case: (equiv_restrict_compl_ortho _ _ acTIirr_base_is_basis F1)=> [|||Er1 Er2].
-- by case: tiW=> [[]].
-- by apply: norm_cyclicTIset.
-- move=> ij; case def_ij: (enum_val ij) => [i j].
-  rewrite -tnth_nth tnth_map {1 2}/tnth -enum_val_nth def_ij /=.
-  have /andP[Di Dj]: (i != 0) && (j != 0).
-    by rewrite -!in_setC1 -in_setX -def_ij enum_valP.
-  rewrite -alpha_ind // {1}[alpha_ _ _]cfun_sum_cfdot.
-  by rewrite linear_sum; apply: eq_bigr=> v _; rewrite linearZ.
-exists tau; split=> //= [a | a v ViV].
-- move/(is_span_span (is_span_is_basis acTIirr_base_is_basis))->.
-  rewrite !linear_sum /=; apply: eq_bigr=> ij _.
-  rewrite !linearZ; congr (_ *: _).
-  case def_ij: (enum_val ij) => [i j].
-  have /andP[Di Dj]: (i != 0) && (j != 0).
-    by rewrite -!in_setC1 -in_setX -def_ij enum_valP.
-  by rewrite -tnth_nth tnth_map /tnth -enum_val_nth def_ij /= alpha_ind.
-rewrite [a]cfun_sum_cfdot !linear_sum !sum_cfunE.
-by apply: eq_bigr=> i _; rewrite !cfunE !linearZ !cfunE Er1.
+rewrite /extIrrf (bigD1 i) /= ?(cfdot_irr,eqxx,scale1r) //.
+by rewrite big1 ?addr0 //==> j Hij; rewrite cfdot_irr eq_sym (negPf Hij) scale0r.
 Qed.
 
+Theorem extIrrf_is_linear f : linear (extIrrf f).
+Proof.
+move=> k /= x y.
+rewrite /extIrrf.
+rewrite scaler_sumr -big_split; apply: eq_bigr=> /= i _.
+by rewrite cfdotDl cfdotZl scaler_addl -scalerA.
+Qed.
+
+Canonical extIrrf_linear f : {linear 'CF(W) -> 'CF(G)} :=  
+  Linear (extIrrf_is_linear f).
+
+Definition cyclicTItau := locked
+   (extIrrf_linear
+    (oapp (fun (f : {ffun Iirr W -> (bool * Iirr G)}) i =>  
+          (-1)^+ (f i).1 *: 'chi_(f i).2) (fun x: Iirr W => 0)
+    [pick f : {ffun Iirr W -> (bool * Iirr G)} |
+       let g i := ((-1) ^+ (f i).1 *: 'chi_(f i).2) in
+       [&& orthonormal [image g x | x <- Iirr W], (f 0 == (false, 0))
+        &  all (fun a => 'Ind[G, W] a == \sum_(i : Iirr W)  ('[a, 'chi_i] *: g i))
+           (cfun_base W (W :\: (W1 :|: W2)))]])).
+
+Local Notation tau := cyclicTItau.
+
+(* Move to character *)
+Lemma inv_dprod_Iirr0 : inv_dprod_Iirr W1xW2 0 = (0,0).
+Proof.
+apply:  (can_inj (dprod_IirrK W1xW2)).
+rewrite inv_dprod_IirrK /dprod_Iirr /= /irr_Iirr; case: pickP=> //= x.
+by rewrite /cfDprod !chi0_1 cfDprodl1 cfDprodr1 mul1r irr_eq1 => /eqP->.
+Qed.
+
+(* This is PF 3.2 *)
+Lemma cyclicTItau_spec :
+        [/\ 
+         {in 'Z[irr W], isometry tau, to 'Z[irr G]},
+         tau 1 = 1 &
+         {in 'CF(W, V), forall a, tau a = 'Ind[G, W] a}].
+Proof.
+rewrite /tau; unlock.
+rewrite /extIrrf; case: pickP=> [/= f /and3P [Ho H1 /allP /= HI]|].
+  split=> [|| a /coord_span ->].
+  - split=> [i j Hi Hj /=|i Hi]; last first.
+      rewrite /extIrrf; apply: sum_vchar=> j _.
+      repeat apply: scale_vchar; last by apply: irr_vchar.
+        by apply: cfdot_vchar_irr_Int.
+      by apply: isIntC_sign.
+    rewrite /extIrrf.
+    rewrite {2}[i]cfun_sum_cfdot {2}[j]cfun_sum_cfdot.
+    rewrite !cfdot_suml; apply: eq_bigr=> i1 _.
+    rewrite !cfdot_sumr; apply: eq_bigr=> j1 _.
+    rewrite cfdotZl [X in _ = X]cfdotZl; congr (_ * _).
+    rewrite cfdotZr [X in _ = X]cfdotZr; congr (_ * _).
+    case/orthonormalP: Ho=> Hu Hv; rewrite Hv; last 2 first.
+      by apply/imageP; exists i1.
+      by apply/imageP; exists j1.
+    rewrite cfdot_irr.
+    case: (boolP (_ == _)); case: (boolP (i1 == j1))=> //; last first.
+      by move/eqP->; rewrite eqxx.
+    move=> Eqi /eqP Eqch; case/eqP: Eqi.
+    by move/injectiveP: Hu; apply.
+  - rewrite /extIrrf (bigD1 (0 : Iirr W)) // (eqP H1) /= expr0 scale1r.
+    rewrite -chi0_1 cfdot_irr eqxx scale1r chi0_1 big1 ?addr0 // => i Hi.
+    by rewrite cfdot_irr eq_sym (negPf Hi) scale0r.
+  rewrite /extIrrf.
+  rewrite linear_sum /=.
+  set l :=  [image _ | _ <- _]; set c := coord _ _; set n := #|_|.
+  pose g i := ((-1) ^+ (f i).1 *: 'chi_(f i).2).
+  pose FF i := \sum_(i0 < n) '[ c i0 *: l`_i0, 'chi_i] *: g i.
+  rewrite (eq_bigr FF)=> [| i _]; last first.
+    by rewrite cfdot_suml scaler_suml; apply: eq_bigr=> j _.
+  rewrite exchange_big /=; apply: eq_bigr=> i _.
+  rewrite linearZ /= (eqP (HI _ _)) //.
+    rewrite scaler_sumr; apply: eq_bigr=> j _.
+    by rewrite cfdotZl !scalerA !mulrA.
+  by apply: mem_nth; rewrite size_image.
+pose p i := (inv_dprod_Iirr W1xW2 i).
+pose tt : {ffun Iirr W -> (bool * Iirr G)} := [ffun k : Iirr W => 
+   let v := x_ (p k).1 (p k).2 in
+      if v \in irr G then (false, (irr_Iirr id v)) else
+      if -v \in irr G then (true, (irr_Iirr id (-v))) else (false,0)].
+pose g i := ((-1) ^+ (tt i).1 *: 'chi_(tt i).2).
+have gE i : g i = ((-1) ^+ (tt i).1 *: 'chi_(tt i).2) by [].
+have gXE i : g i  = x_ (p i).1 (p i).2.
+  rewrite /g /tt /p ffunE; case: (inv_dprod_Iirr _ _)=> i1 j1.
+  pose TT := @irr_IirrPE _ _ _ _ [pred j \in irr G].
+  case: (boolP (_ \in _))=> HH; first by rewrite expr0 scale1r TT.
+  case: (boolP (_ \in _))=> HH1; first by rewrite expr1 TT // scaleN1r opprK.
+  case: (vchar_norm1P (dcTIirr_vchar i1 j1)) HH HH1 => //.
+    by rewrite cfdot_dcTIirr !eqxx.
+  case=> [] [i2] ->; first by rewrite expr1 scaleN1r opprK irr_chi.
+  by rewrite expr0 scale1r irr_chi.
+have x00 : x_ 0 0 = 1 by rewrite /dcTIirr !eqxx.
+move/(_ tt)=> /idP []; apply/and3P; split.
+- apply/orthonormalP; split.
+    apply/injectiveP=> /= u v; rewrite -!gE !gXE => HH.
+    move: (cfdot_dcTIirr (p u).1 (p u).2 (p v).1 (p v).2).
+    rewrite HH; rewrite cfdot_dcTIirr !eqxx.
+    move: (inv_dprod_IirrK W1xW2 u) (inv_dprod_IirrK W1xW2 v).
+    rewrite /p; case:  (inv_dprod_Iirr _ _)=> /= i1 j1 <-.
+    case:  (inv_dprod_Iirr _ _)=> /= i2 j2 <-.
+    case: (_ =P _)=> [->| _ /eqP]; last by rewrite -(eqN_eqC 1 0).
+    by case: (_ =P _)=> [-> //| _ /eqP]; rewrite andbF -(eqN_eqC 1 0).
+  move=> u v /imageP [i Hi ->] /imageP [j Hj ->].
+  rewrite -!gE !gXE; case: (_ =P _)=> [->| HH].
+     by rewrite cfdot_dcTIirr !eqxx.
+  rewrite cfdot_dcTIirr; case: (_ =P _)=> [/=|//] HHi.
+  by case: (_ =P _)=> [/= | //] HHj; case: HH; rewrite HHi HHj.
+- rewrite ffunE /p inv_dprod_Iirr0 x00 /= irr_cfuni /irr_Iirr.
+  by case: pickP=> //= x; rewrite  irr_eq1 => /eqP ->.
+apply/allP=> /= u Hu.
+have: u \in 'CF(W,V) by apply: memv_span.
+move/(is_span_span (is_span_is_basis acTIirr_base_is_basis))->; apply/eqP.
+set t := image_tuple _ _; set c := coord t u.
+pose FF i :=  \sum_i0 (c i0 *: (('[t`_i0, 'chi_i] *: g i))).
+rewrite (eq_bigr FF)=> [|i1 _]; last first.
+  rewrite cfdot_suml scaler_suml; apply: eq_bigr=> i2 _.
+  by rewrite cfdotZl !scalerA.
+rewrite linear_sum exchange_big; apply: eq_bigr=> j _ /=.
+rewrite linearZ -scaler_sumr /=; congr (_ *: _).
+set l := image _ _.
+have[/imageP [[i1 j1]]]: l`_j \in l by apply: mem_nth; rewrite size_image.
+rewrite !inE /= => /andP [Hi1 Hj2]  ->.
+rewrite dcTIirrE //.
+set ss := \sum_(i < _) _; have->: ss = (extIrrf g (alpha_ i1 j1)) by done.
+rewrite acTIirrE !(linearD, linear_sub, linearN).
+rewrite -x00 -!chi0_1.
+by rewrite /= !extIrrf_irr !gXE /p /=  !dprod_IirrK inv_dprod_Iirr0.
+Qed.
+
+Lemma cyclicTIisometry : {in 'Z[irr W], isometry tau, to 'Z[irr G]}.
+Proof. by case: cyclicTItau_spec. Qed.
+
+Lemma cyclicTItau_ind : {in 'CF(W, V), forall a, tau a = 'Ind[G, W] a}.
+Proof. by case: cyclicTItau_spec. Qed.
+
+Lemma cyclicTItau1 : tau 1 = 1.
+Proof. by case: cyclicTItau_spec. Qed.
+
+Lemma cyclicTItau_restrict a : {in V, tau a =1 a}.
+Proof.
+have F1 i j : '[tau ('chi_i), tau ('chi_j)] = (i == j)%:R.
+  by case: cyclicTIisometry=> ->; rewrite ? irr_vchar // cfdot_irr.
+case: (equiv_restrict_compl_ortho _ _ acTIirr_base_is_basis F1)
+     => [||j|Er1 Er2 v Hv] //.
+- by case: tiW=> [[]].
+- by apply: norm_cyclicTIset.
+- set l := image_tuple _ _.
+  have Hj: l`_j \in 'CF(W,V).
+    apply: (memv_is_basis acTIirr_base_is_basis).
+    by apply: mem_nth; rewrite size_image.
+  rewrite -cyclicTItau_ind // [l`_j]cfun_sum_cfdot linear_sum.
+  by apply: eq_bigr=> i _ //; rewrite -cfun_sum_cfdot linearZ.
+rewrite [a]cfun_sum_cfdot linear_sum !sum_cfunE; apply: eq_bigr=> i _.
+by rewrite linearZ !cfunE Er1.
+Qed.
+
+Lemma cyclicTItau_orthogonal z : 
+  (forall i, '[z, tau 'chi[W]_i] = 0) -> {in V, forall x, z x = 0}.
+Proof.
+have F1 i j : '[tau ('chi_i), tau ('chi_j)] = (i == j)%:R.
+  by case: cyclicTIisometry=> ->; rewrite ? irr_vchar // cfdot_irr.
+case: (equiv_restrict_compl_ortho _ _ acTIirr_base_is_basis F1)
+     => [||j|Er1 Er2 Ho] //.
+- by case: tiW=> [[]].
+- by apply: norm_cyclicTIset.
+- set l := image_tuple _ _.
+  have Hj: l`_j \in 'CF(W,V).
+    apply: (memv_is_basis acTIirr_base_is_basis).
+    by apply: mem_nth; rewrite size_image.
+  rewrite -cyclicTItau_ind // [l`_j]cfun_sum_cfdot linear_sum.
+  by apply: eq_bigr=> i _ //; rewrite -cfun_sum_cfdot linearZ.
+by apply: Er2=> i; exact: Ho.
+Qed.
+ 
 End Proofs.
+
+Lemma cyclicTItau_sym (gT : finGroupType) (G W W1 W2 : {group gT}) : 
+   cyclicTItau G W W1 W2  = cyclicTItau G W W2 W1.
+Proof. by rewrite /cyclicTItau setUC. Qed.

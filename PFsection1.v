@@ -253,14 +253,14 @@ Lemma vchar_isometry_base m L (Chi : m.-tuple 'CF(H))
                             (tau : {linear 'CF(H) -> 'CF(G)}) :
     (1 < m)%N -> {subset Chi <= irr H} -> free Chi ->
     (forall chi, chi \in Chi -> chi 1%g = Chi`_0 1%g) ->
+    (forall i : 'I_m, (Chi`_i - Chi`_0) \in 'CF(H, L)) ->
     {in 'Z[Chi, L], isometry tau, to 'Z[irr G, G^#]} ->
-    (forall i : 'I_m, support (Chi`_i - Chi`_0) \subset L) ->
     exists2 mu : m.-tuple (Iirr G),
       uniq mu
     & exists epsilon : bool, forall i : 'I_m,
        tau (Chi`_i - Chi`_0) = (-1) ^+ epsilon *: ('chi_(mu`_i) - 'chi_(mu`_0)).
 Proof. 
-case: m Chi => [|[|m]] // Chi _ irrChi uniqChi Chi1 [iso_tau Ztau] HL.
+case: m Chi => [|[|m]] // Chi _ irrChi uniqChi Chi1 ChiCF [iso_tau Ztau].
 rewrite -(tnth_nth 0 _ 0); set chi := tnth Chi.
 have chiE i: chi i = Chi`_i by rewrite -tnth_nth.
 have inChi i: chi i \in Chi by exact: mem_tnth.
@@ -275,11 +275,7 @@ have DF i j : F i j =  F i 0 - F j 0 by rewrite /F oppr_sub addrA subrK.
 have ZF i j: F i j \in 'Z[Chi, L].
   rewrite vchar_split; apply/andP; split.
     by apply: sub_vchar; apply: mem_vchar.
-  suff ZF k: F k 0 \in 'CF(H, L) by rewrite DF memv_sub.
-  apply/cfun_onP=> x notA; apply/eqP.
-  move/subsetP: (HL k)=> /(_ x).
-  rewrite !inE /F /chi !(tnth_nth 0).
-  by case: (_ == _)=> //=; move/(_ is_true_true)=> HH; case/negP: notA.
+  by rewrite DF memv_sub // /F !chiE.
 have htau2 i j: i != j -> '[tau (F i j)] = 2%:R.
   rewrite iso_tau // cfnorm_sub -cfdotC !dot_chi !eqxx eq_sym => /negbTE->.
   by rewrite -!natr_add subr0.
