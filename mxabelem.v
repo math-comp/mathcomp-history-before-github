@@ -122,7 +122,7 @@ Qed.
 
 End ScaleAction.
 
-Local Notation "'Zm" := (scale_action _ _) (at level 0) : action_scope.
+Local Notation "'Zm" := (scale_action _ _) (at level 8) : action_scope.
 
 Section RowGroup.
 
@@ -307,7 +307,7 @@ Proof. by move=> sHG; rewrite gacentE // setTI afix_repr. Qed.
 
 End FinFieldRepr.
 
-Notation "''Zm'" := (scale_action _ _ _) (at level 0) : action_scope.
+Notation "''Zm'" := (scale_action _ _ _) (at level 8) : action_scope.
 Notation "''Zm'" := (scale_groupAction _ _ _) : groupAction_scope.
 
 Section MatrixGroups.

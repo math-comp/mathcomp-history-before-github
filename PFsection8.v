@@ -563,8 +563,7 @@ Lemma FTsupport_facts (X := 'A0(M)) (D := [set x \in X | ~~('C[x] \subset M)]) :
             (*c2*) {in X, forall y, coprime #|H| #|'C_M[y]| },
             (*c3*) x \in 'A(L) :\: 'A1(L)
           & (*c4*) 1 <= FTtype L <= 2
-                /\ (FTtype L == 2 ->
-                     exists U : {group gT}, [Frobenius M = M`_\F ><| U])]}].
+                /\ (FTtype L == 2 -> [Frobenius M with kernel M`_\F])]}].
 Proof.
 have defX: X \in pred2 'A(M) 'A0(M) by rewrite !inE eqxx orbT.
 have [sDA1 part_a part_c] := BGsummaryII maxM defX.
@@ -573,7 +572,7 @@ have{part_a} part_a: {in X &, forall x, {subset x ^: G <= x ^: M}}.
   by apply/imsetP/part_a; rewrite -?def_y.
 do [split=> //; first split=> //] => x /part_c[_ []] //.
 rewrite -(mem_iota 1) !inE => -> [-> ? -> -> L2_frob].
-by do 2![split=> //] => /L2_frob[U]; exists U.
+by do 2![split=> //] => /L2_frob[U /FrobeniusWker].
 Qed.
 
 (* A generic proof of the first assertion of Peterfalvi (8.15). *)

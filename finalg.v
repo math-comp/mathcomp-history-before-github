@@ -1254,6 +1254,6 @@ Export Lmodule.Exports Lalgebra.Exports Algebra.Exports UnitAlgebra.Exports.
 
 Notation "{ 'unit' R }" := (unit_of (Phant R))
   (at level 0, format "{ 'unit'  R }") : type_scope.
-Notation "''U'" := (unit_action _) (at level 0) : action_scope.
-Notation "''U'" := (unit_groupAction _) (at level 0) : groupAction_scope.
+Notation "''U'" := (unit_action _) (at level 8) : action_scope.
+Notation "''U'" := (unit_groupAction _) (at level 8) : groupAction_scope.
 

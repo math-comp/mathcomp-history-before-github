@@ -61,8 +61,8 @@ Open Local Scope ring_scope.
 Reserved Notation "{ 'vspace' T }" (at level 0, format "{ 'vspace'  T }").
 Reserved Notation "\dim A" (at level 10, A at level 8, format "\dim  A").
 Reserved Notation "v %:VS" (at level 2, format "v %:VS").
-Reserved Notation "''Hom' ( V , W )" (at level 0, format "''Hom' ( V , W )").
-Reserved Notation "''End' ( V )" (at level 0, format "''End' ( V )").
+Reserved Notation "''Hom' ( V , W )" (at level 8, format "''Hom' ( V , W )").
+Reserved Notation "''End' ( V )" (at level 8, format "''End' ( V )").
 Reserved Notation "f \^-1" (at level 24).
 
 Delimit Scope vspace_scope with VS.

@@ -80,10 +80,10 @@ Reserved Notation "''CF' ( G )" (at level 8, format "''CF' ( G )").
 Reserved Notation "''1_' G" (at level 8, G at level 2, format "''1_' G").
 Reserved Notation "''Res[' H , G ]" (at level 8, only parsing).
 Reserved Notation "''Res[' H ]" (at level 8, format "''Res[' H ]").
-Reserved Notation "''Res'" (at level 0, only parsing).
+Reserved Notation "''Res'" (at level 8, only parsing).
 Reserved Notation "''Ind[' G , H ]" (at level 8, only parsing).
 Reserved Notation "''Ind[' G ]" (at level 8, format "''Ind[' G ]").
-Reserved Notation "''Ind'" (at level 0, only parsing).
+Reserved Notation "''Ind'" (at level 8, only parsing).
 Reserved Notation "'[ phi , psi ]_ G" (at level 2, only parsing).
 Reserved Notation "'[ phi , psi ]"
   (at level 2, format "'[hv' ''[' phi , '/ '  psi ] ']'").
@@ -1403,9 +1403,9 @@ Proof. by rewrite cfdotC cfdot_Res_r -cfdotC. Qed.
 End Induced.
 
 Arguments Scope cfInd [_ group_scope group_scope cfun_scope].
-Notation "''Ind[' G , H ]" := (@cfInd _ G H) : ring_scope.
-Notation "''Ind[' G ]" := (@cfInd _ G _) : ring_scope.
-Notation "''Ind'" := (@cfInd _ _ _) (at level 0, only parsing) : ring_scope.
+Notation "''Ind[' G , H ]" := (@cfInd _ G H) (only parsing) : ring_scope.
+Notation "''Ind[' G ]" := 'Ind[G, _] : ring_scope.
+Notation "''Ind'" := 'Ind[_] (only parsing) : ring_scope.
 
 Section FieldAutomorphism.
 

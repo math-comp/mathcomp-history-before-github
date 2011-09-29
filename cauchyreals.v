@@ -1597,7 +1597,7 @@ rewrite /merge_intervals /=.
 set l := minr _ _; set u := maxr _ _.
 rewrite ler_pdivl_mulr ?gtr0E // -{2}[2%:R]ger0_abs ?ger0E //.
 rewrite -absrM mulr_subl mulfVK ?pnatr_eq0 // ler_distl.
-rewrite oppr_sub addrCA addrK addrC addrA addrNK.
+rewrite oppr_sub addrCA addrK (addrC (l + u)) addrA addrNK.
 rewrite -!mulr2n !mulr_natr !ler_muln2r !orFb.
 rewrite ler_minl ler_maxr !ler_distl.
 have [] := lerP=> /= a1N; have [] := lerP=> //= a1P;

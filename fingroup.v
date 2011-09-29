@@ -69,7 +69,7 @@ Require Import div path bigop prime finset.
 (*  Operations on subsets/subgroups of a finite group:                        *)
 (*                H * G == {xy | x \in H, y \in G}.                           *)
 (*   1 or [1] or [1 gT] == the unit group.                                    *)
-(*          [set: gT]%G == the group of all x : gT (in Group_scope).       *)
+(*          [set: gT]%G == the group of all x : gT (in Group_scope).          *)
 (*             [subg G] == the subtype, set, or group of all x \in G: this    *)
 (*                         notation is defined simultaneously in %type, %g    *)
 (*                         and %G scopes, and G must denote a {group gT}      *)

@@ -1621,7 +1621,7 @@ End PermAction.
 Implicit Arguments perm_act1P [rT a].
 Prenex Implicits perm_act1P.
 
-Notation "'P" := (perm_action _) (at level 0) : action_scope.
+Notation "'P" := (perm_action _) (at level 8) : action_scope.
 
 Section ActpermOrbits.
 
@@ -2419,14 +2419,14 @@ Definition conjG_action := Action conjG_is_action.
 
 End InternalActionDefs.
 
-Notation "'R" := (@mulgr_action _) (at level 0) : action_scope.
-Notation "'Rs" := (@rcoset_action _) (at level 0) : action_scope.
-Notation "'J" := (@conjg_action _) (at level 0) : action_scope.
-Notation "'J" := (@conjg_groupAction _) (at level 0) : groupAction_scope.
-Notation "'Js" := (@conjsg_action _) (at level 0) : action_scope.
-Notation "'JG" := (@conjG_action _) (at level 0) : action_scope.
-Notation "'Q" := ('J / _)%act (at level 0) : action_scope.
-Notation "'Q" := ('J / _)%gact (at level 0) : groupAction_scope.
+Notation "'R" := (@mulgr_action _) (at level 8) : action_scope.
+Notation "'Rs" := (@rcoset_action _) (at level 8) : action_scope.
+Notation "'J" := (@conjg_action _) (at level 8) : action_scope.
+Notation "'J" := (@conjg_groupAction _) (at level 8) : groupAction_scope.
+Notation "'Js" := (@conjsg_action _) (at level 8) : action_scope.
+Notation "'JG" := (@conjG_action _) (at level 8) : action_scope.
+Notation "'Q" := ('J / _)%act (at level 8) : action_scope.
+Notation "'Q" := ('J / _)%gact (at level 8) : groupAction_scope.
 
 Section InternalGroupAction.
 
@@ -2474,7 +2474,7 @@ Proof. exact: isom_isog (Cayley_isom G). Qed.
 
 Lemma orbitJ G x : orbit 'J G x = x ^: G. Proof. by []. Qed.
 
-Lemma afixJ A : 'Fix_'J(A) = 'C(A).
+Lemma afixJ A : 'Fix_('J)(A) = 'C(A).
 Proof.
 apply/setP=> x; apply/afixP/centP=> cAx y Ay /=.
   by rewrite /commute conjgC cAx.
@@ -2501,7 +2501,7 @@ Proof. by rewrite gacentE ?setTI ?subsetT ?afixJ. Qed.
 
 Lemma orbitRs G A : orbit 'Rs G A = rcosets A G. Proof. by []. Qed.
 
-Lemma sub_afixRs_norms G x A : (G :* x \in 'Fix_'Rs(A)) = (A \subset G :^ x).
+Lemma sub_afixRs_norms G x A : (G :* x \in 'Fix_('Rs)(A)) = (A \subset G :^ x).
 Proof.
 rewrite inE /=; apply: eq_subset_r => a.
 rewrite inE rcosetE -(can2_eq (rcosetKV x) (rcosetK x)) -!rcosetM.
@@ -2509,7 +2509,7 @@ rewrite eqEcard card_rcoset leqnn andbT mulgA (conjgCV x) mulgK.
 by rewrite -{2 3}(mulGid G) mulGS sub1set -mem_conjg.
 Qed.
 
-Lemma sub_afixRs_norm G x : (G :* x \in 'Fix_'Rs(G)) = (x \in 'N(G)).
+Lemma sub_afixRs_norm G x : (G :* x \in 'Fix_('Rs)(G)) = (x \in 'N(G)).
 Proof. by rewrite sub_afixRs_norms -groupV inE sub_conjgV. Qed.
 
 Lemma afixRs_rcosets A G : 'Fix_(rcosets G A | 'Rs)(G) = rcosets G 'N_A(G).
@@ -2546,7 +2546,7 @@ Proof. by apply/setP=> x; apply/astab1P/normP. Qed.
 Lemma card_conjugates A G : #|A :^: G| = #|G : 'N_G(A)|.
 Proof. by rewrite card_orbit astab1Js. Qed.
 
-Lemma afixJG G A : (G \in 'Fix_'JG(A)) = (A \subset 'N(G)).
+Lemma afixJG G A : (G \in 'Fix_('JG)(A)) = (A \subset 'N(G)).
 Proof. by apply/afixP/normsP=> nG x Ax; apply/eqP; move/eqP: (nG x Ax). Qed.
 
 Lemma astab1JG G : 'C[G | 'JG] = 'N(G).
