@@ -218,6 +218,12 @@ Proof.
 by apply/subsetP=> i; rewrite !inE negb_or -andbA => /and3P [] _ ->.
 Qed.
 
+Let NirrW1Gt: (1 <  Nirr W1)%N.
+Proof.
+have:= cyclic_abelian CW1; rewrite card_classes_abelian => /eqP HH.
+by rewrite NirrE HH cardG_gt1; case: HC=> [[]].
+Qed.
+
 (* First part of 4.3 a *)
 Lemma normedTI_Dade_W2 : normedTI (W :\: W2) L W.
 Proof.
@@ -256,7 +262,7 @@ move/cyclic_abelian: CW => /subsetP /(_ _ AiW) /centP /(_ _ GG) ->.
 by rewrite mulgA mulVg mul1g.
 Qed.
 
-Local Notation tau := (cyclicTItau L W W1 W2).
+Local Notation sigma := (cyclicTIsigma L W W1 W2).
 Local Notation w_ := (cyclicTIirr cyclicTI_Dade).
 
 Let odd_neq2 m : odd m -> (2 == m)%N = false.
@@ -347,54 +353,81 @@ rewrite -span_subsetl; apply/allP=> _ /imageP[[i j] _ ->].
 by exact: memc_ecTIirr.
 Qed.
 
-Lemma cyclicDade_base :
-  exists m : Iirr W1 -> Iirr W2 -> Iirr L,
-    exists d : Iirr W2 -> bool,
-      forall i j,
-       'Ind[L] (e_ i j) = 
-            (-1) ^+ (d j) *: ('chi_(m i j) - 'chi_(m 0 j))
-     /\
-      forall i j,
-        tau (w_ i j) = (-1) ^+ (d j) *: 'chi_(m i j).
+Definition Dade_mudelta := 
+   odflt ([ffun => [ffun => 0]], [ffun => true]) 
+    [pick mudelta : ({ffun Iirr W1 -> {ffun Iirr W2 -> Iirr L}} *
+                 {ffun Iirr W2 -> bool}) |
+        let (mu,delta) := mudelta in
+          injectiveb (prod_curry (fun a b => mu a b)) &&
+          forallb i : Iirr W1, forallb j : Iirr W2,
+       'Ind[L] (e_ i j) ==
+            (-1) ^+ (delta j) *: ('chi_(mu i j) - 'chi_(mu 0 j))].
+
+Definition Dade_mu (i : Iirr W1) (j : Iirr W2) : Iirr L := 
+  Dade_mudelta.1 i j. 
+Local Notation mu := Dade_mu.
+
+Definition Dade_delta (i : Iirr W2) : bool := Dade_mudelta.2 i.
+Local Notation delta := Dade_delta.
+
+Lemma Dade_mudelta_spec :
+        injective (prod_curry mu) /\
+        forall i j,
+       'Ind[L] (e_ i j) =
+            (-1) ^+ (delta j) *: ('chi_(mu i j) - 'chi_(mu 0 j)).
 Proof.
-have linearX i : lin_char ('chi[W]_i).
-  by apply/char_abelianP; apply: cyclic_abelian; rewrite (cyclic_dprod HdP).
-pose Chi j := 
-  let l := [tuple of [image (w_ i j) | i <- Iirr W1]] in
-  [tuple of rot (index (w_ 0 j) l) l].
-have ChiT j: Chi j =i [tuple of [image (w_ i j) | i <- Iirr W1]].
-  by move=> k; rewrite mem_rot.
-have ChiW i j : w_ i j \in Chi j.
-  by rewrite ChiT; apply/imageP; exists i.
-have Chi0 j : w_ 0 j = (Chi j)`_0.
-  move: (ChiW 0 j); rewrite ChiT -index_mem => HH.
-  rewrite nth_cat size_drop subn_gt0 HH (drop_nth 0) //=.
-  by apply: sym_equal; apply: nth_index; rewrite -ChiT ChiW.
-have IW1 : (1 < #|Iirr W1|)%N.
-  have:= cyclic_abelian CW1; rewrite card_classes_abelian => /eqP HH.
-  by rewrite NirrE card_ord HH cardG_gt1; case: HC=> [[]].
-have ChiS j: {subset (Chi j) <= irr W}.
-  by move=> c; rewrite ChiT => /imageP [k KiI ->]; exact: irr_chi.
-have ChiF j : free (Chi j).
-  apply: orthonormal_free; apply/orthonormalP; split=> [|c1 c2].
-    rewrite rot_uniq.
-    by apply/injectiveP=> u v /chi_inj /dprod_Iirr_inj [].  
-  rewrite !ChiT => /imageP [i1 Hi1 ->] /imageP [i2 Hi2 ->].
-  apply/eqP; rewrite cfdot_irr -eqN_eqC; apply/eqP; congr nat_of_bool.
-  by rewrite /cyclicTIirr; apply/eqP/eqP=> [-> | /chi_inj].
-have Chi1 j : (forall chi, chi \in Chi j -> chi 1%g = (Chi j)`_0 1%g).
-  move=> c; rewrite ChiT -Chi0 => /imageP [k KiI ->].
-  by rewrite /cyclicTIirr !lin_char1.
-have ChiC j (i : 'I_#|Iirr W1|) : 
-         (Chi j)`_i - (Chi j)`_0 \in 'CF(W, W :\: W2).
-  have: (Chi j)`_i \in Chi j by apply: mem_nth; rewrite size_tuple.
-  by rewrite -Chi0 ChiT => /imageP [i1 Ii1 ->]; exact: memc_ecTIirr.
-have ChiI: forall j,
-            {in 'Z[Chi j, W :\: W2], isometry 'Ind[L], to 'Z[irr L, L^#]}.
-  move=> i; split=> [|fi Hfi]; last first. 
+rewrite /Dade_mu /Dade_delta /Dade_mudelta; case: pickP=> /= [[mu delta]|].
+  move/andP=> [] /injectiveP Hi /forallP Hp; split=> // i j; apply/eqP.
+  by move: (Hp i)=> /forallP /(_ j).
+pose md  (j : Iirr W2)  := 
+   odflt ([ffun => 0], true) 
+    [pick mudelta : ({ffun Iirr W1 -> Iirr L} * bool) |
+        let (mu,delta) := mudelta in
+          injectiveb mu &&
+          forallb i : Iirr W1, 
+       'Ind[L] (e_ i j) ==
+            (-1) ^+ delta *: ('chi_(mu i) - 'chi_(mu 0))].
+move/(_ ([ffun i : Iirr W1 => [ffun j => (md j).1 i]], [ffun j => (md j).2])).
+move/idP=> [].
+have FF: W :\: W2 \subset L^#.
+  apply/subsetP=> u; rewrite !inE=> /andP [Hu Hw].
+  case: (boolP (u == _))=> [HH| _ /=]; last by apply: (subsetP WsL).
+  by case/negP: Hu; rewrite (eqP HH) group1.
+pose TH := normedTI_isometry FF normedTI_Dade_W2.
+have: forall j, injective (md j).1 /\   
+        forall i, 'Ind[L] (e_ i j) = 
+                      (-1) ^+ (md j).2 *: ('chi_((md j).1 i) - 'chi_((md j).1 0)).
+  have linearX k : lin_char ('chi[W]_k).
+    by apply/char_abelianP; apply: cyclic_abelian; case: HC=> [].
+  move=> j; rewrite /md; case: pickP=> [[/= mu d] /andP [] |].
+    by move/injectiveP=> Hi /forallP Hf; split=> // i; apply/eqP.
+  (* All the conditions to apply 1.3 *)
+  pose Chi :=  [tuple of [seq w_ i j | i <- ord_tuple (Nirr W1)]].
+  have ChiW i : w_ i j \in Chi by apply/imageP; exists i.
+  have Chi_nth (i : Iirr W1) : Chi`_i = w_ i j.
+    rewrite (nth_map 0) -?cardE ?card_ord //=.
+    move: (tnth_ord_tuple i)=> /=.
+    by rewrite (tnth_nth 0) -?cardE ?card_ord //= => ->.
+  have ChiS: {subset Chi <= irr W}.
+    by move=> c /mapP [k KiI ->]; exact: irr_chi.
+  have ChiF: free Chi.
+    apply: orthonormal_free; apply/orthonormalP; split=> [|c1 c2].
+      by apply/injectiveP=> u v /chi_inj /dprod_Iirr_inj []. 
+    move=> /mapP [i1 Hi1 ->] /mapP [i2 Hi2 ->].
+    apply/eqP; rewrite cfdot_irr -eqN_eqC; apply/eqP; congr nat_of_bool.
+    by rewrite /cyclicTIirr; apply/eqP/eqP=> [-> | /chi_inj].
+  have Chi1: (forall chi, chi \in Chi -> chi 1%g = Chi`_0 1%g).
+    have->: 0%N = (0 : Iirr W1) by [].
+    move=> c; rewrite Chi_nth => /mapP [k KiI ->].
+    rewrite /cyclicTIirr !lin_char1 //.
+  have ChiC (i : Iirr W1) :  Chi`_i - Chi`_0 \in 'CF(W, W :\: W2).
+    have->: 0%N = (0 : Iirr W1) by [].
+    by rewrite !Chi_nth memc_ecTIirr.
+  have ChiI:  {in 'Z[Chi, W :\: W2], isometry 'Ind[L], to 'Z[irr L, L^#]}.
+    split=> [u v U V |fi Hfi]; first by apply: TH (vchar_on U) (vchar_on V).
     have Wfi: fi \in 'Z[irr W].
-      have: {subset (Chi i) <= 'Z[irr W]}.
-        by move=> u; rewrite ChiT => /imageP [i1 Hi1 ->]; exact: irr_vchar.
+      have: {subset Chi <= 'Z[irr W]}.
+        by move=> u /mapP [i1 Hi1 ->]; exact: irr_vchar.
       by move/vchar_sub_irr; apply; apply: vcharW Hfi.
     rewrite vchar_split cfInd_vchar //.
     apply: irr_vchar_on.
@@ -402,19 +435,77 @@ have ChiI: forall j,
     case: (boolP (fi 1%g == 0))=> [/eqP->|HH]; first by rewrite mulr0 eqxx.
     move: (vchar_on Hfi); rewrite cfun_onE=> /subsetP /(_ _ HH).
     by rewrite inE (group1 W2).
-    have FF: W :\: W2 \subset L^#.
-      apply/subsetP=> u; rewrite !inE=> /andP [Hu Hw].
-      case: (boolP (u == _))=> [HH| _ /=]; last by apply: (subsetP WsL).
-      by case/negP: Hu; rewrite (eqP HH) group1.
-    move=> u v Hu Hv.
-    pose TH := normedTI_isometry FF normedTI_Dade_W2.
-    by apply: TH (vchar_on Hu) (vchar_on Hv).
-have FF j :=
-  vchar_isometry_base IW1 (ChiS j) (ChiF j) (Chi1 j) (ChiC j) (ChiI j).
-
-(* admit *)
-admit.
+  (* Now we can apply 1.3 *)
+  case: (vchar_isometry_base NirrW1Gt ChiS ChiF Chi1 ChiC ChiI)
+         => t Ut [eps Hind].
+  move/(_ ([ffun i : Iirr W1 => t`_i], eps))=> /idP [].
+  apply/andP; split.
+    apply/injectiveP=> /= n1 n2 /eqP.
+    rewrite !ffunE (nth_uniq _ _ _ Ut) ?size_tuple ?card_ord //.
+    by move=> HH; apply/val_eqP.
+  apply/forallP=> i; apply/eqP; rewrite !ffunE //.
+  by rewrite /ecTIirr-!Chi_nth Hind.
+move=> HH; apply/andP; split; last first.
+  apply/forallP=> i; apply/forallP=> j.
+  by case: (HH j)=> _ ->; rewrite !ffunE.
+  (* This is the application of 4.1 *)
+have Horth: forall i1 i2 j1 j2, i1 != 0 -> i2 != 0 -> j1 != j2 ->
+         orthonormal [::'chi_((md j1).1 i1); 'chi_((md j1).1 0);
+                        'chi_((md j2).1 i2); 'chi_((md j2).1 0)].
+  move=> i1 i2 j1 j2 NZi1 NZi2 Dj1j2.
+  have UU : [&& isRealC 1, isRealC 1, 1 != 0 :> algC & 1 != 0 :> algC].
+    by rewrite !isIntC_Real ?isIntC_1 // -(eqN_eqC 1 0).
+  apply: vchar_pairs_orthonormal UU _.
+  - by split=> k; rewrite 2!inE => /orP [] /eqP->; exact: irr_vchar.
+  - rewrite /orthonormal /=; rewrite !{1}cfdot_irr !{1}eqxx.
+    case: ((md j1).1 i1 =P _)=> [|_].
+      by case: (HH j1)=> HHx _; move/HHx=> /eqP Zi1; case/negP: NZi1.
+    case: ((md j2).1 i2 =P _)=> [|_]; last by rewrite !eqxx.
+    by case: (HH j2)=> HHx _; move/HHx=> /eqP Zi2; case/negP: NZi2.
+  have F i j : ('chi_((md j).1 i) - 'chi_((md j).1 0)) 1%g = 0.
+     have: 'Ind[L] (e_ i j) 1%g == 0.
+       have linearX k : lin_char ('chi[W]_k).
+         by apply/char_abelianP; apply: cyclic_abelian; case: HC=> [].
+       by rewrite cfInd1 //!cfunE !(lin_char1 (linearX _)) subrr mulr0 //.
+     case: (HH j)=> _ /(_ i) ->.
+     by rewrite cfunE (mulf_eq0) signr_eq0 /= => /eqP.
+  rewrite !{1}scale1r !{1}F eqxx !andbT. 
+  case: (HH j1)=> _ /(_ i1) /= Ii1j1; case: (HH j2)=> _ /(_ i2) /= Ii2j2.
+  move: (TH _ _ (memc_ecTIirr i1 j1) (memc_ecTIirr i2 j2)).
+  have->: '[e_ i1 j1, e_ i2 j2] = 0.
+    by rewrite cfdot_subl 2!cfdot_subr !cfdot_cTIirr 
+               (negPf Dj1j2) !andbF subrr.
+  rewrite Ii1j1 Ii2j2 cfdotZl cfdotZr mulrA.
+  move/eqP; rewrite mulf_eq0 => /orP [] //.
+  by rewrite isIntC_conj ?isIntC_sign // -signr_addb signr_eq0.
+apply/injectiveP=> [[i1 j1] [i2 j2] /=]; rewrite !ffunE.
+case: (boolP (j1 == j2)) => [/eqP <-| Dj1j2 Eqm].
+  by case : (HH j1)=> Hv _; move/Hv<-.
+suff: '['chi_((md j1).1 i1), 'chi_((md j2).1 i2)] == 0.
+  by rewrite cfdot_irr {1}Eqm eqxx -(eqN_eqC 1 0).
+pose i3 : Iirr W1  := inZp 1.
+have NZi3 : i3 != 0.
+  by apply/eqP; move/val_eqP=> /=; rewrite modn_small.
+case: (i1 =P 0)=> [Zi1 | /eqP NZi1]; case: (i2 =P 0)=> [Zi2 | /eqP NZi2].
+  - case/orthonormalP: (Horth _ _ _ _ NZi3 NZi3 Dj1j2)=> /and4P [] _ /negP [].
+    by rewrite -{1}[0]Zi1 -{1}[0]Zi2 {1}Eqm !in_cons eqxx !orbT.
+  - case/orthonormalP: (Horth _ _ _ _ NZi3 NZi2 Dj1j2)=> /and4P [] _ /negP [].
+    by rewrite -{1}[0]Zi1 {1}Eqm !in_cons eqxx.
+  - case/orthonormalP: (Horth _ _ _ _ NZi1 NZi3 Dj1j2)=> /and4P [] /negP [].
+    by rewrite -{2}[0]Zi2 {1}Eqm !in_cons eqxx !orbT.
+case/orthonormalP: (Horth _ _ _ _ NZi1 NZi2 Dj1j2)=> /and4P [] /negP [].
+by rewrite {1}Eqm !in_cons eqxx !orbT.
 Qed.
+
+Lemma Dade_mu_injective : injective (prod_curry mu).
+Proof. by case: Dade_mudelta_spec. Qed.
+
+(* First part of 4.3 b *)
+Lemma Dade_mu_ind :
+        forall i j,
+       'Ind[L] (e_ i j) =
+            (-1) ^+ (delta j) *: ('chi_(mu i j) - 'chi_(mu 0 j)).
+Proof. by case: Dade_mudelta_spec. Qed.
    
 End CyclicDade.
 

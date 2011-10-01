@@ -1967,7 +1967,7 @@ Qed.
 Canonical extIrrf_linear f : {linear 'CF(W) -> 'CF(G)} :=  
   Linear (extIrrf_is_linear f).
 
-Definition cyclicTItau := locked
+Definition cyclicTIsigma := locked
    (extIrrf_linear
     (oapp (fun (f : {ffun Iirr W -> (bool * Iirr G)}) i =>  
           (-1)^+ (f i).1 *: 'chi_(f i).2) (fun x: Iirr W => 0)
@@ -1977,7 +1977,7 @@ Definition cyclicTItau := locked
         &  all (fun a => 'Ind[G, W] a == \sum_(i : Iirr W)  ('[a, 'chi_i] *: g i))
            (cfun_base W (W :\: (W1 :|: W2)))]])).
 
-Local Notation tau := cyclicTItau.
+Local Notation sigma := cyclicTIsigma.
 
 (* Move to character *)
 Lemma inv_dprod_Iirr0 : inv_dprod_Iirr W1xW2 0 = (0,0).
@@ -1988,13 +1988,13 @@ by rewrite /cfDprod !chi0_1 cfDprodl1 cfDprodr1 mul1r irr_eq1 => /eqP->.
 Qed.
 
 (* This is PF 3.2 *)
-Lemma cyclicTItau_spec :
+Lemma cyclicTIsigma_spec :
         [/\ 
-         {in 'Z[irr W], isometry tau, to 'Z[irr G]},
-         tau 1 = 1 &
-         {in 'CF(W, V), forall a, tau a = 'Ind[G, W] a}].
+         {in 'Z[irr W], isometry sigma, to 'Z[irr G]},
+         sigma 1 = 1 &
+         {in 'CF(W, V), forall a, sigma a = 'Ind[G, W] a}].
 Proof.
-rewrite /tau; unlock.
+rewrite /sigma; unlock.
 rewrite /extIrrf; case: pickP=> [/= f /and3P [Ho H1 /allP /= HI]|].
   split=> [|| a /coord_span ->].
   - split=> [i j Hi Hj /=|i Hi]; last first.
@@ -2085,18 +2085,18 @@ rewrite -x00 -!chi0_1.
 by rewrite /= !extIrrf_irr !gXE /p /=  !dprod_IirrK inv_dprod_Iirr0.
 Qed.
 
-Lemma cyclicTIisometry : {in 'Z[irr W], isometry tau, to 'Z[irr G]}.
-Proof. by case: cyclicTItau_spec. Qed.
+Lemma cyclicTIisometry : {in 'Z[irr W], isometry sigma, to 'Z[irr G]}.
+Proof. by case: cyclicTIsigma_spec. Qed.
 
-Lemma cyclicTItau_ind : {in 'CF(W, V), forall a, tau a = 'Ind[G, W] a}.
-Proof. by case: cyclicTItau_spec. Qed.
+Lemma cyclicTIsigma_ind : {in 'CF(W, V), forall a, sigma a = 'Ind[G, W] a}.
+Proof. by case: cyclicTIsigma_spec. Qed.
 
-Lemma cyclicTItau1 : tau 1 = 1.
-Proof. by case: cyclicTItau_spec. Qed.
+Lemma cyclicTIsigma1 : sigma 1 = 1.
+Proof. by case: cyclicTIsigma_spec. Qed.
 
-Lemma cyclicTItau_restrict a : {in V, tau a =1 a}.
+Lemma cyclicTIsigma_restrict a : {in V, sigma a =1 a}.
 Proof.
-have F1 i j : '[tau ('chi_i), tau ('chi_j)] = (i == j)%:R.
+have F1 i j : '[sigma ('chi_i), sigma ('chi_j)] = (i == j)%:R.
   by case: cyclicTIisometry=> ->; rewrite ? irr_vchar // cfdot_irr.
 case: (equiv_restrict_compl_ortho _ _ acTIirr_base_is_basis F1)
      => [||j|Er1 Er2 v Hv] //.
@@ -2106,16 +2106,16 @@ case: (equiv_restrict_compl_ortho _ _ acTIirr_base_is_basis F1)
   have Hj: l`_j \in 'CF(W,V).
     apply: (memv_is_basis acTIirr_base_is_basis).
     by apply: mem_nth; rewrite size_image.
-  rewrite -cyclicTItau_ind // [l`_j]cfun_sum_cfdot linear_sum.
+  rewrite -cyclicTIsigma_ind // [l`_j]cfun_sum_cfdot linear_sum.
   by apply: eq_bigr=> i _ //; rewrite -cfun_sum_cfdot linearZ.
 rewrite [a]cfun_sum_cfdot linear_sum !sum_cfunE; apply: eq_bigr=> i _.
 by rewrite linearZ !cfunE Er1.
 Qed.
 
-Lemma cyclicTItau_orthogonal z : 
-  (forall i, '[z, tau 'chi[W]_i] = 0) -> {in V, forall x, z x = 0}.
+Lemma cyclicTIsigma_orthogonal z : 
+  (forall i, '[z, sigma 'chi[W]_i] = 0) -> {in V, forall x, z x = 0}.
 Proof.
-have F1 i j : '[tau ('chi_i), tau ('chi_j)] = (i == j)%:R.
+have F1 i j : '[sigma ('chi_i), sigma ('chi_j)] = (i == j)%:R.
   by case: cyclicTIisometry=> ->; rewrite ? irr_vchar // cfdot_irr.
 case: (equiv_restrict_compl_ortho _ _ acTIirr_base_is_basis F1)
      => [||j|Er1 Er2 Ho] //.
@@ -2125,13 +2125,13 @@ case: (equiv_restrict_compl_ortho _ _ acTIirr_base_is_basis F1)
   have Hj: l`_j \in 'CF(W,V).
     apply: (memv_is_basis acTIirr_base_is_basis).
     by apply: mem_nth; rewrite size_image.
-  rewrite -cyclicTItau_ind // [l`_j]cfun_sum_cfdot linear_sum.
+  rewrite -cyclicTIsigma_ind // [l`_j]cfun_sum_cfdot linear_sum.
   by apply: eq_bigr=> i _ //; rewrite -cfun_sum_cfdot linearZ.
 by apply: Er2=> i; exact: Ho.
 Qed.
  
 End Proofs.
 
-Lemma cyclicTItau_sym (gT : finGroupType) (G W W1 W2 : {group gT}) : 
-   cyclicTItau G W W1 W2  = cyclicTItau G W W2 W1.
-Proof. by rewrite /cyclicTItau setUC. Qed.
+Lemma cyclicTIsigma_sym (gT : finGroupType) (G W W1 W2 : {group gT}) : 
+   cyclicTIsigma G W W1 W2  = cyclicTIsigma G W W2 W1.
+Proof. by rewrite /cyclicTIsigma setUC. Qed.
