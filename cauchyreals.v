@@ -1797,7 +1797,79 @@ Canonical eq_alg_dom_rel :=
 
 Definition alg := [mod eq_alg_dom]%qT.
 Canonical alg_eqType := [eqType of alg].
-Canonical alg_choiceType := [eqType of alg].
+Canonical alg_choiceType := [choiceType of alg].
+
+Require Import perm matrix mxpoly.
+
+Notation "'Y" := 'X%:P.
+
+Definition eval (R : comRingType) (x : R) := horner^~ x.
+
+Lemma eval_is_additive (R : comRingType) (x : R) : additive (eval x).
+Proof.
+rewrite /eval.
+by move=> /= u v; rewrite horner_add horner_opp.
+Qed.
+Canonical eval_additive (R : comRingType) (x : R) := Additive (eval_is_additive x).
+
+Lemma eval_is_multiplicative (R : comRingType) (x : R) : multiplicative (eval x).
+Proof.
+rewrite /eval.
+split; first by move=> /= u v; rewrite horner_mul.
+by rewrite hornerC.
+Qed.
+Canonical eval_rmorphism (R : comRingType) (x : R) := AddRMorphism (eval_is_multiplicative x).
+
+
+Lemma size_map_poly_id0 (aR : ringType) (R : ringType) (f : {rmorphism aR -> R})
+  (p : {poly aR}) (fp : (f (lead_coef p) != 0)%B) : size (map_poly f p) = size p.
+Proof.
+have [-> | nz_p] := eqVneq p 0; first by rewrite rmorph0 !size_poly0.
+by rewrite size_poly_eq // fp lead_coef_eq0.
+Qed.
+
+Lemma map_resultant (F' : ringType) (p q : {poly {poly F}})
+  (f : {rmorphism {poly F} -> F'}):
+   (f (lead_coef p) != 0)%B -> (f (lead_coef q) != 0)%B ->
+  f (resultant p q)= resultant (map_poly f p) (map_poly f q).
+Proof.
+move=> hp hq; rewrite /resultant /Sylvester_mx /=.
+rewrite  -det_map_mx /= map_col_mx.
+rewrite (@map_lin1_mx _ _ _ _ _ _ (poly_rV \o map_poly f p \o* rVpoly));
+  last by move=> v; rewrite ?map_poly_rV /= -?map_rVpoly /= -rmorphM /=.
+rewrite (@map_lin1_mx _ _ _ _ _ _ (poly_rV \o map_poly f q \o* rVpoly));
+  last by move=> v; rewrite ?map_poly_rV /= -?map_rVpoly /= -rmorphM /=.
+by rewrite !size_map_poly_id0.
+Qed.
+
+Lemma poly_annul_add (p q : {poly F}) (a b : F) :
+  (q != 0)%B (* maybe dispendable *) -> p.[a] = 0 -> q.[b] = 0 ->
+  (resultant (map_poly polyC p \Po ('Y - 'X))
+             (map_poly polyC q)              ).[a + b] = 0.
+Proof.
+move=> q_neq0 pa0 pb0.
+transitivity (resultant (p \Po ((a + b)%:P - 'X)) q).
+  rewrite -/(eval _ _).
+  rewrite map_resultant /=; last 2 first.
+  + rewrite /poly_comp -/(eval _ _) -map_poly_comp /=.
+    admit.
+  + by rewrite /eval lead_coef_map_eq //= ?polyC_eq0 ?hornerC lead_coef_eq0.
+  congr resultant; last first.
+    by apply/polyP=> i; rewrite /eval !coef_map_id0_poly /= ?hornerC.
+  rewrite /poly_comp -horner_map /=.
+  rewrite -!map_poly_comp_id0 ?rmorph0 //; last first.
+  congr (_.[_]).
+    apply: eq_map_poly=> x /=.
+    by rewrite map_polyC /= /eval /= hornerC.
+  by rewrite rmorph_sub /= map_polyC map_polyX /= /eval /= hornerX.
+apply/eqP; rewrite resultant_eq0.
+rewrite (leq_trans _ (@size_dvdp _ ('X - b%:P) _ _ _)) //.
++ by rewrite size_factor.
++ by rewrite gcdp_eq0 negb_and q_neq0 orbT.
+rewrite dvdp_gcd !dvdp_factorl !rootE pb0 eqxx andbT.
+by rewrite horner_poly_comp !horner_lin addrK pa0.
+Qed.
+
 
 End Creals.
 End Creals.
