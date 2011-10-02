@@ -282,10 +282,13 @@ Proof. by rewrite morph1 /= genGid. Qed.
 Lemma cosetpre1 : coset H @*^-1 1 = H.
 Proof. by rewrite -kerE ker_coset. Qed.
 
-(* Variant of morphimEdom; mophimE[sub] covered by imset_coset. *)
-(* morph[im|pre]Iim are also covered by quotientT.              *)
-Lemma quotientT : 'N(H) / H = setT.
+(* Variant of morphimEdom; mophimE[sub] covered by imset_coset.   *)
+(* morph[im|pre]Iim are also covered by im_quotient.              *)
+Lemma im_quotient : 'N(H) / H = setT.
 Proof. exact: im_coset. Qed.
+
+Lemma quotientT : setT / H = setT.
+Proof. by rewrite -im_quotient; exact: morphimT. Qed.
 
 (* Variant of morphimIdom. *)
 Lemma quotientInorm A : 'N_A(H) / H = A / H.
@@ -484,6 +487,12 @@ Proof. exact: morphim_abelian. Qed.
 Lemma quotient_subcent A B : 'C_A(B) / H \subset 'C_(A / H)(B / H).
 Proof. exact: morphim_subcent. Qed.
 
+Lemma norm_quotient_pre A C :
+  A \subset 'N(H) -> A / H \subset 'N(C) -> A \subset 'N(coset H @*^-1 C).
+Proof.
+by move/sub_quotient_pre=> -> /subset_trans-> //; exact: morphpre_norm.
+Qed.
+
 Lemma cosetpre_normal C D : (coset H @*^-1 C <| coset H @*^-1 D) = (C <| D).
 Proof. by rewrite morphpre_normal ?sub_im_coset. Qed.
 
@@ -664,7 +673,7 @@ Lemma im_qisom_proof : 'N(H) \subset 'N(G). Proof. by rewrite eqGH. Qed.
 Lemma qisom_ker_proof : 'ker (coset G) \subset 'ker (coset H).
 Proof. by rewrite eqGH. Qed.
 Lemma qisom_restr_proof : setT \subset 'N(H) / G.
-Proof. by rewrite eqGH quotientT. Qed.
+Proof. by rewrite eqGH im_quotient. Qed.
 
 Definition qisom :=
   restrm qisom_restr_proof (factm qisom_ker_proof im_qisom_proof).
@@ -695,7 +704,7 @@ Lemma injm_qisom : 'injm qisom.
 Proof. by rewrite -quotient1 -morphpre_qisom morphpreS ?sub1G. Qed.
 
 Lemma im_qisom : qisom @* setT = setT.
-Proof. by rewrite -{2}quotientT morphim_qisom eqGH quotientT. Qed.
+Proof. by rewrite -{2}im_quotient morphim_qisom eqGH im_quotient. Qed.
 
 Lemma qisom_isom : isom setT setT qisom.
 Proof. by apply/isomP; rewrite injm_qisom im_qisom. Qed.

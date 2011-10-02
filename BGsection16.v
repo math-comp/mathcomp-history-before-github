@@ -345,7 +345,7 @@ rewrite /FTtype (eq_p'group _ (kappaJ _ _)) pgroupJ MsigmaJ FcoreJ derJ.
 rewrite !(can_eq (conjsgK x)); do 4!congr (if _ then _ else _).
 rewrite -quotientInorm normJ -conjIg /= setIC -{1 3}(setIidPr (normG M`_\F)).
 rewrite -!morphim_conj -morphim_quotm ?normalG //= => nsMFN.
-by rewrite injm_abelian /= ?quotientT // injm_quotm ?injm_conj.
+by rewrite injm_abelian /= ?im_quotient // injm_quotm ?injm_conj.
 Qed.
 
 Lemma FTcoreJ M x : (M :^ x)`_\s = M`_\s :^ x.

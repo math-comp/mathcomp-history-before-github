@@ -465,8 +465,7 @@ rewrite def_fv qactE //; last first.
   rewrite memJ_norm ?mem_morphim ?in_setT //.
   rewrite morphim_Mho // f1W (subsetP (char_norms (Mho_char 1 U))) //.
   by rewrite (subsetP nUX) ?mem_morphim.
-apply: (injmP _ injf'); rewrite ?mem_quotient ?in_setT //.
-  by rewrite /= -quotientInorm setTI quotientT in_setT.
+apply: (injmP _ injf'); rewrite /= ?quotientT ?mem_quotient ?in_setT //.
 rewrite def_f invmK; last by rewrite im_f' im_f3 memJ_norm ?(subsetP nVG).
 apply: set1_inj; rewrite -morphim_set1 ?mem_quotient ?in_setT //.
 rewrite -quotient_set1 ?(subsetP (char_norm (Mho_char 1 _))) ?in_setT //.

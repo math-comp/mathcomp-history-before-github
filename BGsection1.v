@@ -575,8 +575,7 @@ Hypotheses (nMT : T \subset 'N(M)) (coMT : coprime #|M| #|T|).
 (* This is B & G, Lemma 1.14, for a global normaliser.                        *)
 Lemma coprime_norm_quotient_pgroup : 'N(T / M) = 'N(T) / M.
 Proof.
-have [-> | ntT] := eqsVneq T 1.
-  by rewrite quotient1 !norm1 -quotientInorm setTI quotientT.
+have [-> | ntT] := eqsVneq T 1; first by rewrite quotient1 !norm1 quotientT.
 have [p_pr _ [m oMpm]] := pgroup_pdiv pT ntT.
 apply/eqP; rewrite eqEsubset morphim_norms // andbT; apply/subsetP=> Mx.
 case: (cosetP Mx) => x Nx ->{Mx} nTqMx.

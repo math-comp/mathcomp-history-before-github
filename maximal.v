@@ -510,9 +510,8 @@ case/(inv_quotientN _): (char_normal chHK) => [|K defHK sHK]; first exact/andP.
 case/andP; rewrite subEproper defHK => /predU1P[-> // | ltKG] nKG.
 have nHK: H <| K by rewrite /normal sHK (subset_trans (proper_sub ltKG)).
 case/negP: ntHK; rewrite defHK -subG1 quotient_sub1 ?normal_norm //.
-rewrite (maxH K) // ltKG -(quotientGK nHK) -defHK.
-apply: subset_trans (morphpre_norm _ _).
-by rewrite -sub_quotient_pre // (char_norm_trans chHK) ?quotient_norms.
+rewrite (maxH K) // ltKG -(quotientGK nHK) -defHK norm_quotient_pre //.
+by rewrite (char_norm_trans chHK) ?quotient_norms.
 Qed.
 
 Lemma abelem_split_dprod rT p (A B : {group rT}) :

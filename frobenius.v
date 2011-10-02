@@ -436,6 +436,11 @@ Qed.
 Lemma Frobenius_coprime : coprime #|K| #|H|.
 Proof. by rewrite (coprime_dvdr Frobenius_dvd_ker1) ?coprimenP. Qed.
 
+Lemma Frobenius_trivg_cent : 'C_K(H) = 1.
+Proof.
+by apply: (cent_semiregular Frobenius_reg_ker); case: Frobenius_context.
+Qed.
+
 Lemma Frobenius_index_coprime : coprime #|K| #|G : K|.
 Proof. by rewrite (coprime_dvdr Frobenius_index_dvd_ker1) ?coprimenP. Qed.
 
@@ -508,6 +513,27 @@ apply: contraR nt_x; rewrite -cycle_eq1; move/(prime_TIg H_pr) <-.
 by rewrite (setIidPr _) ?cycle_subG.
 Qed.
 
+Lemma Frobenius_subl G K K1 H :
+    K1 :!=: 1 -> K1 \subset K -> H \subset 'N(K1) -> [Frobenius G = K ><| H] ->
+  [Frobenius K1 <*> H = K1 ><| H].
+Proof.
+move=> ntK1 sK1K nK1H frobG; have [_ _ ntH _ _] := Frobenius_context frobG.
+apply/Frobenius_semiregularP=> //.
+  by rewrite sdprodEY ?coprime_TIg ?(coprimeSg sK1K) ?(Frobenius_coprime frobG).
+by move=> x /(Frobenius_reg_ker frobG) cKx1; apply/trivgP; rewrite -cKx1 setSI.
+Qed.
+ 
+Lemma Frobenius_subr G K H H1 :
+    H1 :!=: 1 -> H1 \subset H -> [Frobenius G = K ><| H] ->
+  [Frobenius K <*> H1 = K ><| H1].
+Proof.
+move=> ntH1 sH1H frobG; have [defG ntK _ _ _] := Frobenius_context frobG.
+apply/Frobenius_semiregularP=> //.
+  have [_ _ /(subset_trans sH1H) nH1K tiHK] := sdprodP defG.
+  by rewrite sdprodEY //; apply/trivgP; rewrite -tiHK setIS.
+by apply: sub_in1 (Frobenius_reg_ker frobG); exact/subsetP/setSD.
+Qed.
+
 Lemma Frobenius_kerP G K :
   reflect [/\ K :!=: 1, K \proper G, K <| G
             & {in K^#, forall x, 'C_G[x] \subset K}]
@@ -569,6 +595,43 @@ Implicit Arguments TIconjP [gT G H].
 Implicit Arguments normedTI_P [gT A G L].
 Implicit Arguments normedTI_memJ_P [gT A G L].
 Implicit Arguments Frobenius_kerP [gT G K].
+
+Section InjmFrobenius.
+
+Variables (gT rT : finGroupType) (D G : {group gT}) (f : {morphism D >-> rT}).
+Implicit Types (H K : {group gT}) (sGD : G \subset D) (injf : 'injm f).
+
+Lemma injm_Frobenius_compl H sGD injf : 
+  [Frobenius G with complement H] -> [Frobenius f @* G with complement f @* H].
+Proof.
+case/and3P=> ltHG tiHG defNH; have sHD := subset_trans (proper_sub ltHG) sGD.
+apply/and3P; rewrite injm_proper // -injm_subnorm // (eqP defNH); split=> //.
+apply/TIconjP=> _ _ /morphimP[x Dx Gx ->] /morphimP[y Dy Gy ->].
+rewrite -morphV -?morphM ?groupV // -injm_subnorm // -!morphimJ -?injmI //.
+have [Nxy | ->] := TIconjP tiHG x y Gx Gy; last by right; rewrite morphim1.
+by left; rewrite mem_morphim // groupM ?groupV.
+Qed.
+
+Lemma injm_Frobenius H K sGD injf : 
+  [Frobenius G = K ><| H] -> [Frobenius f @* G = f @* K ><| f @* H].
+Proof.
+case/andP=> /eqP defG frobG.
+by apply/andP; rewrite (injm_sdprod _ injf defG) // eqxx injm_Frobenius_compl.
+Qed.
+
+Lemma injm_Frobenius_ker K sGD injf : 
+  [Frobenius G with kernel K] -> [Frobenius f @* G with kernel f @* K].
+Proof.
+case/existsP=> H frobG; apply/existsP; exists (f @* H)%G; exact: injm_Frobenius.
+Qed.
+
+Lemma injm_Frobenius_group sGD injf : [Frobenius G] -> [Frobenius f @* G].
+Proof.
+case/existsP=> H frobG; apply/existsP; exists (f @* H)%G.
+exact: injm_Frobenius_compl.
+Qed.
+
+End InjmFrobenius.
 
 Theorem Frobenius_Ldiv (gT : finGroupType) (G : {group gT}) n :
   n %| #|G| -> n %| #|'Ldiv_n(G)|.

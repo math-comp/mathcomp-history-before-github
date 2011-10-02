@@ -1,9 +1,9 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset.
-Require Import fingroup morphism perm automorphism quotient finalg action zmodp.
-Require Import commutator cyclic center pgroup gseries nilpotent sylow.
-Require Import maximal abelian matrix mxalgebra mxrepresentation.
+Require Import fingroup morphism perm automorphism quotient gproduct action.
+Require Import finalg zmodp commutator cyclic center pgroup gseries nilpotent.
+Require Import sylow maximal abelian matrix mxalgebra mxrepresentation.
 
 (******************************************************************************)
 (*   This file completes the theory developed in mxrepresentation.v with the  *)
@@ -231,6 +231,33 @@ rewrite addsmxSl addsmxSr -(@leq_pmul2r #|rowg A :&: rowg B|) ?cardG_gt0 //=.
 by rewrite -mul_cardG -rowgI !card_rowg -!expn_add mxrank_sum_cap.
 Qed.
 
+Lemma cprod_rowg m1 m2 (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
+  rowg A \* rowg B = rowg (A + B)%MS.
+Proof. by rewrite rowgD cprodE // (sub_abelian_cent2 (zmod_abelian setT)). Qed.
+
+Lemma dprod_rowg  m1 m2 (A : 'M[F]_(m1, n)) (B : 'M[F]_(m2, n)) :
+  mxdirect (A + B) -> rowg A \x rowg B = rowg (A + B)%MS.
+Proof.
+rewrite (sameP mxdirect_addsP eqP) -trivg_rowg rowgI => /eqP tiAB.
+by rewrite -cprod_rowg dprodEcprod.
+Qed. 
+
+Lemma bigcprod_rowg m I r (P : pred I) (A : I -> 'M[F]_n) (B : 'M[F]_(m, n)) :
+    (\sum_(i <- r | P i) A i :=: B)%MS ->
+  \big[cprod/1%g]_(i <- r | P i) rowg (A i) = rowg B.
+Proof.
+by move/eq_rowg <-; apply/esym/big_morph=> [? ?|]; rewrite (rowg0, cprod_rowg).
+Qed.
+
+Lemma bigdprod_rowg m (I : finType) (P : pred I) A (B : 'M[F]_(m, n)) :
+    let S := (\sum_(i | P i) A i)%MS in (S :=: B)%MS -> mxdirect S ->
+  \big[dprod/1%g]_(i | P i) rowg (A i) = rowg B.
+Proof.
+move=> S defS; rewrite mxdirectE defS /= => /eqP rankB.
+apply: bigcprod_card_dprod (bigcprod_rowg defS) (eq_leq _).
+by rewrite card_rowg rankB expn_sum; apply: eq_bigr => i _; rewrite card_rowg.
+Qed.
+
 End RowGroup.
 
 Variables (gT : finGroupType) (G : {group gT}) (n' : nat).
@@ -417,6 +444,12 @@ apply/idP/idP; last exact: rowg_mxS.
 by rewrite -rowgS rowg_mxK; apply: subset_trans; exact: sub_rowg_mx.
 Qed.
 
+Lemma mxrank_rowg (L : {group rVn}) :
+  prime p -> \rank (rowg_mx L) = logn p #|L|.
+Proof.
+by move=> p_pr; rewrite -{2}(rowg_mxK L) card_rowg card_Fp ?pfactorK.
+Qed.
+
 End FpRow.
 
 Variables (p : nat) (gT : finGroupType) (E : {group gT}).
@@ -445,7 +478,7 @@ Proof.
 by rewrite (isog_abelem_card _ abelE) cardsT card_abelem_rV mx_Fp_abelem /=.
 Qed.
 
-Let ab_rV_P := (existsP isog_abelem_rV).
+Local Notation ab_rV_P := (existsP isog_abelem_rV).
 Definition abelem_rV : gT -> rVn := xchoose ab_rV_P.
 
 Local Notation ErV := abelem_rV.
@@ -540,6 +573,8 @@ Lemma sub_abelem_rV_im (H : {set gT}) (L : {set 'rV['F_p]_n}) :
   H \subset E -> (ErV @* H \subset L) = (H \subset rV_E @* L).
 Proof. by move=> sHE; rewrite sub_morphim_pre ?morphim_invmE. Qed.
 
+Section OneGroup.
+
 Variable G : {group gT}.
 Definition abelem_mx_fun (g : subg_of G) v := ErV ((rV_E v) ^ val g).
 Definition abelem_mx of G \subset 'N(E) :=
@@ -611,24 +646,48 @@ apply/setP=> x; rewrite !inE /=; apply: andb_id2l => Gx.
 by rewrite -rowgS -rVabelemS abelem_rowgJ.
 Qed.
 
-Lemma rstabs_abelem_rowg_mx (L : {group gT}) :
+Lemma rstabs_abelemG (L : {group gT}) :
   L \subset E -> rstabs rG (rowg_mx (ErV @* L)) = 'N_G(L).
 Proof. by move=> sLE; rewrite rstabs_abelem rowg_mxK morphim_invm. Qed.
 
+Lemma mxmodule_abelem m (U : 'M['F_p]_(m, n)) :
+  mxmodule rG U = (G \subset 'N(rV_E @* rowg U)).
+Proof. by rewrite -subsetIidl -rstabs_abelem. Qed.
+
+Lemma mxmodule_abelemG (L : {group gT}) :
+  L \subset E -> mxmodule rG (rowg_mx (ErV @* L)) = (G \subset 'N(L)).
+Proof. by move=> sLE; rewrite -subsetIidl -rstabs_abelemG. Qed.
+
+Lemma mxsimple_abelemP (U : 'M['F_p]_n) :
+  reflect (mxsimple rG U) (minnormal (rV_E @* rowg U) G).
+Proof.
+apply: (iffP mingroupP) => [[/andP[ntU modU] minU] | [modU ntU minU]].
+  split=> [||V modV sVU ntV]; first by rewrite mxmodule_abelem.
+    by apply: contraNneq ntU => ->; rewrite /= rowg0 morphim1.
+  rewrite -rowgS -rVabelemS [_ @* rowg V]minU //.
+    rewrite -subG1 sub_rVabelem_im morphim1 subG1 trivg_rowg ntV /=.
+    by rewrite -mxmodule_abelem.
+  by rewrite rVabelemS rowgS.
+split=> [|D /andP[ntD nDG sDU]].
+  rewrite -subG1 sub_rVabelem_im morphim1 subG1 trivg_rowg ntU /=.
+  by rewrite -mxmodule_abelem.
+apply/eqP; rewrite eqEsubset sDU sub_rVabelem_im /= -rowg_mxSK rowgK.
+have sDE: D \subset E := subset_trans sDU (sub_rVabelem _).
+rewrite minU ?mxmodule_abelemG //.
+  by rewrite -rowgS rowg_mxK sub_abelem_rV_im.
+by rewrite rowg_mx_eq0 (morphim_injm_eq1 abelem_rV_injm).
+Qed.
+
+Lemma mxsimple_abelemGP (L : {group gT}) :
+  L \subset E -> reflect (mxsimple rG (rowg_mx (ErV @* L))) (minnormal L G).
+Proof.
+move/abelem_rV_mK=> {2}<-; rewrite -{2}[_ @* L]rowg_mxK.
+exact: mxsimple_abelemP.
+Qed.
+
 Lemma abelem_mx_irrP : reflect (mx_irreducible rG) (minnormal E G).
 Proof.
-apply: (iffP mingroupP) => [[_ minE]|irrG].
-  apply/mx_irrP; split=> // U; rewrite /mxmodule rstabs_abelem //.
-  rewrite subsetI subxx /= -trivg_rowg.
-  rewrite -(inj_eq rVabelem_minj) morphim1; set L := _ @* _ U => nLG ntL. 
-  by rewrite -sub1mx -rowgS -rVabelemS -/L [L]minE ?ntL /=.
-rewrite ntE; split=> // L /andP[ntL nLG] sLE; apply/eqP.
-rewrite eqEsubset sLE -im_rVabelem sub_rVabelem_im //= -rowg_mxSK //.
-move/setIidPl: nLG; rewrite -rstabs_abelem_rowg_mx //.
-set U := rowg_mx _ => Umod; rewrite submx_full //.
-case/mx_irrP: irrG => _ -> //; first by rewrite /mxmodule Umod.
-apply: contra ntL; rewrite rowg_mx_eq0 !(sameP eqP trivgP).
-by rewrite sub_abelem_rV_im // morphim1.
+by rewrite -[E in minnormal E G]im_rVabelem -rowg1; exact: mxsimple_abelemP.
 Qed.
 
 Lemma rfix_abelem (H : {set gT}) :
@@ -648,7 +707,44 @@ Proof. by rewrite /rker rstab_abelem rowg1 im_rVabelem. Qed.
 
 Lemma abelem_mx_faithful : 'C_G(E) = 1%g -> mx_faithful rG.
 Proof. by rewrite /mx_faithful rker_abelem => ->. Qed.
-  
+
+End OneGroup.
+
+Section SubGroup.
+
+Variables G H : {group gT}.
+Hypotheses (nEG : G \subset 'N(E)) (sHG : H \subset G).
+Let nEH := subset_trans sHG nEG.
+Local Notation rG := (abelem_repr nEG).
+Local Notation rHG := (subg_repr rG sHG).
+Local Notation rH := (abelem_repr nEH).
+
+Lemma eq_abelem_subg_repr : {in H, rHG =1 rH}.
+Proof.
+move=> x Hx; apply/row_matrixP=> i; rewrite !rowK /abelem_mx_fun.
+by rewrite !subgK ?(subsetP sHG).
+Qed.
+
+Lemma rsim_abelem_subg : mx_rsim rHG rH.
+Proof.
+exists 1%:M => // [|x Hx]; first by rewrite row_free_unit unitmx1.
+by rewrite mul1mx mulmx1 eq_abelem_subg_repr.
+Qed.
+
+Lemma mxmodule_abelem_subg m (U : 'M_(m, n)) : mxmodule rHG U = mxmodule rH U.
+Proof.
+apply: eq_subset_r => x; rewrite !inE; apply: andb_id2l => Hx.
+by rewrite eq_abelem_subg_repr.
+Qed.
+
+Lemma mxsimple_abelem_subg U : mxsimple rHG U <-> mxsimple rH U.
+Proof.
+have eq_modH := mxmodule_abelem_subg; rewrite /mxsimple eq_modH.
+by split=> [] [-> -> minU]; split=> // V; have:= minU V; rewrite eq_modH.
+Qed.
+
+End SubGroup.
+
 End AbelemRepr.
 
 Section ModularRepresentation.

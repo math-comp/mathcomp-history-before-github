@@ -797,7 +797,7 @@ have nKB: 'N(<<K>>) = B.
   have:= Kw; rewrite !inE -!order_dvdn orderJ ow !andbT; apply: contra.
   case/imsetP=> z _ def_wb; apply/imsetP; exists (z ^ b^-1); rewrite ?inE //.
   by rewrite -conjXg -def_wb conjgK.
-rewrite -quotientT card_quotient // nKB -divgS ?subsetT //.
+rewrite -im_quotient card_quotient // nKB -divgS ?subsetT //.
 split; first by rewrite oB defK -orderE ow (mulnA q 2 2) mulnK // mulnC.
 apply: intro_isoGrp => [|rT H].
   apply/existsP; exists (coset _ u, coset _ v); rewrite /= !xpair_eqE.

@@ -114,7 +114,7 @@ Require Import bigop finset fingroup morphism perm automorphism quotient.
 (*                   no mention of the domains of to and to'; if needed, this *)
 (*                   predicate should be restricted via the {in ...} notation *)
 (*                   and domain conditions should be added.                   *)
-(*****************************************************************************)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.

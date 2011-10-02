@@ -237,6 +237,9 @@ Qed.
 Lemma morphpreS R S : R \subset S -> f @*^-1 R \subset f @*^-1 S.
 Proof. by move=> sRS; rewrite setIS ?preimsetS. Qed.
 
+Lemma morphpre_sub R : f @*^-1 R \subset D.
+Proof. exact: subsetIl. Qed.
+
 Lemma morphim_setIpre A R : f @* (A :&: f @*^-1 R) = f @* A :&: R.
 Proof.
 apply/setP=> fa; apply/morphimP/setIP=> [[a Da] | [/morphimP[a Da Aa ->] Rfa]].
@@ -308,6 +311,9 @@ Proof.
 move=> Dx; apply/setP=> y; rewrite conjIg !inE conjGid // !mem_conjg inE.
 by case Dy: (y \in D); rewrite // morphJ ?(morphV, groupV).
 Qed.
+
+Lemma morphimT : f @* setT = f @* D.
+Proof. by rewrite -morphimIdom setIT. Qed.
 
 Lemma morphimU A B : f @* (A :|: B) = f @* A :|: f @* B.
 Proof. by rewrite -imsetU -setIUr. Qed.

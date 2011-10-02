@@ -696,7 +696,7 @@ pose S := |/|*(B; q); have p'S: #|S| %% p != 0.
   have pi'S: pi^'.-nat #|S| := pnat_dvd (atrans_dvd trnB) (pcore_pgroup _ _).
   by rewrite -prime_coprime // (pnat_coprime _ pi'S) ?pnatE.
 have{p'S} [Q S_Q nQP]: exists2 Q, Q \in S & P \subset 'N(Q).
-  have sTSB: setT \subset G / B by rewrite -quotientT quotientS ?subsetT.
+  have sTSB: setT \subset G / B by rewrite -im_quotient quotientS ?subsetT.
   have modBE: {in P & S, forall x Q, ('JG %% B) Q (coset B x) = 'JG Q x}%act.
     move=> x Q Px; rewrite inE; move/maxgroupp; case/andP=> _ nQB.
     by rewrite /= modactE ?(subsetP nBP) ?afixJG ?setTI ?inE.

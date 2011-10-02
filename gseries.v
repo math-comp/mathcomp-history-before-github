@@ -367,7 +367,7 @@ End QuoMax.
 Section MaxNormalProps.
 
 Variables (gT : finGroupType).
-Implicit Types (A B C : {set gT}) (G H K : {group gT}).
+Implicit Types (A B C : {set gT}) (G H K L M : {group gT}).
 
 Lemma maxnormal_normal A B : maxnormal A B B -> A <| B.
 Proof.
@@ -404,6 +404,31 @@ apply/joing_idPr/maxK; rewrite ?joing_subr //= comm_joingE //.
 by rewrite properEneq ltHK_G; exact: normalM.
 Qed.
 
+Lemma maxnormal_minnormal G L M :
+    G \subset 'N(M) -> L \subset 'N(G) ->  maxnormal M G L ->
+  minnormal (G / M) (L / M). 
+Proof.
+move=> nMG nGL /maxgroupP[/andP[/andP[sMG ltMG] nML] maxM]; apply/mingroupP.
+rewrite -subG1 quotient_sub1 ?ltMG ?quotient_norms //.
+split=> // Hb /andP[ntHb nHbL]; have nsMG: M <| G by exact/andP.
+case/inv_quotientS=> // H defHb sMH sHG; rewrite defHb; congr (_ / M).
+apply/eqP; rewrite eqEproper sHG /=; apply: contra ntHb => ltHG.
+have nsMH: M <| H := normalS sMH sHG nsMG.
+rewrite defHb quotientS1 // (maxM H) // ltHG /=  -(quotientGK nsMH) -defHb.
+exact: norm_quotient_pre.
+Qed.
+
+Lemma minnormal_maxnormal G L M :
+  M <| G -> L \subset 'N(M) -> minnormal (G / M) (L / M) -> maxnormal M G L.
+Proof.
+case/andP=> sMG nMG nML /mingroupP[/andP[/= ntGM _] minGM]; apply/maxgroupP.
+split=> [|H /andP[/andP[sHG ltHG] nHL] sMH].
+  by rewrite /proper sMG nML andbT; apply: contra ntGM => /quotientS1 ->.
+apply/eqP; rewrite eqEsubset sMH andbT -quotient_sub1 ?(subset_trans sHG) //.
+rewrite subG1; apply: contraR ltHG => ntHM; rewrite -(quotientSGK nMG) //.
+by rewrite (minGM (H / M)%G) ?quotientS // ntHM quotient_norms.
+Qed.
+
 End MaxNormalProps.
 
 Section Simple.
@@ -424,19 +449,8 @@ Qed.
 Lemma quotient_simple gT (G H : {group gT}) :
   H <| G -> simple (G / H) = maxnormal H G G.
 Proof.
-move=> nHG; apply/simpleP/maxgroupP=> [[ntG simG] | []].
-  rewrite andbAC andbC -(quotient_sub1 (normal_norm nHG)) subG1 ntG.
-  split=> // N /andP[/andP[sNG ltNG] nNG] sHN.
-  case: (simG (N / H)%G) => [|| /= eqNG].
-  - by apply: quotient_normal; exact/andP.
-  - move/trivgP=> trNH; apply/eqP; rewrite eqEsubset sHN andbT.
-    by rewrite -quotient_sub1 // (subset_trans sNG) ?normal_norm.
-  by case/negP: ltNG; rewrite -(quotientSGK _ sHN) ?normal_norm // eqNG.
-rewrite andbAC -subG1 (quotient_sub1 (normal_norm nHG)) => /andP[_ sGH] simG.
-split=> // _ /(inv_quotientN _)[] //= N -> sHN nNG.
-case sGN: (G \subset N); [right | left].
-  by congr (_ / H); apply/eqP; rewrite eqEsubset sGN normal_sub.
-by rewrite (simG N) ?trivg_quotient // andbAC sGN andbT.
+move=> nsHG; have nGH := normal_norm nsHG.
+by apply/idP/idP; [exact: minnormal_maxnormal | exact: maxnormal_minnormal].
 Qed.
 
 Lemma isog_simple gT rT (G : {group gT}) (M : {group rT}) :
@@ -466,15 +480,8 @@ Implicit Types G H U V : {group gT}.
 Lemma chief_factor_minnormal G V U :
   chief_factor G V U -> minnormal (U / V) (G / V).
 Proof.
-case/and3P=> /maxgroupP[/andP[/andP[sVU ltVU] nVG] maxV] sUG nUG.
-have nVU := subset_trans sUG nVG.
-apply/mingroupP; rewrite -subG1 quotient_sub1 ?ltVU ?quotient_norms //.
-split=> // Wbar ntWbar sWbarU; case/andP: ntWbar.
-have{Wbar sWbarU} [|W -> sVW] := inv_quotientS _ sWbarU; first exact/andP.
-case/eqVproper=> [-> // | ltWU ntWV].
-have nVW := subset_trans (proper_sub ltWU) nVU; have nWV := normsG sVW.
-rewrite -quotient_normG ?quotientSGK // => [nWG|]; last exact/andP.
-by rewrite (maxV W) ?trivg_quotient ?eqxx ?ltWU in ntWV.
+case/andP=> maxV /andP[sUG nUG]; apply: maxnormal_minnormal => //.
+by have /andP[_ nVG] := maxgroupp maxV; exact: subset_trans sUG nVG.
 Qed.
 
 Lemma acts_irrQ G U V :
@@ -484,8 +491,7 @@ Proof.
 move=> nVG nsVU; apply/mingroupP/mingroupP; case=> /andP[->] /=.
   rewrite astabsQ // subsetI nVG /= => nUG minUV.
   rewrite quotient_norms //; split=> // H /andP[ntH nHG] sHU.
-  apply: minUV (sHU); rewrite ntH -(cosetpreK H) actsQ //.
-  by apply: subset_trans (morphpre_norms _ nHG); rewrite -sub_quotient_pre.
+  by apply: minUV (sHU); rewrite ntH -(cosetpreK H) actsQ // norm_quotient_pre.
 rewrite sub_quotient_pre // => nUG minU; rewrite astabsQ //.
 rewrite (subset_trans nUG); last first.
   by rewrite subsetI subsetIl /= -{2}(quotientGK nsVU) morphpre_norm.

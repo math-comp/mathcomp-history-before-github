@@ -289,6 +289,8 @@ rewrite /Zp; case: p => [|[|p']] //= _; first by rewrite cards1.
 by rewrite cardsT card_ord.
 Qed.
 
+Lemma mem_Zp x : p > 1 -> x \in Zp. Proof. by rewrite /Zp => ->. Qed.
+
 Canonical units_Zp_group := [group of units_Zp].
 
 Lemma card_units_Zp : p > 0 -> #|units_Zp| = phi p.

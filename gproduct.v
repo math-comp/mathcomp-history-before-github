@@ -113,10 +113,10 @@ Variable gT : finGroupType.
 Implicit Types A B C : {set gT}.
 Implicit Types G H K : {group gT}.
 
-Notation Local pprod := (partial_product gT).
-Notation Local sdprod := (semidirect_product gT) (only parsing).
-Notation Local cprod := (central_product gT) (only parsing).
-Notation Local dprod := (direct_product gT) (only parsing).
+Local Notation pprod := (partial_product gT).
+Local Notation sdprod := (semidirect_product gT) (only parsing).
+Local Notation cprod := (central_product gT) (only parsing).
+Local Notation dprod := (direct_product gT) (only parsing).
 
 Lemma pprod1g : left_id 1 pprod.
 Proof. by move=> A; rewrite /pprod eqxx. Qed.
@@ -421,12 +421,6 @@ case /cprodP => [[K H -> defB] <- cKH].
 by rewrite -[<<_>>]joing_idr (IH H) ?cent_joinEr -?defB.
 Qed.
 
-Lemma cprodC : commutative cprod.
-Proof.
-rewrite /cprod => A B; case: ifP => cAB; rewrite centsC cAB // /pprod.
-by rewrite andbCA normC !cents_norm // 1?centsC //; do 2!case: eqP => // ->.
-Qed.
-
 Lemma triv_cprod A B : (A \* B == 1) = (A == 1) && (B == 1).
 Proof.
 case A1: (A == 1); first by rewrite (eqP A1) cprod1g.
@@ -450,6 +444,12 @@ Proof. by rewrite /group_set inE. Qed.
 
 Lemma cprod0g A : set0 \* A = set0.
 Proof. by rewrite /cprod centsC sub0set /pprod group0 trivg0 !if_same. Qed.
+
+Lemma cprodC : commutative cprod.
+Proof.
+rewrite /cprod => A B; case: ifP => cAB; rewrite centsC cAB // /pprod.
+by rewrite andbCA normC !cents_norm // 1?centsC //; do 2!case: eqP => // ->.
+Qed.
 
 Lemma cprodA : associative cprod.
 Proof.
@@ -482,6 +482,30 @@ Lemma cprod_modr A B G H :
   A \* B = G -> B \subset H -> (H :&: A) \* B = H :&: G.
 Proof. by rewrite -!(cprodC B) !(setIC H); exact: cprod_modl. Qed.
 
+Lemma bigcprodYP (I : finType) (P : pred I) (H : I -> {group gT}) :
+  reflect (forall i j, P i -> P j -> i != j -> H i \subset 'C(H j))
+          (\big[cprod/1]_(i | P i) H i == (\prod_(i | P i) H i)%G).
+Proof.
+apply: (iffP eqP) => [defG i j Pi Pj neq_ij | cHH].
+  rewrite (bigD1 j) // (bigD1 i) /= ?cprodA in defG; last exact/andP.
+  by case/cprodP: defG => [[K _ /cprodP[//]]].
+set Q := P; have: subpred Q P by [].
+elim: {Q}_.+1 {-2}Q (ltnSn #|Q|) => // n IHn Q leQn sQP.
+have [i Qi | Q0] := pickP Q; last by rewrite !big_pred0.
+rewrite (cardD1x Qi) add1n ltnS !(bigD1 i Qi) /= in leQn *.
+rewrite {}IHn {n leQn}// => [|j /andP[/sQP //]].
+rewrite bigprodGE cprodEY // gen_subG; apply/bigcupsP=> j /andP[neq_ji Qj].
+by rewrite cHH ?sQP.
+Qed.
+
+Lemma abelian_bigcprodEY I r (P : pred I) (H : I -> {group gT}) G :
+    abelian G -> (forall i, P i -> H i \subset G) ->
+  \big[cprod/1]_(i <- r | P i) H i = (\prod_(i <- r | P i) H i)%G.
+Proof.
+move=> cGG sHG; apply/eqP; rewrite !(big_tnth _ _ r).
+by apply/bigcprodYP=> i j Pi Pj _; rewrite (sub_abelian_cent2 cGG) ?sHG.
+Qed.
+
 (* Direct product *)
 
 Lemma dprod1g : left_id 1 dprod.
@@ -502,6 +526,10 @@ Proof. by move=> cGH trGH; rewrite /dprod trGH sub1G cprodE. Qed.
 
 Lemma dprodEcprod A B : A :&: B = 1 -> A \x B = A \* B.
 Proof. by move=> trAB; rewrite /dprod trAB subxx. Qed.
+
+Lemma cprod_card_dprod G A B :
+  A \* B = G -> #|A| * #|B| <= #|G| -> A \x B = G.
+Proof. by case/cprodP=> [[K H -> ->] <- cKH] /cardMg_TI; exact: dprodE. Qed.
 
 Lemma dprodEsdprod A B : B \subset 'C(A) -> A \x B = A ><| B.
 Proof. by rewrite /dprod /cprod => ->. Qed.
@@ -621,6 +649,35 @@ have [[_ H _ defH] _ _ _] := dprodP defG.
 by rewrite -(dprod_card defG) (IH H) defH.
 Qed.
 
+Lemma bigcprod_card_dprod I r (P : pred I) (A : I -> {set gT}) G :
+    \big[cprod/1]_(i <- r | P i) A i = G ->
+    \prod_(i <- r | P i) #|A i| <= #|G| ->
+  \big[dprod/1]_(i <- r | P i) A i = G.
+Proof.
+elim: r G => [|i r IHr]; rewrite !(big_nil, big_cons) //; case: ifP => _ // G.
+case/cprodP=> [[K H -> defH]]; rewrite defH => <- cKH leKH_G.
+have /implyP := leq_trans leKH_G (dvdn_leq _ (dvdn_cardMg K H)).
+rewrite muln_gt0 leq_pmul2l !cardG_gt0 //= => /(IHr H defH){defH}defH.
+by rewrite defH dprodE // cardMg_TI // -(bigdprod_card defH).
+Qed.
+
+Lemma bigcprod_coprime_dprod (I : finType) (P : pred I) (A : I -> {set gT}) G :
+    \big[cprod/1]_(i | P i) A i = G ->
+    (forall i j, P i -> P j -> i != j -> coprime #|A i| #|A j|) ->
+  \big[dprod/1]_(i | P i) A i = G.
+Proof.
+move=> defG coA; set Q := P in defG *; have: subpred Q P by [].
+elim: {Q}_.+1 {-2}Q (ltnSn #|Q|) => // m IHm Q leQm in G defG * => sQP.
+have [i Qi | Q0] := pickP Q; last by rewrite !big_pred0 in defG *.
+move: defG; rewrite !(bigD1 i Qi) /= => /cprodP[[Hi Gi defAi defGi] <-].
+rewrite defAi defGi => cHGi.
+have{defGi} defGi: \big[dprod/1]_(j | Q j && (j != i)) A j = Gi.
+  by apply: IHm => [||j /andP[/sQP]] //; rewrite (cardD1x Qi) in leQm.
+rewrite defGi dprodE // coprime_TIg // -defAi -(bigdprod_card defGi).
+elim/big_rec: _ => [|j n /andP[neq_ji Qj] IHn]; first exact: coprimen1.
+by rewrite coprime_mulr coprime_sym coA ?sQP.
+Qed.
+
 Lemma mem_dprod G A B x : A \x B = G -> x \in G ->
   exists y, exists z,
     [/\ y \in A, z \in B, x = y * z &
@@ -662,9 +719,11 @@ Implicit Arguments bigdprodYP [gT I P F].
 
 Section MorphimInternalProd.
 
-Variables (gT rT : finGroupType) (G K H D : {group gT}).
+Variables (gT rT : finGroupType) (D : {group gT}) (f : {morphism D >-> rT}).
 
-Variable f : {morphism D >-> rT}.
+Section OneProd.
+
+Variables G H K : {group gT}.
 Hypothesis sGD : G \subset D.
 
 Lemma morphim_pprod : pprod K H = G -> pprod (f @* K) (f @* H) = f @* G.
@@ -703,6 +762,41 @@ Lemma morphim_coprime_dprod :
 Proof.
 rewrite /dprod => defG coHK; move: defG.
 by rewrite !coprime_TIg ?coprime_morph // !subxx; exact: morphim_cprod.
+Qed.
+
+End OneProd.
+
+Implicit Type G : {group gT}.
+
+Lemma morphim_bigcprod I r (P : pred I) (H : I -> {group gT}) G :
+    G \subset D -> \big[cprod/1]_(i <- r | P i) H i = G ->
+  \big[cprod/1]_(i <- r | P i) f @* H i = f @* G.
+Proof.
+elim/big_rec2: _ G => [|i fB B Pi def_fB] G sGD defG.
+  by rewrite -defG morphim1.
+case/cprodP: defG (defG) => [[Hi Gi -> defB] _ _]; rewrite defB => defG.
+rewrite (def_fB Gi) //; first exact: morphim_cprod.
+by apply: subset_trans sGD; case/cprod_normal2: defG => _ /andP[].
+Qed.
+
+Lemma injm_bigdprod I r (P : pred I) (H : I -> {group gT}) G :
+    G \subset D -> 'injm f -> \big[dprod/1]_(i <- r | P i) H i = G ->
+  \big[dprod/1]_(i <- r | P i) f @* H i = f @* G.
+Proof.
+move=> sGD injf; elim/big_rec2: _ G sGD => [|i fB B Pi def_fB] G sGD defG.
+  by rewrite -defG morphim1.
+case/dprodP: defG (defG) => [[Hi Gi -> defB] _ _ _]; rewrite defB => defG.
+rewrite (def_fB Gi) //; first exact: injm_dprod.
+by apply: subset_trans sGD; case/dprod_normal2: defG => _ /andP[].
+Qed.
+
+Lemma morphim_coprime_bigdprod (I : finType) P (H : I -> {group gT}) G :
+    G \subset D -> \big[dprod/1]_(i | P i) H i = G ->
+    (forall i j, P i -> P j -> i != j -> coprime #|H i| #|H j|) ->
+  \big[dprod/1]_(i | P i) f @* H i = f @* G.
+Proof.
+move=> sGD /bigdprodEcprod defG coH; have def_fG := morphim_bigcprod sGD defG.
+by apply: bigcprod_coprime_dprod => // i j *; rewrite coprime_morph ?coH.
 Qed.
 
 End MorphimInternalProd.
