@@ -108,6 +108,7 @@ PFsection8.v
 PFsection9.v
 fraction.v
 cauchyreals.v
+polyXY.v
 
 COQC = ssrcoq
 COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
