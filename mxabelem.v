@@ -393,19 +393,22 @@ Qed.
 
 End MatrixGroups.
 
+Delimit Scope abelem_scope with Mg.
+Open Scope abelem_scope.
+
 Definition abelem_dim' (gT : finGroupType) (E : {set gT}) :=
   (logn (pdiv #|E|) #|E|).-1.
 Notation "''dim' E" := (abelem_dim' E).+1
-  (at level 10, E at level 8, format "''dim'  E") : group_scope.
+  (at level 10, E at level 8, format "''dim'  E") : abelem_scope.
 
 Notation "''rV' ( E )" := 'rV_('dim E)
-  (at level 8, format "''rV' ( E )") : group_scope.
+  (at level 8, format "''rV' ( E )") : abelem_scope.
 Notation "''M' ( E )" := 'M_('dim E)
-  (at level 8, format "''M' ( E )") : group_scope.
+  (at level 8, format "''M' ( E )") : abelem_scope.
 Notation "''rV[' F ] ( E )" := 'rV[F]_('dim E)
-  (at level 8, only parsing) : group_scope.
+  (at level 8, only parsing) : abelem_scope.
 Notation "''M[' F ] ( E )" := 'M[F]_('dim E)
-  (at level 8, only parsing) : group_scope.
+  (at level 8, only parsing) : abelem_scope.
 
 Section AbelemRepr.
 

@@ -442,6 +442,11 @@ Canonical unit_baseFinGroupType :=
   Eval hnf in BaseFinGroupType uT unit_GroupMixin.
 Canonical unit_finGroupType := Eval hnf in FinGroupType unit_mulVu.
 
+Lemma val_unit1 : val (1%g : uT) = 1. Proof. by []. Qed.
+Lemma val_unitM x y : val (x * y : uT)%g = val x * val y. Proof. by []. Qed.
+Lemma val_unitX n x : val (x ^+ n : uT)%g = val x ^+ n.
+Proof. by case: n; last by elim=> //= n ->. Qed.
+
 Definition unit_act x u := x * val u.
 Lemma unit_actE x u : unit_act x u = x * val u. Proof. by []. Qed.
 
@@ -1240,6 +1245,9 @@ Definition zmodMgE := zmodMgE.
 Definition zmodXgE := zmodXgE.
 Definition zmod_mulgC := zmod_mulgC.
 Definition zmod_abelian := zmod_abelian.
+Definition val_unit1 := val_unit1.
+Definition val_unitM := val_unitM.
+Definition val_unitX := val_unitX.
 Definition unit_actE := unit_actE.
 
 End Theory.
@@ -1254,6 +1262,7 @@ Export Lmodule.Exports Lalgebra.Exports Algebra.Exports UnitAlgebra.Exports.
 
 Notation "{ 'unit' R }" := (unit_of (Phant R))
   (at level 0, format "{ 'unit'  R }") : type_scope.
+Prenex Implicits FinRing.uval.
 Notation "''U'" := (unit_action _) (at level 8) : action_scope.
 Notation "''U'" := (unit_groupAction _) (at level 8) : groupAction_scope.
 

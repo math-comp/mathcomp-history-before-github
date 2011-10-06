@@ -769,6 +769,13 @@ Qed.
 
 End FieldMulCyclic.
 
+Lemma field_unit_group_cyclic (F : finFieldType) (G : {group {unit F}}) :
+  cyclic G.
+Proof.
+apply: field_mul_group_cyclic FinRing.uval _ _ => // u _.
+by split=> /eqP ?; exact/eqP.
+Qed.
+
 Section PrimitiveRoots.
 
 Open Scope ring_scope.
