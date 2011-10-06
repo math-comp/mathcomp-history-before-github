@@ -268,7 +268,8 @@ Local Notation w_ := (cyclicTIirr cyclicTI_Dade).
 Let odd_neq2 m : odd m -> (2 == m)%N = false.
 Proof. by case: eqP => // <-. Qed.
 
-Let W1xW2 : W1 \x W2 = W. Proof. by have [[]] := cyclicTI_Dade. Qed.
+Let W1xW2 : W1 \x W2 = W. Proof. by have [[]] := cyclicTI_Dade. Defined.
+
 Let sW1W : W1 \subset W. Proof. by have [_ /mulG_sub[]] := dprodP W1xW2. Qed.
 Let sW2W : W2 \subset W. Proof. by have [_ /mulG_sub[]] := dprodP W1xW2. Qed.
 Let oddW : odd #|W|. Proof. by have [[]] := cyclicTI_Dade. Qed.
@@ -363,20 +364,20 @@ Definition Dade_mudelta :=
        'Ind[L] (e_ i j) ==
             (-1) ^+ (delta j) *: ('chi_(mu i j) - 'chi_(mu 0 j))].
 
-Definition Dade_mu (i : Iirr W1) (j : Iirr W2) : Iirr L := 
+Definition Dade_mu2 (i : Iirr W1) (j : Iirr W2) : Iirr L := 
   Dade_mudelta.1 i j. 
-Local Notation mu := Dade_mu.
+Local Notation mu2 := Dade_mu2.
 
 Definition Dade_delta (i : Iirr W2) : bool := Dade_mudelta.2 i.
 Local Notation delta := Dade_delta.
 
 Lemma Dade_mudelta_spec :
-        injective (prod_curry mu) /\
+        injective (prod_curry mu2) /\
         forall i j,
        'Ind[L] (e_ i j) =
-            (-1) ^+ (delta j) *: ('chi_(mu i j) - 'chi_(mu 0 j)).
+            (-1) ^+ (delta j) *: ('chi_(mu2 i j) - 'chi_(mu2 0 j)).
 Proof.
-rewrite /Dade_mu /Dade_delta /Dade_mudelta; case: pickP=> /= [[mu delta]|].
+rewrite /Dade_mu2 /Dade_delta /Dade_mudelta; case: pickP=> /= [[mu2 delta]|].
   move/andP=> [] /injectiveP Hi /forallP Hp; split=> // i j; apply/eqP.
   by move: (Hp i)=> /forallP /(_ j).
 pose md  (j : Iirr W2)  := 
@@ -497,16 +498,68 @@ case/orthonormalP: (Horth _ _ _ _ NZi1 NZi2 Dj1j2)=> /and4P [] /negP [].
 by rewrite {1}Eqm !in_cons eqxx !orbT.
 Qed.
 
-Lemma Dade_mu_injective : injective (prod_curry mu).
+Lemma Dade_mu2_injective : injective (prod_curry mu2).
 Proof. by case: Dade_mudelta_spec. Qed.
 
 (* First part of 4.3 b *)
-Lemma Dade_mu_ind :
+Lemma Dade_mu2_ind :
         forall i j,
        'Ind[L] (e_ i j) =
-            (-1) ^+ (delta j) *: ('chi_(mu i j) - 'chi_(mu 0 j)).
+            (-1) ^+ (delta j) *: ('chi_(mu2 i j) - 'chi_(mu2 0 j)).
 Proof. by case: Dade_mudelta_spec. Qed.
-   
+
+(* This is 4.3c *) 
+Lemma Dade_mu2_restrict :
+  (forall i j,  
+   {in W :\: W2, 'chi_(mu2 i j) =1 (-1) ^+ delta j *: w_ i j})
+  /\
+  (forall k,
+    (forall i j, 'chi_k != 'chi_(mu2 i j)) ->
+       {in W :\: W2, forall x, 'chi_k x = 0}).
+Proof.
+pose m (k : Iirr W) : 'CF(L) := 
+  let (i,j) := inv_dprod_Iirr W1xW2 k in (-1) ^+ delta j *: 'chi_(mu2 i j).
+pose t := [tuple of ecTIirr_base].
+have F1 : is_basis 'CF(W, W :\: W2) t by apply:  ecTIirr_base_is_basis.
+have F2 i j : '[m i, m j] = (i == j)%:R.
+  rewrite -{2}[i](inv_dprod_IirrK W1xW2) -{2}[j](inv_dprod_IirrK W1xW2).
+  rewrite /m; (do 2 case: (inv_dprod_Iirr _ _))=> i2 j2 i1 j1.
+  rewrite cfdotZl cfdotZr cfdot_irr mulrA isIntC_conj ?isIntC_sign // -signr_addb.
+  case: (_ (i1,_) =P _).
+    by case/dprod_Iirr_inj=> <- <-; rewrite -negb_eqb !eqxx expr0 mul1r.
+  case: (_ =P _); last by rewrite mulr0.
+  by case/(@Dade_mu2_injective (i1,j1) (i2,j2))=> <- <- [].
+case: (equiv_restrict_compl_ortho _ _  F1 F2)=> // [|k|HH1 HH].
+- rewrite /normal subsetDl.
+  by case/andP: normedTI_Dade_W2=> _ /eqP {1}<-; exact: subsetIr.
+- have: t`_k \in t by apply: mem_nth; rewrite size_tuple.
+  case/imageP=> [[/= i1 j1]]; rewrite !inE => /= /andP [] Hi1 _ ->.
+  have NZi1: i1 != 0%N :> nat by apply: contra Hi1=> HH. 
+  pose dP i j := dprod_Iirr W1xW2 (i, j).
+  have FdP : dP 0 j1 != dP i1 j1.
+    by apply/negP=> /eqP /dprod_Iirr_inj [] HH; case/eqP: Hi1.
+  rewrite Dade_mu2_ind (bigD1 (dP i1 j1)) // (bigD1 (dP 0 j1)) //=.
+  rewrite big1 ?addr0=> [|i /andP [] iDi1 iD0]; last first.
+    by rewrite !cfdot_subl !cfdot_irr eq_sym (negPf iDi1) 
+               eq_sym (negPf iD0) subrr scale0r.
+  rewrite !cfdot_subl !cfdot_irr !{1}eqxx [_ == dP 0 _]eq_sym (negPf FdP).
+  by rewrite /m !dprod_IirrK !subr0 sub0r scaleNr !scale1r -scaler_subr.
+split=> [i j x XiW|k Hk].
+  move: (HH1 (dprod_Iirr W1xW2 (i, j)) _ XiW).
+  rewrite /m dprod_IirrK !cfunE /cyclicTIirr => <-.
+  by rewrite mulrA -signr_addb -negb_eqb !eqxx expr0 mul1r.
+apply: HH=> i; rewrite /m; case: inv_dprod_Iirr=> i1 j1.
+rewrite cfdotZr cfdot_irr; case: (_ =P _)=> [Heq|Hneq]; last by rewrite mulr0.
+by case/eqP: (Hk i1 j1); rewrite Heq.
+Qed.
+
+Definition Dade_mu j : 'CF(L) := \sum_(i < Nirr W1) 'chi_(mu2 i j).
+Local Notation mu := Dade_mu.
+
+Definition Dade_chi j : Iirr K := 
+  odflt 0 [pick i | 'chi_i == 'Res[K] 'chi_(mu2 0 j)]. 
+Local Notation chi := Dade_chi.
+
 End CyclicDade.
 
 Section CentralDade.
@@ -515,17 +568,95 @@ Section Definitions.
 
 Variables (A G H L K W W1 W2 : {set gT}).
 
-Definition centralDade_hypothesis (cH : cyclicTIhypothesis G W W1 W2) :=
-  [/\ cyclicDade_hypothesis L K W W1 W2,
-      [/\ H <| L , W2 \subset H & H \subset K]
-
-   &  [/\ Dade_hypothesis G L A,
-          Dade_hypothesis G L (A :|: class_support (cyclicTIset cH) L),
-         \bigcup_(h \in H^#)('C_K[h]^#) \subset A
-       &  A \subset K^#]].
+Inductive centralDade_hypothesis : Prop :=
+ CentralDadeHypothesis  
+   (cH : cyclicTIhypothesis G W W1 W2) 
+   (V :=  cyclicTIset cH) of
+      cyclicDade_hypothesis L K W W1 W2
+    & H <| L & W2 \subset H & H \subset K 
+    & A <| L  & Dade_hypothesis G L (A :|: class_support V L)
+    &  \bigcup_(h \in H^#)('C_K[h]^#) \subset A &  A \subset K^#.
 
 End Definitions.
+
+Variables (A : {set gT}) (G H L K W W1 W2 : {group gT}).
+
+Hypothesis CDH : centralDade_hypothesis A G H L K W W1 W2.
+
+Let CTIH : cyclicTIhypothesis G W W1 W2.
+Proof. by case: CDH. Qed.
+
+Let CyDH : cyclicDade_hypothesis L K W W1 W2.
+Proof. by case: CDH. Qed.
+
+Notation V := (cyclicTIset CTIH).
+
+Let DGAC : Dade_hypothesis G L (A :|: class_support V L).
+Proof. by case: CDH. Qed.
+
+Let AnL : A <| L.
+Proof. by case: CDH. Qed.
+
+Let DGA : Dade_hypothesis G L A.
+Proof. 
+exact: (restr_Dade_hyp DGAC (subsetUl _ _) (normal_norm _)).
+Qed.
+
+Let HnL : H <| L.
+Proof. by case: CDH. Qed.
+
+Let HsK : H \subset K.
+Proof. by case: CDH. Qed.
+
+Let KsL : K \subset L.
+Proof. 
+case: CyDH=> [] [] /sdprodP [] _ <- *.
+by apply: mulg_subl (group1 _).
+Qed.
+
+Let CupA: \bigcup_(h0 \in H^#) ('C_K[h0])^# \subset A.
+Proof. by case: CDH. Qed.
+
+Local Notation sigma := (cyclicTIsigma L W W1 W2).
+Local Notation w_ := (cyclicTIirr CTIH).
+Local Notation mu := (Dade_mu CyDH).
+Local Notation mu2 := (Dade_mu2 CyDH).
+Local Notation chi := (Dade_chi CyDH).
+Local Notation delta := (Dade_delta CyDH).
+
+(* This is the first part of 4.7 *) 
+Lemma Dade_cfker_cfun_on i : 
+   ~ H \subset cfker 'chi[K]_i  -> 'chi_i \in 'CF(K, A :|: 1%G).
+Proof.
+move=> HnsC; apply/cfun_onP=> g GniA.
+case: (boolP (g \in K))=> [GiK|GniK]; last by rewrite cfun0.
+apply:  (not_in_ker_char0 GiK (normalS _ _ HnL) HnsC)=> //.
+suff: [group of 'C_H[g]] = 1%G by move/val_eqP=> /= /eqP.
+apply/trivGP; apply/subsetP=> h /= HiC.
+case: (boolP (h \in _))=> [Hi1|] //.
+rewrite inE=> Hn1; case/negP: GniA; rewrite inE.
+case: (boolP (_ \in 1%G)); first by rewrite orbT.
+rewrite inE orbF=> Gn1.
+apply: (subsetP CupA); apply/bigcupP; exists h.
+  by move: HiC; rewrite !inE Hn1; case/andP.
+rewrite 3!inE Gn1 GiK /=.
+by move: HiC; rewrite inE cent1C; case/andP.
+Qed.
+
+(* This is the second part of 4.7 *) 
+Lemma Dade_cfker_cfun_on_ind i : 
+   ~ H \subset cfker 'chi[K]_i -> 'Ind[L] 'chi_i \in 'CF(L, A :|: 1%G).
+Proof.
+move/Dade_cfker_cfun_on=> CiCF; apply/cfun_onP=> g GiG.
+rewrite cfIndE // big1 ?mulr0 // => h HiL; move/cfun_onP: CiCF; apply.
+apply: contra GiG; rewrite !inE; case/orP; last first.
+  by rewrite -{1}(conj1g h); move/eqP=> /conjg_inj /eqP ->; rewrite orbT.
+case/normalP: AnL => [] _ /(_ _ HiL) {1}<-.
+by rewrite memJ_conjg => ->.
+Qed.
 
 End CentralDade.
 
 End Four.
+
+
