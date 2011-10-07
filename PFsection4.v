@@ -134,6 +134,19 @@ Proof. by case: HC=> [[]]. Qed.
 Let HdP : W1 \x W2 = W.
 Proof. by case: HC=> [_ _ []]. Qed.
 
+Let KsL : K \subset L.
+Proof.
+by case/sdprodP: SdP=> _ <- *; apply: mulg_subl (group1 _).
+Qed.
+
+Let W1sL : W1 \subset L.
+Proof.
+by case/sdprodP: SdP=> _ <- *; apply: mulg_subr (group1 _).
+Qed.
+
+Let W2sK : W2 \subset K.
+Proof. by case: HC=> [_ []]. Qed.
+
 Let CW : cyclic W.
 Proof. by rewrite (cyclic_dprod HdP). Qed.
 
@@ -165,10 +178,8 @@ have XGeX1 : x^ g = x1.
     move/order_dvdG: Y2iW=> /dvdnP=> [[k2 ->]].
     by rewrite mulnC [(k2 * _)%N]mulnC !expgn_mul !expg_order !exp1gn !mulg1.
   by rewrite -(F1 _ _ X1iW Y1iW) -XYeX1Y1 -conjXg F1.
-have : x ^ g \in L.
-  rewrite groupJ // -[x]mul1g; case/sdprodP: SdP=> _ <- _ _.
-  by apply/imset2P; exists (1%g : gT) x; rewrite //.
-case/(mem_sdprod SdP)=> k1 [x2 [K1iK X2iW _ Hu]].
+have [/(mem_sdprod SdP) [k1 [x2 [K1iK X2iW _ Hu]]]] : 
+        x ^ g \in L by rewrite groupJ // (subsetP W1sL).
 case: {Hu}(Hu _ _ (group1 _) (X1iW)) (Hu)=> [| <- <- Hu]; first by rewrite mul1g.
 case: (mem_sdprod SdP GiL) XGeX1 Hu => k [x3 [KiK X3iW] -> _] <- Hu.
 move: HdP; rewrite dprodC; case/dprodP=> _ <- _ _.
@@ -560,11 +571,143 @@ Definition Dade_chi j : Iirr K :=
   odflt 0 [pick i | 'chi_i == 'Res[K] 'chi_(mu2 0 j)]. 
 Local Notation chi := Dade_chi.
 
+Let KIW :  K :&: W = W2.
+Proof.
+apply/eqP; rewrite eqEsubset; apply/andP; split; apply/subsetP=> g; last first.
+  move=> GiW2; rewrite !inE (subsetP W2sK) //.
+  by case/dprodP: HdP=> _ <- _ _; rewrite (subsetP (mulg_subr _ _)).
+rewrite inE => /andP [] GiK GiW; move: GiW GiK.
+case/dprodP: HdP=> _ <- _ _; case/imset2P=> w1 w2 W1iW1 W2iW2 -> W1W2iK.
+suff: w1 \in 1%G by rewrite inE => /eqP ->; rewrite mul1g.
+case/sdprodP: SdP=> _ _  _ /= <-; rewrite inE W1iW1 andbT.
+by move: W1W2iK; rewrite groupMr // (subsetP W2sK).
+Qed.
+
+Lemma Dade_chi_eq i j : 'Res[K] 'chi_(mu2 i j) = 'Res[K] 'chi_(mu2 0 j).
+Proof.
+apply/cfunP=> g.
+case: (boolP (g \in K))=> [GiK|GniK]; last by rewrite !cfun0.
+rewrite !cfResE //.
+suff: 'Ind[L] (e_ i j) g == 0.
+  by rewrite Dade_mu2_ind !cfunE mulf_eq0 signr_eq0 /= subr_eq0 => /eqP.
+rewrite cfIndE ?big1 ?mulr0 // => h HiL.
+move/cfun_onP: (memc_ecTIirr i j); apply.
+rewrite !inE negb_and negbK.
+case: (boolP (_ \in W))=> [GiW|]; rewrite !(orbT, orbF) //.
+rewrite -KIW inE GiW andbT.
+move: HiL; case/sdprodP: SdP=> _ <- /subsetP HH _.
+case/imset2P=> k w KiK WiW ->; rewrite conjgM.
+by move/normP: (HH _ WiW)<-; rewrite memJ_conjg groupJ.
+Qed.
+
+Let Dade_Ind_DI i j : 
+  'Ind[L] 'chi_i = 
+      \sum_(i0 < Nirr W1) '['Res[K] 'chi_(mu2 i0 j), 'chi_i] *: 'chi_(mu2 i0 j) +
+      \sum_(i0 < Nirr L | i0 \notin [image mu2 i1 j  | i1 <- Iirr W1])
+          '['Res[K] 'chi_i0, 'chi_i] *: 'chi_i0.
+Proof.
+rewrite [X in X = _]cfun_sum_cfdot.
+rewrite (eq_bigr (fun k => '['Res[K] 'chi_k, 'chi_i] *: 'chi_k)); last first.
+  move=> k; rewrite -cfdot_Res_r cfdotC isNatC_conj //.
+  by apply: cfdot_char_irr_Nat (cfRes_char _ (irr_char _)).
+rewrite (bigID [pred k | k \in [image (mu2 i j) | i <- Iirr W1]]) /=.
+congr (_ + _).
+pose h i := odflt 0 [pick k | mu2 k j == i].
+rewrite (reindex_onto (mu2^~ j) h)=> [/= | i1]; last first.
+  case/imageP=> i2 i2Irr ->.
+  by rewrite /h; case: pickP=> [u /eqP | /(_ i2)]; rewrite ?eqxx.
+rewrite (eq_bigl xpredT)=> [|i1] //.
+rewrite (@mem_image _  _ (mu2^~ j)) //.
+rewrite /h; case: pickP=> [i2 /eqP | /(_ i1)]; last by rewrite eqxx.
+by case/(@Dade_mu2_injective (i2,j) (i1,j))=> /eqP.
+Qed.
+
+Let Dade_indexE : #|L : K| = #|W1|.
+Proof.
+move: (LaGrange KsL)=> /eqP; rewrite -{1}(sdprod_card SdP) eqn_mul2l.
+by case: #|K| (cardG_gt0 K)=> //= _ _ /eqP.
+Qed.
+
+(* These are the first two parts of 4.5 a *)
+Lemma Dade_chiE i j : 'chi_(chi j) = 'Res[K] 'chi_(mu2 i j).
+Proof.
+rewrite {i}Dade_chi_eq /chi; case: pickP=> [k /eqP // | /=].
+suff [/irrP [] k -> /(_ k)]: 'Res[K] 'chi_(mu2 0 j) \in irr K.
+  by rewrite eqxx.
+set v := 'Res[_] _.
+have Cv : is_char v := cfRes_char _ (irr_char _).
+have [/neq0_has_constt [i HiC]] : v != 0.
+  move: (irr1_neq0 (mu2 0 j)); rewrite /v -(cfResE _ KsL (group1 _)).
+  by apply: contra=> /eqP->; rewrite cfunE.
+apply/irrP; exists i.
+suff HF: 'chi_i 1%g = v 1%g.
+  suff TH k : '[v, 'chi_k] == (k == i)%:R.
+    rewrite [v]cfun_sum_cfdot (bigD1 i) // big1 /= => [|k Hk].
+      by rewrite addr0 (eqP (TH _)) eqxx scale1r.
+    by rewrite (eqP (TH _)) (negPf Hk) scale0r.
+  suff:
+    ('[v, 'chi_k] *: 'chi_k - if k ==  i then 'chi_k else 0) 1%g == 0.
+    case: (k == _); rewrite ?(subr0, cfunE).
+      by rewrite  -[X in _ - X == _]mul1r -mulr_subl mulf_eq0 
+               (negPf (irr1_neq0 _)) orbF // subr_eq0.
+    by rewrite  mulf_eq0 (negPf (irr1_neq0 _)) orbF.
+  apply/eqP; move: k is_true_true.
+  apply: posC_sum_eq0 => [k _|]; last first.
+    rewrite -sum_cfunE sumr_sub -cfun_sum_cfdot 2!cfunE -big_mkcond /=.
+    rewrite (bigD1 i) // big1=> [|k]; last by case: (_ == _).
+    by rewrite !cfunE addr0 HF subrr.
+  case: (_ =P _)=> [->|_]; rewrite !cfunE ?subr0; last first.
+     by apply: posC_mul; apply: posC_Nat;
+          [apply: (cfdot_char_irr_Nat k Cv) | exact: isNatC_irr1 k].
+  rewrite  -[X in _ <= _ - X]mul1r -mulr_subl.
+  apply: posC_mul; last by apply: posC_Nat (isNatC_irr1 _).
+  rewrite leC_sub; move: HiC; rewrite irr_consttE.
+  case/isNatCP: (cfdot_char_irr_Nat i Cv)=> n ->.
+  by rewrite -(eqN_eqC _ 0) -(leq_leC 1); case: n.
+apply: leC_anti.
+  by move: (char1_ge_constt Cv HiC); rewrite (cfResE _ KsL (group1 _)).
+have [/leC_pmul2l<-] : 0 <  #|W1|%:R by rewrite -(ltn_ltC 0) cardG_gt0.
+rewrite -{2}Dade_indexE -(cfInd1 'chi_i KsL) (Dade_Ind_DI _ j).
+have->: #|W1|%:R * v 1%g = \sum_i 'chi_(mu2 i j) 1%g.
+  rewrite (eq_bigr (fun k => v 1%g))=> [| k _].
+    rewrite sumr_const cardT -cardE /= card_ord mulr_natl NirrE.
+    by have:= cyclic_abelian CW1; rewrite card_classes_abelian => /eqP ->.
+  by rewrite -(cfResE _ KsL) // Dade_chi_eq (cfResE _ KsL).
+rewrite -leC_sub !cfunE !sum_cfunE addrAC -sumr_sub.
+apply: posC_add; apply: posC_sum=> k _; rewrite !cfunE; last first.
+   by apply: posC_mul; apply: posC_Nat;
+          [apply: (cfdot_char_irr_Nat i  (cfRes_char _ (irr_char _)))
+             | exact: isNatC_irr1 k].
+  rewrite  -[X in _ <= _ - X]mul1r -mulr_subl.
+  apply: posC_mul; last by apply: posC_Nat (isNatC_irr1 _).
+  rewrite leC_sub; move: HiC; rewrite irr_consttE Dade_chi_eq -/v.
+  case/isNatCP: (cfdot_char_irr_Nat i Cv)=> n ->.
+  by rewrite -(eqN_eqC _ 0) -(leq_leC 1); case: n.
+Qed.
+
+(* This is the last part of 4.5 a *)
+Lemma Dade_Ind_chi j : 'Ind[L] 'chi_(chi j) = mu j.
+Proof.
+move: (cfInd1 'chi_(chi j) KsL).
+rewrite (Dade_Ind_DI _ j) Dade_indexE.
+rewrite (eq_bigr (fun k => 'chi_(mu2 k j)))=> [| k _]; last first.
+  by rewrite -Dade_chiE cfdot_irr eqxx scale1r.
+rewrite !cfunE !sum_cfunE.
+rewrite (eq_bigr (fun k => 'chi_(mu2 0 j) 1%g))=> [| k _]; last first.
+  by rewrite -(cfResE _ KsL) // Dade_chi_eq (cfResE _ KsL).
+rewrite sumr_const cardT -cardE /= card_ord [#|W1|%:R * _]mulr_natl.
+rewrite (Dade_chiE 0) (cfResE _ KsL) // {1}(NirrE W1).
+have:= cyclic_abelian CW1; rewrite card_classes_abelian => /eqP ->.
+move/eqP; rewrite addrC -subr_eq0 addrK.
+move/eqP=> /(posC_sum_eq0 _)=> HH.
+rewrite [X in _ + X = _]big1 ?addr0 //.
+
 End CyclicDade.
 
 Section CentralDade.
 
 Section Definitions.
+
 
 Variables (A G H L K W W1 W2 : {set gT}).
 
