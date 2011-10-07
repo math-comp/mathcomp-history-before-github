@@ -53,6 +53,7 @@ Import Monoid.Theory.
 
 Open Local Scope ring_scope.
 
+Import ID.
 (* Row vector <-> bounded degree polynomial bijection *)
 Section RowPoly.
 
@@ -158,17 +159,19 @@ have{Ss u} ->: Ss = Ss_ dS.
   apply/polyP=> k; rewrite coef_poly Sylvester_mxE mxE.
   have [k_ge_dS | k_lt_dS] := leqP dS k.
     case: (split i) => {i}i; rewrite !mxE coefMXn;
-      rewrite (contraNeq (@leq_coef_size _ _ _)) ?if_same // -leqNgt.
-    - rewrite -(ltn_predK p_nc) -/dp -ltn_add_sub (leq_trans _ k_ge_dS) //.
-      by rewrite ltn_add2r.
-    rewrite -(ltn_predK q_nc) -/dq -ltn_add_sub (leq_trans _ k_ge_dS) //.
-    by rewrite addnC ltn_add2l.
+    case: ifP => // /negbT; rewrite -ltnNge ltnS => hi.
+      apply: (leq_sizeP _ _ (leqnn (size p))); rewrite -(ltn_predK p_nc).
+      by rewrite -ltn_add_sub (leq_trans _ k_ge_dS) // ltn_add2r.
+    - apply: (leq_sizeP _ _ (leqnn (size q))); rewrite -(ltn_predK q_nc).
+      by rewrite -ltn_add_sub (leq_trans _ k_ge_dS) // addnC ltn_add2l.
   by rewrite insubdK //; case: (split i) => {i}i;
      rewrite !mxE coefMXn; case: leqP.
 elim: {-2}dS (leqnn dS) (dS_gt0) => // dj IHj dj_lt_dS _.
 pose j1 := Ordinal dj_lt_dS; pose rj0T (A : 'M[{poly R}]_dS) := row j0 A^T.
 have: rj0T (Ss_ dj.+1) = 'X^dj *: rj0T (S_ j1) + 1 *: rj0T (Ss_ dj).
+
   apply/rowP=> i; apply/polyP=> k; rewrite scale1r !(Sylvester_mxE, mxE) eqxx.
+
   rewrite coefD coefXnM coefC !coef_poly ltnS subn_eq0 ltn_neqAle andbC.
   case: (leqP k dj) => [k_le_dj | k_gt_dj] /=; last by rewrite addr0.
   rewrite Sylvester_mxE insubdK; last exact: leq_ltn_trans (dj_lt_dS).
@@ -192,9 +195,6 @@ Proof.
 have dvdpp := dvdpp; set r := gcdp p q.
 pose dp := (size p).-1; pose dq := (size q).-1.
 have /andP[r_p r_q]: (r %| p) && (r %| q) by rewrite -dvdp_gcd.
-have dvd_nz (d m : {poly R}): d %| m -> m != 0 -> d != 0.
-  case/dvdpPc=> c [f [nz_c def_cm]]; rewrite -size_poly_eq0.
-  by rewrite -(size_scaler _ nz_c) def_cm size_poly_eq0 mulf_eq0; case/norP.
 apply/det0P/idP=> [[uv nz_uv] | r_nonC].
   have [p0 _ | p_nz] := eqVneq p 0.
     have: dq + dp > 0.
@@ -213,22 +213,22 @@ apply/det0P/idP=> [[uv nz_uv] | r_nonC].
     congr row_mx; apply: (can_inj (@rVpolyK _ _)); rewrite linear0 // -/u.
     move/eqP: vq_up; apply: contraTeq => nz_u.
     by rewrite v0 mul0r addr0 eq_sym oppr_eq0 mulf_neq0.
-  have r_nz: r != 0 := dvd_nz _ _ r_p p_nz.
-  have /dvdpPc[c [/= w [nz_c wv]]]: v %| m by rewrite dvdp_gcd !dvdp_mulr.
+  have r_nz: r != 0 := dvdpN0 r_p p_nz.
+ have /dvdpP[c [/= w [nz_c wv]]]: v %| m by rewrite dvdp_gcd !dvdp_mulr.
   have m_wd d: m %| v * d -> w %| d.
-    case/dvdpPc=> k [f [nz_k]]; move/(congr1 ( *:%R c)).
+    case/dvdpP=> k [f [nz_k]]; move/(congr1 ( *:%R c)).
     rewrite mulrC scalerA scaler_mull scaler_mulr wv mulrA.
-    move/(mulIf nz_v)=> def_fw; apply/dvdpPc; exists (c * k); exists f.
+    move/(mulIf nz_v)=> def_fw; apply/dvdpP; exists (c * k); exists f.
     by rewrite mulf_neq0.
   have w_r: w %| r by rewrite dvdp_gcd !m_wd ?dvdp_gcdl ?dvdp_gcdr.
-  have w_nz: w != 0 := dvd_nz _ _ w_r r_nz.
+  have w_nz: w != 0 := dvdpN0 w_r r_nz.
   have p_m: p %| m by rewrite dvdp_gcd vq_up addr0 -mulNr !dvdp_mull.
-  rewrite (leq_trans _ (size_dvdp r_nz w_r)) // -(ltn_add2l (size v)).
+  rewrite (leq_trans _ (leq_dvdp r_nz w_r)) // -(ltn_add2l (size v)).
   rewrite addnC ltn_add_sub subn1 -size_mul_id // mulrC -wv size_scaler //.
-  rewrite (leq_trans lt_vp) // size_dvdp // -size_poly_eq0.
+  rewrite (leq_trans lt_vp) // leq_dvdp // -size_poly_eq0.
   by rewrite -(size_scaler _ nz_c) size_poly_eq0 wv mulf_neq0.
-have [c [p' [nz_c p'r]]] := dvdpPc _ _ r_p.
-have [k [q' [nz_k q'r]]] := dvdpPc _ _ r_q.
+have [c [p' [nz_c p'r]]] := dvdpP _ _ r_p.
+have [k [q' [nz_k q'r]]] := dvdpP _ _ r_q.
 have def_r := subnKC r_nonC; have r_nz: r != 0 by rewrite -size_poly_eq0 -def_r.
 have le_p'_dp: size p' <= dp.
   have [-> | nz_p'] := eqVneq p' 0; first by rewrite size_poly0.
@@ -505,7 +505,7 @@ Qed.
 
 Lemma size_mod_mxminpoly p : size (p %% p_A) <= d.
 Proof.
-by rewrite -ltnS -size_mxminpoly modp_spec // -size_poly_eq0 size_mxminpoly.
+by rewrite -ltnS -size_mxminpoly ltn_modp // -size_poly_eq0 size_mxminpoly.
 Qed.
 
 Lemma mx_root_minpoly : horner_mx A p_A = 0.
@@ -523,7 +523,7 @@ Qed.
 
 Lemma horner_mxK p : mx_inv_horner (horner_mx A p) = p %% p_A.
 Proof.
-rewrite {1}(divp_mon_spec p mxminpoly_monic) rmorphD rmorphM /=.
+rewrite {1}(mon.divp_eq mxminpoly_monic p) rmorphD rmorphM /=.
 rewrite mx_root_minpoly mulr0 add0r.
 by rewrite -(poly_rV_K (size_mod_mxminpoly _)) horner_rVpolyK.
 Qed.

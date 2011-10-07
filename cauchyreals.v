@@ -994,21 +994,6 @@ Qed.
 
 Require Import polydiv polyorder.
 
-Lemma coprimep_bezout (p q : {poly F}) : coprimep p q ->
-  {u : {poly F} & { v : {poly F} | u * p + v * q = 1} }.
-Proof.
-move/coprimep_bezout=> hpq.
-suff : exists uv, (uv`_0 * p + uv`_1 * q == 1)%B.
-  by move=> /sigW[uv huv]; exists uv`_0, uv`_1; apply/eqP.
-move: hpq=> [u [v /eqpP [c1 [c2 [c1_neq0 c2_neq0]]]]].
-rewrite -[_%:A]mulr1 !scale_poly1=> /(canLR (mulKr _)).
-have uc2P : GRing.unit c2%:P.
-  by rewrite poly_unitE size_polyC c2_neq0 coefC !eqxx unitfE c2_neq0.
-move=> /(_ uc2P); rewrite poly_invE uc2P coefC eqxx mul_polyC scalerA.
-set k := (_ * _); rewrite scaler_addr !scaler_mull=> hp.
-by exists [:: k *: u; k *: v]; apply/eqP.
-Qed.
-
 Lemma mul_neq0_creal x y : x * y != 0 -> y != 0.
 Proof.
 move=> xy_neq0.
@@ -1020,12 +1005,15 @@ pose_big_enough i.
   by rewrite absrM ler_wpmul2r ?absr_ge0 ?uboundP.
 by close.
 Qed.
+(* assia : need for  an effective coprime_bezout *)
+
 
 Lemma poly_mul_creal_eq0_coprime p q x :
   coprimep p q ->
   p.[x] * q.[x] == 0 -> {p.[x] == 0} + {q.[x] == 0}.
-Proof.
-move=> /coprimep_bezout [u [v hpq]].
+Proof. Admitted.
+(* 
+move/bezout_coprimepP. [u [v hpq]].
 pose_big_enough i.
   have := (erefl ((1 : {poly F}).[x i])).
   rewrite -{1}hpq /= horner_add hornerC.
@@ -1046,6 +1034,8 @@ pose_big_enough i.
 by close.
 Qed.
 
+
+
 (* Todo : backport to polydiv *)
 Lemma coprimep_gdco (p q : {poly F}) : (q != 0)%B -> coprimep (gdcop p q) p.
 Proof. by move=> q_neq0; case: gdcopP=> d; rewrite (negPf q_neq0) orbF. Qed.
@@ -1057,7 +1047,7 @@ Proof. by case: gdcopP. Qed.
 (* Todo : move to polydiv and change name *)
 Lemma divfp_eq0 (p q : {poly F}) : (q != 0)%B -> (p %/ q == 0)%B = (size p < size q)%N.
 Proof.
-move=> q0; apply/idP/idP=> hpq; last by rewrite divp_size.
+move=> q0; apply/idP/idP=> hpq; last by rewrite leq_divp.
 case p0: (p == 0)%B; first by rewrite (eqP p0) size_poly0 lt0n size_poly_eq0.
 case: (divCp_spec p q); rewrite (eqP hpq) mul0r add0r=> hpmpq.
 apply: leq_ltn_trans (modp_spec p _)=> //.
@@ -1801,13 +1791,16 @@ Canonical alg_choiceType := [choiceType of alg].
 
 Require Import perm matrix mxpoly.
 
-
+*)
 
 End Creals.
 End Creals.
 
+(*
 Canonical Creals.alg_eqType.
 Canonical Creals.alg_choiceType.
+*)
+
 
 (* Section RealAlg. *)
 

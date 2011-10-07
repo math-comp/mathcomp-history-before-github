@@ -353,7 +353,7 @@ Lemma poly_rV_K_modp_subproof q :
 Proof.
 apply: poly_rV_K.
 have Hl : (lead_coef p')^-1 != 0 by rewrite invr_neq0 // lead_coef_eq0.
-by rewrite -(size_scaler _ Hl) -ltnS -polySpred // size_scaler // modp_spec //.
+by rewrite -(size_scaler _ Hl) -ltnS -polySpred // size_scaler // ltn_modp //.
 Qed.
 
 Definition subfx_mul_rep (x y : 'rV[F]_(size p').-1) : 'rV[F]_(size p').-1
@@ -362,9 +362,8 @@ Definition subfx_mul_rep (x y : 'rV[F]_(size p').-1) : 'rV[F]_(size p').-1
 Lemma horner_iotaz_modp_subproof q :
   horner_morph iotaz (q %% p') = horner_morph iotaz q.
 Proof.
-rewrite {2}(divp_mon_spec q p'_mon) rmorphD rmorphM /= {3}/horner_morph.
-move/eqP: Hp'z ->.
-by rewrite mulr0 add0r.
+rewrite {2}(divp_eq q p') rmorphD rmorphM /= {3}/horner_morph.
+by move/eqP: Hp'z ->; rewrite mulr0 add0r.
 Qed.
 
 Lemma subfext_mulm : mop2_spec subfx_mul_rep subFExtend.
@@ -383,7 +382,8 @@ Proof.
 elim/quotW=> x; elim/quotW=> y; elim/quotW=> w.
 rewrite !mopP; apply/equivP.
 rewrite  /= /n !poly_rV_K_modp_subproof [_ %% p' * _ w]mulrC.
-by rewrite !monic_modp_mulmr // mulrA [_ * _ w]mulrC [_ w * (_ x * _ y)]mulrC.
+Search _ ((_ * _) %% _).
+by rewrite !modp_mul // mulrA [_ * _ w]mulrC [_ w * (_ x * _ y)]mulrC.
 Qed.
 
 Lemma mulfxC : commutative subfext_mul.
@@ -395,18 +395,16 @@ Qed.
 
 Lemma mul1fx : left_id subfext1 subfext_mul.
 Proof.
-elim/quotW=> x.
-rewrite !mopP; apply/equivP.
-rewrite /= /n poly_rV_K_modp_subproof.
-rewrite poly_rV_K ?mul1r ?modp_size ?size_poly1 ?H1p' //.
-apply (leq_ltn_trans (size_poly _ _)).
-by rewrite -polySpred.
+elim/quotW=> x; rewrite !mopP; apply/equivP => /=; rewrite /n.
+rewrite poly_rV_K_modp_subproof poly_rV_K ?mul1r ?size_poly1 ?H1p' //.
+rewrite modp_small //.
+by apply: leq_ltn_trans (size_poly _ _) _; rewrite -polySpred.
 Qed.
 
 Lemma mulfx_addl : left_distributive subfext_mul subfext_add.
 elim/quotW=> x; elim/quotW=> y; elim/quotW=> w.
 rewrite !mopP; apply/equivP.
-rewrite /= /n linearD /= !poly_rV_K_modp_subproof -monic_modp_add //.
+rewrite /= /n linearD /= !poly_rV_K_modp_subproof -modp_add //.
 by rewrite -mulr_addl linearD.
 Qed.
 
@@ -443,8 +441,8 @@ have : root ((gdcop q p') ^ iota) z'
   by rewrite -root_gdco ? map_poly_eq0 // gdcop_map.
 case: gdcopP => r _.
 rewrite -[p' == 0]negbK p'ne0 orbF coprimep_sym -gcdp_eqp1 eqp_sym => Hcoprime.
-move/(eqp_trans Hcoprime): (egcdpP q r).
-rewrite eqp_sym -size_poly_eq1.
+move/(eqp_trans Hcoprime): (egcdpE q r).
+rewrite eqp_sym -size_poly_eqp1.
 case/size1P => k [Hk0 Hk] Hr Hroot.
 rewrite Hk -mul_polyC rmorphM coefC eqxx [_ _%:P]horner_morphC fmorphV.
 apply: (canLR (mulKf _)); first by rewrite fmorph_eq0.
@@ -528,16 +526,16 @@ Lemma subfx_eval_is_rmorphism : rmorphism subfx_eval.
 Proof.
 split=> [x y|].
   symmetry.
-  rewrite /subfx_eval [- _]mop1P [_ + _]mop2P -linear_sub /= monic_modp_add //.
+  rewrite /subfx_eval [- _]mop1P [_ + _]mop2P -linear_sub /= modp_add //.
   congr (\pi_subFExtend (poly_rV (_ + _))).
   symmetry.
   apply/eqP.
-  by rewrite -addr_eq0 -monic_modp_add // addNr mod0p.
+  by rewrite -addr_eq0 -modp_add // addNr mod0p.
 split=> [x y|]; last first.
-  by rewrite /subfx_eval modp_size // size_poly1 -subn_gt0 subn1 H1p'.
+  by rewrite /subfx_eval modp_small // size_poly1 -subn_gt0 subn1 H1p'.
 symmetry.
 rewrite /subfx_eval [_ * _]mop2P /subfx_mul_rep !poly_rV_K_modp_subproof.
-by rewrite monic_modp_mulmr // mulrC monic_modp_mulmr // mulrC.
+by rewrite modp_mul // mulrC modp_mul // mulrC.
 Qed.
 
 Canonical Structure subfx_eval_additive := Additive subfx_eval_is_rmorphism.
@@ -750,7 +748,7 @@ Lemma compose_polyOver : forall p q : {poly L},
   polyOver K p -> polyOver K q -> polyOver K (p \Po q).
 Proof.
 move => p q; move/polyOverP => Hp Hq.
-rewrite poly_compE sump_polyOver // => i _.
+rewrite comp_polyE sump_polyOver // => i _.
 by rewrite scalep_polyOver // exp_polyOver.
 Qed.
 
@@ -1039,8 +1037,8 @@ apply: (mulIf (expf_neq0 i nzx)).
 case: (leqP (elementDegree K x) i) => Hi; last first.
   by apply/eqP; apply (Hpq (Ordinal Hi)).
 by rewrite (_ : p`_i = 0) ?mul0r; first rewrite (_ : q`_i = 0) ?mul0r //;
- apply/eqP; move: Hi; [ move/(leq_trans szq) | move/(leq_trans szp) ];
- apply: contraLR; rewrite -ltnNge; apply: leq_coef_size.
+ move: Hi; [ move/(leq_trans szq) | move/(leq_trans szp) ];
+ move/leq_sizeP; apply.
 Qed.
 
 Hypothesis HxED : x ^+ (elementDegree K x) \in (Fadjoin K x).

@@ -391,7 +391,7 @@ rewrite /canonize /normalize /reduce /=.
 set g := gcdp n d; set lg := lead_coef g.
 have hdng : d %/ (lg^-1 *: g) != 0.
   suff: (lg^-1 *: g) %| d.
-    by rewrite -dvdpfP; apply: contraTneq=> ->; rewrite scaler0 mul0r.
+    by rewrite dvdp_eq; apply: contraTneq=> ->; rewrite mul0r eq_sym.
   rewrite (eqp_dvdl _ (eqp_mulC _ _)) ?dvdp_gcdr //.
   by rewrite invr_eq0 lead_coef_eq0 gcdp_eq0 (negPf hd) andbF.
 rewrite !numden_Ratio //= /insubd.
@@ -404,6 +404,7 @@ have -> : d' = d by rewrite /d' hg !divp1 (eqP md) invr1 scale1r.
 do 2! apply: val_inj => /=.
 by rewrite insubT /= /polyfrac_axiom !numden_Ratio // /Ratio /insubd insubT.
 Qed.
+
 
 Definition polyfrac_quotClass := QuotClass polyvalK.
 Canonical polyfrac_quotType := QuotType polyfrac_quotClass.

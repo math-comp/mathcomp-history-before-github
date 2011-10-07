@@ -226,7 +226,7 @@ move => ? x.
 case/polyOver_suba => p -> Hx.
 set (f' := (RMorphism kHomRmorph_subproof)).
 set (g := (RMorphism (sa_val_rmorph E))).
-rewrite -[x]/(sa_val (Suba Hx)) -map_poly_comp ?linear0 //.
+rewrite -[x]/(sa_val (Suba Hx)) -map_comp_poly ?linear0 //.
 rewrite (horner_map f') horner_map.
 move/eqP => /= ->.
 by rewrite linear0.
@@ -259,12 +259,12 @@ have Hfmin : monic (map_poly f (minPoly E x)).
  by rewrite /monic lead_coef_map_eq;
   move/eqP: (monic_minPoly E x) ->;
   rewrite /= HK ?mem1v // nonzero1r.
-rewrite (divp_mon_spec (map_poly f p) Hfmin) !horner_lin.
+rewrite (divp_eq (map_poly f p) (map_poly f (minPoly E x))) !horner_lin.
 move/eqP: Hy ->.
 rewrite mulr0 add0r.
 case/polyOver_suba: Hp => p' ->.
 case/polyOver_suba: (minPolyOver E x) => q' ->.
-rewrite -map_modp -!map_poly_comp ?linear0 //=.
+rewrite -map_modp -!map_comp_poly ?linear0 //=.
 have Hmorph := kHomRmorph_subproof.
 rewrite -[f \o sa_val_rmorphism E]/(GRing.RMorphism.apply (RMorphism Hmorph)).
 by rewrite map_modp !map_polyE /= 2![map (_ \o _) _]map_comp.
@@ -529,7 +529,7 @@ case/polyOver_suba : HminE => p Hp.
 case/polyOver_suba : (minPolyOver E a) => q Hq.
 have Hmorph := (kHomRmorph_subproof Hx).
 rewrite Hp Hq dvdp_map size_map_poly -(dvdp_map (RMorphism Hmorph)).
-rewrite -(size_map_poly (RMorphism Hmorph)) !map_poly_comp ?linear0 // -Hp /=.
+rewrite -(size_map_poly (RMorphism Hmorph)) !map_comp_poly ?linear0 // -Hp /=.
 rewrite [map_poly x (minPoly K a)](kHomFixedPoly Hx) -?Hq; last first.
  by apply: minPolyOver.
 clear p Hp q Hq Hmorph.
@@ -540,12 +540,12 @@ have [b] : exists b, root (map_poly x (minPoly E a)) b.
  clear -Hdiv Hsz.
  elim: r (map_poly x (minPoly E a)) Hdiv Hsz => [|z r IH] p.
   rewrite big_nil.
-  move/(size_dvdp (nonzero1r _)).
+  move/(leq_dvdp (nonzero1r _)).
   rewrite size_poly1 leqNgt.
   by move/negbTE ->.
  rewrite big_cons mulrC.
  case (eqVneq (size (gcdp p ('X - z%:P))) 1%N).
-  move/eqP/gaussp ->.
+  move/eqP/gausspl ->.
   by apply: IH => a Ha.
  rewrite -coprimep_def => Hcoprime _ _.
  exists z.
@@ -1480,7 +1480,7 @@ have HAuta : kAut K (Fadjoin K x) fa.
  rewrite (eq_map_poly (fun x => unit_lappE x)).
  rewrite map_polyE map_id polyseqK.
  case/poly_Fadjoin: (Hr _ Ha) => q [Hq ->].
- by rewrite -horner_poly_comp mempx_Fadjoin ?compose_polyOver.
+ by rewrite -horner_comp_poly mempx_Fadjoin ?compose_polyOver.
 transitivity (g x).
  apply: (kAut_pick_eq (subsetKFadjoin K x) HAuta).
   by apply: mem_repr_coset.
@@ -1496,7 +1496,7 @@ rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Hb) Hp).
 rewrite (eq_map_poly (fun x => unit_lappE x)).
 rewrite map_polyE map_id polyseqK.
 case/poly_Fadjoin: (Hr _ Hb) => q [Hq ->].
-by rewrite -horner_poly_comp mempx_Fadjoin ?compose_polyOver.
+by rewrite -horner_comp_poly mempx_Fadjoin ?compose_polyOver.
 Qed.
 
 Lemma galois_dim : forall (K E : {algebra L}), galois K E ->
@@ -1602,7 +1602,7 @@ case/(ltn_trans (leqnn _))/IH: (Hn) => {IH} r [Haut Hr Hnr Hmin].
 set g := \prod_ (i <- _) _ in Hmin.
 have := (minPoly_irr _ Hmin).
 move/contra.
-rewrite negb_or -size_poly_eq1 {2}/g size_prod_factors Hnr andbT.
+rewrite negb_or -size_poly_eqp1 {2}/g size_prod_factors Hnr andbT.
 rewrite -(dvdp_size_eqp Hmin) {1}/g size_prod_factors Hnr neq_ltn Hn.
 case/(_ isT)/allPn => c Hcg HcK.
 have/allP : polyOver E g.
@@ -1632,7 +1632,7 @@ have/allPn : ~~(all (fun x => x \in (map h r)) (map (val (repr x)) (map h r))).
  apply/eqP.
  rewrite -eqpMP ?monic_prod_factors // -dvdp_size_eqp.
   by rewrite !size_prod_factors size_map.
- apply: uniq_roots_dvd.
+ apply: uniq_roots_dvdp.
   apply/allP => b Hb.
   rewrite root_prod_factors.
   by apply: Hsubset.
@@ -1651,7 +1651,7 @@ exists (cons (y * x)%g r); split.
 - by rewrite subset_all /= -subset_all Haut groupM.
 - by apply: Huniq.
 - by rewrite /= Hnr.
-- rewrite uniq_roots_dvd //; last by rewrite uniq_rootsE; apply: Huniq.
+- rewrite uniq_roots_dvdp //; last by rewrite uniq_rootsE; apply: Huniq.
   apply/allP => ? /mapP [z [Hz ->]].
   apply: (kHom_rootK _ HKE); rewrite ?minPolyOver ?root_minPoly //.
   suff HyAut : z \in 'Aut(E | K)%g.

@@ -224,7 +224,7 @@ Require Import finfun bigop prime binomial.
 (*                           act on itself: if x : R and y : R^o then         *)
 (*                           x *: y = x * (y : R).                            *)
 (*                   k%:A == the image of the scalar k in an L-algebra; this  *)
-(*                           is simply notation for a *: 1.                   *)
+(*                           is simply notation for k *: 1.                   *)
 (* [lalgType R of V for S] == V-clone the lalgType R structure S.             *)
 (*      [lalgType R of V] == clone of a canonical lalgType R structure on V.  *)
 (*                                                                            *)
