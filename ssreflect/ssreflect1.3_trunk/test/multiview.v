@@ -45,5 +45,12 @@ Lemma test7:  forall A B, (A -> B) -> A -> B.
 move=> A B A_to_B a; apply A_to_B in a; exact: a.
 Qed.
 
+Require Import ssrfun eqtype ssrnat div seq choice fintype finfun finset.
+
+Lemma test8 (T : finType) (A B : {set T}) x (Ax : x \in A) (_ : B = A) : x \in B.
+apply/subsetP: x Ax.
+by rewrite H subxx.
+Qed.
+
 
 

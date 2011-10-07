@@ -8,3 +8,9 @@ wlog suff: b /  b || ~~b.
   by case: b.
 by case: b.
 Qed.
+
+Lemma test2 b c (H : c = b) : b || ~~b.
+wlog _ : b {c H} / b = true.
+  by case: b H.
+by case: b.
+Qed.

@@ -4632,6 +4632,8 @@ PRINTED BY pr_ssraarg
   [ mk_applyarg [] ([], clr) intros ]
 | [ ssrintros_ne(intros) ] ->
   [ mk_applyarg [] ([], []) intros ]
+| [ ssrview(view) ":" ssragen(gen) ssragens(dgens) ssrintros(intros) ] ->
+  [ mk_applyarg view (cons_gen gen dgens) intros ]
 | [ ssrview(view) ssrclear(clr) ssrintros(intros) ] ->
   [ mk_applyarg view ([], clr) intros ]
 END
@@ -4693,8 +4695,13 @@ let apply_top_tac gl =
   tclTHENLIST [introid top_id; apply_rconstr (mkRVar top_id); clear [top_id]] gl
 
 let inner_ssrapplytac gviews ggenl gclr ist gl =
-  let clr = interp_hyps ist gl gclr in
-  let vtac gv i gl' = refine_interp_apply_view i ist gl' gv in
+ let clr = interp_hyps ist gl gclr in
+ let vtac gv i gl' = refine_interp_apply_view i ist gl' gv in
+ let ggenl, tclGENTAC =
+   if gviews <> [] && ggenl <> [] then 
+     [], tclTHEN (genstac (List.hd ggenl,[]) ist)
+   else ggenl, tclTHEN tclIDTAC in
+ tclGENTAC (fun gl ->
   match gviews, ggenl with
   | v :: tl, [] ->
     let dbl = if List.length tl = 1 then 2 else 1 in
@@ -4704,7 +4711,7 @@ let inner_ssrapplytac gviews ggenl gclr ist gl =
   | [], [agens] ->
     let clr', lemma = interp_agens ist gl agens in
     tclTHENLIST [cleartac clr; refine_with lemma; cleartac clr'] gl
-  | _, _ -> tclTHEN apply_top_tac (cleartac clr) gl
+  | _, _ -> tclTHEN apply_top_tac (cleartac clr) gl) gl
 
 let ssrapplytac (views, (_, ((gens, clr), intros))) =
   tclINTROS (inner_ssrapplytac views gens clr) intros
@@ -5979,15 +5986,18 @@ END
 
 (* type ssrwgen = ssrclear * ssrhyp * string *)
 
-let pr_wgen (clr, (SsrHyp (loc, c), guard)) =
-  spc () ++ pr_clear mt clr ++
-    pr_term (mk_term guard.[0] (CRef (Ident (loc, c))))
+let pr_wgen = function 
+  | (clr, Some (SsrHyp (loc, c), guard)) ->
+     spc () ++ pr_clear mt clr ++
+       pr_term (mk_term guard.[0] (CRef (Ident (loc, c))))
+  | (clr, None) -> spc () ++ pr_clear mt clr
 let pr_ssrwgen _ _ _ = pr_wgen
 
 (* no globwith for char *)
 ARGUMENT EXTEND ssrwgen
-  TYPED AS ssrclear * (ssrhyp * string) PRINTED BY pr_ssrwgen
-| [ ssrclear(clr) ssrterm(id) ] -> [ clr, ssrhyp_of_ssrterm id ]
+  TYPED AS ssrclear * (ssrhyp * string) option PRINTED BY pr_ssrwgen
+| [ ssrclear_ne(clr) ] -> [ clr, None ]
+| [ ssrterm(id) ] -> [ [], Some (ssrhyp_of_ssrterm id) ]
 END
 
 (* type ssrwlogfwd = ssrwgen list * ssrfwd *)
@@ -6002,12 +6012,18 @@ END
 
 let wlogtac (((clr0, pats),_),_) (gens, ((_, ct), ctx)) hint suff gl =
   let ist = get_ltacctx ctx in
-  let mkabs (_, (SsrHyp (_, x), mode)) = match mode with
-    | "@" -> mkNamedProd_or_LetIn (pf_get_hyp gl x)
-    | _ -> mkNamedProd x (pf_get_hyp_typ gl x)
+  let mkabs = function 
+    | (_, (Some (SsrHyp (_, x), mode))) -> (match mode with
+      | "@" -> mkNamedProd_or_LetIn (pf_get_hyp gl x)
+      | _ -> mkNamedProd x (pf_get_hyp_typ gl x))
+    | _, None -> fun x -> x
   in
-  let mkclr (clr, (x, _)) clrs = cleartac clr :: cleartac [x] :: clrs in
-  let mkpats (_, (SsrHyp (_, x), _)) pats = IpatId x :: pats in
+  let mkclr = function 
+   | (clr, Some (x, _)) -> fun clrs -> cleartac clr :: cleartac [x] :: clrs
+   | (clr, None) -> fun clrs -> cleartac clr :: clrs in
+  let mkpats = function
+   | (_, Some (SsrHyp (_, x), _)) -> fun pats -> IpatId x :: pats
+   | _ -> fun x -> x in
   let ct = match ct with
   | (a, (b, Some (CCast (_, _, CastConv (_, cty))))) -> a, (b, Some cty)
   | (a, (RCast (_, _, CastConv (_, cty)), None)) -> a, (cty, None)
