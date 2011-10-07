@@ -573,7 +573,7 @@ let pf_abs_evars gl (sigma, c0) =
   let rec put evlist c = match kind_of_term c with
   | Evar (k, a) ->  
     if List.mem_assoc k evlist || Evd.mem sigma0 k then evlist else
-    let n = Array.length a - nenv in
+    let n = max 0 (Array.length a - nenv) in
     let t = abs_evar n k in (k, (n, t)) :: put evlist t
   | _ -> fold_constr put evlist c in
   let evlist = put [] c0 in
@@ -621,7 +621,7 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
   let rec put evlist c = match kind_of_term c with
   | Evar (k, a) ->  
     if List.mem_assoc k evlist || Evd.mem sigma0 k then evlist else
-    let n = Array.length a - nenv in
+    let n = max 0 (Array.length a - nenv) in
     let k_ty = 
       Retyping.get_sort_family_of 
         (pf_env gl) sigma (Evd.evar_concl (Evd.find sigma k)) in
