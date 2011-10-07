@@ -698,9 +698,18 @@ rewrite (eq_bigr (fun k => 'chi_(mu2 0 j) 1%g))=> [| k _]; last first.
 rewrite sumr_const cardT -cardE /= card_ord [#|W1|%:R * _]mulr_natl.
 rewrite (Dade_chiE 0) (cfResE _ KsL) // {1}(NirrE W1).
 have:= cyclic_abelian CW1; rewrite card_classes_abelian => /eqP ->.
-move/eqP; rewrite addrC -subr_eq0 addrK.
-move/eqP=> /(posC_sum_eq0 _)=> HH.
-rewrite [X in _ + X = _]big1 ?addr0 //.
+move/eqP; rewrite addrC -subr_eq0 addrK=> HH.
+rewrite [X in _ + X = _]big1 ?addr0 // => i Hi.
+suff: forall k, k \notin [image mu2 i1 j  | i1 <- Iirr W1] ->
+     ('['Res[K] 'chi_k, 'Res[K] 'chi_(mu2 0 j)] *: 'chi_k) 1%g = 0.
+  move/(_ _ Hi)=> /eqP.
+  rewrite cfunE  mulf_eq0 (negPf (irr1_neq0 _)) orbF => /eqP ->.
+  by rewrite scale0r.
+apply: (posC_sum_eq0 _ (eqP HH))=> k _; rewrite cfunE.
+apply: posC_mul; last by apply: posC_Nat (isNatC_irr1 _).
+rewrite -Dade_chiE posC_Nat // cfdot_char_irr_Nat //.
+by apply: cfRes_char _ (irr_char _).
+Qed.
 
 End CyclicDade.
 
