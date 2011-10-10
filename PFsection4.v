@@ -728,8 +728,6 @@ Inductive centralDade_hypothesis : Prop :=
     & A <| L  & Dade_hypothesis G L (A :|: class_support V L)
     &  \bigcup_(h \in H^#)('C_K[h]^#) \subset A &  A \subset K^#.
 
-Let cTI := cyclicTIhypothesis G W W1 W2.
-
 Coercion cTI_of_CDade c :=
   match c with 
   CentralDadeHypothesis cH _ _ _ _ _ _ _ _ => cH
@@ -738,6 +736,12 @@ Coercion cTI_of_CDade c :=
 Coercion cY_of_CDade c :=
   match c with 
   CentralDadeHypothesis _ cY _ _ _ _ _ _ _ => cY
+  end.
+
+Coercion dH_of_CDade c := 
+  match c return  Dade_hypothesis G L (A :|: class_support(cyclicTIset c) L)
+ with 
+  CentralDadeHypothesis _ _ _ _ _ _ dH _ _ => dH
   end.
 
 End Definitions.
@@ -756,7 +760,7 @@ Variables (A : {set gT}) (G H L K W W1 W2 : {group gT}).
 
 Hypothesis CDH : centralDade_hypothesis A G H L K W W1 W2.
 
-Notation V := (cyclicTIset CDH).
+Notation V := (cyclicTIset (cTI_of_CDade CDH)).
 
 Let DGAC : Dade_hypothesis G L (A :|: class_support V L).
 Proof. by case: CDH. Qed.
@@ -800,6 +804,7 @@ Local Notation mu := (Dade_mu (cY_of_CDade CDH)).
 Local Notation mu2 := (Dade_mu2 (cY_of_CDade  CDH)).
 Local Notation chi := (Dade_chi (cY_of_CDade CDH)).
 Local Notation delta := (Dade_delta (cY_of_CDade  CDH)).
+Local Notation tau := (Dade (dH_of_CDade CDH)).
 
 (* This is the first part of 4.7 *) 
 Lemma Dade_cfker_cfun_on i : 
