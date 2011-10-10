@@ -762,15 +762,12 @@ Hypothesis CDH : centralDade_hypothesis A G H L K W W1 W2.
 
 Notation V := (cyclicTIset (cTI_of_CDade CDH)).
 
-Let DGAC : Dade_hypothesis G L (A :|: class_support V L).
-Proof. by case: CDH. Qed.
-
 Let AnL : A <| L.
 Proof. by case: CDH. Qed.
 
 Let DGA : Dade_hypothesis G L A.
 Proof. 
-exact: (restr_Dade_hyp DGAC (subsetUl _ _) (normal_norm _)).
+exact: (restr_Dade_hyp CDH (subsetUl _ _) (normal_norm _)).
 Qed.
 
 Let HnL : H <| L.
