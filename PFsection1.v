@@ -7,7 +7,7 @@ Require Import vector algC classfun character inertia vcharacter.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.

@@ -3,15 +3,14 @@ Require Import bigop ssralg poly polydiv orderedalg zmodp div zint.
 Require Import polyorder polyrcf interval.
 Require Import qe_rcf_th.
 
-Import GRing.Theory.
-Import ORing.Theory.
-
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 
-Open Scope nat_scope.
-Open Scope ring_scope.
+Import GRing.Theory ORing.Theory.
+
+Local Open Scope nat_scope.
+Local Open Scope ring_scope.
 
 Module FirstOrder.
 Section TermDef.

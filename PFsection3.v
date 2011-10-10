@@ -19,14 +19,12 @@ Require Import inertia vcharacter frobenius PFsection1 PFsection2.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
-
-(* Move to cyclic *)
-
+(* Move to abelian *)
 Lemma cyclic_dprod :
    forall (gT : finGroupType) (K H G: {group gT}),
    K \x H = G ->  cyclic K -> cyclic H -> cyclic G = coprime #|K| #|H| .

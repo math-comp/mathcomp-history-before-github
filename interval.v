@@ -3,11 +3,10 @@ Require Import bigop ssralg finset fingroup zmodp zint orderedalg.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
-Import GRing.Theory.
-Import ORing.Theory.
+Import GRing.Theory ORing.Theory.
 
 Section IntervalPo.
 

@@ -2,14 +2,13 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import bigop ssralg matrix zmodp div.
 
-Import GRing.Theory.
-
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 
-Open Scope nat_scope.
-Open Scope ring_scope.
+Import GRing.Theory.
+Local Open Scope nat_scope.
+Local Open Scope ring_scope.
 
 Section ExtraBigOp.
 

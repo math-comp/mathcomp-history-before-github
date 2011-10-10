@@ -2,18 +2,16 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype path.
 Require Import bigop ssralg poly polydiv orderedalg zmodp div zint.
 Require Import polyorder polyrcf interval matrix mxtens perm.
 
-Import GRing.Theory.
-Import ORing.Theory.
-
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 
-Open Scope nat_scope.
-Open Scope ring_scope.
+Import GRing.Theory ORing.Theory.
+
+Local Open Scope nat_scope.
+Local Open Scope ring_scope.
 
 Section extra.
-
 
 Lemma sgp_rightc (R : rcfType) (x c : R) : sgp_right c%:P x = sgr c.
 Proof.
