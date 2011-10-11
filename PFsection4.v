@@ -713,39 +713,6 @@ Qed.
 
 End CyclicDade.
 
-Section CentralDade.
-
-Section Definitions.
-
-Variables (A G H L K W W1 W2 : {set gT}).
-
-Inductive centralDade_hypothesis : Prop :=
- CentralDadeHypothesis  
-   (cH : cyclicTIhypothesis G W W1 W2) 
-   (V :=  cyclicTIset cH) of
-      cyclicDade_hypothesis L K W W1 W2
-    & H <| L & W2 \subset H & H \subset K 
-    & A <| L  & Dade_hypothesis G L (A :|: class_support V L)
-    &  \bigcup_(h \in H^#)('C_K[h]^#) \subset A &  A \subset K^#.
-
-Coercion cTI_of_CDade c :=
-  match c with 
-  CentralDadeHypothesis cH _ _ _ _ _ _ _ _ => cH
-  end.
-
-Coercion cY_of_CDade c :=
-  match c with 
-  CentralDadeHypothesis _ cY _ _ _ _ _ _ _ => cY
-  end.
-
-Coercion dH_of_CDade c := 
-  match c return  Dade_hypothesis G L (A :|: class_support(cyclicTIset c) L)
- with 
-  CentralDadeHypothesis _ _ _ _ _ _ dH _ _ => dH
-  end.
-
-End Definitions.
-
  (* Move to character *)
 
 Lemma cfker_char_res (K G : {group gT}) (chi : 'CF(G)) :
@@ -756,37 +723,59 @@ rewrite !cfker_charE ?cfRes_char // !inE.
 by case: (boolP (_ \in K))=> // GiK; rewrite (subsetP KsG _ GiK) !cfResE.
 Qed.
 
-Variables (A : {set gT}) (G H L K W W1 W2 : {group gT}).
+Section CentralDade.
 
-Hypothesis CDH : centralDade_hypothesis A G H L K W W1 W2.
+Variable (A : {set gT}) (G H L K W W1 W2 : {group gT}).
+ 
+Record centralDade_hypothesis : Prop :=  CentralDadeHypothesis {
+  cDade_cTI_h    :> cyclicTIhypothesis G W W1 W2;
+  cDade_cDa_h    :> cyclicDade_hypothesis L K W W1 W2;
+  cDade_V        := cyclicTIset cDade_cTI_h;
+  cDade_dAd_h    :> Dade_hypothesis G L (A :|: class_support cDade_V L);
+  cDade_sigma    := cyclicTIsigma L W W1 W2;
+  cDade_w        := cyclicTIirr (cyclicTI_Dade cDade_cDa_h);
+  cDade_mu       := Dade_mu cDade_cDa_h;
+  cDade_mu2 i j  := 'chi_(Dade_mu2 cDade_cDa_h i j);
+  cDade_chi i    := 'chi_(Dade_chi cDade_cDa_h i);
+  cDade_delta i  := ((-1)^+ (Dade_delta cDade_cDa_h i) : algC);
+  cDade_tau      := Dade cDade_dAd_h;
+      _            : [/\  H <| L, (W2 \subset H /\ H \subset K), A <| L, 
+                         \bigcup_(h \in H^#)('C_K[h]^#) \subset A  
+                      &   A \subset K^#]
+}.
 
-Notation V := (cyclicTIset (cTI_of_CDade CDH)).
+Hypothesis CDH : centralDade_hypothesis.
+
+Notation V := (cyclicTIset CDH).
+
+Let OH := match CDH with
+  CentralDadeHypothesis _ _ _ HH => HH end.
 
 Let AnL : A <| L.
-Proof. by case: CDH. Qed.
+Proof. by case: OH. Qed.
 
-Let DGA : Dade_hypothesis G L A.
+Lemma cDade_DGA : Dade_hypothesis G L A.
 Proof. 
 exact: (restr_Dade_hyp CDH (subsetUl _ _) (normal_norm _)).
 Qed.
 
 Let HnL : H <| L.
-Proof. by case: CDH. Qed.
+Proof. by case: OH. Qed.
 
 Let HsK : H \subset K.
-Proof. by case: CDH. Qed.
+Proof. by case: OH => _ []. Qed.
 
 Let KsL : K \subset L.
 Proof. 
-case: (cY_of_CDade CDH)=> [] [] /sdprodP [] _ <- *.
+case: (cDade_cDa_h CDH)=> [] [] /sdprodP [] _ <- *.
 by apply: mulg_subl (group1 _).
 Qed.
 
 Let CupA: \bigcup_(h0 \in H^#) ('C_K[h0])^# \subset A.
-Proof. by case: CDH. Qed.
+Proof. by case: OH. Qed.
 
 Let W2sH : W2 \subset H.
-Proof. by case: CDH. Qed.
+Proof. by case: OH => _ []. Qed.
 
 Let HdP :  W1 \x W2 = W.
 Proof. by case: CDH=> [[[]]]. Qed.
@@ -794,17 +783,16 @@ Proof. by case: CDH=> [[[]]]. Qed.
 Let dW1 :  W1 != 1%g :> {set gT}.
 Proof. by case: CDH=> [[]] p []. Qed.
 
-Local Notation sigma := (cyclicTIsigma L W W1 W2).
-Local Notation w_ := 
-  (cyclicTIirr (cyclicTI_Dade (cY_of_CDade CDH))).
-Local Notation mu := (Dade_mu (cY_of_CDade CDH)).
-Local Notation mu2 := (Dade_mu2 (cY_of_CDade  CDH)).
-Local Notation chi := (Dade_chi (cY_of_CDade CDH)).
-Local Notation delta := (Dade_delta (cY_of_CDade  CDH)).
-Local Notation tau := (Dade (dH_of_CDade CDH)).
+Local Notation sigma := (cDade_sigma CDH).
+Local Notation w_ :=  (cDade_w CDH).
+Local Notation mu := (cDade_mu CDH).
+Local Notation mu2 := (cDade_mu2 CDH).
+Local Notation chi := (cDade_chi CDH).
+Local Notation delta := (cDade_delta CDH).
+Local Notation tau := (cDade_tau CDH).
 
 (* This is the first part of 4.7 *) 
-Lemma Dade_cfker_cfun_on i : 
+Lemma cDade_cfker_cfun_on i : 
    ~ H \subset cfker 'chi[K]_i  -> 'chi_i \in 'CF(K, A :|: 1%G).
 Proof.
 move=> HnsC; apply/cfun_onP=> g GniA.
@@ -823,10 +811,10 @@ by move: HiC; rewrite inE cent1C; case/andP.
 Qed.
 
 (* This is the second part of 4.7 *) 
-Lemma Dade_cfker_cfun_on_ind i : 
+Lemma cDade_cfker_cfun_on_ind i : 
    ~ H \subset cfker 'chi[K]_i -> 'Ind[L] 'chi_i \in 'CF(L, A :|: 1%G).
 Proof.
-move/Dade_cfker_cfun_on=> CiCF; apply/cfun_onP=> g GiG.
+move/cDade_cfker_cfun_on=> CiCF; apply/cfun_onP=> g GiG.
 rewrite cfIndE // big1 ?mulr0 // => h HiL; move/cfun_onP: CiCF; apply.
 apply: contra GiG; rewrite !inE; case/orP; last first.
   by rewrite -{1}(conj1g h); move/eqP=> /conjg_inj /eqP ->; rewrite orbT.
@@ -834,7 +822,7 @@ case/normalP: AnL => [] _ /(_ _ HiL) {1}<-.
 by rewrite memJ_conjg => ->.
 Qed.
 
-Let Dade_chi_cher j : j != 0 ->  ~ H \subset cfker 'chi[K]_(chi j).
+Let cDade_chi_cher j : j != 0 ->  ~ H \subset cfker (chi j).
 Proof.
 move=> NZj HsC; case/eqP: NZj.
 suff: w_ 0 j = 1.
@@ -846,7 +834,7 @@ rewrite !cfun1E; case: (boolP (_ \in _))=> [|GnI]; last first.
 case/dprodP: HdP=> _ {1}<- _ _; case/imset2P=> x y XiW1 YiW2->.
 case/trivgPn: dW1=> x1 X1iW1 NOx1.
 suff<-: w_ 0 j (x1 * y)%g = true%:R.
-  rewrite /cyclicTIirr dprod_IirrE !cfDprodE ?group1 // chi0_1.
+  rewrite /cDade_w /cyclicTIirr dprod_IirrE !cfDprodE ?group1 // chi0_1.
   by rewrite !cfun1E XiW1 X1iW1.
 have X1niW2 : x1 \notin W2.
   apply: contra NOx1=> X1iW2.
@@ -863,7 +851,7 @@ have X1YiWW2 : (x1 * y)%g \in W :\: W2.
     by rewrite inE X1iW1 -(mulgK y x1) groupM // groupV.
   by case/dprodP: HdP=> _ _ _ ->; rewrite inE.
 case: (Dade_mu2_restrict CDH)=> DMR _.
-have: 'chi_(mu2 0 j) (x1 * y)%g = 'chi_(mu2 0 j) x1.
+have: (mu2 0 j) (x1 * y)%g = (mu2 0 j) x1.
   apply: cfkerMr.
   apply: (subsetP (cfker_char_res (irr_char _) KsL)).
   rewrite -(Dade_chiE CDH).
@@ -874,20 +862,23 @@ rewrite -[x1]mulg1 /cyclicTIirr !dprod_IirrE !cfDprodE //.
   rewrite chi0_1 cfun1E X1iW1 mul1r.
 have linearX2 k : lin_char ('chi[W2]_k).
   apply/char_abelianP; apply: cyclic_abelian.
-  by case: (cY_of_CDade CDH)=> _ [].
+  by case: (cDade_cDa_h CDH)=> _ [].
 by rewrite  !(lin_char1 (linearX2 _)).
 by rewrite (signr_eq0 algC _).
 Qed.
 
 (* Third part of 4.7 *)
-Lemma Dade_chi_support j : j != 0 -> 'chi_(chi j) \in 'CF(K, A :|: 1%G).
-Proof. by move/Dade_chi_cher; exact: Dade_cfker_cfun_on. Qed.
+Lemma cDade_chi_support j : j != 0 -> chi j \in 'CF(K, A :|: 1%G).
+Proof. by move/cDade_chi_cher; exact: cDade_cfker_cfun_on. Qed.
 
 (* Last part of 4.7 *)
-Lemma Dade_mu_support j : j != 0 -> mu j \in 'CF(L, A :|: 1%G).
-Proof. by rewrite -Dade_Ind_chi => /Dade_chi_cher /Dade_cfker_cfun_on_ind. Qed.
+Lemma cDade_mu_support j : j != 0 -> mu j \in 'CF(L, A :|: 1%G).
+Proof. 
+by rewrite /cDade_mu -Dade_Ind_chi => /cDade_chi_cher /cDade_cfker_cfun_on_ind.
+Qed.
 
 End CentralDade.
+
 
 End Four.
 
