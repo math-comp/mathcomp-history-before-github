@@ -435,6 +435,9 @@ let mkCExplVar loc id n =
 let mkCLambda loc name ty t = 
    CLambdaN (loc, [[loc, name], Default Explicit, ty], t)
 
+let mkCLetIn loc name bo t = 
+   CLetIn (loc, (loc, name), bo, t)
+
 let mkCArrow loc ty t = CArrow (loc, ty, t)
 
 let mkCCast loc t ty = CCast (loc,t, dC ty)
@@ -3672,8 +3675,7 @@ let interp_pattern ist gl red redty =
   let mkG ?(k=' ') x = k,(x,None) in
   let decode t f g =
     try match (pf_intern_term ist gl t) with
-    | RCast(_,RHole _,CastConv(_,RLambda(_,Name x,_,RHole _,c))) -> 
-        f x (' ',(c,None))
+    | RCast(_,RHole _,CastConv(_,RLambda(_,Name x,_,_,c))) -> f x (' ',(c,None))
     | it -> g t with _ -> g t in
   let decodeG t f g = decode (mkG t) f g in
   let bad_enc id _ = anomaly ("bad encoding for pattern " ^ id) in
@@ -3710,26 +3712,28 @@ let interp_pattern ist gl red redty =
       E_As_X_In_T (combineCG e ty (mkCCast (loc_ofCG t)) mkRCast, x, t)
   | red -> red in
   pp(lazy(str"typed as: " ++ pr_pattern_w_ids red));
-  let mkXLambda loc x (a,(g,c)) = match c with
-  | Some b -> a,(g,Some (mkCLambda loc x (CHole(loc,None)) b))
-  | None -> a,(RLambda (loc,x,Explicit,(RHole (loc, BinderType x)), g), None) in
+  let mkXLetIn loc x (a,(g,c)) = match c with
+  | Some b -> a,(g,Some (mkCLetIn loc x (CHole(loc,None)) b))
+  | None -> a,(RLetIn (loc,x,(RHole (loc, BinderType x)), g), None) in
   match red with
   | T t -> let sigma, t = interp_term ist gl t in sigma, T t
   | In_T t -> let sigma, t = interp_term ist gl t in sigma, In_T t
   | X_In_T (x, rp) | In_X_In_T (x, rp) ->
     let mk x p = match red with X_In_T _ -> X_In_T(x,p) | _ -> In_X_In_T(x,p) in
-    let rp = mkXLambda dummy_loc (Name x) rp in
+    let rp = mkXLetIn dummy_loc (Name x) rp in
     let sigma, rp = interp_term ist gl rp in
-    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
-    sigma, mk (List.assoc 0 args) rp
+    let _, h, _, rp = destLetIn rp in
+    let rp = subst1 h rp in
+    sigma, mk h rp
   | E_In_X_In_T(e, x, rp) | E_As_X_In_T (e, x, rp) ->
     let mk e x p =
       match red with E_In_X_In_T _ ->E_In_X_In_T(e,x,p)|_->E_As_X_In_T(e,x,p) in
-    let rp = mkXLambda dummy_loc (Name x) rp in
+    let rp = mkXLetIn dummy_loc (Name x) rp in
     let sigma, rp = interp_term ist gl rp in
-    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
+    let _, h, _, rp = destLetIn rp in
+    let rp = subst1 h rp in
     let sigma, e = interp_term ist (re_sig (sig_it gl) sigma) e in
-    sigma, mk e (List.assoc 0 args) rp
+    sigma, mk e h rp
 ;;
 
 (* calls do_subst on every sub-term identified by (pattern,occ) *)
