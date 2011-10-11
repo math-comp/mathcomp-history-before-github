@@ -4807,7 +4807,7 @@ let refine_interp_apply_view i ist gl gv =
     interp_refine ist gl (mkRApp hint (v :: mkRHoles i)) in
   let interp_with x = prof_apply_interp_with.profile interp_with x in
   let rec loop = function
-  | [] -> (try apply_rconstr ~ist v gl with _ -> view_error "apply" gv)
+  | [] -> (try apply_rconstr ~ist rv gl with _ -> view_error "apply" gv)
   | h :: hs -> (try refine_with (interp_with h) gl with _ -> loop hs) in
   loop (pair i viewtab.(i) @ if i = 2 then pair 1 viewtab.(1) else [])
 
