@@ -3217,7 +3217,7 @@ let flags_FO = {Unification.default_no_delta_unify_flags with
                 Unification.modulo_delta_types = full_transparent_state;
                 Unification.allow_K_in_toplevel_higher_order_unification=false} 
 let unif_FO env ise p c =
-  Unification.w_unify env Reduction.CONV ~flags:flags_FO p c ise
+  Unification.w_unify env ise Reduction.CONV ~flags:flags_FO p c
 
 (* Perform evar substitution in main term and prune substitution. *)
 let nf_open_term sigma0 ise c =
@@ -5233,7 +5233,7 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
     let elim = destConst elim in          
     let mp,dp,l = repr_con (constant_of_kn (canonical_con elim)) in
     let l' = label_of_id (Nameops.add_suffix (id_of_label l) "_r")  in 
-    let c1' = Global.constant_of_delta (make_con mp dp l') in
+    let c1' = Global.constant_of_delta_kn (canonical_con (make_con mp dp l')) in
     mkConst c1' in
   let proof = mkApp (elim, [| rdx_ty; new_rdx; pred; p; rdx; c |]) in
   (* We check the proof is well typed *)
