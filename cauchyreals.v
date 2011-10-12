@@ -3,7 +3,6 @@ Require Import bigop ssralg orderedalg zint qnum poly.
 
 Import GRing.Theory ORing.Theory AbsrNotation.
 
-
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -14,32 +13,23 @@ Module EpsilonReasonning.
 
 Definition leq_maxE := (orTb, orbT, leqnn, leq_maxr).
 
-Fixpoint max_seq s :=
-  match s with
-    | [::] => 0%N
-    | a :: r => maxn a (max_seq r)
-  end.
+Fixpoint max_seq s := if s is a :: r then maxn a (max_seq r) else 0%N.
 
 Definition closed T (i : T) := {j : T | j = i}.
-Ltac close :=
-  match goal with
-      | |- ?G =>
-        match G with
-          | context [closed ?i] => instantiate (1 := [::]) in (Value of i); exists i
-        end
-  end.
+Ltac close :=  match goal with
+                 | |- context [closed ?i] =>
+                   instantiate (1 := [::]) in (Value of i); exists i
+               end.
 
 Ltac pose_big_enough i :=
-  evar (i : nat);
-  suff : closed i;
-    [move=> _; instantiate (1 := max_seq _) in (Value of i)|].
+  evar (i : nat); suff : closed i; first do
+    [move=> _; instantiate (1 := max_seq _) in (Value of i)].
 
 Ltac pose_big_modulus m F :=
-  evar (m : F -> nat);
-  suff : closed m;
-    [move=> _; instantiate (1 := (fun e => max_seq _)) in (Value of m)|].
+  evar (m : F -> nat); suff : closed m; first do
+    [move=> _; instantiate (1 := (fun e => max_seq _)) in (Value of m)].
 
-Ltac exists_big_modulus m F := pose_big_modulus m F; [exists m |].
+Ltac exists_big_modulus m F := pose_big_modulus m F; first exists m.
 
 Definition selected := locked.
 Lemma select T (x : T) : x = selected x. Proof. exact: lock. Qed.
@@ -50,32 +40,24 @@ Proof. by rewrite -select ?leq_maxE. Qed.
 
 Ltac big_selected i :=
   rewrite ?[in X in selected X]/i;
-    rewrite ?[in X in selected X]leq_maxE -/max_seq;
-      do 1!
-        [ rewrite -[selected true]select
-          | rewrite [max_seq in X in selected X]select;
-            apply instantiate_max_seq;
-              rewrite ?[in X in selected X]leq_maxE -/max_seq;
-                rewrite -?select].
+  rewrite ?[in X in selected X]leq_maxE -/max_seq; do 1!
+    [ rewrite -[selected true]select
+    | rewrite [max_seq in X in selected X]select;
+       apply instantiate_max_seq;
+       rewrite ?[in X in selected X]leq_maxE -/max_seq;
+       rewrite -?select].
 
-Ltac big_enough :=
-    match goal with
-      | |- ?G =>
-        match G with
-        | context [(?x <= ?i)%N] =>
-          rewrite [(x <= i)%N]select; big_selected i
-        end
-    end.
+Ltac big1 :=
+  match goal with
+    | |- context [(?x <= ?i)%N] => rewrite [(x <= i)%N]select; big_selected i
+  end.
 
 Ltac big :=
-    match goal with
-      | H : is_true (?m ?e <= ?i)%N |- ?G =>
-        match G with
-          | context [(?x <= i)%N] =>
-            rewrite [(x <= i)%N](leq_trans _ H) /=; last by big_enough
-        end
-      | _ => big_enough
-    end.
+  match goal with
+    | leq_mi : is_true (?m <= ?i)%N |- context [(?x <= ?i)%N] =>
+      rewrite [(x <= i)%N](leq_trans _ leq_mi) /=; last by big1
+    | _ => big1
+  end.
 
 End EpsilonReasonning.
 Import EpsilonReasonning.
@@ -1109,7 +1091,8 @@ Lemma dvdp_gdco (p q : {poly F}) : (gdcop p q) %| q.
 Proof. by case: gdcopP. Qed.
 
 (* Todo : move to polyorder => need char 0 *)
-Lemma gdcop_eq0 (p q : {poly F}) : (gdcop p q == 0)%B = (q == 0)%B && (p != 0)%B.
+Lemma gdcop_eq0 (p q : {poly F}) :
+  (gdcop p q == 0)%B = (q == 0)%B && (p != 0)%B.
 Proof.
 have [[->|q_neq0] [->|p_neq0] /=] := (altP (q =P 0), altP (p =P 0)).
 + by rewrite gdcop0 eqxx oner_eq0.
@@ -2428,8 +2411,7 @@ move/lt_alg_domP; rewrite to_alg_domK /= => x_gt0.
 apply/negP=> /lt_alg_domP; rewrite !to_alg_domK /=.
 pose_big_enough i.
   apply: (@le_crealP i)=> j /= hj.
-  (* Todo : fix big for the following purpose *)
-  by rewrite oppr_le0 ltrW // creal_gt0_always // (leq_trans _ hj) //; big.
+  by rewrite oppr_le0 ltrW // creal_gt0_always //; big.
 by close.
 Qed.
 
