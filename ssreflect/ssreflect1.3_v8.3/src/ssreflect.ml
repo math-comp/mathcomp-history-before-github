@@ -87,6 +87,16 @@ let _ =
         if b then pp_ref := ssr_pp else pp_ref := fun _ -> ()) }
 let pp s = !pp_ref s
 
+let ssroldreworder = ref true
+let _ =
+  Goptions.declare_bool_option
+    { Goptions.optsync  = false;
+      Goptions.optname  = "ssreflect 1.3 compatibility flag";
+      Goptions.optkey   = ["SsrOldRewriteGoalsOrder"];
+      Goptions.optread  = (fun _ -> !ssroldreworder);
+      Goptions.optwrite = (fun b -> ssroldreworder := b) }
+
+
 (** Primitive parsing to avoid syntax conflicts with basic tactics. *)
 
 let accept_before_syms syms strm =
@@ -4237,8 +4247,16 @@ let applyn ~with_evars n t gl =
     pp(lazy(str"Refiner.refiner " ++ pr_constr t));
     Refiner.refiner (Proof_type.Prim (Proof_type.Refine t)) gl
 
-let refine_with ?(with_evars=true) oc gl =
+let refine_with ?(first_goes_last=false) ?(with_evars=true) oc gl =
+  let rec mkRels = function 1 -> [] | n -> mkRel n :: mkRels (n-1) in
   let n, oc = pf_abs_evars_pirrel gl oc in
+  let oc = if not first_goes_last || n <= 1 then oc else
+    let l, c = decompose_lam oc in
+    if not (list_for_all_i (fun i (_,t) -> closedn ~-i t) (1-n) l) then oc else
+    compose_lam (let xs,y = list_chop (n-1) l in y @ xs) 
+      (mkApp (compose_lam l c, Array.of_list (mkRel 1 :: mkRels n)))
+  in
+  pp(lazy(str"after: " ++ pr_constr oc));
   try applyn ~with_evars n oc gl with _ -> raise dependent_apply_error
 
 (** The "case" and "elim" tactic *)
@@ -5116,7 +5134,8 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
   let proof_ty =
     try Typing.type_of env sigma proof with _ -> raise PRtype_error in
    pp(lazy(str"pirrel_rewrite proof term of type: " ++ pr_constr proof_ty));
-  try refine_with ~with_evars:false (sigma, proof) gl
+  try refine_with 
+    ~first_goes_last:(not !ssroldreworder) ~with_evars:false (sigma, proof) gl
   with _ -> 
     (* we generate a msg like: "Unable to find an instance for the variable" *)
     let c = Reductionops.nf_evar sigma c in

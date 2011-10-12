@@ -160,6 +160,16 @@ let mk_profiler s =
   prof
 ;;
 
+let ssroldreworder = ref true
+let _ =
+  Goptions.declare_bool_option
+    { Goptions.optsync  = false;
+      Goptions.optname  = "ssreflect 1.3 compatibility flag";
+      Goptions.optkey   = ["SsrOldRewriteGoalsOrder"];
+      Goptions.optread  = (fun _ -> !ssroldreworder);
+      Goptions.optwrite = (fun b -> ssroldreworder := b) }
+
+
 (** Primitive parsing to avoid syntax conflicts with basic tactics. *)
 
 let accept_before_syms syms strm =
@@ -4312,18 +4322,13 @@ let dependent_apply_error =
  *
  * Refiner.refiner that does not handle metas with a non ground type but works
  * with dependently typed higher order metas. *)
-let prof_refine_with_refine = mk_profiler "refine_with.applyn.R.refine";;
-let prof_refine_with_refiner = mk_profiler "refine_with.applyn.R.refiner";;
-let prof_refine_with_saturate = mk_profiler "refine_with.applyn.saturate";;
 let applyn ~with_evars n t gl =
   if with_evars then
     let t, sigma = if n = 0 then t, project gl else
-      let t, _, _, gl = 
-        prof_refine_with_saturate.profile
-        (pf_saturate gl t) n in (* saturate with evars *)
+      let t, _, _, gl = pf_saturate gl t n in (* saturate with evars *)
       t, project gl in
     pp(lazy(str"Refine.refine " ++ pr_constr t));
-    prof_refine_with_refine.profile (Refine.refine (sigma, t)) gl
+    Refine.refine (sigma, t) gl
   else
     let t, gl = if n = 0 then t, gl else
       let sigma, si = project gl, sig_it gl in
@@ -4337,26 +4342,19 @@ let applyn ~with_evars n t gl =
           | _ -> assert false
       in loop sigma t [] n in
     pp(lazy(str"Refiner.refiner " ++ pr_constr t));
-    prof_refine_with_refiner.profile
-      (Refiner.refiner (Proof_type.Prim (Proof_type.Refine t))) gl
+    Refiner.refiner (Proof_type.Prim (Proof_type.Refine t)) gl
 
-let prof_refine_with_applyn = mk_profiler "refine_with.applyn";;
-let applyn ~with_evars n t gl =
-  prof_refine_with_applyn.profile (applyn ~with_evars n t) gl
-;;
-
-let prof_refine_with_abs_evars = mk_profiler "refine_with.abs_evars";;
-
-let refine_with ?(with_evars=true) oc gl =
-  let pf_abs_evars_pirrel gl oc = 
-    prof_refine_with_abs_evars.profile (pf_abs_evars_pirrel gl) oc in
+let refine_with ?(first_goes_last=false) ?(with_evars=true) oc gl =
+  let rec mkRels = function 1 -> [] | n -> mkRel n :: mkRels (n-1) in
   let n, oc = pf_abs_evars_pirrel gl oc in
+  let oc = if not first_goes_last || n <= 1 then oc else
+    let l, c = decompose_lam oc in
+    if not (list_for_all_i (fun i (_,t) -> closedn ~-i t) (1-n) l) then oc else
+    compose_lam (let xs,y = list_chop (n-1) l in y @ xs) 
+      (mkApp (compose_lam l c, Array.of_list (mkRel 1 :: mkRels n)))
+  in
+  pp(lazy(str"after: " ++ pr_constr oc));
   try applyn ~with_evars n oc gl with _ -> raise dependent_apply_error
-
-let prof_refine_with = mk_profiler "refine_with";;
-let refine_with ?with_evars oc gl =
-  prof_refine_with.profile (refine_with ?with_evars oc) gl
-;;
 
 (** The "case" and "elim" tactic *)
 
@@ -5240,7 +5238,8 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
   let proof_ty =
     try Typing.type_of env sigma proof with _ -> raise PRtype_error in
   pp(lazy(str"pirrel_rewrite proof term of type: " ++ pr_constr proof_ty));
-  try refine_with ~with_evars:false (sigma, proof) gl
+  try refine_with 
+    ~first_goes_last:(not !ssroldreworder) ~with_evars:false (sigma, proof) gl
   with _ -> 
     (* we generate a msg like: "Unable to find an instance for the variable" *)
     let c = Reductionops.nf_evar sigma c in
