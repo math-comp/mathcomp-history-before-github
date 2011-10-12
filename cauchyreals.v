@@ -2107,20 +2107,6 @@ move=> hx; rewrite root_annul_div_creal ?root_poly_of_alg_creal ?monic_neq0 //;
 by move: hx=> /neq_creal_cst.
 Qed.
 
-(* Lemma simplify_poly (p : {poly F}) (x : creal) (x_neq0 : x != 0) : *)
-(*   p.[x] == 0 -> {q | (q.[0] != 0)%B & q.[x] == 0}. *)
-(* Proof. *)
-(* Admitted. *)
-
-(* Definition simplify_alg_creal (x : alg_creal) := *)
-(*   match eq_alg_creal_dec x (cst_alg_creal 0) with *)
-(*     | left x_eq0 => cst_alg_creal 0 *)
-(*     | right x_neq0 => *)
-(*       let: exist2 p _ px0 := *)
-(*         simplify_poly x_neq0 (@root_poly_of_alg_creal x) *)
-(*       in *)
-(*         AlgCRealOf (px0 *)
-(*   end. *)
 Lemma simplify_alg_creal (x : alg_creal) (x_neq0 : x != 0) :
   {y | ((poly_of_alg_creal y).[0] != 0)%B & x == y}.
 Proof.
@@ -2128,15 +2114,13 @@ elim: size {-3}x x_neq0 (leqnn (size (poly_of_alg_creal x))) =>
   {x} [|n ihn] x x_neq0 hx.
   move: hx; rewrite leqn0 size_poly_eq0.
   by rewrite (negPf (monic_neq0 _)) ?monic_poly_of_alg_creal //.
-have [|ndvdX] := boolP ('X %| poly_of_alg_creal x); last first.
+have [dvdX|ndvdX] := boolP ('X %| poly_of_alg_creal x); last first.
   by exists x=> //; rewrite -rootE -dvdp_factorl subr0.
-rewrite dvdp_eq=> /eqP hp.
 have monic_p: monic (@poly_of_alg_creal x %/ 'X).
-  move: hp=> /(f_equal monic).
-  by rewrite monic_poly_of_alg_creal monic_mulr ?monicX.
+  by rewrite -(monic_mulr _ (@monicX _)) divpK ?monic_poly_of_alg_creal.
 have root_p: (@poly_of_alg_creal x %/ 'X).[x] == 0.
   have := @eq_creal_refl ((poly_of_alg_creal x).[x])%CR.
-  rewrite -{1}hp horner_crealM root_poly_of_alg_creal.
+  rewrite -{1}(divpK dvdX) horner_crealM root_poly_of_alg_creal.
   by case/poly_mul_creal_eq0=> //; rewrite horner_crealX.
 have [//|/=|y *] := ihn (AlgCReal monic_p root_p); last by exists y.
 by rewrite size_divp ?size_polyX ?polyX_eq0 ?leq_sub_add ?add1n.
