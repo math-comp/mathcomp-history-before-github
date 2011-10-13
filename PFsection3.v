@@ -56,6 +56,22 @@ have ZiH : z \in G.
 by move: (cyclic_abelian cW)=> /subsetP /(_ _ YiG) /centP; apply.
 Qed.
 
+(* Move to fingroup *)
+Lemma mem_class_support (gT : finGroupType) (A B : {set gT}) x y : 
+  x \in A -> y \in B -> x ^ y \in class_support A B.
+Proof. by move=> XiA YiB; apply/imset2P; exists x y. Qed.
+
+(* Move to character *)
+Lemma ind_cfun_on (gT : finGroupType) (A : {set gT}) 
+                  (G W: {group gT}) (f : 'CF(W)) :
+  W \subset G -> f \in 'CF(W, A) -> 'Ind[G] f \in 'CF(G, class_support A G).
+Proof.
+move=> WsG /cfun_onP Cf; apply/cfun_onP=> g GniAG.
+rewrite cfIndE // big1 ?mulr0 // => h HiG.
+apply: Cf; apply: contra GniAG => GHiA.
+by rewrite -[g](conjgK h) mem_class_support ?groupV.
+Qed.
+
 Section Definitions.
 
 Variables (gT : finGroupType) (G W W1 W2 : {set gT}).
@@ -117,10 +133,29 @@ Qed.
 Lemma cTIirr_split i j : w_ i j = w_ i 0 * w_ 0 j.
 Proof. by rewrite /w_ !dprod_IirrE !chi0_1 cfDprod1r cfDprod1l. Qed.
 
-Let linearX (i : Iirr W) : lin_char ('chi_i).
+Lemma cTIirr_linearW i : lin_char ('chi[W]_i).
 Proof.
-apply/char_abelianP.
-by apply: cyclic_abelian; case: tiW; case.
+by apply/char_abelianP; apply: cyclic_abelian; case: tiW; case.
+Qed.
+
+Lemma cTIirr_linearW1 i : lin_char ('chi[W1]_i).
+Proof.
+by apply/char_abelianP; apply: cyclic_abelian; case: tiW; case.
+Qed.
+
+Lemma cTIirr_linearW2 i : lin_char ('chi[W2]_i).
+Proof.
+by apply/char_abelianP; apply: cyclic_abelian; case: tiW; case.
+Qed.
+
+Let classesW1 : #|classes W1| = w1.
+Proof.
+by have:= cyclic_abelian cyclicW1; rewrite card_classes_abelian => /eqP ->.
+Qed.
+
+Let classesW2 : #|classes W2| = w2.
+Proof.
+by have:= cyclic_abelian cyclicW2; rewrite card_classes_abelian => /eqP ->.
 Qed.
 
 Definition acTIirr i j : 'CF(W) := (1 - w_ i 0) * (1 - w_ 0 j).
@@ -128,7 +163,7 @@ Local Notation alpha_ := acTIirr.
 
 Lemma acTIirr1 i j : alpha_ i j 1%g = 0.
 Proof.
-rewrite !cfunE /cyclicTIirr cfun1Egen group1 (lin_char1 (linearX _)).
+rewrite !cfunE /cyclicTIirr cfun1Egen group1 (lin_char1 ( cTIirr_linearW _)).
 by rewrite addrN mul0r.
 Qed.
 
@@ -146,11 +181,10 @@ Proof.
 apply/cfun_onP=> x; rewrite !inE negb_and negbK orbC.
 have [Wx /= | /cfun0->//] := boolP (x \in W).
 rewrite !cfunE cfun1E Wx /w_ !dprod_IirrE !chi0_1 cfDprod1l cfDprod1r.
+have LW1 := cTIirr_linearW1; have LW2 := cTIirr_linearW2.
 rewrite -{3}[x]mul1g -{4}[x]mulg1; case/orP=> [W1x | W2x]; last first.
-  rewrite cfDprodEl // lin_char1 ?subrr ?mul0r //.
-  exact/char_abelianP/cyclic_abelian.
-rewrite mulrC cfDprodEr // lin_char1 ?subrr ?mul0r //.
-exact/char_abelianP/cyclic_abelian.
+  by rewrite cfDprodEl // lin_char1 ?(subrr, mul0r).
+by rewrite mulrC cfDprodEr // lin_char1 ?(subrr, mul0r).
 Qed.
 
 Definition bcTIirr i j : 'CF(G) := 'Ind[G] (alpha_ i j) - 1.
@@ -1566,27 +1600,19 @@ Qed.
 End Main.
 
 Let ONW1 : odd #|classes W1|.
-Proof.
-by have:= cyclic_abelian cyclicW1; rewrite card_classes_abelian => /eqP ->.
-Qed.
+Proof. by rewrite classesW1. Qed.
 
 Let ONW2 : odd #|classes W2|.
-by have:= cyclic_abelian cyclicW2; rewrite card_classes_abelian => /eqP ->.
-Qed.
+Proof. by rewrite classesW2. Qed.
 
 Let H2LNW1 : (2 < #|classes W1|)%N.
-by have:= cyclic_abelian cyclicW1; rewrite card_classes_abelian => /eqP ->.
-Qed.
+Proof. by rewrite classesW1. Qed.
 
 Let H2LNW2 : (2 < #|classes W2|)%N.
-by have:= cyclic_abelian cyclicW2; rewrite card_classes_abelian => /eqP ->.
-Qed.
+Proof. by rewrite classesW2. Qed.
 
 Let Hcoprime : (coprime  #|classes W1| #|classes W2|)%N.
-have:= cyclic_abelian cyclicW1; rewrite card_classes_abelian => /eqP ->.
-have:= cyclic_abelian cyclicW2; rewrite card_classes_abelian => /eqP ->.
-by apply: cyclicTI_coprime.
-Qed.
+Proof. by rewrite classesW1 classesW2 cyclicTI_coprime. Qed.
 
 Let hcTIirr (i : Iirr W2) : 'CF(G) :=
  (ccTIirr ONW1 H2LNW1 H2LNW2 bcmp_swapl bcmp_swapr
@@ -2127,7 +2153,216 @@ case: (equiv_restrict_compl_ortho _ _ acTIirr_base_is_basis F1)
   by apply: eq_bigr=> i _ //; rewrite -cfun_sum_cfdot linearZ.
 by apply: Er2=> i; exact: Ho.
 Qed.
- 
+
+(* This is 3.7 *)
+Lemma cyclicTI_dot_sum (phi : 'CF(G)) i1 i2 j1 j2 :
+  {in V, forall x, phi x = 0} -> 
+   '[phi, sigma (w_ i1 j1)] + '[phi, sigma (w_ i2 j2)] =
+   '[phi, sigma (w_ i1 j2)] + '[phi, sigma (w_ i2 j1)].
+Proof.
+move=> ZphiV.
+pose a : 'CF(W) := w_ i1 j1 + w_ i2 j2 - w_ i1 j2 - w_ i2 j1.
+have LW1 := cTIirr_linearW1; have LW2 := cTIirr_linearW2.
+have Cfa : a \in 'CF(W, V).
+  apply/cfun_onP=> g.
+  rewrite inE negb_and negbK !inE -orbA 
+          => /or3P [GiW1|GiW2|GniW]; last by rewrite cfun0.
+    rewrite -[g]mulg1  /a /cyclicTIirr !dprod_IirrE !cfunE.
+    rewrite !cfDprodEl // !cfDprodEr // !lin_char1 // !mulr1.
+    by rewrite addrAC addrK subrr.
+  rewrite -[g]mul1g  /a /cyclicTIirr !dprod_IirrE !cfunE.
+  rewrite !cfDprodEl // !cfDprodEr // !lin_char1 // !mul1r.
+  by rewrite addrK subrr.
+suff: '[phi, 'Ind[G] a] == 0.
+  rewrite -!cyclicTIsigma_ind // !linear_sub !linearD !cfdot_subr !cfdotDr.
+  by rewrite -addrA -oppr_add subr_eq0=> /eqP.
+rewrite cfdotE big1 ?mulr0 // => g GiG.
+case: (boolP (g \in class_support V G))=> [/imset2P [v h ViV HiG ->]|GniC].
+  by rewrite cfunJ // ZphiV // mul0r.
+have[/cfun_onP-> //]: 'Ind[G] a \in 'CF(G, class_support V G).
+  by apply: ind_cfun_on=> //; case: tiW=> [[]].
+by rewrite conjC0 mulr0.
+Qed.
+
+Definition cyclicTI_NC phi := #|[set ij | '[phi, sigma (w_ ij.1 ij.2)] != 0]|.
+
+Notation NC := cyclicTI_NC.
+
+(* This is PF 3.8 *)
+Lemma cyclicTI_NC_split (phi : 'CF(G)) i j : 
+  {in V, forall x, phi x = 0} -> (NC phi < 2 * minn w1 w2)%N ->
+  '[phi, sigma (w_ i j)] != 0 ->    
+   {(forall i1 j1,
+       '[phi, sigma (w_ i1 j1)] = (j == j1)%:R * '[phi, sigma (w_ i j)])}
+   +
+   {(forall i1 j1 ,
+      '[phi, sigma (w_ i1 j1)] = (i == i1)%:R * '[phi, sigma (w_ i j)])}.
+Proof.
+move=> ZphiV NC_M NZaij.
+pose a i j := '[phi, sigma (w_ i j)].
+have CDS i1 i2 j1 j2 : a i1 j1 + a i2 j2 = a i1 j2 + a i2 j1.
+  by apply: cyclicTI_dot_sum.
+pose S := [set ij | a ij.1 ij.2 != 0].
+pose L j :=  [set ij | ij.2 == j] :&: S.
+pose C i :=  [set ij | ij.1 == i] :&: S.
+have LsS j1 : C j1 \subset S by apply: subsetIr.
+have CsS i1 : L i1 \subset S by apply: subsetIr.
+have LI i1 i2 : L i1 :&: L i2 = if i1 == i2 then L i1 else set0.
+  apply/setP=> [[i3 j3]]; case: (boolP (i1 == i2)) => [/eqP->|];
+           rewrite !inE ?andbb //= => HH.
+  by apply/idP=> /andP [] /andP [/eqP -> _]; rewrite (negPf HH).
+have CI i1 i2 : C i1 :&: C i2 = if i1 == i2 then C i1 else set0.
+  apply/setP=> [[i3 j3]]; case: (boolP (i1 == i2)) => [/eqP->|];
+           rewrite !inE ?andbb //= => HH.
+  by apply/idP=> /andP [] /andP [/eqP -> _]; rewrite (negPf HH).
+have LCI i1 j1 : (L j1 :&: C i1) \subset [set (i1,j1)].
+  apply/subsetP=> [[i2 j2]]; rewrite !inE /=.
+  by case/andP=> /andP [/eqP-> _] /andP [/eqP-> _].
+have FC i1: (forall j, a i1 j != 0) -> #|C i1| = w2.
+   move=> FF.
+  have<-: #|[image (i1,j) | j <- Iirr W2]| = w2.
+    rewrite card_in_image=> [|i3 i4 i3Irr i4Irr /= [] //].
+    by rewrite card_ord NirrE classesW2.
+  apply: eq_card=> [[i3 j3]]; rewrite !inE /=; apply/andP/imageP.
+    by case=> /eqP-> _; exists j3.
+  by case=> j4 j4Irr [] -> ->.
+  (* This is 3.8.1 *)
+have EqI i1 i2 j1 j2 : a i1 j2 == 0 -> a i2 j1 == 0 -> a i1 j1 == 0.
+  case: (boolP (i1 == i2))=> [/eqP-> // | Di1i2].
+  case: (boolP (j1 == j2))=> [/eqP-> // | Dj1j2].
+  move=> Zai1j2 Zai2j1; case: (boolP (_ == _)) => // NZa1j1.
+  move: NC_M; rewrite ltnNge; case/negP.
+  pose LS := 
+    [set x \in [image (if a k j1 == 0 then 
+                          (k, j2) else (k, j1)) | k <- Iirr W1]].
+  have LSsS : LS \subset S.
+    apply/subsetP=> p; rewrite inE => /imageP [k KiIw1->].
+    rewrite inE; case: (boolP (a k j1 == 0))=> //= Zakj1.
+    apply: contra NZa1j1 => Zakj2.
+    move: (CDS i1 k j1 j2).
+    by rewrite (eqP Zakj2) (eqP Zai1j2) (eqP Zakj1) !addr0=> /eqP.
+  have cardLS: #|LS| = w1.
+    by rewrite cardsE card_in_image=> [|j3 j4 j3Irr j4Irr /=]; 
+        [rewrite card_ord NirrE | do 2 case: (_ == _); case].
+  pose CS := 
+     [set x \in [image (if a i1 k == 0 then 
+                          (i2, k) else (i1, k)) | k <- Iirr W2]].
+  have CSsS : CS \subset S.
+    apply/subsetP=> p; rewrite inE => /imageP [k KiIw2->].
+    rewrite inE; case: (boolP (a i1 k == 0))=> //= Zai1k.
+    apply: contra NZa1j1 => Zai2k.
+    move: (CDS i1 i2 k j1).
+    by rewrite (eqP Zai1k) (eqP Zai2j1) (eqP Zai2k) !addr0 => <-.
+  have cardCS: #|CS| = w2.
+    by rewrite cardsE card_in_image=> [|i3 i4 i3Irr i4Irr /=]; 
+        [rewrite card_ord NirrE | do 2 case: (_ == _); case].
+  have [/subset_leqif_card [] HH _]: LS :|: CS \subset S.
+    by apply/subUsetP; split.
+  apply: leq_trans HH; rewrite cardsU cardLS cardCS.
+  rewrite -[X in (X <= _)%N](addnK #|LS :&: CS|) leq_sub2r //.
+  have: (#|LS :&: CS| <= 2)%N.
+    suff: LS :&: CS \subset [set (i1,j1); (i2,j2)].
+      case/subset_leqif_card; rewrite cards2; case: ((_,_) =P _)=> // [[UU ]].
+      by case/eqP: Di1i2.
+    apply/subsetP=> u.
+    rewrite !inE => /andP [] /imageP [i3 i3Irr ->] /imageP [i4 i4Irr].
+    by (do 2 case: (a _ _ =P _))=> Eq1 Eq2 [] Eq3 Eq4;
+       move: Eq1 Eq2; rewrite Eq3 -Eq4 ?(eqxx, orbT) // => *; case/eqP: NZa1j1.
+  rewrite -(leq_add2l (2 * minn w1 w2)); move/leq_trans; apply.
+  move: oddW1 oddW2 cyclicTI_coprime tLW1 tLW2; rewrite -/w1 -/w2.
+  move: w1 w2=> u1 v1; wlog: u1 v1 / (u1 < v1)%N 
+        => [WW O1 O2 CP tLU1 tLV1|WW O1 O2 CP tLU1 tLV1].
+    case: (ltngtP u1 v1)=> Hl; first by apply: WW.
+      by rewrite minnC [(u1 + _)%N]addnC WW // coprime_sym.
+    by move: CP tLV1; rewrite Hl /coprime gcdnn => /eqP->.
+  rewrite /minn WW mulSn mul1n -addnA leq_add2l addnC.
+  move: WW O2; rewrite leq_eqVlt => /orP [/eqP<-|] //.
+  by rewrite /odd /=; case/negP.
+have cardLE i1 j1 j2 : a i1 j1 != 0 -> a i1 j2 == 0 -> #|L j1| = w1.
+  move=> NZai1j1 Zai1j2.
+  have <-: #|[image (i,j1) | i <- Iirr W1]| = w1.
+    by rewrite card_in_image=> [| i2 i3 _ _ [] //]; rewrite card_ord NirrE.
+  apply: eq_card=> [[i3 j3]]; rewrite !inE; apply/andP/imageP=> /=.
+    by case=> /eqP-> _; exists i3.
+  case=> i2 i2Irr [] -> ->; split=> //.
+  by apply: contra NZai1j1; apply: EqI Zai1j2.
+have cardCE i1 i2 j1 : a i1 j1 != 0 -> a i2 j1 == 0 -> #|C i1| = w2.
+  move=> NZai1j1 Zai2j1.
+  have <-: #|[image (i1,j) | j <- Iirr W2]| = w2.
+    by rewrite card_in_image=> [| j2 j3 _ _ [] //]; rewrite card_ord NirrE.
+  apply: eq_card=> [[i3 j3]]; rewrite !inE; apply/andP/imageP=> /=.
+    by case=> /eqP-> _; exists j3.
+  case=> j2 j2Irr [] -> ->; split=> //.
+  by apply: contra NZai1j1 => /EqI /(_ Zai2j1).
+have BLe i1 j1: (2 * minn w1 w2 <= w1 + w2 - #|L j1 :&: C i1|)%N.
+  rewrite -[X in (X <= _)%N](addnK #|L j1 :&: C i1|) leq_sub2r //.
+  have: (#|L j1 :&: C i1| <= 1)%N.
+    by have:= LCI i1 j1; case/subset_leqif_card; rewrite cards1.
+  rewrite -(leq_add2l (2 * minn w1 w2)); move/leq_trans; apply.
+  rewrite addnC mulSn mul1n !addnA /minn; case: ltngtP=> HL.
+  - by rewrite leq_add2r //.
+  - by rewrite addnC leq_add2l //.
+  move: cyclicTI_coprime tLW1.
+  by rewrite -/w1 -/w2 HL /coprime gcdnn => /eqP->.
+case: (boolP (forallb j1 : Iirr W2, (a i j1 != 0)))=> HH; last first.
+  (* This is 3.8.2 *)
+  left; move: HH; rewrite negb_forall => /existsP [j1].
+  rewrite negbK => Zaij1.
+  have Dj1j : j1 != j by apply: contra NZaij => /eqP<-.
+  have EC: C i = [set (i, j)].
+    apply/setP=> [[i2 j2]]; rewrite !inE /=.
+    apply/andP/eqP=> [[/eqP-> NZaij2] |[-> ->]] //.
+    case: (boolP (j2 == j))=> [/eqP-> //| Dj2j].
+    move: NC_M; rewrite ltnNge; case/negP.
+    have [/subset_leqif_card [] HH _]: L j :|: L j2 \subset S.
+      by apply/subUsetP.
+    apply: leq_trans HH; rewrite cardsU !(cardLE _ _ _ _ Zaij1) //.
+    rewrite LI eq_sym (negPf Dj2j) cards0 subn0.
+    by rewrite mulSn mul1n leq_add // leq_minl leqnn // orbT.
+  suff HL i2 j2 : j != j2 -> a i2 j2 = 0.
+     move=> i2 j2; case: (boolP (_ == _))=> [/eqP <-| Djj2]; last first.
+       by move: (HL i2 _ Djj2); rewrite mul0r.
+     rewrite mul1r; case: (boolP (i2 == i))=> [/eqP-> //| Di2i].
+    move: (CDS i i2 j j1).
+    by rewrite !(HL _ j1) 1?eq_sym // addr0 add0r.
+  move=> Djj2; case: (boolP (a i2 j2 == 0))=> [/eqP-> // | NZai2j2].
+  have cardC : #|C i2| = w2.
+    apply: (cardCE _ i _ NZai2j2).
+    have: (i,j2) \notin C i.
+      by rewrite EC !inE; apply: contra Djj2=> /eqP [] ->.
+    by rewrite !inE eqxx /= negbK.
+  have cardL : #|L j| = w1  by apply: (cardLE _ _ j1 NZaij)=> //.
+  move: NC_M; rewrite ltnNge; case/negP.
+  have [/subset_leqif_card [] HH _]: L j :|: C i2 \subset S.
+    by apply/subUsetP; split.
+  by apply: leq_trans HH; rewrite cardsU cardC cardL.
+ (* This is 3.8.3 *)
+right; move/forallP: HH => HH.
+suff HL i1 j1 : i != i1 -> a i1 j1 = 0.
+  move=> i1 j1; case: (boolP (_ == _))=> [/eqP <-| Dii1]; last first.
+    by move: (HL _ j1 Dii1); rewrite mul0r.
+  rewrite mul1r; case: (boolP (j1 == j))=> [/eqP-> //| Dj2j].
+  have: (2 < #|Iirr W1|)%N by rewrite card_ord //  NirrE classesW1.
+  rewrite (cardD1 i) !inE !ltnS=> Hv.
+  case/card_gt0P: (ltn_trans (is_true_true : 0 < 1)%N Hv)=> i2.
+  rewrite !inE andbT=> Di2i.
+  move: (CDS i i2 j j1).
+  by rewrite !(HL i2) 1?eq_sym // !addr0.
+move=> Dii1; case: (boolP (a i1 j1 == 0))=> [/eqP //| NZai1j1].
+case: (boolP (forallb j2 : Iirr W2, (a i1 j2 != 0))); last first.
+  rewrite negb_forall => /existsP [] j2; rewrite negbK => Zai1j2.
+  move: NC_M; rewrite ltnNge; case/negP.
+  have [/subset_leqif_card [] HH1 _]: L j1 :|: C i \subset S.
+    by apply/subUsetP.
+  by apply: leq_trans HH1; rewrite cardsU FC // !(cardLE _ _ _ _ Zai1j2).
+move/forallP=> HH1.
+move: NC_M; rewrite ltnNge; case/negP.
+have [/subset_leqif_card [] HH2 _]: C i :|: C i1 \subset S.
+  by apply/subUsetP.
+apply: leq_trans HH2; rewrite cardsU !FC // CI (negPf Dii1) cards0 subn0.
+by rewrite mulSn mul1n leq_add // leq_minl leqnn // orbT.
+Qed.
+       
 End Proofs.
 
 Lemma cyclicTIsigma_sym (gT : finGroupType) (G W W1 W2 : {group gT}) : 
