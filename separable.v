@@ -35,25 +35,13 @@ Open Local Scope ring_scope.
 
 Import GRing.Theory.
 
-Lemma exprp_addl: forall (R : comRingType) (x y : R) (n : nat),
+Lemma exprp_addl (R : comRingType) (x y : R) (n : nat) :
   [char R].-nat n -> (x + y) ^+ n = x ^+ n + y ^+ n.
 Proof.
-move => R x y [|[|n]] // Hn.
-set (n' := n.+2) in *.
-set (p := pdiv n').
-have Hp : p \in [char R].
- move/pnatP: (Hn).
- by apply => //; rewrite ?pdiv_prime // pdiv_dvd.
-move: Hn.
-rewrite (eq_pnat _ (charf_eq Hp)).
-case/p_natP => e ->.
-set (f := Frobenius_aut Hp).
-have Hiter : forall z, z ^+ (p ^ e) = iter e f z.
- elim: e => // e IH z.
- by rewrite expnS mulnC exprn_mulr IH.
-rewrite !Hiter {Hiter}.
-elim: e => // e IH /=.
-by rewrite -rmorphD -IH.
+case: n=> [|[|]] // n Hn; move: (Hn)=> /pnatPpi /(_ (pi_pdiv _))=> charR.
+move: Hn; rewrite (eq_pnat _ (charf_eq charR))=> /p_natP [] e ->.
+elim: e => // e ihe; rewrite !expnSr !exprn_mulr ihe.
+by rewrite [_ ^+ _]Frobenius_aut_add_comm //; apply: mulrC.
 Qed.
 
 Section SeparablePoly.

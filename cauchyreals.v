@@ -208,6 +208,8 @@ Notation lbound_of p := (@lboundP _ _ p _ _ _).
 Lemma lbound_gt0 (x y : creal) (neq_xy : x != y) : lbound neq_xy > 0.
 Proof. by rewrite /lbound; case: (sigW _)=> /= d /andP[]. Qed.
 
+Definition lbound_ge0 x y neq_xy := (ltrW (@lbound_gt0 x y neq_xy)).
+
 Lemma cst_crealP (x : F) : creal_axiom (fun _ => x).
 Proof. by exists (fun _ => 0%N)=> *; rewrite subrr absr0. Qed.
 Definition cst_creal (x : F) := CReal (cst_crealP x).
@@ -340,6 +342,8 @@ Definition diff (x y : creal) (lt_xy : (x < y)%CR) : F := projT1 (sigW lt_xy).
 
 Lemma diff_gt0 (x y : creal) (lt_xy : (x < y)%CR) : diff lt_xy > 0.
 Proof. by rewrite /diff; case: (sigW _)=> /= d /andP[]. Qed.
+
+Definition diff_ge0 x y lt_xy := (ltrW (@diff_gt0 x y lt_xy)).
 
 Lemma diffP (x y : creal) (lt_xy : (x < y)%CR) i :
   (cauchymod x (diff lt_xy) <= i)%N ->
@@ -478,6 +482,8 @@ rewrite /ubound; elim: {2}(cauchymod x 1)=> [|n ihn].
   by rewrite ltr_paddl ?ltr01 ?absr_ge0.
 by rewrite -addn1 iota_add add0n /= map_cat foldl_cat /= ltr_maxr ihn.
 Qed.
+
+Definition ubound_ge0 x := (ltrW (ubound_gt0 x)).
 
 Lemma mul_crealP (x y : creal) :  creal_axiom (fun i => x i * y i).
 Proof.
@@ -635,9 +641,9 @@ Local Notation "p .[ x ]" := (horner_creal p x) : creal_scope.
 
 CoInductive alg_creal := AlgCReal {
   creal_of_alg :> creal;
-  poly_of_alg_creal : {poly F};
-  _ : monic poly_of_alg_creal;
-  _ : poly_of_alg_creal.[creal_of_alg] == 0
+  poly_of_creal : {poly F};
+  _ : monic poly_of_creal;
+  _ : poly_of_creal.[creal_of_alg] == 0
 }.
 
 CoInductive alg_dom := AlgDom {
@@ -653,6 +659,10 @@ CoInductive alg_dom := AlgDom {
 Lemma radius_alg_ge0 x : 0 <= radius_alg x. Proof. by case: x. Qed.
 
 Lemma monic_poly_of_alg x : monic (poly_of_alg x). Proof. by case: x. Qed.
+Hint Resolve monic_poly_of_alg.
+
+Lemma poly_of_alg_eq0 x : (poly_of_alg x == 0)%B = false.
+Proof. by rewrite (negPf (monic_neq0 _)). Qed.
 
 Lemma alg_domP x : (poly_of_alg x).[center_alg x - radius_alg x]
   * (poly_of_alg x).[center_alg x + radius_alg x] <= 0.
@@ -873,7 +883,7 @@ move=> eq_xy; apply: eq_crealP; exists_big_modulus m F.
   rewrite (@ler_lt_trans _ (`|(x i)^-1 - (y i)^-1| * (`|x i| * `|y i|))) //.
     rewrite ler_wpmul2l ?absr_ge0 //.
     rewrite (@ler_trans _ (`|x i| * lbound y_neq0)) //.
-      by rewrite ler_wpmul2r ?(ltrW (lbound_gt0 _)) ?lbound0P; do ?by big.
+      by rewrite ler_wpmul2r ?lbound_ge0 ?lbound0P; do ?by big.
     by rewrite ler_wpmul2l ?absr_ge0 ?lbound0P; do ?by big.
   rewrite -!absrM mulr_subl mulKf ?creal_neq0_always //; do ?by big.
   rewrite mulrCA mulVf ?mulr1 ?creal_neq0_always //; do ?by big.
@@ -1004,7 +1014,7 @@ pose_big_enough i.
     by rewrite !pmulr_rgt0 ?invr_gt0 ?ltr0n ?lbound_gt0.
   rewrite add0r [u]lock /= -!expr2.
   rewrite -[_.[_] ^+ _]ger0_abs ?exprn_even_ge0 // absrX.
-  rewrite ler_pexpn2r -?topredE /= ?(ltrW (lbound_gt0 _)) ?absr_ge0 //.
+  rewrite ler_pexpn2r -?topredE /= ?lbound_ge0 ?absr_ge0 //.
   by rewrite -lock (ler_trans _ (lbound0_of pu0)) //; do ?big.
 by close.
 Qed.
@@ -1022,7 +1032,7 @@ pose_big_enough i.
   apply: (@neq_crealP d i i)=> //; do ?by big.
   rewrite subr0 absrM.
   rewrite (@ler_trans _ (`|x i| * lbound y_neq0)) //.
-    by rewrite ler_wpmul2r ?(ltrW (lbound_gt0 _)) // lbound0P; do ?big.
+    by rewrite ler_wpmul2r ?lbound_ge0 // lbound0P; do ?big.
   by rewrite ler_wpmul2l ?absr_ge0 // lbound0P; do ?big.
 by close.
 Qed.
@@ -1201,11 +1211,16 @@ apply: dvdp_creal_eq0; rewrite ?dvdp_mul // dvdp_gdcor //;
 by rewrite gcdp_eq0 negb_and p_neq0.
 Qed.
 
-Lemma monic_poly_of_alg_creal x : monic (poly_of_alg_creal x).
+Lemma monic_poly_of_creal x : monic (poly_of_creal x).
 Proof. by case: x. Qed.
+Hint Resolve monic_poly_of_creal.
 
-Lemma root_poly_of_alg_creal x : (poly_of_alg_creal x).[x] == 0.
+Lemma poly_of_creal_eq0 x : (poly_of_creal x == 0)%B = false.
+Proof. by rewrite (negPf (monic_neq0 _)). Qed.
+
+Lemma root_poly_of_creal x : (poly_of_creal x).[x] == 0.
 Proof. by case: x. Qed.
+Hint Resolve root_poly_of_creal.
 
 Definition poly_accr_bound2 (p : {poly F}) (a r : F) : F
   := (maxr 1 (2%:R * r)) ^+ (size p).-2
@@ -1401,7 +1416,7 @@ pose_big_enough i.
   move=> y z neq_yz hy hz.
   have := (@poly_accr_bound1P p^`() 0 (1 + ubound x) (x i) z).
   have := @poly_accr_bound2P p 0 (1 + ubound x) z y; rewrite eq_sym !subr0.
-  rewrite neq_yz ?ler01 ?(ltrW (ubound_gt0 _))=> // /(_ isT).
+  rewrite neq_yz ?ler01 ?ubound_ge0=> // /(_ isT).
   rewrite (@ler_trans _ (r + `|x i|)); last 2 first.
   + rewrite (monoRL (addrNK _) (ler_add2r _)).
     by rewrite (ler_trans (ler_sub_dist _ _)).
@@ -1507,15 +1522,14 @@ Qed.
 Lemma to_alg_dom_exists (x : alg_creal) :
   { y : alg_dom | to_alg_creal y == x }.
 Proof.
-pose p := poly_of_alg_creal x.
+pose p := poly_of_creal x.
 move: {2}(size p) (leqnn (size p))=> n.
 elim: n x @p=> [x p|n ihn x p le_sp_Sn].
-  rewrite leqn0 size_poly_eq0 /p => /eqP p_eq0.
-  by have /monic_neq0 := monic_poly_of_alg_creal x; rewrite p_eq0 eqxx.
+  by rewrite leqn0 size_poly_eq0 /p poly_of_creal_eq0.
 move: le_sp_Sn; rewrite leq_eqVlt.
 have [|//|eq_sp_Sn _] := ltngtP.
   by rewrite ltnS=> /ihn ihnp _; apply: ihnp.
-have px0 := @root_poly_of_alg_creal x; rewrite -/p in px0.
+have px0 := @root_poly_of_creal x; rewrite -/p in px0.
 have [|ncop] := boolP (coprimep p p^`()).
   move=> /coprimep_root /(_ px0) /deriv_neq0_mono [r r_gt0 [i ir sm]].
   have p_chg_sign : p.[x i - r] * p.[x i + r] <= 0.
@@ -1540,7 +1554,7 @@ have [|ncop] := boolP (coprimep p p^`()).
       by rewrite andbC -ler_distl ltrW ?cauchymodP ?(leq_trans _ hj).
     rewrite mulr_ge0_le0 //; apply/le_creal_cst; rewrite -px0;
     by apply: (@le_crealP i)=> h hj /=; rewrite hpxj.
-  pose y := (AlgDom (monic_poly_of_alg_creal x) (ltrW r_gt0) p_chg_sign).
+  pose y := (AlgDom (monic_poly_of_creal x) (ltrW r_gt0) p_chg_sign).
   have eq_py_px: p.[to_alg_creal y] == p.[x].
     rewrite /to_alg_creal -lock.
     by have := @to_alg_crealP y; rewrite /= -/p=> ->; apply: eq_creal_sym.
@@ -1556,7 +1570,7 @@ have [|ncop] := boolP (coprimep p p^`()).
     rewrite -ltr_pdivl_mull //.
     by rewrite (@eqmodP _ _ eq_py_px) // ?pmulr_rgt0 ?invr_gt0 //; big.
   by close.
-case: (@smaller_factor p p^`() x); rewrite ?monic_poly_of_alg_creal //.
+case: (@smaller_factor p p^`() x); rewrite ?monic_poly_of_creal //.
   rewrite gtNdvdp // -?size_poly_eq0 size_deriv eq_sp_Sn //=.
   apply: contra ncop=> /eqP n_eq0; move: eq_sp_Sn; rewrite n_eq0.
   by move=> /eqP /size1P [c c_neq0 ->]; rewrite derivC coprimep0 polyC_eqp1.
@@ -1694,17 +1708,14 @@ Qed.
 Lemma eq_alg_creal_dec (x y : alg_creal) :
   {x == y} + {x != y}.
 Proof.
-pose p := poly_of_alg_creal x.
-pose q := poly_of_alg_creal y.
+pose p := poly_of_creal x; pose q := poly_of_creal y.
 move: {2}(_ + _)%N (leqnn (size p + size q))=> n.
 elim: n x y @p @q => [x y p q|n ihn x y p q le_sp_Sn].
-  rewrite leqn0 addn_eq0 !size_poly_eq0 /p /q.
-  by rewrite -[_ && _]negbK negb_and !monic_neq0 ?monic_poly_of_alg_creal.
-move: le_sp_Sn; rewrite leq_eqVlt.
-have [|//|eq_sp_Sn _] := ltngtP.
+  by rewrite leqn0 addn_eq0 !size_poly_eq0 /p /q  poly_of_creal_eq0.
+move: le_sp_Sn; rewrite leq_eqVlt; have [|//|eq_sp_Sn _] := ltngtP.
   by rewrite ltnS=> /ihn ihnp _; apply: ihnp.
-have px0 : p.[x] == 0 by apply: root_poly_of_alg_creal.
-have qy0 : q.[y] == 0 by apply: root_poly_of_alg_creal.
+have px0 : p.[x] == 0 by apply: root_poly_of_creal.
+have qy0 : q.[y] == 0 by apply: root_poly_of_creal.
 have [cpq|ncpq] := boolP (coprimep p q).
   right; move: (cpq)=> /coprimep_root /(_ px0).
   rewrite -qy0=> neq_qx_qy.
@@ -1746,7 +1757,7 @@ have [eq_pq|] := altP (p =P q).
         by rewrite ltrW // cauchymodP //; big.
       by rewrite ltrW // cauchymodP //; big.
     by close.
-  case: (@smaller_factor p p^`() x); rewrite ?monic_poly_of_alg_creal //.
+  case: (@smaller_factor p p^`() x); rewrite ?monic_poly_of_creal //.
     have sp_gt1 : (1 < size p)%N.
       have [|//|/eqP /size1P [c c_neq0 eq_pc]] := ltngtP.
          rewrite ltnS leqn0=> /eqP sp_eq0.
@@ -1756,14 +1767,13 @@ have [eq_pq|] := altP (p =P q).
   move=> r /andP [hsr monic_r rx_eq0].
   apply: (ihn (AlgCReal monic_r rx_eq0))=> /=.
   by rewrite -ltnS -eq_sp_Sn ltn_add2r.
-rewrite -monic_eqp ?monic_poly_of_alg_creal // /eqp negb_and.
+rewrite -monic_eqp /p /q // /eqp negb_and.
 have [ndiv_pq _|_ /= ndiv_qp] := boolP (~~ _).
-  case: (@smaller_factor p q x); rewrite ?monic_poly_of_alg_creal //.
+  case: (@smaller_factor p q x); rewrite /p //.
   move=> r /andP[r_gt0 monic_r rx_eq0].
   apply: (ihn (AlgCReal monic_r rx_eq0) y)=> /=.
   by rewrite -ltnS -eq_sp_Sn ltn_add2r.
-case: (@smaller_factor q p y); rewrite ?monic_poly_of_alg_creal //.
-  by rewrite coprimep_sym.
+case: (@smaller_factor q p y); do ?by rewrite /q 1?coprimep_sym.
 move=> r /andP[r_gt0 monic_r ry_eq0].
 apply: (ihn x (AlgCReal monic_r ry_eq0))=> /=.
 by rewrite -ltnS -eq_sp_Sn ltn_add2l.
@@ -1776,15 +1786,11 @@ Require Import generic_quotient.
 
 Lemma eq_alg_domP (x y : alg_dom) :
   reflect (to_alg_creal x == to_alg_creal y) (eq_alg_dom x y).
-Proof.
-by rewrite /eq_alg_dom; case: eq_alg_creal_dec=> //= hx; constructor.
-Qed.
+Proof. by rewrite /eq_alg_dom; case: eq_alg_creal_dec; constructor. Qed.
 
 Lemma neq_alg_domP (x y : alg_dom) :
   reflect (to_alg_creal x != to_alg_creal y) (~~ eq_alg_dom x y).
-Proof.
-by rewrite /eq_alg_dom; case: eq_alg_creal_dec=> /= hx; constructor.
-Qed.
+Proof. by rewrite /eq_alg_dom; case: eq_alg_creal_dec; constructor. Qed.
 
 Lemma eq_alg_dom_refl : ssrbool.reflexive eq_alg_dom.
 Proof. by move=> x; apply/eq_alg_domP; apply eq_creal_refl. Qed.
@@ -1828,12 +1834,12 @@ apply/negP=> /size1P [c c_neq0 eq_pc]; apply: rootpa.
 by rewrite eq_pc horner_cst_creal; apply/neq_creal_cst.
 Qed.
 
-Lemma size_poly_of_alg_creal_gt1 (x : alg_creal) :
-  (1 < size (poly_of_alg_creal x))%N.
+Lemma size_poly_of_creal_gt1 (x : alg_creal) :
+  (1 < size (poly_of_creal x))%N.
 Proof.
 apply: (@horner_has_root_size_gt1 x).
-  by rewrite monic_neq0 // monic_poly_of_alg_creal.
-exact: root_poly_of_alg_creal.
+  by rewrite monic_neq0 // monic_poly_of_creal.
+exact: root_poly_of_creal.
 Qed.
 
 Lemma monic_from_neq0_root (p : {poly F}) (x : creal) :
@@ -1984,13 +1990,13 @@ Definition horner2_creal (p : {poly {poly F}}) (x y : creal) :=
 Local Notation "p .[ x , y ]" := (horner2_creal p x y)
   (at level 2, left associativity) : creal_scope.
 
-Lemma is_root_poly_of_alg_creal (x : alg_creal) (y : creal) :
-  x == y -> (poly_of_alg_creal x).[y] == 0.
-Proof. by move<-; rewrite root_poly_of_alg_creal. Qed.
+Lemma is_root_poly_of_creal (x : alg_creal) (y : creal) :
+  x == y -> (poly_of_creal x).[y] == 0.
+Proof. by move <-. Qed.
 
 Lemma annul_sub_alg_creal_neq0 (x y : alg_creal) :
-  (annul_sub (poly_of_alg_creal x) (poly_of_alg_creal y) != 0)%B.
-Proof. by rewrite annul_sub_neq0 // size_poly_of_alg_creal_gt1. Qed.
+  (annul_sub (poly_of_creal x) (poly_of_creal y) != 0)%B.
+Proof. by rewrite annul_sub_neq0 ?monic_neq0. Qed.
 
 Lemma root_annul_sub_creal (x y : creal) (p q : {poly F}) :
   (p != 0)%B -> (q != 0)%B -> p.[x] == 0 -> q.[y] == 0 ->
@@ -2019,45 +2025,39 @@ by close.
 Qed.
 
 Lemma root_sub_alg_creal (x y : alg_creal) :
-  (annul_sub (poly_of_alg_creal x) (poly_of_alg_creal y)).[x - y] == 0.
-Proof.
-rewrite root_annul_sub_creal ?root_poly_of_alg_creal ?monic_neq0 //;
-exact: monic_poly_of_alg_creal.
-Qed.
+  (annul_sub (poly_of_creal x) (poly_of_creal y)).[x - y] == 0.
+Proof. by rewrite root_annul_sub_creal ?root_poly_of_creal ?monic_neq0. Qed.
 
 Definition sub_alg_creal (x y : alg_creal) : alg_creal :=
   AlgCRealOf (annul_sub_alg_creal_neq0 x y) (@root_sub_alg_creal x y).
 
 Lemma root_opp_alg_creal (x : alg_creal) :
-  (poly_of_alg_creal (sub_alg_creal (cst_alg_creal 0) x)).[- x] == 0.
-Proof.
-apply: is_root_poly_of_alg_creal; apply: eq_crealP.
-by exists (fun _ => 0%N)=> e i e_gt0 hi /=; rewrite sub0r subrr absr0.
-Qed.
+  (poly_of_creal (sub_alg_creal (cst_alg_creal 0) x)).[- x] == 0.
+Proof. by apply: is_root_poly_of_creal; rewrite /= add_0creal. Qed.
 
 Definition opp_alg_creal (x : alg_creal) : alg_creal :=
-  AlgCReal (@monic_poly_of_alg_creal _) (@root_opp_alg_creal x).
+  AlgCReal (@monic_poly_of_creal _) (@root_opp_alg_creal x).
 
 Lemma root_add_alg_creal (x y : alg_creal) :
-  (poly_of_alg_creal (sub_alg_creal x (opp_alg_creal y))).[x + y] == 0.
+  (poly_of_creal (sub_alg_creal x (opp_alg_creal y))).[x + y] == 0.
 Proof.
-apply: is_root_poly_of_alg_creal; apply: eq_crealP.
-by exists (fun _ => 0%N)=> e i e_gt0 hi /=; rewrite opprK subrr absr0.
+apply: is_root_poly_of_creal; apply: eq_crealP.
+by exists m0=> * /=; rewrite opprK subrr absr0.
 Qed.
 
 Definition add_alg_creal (x y : alg_creal) : alg_creal :=
-  AlgCReal (@monic_poly_of_alg_creal _) (@root_add_alg_creal x y).
+  AlgCReal (@monic_poly_of_creal _) (@root_add_alg_creal x y).
 
 Lemma annul_div_alg_creal_neq0 (x y : alg_creal) :
-   ((poly_of_alg_creal x).[0] != 0)%B ->
-  (annul_div (poly_of_alg_creal x) (poly_of_alg_creal y) != 0)%B.
-Proof. by move=> ?; rewrite annul_div_neq0 ?size_poly_of_alg_creal_gt1. Qed.
+   ((poly_of_creal y).[0] != 0)%B ->
+  (annul_div (poly_of_creal x) (poly_of_creal y) != 0)%B.
+Proof. by move=> ?; rewrite annul_div_neq0 ?monic_neq0. Qed.
 
 Lemma root_annul_div_creal (x y : creal) (p q : {poly F}) (y_neq0 : y != 0) :
-  (p != 0)%B -> (q != 0)%B -> p.[0] != 0 -> p.[x] == 0 -> q.[y] == 0 ->
+  (p != 0)%B -> (q != 0)%B -> p.[x] == 0 -> q.[y] == 0 ->
   (annul_div p q).[(x / y_neq0)%CR] == 0.
 Proof.
-move=> p_neq0 q_neq0 p0_neq0 px_eq0 qy_eq0.
+move=> p_neq0 q_neq0 px_eq0 qy_eq0.
 have [||[u v] /= [hu hv] hpq] := @annul_div_in_ideal _ p q.
 + by rewrite (@horner_has_root_size_gt1 x).
 + by rewrite (@horner_has_root_size_gt1 y).
@@ -2082,61 +2082,51 @@ by close.
 Qed.
 
 Lemma root_div_alg_creal (x y : alg_creal) (y_neq0 : y != 0) :
-  ((poly_of_alg_creal x).[0] != 0)%B ->
-  (annul_div (poly_of_alg_creal x) (poly_of_alg_creal y)).[x / y_neq0] == 0.
-Proof.
-move=> hx; rewrite root_annul_div_creal ?root_poly_of_alg_creal ?monic_neq0 //;
-  do ?exact: monic_poly_of_alg_creal.
-by move: hx=> /neq_creal_cst.
-Qed.
+  ((poly_of_creal y).[0] != 0)%B ->
+  (annul_div (poly_of_creal x) (poly_of_creal y)).[x / y_neq0] == 0.
+Proof. by move=> hx; rewrite root_annul_div_creal ?monic_neq0. Qed.
 
 Lemma simplify_alg_creal (x : alg_creal) (x_neq0 : x != 0) :
-  {y | ((poly_of_alg_creal y).[0] != 0)%B & x == y}.
+  {y | ((poly_of_creal y).[0] != 0)%B & ((y != 0) * (x == y))%type}.
 Proof.
-elim: size {-3}x x_neq0 (leqnn (size (poly_of_alg_creal x))) =>
+elim: size {-3}x x_neq0 (leqnn (size (poly_of_creal x))) =>
   {x} [|n ihn] x x_neq0 hx.
-  move: hx; rewrite leqn0 size_poly_eq0.
-  by rewrite (negPf (monic_neq0 _)) ?monic_poly_of_alg_creal //.
-have [dvdX|ndvdX] := boolP ('X %| poly_of_alg_creal x); last first.
+  by move: hx; rewrite leqn0 size_poly_eq0 poly_of_creal_eq0.
+have [dvdX|ndvdX] := boolP ('X %| poly_of_creal x); last first.
   by exists x=> //; rewrite -rootE -dvdp_factorl subr0.
-have monic_p: monic (@poly_of_alg_creal x %/ 'X).
-  by rewrite -(monic_mulr _ (@monicX _)) divpK ?monic_poly_of_alg_creal.
-have root_p: (@poly_of_alg_creal x %/ 'X).[x] == 0.
-  have := @eq_creal_refl ((poly_of_alg_creal x).[x])%CR.
-  rewrite -{1}(divpK dvdX) horner_crealM root_poly_of_alg_creal.
+have monic_p: monic (@poly_of_creal x %/ 'X).
+  by rewrite -(monic_mulr _ (@monicX _)) divpK //.
+have root_p: (@poly_of_creal x %/ 'X).[x] == 0.
+  have := @eq_creal_refl ((poly_of_creal x).[x])%CR.
+  rewrite -{1}(divpK dvdX) horner_crealM // root_poly_of_creal.
   by case/poly_mul_creal_eq0=> //; rewrite horner_crealX.
 have [//|/=|y *] := ihn (AlgCReal monic_p root_p); last by exists y.
 by rewrite size_divp ?size_polyX ?polyX_eq0 ?leq_sub_add ?add1n.
 Qed.
 
 Definition div_alg_creal (x y : alg_creal) :=
-  match eq_alg_creal_dec x (cst_alg_creal 0),
-        eq_alg_creal_dec y (cst_alg_creal 0) with
-    | left x_eq0, _ => cst_alg_creal 0
-    | _, left y_eq0 => cst_alg_creal 0
-    | right x_neq0, right y_neq0 =>
-      let: exist2 x' px'0_neq0 _ := simplify_alg_creal x_neq0 in
-      AlgCRealOf (@annul_div_alg_creal_neq0 x' y px'0_neq0) (@root_div_alg_creal x' y y_neq0 px'0_neq0)
+  match eq_alg_creal_dec y (cst_alg_creal 0) with
+    | left y_eq0 => cst_alg_creal 0
+    | right y_neq0 =>
+      let: exist2 y' py'0_neq0 (y'_neq0, _) := simplify_alg_creal y_neq0 in
+      AlgCRealOf (annul_div_alg_creal_neq0 x py'0_neq0)
+                 (@root_div_alg_creal x y' y'_neq0 py'0_neq0)
   end.
 
 Lemma root_inv_alg_creal (x : alg_creal) (x_neq0 : x != 0) :
-  (poly_of_alg_creal (div_alg_creal (cst_alg_creal 1) x)).[x_neq0^-1] == 0.
+  (poly_of_creal (div_alg_creal (cst_alg_creal 1) x)).[x_neq0^-1] == 0.
 Proof.
-rewrite /div_alg_creal /=.
-case: eq_alg_creal_dec=> [|one_creal_neq0].
-  by move/eq_creal_cst; rewrite oner_eq0.
-case: eq_alg_creal_dec x_neq0=> //= x_neq0 x_neq0'.
-case: simplify_alg_creal=> one one0_neq0 eq_1y.
-(* Bug : suff -> : x_neq0 ^-1 == 1%:CR / x_neq0. *)
-apply: is_root_poly_of_alg_creal=> /=; rewrite -eq_1y; apply: eq_crealP.
-by exists (fun _ => 0%N)=> e i e_gt0 hi /=; rewrite div1r subrr absr0.
+rewrite /div_alg_creal; case: eq_alg_creal_dec=> [/(_ x_neq0)|x_neq0'] //=.
+case: simplify_alg_creal=> x' px'0_neq0 [x'_neq0 eq_xx'].
+apply: is_root_poly_of_creal;rewrite /= -(@eq_creal_inv _ _ x_neq0) //.
+by apply: eq_crealP; exists m0=> * /=; rewrite div1r subrr absr0.
 Qed.
 
 Definition inv_alg_creal (x : alg_creal) :=
   match eq_alg_creal_dec x (cst_alg_creal 0) with
     | left x_eq0 => cst_alg_creal 0
     | right x_neq0 =>
-      AlgCReal (@monic_poly_of_alg_creal _) (@root_inv_alg_creal _ x_neq0)
+      AlgCReal (@monic_poly_of_creal _) (@root_inv_alg_creal _ x_neq0)
   end.
 
 Lemma div_creal_creal (y : creal) (y_neq0 : y != 0) : y / y_neq0 == 1%:CR.
@@ -2148,24 +2138,22 @@ by close.
 Qed.
 
 Lemma root_mul_alg_creal (x y : alg_creal) :
-  (poly_of_alg_creal (div_alg_creal x (inv_alg_creal y))).[x * y] == 0.
+  (poly_of_creal (div_alg_creal x (inv_alg_creal y))).[x * y] == 0.
 Proof.
-rewrite /div_alg_creal /inv_alg_creal /=.
-case: eq_alg_creal_dec=> [->|x_neq0].
-  by rewrite mul_0creal root_poly_of_alg_creal.
-case: (eq_alg_creal_dec y) => [->|y_neq0].
-  case: eq_alg_creal_dec; first by rewrite mul_creal0 root_poly_of_alg_creal.
-  by move=> h0; move/eq_creal_refl: h0 (h0).
+rewrite /div_alg_creal /inv_alg_creal.
+case: (eq_alg_creal_dec y)=> [->|y_neq0]; apply: is_root_poly_of_creal.
+  rewrite mul_creal0; case: eq_alg_creal_dec=> // neq_00.
+  by move: (eq_creal_refl neq_00).
 case: eq_alg_creal_dec=> /= [yV_eq0|yV_neq0].
   have: y * y_neq0^-1 == 0 by rewrite yV_eq0 mul_creal0.
   by rewrite div_creal_creal=> /eq_creal_cst; rewrite oner_eq0.
-case: simplify_alg_creal=> x' px'0_neq0 ->.
-apply: is_root_poly_of_alg_creal=> /=; apply: eq_crealP.
-by exists (fun _ => 0%N)=> e i e_gt0 hi /=; rewrite invrK subrr absr0.
+case: simplify_alg_creal=> y' py'0_neq0 [y'_neq0 /= eq_yy'].
+rewrite -(@eq_creal_inv _ _ yV_neq0) //.
+by apply: eq_crealP; exists m0=> * /=; rewrite invrK subrr absr0.
 Qed.
 
 Definition mul_alg_creal (x y : alg_creal) :=
-  AlgCReal (@monic_poly_of_alg_creal _) (@root_mul_alg_creal x y).
+  AlgCReal (@monic_poly_of_creal _) (@root_mul_alg_creal x y).
 
 Local Open Scope quotient_scope.
 
@@ -2483,4 +2471,5 @@ Canonical Real.alg_poIdomainType.
 Canonical Real.alg_poFieldType.
 Canonical Real.alg_oIdomainType.
 Canonical Real.alg_oFieldType.
+
 
