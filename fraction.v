@@ -355,8 +355,8 @@ Proof. by case: x=> pf /= /andP []. Qed.
 End PolyFracDef.
 Notation "{ 'polyfrac' T }" := (polyfrac_of (Phant T)).
 
-Module PolyFrac.
-Section PolyFrac.
+Module PolyFraction.
+Section PolyFraction.
 
 Variable R : fieldType.
 
@@ -440,5 +440,5 @@ Canonical inv_morph := @MorphOp1 _ _ _ _ _ inv (chgQuotOp1P _ sequiv).
 
 (* To be continued *)
 
-End PolyFrac.
-End PolyFrac.
+End PolyFraction.
+End PolyFraction.
