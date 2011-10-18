@@ -57,21 +57,20 @@ by move: (cyclic_abelian cW)=> /subsetP /(_ _ YiG) /centP; apply.
 Qed.
 
 (* Move to fingroup *)
-Lemma mem_class_support (gT : finGroupType) (A B : {set gT}) x y : 
-  x \in A -> y \in B -> x ^ y \in class_support A B.
-Proof. by move=> XiA YiB; apply/imset2P; exists x y. Qed.
+Lemma mem_class_support (gT : finGroupType) (A B : {set gT}) a b :
+   a \in A -> b \in B -> a ^ b \in class_support A B.
+Proof. by move=> AiA BiB; apply/imset2P; exists a b. Qed.
 
-(* Move to character *)
-Lemma ind_cfun_on (gT : finGroupType) (A : {set gT}) 
-                  (G W: {group gT}) (f : 'CF(W)) :
-  W \subset G -> f \in 'CF(W, A) -> 'Ind[G] f \in 'CF(G, class_support A G).
+Lemma cfInd_on_class_support (gT : finGroupType) (G H : {group gT}) 
+                             (A : {set gT})  (f : 'CF(H)) :
+ H \subset G -> f \in 'CF(H, A) -> 'Ind[G] f \in 'CF(G, class_support A G).
 Proof.
-move=> WsG /cfun_onP Cf; apply/cfun_onP=> g GniAG.
+move=> HsG Cf; apply/cfun_onP=> g GniC.
 rewrite cfIndE // big1 ?mulr0 // => h HiG.
-apply: Cf; apply: contra GniAG => GHiA.
-by rewrite -[g](conjgK h) mem_class_support ?groupV.
+apply: (cfun_on0 Cf); apply: contra GniC => GHiA.
+by rewrite -[g](conjgK h) mem_class_support // groupV.
 Qed.
-
+ 
 Section Definitions.
 
 Variables (gT : finGroupType) (G W W1 W2 : {set gT}).
@@ -2180,13 +2179,90 @@ rewrite cfdotE big1 ?mulr0 // => g GiG.
 case: (boolP (g \in class_support V G))=> [/imset2P [v h ViV HiG ->]|GniC].
   by rewrite cfunJ // ZphiV // mul0r.
 have[/cfun_onP-> //]: 'Ind[G] a \in 'CF(G, class_support V G).
-  by apply: ind_cfun_on=> //; case: tiW=> [[]].
+  by apply: cfInd_on_class_support=> //; case: tiW=> [[]].
 by rewrite conjC0 mulr0.
 Qed.
 
-Definition cyclicTI_NC phi := #|[set ij | '[phi, sigma (w_ ij.1 ij.2)] != 0]|.
+    
+(* Move to vcharacter *)
+Definition dirr :=  [pred f | (f \in irr G) || (-f \in irr G)].
 
+Lemma dirr_opp_eq v : (-v \in dirr) = (v \in dirr).
+Proof. by rewrite !inE opprK orbC. Qed.
+
+Lemma dirr_opp v : v \in dirr -> -v \in dirr.
+Proof. by rewrite dirr_opp_eq. Qed.
+
+Lemma dirr_sign (b : bool) v : ((-1)^+ b *: v \in dirr) = (v \in dirr).
+Proof. by case: b; rewrite ?(scaleNr,scale1r, dirr_opp_eq). Qed.
+
+Lemma dirr_chi i : 'chi_i \in dirr.
+Proof. by rewrite !inE irr_chi. Qed.
+
+Lemma dirrP f : reflect (exists b : bool, exists i, f = (-1)^+ b *: 'chi_i)
+                        (f \in dirr).
+Proof.
+apply: (iffP idP)=> [| [b [i ->]]]. 
+  rewrite inE => /orP [] /irrP [] i Hf.
+    by exists false; exists i; rewrite scale1r.
+  by exists true; exists i; rewrite expr1 scaleNr scale1r -Hf opprK.
+by rewrite dirr_sign dirr_chi.
+Qed.
+
+(* NC as defined in PF 3.6 *)
+Definition cyclicTI_NC phi := #|[set ij | '[phi, sigma (w_ ij.1 ij.2)] != 0]|.
 Notation NC := cyclicTI_NC.
+
+Lemma cyclicTI_NC_irr i : (NC 'chi_i <= 1)%N.
+Proof.
+case:  cyclicTIisometry=> Isig Zsig.
+have: (0 <= NC 'chi_i)%N by done.
+rewrite leq_eqVlt; case/orP=> [/eqP-> //|/card_gt0P [[i1 j1 Hi1j1]]].
+rewrite /cyclicTI_NC (cardD1 (i1,j1)) Hi1j1 /=.
+have Irri1 : w_ i1 j1 \in 'Z[irr W] by rewrite irr_vchar.
+have: '[sigma (w_ i1 j1)] = 1 by rewrite Isig ?(cfdot_irr, eqxx).
+case/(vchar_norm1P (Zsig _ _))=> [|b3 [j3 Hj3]] //.
+rewrite -{2}[1%N]addn0 leq_add2l.
+apply/eqP; rewrite subn0 eq_card0 // => [] [i2 j2].
+have Irri2 : w_ i2 j2 \in 'Z[irr W] by rewrite irr_vchar.
+have: '[sigma (w_ i2 j2)] = 1 by rewrite Isig ?(cfdot_irr, eqxx).
+case/(vchar_norm1P (Zsig _ _))=> [|b4 [j4 Hj4]] //.
+move: Hi1j1; rewrite !inE /= Hj3 Hj4 !cfdotZr !cfdot_irr.
+case: (i =P _)=> [Hij1 _ |_]; last by rewrite mulr0 eqxx.
+case: (i =P _)=> [Hij4 |_]; last by rewrite mulr0 eqxx andbF.
+have: '[sigma (w_ i1 j1), sigma (w_ i2 j2)] != 0.
+  rewrite Hj3 Hj4 -Hij1 -Hij4.
+  rewrite cfdotZl cfdotZr cfdot_irr eqxx (isIntC_conj (isIntC_sign _)).
+  by rewrite mulr1 -signr_addb signr_eq0.
+rewrite Isig // cfdot_irr; case: (dprod_Iirr _ _ =P _); last by rewrite eqxx.
+by move/dprod_Iirr_inj->; rewrite eqxx.
+Qed.
+
+Lemma cyclicTI_NC_opp (phi : 'CF(G)) : (NC (-phi)%R = NC phi)%N.
+Proof. by apply: eq_card=> [[i j]]; rewrite !inE cfdotNl oppr_eq0. Qed.
+
+Lemma cyclicTI_NC_sign (phi : 'CF(G)) n : (NC ((-1) ^+ n *: phi)%R = NC phi)%N.
+Proof. 
+elim: n=> [|n IH]; rewrite ?(expr0,scale1r) //.
+by rewrite exprS -scalerA scaleN1r cyclicTI_NC_opp.
+Qed.
+
+Lemma cyclicTI_NC_dirr f : f \in dirr -> (NC f <= 1)%N.
+Proof.
+by case/orP; last rewrite -cyclicTI_NC_opp; case/irrP=> i ->;
+   exact: cyclicTI_NC_irr.
+Qed.
+
+Lemma cyclicTI_NC_add (phi psi : 'CF(G)) : (NC (phi + psi)%R <= NC phi + NC psi)%N.
+Proof.
+rewrite -cardsUI; apply: leq_trans (leq_addr _ _).
+rewrite subset_leqif_card //; apply/subsetP=> [[i j]]; rewrite !inE /= => HH.
+(do 2 (case: (_ =P _)=> //))=> HH1 HH2; case/negP: HH.
+by rewrite cfdotDl HH1 HH2 add0r.
+Qed.
+
+Lemma cyclicTI_NC_sub (phi psi : 'CF(G)) : (NC (phi - psi)%R <= NC phi + NC psi)%N.
+Proof. by move: (cyclicTI_NC_add phi (-psi)); rewrite cyclicTI_NC_opp. Qed.
 
 (* This is PF 3.8 *)
 Lemma cyclicTI_NC_split (phi : 'CF(G)) i j : 
@@ -2362,7 +2438,78 @@ have [/subset_leqif_card [] HH2 _]: C i :|: C i1 \subset S.
 apply: leq_trans HH2; rewrite cardsU !FC // CI (negPf Dii1) cards0 subn0.
 by rewrite mulSn mul1n leq_add // leq_minl leqnn // orbT.
 Qed.
-       
+
+(* a weaker version of 3.8 *)
+Lemma cyclicTI_NC_minn (phi : 'CF(G)) : 
+  {in V, forall x, phi x = 0} -> (0 < NC phi < 2 * minn w1 w2)%N ->
+   (minn w1 w2 <= NC phi)%N.
+Proof.
+move=> ZphiV /andP []; rewrite card_gt0 => /set0Pn [[i1 j1]].
+rewrite inE /= => NZs NN.
+pose a i j := '[phi, sigma (w_ i j)].
+pose S := [set ij | a ij.1 ij.2 != 0].
+pose L :=  [set (i1, j) | j <- Iirr W2].
+have cL : #|L| = w2.
+  by rewrite card_imset ?(card_ord, NirrE) // => i j [].
+pose C :=  [set (i, j1) | i <- Iirr W1].
+have cC : #|C| = w1.
+  by rewrite card_imset ?(card_ord, NirrE) // => i j [].
+case/(cyclicTI_NC_split ZphiV NN): (NZs) => HH.
+- suff: C \subset S.
+    case/subset_leqif_cards; rewrite cC => LC _.
+    by apply: leq_trans LC; rewrite leq_minl leqnn.
+  apply/subsetP=> [[i2 j2]]; rewrite !inE /a.
+  case/imsetP=> j3 J3Irr [] -> -> /=.
+  by rewrite HH eqxx mul1r NZs.
+suff: L \subset S.
+  case/subset_leqif_cards; rewrite cL => LL _.
+  by apply: leq_trans LL; rewrite leq_minl leqnn orbT.
+apply/subsetP=> [[i2 j2]]; rewrite !inE /a.
+case/imsetP=> j3 J3Irr [] -> -> /=.
+by rewrite HH eqxx mul1r NZs.
+Qed.
+
+(* This is PF 3.9a *)
+Lemma cyclicTI_dirr (i : Iirr W) (phi : 'CF(G)) :
+  phi \in dirr -> {in V, phi =1 'chi_i} -> phi = sigma 'chi_i.
+Proof.
+case/dirrP=> b [j ->].
+have := irr_vchar i.
+rewrite -(inv_dprod_IirrK W1xW2 i).
+case: (inv_dprod_Iirr _)=> /= i1 j1; rewrite -/(w_ i1 j1).
+case:  cyclicTIisometry=> Isig Zsig;  move/Zsig=> Zsirr Eij.
+have: '[sigma (w_ i1 j1)] = 1.
+  by rewrite Isig ?irr_vchar ?(cfdot_irr, eqxx).
+case/(vchar_norm1P _)=> // b2 [j2 Hj2].
+pose psi : 'CF(G) := sigma (w_ i1 j1) - (-1) ^+ b *: 'chi_j.
+have ZpsiV: {in V, forall g, psi g = 0}.
+  move=> g GiV.
+  by rewrite /psi !cfunE cyclicTIsigma_restrict // -(Eij _ GiV) cfunE subrr. 
+pose a i j := '[psi, sigma (w_ i j)].
+pose S := [set ij | a ij.1 ij.2 != 0].
+have: a i1 j1 = 1 - (-1) ^+ (b (+) b2) * (j == j2)%:R.
+  rewrite /a cfdot_subl cfdotZl Isig ?irr_vchar //.
+  rewrite cfdot_irr eqxx Hj2 cfdotZr cfdot_irr (isIntC_conj (isIntC_sign _)).
+  by rewrite mulrA -signr_addb.
+case: (boolP ((i1, j1) \in S))=> [I1J1iS|]; last first.
+  rewrite inE negbK /a /= => /eqP->.
+  case: (_ =P _)=> [->|_]; last first.
+    by rewrite mulr0 subr0=> /eqP; rewrite -(eqN_eqC 0 1).
+  case: (boolP (_ (+) _))=> [_|]; last first.
+    by rewrite negb_add=> /eqP->.
+  rewrite expr1 mulNr opprK mul1r -(natr_add _ 1%N).
+  by move/eqP; rewrite -(eqN_eqC 0 2).
+have SPos : (0 < #|S|)%N by rewrite (cardD1 (i1,j1)) I1J1iS.
+have SLt: (#|S| <= 2)%N.
+  rewrite -[2%N]add1n; apply: leq_trans (cyclicTI_NC_sub _ _) _.
+  by rewrite Hj2 !cyclicTI_NC_sign leq_add // cyclicTI_NC_irr.
+have: (0 < #|S| < 2 * minn w1 w2)%N.
+  rewrite SPos; apply: leq_ltn_trans SLt _.
+  by rewrite -{1}[2%N]muln1 ltn_mul2l /= leq_minr ![(1 < _)%N]ltnW.
+move/(cyclicTI_NC_minn ZpsiV); rewrite leqNgt; case/negP.
+by apply: leq_ltn_trans SLt _; rewrite leq_minr tLW1.
+Qed.
+
 End Proofs.
 
 Lemma cyclicTIsigma_sym (gT : finGroupType) (G W W1 W2 : {group gT}) : 

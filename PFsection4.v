@@ -348,12 +348,11 @@ Qed.
 
 Lemma memc_ecTIirr i j : e_ i j \in 'CF(W, W :\: W2).
 Proof.
-have linearX1 k : lin_char ('chi[W1]_k).
-  by apply/char_abelianP; apply: cyclic_abelian; case: HC=> [].
+have linearW1 := cTIirr_linearW1 cyclicTI_Dade.
 apply/cfun_onP=> x; rewrite !inE negb_and negbK orbC.
 have [Wx /=  XiW2 | /cfun0->//] := boolP (x \in W).
 rewrite !cfunE /w_ !dprod_IirrE -[x]mul1g !cfDprodE //.
-by rewrite  !(lin_char1 (linearX1 _)) subrr.
+by rewrite  !lin_char1 // subrr.
 Qed.
 
 Lemma ecTIirr_base_is_basis : is_basis 'CF(W, W :\: W2) ecTIirr_base.
@@ -388,6 +387,7 @@ Lemma Dade_mudelta_spec :
        'Ind[L] (e_ i j) =
             (-1) ^+ (delta j) *: ('chi_(mu2 i j) - 'chi_(mu2 0 j)).
 Proof.
+have linearW := cTIirr_linearW cyclicTI_Dade.
 rewrite /Dade_mu2 /Dade_delta /Dade_mudelta; case: pickP=> /= [[mu2 delta]|].
   move/andP=> [] /injectiveP Hi /forallP Hp; split=> // i j; apply/eqP.
   by move: (Hp i)=> /forallP /(_ j).
@@ -409,8 +409,6 @@ pose TH := normedTI_isometry FF normedTI_Dade_W2.
 have: forall j, injective (md j).1 /\   
         forall i, 'Ind[L] (e_ i j) = 
                       (-1) ^+ (md j).2 *: ('chi_((md j).1 i) - 'chi_((md j).1 0)).
-  have linearX k : lin_char ('chi[W]_k).
-    by apply/char_abelianP; apply: cyclic_abelian; case: HC=> [].
   move=> j; rewrite /md; case: pickP=> [[/= mu d] /andP [] |].
     by move/injectiveP=> Hi /forallP Hf; split=> // i; apply/eqP.
   (* All the conditions to apply 1.3 *)
@@ -476,9 +474,7 @@ have Horth: forall i1 i2 j1 j2, i1 != 0 -> i2 != 0 -> j1 != j2 ->
     by case: (HH j2)=> HHx _; move/HHx=> /eqP Zi2; case/negP: NZi2.
   have F i j : ('chi_((md j).1 i) - 'chi_((md j).1 0)) 1%g = 0.
      have: 'Ind[L] (e_ i j) 1%g == 0.
-       have linearX k : lin_char ('chi[W]_k).
-         by apply/char_abelianP; apply: cyclic_abelian; case: HC=> [].
-       by rewrite cfInd1 //!cfunE !(lin_char1 (linearX _)) subrr mulr0 //.
+       by rewrite cfInd1 //!cfunE !(lin_char1 (linearW _)) subrr mulr0 //.
      case: (HH j)=> _ /(_ i) ->.
      by rewrite cfunE (mulf_eq0) signr_eq0 /= => /eqP.
   rewrite !{1}scale1r !{1}F eqxx !andbT. 
@@ -860,10 +856,7 @@ rewrite (DMR 0 j _ X1YiWW2) (DMR 0 j _ X1iWW2) !cfunE.
 move/(mulfI _)->.
 rewrite -[x1]mulg1 /cyclicTIirr !dprod_IirrE !cfDprodE //.
   rewrite chi0_1 cfun1E X1iW1 mul1r.
-have linearX2 k : lin_char ('chi[W2]_k).
-  apply/char_abelianP; apply: cyclic_abelian.
-  by case: (cDade_cDa_h CDH)=> _ [].
-by rewrite  !(lin_char1 (linearX2 _)).
+  by rewrite  !(lin_char1 (cTIirr_linearW2 CDH _)).
 by rewrite (signr_eq0 algC _).
 Qed.
 
@@ -878,7 +871,6 @@ by rewrite /cDade_mu -Dade_Ind_chi => /cDade_chi_cher /cDade_cfker_cfun_on_ind.
 Qed.
 
 End CentralDade.
-
 
 End Four.
 
