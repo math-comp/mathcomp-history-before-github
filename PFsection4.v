@@ -287,7 +287,7 @@ Let oddW : odd #|W|. Proof. by have [[]] := cyclicTI_Dade. Qed.
 Let oddW1 : odd #|W1|. Proof. exact: oddSg oddW. Qed.
 
 Definition ecTIirr i j := w_ i j - w_ 0 j.
-Notation e_ := ecTIirr.
+Local Notation e_ := ecTIirr.
 
 Definition ecTIirr_base := image (prod_curry e_) (setX [set~ ord0] setT).
 
@@ -560,6 +560,51 @@ rewrite cfdotZr cfdot_irr; case: (_ =P _)=> [Heq|Hneq]; last by rewrite mulr0.
 by case/eqP: (Hk i1 j1); rewrite Heq.
 Qed.
 
+(* Last part of 4.3 b *)
+Lemma Dade_mu2_sigma i j :
+  sigma (w_ i j) = (-1) ^+ delta j *: 'chi_(mu2 i j).
+Proof.
+apply: sym_equal; apply: (@cyclicTI_dirr  _ _ _ _ _ cyclicTI_Dade)=> [|g].
+  by rewrite dirr_sign dirr_chi.
+rewrite !inE !cfunE -/(w_ i j) negb_or -andbA => /and3P [GniW1 GniW2 GiW].
+case: Dade_mu2_restrict=> ->; last by rewrite inE GniW2.
+by rewrite cfunE mulrA -signr_addb -negb_eqb eqxx expr0 mul1r.
+Qed.
+
+(* This is 4.3 d *)
+Lemma Dade_mu2_mod i j : 
+  {a | isIntC a /\ 'chi_(mu2 i j) 1%g = (-1) ^+ delta j + a *+ #|W1| }.
+Proof.
+pose rD := 'Res[W1] 'chi_(mu2 i j) - 'Res[W1] ((-1) ^+ delta j *: w_ i j). 
+have rDV: rD \in 'Z[irr W1].
+  by rewrite sub_vchar // cfRes_vchar ?sign_vchar // irr_vchar.
+have rDF: rD \in 'CF(W1, 1%g).
+  apply/cfun_onP=> g Gni1. 
+  case: (boolP (g \in W1))=> [GiW1|GniW1]; last by rewrite cfun0.
+  rewrite !cfunE !cfResE // !cfunE.
+  case: (Dade_mu2_restrict)=> ->; rewrite ?(cfunE, subrr) //.
+  rewrite inE (subsetP sW1W) // andbT.
+  apply: contra Gni1=> GiW2.
+  by case/dprodP: W1xW2=> _ _ _ <-; rewrite inE GiW1.
+pose a k := '[rD, 'chi_k].
+pose LW1 i := lin_char1 (cTIirr_linearW1 cyclicTI_Dade i).
+pose LW i := lin_char1 (cTIirr_linearW cyclicTI_Dade i).
+have Ha k: a k = a 0.
+  rewrite /a !cfdotE (bigD1 1%g) //= big1=> [|u /andP [_ NOu]]; last first.
+    by rewrite (cfun_on0 rDF) ?mul0r // inE.
+  rewrite (bigD1 1%g) //= big1=> [|u /andP [_ NOu]]; last first.
+    by rewrite (cfun_on0 rDF) ?mul0r // inE.
+  by rewrite !LW1.
+exists (a 0); split.
+  by apply: cfdot_vchar_irr_Int.
+suff<-: rD 1%g =  a 0 *+ #|W1|.
+  by rewrite !cfunE !cfResE ?group1 // !cfunE LW mulr1 addrC subrK.
+rewrite {1}[rD]cfun_sum_cfdot sum_cfunE (eq_bigr (fun _ => a 0))=> [|u Hu].
+  rewrite sumr_const cardT size_enum_ord NirrE.
+  by have:= cyclic_abelian CW1; rewrite card_classes_abelian => /eqP ->.
+by rewrite -/(a u) Ha cfunE LW1 mulr1.
+Qed.
+
 Definition Dade_mu j : 'CF(L) := \sum_(i < Nirr W1) 'chi_(mu2 i j).
 Local Notation mu := Dade_mu.
 
@@ -742,7 +787,7 @@ Record centralDade_hypothesis : Prop :=  CentralDadeHypothesis {
 
 Hypothesis CDH : centralDade_hypothesis.
 
-Notation V := (cyclicTIset CDH).
+Local Notation V := (cyclicTIset CDH).
 
 Let OH := match CDH with
   CentralDadeHypothesis _ _ _ HH => HH end.

@@ -97,7 +97,9 @@ Let w1 := #|W1|.
 Let w2 := #|W2|.
 Let V := cyclicTIset tiW.
 
-Let W1xW2 : W1 \x W2 = W. Proof. by have [[]] := tiW. Qed.
+Definition cyclicTIhyp_W1xW2 : W1 \x W2 = W. 
+Proof. by have [[]] := tiW. Defined.
+Local Notation W1xW2 := cyclicTIhyp_W1xW2.
 Let sW1W : W1 \subset W. Proof. by have [_ /mulG_sub[]] := dprodP W1xW2. Qed.
 Let sW2W : W2 \subset W. Proof. by have [_ /mulG_sub[]] := dprodP W1xW2. Qed.
 
@@ -2211,7 +2213,7 @@ Qed.
 
 (* NC as defined in PF 3.6 *)
 Definition cyclicTI_NC phi := #|[set ij | '[phi, sigma (w_ ij.1 ij.2)] != 0]|.
-Notation NC := cyclicTI_NC.
+Local Notation NC := cyclicTI_NC.
 
 Lemma cyclicTI_NC_irr i : (NC 'chi_i <= 1)%N.
 Proof.
