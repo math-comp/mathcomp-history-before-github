@@ -506,7 +506,7 @@ wlog vX0_neq0 : u v p q p_neq0 q0_neq0 hpq
     rewrite swapXY_X hornerC mulf_eq0 polyX_eq0 orbF -rootE.
     case/factor_poly=> [|v'' /andP []]; first by rewrite swapXY_eq0.
     rewrite size_poly_neq0 !polyC0 {1}subr0=> v''_neq0 hsv'' swv'.
-    move: (p0_eq0)=> /rootP/factor_poly-/(_ p_neq0) [p' /andP[]].
+    move: (p0_eq0)=> /rootP/factor_poly; move /(_ p_neq0) => [p' /andP[]].
     rewrite size_poly_neq0 polyC0 {1}subr0=> p'_neq0 hsp' hp.
     apply: (ihsv v'' u p' q);
     do ?by rewrite (p'_neq0, q0_neq0, u_neq0, v''_neq0, swapXY_eq0, ltn_uq).
