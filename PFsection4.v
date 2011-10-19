@@ -281,8 +281,8 @@ Proof. by case: eqP => // <-. Qed.
 
 Let W1xW2 : W1 \x W2 = W. Proof. by have [[]] := cyclicTI_Dade. Defined.
 
-Let sW1W : W1 \subset W. Proof. by have [_ /mulG_sub[]] := dprodP W1xW2. Qed.
-Let sW2W : W2 \subset W. Proof. by have [_ /mulG_sub[]] := dprodP W1xW2. Qed.
+Let W1sW : W1 \subset W. Proof. by have [_ /mulG_sub[]] := dprodP W1xW2. Qed.
+Let W2sW : W2 \subset W. Proof. by have [_ /mulG_sub[]] := dprodP W1xW2. Qed.
 Let oddW : odd #|W|. Proof. by have [[]] := cyclicTI_Dade. Qed.
 Let oddW1 : odd #|W1|. Proof. exact: oddSg oddW. Qed.
 
@@ -342,7 +342,7 @@ rewrite !card_ord dim_cfun_on_abelian ?(cyclic_abelian, subsetDl) // !NirrE.
 have:= cyclic_abelian CW1; rewrite card_classes_abelian => /eqP ->.
 have:= cyclic_abelian CW2; rewrite card_classes_abelian => /eqP ->.
 rewrite cardsD -(dprod_card W1xW2).
-move/setIidPr: sW2W->.
+move/setIidPr: W2sW->.
 by rewrite -{2}[#|W2|]mul1n -muln_subl subn1.
 Qed.
 
@@ -571,6 +571,11 @@ case: Dade_mu2_restrict=> ->; last by rewrite inE GniW2.
 by rewrite cfunE mulrA -signr_addb -negb_eqb eqxx expr0 mul1r.
 Qed.
 
+Let classesW1 : #|classes W1| = #|W1|.
+Proof.
+by have:= cyclic_abelian CW1; rewrite card_classes_abelian => /eqP ->.
+Qed.
+
 (* This is 4.3 d *)
 Lemma Dade_mu2_mod i j : 
   {a | isIntC a /\ 'chi_(mu2 i j) 1%g = (-1) ^+ delta j + a *+ #|W1| }.
@@ -583,7 +588,7 @@ have rDF: rD \in 'CF(W1, 1%g).
   case: (boolP (g \in W1))=> [GiW1|GniW1]; last by rewrite cfun0.
   rewrite !cfunE !cfResE // !cfunE.
   case: (Dade_mu2_restrict)=> ->; rewrite ?(cfunE, subrr) //.
-  rewrite inE (subsetP sW1W) // andbT.
+  rewrite inE (subsetP W1sW) // andbT.
   apply: contra Gni1=> GiW2.
   by case/dprodP: W1xW2=> _ _ _ <-; rewrite inE GiW1.
 pose a k := '[rD, 'chi_k].
@@ -600,8 +605,7 @@ exists (a 0); split.
 suff<-: rD 1%g =  a 0 *+ #|W1|.
   by rewrite !cfunE !cfResE ?group1 // !cfunE LW mulr1 addrC subrK.
 rewrite {1}[rD]cfun_sum_cfdot sum_cfunE (eq_bigr (fun _ => a 0))=> [|u Hu].
-  rewrite sumr_const cardT size_enum_ord NirrE.
-  by have:= cyclic_abelian CW1; rewrite card_classes_abelian => /eqP ->.
+  by rewrite sumr_const cardT size_enum_ord NirrE classesW1.
 by rewrite -/(a u) Ha cfunE LW1 mulr1.
 Qed.
 
@@ -772,7 +776,8 @@ Record centralDade_hypothesis : Prop :=  CentralDadeHypothesis {
   cDade_cTI_h    :> cyclicTIhypothesis G W W1 W2;
   cDade_cDa_h    :> cyclicDade_hypothesis L K W W1 W2;
   cDade_V        := cyclicTIset cDade_cTI_h;
-  cDade_dAd_h    :> Dade_hypothesis G L (A :|: class_support cDade_V L);
+  cDade_A0       := A :|: class_support cDade_V L;
+  cDade_dAd_h    :> Dade_hypothesis G L cDade_A0;
   cDade_sigma    := cyclicTIsigma L W W1 W2;
   cDade_w        := cyclicTIirr (cyclicTI_Dade cDade_cDa_h);
   cDade_mu       := Dade_mu cDade_cDa_h;
@@ -788,6 +793,7 @@ Record centralDade_hypothesis : Prop :=  CentralDadeHypothesis {
 Hypothesis CDH : centralDade_hypothesis.
 
 Local Notation V := (cyclicTIset CDH).
+Local Notation A0 := (cDade_A0 CDH).
 
 Let OH := match CDH with
   CentralDadeHypothesis _ _ _ HH => HH end.
@@ -913,6 +919,114 @@ Proof. by move/cDade_chi_cher; exact: cDade_cfker_cfun_on. Qed.
 Lemma cDade_mu_support j : j != 0 -> mu j \in 'CF(L, A :|: 1%G).
 Proof. 
 by rewrite /cDade_mu -Dade_Ind_chi => /cDade_chi_cher /cDade_cfker_cfun_on_ind.
+Qed.
+
+Let odd_neq2 m : odd m -> (2 == m)%N = false. Proof. by case: eqP => // <-. Qed.
+
+Let oddW : odd #|W|. Proof. by have [[]] := (cyclicTI_Dade CDH). Qed.
+
+Let W1sW : W1 \subset W. Proof. by have [_ /mulG_sub[]] := dprodP HdP. Qed.
+
+Let W2sW : W2 \subset W. Proof. by have [_ /mulG_sub[]] := dprodP HdP. Qed.
+
+Let oddW1 : odd #|W1|. Proof. exact: oddSg oddW. Qed.
+
+Let tLW1 : (2 < #|W1|)%N.
+Proof. rewrite ltn_neqAle cardG_gt1 odd_neq2 //. Qed.
+
+(* Second part of 4.8 *)
+Lemma cDade_mu2_delta i j k : mu2 i j 1%g = mu2 i k 1%g -> delta j = delta k.
+Proof.
+case: (Dade_mu2_mod CDH i j)=> a [Ia -> /=].
+case: (Dade_mu2_mod CDH i k)=> b [Ib -> /=].
+rewrite -!/(delta _).
+wlog Hn : j k a b Ia Ib / a <= b=> [WL|].
+  have: isIntC (a - b) by apply: isIntC_sub.
+  case/isIntCP=> [[]] [n]; 
+       rewrite ?(expr0, expr1, mul1r, mulr1, mulN1r)=> Hn Hd.
+    by rewrite (WL j k _ _ Ia Ib) // -leC_sub -[_ - _]opprK oppr_sub Hn 
+               opprK posC_nat.
+  by rewrite (WL k j _ _ Ib Ia) // -leC_sub Hn posC_nat.
+case: (boolP (a == b))=> [/eqP->|Dab HH]; first by move/addIr.
+have Pw1: 0 < #|W1|%:R by rewrite -(ltn_ltC 0) cardG_gt0.
+have: delta j - delta k < (b - a) *+ #|W1|.
+  suff: delta j - delta k < #|W1|%:R.
+    move/ltC_leC_trans; apply.
+    rewrite -mulr_natr -[X in _ <= X]mulr_natr leC_mul2r ?posC_nat //.
+    have<-: `|b - a| = b - a.
+      suff: isNatC (b - a) by case/isNatCP=> m ->; exact: normC_nat.
+      by rewrite -isIntC_pos ?isIntC_sub // leC_sub.
+    by apply: isIntC_normC_ge1; rewrite ?isIntC_sub // subr_eq0 eq_sym.
+  rewrite /delta; do 2 case: (Dade_delta _ _); 
+     rewrite ?(expr0, expr1, subrr) //.
+    apply: leC_ltC_trans Pw1.
+    by rewrite -leC_sub oppr_sub opprK add0r -(natr_add _ 1 1) -(leq_leC 0).
+  by rewrite opprK -(natr_add _ 1 1) -ltn_ltC add1n.
+  rewrite -(ltC_add2l (a *+ #|W1|)) !addrA [X in X - _ < _]addrC HH.
+by rewrite [X in X - _ < _]addrC addrK mulrn_subl addrC subrK /ltC eqxx.
+Qed.
+
+Let SdP : K ><| W1 = L. Proof. by case: (cDade_cDa_h CDH)=> [[]]. Qed.
+
+Let Hcoprime : coprime #|W1| #|K|.
+Proof.
+case: (cDade_cDa_h CDH)=> [[_ _ H_Hall _] [_ WsK _ _] _].
+by rewrite coprime_sym (coprime_sdprod_Hall SdP) (sdprod_Hall SdP).
+Qed.
+
+(* Second part of 4.8 *)
+Lemma cDade_mu2_on i j k : j != 0 -> k != 0 ->
+   mu2 i j 1%g = mu2 i k 1%g -> mu2 i j - mu2 i k \in 'CF(L, A0). 
+Proof.
+move=> NZj NZk Emu1.
+have HF g : g \in W1^# -> mu2 i j g - mu2 i k g = 0.
+  rewrite !inE=> /andP [Dg1 GiW1].
+  have GiWmW2: g \in W :\: W2.
+    rewrite inE (subsetP W1sW) // andbT; apply: contra Dg1=> GiW2.
+    have: g \in W1 :&: W2 by rewrite inE GiW1.
+    by case/dprodP: HdP=> _ _  _ ->; rewrite inE.
+  case: (Dade_mu2_restrict CDH)=> HH _.
+  rewrite !HH // -!/(delta _) -!/(w_ _ _) (cDade_mu2_delta Emu1).
+  rewrite !cfunE -mulr_subr -[g]mulg1 ![w_ _ _]dprod_IirrE !cfDprodE //.
+  by rewrite !(lin_char1 (cTIirr_linearW2 CDH _)) subrr mulr0.
+apply/cfun_onP=> g; rewrite !inE negb_or !cfunE.
+case/andP=> GniA GniCL.
+case: (boolP (g \in L))=> [GiL | GniL]; last by rewrite !cfun0 // subrr.
+case: (boolP (g \in 1%G))=> [| Dg1].
+  by rewrite inE => /eqP->; rewrite Emu1 subrr.
+case: (boolP (g \in W1))=> [GiW1 | GniW1].
+  by apply: HF; first by move: Dg1; rewrite !inE => ->.
+case: (boolP (g \in K))=> [GiK|GniK]; last first.
+  move: GiL GniK GniW1 GniCL.
+  case/(mem_sdprod SdP)=> k1 [x1 [K1iK X1iW1] -> _] K1X1niK.
+  have: x1 \in W1^#.
+    by rewrite !inE X1iW1 andbT; apply: contra K1X1niK=> /eqP->; rewrite mulg1.
+  case: (cDade_cDa_h CDH)=> [] _ [_ _ _ HH _] /HH=> EW2.
+  have CKx: coprime #|K| #[x1].
+    move: X1iW1; rewrite -cycle_subG=> /cardSg /coprime_dvdr; apply.
+    by rewrite coprime_sym.
+  have X1iNK: x1 \in 'N(K) by case/sdprodP: SdP=> _ _ /subsetP ->.
+  have: (k1 * x1)%g \in K :* x1.
+    by apply/imset2P; exists k1 x1; rewrite ?inE //.
+  case: (partition_cent_rcoset X1iNK CKx)=> /cover_partition<- _.
+  rewrite cover_imset => /bigcupP [k2 K2iK] /imsetP [w /imset2P [x2 x]].
+  rewrite EW2 inE=> X2iW2 /eqP-> -> -> X2X1CniW1.
+  have X2X1iW : (x2 * x1)%g \in W.
+    by apply: groupM; [rewrite (subsetP W2sW) | rewrite (subsetP W1sW)].
+  case: (boolP ((x2 * x1)%g \in W1))=> [X2X1iW1 _ |X2X1niW1 /negP []].
+    rewrite !cfunJ ?(subsetP KsL) // HF // !inE X2X1iW1 andbT.
+    by apply: contra X2X1CniW1=> /eqP->; rewrite conj1g group1.
+  apply: mem_class_support; last by apply: (subsetP KsL).
+  rewrite !inE negb_or -andbA; apply/and3P; split=> //.
+  apply: contra K1X1niK=> X1XiW2.
+  have: x1 \in W1 :&: W2 by rewrite inE X1iW1 -(groupMl _ X2iW2).
+  by case/dprodP: HdP=> _ _ _  ->; rewrite inE => /eqP->; rewrite mulg1. 
+have GniA1 : g \notin A :|: 1%G by rewrite inE negb_or GniA.
+move/cfun_onP: (cDade_chi_support NZj)=> /(_ _ GniA1).
+rewrite /chi (Dade_chiE _ i) cfResE // -/(mu2 _ _) => ->.
+move/cfun_onP: (cDade_chi_support NZk)=> /(_ _ GniA1).
+rewrite /chi (Dade_chiE _ i) cfResE // -/(mu2 _ _) => ->.
+by rewrite subrr.
 Qed.
 
 End CentralDade.
