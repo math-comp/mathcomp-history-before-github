@@ -370,7 +370,7 @@ case p0: (p == 0); first by rewrite (eqP p0) mod0p jump0p.
 case q0: (q == 0); first by rewrite (eqP q0) modp0 jumppc.
 case r0: (p %% q == 0).
   rewrite (eqP r0) jump0p //.
-  move: (r0); rewrite -/(_ %| _) dvdp_eq; move/eqP<-.
+  move: (r0); rewrite -/(_ %| _) dvdp_eq; move/eqP->.
   case qq0: (p %/ q == 0); first by rewrite (eqP qq0) mul0r jump0p.
   by rewrite -{3}[q]mul1r jump_mul2r// ?oner_eq0 ?q0 ?qq0 ?coprimep1// jumppc.
 rewrite /jump.
@@ -510,12 +510,12 @@ wlog cpq: p q p0 q0 hpqa hpqb / coprimep p q.
   set gpq := gcdp p q.
   set qp := (p %/ _);  set qq := (q %/ _).
   move/eqP=> hq; move/eqP=> hp.
-  move: (p0). rewrite -hp !(mulf_eq0, scaler_eq0, negb_or).
+  move: (p0). rewrite hp !(mulf_eq0, scaler_eq0, negb_or).
   case/andP=> qp0 gpq0.
-  move: (q0); rewrite -hq !(mulf_eq0, scaler_eq0, negb_or).
+  move: (q0); rewrite hq !(mulf_eq0, scaler_eq0, negb_or).
   case/andP=> qq0 _.
   move: (hpqa) (hpqb).
-  rewrite -hp -hq.
+  rewrite hp hq.
   have csqpqq: coprimep qp qq.
     by rewrite /qp /qq; apply: coprimep_div_gcd; rewrite p0.
   rewrite !rootE.
@@ -627,9 +627,8 @@ case r0: (p %% q == 0).
   move: (r0); rewrite -/(_ %| _) dvdp_eq; move/eqP=> hr.
   have: cind a b (p %/ q * q) q = 0.
     rewrite -{3}[q]mul1r cind_mul2r ?cindpc ?oner_eq0 ?coprimep1 //.
-    move/eqP: hr; apply: contraL; move/eqP->; rewrite mul0r.
-    by rewrite eq_sym.
-  rewrite hr; move->. rewrite (eqP r0) addr0.
+    by move/eqP: hr; apply: contraL; move/eqP->; rewrite mul0r p0.
+  rewrite -hr; move->. rewrite (eqP r0) addr0.
   rewrite /sremps; case hmn: (maxn _ _)=> [|mn] /=.
     by rewrite /varpI /varp /= subr0.
   by rewrite q0 oppr0 sremps_recp0 /varpI /varp /= !mulr0 ltrr subrr subr0.
