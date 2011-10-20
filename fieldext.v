@@ -442,7 +442,7 @@ have : root ((gdcop q p') ^ iota) z'
 case: gdcopP => r _.
 rewrite -[p' == 0]negbK p'ne0 orbF coprimep_sym -gcdp_eqp1 eqp_sym => Hcoprime.
 move/(eqp_trans Hcoprime): (egcdpE q r).
-rewrite eqp_sym -size_poly_eqp1.
+rewrite eqp_sym -size_poly_eq1.
 case/size1P => k [Hk0 Hk] Hr Hroot.
 rewrite Hk -mul_polyC rmorphM coefC eqxx [_ _%:P]horner_morphC fmorphV.
 apply: (canLR (mulKf _)); first by rewrite fmorph_eq0.

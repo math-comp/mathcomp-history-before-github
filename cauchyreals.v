@@ -1039,6 +1039,7 @@ Qed.
 
 Require Import polydiv polyorder.
 
+
 Lemma mul_neq0_creal x y : x * y != 0 -> y != 0.
 Proof.
 move=> xy_neq0.
@@ -1051,7 +1052,6 @@ pose_big_enough i.
 by close.
 Qed.
 
-(* assia : need for  an effective coprime_bezout *)
 Lemma bezout_coprimepP_exact (p q : {poly F}) : coprimep p q ->
   {u : {poly F} & { v : {poly F} | u * p + v * q = 1} }.
 Proof.
@@ -1092,14 +1092,6 @@ pose_big_enough i.
 by close.
 Qed.
 
-(* Todo : backport to polydiv *)
-Lemma coprimep_gdco (p q : {poly F}) : (q != 0)%B -> coprimep (gdcop p q) p.
-Proof. by move=> q_neq0; case: gdcopP=> d; rewrite (negPf q_neq0) orbF. Qed.
-
-(* Todo : backport to polydiv and rename old dvdp_gdco to size2_dvdp_gdco *)
-Lemma dvdp_gdco (p q : {poly F}) : (gdcop p q) %| q.
-Proof. by case: gdcopP. Qed.
-
 (* Todo : move to polyorder => need char 0 *)
 Lemma gdcop_eq0 (p q : {poly F}) :
   (gdcop p q == 0)%B = (q == 0)%B && (p != 0)%B.
@@ -1112,28 +1104,6 @@ have [[->|q_neq0] [->|p_neq0] /=] := (altP (q =P 0), altP (p =P 0)).
 by apply/negP=> /eqP hg; have := dvdp_gdco p q; rewrite hg dvd0p; apply/negP.
 Qed.
 
-Lemma dvdp_gdcor (p q : {poly F}) : (q != 0)%B ->
-  p %| (gdcop q p) * (q ^+ size p).
-Proof.
-move=> q_neq0; rewrite /gdcop.
-elim: (size p) {-2 5}p (leqnn (size p))=> {p} [|n ihn] p.
-  rewrite leqn0 size_poly_eq0 => /eqP->.
-  by rewrite size_poly0 /= dvd0p expr0 mulr1 (negPf q_neq0).
-move=> hsp /=; have [->|p_neq0] := altP (p =P 0).
-  rewrite size_poly0 /= dvd0p expr0 mulr1 div0p /=.
-  case: ifP=> // _; have := (ihn 0).
-  by rewrite size_poly0 expr0 mulr1 dvd0p=> /(_ isT).
-have [|ncop_pq] := boolP (coprimep _ _); first by rewrite dvdp_mulr ?dvdpp.
-have g_gt1: (1 < size (gcdp p q))%N.
-  have [|//|/eqP] := ltngtP; last by rewrite -coprimep_def (negPf ncop_pq).
-  by rewrite ltnS leqn0 size_poly_eq0 gcdp_eq0 (negPf p_neq0).
-have sd : (size (p %/ gcdp p q) < size p)%N.
-  rewrite size_divp -?size_poly_eq0 -(subnKC g_gt1) // add2n /=.
-  by rewrite -[size _]prednK ?size_poly_neq0 // ltnS subSS leq_subr.
-rewrite -{1}[p](divpK (dvdp_gcdl _ q)) -(subnKC sd) addSnnS exprn_addr mulrA.
-rewrite dvdp_mul ?ihn //; first by rewrite -ltnS (leq_trans sd).
-by rewrite exprS dvdp_mulr // dvdp_gcdr.
-Qed.
 
 Lemma dvdp_creal_eq0 p q x : p %| q -> p.[x] == 0 -> q.[x] == 0.
 Proof.
@@ -1156,29 +1126,29 @@ apply: eq_crealP; exists (fun _ => 0%N)=> e i e_gt0 _.
 by rewrite /= hornerC subrr absr0.
 Qed.
 
-(* Todo : add to polydiv *)
-Lemma coprimep_pexpl k (p q : {poly F}) : (0 < k)%N ->
-  coprimep (p ^+ k) q = coprimep p q.
-Proof.
-case: k=> // n _; elim: n=> [|n ihn]; first by rewrite expr1.
-by rewrite exprSr coprimep_mull ihn andbb.
-Qed.
+(* (* Todo : add to polydiv *) *)
+(* Lemma coprimep_pexpl k (p q : {poly F}) : (0 < k)%N -> *)
+(*   coprimep (p ^+ k) q = coprimep p q. *)
+(* Proof. *)
+(* case: k=> // n _; elim: n=> [|n ihn]; first by rewrite expr1. *)
+(* by rewrite exprSr coprimep_mull ihn andbb. *)
+(* Qed. *)
 
-(* Todo : add to polydiv *)
-Lemma coprimep_pexpr k (p q : {poly F}) : (0 < k)%N ->
-  coprimep p (q ^+ k) = coprimep p q.
-Proof. by rewrite ?[_ p _]coprimep_sym=> /coprimep_pexpl ->. Qed.
+(* (* Todo : add to polydiv *) *)
+(* Lemma coprimep_pexpr k (p q : {poly F}) : (0 < k)%N -> *)
+(*   coprimep p (q ^+ k) = coprimep p q. *)
+(* Proof. by rewrite ?[_ p _]coprimep_sym=> /coprimep_pexpl ->. Qed. *)
 
-(* Todo : add to polydiv *)
-Lemma coprimep_expl k (p q : {poly F}) : coprimep p q -> coprimep (p ^+ k) q.
-Proof.
-move=> cpq; case: k=> [|k]; first by rewrite expr0 coprime1p.
-by rewrite coprimep_pexpl.
-Qed.
+(* (* Todo : add to polydiv *) *)
+(* Lemma coprimep_expl k (p q : {poly F}) : coprimep p q -> coprimep (p ^+ k) q. *)
+(* Proof. *)
+(* move=> cpq; case: k=> [|k]; first by rewrite expr0 coprime1p. *)
+(* by rewrite coprimep_pexpl. *)
+(* Qed. *)
 
-(* Todo : add to polydiv *)
-Lemma coprimep_expr k (p q : {poly F}) : coprimep p q -> coprimep p (q ^+ k).
-Proof. by rewrite ?[_ p _]coprimep_sym=> /coprimep_expl ->. Qed.
+(* (* Todo : add to polydiv *) *)
+(* Lemma coprimep_expr k (p q : {poly F}) : coprimep p q -> coprimep p (q ^+ k). *)
+(* Proof. by rewrite ?[_ p _]coprimep_sym=> /coprimep_expl ->. Qed. *)
 
 Lemma poly_mul_creal_eq0 p q x :
   p.[x] * q.[x] == 0 -> {p.[x] == 0} + {q.[x] == 0}.
@@ -1188,7 +1158,7 @@ have [->|p_neq0] := altP (p =P 0); first by left; rewrite horner_cst_creal.
 have [->|q_neq0] := altP (q =P 0); first by right; rewrite horner_cst_creal.
 pose d := gcdp p q; pose p' := gdcop d p; pose q' := gdcop d q.
 have cop_q'_d': coprimep p' q'.
-  rewrite /coprimep size_poly_eqp1.
+  rewrite /coprimep size_poly_eq1.
   apply: (@coprimepP _ p' d _).
   + by rewrite coprimep_gdco.
   + by rewrite dvdp_gcdl.
@@ -1340,7 +1310,6 @@ pose_big_enough i.
   by rewrite (@eq0modP _ upx_eq0) ?gtr0E; do ?big.
 by close.
 Qed.
-
 
 Lemma accr_negN p a r : accr_pos p a r -> accr_neg (- p) a r.
 Proof.
@@ -1500,7 +1469,7 @@ have ld_neq0 : lead_coef d != 0 :> F.
 have monic_r1 : monic r1.
   by rewrite /monic /r1 -mul_polyC lead_coef_Imul lead_coefC mulVf.
 have eq_p_r2r1: p = r2 * r1.
- by rewrite divpK // (@eqp_dvdl _ _ d) ?dvdp_gcdl ?eqp_mulC ?invr_eq0.
+  rewrite divpK // (@eqp_dvdl _ d) ?dvdp_gcdl // scale_eqp ?invr_eq0 //.
 have monic_r2 : monic r2 by rewrite -(monic_mulr _ monic_r1) -eq_p_r2r1.
 have eq_sr1_sd : size r1 = size d by rewrite size_scaler ?invr_eq0.
 have sr1 : (1 < size r1)%N.
@@ -1508,7 +1477,7 @@ have sr1 : (1 < size r1)%N.
 have sr2 : (1 < size r2)%N.
   rewrite size_divp ?size_dvdp ?monic_neq0 //.
   rewrite -ltn_add_sub addn1 prednK ?(leq_trans _ sr1) // eq_sr1_sd.
-  rewrite ltn_neqAle leq_dvdp ?monic_neq0 ?andbT ?dvdp_size_eqp ?dvdp_gcdl //.
+  rewrite ltn_neqAle dvdp_leq ?monic_neq0 ?andbT ?dvdp_size_eqp ?dvdp_gcdl //.
   by apply: contra ndvd_pq=> /eqp_dvdl <-; rewrite dvdp_gcdr.
 move: (px0); rewrite eq_p_r2r1=> r2r1x_eq0.
 have : (r2.[x] * r1.[x] == 0) by rewrite -horner_crealM.
@@ -1529,9 +1498,9 @@ elim: n x @p=> [x p|n ihn x p le_sp_Sn].
 move: le_sp_Sn; rewrite leq_eqVlt.
 have [|//|eq_sp_Sn _] := ltngtP.
   by rewrite ltnS=> /ihn ihnp _; apply: ihnp.
-have px0 := @root_poly_of_creal x; rewrite -/p in px0.
+have px0 := @root_poly_of_creal x; rewrite -/p -/root in px0.
 have [|ncop] := boolP (coprimep p p^`()).
-  move=> /coprimep_root /(_ px0) /deriv_neq0_mono [r r_gt0 [i ir sm]].
+  move/coprimep_root => /(_ _ px0) /deriv_neq0_mono [r r_gt0 [i ir sm]].
   have p_chg_sign : p.[x i - r] * p.[x i + r] <= 0.
     have [/accr_pos_incr hp|/accr_neg_decr hp] := sm.
       have hpxj : forall j, (i <= j)%N ->

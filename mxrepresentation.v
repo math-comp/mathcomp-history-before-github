@@ -5210,7 +5210,7 @@ have q_nz: q != 0.
 have qAf0: horner_mx Af q = 0.
   rewrite -[_ q]mulr1 -[1]XAK mulrA -{2}(horner_mx_X Af) -(horner_mx_C Af).
   by rewrite -rmorph_sub -rmorphM -def_pAf /= mx_root_minpoly mul0r.
-have{qAf0} := leq_dvdp q_nz (mxminpoly_min qAf0); rewrite def_pAf.
+have{qAf0} := dvdp_leq q_nz (mxminpoly_min qAf0); rewrite def_pAf.
 by rewrite size_mul_monic ?monic_factor // seq_factor addn2 ltnn.
 Qed.
 

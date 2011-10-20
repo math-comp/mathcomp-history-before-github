@@ -31,7 +31,7 @@ rewrite esp /=; case px0: root=> //=; rewrite ?sgr_cp0 ?px0//.
 have hsp: sp = size p^`() by rewrite size_deriv esp.
 rewrite hsp ihsp // -size_poly_eq0 -hsp; apply/negP; move/eqP=> sp0.
 move: px0; rewrite root_factor_theorem.
-by move/(leq_dvdp p0); rewrite size_factor esp sp0.
+by move/(dvdp_leq p0); rewrite size_factor esp sp0.
 Qed.
 
 (* Todo : move in polydiv *)
@@ -158,14 +158,14 @@ Lemma jump_coprime : forall p q, p != 0 -> coprimep p q
 Proof.
 move=> p q pn0 cpq x rpx; rewrite /jump /sjump; have q0: q != 0.
   apply/negP; move/eqP=> q0; move: cpq rpx; rewrite q0.
-  rewrite coprimep0 -size_poly_eqp1; case/size1P=> c [c0 ->].
+  rewrite coprimep0 -size_poly_eq1; case/size1P=> c [c0 ->].
   by rewrite rootC; apply/negP.
 rewrite q0 mu_mul ?mulf_neq0//; congr (_ *+ _).
 rewrite odd_add odd_sub 1?addbC// (@leq_trans 0)//.
 rewrite leqNgt mu_gt0//.
 apply/negP; move: rpx; rewrite !root_factor_theorem=> hp hq.
 move: cpq; apply/negP; apply/coprimepPn=> //.
-by exists ('X - x%:P); rewrite dvdp_gcd hp hq -size_poly_eqp1 size_factor.
+by exists ('X - x%:P); rewrite dvdp_gcd hp hq -size_poly_eq1 size_factor.
 Qed.
 
 (* Todo : move in polydiv *)
@@ -420,7 +420,7 @@ apply/negP; rewrite root_factor_theorem => rqx; move/root_roots:hx.
 case: gdcopP=> g hg; rewrite (negPf r0) orbF => cgq hdg.
 rewrite root_factor_theorem=> rgx.
 move/coprimepP:cgq rqx rgx=> cgq; move/cgq=> hgq; move/hgq.
-by rewrite -size_poly_eqp1 size_factor.
+by rewrite -size_poly_eq1 size_factor.
 Qed.
 
 Lemma cind_mulCp : forall a b, a < b -> forall p q c, p != 0 -> q != 0 ->
@@ -1230,7 +1230,7 @@ Lemma ex_roots_weak : forall p (sq : seq {poly R}), p != 0 ->
     (ccount_weak p sq > 0).
 Proof.
 move=> p sq np0; rewrite /ccount_weak.
-case: (boolP (_ == 1%N)); [rewrite size_poly_eqp1|]=> hsp.
+case: (boolP (_ == 1%N)); [rewrite size_poly_eq1|]=> hsp.
   rewrite ltrr; apply: (iffP idP)=> // [] [] x; rewrite -rootE=> /andP [].
   by rewrite (eqp_root hsp) (negPf (root1 _)).
 case: (boolP (has _ _))=> hsq.

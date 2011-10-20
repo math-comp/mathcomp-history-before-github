@@ -26,7 +26,7 @@ move=> p; case p0: (p == 0).
   rewrite (eqP p0) /= size_poly0 /=.
   by constructor; exists 0; rewrite root0.
 apply: (iffP idP); last first.
-  case=> x; rewrite root_factor_theorem; move/leq_rdvdp.
+  case=> x; rewrite root_factor_theorem; move/rdvdp_leq.
   by move/(_ (negbT p0)); rewrite size_factor neq_ltn; move->; rewrite orbT.
 move/negPf => sp.
 case: (ltnP (size p).-1 1)=> [|s2].

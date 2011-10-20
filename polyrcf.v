@@ -1304,7 +1304,7 @@ elim: k q q0 hk => [|k ihk] /= q q0 hk.
 case: ifP=> cpq; first by rewrite (negPf q0).
 apply: ihk.
   rewrite divpN0; last by rewrite gcdp_eq0 negb_and q0.
-  by rewrite leq_dvdp // dvdp_gcdl.
+  by rewrite dvdp_leq // dvdp_gcdl.
 rewrite -ltnS; apply: leq_trans hk; move: (dvdp_gcdl q p); rewrite dvdp_eq. 
 move/eqP=> eqq; move/(f_equal (fun x : {poly R} => size x)): (eqq).
 rewrite size_scaler; last exact: lc_expn_scalp_neq0.
@@ -1315,7 +1315,7 @@ have qqn0 : q %/ gcdp q p != 0.
    by rewrite (negPf (lc_expn_scalp_neq0 _ _)) /=; move<-; rewrite eqq e mul0r.
 move->; rewrite size_mul_id //; case sgcd: (size (gcdp q p)) => [|n].
   by move/eqP: sgcd gcdn0; rewrite size_poly_eq0; move->.
-case: n sgcd => [|n]; first by move/eqP; rewrite size_poly_eqp1 gcdp_eqp1 cpq.
+case: n sgcd => [|n]; first by move/eqP; rewrite size_poly_eq1 gcdp_eqp1 cpq.
 by rewrite addnS /= -{1}[size (_ %/ _)]addn0 ltn_add2l.
 Qed.
 

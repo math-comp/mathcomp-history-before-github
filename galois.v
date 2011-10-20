@@ -540,7 +540,7 @@ have [b] : exists b, root (map_poly x (minPoly E a)) b.
  clear -Hdiv Hsz.
  elim: r (map_poly x (minPoly E a)) Hdiv Hsz => [|z r IH] p.
   rewrite big_nil.
-  move/(leq_dvdp (nonzero1r _)).
+  move/(dvdp_leq (nonzero1r _)).
   rewrite size_poly1 leqNgt.
   by move/negbTE ->.
  rewrite big_cons mulrC.
@@ -553,7 +553,7 @@ have [b] : exists b, root (map_poly x (minPoly E a)) b.
  apply: contraR.
  rewrite root_factor_theorem.
  move/(conj (dvdpp ('X - z%:P)))/andP.
- rewrite -dvdp_gdco -?size_poly_eq0 ?size_factor //.
+ rewrite -size2_dvdp_gdco -?size_poly_eq0 ?size_factor //.
  case: gdcopP => q _.
  rewrite -size_poly_eq0 size_factor orbF.
  move/coprimepP => Hpq Hq Hzq.
@@ -1602,7 +1602,7 @@ case/(ltn_trans (leqnn _))/IH: (Hn) => {IH} r [Haut Hr Hnr Hmin].
 set g := \prod_ (i <- _) _ in Hmin.
 have := (minPoly_irr _ Hmin).
 move/contra.
-rewrite negb_or -size_poly_eqp1 {2}/g size_prod_factors Hnr andbT.
+rewrite negb_or -size_poly_eq1 {2}/g size_prod_factors Hnr andbT.
 rewrite -(dvdp_size_eqp Hmin) {1}/g size_prod_factors Hnr neq_ltn Hn.
 case/(_ isT)/allPn => c Hcg HcK.
 have/allP : polyOver E g.

@@ -223,9 +223,9 @@ apply/det0P/idP=> [[uv nz_uv] | r_nonC].
   have w_r: w %| r by rewrite dvdp_gcd !m_wd ?dvdp_gcdl ?dvdp_gcdr.
   have w_nz: w != 0 := dvdpN0 w_r r_nz.
   have p_m: p %| m by rewrite dvdp_gcd vq_up addr0 -mulNr !dvdp_mull.
-  rewrite (leq_trans _ (leq_dvdp r_nz w_r)) // -(ltn_add2l (size v)).
+  rewrite (leq_trans _ (dvdp_leq r_nz w_r)) // -(ltn_add2l (size v)).
   rewrite addnC ltn_add_sub subn1 -size_mul_id // mulrC -wv size_scaler //.
-  rewrite (leq_trans lt_vp) // leq_dvdp // -size_poly_eq0.
+  rewrite (leq_trans lt_vp) // dvdp_leq // -size_poly_eq0.
   by rewrite -(size_scaler _ nz_c) size_poly_eq0 wv mulf_neq0.
 have [c [p' [nz_c p'r]]] := dvdpP _ _ r_p.
 have [k [q' [nz_k q'r]]] := dvdpP _ _ r_q.
