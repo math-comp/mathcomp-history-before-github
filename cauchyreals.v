@@ -1,5 +1,6 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigop ssralg orderedalg zint qnum poly.
+Require Import bigop ssralg orderedalg zint qnum poly polydiv polyorder.
+Require Import perm matrix mxpoly polyXY binomial generic_quotient.
 
 Import GRing.Theory ORing.Theory AbsrNotation.
 
@@ -455,7 +456,7 @@ exists_big_modulus m F.
 by close.
 Qed.
 Definition add_creal (x y : creal) := CReal (add_crealP x y).
-Local Notation "+%R" := add_creal : creal_scope.
+Local Notation "+%CR" := add_creal : creal_scope.
 Local Notation "x + y" := (add_creal x y) : creal_scope.
 Local Notation "x - y" := (x + - y)%CR : creal_scope.
 
@@ -506,7 +507,7 @@ exists_big_modulus m F.
 by close.
 Qed.
 Definition mul_creal (x y : creal) := CReal (mul_crealP x y).
-Local Notation "*%R" := mul_creal : creal_scope.
+Local Notation "*%CR" := mul_creal : creal_scope.
 Local Notation "x * y" := (mul_creal x y) : creal_scope.
 
 Lemma inv_crealP (x : creal) (x_neq0 : x != 0) : creal_axiom (fun i => (x i)^-1).
@@ -1037,7 +1038,6 @@ pose_big_enough i.
 by close.
 Qed.
 
-Require Import polydiv polyorder.
 
 
 Lemma mul_neq0_creal x y : x * y != 0 -> y != 0.
@@ -1469,7 +1469,7 @@ have ld_neq0 : lead_coef d != 0 :> F.
 have monic_r1 : monic r1.
   by rewrite /monic /r1 -mul_polyC lead_coef_Imul lead_coefC mulVf.
 have eq_p_r2r1: p = r2 * r1.
-  rewrite divpK // (@eqp_dvdl _ d) ?dvdp_gcdl // scale_eqp ?invr_eq0 //.
+  by rewrite divpK // (@eqp_dvdl _ d) ?dvdp_gcdl // scale_eqp ?invr_eq0.
 have monic_r2 : monic r2 by rewrite -(monic_mulr _ monic_r1) -eq_p_r2r1.
 have eq_sr1_sd : size r1 = size d by rewrite size_scaler ?invr_eq0.
 have sr1 : (1 < size r1)%N.
@@ -1751,8 +1751,6 @@ Qed.
 Definition eq_alg_dom (x y : alg_dom) : bool :=
   eq_alg_creal_dec (to_alg_creal x) (to_alg_creal y).
 
-Require Import generic_quotient.
-
 Lemma eq_alg_domP (x y : alg_dom) :
   reflect (to_alg_creal x == to_alg_creal y) (eq_alg_dom x y).
 Proof. by rewrite /eq_alg_dom; case: eq_alg_creal_dec; constructor. Qed.
@@ -1780,9 +1778,6 @@ Definition alg := [mod eq_alg_dom]%qT.
 Canonical alg_eqType := [eqType of alg].
 Canonical alg_choiceType := [choiceType of alg].
 
-Require Import perm matrix mxpoly.
-Require Import polyXY.
-Require Import binomial.
 
 Lemma root_cst_alg (x : F) : ('X - x%:P).[cst_creal x] == 0.
 Proof.
@@ -2419,10 +2414,7 @@ Canonical alg_oFieldType := OFieldType alg AlgOFieldMixin.
 (* exists n. *)
 (* rewrite -[_ < _]/(lt_alg _ _). *)
 (* unlock lt_alg. *)
-
-
 (* rewrite -[x < n%:R]/(lt_alg x n%:R). *)
-
 
 End Real.
 End Real.
@@ -2440,5 +2432,3 @@ Canonical Real.alg_poIdomainType.
 Canonical Real.alg_poFieldType.
 Canonical Real.alg_oIdomainType.
 Canonical Real.alg_oFieldType.
-
-
