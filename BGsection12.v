@@ -64,13 +64,13 @@ Variables M E : {group gT}.
 Hypotheses (maxM : M \in 'M) (hallE : \sigma(M)^'.-Hall(M) E).
 
 Lemma tau1J : forall x, \tau1(M :^ x) =i \tau1(M).
-Proof. by move=> x p; rewrite 6!inE sigmaJ p_rankJ derg1 -conjsRg cardJg. Qed.
+Proof. by move=> x p; rewrite 3!inE sigmaJ p_rankJ derg1 -conjsRg cardJg. Qed.
 
 Lemma tau2J : forall x, \tau2(M :^ x) =i \tau2(M).
-Proof. by move=> x p; rewrite 6!inE sigmaJ p_rankJ. Qed.
+Proof. by move=> x p; rewrite 3!inE sigmaJ p_rankJ. Qed.
 
 Lemma tau3J : forall x, \tau3(M :^ x) =i \tau3(M).
-Proof. by move=> x p; rewrite 6!inE sigmaJ p_rankJ derg1 -conjsRg cardJg. Qed.
+Proof. by move=> x p; rewrite 3!inE sigmaJ p_rankJ derg1 -conjsRg cardJg. Qed.
 
 Lemma tau2'1 : {subset \tau1(M) <= \tau2(M)^'}.
 Proof. by move=> p; rewrite !inE; case/and3P=> ->; move/eqP->. Qed.
@@ -398,7 +398,7 @@ have [sMp | sM'p] := boolP (p \in \sigma(M)); last first.
   have:= prime_class_mmax_norm maxH pX sNH.
   rewrite defH /= sigmaJ tau2J !negb_or (negPf sM'p) /= => t2Mp.
   by rewrite (contraL (@tau2'1 _ p)) // [~~ _]tau3'2.
-rewrite 4!inE /= sMp inE /= sMp /= orbF negbK.
+rewrite 3!inE sMp 3!inE sMp orbF negbK.
 have [_ transCX _] := sigma_group_trans maxM sMp pX.
 set maxMX := finset _ in transCX.
 have maxMX_H: gval H \in maxMX by rewrite inE MG_H (subset_trans (normG X)).
@@ -485,7 +485,7 @@ have <-: H`_\alpha <*> S :&: M`_\sigma = 1.
   rewrite setIC coprime_TIg ?(pnat_coprime (pcore_pgroup _ _)) //=.
   rewrite norm_joinEr // [pnat _ _]pgroupM (pi_pgroup pS) // andbT.
   apply: sub_pgroup (pcore_pgroup _ _) => q aHq.
-  by apply: contraFN (ti_aHsM q); rewrite inE /= aHq.
+  by apply: contraFN (ti_aHsM q) => sMq; rewrite inE /= aHq.
 rewrite commg_subI // subsetI ?subsetIl.
   by rewrite (subset_trans sAS) ?joing_subr ?(subset_trans sAM) ?gFnorm.
 by rewrite setIC subIset 1?normal_norm.
@@ -2419,7 +2419,7 @@ have pre_part_a: forall E p H, \sigma(M)^'.-Hall(M) E -> p \in \pi(E) ->
   have rpMgt1: 'r_p(M) > 1 by apply/p_rank_geP; exists A.
   have t2Mp: p \in \tau2(M).
     move: piEp; rewrite (partition_pi_sigma_compl maxM hallE) orbCA orbC.
-    by rewrite 2!inE /= eqn_leq leqNgt rpMgt1 !andbF.
+    by rewrite -2!andb_orr orNb eqn_leq leqNgt rpMgt1 !andbF.
   have sM'p := pnatPpi (pHall_pgroup hallE) piEp.
   have [_ _ _ tiMsH _] := tau2_context maxM t2Mp Ep2A; rewrite -(tiMsH H).
     by rewrite subsetI sXMs (subset_trans sXY).

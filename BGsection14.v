@@ -2363,7 +2363,7 @@ have sK_FD: K \subset 'F(D).
   have [L _ ] := primes_non_Fitting_Ftype FmaxH hallD EqK not_sKFD.
   case=> [[t2Lq ]|[kLq P1maxL]].
     rewrite uniqMst; move/set1_inj=> defL.
-    by rewrite -defL 5!inE sMst_q in t2Lq.
+    by rewrite -defL 3!inE sMst_q in t2Lq.
   have [PmaxL _] := setIdP P1maxL.
   case/setUP: (defPmax L PmaxL); case/imsetP=> a _ defL.
     by rewrite (group_inj defL) P1typeJ in P1maxL.

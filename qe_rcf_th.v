@@ -180,8 +180,8 @@ Proof.
 move=> a b p x pn0=> yl yr; rewrite !inE.
 case/andP=> yll ylr; case/andP=> yrl yrr.
 rewrite -!sgr_cp0 sgrM.
-have yln: yl \in neighpl p a x by rewrite !inE; apply/andP.
-have yrn: yr \in neighpr p x b by rewrite !inE; apply/andP.
+have yln: yl \in neighpl p a x by apply/andP.
+have yrn: yr \in neighpr p x b by apply/andP.
 move: (neighpr_root yrn).
 rewrite (sgr_neighpl yln) -!(sgr_neighpr yrn) rootE -[_==0]sgr_cp0.
 rewrite sgr_id sgrEz zintr_eq0 -[- 1 : R]mulrN1z.
@@ -482,13 +482,13 @@ rewrite mul0r ltrr mulr0 !big_cons add0r (ihs x) ?(eqP hs)//.
 have pq0: p * q == 0 = false by apply: negbTE; rewrite mulf_neq0.
 case: s ihs hs xs=> [|y s]//= ihs hs xs.
   rewrite !big_cons !big_nil !addr0 mul0r ltrr mulr0 addr0.
-  apply: (@sjump_neigh a' b); rewrite ?mulf_neq0// !inE ?midf_lte//=.
+  apply: (@sjump_neigh a' b); rewrite ?mulf_neq0// !inE /= ?midf_lte //=.
     by rewrite /prev_root pq0 (eqP hax) /= minr_l ?(ltrW ax) // midf_lte.
   by rewrite /next_root pq0 (eqP hs) /= maxr_l ?(ltrW xs) // midf_lte.
 rewrite !big_cons mul0r ltrr mulr0 add0r; congr (_+_).
 move: hs; rewrite roots_cons; case/and5P=> _.
 case/andP=> xy ys hxy pqy0 hs.
-apply: (@sjump_neigh a' y); rewrite ?mulf_neq0// !inE ?midf_lte//=.
+apply: (@sjump_neigh a' y); rewrite ?mulf_neq0// !inE /= ?midf_lte //=.
   by rewrite /prev_root pq0 (eqP hax) /= minr_l ?(ltrW ax) // midf_lte.
 by rewrite /next_root pq0 (eqP hxy) /= maxr_l ?(ltrW xy) // midf_lte.
 Qed.
@@ -1427,7 +1427,7 @@ case: (prev_rootP q (-bnd) x) q0; first by move->; rewrite eqxx.
   rewrite big_all; apply/allP=> r hr.
   have:= hsq r hr; rewrite -!sgr_cp0; congr (_ == 1).
   apply: (@polyrN0_int _ `[x, bnd]) => //= y.
-  rewrite (@int_splitU _ bnd false) // int_xx /= inE /=.
+  rewrite (@int_splitU _ bnd false) // int_xx /=.
   case=> /orP [|/eqP ->]; last first.
     suff: ~~ root q bnd.
       apply: contra=> r0; rewrite /root horner_prod prodf_seq_eq0 /=.

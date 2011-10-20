@@ -81,12 +81,9 @@ Require Import ssreflect ssrfun.
 (*                 x \in A == x satisfies the (collective) predicate A.       *)
 (*              x \notin A == x doesn't satisfy the (collective) predicate A. *)
 (* The pred T type can be used as a generic predicate type for either kind,   *)
-(* but the two kinds of predicates should not be mixed. Explicit values of    *)
-(* pred T (i.e., lamdba terms) should always be used applicatively, while     *)
-(* values of collection types implementing the predType interface, such as    *)
-(* lists or sets should always be used as collective predicates; simpl_pred   *)
-(* predicates are the only type that can be used either way (however, the     *)
-(* x \in A notation will not simplify). We provide the following conversions  *)
+(* but the two kinds of predicates should not be confused. When a "generic"   *)
+(* pred T value of one type needs to be passed as the other the following     *)
+(* conversions should be used explicitly:                                     *)
 (*             SimplPred P == a (simplifying) applicative equivalent of P.    *)
 (*                   mem A == an applicative equivalent of A:                 *)
 (*                            mem A x simplifies to x \in A.                  *)
@@ -115,6 +112,33 @@ Require Import ssreflect ssrfun.
 (*     [rel x y \in A | E] == [rel x y \in A & A | E].                        *)
 (*         [rel x y \in A] == [rel x y \in A & A].                            *)
 (*                relU R S == union of relations R and S.                     *)
+(* Explicit values of type pred T (i.e., lamdba terms) should always be used  *)
+(* applicatively, while values of collection types implementing the predType  *)
+(* interface, such as sequences or sets should always be used as collective   *)
+(* predicates. Defined constants and functions of type pred T or simpl_pred T *)
+(* as well as the explicit simpl_pred T values described below, can generally *)
+(* be used either way. Note however that x \in A will not auto-simplify when  *)
+(* A is an explicit simpl_pred T value; the generic simplification rule inE   *)
+(* must be used (when A : pred T, the unfold_in rule can be used). Constants  *)
+(* of type pred T with an explicit simpl_pred value do not auto-simplify when *)
+(* used applicatively, but can still be expanded with inE. This behavior can  *)
+(* be controlled as follows:                                                  *)
+(*   Let A : collective_pred T := [pred x | ... ].                            *)
+(*     The collective_pred T type is just an alias for pred T, but this cast  *)
+(*     stops rewrite inE from expanding the definition of A, thus treating A  *)
+(*     into an abstract collection (unfold_in or in_collective can be used to *)
+(*     expand manually).                                                      *)
+(*   Let A : applicative_pred T := [pred x | ...].                            *)
+(*     This cast causes inE to turn x \in A into the applicative A x form;    *)
+(*     A will then have to unfolded explicitly with the /A rule. This will    *)
+(*     also apply to any definition that reduces to A (e.g., Let B := A).     *)
+(*   Canonical A_app_pred := ApplicativePred A.                               *)
+(*     This declaration, given after definition of A, similarly causes inE to *)
+(*     turn x \in A into A x, but in addition allows the app_predE rule to    *)
+(*     turn A x back into x \in A; it can be used for any definition of type  *)
+(*     pred T, which makes it especially useful for ambivalent predicates     *)
+(*     as the relational transitive closure connect, that are used in both    *)
+(*     applicative and collective styles.                                     *)
 (* Some properties of predicates and relations:                               *)
 (*                  A =i B <-> A and B are extensionally equivalent.          *)
 (*         {subset A <= B} <-> A is a (collective) subpredicate of B.         *)
@@ -912,6 +936,8 @@ Ltac bool_congr :=
 (*   [rel x y | P(x,y)], [rel x y \in A & B | P(x,y)], etc.                   *)
 (* The notation [rel of fA] can be used to coerce a function returning a      *)
 (* collective predicate to one returning pred T.                              *)
+(*   Finally, note that there is specific support for ambivalent predicates   *)
+(* that can work in either style, as per this file's head descriptor.         *)
 (******************************************************************************)
 
 Definition pred T := T -> bool.
@@ -940,10 +966,18 @@ Definition subpred (p1 p2 : pred T) := forall x, p1 x -> p2 x.
 Definition subrel (r1 r2 : rel T) := forall x y, r1 x y -> r2 x y.
 
 Definition simpl_pred := simpl_fun T bool.
+Definition applicative_pred := pred T.
+Definition collective_pred := pred T.
 
 Definition SimplPred (p : pred T) : simpl_pred := SimplFun p.
 
-Coercion pred_of_simpl (p : simpl_pred) : pred T := p : T -> bool.
+Coercion pred_of_simpl (p : simpl_pred) : pred T := fun_of_simpl p.
+Coercion applicative_pred_of_simpl (p : simpl_pred) : applicative_pred :=
+  fun_of_simpl p.
+Coercion collective_pred_of_simpl (p : simpl_pred) : collective_pred :=
+  fun x => (let: SimplFun f := p in fun _ => f x) x.
+(* Note: applicative_of_simpl is convertible to pred_of_simpl, while *)
+(* collective_of_simpl is not. *)
 
 Definition pred0 := SimplPred xpred0.
 Definition predT := SimplPred xpredT.
@@ -981,6 +1015,7 @@ Definition mkPredType pT toP := PredType (exist (@isMem pT toP) _ (erefl _)).
 
 Canonical predPredType := Eval hnf in @mkPredType (pred T) id.
 Canonical simplPredType := Eval hnf in mkPredType pred_of_simpl.
+Canonical boolfunPredType := Eval hnf in @mkPredType (T -> bool) id.
 
 Coercion pred_of_mem mp : pred_sort predPredType := let: Mem p := mp in [eta p].
 Canonical memPredType := Eval hnf in mkPredType pred_of_mem.
@@ -1091,27 +1126,77 @@ Notation "[ 'rel' x y \in A ]" := [rel x y \in A & A]
 Section simpl_mem.
 
 Variables (T : Type) (pT : predType T).
+Implicit Types (x : T) (p : pred T) (sp : simpl_pred T) (pp : pT).
 
-Lemma mem_topred (p : pT) : mem (topred p) = mem p.
-Proof. by rewrite /mem; case: pT p => T1 app1 [mem1 /= ->]. Qed.
+(* Bespoke structures that provide fine-grained control over matching the     *)
+(* various forms of the \in predicate; note in particular the different forms *)
+(* of hoisting that are used. We had to work around several bugs in the       *)
+(* implementation of unification, notably improper expansion of telescope     *)
+(* projections and overwriting of a variable assignment by a later            *)
+(* unification (probably due to conversion cache cross-talk).                 *)
+Structure manifest_applicative_pred p := ManifestApplicativePred {
+  manifest_applicative_pred_value :> pred T;
+  _ : manifest_applicative_pred_value = p
+}.
+Definition ApplicativePred p := ManifestApplicativePred (erefl p).
+Canonical applicative_pred_applicative sp :=
+  ApplicativePred (applicative_pred_of_simpl sp).
 
-Lemma topredE x (p : pT) : topred p x = (x \in p).
+Structure manifest_simpl_pred p := ManifestSimplPred {
+  manifest_simpl_pred_value :> simpl_pred T;
+  _ : manifest_simpl_pred_value = SimplPred p
+}.
+Canonical expose_simpl_pred p := ManifestSimplPred (erefl (SimplPred p)).
+
+Structure manifest_mem_pred p := ManifestMemPred {
+  manifest_mem_pred_value :> mem_pred T;
+  _ : manifest_mem_pred_value= Mem [eta p]
+}.
+Canonical expose_mem_pred p :=  @ManifestMemPred p _ (erefl _).
+
+Structure applicative_mem_pred p :=
+  ApplicativeMemPred {applicative_mem_pred_value :> manifest_mem_pred p}.
+Canonical check_applicative_mem_pred p (ap : manifest_applicative_pred p) mp :=
+  @ApplicativeMemPred ap mp.
+
+Lemma mem_topred (pp : pT) : mem (topred pp) = mem pp.
+Proof. by rewrite /mem; case: pT pp => T1 app1 [mem1 /= ->]. Qed.
+
+Lemma topredE x (pp : pT) : topred pp x = (x \in pp).
 Proof. by rewrite -mem_topred. Qed.
 
-Lemma in_simpl x (p : simpl_pred T) : (x \in p) = p x.
+Lemma app_predE x p (ap : manifest_applicative_pred p) : ap x = (x \in p).
+Proof. by case: ap => _ /= ->. Qed.
+
+Lemma in_applicative x p (amp : applicative_mem_pred p) : in_mem x amp = p x.
+Proof. by case: amp => [[_ /= ->]]. Qed.
+
+Lemma in_collective x p (msp : manifest_simpl_pred p) :
+  (x \in collective_pred_of_simpl msp) = p x.
+Proof. by case: msp => _ /= ->. Qed.
+
+Lemma in_simpl x p (msp : manifest_simpl_pred p) :
+  in_mem x (Mem [eta fun_of_simpl (msp : simpl_pred T)]) = p x.
+Proof. by case: msp => _ /= ->. Qed.
+
+(* This lemma appears (under Coq 8.3 to unfold exactly one level of           *)
+(* a collective predicate. The explicit identity function in the pattern      *)
+(* accomplishes this, apparently in contradiction with any rational analysis  *)
+(* of the unification heuristics used by Coq!                                 *)
+Lemma unfold_in x p : (x \in idfun p) = p x.
 Proof. by []. Qed.
 
-Lemma simpl_predE (p : pred T) : [pred x | p x] =1 p.
+Lemma simpl_predE p : SimplPred p =1 p.
 Proof. by []. Qed.
 
-Definition inE := (in_simpl, simpl_predE). (* to be extended *)
+Definition inE := (in_applicative, in_simpl, simpl_predE). (* to be extended *)
 
-Lemma mem_simpl (p : simpl_pred T) : mem p = p :> pred T.
+Lemma mem_simpl sp : mem sp = sp :> pred T.
 Proof. by []. Qed.
 
 Definition memE := mem_simpl. (* could be extended *)
 
-Lemma mem_mem (p : pT) : (mem (mem p) = mem p) * (mem [mem p] = mem p).
+Lemma mem_mem (pp : pT) : (mem (mem pp) = mem pp) * (mem [mem pp] = mem pp).
 Proof. by rewrite -mem_topred. Qed.
 
 End simpl_mem.
@@ -1134,7 +1219,7 @@ Definition pre_symmetric := forall x y, R x y -> R y x.
 
 Lemma symmetric_from_pre : pre_symmetric -> symmetric.
 Proof. move=> symR x y; apply/idP/idP; exact: symR. Qed.
-
+  
 Definition reflexive := forall x, R x x.
 Definition irreflexive := forall x, R x x = false.
 

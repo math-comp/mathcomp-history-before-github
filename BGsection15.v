@@ -1650,7 +1650,7 @@ have t1q := pnatPpi t1E1 (piSg szE1 pizq).
 move: pizq; rewrite -p_rank_gt0; case/p_rank_geP=> Z.
 rewrite /= -(setIidPr szM) pnElemI -setIdE; case/setIdP=> EqZ sZz.
 apply: contraNeq k'q => ntCMsx /=; unlock kappa.
-rewrite 4!inE /= t1q; apply/exists_inP; exists Z => //.
+rewrite 3!inE /= t1q; apply/exists_inP; exists Z => //.
 by rewrite (subG1_contra _ ntCMsx) ?setIS //= -cent_cycle centS.
 Qed.
 

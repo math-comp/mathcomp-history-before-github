@@ -2172,7 +2172,7 @@ Lemma modact_is_groupAction : is_groupAction 'C_(|to)(H) (to %% H).
 Proof.
 move=> Ha /morphimP[a Na Da ->]; have NDa: a \in 'N_D(H) by exact/setIP.
 rewrite inE; apply/andP; split.
-  apply/subsetP=> x; rewrite 3!inE andbC actpermE /= modactEcond //.
+  apply/subsetP=> x; rewrite 2!inE andbC actpermE /= modactEcond //.
   by apply: contraR; case: ifP => // E Rx; rewrite gact_out.
 apply/morphicP=> x y /setIP[Rx cHx] /setIP[Ry cHy].
 rewrite /= !actpermE /= !modactE ?gactM //.

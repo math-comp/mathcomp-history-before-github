@@ -1223,12 +1223,12 @@ suffices sigmaMHnil: forall p, p \in [predI \sigma(M) & \sigma(H)] ->
   split=> // [|nilMs].
     rewrite coprime_TIg // (pnat_coprime (pcore_pgroup _ _)) //.
     apply: sub_in_pnat (pcore_pgroup _ _) => p _ sHp.
-    by apply: contraFN (a2 p); rewrite inE /= sHp andbT.
+    by apply: contraFN (a2 p) => aMp; rewrite inE /= sHp andbT.
   have b2: [predI \sigma(M) & \sigma(H)] =i pred0.
     by move=> p; apply/negP; case/sigmaMHnil => _; rewrite nilMs.
   rewrite coprime_TIg // (pnat_coprime (pcore_pgroup _ _)) //.
   apply: sub_in_pnat (pcore_pgroup _ _) => p _ sHp.
-  by apply: contraFN (b2 p); rewrite inE /= sHp andbT.
+  by apply: contraFN (b2 p) => bMp; rewrite inE /= sHp andbT.
 move=> p; case/andP=> sMp sHp; have [S sylS]:= Sylow_exists p M.
 have [sSM pS _] := and3P sylS.
 have sylS_G: p.-Sylow(G) S := sigma_Sylow_G maxM sMp sylS.

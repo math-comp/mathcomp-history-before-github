@@ -316,7 +316,7 @@ Qed.
 (* This is B & G, Lemma 16.1(f). *)
 Lemma Fcore_eq_FTcore : reflect (M`_\F = M`_\s) (FTtype M \in pred3 1%N 2 5).
 Proof.
-rewrite /FTcore -mem_iota 4!inE orbA; case type12M: (_ || _); first by left.
+rewrite /FTcore -mem_iota 3!inE orbA; case type12M: (_ || _); first by left.
 move: type12M FTtype_P1max; rewrite /FTtype; do 2![case: ifP => // _] => _.
 rewrite !(fun_if (leq^~ 5)) !(fun_if (leq 3)) !if_same /= => P1maxM.
 rewrite Msigma_eq_der1 // !(fun_if (eq_op^~ 5)) if_same.

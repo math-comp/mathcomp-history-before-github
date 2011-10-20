@@ -281,8 +281,8 @@ Proof.
 by rewrite /mem2 -!index_mem size_drop => /ltn_predK; rewrite -subn_gt0 => <-.
 Qed.
 
-Lemma mem2lf p x : (x \in p) = false -> forall y, mem2 p x y = false.
-Proof. by move=> not_px y; apply: contraFF not_px; exact: mem2l. Qed.
+Lemma mem2lf {p x y} : x \notin p -> mem2 p x y = false.
+Proof. by apply: contraNF; exact: mem2l. Qed.
 
 Lemma mem2r p x y : mem2 p x y -> y \in p.
 Proof.
@@ -290,16 +290,16 @@ rewrite /mem2 => pxy.
 by rewrite -(cat_take_drop (index x p) p) mem_cat pxy orbT.
 Qed.
 
-Lemma mem2rf p y : (y \in p) = false -> forall x, mem2 p x y = false.
-Proof. by move=> not_py x; apply: contraFF not_py; exact: mem2r. Qed.
+Lemma mem2rf {p x y} : y \notin p -> mem2 p x y = false.
+Proof. by apply: contraNF; exact: mem2r. Qed.
 
 Lemma mem2_cat p1 p2 x y :
   mem2 (p1 ++ p2) x y = mem2 p1 x y || mem2 p2 x y || (x \in p1) && (y \in p2).
 Proof.
-rewrite {1}/mem2 index_cat drop_cat; case p1x: (x \in p1).
+rewrite {1}/mem2 index_cat drop_cat; have [p1x | p1'x] := boolP (x \in p1).
   rewrite index_mem p1x mem_cat /= -orbA.
-  by case p2y: (y \in p2); [rewrite !orbT | rewrite (mem2rf p2y)].
-by rewrite ltnNge leq_addr /= orbF addKn (mem2lf p1x).
+  by have [|p2'y] := boolP (y \in p2); [rewrite !orbT | rewrite (mem2rf p2'y)].
+by rewrite ltnNge leq_addr /= orbF addKn (mem2lf p1'x).
 Qed.
 
 Lemma mem2_splice p1 p3 x y p2 :
@@ -310,11 +310,11 @@ by case/or3P=> [-> | -> | /andP[-> ->]]; rewrite ?orbT.
 Qed.
 
 Lemma mem2_splice1 p1 p3 x y z :
-   mem2 (p1 ++ p3) x y -> mem2 (p1 ++ z :: p3) x y.
+  mem2 (p1 ++ p3) x y -> mem2 (p1 ++ z :: p3) x y.
 Proof. exact: (mem2_splice [::z]). Qed.
 
 Lemma mem2_cons x p y :
-  mem2 (x :: p) y =1 if x == y then predU1 x (mem p) : pred T else mem2 p y.
+  mem2 (x :: p) y =1 (if x == y then mem (x :: p) : pred T else mem2 p y).
 Proof. by move=> z; rewrite {1}/mem2 /=; case (x == y). Qed.
 
 Lemma mem2_last y0 p x : mem2 (y0 :: p) x (last y0 p) = (x \in y0 :: p).
@@ -324,22 +324,19 @@ rewrite -index_mem /mem2; move: (index x _) => i le_ip.
 by rewrite lastI drop_rcons ?size_belast // mem_rcons mem_head.
 Qed.
 
-Lemma mem2l_cat p1 x :
-  (x \in p1) = false -> forall p2, mem2 (p1 ++ p2) x =1 mem2 p2 x.
-Proof. by move=> not_p1x p2 y; rewrite mem2_cat not_p1x mem2lf ?orbF. Qed.
+Lemma mem2l_cat {p1 p2 x} : x \notin p1 -> mem2 (p1 ++ p2) x =1 mem2 p2 x.
+Proof. by move=> p1'x y; rewrite mem2_cat (negPf p1'x) mem2lf ?orbF. Qed.
 
-Lemma mem2r_cat p2 y :
-  (y \in p2) = false -> forall p1 x, mem2 (p1 ++ p2) x y = mem2 p1 x y.
+Lemma mem2r_cat {p1 p2 x y} : y \notin p2 -> mem2 (p1 ++ p2) x y = mem2 p1 x y.
 Proof.
-by move=> not_p2y p1 x; rewrite mem2_cat not_p2y -orbA orbC andbF mem2rf.
+by move=> p2'y; rewrite mem2_cat (negPf p2'y) -orbA orbC andbF mem2rf.
 Qed.
 
-Lemma mem2lr_splice p2 x y :
-    (x \in p2) = false -> (y \in p2) = false ->
-  forall p1 p3, mem2 (p1 ++ p2 ++ p3) x y = mem2 (p1 ++ p3) x y.
+Lemma mem2lr_splice {p1 p2 p3 x y} :
+  x \notin p2 -> y \notin p2 -> mem2 (p1 ++ p2 ++ p3) x y = mem2 (p1 ++ p3) x y.
 Proof.
-move=> not_p2x not_p2y p1 p3; rewrite catA !mem2_cat !mem_cat.
-by rewrite not_p2x not_p2y (mem2lf not_p2x) andbF !orbF.
+move=> p2'x p2'y; rewrite catA !mem2_cat !mem_cat.
+by rewrite (negPf p2'x) (negPf p2'y) (mem2lf p2'x) andbF !orbF.
 Qed.
 
 CoInductive split2r x y : seq T -> Type :=

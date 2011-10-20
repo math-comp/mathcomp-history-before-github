@@ -52,7 +52,7 @@ have hxyi: {subset `[x, y] <= i}.
   by case: i hx hy {hi}=> [[[] ?|] [[] ?|]] /=; do ?[move/intP->|move=> ?].
 do 2![case: sgrP; first by move/rootP; rewrite (negPf (hi _ _))]=> //.
   move=> /ltrW py0 /ltrW p0x; case: (@poly_ivt (- p) x y)=> //.
-    by rewrite inE /= !horner_opp !oppr_cp0 p0x.
+    by rewrite inE !horner_opp !oppr_cp0 p0x.
   by move=> z hz; rewrite root_opp (negPf (hi z _)) // hxyi.
 move=> /ltrW p0y /ltrW px0; case: (@poly_ivt p x y); rewrite ?inE ?px0 //.
 by move=> z hz; rewrite (negPf (hi z _)) // hxyi.
@@ -613,7 +613,7 @@ move/allP:lxs=>lxs; case eyx: (y == _)=> /=.
   rewrite boundl_in_int /=; symmetry.
   by apply/negP; move/lxs; rewrite ltrr.
 case py0: root; rewrite !(andbT, andbF) //.
-case ys: (y \in s); first by move/lxs:ys; rewrite ?inE=> ->; case/andP.
+case ys: (y \in s); first by move/lxs:ys; rewrite ?inE => ->; case/andP.
 move/negP; move/negP=> nhy; apply: negbTE; apply: contra nhy.
 by apply: subintPl; rewrite //= ?(intP hx).
 Qed.
@@ -1215,8 +1215,8 @@ move=> p a b x []; first by move->; rewrite /prev_root eqxx.
   move=> y' np0 py'0 hy' hp' _ py0 hy hp.
     wlog: y y' hy' hy hp' hp py0 py'0 / y <= y'.
       by case/orP: (ler_total y y')=> lyy' hw; [|symmetry]; apply: hw.
-    case: ltrgtP=> // hyy' _; move: (hp y').
-    by rewrite rootE py'0 eqxx inE /= (intP hy') hyy'; move/(_ isT).
+    case: ltrgtP=> // hyy' _; move/implyP: (hp y').
+    by rewrite rootE py'0 eqxx inE /= (intP hy') hyy'.
   by move=> c _ _ hpz _ py0 hy; move/hpz:hy; rewrite rootE py0 eqxx.
 case: prev_rootP=> //; first by move->; rewrite eqxx.
   move=> y ? py0 hy _ c _ ->; case: minrP hy=> hab; last first.
@@ -1239,7 +1239,7 @@ rewrite /neighpl=> p a x nrpx /= y hy.
 apply: (@polyrN0_int `[y, x]); do ?by rewrite bound_in_int /= (intP hy).
 move=> z; rewrite (@int_splitU _ x false) ?int_xx /=; last first. (* Todo : Lemma int_splitP *)
   by rewrite bound_in_int /= (intP hy).
-case/orP=> [hz|]; last by rewrite inE /=; move/eqP->.
+rewrite orbC => /predU1P[-> // | hz].
 rewrite (@prev_noroot _ a x) //.
 by apply: subintPl hz; rewrite /= (intP hy).
 Qed.
@@ -1377,7 +1377,7 @@ Qed.
 Lemma neighpr_mul : forall a b p q,
   (neighpr (p * q) a b) =i [predI (neighpr p a b) & (neighpr q a b)].
 Proof.
-move=> a b p q x; rewrite !inE next_root_mul.
+move=> a b p q x; rewrite inE /= !inE /= next_root_mul.
 by case: (a < x); rewrite // ltr_minr.
 Qed.
 
@@ -1407,7 +1407,7 @@ Qed.
 Lemma neighpl_mul : forall a b p q,
   (neighpl (p * q) a b) =i [predI (neighpl p a b) & (neighpl q a b)].
 Proof.
-move=> a b p q x; rewrite !inE prev_root_mul.
+move=> a b p q x; rewrite !inE /= prev_root_mul.
 by case: (x < b); rewrite // ltr_maxl !(andbT, andbF).
 Qed.
 

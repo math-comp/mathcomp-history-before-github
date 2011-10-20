@@ -321,7 +321,8 @@ Definition SimplFunDelta aT rT (f : aT -> aT -> rT) := [fun z => f z z].
 
 (* Shorthand for some basic equality lemmas. *)
 
-Definition erefl := @refl_equal.
+Notation erefl := refl_equal.
+Notation ecast i T e x := (let: erefl in _ = i := e return T in x).
 Definition esym := sym_eq.
 Definition nesym := sym_not_eq.
 Definition etrans := trans_eq.

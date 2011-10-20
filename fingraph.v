@@ -132,6 +132,7 @@ Lemma rgraphK : grel rgraph =2 e.
 Proof. by move=> x y; rewrite /= mem_enum. Qed.
 
 Definition connect : rel T := fun x y => y \in dfs rgraph #|T| [::] x.
+Canonical connect_app_pred x := ApplicativePred (connect x).
 
 Lemma connectP x y :
   reflect (exists2 p, path e x p & y = last x p) (connect x y).
@@ -164,6 +165,7 @@ Qed.
 Definition root x := odflt x (pick (connect x)).
 
 Definition roots : pred T := fun x => root x == x.
+Canonical roots_pred := ApplicativePred roots.
 
 Definition n_comp a := #|predI roots a|.
 
@@ -317,7 +319,7 @@ rewrite -(root_connect sym_e) -card2; apply: eq_card => z.
 apply/idP/idP=> [/andP[/eqP {2}<- /pred0Pn[t /andP[/= ezt exyt]]] |].
   by case/pred2P: exyt => <-; rewrite (rootP sym_e ezt) !inE eqxx ?orbT.
 by case/pred2P=> ->; rewrite !inE roots_root //; apply/existsP;
-  [exists x | exists y]; rewrite !inE eqxx ?orbT [_ \in _]sym_e connect_root.
+  [exists x | exists y]; rewrite !inE eqxx ?orbT sym_e connect_root.
 Qed.
 
 Lemma n_comp_connect x : n_comp e (connect e x) = 1.

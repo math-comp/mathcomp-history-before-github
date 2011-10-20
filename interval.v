@@ -8,6 +8,9 @@ Unset Printing Implicit Defensive.
 Local Open Scope ring_scope.
 Import GRing.Theory ORing.Theory.
 
+Lemma in_simpl T (p : pred T) x : (x \in fun_of_simpl (SimplPred p)) = p x.
+Proof. by []. Qed.
+
 Section IntervalPo.
 
 CoInductive int_bound (T : Type) : Type := BClose of bool & T | BInfty.
@@ -16,7 +19,7 @@ CoInductive interval (T : Type) := Interval of int_bound T & int_bound T.
 
 Variable (R : poIdomainType).
 
-Definition pred_of_int (i : interval R) : pred R := nosimpl
+Definition pred_of_int (i : interval R) : pred R :=
   [pred x | let: Interval l u := i in
       match l with
         | BClose false a => a < x
@@ -150,7 +153,7 @@ Proof. by move=> x b1 b2; rewrite /le_boundr /= ltreifxx. Qed.
 
 Lemma int_xx : forall x bl br,
   Interval (BClose bl x) (BClose br x) =i if bl && br then pred1 x else pred0.
-Proof. by move=> x [] [] y /=; rewrite !inE 1?eq_sym (eqr_le, lter_anti). Qed.
+Proof. by move=> x [] [] y; rewrite !inE 1?eq_sym (eqr_le, lter_anti). Qed.
 
 Lemma int_gte : forall ba xa bb xb, (if ba && bb then xb < xa else xb <= xa)
   -> Interval (BClose ba xa) (BClose bb xb) =i pred0.
@@ -162,11 +165,11 @@ Qed.
 
 Lemma boundl_in_int : forall ba xa b,
   xa \in Interval (BClose ba xa) b = if ba then le_boundr (BClose true xa) b else false.
-Proof. by move=> [] xa [bb xb|] //=; do ?by rewrite inE /= lterr. Qed.
+Proof. by move=> [] xa [bb xb|] //=; rewrite inE lterr. Qed.
 
 Lemma boundr_in_int : forall bb xb a,
   xb \in Interval a (BClose bb xb) = if bb then le_boundl a (BClose true xb) else false.
-Proof. move=> [] xb [ba xa|] //=; do ?by rewrite inE /= lterr ?(andbT, andbF). Qed.
+Proof. by move=> [] xb [ba xa|] //=; rewrite inE lterr ?andbT ?andbF. Qed.
 
 Definition bound_in_int := (boundl_in_int, boundr_in_int).
 
