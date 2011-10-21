@@ -1346,7 +1346,7 @@ move => R p q Hp Hq.
 case: eqP; first by move ->; rewrite eqpxx.
 move => neqpq.
 apply/negbTE/negP.
-move/eqpP => [a [b [Ha Hb Hpq]]].
+move/eqpP => [[a b]] /= /andP [Ha Hb] Hpq.
 apply: neqpq.
 have : a%:P != 0 by rewrite polyC_eq0.
 move/mulfI; apply.

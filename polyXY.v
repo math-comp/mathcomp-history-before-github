@@ -388,10 +388,10 @@ have q'_neq0 : q' != 0 by rewrite map_polyC_eq0.
 rewrite resultant_eq0 -leqNgt leq_eqVlt ltnS leqn0; apply/orP; left.
 have [// | ] := boolP (coprimep p' q').
 case/(bezout_coprimepPn p'_neq0 q'_neq0) => [[u v]] /=.
-case/and3P=> /andP [u_gt0 ltn_uq] /andP [v_gt0 ltn_vp] hpq.
-have u_neq0 : u != 0 by rewrite -size_poly_neq0.
-have v_neq0 : v != 0 by rewrite -size_poly_neq0.
-move/eqP: (hpq)=> /(f_equal ((size \o (lead_coef \o swapXY)))) /=.
+case/and3P=> /andP [u_gt0 ltn_uq] v_gt0 ltn_vp hpq.
+have u_neq0 : u != 0 by rewrite -size_poly_gt0.
+have v_neq0 : v != 0 by rewrite -size_poly_gt0.
+move: (hpq)=> /(f_equal ((size \o (lead_coef \o swapXY)))) /=.
 rewrite 2!{1}rmorphM 2!{1}lead_coef_Imul /=.
 rewrite !{1}size_mul_id ?{1}lead_coef_eq0 ?{1}swapXY_eq0;
   do ?by rewrite (p'_neq0, q'_neq0, u_neq0, v_neq0).
@@ -481,9 +481,9 @@ rewrite resultant_eq0 -leqNgt leq_eqVlt ltnS leqn0; apply/orP; left.
 rewrite -coprimep_def; have [//|] := boolP (coprimep _ _).
 case/(bezout_coprimepPn _ _); do ?by rewrite poly_XmY_eq0.
   by rewrite map_polyC_eq0; apply: contra q0_neq0=> /eqP ->; rewrite horner0.
-move=> [u v] /and3P [] /andP [u_neq0 ltn_uq] /andP [v_neq0 ltn_vp] hpq.
+move=> [u v] /= /and3P [] /andP [u_neq0 ltn_uq] v_neq0 ltn_vp hpq.
 rewrite ?size_map_polyC ?size_poly_XmY in ltn_uq ltn_vp.
-rewrite ?size_poly_neq0 in u_neq0 v_neq0.
+rewrite ?size_poly_gt0 in u_neq0 v_neq0.
 wlog vX0_neq0 : u v p q p_neq0 q0_neq0 hpq
                 u_neq0 ltn_uq v_neq0 ltn_vp / (swapXY v).[0] != 0 => [hwlog|].
   elim : (sizeY v) {-2}v u p q (leqnn (sizeY v)) v_neq0 u_neq0
@@ -492,22 +492,22 @@ wlog vX0_neq0 : u v p q p_neq0 q0_neq0 hpq
   move=> hsv v_neq0 u_neq0 p_neq0 q0_neq0 ltn_vp ltn_uq hpq.
   have [vX0_eq0|] := eqVneq (swapXY v).[0] 0; last exact: (hwlog u v p q).
   move: (vX0_eq0)=> /eqP /factor_poly []; first by rewrite swapXY_eq0.
-  move=> v' /andP []; rewrite size_poly_neq0 subr0=> v'_neq0 hsv' swv.
-  move/eqP: (hpq)=> /(f_equal (size \o (eval 0 \o swapXY))) /= => /eqP.
+  move=> v' /andP []; rewrite size_poly_gt0 subr0=> v'_neq0 hsv' swv.
+  move: (hpq)=> /(f_equal (size \o (eval 0 \o swapXY))) /= => /eqP.
   rewrite !{1}rmorphM /= /eval swapXY_map_polyC hornerC.
   rewrite swapXY_poly_XmY horner_comp_poly !horner_lin horner_map /=.
   rewrite vX0_eq0 mul0r size_poly0 size_poly_eq0 mulf_eq0 polyC_eq0.
   have [/eqP p0_eq0|p0_neq0] := boolP (p.[0] == 0); rewrite (orbT, orbF).
-    move=> _; move/eqP: (hpq)=> /(f_equal (size \o (eval 0%:P))) /= => /eqP.
+    move=> _; move: (hpq)=> /(f_equal (size \o (eval 0%:P))) /= => /eqP.
     rewrite !{1}rmorphM /= /eval.
     rewrite horner_map /= horner_poly_XmY mul0r comp_poly0 -horner_coef0.
     rewrite p0_eq0 mulr0 size_poly0 eq_sym size_poly_eq0 mulf_eq0 !polyC_eq0.
     rewrite (negPf q0_neq0) orbF -[v]swapXYK swv rmorphM /= horner_mul.
     rewrite swapXY_X hornerC mulf_eq0 polyX_eq0 orbF -rootE.
     case/factor_poly=> [|v'' /andP []]; first by rewrite swapXY_eq0.
-    rewrite size_poly_neq0 !polyC0 {1}subr0=> v''_neq0 hsv'' swv'.
+    rewrite size_poly_gt0 !polyC0 {1}subr0=> v''_neq0 hsv'' swv'.
     move: (p0_eq0)=> /rootP/factor_poly; move /(_ p_neq0) => [p' /andP[]].
-    rewrite size_poly_neq0 polyC0 {1}subr0=> p'_neq0 hsp' hp.
+    rewrite size_poly_gt0 polyC0 {1}subr0=> p'_neq0 hsp' hp.
     apply: (ihsv v'' u p' q);
     do ?by rewrite (p'_neq0, q0_neq0, u_neq0, v''_neq0, swapXY_eq0, ltn_uq).
     + rewrite -ltnS (leq_trans _ hsv) // !sizeYE (leq_trans _ hsv') // ltnS.
@@ -515,23 +515,23 @@ wlog vX0_neq0 : u v p q p_neq0 q0_neq0 hpq
     + rewrite -ltnS -size_mulX // -[X in _ < X]size_mulX // -swv' -hp.
       rewrite (leq_trans _ ltn_vp) // ltnS -[v]swapXYK swv.
       by rewrite [X in _ <= X]size_swap_mulX leqnn.
-    apply/eqP; move/eqP: hpq; rewrite -[v]swapXYK swv !{1}rmorphM /= swv' swapXY_X.
+    move: hpq; rewrite -[v]swapXYK swv !{1}rmorphM /= swv' swapXY_X.
     rewrite hp /poly_XmY !rmorphM /= !map_polyX poly_comXp.
     rewrite mulrA -[X in _ =  X * _ -> _]mulrA [X in _ = X -> _]mulrAC.
     by move/mulIf; apply; rewrite mulf_eq0 negb_or polyC_eq0 !polyX_eq0.
   move=> /factor_poly []; first by rewrite swapXY_eq0.
   move=> u' /andP [u'_neq0 hsu']; rewrite subr0=> swu.
-  rewrite !size_poly_neq0 in u'_neq0 v'_neq0.
+  rewrite !size_poly_gt0 in u'_neq0 v'_neq0.
   apply: (ihsv (swapXY v') (swapXY u') p q);
     do ?[by rewrite (p_neq0, q0_neq0)|by rewrite swapXY_eq0].
   + by rewrite sizeYE swapXYK -ltnS (leq_trans _ hsv) ?sizeYE.
   + by rewrite (leq_trans _ ltn_vp) // ltnS -[v]swapXYK swv size_swap_mulX.
   + by rewrite (leq_trans _ ltn_uq) // ltnS -[u]swapXYK swu size_swap_mulX.
-  apply/eqP; move/eqP: hpq; rewrite -[u]swapXYK -[v]swapXYK swu swv 2!{1}rmorphM.
+  move: hpq; rewrite -[u]swapXYK -[v]swapXYK swu swv 2!{1}rmorphM.
   rewrite {1}mulrAC {1}[X in _ = X -> _]mulrAC=> /mulIf; apply.
   by rewrite ?swapXY_eq0 polyX_eq0.
 have q_neq0 : q != 0 by apply: contra q0_neq0=> /eqP ->; rewrite horner0.
-move/eqP: (hpq)=> /(f_equal (size \o (eval 0 \o swapXY))) /=.
+move: hpq=> /(f_equal (size \o (eval 0 \o swapXY))) /=.
 rewrite !{1}rmorphM /= /eval swapXY_map_polyC hornerC.
 rewrite swapXY_poly_XmY horner_comp_poly !horner_lin horner_map /=.
 have [-> /eqP|uX0_neq0] := eqVneq (swapXY u).[0] 0.

@@ -1058,7 +1058,7 @@ Proof.
 move/bezout_coprimepP=> hpq.
 suff : exists uv, (uv`_0 * p + uv`_1 * q == 1)%B.
   by move=> /sigW[uv huv]; exists uv`_0, uv`_1; apply/eqP.
-move: hpq=> [[u v] /eqpP [c1 [c2 [c1_neq0 c2_neq0]]]].
+move: hpq=> [[u v]] /eqpP [[c1 c2]] /= /andP [c1_neq0 c2_neq0].
 rewrite -[_%:A]mulr1 !scale_poly1=> /(canLR (mulKr _)).
 have uc2P : GRing.unit c2%:P.
   by rewrite poly_unitE size_polyC c2_neq0 coefC !eqxx unitfE c2_neq0.
@@ -1556,7 +1556,7 @@ Proof. by rewrite /to_alg_dom; case: to_alg_dom_exists. Qed.
 Lemma monic_eqp (p q : {poly F}) : monic p -> monic q -> p %= q = (p == q)%B.
 Proof.
 move=> monic_p monic_q; apply/idP/eqP; last by move->; rewrite eqpxx.
-move=> /eqpP [a [b [a_neq0 b_neq0 hpq]]]; move: (hpq).
+move=> /eqpP [[a b]] /andP [a_neq0 b_neq0 hpq]; move: (hpq).
 suff -> : a = b by rewrite -!mul_polyC=> /mulfI-> //; rewrite polyC_eq0.
 move: hpq=> /(f_equal lead_coef).
 by rewrite -!mul_polyC !lead_coef_mul_monic ?lead_coefC.

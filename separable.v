@@ -102,7 +102,7 @@ Lemma factor_irr : forall (R : idomainType) x (d : {poly R}),
  d %| 'X - x%:P -> (d %= 'X - x%:P) || (d %= 1).
 Proof.
 move => R x d.
-move/ID.dvdpP => [c [q [Hc Hq]]].
+move/ID.dvdpP => [[c q]] /= [Hc Hq].
 have: q * d != 0.
  by rewrite -Hq -mul_polyC mulf_eq0 negb_or polyC_eq0 Hc factor_eq0.
 rewrite mulf_eq0 negb_or.
@@ -173,7 +173,7 @@ Lemma separable_dvd : forall (R : idomainType) (p q : {poly R}),
   separablePolynomial q.
 Proof.
 move => R p q Hp.
-move/ID.dvdpP => [c [r [Hc0 Hpq]]].
+move/ID.dvdpP => [[c r]] /= [Hc0 Hpq].
 have Hp0: p != 0 by apply separable_neq0.
 move: Hp.
 rewrite /separablePolynomial /coprimep.
@@ -262,7 +262,7 @@ case (leqP (size w) 1); last first.
  move/(_ isT) => Hwm1.
  have Hwm : w ^+ m %| gcdp p p^`().
   rewrite dvdp_gcd (dvdp_trans _ Hwm1) ?exprS ?dvdp_mulIr //.
-  move/ID.dvdpP: Hwm1 => [a [x [Ha0 Hx]]].
+  move/ID.dvdpP: Hwm1 => [[a x]] /= [Ha0 Hx].
   rewrite -(eqp_dvdr _ (scale_eqp _ Ha0)) -derivZ Hx derivM. 
   by rewrite deriv_exp -mulr_natl exprS !mulrA -mulr_addl dvdp_mulIr.
  have Hw2 : w * w %| q.
@@ -301,7 +301,7 @@ rewrite -leqNgt leqnn.
 move/(_ isT) => Hkm.
 have : k ^+ m %| gcdp p p^`().
  rewrite dvdp_gcd Hkm.
- move/ID.dvdpP: Hkm => [a [x [Ha0 Hx]]].
+ move/ID.dvdpP: Hkm => [[a x]] /= [Ha0 Hx].
  rewrite -(eqp_dvdr _ (scale_eqp _ Ha0)) -derivZ Hx derivM.
  by rewrite deriv_exp Hk'0 !mul0r mul0rn mulr0 addr0 dvdp_mulIr.
 have Hkq : k %| q by rewrite -(eqp_dvdr _ (scale_eqp _ Hb0)) Hqr dvdp_mulIr.  
@@ -385,8 +385,8 @@ have [[u v]] :
   move: Hp'q'.
   apply: contraL.
   by move/eqP ->.
- move/ID.dvdpP: (dvdp_gcdl p' q') => [c1 [u1 [Hc1 Hu1]]].
- move/ID.dvdpP: (dvdp_gcdr p' q') => [c2 [v1 [Hc2 Hv1]]].
+ move/ID.dvdpP: (dvdp_gcdl p' q') => [[c1 u1]] /= [Hc1 Hu1].
+ move/ID.dvdpP: (dvdp_gcdr p' q') => [[c2 v1]] /= [Hc2 Hv1].
  exists (c1 *: v1, c2 *: u1).
  rewrite !{1}size_scaler // -!{1}scaler_mull !scaler_mulr Hu1 Hv1 !mulrA.
  rewrite [v1 * _]mulrC.
@@ -644,7 +644,7 @@ have HP : p2 = P ^ kappa.
  rewrite !horner_lin mulr_addr -addrA -polyC_opp -polyC_mul polyC_add oppr_add.
  by rewrite -!polyC_opp opprK mulrN mul_polyC.
 rewrite HQ HP -gcdp_map /=.
-move/eqpP => [c1 [c2 [Hc1 Hc2]]].
+move/eqpP => [[c1 c2]] /andP [Hc1 Hc2].
 move/(canLR (scalerK Hc2)).
 rewrite scalerA.
 move/polyP => Hgcd.
@@ -2491,7 +2491,7 @@ have Hy : (y \in Fadjoin K z).
  apply: (canRL (mulrK _)).
   by rewrite unitfE -[1%N]/(2.-1) -szgcd -lead_coefE lead_coef_eq0
              -size_poly_eq0 szgcd.
- move/eqpP: gcdhg_subproof => [c1 [c2 [c1nz c2nz Hc]]].
+ move/eqpP: gcdhg_subproof => [[c1 c2]] /andP [c1nz c2nz] Hc.
  rewrite -unitfE in c1nz.
  apply (can_inj (mulKr c1nz)).
  by rewrite [y * _]mulrC mulrA mulrN -!coefZ Hc !coefZ !coefD

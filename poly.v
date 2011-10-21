@@ -327,7 +327,13 @@ Lemma lead_coef0 : lead_coef 0 = 0 :> R. Proof. exact: lead_coefC. Qed.
 Lemma size_poly_eq0 p : (size p == 0%N) = (p == 0).
 Proof. by rewrite size_eq0 -polyseq0. Qed.
 
-Lemma size_poly_neq0 p : (size p > 0) = (p != 0).
+Lemma size_poly_leq0 p : (size p <= 0) = (p == 0).
+Proof. by rewrite leqn0 size_poly_eq0. Qed.
+
+Lemma size_poly_leq0P p : reflect (p = 0) (size p <= 0%N).
+Proof. by apply: (iffP idP); rewrite size_poly_leq0; move/eqP. Qed.
+
+Lemma size_poly_gt0 p : (0 < size p) = (p != 0).
 Proof. by rewrite lt0n size_poly_eq0. Qed.
 
 Lemma nil_poly p : nilp p = (p == 0).
