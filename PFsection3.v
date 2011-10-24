@@ -2215,6 +2215,37 @@ case: (boolP (_ == _))=> // /eqP /dprod_Iirr_inj.
 by case=> HH; case/eqP: Dj1j2.
 Qed.
 
+Lemma cfdot_sigma_eq i1 i2 j1 j2 :
+   '[sigma (w_ i1 j1), sigma (w_ i2 j2)] = 
+           (sigma (w_ i1 j1) == sigma (w_ i2 j2))%:R.
+Proof.
+case: (boolP (_ == _))=> [/eqP <-|]; rewrite cfdot_sigma ?eqxx //.
+case: (boolP (i1 == _))=>[/eqP <- |//].
+by case: (boolP (j1 == _))=>[/eqP <- /negP []|].
+Qed.
+
+Lemma sigma_eqE i1 i2 j1 j2 : 
+  (sigma (w_ i1 j1) == sigma (w_ i2 j2)) = ((i1 == i2) && (j1 == j2)).
+Proof.
+apply/eqP/idP=> [Hs|].
+  have: '[sigma (w_ i1 j1)] == 1 by rewrite cfdot_sigma ?eqxx.
+  rewrite  {2}Hs cfdot_sigma -(eqN_eqC _ 1).
+  by case: (i1 == _)=> //; case: (j1 == _).
+by case/andP=> /eqP-> /eqP->.
+Qed.
+
+Lemma sigma_opp_neq i1 i2 j1 j2 : 
+  (sigma (w_ i1 j1) == -sigma (w_ i2 j2)) = false.
+Proof.
+apply/negP=> HH.
+have: '[sigma (w_ i1 j1)] = 1 by rewrite cfdot_sigma ?eqxx.
+rewrite  {1}(eqP HH) cfdotNl cfdot_sigma.
+case: (_ == _)=> /eqP; last by rewrite oppr0 -(eqN_eqC 0 1).
+case: (j2 == _); last by rewrite oppr0 -(eqN_eqC 0 1).
+by rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1) -(eqN_eqC _ 0).
+Qed.
+
+
 (* Move to vcharacter *)
 Definition dirr :=  [pred f | (f \in irr G) || (-f \in irr G)].
 

@@ -1041,56 +1041,7 @@ rewrite /chi (Dade_chiE CDH i) cfResE // -/(mu2 _ _) => ->.
 by rewrite subrr.
 Qed.
 
-Lemma cfdot_sigma_eq i1 i2 j1 j2 :
-   '[sigma (w_ i1 j1), sigma (w_ i2 j2)] = 
-           (sigma (w_ i1 j1) == sigma (w_ i2 j2))%:R.
-Proof.
-case: (boolP (_ == _))=> [/eqP <-|]; rewrite (cfdot_sigma CDH) ?eqxx //.
-case: (boolP (i1 == _))=>[/eqP <- |//].
-by case: (boolP (j1 == _))=>[/eqP <- /negP []|].
-Qed.
-
-Lemma sigma_eqE i1 i2 j1 j2 : 
-  (sigma (w_ i1 j1) == sigma (w_ i2 j2)) = ((i1 == i2) && (j1 == j2)).
-Proof.
-apply/eqP/idP=> [Hs|].
-  have: '[sigma (w_ i1 j1)] == 1 by rewrite (cfdot_sigma CDH) ?eqxx.
-  rewrite  {2}Hs (cfdot_sigma CDH) -(eqN_eqC _ 1).
-  by case: (i1 == _)=> //; case: (j1 == _).
-by case/andP=> /eqP-> /eqP->.
-Qed.
-
-Lemma sigma_opp_neq i1 i2 j1 j2 : 
-  (sigma (w_ i1 j1) == -sigma (w_ i2 j2)) = false.
-Proof.
-apply/negP=> HH.
-have: '[sigma (w_ i1 j1)] = 1 by rewrite (cfdot_sigma CDH) ?eqxx.
-rewrite  {1}(eqP HH) cfdotNl (cfdot_sigma CDH).
-case: (_ == _)=> /eqP; last by rewrite oppr0 -(eqN_eqC 0 1).
-case: (j2 == _); last by rewrite oppr0 -(eqN_eqC 0 1).
-by rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1) -(eqN_eqC _ 0).
-Qed.
-
 Local Notation NC := (cyclicTI_NC W W1 W2).
-
-Lemma NC_add i j (phi : 'CF(G)) : 
-  '[phi + sigma (w_ i j), sigma (w_ i j)] == 0 -> 
-         (NC (phi + sigma (w_ i j))%R <= NC phi)%N.
-Proof.
-move=> ZC; rewrite subset_leqif_cards //; apply/subsetP=> [[i1 j1]].
-move: ZC; rewrite !inE !cfdotDl !(cfdot_sigma CDH) /= !eqxx.
-case: (i =P i1)=> [->|]; last by rewrite addr0.
-by case: (j =P j1)=> [-> HH /negP []|]; last by rewrite addr0.
-Qed.
-
-Lemma NC_sub i j phi :
-  '[phi - sigma (w_ i j), sigma (w_ i j)] == 0 ->
-         (NC (phi - sigma (w_ i j))%R <= NC phi)%N.
-Proof.
-move=> Phi; move: (@NC_add i j (- phi))=> /=.
-rewrite -oppr_eq0 -cfdotNl oppr_add opprK; move/(_ Phi).
-by rewrite -cyclicTI_NC_opp oppr_add opprK cyclicTI_NC_opp.
-Qed.
 
 (* This is last part of 4.8 *)
 Lemma cDade_mu2_tau i j k : j != 0 -> k != 0 -> mu2 i j 1%g = mu2 i k 1%g -> 
@@ -1133,7 +1084,7 @@ pose dB1 x := (subrr, sub0r, subr0, oppr0, subrK,
              (I, natr_add algC 1%N), (I, natr_add algC x 1%N),
              (I, natr_add algC 1%N 1%N), (I, natr_add),
              oppr_eq0, (I, eqN_eqC 1 0), (I,  eqN_eqC x 0)).
-pose dB2 :=  (eqr_opp, eqr_oppC, opprK, sigma_opp_neq).
+pose dB2 :=  (eqr_opp, eqr_oppC, opprK, (sigma_opp_neq CDH)).
 wlog : i1 i2  j k Di1i2 NZj NZk Djk / 
  '['chi_i1 - 'chi_i2 + sigma (w_ i k) - sigma (w_ i j), sigma (w_ i j)] != 0.
   set phi := _ - _ => WL Zphi.
@@ -1147,7 +1098,7 @@ wlog : i1 i2  j k Di1i2 NZj NZk Djk /
     by move: (Zphi _ ViV); rewrite !cfunE.
   move: Zij Zik.
   have DD0 : sigma (w_ i j) != sigma (w_ i k).
-    by rewrite sigma_eqE eqxx (negPf Djk).
+    by rewrite (sigma_eqE CDH) eqxx (negPf Djk).
   rewrite !(cfdotDl, cfdot_subl, cfdot_sigma CDH, cfdotNl) !eqxx [k == j]eq_sym.
   rewrite (negPf Djk) addr0 !cfdot_dirr ?(dirr_chi, dirr_sigma CDH) // /phi.
   case: ('chi_i1 =P _)=> [->|DD1].
@@ -1185,7 +1136,7 @@ have: (NC phi < 2 * minn #|W1| #|W2|)%N.
   apply: leq_trans (cyclicTI_NC_sub _ _ _ _ _) _.
   by apply: leq_add; apply: (cyclicTI_NC_irr CDH).
 have DD0 : sigma (w_ i j) != sigma (w_ i k).
-  by rewrite sigma_eqE eqxx (negPf Djk).
+  by rewrite (sigma_eqE CDH) eqxx (negPf Djk).
   (* Now we go brute force! *)
 move/(cyclicTI_NC_split Vphi)=> /(_ CDH _ _ NZphi) []; last first.
   move/(_ i k); rewrite eqxx mul1r -!/(w_ _ _).
@@ -1252,15 +1203,15 @@ have: exists i3, exists i4, [/\ i3 != i, i4 != i & i3 != i4].
   by rewrite eq_sym NZi0 eq_sym NZi3 eq_sym.
 case=> i3 [i4 [Di3i Di4i Di3i4]].
 have DD1: sigma (w_ i j) != sigma (w_ i3 j).
-  by rewrite sigma_eqE eqxx eq_sym (negPf Di3i).
+  by rewrite (sigma_eqE CDH) eqxx eq_sym (negPf Di3i).
 have DD2: sigma (w_ i j) != sigma (w_ i4 j).
-  by rewrite sigma_eqE eqxx eq_sym (negPf Di4i).
+  by rewrite (sigma_eqE CDH) eqxx eq_sym (negPf Di4i).
 have DD3: sigma (w_ i k) != sigma (w_ i3 j).
-  by rewrite sigma_eqE [k == _]eq_sym (negPf Djk) andbF.
+  by rewrite (sigma_eqE CDH) [k == _]eq_sym (negPf Djk) andbF.
 have DD4: sigma (w_ i k) != sigma (w_ i4 j).
-  by rewrite sigma_eqE [k == _]eq_sym (negPf Djk) andbF.
+  by rewrite (sigma_eqE CDH) [k == _]eq_sym (negPf Djk) andbF.
 have DD5: sigma (w_ i3 j) != sigma (w_ i4 j).
-  by rewrite sigma_eqE eqxx (negPf Di3i4).
+  by rewrite (sigma_eqE CDH) eqxx (negPf Di3i4).
 have HH1: '[phi, sigma (w_ i3 j)] == '[phi, sigma (w_ i j)].
   by rewrite HH eqxx mul1r.
 have HH2: '[phi, sigma (w_ i4 j)] == '[phi, sigma (w_ i j)].
@@ -1271,7 +1222,8 @@ have HH4:  '[phi, sigma (w_ i k)] == 0.
   by rewrite HH (negPf Djk) mul0r.
 move: HH1 HH2 HH3 HH4 Dchi Dochi.
 rewrite /phi !(cfdotDl, cfdot_subl, cfdotNl).
-rewrite !cfdot_sigma_eq (negPf DD1) (negPf DD2) (negPf DD3) (negPf DD4).
+rewrite !(cfdot_sigma_eq CDH).
+rewrite (negPf DD1) (negPf DD2) (negPf DD3) (negPf DD4).
 rewrite !eqxx [sigma _ == _]eq_sym !(negPf DD0) !dB1.
 rewrite !cfdot_dirr ?(dirr_chi, dirr_sigma CDH) //.
 case: ('chi_i1 =P _)=> [->|DD6].
