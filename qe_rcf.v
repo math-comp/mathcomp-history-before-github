@@ -194,7 +194,7 @@ elim: f e e' => //=.
 - by move=> i f1 IH1 e e'; move/(eq_i i)=> eq_e [x f_ex]; exists x; eauto.
 by move=> i f1 IH1 e e'; move/(eq_i i); eauto.
 Qed.
-
+ 
 (* Evaluation and substitution by a constant *)
 Lemma holds_fsubst e f i v :
   holds e (fsubst f (i, v%:T)%T) <-> holds (set_nth 0 e i v) f.

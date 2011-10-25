@@ -1038,10 +1038,7 @@ rewrite -(@can2_eq _ _ (fun (x : 'rV_(_)) => x *m A) (fun x => x *m (invmx A))).
 Qed.
 
 Lemma size_sg_tab_neq0 : forall n, size (sg_tab n) != 0%N.
-Proof.
-move=> n; rewrite size_sg_tab.
-by rewrite exp3n.
-Qed.
+Proof. by move=> n; rewrite size_sg_tab exp3n. Qed.
 
 Lemma croots_varpI : forall z sq,
   (croots z (sq) (nseq (size (sq)) 1))%:~R = (castmx (erefl _, exp3n _)

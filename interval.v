@@ -8,9 +8,6 @@ Unset Printing Implicit Defensive.
 Local Open Scope ring_scope.
 Import GRing.Theory ORing.Theory.
 
-Lemma in_simpl T (p : pred T) x : (x \in fun_of_simpl (SimplPred p)) = p x.
-Proof. by []. Qed.
-
 Section IntervalPo.
 
 CoInductive int_bound (T : Type) : Type := BClose of bool & T | BInfty.
@@ -94,7 +91,7 @@ Definition int_decompose (i : interval R) x : Prop :=
 
 Lemma int_dec : forall (x : R) (i : interval R),
   reflect (int_decompose i x) (x \in i).
-Proof. move=> x [[[] a|] [[] b|]]; apply: (iffP andP); case=> //. Qed.
+Proof. by move=> x [[[] a|] [[] b|]]; apply: (iffP andP); case. Qed.
 
 Implicit Arguments int_dec [x i].
 
