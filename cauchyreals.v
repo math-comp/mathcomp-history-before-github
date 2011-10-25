@@ -1469,7 +1469,7 @@ have ld_neq0 : lead_coef d != 0 :> F.
 have monic_r1 : monic r1.
   by rewrite /monic /r1 -mul_polyC lead_coef_Imul lead_coefC mulVf.
 have eq_p_r2r1: p = r2 * r1.
-  by rewrite divpK // (@eqp_dvdl _ d) ?dvdp_gcdl // scale_eqp ?invr_eq0.
+  by rewrite divpK // (@eqp_dvdl _ d) ?dvdp_gcdl // eqp_scale ?invr_eq0.
 have monic_r2 : monic r2 by rewrite -(monic_mulr _ monic_r1) -eq_p_r2r1.
 have eq_sr1_sd : size r1 = size d by rewrite size_scaler ?invr_eq0.
 have sr1 : (1 < size r1)%N.

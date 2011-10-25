@@ -1800,7 +1800,7 @@ Proof. exact: horner_map. Qed.
 Lemma comp_poly0 p : p \Po 0 = (p`_0)%:P.
 Proof. by rewrite comp_polyC horner_coef0. Qed.
 
-Lemma poly_comCp c p : c%:P \Po p = c%:P.
+Lemma comp_polyCp c p : c%:P \Po p = c%:P.
 Proof. by rewrite /(_ \Po p) map_polyC hornerC. Qed.
 
 Fact comp_poly_is_linear p : linear (comp_poly p).
@@ -1812,7 +1812,7 @@ Qed.
 Canonical comp_poly_additive p := Additive (comp_poly_is_linear p).
 Canonical comp_poly_linear p := Linear (comp_poly_is_linear p).
 
-Lemma poly_com0p p : 0 \Po p = 0.
+Lemma comp_poly0p p : 0 \Po p = 0.
 Proof. exact: raddf0. Qed.
 
 Lemma comp_poly_addl p q r : (p + q) \Po r = (p \Po r) + (q \Po r).
@@ -1827,11 +1827,11 @@ Proof. exact: linearZ. Qed.
 Lemma comp_polyX p : p \Po 'X = p.
 Proof. by rewrite -{2}/(idfun p) poly_initial. Qed.
 
-Lemma poly_comXp p : 'X \Po p = p.
+Lemma comp_polyXp p : 'X \Po p = p.
 Proof. by rewrite /(_ \Po p) map_polyX hornerX. Qed.
 
 Lemma comp_poly_translateK z : ('X + z%:P) \Po ('X - z%:P) = 'X.
-Proof. by rewrite comp_poly_addl poly_comXp poly_comCp subrK. Qed.
+Proof. by rewrite comp_poly_addl comp_polyXp comp_polyCp subrK. Qed.
 
 Lemma comp_poly_amulX c p q : (p * 'X + c%:P) \Po q = (p \Po q) * q + c%:P.
 Proof.
@@ -1856,7 +1856,7 @@ Implicit Types (p q r : {poly R}) (x : R).
 
 Fact comp_poly_multiplicative p : multiplicative (comp_poly p).
 Proof.
-split=> [q r|]; last by rewrite poly_comCp.
+split=> [q r|]; last by rewrite comp_polyCp.
 by rewrite /comp_poly rmorphM horner_mul.
 Qed.
 
@@ -1877,8 +1877,8 @@ Proof. by rewrite !rootE horner_comp_poly. Qed.
 
 Lemma comp_polyA p q r : (p \Po q) \Po r = p \Po (q \Po r).
 Proof.
-elim/poly_ind: p => [|p c IHp]; first by rewrite !poly_comCp.
-by rewrite !comp_poly_addl !comp_poly_mull !poly_comXp IHp !poly_comCp.
+elim/poly_ind: p => [|p c IHp]; first by rewrite !comp_polyCp.
+by rewrite !comp_poly_addl !comp_poly_mull !comp_polyXp IHp !comp_polyCp.
 Qed.
 
 End ComPolyCompose.
@@ -1892,7 +1892,7 @@ Implicit Types p q r : {poly R}.
 Lemma size_comp_poly_id p q :
   (size (p \Po q)).-1 = ((size p).-1 * (size q).-1)%N.
 Proof.
-have [-> | nz_p] := eqVneq p 0; first by rewrite poly_com0p size_poly0.
+have [-> | nz_p] := eqVneq p 0; first by rewrite comp_poly0p size_poly0.
 have [/size1_polyC-> | nc_q] := leqP (size q) 1.
   by rewrite comp_polyC !size_polyC -!sub1b !predn_sub muln0.
 have nz_q: q != 0 by rewrite -size_poly_eq0 -(subnKC nc_q).
@@ -2190,9 +2190,9 @@ Implicit Types p q : {poly R}.
 
 Lemma deriv_comp_poly p q : (p \Po q) ^`() = (p ^`() \Po q) * q^`().
 Proof.
-elim/poly_ind: p => [|p c IHp]; first by rewrite !(deriv0, poly_com0p) mul0r.
+elim/poly_ind: p => [|p c IHp]; first by rewrite !(deriv0, comp_poly0p) mul0r.
 rewrite comp_poly_amulX derivD derivC derivM IHp deriv_amulX comp_poly_addl.
-by rewrite comp_poly_mull poly_comXp addr0 addrC mulrAC -mulr_addl.
+by rewrite comp_poly_mull comp_polyXp addr0 addrC mulrAC -mulr_addl.
 Qed.
 
 Lemma deriv_exp p n : (p ^+ n)^`() = p^`() * p ^+ n.-1 *+ n.

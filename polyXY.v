@@ -87,11 +87,11 @@ Lemma size_comp_poly2 (R : idomainType) (p q : {poly R}) :
   size q = 2 -> size (p \Po q) = size p.
 Proof.
 move=> sq_eq2; have [] := ltngtP (size p) 1%N.
-+ by rewrite ltnS leqn0 size_poly_eq0=> /eqP->; rewrite poly_com0p.
++ by rewrite ltnS leqn0 size_poly_eq0=> /eqP->; rewrite comp_poly0p.
 + move=> sp_gt1; have : (size (p \Po q)).-1 = (size p).-1.
     by rewrite size_comp_poly_id sq_eq2 muln1.
   by rewrite -(subnKC sp_gt1) /=; case: size=> //= n ->.
-+ by move=> /eqP /size1P [c c_neq0 ->]; rewrite poly_comCp.
++ by move=> /eqP /size1P [c c_neq0 ->]; rewrite comp_polyCp.
 Qed.
 
 Lemma comp_poly2_eq0 (R : idomainType) (p q : {poly R}) :
@@ -282,7 +282,7 @@ Lemma horner_poly_XmY (R : comRingType) (p : {poly R}) (x : {poly R}) :
 Proof. by rewrite horner_comp_poly !horner_lin. Qed.
 
 Lemma poly_XaY0 (R : ringType) : poly_XaY (0 : {poly R}) = 0.
-Proof. by rewrite /poly_XaY rmorph0 poly_com0p. Qed.
+Proof. by rewrite /poly_XaY rmorph0 comp_poly0p. Qed.
 
 Lemma size_poly_XaY (R : idomainType) (p : {poly R}) :
   size (poly_XaY p) = size p.
@@ -516,7 +516,7 @@ wlog vX0_neq0 : u v p q p_neq0 q0_neq0 hpq
       rewrite (leq_trans _ ltn_vp) // ltnS -[v]swapXYK swv.
       by rewrite [X in _ <= X]size_swap_mulX leqnn.
     move: hpq; rewrite -[v]swapXYK swv !{1}rmorphM /= swv' swapXY_X.
-    rewrite hp /poly_XmY !rmorphM /= !map_polyX poly_comXp.
+    rewrite hp /poly_XmY !rmorphM /= !map_polyX comp_polyXp.
     rewrite mulrA -[X in _ =  X * _ -> _]mulrA [X in _ = X -> _]mulrAC.
     by move/mulIf; apply; rewrite mulf_eq0 negb_or polyC_eq0 !polyX_eq0.
   move=> /factor_poly []; first by rewrite swapXY_eq0.

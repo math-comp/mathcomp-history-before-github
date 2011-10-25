@@ -1347,7 +1347,7 @@ rewrite coprimep_sym; move/(_ cpq)=> qr.
 have erq : r %= q by rewrite /eqp rq qr.
 (* Todo : relate eqp with roots *)
 apply/roots_eq=> // [|x hx]; last exact: eqp_root.
-by rewrite -size_poly_eq0 (size_eqp erq) size_poly_eq0.
+by rewrite -size_poly_eq0 (eqp_size erq) size_poly_eq0.
 Qed.
 
 

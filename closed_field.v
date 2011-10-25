@@ -803,7 +803,7 @@ rewrite -!map_comp.
     \big[(@gcdp F)/0]_(j <- l) P j %= \big[(@rgcdp F)/0]_(j <- l) P j.
     elim: l => [| u l ihl] /=; first by rewrite !big_nil eqpxx.
     rewrite !big_cons; move: ihl; move/(eqp_gcdr (P u)) => h.
-    apply: eqp_trans h _; rewrite eqp_sym; exact: eqp_rgcdp_gcdp.
+    apply: eqp_trans h _; rewrite eqp_sym; exact: eqp_rgcd_gcd.
 case g0: (\big[(@rgcdp F)/0%:P]_(j <- map (eval_poly e \o abstrX i) ps) j == 0).
   rewrite (eqP g0) rgdcop0.
   case m0 : (_ == 0)=> //=; rewrite ?(size_poly1,size_poly0) //=.
@@ -820,7 +820,7 @@ case g0: (\big[(@rgcdp F)/0%:P]_(j <- map (eval_poly e \o abstrX i) ps) j == 0).
     by rewrite (eqp_root (aux _ _ _ )) (eqP g0) root0.
   by apply/holds_conjn.
 apply:(iffP (root_size_neq1 axiom _)); case=> x Px; exists x; move:Px => //=.
-  rewrite (eqp_root (eqp_rgdcop_gdcop _ _)).
+  rewrite (eqp_root (eqp_rgdco_gdco _ _)).
   rewrite root_gdco ?g0 //.
   rewrite -(eqp_root (aux _ _ _ )) root_biggcd.
   rewrite abstrX_bigmul eval_bigmul -bigmap_id root_bigmul.
@@ -828,7 +828,7 @@ apply:(iffP (root_size_neq1 axiom _)); case=> x Px; exists x; move:Px => //=.
   do 2?constructor.
     by apply/holds_conj.
   by apply/holds_conjn.
-rewrite (eqp_root (eqp_rgdcop_gdcop _ _)).
+rewrite (eqp_root (eqp_rgdco_gdco _ _)).
 rewrite root_gdco ?g0 // -(eqp_root (aux _ _ _ )) root_biggcd.
 rewrite abstrX_bigmul eval_bigmul -bigmap_id root_bigmul=> [[] // [hps hqs]].
 apply/andP; constructor.

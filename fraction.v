@@ -392,7 +392,7 @@ set g := gcdp n d; set lg := lead_coef g.
 have hdng : d %/ (lg^-1 *: g) != 0.
   suff: (lg^-1 *: g) %| d.
     by rewrite dvdp_eq; apply: contraTneq=> ->; rewrite mul0r.
-  rewrite (eqp_dvdl _ (scale_eqp _ _)) ?dvdp_gcdr //.
+  rewrite (eqp_dvdl _ (eqp_scale _ _)) ?dvdp_gcdr //.
   by rewrite invr_eq0 lead_coef_eq0 gcdp_eq0 (negPf hd) andbF.
 rewrite !numden_Ratio //= /insubd.
 set n' : {poly R} := _ *: (_ %/ _); set d' : {poly R} := _ *: (_ %/ _).
