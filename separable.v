@@ -1639,7 +1639,8 @@ Lemma separableInseparableElement: forall x,
 Proof.
 move => x; rewrite /purelyInseparableElement valK.
 case: ex_minnP=> [[//|[/=|m]]]; first by rewrite expr1=> ->. 
-case: {1}_ / ifP=> // _ _ /(_ 1%N)/contraNN/(_ isT)/negPf; rewrite expr1.
+rewrite -{1}/(andb _ _). (* needed in coq-trunk only *)
+case: (X in X && _) => // _ /(_ 1%N)/contraNN/(_ isT)/negPf; rewrite expr1 /=.
 by case: (_ \in _) (@separableinK K x)=> [->|_ ->].
 Qed.
 
