@@ -158,7 +158,7 @@ Lemma jump_coprime : forall p q, p != 0 -> coprimep p q
 Proof.
 move=> p q pn0 cpq x rpx; rewrite /jump /sjump; have q0: q != 0.
   apply/negP; move/eqP=> q0; move: cpq rpx; rewrite q0.
-  rewrite coprimep0 -size_poly_eq1; case/size1P=> c [c0 ->].
+  rewrite coprimep0 -size_poly_eq1; case/size1P=> c c0 ->.
   by rewrite rootC; apply/negP.
 rewrite q0 mu_mul ?mulf_neq0//; congr (_ *+ _).
 rewrite odd_add odd_sub 1?addbC// (@leq_trans 0)//.
@@ -574,7 +574,7 @@ Lemma sremps_ind : forall p q, p != 0 ->
 Proof.
 move=> p q np0; rewrite {1}/sremps /=.
 case hsp: (size p)=> [|sp] /=.
-  by case/eqP: hsp np0; rewrite size_poly_eq0; move/eqP->; rewrite eqxx.
+  by move/eqP: hsp np0; rewrite size_poly_eq0; move/eqP->; rewrite eqxx.
 rewrite maxnSS /= (negPf np0); congr cons.
 case q0: (q == 0); first by rewrite /sremps (eqP q0) !sremps_recp0.
 rewrite sremps_recW // size_opp maxnl; first by rewrite !leq_maxr leqnn orbT.
@@ -647,7 +647,7 @@ Proof.
 move=> a b hab p q.
 rewrite /taq /cind /jump !big_seq.
 apply: eq_bigr => x hxz.
-have rpx: root p x by case:(root_roots hxz).
+have rpx: root p x by exact:(root_roots hxz).
 case p'q0: (p^`()*q == 0) => //.
   rewrite (eqP p'q0) mulr0n /=.
   move: p'q0; rewrite mulf_eq0; case/orP; last first.
@@ -657,7 +657,7 @@ case p'q0: (p^`()*q == 0) => //.
     move/eqP:hsp; rewrite size_poly_eq0; move/eqP=> p0 _.
     by move: hxz; rewrite p0 roots0.
   move/eqP=> sp0; move/eqP: hsp; rewrite sp0.
-  move/size1P=> [c [c0 hp]].
+  move/size1P=> [c c0 hp].
   by move: rpx; rewrite hp rootC (negPf c0).
 move/negP: p'q0; move/negP=> p'q0.
 move:(p'q0); rewrite mulf_eq0 negb_or; case/andP=> p'0 q0.
@@ -1425,7 +1425,7 @@ case: (prev_rootP q (-bnd) x) q0; first by move->; rewrite eqxx.
   have:= hsq r hr; rewrite -!sgr_cp0; congr (_ == 1).
   apply: (@polyrN0_int _ `[x, bnd]) => //= y.
   rewrite (@int_splitU _ bnd false) // int_xx /=.
-  case=> /orP [|/eqP ->]; last first.
+  case/orP=> [|/eqP ->]; last first.
     suff: ~~ root q bnd.
       apply: contra=> r0; rewrite /root horner_prod prodf_seq_eq0 /=.
       by apply/hasP; exists r.
@@ -1433,7 +1433,7 @@ case: (prev_rootP q (-bnd) x) q0; first by move->; rewrite eqxx.
     rewrite /bnd ler_absl=> /andP [_].
     by rewrite -subr_ge0 oppr_add addrA subrr sub0r lerNgt oppr_lt0 ltr01.
   rewrite (@int_splitU _ x true) // ?bound_in_int // int_xx /=.
-  case=> /orP [/eqP ->|/hqb] //.
+  case/orP=> [/eqP ->|/hqb] //.
     by move/hsq:hr; apply: contraTneq=> ->; rewrite ltrr.
   apply: contra=> r0; rewrite /root horner_prod prodf_seq_eq0 /=.
   by apply/hasP; exists r.
@@ -1443,7 +1443,7 @@ rewrite big_all; apply/allP=> r hr.
 have:= hsq r hr; rewrite -!sgr_cp0; congr (_ == 1).
 apply: (@polyrN0_int _ `[(- bnd), x]) => //= y.
 rewrite (@int_splitU _ (- bnd) true) // int_xx /= inE /=.
-case=> /orP [/eqP ->|].
+case/orP=> [/eqP ->|].
   suff: ~~ root q (- bnd).
     apply: contra=> r0; rewrite /root horner_prod prodf_seq_eq0 /=.
     by apply/hasP; exists r.
@@ -1451,7 +1451,7 @@ case=> /orP [/eqP ->|].
   rewrite /bnd absrN ler_absl=> /andP [_].
   by rewrite -subr_ge0 oppr_add addrA subrr sub0r lerNgt oppr_lt0 ltr01.
 rewrite (@int_splitU _ x false) // ?bound_in_int // int_xx /=.
-case=> /orP [/hqa|/eqP ->] //.
+case/orP=> [/hqa|/eqP ->] //.
   apply: contra=> r0; rewrite /root horner_prod prodf_seq_eq0 /=.
   by apply/hasP; exists r.
 by move/hsq:hr; apply: contraTneq=> ->; rewrite ltrr.

@@ -1467,7 +1467,7 @@ case: (@neighpr_wit (p * p^`()) x b)=> [||m hm].
   (* Todo : a lemma for this *)
   move: (size_deriv p); rewrite sp /=; move/eqP; apply: contraTneq=> ->.
   rewrite size_poly0; apply: contraTneq px0=> hn; rewrite -hn in sp.
-  by move/eqP: sp; case/size1P=> c [nc0 ->]; rewrite rootC.
+  by move/eqP: sp; case/size1P=> c nc0 ->; rewrite rootC.
 * move: hm; rewrite neighpr_mul /neighpr inE /=; case/andP=> hmp hmp'.
   rewrite (polyrN0_int _ hmp) //; last exact: next_noroot.
   rewrite (@ders0r p x m (mid x m)) ?(eqP px0) ?mid_in_int ?bound_in_int //;
@@ -1512,7 +1512,7 @@ case: (@neighpl_wit (p * p^`()) a x)=> [||m hm].
   (* Todo : a lemma for this *)
   move: (size_deriv p); rewrite sp /=; move/eqP; apply: contraTneq=> ->.
   rewrite size_poly0; apply: contraTneq px0=> hn; rewrite -hn in sp.
-  by move/eqP: sp; case/size1P=> c [nc0 ->]; rewrite rootC.
+  by move/eqP: sp; case/size1P=> c nc0 ->; rewrite rootC.
 * move: hm; rewrite neighpl_mul /neighpl inE /=; case/andP=> hmp hmp'.
   rewrite (polyrN0_int _ hmp) //; last exact: prev_noroot.
   rewrite (@ders0l p m x (mid m x)) ?(eqP px0) ?mid_in_int ?bound_in_int //;
@@ -1609,7 +1609,7 @@ rewrite derivD ihmq // ?mu_deriv ?rootE ?px0 ?qx0 ?hmp ?hmq ?subn1 //.
 apply: contra nq0; rewrite -size_poly_eq0 size_deriv.
 case hsq: size=> [|sq] /=.
   by move/eqP: hsq; rewrite size_poly_eq0.
-move/eqP=> sq0; move/eqP: hsq qx0; rewrite sq0; case/size1P=> c [c0 ->].
+move/eqP=> sq0; move/eqP: hsq qx0; rewrite sq0; case/size1P=> c c0 ->.
 by rewrite hornerC; move/eqP; rewrite (negPf c0).
 Qed.
 

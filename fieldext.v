@@ -382,7 +382,6 @@ Proof.
 elim/quotW=> x; elim/quotW=> y; elim/quotW=> w.
 rewrite !mopP; apply/equivP.
 rewrite  /= /n !poly_rV_K_modp_subproof [_ %% p' * _ w]mulrC.
-Search _ ((_ * _) %% _).
 by rewrite !modp_mul // mulrA [_ * _ w]mulrC [_ w * (_ x * _ y)]mulrC.
 Qed.
 
@@ -443,7 +442,7 @@ case: gdcopP => r _.
 rewrite -[p' == 0]negbK p'ne0 orbF coprimep_sym -gcdp_eqp1 eqp_sym => Hcoprime.
 move/(eqp_trans Hcoprime): (egcdpE q r).
 rewrite eqp_sym -size_poly_eq1.
-case/size1P => k [Hk0 Hk] Hr Hroot.
+case/size1P => k Hk0 Hk Hr Hroot.
 rewrite Hk -mul_polyC rmorphM coefC eqxx [_ _%:P]horner_morphC fmorphV.
 apply: (canLR (mulKf _)); first by rewrite fmorph_eq0.
 apply: (canRL (mulfK _)); first done.

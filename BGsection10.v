@@ -710,7 +710,7 @@ case=> // [cPP | [S esS [C [mulSC cycC defC1]]]]; first by case/negP: not_cPP.
 exists S => //; exists C => //; split=> //; rewrite defC1.
 have sSP: S \subset P by case/cprodP: mulSC => _; case/mulG_sub.
 have [[not_cSS dimS _] pS] := (esS, pgroupS sSP pP).
-by have [||[[]]] := p3group_extraspecial pS; rewrite ?dimS.
+by have [||[]] := p3group_extraspecial pS; rewrite ?dimS.
 Qed.
 
 (* This is B & G, Corollary 10.7(c). *)

@@ -2138,7 +2138,7 @@ rewrite cent_joinEr ?subsetIr //; case/mulsgP=> y' y Ky' /= Ks_y ->.
 rewrite inE; have [-> | nty] := eqVneq y 1; first by rewrite mulg1 Ky'.
 have [-> | nty' _ _ ->] := eqVneq y' 1; first by rewrite mul1g Ks_y orbT.
 have [Ms_y cKy] := setIP Ks_y; set Ks := 'C_(_)(_) in Ks_y defK.
-have [Msts_y']: y' \in Mst`_\sigma by move: Ky'; rewrite -defK; case/setIP.
+have Msts_y': y' \in Mst`_\sigma by move: Ky'; rewrite -defK; case/setIP.
 have kMy': \kappa(M).-elt y' := mem_p_elt (pHall_pgroup hallK) Ky'.
 have{kMy'} sM'y': \sigma(M)^'.-elt y' := sub_pgroup (@kappa_sigma' _) kMy'.
 rewrite ell_sigmaJ /sigma_length (cardsD1 (y' * y).`_\sigma(M)).

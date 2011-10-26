@@ -619,7 +619,7 @@ exists F.
     have /cycleP[m ->]: in_uF a \in <[r]> by rewrite -def_uF inE.
     by rewrite val_unitX !rmorphX /= eq_fgr.
   have /sigW[P /and3P[Pr0 nP lePq]]:
-    exists P, [&& root P r, all (mem nF) P & #|root P| <= q].
+    exists P: {poly F}, [&& root P r, all (mem nF) P & #|root P| <= q].
   - pose Mr := (\matrix_(i < q.+1) (sb *m outF (r ^+ i)))%R.
     have /rowV0Pn[v /sub_kermxP vMr0 nz_v]: kermx Mr != 0%R.
       rewrite kermx_eq0 neq_ltn ltnS (leq_trans (rank_leq_col Mr)) //.

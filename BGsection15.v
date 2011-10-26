@@ -378,7 +378,7 @@ have regNNS: forall Z (Z1 := 'Ohm_1(Z)),
   have EpZ1: [group of Z1] \in 'E_p^1(E).
     rewrite p1ElemE // !inE (subset_trans sZ1S) //=.
     by rewrite (Ohm1_cyclic_pgroup_prime _ (pgroupS sZS pS)).
-  have [/= uCZ1] := nregEp_uniq _ EpZ1 nregZ1.
+  have /= uCZ1 := nregEp_uniq _ EpZ1 nregZ1.
   apply: (subset_trans nZ1_NS); apply: (sub_uniq_mmax uCZ1 (cent_sub _)).
   by rewrite mFT_norm_proper ?(mFT_pgroup_proper (pgroupS sZ1S pS)) ?Ohm1_eq1.
 have [bS defS typeS] := abelian_structure cSS.
@@ -570,7 +570,7 @@ have{K1 sK1M sK1K coMsK1 coQK1 prK1 defCMsK1 nQK1 solMs} Qi_rec: forall Qi,
   have nsQiN: Qi <| 'N_M(Qi) by rewrite normal_subnorm (subset_trans sQiQ).
   have: Lb <| 'N_M(Qi) / Qi.
     by rewrite quotientInorm /normal (subset_trans sLbQ) ?quotientS.
-  case/(inv_quotientN nsQiN) => L [defLb sQij] /=; case/andP.
+  case/(inv_quotientN nsQiN) => L defLb sQij /=; case/andP.
   case/subsetIP=> sLM nQij nLN; exists L.
   have{sLbQ} sLQ: L \subset Q by rewrite -(quotientSGK nQij sQiQ) -defLb.
   rewrite inE /psubgroup /normal sLQ sQij nQij (pgroupS sLQ qQ) -defLb.

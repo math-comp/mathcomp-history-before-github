@@ -89,7 +89,7 @@ Notation fE := (autmE AutGa).
 Lemma injm_autm : 'injm f.
 Proof. apply/injmP; apply: in2W; exact: perm_inj. Qed.
 
-Lemma ker_autm : 'ker f = 1. Proof. by case/trivgP: injm_autm. Qed.
+Lemma ker_autm : 'ker f = 1. Proof. by move/trivgP: injm_autm. Qed.
 
 Lemma im_autm : f @* G = G.
 Proof.
@@ -375,7 +375,7 @@ Proof.
 case/charP=> sKH chKH; case/charP=> sHG chHG.
 apply/charP; split=> [|f injf Gf]; first exact: subset_trans sHG.
 rewrite -{1}(setIidPr sKH) -(morphim_restrm sHG) chKH //.
-  rewrite ker_restrm; case/trivgP: injf => ->; exact: subsetIr.
+  rewrite ker_restrm; move/trivgP: injf => ->; exact: subsetIr.
 by rewrite morphim_restrm setIid chHG.
 Qed.
 

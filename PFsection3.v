@@ -509,7 +509,7 @@ Lemma in_bcTIirr_exists i j v :
 Proof.
 move=> NZi NZj Iv.
 case: (bcmp_exists NZi NZj)=> [[[v1 v2] v3 /=] HB].
-case: (in_bcTIirrE HB Iv); case: (boolP (_ == _))=> [/eqP -> _ | _].
+move: (in_bcTIirrE HB Iv); case: (boolP (_ == _))=> [/eqP -> _ | _].
   by exists (v2,v3).
 case: (boolP (_ == _))=> [/eqP -> _ | _ /= /eqP ->].
   by exists (v1,v3); apply: bcmp_swapl.
@@ -963,7 +963,7 @@ Proof.
 move=> i1 i2 j v1 v2 v3 v4 v5 Di1i2 Bi1j Bi2j; apply/negP.
 move/(cmpR3 Bi2j)=> /or3P [] /eqP HH; 
     try (rewrite HH in Bi1j) ; try (rewrite HH in Bi2j).
-- by case: (cmpR2 Bi1j); rewrite eqxx.
+- by move: (cmpR2 Bi1j); rewrite eqxx.
 - by move: (cmpR4b Di1i2 Bi1j Bi2j); rewrite eqxx.
 by move: (cmpR4b Di1i2 Bi1j (cmpR_swapr Bi2j)); rewrite eqxx.
 Qed.
@@ -1088,7 +1088,7 @@ move: H2Lm; rewrite leq_eqVlt; case: (boolP (_ == _))=> [/eqP H3Em _ | _ /=].
       by apply/val_eqP; rewrite /= HH.
     by rewrite ltn0.
   case: (cmpR0 NZi1 NZj)=> [[[v1 v2] v3] /=  Bi1j].
-  case: (cmpR5b NZi2 Bi1j).
+  move: (cmpR5b NZi2 Bi1j).
   case: (boolP (inR _ _ _))=> [HH _ | _].
     by exists v1; apply: F (cmpR1 Bi1j) _.
   case: (boolP (inR _ _ _))=> [HH _ | _ /= HH].
@@ -1190,7 +1190,7 @@ wlog: x x' x1 x2 x3 x4 x5 x6 x7 i1 i2 i3 i4
     case/or3P: (cmpR5b NZi4 Bi3j)=> xIi4.
     - case/and4P: (cmpR4bs Di4i1 Bi4j (cmpR_rotate Bi1j)).
       by case/or3P: (cmpR3 Bi4j xIi4)=> /eqP xE;
-         first case: (cmpR2s (cmpR_rotate Bi1j))=> /and3P [] _ _ /andP [];
+         first case/and3P: (cmpR2s (cmpR_rotate Bi1j))=> _ _ /andP [];
          rewrite xE eqxx.
     - by case/negP: x4NIi4.
     case/or3P: (cmpR3 Bi4j xIi4)=> /eqP xE //.
@@ -2118,7 +2118,7 @@ rewrite (eq_bigr FF)=> [|i1 _]; last first.
 rewrite linear_sum exchange_big; apply: eq_bigr=> j _ /=.
 rewrite linearZ -scaler_sumr /=; congr (_ *: _).
 set l := image _ _.
-have[/imageP [[i1 j1]]]: l`_j \in l by apply: mem_nth; rewrite size_image.
+have /imageP[[i1 j1]]: l`_j \in l by apply: mem_nth; rewrite size_image.
 rewrite !inE /= => /andP [Hi1 Hj2]  ->.
 rewrite dcTIirrE //.
 set ss := \sum_(i < _) _; have->: ss = (extIrrf g (alpha_ i1 j1)) by done.
@@ -2197,7 +2197,7 @@ suff: '[phi, 'Ind[G] a] == 0.
 rewrite cfdotE big1 ?mulr0 // => g GiG.
 case: (boolP (g \in class_support V G))=> [/imset2P [v h ViV HiG ->]|GniC].
   by rewrite cfunJ // ZphiV // mul0r.
-have[/cfun_onP-> //]: 'Ind[G] a \in 'CF(G, class_support V G).
+have /cfun_onP-> //: 'Ind[G] a \in 'CF(G, class_support V G).
   by apply: cfInd_on_class_support=> //; case: tiW=> [[]].
 by rewrite conjC0 mulr0.
 Qed.
@@ -2425,7 +2425,7 @@ have EqI i1 i2 j1 j2 : a i1 j2 == 0 -> a i2 j1 == 0 -> a i1 j1 == 0.
   have cardCS: #|CS| = w2.
     by rewrite cardsE card_in_image=> [|i3 i4 i3Irr i4Irr /=]; 
         [rewrite card_ord NirrE | do 2 case: (_ == _); case].
-  have [/subset_leqif_card [] HH _]: LS :|: CS \subset S.
+  have /subset_leqif_card[HH _]: LS :|: CS \subset S.
     by apply/subUsetP; split.
   apply: leq_trans HH; rewrite cardsU cardLS cardCS.
   rewrite -[X in (X <= _)%N](addnK #|LS :&: CS|) leq_sub2r //.
@@ -2483,7 +2483,7 @@ case: (boolP (forallb j1 : Iirr W2, (a i j1 != 0)))=> HH; last first.
     apply/andP/eqP=> [[/eqP-> NZaij2] |[-> ->]] //.
     case: (boolP (j2 == j))=> [/eqP-> //| Dj2j].
     move: NC_M; rewrite ltnNge; case/negP.
-    have [/subset_leqif_card [] HH _]: L j :|: L j2 \subset S.
+    have /subset_leqif_card[HH _]: L j :|: L j2 \subset S.
       by apply/subUsetP.
     apply: leq_trans HH; rewrite cardsU !(cardLE _ _ _ _ Zaij1) //.
     rewrite LI eq_sym (negPf Dj2j) cards0 subn0.
@@ -2502,7 +2502,7 @@ case: (boolP (forallb j1 : Iirr W2, (a i j1 != 0)))=> HH; last first.
     by rewrite !inE eqxx /= negbK.
   have cardL : #|L j| = w1  by apply: (cardLE _ _ j1 NZaij)=> //.
   move: NC_M; rewrite ltnNge; case/negP.
-  have [/subset_leqif_card [] HH _]: L j :|: C i2 \subset S.
+  have /subset_leqif_card[HH _]: L j :|: C i2 \subset S.
     by apply/subUsetP; split.
   by apply: leq_trans HH; rewrite cardsU cardC cardL.
  (* This is 3.8.3 *)
@@ -2521,12 +2521,12 @@ move=> Dii1; case: (boolP (a i1 j1 == 0))=> [/eqP //| NZai1j1].
 case: (boolP (forallb j2 : Iirr W2, (a i1 j2 != 0))); last first.
   rewrite negb_forall => /existsP [] j2; rewrite negbK => Zai1j2.
   move: NC_M; rewrite ltnNge; case/negP.
-  have [/subset_leqif_card [] HH1 _]: L j1 :|: C i \subset S.
+  have /subset_leqif_card[HH1 _]: L j1 :|: C i \subset S.
     by apply/subUsetP.
   by apply: leq_trans HH1; rewrite cardsU FC // !(cardLE _ _ _ _ Zai1j2).
 move/forallP=> HH1.
 move: NC_M; rewrite ltnNge; case/negP.
-have [/subset_leqif_card [] HH2 _]: C i :|: C i1 \subset S.
+have /subset_leqif_card[HH2 _]: C i :|: C i1 \subset S.
   by apply/subUsetP.
 apply: leq_trans HH2; rewrite cardsU !FC // CI (negPf Dii1) cards0 subn0.
 by rewrite mulSn mul1n leq_add // leq_minl leqnn // orbT.

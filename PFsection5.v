@@ -177,7 +177,7 @@ Qed.
 Lemma vcharD1_seqInd_Dade A :
   1%g \notin A -> {subset S <= 'CF(L, 1%g |: A)} -> 'Z[S, L^#] =i 'Z[S, A].
 Proof.
-case=> notA1 A_S phi; rewrite vcharD1E (vchar_split _ A).
+move=> notA1 A_S phi; rewrite vcharD1E (vchar_split _ A).
 apply/andb_id2l=> ZSphi; apply/idP/idP=> [phi10 | /cfun_on0-> //].
 rewrite -(setU1K notA1) cfun_onD1 {}phi10 andbT.
 have{phi ZSphi} [c -> _] := free_span seqInd_free (vchar_span ZSphi).
@@ -1103,7 +1103,7 @@ have Zphi_tau: phi^\tau \in 'Z[irr G, G^#].
 have norm_phi_tau : '[phi^\tau] = 2%:R.
   rewrite Dade_isometry ?(vchar_on Zphi) // cfnorm_sub -conjC_IirrE.
   by rewrite !cfdot_irr !eqxx eq_sym (negPf notRchi) rmorph0 addr0 subr0.
-have [j [k [ne_kj phi_tau]]] := vchar_norm2 Zphi_tau norm_phi_tau.
+have [j [k ne_kj phi_tau]] := vchar_norm2 Zphi_tau norm_phi_tau.
 suffices def_k: conjC_Iirr j = k by exists j; rewrite -conjC_IirrE def_k.
 have/esym:= eq_subZnat_irr 1 1 k j (conjC_Iirr j) (conjC_Iirr k).
 rewrite (negPf ne_kj) orbF /= !scale1r !conjC_IirrE -rmorph_sub.

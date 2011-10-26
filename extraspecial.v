@@ -379,7 +379,7 @@ have iYG: #|G : Y| = p.
       by apply/properP; split; last exists u; rewrite ?subsetIl ?inE ?Uu.
     by rewrite subsetI Ohm_sub (subset_trans sU1Y).
   apply/prime_nt_dvdP=> //.
-    by apply: contra not_sUY; rewrite /U; move/eqP; case/(index1g sU1U)=> <-.
+    by apply: contra not_sUY; rewrite /U; move/eqP; move/(index1g sU1U)=> <-.
   have ov: #[v] = (p ^ 2)%N by rewrite oY' // inE notYv.
   have sZv: Z \subset <[v]>.
     suffices defZ: <[v ^+ p]> == Z by rewrite -(eqP defZ) cycleX.

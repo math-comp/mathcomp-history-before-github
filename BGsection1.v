@@ -142,7 +142,7 @@ apply/andP; split; last by rewrite normsI // normal_norm.
 apply: meet_center_nil => //; first by apply: Fitting_nil.
 apply/andP; split; last by apply: subset_trans nMG; exact: Fitting_sub.
 apply: Fitting_max; rewrite // /normal ?sMG //; apply: abelian_nil. 
-by case: (minnormal_solvable_abelem minM solM) => /abelem_abelian.
+by move: (minnormal_solvable_abelem minM solM) => /abelem_abelian.
 Qed.
 
 Lemma sol_chief_abelem gT (G V U : {group gT}) : 

@@ -351,7 +351,7 @@ have{sylR_HM} sylR_H: p.-Sylow(H) R.
     apply: (pHall_subl sRH (subsetT _)); rewrite pHallE subsetT /=.
     by rewrite -(card_Hall sylPG) (card_Hall sylP) defR (card_Hall sylQ).
   move/(nilpotent_proper_norm (pgroup_nil pQ))=> sRN.
-  case/maximal_exists: (subsetT 'N(R)) => [[nRG] | [D maxD sND]].
+  case/maximal_exists: (subsetT 'N(R)) => [nRG | [D maxD sND]].
     case/negP: (proper_irrefl (mem G)); rewrite -{1}nRG.
     rewrite mFT_norm_proper ?(mFT_pgroup_proper pR) //.
     by rewrite -proper1G (proper_sub_trans _ sAR) ?proper1G.

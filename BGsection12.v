@@ -1873,7 +1873,7 @@ have regNNS: forall Z (Z1 := 'Ohm_1(Z)),
   have EpZ1: [group of Z1] \in 'E_p^1(E).
     rewrite p1ElemE // !inE (subset_trans sZ1S) //=.
     rewrite (Ohm1_cyclic_pgroup_prime _ (pgroupS sZS pS)) //.
-  have [/= uCZ1] := nregEp_uniq _ EpZ1 nregZ1.
+  have /= uCZ1 := nregEp_uniq _ EpZ1 nregZ1.
   apply: (subset_trans nZ1_NS); apply: (sub_uniq_mmax uCZ1 (cent_sub _)).
   by rewrite mFT_norm_proper ?(mFT_pgroup_proper (pgroupS sZ1S pS)) ?Ohm1_eq1.
 have [_ nsCEA t1CEAb] := tau1_cent_tau2Elem_factor maxM hallE t2p Ep2A.
@@ -2139,7 +2139,7 @@ have sKH: K \subset H.
   have cQQb: abelian (Q / Z) by rewrite -defQ' sub_der1_abelian.
   rewrite -(coprime_abelian_gen_cent cQQb) ?coprime_morph ?quotient_norms //.
   rewrite gen_subG /= -/K -/Z; apply/bigcupsP=> Ab; rewrite andbC; case/andP.
-  case/(inv_quotientN nsZQ)=> A [-> sZA nsAQ]; have sAQ := normal_sub nsAQ.
+  case/(inv_quotientN nsZQ)=> A -> sZA nsAQ; have sAQ := normal_sub nsAQ.
   rewrite (isog_cyclic (third_isog _ _ _)) // -/Z => cycQA.
   have pA: p.-group A := pgroupS sAQ pQ.
   have rAgt1: 'r_p(A) > 1.

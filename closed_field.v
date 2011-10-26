@@ -45,7 +45,7 @@ Lemma ex_px_neq0 : forall p : {poly F}, p != 0 -> exists x, ~~ root p x.
 Proof.
 move=> p p0.
 case sp1: (size p == 1%N).
-  by move/size1P: sp1=> [x [x0 ->]]; exists x; rewrite rootC.
+  by move/size1P: sp1=> [x x0 ->]; exists x; rewrite rootC.
 have: (size (1 + p) != 1%N).
   rewrite addrC size_addl ?sp1 //.
   move/negPf: p0 => p0f.
@@ -786,7 +786,7 @@ Lemma holds_conjn : forall e i x ps, all (@rterm _) ps ->
 Proof.
 move=> e i x; elim=> [|p ps ihps] //=.
 case/andP=> rp rps; rewrite rootE abstrXP //.
-constructor; first by case; case/eqP=> -> hps /=; apply/ihps.
+constructor; first by case=> /eqP-> hps /=; apply/ihps.
 by case/andP=> pr psr; split; first apply/eqP=> //; apply/ihps. 
 Qed.
 

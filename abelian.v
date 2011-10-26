@@ -673,7 +673,7 @@ Lemma pmaxElem_LdivP p G E :
 Proof.
 move=> p_pr; apply: (iffP (pmaxElemP p G E)) => [[] | defE].
   case/pElemP=> sEG abelE maxE; have [_ cEE eE] := and3P abelE.
-  apply/setP=> x; rewrite !inE -andbA; apply/and3P/idP=> [[Gx cEx xp] | [Ex]].
+  apply/setP=> x; rewrite !inE -andbA; apply/and3P/idP=> [[Gx cEx xp] | Ex].
     rewrite -(maxE (<[x]> <*> E)%G) ?joing_subr //.
       by rewrite -cycle_subG joing_subl.
     rewrite inE join_subG cycle_subG Gx sEG /=.
@@ -2026,7 +2026,7 @@ suffices{G} nth_abty gT (G : {group gT}) i:
   by have:= card_isog (gFisog _ isoGH) => /= eqF; rewrite !eqF.
 move=> cGG.
 have (p): path leq 0 (map (logn p) (rev (abelian_type G))).
-  case: (abelian_type_gt1 G) (abelian_type_dvdn_sorted G).
+  move: (abelian_type_gt1 G) (abelian_type_dvdn_sorted G).
   case: abelian_type => //= m t; rewrite rev_cons map_rcons.
   elim: t m => //= n t IHt m /andP[/ltnW m_gt0 nt_gt1].
   rewrite -cats1 cat_path rev_cons map_rcons last_rcons /=.

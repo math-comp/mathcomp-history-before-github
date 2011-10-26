@@ -433,7 +433,7 @@ have sAN: A \subset N by rewrite subsetI -{1}genGid genS // subsetUl.
 have nGNA: A \subset 'N(G :&: N).
   by apply/normsP=> y ?; rewrite conjIg (normsP nGA) ?(conjGid, subsetP sAN).
 have coGNA: coprime #|G :&: N| #|A| := coprimeSg (subsetIl _ _) coGA.
-case: (SchurZassenhaus_trans_sol solGN nGNA _ coGNA oAxA) => [|y GNy [defAx]].
+case: (SchurZassenhaus_trans_sol solGN nGNA _ coGNA oAxA) => [|y GNy defAx].
   have ->: (G :&: N) * A = N.
     apply/eqP; rewrite eqEcard -{2}(mulGid N) mulgSS ?subsetIr //=.
     by rewrite coprime_cardMg // -iGN_A LaGrange ?subsetIr.

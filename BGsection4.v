@@ -92,7 +92,7 @@ have expR1p: exponent 'Ohm_1(R) %| p.
   apply/group_setP; rewrite !inE group1 exp1gn /=; split=> // x y.
   case/LdivP=> Qx xp1; case/LdivP=> Qy yp1; rewrite !inE groupM //=; apply/eqP.
   have sxQ: <[x]> \subset Q by rewrite cycle_subG.
-  have [[{sxQ}defQ]|[S maxS /= sxS]] := maximal_exists sxQ.
+  have [{sxQ}defQ|[S maxS /= sxS]] := maximal_exists sxQ.
     rewrite expMgn; first by rewrite xp1 yp1 mulg1.
     by apply: (centsP (cycle_abelian x)); rewrite ?defQ.
   have:= maxgroupp maxS; rewrite properEcard; case/andP=> sSQ ltSQ.

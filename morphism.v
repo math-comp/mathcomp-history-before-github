@@ -967,7 +967,7 @@ Lemma ker_comp : 'ker gof = f @*^-1 'ker g.
 Proof. by apply/setP=> x; rewrite !inE andbA. Qed.
 
 Lemma injm_comp : 'injm f -> 'injm g -> 'injm gof.
-Proof. by move=> injf; rewrite ker_comp; case/trivgP=> ->. Qed.
+Proof. by move=> injf; rewrite ker_comp; move/trivgP=> ->. Qed.
 
 Lemma morphim_comp (A : {set gT}) : gof @* A = g @* (f @* A).
 Proof.
@@ -1035,7 +1035,7 @@ Lemma ker_factm : 'ker ff = q @* 'ker f.
 Proof. exact: morphpre_factm. Qed.
 
 Lemma injm_factm : 'injm f -> 'injm ff.
-Proof. by rewrite ker_factm => /trivgP[->]; rewrite morphim1. Qed.
+Proof. by rewrite ker_factm => /trivgP->; rewrite morphim1. Qed.
 
 Lemma injm_factmP : reflect ('ker f = 'ker q) ('injm ff).
 Proof.

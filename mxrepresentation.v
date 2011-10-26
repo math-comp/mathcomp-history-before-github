@@ -2277,7 +2277,7 @@ Lemma mx_irrP :
   mx_irreducible <-> n > 0 /\ (forall U, @mxmodule n U -> U != 0 -> row_full U).
 Proof.
 rewrite /mx_irreducible /mxsimple mxmodule1 -mxrank_eq0 mxrank1 -lt0n.
-do [split=> [[_ -> irrG] | [-> irrG]]; split=> // U] => [modU | [modU _]] nzU.
+do [split=> [[_ -> irrG] | [-> irrG]]; split=> // U] => [modU | modU _] nzU.
   by rewrite -sub1mx (irrG U) ?submx1.
 by rewrite sub1mx irrG.
 Qed.
@@ -2748,7 +2748,7 @@ Proof. exact: subset_trans rker_factmod. Qed.
 Lemma submod_mx_irr : mx_irreducible rU <-> mxsimple rG U.
 Proof.
 split=> [] [_ nzU simU].
-  rewrite -mxrank_eq0 mxrank1 mxrank_eq0 in nzU; split=> // V [modV sVU] nzV.
+  rewrite -mxrank_eq0 mxrank1 mxrank_eq0 in nzU; split=> // V modV sVU nzV.
   rewrite -(in_submodK sVU) -val_submod1 val_submodS.
   rewrite -(genmxE (in_submod U V)) simU ?genmxE ?submx1 //=.
     by rewrite (eqmx_module _ (genmxE _)) in_submod_module.
@@ -3026,7 +3026,7 @@ exists (in_submod V (val_submod 1%:M *m f)) => // [|x Gx].
   by rewrite val_submod1 -defV submxMr ?val_submod1.
 rewrite -in_submodJ; last by rewrite -defV submxMr ?val_submodP.
 rewrite -(hom_mxP (submx_trans (val_submodP _) homf)) //.
-by rewrite -(val_submodJ modU) // mul1mx 2!(mulmxA (_ x)) -val_submodE.
+by rewrite -(val_submodJ modU) // mul1mx 2!(mulmxA ((submod_repr _) x)) -val_submodE.
 Qed.
 
 Lemma mx_rsim_irr n1 n2 (rG1 : reprG n1) (rG2 : reprG n2) :
@@ -3238,7 +3238,7 @@ have modmG m U y: y \in G -> (mxmodule rH) m U -> mxmodule rH (U *m rG y).
 have nzmG m y (U : 'M_(m, n)): y \in G -> (U *m rG y == 0) = (U == 0).
   by move=> Gy; rewrite -{1}(mul0mx m (rG y)) (can_eq (repr_mxK rG Gy)).
 case=> [modM nzM simM] Gx; have Gx' := groupVr Gx.
-split=> [||U [modU sUMx] nzU]; rewrite ?modmG ?nzmG //.
+split=> [||U modU sUMx nzU]; rewrite ?modmG ?nzmG //.
 rewrite -(repr_mxKV rG Gx U) submxMr //.
 by rewrite (simM (U *m _)) ?modmG ?nzmG // -(repr_mxK rG Gx M) submxMr.
 Qed.
@@ -4746,7 +4746,7 @@ Proof.
 elim: {U}_.+1 {-2}U (ltnSn (\rank U)) => // m IHm U leUm modU nzU.
 have [nsimU | simU] := mxnonsimpleP nzU; last first.
   by exists U; first exact/mxsimpleP.
-case: (xchooseP nsimU); move: (xchoose _) => W /and4P[modW sWU nzW ltWU].
+move: (xchooseP nsimU); move: (xchoose _) => W /and4P[modW sWU nzW ltWU].
 case: (IHm W) => // [|V simV sVW]; first exact: leq_trans ltWU _.
 by exists V; last exact: submx_trans sVW sWU.
 Qed.

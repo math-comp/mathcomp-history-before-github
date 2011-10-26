@@ -222,7 +222,8 @@ Qed.
 
 Lemma mulC : commutative mul.
 Proof.
-by elim/quotW=> x; elim/quotW=> y; rewrite /mul !mopP /mulf ![_ * (_ x)]mulrC.
+elim/quotW=> x; elim/quotW=> y; rewrite /mul !mopP /mulf.
+by rewrite [_ * (\d_x)]mulrC [_ * (\n_x)]mulrC.
 Qed.
 
 Lemma mul1_l : left_id one mul.

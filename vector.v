@@ -164,7 +164,7 @@ Definition rv2v_isomorphism := fun rv => xchoose (rv2v_proof rv).
 Local Notation rv2v := rv2v_isomorphism.
 
 Lemma rv2vK : cancel rv2v_isomorphism v2rv.
-Proof. by move=> x; case/xchooseP: (rv2v_proof x) => /eqP <-. Qed.
+Proof. by move=> x; move/xchooseP: (rv2v_proof x) => /eqP <-. Qed.
 
 Lemma v2rvK : cancel v2rv rv2v.
 Proof. by move=> v; apply: v2rv_inj; rewrite rv2vK. Qed.

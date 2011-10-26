@@ -255,7 +255,7 @@ have trdom1 x: ([tuple x] \in 1.-dtuple(S)) = (x \in S).
 move=> m_gt0 /(ntransitive_weak m_gt0) {m m_gt0}.
 case/imsetP; case/tupleP=> x t0; rewrite {t0}(tuple0 t0) trdom1 => Sx trx.
 apply/imsetP; exists x => //; apply/setP=> y; rewrite -trdom1 trx.
-apply/imsetP/imsetP; case=> a Ga [->]; exists a => //; exact: val_inj.
+apply/imsetP/imsetP=> [[a ? [->]]|[a ? ->]]; exists a => //; exact: val_inj.
 Qed.
 
 Lemma ntransitive_primitive m :

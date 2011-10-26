@@ -358,7 +358,7 @@ exists (map f (vbasis (fullv L))).
  elim: (tval (vbasis (fullv L))) => [//|v vs IH].
  apply/allpairsP.
  exists (f v, map f vs); split => //.
- case: (xchooseP (NormalFieldExt F v)).
+ move: (xchooseP (NormalFieldExt F v)).
  rewrite -root_prod_factors.
  move/eqP <-.
  by rewrite (kHom_rootK Hf) ?subvf ?minPolyOver ?memvf ?root_minPoly.
@@ -1452,7 +1452,7 @@ rewrite -(size_map f).
 suff/card_uniqP <- : uniq (map f r).
  apply: subset_leq_card.
  apply/subsetP.
- move => ? /mapP [a [_ ->]].
+ move => ? /mapP [a _ ->].
  by apply: kAut_pick_Aut.
 rewrite map_inj_in_uniq // => a b Ha Hb.
 rewrite /f.
@@ -1652,7 +1652,7 @@ exists (cons (y * x)%g r); split.
 - by apply: Huniq.
 - by rewrite /= Hnr.
 - rewrite uniq_roots_dvdp //; last by rewrite uniq_rootsE; apply: Huniq.
-  apply/allP => ? /mapP [z [Hz ->]].
+  apply/allP => ? /mapP [z Hz ->].
   apply: (kHom_rootK _ HKE); rewrite ?minPolyOver ?root_minPoly //.
   suff HyAut : z \in 'Aut(E | K)%g.
    by case/andP: (Aut_kAut HKE HyAut (mem_repr_coset _)).
@@ -1690,7 +1690,7 @@ case/H: (Ha) => r [/subsetP Haut Hr Hmin].
 pose h (i : coset_of [set x : LAut | kAut E (fullv L) (val x)])
       := ((val (repr i)) a).
 exists (map h r); last by rewrite big_map.
-apply/allP => ? /mapP [x [Hx ->]].
+apply/allP => ? /mapP [x Hx ->].
 case/andP: (Aut_kAut HKE (Haut _ Hx) (mem_repr_coset _)) => _.
 move/eqP <-.
 by rewrite memv_img.

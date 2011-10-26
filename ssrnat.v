@@ -1458,7 +1458,7 @@ Notation natTrecE := NatTrec.trecE.
 
 Lemma eq_binP : Equality.axiom Ndec.Neqb.
 Proof.
-move=> p q; apply: (iffP idP) => [|[<-]]; last by case: p => //; elim.
+move=> p q; apply: (iffP idP) => [|<-]; last by case: p => //; elim.
 by case: q; case: p => //; elim=> [p IHp|p IHp|] [q|q|] //=; case/IHp=> ->.
 Qed.
 

@@ -1169,7 +1169,7 @@ have ntSRcR: forall Vi, Vi \in S -> ~~ (R \subset 'N(Vi)) ->
     apply/subsetP=> v; case/morphpreP=> V1v; have Vv := sV1 v V1v.
     rewrite (bigD1 V1) //= in defV; have [[_ W _ dW] _ _ _] := dprodP defV.
     have [u [w [_ _ uw Uuw]]] := mem_dprod defV (group1 V).
-    case: (Uuw 1 1) => // [||[u1 w1]]; rewrite ?dW ?mulg1 // !inE eq_sym /f /=.
+    case: (Uuw 1 1) => // [||u1 w1]; rewrite ?dW ?mulg1 // !inE eq_sym /f /=.
     move/eqP; rewrite (big_setD1 1) // actr1 ?fmodK // fmvalA //= fmval_sum.
     do [case/Uuw; rewrite ?dW ?fmodK -?u1 ?group_prod //] => [x R'x | ->] //.
     rewrite (nt_gen_prime _ R'x) ?cycle_subG ?oR // inE in not_nV1R nVR actsR.
@@ -1743,7 +1743,7 @@ have cMK': K^`(1) / V \subset 'C_(K / V)(M / V).
     by rewrite morph1.
   - rewrite -coprime_norm_quotient_cent ?(coprimegS sKG) ?(subset_trans sKG) //.
     by rewrite tcKM quotient1.
-  case=> // _ _ -> //; rewrite -coprime_quotient_cent ?quotient_cyclic //.
+  move=> _ _ -> //; rewrite -coprime_quotient_cent ?quotient_cyclic //.
   by rewrite (coprimegS sRG).
 rewrite !subsetI in cVK' cMK' *.
 case/andP: cVK' => sK'K cVK'; case/andP: cMK' => _ cMVK'; rewrite sK'K.

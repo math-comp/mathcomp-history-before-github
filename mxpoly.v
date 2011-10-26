@@ -214,7 +214,7 @@ apply/det0P/idP=> [[uv nz_uv] | r_nonC].
     move/eqP: vq_up; apply: contraTeq => nz_u.
     by rewrite v0 mul0r addr0 eq_sym oppr_eq0 mulf_neq0.
   have r_nz: r != 0 := dvdpN0 r_p p_nz.
-  have /dvdpP [[c w] /= [nz_c wv]]: v %| m by rewrite dvdp_gcd !dvdp_mulr.
+  have /dvdpP [[c w] /= nz_c wv]: v %| m by rewrite dvdp_gcd !dvdp_mulr.
   have m_wd d: m %| v * d -> w %| d.
     case/dvdpP=> [[k f]] /= nz_k; move/(congr1 ( *:%R c)).
     rewrite mulrC scalerA scaler_mull scaler_mulr wv mulrA.
@@ -227,8 +227,8 @@ apply/det0P/idP=> [[uv nz_uv] | r_nonC].
   rewrite addnC ltn_add_sub subn1 -size_mul_id // mulrC -wv size_scaler //.
   rewrite (leq_trans lt_vp) // dvdp_leq // -size_poly_eq0.
   by rewrite -(size_scaler _ nz_c) size_poly_eq0 wv mulf_neq0.
-have [[c p'] /= [nz_c p'r]] := dvdpP _ _ r_p.
-have [[k q'] /= [nz_k q'r]] := dvdpP _ _ r_q.
+have [[c p'] /= nz_c p'r] := dvdpP _ _ r_p.
+have [[k q'] /= nz_k q'r] := dvdpP _ _ r_q.
 have def_r := subnKC r_nonC; have r_nz: r != 0 by rewrite -size_poly_eq0 -def_r.
 have le_p'_dp: size p' <= dp.
   have [-> | nz_p'] := eqVneq p' 0; first by rewrite size_poly0.

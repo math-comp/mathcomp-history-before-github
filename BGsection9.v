@@ -274,7 +274,7 @@ have sNP_mCA: forall M, M \in 'M('C(A)) -> 'N(P) \subset M.
       have snAR: A <|<| R by rewrite (nilpotent_subnormal (pgroup_nil pR)).
       have A'q: q \notin \pi(A) by rewrite def_piA.
       rewrite -(eq_pgroup _ def_piA) in pR.
-      have [|? []] := normed_trans_superset cstrA A'q snAR pR.
+      have [|?] := normed_trans_superset cstrA A'q snAR pR.
         by rewrite (eq_pcore _ (eq_negn def_piA)) Thompson_transitivity.
       by rewrite (eq_pcore _ (eq_negn def_piA)).
     apply/subsetP=> x nRx; have maxQx: (Q :^ x)%G \in |/|*(R; q).
@@ -336,7 +336,7 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
     case/setD1P: Bx; rewrite -cycle_eq1 => ntx Bx.
     have{ntx} [L] := mmax_exists (mFT_cent_proper ntx).
     case/setIdP=> maxL; rewrite /= cent_cycle => sCxL.
-    have{sCxM'} [neLM] : L != M by case: eqP sCxL sCxM' => // -> ->.
+    have{sCxM'} neLM : L != M by case: eqP sCxL sCxM' => // -> ->.
     have sNP_LM: 'N(P) \subset L :&: M.
       rewrite subsetI !sNP_mCA // inE maxL (subset_trans _ sCxL) // -cent_set1.
       by rewrite centS // sub1set (subsetP sBA).

@@ -1849,7 +1849,7 @@ Lemma mxdirect_sumsP (A_ : I -> 'M_n) :
   reflect (forall i, P i -> A_ i :&: (\sum_(j | P j && (j != i)) A_ j) = 0)%MS
           (mxdirect (\sum_(i | P i) A_ i)).
 Proof.
-apply: (iffP (mxdirect_sums_recP _)) => dxA i /dxA[] //.
+apply: (iffP (mxdirect_sums_recP _)) => dxA i /dxA; first by case.
 by rewrite mxdirect_trivial.
 Qed.
 
@@ -1939,7 +1939,7 @@ Lemma mxdirect_sum_eigenspace (P : pred I) a_ :
 Proof.
 elim: {P}_.+1 {-2}P (ltnSn #|P|) => // m IHm P lePm inj_a.
 apply/mxdirect_sumsP=> i Pi; apply/eqP/rowV0P => v.
-rewrite sub_capmx => /andP[/eigenspaceP[def_vg]].
+rewrite sub_capmx => /andP[/eigenspaceP def_vg].
 set Vi' := (\sum_(i | _) _)%MS => Vi'v.
 have dxVi': mxdirect Vi'.
   rewrite (cardD1x Pi) in lePm; apply: IHm => //.

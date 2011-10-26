@@ -1651,7 +1651,7 @@ elim: s2 s1 => [|y s2 IHs2] [|x s1].
 apply: {IHs2}(iffP (IHs2 _)) => [] [m sz_m def_s1].
   by exists ((x == y) :: m); rewrite /= ?sz_m // -def_s1; case: eqP => // ->.
 case: eqP => [_ | ne_xy]; last first.
-  by case: m def_s1 sz_m => [|[] m] // [] // -> [<-]; exists m. 
+  by case: m def_s1 sz_m => [//|[m []//|m]] -> [<-]; exists m.
 pose i := index true m; have def_m_i: take i m = nseq (size (take i m)) false.
   apply/all_pred1P; apply/(all_nthP true) => j.
   rewrite size_take ltnNge leq_minl negb_or -ltnNge; case/andP=> lt_j_i _.
@@ -1914,7 +1914,7 @@ rewrite /= in_cons eq_sym; case Hxy: (f x == y).
   by left; exists x; [rewrite mem_head | rewrite (eqP Hxy)].
 apply: (iffP IHs) => [[x' Hx' ->]|[x' Hx' Dy]].
   by exists x'; first exact: predU1r.
-by case: Dy Hxy => ->; case/predU1P: Hx' => [->|]; [rewrite eqxx | exists x'].
+by move: Dy Hxy => ->; case/predU1P: Hx' => [->|]; [rewrite eqxx | exists x'].
 Qed.
 
 Lemma map_uniq s : uniq (map f s) -> uniq s.

@@ -615,7 +615,7 @@ Theorem normed_constrained_rank2_trans :
 Proof.
 move=> qC; case/rank_geP=> B; case/nElemP=> p; do 2![case/setIdP].
 rewrite subsetI; case/andP=> sBA cAB abelB mB2; have [_ cBB _] := and3P abelB.
-have{abelB mB2} [ncycB]: ~~ cyclic B by rewrite (abelem_cyclic abelB) (eqP mB2).
+have{abelB mB2} ncycB: ~~ cyclic B by rewrite (abelem_cyclic abelB) (eqP mB2).
 have [R0 sylR0] := Sylow_exists q 'C(A); have [cAR0 qR0 _] := and3P sylR0.
 have nR0A: A \subset 'N(R0) by rewrite cents_norm // centsC.
 have{nR0A} [R maxR sR0R] := max_normed_exists qR0 nR0A.

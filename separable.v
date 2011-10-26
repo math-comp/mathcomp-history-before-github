@@ -311,7 +311,7 @@ have : coprimep ((p' ^ polyC) \Po ('Y * 'X)) (q' ^ polyC).
 rewrite -gcdp_eqp1.
 move: (bezoutp (p' ^ polyC \Po 'Y * 'X) (q' ^ polyC)) => [[u v] /= Huv].
 rewrite -(eqp_ltrans Huv) -size_poly_eq1.
-case/size1P => {Huv} r [Hr0 Hr].
+case/size1P => {Huv} r Hr0 Hr.
 exists r.
 split => // t Ht.
 suff Hq0 : (exists q0 : {poly F}, (q0 ^ iota).[iota t * y - x] = y).
@@ -855,7 +855,7 @@ Lemma poly_Fadjoin : forall v,
 Proof.
 move => v.
 apply: (iffP (poly_Fadjoin_small _ _ _)).
- by case => p [? [? ?]]; exists p.
+ by case => p [? ? ?]; exists p.
 case => p [Kp ->].
 move: {2}(size p).+1 (ltnSn (size p)) Kp => n.
 elim: n p => //.
@@ -866,7 +866,7 @@ move/ltn_predK: (szpx) (szpx) <-.
 rewrite ltnS => szpx0.
 move/polyOverP => Kp.
 case/poly_Fadjoin_small: XED_subproof => r; case.
-move/polyOverP => Kr [szr rxED].
+move/polyOverP => Kr szr rxED.
 set q := (\poly_(i < (size p).-1) (p`_i)) + 
          (p`_(size p).-1)%:P * r * 'X ^+ ((size p).-1 - elementDegree K x).
 have -> : (p.[x] = q.[x]).
@@ -1637,20 +1637,10 @@ Qed.
 Lemma separableInseparableElement: forall x, 
  (x \in K) = separableElement K x && purelyInseparableElement K x.
 Proof.
-move => x.
-rewrite /purelyInseparableElement valK.
-case: ex_minnP => [[//|[|m]]]; first by rewrite expr1; case/andP => _ ->.
-case/andP => Hm Hsep.
-move/(_ 1%N).
-rewrite expr1.
-move/contraNN.
-rewrite -ltnNge -[_ && _]/(separableElement K x).
-move/(_ isT) => Hx.
-move/negbTE: (Hx) ->.
-apply/negbTE.
-move:Hx.
-apply: contra.
-by apply: separableinK.
+move => x; rewrite /purelyInseparableElement valK.
+case: ex_minnP=> [[//|[/=|m]]]; first by rewrite expr1=> ->. 
+case: {1}_ / ifP=> // _ _ /(_ 1%N)/contraNN/(_ isT)/negPf; rewrite expr1.
+by case: (_ \in _) (@separableinK K x)=> [->|_ ->].
 Qed.
 
 Lemma inseparableinK : forall x, x \in K -> purelyInseparableElement K x.

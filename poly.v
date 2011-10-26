@@ -1430,7 +1430,7 @@ Definition poly_inv p := if poly_unit p then (p`_0)^-1%:P else p.
 Fact poly_mulVp : {in poly_unit, left_inverse 1 poly_inv *%R}.
 Proof.
 move=> p Up; rewrite /poly_inv [poly_unit p]Up.
-by case/andP: Up => /size1P[c [_ ->]]; rewrite coefC -polyC_mul => /mulVr->.
+by case/andP: Up => /size1P[c _ ->]; rewrite coefC -polyC_mul => /mulVr->.
 Qed.
 
 Fact poly_intro_unit p q : q * p = 1 -> poly_unit p.

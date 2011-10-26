@@ -178,7 +178,7 @@ have XGeX1 : x^ g = x1.
     move/order_dvdG: Y2iW=> /dvdnP=> [[k2 ->]].
     by rewrite mulnC [(k2 * _)%N]mulnC !expgn_mul !expg_order !exp1gn !mulg1.
   by rewrite -(F1 _ _ X1iW Y1iW) -XYeX1Y1 -conjXg F1.
-have [/(mem_sdprod SdP) [k1 [x2 [K1iK X2iW _ Hu]]]] : 
+have /(mem_sdprod SdP) [k1 [x2 [K1iK X2iW _ Hu]]] : 
         x ^ g \in L by rewrite groupJ // (subsetP W1sL).
 case: {Hu}(Hu _ _ (group1 _) (X1iW)) (Hu)=> [| <- <- Hu]; first by rewrite mul1g.
 case: (mem_sdprod SdP GiL) XGeX1 Hu => k [x3 [KiK X3iW] -> _] <- Hu.
@@ -680,11 +680,11 @@ Qed.
 Lemma Dade_chiE i j : 'chi_(chi j) = 'Res[K] 'chi_(mu2 i j).
 Proof.
 rewrite {i}Dade_chi_eq /chi; case: pickP=> [k /eqP // | /=].
-suff [/irrP [] k -> /(_ k)]: 'Res[K] 'chi_(mu2 0 j) \in irr K.
+suff /irrP[k -> /(_ k)]: 'Res[K] 'chi_(mu2 0 j) \in irr K.
   by rewrite eqxx.
 set v := 'Res[_] _.
 have Cv : is_char v := cfRes_char _ (irr_char _).
-have [/neq0_has_constt [i HiC]] : v != 0.
+have /neq0_has_constt[i HiC]: v != 0.
   move: (irr1_neq0 (mu2 0 j)); rewrite /v -(cfResE _ KsL (group1 _)).
   by apply: contra=> /eqP->; rewrite cfunE.
 apply/irrP; exists i.
@@ -714,7 +714,7 @@ suff HF: 'chi_i 1%g = v 1%g.
   by rewrite -(eqN_eqC _ 0) -(leq_leC 1); case: n.
 apply: leC_anti.
   by move: (char1_ge_constt Cv HiC); rewrite (cfResE _ KsL (group1 _)).
-have [/leC_pmul2l<-] : 0 <  #|W1|%:R by rewrite -(ltn_ltC 0) cardG_gt0.
+have /leC_pmul2l<- : 0 <  #|W1|%:R by rewrite -(ltn_ltC 0) cardG_gt0.
 rewrite -{2}Dade_indexE -(cfInd1 'chi_i KsL) (Dade_Ind_DI _ j).
 have->: #|W1|%:R * v 1%g = \sum_i 'chi_(mu2 i j) 1%g.
   rewrite (eq_bigr (fun k => v 1%g))=> [| k _].
@@ -1065,7 +1065,7 @@ have Cmu: mu2 i j - mu2 i k \in 'CF(L, A0).
 have Zmu: tau (mu2 i j - mu2 i k) \in 'Z[irr G, G^#].
   case: (Dade_Zisometry CDH)=> _ -> //.
   by rewrite vchar_split sub_vchar ?irr_vchar.
-have [/(vchar_norm2 Zmu) [/= i1 [i2 Di1i2]] Etau]: 
+have /(vchar_norm2 Zmu) [/= i1 [i2 Di1i2] Etau]: 
              '[tau (mu2 i j - mu2 i k)] = 2%:R.
   rewrite (Dade_isometry CDH) // cfdot_subl !cfdot_subr !cfdot_irr.
   rewrite !eqxx eq_sym; case: (_ =P _); last first.
