@@ -133,7 +133,7 @@ case: (drop n p) => [|z0 q]; rewrite /= -cats1 !cat_path /= !andbT andbC //.
 by rewrite last_cat; repeat bool_congr.
 Qed.
 
-Lemma rot_cycler p : cycle (rotr n0 p) = cycle p.
+Lemma rotr_cycle p : cycle (rotr n0 p) = cycle p.
 Proof. by rewrite -rot_cycle rotrK. Qed.
 
 End Path.
@@ -270,7 +270,7 @@ Lemma rot_ucycle p : ucycle (rot n0 p) = ucycle p.
 Proof. by rewrite /ucycle rot_uniq rot_cycle. Qed.
 
 Lemma rotr_ucycle p : ucycle (rotr n0 p) = ucycle p.
-Proof. by rewrite /ucycle rotr_uniq rot_cycler. Qed.
+Proof. by rewrite /ucycle rotr_uniq rotr_cycle. Qed.
 
 (* The "appears no later" partial preorder defined by a path. *)
 

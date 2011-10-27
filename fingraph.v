@@ -12,13 +12,14 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path fintype.
 (*                   the g, at depth n, starting from x, and avoiding v.      *)
 (* dfs_path g v x y <-> there is a path from x to y in g \ v.                 *)
 (*      connect e == the transitive closure of e (computed by dfs).           *)
-(* connect_sym e  <-> connect e is symmetric, hence an equivalence relation.  *)
+(*  connect_sym e <-> connect e is symmetric, hence an equivalence relation.  *)
 (*       root e x == a representative of connect e x, which is the component  *)
 (*                   of x in the transitive closure of e.                     *)
 (*        roots e == the codomain predicate of root e.                        *)
-(*       n_comp e == the number of components of connect e -- the number of   *)
+(*     n_comp e a == the number of e-connected components of a, when a is     *)
+(*                   e-closed and connect e is symmetric.                     *)
 (*                   equivalence classes of connect e if connect_sym e holds. *)
-(*     closed e a == the predicate a is e-invariant.                          *)
+(*     closed e a == the collective predicate a is e-invariant.               *)
 (*    closure e a == the e-closure of a (the image of a under connect e).     *)
 (* rel_adjunction h e e' a <-> in the e-closed domain a, h is the left part   *)
 (*                   of an adjunction from e to another relation e'.          *)
@@ -31,9 +32,10 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path fintype.
 (*  order_set f n == elements of f-order n.                                   *)
 (*         finv f == the inverse of f, if f is injective.                     *)
 (*                := finv f x := iter (order x).-1 f x.                       *)
-(*        fcard f == number of orbits of f.                                   *)
-(*    fclosed f a == closed under iteration of f.                             *)
-(*   fclosure f a == closure under f iteration .                              *)
+(*      fcard f a == number of orbits of f in a, provided a is f-invariant    *)
+(*                   f is one-to-one.                                         *)
+(*    fclosed f a == the collective predicate a is f-invariant.               *)
+(*   fclosure f a == the closure of a under f iteration.                      *)
 (* fun_adjunction == rel_adjunction (frel f).                                 *)
 (******************************************************************************)
 
@@ -167,7 +169,7 @@ Definition root x := odflt x (pick (connect x)).
 Definition roots : pred T := fun x => root x == x.
 Canonical roots_pred := ApplicativePred roots.
 
-Definition n_comp a := #|predI roots a|.
+Definition n_comp_mem (m_a : mem_pred T) := #|predI roots m_a|.
 
 Lemma connect_root x : connect x (root x).
 Proof. by rewrite /root; case: pickP; rewrite ?connect0. Qed.
@@ -198,9 +200,18 @@ Proof. exact/eqP/root_root. Qed.
 Lemma root_connect x y : (root x == root y) = connect x y.
 Proof. exact: sameP eqP (rootP x y). Qed.
 
+Definition closed_mem m_a := forall x y, e x y -> in_mem x m_a = in_mem y m_a.
+
+Definition closure_mem m_a : pred T :=
+  fun x => ~~ disjoint (mem (connect x)) m_a.
+
 End Connect.
 
-Prenex Implicits connect root roots n_comp.
+Notation n_comp e a := (n_comp_mem e (mem a)).
+Notation closed e a := (closed_mem e (mem a)).
+Notation closure e a := (closure_mem e (mem a)).
+
+Prenex Implicits connect root roots.
 
 Implicit Arguments dfsP [T g x y].
 Implicit Arguments connectP [T e x y].
@@ -209,7 +220,10 @@ Implicit Arguments rootP [T e x y].
 Notation fconnect f := (connect (coerced_frel f)).
 Notation froot f := (root (coerced_frel f)).
 Notation froots f := (roots (coerced_frel f)).
-Notation fcard f := (n_comp (coerced_frel f)).
+Notation fcard_mem f := (n_comp_mem (coerced_frel f)).
+Notation fcard f a := (fcard_mem f (mem a)).
+Notation fclosed f a := (closed (coerced_frel f) a).
+Notation fclosure f a := (closure (coerced_frel f) a).
 
 Section EqConnect.
 
@@ -240,18 +254,18 @@ move=> eq_e x y; apply/connectP/connectP=> [] [p e_p ->];
   by exists p; rewrite // (eq_path eq_e) in e_p *.
 Qed.
 
-Lemma eq_n_comp e e' : connect e =2 connect e' -> n_comp e =1 n_comp e'.
+Lemma eq_n_comp e e' : connect e =2 connect e' -> n_comp_mem e =1 n_comp_mem e'.
 Proof.
-move=> eq_e a; apply: eq_card => x.
+move=> eq_e [a]; apply: eq_card => x /=.
 by rewrite !inE /= /roots /root /= (eq_pick (eq_e x)).
 Qed.
 
-Lemma eq_n_comp_r a a' : a =1 a' -> n_comp^~ a =1 n_comp^~ a'.
-Proof. by move=> eq_a e; apply: eq_card => x; rewrite inE /= eq_a. Qed.
+Lemma eq_n_comp_r {e} a a' : a =i a' -> n_comp e a = n_comp e a'.
+Proof. by move=> eq_a; apply: eq_card => x; rewrite inE /= eq_a. Qed.
 
-Lemma n_compC a e : n_comp e T = n_comp e a + n_comp e (predC a).
+Lemma n_compC a e : n_comp e T = n_comp e a + n_comp e [predC a].
 Proof.
-rewrite /n_comp (eq_card (fun _ => andbT _)) -(cardID a); congr (_ + _).
+rewrite /n_comp_mem (eq_card (fun _ => andbT _)) -(cardID a); congr (_ + _).
 by apply: eq_card => x; rewrite !inE andbC.
 Qed.
 
@@ -278,42 +292,40 @@ exists (rev (belast x p)); first by rewrite p_y rev_path.
 by rewrite -(last_cons x) -rev_rcons p_y -lastI rev_cons last_rcons.
 Qed.
 
-Definition closed a := forall x y, e x y -> a x = a y.
-
-Lemma intro_closed a : (forall x y, e x y -> a x -> a y) -> closed a.
+Lemma intro_closed a : (forall x y, e x y -> x \in a -> y \in a) -> closed e a.
 Proof.
 move=> cl_a x y e_xy; apply/idP/idP=> [|a_y]; first exact: cl_a.
 have{x e_xy} /connectP[p e_p ->]: connect e y x by rewrite sym_e connect1.
 by elim: p y a_y e_p => //= y p IHp x a_x /andP[/cl_a/(_ a_x)]; exact: IHp.
 Qed.
 
-Lemma closed_connect a : closed a -> forall x y, connect e x y -> a x = a y.
+Lemma closed_connect a :
+  closed e a -> forall x y, connect e x y -> (x \in a) = (y \in a).
 Proof.
 move=> cl_a x _ /connectP[p e_p ->].
 by elim: p x e_p => //= y p IHp x /andP[/cl_a->]; exact: IHp.
 Qed.
 
-Lemma connect_closed x : closed (connect e x).
-Proof. by move=> y z /connect1/same_connect_r->. Qed.
+Lemma connect_closed x : closed e (connect e x).
+Proof. by move=> y z /connect1/same_connect_r; exact. Qed.
 
-Lemma predC_closed a : closed a -> closed (predC a).
-Proof. by move=> cl_a x y /= /cl_a->. Qed.
+Lemma predC_closed a : closed e a -> closed e [predC a].
+Proof. by move=> cl_a x y /cl_a; rewrite !inE => ->. Qed.
 
-Definition closure a : pred T := fun x => ~~ [disjoint connect e x & a].
-
-Lemma closure_closed a : closed (closure a).
+Lemma closure_closed a : closed e (closure e a).
 Proof.
 apply: intro_closed => x y /connect1 e_xy; congr (~~ _).
 by apply: eq_disjoint; exact: same_connect.
 Qed.
 
-Lemma subset_closure a : a \subset closure a.
-Proof.
-by apply/subsetP=> x a_x; apply/pred0Pn; exists x; rewrite /= [x \in _]connect0.
-Qed.
+Lemma mem_closure a : {subset a <= closure e a}.
+Proof. by move=> x a_x; apply/existsP; exists x; rewrite !inE connect0. Qed.
+
+Lemma subset_closure a : a \subset closure e a.
+Proof. by apply/subsetP; exact: mem_closure. Qed.
 
 Lemma n_comp_closure2 x y :
-  n_comp e (closure (pred2 x y)) = (~~ connect e x y).+1.
+  n_comp e (closure e (pred2 x y)) = (~~ connect e x y).+1.
 Proof.
 rewrite -(root_connect sym_e) -card2; apply: eq_card => z.
 apply/idP/idP=> [/andP[/eqP {2}<- /pred0Pn[t /andP[/= ezt exyt]]] |].
@@ -325,16 +337,11 @@ Qed.
 Lemma n_comp_connect x : n_comp e (connect e x) = 1.
 Proof.
 rewrite -(card1 (root e x)); apply: eq_card => y.
-apply/andP/eqP => [[/eqP r_y /rootP-> //] | ->].
-by rewrite connect_root roots_root.
+apply/andP/eqP => [[/eqP r_y /rootP-> //] | ->] /=.
+by rewrite inE connect_root roots_root.
 Qed.
 
 End Closure.
-
-Notation fclosed f := (closed (coerced_frel f)).
-Notation fclosure f := (closure (coerced_frel f)).
-
-Prenex Implicits closed closure.
 
 Section Orbit.
 
@@ -373,9 +380,9 @@ rewrite size_traject => <-; apply: subset_leq_card.
 by apply/subsetP=> _ /trajectP[i _ ->]; exact: fconnect_iter.
 Qed.
 
-Lemma fconnect_orbit x : fconnect f x =i orbit x.
+Lemma fconnect_orbit x y : fconnect f x y = (y \in orbit x).
 Proof.
-move=> y; apply/idP/idP=> [/connectP[_ /fpathP[m ->] ->] | /trajectP[i _ ->]].
+apply/idP/idP=> [/connectP[_ /fpathP[m ->] ->] | /trajectP[i _ ->]].
   by rewrite last_traject; exact/loopingP/looping_order.
 exact: fconnect_iter.
 Qed.
@@ -386,7 +393,7 @@ rewrite /orbit -orderSpred looping_uniq; set n := (order x).-1.
 apply: contraFN (ltnn n) => /trajectP[i lt_i_n eq_fnx_fix].
 rewrite {1}/n orderSpred /order -(size_traject f x n).
 apply: (leq_trans (subset_leq_card _) (card_size _)); apply/subsetP=> z.
-rewrite fconnect_orbit => /trajectP[j le_jn ->{z}].
+rewrite inE fconnect_orbit => /trajectP[j le_jn ->{z}].
 rewrite -orderSpred -/n ltnS leq_eqVlt in le_jn.
 by apply/trajectP; case/predU1P: le_jn => [->|]; [exists i | exists j].
 Qed.
@@ -411,7 +418,7 @@ Lemma findex0 x : findex x x = 0.
 Proof. by rewrite /findex /orbit -orderSpred /= eqxx. Qed.
 
 Lemma fconnect_invariant (T' : eqType) (k : T -> T') :
-  invariant f k =1 xpredT -> forall x y : T, fconnect f x y -> k x = k y.
+  invariant f k =1 xpredT -> forall x y, fconnect f x y -> k x = k y.
 Proof.
 move=> eq_k_f x y /iter_findex <-; elim: {y}(findex x y) => //= n ->.
 by rewrite (eqP (eq_k_f _)).
@@ -425,9 +432,9 @@ Variable x : T.
 Hypothesis p_x : x \in p.
 
 (* This lemma does not depend on Up : (uniq p) *)
-Lemma fconnect_cycle : fconnect f x =i p.
+Lemma fconnect_cycle y : fconnect f x y = (y \in p).
 Proof.
-move=> y; have [i q def_p] := rot_to p_x; rewrite -(mem_rot i p) def_p.
+have [i q def_p] := rot_to p_x; rewrite -(mem_rot i p) def_p.
 have{i def_p} /andP[/eqP q_x f_q]: (f (last x q) == x) && fpath f x q.
   by have:= f_p; rewrite -(rot_cycle i) def_p (cycle_path x).
 apply/idP/idP=> [/connectP[_ /fpathP[j ->] ->] | ]; last exact: path_connect.
@@ -508,20 +515,20 @@ move=> x y; rewrite (same_connect_rev symf); apply: {x y}eq_connect => x y /=.
 by rewrite (canF_eq finv_f) eq_sym.
 Qed.
 
-Lemma fcard_finv : fcard finv =1 fcard f.
+Lemma fcard_finv : fcard_mem finv =1 fcard_mem f.
 Proof. exact: eq_n_comp same_fconnect_finv. Qed.
 
-Definition order_set n : pred T := fun x => order x == n.
+Definition order_set n : pred T := [pred x | order x == n].
 
-Lemma fcard_order_set n a :
-  subpred a (order_set n) -> fclosed f a -> fcard f a * n = #|a|.
+Lemma fcard_order_set n (a : pred T) :
+  a \subset order_set n -> fclosed f a -> fcard f a * n = #|a|.
 Proof.
-move=> a_n cl_a; rewrite /n_comp; set b := predI (froots f) a.
+move=> a_n cl_a; rewrite /n_comp_mem; set b := [predI froots f & a].
 symmetry; transitivity #|preim (froot f) b|.
   apply: eq_card => x; rewrite !inE (roots_root fconnect_sym).
   by rewrite -(closed_connect cl_a (connect_root _ x)).
 have{cl_a a_n} (x): b x -> froot f x = x /\ order x = n.
-  by case/andP=> /eqP-> /a_n/eqnP->.
+  by case/andP=> /eqP-> /(subsetP a_n)/eqnP->.
 elim: {a b}#|b| {1 3 4}b (eqxx #|b|) => [|m IHm] b def_m f_b.
   by rewrite eq_card0 // => x; exact: (pred0P def_m).
 have [x b_x | b0] := pickP b; last by rewrite (eq_card0 b0) in def_m.
@@ -532,7 +539,7 @@ rewrite -(cardID (fconnect f x)); congr (_ + _); apply: eq_card => y.
 by congr (~~ _ && _); rewrite /= /in_mem /= symf -(root_connect symf) r_x.
 Qed.
 
-Lemma fclosed1 a : fclosed f a -> forall x, a x = a (f x).
+Lemma fclosed1 (a : pred T) : fclosed f a -> forall x, (x \in a) = (f x \in a).
 Proof. by move=> cl_a x; exact: cl_a (eqxx _). Qed.
 
 Lemma same_fconnect1 x : fconnect f x =1 fconnect f (f x).
@@ -559,7 +566,7 @@ Let eq_rf := eq_frel eq_f.
 Lemma eq_fconnect : fconnect f =2 fconnect f'.
 Proof. exact: eq_connect eq_rf. Qed.
 
-Lemma eq_fcard : fcard f =1 fcard f'.
+Lemma eq_fcard : fcard_mem f =1 fcard_mem f'.
 Proof. exact: eq_n_comp eq_fconnect. Qed.
 
 Lemma eq_finv : finv f =1 finv f'.
@@ -581,8 +588,8 @@ Proof. exact (finv_eq_can (f_finv injf)). Qed.
 Lemma order_finv : order (finv f) =1 order f.
 Proof. move=> x; exact: eq_card (same_fconnect_finv injf x). Qed.
 
-Lemma order_set_finv : order_set (finv f) =2 order_set f.
-Proof. by move=> n x; rewrite /order_set order_finv. Qed.
+Lemma order_set_finv n : order_set (finv f) n =i order_set f n.
+Proof. by move=> x; rewrite !inE order_finv. Qed.
 
 End FconnectEq.
 
@@ -591,15 +598,18 @@ Section RelAdjunction.
 Variables (T T' : finType) (h : T' -> T) (e : rel T) (e' : rel T').
 Hypotheses (sym_e : connect_sym e) (sym_e' : connect_sym e').
 
+Record rel_adjunction_mem m_a := RelAdjunction {
+  rel_unit x : in_mem x m_a -> {x' : T' | connect e x (h x')};
+  rel_functor x' y' :
+    in_mem (h x') m_a -> connect e' x' y' = connect e (h x') (h y')
+}.
+
 Variable a : pred T.
 Hypothesis cl_a : closed e a.
 
-Record rel_adjunction := RelAdjunction {
-  rel_unit x: a x -> {x' : T' | connect e x (h x')};
-  rel_functor x' y': a (h x') -> connect e' x' y' = connect e (h x') (h y')
-}.
+Local Notation rel_adjunction := (rel_adjunction_mem (mem a)).
 
-Lemma intro_adjunction (h' : forall x, a x -> T') :
+Lemma intro_adjunction (h' : forall x, x \in a -> T') :
    (forall x a_x,
       [/\ connect e x (h (h' x a_x))
         & forall y a_y, e x y -> connect e' (h' x a_x) (h' y a_y)]) ->
@@ -617,12 +627,12 @@ apply/idP/idP=> [/connectP[p e'p ->{z'}] | /connectP[p e_p p_z']].
 case: (Ae'e x' a_x) => /connect_trans-> //.
 elim: p {x'}(h x') p_z' a_x e_p => /= [|y p IHp] x p_z' a_x.
   by rewrite -p_z' in a_x *; case: (Ae'e _ a_x); rewrite sym_e'.
-case/andP=> e_xy /(IHp _ p_z') e'yz; have a_y: a y by rewrite -(cl_a e_xy).
+case/andP=> e_xy /(IHp _ p_z') e'yz; have a_y: y \in a by rewrite -(cl_a e_xy).
 by apply: connect_trans (e'yz a_y); case: (Aee' _ a_x) => _ ->.
 Qed.
 
 Lemma strict_adjunction :
-    injective h -> a \subset codom h -> rel_base h e e' (predC a) ->
+    injective h -> a \subset codom h -> rel_base h e e' [predC a] ->
   rel_adjunction.
 Proof.
 move=> /= injh h_a a_ee'; pose h' x Hx := iinv (subsetP h_a x Hx).
@@ -635,23 +645,24 @@ Qed.
 
 Let ccl_a := closed_connect cl_a.
 
-Lemma adjunction_closed : rel_adjunction -> closed e' (preim h a).
+Lemma adjunction_closed : rel_adjunction -> closed e' [preim h of a].
 Proof.
-case=> _ Ae'e; apply intro_closed => // x' y' /connect1 => e'xy /= a_x.
-by rewrite Ae'e // in e'xy; rewrite -(ccl_a e'xy).
+case=> _ Ae'e; apply: intro_closed => // x' y' /connect1 e'xy a_x.
+by rewrite Ae'e // in e'xy; rewrite !inE -(ccl_a e'xy).
 Qed.
 
-Lemma adjunction_n_comp : rel_adjunction -> n_comp e a = n_comp e' (preim h a).
+Lemma adjunction_n_comp :
+  rel_adjunction -> n_comp e a = n_comp e' [preim h of a].
 Proof.
 case=> Aee' Ae'e.
-have inj_h: {in predI (roots e') (preim h a) &, injective (root e \o h)}.
+have inj_h: {in predI (roots e') [preim h of a] &, injective (root e \o h)}.
   move=> x' y' /andP[/eqP r_x' /= a_x'] /andP[/eqP r_y' _] /(rootP sym_e).
   by rewrite -Ae'e // => /(rootP sym_e'); rewrite r_x' r_y'.
-rewrite /n_comp -(card_in_image inj_h); apply: eq_card => x.
-apply/andP/imageP=> [[/eqP ? a_x] | [x' /andP[/eqP r_x' a_x'] ->]]; last first.
-  by rewrite -(ccl_a (connect_root _ _)) roots_root.
+rewrite /n_comp_mem -(card_in_image inj_h); apply: eq_card => x.
+apply/andP/imageP=> [[/eqP rx a_x] | [x' /andP[/eqP r_x' a_x'] ->]]; last first.
+  by rewrite /= -(ccl_a (connect_root _ _)) roots_root.
 have [y' e_xy]:= Aee' x a_x; pose x' := root e' y'.
-have ay': a (h y') by rewrite -(ccl_a e_xy).
+have ay': h y' \in a by rewrite -(ccl_a e_xy).
 have e_yx: connect e (h y') (h x') by rewrite -Ae'e ?connect_root.
 exists x'; first by rewrite inE /= -(ccl_a e_yx) ?roots_root.
 by rewrite /= -(rootP sym_e e_yx) -(rootP sym_e e_xy).
@@ -659,8 +670,14 @@ Qed.
 
 End RelAdjunction.
 
-Definition fun_adjunction T T' h f f' :=
-  @rel_adjunction T T' h (frel f) (frel f').
+Notation rel_adjunction h e e' a := (rel_adjunction_mem h e e' (mem a)).
+Notation "@ 'rel_adjunction' T T' h e e' a" :=
+  (@rel_adjunction_mem T T' h e e' (mem a))
+  (at level 10, T, T', h, e, e', a at level 8, only parsing) : type_scope.
+Notation fun_adjunction h f f' a := (rel_adjunction h (frel f) (frel f') a).
+Notation "@ 'fun_adjunction' T T' h f f' a" :=
+  (@rel_adjunction T T' h (frel f) (frel f') a)
+  (at level 10, T, T', h, f, f', a at level 8, only parsing) : type_scope.
 
 Implicit Arguments intro_adjunction [T T' h e e' a].
 Implicit Arguments adjunction_n_comp [T T' e e' a].

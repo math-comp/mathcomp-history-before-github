@@ -118,7 +118,7 @@ Lemma separable_nosquare p : sep p ->
   forall u k, 1%N < k -> u %| p -> size u != 1%N -> u ^+ k %| p = false.
 Proof.
 move=> /separablePolynomialP[/nosquareP hp _] u [|[|]] // k _ hu su.
-have [|//] := boolP (_ %| _)=> /(dvdp_trans _)-/(_ (u ^+ 2)).
+have [|//] := boolP (_ %| _) => /(dvdp_trans _) => /(_ (u ^+ 2)).
 by rewrite (negPf (hp _ _)) // => -> //; rewrite expr2 !exprS mulrA dvdp_mulr.
 Qed.
 
@@ -191,7 +191,7 @@ Lemma separable_root p x : sep (p * ('X - x%:P)) = sep p && ~~ root p x.
 Proof.
 rewrite separable_mul; have [sep_p /=|//] := boolP (sep p).
 rewrite /sep deriv_factor coprimep1 rootE coprimep_sym /=.
-apply/idP/idP; first by move=> /coprimep_root-/(_ x) ->; rewrite ?root_factor.
+apply/idP/idP; first by move=> /coprimep_root/=/(_ x) ->; rewrite ?root_factor.
 move=> px_neq0; apply/coprimepP=> d /irredp_factor /orP[] // eq_d.
 by rewrite (eqp_dvdl _ eq_d) dvdp_factorl rootE (negPf px_neq0).
 Qed.
@@ -222,7 +222,7 @@ split; last first.
   by rewrite ?dvdp_gcdl // !derivCE u'_eq0 mul0r mul0rn mulr0 addr0 dvdp_mull.
 apply/nosquareP=> u; have [|size_u _|//] := ltngtP.
   rewrite // ltnS leqn0 size_poly_eq0=> /eqP -> _; rewrite exprS mul0r.
-  apply/negP=> /dvdp_trans -/(_ _ (divp_dvd _)).
+  apply/negP=> /dvdp_trans/=/(_ _ (divp_dvd _)).
   by rewrite dvd0p (negPf p_neq0) dvdp_gcdl=> /implyP.
 have [hu|//] := boolP (_ %| _); have [//|] := ex_minnP (max_dvd_u u _).
 move=> [|[|n hn]]; first by rewrite dvd1p.
@@ -1638,10 +1638,8 @@ Lemma separableInseparableElement: forall x,
  (x \in K) = separableElement K x && purelyInseparableElement K x.
 Proof.
 move => x; rewrite /purelyInseparableElement valK.
-case: ex_minnP=> [[//|[/=|m]]]; first by rewrite expr1=> ->. 
-rewrite -{1}/(andb _ _). (* needed in coq-trunk only *)
-case: (X in X && _) => // _ /(_ 1%N)/contraNN/(_ isT)/negPf; rewrite expr1 /=.
-by case: (_ \in _) (@separableinK K x)=> [->|_ ->].
+case: ex_minnP=> [[//|[/=|m]]] => [-> // | _ /(_ 1%N)/implyP/= not_sep_x].
+by rewrite (contraNF (@separableinK K x) not_sep_x) (negPf not_sep_x).
 Qed.
 
 Lemma inseparableinK : forall x, x \in K -> purelyInseparableElement K x.

@@ -2425,7 +2425,7 @@ Definition to_alg (x : F) : alg := locked (\pi (to_alg_dom (cst_alg_creal x))).
 
 Lemma to_alg_additive : additive to_alg.
 Proof.
-unlock to_alg; move=> x y /=; rewrite -[RHS]/(add_alg _ (opp_alg _)).
+unlock to_alg; move=> x y /=; rewrite -/(_ = add_alg _ (opp_alg _)).
 unlock add_alg opp_alg; rewrite !mopP /=; apply/equivP/eq_alg_domP.
 do !rewrite to_alg_domK /=.
 by apply: eq_crealP; exists m0=> * /=; rewrite subrr absr0.
@@ -2435,7 +2435,7 @@ Canonical to_alg_is_additive := Additive to_alg_additive.
 
 Lemma to_alg_multiplicative : multiplicative to_alg.
 Proof.
-split=> [x y |] //; unlock to_alg; rewrite -[RHS]/(mul_alg _ _).
+split=> [x y |] //; unlock to_alg; rewrite -/(_ = mul_alg _ _).
 unlock mul_alg; rewrite !mopP /=; apply/equivP/eq_alg_domP.
 do !rewrite to_alg_domK /=.
 by apply: eq_crealP; exists m0=> * /=; rewrite subrr absr0.
@@ -2471,9 +2471,9 @@ Lemma pi_alg_expn (x : alg_dom) (n : nat) :
   ((\pi x) : alg) ^+ n = \pi (exp_alg_dom x n).
 Proof.
 rewrite /exp_alg_dom.
-case: n=> [|n]; first by rewrite expr0 -[LHS]/one_alg; unlock one_alg.
+case: n=> [|n]; first by rewrite expr0 -/(one_alg = _); unlock one_alg.
 rewrite exprS iteropS; elim: n=> /= [|n ihn]; rewrite ?expr0 ?mulr1 //.
-by rewrite exprS ihn -[LHS]/(mul_alg _ _); unlock mul_alg; rewrite !mopP.
+by rewrite exprS ihn -/(mul_alg _ _ = _); unlock mul_alg; rewrite !mopP.
 Qed.
 
 Lemma horner_coef_creal p x :
@@ -2496,13 +2496,13 @@ unlock to_alg; move: x; elim/quotW=> x /=.
 transitivity (\sum_(i < size (annul_alg (\pi_alg x))) (\pi (
   mul_alg_dom (to_alg_dom (cst_alg_creal (annul_alg (\pi_alg x))`_i))
       (exp_alg_dom x i)) : alg)).
-  apply: eq_big=> // i _; rewrite pi_alg_expn -[LHS]/(mul_alg _ _).
+  apply: eq_big=> // i _; rewrite pi_alg_expn -/(mul_alg _ _ = _).
   by unlock mul_alg; rewrite !mopP.
 rewrite -(@big_morph _ _ _ _ _
   (to_alg_dom (cst_alg_creal 0)) add_alg_dom); last 2 first.
-+ by move=> u v; rewrite -[RHS]/(add_alg _ _); unlock add_alg; rewrite !mopP.
-+ by rewrite -[RHS]/zero_alg; unlock zero_alg.
-rewrite -[RHS]/zero_alg; unlock zero_alg.
++ by move=> u v; rewrite -/(_ = add_alg _ _); unlock add_alg; rewrite !mopP.
++ by rewrite -/(_ = zero_alg); unlock zero_alg.
+rewrite -/(_ = zero_alg); unlock zero_alg.
 apply/equivP/eq_alg_domP; rewrite to_alg_domK /=; unlock annul_alg.
 rewrite -(@root_poly_of_creal (to_alg_creal (repr (\pi_alg x)))).
 rewrite horner_coef_creal; apply: (big_ind2 (fun u v => to_alg_creal u == v)).
