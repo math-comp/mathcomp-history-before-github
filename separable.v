@@ -1856,422 +1856,48 @@ End FiniteCase.
 
 Hypothesis sep : separableElement K y.
 
-Let f0 := f \Po ('X + x%:P).
-Let g0 := (g \Po ('X + y%:P)) %/ ('X).
-
-Lemma gxg0_subproof : g0 * 'X = g \Po ('X + y%:P).
+(* TODO: clean up this proof *)
+Lemma PrimitiveElementTheorem : exists z, Fadjoin (Fadjoin K y) x = Fadjoin K z.
 Proof.
-rewrite /g.
-have: (root (g \Po ('X + y%:P)) 0).
- by rewrite /root horner_comp_poly ![_.[0]]horner_lin add0r minPolyxx.
-rewrite root_factor_theorem /dvdp subr0.
-by move/eqP => mod0; rewrite -[_ * _]addr0 -mod0 -divp_eq // monicX.
-Qed.
-
-(* Here we mostly follow David Speyer's proof with some simiplifications *)
-(* http://mathoverflow.net/questions/29687/primitive-element-theorem-without-building-field-extensions *)
-Let Mf := \matrix_(i < m, j < n + m) if i <= j then
-                                       (f0`_(j - i) *: 'X ^+ (j - i)) else 0.
-Let Mg := \matrix_(i < n, j < n + m) if i <= j then (g0`_(j - i))%:P else 0.
-Let M := col_mx Mg Mf.
-
-Lemma szp_subproof : forall p (z:L), p != 0 ->
- size (p \Po ('X + z%:P)) = size p.
-Proof.
-move => p z nzp.
-have Sa: size ('X + z%:P) = 2.
-  by rewrite size_addl // !(size_polyX, size_polyC) //; case: eqP.
-rewrite /comp_poly horner_coef size_map_poly.
-rewrite (polySpred nzp) big_ord_recr /= coef_map mul_polyC.
-have H : size (p`_(size p).-1 *: ('X + z%:P) ^+ (size p).-1) = (size p).-1.+1.
-  rewrite size_scaler -?lead_coefE ?lead_coef_eq0 //.
-  rewrite polySpred; first by rewrite size_exp_id Sa mul1n.
-  by rewrite expf_neq0 // -size_poly_eq0 Sa.
-rewrite addrC size_addl // H ltnS (leq_trans (size_sum _ _ _)) //.
-apply/bigmax_leqP => i _.
-rewrite coef_map mulrC.
-have [->|nzpi] := (eqVneq p`_i 0); first by rewrite mulr0 size_poly0.
-by rewrite mulrC mul_polyC size_scaler // (leq_trans (size_exp _ _)) // Sa
-   mul1n.
-Qed.
-
-Lemma szf0_subproof : size f0 = n.+1.
-Proof.
-by rewrite /f0 szp_subproof -?size_poly_eq0 ?size_polyX // size_minPoly // /n.
-Qed.
-
-Lemma szg0_subproof : size g0 = m.+1.
-Proof.
-by rewrite /g0 size_divp ?szp_subproof -?size_poly_eq0 ?size_polyX //
-           size_minPoly // /m -(prednK (elementDegreegt0 _ _)).
-Qed.
-
-Lemma g0nz_subproof : g0`_0 != 0.
-Proof.
-move: (separableNrootdmp K y).
-rewrite negb_eqb sep /root -/g.
-apply: contra.
-have <- : g0.[0] = g0`_0.
- rewrite -[g0`_0]addr0.
- rewrite horner_coef szg0_subproof /m big_ord_recl expr0 mulr1.
- congr (_ + _).
- apply: big1 => i _.
- by rewrite exprSr !mulr0.
-have: (root (g \Po ('X + y%:P)) 0).
- by rewrite /root horner_comp_poly ![_.[0]]horner_lin add0r minPolyxx.
-rewrite -/(root g0 0) !root_factor_theorem.
-rewrite -!polyC_opp !oppr0 !addr0 /g0 /dvdp => root1 root2.
-suff: ('X - y%:P) ^+ 2 %| g.
- case/dvdpP => [r ->].
- by rewrite exprS expr1 !derivM mulr_addr !horner_add !horner_mul factor0
-            !(mul0r, mulr0) !addr0.
-have: 'X ^+ 2 %| (g \Po ('X + y%:P)).
- by rewrite -gxg0_subproof dvdp_mul ?dvdpp.
-move/dvdpP => [r Hr].
-apply/dvdpP.
-exists (r \Po ('X - y%:P)).
-rewrite -[g]comp_polyX -{1}(comp_poly_translateK y) -comp_polyA Hr.
-by rewrite !comp_poly_mull !comp_polyXp.
-Qed.
-
-Lemma leq_size_prodM_subproof : forall s:'S_(n + m),
- (size (\prod_i M i (s i))) <= (n * m).+1.
-Proof.
-move => s.
-rewrite (leq_trans (size_prod _ _)) // eq_cardT // size_enum_ord big_split_ord
-        /= leq_sub_add addnS ltnS -addnA leq_add //.
-  apply: (@leq_trans #|'I_n|); last by rewrite card_ord.
-  rewrite -sum1_card leq_sum // => i _.
-  rewrite col_mxEu mxE !(fun_if, if_arg) size_polyC size_poly0.
-  by rewrite leq_b1 if_same.
-rewrite -mulSn mulnC -[m in muln m]card_ord -sum_nat_const leq_sum // => i _. 
-rewrite col_mxEd mxE; case: ifP => _; last by rewrite size_poly0.
-set j := (_ - _)%N.
-have [-> | f0neq0] := eqVneq f0`_j 0; first by rewrite scale0r size_poly0.
-rewrite size_scaler // size_polyXn -szf0_subproof ltnNge.
-by apply: contra f0neq0 => /(nth_default 0)->.
-Qed.
-
-Lemma eq_size_prodM_subproof : forall s:'S_(n + m),
- (s == 1%g) = (size (\prod_i M i (s i)) == (n * m).+1).
-Proof.
-move => s.
-apply/eqP/eqP => [->|].
- rewrite big_split_ord /=.
- set b := (\prod_(i < m) _).
- have -> : b = lead_coef(f0) ^+ m *: 'X ^+ (n * m).
-  rewrite -mul_polyC rmorphX exprn_mulr -commr_exp_mull;
-   last by rewrite /GRing.comm mulrC.
-  rewrite -[m]card_ord -prodr_const.
-  apply: eq_bigr => i _.
-  by rewrite col_mxEd mxE perm1 leq_addl addnK lead_coefE szf0_subproof
-     -mul_polyC.
- set a := (\prod_(i < n) _).
- have -> : a = (g0`_0 ^+ n)%:P.
-  rewrite rmorphX -[n]card_ord -prodr_const.
-  apply: eq_bigr => i _.
-  by rewrite perm1 col_mxEu mxE leqnn subnn.
- by rewrite mul_polyC !size_scaler ?expf_neq0 ?g0nz_subproof // ?lead_coef_eq0
-            -?size_poly_eq0 ?szf0_subproof // size_polyXn.
-rewrite big_split_ord /=.
-set a := \prod_(i < n) M (lshift m i) (s (lshift m i)).
-case: (eqVneq a 0) => [->|aneq0]; first by rewrite mul0r size_poly0.
-set b := \prod_(i < m) M (rshift n i) (s (rshift n i)).
-case: (eqVneq b 0) => [->|bneq0]; first by rewrite mulr0 size_poly0.
-have usize1: forall i, predT i -> size (M (lshift m i) (s (lshift m i))) = 1%N.
- move => i _.
- apply/eqP.
- rewrite eqn_leq.
- apply/andP; split.
- rewrite col_mxEu mxE.
-  by case: ifP; rewrite ?size_poly0 // size_polyC leq_b1.
- move: aneq0.
- rewrite lt0n size_poly_eq0.
- move/prodf_neq0.
- by apply.
-rewrite size_mul_id // size_prod_id; last first.
- by move => i _ /=; rewrite -size_poly_eq0 usize1.
-rewrite (eq_bigr _ usize1) /= sum_nat_const eq_cardT // size_enum_ord
-        muln1 subSnn addSn /= add0n => sizeb.
-suff: forall k : 'I_(n+m), k <= s k.
-  move => Hs; apply/permP => i.
-  apply/eqP; rewrite perm1 eq_sym.
-  move: i.
-  have Hs0 := (fun k => leqif_eq (Hs k)).
-  have Hs1 := (leqif_sum (fun i _ => (Hs0 i))).
-  move: (Hs1 predT) => /=.
-  rewrite (reindex_inj (@perm_inj _ s)) /=.
-  by move/leqif_refl; move/forallP.
-move => i.
-rewrite -[i]splitK.
-case: (split i) => {i} /= i.
- move: (usize1 i isT).
- rewrite col_mxEu mxE.
- case: ifP => //.
- by rewrite size_poly0.
-move: sizeb.
-rewrite size_prod_id; last by apply/prodf_neq0.
-rewrite eq_cardT // size_enum_ord.
-move/eqP.
-apply: contraLR.
-rewrite -ltnNge neq_ltn => Hs.
-apply/orP; left.
-rewrite ltnS leq_sub_add -mulSn (bigD1 i) //= -addSn.
-have Hm := ltn_predK (ltn_ord i).
-rewrite leqNgt -{1}Hm -leqNgt mulnS leq_add //.
-(* rewrite -[m in (n.+1 * m)%N]Hm mulnS leq_add //. *)
- move: Hs.
- rewrite col_mxEd mxE.
- case: ifP; last by rewrite size_poly0.
-  case: (eqVneq f0`_(s (rshift n i) - i) 0) => [->|].
-  by rewrite scale0r size_poly0.
- move/size_scaler => -> _.
- rewrite size_polyXn -[X in (X + i)%N]/(n.-1.+1) addSn.
- by rewrite !ltnS leq_sub_add [(n.-1 + _)%N]addnC.
-rewrite -[m in m.-1]card_ord -(cardC1 i) mulnC -sum_nat_const leq_sum // => j _.
-rewrite col_mxEd mxE; case: ifP => _; last by rewrite size_poly0.
-case: (eqVneq f0`_(s (rshift n j) - j) 0) => [->|Hf0].
- by rewrite scale0r size_poly0.
-rewrite size_scaler // size_polyXn -szf0_subproof ltnNge.
-by apply: contra Hf0 => /(nth_default 0)->.
-Qed.
-
-Let size_detM : size (\det M) = (n * m).+1.
-Proof.
-rewrite /determinant (bigD1 1%g) //=.
-set a := (_ * _).
-have Ha : size a = (n * m).+1.
- apply/eqP.
- by rewrite /a -polyC_opp -polyC_exp mul_polyC size_scaler ?signr_eq0
-            -?eq_size_prodM_subproof.
-rewrite size_addl // Ha ltnS (leq_trans (size_sum _ _ _)) //.
-apply/bigmax_leqP => s.
-rewrite -polyC_opp -polyC_exp mul_polyC size_scaler ?signr_eq0 // 
-        eq_size_prodM_subproof.
-move/negbTE => szneq.
-move: (leq_size_prodM_subproof s).
-by rewrite leq_eqVlt szneq ltnS.
-Qed.
-
-Let f1 t := f0 \Po (t *: 'X).
-
-Lemma root_det_coprime_subproof :
- forall t, ~~ coprimep (f1 t) g0 -> root (\det M) t.
-Proof.
-move => t.
-rewrite /root.
-have HMt : rmorphism (fun x => (map_poly id x).[t]).
-  have F2: rmorphism (@id L) by done.
-  have F1: commr_rmorph (RMorphism F2) t := (mulrC _).
-  exact: (horner_is_rmorphism F1).
-have -> : forall p : {poly L}, p.[t] = (map_poly id p).[t].
- by move => p; rewrite map_polyE map_id polyseqK.
-move: (det_map_mx (RMorphism HMt) M) => /= <-.
-set f1t := f1 t.
-have f1tdef : f1t = \sum_(i < size f0) (f0`_i * t ^+ i) *: 'X ^+ i.
-  rewrite /f1t /f1 /comp_poly horner_coef size_map_poly;  apply: eq_bigr => j _.
-  rewrite -!mul_polyC commr_exp_mull; last by apply: mulrC.
-  by rewrite coef_map mulrA polyC_mul polyC_exp.
-have szf1t : size f1t <= n.+1.
-  by rewrite f1tdef -(poly_def (size f0) (fun i => f0`_i * t ^+ i))
-             szf0_subproof size_poly.
-have f1ti : forall i, f1t`_i = f0`_i * t ^+ i.
-  move => i.
-  rewrite f1tdef.
-  rewrite -(poly_def (size f0) (fun i => f0`_i * t ^+ i)) coef_poly.
-  case: ifP => //.
-  move/negbT.
-  rewrite -leqNgt => ?.
-  by rewrite nth_default // mul0r.
-move/dvdpP: (dvdp_gcdl f1t g0) => [r1 Hr1].
-move/dvdpP: (dvdp_gcdr f1t g0) => [r2 Hr2].
-rewrite /coprimep neq_ltn ltnS leqn0.
-case/orP => [|szgcd].
-  rewrite size_poly_eq0 gcdp_eq0 -{1}size_poly_eq0.
-  case/andP => _; move/eqP => g00.
-  move: g0nz_subproof.
-  by rewrite g00 coef0 eq_refl.
-have szgcd0 : 0 < size (gcdp f1t g0) by apply (@leq_trans 2%N).
-have nzr2 : (0 < size r2).
-  rewrite lt0n.
-  move/eqP: Hr2.
-  apply: contraL.
-  rewrite size_poly_eq0.
-  by move/eqP ->; rewrite mul0r -size_poly_eq0 szg0_subproof.
-have r1small : size r1 <= n.
-  case (eqVneq (size r1) 0%N) => [->|] //.
-  rewrite -lt0n => nzr1.
-  rewrite -(prednK szgcd0) ltnS in szgcd.
-  rewrite -ltnS (leq_trans _ szf1t) //.
-  rewrite Hr1 size_mul_id -?size_poly_eq0 -?lt0n //.
-  move/prednK: (leq_trans (szgcd) (leq_pred _))<-; rewrite addnS /= //.
-  by rewrite -{1}(addn0 (size r1)) ltn_add2l.
-have r2small : size r2 <= m.
-  rewrite -(prednK szgcd0) ltnS in szgcd.
-  by rewrite -ltnS -szg0_subproof Hr2 size_mul_id
-             -?size_poly_eq0 -?lt0n // -(prednK szgcd0) addnS -(prednK szgcd) 
-             addnS ltnS leq_addr.
-apply/det0P.
-exists (row_mx (\row_i (r1`_i)) (-(\row_i (r2`_i)))).
-  apply/negP; move/eqP.
-  rewrite -row_mx0.
-  case/eq_row_mx => _.
-  move/rowP.
-  have ordszr2 : (size r2).-1 < m.
-    by rewrite (prednK nzr2).
-  move/(_ (Ordinal ordszr2)).
-  rewrite !mxE /=.
-  move/eqP.
-  rewrite oppr_eq0 -lead_coefE lead_coef_eq0 -size_poly_eq0 -[_ == _](negbK).
-  by rewrite -lt0n nzr2.
-apply/rowP => i.
-rewrite /M map_col_mx mul_row_col mulNmx.
-rewrite !mxE.
-apply/eqP.
-have matrixPolyMul: forall (h r : {poly L}) k z, size r <= k ->
-  (z = (map_mx (fun x0 : {poly L} => (map_poly id x0).[t])
-        (\matrix_(i, j) (if i <= j then (h`_(j - i))%:P else 0)))) ->
-  \sum_j
-   (\row_i0 r`_i0) 0 (j:'I_k) * z j i = (r * h)`_i.
-  move => h r k z rsmall -> {z}.
-  set a := (\sum_j _).
-  rewrite coefM.
-  case/orP: (leq_total i.+1 k) => [ismall|ilarge].
-    rewrite (big_ord_widen _ (fun j => r`_j * h`_(i - j)) ismall).
-    rewrite big_mkcond.
-    apply: eq_bigr => j _.
-    rewrite !mxE /horner_morph map_polyE map_id polyseqK ltnS.
-    by case: (j <= i); rewrite hornerC // mulr0.
-  rewrite -(big_mkord (fun j => true) (fun j =>  r`_j * h`_(i - j)))
-          (big_cat_nat _ (fun j => true) (fun j =>  r`_j * h`_(i - j))
-                         (leq0n _) ilarge)
-          /=.
-  have -> : \sum_(k <= i0 < i.+1) r`_i0 * h`_(i - i0) = 0.
-    apply: big1_seq => j /=.
-    rewrite mem_index_iota.
-    move/andP => [Hnj Hji].
-    by rewrite nth_default ?mulr0 ?mul0r // (leq_trans rsmall).
-  rewrite addr0 big_mkord.
-  apply: eq_bigr => j _.
-  rewrite !mxE /horner_morph map_polyE map_id polyseqK.
-  case: ifP; rewrite hornerC //.
-  move/negbT.
-  rewrite -ltnNge => Hij.
-  by rewrite nth_default ?mulr0 ?mul0r // (leq_trans _ Hij) // 
-             (leq_trans _ ilarge).
-rewrite (matrixPolyMul g0) //.
-rewrite (matrixPolyMul f1t) //.
-  by rewrite Hr1 {1}Hr2 mulrA [r1 * r2]mulrC -mulrA subrr.
-apply/matrixP => j k.
-rewrite !mxE.
-case: leqP => // _.
-by rewrite !map_polyE !map_id !polyseqK horner_scaler hornerXn hornerC f1ti.
-Qed.
-
-
-Section InfiniteCase.
-
-Variable t : L.
-Hypothesis tK : t \in K.
-Hypothesis troot : ~~(root (\det M) t).
-
-Let z := x - t*y.
-Let h := f \Po (t *: 'X + z%:P).
-
-Lemma gcdhg_subproof : gcdp h g %= 'X - y%:P.
-Proof.
-apply/andP; split; last first.
- rewrite dvdp_gcd.
- apply/andP; split; rewrite -root_factor_theorem; last by rewrite root_minPoly.
- by rewrite /root /h horner_comp_poly ![_.[y]]horner_lin /z addrC subrK 
-            minPolyxx.
-rewrite /h /z polyC_add [x%:P + _]addrC polyC_opp polyC_mul -mul_polyC addrA 
-        -mulr_subr mul_polyC.
-(*
-have PCRM := polyC_RM.
-have RM1 : GRing.morphism (horner_morph polyC (t *: ('X - y%:P))).
- by apply: horner_morphRM => //;move => ?;apply: mulrC.
-*)
-have -> : t *: ('X - y%:P) + x%:P =
-          ('X + x%:P) \Po (t *: ('X - y%:P)).
-  by rewrite comp_poly_addl comp_polyXp comp_polyCp.
-rewrite -comp_polyA -/f0.
-(*
-have RM2 : GRing.morphism (horner_morph polyC ('X - y%:P)).
- by apply: horner_morphRM => //;move => ?;apply: mulrC.
-*)
-have -> : t *: ('X - y%:P) = (t *: 'X) \Po ('X - y%:P).
-  by rewrite comp_poly_scall comp_polyXp.
-rewrite -[g](comp_polyX) -{3}(comp_poly_translateK y).
-rewrite -!comp_polyA -(eqp_dvdl _ (gcdp_comp_poly _ _ _)) -gxg0_subproof.
-rewrite -/(f1 t) -{2}['X-y%:P]comp_polyXp dvdp_comp_poly //.
-apply (@dvdp_trans _ (gcdp ((f1 t) * 'X) (g0 * 'X))).
- by rewrite dvdp_gcd dvdp_gcdr dvdp_mulr // dvdp_gcdl.
-rewrite -(eqp_dvdl _ (mulp_gcdl _ _ _)) -{2}['X]mul1r dvdp_mul2r
-        -?size_poly_eq0 ?size_polyX //.
-rewrite dvdp1 size_poly_eq1 gcdp_eqp1.
-apply: contraR troot.
-apply: root_det_coprime_subproof.
-Qed.
-
-Lemma PET_infiniteCase_subproof : Fadjoin (Fadjoin K y) x = Fadjoin K z.
-Proof.
+move/monic_neq0: (monic_minPoly K x).
+case/polyOver_suba: (minPolyOver K x) (root_minPoly K x) => p -> Hrootp.
+rewrite map_poly_eq0 => Hp0.
+case/separableElementP: sep => q0 [HKq0 [Hrootq0 Hsepq0]].
+move: (minPoly_dvdp HKq0 Hrootq0).
+case/polyOver_suba: (minPolyOver K y) (root_minPoly K y) => q-> Hrootq Hqq0.
+move: (dvdp_separable Hqq0 Hsepq0).
+(* :TODO: make this into a theorem map_separablePolynomail *)
+rewrite /separablePolynomial.
+rewrite deriv_map.
+rewrite /coprimep.
+rewrite -gcdp_map.
+rewrite size_map_poly.
+rewrite -[_ == _]/(separablePolynomial q) => Hsepq.
+case: (PET_Infinite_Case Hp0 Hrootp Hrootq Hsepq) => r [Hr HPET].
+case: (PET_finiteCase_subproof (size r)) => [[l]|//].
+case/and3P; move/allP => HKl Hl Hnml.
+move/contra: (fun x => max_poly_roots Hr x Hl).
+rewrite -leqNgt.
+move/(_ (ltnW Hnml)).
+case/allPn => c /HKl Hc Hrootc.
+case: (HPET (Suba Hc) Hrootc).
+set z := (_ * y - x) => [[a Ha] [b Hb]].
+exists z.
 apply: subv_anti.
 apply/andP;split; rewrite -subsetFadjoinE; last first.
  rewrite (subv_trans (subsetKFadjoin K y) (subsetKFadjoin _ x)) /=.
- have -> : z = ('X - t *: y%:P).[x] by rewrite !horner_lin.
- rewrite mempx_Fadjoin // addp_polyOver ?opp_polyOver ?scalep_polyOver
-         ?polyOverC ?polyOverX //; last by rewrite memx_Fadjoin.
+ rewrite memv_sub //; last by rewrite memx_Fadjoin.
+ rewrite memK_Fadjoin // memv_mul //; last by rewrite memx_Fadjoin.
  by rewrite memK_Fadjoin.
 rewrite -subsetFadjoinE.
 rewrite subsetKFadjoin /=.
-have Hy : (y \in Fadjoin K z).
- suff: polyOver (Fadjoin K z) ('X - y%:P).
-  move/polyOverP.
-  move/(_ 0%N).
-  rewrite coefD coefX add0r coefN coefC /=.
-  by apply: memvNl.
- rewrite addp_polyOver ?polyOverX // opp_polyOver //.
- have: (polyOver (Fadjoin K z) (gcdp h g)).
-  rewrite gcdp_polyOver ?compose_polyOver //; 
-   try solve [by rewrite (polyOver_subset (subsetKFadjoin _ _)) // minPolyOver].
-  by rewrite addp_polyOver ?polyOverC ?memx_Fadjoin //
-             (polyOver_subset (subsetKFadjoin _ _)) // scalep_polyOver 
-             ?polyOverX.
- move/polyOverP => HKz.
- rewrite (_ : y = (- (gcdp h g)`_0)/(gcdp h g)`_1).
-   by rewrite polyOverC  // memv_mul -?memv_inv // memvN.
- have szgcd : size (gcdp h g) = 2.
-  by rewrite (eqp_size gcdhg_subproof) size_factor.
- apply: (canRL (mulrK _)).
-  by rewrite unitfE -[1%N]/(2.-1) -szgcd -lead_coefE lead_coef_eq0
-             -size_poly_eq0 szgcd.
- move/eqpP: gcdhg_subproof => [[c1 c2]] /andP [c1nz c2nz] Hc.
- rewrite -unitfE in c1nz.
- apply (can_inj (mulKr c1nz)).
- by rewrite [y * _]mulrC mulrA mulrN -!coefZ Hc !coefZ !coefD
-            !coefX add0r !coefN !coefC subr0 mulr1 mulrN opprK.
-rewrite Hy /= -[x](subrK (t * y)) -/z memvD ?memv_mul //.
- by rewrite memx_Fadjoin.
-by rewrite memK_Fadjoin.
-Qed.
-
-End InfiniteCase.
-
-Lemma PrimitiveElementTheorem : exists z, Fadjoin (Fadjoin K y) x = Fadjoin K z.
-Proof.
-case: (PET_finiteCase_subproof (n * m)) => [[l]|//].
-case/and3P; move/allP => HKl Hl Hnml.
-have: ~~(all (root (\det M)) l).
- move: Hnml.
- rewrite -size_detM leqNgt.
- apply: contra => HMl.
- apply: max_poly_roots => //.
- by rewrite -size_poly_eq0 size_detM.
-case/allPn => z Hzl HMz.
-exists (x - z * y).
-apply: PET_infiniteCase_subproof => //.
-by apply: HKl.
+apply/andP; split; apply/poly_Fadjoin.
+ exists (map_poly (@sa_val _ _ K) b); split; last by rewrite Hb.
+ apply/polyOver_suba.
+ by exists b.
+exists (map_poly (@sa_val _ _ K) a); split; last by rewrite Ha.
+apply/polyOver_suba.
+by exists a.
 Qed.
 
 Lemma separableFadjoinExtend : separableElement (Fadjoin K y) x -> 
