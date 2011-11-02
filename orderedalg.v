@@ -3092,7 +3092,108 @@ End FinGroup.
 
 End TFieldTheory.
 End TFieldTheory.
-Include TFieldTheory.
+
+Module ArchimedianField.
+
+Section ClassDef.
+
+Record mixin_of (R : PIntegralDomain.type) := Mixin {
+  archi_bound : R -> nat;
+  _ : forall (x : R), 0 <= x -> x < (archi_bound x)%:R
+}.
+
+Record class_of (R : Type) : Type := Class {
+  base : TField.class_of R;
+  mixin : mixin_of (PIntegralDomain.Pack base R)
+}.
+Local Coercion base : class_of >-> TField.class_of.
+
+Structure type := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
+Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
+Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
+Definition pack T b0 (m0 : mixin_of (@TField.Pack T b0 T)) :=
+  fun bT b & phant_id (TField.class bT) b =>
+  fun    m & phant_id m0 m => Pack (@Class T b m) T.
+
+Definition eqType cT := Equality.Pack (class cT) cT.
+Definition choiceType cT := Choice.Pack (class cT) cT.
+Definition zmodType cT := GRing.Zmodule.Pack (class cT) cT.
+Definition ringType cT := GRing.Ring.Pack (class cT) cT.
+Definition comRingType cT := GRing.ComRing.Pack (class cT) cT.
+Definition unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
+Definition comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT.
+Definition idomainType cT := GRing.IntegralDomain.Pack (class cT) cT.
+Definition poIdomainType cT := PIntegralDomain.Pack (class cT) cT.
+Definition oIdomainType cT := TIntegralDomain.Pack (class cT) cT.
+Definition fieldType cT := GRing.Field.Pack (class cT) cT.
+Definition poFieldType cT := PField.Pack (class cT) cT.
+Definition oFieldType cT := TField.Pack (class cT) cT.
+
+End ClassDef.
+
+Module Exports.
+Coercion base : class_of >-> TField.class_of.
+Coercion sort : type >-> Sortclass.
+Bind Scope ring_scope with sort.
+Coercion eqType : type >-> Equality.type.
+Canonical eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical choiceType.
+Coercion zmodType : type >-> GRing.Zmodule.type.
+Canonical zmodType.
+Coercion ringType : type >-> GRing.Ring.type.
+Canonical ringType.
+Coercion comRingType : type >-> GRing.ComRing.type.
+Canonical comRingType.
+Coercion unitRingType : type >-> GRing.UnitRing.type.
+Canonical unitRingType.
+Coercion comUnitRingType : type >-> GRing.ComUnitRing.type.
+Canonical comUnitRingType.
+Coercion idomainType : type >-> GRing.IntegralDomain.type.
+Canonical idomainType.
+Coercion poIdomainType : type >-> PIntegralDomain.type.
+Canonical poIdomainType.
+Coercion oIdomainType : type >-> TIntegralDomain.type.
+Canonical oIdomainType.
+Coercion fieldType : type >-> GRing.Field.type.
+Canonical fieldType.
+Coercion poFieldType : type >-> PField.type.
+Canonical poFieldType.
+Coercion oFieldType : type >-> TField.type.
+Canonical oFieldType.
+End Exports.
+
+End ArchimedianField.
+Import ArchimedianField.Exports.
+
+Definition archi_bound (R : ArchimedianField.type) : R -> nat
+  := ArchimedianField.archi_bound
+  (ArchimedianField.mixin (ArchimedianField.class R)).
+
+Module ArchimedianFieldTheory.
+Import PIntegralDomainTheory.
+Import PFieldTheory.
+Import TIntegralDomainTheory.
+Import TFieldTheory.
+
+Section ArchimedianFieldTheory.
+Variable F : ArchimedianField.type.
+
+Lemma archi_boundP (x : F) : 0 <= x -> x < (archi_bound x)%:R.
+Proof. by move: x; rewrite /archi_bound; case: ArchimedianField.mixin. Qed.
+
+Lemma upper_nthrootP (x : F) i : (archi_bound x <= i)%N -> x < 2%:R ^+ i.
+Proof.
+rewrite -(@ler_eexpn2l _ (2%:R : F)) ?ltr1n => // /ltr_le_trans-> //.
+have [x_lt0|/archi_boundP /ltr_le_trans-> //] := ltrP x 0.
+  by rewrite (ltr_le_trans x_lt0) // exprn_ge0 // ler0n.
+rewrite ltrW // -natr_exp ltr_nat; elim: archi_bound=> // n ihn.
+by rewrite expnS mul2n -addnn -addn1 leq_add // (leq_trans _ ihn).
+Qed.
+
+End ArchimedianFieldTheory.
+End ArchimedianFieldTheory.
 
 Module RealClosedField.
 
@@ -3171,6 +3272,10 @@ End RealClosedField.
 Import RealClosedField.Exports.
 
 Module RealClosedFieldTheory.
+(* Import PIntegralDomainTheory. *)
+(* Import PFieldTheory. *)
+(* Import TIntegralDomainTheory. *)
+(* Import TFieldTheory. *)
 
 Lemma poly_ivt (R : RealClosedField.type) : RealClosedField.axiom R.
 Proof. by move: R=> [? [? []]]. Qed.
@@ -3183,6 +3288,7 @@ Export PIntegralDomainTheory.
 Export PFieldTheory.
 Export TIntegralDomainTheory.
 Export TFieldTheory.
+Export ArchimedianFieldTheory.
 Export RealClosedFieldTheory.
 
 Hint Resolve @ler01.
@@ -3203,6 +3309,7 @@ Export ORing.PField.Exports.
 Export ORing.ClosedField.Exports.
 Export ORing.TIntegralDomain.Exports.
 Export ORing.TField.Exports.
+Export ORing.ArchimedianField.Exports.
 Export ORing.RealClosedField.Exports.
 
 Notation PartialOrderMixin := ORing.Mixin.
@@ -3220,11 +3327,15 @@ Notation TotalOrderLtMixin := ORing.TLtMixin.
 Notation TotalOrderPosMixin := ORing.TPosMixin.
 Notation TotalOrderNonNegMixin := ORing.TNonNegMixin.
 
+Notation ArchimedianMixin := ORing.ArchimedianField.Mixin.
+Notation RcfMixin := ORing.RealClosedField.Mixin.
+
 Notation poIdomainType := ORing.PIntegralDomain.type.
 Notation poFieldType := ORing.PField.type.
 Notation poClosedFieldType := ORing.ClosedField.type.
 Notation oIdomainType := ORing.TIntegralDomain.type.
 Notation oFieldType := ORing.TField.type.
+Notation archiFieldType := ORing.ArchimedianField.type.
 Notation rcfType := ORing.RealClosedField.type.
 
 Notation POIdomainType T m :=
@@ -3237,6 +3348,8 @@ Notation OIdomainType T m :=
   (@ORing.TIntegralDomain.pack T _ m _ _ id _ id).
 Notation OFieldType T m :=
   (@ORing.TField.pack T _ m _ _ id _ id).
+Notation ArchiFieldType T m :=
+  (@ORing.ArchimedianField.pack T _ m _ _ id _ id).
 Notation RcfType T m :=
   (@ORing.RealClosedField.pack T _ m _ _ id _ id).
 
@@ -3255,11 +3368,15 @@ Notation "[ 'oIdomainType' 'of' T ]" :=
 Notation "[ 'oFieldType' 'of' T ]" :=
   (@ORing.TField.clone T _ _ id)
   (at level 0, format "[ 'oFieldType'  'of'  T ]") : form_scope.
+Notation "[ 'archiFieldType' 'of' T ]" :=
+  (@ORing.ArchimedianField.clone T _ _ id)
+  (at level 0, format "[ 'archiFieldType'  'of'  T ]") : form_scope.
 Notation "[ 'rcfType' 'of' T ]" :=
   (@ORing.RealClosedField.clone T _ _ id)
   (at level 0, format "[ 'rcfType'  'of'  T ]") : form_scope.
 
 Notation rcf_axiom := (@ORing.RealClosedField.axiom).
+Notation archi_bound := (@ORing.archi_bound _).
 
 Notation ">=%R" := (@ORing.OrderDef.ler _) : ring_scope.
 Notation "x <= y" := (ORing.OrderDef.ler x y) : ring_scope.
@@ -3269,7 +3386,6 @@ Notation "x >= y" := (y <= x) (only parsing) : ring_scope.
 Notation "x >= y :> T" := ((x : T) >= (y : T))
   (at level 70, y at next level, only parsing) : ring_scope.
 Notation "<=%R" := [rel x y | y <= x] : ring_scope.
-
 
 Notation ">%R" := (@ORing.OrderDef.ltr _) : ring_scope.
 Notation "x < y"  := (ORing.OrderDef.ltr x y) : ring_scope.

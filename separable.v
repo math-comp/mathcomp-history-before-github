@@ -62,9 +62,6 @@ Local Notation lcn_neq0 := (ID.lc_expn_scalp_neq0 _).
 Lemma separable_neq0 p : separablePolynomial p -> p != 0.
 Proof. by apply: contraL=> /eqP ->; rewrite /sep deriv0 coprime0p eqp01. Qed.
 
-Lemma coprimep_size_gcd p q : coprimep p q -> size (gcdp p q) = 1%N.
-Proof. by rewrite /coprimep=> /eqP. Qed.
-
 Lemma nosquareP p :
   (forall u v, u * v %| p -> coprimep u v)
   <-> (forall u, size u != 1%N -> ~~ (u ^+ 2 %| p)).

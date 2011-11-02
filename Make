@@ -74,6 +74,7 @@ burnside_app.v
 vector.v
 fib.v
 generic_quotient.v
+generic_quotient2.v
 finfield.v
 separable.v
 galois.v
@@ -109,6 +110,7 @@ PFsection9.v
 fraction.v
 cauchyreals.v
 polyXY.v
+realalg.v
 
 COQC = ssrcoq
 COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
