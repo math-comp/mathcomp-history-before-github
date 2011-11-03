@@ -520,8 +520,9 @@ Local Open Scope quotient_scope.
 Local Notation zero_algcreal := (cst_algcreal 0).
 Local Notation one_algcreal := (cst_algcreal 1).
 
-Definition to_alg (x : F) : {alg F} := locked (\pi \o cst_algcreal) x.
-Notation "x %:RA" := (to_alg x) (at level 2, left associativity, format "x %:RA").
+Definition to_alg : F -> {alg F} := locked (\pi \o cst_algcreal).
+Notation "x %:RA" := (to_alg x)
+  (at level 2, left associativity, format "x %:RA").
 
 Lemma to_algE x : x%:RA = \pi (cst_algcreal x).
 Proof. by unlock to_alg. Qed.
@@ -842,7 +843,7 @@ Qed.
 
 Canonical to_alg_is_rmorphism := AddRMorphism to_alg_multiplicative.
 
-Definition annul_alg (x : {alg F}) : {poly F} := locked (annul_creal \o repr) x.
+Definition annul_alg : {alg F} -> {poly F} := locked (annul_creal \o repr).
 
 Local Notation "p ^ f" := (map_poly f p) : ring_scope.
 Notation "'Y" := 'X%:P.
@@ -885,11 +886,13 @@ apply: (big_ind2 (fun (u : algcreal) v => u == v)%CR)=> //.
 by move=> i _ /=; rewrite exp_algcrealE.
 Qed.
 
+Lemma root_annul_algcreal (x : algcreal) : ((annul_alg (\pi x)).[x] == 0)%CR.
+Proof. by unlock annul_alg; rewrite /= -pi_algK root_annul_creal. Qed.
+
 Lemma root_annul_alg (x : {alg F}) : root ((annul_alg x) ^ to_alg) x.
 Proof.
-apply/rootP; elim/quotW: x=> x; rewrite horner_pi zeroE.
-rewrite -equiv_alg /= horner_algcrealE; unlock annul_alg.
-by rewrite -(@root_annul_creal (repr (\pi_alg x))) /= pi_algK.
+apply/rootP; rewrite -[x]reprK horner_pi /= zeroE -equiv_alg.
+by rewrite horner_algcrealE root_annul_algcreal.
 Qed.
 
 Lemma monic_annul_alg (x : {alg F}) : monic (annul_alg x).
@@ -1238,26 +1241,33 @@ Local Open Scope ring_scope.
 Local Notation "p ^ f" := (map_poly f p) : ring_scope.
 Local Notation "'Y" := 'X%:P.
 
-Lemma from_alg_crealP (x : {alg {alg F}}) :
-  creal_axiom (fun i => approx (approx x (2%:R ^- i)) (2%:R ^- i)).
+Definition approx2 (x : {alg {alg F}}) i :=
+  approx (approx x (2%:R ^- i)) (2%:R ^- i).
+
+Lemma asympt_approx2 x : { asympt e : i / `|(approx2 x i)%:RA%:RA - x| < e }.
 Proof.
-exists_big_modulus m F.
-  move=> e i j e_gt0 hi hj; rewrite -ltr_to_alg absr_to_alg rmorph_sub /=.
-  rewrite {1}(@split_dist_add _ (approx x (2%:R ^- i))) //.
-    rewrite distrC approxP ?gtr0E // ltrW //.
-    by rewrite upper_nthrootVP ?divrn_gt0 ?ltr_to_alg //; big.
-  rewrite {1}(@split_dist_add _ (approx x (2%:R ^- j))) //; last first.
+exists_big_modulus m {alg {alg F}}.
+  move=> e i e_gt0 hi; rewrite distrC /approx2.
+  rewrite (@split_dist_add _ (approx x (2%:R ^- i))%:RA) //.
     rewrite approxP ?gtr0E // ltrW //.
     by rewrite upper_nthrootVP ?divrn_gt0 ?ltr_to_alg //; big.
-  rewrite -ltr_to_alg absr_to_alg rmorph_sub {1}(@split_dist_add _ x) //.
-    rewrite distrC approxP ?gtr0E // ltrW // upper_nthrootVP //; last by big.
-    by rewrite ?(ltr_to_alg, divrn_gt0).
-  rewrite approxP ?gtr0E // ltrW // upper_nthrootVP //; last by big.
-  by rewrite ?(ltr_to_alg, divrn_gt0).
+  rewrite (ltr_trans _ (inf_lt_alg _)) ?divrn_gt0 //.
+  rewrite -rmorph_sub -absr_to_alg ltr_to_alg approxP ?gtr0E // ltrW //.
+  by rewrite upper_nthrootVP ?divrn_gt0 ?inf_alg_gt0 ?ltr_to_alg //; big.
 by close.
 Qed.
 
-Definition from_alg_creal x := CReal (from_alg_crealP x).
+Lemma from_alg_crealP (x : {alg {alg F}}) : creal_axiom (approx2 x).
+Proof.
+exists_big_modulus m F.
+  move=> e i j e_gt0 hi hj; rewrite -2!ltr_to_alg !absr_to_alg !rmorph_sub /=.
+  rewrite (@split_dist_add _ x) // ?[`|_ - _%:RA|]distrC;
+  rewrite (@asympt1modP _ _ (asympt_approx2 x)) //; do ?[by big];
+  by rewrite ?divrn_gt0 ?ltr_to_alg.
+by close.
+Qed.
+
+Definition from_alg_creal := locked (fun x => CReal (from_alg_crealP x)).
 
 Lemma to_alg_crealP (x : creal F) :  creal_axiom (fun i => to_alg (x i)).
 Proof.
@@ -1320,6 +1330,22 @@ apply: eq_crealP; exists_big_modulus m {alg F}.
 by close.
 Qed.
 
+Local Open Scope quotient_scope.
+
+Lemma cst_pi (x : algcreal F) : ((\pi_{alg F} x)%:CR == to_alg_creal x)%CR.
+Proof.
+apply: eq_crealP; exists_big_modulus m {alg F}.
+  move=> e i e_gt0 hi /=; rewrite (ltr_trans _ (inf_lt_alg _)) //.
+  rewrite !to_algE sub_pi abs_pi /= -(rwP (lt_algP _ _)) abs_algcrealE /=.
+  pose_big_enough j.
+    apply: (@lt_crealP _ (inf_alg e / 2%:R) j j); do ?by big.
+      by rewrite ?divrn_gt0 ?inf_alg_gt0.
+    rewrite /= {2}[inf_alg _](splitf 2) ler_add2r ltrW // distrC.
+    by rewrite cauchymodP ?divrn_gt0 ?inf_alg_gt0 //; big.
+  by close.
+by close.
+Qed.
+
 End AlgAlg.
 
 Section AlgAlgAlg.
@@ -1335,15 +1361,8 @@ Lemma from_alg_crealK (x : {alg {alg F}}) :
   (to_alg_creal (to_alg_creal (from_alg_creal x)) == x%:CR)%CR.
 Proof.
 apply: eq_crealP; exists_big_modulus m {alg {alg F}}.
-  move=> e i e_gt0 hi /=.
-  rewrite distrC (@split_dist_add _ (approx x (2%:R ^- i))%:RA) //.
-    rewrite approxP ?gtr0E // ltrW //;
-    by rewrite upper_nthrootVP ?divrn_gt0 ?ltr_to_alg //; big.
-  rewrite -rmorph_sub -absr_to_alg.
-  rewrite (ler_lt_trans _ (inf_lt_alg _)) ?divrn_gt0 //.
-  rewrite ler_to_alg ltrW // approxP ?gtr0E // ltrW //.
-  rewrite upper_nthrootVP ?divrn_gt0 ?ltr_to_alg //; last by big.
-  by rewrite inf_alg_gt0.
+  move=> e i e_gt0 hi; unlock from_alg_creal=> /=.
+  by rewrite (@asympt1modP _ _ (asympt_approx2 x)) //; big.
 by close.
 Qed.
 
@@ -1381,45 +1400,20 @@ Proof. by rewrite annul_from_alg_neq0 ?annul_alg_neq0. Qed.
 Definition from_alg_algcreal x :=
   AlgCRealOf (@annul_alg_from_alg_creal_neq0 x) (@root_annul_from_alg_creal x).
 
-Local Open Scope quotient_scope.
-
-Definition from_alg x : {alg F} := locked (\pi \o from_alg_algcreal) x.
+Definition from_alg : {alg {alg F}} -> {alg F} :=
+  locked (\pi%qT \o from_alg_algcreal).
 
 Lemma from_algK : cancel from_alg to_alg.
 Proof.
-move=> x; unlock from_alg=> /=.
-rewrite to_algE /= -{2}[x]reprK -equiv_alg /=.
-apply: eq_crealP.
-exists_big_modulus m {alg F}.
-  move=> e i e_gt0 hi /=.
-  rewrite -[repr x i]reprK sub_pi abs_pi.
-  rewrite (ltr_trans _ (inf_lt_alg _)) //.
-  rewrite to_algE -(rwP (lt_algP _ _)) abs_algcrealE /=.
-  pose_big_enough j.
-    apply: (@lt_crealP _ (inf_alg e / 2%:R) j j); do ?by big.
-      by rewrite ?divrn_gt0 ?inf_alg_gt0.
-    rewrite /= {2}[inf_alg _](splitf 2) ler_add2r ltrW // distrC.
-    rewrite -2!ltr_to_alg !absr_to_alg !rmorph_sub /=.
-    rewrite (@split_dist_add _ x) //.
-      rewrite (@split_dist_add _ (repr x i)%:RA) //.
-        rewrite (ler_lt_trans _ (inf_lt_alg _)) ?(divrn_gt0, ltr_to_alg, inf_alg_gt0) //.
-        rewrite -rmorph_sub -absr_to_alg ler_to_alg ltrW //.
-        rewrite (@eqmodP _ _ _ (@to_alg_creal_repr _ _)) //; do ?by big.
-        by rewrite ?(divrn_gt0, ltr_to_alg, inf_alg_gt0).
-      rewrite (@eqmodP _ _ _ (@to_alg_creal_repr _ _)) //; do ?by big.
-      by rewrite ?(divrn_gt0, ltr_to_alg, inf_alg_gt0).
-    rewrite distrC (@eqmodP _ _ _ (@from_alg_crealK _)) //; do ?by big.
-    by rewrite ?(divrn_gt0, ltr_to_alg, inf_alg_gt0).
-  by close.
-by close.
+move=> x; unlock from_alg; rewrite -{2}[x]reprK to_algE -equiv_alg /= cst_pi.
+by apply: eq_to_alg_creal; rewrite from_alg_crealK to_alg_creal_repr.
 Qed.
 
 Lemma ivt (p : {poly (alg F)}) (a b : alg F) : a <= b ->
   p.[a] <= 0 <= p.[b] -> { x : alg F | a <= x <= b & root p x }.
 Proof.
 move=> le_ab hp; have [x /andP [hax hxb]] := @weak_ivt _ _ _ _ le_ab hp.
-rewrite /root -[x]from_algK horner_map /= fmorph_eq0 => hpx.
-exists (from_alg x)=> //.
+rewrite -[x]from_algK fmorph_root=> rpx; exists (from_alg x)=> //.
 by rewrite -ler_to_alg from_algK hax -ler_to_alg from_algK.
 Qed.
 
