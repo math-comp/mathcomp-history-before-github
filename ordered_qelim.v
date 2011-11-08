@@ -750,7 +750,24 @@ Definition terms_of_oclause (oc : oclause R) :=
 Lemma terms_of_leq_elim oc1 oc2:
   oc2 \in (oclause_leq_elim oc1) -> 
   (terms_of_oclause oc2) =i (terms_of_oclause oc1).
-Admitted.
+case: oc1 => eq1 neq1 lt1 leq1 /=.
+elim: leq1 eq1 lt1 oc2 => [|t1 leq1 ih] eq1 lt1 [eq2 neq2 lt2 leq2] /=.
+  by rewrite inE; case/eqP=> -> -> -> -> ?.
+rewrite map_cat /= mem_cat -!map_comp; set f := fun _ => _. 
+rewrite -/f in ih; case/orP.
+  case/mapP=> [[y1 y2]] yin ye.
+  move: (ih eq1 lt1 (f (y1, y2))); rewrite mem_map //; last first.
+    by move=> [u1 u2] [v1 v2]; rewrite /f /=; case=> -> ->.
+  move/(_ yin); move: ye; rewrite /f /=; case=> -> -> -> -> /= h.
+  move=> u; rewrite in_cons (h u) !mem_cat in_cons.
+  by rewrite orbC !orbA; set x := _ || (u \in lt1); rewrite orbAC.
+case/mapP=> [[y1 y2]] yin ye.
+move: (ih eq1 lt1 (f (y1, y2))); rewrite mem_map //; last first.
+  by move=> [u1 u2] [v1 v2]; rewrite /f /=; case=> -> ->.
+move/(_ yin); move: ye; rewrite /f /=; case=> -> -> -> -> /= h u.
+rewrite !mem_cat !in_cons orbA orbCA -!orbA; move: (h u); rewrite !mem_cat=> ->.
+by rewrite orbC !orbA; set x := _ || (u \in lt1); rewrite orbAC.
+Qed.
 
 Lemma odnf_to_oform_cat e c d : holds e (odnf_to_oform (c ++ d))
               <-> holds e ((odnf_to_oform c) \/ (odnf_to_oform d))%oT.
@@ -818,12 +835,33 @@ Definition oclause_neq_elim oc : seq (oclause R) :=
   let: Oclause eq_l neq_l lt_l le_l := oc in
     map (fun x => Oclause eq_l [::] x le_l) (neq_elim_aux lt_l neq_l).
 
-(* This is false : we should add the opposites of terms in occ. 
-in disequalities... *)
 Lemma terms_of_neq_elim oc1 oc2:
   oc2 \in (oclause_neq_elim oc1) -> 
-  (terms_of_oclause oc2) =i (terms_of_oclause oc1).
-Admitted.
+  {subset (terms_of_oclause oc2) <= (terms_of_oclause oc1) ++ (map Opp oc1.2)}.
+Proof.
+case: oc1 => eq1 neq1 lt1 leq1 /=.
+elim: neq1 lt1 oc2 => [|t1 neq1 ih] lt1 [eq2 neq2 lt2 leq2] /=.
+  by rewrite inE; case/eqP=> -> -> -> ->; rewrite !cats0 !cat0s.
+rewrite map_cat /= mem_cat -!map_comp; set f := fun _ => _. 
+rewrite -/f in ih; case/orP.
+  case/mapP=> y yin ye.
+  move: (ih lt1 (f y)); rewrite mem_map //; last first.
+    by move=> u v; rewrite /f /=; case.
+  move/(_ yin); move: ye; rewrite /f /=; case=> -> -> -> -> /= h.
+  move=> u. rewrite !mem_cat !in_cons orbAC orbC mem_cat -!orbA.
+  case/orP; first by move->; rewrite !orbT.
+  rewrite !orbA [_ || (_ \in eq1)]orbC; move: (h u); rewrite !mem_cat=> hu. 
+  by move/hu; do 2! (case/orP; last by move->; rewrite !orbT); move->.
+case/mapP=> y yin ye.
+move: (ih lt1 (f y)); rewrite mem_map //; last first.
+  by move=> u v; rewrite /f /=; case.
+move/(_ yin); move: ye; rewrite /f /=; case=> -> -> -> -> /= h.
+move=> u; rewrite !mem_cat !in_cons orbAC orbC mem_cat -!orbA.
+case/orP; first by move->; rewrite !orbT.
+rewrite !orbA [_ || (_ \in eq1)]orbC; move: (h u); rewrite !mem_cat=> hu. 
+by move/hu; do 2! (case/orP; last by move->; rewrite !orbT); move->.
+Qed.
+
 
 Lemma oclause_neq_elimP oc e : 
   holds e (odnf_to_oform [:: oc])  <->
@@ -876,8 +914,29 @@ Definition oclause_neq_leq_elim oc :=
 
 Lemma terms_of_neq_leq_elim oc1 oc2:
   oc2 \in (oclause_neq_leq_elim oc1) -> 
-  (terms_of_oclause oc2) =i (terms_of_oclause oc1).
-Admitted.
+  {subset (terms_of_oclause oc2) <= (terms_of_oclause oc1) ++ map Opp oc1.2}.
+Proof.
+rewrite /oclause_neq_leq_elim /flatten; rewrite foldr_map.
+suff : forall oc3,
+  oc3 \in (oclause_leq_elim oc1) -> 
+  (terms_of_oclause oc3 =i terms_of_oclause oc1) /\ oc3.2 = oc1.2.
+  elim: (oclause_leq_elim oc1) => [| t l ih] //= h1.
+  rewrite mem_cat; case/orP.
+  - move/terms_of_neq_elim=> h u; move/(h u); rewrite !mem_cat.
+    by case: (h1 t (mem_head _ _)); move/(_ u)=> -> ->.
+  - by move=> h; apply: (ih _ h) => ? loc3; apply: h1; rewrite in_cons loc3 orbT.
+move=> {oc2} oc3 hoc3; split; first exact: terms_of_leq_elim.
+case: oc3 hoc3=> eq2 neq2 lt2 leq2 /=; case: oc1=> eq1 neq1 lt1 leq1 /=.
+elim: leq1 => [| t1 le1 ih] //=; first by rewrite inE; case/eqP=> _ ->.
+rewrite map_cat mem_cat; move: ih. 
+elim: (leq_elim_aux eq1 lt1 le1) => [| t2 l2 ih2] //=; rewrite !in_cons.
+move=> h1; case/orP=> /=.
+  case/orP; first by case/eqP.
+  by move=> h2; apply: ih2; rewrite ?h2 //; move=> h3; apply: h1; rewrite h3 orbT.
+case/orP; first by case/eqP.
+move=> h3; apply: ih2; last by rewrite h3 orbT. 
+by move=> h2; apply: h1; rewrite h2 orbT.
+Qed.
 
 Lemma oclause_neq_leq_elimP oc e : 
   holds e (odnf_to_oform [:: oc])  <->
@@ -916,10 +975,47 @@ Proof.
 case: bc => leq lneql llt lle; rewrite /dnf_rterm /=; case/and4P=> req rneq rlt rle.
 rewrite /oclause_to_w /= !all_map. 
 apply/allP => [] [oc_eq oc_neq oc_le oc_lt] hoc; rewrite /dnf_rterm /= andbT.
+rewrite -all_cat; apply/allP=> u hu; move/terms_of_neq_leq_elim: hoc => /=.
+move/(_ u); rewrite !mem_cat.
+have {hu} hu : [|| u \in oc_eq, u \in oc_neq, u \in oc_le | u \in oc_lt].
+  by move: hu; rewrite mem_cat; case/orP=> ->; rewrite ?orbT.
+move/(_ hu); case/orP; last first.
+  move: rneq.
+  have <- : (all (@rterm R) (map Opp lneql)) = all (@rterm R) lneql.
+    by elim: lneql => [| t l] //= ->.
+  by move/allP; apply.
+case/orP; first by apply: (allP req).
+case/orP; first by apply: (allP rneq).
+case/orP; first by apply: (allP rlt).
+exact: (allP rle).
+Qed.
+
+Lemma dnf_rterm_subproof bc : dnf_rterm bc ->
+
+  all (dnf_rterm \o w_to_oclause) (oclause_to_w bc).
+Proof.
+case: bc => leq lneql llt lle; rewrite /dnf_rterm /=; case/and4P=> req rneq rlt rle.
+rewrite /oclause_to_w /= !all_map. 
+apply/allP => [] [oc_eq oc_neq oc_le oc_lt] hoc; rewrite /dnf_rterm /= andbT.
+move/terms_of_neq_leq_elim: hoc => /=.
+move/eq_all_r; move/(_ (@rterm R)); rewrite !all_cat req rneq rlt rle /=.
+suff -> : (all (@rterm R) (map Opp lneql)) = all (@rterm R) lneql.
+  by rewrite rneq; case/and4P=> -> _ _ ->.
+by elim: lneql {rneq} => [| t l] //= ->.
+Qed.
+
+
+Lemma dnf_rterm_subproof bc : dnf_rterm bc ->
+  all (dnf_rterm \o w_to_oclause) (oclause_to_w bc).
+Proof.
+case: bc => leq lneql llt lle; rewrite /dnf_rterm /=; case/and4P=> req rneq rlt rle.
+rewrite /oclause_to_w /= !all_map. 
+apply/allP => [] [oc_eq oc_neq oc_le oc_lt] hoc; rewrite /dnf_rterm /= andbT.
 move/terms_of_neq_leq_elim: hoc => /=.
 move/eq_all_r; move/(_ (@rterm R)); rewrite !all_cat req rneq rlt rle /=.
 by case/and4P=> -> _ _ ->.
 Qed.
+
 
 Lemma wf_QE_proj i : forall bc (bc_i := proj i bc),
   dnf_rterm bc -> qf_form bc_i && rformula bc_i.
