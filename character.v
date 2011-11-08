@@ -1513,6 +1513,14 @@ Section MoreInnerProd.
 
 Variable gT : finGroupType.
 
+Lemma constt_Ind_constt_Res:
+forall (G H: {group gT})  (i: Iirr G) (j: Iirr H), 
+   i \in irr_constt ('Ind[G] 'chi_j) =  (j \in irr_constt ('Res[H] 'chi_i)).
+Proof.
+move => G H i j; rewrite irr_consttE -cfdot_Res_r irr_consttE.
+by case: (boolP  ('[_ , _] == 0)); rewrite cfdotC conjC_eq0 => ->.
+Qed.
+
 Lemma cfdot_Res_ge_constt (G H : {group gT}) i j psi :
     is_char psi -> j \in irr_constt psi -> 
   '['Res[H, G] 'chi_j, 'chi_i] <= '['Res[H] psi, 'chi_i].
