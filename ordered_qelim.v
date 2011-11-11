@@ -13,7 +13,7 @@ Import GRing.
 Reserved Notation "p <% q" (at level 70, no associativity).
 Reserved Notation "p <=% q" (at level 70, no associativity).
 
-Set Printing Width 30.
+(* Set Printing Width 30. *)
 
 Module ord.
 
@@ -100,29 +100,30 @@ Notation True := (Bool true).
 Notation False := (Bool false).
 
 Delimit Scope oterm_scope with oT.
-Local Notation "''X_' i" := (Var _ i) : oterm_scope.
-Local Notation "n %:R" := (NatConst _ n) : oterm_scope.
-Local Notation "x %:T" := (Const x) : oterm_scope.
-Local Notation "0" := 0%:R%oT : oterm_scope.
-Local Notation "1" := 1%:R%oT : oterm_scope.
-Local Infix "+" := Add : oterm_scope.
-Local Notation "- t" := (Opp t) : oterm_scope.
-Local Notation "t - u" := (Add t (- u)) : oterm_scope.
-Local Infix "*" := Mul : oterm_scope.
-Local Infix "*+" := NatMul : oterm_scope.
-Local Notation "t ^-1" := (Inv t) : oterm_scope.
-Local Notation "t / u" := (Mul t u^-1) : oterm_scope.
-Local Infix "^+" := Exp : oterm_scope.
-Local Infix "==" := Equal : oterm_scope.
-Local Infix "<%" := Lt : oterm_scope.
-Local Infix "<=%" := Le : oterm_scope.
-Local Infix "/\" := And : oterm_scope.
-Local Infix "\/" := Or : oterm_scope.
-Local Infix "==>" := Implies : oterm_scope.
-Local Notation "~ f" := (Not f) : oterm_scope.
-Local Notation "x != y" := (Not (x == y)) : oterm_scope.
-Local Notation "''exists' ''X_' i , f" := (Exists i f) : oterm_scope.
-Local Notation "''forall' ''X_' i , f" := (Forall i f) : oterm_scope.
+Notation "''X_' i" := (Var _ i) : oterm_scope.
+Notation "n %:R" := (NatConst _ n) : oterm_scope.
+Notation "x %:T" := (Const x) : oterm_scope.
+Notation "0" := 0%:R%oT : oterm_scope.
+Notation "1" := 1%:R%oT : oterm_scope.
+Infix "+" := Add : oterm_scope.
+Notation "- t" := (Opp t) : oterm_scope.
+Notation "t - u" := (Add t (- u)) : oterm_scope.
+Infix "*" := Mul : oterm_scope.
+Infix "*+" := NatMul : oterm_scope.
+Notation "t ^-1" := (Inv t) : oterm_scope.
+Notation "t / u" := (Mul t u^-1) : oterm_scope.
+Infix "^+" := Exp : oterm_scope.
+Notation "t ^- n" := (t^-1 ^+ n)%oT : oterm_scope.
+Infix "==" := Equal : oterm_scope.
+Infix "<%" := Lt : oterm_scope.
+Infix "<=%" := Le : oterm_scope.
+Infix "/\" := And : oterm_scope.
+Infix "\/" := Or : oterm_scope.
+Infix "==>" := Implies : oterm_scope.
+Notation "~ f" := (Not f) : oterm_scope.
+Notation "x != y" := (Not (x == y)) : oterm_scope.
+Notation "''exists' ''X_' i , f" := (Exists i f) : oterm_scope.
+Notation "''forall' ''X_' i , f" := (Forall i f) : oterm_scope.
 
 Section Substitution.
 

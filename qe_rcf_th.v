@@ -48,7 +48,7 @@ Variable R : rcfType.
 Fixpoint var (s : seq R) :=
   match s with
     | [::]  => 0%N
-    | a::q => ((a * (head 0 q) < 0)%R + (var q))%N
+    | a :: q => ((a * (head 0 q) < 0)%R + (var q))%N
   end.
 
 Definition varp (p : seq {poly R}) x := var (map (fun p => p.[x]) p).
