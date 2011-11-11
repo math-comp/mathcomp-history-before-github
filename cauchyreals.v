@@ -1058,6 +1058,14 @@ Definition inv_creal (x : creal) (x_neq0 : x != 0) := CReal (inv_crealP x_neq0).
 Notation "x_neq0 ^-1" := (inv_creal x_neq0) : creal_scope.
 Notation "x / y_neq0" := (x * (y_neq0 ^-1))%CR : creal_scope.
 
+Lemma abs_crealP (x : creal) : creal_axiom (fun i => `|x i|).
+Proof.
+exists (cauchymod x).
+by move=> *; rewrite (ler_lt_trans (ler_dist_dist _ _)) ?cauchymodP.
+Qed.
+Definition abs_creal x := CReal (abs_crealP x).
+Local Notation "`| x |" := (abs_creal x) : creal_scope.
+
 Lemma horner_crealP (p : {poly F}) (x : creal) :
   creal_axiom (fun i => p.[x i]).
 Proof.
@@ -1203,6 +1211,16 @@ Add Morphism le_creal with
   signature eq_creal ==> eq_creal ==> iff as le_creal_morph.
 Proof. by move=> x y exy z t ezt; rewrite /le_creal exy ezt. Qed.
 Global Existing Instance le_creal_morph_Proper.
+
+Add Morphism abs_creal
+ with signature eq_creal ==> eq_creal as abs_creal_morph.
+Proof.
+move=> x y hxy; apply: eq_crealP; exists_big_modulus m F.
+  move=> e i e_gt0 hi.
+  by rewrite (ler_lt_trans (ler_dist_dist _ _)) ?eqmodP //; big.
+by close.
+Qed.
+Global Existing Instance abs_creal_morph_Proper.
 
 Lemma neq_creal_ltVgt (x y : creal) : x != y -> {(x < y)%CR} + {(y < x)%CR}.
 Proof.
@@ -1807,6 +1825,8 @@ Notation "p .[ x ]" := (horner_creal p x) : creal_scope.
 Notation "p .[ x , y ]" := (horner2_creal p x y)
   (at level 2, left associativity) : creal_scope.
 Notation "x ^+ n" := (exp_creal x n) : creal_scope.
+
+Notation "`| x |" := (abs_creal x) : creal_scope.
 
 Hint Resolve eq_creal_refl.
 Hint Resolve le_creal_refl.

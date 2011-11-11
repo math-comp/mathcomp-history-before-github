@@ -338,186 +338,146 @@ Notation "x <> y %[mod r ]" := (x <> y %[m [mod r]]) : quotient_scope.
 
 Hint Resolve equiv_refl.
 
-(***************************)
-(* This will soon change : *)
-(***************************)
-Section MFun.
 
-Variable aT1 aT2 rT : Type.
-Variable (qT1 : quotType aT1) (qT2 : quotType aT2) (qTr : quotType rT).
-Variable f1 : aT1 -> rT.
-Variable f2 : aT1 -> aT2 -> rT.
-Local Notation ph1 := (phant qT1).
-Local Notation ph2 := (phant qT2).
-Local Notation phr := (phant qTr).
-Local Notation Ph1 := (Phant qT1).
-Local Notation Ph2 := (Phant qT2).
-Local Notation Phr := (Phant qTr).
+(*******************)
+(* About morphisms *)
+(*******************)
 
-Definition mfun1_spec_of of ph1 := forall a, f1 (repr (\pi_qT1 a)) = f1 a.
-Notation mf1_spec := (mfun1_spec_of Ph1).
+Structure pi_morph T (x : T) := PiMorph {pi_op : T; _ : pi_op = x}.
+Implicit Arguments PiMorph [T x].
+Prenex Implicits PiMorph.
 
-Definition mfun2_spec_of of ph1 & ph2 := forall a b,
-  f2 (repr (\pi_qT1 a)) (repr (\pi_qT2 b)) = f2 a b.
-Notation mf2_spec := (mfun2_spec_of Ph1 Ph2).
+Section Morphism.
 
-Definition mfun1 of mf1_spec := fun (a : qT1) => f1 (repr a).
-
-Definition mfun2 of mf2_spec :=
-  fun (a : qT1) (b : qT2) => f2 (repr a) (repr b).
-
-Lemma mfun1P : forall m a, mfun1 m (\pi a) = f1 a. Proof. by []. Qed.
-
-Lemma mfun2P : forall m a b, mfun2 m (\pi a) (\pi b) = f2 a b.
-Proof. by []. Qed.
-
-Definition mop1_spec_of of ph1 & phr :=
-  forall a, f1 (repr (\pi_qT1 a)) = f1 a %[m qTr].
-Notation mop1_spec := (mop1_spec_of Ph1 Phr).
-
-Definition mop2_spec_of of ph1 & ph2 & phr := forall a b,
-  f2 (repr (\pi_qT1 a)) (repr (\pi_qT2 b)) = f2 a b %[m qTr].
-Notation mop2_spec := (mop2_spec_of Ph1 Ph2 Phr).
-
-Definition mop1 of mop1_spec := fun (a : qT1) => \mpi (f1 (repr a)) : qTr.
-
-Definition mop2 of mop2_spec :=
-  fun (a : qT1) (b : qT2) => \mpi (f2 (repr a) (repr b)) : qTr.
-
-Lemma mop1P m a : mop1 m (\pi a) = \pi (f1 a).
-Proof. by rewrite /mop1 mpiE. Qed.
-
-Lemma mop2P m a b : mop2 m (\pi a) (\pi b) = \pi (f2 a b).
-Proof. by rewrite /mop2 mpiE. Qed.
-
-Definition mopP := (mop1P, mop2P, mfun1P, mfun2P).
-
-(* Small generalization *)
-Structure morph_fun1 := MorphFun1 {
-  proj_mfun1 :> qT1 -> rT;
-  _ a : proj_mfun1 (\pi a) = f1 a
-}.
-Lemma morph_fun1P (m : morph_fun1) a : m (\pi a) = f1 a.
-Proof. by case: m. Qed.
-
-Structure morph_fun2 := MorphFun2 {
-  proj_mfun2 :> qT1 -> qT2 -> rT;
-  _ a b : proj_mfun2 (\pi a) (\pi b) = f2 a b
-}.
-Lemma morph_fun2P (m : morph_fun2) a b : m (\pi a) (\pi b) = f2 a b.
-Proof. by case: m. Qed.
-
-Structure morph_op1 := MorphOp1 {
-  proj_mop1 :> qT1 -> qTr;
-  _ a : proj_mop1 (\pi a) = \pi (f1 a)
-}.
-Lemma morph_op1P (m : morph_op1) a : m (\pi a) = \pi (f1 a).
-Proof. by case: m. Qed.
-
-Structure morph_op2 := MorphOp2 {
-  proj_mop2 :> qT1 -> qT2 -> qTr;
-  _ a b : proj_mop2 (\pi a) (\pi b) = \pi (f2 a b)
-}.
-Lemma morph_op2P (m : morph_op2) a b : m (\pi a) (\pi b) = \pi (f2 a b).
-Proof. by case: m. Qed.
-
-Definition morph_opP := (morph_op1P, morph_op2P, morph_fun1P, morph_fun2P).
-
-Canonical mfun1_morph m := MorphFun1 (mfun1P m).
-Canonical mfun2_morph m := MorphFun2 (mfun2P m).
-Canonical mop1_morph m := MorphOp1 (mop1P m).
-Canonical mop2_morph m := MorphOp2 (mop2P m).
-
-End MFun.
-
-Notation mfun1_spec f qT := (@mfun1_spec_of _ _ _ f (Phant qT)).
-Notation mfun11_spec f qT1 qT2 :=
-  (@mfun2_spec_of _ _ _ _ _ f (Phant qT1) (Phant qT2)).
-Notation mfun2_spec f qT := (mfun11_spec f qT qT).
-
-Notation mop1_spec op qT := (@mop1_spec_of _ _ _ _ op (Phant qT) (Phant qT)).
-Notation mop2_spec op qT :=
-  (@mop2_spec_of _ _ _ _ _ _ op (Phant qT) (Phant qT) (Phant qT)).
-
-
-Module MonoidQuotient.
-
-Section Theory.
-Variables (T : eqType) (idm : T).
+Variable T : Type.
 Variable (qT : quotType T).
-Notation idq := (\pi_qT idm).
 
-Import Monoid.
+Canonical pi_morph_pi (x : T) := @PiMorph _ (\pi_qT x) (\pi x) (erefl _).
+Lemma piE x (m : pi_morph (\pi_qT x)) : pi_op m = \pi x. Proof. by case: m. Qed.
 
-Section Plain.
-Variable mul : law idm.
-Hypothesis mul_mop : mop2_spec mul qT.
-Local Notation mulq := (mop2 mul_mop).
+Variable (f : T -> T) (g : T -> T -> T) (p : pred T) (r : rel T).
+Variable (fq : qT -> qT) (gq : qT -> qT -> qT) (pq : pred qT) (rq : rel qT).
+Hypothesis pi_f : {morph \pi : x / f x >-> fq x}.
+Hypothesis pi_g : {morph \pi : x y / g x y >-> gq x y}.
+Hypothesis pi_p : {mono \pi : x / p x >-> pq x}.
+Hypothesis pi_r : {mono \pi : x y / r x y >-> rq x y}.
+Variables (a b : T) (x : pi_morph (\pi_qT a)) (y : pi_morph (\pi_qT b)).
 
-Lemma mulqA : associative mulq.
-Proof.
-by elim/quotW=> x; elim/quotW=> y; elim/quotW=> z; rewrite !mopP mulmA.
-Qed.
+Lemma pi_morph1 : fq (pi_op x) = \pi (f a). Proof. by rewrite !piE. Qed.
+Lemma pi_morph2 : gq (pi_op x) (pi_op y) = \pi (g a b). Proof. by rewrite !piE. Qed.
+Lemma pi_mono1 : pq (pi_op x) = p a. Proof. by rewrite !piE. Qed.
+Lemma pi_mono2 : rq (pi_op x) (pi_op y) = r a b. Proof. by rewrite !piE. Qed.
 
-Lemma mul1q : left_id idq mulq.
-Proof. by elim/quotW=> x; rewrite !mop2P mul1m. Qed.
+End Morphism.
+Implicit Arguments pi_morph1 [T qT f fq].
+Implicit Arguments pi_morph2 [T qT g gq].
+Implicit Arguments pi_mono1 [T qT p pq].
+Implicit Arguments pi_mono2 [T qT r rq].
+Prenex Implicits pi_morph1 pi_morph2 pi_mono1 pi_mono2.
 
-Lemma mulq1 : right_id idq mulq.
-Proof. by elim/quotW=> x; rewrite !mop2P mulm1. Qed.
+Notation PiMorph1 fq pi_f :=
+  (fun a (x : pi_morph (\pi a)) => PiMorph (fq _) (pi_morph1 pi_f a x)).
+Notation PiMorph2 gq pi_g :=
+  (fun a b (x : pi_morph (\pi a)) (y : pi_morph (\pi b))
+    => PiMorph (gq _ _) (pi_morph2 pi_g a b x y)).
+Notation PiMono1 pq pi_p :=
+  (fun a (x : pi_morph (\pi a)) => PiMorph (pq _) (pi_mono1 pi_p a x)).
+Notation PiMono2 rq pi_r :=
+  (fun a b (x : pi_morph (\pi a)) (y : pi_morph (\pi b))
+    => PiMorph (rq _ _) (pi_mono2 pi_r a b x y)).
 
-Canonical mulq_law := Law mulqA mul1q mulq1.
-End Plain.
+(* Module MonoidQuotient. *)
 
-Section Commutative.
-Variable mul : com_law idm.
-Hypothesis mul_mop : mop2_spec mul qT.
-Local Notation mulq := (mop2 mul_mop).
+(* Section Theory. *)
 
-Lemma mulqC : commutative mulq.
-Proof. by elim/quotW=> x; elim/quotW=> y; rewrite !mopP mulmC. Qed.
+(* Variables (T : eqType) (idm : T). *)
+(* Variables (qT : quotType T) (idq : pi_morph (\pi_qT idm)). *)
 
-Canonical mulq_com_law := ComLaw mulqC.
-End Commutative.
+(* Import Monoid. *)
 
-Section Mul.
-Variable mul : mul_law idm.
-Hypothesis mul_mop : mop2_spec mul qT.
-Local Notation mulq := (mop2 mul_mop).
+(* Section OperatorStructure. *)
+(* Variable op : law idm. *)
 
-Lemma mul0q : left_zero idq mulq.
-Proof. by elim/quotW=> x; rewrite !mopP mul0m. Qed.
+(* Structure pi_operator_morph := PiOperatorMorph { *)
+(*   pi_operator :> law (pi_op idq); *)
+(*   _ : {morph \pi : x y / op x y >-> pi_operator x y} *)
+(* }. *)
+(* Lemma pi_operatorP (opq : pi_operator_morph) : *)
+(*   {morph \pi : x y / op x y >-> opq x y}. *)
+(* Proof. by case: opq. Qed. *)
 
-Lemma mulq0 : right_zero idq mulq.
-Proof. by elim/quotW=> x; rewrite !mopP mulm0. Qed.
+(* Canonical operator_pi_morph (opq : pi_operator_morph) := PiMorph2 opq (pi_operatorP opq). *)
 
-Canonical mulq_mul_law := MulLaw mul0q mulq0.
-End Mul.
+(* End OperatorStructure. *)
 
-Section Add.
-Variables (mul : T -> T -> T) (add : add_law idm mul).
-Hypothesis mul_mop : mop2_spec mul qT.
-Hypothesis add_mop : mop2_spec add qT.
-Local Notation mulq := (mop2 mul_mop).
-Local Notation addq := (mop2 add_mop).
+(* Section Plain. *)
+(* Variable mul : law idm. *)
+(* Variable mulq : pi_operator_morph mul. *)
 
-Lemma mulq_addl : left_distributive mulq addq.
-Proof.
-by elim/quotW=> x; elim/quotW=> y; elim/quotW=> z; rewrite !mopP mulm_addl.
-Qed.
+(* Lemma mulqA : associative mulq. *)
+(* Proof. *)
+(* by move=> x y z; rewrite -[x]reprK -[y]reprK -[z]reprK ![mulq _ _]piE mulmA. *)
+(* Qed. *)
 
-Lemma mulq_addr : right_distributive mulq addq.
-Proof.
-by elim/quotW=> x; elim/quotW=> y; elim/quotW=> z; rewrite !mopP mulm_addr.
-Qed.
+(* Lemma mul1q : left_id idq (pi_operator mulq). *)
+(* Proof. by elim/quotW=> x; rewrite !mop2P mul1m. Qed. *)
 
-Canonical addq_add_law := AddLaw mulq_addl mulq_addr.
-End Add.
+(* Lemma mulq1 : right_id idq mulq. *)
+(* Proof. by elim/quotW=> x; rewrite !mop2P mulm1. Qed. *)
 
-End Theory.
-End MonoidQuotient.
+(* Canonical mulq_law := Law mulqA mul1q mulq1. *)
+(* End Plain. *)
 
-Canonical MonoidQuotient.mulq_law.
-Canonical MonoidQuotient.mulq_com_law.
-Canonical MonoidQuotient.mulq_mul_law.
-Canonical MonoidQuotient.addq_add_law.
+(* Section Commutative. *)
+(* Variable mul : com_law idm. *)
+(* Hypothesis mul_mop : mop2_spec mul qT. *)
+(* Local Notation mulq := (mop2 mul_mop). *)
+
+(* Lemma mulqC : commutative mulq. *)
+(* Proof. by elim/quotW=> x; elim/quotW=> y; rewrite !mopP mulmC. Qed. *)
+
+(* Canonical mulq_com_law := ComLaw mulqC. *)
+(* End Commutative. *)
+
+(* Section Mul. *)
+(* Variable mul : mul_law idm. *)
+(* Hypothesis mul_mop : mop2_spec mul qT. *)
+(* Local Notation mulq := (mop2 mul_mop). *)
+
+(* Lemma mul0q : left_zero idq mulq. *)
+(* Proof. by elim/quotW=> x; rewrite !mopP mul0m. Qed. *)
+
+(* Lemma mulq0 : right_zero idq mulq. *)
+(* Proof. by elim/quotW=> x; rewrite !mopP mulm0. Qed. *)
+
+(* Canonical mulq_mul_law := MulLaw mul0q mulq0. *)
+(* End Mul. *)
+
+(* Section Add. *)
+(* Variables (mul : T -> T -> T) (add : add_law idm mul). *)
+(* Hypothesis mul_mop : mop2_spec mul qT. *)
+(* Hypothesis add_mop : mop2_spec add qT. *)
+(* Local Notation mulq := (mop2 mul_mop). *)
+(* Local Notation addq := (mop2 add_mop). *)
+
+(* Lemma mulq_addl : left_distributive mulq addq. *)
+(* Proof. *)
+(* by elim/quotW=> x; elim/quotW=> y; elim/quotW=> z; rewrite !mopP mulm_addl. *)
+(* Qed. *)
+
+(* Lemma mulq_addr : right_distributive mulq addq. *)
+(* Proof. *)
+(* by elim/quotW=> x; elim/quotW=> y; elim/quotW=> z; rewrite !mopP mulm_addr. *)
+(* Qed. *)
+
+(* Canonical addq_add_law := AddLaw mulq_addl mulq_addr. *)
+(* End Add. *)
+
+(* End Theory. *)
+(* End MonoidQuotient. *)
+
+(* Canonical MonoidQuotient.mulq_law. *)
+(* Canonical MonoidQuotient.mulq_com_law. *)
+(* Canonical MonoidQuotient.mulq_mul_law. *)
+(* Canonical MonoidQuotient.addq_add_law. *)
 
