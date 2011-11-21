@@ -33,9 +33,11 @@ coq_makefile,...) accessible (by default they are put in
   sure that no such variable occurs in NEITHER Windows NOR Cygwin
   environment variables.
   + Set two environment variables COQTOP and COQLIB both
-   to the address of your Coq libraries directory.
+   to the address of your Coq libraries directory. Remember to include
+   a trailing / in these paths.
   + Set an environment variable COQBIN to the address of the directory
-    containing your Coq v8.3 binaries.
+    containing your Coq v8.4 binaries. Remember to include
+   a trailing / in this path.
   + If you are a Windows user, you may also add these variables
     as Windows environment variables and update your Windows path. 
 
