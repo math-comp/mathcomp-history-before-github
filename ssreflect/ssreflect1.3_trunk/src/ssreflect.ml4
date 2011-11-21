@@ -4766,8 +4766,9 @@ let interp_agen ist gl ((goclr, _), (k, gc)) (clr, rcs) =
     let clr' = interp_hyps ist gl ghyps @ clr in
     if k <> ' ' then clr', rcs' else
     match rc with
-    | GVar (loc, id) -> SsrHyp (loc, id) :: clr', rcs'
-    | GRef (loc, VarRef id) -> SsrHyp (loc, id) :: clr', rcs'
+    | GVar (loc, id) when not_section_id id -> SsrHyp (loc, id) :: clr', rcs'
+    | GRef (loc, VarRef id) when not_section_id id ->
+        SsrHyp (loc, id) :: clr', rcs'
     | _ -> clr', rcs'
 
 let interp_agens ist gl gagens =
