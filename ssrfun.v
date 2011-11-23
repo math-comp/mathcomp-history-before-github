@@ -148,6 +148,20 @@ Require Import ssreflect.
 (*  {morph f : x y / a >-> r } == f is a morphism with respect to functions  *)
 (*                                 (fun x y => a) and (fun x y => r)         *)
 (*  {morph f : x y / a } == f is a morphism with respect to (fun x y => a)   *)
+(*  {homo f : x / a >-> r } == f is a morphism with respect to relations     *)
+(*                               (fun x => a) and (fun x => r), i.e.:        *)
+(*                               a -> (fun x => r) (f x), for all x          *)
+(*  {homo f : x / a } == f is a morphism with respect to (fun x => a)        *)
+(*  {homo f : x y / a >-> r } == f is a morphism with respect to relations   *)
+(*                                 (fun x y => a) and (fun x y => r)         *)
+(*  {homo f : x y / a } == f is a morphism with respect to (fun x y => a)    *)
+(*  {mono f : x / a >-> r } == f is stable with respect to relations         *)
+(*                               (fun x => a) and (fun x => r), i.e.:        *)
+(*                               (fun x => r) (f x) = a, for all x           *)
+(*  {mono f : x / a } == f is stable with respect to (fun x => a)            *)
+(*  {mono f : x y / a >-> r } == f is stable with respect to relations       *)
+(*                                 (fun x y => a) and (fun x y => r)         *)
+(*  {mono f : x y / a } == f is stable with respect to (fun x y => a)        *)
 (*                                                                           *)
 (* The file also contains some basic lemmas for the above concepts.          *)
 (*****************************************************************************)
@@ -418,11 +432,13 @@ Definition morphism_2 aOp rOp := forall x y, f (aOp x y) = rOp (f x) (f y).
 
 (* Homomorphism property for unary and binary relations *)
 Definition homomorphism_1 (aP rP : _ -> Prop) := forall x, aP x -> rP (f x).
-Definition homomorphism_2 (aR rR : _ -> _ -> Prop) := forall x y, aR x y -> rR (f x) (f y).
+Definition homomorphism_2 (aR rR : _ -> _ -> Prop) :=
+  forall x y, aR x y -> rR (f x) (f y).
 
-(* Monoomorphism property for unary and binary relations *)
+(* Stability property for unary and binary relations *)
 Definition monomorphism_1 (aP rP : _ -> sT) := forall x, rP (f x) = aP x.
-Definition monomorphism_2 (aR rR : _ -> _ -> sT) := forall x y, rR (f x) (f y) = aR x y.
+Definition monomorphism_2 (aR rR : _ -> _ -> sT) :=
+  forall x y, rR (f x) (f y) = aR x y.
 
 End Morphism.
 
