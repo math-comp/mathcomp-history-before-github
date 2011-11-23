@@ -32,11 +32,10 @@ Hypothesis HyQ : y \in Q.
 Hypothesis HFpUy : W2 \subset 'N(U :^ y)%g.
 
 CoInductive finFieldImage : Type :=
-  FinFieldImage : forall (F : finFieldType) (sigma : {morphism P >-> F}%g)
-                         (tau : gT -> F), isom P [set: F] sigma ->
-                         (forall p u, p \in P -> u \in U -> 
-                                      sigma (p ^ u)%g = tau u * sigma p) -> 
-                         finFieldImage.
+  FinFieldImage (F : finFieldType) (sigma : {morphism P >-> F}%g)
+                (tau : gT -> F) (_ : isom P [set: F] sigma)
+                (_ : forall p u, p \in P -> u \in U -> 
+                                 sigma (p ^ u)%g = tau u * sigma p).
 
 Variable FSigmaTau : finFieldImage.
 
