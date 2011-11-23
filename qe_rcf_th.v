@@ -6,7 +6,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GRing.Theory ORing.Theory.
+Import GRing.Theory ORing.Theory RPdiv ComRing.
 
 Local Open Scope nat_scope.
 Local Open Scope ring_scope.
@@ -31,13 +31,8 @@ rewrite esp /=; case px0: root=> //=; rewrite ?sgr_cp0 ?px0//.
 have hsp: sp = size p^`() by rewrite size_deriv esp.
 rewrite hsp ihsp // -size_poly_eq0 -hsp; apply/negP; move/eqP=> sp0.
 move: px0; rewrite root_factor_theorem.
-by move/(dvdp_leq p0); rewrite size_factor esp sp0.
+by move=> /rdvdp_leq // /(_ p0); rewrite size_factor esp sp0.
 Qed.
-
-(* Todo : move in polydiv *)
-(* Todo : in polydiv, exchange eqp_mull and eqp_mulr *)
-
-
 
 End extra.
 
@@ -60,7 +55,7 @@ Fixpoint sremps_rec (p q : {poly R}) n :=
     if n is m.+1
       then if p == 0
         then [::]
-        else p::(sremps_rec q (- (p %% q)) m)
+        else p::(sremps_rec q ((-(lead_coef q ^+ rscalp p q)) *: (rmodp p q)) m)
       else [::].
 
 Definition sremps (p q : {poly R}):= sremps_rec p q (maxn (size p) (size q).+1) .
@@ -75,6 +70,15 @@ Qed.
 Lemma sremps_recp0  n p : sremps_rec 0 p n = [::].
 Proof. by case: n=> [|n] //=; rewrite eqxx. Qed.
 
+(* :TODO: backport to polydiv *)
+Lemma lc_expn_rscalp_neq0 (p q : {poly R}): lead_coef q ^+ rscalp p q != 0.
+Proof.
+case: (eqVneq q 0) => [->|nzq]; last by rewrite expf_neq0 ?lead_coef_eq0.
+by rewrite /rscalp /redivp /= eqxx /= expr0 nonzero1r.
+Qed.
+
+Notation lcn_neq0 := lc_expn_rscalp_neq0.
+
 Lemma sremps_recP_subproof n (p q : {poly R}) :
   (size q < size p)%N -> (size p <= n)%N ->
   sremps_rec p q n = sremps_rec p q (size p).
@@ -86,8 +90,8 @@ case: n spn=> [|n] spn /=; first by move: (leq_trans sqp spn); rewrite ltn0.
 case p0: (p==0)=> /=; first by move: sqp; rewrite (eqP p0) size_poly0 ltn0.
 congr (_::_); case q0: (q == 0); first by rewrite (eqP q0) !sremps_recp0.
 apply: ihsp; first by move: (leq_trans sqp hp).
-  by rewrite size_opp ltn_modp q0.
-by rewrite -ltnS; apply: leq_trans spn.
+  by rewrite size_scaler ?oppr_eq0 ?lcn_neq0 // ltn_rmodp ?q0.
+by move: (leq_trans sqp spn).
 Qed.
 
 Lemma sremps_recP n (p q : {poly R}) :
@@ -100,7 +104,8 @@ case: ltnP=> hpq hn.
 rewrite /sremps maxnr ?leqW//=.
 case: n hn=> // n; rewrite ltnS=> hn /=.
 case p0: (_ == 0)=> //; congr (_ :: _).
-rewrite sremps_recP_subproof // size_opp ltn_modp.
+rewrite sremps_recP_subproof //.
+rewrite size_scaler ?oppr_eq0 ?lcn_neq0 // ltn_rmodp //.
 by rewrite -size_poly_eq0 -lt0n (leq_trans _ hpq) // lt0n size_poly_eq0 p0.
 Qed.
 
@@ -165,7 +170,8 @@ rewrite odd_add odd_sub 1?addbC// (@leq_trans 0)//.
 rewrite leqNgt mu_gt0//.
 apply/negP; move: rpx; rewrite !root_factor_theorem=> hp hq.
 move: cpq; apply/negP; apply/coprimepPn=> //.
-by exists ('X - x%:P); rewrite dvdp_gcd hp hq -size_poly_eq1 size_factor.
+exists ('X - x%:P); rewrite  -size_poly_eq1 size_factor andbT.
+by rewrite dvdp_gcd !dvdpE hp hq.
 Qed.
 
 (* Todo : move in polydiv *)
@@ -180,8 +186,8 @@ Proof.
 move=> a b p x pn0=> yl yr; rewrite !inE.
 case/andP=> yll ylr; case/andP=> yrl yrr.
 rewrite -!sgr_cp0 sgrM.
-have yln: yl \in neighpl p a x by apply/andP.
-have yrn: yr \in neighpr p x b by apply/andP.
+have yln: yl \in neighpl p a x by rewrite !inE; apply/andP.
+have yrn: yr \in neighpr p x b by rewrite !inE; apply/andP.
 move: (neighpr_root yrn).
 rewrite (sgr_neighpl yln) -!(sgr_neighpr yrn) rootE -[_==0]sgr_cp0.
 rewrite sgr_id sgrEz zintr_eq0 -[- 1 : R]mulrN1z.
@@ -292,25 +298,21 @@ Qed.
 (* Qed. *)
 
 (* Todo : move to polydiv *)
-(* Lemma scalp_size : forall p q, p != 0 -> (size p < size q)%N -> (lead_coef q) ^+ scalp p q = 1. *)
-(* Proof. *)
-(* move=> p q p0 hpq; have := (divCp_spec p q). *)
-(* rewrite divp_size // modp_size // mul0r add0r; move/eqP. *)
-(* rewrite -subr_eq0 -{3}[p]scale1r -scaler_subl scaler_eq0. *)
-(* by rewrite (negPf p0) orbF subr_eq0; move/eqP. *)
-(* Qed. *)
-
-(* Todo : move to polydiv *)
 Lemma mu_mod : forall p q x, (\mu_x p < \mu_x q)%N ->
- \mu_x (p %% q) =  \mu_x p.
+ \mu_x (rmodp p q) =  \mu_x p.
 Proof.
-move=> p q x mupq; case p0: (p == 0); first by rewrite (eqP p0) mod0p.
-have qn0 : q != 0 by apply/negP; move/eqP=> q0; rewrite q0  mu0 ltn0 in mupq.
-move/eqP: (divp_eq p q).
+move=> p q x mupq; case p0: (p == 0).
+  by rewrite (eqP p0) rmod0p.
+have qn0 : q != 0.
+  by apply/negP; move/eqP=> q0; rewrite q0  mu0 ltn0 in mupq.
+move/eqP: (rdivp_eq q p).
 rewrite eq_sym (can2_eq (addKr _ ) (addNKr _)); move/eqP->.
-case qpq0: ((p %/ q) == 0); first by rewrite (eqP qpq0) mul0r oppr0 add0r.
-rewrite mu_addl ?p0 // mu_opp mu_mul; last by rewrite mulf_neq0 // qpq0.
-by rewrite (leq_trans mupq) ?leq_addl.
+case qpq0: ((rdivp p q) == 0).
+  by rewrite (eqP qpq0) mul0r oppr0 add0r mu_mulC // ?lcn_neq0.
+rewrite mu_addl ?mu_mulC ?scaler_eq0 ?negb_or ?p0 ?lcn_neq0 //.
+rewrite mu_opp mu_mul.
+  by rewrite (leq_trans mupq) // leq_addl.
+by rewrite mulf_neq0 // qpq0.
 Qed.
 
 (* Todo : move to polydiv *)
@@ -333,57 +335,62 @@ Qed.
 (* Todo : move to polydiv *)
 Lemma mu_mod_leq : forall p q x, ~~ (q %| p) ->
   (\mu_x q <= \mu_x p)%N ->
-  (\mu_x q <= \mu_x (p %% q)%R)%N.
+  (\mu_x q <= \mu_x (rmodp p q)%R)%N.
 Proof.
-move=> p q x. rewrite /dvdp => rn0 mupq.
+move=> p q x; rewrite dvdpE /rdvdp=> rn0 mupq.
 case q0: (q == 0); first by rewrite (eqP q0) mu0 leq0n.
-move/eqP: (divp_eq p q).
+move/eqP: (rdivp_eq q p).
 rewrite eq_sym (can2_eq (addKr _ ) (addNKr _)); move/eqP=> hr.
-rewrite hr; case qpq0: (p %/ q == 0).
-  by rewrite (eqP qpq0) mul0r oppr0 add0r.
+rewrite hr; case qpq0: (rdivp p q == 0).
+  by rewrite (eqP qpq0) mul0r oppr0 add0r mu_mulC // lcn_neq0.
 rewrite  (leq_trans _ (mu_add _ _)) // -?hr //.
-by rewrite leq_minr mu_opp mu_mul ?mulf_neq0 ?qpq0 ?q0 // leq_addl.
+rewrite leq_minr mu_opp mu_mul ?mulf_neq0 ?qpq0 ?q0 // leq_addl.
+by rewrite mu_mulC // lcn_neq0.
 Qed.
 
 (* Lemma sgp_right0 : forall (x : R), sgp_right 0 x = 0. *)
 (* Proof. by move=> x; rewrite /sgp_right size_poly0. Qed. *)
 
 Lemma sgp_right_mod : forall p q x, (\mu_x p < \mu_x q)%N ->
-  sgp_right (p %% q) x =  sgp_right p x.
+  sgp_right (rmodp p q) x = (sgr (lead_coef q)) ^+ (rscalp p q) * sgp_right p x.
 Proof.
 move=> p q x mupq; case p0: (p == 0).
-  by rewrite (eqP p0) mod0p !sgp_right0.
+  by rewrite (eqP p0) rmod0p !sgp_right0 mulr0.
 have qn0 : q != 0.
   by apply/negP; move/eqP=> q0; rewrite q0  mu0 ltn0 in mupq.
-move/eqP: (divp_eq p q).
+move/eqP: (rdivp_eq q p).
 rewrite eq_sym (can2_eq (addKr _ ) (addNKr _)); move/eqP->.
-case qpq0: ((p %/ q) == 0); first by rewrite (eqP qpq0) mul0r oppr0 add0r. 
-by rewrite sgp_right_addp0 ?p0 // mu_opp mu_mul ?mulf_neq0 ?qpq0 // ltn_addl.
+case qpq0: ((rdivp p q) == 0).
+  by rewrite (eqP qpq0) mul0r oppr0 add0r sgp_right_scale // sgrX.
+rewrite sgp_right_addp0 ?sgp_right_scale ?sgrX //.
+  by rewrite scaler_eq0 negb_or p0 lcn_neq0.
+rewrite mu_mulC ?lcn_neq0 // mu_opp mu_mul ?mulf_neq0 ?qpq0 //.
+by rewrite ltn_addl.
 Qed.
 
 
 (* Todo : system to solve neighbordhood dependency automatically *)
-Lemma jump_mod : forall p q, forall x, jump p q x = jump (p %% q) q x.
+Lemma jump_mod : forall p q, forall x,
+  jump p q x = sgz (lead_coef q) ^+ (rscalp p q) * jump (rmodp p q) q x.
 Proof.
 move=> p q x.
-case p0: (p == 0); first by rewrite (eqP p0) mod0p jump0p.
-case q0: (q == 0); first by rewrite (eqP q0) modp0 jumppc.
-case r0: (p %% q == 0).
-  rewrite (eqP r0) jump0p //.
-  move: (r0); rewrite -/(_ %| _) dvdp_eq; move/eqP->.
-  case qq0: (p %/ q == 0); first by rewrite (eqP qq0) mul0r jump0p.
-  by rewrite -{3}[q]mul1r jump_mul2r// ?oner_eq0 ?q0 ?qq0 ?coprimep1// jumppc.
-rewrite /jump.
-case: (ltnP (\mu_x p) (\mu_x q)) => hpq; last first.
-  move: (hpq); rewrite -subn_eq0; move/eqP->; rewrite andbF mulr0n.
-  move/mu_mod_leq:(hpq); rewrite /dvdp -subn_eq0=> hqr.
-  by rewrite (eqP (hqr _)) ?r0 // mulr0.
-rewrite mu_mod // p0 r0 /=; congr (_ *+ _).
-move/eqP: (divp_eq p q).
-rewrite eq_sym (can2_eq (addKr _ ) (addNKr _)); move/eqP=> hr.
-by rewrite !sgp_right_mul // sgp_right_mod // -mulrA.
+case p0: (p == 0); first by rewrite (eqP p0) rmod0p jump0p mulr0.
+case q0: (q == 0); first by rewrite (eqP q0) rmodp0 jumppc mulr0.
+rewrite -sgzX; set s := sgz _.
+apply: (@mulfI _ s); first by rewrite /s sgz_eq0 lcn_neq0.
+rewrite mulrA mulz_sg lcn_neq0 mul1r -jump_mulCp rdivp_eq.
+have [->|rpq_eq0] := altP (rmodp p q =P 0).
+  by rewrite addr0 jump0p -[X in jump _ X]mul1r jump_mul2r ?q0 // jumppc.
+rewrite /jump. set r := _ * q + _.
+have muxp : \mu_x p = \mu_x r by rewrite /r -rdivp_eq mu_mulC ?lcn_neq0.
+have r_neq0 : r != 0 by rewrite /r -rdivp_eq scaler_eq0 p0 orbF lcn_neq0.
+have [hpq|hpq] := leqP (\mu_x q) (\mu_x r).
+  rewrite 2!(_ : _ - _ = 0)%N ?andbF //; apply/eqP; rewrite -/(_ <= _)%N //.
+  by rewrite mu_mod_leq ?dvdpE // muxp.
+rewrite mu_mod ?muxp // rpq_eq0 (negPf r_neq0); congr (_ ^+ _ *+ _).
+rewrite !sgp_right_mul sgp_right_mod ?muxp // /r -rdivp_eq.
+by rewrite -mul_polyC sgp_right_mul sgp_rightc sgrX.
 Qed.
-
 
 Definition cind (a b : R) (q p : {poly R}) : zint :=
   \sum_(x <- roots p a b) jump q p x.
@@ -419,7 +426,7 @@ apply/eqP; rewrite -leqn0 leqNgt mu_gt0 //.
 apply/negP; rewrite root_factor_theorem => rqx; move/root_roots:hx.
 case: gdcopP=> g hg; rewrite (negPf r0) orbF => cgq hdg.
 rewrite root_factor_theorem=> rgx.
-move/coprimepP:cgq rqx rgx=> cgq; move/cgq=> hgq; move/hgq.
+move/coprimepP:cgq rqx rgx=> cgq; rewrite -!dvdpE=> /cgq hgq /hgq.
 by rewrite -size_poly_eq1 size_factor.
 Qed.
 
@@ -454,9 +461,9 @@ Qed.
 
 
 Lemma cind_mod : forall a b, a < b -> forall p q,
-   cind a b p q = cind a b (p %% q) q.
+   cind a b p q = (sgz (lead_coef q) ^+ rscalp p q) * cind a b (rmodp p q) q.
 Proof.
-move=> a b hab p q; rewrite /cind.
+move=> a b hab p q; rewrite /cind big_distrr.
 by apply: congr_big=> //= x _; rewrite jump_mod.
 Qed.
 
@@ -482,15 +489,31 @@ rewrite mul0r ltrr mulr0 !big_cons add0r (ihs x) ?(eqP hs)//.
 have pq0: p * q == 0 = false by apply: negbTE; rewrite mulf_neq0.
 case: s ihs hs xs=> [|y s]//= ihs hs xs.
   rewrite !big_cons !big_nil !addr0 mul0r ltrr mulr0 addr0.
-  apply: (@sjump_neigh a' b); rewrite ?mulf_neq0// !inE /= ?midf_lte //=.
-    by rewrite /prev_root pq0 (eqP hax) /= minr_l ?(ltrW ax) // midf_lte.
-  by rewrite /next_root pq0 (eqP hs) /= maxr_l ?(ltrW xs) // midf_lte.
+  apply: (@sjump_neigh a' b); rewrite ?mulf_neq0// !inE ?midf_lte//=.
+    by rewrite /prev_root pq0 (eqP hax) /= minr_l ?(ltrW ax) // !midf_lte.
+  by rewrite /next_root pq0 (eqP hs) /= maxr_l ?(ltrW xs) // !midf_lte.
 rewrite !big_cons mul0r ltrr mulr0 add0r; congr (_+_).
 move: hs; rewrite roots_cons; case/and5P=> _.
 case/andP=> xy ys hxy pqy0 hs.
-apply: (@sjump_neigh a' y); rewrite ?mulf_neq0// !inE /= ?midf_lte //=.
-  by rewrite /prev_root pq0 (eqP hax) /= minr_l ?(ltrW ax) // midf_lte.
-by rewrite /next_root pq0 (eqP hxy) /= maxr_l ?(ltrW xy) // midf_lte.
+apply: (@sjump_neigh a' y); rewrite ?mulf_neq0// !inE ?midf_lte//=.
+  by rewrite /prev_root pq0 (eqP hax) /= minr_l ?(ltrW ax) // !midf_lte.
+by rewrite /next_root pq0 (eqP hxy) /= maxr_l ?(ltrW xy) // !midf_lte.
+Qed.
+
+(* :TODO: backport to polydiv *)
+Lemma coprimep_rdiv_gcd p q : (p != 0) || (q != 0) ->
+  coprimep (rdivp p (gcdp p q)) (rdivp q (gcdp p q)).
+Proof.
+move=> hpq.
+have gpq0: gcdp p q != 0 by rewrite gcdp_eq0 negb_and.
+rewrite -gcdp_eqp1 -(@eqp_mul2r _ (gcdp p q)) // mul1r.
+have: gcdp p q %| p by rewrite dvdp_gcdl.
+have: gcdp p q %| q by rewrite dvdp_gcdr.
+rewrite !dvdpE !rdvdp_eq eq_sym; move/eqP=> hq; rewrite eq_sym; move/eqP=> hp.
+rewrite (eqp_ltrans (mulp_gcdl _ _ _)) hq hp.
+have lcn0 k : (lead_coef (gcdp p q)) ^+ k != 0.
+  by rewrite expf_neq0 ?lead_coef_eq0.
+by apply: eqp_gcd; rewrite ?eqp_scale.
 Qed.
 
 Lemma cind_inv : forall a b, a < b -> forall p q,
@@ -506,37 +529,51 @@ have q0: q != 0.
   by move: hpqa; apply: contra; move/eqP->; rewrite mulr0 rootC.
 wlog cpq: p q p0 q0 hpqa hpqb / coprimep p q.
   move=> hc; move: (dvdp_gcdr p q) (dvdp_gcdl p q).
-  rewrite !dvdp_eq.
-  set gpq := gcdp p q.
-  set qp := (p %/ _);  set qq := (q %/ _).
-  move/eqP=> hq; move/eqP=> hp.
-  move: (p0). rewrite hp !(mulf_eq0, scaler_eq0, negb_or).
-  case/andP=> qp0 gpq0.
-  move: (q0); rewrite hq !(mulf_eq0, scaler_eq0, negb_or).
-  case/andP=> qq0 _.
+  rewrite !dvdpE !rdvdp_eq -!mul_polyC.
+  set gpq := gcdp p q; set qp := (rdivp p _);  set qq := (rdivp q _).
+  move=> /eqP /(canRL (mulKr _)).
+  rewrite poly_unitE size_polyC lcn_neq0 andTb coefC /= unitfE lcn_neq0.
+  rewrite poly_invE.
+  rewrite poly_unitE size_polyC lcn_neq0 andTb coefC /= unitfE lcn_neq0.
+  rewrite [(_ ^- _)%:P * _]mul_polyC scaler_mull=> /(_ isT); set sq := _ ^-1 => hq.
+  move=> /eqP /(canRL (mulKr _)).
+  rewrite poly_unitE size_polyC lcn_neq0 andTb coefC /= unitfE lcn_neq0.
+  rewrite poly_invE.
+  rewrite poly_unitE size_polyC lcn_neq0 andTb coefC /= unitfE lcn_neq0.
+  rewrite mul_polyC scaler_mull=> /(_ isT); set sp := _ ^-1 => hp.
+  move: (p0); rewrite hp !(mulf_eq0, scaler_eq0, negb_or) -andbA.
+  case/and3P=> sp0 qp0 gpq0.
+  move: (q0); rewrite hq !(mulf_eq0, scaler_eq0, negb_or) -andbA.
+  case/and3P=> sq0 qq0 _.
   move: (hpqa) (hpqb).
   rewrite hp hq.
-  have csqpqq: coprimep qp qq.
-    by rewrite /qp /qq; apply: coprimep_div_gcd; rewrite p0.
+  have csqpqq: coprimep (sp *: qp) (sq *: qq).
+    (* Todo : eqp_coprimel *)
+    rewrite coprimep_def.
+    rewrite (eqp_size (eqp_gcdr _ (eqp_scale _ _))) //.
+    rewrite (eqp_size (eqp_gcdl _ (eqp_scale _ _))) //.
+    rewrite -coprimep_def.
+    by rewrite coprimep_rdiv_gcd ?p0.
+  rewrite !{1}cind_mul2r // ?(mulf_neq0, scaler_eq0, negb_or, sp0, sq0) //.
   rewrite !rootE.
   rewrite !{1}horner_mul.
+  rewrite !{1}horner_scaler.
   rewrite !sgzM /=.
-  rewrite !mulf_eq0 !negb_or.
-  case/and3P =>/andP [qpa gq] qqa _.
-  case/and3P=> /andP [qpb gb] qqb _.
-  rewrite !cind_mul2r //.
-  rewrite hc ?rootE ?{1}horner_mul;
-    do ?by rewrite ?sgrM ?(mulf_neq0, negb_or, qp0, qq0) //=.
+  rewrite !mulf_eq0 !negb_or -!andbA.
+  case/andP=> hsp; case/and5P=> qpa gpqa hsq qqa _.
+  case/andP=> _; case/and5P=> qpb gpqb _ qqb _.
+  rewrite hc ?rootE ?{1}horner_mul ?{1}horner_scaler;
+    do ?by rewrite ?sgrM ?(mulf_neq0, scaler_eq0, negb_or, sp0, sq0) //=.
   rewrite -!sgr_cp0 !sgrM.
-  have hss (R' : oIdomainType) s s' (c : R') : c != 0 ->
-    (s * sgr c) * s' * sgr c = s * s'.
+  have hss (R' : oIdomainType) s s' s'' (c : R') : c != 0 ->
+    (s * sgr c) * s' * s'' * sgr c = s * s' * s''.
     by move=> nc0; rewrite ![_ * sgr _]mulrC !mulrA mulr_sg nc0 mul1r.
-  have hss' (R' : oIdomainType) s s' (c : R') : c != 0 ->
-    (s * sgz c) * s' * sgz c = s * s'.
+  have hss' (R' : oIdomainType) s s' s'' (c : R') : c != 0 ->
+    (s * sgz c) * s' * s'' * sgz c = s * s' * s''.
     by move=> nc0; rewrite ![_ * sgz _]mulrC !mulrA mulz_sg nc0 mul1r.
-  by rewrite mulrA mulrA hss' // !mulrA !hss // sgzM.
+  by rewrite !(hss, hss', mulrA) // !sgzM.
+have pq0 : p * q == 0 = false by apply: negbTE; rewrite mulf_neq0.
 rewrite cind_seq_mids//.
-have pq0 : p * q == 0 = false by apply: negPf; rewrite mulf_neq0.
 rewrite nb_varP//= -cats1 pairmap_cat/= cats1 map_rcons.
   rewrite last_rcons -sgr_cp0 !sgrM -sgz_sgr.
   rewrite [sgr _.[_]](@sgr_neighplN _ _ a b) //; last first.
@@ -570,15 +607,15 @@ Lemma maxnSS: forall m n, maxn m.+1 n.+1 = (maxn m n).+1.
 Proof. by move=> m n; rewrite /maxn ltnS; case: ifP. Qed.
 
 Lemma sremps_ind : forall p q, p != 0 ->
-  sremps p q = p :: (sremps q (- (p %% q))).
+  sremps p q = p :: (sremps q ((- lead_coef q ^+ rscalp p q) *: (rmodp p q))).
 Proof.
 move=> p q np0; rewrite {1}/sremps /=.
 case hsp: (size p)=> [|sp] /=.
   by move/eqP: hsp np0; rewrite size_poly_eq0; move/eqP->; rewrite eqxx.
 rewrite maxnSS /= (negPf np0); congr cons.
 case q0: (q == 0); first by rewrite /sremps (eqP q0) !sremps_recp0.
-rewrite sremps_recW // size_opp maxnl; first by rewrite !leq_maxr leqnn orbT.
-by rewrite ltn_modp q0.
+rewrite sremps_recW // maxnl; first by rewrite !leq_maxr leqnn orbT.
+by rewrite size_scaler ?oppr_eq0 ?lcn_neq0 ?ltn_rmodp ?q0.
 Qed.
 
 Lemma var_rem_cind : forall a b, a < b -> forall p q,
@@ -605,14 +642,19 @@ case hm: (maxn (size p) (size q).+1)=> [|m] //=.
 have q0 := (negPf hq); have p0 := (negPf hp); rewrite p0.
 case=> er es; rewrite -er -es.
 rewrite /varpI /varp !map_cons !var_cons.
-have aux : (maxn (size q) (size (- (p %% q)%R)).+1 <= m)%N.
-  by rewrite size_opp maxnl ?ltn_modp // -ltnS -hm leq_maxr ltnSn orbT.
-rewrite sremps_recW // in es.
+have hmqr: (maxn (size q) (size ((- lead_coef q ^+ rscalp p q) *: (rmodp p q))%R).+1 <= m)%N.
+  rewrite size_scaler ?oppr_eq0 ?lcn_neq0 //.
+  case: (ltnP (size p) (size q).+1) hm=> hpq.
+    move/ltnW: hpq; move/maxnr=> hpq; rewrite hpq => [[hm]].
+    by rewrite hm leq_maxl leqnn/= -hm ltn_rmodp ?q0.
+  move/maxnl: (hpq)=> hmpq; rewrite hmpq=> hm.
+  by move: hpq; rewrite maxnl ?ltn_rmodp ?q0// hm ltnS.
+rewrite sremps_recW// in es.
 have m0 x : 0 = (0 : {poly R}).[a] by rewrite hornerC.
 rewrite !PoszD addrAC oppr_add -!addrA addrA [- _ + _]addrC.
 rewrite -[(varp _ _)%:Z - _]/(varpI _ _ _).
-rewrite {3}sremps_recW //.
-case: m hm es {aux} => [|m hm es] //=.
+rewrite {3}sremps_recW//.
+case: m hm es {hmqr} => [|m hm es] //=.
   move/eqP; rewrite eqn_leq; case/andP; rewrite leq_maxl; case/andP=> _.
   by rewrite ltnS leqn0 size_poly_eq0 q0.
 rewrite q0 /=; apply/eqP; rewrite (can2_eq (addrK _) (addrNK _)); apply/eqP.
@@ -623,20 +665,26 @@ transitivity (cind a b q p + cind a b p q).
   have: (sgz (p.[a] * q.[a]) != 0) by rewrite sgz_cp0 mulf_neq0.
   have: (sgz (p.[b] * q.[b]) != 0) by rewrite sgz_cp0 mulf_neq0.
   by do 2?case: sgzP => _ //.
-case r0: (p %% q == 0).
-  move: (r0); rewrite -/(_ %| _) dvdp_eq; move/eqP=> hr.
-  have: cind a b (p %/ q * q) q = 0.
+case r0: (rmodp p q == 0).
+  move: (r0); rewrite [_ == _]rdvdp_eq; move/eqP=> hr.
+  have: cind a b (rdivp p q * q) q = 0.
     rewrite -{3}[q]mul1r cind_mul2r ?cindpc ?oner_eq0 ?coprimep1 //.
-    by move/eqP: hr; apply: contraL; move/eqP->; rewrite mul0r p0.
-  rewrite -hr; move->. rewrite (eqP r0) addr0.
+    move/eqP: hr; apply: contraL; move/eqP->; rewrite mul0r.
+      by rewrite scaler_eq0 negb_or lcn_neq0.
+  rewrite -hr cind_mulCp//; move/eqP; rewrite mulf_eq0 sgz_cp0.
+  rewrite (negPf (lcn_neq0 _ _))/=.
+  move/eqP->; rewrite (eqP r0) addr0.
   rewrite /sremps; case hmn: (maxn _ _)=> [|mn] /=.
     by rewrite /varpI /varp /= subr0.
-  by rewrite q0 oppr0 sremps_recp0 /varpI /varp /= !mulr0 ltrr subrr subr0.
+  by rewrite q0 scaler0 sremps_recp0 /varpI /varp /= !mulr0 ltrr subrr subr0.
 move: allra0 allrb0.
-rewrite sremps_ind ?oppr_eq0 ?r0 //=.
-rewrite !rootE.
-case/andP=> rpqa allra0; case/andP=> rpqb allrb0; rewrite hs ?oppr_eq0 ?r0 //.
-by rewrite -scaleN1r cind_mulCp ?r0 // sgzN1 mulNr opprK mul1r -cind_mod.
+rewrite sremps_ind // ?(scaler_eq0, oppr_eq0, negb_or, lcn_neq0, r0) //=.
+rewrite !rootE !horner_lin !mulf_eq0 !oppr_eq0 !negb_or !lcn_neq0 !andTb.
+case/andP=> rpqa allra0; case/andP=> rpqb allrb0.
+rewrite hs // ?rootE ?{1}horner_lin
+  ?(mulf_neq0, scaler_eq0, negb_or, oppr_eq0, r0, lcn_neq0) //.
+rewrite cind_mulCp ?r0 //.
+by rewrite sgzN mulNr opprK sgzX -cind_mod.
 Qed.
 
 Definition taq (z : seq R) (q : {poly R}) : zint := \sum_(x <- z) (sgz q.[x]).
@@ -1010,7 +1058,7 @@ Qed.
 Lemma tvec_cvec : forall z sq,
   tvec z sq = (cvec z sq) *m (ctmat (size sq)).
 Proof.
-move=> z sq; elim: sq z => [|q sq ihsq] z /=. 
+move=> z sq; elim: sq z => [|q sq ihsq] z /=.
   rewrite mulmx1; apply/rowP=> [] [i hi] /=; rewrite !mxE /=.
   move: hi; rewrite expn0 ltnS leqn0; move/eqP=> -> /=.
   rewrite /poly_comb big_ord0 /taq /croots /=.
@@ -1038,7 +1086,10 @@ rewrite -(@can2_eq _ _ (fun (x : 'rV_(_)) => x *m A) (fun x => x *m (invmx A))).
 Qed.
 
 Lemma size_sg_tab_neq0 : forall n, size (sg_tab n) != 0%N.
-Proof. by move=> n; rewrite size_sg_tab exp3n. Qed.
+Proof.
+move=> n; rewrite size_sg_tab.
+by rewrite exp3n.
+Qed.
 
 Lemma croots_varpI : forall z sq,
   (croots z (sq) (nseq (size (sq)) 1))%:~R = (castmx (erefl _, exp3n _)
@@ -1458,10 +1509,22 @@ by move/hsq:hr; apply: contraTneq=> ->; rewrite ltrr.
 Qed.
 
 Definition ccount (sp sq : seq {poly R}) :=
-  let p := \big[@gcdp _/0%R]_(p <- sp) p in
+  let p := \big[@rgcdp _/0%R]_(p <- sp) p in
     ccount_weak (if p != 0 then p else
         let bq := bounding_poly sq in
     if bq != 0 then bq else 'X) sq.
+
+(* :TODO: generalize to non idomainTypes and backport to polydiv *)
+Lemma rgcdp_eq0 p q : rgcdp p q == 0 = (p == 0) && (q == 0).
+Proof. by rewrite -eqp0 (eqp_ltrans (eqp_rgcd_gcd _ _)) eqp0 gcdp_eq0. Qed.
+
+Lemma root_bigrgcd (x : R) (ps : seq {poly R}) :
+  root (\big[(@rgcdp _)/0]_(p <- ps) p) x = all (root^~ x) ps.
+Proof.
+elim: ps; first by rewrite big_nil root0.
+move=> p ps ihp; rewrite big_cons /=.
+by rewrite (eqp_root (eqp_rgcd_gcd _ _)) root_gcd ihp.
+Qed.
 
 Lemma ex_roots (sp sq : seq {poly R}) :
   reflect (exists x, \big[andb/true]_(p <- sp) (p.[x] == 0)
@@ -1470,7 +1533,7 @@ Lemma ex_roots (sp sq : seq {poly R}) :
 Proof.
 rewrite /ccount.
 case: (boolP (_ == 0))=> hsp /=.
-  move: hsp; rewrite (big_morph  _ (@gcdp_eq0 _) (eqxx _)).
+  move: hsp; rewrite (big_morph  _ rgcdp_eq0 (eqxx _)).
   rewrite big_all => /allP /= hsp.
   case: (boolP (_ == 0))=> bq0 /=.
     apply: (iffP (ex_roots_weak _ _)).
@@ -1493,8 +1556,8 @@ case: (boolP (_ == 0))=> hsp /=.
     by case=> x /andP [_ hsq]; apply/shrink=> //; exists x.
   case/shrink=> x hx; exists x; rewrite hx andbT.
   by rewrite big_all; apply/allP=> y /hsp /eqP ->; rewrite horner0.
-by apply: (iffP (ex_roots_weak _ _))=> [] // [x hx];
-exists x; move: hx; rewrite [_ == _]root_biggcd !big_all.
+apply: (iffP (ex_roots_weak _ _))=> [] // [x hx];
+by exists x; move: hx; rewrite [_ == _]root_bigrgcd !big_all.
 Qed.
 
 
