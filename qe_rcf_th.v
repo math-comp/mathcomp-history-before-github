@@ -1264,16 +1264,16 @@ case: (r =P 0); first by move->; rewrite scale0r mul0r lead_coef0.
 by move/eqP=> rn0; rewrite /lead_coef coefZ size_scaler.
 Qed.
 
-Lemma lead_coef_addr p q : 
+Lemma lead_coef_addr p q :
   (size q > size p)%N -> lead_coef (p + q) = lead_coef q.
 Proof. by move/lead_coef_addl<-; rewrite addrC. Qed.
 
 Lemma leq1_size_polyC (c : R) : (size c%:P <= 1)%N.
 Proof. by rewrite size_polyC; case: (c == 0). Qed.
 
-Lemma my_size_exp_id p n : p != 0 -> 
+Lemma my_size_exp_id p n : p != 0 ->
        (size (p ^+ n)) = ((size p).-1 * n).+1%N.
-Proof. 
+Proof.
 by move=> hp; rewrite -size_exp_id prednK // lt0n size_poly_eq0 expf_neq0.
 Qed.
 
@@ -1295,7 +1295,7 @@ rewrite lead_coef_addr.
 apply: leq_ltn_trans (size_sum _ _ _) _.
 have qn0 : q != 0 by rewrite -size_poly_eq0 -lt0n; apply: leq_trans sq.
 have lcp : p`_n.+1 != 0.
-  by rewrite -[n.+1]/(n.+2.-1) -hs -/(lead_coef p) lead_coef_eq0 -size_poly_eq0 hs. 
+  by rewrite -[n.+1]/(n.+2.-1) -hs -/(lead_coef p) lead_coef_eq0 -size_poly_eq0 hs.
 have h: (\max_(i < n.+1) size (p`_i *: q ^+ i) <= size (q ^+ n))%N.
   apply/bigmax_leqP=> [[i hi]] _; case: (p`_i =P 0).
     by move->; rewrite scale0r size_poly0.
@@ -1306,59 +1306,121 @@ by rewrite ltnS ltn_mul2l ltnS; case: (size q) sq => [|m] //; case: m => [|m] //
 Qed.
 
 Lemma gt_size_poly p n : (size p > n)%N -> p != 0.
-Proof. 
+Proof.
 by move=> h; rewrite -size_poly_eq0 lt0n_neq0 //; apply: leq_ltn_trans h.
 Qed.
 
+Definition to_even n : nat := ((odd n) + n)%N.
+
+Lemma even_to_even n : ~~ odd (to_even n).
+Proof. by rewrite /to_even; case hn: (odd n); rewrite /= hn. Qed.
+
+Definition change_varp (p : {poly R}) :=
+  'X^(size p).-1 +
+  \poly_(i < (size p).-1) (lead_coef p ^+ (size p - i.+2) * p`_i).
+
+Lemma change_varpP p x : (1 < size p)%N ->
+  (change_varp p).[lead_coef p * x] = lead_coef p ^+ (size p).-2 * p.[x].
+Proof.
+move=> sp_gt1; have p_neq0 : p != 0.
+   by rewrite -size_poly_gt0 (ltn_trans _ sp_gt1).
+rewrite horner_add horner_exp hornerX horner_poly.
+rewrite horner_coef polySpred //= big_ord_recr /= -lead_coefE.
+rewrite mulr_addr mulrA -exprSr [RHS]addrC; congr (_ + _).
+  by rewrite prednK ?exprn_mull // -subn1 subn_gt0.
+rewrite -mulr_sumr; apply: eq_big=> // i _.
+rewrite subSS exprn_mull mulrCA -mulrA mulrA -exprn_addr.
+by rewrite addn_subA // addnC -predn_sub addnK.
+Qed.
+
+Lemma size_change_varp p : p != 0 -> size (change_varp p) = size p.
+Proof.
+move=> p_neq0; rewrite /change_varp size_addl ?size_polyXn -?polySpred //.
+by rewrite (leq_ltn_trans (size_poly _ _)) // -polySpred.
+Qed.
+
+Lemma monic_change_varp p : monic (change_varp p).
+Proof.
+rewrite /change_varp /monic lead_coef_addl ?lead_coefXn //.
+by rewrite size_polyXn (leq_ltn_trans (size_poly _ _)).
+Qed.
+
+Definition change_varq a (q : {poly R}) :=
+  \poly_(i < size q) (a ^+ (to_even (size q) - i) * q`_i).
+
+Lemma change_varqP a (q : {poly R}) x :
+  (change_varq a q).[a * x] = a ^+ (to_even (size q)) * q.[x].
+Proof.
+rewrite horner_poly horner_coef -mulr_sumr; apply: eq_big=> // i _.
+rewrite exprn_mull mulrCA -mulrA mulrA -exprn_addr.
+by rewrite subnKC // (leq_trans _ (leq_addl _ _)) // ltnW.
+Qed.
+
+Lemma size_change_varq a q : a != 0 -> size (change_varq a q) = size q.
+Proof.
+move=> a_neq0; have [->|q_neq0] := eqVneq q 0.
+  by rewrite /change_varq size_poly0; unlock poly; rewrite /= size_poly0.
+rewrite /change_varq size_poly_eq // -lead_coefE.
+by rewrite mulf_eq0 negb_or lead_coef_eq0 q_neq0 andbT expf_neq0.
+Qed.
+
+Lemma change_varq_eq0 a q : a != 0 -> (change_varq a q) == 0 = (q == 0).
+Proof.
+by move=> a_neq0; rewrite -size_poly_eq0 size_change_varq // size_poly_eq0.
+Qed.
+
+Lemma change_varp_eq0 p : change_varp p == 0 = false.
+Proof. by rewrite (negPf (monic_neq0 _)) // monic_change_varp. Qed.
+
 Definition to_monic (p : {poly R})(sq : seq {poly R}) :=
-  let a := lead_coef p in
-  let p1 := a ^+(size p).-2 *: p in
-  let p2 := a^-1 *: 'X in
-    (p1 \Po p2, map (fun x => x \Po p2) sq).
+  let a := lead_coef p in (change_varp p, map (change_varq a) sq).
 
 (* polyX or X suffix in poly ? *)
 Lemma monic_to_monic p sq : (size p > 1)%N -> monic (to_monic p sq).1.
+Proof. by move=> hsp /=; apply: monic_change_varp. Qed.
+
+Lemma has_root_size_gt1 (a : R) (p : {poly R}) :
+  (p != 0)%B -> root p a -> (1 < size p)%N.
 Proof.
-move=> hsp; have pn0 := (gt_size_poly hsp).
- rewrite /to_monic /= /monic lead_coef_comp_poly; last first.
-  by rewrite size_scaler ?size_polyX // invr_eq0 lead_coef_eq0.
-rewrite !lead_coef_scale size_scaler; last first.
-  by rewrite expf_eq0 lead_coef_eq0 (negPf pn0) andbF.
-rewrite lead_coefX mulr1 [_ * lead_coef p]mulrC -exprS prednK; last first.
-  by case: (size p) hsp {pn0}.
-by rewrite -exprn_mull mulfV ?lead_coef_eq0 // exp1rn.
+move=> p_neq0 rootpa.
+rewrite ltnNge leq_eqVlt ltnS leqn0 size_poly_eq0 (negPf p_neq0) orbF.
+by apply: contraL rootpa=> /size1P [c c_neq0 ->]; rewrite rootE hornerC.
 Qed.
 
 Lemma to_monicP p sq : p != 0 ->
   let psq' := to_monic p sq in
   (exists x, (((psq'.1).[x] == 0) && \big[andb/true]_(q <- psq'.2) (q.[x] > 0)))
-  <->  
-  exists x, ((p.[x] == 0) && \big[andb/true]_(q <- sq) (q.[x] > 0)).
+  <-> exists x, ((p.[x] == 0) && \big[andb/true]_(q <- sq) (q.[x] > 0)).
 Proof.
-move=> sp.
-have lpn0 : lead_coef p != 0 by rewrite lead_coef_eq0.
-split => [] [] x /andP [rx]; rewrite big_all; move/allP=> xp.
-move: rx xp; rewrite /to_monic /= horner_comp_poly !horner_scaler hornerX.
-rewrite mulf_eq0 expf_eq0 (negPf lpn0) andbF /= => rx px.
-exists ((lead_coef p) ^-1 * x); rewrite rx /= big_all; apply/allP=> q1 hq1.
-have : q1 \Po (lead_coef p)^-1 *: 'X \in 
-                             [seq x \Po (lead_coef p)^-1 *: 'X |  x <- sq].
-  exact: map_f.
-by move/px; rewrite horner_comp_poly horner_scaler hornerX.
-exists ((lead_coef p) * x); rewrite /to_monic /=; apply/andP; split.
-- rewrite horner_comp_poly !horner_scaler hornerX mulrA mulVf //.
-  by rewrite mul1r (eqP rx) mulr0.
-- rewrite big_all; apply/allP => q1 /=; case/mapP=> q2 hq2 -> {q1}.
-  by rewrite horner_comp_poly horner_scaler hornerX mulrA mulVf // mul1r xp.
+move=> sp /=; set a := lead_coef _.
+have a_neq0 : a != 0 by rewrite lead_coef_eq0.
+have hsub : forall x,
+  ((change_varp p).[a * x] == 0) &&
+      \big[andb/true]_(q <- map (change_varq a) sq) (0 < q.[a * x]) =
+   ((p.[x] == 0) && \big[andb/true]_(q <- sq) (0 < q.[x])).
+  move=> x.
+  have [] := ltngtP (size p) 1; first 2 last.
+  + move=> /eqP sp_eq1; move: (sp_eq1); rewrite -size_change_varp=> // scp_eq1.
+    case/size1P: scp_eq1=> c c_neq0 ->; case/size1P: sp_eq1=> c' c'_neq0 ->.
+    by rewrite !hornerC (negPf c_neq0) (negPf c'_neq0).
+  + by rewrite ltnS leqn0 size_poly_eq0 (negPf sp).
+  + move=> sp_gt1; rewrite change_varpP //.
+    rewrite mulf_eq0 expf_eq0 (negPf a_neq0) andbF /=; congr andb.
+    rewrite big_map; apply: eq_big=> // i _.
+    rewrite change_varqP pmulr_rgt0 //.
+    rewrite ltr_neqAle expf_eq0 (negPf a_neq0) andbF /=.
+    by rewrite exprn_even_ge0 // even_to_even.
+split => [] [] x hx; last by exists (a * x); rewrite hsub.
+by exists (a ^-1 * x); rewrite -hsub !mulVKf.
 Qed.
 
 (* very overestimated but convenient pick *)
 Definition maj_not_root (x : R)(p : {poly R}) :=
- if x > 0 
-   then 
-     x + (odflt ord0 [pick i : 'I_(size p).+1 | 
+ if x > 0
+   then
+     x + (odflt ord0 [pick i : 'I_(size p).+1 |
               (~~root p (x + i.+1%:R))]).+1%:R
-   else  (odflt ord0 [pick i : 'I_(size p).+1 | 
+   else  (odflt ord0 [pick i : 'I_(size p).+1 |
                ~~ (root p (i.+1%:R))]).+1%:R.
 
 (*assia : that one is missing  in fintype *)
@@ -1381,19 +1443,19 @@ Qed.
 
 (* assia : pnatr_eq should be provided in ssralg and name is bad *)
 (* the proof is really too long *)
-Lemma too_many_roots_eq0 x p : 
+Lemma too_many_roots_eq0 x p :
 (forall i : 'I_(size p).+1, root p (x + i.+1%:R)) -> p = 0.
 Proof.
 move=> h; case: (altP (p =P 0)) => //; move/max_poly_roots => habs.
-pose s := 
+pose s :=
   (map ((+%R x) \o (fun x : 'I_(size p).+1 => x.+1%:R)) (ord_enum (size p).+1)).
 have sroots : all (root p) s by apply/allP=> xi; case/mapP=> i hi ->; apply: h.
 have : uniq s.
   rewrite map_inj_uniq ?ord_enum_uniq //; apply: inj_comp; first exact: addrI.
    move=> i j /= /eqP; case: (leqP i j) => hij.
-    rewrite eq_sym -subr_eq0 -natr_sub // pnatr_eq0 subn_eq0 => hij'. 
+    rewrite eq_sym -subr_eq0 -natr_sub // pnatr_eq0 subn_eq0 => hij'.
     by apply/val_inj => /=; apply/eqP; rewrite eqn_leq hij.
-  rewrite -subr_eq0 -natr_sub  1?ltnW // pnatr_eq0 subn_eq0 => hij'. 
+  rewrite -subr_eq0 -natr_sub  1?ltnW // pnatr_eq0 subn_eq0 => hij'.
   by apply/val_inj => /=; apply/eqP; rewrite eqn_leq (ltnW hij) andbT.
 by move/(habs _ sroots); rewrite size_map /= size_ord_enum ltnNge leqnSn.
 Qed.
@@ -1404,7 +1466,7 @@ rewrite /maj_not_root; case: (ltrP 0 x) => hx.
   by rewrite ltr_addl // ltr0Sn.
 apply: ler_lt_trans hx _; exact: ltr0Sn.
 Qed.
-  
+
 Lemma maj_not_root_lt0 x p : 0 < maj_not_root x p.
 Proof.
 rewrite /maj_not_root; case: (ltrP 0 x) => hx; rewrite ?ltr0Sn //.
@@ -1420,7 +1482,7 @@ Qed.
 
 Lemma maj_not_rootP x p : p != 0 -> ~~(root p (maj_not_root x p)).
 Proof.
-move=> pn0; rewrite /maj_not_root. 
+move=> pn0; rewrite /maj_not_root.
 case: (ltrP 0 x) => hx; case: pickP=> [y hy | habs] //=.
 - suff : p = 0 by move/eqP; rewrite (negPf pn0).
   by apply: (@too_many_roots_eq0 x) => i; move/negbT: (habs i); rewrite negbK.
@@ -1435,13 +1497,13 @@ Definition pick_right x p := maj_not_root  x ((p \Po (- 'X)) * p).
 
 Lemma pick_right_lt x p : x < pick_right x p.
 Proof. rewrite /pick_right; exact: maj_not_root_lt. Qed.
-  
+
 Lemma pick_right_lt0 x p : 0 < pick_right x p.
 Proof. rewrite /pick_right; exact: maj_not_root_lt0. Qed.
 
 Lemma pick_rightP x p : p != 0 -> ~~(root p (pick_right x p)).
 Proof.
-move=> pn0; rewrite /pick_right. 
+move=> pn0; rewrite /pick_right.
 have ppn0 : (p \Po - 'X) * p != 0.
   by rewrite mulf_eq0 // negb_or -size_poly_eq0 size_aux // size_poly_eq0 andbb.
 by have := (maj_not_rootP x ppn0); rewrite root_mul negb_or; case/andP.
@@ -1449,7 +1511,7 @@ Qed.
 
 Lemma pick_rightPop x p : p != 0 ->  ~~(root p (-(pick_right x p))).
 Proof.
-move=> pn0; rewrite /pick_right. 
+move=> pn0; rewrite /pick_right.
 have ppn0 : (p \Po - 'X) * p != 0.
   by rewrite mulf_eq0 // negb_or -size_poly_eq0 size_aux // size_poly_eq0 andbb.
 have := (maj_not_rootP x ppn0); rewrite root_mul negb_or /root !horner_comp_poly.
@@ -1479,24 +1541,14 @@ Lemma ex_roots_weak : forall p (sq : seq {poly R}), p != 0 ->
 Proof.
 move=> p sq np0; apply: (@equivP _ _ _ _  (@to_monicP _ sq np0)).
 rewrite /ccount_weak.
-have -> : size p = size (to_monic p sq).1.
-  have lcpn0 : lead_coef p != 0 by rewrite lead_coef_eq0.
-  rewrite /to_monic /=.
-  rewrite my_size_comp_poly_id ?size_scaler ?size_polyX // ?invr_eq0 
-    ?scaler_eq0 ?expf_eq0 // ?(negPf lcpn0) ?andbF //=.
-  by rewrite muln1 prednK // lt0n size_poly_eq0.
+have -> : size p = size (to_monic p sq).1 by rewrite /= size_change_varp.
 have -> : has (eq_op^~ 0) sq = has (eq_op^~ 0) (to_monic p sq).2.
-  apply/hasP/hasP=> [] [x hx] /eqP x0.
-  - by exists (x \Po (lead_coef p)^-1 *: 'X); rewrite ?map_f // x0 comp_poly0p.
-  - case/mapP: hx => x1 hx1 ex1; exists x1 => //; case x1n0: (x1 == 0) => //.
-    move: (f_equal (fun x : {poly R} => size x) ex1).
-    rewrite my_size_comp_poly_id ?x1n0 // ?size_scaler ?size_polyX // ?invr_eq0       ?lead_coef_eq0 //=.
-    rewrite muln1 prednK ?lt0n ?size_poly_eq0 ?x1n0 // x0 size_poly0.
-    by move/eqP; rewrite eq_sym size_poly_eq0 x1n0.
-have {np0} : (to_monic p sq).1 != 0.
-  rewrite /to_monic /= -size_poly_eq0 my_size_comp_poly_id //; last first.
-    by rewrite size_scaler ?size_polyX // invr_eq0 lead_coef_eq0.
-  by rewrite scaler_eq0 expf_eq0 lead_coef_eq0 (negPf np0) andbF.
+  apply/hasP/hasP=> [] /= [q hq] q_neq0.
+    exists (change_varq (lead_coef p) q); first by apply/mapP; exists q.
+    by rewrite change_varq_eq0 ?lead_coef_eq0.
+  move/mapP: hq=> [q' hq' qq']; exists q'=> //.
+  by move: q_neq0; rewrite qq' change_varq_eq0 ?lead_coef_eq0.
+have {np0} : (to_monic p sq).1 != 0 by rewrite change_varp_eq0.
 case: (to_monic p sq) => {p sq} p sq /= np0.
 case: (boolP (_ == 1%N)); [rewrite size_poly_eq1|]=> hsp.
   rewrite ltrr; apply: (iffP idP)=> // [] [] x; rewrite -rootE=> /andP [].
@@ -1527,8 +1579,6 @@ rewrite -[_ \in _]ltr_absl.
 apply: ler_lt_trans (pick_right_lt _ _ ).
 by apply: cauchy_boundP=> //; apply/eqP.
 Qed.
-
-
 
 Lemma size_prod_seq_id (R' : idomainType) (I : eqType)
   (s : seq I) (P : pred I) (F : I -> {poly R'}) :
