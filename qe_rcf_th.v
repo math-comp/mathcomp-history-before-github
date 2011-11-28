@@ -1416,12 +1416,8 @@ Qed.
 
 (* very overestimated but convenient pick *)
 Definition maj_not_root (x : R)(p : {poly R}) :=
- if x > 0
-   then
      x + (odflt ord0 [pick i : 'I_(size p).+1 |
-              (~~root p (x + i.+1%:R))]).+1%:R
-   else  (odflt ord0 [pick i : 'I_(size p).+1 |
-               ~~ (root p (i.+1%:R))]).+1%:R.
+              (~~root p (x + i.+1%:R))]).+1%:R.
 
 (*assia : that one is missing  in fintype *)
 Lemma size_ord_enum n : size (ord_enum n) = n.
@@ -1461,17 +1457,10 @@ by move/(habs _ sroots); rewrite size_map /= size_ord_enum ltnNge leqnSn.
 Qed.
 
 Lemma maj_not_root_lt x p : x < maj_not_root x p.
-Proof.
-rewrite /maj_not_root; case: (ltrP 0 x) => hx.
-  by rewrite ltr_addl // ltr0Sn.
-apply: ler_lt_trans hx _; exact: ltr0Sn.
-Qed.
+Proof. by rewrite /maj_not_root ltr_addl // ltr0Sn. Qed.
 
-Lemma maj_not_root_lt0 x p : 0 < maj_not_root x p.
-Proof.
-rewrite /maj_not_root; case: (ltrP 0 x) => hx; rewrite ?ltr0Sn //.
-apply: addr_gt0 => //; exact: ltr0Sn.
-Qed.
+Lemma maj_not_root_lt0 x p : 0 <= x -> 0 < maj_not_root x p.
+Proof. by move=> /ler_lt_trans -> //; apply: maj_not_root_lt. Qed.
 
 Let size_aux p : p != 0 -> size (p \Po (- 'X)) = size p.
 Proof.
@@ -1480,28 +1469,23 @@ rewrite  my_size_comp_poly_id // ?size_opp ?size_polyX //= muln1 prednK //.
 by rewrite lt0n size_poly_eq0.
 Qed.
 
-Lemma maj_not_rootP x p : p != 0 -> ~~(root p (maj_not_root x p)).
+Lemma maj_not_rootP x p : p != 0 -> ~~ (root p (maj_not_root x p)).
 Proof.
 move=> pn0; rewrite /maj_not_root.
-case: (ltrP 0 x) => hx; case: pickP=> [y hy | habs] //=.
-- suff : p = 0 by move/eqP; rewrite (negPf pn0).
-  by apply: (@too_many_roots_eq0 x) => i; move/negbT: (habs i); rewrite negbK.
-- suff : p = 0 by move/eqP; rewrite (negPf pn0).
-  apply: (@too_many_roots_eq0 0) => i.
-  by move/negbT: (habs i); rewrite negbK add0r.
+case: pickP=> [y hy | habs] //=.
+  suff : p = 0 by move/eqP; rewrite (negPf pn0).
+by apply: (@too_many_roots_eq0 x) => i; move/negbT: (habs i); rewrite negbK.
 Qed.
 
-
-Definition pick_right x p := maj_not_root  x ((p \Po (- 'X)) * p).
-
+Definition pick_right x p := maj_not_root x ((p \Po (- 'X)) * p).
 
 Lemma pick_right_lt x p : x < pick_right x p.
 Proof. rewrite /pick_right; exact: maj_not_root_lt. Qed.
 
-Lemma pick_right_lt0 x p : 0 < pick_right x p.
-Proof. rewrite /pick_right; exact: maj_not_root_lt0. Qed.
+Lemma pick_right_lt0 x p : 0 <= x -> 0 < pick_right x p.
+Proof. by move=> /ler_lt_trans -> //; apply: maj_not_root_lt. Qed.
 
-Lemma pick_rightP x p : p != 0 -> ~~(root p (pick_right x p)).
+Lemma pick_rightP x p : p != 0 -> ~~ root p (pick_right x p).
 Proof.
 move=> pn0; rewrite /pick_right.
 have ppn0 : (p \Po - 'X) * p != 0.
@@ -1509,7 +1493,7 @@ have ppn0 : (p \Po - 'X) * p != 0.
 by have := (maj_not_rootP x ppn0); rewrite root_mul negb_or; case/andP.
 Qed.
 
-Lemma pick_rightPop x p : p != 0 ->  ~~(root p (-(pick_right x p))).
+Lemma pick_rightPop x p : p != 0 ->  ~~ root p (-(pick_right x p)).
 Proof.
 move=> pn0; rewrite /pick_right.
 have ppn0 : (p \Po - 'X) * p != 0.
@@ -1567,7 +1551,7 @@ have hs: s != 0.
   apply: contraL hj=> /eqP->.
   by rewrite mem0_sremps.
 apply: (iffP (ex_roots_in _ _ _ _ _))=> //.
-* by rewrite gt0_cp // pick_right_lt0.
+* by rewrite gt0_cp // pick_right_lt0 // ?cauchy_bound_ge0.
 * by move: np0 hsp; rewrite -!size_poly_eq0 size_deriv; case: size.
 * move=> j; rewrite -root_bigmul. move: j; apply/forallP.
   rewrite -root_prod_fintype; exact: pick_rightPop.
