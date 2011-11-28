@@ -112,6 +112,7 @@ cauchyreals.v
 polyXY.v
 realalg.v
 ordered_qelim.v
+qe_rcf.v
 
 COQC = ssrcoq
 COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
