@@ -1588,7 +1588,7 @@ Lemma sum_seq_nat_eq0 (I : eqType) (s : seq I) (P : pred I) (E : I -> nat) :
    (((\sum_(i <- s | P i) E i) == 0) = (all (fun i => P i ==> (E i == 0)) s))%N.
 Proof. by rewrite (big_morph _ addn_eq0 (eqxx _)) big_all_cond. Qed.
 
-(*Set Printing Width 30.*)
+Set Printing Width 30.
 
 Definition bounding_poly (sq : seq {poly R}) := (\prod_(q <- sq) q)^`().
 
@@ -1605,10 +1605,73 @@ rewrite big_cons /=; have [Pi | ?] := ifP.
 by case/IHr=> j  /andP [rj Pj] Fj; exists j; rewrite // in_cons rj orbT.
 Qed.
 
+(* assia : really too long *)
+Lemma poly_lim_infty p m : lead_coef p > 0 -> (size p > 1)%N ->
+  exists n, forall x, x >= n -> p.[x] >= m.
+Proof.
+elim/poly_ind: p m => [| p1 c ih] m hlp hsp.
+  by move: hlp; rewrite lead_coef0 ltrr.
+case e: (size p1) => [|k].
+  move/eqP: e; rewrite size_poly_eq0; move/eqP=> e; move: hsp.
+  by rewrite e mul0r add0r size_polyC; case: (c == 0).
+case:k e => [|k] e.
+  move/eqP: e; case/size1P=> v vn0 ev; rewrite ev.
+  exists ((m - c) * (v ^-1)) => x hx.
+  rewrite horner_add horner_mul !hornerC hornerX -lter_subl_addr.
+  rewrite mulrC -lter_pdivr_mulr //; move: hlp; rewrite ev mul_polyC. 
+  rewrite lead_coef_addl; first by rewrite lead_coef_scale lead_coefX mulr1.
+  by rewrite size_polyC size_scaler // size_polyX; case: (c == 0).
+have {e} hsp1 : (size p1 > 1)%N by rewrite e.
+have hlp1 : 0 < lead_coef p1.
+  move: hlp.
+  rewrite lead_coef_addl ?lead_coef_mulX // size_polyC size_mul_id.
+  - rewrite size_polyX !addnS addn0; case: (c == 0) => //=.
+    by apply: ltn_trans hsp1 _.
+  - rewrite -size_poly_eq0 -lt0n; exact: leq_trans hsp1.
+  - by rewrite -size_poly_eq0 size_polyX.
+case: (ih (maxr 1 (m - c)) hlp1 hsp1) => m1 hm1.
+exists (maxr m1 1) => x hx; rewrite horner_add horner_mul hornerC hornerX.
+apply: (@ler_trans _  ((maxr 1 (m - c)) + c)).
+  rewrite {1}(_ : m = m - c + c); last by rewrite -addrA addNr addr0.
+  by rewrite ler_add2r ler_maxr lerr orbT.
+rewrite ler_add2r; apply: (@ler_trans _  (p1.[x])).
+  by apply: hm1; move: hx; rewrite ler_maxl; case/andP.
+rewrite ler_pmulr; first by move: hx; rewrite ler_maxl; case/andP.
+apply: ltr_le_trans ltr01 _.
+have : m1 <= x by  move: hx; rewrite ler_maxl; case/andP.
+by move/hm1; rewrite ler_maxl; case/andP.
+Qed.
+
 Lemma pol_sg_pinfty x y p : (forall z, z >= x -> p.[z] != 0) -> 
   y >= x-> sgr p.[y] = sgr (lead_coef p).
 Proof.
-Admitted.
+wlog hlp: x y p / lead_coef p > 0.
+  move=> hwlog hnr hxy; case: (ltrgtP (lead_coef p) 0); last first.
+  - by move/eqP; rewrite lead_coef_eq0; move/eqP->; rewrite horner0 lead_coef0.
+  - by move/(hwlog x y); move/(_ hnr hxy).
+  - move=> hlp. pose q := - p.
+    have hlq : 0 < lead_coef q by rewrite lead_coef_opp oppr_gt0.
+    have hnq z :  x <= z -> q.[z] != 0.
+      by move=> hxz; rewrite horner_opp oppr_eq0; apply: hnr.
+    move: (hwlog x y _ hlq hnq hxy); rewrite horner_opp lead_coef_opp !sgrN.
+    by move/oppr_inj.
+move=> hnr hxy; case: (ltngtP (size p) 1) => [| hsp | ].
+- rewrite ltnS leqn0 size_poly_eq0; move/eqP => p0; move: hlp; rewrite p0.
+  by rewrite lead_coef0 ltrr.
+- case: (poly_lim_infty 1 hlp hsp) => m hm.
+  move: hlp; rewrite -sgr_cp0; move/eqP=> ->.
+  have {hnr} hnr z : x <= z -> sgr p.[z] = sgr p.[x].
+    move=> hxz. 
+      have : {in `[x, +oo[, forall t, ~~ root p t}.
+      move=> t; case/int_dec=> htl _; rewrite /root; exact: hnr.
+    move/polyrN0_int; move/(_ x z); apply; first by rewrite boundl_in_int.
+    by apply/int_dec.
+  case: (lerP m x) => hmx; last first.
+    rewrite hnr // -(hnr m) ?ltrW //; apply/eqP; rewrite sgr_cp0.
+    by apply: ltr_le_trans (hm _ (lerr m)).
+  by rewrite hnr //; apply/eqP; rewrite sgr_cp0; apply: ltr_le_trans (hm _ hmx).
+- by move/eqP; case/size1P=> c cn0 ->; rewrite hornerC lead_coefC.
+Qed.
 
 Lemma pol_sg_minfty x y p : (forall z, z <= x -> p.[z] != 0) -> 
   y <= x-> sgr p.[y] = sgr ((-1)^+(size p).-1 * (lead_coef p)).
