@@ -52,7 +52,7 @@ Fixpoint term_eq (T : eqType)(t1 t2 : term T) :=
 
 Lemma term_eqP (T : eqType) : Equality.axiom (@term_eq T).
 Proof.
-move=> t1 t2; apply: (iffP idP) => [|<-]; last first. 
+move=> t1 t2; apply: (iffP idP) => [|<-]; last first.
   by elim: t1 {t2} => //= t -> // n; rewrite eqxx.
 elim: t1 t2.
 - by move=> n1 /= [] // n2 /eqP ->.
@@ -67,7 +67,7 @@ elim: t1 t2.
 Qed.
 
 Canonical term_eqMixin (T : eqType) := EqMixin (@term_eqP T).
-Canonical term_eqType (T : eqType) := 
+Canonical term_eqType (T : eqType) :=
    Eval hnf in EqType (term T) (@term_eqMixin T).
 
 Implicit Arguments term_eqP [x y].
@@ -133,7 +133,7 @@ Variable T : Type.
 Fixpoint fsubst (f : formula T) (s : nat * term T) :=
   match f with
   | Bool _ => f
-  | (t1 == t2) => (tsubst t1 s == tsubst t2 s) 
+  | (t1 == t2) => (tsubst t1 s == tsubst t2 s)
   | (t1 <% t2) => (tsubst t1 s <% tsubst t2 s)
   | (t1 <=% t2) => (tsubst t1 s <=% tsubst t2 s)
   | (Unit t1) => Unit (tsubst t1 s)
@@ -149,16 +149,16 @@ End Substitution.
 
 Section OrderedClause.
 
-Inductive oclause (R : Type) : Type := 
+Inductive oclause (R : Type) : Type :=
   Oclause : seq (term R) -> seq (term R) -> seq (term R) -> seq (term R) -> oclause R.
 
-Definition eq_of_oclause (R : Type)(x : oclause R) := 
+Definition eq_of_oclause (R : Type)(x : oclause R) :=
   let: Oclause y _ _ _  := x in y.
-Definition neq_of_oclause (R : Type)(x : oclause R) := 
+Definition neq_of_oclause (R : Type)(x : oclause R) :=
   let: Oclause _ y _ _  := x in y.
-Definition lt_of_oclause (R : Type) (x : oclause R) := 
+Definition lt_of_oclause (R : Type) (x : oclause R) :=
   let: Oclause  _ _ y _  := x in y.
-Definition le_of_oclause (R : Type) (x : oclause R) := 
+Definition le_of_oclause (R : Type) (x : oclause R) :=
   let: Oclause  _ _ _ y := x in y.
 
 End OrderedClause.
@@ -190,7 +190,7 @@ by move/eqP=> -> /eqP -> /eqP -> /eqP ->.
 Qed.
 
 Canonical oclause_eqMixin (T : eqType) := EqMixin (@oclause_eqP T).
-Canonical oclause_eqType (T : eqType) := 
+Canonical oclause_eqType (T : eqType) :=
    Eval hnf in EqType (oclause T) (@oclause_eqMixin T).
 
 Implicit Arguments oclause_eqP [x y].
@@ -263,7 +263,7 @@ Fixpoint rformula (f : formula R) :=
   | t1 == t2 => rterm t1 && rterm t2
   | t1 <% t2 => rterm t1 && rterm t2
   | t1 <=% t2 => rterm t1 && rterm t2
-  | Unit t1 => false  
+  | Unit t1 => false
   | (f1 /\ f2) | (f1 \/ f2) | (f1 ==> f2) => rformula f1 && rformula f2
   | (~ f1) | ('exists 'X__, f1) | ('forall 'X__, f1) => rformula f1
   end%oT.
@@ -280,7 +280,7 @@ Definition eq0_rform t1 :=
   end%oT
   in loop r1 m.
 
-(* An oformula stating that t1 is less than 0 in the equational ring theory. 
+(* An oformula stating that t1 is less than 0 in the equational ring theory.
 Definition leq0_rform t1 :=
   let m := @ub_var R t1 in
   let: (t1', r1) := to_rterm t1 [::] m in
@@ -349,13 +349,13 @@ Fixpoint to_rform f :=
    how to factorize ? *)
 Lemma to_rform_rformula f : rformula (to_rform f).
 Proof.
-suffices [h1 h2 h3]: 
-  [/\ forall t1, rformula (eq0_rform t1), 
-      forall t1, rformula (lt0_rform t1) & 
+suffices [h1 h2 h3]:
+  [/\ forall t1, rformula (eq0_rform t1),
+      forall t1, rformula (lt0_rform t1) &
       forall t1, rformula (leq0_rform t1)].
   by elim: f => //= => f1 ->.
 split=> t1.
-- rewrite /eq0_rform; move: (ub_var t1) => m. 
+- rewrite /eq0_rform; move: (ub_var t1) => m.
   set tr := _ m.
   suffices: all (@rterm R) (tr.1 :: tr.2)%PAIR.
     case: tr => {t1} t1 r /= /andP[t1_r].
@@ -436,7 +436,7 @@ suffices{e f} [equal0_equiv lt0_equiv le0_equiv]:
   + move=> f1 IHf1 e; move: (IHf1 e); tauto.
   + by move=> n f1 IHf1 e; split=> [] [x] /IHf1; exists x.
   + by move=> n f1 IHf1 e; split=> Hx x; apply/IHf1.
-suffices h e t1 t2 : 
+suffices h e t1 t2 :
   [/\ holds e (eq0_rform (t1 - t2)) <-> (eval e t1 == eval e t2),
     holds e (lt0_rform (t1 - t2)) <-> (eval e t1 < eval e t2) &
     holds e (leq0_rform (t1 - t2)) <-> (eval e t1 <= eval e t2)].
@@ -606,19 +606,19 @@ Qed.
 
 Definition and_odnf (bcs1 bcs2 : seq (oclause R)) :=
   \big[cat/nil]_(bc1 <- bcs1)
-     map (fun bc2 : oclause R => 
+     map (fun bc2 : oclause R =>
        (Oclause (bc1.1 ++ bc2.1) (bc1.2 ++ bc2.2) (bc1.3 ++ bc2.3) (bc1.4 ++ bc2.4)))%OCLAUSE bcs2.
 
 (* Computes a DNF from a qf ring formula *)
 Fixpoint qf_to_odnf (f : formula R) (neg : bool) {struct f} : seq (oclause R) :=
   match f with
   | Bool b => if b (+) neg then [:: (Oclause [::] [::] [::] [::])] else [::]
-  | t1 == t2 => 
+  | t1 == t2 =>
     [:: if neg then (Oclause [::] [:: t1 - t2] [::] [::]) else (Oclause [:: t1 - t2] [::] [::] [::])]
-  | t1 <% t2 => 
-    [:: if neg then (Oclause [::] [::] [::] [:: t2 - t1]) else (Oclause [::] [::] [:: t1 - t2] [::])]
-  | t1 <=% t2 => 
-    [:: if neg then (Oclause [::] [::] [:: t2 - t1] [::]) else (Oclause [::] [::] [::] [:: t1 - t2])]
+  | t1 <% t2 =>
+    [:: if neg then (Oclause [::] [::] [::] [:: t1 - t2]) else (Oclause [::] [::] [:: t2 - t1] [::])]
+  | t1 <=% t2 =>
+    [:: if neg then (Oclause [::] [::] [:: t1 - t2] [::]) else (Oclause [::] [::] [::] [:: t2 - t1])]
   | f1 /\ f2 => (if neg then cat else and_odnf) [rec f1, neg] [rec f2, neg]
   | f1 \/ f2 => (if neg then and_odnf else cat) [rec f1, neg] [rec f2, neg]
   | f1 ==> f2 => (if neg then and_odnf else cat) [rec f1, ~~ neg] [rec f2, neg]
@@ -628,11 +628,11 @@ Fixpoint qf_to_odnf (f : formula R) (neg : bool) {struct f} : seq (oclause R) :=
 
 (* Conversely, transforms a DNF into a formula *)
 Definition odnf_to_oform :=
-  let pos_lit t := And (t == 0)%oT in let neg_lit t := And (t != 0)%oT in 
-  let lt_lit t :=  And (t <% 0)%oT in let le_lit t := And (t <=% 0)%oT in
+  let pos_lit t := And (t == 0)%oT in let neg_lit t := And (t != 0)%oT in
+  let lt_lit t :=  And (0 <% t)%oT in let le_lit t := And (0 <=% t)%oT in
   let ocls (bc : oclause R) :=
-    Or 
-    (foldr pos_lit True bc.1 /\ foldr neg_lit True bc.2 /\ 
+    Or
+    (foldr pos_lit True bc.1 /\ foldr neg_lit True bc.2 /\
      foldr lt_lit True bc.3 /\ foldr le_lit True bc.4) in
   foldr ocls False.
 
@@ -671,16 +671,16 @@ Proof.
 move=> qev; have qevT f: qev f true = ~~ qev f false.
   rewrite {}/qev; elim: f => //=; do [by case | move=> f1 IH1 f2 IH2 | ].
   - by move=> t1 t2; rewrite !andbT !orbF.
-  - by move=> t1 t2; rewrite !andbT !orbF; rewrite !subr_lte0 -lerNgt.
-  - by move=> t1 t2; rewrite !andbT !orbF; rewrite !subr_lte0 -ltrNge.
+  - by move=> t1 t2; rewrite !andbT !orbF; rewrite !subr_gte0 -lerNgt.
+  - by move=> t1 t2; rewrite !andbT !orbF; rewrite !subr_gte0 -ltrNge.
   - by rewrite and_odnfP cat_dnfP negb_and -IH1 -IH2.
   - by rewrite and_odnfP cat_dnfP negb_or -IH1 -IH2.
   - by rewrite and_odnfP cat_dnfP /= negb_or IH1 -IH2 negbK.
   by move=> t1 ->; rewrite negbK.
 rewrite /qev; elim=> //=; first by case.
 - by move=> t1 t2 _; rewrite subr_eq0 !andbT orbF.
-- by move=> t1 t2 _; rewrite orbF !andbT subr_lte0. 
-- by move=> t1 t2 _; rewrite orbF !andbT subr_lte0. 
+- by move=> t1 t2 _; rewrite orbF !andbT subr_gte0.
+- by move=> t1 t2 _; rewrite orbF !andbT subr_gte0.
 - move=> f1 IH1 f2 IH2; rewrite andbCA -andbA andbCA andbA; case/andP.
   by rewrite and_odnfP /= => /IH1-> /IH2->.
 - move=> f1 IH1 f2 IH2; rewrite andbCA -andbA andbCA andbA; case/andP.
@@ -692,11 +692,11 @@ Qed.
 
 Lemma dnf_to_form_qf bcs : qf_form (odnf_to_oform bcs).
 Proof.
-elim: bcs => //= [[clT clF] clLt clLe ? ->] /=; elim: clT => //=. 
+elim: bcs => //= [[clT clF] clLt clLe ? ->] /=; elim: clT => //=.
 by rewrite andbT; elim: clF; elim: clLt => //; elim: clLe.
 Qed.
 
-Definition dnf_rterm (cl : oclause R) := 
+Definition dnf_rterm (cl : oclause R) :=
   [&& all (@rterm R) cl.1, all (@rterm R) cl.2,
   all (@rterm R) cl.3 & all (@rterm R) cl.4].
 
@@ -723,8 +723,8 @@ Proof.
 elim: bcs => //= [[cl1 cl2 cl3 cl4] bcs ->]; rewrite {2}/dnf_rterm /=; congr (_ && _).
 congr andb; first by elim: cl1 => //= t cl ->; rewrite andbT.
 congr andb; first by elim: cl2 => //= t cl ->; rewrite andbT.
-congr andb; first by elim: cl3 => //= t cl ->; rewrite andbT.
-by elim: cl4 => //= t cl ->; rewrite andbT.
+congr andb; first by elim: cl3 => //= t cl ->.
+by elim: cl4 => //= t cl ->.
 Qed.
 
 Implicit Type f : formula R.
@@ -732,16 +732,16 @@ Implicit Type f : formula R.
 Fixpoint leq_elim_aux (eq_l lt_l le_l : seq (term R)) :=
   match le_l with
     [::] => [:: (eq_l, lt_l)]
-    |le1 :: le_l' => 
+    |le1 :: le_l' =>
   let res := leq_elim_aux eq_l lt_l le_l' in
   let as_eq := map (fun x => (le1 :: x.1%PAIR, x.2%PAIR)) res in
   let as_lt := map (fun x => (x.1%PAIR, le1 :: x.2%PAIR)) res in
     as_eq ++ as_lt
   end.
 
-Definition oclause_leq_elim oc : seq (oclause R) := 
+Definition oclause_leq_elim oc : seq (oclause R) :=
   let: Oclause eq_l neq_l lt_l le_l := oc in
-    map (fun x => Oclause x.1%PAIR neq_l x.2%PAIR [::]) 
+    map (fun x => Oclause x.1%PAIR neq_l x.2%PAIR [::])
     (leq_elim_aux eq_l lt_l le_l).
 
 Definition terms_of_oclause (oc : oclause R) :=
@@ -749,12 +749,12 @@ Definition terms_of_oclause (oc : oclause R) :=
     eq_l ++ neq_l ++ lt_l ++ le_l.
 
 Lemma terms_of_leq_elim oc1 oc2:
-  oc2 \in (oclause_leq_elim oc1) -> 
+  oc2 \in (oclause_leq_elim oc1) ->
   (terms_of_oclause oc2) =i (terms_of_oclause oc1).
 case: oc1 => eq1 neq1 lt1 leq1 /=.
 elim: leq1 eq1 lt1 oc2 => [|t1 leq1 ih] eq1 lt1 [eq2 neq2 lt2 leq2] /=.
   by rewrite inE; case/eqP=> -> -> -> -> ?.
-rewrite map_cat /= mem_cat -!map_comp; set f := fun _ => _. 
+rewrite map_cat /= mem_cat -!map_comp; set f := fun _ => _.
 rewrite -/f in ih; case/orP.
   case/mapP=> [[y1 y2]] yin ye.
   move: (ih eq1 lt1 (f (y1, y2))); rewrite mem_map //; last first.
@@ -783,7 +783,7 @@ case;  last by move=> ?; right; left.
 by do 3!case=> ?; move=> ?; left.
 Qed.
 
-Lemma oclause_leq_elimP oc e : 
+Lemma oclause_leq_elimP oc e :
   holds e (odnf_to_oform [:: oc])  <->
   holds e (odnf_to_oform (oclause_leq_elim oc)).
 Proof.
@@ -792,19 +792,19 @@ elim: le_l eq_l neq_l lt_l => [|t le_l ih] eq_l neq_l lt_l //=.
 move: (ih eq_l neq_l lt_l) => /= {ih}.
 set x1 := foldr _ _ _; set x2 := foldr _ _ _; set x3 := foldr _ _ _.
 set x4 := foldr _ _ _ => h.
-have -> : (holds e x1 /\ holds e x2 /\ holds e x3 /\ eval e t <= 0%:R /\
+have -> : (holds e x1 /\ holds e x2 /\ holds e x3 /\ 0%:R <= eval e t /\
             holds e x4 \/ false) <->
-          (eval e t <= 0%:R) /\ (holds e x1 /\ holds e x2 /\ holds e x3 /\
+          (0%:R <= eval e t) /\ (holds e x1 /\ holds e x2 /\ holds e x3 /\
             holds e x4 \/ false).
   split; first by case=> //; do 4! (case => ?); move=> ?; split => //; left.
   by case=> ?; case => //; do 3! (case=> ?); move=> ?; left.
 rewrite h {h} /= !map_cat /= -!map_comp.
-set s1 := [seq _ | _ <- _]; set s2 := [seq _ | _ <- _]. 
+set s1 := [seq _ | _ <- _]; set s2 := [seq _ | _ <- _].
 set s3 := [seq _ | _ <- _]. rewrite odnf_to_oform_cat.
-suff {x1 x2 x3 x4} /= -> : 
+suff {x1 x2 x3 x4} /= -> :
   holds e (odnf_to_oform s2) <-> eval e t == 0%:R /\ holds e (odnf_to_oform s1).
-  suff /= -> : 
-    holds e (odnf_to_oform s3) <-> eval e t < 0%:R /\ holds e (odnf_to_oform s1).
+  suff /= -> :
+    holds e (odnf_to_oform s3) <-> 0%:R < eval e t /\ holds e (odnf_to_oform s1).
     rewrite ler_eqVlt eq_sym; split; first by case; case/orP=> -> ?; [left|right].
     by case; [case=> -> ? /= |case=> ->; rewrite orbT].
   rewrite /s1 /s3.
@@ -825,25 +825,25 @@ Qed.
 Fixpoint neq_elim_aux (lt_l neq_l : seq (term R)) :=
   match neq_l with
     [::] => [:: lt_l]
-    |neq1 :: neq_l' => 
+    |neq1 :: neq_l' =>
   let res := neq_elim_aux lt_l neq_l' in
   let as_pos := map (fun x => neq1 :: x) res in
   let as_neg := map (fun x => Opp neq1 :: x) res in
     as_pos ++ as_neg
   end.
 
-Definition oclause_neq_elim oc : seq (oclause R) := 
+Definition oclause_neq_elim oc : seq (oclause R) :=
   let: Oclause eq_l neq_l lt_l le_l := oc in
     map (fun x => Oclause eq_l [::] x le_l) (neq_elim_aux lt_l neq_l).
 
 Lemma terms_of_neq_elim oc1 oc2:
-  oc2 \in (oclause_neq_elim oc1) -> 
+  oc2 \in (oclause_neq_elim oc1) ->
   {subset (terms_of_oclause oc2) <= (terms_of_oclause oc1) ++ (map Opp oc1.2)}.
 Proof.
 case: oc1 => eq1 neq1 lt1 leq1 /=.
 elim: neq1 lt1 oc2 => [|t1 neq1 ih] lt1 [eq2 neq2 lt2 leq2] /=.
   by rewrite inE; case/eqP=> -> -> -> ->; rewrite !cats0 !cat0s.
-rewrite map_cat /= mem_cat -!map_comp; set f := fun _ => _. 
+rewrite map_cat /= mem_cat -!map_comp; set f := fun _ => _.
 rewrite -/f in ih; case/orP.
   case/mapP=> y yin ye.
   move: (ih lt1 (f y)); rewrite mem_map //; last first.
@@ -851,7 +851,7 @@ rewrite -/f in ih; case/orP.
   move/(_ yin); move: ye; rewrite /f /=; case=> -> -> -> -> /= h.
   move=> u. rewrite !mem_cat !in_cons orbAC orbC mem_cat -!orbA.
   case/orP; first by move->; rewrite !orbT.
-  rewrite !orbA [_ || (_ \in eq1)]orbC; move: (h u); rewrite !mem_cat=> hu. 
+  rewrite !orbA [_ || (_ \in eq1)]orbC; move: (h u); rewrite !mem_cat=> hu.
   by move/hu; do 2! (case/orP; last by move->; rewrite !orbT); move->.
 case/mapP=> y yin ye.
 move: (ih lt1 (f y)); rewrite mem_map //; last first.
@@ -859,12 +859,12 @@ move: (ih lt1 (f y)); rewrite mem_map //; last first.
 move/(_ yin); move: ye; rewrite /f /=; case=> -> -> -> -> /= h.
 move=> u; rewrite !mem_cat !in_cons orbAC orbC mem_cat -!orbA.
 case/orP; first by move->; rewrite !orbT.
-rewrite !orbA [_ || (_ \in eq1)]orbC; move: (h u); rewrite !mem_cat=> hu. 
+rewrite !orbA [_ || (_ \in eq1)]orbC; move: (h u); rewrite !mem_cat=> hu.
 by move/hu; do 2! (case/orP; last by move->; rewrite !orbT); move->.
 Qed.
 
 
-Lemma oclause_neq_elimP oc e : 
+Lemma oclause_neq_elimP oc e :
   holds e (odnf_to_oform [:: oc])  <->
   holds e (odnf_to_oform (oclause_neq_elim oc)).
 Proof.
@@ -884,14 +884,14 @@ have -> : holds e x1 /\
   - by case=> ?; case; case=> ? ? [] ? ?; split=> //; left.
   - by move=> ?; case => //; do 3! case => ?; move=> ?; left.
 rewrite h {h} /= !map_cat /= -!map_comp.
-set s1 := [seq _ | _ <- _]; set s2 := [seq _ | _ <- _]. 
+set s1 := [seq _ | _ <- _]; set s2 := [seq _ | _ <- _].
 set s3 := [seq _ | _ <- _]; rewrite odnf_to_oform_cat.
-suff {x1 x2 x3 x4} /= -> : 
-  holds e (odnf_to_oform s2) <-> eval e t < 0%:R /\ holds e (odnf_to_oform s1).
-  suff /= -> : 
-    holds e (odnf_to_oform s3) <-> - eval e t < 0%:R /\ holds e (odnf_to_oform s1).
-    rewrite oppr_lt0; split.
-      by case; move/eqP; rewrite neqr_lt; case/orP=> -> h1; [left | right].
+suff {x1 x2 x3 x4} /= -> :
+  holds e (odnf_to_oform s2) <-> 0%:R < eval e t/\ holds e (odnf_to_oform s1).
+  suff /= -> :
+    holds e (odnf_to_oform s3) <-> 0%:R < - eval e t /\ holds e (odnf_to_oform s1).
+    rewrite oppr_gt0; split.
+      by case; move/eqP; rewrite neqr_lt; case/orP=> -> h1; [right | left].
     by case; case=> h ?; split=> //; apply/eqP; rewrite neqr_lt h ?orbT.
   rewrite /s1 /s3.
   elim: (neq_elim_aux lt_l neq_l) => /= [| t1 l ih] /=; first by split => //; case.
@@ -914,12 +914,12 @@ Definition oclause_neq_leq_elim oc :=
   flatten (map oclause_neq_elim (oclause_leq_elim oc)).
 
 Lemma terms_of_neq_leq_elim oc1 oc2:
-  oc2 \in (oclause_neq_leq_elim oc1) -> 
+  oc2 \in (oclause_neq_leq_elim oc1) ->
   {subset (terms_of_oclause oc2) <= (terms_of_oclause oc1) ++ map Opp oc1.2}.
 Proof.
 rewrite /oclause_neq_leq_elim /flatten; rewrite foldr_map.
 suff : forall oc3,
-  oc3 \in (oclause_leq_elim oc1) -> 
+  oc3 \in (oclause_leq_elim oc1) ->
   (terms_of_oclause oc3 =i terms_of_oclause oc1) /\ oc3.2 = oc1.2.
   elim: (oclause_leq_elim oc1) => [| t l ih] //= h1.
   rewrite mem_cat; case/orP.
@@ -929,17 +929,17 @@ suff : forall oc3,
 move=> {oc2} oc3 hoc3; split; first exact: terms_of_leq_elim.
 case: oc3 hoc3=> eq2 neq2 lt2 leq2 /=; case: oc1=> eq1 neq1 lt1 leq1 /=.
 elim: leq1 => [| t1 le1 ih] //=; first by rewrite inE; case/eqP=> _ ->.
-rewrite map_cat mem_cat; move: ih. 
+rewrite map_cat mem_cat; move: ih.
 elim: (leq_elim_aux eq1 lt1 le1) => [| t2 l2 ih2] //=; rewrite !in_cons.
 move=> h1; case/orP=> /=.
   case/orP; first by case/eqP.
   by move=> h2; apply: ih2; rewrite ?h2 //; move=> h3; apply: h1; rewrite h3 orbT.
 case/orP; first by case/eqP.
-move=> h3; apply: ih2; last by rewrite h3 orbT. 
+move=> h3; apply: ih2; last by rewrite h3 orbT.
 by move=> h2; apply: h1; rewrite h2 orbT.
 Qed.
 
-Lemma oclause_neq_leq_elimP oc e : 
+Lemma oclause_neq_leq_elimP oc e :
   holds e (odnf_to_oform [:: oc])  <->
   holds e (odnf_to_oform (oclause_neq_leq_elim oc)).
 Proof.
@@ -950,11 +950,11 @@ suff -> : forall A, A \/ false <-> A by [].
 by intuition.
 Qed.
 
-Definition oclause_to_w oc := 
+Definition oclause_to_w oc :=
   let s := oclause_neq_leq_elim oc in
     map (fun x => let: Oclause eq_l neq_l lt_l leq_l := x in (eq_l, lt_l)) s.
 
-Definition w_to_oclause (t : seq (term R) * seq (term R)) := 
+Definition w_to_oclause (t : seq (term R) * seq (term R)) :=
   Oclause t.1%PAIR [::] t.2%PAIR [::].
 
 Lemma oclause_leq_elim4 bc oc : oc \in (oclause_leq_elim bc) -> oc.4 == [::].
@@ -974,7 +974,7 @@ apply: ih2; first by move=> hoc2; apply: ih1; rewrite in_cons hoc2 orbT.
 by rewrite mem_cat hoc1 orbT.
 Qed.
 
-Lemma oclause_neq_elim2 bc oc : 
+Lemma oclause_neq_elim2 bc oc :
   oc \in (oclause_neq_elim bc) -> (oc.2 == [::]) && (oc.4 == bc.4).
 Proof.
 case: bc => bc1 bc2 bc3 bc4; elim: bc2 bc4 oc => [|t bc2 /= ih] bc4 /= oc.
@@ -992,7 +992,7 @@ apply: ih2; first by move=> hoc2; apply: ih1; rewrite in_cons hoc2 orbT.
 by rewrite mem_cat hoc1 orbT.
 Qed.
 
-Lemma oclause_to_wP e bc : 
+Lemma oclause_to_wP e bc :
   holds e (odnf_to_oform (oclause_neq_leq_elim bc)) <->
   holds e (odnf_to_oform (map w_to_oclause (oclause_to_w bc))).
 Proof.
@@ -1008,25 +1008,24 @@ suff <- : (oclause_neq_elim t1) = map w_to_oclause
 have : forall oc, oc \in (oclause_neq_elim t1) -> oc.2 = [::] /\ oc.4 = [::].
   move=> oc hoc; move/oclause_neq_elim2: (hoc); case/andP=> /eqP -> /eqP ->.
   by move/eqP: (h4 _ (mem_head _ _))->.
-elim: (oclause_neq_elim t1) => [| [teq1 tneq1 tleq1 tlt1] l2 ih2] h24 //=. 
+elim: (oclause_neq_elim t1) => [| [teq1 tneq1 tleq1 tlt1] l2 ih2] h24 //=.
 rewrite /w_to_oclause /=; move: (h24 _ (mem_head _ _ ))=> /= [] -> ->.
 by congr (_ :: _); apply: ih2 => oc hoc; apply: h24; rewrite in_cons hoc orbT.
 Qed.
 
 Variable wproj : nat -> (seq (term R) * seq (term R)) -> formula R.
 
-Definition proj (n : nat)(oc : oclause R) := 
+Definition proj (n : nat)(oc : oclause R) :=
   foldr Or False (map (wproj n) (oclause_to_w oc)).
 
 Hypothesis wf_QE_wproj : forall i bc (bc_i := wproj i bc),
   dnf_rterm (w_to_oclause bc) -> qf_form bc_i && rformula bc_i.
 
 Lemma dnf_rterm_subproof bc : dnf_rterm bc ->
-
   all (dnf_rterm \o w_to_oclause) (oclause_to_w bc).
 Proof.
 case: bc => leq lneql llt lle; rewrite /dnf_rterm /=; case/and4P=> req rneq rlt rle.
-rewrite /oclause_to_w /= !all_map. 
+rewrite /oclause_to_w /= !all_map.
 apply/allP => [] [oc_eq oc_neq oc_le oc_lt] hoc; rewrite /dnf_rterm /= andbT.
 rewrite -all_cat; apply/allP=> u hu; move/terms_of_neq_leq_elim: hoc => /=.
 move/(_ u); rewrite !mem_cat.
@@ -1054,10 +1053,10 @@ elim: (oclause_to_w _ ) => //= [a t] ih /andP [h1 h2].
 by case: (ih h2)=> -> ->; case/andP: (wf_QE_wproj i h1) => -> ->.
 Qed.
 
-Hypothesis valid_QE_wproj : 
+Hypothesis valid_QE_wproj :
   forall i bc (bc' := w_to_oclause bc)
     (ex_i_bc := ('exists 'X_i, odnf_to_oform [:: bc'])%oT) e,
-  dnf_rterm bc' ->  
+  dnf_rterm bc' ->
   reflect (holds e ex_i_bc) (qf_eval e (wproj i bc)).
 
 Lemma valid_QE_proj e i : forall bc (bc_i := proj i bc)
@@ -1066,13 +1065,13 @@ Lemma valid_QE_proj e i : forall bc (bc_i := proj i bc)
 Proof.
 move=> bc; rewrite /dnf_rterm => hdnf; rewrite /proj; apply: (equivP idP).
 have -> : holds e ('exists 'X_i, odnf_to_oform [:: bc]) <->
-          (exists x : R, holds (set_nth 0 e i x) 
+          (exists x : R, holds (set_nth 0 e i x)
             (odnf_to_oform (oclause_neq_leq_elim bc))).
   split; case=> x h; exists x; first by rewrite -oclause_neq_leq_elimP.
   by rewrite oclause_neq_leq_elimP.
-have -> : 
-  (exists x : R, 
-    holds (set_nth 0 e i x) (odnf_to_oform (oclause_neq_leq_elim bc))) <-> 
+have -> :
+  (exists x : R,
+    holds (set_nth 0 e i x) (odnf_to_oform (oclause_neq_leq_elim bc))) <->
   (exists x : R,
     holds (set_nth 0 e i x) (odnf_to_oform (map w_to_oclause (oclause_to_w bc)))).
   by split; case=> x; move/oclause_to_wP=> h; exists x.
@@ -1116,7 +1115,7 @@ suffices aux_wf f0 n : let qf := elim_aux f0 n in
                      case/andP: (IH rf1)=> qff rf;
                      rewrite aux_wf ].
 rewrite /elim_aux => rf.
-suffices or_wf fs : let ofs := foldr Or False fs in 
+suffices or_wf fs : let ofs := foldr Or False fs in
   all qf_form fs && all rformula fs -> qf_form ofs && rformula ofs.
 - apply: or_wf.
   suffices map_proj_wf bcs: let mbcs := map (proj n) bcs in

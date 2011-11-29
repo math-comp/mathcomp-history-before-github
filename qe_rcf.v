@@ -30,7 +30,7 @@ Definition polyF := seq (term F).
 Notation fF := (formula  F).
 Notation qf f := (qf_form f && rformula f).
 
-Lemma qfP (f : formula F) (fP : qf f) : qf f * qf_form f * rformula f.
+Lemma qfP (f : formula F) (fP : qf f) : qf_form f * rformula f.
 Proof. by do ?split=> //; case/andP: fP. Qed.
 
 (* Lemma And_qf (f g : qf_rformula) : qf (f /\ g). *)
@@ -89,6 +89,24 @@ move=> qfp qft qfe; have mA := (big_morph (@qf_form _)) true andb.
 rewrite mA // big1 //= => p _.
 rewrite mA // big1 => [|i _]; first by case: pick.
 by rewrite fun_if if_same /= qfp.
+Qed.
+
+Lemma Pick_form_rf :
+   (forall i, rformula (pred_f i)) ->
+   (forall i, rformula (then_f i)) ->
+    rformula else_f -> rformula Pick.
+Proof.
+move=> rp rt re; have mA := (big_morph (@rformula _)) true andb.
+rewrite mA // big1 //= => p _.
+rewrite mA // big1 => [|i _]; first by case: pick.
+by rewrite fun_if if_same /= rp.
+Qed.
+
+Lemma qf_Pick : (forall i, qf (pred_f i)) -> (forall i, qf (then_f i)) ->
+  qf else_f -> qf Pick.
+Proof.
+move=> qfp qft qfe; rewrite Pick_form_qf 1?Pick_form_rf //;
+by do [move=> *; rewrite qfP].
 Qed.
 
 Lemma eval_Pick e (qev := qf_eval e) :
@@ -678,6 +696,19 @@ move=> /= _ _ mpq; rewrite (ihn _ _ _ (fun r => k' (p' :: r))) //.
 by move=> sp; rewrite Pk.
 Qed.
 
+Lemma qf_Sremps_rec p q n k : rpoly p -> rpoly q ->
+  (forall sp, all rpoly sp -> qf (k sp)) ->
+  qf (Sremps_rec p q n k).
+Proof.
+elim: n p q k=> [|n ihn] p q k rp rq qfk /=; first by rewrite qfk.
+rewrite qf_Isnull //=; case=> /=; first by rewrite qfk.
+rewrite qf_LeadCoef=> // lp rlp.
+rewrite qf_Rediv=> // - [[cp dp] mp] /= _ {dp mp}.
+rewrite qf_Rediv=> // - [[_ dp] mp] /= /andP[_ rmp] {dp}.
+rewrite ihn // ?rOpPoly // ?rpoly_map_mul // => sp rsp.
+by rewrite qfk //= rp.
+Qed.
+
 Definition Sremps (p q : polyF) : cps (seq polyF) := fun k =>
   bind sp <- Size p; bind sq <- Size q;
   Sremps_rec p q (maxn sp sq.+1) k.
@@ -690,6 +721,14 @@ Proof. by move=> Pk; rewrite !eval_Size; apply: eval_Sremps_rec. Qed.
 Implicit Arguments eval_Sremps [e p q k].
 Prenex Implicits eval_Sremps.
 
+Lemma qf_Sremps p q k : rpoly p -> rpoly q ->
+  (forall sp, all rpoly sp -> qf (k sp)) ->
+  qf (Sremps p q k).
+Proof.
+move=> rp rq qfk; rewrite qf_Size=> // sp.
+by rewrite qf_Size=> // sq; rewrite qf_Sremps_rec.
+Qed.
+
 Fixpoint Deriv (p : polyF) : polyF :=
   if p is a :: q then (AddPoly q (0%oT :: Deriv q)) else [::].
 
@@ -698,6 +737,9 @@ Proof.
 elim: p=> [|a p ihp] /=; first by rewrite deriv0.
 by rewrite eval_AddPoly /= addr0 ihp !derivE.
 Qed.
+
+Lemma rDeriv p : rpoly p -> rpoly (Deriv p).
+Proof. by elim: p=> //= a p ihp /andP[ra rp]; rewrite rAddPoly //= ihp. Qed.
 
 Notation taq' p a b q := (varpI a b (sremps p (p^`() * q))).
 
@@ -713,6 +755,13 @@ rewrite (eval_Sremps (fun r => qf_eval e (k (varpI (eval e a) (eval e b) r)))).
 by move=> sp; rewrite !eval_Varp.
 Qed.
 
+Lemma qf_Taq a b p q k : rterm a -> rterm b -> rpoly p -> rpoly q ->
+  (forall n, qf (k n)) -> qf (Taq p a b q k).
+Proof.
+move=> ra rb rp rq qfk; rewrite qf_Sremps //= ?rMulPoly // ?rDeriv //.
+by move=> sp rsp; rewrite qf_VarpI.
+Qed.
+
 Definition PolyComb (sq : seq polyF) (sc : seq zint) :=
   \big[MulPoly/[::1%oT]]_(i < size sq)
   ExpPoly (nth [::] sq i) (comb_exp sc`_i).
@@ -725,6 +774,13 @@ apply: (big_ind2 (fun u v => eval_poly e u = v)).
 + by rewrite /= mul0r add0r.
 + by move=> x x' y y'; rewrite eval_MulPoly=> -> ->.
 by move=> i _; rewrite eval_ExpPoly /= (nth_map [::]).
+Qed.
+
+Lemma rPolyComb sq sc : all rpoly sq ->  rpoly (PolyComb sq sc).
+Proof.
+move=> rsq; apply: (big_ind (fun x => rpoly x))=> //=.
+  by move=> p q rp rq; rewrite rMulPoly.
+by move=> i _; rewrite rExpPoly // (allP rsq) // mem_nth.
 Qed.
 
 Definition pcq (sq : seq {poly F}) i :=
@@ -742,6 +798,14 @@ rewrite -(nth_map _ 0) ?size_map //; congr _`_i; rewrite -map_comp.
 by apply: eq_map=> x /=; rewrite eval_PolyComb.
 Qed.
 
+Lemma rPcq sq i : all rpoly sq -> rpoly (Pcq sq i).
+Proof.
+move=> rsq; rewrite /Pcq; move: (sg_tab _)=> s.
+have [?|lt_is] := leqP (size s) i; first by rewrite !nth_default ?size_map.
+apply: all_nthP; rewrite ?size_map // all_map.
+by apply/allP=> u _ /=; rewrite rPolyComb.
+Qed.
+
 Definition Staq (p : polyF) (a b : term F) (sq : seq polyF) (i : nat) :
   cps (term F) := fun k => bind n <- Taq p a b (Pcq sq i); k ((n%:~R) %:T)%oT.
 
@@ -753,6 +817,10 @@ Proof. by move=> Pk; rewrite /Staq /staq eval_Taq Pk /= eval_Pcq. Qed.
 
 Implicit Arguments eval_Staq [e p a b sq i k].
 Prenex Implicits eval_Staq.
+
+Lemma qf_Staq p a b sq i k : rpoly p -> rterm a -> rterm b -> all rpoly sq ->
+  (forall x, rterm x -> qf (k x)) -> qf (Staq p a b sq i k).
+Proof. by move=> ???? qfk; rewrite qf_Taq // ?rPcq=> // n; rewrite qfk. Qed.
 
 Definition ProdStaqCoefs (p : polyF) (a b : term F)
   (sq : seq polyF) : cps (term F) := fun k =>
@@ -782,6 +850,17 @@ Qed.
 
 Implicit Arguments eval_ProdStaqCoefs [e p a b sq k].
 Prenex Implicits eval_ProdStaqCoefs.
+
+Lemma qf_ProdStaqCoefs p a b sq k : rpoly p -> rterm a -> rterm b ->
+  all rpoly sq -> (forall x, rterm x -> qf (k x)) ->
+  qf (ProdStaqCoefs p a b sq k).
+Proof.
+move=> rp ra rb rsq qfk; rewrite /ProdStaqCoefs.
+set Aux := (fix Aux s i k := match i with 0 => _ | _ => _ end).
+have: rterm (0%oT : term F) by []; move: 0%oT=> x.
+elim: (_ ^ _)%N k qfk x=> /= [|n ihn] k qfk x rx; first by rewrite qfk.
+by rewrite qf_Staq=> // y ry; rewrite ihn //= rx ry.
+Qed.
 
 Import AbsrNotation.
 
@@ -860,14 +939,14 @@ move=> qfk rp; rewrite /CauchyBound qf_Size => // n; rewrite qf_SumAbs=> // i.
 by elim: p rp i=> [_|a p ihp /= /andP[ra rp]] [|i] //=; apply: ihp.
 Qed.
 
-Fixpoint Has T (P : T -> cps bool) (s : seq T) : cps bool := fun k =>
-  if s is x :: s then bind Px <- P x; if Px then k true else Has P s k
+Fixpoint HasPoly (P : polyF -> cps bool) (s : seq polyF) : cps bool := fun k =>
+  if s is x :: s then bind Px <- P x; if Px then k true else HasPoly P s k
   else k false.
 
-Lemma eval_Has T e s P' k P k' : (forall b, qf_eval e (k b) = k' b) ->
+Lemma eval_HasPoly e s P' k P k' : (forall b, qf_eval e (k b) = k' b) ->
   (forall s k k', (forall b, qf_eval e (k b) = k' b) ->
     qf_eval e (P' s k) = k' (P s)) ->
-  qf_eval e (@Has T P' s k) = k' (has P s).
+  qf_eval e (@HasPoly P' s k) = k' (has P s).
 Proof.
 move=> hk hP; elim: s=> //= x s ihs.
 rewrite (hP _ _ (fun Px => if Px then k' true else k' (has P s))).
@@ -875,13 +954,16 @@ rewrite (hP _ _ (fun Px => if Px then k' true else k' (has P s))).
 by case.
 Qed.
 
-Implicit Arguments eval_Has [T e s P' k].
-Prenex Implicits eval_Has.
+Implicit Arguments eval_HasPoly [e s P' k].
+Prenex Implicits eval_HasPoly.
 
-Lemma qf_Has T P s k : (forall b, qf (k b)) ->
-  (forall x k, (forall b, qf (k b)) -> qf (P x k)) ->
-  qf (@Has T P s k).
-Proof. by move=> qfk qfP; elim: s=> //= x s ihs; rewrite qfP // => [] []. Qed.
+Lemma qf_HasPoly P s k :
+  (forall x k, rpoly x -> (forall b, qf (k b)) -> qf (P x k)) ->
+  all rpoly s -> (forall b, qf (k b)) -> qf (@HasPoly P s k).
+Proof.
+move=> qfP; elim: s k=> //= x s ihs k /andP[rx rs] qfk.
+by rewrite qfP=> // [] []; rewrite ?qfk ?ihs.
+Qed.
 
 Definition ChangeVarp (p : polyF) : cps polyF := fun k =>
   bind sp <- Size p; bind lp <- LeadCoef p;
@@ -917,6 +999,18 @@ Qed.
 Implicit Arguments eval_ChangeVarp [e p k].
 Prenex Implicits eval_ChangeVarp.
 
+Lemma qf_ChangeVarp p k : rpoly p ->
+  (forall p, rpoly p -> qf (k p)) -> qf (ChangeVarp p k).
+Proof.
+move=> rp qfk; rewrite qf_Size=> // sp; rewrite qf_LeadCoef=> // lp rlp.
+rewrite qfk //= !rOpPoly ?rExpPoly //.
+apply: (big_ind (fun u => rpoly u))=> //.
+  by move=> u v ru rv; rewrite rAddPoly ?ru ?rv.
+move=> i _; rewrite !(rOpPoly, rExpPoly, rpoly_map_mul) //= rlp /=.
+have [hi|hi] := ltnP i (size p); last by rewrite nth_default.
+exact: all_nthP.
+Qed.
+
 Definition ChangeVarq (a : term F) (q : polyF) : cps polyF := fun k =>
   bind sq <- Size q;
   k (\big[AddPoly/[::]]_(i < sq) (MulPoly
@@ -941,6 +1035,17 @@ Qed.
 Implicit Arguments eval_ChangeVarq [e a q k].
 Prenex Implicits eval_ChangeVarq.
 
+Lemma qf_ChangeVarq a q k : rterm a -> rpoly q ->
+  (forall q, rpoly q -> qf (k q)) -> qf (ChangeVarq a q k).
+Proof.
+move=> ra rp qfk; rewrite qf_Size=> // sp.
+rewrite qfk //=; apply: (big_ind (fun u => rpoly u))=> //.
+  by move=> u v ru rv; rewrite rAddPoly ?ru ?rv.
+move=> i _; rewrite !(rOpPoly, rExpPoly, rpoly_map_mul) //= ra.
+have [hi|hi] := ltnP i (size q); last by rewrite nth_default.
+exact: all_nthP.
+Qed.
+
 Fixpoint ChangeVarSq a sq k :=
   if sq is q :: sq
     then bind cq <- ChangeVarq a q; bind csq <- ChangeVarSq a sq;
@@ -961,6 +1066,14 @@ Qed.
 
 Implicit Arguments eval_ChangeVarSq [e a sq k].
 Prenex Implicits eval_ChangeVarSq.
+
+Lemma qf_ChangeVarSq a sq k : rterm a -> all rpoly sq ->
+  (forall sq, all rpoly sq -> qf (k sq)) -> qf (ChangeVarSq a sq k).
+Proof.
+elim: sq k=> [|q sq ihsq] k ra rsq qfk /=; first by rewrite qfk.
+move: rsq=> /= /andP[rq rsq]; rewrite qf_ChangeVarq //.
+by move=> cq rcq; rewrite ihsq=> // csq rcsq; rewrite qfk //= rcq.
+Qed.
 
 Definition ToMonic (p : polyF) (sq : seq polyF) :
   cps (polyF * seq polyF) := fun k =>
@@ -987,6 +1100,15 @@ Qed.
 Implicit Arguments eval_ToMonic [e p sq k].
 Prenex Implicits eval_ToMonic.
 
+Lemma qf_ToMonic p sq k : rpoly p -> all rpoly sq ->
+  (forall p sq, rpoly p -> all rpoly sq -> qf (k (p, sq))) ->
+  qf (ToMonic p sq k).
+Proof.
+move=> rp rsq qfk; rewrite qf_LeadCoef=> // lp rlp.
+rewrite qf_ChangeVarp=> // cp rcp; rewrite qf_ChangeVarSq=> // csp rcsq.
+by rewrite qfk.
+Qed.
+
 Definition MajNotRoot (x : term F) (p : polyF) : cps (term F) := fun k =>
   bind sp <- Size p;
   Pick (fun i : 'I_sp.+1 => Horner p (x + i.+1%:R) != 0)%oT
@@ -1005,6 +1127,14 @@ Qed.
 Implicit Arguments eval_MajNotRoot [e x p k].
 Prenex Implicits eval_MajNotRoot.
 
+Lemma qf_MajNotRoot x p k : rterm x -> rpoly p ->
+  (forall x, rterm x -> qf (k x)) -> qf (MajNotRoot x p k).
+Proof.
+move=> rx rp qfk; rewrite qf_Size=> // sp; rewrite qf_Pick ?qfk /= ?rx //.
+  by move=> i; rewrite rHorner //= rx.
+by move=> i; rewrite qfk //= rx.
+Qed.
+
 Fixpoint SymPoly p :=
   if p is a :: p
     then AddPoly (MulPoly (OppPoly (SymPoly p)) [::0; 1]%oT) [::a]
@@ -1016,6 +1146,9 @@ elim: p=> [|a p ihp]; first by rewrite comp_poly0p //.
 rewrite /= !eval_OpPoly /= !(mul0r, add0r, mul1r, addr0) ihp.
 by rewrite comp_poly_addl comp_polyCp comp_poly_mull comp_polyXp mulrN mulNr.
 Qed.
+
+Lemma rSymPoly p : rpoly p -> rpoly (SymPoly p).
+Proof. by elim: p=> // a p ihp /andP[ra rp]; rewrite !rOpPoly /= ?ra ?ihp. Qed.
 
 Definition PickRight x p := MajNotRoot x (MulPoly (SymPoly p) p).
 
@@ -1029,6 +1162,10 @@ Qed.
 
 Implicit Arguments eval_PickRight [e x p k].
 Prenex Implicits eval_PickRight.
+
+Lemma qf_PickRight x p k : rterm x -> rpoly p ->
+  (forall x, rterm x -> qf (k x)) -> qf (PickRight x p k).
+Proof. by move=> rx rp qfk; rewrite qf_MajNotRoot ?rMulPoly ?rSymPoly. Qed.
 
 Fixpoint ProdPoly T (s : seq T) (f : T -> cps polyF) : cps polyF := fun k =>
   if s is a :: s then
@@ -1054,10 +1191,20 @@ Qed.
 Implicit Arguments eval_ProdPoly [e T s f k].
 Prenex Implicits eval_ProdPoly.
 
+Lemma qf_ProdPoly T (s : seq T) (f : T -> cps polyF) k :
+  (forall x k, (forall p, rpoly p -> qf (k p)) -> qf (f x k)) ->
+  (forall p, rpoly p-> qf (k p)) -> qf (@ProdPoly T s f k).
+Proof.
+move=> qff; elim: s k=> [|a s ihs] k qfk /=; first by rewrite qfk.
+by rewrite qff=> // p rp; rewrite ihs=> // sp rsp; rewrite qfk ?rMulPoly.
+Qed.
+
 Definition CcountWeak (p : polyF) (sq : seq polyF) : cps (term F) := fun k =>
+  bind p0 <- Isnull p;
+  if p0 then k 0%oT else
   bind sp <- Size p;
   if sp == 1%N then k 0%T
-    else bind sq0 <- Has Isnull sq;
+    else bind sq0 <- HasPoly Isnull sq;
       if sq0 then k 0%oT
       else
         bind cpsq <- ToMonic p sq;
@@ -1075,10 +1222,11 @@ Lemma eval_CcountWeak e p sq k k' :
   qf_eval e (CcountWeak p sq k) =
   k' (ccount_weak (eval_poly e p) (map (eval_poly e) sq)).
 Proof.
-move=> Pk; rewrite eval_Size /ccount_weak.
-have [|sp_neq1] := altP eqP; first by rewrite Pk.
+move=> Pk; rewrite eval_Isnull /ccount_weak //.
+case: eqP=> _; first by rewrite Pk.
+rewrite eval_Size; have [|sp_neq1] := altP eqP; first by rewrite Pk.
 pose isnull p := eval_poly e p == 0.
-rewrite (eval_Has isnull (fun n =>
+rewrite (eval_HasPoly isnull (fun n =>
   if n then k' 0 else
   let '(p', sq') := to_monic (eval_poly e p) (map (eval_poly e) sq) in
        let sq_aux :=
@@ -1124,6 +1272,106 @@ move=> r; rewrite (eval_CauchyBound (fun cbound =>
 move=> cbound; rewrite (eval_PickRight (fun bound =>
   k' (prod_staq_coefs cp' (- bound) bound csq'))) //.
 by move=> bound; rewrite (eval_ProdStaqCoefs k').
+Qed.
+
+Implicit Arguments eval_CcountWeak [e p sq k].
+Prenex Implicits eval_CcountWeak.
+
+Lemma qf_CcountWeak p sq k : rpoly p -> all rpoly sq ->
+  (forall x, rterm x -> qf (k x)) -> qf (CcountWeak p sq k).
+Proof.
+move=> rp rsq qfk; rewrite qf_Isnull=> // [] []; first by rewrite qfk.
+rewrite qf_Size=> // sp; case: eqP=> _; first by rewrite qfk.
+rewrite qf_HasPoly //; first by move=> x k' rx qfk'; rewrite qf_Isnull.
+case; first by rewrite qfk.
+rewrite qf_ToMonic=> // cp csq rcp rcsq; rewrite qf_ProdPoly //=.
+  move=> i k' qfk'; rewrite qf_Sremps ?rMulPoly ?rDeriv ?rPcq //.
+  move=> sq' rsq'; rewrite qfk' //=; move: rsq'; rewrite -big_all.
+  apply: (big_ind2 (fun (u : bool) v => u -> rpoly v))=> //.
+  by move=> u u' v v' ru rv /andP[hu hv]; rewrite rMulPoly ?ru ?rv.
+move=> q rq; rewrite qf_CauchyBound=> // cbound rcbound.
+by rewrite qf_PickRight=> // bound rbound; rewrite qf_ProdStaqCoefs.
+Qed.
+
+Definition BoundingPoly (sq : seq polyF) : polyF :=
+  Deriv (\big[MulPoly/[::1%oT]]_(q <- sq) q).
+
+Lemma eval_BoundingPoly e sq :
+  eval_poly e (BoundingPoly sq) = bounding_poly (map (eval_poly e) sq).
+Proof.
+rewrite eval_Deriv /bounding_poly big_map (@big_morph _ _ _ 1 *%R) //=.
+  by move=> p q /=; rewrite eval_MulPoly.
+by rewrite mul0r add0r.
+Qed.
+
+Lemma rBoundingPoly sq : all rpoly sq -> rpoly (BoundingPoly sq).
+Proof.
+move=> rsq; rewrite rDeriv //; move: rsq; rewrite -big_all.
+apply: (big_ind2 (fun (u : bool) v => u -> rpoly v))=> //.
+by move=> u u' v v' ru rv /andP[hu hv]; rewrite rMulPoly ?ru ?rv.
+Qed.
+
+Definition CcountGt0 (sp sq : seq polyF) : fF :=
+  bind p <- BigRgcd sp; bind p0 <- Isnull p;
+  if ~~ p0 then
+    bind c <- CcountWeak p sq;
+    Lt 0%oT c
+  else
+    let bq := BoundingPoly sq in
+      bind cw <- CcountWeak bq sq;
+      (Lt 0 cw \/ (
+        (\big[And/True]_(q <- sq) (LeadCoef q (fun lq => Lt 0 lq)))
+        \/ (\big[And/True]_(q <- sq) (
+          bind sq <- Size q;
+          bind lq <- LeadCoef q;
+          Lt 0 ((GRing.Opp 1) ^+ (sq).-1 * lq)
+        ))))%oT.
+
+Lemma eval_CcountGt0 e sp sq : qf_eval e (CcountGt0 sp sq) =
+  ccount_gt0 (map (eval_poly e) sp) (map (eval_poly e) sq).
+Proof.
+pose sq' := map (eval_poly e) sq; rewrite /ccount_gt0.
+rewrite (@eval_BigRgcd _ _ _ (fun p => if p != 0
+  then 0 < ccount_weak p sq'
+  else
+    let bq := bounding_poly sq' in
+      [|| 0 < ccount_weak bq sq', \big[andb/true]_(q <- sq') (0 < lead_coef q)
+        | \big[andb/true]_(q <- sq') (0 < (-1) ^+ (size q).-1 * lead_coef q)])).
+  by rewrite !big_map.
+move=> p; rewrite eval_Isnull; case: eqP=> _ /=; last first.
+  by rewrite (eval_CcountWeak (>%R 0)).
+rewrite (eval_CcountWeak (fun n =>
+      [|| 0 < n, \big[andb/true]_(q <- sq') (0 < lead_coef q)
+        | \big[andb/true]_(q <- sq') (0 < (-1) ^+ (size q).-1 * lead_coef q)]
+)).
+  by rewrite eval_BoundingPoly.
+move=> n /=; rewrite !big_map; congr [|| _, _| _].
+  apply: (big_ind2 (fun u v => qf_eval e u = v))=> //=.
+    by move=> u v u' v' -> ->.
+  by move=> i _; rewrite (eval_LeadCoef (>%R 0)).
+apply: (big_ind2 (fun u v => qf_eval e u = v))=> //=.
+  by move=> u v u' v' -> ->.
+by move=> i _; rewrite eval_Size (eval_LeadCoef (fun lq =>
+  (0 < (-1) ^+ (size (eval_poly e i)).-1 * lq))).
+Qed.
+
+Lemma qf_CcountGt0 sp sq : all rpoly sp -> all rpoly sq ->
+  qf (CcountGt0 sp sq).
+Proof.
+move=> rsp rsq; rewrite qf_BigRgcd=> // p rp.
+rewrite qf_Isnull=> // [] [] /=; last by rewrite qf_CcountWeak.
+rewrite qf_CcountWeak ?rBoundingPoly=> // x rx /=.
+rewrite !rx /= andbAC andbA andbAC -andbA; apply/andP; split.
+  move: rsq; rewrite -big_all.
+  apply: (big_ind2 (fun (u : bool) v => u -> qf v))=> //.
+    move=> u u' v v' ru rv /andP[hu hv] /=.
+    by rewrite andbAC andbA ru //= andbC rv.
+  by move=> i _ ri; rewrite qf_LeadCoef.
+move: rsq; rewrite -big_all.
+apply: (big_ind2 (fun (u : bool) v => u -> qf v))=> //.
+  move=> u u' v v' ru rv /andP[hu hv] /=.
+  by rewrite andbAC andbA ru //= andbC rv.
+by move=> i _ ri; rewrite qf_Size=> // n; rewrite qf_LeadCoef.
 Qed.
 
 Fixpoint abstrX (i : nat) (t : term F) :=
@@ -1176,16 +1424,41 @@ Proof. done. Qed.
 Lemma abstrX1  i : abstrX i (Const 1) = [::Const 1].
 Proof. done. Qed.
 
-Lemma eval_poly_mul : forall e, {morph eval_poly e : x y / MulPoly x y >-> GRing.mul x y}.
-Proof. by move=> e x y; rewrite eval_MulPoly. Qed.
-Lemma eval_poly1 : forall e, eval_poly e [::Const 1] = 1.
-Proof. by move=> e //=; rewrite mul0r add0r. Qed.
+Lemma eval_poly_mul e :
+  {morph eval_poly e : x y / MulPoly x y >-> GRing.mul x y}.
+Proof. by move=> x y; rewrite eval_MulPoly. Qed.
+Lemma eval_poly1 e : eval_poly e [::Const 1] = 1.
+Proof. by rewrite /= mul0r add0r. Qed.
 
 Notation abstrX_bigmul := (big_morph _ (abstrX_mul _) (abstrX1 _)).
 Notation eval_bigmul := (big_morph _ (eval_poly_mul _) (eval_poly1 _)).
 Notation bigmap_id := (big_map _ (fun _ => true) id).
 
-Lemma rseq_poly_map x ts : all (@rterm _) ts -> rseq_poly (map (abstrX x) ts).
+Lemma rseq_poly_map x ts : all (@rterm _) ts -> all rpoly ((map (abstrX x) ts)).
 Proof. by elim: ts=> //= t ts iht /andP[rt rts]; rewrite rabstrX // iht. Qed.
+
+Definition wproj (n : nat) (s : seq (term F) * seq (term F)) : formula F :=
+  let sp := map (abstrX n) s.1%PAIR in let sq := map (abstrX n) s.2%PAIR in
+    CcountGt0 sp sq.
+
+Lemma wf_QE_wproj i bc (bc_i := wproj i bc) :
+  dnf_rterm (w_to_oclause bc) -> qf_form bc_i && rformula bc_i.
+Proof.
+case: bc @bc_i=> sp sq /=; rewrite /dnf_rterm /= /wproj andbT=> /andP[rsp rsq].
+by rewrite qf_CcountGt0 //= rseq_poly_map.
+Qed.
+
+Lemma valid_QE_wproj i bc (bc' := w_to_oclause bc)
+    (ex_i_bc := ('exists 'X_i, odnf_to_oform [:: bc'])%oT) e :
+  dnf_rterm bc' -> reflect (holds e ex_i_bc) (qf_eval e (wproj i bc)).
+Proof.
+case: bc @bc' @ex_i_bc=> sp sq /=; rewrite /dnf_rterm /wproj /= andbT.
+move=> /andP[rsp rsq].
+rewrite eval_CcountGt0 /=; apply: (iffP (ex_roots _ _)).
+  case=> x /andP[hp hq]; exists x; left; do !split.
+    apply/qf_evalP.
+      rewrite qfP //; elim: sp rsp {hp}=> //= p sp ihsp /andP[rp rsp].
+      by rewrite rp /= ihsp.
+Admitted.
 
 End proj_qe_rcf.
