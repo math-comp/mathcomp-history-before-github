@@ -1454,11 +1454,30 @@ Lemma valid_QE_wproj i bc (bc' := w_to_oclause bc)
 Proof.
 case: bc @bc' @ex_i_bc=> sp sq /=; rewrite /dnf_rterm /wproj /= andbT.
 move=> /andP[rsp rsq].
-rewrite eval_CcountGt0 /=; apply: (iffP (ex_roots _ _)).
-  case=> x /andP[hp hq]; exists x; left; do !split.
-    apply/qf_evalP.
-      rewrite qfP //; elim: sp rsp {hp}=> //= p sp ihsp /andP[rp rsp].
-      by rewrite rp /= ihsp.
-Admitted.
+rewrite eval_CcountGt0 /=; apply: (equivP (ex_roots _ _)).
+set P1 := (fun x => _); set P2 := (fun x => _).
+suff: forall x, P1 x <-> P2 x.
+  by move=> hP; split=> [] [x Px]; exists x; rewrite (hP, =^~ hP).
+move=> x; rewrite /P1 /P2 {P1 P2} !big_map !(big_seq_cond xpredT).
+rewrite (eq_bigr (fun t => eval (set_nth 0 e i x) t == 0)); last first.
+  by move=> t /andP[t_in_sp _]; rewrite abstrXP // (allP rsp).
+rewrite [X in _ && X](eq_bigr (fun t => 0 < eval (set_nth 0 e i x) t));
+  last by move=> t /andP[t_in_sq _]; rewrite abstrXP // (allP rsq).
+rewrite -!big_seq_cond.
+rewrite !(rwP (qf_evalP _ _)); first last.
++ rewrite qfP //; elim: sp rsp => //= p sp ihsp /andP[rp rsp].
+  by rewrite rp /= ihsp.
++ rewrite qfP //; elim: sq rsq => //= q sq ihsq /andP[rq rsq].
+  by rewrite rq /= ihsq.
+rewrite !(rwP andP) (rwP orP) orbF !andbT /=.
+have unfoldr P s : foldr (fun t => And (P t)) True s =
+  \big[And/True]_(t <- s) P t by rewrite unlock /reducebig.
+rewrite !unfoldr; set e' := set_nth _ _ _ _.
+by rewrite !(@big_morph _ _ (qf_eval _) true andb).
+Qed.
+
+Definition rcf_sat := proj_sat wproj.
+
+Definition rcf_satP := proj_satP wf_QE_wproj valid_QE_wproj.
 
 End proj_qe_rcf.
