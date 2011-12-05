@@ -775,7 +775,7 @@ rewrite (reindex_onto (mu2^~ j) h)=> [/= | i1]; last first.
   case/imageP=> i2 i2Irr ->.
   by rewrite /h; case: pickP=> [u /eqP | /(_ i2)]; rewrite ?eqxx.
 rewrite (eq_bigl xpredT)=> [|i1] //.
-rewrite (@mem_image _  _ (mu2^~ j)) //.
+rewrite (@image_f _  _ (mu2^~ j)) //.
 rewrite /h; case: pickP=> [i2 /eqP | /(_ i1)]; last by rewrite eqxx.
 by case/Dade_mu2_inj=> /eqP.
 Qed.

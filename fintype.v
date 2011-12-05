@@ -936,11 +936,11 @@ Qed.
 Lemma preim_iinv A B y fAy : preim f B (@iinv A y fAy) = B y.
 Proof. by rewrite /= f_iinv. Qed.
 
-Lemma mem_image A x : x \in A -> f x \in image f A.
+Lemma image_f A x : x \in A -> f x \in image f A.
 Proof. by move=> Ax; apply/imageP; exists x. Qed.
 
 Lemma codom_f x : f x \in codom f.
-Proof. by exact: mem_image. Qed.
+Proof. by exact: image_f. Qed.
 
 Lemma image_codom A : {subset image f A <= codom f}.
 Proof. by move=> _ /imageP[x _ ->]; exact: codom_f. Qed.
@@ -952,15 +952,15 @@ Section Injective.
 
 Hypothesis injf : injective f.
 
-Lemma image_f A x : (f x \in image f A) = (x \in A).
+Lemma mem_image A x : (f x \in image f A) = (x \in A).
 Proof. by rewrite mem_map ?mem_enum. Qed.
 
 Lemma pre_image A : [preim f of image f A] =i A.
-Proof. by move=> x; rewrite inE /= image_f. Qed.
+Proof. by move=> x; rewrite inE /= mem_image. Qed.
 
 Lemma image_iinv A y (fTy : y \in codom f) :
   (y \in image f A) = (iinv fTy \in A).
-Proof. by rewrite -image_f ?f_iinv. Qed.
+Proof. by rewrite -mem_image ?f_iinv. Qed.
 
 Lemma iinv_f x fTfx : @iinv T (f x) fTfx = x.
 Proof. by apply: in_iinv_f; first exact: in2W. Qed.

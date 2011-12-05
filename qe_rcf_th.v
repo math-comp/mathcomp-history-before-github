@@ -1326,7 +1326,7 @@ move=> sp_gt1; have p_neq0 : p != 0.
    by rewrite -size_poly_gt0 (ltn_trans _ sp_gt1).
 rewrite horner_add horner_exp hornerX horner_poly.
 rewrite horner_coef polySpred //= big_ord_recr /= -lead_coefE.
-rewrite mulr_addr mulrA -exprSr [RHS]addrC; congr (_ + _).
+rewrite mulr_addr mulrA -exprSr [rhs in _ = rhs]addrC; congr (_ + _).
   by rewrite prednK ?exprn_mull // -subn1 subn_gt0.
 rewrite -mulr_sumr; apply: eq_big=> // i _.
 rewrite subSS exprn_mull mulrCA -mulrA mulrA -exprn_addr.

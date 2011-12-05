@@ -1587,6 +1587,12 @@ Lemma has_mask_cons a b m x s :
   has a (mask (b :: m) (x :: s)) = b && a x || has a (mask m s).
 Proof. by case: b. Qed.
 
+Lemma has_mask a m s : has a (mask m s) -> has a s.
+Proof.
+elim: m s => [|b m IHm] [|x s] //; rewrite has_mask_cons /= andbC.
+by case: (a x) => //= /IHm.
+Qed.
+
 Lemma mask_rot m s : size m = size s ->
    mask (rot n0 m) (rot n0 s) = rot (count id (take n0 m)) (mask m s).
 Proof.
@@ -1609,20 +1615,17 @@ Lemma mem_mask_cons x b m y s :
 Proof. by case: b. Qed.
 
 Lemma mem_mask x m s : x \in mask m s -> x \in s.
-Proof.
-by elim: s m => [|y p IHs] [|[|] m] //=; rewrite !in_cons;
-  case (x == y) => /=; eauto.
-Qed.
+Proof. by rewrite -!has_pred1 => /has_mask. Qed.
 
 Lemma mask_uniq s : uniq s -> forall m, uniq (mask m s).
 Proof.
-elim: s => [|x s IHs] /= Hs [|b m] //.
-move/andP: Hs b => [Hx Hs] [|] /=; rewrite {}IHs // andbT.
-apply/negP => [Hmx]; case/negP: Hx; exact (mem_mask Hmx).
+elim: s => [|x s IHs] Uxs [|b m] //=.
+case: b Uxs => //= /andP[s'x Us]; rewrite {}IHs // andbT.
+by apply: contra s'x; exact: mem_mask.
 Qed.
 
-Lemma mem_mask_rot m s : size m = size s ->
-  mask (rot n0 m) (rot n0 s) =i mask m s.
+Lemma mem_mask_rot m s :
+  size m = size s -> mask (rot n0 m) (rot n0 s) =i mask m s.
 Proof. by move=> Hm x; rewrite mask_rot // mem_rot. Qed.
 
 End EqMask.
