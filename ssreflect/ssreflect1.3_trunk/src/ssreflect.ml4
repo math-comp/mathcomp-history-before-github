@@ -63,6 +63,7 @@ let _ =
       Goptions.optname  = "ssreflect version";
       Goptions.optkey   = ["SsrAstVersion"];
       Goptions.optread  = (fun _ -> true);
+      Goptions.optdepr  = false;
       Goptions.optwrite = (fun _ -> 
         Lib.add_anonymous_leaf (inVersion ssrAstVersion)) }
 
@@ -83,6 +84,7 @@ let _ =
     { Goptions.optsync  = false;
       Goptions.optname  = "ssreflect debugging";
       Goptions.optkey   = ["SsrDebug"];
+      Goptions.optdepr  = false;
       Goptions.optread  = (fun _ -> !pp_ref == ssr_pp);
       Goptions.optwrite = (fun b -> 
         if b then pp_ref := ssr_pp else pp_ref := fun _ -> ()) }
@@ -102,6 +104,7 @@ let _ =
       Goptions.optname  = "ssreflect profiling";
       Goptions.optkey   = ["SsrProfiling"];
       Goptions.optread  = (fun _ -> !profile_now);
+      Goptions.optdepr  = false;
       Goptions.optwrite = (fun b -> 
         profile_now := b;
         if b then List.iter (fun f -> f.reset ()) !profilers;
@@ -167,6 +170,7 @@ let _ =
       Goptions.optname  = "ssreflect 1.3 compatibility flag";
       Goptions.optkey   = ["SsrOldRewriteGoalsOrder"];
       Goptions.optread  = (fun _ -> !ssroldreworder);
+      Goptions.optdepr  = false;
       Goptions.optwrite = (fun b -> ssroldreworder := b) }
 
 
@@ -354,6 +358,7 @@ let _ =
     { Goptions.optsync  = true;
       Goptions.optname  = "ssreflect identifiers";
       Goptions.optkey   = ["SsrIdents"];
+      Goptions.optdepr  = false;
       Goptions.optread  = (fun _ -> !ssr_reserved_ids);
       Goptions.optwrite = (fun b -> ssr_reserved_ids := b)
     }
@@ -1451,7 +1456,7 @@ END
 
 GEXTEND Gram
   GLOBAL: tactic_expr;
-  ssrparentacarg: [[ "("; tac = tactic_expr; ")" -> Tacexp tac ]];
+  ssrparentacarg: [[ "("; tac = tactic_expr; ")" -> loc, Tacexp tac ]];
   tactic_expr: LEVEL "0" [[ arg = ssrparentacarg -> TacArg arg ]];
 END
 
@@ -1469,7 +1474,7 @@ let donetac gl =
     try Nametab.locate_tactic (qualid_of_ident (id_of_string "done"))
     with Not_found -> try Nametab.locate_tactic (ssrqid "done")
     with Not_found -> Util.error "The ssreflect library was not loaded" in
-  let tacexpr = Tacexpr.Reference (ArgArg (dummy_loc, tacname)) in
+  let tacexpr = dummy_loc, Tacexpr.Reference (ArgArg (dummy_loc, tacname)) in
   eval_tactic (Tacexpr.TacArg tacexpr) gl
 
 let prof_donetac = mk_profiler "donetac";;
@@ -1480,7 +1485,7 @@ let ssrautoprop gl =
     let tacname = 
       try Nametab.locate_tactic (qualid_of_ident (id_of_string "ssrautoprop"))
       with Not_found -> Nametab.locate_tactic (ssrqid "ssrautoprop") in
-    let tacexpr = Tacexpr.Reference (ArgArg (dummy_loc, tacname)) in
+    let tacexpr = dummy_loc, Tacexpr.Reference (ArgArg (dummy_loc, tacname)) in
     eval_tactic (Tacexpr.TacArg tacexpr) gl
   with Not_found -> Auto.full_trivial [] gl
 
@@ -2830,8 +2835,8 @@ let ssrintros_sep =
     | _ -> spc in
   function
     | TacId [] -> mt
-    | TacArg (Tacexp _) -> mt
-    | TacArg (Reference _) -> mt
+    | TacArg (_, Tacexp _) -> mt
+    | TacArg (_, Reference _) -> mt
     | TacAtom (_, atom) -> atom_sep atom
     | _ -> spc
 
@@ -4974,6 +4979,7 @@ let _ =
       Goptions.optname  = "strict redex matching";
       Goptions.optkey   = ["Match"; "Strict"];
       Goptions.optread  = (fun () -> !ssr_strict_match);
+      Goptions.optdepr  = false;
       Goptions.optwrite = (fun b -> ssr_strict_match := b) }
 
 (** Rewrite multiplier *)
@@ -5479,6 +5485,7 @@ let _ =
       Goptions.optname  = "ssreflect rewrite";
       Goptions.optkey   = ["SsrRewrite"];
       Goptions.optread  = (fun _ -> !ssr_rw_syntax);
+      Goptions.optdepr  = false;
       Goptions.optwrite = (fun b -> ssr_rw_syntax := b) }
 
 let test_ssr_rw_syntax =
