@@ -216,7 +216,7 @@ End EqTypePredSig.
 Module MakeEqTypePred (eqmod : EqTypePredSig).
 Coercion eqmod.sort : eqType >-> predArgType.
 End MakeEqTypePred.
-Module EqTypePred := MakeEqTypePred Equality.
+Module Export EqTypePred := MakeEqTypePred Equality.
 
 Lemma unit_eqP : Equality.axiom (fun _ _ : unit => true).
 Proof. by do 2!case; left. Qed.
