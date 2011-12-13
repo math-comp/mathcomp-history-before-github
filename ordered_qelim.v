@@ -978,7 +978,7 @@ Lemma oclause_neq_elim2 bc oc :
   oc \in (oclause_neq_elim bc) -> (oc.2 == [::]) && (oc.4 == bc.4).
 Proof.
 case: bc => bc1 bc2 bc3 bc4; elim: bc2 bc4 oc => [|t bc2 /= ih] bc4 /= oc.
-  by rewrite inE; case/eqP; case: oc => ? ? ? oc4 /=; case=> _ /eqP -> _ /eqP.
+  by rewrite inE; move/eqP; case: oc => ? ? ? oc4 /=; case=> _ /eqP -> _ /eqP.
 rewrite map_cat; move: (ih bc4 oc) => /= {ih}.
 elim: (neq_elim_aux bc3 bc2) => [| t2 l2 ih2] //= ih1.
 rewrite in_cons; case/orP.
