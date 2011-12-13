@@ -960,7 +960,7 @@ Definition w_to_oclause (t : seq (term R) * seq (term R)) :=
 Lemma oclause_leq_elim4 bc oc : oc \in (oclause_leq_elim bc) -> oc.4 == [::].
 Proof.
 case: bc => bc1 bc2 bc3 bc4; elim: bc4 bc1 bc3 oc => [|t bc4 ih] bc1 bc3 /= oc.
-  by rewrite inE; case/eqP; case: oc => ? ? ? oc4 /=; case=> _ _ _ /eqP.
+  by rewrite inE; move/eqP; case: oc => ? ? ? oc4 /=; case=> _ _ _ /eqP.
 rewrite map_cat; move: (ih bc1 bc3 oc) => /= {ih}.
 elim: (leq_elim_aux bc1 bc3 bc4) => [| t2 l2 ih2] //= ih1.
 rewrite in_cons; case/orP.
