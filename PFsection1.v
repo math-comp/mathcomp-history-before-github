@@ -667,7 +667,7 @@ have Res_psi: 'Res[H] psi = e1 *:'chi_t.
   congr (_ *:_); last by rewrite big_cons big_nil addr0. 
   by rewrite /e1 cfdot_Res_l cfdotC isNatC_conj.
 have Hpsi_1 i: i \in irr_constt('Ind[T] 'chi_t)-> 'chi_i 1%g = e1*('chi_t 1%g).
-  move=> Hi; case:(I_K_lpsi Hi1 Hi)=>l [Hl <-]; rewrite cfunE inertia_ker_1 // mul1r.
+  move=> Hi; case:(I_K_lpsi Hi1 Hi)=>l Hl <-; rewrite cfunE inertia_ker_1 // mul1r.
   by rewrite -(cfResE psi sHT (group1 H)) Res_psi cfunE.
 have He1: 'Ind[T] 'chi_t 1%g = 
        #|irr_constt ('Ind['I_G['chi_t]] 'chi_t)|%:R * e1 ^+ 2 * 'chi_t 1%g. 
@@ -703,7 +703,7 @@ move=> HcardHT.
 case:induced_inertia_quo=> //.
 move=> e1 H1.
 move:(H1); suff ->: e1 = 1;first rewrite /= scale1r exp1rn !mulr1.
-  case=> ->;case=> /eqP He Hi; split =>//;split => //.
+  case=> ->; case=> /eqP He Hi; split =>//;split => //.
   by move: He; rewrite -eqN_eqC; move/eqP.
 (* from Isaacs 6.28*)
 have : exists i: Iirr T , (i \in irr_constt ('Ind[T] 'chi_t)) /\ 
