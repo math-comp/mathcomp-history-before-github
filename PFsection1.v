@@ -630,8 +630,8 @@ have lpsi_dot i1 :
   move=> l  Hl /=; rewrite -cfdot_Res_r /cfdot; congr (_ * _).
   apply:eq_bigr=> x Hx; congr (_ * _); apply:(inv_inj conjCK);rewrite !conjCK.
   by rewrite !cfResE ?sub_inertia // cfunE inertia_ker_1 // mul1r.
-case:(I_K_lpsi Hi Hi) => li [Hli <-].
-case:(I_K_lpsi Hi Hj)=> lj [Hlj <-].
+case:(I_K_lpsi Hi Hi) => li Hli <-.
+case:(I_K_lpsi Hi Hj)=> lj Hlj <-.
   by rewrite !lpsi_dot  -?cfdot_Res_r.
 Qed.
 
@@ -716,7 +716,7 @@ rewrite cfdotZl  cfdot_suml (bigD1 i1) //= big1.
     by move/eqP ->; rewrite mulr1.
   by rewrite cfInd_char // irr_char.
 move => i /andP [Hi He].
-case (induced_inertia_irr Hi Hin1). case/irrP=>ii Hii [Hii1 _].
+case (induced_inertia_irr Hi Hin1); case/irrP=>ii Hii [Hii1 _].
 case (induced_inertia_irr Hin1 Hin1); 
 case/irrP=> ii1 Hii1e [] _ _.
 rewrite Hii1e Hii cfdot_irr.
