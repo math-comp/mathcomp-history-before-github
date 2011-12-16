@@ -243,7 +243,10 @@ Fixpoint eval_poly (e : seq F) pf :=
 
 Notation "'bind' x <- y ; z" :=
   (y (fun x => z)) (at level 99, x at level 0, y at level 0,
-    format "'[hv' 'bind'  x  <-  y ;  '/' z ']'").
+    format "'[hv' 'bind'  x  <-  y ;  '/' z ']'", only parsing).
+(* :BUG: There is a stack overflow when rendering this notation in coq
+trunk, when printing the Size function above, that's why I turned it
+in "only printing" -- Cyril *)
 
 Fixpoint Size (p : polyF) : cps nat := fun k =>
   if p is c :: q then
