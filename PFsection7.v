@@ -650,15 +650,16 @@ have /fin_all_exists[r lin_r] i: exists r, 'chi_r \in S i /\ 'chi_r 1%g = e_ i.
   by have /irrP[r def_xi] := irrS i xi Sxi; exists r; rewrite -def_xi.
 have{lin_r} [Sr r1] := all_and2 lin_r.
 have ntS i: (size (S i) > 1)%N by exact: seqInd_nontrivial (Sr i).
-have /fin_all_exists[nu cohS] i: coherent (S i) (H i)^# 'Ind[G, L i].
+have /fin_all_exists[nu cohS] i: coherent (S i) (L i)^# 'Ind[G, L i].
   have [[[frobLi tiAiL] sLiG] oddLi] := (frobL i, normedTI_A i, sLG i, oddL i).
   have [defLi ntHi ntEi _ _] := Frobenius_context frobLi.
   have{ntEi} nilHi: nilpotent (H i) by exact: (Frobenius_sol_kernel_nil frobLi).
-  admit. (* This is the Sibley coherence theorem, Peterfalvi (6.8) *)
-         (* (a) is sLiG, defLi, oddLi, ntHi, nilHi & tiAiL; (c1) is frobLi *)
+  exact: Sibley_coherence (or_introl _ frobLi).
 have{cohS} [/all_and2[Inu Znu] nu_Ind] := all_and2 cohS.
 have{DH DH1 nu_Ind} cohS i: coherent_with (S i) (H i)^# (tau i) (nu i).
-  by split=> // phi Sphi; rewrite nu_Ind -?(Dade_Ind (DH1 i)) ?(vchar_on Sphi).
+  split=> // phi Sphi; rewrite nu_Ind; last first.
+    by apply: vchar_onS Sphi; rewrite setSD.
+  by rewrite -(Dade_Ind (DH1 i)) ?(vchar_on Sphi).
 have n1S i xi: xi \in S i -> '[xi] = 1.
   by case/irrS/irrP=> t ->; rewrite cfnorm_irr.
 have n1Snu i xi: xi \in S i -> '[nu i xi] = 1.
