@@ -1402,7 +1402,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
           have nZy := subsetP (cent_sub Z) y cZy; rewrite nZy.
           apply/eqP/cfun_inP=> t Zt; rewrite cfConjgE // conjgE invgK mulgA.
           by rewrite (centP cZy) ?mulgK.
-        rewrite -[H in (_ ^: H)%CF](group_inj defIj) cfclass_inertia inE.
+        rewrite -(congr1 (cfclass _) defIj) cfclass_inertia inE.
         by rewrite eq_sym (inj_eq chi_inj).
       rewrite defIphi cfdot_suml => /posC_sum_eq0-> //; first by rewrite eqxx.
       move=> i1 _; rewrite cfdotZl.
