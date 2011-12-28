@@ -271,18 +271,20 @@ by apply/polyP=> i; rewrite coef_poly; case: ltnP => // /(nth_default 0)->.
 Qed.
 
 (* Zmodule structure for polynomial *)
-Definition add_poly p q := \poly_(i < maxn (size p) (size q)) (p`_i + q`_i).
+Definition add_poly := locked
+  (fun p q => \poly_(i < maxn (size p) (size q)) (p`_i + q`_i)).
 
-Definition opp_poly p := \poly_(i < size p) - p`_i.
+Definition opp_poly := locked (fun p => \poly_(i < size p) - p`_i).
 
 Fact coef_add_poly p q i : (add_poly p q)`_i = p`_i + q`_i.
 Proof.
-rewrite coef_poly; case: leqP => //; rewrite leq_maxl => /andP[le_p_i le_q_i].
-by rewrite !nth_default ?add0r.
+unlock add_poly; rewrite coef_poly; case: leqP => //.
+by rewrite leq_maxl => /andP[le_p_i le_q_i]; rewrite !nth_default ?add0r.
 Qed.
 
 Fact coef_opp_poly p i : (opp_poly p)`_i = - p`_i.
 Proof.
+unlock opp_poly.
 by rewrite coef_poly /=; case: leqP => // le_p_i; rewrite nth_default ?oppr0.
 Qed.
 
@@ -419,17 +421,21 @@ Lemma polyC_natmul n : {morph polyC : c / c *+ n}.
 Proof. exact: raddfMn. Qed.
 
 Lemma size_opp p : size (- p) = size p.
-Proof. by apply/eqP; rewrite eqn_leq -{3}(opprK p) !size_poly. Qed.
+Proof.
+apply/eqP; rewrite eqn_leq -{3}(opprK p).
+by rewrite -[-%R]/opp_poly; unlock opp_poly; rewrite !size_poly.
+Qed.
 
 Lemma lead_coef_opp p : lead_coef (- p) = - lead_coef p.
 Proof. by rewrite /lead_coef size_opp coefN. Qed.
 
 Lemma size_add p q : size (p + q) <= maxn (size p) (size q).
-Proof. exact: size_poly. Qed.
+Proof. rewrite -[+%R]/add_poly; unlock add_poly; exact: size_poly. Qed.
 
 Lemma size_addl p q : size p > size q -> size (p + q) = size p.
 Proof.
-move=> ltqp; rewrite size_poly_eq maxnl 1?ltnW //.
+move=> ltqp; rewrite -[+%R]/add_poly; unlock add_poly.
+rewrite size_poly_eq maxnl 1?ltnW //.
 by rewrite addrC nth_default ?simp ?nth_last //; case: p ltqp => [[]].
 Qed.
 
@@ -448,12 +454,13 @@ Qed.
 
 (* Polynomial ring structure. *)
 
-Definition mul_poly (p q : {poly R}) :=
-  \poly_(i < (size p + size q).-1) (\sum_(j < i.+1) p`_j * q`_(i - j)).
+Definition mul_poly := locked (fun (p q : {poly R}) => 
+  \poly_(i < (size p + size q).-1) (\sum_(j < i.+1) p`_j * q`_(i - j))).
 
 Fact coef_mul_poly p q i :
   (mul_poly p q)`_i = \sum_(j < i.+1) p`_j * q`_(i - j)%N.
 Proof.
+unlock mul_poly.
 rewrite coef_poly -subn1 -ltn_add_sub add1n; case: leqP => // le_pq_i1.
 rewrite big1 // => j _; have [lq_q_ij | gt_q_ij] := leqP (size q) (i - j).
   by rewrite [q`__]nth_default ?mulr0.
@@ -538,7 +545,7 @@ Lemma coefMr p q i : (p * q)`_i = \sum_(j < i.+1) p`_(i - j)%N * q`_j.
 Proof. exact: coef_mul_poly_rev. Qed.
 
 Lemma size_mul p q : size (p * q) <= (size p + size q).-1.
-Proof. exact: size_poly. Qed.
+Proof. rewrite -[_ * _]/(mul_poly _ _); unlock mul_poly; exact: size_poly. Qed.
 
 Lemma mul_lead_coef p q :
   lead_coef p * lead_coef q = (p * q)`_(size p + size q).-2.
@@ -955,12 +962,14 @@ Qed.
 
 Lemma horner_opp p x : (- p).[x] = - p.[x].
 Proof.
+rewrite -[-%R]/opp_poly; unlock opp_poly.
 rewrite horner_poly horner_coef -sumr_opp /=.
 by apply: eq_bigr => i _; rewrite mulNr.
 Qed.
 
 Lemma horner_add p q x : (p + q).[x] = p.[x] + q.[x].
 Proof.
+rewrite -[+%R]/add_poly; unlock add_poly.
 rewrite horner_poly; set m := maxn _ _.
 rewrite !(@horner_coef_wide m) ?leq_maxr ?leqnn ?orbT // -big_split /=.
 by apply: eq_bigr => i _; rewrite -mulr_addl.
