@@ -2010,7 +2010,7 @@ Section Pmap.
 Variables (aT rT : Type) (f : aT -> option rT) (g : rT -> aT).
 
 Fixpoint pmap s :=
-  if s is x :: s' then oapp (cons^~ (pmap s')) (pmap s') (f x) else [::].
+  if s is x :: s' then let r := pmap s' in oapp (cons^~ r) r (f x) else [::].
 
 Lemma map_pK : pcancel g f -> cancel (map g) pmap.
 Proof. by move=> gK; elim=> //= x s ->; rewrite gK. Qed.
