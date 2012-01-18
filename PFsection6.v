@@ -608,7 +608,7 @@ Qed.
 (* a be a \pi(a) part of #|G| -- indeed the proof should work for all a!      *)
 Lemma make_pi_cfAut (L : {group gT}) a k :
     coprime k a ->
-  exists2 u : {rmorphism algC -> algC}, algC_Aut u &
+  exists u : {rmorphism algC -> algC},
     {in 'Z[irr G] & G, forall chi x,
           [/\ (#[x] %| a)%N -> cfAut u chi x = chi (x ^+ k)%g
             & coprime #[x] a -> cfAut u chi x = chi x]}.
@@ -1153,7 +1153,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
     have k_gt0: (0 < k)%N by rewrite lt0n (contraNneq _ nt_z0k) // => ->.
     have cokw2: coprime k w2 by rewrite coprime_sym prime_coprime // gtnNdvd.
     have sW2G: W2 \subset G by rewrite -defW2 subIset // (subset_trans sHL).
-    have [u _ vcharGu]:= make_pi_cfAut G cokw2.
+    have [u vcharGu]:= make_pi_cfAut G cokw2.
     have [] := vcharGu (tau1 eta) z0.
     - by rewrite Ztau1 ?seqInd_vcharW.
     - by rewrite -cycle_subG -cycZ defZ.

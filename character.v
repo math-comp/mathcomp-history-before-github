@@ -1473,7 +1473,7 @@ Proof. exact: conjC_charAut (irr_char i). Qed.
 Lemma cfdot_cfAut_char u (phi chi : 'CF(G)) : 
   is_char chi -> '[cfAut u phi, cfAut u chi] = u '[phi, chi].
 Proof.
-by move/conjC_charAut=> Nchi; apply: cfdot_cfAut_r => _ /imageP[x _ ->].
+by move/conjC_charAut=> Nchi; apply: cfdot_cfAut => _ /imageP[x _ ->].
 Qed.
 
 Lemma cfdot_cfAut_irr u phi i :

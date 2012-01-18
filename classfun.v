@@ -764,16 +764,13 @@ Proof. exact: raddf_sum. Qed.
 Lemma cfdotZr a xi phi : '[xi, a *: phi] = a^* * '[xi, phi].
 Proof. by rewrite !(cfdotC xi) cfdotZl rmorphM. Qed.
 
-Lemma cfdot_cfAut_r u phi psi : 
-  {in image psi G, algC_Aut u} -> '[cfAut u phi, cfAut u psi] = u '[phi, psi].
+Lemma cfdot_cfAut (u : {rmorphism algC -> algC}) phi psi : 
+    {in image psi G, {morph u : x / x^*}} ->
+  '[cfAut u phi, cfAut u psi] = u '[phi, psi].
 Proof.
 move=> uC; rewrite rmorphM fmorphV rmorph_nat rmorph_sum; congr (_ * _).
 by apply: eq_bigr => x Gx; rewrite !cfunE rmorphM uC ?map_f ?mem_enum.
 Qed.
-
-Lemma cfdot_cfAut u phi psi : 
-  algC_Aut u -> '[cfAut u phi, cfAut u psi]_G = u '[phi, psi].
-Proof. by move=> uC; rewrite cfdot_cfAut_r // => a _. Qed.
 
 Lemma cfdot_conjC phi psi : '[phi^*, psi^*] = '[phi, psi]^*.
 Proof. by rewrite cfdot_cfAut. Qed.
