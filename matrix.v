@@ -2707,7 +2707,7 @@ Implicit Arguments det0P [R n A].
 (* mapped at this level).                                                    *)
 Section MapFieldMatrix.
 
-Variables (aF rF : fieldType) (f : {rmorphism aF -> rF}).
+Variables (aF : fieldType) (rF : comUnitRingType) (f : {rmorphism aF -> rF}).
 Local Notation "A ^f" := (map_mx f A) : ring_scope.
 
 Lemma map_mx_inj m n : injective ((map_mx f) m n).
