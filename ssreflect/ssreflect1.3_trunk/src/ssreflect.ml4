@@ -1601,9 +1601,9 @@ GEXTEND Gram
     | "*"; tac = ssrtclarg -> ssrtac_expr loc "tclstar" [gen_tclarg tac] 
     ] ];
   tactic_mode: [
-    [ "+"; tac = G_vernac.subgoal_command -> tac None None
-    | "-"; tac = G_vernac.subgoal_command -> tac None None
-    | "*"; tac = G_vernac.subgoal_command -> tac None None
+    [ "+"; tac = G_vernac.subgoal_command -> tac None
+    | "-"; tac = G_vernac.subgoal_command -> tac None
+    | "*"; tac = G_vernac.subgoal_command -> tac None
     ] ];
 END
 
@@ -5367,7 +5367,7 @@ let rwrxtac occ rdx_pat dir rule gl =
          loop d sigma2 (sr 1) a.(0) rs2 0
       | App (r_eq, a) when Hipattern.match_with_equality_type t != None ->
         let ind = destInd r_eq and rhs = array_last a in
-        let np, ndep = Inductiveops.inductive_nargs env ind in
+        let np, ndep = Inductiveops.inductive_nargs ind in
         let ind_ct = Inductiveops.type_of_constructors env ind in
         let lhs0 = last_arg (strip_prod_assum ind_ct.(0)) in
         let rdesc = match kind_of_term lhs0 with
