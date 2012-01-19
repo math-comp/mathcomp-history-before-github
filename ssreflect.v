@@ -28,8 +28,7 @@ Set SsrAstVersion.
 (* ssreflect manual, and in specific comments below.                          *)
 (******************************************************************************)
 
-Global Set Automatic Coercions Import.
-Global Set Bullet Behavior "None".
+(* Global Set Bullet Behavior "None". *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
