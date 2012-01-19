@@ -453,14 +453,11 @@ Notation "m %:~R" := (1 *~ m) : ring_scope.
 
 Section MoreQnum.
 
-(* the fact that numq is not a proper function is a nuisance. *)
-Definition numqf := [fun x => numq x].
-
 Lemma numqE x : (numq x)%:~R = x * (denq x)%:~R.
 Proof. by rewrite -{2}[x]divq_num_den divfK // zintr_eq0 denq_eq0. Qed.
 
 Lemma denqP x : {d | denq x = d.+1}.
-Proof. by case: x => [[_ [[|d]|]] //= _]; exists d. Qed.
+Proof. by rewrite /denq; case: x => [[_ [[|d]|]] //= _]; exists d. Qed.
 
 Lemma absz_denq x : absz (denq x) = denq x :> zint.
 Proof. by have [d ->] := denqP x. Qed.
@@ -731,7 +728,7 @@ Lemma rat_poly_scale (p : {poly qnum}) :
 Proof.
 pose a := \prod_(i < size p) denq p`_i.
 have nz_a: a != 0 by apply/prodf_neq0=> i _; exact: denq_neq0.
-exists (map_poly numqf (a%:~R *: p)), a => //.
+exists (map_poly numq (a%:~R *: p)), a => //.
 apply: canRL (scalerK _) _; rewrite ?zintr_eq0 //.
 apply/polyP=> i; rewrite !(coefZ, coef_map_id0_poly) // numqK // inE mulrC.
 have [ltip | /(nth_default 0)->] := ltnP i (size p); last by rewrite mul0r.
