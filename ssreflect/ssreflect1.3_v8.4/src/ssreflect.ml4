@@ -51,7 +51,7 @@ open Ppconstr
 open Printer
 
 (* Disable any semantics associated with bullets *)
-let () = set_string_option_value ["Bullet";"Behavior"] "None";;
+let () = set_string_option_value_gen (Some false) ["Bullet";"Behavior"] "None";;
 
 let inVersion = Libobject.declare_object {
   (Libobject.default_object "SSRASTVERSION") with
