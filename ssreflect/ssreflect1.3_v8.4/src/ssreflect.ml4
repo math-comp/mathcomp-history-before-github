@@ -50,6 +50,9 @@ open Extraargs
 open Ppconstr
 open Printer
 
+(* Disable any semantics associated with bullets *)
+let () = set_string_option_value ["Bullet";"Behavior"] "None";;
+
 let inVersion = Libobject.declare_object {
   (Libobject.default_object "SSRASTVERSION") with
   Libobject.load_function = (fun _ (_,v) -> 
