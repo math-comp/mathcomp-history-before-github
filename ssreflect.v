@@ -1,4 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+Require Import Bool. (* For bool_scope delimiter 'bool'. *)
 Declare ML Module "ssreflect".
 Set SsrAstVersion.
 
@@ -27,7 +28,8 @@ Set SsrAstVersion.
 (* ssreflect manual, and in specific comments below.                          *)
 (******************************************************************************)
 
-Set Bullet Behavior "None".
+Global Set Automatic Coercions Import.
+Global Set Bullet Behavior "None".
 
 Set Implicit Arguments.
 Unset Strict Implicit.
