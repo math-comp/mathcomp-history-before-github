@@ -1,0 +1,19 @@
+## Uncomment for static linking
+#
+#-custom "$(COQBIN)coqmktop -opt -o bin/ssrcoq src/ssreflect.cmx" "src/ssreflect.cmx" bin/ssrcoq
+#-custom "$(COQBIN)coqmktop -o bin/ssrcoq.byte src/ssreflect.cmo" "src/ssreflect.cmo bin/ssrcoq" bin/ssrcoq.byte
+#-custom "$(SSRCOQ) $(COQFLAGS) -compile $*" "%.v $(SSRCOQ)" "%.vo"
+#SSRCOQ = bin/ssrcoq
+#
+
+## Uncomment for dynamic linking
+#
+#-I src
+
+
+## What follows should be left untouched by the final user of ssreflect
+-R theories Ssreflect
+-R src Ssreflect
+CAMLP4OPTIONS = "-loc loc"
+src/ssreflect.ml4
+theories/ssreflect.v
