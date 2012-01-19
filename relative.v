@@ -184,7 +184,7 @@ Lemma unitzPl : forall x y, mulz y x = [1]%z -> unitz x.
 Proof.
 elim/relPN=>x; elim/relPN=>y; move/eqP; rewrite !qTE -(inj_eq val_inj) /=;
 rewrite !muln0 !mul0n !add0n ?addn0 !sub0n !subn0 //;
-by case/eqP; move/eqP; rewrite eqn_mul1; case/andP.
+by case/eqP; move/eqP; rewrite muln_eq1; case/andP.
 Qed.
 
 Lemma  invz_out : {in predC unitz, invz =1 id}.

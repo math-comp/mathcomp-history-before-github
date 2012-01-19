@@ -70,13 +70,27 @@ End ZmodType.
 
 Section Ring.
 
-Variables (R : ringType) (S : pred R).
+Variables (R rR : ringType) (S : pred R).
 
-Lemma raddp_mul_sign :
+Lemma raddpMsign :
   subadd_pred S -> forall e x, ((-1) ^+ e * x \in S) = (x \in S).
 Proof.
 move=> raddpS e x; rewrite -signr_odd mulr_sign fun_if if_arg raddpN //.
 exact: if_same.
+Qed.
+
+Lemma raddfMsign (f : {additive R -> rR}) e : {morph f : x / (-1) ^+ e * x}.
+Proof.
+by move=> x; rewrite -!(signr_odd _ e) !mulr_sign; case: ifP; rewrite ?raddfN.
+Qed.
+
+Lemma rmorphMsign (f : {rmorphism R -> rR}) e : {morph f : x / (-1) ^+ e * x}.
+Proof. exact: raddfMsign. Qed.
+
+Lemma linearZsign (aV rV : lmodType R) (f : {linear aV -> rV}) e :
+  {morph f : u / (-1) ^+ e *: u}.
+Proof.
+by move=> u; rewrite -!(signr_odd _ e) !scaler_sign; case: ifP; rewrite ?raddfN.
 Qed.
 
 Section MulPred.
@@ -113,7 +127,7 @@ Definition ringpD := raddpD ringp_add.
 Definition ringp_sub := raddp_sub ringp_add.
 Definition ringp_sum := raddp_sum ringp_add.
 Definition ringpMn := raddpMn ringp_add.
-Definition ringp_mul_sign := raddp_mul_sign ringp_add.
+Definition ringpMsign := raddpMsign ringp_add.
 Definition ringp1 := rmulp1 ringp_mul.
 Definition ringpM := rmulpM ringp_mul.
 Definition ringp_prod := rmulp_prod ringp_mul.
@@ -694,7 +708,7 @@ Lemma int_scale_monic p : monic p -> int_poly_scale p = 1.
 Proof.
 move/monicP=> lead_p_1; rewrite [_ p]zintEsign negz_int_poly_scale lead_p_1.
 have /esym/eqP := congr1 (absz \o lead_coef) (int_polyEscale p).
-by rewrite /= lead_p_1 lead_coefZ abszM eqn_mul1 => /andP[/eqP-> _].
+by rewrite /= lead_p_1 lead_coefZ abszM muln_eq1 => /andP[/eqP-> _].
 Qed.
 
 Lemma unscale_int_monic p : monic p -> unscale_int_poly p = p.
@@ -954,28 +968,72 @@ Lemma getCintpP (p : {poly algC}) : all isIntC p -> {q | p = pZtoC q}.
 Proof. by exists (map_poly CtoZ p); rewrite getCintpK. Qed.
 
 (* Reconstructed rational subring. *)
-
+(* Note that this proof is tweaked so that it depends only on the fact that *)
+(* QtoC is a field embedding, and not on the order structure assumed for C. *)
+(* Thus, it could be used in (and moved to) the construction of C.          *)
 Fact getCrat_subproof : {CtoQ | cancel QtoC CtoQ}.
 Proof.
-pose den x := lead_coef (s2val (sig2_eqW (algC_algebraic x))).
-exists (fun x => ZtoQ (getCint (x * ZtoC (den x))) / ZtoQ (den x)) => y.
-rewrite /den; case: (sig2_eqW _) => p nz_p py0 /=; set a := lead_coef p.
-have nz_a: a != 0 by rewrite lead_coef_eq0.
-apply: (fmorph_inj QtoC_M); rewrite fmorph_div !rmorph_zint.
-rewrite getCintK ?mulfK ?zintr_eq0 //.
-congr (isIntC _): (isIntC_int (numq (y * ZtoQ a))).
-rewrite -(rmorph_zint QtoC_M a) -rmorphM.
-have: root (pZtoQ p) y.
-  rewrite -(fmorph_root QtoC_M) -map_comp_poly /=.
-  by congr (root _ _): py0; apply: eq_map_poly => b; rewrite /= rmorph_zint.
-rewrite root_factor_theorem => /dvdpP_rat_int[p1 [y1 nz_y1 Dp1] [r]].
-rewrite /a => /(congr1 lead_coef)->; rewrite lead_coef_Imul rmorphM mulrA.
-set a1 := lead_coef p1; move/(canLR (scalerK nz_y1)) in Dp1.
-have:= congr1 lead_coef Dp1; rewrite lead_coefZ (monicP (monic_factor y)) mulr1.
-rewrite lead_coef_map_inj -/a1 // => [Da1|]; last exact: zintr_inj.
-have /polyP/(_ 0%N) := Dp1; rewrite Da1 coefZ seq_factor coef_map_id0_poly //.
-rewrite mulrN mulrC => /(canRL (@opprK _))->; rewrite -rmorphN -rmorphM.
-by rewrite numq_zint rmorph_zint.
+have QtoCinj: injective QtoC by exact: fmorph_inj.
+have ZtoQinj: injective ZtoQ by exact: zintr_inj.
+have defZtoC: ZtoC =1 QtoC \o ZtoQ by move=> m; rewrite /= rmorph_zint.
+suffices CtoQ x: {xa : seq qnum | forall a, x = QtoC a -> a \in xa}.
+  exists (fun x => let: exist xa _ := CtoQ x in xa`_(index x (map QtoC xa))).
+  move=> a /=; case: (CtoQ _) => xa /= /(_ a (erefl _)) xa_a; apply: QtoCinj.
+  by rewrite -(nth_map _ 0) ?nth_index -?(size_map QtoC) ?index_mem ?map_f.
+have [-> | nz_x] := eqVneq x 0.
+  by exists [:: 0] => a; rewrite inE -(inj_eq QtoCinj) rmorph0 => <-.
+have /sig2_eqW[p nz_p px0] := algC_algebraic x.
+without loss{nz_x} nz_p0: p nz_p px0 / p`_0 != 0.
+  move=> IH; elim/poly_ind: p nz_p => [/eqP// | p a IHp nz_p] in px0.
+  have [a0 | nz_a] := eqVneq a 0; last first.
+    by apply: IH nz_p px0 _; rewrite coefD coefC coefMX add0r.
+  rewrite a0 addr0 mulrC mulf_eq0 -size_poly_eq0 size_polyX in nz_p px0.
+  apply: IHp nz_p _; rewrite rmorphM root_mul /= map_polyX in px0.
+  by rewrite {1}/root hornerX (negPf nz_x) in px0.
+pose p_n := lead_coef p; pose q e m : qnum := (-1) ^+ e * m%:R / (absz p_n)%:R.
+exists [seq q e m | e <- iota 0 2, m <- divisors (absz (p_n * p`_0))] => a Dx.
+rewrite {x}Dx (eq_map_poly defZtoC) map_comp_poly fmorph_root /root in px0.
+have [n Dn]: {n | size p = n.+2}.
+  exists (size p - 2)%N; rewrite -addn2 subnK // ltnNge. 
+  apply: contra nz_p => /size1_polyC Dp; rewrite Dp polyC_eq0.
+  by rewrite Dp map_polyC hornerC zintr_eq0 in px0.
+pose qn (c : zint) m := c * (m ^ n.+1)%N.
+pose Eqn (c0 c1 c2 : zint) d m := qn c0 d + qn c1 m = c2 * d * m.
+have Eqn_div c1 c2 d m c0: coprime m d -> Eqn c0 c1 c2 d m -> (m %| absz c0)%N.
+  move=> co_m_d /(canRL (addrK _))/(congr1 (dvdn m \o absz))/=.
+  rewrite abszM mulnC gauss ?coprime_expr // => ->.
+  by rewrite -mulNr expnSr PoszM mulrA -mulr_addl abszM dvdn_mull.
+pose m := numq a; pose d := absz (denq a).
+have co_md: coprime (absz m) d by exact: coprime_num_den.
+have Dd: denq a = d by rewrite /d; case: (denq a) (denq_gt0 a).
+have{px0} [c Dc1 Emd]: {c | absz c.1 = absz p_n & Eqn p`_0 c.1 c.2 d (absz m)}.
+  pose e : zint := (-1) ^+ negz m.
+  pose r := \sum_(i < n) p`_i.+1 * m ^+ i * (d ^ (n - i.+1))%N.
+  exists (e ^+ n.+1 * p_n, - (r * e)); first by rewrite -exprn_mulr abszMsign.
+  apply/eqP; rewrite !mulNr -addr_eq0 (mulrAC r) -!mulrA -zintEsign addrAC.
+  apply/eqP; transitivity (\sum_(i < n.+2) p`_i * m ^+ i * (d ^ (n.+1 - i))%N).
+    rewrite big_ord_recr big_ord_recl subnn !mulr1; congr (_ + _ + _).
+      rewrite -mulr_suml; apply: eq_bigr => i _; rewrite -!mulrA; congr (_ * _).
+      by rewrite /= mulrC -!mulrA -exprS mulrA -PoszM -expnSr mulrC -leq_subS.
+    rewrite /qn /p_n lead_coefE Dn mulrAC mulrC; congr (_ * _).
+    rewrite -[Posz (_ ^ _)]zintz -natmulP natr_exp natmulP zintz.
+    by rewrite -exprn_mull -zintEsign.
+  apply: (ZtoQinj); rewrite rmorph0 -(mul0r (ZtoQ (d ^ n.+1)%N)) -(eqP px0).
+  rewrite rmorph_sum horner_coef (size_map_inj_poly ZtoQinj) // Dn -mulr_suml.
+  apply: eq_bigr => i _; rewrite coef_map !rmorphM !rmorphX /= numqE Dd.
+  by rewrite -!natmulP !natr_exp exprn_mull -!mulrA -exprn_addr subnKC ?leq_ord.
+have{Dc1} /dvdnP[d1 Dp_n]: (d %| absz p_n)%N.
+  rewrite -Dc1 (Eqn_div p`_0 c.2 (absz m)) 1?coprime_sym //.
+  by rewrite /Eqn mulrAC addrC //.
+have [d1_gt0 _]: (0 < d1 /\ 0 < d)%N.
+  by apply/andP; rewrite -muln_gt0 -Dp_n absz_gt0 lead_coef_eq0. 
+have dv_md1_p0n: (absz m * d1 %| absz p_n * absz (p`_0)%R)%N.
+  by rewrite Dp_n mulnC -mulnA dvdn_pmul2l ?dvdn_mull // (Eqn_div c.1 c.2 d).
+apply/allpairsP; exists (negz m : nat, absz m * d1)%N.
+rewrite mem_iota ltnS leq_b1; split=> //.
+  by rewrite abszM -dvdn_divisors // muln_gt0 !absz_gt0 lead_coef_eq0 nz_p.
+rewrite /q Dp_n !natr_mul invf_mul !mulrA !natmulP -rmorphMsign -zintEsign /=.
+by rewrite -Dd mulfK ?divq_num_den // zintr_eq0 -lt0n.
 Qed.
 
 Definition getCrat := sval getCrat_subproof.
@@ -1676,7 +1734,7 @@ rewrite Df1 !rmorphM dvdp_gcd !dvdp_mulr //= -size_poly_eq1.
 rewrite monFp ?size_unscale_int_poly //.
 rewrite /monic [_ d1]zintEsign (negPf (negz_lead_unscale_int_poly d)).
 have/esym/eqP := congr1 (absz \o lead_coef) Df1.
-by rewrite /= (monicP mon_f) lead_coef_Imul abszM eqn_mul1 => /andP[/eqP-> _].
+by rewrite /= (monicP mon_f) lead_coef_Imul abszM muln_eq1 => /andP[/eqP-> _].
 Qed.
 
 (* Extended automorphisms of Q_n. *)
@@ -2172,7 +2230,7 @@ have sYS (i : 'I_n): x * Y`_i \in S.
 pose A := \matrix_(i, j < n) sval (sig_eqW (S_P _ (sYS j))) i.
 pose p := char_poly (map_mx ZtoC A).
 have: p \in ZP.
-  rewrite ringp_sum // => s _; rewrite ringp_mul_sign ?ringp_prod // => j _.
+  rewrite ringp_sum // => s _; rewrite ringpMsign ?ringp_prod // => j _.
   by rewrite !mxE /= ringp_sub ?ringpMn.
 apply: root_monic_algInt (char_poly_monic _).
 rewrite -eigenvalue_root_char; apply/eigenvalueP; exists v => //.

@@ -295,7 +295,7 @@ Lemma mulVz : {in unitz, left_inverse 1%R invz *%R}.
 Proof. by move=> n; rewrite !inE; case/orP; move/eqP->. Qed.
 
 Lemma mulzn_eq1 m (n : nat) : (m * n == 1) = (m == 1) && (n == 1%N).
-Proof. by case: m=> m /=; [rewrite -PoszM [_==_]eqn_mul1 | case: n]. Qed.
+Proof. by case: m=> m /=; [rewrite -PoszM [_==_]muln_eq1 | case: n]. Qed.
 
 Lemma unitzPl m n : n * m = 1 -> unitz m.
 Proof.

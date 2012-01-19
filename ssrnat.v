@@ -848,7 +848,7 @@ Proof. by move=> m n p; rewrite -!mulnA (mulnC n). Qed.
 Lemma muln_eq0 m n : (m * n == 0) = (m == 0) || (n == 0).
 Proof. by case: m n => // m [|n] //=; rewrite muln0. Qed.
 
-Lemma eqn_mul1 m n : (m * n == 1) = (m == 1) && (n == 1).
+Lemma muln_eq1 m n : (m * n == 1) = (m == 1) && (n == 1).
 Proof. by case: m n => [|[|m]] [|[|n]] //; rewrite muln0. Qed.
 
 Lemma muln_gt0 m n : (0 < m * n) = (0 < m) && (0 < n).
