@@ -226,10 +226,10 @@ Local Notation cancelTD e := (forall x, e (TD (DT x)) x).
 
 Record equiv_rel_indirect := EquivRelIndirect {
   equiv_indirect :> rel D;
+  _ : cancelTD equiv_indirect;
   _ : reflexive equiv_indirect;
   _ : symmetric equiv_indirect;
-  _ : transitive equiv_indirect;
-  _ : cancelTD equiv_indirect
+  _ : transitive equiv_indirect
 }.
 
 Implicit Type e : equiv_rel_indirect.
@@ -294,7 +294,8 @@ move: hxy=> /(f_equal equiv_repr) /=; rewrite /equiv_canon=> ->.
 by rewrite equiv_sym /= chooseP ?equiv_refl.
 Qed.
 
-Lemma equiv_pi_DT (x y : D) : reflect (equiv_pi (DT x) = equiv_pi (DT y)) (e x y).
+Lemma equiv_pi_DT (x y : D) :
+  reflect (equiv_pi (DT x) = equiv_pi (DT y)) (e x y).
 Proof.
 apply: (iffP idP)=> hxy.
   apply/equiv_pi_TD; rewrite /eT /=.
@@ -338,25 +339,45 @@ Notation "x <> y %[mod r ]" := (x <> y %[m [mod r]]) : quotient_scope.
 
 Hint Resolve equiv_refl.
 
+Section EquivRelDirect.
+
+Variable T : choiceType.
+Variable R : rel T.
+Variable e : equiv_rel T.
+
+Definition MkEquivRelDirect (er : reflexive R)
+  (es : symmetric R) (et : transitive R) of phant_id R (equiv e) &
+  phant_id er (@equiv_refl _ e) &
+  phant_id es (@equiv_sym _ e) &
+  phant_id et (@equiv_trans _ e) :=
+  @EquivRelIndirect T T id id R (fun _ => er _) er es et.
+
+End EquivRelDirect.
+
+Notation EquivRelDirect R := (@MkEquivRelDirect _ R _ _ _ _ id id id id).
+
 
 (*******************)
 (* About morphisms *)
 (*******************)
 
 Structure pi_morph T (x : T) := PiMorph {pi_op : T; _ : pi_op = x}.
+Lemma piE (T : Type) (x : T) (m : pi_morph x) : pi_op m = x. Proof. by case: m. Qed.
+
+Canonical pi_morph_pi T (qT : quotType T) (x : T) :=
+  @PiMorph _ (\pi_qT x) (\pi x) (erefl _).
+
 Implicit Arguments PiMorph [T x].
 Prenex Implicits PiMorph.
 
 Section Morphism.
 
-Variable T : Type.
+Variables T U : Type.
 Variable (qT : quotType T).
 
-Canonical pi_morph_pi (x : T) := @PiMorph _ (\pi_qT x) (\pi x) (erefl _).
-Lemma piE x (m : pi_morph (\pi_qT x)) : pi_op m = \pi x. Proof. by case: m. Qed.
 
-Variable (f : T -> T) (g : T -> T -> T) (p : pred T) (r : rel T).
-Variable (fq : qT -> qT) (gq : qT -> qT -> qT) (pq : pred qT) (rq : rel qT).
+Variable (f : T -> T) (g : T -> T -> T) (p : T -> U) (r : T -> T -> U).
+Variable (fq : qT -> qT) (gq : qT -> qT -> qT) (pq : qT -> U) (rq : qT -> qT -> U).
 Hypothesis pi_f : {morph \pi : x / f x >-> fq x}.
 Hypothesis pi_g : {morph \pi : x y / g x y >-> gq x y}.
 Hypothesis pi_p : {mono \pi : x / p x >-> pq x}.
@@ -369,12 +390,14 @@ Lemma pi_mono1 : pq (pi_op x) = p a. Proof. by rewrite !piE. Qed.
 Lemma pi_mono2 : rq (pi_op x) (pi_op y) = r a b. Proof. by rewrite !piE. Qed.
 
 End Morphism.
+
 Implicit Arguments pi_morph1 [T qT f fq].
 Implicit Arguments pi_morph2 [T qT g gq].
-Implicit Arguments pi_mono1 [T qT p pq].
-Implicit Arguments pi_mono2 [T qT r rq].
+Implicit Arguments pi_mono1 [T U qT p pq].
+Implicit Arguments pi_mono2 [T U qT r rq].
 Prenex Implicits pi_morph1 pi_morph2 pi_mono1 pi_mono2.
 
+Notation PiConst a eq := (@PiMorph _ _ a eq).
 Notation PiMorph1 fq pi_f :=
   (fun a (x : pi_morph (\pi a)) => PiMorph (fq _) (pi_morph1 pi_f a x)).
 Notation PiMorph2 gq pi_g :=
@@ -385,6 +408,14 @@ Notation PiMono1 pq pi_p :=
 Notation PiMono2 rq pi_r :=
   (fun a b (x : pi_morph (\pi a)) (y : pi_morph (\pi b))
     => PiMorph (rq _ _) (pi_mono2 pi_r a b x y)).
+
+
+Notation mk_mconst qT x := (locked (\pi_qT x)).
+Notation mk_mop1 qT f := (locked (fun x : qT => (\pi_qT (f (repr x))) : qT)).
+Notation mk_mop2 qT g := (locked (fun x y : qT => (\pi_qT (g (repr x) (repr y))) : qT)).
+Notation mk_mfun1 qT f := (locked (fun x : qT => (f (repr x)))).
+Notation mk_mfun2 qT g := (locked (fun x y : qT => (g (repr x) (repr y)))).
+
 
 (* Module MonoidQuotient. *)
 
