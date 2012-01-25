@@ -24,19 +24,17 @@ Import GroupScope GRing.Theory FinRing.Theory.
 Section Eleven.
 
 
-Lemma odd_prime_lbound_expn p q : 
+Lemma lbound_expn_odd_prime p q : 
    odd p -> odd q -> prime p -> prime q -> p != q -> 4 * q ^ 2 + 1 < p ^ q.
 Proof.
 case: p=> [|[|[|p]]] //; case: q=> [|[|[|[|[|q]]]]] //.
   case: p=> [|[|p]] // _ _ _ _ _.
-  have[/(leq_trans _)] : 5 ^ 3 <= p.+1.+4 ^ 3 by rewrite leq_exp2r.
-  by apply.
+  by have[/(leq_trans _)->] : 5 ^ 3 <= p.+1.+4 ^ 3 by rewrite leq_exp2r.
 set y := p.+3; set x := _.+4; move=> _ _ _ _ _.
 have[/(leq_trans _)-> //]: 3 ^ x <= y ^ x by rewrite leq_exp2r.
 rewrite {y}/x; elim: q => [| q IH] //.
 rewrite [(3 ^ _)%N]expnS; set x := q.+1.+4 in IH |- *.
-have F: 0 < 3 by [].
-rewrite  -(ltn_pmul2l F) in IH.
+rewrite  -(ltn_pmul2l (_ : 0 < 3)) // in IH.
 apply: (leq_trans _ IH); rewrite ltnS.
 set X := _ + 1; have{X}->: X = 4 * x ^ 2 + (x * (7 * 1).+1 + (2 * 1 + 3))
   by rewrite /X; ring.
