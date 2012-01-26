@@ -29,9 +29,9 @@ Lemma lbound_expn_odd_prime p q :
 Proof.
 case: p=> [|[|[|p]]] //; case: q=> [|[|[|[|[|q]]]]] //.
   case: p=> [|[|p]] // _ _ _ _ _.
-  by have[/(leq_trans _)->] : 5 ^ 3 <= p.+1.+4 ^ 3 by rewrite leq_exp2r.
+  by have /(leq_trans _)-> : 5 ^ 3 <= p.+1.+4 ^ 3 by rewrite leq_exp2r.
 set y := p.+3; set x := _.+4; move=> _ _ _ _ _.
-have[/(leq_trans _)-> //]: 3 ^ x <= y ^ x by rewrite leq_exp2r.
+have /(leq_trans _)-> //: 3 ^ x <= y ^ x by rewrite leq_exp2r.
 rewrite {y}/x; elim: q => [| q IH] //.
 rewrite [(3 ^ _)%N]expnS; set x := q.+1.+4 in IH |- *.
 rewrite  -(ltn_pmul2l (_ : 0 < 3)) // in IH.
