@@ -3,19 +3,17 @@
 (* This line is read by the Makefile's dist target: do not remove. *)
 let ssrversion = "1.3pl1";;
 let ssrAstVersion = 1;;
-let () = Mltop.add_known_module "ssreflect";;
-let () = 
-  if Flags.is_verbose () && not !Flags.batch_mode && 
-     (* This is needed when the plugin is statically linked. 
-      * Command line args are processed later, thus flags are still unset *)
-     not (List.exists (fun x -> x = "-compile" || x = "-where") 
-           (Array.to_list Sys.argv))
-  then begin
-  Printf.printf "\nSmall Scale Reflection version %s loaded.\n" ssrversion;
-  Printf.printf "Copyright 2005-2011 Microsoft Corporation and INRIA.\n";
-  Printf.printf "Distributed under the terms of the CeCILL-B license.\n\n"
-  end
+let () = Mltop.add_known_plugin (fun () ->
+  if Flags.is_verbose () && not !Flags.batch_mode then begin
+    Printf.printf "\nSmall Scale Reflection version %s loaded.\n" ssrversion;
+    Printf.printf "Copyright 2005-2011 Microsoft Corporation and INRIA.\n";
+    Printf.printf "Distributed under the terms of the CeCILL-B license.\n\n"
+  end;
+  (* Disable any semantics associated with bullets *)
+  Goptions.set_string_option_value_gen (Some false) ["Bullet";"Behavior"] "None")
+  "ssreflect"
 ;;
+
 (* Defining grammar rules with "xx" in it automatically declares keywords too *)
 let frozen_lexer = Lexer.freeze () ;;
 
@@ -49,9 +47,6 @@ open Tactic
 open Extraargs
 open Ppconstr
 open Printer
-
-(* Disable any semantics associated with bullets *)
-let () = set_string_option_value_gen (Some false) ["Bullet";"Behavior"] "None";;
 
 let inVersion = Libobject.declare_object {
   (Libobject.default_object "SSRASTVERSION") with
