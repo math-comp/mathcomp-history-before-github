@@ -6,6 +6,7 @@ Require Import gfunctor gproduct cyclic pgroup commutator nilpotent.
 Require Import matrix mxalgebra mxrepresentation vector algC classfun character.
 Require Import frobenius BGsection3 inertia vcharacter.
 Require Import PFsection1 PFsection2 PFsection4 PFsection5 PFsection6.
+Require Import PFsection3.
 
 (******************************************************************************)
 (* This file covers Peterfalvi, Section 7:                                    *)

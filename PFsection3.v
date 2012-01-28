@@ -71,6 +71,213 @@ apply: (cfun_on0 Cf); apply: contra GniC => GHiA.
 by rewrite -[g](conjgK h) mem_class_support // groupV.
 Qed.
  
+
+Section MoreField.
+
+Variables (F : fieldType) (R : ringType) (f : {rmorphism F -> R}).
+
+Lemma fmorph_eq1 (x : F) : (f x == 1) = (x == 1).
+Proof. by rewrite -{1}(rmorph1 f) (inj_eq (fmorph_inj f)). Qed.
+
+End MoreField.
+
+Section MoreAutC.
+
+Variable u : {rmorphism algC -> algC}.
+
+Lemma isNatC_rmorph z : isNatC (u z) = isNatC z.
+Proof.
+by do [apply/idP/idP=> Nz; have:= rmorph_NatC u Nz] => [/fmorph_inj <- | ->].
+Qed.
+
+Lemma isIntC_rmorph z : isIntC (u z) = isIntC z.
+Proof. by rewrite !isIntCE -rmorphN !isNatC_rmorph. Qed.
+
+End MoreAutC.
+
+Section MoreClassfun.
+
+Variables (gT : finGroupType) (G : {group gT}).
+
+Lemma cfAut_inj u : injective (@cfAut _ G u).
+Proof.
+move=> phi xi eq_phi; apply/cfunP=> x; move/cfunP/(_ x): eq_phi.
+by rewrite !cfunE; exact: fmorph_inj.
+Qed.
+
+Lemma cfAut_cfun1 u: cfAut u 1 = 1 :> 'CF(G).
+Proof. by apply/cfun_inP=> x; rewrite cfunE cfun1E rmorph_nat. Qed.
+
+Lemma cfun_on_cfAut u A phi : (cfAut u phi \in 'CF(G, A)) = (phi \in 'CF(G, A)).
+Proof.
+by rewrite !cfun_onE; apply: eq_subset => x; rewrite !inE cfunE fmorph_eq0.
+Qed.
+
+Lemma orthogonal_opp (S1 S2 : seq 'CF(G)):
+  orthogonal S1 (map -%R S2) = orthogonal S1 S2.
+Proof.
+wlog suffices IH: S1 S2 / orthogonal S1 S2 -> orthogonal S1 (map -%R S2).
+  apply/idP/idP=> /IH; rewrite ?mapK //; exact: opprK.
+move/orthogonalP=> oS12; apply/orthogonalP=> xi1 _ Sxi1 /mapP[xi2 Sxi2 ->].
+by rewrite cfdotNr oS12 ?oppr0.
+Qed.
+
+Lemma opp_isometry : @isometry _ _ G G -%R.
+Proof. by move=> x y; rewrite cfdotNl cfdotNr opprK. Qed.
+
+End MoreClassfun.
+
+Implicit Arguments cfAut_inj [gT G x1 x2].
+
+Section MoreCharacter.
+
+Variables (gT : finGroupType) (G : {group gT}).
+
+Lemma aut_Iirr0 u : aut_Iirr u 0 = 0 :> Iirr G.
+Proof.  by apply/chi_inj; rewrite aut_IirrE chi0_1 cfAut_cfun1. Qed.
+
+Lemma conjC_Iirr0 : conjC_Iirr 0 = 0 :> Iirr G.
+Proof. exact: aut_Iirr0. Qed.
+
+Lemma aut_Iirr_inj u : injective ((aut_Iirr u) G).
+Proof.
+by move=> i j eq_ij; apply/chi_inj/(cfAut_inj u); rewrite -!aut_IirrE eq_ij.
+Qed.
+
+Lemma char_cfAut u (chi : 'CF(G)) : is_char (cfAut u chi) = is_char chi.
+Proof.
+apply/idP/idP=> [Nuchi|]; last exact: cfAut_char.
+rewrite [chi]cfun_sum_cfdot sum_char // => i _; rewrite scale_char ?irr_char //.
+by rewrite -(isNatC_rmorph u) -cfdot_cfAut_irr -aut_IirrE cfdot_char_irr_Nat.
+Qed.
+
+(* This should replace char_cfnorm_irrE *)
+Lemma irr_char1E chi : (chi \in irr G) = is_char chi && ('[chi] == 1).
+Proof.
+apply/idP/andP=> [/irrP[i ->] | [/char_cfnorm_irrE-> //]].
+by rewrite irr_char cfnorm_irr.
+Qed.
+
+Lemma irr_cfAut u chi : (cfAut u chi \in irr G) = (chi \in irr G).
+Proof.
+rewrite !irr_char1E char_cfAut; apply/andb_id2l=> /cfdot_cfAut_char->.
+by rewrite fmorph_eq1.
+Qed.
+
+End MoreCharacter.
+
+Implicit Arguments aut_Iirr_inj [gT G x1 x2].
+
+Section MoreVCharacter.
+
+Variables (gT : finGroupType) (G : {group gT}).
+
+Lemma vchar_onS (A B : {set gT}) (S : seq 'CF(G)) :
+  A \subset B -> {subset 'Z[S, A] <= 'Z[S, B]}.
+Proof.
+move=> sAB phi; rewrite vchar_split (vchar_split _ B) => /andP[->].
+exact: cfun_onS.
+Qed.
+
+Lemma map_orthonormal (H : {group gT}) (S : seq 'CF(G)) (nu : 'CF(G) -> 'CF(H)):
+   {in 'Z[S] &, isometry nu} -> orthonormal S -> orthonormal (map nu S).
+Proof.
+rewrite !orthonormalE => Inu /andP[/allP/=nS1 oSS].
+rewrite map_pairwise_orthogonal // andbT; apply/allP=> _ /mapP[xi Sxi ->].
+by rewrite /= Inu ?nS1 // mem_vchar ?orthogonal_free.
+Qed.
+
+Lemma conjC_vcharAut (u : {rmorphism algC -> algC}) chi x :
+  chi \in 'Z[irr G] -> (u (chi x))^* = u (chi x)^*.
+Proof.
+case/vcharP=> chi1 Nchi1 [chi2 Nchi2 ->].
+by rewrite !cfunE !rmorph_sub !conjC_charAut.
+Qed.
+
+Lemma cfdot_cfAut_vchar u (phi chi : 'CF(G)) :
+  chi \in 'Z[irr G] -> '[cfAut u phi, cfAut u chi] = u '[phi, chi].
+Proof.
+case/vcharP=> chi1 Nchi1 [chi2 Nchi2 ->].
+by rewrite !raddf_sub /= !cfdot_cfAut_char.
+Qed.
+
+Lemma vchar_cfAut A u (chi : 'CF(G)) :
+  (cfAut u chi \in 'Z[irr G, A]) = (chi \in 'Z[irr G, A]).
+Proof.
+rewrite !(vchar_split _ A) cfun_on_cfAut; congr (_ && _).
+apply/idP/idP=> [Zuchi|]; last exact: cfAut_virr.
+rewrite [chi]cfun_sum_cfdot sum_vchar // => i _.
+rewrite scale_vchar ?irr_vchar //.
+by rewrite -(isIntC_rmorph u) -cfdot_cfAut_irr -aut_IirrE cfdot_vchar_irr_Int.
+Qed.
+
+Definition dirr :=  [pred f | (f \in irr G) || (-f \in irr G)].
+
+Lemma dirr_opp v : (-v \in dirr) = (v \in dirr).
+Proof. by rewrite !inE opprK orbC. Qed.
+
+Lemma dirr_sign n v : ((-1)^+ n *: v \in dirr) = (v \in dirr).
+Proof.
+elim: n => [|n IH]; first by rewrite scale1r.
+by rewrite exprS -scalerA scaleN1r dirr_opp.
+Qed.
+
+Lemma dirr_chi i : 'chi_i \in dirr.
+Proof. by rewrite !inE irr_chi. Qed.
+
+Lemma dirrP f : reflect (exists b : bool, exists i, f = (-1)^+ b *: 'chi_i)
+                        (f \in dirr).
+Proof.
+apply: (iffP idP)=> [| [b [i ->]]]. 
+  rewrite inE => /orP [] /irrP [] i Hf.
+    by exists false; exists i; rewrite scale1r.
+  by exists true; exists i; rewrite expr1 scaleNr scale1r -Hf opprK.
+by rewrite dirr_sign dirr_chi.
+Qed.
+
+Lemma cfdot_dirr f g : f \in dirr -> g \in dirr ->
+  '[f, g] = if f == -g then -1 else (f == g)%:R.
+Proof.
+have F i j : 'chi_i != -'chi[G]_ j.
+  apply/negP=> Echi.
+  have: '['chi_i] = 1 by rewrite cfdot_irr eqxx.
+  rewrite  {1}(eqP Echi) cfdotNl cfdot_irr; case: (_ == _)=> /eqP.
+    by rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1%N) -(eqN_eqC _ 0).
+  by rewrite oppr0 -(eqN_eqC 0 1).
+by case/dirrP=> [[]] [i1 ->] /dirrP [[]] [i2 ->];
+   rewrite !(expr0, expr1, scaleN1r, scale1r, opprK, cfdotNr, cfdotNl);
+   rewrite ?(eqr_opp, eqr_oppC, cfdot_irr, (negPf (F _ _)));
+   case: (boolP (i1 == _))=> [/eqP->|Di1i2];
+   rewrite ?eqxx //; case: (_ =P _); rewrite ?oppr0 // => /chi_inj HH;
+   case/eqP: Di1i2.
+Qed.
+
+Lemma dirr_norm1 phi : phi \in 'Z[irr G] -> '[phi] = 1 -> phi \in dirr.
+Proof.
+move=> Zphi phiN1.
+have: orthonormal phi by rewrite /orthonormal/= phiN1 eqxx.
+case/vchar_orthonormalP=> [xi /predU1P[->|] // | I [b def_phi]].
+have: phi \in (phi : seq _) := mem_head _ _.
+rewrite (perm_eq_mem def_phi) => /mapP[i _ ->].
+by rewrite dirr_sign dirr_chi.
+Qed.
+
+(* This should perhaps be the definition of dirr. *)
+Lemma dirrE phi : phi \in dirr = (phi \in 'Z[irr G]) && ('[phi] == 1).
+Proof.
+apply/dirrP/andP=> [[b [i ->]] | [Zphi /eqP/vchar_norm1P]]; last exact.
+by rewrite sign_vchar irr_vchar cfnorm_sign cfnorm_irr.
+Qed.
+
+Lemma dirr_cfAut u phi : (cfAut u phi \in dirr) = (phi \in dirr).
+Proof.
+rewrite !dirrE vchar_cfAut; apply: andb_id2l => /cfdot_cfAut_vchar->.
+exact: fmorph_eq1.
+Qed.
+
+End MoreVCharacter.
+
+
 Section Definitions.
 
 Variables (gT : finGroupType) (G W W1 W2 : {set gT}).
@@ -2245,60 +2452,7 @@ case: (j2 == _); last by rewrite oppr0 -(eqN_eqC 0 1).
 by rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1) -(eqN_eqC _ 0).
 Qed.
 
-
-(* Move to vcharacter *)
-Definition dirr :=  [pred f | (f \in irr G) || (-f \in irr G)].
-
-Lemma dirr_opp v : (-v \in dirr) = (v \in dirr).
-Proof. by rewrite !inE opprK orbC. Qed.
-
-Lemma dirr_sign n v : ((-1)^+ n *: v \in dirr) = (v \in dirr).
-Proof.
-elim: n => [|n IH]; first by rewrite scale1r.
-by rewrite exprS -scalerA scaleN1r dirr_opp.
-Qed.
-
-Lemma dirr_chi i : 'chi_i \in dirr.
-Proof. by rewrite !inE irr_chi. Qed.
-
-Lemma dirrP f : reflect (exists b : bool, exists i, f = (-1)^+ b *: 'chi_i)
-                        (f \in dirr).
-Proof.
-apply: (iffP idP)=> [| [b [i ->]]]. 
-  rewrite inE => /orP [] /irrP [] i Hf.
-    by exists false; exists i; rewrite scale1r.
-  by exists true; exists i; rewrite expr1 scaleNr scale1r -Hf opprK.
-by rewrite dirr_sign dirr_chi.
-Qed.
-
-Lemma cfdot_dirr f g : f \in dirr -> g \in dirr ->
-  '[f, g] = if f == -g then -1 else (f == g)%:R.
-Proof.
-have F i j : 'chi_i != -'chi[G]_ j.
-  apply/negP=> Echi.
-  have: '['chi_i] = 1 by rewrite cfdot_irr eqxx.
-  rewrite  {1}(eqP Echi) cfdotNl cfdot_irr; case: (_ == _)=> /eqP.
-    by rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1%N) -(eqN_eqC _ 0).
-  by rewrite oppr0 -(eqN_eqC 0 1).
-by case/dirrP=> [[]] [i1 ->] /dirrP [[]] [i2 ->];
-   rewrite !(expr0, expr1, scaleN1r, scale1r, opprK, cfdotNr, cfdotNl);
-   rewrite ?(eqr_opp, eqr_oppC, cfdot_irr, (negPf (F _ _)));
-   case: (boolP (i1 == _))=> [/eqP->|Di1i2];
-   rewrite ?eqxx //; case: (_ =P _); rewrite ?oppr0 // => /chi_inj HH;
-   case/eqP: Di1i2.
-Qed.
-
-Lemma dirr_norm1 phi : phi \in 'Z[irr G] -> '[phi] = 1 -> phi \in dirr.
-Proof.
-move=> Zphi phiN1.
-have: orthonormal phi by rewrite /orthonormal/= phiN1 eqxx.
-case/vchar_orthonormalP=> [xi /predU1P[->|] // | I [b def_phi]].
-have: phi \in (phi : seq _) := mem_head _ _.
-rewrite (perm_eq_mem def_phi) => /mapP[i _ ->].
-by rewrite dirr_sign dirr_chi.
-Qed.
-
-Lemma dirr_sigma i j : sigma(w_ i j) \in dirr.
+Lemma dirr_sigma i j : sigma(w_ i j) \in dirr G.
 Proof.
 apply: dirr_norm1; last by rewrite cfdot_sigma !eqxx.
 case:  cyclicTIisometry=> _; apply.
@@ -2340,7 +2494,7 @@ case: ('chi_i =P _)=> [->|_].
 by case: ('chi_i =P _)=> [->|_]; rewrite ?(cyclicTI_NC_sigma, eqxx).
 Qed.
 
-Lemma cyclicTI_NC_dirr f : f \in dirr -> (NC f <= 1)%N.
+Lemma cyclicTI_NC_dirr f : f \in dirr G -> (NC f <= 1)%N.
 Proof.
 by case/orP; last rewrite -cyclicTI_NC_opp; case/irrP=> i ->;
    exact: cyclicTI_NC_irr.
@@ -2564,7 +2718,7 @@ Qed.
 
 (* This is PF 3.9a *)
 Lemma cyclicTI_dirr (i : Iirr W) (phi : 'CF(G)) :
-  phi \in dirr -> {in V, phi =1 'chi_i} -> phi = sigma 'chi_i.
+  phi \in dirr G -> {in V, phi =1 'chi_i} -> phi = sigma 'chi_i.
 Proof.
 move=> Dphi; rewrite -(inv_dprod_IirrK W1xW2 i).
 case: (inv_dprod_Iirr _)=> /= i1 j1; rewrite -cTIirrE => EphiC.
@@ -2589,6 +2743,29 @@ have: (0 < #|S| < 2 * minn w1 w2)%N.
   by rewrite -{1}[2%N]muln1 ltn_mul2l /= leq_minr ![(1 < _)%N]ltnW.
 move/(cyclicTI_NC_minn ZpsiV); rewrite leqNgt; case/negP.
 by apply: leq_ltn_trans SLt _; rewrite leq_minr tLW1.
+Qed.
+
+Lemma cyclicTIirrP chi : chi \in irr W -> {i : Iirr W1 & {j | chi = w_ i j}}.
+Proof.
+case/irrP/sig_eqW=> ij ->{chi}; rewrite -[ij](inv_dprod_IirrK W1xW2).
+by case: {ij}(inv_dprod_Iirr _ _) => i j; exists i, j; rewrite cTIirrE.
+Qed.
+
+Lemma cycTIirr_aut u i j : w_ (aut_Iirr u i) (aut_Iirr u j) = cfAut u (w_ i j).
+Proof.
+apply/esym/cfun_inP=> x; have /dprodP[_ {1}<- _ _] := W1xW2.
+case/mulsgP=> x1 x2 Wx1 Wx2 ->; rewrite !cTIirrE 2!dprod_IirrE.
+by rewrite cfunE 2?cfDprodE // rmorphM !aut_IirrE !cfunE.
+Qed.
+
+(* This is the second part of Peterfalvi (3.9)(a). *)
+Lemma cfAut_cycTIiso u phi : cfAut u (sigma phi) = sigma (cfAut u phi).
+Proof.
+rewrite [phi]cfun_sum_cfdot !raddf_sum; apply: eq_bigr => ij _.
+rewrite /= !(linearZ, cfAutZ) -aut_IirrE; congr (_ *: _) => {phi}.
+apply: cyclicTI_dirr => [|x Vx /=].
+  by have /cyclicTIirrP[i [j ->]] := irr_chi ij; rewrite dirr_cfAut dirr_sigma.
+by rewrite cfunE cyclicTIsigma_restrict // aut_IirrE cfunE.
 Qed.
 
 End Proofs.
