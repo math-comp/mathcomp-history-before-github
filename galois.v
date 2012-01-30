@@ -330,8 +330,11 @@ Qed.
    for some basis of L.
    The proof that this suffices should eventually be done. *)
 
-Hypothesis NormalFieldExt : forall K x,
-  exists r : seq L, minPoly K x == \prod_(y <- r) ('X - y%:P).
+Definition isNormalFieldExt :=
+    forall (K : {algebra L}) x,
+  exists r, minPoly K x == \prod_(y <- r) ('X - y%:P).
+
+Hypothesis NormalFieldExt : isNormalFieldExt.
 
 Definition LAut_enum : seq 'End(L):=
  let b := vbasis (fullv L) in

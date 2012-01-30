@@ -22,6 +22,26 @@ Local Open Scope ring_scope.
 (* an irreducible character of G divides the order of G (Isaacs 3.11).        *)
 (******************************************************************************)
 
+Section MoreSeq.
+
+Lemma allpairs_uniq (T1 T2 T : eqType) (f : T1 -> T2 -> T) s1 s2 :
+    uniq s1 -> uniq s2 ->
+    {in [seq (x1, x2) | x1 <- s1, x2 <- s2] &, injective (prod_curry f)} ->
+  uniq [seq f x1 x2 | x1 <- s1, x2 <- s2].
+Proof.
+move=> Us1 Us2 inj_f; have: all (mem s1) s1 by exact/allP.
+elim: {-2}s1 Us1 => //= x1 s IHs /andP[s'x1 Us] /andP[s1x1 s1s].
+rewrite cat_uniq {}IHs // andbT map_inj_in_uniq ?Us2 // => [|x2 y2 *].
+  apply/hasPn=> z /allpairsP[x [s_x s2x ->]]; apply/mapP=> [[x2 s2x2 Dx]].
+  suffices [Dx1 _]: (x.1, x.2) = (x1, x2) by rewrite -Dx1 s_x in s'x1.
+  apply: inj_f => //; apply/allpairsP; last by exists (x1, x2).
+  by have:= allP s1s _ s_x; exists x.
+suffices: (x1, x2) = (x1, y2) by case.
+by apply: inj_f => //; apply/allpairsP; [exists (x1, x2) | exists (x1, y2)].
+Qed.
+
+End MoreSeq.
+
 Section MoreTuple.
 
 Variables (n : nat) (T : Type) (f : 'I_n -> T).
@@ -65,6 +85,9 @@ Proof. by move=> IH; elim/big_ind: _; [exact: raddp0 | exact: raddpD |]. Qed.
 
 Lemma raddpMn n : {in S, forall u, u *+ n \in S}.
 Proof. by move=> u Su; rewrite -(card_ord n) -sumr_const raddp_sum. Qed.
+
+Lemma raddpMNn n : {in S, forall u, u *- n \in S}.
+Proof. by move=> u Su; rewrite /= raddpN raddpMn. Qed.
 
 End ZmodType.
 
@@ -127,6 +150,7 @@ Definition ringpD := raddpD ringp_add.
 Definition ringp_sub := raddp_sub ringp_add.
 Definition ringp_sum := raddp_sum ringp_add.
 Definition ringpMn := raddpMn ringp_add.
+Definition ringpMNn := raddpMNn ringp_add.
 Definition ringpMsign := raddpMsign ringp_add.
 Definition ringp1 := rmulp1 ringp_mul.
 Definition ringpM := rmulpM ringp_mul.
@@ -140,6 +164,42 @@ Lemma ringp_sign n : (-1) ^+ n \in S.
 Proof. by rewrite ringpX ?ringpN ?ringp1. Qed.
 
 End Ring.
+
+Section Lalgebra.
+
+Variables (R : ringType) (L : lalgType R).
+
+Lemma in_algE a : in_alg L a = a%:A. Proof. by []. Qed.
+
+Lemma mulr_algl a u : a%:A * u = a *: u :> L.
+Proof. by rewrite -scaler_mull mul1r. Qed.
+
+End Lalgebra.
+
+Section Algebra.
+
+Variables (R : comRingType) (L : algType R).
+
+Lemma mulr_algr a u : u * a%:A = a *: u :> L.
+Proof. by rewrite -scaler_mulr mulr1. Qed.
+
+End Algebra.
+
+Section UnitRing.
+
+Variables (R : unitRingType) (S : pred R).
+Hypotheses (ringS : subring_pred S) (invS : {in S, forall x, x^-1 \in S}).
+
+Lemma ringpV x : (x^-1 \in S) = (x \in S).
+Proof. by apply/idP/idP=> /invS; rewrite ?invrK. Qed.
+
+Lemma ringp_div : {in S &, forall x y, x / y \in S}.
+Proof. by move=> x y Sx Sy; rewrite /= ringpM ?ringpV. Qed.
+
+Lemma ringpXN n : {in S, forall x, x ^- n \in S}.
+Proof. by move=> x Sx; rewrite /= ringpV ringpX. Qed.
+
+End UnitRing.
 
 Section IDomain.
 
@@ -762,6 +822,995 @@ Qed.
 
 End ZpolyScale.
 
+Section MoreVector.
+
+Variables (K : fieldType) (L : vectType K).
+Implicit Types U V : {vspace L}.
+
+Lemma eqEsubv U V : (U == V) = (U <= V <= U)%VS.
+Proof.
+apply/idP/andP=> [/eqP->// | [sUV sVU]].
+by apply/vspaceP=> u; apply/idP/idP=> [/(subvP sUV) | /(subvP sVU)].
+Qed.
+
+Lemma eqEdim U V : (U == V) = (U <= V)%VS && (\dim V <= \dim U)%N.
+Proof.
+by apply/idP/andP=> [/eqP->// | [sUV]]; rewrite (geq_leqif (dimv_leqif_eq sUV)).
+Qed.
+
+Lemma subvPn {U V} : reflect (exists2 u, u \in U & u \notin V) (~~ (U <= V)%VS).
+Proof.
+apply: (iffP idP) => [|[u Uu]]; last by apply: contra => /subvP->.
+have <-: span (vbasis U) = U by exact/eqP/is_span_is_basis/is_basis_vbasis.
+by rewrite -span_subsetl => /allPn[u Uu V'u]; exists u; rewrite // memv_span.
+Qed.
+
+Lemma basisEdim b U : is_basis U b = (U <= span b)%VS && (size b <= \dim U)%N.
+Proof.
+apply/andP/idP=> [[defU /eqnP <-]| ]; first by rewrite -eqEdim eq_sym.
+case/andP=> sUb le_b_U; have lebb := dim_span (in_tuple b).
+rewrite /is_span /free eq_sym eqEdim sUb eqn_leq !(leq_trans lebb) //.
+by rewrite (leq_trans le_b_U (dimvS sUb)).
+Qed.
+
+Lemma perm_is_basis b1 b2 U : perm_eq b1 b2 -> is_basis U b1 = is_basis U b2.
+Proof.
+move=> eq_b12; congr ((_ == _) && _); last exact: free_perm_eq.
+by apply: span_eq; exact: perm_eq_mem.
+Qed.
+
+Implicit Type L : vectType K.
+
+Lemma linear_appE L2 (f : {linear L -> L2}) : lapp_of_fun f =1 f.
+Proof. exact: lapp_of_funK (linearP f). Qed.
+
+Definition lappE := (linear_appE, lappE).
+
+Lemma lpre_comp L2 L3 f (g : 'Hom(L2, L3)) U :
+  ((f \o g) @^-1: U = g @^-1: (f @^-1: U))%VS.
+Proof. by apply/eqP/vspaceP=> u; rewrite -!memv_pre_img lappE. Qed.
+
+Lemma limg_lappVK L2 (f : 'Hom(L, L2)) : {in limg f, cancel (f \^-1)%VS f}.
+Proof.
+rewrite limgE => _ /memv_imgP[x [_ ->]].
+by rewrite -{4}[f]inv_lapp_def lappE /= lappE /=.
+Qed.
+
+Definition lker0_compVf := inv_lker0.
+
+Lemma lker0_lappK (L2 : vectType K) (f : 'Hom(L, L2)) :
+  lker f == 0%:VS -> cancel f (f \^-1)%VS.
+Proof. by move/lker0_compVf=> fK x; rewrite -{2}[x]unit_lappE -fK lappE. Qed.
+
+Section LinAut.
+
+Variables f : 'End(L).
+Hypothesis kerf0 : lker f == 0%:VS.
+
+Lemma lker0_limgf : limg f = fullv L.
+Proof.
+by apply/eqP; rewrite eqEdim subvf limgE limg_dim_eq //= (eqP kerf0) capv0.
+Qed.
+
+Lemma lker0_lappVK : cancel (f \^-1)%VS f.
+Proof. by move=> u; rewrite limg_lappVK // lker0_limgf memvf. Qed.
+
+Lemma lker0_compfV : (f \o f \^-1 = \1)%VS.
+Proof. by apply/eqP/eq_lapp=> u; rewrite lappE unit_lappE /= lker0_lappVK. Qed.
+
+Lemma lker0_compVKf L2 (g : 'Hom(L2, L)) : (f \o (f \^-1 \o g))%VS = g.
+Proof. by rewrite comp_lappA lker0_compfV comp_1lapp. Qed.
+
+Lemma lker0_compKf L2 (g : 'Hom(L2, L)) : (f \^-1 \o (f \o g))%VS = g.
+Proof. by rewrite comp_lappA lker0_compVf ?comp_1lapp. Qed.
+
+Lemma lker0_compfK L2 (g : 'Hom(L, L2)) : ((g \o f) \o f \^-1)%VS = g.
+Proof. by rewrite -comp_lappA lker0_compfV comp_lapp1. Qed.
+
+Lemma lker0_compfVK L2 (g : 'Hom(L, L2)) : ((g \o f \^-1) \o f)%VS = g.
+Proof. by rewrite -comp_lappA lker0_compVf ?comp_lapp1. Qed.
+
+End LinAut.
+
+End MoreVector.
+
+Section MoreAlgebra.
+
+Variables (K : fieldType) (L : algFType K) (A : {algebra L}).
+
+Lemma dim_aunit : \dim (aunit A)%:VS = 1%N.
+Proof. by apply/eqP; rewrite dim_injv anonzero1r. Qed.
+
+(* This property is in fact explicitly included in the definitional           *)
+(* property valP A of A; however the definition of has_aunit is such an       *)
+(* ungodly mess that accessing any part of it make Coq blow up!!!             *)
+Lemma adim_gt0 : (0 < \dim A)%N.
+Proof. by rewrite -dim_aunit dimvS //; exact: memv_unit. Qed.
+
+Lemma not_asubv0 : ~~ (A <= 0%:VS)%VS.
+Proof. by rewrite subv0 -dimv_eq0 -lt0n adim_gt0. Qed.
+
+Lemma adim1P : reflect (A = (aunit A)%:VS :> {vspace L}) (\dim A == 1%N).
+Proof.
+rewrite eqn_leq adim_gt0 -(memv_unit A) andbC -dim_aunit -eqEdim eq_sym.
+exact: eqP.
+Qed.
+
+Lemma prodv_id : (A * A)%VS = A.
+Proof.
+apply/eqP; rewrite eqEsubv asubv; apply/subvP=> x Ax.
+by rewrite -(aunitl Ax) memv_prod // memv_unit.
+Qed.
+
+Local Notation "U :* x" := (prodv U x%:VS) : vspace_scope.
+
+Lemma cosetv_def U (x : L) : (U :* x = lapp_of_fun (x \o* idfun) @: U)%VS.
+Proof.
+apply/eqP; rewrite eqEsubv; apply/andP; split.
+  apply/prodvP=> y kx Fy /injvP[a ->]; rewrite -scaler_mulr memvZl //.
+  by apply/memv_imgP; exists y; rewrite lappE.
+by apply/subvP=> _ /memv_imgP[y [Fy ->]]; rewrite lappE memv_prod ?memv_inj.
+Qed.
+ 
+Lemma memv_cosetP {U : {vspace L}} {x y : L} :
+  reflect (exists2 a, a \in U & y = a * x) (y \in U :* x)%VS.
+Proof.
+rewrite cosetv_def; apply: (iffP (memv_imgP _ _ _)) => [[a[]] |[a]] Ua ->;
+  by exists a; rewrite ?lappE.
+Qed.
+
+Canonical addv_addoid := Monoid.AddLaw (@prodv_addl K L) (@prodv_addr K L).
+Canonical prodv_muloid := Monoid.MulLaw (@prod0v K L) (@prodv0 K L).
+Canonical prodv_monoid := Monoid.Law (@prodvA K L) (@prod1v K L) (@prodv1 K L).
+
+End MoreAlgebra.
+
+Prenex Implicits sa_val Fadjoin.
+Notation "A :* x" := (prodv A x%:VS) : vspace_scope.
+
+Notation "\dim_ E V" := (divn (\dim V) (\dim E))
+  (at level 10, E at level 2, V at level 8, format "\dim_ E  V") : nat_scope.
+
+Section MoreExtField.
+
+Section FieldFacts.
+
+(* Consequences of the commutativity and invertibility axioms. *)
+Variables (F0 : fieldType) (L : fieldExtType F0).
+Implicit Types (U V : {vspace L}) (E F A B : {algebra L}).
+
+(* This should be in algebra along with the other properties of sa_val, but  *)
+(* these are declared in fieldext, for L a fieldExtType...                   *)
+Fact sa_val_scalable A : scalable (@sa_val _ L A).
+Proof. by []. Qed.
+Canonical sa_val_linear A := AddLinear (@sa_val_scalable A).
+Canonical sa_val_lrmorphism A := [lrmorphism of @sa_val _ L A].
+
+(* extfield oversight... *)
+Canonical suba_fieldExtType F := FieldExtType F0 (suba_of F).
+
+Lemma prodvC : commutative (@prodv F0 L).
+Proof.
+move=> U V; wlog suff subC: U V / (U * V <= V * U)%VS.
+  by apply/eqP; rewrite eqEsubv !{1}subC.
+by apply/prodvP=> x y Ux Vy; rewrite mulrC memv_prod.
+Qed.
+Canonical prodv_comoid := Monoid.ComLaw prodvC.
+
+Lemma prodvCA : left_commutative (@prodv F0 L).
+Proof. exact: Monoid.mulmCA. Qed.
+
+Lemma prodvAC : right_commutative (@prodv F0 L).
+Proof. exact: Monoid.mulmAC. Qed.
+
+Fact prodv_is_aspace A B : (has_aunit (A * B) && (A * B * (A * B) <= A * B))%VS.
+Proof.
+rewrite prodvCA -!prodvA prodvA !prodv_id has_aunit1 //=.
+by rewrite -[1]mulr1 memv_prod ?mem1v.
+Qed.
+Canonical prodv_aspace E1 E2 := ASpace (prodv_is_aspace E1 E2).
+
+Lemma field_subvMl F U : (U <= F * U)%VS.
+Proof. by rewrite -{1}[U]prod1v prodv_monol ?sub1v. Qed.
+
+Lemma field_subvMr U F : (U <= U * F)%VS.
+Proof. by rewrite prodvC field_subvMl. Qed.
+
+Lemma field_ideal_eq F J : (F * J <= J)%VS -> (F * J)%VS = J.
+Proof. by move=> idealJ; apply/eqP; rewrite eqEsubv idealJ field_subvMl. Qed.
+
+Lemma sup_field_ideal F E : (F * E <= E)%VS = (F <= E)%VS.
+Proof.
+apply/idP/idP; first exact: subv_trans (field_subvMr F E).
+by move/(prodv_monol E)/subv_trans->; rewrite ?asubv.
+Qed.
+
+Lemma dim_cosetv U x : x != 0 -> \dim (U :* x) = \dim U.
+Proof.
+move=> nz_x; rewrite cosetv_def limg_dim_eq //.
+apply/eqP; rewrite -subv0; apply/subvP=> y.
+by rewrite memv_cap memv0 memv_ker lappE mulf_eq0 (negPf nz_x) orbF => /andP[].
+Qed.
+
+Lemma field_ideal_semisimple F J (m := \dim_F J) (idealJ : (F * J <= J)%VS) :
+  {b : m.-tuple L | [/\ {subset b <= J}, 0 \notin b & \dim J = (m * \dim F)%N]
+     & let Sb := (\sum_(i < m) F :* b`_i)%VS in Sb = J /\ directv Sb}.
+Proof.
+pose S n (b : n.-tuple L) := (\sum_(i < n) F :* b`_i)%VS.
+pose m1 := (m + ~~ (\dim F %| \dim J))%N.
+suffices [b dimSb /andP[/allP sbJ nz_b]]:
+  {b | \dim (S m1 b) = (m1 * \dim F)%N & all (mem J) b && (0%R \notin b)}.
+- have defSb : S _ b = J.
+    apply/eqP; rewrite eqEdim dimSb; apply/andP; split.
+      apply/subv_sumP=> i _; apply: subv_trans idealJ.
+      by apply/prodv_monor/sbJ/mem_nth; rewrite size_tuple.
+    rewrite (divn_eq (\dim J) (\dim F)) muln_addl leq_add2l /dvdn.
+    by case: eqP => [-> // | _]; rewrite mul1n ltnW // ltn_mod adim_gt0.
+  have ->: m = m1 by rewrite /m1 -defSb dimSb addnC dvdn_mull.
+  rewrite -{2}defSb; exists b; split=> //; apply/eqnP; rewrite /= dimSb.
+  rewrite -{1}[m1]card_ord -sum_nat_const; apply: eq_bigr => i _.
+  by rewrite -tnth_nth dim_cosetv ?(memPn nz_b) ?mem_tnth.
+have: (m1 * \dim F < \dim F + \dim J)%N.
+  rewrite addnC {1}(divn_eq (\dim J) (\dim F)) -addnA muln_addl ltn_add2l /dvdn.
+  by case: (_ %% _)%N => [|r]; rewrite ?adim_gt0 // mul1n ltnS leq_addl.
+elim: {m}m1 => [|m IHm] ltFmJ.
+  by exists [tuple] => //; rewrite /S big_ord0 dimv0.
+rewrite mulSn ltn_add2l in ltFmJ.
+have [b dimSb Jb] := IHm (leq_trans ltFmJ (leq_addl _ _)).
+have /subvPn/sig2W[x Jx S'x]: ~~ (J <= S _ b)%VS.
+  by apply: contraL ltFmJ => /dimvS; rewrite -dimSb -leqNgt.
+have nz_x: x != 0 by apply: contraNneq S'x => ->; exact: mem0v.
+exists [tuple of x :: b]; last by rewrite /= !inE Jx /= negb_or eq_sym nz_x.
+rewrite /S big_ord_recl /= -/(S _ _) mulSn.
+rewrite dimv_disjoint_sum ?dimSb ?dim_cosetv //; apply/eqP; rewrite -subv0. 
+apply/subvP=> y; rewrite memv_cap memv0 => /andP[/memv_cosetP[a Fa ->{y}] Sax].
+apply: contraR S'x; rewrite mulf_eq0 => /norP[/mulKf/( _ x)<- _].
+rewrite -[S _ _](@field_ideal_eq F) ?memv_prod -?memv_inv //.
+by rewrite /S -big_distrr prodvA prodv_id.
+Qed.
+
+Lemma dim_field_ideal F J : (F * J <= J)%VS -> \dim J = (\dim_F J * \dim F)%N.
+Proof. by case/field_ideal_semisimple=> ? []. Qed.
+
+Lemma dim_sup_field F E : (F <= E)%VS -> \dim E = (\dim_F E * \dim F)%N.
+Proof. by rewrite -sup_field_ideal; exact: dim_field_ideal. Qed.
+
+Lemma ideal_dimS F J : (F * J <= J)%VS -> (\dim F %| \dim J)%N.
+Proof. by move/dim_field_ideal->; exact: dvdn_mull. Qed.
+
+Lemma field_dimS F E : (F <= E)%VS -> (\dim F %| \dim E)%N.
+Proof. by rewrite -sup_field_ideal; exact: ideal_dimS. Qed.
+
+End FieldFacts.
+
+(* Changing up the reference field of a fieldExtType. *)
+Section FieldOver.
+
+Variables (F0 : fieldType) (L : fieldExtType F0) (F : {algebra L}).
+
+Definition fieldOver of {vspace L} : Type := L.
+Local Notation K_F := (suba_of F).
+Local Notation L_F := (fieldOver F).
+
+Canonical fieldOver_eqType := [eqType of L_F].
+Canonical fieldOver_choiceType := [choiceType of L_F].
+Canonical fieldOver_zmodType := [zmodType of L_F].
+Canonical fieldOver_ringType := [ringType of L_F].
+Canonical fieldOver_unitRingType := [unitRingType of L_F].
+Canonical fieldOver_comRingType := [comRingType of L_F].
+Canonical fieldOver_comUnitRingType := [comUnitRingType of L_F].
+Canonical fieldOver_idomainType := [idomainType of L_F].
+Canonical fieldOver_fieldType := [fieldType of L_F].
+
+Definition fieldOver_scale (a : K_F) (u : L_F) : L_F := sa_val a * u.
+Local Infix "*F:" := fieldOver_scale (at level 40).
+
+Fact fieldOver_scaleA a b u : a *F: (b *F: u) = (a * b) *F: u.
+Proof. exact: mulrA. Qed.
+
+Fact fieldOver_scale1 u : 1 *F: u = u.
+Proof. by rewrite /(1 *F: u) /= aunit_eq1 mul1r. Qed.
+
+Fact fieldOver_scaleDr a u v : a *F: (u + v) = a *F: u + a *F: v.
+Proof. exact: mulr_addr. Qed.
+
+Fact fieldOver_scaleDl v a b : (a + b) *F: v = a *F: v + b *F: v.
+Proof. exact: mulr_addl. Qed.
+
+Definition fieldOver_lmodMixin :=
+  LmodMixin fieldOver_scaleA fieldOver_scale1
+            fieldOver_scaleDr fieldOver_scaleDl.
+
+Canonical fieldOver_lmodType := LmodType K_F L_F fieldOver_lmodMixin.
+
+Fact fieldOver_scaleAl a u v : a *F: (u * v) = (a *F: u) * v.
+Proof. exact: mulrA. Qed.
+
+Canonical fieldOver_lalgType := LalgType K_F L_F fieldOver_scaleAl.
+
+Fact fieldOver_scaleAr a u v : a *F: (u * v) = u * (a *F: v).
+Proof. exact: mulrCA. Qed.
+
+Canonical fieldOver_algType := AlgType K_F L_F fieldOver_scaleAr.
+Canonical fieldOver_unitAlgType := [unitAlgType K_F of L_F].
+
+Fact fieldOver_vectMixin : VectorType.mixin_of fieldOver_lmodType.
+Proof.
+have [bL [_ nz_bL _] [defL dxSbL]] := field_ideal_semisimple (subvf (F * _)%VS).
+set n := (_ %/ _)%N in bL nz_bL defL dxSbL.
+set SbL := (\sum_i _)%VS in defL dxSbL.
+have in_bL i (a : K_F) : val a * (bL`_i : L_F) \in (F :* bL`_i)%VS.
+  by rewrite memv_prod ?(valP a) ?memv_inj.
+have nz_bLi (i : 'I_n): bL`_i != 0 by rewrite -tnth_nth (memPn nz_bL) ?mem_tnth.
+pose r2v (v : 'rV[K_F]_n) : L_F := \sum_i v 0 i *: (bL`_i : L_F).
+have r2v_lin: linear r2v.
+  move=> a u v; rewrite /r2v scaler_sumr -big_split /=; apply: eq_bigr => i _.
+  by rewrite scalerA -scaler_addl !mxE.
+have v2rP x: {r : 'rV[K_F]_n | x = r2v r}.
+  apply: sig_eqW; have /memv_sumP[y [Fy ->]]: x \in SbL by rewrite defL memvf.
+  have /fin_all_exists[r Dr] i: exists r, y i = r *: (bL`_i : L_F).
+    by have /memv_cosetP[a Fa ->] := Fy i isT; exists (Suba Fa).
+  by exists (\row_i r i); apply: eq_bigr => i _; rewrite mxE.
+pose v2r x := sval (v2rP x).
+have v2rK: cancel v2r (Linear r2v_lin) by rewrite /v2r => x; case: (v2rP x).
+suffices r2vK: cancel r2v v2r.
+  by exists n v2r; [exact: can2_linear v2rK | exists r2v].
+move=> r; apply/rowP=> i; apply/val_inj/(mulIf (nz_bLi i))/eqP; move: i isT.
+by apply/forall_inP; move/directv_sum_unique: dxSbL => <- //; exact/eqP/v2rK.
+Qed.
+
+Canonical fieldOver_vectType := VectType K_F fieldOver_vectMixin.
+Canonical fieldOver_algFType := AlgFType K_F fieldOver_vectMixin.
+Canonical fieldOver_fieldExtType := FieldExtType K_F L_F.
+
+Implicit Types (V : {vspace L}) (E : {algebra L}).
+
+Definition vspaceOver V := span (vbasis V : seq L_F).
+
+Lemma mem_vspaceOver V : vspaceOver V =i (F * V)%VS.
+Proof.
+move=> y; apply/idP/idP=> /coord_span->.
+  rewrite (@memv_suml F0 L) // => i _.
+  by rewrite memv_prod ?subaP // -tnth_nth memv_basis ?mem_tnth.
+rewrite memv_suml // => ij _; rewrite -tnth_nth; set t := Tuple _.
+have/allpairsP[[u z] /= [Fu Vz ->]] := mem_tnth ij t.
+by rewrite scaler_mull (memvZl (Suba _)) ?memvZl ?memv_span //= memv_basis.
+Qed.
+
+Lemma mem_aspaceOver E : (F <= E)%VS -> vspaceOver E =i E.
+Proof.
+by move=> sFE y; rewrite mem_vspaceOver field_ideal_eq ?sup_field_ideal.
+Qed.
+
+Fact aspaceOver_suproof E (E_F := vspaceOver E) : 
+  has_aunit E_F && (E_F * E_F <= E_F)%VS.
+Proof.
+rewrite has_aunit1; last by rewrite mem_vspaceOver (@mem1v _ L).
+by apply/prodvP=> u v; rewrite !mem_vspaceOver; exact: memv_mul.
+Qed.
+Canonical aspaceOver E := ASpace (aspaceOver_suproof E).
+
+Lemma dim_vspaceOver J : (F * J <= J)%VS -> \dim (vspaceOver J) = \dim_F J.
+Proof.
+move=> idealJ; have [] := field_ideal_semisimple idealJ; set n := (_ %/ _)%N.
+move=> b [Jb nz_b _] [defJ dx_b].
+suff: is_basis (vspaceOver J) b by exact: size_is_basis.
+apply/andP; split.
+  rewrite /is_span eqEsubv -!span_subsetl; apply/andP; split.
+    by apply/allP=> u /Jb; rewrite mem_vspaceOver field_ideal_eq.
+  apply/allP=> u /(@memv_basis _ _ _ J).
+  rewrite -defJ => /memv_sumP[{u}u [Fu ->]]; apply: memv_suml => i _.
+  have /memv_cosetP[a Fa ->] := Fu i isT; apply: (memvZl (Suba Fa)).
+  by rewrite -tnth_nth memv_span ?mem_tnth.
+apply/freeP=> a /(directv_sum_independent _ _ dx_b) a_0 i.
+have{a_0}: a i *: (b`_i : L_F) == 0.
+  by rewrite a_0 {i}// => i _; rewrite memv_prod ?memv_inj ?subaP.
+rewrite scaler_eq0=> /predU1P[] // /idPn[].
+by rewrite -tnth_nth (memPn nz_b) ?mem_tnth.
+Qed.
+
+Lemma dim_aspaceOver E : (F <= E)%VS -> \dim (vspaceOver E) = \dim_F E.
+Proof. by rewrite -sup_field_ideal; exact: dim_vspaceOver. Qed.
+
+Lemma vspaceOverP V_F :
+  {V | [/\ V_F = vspaceOver V, (F * V <= V)%VS & V_F =i V]}.
+Proof.
+pose V := (F * span (vbasis V_F : seq L))%VS.
+have idV: (F * V)%VS = V by rewrite prodvA prodv_id.
+suffices defVF: V_F = vspaceOver V.
+  by exists V; split=> [||u]; rewrite ?defVF ?mem_vspaceOver ?idV.
+apply/eqP/vspaceP=> v; rewrite mem_vspaceOver idV.
+apply/idP/idP=> [/coord_basis|/coord_span] ->; apply: memv_suml => i _.
+  by rewrite -tnth_nth memv_prod ?subaP ?memv_span ?mem_tnth.
+set bV := Tuple _; rewrite -tnth_nth.
+have /allpairsP[[x u] /= [/memv_basis Fx /memv_basis Vu ->]]:= mem_tnth i bV.
+rewrite scaler_mull (coord_span Vu) -mulr_sumr memv_suml // => j_.
+rewrite -scaler_swap (memvZl (Suba _)) ?memvZl //.
+by rewrite -tnth_nth memv_basis ?mem_tnth.
+Qed.
+
+Lemma aspaceOverP (E_F : {algebra L_F}) :
+  {E | [/\ E_F = aspaceOver E, (F <= E)%VS & E_F =i E]}.
+Proof.
+have [V [defEF idealV memV]] := vspaceOverP E_F.
+have algE: has_aunit V && (V * V <= V)%VS.
+  rewrite has_aunit1; last by rewrite -memV mem1v.
+  by apply/prodvP=> u v; rewrite -!memV; exact: memv_mul.
+by exists (ASpace algE); rewrite -sup_field_ideal; split; first exact: val_inj.
+Qed.
+
+End FieldOver.
+
+(* Changing the reference field to a smaller field. *)
+Section BaseField.
+
+Variables (F0 : fieldType) (F : fieldExtType F0) (L : fieldExtType F).
+
+Definition baseFieldType of phant L : Type := L.
+Notation L0 := (baseFieldType (Phant (FieldExt.sort L))).
+
+Canonical baseField_eqType := [eqType of L0].
+Canonical baseField_choiceType := [choiceType of L0].
+Canonical baseField_zmodType := [zmodType of L0].
+Canonical baseField_ringType := [ringType of L0].
+Canonical baseField_unitRingType := [unitRingType of L0].
+Canonical baseField_comRingType := [comRingType of L0].
+Canonical baseField_comUnitRingType := [comUnitRingType of L0].
+Canonical baseField_idomainType := [idomainType of L0].
+Canonical baseField_fieldType := [fieldType of L0].
+
+Definition baseField_scale (a : F0) (u : L0) : L0 := in_alg F a *: u.
+Local Infix "*F0:" := baseField_scale (at level 40).
+
+Fact baseField_scaleA a b u : a *F0: (b *F0: u) = (a * b) *F0: u.
+Proof. by rewrite [_ *F0: _]scalerA -rmorphM. Qed.
+
+Fact baseField_scale1 u : 1 *F0: u = u.
+Proof. by rewrite /(1 *F0: u) rmorph1 scale1r. Qed.
+
+Fact baseField_scaleDr a u v : a *F0: (u + v) = a *F0: u + a *F0: v.
+Proof. exact: scaler_addr. Qed.
+
+Fact baseField_scaleDl v a b : (a + b) *F0: v = a *F0: v + b *F0: v.
+Proof. by rewrite -scaler_addl -rmorphD. Qed.
+
+Definition baseField_lmodMixin :=
+  LmodMixin baseField_scaleA baseField_scale1
+            baseField_scaleDr baseField_scaleDl.
+
+Canonical baseField_lmodType := LmodType F0 L0 baseField_lmodMixin.
+
+Fact baseField_scaleAl a (u v : L0) : a *F0: (u * v) = (a *F0: u) * v.
+Proof. exact: scaler_mull. Qed.
+
+Canonical baseField_lalgType := LalgType F0 L0 baseField_scaleAl.
+
+Fact baseField_scaleAr a u v : a *F0: (u * v) = u * (a *F0: v).
+Proof. exact: scaler_mulr. Qed.
+
+Canonical baseField_algType := AlgType F0 L0 baseField_scaleAr.
+Canonical baseField_unitAlgType := [unitAlgType F0 of L0].
+
+Let n := \dim (fullv F).
+Let bF : n.-tuple F := vbasis (fullv F).
+Let coordF (x : F) := (coord_basis (memvf x)).
+
+Fact baseField_vectMixin : VectorType.mixin_of baseField_lmodType.
+Proof.
+pose bL := vbasis (fullv L); set m := \dim (fullv L) in bL.
+pose v2r (x : L0) := mxvec (\matrix_(i, j) coord bF (coord bL x i) j).
+have v2r_lin: linear v2r.
+  move=> a x y; rewrite -linearP; congr (mxvec _); apply/matrixP=> i j.
+  by rewrite !mxE linearP !ffunE -[_ *: _]scaler_mull mul1r linearP !ffunE.
+pose r2v r := \sum_(i < m) (\sum_(j < n) vec_mx r i j *: bF`_j) *: bL`_i.
+have v2rK: cancel v2r r2v.
+  move=> x; transitivity (\sum_(i < m) coord bL x i *: bL`_i); last first.
+    by rewrite -coord_basis ?memvf.
+    (* GG: rewrite {2}(coord_basis (memvf x)) -/m would take 8s; *)
+    (* The -/m takes 8s, and without it then apply: eq_bigr takes 12s. *)
+    (* The time drops to 2s with  a -[GRing.Field.ringType F]/(F : fieldType) *)
+  apply: eq_bigr => i _; rewrite mxvecK; congr (_ *: _ : L).
+  by rewrite (coordF (coord bL x i)); apply: eq_bigr => j _; rewrite mxE.
+exists (m * n)%N v2r => //; exists r2v => // r.
+apply: (canLR vec_mxK); apply/matrixP=> i j; rewrite mxE.
+by rewrite !free_coords ?(free_is_basis (is_basis_vbasis _)).
+Qed.
+
+Canonical baseField_vectType := VectType F0 baseField_vectMixin.
+Canonical baseField_algFType := AlgFType F0 baseField_vectMixin.
+Canonical baseField_extFieldType := FieldExtType F0 L0.
+
+Let F0ZEZ a x v : a *: ((x *: v : L) : L0)  = (a *: x) *: v.
+Proof. by rewrite [a *: _]scalerA -scaler_mull mul1r. Qed.
+
+Let baseVspace_basis V : seq L0 :=
+  [image tnth bF ij.2 *: tnth (vbasis V) ij.1 | ij <- predT].
+Definition baseVspace V := span (baseVspace_basis V).
+
+Lemma mem_baseVspace V : baseVspace V =i V.
+Proof.
+move=> y; apply/idP/idP=> [/coord_span->|/coord_basis->]; last first.
+  apply: memv_suml => i _; rewrite (coordF (coord _ (y : L) i)) scaler_suml -/n.
+  apply: memv_suml => j _; rewrite -/bF -F0ZEZ memvZl ?memv_span // -!tnth_nth.
+  by apply/imageP; exists (i, j).
+  (* GG: the F0ZEZ lemma avoids serious performance issues here. *)
+apply: memv_suml => k _; rewrite nth_image; case: (enum_val k) => i j /=.
+by rewrite F0ZEZ memvZl ?memv_basis ?mem_tnth.
+Qed.
+
+Lemma dim_baseVspace V : \dim (baseVspace V) = (\dim V * n)%N.
+Proof.
+pose bV0 := baseVspace_basis V; set m := \dim V in bV0 *.
+suffices /size_is_basis->: is_basis (baseVspace V) bV0.
+  by rewrite card_prod !card_ord.
+rewrite /is_basis /is_span eqxx.
+apply/freeP=> s sb0 k; rewrite -(enum_valK k); case/enum_val: k => i j.
+have free_baseP := freeP _ (free_is_basis (is_basis_vbasis _)).
+move: j; apply: (free_baseP _ _ (fullv F)); move: i; apply: (free_baseP _ _ V).
+transitivity (\sum_i \sum_j s (enum_rank (i, j)) *: bV0`_(enum_rank (i, j))).
+  apply: eq_bigr => i _; rewrite scaler_suml; apply: eq_bigr => j _.
+  by rewrite -F0ZEZ nth_image enum_rankK -!tnth_nth.
+rewrite pair_bigA (reindex _ (onW_bij _ (enum_val_bij _))); apply: etrans sb0.
+by apply: eq_bigr => k _; rewrite -{5 6}[k](enum_valK k); case/enum_val: k.
+Qed.
+
+Fact baseAspace_suproof (E : {algebra L}) (E0 := baseVspace E) : 
+  has_aunit E0 && (E0 * E0 <= E0)%VS.
+Proof.
+rewrite has_aunit1; last by rewrite mem_baseVspace (mem1v E).
+by apply/prodvP=> u v; rewrite !mem_baseVspace; exact: memv_mul.
+Qed.
+Canonical baseAspace E := ASpace (baseAspace_suproof E).
+
+Definition refBaseField := locked (baseAspace (aspace1 L)).
+Notation F1 := refBaseField.
+
+Lemma dim_refBaseField : \dim F1 = n.
+Proof. by unlock F1; rewrite dim_baseVspace dimv1 mul1n. Qed.
+
+Lemma baseVspace_ideal V (V0 := baseVspace V) : (F1 * V0 <= V0)%VS.
+Proof.
+apply/prodvP=> u v; unlock F1; rewrite !mem_baseVspace => /injvP[x ->] Vv.
+by rewrite -(@scaler_mull F L) mul1r; exact: memvZl.
+Qed.
+
+Lemma sub_baseField (E : {algebra L}) : (F1 <= baseVspace E)%VS.
+Proof. by rewrite -sup_field_ideal baseVspace_ideal. Qed.
+
+Lemma vspaceOver_refBase V : vspaceOver F1 (baseVspace V) =i V.
+Proof.
+move=> v; rewrite mem_vspaceOver field_ideal_eq ?baseVspace_ideal //.
+by rewrite mem_baseVspace.
+Qed.
+
+Lemma ideal_baseVspace J0 :
+  (F1 * J0 <= J0)%VS -> {V | J0 = baseVspace V & J0 =i V}.
+Proof.
+move=> J0ideal; pose V := span (vbasis (vspaceOver F1 J0) : seq L).
+suffices memJ0: J0 =i V.
+  by exists V => //; apply/eqP/vspaceP=> v; rewrite mem_baseVspace memJ0.
+move=> v; rewrite -{1}(field_ideal_eq J0ideal) -(mem_vspaceOver J0) {}/V.
+move: (vspaceOver F1 J0) => J.
+apply/idP/idP=> [/coord_basis|/coord_span]->; apply/memv_suml=> i _.
+  rewrite /(_ *: _) /= /fieldOver_scale; case: (coord _ _ i) => /= x.
+  unlock {1}F1; rewrite mem_baseVspace => /injvP[{x}x ->].
+  by rewrite -(@scaler_mull F L) mul1r -tnth_nth memvZl ?memv_span ?mem_tnth.
+move: (coord _ _ i) => x; rewrite -[_`_i]mul1r scaler_mull.
+apply: (@memvZl _ _ J (Suba _)); last first.
+  by rewrite -tnth_nth memv_basis ?mem_tnth.
+by unlock F1; rewrite mem_baseVspace (@memvZl F L) ?mem1v.
+Qed.
+
+Lemma ideal_baseAspace (E0 : {algebra L0}) :
+  (F1 <= E0)%VS -> {E | E0 = baseAspace E & E0 =i E}.
+Proof.
+rewrite -sup_field_ideal => /ideal_baseVspace[E defE0 memE0].
+suffices algE: has_aunit E && (E * E <= E)%VS.
+  by exists (ASpace algE); first exact: val_inj.
+rewrite has_aunit1 -?memE0 ?mem1v //.
+by apply/prodvP=> u v; rewrite -!memE0; exact: memv_mul.
+Qed.
+
+End BaseField.
+
+(* Base of fieldOver, finally. *)
+Section MoreFieldOver.
+
+Variables (F0 : fieldType) (L : fieldExtType F0) (F : {algebra L}).
+
+Lemma base_vspaceOver V : baseVspace (vspaceOver F V) =i (F * V)%VS.
+Proof. by move=> v; rewrite mem_baseVspace mem_vspaceOver. Qed.
+
+Lemma base_idealOver V : (F * V <= V)%VS -> baseVspace (vspaceOver F V) =i V.
+Proof. by move=> /field_ideal_eq defV v; rewrite base_vspaceOver defV. Qed.
+
+Lemma base_aspaceOver (E : {algebra L}) :
+  (F <= E)%VS -> baseVspace (vspaceOver F E) =i E.
+Proof. by rewrite -sup_field_ideal; exact: base_idealOver. Qed.
+
+End MoreFieldOver.
+
+(* Missing interfaces. *)
+Section SubfExtend.
+
+Variables (F L : fieldType) (iota : {rmorphism F -> L}).
+Variables (z : L) (p : {poly F}).
+
+Local Notation Fz := (subFExtend iota z p).
+
+Canonical inj_subfx_addidive := [additive of inj_subfx iota z p].
+Canonical inj_subfx_rmorphism := [rmorphism of inj_subfx iota z p].
+
+Definition subfx_scale a x := inj_subfx iota z p a * x.
+Fact subfx_scalerA a b x :
+  subfx_scale a (subfx_scale b x) = subfx_scale (a * b) x.
+Proof. by rewrite /subfx_scale rmorphM mulrA. Qed.
+Fact subfx_scaler1r : left_id 1 subfx_scale.
+Proof. by move=> x; rewrite /subfx_scale rmorph1 mul1r. Qed.
+Fact subfx_scaler_addr : right_distributive subfx_scale +%R.
+Proof. by move=> a; exact: mulr_addr. Qed.
+Fact subfx_scaler_addl x : {morph subfx_scale^~ x : a b / a + b}.
+Proof. by move=> a b; rewrite /subfx_scale rmorphD mulr_addl. Qed.
+Definition subfx_lmodMixin :=
+  LmodMixin subfx_scalerA subfx_scaler1r subfx_scaler_addr subfx_scaler_addl.
+Canonical subfx_lmodType := LmodType F Fz subfx_lmodMixin.
+
+Fact subfx_scaleAl : GRing.Lalgebra.axiom ( *%R : Fz -> Fz -> Fz).
+Proof. by move=> a; exact: mulrA. Qed.
+Canonical subfx_lalgType := LalgType F Fz subfx_scaleAl.
+
+Fact subfx_scaleAr : GRing.Algebra.axiom subfx_lalgType.
+Proof. by move=> a; exact: mulrCA. Qed.
+Canonical subfx_algType := AlgType F Fz subfx_scaleAr.
+
+Fact subfx_evalZ : scalable (subfx_eval iota z p).
+Proof. by move=> a q; rewrite -mul_polyC rmorphM. Qed.
+Canonical subfx_eval_linear := AddLinear subfx_evalZ.
+Canonical subfx_eval_lrmorphism := [lrmorphism of subfx_eval iota z p].
+
+Hypotheses (pz0 : root (map_poly iota p) z) (nz_p : p != 0).
+
+Lemma subfx_injZ b x : subfx_inj (b *: x) = iota b * subfx_inj x.
+Proof. by rewrite rmorphM /= subfx_inj_eval // map_polyC hornerC. Qed.
+
+Lemma subfx_inj_base b : subfx_inj b%:A = iota b.
+Proof. by rewrite subfx_injZ rmorph1 mulr1. Qed.
+
+(* The vectTyoe mixin requires irreducibility... *)
+Lemma min_subfx_vectMixin :
+    (forall q, root (map_poly iota q) z -> q != 0 -> (size p <= size q)%N) ->
+  {Vm : VectorType.mixin_of subfx_lmodType | VectorType.dim Vm = (size p).-1}.
+Proof.
+move=> min_p; set n := (size p).-1; have Dn: n.+1 = size p by rewrite polySpred.
+pose Fz2v (x : Fz) : 'rV_n := poly_rV (sval (sig_eqW (subfxE x)) %% p).
+pose vFz : 'rV_n -> Fz := subfx_eval iota z p \o @rVpoly F n.
+have FLinj: injective (@subfx_inj F L iota z p) by exact: fmorph_inj.
+have Fz2vK: cancel Fz2v vFz.
+  move=> x; rewrite /vFz /Fz2v; case: (sig_eqW _) => /= q ->.
+  apply: FLinj; rewrite !subfx_inj_eval // {2}(divp_eq q p) rmorphD rmorphM /=.
+  by rewrite !horner_lin (eqP pz0) mulr0 add0r poly_rV_K // -ltnS Dn ltn_modpN0.
+have vFzK: cancel vFz Fz2v.
+  apply: inj_can_sym Fz2vK _ => v1 v2 /(congr1 (@subfx_inj F L _ z p))/eqP.
+  rewrite -subr_eq0 -!raddf_sub /= subfx_inj_eval // => /min_p/implyP.
+  rewrite leqNgt implybNN -Dn ltnS size_poly linear_sub subr_eq0 /=.
+  by move/eqP/(can_inj (@rVpolyK _ _)).
+by exists (VectMixin (can2_linear vFzK Fz2vK) (Bijective Fz2vK vFzK)).
+Qed.
+
+End SubfExtend.
+
+(* Polynomial evaluation is an F-algebra morphism. *)
+Section Horner.
+
+Variables (F : fieldType) (L : fieldExtType F) (z : L).
+
+Definition fieldExt_horner := horner_morph (fun x => mulrC z (in_alg L x)).
+Canonical fieldExtHorner_additive := [additive of fieldExt_horner].
+Canonical fieldExtHorner_rmorphism := [rmorphism of fieldExt_horner].
+Lemma fieldExt_hornerC b : fieldExt_horner b%:P = b%:A.
+Proof. exact: horner_morphC. Qed.
+Lemma fieldExt_hornerX : fieldExt_horner 'X = z.
+Proof. exact: horner_morphX. Qed.
+Fact fieldExt_hornerZ : scalable fieldExt_horner.
+Proof.
+move=> a p; rewrite -mul_polyC rmorphM /= fieldExt_hornerC.
+by rewrite -scaler_mull mul1r.
+Qed.
+Canonical fieldExt_horner_linear := AddLinear fieldExt_hornerZ.
+Canonical fieldExt_horner_lrmorhism := [lrmorphism of fieldExt_horner].
+
+End Horner.
+
+(* More constructions based on Fadjoin; should be merged with the additional  *)
+(* material lingering in separable.                                           *)
+Section GenField.
+
+Variables (F0 : fieldType) (L : fieldExtType F0).
+Implicit Types (U V J : {vspace L}) (E K G : {algebra L}) (rs : seq L).
+
+Lemma poly_for_X K z : z \notin K -> poly_for_Fadjoin K z z = 'X.
+Proof.
+move=> K'z; rewrite -{2}[z]hornerX poly_for_modp ?polyOverX ?modp_small //.
+by rewrite size_minPoly ltnS size_polyX ltn_neqAle eq_sym andbT -elemDeg1.
+Qed.
+
+Definition genField V rs := foldl Fadjoin V rs.
+
+Fact genField_is_aspace K rs :
+  let E := genField K rs in has_aunit E && (E * E <= E)%VS.
+Proof. by elim: rs K => [|z rs IHrs] K; [exact: (valP K) | exact: IHrs]. Qed.
+Canonical genField_aspace K rs := ASpace (genField_is_aspace K rs).
+
+Lemma genField_rcons V rs z :
+  genField V (rcons rs z) = Fadjoin (genField V rs) z.
+Proof. by rewrite -cats1 /genField foldl_cat. Qed.
+
+Lemma genFieldP {K rs E} :
+  reflect (K <= E /\ {subset rs <= E})%VS (genField K rs <= E)%VS.
+Proof.
+elim: rs K => [|z rs IHrs] K /=; first by apply: (iffP idP) => // [[]].
+apply: (equivP (IHrs _)); rewrite -subsetFadjoinE.
+split=> [[/andP[-> Ez] /allP Ers] | [-> /allP/=/andP[-> /allP//]]].
+by split=> //; exact/allP/andP.
+Qed.
+
+Lemma sub_genField K rs : (K <= genField K rs)%VS.
+Proof. by have /genFieldP[] := subv_refl (genField K rs). Qed.
+
+Lemma mem_genField K rs : {subset rs <= genField K rs}.
+Proof. by have /genFieldP[] := subv_refl (genField K rs). Qed.
+
+Lemma genFieldSl K E rs : (K <= E)%VS -> (genField K rs <= genField E rs)%VS.
+Proof.
+move=> sKE; apply/genFieldP; split; last exact: mem_genField.
+exact: subv_trans sKE (sub_genField E rs).
+Qed.
+
+Lemma genFieldSr K rs1 rs2 :
+  {subset rs1 <= rs2} -> (genField K rs1 <= genField K rs2)%VS.
+Proof.
+move=> s_rs12; apply/genFieldP; split=> [|z /s_rs12]; first exact: sub_genField.
+exact: mem_genField.
+Qed.
+
+Lemma subv_genField K E : (K <= E)%VS -> {s | E = genField K s :> {vspace L}}.
+Proof.
+elim: _.+1 {-2}K (ltnSn (\dim E - \dim K)) => // n IHn F1 geFn sF1E.
+have [sEF1 | ltF1E] := boolP (E <= F1)%VS.
+  by exists [::]; apply/eqP; rewrite eqEsubv sEF1.
+have /sig2W[v Ev F1'v] := subvPn ltF1E.
+have [||s ->] := IHn (Fadjoin_aspace F1 v); last by exists (v :: s).
+  rewrite -ltnS (leq_trans _ geFn) // ltnS ltn_sub2l //.
+    by rewrite (ltn_leqif (dimv_leqif_sup sF1E)).
+  rewrite dim_Fadjoin ltn_Pmulr ?adim_gt0 // ltn_neqAle eq_sym.
+  by rewrite -elemDeg1 F1'v.
+by rewrite -subsetFadjoinE sF1E.
+Qed.
+
+End GenField.
+
+End MoreExtField.
+
+Section MoreGalois.
+
+Variables (F0 : fieldType) (L : fieldExtType F0).
+Implicit Types (U V J : {vspace L}) (E K G : {algebra L}) (rs : seq L).
+
+Let LappBuggyCanonicalKludge := Phant L.
+
+Lemma kHomExtendX K E f x y :
+  kHom K E f -> x \notin E -> kHomExtend E f x y x = y.
+Proof.
+move=> homEf E'x; rewrite kHomExtendE poly_for_X //.
+by rewrite (kHomFixedPoly homEf) ?hornerX ?polyOverX.
+Qed.
+
+Lemma kAut_lker0 K (F := fullv L) f : kHom K F f -> lker f == 0%:VS.
+Proof.
+move/(subv_kHom (sub1v _))/LAut_lrmorph=> fM.
+by apply/lker0P; exact: (fmorph_inj (RMorphism fM)).
+Qed.
+
+Lemma inv_kAut K (F := fullv L) f : kHom K F f -> kHom K F (f \^-1)%VS.
+Proof.
+move=> homFf; have [/kHomP[fKid fM] kerf0] := (homFf, kAut_lker0 homFf).
+have f1K: cancel (f \^-1)%VS f.
+  by move=> x; rewrite -{2}[x]unit_lappE -(lker0_compfV kerf0) lappE.
+apply/kHomP; split=> [x Kx | x y Fx Fy]; apply: (lker0P _ kerf0).
+  by rewrite f1K fKid.
+by rewrite fM ?memvf ?{1}f1K.
+Qed.
+
+Lemma comp_kAut K E (F := fullv L) f g :
+  kHom K F f -> kHom K E g -> kHom K E (f \o g)%VS.
+Proof.
+move=> /kHomP[fKid fM] /kHomP[gKid gM]; apply/kHomP; split=> [x Kx | x y Ex Ey].
+  by rewrite lappE /= gKid ?fKid.
+by rewrite !lappE /= gM // fM ?memvf.
+Qed.  
+
+Definition splittingFieldFor U p V :=
+  exists2 rs, p %= \prod_(z <- rs) ('X - z%:P) & genField U rs = V.
+
+Lemma splittingFieldForS K E p (F := fullv L) :
+  (K <= E)%VS -> splittingFieldFor K p F -> splittingFieldFor E p F.
+Proof.
+move=> sKE [rs Dp genF]; exists rs => //; apply/eqP.
+by rewrite eqEsubv subvf -genF genFieldSl.
+Qed.
+
+Lemma kHom_extends K E f p U :
+    (K <= E)%VS -> kHom K E f -> polyOver K p -> splittingFieldFor E p U ->
+  {g | kHom K U g & {in E, f =1 g}}.
+Proof.
+move=> sKE homEf Kp /sig2_eqW[rs Dp <-{U}]; set r := rs.
+have rs_r: all (mem rs) r by exact/allP.
+elim: r rs_r => [_|z r IHr /=/andP[rs_z rs_r]] /= in E f sKE homEf *.
+  by exists f.
+set Ez := Fadjoin E z; pose fpEz := map_poly f (minPoly E z).
+suffices{IHr} /sigW[y fpEz_y]: exists y, root fpEz y.
+  have homEz_fz: kHom K Ez (kHomExtend E f z y) by exact: kHomExtendkHom.
+  have sKEz: (K <= Ez)%VS := subv_trans sKE (subsetKFadjoin E z).
+  have [g homGg Dg] := IHr rs_r _ _ sKEz homEz_fz; exists g => // x Ex.
+  by rewrite -Dg ?memK_Fadjoin // kHomExtendExt.
+have [m DfpEz]: {m | fpEz %= \prod_(w <- mask m rs) ('X - w%:P)}.
+  apply: dvdp_prod_factors; rewrite -(eqp_dvdr _ Dp) -(kHomFixedPoly homEf Kp).
+  have /polyOver_suba[q Dq] := polyOver_subset sKE Kp.
+  have /polyOver_suba[qz Dqz] := minPolyOver E z.
+  rewrite /fpEz Dq Dqz -2?{1}map_comp_poly.
+  rewrite (dvdp_map (RMorphism (kHomRmorph_subproof homEf))).
+  rewrite -(dvdp_map (sa_val_rmorphism E)) -Dqz -Dq.
+  rewrite minPoly_dvdp ?(polyOver_subset sKE) //.
+  by rewrite (eqp_root Dp) root_prod_factors.
+exists (mask m rs)`_0; rewrite (eqp_root DfpEz) root_prod_factors mem_nth //.
+rewrite -ltnS -(size_prod_factors _ id) -(eqp_size DfpEz).
+rewrite size_poly_eq ?coef_map -?lead_coefE ?size_minPoly //.
+rewrite (monicP (monic_minPoly E z)).
+by have /kHomP[fK _] := homEf; rewrite fK ?mem1v ?oner_eq0.
+Qed.
+
+Lemma enum_kHom K p (F := fullv L) :
+    polyOver K p -> splittingFieldFor K p F ->
+  {homK : (\dim_K F).-tuple 'End(L) | separablePolynomial p -> uniq homK
+        & forall f, kHom K F f = (f \in homK)}.
+Proof.
+move=> Kp /sig2_eqW[rs Dp]; set r := rs; set E := K => defF.
+have [sKE rs_r]: (K <= E)%VS /\ all (mem rs) r by split=> //; exact/allP.
+elim: r rs_r => [_|z r IHr /=/andP[rs_z rs_r]] /= in (E) sKE defF *.
+  rewrite defF divnn ?adim_gt0 //; exists [tuple \1%VS] => // f.
+  rewrite inE; apply/idP/idP=> [/kHomP[f1 _] | /eqP->]; last exact: kHom1.
+  by apply/eq_lapp=> x; rewrite unit_lappE f1 ?memvf.
+have [Ez | E'z] := boolP (z \in E).
+  by rewrite FadjoinxK in Ez; apply: IHr => //; rewrite -(eqP Ez).
+set Ez := Fadjoin E z in defF; pose pEz := minPoly E z.
+have sEEz: (E <= Ez)%VS := subsetKFadjoin E z; have sKEz := subv_trans sKE sEEz.
+have{IHr} [homEz UhomEz DhomEz] := IHr rs_r _ sKEz defF.
+have Ep: polyOver E p := polyOver_subset sKE Kp.
+have [m DpEz]: {m | pEz %= \prod_(w <- mask m rs) ('X - w%:P)}.
+  apply: dvdp_prod_factors; rewrite -(eqp_dvdr _ Dp).
+  rewrite minPoly_dvdp ?(polyOver_subset sKE) //.
+  by rewrite (eqp_root Dp) root_prod_factors.
+set rz := mask m rs in Dp; pose n := \dim_E Ez.
+have sz_rz: size rz == n.
+  rewrite /n dim_Fadjoin mulKn ?adim_gt0 // -eqSS.
+  by rewrite -size_minPoly -(size_prod_factors _ id) -(eqp_size DpEz).
+have fEz i (y := tnth (Tuple sz_rz) i): {f | kHom E F f & f z = y}.
+  have homEfz: kHom E Ez (kHomExtend E \1%VS z y).
+    rewrite kHomExtendkHom ?kHom1 // (eq_map_poly (fun _ => unit_lappE _)).
+    rewrite map_polyE map_id polyseqK (eqp_root DpEz) -/rz root_prod_factors.
+    exact: mem_tnth.
+  have splitFp: splittingFieldFor Ez p F.
+    exists rs => //; apply/eqP; rewrite eqEsubv subvf -defF genFieldSr //.
+    exact/allP.
+  have [f homFf Df] := kHom_extends sEEz homEfz Ep splitFp.
+  by exists f => //; rewrite -Df ?memx_Fadjoin ?(kHomExtendX _ (kHom1 E E)).
+pose mkHom ij := let: (i, j) := ij in (s2val (fEz i) \o tnth homEz j)%VS.
+have mkHom_z i j: mkHom (i, j) z = rz`_i.
+  have /kHomP[fj_id _]: kHom Ez F (tnth homEz j) by rewrite DhomEz mem_tnth.
+  rewrite /= lappE /= fj_id ?memx_Fadjoin //.
+  by case: (fEz i) => _ /= _ ->; rewrite (tnth_nth 0).
+have ->: \dim_E F = #|{: 'I_n * 'I_(\dim_Ez F)}|.
+  rewrite card_prod mulnC !card_ord divn_mulA ?field_dimS ?subsetKFadjoin //.
+  by rewrite -dim_sup_field ?subvf.
+exists [tuple of codom mkHom] => [sepP | f].
+  apply/injectiveP => /= [[i1 j1]] [i2 j2] /= /eqP/eq_lapp Eij12.
+  have /eqP Ei12: i1 == i2.
+    have /eqP := Eij12 z; rewrite !mkHom_z nth_uniq ?(eqP sz_rz) //.
+    by rewrite mask_uniq // -separable_factors -(eqp_separable Dp).
+  rewrite -Ei12 in Eij12 *; congr (_, _); apply/val_inj/eqP.
+  case: (fEz i1) Eij12 => f /= /(subv_kHom (sub1v _))/LAut_lrmorph fM _ Ej12.
+  rewrite -(nth_uniq 0 _ _ (UhomEz sepP)) ?size_tuple // -!tnth_nth.
+  apply/eq_lapp=> u; apply: (fmorph_inj (RMorphism fM)) => /=.
+  by have:= Ej12 u; rewrite !lappE.
+apply/idP/imageP=> [homFf | [[i j] _ ->] /=]; last first.
+  case: (fEz i) => fi /= /comp_kAut->; rewrite ?(subv_kHom sEEz) //.
+  by rewrite DhomEz mem_tnth.
+have /tnthP[i Dfz]: f z \in Tuple sz_rz.
+  rewrite memtE /= -root_prod_factors -(eqp_root DpEz).
+  by rewrite (kHom_rootK homFf) ?memvf ?subvf ?minPolyOver ?root_minPoly.
+case Dfi: (fEz i) => [fi homFfi fi_z]; have kerfi0 := kAut_lker0 homFfi.
+set fj := (fi \^-1 \o f)%VS; suffices /tnthP[j Dfj]: fj \in homEz.
+  by exists (i, j) => //=; rewrite {}Dfi /= -Dfj lker0_compVKf.
+rewrite -DhomEz; apply/kHomP.
+have homFfj: kHom E F fj := comp_kAut (inv_kAut homFfi) homFf.
+split=> [_ /poly_Fadjoin[q [Eq ->]]|]; last by case/kHomP: homFfj.
+have /LAut_lrmorph fjM := subv_kHom (sub1v _) homFfj.
+rewrite -[fj _](horner_map (RMorphism fjM)) (kHomFixedPoly homFfj) //.
+by rewrite /= lappE /= Dfz -fi_z lker0_lappK.
+Qed.
+
+Lemma splitting_field_normal p (F := fullv L) :
+    polyOver 1%:VS p -> splittingFieldFor 1%:VS p F -> separablePolynomial p ->
+  isNormalFieldExt L.
+Proof.
+move=> F0p splitFp sep_p K x; set pKx := minPoly K x.
+have [autL /(_ sep_p)UautL DautL] := enum_kHom F0p splitFp.
+pose q := \prod_(z <- [image tnth autL i x | i <- 'I__]) ('X - z%:P).
+suffices F0q: polyOver 1%:VS q.
+  suffices /dvdp_prod_factors[m]: pKx %| q.
+    move: (mask m _) => r; exists r.
+    by rewrite -eqpMP ?prod_factors_monic ?monic_minPoly.
+  rewrite minPoly_dvdp ?(polyOver_subset (sub1v K)) // root_prod_factors.
+  have /tnthP[i def1]: \1%VS \in autL by rewrite -DautL kHom1.
+  by apply/imageP; exists i; rewrite // -def1 unit_lappE.
+have fixed_q f: f \in autL -> map_poly f q = q.
+  rewrite -DautL => aut_f.
+  have [/LAut_lrmorph fM kerf0] := (aut_f, kAut_lker0 aut_f).
+  rewrite /q big_map -filter_index_enum big_filter /= -/F.
+  rewrite (rmorph_prod (map_poly_rmorphism (RMorphism fM))).
+  have hfP g i: kHom 1%:VS F g -> (g \o tnth autL i)%VS \in autL.
+    by rewrite -DautL => /comp_kAut->; rewrite ?DautL ?mem_tnth.
+  pose hf i := sval (sig_eqW (tnthP _ _ (hfP _ i _))).
+  have inj_hf: injective (hf f aut_f).
+    apply: can_inj (hf _ (inv_kAut aut_f)) _ => i.
+    rewrite {1}/hf; case: (sig_eqW _) => /= k /eqP.
+    rewrite /hf; case: (sig_eqW _) => /= _  <-; rewrite lker0_compKf //.
+    by rewrite !(tnth_nth 0) nth_uniq ?size_tuple // => /eqP/val_inj.
+  rewrite [rhs in _ = rhs](reindex_inj inj_hf); apply: eq_bigr => i _.
+  rewrite [RMorphism _]lock rmorph_sub /= map_polyX map_polyC -lock.
+  by rewrite /hf; case: (sig_eqW _) => /= _ <-; rewrite lappE.
+apply/(all_nthP 0)=> i _ /=; rewrite elemDeg1 eqn_leq andbT.
+rewrite -(@leq_pmul2l (\dim F)) -?leq_divr ?adim_gt0 //.
+rewrite muln1 -[elementDegree _ _]mul1n -{1}[\dim F]divn1.
+rewrite -(dimv1 L) -dim_Fadjoin -(size_tuple autL).
+set E := Fadjoin _ _; have s1E: (1%:VS <= E)%VS := sub1v _.
+have Ep := polyOver_subset s1E F0p.
+have splitEp := splittingFieldForS s1E splitFp.
+have [autE _ DautE] := enum_kHom Ep splitEp; rewrite /= -/E in autE DautE.
+rewrite -(size_tuple autE) uniq_leq_size // => f autLf; rewrite -DautE.
+have hom_f: kHom 1%:VS F f by rewrite DautL.
+apply/kHomP; split=> [_ /poly_Fadjoin[t [F0t ->]]|]; last by case/kHomP: hom_f.
+have /LAut_lrmorph fM := hom_f; rewrite -[f _](horner_map (RMorphism fM)).
+by rewrite (kHomFixedPoly hom_f) // -coef_map fixed_q.
+Qed.
+
+Lemma normal_field_splitting (F := fullv L) :
+    isNormalFieldExt L ->
+  {p : {poly L} & polyOver 1%:VS p & splittingFieldFor 1%:VS p F}.
+Proof.
+move=> normL; pose r i := sval (sigW (normL (aspace1 L) (tnth (vbasis F) i))).
+have sz_r i: (size (r i) <= \dim F)%N.
+  rewrite -ltnS -(size_prod_factors _ id) /r; case: (sigW _) => _ /= /eqP <-.
+  rewrite size_minPoly ltnS; move: (tnth _ _) => x.
+  by rewrite -[_ x]mul1n -(dimv1 L) -dim_Fadjoin dimvS ?subvf.
+pose mkf (z : L) := 'X - z%:P; pose mkfr i j := mkf (r i)`_j.
+exists (\prod_i \prod_(j < \dim F | (j < size (r i))%N) mkfr i j).
+  apply: prodp_polyOver => i _; rewrite big_ord_narrow /=.
+  rewrite -(big_mkord xpredT (mkfr i)) -(big_nth _ xpredT mkf) /r.
+  by case: (sigW _) => _ /= /eqP <-; exact: minPolyOver.
+rewrite pair_big_dep /= -big_filter filter_index_enum -(big_map _ xpredT mkf).
+set rF := map _ _; exists rF; first exact: eqpxx.
+apply/eqP; rewrite eqEsubv subvf.
+rewrite -((_ =P F) (is_span_is_basis (is_basis_vbasis F))) -span_subsetl.
+apply/allP=> _ /tnthP[i ->]; set x := tnth _ i.
+have /(nthP 0)[j lt_j_ri <-]: x \in r i.
+  rewrite -root_prod_factors /r -/x; case: (sigW _) => _ /= /eqP <-.
+  exact: root_minPoly.
+by apply/mem_genField/imageP; exists (i, Ordinal (leq_trans lt_j_ri (sz_r i))).
+Qed.
+
+End MoreGalois.
+
 Section AlgCRect.
 (* Imaginary numbers and rectangular coordinates. This is proof-of-concept    *)
 (* only, and not currently used in the rest of the formalization (it was part *)
@@ -1155,98 +2204,8 @@ apply: contraFT (minCpoly_eq0 x); rewrite -leqNgt => /size1_polyC Dp.
 by have /eqP := root_minCpoly x; rewrite Dp hornerC => ->.
 Qed.
 
-(* Missing material... *)
-
-Section MoreFieldExt.
-
-Variables (F L : fieldType) (iota : {rmorphism F -> L}).
-Variables (z : L) (p : {poly F}).
-
-Local Notation Fz := (subFExtend iota z p).
-
-Canonical inj_subfx_addidive := [additive of inj_subfx iota z p].
-Canonical inj_subfx_rmorphism := [rmorphism of inj_subfx iota z p].
-
-Definition subfx_scale a x := inj_subfx iota z p a * x.
-Fact subfx_scalerA a b x :
-  subfx_scale a (subfx_scale b x) = subfx_scale (a * b) x.
-Proof. by rewrite /subfx_scale rmorphM mulrA. Qed.
-Fact subfx_scaler1r : left_id 1 subfx_scale.
-Proof. by move=> x; rewrite /subfx_scale rmorph1 mul1r. Qed.
-Fact subfx_scaler_addr : right_distributive subfx_scale +%R.
-Proof. by move=> a; exact: mulr_addr. Qed.
-Fact subfx_scaler_addl x : {morph subfx_scale^~ x : a b / a + b}.
-Proof. by move=> a b; rewrite /subfx_scale rmorphD mulr_addl. Qed.
-Definition subfx_lmodMixin :=
-  LmodMixin subfx_scalerA subfx_scaler1r subfx_scaler_addr subfx_scaler_addl.
-Canonical subfx_lmodType := LmodType F Fz subfx_lmodMixin.
-
-Fact subfx_scaleAl : GRing.Lalgebra.axiom ( *%R : Fz -> Fz -> Fz).
-Proof. by move=> a; exact: mulrA. Qed.
-Canonical subfx_lalgType := LalgType F Fz subfx_scaleAl.
-
-Fact subfx_scaleAr : GRing.Algebra.axiom subfx_lalgType.
-Proof. by move=> a; exact: mulrCA. Qed.
-Canonical subfx_algType := AlgType F Fz subfx_scaleAr.
-
-Fact subfx_evalZ : scalable (subfx_eval iota z p).
-Proof. by move=> a q; rewrite -mul_polyC rmorphM. Qed.
-Canonical subfx_eval_linear := AddLinear subfx_evalZ.
-Canonical subfx_eval_lrmorphism := [lrmorphism of subfx_eval iota z p].
-
-Hypotheses (pz0 : root (map_poly iota p) z) (nz_p : p != 0).
-
-Lemma subfx_injZ b x : subfx_inj (b *: x) = iota b * subfx_inj x.
-Proof. by rewrite rmorphM /= subfx_inj_eval // map_polyC hornerC. Qed.
-
-Lemma subfx_inj_base b : subfx_inj b%:A = iota b.
-Proof. by rewrite subfx_injZ rmorph1 mulr1. Qed.
-
-Lemma min_subfx_vectMixin :
-    (forall q, root (map_poly iota q) z -> q != 0 -> (size p <= size q)%N) ->
-  {Vm : VectorType.mixin_of subfx_lmodType | VectorType.dim Vm = (size p).-1}.
-Proof.
-move=> min_p; set n := (size p).-1; have Dn: n.+1 = size p by rewrite polySpred.
-pose Fz2v (x : Fz) : 'rV_n := poly_rV (sval (sig_eqW (subfxE x)) %% p).
-pose vFz : 'rV_n -> Fz := subfx_eval iota z p \o @rVpoly F n.
-have FLinj: injective (@subfx_inj F L iota z p) by exact: fmorph_inj.
-have Fz2vK: cancel Fz2v vFz.
-  move=> x; rewrite /vFz /Fz2v; case: (sig_eqW _) => /= q ->.
-  apply: FLinj; rewrite !subfx_inj_eval // {2}(divp_eq q p) rmorphD rmorphM /=.
-  by rewrite !horner_lin (eqP pz0) mulr0 add0r poly_rV_K // -ltnS Dn ltn_modpN0.
-have vFzK: cancel vFz Fz2v.
-  apply: inj_can_sym Fz2vK _ => v1 v2 /(congr1 (@subfx_inj F L _ z p))/eqP.
-  rewrite -subr_eq0 -!raddf_sub /= subfx_inj_eval // => /min_p/implyP.
-  rewrite leqNgt implybNN -Dn ltnS size_poly linear_sub subr_eq0 /=.
-  by move/eqP/(can_inj (@rVpolyK _ _)).
-by exists (VectMixin (can2_linear vFzK Fz2vK) (Bijective Fz2vK vFzK)).
-Qed.
-
-End MoreFieldExt.
-
-Section FieldExtHorner.
-
-Variables (F : fieldType) (L : fieldExtType F) (z : L).
-
-Definition fieldExt_horner := horner_morph (fun x => mulrC z (in_alg L x)).
-Canonical fieldExtHorner_additive := [additive of fieldExt_horner].
-Canonical fieldExtHorner_rmorphism := [rmorphism of fieldExt_horner].
-Lemma fieldExt_hornerC b : fieldExt_horner b%:P = b%:A.
-Proof. exact: horner_morphC. Qed.
-Lemma fieldExt_hornerX : fieldExt_horner 'X = z.
-Proof. exact: horner_morphX. Qed.
-Fact fieldExt_hornerZ : scalable fieldExt_horner.
-Proof.
-move=> a p; rewrite -mul_polyC rmorphM /= fieldExt_hornerC.
-by rewrite -scaler_mull mul1r.
-Qed.
-Canonical fieldExt_horner_linear := AddLinear fieldExt_hornerZ.
-Canonical fieldExt_horner_lrmorhism := [lrmorphism of fieldExt_horner].
-
-End FieldExtHorner.
 
 (* Number fields and rational spans. *)
-
 Lemma algC_PET (s : seq algC) :
   {z | exists a : {ffun _ -> nat}, z = \sum_(i < size s) s`_i *+ a i
      & exists ps, s = [seq (pQtoC p).[z] | p <- ps]}.
@@ -1275,8 +2234,7 @@ Qed.
 
 Lemma num_field_exists (s : seq algC) :
   {Qs : fieldExtType qnum & {QsC : {rmorphism Qs -> algC}
-   & {s1 : seq Qs |  map QsC s1 = s
-   & forall E : {algebra Qs}, {subset s1 <= E} -> E = fullv _ :> {vspace Qs}}}}.
+   & {s1 : seq Qs |  map QsC s1 = s & genField 1%:VS s1 = fullv Qs}}}.
 Proof.
 have [z /sig_eqW[a Dz] /sig_eqW[ps Ds]] := algC_PET s.
 suffices [Qs [QsC [z1 z1C z1gen]]]:
@@ -1289,15 +2247,14 @@ suffices [Qs [QsC [z1 z1C z1gen]]]:
       by rewrite zintr_eq0 denq_eq0.
     rewrite /= mulrzr -rmorphMz scaler_mulrzl -{1}[b]divq_num_den -mulrzr.
     by rewrite divfK ?zintr_eq0 ?denq_eq0 // scalezr rmorph_zint.
-  exists Qs, QsC, s1 => [|A As1].
-    by rewrite -map_comp Ds (eq_map inQsK).
+  exists Qs, QsC, s1; first by rewrite -map_comp Ds (eq_map inQsK).
   have sz_ps: size ps = size s by rewrite Ds size_map.
   apply/eqP/vspaceP=> x; rewrite memvf; have [p {x}<-] := z1gen x.
   elim/poly_ind: p => [|p b ApQs]; first by rewrite /inQs rmorph0 mem0v.
   rewrite /inQs rmorphD rmorphM /= fieldExt_hornerX fieldExt_hornerC -/inQs /=.
   suffices ->: z1 = \sum_(i < size s) s1`_i *+ a i.
     rewrite memvD ?memvZl ?mem1v ?memv_mul ?memv_suml // => i _.
-    by rewrite memvMn ?As1 ?mem_nth // size_map sz_ps.
+    by rewrite memvMn ?mem_genField ?mem_nth // size_map sz_ps.
   apply: (fmorph_inj QsC); rewrite z1C Dz rmorph_sum; apply: eq_bigr => i _.
   by rewrite rmorphMn {1}Ds !(nth_map 0) ?sz_ps //= inQsK.
 have [r [Dr mon_r] dv_r] := minCpolyP z; have nz_r := monic_neq0 mon_r.
@@ -1357,14 +2314,12 @@ Local Hint Resolve ratC_span_subadd.
 
 (* Automorphism extensions. *)
 
-(* Some of the internal facts need to be generalized to make the Galois       *)
-(* theory usable.                                                             *)
 Lemma extend_algC_subfield_aut (Qs : fieldExtType qnum)
   (QsC : {rmorphism Qs -> algC}) (phi : {rmorphism Qs -> Qs}) :
   {nu : {rmorphism algC -> algC} | {morph QsC : x / phi x >-> nu x}}.
 Proof.
 pose numF_inj (Qr : fieldExtType qnum) := {rmorphism Qr -> algC}.
-pose subAut := {Qr : _ & numF_inj Qr * {rmorphism Qr -> Qr}}%type.
+pose subAut := {Qr : _ & numF_inj Qr * {lrmorphism Qr -> Qr}}%type.
 pose SubAut := existS _ _ (_, _) : subAut.
 pose Sdom (mu : subAut) := projS1 mu.
 pose Sinj (mu : subAut) : {rmorphism Sdom mu -> algC} := (projS2 mu).1.
@@ -1377,7 +2332,7 @@ have Sinj_poly Qr (QrC : numF_inj Qr) p:
   map_poly QrC (map_poly (in_alg Qr) p) = pQtoC p.
 - rewrite -map_comp_poly; apply: eq_map_poly => a.
   by rewrite /= SinjZ rmorph1 mulr1.
-have ext1 mu0 x: {mu1 | exists xx, x = Sinj mu1 xx
+have ext1 mu0 x: {mu1 | exists y, x = Sinj mu1 y
   & exists2 in01 : {lrmorphism _}, Sinj mu0 =1 Sinj mu1 \o in01
   & {morph in01: y / Saut mu0 y >-> Saut mu1 y}}.
 - pose b0 := vbasis (fullv (Sdom mu0)).
@@ -1386,7 +2341,7 @@ have ext1 mu0 x: {mu1 | exists xx, x = Sinj mu1 xx
   have [r Dr] := closed_field_poly_normal (pQtoC p : {poly algC}).
   rewrite lead_coef_map {mon_p}(monicP mon_p) rmorph1 scale1r in Dr.
   have{pz0} rz: z \in r by rewrite -root_prod_factors -Dr.
-  have [Qr [QrC [rr Drr memQr]]] := num_field_exists r.
+  have [Qr [QrC [rr Drr genQr]]] := num_field_exists r.
   have{rz} [zz Dz]: {zz | QrC zz = z}.
     by move: rz; rewrite -Drr => /mapP/sig2_eqW[zz]; exists zz.
   have{ps Ds} [in01 Din01]: {in01 : {lrmorphism _} | Sinj mu0 =1 QrC \o in01}.
@@ -1404,81 +2359,42 @@ have ext1 mu0 x: {mu1 | exists xx, x = Sinj mu1 xx
   have {z zz Dz px Dx} Dx: exists xx, x = QrC xx.
     exists (map_poly (in_alg Qr) px).[zz].
     by rewrite -horner_map Dz Sinj_poly Dx.
-  pose im_in0 (E : {vspace Qr}) y := reflect (exists yy, y = in01 yy) (y \in E).
-  have [K memK]: {K : {algebra Qr} & forall y, im_in0 K y}.
-    suffices [K memK]: {K : {vspace Qr} & forall y, im_in0 K y}.
-      apply: (existS _ (ASpace _) memK); rewrite has_aunit1.
-        apply/prodvP=> _ _ /memK[y1 ->] /memK[y2 ->].
-        by apply/memK; exists (y1 * y2); rewrite rmorphM.
-      by apply/memK; exists 1; rewrite rmorph1.
-    exists (span (map in01 b0)) => y; apply: (iffP idP)=> [b0y | [yy ->]].
-      exists (\sum_i (coord [tuple of map in01 b0] y i) *: b0`_i).
-      rewrite {1}(coord_span b0y) /= linear_sum; apply/eq_bigr=> i _.
-      by rewrite /= linearZ (nth_map 0) ?size_tuple.
-    rewrite (coord_basis (memvf yy)) linear_sum memv_suml // => i _.
-    by rewrite linearZ memvZl ?memv_span ?map_f ?mem_nth ?size_tuple.
-  suffices [E [f hom_f aut_f] [_  /allP srE]]: {E : {algebra Qr} &
-      {f | kHom (aspace1 _) E f & {morph in01: y / Saut mu0 y >-> f y}}
-    & (K <= E)%VS /\ all (mem E) rr}.
-  + do [rewrite (memQr E) //; move/LAut_lrmorph] in hom_f.
-    by exists (SubAut Qr QrC (RMorphism hom_f)); last exists in01.
-  have{p r Dr Drr} Qrr: polyOver (aspace1 Qr) (\prod_(z <- rr) ('X - z%:P)).
-    suffices ->: \prod_(z <- rr) ('X - z%:P) = map_poly (in_alg Qr) p.
-      by apply/polyOverP=> i; rewrite coef_map memvZl ?mem1v.
-    apply: (@map_poly_inj _ _ QrC).
-    rewrite Sinj_poly Dr -Drr big_map rmorph_prod.
-    by apply: eq_bigr => z _; rewrite rmorph_sub /= map_polyX map_polyC.
-  have: all (mem rr) rr by exact/allP.
-  elim: {-1}rr => [|z r IHr] /=.
-    exists K => //.
-    pose f y := in01 (Saut mu0 (sval (sig_eqW (memK _ (memv_proj K y))))).
-    have lin_f: linear f.
-      rewrite /f => a y1 y2; case: {1}(sig_eqW _) => z Dy /=.
-      case: {1}(sig_eqW _) => z1 Dy1 /=; case: (sig_eqW _) => z2 Dy2 /=.
-      rewrite linearP /= Dy1 Dy2 -linearP in Dy; rewrite -(fmorph_inj _ Dy).
-      rewrite -[z1]mul1r scaler_mull !(rmorphM, rmorphD) scaler_mull.
-      congr (_ * _ + _); apply: (fmorph_inj QrC).
-      rewrite [QrC _](SinjZ _ [rmorphism of QrC \o in01 \o _]) SinjZ.
-      by rewrite /= !rmorph1.
-    exists (lapp_of_fun f) => [|z].
-      apply/kHomP; split=> [_ /injvP[a ->]| y1 y2 Ky1 Ky2].
-        rewrite linearZ //= => _ _; rewrite lapp_of_funK //.
-        rewrite /f; case: (sig_eqW _) => z1 Dz1 /=.
-        rewrite projv_id ?mem1v // -(rmorph1 in01) in Dz1.
-        by rewrite -(fmorph_inj _ Dz1) !rmorph1.
-      rewrite !lapp_of_funK // /f; case: {1}(sig_eqW _) => z Dy /=.
-      case: {1}(sig_eqW _) => z1 Dy1 /=; case: (sig_eqW _) => z2 Dy2 /=.
-      rewrite !projv_id ?memv_mul // in Dy1 Dy2 Dy.
-      by rewrite Dy1 Dy2 -rmorphM in Dy; rewrite -!rmorphM (fmorph_inj _ Dy).
-    rewrite lapp_of_funK // /f; case: (sig_eqW _) => z1 Dy /=.
-    rewrite projv_id in Dy; last by apply/memK; exists z.
-    by rewrite (fmorph_inj in01 Dy).
-  case/andP=> rr_z /IHr[E [f hom_f Df] [sKE Er]] {IHr}.
-  exists (Fadjoin_aspace E z); last first.
-    rewrite memx_Fadjoin (subv_trans sKE) ?subsetKFadjoin //.
-    by split=> //; apply: sub_all Er; exact: memK_Fadjoin.
-  pose p := map_poly f (minPoly E z).
-  have [z1 pz10]: {z1 | root p z1}.
-    pose pr := \prod_(z <- rr) ('X - z%:P); have: p %| pr.
-      have [p1 Dp] := polyOver_suba E _ (minPolyOver E z).
-      pose f1 := RMorphism (kHomRmorph_subproof hom_f).
-      have ->: p = map_poly f1 p1 by rewrite map_comp_poly -Dp.
-      have Epr: polyOver E pr by apply: polyOver_subset Qrr; exact: sub1v.
-      have [pr1 Dpr] := polyOver_suba E _ Epr; have ->: pr = map_poly f1 pr1.
-        by rewrite  map_comp_poly -Dpr (kHomFixedPoly hom_f).
-      rewrite dvdp_map -(dvdp_map [rmorphism of @sa_val _ _ E]) -Dp -Dpr.
-      by rewrite minPoly_dvdp ?root_prod_factors.
-    rewrite {}/pr; elim: (rr) => [|z1 r1 IHr1].
-      rewrite big_nil dvdp1 size_poly_eq -?lead_coefE ?size_minPoly //.
-      rewrite (monicP (monic_minPoly _ _)).
-      by have /kHomP[fQ _] := hom_f; rewrite fQ ?oner_eq0 ?mem1v.
-    by rewrite big_cons dvdp_mul_factor; case: ifP; first exists z1.
-  exists (kHomExtend E f z z1) => [|y].
-    apply: kHomExtendkHom => //; exact: sub1v.
-  by rewrite kHomExtendExt ?Df // (subvP sKE) //; apply/memK; exists y.
+  pose lin01 := lapp_of_fun in01; pose K := (lin01 @: fullv _)%VS.
+  have memK y: reflect (exists yy, y = in01 yy) (y \in K).
+    apply: (iffP (memv_imgP _ _ _)) => [[yy [_ ->]] | [yy ->]];
+      by exists yy; rewrite lappE ?memvf.
+  have algK: has_aunit K && (K * K <= K)%VS.
+    rewrite has_aunit1; last by apply/memK; exists 1; rewrite rmorph1.
+    apply/prodvP=> _ _ /memK[y1 ->] /memK[y2 ->].
+    by apply/memK; exists (y1 * y2); rewrite rmorphM.
+  have ker_in01: lker lin01 == 0%:VS.
+    by apply/lker0P=> y1 y2; rewrite !lappE; apply: fmorph_inj.
+  pose f := (lin01 \o lapp_of_fun (Saut mu0) \o lin01 \^-1)%VS.
+  have Df y: f (in01 y) = in01 (Saut mu0 y).
+    transitivity (f (lin01 y)); first by rewrite !lappE.
+    by do 4!rewrite lappE /=; rewrite lker0_lappK.
+  have hom_f: kHom 1%:VS (ASpace algK) f.
+    apply/kHomP; split=> [_ /injvP[a ->] | _ _ /memK[y1 ->] /memK[y2 ->]].
+      by rewrite -(rmorph1 in01) -linearZ Df linearZ rmorph1.
+    by rewrite -rmorphM !Df !rmorphM.
+  pose pr := map_poly (in_alg Qr) p.
+  have Qpr: polyOver 1%:VS pr.
+    by apply/polyOverP=> i; rewrite coef_map memvZl ?memv_inj.
+  have splitQr: splittingFieldFor K pr (fullv Qr).
+    apply: splittingFieldForS (sub1v (ASpace algK)) _; exists rr => //.
+    congr (_ %= _): (eqpxx pr); apply: (@map_poly_inj _ _ QrC).
+    rewrite Sinj_poly Dr -Drr big_map rmorph_prod; apply: eq_bigr => zz _.
+    by rewrite rmorph_sub /= map_polyX map_polyC.
+  have [f1 aut_f1 Df1]:= kHom_extends (sub1v (ASpace algK)) hom_f Qpr splitQr.
+  pose nu := GRing.LRMorphism.Pack (Phant _) (LAut_lrmorph _ aut_f1).
+  exists (SubAut Qr QrC nu) => //; exists in01 => //= y; rewrite -Df -Df1 //.
+  by apply/memK; exists y.
+have phiZ: scalable phi.
+  move=> a y; do 2!rewrite -mulr_algl -in_algE.
+  by rewrite -[a]divq_num_den !(fmorph_div, rmorphM, rmorph_zint).
 pose fix ext n :=
   if n is i.+1 then oapp (fun x => s2val (ext1 (ext i) x)) (ext i) (unpickle i)
-  else SubAut Qs QsC phi.
+  else SubAut Qs QsC (LRMorphism phiZ).
 have mem_ext x n: (pickle x < n)%N -> {xx | Sinj (ext n) xx = x}.
   elim: n => //= n IHn; rewrite ltnS leq_eqVlt.
   case: eqP => [<- _ | _ /IHn[xx <-]] {IHn}.
@@ -1516,6 +2432,7 @@ do 2?split; try move=> x1 x2.
 by rewrite -(rmorph1 QsC) (nu_inj 0%N) !rmorph1.
 Qed.
 
+(* Should be in separable. *)
 Lemma separable_Xn_sub_1 (R : idomainType) n :
   n%:R != 0 :> R -> @separablePolynomial R ('X^n - 1).
 Proof.
@@ -1735,7 +2652,6 @@ by rewrite /= (monicP mon_f) lead_coef_Imul abszM muln_eq1 => /andP[/eqP-> _].
 Qed.
 
 (* Extended automorphisms of Q_n. *)
-
 Lemma Qn_Aut_exists k n :
     coprime k n ->
   {u : {rmorphism algC -> algC} | forall z, z ^+ n = 1 -> u z = z ^+ k}.
@@ -1765,9 +2681,7 @@ have pzn_zk0: root (map_poly \1%VS (minPoly Q1 zn)) (zn ^+ k).
   rewrite (bigD1 (Ordinal (ltn_pmod k n_gt0))) ?coprime_modl //=.
   by rewrite root_mul root_factor prim_expr_mod ?eqxx.
 have phiM: lrmorphism phi.
-  apply/LAut_lrmorph.
-  rewrite -(genQn (Fadjoin_aspace (aspace1 _) zn)) ?kHomExtendkHom //.
-  by apply/allP; rewrite /= memx_Fadjoin.
+  by apply/LAut_lrmorph; rewrite -genQn /= kHomExtendkHom.
 have [nu Dnu] := extend_algC_subfield_aut QnC (RMorphism phiM).
 exists nu => _ /(prim_rootP prim_z)[i ->].
 rewrite rmorphX exprnC -Dz -Dnu /= -{1}[zn]hornerX /phi.
@@ -2435,19 +3349,140 @@ have k_x: x \in enum_val k by rewrite enum_rankK_in // class_refl.
 by rewrite -(gring_mode_class_sum_eq k_x) gring_mode_class_sum_algInt.
 Qed.
 
-(* This is Isaacs, Theorem (3.11). *)
-Theorem dvd_irr1_cardG : dvdC ('chi[G]_i 1%g) #|G|%:R.
+(* This is Isaacs, Theorem (3.8). *)
+Theorem coprime_degree_support_cfcenter g :
+    coprime (getNatC ('chi_i 1%g)) #|g ^: G| -> g \notin ('Z('chi_i))%CF ->
+  'chi_i g = 0.
 Proof.
-rewrite /dvdC -if_neg irr1_neq0 Cint_rat_algInt //=.
-  by rewrite Crat_div ?ringp_nat // ringp_Cnat ?isNatC_irr1.
-rewrite -(muln1 _ : #|G| * true = _)%N -(eqxx i) natr_mul.
-rewrite -first_orthogonality_relation mulVKf ?neq0GC //.
-rewrite sum_by_classes => [|x y Gx Gy]; rewrite -?conjVg ?cfunJ //.
-rewrite -mulr_suml ringp_sum // => K /repr_classesP[Gx {1}->].
-by rewrite !mulrA mulrAC ringpM ?algInt_irr ?class_div_irr1_algInt.
+set m := getNatC _ => co_m_gG notZg.
+have [Gg | /cfun0-> //] := boolP (g \in G).
+have Dm: 'chi_i 1%g = m%:R by apply/eqP/isNatC_irr1.
+have m_gt0: (0 < m)%N by rewrite ltn_ltC -Dm ltC_irr1.
+have nz_m: m%:R != 0 :> algC by rewrite -neq0N_neqC -lt0n.
+pose alpha := 'chi_i g / m%:R.
+have a_lt1: `|alpha| < 1.
+  rewrite normC_mul normC_inv normC_nat -{2}(divff nz_m).
+  rewrite ltCE (can_eq (mulfVK nz_m)) eq_sym -{1}Dm -irr_cfcenterE // notZg.
+  by rewrite leC_pmul2r ?sposC_inv -?(ltn_ltC 0) // -Dm char1_ge_norm ?irr_char.
+have Za: alpha \in algInt.
+  have [u _ /dvdnP[v eq_uv]] := bezoutl #|g ^: G| m_gt0.
+  suffices ->: alpha = v%:R * 'chi_i g - u%:R * (alpha * #|g ^: G|%:R).
+    rewrite ringp_sub // ringpM ?ringp_nat ?algInt_irr //.
+    by rewrite mulrC mulrA -Dm class_div_irr1_algInt.
+  rewrite -mulrCA -[v%:R](mulfK nz_m) -!natr_mul -eq_uv (eqnP co_m_gG).
+  by rewrite mulrAC -mulrA -/alpha mulr_natl mulr_natr mulrS addrK.
+pose ng := #[g]; have ng_gt0: (0 < ng)%N by exact: order_gt0.
+have [z prim_z] := C_prim_root_exists ng_gt0.
+have [Qn [QnC [[|zz []] // [Dz] genQn]]] := num_field_exists [:: z].
+have nQn: isNormalFieldExt Qn.
+  apply: splitting_field_normal ('X^ng - 1) _ _ _; last 1 first.
+  - apply: separable_Xn_sub_1; rewrite -(fmorph_eq0 QnC) rmorph_nat.
+    by rewrite -neq0N_neqC -lt0n.
+  - rewrite addp_polyOver ?exp_polyOver ?polyOverX //.
+    by rewrite opp_polyOver // polyOverC ?mem1v.
+  exists (codom (fun i : 'I_ng => zz ^+ i)).
+    rewrite big_map enumT -(big_mkord xpredT (fun i => 'X - (zz ^+ i)%:P)).
+    by rewrite prod_factors_of_unity ?eqpxx // -(fmorph_primitive_root QnC) Dz.
+  apply/eqP; rewrite eqEsubv subvf -genQn genFieldSr //; apply/allP=> /=.
+  have ng_gt1: (1 < ng)%N by rewrite order_gt1 (group1_contra notZg).
+  by rewrite andbT; apply/imageP; exists (Ordinal ng_gt1).
+have [a Da]: exists a, alpha = QnC a.
+  rewrite /alpha -cfun_Chi.
+  have [e [_ [eng1 _] [-> _] _]] := repr_rsim_diag 'Chi_i Gg.
+  exists ((\sum_i zz ^+ sval (prim_rootP prim_z (eng1 i))) / m%:R).
+  rewrite fmorph_div rmorph_nat rmorph_sum; congr (_ / _).
+  by apply: eq_bigr => j _; rewrite rmorphX Dz; case: (prim_rootP _ _).
+pose GalQn := Aut nQn (fullv Qn) 1%:VS.
+have Za_nu nu: nu \in GalQn -> QnC (val (repr nu) a) \in algInt.
+  move=> _; case: {nu}(repr _) => nu0f /= /LAut_is_enum nu0M.
+  pose nu0 := GRing.LRMorphism.Pack (Phant _) nu0M.
+  have [nu ->] := extend_algC_subfield_aut QnC nu0; rewrite -Da.
+  apply: root_monic_algInt (minCpoly_monic _) Za.
+  suffices ->: minCpoly alpha = map_poly nu (minCpoly alpha).
+    by rewrite fmorph_root root_minCpoly.
+  have [p [-> _] _] := minCpolyP alpha; rewrite -map_comp_poly.
+  by apply: eq_map_poly => c /=; rewrite fmorph_div !rmorph_zint.
+have norm_a_nu nu: nu \in GalQn -> `|QnC (val (repr nu) a)| <= 1.
+  move=> _; case: {nu}(repr _) => nu0f /= /LAut_is_enum nu0M.
+  pose nu0 := GRing.LRMorphism.Pack (Phant _) nu0M.
+  have [nu ->] := extend_algC_subfield_aut QnC nu0; rewrite -Da.
+  rewrite fmorph_div rmorph_nat normC_mul normC_inv normC_nat.
+  rewrite -Dm -(leC_pmul2r _ _ (ltC_irr1 (aut_Iirr nu i))) mul1r.
+  congr (_ <= _): (char1_ge_norm g (irr_char (aut_Iirr nu i))).
+  by rewrite !aut_IirrE !cfunE Dm rmorph_nat divfK.
+pose b := galoisNorm nQn 1%:VS (fullv Qn) a.
+have Zbeta: isIntC (QnC b).
+  apply: Cint_rat_algInt; last by rewrite rmorph_prod ringp_prod.
+  have /injvP[/= c ->] : b \in 1%:VS.
+    rewrite mem_galoisNorm ?memvf //.
+    (* This is ridiculous... *)
+    apply/and3P; split; first exact: subvf.
+      apply/separableP => y _; apply: separableChar0 => {y}p.
+      by rewrite -(fmorph_char QnC) Cchar.
+    apply/normalP=> y _; have [r /eqP->] := nQn (aspace1 _) y.
+    by exists r => //; apply/allP=> cy _; rewrite /= memvf.
+  by rewrite -in_algE -[c]divq_num_den !fmorph_div !rmorph_zint ratr_Crat.
+have [|nz_a] := boolP (alpha == 0).
+  by rewrite (can2_eq (divfK _) (mulfK _)) // mul0r => /eqP.
+have nz_nu_a nu: nu \in GalQn -> QnC (val (repr nu) a) != 0.
+  move=> _; case: {nu}(repr _) => nu0f /= /LAut_is_enum nu0M.
+  pose nu0 := GRing.LRMorphism.Pack (Phant _) nu0M.
+  by have [nu ->] := extend_algC_subfield_aut QnC nu0; rewrite -Da fmorph_eq0.
+have: QnC b != 0 by rewrite rmorph_prod; apply/prodf_neq0.
+move/(isIntC_normC_ge1 Zbeta); rewrite ltC_geF //; apply: leC_ltC_trans a_lt1.
+rewrite -[`|alpha|]mulr1 rmorph_prod (bigD1 1%g) ?group1 // repr_coset1 /=.
+rewrite unit_lappE -Da normC_mul leC_pmul2l; last first.
+  by rewrite ltCE posC_norm normC_eq0 nz_a.
+elim/big_rec: _ => [|nu c /andP[Gnu _]]; first by rewrite normC1 leC_refl.
+apply: leC_trans; rewrite -leC_sub -{1}[`|c|]mul1r normC_mul -mulr_subl.
+by rewrite posC_mul ?posC_norm // leC_sub norm_a_nu.
 Qed.
 
 End GringIrrMode.
+
+(* This is Isaacs, Theorem (3.9). *)
+Import gseries.
+Theorem primes_class_simple_gt1 C :
+  simple G -> ~~ abelian G -> C \in (classes G)^# -> (size (primes #|C|) > 1)%N.
+Proof.
+move=> simpleG not_cGG /setD1P[ntC /imsetP[g Gg defC]].
+have{ntC} nt_g: g != 1%g by rewrite defC classG_eq1 in ntC.
+rewrite ltnNge {C}defC; set m := #|_|; apply/negP=> p_natC.
+have{p_natC} [p p_pr [a Dm]]: {p : nat & prime p & {a | m = p ^ a}%N}.
+  have /prod_prime_decomp->: (0 < m)%N by rewrite /m -index_cent1.
+  rewrite prime_decompE; case Dpr: (primes _) p_natC => [|p []] // _.
+    by exists 2 => //; rewrite big_nil; exists 0%N.
+  rewrite big_seq1; exists p; last by exists (logn p m).
+  by have:= mem_primes p m; rewrite Dpr mem_head => /esym/and3P[].
+have{simpleG} [ntG minG] := simpleP _ simpleG.
+pose p_dv1 i := dvdNC p ('chi[G]_i 1%g).
+have p_dvd_supp_g i: ~~ p_dv1 i && (i != 0) -> 'chi_i g = 0.
+  rewrite /p_dv1 irr1_degree dvdC_nat -prime_coprime // => /andP[co_p_i1 nz_i].
+  have fful_i: cfker 'chi_i = [1].
+    have /minG[//|/eqP] := cfker_normal 'chi_i.
+    by rewrite eqEsubset subGcfker (negPf nz_i) andbF.
+  have trivZ: 'Z(G) = [1] by have /minG[|/center_idP/idPn] := center_normal G.
+  have trivZi: ('Z('chi_i))%CF = [1].
+    apply/trivgP; rewrite -quotient_sub1 ?norms1 //= -fful_i cfcenter_eq_center.
+    rewrite fful_i subG1 -(isog_eq1 (isog_center (quotient1_isog G))) /=.
+    by rewrite trivZ.
+  rewrite coprime_degree_support_cfcenter ?trivZi ?inE //.
+  by rewrite -/m Dm irr1_degree getNatC_nat coprime_sym coprime_expl.
+pose alpha := \sum_(i | p_dv1 i && (i != 0)) 'chi_i 1%g / p%:R * 'chi_i g.
+have nz_p: p%:R != 0 :> algC by rewrite -neq0N_neqC -lt0n prime_gt0.
+have Dalpha: alpha = - 1 / p%:R.
+  apply/(canRL (mulfK nz_p))/eqP; rewrite -addr_eq0 addrC; apply/eqP/esym.
+  transitivity (cfReg G g); first by rewrite cfRegE (negPf nt_g).
+  rewrite cfReg_sum sum_cfunE (bigD1 0) //= chi0_1 !cfunE !cfun1E group1 Gg.
+  rewrite mulr1; congr (1 + _); rewrite (bigID p_dv1) /= addrC big_andbC.
+  rewrite big1 => [|i /p_dvd_supp_g chig0]; last by rewrite cfunE chig0 mulr0.
+  rewrite add0r big_andbC -mulr_suml; apply: eq_bigr => i _.
+  by rewrite mulrAC divfK // cfunE.
+suffices: dvdNC p 1 by rewrite (dvdC_nat p 1) dvdn1 -(subnKC (prime_gt1 p_pr)).
+rewrite /dvdC (negPf nz_p) Cint_rat_algInt ?Crat_div ?ringp1 ?ringp_nat //.
+rewrite -ringpN // -mulNr -Dalpha ringp_sum // => i /andP[/dvdCP[c Zc ->] _].
+by rewrite mulfK // ringpM ?algInt_irr ?algInt_Cint.
+Qed.
 
 End IntegralChar.
 
@@ -2492,8 +3527,61 @@ Qed.
 
 End MoreClassfun.
 
+Section MoreIntegralChar.
+
+Implicit Type gT : finGroupType.
+
+Import gseries nilpotent abelian.
+
+(* This is Burnside's famous p^a.q^b theorem (Isaacs, Theorem (3.10)). *)
+Theorem Burnside_p_a_q_b gT (G : {group gT}) :
+  (size (primes #|G|) <= 2)%N -> solvable G.
+Proof.
+move: {2}_.+1 (ltnSn #|G|) => n; elim: n => // n IHn in gT G *.
+rewrite ltnS => leGn piGle2; have [simpleG | ] := boolP (simple G); last first.
+  rewrite negb_forall_in => /exists_inP[N sNG]; rewrite eq_sym.
+  have [-> | ] := altP (N =P G).
+    rewrite groupP /= genGid normG andbT eqb_id negbK => /eqP->.
+    exact: solvable1.
+  rewrite [N == G]eqEproper sNG eqbF_neg !negbK => ltNG /and3P[grN].
+  case/isgroupP: grN => {N}N -> in sNG ltNG *; rewrite /= genGid => ntN nNG.
+  have nsNG: N <| G by exact/andP.
+  have dv_le_pi m: (m %| #|G| -> size (primes m) <= 2)%N.
+    move=> m_dv_G; apply: leq_trans piGle2.
+    by rewrite uniq_leq_size ?primes_uniq //; apply: pi_of_dvd.
+  rewrite (series_sol nsNG) !IHn ?dv_le_pi ?cardSg ?dvdn_quotient //.
+    by apply: leq_trans leGn; apply: ltn_quotient.
+  by apply: leq_trans leGn; apply: proper_card.
+have [->|[p p_pr p_dv_G]] := trivgVpdiv G; first exact: solvable1.
+have piGp: p \in \pi(G) by rewrite mem_primes p_pr cardG_gt0.
+have [P sylP] := Sylow_exists p G; have [sPG pP p'GP] := and3P sylP.
+have ntP: P :!=: 1%g by rewrite -rank_gt0 (rank_Sylow sylP) p_rank_gt0.
+have /trivgPn[g /setIP[Pg cPg] nt_g]: 'Z(P) != 1%g.
+  by rewrite center_nil_eq1 // (pgroup_nil pP).
+apply: abelian_sol; have: (size (primes #|g ^: G|) <= 1)%N.
+  rewrite -ltnS -[_.+1]/(size (p :: _)) (leq_trans _ piGle2) //.
+  rewrite -index_cent1 uniq_leq_size // => [/= | q].
+    rewrite primes_uniq -p'natEpi ?(pnat_dvd _ p'GP) ?indexgS //.
+    by rewrite subsetI sPG sub_cent1.
+  by rewrite inE => /predU1P[-> // |]; apply: pi_of_dvd; rewrite ?dvdn_indexg.
+rewrite leqNgt; apply: contraR => /primes_class_simple_gt1-> //.
+by rewrite !inE classG_eq1 nt_g mem_classes // (subsetP sPG).
+Qed.
+
+(* This is Isaacs, Theorem (3.11). *)
+Theorem dvd_irr1_cardG gT (G : {group gT}) i : dvdC ('chi[G]_i 1%g) #|G|%:R.
+Proof.
+rewrite /dvdC -if_neg irr1_neq0 Cint_rat_algInt //=.
+  by rewrite Crat_div ?ringp_nat // ringp_Cnat ?isNatC_irr1.
+rewrite -(muln1 _ : #|G| * true = _)%N -(eqxx i) natr_mul.
+rewrite -first_orthogonality_relation mulVKf ?neq0GC //.
+rewrite sum_by_classes => [|x y Gx Gy]; rewrite -?conjVg ?cfunJ //.
+rewrite -mulr_suml ringp_sum // => K /repr_classesP[Gx {1}->].
+by rewrite !mulrA mulrAC ringpM ?algInt_irr ?class_div_irr1_algInt.
+Qed.
+
 (* This is Isaacs, Theorem (3.12). *)
-Theorem dvd_irr1_index_center (gT : finGroupType) (G : {group gT}) i :
+Theorem dvd_irr1_index_center gT (G : {group gT}) i :
   dvdC ('chi[G]_i 1%g) #|G : 'Z('chi_i)%CF|%:R.
 Proof.
 without loss fful: gT G i / cfaithful 'chi_i.
@@ -2561,3 +3649,5 @@ rewrite !(cfunJ, DchiZ) ?groupJ // (can_eq (mulKf nz_chi_x)).
 rewrite (inj_in_eq inj_lambda) // => /eqP eq_z12; rewrite eq_z12 in eq12 *.
 by rewrite (mulIg _ _ _ eq12).
 Qed.
+
+End MoreIntegralChar.
