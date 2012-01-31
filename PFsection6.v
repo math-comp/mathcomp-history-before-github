@@ -601,6 +601,114 @@ split=> // [_ /mapP[xi /Schi2/Znu ? -> //]||].
 by rewrite -raddf_sub -cfunD1E Dnu // irr_vchar_on ?Ztau.
 Qed.
 
+Import polydiv qnum algebra fieldext separable galois.
+
+Section NumFieldProj.
+
+Variables (Qn : fieldExtType qnum) (QnC : {rmorphism Qn -> algC}).
+
+Lemma ratC_spanZ b a : {in ratC_span b, forall x, qnumr a * x \in ratC_span b}.
+Proof.
+move=> _ /ratC_spanP[a1 ->]; apply/ratC_spanP; exists [ffun i => a * a1 i].
+by rewrite -mulr_sumr; apply: eq_bigr => i _; rewrite ffunE mulrA -rmorphM.
+Qed.
+
+Lemma ratC_spanM b : {in Crat & ratC_span b, forall a x, a * x \in ratC_span b}.
+Proof. by move=> _ x /CratP[a ->]; exact: ratC_spanZ. Qed.
+
+(* In principle CtoQn could be taken to be additive and Q-linear, but this    *)
+(* would require a limit construction.                                        *)
+Lemma num_field_proj : {CtoQn | CtoQn 0 = 0 & cancel QnC CtoQn}.
+Proof.
+pose b := vbasis (fullv Qn); have addCb := ratC_span_subadd (map QnC b).
+have Qn_bC (u : {x | x \in ratC_span (map QnC b)}): {y | QnC y = sval u}.
+  case: u => _ /= /ratC_spanP/sig_eqW[a ->].
+  exists (\sum_i a i *: b`_i); rewrite rmorph_sum; apply: eq_bigr => i _.
+  by rewrite rmorphZ_num (nth_map 0) // -(size_map QnC).
+pose CtoQn x := oapp (fun u => sval (Qn_bC u)) 0 (insub x).
+suffices QnCK: cancel QnC CtoQn by exists CtoQn; rewrite // -(rmorph0 QnC).
+move=> x; rewrite /CtoQn insubT => /= [|Qn_x]; last first.
+  by case: (Qn_bC _) => x1 /= /fmorph_inj.
+rewrite (coord_basis (memvf x)) rmorph_sum raddp_sum // => i _.
+rewrite rmorphZ_num ratC_spanZ ?mem_ratC_span //.
+by rewrite -tnth_nth -tnth_map mem_tnth.
+Qed.
+
+Lemma restrict_aut_to_num_field (nu : {rmorphism algC -> algC}) :
+    (forall x, exists y, nu (QnC x) = QnC y) ->
+  {nu0 : {lrmorphism Qn -> Qn} | {morph QnC : x / nu0 x >-> nu x}}.
+Proof.
+move=> Qn_nu; pose nu0 x := sval (sig_eqW (Qn_nu x)).
+have QnC_nu0: {morph QnC : x / nu0 x >-> nu x}.
+  by rewrite /nu0 => x; case: (sig_eqW _).
+suffices nu0M: rmorphism nu0 by exists (NumLRmorphism (RMorphism nu0M)).
+do 2?split=> [x y|]; apply: (fmorph_inj QnC); rewrite ?QnC_nu0 ?rmorph1 //.
+  by rewrite ?(rmorph_sub, QnC_nu0).
+by rewrite ?(rmorphM, QnC_nu0).
+Qed.
+
+Lemma map_Qnum_poly (nu : {rmorphism algC -> algC}) p :
+  polyOver 1%:VS p -> map_poly (nu \o QnC) p = (map_poly QnC p).
+Proof.
+move/polyOverP=> Qp; apply/polyP=> i; rewrite /= !coef_map /=.
+by have /injvP[a ->]:= Qp i; rewrite alg_num_field !fmorph_qnum.
+Qed.
+
+Lemma restrict_aut_to_normal_num_field (nu : {rmorphism algC -> algC}) :
+    isNormalFieldExt Qn ->
+  {nu0 : {lrmorphism Qn -> Qn} | {morph QnC : x / nu0 x >-> nu x}}.
+Proof.
+case/normal_field_splitting=> [p Qp /sig2_eqW[r Dp genQn]].
+apply: restrict_aut_to_num_field => x.
+have:= memvf x; rewrite -{}genQn; have: all (mem r) r by exact/allP.
+elim/last_ind: {-1}r => [|r1 z IHr] /= in x *.
+  by move=> _ /injvP[a ->]; exists a%:A; rewrite alg_num_field !fmorph_qnum.
+rewrite all_rcons genField_rcons => /andP[/= rz r_r1] /poly_Fadjoin[q [r_q ->]].
+have /mapP[y _ Dy]: nu (QnC z) \in map QnC r.
+  rewrite -root_prod_factors big_map.
+  have: root (map_poly (nu \o QnC) p) (nu (QnC z)).
+    by rewrite fmorph_root (eqp_root Dp) root_prod_factors rz.
+  rewrite map_Qnum_poly // (eqp_root (etrans (eqp_map _ _ _) Dp)) rmorph_prod.
+  congr (root _ _); apply: eq_bigr => z1 _.
+  by rewrite rmorph_sub /= map_polyX map_polyC.
+have nu_q i: {c | nu (QnC q`_i) = QnC c}.
+  by apply/sig_eqW/IHr=> //; exact: polyOverP.
+exists (\poly_(i < size q) sval (nu_q i)).[y].
+rewrite -!horner_map; congr _.[_] => //.
+apply/polyP=> i; rewrite coef_map coef_poly coef_map coef_poly.
+by case: ifP => _; [case: (nu_q i) | rewrite /= !rmorph0].
+Qed.
+
+End NumFieldProj.
+
+(* This is Peterfalvi (1.9)(a). *)
+Lemma extend_coprime_Qn_aut a b (Qa Qb : fieldExtType qnum) w_a w_b
+          (QaC : {rmorphism Qa -> algC}) (QbC : {rmorphism Qb -> algC})
+          (mu : {rmorphism algC -> algC}) :
+    coprime a b ->
+    a.-primitive_root w_a /\ Fadjoin 1%:VS w_a = fullv Qa -> 
+    b.-primitive_root w_b /\ Fadjoin 1%:VS w_b = fullv Qb ->
+  {nu : {rmorphism algC -> algC} | forall x, nu (QaC x) = mu (QaC x)
+                                 & forall y, nu (QbC y) = QbC y}.
+Proof.
+move=> coab [pr_w_a genQa] [pr_w_b genQb].
+have [k co_k_a Dmu]: {k | coprime k a & mu (QaC w_a) = QaC (w_a ^+ k)}.
+  have prCw: a.-primitive_root (QaC w_a) by rewrite fmorph_primitive_root.
+  by have [k coka ->] := aut_prim_rootP mu prCw; rewrite -rmorphX; exists k.
+pose k1 := chinese a b k 1; have /Qn_Aut_exists[nu Dnu]: coprime k1 (a * b).
+  rewrite coprime_mulr -!(coprime_modl k1) chinese_modl ?chinese_modr //.
+  by rewrite !coprime_modl co_k_a coprime1n.
+exists nu => [x | y].
+  have /poly_Fadjoin[p [Qp ->]]: x \in Fadjoin 1%:VS w_a by rewrite genQa memvf.
+  rewrite -!horner_map -!map_comp_poly !map_Qnum_poly // Dmu Dnu -rmorphX /=.
+    by rewrite -(prim_expr_mod pr_w_a) chinese_modl // prim_expr_mod.
+  by rewrite exprn_mulr (prim_expr_order pr_w_a) exp1rn rmorph1.
+have /poly_Fadjoin[p [Qp ->]]: y \in Fadjoin 1%:VS w_b by rewrite genQb memvf.
+rewrite -!horner_map -!map_comp_poly !map_Qnum_poly // Dnu -rmorphX /=.
+  by rewrite -(prim_expr_mod pr_w_b) chinese_modr // prim_expr_mod.
+by rewrite mulnC exprn_mulr (prim_expr_order pr_w_b) exp1rn rmorph1.
+Qed.
+
 (* This is Peterfalvi (1.9)(b). *)
 (* We have corrected a quantifier inversion in the original statement: the    *)
 (* automorphism is constructed uniformly for all characters, and indeed for   *)
@@ -612,12 +720,113 @@ Lemma make_pi_cfAut (L : {group gT}) a k :
     {in 'Z[irr G] & G, forall chi x,
           [/\ (#[x] %| a)%N -> cfAut u chi x = chi (x ^+ k)%g
             & coprime #[x] a -> cfAut u chi x = chi x]}.
-Admitted.
+Proof.
+have [-> | a_gt0] := posnP a.
+  rewrite /coprime gcdn0 => /eqP->; exists [rmorphism of idfun] => chi x _ _.
+  by rewrite !cfunE.  
+case/Qn_Aut_exists=> mu Dmu; pose b := (#|G|`_(\pi(a)^'))%N.
+have co_a_b: coprime a b := pnat_coprime (pnat_pi a_gt0) (part_pnat _ _).
+have [Qa [QaC _ [w_a genQa memQa]]] := group_num_field_exists [group of Zp a].
+have [Qb [QbC _ [w_b genQb memQb]]] := group_num_field_exists [group of Zp b].
+rewrite !card_Zp ?part_gt0 // in Qa QaC w_a genQa memQa Qb QbC w_b genQb memQb.
+have [nu nuQa nuQb] := extend_coprime_Qn_aut QaC QbC mu co_a_b genQa genQb.
+exists nu => chi x Zchi Gx; without loss{Zchi} Nchi: chi / is_char chi.
+  move=> IH; case/vcharP: Zchi => [c1 /IH [Dc1a Dc1b] [c2 /IH [Dc2a Dc2b] ->]].
+  rewrite !cfunE rmorph_sub in Dc1a Dc1b Dc2a Dc2b *.
+  by split=> Dx; rewrite ?(Dc1a Dx, Dc2a Dx) ?(Dc1b Dx, Dc2b Dx).
+split=> [x_dv_a | co_x_a].
+  have [xa Dx] := memQa _ _ _ Nchi x x_dv_a; rewrite order_dvdn in x_dv_a.
+  rewrite cfunE -Dx nuQa {}Dx; have sxG: <[x]> \subset G by rewrite cycle_subG.
+  rewrite -!(cfResE chi sxG) ?cycle_id ?mem_cycle //.
+  rewrite ['Res _]cfun_sum_cfdot !sum_cfunE rmorph_sum; apply: eq_bigr => i _.
+  have chiX := lin_charX (char_abelianP _ (cycle_abelian x) i) _ (cycle_id x).
+  rewrite !cfunE rmorphM rmorph_NatC ?cfdot_char_irr_Nat ?cfRes_char //.
+  by congr (_ * _); rewrite Dmu -chiX // (eqP x_dv_a) (chiX 0%N).
+have x_dv_b: (#[x] %| b)%N.
+  rewrite coprime_sym coprime_pi' // in co_x_a.
+  by rewrite -(part_pnat_id co_x_a) partn_dvd ?order_dvdG.
+by have [xb Dx] := memQb _ _ _ Nchi x x_dv_b; rewrite cfunE -Dx nuQb.
+Qed.
+
+(* This is Peterfalvi (1.10). *)
+Lemma vchar_ker_mod_p_prim p eps eta :
+    prime p -> p.-primitive_root eps -> #|G|.-primitive_root eta ->
+    let A := intC_span [tuple eta ^+ i | i < #|G|] in
+    let modAeps' := [pred u | let: (x, y) := u in (x - y) / (1 - eps) \in A] in
+  (*a*) {in G & G & 'Z[irr G], forall x y (chi : 'CF(G)),
+           #[x] = p -> y \in 'C[x] -> (chi (x * y)%g, chi y) \in modAeps'}
+  /\ (*b*) (forall n, isIntC n -> (n, 0) \in modAeps' -> dvdNC p n).
+Proof.
+move=> p_pr pr_eps pr_eta A modA; have p_gt0 := prime_gt0 p_pr.
+have nz_eps': 1 - eps != 0.
+  by rewrite subr_eq0 eq_sym -(prim_order_dvd pr_eps 1) gtnNdvd ?prime_gt1.
+have Aeta i: eta ^+ i \in A.
+  apply/mem_intC_span/tnthP; exists (Ordinal (ltn_pmod i (cardG_gt0 G))).
+  by rewrite tnth_mktuple prim_expr_mod.
+have ringA: subring_pred A.
+  have addA: subadd_pred A := intC_span_subadd _.
+  split; [exact: raddp_sub | split; first exact: (Aeta 0%N)].
+  move=> _ _ /intC_spanP[x ->] /intC_spanP[y ->].
+  rewrite -mulr_sumr raddp_sum // => i _; rewrite zint.mulrzAr -mulr_suml.
+  rewrite raddpMz ?raddp_sum // => j _; rewrite zint.mulrzAl raddpMz //.
+  by rewrite !nth_mktuple -exprn_addr.
+split=> [x y chi Gx Gy Zchi ox cxy | n Zn modAn0].
+  pose X := <<[set x; y]>>%G.
+  have [Xx Xy]: x \in X /\ y \in X by apply/andP; rewrite -!sub1set -join_subG.
+  have sXG: X \subset G by rewrite join_subG !sub1set Gx.
+  suffices{chi Zchi} IHiX i: ('chi[X]_i (x * y)%g, 'chi_i y) \in modA.
+    rewrite -!(cfResE _ sXG) ?groupM //.
+    have /vchar_expansion[c Zc ->] := cfRes_vchar X Zchi.
+    rewrite !sum_cfunE !inE -sumr_sub -mulr_suml big_seq.
+    rewrite ringp_sum // => _ /irrP[i ->]; rewrite !cfunE -mulr_subr -mulrA.
+    by rewrite ringpM ?(ringp_Cint _ (Zc _)) //; exact: IHiX.
+  have lin_chi: lin_char 'chi_i.
+    apply/char_abelianP; rewrite -[gval X]joing_idl -joing_idr abelianY.
+    by rewrite !cycle_abelian cycle_subG /= cent_cycle.
+  rewrite inE lin_charM // -{2}['chi_i y]mul1r -mulr_subl mulrAC ringpM //.
+    have [|k ->] := (prim_rootP pr_eps) ('chi_i x).
+      by rewrite -lin_charX // -ox expg_order lin_char1.
+    rewrite subr_expn_1 -oppr_sub mulrAC -mulrA mulNr ringpN // mulVKf //.
+    have [|m ->] := (prim_rootP pr_eta) eps.
+      by apply/eqP; rewrite -(prim_order_dvd pr_eps) -ox order_dvdG.
+    by apply: ringp_sum => // n _; rewrite -exprn_mulr Aeta.
+  rewrite -cfun_Chi; have [e [_ [ey1 _] [-> _] _]] := repr_rsim_diag 'Chi_i Xy.
+  apply: ringp_sum => // j _; have [|? -> //] := (prim_rootP pr_eta) (e 0 j).
+  by have /dvdnP[m ->] := order_dvdG Gy; rewrite mulnC exprn_mulr ey1 exp1rn.
+pose F := \prod_(1 <= i < p) ('X - (eps ^+ i)%:P).
+have defF: F = \sum_(i < p) 'X^i.
+  apply: (mulfI (monic_neq0 (monic_factor 1))); rewrite -subr_expn_1.
+  by rewrite -(prod_factors_of_unity pr_eps) big_ltn.
+have{defF} F1: F.[1] = p%:R.
+  rewrite -[p]card_ord -sumr_const defF horner_sum; apply: eq_bigr => i _.
+  by rewrite hornerXn exp1rn.
+have{F1 modAn0}: dvdNC p (n ^+ p.-1).
+  rewrite /dvdC -if_neg -neq0N_neqC -lt0n p_gt0 // Cint_rat_algInt //.
+    by rewrite Crat_div ?ringp_nat ?ringpX // ringp_Cint.
+  rewrite -[p.-1]card_ord -{}F1 {}/F big_add1 big_mkord horner_prod -prodf_inv.
+  rewrite -prodr_const -big_split ringp_prod //= => k _; rewrite !horner_lin.
+  rewrite -[n](divfK nz_eps') -[_ * _ / _]mulrA ringpM //.
+    apply: (fin_Csubring_algInt ringA (@intC_spanP _ _)).
+    by congr (_ \in A): modAn0; rewrite subr0.
+  have p'k: ~~ (p %| k.+1)%N by rewrite gtnNdvd // -{2}(prednK p_gt0) ltnS.
+  have [r {1}->]: exists r, eps = eps ^+ k.+1 ^+ r.
+    have [q _ /dvdnP[r Dr]] := bezoutl p (ltn0Sn k); exists r; apply/esym/eqP.
+    rewrite -exprn_mulr (eq_prim_root_expr pr_eps _ 1) mulnC -Dr addnC gcdnC.
+    by rewrite -prime_coprime // in p'k; rewrite (eqnP p'k) modn_addl_mul.
+  rewrite -oppr_sub subr_expn_1 -mulNr oppr_sub mulrC.
+  rewrite mulKf; last by rewrite subr_eq0 eq_sym -(prim_order_dvd pr_eps).
+  apply: ringp_sum => // i _; rewrite !ringpX // (algInt_unity_root p_gt0) //.
+  by rewrite unity_rootE prim_expr_order.
+rewrite (isIntC_signE Zn) exprn_mull -exprn_mulr !dvdC_mul_sign.
+have /isNatCP[{n Zn}n ->] := normIntC_Nat Zn.
+by rewrite -natr_exp !dvdC_nat euclid_exp // => /andP[].
+Qed.
 
 (* This is Peterfalvi (6.7). *)
 (* In (6.8) we only know initially the P is Sylow in L; perhaps the lemma     *)
 (* should be stated with this equivalent (but weaker) assumption.             *)
 Lemma constant_irr_mod_TI_Sylow (Z L P : {group gT}) p i :
+
      p.-Sylow(G) P -> odd #|L| -> normedTI P^# G L ->
      [/\ Z <| L, Z :!=: 1%g & Z \subset 'Z(P)] ->
      {in Z^# &, forall x y, #|'C_L[x]| = #|'C_L[y]| } ->
@@ -937,7 +1146,7 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
     rewrite cfproj_sum_orthonormal // (orthoPl oxi'X) // addr0 d_xi1 mulr1.
     rewrite addrC -addrA addKr dvdC_add // cfdotZr isIntC_conj //.
     by rewrite dvdC_opp dvdC_mulr // cfdot_vchar_Int ?(seqInd_virrW Yeta1).
-  have DsumXd: sumXd = (xi1 1%g)^-1 *: (cfReg L - cfReg (L / Z)%g %% Z)%CF.
+  have DsumXd: sumXd = (xi1 1%g)^-1 *: (cfReg L - (cfReg (L / Z)%g %% Z)%CF).
     apply: canRL (scalerK nz_xi11) _; rewrite !cfReg_sum 2!linear_sum /=.
     pose F (xi : 'CF(L)) := xi 1%g *: xi; transitivity (\sum_(xi <- X) F xi).
       by apply: eq_big_seq => xi Xxi; rewrite scalerA mulrC -def_d.
