@@ -1784,6 +1784,23 @@ have /LAut_lrmorph fM := hom_f; rewrite -[f _](horner_map (RMorphism fM)).
 by rewrite (kHomFixedPoly hom_f) // -coef_map fixed_q.
 Qed.
 
+Lemma splitting_field_galois p (F := fullv L) :
+    polyOver 1%:VS p -> splittingFieldFor 1%:VS p F -> separablePolynomial p ->
+  {normL : isNormalFieldExt L & galois normL 1%:VS F}.
+Proof.
+move=> F0p splitFp sep_p; have nL := splitting_field_normal F0p splitFp sep_p.
+exists nL; apply/and3P; split; first exact: subvf; last first.
+  apply/normalP=> y _; have [r /eqP->] := nL (aspace1 _) y.
+  by exists r => //; apply/allP=> cy _; rewrite /= memvf.
+have [r Dp <-] := splitFp; apply/separableP=> x /separableinK/=.
+have{Dp}: all (root p) r.
+  by apply/allP=> z r_z; rewrite (eqp_root Dp) root_prod_factors.
+elim/last_ind: r => [//| r z IHr].
+rewrite all_rcons genField_rcons => /andP[pz0 pr0] sep_x; apply: IHr pr0 _.
+apply: separableFadjoinExtend sep_x; apply: subsetSeparable (sub1v _) _.
+by apply/separableElementP; exists p.
+Qed.
+
 Lemma normal_field_splitting (F := fullv L) :
     isNormalFieldExt L ->
   {p : {poly L} & polyOver 1%:VS p & splittingFieldFor 1%:VS p F}.
@@ -2690,6 +2707,47 @@ rewrite map_polyE map_id_in => [|?]; last by rewrite unit_lappE.
 by rewrite polyseqK hornerX rmorphX.
 Qed.
 
+Lemma group_num_field_exists (gT : finGroupType) (G : {group gT}) :
+  {Qn : fieldExtType qnum & {QnC : {rmorphism Qn -> algC} &
+    {nQn : isNormalFieldExt Qn & galois nQn 1%:VS (fullv Qn)
+         & forall nuQn : argumentType (mem (Aut nQn (fullv Qn) 1%:VS)),
+              {nu : {rmorphism algC -> algC} |
+                 {morph QnC: a / val (repr nuQn) a >-> nu a}}}
+  & {w : Qn & #|G|.-primitive_root w /\ Fadjoin 1%:VS w = fullv Qn
+       & forall (hT : finGroupType) (H : {group hT}) (phi : 'CF(H)),
+         is_char phi -> forall x, (#[x] %| #|G|)%N -> {a | QnC a = phi x}}}}.
+Proof.
+have [z prim_z] := C_prim_root_exists (cardG_gt0 G); set n := #|G| in prim_z *.
+have [Qn [QnC [[|w []] // [Dz] genQn]]] := num_field_exists [:: z].
+have prim_w: n.-primitive_root w by rewrite -Dz fmorph_primitive_root in prim_z.
+exists Qn, QnC; last first.
+  exists w => // hT H phi Nphi x x_dv_n.
+  apply: sig_eqW; have [rH ->] := is_charP Nphi.
+  have [Hx | /cfun0->] := boolP (x \in H); last by exists 0; rewrite rmorph0.  
+  have [e [_ [enx1 _] [-> _] _]] := repr_rsim_diag rH Hx.
+  have /fin_all_exists[k Dk] i: exists k, e 0 i = z ^+ k.
+    have [|k ->] := (prim_rootP prim_z) (e 0 i); last by exists k.
+    by have /dvdnP[q ->] := x_dv_n; rewrite mulnC exprn_mulr enx1 exp1rn.
+  exists (\sum_i w ^+ k i); rewrite rmorph_sum; apply/eq_bigr => i _.
+  by rewrite rmorphX Dz Dk.
+have Q_Xn1: polyOver 1%:VS ('X^n - 1 : {poly Qn}).
+  rewrite addp_polyOver ?exp_polyOver ?polyOverX //.
+  by rewrite opp_polyOver // polyOverC ?mem1v.
+have splitXn1: splittingFieldFor 1%:VS ('X^n - 1) (fullv Qn).
+  pose r := codom (fun i : 'I_n => w ^+ i).
+  have Dr: 'X^n - 1 = \prod_(y <- r) ('X - y%:P).
+    by rewrite -(prod_factors_of_unity prim_w) big_mkord big_map enumT.
+  exists r; first by rewrite -Dr eqpxx.
+  apply/eqP; rewrite eqEsubv subvf -genQn genFieldSr //; apply/allP=> /=.
+  by rewrite andbT -root_prod_factors -Dr; apply/unity_rootP/prim_expr_order.
+have [|nQn GalQn] := splitting_field_galois Q_Xn1 splitXn1.
+  apply: separable_Xn_sub_1; rewrite -(fmorph_eq0 QnC) rmorph_nat.
+  by rewrite -neq0N_neqC -lt0n cardG_gt0.
+exists nQn => // nuQn; case: {nuQn}(repr _) => f /= /LAut_is_enum fM.
+pose nuQn := LRMorphism (fM : scalable (RMorphism fM)).
+exact: (extend_algC_subfield_aut QnC nuQn).
+Qed.
+
 (* Integral spans. *)
 
 Lemma zint_Smith_normal_form m n (M : 'M[zint]_(m, n)) :
@@ -3349,6 +3407,79 @@ have k_x: x \in enum_val k by rewrite enum_rankK_in // class_refl.
 by rewrite -(gring_mode_class_sum_eq k_x) gring_mode_class_sum_algInt.
 Qed.
 
+Section MoreAlgCaut.
+
+Implicit Type rR : unitRingType.
+
+Lemma fmorph_qnum (aR : fieldType) rR (f : {rmorphism aR -> rR}) a :
+  f (qnumr a) = qnumr a.
+Proof. by rewrite fmorph_div !rmorph_zint. Qed.
+
+Lemma fmorph_eq_qnum rR (f : {rmorphism qnum -> rR}) : f =1 qnumr.
+Proof. by move=> a; rewrite -{1}[a]divq_num_den fmorph_div !rmorph_zint. Qed.
+
+Lemma alg_num_field (Qz : fieldExtType qnum) a : a%:A = qnumr a :> Qz.
+Proof. by rewrite -in_algE fmorph_eq_qnum. Qed.
+
+Lemma rmorphZ_num (Qz : fieldExtType qnum) rR (f : {rmorphism Qz -> rR}) a x :
+  f (a *: x) = qnumr a * f x.
+Proof. by rewrite -mulr_algl rmorphM alg_num_field fmorph_qnum. Qed.
+
+Lemma fmorph_numZ (Qz1 Qz2 : fieldExtType qnum) (f : {rmorphism Qz1 -> Qz2}) :
+  scalable f.
+Proof. by move=> a x; rewrite rmorphZ_num -alg_num_field mulr_algl. Qed.
+Definition NumLRmorphism Qz1 Qz2 f := LRMorphism (@fmorph_numZ Qz1 Qz2 f).
+
+Implicit Type nu : {rmorphism algC -> algC}.
+
+Lemma Crat_aut nu x : (nu x \in Crat) = (x \in Crat).
+Proof.
+apply/idP/idP=> /CratP[a] => [|->]; last by rewrite fmorph_qnum ratr_Crat.
+by rewrite -(fmorph_qnum nu) => /fmorph_inj->; apply: ratr_Crat.
+Qed.
+
+Lemma aut_Crat nu : {in Crat, nu =1 id}.
+Proof. by move=> _ /CratP[a ->]; apply: fmorph_qnum. Qed.
+
+Lemma algC_invaut_subproof nu x : {y | nu y = x}.
+Proof.
+have [r Dp] := closed_field_poly_normal (minCpoly x).
+suffices /mapP/sig2_eqW[y _ ->]: x \in map nu r by exists y.
+rewrite -root_prod_factors; congr (root _ x): (root_minCpoly x).
+have [q [Dq _] _] := minCpolyP x; rewrite Dq -(eq_map_poly (fmorph_qnum nu)).
+rewrite (map_comp_poly nu) -{q}Dq Dp (monicP (minCpoly_monic x)) scale1r.
+rewrite rmorph_prod big_map; apply: eq_bigr => z _.
+by rewrite rmorph_sub /= map_polyX map_polyC.
+Qed.
+Definition algC_invaut nu x := sval (algC_invaut_subproof nu x).
+
+Lemma algC_invautK nu : cancel (algC_invaut nu) nu.
+Proof. by move=> x; rewrite /algC_invaut; case: algC_invaut_subproof. Qed.
+
+Lemma algC_autK nu : cancel nu (algC_invaut nu).
+Proof. exact: inj_can_sym (algC_invautK nu) (fmorph_inj nu). Qed.
+
+Fact algC_invaut_is_rmorphism nu : rmorphism (algC_invaut nu).
+Proof. exact: can2_rmorphism (algC_autK nu) (algC_invautK nu). Qed.
+Canonical algC_invaut_additive nu := Additive (algC_invaut_is_rmorphism nu).
+Canonical algC_invaut_rmorphism nu := RMorphism (algC_invaut_is_rmorphism nu).
+
+Lemma minCpoly_aut (nu : {rmorphism algC -> algC}) x :
+  minCpoly (nu x) = minCpoly x.
+Proof.
+wlog suffices dvd_nu: nu x / minCpoly x %| minCpoly (nu x).
+  apply/eqP; rewrite -eqpMP ?minCpoly_monic //; apply/andP; split=> //.
+  by rewrite -{2}(algC_autK nu x) dvd_nu.
+have [[q [Dq _] min_q] [q1 [Dq1 _] _]] := (minCpolyP x, minCpolyP (nu x)).
+rewrite Dq Dq1 dvdp_map -min_q -(fmorph_root nu) -map_comp_poly.
+by rewrite (eq_map_poly (fmorph_qnum nu)) -Dq1 root_minCpoly.
+Qed.
+
+Lemma algInt_aut nu x : (nu x \in algInt) = (x \in algInt).
+Proof. by rewrite !unfold_in minCpoly_aut. Qed.
+
+End MoreAlgCaut.
+
 (* This is Isaacs, Theorem (3.8). *)
 Theorem coprime_degree_support_cfcenter g :
     coprime (getNatC ('chi_i 1%g)) #|g ^: G| -> g \notin ('Z('chi_i))%CF ->
@@ -3371,69 +3502,32 @@ have Za: alpha \in algInt.
     by rewrite mulrC mulrA -Dm class_div_irr1_algInt.
   rewrite -mulrCA -[v%:R](mulfK nz_m) -!natr_mul -eq_uv (eqnP co_m_gG).
   by rewrite mulrAC -mulrA -/alpha mulr_natl mulr_natr mulrS addrK.
-pose ng := #[g]; have ng_gt0: (0 < ng)%N by exact: order_gt0.
-have [z prim_z] := C_prim_root_exists ng_gt0.
-have [Qn [QnC [[|zz []] // [Dz] genQn]]] := num_field_exists [:: z].
-have nQn: isNormalFieldExt Qn.
-  apply: splitting_field_normal ('X^ng - 1) _ _ _; last 1 first.
-  - apply: separable_Xn_sub_1; rewrite -(fmorph_eq0 QnC) rmorph_nat.
-    by rewrite -neq0N_neqC -lt0n.
-  - rewrite addp_polyOver ?exp_polyOver ?polyOverX //.
-    by rewrite opp_polyOver // polyOverC ?mem1v.
-  exists (codom (fun i : 'I_ng => zz ^+ i)).
-    rewrite big_map enumT -(big_mkord xpredT (fun i => 'X - (zz ^+ i)%:P)).
-    by rewrite prod_factors_of_unity ?eqpxx // -(fmorph_primitive_root QnC) Dz.
-  apply/eqP; rewrite eqEsubv subvf -genQn genFieldSr //; apply/allP=> /=.
-  have ng_gt1: (1 < ng)%N by rewrite order_gt1 (group1_contra notZg).
-  by rewrite andbT; apply/imageP; exists (Ordinal ng_gt1).
-have [a Da]: exists a, alpha = QnC a.
-  rewrite /alpha -cfun_Chi.
-  have [e [_ [eng1 _] [-> _] _]] := repr_rsim_diag 'Chi_i Gg.
-  exists ((\sum_i zz ^+ sval (prim_rootP prim_z (eng1 i))) / m%:R).
-  rewrite fmorph_div rmorph_nat rmorph_sum; congr (_ / _).
-  by apply: eq_bigr => j _; rewrite rmorphX Dz; case: (prim_rootP _ _).
-pose GalQn := Aut nQn (fullv Qn) 1%:VS.
-have Za_nu nu: nu \in GalQn -> QnC (val (repr nu) a) \in algInt.
-  move=> _; case: {nu}(repr _) => nu0f /= /LAut_is_enum nu0M.
-  pose nu0 := GRing.LRMorphism.Pack (Phant _) nu0M.
-  have [nu ->] := extend_algC_subfield_aut QnC nu0; rewrite -Da.
-  apply: root_monic_algInt (minCpoly_monic _) Za.
-  suffices ->: minCpoly alpha = map_poly nu (minCpoly alpha).
-    by rewrite fmorph_root root_minCpoly.
-  have [p [-> _] _] := minCpolyP alpha; rewrite -map_comp_poly.
-  by apply: eq_map_poly => c /=; rewrite fmorph_div !rmorph_zint.
-have norm_a_nu nu: nu \in GalQn -> `|QnC (val (repr nu) a)| <= 1.
-  move=> _; case: {nu}(repr _) => nu0f /= /LAut_is_enum nu0M.
-  pose nu0 := GRing.LRMorphism.Pack (Phant _) nu0M.
-  have [nu ->] := extend_algC_subfield_aut QnC nu0; rewrite -Da.
-  rewrite fmorph_div rmorph_nat normC_mul normC_inv normC_nat.
-  rewrite -Dm -(leC_pmul2r _ _ (ltC_irr1 (aut_Iirr nu i))) mul1r.
+have [Qn [QnC [nQn galQn gQnC] [_ _ Qn_g]]] := group_num_field_exists <[g]>.
+have{Qn_g} [a Da]: exists a, QnC a = alpha.
+  rewrite /alpha; have [a <-] := Qn_g _ G _ (irr_char i) g (dvdnn _).
+  by exists (a / m%:R); rewrite fmorph_div rmorph_nat.
+have Za_nu nu: sval (gQnC nu) alpha \in algInt by rewrite algInt_aut.
+have norm_a_nu nu: `|sval (gQnC nu) alpha| <= 1.
+  move: {nu}(sval _) => nu; rewrite fmorph_div rmorph_nat normC_mul normC_inv.
+  rewrite normC_nat -Dm -(leC_pmul2r _ _ (ltC_irr1 (aut_Iirr nu i))) mul1r.
   congr (_ <= _): (char1_ge_norm g (irr_char (aut_Iirr nu i))).
   by rewrite !aut_IirrE !cfunE Dm rmorph_nat divfK.
-pose b := galoisNorm nQn 1%:VS (fullv Qn) a.
-have Zbeta: isIntC (QnC b).
-  apply: Cint_rat_algInt; last by rewrite rmorph_prod ringp_prod.
-  have /injvP[/= c ->] : b \in 1%:VS.
-    rewrite mem_galoisNorm ?memvf //.
-    (* This is ridiculous... *)
-    apply/and3P; split; first exact: subvf.
-      apply/separableP => y _; apply: separableChar0 => {y}p.
-      by rewrite -(fmorph_char QnC) Cchar.
-    apply/normalP=> y _; have [r /eqP->] := nQn (aspace1 _) y.
-    by exists r => //; apply/allP=> cy _; rewrite /= memvf.
-  by rewrite -in_algE -[c]divq_num_den !fmorph_div !rmorph_zint ratr_Crat.
+pose beta := QnC (galoisNorm nQn 1%:VS (fullv Qn) a).
+have Dbeta: beta = \prod_(nu \in Aut nQn (fullv Qn) 1%:VS) sval (gQnC nu) alpha.
+  rewrite /beta rmorph_prod; apply: eq_bigr => nu _.
+  by case: (gQnC nu) => f /= ->; rewrite Da.
+have Zbeta: isIntC beta.
+  apply: Cint_rat_algInt; last by rewrite Dbeta ringp_prod.
+  rewrite /beta; have /injvP[/= c ->] := mem_galoisNorm galQn (memvf a).
+  by rewrite alg_num_field fmorph_qnum ratr_Crat.
 have [|nz_a] := boolP (alpha == 0).
   by rewrite (can2_eq (divfK _) (mulfK _)) // mul0r => /eqP.
-have nz_nu_a nu: nu \in GalQn -> QnC (val (repr nu) a) != 0.
-  move=> _; case: {nu}(repr _) => nu0f /= /LAut_is_enum nu0M.
-  pose nu0 := GRing.LRMorphism.Pack (Phant _) nu0M.
-  by have [nu ->] := extend_algC_subfield_aut QnC nu0; rewrite -Da fmorph_eq0.
-have: QnC b != 0 by rewrite rmorph_prod; apply/prodf_neq0.
+have: beta != 0 by rewrite Dbeta; apply/prodf_neq0 => nu _; rewrite fmorph_eq0.
 move/(isIntC_normC_ge1 Zbeta); rewrite ltC_geF //; apply: leC_ltC_trans a_lt1.
-rewrite -[`|alpha|]mulr1 rmorph_prod (bigD1 1%g) ?group1 // repr_coset1 /=.
-rewrite unit_lappE -Da normC_mul leC_pmul2l; last first.
-  by rewrite ltCE posC_norm normC_eq0 nz_a.
-elim/big_rec: _ => [|nu c /andP[Gnu _]]; first by rewrite normC1 leC_refl.
+rewrite -[`|alpha|]mulr1 Dbeta (bigD1 1%g) ?group1 //= -Da.
+case: (gQnC _) => /= _ <-; rewrite repr_coset1 unit_lappE normC_mul.
+rewrite -leC_sub -mulr_subr posC_mul ?posC_norm // Da leC_sub.
+elim/big_rec: _ => [|nu c _]; first by rewrite normC1 leC_refl.
 apply: leC_trans; rewrite -leC_sub -{1}[`|c|]mul1r normC_mul -mulr_subl.
 by rewrite posC_mul ?posC_norm // leC_sub norm_a_nu.
 Qed.
@@ -3648,6 +3742,101 @@ move=> eq12; have /eqP := congr1 'chi_i eq12.
 rewrite !(cfunJ, DchiZ) ?groupJ // (can_eq (mulKf nz_chi_x)).
 rewrite (inj_in_eq inj_lambda) // => /eqP eq_z12; rewrite eq_z12 in eq12 *.
 by rewrite (mulIg _ _ _ eq12).
+Qed.
+
+Lemma card_Iirr_abelian gT (G : {group gT}) : abelian G -> #|Iirr G| = #|G|.
+Proof. by rewrite card_ord NirrE card_classes_abelian => /eqP. Qed.
+
+(* This is Isaacs, exercise (2.16). *)
+Lemma index_support_dvd_degree gT (G H : {group gT}) chi :
+    H \subset G -> is_char chi -> chi \in 'CF(G, H) ->
+    (H :==: 1%g) || abelian G ->
+  dvdNC #|G : H| (chi 1%g).
+Proof.
+move=> sHG Nchi Hchi ZHG.
+suffices: dvdNC #|G : H| ('Res[H] chi 1%g) by rewrite cfResE ?group1.
+rewrite ['Res _]cfun_sum_cfdot sum_cfunE.
+elim/big_ind: _ => [||i _]; [exact: dvdC0 | exact: dvdC_add | rewrite cfunE].
+rewrite dvdC_mulr ?isIntC_Nat ?isNatC_irr1 //.
+have [j ->]: exists j, 'chi_i = 'Res 'chi[G]_j.
+  case/predU1P: ZHG => [-> | cGG] in i *.
+    suffices ->: i = 0 by exists 0; rewrite !chi0_1 cfRes_cfun1 ?sub1G.
+    apply/val_inj; case: i => [[|i] //=]; rewrite ltnNge NirrE.
+    by rewrite (@leq_trans 1) // leqNgt classes_gt1 eqxx.
+  have linG := char_abelianP G cGG; have linG1 j := eqP (proj2 (andP (linG j))).
+  have /fin_all_exists[rH DrH] j: exists k, 'Res[H, G] 'chi_j = 'chi_k.
+    apply/irrP/lin_char_irr/andP.
+    by rewrite cfRes_char ?irr_char // cfRes1 ?linG1.
+  suffices{i} all_rH: codom rH =i Iirr H.
+    by exists (iinv (all_rH i)); rewrite DrH f_iinv.
+  apply/subset_cardP; last exact/subsetP; apply/esym/eqP.
+  rewrite card_Iirr_abelian ?(abelianS sHG) //.
+  rewrite -(eqn_pmul2r (indexg_gt0 G H)) LaGrange //; apply/eqP.
+  rewrite -sum_nat_const -card_Iirr_abelian // -sum1_card.
+  rewrite (partition_big rH (mem (codom rH))) /=; last exact: image_f.
+  have nsHG: H <| G by rewrite -sub_abelian_normal.
+  apply: eq_bigr => _ /imageP[i _ ->]; rewrite -card_quotient ?normal_norm //.
+  rewrite -card_Iirr_abelian ?quotient_abelian //.
+  have Mlin j1 j2: exists k, 'chi_j1 * 'chi_j2 = 'chi[G]_k.
+    apply/irrP/lin_char_irr/andP.
+    by rewrite cfunE !linG1 mulr1 mul_char ?irr_char.
+  have /fin_all_exists[rQ DrQ] (j : Iirr (G / H)) := Mlin i (mod_Iirr j).
+  have mulJi: ('chi[G]_i)^*%CF * 'chi_i = 1.
+    apply/cfun_inP=> x Gx; rewrite !cfunE -lin_charV_conj ?linG // cfun1E Gx.
+    by rewrite lin_charV ?mulVf ?lin_char_neq0 ?linG.
+  have inj_rQ: injective rQ.
+    move=> j1 j2 /(congr1 (fun k => (('chi_i)^*%CF * 'chi_k) / H)%CF).
+    by rewrite -!DrQ !mulrA mulJi !mul1r !mod_IirrE ?cfModK // => /chi_inj.
+  rewrite -(card_imset _ inj_rQ) -sum1_card; apply: eq_bigl => j.
+  rewrite -(inj_eq chi_inj) -!DrH; apply/eqP/imsetP=> [eq_ij | [k _ ->]].
+    have [k Dk] := Mlin (conjC_Iirr i) j; exists (quo_Iirr H k) => //.
+    apply/chi_inj; rewrite -DrQ quo_IirrK //.
+      by rewrite -Dk conjC_IirrE mulrCA mulrA mulJi mul1r.
+    apply/subsetP=> x Hx; have Gx := subsetP sHG x Hx.
+    rewrite cfker_irrE inE linG1 -Dk conjC_IirrE; apply/eqP.
+    transitivity ((1 : 'CF(G)) x); last by rewrite cfun1E Gx.
+    by rewrite -mulJi !cfunE -!(cfResE _ sHG Hx) eq_ij.
+  rewrite -DrQ; apply/cfun_inP=> x Hx; rewrite !cfResE // cfunE mulrC.
+  by rewrite cfker1 ?linG1 ?mul1r ?(subsetP _ x Hx) // mod_IirrE ?cfker_Mod.
+have: dvdNC #|G : H| (#|G : H|%:R * '[chi, 'chi_j]).
+  by rewrite dvdC_mulr ?isIntC_Nat ?cfdot_char_irr_Nat.
+congr (dvdNC _ _); rewrite (cfdotEl _ Hchi) -(LaGrange sHG) mulnC natr_mul.
+rewrite invf_mul -mulrA mulVKf ?neq0GiC //; congr (_ * _).
+by apply: eq_bigr => x Hx; rewrite !cfResE.
+Qed.
+
+(* This is Isaacs, Theorem (3.13). *)
+Theorem faithful_degree_p_part gT (p : nat) (G P : {group gT}) i :
+    cfaithful 'chi[G]_i -> p.-nat (getNatC ('chi_i 1%g)) ->
+    p.-Sylow(G) P -> abelian P ->
+  'chi_i 1%g = (#|G : 'Z(G)|`_p)%N%:R.
+Proof.
+have [p_pr | pr'p] := boolP (prime p); last first.
+  have p'n n: (n > 0)%N -> p^'.-nat n.
+    by move/p'natEpi->; rewrite mem_primes (negPf pr'p).
+  rewrite irr1_degree getNatC_nat => _ /pnat_1-> => [_ _|].
+    by rewrite part_p'nat ?p'n.
+  by rewrite p'n ?irr_degree_gt0.
+move=> fful_i /p_natP[a Dchi1] sylP cPP.
+have Dchi1C: 'chi_i 1%g = (p ^ a)%:R.
+  by rewrite -Dchi1 irr1_degree getNatC_nat.
+have pa_dv_ZiG: (p ^ a %| #|G : 'Z(G)|)%N.
+  rewrite -dvdC_nat -Dchi1C -(cfcenter_fful_irr fful_i).
+  exact: dvd_irr1_index_center.
+have [sPG pP p'PiG] := and3P sylP.
+have ZchiP: 'Res[P] 'chi_i \in 'CF(P, P :&: 'Z(G)).
+  apply/cfun_onP=> x; rewrite inE; have [Px | /cfun0->//] := boolP (x \in P).
+  rewrite /= -(cfcenter_fful_irr fful_i) cfResE //.
+  apply: coprime_degree_support_cfcenter.
+  rewrite Dchi1 coprime_expl // prime_coprime // -p'natE //.
+  apply: pnat_dvd p'PiG; rewrite -index_cent1 indexgS // subsetI sPG.
+  by rewrite sub_cent1 (subsetP cPP).
+have /andP[_ nZG] := center_normal G; have nZP := subset_trans sPG nZG.
+apply/eqP; rewrite Dchi1C -eqN_eqC eqn_dvd -{1}(pfactorK a p_pr) -p_part.
+rewrite partn_dvd //= -dvdC_nat -Dchi1C -card_quotient //=.
+rewrite -(card_Hall (quotient_pHall nZP sylP)) card_quotient // -indexgI.
+rewrite -(cfResE _ sPG) // index_support_dvd_degree ?subsetIl ?cPP ?orbT //.
+by rewrite cfRes_char ?irr_char.
 Qed.
 
 End MoreIntegralChar.
