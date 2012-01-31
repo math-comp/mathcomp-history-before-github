@@ -1787,6 +1787,80 @@ apply: (mulfI (neq0GiC L K)).
 by rewrite -!cfInd1 // !(Dade_Ind_chi PtypeL) (eqP HH1).
 Qed.
 
+Let WsG : W \subset G.
+Proof. by case tiW=> [[]]. Qed.
+
+Let WsL : W \subset L.
+Proof.
+case/sdprodP: SdP=> _ <- _ _.
+move: HdP; rewrite dprodC => /dprodP [] _ <- _ _.
+by apply: mulSg; case: PtypeL => _ [].
+Qed.
+
+Let LsG : L \subset G.
+Proof. by case: (cDade_dAd_h CDH). Qed.
+
+Let DadH := cDade_dAd_h CDH.
+
+(* This is Peterfalvi (4.10). *)
+Lemma Dade_tau_sigma_sub i j :
+  tau (delta j *: mu2 i j - delta j *: mu2 0 j - mu2 i 0 + mu2 0 0) =
+  sigma(w_ i j) - sigma(w_ 0 j) - sigma(w_ i 0) + sigma(w_ 0 0).
+Proof.
+pose alpha := acTIirr W i j.
+have AE : alpha =  w_ i j - w_ 0 j - w_ i 0 + w_ 0 0.
+  rewrite -addrA addrC [X in X + _]addrC [X in _ + X]addrC addrA.
+  by rewrite (cTIirr00 tiW) -(acTIirrE tiW).
+rewrite -![sigma _ - _]linear_sub -linearD -AE.
+set beta := _ + _. 
+have BE: beta = 'Ind[L] alpha.
+  rewrite /beta -[X in _ + X]opprK -addrA -oppr_add -[X in _ - X]scale1r.
+  have {3}<-: delta 0 = 1 by rewrite (Dade_delta0 PtypeL) expr0.
+  rewrite -scaler_subr -!(Dade_mu2_ind PtypeL).
+  by rewrite -linear_sub /= oppr_add opprK addrA -AE.
+apply/cfunP=> g.
+case: (boolP (g \in class_support V G))=> [/imset2P [w h WiV HG] ->|GniS].
+  rewrite !cfunJ // Dade_id; last first.
+    by rewrite inE -[w]conjg1 mem_class_support ?orbT //.
+  rewrite cyclicTIsigma_restrict // AE !cfunE.
+  have WiWdW2: w \in W :\: W2.
+    by move: WiV; rewrite !inE => /andP []; rewrite negb_or=> /andP [_ ->].
+  case: (Dade_mu2_restrict PtypeL) => HH _; rewrite !HH //.
+  rewrite (Dade_delta0 PtypeL) expr0 !scale1r !cfunE !mulrA.
+  by rewrite -signr_addb addbb !mul1r.
+have CA := memc_acTIirr tiW i j.
+rewrite !cyclicTIsigma_ind //.
+move/cfun_onP: (cfInd_on_class_support WsG (CA))=> -> //.
+rewrite cfunElock; case: pickP=> //= h.
+rewrite !inE /cDade_V /=.
+case: (boolP (h \in class_support _ _))=> 
+          [/imset2P [v l ViV LiL ->] | HinVl]; last first.
+  by rewrite BE; move/cfun_onP: (cfInd_on_class_support WsL (CA))=> ->.
+rewrite orbT; case/imset2P=> y z /imset2P [u1 u2].
+rewrite DadeJ => // /imsetP [v1 Hv1 ->].
+rewrite inE => /eqP-> -> ZiG Eg.
+case/negP: GniS; rewrite Eg.
+suff->: v1 = 1%g.
+  by rewrite conj1g mul1g -conjgM mem_class_support ?groupM // (subsetP LsG).
+have: v1 \in 'C_G[v].
+  rewrite inE (subsetP (Dade_signalizer_sub DadH v)) //.
+  by apply: (subsetP (Dade_signalizer_cent DadH _)).
+rewrite inE=> /andP [V1iG V1iC] .
+have VinA0 : v \in cDade_A0 CDH.
+  by rewrite inE -[v]conjg1 mem_class_support ?orbT.
+apply/eqP; rewrite -cycle_eq1 trivg_card1 -dvdn1.
+move: (Dade_coprime DadH VinA0 VinA0); rewrite /coprime => /eqP<-.
+rewrite dvdn_gcd !cardSg //;
+    apply/subsetP=> g1 /generatedP; apply; apply/subsetP=> g2; 
+    rewrite inE=> /eqP-> //.
+rewrite inE V1iC andbT (subsetP WsL) //.
+have Vn0: V != set0 by apply/eqP=> HH; move: ViV; rewrite HH inE.
+have: normedTI V G W by case: tiW.
+move/(normedTI_memJ_P Vn0)=> [] /(_ _ _ ViV) <- // _.
+rewrite conjgE.
+by move/cent1P: V1iC=> <-; rewrite mulgA mulVg mul1g.
+Qed.
+ 
 End CentralDade.
 
 End Four.
