@@ -620,7 +620,7 @@ Proof. by move=> _ x /CratP[a ->]; exact: ratC_spanZ. Qed.
 (* would require a limit construction.                                        *)
 Lemma num_field_proj : {CtoQn | CtoQn 0 = 0 & cancel QnC CtoQn}.
 Proof.
-pose b := vbasis (fullv Qn); have addCb := ratC_span_subadd (map QnC b).
+pose b := vbasis (fullv Qn).
 have Qn_bC (u : {x | x \in ratC_span (map QnC b)}): {y | QnC y = sval u}.
   case: u => _ /= /ratC_spanP/sig_eqW[a ->].
   exists (\sum_i a i *: b`_i); rewrite rmorph_sum; apply: eq_bigr => i _.
@@ -629,8 +629,8 @@ pose CtoQn x := oapp (fun u => sval (Qn_bC u)) 0 (insub x).
 suffices QnCK: cancel QnC CtoQn by exists CtoQn; rewrite // -(rmorph0 QnC).
 move=> x; rewrite /CtoQn insubT => /= [|Qn_x]; last first.
   by case: (Qn_bC _) => x1 /= /fmorph_inj.
-rewrite (coord_basis (memvf x)) rmorph_sum raddp_sum // => i _.
-rewrite rmorphZ_num ratC_spanZ ?mem_ratC_span //.
+rewrite (coord_basis (memvf x)) rmorph_sum ringp_sum // => i _.
+rewrite rmorphZ_num ratC_spanZ ?mem_ratC_span // -/b.
 by rewrite -tnth_nth -tnth_map mem_tnth.
 Qed.
 
@@ -748,33 +748,6 @@ have x_dv_b: (#[x] %| b)%N.
 by have [xb Dx] := memQb _ _ _ Nchi x x_dv_b; rewrite cfunE -Dx nuQb.
 Qed.
 
-Lemma ringpNr (R : ringType) (S : pred R) :
-  subring_pred S -> {in S, forall x, - x \in S}.
-Proof. by move=> Sring x /=; rewrite ringpN. Qed.
-
-Lemma raddpDr (M : zmodType) (S : pred M) :
-  subadd_pred S -> {in S, forall x y, (y + x \in S) = (y \in S)}.
-Proof.
-move=> addS x Sx y; apply/idP/idP=> [Sxy | /raddpD-> //].
-by rewrite -(addrK x y) raddp_sub.
-Qed.
-
-Lemma raddpDl (M : zmodType) (S : pred M) :
-  subadd_pred S -> {in S, forall x y, (x + y \in S) = (y \in S)}.
-Proof. by move=> addS x Sx y; rewrite addrC raddpDr. Qed.
-
-Definition ringpDr R S ringS := raddpDr (@ringp_add R S ringS).
-Definition ringpDl R S ringS := raddpDl (@ringp_add R S ringS).
-
-Lemma algInt_prim_root n z : n.-primitive_root z -> z \in algInt.
-Proof.
-move=> pr_z; apply/(algInt_unity_root (prim_order_gt0 pr_z))/unity_rootP.
-exact: prim_expr_order.
-Qed.
-
-Lemma algInt_Cnat n : isNatC n -> n \in algInt.
-Proof. by move/isIntC_Nat/algInt_Cint. Qed.
-
 Definition algC_dvd_type := algC.
 Coercion algC_nat_dvd (n : nat) : algC_dvd_type := n%:R.
 
@@ -782,13 +755,13 @@ Coercion algC_nat_dvd (n : nat) : algC_dvd_type := n%:R.
 Definition dvdA (e : algC_dvd_type) : pred algC :=
   [pred z | if e == 0 then z == 0 else z / e \in algInt].
 
-Lemma dvdA_subadd e : subadd_pred (dvdA e).
+Global Instance dvdA_subadd e : addSubgroupPred (dvdA e).
 Proof.
-split=> [|x y]; first by rewrite inE mul0r eqxx ringp0 ?if_same.
+apply: SubgroupPredFromSub=> [|x y].
+  by rewrite inE mul0r eqxx ringp0 ?if_same.
 rewrite !inE; case: ifP => [_ x0 /eqP-> | _]; first by rewrite subr0.
-by rewrite mulr_subl; exact: ringp_sub.
+by rewrite mulr_subl; apply: ringp_sub.
 Qed.
-Hint Resolve dvdA_subadd.
 
 Delimit Scope algC_scope with A.
 Notation "e %| x" := (@in_mem algC_dvd_type x (mem (dvdA e))) : algC_scope.
@@ -798,17 +771,15 @@ Notation "x == y %[mod e ]" := (eqAmod e x y) : algC_scope.
 Notation "x != y %[mod e ]" := (~~ (eqAmod e x y)) : algC_scope.
 
 Lemma eqAmod_refl e x : (x == x %[mod e])%A.
-Proof. by rewrite /eqAmod subrr raddp0. Qed.
+Proof. by rewrite /eqAmod subrr ringp0. Qed.
 Hint Resolve eqAmod_refl.
 
 Lemma eqAmod_sym e x y : ((x == y %[mod e]) = (y == x %[mod e]))%A.
-Proof. by rewrite /eqAmod -oppr_sub raddpN. Qed.
+Proof. by rewrite /eqAmod -oppr_sub ringpN. Qed.
 
 Lemma eqAmod_trans e x y z :
   (x == y %[mod e] -> y == z %[mod e] -> x == z %[mod e])%A.
-Proof.
-by move=> Exy Eyz; have:= raddpD (dvdA_subadd e) Exy Eyz; rewrite !addrA subrK.
-Qed.
+Proof. by move=> Exy Eyz; rewrite /eqAmod -[x](subrK y) -addrA ringpD. Qed.
 
 Lemma eqAmodN e x y : (- x == y %[mod e])%A = (x == - y %[mod e])%A.
 Proof. by rewrite eqAmod_sym /eqAmod !opprK addrC. Qed.
@@ -859,7 +830,7 @@ Lemma eqAmod_rat :
 Proof.
 move=> e m n Qe Qm Qn; rewrite /eqAmod inE /dvdC; case: ifPn => // nz_e.
 apply/idP/idP=> [/Cint_rat_algInt | /algInt_Cint] -> //.
-by rewrite Crat_div ?ringp_sub.
+by rewrite ringp_div ?ringp_sub.
 Qed.
 
 Lemma eqAmod0_rat : {in Crat &, forall e n, (n == 0 %[mod e])%A = dvdC e n}.
@@ -888,7 +859,7 @@ have sXG: X \subset G by rewrite join_subG !sub1set Gx.
 suffices{chi Zchi} IHiX i: ('chi[X]_i (x * y)%g == 'chi_i y %[mod e])%A.
   rewrite -!(cfResE _ sXG) ?groupM //.
   have /vchar_expansion[c Zc ->] := cfRes_vchar X Zchi.
-  rewrite !sum_cfunE /eqAmod -sumr_sub big_seq raddp_sum // => _  /irrP[i ->].
+  rewrite !sum_cfunE /eqAmod -sumr_sub big_seq ringp_sum // => _  /irrP[i ->].
   by rewrite !cfunE [(_ %| _)%A]eqAmodMl // ringp_Cint.
 have lin_chi: lin_char 'chi_i.
   apply/char_abelianP; rewrite -[gval X]joing_idl -joing_idr abelianY.
@@ -897,7 +868,7 @@ rewrite lin_charM // -{2}['chi_i y]mul1r eqAmodMr ?algInt_irr //.
 have [|k ->] := (prim_rootP pr_eps) ('chi_i x).
   by rewrite -lin_charX // -ox expg_order lin_char1.
 rewrite -[_ ^+ k](subrK 1) subr_expn_1 -[_ - 1]oppr_sub mulNr -mulrN mulrC.
-rewrite eqAmod_addl_mul // ringpN ?ringp_sum // => n _.
+rewrite eqAmod_addl_mul // ringpN ringp_sum // => n _.
 by rewrite ringpX ?(algInt_prim_root pr_eps).
 Qed.
 
@@ -1017,13 +988,13 @@ suffices Ea2 l (phi := 'chi[G]_l):
   have: kerZ 0 by move=> x y /setD1P[_ Zx] /setD1P[_ Zy]; rewrite !chi0.
   move/Ea2/(eqAmodMl (algInt_irr l z)); rewrite !{}chi0 // -/phi eqAmod_sym.
   rewrite mulr_addr mulr1 !mulr_natr => /eqAmod_trans/(_ (Ea2 l kerZphi)).
-  rewrite eqAmodDr -/phi eqAmod_rat ?ringp_nat ?(ringp_Cint _ Zphi1) //.
+  rewrite eqAmodDr -/phi eqAmod_rat ?ringp_nat ?(ringp_Cint Zphi1) //.
     move=> PdvDphi; split; rewrite // -[phi z](subrK (phi 1%g)) isIntC_add //.
     by have /dvdCP[b Zb ->] := PdvDphi; rewrite isIntC_mul ?isIntC_nat.
   have nz_Z1: #|Z^#|%:R != 0 :> algC.
     by rewrite -neq0N_neqC cards_eq0 setD_eq0 subG1.
   rewrite -[phi z](mulfK nz_Z1) Crat_div ?ringp_nat // mulr_natr.
-  rewrite -(ringpDl _ (ringp_Cint _ Zphi1)) //.
+  rewrite -(ringpDl _ (ringp_Cint Zphi1)) //.
   rewrite -[_ + _](mulVKf (neq0GC Z)) ringpM ?ringp_nat //.
   have: '['Res[Z] phi, 'chi_0] \in Crat.
     by rewrite ringp_Cnat ?cfdot_char_Nat ?cfRes_char ?irr_char.
@@ -1057,10 +1028,10 @@ have Dalpha2 i j: ~~ dC i Z^# ->  ~~ dC j Z^# ->
     by rewrite [dC _ _]disjoints_subset CE class1G sub1set !inE eqxx.
   rewrite (gring_mode_class_sum_eq _ Ci01) mulfK ?irr1_neq0 //.
   rewrite class1G cards1 mulr1 mulr_addr mulr_natr -addrA eqAmodDl.
-  rewrite /eqAmod -addrA raddpD //; last first.
-    rewrite -mulr_natr natr_sum -!mulr_sumr -sumr_sub raddp_sum // => s Z1s.
-    by rewrite -Dalpha // mulr_natr mulrnAl mulrnAr subrr raddp0.
-  apply: raddp_sum => // s /andP[Z1'Cs ntCs]; rewrite mulrnAl mulrC.
+  rewrite /eqAmod -addrA ringpD //; last first.
+    rewrite -mulr_natr natr_sum -!mulr_sumr -sumr_sub ringp_sum // => s Z1s.
+    by rewrite -Dalpha // mulr_natr mulrnAl mulrnAr subrr ringp0.
+  apply: ringp_sum => // s /andP[Z1'Cs ntCs]; rewrite mulrnAl mulrC.
   have /imsetP[x _ defCs] := enum_valP s.
   have Cs_x: x \in C s by rewrite /C defCs class_refl.
   rewrite (gring_mode_class_sum_eq _ Cs_x) divfK ?irr1_neq0 // -defCs -/(C s).
@@ -1088,8 +1059,7 @@ have a110: a i1 i1 i0 = 0%N.
 have a120: a i1 i2 i0 = #|C i1|.
   rewrite -(card_imset _ (@can_inj _ _ (fun y => (y, y^-1)%g) (@fst _ _) _)) //.
   apply/eq_card=> [[u v]]; rewrite !inE rCi10 -eq_invg_mul -!/(C _) !CE -andbA.
-  apply/and3P/imsetP=> /= [[zGu _ /eqP <-] | [y zGy [-> ->]]].
-    by exists u.
+  apply/and3P/imsetP=> /= [[zGu _ /eqP<-] | [y zGy [-> ->]]]; first by exists u.
   by rewrite classVg inE invgK.
 have Z1i1: ~~ dC i1 Z^#.
   by apply/exists_inP; exists z; rewrite //= CE class_refl.
