@@ -2392,7 +2392,7 @@ have ext1 mu0 x: {mu1 | exists y, x = Sinj mu1 y
     by do 4!rewrite lappE /=; rewrite lker0_lappK.
   have hom_f: kHom 1%:VS (ASpace algK) f.
     apply/kHomP; split=> [_ /injvP[a ->] | _ _ /memK[y1 ->] /memK[y2 ->]].
-      by rewrite -(rmorph1 in01) -linearZ Df linearZ rmorph1.
+      by rewrite -(rmorph1 in01) -linearZ Df !linearZ !rmorph1.
     by rewrite -rmorphM !Df !rmorphM.
   pose pr := map_poly (in_alg Qr) p.
   have Qpr: polyOver 1%:VS pr.
