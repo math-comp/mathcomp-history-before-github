@@ -954,7 +954,7 @@ Lemma constant_irr_mod_TI_Sylow (Z L P : {group gT}) p i :
 Proof.
 move=> sylP oddL tiP [/andP[sZL nZL] ntZ sZ_ZP] prZL; move: i.
 pose a := @gring_classM_coef _ G; pose C (i : 'I_#|classes G|) := enum_val i.
-have [[[sPG pP p'PiG] [sZP cPZ]]] := (and3P sylP, subsetIP sZ_ZP).
+have [[sPG pP p'PiG] [sZP cPZ]] := (and3P sylP, subsetIP sZ_ZP).
 have ntP := subG1_contra sZP ntZ; have [p_pr _ [e oP]] := pgroup_pdiv pP ntP.
 have nsPL: P <| L by have [_ /eqP<-] := andP tiP; rewrite normD1 normal_subnorm.
 have [|memJ_P1 sLG] := normedTI_memJ_P _ tiP; first by rewrite setD_eq0 subG1.
