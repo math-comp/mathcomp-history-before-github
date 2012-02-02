@@ -459,14 +459,14 @@ have WsG : W \subset G by case: tiW; case.
 by rewrite (subsetP WsG) // andbT; apply: contra GniW1; move/eqP->; exact: group1.
 Qed.
 
-(* This is the first equation of Perterfalvi (3.5.1). *)
+(* This is the first equation of Peterfalvi (3.5.1). *)
 Lemma cfdot_bcTIirr_1 i j : i != 0 -> j != 0 -> '[beta_ i j, 1] = 0.
 Proof.
 move=> Di Dj.
 by rewrite cfdot_subl cfdot_Ind_acTIirr_1 // -chi0_1 cfdot_irr subrr.
 Qed.
 
-(* These are the other equations of Perterfalvi (3.5.1). *)
+(* These are the other equations of Peterfalvi (3.5.1). *)
 Lemma cfdot_bcTIirr i j i' j' : i != 0 -> j != 0 -> i' != 0 -> j' != 0 -> 
   '[beta_ i j, beta_ i' j'] =
      ((i == i') * (j == j') + (i == i') + (j == j'))%:R.
@@ -1261,7 +1261,7 @@ case/or4P: (cmpR6 Di4i1 Djj' Bi4j Bi1j')=> /andP [] xE dE.
 by rewrite (eqP xE) in Bi1j'.
 Qed.
 
-(* This is almost 3.5.5 *)
+(* This is almost PeterFalvi (3.5.5) *)
 Lemma main : forall j, 
   {x | if (j == 0) then x = 0 else forall i, i != 0 -> inR i j x}.
 Proof.
@@ -2000,7 +2000,7 @@ case: (boolP (j == 0))=> [/eqP-> | NZj].
 by case/and5P: (bcmp_swapl (dcTIrrE NZi NZj))=> _ _ _ /and3P [].
 Qed. 
 
-(* This is first part of PF 3.5 *)
+(* This is first part of Peterfalvi (3.5) *)
 Lemma cfdot_dcTIirr : forall i j i' j', 
   '[x_ i j, x_ i' j'] = ((i == i') && (j == j'))%:R.
 Proof.
@@ -2159,7 +2159,7 @@ move: (Pjj' j j'); rewrite (negPf Djj') -HH2 (eqP (Pnorm _ _)).
 by rewrite -(eqN_eqC 1 0).
 Qed.
 
-(* This is second_part of PF 3.5 *)
+(* This is second_part of PeterFalvi (3.5). *)
 Lemma dcTIirrE i j : i != 0 -> j != 0 ->
   'Ind[G, W] (alpha_ i j) = 1 - x_ i 0 - x_ 0 j + x_ i j.
 Proof.
@@ -2236,7 +2236,7 @@ rewrite inv_dprod_IirrK /dprod_Iirr /= /irr_Iirr; case: pickP=> //= x.
 by rewrite /cfDprod !chi0_1 cfDprodl1 cfDprodr1 mul1r irr_eq1 => /eqP->.
 Qed.
 
-(* This is PF 3.2 *)
+(* This is PeterFalvi (3.2). *)
 Lemma cyclicTIsigma_spec :
         [/\ 
          {in 'Z[irr W], isometry sigma, to 'Z[irr G]},
@@ -2379,7 +2379,7 @@ case: (equiv_restrict_compl_ortho _ _ acTIirr_base_is_basis F1)
 by apply: Er2=> i; exact: Ho.
 Qed.
 
-(* This is 3.7 *)
+(* This is PeterFalvi (3.7). *)
 Lemma cyclicTI_dot_sum (phi : 'CF(G)) i1 i2 j1 j2 :
   {in V, forall x, phi x = 0} -> 
    '[phi, sigma (w_ i1 j1)] + '[phi, sigma (w_ i2 j2)] =
@@ -2460,7 +2460,7 @@ by apply: irr_vchar.
 Qed.
  
 
-(* NC as defined in PF 3.6 *)
+(* NC as defined in PeterFalvi (3.6). *)
 Definition cyclicTI_NC phi := #|[set ij | '[phi, sigma (w_ ij.1 ij.2)] != 0]|.
 Local Notation NC := cyclicTI_NC.
 
@@ -2511,7 +2511,7 @@ Qed.
 Lemma cyclicTI_NC_sub (phi psi : 'CF(G)) : (NC (phi - psi)%R <= NC phi + NC psi)%N.
 Proof. by move: (cyclicTI_NC_add phi (-psi)); rewrite cyclicTI_NC_opp. Qed.
 
-(* This is PF 3.8 *)
+(* This is PeterFalvi (3.8). *)
 Lemma cyclicTI_NC_split (phi : 'CF(G)) i j : 
   {in V, forall x, phi x = 0} -> (NC phi < 2 * minn w1 w2)%N ->
   '[phi, sigma (w_ i j)] != 0 ->    
@@ -2686,7 +2686,7 @@ apply: leq_trans HH2; rewrite cardsU !FC // CI (negPf Dii1) cards0 subn0.
 by rewrite mulSn mul1n leq_add // leq_minl leqnn // orbT.
 Qed.
 
-(* a weaker version of 3.8 *)
+(* a weaker version of PeterFalvi (3.8). *)
 Lemma cyclicTI_NC_minn (phi : 'CF(G)) : 
   {in V, forall x, phi x = 0} -> (0 < NC phi < 2 * minn w1 w2)%N ->
    (minn w1 w2 <= NC phi)%N.
@@ -2716,7 +2716,7 @@ case/imsetP=> j3 J3Irr [] -> -> /=.
 by rewrite HH eqxx mul1r NZs.
 Qed.
 
-(* This is PF 3.9a *)
+(* This is PeterFalvi (3.9a). *)
 Lemma cyclicTI_dirr (i : Iirr W) (phi : 'CF(G)) :
   phi \in dirr G -> {in V, phi =1 'chi_i} -> phi = sigma 'chi_i.
 Proof.
@@ -2758,7 +2758,7 @@ case/mulsgP=> x1 x2 Wx1 Wx2 ->; rewrite !cTIirrE 2!dprod_IirrE.
 by rewrite cfunE 2?cfDprodE // rmorphM !aut_IirrE !cfunE.
 Qed.
 
-(* This is the second part of Peterfalvi (3.9)(a). *)
+(* This is the second part of Peterfalvi (3.9a). *)
 Lemma cfAut_cycTIiso u phi : cfAut u (sigma phi) = sigma (cfAut u phi).
 Proof.
 rewrite [phi]cfun_sum_cfdot !raddf_sum; apply: eq_bigr => ij _.
