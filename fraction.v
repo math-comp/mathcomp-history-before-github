@@ -51,7 +51,7 @@ Canonical ratio_of_choiceType := Eval hnf in [choiceType of {ratio R}].
 
 Lemma denom_ratioP : forall f : ratio, denom f != 0. Proof. by case. Qed.
 
-Definition ratio0 := (@mkRatio (FractionDomain 0 1) (nonzero1r _)).
+Definition ratio0 := (@mkRatio (FractionDomain 0 1) (oner_neq0 _)).
 Definition Ratio x y : {ratio R} := insubd ratio0 (FractionDomain x y).
 
 Lemma numer_Ratio x y : y != 0 -> numer (Ratio x y) = x.
@@ -145,7 +145,7 @@ Lemma add_compat : mop2_spec addf type.
 Proof.
 move=> x y; apply/equivP=> /=; set x' := repr _; set y' := repr _.
 rewrite equivfE /= /addf /= !numden_Ratio ?mulf_neq0 ?domP //.
-rewrite mulr_addr mulr_addl eq_sym; apply/eqP.
+rewrite mulrDr mulrDl eq_sym; apply/eqP.
 rewrite !mulrA ![_ * \n__]mulrC !mulrA equivf_r -/x'.
 congr (_ + _); first by rewrite -mulrA mulrCA !mulrA.
 rewrite -!mulrA [X in _ * X]mulrCA !mulrA equivf_r -/y'.
@@ -188,7 +188,7 @@ Definition inv : type -> type := (mop1 inv_compat).
 Lemma addA : associative add.
 Proof.
 elim/quotW=> x; elim/quotW=> y; elim/quotW=> z; rewrite /add !mopP.
-rewrite /addf /= !numden_Ratio ?mulf_neq0 ?domP // !mulr_addl !mulrA !addrA.
+rewrite /addf /= !numden_Ratio ?mulf_neq0 ?domP // !mulrDl !mulrA !addrA.
 by congr (\pi (Ratio (_ + _ + _) _)); rewrite mulrAC.
 Qed.
 
@@ -237,7 +237,7 @@ Proof.
 elim/quotW=> x; elim/quotW=> y; elim/quotW=> z.
 rewrite /mul /add !mopP; apply/equivP.
 rewrite /= /equivf /mulf /addf !numden_Ratio ?mulf_neq0 ?domP //; apply/eqP.
-rewrite !(mulr_addr, mulr_addl) !mulrA; congr (_ * _ + _ * _).
+rewrite !(mulrDr, mulrDl) !mulrA; congr (_ * _ + _ * _).
   rewrite ![_ * \n_z]mulrC -!mulrA; congr (_ * _).
   rewrite ![\d_y * _]mulrC !mulrA; congr (_ * _ * _).
   by rewrite [X in _ = X]mulrC mulrA.

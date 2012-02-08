@@ -425,10 +425,10 @@ Canonical unit_subFinType := Eval hnf in [subFinType of uT].
 
 Definition unit1 := Unit phR (@GRing.unitr1 _).
 Lemma unit_inv_proof u : GRing.unit (val u)^-1.
-Proof. by rewrite GRing.unitr_inv ?(valP u). Qed.
+Proof. by rewrite GRing.unitrV ?(valP u). Qed.
 Definition unit_inv u := Unit phR (unit_inv_proof u).
 Lemma unit_mul_proof u v : GRing.unit (val u * val v).
-Proof. by rewrite (GRing.unitr_mulr _ (valP u)) ?(valP v). Qed.
+Proof. by rewrite (GRing.unitrMr _ (valP u)) ?(valP v). Qed.
 Definition unit_mul u v := Unit phR (unit_mul_proof u v).
 Lemma unit_muluA : associative unit_mul.
 Proof. move=> u v w; apply: val_inj; exact: GRing.mulrA. Qed.
@@ -456,7 +456,7 @@ Lemma unit_is_groupAction : @is_groupAction _ R setT setT unit_action.
 Proof.
 move=> u _ /=; rewrite inE; apply/andP; split.
   by apply/subsetP=> x _; rewrite inE.
-by apply/morphicP=> x y _ _; rewrite !actpermE /= [_ u]GRing.mulr_addl.
+by apply/morphicP=> x y _ _; rewrite !actpermE /= [_ u]GRing.mulrDl.
 Qed.
 Canonical unit_groupAction := GroupAction unit_is_groupAction.
 

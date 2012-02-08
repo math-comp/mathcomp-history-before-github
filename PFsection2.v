@@ -347,9 +347,9 @@ rewrite sumr_const -index_cent1 mulrC -mulr_natr -!mulrA.
 rewrite (eq_bigr (fun xa => alpha a * (phi xa)^*)) => [|xa Fa_xa]; last first.
   by rewrite (DadeE _ Aa).
 rewrite -big_distrr /= -rmorph_sum; congr (_ * _).
-rewrite mulrC mulrA -natr_mul mulnC -(LaGrange (subsetIl G 'C[a])).
+rewrite mulrC mulrA -natrM mulnC -(LaGrange (subsetIl G 'C[a])).
 rewrite -mulnA mulnCA -(sdprod_card def_Ca) -mulnA LaGrange ?subsetIl //.
-rewrite mulnA natr_mul mulfK ?neq0GC // -conjC_nat -rmorphM; congr (_ ^*).
+rewrite mulnA natrM mulfK ?neq0GC // -conjC_nat -rmorphM; congr (_ ^*).
 have /andP[tiHa _] := Dade_cover_TI Aa.
 rewrite (set_partition_big _ (partition_class_support _ _)) //=.
 rewrite (eq_bigr (fun _ => \sum_(x \in H a) phi (x * a)%g)); last first.
@@ -357,7 +357,7 @@ rewrite (eq_bigr (fun _ => \sum_(x \in H a) phi (x * a)%g)); last first.
   rewrite (big_imset _ (in2W (conjg_inj x))) (big_imset _ (in2W (mulIg a))) /=.
   by apply: eq_bigr => u Hu; rewrite cfunJ ?groupM ?(subsetP sLG a).
 rewrite sumr_const card_orbit astab1Js norm_Dade_cover //.
-by rewrite natr_mul -mulrA mulr_natl psiA // mulVKf ?neq0GC.
+by rewrite natrM -mulrA mulr_natl psiA // mulVKf ?neq0GC.
 Qed.
 
 (* This is Peterfalvi (2.7), second part. *)
@@ -450,7 +450,7 @@ Local Notation rDadeE := Dade_restrictionE.
 Lemma Dade_restriction_vchar B : aa \in 'Z[irr L] -> 'aa_B \in 'Z[irr 'M(B)].
 Proof.
 rewrite /'aa_B => /vcharP[a1 Na1 [a2 Na2 ->]].
-by rewrite !linear_sub /= sub_vchar // char_vchar ?cfMorph_char ?cfRes_char.
+by rewrite !linearB /= sub_vchar // char_vchar ?cfMorph_char ?cfRes_char.
 Qed.
 
 Let sMG B : B \in calP -> 'M(B) \subset G.
@@ -606,7 +606,7 @@ transitivity (- aa a / #|L|%:R * \sum_(b \in a ^: L) sumB b); last first.
   have [_ /(_ a) -> //] := Dade_Ind_expansion g dB; rewrite !mulrA.
   congr (_ * _); last by apply: eq_bigl => b; rewrite inE dB /= andbC -in_setI.
   rewrite -mulrA mulrCA -!mulrA; congr (_ * _).
-  rewrite -invf_mul mulrCA -invf_mul -!natr_mul; congr (_ / _%:R).
+  rewrite -invfM mulrCA -invfM -!natrM; congr (_ / _%:R).
   rewrite -(sdprod_card (Dade_set_sdprod dB)) mulnA mulnAC; congr (_ * _)%N.
   by rewrite mulnC LaGrange ?subsetIl.
 rewrite (eq_bigr (fun _ => sumB a)) /= => [|_ /imsetP[x Lx ->]]; last first.
@@ -624,7 +624,7 @@ rewrite (eq_bigr (fun _ => sumB a)) /= => [|_ /imsetP[x Lx ->]]; last first.
   by rewrite groupMr // groupV (subsetP sLG).
 rewrite sumr_const mulrC [sumB a](bigD1 [set a]) /=; last first.
   by rewrite 3!inE cent1id sub1set Aa -cards_eq0 cards1 (subsetP sAL).
-rewrite -[_ *+ _]mulr_natr -mulrA mulr_addl -!mulrA ['H(_)]big_set1 cards1.
+rewrite -[_ *+ _]mulr_natr -mulrA mulrDl -!mulrA ['H(_)]big_set1 cards1.
 have ->: aa2 [set a] a = #|'C_G[a]|%:R.
   have [u x Ha_ux Gx def_g] := imset2P Ha_g.
   rewrite -(card_lcoset _ x^-1); congr _%:R; apply: eq_card => y.
@@ -632,11 +632,11 @@ have ->: aa2 [set a] a = #|'C_G[a]|%:R.
   rewrite -(groupMl y Gx) inE; apply: andb_id2l => Gxy.
   have [-> // _] := normedTI_memJ_P (notHa0 a) (Dade_cover_TI Aa).
   by rewrite inE Gxy.
-rewrite mulN1r mulrC mulrA -natr_mul -(sdprod_card (defCA Aa)).
-rewrite -mulnA card_orbit astab1J LaGrange ?subsetIl // mulnC natr_mul.
+rewrite mulN1r mulrC mulrA -natrM -(sdprod_card (defCA Aa)).
+rewrite -mulnA card_orbit astab1J LaGrange ?subsetIl // mulnC natrM.
 rewrite mulrAC mulfK ?neq0GC // mulrC divfK ?neq0GC // opprK.
-rewrite (bigID [pred B : {set gT} | a \in B]) /= mulr_addl addrA.
-apply: canRL (subrK _) _; rewrite -mulNr -sumr_opp; congr (_ + _ * _).
+rewrite (bigID [pred B : {set gT} | a \in B]) /= mulrDl addrA.
+apply: canRL (subrK _) _; rewrite -mulNr -sumrN; congr (_ + _ * _).
 symmetry.
 rewrite (reindex_onto (fun B => a |: B) (fun B => B :\ a)) /=; last first.
   by move=> B; case/andP=> _; exact: setD1K.
@@ -659,8 +659,8 @@ suffices ->: aa2 B a = #|'H(B) : 'H(a |: B)|%:R * aa2 (a |: B) a.
   rewrite /nn2 cardsU1 notBa exprS mulN1r !mulNr; congr (- _).
   rewrite !mulrA; congr (_ * _); rewrite -!mulrA; congr (_ * _).
   apply: canLR (mulKf (neq0GC _)) _; apply: canRL (mulfK (neq0GC _)) _ => /=.
-  by rewrite -natr_mul mulnC LaGrange //= Dade_setU1 ?subsetIl.
-rewrite /aa2 Dade_setU1 //= -natr_mul; congr _%:R.
+  by rewrite -natrM mulnC LaGrange //= Dade_setU1 ?subsetIl.
+rewrite /aa2 Dade_setU1 //= -natrM; congr _%:R.
 have defMB := Dade_set_sdprod dB; have [_ mulHNB nHNB tiHNB] := sdprodP defMB.
 have [sHMB sNMB] := mulG_sub mulHNB; have [La nBa] := setIP Na.
 have nHa: a \in 'N('H(B)) by rewrite (subsetP nHNB).

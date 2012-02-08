@@ -195,12 +195,12 @@ CoInductive zint_spec (x : zint) : zint -> Type :=
 Lemma zintP x : zint_spec x x.
 Proof. by move: x=> [] [] *; rewrite ?NegzE; constructor. Qed.
 
-Definition oppz_add := (@oppr_add [zmodType of zint]).
+Definition oppz_add := (@opprD [zmodType of zint]).
 
 Lemma subzn (m n : nat) : (n <= m)%N -> m%:Z - n%:Z = (m - n)%N.
 Proof.
 elim: n=> //= [|n ihn] hmn; first by rewrite subr0 subn0.
-rewrite -predn_sub -addn1 !PoszD oppr_add addrA ihn 1?ltnW //.
+rewrite -predn_sub -addn1 !PoszD opprD addrA ihn 1?ltnW //.
 by rewrite zintZmod.predn_zint // subn_gt0.
 Qed.
 
@@ -251,14 +251,14 @@ Proof. by case=> [[|n]|n] //=; rewrite ?mul1n// plusE addn0. Qed.
 
 Lemma mulzS (x : zint) (n : nat) : (x * n.+1%:Z)%Z = x + (x * n)%Z.
 Proof.
-by case: (zintP x)=> [|m'|m'] //=; [rewrite mulnS|rewrite mulSn -oppr_add].
+by case: (zintP x)=> [|m'|m'] //=; [rewrite mulnS|rewrite mulSn -opprD].
 Qed.
 
 Lemma mulz_addl : left_distributive mulz (+%R).
 Proof.
 move=> x y z; elim: z=> [|n|n]; first by rewrite !(mul0z,mulzC).
   by rewrite !mulzS=> ->; rewrite !addrA [X in X + _]addrAC.
-rewrite !mulzN !mulzS -!oppr_add=> /(inv_inj (@opprK _))->.
+rewrite !mulzN !mulzS -!opprD=> /(inv_inj (@opprK _))->.
 by rewrite !addrA [X in X + _]addrAC.
 Qed.
 
@@ -350,10 +350,10 @@ Lemma lez_nat (m n : nat) : (lez m n) = (m <= n)%N. Proof. by []. Qed.
 Lemma subz_ge0 m n : lez 0 (n - m) = lez m n.
 Proof.
 case: (zintP m); case: (zintP n)=> // {m n} m n /=;
-rewrite ?ltnS -?oppr_add ?oppr_sub ?subzSS;
+rewrite ?ltnS -?opprD ?opprB ?subzSS;
 case: leqP=> // hmn; do
   ?[ by rewrite subzn //
-   | by rewrite -oppr_sub subzn ?(ltnW hmn) //;
+   | by rewrite -opprB subzn ?(ltnW hmn) //;
      move: hmn; rewrite -subn_gt0; case: (_ - _)%N].
 Qed.
 
@@ -460,27 +460,27 @@ Lemma mulr1z (x : M) : x *~ 1 = x. Proof. done. Qed.
 Lemma mulrz_addr m : {morph ( *~%R^~ m : M -> M) : x y / x + y}.
 Proof.
 by elim: m=> [|m _|m _] x y;
-  rewrite ?addr0 /zintmul //= ?mulrn_addl // oppr_add.
+  rewrite ?addr0 /zintmul //= ?mulrnDl // opprD.
 Qed.
 
 Lemma mulrz_subl_nat (m n : nat) x : x *~ (m%:Z - n%:Z) = x *~ m - x *~ n.
 Proof.
 case: (leqP m n)=> hmn; rewrite /zintmul //=.
-  rewrite addrC -{1}[m:zint]opprK -oppr_add subzn //.
-  rewrite -{2}[n](@subnKC m)// mulrn_addr oppr_add addrA subrr sub0r.
+  rewrite addrC -{1}[m:zint]opprK -opprD subzn //.
+  rewrite -{2}[n](@subnKC m)// mulrnDr opprD addrA subrr sub0r.
   by case hdmn: (_ - _)%N=> [|dmn] /=; first by rewrite mulr0n oppr0.
 have hnm := ltnW hmn.
-rewrite  -{2}[m](@subnKC n)// mulrn_addr addrAC subrr add0r.
+rewrite  -{2}[m](@subnKC n)// mulrnDr addrAC subrr add0r.
 by rewrite subzn.
 Qed.
 
 Lemma mulrz_addl x : {morph *~%R x : m n / m + n}.
 Proof.
 elim=> [|m _|m _]; elim=> [|n _|n _]; rewrite /zintmul //=;
-rewrite -?(oppr_add) ?(add0r, addr0, mulrn_addr, subn0) //.
+rewrite -?(opprD) ?(add0r, addr0, mulrnDr, subn0) //.
 * by rewrite -/(zintmul _ _) mulrz_subl_nat.
 * by rewrite -/(zintmul _ _) addrC mulrz_subl_nat addrC.
-* by rewrite -addnS -addSn mulrn_addr.
+* by rewrite -addnS -addSn mulrnDr.
 Qed.
 
 Local Notation "n *z x" := (zintmul x n)
@@ -504,10 +504,10 @@ Lemma mulrN1z x : x *~ (- 1) = - x. Proof. by move: scaleN1r x; apply. Qed.
 Lemma mulNrz x n : (- x) *~ n = - (x *~ n). Proof. by move: scalerN x; apply. Qed.
 
 Lemma mulrz_subr x m n : x *~ (m - n) = x *~ m - x *~ n.
-Proof. by move: scaler_subl x; apply. Qed.
+Proof. by move: scalerBl x; apply. Qed.
 
 Lemma mulrz_subl x y n : (x - y) *~ n = x *~ n - y *~ n.
-Proof. by move: scaler_subr x y; apply. Qed.
+Proof. by move: scalerBr x y; apply. Qed.
 
 Lemma mulrz_nat (n : nat) x : n%:R *z x = x *+ n.
 Proof. by move: scaler_nat x; apply. Qed.
@@ -544,8 +544,8 @@ Definition mulrz_suml := MzintLmod.mulrz_suml.
 Lemma zintz n : n%:~R = n.
 Proof.
 elim: n=> //= n ihn; rewrite /zintmul /=.
-  by rewrite -addn1 mulrn_addr /= PoszD -ihn.
-by rewrite natmulN zintS oppr_add mulrz_addl ihn.
+  by rewrite -addn1 mulrnDr /= PoszD -ihn.
+by rewrite natmulN zintS opprD mulrz_addl ihn.
 Qed.
 
 Section RzintMod.
@@ -606,14 +606,14 @@ Implicit Types u v w : V.
 Lemma scalezr n v : n%:~R *: v = v *~ n.
 Proof.
 elim: n=> [|n ihn|n ihn]; first by rewrite scale0r.
-  by rewrite zintS !mulrz_addl scaler_addl ihn scale1r.
-by rewrite zintS oppr_add !mulrz_addl scaler_addl ihn scaleN1r.
+  by rewrite zintS !mulrz_addl scalerDl ihn scale1r.
+by rewrite zintS opprD !mulrz_addl scalerDl ihn scaleN1r.
 Qed.
 
-Lemma scaler_mulrzl a v n : (a *: v) *~ n = (a *~ n) *: v.
+Lemma scalerMzl a v n : (a *: v) *~ n = (a *~ n) *: v.
 Proof. by rewrite -mulrzl -scalezr scalerA. Qed.
 
-Lemma scaler_mulrzr a v n : (a *: v) *~ n = a *: (v *~ n).
+Lemma scalerMzr a v n : (a *: v) *~ n = a *: (v *~ n).
 Proof. by rewrite -!scalezr !scalerA mulrzr mulrzl. Qed.
 
 End LMod.
@@ -654,11 +654,11 @@ Section Zintmul1rMorph.
 
 Variable R : ringType.
 
-Lemma commr_mulz (x y : R) n : GRing.comm x y -> GRing.comm x (y *~ n).
+Lemma commrMz (x y : R) n : GRing.comm x y -> GRing.comm x (y *~ n).
 Proof. by rewrite /GRing.comm=> com_xy; rewrite mulrzAr mulrzAl com_xy. Qed.
 
 Lemma commr_zint (x : R) n : GRing.comm x n%:~R.
-Proof. by apply: commr_mulz; apply: commr1. Qed.
+Proof. by apply: commrMz; apply: commr1. Qed.
 
 End Zintmul1rMorph.
 
@@ -688,12 +688,12 @@ Local Notation "x ^f" := (Frobenius_aut charFp x).
 
 Lemma Frobenius_aut_mulz x n : (x *~ n)^f = x^f *~ n.
 Proof.
-case: n=> n /=; first exact: Frobenius_aut_muln.
-by rewrite !NegzE !mulrNz Frobenius_aut_opp Frobenius_aut_muln.
+case: n=> n /=; first exact: Frobenius_autMn.
+by rewrite !NegzE !mulrNz Frobenius_autN Frobenius_autMn.
 Qed.
 
 Lemma Frobenius_aut_zint n : (n%:~R)^f = n%:~R.
-Proof. by rewrite Frobenius_aut_mulz Frobenius_aut_1. Qed.
+Proof. by rewrite Frobenius_aut_mulz Frobenius_aut1. Qed.
 
 End Frobenius.
 
@@ -895,7 +895,7 @@ Lemma expr0z x : x ^ 0 = 1. Proof. by []. Qed.
 
 Lemma expr1z x : x ^ 1 = x. Proof. by []. Qed.
 
-Lemma exprN1z x : x ^ (-1) = x^-1. Proof. by []. Qed.
+Lemma exprN1 x : x ^ (-1) = x^-1. Proof. by []. Qed.
 
 Lemma invr_expz x n : (x ^ n)^-1 = x ^ (- n).
 Proof.
@@ -904,12 +904,12 @@ Qed.
 
 Lemma exprz_inv x n : (x^-1) ^ n = x ^ (- n).
 Proof.
-by case: (zintP n)=> // m; rewrite -[_ ^ (- _)]expr_inv ?opprK ?invrK.
+by case: (zintP n)=> // m; rewrite -[_ ^ (- _)]exprVn ?opprK ?invrK.
 Qed.
 
 Lemma exp1rz n : 1 ^ n = 1 :> R.
 Proof.
-by case: (zintP n)=> // m; rewrite -?exprz_inv ?invr1; apply: exp1rn.
+by case: (zintP n)=> // m; rewrite -?exprz_inv ?invr1; apply: expr1n.
 Qed.
 
 Lemma exprSz x (n : nat) : x ^ n.+1 = x * x ^ n. Proof. exact: exprS. Qed.
@@ -918,10 +918,10 @@ Lemma exprSzr x (n : nat) : x ^ n.+1 = x ^ n * x.
 Proof. exact: exprSr. Qed.
 
 Fact exprz_add_nat x (m n : nat) : x ^ (m%:Z + n) = x ^ m * x ^ n.
-Proof. exact: exprn_addr. Qed.
+Proof. exact: exprD. Qed.
 
 Fact exprz_add_Nnat x (m n : nat) : x ^ (-m%:Z + -n%:Z) = x ^ (-m%:Z) * x ^ (-n%:Z).
-Proof. by rewrite -oppr_add -!exprz_inv exprz_add_nat. Qed.
+Proof. by rewrite -opprD -!exprz_inv exprz_add_nat. Qed.
 
 Lemma exprz_add_ss x m n : (0 <= m) && (0 <= n) || (m <= 0) && (n <= 0)
   ->  x ^ (m + n) = x ^ m * x ^ n.
@@ -933,51 +933,48 @@ Qed.
 Lemma exp0rz n : 0 ^ n = (n == 0)%:~R :> R.
 Proof. by case: (zintP n)=> // m; rewrite -?exprz_inv ?invr0 exprSz mul0r. Qed.
 
-Lemma commr_expz x y n : GRing.comm x y -> GRing.comm x (y ^ n).
+Lemma commrXz x y n : GRing.comm x y -> GRing.comm x (y ^ n).
 Proof.
 rewrite /GRing.comm; elim: n x y=> [|n ihn|n ihn] x y com_xy //=.
 * by rewrite expr0z mul1r mulr1.
-* by rewrite -exprnP commr_exp //.
-rewrite -exprz_inv -exprnP commr_exp //.
+* by rewrite -exprnP commrX //.
+rewrite -exprz_inv -exprnP commrX //.
 case: (boolP (GRing.unit y))=> uy; last by rewrite invr_out.
 by apply/eqP; rewrite (can2_eq (mulrVK _) (mulrK _)) // -mulrA com_xy mulKr.
 Qed.
 
-Lemma commr_invr x y : GRing.comm x y -> GRing.comm x (y ^-1).
-Proof. by move=> cxy; rewrite -exprN1z; exact: commr_expz. Qed.
-
-Lemma commr_expz_mull x y n : GRing.unit x -> GRing.unit y ->
+Lemma exprzMl_comm x y n : GRing.unit x -> GRing.unit y ->
   GRing.comm x y -> (x * y) ^ n = x ^ n * y ^ n.
 Proof.
 move=> ux uy com_xy; elim: n => [|n _|n _]; first by rewrite expr0z mulr1.
-  by rewrite -!exprnP commr_exp_mull.
-rewrite -!exprnN -!expr_inv com_xy -commr_exp_mull ?invr_mul//.
-by apply: commr_invr; apply: commr_sym; apply: commr_invr.
+  by rewrite -!exprnP exprMn_comm.
+rewrite -!exprnN -!exprVn com_xy -exprMn_comm ?invr_mul//.
+exact/commrV/commr_sym/commrV.
 Qed.
 
-Lemma commr_expz_wmulls x y n : 0 <= n -> GRing.comm x y -> (x * y) ^ n = x ^ n * y ^ n.
+Lemma commrXz_wmulls x y n : 0 <= n -> GRing.comm x y -> (x * y) ^ n = x ^ n * y ^ n.
 Proof.
 move=> n0 com_xy; elim: n n0 => [|n _|n _] //; first by rewrite expr0z mulr1.
-by rewrite -!exprnP commr_exp_mull.
+by rewrite -!exprnP exprMn_comm.
 Qed.
 
-Lemma unitr_expz x n (ux : GRing.unit x) : GRing.unit (x ^ n).
+Lemma unitrXz x n (ux : GRing.unit x) : GRing.unit (x ^ n).
 Proof.
-case: (zintP n)=> {n} [|n|n]; rewrite ?expr0z ?unitr1 ?unitr_exp //.
-by rewrite -invr_expz unitr_inv unitr_exp.
+case: (zintP n)=> {n} [|n|n]; rewrite ?expr0z ?unitr1 ?unitrX //.
+by rewrite -invr_expz unitrV unitrX.
 Qed.
 
 Lemma exprz_addr x (ux : GRing.unit x) m n : x ^ (m + n) = x ^ m * x ^ n.
 Proof.
 move: n m; apply: wlog_ler=> n m hnm.
-  by rewrite addrC hnm commr_expz //; apply: commr_sym; apply: commr_expz.
+  by rewrite addrC hnm commrXz //; apply: commr_sym; apply: commrXz.
 case: (zintP m) hnm=> {m} [|m|m]; rewrite ?mul1r ?add0r //;
  case: (zintP n)=> {n} [|n|n _]; rewrite ?mulr1 ?addr0 //;
    do ?by rewrite exprz_add_ss.
-rewrite -invr_expz subzSS !exprSzr invr_mul ?unitr_exp // -mulrA mulVKr //.
+rewrite -invr_expz subzSS !exprSzr invr_mul ?unitrX // -mulrA mulVKr //.
 case: (leqP n m)=> [|/ltnW] hmn; rewrite -{2}(subnK hmn) exprz_add_nat -subzn //.
-  by rewrite mulrK ?unitr_exp.
-by rewrite invr_mul ?unitr_expz // mulVKr ?unitr_expz // -oppr_sub -invr_expz.
+  by rewrite mulrK ?unitrX.
+by rewrite invr_mul ?unitrXz // mulVKr ?unitrXz // -opprB -invr_expz.
 Qed.
 
 Lemma exprz_exp x m n : (x ^ m) ^ n = (x ^ (m * n)).
@@ -985,7 +982,7 @@ Proof.
 wlog: n / 0 <= n.
   by case: n=> [n -> //|n]; rewrite ?NegzE mulrN -?invr_expz=> -> /=.
 elim: n x m=> [|n ihn|n ihn] x m // _; first by rewrite mulr0 !expr0z.
-rewrite exprSz ihn // zintS mulr_addr mulr1 exprz_add_ss //.
+rewrite exprSz ihn // zintS mulrDr mulr1 exprz_add_ss //.
 by case: (zintP m)=> // m'; rewrite ?oppr_le0 //.
 Qed.
 
@@ -993,7 +990,7 @@ Lemma exprzAC x m n : (x ^ m) ^ n = (x ^ n) ^ m.
 Proof. by rewrite !exprz_exp mulrC. Qed.
 
 Lemma exprz_out x n (nux : ~~ GRing.unit x) (hn : 0 <= n) : x ^ (- n) = x ^ n.
-Proof. by case: (zintP n) hn=> //= m; rewrite -exprnN -expr_inv invr_out. Qed.
+Proof. by case: (zintP n) hn=> //= m; rewrite -exprnN -exprVn invr_out. Qed.
 
 End ExprzUnitRing.
 
@@ -1014,19 +1011,19 @@ Proof. by rewrite exprz_pmulzl // exp1rz. Qed.
 Lemma exprz_mulzl x m n (ux : GRing.unit x) (um : @GRing.unit R m%:~R) :
    (x *~ m) ^ n = (m%:~R ^ n) * x ^ n :> R.
 Proof.
-rewrite -[x *~ _]mulrzl commr_expz_mull //.
+rewrite -[x *~ _]mulrzl exprzMl_comm //.
 by apply: commr_sym; apply: commr_zint.
 Qed.
 
 Lemma expNrz x n : (- x) ^ n = (-1) ^ n * x ^ n :> R.
 Proof.
-case: n=> [] n; rewrite ?NegzE; first by apply: exprN.
-by rewrite -!exprz_inv !invrN invr1; apply: exprN.
+case: n=> [] n; rewrite ?NegzE; first by apply: exprNn.
+by rewrite -!exprz_inv !invrN invr1; apply: exprNn.
 Qed.
 
 Lemma unitr_n0expz x n : n != 0 -> GRing.unit (x ^ n) = GRing.unit x.
 Proof.
-by case: n => *; rewrite ?NegzE -?exprz_inv ?unitr_pexp ?unitr_inv ?lt0n.
+by case: n => *; rewrite ?NegzE -?exprz_inv ?unitrX_pos ?unitrV ?lt0n.
 Qed.
 
 End Exprz_Zint_UnitRing.
@@ -1047,7 +1044,7 @@ Proof. by move=> x_nz; rewrite expfz_eq0; apply/nandP; right. Qed.
 
 Lemma exprz_mull x y n (ux : GRing.unit x) (uy : GRing.unit y) :
   (x * y) ^ n = x ^ n * y ^ n.
-Proof. by rewrite commr_expz_mull //; apply: mulrC. Qed.
+Proof. by rewrite exprzMl_comm //; apply: mulrC. Qed.
 
 End ExprzIdomain.
 
@@ -1333,7 +1330,7 @@ Lemma sgz_eq0 x : (sgz x == 0) = (x == 0).
 Proof. by rewrite sgz_cp0. Qed.
 
 Lemma sgz_odd (n : nat) x : x != 0 -> (sgz x) ^+ n = (sgz x) ^+ (odd n).
-Proof. by case: sgzP=> //=; rewrite ?exp1rn // signr_odd. Qed.
+Proof. by case: sgzP=> //=; rewrite ?expr1n // signr_odd. Qed.
 
 Lemma sgz_gt0 x : (sgz x > 0) = (x > 0).
 Proof. by case: sgzP. Qed.

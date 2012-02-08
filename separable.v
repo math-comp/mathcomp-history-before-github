@@ -40,15 +40,6 @@ Lemma coprimep_addl_mul (R : idomainType) (p q r : {poly R}) :
   coprimep r (p * r + q) = coprimep r q.
 Proof. by rewrite !coprimep_def (eqp_size (gcdp_addl_mul _ _ _)). Qed.
 
-Lemma exprp_addl (R : comRingType) (x y : R) (n : nat) :
-  [char R].-nat n -> (x + y) ^+ n = x ^+ n + y ^+ n.
-Proof.
-case: n=> [|[|]] // n Hn; move: (Hn)=> /pnatPpi /(_ (pi_pdiv _))=> charR.
-move: Hn; rewrite (eq_pnat _ (charf_eq charR))=> /p_natP [] e ->.
-elim: e => // e ihe; rewrite !expnSr !exprn_mulr ihe.
-by rewrite [_ ^+ _]Frobenius_aut_add_comm //; apply: mulrC.
-Qed.
-
 Section SeparablePoly.
 
 Variable (R: idomainType).
@@ -248,7 +239,7 @@ rewrite map_poly_eq0.
 case: eqP => Hq0; first by rewrite rmorph1 rmorph0.
 rewrite -map_modp -(IH q (p %% q)).
 case: (egcdp_rec _ _ n) => a b /=.
-rewrite map_poly_scaler lead_coef_map -rmorphX scalp_map rmorph_sub rmorphM.
+rewrite map_poly_scaler lead_coef_map -rmorphX scalp_map rmorphB rmorphM.
 by rewrite -map_divp.
 Qed.
 
@@ -315,8 +306,8 @@ suff Hq0 : (exists q0 : {poly F}, (q0 ^ iota).[iota t * y - x] = y).
  split => //.
  case: Hq0 => q0 Hq0.
  exists (t *: q0 - 'X).
- rewrite rmorph_sub [_ 'X]map_polyX [_ (_ *: _)]map_poly_scaler !horner_lin.
- by rewrite Hq0 oppr_sub addrC addrNK.
+ rewrite rmorphB [_ 'X]map_polyX [_ (_ *: _)]map_poly_scaler !horner_lin.
+ by rewrite Hq0 opprB addrC addrNK.
 have Hcomm: (commr_rmorph idfun (iota t)) by apply: mulrC.
 move/(f_equal (map_poly (horner_morph Hcomm))) : Hr.
 rewrite rmorphD !{1}rmorphM map_polyC /= /comp_poly -horner_map rmorphM.
@@ -370,9 +361,9 @@ have [qt qtne0 Hqt] : exists2 qt, qt != 0 & root (qt ^ iota) (iota t * y).
   rewrite coef0 -[X in _ = X](mulr0 (t ^+ i)) -[X in _ * X](coef0 _ i) -(Hqt i).
   rewrite -coefZ comp_polyE scaler_sumr -{1}[q]coefK poly_def !coef_sum.
   apply: eq_bigr => j _.
-  rewrite scaler_exp !coefZ mulrA [t ^+ i * _]mulrC -mulrA coefXn.
+  rewrite exprZn !coefZ mulrA [t ^+ i * _]mulrC -mulrA coefXn.
   case: (eqVneq i j) => [-> | Hij].
-   by rewrite expr_inv mulVKf // expf_eq0 negb_and Ht orbT.
+   by rewrite exprVn mulVKf // expf_eq0 negb_and Ht orbT.
   by rewrite -[_ == _]negbK Hij !mulr0.
  apply/eqP.
  move/eqP: Hqy <-.
@@ -394,7 +385,7 @@ have HQ : q ^ iota = Q ^ kappa.
 pose (P := (p ^ (inj_subfx iota z f) \Po
   ((inj_subfx iota z f t) *: 'X - (subfx_eval iota z f 'X)%:P))).
 have HP : p2 = P ^ kappa.
- rewrite -!horner_map rmorph_sub /= map_poly_scaler map_polyC map_polyX /=.
+ rewrite -!horner_map rmorphB /= map_poly_scaler map_polyC map_polyX /=.
  rewrite !subfx_inj_eval // map_polyX map_polyC hornerX hornerC.
  rewrite -map_comp_poly ?rmorph0 //.
  rewrite (eq_map_poly (map_polyC _)).
@@ -404,7 +395,7 @@ have HP : p2 = P ^ kappa.
  rewrite (eq_map_poly (horner_morphC _)); last by move => ?; apply: mulrC.
  rewrite /p2 /p1 /p' !comp_polyA {2 3}/comp_poly.
  rewrite rmorphM rmorphD ![GRing.RMorphism.apply _]/= !map_polyX !map_polyC.
- rewrite !horner_lin mulr_addr -addrA -polyC_opp -polyC_mul polyC_add oppr_add.
+ rewrite !horner_lin mulrDr -addrA -polyC_opp -polyC_mul polyC_add opprD.
  by rewrite -!polyC_opp opprK mulrN mul_polyC.
 rewrite HQ HP -gcdp_map /=.
 move/eqpP => [[c1 c2]] /andP [Hc1 Hc2].
@@ -414,7 +405,7 @@ move/polyP => Hgcd.
 move:(Hgcd 1%N).
 rewrite coefD coefN coefC coefX subr0 coefZ coef_map mulr1n.
 move => Hgcd1.
-move:(nonzero1r L).
+move:(oner_neq0 L).
 rewrite -Hgcd1 mulf_eq0 negb_or.
 move/andP => [Hc120 Hgcd10].
 move/eqP:(Hgcd 0%N).
@@ -445,7 +436,7 @@ have Hqqy : root (qq ^ iota) y.
     by  move: Hqr Hqy Hry ->; rewrite expr0 mulr1 => ->.
  move: (f_equal (@deriv _) Hqr).
  rewrite deriv_map derivM deriv_exp deriv_factor mul1r exprS -mulr_natl !mulrA.
- rewrite -mulr_addl => Hq'.
+ rewrite -mulrDl => Hq'.
  have: ('X - y%:P) ^+ n.+1 %| q ^iota by rewrite Hqr; apply: dvdp_mulIr.
  move: (f_equal (map_poly iota) Hq).
  rewrite rmorphM /=.
@@ -486,7 +477,7 @@ have Hs : uniq_roots s.
  move/eqP: Hab.
  apply: contraLR.
  rewrite -ltnNge => Hab.
- rewrite (inj_eq (fmorph_inj iota)) -subr_eq0 -mulrn_subr; last by rewrite ltnW.
+ rewrite (inj_eq (fmorph_inj iota)) -subr_eq0 -mulrnBr; last by rewrite ltnW.
  move: Hab.
  rewrite Hchar -subn_gt0.
  by move/prednK <-.
@@ -525,7 +516,7 @@ case: ex_minnP.
 case => //.
  by rewrite muln1 big_ord1 expr0 prodv1 !ltnn.
 move => m.
-rewrite dim_injv nonzero1r mul1n big_ord_recr /=.
+rewrite dim_injv oner_neq0 mul1n big_ord_recr /=.
 case/orP => H.
  move/(_ (vdim L)).
  move: (H).
@@ -576,12 +567,12 @@ have Hspan : (is_span K (vbasis K)).
 rewrite (is_span_span Hspan Hu) (is_span_span Hspan Hv).
 rewrite !linear_sum -big_split /=.
 apply: eq_bigr => j _.
-rewrite -!mulr_suml linear_sum /=  -big_split /=.
+rewrite !mulr_suml linear_sum /=  -big_split /=.
 apply: eq_bigr => i _.
-rewrite -scaler_mull linearZ /= -scaler_mulr linearZ /=.
+rewrite -scalerAl linearZ /= -scalerAr linearZ /=.
 move/all_nthP : (Dmult 0 _ (ltn_ord i)); rewrite size_tuple.
 move/(_ 0_ (ltn_ord j)); move/eqP->.
-by rewrite ![D (_ *: _)]linearZ /= -!scaler_mull -!scaler_mulr !scaler_addr.
+by rewrite ![D (_ *: _)]linearZ /= -!scalerAl -!scalerAr !scalerDr.
 Qed.
 
 Lemma Derivation_addp : forall p q, polyOver K p -> polyOver K q ->
@@ -639,7 +630,7 @@ case: m; first by rewrite expr0 mulr0n mul0r Derivation1.
 elim; first by rewrite expr1 expr0 mul1r.
 move => m Hm.
 rewrite GRing.exprS (DerivationMul HD) //; last by apply: memv_exp.
-rewrite Hm /= [_ *+ m.+2]GRing.mulrS mulr_addl.
+rewrite Hm /= [_ *+ m.+2]GRing.mulrS mulrDl.
 rewrite {3}GRing.exprS mulrA -GRing.mulrnAr.
 congr (_ + _).
 elim: (m.+1); first by rewrite GRing.expr0 mulr1 mul1r.
@@ -666,7 +657,7 @@ have->: map_poly D (p * 'X + c%:P) = map_poly D p * 'X + (D c)%:P.
 rewrite horner_amulX linearD /= (DerivationMul HD) ?(memv_horner Hp0) 
         ?subv_refl //.
 rewrite (IHp Hp0) deriv_amulX !horner_add !horner_mul !hornerX !hornerC.
-rewrite !mulr_addl -!addrA; congr (_ + _).
+rewrite !mulrDl -!addrA; congr (_ + _).
 by rewrite addrC [_ + D c]addrC -mulrA [_ * x]mulrC mulrA addrA.
 Qed.
 
@@ -693,8 +684,8 @@ case (eqVneq x 0) => [->|nzx]; first by rewrite invr0 mem0v.
 move: (size_minPoly F x) (nzx) (root_minPoly_subproof xED).
 rewrite -(minPoly_coef0_subproof xED) /root horner_coef.
 move => -> c0.
-rewrite big_ord_recl -(can_eq (mulVKf c0)) mulr0 mulr_addr (mulKf c0) expr0
-        -(can_eq (mulfVK nzx)) mul0r mulr_addl mul1r eq_sym -subr_eq add0r.
+rewrite big_ord_recl -(can_eq (mulVKf c0)) mulr0 mulrDr (mulKf c0) expr0
+        -(can_eq (mulfVK nzx)) mul0r mulrDl mul1r eq_sym -subr_eq add0r.
 move/eqP <-.
 rewrite memvN // -mulrA.
 move: c0.
@@ -702,8 +693,8 @@ have: (minPoly F x)`_0 \in F by move/polyOverP: (minPolyOver F x); apply.
 case/injvP => k ->.
 case: (eqVneq k 0); first by move ->; rewrite scale0r eq_refl.
 move => k0 _.
-rewrite scaler_inv ?unitr1 ?unitfE // invr1 -scaler_mull mul1r memvZl //
-        -mulr_suml memv_sumr // => i _.
+rewrite invrZ ?unitr1 ?unitfE // invr1 -scalerAl mul1r memvZl //
+        mulr_suml memv_sumr // => i _.
 rewrite exprSr mulrA (mulfK nzx) memv_prod ?memv_inj //.
 by move/polyOverP: (minPolyOver F x).
 Qed.
@@ -833,7 +824,7 @@ case/andP => nzk _.
 rewrite -[x ^+ _](mulKf nzk).
 apply/memv_sumP.
 case/memv_sumP: Hk => v_ [Hv_1 Hv_2].
-exists (fun i => k^-1 * v_ i); split; last by rewrite Hv_2 mulr_sumr.
+exists (fun i => k^-1 * v_ i); split; last by rewrite Hv_2 -mulr_sumr.
 move => i _.
 move/(_ i isT): Hv_1 => Hv_1.
 move/memv_prodv_inj_coef: (Hv_1) ->.
@@ -868,7 +859,7 @@ set q := (\poly_(i < (size p).-1) (p`_i)) +
          (p`_(size p).-1)%:P * r * 'X ^+ ((size p).-1 - elementDegree K x).
 have -> : (p.[x] = q.[x]).
  rewrite !(horner_lin,horner_mul).
- by rewrite -rxED hornerXn -mulrA -exprn_addr subnKC // horner_poly horner_coef
+ by rewrite -rxED hornerXn -mulrA -exprD subnKC // horner_poly horner_coef
             -(ltn_predK szpx) /= big_ord_recr.
 apply IH; last first.
  apply/polyOverP => i.
@@ -986,7 +977,7 @@ move/eqP: (dim_Fadjoin K x).
 rewrite Fadjoin_eq_K -{1}[\dim K]muln1 eqn_mul2l dimv_eq0.
 case/orP; last by move/eqP ->.
 move/eqP => K0.
-case: (negP (@nonzero1r L)).
+case: (negP (@oner_neq0 L)).
 by rewrite -memv0 -K0 mem1v.
 Qed.
 
@@ -1136,7 +1127,7 @@ exists (\poly_(i < r.+1) f`_(i * p)).
  by apply: minPolyOver.
 rewrite comp_polyE size_poly_eq; last first.
  rewrite Hrp  -[elementDegree _ _]/((elementDegree K x).+1.-1) -size_minPoly.
- by rewrite [f`_(_)]Hlead nonzero1r.
+ by rewrite [f`_(_)]Hlead oner_neq0.
 apply/polyP => i.
 rewrite coef_sum.
 case Hpi: (p %| i)%N ;last first.
@@ -1146,7 +1137,7 @@ case Hpi: (p %| i)%N ;last first.
   by rewrite -mulr_natr mulfK // -(dvdn_charf Hp) Hpi.
  symmetry.
  apply: big1 => j _.
- rewrite coefZ -exprn_mulr coefXn.
+ rewrite coefZ -exprM coefXn.
  case: eqP Hpi => [->|]; last by rewrite mulr0.
  by rewrite (dvdn_mulr _ (dvdnn p)).
 move: (divnK Hpi) <-.
@@ -1159,14 +1150,14 @@ case: (leqP r.+1 s) => Hrs.
   by rewrite size_minPoly -Hrp ltn_mul2r Hrs andbT.
  symmetry.
  apply: big1 => j _.
- rewrite coefZ -exprn_mulr coefXn.
+ rewrite coefZ -exprM coefXn.
  case: (eqVneq s j) => [Hsj|]; first by move: Hrs; rewrite Hsj ltnNge leq_ord.
  by rewrite mulnC eqn_mul2l => /negbTE->; rewrite eqn0Ngt Hp0 mulr0.
 pose (s' := Ordinal Hrs).
-rewrite (bigD1 s') // coefZ -exprn_mulr coefXn {2}mulnC eq_refl mulr1.
+rewrite (bigD1 s') // coefZ -exprM coefXn {2}mulnC eq_refl mulr1.
 rewrite coef_poly Hrs mulnC big1 ?[_ _ 0]addr0 // => j /negPf.
 rewrite eq_sym => Hj.
-rewrite coefZ -exprn_mulr coefXn eqn_mul2l [s == j]Hj eqn0Ngt Hp0.
+rewrite coefZ -exprM coefXn eqn_mul2l [s == j]Hj eqn0Ngt Hp0.
 by rewrite mulr0.
 Qed.
 
@@ -1215,16 +1206,16 @@ move => E a u v.
 rewrite /DerivationExtend_body.
 move: Dx => C.
 rewrite poly_is_linear -mul_polyC derivD derivM derivC mul0r add0r.
-rewrite !horner_lin_comm -scaler_mull mul1r.
+rewrite !horner_lin_comm -scalerAl mul1r.
 move : (poly_for_Fadjoin _ _ _) => pu.
 move : (poly_for_Fadjoin _ _ _) => pv.
 rewrite (_ : map_poly D ((a *: 1)%:P * pu + pv)
            = (a *: 1)%:P * map_poly D pu + map_poly D pv); last first.
   apply/polyP => i; rewrite !(coef_map [linear of D]) ?linear0 // !coefD.
-  by rewrite  !{1}coefCM  !{1}(coef_map [linear of D]) ?{1}linear0 //= -!{1}scaler_mull
+  by rewrite  !{1}coefCM  !{1}(coef_map [linear of D]) ?{1}linear0 //= -!{1}scalerAl
               !mul1r linearP.
-by rewrite !{1}horner_lin_comm -scaler_mull mul1r mulr_addl scaler_addr 
-           -scaler_mull -addrA [(_.[x] + _)]addrA [_ + (a *: (_ * _))]addrC /=
+by rewrite !{1}horner_lin_comm -scalerAl mul1r mulrDl scalerDr 
+           -scalerAl -addrA [(_.[x] + _)]addrA [_ + (a *: (_ * _))]addrC /=
            !{1}addrA.
 Qed.
 
@@ -1254,7 +1245,7 @@ rewrite poly_for_modp // /horner_morph (@Derivation_addp K)
         ?{1}(Derivation_mulp HD)
         ?{1}(mulp_polyOver, divp_polyOver, modp_polyOver, minPolyOver) //.
 rewrite derivD derivM !{1}horner_add !{1}horner_mul minPolyxx !{1}mulr0 !{1}add0r.
-rewrite mulr_addl addrA [_ + (_ * _ * _)]addrC {2}/Dx /horner_morph -mulrA -/Dx.
+rewrite mulrDl addrA [_ + (_ * _ * _)]addrC {2}/Dx /horner_morph -mulrA -/Dx.
 by rewrite [((minPoly K x)^`()).[x] * _]mulrC (mulfVK sep) mulrN addKr.
 Qed.
 
@@ -1267,8 +1258,8 @@ apply/allP => v; move/memv_basis => Hv.
 apply/eqP.
 rewrite -(poly_for_eq Hu) -(poly_for_eq Hv) -horner_mul !{1}DerivationExtend_Poly
         ?{1}mulp_polyOver ?{1}poly_for_polyOver // /horner_morph (Derivation_mulp HD)
-        ?{1}poly_for_polyOver // derivM !{1}horner_add !{1}horner_mul !{1}mulr_addl 
-        !{1}mulr_addr -!addrA; congr (_ + _).
+        ?{1}poly_for_polyOver // derivM !{1}horner_add !{1}horner_mul !{1}mulrDl 
+        !{1}mulrDr -!addrA; congr (_ + _).
 move:Dx => Dx0.
 rewrite -!{1}mulrA [(Dx0 _) * _]mulrC !{1}addrA; congr (_ + _).
 by rewrite addrC.
@@ -1306,7 +1297,7 @@ pose D_body y := ((poly_for_Fadjoin K x y)^`()).[x].
 have Dlin : linear D_body.
  move => a u v.
  by rewrite /D_body poly_is_linear -mul_polyC derivD derivM derivC mul0r
-            add0r horner_add horner_mul hornerC -scaler_mull mul1r.
+            add0r horner_add horner_mul hornerC -scalerAl mul1r.
 pose D := lapp_of_fun D_body.
 have DF : (K <= lker D)%VS.
  apply/subvP => v vK.
@@ -1330,7 +1321,7 @@ have Dx : D x = 1.
   rewrite size_polyX ltn_neqAle andbT eq_sym.
   apply: contra nsep.
   move/eqP => eD.
-  rewrite separable_nzdmp (_ : (minPoly K x)^`() = 1%:P)  ?nonzero1r //.
+  rewrite separable_nzdmp (_ : (minPoly K x)^`() = 1%:P)  ?oner_neq0 //.
   apply/polyP => i.
   rewrite coef_deriv coefC.
   case: i => [|i].
@@ -1349,7 +1340,7 @@ move/(_ _ memx_Fadjoin).
 rewrite memv_ker.
 move/eqP ->.
 rewrite eq_sym.
-by apply: nonzero1r.
+by apply: oner_neq0.
 Qed.
 
 End MoreFadjoin.
@@ -1453,7 +1444,7 @@ case Hsep : (separableElement K x); first by exists 1%N.
 case/negbT/separableNXp : Hsep => p Hp [g HKg Hg].
 suff: elementDegree K (x ^+ p) <= n.
  case/IHn => m; case/andP => Hm.
- rewrite -exprn_mulr => Hsepxpm.
+ rewrite -exprM => Hsepxpm.
  exists (p * m)%N => //.
  by rewrite pnat_mul pnatE ?(charf_prime Hp) // Hp Hm.
 rewrite -ltnS (leq_trans _ Hdeg) // -size_minPoly -ltnS -size_minPoly.
@@ -1513,7 +1504,7 @@ wlog: e x / e = 0%N.
  move => H.
  elim: e.+1; first by rewrite expr1 memx_Fadjoin.
  move => {e} e IH Hsep.
- rewrite expnS mulnC exprn_mulr -{2}[p]expn1.
+ rewrite expnS mulnC exprM -{2}[p]expn1.
  have : (Fadjoin K (x ^+ (p ^ e)) <= Fadjoin K (x ^+ (p ^ e) ^+ (p ^ 1)))%VS.
   move/allSeparableElement: Hsep => Hsep.
   by rewrite -subsetFadjoinE subsetKFadjoin H ?Hsep ?memv_exp ?memx_Fadjoin.
@@ -1534,7 +1525,7 @@ rewrite separable_mul.
 have Hp' : p \in [char {poly L}] by apply: (rmorph_char (polyC_rmorphism _)).
 case/and3P => _ _ Hc.
  have : (coprimep c g).
- rewrite /g polyC_exp -!(Frobenius_autE Hp') -rmorph_sub.
+ rewrite /g polyC_exp -!(Frobenius_autE Hp') -rmorphB.
  rewrite [_ (_ - _)]Frobenius_autE -(prednK (prime_gt0 (charf_prime Hp))).
  elim: p.-1 => [|n]; first by rewrite expr1.
  by rewrite [_ ^+ _.+2]exprS coprimep_mulr Hc.
@@ -1542,7 +1533,7 @@ move/coprimepP/(_ _ (dvdpp c))/(_ (dvdp_trans (dvdp_mulr _ (dvdpp c)) Hcg)).
 rewrite -size_poly_eq1.
 move/eqP => Hszc.
 move: HK'c (Hszc).
-rewrite (size1_polyC (eq_leq Hszc)) size_polyC mulr_addr -polyC_opp -polyC_mul.
+rewrite (size1_polyC (eq_leq Hszc)) size_polyC mulrDr -polyC_opp -polyC_mul.
 move/polyOverP => Hx.
 move: (Hx 1%N) (Hx 0%N).
 rewrite !coefD !coefMX !coefC add0r addr0 => Hx1 Hx0.
@@ -1605,7 +1596,7 @@ case/p_natP => em ->.
 rewrite (separableCharp _ _ (em - en.+1)%N Hp) => Hsepn.
 rewrite ltn_exp2l; last by apply/prime_gt1/(charf_prime Hp).
 move/subnKC <-.
-rewrite addSnnS expn_add exprn_mulr FadjoinxK.
+rewrite addSnnS expn_add exprM FadjoinxK.
 by move/eqP <-.
 Qed.
 
@@ -1621,7 +1612,7 @@ case/andP => Hn Hsepn Hmin.
 apply: (iffP idP); last by apply.
 move => Hk m Hm Hsepm.
 move/andP/Hmin: (conj Hm Hsepm) => Hnm.
-rewrite -(@divnK n m); first by rewrite mulnC exprn_mulr memv_exp.
+rewrite -(@divnK n m); first by rewrite mulnC exprM memv_exp.
 apply/dvdn_partP; first by case/andP: Hn.
 move => p.
 move/(pnatPpi Hn) => Hp.
@@ -1719,7 +1710,7 @@ move/ffunP.
 rewrite (distnEr Ha) => Hha.
 have Hza: (z ^+ a1 != 0) by exact: expf_neq0.
 apply/eqP.
-rewrite -(can_eq (mulfK Hza)) -exprn_addr mul1r subnK //.
+rewrite -(can_eq (mulfK Hza)) -exprD mul1r subnK //.
 apply/eqP; symmetry.
 have Hzi : forall i,  z ^+ i \in Fadjoin K z.
  by move => i; apply: memv_exp; exact: memx_Fadjoin.
@@ -1767,8 +1758,8 @@ pose fT := seq_sub_finType l.
 have Hl : forall i j, x ^+ i * y ^+ j \in l.
  move => i j.
  rewrite (divn_eq i (a.+2)) (divn_eq j (b.+2)).
- rewrite !exprn_addr ![(_ * _.+2)%N]mulnC !exprn_mulr.
- rewrite Hxa Hyb !exp1rn !mul1r.
+ rewrite !exprD ![(_ * _.+2)%N]mulnC !exprM.
+ rewrite Hxa Hyb !expr1n !mul1r.
  apply/allpairsP.
  exists (Ordinal (@ltn_pmod i (a.+2) (ltn0Sn _))
         ,Ordinal (@ltn_pmod j (b.+2) (ltn0Sn _)));
@@ -1778,7 +1769,7 @@ have HmulgT : forall (i j:fT), (val i) * (val j) \in l.
  case => ? /=; move/allpairsP => [[jx jy] [_ _ ->]].
  rewrite /h0 /=.
  rewrite -mulrA [y ^+ iy * _]mulrA [y ^+ iy * _]mulrC -mulrA mulrA.
- by rewrite -!exprn_addr.
+ by rewrite -!exprD.
 pose mulgT := fun (i j:fT) => SeqSub (HmulgT i j):fT.
 have HonegT : 1 \in l.
  by rewrite -[1]mulr1 -{1}(expr0 x) -(expr0 y).
@@ -1786,11 +1777,11 @@ pose onegT := SeqSub (HonegT):fT.
 have HinvT : forall i:fT, (val i)^-1 \in l.
  case => ? /=; move/allpairsP => [[ix iy] [_ _ ->]].
  rewrite /h0 /=.
- rewrite invf_mul.
+ rewrite invfM.
  rewrite -[x ^- ix]mul1r -Hxa -{1}[a.+2](subnK (ltnW (ltn_ord ix))) 
-         exprn_addr mulfK ?expf_neq0 //.
+         exprD mulfK ?expf_neq0 //.
  by rewrite -[y ^- iy]mul1r -Hyb -{1}[b.+2](subnK (ltnW (ltn_ord iy)))
-            exprn_addr mulfK ?expf_neq0.
+            exprD mulfK ?expf_neq0.
 pose invgT := fun i:fT => SeqSub (HinvT i):fT.
 have mulgTA : associative mulgT.
  move => [i ?] [j ?] [k ?].
@@ -1981,7 +1972,7 @@ case/purelyInseparableElementP => m Hm Hy.
 apply/purelyInseparableElementP.
 have Hnm : [char L].-nat (n * m)%N by rewrite pnat_mul Hn Hm.
 exists (n * m)%N => //.
-by rewrite exprp_addl // {2}mulnC !exprn_mulr memvD // memv_exp.
+by rewrite exprDn_char // {2}mulnC !exprM memvD // memv_exp.
 Qed.
 
 Lemma inseparable_sum : forall I r (P : pred I) (v_ : I -> L),
@@ -2031,7 +2022,7 @@ have : (vbasis E)`_i \in vbasis E.
 case/HEK/purelyInseparableElementP => n Hn HK.
 apply/purelyInseparableElementP.
 exists n => //.
-by rewrite scaler_exp memvZl.
+by rewrite exprZn memvZl.
 Qed.
 
 End SeparableAndInseparableExtensions.
@@ -2216,7 +2207,7 @@ rewrite -{1}[y]FermatLittleTheorem.
  by rewrite expn0 -{1}(subnK (finField_card_gt1 F)) addnC.
 rewrite -expn_mulr.
 suff -> : (n.+1 * (vdim L))%N = (n.+1 * (vdim L)).-1.+1.
- by rewrite expnS exprn_mulr memv_exp // memx_Fadjoin.
+ by rewrite expnS exprM memv_exp // memx_Fadjoin.
 rewrite prednK // muln_gt0.
 apply: (@leq_trans (elementDegree (fullv L) 1)) => //.
 apply: elementDegreeBound.

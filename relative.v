@@ -278,30 +278,30 @@ rewrite /zprojr; split; last by rewrite /= sub0n subn0 subr0.
   rewrite ?(subn0,sub0n,add0n,addn0,subr0,sub0r).
   + case: (leqP a b); [move=> lxy | move/ltnW=> lxy].
       move:(lxy); rewrite -subn_eq0; move/eqP->.
-      rewrite sub0r -{2}(subnK lxy) natr_add.
-      by rewrite -oppr_sub -addrA subrr addr0.
+      rewrite sub0r -{2}(subnK lxy) natrD.
+      by rewrite -opprB -addrA subrr addr0.
     move:(lxy); rewrite -subn_eq0; move/eqP->.
-    by rewrite subr0 -{2}(subnK lxy) natr_add -addrA subrr addr0.
-  + by rewrite opprK natr_add.
-  + by rewrite natr_add oppr_add.
+    by rewrite subr0 -{2}(subnK lxy) natrD -addrA subrr addr0.
+  + by rewrite opprK natrD.
+  + by rewrite natrD opprD.
   + case: (leqP a b); [move=> lxy | move/ltnW=> lxy].
       move:(lxy); rewrite -subn_eq0; move/eqP->.
-      rewrite subr0 -{2}(subnK lxy) natr_add.
-      by rewrite oppr_add oppr_sub addrA addNr add0r opprK.
+      rewrite subr0 -{2}(subnK lxy) natrD.
+      by rewrite opprD opprB addrA addNr add0r opprK.
     move:(lxy); rewrite -subn_eq0; move/eqP->.
-    rewrite sub0r opprK -{2}(subnK lxy) natr_add. 
-    by rewrite oppr_add -addrA addNr addr0.
+    rewrite sub0r opprK -{2}(subnK lxy) natrD. 
+    by rewrite opprD -addrA addNr addr0.
 elim/relPN=> a; elim/relPN=> b /=;
 rewrite ?(subn0,sub0n,muln0,addn0,add0n,subr0,sub0r).
-+ by rewrite natr_mul.
-+ by rewrite natr_mul mulrN.
-+ by rewrite natr_mul mulNr.
-+ by rewrite natr_mul mulrN mulNr opprK.
++ by rewrite natrM.
++ by rewrite natrM mulrN.
++ by rewrite natrM mulNr.
++ by rewrite natrM mulrN mulNr opprK.
 Qed.
 Hint Resolve zprojrM.
 
 
-Lemma zscaler_mul : forall a b m, zscaler  a (zscaler b m) = zscaler (a * b) m.
+Lemma zscalerA : forall a b m, zscaler  a (zscaler b m) = zscaler (a * b) m.
 Proof. 
 by move=> a b m; rewrite /zscaler mulrA; congr (_*_); rewrite ringM_mul.
 Qed.
@@ -309,14 +309,14 @@ Qed.
 Lemma zscale1r :  left_id 1 zscaler.
 Proof. by move=> a; rewrite /zscaler /= ringM_1 // mul1r. Qed.
 
-Lemma zscaler_addrM : forall a, {morph zscaler a : m n / m + n}.
-Proof. by move=> a m n; rewrite /zscaler mulr_addr. Qed.
+Lemma zscalerDrM : forall a, {morph zscaler a : m n / m + n}.
+Proof. by move=> a m n; rewrite /zscaler mulrDr. Qed.
 
-Lemma zscaler_addzM : forall m,  {morph zscaler^~ m : a b / a + b}.
-Proof. by move=> m a b; rewrite /zscaler ringM_add // mulr_addl. Qed.
+Lemma zscalerDzM : forall m,  {morph zscaler^~ m : a b / a + b}.
+Proof. by move=> m a b; rewrite /zscaler ringM_add // mulrDl. Qed.
 
-Definition Z_LmoduleMixin := LmodMixin zscaler_mul zscale1r
-zscaler_addrM zscaler_addzM.
+Definition Z_LmoduleMixin := LmodMixin zscalerA zscale1r
+zscalerDrM zscalerDzM.
 
 End zprojR.
 
@@ -497,7 +497,7 @@ rewrite 2!big_ord_recl nderivn0 nderivn1 GRing.expr0 GRing.expr1 GRing.mulr1
         Hn GRing.addrA (GRing.ringM_add (zprojp_morph (p^ i.+1))).
 set f := (n * [p ^ i]%z)%R.
 rewrite -GRing.mulrN GRing.mulrA [(_ * f)%R]GRing.mulrC
-        -GRing.mulrA -{1}[f](GRing.mulr1) -GRing.mulr_addr.
+        -GRing.mulrA -{1}[f](GRing.mulr1) -GRing.mulrDr.
 have: (1 + (deriv P).[a] * - [Pa'^-1]%z)%R %% p == 0%R.
   move: Ep'a; rewrite/Pa'.
   elim/relPM : (horner _) => x Hx.
@@ -518,7 +518,7 @@ have: (1 + (deriv P).[a] * - [Pa'^-1]%z)%R %% p == 0%R.
     by rewrite [(1 %% k)%N]modn_small // subnKC // modnn.
   move=> H; rewrite (GRing.ringM_opp (zprojp_morph p)) GRing.invrN.
   rewrite (@zp_opp p ((zprojp p x)^-1)%R).
-    rewrite GRing.mulrN GRing.mulNr GRing.opprK GRing.mulr_addr
+    rewrite GRing.mulrN GRing.mulNr GRing.opprK GRing.mulrDr
             [(x * _ + _)%R]GRing.addrC GRing.addrA
             (GRing.ringM_add (zprojp_morph p)).
     have F1: p.-2.+2 = p by rewrite Zp_cast // prime_gt1.
@@ -540,8 +540,8 @@ rewrite /f [(n * _)%R]GRing.mulrC -[(([_]%z * _) * _)%R]GRing.mulrA.
 set v2 := (n * _ )%R.
 by rewrite GRing.mulrC [(_ * v2)%R]GRing.mulrC GRing.exprS -2!GRing.mulrA 
            GRing.mulrC GRing.exprS [(v2 * _)%R]GRing.mulrC !GRing.mulrA
-           expn_expr -GRing.exprn_addr -{4}(ltn_predK Hi) -addSnnS 
-           GRing.exprn_addr -!GRing.mulrA -!expn_expr zprojp_mul0r.
+           expn_expr -GRing.exprD -{4}(ltn_predK Hi) -addSnnS 
+           GRing.exprD -!GRing.mulrA -!expn_expr zprojp_mul0r.
 Qed.
 
 End Pol.

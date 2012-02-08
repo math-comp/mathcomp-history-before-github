@@ -117,11 +117,11 @@ rewrite (ler_trans (ler_abs_add _ _)) // addrC ler_add //.
   by rewrite expr0 mulr1.
 rewrite absrM.
 move: ihp=> /(ler_wpmul2r (absr_ge0 x)) /ler_trans-> //.
-rewrite -mulr_suml ler_sum // => i _.
+rewrite mulr_suml ler_sum // => i _.
 rewrite coefD coefC coefMX /= addr0 exprSr mulrA.
 rewrite ler_wpmul2l //.
   by rewrite ?mulr_ge0 ?exprn_ge0 ?ler_maxr ?addr_ge0 ?absr_ge0 // ltrW.
-rewrite (ger0_abs r_ge0) ler_absl oppr_add.
+rewrite (ger0_abs r_ge0) ler_absl opprD.
 rewrite (ler_trans _ lx) ?(ler_trans ux) // ler_add2r.
   by rewrite ler_absr lerr.
 by rewrite ler_oppl ler_absr lerr orbT.
@@ -148,7 +148,7 @@ have [|r_lt0] := lerP 0 r; last first.
   by move=> hr; have := ler_lt_trans hr r_lt0; rewrite absr_lt0.
 rewrite ler_eqVlt=> /orP[/eqP->|r_gt0 hx hy].
   by rewrite !absr_le0 !subr_eq0=> /eqP-> /eqP->; rewrite !subrr absr0 mul0r.
-rewrite mulrA mulr_addr mulr1 ler_paddl ?mulr_ge0 ?absr_ge0 //=.
+rewrite mulrA mulrDr mulr1 ler_paddl ?mulr_ge0 ?absr_ge0 //=.
   by rewrite exprn_ge0 ?ler_maxr ?mulr_ge0 ?ger0E ?ltrW.
 rewrite -{1}(addNKr x y) [- _ + _]addrC /= -mulrA.
 rewrite nderiv_taylor; last exact: mulrC.
@@ -156,7 +156,7 @@ have [->|p_neq0] := eqVneq p 0.
   rewrite size_poly0 big_ord0 horner0 subr0 absr0 mulr_ge0 ?absr_ge0 //.
   by rewrite big_ord0 mulr0 lerr.
 rewrite -[size _]prednK ?lt0n ?size_poly_eq0 //.
-rewrite big_ord_recl expr0 mulr1 nderivn0 addrC addKr -!mulr_sumr.
+rewrite big_ord_recl expr0 mulr1 nderivn0 addrC addKr !mulr_sumr.
 have := ler_trans (ler_abs_sum _ _ _); apply.
 rewrite ler_sum // => i _.
 rewrite exprSr mulrA !absrM mulrC ler_wpmul2l ?absr_ge0 //.
@@ -165,14 +165,14 @@ suff /ler_wpmul2l /ler_trans :
   apply; rewrite ?absr_ge0 // mulrC ler_wpmul2l ?poly_boundP //.
   by rewrite ?exprn_ge0 // ler_maxr ler01 mulr_ge0 ?ler0n ?ltrW.
 case: maxrP=> hr.
-  rewrite exp1rn absrX exprn_ile1 ?absr_ge0 //.
+  rewrite expr1n absrX exprn_ile1 ?absr_ge0 //.
   rewrite (ler_trans (ler_dist_add a _ _)) // addrC distrC.
-  by rewrite (ler_trans _ hr) // mulr_addl ler_add ?mul1r.
+  by rewrite (ler_trans _ hr) // mulrDl ler_add ?mul1r.
 rewrite (@ler_trans _ ((2%:R * r) ^+ i)) //.
   rewrite absrX @ler_expn2r -?topredE /= ?absr_ge0 ?mulr_ge0 ?ler0n //.
     by rewrite ltrW.
   rewrite (ler_trans (ler_dist_add a _ _)) // addrC distrC.
-  by rewrite mulr_addl ler_add ?mul1r.
+  by rewrite mulrDl ler_add ?mul1r.
 by rewrite ler_eexpn2l // ltnW.
 Qed.
 
@@ -293,7 +293,7 @@ rewrite ler_eqVlt=> /orP[/eqP->|r_gt0].
   rewrite !absr_le0 !subr_eq0.
   by move=> nxy /eqP xa /eqP xb; rewrite xa xb eqxx in nxy.
 move=> neq_xy hx hy.
-rewrite mulrA mulr_addr mulr1 ler_paddl ?mulr_ge0 ?absr_ge0 //=.
+rewrite mulrA mulrDr mulr1 ler_paddl ?mulr_ge0 ?absr_ge0 //=.
   by rewrite exprn_ge0 ?ler_maxr ?mulr_ge0 ?ger0E ?ltrW.
 rewrite -{1}(addNKr x y) [- _ + _]addrC /= -mulrA.
 rewrite nderiv_taylor; last exact: mulrC.
@@ -304,10 +304,10 @@ rewrite big_ord_recl expr0 mulr1 nderivn0 /= -size_deriv.
 have [->|p'_neq0] := eqVneq p^`() 0.
   by rewrite horner0 size_poly0 !big_ord0 addr0 !(subrr, mul0r) absr0 !mulr0.
 rewrite -[size _]prednK ?lt0n ?size_poly_eq0 // big_ord_recl expr1.
-rewrite addrAC subrr add0r mulr_addl mulfK; last by rewrite subr_eq0 eq_sym.
-rewrite nderivn1 addrAC subrr add0r -mulr_sumr absrM absrV.
+rewrite addrAC subrr add0r mulrDl mulfK; last by rewrite subr_eq0 eq_sym.
+rewrite nderivn1 addrAC subrr add0r mulr_sumr absrM absrV.
 rewrite ler_pdivr_mulr ?absr_gt0; last by rewrite subr_eq0 eq_sym.
-rewrite mulrAC -expr2 mulrC -mulr_suml.
+rewrite mulrAC -expr2 mulrC mulr_suml.
 have := ler_trans (ler_abs_sum _ _ _); apply.
 rewrite ler_sum // => i _ /=; rewrite /bump /= !add1n.
 rewrite absrM absrX 3!exprSr expr1 !mulrA !ler_wpmul2r ?absr_ge0 //.
@@ -316,14 +316,14 @@ suff /ler_wpmul2l /ler_trans :
   apply; rewrite ?absr_ge0 // mulrC ler_wpmul2l ?poly_boundP //.
   by rewrite ?exprn_ge0 // ler_maxr ler01 mulr_ge0 ?ler0n ?ltrW.
 case: maxrP=> hr.
-  rewrite exp1rn exprn_ile1 ?absr_ge0 //.
+  rewrite expr1n exprn_ile1 ?absr_ge0 //.
   rewrite (ler_trans (ler_dist_add a _ _)) // addrC distrC.
-  by rewrite (ler_trans _ hr) // mulr_addl ler_add ?mul1r.
+  by rewrite (ler_trans _ hr) // mulrDl ler_add ?mul1r.
 rewrite (@ler_trans _ ((2%:R * r) ^+ i)) //.
   rewrite @ler_expn2r -?topredE /= ?absr_ge0 ?mulr_ge0 ?ler0n //.
     by rewrite ltrW.
   rewrite (ler_trans (ler_dist_add a _ _)) // addrC distrC.
-  by rewrite mulr_addl ler_add ?mul1r.
+  by rewrite mulrDl ler_add ?mul1r.
 by rewrite ler_eexpn2l // ltnW.
 Qed.
 
@@ -377,7 +377,7 @@ Lemma accr_negN p a r : accr_pos p a r -> accr_neg (- p) a r.
 Proof.
 case=> [[k k_gt0 hk] h].
 split; [ exists k=> // x y nxy hx hy;
-    by rewrite !horner_opp -oppr_add mulNr ltr_opp2; apply: hk
+    by rewrite !horner_opp -opprD mulNr ltr_opp2; apply: hk
   | by move=> x hx; rewrite derivN horner_opp oppr_lt0; apply: h ].
 Qed.
 
@@ -385,7 +385,7 @@ Lemma accr_posN p a r : accr_neg p a r -> accr_pos (- p) a r.
 Proof.
 case=> [[k k_gt0 hk] h].
 split; [ exists k=> // x y nxy hx hy;
-    by rewrite !horner_opp -oppr_add mulNr ltr_oppr; apply: hk
+    by rewrite !horner_opp -opprD mulNr ltr_oppr; apply: hk
   | by move=> x hx; rewrite derivN horner_opp oppr_gt0; apply: h ].
 Qed.
 
@@ -419,8 +419,8 @@ move=> r1_gt0 r2_gt0 le_ar.
 rewrite /merge_intervals /=.
 set l := minr _ _; set u := maxr _ _.
 rewrite ler_pdivl_mulr ?gtr0E // -{2}[2%:R]ger0_abs ?ger0E //.
-rewrite -absrM mulr_subl mulfVK ?pnatr_eq0 // ler_distl.
-rewrite oppr_sub addrCA addrK (addrC (l + u)) addrA addrNK.
+rewrite -absrM mulrBl mulfVK ?pnatr_eq0 // ler_distl.
+rewrite opprB addrCA addrK (addrC (l + u)) addrA addrNK.
 rewrite -!mulr2n !mulr_natr !ler_muln2r !orFb.
 rewrite ler_minl ler_maxr !ler_distl.
 have [] := lerP=> /= a1N; have [] := lerP=> //= a1P;
@@ -428,7 +428,7 @@ have [] := lerP=> //= a2P; rewrite ?(andbF, andbT) //; symmetry.
   rewrite ltrW // (ler_lt_trans _ a1P) //.
   rewrite (monoLR (addrK _) (ler_add2r _)) -addrA.
   rewrite (monoRL (addNKr _) (ler_add2l _)) addrC.
-  by rewrite (ler_trans _ le_ar) // ler_absr oppr_sub lerr orbT.
+  by rewrite (ler_trans _ le_ar) // ler_absr opprB lerr orbT.
 rewrite ltrW // (ltr_le_trans a1N) //.
 rewrite (monoLR (addrK _) (ler_add2r _)) -addrA.
 rewrite (monoRL (addNKr _) (ler_add2l _)) addrC ?[r2 + _]addrC.
@@ -456,15 +456,15 @@ move=> [] accr2_p; last first.
   apply: (ltr_trans (pm_gt0 _) (pm_lt0 _)).
     rewrite -(@ler_pmul2l _ (r1 + r2)) //.
     rewrite -{1}[r1 + r2]ger0_abs ?(ltrW r_gt0) //.
-    rewrite -absrM mulr_subr /m mulrC mulrVK ?unitfE ?gtr_eqF //.
-    rewrite mulr_addl oppr_add addrA addrC addrA addKr.
-    rewrite distrC -mulr_subr absrM ger0_abs ?(ltrW r1_gt0) //.
+    rewrite -absrM mulrBr /m mulrC mulrVK ?unitfE ?gtr_eqF //.
+    rewrite mulrDl opprD addrA addrC addrA addKr.
+    rewrite distrC -mulrBr absrM ger0_abs ?(ltrW r1_gt0) //.
     by rewrite mulrC ler_wpmul2r // ltrW.
   rewrite -(@ler_pmul2l _ (r1 + r2)) //.
   rewrite -{1}[r1 + r2]ger0_abs ?(ltrW r_gt0) //.
-  rewrite -absrM mulr_subr /m mulrC mulrVK ?unitfE ?gtr_eqF //.
-  rewrite mulr_addl oppr_add addrA addrK.
-  rewrite -mulr_subr absrM ger0_abs ?(ltrW r2_gt0) //.
+  rewrite -absrM mulrBr /m mulrC mulrVK ?unitfE ?gtr_eqF //.
+  rewrite mulrDl opprD addrA addrK.
+  rewrite -mulrBr absrM ger0_abs ?(ltrW r2_gt0) //.
   by rewrite mulrC ler_wpmul2r // ltrW.
 case: accr2_p=> [[k2 k2_gt0 hk2]] h2.
 left; split; last by move=> x; rewrite split_interval // => /orP [/h1|/h2].
@@ -473,7 +473,7 @@ move=> x y neq_xy; rewrite !split_interval //.
 wlog lt_xy: x y neq_xy / y < x.
   move=> hwlog; have [] := ltrP y x; first exact: hwlog.
   rewrite ler_eqVlt eq_sym (negPf neq_xy) /= => /hwlog hwlog' hx hy.
-  rewrite -mulrNN -!invrN !oppr_sub.
+  rewrite -mulrNN -!invrN !opprB.
   by apply: hwlog'; rewrite // eq_sym.
 move=> {h1} {h2} {sm1}.
 wlog le_xr1 : a1 a2 r1 r2 k1 k2
@@ -490,7 +490,7 @@ have hz1 : `|z - a1| <= r1 by rewrite addrC addKr absrN gtr0_abs.
 have gt_yr1' : y + r1 < a1.
   rewrite addrC; move: gt_yr1.
   rewrite (monoLR (addrNK _) (ltr_add2r _)).
- rewrite /z ltr_absr oppr_sub=> /orP[|-> //].
+ rewrite /z ltr_absr opprB=> /orP[|-> //].
   rewrite (monoRL (addrK _) (ltr_add2r _))=> /ltr_trans /(_ lt_xy).
   by rewrite ltrNge addrC; move: le_xr1; rewrite ler_distl=> /andP [_ ->].
 have lt_yz : y < z by rewrite (monoRL (addrK _) (ltr_add2r _)).
@@ -508,7 +508,7 @@ have lt_zx : z < x.
   move: le_xr1; rewrite distrC ler_absl=> /andP[_].
   by rewrite !(monoLR (addrK _) (ler_add2r _)) addrC.
 rewrite -{1}[x](addrNK z) -{1}[p.[x]](addrNK p.[z]).
-rewrite !addrA -![_ - _ + _ - _]addrA mulr_addr ltr_add //.
+rewrite !addrA -![_ - _ + _ - _]addrA mulrDr ltr_add //.
   rewrite -ltr_pdivl_mulr ?subr_gt0 //.
   by rewrite ltr_minl hk1 ?gtr_eqF.
 rewrite  -ltr_pdivl_mulr ?subr_gt0 //.
@@ -718,7 +718,7 @@ Qed.
 (* Proof. *)
 (* case/sigW=> e /andP[e_gt0 hxy]. *)
 (* exists e=> // i hi hj; move: hxy; rewrite !lerNgt; apply: contra=> hxy. *)
-(* rewrite !mulr_addr !mulr1 distrC (@ltr_distl_creal i) //. *)
+(* rewrite !mulrDr !mulr1 distrC (@ltr_distl_creal i) //. *)
 (* by rewrite distrC ltrW // (@ltr_distl_creal i) // ltrW. *)
 (* Qed. *)
 
@@ -732,7 +732,7 @@ Proof.
 rewrite /lbound; case: (sigW _)=> /= d /andP[d_gt0 hd] hi hj.
 apply: contraLR hd; rewrite -!ltrNge=> hd.
 rewrite (@ltr_distl_creal d i) // distrC ltrW // (@ltr_distl_creal d i) //.
-by rewrite distrC ltrW // !mulr_addr mulr1 !addrA !addrK.
+by rewrite distrC ltrW // !mulrDr mulr1 !addrA !addrK.
 Qed.
 
 Notation lbound_of p := (@lboundP _ _ p _ _ _).
@@ -881,7 +881,7 @@ Lemma diffP (x y : creal) (lt_xy : (x < y)%CR) i :
 Proof.
 rewrite /diff; case: (sigW _)=> /= e /andP[e_gt0 he] hi hj.
 rewrite ltrW // (@gtr_creal e (cauchymod y e)) // (ler_trans _ he) //.
-rewrite !mulr_addr mulr1 !addrA !ler_add2r ltrW //.
+rewrite !mulrDr mulr1 !addrA !ler_add2r ltrW //.
 by rewrite (@ltr_creal e (cauchymod x e)) // addrK.
 Qed.
 
@@ -902,9 +902,9 @@ move=> hi hj he; exists (e / 5%:R); rewrite pmulr_rgt0 ?gtr0E //=.
 rewrite ltrW // (@gtr_creal (e / 5%:R) j) ?pmulr_rgt0 ?gtr0E //.
 rewrite (ler_trans _ he) // -addrA (monoLR (addrNK _) (ler_add2r _)).
 rewrite ltrW // (@ltr_creal (e / 5%:R) i) ?pmulr_rgt0 ?gtr0E //.
-rewrite -!addrA ler_addl !addrA -mulrA -{1}[e]mulr1 -!(mulr_subr, mulr_addr).
-rewrite pmulr_rge0 // {1}[1](splitf 5) /= !mul1r !mulr_addr mulr1.
-by rewrite !oppr_add !addrA !addrK addrN.
+rewrite -!addrA ler_addl !addrA -mulrA -{1}[e]mulr1 -!(mulrBr, mulrDr).
+rewrite pmulr_rge0 // {1}[1](splitf 5) /= !mul1r !mulrDr mulr1.
+by rewrite !opprD !addrA !addrK addrN.
 Qed.
 
 Lemma le_crealP i (x y : creal) :
@@ -969,7 +969,7 @@ by move=> eps_gt0 hi; rewrite -(ltr_add2r eps) addNr -[0]/(0%CR i) lemodP.
 Qed.
 
 Lemma opp_crealP (x : creal) : creal_axiom (fun i => - x i).
-Proof. by case: x=> [x [m mP]]; exists m=> *; rewrite /= -oppr_add absrN mP. Qed.
+Proof. by case: x=> [x [m mP]]; exists m=> *; rewrite /= -opprD absrN mP. Qed.
 Definition opp_creal (x : creal) := CReal (opp_crealP x).
 Notation "-%CR" := opp_creal : creal_scope.
 Notation "- x" := (opp_creal x) : creal_scope.
@@ -977,7 +977,7 @@ Notation "- x" := (opp_creal x) : creal_scope.
 Lemma add_crealP (x y : creal) :  creal_axiom (fun i => x i + y i).
 Proof.
 exists_big_modulus m F.
-  move=> e i j he hi hj; rewrite oppr_add addrAC addrA -addrA [- _ + _]addrC.
+  move=> e i j he hi hj; rewrite opprD addrAC addrA -addrA [- _ + _]addrC.
   by rewrite split_abs_add ?cauchymodP ?divrn_gt0 //; big.
 by close.
 Qed.
@@ -1017,8 +1017,8 @@ Proof.
 exists_big_modulus m F.
 (* exists (fun e => [CC x # e / 2%:R / ubound y; y # e / 2%:R / ubound x]). *)
   move=> e i j e_gt0 hi hj.
-  rewrite -[_ * _]subr0 -(subrr (x j * y i)) oppr_add opprK addrA.
-  rewrite -mulr_subl -addrA -mulr_subr split_abs_add // !absrM.
+  rewrite -[_ * _]subr0 -(subrr (x j * y i)) opprD opprK addrA.
+  rewrite -mulrBl -addrA -mulrBr split_abs_add // !absrM.
     have /ler_wpmul2l /ler_lt_trans-> // := uboundP y i.
     by rewrite absr_ge0.
   rewrite -ltr_pdivl_mulr ?ubound_gt0 ?cauchymodP //; do ?by big.
@@ -1044,7 +1044,7 @@ exists_big_modulus m F.
     rewrite -!absr_gt0 !(ltr_le_trans _ (lbound0_of x_neq0)) ?lbound_gt0 //;
     by big.
   rewrite -(@ltr_pmul2r _ `|x i * x j|); last by rewrite absr_gt0 mulf_neq0.
-  rewrite -absrM !mulr_subl mulrA mulVf // mulrCA mulVf // mul1r mulr1.
+  rewrite -absrM !mulrBl mulrA mulVf // mulrCA mulVf // mul1r mulr1.
   apply: (@ltr_le_trans _ (e * d ^+ 2)); first apply: cauchymodP; do ?by big.
     by rewrite !pmulr_rgt0 ?lbound_gt0.
   rewrite ler_wpmul2l ?(ltrW e_gt0) // absrM.
@@ -1124,7 +1124,7 @@ Add Morphism add_creal with
 Proof.
 move=> x y eq_xy z t eq_zt; apply: eq_crealP.
 exists_big_modulus m F.
-  move=> e i e_gt0 hi; rewrite oppr_add addrA [X in X + _]addrAC -addrA.
+  move=> e i e_gt0 hi; rewrite opprD addrA [X in X + _]addrAC -addrA.
   by rewrite split_abs_add ?eqmodP ?divrn_gt0 //; big.
 by close.
 Qed.
@@ -1135,7 +1135,7 @@ Add Morphism opp_creal with
   signature eq_creal ==> eq_creal as opp_creal_morph.
 Proof.
 move=> x y /asympt_eq [m hm]; apply: eq_crealP; exists m.
-by move=> e i e_gt0 hi /=; rewrite -oppr_add absrN hm.
+by move=> e i e_gt0 hi /=; rewrite -opprD absrN hm.
 Qed.
 Global Existing Instance opp_creal_morph_Proper.
 
@@ -1145,7 +1145,7 @@ Proof.
 move=> x y eq_xy z t eq_zt; apply: eq_crealP.
 exists_big_modulus m F.
   move=> e i e_gt0 hi.
-  rewrite (@split_dist_add (y i * z i)) // -(mulr_subl, mulr_subr) absrM.
+  rewrite (@split_dist_add (y i * z i)) // -(mulrBl, mulrBr) absrM.
     have /ler_wpmul2l /ler_lt_trans-> // := uboundP z i.
       by rewrite absr_ge0.
     rewrite -ltr_pdivl_mulr ?ubound_gt0 ?eqmodP //; do ?by big.
@@ -1170,7 +1170,7 @@ move=> eq_xy; apply: eq_crealP; exists_big_modulus m F.
     rewrite (@ler_trans _ (`|x i| * lbound y_neq0)) //.
       by rewrite ler_wpmul2r ?lbound_ge0 ?lbound0P; do ?by big.
     by rewrite ler_wpmul2l ?absr_ge0 ?lbound0P; do ?by big.
-  rewrite -!absrM mulr_subl mulKf ?creal_neq0_always //; do ?by big.
+  rewrite -!absrM mulrBl mulKf ?creal_neq0_always //; do ?by big.
   rewrite mulrCA mulVf ?mulr1 ?creal_neq0_always //; do ?by big.
   by rewrite distrC eqmodP ?pmulr_rgt0 ?lbound_gt0; do ?by big.
 by close.
@@ -1201,7 +1201,7 @@ pose_big_enough i.
   rewrite (ltr_le_trans (@lemodP _ _ le_xy e' _ _ _)) //; first by big.
   rewrite -(monoLR (@addrNK _ _) (@ler_add2r _ _)) ltrW //.
   rewrite (ltr_le_trans _ (diff_of lxz)) //; do ?by big.
-  rewrite -addrA ler_lt_add // /e' -!mulr_addr gtr_pmulr ?diff_gt0 //.
+  rewrite -addrA ler_lt_add // /e' -!mulrDr gtr_pmulr ?diff_gt0 //.
   by rewrite [X in _ < X](splitf 4) /=  mul1r !ltr_addr ?gtr0E.
 by close.
 Qed.
@@ -1227,7 +1227,7 @@ Proof.
 move=> neq_xy; pose_big_enough i.
   have := (@lboundP _ _ neq_xy i); do ?big; move=> /(_ isT) /(_ isT).
   have [le_xy|/ltrW le_yx'] := lerP (x i) (y i).
-    rewrite ler0_abs ?subr_le0 // oppr_sub -(ler_add2r (x i)) ?addrNK addrC.
+    rewrite ler0_abs ?subr_le0 // opprB -(ler_add2r (x i)) ?addrNK addrC.
     by move=> /lt_crealP; rewrite ?lbound_gt0; do ?big; do ?move/(_ isT); left.
   rewrite ger0_abs ?subr_ge0 // -(ler_add2r (y i)) ?addrNK addrC.
   by move=> /lt_crealP; rewrite ?lbound_gt0; do ?big; do ?move/(_ isT); right.
@@ -1458,7 +1458,7 @@ suff : (p' * q').[x]  * (d ^+ (size p + size q)).[x] == 0.
   rewrite addn_gt0 lt0n size_poly_eq0 p_neq0=> /(_ isT) dx_eq0.
   by left; apply: dvdp_creal_eq0 dx_eq0; rewrite dvdp_gcdl.
 move: mul_px_qx_eq0; rewrite -!horner_crealM.
-rewrite exprn_addr mulrAC mulrA -mulrA [_ ^+ _ * _]mulrC.
+rewrite exprD mulrAC mulrA -mulrA [_ ^+ _ * _]mulrC.
 apply: dvdp_creal_eq0; rewrite ?dvdp_mul // dvdp_gdcor //;
 by rewrite gcdp_eq0 negb_and p_neq0.
 Qed.
@@ -1559,7 +1559,7 @@ pose_big_enough i.
     rewrite -ler_pdivl_mulr ?poly_accr_bound2_gt0 //.
     rewrite (@ler_trans _ (r * 2%:R)) //.
       rewrite (ler_trans (ler_dist_add (x i) _ _)) //.
-        by rewrite mulr_addr mulr1 ler_add // distrC.
+        by rewrite mulrDr mulr1 ler_add // distrC.
       by rewrite -ler_pdivl_mulr ?ltr0n // !ler_minl lerr !orbT.
     rewrite -ler_pdivl_mulr ?poly_accr_bound_gt0 //.
     by rewrite (@ler_trans _ r) // !ler_minl lerr !orbT.
@@ -1665,7 +1665,7 @@ set ui := _ ^+ _; set u := _ ^+ _; set vi := 1 + _.
 rewrite (@ler_trans _ (u * vi)) //.
   rewrite ler_wpmul2r //.
     by rewrite addr_ge0 ?ler01 // sumr_ge0 //= => j _; rewrite poly_bound_ge0.
-  rewrite /ui /u; case: maxrP; first by rewrite !exp1rn.
+  rewrite /ui /u; case: maxrP; first by rewrite !expr1n.
   move=> r2_gt1; rewrite ler_eexpn2l //.
   rewrite -subn1 leq_sub_add add1n (leq_trans _ (leqSpred _)) //.
   by rewrite leq_size_evalC.
@@ -1787,7 +1787,7 @@ Lemma horner_coef_creal p x :
 Proof.
 apply: eq_crealP; exists m0=> e n e_gt0 hn /=; rewrite horner_coef.
 rewrite (@big_morph _ _ (fun u : creal => u n) 0%R +%R) //.
-rewrite -sumr_sub /= big1 ?absr0=> //= i _.
+rewrite -sumrB /= big1 ?absr0=> //= i _.
 apply/eqP; rewrite subr_eq0; apply/eqP; congr (_ * _).
 case: val=> {i} // i; rewrite exprS /exp_creal iteropS.
 by elim: i=> [|i ihi]; rewrite ?expr0 ?mulr1 //= exprS ihi.

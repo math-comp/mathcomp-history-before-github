@@ -341,8 +341,8 @@ pose f x := rH x * val (nu x *+ m)%R.
 have{cocycle_nu} fM: {in G &, {morph f : x y / x * y}}.
   move=> x y Gx Gy; rewrite /f ?rHmul // -3!mulgA; congr (_ * _).
   rewrite (mulgA _ (rH y)) (conjgC _ (rH y)) -mulgA; congr (_ * _).
-  rewrite -fmvalJ ?actrH ?nHG ?GrH // -!fmvalA actZr -mulrn_addl.
-  rewrite  -(addrC (nu y)) cocycle_nu // mulrn_addl !fmvalA; congr (_ * _).
+  rewrite -fmvalJ ?actrH ?nHG ?GrH // -!fmvalA actZr -mulrnDl.
+  rewrite  -(addrC (nu y)) cocycle_nu // mulrnDl !fmvalA; congr (_ * _).
   by rewrite !fmvalZ expgnK ?fmodP.
 exists (Morphism fM @* G)%G; apply/complP; split.
   apply/trivgP/subsetP=> x /setIP[Hx /morphimP[y _ Gy eq_x]].
@@ -384,8 +384,8 @@ apply/subsetP=> _ /imsetP[x Kx ->]; rewrite conjgE mulgA (conjgC _ x).
 have Gx: x \in G by rewrite sKG.
 rewrite conjVg -mulgA -fmvalJ ?nHG // -fmvalN -fmvalA (_ : _ + _ = nu x)%R.
   by rewrite val_nu // mulKVg groupV mem_remgr // eqHL groupV.
-rewrite actZr -!mulNrn -mulrn_addl actr_sum.
-rewrite addrC (reindex_acts _ (actsRs_rcosets _ K) Kx) -sumr_sub /= -/Q.
+rewrite actZr -!mulNrn -mulrnDl actr_sum.
+rewrite addrC (reindex_acts _ (actsRs_rcosets _ K) Kx) -sumrB /= -/Q.
 rewrite (eq_bigr (fun _ => nu x)) => [|_ /imsetP[y Ky ->]]; last first.
   rewrite !rcosetE -rcosetM QeqLP.
   case: repr_rcosetP => z /setIP[Lz _]; case: repr_rcosetP => t /setIP[Lt _].

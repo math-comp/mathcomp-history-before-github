@@ -88,12 +88,12 @@ Proof. by move=> v; apply: val_inj; apply/ffunP=> g; rewrite ffunE mul1r. Qed.
 
 Lemma mulvg_addr : forall a u v, mulvg a (u + v) = (mulvg a u) + (mulvg a v).
 Proof.
-by move=> *; apply: val_inj; apply/ffunP=> g; rewrite !ffunE mulr_addr.
+by move=> *; apply: val_inj; apply/ffunP=> g; rewrite !ffunE mulrDr.
 Qed.
 
 Lemma mulvg_addl : forall u a b, mulvg (a + b) u = (mulvg a u) + (mulvg b u).
 Proof.
-by move=> *; apply: val_inj; apply/ffunP=> g; rewrite !ffunE mulr_addl.
+by move=> *; apply: val_inj; apply/ffunP=> g; rewrite !ffunE mulrDl.
 Qed.
 
 Definition gAlgLmodMixin :=
@@ -138,13 +138,13 @@ Qed.
 Lemma mulrg_addl : left_distributive mulrg addrg.
 Proof.
 move=> x y z; apply: val_inj; apply/ffunP=> g; rewrite !ffunE -big_split /=.
-by apply: eq_bigr => i _; rewrite galgE mulr_addl.
+by apply: eq_bigr => i _; rewrite galgE mulrDl.
 Qed.
 
 Lemma mulrg_addr : right_distributive mulrg addrg.
 Proof.
 move=> x y z; apply: val_inj; apply/ffunP=> g; rewrite !ffunE -big_split /=.
-by apply: eq_bigr => i _; rewrite galgE mulr_addr.
+by apply: eq_bigr => i _; rewrite galgE mulrDr.
 Qed.
 
 Lemma nong0g1 : g1 != 0 :> galg.
@@ -230,7 +230,7 @@ rewrite /gvspace (bigD1 (i*j)%g) /=; last by exact: groupM.
 apply: subv_trans (addvSl _ _).
 case/injvP: (Hu _ Hi)=> k ->; case/injvP: (Hv _ Hj)=> l ->.
 apply/injvP; exists (k * l).
-by rewrite -scaler_mull -scaler_mulr scalerA injGM.
+by rewrite -scalerAl -scalerAr scalerA injGM.
 Qed.
 
 Definition gaspace: {algebra galg} := ASpace gspace_def.

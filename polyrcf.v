@@ -65,7 +65,7 @@ Proof.
 move=> p q k; apply/eqP.
 rewrite -(inj_eq (@mulfI _ (k^-1)%:P  _)); last first.
   by rewrite polyC_eq0 invrK scalp_Ineq0.
-rewrite !mul_polyC scaler_addr scaler_mull !scalerA mulVf.
+rewrite !mul_polyC scalerDr scalerAl !scalerA mulVf.
   by rewrite invrK !scale1r divCp_spec.
 by rewrite invr_neq0 // scalp_Ineq0.
 Qed.
@@ -75,7 +75,7 @@ Lemma div_factor_spec :forall p x,
   p = (p %/ ('X - x%:P)) * ('X - x%:P) + (p %% ('X - x%:P)).
 Proof.
 move=> p x; rewrite {1}(@divfp_spec p ('X - x%:P)).
-by rewrite lead_coef_factor exp1rn invr1 !scale1r.
+by rewrite lead_coef_factor expr1n invr1 !scale1r.
 Qed.
 
 (* Todo : move to polydiv and change name *)
@@ -118,10 +118,10 @@ Qed.
 Lemma nth_root x n : x > 0 -> { y | y > 0 & y ^+ (n.+1) = x }.
 Proof.
 move=> l0x.
-case: (ltrgtP x 1)=> hx; last by exists 1; rewrite ?hx ?lter01// exp1rn.
+case: (ltrgtP x 1)=> hx; last by exists 1; rewrite ?hx ?lter01// expr1n.
   case: (@poly_ivt ('X ^+ n.+1 - x%:P) 0 1); first by rewrite ler01.
     rewrite ?(horner_lin,horner_exp) ?inE.
-    by rewrite exprS mul0r sub0r exp1rn oppr_cp0 subr_gte0/= !ltrW.
+    by rewrite exprS mul0r sub0r expr1n oppr_cp0 subr_gte0/= !ltrW.
   move=> y; case/andP=> [l0y ly1]; rewrite rootE ?(horner_lin,horner_exp).
   rewrite subr_eq0; move/eqP=> hyx; exists y=> //; rewrite ltr_neqAle l0y.
   rewrite andbT; apply/eqP=> y0; move: hyx; rewrite y0.
@@ -155,7 +155,7 @@ rewrite absrM (@ler_lt_trans _  (`|p.[y]| * d ^+ n.+1)) //.
   by rewrite ler_wpmul2l ?absrE // absrX ler_expn2r -?topredE /= ?absrE 1?ltrW.
 rewrite rootd mulrCA gtr_pmulr //.
 rewrite ltr_pdivr_mulr ?mul1r ?pmulr_rgt0 ?invr_gt0 ?ltr0Sn ?absrE //.
-rewrite mulr_addl mulr_addl divff; last by rewrite -mulr2n pnatr_eq0.
+rewrite mulrDl mulrDl divff; last by rewrite -mulr2n pnatr_eq0.
 rewrite !mul1r mulrC -ltr_subl_addr.
 by rewrite (ler_lt_trans _ (He' y _)) // ler_sub_dist.
 Qed.
@@ -247,7 +247,7 @@ move=> -> _ p0 p'a0 qb0; case: (sgrP (q.[a] * q.[b])); first 2 last.
 - move/eqP; rewrite mulf_eq0 (rootPf qb0) orbF; move/eqP=> qa0.
   by move: p'a0; rewrite ?root_mul rootE qa0 eqxx.
 - move=> hspq.
-  rewrite !derivCE subr0 !mul1r /= mulr_addl !natmulP.
+  rewrite !derivCE subr0 !mul1r /= mulrDl !natmulP.
   set xan := (('X - a%:P) ^+ n); set xbm := (('X - b%:P) ^+ m).
   have ->: ('X - a%:P) ^+ n.+1 = ('X - a%:P) * xan by rewrite exprS.
   have ->: ('X - b%:P) ^+ m.+1 = ('X - b%:P) * xbm by rewrite exprS.
@@ -255,13 +255,13 @@ move=> -> _ p0 p'a0 qb0; case: (sgrP (q.[a] * q.[b])); first 2 last.
   have fac : forall x y z : {poly R}, x * (y * xbm) * (z * xan)
     = (y * z * x) * (xbm * xan).
     by move=> x y z; rewrite mulrCA !mulrA [_ * y]mulrC mulrA.
-  rewrite !fac -!mulr_addl; set r := _ + _ + _.
+  rewrite !fac -!mulrDl; set r := _ + _ + _.
   case: (@ivt_sign (sgr q.[b] *: r) a b); first exact: ltrW.
     rewrite !horner_scaler !sgrM sgr_id mulrCA !mulrA mulr_sg (rootPf qb0) mul1r.
     rewrite /r !(subrr, mul0r, mulr0, addr0, add0r, hornerC, horner_factor,
       horner_add, horner_opp, horner_mul, horner_mulrn).
     rewrite [_ * _%:R]mulrC -!mulrA !natmulP !mulrzl !sgrMz -sgrM.
-    rewrite mulrAC mulrA -mulrA sgrM -oppr_sub mulNr sgrN sgrM mulr_sg.
+    rewrite mulrAC mulrA -mulrA sgrM -opprB mulNr sgrN sgrM mulr_sg.
     rewrite subr_eq0 gtr_eqF // mulN1r.
     by apply/eqP; rewrite eqr_opp sgr_cp0 mulrC.
 move=> c lacb; rewrite rootE horner_scaler mulf_eq0.
@@ -569,7 +569,7 @@ End RootsOn.
 (* Definition symr (a x : R) := a - x. *)
 
 (* Lemma symr_inv : forall a, involutive (symr a). *)
-(* Proof. by move=> a y; rewrite /symr oppr_add addrA subrr opprK add0r. Qed. *)
+(* Proof. by move=> a y; rewrite /symr opprD addrA subrr opprK add0r. Qed. *)
 
 (* Lemma symr_inj : forall a, injective (symr a). *)
 (* Proof. by move=> a; apply: inv_inj; apply: symr_inv. Qed. *)

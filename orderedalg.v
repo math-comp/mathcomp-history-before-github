@@ -438,10 +438,10 @@ Lemma subr_ge0  x y : (0 <= y - x) = (x <= y).
 Proof. by rewrite !ler_eqVlt subr_eq0 subr_gt0. Qed.
 
 Lemma subr_le0  x y : (y - x <= 0) = (y <= x).
-Proof. by rewrite -subr_ge0 oppr_sub add0r subr_ge0. Qed.
+Proof. by rewrite -subr_ge0 opprB add0r subr_ge0. Qed.
 
 Lemma subr_lt0  x y : (y - x < 0) = (y < x).
-Proof. by rewrite -subr_gt0 oppr_sub add0r subr_gt0. Qed.
+Proof. by rewrite -subr_gt0 opprB add0r subr_gt0. Qed.
 
 Definition subr_lte0 := (subr_le0, subr_lt0).
 Definition subr_gte0 := (subr_ge0, subr_gt0).
@@ -450,7 +450,7 @@ Definition subr_cp0 := (subr_lte0, subr_gte0).
 Lemma ltr_asym x y : x < y < x = false.
 Proof.
 rewrite -subr_gt0; apply/negP=> /andP [] /ltr0_ngt0.
-by rewrite oppr_sub subr_gt0=> /negPf->.
+by rewrite opprB subr_gt0=> /negPf->.
 Qed.
 
 Lemma eqr_le x y : (x == y) = (x <= y <= x).
@@ -929,7 +929,7 @@ Qed.
 (* Monotony of addition *)
 Lemma ler_add2l x : {mono +%R x : y z / y <= z}.
 Proof.
-by move=> y z /=; rewrite -subr_ge0 oppr_add addrAC addNKr addrC subr_ge0.
+by move=> y z /=; rewrite -subr_ge0 opprD addrAC addNKr addrC subr_ge0.
 Qed.
 
 Lemma ler_add2r x : {mono +%R^~ x : y z / y <= z}.
@@ -1095,7 +1095,7 @@ Qed.
 
 Lemma naddr_eq0 (x y : R) (hx : x <= 0) (hy : y <= 0) :
   (x + y == 0) = (x == 0) && (y == 0).
-Proof. by rewrite -oppr_eq0 oppr_add paddr_eq0 ?oppr_cp0 // !oppr_eq0. Qed.
+Proof. by rewrite -oppr_eq0 opprD paddr_eq0 ?oppr_cp0 // !oppr_eq0. Qed.
 
 Lemma addr_ss_eq0 (x y : R) : (0 <= x) && (0 <= y) || (x <= 0) && (y <= 0)
  -> (x + y == 0) = (x == 0) && (y == 0).
@@ -1150,7 +1150,7 @@ Proof. by rewrite -{1}(mul0rn _ n) (cpable_homo_ler (ltr_wpmuln2r _)). Qed.
 Lemma ler_wpmuln2l x (hx : 0 <= x) :
   {homo (@GRing.natmul R x) : m n / (m <= n)%N >-> m <= n}.
 Proof.
-by move=> m n hmn; rewrite -(subnK hmn) mulrn_addr ler_paddl // mulrn_wge0.
+by move=> m n hmn; rewrite -(subnK hmn) mulrnDr ler_paddl // mulrn_wge0.
 Qed.
 
 Lemma ler_wnmuln2l x (hx : x <= 0) :
@@ -1169,7 +1169,7 @@ Lemma ler_pmuln2l x (hx : 0 < x) :
   {mono (@GRing.natmul R x) : m n / (m <= n)%N >-> m <= n}.
 Proof.
 move=> m n /=; case: leqP => hmn; first by rewrite ler_wpmuln2l // ltrW.
-rewrite -(subnK (ltnW hmn)) mulrn_addr ger_addr ltr_geF //.
+rewrite -(subnK (ltnW hmn)) mulrnDr ger_addr ltr_geF //.
 by rewrite mulrn_wgt0 // subn_eq0 -ltnNge.
 Qed.
 
@@ -1220,7 +1220,7 @@ Proof. by rewrite -mulr_natl mulf_eq0 pnatr_eq0. Qed.
 Lemma mulrIn x : x != 0 -> injective (GRing.natmul x).
 Proof.
 move=> hx m n.
-case: (ltngtP m n)=> // hmn; rewrite -(subnK (ltnW hmn)) mulrn_addr.
+case: (ltngtP m n)=> // hmn; rewrite -(subnK (ltnW hmn)) mulrnDr.
   move/(canLR (addrK _))=> /eqP; rewrite subrr eq_sym mulrn_eq0.
   by rewrite (negPf hx) orbF=> /eqP ->.
 move/(canRL (addrK _))=> /eqP; rewrite subrr mulrn_eq0.
@@ -1255,7 +1255,7 @@ Lemma ler0N1 : 0 <= -1 :> R = false. Proof. by rewrite ltr_geF // ltrN10. Qed.
 (* mulr and ler/ltr *)
 
 Lemma ler_pmul2l x (hx : 0 < x) : {mono *%R x : x y / x <= y}.
-Proof. by move=> y z /=; rewrite -subr_ge0 -mulr_subr pmulr_rge0 // subr_ge0. Qed.
+Proof. by move=> y z /=; rewrite -subr_ge0 -mulrBr pmulr_rge0 // subr_ge0. Qed.
 
 Lemma ltr_pmul2l x (hx : 0 < x) : {mono *%R x : x y / x < y}.
 Proof. exact: lerW_mono (ler_pmul2l _). Qed.
@@ -1575,13 +1575,13 @@ Lemma ler_wiexpn2l x (x0 : 0 <= x) (x1 : x <= 1) :
   {homo (GRing.exp x) : m n / (n <= m)%N >-> m <= n}.
 Proof.
 move=> m n /= hmn.
-by rewrite -(subnK hmn) exprn_addr ler_pimull ?(exprn_ge0, exprn_ile1).
+by rewrite -(subnK hmn) exprD ler_pimull ?(exprn_ge0, exprn_ile1).
 Qed.
 
 Lemma ler_weexpn2l x (x1 : 1 <= x) :
   {homo (GRing.exp x) : m n / (m <= n)%N >-> m <= n}.
 Proof.
-move=> m n /= hmn; rewrite -(subnK hmn) exprn_addr.
+move=> m n /= hmn; rewrite -(subnK hmn) exprD.
 by rewrite ler_pemull ?(exprn_ge0, exprn_ege1) // (ler_trans _ x1) ?ler01.
 Qed.
 
@@ -1595,7 +1595,7 @@ Lemma ieexprn_weq1 x n (x0 : 0 <= x) (x1 : cpable x 1) :
   (x ^+ n == 1) = ((n == 0%N) || (x == 1)).
 Proof.
 case: (altP (n =P 0%N))=> [->|n0] /=; first by rewrite eqxx.
-case: cpable3P x1=> // hx1 _; last by rewrite hx1 exp1rn eqxx.
+case: cpable3P x1=> // hx1 _; last by rewrite hx1 expr1n eqxx.
   by apply: ltr_eqF; rewrite exprn_ilt1.
 by apply: gtr_eqF; rewrite exprn_egt1.
 Qed.
@@ -1604,7 +1604,7 @@ Lemma ieexprIn_po x (x0 : 0 < x) (nx1 : x != 1) (x1 : cpable x 1) :
   injective (GRing.exp x).
 Proof.
 apply: wlog_ltn=> // m n hmn; first by move=> hmn'; rewrite hmn.
-move/eqP: hmn; rewrite exprn_addr -{1}[x ^+ m]mulr1 eq_sym (inj_eq (mulfI _)).
+move/eqP: hmn; rewrite exprD -{1}[x ^+ m]mulr1 eq_sym (inj_eq (mulfI _)).
   by rewrite ieexprn_weq1 ?ltrW //= (negPf nx1).
 by rewrite expf_eq0 gtr_eqF // andbF.
 Qed.
@@ -1662,7 +1662,7 @@ Lemma ler_pexpn2r n : (0 <n)%N ->
 Proof.
 case: n => // n _ x y; rewrite -!topredE /= =>  x_ge0 y_ge0.
 have [-> | nzx] := eqVneq x 0; first by rewrite exprS mul0r exprn_ge0.
-rewrite -subr_ge0 subr_expn pmulr_lge0 ?subr_ge0 //= big_ord_recr /=.
+rewrite -subr_ge0 subrXX pmulr_lge0 ?subr_ge0 //= big_ord_recr /=.
 rewrite subnn expr0 mul1r /= ltr_spaddr // ?exprn_gt0 ?ltr_neqAle ?nzx //.
 by rewrite sumr_ge0 // => i _; rewrite mulr_ge0 ?exprn_ge0.
 Qed.
@@ -1681,25 +1681,25 @@ Proof. exact: mono_inj_in (ler_pexpn2r _). Qed.
 
 (* expr and ler/ltr *)
 Lemma exprS_le1 n x (x0 : 0 <= x) : (x ^+ n.+1 <= 1) = (x <= 1).
-Proof. by rewrite -{1}[1](exp1rn _ n.+1) ler_pexpn2r // [_ \in _]ler01. Qed.
+Proof. by rewrite -{1}[1](expr1n _ n.+1) ler_pexpn2r // [_ \in _]ler01. Qed.
 
 Lemma exprS_lt1 n x (x0 : 0 <= x) : (x ^+ n.+1 < 1) = (x < 1).
-Proof. by rewrite -{1}[1](exp1rn _ n.+1) ltr_pexpn2r // [_ \in _]ler01. Qed.
+Proof. by rewrite -{1}[1](expr1n _ n.+1) ltr_pexpn2r // [_ \in _]ler01. Qed.
 
 Definition exprS_lte1 := (exprS_le1, exprS_lt1).
 
 Lemma exprS_ge1 n x (x0 : 0 <= x) : (1 <= x ^+ n.+1) = (1 <= x).
-Proof. by rewrite -{1}[1](exp1rn _ n.+1) ler_pexpn2r // [_ \in _]ler01. Qed.
+Proof. by rewrite -{1}[1](expr1n _ n.+1) ler_pexpn2r // [_ \in _]ler01. Qed.
 
 Lemma exprS_gt1 n x (x0 : 0 <= x) : (1 < x ^+ n.+1) = (1 < x).
-Proof. by rewrite -{1}[1](exp1rn _ n.+1) ltr_pexpn2r // [_ \in _]ler01. Qed.
+Proof. by rewrite -{1}[1](expr1n _ n.+1) ltr_pexpn2r // [_ \in _]ler01. Qed.
 
 Definition exprS_gte1 := (exprS_ge1, exprS_gt1).
 
 Lemma pexprS_eq1 x n (x0 : 0 <= x) : (x ^+ n.+1 == 1) = (x == 1).
 Proof.
 have [-> | nzx] := eqVneq x 0; first by rewrite exprS mul0r.
-rewrite -subr_eq0 subr_expn_1 mulf_eq0 subr_eq0.
+rewrite -subr_eq0 subrX1 mulf_eq0 subr_eq0.
 case: (x == 1)=> //=; apply: negbTE.
 rewrite sumr_eq0 /=; last by move=> i _; rewrite exprn_ge0.
 apply/allPn; exists ord_max; first by rewrite mem_index_enum.
@@ -1725,8 +1725,8 @@ apply: wlog_ltn=> // m n; first by move=> hx hmn; rewrite hx.
 move/eqP; rewrite eq_sym -subr_eq0.
 case: m=> [|m].
   by rewrite !add0n expr0 subr_eq0 pexprS_eq1 ?ltrW // (negPf nx1).
-rewrite exprn_addr -[X in _ - X]mulr1.
-rewrite -mulr_subr mulf_eq0 expf_eq0 gtr_eqF //= subr_eq0.
+rewrite exprD -[X in _ - X]mulr1.
+rewrite -mulrBr mulf_eq0 expf_eq0 gtr_eqF //= subr_eq0.
 by rewrite pexprS_eq1 ?ltrW // (negPf nx1).
 Qed.
 
@@ -2004,7 +2004,7 @@ Hypothesis lt0_total : forall x, x != 0 -> lt 0 x || lt 0 (- x).
 
 Fact lt01 : lt 0 1.
 Proof.
-case/orP: (lt0_total (GRing.nonzero1r _))=> // ?.
+case/orP: (lt0_total (GRing.oner_neq0 _))=> // ?.
 by rewrite -[1]mul1r -mulrNN lt0_mul.
 Qed.
 
@@ -2362,7 +2362,7 @@ Lemma sgr_cp0 x :
 Proof.
 rewrite /sgr; case: ltrgtP=> // hx; rewrite ?oner_eq0 ?eqxx;
 do !split; rewrite -subr_eq0 ?(subr0, sub0r, oppr_eq0, oner_eq0, opprK) //.
-  by rewrite -oppr_add oppr_eq0 -{1}[1]mulr1n -mulrSr pnatr_eq0.
+  by rewrite -opprD oppr_eq0 -{1}[1]mulr1n -mulrSr pnatr_eq0.
 by rewrite -{1}[1]mulr1n -mulrSr pnatr_eq0.
 Qed.
 
@@ -2436,7 +2436,7 @@ Lemma sgr_eq0 x : (sgr x == 0) = (x == 0).
 Proof. by rewrite sgr_cp0. Qed.
 
 Lemma sgr_odd n x : x != 0 -> (sgr x) ^+ n = (sgr x) ^+ (odd n).
-Proof. by case: sgrP=> //=; rewrite ?exp1rn // signr_odd. Qed.
+Proof. by case: sgrP=> //=; rewrite ?expr1n // signr_odd. Qed.
 
 Lemma sgrMn x n : sgr (x *+ n) = (n != 0%N)%:R * sgr x.
 Proof.
@@ -2549,7 +2549,7 @@ Definition absrE x := (absr_id, absr0, absr1, absrN1, absr_ge0, absr_eq0,
   absr_lt0, absr_le0, absr_gt0, absrN).
 
 Lemma distrC x y : `|x - y| = `|y - x|.
-Proof. by rewrite -oppr_sub absrN. Qed.
+Proof. by rewrite -opprB absrN. Qed.
 
 Lemma absrM x y : `|x * y| = `|x| * `|y|.
 Proof. by rewrite !absr_dec sgrM -mulrA mulrAC [x * _]mulrC !mulrA. Qed.
@@ -2568,11 +2568,11 @@ Proof.
 wlog : x y / (x > 0)=> [hxp | xp].
   case: (ltrgtP x 0)=> [xn|xp|->]; last 2 first; do ?exact: hxp.
     by rewrite absr0 !add0r lterr.
-  by rewrite -absrN oppr_add (ler_trans (hxp _ _ _)) ?absrN ?oppr_cp0.
+  by rewrite -absrN opprD (ler_trans (hxp _ _ _)) ?absrN ?oppr_cp0.
 case: (ltrgtP y 0)=> hy; last by rewrite hy absr0 !addr0.
   rewrite (@ger0_abs x) ?(ltrW xp) // (@ler0_abs y) ?(ltrW hy) //.
   by case: (lerP 0 (x + y))=> lnyx; [rewrite ger0_abs | rewrite ler0_abs];
-    rewrite // ?ltrW // ?oppr_add lter_add2 ?(lt0_cp, gt0_cp).
+    rewrite // ?ltrW // ?opprD lter_add2 ?(lt0_cp, gt0_cp).
 by rewrite !ger0_abs // ?ltrW // ltr_spsaddr.
 Qed.
 
@@ -2599,7 +2599,7 @@ Lemma ler_sub_dist x y : `|x| - `|y| <= `| x - y |.
 Proof. by rewrite -[`|y|]absrN ler_sub_absD. Qed.
 
 Lemma ler_dist_dist x y : `|`|x| - `|y| | <= `| x - y |.
-Proof. by case: absrWP; [|rewrite distrC]; rewrite ?oppr_sub ler_sub_dist. Qed.
+Proof. by case: absrWP; [|rewrite distrC]; rewrite ?opprB ler_sub_dist. Qed.
 
 Lemma ler_dist_absD x y : `| `|x| - `|y| | <= `| x + y |.
 Proof. by rewrite -[y]opprK absrN ler_dist_dist. Qed.
@@ -2857,14 +2857,14 @@ Qed.
 
 Lemma addr_maxl : left_distributive +%R (@maxr R).
 Proof.
-move=> x y z; rewrite -[_ + _]opprK oppr_add oppr_max.
-by rewrite addr_minl -!oppr_add oppr_min !opprK.
+move=> x y z; rewrite -[_ + _]opprK opprD oppr_max.
+by rewrite addr_minl -!opprD oppr_min !opprK.
 Qed.
 
 Lemma addr_maxr : right_distributive +%R (@maxr R).
 Proof.
-move=> x y z; rewrite -[_ + _]opprK oppr_add oppr_max.
-by rewrite addr_minr -!oppr_add oppr_min !opprK.
+move=> x y z; rewrite -[_ + _]opprK opprD oppr_max.
+by rewrite addr_minr -!opprD oppr_min !opprK.
 Qed.
 
 Lemma minrK x y : maxr (minr x y) x = x.
@@ -3064,13 +3064,13 @@ Local Notation mid x y := ((x + y) / 2%:R).
 Lemma midf_le x y (lxy : x <= y) : (x <= mid x y) * (mid x y  <= y).
 Proof.
 rewrite ler_pdivl_mulr ?ler_pdivr_mulr ?ltr0Sn //.
-by rewrite !mulr_addr !mulr1 ler_add2r ler_add2l.
+by rewrite !mulrDr !mulr1 ler_add2r ler_add2l.
 Qed.
 
 Lemma midf_lt x y (lxy : x < y) : (x < mid x y) * (mid x y  < y).
 Proof.
 rewrite ltr_pdivl_mulr ?ltr_pdivr_mulr ?ltr0Sn //.
-by rewrite !mulr_addr !mulr1 ltr_add2r ltr_add2l.
+by rewrite !mulrDr !mulr1 ltr_add2r ltr_add2l.
 Qed.
 
 Definition midf_lte := (midf_le, midf_lt).
@@ -3188,7 +3188,7 @@ Proof.
 rewrite -(@ler_eexpn2l _ (2%:R : F)) ?ltr1n => // /ltr_le_trans-> //.
 have [x_lt0|/archi_boundP /ltr_le_trans-> //] := ltrP x 0.
   by rewrite (ltr_le_trans x_lt0) // exprn_ge0 // ler0n.
-rewrite ltrW // -natr_exp ltr_nat; elim: archi_bound=> // n ihn.
+rewrite ltrW // -natrX ltr_nat; elim: archi_bound=> // n ihn.
 by rewrite expnS mul2n -addnn -addn1 leq_add // (leq_trans _ ihn).
 Qed.
 

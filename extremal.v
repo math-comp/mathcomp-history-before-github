@@ -251,7 +251,7 @@ have [cycF ffulF]: cyclic F /\ [faithful F, on 'Ohm_1(G) | [Aut G]].
   have natZqp u: (u%:R : 'Z_q)%:R = u %:R :> 'F_p.
     by rewrite val_Zp_nat // -Fp_nat_mod // modn_dvdm ?Fp_nat_mod.
   have m0M: {in A &, {morph fm0 : a b / a * b}}.
-    move=> a b Aa Ab; apply: val_inj; rewrite /= -natr_mul mM //.
+    move=> a b Aa Ab; apply: val_inj; rewrite /= -natrM mM //.
     by rewrite -[(_ * _)%R]Zp_nat natZqp.
   pose m0 : {morphism A >-> {unit 'F_p}} := Morphism m0M.
   have im_m0: m0 @* A = [set: {unit 'F_p}].
@@ -315,7 +315,7 @@ have [ms0 os0]: m s0 = (p ^ n).+1%:R /\ #[s0] = p.
   have m_se e:
     exists2 k, k = 1 %[mod p] & m (s ^+ (p ^ e)) = (k * p ^ (e + e0.+1)).+1%:R.
   - elim: e => [|e [k k1 IHe]]; first by exists 1%N; rewrite ?mul1n.
-    rewrite expnSr expgn_mul mX ?groupX // {}IHe -natr_exp -(add1n (k * _)).
+    rewrite expnSr expgn_mul mX ?groupX // {}IHe -natrX -(add1n (k * _)).
     rewrite expn_addl -(prednK p_gt0) 2!big_ord_recl /= prednK // !exp1n bin1.
     rewrite bin0 muln1 mul1n mulnCA -expnS (addSn e).
     set f := (e + _)%N; set sum := (\sum_i _)%N.
@@ -330,10 +330,10 @@ have [ms0 os0]: m s0 = (p ^ n).+1%:R /\ #[s0] = p.
     by rewrite bin2odd // mulnAC dvdn_mulr.
   have [[|d]] := m_se (n - e0.+1)%N; first by rewrite mod0n modn_small.
   move/eqP; rewrite -/s0 eqn_mod_dvd ?subn1 //=; case/dvdnP=> f -> {d}.
-  rewrite subnK // mulSn -mulnA -expnS -addSn natr_add natr_mul -oG char_Zp //.
+  rewrite subnK // mulSn -mulnA -expnS -addSn natrD natrM -oG char_Zp //.
   rewrite mulr0 addr0 => m_s0; split => //.
   have [d _] := m_se (n - e0)%N; rewrite ltn_subS // expnSr expgn_mul -/s0.
-  rewrite addSn subnK // -oG  mulrS natr_mul char_Zp // {d}mulr0 addr0. 
+  rewrite addSn subnK // -oG  mulrS natrM char_Zp // {d}mulr0 addr0. 
   move/eqP; rewrite -m1 (inj_in_eq inj_m) ?group1 ?groupX // -order_dvdn.
   move/min_p; rewrite order_eq1; case/predU1P=> [s0_1 | ]; last by move/eqP.
   move/eqP: m_s0; rewrite eq_sym s0_1 m1 -subr_eq0 mulrSr addrK -val_eqE /=.
@@ -364,7 +364,7 @@ case: (even_prime p_pr) => [p2 | oddp]; last first.
 rewrite {+}/e0 p2 subn1 /= in s0 os0 ms0 os ms G4 defS1 lt_e0_n *.
 rewrite G4; exists s; split=> //; last first.
   exists s0; split; rewrite ?groupX //; apply/eqP; rewrite mM ?groupX //.
-  rewrite ms0 mt eq_sym mulrN1 -subr_eq0 opprK -natr_add -addSnnS.
+  rewrite ms0 mt eq_sym mulrN1 -subr_eq0 opprK -natrD -addSnnS.
   by rewrite prednK ?expn_gt0 // addnn -mul2n -expnS -p2 -oG char_Zp.
 suffices TIst: <[s]> :&: <[t]> = 1.
   rewrite dprodE //; last by rewrite (sub_abelian_cent2 cAA) ?cycle_subG.
@@ -620,7 +620,7 @@ suffices isoED: ED \isog Grp (x : y : (x ^+ q, y ^+ p, x ^ y = x ^+ q.-1)).
   apply: eq_existsb => [[x y]] /=; rewrite !xpair_eqE.
   congr (_ && _); apply: andb_id2l; move/eqP=> xq1; congr (_ && (_ == _)).
   by apply/eqP; rewrite eq_sym eq_invg_mul -expgS (ltn_predK q_gt1) xq1.
-have unitrN1 : GRing.unit (- 1) by move=> ?; rewrite unitr_opp unitr1.
+have unitrN1 : GRing.unit (- 1) by move=> ?; rewrite unitrN unitr1.
 pose uN1 : {unit 'Z_#[Zp1 : 'Z_q]} := Sub _ (unitrN1 _).
 apply: Extremal.Grp => //; exists (Zp_unitm uN1).
 rewrite Aut_aut order_injm ?injm_Zp_unitm ?in_setT //; split=> //.

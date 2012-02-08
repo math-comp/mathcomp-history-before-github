@@ -413,7 +413,7 @@ Qed.
 (*   move=> tn0. *)
 (*   by rewrite val_insubd tn0. *)
 (* move=> {Hs En e subnK' subnK}. *)
-(* case:s ls; first by rewrite GRing.nonzero1r. *)
+(* case:s ls; first by rewrite GRing.oner_neq0. *)
 (* by move=> a s ->. *)
 (* Qed. *)
 
@@ -554,7 +554,7 @@ Qed.
 (* Proof. *)
 (* elim/quotW=> x; elim/quotW=> y; elim/quotW=> z. *)
 (* rewrite !qTE; apply/eqP; rewrite -equivP equivmP. *)
-(* by rewrite /equivm /= mulr_addl. *)
+(* by rewrite /equivm /= mulrDl. *)
 (* Qed. *)
 
 (* Lemma nonzero1m : onem != zerom. *)
@@ -562,7 +562,7 @@ Qed.
 (* rewrite -equivP equivmP /equivm /=. *)
 (* rewrite (ringM_0 (multiC_morph _ _)). *)
 (* rewrite (ringM_1 (multiC_morph _ _)). *)
-(* by rewrite GRing.nonzero1r. *)
+(* by rewrite GRing.oner_neq0. *)
 (* Qed. *)
 
 

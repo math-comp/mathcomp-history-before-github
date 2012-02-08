@@ -319,6 +319,17 @@ Qed.
 Lemma sdprod_card G A B : A ><| B = G -> (#|A| * #|B|)%N = #|G|.
 Proof. by case/sdprodP=> [[H K -> ->] <- _ /TI_cardMg]. Qed.
 
+Lemma isog_sdprod_factor G A B : A ><| B = G -> B \isog G / A.
+Proof.
+by case/sdprodP=> [[K H -> ->] <- nHK tiHK]; rewrite quotientMidl quotient_isog.
+Qed.
+  
+Lemma sdprod_index G A B : A ><| B = G -> #|B| = #|G : A|.
+Proof.
+case/sdprodP=> [[K H -> ->] <- _ tiHK].
+by rewrite indexMg -indexgI setIC tiHK indexg1.
+Qed.
+
 Lemma sdprod_modl A B G H :
   A ><| B = G -> A \subset H -> A ><| (B :&: H) = G :&: H.
 Proof.

@@ -121,14 +121,14 @@ Definition amull u: 'End(A) := lapp_of_fun ( *%R u).
 Local Notation "\*l a" := (amull a) (at level 10): vspace_scope.
 
 Lemma amull_linear_p : forall u, linear ( *%R u).
-Proof. by move=> u k v w; rewrite mulr_addr scaler_mulr. Qed.
+Proof. by move=> u k v w; rewrite mulrDr scalerAr. Qed.
 Canonical Structure amull_linear u := Linear (amull_linear_p u).
 
 Definition amulr u: 'End(A) := lapp_of_fun ( *%R^~ u).
 Local Notation "\*r a" := (amulr a) (at level 10): vspace_scope.
 
 Lemma amulr_linear_p : forall u, linear ( *%R^~ u).
-Proof. by move=> u k v w; rewrite mulr_addl scaler_mull. Qed.
+Proof. by move=> u k v w; rewrite mulrDl scalerAl. Qed.
 Canonical Structure amulr_linear u := Linear (amulr_linear_p u).
 
 Lemma size_prodv : forall vs1 vs2: {vspace A},
@@ -143,9 +143,9 @@ Lemma memv_prod : forall vs1 vs2 a b, a \in vs1 -> b \in vs2 -> a * b \in (vs1 *
 Proof.
 move=> vs1 vs2 a b Hvs1 Hvs2.
 rewrite (coord_basis Hvs1) (coord_basis Hvs2).
-rewrite -mulr_suml; apply: memv_suml => i _.  
-rewrite -mulr_sumr; apply: memv_suml => j _.
-rewrite -scaler_mull -scaler_mulr scalerA memvZl //.
+rewrite mulr_suml; apply: memv_suml => i _.  
+rewrite mulr_sumr; apply: memv_suml => j _.
+rewrite -scalerAl -scalerAr scalerA memvZl //.
 apply: memv_span; apply/allpairsP; exists ((vbasis vs1)`_i,(vbasis vs2)`_j).
 by rewrite !mem_nth // size_tuple.
 Qed.
@@ -174,11 +174,11 @@ apply/andP; split.
 apply/prodvP => a b.
 case/injvP => ca ->.
 case/injvP => cb ->.
-by rewrite -scaler_mulr -scaler_mull !memvZ memv_inj !orbT.
+by rewrite -scalerAr -scalerAl !memvZ memv_inj !orbT.
 Qed.
 
 Lemma dimv1: \dim (1%:VS: {vspace A}) = 1%N.
-Proof. by rewrite dim_injv GRing.nonzero1r. Qed.
+Proof. by rewrite dim_injv GRing.oner_neq0. Qed.
 
 Lemma dim_prodv : forall vs1 vs2,
  \dim (vs1 * vs2) <= \dim vs1 * \dim vs2.
@@ -187,16 +187,16 @@ move => vs1 vs2.
 by rewrite (leq_trans (dim_span _)) // size_allpairs !size_tuple.
 Qed.
 
-Lemma vnonzero1r:  (1%:VS) != ((0: A)%:VS) :> {vspace A}.
+Lemma voner_neq0:  (1%:VS) != ((0: A)%:VS) :> {vspace A}.
 Proof. by apply/eqP=> HH; move/eqP: dimv1; rewrite HH dimv0=> HH1. Qed.
 
 Lemma vbasis1: exists k, k != 0 /\ 
                   vbasis (1%:VS: {vspace A}) = [:: k *: 1] :> seq _.
 Proof.
-rewrite /vbasis dim_injv GRing.nonzero1r /=.
+rewrite /vbasis dim_injv GRing.oner_neq0 /=.
 case/injvP: (@memv_pick _ A (1%:VS))=> k Hk.
 exists k; split; last by rewrite Hk.
-apply/eqP=> H; case/negP: vnonzero1r.
+apply/eqP=> H; case/negP: voner_neq0.
 by move/eqP: Hk; rewrite H scale0r vpick0.
 Qed.
 
@@ -219,7 +219,7 @@ Proof.
 case: vbasis1=> k [Hk He] /=.
 move=> vs; apply subv_anti; apply/andP; split.
   apply/prodvP=> a b; case/injvP=> k1 -> Hb.
-  by rewrite -scaler_mull mul1r memvZl.
+  by rewrite -scalerAl mul1r memvZl.
 apply/subvP=> v Hv.
 rewrite (coord_basis Hv); apply: memv_suml => i _ /=.
 rewrite memvZ -[_`_i]mul1r memv_prod ?(orbT, memv_inj) //.
@@ -231,7 +231,7 @@ Proof.
 case: vbasis1=> k [Hk He] /=.
 move=> vs; apply subv_anti; apply/andP; split.
   apply/prodvP=> a b Ha; case/injvP=> k1 ->.
-  by rewrite -scaler_mulr mulr1 memvZl.
+  by rewrite -scalerAr mulr1 memvZl.
 apply/subvP=> v Hv; rewrite (coord_basis Hv).
 apply: memv_suml => i _ /=.
 rewrite memvZ -[_`_i]mulr1 memv_prod ?(orbT, memv_inj) //.
@@ -242,19 +242,19 @@ Lemma prodvA: associative prodv.
 Proof.
 move=> vs1 vs2 vs3; apply subv_anti; apply/andP.
 split; apply/prodvP=> a b Ha Hb.
-  rewrite (coord_basis Ha) -mulr_suml.
+  rewrite (coord_basis Ha) mulr_suml.
   apply: memv_suml => i _ /=.
-  move/coord_span: Hb->; rewrite -mulr_sumr.  
+  move/coord_span: Hb->; rewrite mulr_sumr.  
   apply: memv_suml => j _ /=.
-  rewrite -scaler_mull -scaler_mulr scalerA memvZl //.
+  rewrite -scalerAl -scalerAr scalerA memvZl //.
   set u := allpairs _ _ _.
   have: j < size u by rewrite (eqP (size_prodv _ _)).
   move/(mem_nth 0); case/allpairsP=> [[x1 x2] [I1 I2 ->]].
   by rewrite mulrA !memv_prod // ?memv_basis // mem_nth // size_tuple.
 move/coord_span: Ha->; rewrite (coord_basis Hb).
-rewrite -mulr_suml; apply: memv_suml => i _ /=.  
-rewrite -mulr_sumr; apply: memv_suml => j _ /=.
-rewrite -scaler_mull -scaler_mulr scalerA memvZl //.
+rewrite mulr_suml; apply: memv_suml => i _ /=.  
+rewrite mulr_sumr; apply: memv_suml => j _ /=.
+rewrite -scalerAl -scalerAr scalerA memvZl //.
 set u := allpairs _ _ _; have: i < size u by rewrite (eqP (size_prodv _ _)).
 move/(mem_nth 0); case/allpairsP=> [[x1 x2] [I1 I2 ->]].
 by rewrite -mulrA !memv_prod // ?memv_basis // mem_nth // size_tuple.
@@ -276,7 +276,7 @@ Lemma prodv_addl: left_distributive prodv addv.
 Proof.
 move=> vs1 vs2 vs3; apply subv_anti; apply/andP; split.
   apply/prodvP=> a b;case/memv_addP=> v1 [v2 [Hv1 Hv2 ->]] Hb.
-  by rewrite mulr_addl; apply: memv_add; apply: memv_prod.
+  by rewrite mulrDl; apply: memv_add; apply: memv_prod.
 apply/subvP=> v;  case/memv_addP=> v1 [v2 [Hv1 Hv2 ->]].
 apply: memvD.
   move: v1 Hv1; apply/subvP; apply: prodv_monol; exact: addvSl.
@@ -287,7 +287,7 @@ Lemma prodv_addr: right_distributive prodv addv.
 Proof.
 move=> vs1 vs2 vs3; apply subv_anti; apply/andP; split.
   apply/prodvP=> a b Ha;case/memv_addP=> v1 [v2 [Hv1 Hv2 ->]].
-  by rewrite mulr_addr; apply: memv_add; apply: memv_prod.
+  by rewrite mulrDr; apply: memv_add; apply: memv_prod.
 apply/subvP=> v;  case/memv_addP=> v1 [v2 [Hv1 Hv2 ->]].
 apply: memvD.
   move: v1 Hv1; apply/subvP; apply: prodv_monor; exact: addvSl.
@@ -347,11 +347,11 @@ move=> vs; apply: (iffP andP).
     move/(@sym_equal _ _ _); move/eqP; rewrite vpick0 -dimv_eq0.
     by move=> Hnd; case/negP: Hd.
   move=> x; move/coord_basis->.
-  rewrite linear_sum -mulr_suml; split; apply eq_bigr=> i /= _.
+  rewrite linear_sum mulr_suml; split; apply eq_bigr=> i /= _.
     rewrite linearZ /=.
     move: (H2u (rshift _ i)).
     by rewrite (feq_rshift ( *%R) f) (feq_rshift id id) /f => ->.
-  rewrite -scaler_mull /=.
+  rewrite -scalerAl /=.
   move: (H2u (lshift _ i)).
   by rewrite (feq_lshift ( *%R) f) (feq_lshift id id) /f => ->.
 case=> u [H1u H2u H3u]; split.
@@ -375,7 +375,7 @@ Qed.
 Lemma has_aunit1 : forall vs, 1 \in vs -> has_aunit vs.
 Proof.
 move=> vs Hvs; apply/has_aunitP.
-exists 1; split=> //; first exact: nonzero1r.
+exists 1; split=> //; first exact: oner_neq0.
 by move=> *; rewrite !(mulr1, mul1r).
 Qed.
   
@@ -447,8 +447,8 @@ Lemma aunitr : forall gs, forall x, x \in gs -> x * (aunit gs) = x.
 Proof.
 move=> gs x Hx; case/andP: (xchooseP (aunit_eproof gs))=> H1a H2a.
 move/coord_basis: Hx->.
-rewrite -mulr_suml; apply eq_bigr=> i /= _.
-rewrite -scaler_mull.
+rewrite mulr_suml; apply eq_bigr=> i /= _.
+rewrite -scalerAl.
 by move/forallP: H2a;move/(_ i); case/andP; move/eqP->.
 Qed.
 
@@ -458,7 +458,7 @@ move=> gs; apply/eqP/idP=> H; first by rewrite -H memv_unit.
 by move: (aunitr H); rewrite mul1r.
 Qed.
 
-Lemma anonzero1r : forall gs, aunit gs != 0.
+Lemma aoner_neq0 : forall gs, aunit gs != 0.
 Proof.
 move=> gs; apply/eqP=> Eu0.
 move: (aunitr (memv_pick gs)); rewrite Eu0 mulr0.
@@ -470,7 +470,7 @@ Lemma aspace1_def: ((has_aunit (1%:VS)) && (1%:VS * 1%:VS <= 1%:VS))%VS.
 Proof. 
 rewrite prod1v subv_refl andbT.
 apply/has_aunitP; exists 1; split; first by exact: memv_inj.
-  exact: nonzero1r.
+  exact: oner_neq0.
 by move=> x; rewrite mul1r mulr1.
 Qed.
 
@@ -481,7 +481,7 @@ Lemma aspacef_def:
 Proof. 
 rewrite subvf andbT.
 apply/has_aunitP; exists 1; split; first by exact: memvf.
-  by exact: nonzero1r.
+  by exact: oner_neq0.
 by move=> x; rewrite mul1r mulr1.
 Qed.
 
@@ -501,7 +501,7 @@ Proof.
 move=> gs1 gs2 Ha; apply/andP; split.
   apply/has_aunitP; exists (aunit gs1); split.
   - by rewrite memv_cap memv_unit Ha memv_unit.
-  - by exact: anonzero1r.
+  - by exact: aoner_neq0.
   move=> x; rewrite  memv_cap; case/andP=> Hg _.
   by rewrite !(aunitl,aunitr). 
 rewrite subv_cap; apply/andP; split.
@@ -569,9 +569,9 @@ Proof. by move=> *; apply: val_inj; exact: scalerA. Qed.
 Lemma suba_scale1 : left_id 1 suba_scale.
 Proof. by move=> *; apply: val_inj; exact: scale1r. Qed.
 Lemma suba_scale_addr : forall k, {morph (suba_scale k) : x y / x + y}.
-Proof. by move=> k u v; apply: val_inj; exact: scaler_addr. Qed.
+Proof. by move=> k u v; apply: val_inj; exact: scalerDr. Qed.
 Lemma suba_scale_addl : forall u, {morph (suba_scale)^~ u : k1 k2 / k1 + k2}.
-Proof. by move=> u k1 k2; apply: val_inj; exact: scaler_addl. Qed.
+Proof. by move=> u k1 k2; apply: val_inj; exact: scalerDl. Qed.
 
 Definition suba_lmodMixin := 
   GRing.Lmodule.Mixin suba_scaleA suba_scale1 suba_scale_addr suba_scale_addl.
@@ -625,11 +625,11 @@ Proof. by move=> u; apply: val_inj; apply: aunitl; case: u. Qed.
 Lemma suba_mul1 : right_id suba_one suba_mul.
 Proof. by move=> u; apply: val_inj; apply: aunitr; case: u. Qed.
 Lemma suba_mul_addl : left_distributive suba_mul suba_add.
-Proof. move=> u v w; apply: val_inj; exact: mulr_addl. Qed.
+Proof. move=> u v w; apply: val_inj; exact: mulrDl. Qed.
 Lemma suba_mul_addr : right_distributive suba_mul suba_add.
-Proof. move=> u v w; apply: val_inj; exact: mulr_addr. Qed.
+Proof. move=> u v w; apply: val_inj; exact: mulrDr. Qed.
 Lemma suba_nonzero1: suba_one != 0.
-Proof. apply/val_eqP; apply/eqP; exact: anonzero1r. Qed.
+Proof. apply/val_eqP; apply/eqP; exact: aoner_neq0. Qed.
 
 Definition suba_ringMixin :=
   RingMixin suba_mulA suba_mu1l suba_mul1 suba_mul_addl 
@@ -639,13 +639,13 @@ Canonical Structure suba_ringType :=
   Eval hnf in RingType suba_of suba_ringMixin.
 
 Lemma suba_scale_mull: forall k (x y:suba_of),  k *: (x * y) = (k *: x) * y.
-Proof. move=> u v w; apply: val_inj; exact: scaler_mull. Qed.
+Proof. move=> u v w; apply: val_inj; exact: scalerAl. Qed.
 
 Canonical Structure suba_lalgType :=
   Eval hnf in  LalgType K suba_of suba_scale_mull.
 
 Lemma suba_scale_mulr: forall k (x y: suba_of), k *: (x * y) = x * (k *: y).
-Proof. move=> u v w; apply: val_inj; exact: scaler_mulr. Qed.
+Proof. move=> u v w; apply: val_inj; exact: scalerAr. Qed.
 
 Canonical Structure suba_algType :=
   Eval hnf in  AlgType K suba_of suba_scale_mulr.

@@ -131,23 +131,23 @@ case ncxy: (rG x *m rG y == rG y *m rG x).
   by rewrite !subUset andbC !sub1set !commgg group1 /= -invg_comm groupV Cxy.
 pose Ax : 'M(E) := rG x - 1; pose Ay : 'M(E) := rG y - 1.
 have Ax2: Ax *m Ax = 0.
-  apply/row_matrixP=> i; apply/eqP; rewrite row_mul mulmx_subr mulmx1.
+  apply/row_matrixP=> i; apply/eqP; rewrite row_mul mulmxBr mulmx1.
   rewrite row0 subr_eq0 -(inj_eq (@rVabelem_inj _ _ _ abelE ntE)).
   rewrite rVabelemJ // conjgE -(centP cRx) ?mulKg //.
-  rewrite linear_sub /= addrC row1 rowE rVabelemD rVabelemN rVabelemJ //=.
+  rewrite linearB /= addrC row1 rowE rVabelemD rVabelemN rVabelemJ //=.
   by rewrite mem_commg ?set11 ?mem_rVabelem.
 have Ay2: Ay *m Ay = 0.
-  apply/row_matrixP=> i; apply/eqP; rewrite row_mul mulmx_subr mulmx1.
+  apply/row_matrixP=> i; apply/eqP; rewrite row_mul mulmxBr mulmx1.
   rewrite row0 subr_eq0 -(inj_eq (@rVabelem_inj _ _ _ abelE ntE)).
   rewrite rVabelemJ // conjgE -(centP cRy) ?mulKg //.
-  rewrite linear_sub /= addrC row1 rowE rVabelemD rVabelemN rVabelemJ //=.
+  rewrite linearB /= addrC row1 rowE rVabelemD rVabelemN rVabelemJ //=.
   by rewrite mem_commg ?set11 ?mem_rVabelem.
 pose A := Ax *m Ay + Ay *m Ax.
 have cAG: centgmx rG A.
   rewrite /centgmx gen_subG subUset !sub1set !inE Gx Gy /=; apply/andP.
   rewrite -[rG x](subrK 1%R) -[rG y](subrK 1%R) -/Ax -/Ay.
-  rewrite 2!(mulmx_addl _ 1 A) 2!(mulmx_addr A _ 1) !mulmx1 !mul1mx.
-  rewrite !(inj_eq (addIr A)) ![_ *m A]mulmx_addr ![A *m _]mulmx_addl.
+  rewrite 2!(mulmxDl _ 1 A) 2!(mulmxDr A _ 1) !mulmx1 !mul1mx.
+  rewrite !(inj_eq (addIr A)) ![_ *m A]mulmxDr ![A *m _]mulmxDl.
   by rewrite -!mulmxA Ax2 Ay2 !mulmx0 !mulmxA Ax2 Ay2 !mul0mx !addr0 !add0r.
 have irrG: mx_irreducible rG by exact/abelem_mx_irrP.
 pose rAG := gen_repr irrG cAG; pose inFA := in_gen irrG cAG.
@@ -165,11 +165,11 @@ have: dA <= 2.
   have Umod: mxmodule rAG UA.
     rewrite /mxmodule gen_subG subUset !sub1set !inE Gx Gy /= andbC.
     apply/andP; split; rewrite (eqmxMr _ (genmxE _)) -in_genJ // genmxE.
-      rewrite submx_in_gen // -[rG y](subrK 1%R) -/Ay mulmx_addr mulmx1.
+      rewrite submx_in_gen // -[rG y](subrK 1%R) -/Ay mulmxDr mulmx1.
       rewrite addmx_sub // mul_col_mx -mulmxA Ay2 mulmx0.
       by rewrite -!addsmxE addsmx0 addsmxSr.
-    rewrite -[rG x](subrK 1%R) -/Ax mulmx_addr mulmx1 in_genD mul_col_mx.
-    rewrite -mulmxA -[Ay *m Ax](addKr (Ax *m Ay)) (mulmx_addr v _ A) -mulmxN.
+    rewrite -[rG x](subrK 1%R) -/Ax mulmxDr mulmx1 in_genD mul_col_mx.
+    rewrite -mulmxA -[Ay *m Ax](addKr (Ax *m Ay)) (mulmxDr v _ A) -mulmxN.
     rewrite mulmxA {1 2}def_v -(mulmxA u) Ax2 mulmx0 mul0mx add0r.
     pose B := A; rewrite -(mul0mx _ B) -mul_col_mx -[B](mxval_groot irrG cAG).
     rewrite {B} -[_ 0 v](in_genK irrG cAG) -val_genZ val_genK.

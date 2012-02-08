@@ -96,7 +96,7 @@ Lemma AlgebraAxiom T (base : Field.class_of T)
 Proof.
 move=> c /= x y.
 have Hcom: (commutative (Ring.mul base)) by case: (ComUnitRing.base base).
-by rewrite /mul /= !(Hcom x) scaler_mull.
+by rewrite /mul /= !(Hcom x) scalerAl.
 Qed.
 
 Definition eqType phR cT := Equality.Pack (@class phR cT) cT.
@@ -404,12 +404,12 @@ Lemma mulfx_addl : left_distributive subfext_mul subfext_add.
 elim/quotW=> x; elim/quotW=> y; elim/quotW=> w.
 rewrite !mopP; apply/equivP.
 rewrite /= /n linearD /= !poly_rV_K_modp_subproof -modp_add //.
-by rewrite -mulr_addl linearD.
+by rewrite -mulrDl linearD.
 Qed.
 
 Lemma nonzero1fx : subfext1 != subfext0.
 Proof.
-move: (nonzero1r L).
+move: (oner_neq0 L).
 apply: contra.
 move/eqP/equivP.
 by rewrite /= /n linear0 poly_rV_K ?rmorph1 ?rmorph0 // size_poly1 H1p'.
@@ -508,7 +508,7 @@ Lemma subfx_inj_is_rmorphism : rmorphism subfx_inj.
 Proof.
 split.
   elim/quotW=> x; elim/quotW=> y.
-  by rewrite /subfx_inj [- _]mop1P [_ + _]mop2P !mfun1P linear_sub rmorph_sub.
+  by rewrite /subfx_inj [- _]mop1P [_ + _]mop2P !mfun1P linearB rmorphB.
 split; last by rewrite /subfx_inj mfun1P poly_rV_K ?rmorph1 // size_poly1 H1p'.
 elim/quotW=> x; elim/quotW=> y.
 rewrite /subfx_inj [_ * _]mop2P !mfun1P /subfx_mul_rep.
@@ -525,7 +525,7 @@ Lemma subfx_eval_is_rmorphism : rmorphism subfx_eval.
 Proof.
 split=> [x y|].
   symmetry.
-  rewrite /subfx_eval [- _]mop1P [_ + _]mop2P -linear_sub /= modp_add //.
+  rewrite /subfx_eval [- _]mop1P [_ + _]mop2P -linearB /= modp_add //.
   congr (\pi_subFExtend (poly_rV (_ + _))).
   symmetry.
   apply/eqP.
@@ -642,7 +642,7 @@ Variable K : {algebra L}.
 
 Lemma mem1v : 1 \in K.
 Proof.
-by rewrite -aunit1 -(can_eq (mulfK (anonzero1r K))) mul1r aunitl // memv_unit.
+by rewrite -aunit1 -(can_eq (mulfK (aoner_neq0 K))) mul1r aunitl // memv_unit.
 Qed.
 
 Lemma aunit_eq1 : aunit K = 1.
@@ -862,16 +862,16 @@ Qed.
 Lemma prodv_inj_coefK y v : v \in (K * y%:VS)%VS -> v / y \in K.
 Proof.
 move/coord_span ->.
-rewrite -mulr_suml memv_suml // => i _.
-rewrite -scaler_mull memvZl //.
+rewrite mulr_suml memv_suml // => i _.
+rewrite -scalerAl memvZl //.
 have/(mem_nth 0)/allpairsP : (i < size (Tuple (size_prodv K y%:VS))).
   rewrite size_tuple.
   by case i.
 move => [[c d] [/memv_basis Hc /memv_basis/injvP [a ->]] ->].
-rewrite -mulrA -scaler_mull.
+rewrite -mulrA -scalerAl.
 case: (eqVneq y 0) => [-> | Hy0].
   by rewrite invr0 mulr0 scaler0 mulr0 mem0v.
-by rewrite mulfV // mulrC -scaler_mull mul1r memvZl.
+by rewrite mulfV // mulrC -scalerAl mul1r memvZl.
 Qed.
 
 Lemma memv_prodv_inj_coef y v : v \in (K * y%:VS)%VS ->
@@ -928,7 +928,7 @@ Lemma poly_is_linear a u v :
 Proof.
 rewrite /poly_for_Fadjoin scaler_sumr -big_split.
 apply eq_bigr => i _ /=.
-by rewrite linearP mulr_addl scalerA -2!scaler_mull mul1r scaler_addl.
+by rewrite linearP mulrDl scalerA -2!scalerAl mul1r scalerDl.
 Qed.
 
 Lemma size_minPoly : size minPoly = elementDegree.+1.
@@ -969,7 +969,7 @@ case: ex_minnP => m _. apply.
 apply/orP; right.
 apply: (@leq_trans ((vdim L).+1)); first by rewrite ltnS -dimvf dimvS // subvf.
 rewrite leq_pmull // lt0n dimv_eq0 -subv0.
-apply: contra (nonzero1r L).
+apply: contra (oner_neq0 L).
 rewrite -memv0.
 move/(subv_trans (sub1v K)).
 move/subvP; apply.
@@ -1059,7 +1059,7 @@ move/eqP => p0.
 move/directv_sumP: (direct_Fadjoin K x).
 move/eqP: Hx rootp => Hx.
 rewrite /root horner_coef sizep big_ord_recl p0 mul0r add0r
-        -(can_eq (mulfVK Hx)) -GRing.mulr_suml mul0r => sump.
+        -(can_eq (mulfVK Hx)) mulr_suml mul0r => sump.
 have Hxi : x ^+ ((elementDegree K x).-1) != 0.
   by rewrite expf_eq0 negb_and Hx orbT.
 rewrite -(can_eq (mulfK Hxi)) mul0r -memv0.

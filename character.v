@@ -95,7 +95,7 @@ rewrite linearD /= linearZ.
 apply/matrixP=> i j.
 rewrite !mxE.
 case: split=> a.
-  by rewrite !mxE mulr_addl mulrA.
+  by rewrite !mxE mulrDl mulrA.
 by rewrite linearD /= linearZ IH !mxE.
 Qed.
 
@@ -214,7 +214,7 @@ Proof.
 elim: m n A B => [|m IH] n A B //=.
   by rewrite [A]flatmx0 mxtrace0 mul0r.
 rewrite tprod_tr -block_mxEv mxtrace_block IH.
-rewrite linearZ /= -mulr_addl; congr (_ * _).
+rewrite linearZ /= -mulrDl; congr (_ * _).
 rewrite -trace_mx11 .
 pose A1 := A : 'M_(1 + m).
 rewrite -{3}[A](@submxK _ 1 m 1 m A1).
@@ -268,7 +268,7 @@ exists (val_submod 1%:M *m row_mx pU pV) => [||g Gg].
   pose pU' := invmx fU *m val_submod 1%:M.
   pose pV' := invmx fV *m val_submod 1%:M.
   exists (in_submod _ (col_mx pU' pV')).
-  rewrite in_submodE mulmxA -in_submodE -mulmxA mul_row_col mulmx_addr.
+  rewrite in_submodE mulmxA -in_submodE -mulmxA mul_row_col mulmxDr.
   rewrite -[pU *m _]mulmxA -[pV *m _]mulmxA !mulKVmx -?row_free_unit //.
   rewrite addrC (in_submodE V) 2![val_submod 1%:M *m _]mulmxA -in_submodE.
   rewrite addrC (in_submodE U) 2![val_submod 1%:M *m _]mulmxA -in_submodE.
@@ -473,7 +473,7 @@ Definition xcfun (chi : 'CF(G)) A :=
   (gring_row A *m (\col_(i < #|G|) chi (enum_val i))) 0 0.
 
 Lemma xcfun_is_additive phi : additive (xcfun phi).
-Proof. by move=> A B; rewrite /xcfun linear_sub mulmx_subl !mxE. Qed.
+Proof. by move=> A B; rewrite /xcfun linearB mulmxBl !mxE. Qed.
 Canonical xcfun_additive phi := Additive (xcfun_is_additive phi).
 
 Lemma xcfunZr a phi A : xcfun phi (a *: A) = a * xcfun phi A.
@@ -487,8 +487,8 @@ Lemma xcfun_rE A chi : xcfun_r A chi = xcfun chi A. Proof. by []. Qed.
 
 Fact xcfun_r_is_additive A : additive (xcfun_r A).
 Proof.
-move=> phi psi; rewrite /= /xcfun !mxE -sumr_sub; apply: eq_bigr => i _.
-by rewrite !mxE !cfunE mulr_subr.
+move=> phi psi; rewrite /= /xcfun !mxE -sumrB; apply: eq_bigr => i _.
+by rewrite !mxE !cfunE mulrBr.
 Qed.
 Canonical xcfun_r_additive A := Additive (xcfun_r_is_additive A).
 
@@ -642,7 +642,7 @@ Proof. by move=> irrGf j; exact: (@irr_IirrPE _ _ xpredT). Qed.
 Corollary irr_sum_square : \sum_i ('chi[G]_i 1%g) ^+ 2 = #|G|%:R.
 Proof.
 rewrite -(sum_irr_degree sG) // natr_sum (reindex _ (socle_of_Iirr_bij _)) /=.
-by apply: eq_bigr => i _; rewrite irr1_degree natr_exp.
+by apply: eq_bigr => i _; rewrite irr1_degree natrX.
 Qed.
 
 (* This is Isaacs, Lemma (2.11). *)
@@ -1011,7 +1011,7 @@ Qed.
 Lemma lin_charV_conj x : x \in G -> xi x^-1%g = (xi x)^*.
 Proof.
 move=> Gx; rewrite lin_charV // invC_norm cfnorm_lin_char //.
-by rewrite -natr_exp invr1 mul1r.
+by rewrite -natrX invr1 mul1r.
 Qed.
 
 Lemma lin_char_irr : xi \in irr G.
@@ -1030,7 +1030,7 @@ apply: (iffP idP) => [cGG i | CF_G].
   by rewrite irr_degree_abelian //; last exact: groupC.
 rewrite card_classes_abelian -NirrE eqN_eqC -irr_sum_square //.
 rewrite -{1}[Nirr G]card_ord -sumr_const; apply/eqP/eq_bigr=> i _.
-by rewrite lin_char1 ?exp1rn ?CF_G.
+by rewrite lin_char1 ?expr1n ?CF_G.
 Qed.
 
 Lemma irr_repr_lin_char (i : Iirr G) x :
@@ -1104,7 +1104,7 @@ rewrite -[d'](mulKVmx unitB) mxtrace_mulC -[_ *m _](repr_mxK rG Gx) rGx.
 rewrite -!mulmxA mulKVmx // (mulmxA d').
 suffices->: d' *m diag_mx e = 1%:M by rewrite mul1mx mulKmx.
 rewrite mulmx_diag -diag_const_mx; congr diag_mx; apply/rowP=> j.
-by rewrite [e]lock !mxE mulrC -normCK -lock norm1_e exp1rn.
+by rewrite [e]lock !mxE mulrC -normCK -lock norm1_e expr1n.
 Qed.
 
 Variables (A : {group aT}) (G : {group gT}).
@@ -1187,11 +1187,11 @@ Qed.
 Let X' := \matrix_(i, j) (#|'C_G[g i]|%:R^-1 * ('chi[G]_j (g i))^*).
 Let XX'_1: X *m X' = 1%:M.
 Proof.
-apply/matrixP=> i j; rewrite !mxE -first_orthogonality_relation -mulr_sumr.
+apply/matrixP=> i j; rewrite !mxE -first_orthogonality_relation mulr_sumr.
 rewrite sum_by_classes => [|u v Gu Gv]; last by rewrite -conjVg !cfunJ.
 rewrite reindex_irr_class /=; apply/esym/eq_bigr=> k _.
 rewrite !mxE irr_inv // -/(g k) -divg_index -indexgI /=.
-rewrite (char0_natf_div Cchar) ?dvdn_indexg // index_cent1 invf_mul invrK.
+rewrite (char0_natf_div Cchar) ?dvdn_indexg // index_cent1 invfM invrK.
 by rewrite repr_irr_classK mulrCA mulrA mulrCA.
 Qed.
 
@@ -1369,7 +1369,7 @@ Lemma eq_subZnat_irr (a b : nat) (i j r t : Iirr G) :
      =   [|| a == 0%N | i == r] && [|| b == 0%N | j == t]
       || [&& i == j, r == t & a == b].
 Proof.
-rewrite -!scaleNr eq_addZ_irr oppr_eq0 opprK -addr_eq0 -natr_add -eqN_eqC.
+rewrite -!scaleNr eq_addZ_irr oppr_eq0 opprK -addr_eq0 -natrD -eqN_eqC.
 by rewrite -!(eqN_eqC _ 0) addn_eq0; case: a b => [|a] [|b]; rewrite ?andbF.
 Qed.
 
@@ -1404,7 +1404,7 @@ move=> Gx kerGx; have [|c _ def_x] := @max_cfRepr_norm_scalar n rG x Gx.
   by rewrite kerGx cfRepr1 normC_nat.
 move/eqP: kerGx; rewrite cfRepr1 cfunE Gx {rG}def_x mxtrace_scalar.
 case: n => [_|n]; first by rewrite ![_%:M]flatmx0.
-rewrite mulrb -subr_eq0 -mulrn_subl -mulr_natl mulf_eq0 -(eqN_eqC _ 0) /=.
+rewrite mulrb -subr_eq0 -mulrnBl -mulr_natl mulf_eq0 -(eqN_eqC _ 0) /=.
 by rewrite subr_eq0 => /eqP->.
 Qed.
 
@@ -1420,7 +1420,7 @@ Lemma constt_charP (i : Iirr G) chi :
 Proof.
 move=> Nchi; apply: (iffP idP) => [i_in_chi| [chi' Nchi' ->]]; last first.
   rewrite inE /= cfdotDl cfdot_irr (eqP (cfdot_char_irr_Nat i Nchi')).
-  by rewrite eqxx -natr_add -neq0N_neqC.
+  by rewrite eqxx -natrD -neq0N_neqC.
 exists (chi - 'chi_i); last by rewrite addrC subrK.
 apply/forallP=> j; rewrite coord_cfdot cfdot_subl cfdot_irr.
 have [<- | _] := eqP; last by rewrite subr0 cfdot_char_irr_Nat.
@@ -1572,7 +1572,7 @@ Proof. by apply: irr_IirrE; exact: cfDprod_irr. Qed.
 Lemma dprod_Iirr_inj : injective dprod_Iirr.
 Proof.
 move=> [i1 j1] [i2 j2] /eqP; rewrite -[_ == _]oddb -(getNatC_nat (_ == _)).
-rewrite -cfdot_irr !dprod_IirrE cfdot_dprod !cfdot_irr -natr_mul mulnb.
+rewrite -cfdot_irr !dprod_IirrE cfdot_dprod !cfdot_irr -natrM mulnb.
 by rewrite getNatC_nat oddb -xpair_eqE => /eqP.
 Qed.
 
@@ -1588,11 +1588,11 @@ rewrite (bigID (mem (codom dprod_Iirr))) (reindex dprod_Iirr) /=; last first.
   move=> p; rewrite /f' /insigd /insubd insubT //= => Dp /=.
   exact: (iinv_f dprod_Iirr_inj).
 have ->: #|G|%:R = \sum_i \sum_j 'chi_(dprod_Iirr (i, j)) 1%g ^+ 2.
-  rewrite -(dprod_card KxH) natr_mul.
-  do 2![rewrite -irr_sum_square -(mulr_suml, mulr_sumr); apply: eq_bigr => ? _].
-  by rewrite dprod_IirrE -exprn_mull -{3}(mulg1 1%g) cfDprodE.
+  rewrite -(dprod_card KxH) natrM.
+  do 2![rewrite -irr_sum_square (mulr_suml, mulr_sumr); apply: eq_bigr => ? _].
+  by rewrite dprod_IirrE -exprMn -{3}(mulg1 1%g) cfDprodE.
 rewrite (eq_bigl _ _ Df) pair_bigA addrC -subr_eq0 addrK.
-by move/eqP/posC_sum_eq0=> -> //= i _; rewrite irr1_degree -natr_exp posC_nat.
+by move/eqP/posC_sum_eq0=> -> //= i _; rewrite irr1_degree -natrX posC_nat.
 Qed.
 
 Definition inv_dprod_Iirr i := iinv (dprod_Iirr_onto i).
@@ -2027,9 +2027,9 @@ Lemma cfnorm_Res_leqif H phi :
     H \subset G ->
   '['Res[H] phi] <= #|G : H|%:R * '[phi] ?= iff (phi \in 'CF(G, H)).
 Proof.
-move=> sHG; rewrite cfun_onE !cfdotE -(LaGrange sHG) mulnC natr_mul invf_mul.
+move=> sHG; rewrite cfun_onE !cfdotE -(LaGrange sHG) mulnC natrM invfM.
 rewrite -!mulrA mulVKf -?neq0N_neqC -?lt0n //.
-rewrite (@big_setID _ _ _ _ G H) /= (setIidPr sHG) mulr_addr addrC.
+rewrite (@big_setID _ _ _ _ G H) /= (setIidPr sHG) mulrDr addrC.
 rewrite (eq_bigr (fun x => phi x * (phi x)^*)) => [|i Hi]; last first.
   by rewrite !cfResE //.
 split.
@@ -2142,7 +2142,7 @@ Lemma cfker_Ind chi :
 Proof.
 move=> sHG Nchi nzchi; rewrite !cfker_nzcharE ?cfInd_char ?cfInd_eq0 //.
 apply/setP=> x; rewrite inE cfIndE // (can2_eq (mulVKf _) (mulKf _)) ?neq0GC //.
-rewrite cfInd1 // mulrA -natr_mul LaGrange // mulr_natl -sumr_const.
+rewrite cfInd1 // mulrA -natrM LaGrange // mulr_natl -sumr_const.
 apply/eqP/bigcapP=> [/normC_sum_upper ker_chiG_x y Gy | ker_chiG_x].
   by rewrite mem_conjg inE ker_chiG_x ?groupV // => z _; exact: char1_ge_norm.
 by apply: eq_bigr => y /groupVr/ker_chiG_x; rewrite mem_conjgV inE => /eqP.

@@ -144,11 +144,11 @@ Lemma mu_mul p q x : p * q != 0 ->
   \mu_x (p * q) = (\mu_x p + \mu_x q)%N.
 Proof.
 move=>hpqn0; apply/eqP; rewrite eq_sym -muP//.
-rewrite exprn_addr dvdp_mul ?root_mu//=.
+rewrite exprD dvdp_mul ?root_mu//=.
 move:hpqn0; rewrite mulf_eq0 negb_or; case/andP=> hp0 hq0.
 move: (mu_spec x hp0)=> [qp qp0 hp].
 move: (mu_spec x hq0)=> [qq qq0 hq].
-rewrite {2}hp {2}hq exprS exprn_addr !mulrA [qp * _ * _]mulrAC.
+rewrite {2}hp {2}hq exprS exprD !mulrA [qp * _ * _]mulrAC.
 rewrite !dvdp_mul2r ?expf_neq0 ?factor_eq0 // -eqp_div_factor.
 move: (mulf_neq0 qp0 qq0); rewrite -horner_mul; apply: contra; move/eqP->.
 by rewrite horner_mul horner_factor subrr mulr0.
@@ -194,8 +194,8 @@ rewrite mu_mul ?mulf_eq0; last first.
   rewrite expf_eq0 factor_eq0 andbF orbF.
   by apply: contra qqp0; move/eqP->; rewrite root0.
 rewrite mu_exp mu_factor mul1n [\mu_x qqp]muNroot // add0n.
-rewrite exprn_addr mulrA -mulr_addl mu_mul; last first.
-  by rewrite mulr_addl -mulrA -exprn_addr subnK 1?ltnW // -hp -hq.
+rewrite exprD mulrA -mulrDl mu_mul; last first.
+  by rewrite mulrDl -mulrA -exprD subnK 1?ltnW // -hp -hq.
 rewrite muNroot ?add0n ?mu_exp ?mu_factor ?mul1n //.
 rewrite rootE !horner_lin horner_exp horner_factor subrr.
 by rewrite ltn_subS // -predn_sub exprS mul0r mulr0 addr0.
@@ -211,7 +211,7 @@ Proof.
 move=> hn.
 case p0: (p == 0); first by rewrite (eqP p0) div0p mu0 sub0n.
 case: (@mu_spec p x); rewrite ?p0 // => q hq hp.
-rewrite {1}hp -{1}(subnK hn) exprn_addr mulrA.
+rewrite {1}hp -{1}(subnK hn) exprD mulrA.
 rewrite mon.mulpK; last by apply: monic_exp; exact: monic_factor.
 rewrite mu_mul ?mulf_eq0 ?expf_eq0 ?factor_eq0 ?andbF ?orbF; last first.
   by apply: contra hq; move/eqP->; rewrite root0.
@@ -264,7 +264,7 @@ case: n hp px0 qx0 => [->|n hp px0 qx0].
   by rewrite expr0 mulr1=> ->.
 have q0 : q != 0 by apply: contra qx0; move/eqP->; rewrite root0.
 rewrite hp maxdivp_mu // subn1 /= !derivCE subr0 mul1r.
-rewrite mulrnAr exprS !mulrA -mulrnAl -mulr_addl.
+rewrite mulrnAr exprS !mulrA -mulrnAl -mulrDl.
 rewrite maxdivp_mu // rootE !(horner_lin, horner_mulrn) subrr mulr0 add0r.
 by rewrite mulrn_eq0 negb_or qx0.
 Qed.

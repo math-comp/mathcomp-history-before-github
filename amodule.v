@@ -112,7 +112,7 @@ Lemma rmulA v x y: v :* (x * y) = (v :* x) :* y.
 Proof. exact: AModuleType.action_morph. Qed.
 
 Lemma rmulZ : forall c v x, (c *: v) :* x = c *: (v :* x).
-Proof. move=> c v x; exact: linearZ. Qed.
+Proof. move=> c v x; exact: lmod_linearZ. Qed.
 
 Lemma rmul0 : left_zero 0 rmul.
 Proof. move=> x; exact: linear0. Qed.
@@ -422,7 +422,7 @@ apply: memv_add; first by rewrite -If limgE memv_img // memvf.
 rewrite memv_cap; apply/andP; split.
   apply: memv_sub=> //; apply: subv_trans Hsub.
   by rewrite -If limgE; apply: memv_img; exact: memvf.
-rewrite memv_ker linear_sub /= (Himf (f v)) ?subrr // /in_mem /= -If limgE.
+rewrite memv_ker linearB /= (Himf (f v)) ?subrr // /in_mem /= -If limgE.
 by apply: memv_img; exact: memvf. 
 Qed.
 

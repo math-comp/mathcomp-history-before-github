@@ -76,7 +76,7 @@ Fact mx_repr_is_groupAction : is_groupAction [set: 'rV[R]_n] mx_repr_action.
 Proof.
 move=> x Gx /=; rewrite !inE.
 apply/andP; split; first by apply/subsetP=> u; rewrite !inE.
-by apply/morphicP=> /= u v _ _; rewrite !actpermE /= /mx_repr_act mulmx_addl.
+by apply/morphicP=> /= u v _ _; rewrite !actpermE /= /mx_repr_act mulmxDl.
 Qed.
 Canonical Structure mx_repr_groupAction := GroupAction mx_repr_is_groupAction.
 
@@ -109,7 +109,7 @@ Fact scale_is_groupAction : is_groupAction setT scale_action.
 Proof.
 move=> a _ /=; rewrite inE; apply/andP.
 split; first by apply/subsetP=> A; rewrite !inE.
-by apply/morphicP=> u A _ _ /=; rewrite !actpermE /= /scale_act scaler_addr.
+by apply/morphicP=> u A _ _ /=; rewrite !actpermE /= /scale_act scalerDr.
 Qed.
 Canonical scale_groupAction := GroupAction scale_is_groupAction.
 
@@ -117,7 +117,7 @@ Lemma astab1_scale_act A : A != 0 -> 'C[A | scale_action] = 1%g.
 Proof.
 rewrite -mxrank_eq0=> nzA; apply/trivgP/subsetP=> a; apply: contraLR.
 rewrite !inE -val_eqE -subr_eq0 sub1set !inE => nz_a1.
-by rewrite -subr_eq0 -scaleN1r -scaler_addl -mxrank_eq0 eqmx_scale.
+by rewrite -subr_eq0 -scaleN1r -scalerDl -mxrank_eq0 eqmx_scale.
 Qed.
 
 End ScaleAction.
@@ -785,7 +785,7 @@ have{ntG pG} [z]: {z | z \in 'Z(G) & #[z] = p}; last case/setIP=> Gz cGz ozp.
   have pZ: p.-group 'Z(G) by rewrite (pgroupS (center_sub G)).
   by rewrite (trivg_center_pgroup pG (card1_trivg (pnat_1 pZ p'Z))).
 have{cGz} cGz1: centgmx rG (rG z - 1%:M).
-  apply/centgmxP=> x Gx; rewrite mulmx_subl mulmx_subr mulmx1 mul1mx.
+  apply/centgmxP=> x Gx; rewrite mulmxBl mulmxBr mulmx1 mul1mx.
   by rewrite -!repr_mxM // (centP cGz).
 have{irrG faithfulG cGz1} Urz1: rG z - 1%:M \in unitmx.
   apply: (mx_Schur irrG) cGz1 _; rewrite subr_eq0.
@@ -794,8 +794,8 @@ have{irrG faithfulG cGz1} Urz1: rG z - 1%:M \in unitmx.
 do [case: n n_gt0 => // n' _; set n := n'.+1] in rG Urz1 *.
 have charMp: p \in [char 'M[F]_n].
   exact: (rmorph_char (scalar_mx_rmorphism _ _)).
-have{Urz1}: GRing.unit (Frobenius_aut charMp (rG z - 1)) by rewrite unitr_exp.
-rewrite (Frobenius_aut_sub_comm _ (commr1 _)) Frobenius_aut_1.
+have{Urz1}: GRing.unit (Frobenius_aut charMp (rG z - 1)) by rewrite unitrX.
+rewrite (Frobenius_autB_comm _ (commr1 _)) Frobenius_aut1.
 by rewrite -[_ (rG z)](repr_mxX rG) // -ozp expg_order repr_mx1 subrr unitr0.
 Qed.
 
@@ -916,7 +916,7 @@ have injw: {in 'Z(S) &, injective (irr_mode i0)}.
   by rewrite !{1}irr_center_scalar ?eq_xy; first by split.
 have prim_w e: 0 < e < p -> p.-primitive_root (w ^+ e).
   case/andP=> e_gt0 lt_e_p; apply/andP; split=> //.
-  apply/forallP=> [[d ltdp] /=]; apply/eqP; rewrite unity_rootE -exprn_mulr.
+  apply/forallP=> [[d ltdp] /=]; apply/eqP; rewrite unity_rootE -exprM.
   rewrite -(irr_mode1 i0) -irr_modeX // (inj_in_eq injw) ?groupX ?group1 //.
   rewrite -order_dvdn ozp euclid // gtnNdvd //=; move: ltdp; rewrite leq_eqVlt.
   by case: eqP => [-> _ | _ ltd1p]; rewrite (dvdnn, gtnNdvd).
@@ -953,7 +953,7 @@ have rphi_z i: rphi i z = (w ^+ i.+1)%:M.
 pose iphi i := irr_comp sS (rphi i); pose phi_ i := irr_repr (iphi i).
 have{phi_ze} phi_ze i e: phi_ i (z ^+ e)%g = (w ^+ (e * i.+1)%N)%:M.
   rewrite /phi_ !{1}irr_center_scalar ?groupX ?irr_modeX //.
-  suffices ->: irr_mode (iphi i) z = w ^+ i.+1 by rewrite mulnC exprn_mulr.
+  suffices ->: irr_mode (iphi i) z = w ^+ i.+1 by rewrite mulnC exprM.
   have:= mx_rsim_sym (rsim_irr_comp sS F'S (rphi_irr i)).
   case/mx_rsim_def=> B [B' _ homB]; rewrite /irr_mode homB // rphi_z.
   rewrite -{1}scalemx1 -scalemxAr -scalemxAl -{1}(repr_mx1 (rphi i)).
@@ -977,7 +977,7 @@ split=> // [i | ze | i].
   case/cyclePmin=> e; rewrite ozp => lt_e_p ->{ze}.
   case: (posnP e) => [-> | e_gt0 _]; first by rewrite eqxx.
   exists (w ^+ e) => [|i]; first by rewrite prim_w ?e_gt0.
-  by rewrite phi_ze exprn_mulr.
+  by rewrite phi_ze exprM.
 rewrite deg_phi {i}; set d := irr_degree i0.
 apply/eqP; move/eqP: (sum_irr_degree sS F'S splitF).
 rewrite (bigID (mem linS)) /= -/irr_degree.

@@ -57,9 +57,6 @@ by move: (cyclic_abelian cW)=> /subsetP /(_ _ YiG) /centP; apply.
 Qed.
 
 (* Move to fingroup *)
-Lemma mem_class_support (gT : finGroupType) (A B : {set gT}) a b :
-   a \in A -> b \in B -> a ^ b \in class_support A B.
-Proof. by move=> AiA BiB; apply/imset2P; exists a b. Qed.
 
 Lemma cfInd_on_class_support (gT : finGroupType) (G H : {group gT}) 
                              (A : {set gT})  (f : 'CF(H)) :
@@ -191,14 +188,14 @@ Lemma conjC_vcharAut (u : {rmorphism algC -> algC}) chi x :
   chi \in 'Z[irr G] -> (u (chi x))^* = u (chi x)^*.
 Proof.
 case/vcharP=> chi1 Nchi1 [chi2 Nchi2 ->].
-by rewrite !cfunE !rmorph_sub !conjC_charAut.
+by rewrite !cfunE !rmorphB !conjC_charAut.
 Qed.
 
 Lemma cfdot_cfAut_vchar u (phi chi : 'CF(G)) :
   chi \in 'Z[irr G] -> '[cfAut u phi, cfAut u chi] = u '[phi, chi].
 Proof.
 case/vcharP=> chi1 Nchi1 [chi2 Nchi2 ->].
-by rewrite !raddf_sub /= !cfdot_cfAut_char.
+by rewrite !raddfB /= !cfdot_cfAut_char.
 Qed.
 
 Lemma vchar_cfAut A u (chi : 'CF(G)) :
@@ -242,7 +239,7 @@ have F i j : 'chi_i != -'chi[G]_ j.
   apply/negP=> Echi.
   have: '['chi_i] = 1 by rewrite cfdot_irr eqxx.
   rewrite  {1}(eqP Echi) cfdotNl cfdot_irr; case: (_ == _)=> /eqP.
-    by rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1%N) -(eqN_eqC _ 0).
+    by rewrite eq_sym -subr_eq0 opprK -(natrD _ 1%N) -(eqN_eqC _ 0).
   by rewrite oppr0 -(eqN_eqC 0 1).
 by case/dirrP=> [[]] [i1 ->] /dirrP [[]] [i2 ->];
    rewrite !(expr0, expr1, scaleN1r, scale1r, opprK, cfdotNr, cfdotNl);
@@ -394,8 +391,8 @@ Qed.
 
 Lemma acTIirrE i j : alpha_ i j = 1 - w_ i 0 - w_ 0 j + w_ i j.
 Proof.
-rewrite /alpha_ mulr_subl mul1r mulr_subr mulr1 -cTIirr_split.
-by rewrite oppr_sub !addrA addrAC (addrAC 1).
+rewrite /alpha_ mulrBl mul1r mulrBr mulr1 -cTIirr_split.
+by rewrite opprB !addrA addrAC (addrAC 1).
 Qed.
 
 Lemma vchar_acTIirr i j : alpha_ i j \in 'Z[irr W].
@@ -479,8 +476,8 @@ rewrite (normedTI_isometry _ nTi) ?memc_acTIirr //.
 rewrite (acTIirrE i') cfdotDr !cfdot_subr cfdot_acTIirr00 //.
 rewrite addrC -!addrA addKr acTIirrE -cTIirr00 !(cfdot_subl, cfdotDl).
 rewrite !cfdot_cTIirr !eqxx !(eq_sym 0) !andbT.
-do !rewrite (@negbTE (_ == 0)) ?andbF //; rewrite !oppr_add !oppr0 !opprK.
-by rewrite !add0r !addr0 mulnb addrA addrC addrA -!natr_add.
+do !rewrite (@negbTE (_ == 0)) ?andbF //; rewrite !opprD !oppr0 !opprK.
+by rewrite !add0r !addr0 mulnb addrA addrC addrA -!natrD.
 Qed.
 
 Lemma dim_cyclicTIcfun : \dim 'CF(W, V) = (#|Iirr W1|.-1 * #|Iirr W2|.-1)%N.
@@ -729,14 +726,14 @@ Lemma bcTIirr_false i j k l v1 v2 v3 :
 Proof.
 move=> Nv3 VCv3 HB HB'.
 have: (2%:R * v3) 1%g = (beta_ i j - beta_ k l) 1%g.
-  have->: 2%:R = 1 + 1 :> 'CF(G) by rewrite -(natr_add _ 1 1).
-  rewrite mulr_addl !mul1r.
-  rewrite HB HB' !oppr_add opprK -oppr_add [v1 + _ + _]addrC.
+  have->: 2%:R = 1 + 1 :> 'CF(G) by rewrite -(natrD _ 1 1).
+  rewrite mulrDl !mul1r.
+  rewrite HB HB' !opprD opprK -opprD [v1 + _ + _]addrC.
   by rewrite addrA addrK.
-rewrite /bcTIirr [X in _ - X]addrC oppr_add opprK addrA subrK.
-rewrite -raddf_sub /= cfInd1 //; last by case: tiW; case.
+rewrite /bcTIirr [X in _ - X]addrC opprD opprK addrA subrK.
+rewrite -raddfB /= cfInd1 //; last by case: tiW; case.
 rewrite 3!cfunE acTIirr1 cfunE acTIirr1 subr0 mulr0.
-rewrite cfun1Egen group1 -natr_add.
+rewrite cfun1Egen group1 -natrD.
 move/eqP; rewrite mulf_eq0 -(eqN_eqC _ 0) orFb.
 case: (vchar_norm1P VCv3 (eqP Nv3))=> b [i1 ->].
 by rewrite cfunE mulr_sign; case: b; rewrite ?oppr_eq0 (negPf (irr1_neq0 i1)).
@@ -772,9 +769,9 @@ apply/andP; split; apply/negP=> /eqP HH1; rewrite {}HH1 in HB, Ho, eHB.
   rewrite HH ?(eqxx, orbT, in_cons) // eq_sym (negPf Dv1v3) add0r.
   rewrite HH ?(eqxx, orbT, in_cons) // eq_sym (negPf Dv4v3) add0r.
   rewrite cfdot_virr //; case: (_ == _).
-    by move/eqP; rewrite -(natr_add _ 1 1) -(natr_add _ _ 1) -eqN_eqC.
+    by move/eqP; rewrite -(natrD _ 1 1) -(natrD _ _ 1) -eqN_eqC.
   case: (boolP (_ == _))=> [/eqP //| _].
-  by move/eqP; rewrite addr0 -(natr_add _ 1 1) -eqN_eqC.
+  by move/eqP; rewrite addr0 -(natrD _ 1 1) -eqN_eqC.
 suff F: v3 = v5.
   move: eHB eHB'.
   rewrite F -!addrA ![_ + v5]addrC !addrA => eHB eHB'.
@@ -790,7 +787,7 @@ rewrite -[v4]opprK cfdotNr.
 rewrite HH ?(eqxx, orbT, in_cons) // eq_sym (negPf Dv4v3) oppr0 add0r.
 rewrite addrN add0r cfdot_virr //; case: (boolP (_ == _))=> [/eqP //| _].
 case: (_ == _)=> /eqP.
-  by rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1 1) -(eqN_eqC _ 0).
+  by rewrite eq_sym -subr_eq0 opprK -(natrD _ 1 1) -(eqN_eqC _ 0).
 by rewrite eq_sym oner_eq0.
 Qed.
 
@@ -824,9 +821,9 @@ apply/andP; split; apply/negP=> /eqP HH1; rewrite {}HH1 in HB, Ho, eHB.
   rewrite HH ?(eqxx, orbT, in_cons) // eq_sym (negPf Dv1v3) add0r.
   rewrite HH ?(eqxx, orbT, in_cons) // eq_sym (negPf Dv4v3) add0r.
   rewrite cfdot_virr //; case: (_ == _).
-    by move/eqP; rewrite -(natr_add _ 1 1) -(natr_add _ _ 1) -eqN_eqC.
+    by move/eqP; rewrite -(natrD _ 1 1) -(natrD _ _ 1) -eqN_eqC.
   case: (boolP (_ == _))=> [/eqP //| _].
-  by move/eqP; rewrite addr0 -(natr_add _ 1 1) -eqN_eqC.
+  by move/eqP; rewrite addr0 -(natrD _ 1 1) -eqN_eqC.
 suff F: v3 = v5.
   move: eHB eHB'.
   rewrite F -!addrA ![_ + v5]addrC !addrA => eHB eHB'.
@@ -842,7 +839,7 @@ rewrite -[v4]opprK cfdotNr.
 rewrite HH ?(eqxx, orbT, in_cons) // eq_sym (negPf Dv4v3) oppr0 add0r.
 rewrite addrN add0r cfdot_virr //; case: (boolP (_ == _))=> [/eqP //| _].
 case: (_ == _)=> /eqP.
-  by rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1 1) -(eqN_eqC _ 0).
+  by rewrite eq_sym -subr_eq0 opprK -(natrD _ 1 1) -(eqN_eqC _ 0).
 by rewrite eq_sym oner_eq0.
 Qed.
 
@@ -850,7 +847,7 @@ Lemma in_bcTIirr_opp i j v1 : in_bcTIirr i j v1 -> ~~ in_bcTIirr i j (-v1).
 Proof.
 case/and3P=> _ _ HH.
 apply/negP; case/and3P=> _ _; rewrite cfdotNl (eqP HH).
-by rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1 1) -(eqN_eqC _ 0).
+by rewrite eq_sym -subr_eq0 opprK -(natrD _ 1 1) -(eqN_eqC _ 0).
 Qed.
 
 Lemma bcmp_opp i j k v1 v2 v3 : 
@@ -934,9 +931,9 @@ rewrite HH ?(eqxx, orbT, in_cons) // (negPf Iv23) addr0.
 rewrite HH' ?(eqxx, orbT, in_cons) //  eq_sym (negPf Iv4) add0r.
 rewrite HH' ?(eqxx, orbT, in_cons) // eq_sym (negPf Iv24) add0r.
 rewrite cfdot_virr //; repeat (case: (_ == _)); move/eqP.
-- by rewrite -(natr_add _ 1 1) -(natr_add _  _ 1) -(eqN_eqC _ 0).
+- by rewrite -(natrD _ 1 1) -(natrD _  _ 1) -(eqN_eqC _ 0).
 - by rewrite addrK -(eqN_eqC 1 0).
-by rewrite addr0 -(natr_add _ 1 1) -(eqN_eqC _ 0).
+by rewrite addr0 -(natrD _ 1 1) -(eqN_eqC _ 0).
 Qed.
 
 Lemma bcmp_two_opp i1 j1 i2 j2 v1 v2 v3 v4: 
@@ -2210,7 +2207,7 @@ Proof.
 move=> k /= x y.
 rewrite /extIrrf.
 rewrite scaler_sumr -big_split; apply: eq_bigr=> /= i _.
-by rewrite cfdotDl cfdotZl scaler_addl -scalerA.
+by rewrite cfdotDl cfdotZl scalerDl -scalerA.
 Qed.
 
 Canonical extIrrf_linear f : {linear 'CF(W) -> 'CF(G)} :=  
@@ -2329,7 +2326,7 @@ have /imageP[[i1 j1]]: l`_j \in l by apply: mem_nth; rewrite size_image.
 rewrite !inE /= => /andP [Hi1 Hj2]  ->.
 rewrite dcTIirrE //.
 set ss := \sum_(i < _) _; have->: ss = (extIrrf g (alpha_ i1 j1)) by done.
-rewrite acTIirrE !(linearD, linear_sub, linearN).
+rewrite acTIirrE !(linearD, linearB, linearN).
 rewrite -x00 -!chi0_1.
 by rewrite /= !cTIirrE !extIrrf_irr !gXE /p /=  !dprod_IirrK inv_dprod_Iirr0.
 Qed.
@@ -2399,8 +2396,8 @@ have Cfa : a \in 'CF(W, V).
   rewrite !cfDprodEl // !cfDprodEr // !lin_char1 // !mul1r.
   by rewrite addrK subrr.
 suff: '[phi, 'Ind[G] a] == 0.
-  rewrite -!cyclicTIsigma_ind // !linear_sub !linearD !cfdot_subr !cfdotDr.
-  by rewrite -addrA -oppr_add subr_eq0=> /eqP.
+  rewrite -!cyclicTIsigma_ind // !linearB !linearD !cfdot_subr !cfdotDr.
+  by rewrite -addrA -opprD subr_eq0=> /eqP.
 rewrite cfdotE big1 ?mulr0 // => g GiG.
 case: (boolP (g \in class_support V G))=> [/imset2P [v h ViV HiG ->]|GniC].
   by rewrite cfunJ // ZphiV // mul0r.
@@ -2449,7 +2446,7 @@ have: '[sigma (w_ i1 j1)] = 1 by rewrite cfdot_sigma ?eqxx.
 rewrite  {1}(eqP HH) cfdotNl cfdot_sigma.
 case: (_ == _)=> /eqP; last by rewrite oppr0 -(eqN_eqC 0 1).
 case: (j2 == _); last by rewrite oppr0 -(eqN_eqC 0 1).
-by rewrite eq_sym -subr_eq0 opprK -(natr_add _ 1) -(eqN_eqC _ 0).
+by rewrite eq_sym -subr_eq0 opprK -(natrD _ 1) -(eqN_eqC _ 0).
 Qed.
 
 Lemma dirr_sigma i j : sigma(w_ i j) \in dirr G.
@@ -2731,7 +2728,7 @@ case: (boolP ((i1, j1) \in S))=> [I1J1iS|]; last first.
   rewrite inE negbK /a  cfdot_subl cfdot_sigma !eqxx /=.
   rewrite cfdot_dirr ?(dirr_chi, dirr_sigma) //.
   case: (boolP (phi == _))=> [|_].
-    by rewrite opprK -(natr_add _ 1 1) -(eqN_eqC _ 0).
+    by rewrite opprK -(natrD _ 1 1) -(eqN_eqC _ 0).
   case: (boolP (phi == _))=> [/eqP //|].
   by rewrite subr0 -(eqN_eqC 1 0).
 have SPos : (0 < #|S|)%N by rewrite (cardD1 (i1,j1)) I1J1iS.

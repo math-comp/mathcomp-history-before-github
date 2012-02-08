@@ -1149,6 +1149,10 @@ Qed.
 Lemma mem_classes x A : x \in A -> x ^: A \in classes A.
 Proof. exact: mem_imset. Qed.
 
+Lemma mem_class_support A B x y :
+   x \in A -> y \in B -> x ^ y \in class_support A B.
+Proof. by move=> Ax By; apply: mem_imset2. Qed.
+
 Lemma class_supportM A B C :
   class_support A (B * C) = class_support (class_support A B) C.
 Proof.

@@ -367,6 +367,9 @@ Proof. by rewrite -{1}ker_coset; exact: morphimIG. Qed.
 Lemma quotientD A B : A / H :\: B / H \subset (A :\: B) / H.
 Proof. exact: morphimD. Qed.
 
+Lemma quotientD1 A : (A / H)^# \subset A^# / H.
+Proof. exact: morphimD1. Qed.
+
 Lemma quotientDG A G : H \subset G -> (A :\: G) / H = A / H :\: G / H.
 Proof. by rewrite -{1}ker_coset; exact: morphimDG. Qed.
 
@@ -378,6 +381,14 @@ Proof. by move=> nHG; rewrite quotientK ?norm_joinEr. Qed.
 
 Lemma quotientGK G : H <| G -> coset H @*^-1 (G / H) = G.
 Proof. by case/andP; rewrite -{1}ker_coset; exact: morphimGK. Qed.
+
+Lemma quotient_class x A :
+  x \in 'N(H) -> A \subset 'N(H) -> x ^: A / H  = coset H x ^: (A / H).
+Proof. exact: morphim_class. Qed.
+
+Lemma classes_quotient A :
+  A \subset 'N(H) -> classes (A / H) = [set xA / H | xA <- classes A].
+Proof. exact: classes_morphim. Qed.
 
 Lemma cosetpre_set1 x :
   x \in 'N(H) -> coset H @*^-1 [set coset H x] = H :* x.
@@ -437,6 +448,12 @@ Proof. by rewrite /normal -{1}ker_coset; exact: morphim_injG. Qed.
 Lemma quotient_inj G1 G2 :
    H <| G1 -> H <| G2 -> G1 / H = G2 / H -> G1 :=: G2.
 Proof. by rewrite /normal -{1 3}ker_coset; exact: morphim_inj. Qed.
+
+Lemma quotient_neq1 A : H <| A -> (A / H != 1) = (H \proper A).
+Proof.
+case/andP=> sHA  nHA; rewrite /proper sHA -trivg_quotient eqEsubset andbC.
+by rewrite quotientS //= quotientSGK.
+Qed.
 
 Lemma quotient_gen A : A \subset 'N(H) -> <<A>> / H = <<A / H>>.
 Proof. exact: morphim_gen. Qed.

@@ -1626,12 +1626,12 @@ have oTG: (#|TG|%:R = (1 + n / z - \sum_(Mi \in MX) (k_ Mi)^-1) * g)%R.
   rewrite (eq_bigr (fun _ => #|T|)) => [|Tx]; last first.
     by case/imsetP=> x _ ->; rewrite cardJg.
   rewrite sum_nat_const card_conjugates setTI defNT.
-  rewrite natr_mul natf_indexg ?subsetT //= -/z -mulrA mulrC; congr (_ * _)%R.
-  rewrite oT natr_sub; last by rewrite ltnW // -subn_gt0 lt0n -oT cards_eq0.
-  rewrite mulrC natr_add -/n -/z natr_sum /=.
-  rewrite mulr_subl mulr_addl big_distrl divff //=; congr (_ - _)%R. 
+  rewrite natrM natf_indexg ?subsetT //= -/z -mulrA mulrC; congr (_ * _)%R.
+  rewrite oT natrB; last by rewrite ltnW // -subn_gt0 lt0n -oT cards_eq0.
+  rewrite mulrC natrD -/n -/z natr_sum /=.
+  rewrite mulrBl mulrDl big_distrl divff //=; congr (_ - _)%R. 
   apply: eq_bigr => Mi MXi; have defZi := defZX _ MXi.
-  by rewrite /z -(dprod_card defZi) natr_mul invf_mul mulrC divfK.  
+  by rewrite /z -(dprod_card defZi) natrM invfM mulrC divfK.  
 have neMNX: MNX != set0.
   move: ntK; rewrite -rank_gt0; case/rank_geP=> X; case/exMNX=> Mi MNXi _.
   by apply/set0Pn; exists Mi.
@@ -1646,10 +1646,10 @@ have [Mi MXi P2maxMi]: exists2 Mi, Mi \in MX & Mi \in 'M_'P2.
     have{complU} U1: U :==: 1; last rewrite {U U1}(eqP U1) sdprod1g in defMi.
       rewrite (trivg_kappa_compl maxMi complU).
       by apply: contraR (allP1 _ MXi) => ?; exact/setDP.
-    rewrite card_class_support_sigma // natr_mul natf_indexg ?subsetT // -/g.
-    rewrite mulrCA mulrC ler_wpmul2r ?ler0n // -subn1 natr_sub ?cardG_gt0 //.
-    rewrite mulr1n mulr_subl -{1}(sdprod_card defMi) natr_mul invf_mul.
-    rewrite mulVKf ?natrG_neq0 // ler_add2l ler_opp2 -(mulr_natr _ 2) invf_mul.
+    rewrite card_class_support_sigma // natrM natf_indexg ?subsetT // -/g.
+    rewrite mulrCA mulrC ler_wpmul2r ?ler0n // -subn1 natrB ?cardG_gt0 //.
+    rewrite mulr1n mulrBl -{1}(sdprod_card defMi) natrM invfM.
+    rewrite mulVKf ?natrG_neq0 // ler_add2l ler_opp2 -(mulr_natr _ 2) invfM.
     rewrite ler_pdivr_mulr ?natrG_gt0 // mulrC mulrA.
     have sZM: Z \subset M by rewrite -defZ subsetIl.
     have sZMi: Z \subset Mi by rewrite -(defZX _ MXi) defZi subsetIl.
@@ -1703,14 +1703,14 @@ have [Mi MXi P2maxMi]: exists2 Mi, Mi \in MX & Mi \in 'M_'P2.
     move/ell_sigma0P: (@erefl gT 1); rewrite cards_eq0; apply: contraL.
     case/bigcupP=> x Mis_x xR1; apply/set0Pn; exists x.
     exact: mem_sigma_cover_decomposition (Msigma_ell1 maxMi Mis_x) xR1.
-  rewrite -(eqnP tiPG) big_setU1 ?big_imset //= natr_add natr_sum.
+  rewrite -(eqnP tiPG) big_setU1 ?big_imset //= natrD natr_sum.
   suffices: (g <= #|TG|%:R + \sum_(i \in MX) ((k_ i)^-1 - (z *+ 2)^-1) * g)%R.
     by move/ler_trans->; rewrite // ler_add2l ler_sum.
-  rewrite -big_distrl /= oTG -/g -mulr_addl big_split /= sumr_const.
-  rewrite addrA subrK -(mulr_natl _ 2) -[_ *+ _]mulr_natl invf_mul mulrN.
-  rewrite mulrA -addrA -mulr_subl -{1}(mul1r g) ler_wpmul2r ?ler0n //.
+  rewrite -big_distrl /= oTG -/g -mulrDl big_split /= sumr_const.
+  rewrite addrA subrK -(mulr_natl _ 2) -[_ *+ _]mulr_natl invfM mulrN.
+  rewrite mulrA -addrA -mulrBl -{1}(mul1r g) ler_wpmul2r ?ler0n //.
   rewrite ler_addl -(mul0r z^-1)%R ler_wpmul2r ?invr_ge0 ?ler0n //.
-  rewrite subr_ge0 ler_pdivr_mulr ?(ltr0Sn _ 1) // -natr_mul ler_nat.
+  rewrite subr_ge0 ler_pdivr_mulr ?(ltr0Sn _ 1) // -natrM ler_nat.
   by rewrite muln2 -addnn cardsU1 leq_add2r notMNX0 lt0n cards_eq0.
 have [prKi nilMis]: prime #|K_ Mi| /\ nilpotent Mi`_\sigma.
   by have [PmaxMi] := PmaxMX _ MXi; case/Ptype_structure=> // _ _ _ _ [].
@@ -1801,10 +1801,10 @@ have hallKs: \sigma(M).-Hall(Mstar) Ks.
 have oTGgt_g2: (g / 2%:R < #|TG|%:R)%R.
   rewrite oTG big_setU1 //= /n defMNX big_set1 cards1 mulrC mul1r.
   rewrite ltr_pmul2r ?(ltr_nat _ 0) ?cardG_gt0 //  /k_ K0 -defKs.
-  rewrite /z -defZ -(dprod_card defNK) natr_mul invf_mul oppr_add.
+  rewrite /z -defZ -(dprod_card defNK) natrM invfM opprD.
   pose hm u : qnum := (1 - u%:R^-1)%R; set lhs := (_^-1)%R.
   suffices: (lhs < hm #|K| * hm #|Ks|)%R.
-    by rewrite mulr_subl !mulr_subr !mul1r mulr1 oppr_sub addrAC !addrA.
+    by rewrite mulrBl !mulrBr !mul1r mulr1 opprB addrAC !addrA.
   have hm_inc: forall u v, 0 < u <= v -> (hm u <= hm v)%R.
     move=> u v; case/andP=> u_gt0 le_uv; rewrite ler_add2l ler_opp2.
     have v_gt0 := leq_trans u_gt0 le_uv.
@@ -1917,7 +1917,7 @@ have{oSGgt_g2 oTGgt_g2} meetST: ~~ [disjoint TG & class_support S G].
   rewrite -ltnNge -(ltr_nat [oFieldType of qnum]) -/g.
   rewrite -{1}[g](@divfK _ 2%:R) // mulr_natr.
   apply: ltr_le_trans (ltr_add oTGgt_g2 oSGgt_g2) _.
-  by rewrite -natr_add -tiTGS ler_nat cardsT max_card.
+  by rewrite -natrD -tiTGS ler_nat cardsT max_card.
 have{meetST} [x Tx [a Sx]]: exists2 x, x \in T & exists a, x \in S :^ a.
   have [x0] := pred0Pn meetST; case/andP; case/imset2P=> x a1 Tx _ ->{x0}.
   rewrite class_supportEr; case/bigcupP=> a2 _ => Sa2_xa1.

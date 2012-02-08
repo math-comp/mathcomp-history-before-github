@@ -2354,43 +2354,6 @@ Proof. by elim: s1 => //= x s1 ->; rewrite catA. Qed.
 
 End AllPairs.
 
-Section EqAllPairs.
-
-Variables (S T R : eqType) (f : S -> T -> R).
-Implicit Types (s : seq S) (t : seq T).
-
-Lemma allpairsP s t z :
-  reflect (exists p, [/\ p.1 \in s, p.2 \in t & z = f p.1 p.2])
-          (z \in allpairs f s t).
-Proof.
-elim: s => [|x s IHs /=]; first by right=> [[p []]].
-rewrite mem_cat; have [fxt_z | not_fxt_z] := altP mapP.
-  by left; have [y t_y ->] := fxt_z; exists (x, y); rewrite mem_head.
-apply: (iffP IHs) => [] [[x' y] /= [s_x' t_y def_z]]; exists (x', y).
-  by rewrite !inE predU1r.
-by have [def_x' | //] := predU1P s_x'; rewrite def_z def_x' map_f in not_fxt_z.
-Qed.
-
-Lemma mem_allpairs s1 t1 s2 t2 :
-  s1 =i s2 -> t1 =i t2 -> allpairs f s1 t1 =i allpairs f s2 t2.
-Proof.
-move=> eq_s eq_t z.
-by apply/allpairsP/allpairsP=> [] [p fpz]; exists p; rewrite eq_s eq_t in fpz *.
-Qed.
-
-Lemma allpairs_catr s t1 t2 :
-  allpairs f s (t1 ++ t2) =i allpairs f s t1 ++ allpairs f s t2.
-Proof.
-move=> z; rewrite mem_cat.
-apply/allpairsP/orP=> [[p [sP1]]|].
-  by rewrite mem_cat; case/orP; [left | right]; apply/allpairsP; exists p.
-by case=> /allpairsP[p [sp1 sp2 ->]]; exists p; rewrite mem_cat sp2 ?orbT.
-Qed.
-
-End EqAllPairs.
-
-Prenex Implicits flatten shape reshape allpairs.
-
 Notation "[ 'seq' E | i <- s ]" := (map (fun i => E) s)
   (at level 0, i ident,
    format "[ '[hv' 'seq'  E '/ '  |   i  <-  s ] ']'") : form_scope.
@@ -2406,4 +2369,55 @@ Notation "[ 'seq' E | i <- s , C ]" :=
    format "[ '[hv' 'seq'  E '/ '  |   i  <-  s , '/ '  C ] ']'")
    : form_scope.
 
+Section EqAllPairs.
 
+Variables S T : eqType.
+Implicit Types (R : eqType) (s : seq S) (t : seq T).
+
+Lemma allpairsP R (f : S -> T -> R) s t z :
+  reflect (exists p, [/\ p.1 \in s, p.2 \in t & z = f p.1 p.2])
+          (z \in allpairs f s t).
+Proof.
+elim: s => [|x s IHs /=]; first by right=> [[p []]].
+rewrite mem_cat; have [fxt_z | not_fxt_z] := altP mapP.
+  by left; have [y t_y ->] := fxt_z; exists (x, y); rewrite mem_head.
+apply: (iffP IHs) => [] [[x' y] /= [s_x' t_y def_z]]; exists (x', y).
+  by rewrite !inE predU1r.
+by have [def_x' | //] := predU1P s_x'; rewrite def_z def_x' map_f in not_fxt_z.
+Qed.
+
+Lemma mem_allpairs R (f : S -> T -> R) s1 t1 s2 t2 :
+  s1 =i s2 -> t1 =i t2 -> allpairs f s1 t1 =i allpairs f s2 t2.
+Proof.
+move=> eq_s eq_t z.
+by apply/allpairsP/allpairsP=> [] [p fpz]; exists p; rewrite eq_s eq_t in fpz *.
+Qed.
+
+Lemma allpairs_catr R (f : S -> T -> R) s t1 t2 :
+  allpairs f s (t1 ++ t2) =i allpairs f s t1 ++ allpairs f s t2.
+Proof.
+move=> z; rewrite mem_cat.
+apply/allpairsP/orP=> [[p [sP1]]|].
+  by rewrite mem_cat; case/orP; [left | right]; apply/allpairsP; exists p.
+by case=> /allpairsP[p [sp1 sp2 ->]]; exists p; rewrite mem_cat sp2 ?orbT.
+Qed.
+
+Lemma allpairs_uniq R (f : S -> T -> R) s t :
+    uniq s -> uniq t ->
+    {in [seq (x, y) | x <- s, y <- t] &, injective (prod_curry f)} ->
+  uniq (allpairs f s t).
+Proof.
+move=> Us Ut inj_f; have: all (mem s) s by exact/allP.
+elim: {-2}s Us => //= x s1 IHs /andP[s1'x Us1] /andP[sx1 ss1].
+rewrite cat_uniq {}IHs // andbT map_inj_in_uniq ?Ut // => [|y1 y2 *].
+  apply/hasPn=> _ /allpairsP[z [s1z tz ->]]; apply/mapP=> [[y ty Dy]].
+  suffices [Dz1 _]: (z.1, z.2) = (x, y) by rewrite -Dz1 s1z in s1'x.
+  apply: inj_f => //; apply/allpairsP; last by exists (x, y).
+  by have:= allP ss1 _ s1z; exists z.
+suffices: (x, y1) = (x, y2) by case.
+by apply: inj_f => //; apply/allpairsP; [exists (x, y1) | exists (x, y2)].
+Qed.
+
+End EqAllPairs.
+
+Prenex Implicits flatten shape reshape allpairs.

@@ -285,8 +285,8 @@ pose gi (z : 'Z_q) := z%:R : 'F_p.
 have giM: rmorphism gi.
   split=> [z1 z2|]; last split=> // z1 z2.
     apply: canRL (addrK _) _; apply: val_inj.
-    by rewrite -{2}(subrK z2 z1) -natr_add /= !val_Fp_nat ?modn_dvdm // Zp_cast.
-  by apply: val_inj; rewrite -natr_mul /= !val_Fp_nat ?modn_dvdm // Zp_cast.
+    by rewrite -{2}(subrK z2 z1) -natrD /= !val_Fp_nat ?modn_dvdm // Zp_cast.
+  by apply: val_inj; rewrite -natrM /= !val_Fp_nat ?modn_dvdm // Zp_cast.
 pose g u := map_mx (RMorphism giM) (invm injL u).
 have gM: {in L &, {morph g : u v / u * v}}.
   by move=> u v Lu Lv /=; rewrite {1}/g morphM // map_mxD.
@@ -407,7 +407,7 @@ have Uf1: f1 _ \in U by move=> w; rewrite -f1W mem_morphim ?inE.
 pose f3 w := rVabelem abelV ntV (in_submod _ (g (f1 w)) *m h).
 have f3M: {in W &, {morph f3: w1 w2 / w1 * w2}}.
   move=> w1 w2 Ww1 Ww2 /=; rewrite {1}/f3 morphM {Ww1 Ww2}//.
-  rewrite gM ?(subsetP sUL) ?Uf1 // linearD mulmx_addl.
+  rewrite gM ?(subsetP sUL) ?Uf1 // linearD mulmxDl.
   by rewrite morphM ?mem_im_abelem_rV.
 have ker_f3: 'ker (Morphism f3M) = 'Mho^1(W).
   apply/setP=> w; rewrite !inE /=.
@@ -516,7 +516,7 @@ Lemma muln_sum :  forall (R : ringType) I r P (F : I -> nat),
   \sum_(i <- r | P i) (F i)%:R  = (\sum_(i <- r | P i) F i)%:R :> R.
 Proof.
 move=> R I r P F; apply: sym_eq.
-exact: (big_morph _ (fun x1 y1 : nat => natr_add _ x1 y1) (refl_equal 0%:R)).
+exact: (big_morph _ (fun x1 y1 : nat => natrD _ x1 y1) (refl_equal 0%:R)).
 Qed.
 
 Theorem solvable_Wielandt_fixpoint : forall (I : finType) (gT : finGroupType),
@@ -640,12 +640,12 @@ suff tr_rW_Ai : forall i, 0 < m i + n i  ->
         \sum_(i | 0 < m i + n i) (gamma i) *+ n i.
     have hp : forall mn i, 0 < m i + n i -> 
       gamma i *+ mn i = \sum_(x \in A i) (rW x) *+ mn i.
-      by move=> mn i _; rewrite sumr_muln.
+      by move=> mn i _; rewrite sumrMnl.
     rewrite !(eq_bigr _ (hp _)). 
     have side : forall i j, 0 < m i + n i -> j \in A i -> j \in G.
       by move=> i j hmn; apply: (subsetP (sAiG _ _)).
     rewrite !(exchange_big_dep (fun x => x \in G)) // {side} /=. 
-    apply: eq_bigr => g Gg; rewrite !sumr_muln_r; congr (_ *+ _).
+    apply: eq_bigr => g Gg; rewrite !sumrMnr; congr (_ *+ _).
     transitivity (\sum_(i | (g \in A i) && (0 < m i + n i)) m i)%N.
       by apply: eq_bigl => i; rewrite andbC.
     transitivity (\sum_(i | (g \in A i) && (0 < m i + n i)) n i)%N.
@@ -653,12 +653,12 @@ suff tr_rW_Ai : forall i, 0 < m i + n i  ->
     by apply: eq_bigl => i; rewrite andbC.
   have hp : forall mn i, 0 < m i + n i -> 
     gamma i *+ mn i = \sum_(x \in A i) (rW x) *+ mn i. 
-    by move=> mn i; rewrite sumr_muln.
+    by move=> mn i; rewrite sumrMnl.
   rewrite !(eq_bigr _ (hp _)); move/(f_equal mxtrace); rewrite !raddf_sum /=. 
   have {hp} hp : forall mn i, 0 < m i + n i -> 
     \tr (\sum_(x \in A i) rW x *+ mn i) = (f i * mn i * #|A i|)%:R.
-    move=> mn i hi; rewrite mulnAC natr_mul -tr_rW_Ai // mulrC -mxtraceZ.
-    by rewrite scaler_nat sumr_muln.
+    move=> mn i hi; rewrite mulnAC natrM -tr_rW_Ai // mulrC -mxtraceZ.
+    by rewrite scaler_nat sumrMnl.
   rewrite !(eq_bigr _ (hp _)) !muln_sum; move/(f_equal (@nat_of_ord _)).
   by rewrite !val_Zp_nat.
 move=> i hi.
@@ -895,7 +895,7 @@ have eqr : \sum_(a \in A i) Pu *m (rW a *m Pl) = 0.
     have {he} he b : b \in Aibar -> isol [~ a * b, w] = - isol [~ w, a * b].
     move=> bAibar; rewrite -(invg_comm w (a * b)) morphV //.
       by apply: mem_commg=> //; rewrite groupM.
-    by rewrite (eq_bigr _ he) sumr_opp addNr.
+    by rewrite (eq_bigr _ he) sumrN addNr.
   case/gen_prodgP: hd=> r [phi mem_phi] ->.
   have he' a : a \in Aibar ->  
     isol ((\prod_i0 phi i0) ^ a) =  isol (\prod_i0 (phi i0) ^ a).
@@ -923,5 +923,5 @@ have eqr : \sum_(a \in A i) Pu *m (rW a *m Pl) = 0.
 rewrite -(mulmx1 (gamma i)) idmxE -P12_id mulmxA mxtrace_mulC mul_mx_row.
 rewrite mul_col_row mxtrace_block /gamma !mulmx_suml !mulmx_sumr eqr mxtrace0.
 rewrite add0r (eq_bigr _ eql) sumr_const raddfMn /= mxtrace1.
-by rewrite natr_mul /= mulr_natr.
+by rewrite natrM /= mulr_natr.
 Qed.

@@ -168,7 +168,7 @@ Qed.
 Lemma expgn_zneg G x (k : 'Z_(#|G|)) : x \in G -> x ^+ (- k)%R = x ^- k.
 Proof.
 move=> Gx; apply/eqP; rewrite eq_sym eq_invg_mul -expgn_add.
-by rewrite -(expgn_znat _ Gx) natr_add natr_Zp natr_negZp subrr.
+by rewrite -(expgn_znat _ Gx) natrD natr_Zp natr_negZp subrr.
 Qed.
 
 Lemma nt_gen_prime G x : prime #|G| -> x \in G^# -> G :=: <[x]>.
@@ -749,7 +749,7 @@ elim: rs => //= y rs IHrs /andP[Gy Grs] /andP[y_rs]; rewrite andbC.
 move/IHrs=> -> {IHrs}//; apply/allP=> _ /mapP[z rs_z ->].
 have{Grs} Gz := allP Grs z rs_z; rewrite /diff_roots -!fM // (centsP abelG) //.
 rewrite eqxx -[f y]mul1r -(mulgKV y z) fM ?groupM ?groupV //=.
-rewrite -mulNr -mulr_addl unitr_mull ?fU ?f1P // !inE.
+rewrite -mulNr -mulrDl unitrMl ?fU ?f1P // !inE.
 by rewrite groupM ?groupV // andbT -eq_mulgV1; apply: contra y_rs; move/eqP <-.
 Qed.
 
@@ -791,10 +791,10 @@ have rn1 x: r x ^+ n = 1.
   by apply/eqP; rewrite -unity_rootE (allP rsn1) ?(valP x).
 have prim_r z: z ^+ n = 1 -> z \in rs.
   by move/eqP; rewrite -unity_rootE -(mem_unity_roots n_gt0).
-pose r' := SeqSub (prim_r _ _); pose sG_1 := r' _ (exp1rn _ _).
+pose r' := SeqSub (prim_r _ _); pose sG_1 := r' _ (expr1n _ _).
 have sG_VP: r _ ^+ n.-1 ^+ n = 1.
-  by move=> x; rewrite -exprn_mulr mulnC exprn_mulr rn1 exp1rn.
-have sG_MP: (r _ * r _) ^+ n = 1 by move=> x y; rewrite exprn_mull !rn1 mul1r.
+  by move=> x; rewrite -exprM mulnC exprM rn1 expr1n.
+have sG_MP: (r _ * r _) ^+ n = 1 by move=> x y; rewrite exprMn !rn1 mul1r.
 pose sG_V := r' _ (sG_VP _); pose sG_M := r' _ (sG_MP _ _).
 have sG_Ag: associative sG_M by move=> x y z; apply: val_inj; rewrite /= mulrA.
 have sG_1g: left_id sG_1 sG_M by move=> x; apply: val_inj; rewrite /= mul1r.

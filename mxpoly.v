@@ -217,7 +217,7 @@ apply/det0P/idP=> [[uv nz_uv] | r_nonC].
   have /dvdpP [[c w] /= nz_c wv]: v %| m by rewrite dvdp_gcd !dvdp_mulr.
   have m_wd d: m %| v * d -> w %| d.
     case/dvdpP=> [[k f]] /= nz_k; move/(congr1 ( *:%R c)).
-    rewrite mulrC scalerA scaler_mull scaler_mulr wv mulrA.
+    rewrite mulrC scalerA scalerAl scalerAr wv mulrA.
     move/(mulIf nz_v)=> def_fw; apply/dvdpP.
     by exists (c * k, f); rewrite //= mulf_neq0.
   have w_r: w %| r by rewrite dvdp_gcd !m_wd ?dvdp_gcdl ?dvdp_gcdr.
@@ -240,13 +240,13 @@ exists (row_mx (- c *: poly_rV q') (k *: poly_rV p')).
   apply: contraNneq r_nz; rewrite -row_mx0; case/eq_row_mx=> q0 p0.
   have{p0} p0: p = 0.
     apply/eqP; rewrite -size_poly_eq0 -(size_scaler p nz_c) p'r.
-    rewrite -(size_scaler _ nz_k) scaler_mull -(poly_rV_K le_p'_dp) -linearZ p0.
+    rewrite -(size_scaler _ nz_k) scalerAl -(poly_rV_K le_p'_dp) -linearZ p0.
     by rewrite linear0 mul0r size_poly0.
   rewrite /r p0 gcd0p -size_poly_eq0 -(size_scaler q nz_k) q'r.
-  rewrite -(size_scaler _ nz_c) scaler_mull -(poly_rV_K le_q'_dq) -linearZ.
+  rewrite -(size_scaler _ nz_c) scalerAl -(poly_rV_K le_q'_dq) -linearZ.
   by rewrite -[c]opprK scaleNr q0 !linear0 mul0r size_poly0.
 rewrite mul_row_col scaleNr mulNmx !mul_rV_lin1 /= !linearZ /= !poly_rV_K //.
-by rewrite !scaler_swap p'r q'r mulrCA addNr.
+by rewrite !scalerCA p'r q'r mulrCA addNr.
 Qed.
 
 Section HornerMx.
@@ -343,7 +343,7 @@ have{n_gt0} ->: p`_n.-1 = ('X * p)`_n by rewrite coefXM eqn0Ngt n_gt0.
 have ->: \tr A = \sum_(x <- diagA) x by rewrite big_map enumT.
 rewrite -size_diagA {}/p; elim: diagA => [|x d IHd].
   by rewrite !big_nil mulr1 coefX oppr0.
-rewrite !big_cons coefXM mulr_subl coef_sub IHd oppr_add addrC.
+rewrite !big_cons coefXM mulrBl coef_sub IHd opprD addrC.
 congr (- _ + _); rewrite mul_polyC coefZ [size _]/=. 
 by rewrite -size_prod_factors -lead_coefE (eqP (monic_prod_factors d)) mulr1.
 Qed.
@@ -352,8 +352,8 @@ Lemma char_poly_det : char_poly`_0 = (- 1) ^+ n * \det A.
 Proof.
 rewrite big_distrr coef_sum [0%N]lock /=; apply: eq_bigr => s _.
 rewrite -{1}rmorphN -rmorphX mul_polyC coefZ /=.
-rewrite mulrA -exprn_addr addnC exprn_addr -mulrA -lock; congr (_ * _).
-transitivity (\prod_(i < n) - A i (s i)); last by rewrite prodr_opp card_ord.
+rewrite mulrA -exprD addnC exprD -mulrA -lock; congr (_ * _).
+transitivity (\prod_(i < n) - A i (s i)); last by rewrite prodrN card_ord.
 elim: (index_enum _) => [|i e IHe]; rewrite !(big_nil, big_cons) ?coef1 //.
 rewrite coefM big_ord1 IHe !mxE coef_sub coefC coefMn coefX.
 by rewrite mul0rn sub0r.
@@ -403,7 +403,7 @@ Theorem Cayley_Hamilton (R : comRingType) n' (A : 'M[R]_n'.+1) :
 Proof.
 have [phi [_ phiZ phiC _]] := mx_poly_ring_isom R n'.
 apply/rootP/factor_theorem; rewrite -phiZ -mul_adj_mx rmorphM.
-by move: (phi _) => q; exists q; rewrite rmorph_sub phiC phiZ map_polyX.
+by move: (phi _) => q; exists q; rewrite rmorphB phiC phiZ map_polyX.
 Qed.
 
 Lemma eigenvalue_root_char (F : fieldType) n (A : 'M[F]_n) a :
@@ -411,8 +411,8 @@ Lemma eigenvalue_root_char (F : fieldType) n (A : 'M[F]_n) a :
 Proof.
 transitivity (\det (a%:M - A) == 0).
   apply/eigenvalueP/det0P=> [[v Av_av v_nz] | [v v_nz Av_av]]; exists v => //.
-    by rewrite mulmx_subr Av_av mul_mx_scalar subrr.
-  by apply/eqP; rewrite -mul_mx_scalar eq_sym -subr_eq0 -mulmx_subr Av_av.
+    by rewrite mulmxBr Av_av mul_mx_scalar subrr.
+  by apply/eqP; rewrite -mul_mx_scalar eq_sym -subr_eq0 -mulmxBr Av_av.
 congr (_ == 0); rewrite horner_sum; apply: eq_bigr => s _.
 rewrite horner_mul horner_exp !horner_lin; congr (_ * _).
 rewrite (big_morph _ (fun p q => horner_mul p q a) (hornerC 1 a)).
@@ -510,7 +510,7 @@ Qed.
 
 Lemma mx_root_minpoly : horner_mx A p_A = 0.
 Proof.
-rewrite rmorph_sub -{3}(horner_mx_X A) -rmorphX /=.
+rewrite rmorphB -{3}(horner_mx_X A) -rmorphX /=.
 by rewrite mx_inv_hornerK ?subrr ?horner_mx_mem.
 Qed.
 
@@ -563,8 +563,8 @@ apply: contraR v_nz => pa_nz; rewrite -{pa_nz}(eqmx_eq0 (eqmx_scale _ pa_nz)).
 apply/eqP; rewrite -(mulmx0 _ v) -mx_root_minpoly.
 elim/poly_ind: p_A => [|p c IHp].
   by rewrite rmorph0 horner0 scale0r mulmx0.
-rewrite !horner_lin rmorphD rmorphM /= horner_mx_X horner_mx_C scaler_addl.
-by rewrite -scalerA mulmx_addr mul_mx_scalar mulmxA -IHp -scalemxAl Av_av.
+rewrite !horner_lin rmorphD rmorphM /= horner_mx_X horner_mx_C scalerDl.
+by rewrite -scalerA mulmxDr mul_mx_scalar mulmxA -IHp -scalemxAl Av_av.
 Qed.
 
 End MinPoly.
@@ -588,7 +588,7 @@ Proof. by apply/rowP=> j; rewrite !mxE coef_map. Qed.
 
 Lemma map_char_poly_mx : map_mx fp (char_poly_mx A) = char_poly_mx A^f.
 Proof.
-rewrite raddf_sub /= map_scalar_mx /= map_polyX; congr (_ - _).
+rewrite raddfB /= map_scalar_mx /= map_polyX; congr (_ - _).
 by apply/matrixP=> i j; rewrite !mxE map_polyC.
 Qed.
 
@@ -627,7 +627,7 @@ Proof. by apply: eq_ex_minn => e; rewrite -map_powers_mx mxrank_map. Qed.
 
 Lemma mxminpoly_map : mxminpoly A^f = fp (mxminpoly A).
 Proof.
-rewrite rmorph_sub; congr (_ - _).
+rewrite rmorphB; congr (_ - _).
   by rewrite /= map_polyXn degree_mxminpoly_map.
 rewrite degree_mxminpoly_map -rmorphX /=.
 apply/polyP=> i; rewrite coef_map //= !coef_rVpoly degree_mxminpoly_map.

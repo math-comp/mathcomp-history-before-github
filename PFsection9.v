@@ -381,7 +381,7 @@ have psiM: {in U &, {morph psi: x y / x * y}}.
     rewrite -morphM; first 1 [congr (invm _ _)] || by rewrite im_Zpm mem_phi1.
     by rewrite /phi1; case: _ / (o_hw w); rewrite /= -morphM ?dU.
   move=> x y Ux Uy; apply/rowP=> i; have /setD1P[_ Ww] := enum_valP i.
-  by rewrite !{1}mxE !{1}phi0M // addrCA -addrA -oppr_add addrCA addrA.
+  by rewrite !{1}mxE !{1}phi0M // addrCA -addrA -opprD addrCA addrA.
 suffices Kpsi: 'ker (Morphism psiM) = C.
   by exists [group of Morphism psiM @* U]; rewrite /Ubar -Kpsi first_isog.
 apply/esym/eqP; rewrite eqEsubset; apply/andP; split.
@@ -489,7 +489,7 @@ have{cEE} [F [outF [inF outFK inFK] E_F]]:
     by apply: cent_mxP (E_F a); rewrite memmx_cent_envelop cEE ?E_F.
   have mul1F: left_id one mul by move=> a; apply: outI; rewrite outM out1 mul1r.
   have mulD: left_distributive mul +%R%R.
-    by move=> a1 a2 b; apply: canLR outK _; rewrite !raddfD mulr_addl -!{1}outM.
+    by move=> a1 a2 b; apply: canLR outK _; rewrite !raddfD mulrDl -!{1}outM.
   pose Fring_NC := RingType 'rV__ (ComRingMixin mulA mulC mul1F mulD nzFone).
   pose Fring := ComRingType Fring_NC mulC.
   have outRM: multiplicative (outF : Fring -> _) by [].
@@ -528,7 +528,7 @@ have phi'D: {in setT &, {morph phi' : a b / a * b}}.
 have inj_phi': injective phi'.
   move=> a b /rVabelem_inj eq_sab; apply: contraNeq nz_sb.
   rewrite -[sb]mulmx1 idmxE -(rmorph1 outF) -subr_eq0 => /divff <-.
-  by rewrite rmorphM mulmxA !raddf_sub /= eq_sab subrr mul0mx.
+  by rewrite rmorphM mulmxA !raddfB /= eq_sab subrr mul0mx.
 have injm_phi': 'injm (Morphism phi'D) by apply/injmP; exact: in2W.
 have Dphi: 'dom (invm injm_phi') = Hbar.
   apply/setP=> h; apply/morphimP/idP=> [[a _ _ ->] // | Hh].
@@ -584,7 +584,7 @@ have etaRM w: w \in W1 -> rmorphism (eta w).
     by rewrite morphM 1?morphV ?groupV // memJ_norm.
   do 2![split=> //] => [a b|]; last exact: eta1.
   rewrite -[a]outFK; have /envelop_mxP[d ->] := E_F a.
-  rewrite raddf_sum -mulr_suml ![eta w _](raddf_sum (Additive etaD)) -mulr_suml.
+  rewrite raddf_sum mulr_suml ![eta w _](raddf_sum (Additive etaD)) mulr_suml.
   apply: eq_bigr => _ /morphimP[x Nx Ux ->]; move: {d}(d _) => dx.
   rewrite -[dx]natr_Zp scaler_nat !(mulrnAl, raddfMn); congr (_ *+ dx)%R.
   by rewrite -psiK //= outFK mulrC etaMpsi // mulrC psiJ.
@@ -663,7 +663,7 @@ have unFg: group_set unF.
   have nFab: (a * b)%R \in nF^#.
     rewrite !inE mulf_eq0 negb_or.
     have [[-> /cycleP[m ->]] [-> /cycleP[n ->]]] := (setD1P nFa, setD1P nFb).
-    by rewrite -natr_mul mem_cycle.
+    by rewrite -natrM mem_cycle.
   by apply/imsetP; exists (a * b)%R => //; apply: val_inj; rewrite /= !unF_E.
 have <-: #|Group unFg| = p.-1.
   by rewrite -o_nF (cardsD1 1 nF) group1 (card_in_imset (can_in_inj unF_E)).
@@ -739,17 +739,17 @@ have cEE A: (A \in E_U)%MS -> centgmx rU A.
   rewrite sub_cent1 // (subsetP (quotient_cents H0 cHU')) //.
   by rewrite quotientR ?mem_commg.
 have psi1K A: (A \in E_U)%MS -> psi' (psi1 A) = A.
-  move=> E_A; have/eqP := Fmul1 (psi1 A); rewrite -subr_eq0 -mulmx_subr.
+  move=> E_A; have/eqP := Fmul1 (psi1 A); rewrite -subr_eq0 -mulmxBr.
   apply: contraTeq; rewrite -[in ~~ _]subr_eq0; set D := (_ - A)%R => nzD.
   rewrite -(mul0mx _ D) (can_eq (mulmxK _)) ?(mx_Schur irrU) ?cEE //.
-  by rewrite linear_sub addmx_sub ?Epsi' ?eqmx_opp.
+  by rewrite linearB addmx_sub ?Epsi' ?eqmx_opp.
 have FmulC: commutative Fmul.
   move=> h1 h2; rewrite -{1}[h1]Fmul1 -{2}[h2]Fmul1 /Fmul.
   by rewrite (hom_envelop_mxC _ (Epsi' _)) ?centgmx_hom ?cEE ?Epsi'.
 have FmulA: associative Fmul.
   move=> h1 h2 h3; rewrite /Fmul -{1}[h2]Fmul1 -!mulmxA psi1K //.
   by apply: envelop_mxM; exact: Epsi'.
-have FmulD: left_distributive Fmul +%R%R by move=> ? ? ?; rewrite -mulmx_addl.
+have FmulD: left_distributive Fmul +%R%R by move=> ? ? ?; rewrite -mulmxDl.
 pose Fring_NC := RingType fT (ComRingMixin FmulA FmulC Fmul1 FmulD nzFone).
 pose Fring := ComRingType Fring_NC FmulC.
 pose Finv (h : Fring) : Fring := psi1 (invmx (psi' h)).
@@ -828,8 +828,8 @@ have eta_Aut w: w \in W1 -> rmorphism (eta w).
     rewrite [phi' _]morphM ?morphV ?mem_im_abelem_rV //= -/phi'.
     by rewrite conjMg conjVg morphM ?morphV ?groupV ?memJ_norm ?mem_rVabelem.
   do 2![split=> //] => a b; have [_ /envelop_mxP[b_ ->] {b}->] := psi'P b.
-  rewrite [psi1 _]mulmx_sumr -mulr_sumr [eta w _](raddf_sum (Additive etaD)).
-  rewrite [s in (_ * s)%R](raddf_sum (Additive etaD)) -mulr_sumr.
+  rewrite [psi1 _]mulmx_sumr mulr_sumr [eta w _](raddf_sum (Additive etaD)).
+  rewrite [s in (_ * s)%R](raddf_sum (Additive etaD)) mulr_sumr.
   apply: eq_bigr => _ /morphimP[x nH0x Ux ->]; move: (b_ _) => {b_}bx.
   rewrite -scalemxAr -(natr_Zp bx) scaler_nat !(raddfMn, mulrnAr) -/(psi1 _).
   congr (_ *+ bx)%R => {bx}; rewrite -psiE //= -etaEpsi // !permE subgK //.
@@ -917,7 +917,7 @@ have unFg: @group_set unitF unF.
   have nFab: (a * b)%R \in nF^#.
     rewrite !inE mulf_eq0 negb_or.
     have [[-> /cycleP[m ->]] [-> /cycleP[n ->]]] := (setD1P nFa, setD1P nFb).
-    by rewrite -natr_mul mem_cycle.
+    by rewrite -natrM mem_cycle.
   by apply/imsetP; exists (a * b)%R => //; apply: val_inj; rewrite /= !unF_E.
 have <-: #|Group unFg| = p.-1.
   by rewrite -o_nF (cardsD1 1 nF) group1 (card_in_imset (can_in_inj unF_E)).

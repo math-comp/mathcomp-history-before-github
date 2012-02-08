@@ -104,7 +104,7 @@ Lemma neq0GiC G B : (#|G : B|)%:R != 0 :> algC.
 Proof. by rewrite -neq0N_neqC -lt0n. Qed.
 
 Lemma divgS_C G H : H \subset G -> #|G : H|%:R = #|G|%:R / #|H|%:R :> algC.
-Proof. by move/LaGrange <-; rewrite mulnC natr_mul mulfK ?neq0GC. Qed.
+Proof. by move/LaGrange <-; rewrite mulnC natrM mulfK ?neq0GC. Qed.
 
 Lemma sposGC G : 0 < #|G|%:R.
 Proof. by rewrite -(ltn_ltC 0). Qed.
@@ -251,7 +251,7 @@ Proof.
 by move=> phi; apply: cfun_in_genP => x Gx; rewrite !cfunE cfun1Egen Gx mul1r.
 Qed.
 Fact cfun_mulD : left_distributive cfun_mul cfun_add.
-Proof. by move=> phi psi xi; apply/cfunP=> x; rewrite !cfunE mulr_addl. Qed.
+Proof. by move=> phi psi xi; apply/cfunP=> x; rewrite !cfunE mulrDl. Qed.
 Fact cfun_nz1 : '1_G != 0.
 Proof.
 by apply/eqP=> /cfunP/(_ 1%g)/eqP; rewrite cfun1Egen cfunE group1 oner_eq0.
@@ -285,9 +285,9 @@ Proof. by apply/cfunP=> x; rewrite !cfunE mulrA. Qed.
 Fact cfun_scale1 : left_id 1 cfun_scale.
 Proof. by move=> phi; apply/cfunP=> x; rewrite !cfunE mul1r. Qed.
 Fact cfun_scaleDr : right_distributive cfun_scale +%R.
-Proof. by move=> a phi psi; apply/cfunP=> x; rewrite !cfunE mulr_addr. Qed.
+Proof. by move=> a phi psi; apply/cfunP=> x; rewrite !cfunE mulrDr. Qed.
 Fact cfun_scaleDl phi : {morph cfun_scale^~ phi : a b / a + b}.
-Proof. by move=> a b; apply/cfunP=> x; rewrite !cfunE mulr_addl. Qed.
+Proof. by move=> a b; apply/cfunP=> x; rewrite !cfunE mulrDl. Qed.
 
 Definition cfun_lmodMixin :=
   LmodMixin cfun_scaleA cfun_scale1 cfun_scaleDr cfun_scaleDl.
@@ -317,7 +317,7 @@ Proof. by apply/cfunP=> x; rewrite !cfunE rmorphM. Qed.
 Lemma cfAut_is_rmorphism : rmorphism cfAut.
 Proof.
 by do 2?split=> [phi psi|]; last exact: cfAut1i;
-   apply/cfunP=> x; rewrite !cfunE (rmorph_sub, rmorphM).
+   apply/cfunP=> x; rewrite !cfunE (rmorphB, rmorphM).
 Qed.
 Canonical cfAut_additive := Additive cfAut_is_rmorphism.
 Canonical cfAut_rmorphism := RMorphism cfAut_is_rmorphism.
@@ -479,7 +479,7 @@ Proof. by rewrite -cfuniG cfuniE. Qed.
 
 Lemma mul_cfuni A B : '1_A * '1_B = '1_(A :&: B) :> 'CF(G).
 Proof.
-apply/cfunP=> g; rewrite !cfunElock -natr_mul mulnb subsetI.
+apply/cfunP=> g; rewrite !cfunElock -natrM mulnb subsetI.
 by rewrite andbCA !andbA andbb.
 Qed.
 
@@ -714,9 +714,9 @@ Lemma cfdotrE psi phi : cfdotr psi phi = '[phi, psi]. Proof. by []. Qed.
 
 Lemma cfdotr_is_linear xi : linear (cfdotr xi : 'CF(G) -> algC^o).
 Proof.
-move=> a phi psi; rewrite scaler_mulr -mulr_addr; congr (_ * _).
+move=> a phi psi; rewrite scalerAr -mulrDr; congr (_ * _).
 rewrite linear_sum -big_split; apply: eq_bigr => x _ /=.
-by rewrite !cfunE mulr_addl -mulrA.
+by rewrite !cfunE mulrDl -mulrA.
 Qed.
 Canonical cfdotr_additive xi := Additive (cfdotr_is_linear xi).
 Canonical cfdotr_linear xi := Linear (cfdotr_is_linear xi).
@@ -728,7 +728,7 @@ Proof. by rewrite -!cfdotrE linearN. Qed.
 Lemma cfdotDl xi phi psi : '[phi + psi, xi] = '[phi, xi] + '[psi, xi].
 Proof. by rewrite -!cfdotrE linearD. Qed.
 Lemma cfdot_subl xi phi psi : '[phi - psi, xi] = '[phi, xi] - '[psi, xi].
-Proof. by rewrite -!cfdotrE linear_sub. Qed.
+Proof. by rewrite -!cfdotrE linearB. Qed.
 Lemma cfdotMnl xi phi n : '[phi *+ n, xi] = '[phi, xi] *+ n.
 Proof. by rewrite -!cfdotrE linearMn. Qed.
 Lemma cfdot_suml xi I r (P : pred I) (phi : I -> 'CF(G)) :
@@ -748,7 +748,7 @@ Lemma eq_cfdotr A phi psi1 psi2 :
 Proof. by move=> Aphi /eq_cfdotl eq_dot; rewrite cfdotC eq_dot // -cfdotC. Qed.
 
 Lemma cfdot_subr xi phi psi : '[xi, phi - psi] = '[xi, phi] - '[xi, psi].
-Proof. by rewrite !(cfdotC xi) -rmorph_sub cfdot_subl. Qed.
+Proof. by rewrite !(cfdotC xi) -rmorphB cfdot_subl. Qed.
 Canonical cfun_dot_additive xi := Additive (cfdot_subr xi).
 
 Lemma cfdot0r xi : '[xi, 0] = 0. Proof. exact: raddf0. Qed.
@@ -803,7 +803,7 @@ Proof. by rewrite /= addrAC -cfdotC cfdotDl !cfdotDr !addrA. Qed.
 
 Lemma cfnorm_sub phi psi :
   let d := '[phi, psi] in '[phi - psi] = '[phi] + '[psi] - (d + d^*).
-Proof. by rewrite /= cfnormD cfnormN cfdotNr rmorphN -oppr_add. Qed.
+Proof. by rewrite /= cfnormD cfnormN cfdotNr rmorphN -opprD. Qed.
 
 Lemma cfnormDd phi psi : '[phi, psi] = 0 -> '[phi + psi] = '[phi] + '[psi].
 Proof. by move=> ophipsi; rewrite cfnormD ophipsi rmorph0 !addr0. Qed.
@@ -880,7 +880,7 @@ elim: S beta => [|phi S IHS] beta; first by exists 0, beta; rewrite add0r mem0v.
 have [[U [V [-> S_U oVS]]] [X [Y [-> S_X oYS]]]] := (IHS phi, IHS beta).
 pose Z := '[Y, V] / '[V] *: V; exists (X + Z), (Y - Z).
 split; first by rewrite addrCA !addrA addrK addrC.
-  rewrite /Z -{4}(addKr U V) scaler_addr scalerN addrA addrC span_cons.
+  rewrite /Z -{4}(addKr U V) scalerDr scalerN addrA addrC span_cons.
   by rewrite memv_add ?memv_sub ?memvZl ?memv_inj.
 apply/orthoPl=> psi; rewrite !inE => /predU1P[-> | Spsi]; last first.
   by rewrite cfdot_subl cfdotZl (orthoPl oVS _ Spsi) mulr0 subr0 (orthoPl oYS).
@@ -1083,7 +1083,7 @@ Lemma isometry_raddf_inj U (tau : {additive 'CF(L) -> 'CF(G)}) :
     {in U &, isometry tau} -> {in U &, forall u v, u - v \in U} ->
   {in U &, injective tau}.
 Proof.
-move=> Itau linU phi psi Uphi Upsi /eqP; rewrite -subr_eq0 -raddf_sub.
+move=> Itau linU phi psi Uphi Upsi /eqP; rewrite -subr_eq0 -raddfB.
 by rewrite -cfnorm_eq0 Itau ?linU // cfnorm_eq0 subr_eq0 => /eqP.
 Qed.
 
@@ -1108,7 +1108,7 @@ Proof. by move=> sAB x Ax; rewrite cfunElock mem_gen ?genS. Qed.
  
 Lemma cfRes_is_linear : linear cfRes.
 Proof.
-by move=> a phi psi; apply/cfunP=> x; rewrite !cfunElock mulrnAr mulrn_addl.
+by move=> a phi psi; apply/cfunP=> x; rewrite !cfunElock mulrnAr mulrnDl.
 Qed.
 Canonical cfRes_additive := Additive cfRes_is_linear.
 Canonical cfRes_linear := Linear cfRes_is_linear.
@@ -1164,7 +1164,7 @@ Proof. by rewrite cfunElock => -> ->. Qed.
 
 Fact cfMorph_is_linear : linear cfMorph.
 Proof.
-by move=> a phi psi; apply/cfunP=> x; rewrite !cfunElock mulrnAr -mulrn_addl.
+by move=> a phi psi; apply/cfunP=> x; rewrite !cfunElock mulrnAr -mulrnDl.
 Qed.
 Canonical cfMorph_additive := Additive cfMorph_is_linear.
 Canonical cfMorph_linear := Linear cfMorph_is_linear.
@@ -1273,9 +1273,9 @@ Lemma cfMorph_iso (rT : finGroupType) G D (f : {morphism D >-> rT}) :
   G \subset D -> isometry (@cfMorph _ _ G D f).
 Proof.
 move=> sGD phi psi; rewrite !cfdotE card_morphim (setIidPr sGD).
-rewrite -(LaGrangeI G ('ker f)) /= mulnC natr_mul invf_mul -mulrA.
+rewrite -(LaGrangeI G ('ker f)) /= mulnC natrM invfM -mulrA.
 congr (_ * _); apply: (canLR (mulKf (neq0GC _))).
-rewrite -mulr_sumr (partition_big_imset f) /= -morphimEsub //.
+rewrite mulr_sumr (partition_big_imset f) /= -morphimEsub //.
 apply: eq_bigr => _ /morphimP[x Dx Gx ->].
 rewrite -(card_rcoset _ x) mulr_natl -sumr_const.
 apply/eq_big => [y | y /andP[Gy /eqP <-]]; last by rewrite !cfMorphE.
@@ -1328,7 +1328,7 @@ Definition cfInd phi := Cfun 1 (cfInd_subproof phi).
 Lemma cfInd_is_linear : linear cfInd.
 Proof.
 move=> c phi psi; apply/cfunP=> x.
-rewrite !cfunElock -!mulrnAl mulrCA -mulr_addr /=; congr (_ * _).
+rewrite !cfunElock -!mulrnAl mulrCA -mulrDr /=; congr (_ * _).
 by rewrite big_distrr -big_split /=; apply: eq_bigr => y Gy /=; rewrite !cfunE.
 Qed.
 Canonical cfInd_additive := Additive cfInd_is_linear.
@@ -1355,7 +1355,7 @@ Qed.
 Lemma cfInd1 phi : H \subset G -> 'Ind[G] phi 1%g = #|G : H|%:R * phi 1%g.
 Proof.
 move=> sHG; rewrite cfIndE //; apply: canLR (mulKf (neq0GC H)) _.
-rewrite mulrA -natr_mul LaGrange // mulr_natl -sumr_const; apply: eq_bigr => x.
+rewrite mulrA -natrM LaGrange // mulr_natl -sumr_const; apply: eq_bigr => x.
 by rewrite conj1g.
 Qed.
 
@@ -1363,7 +1363,7 @@ Lemma cfInd_cfun1 : H <| G -> 'Ind[G, H] 1 = #|G : H|%:R *: '1_H.
 Proof.
 move=> nsHG; have [sHG nHG] := andP nsHG.
 apply/cfunP=> x; rewrite cfIndE // cfunE cfuniE //.
-apply: canLR (mulKf (neq0GC H)) _; rewrite mulrA -natr_mul LaGrange //.
+apply: canLR (mulKf (neq0GC H)) _; rewrite mulrA -natrM LaGrange //.
 rewrite mulr_natl -sumr_const; apply: eq_bigr => y Gy.
 by rewrite cfun1E -{1}(normsP nHG y Gy) memJ_conjg.
 Qed.
@@ -1371,7 +1371,7 @@ Qed.
 Lemma cfnorm_Ind_cfun1 : H <| G -> '['Ind[G, H] 1] = #|G : H|%:R.
 Proof.
 move=> nsHG; rewrite cfInd_cfun1 // cfnormZ normC_nat cfdot_cfuni // setIid.
-rewrite mulrC -mulrA mulrCA (mulrA _%:R) -natr_mul LaGrange ?normal_sub //.
+rewrite mulrC -mulrA mulrCA (mulrA _%:R) -natrM LaGrange ?normal_sub //.
 by rewrite mulKf ?neq0GC.
 Qed.
 
@@ -1569,7 +1569,7 @@ Proof. by move=> k h Kk Hh; rewrite -cfDprod1l cfDprodE // cfun1E Kk mul1r. Qed.
 Lemma cfdot_dprod phi1 phi2 psi1 psi2 :
   '[cfDprod phi1 psi1, cfDprod phi2 psi2] = '[phi1, phi2] * '[psi1, psi2].
 Proof.
-rewrite !cfdotE mulrCA -mulrA mulrCA mulrA -invf_mul -natr_mul (dprod_card KxH).
+rewrite !cfdotE mulrCA -mulrA mulrCA mulrA -invfM -natrM (dprod_card KxH).
 congr (_ * _); rewrite big_distrl sum_dprodl /=; apply: eq_bigr => k Kk.
 rewrite big_distrr; apply: eq_bigr => h Hh /=.
 by rewrite mulrCA -mulrA -rmorphM mulrCA mulrA !cfDprodE.

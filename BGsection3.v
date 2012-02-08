@@ -436,7 +436,7 @@ have [sKp | sK1 {ciK card_sK}]: #|[set: sK]| = p \/ #|[set: sK]| = 1%N.
   have dxM1 := mxdirect_sumsP dxM _ (group1 R).
   rewrite repr_mx1 mulmx1 in dxM1.
   have inCR_K: M *m inCR *m inM = M.
-    rewrite mulmx_sumr (bigD1 1) //= repr_mx1 mulmx1 mulmx_addl proj_mx_id //.
+    rewrite mulmx_sumr (bigD1 1) //= repr_mx1 mulmx1 mulmxDl proj_mx_id //.
     by rewrite proj_mx_0 ?addr0 // summx_sub_sums.
   have [modM ntM _] := simM.
   have linM: \rank M = 1%N.

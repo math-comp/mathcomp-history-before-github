@@ -42,10 +42,10 @@ Proof.
 rewrite 2!inE irr_free cfun_onT tvalK /tcast; case: _ / (esym _).
 have /andP[/(span _ =P _)-> _] := irr_is_basis G; rewrite memvf orbT /=.
 apply: (iffP ffun_onP) => [Zphi | [chi1 Nchi1 [chi2 Nchi2 ->]] i]; last first.
-  rewrite linear_sub !ffunE !coord_cfdot inE /=.
+  rewrite linearB !ffunE !coord_cfdot inE /=.
   by rewrite isIntC_add ?isIntC_opp // isIntCE cfdot_char_irr_Nat.
 pose Nphi i := isNatC '[phi, 'chi_i].
-rewrite [phi]cfun_sum_cfdot (bigID Nphi) /= -[rh in _ + rh]opprK -sumr_opp.
+rewrite [phi]cfun_sum_cfdot (bigID Nphi) /= -[rh in _ + rh]opprK -sumrN.
 set chi1 := \sum_(i | _) _; set chi2 := \sum_(i | _) _; exists chi1.
   by apply: sum_char => i /scale_char-> //; exact: irr_char.
 exists chi2 => //; apply: sum_char => i /negbTE notNphi_i.
@@ -215,7 +215,7 @@ apply/andP; split; last first.
 have isch := (add_char, mul_char); apply/vcharP.
 exists (xi1 * xi3 + xi2 * xi4); first by rewrite !isch.
 exists (xi1 * xi4 + xi2 * xi3); first by rewrite !isch.
-by rewrite mulr_subr def_phi !mulr_subl addrAC oppr_sub -!addrA -oppr_add.
+by rewrite mulrBr def_phi !mulrBl addrAC opprB -!addrA -opprD.
 Qed.
 
 Lemma vchar_trans S1 S2 A B :
@@ -434,10 +434,10 @@ have orthS: orthonormal S.
   rewrite eq_scaled_irr cfdotZl cfdotZr cfdot_irr mulrA mulr_natr mulrb.
   rewrite mem_enum in phi_i; rewrite (negbTE phi_i) andbC; case: eqP => // <-.
   have /isNatCP[m def_m] := normIntC_Nat (cfdot_vchar_irr_Int i Zphi).
-  apply/eqP; rewrite eqxx /= -normCK def_m -natr_exp -eqN_eqC eqn_leq lt0n.
+  apply/eqP; rewrite eqxx /= -normCK def_m -natrX -eqN_eqC eqn_leq lt0n.
   rewrite expn_eq0 andbT eqN_eqC -def_m normC_eq0 [~~ _]phi_i andbT.
   rewrite (leq_exp2r _ 1) // -ltnS -(@ltn_exp2r _ _ 2) //.
-  apply: leq_ltn_trans lt_n_4; rewrite leq_leC -def_n natr_exp.
+  apply: leq_ltn_trans lt_n_4; rewrite leq_leC -def_n natrX.
   rewrite cfdot_sum_irr (bigD1 i) //= -normCK def_m addrC -leC_sub addrK.
   by rewrite posC_sum // => ? _; exact: posC_pconj.
 have <-: size S = n.
@@ -462,7 +462,7 @@ have neq_ji: j != i.
   by rewrite signr_eq0.
 have neq_bc: b != c.
   apply: contraTneq phi1_0; rewrite def_phi def_chi def_xi => ->.
-  rewrite -scaler_addr !cfunE mulf_eq0 signr_eq0 eqC_leC ltC_geF //.
+  rewrite -scalerDr !cfunE mulf_eq0 signr_eq0 eqC_leC ltC_geF //.
   by rewrite sposC_addl ?ltCW ?ltC_irr1.
 rewrite {}def_phi {}def_chi {}def_xi !scaler_sign.
 case: b c neq_bc => [|] [|] // _; last by exists i, j.
@@ -539,7 +539,7 @@ case sHG: (H \subset G); last first.
   congr (_ \in 'Z[_, A]): (cfun0_vchar (irr H) A).
   by apply/cfun_inP=> x Hx; rewrite !cfunElock !genGid Hx sHG.
 rewrite vchar_split; apply/andP; split.
-  by rewrite linear_sub sub_vchar // char_vchar // cfRes_char.
+  by rewrite linearB sub_vchar // char_vchar // cfRes_char.
 by apply/cfun_onP=> x /(cfun_onP Aphi); rewrite !cfunElock => ->; exact: mul0rn.
 Qed.
 
@@ -549,7 +549,7 @@ move=> /vcharP[xi1 Nx1 [xi2 Nxi2 ->]].
 case sHG: (H \subset G); last first.
   congr (_ \in 'Z[_]): (cfun0_vchar (irr G) setT).
   by apply/cfunP=> x; rewrite !cfunElock !genGid sHG.
-by rewrite linear_sub sub_vchar // char_vchar // cfInd_char.
+by rewrite linearB sub_vchar // char_vchar // cfInd_char.
 Qed.
 
 Lemma sub_conjC_vchar A phi :

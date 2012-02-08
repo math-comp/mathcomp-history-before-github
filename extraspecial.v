@@ -60,7 +60,7 @@ Definition act ij (k : 'Z_p) := let: (i, j) := ij in (i + k * j, j).
 Lemma actP : is_action [set: 'Z_p] act.
 Proof.
 apply: is_total_action=> [] [i j] => [|k1 k2] /=; first by rewrite mul0r addr0.
-by rewrite mulr_addl addrA.
+by rewrite mulrDl addrA.
 Qed.
 Canonical action := Action actP.
 
@@ -69,7 +69,7 @@ Proof.
 move=> k _ /=; rewrite inE.
 apply/andP; split; first by apply/subsetP=> ij _; rewrite inE.
 apply/morphicP=> /= [[i1 j1] [i2 j2] _ _].
-by rewrite !permE /= mulr_addr -addrA (addrCA i2) (addrA i1).
+by rewrite !permE /= mulrDr -addrA (addrCA i2) (addrA i1).
 Qed.
 Definition groupAction := GroupAction gactP.
 

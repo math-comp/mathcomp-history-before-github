@@ -69,8 +69,8 @@ Lemma mulr_sum (R : ringType) m n (Fm : 'I_m -> R) (Fn : 'I_n -> R) :
   (\sum_(i < m) Fm i) * (\sum_(i < n) Fn i)
   = \sum_(i < m * n) ((Fm (mxtens_unindex i).1) * (Fn (mxtens_unindex i).2)).
 Proof.
-rewrite -mulr_suml; transitivity (\sum_i (\sum_(j < n) Fm i * Fn j)).
-  by apply: eq_big=> //= i _; rewrite mulr_sumr.
+rewrite mulr_suml; transitivity (\sum_i (\sum_(j < n) Fm i * Fn j)).
+  by apply: eq_big=> //= i _; rewrite -mulr_sumr.
 rewrite pair_big; apply: reindex=> //=.
 by exists mxtens_index=> i; rewrite (mxtens_indexK, mxtens_unindexK).
 Qed.
@@ -285,7 +285,7 @@ Proof.
 move: m n A B => [|m] [|n] // A B _ _ uA uB.
 suff : (A^-1 *t B^-1) *m (A *t B) = 1 by case/mulmx1_unit.
 rewrite tensmx_mul !mulVmx //; apply/matrixP=> /= i j.
-rewrite !mxE /=; symmetry; rewrite -natr_mul -!val_eqE /=.
+rewrite !mxE /=; symmetry; rewrite -natrM -!val_eqE /=.
 rewrite {1}(divn_eq i n.+1) {1}(divn_eq j n.+1).
 by rewrite eq_addl_mul ?ltn_mod // xpair_eqE mulnb.
 Qed.

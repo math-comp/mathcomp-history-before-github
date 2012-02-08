@@ -170,7 +170,7 @@ transitivity (D \in 'CF(H, H :\: A)).
 have F0 (j : 'I_m) : 
    (\sum_i '[Phi`_j, 'chi_i] * (d i)^* == '['Ind Phi`_j, mu])
       = ('[Phi`_j, D] == 0).
-  rewrite raddf_sub raddf_sum /= Frobenius_reciprocity subr_eq0 eq_sym.
+  rewrite raddfB raddf_sum /= Frobenius_reciprocity subr_eq0 eq_sym.
   by congr (_ == _); apply: eq_bigr=> i _; rewrite cfdotZr mulrC.
 split=> [HH j | HH].
   by apply/eqP; rewrite F0; apply/eqP; apply: cfdot_complement.
@@ -203,7 +203,7 @@ move=> HsG nsAH /equiv_restrict_compl Phi_A Mo IP; split=> [/= i | mu Cmu x Ax].
 transitivity ((\sum_j 0 *: 'chi[H]_j) x); last first.
   by rewrite sum_cfunE big1 // => j _; rewrite cfunE mul0r.
 move: x Ax; apply/Phi_A=> // j.
-rewrite mulr_suml rmorph0 mulr0 IP cfdot_suml big1 // => k _.
+rewrite -mulr_suml rmorph0 mulr0 IP cfdot_suml big1 // => k _.
 by rewrite cfdotZl [d in _ * d]cfdotC Cmu rmorph0 mulr0.
 Qed.
 
@@ -219,14 +219,14 @@ Proof.
 move=> Hf H2f Hf1 H2f1.
 have [j [i neq_ij ->]] := vchar_norm2 Hf H2f.
 have [j' [k neq_kj' ->]] := vchar_norm2 Hf1 H2f1.
-rewrite cfdot_subl !cfdot_subr !cfdot_irr oppr_sub addrAC !addrA.
-do 2!move/(canRL (subrK _)); rewrite -(natr_add _ 1) -!natr_add => /eqP.
+rewrite cfdot_subl !cfdot_subr !cfdot_irr opprB addrAC !addrA.
+do 2!move/(canRL (subrK _)); rewrite -(natrD _ 1) -!natrD => /eqP.
 rewrite -eqN_eqC; have [eq_jj' | neq_jj'] := altP (j =P j').
   rewrite (eq_sym j) -eq_jj' {1}eq_jj' (negbTE neq_ij) (negbTE neq_kj').
   rewrite eqSS (can_eq oddb) => /eqP neq_ik; exists (i, j, k, false).
   by rewrite !scaler_sign /= !inE neq_ik orbF neq_ij eq_sym eq_jj' neq_kj'.
 case: (i =P k) => // eq_ik; exists (j, i, j', true).
-rewrite !scaler_sign !oppr_sub /= !inE eq_sym negb_or neq_ij neq_jj'.
+rewrite !scaler_sign !opprB /= !inE eq_sym negb_or neq_ij neq_jj'.
 by rewrite eq_ik neq_kj'.
 Qed.
 
@@ -239,12 +239,12 @@ Let vchar_isometry_base4 (eps : bool) i j k n m :
 Proof.
 move=> /= Hjk; wlog ->: eps n m / eps = false.
   case: eps; last exact; move/(_ false m n)=> IH nm_ji nm_ki.
-  by apply: IH; rewrite // -oppr_sub cfdotNl (nm_ji, nm_ki) opprK.
-rewrite !cfdot_subl !cfdot_subr !cfdot_irr !oppr_sub addrAC addrA.
-do 2!move/(canRL (subrK _)); rewrite -(natr_add _ 1) -!natr_add.
+  by apply: IH; rewrite // -opprB cfdotNl (nm_ji, nm_ki) opprK.
+rewrite !cfdot_subl !cfdot_subr !cfdot_irr !opprB addrAC addrA.
+do 2!move/(canRL (subrK _)); rewrite -(natrD _ 1) -!natrD.
 move/(can_inj getNatC_nat); case: (m == i) => //.
 case: eqP => // ->; case: (j == i) => // _.
-rewrite subr0 add0r => /(canRL (subrK _)); rewrite -(natr_add _ 1).
+rewrite subr0 add0r => /(canRL (subrK _)); rewrite -(natrD _ 1).
 by move/(can_inj getNatC_nat); rewrite (negbTE Hjk).
 Qed.
 
@@ -271,16 +271,16 @@ have dot_chi i j: '[chi i, chi j] = (i == j)%:R.
   rewrite -eq_chi; have [/irrP[{i}i ->] /irrP[{j}j ->]] := (irrChi i,irrChi j).
   by rewrite cfdot_irr inj_eq //; exact: chi_inj.
 pose F i j := chi i - chi j.
-have DF i j : F i j =  F i 0 - F j 0 by rewrite /F oppr_sub addrA subrK.
+have DF i j : F i j =  F i 0 - F j 0 by rewrite /F opprB addrA subrK.
 have ZF i j: F i j \in 'Z[Chi, L].
   rewrite vchar_split; apply/andP; split.
     by apply: sub_vchar; apply: mem_vchar.
   by rewrite DF memv_sub // /F !chiE.
 have htau2 i j: i != j -> '[tau (F i j)] = 2%:R.
   rewrite iso_tau // cfnorm_sub -cfdotC !dot_chi !eqxx eq_sym => /negbTE->.
-  by rewrite -!natr_add subr0.
+  by rewrite -!natrD subr0.
 have htau1 i j: j != 0 -> j != i -> i != 0 -> '[tau (F i 0), tau (F j 0)] = 1.
-  rewrite iso_tau // cfdot_subl !cfdot_subr oppr_sub !dot_chi !(eq_sym j).
+  rewrite iso_tau // cfdot_subl !cfdot_subr opprB !dot_chi !(eq_sym j).
   by do 3!move/negbTE->; rewrite !subr0 add0r.
 have [m0 | nz_m] := boolP (m == 0%N).
   rewrite -2!eqSS eq_sym in m0; move: (htau2 1 0 isT).
@@ -306,17 +306,17 @@ have muP i:
   have:= @vchar_isometry_base4 (~~ e) k0 k1 k2 k k' nek12.
   have ZdK u v w: '[u, v - w]_G = (-1) ^+ (~~ e) * '[u, d *: (w - v)].
     rewrite cfdotZr rmorph_sign mulrA -signr_addb addNb addbb mulN1r.
-    by rewrite -cfdotNr oppr_sub.
+    by rewrite -cfdotNr opprB.
   rewrite -eqFkk' ZdK -eq10 {}ZdK -eq20 !htau1 //; try by rewrite eq_sym.
   move/(_ (mulr1 _) (mulr1 _)); rewrite /d eqFkk'.
-  by case e => /eqP <-; [exists k | exists k']; rewrite ?scaler_sign ?oppr_sub.
+  by case e => /eqP <-; [exists k | exists k']; rewrite ?scaler_sign ?opprB.
 pose mu := [tuple of [seq s2val (muP i) | i <- ord_tuple m.+2]]; exists mu.
   rewrite map_inj_uniq ?enum_uniq // => i j.
   case: (muP i) (muP j) => /= ki _ /eqP eq_i0 [/= kj _ /eqP eq_j0] eq_kij.
   apply/eqP; rewrite -eq_chi -subr_eq0 -cfnorm_eq0 -iso_tau ?ZF //.
   rewrite -[chi i](subrK (chi 0)) -addrA linearD eq_i0 eq_kij -eq_j0.
-  by rewrite -linearD -oppr_sub subrr !raddf0.
-exists (~~ e) => i; rewrite -addbT signr_addb -/d -scalerA scaleN1r oppr_sub.
+  by rewrite -linearD -opprB subrr !raddf0.
+exists (~~ e) => i; rewrite -addbT signr_addb -/d -scalerA scaleN1r opprB.
 rewrite -!tnth_nth -/(F i 0) tnth_map tnth_ord_tuple.
 suffices /= ->: mu`_0 = k0 by case: (muP i) => /= k _ /eqP.
 rewrite -(tnth_nth 0 _ 0) tnth_map tnth_ord_tuple.
@@ -331,8 +331,8 @@ Proof.
 set T := 'I_G['chi_t] => nsHG; have [sHG nHG] := andP nsHG.
 apply/cfun_inP=> h Hh; rewrite cfResE ?cfIndE // cfunE sum_cfunE.
 apply: (canLR (mulKf (neq0GC H))).
-rewrite mulrA -natr_mul LaGrange ?sub_inertia //= -/T -cfclass_sum //=.
-rewrite -mulr_sumr [s in _ = s]big_mkcond /= (reindex_inj invg_inj).
+rewrite mulrA -natrM LaGrange ?sub_inertia //= -/T -cfclass_sum //=.
+rewrite mulr_sumr [s in _ = s]big_mkcond /= (reindex_inj invg_inj).
 rewrite (partition_big (conjg_Iirr t) xpredT) //=; apply: eq_bigr => i _.
 have [[y Gy chi_i] | not_i_t] := cfclassP _ _ _; last first.
   apply: big1 => z; rewrite groupV => /andP[Gz /eqP def_i].
@@ -467,8 +467,8 @@ have [Hg | notHg] := boolP (g \in H); last first.
   rewrite !(cfun_on0 (cfInd_normal _ _)) //.
   by rewrite -(quotientGK AnH) !(Ng, inE) in notHg.
 rewrite !cfIndE ?quotientS //; apply: (canRL (mulKf (neq0GC H))).
-rewrite -(LaGrange AsH) natr_mul mulrA -card_quotient ?normal_norm //.
-rewrite (mulfK (neq0GC _)) -mulr_sumr.
+rewrite -(LaGrange AsH) natrM mulrA -card_quotient ?normal_norm //.
+rewrite (mulfK (neq0GC _)) mulr_sumr.
 rewrite (partition_big _  _ (fun x => (mem_quotient A) x G)) /=.
 apply: eq_bigr => _ /morphimP[x Nx Gx ->].
 rewrite -morphJ // cfQuoE ?memJ_norm ?(subsetP nHG) //.
@@ -490,7 +490,7 @@ Hypothesis HnG: H <| G.
 Lemma IndGT_chi: ('Ind[G] 'chi_t) = 'Ind[G] ('Ind[T] 'chi_t).
 Proof.
 apply/cfun_inP=> x Hx; rewrite !cfIndE ?inertia_sub ?normal_sub //.
-rewrite -!mulr_sumr; apply:eq_bigr => i Hi.
+rewrite !mulr_sumr; apply:eq_bigr => i Hi.
 rewrite !cfIndE; last by rewrite sub_inertia.
 rewrite (eq_bigr (fun y => 'chi_t (x ^ i))).
   rewrite  sumr_const -(mulr_natr ('chi_t _))(mulrC #|T|%:R^-1).
@@ -550,7 +550,7 @@ have HNT: H <| T by apply:(@normalS _ G T H);rewrite ?sub_inertia ?inertia_sub.
 have [sHT nHT] := andP HNT; have [sHG nHG] := andP HnG.
 rewrite (eq_bigr (fun l => 'chi_l x * 'chi_i1 x));first last.
   by move=> l Hl; rewrite cfunE.
-rewrite mulr_suml -sum_cfunE.
+rewrite -mulr_suml -sum_cfunE.
 have [HxT | notHxT] := boolP (x \in T); last first.
   by move/supportP:(support_cfun 'chi_i1); move/(_ x notHxT)->; rewrite !mulr0.
 rewrite -inertia_quo_cfReg //;congr ( _ * _);rewrite cfModE // ?cfRegE.
@@ -572,7 +572,7 @@ have [HxH | notHxH] := boolP (x \in H); last first.
   by rewrite memJ_norm //; apply/(subsetP nHT).
 rewrite mulr1 cfIndE // (eq_bigr (fun _ => 'chi_i1 x)).
   rewrite sumr_const -(mulr_natl _ #|T|) mulrA  -(LaGrange sHT).
-  congr (_ *_); rewrite natr_mul mulrA mulVf ?mul1r //.
+  congr (_ *_); rewrite natrM mulrA mulVf ?mul1r //.
   by move: (cardG_gt0 H); rewrite -neq0N_neqC;case: #|H|.
 move => y Hy;rewrite cfResE ?cfunJgen ?genGid //.
 by rewrite memJ_norm //; apply/(subsetP nHT).
@@ -702,7 +702,7 @@ Proof.
 move=> HcardHT.
 case:induced_inertia_quo=> //.
 move=> e1 H1.
-move:(H1); suff ->: e1 = 1;first rewrite /= scale1r exp1rn !mulr1.
+move:(H1); suff ->: e1 = 1;first rewrite /= scale1r expr1n !mulr1.
   case=> ->; case=> /eqP He Hi; split =>//;split => //.
   by move: He; rewrite -eqN_eqC; move/eqP.
 (* from Isaacs 6.28*)

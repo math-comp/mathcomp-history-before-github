@@ -101,11 +101,11 @@ split.
  by rewrite -{2}[x]scale1r -eigenspaceIn HK.
 move => x y.
 do 2 move/coord_basis ->.
-rewrite -mulr_suml ![f _]linear_sum -mulr_suml.
+rewrite mulr_suml ![f _]linear_sum mulr_suml.
 apply: eq_bigr => i _ /=.
-rewrite -!mulr_sumr linear_sum.
+rewrite !mulr_sumr linear_sum.
 apply: eq_bigr => j _ /=.
-rewrite !linearZ /= -!scaler_mull linearZ.
+rewrite !linearZ /= -!scalerAl linearZ.
 repeat apply: f_equal.
 apply/eqP.
 move: (ltn_ord i).
@@ -142,11 +142,11 @@ move => x y k a b.
 rewrite /kHomExtendF poly_is_linear raddfD horner_lin.
 congr (_ + _).
 rewrite -[(map_poly f (poly_for_Fadjoin E x a)).[y]]mul1r.
-rewrite scaler_mull -horner_scaler.
+rewrite scalerAl -horner_scaler.
 congr (_.[_]).
 apply/polyP => i.
 rewrite !(coefZ, coef_map [linear of f]).
-by rewrite -!scaler_mull !mul1r /= linearZ.
+by rewrite -!scalerAl !mul1r /= linearZ.
 Qed.
 
 Definition kHomExtend x y := lapp_of_fun (kHomExtendF x y).
@@ -192,7 +192,7 @@ rewrite -[(f x)^-1]mulr1 H1 mulrA mulVf ?mul1r //.
 move/eqP: H1.
 apply: contraL.
 move/eqP ->.
-by rewrite mul0r nonzero1r.
+by rewrite mul0r oner_neq0.
 Qed.
 
 Hypothesis Hf : kHom K E f.
@@ -213,7 +213,7 @@ Qed.
 Lemma kHomRmorph_subproof : rmorphism (f \o (sa_val (als:=E))).
 Proof.
 case/kHomP: Hf => HK HE.
-split; first by move => a b; rewrite /= linear_sub.
+split; first by move => a b; rewrite /= linearB.
 split; first by move => a b; rewrite /= HE // subaP.
 by rewrite /= aunit_eq1 HK // mem1v.
 Qed.
@@ -258,7 +258,7 @@ case/kHomP: Hf => HK HE.
 have Hfmin : monic (map_poly f (minPoly E x)).
  by rewrite /monic lead_coef_map_eq;
   move/eqP: (monic_minPoly E x) ->;
-  rewrite /= HK ?mem1v // nonzero1r.
+  rewrite /= HK ?mem1v // oner_neq0.
 rewrite (divp_eq (map_poly f p) (map_poly f (minPoly E x))) !horner_lin.
 move/eqP: Hy ->.
 rewrite mulr0 add0r.
@@ -310,10 +310,10 @@ move => f.
 apply: (iffP (kHomP _ _ _)).
  case => HF HL.
  repeat split => //.
- - by apply: linear_sub.
+ - by apply: linearB.
  - by move => x y; apply: HL; rewrite memvf.
  - by rewrite HF // mem1v.
- - by apply: linearZ.
+ - by apply: lmod_linearZ.
 move => Hf.
 split; last by move => x y _ _; apply: (rmorphM (RMorphism Hf)).
 move => ?; case/injvP => k ->.
@@ -370,7 +370,7 @@ rewrite lapp_of_funK; last first.
  move => x a b.
  rewrite linear_sum -big_split.
  apply: eq_bigr => i _ /=.
- by rewrite scalerA -scaler_addl coord_is_linear !ffunE.
+ by rewrite scalerA -scalerDl coord_is_linear !ffunE.
 have Hv := coord_basis (memvf v).
 rewrite {1}Hv linear_sum.
 apply: eq_bigr => i _.
@@ -398,7 +398,7 @@ Proof. move => f. by apply/LAut_is_enum/ssvalP. Qed.
 Canonical Structure LAut_rmorphism := 
   fun f => RMorphism (LAut_is_rmorphism f).
 Canonical Structure LAut_lrmorphism := 
-  fun f => LRMorphism (LAut_is_scalable f).
+  fun f => AddLRMorphism (LAut_is_scalable f).
 
 Definition comp_in_LAut : forall (f g : LAut),
  (ssval f \o ssval g)%VS \in LAut_enum.
@@ -410,7 +410,7 @@ split; last first.
  by rewrite linearZ.
 split.
  move => a b.
- by rewrite linear_sub.
+ by rewrite linearB.
 by split;[move => a b|]; rewrite !lappE ?rmorph1 ?rmorphM.
 Qed.
 
@@ -543,7 +543,7 @@ have [b] : exists b, root (map_poly x (minPoly E a)) b.
  clear -Hdiv Hsz.
  elim: r (map_poly x (minPoly E a)) Hdiv Hsz => [|z r IH] p.
   rewrite big_nil.
-  move/(dvdp_leq (nonzero1r _)).
+  move/(dvdp_leq (oner_neq0 _)).
   rewrite size_poly1 leqNgt.
   by move/negbTE ->.
  rewrite big_cons mulrC.
@@ -721,7 +721,7 @@ have : forall i : 'I_n, c'_ i = 0.
     rewrite memv_ker.
     move/eqP/(f_equal (fun x => val (f_ j) a * x)).
     rewrite mulr0 => H0.
-    rewrite -[X in _ = X]H0 sum_lappE -mulr_sumr.
+    rewrite -[X in _ = X]H0 sum_lappE mulr_sumr.
     apply: eq_bigr => m _.
     rewrite !{1}comp_lappE /=.
     do 2 (rewrite lapp_of_funK; last by apply: amull_linear_p).
@@ -735,12 +735,12 @@ have : forall i : 'I_n, c'_ i = 0.
     rewrite !{1}comp_lappE /=.
     do 2 (rewrite lapp_of_funK; last by apply: amull_linear_p).
     by rewrite !rmorphM mulrA.
-   rewrite -[X in (X - _)]HsumA -[X in (_ - X)]HsumB -sumr_sub.
+   rewrite -[X in (X - _)]HsumA -[X in (_ - X)]HsumB -sumrB.
    apply/eqP.
    apply: eq_bigr => m _.
    rewrite !{1}(opp_lappE,lappE) /=.
    do 3 (rewrite {1}lapp_of_funK; last by apply: amull_linear_p).
-   by rewrite mulr_subr mulr_subl.
+   by rewrite mulrBr mulrBl.
 move : Hji.
 case/unlift_some => i' Hii' Hi'i.
 move/(_ i')/eqP.
@@ -806,7 +806,7 @@ case (eqVneq (E :\: lker comb)%VS 0%:VS).
  rewrite -subv_diffv0.
  move/(LAut_independent Hf Huniq Hc)/(_ ord0)/eqP.
  rewrite -[ord0](@lshift0 _ 0) row_mxEl mxE eqxx -[_ == _]negbK.
- by rewrite nonzero1r.
+ by rewrite oner_neq0.
 rewrite -vpick0.
 set w0 := vpick _ => Hw0.
 have Hw0E : w0 \in E.
@@ -844,7 +844,7 @@ set C := ursubmx (_) + _.
 have -> : C = 0.
  apply/matrixP => ? j.
  by rewrite ord1 mxE mulNmx mulmxKV // !(row_mxEr, mxE) lshift0 subrr.
-rewrite det_lblock unitr_mul -[_ (_ M')]unitmxE HM' andbT.
+rewrite det_lblock unitrM -[_ (_ M')]unitmxE HM' andbT.
 rewrite [_ + _](_ : _ = (comb w0)%:M); first by rewrite det_scalar1 unitfE.
 set UL := ulsubmx _.
 have -> : UL = (val (f_ 0) w0)%:M.
@@ -1247,9 +1247,9 @@ Variables (K E : {algebra L}).
 Lemma galoisTrace_is_additive : additive (galoisTrace K E).
 Proof.
 move => a b /=.
-rewrite -sumr_sub.
+rewrite -sumrB.
 apply: eq_bigr => i _.
-by rewrite rmorph_sub.
+by rewrite rmorphB.
 Qed.
 
 Canonical galoisTrace_additive := Eval hnf in Additive galoisTrace_is_additive.
@@ -1630,7 +1630,7 @@ have/allPn : ~~(all (fun x => x \in (map h r)) (map (val (repr x)) (map h r))).
  rewrite rmorph_prod.
  transitivity (\prod_(i <- map h r)('X - (val (repr x) i)%:P)).
   apply: eq_bigr => i _.
-  by rewrite rmorph_sub /= map_polyX map_polyC.
+  by rewrite rmorphB /= map_polyX map_polyC.
  rewrite -(big_map (val (repr x)) predT f).
  apply/eqP.
  rewrite -eqpMP ?monic_prod_factors // -dvdp_size_eqp.
@@ -1762,7 +1762,7 @@ apply: (iffP eqP); last first.
  have HxEK : x \in 'Aut(E | K)%g by rewrite -Hx cycle_id.
  by rewrite galoisNormM galoisNormV normAut // mulfV // galoisNorm_eq0.
 move => Hnorm.
-have Ha0 : a != 0 by rewrite -(galoisNorm_eq0 K E) Hnorm nonzero1r.
+have Ha0 : a != 0 by rewrite -(galoisNorm_eq0 K E) Hnorm oner_neq0.
 pose n := #[x]%g.
 pose c_ i := \prod_(j < i) (val (repr (x ^+ j)%g) a).
 have HcE i : c_ i \in E.
@@ -1791,7 +1791,7 @@ have Huniq : uniq [seq (val (f_ (nat_of_ord i)) \o projv E)%VS| i <- enum 'I_n].
 have Hexistb : (existsb i : 'I_n, c_ i != 0).
  apply/existsP.
  exists (Ordinal (order_gt0 _)).
- by rewrite /c_ big_ord0 nonzero1r.
+ by rewrite /c_ big_ord0 oner_neq0.
 pose Sigma := \sum_(i : 'I_n) (amull (c_ i) \o val (f_ i))%VS.
 have: ((E <= lker Sigma)%VS -> forallb i : 'I_n, c_ i == 0).
  move => HE.
@@ -1816,7 +1816,7 @@ exists (Sigma (vpick V)).
  rewrite comp_lappE /= lapp_of_funK; last by apply: amull_linear_p.
  by rewrite memv_mul // -[X in _ \in X](HxE i) memv_img.
 apply: (canRL (mulfK _)); first by rewrite fmorph_eq0.
-rewrite sum_lappE rmorph_sum -mulr_sumr /n -(prednK (order_gt0 x)).
+rewrite sum_lappE rmorph_sum mulr_sumr /n -(prednK (order_gt0 x)).
 rewrite big_ord_recr /=; symmetry; rewrite addrC big_ord_recl.
 congr (_ + _).
  do 2 (rewrite comp_lappE /= lapp_of_funK; last by apply: amull_linear_p).
@@ -1978,7 +1978,7 @@ have <- : enum_val (Ordinal Hj) = y.
  by rewrite (enum_val_nth 1%g) nth_index // mem_enum.
 rewrite -[X in X = _](mulKmx Hw) -[X in _ = X](mulmx0 _ (invmx M)).
 congr (_ *m _).
-apply/eqP; rewrite mulmx_subr HMx subr_eq0; apply/eqP.
+apply/eqP; rewrite mulmxBr HMx subr_eq0; apply/eqP.
 set (j := Ordinal Hj).
 clear -Hs HMx HvE HwE.
 apply/colP => i.
@@ -2039,7 +2039,7 @@ suff HsAut : (s \subset ('Aut(E | FixedField s))%g).
   case/orP; last done.
   rewrite dimv_eq0 -subv0.
   move/subvP/(_ _ (mem1v _)).
-  by rewrite memv0 -[_ == _]negbK nonzero1r.
+  by rewrite memv0 -[_ == _]negbK oner_neq0.
  rewrite mulnC dim_FixedField // -galois_dim ?leqnn //.
  apply/galois_fixedField.
  have HFFE : (FixedField_aspace s <= E)%VS by apply: capvSl.

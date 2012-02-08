@@ -150,7 +150,7 @@ Canonical poly_choiceType := Eval hnf in [choiceType of {poly R}].
 Definition lead_coef p := p`_(size p).-1.
 Lemma lead_coefE p : lead_coef p = p`_(size p).-1. Proof. by []. Qed.
 
-Definition poly_nil := @Polynomial R [::] (nonzero1r R).
+Definition poly_nil := @Polynomial R [::] (oner_neq0 R).
 Definition polyC c : {poly R} := insubd poly_nil [:: c].
 
 Local Notation "c %:P" := (polyC c).
@@ -505,17 +505,17 @@ Qed.
 Fact mul_poly_addl : left_distributive mul_poly +%R.
 Proof.
 move=> p q r; apply/polyP=> i; rewrite coefD !coef_mul_poly -big_split.
-by apply: eq_bigr => j _; rewrite coefD mulr_addl.
+by apply: eq_bigr => j _; rewrite coefD mulrDl.
 Qed.
 
 Fact mul_poly_addr : right_distributive mul_poly +%R.
 Proof.
 move=> p q r; apply/polyP=> i; rewrite coefD !coef_mul_poly -big_split.
-by apply: eq_bigr => j _; rewrite coefD mulr_addr.
+by apply: eq_bigr => j _; rewrite coefD mulrDr.
 Qed.
 
 Fact nonzero_poly1 : 1%:P != 0 :> {poly R}.
-Proof. by rewrite polyC_eq0 nonzero1r. Qed.
+Proof. by rewrite polyC_eq0 oner_neq0. Qed.
 
 Definition poly_ringMixin :=
   RingMixin mul_polyA mul_1poly mul_poly1 mul_poly_addl mul_poly_addr
@@ -528,7 +528,7 @@ Canonical polynomial_ringType :=
 Lemma polyC1 : 1%:P = 1 :> {poly R}. Proof. by []. Qed.
 
 Lemma polyseq1 : (1 : {poly R}) = [:: 1] :> seq R.
-Proof. by rewrite polyseqC nonzero1r. Qed.
+Proof. by rewrite polyseqC oner_neq0. Qed.
 
 Lemma size_poly1 : size (1 : {poly R}) = 1%N.
 Proof. by rewrite polyseq1. Qed.
@@ -644,10 +644,10 @@ Fact scale_1poly : left_id 1 scale_poly.
 Proof. by move=> p; rewrite scale_polyE mul1r. Qed.
 
 Fact scale_poly_addr a : {morph scale_poly a : p q / p + q}.
-Proof. by move=> p q; rewrite !scale_polyE mulr_addr. Qed.
+Proof. by move=> p q; rewrite !scale_polyE mulrDr. Qed.
 
 Fact scale_poly_addl p : {morph scale_poly^~ p : a b / a + b}.
-Proof. by move=> a b /=; rewrite !scale_polyE raddfD mulr_addl. Qed.
+Proof. by move=> a b /=; rewrite !scale_polyE raddfD mulrDl. Qed.
 
 Fact scale_poly_mull a p q : scale_poly a (p * q) = scale_poly a p * q.
 Proof. by rewrite !scale_polyE mulrA. Qed.
@@ -769,7 +769,7 @@ Lemma size_polyXn n : size 'X^n = n.+1.
 Proof. by rewrite polyseqXn size_rcons size_nseq. Qed.
 
 Lemma commr_polyXn p n : GRing.comm p 'X^n.
-Proof. by apply: commr_exp; exact: commr_polyX. Qed.
+Proof. by apply: commrX; exact: commr_polyX. Qed.
 
 Lemma lead_coefXn n : lead_coef 'X^n = 1.
 Proof. by rewrite /lead_coef nth_last polyseqXn last_rcons. Qed.
@@ -796,7 +796,7 @@ Proof.
 unlock poly; elim: n => [|n IHn] in E *; first by rewrite big_ord0.
 rewrite big_ord_recl /= poly_cons_def addrC expr0 scale_poly1.
 congr (_ + _); rewrite (iota_addl 1 0) -map_comp IHn big_distrl /=.
-by apply: eq_bigr => i _; rewrite -scaler_mull exprSr.
+by apply: eq_bigr => i _; rewrite -scalerAl exprSr.
 Qed.
 
 (* Monic predicate *)
@@ -810,7 +810,7 @@ Lemma monicX : monic 'X. Proof. by rewrite /monic lead_coefX. Qed.
 Lemma monicXn n : monic 'X^n. Proof. by rewrite /monic lead_coefXn. Qed.
 
 Lemma monic_neq0 p : monic p -> p != 0.
-Proof. by rewrite -lead_coef_eq0 => /eqP->; exact: nonzero1r. Qed.
+Proof. by rewrite -lead_coef_eq0 => /eqP->; exact: oner_neq0. Qed.
 
 Lemma lead_coef_monic_mul p q : monic p -> lead_coef (p * q) = lead_coef q.
 Proof.
@@ -963,7 +963,7 @@ Qed.
 Lemma horner_opp p x : (- p).[x] = - p.[x].
 Proof.
 rewrite -[-%R]/opp_poly; unlock opp_poly.
-rewrite horner_poly horner_coef -sumr_opp /=.
+rewrite horner_poly horner_coef -sumrN /=.
 by apply: eq_bigr => i _; rewrite mulNr.
 Qed.
 
@@ -972,7 +972,7 @@ Proof.
 rewrite -[+%R]/add_poly; unlock add_poly.
 rewrite horner_poly; set m := maxn _ _.
 rewrite !(@horner_coef_wide m) ?leq_maxr ?leqnn ?orbT // -big_split /=.
-by apply: eq_bigr => i _; rewrite -mulr_addl.
+by apply: eq_bigr => i _; rewrite -mulrDl.
 Qed.
 
 Lemma horner_factor a x : ('X - a%:P).[x] = x - a.
@@ -985,7 +985,7 @@ Proof. by elim/big_rec2: _ => [|i _ p _ <-]; rewrite (horner0, horner_add). Qed.
 Lemma horner_Cmul a p x : (a%:P * p).[x] = a * p.[x].
 Proof.
 elim/poly_ind: p => [|p c IHp]; first by rewrite !(mulr0, horner0).
-by rewrite mulr_addr mulrA -polyC_mul !horner_amulX IHp mulr_addr mulrA.
+by rewrite mulrDr mulrA -polyC_mul !horner_amulX IHp mulrDr mulrA.
 Qed.
 
 Lemma horner_scaler c p x : (c *: p).[x] = c * p.[x].
@@ -1001,7 +1001,7 @@ Definition comm_poly p x := x * p.[x] = p.[x] * x.
 Lemma comm_coef_poly p x : comm_coef p x -> comm_poly p x.
 Proof.
 move=> cpx; rewrite /comm_poly !horner_coef big_distrl big_distrr /=.
-by apply: eq_bigr => i _; rewrite /= mulrA -cpx -!mulrA commr_exp.
+by apply: eq_bigr => i _; rewrite /= mulrA -cpx -!mulrA commrX.
 Qed.
 
 Lemma comm_poly0 x : comm_poly 0 x.
@@ -1017,8 +1017,8 @@ Lemma horner_mul_comm p q x : comm_poly q x -> (p * q).[x] = p.[x] * q.[x].
 Proof.
 move=> comm_qx.
 elim/poly_ind: p => [|p c IHp]; first by rewrite !(simp, horner0).
-rewrite mulr_addl horner_add horner_Cmul -mulrA -commr_polyX mulrA horner_mulX.
-by rewrite {}IHp -mulrA -comm_qx mulrA -mulr_addl horner_amulX.
+rewrite mulrDl horner_add horner_Cmul -mulrA -commr_polyX mulrA horner_mulX.
+by rewrite {}IHp -mulrA -comm_qx mulrA -mulrDl horner_amulX.
 Qed.
 
 Lemma horner_exp_comm p x n : comm_poly p x -> (p ^+ n).[x] = p.[x] ^+ n.
@@ -1084,7 +1084,7 @@ Proof.
 apply: (iffP eqP) => [pa0 | [q ->]]; last first.
   by rewrite horner_mul_comm /comm_poly factor0 ?simp.
 exists (\poly_(i < size p) horner_rec (drop i.+1 p) a).
-apply/polyP=> i; rewrite mulr_subr coef_sub coefMX coefMC !coef_poly.
+apply/polyP=> i; rewrite mulrBr coef_sub coefMX coefMC !coef_poly.
 apply: canRL (addrK _) _; rewrite addrC; have [le_p_i | lt_i_p] := leqP.
   rewrite nth_default // !simp drop_oversize ?if_same //.
   exact: leq_trans (leqSpred _).
@@ -1143,7 +1143,7 @@ exists m.
   by apply: contraTF => zi1; rewrite -leqNgt m_min.
 have: n %% m < m by rewrite ltn_mod.
 apply: contraLR; rewrite -lt0n -leqNgt => nm_gt0; apply: m_min.
-by rewrite nm_gt0 /= exprn_mod ?zn1.
+by rewrite nm_gt0 /= expr_mod ?zn1.
 Qed.
 
 Section OnePrimitive.
@@ -1161,7 +1161,7 @@ by rewrite unity_rootE eqxx; do 2!move/eqP.
 Qed.
 
 Lemma prim_expr_mod i : z ^+ (i %% n) = z ^+ i.
-Proof. exact: exprn_mod prim_expr_order. Qed.
+Proof. exact: expr_mod prim_expr_order. Qed.
 
 Lemma prim_order_dvd i : (n %| i) = (z ^+ i == 1).
 Proof.
@@ -1176,9 +1176,9 @@ Proof.
 wlog le_ji: i j / j <= i.
   move=> IH; case: (leqP j i); last move/ltnW; move/IH=> //.
   by rewrite eq_sym (eq_sym (j %% n)%N).
-rewrite -{1}(subnKC le_ji) exprn_addr -prim_expr_mod eqn_mod_dvd //.
+rewrite -{1}(subnKC le_ji) exprD -prim_expr_mod eqn_mod_dvd //.
 rewrite prim_order_dvd; apply/eqP/eqP=> [|->]; last by rewrite mulr1.
-move/(congr1 ( *%R (z ^+ (n - j %% n)))); rewrite mulrA -exprn_addr.
+move/(congr1 ( *%R (z ^+ (n - j %% n)))); rewrite mulrA -exprD.
 by rewrite subnK ?prim_expr_order ?mul1r // ltnW ?ltn_mod.
 Qed.
 
@@ -1192,13 +1192,13 @@ apply/idP/idP=> [prim_zk | co_k_n].
   set d := gcdn k n; have dv_d_n: (d %| n)%N := dvdn_gcdr _ _.
   rewrite /coprime -/d -(eqn_pmul2r n_gt0) mul1n -{2}(gcdn_mull n d).
   rewrite -{2}(divnK dv_d_n) (mulnC _ d) gcdn_mul2l dvdn_gcd_idr //.
-  rewrite (prim_order_dvd prim_zk) -exprn_mulr -(prim_order_dvd prim_z).
+  rewrite (prim_order_dvd prim_zk) -exprM -(prim_order_dvd prim_z).
   by rewrite gcdn_divnC dvdn_mulr.
-have zkn_1: z ^+ k ^+ n = 1 by rewrite exprnC (prim_expr_order prim_z) exp1rn.
+have zkn_1: z ^+ k ^+ n = 1 by rewrite exprC (prim_expr_order prim_z) expr1n.
 have{zkn_1} [m prim_zk dv_m_n]:= prim_order_exists n_gt0 zkn_1.
 suffices /eqP <-: m == n by [].
 rewrite eqn_dvd dv_m_n -(@gauss n k m) 1?coprime_sym //=.
-by rewrite (prim_order_dvd prim_z) exprn_mulr (prim_expr_order prim_zk).
+by rewrite (prim_order_dvd prim_z) exprM (prim_expr_order prim_zk).
 Qed.
 
 End PolynomialTheory.
@@ -1279,7 +1279,7 @@ Proof. exact: map_comp_poly_id0 (raddf0 f). Qed.
 
 Fact map_poly_is_additive : additive (map_poly f).
 Proof.
-by move=> p q; apply/polyP=> i; rewrite !(coef_map, coef_sub) raddf_sub.
+by move=> p q; apply/polyP=> i; rewrite !(coef_map, coef_sub) raddfB.
 Qed.
 
 Canonical map_poly_additive := Additive map_poly_is_additive.
@@ -1338,7 +1338,7 @@ Proof. by move/eqP=> px0; rewrite rootE horner_map px0 rmorph0. Qed.
 
 Lemma rmorph_unity_root n z : n.-unity_root z -> n.-unity_root (f z).
 Proof.
-move/root_map_poly; rewrite rootE rmorph_sub horner_add horner_opp.
+move/root_map_poly; rewrite rootE rmorphB horner_add horner_opp.
 by rewrite /= map_polyXn rmorph1 hornerC hornerXn subr_eq0 unity_rootE.
 Qed.
 
@@ -1353,7 +1353,7 @@ Proof. by rewrite /horner_morph map_polyX hornerX. Qed.
 
 Fact horner_is_rmorphism : GRing.rmorphism (horner_morph cfu).
 Proof.
-split=> [p q|]; first by rewrite /horner_morph rmorph_sub horner_add horner_opp.
+split=> [p q|]; first by rewrite /horner_morph rmorphB horner_add horner_opp.
 split=> [p q|]; last by rewrite /horner_morph rmorph1 hornerC.
 rewrite /horner_morph rmorphM /= horner_mul_comm //.
 by apply: comm_coef_poly => i; rewrite coef_map cfu.
@@ -1598,7 +1598,7 @@ Proof. by rewrite -!size_poly_eq0 size_map_poly. Qed.
 Lemma map_poly_inj : injective (map_poly f).
 Proof.
 move=> p q eqfpq; apply/eqP; rewrite -subr_eq0 -map_poly_eq0.
-by rewrite rmorph_sub /= eqfpq subrr.
+by rewrite rmorphB /= eqfpq subrr.
 Qed.
 
 Lemma map_monic p : monic p^f = monic p.
@@ -1643,8 +1643,8 @@ rewrite {p}def_p in rpz.
 elim/last_ind: rs drs rpz => [|rs t IHrs] /=; first by rewrite big_nil mulr1.
 rewrite all_rcons => /andP[/andP[/eqP czt Uzt] /IHrs {IHrs}IHrs].
 rewrite -cats1 big_cat big_seq1 /= mulrA rootE horner_mul_comm; last first.
-  by rewrite /comm_poly horner_factor mulr_subl mulr_subr czt.
-rewrite horner_factor -oppr_sub mulrN oppr_eq0 -(mul0r (t - z)).
+  by rewrite /comm_poly horner_factor mulrBl mulrBr czt.
+rewrite horner_factor -opprB mulrN oppr_eq0 -(mul0r (t - z)).
 by rewrite (inj_eq (mulIr Uzt)) => /IHrs.
 Qed.
 
@@ -1720,7 +1720,7 @@ have n_gt0: n > 0 := prim_order_gt0 prim_z.
 rewrite (@all_roots_factors _ ('X^n - 1) zn); first 1 last.
 - by rewrite size_Xn_sub_1 // size_map size_iota subn0.
 - apply/allP=> _ /mapP[i _ ->] /=; rewrite rootE !horner_lin hornerXn.
-  by rewrite exprnC (prim_expr_order prim_z) exp1rn subrr.
+  by rewrite exprC (prim_expr_order prim_z) expr1n subrr.
 - rewrite uniq_rootsE map_inj_in_uniq ?iota_uniq // => i j.
   rewrite !mem_index_iota => ltin ltjn /eqP.
   by rewrite (eq_prim_root_expr prim_z) !modn_small // => /eqP.
@@ -1747,7 +1747,7 @@ Variables (F : fieldType) (R : unitRingType) (f : {rmorphism F -> R}).
 
 Lemma map_diff_roots x y : diff_roots (f x) (f y) = (x != y).
 Proof.
-rewrite /diff_roots -rmorph_sub // fmorph_unit // subr_eq0 //.
+rewrite /diff_roots -rmorphB // fmorph_unit // subr_eq0 //.
 by rewrite rmorph_comm // eqxx eq_sym.
 Qed.
 
@@ -1782,7 +1782,7 @@ Lemma aut_unity_rootC u v z n : n > 0 -> z ^+ n = 1 -> u (v z) = v (u z).
 Proof.
 move=> n_gt0 /(aut_unity_rootP _ n_gt0) def_z.
 have [[i def_uz] [j def_vz]] := (def_z u, def_z v).
-by rewrite !(def_uz, def_vz, rmorphX) exprnC.
+by rewrite !(def_uz, def_vz, rmorphX) exprC.
 Qed.
 
 End AutPolyRoot.
@@ -1828,10 +1828,10 @@ Lemma comp_poly_addl p q r : (p + q) \Po r = (p \Po r) + (q \Po r).
 Proof. exact: raddfD. Qed.
 
 Lemma comp_poly_subl p q r : (p - q) \Po r = (p \Po r) - (q \Po r).
-Proof. exact: raddf_sub. Qed.
+Proof. exact: raddfB. Qed.
 
 Lemma comp_poly_scall c p q : (c *: p) \Po q = c *: (p \Po q).
-Proof. exact: linearZ. Qed.
+Proof. exact: lmod_linearZ. Qed.
 
 Lemma comp_polyX p : p \Po 'X = p.
 Proof. by rewrite -{2}/(idfun p) poly_initial. Qed.
@@ -1947,7 +1947,7 @@ Qed.
 Fact deriv_is_linear : linear deriv.
 Proof.
 move=> k p q; apply/polyP=> i.
-by rewrite !(coef_deriv, coefD, coefZ) mulrn_addl mulrnAr.
+by rewrite !(coef_deriv, coefD, coefZ) mulrnDl mulrnAr.
 Qed.
 
 Canonical deriv_additive := Additive deriv_is_linear.
@@ -1963,7 +1963,7 @@ Lemma derivN : {morph deriv : p / - p}.
 Proof. exact: linearN. Qed.
 
 Lemma deriv_sub : {morph deriv : p q / p - q}.
-Proof. exact: linear_sub. Qed.
+Proof. exact: linearB. Qed.
 
 Lemma derivMn n p : (p *+ n)^`() = p^`() *+ n.
 Proof. exact: linearMn. Qed.
@@ -1972,7 +1972,7 @@ Lemma derivMNn n p : (p *- n)^`() = p^`() *- n.
 Proof. exact: linearMNn. Qed.
 
 Lemma derivZ c p : (c *: p)^`() = c *: p^`().
-Proof. exact: linearZ. Qed.
+Proof. by rewrite linearZ. Qed.
 
 Lemma deriv_mulC c p : (c%:P * p)^`() = c%:P * p^`().
 Proof. by rewrite !mul_polyC derivZ. Qed.
@@ -1982,8 +1982,8 @@ Proof.
 apply/polyP=> i; rewrite !(coef_deriv, coefD, coefM).
 pose pq j a b :=  p`_j *+ a * (q`_(i.+1 - j) *+ b).
 transitivity (\sum_(j < i.+2) (pq j j 1%N + pq j 1%N (i.+1 - j)%N)).
-  rewrite -sumr_muln; apply: eq_bigr => j _.
-  by rewrite /pq !mulr1n mulrnAl mulrnAr -mulrn_addr subnKC // leq_ord.
+  rewrite -sumrMnl; apply: eq_bigr => j _.
+  by rewrite /pq !mulr1n mulrnAl mulrnAr -mulrnDr subnKC // leq_ord.
 rewrite big_split /= {}/pq; congr (_ + _).
   rewrite big_ord_recl mulr0n mul0r add0r.
   by apply: eq_bigr => j _; rewrite coef_deriv.
@@ -2037,7 +2037,7 @@ Lemma derivnD n : {morph (derivn n) : p q / p + q}.
 Proof. exact: linearD. Qed.
 
 Lemma derivn_sub n : {morph (derivn n) : p q / p - q}.
-Proof. exact: linear_sub. Qed.
+Proof. exact: linearB. Qed.
 
 Lemma derivnMn n m p : (p *+ m)^`(n) = p^`(n) *+ m.
 Proof. exact: linearMn. Qed.
@@ -2049,7 +2049,7 @@ Lemma derivnN n : {morph (derivn n) : p / - p}.
 Proof. exact: linearN. Qed.
 
 Lemma derivnZ n : scalable (derivn n).
-Proof. exact: linearZ. Qed.
+Proof. exact: lmod_linearZ. Qed.
 
 Lemma derivnXn m n : 'X^m^`(n) = 'X^(m - n) *+ m ^_ n.
 Proof.
@@ -2119,7 +2119,7 @@ Qed.
 Fact nderivn_is_linear n : linear (nderivn n).
 Proof.
 move=> k p q; apply/polyP=> i.
-by rewrite !(coef_nderivn, coefD, coefZ) mulrn_addl mulrnAr.
+by rewrite !(coef_nderivn, coefD, coefZ) mulrnDl mulrnAr.
 Qed.
 Canonical nderivn_additive n := Additive(nderivn_is_linear n).
 Canonical nderivn_linear n := Linear (nderivn_is_linear n).
@@ -2128,7 +2128,7 @@ Lemma nderivnD n : {morph (nderivn n) : p q / p + q}.
 Proof. exact: linearD. Qed.
 
 Lemma nderivn_sub n : {morph (nderivn n) : p q / p - q}.
-Proof. exact: linear_sub. Qed.
+Proof. exact: linearB. Qed.
 
 Lemma nderivnMn n m p : (p *+ m)^`N(n) = p^`N(n) *+ m.
 Proof. exact: linearMn. Qed.
@@ -2140,13 +2140,13 @@ Lemma nderivnN n : {morph (nderivn n) : p / - p}.
 Proof. exact: linearN. Qed.
 
 Lemma nderivnZ n : scalable (nderivn n).
-Proof. exact: linearZ. Qed.
+Proof. exact: lmod_linearZ. Qed.
 
 Lemma nderivn_amulX n p c :
   (p * 'X + c%:P)^`N(n.+1) = p^`N(n) + p^`N(n.+1) * 'X.
 Proof.
 apply/polyP=> i; rewrite coef_nderivn !coefD !coefMX coefC.
-rewrite !addSn /= !coef_nderivn addr0 binS mulrn_addr addrC; congr (_ + _).
+rewrite !addSn /= !coef_nderivn addr0 binS mulrnDr addrC; congr (_ + _).
 by rewrite addSnnS; case: i; rewrite // addn0 bin_small.
 Qed.
 
@@ -2160,19 +2160,19 @@ Qed.
 Lemma nderiv_taylor p x h :
   GRing.comm x h -> p.[x + h] = \sum_(i < size p) p^`N(i).[x] * h ^+ i.
 Proof.
-move/commr_exp=> cxh; elim/poly_ind: p => [|p c IHp].
+move/commrX=> cxh; elim/poly_ind: p => [|p c IHp].
   by rewrite size_poly0 big_ord0 horner0.
 rewrite horner_amulX size_amulX.
 have [-> | nz_p] := altP (p =P 0).
   rewrite horner0 !simp; have [-> | _] := c =P 0; first by rewrite big_ord0.
   by rewrite size_poly0 big_ord_recl big_ord0 nderivn0 hornerC !simp.
 rewrite big_ord_recl nderivn0 !simp horner_amulX addrAC; congr (_ + _).
-rewrite mulr_addr {}IHp !big_distrl polySpred //= big_ord_recl /= mulr1 -addrA.
+rewrite mulrDr {}IHp !big_distrl polySpred //= big_ord_recl /= mulr1 -addrA.
 rewrite nderivn0  /bump /(addn 1) /=; congr (_ + _).
 rewrite !big_ord_recr /= nderivn_amulX -mulrA -exprSr -polySpred // !addrA.
 congr (_ + _); last by rewrite (nderivn_poly0 (leqnn _)) !simp.
 rewrite addrC -big_split /=; apply: eq_bigr => i _.
-by rewrite nderivn_amulX !horner_lin_comm /= mulr_addl -!mulrA -exprSr cxh.
+by rewrite nderivn_amulX !horner_lin_comm /= mulrDl -!mulrA -exprSr cxh.
 Qed.
 
 Lemma nderiv_taylor_wide n p x h :
@@ -2201,7 +2201,7 @@ Lemma deriv_comp_poly p q : (p \Po q) ^`() = (p ^`() \Po q) * q^`().
 Proof.
 elim/poly_ind: p => [|p c IHp]; first by rewrite !(deriv0, comp_poly0p) mul0r.
 rewrite comp_poly_amulX derivD derivC derivM IHp deriv_amulX comp_poly_addl.
-by rewrite comp_poly_mull comp_polyXp addr0 addrC mulrAC -mulr_addl.
+by rewrite comp_poly_mull comp_polyXp addr0 addrC mulrAC -mulrDl.
 Qed.
 
 Lemma deriv_exp p n : (p ^+ n)^`() = p^`() * p ^+ n.-1 *+ n.

@@ -9,15 +9,8 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Section extra_nat.
-
-Lemma gtn_eqF (m n : nat) : m < n -> n == m = false.
-Proof. by case: ltngtP. Qed.
-
-End extra_nat.
-
 Local Notation "p ^ f" := (map_poly f p) : ring_scope.
-Notation "'Y" := 'X%:P.
+Notation "'Y" := 'X%:P : ring_scope.
 
 Notation "p .[ x , y ]" := (p.[x%:P].[y])
   (at level 2, left associativity, format "p .[ x ,  y ]") : ring_scope.
@@ -78,7 +71,7 @@ Lemma size_addXr (R : ringType) (b : R) : size ('X + b%:P) = 2.
 Proof. by rewrite -['X]scale1r size_aXaddr ?oner_eq0. Qed.
 
 Lemma size_subrX (R : ringType) (b : R) : size (b%:P - 'X ) = 2.
-Proof. by rewrite -oppr_sub size_opp size_factor. Qed.
+Proof. by rewrite -opprB size_opp size_factor. Qed.
 
 Lemma size_addNXr (R : ringType) (b : R) : size (- 'X + b%:P) = 2.
 Proof. by rewrite addrC size_subrX. Qed.
@@ -125,7 +118,7 @@ Definition swapXY (R : ringType) (p : {poly {poly R}}) : {poly {poly R}} :=
 Implicit Arguments swapXY [[R]].
 
 Lemma swapXY_is_additive (R : ringType) : additive (@swapXY R).
-Proof. by move => p q; unlock swapXY; rewrite rmorph_sub !horner_lin. Qed.
+Proof. by move => p q; unlock swapXY; rewrite rmorphB !horner_lin. Qed.
 Canonical swapXY_addf R := Additive (@swapXY_is_additive R).
 
 Lemma swapXY_is_multiplicative (R : comRingType) : multiplicative (@swapXY R).
@@ -247,10 +240,10 @@ rewrite (@horner_coef_wide _ (size p)); last first.
 rewrite horner_coef -sizeYE.
 transitivity  (\sum_(i < size p)
       (\sum_(j < sizeY p) ((swapXY p)`_j * x%:P ^+ j)`_i * y ^+ i)).
-  by apply: eq_big=> //= i _; rewrite coef_sum mulr_suml.
+  by apply: eq_big=> //= i _; rewrite coef_sum -mulr_suml.
 rewrite exchange_big (@horner_coef_wide _ (sizeY p)) ?leq_size_evalC //=.
 rewrite horner_coef; apply: eq_big=> //= i _.
-rewrite coef_sum -mulr_suml; apply: eq_big=> //= j _.
+rewrite coef_sum mulr_suml; apply: eq_big=> //= j _.
 by rewrite -!polyC_exp !coefMC coef_swapXY mulrAC.
 Qed.
 
@@ -308,11 +301,11 @@ rewrite lead_coefE size_poly_XaY.
 rewrite /poly_XaY /comp_poly horner_coef !size_map_polyC.
 rewrite -[size _]prednK ?lt0n ?size_poly_eq0 //=.
 rewrite coef_sum big_ord_recr /= big1; last first.
-  move=> i _; rewrite !coef_map coefCM addrC exprn_addl coef_sum big1 ?mulr0 //.
+  move=> i _; rewrite !coef_map coefCM addrC exprDn coef_sum big1 ?mulr0 //.
   move=> /= j _; rewrite coefMn -polyC_exp coefCM coefXn.
   by rewrite gtn_eqF ?mulr0 ?mul0rn // (leq_ltn_trans (leq_ord _)).
 rewrite add0r !coef_map -lead_coefE coefCM /=.
-rewrite addrC exprn_addl /= coef_sum big_ord_recr /= big1; last first.
+rewrite addrC exprDn /= coef_sum big_ord_recr /= big1; last first.
   move=> /= i _; rewrite -polyC_exp coefMn coefCM coefXn.
   by rewrite gtn_eqF // mulr0 mul0rn.
 by rewrite binn subnn add0r expr0 mul1r mulr1n coefXn eqxx mulr1.

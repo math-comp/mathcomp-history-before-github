@@ -36,7 +36,14 @@ Require Import finfun bigop prime binomial.
 (*        \sum_<range> e == iterated sum for a Zmodule (cf bigop.v).          *)
 (*                  e`_i == nth 0 e i, when e : seq M and M has a zmodType    *)
 (*                          structure.                                        *)
-(*             support f == 0.-support f, i.e., [pred x | f x != 0],          *)
+(*             support f == 0.-support f, i.e., [pred x | f x != 0].          *)
+(*        unsignedPred S == typeclass endcapsulating closure under sign       *)
+(*                          change, i.e., x \in S -> - x \in S.               *)
+(*    addSemigroupPred S == typeclass endcapsulating closure under 0 and sum. *)
+(*     addSubgroupPred S == the join intersection of the two above.           *)
+(* [zmodMixin of M by <:] == zmodType mixin for a subType whose base type has *)
+(*                          a zmodType structure and whose predicate belongs  *)
+(*                          to the addSubgroupPred typeclass.                 *)
 (*                                                                            *)
 (*  * Ring (non-commutative rings):                                           *)
 (*              ringType == interface type for a Ring structure.              *)
@@ -74,6 +81,15 @@ Require Import finfun bigop prime binomial.
 (*     Frobenius_aut chRp == the Frobenius automorphism mapping x in R to     *)
 (*                           x ^+ p, where chRp : p \in [char R] is a proof   *)
 (*                           that R has (non-zero) characteristic p.          *)
+(*     mulSemigroupPred S == typeclass endcapsulating closure under 1 and *.  *)
+(*         semiringPred S == the intersection of mulSemigroupPred and         *)
+(*                           mulSemigroupPred (e.g., the image of n%:R).      *)
+(*          subringPred S == the intersection of the above with unsignedPred. *)
+(* [ringMixin of R by <:] == ringType mixin for a subType whose base type has *)
+(*                           a ringType structure and whose predicate belongs *)
+(*                           to the subringPred typeclass; R should already   *)
+(*                           have a zmodType structure consistent with that   *)
+(*                           of its base type.                                *)
 (*                                                                            *)
 (*  * ComRing (commutative Rings):                                            *)
 (*            comRingType == interface type for commutative ring structure.   *)
@@ -84,6 +100,8 @@ Require Import finfun bigop prime binomial.
 (*                           to reduce the number of proof obligagtions.      *)
 (* [comRingType of R for S] == R-clone of the comRingType structure S.        *)
 (*     [comRingType of R] == clone of a canonical comRingType structure on R. *)
+(* [comRingMixin of R by <:] == comutativity mixin axiom for R when it is a   *)
+(*                           subType of a commutative ring.                   *)
 (*                                                                            *)
 (*  * UnitRing (Rings whose units have computable inverses):                  *)
 (*           unitRingType == interface type for the UnitRing structure.       *)
@@ -106,6 +124,15 @@ Require Import finfun bigop prime binomial.
 (*                   x^-1 == the ring inverse of x, if x is a unit, else x.   *)
 (*                  x / y == x divided by y (notation for x * y^-1).          *)
 (*                 x ^- n := notation for (x ^+ n)^-1, the inverse of x ^+ n. *)
+(*      mulSubgroupPred S == typeclass endcapsulating closure under 1 and /.  *)
+(*         subfieldPred S == the intersection of addSubgroupPred with the     *)
+(*                           above (the range of S does not actually have to  *)
+(*                           be a field or even a division ring, but this     *)
+(*                           will actually be the case in most instances).    *)
+(* [unitRingMixin of R by <:] == unitRingType mixin for a subType whose base  *)
+(*                           type has a UnitRingType and whose predicate      *)
+(*                           belongs to the subfieldPred type class.          *)
+(*                           The ring structures should be compatible.        *)
 (*                                                                            *)
 (*  * ComUnitRing (commutative rings with computable inverses):               *)
 (*        comUnitRingType == interface type for ComUnitRing structure.        *)
@@ -127,6 +154,7 @@ Require Import finfun bigop prime binomial.
 (*                           have a comUnitRingType canonical structure.      *)
 (* [idomainType of R for S] == R-clone of the idomainType structure S.        *)
 (*     [idomainType of R] == clone of a canonical idomainType structure on R. *)
+(* [idomainMixin of R by <:] == mixin axiom for a idomain subType.            *)
 (*                                                                            *)
 (*  * Field (commutative fields):                                             *)
 (*              fieldType == interface type for fields.                       *)
@@ -142,6 +170,7 @@ Require Import finfun bigop prime binomial.
 (*                           carrier type R must be an idomainType.           *)
 (* [fieldType of F for S] == F-clone of the fieldType structure S.            *)
 (*       [fieldType of F] == clone of a canonical fieldType structure on F.   *)
+(*   [fieldMixin of R by <:] == mixin axiom for a field subType.              *)
 (*                                                                            *)
 (*  * DecidableField (fields with a decidable first order theory):            *)
 (*           decFieldType == interface type for DecidableField structure.     *)
@@ -210,6 +239,9 @@ Require Import finfun bigop prime binomial.
 (*      [lmodType R of V] == clone of a canonical lmodType R structure on V.  *)
 (*                 a *: v == v scaled by a, when v is in an Lmodule V and a   *)
 (*                           is in the scalar Ring of V.                      *)
+(*         unscaledPred S == typeclass endcapsulating closure under scaling.  *)
+(* [lmodMixin of V by <:] == mixin for a subType of an lmodType, whose        *)
+(*                           predicate belongs to the unscaledPred class.     *)
 (*                                                                            *)
 (*  * Lalgebra (left algebra, ring with scaling that associates on the left): *)
 (*             lalgType R == interface type for Lalgebra structures with      *)
@@ -227,6 +259,7 @@ Require Import finfun bigop prime binomial.
 (*                           is simply notation for k *: 1.                   *)
 (* [lalgType R of V for S] == V-clone the lalgType R structure S.             *)
 (*      [lalgType R of V] == clone of a canonical lalgType R structure on V.  *)
+(* [lalgMixin of V by <:] == mixin axiom for a subType of an lalgType.        *)
 (*                                                                            *)
 (*  * Algebra (ring with scaling that associates both left and right):        *)
 (*              algType R == type for Algebra structure with scalars in R.    *)
@@ -238,6 +271,7 @@ Require Import finfun bigop prime binomial.
 (*                           both lalgType R and comRingType structures.      *)
 (* [algType R of V for S] == V-clone of an algType R structure on S.          *)
 (*       [algType R of V] == clone of a canonical algType R structure on V.   *)
+(*  [algMixin of V by <:] == mixin axiom for a subType of an algType.         *)
 (*                                                                            *)
 (*  * UnitAlgebra (algebra with computable inverses):                         *)
 (*          unitAlgType R == interface type for UnitAlgebra structure with    *)
@@ -305,7 +339,7 @@ Require Import finfun bigop prime binomial.
 (*                           combinations in U to linear combinations in V;   *)
 (*                           U and V must both have lmodType R structures,    *)
 (*                           for the same ringType R.                         *)
-(*                        := forall a, {morph f / u v / a *: u + v}.          *)
+(*                        := forall a, {morph f: u v / a *: u + v}.           *)
 (*            lmorphism f <-> f is both additive and scalable. This is in     *)
 (*                           fact equivalent to linear f, although somewhat   *)
 (*                           less convenient to prove.                        *)
@@ -324,8 +358,24 @@ Require Import finfun bigop prime binomial.
 (*                           of scal_f.                                       *)
 (*     [linear of f as g] == an f-clone of the linear structure of g.         *)
 (*          [linear of f] == a clone of an existing linear structure on f.    *)
+(*           scalableM f <-> f of type U -> R is scalable, if R is viewed as  *)
+(*                           its regular module R^o.                          *)
+(*                         := forall a u, f (a *: u) = a * f u.               *)
+(*               scalar f <-> f of type U -> R is scalar, i.e., linear when   *)
+(*                           its range is viewed as the regular module R^o.   *)
+(*                         := forall a, f (a *: u + v) = a * f u + f v.       *)
+(*             {scalar U} == the interface type for scalar functions with     *)
+(*                           domain U. This is just notation for an instance  *)
+(*                           of {linear U -> R} that uses the non-canonical   *)
+(*                           GRing.Linear.scalar_lmodType R structure for R.  *)
 (* -> Similarly to Ring morphisms, additive properties are specialized for    *)
 (*    linear functions.                                                       *)
+(* -> As scalableM and scalar coerce to scalable and linear, respectively,    *)
+(*    AddLinear and Linear can be used to create instances of {scalar U}.     *)
+(* -> Although {scalar U} is convertible to {linear U -> R^o}, it does not    *)
+(*    actually use R^o. The linearZ lemma is a multirule with a special case  *)
+(*    for {scalar U}, that uses normal multiplication in R rathere than       *)
+(*    scaling in R^o.                                                         *)
 (*                                                                            *)
 (* * LRMorphism (linear ring morphisms, i.e., algebra morphisms):             *)
 (*           lrmorphism f <-> f of type A -> B is a linear Ring (Algebra)     *)
@@ -336,7 +386,9 @@ Require Import finfun bigop prime binomial.
 (*                           Structure that encapsulates the lrmorphism       *)
 (*                           property for functions f : A -> B; both A and B  *)
 (*                           must have lalgType R structures, for the same R. *)
-(*      LRmorphism scal_f == packs scal_f : scalable f into a linear morphism *)
+(*   LRmorphism lrmorph_f == packs lrmorph_f : lrmorphism f into a linear     *)
+(*                           morphism structure of type {lrmorphism U -> V}.  *)
+(*   AddLRmorphism scal_f == packs scal_f : scalable f into a linear morphism *)
 (*                           structure of type {lrmorphism U -> V}; f must    *)
 (*                           already have a Ring morphism structure, and      *)
 (*                           lin_f : linear f may be used instead of scal_f.  *)
@@ -388,8 +440,9 @@ Require Import finfun bigop prime binomial.
 (*   0 -- ring 0, as in addr0 : x + 0 = x.                                    *)
 (*   1 -- ring 1, as in mulr1 : x * 1 = x.                                    *)
 (*   D -- ring addition, as in linearD : f (u + v) = f u + f v.               *)
-(*   M -- ring multiplication, as in invMf : (x * y)^-1 = x^-1 * y^-1,        *)
-(*  Mn -- ring by nat multiplication, as in addfMn : f (x *+ n) = f x *+ n.   *)
+(*   B -- ring substraction, as in opprB : - (x - y) = y - x.                 *)
+(*   M -- ring multiplication, as in invfM : (x * y)^-1 = x^-1 * y^-1.        *)
+(*  Mn -- ring by nat multiplication, as in raddfMn : f (x *+ n) = f x *+ n.  *)
 (*   N -- ring opposite, as in mulNr : (- x) * y = - (x * y).                 *)
 (*   V -- ring inverse, as in mulVr : x^-1 * x = 1.                           *)
 (*   X -- ring exponentiation, as in rmorphX : f (x ^+ n) = f x ^+ n.         *)
@@ -557,13 +610,13 @@ Proof. by rewrite (inv_eq opprK) oppr0. Qed.
 Lemma subr0 x : x - 0 = x. Proof. by rewrite oppr0 addr0. Qed.
 Lemma sub0r x : 0 - x = - x. Proof. by rewrite add0r. Qed.
 
-Lemma oppr_add : {morph -%R: x y / x + y : V}.
+Lemma opprD : {morph -%R: x y / x + y : V}.
 Proof.
 by move=> x y; apply: (@addrI (x + y)); rewrite addrA subrr addrAC addrK subrr.
 Qed.
 
-Lemma oppr_sub x y : - (x - y) = y - x.
-Proof. by rewrite oppr_add addrC opprK. Qed.
+Lemma opprB x y : - (x - y) = y - x.
+Proof. by rewrite opprD addrC opprK. Qed.
 
 Lemma subr_eq x y z : (x - z == y) = (x == y + z).
 Proof. exact: can2_eq (subrK z) (addrK z) x y. Qed.
@@ -597,65 +650,154 @@ Lemma mul0rn n : 0 *+ n = 0 :> V.
 Proof. by elim: n => // n IHn; rewrite mulrS add0r. Qed.
 
 Lemma mulNrn x n : (- x) *+ n = x *- n.
-Proof. by elim: n => [|n IHn]; rewrite ?oppr0 // !mulrS oppr_add IHn. Qed.
+Proof. by elim: n => [|n IHn]; rewrite ?oppr0 // !mulrS opprD IHn. Qed.
 
-Lemma mulrn_addl n : {morph (fun x => x *+ n) : x y / x + y}.
+Lemma mulrnDl n : {morph (fun x => x *+ n) : x y / x + y}.
 Proof.
 move=> x y; elim: n => [|n IHn]; rewrite ?addr0 // !mulrS.
 by rewrite addrCA -!addrA -IHn -addrCA.
 Qed.
 
-Lemma mulrn_addr x m n : x *+ (m + n) = x *+ m + x *+ n.
+Lemma mulrnDr x m n : x *+ (m + n) = x *+ m + x *+ n.
 Proof.
 elim: m => [|m IHm]; first by rewrite add0r.
 by rewrite !mulrS IHm addrA.
 Qed.
 
-Lemma mulrn_subl n : {morph (fun x => x *+ n) : x y / x - y}.
+Lemma mulrnBl n : {morph (fun x => x *+ n) : x y / x - y}.
 Proof.
 move=> x y; elim: n => [|n IHn]; rewrite ?subr0 // !mulrS -!addrA; congr(_ + _).
-by rewrite addrC IHn -!addrA oppr_add [_ - y]addrC.
+by rewrite addrC IHn -!addrA opprD [_ - y]addrC.
 Qed.
 
-Lemma mulrn_subr x m n : n <= m -> x *+ (m - n) = x *+ m - x *+ n.
+Lemma mulrnBr x m n : n <= m -> x *+ (m - n) = x *+ m - x *+ n.
 Proof.
 elim: m n => [|m IHm] [|n le_n_m]; rewrite ?subr0 // {}IHm //.
-by rewrite mulrSr mulrS oppr_add addrA addrK.
+by rewrite mulrSr mulrS opprD addrA addrK.
 Qed.
 
 Lemma mulrnA x m n : x *+ (m * n) = x *+ m *+ n.
 Proof.
-by rewrite mulnC; elim: n => //= n IHn; rewrite mulrS mulrn_addr IHn.
+by rewrite mulnC; elim: n => //= n IHn; rewrite mulrS mulrnDr IHn.
 Qed.
 
 Lemma mulrnAC x m n : x *+ m *+ n = x *+ n *+ m.
 Proof. by rewrite -!mulrnA mulnC. Qed.
 
-Lemma sumr_opp I r P (F : I -> V) :
+Lemma sumrN I r P (F : I -> V) :
   (\sum_(i <- r | P i) - F i = - (\sum_(i <- r | P i) F i)).
-Proof. by rewrite (big_morph _ oppr_add oppr0). Qed.
+Proof. by rewrite (big_morph _ opprD oppr0). Qed.
 
-Lemma sumr_sub I r (P : pred I) (F1 F2 : I -> V) :
+Lemma sumrB I r (P : pred I) (F1 F2 : I -> V) :
   \sum_(i <- r | P i) (F1 i - F2 i)
      = \sum_(i <- r | P i) F1 i - \sum_(i <- r | P i) F2 i.
-Proof. by rewrite -sumr_opp -big_split /=. Qed.
+Proof. by rewrite -sumrN -big_split /=. Qed.
 
-Lemma sumr_muln I r P (F : I -> V) n :
+Lemma sumrMnl I r P (F : I -> V) n :
   \sum_(i <- r | P i) F i *+ n = (\sum_(i <- r | P i) F i) *+ n.
-Proof. by rewrite (big_morph _ (mulrn_addl n) (mul0rn _)). Qed.
+Proof. by rewrite (big_morph _ (mulrnDl n) (mul0rn _)). Qed.
 
-Lemma sumr_muln_r x I r P (F : I -> nat) :
+Lemma sumrMnr x I r P (F : I -> nat) :
   \sum_(i <- r | P i) x *+ F i = x *+ (\sum_(i <- r | P i) F i).
-Proof. by rewrite (big_morph _ (mulrn_addr x) (erefl _)). Qed.
+Proof. by rewrite (big_morph _ (mulrnDr x) (erefl _)). Qed.
 
 Lemma sumr_const (I : finType) (A : pred I) (x : V) :
   \sum_(i \in A) x = x *+ #|A|.
 Proof. by rewrite big_const -iteropE. Qed.
 
+Section Predicates.
+
+Variable S : pred V.
+
+Class addSemigroupPred := AddSemigroupPred {
+  ringp0 : 0 \in S;
+  ringpD : {in S &, forall u v, u + v \in S}
+}.
+
+Class unsignedPred := UnsignedPred {
+  ringpNr : {in S, forall u, - u \in S}
+}.
+
+Class addSubgroupPred := AddSubgroupPred {
+  addSubgroup_semigroupPred :> addSemigroupPred;
+  addSubgroup_unsignedPred :> unsignedPred
+}.
+
+Section Semigroup.
+
+Context {addS : addSemigroupPred}.
+
+Lemma ringp_sum I r (P : pred I) F :
+  (forall i, P i -> F i \in S) -> \sum_(i <- r | P i) F i \in S.
+Proof. by move=> IH; elim/big_ind: _; [exact: ringp0 | exact: ringpD |]. Qed.
+
+Lemma ringpMn n : {in S, forall u, u *+ n \in S}.
+Proof. by move=> u Su; rewrite -(card_ord n) -sumr_const ringp_sum. Qed.
+
+End Semigroup.
+
+Lemma ringpN {sgnS : unsignedPred} u : (- u \in S) = (u \in S).
+Proof. by apply/idP/idP=> /ringpNr; rewrite ?opprK; apply. Qed.
+
+Lemma SubgroupPredFromSub :
+  0 \in S -> {in S &, forall u v, u - v \in S} -> addSubgroupPred.
+Proof.
+move=> S0 Ssub; have Sn u: u \in S -> - u \in S by rewrite -sub0r; apply: Ssub.
+by do 2![split=> //] => u v Su Sv; rewrite -[v]opprK Ssub ?Sn.
+Qed.
+
+Section SubType.
+
+Context {addS : addSubgroupPred}.
+
+Lemma ringpB : {in S &, forall u v, u - v \in S}.
+Proof. by move=> u v Su Sv; rewrite /= ringpD ?ringpN. Qed.
+
+Lemma ringpMNn n : {in S, forall u, u *- n \in S}.
+Proof. by move=> u Su; rewrite /= ringpN ringpMn. Qed.
+
+Lemma ringpDr x y : x \in S -> (y + x \in S) = (y \in S).
+Proof.
+move=> Sx; apply/idP/idP=> [Sxy | /ringpD-> //].
+by rewrite -(addrK x y) ringpB.
+Qed.
+
+Lemma ringpDl x y : x \in S -> (x + y \in S) = (y \in S).
+Proof. by rewrite addrC; apply: ringpDr. Qed.
+
+Lemma ringpBr x y : x \in S -> (y - x \in S) = (y \in S).
+Proof. by rewrite -ringpN; apply: ringpDr. Qed.
+
+Lemma ringpBl x y : x \in S -> (x - y \in S) = (y \in S).
+Proof. by rewrite -(ringpN y); apply: ringpDl. Qed.
+
+Variable U : subType S.
+
+Let inU v Sv : U := Sub v Sv.
+Let zeroU := inU ringp0.
+Let oppU (u : U) := inU (ringpNr (valP u)).
+Let addU (u1 u2 : U) := inU (ringpD (valP u1) (valP u2)).
+
+Fact subZmod_addA : associative addU.
+Proof. by move=> u1 u2 u3; apply: val_inj; rewrite !SubK addrA. Qed.
+Fact subZmod_addC : commutative addU.
+Proof. by move=> u1 u2; apply: val_inj; rewrite !SubK addrC. Qed.
+Fact subZmod_add0 : left_id zeroU addU.
+Proof. by move=> u; apply: val_inj; rewrite !SubK add0r. Qed.
+Fact subZmod_addZ : left_inverse zeroU oppU addU.
+Proof. by move=> u; apply: val_inj; rewrite !SubK addNr. Qed.
+
+Definition SubZmodMixin of phant U :=
+  ZmodMixin subZmod_addA subZmod_addC subZmod_add0 subZmod_addZ.
+
+End SubType.
+
+End Predicates.
+
 End ZmoduleTheory.
 
-Implicit Arguments addrI [V x1 x2].
-Implicit Arguments addIr [V x1 x2].
+Implicit Arguments addrI [[V] x1 x2].
+Implicit Arguments addIr [[V] x1 x2].
 Implicit Arguments oppr_inj [[V] x1 x2].
 
 Module Ring.
@@ -761,25 +903,25 @@ Implicit Types x y : R.
 Lemma mulrA : @associative R *%R. Proof. by case R => T [? []]. Qed.
 Lemma mul1r : @left_id R R 1 *%R. Proof. by case R => T [? []]. Qed.
 Lemma mulr1 : @right_id R R 1 *%R. Proof. by case R => T [? []]. Qed.
-Lemma mulr_addl : @left_distributive R R *%R +%R.
+Lemma mulrDl : @left_distributive R R *%R +%R.
 Proof. by case R => T [? []]. Qed.
-Lemma mulr_addr : @right_distributive R R *%R +%R.
+Lemma mulrDr : @right_distributive R R *%R +%R.
 Proof. by case R => T [? []]. Qed.
-Lemma nonzero1r : 1 != 0 :> R. Proof. by case R => T [? []]. Qed.
-Lemma oner_eq0 : (1 == 0 :> R) = false. Proof. exact: negbTE nonzero1r. Qed.
+Lemma oner_neq0 : 1 != 0 :> R. Proof. by case R => T [? []]. Qed.
+Lemma oner_eq0 : (1 == 0 :> R) = false. Proof. exact: negbTE oner_neq0. Qed.
 
 Lemma mul0r : @left_zero R R 0 *%R.
 Proof.
-by move=> x; apply: (addIr (1 * x)); rewrite -mulr_addl !add0r mul1r.
+by move=> x; apply: (addIr (1 * x)); rewrite -mulrDl !add0r mul1r.
 Qed.
 Lemma mulr0 : @right_zero R R 0 *%R.
 Proof.
-by move=> x; apply: (addIr (x * 1)); rewrite -mulr_addr !add0r mulr1.
+by move=> x; apply: (addIr (x * 1)); rewrite -mulrDr !add0r mulr1.
 Qed.
 Lemma mulrN x y : x * (- y) = - (x * y).
-Proof. by apply: (addrI (x * y)); rewrite -mulr_addr !subrr mulr0. Qed.
+Proof. by apply: (addrI (x * y)); rewrite -mulrDr !subrr mulr0. Qed.
 Lemma mulNr x y : (- x) * y = - (x * y).
-Proof. by apply: (addrI (x * y)); rewrite -mulr_addl !subrr mul0r. Qed.
+Proof. by apply: (addrI (x * y)); rewrite -mulrDl !subrr mul0r. Qed.
 Lemma mulrNN x y : (- x) * (- y) = x * y.
 Proof. by rewrite mulrN mulNr opprK. Qed.
 Lemma mulN1r x : -1 * x = - x.
@@ -789,27 +931,27 @@ Proof. by rewrite mulrN mulr1. Qed.
 
 Canonical mul_monoid := Monoid.Law mulrA mul1r mulr1.
 Canonical muloid := Monoid.MulLaw mul0r mulr0.
-Canonical addoid := Monoid.AddLaw mulr_addl mulr_addr.
+Canonical addoid := Monoid.AddLaw mulrDl mulrDr.
 
 Lemma mulr_suml I r P (F : I -> R) x :
-  \sum_(i <- r | P i) F i * x = (\sum_(i <- r | P i) F i) * x.
-Proof. by rewrite big_distrl. Qed.
+  (\sum_(i <- r | P i) F i) * x = \sum_(i <- r | P i) F i * x.
+Proof. exact: big_distrl. Qed.
 
 Lemma mulr_sumr I r P (F : I -> R) x :
-  \sum_(i <- r | P i) x * F i = x * (\sum_(i <- r | P i) F i).
-Proof. by rewrite big_distrr. Qed.
+  x * (\sum_(i <- r | P i) F i) = \sum_(i <- r | P i) x * F i.
+Proof. exact: big_distrr. Qed.
 
-Lemma mulr_subl x y z : (y - z) * x = y * x - z * x.
-Proof. by rewrite mulr_addl mulNr. Qed.
+Lemma mulrBl x y z : (y - z) * x = y * x - z * x.
+Proof. by rewrite mulrDl mulNr. Qed.
 
-Lemma mulr_subr x y z : x * (y - z) = x * y - x * z.
-Proof. by rewrite mulr_addr mulrN. Qed.
+Lemma mulrBr x y z : x * (y - z) = x * y - x * z.
+Proof. by rewrite mulrDr mulrN. Qed.
 
 Lemma mulrnAl x y n : (x *+ n) * y = (x * y) *+ n.
-Proof. by elim: n => [|n IHn]; rewrite ?mul0r // !mulrS mulr_addl IHn. Qed.
+Proof. by elim: n => [|n IHn]; rewrite ?mul0r // !mulrS mulrDl IHn. Qed.
 
 Lemma mulrnAr x y n : x * (y *+ n) = (x * y) *+ n.
-Proof. by elim: n => [|n IHn]; rewrite ?mulr0 // !mulrS mulr_addr IHn. Qed.
+Proof. by elim: n => [|n IHn]; rewrite ?mulr0 // !mulrS mulrDr IHn. Qed.
 
 Lemma mulr_natl x n : n%:R * x = x *+ n.
 Proof. by rewrite mulrnAl mul1r. Qed.
@@ -817,15 +959,15 @@ Proof. by rewrite mulrnAl mul1r. Qed.
 Lemma mulr_natr x n : x * n%:R = x *+ n.
 Proof. by rewrite mulrnAr mulr1. Qed.
 
-Lemma natr_add m n : (m + n)%:R = m%:R + n%:R :> R.
-Proof. exact: mulrn_addr. Qed.
+Lemma natrD m n : (m + n)%:R = m%:R + n%:R :> R.
+Proof. exact: mulrnDr. Qed.
 
-Lemma natr_sub m n : n <= m -> (m - n)%:R = m%:R - n%:R :> R.
-Proof. exact: mulrn_subr. Qed.
+Lemma natrB m n : n <= m -> (m - n)%:R = m%:R - n%:R :> R.
+Proof. exact: mulrnBr. Qed.
 
-Definition natr_sum := big_morph (natmul 1) natr_add (mulr0n 1).
+Definition natr_sum := big_morph (natmul 1) natrD (mulr0n 1).
 
-Lemma natr_mul m n : (m * n)%:R = m%:R * n%:R :> R.
+Lemma natrM m n : (m * n)%:R = m%:R * n%:R :> R.
 Proof. by rewrite mulrnA -mulr_natr. Qed.
 
 Lemma expr0 x : x ^+ 0 = 1. Proof. by []. Qed.
@@ -835,14 +977,17 @@ Lemma expr2 x : x ^+ 2 = x * x. Proof. by []. Qed.
 Lemma exprS x n : x ^+ n.+1 = x * x ^+ n.
 Proof. by case: n => //; rewrite mulr1. Qed.
 
-Lemma exp1rn n : 1 ^+ n = 1 :> R.
+Lemma expr0n n : 0 ^+ n = (n == 0%N)%:R :> R.
+Proof. by case: n => // n; rewrite exprS mul0r. Qed.
+
+Lemma expr1n n : 1 ^+ n = 1 :> R.
 Proof. by elim: n => // n IHn; rewrite exprS mul1r. Qed.
 
-Lemma exprn_addr x m n : x ^+ (m + n) = x ^+ m * x ^+ n.
+Lemma exprD x m n : x ^+ (m + n) = x ^+ m * x ^+ n.
 Proof. by elim: m => [|m IHm]; rewrite ?mul1r // !exprS -mulrA -IHm. Qed.
 
 Lemma exprSr x n : x ^+ n.+1 = x ^+ n * x.
-Proof. by rewrite -addn1 exprn_addr expr1. Qed.
+Proof. by rewrite -addn1 exprD expr1. Qed.
 
 Lemma commr_sym x y : comm x y -> comm y x. Proof. by []. Qed.
 Lemma commr_refl x : comm x x. Proof. by []. Qed.
@@ -853,71 +998,71 @@ Proof. by rewrite /comm mulr0 mul0r. Qed.
 Lemma commr1 x : comm x 1.
 Proof. by rewrite /comm mulr1 mul1r. Qed.
 
-Lemma commr_opp x y : comm x y -> comm x (- y).
+Lemma commrN x y : comm x y -> comm x (- y).
 Proof. by move=> com_xy; rewrite /comm mulrN com_xy mulNr. Qed.
 
 Lemma commrN1 x : comm x (-1).
-Proof. apply: commr_opp; exact: commr1. Qed.
+Proof. apply: commrN; exact: commr1. Qed.
 
-Lemma commr_add x y z : comm x y -> comm x z -> comm x (y + z).
-Proof. by rewrite /comm mulr_addl mulr_addr => -> ->. Qed.
+Lemma commrD x y z : comm x y -> comm x z -> comm x (y + z).
+Proof. by rewrite /comm mulrDl mulrDr => -> ->. Qed.
 
-Lemma commr_muln x y n : comm x y -> comm x (y *+ n).
+Lemma commrMn x y n : comm x y -> comm x (y *+ n).
 Proof.
 rewrite /comm => com_xy.
-by elim: n => [|n IHn]; rewrite ?commr0 // mulrS commr_add.
+by elim: n => [|n IHn]; rewrite ?commr0 // mulrS commrD.
 Qed.
 
-Lemma commr_mul x y z : comm x y -> comm x z -> comm x (y * z).
+Lemma commrM x y z : comm x y -> comm x z -> comm x (y * z).
 Proof. by move=> com_xy; rewrite /comm mulrA com_xy -!mulrA => ->. Qed.
 
 Lemma commr_nat x n : comm x n%:R.
-Proof. by apply: commr_muln; exact: commr1. Qed.
+Proof. by apply: commrMn; exact: commr1. Qed.
 
-Lemma commr_exp x y n : comm x y -> comm x (y ^+ n).
+Lemma commrX x y n : comm x y -> comm x (y ^+ n).
 Proof.
 rewrite /comm => com_xy.
-by elim: n => [|n IHn]; rewrite ?commr1 // exprS commr_mul.
+by elim: n => [|n IHn]; rewrite ?commr1 // exprS commrM.
 Qed.
 
-Lemma commr_exp_mull x y n : comm x y -> (x * y) ^+ n = x ^+ n * y ^+ n.
+Lemma exprMn_comm x y n : comm x y -> (x * y) ^+ n = x ^+ n * y ^+ n.
 Proof.
 move=> com_xy; elim: n => /= [|n IHn]; first by rewrite mulr1.
-by rewrite !exprS IHn !mulrA; congr (_ * _); rewrite -!mulrA -commr_exp.
+by rewrite !exprS IHn !mulrA; congr (_ * _); rewrite -!mulrA -commrX.
 Qed.
 
 Lemma commr_sign x n : comm x ((-1) ^+ n).
-Proof. exact: (commr_exp n (commrN1 x)). Qed.
+Proof. exact: (commrX n (commrN1 x)). Qed.
 
-Lemma exprn_mulnl x m n : (x *+ m) ^+ n = x ^+ n *+ (m ^ n) :> R.
+Lemma exprMn_n x m n : (x *+ m) ^+ n = x ^+ n *+ (m ^ n) :> R.
 Proof.
 elim: n => [|n IHn]; first by rewrite mulr1n.
 rewrite exprS IHn -mulr_natr -mulrA -commr_nat mulr_natr -mulrnA -expnSr.
 by rewrite -mulr_natr mulrA -exprS mulr_natr.
 Qed.
 
-Lemma exprn_mulr x m n : x ^+ (m * n) = x ^+ m ^+ n.
+Lemma exprM x m n : x ^+ (m * n) = x ^+ m ^+ n.
 Proof.
-elim: m => [|m IHm]; first by rewrite exp1rn.
-by rewrite mulSn exprn_addr IHm exprS commr_exp_mull //; exact: commr_exp.
+elim: m => [|m IHm]; first by rewrite expr1n.
+by rewrite mulSn exprD IHm exprS exprMn_comm //; exact: commrX.
 Qed.
 
-Lemma exprnC x m n : (x ^+ m) ^+ n = (x ^+ n) ^+ m.
-Proof. by rewrite -!exprn_mulr mulnC. Qed.
+Lemma exprC x m n : (x ^+ m) ^+ n = (x ^+ n) ^+ m.
+Proof. by rewrite -!exprM mulnC. Qed.
 
-Lemma exprn_mod n x i : x ^+ n = 1 -> x ^+ (i %% n) = x ^+ i.
+Lemma expr_mod n x i : x ^+ n = 1 -> x ^+ (i %% n) = x ^+ i.
 Proof.
-move=> xn1; rewrite {2}(divn_eq i n) exprn_addr mulnC exprn_mulr xn1.
-by rewrite exp1rn mul1r.
+move=> xn1; rewrite {2}(divn_eq i n) exprD mulnC exprM xn1.
+by rewrite expr1n mul1r.
 Qed.
 
-Lemma exprn_dvd n x i : x ^+ n = 1 -> n %| i -> x ^+ i = 1.
+Lemma expr_dvd n x i : x ^+ n = 1 -> n %| i -> x ^+ i = 1.
 Proof.
-by move=> xn1 dvd_n_i; rewrite -(exprn_mod i xn1) (eqnP dvd_n_i).
+by move=> xn1 dvd_n_i; rewrite -(expr_mod i xn1) (eqnP dvd_n_i).
 Qed.
 
-Lemma natr_exp n k : (n ^ k)%:R = n%:R ^+ k :> R.
-Proof. by rewrite exprn_mulnl exp1rn. Qed.
+Lemma natrX n k : (n ^ k)%:R = n%:R ^+ k :> R.
+Proof. by rewrite exprMn_n expr1n. Qed.
 
 Lemma signr_odd n : (-1) ^+ (odd n) = (-1) ^+ n :> R.
 Proof.
@@ -934,14 +1079,17 @@ Proof. by case: b; rewrite ?mulNr mul1r. Qed.
 Lemma signr_addb b1 b2 : (-1) ^+ (b1 (+) b2) = (-1) ^+ b1 * (-1) ^+ b2 :> R.
 Proof. by rewrite mulr_sign; case: b1 b2 => [] []; rewrite ?opprK. Qed.
 
-Lemma exprN x n : (- x) ^+ n = (-1) ^+ n * x ^+ n :> R.
-Proof. by rewrite -mulN1r commr_exp_mull // /comm mulN1r mulrN mulr1. Qed.
+Lemma signrE (b : bool) : (-1) ^+ b = 1 - b.*2%:R :> R.
+Proof. by case: b; rewrite ?subr0 // opprD addNKr. Qed.
+
+Lemma exprNn x n : (- x) ^+ n = (-1) ^+ n * x ^+ n :> R.
+Proof. by rewrite -mulN1r exprMn_comm // /comm mulN1r mulrN mulr1. Qed.
 
 Lemma sqrrN x : (- x) ^+ 2 = x ^+ 2.
 Proof. exact: mulrNN. Qed.
 
 Lemma sqrr_sign n : ((-1) ^+ n) ^+ 2 = 1 :> R.
-Proof. by rewrite exprnC sqrrN !exp1rn. Qed.
+Proof. by rewrite exprC sqrrN !expr1n. Qed.
 
 Lemma signrMK n : @involutive R ( *%R ((-1) ^+ n)).
 Proof. by move=> x; rewrite mulrA -expr2 sqrr_sign mul1r. Qed.
@@ -955,7 +1103,7 @@ Proof. by move=> reg_x; rewrite -[x]mulr1 mulrI_eq0 ?oner_eq0. Qed.
 Lemma mulrI0_lreg x : (forall y, x * y = 0 -> y = 0) -> lreg x.
 Proof.
 move=> reg_x y z eq_xy_xz; apply/eqP; rewrite -subr_eq0 [y - z]reg_x //.
-by rewrite mulr_subr eq_xy_xz subrr.
+by rewrite mulrBr eq_xy_xz subrr.
 Qed.
 
 Lemma lregN x : lreg x -> lreg (- x).
@@ -976,71 +1124,71 @@ Lemma prodr_const (I : finType) (A : pred I) (x : R) :
   \prod_(i \in A) x = x ^+ #|A|.
 Proof. by rewrite big_const -iteropE. Qed.
 
-Lemma prodr_exp_r x I r P (F : I -> nat) :
+Lemma prodrXr x I r P (F : I -> nat) :
   \prod_(i <- r | P i) x ^+ F i = x ^+ (\sum_(i <- r | P i) F i).
-Proof. by rewrite (big_morph _ (exprn_addr _) (erefl _)). Qed.
+Proof. by rewrite (big_morph _ (exprD _) (erefl _)). Qed.
 
-Lemma prodr_opp (I : finType) (A : pred I) (F : I -> R) :
+Lemma prodrN (I : finType) (A : pred I) (F : I -> R) :
   \prod_(i \in A) - F i = (- 1) ^+ #|A| * \prod_(i \in A) F i.
 Proof.
 rewrite -sum1_card /= -!(big_filter _ A) !unlock.
 elim: {A}(filter _ _) => /= [|i r ->]; first by rewrite mul1r.
-by rewrite mulrA -mulN1r (commr_exp _ (commrN1 _)) exprSr !mulrA.
+by rewrite mulrA -mulN1r (commrX _ (commrN1 _)) exprSr !mulrA.
 Qed.
 
-Lemma exprn_addl_comm x y n (cxy : comm x y) :
+Lemma exprDn_comm x y n (cxy : comm x y) :
   (x + y) ^+ n = \sum_(i < n.+1) (x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
 Proof.
 elim: n => [|n IHn]; rewrite big_ord_recl mulr1 ?big_ord0 ?addr0 //=.
-rewrite exprS {}IHn /= mulr_addl !big_distrr /= big_ord_recl mulr1 subn0.
+rewrite exprS {}IHn /= mulrDl !big_distrr /= big_ord_recl mulr1 subn0.
 rewrite !big_ord_recr /= !binn !subnn !mul1r !subn0 bin0 !exprS -addrA.
 congr (_ + _); rewrite addrA -big_split /=; congr (_ + _).
 apply: eq_bigr => i _; rewrite !mulrnAr !mulrA -exprS -leq_subS ?(valP i) //.
-by rewrite  subSS (commr_exp _ (commr_sym cxy)) -mulrA -exprS -mulrn_addr.
+by rewrite  subSS (commrX _ (commr_sym cxy)) -mulrA -exprS -mulrnDr.
 Qed.
 
-Lemma exprn_subl_comm x y n (cxy : comm x y) :
+Lemma exprBn_comm x y n (cxy : comm x y) :
   (x - y) ^+ n =
     \sum_(i < n.+1) ((-1) ^+ i * x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
 Proof.
-rewrite exprn_addl_comm; last exact: commr_opp.
-by apply: eq_bigr => i _; congr (_ *+ _); rewrite -commr_sign -mulrA -exprN.
+rewrite exprDn_comm; last exact: commrN.
+by apply: eq_bigr => i _; congr (_ *+ _); rewrite -commr_sign -mulrA -exprNn.
 Qed.
 
-Lemma subr_expn_comm x y n (cxy : comm x y) :
+Lemma subrXX_comm x y n (cxy : comm x y) :
   x ^+ n - y ^+ n = (x - y) * (\sum_(i < n) x ^+ (n.-1 - i) * y ^+ i).
 Proof.
 case: n => [|n]; first by rewrite big_ord0 mulr0 subrr.
-rewrite mulr_subl !big_distrr big_ord_recl big_ord_recr /= subnn mulr1 mul1r.
-rewrite subn0 -!exprS oppr_add -!addrA; congr (_ + _); rewrite addrA -sumr_sub.
+rewrite mulrBl !big_distrr big_ord_recl big_ord_recr /= subnn mulr1 mul1r.
+rewrite subn0 -!exprS opprD -!addrA; congr (_ + _); rewrite addrA -sumrB.
 rewrite big1 ?add0r // => i _; rewrite !mulrA -exprS -leq_subS ?(valP i) //.
-by rewrite subSS (commr_exp _ (commr_sym cxy)) -mulrA -exprS subrr.
+by rewrite subSS (commrX _ (commr_sym cxy)) -mulrA -exprS subrr.
 Qed.
 
-Lemma exprn_add1 x n : (x + 1) ^+ n = \sum_(i < n.+1) x ^+ i *+ 'C(n, i).
+Lemma exprD1n x n : (x + 1) ^+ n = \sum_(i < n.+1) x ^+ i *+ 'C(n, i).
 Proof.
-rewrite addrC (exprn_addl_comm n (commr_sym (commr1 x))).
-by apply: eq_bigr => i _; rewrite exp1rn mul1r.
+rewrite addrC (exprDn_comm n (commr_sym (commr1 x))).
+by apply: eq_bigr => i _; rewrite expr1n mul1r.
 Qed.
 
-Lemma subr_expn_1 x n : x ^+ n - 1 = (x - 1) * (\sum_(i < n) x ^+ i).
+Lemma subrX1 x n : x ^+ n - 1 = (x - 1) * (\sum_(i < n) x ^+ i).
 Proof.
-rewrite -!(oppr_sub 1) mulNr -{1}(exp1rn n).
-rewrite (subr_expn_comm _ (commr_sym (commr1 x))); congr (- (_ * _)).
-by apply: eq_bigr => i _; rewrite exp1rn mul1r.
+rewrite -!(opprB 1) mulNr -{1}(expr1n n).
+rewrite (subrXX_comm _ (commr_sym (commr1 x))); congr (- (_ * _)).
+by apply: eq_bigr => i _; rewrite expr1n mul1r.
 Qed.
 
-Lemma sqrr_add1 x : (x + 1) ^+ 2 = x ^+ 2 + x *+ 2 + 1.
+Lemma sqrrD1 x : (x + 1) ^+ 2 = x ^+ 2 + x *+ 2 + 1.
 Proof.
-rewrite exprn_add1 !big_ord_recr big_ord0 /= add0r.
+rewrite exprD1n !big_ord_recr big_ord0 /= add0r.
 by rewrite addrC addrA addrAC.
 Qed.
 
-Lemma sqrr_sub1 x : (x - 1) ^+ 2 = x ^+ 2 - x *+ 2 + 1.
-Proof. by rewrite -sqrrN oppr_sub addrC sqrr_add1 sqrrN mulNrn. Qed.
+Lemma sqrrB1 x : (x - 1) ^+ 2 = x ^+ 2 - x *+ 2 + 1.
+Proof. by rewrite -sqrrN opprB addrC sqrrD1 sqrrN mulNrn. Qed.
 
 Lemma subr_sqr_1 x : x ^+ 2 - 1 = (x - 1) * (x + 1).
-Proof. by rewrite subr_expn_1 !big_ord_recr big_ord0 /= addrAC add0r. Qed.
+Proof. by rewrite subrX1 !big_ord_recr big_ord0 /= addrAC add0r. Qed.
 
 Definition Frobenius_aut p of p \in [char R] := fun x => x ^+ p.
 
@@ -1053,13 +1201,15 @@ Lemma charf0 : p%:R = 0 :> R. Proof. by apply/eqP; case/andP: charFp. Qed.
 Lemma charf_prime : prime p. Proof. by case/andP: charFp. Qed.
 Hint Resolve charf_prime.
 
+Lemma mulrn_char x : x *+ p = 0. Proof. by rewrite -mulr_natl charf0 mul0r. Qed.
+
 Lemma dvdn_charf n : (p %| n)%N = (n%:R == 0 :> R).
 Proof.
-apply/idP/eqP=> [/dvdnP[n' ->]|n0]; first by rewrite natr_mul charf0 mulr0.
+apply/idP/eqP=> [/dvdnP[n' ->]|n0]; first by rewrite natrM charf0 mulr0.
 apply/idPn; rewrite -prime_coprime // => /eqnP pn1.
 have [a _ /dvdnP[b]] := bezoutl n (prime_gt0 charf_prime).
 move/(congr1 (fun m => m%:R : R))/eqP.
-by rewrite natr_add !natr_mul charf0 n0 !mulr0 pn1 addr0 oner_eq0.
+by rewrite natrD !natrM charf0 n0 !mulr0 pn1 addr0 oner_eq0.
 Qed.
 
 Lemma charf_eq : [char R] =i (p : nat_pred).
@@ -1076,47 +1226,75 @@ Local Notation "x ^f" := (Frobenius_aut charFp x).
 Lemma Frobenius_autE x : x^f = x ^+ p. Proof. by []. Qed.
 Local Notation fE := Frobenius_autE.
 
-Lemma Frobenius_aut_0 : 0^f = 0.
+Lemma Frobenius_aut0 : 0^f = 0.
 Proof. by rewrite fE -(prednK (prime_gt0 charf_prime)) exprS mul0r. Qed.
 
-Lemma Frobenius_aut_1 : 1^f = 1.
-Proof. by rewrite fE exp1rn. Qed.
+Lemma Frobenius_aut1 : 1^f = 1.
+Proof. by rewrite fE expr1n. Qed.
 
-Lemma Frobenius_aut_add_comm x y (cxy : comm x y) : (x + y)^f = x^f + y^f.
+Lemma Frobenius_autD_comm x y (cxy : comm x y) : (x + y)^f = x^f + y^f.
 Proof.
 have defp := prednK (prime_gt0 charf_prime).
-rewrite !fE exprn_addl_comm // big_ord_recr subnn -defp big_ord_recl /= defp.
+rewrite !fE exprDn_comm // big_ord_recr subnn -defp big_ord_recl /= defp.
 rewrite subn0 mulr1 mul1r bin0 binn big1 ?addr0 // => i _.
 by rewrite -mulr_natl bin_lt_charf_0 ?mul0r //= -{2}defp ltnS (valP i).
 Qed.
 
-Lemma Frobenius_aut_muln x n : (x *+ n)^f = x^f *+ n.
+Lemma Frobenius_autMn x n : (x *+ n)^f = x^f *+ n.
 Proof.
-elim: n => [|n IHn]; first exact: Frobenius_aut_0.
-rewrite !mulrS Frobenius_aut_add_comm ?IHn //; exact: commr_muln.
+elim: n => [|n IHn]; first exact: Frobenius_aut0.
+rewrite !mulrS Frobenius_autD_comm ?IHn //; exact: commrMn.
 Qed.
 
 Lemma Frobenius_aut_nat n : (n%:R)^f = n%:R.
-Proof. by rewrite Frobenius_aut_muln Frobenius_aut_1. Qed.
+Proof. by rewrite Frobenius_autMn Frobenius_aut1. Qed.
 
-Lemma Frobenius_aut_mul_comm x y : comm x y -> (x * y)^f = x^f * y^f.
-Proof. by exact: commr_exp_mull. Qed.
+Lemma Frobenius_autM_comm x y : comm x y -> (x * y)^f = x^f * y^f.
+Proof. by exact: exprMn_comm. Qed.
 
-Lemma Frobenius_aut_exp x n : (x ^+ n)^f = x^f ^+ n.
-Proof. by rewrite !fE -!exprn_mulr mulnC. Qed.
+Lemma Frobenius_autX x n : (x ^+ n)^f = x^f ^+ n.
+Proof. by rewrite !fE -!exprM mulnC. Qed.
 
-Lemma Frobenius_aut_opp x : (- x)^f = - x^f.
+Lemma Frobenius_autN x : (- x)^f = - x^f.
 Proof.
 apply/eqP; rewrite -subr_eq0 opprK addrC.
-by rewrite -(Frobenius_aut_add_comm (commr_opp _)) // subrr Frobenius_aut_0.
+by rewrite -(Frobenius_autD_comm (commrN _)) // subrr Frobenius_aut0.
 Qed.
 
-Lemma Frobenius_aut_sub_comm x y : comm x y -> (x - y)^f = x^f - y^f.
+Lemma Frobenius_autB_comm x y : comm x y -> (x - y)^f = x^f - y^f.
 Proof.
-by move/commr_opp/Frobenius_aut_add_comm->; rewrite Frobenius_aut_opp.
+by move/commrN/Frobenius_autD_comm->; rewrite Frobenius_autN.
 Qed.
 
 End FrobeniusAutomorphism.
+
+Lemma exprNn_char x n : [char R].-nat n -> (- x) ^+ n = - (x ^+ n).
+Proof.
+pose p := pdiv n; have [|n_gt1 charRn] := leqP n 1; first by case: (n) => [|[]].
+have charRp: p \in [char R] by rewrite (pnatPpi charRn) // pi_pdiv.
+have /p_natP[e ->]: p.-nat n by rewrite -(eq_pnat _ (charf_eq charRp)).
+elim: e => // e IHe; rewrite expnSr !exprM {}IHe.
+by rewrite -Frobenius_autE Frobenius_autN.
+Qed.
+
+Section Char2.
+
+Hypothesis charR2 : 2 \in [char R].
+
+Lemma addrr_char2 x : x + x = 0. Proof. by rewrite -mulr2n mulrn_char. Qed.
+
+Lemma oppr_char2 x : - x = x.
+Proof. by apply/esym/eqP; rewrite -addr_eq0 addrr_char2. Qed.
+
+Lemma subr_char2 x y : x - y = x + y. Proof. by rewrite oppr_char2. Qed.
+
+Lemma addrK_char2 x : involutive (+%R^~ x).
+Proof. by move=> y; rewrite /= -subr_char2 addrK. Qed.
+
+Lemma addKr_char2 x : involutive (+%R x).
+Proof. by move=> y; rewrite -{1}[x]oppr_char2 addKr. Qed.
+
+End Char2.
 
 Canonical converse_eqType := [eqType of R^c].
 Canonical converse_choiceType := [choiceType of R^c].
@@ -1125,13 +1303,114 @@ Canonical converse_zmodType := [zmodType of R^c].
 Definition converse_ringMixin :=
   let mul' x y := y * x in
   let mulrA' x y z := esym (mulrA z y x) in
-  let mulr_addl' x y z := mulr_addr z x y in
-  let mulr_addr' x y z := mulr_addl y z x in
+  let mulrDl' x y z := mulrDr z x y in
+  let mulrDr' x y z := mulrDl y z x in
   @Ring.Mixin converse_zmodType
-    1 mul' mulrA' mulr1 mul1r mulr_addl' mulr_addr' nonzero1r.
+    1 mul' mulrA' mulr1 mul1r mulrDl' mulrDr' oner_neq0.
 Canonical converse_ringType := RingType R^c converse_ringMixin.
 
+Section Predicates.
+
+Variable S : pred R.
+
+Class mulSemigroupPred := MulSemigroupPred {
+  ringp1 : 1 \in S;
+  ringpM : {in S &, forall u v, u * v \in S}
+}.
+
+Class semiringPred := SemiringPred {
+  semiring_addSemigroupPred :> addSemigroupPred S;
+  semiring_mulSemigroupPred :> mulSemigroupPred
+}.
+
+Class subringPred := SubringPred {
+  subring_addSubgroupPred :> addSubgroupPred S;
+  subring_mulSemigroupPred :> mulSemigroupPred
+}.
+
+Lemma ringpMsign {sgnS : unsignedPred S} e x :
+  ((-1) ^+ e * x \in S) = (x \in S).
+Proof. by rewrite -signr_odd mulr_sign fun_if if_arg ringpN ?if_same. Qed.
+
+Section MulSemigroup.
+
+Context {mulS : mulSemigroupPred}.
+
+Lemma ringp_prod I r (P : pred I) F :
+  (forall i, P i -> F i \in S) -> \prod_(i <- r | P i) F i \in S.
+Proof. by move=> IH; elim/big_ind: _; [exact: ringp1 | exact: ringpM |]. Qed.
+
+Lemma ringpX n : {in S, forall u, u ^+ n \in S}.
+Proof. by move=> u Su; rewrite -(card_ord n) -prodr_const ringp_prod. Qed.
+
+End MulSemigroup.
+
+Lemma ringp_nat {mulS : semiringPred} n : n%:R \in S.
+Proof. by rewrite ringpMn ?ringp1. Qed.
+
+Lemma SubringPredFromSub :
+    1 \in S ->
+    {in S &, forall u v, u - v \in S} ->
+    {in S &, forall u v, u * v \in S} ->
+  subringPred.
+Proof.
+move=> S1 Ssub Sm; split=> //; apply: SubgroupPredFromSub => //.
+by rewrite -(subrr 1) Ssub.
+Qed.
+
+Lemma subring_semiringPred {mulS : subringPred} : semiringPred.
+Proof. exact: SemiringPred. Qed.
+Existing Instance subring_semiringPred.
+
+Lemma ringp_sign {mulS : subringPred} n : (-1) ^+ n \in S.
+Proof. by rewrite ringpX ?ringpN ?ringp1. Qed.
+
+Section SubType.
+
+Definition cast_zmodType (V : zmodType) T (VeqT : V = T :> Type) :=
+  let cast mV := let: erefl in _ = T := VeqT return Zmodule.class_of T in mV in
+  Zmodule.Pack (cast (Zmodule.class V)) T.
+
+Context {mulS : mulSemigroupPred} (T : subType S).
+
+Let inT x Sx : T := Sub x Sx.
+Let oneT := inT ringp1.
+Let mulT (u1 u2 : T) := inT (ringpM (valP u1) (valP u2)).
+
+Hypotheses (V : zmodType) (VeqT: V = T :> Type).
+Let T' := cast_zmodType VeqT.
+Hypothesis valM : {morph (val : T' -> R) : x y / x - y}.
+
+Let val0 : val (0 : T') = 0.
+Proof. by rewrite -(subrr (0 : T')) valM subrr. Qed.
+Let valD : {morph (val : T' -> R): x y / x + y}.
+Proof.
+by move=> u v; rewrite -{1}[v]opprK -[- v]sub0r !valM val0 sub0r opprK.
+Qed.
+
+Fact subRing_mulA : @associative T' mulT.
+Proof. by move=> u1 u2 u3; apply: val_inj; rewrite !SubK mulrA. Qed.
+Fact subRing_mul1l : left_id oneT mulT.
+Proof. by move=> u; apply: val_inj; rewrite !SubK mul1r. Qed.
+Fact subRing_mul1r : right_id oneT mulT.
+Proof. by move=> u; apply: val_inj; rewrite !SubK mulr1. Qed.
+Fact subRing_mulDl : @left_distributive T' T' mulT +%R.
+Proof. by move=> u1 u2 u3; apply: val_inj; rewrite !(SubK, valD) mulrDl. Qed.
+Fact subRing_mulDr : @right_distributive T' T' mulT +%R.
+Proof. by move=> u1 u2 u3; apply: val_inj; rewrite !(SubK, valD) mulrDr. Qed.
+Fact subRing_nz1 : oneT != 0 :> T'.
+Proof. by apply: contraNneq oner_neq0 => eq10; rewrite -val0 -eq10 SubK. Qed.
+
+Definition SubRingMixin :=
+  RingMixin subRing_mulA subRing_mul1l subRing_mul1r
+            subRing_mulDl subRing_mulDr subRing_nz1.
+
+End SubType.
+
+End Predicates.
+
 End RingTheory.
+Existing Instance subring_semiringPred.
 
 Section RightRegular.
 
@@ -1243,37 +1522,37 @@ Proof. by case: V v => ? [] ? []. Qed.
 Lemma scale1r : @left_id R V 1 *:%R.
 Proof. by case: V => ? [] ? []. Qed.
 
-Lemma scaler_addr a : {morph *:%R a : u v / u + v}.
+Lemma scalerDr a : {morph *:%R a : u v / u + v}.
 Proof. by case: V a => ? [] ? []. Qed.
 
-Lemma scaler_addl v : {morph *:%R^~ v : a b / a + b}.
+Lemma scalerDl v : {morph *:%R^~ v : a b / a + b}.
 Proof. by case: V v => ? [] ? []. Qed.
 
 Lemma scale0r v : 0 *: v = 0.
-Proof. by apply: (addIr (1 *: v)); rewrite -scaler_addl !add0r. Qed.
+Proof. by apply: (addIr (1 *: v)); rewrite -scalerDl !add0r. Qed.
 
 Lemma scaler0 a : a *: 0 = 0 :> V.
 Proof. by rewrite -{1}(scale0r 0) scalerA mulr0 scale0r. Qed.
 
 Lemma scaleNr a v : - a *: v = - (a *: v).
-Proof. by apply: (addIr (a *: v)); rewrite -scaler_addl !addNr scale0r. Qed.
+Proof. by apply: (addIr (a *: v)); rewrite -scalerDl !addNr scale0r. Qed.
 
 Lemma scaleN1r v : (- 1) *: v = - v.
 Proof. by rewrite scaleNr scale1r. Qed.
 
 Lemma scalerN a v : a *: (- v) = - (a *: v).
-Proof. by apply: (addIr (a *: v)); rewrite -scaler_addr !addNr scaler0. Qed.
+Proof. by apply: (addIr (a *: v)); rewrite -scalerDr !addNr scaler0. Qed.
 
-Lemma scaler_subl a b v : (a - b) *: v = a *: v - b *: v.
-Proof. by rewrite scaler_addl scaleNr. Qed.
+Lemma scalerBl a b v : (a - b) *: v = a *: v - b *: v.
+Proof. by rewrite scalerDl scaleNr. Qed.
 
-Lemma scaler_subr a u v : a *: (u - v) = a *: u - a *: v.
-Proof. by rewrite scaler_addr scalerN. Qed.
+Lemma scalerBr a u v : a *: (u - v) = a *: u - a *: v.
+Proof. by rewrite scalerDr scalerN. Qed.
 
 Lemma scaler_nat n v : n%:R *: v = v *+ n.
 Proof.
 elim: n => /= [|n ]; first by rewrite scale0r.
-by rewrite !mulrS scaler_addl ?scale1r => ->.
+by rewrite !mulrS scalerDl ?scale1r => ->.
 Qed.
 
 Lemma scaler_sign (b : bool) v: (-1) ^+ b *: v = (if b then - v else v).
@@ -1282,25 +1561,62 @@ Proof. by case: b; rewrite ?scaleNr scale1r. Qed.
 Lemma signrZK n : @involutive V ( *:%R ((-1) ^+ n)).
 Proof. by move=> u; rewrite scalerA -expr2 sqrr_sign scale1r. Qed.
 
-Lemma scaler_mulrnl a v n : a *: v *+ n = (a *+ n) *: v.
+Lemma scalerMnl a v n : a *: v *+ n = (a *+ n) *: v.
 Proof.
 elim: n => [|n IHn]; first by rewrite !mulr0n scale0r.
-by rewrite !mulrSr IHn scaler_addl.
+by rewrite !mulrSr IHn scalerDl.
 Qed.
 
-Lemma scaler_mulrnr a v n : a *: v *+ n = a *: (v *+ n).
+Lemma scalerMnr a v n : a *: v *+ n = a *: (v *+ n).
 Proof.
 elim: n => [|n IHn]; first by rewrite !mulr0n scaler0.
-by rewrite !mulrSr IHn scaler_addr.
+by rewrite !mulrSr IHn scalerDr.
 Qed.
 
 Lemma scaler_suml v I r (P : pred I) F :
   (\sum_(i <- r | P i) F i) *: v = \sum_(i <- r | P i) F i *: v.
-Proof. exact: (big_morph _ (scaler_addl v) (scale0r v)). Qed.
+Proof. exact: (big_morph _ (scalerDl v) (scale0r v)). Qed.
 
 Lemma scaler_sumr a I r (P : pred I) (F : I -> V) :
   a *: (\sum_(i <- r | P i) F i) = \sum_(i <- r | P i) a *: F i.
-Proof. exact: big_endo (scaler_addr a) (scaler0 a) I r P F. Qed.
+Proof. exact: big_endo (scalerDr a) (scaler0 a) I r P F. Qed.
+
+Section Predicates.
+
+Variable S : pred V.
+
+Lemma ringpZsign {sgnS : unsignedPred S} n u :
+  ((-1) ^+ n *: u \in S) = (u \in S).
+Proof. by rewrite -signr_odd scaler_sign fun_if if_arg ringpN if_same. Qed.
+
+Lemma ringpZnat {addS : addSemigroupPred S} n :
+  {in S, forall u, n%:R *: u \in S}.
+Proof. by move=> u Su; rewrite /= scaler_nat ringpMn. Qed.
+
+Class unscaledPred :=
+   UnscaledPred {ringpZ : forall a v, v \in S -> a *: v \in S}.
+
+Context {linS : unscaledPred} (W : subType S).
+
+Let scaleW a (w : W) := (Sub _ : _ -> W) (ringpZ a (valP w)).
+
+Hypotheses (Z : zmodType) (ZeqW : Z = W :> Type).
+Let W' := cast_zmodType ZeqW.
+Hypothesis valD : {morph (val : W' -> V) : x y / x + y}.
+
+Fact subLmod_scaleA a b (w : W') : scaleW a (scaleW b w) = scaleW (a * b) w.
+Proof. by apply: val_inj; rewrite !SubK scalerA. Qed.
+Fact subLmod_scale1 : left_id 1 scaleW.
+Proof. by move=> w; apply: val_inj; rewrite !SubK scale1r. Qed.
+Fact subLmod_scaleDr : @right_distributive R W' scaleW +%R.
+Proof. by move=> a w w2; apply: val_inj; rewrite !(SubK, valD) scalerDr. Qed.
+Fact subLmod_scaleDl w : {morph (scaleW^~ w : R -> W') : a b / a + b}.
+Proof. by move=> a b; apply: val_inj; rewrite !(SubK, valD) scalerDl. Qed.
+
+Definition SubLmodMixin :=
+  LmodMixin subLmod_scaleA subLmod_scale1 subLmod_scaleDr subLmod_scaleDl.
+
+End Predicates.
 
 End LmoduleTheory.
 
@@ -1383,8 +1699,11 @@ Section LalgebraTheory.
 Variables (R : ringType) (A : lalgType R).
 Implicit Types x y : A.
 
-Lemma scaler_mull k (x y : A) : k *: (x * y) = k *: x * y.
+Lemma scalerAl k (x y : A) : k *: (x * y) = k *: x * y.
 Proof. by case: A k x y => ? []. Qed.
+
+Lemma mulr_algl a x : a%:A * x = a *: x.
+Proof. by rewrite -scalerAl mul1r. Qed.
 
 Canonical regular_eqType := [eqType of R^o].
 Canonical regular_choiceType := [choiceType of R^o].
@@ -1393,7 +1712,7 @@ Canonical regular_ringType := [ringType of R^o].
 
 Definition regular_lmodMixin :=
   let mkMixin := @Lmodule.Mixin R regular_zmodType (@mul R) in
-  mkMixin (@mulrA R) (@mul1r R) (@mulr_addr R) (fun v a b => mulr_addl a b v).
+  mkMixin (@mulrA R) (@mul1r R) (@mulrDr R) (fun v a b => mulrDl a b v).
 
 Canonical regular_lmodType := LmodType R R^o regular_lmodMixin.
 Canonical regular_lalgType := LalgType R R^o (@mulrA regular_ringType).
@@ -1476,16 +1795,16 @@ Section Properties.
 
 Variables (U V : zmodType) (f : {additive U -> V}).
 
-Lemma raddf_sub : {morph f : x y / x - y}. Proof. exact: Additive.class. Qed.
+Lemma raddfB : {morph f : x y / x - y}. Proof. exact: Additive.class. Qed.
 
 Lemma raddf0 : f 0 = 0.
-Proof. by rewrite -[0]subr0 raddf_sub subrr. Qed.
+Proof. by rewrite -[0]subr0 raddfB subrr. Qed.
 
 Lemma raddfN : {morph f : x / - x}.
-Proof. by move=> x /=; rewrite -sub0r raddf_sub raddf0 sub0r. Qed.
+Proof. by move=> x /=; rewrite -sub0r raddfB raddf0 sub0r. Qed.
 
 Lemma raddfD : {morph f : x y / x + y}.
-Proof. by move=> x y; rewrite -[y]opprK raddf_sub -raddfN. Qed.
+Proof. by move=> x y; rewrite -[y]opprK raddfB -raddfN. Qed.
 
 Lemma raddfMn n : {morph f : x / x *+ n}.
 Proof. by elim: n => [|n IHn] x /=; rewrite ?raddf0 // !mulrS raddfD IHn. Qed.
@@ -1498,7 +1817,7 @@ Lemma raddf_sum I r (P : pred I) E :
 Proof. exact: (big_morph f raddfD raddf0). Qed.
 
 Lemma can2_additive f' : cancel f f' -> cancel f' f -> additive f'.
-Proof. by move=> fK f'K x y /=; apply: (canLR fK); rewrite raddf_sub !f'K. Qed.
+Proof. by move=> fK f'K x y /=; apply: (canLR fK); rewrite raddfB !f'K. Qed.
 
 Lemma bij_additive :
   bijective f -> exists2 f' : {additive V -> U}, cancel f f' & cancel f' f.
@@ -1535,11 +1854,11 @@ Proof. by []. Qed.
 Canonical idfun_additive := Additive idfun_is_additive.
 
 Lemma comp_is_additive : additive (f \o h).
-Proof. by move=> x y /=; rewrite !raddf_sub. Qed.
+Proof. by move=> x y /=; rewrite !raddfB. Qed.
 Canonical comp_additive := Additive comp_is_additive.
 
 Lemma opp_is_additive : additive (-%R : U -> U).
-Proof. by move=> x y; rewrite /= oppr_add. Qed.
+Proof. by move=> x y; rewrite /= opprD. Qed.
 Canonical opp_additive := Additive opp_is_additive.
 
 Lemma null_fun_is_additive : additive (\0 : U -> V).
@@ -1548,13 +1867,13 @@ Canonical null_fun_additive := Additive null_fun_is_additive.
 
 Lemma add_fun_is_additive : additive (f \+ g).
 Proof.
-by move=> x y /=; rewrite !raddf_sub addrCA -!addrA addrCA -oppr_add.
+by move=> x y /=; rewrite !raddfB addrCA -!addrA addrCA -opprD.
 Qed.
 Canonical add_fun_additive := Additive add_fun_is_additive.
 
 Lemma sub_fun_is_additive : additive (f \- g).
 Proof.
-by move=> x y /=; rewrite !raddf_sub addrAC -!addrA -!oppr_add addrAC addrA.
+by move=> x y /=; rewrite !raddfB addrAC -!addrA -!opprD addrAC addrA.
 Qed.
 Canonical sub_fun_additive := Additive sub_fun_is_additive.
 
@@ -1566,11 +1885,11 @@ Variables (R : ringType) (U : zmodType).
 Variables (a : R) (f : {additive U -> R}).
 
 Lemma mull_fun_is_additive : additive (a \*o f).
-Proof. by move=> x y /=; rewrite raddf_sub mulr_subr. Qed.
+Proof. by move=> x y /=; rewrite raddfB mulrBr. Qed.
 Canonical mull_fun_additive := Additive mull_fun_is_additive.
 
 Lemma mulr_fun_is_additive : additive (a \o* f).
-Proof. by move=> x y /=; rewrite raddf_sub mulr_subl. Qed.
+Proof. by move=> x y /=; rewrite raddfB mulrBl. Qed.
 Canonical mulr_fun_additive := Additive mulr_fun_is_additive.
 
 End MulFun.
@@ -1581,7 +1900,7 @@ Variables (R : ringType) (U : zmodType) (V : lmodType R).
 Variables (a : R) (f : {additive U -> V}).
 
 Lemma scale_fun_is_additive : additive (a \*: f).
-Proof. by move=> u v /=; rewrite raddf_sub scaler_subr. Qed.
+Proof. by move=> u v /=; rewrite raddfB scalerBr. Qed.
 Canonical scale_fun_additive := Additive scale_fun_is_additive.
 
 End ScaleFun.
@@ -1647,12 +1966,14 @@ Variables (R S : ringType) (f : {rmorphism R -> S}).
 Lemma rmorph0 : f 0 = 0. Proof. exact: raddf0. Qed.
 Lemma rmorphN : {morph f : x / - x}. Proof. exact: raddfN. Qed.
 Lemma rmorphD : {morph f : x y / x + y}. Proof. exact: raddfD. Qed.
-Lemma rmorph_sub : {morph f: x y / x - y}. Proof. exact: raddf_sub. Qed.
+Lemma rmorphB : {morph f: x y / x - y}. Proof. exact: raddfB. Qed.
 Lemma rmorphMn n : {morph f : x / x *+ n}. Proof. exact: raddfMn. Qed.
 Lemma rmorphMNn n : {morph f : x / x *- n}. Proof. exact: raddfMNn. Qed.
 Lemma rmorph_sum I r (P : pred I) E :
   f (\sum_(i <- r | P i) E i) = \sum_(i <- r | P i) f (E i).
 Proof. exact: raddf_sum. Qed.
+Lemma rmorphMsign n : {morph f : x / (- 1) ^+ n * x}.
+Proof. exact: raddfMsign. Qed.
 
 Lemma rmorphismP : rmorphism f. Proof. exact: RMorphism.class. Qed.
 Lemma rmorphismMP : multiplicative f. Proof. exact: rmorphismP. Qed.
@@ -1707,11 +2028,13 @@ Variables (R : ringType) (A : lalgType R).
 
 Lemma in_alg_is_rmorphism : rmorphism (in_alg_loc A).
 Proof.
-split=> [x y|]; first exact: scaler_subl.
-by split=> [x y|] /=; rewrite ?scale1r // -scaler_mull mul1r scalerA.
+split=> [x y|]; first exact: scalerBl.
+by split=> [x y|] /=; rewrite ?scale1r // -scalerAl mul1r scalerA.
 Qed.
 Canonical in_alg_additive := Additive in_alg_is_rmorphism.
 Canonical in_alg_rmorphism := RMorphism in_alg_is_rmorphism.
+
+Lemma in_algE a : in_alg_loc A a = a%:A. Proof. by []. Qed.
 
 End InAlgebra.
 
@@ -1725,7 +2048,6 @@ Variables (R : ringType) (U V : lmodType R).
 Implicit Type phUV : phant (U -> V).
 
 Definition axiom (f : U -> V) := forall a, {morph f : u v / a *: u + v}.
-
 Definition mixin_of (f : U -> V) := forall a, {morph f : v / a *: v}.
 
 Record class_of f : Prop := Class {base : additive f; mixin : mixin_of f}.
@@ -1755,18 +2077,38 @@ Canonical additive := Additive.Pack phUV class.
 
 End ClassDef.
 
+Section Scalar.
+
+Variables (R : ringType) (U : lmodType R) (f : U -> R).
+Definition scalar_lmodType := LmodType R R (regular_lmodMixin R).
+Local Notation Ro := scalar_lmodType.
+
+Definition scalar_axiom := forall a, {morph f : u v / a *: u + v >-> a * u + v}.
+Definition scalar_mixin_of := forall a, {morph f : u / a *: u >-> a * u}.
+
+Definition mixin_of_scalar (fZ : scalar_mixin_of) := fZ : @mixin_of R U Ro f.
+Definition axiom_of_scalar (f_lin : scalar_axiom) := f_lin : @axiom R U Ro f.
+
+End Scalar.
+
 Module Exports.
 Notation scalable f := (mixin_of f).
+Notation scalableM f := (scalar_mixin_of f).
 Notation linear f := (axiom f).
+Notation scalar f := (scalar_axiom f).
 Notation lmorphism f := (class_of f).
 Coercion class_of_axiom : linear >-> lmorphism.
 Coercion base : lmorphism >-> Additive.axiom.
 Coercion mixin : lmorphism >-> scalable.
 Coercion apply : map >-> Funclass.
+Coercion mixin_of_scalar : scalableM >-> scalable.
+Coercion axiom_of_scalar : scalar >-> linear.
 Notation Linear fL := (Pack (Phant _) fL).
 Notation AddLinear fZ := (pack fZ id).
 Notation "{ 'linear' fUV }" := (map (Phant fUV))
   (at level 0, format "{ 'linear'  fUV }") : ring_scope.
+Notation "{ 'scalar' U }" := (@map _ _ (scalar_lmodType _) (Phant (U -> _)))
+  (at level 0, format "{ 'scalar'  U }") : ring_scope.
 Notation "[ 'linear' 'of' f 'as' g ]" := (@clone _ _ _ _ f g _ _ idfun id)
   (at level 0, format "[ 'linear'  'of'  f  'as'  g ]") : form_scope.
 Notation "[ 'linear' 'of' f ]" := (@clone _ _ _ _ f f _ _ id id)
@@ -1789,12 +2131,14 @@ Variables (U V : lmodType R) (f : {linear U -> V}).
 Lemma linear0 : f 0 = 0. Proof. exact: raddf0. Qed.
 Lemma linearN : {morph f : x / - x}. Proof. exact: raddfN. Qed.
 Lemma linearD : {morph f : x y / x + y}. Proof. exact: raddfD. Qed.
-Lemma linear_sub : {morph f: x y / x - y}. Proof. exact: raddf_sub. Qed.
+Lemma linearB : {morph f: x y / x - y}. Proof. exact: raddfB. Qed.
 Lemma linearMn n : {morph f : x / x *+ n}. Proof. exact: raddfMn. Qed.
 Lemma linearMNn n : {morph f : x / x *- n}. Proof. exact: raddfMNn. Qed.
 Lemma linear_sum I r (P : pred I) E :
   f (\sum_(i <- r | P i) E i) = \sum_(i <- r | P i) f (E i).
 Proof. exact: raddf_sum. Qed.
+Lemma linearZsign n : {morph f : v / (-1) ^+ n *: v}.
+Proof. exact: raddfZsign. Qed.
 
 Lemma linearZ : scalable f. Proof. exact: (Linear.class f). Qed.
 Lemma linearP : linear f.
@@ -1808,6 +2152,17 @@ Lemma bij_linear :
 Proof. by case=> f' fK f'K; exists (Linear (can2_linear fK f'K)). Qed.
 
 End Properties.
+
+Section ScalarProperties.
+
+Variable (U : lmodType R) (f : {scalar U}).
+
+Lemma scalarZ : scalableM f. Proof. exact: (linearZ f). Qed.
+Lemma scalarP : scalar f. Proof. exact: (linearP f). Qed.
+Lemma scalarZsign n : {morph f : v / (-1) ^+ n *: v >-> (-1) ^+ n * v}.
+Proof. exact: (linearZsign f). Qed.
+
+End ScalarProperties.
 
 Section LinearLmod.
 
@@ -1826,7 +2181,7 @@ Proof. by move=> a v /=; rewrite scalerN. Qed.
 Canonical opp_linear := AddLinear opp_is_scalable.
 
 Lemma scale_is_additive a : additive ( *:%R a : V -> V).
-Proof. by move=> u v /=; rewrite scaler_addr scalerN. Qed.
+Proof. by move=> u v /=; rewrite scalerDr scalerN. Qed.
 Canonical scale_additive a := Additive (scale_is_additive a).
 
 Lemma null_fun_is_scalable : scalable (\0 : U -> U).
@@ -1838,7 +2193,7 @@ Proof. by move=> a v /=; rewrite raddfD /= !linearZ. Qed.
 Canonical add_fun_linear := AddLinear add_fun_is_scalable.
 
 Lemma sub_fun_is_scalable : scalable (f \- g).
-Proof. by move=> a v /=; rewrite raddf_sub /= !linearZ. Qed.
+Proof. by move=> a v /=; rewrite raddfB /= !linearZ. Qed.
 Canonical sub_fun_linear := AddLinear sub_fun_is_scalable.
 
 End LinearLmod.
@@ -1847,10 +2202,17 @@ Section LinearLalg.
 
 Variables (A : lalgType R) (U : lmodType R).
 
+Lemma SubLalgMixin (B : lmodType R) (f : B -> A) :
+     phant B -> injective f -> scalable f -> 
+   forall mulB, {morph f : x y / mulB x y >-> x * y} -> Lalgebra.axiom mulB.
+Proof.
+by move=> _ injf fZ mulB fM a x y; apply: injf; rewrite !(fZ, fM) scalerAl.
+Qed.
+
 Variables (a : A) (f : {linear U -> A}).
 
 Lemma mulr_fun_is_scalable : scalable (a \o* f).
-Proof. by move=> k x /=; rewrite linearZ scaler_mull. Qed.
+Proof. by move=> k x /=; rewrite linearZ scalerAl. Qed.
 Canonical mulr_fun_linear := AddLinear mulr_fun_is_scalable.
 
 End LinearLalg.
@@ -1897,7 +2259,8 @@ Notation lrmorphism f := (class_of f).
 Coercion base : lrmorphism >-> RMorphism.class_of.
 Coercion base2 : lrmorphism >-> Linear.class_of.
 Coercion apply : map >-> Funclass.
-Notation LRMorphism fZ := (pack fZ id).
+Notation LRMorphism f_lrM := (Pack (Phant _) (Class f_lrM f_lrM)).
+Notation AddLRMorphism fZ := (pack fZ id).
 Notation "{ 'lrmorphism' fAB }" := (map (Phant fAB))
   (at level 0, format "{ 'lrmorphism'  fAB }") : ring_scope.
 Notation "[ 'lrmorphism' 'of' f ]" := (@clone _ _ _ _ f _ _ id _ _ id)
@@ -1931,7 +2294,7 @@ Qed.
 Lemma bij_lrmorphism :
   bijective f -> exists2 f' : {lrmorphism C -> B}, cancel f f' & cancel f' f.
 Proof.
-by case/bij_rmorphism=> f' fK f'K; exists (LRMorphism (can2_linear fK f'K)).
+by case/bij_rmorphism=> f' fK f'K; exists (AddLRMorphism (can2_linear fK f'K)).
 Qed.
 
 End LRMorphismTheory.
@@ -2000,39 +2363,39 @@ Canonical mul_comoid := Monoid.ComLaw mulrC.
 Lemma mulrCA : @left_commutative R R *%R. Proof. exact: mulmCA. Qed.
 Lemma mulrAC : @right_commutative R R *%R. Proof. exact: mulmAC. Qed.
 
-Lemma exprn_mull n : {morph (fun x => x ^+ n) : x y / x * y}.
-Proof. move=> x y; apply: commr_exp_mull; exact: mulrC. Qed.
+Lemma exprMn n : {morph (fun x => x ^+ n) : x y / x * y}.
+Proof. move=> x y; apply: exprMn_comm; exact: mulrC. Qed.
 
-Lemma prodr_exp n I r (P : pred I) (F : I -> R) :
+Lemma prodrXl n I r (P : pred I) (F : I -> R) :
   \prod_(i <- r | P i) F i ^+ n = (\prod_(i <- r | P i) F i) ^+ n.
-Proof. by rewrite (big_morph _ (exprn_mull n) (exp1rn _ n)). Qed.
+Proof. by rewrite (big_morph _ (exprMn n) (expr1n _ n)). Qed.
 
-Lemma exprn_addl x y n :
+Lemma exprDn x y n :
   (x + y) ^+ n = \sum_(i < n.+1) (x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
-Proof. by rewrite exprn_addl_comm //; exact: mulrC. Qed.
+Proof. by rewrite exprDn_comm //; exact: mulrC. Qed.
 
-Lemma exprn_subl x y n :
+Lemma exprBn x y n :
   (x - y) ^+ n =
      \sum_(i < n.+1) ((-1) ^+ i * x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
-Proof. by rewrite exprn_subl_comm //; exact: mulrC. Qed.
+Proof. by rewrite exprBn_comm //; exact: mulrC. Qed.
 
-Lemma subr_expn x y n :
+Lemma subrXX x y n :
   x ^+ n - y ^+ n = (x - y) * (\sum_(i < n) x ^+ (n.-1 - i) * y ^+ i).
-Proof. by rewrite -subr_expn_comm //; exact: mulrC. Qed.
+Proof. by rewrite -subrXX_comm //; exact: mulrC. Qed.
 
-Lemma sqrr_add x y : (x + y) ^+ 2 = x ^+ 2 + x * y *+ 2 + y ^+ 2.
-Proof. by rewrite exprn_addl !big_ord_recr big_ord0 /= add0r mulr1 mul1r. Qed.
+Lemma sqrrD x y : (x + y) ^+ 2 = x ^+ 2 + x * y *+ 2 + y ^+ 2.
+Proof. by rewrite exprDn !big_ord_recr big_ord0 /= add0r mulr1 mul1r. Qed.
 
-Lemma sqrr_sub x y : (x - y) ^+ 2 = x ^+ 2 - x * y *+ 2 + y ^+ 2.
-Proof. by rewrite sqrr_add mulrN mulNrn sqrrN. Qed.
+Lemma sqrrB x y : (x - y) ^+ 2 = x ^+ 2 - x * y *+ 2 + y ^+ 2.
+Proof. by rewrite sqrrD mulrN mulNrn sqrrN. Qed.
 
 Lemma subr_sqr x y : x ^+ 2 - y ^+ 2 = (x - y) * (x + y).
-Proof. by rewrite subr_expn !big_ord_recr big_ord0 /= add0r mulr1 mul1r. Qed.
+Proof. by rewrite subrXX !big_ord_recr big_ord0 /= add0r mulr1 mul1r. Qed.
 
-Lemma subr_sqr_add_sub x y : (x + y) ^+ 2 - (x - y) ^+ 2 = x * y *+ 4.
+Lemma subr_sqrDB x y : (x + y) ^+ 2 - (x - y) ^+ 2 = x * y *+ 4.
 Proof.
-rewrite sqrr_add sqrr_sub -!(addrAC _ (y ^+ 2)) oppr_sub.
-by rewrite addrC addrA subrK -mulrn_addr.
+rewrite sqrrD sqrrB -!(addrAC _ (y ^+ 2)) opprB.
+by rewrite addrC addrA subrK -mulrnDr.
 Qed.
 
 Section FrobeniusAutomorphism.
@@ -2041,15 +2404,23 @@ Variables (p : nat) (charRp : p \in [char R]).
 
 Lemma Frobenius_aut_is_rmorphism : rmorphism (Frobenius_aut charRp).
 Proof.
-split=> [x y|]; first exact: Frobenius_aut_sub_comm (mulrC _ _).
-split=> [x y|]; first exact: Frobenius_aut_mul_comm (mulrC _ _).
-exact: Frobenius_aut_1.
+split=> [x y|]; first exact: Frobenius_autB_comm (mulrC _ _).
+split=> [x y|]; first exact: Frobenius_autM_comm (mulrC _ _).
+exact: Frobenius_aut1.
 Qed.
 
 Canonical Frobenius_aut_additive := Additive Frobenius_aut_is_rmorphism.
 Canonical Frobenius_aut_rmorphism := RMorphism Frobenius_aut_is_rmorphism.
 
 End FrobeniusAutomorphism.
+
+Lemma exprDn_char x y n : [char R].-nat n -> (x + y) ^+ n = x ^+ n + y ^+ n.
+Proof.
+pose p := pdiv n; have [|n_gt1 charRn] := leqP n 1; first by case: (n) => [|[]].
+have charRp: p \in [char R] by rewrite (pnatPpi charRn) ?pi_pdiv.
+have{charRn} /p_natP[e ->]: p.-nat n by rewrite -(eq_pnat _ (charf_eq charRp)).
+by elim: e => // e IHe; rewrite !expnSr !exprM IHe -Frobenius_autE rmorphD.
+Qed.
 
 Lemma rmorph_comm (S : ringType) (f : {rmorphism R -> S}) x y : 
   comm (f x) (f y).
@@ -2069,6 +2440,10 @@ Canonical scale_fun_linear := AddLinear scale_fun_is_scalable.
 
 End ScaleLinear.
 
+Lemma SubComRingMixin (T : ringType) (f : T -> R) :
+  phant T -> injective f -> {morph f : x y / x * y} -> commutative (@mul T).
+Proof. by move=> _ inj_f fM x y; apply: inj_f; rewrite !fM mulrC. Qed.
+
 End ComRingTheory.
 
 Module Algebra.
@@ -2080,7 +2455,7 @@ Variables (R : ringType) (A : lalgType R).
 Definition axiom := forall k (x y : A), k *: (x * y) = x * (k *: y).
 
 Lemma comm_axiom : phant A -> commutative (@mul A) -> axiom.
-Proof. by move=> _ commA k x y; rewrite commA scaler_mull commA. Qed.
+Proof. by move=> _ commA k x y; rewrite commA scalerAl commA. Qed.
 
 End Mixin.
 
@@ -2147,50 +2522,51 @@ Section AlgebraTheory.
 Variables (R : comRingType) (A : algType R).
 Implicit Types (k : R) (x y : A).
 
-Lemma scaler_mulr k x y : k *: (x * y) = x * (k *: y).
+Lemma scalerAr k x y : k *: (x * y) = x * (k *: y).
 Proof. by case: A k x y => T []. Qed.
 
-Lemma scaler_swap k x y : k *: x * y = x * (k *: y).
-Proof. by rewrite -scaler_mull scaler_mulr. Qed.
+Lemma scalerCA k x y : k *: x * y = x * (k *: y).
+Proof. by rewrite -scalerAl scalerAr. Qed.
 
-Lemma scaler_exp k x n : (k *: x) ^+ n = k ^+ n *: x ^+ n.
+Lemma mulr_algr a x : x * a%:A = a *: x.
+Proof. by rewrite -scalerAr mulr1. Qed.
+
+Lemma exprZn k x n : (k *: x) ^+ n = k ^+ n *: x ^+ n.
 Proof. 
 elim: n => [|n IHn]; first by rewrite !expr0 scale1r.
-by rewrite !exprS IHn -scalerA scaler_mulr scaler_mull.
-Qed.
-
-Lemma scaler_prodl (I : finType) (S : pred I) (F : I -> A) k :
-  \prod_(i \in S) (k *:  F i)  = k ^+ #|S| *: \prod_(i \in S) F i.
-Proof.
-rewrite -sum1_card /= -!(big_filter _ S) !unlock.
-elim: {S}(filter _ _) => /= [|i r ->]; first by rewrite expr0 scale1r.
-by rewrite -scaler_mull -scaler_mulr scalerA exprS.
-Qed.
-
-Lemma scaler_prodr (I : finType) (S : pred I) (F : I -> R) x :
-  \prod_(i \in S) (F i *: x)  = \prod_(i \in S) F i *: x ^+ #|S|.
-Proof.
-rewrite -sum1_card /= -!(big_filter _ S) !unlock.
-elim: {S}(filter _ _) => /= [|i r ->]; first by rewrite expr0 scale1r.
-by rewrite -scaler_mull -scaler_mulr scalerA exprS.
+by rewrite !exprS IHn -scalerA scalerAr scalerAl.
 Qed.
 
 Lemma scaler_prod I r (P : pred I) (F : I -> R) (G : I -> A) :
   \prod_(i <- r | P i) (F i *: G i) =
-    \prod_(i <- r | P i) (F i)  *: \prod_(i <- r | P i) (G i).
+    \prod_(i <- r | P i) F i *: \prod_(i <- r | P i) G i.
 Proof.
-rewrite -!(big_filter _ P) !unlock.
-elim: {P r}(filter _ _) => /= [|i r ->]; first by rewrite scale1r.
-by rewrite -scaler_mull -scaler_mulr scalerA.
+elim/big_rec3: _ => [|i x a _ _ ->]; first by rewrite scale1r.
+by rewrite -scalerAl -scalerAr scalerA.
 Qed.
+
+Lemma scaler_prodl (I : finType) (S : pred I) (F : I -> A) k :
+  \prod_(i \in S) (k *: F i)  = k ^+ #|S| *: \prod_(i \in S) F i.
+Proof. by rewrite scaler_prod prodr_const. Qed.
+
+Lemma scaler_prodr (I : finType) (S : pred I) (F : I -> R) x :
+  \prod_(i \in S) (F i *: x)  = \prod_(i \in S) F i *: x ^+ #|S|.
+Proof. by rewrite scaler_prod prodr_const. Qed.
 
 Canonical regular_comRingType := [comRingType of R^o].
 Canonical regular_algType := CommAlgType R R^o.
 
+Lemma SubAlgMixin (B : lalgType R) (f : B -> A) :
+    phant B -> injective f -> {morph f : x y / x * y} -> scalable f ->
+  @Algebra.axiom R B.
+Proof.
+by move=> _ inj_f fM fZ a x y; apply: inj_f; rewrite !(fM, fZ) scalerAr.
+Qed.
+
 Variables (U : lmodType R) (a : A) (f : {linear U -> A}).
 
 Lemma mull_fun_is_scalable : scalable (a \*o f).
-Proof. by move=> k x /=; rewrite linearZ scaler_mulr. Qed.
+Proof. by move=> k x /=; rewrite linearZ scalerAr. Qed.
 Canonical mull_fun_linear := AddLinear mull_fun_is_scalable.
 
 End AlgebraTheory.
@@ -2308,30 +2684,30 @@ Proof. move=> Ux; exact: can_inj (mulKr Ux). Qed.
 Lemma mulIr x : unit x -> injective ( *%R^~ x).
 Proof. move=> Ux; exact: can_inj (mulrK Ux). Qed.
 
-Lemma commr_inv x : comm x x^-1.
+Lemma commrV x y : comm x y -> comm x y^-1.
 Proof.
-case Ux: (unit x); last by rewrite invr_out ?Ux.
-by rewrite /comm mulVr ?divrr.
+have [Uy cxy | /invr_out-> //] := boolP (unit y).
+by apply: (canLR (mulrK Uy)); rewrite -mulrA cxy mulKr.
 Qed.
 
 Lemma unitrE x : unit x = (x / x == 1).
 Proof.
 apply/idP/eqP=> [Ux | xx1]; first exact: divrr.
-by apply/unitrP; exists x^-1; rewrite -commr_inv.
+by apply/unitrP; exists x^-1; rewrite -commrV.
 Qed.
 
 Lemma invrK : involutive (@inv R).
 Proof.
 move=> x; case Ux: (unit x); last by rewrite !invr_out ?Ux.
-rewrite -(mulrK Ux _^-1) -mulrA commr_inv mulKr //.
+rewrite -(mulrK Ux _^-1) -mulrA commrV ?mulKr //.
 by apply/unitrP; exists x; rewrite divrr ?mulVr.
 Qed.
 
 Lemma invr_inj : injective (@inv R).
 Proof. exact: inv_inj invrK. Qed.
 
-Lemma unitr_inv x : unit x^-1 = unit x.
-Proof. by rewrite !unitrE invrK commr_inv. Qed.
+Lemma unitrV x : unit x^-1 = unit x.
+Proof. by rewrite !unitrE invrK commrV. Qed.
 
 Lemma unitr1 : unit (1 : R).
 Proof. by apply/unitrP; exists 1; rewrite mulr1. Qed.
@@ -2345,18 +2721,18 @@ Lemma divr1 x : x / 1 = x. Proof. by rewrite invr1 mulr1. Qed.
 Lemma natr_div m d :
   d %| m -> unit (d%:R : R) -> (m %/ d)%:R = m%:R / d%:R :> R.
 Proof.
-by rewrite dvdn_eq => /eqP def_m unit_d; rewrite -{2}def_m natr_mul mulrK.
+by rewrite dvdn_eq => /eqP def_m unit_d; rewrite -{2}def_m natrM mulrK.
 Qed.
 
 Lemma unitr0 : unit (0 : R) = false.
 Proof.
-by apply/unitrP=> [[x [_]]]; apply/eqP; rewrite mul0r eq_sym nonzero1r.
+by apply/unitrP=> [[x [_]]]; apply/eqP; rewrite mul0r eq_sym oner_neq0.
 Qed.
 
 Lemma invr0 : 0^-1 = 0 :> R.
 Proof. by rewrite invr_out ?unitr0. Qed.
 
-Lemma unitr_opp x : unit (- x) = unit x.
+Lemma unitrN x : unit (- x) = unit x.
 Proof.
 wlog Ux: x / unit x.
   by move=> WHx; apply/idP/idP=> Ux; first rewrite -(opprK x); rewrite WHx.
@@ -2365,62 +2741,62 @@ Qed.
 
 Lemma invrN x : (- x)^-1 = - x^-1.
 Proof.
-case Ux: (unit x) (unitr_opp x) => [] Unx.
+case Ux: (unit x) (unitrN x) => [] Unx.
   by apply: (mulrI Unx); rewrite mulrNN !divrr.
 by rewrite !invr_out ?Ux ?Unx.
 Qed.
 
-Lemma unitr_mull x y : unit y -> unit (x * y) = unit x.
+Lemma unitrMl x y : unit y -> unit (x * y) = unit x.
 Proof.
 move=> Uy; wlog Ux: x y Uy / unit x => [WHxy|].
-  by apply/idP/idP=> Ux; first rewrite -(mulrK Uy x); rewrite WHxy ?unitr_inv.
+  by apply/idP/idP=> Ux; first rewrite -(mulrK Uy x); rewrite WHxy ?unitrV.
 rewrite Ux; apply/unitrP; exists (y^-1 * x^-1).
 by rewrite -!mulrA mulKr ?mulrA ?mulrK ?divrr ?mulVr.
 Qed.
 
-Lemma unitr_mulr x y : unit x -> unit (x * y) = unit y.
+Lemma unitrMr x y : unit x -> unit (x * y) = unit y.
 Proof.
-move=> Ux; apply/idP/idP=> [Uxy | Uy]; last by rewrite unitr_mull.
-by rewrite -(mulKr Ux y) unitr_mull ?unitr_inv.
+move=> Ux; apply/idP/idP=> [Uxy | Uy]; last by rewrite unitrMl.
+by rewrite -(mulKr Ux y) unitrMl ?unitrV.
 Qed.
 
 Lemma invr_mul x y : unit x -> unit y -> (x * y)^-1 = y^-1 * x^-1.
 Proof.
-move=> Ux Uy; have Uxy: unit (x * y) by rewrite unitr_mull.
+move=> Ux Uy; have Uxy: unit (x * y) by rewrite unitrMl.
 by apply: (mulrI Uxy); rewrite divrr ?mulrA ?mulrK ?divrr.
 Qed.
 
-Lemma commr_unit_mul x y : comm x y -> unit (x * y) = unit x && unit y.
+Lemma unitrM_comm x y : comm x y -> unit (x * y) = unit x && unit y.
 Proof.
-move=> cxy; apply/idP/andP=> [Uxy | [Ux Uy]]; last by rewrite unitr_mull.
-suffices Ux: unit x by rewrite unitr_mulr in Uxy.
+move=> cxy; apply/idP/andP=> [Uxy | [Ux Uy]]; last by rewrite unitrMl.
+suffices Ux: unit x by rewrite unitrMr in Uxy.
 apply/unitrP; case/unitrP: Uxy => z [zxy xyz]; exists (y * z).
 rewrite mulrA xyz -{1}[y]mul1r -{1}zxy cxy -!mulrA (mulrA x) (mulrA _ z) xyz.
 by rewrite mul1r -cxy.
 Qed.
 
-Lemma unitr_exp x n : unit x -> unit (x ^+ n).
+Lemma unitrX x n : unit x -> unit (x ^+ n).
 Proof.
-by move=> Ux; elim: n => [|n IHn]; rewrite ?unitr1 // exprS unitr_mull.
+by move=> Ux; elim: n => [|n IHn]; rewrite ?unitr1 // exprS unitrMl.
 Qed.
 
-Lemma unitr_pexp x n : n > 0 -> unit (x ^+ n) = unit x.
+Lemma unitrX_pos x n : n > 0 -> unit (x ^+ n) = unit x.
 Proof.
-case: n => // n _; rewrite exprS commr_unit_mul; last exact: commr_exp.
-by case Ux: (unit x); rewrite // unitr_exp.
+case: n => // n _; rewrite exprS unitrM_comm; last exact: commrX.
+by case Ux: (unit x); rewrite // unitrX.
 Qed.
 
-Lemma expr_inv x n : x^-1 ^+ n = x ^- n.
+Lemma exprVn x n : x^-1 ^+ n = x ^- n.
 Proof.
 elim: n => [|n IHn]; first by rewrite !expr0 ?invr1.
-case Ux: (unit x); first by rewrite exprSr exprS IHn -invr_mul // unitr_exp.
-by rewrite !invr_out ?unitr_pexp ?Ux.
+case Ux: (unit x); first by rewrite exprSr exprS IHn -invr_mul // unitrX.
+by rewrite !invr_out ?unitrX_pos ?Ux.
 Qed.
 
 Lemma invr_neq0 x : x != 0 -> x^-1 != 0.
 Proof.
 move=> nx0; case Ux: (unit x); last by rewrite invr_out ?Ux.
-by apply/eqP=> x'0; rewrite -unitr_inv x'0 unitr0 in Ux.
+by apply/eqP=> x'0; rewrite -unitrV x'0 unitr0 in Ux.
 Qed.
 
 Lemma invr_eq0 x : (x^-1 == 0) = (x == 0).
@@ -2434,9 +2810,96 @@ Definition converse_unitRingMixin :=
 Canonical converse_unitRingType := UnitRingType R^c converse_unitRingMixin.
 Canonical regular_unitRingType := [unitRingType of R^o].
 
+Section Predicates.
+
+Variable S : pred R.
+
+Class mulSubgroupPred := MulSubgroupPred {
+  mulSubgroup_semigroupPred :> mulSemigroupPred S;
+  ringpVr : {in S, forall x, x^-1 \in S}
+}.
+
+Class subfieldPred := SubfieldPred {
+  subfield_subringPred :> subringPred S;
+  subfield_ringpVr : {in S, forall x, x^-1 \in S}
+}.
+
+Instance subfield_mulSubgroupPred {fieldS : subfieldPred} : mulSubgroupPred.
+Proof. by case: fieldS => [[]]. Qed.
+
+Lemma SubgroupPredFromDiv :
+  1 \in S -> {in S &, forall u v, u / v \in S} -> mulSubgroupPred.
+Proof.
+move=> S1 Sdiv; have Sv x: x \in S -> x^-1 \in S by rewrite -div1r; apply: Sdiv.
+by do 2![split=> //] => x y Sx Sy; rewrite -[y]invrK Sdiv ?Sv.
+Qed.
+
+Lemma SubfieldPredFromSubDiv :
+    1 \in S ->
+    {in S &, forall u v, u - v \in S} ->
+    {in S &, forall u v, u / v \in S} ->
+  subfieldPred.
+Proof.
+move=> S1 Ssub Sdiv; have [[_ Smul] Sinv] := SubgroupPredFromDiv S1 Sdiv.
+by split=> //; apply: SubringPredFromSub.
+Qed.
+
+Context {mulS : mulSubgroupPred}.
+
+Lemma ringpV x : (x^-1 \in S) = (x \in S).
+Proof. by apply/idP/idP=> /ringpVr; rewrite ?invrK; apply. Qed.
+
+Lemma ringp_div : {in S &, forall x y, x / y \in S}.
+Proof. by move=> x y Sx Sy; rewrite /= ringpM ?ringpV. Qed.
+
+Lemma ringpXN n : {in S, forall x, x ^- n \in S}.
+Proof. by move=> x Sx; rewrite /= ringpV ringpX. Qed.
+
+Definition cast_ringType (Q : ringType) T (QeqT : Q = T :> Type) :=
+  let cast rQ := let: erefl in _ = T := QeqT return Ring.class_of T in rQ in
+  Ring.Pack (cast (Ring.class Q)) T.
+
+Variable T : subType S.
+
+Let inT x Sx : T := Sub x Sx.
+Let invT (u : T) := inT (ringpVr (valP u)).
+Let unitT (u : T) := unit (val u).
+
+Hypotheses (Q : ringType) (QeqT: Q = T :> Type).
+Let T' := cast_ringType QeqT.
+Hypothesis val1 : val (1 : T') = 1.
+Hypothesis valM : {morph (val : T' -> R) : x y / x * y}.
+
+Fact subring_mulVr :
+  {in (unitT : pred T'), left_inverse (1 : T') invT (@mul T')}.
+Proof. by move=> u Uu; apply: val_inj; rewrite val1 valM SubK mulVr. Qed.
+
+Fact subring_mulrV : {in unitT, right_inverse (1 : T') invT (@mul T')}.
+Proof. by move=> u Uu; apply: val_inj; rewrite val1 valM SubK mulrV. Qed.
+
+Fact subring_unitP (u v : T') : v * u = 1 /\ u * v = 1 -> unitT u.
+Proof.
+by case=> vu1 uv1; apply/unitrP; exists (val v); rewrite -!valM vu1 uv1.
+Qed.
+
+Fact subring_unit_id : {in predC unitT, invT =1 id}.
+Proof. by move=> u /invr_out def_u1; apply: val_inj; rewrite SubK. Qed.
+
+Definition SubUnitRingMixin :=
+  UnitRingMixin subring_mulVr subring_mulrV subring_unitP subring_unit_id.
+
+End Predicates.
+
+Lemma unitr_mulSubgroupPred : mulSubgroupPred unit.
+Proof.
+apply: SubgroupPredFromDiv => [|x y Ux Ur]; first exact: unitr1.
+by rewrite -topredE /= unitrMl ?unitrV.
+Qed.
+
 End UnitRingTheory.
 
 Implicit Arguments invr_inj [[R] x1 x2].
+Existing Instance subfield_mulSubgroupPred.
 
 Section UnitRingMorphism.
 
@@ -2610,8 +3073,16 @@ Section ComUnitRingTheory.
 Variable R : comUnitRingType.
 Implicit Types x y : R.
 
-Lemma unitr_mul x y : unit (x * y) = unit x && unit y.
-Proof. by apply: commr_unit_mul; exact: mulrC. Qed.
+Lemma unitrM x y : unit (x * y) = unit x && unit y.
+Proof. by apply: unitrM_comm; exact: mulrC. Qed.
+
+Lemma unitrPr x : reflect (exists y, x * y = 1) (unit x).
+Proof.
+by apply: (iffP (unitrP x)) => [[y []] | [y]]; exists y; rewrite // mulrC.
+Qed.
+
+Lemma expr_div_n x y n : (x / y) ^+ n = x ^+ n / y ^+ n.
+Proof. by rewrite exprMn exprVn. Qed.
 
 Canonical regular_comUnitRingType := [comUnitRingType of R^o].
 Canonical regular_unitAlgType := [unitAlgType R of R^o].
@@ -2633,19 +3104,19 @@ Lemma scaler_unit k x : unit k -> unit x = unit (k *: x).
 Proof.
 move=> Uk; apply/idP/idP=> [Ux | Ukx]; apply/unitrP.
   exists (k^-1 *: x^-1).
-  by rewrite -!scaler_mull -!scaler_mulr !scalerA !mulVr // !mulrV // scale1r.
+  by rewrite -!scalerAl -!scalerAr !scalerA !mulVr // !mulrV // scale1r.
 exists (k *: (k *: x)^-1); split.
   apply (mulrI Ukx).
-  by rewrite mulr1 mulrA -scaler_mulr mulrV // -scaler_mull mul1r.
+  by rewrite mulr1 mulrA -scalerAr mulrV // -scalerAl mul1r.
 apply (mulIr Ukx).
-by rewrite mul1r -mulrA -scaler_mull mulVr // -scaler_mulr mulr1.
+by rewrite mul1r -mulrA -scalerAl mulVr // -scalerAr mulr1.
 Qed.
  
-Lemma scaler_inv k x : unit k -> unit x -> (k *: x)^-1 = k^-1 *: x^-1.
+Lemma invrZ k x : unit k -> unit x -> (k *: x)^-1 = k^-1 *: x^-1.
 Proof.
 move=> Uk Ux; have Ukx : unit (k *: x) by rewrite -scaler_unit //.
 apply (mulIr Ukx).
-by rewrite mulVr // -scaler_mull -scaler_mulr scalerA !mulVr // scale1r.
+by rewrite mulVr // -scalerAl -scalerAr scalerA !mulVr // scale1r.
 Qed.  
 
 End UnitAlgebraTheory.
@@ -3385,10 +3856,18 @@ Qed.
 Lemma expf_neq0 x m : x != 0 -> x ^+ m != 0.
 Proof. by move=> x_nz; rewrite expf_eq0; apply/nandP; right. Qed.
 
+Lemma natf_neq0 n : (n%:R != 0 :> R) = [char R]^'.-nat n.
+Proof.
+have [-> | /prod_prime_decomp->] := posnP n; first by rewrite eqxx.
+rewrite !big_seq; elim/big_rec: _ => [|[p e] s /=]; first by rewrite oner_eq0.
+case/mem_prime_decomp=> p_pr _ _; rewrite pnat_mul pnat_exp eqn0Ngt orbC => <-.
+by rewrite natrM natrX mulf_eq0 expf_eq0 negb_or negb_and pnatE ?inE p_pr.
+Qed.
+
 Lemma mulfI x : x != 0 -> injective ( *%R x).
 Proof.
 move=> nz_x y z; rewrite -[x * z]add0r; move/(canLR (addrK _))/eqP.
-rewrite -mulrN -mulr_addr mulf_eq0 (negbTE nz_x) /=.
+rewrite -mulrN -mulrDr mulf_eq0 (negbTE nz_x) /=.
 by move/eqP/(canRL (subrK _)); rewrite add0r.
 Qed.
 
@@ -3400,7 +3879,7 @@ Proof. by rewrite -subr_eq0 subr_sqr_1 mulf_eq0 subr_eq0 addr_eq0. Qed.
 
 Lemma expfS_eq1 x n :
   (x ^+ n.+1 == 1) = (x == 1) || (\sum_(i < n.+1) x ^+ i == 0).
-Proof. by rewrite -![_ == 1]subr_eq0 subr_expn_1 mulf_eq0. Qed.
+Proof. by rewrite -![_ == 1]subr_eq0 subrX1 mulf_eq0. Qed.
 
 Lemma lregP x : reflect (lreg x) (x != 0).
 Proof. by apply: (iffP idP) => [/mulfI | /lreg_neq0]. Qed.
@@ -3410,10 +3889,18 @@ Proof. by apply: (iffP idP) => [/mulIf | /rreg_neq0]. Qed.
 
 Canonical regular_idomainType := [idomainType of R^o].
 
+Lemma SubIdomainMixin (T : ringType) (f : T -> R) :
+    phant T -> injective f -> f 0 = 0 -> {morph f : u v / u * v} ->
+  @IntegralDomain.axiom T.
+Proof.
+move=> _ injf f0 fM u v uv0.
+by rewrite -!(inj_eq injf) !f0 -mulf_eq0 -fM uv0 f0.
+Qed.
+
 End IntegralDomainTheory.
 
-Implicit Arguments lregP [R x].
-Implicit Arguments rregP [R x].
+Implicit Arguments lregP [[R] [x]].
+Implicit Arguments rregP [[R] [x]].
 
 Module Field.
 
@@ -3422,7 +3909,7 @@ Definition mixin_of (F : unitRingType) := forall x : F, x != 0 -> unit x.
 Lemma IdomainMixin R : mixin_of R -> IntegralDomain.axiom R.
 Proof.
 move=> m x y xy0; apply/norP=> [[]] /m Ux /m.
-by rewrite -(unitr_mulr _ Ux) xy0 unitr0.
+by rewrite -(unitrMr _ Ux) xy0 unitr0.
 Qed.
 
 Section Mixins.
@@ -3435,7 +3922,7 @@ Hypothesis inv0 : inv 0 = 0.
 
 Fact intro_unit (x y : R) : y * x = 1 -> x != 0.
 Proof.
-by move=> yx1; apply: contraNneq (nonzero1r R) => x0; rewrite -yx1 x0 mulr0.
+by move=> yx1; apply: contraNneq (oner_neq0 R) => x0; rewrite -yx1 x0 mulr0.
 Qed.
 
 Fact inv_out : {in predC (predC1 0), inv =1 id}.
@@ -3537,7 +4024,7 @@ Lemma mulfVK x : x != 0 -> cancel ( *%R^~ x^-1) ( *%R^~ x).
 Proof. by rewrite -unitfE; exact: divrK. Qed.
 Definition divfK := mulfVK.
 
-Lemma invf_mul : {morph (fun x => x^-1) : x y / x * y}.
+Lemma invfM : {morph (fun x => x^-1) : x y / x * y}.
 Proof.
 move=> x y; case: (eqVneq x 0) => [-> |nzx]; first by rewrite !(mul0r, invr0).
 case: (eqVneq y 0) => [-> |nzy]; first by rewrite !(mulr0, invr0).
@@ -3546,7 +4033,7 @@ Qed.
 
 Lemma prodf_inv I r (P : pred I) (E : I -> F) :
   \prod_(i <- r | P i) (E i)^-1 = (\prod_(i <- r | P i) E i)^-1.
-Proof. by rewrite (big_morph _ invf_mul (invr1 _)). Qed.
+Proof. by rewrite (big_morph _ invfM (invr1 _)). Qed.
 
 Lemma natf0_char n : n > 0 -> n%:R == 0 :> F -> exists p, p \in [char F].
 Proof.
@@ -3554,7 +4041,7 @@ elim: {n}_.+1 {-2}n (ltnSn n) => // m IHm n; rewrite ltnS => le_n_m.
 rewrite leq_eqVlt -pi_pdiv mem_primes; move: (pdiv n) => p.
 case/predU1P=> [<-|/and3P[p_pr n_gt0 /dvdnP[n']]]; first by rewrite oner_eq0.
 move=> def_n; rewrite def_n muln_gt0 andbC prime_gt0 // in n_gt0 *.
-rewrite natr_mul mulf_eq0 orbC; case/orP; first by exists p; exact/andP.
+rewrite natrM mulf_eq0 orbC; case/orP; first by exists p; exact/andP.
 by apply: IHm (leq_trans _ le_n_m) _; rewrite // def_n ltn_Pmulr // prime_gt1.
 Qed.
 
@@ -3595,7 +4082,7 @@ Qed.
 
 Lemma fmorph_inj : injective f.
 Proof.
-move=> x y eqfxy; apply/eqP; rewrite -subr_eq0 -fmorph_eq0 rmorph_sub //.
+move=> x y eqfxy; apply/eqP; rewrite -subr_eq0 -fmorph_eq0 rmorphB //.
 by rewrite eqfxy subrr.
 Qed.
 
@@ -3649,9 +4136,35 @@ Qed.
 
 End ModuleTheory.
 
+Section Predicates.
+
+Context (S : pred F) {fieldS : subfieldPred S}.
+
+Lemma ringpMr x y : x \in S -> x != 0 -> (y * x \in S) = (y \in S).
+Proof.
+move=> Sx nz_x; apply/idP/idP=> [Sxy | /ringpM-> //].
+by rewrite -(mulfK nz_x y); rewrite ringp_div.
+Qed.
+
+Lemma ringpMl x y : x \in S -> x != 0 -> (x * y \in S) = (y \in S).
+Proof. by rewrite mulrC; apply: ringpMr. Qed.
+
+Lemma ringp_divr x y : x \in S -> x != 0 -> (y / x \in S) = (y \in S).
+Proof. by rewrite -ringpV -invr_eq0; apply: ringpMr. Qed.
+
+Lemma ringp_divl x y : x \in S -> x != 0 -> (x / y \in S) = (y \in S).
+Proof. by rewrite -(ringpV y); apply: ringpMl. Qed.
+
+End Predicates.
+
+Lemma SubFieldMixin (K : unitRingType) (f : K -> F) : 
+    phant K -> injective f -> f 0 = 0 -> {mono f : u / unit u} -> 
+  @Field.mixin_of K.
+Proof. by move=> _ injf f0 fU u; rewrite -fU unitfE -f0 inj_eq. Qed.
+
 End FieldTheory.
 
-Implicit Arguments fmorph_inj [F R x1 x2].
+Implicit Arguments fmorph_inj [[F] [R] x1 x2].
 
 Module DecidableField.
 
@@ -3783,8 +4296,8 @@ Qed.
 
 End DecidableFieldTheory.
 
-Implicit Arguments satP [F e f].
-Implicit Arguments solP [F n f].
+Implicit Arguments satP [[F] [e] [f]].
+Implicit Arguments solP [[F] [n] [f]].
 
 Section QE_Mixin.
 
@@ -3993,17 +4506,17 @@ Definition addNKr := addNKr.
 Definition addrK := addrK.
 Definition addrNK := addrNK.
 Definition subrK := subrK.
-Definition addrI := addrI.
-Definition addIr := addIr.
-Implicit Arguments addrI [V x1 x2].
-Implicit Arguments addIr [V x1 x2].
+Definition addrI := @addrI.
+Definition addIr := @addIr.
+Implicit Arguments addrI [[V] x1 x2].
+Implicit Arguments addIr [[V] x1 x2].
 Definition opprK := opprK.
 Definition oppr_inj := @oppr_inj.
 Implicit Arguments oppr_inj [[V] x1 x2].
 Definition oppr0 := oppr0.
 Definition oppr_eq0 := oppr_eq0.
-Definition oppr_add := oppr_add.
-Definition oppr_sub := oppr_sub.
+Definition opprD := opprD.
+Definition opprB := opprB.
 Definition subr0 := subr0.
 Definition sub0r := sub0r.
 Definition subr_eq := subr_eq.
@@ -4011,10 +4524,10 @@ Definition subr_eq0 := subr_eq0.
 Definition addr_eq0 := addr_eq0.
 Definition eqr_opp := eqr_opp.
 Definition eqr_oppC := eqr_oppC.
-Definition sumr_opp := sumr_opp.
-Definition sumr_sub := sumr_sub.
-Definition sumr_muln := sumr_muln.
-Definition sumr_muln_r := sumr_muln_r.
+Definition sumrN := sumrN.
+Definition sumrB := sumrB.
+Definition sumrMnl := sumrMnl.
+Definition sumrMnr := sumrMnr.
 Definition sumr_const := sumr_const.
 Definition mulr0n := mulr0n.
 Definition mulr1n := mulr1n.
@@ -4024,18 +4537,30 @@ Definition mulrSr := mulrSr.
 Definition mulrb := mulrb.
 Definition mul0rn := mul0rn.
 Definition mulNrn := mulNrn.
-Definition mulrn_addl := mulrn_addl.
-Definition mulrn_addr := mulrn_addr.
-Definition mulrn_subl := mulrn_subl.
-Definition mulrn_subr := mulrn_subr.
+Definition mulrnDl := mulrnDl.
+Definition mulrnDr := mulrnDr.
+Definition mulrnBl := mulrnBl.
+Definition mulrnBr := mulrnBr.
 Definition mulrnA := mulrnA.
 Definition mulrnAC := mulrnAC.
+Definition ringp0 U S {addS} := @ringp0 U S addS.
+Definition ringpD U S {addS} := @ringpD U S addS.
+Definition ringpNr U S {sgnS} := @ringpNr U S sgnS.
+Definition ringp_sum U S {addS} := @ringp_sum U S addS.
+Definition ringpMn U S {addS} := @ringpMn U S addS.
+Definition ringpN U S {sgnS} := @ringpN U S sgnS.
+Definition ringpB U S {addS} := @ringpB U S addS.
+Definition ringpMNn U S {addS} := @ringpMNn U S addS.
+Definition ringpDr U S {addS} := @ringpDr U S addS.
+Definition ringpDl U S {addS} := @ringpDl U S addS.
+Definition ringpBr U S {addS} := @ringpBr U S addS.
+Definition ringpBl U S {addS} := @ringpBl U S addS.
 Definition mulrA := mulrA.
 Definition mul1r := mul1r.
 Definition mulr1 := mulr1.
-Definition mulr_addl := mulr_addl.
-Definition mulr_addr := mulr_addr.
-Definition nonzero1r := nonzero1r.
+Definition mulrDl := mulrDl.
+Definition mulrDr := mulrDr.
+Definition oner_neq0 := oner_neq0.
 Definition oner_eq0 := oner_eq0.
 Definition mul0r := mul0r.
 Definition mulr0 := mulr0.
@@ -4046,47 +4571,49 @@ Definition mulN1r := mulN1r.
 Definition mulrN1 := mulrN1.
 Definition mulr_suml := mulr_suml.
 Definition mulr_sumr := mulr_sumr.
-Definition mulr_subl := mulr_subl.
-Definition mulr_subr := mulr_subr.
+Definition mulrBl := mulrBl.
+Definition mulrBr := mulrBr.
 Definition mulrnAl := mulrnAl.
 Definition mulrnAr := mulrnAr.
 Definition mulr_natl := mulr_natl.
 Definition mulr_natr := mulr_natr.
-Definition natr_add := natr_add.
-Definition natr_sub := natr_sub.
+Definition natrD := natrD.
+Definition natrB := natrB.
 Definition natr_sum := natr_sum.
-Definition natr_mul := natr_mul.
-Definition natr_exp := natr_exp.
+Definition natrM := natrM.
+Definition natrX := natrX.
 Definition expr0 := expr0.
 Definition exprS := exprS.
 Definition expr1 := expr1.
 Definition expr2 := expr2.
-Definition exp1rn := exp1rn.
-Definition exprn_addr := exprn_addr.
+Definition expr0n := expr0n.
+Definition expr1n := expr1n.
+Definition exprD := exprD.
 Definition exprSr := exprSr.
 Definition commr_sym := commr_sym.
 Definition commr_refl := commr_refl.
 Definition commr0 := commr0.
 Definition commr1 := commr1.
-Definition commr_opp := commr_opp.
+Definition commrN := commrN.
 Definition commrN1 := commrN1.
-Definition commr_add := commr_add.
-Definition commr_muln := commr_muln.
-Definition commr_mul := commr_mul.
+Definition commrD := commrD.
+Definition commrMn := commrMn.
+Definition commrM := commrM.
 Definition commr_nat := commr_nat.
-Definition commr_exp := commr_exp.
-Definition commr_exp_mull := commr_exp_mull.
+Definition commrX := commrX.
+Definition exprMn_comm := exprMn_comm.
 Definition commr_sign := commr_sign.
-Definition exprn_mulnl := exprn_mulnl.
-Definition exprn_mulr := exprn_mulr.
-Definition exprnC := exprnC.
-Definition exprn_mod := exprn_mod.
-Definition exprn_dvd := exprn_dvd.
+Definition exprMn_n := exprMn_n.
+Definition exprM := exprM.
+Definition exprC := exprC.
+Definition expr_mod := expr_mod.
+Definition expr_dvd := expr_dvd.
 Definition signr_odd := signr_odd.
 Definition signr_eq0 := signr_eq0.
 Definition mulr_sign := mulr_sign.
+Definition signrE := signrE.
 Definition signr_addb := signr_addb.
-Definition exprN := exprN.
+Definition exprNn := exprNn.
 Definition sqrrN := sqrrN.
 Definition sqrr_sign := sqrr_sign.
 Definition signrMK := signrMK.
@@ -4097,7 +4624,13 @@ Definition lregN := lregN.
 Definition lreg1 := lreg1.
 Definition lregM := lregM.
 Definition lregX := lregX.
-Definition lregP := @lregP.
+Definition lregP {R x} := @lregP R x.
+Definition ringp1 R S {mulS} := @ringp1 R S mulS.
+Definition ringpM R S {mulS} := @ringpM R S mulS.
+Definition ringpMsign R S {mulS} := @ringpMsign R S mulS.
+Definition ringp_prod R S {mulS} := @ringp_prod R S mulS.
+Definition ringpX R S {mulS} := @ringpX R S mulS.
+Definition ringp_nat R S {ringS} := @ringp_nat R S ringS.
 Definition mulIr_eq0 := mulIr_eq0.
 Definition mulIr0_rreg := mulIr0_rreg.
 Definition rreg_neq0 := rreg_neq0.
@@ -4106,50 +4639,57 @@ Definition rreg1 := rreg1.
 Definition rregM := rregM.
 Definition revrX := revrX.
 Definition rregX := rregX.
-Definition rregP := @rregP.
-Definition exprn_addl_comm := exprn_addl_comm.
-Definition exprn_subl_comm := exprn_subl_comm.
-Definition subr_expn_comm := subr_expn_comm.
-Definition exprn_add1 := exprn_add1.
-Definition subr_expn_1 := subr_expn_1.
-Definition sqrr_add1 := sqrr_add1.
-Definition sqrr_sub1 := sqrr_sub1.
+Definition rregP {R x} := @rregP R x.
+Definition exprDn_comm := exprDn_comm.
+Definition exprBn_comm := exprBn_comm.
+Definition subrXX_comm := subrXX_comm.
+Definition exprD1n := exprD1n.
+Definition subrX1 := subrX1.
+Definition sqrrD1 := sqrrD1.
+Definition sqrrB1 := sqrrB1.
 Definition subr_sqr_1 := subr_sqr_1.
 Definition charf0 := charf0.
 Definition charf_prime := charf_prime.
+Definition mulrn_char := mulrn_char.
 Definition dvdn_charf := dvdn_charf.
 Definition charf_eq := charf_eq.
 Definition bin_lt_charf_0 := bin_lt_charf_0.
 Definition Frobenius_autE := Frobenius_autE.
-Definition Frobenius_aut_0 := Frobenius_aut_0.
-Definition Frobenius_aut_1 := Frobenius_aut_1.
-Definition Frobenius_aut_add_comm := Frobenius_aut_add_comm.
-Definition Frobenius_aut_muln := Frobenius_aut_muln.
+Definition Frobenius_aut0 := Frobenius_aut0.
+Definition Frobenius_aut1 := Frobenius_aut1.
+Definition Frobenius_autD_comm := Frobenius_autD_comm.
+Definition Frobenius_autMn := Frobenius_autMn.
 Definition Frobenius_aut_nat := Frobenius_aut_nat.
-Definition Frobenius_aut_mul_comm := Frobenius_aut_mul_comm.
-Definition Frobenius_aut_exp := Frobenius_aut_exp.
-Definition Frobenius_aut_opp := Frobenius_aut_opp.
-Definition Frobenius_aut_sub_comm := Frobenius_aut_sub_comm.
+Definition Frobenius_autM_comm := Frobenius_autM_comm.
+Definition Frobenius_autX := Frobenius_autX.
+Definition Frobenius_autN := Frobenius_autN.
+Definition Frobenius_autB_comm := Frobenius_autB_comm.
+Definition exprNn_char := exprNn_char.
+Definition addrr_char2 := addrr_char2.
+Definition oppr_char2 := oppr_char2.
+Definition addrK_char2 := addrK_char2.
+Definition addKr_char2 := addKr_char2.
 Definition prodr_const := prodr_const.
 Definition mulrC := mulrC.
 Definition mulrCA := mulrCA.
 Definition mulrAC := mulrAC.
-Definition exprn_mull := exprn_mull.
-Definition prodr_exp := prodr_exp.
-Definition prodr_exp_r := prodr_exp_r.
-Definition prodr_opp := prodr_opp.
-Definition exprn_addl := exprn_addl.
-Definition exprn_subl := exprn_subl.
-Definition subr_expn := subr_expn.
-Definition sqrr_add := sqrr_add.
-Definition sqrr_sub := sqrr_sub.
+Definition exprMn := exprMn.
+Definition prodrXl := prodrXl.
+Definition prodrXr := prodrXr.
+Definition prodrN := prodrN.
+Definition exprDn := exprDn.
+Definition exprBn := exprBn.
+Definition subrXX := subrXX.
+Definition sqrrD := sqrrD.
+Definition sqrrB := sqrrB.
 Definition subr_sqr := subr_sqr.
-Definition subr_sqr_add_sub := subr_sqr_add_sub.
+Definition subr_sqrDB := subr_sqrDB.
+Definition exprDn_char := exprDn_char.
 Definition mulrV := mulrV.
 Definition divrr := divrr.
 Definition mulVr := mulVr.
 Definition invr_out := invr_out.
-Definition unitrP := unitrP.
+Definition unitrP {R x} := @unitrP R x.
 Definition mulKr := mulKr.
 Definition mulVKr := mulVKr.
 Definition mulrK := mulrK.
@@ -4157,12 +4697,12 @@ Definition mulrVK := mulrVK.
 Definition divrK := divrK.
 Definition mulrI := mulrI.
 Definition mulIr := mulIr.
-Definition commr_inv := commr_inv.
+Definition commrV := commrV.
 Definition unitrE := unitrE.
 Definition invrK := invrK.
 Definition invr_inj := @invr_inj.
 Implicit Arguments invr_inj [[R] x1 x2].
-Definition unitr_inv := unitr_inv.
+Definition unitrV := unitrV.
 Definition unitr1 := unitr1.
 Definition invr1 := invr1.
 Definition divr1 := divr1.
@@ -4170,28 +4710,34 @@ Definition div1r := div1r.
 Definition natr_div := natr_div.
 Definition unitr0 := unitr0.
 Definition invr0 := invr0.
-Definition unitr_opp := unitr_opp.
+Definition unitrN := unitrN.
 Definition invrN := invrN.
-Definition unitr_mull := unitr_mull.
-Definition unitr_mulr := unitr_mulr.
+Definition unitrMl := unitrMl.
+Definition unitrMr := unitrMr.
 Definition invr_mul := invr_mul.
 Definition invr_eq0 := invr_eq0.
 Definition invr_neq0 := invr_neq0.
-Definition commr_unit_mul := commr_unit_mul.
-Definition unitr_exp := unitr_exp.
-Definition unitr_pexp := unitr_pexp.
-Definition expr_inv := expr_inv.
+Definition unitrM_comm := unitrM_comm.
+Definition unitrX := unitrX.
+Definition unitrX_pos := unitrX_pos.
+Definition exprVn := exprVn.
+Definition ringpV R S {mulS} := @ringpV R S mulS.
+Definition ringp_div R S {mulS} := @ringp_div R S mulS.
+Definition ringpXN R S {mulS} := @ringpXN R S mulS.
 Definition eq_eval := eq_eval.
 Definition eval_tsubst := eval_tsubst.
 Definition eq_holds := eq_holds.
 Definition holds_fsubst := holds_fsubst.
-Definition unitr_mul := unitr_mul.
+Definition unitrM := unitrM.
+Definition unitrPr {R x} := @unitrPr R x.
+Definition expr_div_n := expr_div_n.
 Definition mulf_eq0 := mulf_eq0.
 Definition prodf_eq0 := prodf_eq0.
 Definition mulf_neq0 := mulf_neq0.
 Definition prodf_neq0 := prodf_neq0.
 Definition expf_eq0 := expf_eq0.
 Definition expf_neq0 := expf_neq0.
+Definition natf_neq0 := natf_neq0.
 Definition mulfI := mulfI.
 Definition mulIf := mulIf.
 Definition sqrf_eq1 := sqrf_eq1.
@@ -4205,22 +4751,26 @@ Definition mulVKf := mulVKf.
 Definition mulfK := mulfK.
 Definition mulfVK := mulfVK.
 Definition divfK := divfK.
-Definition invf_mul := invf_mul.
+Definition invfM := invfM.
 Definition prodf_inv := prodf_inv.
 Definition natf0_char := natf0_char.
 Definition charf'_nat := charf'_nat.
 Definition charf0P := charf0P.
 Definition char0_natf_div := char0_natf_div.
-Definition satP := @satP.
+Definition ringpMr F S {mulS} := @ringpMr F S mulS.
+Definition ringpMl F S {mulS} := @ringpMl F S mulS.
+Definition ringp_divr F S {mulS} := @ringp_divr F S mulS.
+Definition ringp_divl F S {mulS} := @ringp_divl F S mulS.
+Definition satP {F e f} := @satP F e f.
 Definition eq_sat := eq_sat.
-Definition solP := @solP.
+Definition solP {F n f} := @solP F n f.
 Definition eq_sol := eq_sol.
 Definition size_sol := size_sol.
 Definition solve_monicpoly := solve_monicpoly.
 Definition raddf0 := raddf0.
 Definition raddfN := raddfN.
 Definition raddfD := raddfD.
-Definition raddf_sub := raddf_sub.
+Definition raddfB := raddfB.
 Definition raddf_sum := raddf_sum.
 Definition raddfMn := raddfMn.
 Definition raddfMNn := raddfMNn.
@@ -4231,7 +4781,7 @@ Definition bij_additive := bij_additive.
 Definition rmorph0 := rmorph0.
 Definition rmorphN := rmorphN.
 Definition rmorphD := rmorphD.
-Definition rmorph_sub := rmorph_sub.
+Definition rmorphB := rmorphB.
 Definition rmorph_sum := rmorph_sum.
 Definition rmorphMn := rmorphMn.
 Definition rmorphMNn := rmorphMNn.
@@ -4239,6 +4789,7 @@ Definition rmorphismP := rmorphismP.
 Definition rmorphismMP := rmorphismMP.
 Definition rmorph1 := rmorph1.
 Definition rmorphM := rmorphM.
+Definition rmorphMsign := rmorphMsign.
 Definition rmorph_nat := rmorph_nat.
 Definition rmorph_prod := rmorph_prod.
 Definition rmorphX := rmorphX.
@@ -4251,64 +4802,71 @@ Definition rmorph_unit := rmorph_unit.
 Definition rmorphV := rmorphV.
 Definition rmorph_div := rmorph_div.
 Definition fmorph_eq0 := fmorph_eq0.
-Definition fmorph_inj := fmorph_inj.
-Implicit Arguments fmorph_inj [F R x1 x2].
+Definition fmorph_inj := @fmorph_inj.
+Implicit Arguments fmorph_inj [[F] [R] x1 x2].
 Definition fmorph_char := fmorph_char.
 Definition fmorph_unit := fmorph_unit.
 Definition fmorphV := fmorphV.
 Definition fmorph_div := fmorph_div.
 Definition scalerA := scalerA.
 Definition scale1r := scale1r.
-Definition scaler_addr := scaler_addr.
-Definition scaler_addl := scaler_addl.
+Definition scalerDr := scalerDr.
+Definition scalerDl := scalerDl.
 Definition scaler0 := scaler0.
 Definition scale0r := scale0r.
 Definition scaleNr := scaleNr.
 Definition scaleN1r := scaleN1r.
 Definition scalerN := scalerN.
-Definition scaler_subl := scaler_subl.
-Definition scaler_subr := scaler_subr.
+Definition scalerBl := scalerBl.
+Definition scalerBr := scalerBr.
 Definition scaler_nat := scaler_nat.
-Definition scaler_mulrnl := scaler_mulrnl.
-Definition scaler_mulrnr := scaler_mulrnr.
+Definition scalerMnl := scalerMnl.
+Definition scalerMnr := scalerMnr.
 Definition scaler_suml := scaler_suml.
 Definition scaler_sumr := scaler_sumr.
 Definition scaler_eq0 := scaler_eq0.
 Definition scalerK := scalerK.
 Definition scalerKV := scalerKV.
 Definition scalerI := scalerI.
-Definition scaler_mull := scaler_mull.
-Definition scaler_mulr := scaler_mulr.
+Definition scalerAl := scalerAl.
+Definition mulr_algl := mulr_algl.
+Definition ringpZsign R U S {sgnS} := @ringpZsign R U S sgnS.
+Definition ringpZnat R U S {addS} := @ringpZnat R U S addS.
+Definition ringpZ R U S {scalS} := @ringpZ R U S scalS.
 Definition scaler_sign := scaler_sign.
 Definition signrZK := signrZK.
-Definition scaler_swap := scaler_swap.
-Definition scaler_exp := scaler_exp.
+Definition scalerCA := scalerCA.
+Definition scalerAr := scalerAr.
+Definition mulr_algr := mulr_algr.
+Definition exprZn := exprZn.
 Definition scaler_prodl := scaler_prodl.
 Definition scaler_prodr := scaler_prodr.
 Definition scaler_prod := scaler_prod.
 Definition scaler_injl := scaler_injl.
 Definition scaler_unit := scaler_unit.
-Definition scaler_inv := scaler_inv.
+Definition invrZ := invrZ.
 Definition raddfZnat := raddfZnat.
 Definition raddfZsign := raddfZsign.
+Definition in_algE := in_algE.
 Definition linearP := linearP.
 Definition linear0 := linear0.
 Definition linearN := linearN.
 Definition linearD := linearD.
-Definition linear_sub := linear_sub.
+Definition linearB := linearB.
 Definition linear_sum := linear_sum.
 Definition linearMn := linearMn.
 Definition linearMNn := linearMNn.
-Definition linearZ := linearZ.
+Definition lmod_linearZ := linearZ.
+Definition scalarP := scalarP.
+Definition scalarZ := scalarZ.
+Definition linearZ := (lmod_linearZ, scalarZ).
+Definition lmod_linearZsign := linearZsign.
+Definition scalarZsign := scalarZsign.
+Definition linearZsign := (lmod_linearZsign, scalarZsign).
 Definition can2_linear := can2_linear.
 Definition bij_linear := bij_linear.
 Definition can2_lrmorphism := can2_lrmorphism.
 Definition bij_lrmorphism := bij_lrmorphism.
-
-Implicit Arguments lregP [R x].
-Implicit Arguments rregP [R x].
-Implicit Arguments satP [F e f].
-Implicit Arguments solP [F n f]. 	 
 
 Notation null_fun V := (null_fun V) (only parsing).
 Notation in_alg A := (in_alg_loc A).
@@ -4497,6 +5055,75 @@ Notation "~ f" := (Not f) : term_scope.
 Notation "''exists' ''X_' i , f" := (Exists i f) : term_scope.
 Notation "''forall' ''X_' i , f" := (Forall i f) : term_scope.
 
+(* Export substructure predicate classes. *)
+Existing Class addSemigroupPred.
+Notation addSemigroupPred := addSemigroupPred.
+Existing Class unsignedPred.
+Notation unsignedPred := unsignedPred.
+Existing Class addSubgroupPred.
+Notation addSubgroupPred := addSubgroupPred.
+Existing Class mulSemigroupPred.
+Notation mulSemigroupPred := mulSemigroupPred.
+Existing Class semiringPred.
+Notation semiringPred := semiringPred.
+Existing Class subringPred.
+Notation subringPred := subringPred.
+Existing Class unscaledPred.
+Notation unscaledPred := unscaledPred.
+Existing Class mulSubgroupPred.
+Notation mulSubgroupPred := mulSubgroupPred.
+Existing Class subfieldPred.
+Notation subfieldPred := subfieldPred.
+
+Existing Instance addSubgroup_semigroupPred.
+Existing Instance addSubgroup_unsignedPred.
+Existing Instance semiring_addSemigroupPred.
+Existing Instance semiring_mulSemigroupPred.
+Existing Instance subring_addSubgroupPred.
+Existing Instance subring_mulSemigroupPred.
+Existing Instance subring_semiringPred.
+Existing Instance mulSubgroup_semigroupPred.
+Existing Instance subfield_subringPred.
+Existing Instance subfield_mulSubgroupPred.
+Existing Instance unitr_mulSubgroupPred.
+
+(* Export only useful constructors. *)
+Notation AddSubgroupPred := AddSubgroupPred.
+Notation SubgroupPredFromSub := SubgroupPredFromSub.
+Notation SubringPred := SubringPred.
+Notation SubringPredFromSub := SubringPredFromSub.
+Notation MulSubgroupPred := MulSubgroupPred.
+Notation SubgroupPredFromDiv := SubgroupPredFromDiv.
+Notation SubfieldPredFromSubDiv := SubfieldPredFromSubDiv.
+
+(* Substructure mixin syntax. *)
+Notation "[ 'zmodMixin' 'of' U 'by' <: ]" := (SubZmodMixin (Phant U))
+  (at level 0, format "[ 'zmodMixin'  'of'  U  'by'  <: ]") : form_scope.
+Notation "[ 'ringMixin' 'of' R 'by' <: ]" :=
+  (@SubRingMixin _ _ _ _ _ (@erefl Type R) (rrefl _))
+  (at level 0, format "[ 'ringMixin'  'of'  R  'by'  <: ]") : form_scope.
+Notation "[ 'lmodMixin' 'of' U 'by' <: ]" :=
+  (@SubLmodMixin _ _ _ _ _ _ (@erefl Type U) (rrefl _))
+  (at level 0, format "[ 'lmodMixin'  'of'  U  'by'  <: ]") : form_scope.
+Notation "[ 'lalgMixin' 'of' A 'by' <: ]" :=
+  ((SubLalgMixin (Phant A) val_inj (rrefl _)) *%R (rrefl _))
+  (at level 0, format "[ 'lalgMixin'  'of'  A  'by'  <: ]") : form_scope.
+Notation "[ 'comRingMixin' 'of' R 'by' <: ]" :=
+  (SubComRingMixin (Phant R) val_inj (rrefl _))
+  (at level 0, format "[ 'comRingMixin'  'of'  R  'by'  <: ]") : form_scope.
+Notation "[ 'algMixin' 'of' A 'by' <: ]" :=
+  (SubAlgMixin (Phant A) val_inj (rrefl _) (rrefl _))
+  (at level 0, format "[ 'algMixin'  'of'  A  'by'  <: ]") : form_scope.
+Notation "[ 'unitRingMixin' 'of' R 'by' <: ]" :=
+  (@SubUnitRingMixin _ _ _ _ _ (@erefl Type R) (erefl _) (rrefl _))
+  (at level 0, format "[ 'unitRingMixin'  'of'  R  'by'  <: ]") : form_scope.
+Notation "[ 'idomainMixin' 'of' R 'by' <: ]" :=
+  (SubIdomainMixin (Phant R) val_inj (erefl _) (rrefl _))
+  (at level 0, format "[ 'idomainMixin'  'of'  R  'by'  <: ]") : form_scope.
+Notation "[ 'fieldMixin' 'of' F 'by' <: ]" :=
+  (SubFieldMixin (Phant F) val_inj (erefl _) (frefl _))
+  (at level 0, format "[ 'fieldMixin'  'of'  F  'by'  <: ]") : form_scope.
+
 (* Lifting Structure from the codomain of finfuns. *)
 Section FinFunZmod.
 
@@ -4520,16 +5147,21 @@ Definition ffun_zmodMixin :=
   Zmodule.Mixin ffun_addA ffun_addC ffun_add0 ffun_addN.
 Canonical ffun_zmodType := Eval hnf in ZmodType _ ffun_zmodMixin.
 
-Lemma sum_ffunE I (r : seq I) (P : pred I) (F : I -> {ffun aT -> rT}) :
-  \big[+%R/0]_(i <- r | P i) F i = 
-     [ffun x => \big[+%R/0]_(i <- r | P i) (F i x)].
-Proof.
-apply/ffunP=> j; rewrite ffunE.
-by elim/big_rec2: _ => // [|i x f _ <-]; rewrite !ffunE.
-Qed.
+Section Sum.
 
-Lemma ffunMn f n x : (f *+ n) x = f x *+ n.
-Proof. by elim: n => [|n IHn]; rewrite ?mulrS ffunE ?IHn. Qed.
+Variables (I : Type) (r : seq I) (P : pred I) (F : I -> {ffun aT -> rT}).
+
+Lemma sum_ffunE x : (\sum_(i <- r | P i) F i) x = \sum_(i <- r | P i) F i x.
+Proof. by elim/big_rec2: _ => // [|i _ y _ <-]; rewrite !ffunE. Qed.
+
+Lemma sum_ffun :
+  \sum_(i <- r | P i) F i = [ffun x => \sum_(i <- r | P i) F i x].
+Proof. by apply/ffunP=> i; rewrite sum_ffunE ffunE. Qed.
+
+End Sum.
+
+Lemma ffunMnE f n x : (f *+ n) x = f x *+ n.
+Proof. by rewrite -[n]card_ord -!sumr_const sum_ffunE. Qed.
 
 End FinFunZmod.
 
@@ -4550,9 +5182,9 @@ Proof. by move=> f; apply/ffunP=> i; rewrite !ffunE mul1r. Qed.
 Fact ffun_mul_1r : right_id ffun_one ffun_mul.
 Proof. by move=> f; apply/ffunP=> i; rewrite !ffunE mulr1. Qed.
 Fact ffun_mul_addl :  left_distributive ffun_mul (@ffun_add _ _).
-Proof. by move=> f1 f2 f3; apply/ffunP=> i; rewrite !ffunE mulr_addl. Qed.
+Proof. by move=> f1 f2 f3; apply/ffunP=> i; rewrite !ffunE mulrDl. Qed.
 Fact ffun_mul_addr :  right_distributive ffun_mul (@ffun_add _ _).
-Proof. by move=> f1 f2 f3; apply/ffunP=> i; rewrite !ffunE mulr_addr. Qed.
+Proof. by move=> f1 f2 f3; apply/ffunP=> i; rewrite !ffunE mulrDr. Qed.
 Fact ffun1_nonzero : ffun_one != 0.
 Proof. by apply/eqP => /ffunP/(_ a)/eqP; rewrite !ffunE oner_eq0. Qed.
 
@@ -4590,9 +5222,9 @@ Proof. by apply/ffunP=> a; rewrite !ffunE scalerA. Qed.
 Fact ffun_scale1 : left_id 1 ffun_scale.
 Proof. by move=> f; apply/ffunP=> a; rewrite !ffunE scale1r. Qed.
 Fact ffun_scale_addr k : {morph (ffun_scale k) : x y / x + y}.
-Proof. by move=> f g; apply/ffunP=> a; rewrite !ffunE scaler_addr. Qed.
+Proof. by move=> f g; apply/ffunP=> a; rewrite !ffunE scalerDr. Qed.
 Fact ffun_scale_addl u : {morph (ffun_scale)^~ u : k1 k2 / k1 + k2}.
-Proof. by move=> k1 k2; apply/ffunP=> a; rewrite !ffunE scaler_addl. Qed.
+Proof. by move=> k1 k2; apply/ffunP=> a; rewrite !ffunE scalerDl. Qed.
 
 Definition ffun_lmodMixin := 
   LmodMixin ffun_scaleA ffun_scale1 ffun_scale_addr ffun_scale_addl.
@@ -4600,3 +5232,62 @@ Canonical ffun_lmodType :=
   Eval hnf in LmodType R {ffun aT -> rT} ffun_lmodMixin.
 
 End FinFunLmod.
+
+(* Unit tests for the substructure constructors
+Section Test1.
+
+Variables (R : unitRingType) (S : pred R).
+
+Inductive B := mkB x & S x.
+Definition vB u := let: mkB x _ := u in x.
+
+Canonical B_subType := [subType for vB by B_rect].
+Definition B_eqMixin := [eqMixin of B by <:].
+Canonical B_eqType := EqType B B_eqMixin.
+Definition B_choiceMixin := [choiceMixin of B by <:].
+Canonical B_choiceType := ChoiceType B B_choiceMixin.
+
+Context {ringS : subfieldPred S}.
+
+Definition B_zmodMixin := [zmodMixin of B by <:].
+Canonical B_zmodType := ZmodType B B_zmodMixin.
+Definition B_ringMixin := [ringMixin of B by <:].
+Canonical B_ringType := RingType B B_ringMixin.
+Definition B_unitRingMixin := [unitRingMixin of B by <:].
+Canonical B_unitRingType := UnitRingType B B_unitRingMixin.
+
+End Test1.
+
+Section Test2.
+
+Variables (R : comUnitRingType) (A : unitAlgType R) (S : pred A).
+
+Context {ringS : subfieldPred S} {scalS : unscaledPred S}.
+
+Definition B_lmodMixin := [lmodMixin of B S by <:].
+Canonical B_lmodType := LmodType R (B S) B_lmodMixin.
+Definition B_lalgMixin := [lalgMixin of B S by <:].
+Canonical B_lalgType := LalgType R (B S) B_lalgMixin.
+Definition B_algMixin := [algMixin of B S by <:].
+Canonical B_algType := AlgType R (B S) B_algMixin.
+Canonical B_unitAlgType := [unitAlgType R of B S].
+
+End Test2.
+
+Section Test3.
+
+Variables (F : fieldType) (S : pred F).
+
+Context {ringS : subfieldPred S}.
+
+Definition B_comRingMixin := [comRingMixin of B S by <:].
+Canonical B_comRingType := ComRingType (B S) B_comRingMixin.
+Canonical B_comUnitRingType := [comUnitRingType of B S].
+Definition B_idomainMixin := [idomainMixin of B S by <:].
+Canonical B_idomainType := IdomainType (B S) B_idomainMixin.
+Definition B_fieldMixin := [fieldMixin of B S by <:].
+Canonical B_fieldType := FieldType (B S) B_fieldMixin.
+
+End Test3.
+
+*)

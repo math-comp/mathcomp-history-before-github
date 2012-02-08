@@ -14,13 +14,16 @@ Unset Printing Implicit Defensive.
 (*         in_tuple s == the (size s)-tuple with value s.                     *)
 (*            [tuple] == the empty tuple, and                                 *)
 (* [tuple x1; ..; xn] == the explicit n.-tuple <x1; ..; xn>.                  *)
+(*  [tuple E | i < n] == the n.-tuple with general term E (i : 'I_n is bound  *)
+(*                       in E).                                               *)
 (*        tcast Emn t == the m-tuple t cast as an n-tuple using Emn : m = n.  *)
 (* As n.-tuple T coerces to seq t, all seq operations (size, nth, ...) can be *)
 (* applied to t : n.-tuple T; we provide a few specialized instances when     *)
 (* avoids the need for a default value.                                       *)
 (*            tsize t == the size of t (the n in n.-tuple T)                  *)
 (*           tnth t i == the i'th component of t, where i : 'I_n.             *)
-(*         [tnth t i] == the i'th component of t, where i : nat.              *)
+(*         [tnth t i] == the i'th component of t, where i : nat and i < n     *)
+(*                       is convertible to true.                              *)
 (*            thead t == the first element of t, when n is m.+1 for some m.   *)
 (* Most seq constructors (cons, behead, cat, rcons, belast, take, drop, rot,  *)
 (* map, ...) can be used to build tuples via the [tuple of s] construct.      *)
@@ -245,6 +248,9 @@ Proof. by []. Qed.
 Lemma mem_tnth i (t : n.-tuple T) : tnth t i \in t.
 Proof. by rewrite mem_nth ?size_tuple. Qed.
 
+Lemma memt_nth x0 (t : n.-tuple T) i : i < n -> nth x0 t i \in t.
+Proof. by move=> i_lt_n; rewrite mem_nth ?size_tuple. Qed.
+
 Lemma tnthP (t : n.-tuple T) x : reflect (exists i, x = tnth t i) (x \in t).
 Proof.
 apply: (iffP idP) => [/(nthP x)[i ltin <-] | [i ->]]; last exact: mem_tnth.
@@ -335,11 +341,33 @@ apply: val_inj; rewrite (tnth_nth i) -(nth_map _ 0) ?size_tuple //.
 by rewrite /= enumT unlock val_ord_enum nth_iota.
 Qed.
 
+Section ImageTuple.
+
 Variables (T' : Type) (f : T -> T') (A : pred T).
 
 Canonical image_tuple : #|A|.-tuple T' := [tuple of image f A].
 Canonical codom_tuple : #|T|.-tuple T' := [tuple of codom f].
 
+End ImageTuple.
+
+Section MkTuple.
+
+Variables (T' : Type) (f : 'I_n -> T').
+
+Definition mktuple := map_tuple f ord_tuple.
+
+Lemma tnth_mktuple i : tnth mktuple i = f i.
+Proof. by rewrite tnth_map tnth_ord_tuple. Qed.
+
+Lemma nth_mktuple x0 (i : 'I_n) : nth x0 mktuple i = f i.
+Proof. by rewrite -tnth_nth tnth_mktuple. Qed.
+
+End MkTuple.
+
 End UseFinTuple.
+
+Notation "[ 'tuple' F | i < n ]" := (mktuple (fun i : 'I_n => F))
+  (at level 0, i at level 0,
+   format "[ '[hv' 'tuple'  F '/'   |  i  <  n ] ']'") : form_scope.
 
 

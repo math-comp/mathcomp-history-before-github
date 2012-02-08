@@ -60,7 +60,7 @@ Lemma expf_card (x : F) : x ^+ #|F| = x.
 Proof.
 rewrite -(prednK finField_card_gt0) -unit_card.
 apply/eqP.
-rewrite exprS -subr_eq0 -[X in - X]mulr1 -mulr_subr mulf_eq0 -[_ == _]negbK.
+rewrite exprS -subr_eq0 -[X in - X]mulr1 -mulrBr mulf_eq0 -[_ == _]negbK.
 case Hx0 : (x != 0); last done.
 move/idP : Hx0.
 rewrite /= subr_eq0 -unitfE => Hx.

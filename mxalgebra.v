@@ -377,7 +377,7 @@ Proof.
 unlock row_ebase; elim: m n A => [|m IHm] [|n] //= A.
 case: pickP => [[i j] /= nzAij | //=]; move: (_ - _) => B.
 case: gaussE (IHm _ B) => [[L U] r] /= uU.
-rewrite unitmxE xcolE det_mulmx (@det_ublock _ 1) det_scalar1 !unitr_mul.
+rewrite unitmxE xcolE det_mulmx (@det_ublock _ 1) det_scalar1 !unitrM.
 by rewrite unitfE nzAij -!unitmxE uU unitmx_perm.
 Qed.
 
@@ -386,7 +386,7 @@ Proof.
 unlock col_ebase; elim: m n A => [|m IHm] [|n] //= A.
 case: pickP => [[i j] _|] //=; move: (_ - _) => B.
 case: gaussE (IHm _ B) => [[L U] r] /= uL.
-rewrite unitmxE xrowE det_mulmx (@det_lblock _ 1) det1 mul1r unitr_mul.
+rewrite unitmxE xrowE det_mulmx (@det_lblock _ 1) det1 mul1r unitrM.
 by rewrite -unitmxE unitmx_perm.
 Qed.
 Hint Resolve rank_leq_row rank_leq_col row_ebase_unit col_ebase_unit.
@@ -490,7 +490,7 @@ Proof. by rewrite mxopE. Qed.
 Lemma mulmxKpV m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
   (A <= B)%MS -> A *m pinvmx B *m B = A.
 Proof.
-rewrite submxE !mulmxA mulmx_subr mulmx1 subr_eq0 => /eqP defA.
+rewrite submxE !mulmxA mulmxBr mulmx1 subr_eq0 => /eqP defA.
 rewrite -{4}[B]mulmx_ebase -!mulmxA mulKmx //.
 by rewrite (mulmxA (pid_mx _)) pid_mx_id // !mulmxA -{}defA mulmxKV.
 Qed.
@@ -571,7 +571,7 @@ Proof. by move=> eqAB; rewrite -!submx0 eqAB. Qed.
 Lemma addmx_sub m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m1, n)) (C : 'M_(m2, n)) :
   (A <= C)%MS -> (B <= C)%MS -> ((A + B)%R <= C)%MS.
 Proof.
-by case/submxP=> A' ->; case/submxP=> B' ->; rewrite -mulmx_addl submxMl.
+by case/submxP=> A' ->; case/submxP=> B' ->; rewrite -mulmxDl submxMl.
 Qed.
 
 Lemma summx_sub m1 m2 n (B : 'M_(m2, n))
@@ -1167,7 +1167,7 @@ Qed.
 Lemma mulmxKV_ker m n p (A : 'M_(n, p)) (B : 'M_(m, n)) :
   B *m A = 0 -> B *m col_ebase A *m kermx A = B.
 Proof.
-rewrite mulmxA mulmx_subr mulmx1 mulmx_subl mulmxK //.
+rewrite mulmxA mulmxBr mulmx1 mulmxBl mulmxK //.
 rewrite -{1}[A]mulmx_ebase !mulmxA => /(canRL (mulmxK (row_ebase_unit A))).
 rewrite mul0mx // => BA0; apply: (canLR (addrK _)).
 by rewrite -(pid_mx_id _ _ n (rank_leq_col A)) mulmxA BA0 !mul0mx addr0.
@@ -1211,8 +1211,8 @@ Lemma addsmx_compl_full m n (A : 'M_(m, n)) : row_full (A + A^C)%MS.
 Proof.
 rewrite /row_full addsmxE; apply/row_fullP.
 exists (row_mx (pinvmx A) (cokermx A)); rewrite mul_row_col.
-rewrite -{2}[A]mulmx_ebase -!mulmxA mulKmx // -mulmx_addr !mulmxA.
-by rewrite pid_mx_id ?copid_mx_id // -mulmx_addl addrC subrK mul1mx mulVmx.
+rewrite -{2}[A]mulmx_ebase -!mulmxA mulKmx // -mulmxDr !mulmxA.
+by rewrite pid_mx_id ?copid_mx_id // -mulmxDl addrC subrK mul1mx mulVmx.
 Qed.
 
 Lemma sub_capmx_gen m1 m2 m3 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) (C : 'M_(m3, n)) :
@@ -1513,7 +1513,7 @@ suffices sACD: (A <= C + D)%MS.
   by rewrite (submx_trans sACD) ?addsmxS ?capmxE.
 have:= addsmx_compl_full D; rewrite /row_full addsmxE.
 case/row_fullP=> U /(congr1 (mulmx A)); rewrite mulmx1.
-rewrite -[U]hsubmxK mul_row_col mulmx_addr addrC 2!mulmxA.
+rewrite -[U]hsubmxK mul_row_col mulmxDr addrC 2!mulmxA.
 set V := _ *m _ => defA; rewrite -defA; move/(canRL (addrK _)): defA => defV.
 suffices /submxP[W ->]: (V <= C)%MS by rewrite -mul_row_col addsmxE submxMl.
 rewrite diffmxE sub_capmx {1}defV -mulNmx addmx_sub 1?mulmx_sub //.
@@ -1553,7 +1553,7 @@ Proof. by rewrite !mulmx_sub // -addsmxE addsmx0. Qed.
 Lemma proj_mx_compl_sub m n U V (W : 'M_(m, n)) :
   (W <= U + V -> W - W *m proj_mx U V <= V)%MS.
 Proof.
-rewrite addsmxE => sWUV; rewrite mulmxA -{1}(mulmxKpV sWUV) -mulmx_subr.
+rewrite addsmxE => sWUV; rewrite mulmxA -{1}(mulmxKpV sWUV) -mulmxBr.
 by rewrite mulmx_sub // opp_col_mx add_col_mx subrr subr0 -addsmxE adds0mx.
 Qed.
 
@@ -1561,7 +1561,7 @@ Lemma proj_mx_id m n U V (W : 'M_(m, n)) :
   (U :&: V = 0)%MS -> (W <= U)%MS -> W *m proj_mx U V = W.
 Proof.
 move=> dxUV sWU; apply/eqP; rewrite -subr_eq0 -submx0 -dxUV.
-rewrite sub_capmx addmx_sub ?eqmx_opp ?proj_mx_sub //= -eqmx_opp oppr_sub.
+rewrite sub_capmx addmx_sub ?eqmx_opp ?proj_mx_sub //= -eqmx_opp opprB.
 by rewrite proj_mx_compl_sub // (submx_trans sWU) ?addsmxSl.
 Qed. 
 
@@ -1570,7 +1570,7 @@ Lemma proj_mx_0 m n U V (W : 'M_(m, n)) :
 Proof.
 move=> dxUV sWV; apply/eqP; rewrite -submx0 -dxUV.
 rewrite sub_capmx proj_mx_sub /= -[_ *m _](subrK W) addmx_sub // -eqmx_opp.
-by rewrite oppr_sub proj_mx_compl_sub // (submx_trans sWV) ?addsmxSr.
+by rewrite opprB proj_mx_compl_sub // (submx_trans sWV) ?addsmxSr.
 Qed.
 
 Lemma add_proj_mx m n U V (W : 'M_(m, n)) :
@@ -1578,7 +1578,7 @@ Lemma add_proj_mx m n U V (W : 'M_(m, n)) :
   W *m proj_mx U V + W *m proj_mx V U = W.
 Proof.
 move=> dxUV sWUV; apply/eqP; rewrite -subr_eq0 -submx0 -dxUV.
-rewrite -addrA sub_capmx {2}addrCA -!(oppr_sub W).
+rewrite -addrA sub_capmx {2}addrCA -!(opprB W).
 by rewrite !{1}addmx_sub ?proj_mx_sub ?eqmx_opp ?proj_mx_compl_sub // addsmxC.
 Qed.
 
@@ -1594,7 +1594,7 @@ Proof.
 move=> injfU; pose V := <<U>>%MS; pose W := V *m f.
 pose g := proj_mx V (V^C)%MS *m f + cokermx V *m row_ebase W.
 have defW: V *m g = W.
-  rewrite mulmx_addr mulmxA proj_mx_id ?genmxE ?capmx_compl //.
+  rewrite mulmxDr mulmxA proj_mx_id ?genmxE ?capmx_compl //.
   by rewrite mulmxA mulmx_coker mul0mx addr0.
 exists g; last first.
   have /submxP[u ->]: (U <= V)%MS by rewrite genmxE.
@@ -1602,11 +1602,11 @@ exists g; last first.
 rewrite -row_full_unit -sub1mx; apply/submxP.
 have: (invmx (col_ebase W) *m W <= V *m g)%MS by rewrite defW submxMl.
 case/submxP=> v def_v; exists (invmx (row_ebase W) *m (v *m V + (V^C)%MS)).
-rewrite -mulmxA mulmx_addl -mulmxA -def_v -{3}[W]mulmx_ebase -mulmxA.
-rewrite mulKmx ?col_ebase_unit // [_ *m g]mulmx_addr mulmxA.
+rewrite -mulmxA mulmxDl -mulmxA -def_v -{3}[W]mulmx_ebase -mulmxA.
+rewrite mulKmx ?col_ebase_unit // [_ *m g]mulmxDr mulmxA.
 rewrite (proj_mx_0 (capmx_compl _)) // mul0mx add0r 2!mulmxA.
 rewrite mulmxK ?row_ebase_unit // copid_mx_id ?rank_leq_row //.
-rewrite (eqmxMr _ (genmxE U)) injfU genmxE addrC -mulmx_addl subrK.
+rewrite (eqmxMr _ (genmxE U)) injfU genmxE addrC -mulmxDl subrK.
 by rewrite mul1mx mulVmx ?row_ebase_unit.
 Qed.
 
@@ -1882,7 +1882,7 @@ exists (u.1 *m B1) (u.2 *m B2); rewrite ?submxMl // => C1 C2 sCB1 sCB2.
 move/(canLR (addrK _)) => defC1.
 suffices: (C2 - u.2 *m B2 <= B1 :&: B2)%MS.
   by rewrite dxB submx0 subr_eq0 -defC1 defA; move/eqP->; rewrite addrK.
-rewrite sub_capmx -oppr_sub -{1}(canLR (addKr _) defA) -addrA defC1.
+rewrite sub_capmx -opprB -{1}(canLR (addKr _) defA) -addrA defC1.
 by rewrite !(eqmx_opp, addmx_sub) ?submxMl.
 Qed.
 
@@ -1907,7 +1907,7 @@ pose A_ i := u i *m B i.
 exists A_ => //= [i _ | C sCB defAC i Pi]; first exact: submxMl.
 apply/eqP; rewrite -subr_eq0 -submx0 -{dxB}(dxB i Pi) /=.
 rewrite sub_capmx addmx_sub ?eqmx_opp ?submxMl ?sCB //=.
-rewrite -(subrK A (C i)) -addrA -oppr_sub addmx_sub ?eqmx_opp //.
+rewrite -(subrK A (C i)) -addrA -opprB addmx_sub ?eqmx_opp //.
   rewrite addrC defAC (bigD1 i) // addKr /= summx_sub // => j Pi'j.
   by rewrite (sumsmx_sup j) ?sCB //; case/andP: Pi'j.
 rewrite addrC defA (bigD1 i) // addKr /= summx_sub // => j Pi'j.
@@ -1927,7 +1927,7 @@ Lemma eigenspaceP a m (W : 'M_(m, n)) :
   reflect (W *m g = a *: W) (W <= eigenspace a)%MS.
 Proof.
 rewrite (sameP (sub_kermxP _ _) eqP).
-by rewrite mulmx_subr subr_eq0 mul_mx_scalar; exact: eqP.
+by rewrite mulmxBr subr_eq0 mul_mx_scalar; exact: eqP.
 Qed.
 
 Lemma eigenvalueP a :
@@ -1953,8 +1953,8 @@ rewrite -(eqmx_eq0 (eqmx_scale _ nz_aij)).
 rewrite (uniqC (fun k => (a_ i - a_ k) *: u k)) => // [|k Pi'k|].
 - by rewrite -(uniqC (fun _ => 0)) ?big1 // => k Pi'k; exact: sub0mx.
 - by rewrite scalemx_sub ?Vi'u.
-rewrite -{1}(subrr (v *m g)) {1}def_vg def_v scaler_sumr mulmx_suml -sumr_sub.
-by apply: eq_bigr => k /Vi'u/eigenspaceP->; rewrite scaler_subl.
+rewrite -{1}(subrr (v *m g)) {1}def_vg def_v scaler_sumr mulmx_suml -sumrB.
+by apply: eq_bigr => k /Vi'u/eigenspaceP->; rewrite scalerBl.
 Qed.
 
 End Eigenspace.
@@ -2159,8 +2159,8 @@ rewrite (reindex (fun B => L *m U B)); last first.
   apply: trmx_inj; rewrite tr_row_mx tr_col_mx trmx_ursub trmx_drsub trmx_lsub.
   by rewrite hsubmxK vsubmxK.
 rewrite -sum1_card; apply: eq_bigl => B; rewrite xrowE unitmxE.
-rewrite !det_mulmx unitr_mul -unitmxE unitmx_perm det_lblock det_ublock.
-rewrite !det_scalar1 det1 mulr1 mul1r unitr_mul unitfE nza -unitmxE.
+rewrite !det_mulmx unitrM -unitmxE unitmx_perm det_lblock det_ublock.
+rewrite !det_scalar1 det1 mulr1 mul1r unitrM unitfE nza -unitmxE.
 rewrite mulmx_block !mulmx0 mul0mx !addr0 !mulmx1 mul1mx block_mxKur.
 rewrite mul_scalar_mx scalerA divff // scale1r eqxx andbT.
 by rewrite block_mxEh mul_mx_row row_mxKl -def_a vsubmxK -xrowE xrkK eqxx andbT.
@@ -2355,7 +2355,7 @@ Proof.
 rewrite -(genmx_muls R2 R3) -(genmx_muls R1 R3) -genmx_muls -genmx_adds.
 apply/genmxP; rewrite andbC addsmx_sub !mulsmxS ?addsmxSl ?addsmxSr //=.
 apply/mulsmx_subP=> _ A3 /memmx_addsP[A [R_A1 R_A2 ->]] R_A3.
-by rewrite mulmx_addl linearD addmx_sub_adds ?mem_mulsmx.
+by rewrite mulmxDl linearD addmx_sub_adds ?mem_mulsmx.
 Qed.
 
 Lemma mulsmx_addr m1 m2 m3 n
@@ -2365,7 +2365,7 @@ Proof.
 rewrite -(genmx_muls R1 R3) -(genmx_muls R1 R2) -genmx_muls -genmx_adds.
 apply/genmxP; rewrite andbC addsmx_sub !mulsmxS ?addsmxSl ?addsmxSr //=.
 apply/mulsmx_subP=> A1 _ R_A1 /memmx_addsP[A [R_A2 R_A3 ->]].
-by rewrite mulmx_addr linearD addmx_sub_adds ?mem_mulsmx.
+by rewrite mulmxDr linearD addmx_sub_adds ?mem_mulsmx.
 Qed.
 
 Lemma mulsmx0 m1 m2 n (R1 : 'A_(m1, n)) : (R1 * (0 : 'A_(m2, n)) = 0)%MS.
@@ -2520,13 +2520,13 @@ apply/eqmxP/andP; split.
   rewrite linearD addmx_sub_adds //= ?sub_capmx ?R1z1 ?R2z2 /=.
     apply/cent_mxP=> A R1_A; have R_A := submx_trans R1_A (addsmxSl R1 R2).
     have Rz2 := submx_trans R2z2 (addsmxSr R1 R2).
-    rewrite -{1}[z.1](addrK z.2) mulmx_subr (cent_mxP Cz) // mulmx_addl.
+    rewrite -{1}[z.1](addrK z.2) mulmxBr (cent_mxP Cz) // mulmxDl.
     rewrite [A *m z.2]memmx0 1?[z.2 *m A]memmx0 ?addrK //.
       by rewrite -dxR12 sub_capmx (mulsmx_subP idlR1) // (mulsmx_subP idrR2).
     by rewrite -dxR12 sub_capmx (mulsmx_subP idrR1) // (mulsmx_subP idlR2).
   apply/cent_mxP=> A R2_A; have R_A := submx_trans R2_A (addsmxSr R1 R2).
   have Rz1 := submx_trans R1z1 (addsmxSl R1 R2).
-  rewrite -{1}[z.2](addKr z.1) mulmx_addr (cent_mxP Cz) // mulmx_addl.
+  rewrite -{1}[z.2](addKr z.1) mulmxDr (cent_mxP Cz) // mulmxDl.
   rewrite mulmxN [A *m z.1]memmx0 1?[z.1 *m A]memmx0 ?addKr //.
     by rewrite -dxR12 sub_capmx (mulsmx_subP idrR1) // (mulsmx_subP idlR2).
   by rewrite -dxR12 sub_capmx (mulsmx_subP idlR1) // (mulsmx_subP idrR2).
@@ -2536,14 +2536,14 @@ rewrite addsmx_sub; apply/andP; split.
   rewrite sub_capmx Rz; apply/cent_mxP=> A0.
   case/memmx_addsP=> A [R1_A1 R2_A2] ->{A0}.
   have R_A2 := submx_trans R2_A2 (addsmxSr R1 R2).
-  rewrite mulmx_addl mulmx_addr (cent_mxP cR1z) //; congr (_ + _).
+  rewrite mulmxDl mulmxDr (cent_mxP cR1z) //; congr (_ + _).
   rewrite [A.2 *m z]memmx0 1?[z *m A.2]memmx0 //.
     by rewrite -dxR12 sub_capmx (mulsmx_subP idrR1) // (mulsmx_subP idlR2).
   by rewrite -dxR12 sub_capmx (mulsmx_subP idlR1) // (mulsmx_subP idrR2).
 apply/memmx_subP=> z; rewrite !sub_capmx => /andP[R2z cR2z].
 have Rz := submx_trans R2z (addsmxSr R1 R2); rewrite Rz.
 apply/cent_mxP=> _ /memmx_addsP[A [R1_A1 R2_A2 ->]].
-rewrite mulmx_addl mulmx_addr (cent_mxP cR2z _ R2_A2) //; congr (_ + _).
+rewrite mulmxDl mulmxDr (cent_mxP cR2z _ R2_A2) //; congr (_ + _).
 have R_A1 := submx_trans R1_A1 (addsmxSl R1 R2).
 rewrite [A.1 *m z]memmx0 1?[z *m A.1]memmx0 //.
   by rewrite -dxR12 sub_capmx (mulsmx_subP idlR1) // (mulsmx_subP idrR2).
@@ -2568,12 +2568,12 @@ apply/eqmxP/andP; split.
   rewrite -{1}defR => /memmx_sumsP[z ->{Z} Rz cRz].
   apply/memmx_sumsP; exists z => // i; rewrite sub_capmx Rz.
   apply/cent_mxP=> A RiA; have:= cent_mxP cRz A (memmx_subP (sR_R i) A RiA).
-  rewrite (bigD1 i) //= mulmx_addl mulmx_addr mulmx_suml mulmx_sumr.
+  rewrite (bigD1 i) //= mulmxDl mulmxDr mulmx_suml mulmx_sumr.
   by rewrite !big1 ?addr0 // => j; last rewrite eq_sym; move/anhR->.
 apply/sumsmx_subP => i _; apply/memmx_subP=> z; rewrite sub_capmx.
 case/andP=> Riz cRiz; rewrite sub_capmx (memmx_subP (sR_R i)) //=.
 apply/cent_mxP=> A; rewrite -{1}defR; case/memmx_sumsP=> a -> R_a.
-rewrite (bigD1 i) // mulmx_addl mulmx_addr mulmx_suml mulmx_sumr.
+rewrite (bigD1 i) // mulmxDl mulmxDr mulmx_suml mulmx_sumr.
 rewrite !big1 => [|j|j]; first by rewrite !addr0 (cent_mxP cRiz).
   by rewrite eq_sym => /anhR->.
 by move/anhR->.

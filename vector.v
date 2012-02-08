@@ -980,7 +980,7 @@ split.
  apply/idP/andP => /=; last by case; do 2 move/eqP ->.
  rewrite -[_ == u2]subr_eq0 -[_ == v2]subr_eq0 -!memv0 -dv !memv_cap.
  rewrite -subr_eq -addrA addrC eq_sym -subr_eq.
- rewrite -!(memvN _ (u1 - u2)) oppr_sub.
+ rewrite -!(memvN _ (u1 - u2)) opprB.
  move/eqP => Heq.
  move: (memv_sub Hu2 Hu1) (memv_sub Hv1 Hv2).
  by move: Heq => -> -> ->.
@@ -1106,7 +1106,7 @@ apply/eqP/forallP; last first.
   apply: eq_bigr => i Pi.
   by move/implyP/(_ Pi)/eqP: (Huv i).
 move/eqP.
-rewrite -subr_eq0 -sumr_sub => /eqP Hsum i.
+rewrite -subr_eq0 -sumrB => /eqP Hsum i.
 apply/implyP => Pi.
 rewrite -subr_eq0.
 apply/eqP.
@@ -1199,13 +1199,13 @@ Definition coord m (t : m.-tuple V) := locked
 Lemma coord_is_linear m (t : m.-tuple V) : linear (coord t).
 Proof.
 move=> k u v; apply/ffunP=> i.
-by unlock coord; rewrite !ffunE linearP mulmx_addl -scalemxAl !mxE.
+by unlock coord; rewrite !ffunE linearP mulmxDl -scalemxAl !mxE.
 Qed.
 Canonical coord_linear m (t : m.-tuple V) := Linear (coord_is_linear t).
 
 Lemma coord_sumE  m (t : m.-tuple V) I r (P : pred I) (F : I -> V) i :
  coord t (\sum_(j <- r | P j) F j) i = \sum_(j <- r | P j) coord t (F j) i.
-Proof. by rewrite linear_sum sum_ffunE ffunE. Qed.
+Proof. by rewrite linear_sum sum_ffunE. Qed.
 
 Lemma coord_span m (t : m.-tuple V) v :
   v \in span t -> v = \sum_(i < m) coord t v i *: t`_i.
@@ -1286,10 +1286,10 @@ have: t`_i = \sum_(j < m) (i == j)%:R *: t`_j.
   by rewrite eq_sym; move/negPf->; rewrite scale0r.
 have Hi: i < size t by rewrite size_tuple.
 rewrite {1}(coord_span  (memv_span (mem_nth _ Hi))).
-move/eqP; rewrite -subr_eq0 -sumr_sub.
+move/eqP; rewrite -subr_eq0 -sumrB.
 pose f j := (coord t t`_i j - (i == j)%:R) *: t`_j.
 rewrite (eq_bigr f); last first.
-  by move=>*; rewrite /f !scaler_subl.
+  by move=>*; rewrite /f !scalerBl.
 move/eqP=> HH; move/freeP: Hf; move/(_ _ HH j).
 by move/eqP; rewrite subr_eq0; move/eqP->.
 Qed.
@@ -1298,7 +1298,6 @@ Lemma free_coords m (t : m.-tuple V) s j :
   free t -> coord t (\sum_(i < m) s i *: (t`_i)) j  =  s j.
 Proof.
 move=> Hf; rewrite linear_sum (bigD1 j) //= ffunE sum_ffunE.
-rewrite [[ffun x => \sum_(i | _) _] j]ffunE.
 rewrite big1 => [| i Dij]; rewrite linearZ /=.
   by rewrite addr0 ffunE free_coordt // eqxx [_ *: _]mulr1.
 by rewrite ffunE free_coordt // (negPf Dij) scaler0.
@@ -1406,7 +1405,7 @@ pose s1 := (fun i : u => if i == 0 then 1 else if i == 1 then (-1: K) else 0).
 move/(_ s1).
 rewrite( bigD1 (0:u)) // (bigD1 (1: u)) // big1 /s1 /=; last first.
   by case=> [[|[|m]]] //=; rewrite scale0r.
-rewrite addr0 (eqP HH) -scaler_addl subrr scale0r.
+rewrite addr0 (eqP HH) -scalerDl subrr scale0r.
 by move/(_ (refl_equal _) 0); rewrite eqxx; move/eqP; rewrite oner_eq0.
 Qed.
 
@@ -1429,7 +1428,7 @@ Proof.
 pose f u := \sum_i coord (in_tuple B) u i *: fB`_i.
 have lin_f: linear f.
   move=> k u v; rewrite scaler_sumr -big_split; apply: eq_bigr => i _.
-  by rewrite /= scalerA -scaler_addl linearP !ffunE.
+  by rewrite /= scalerA -scalerDl linearP !ffunE.
 exists (Linear lin_f) => freeB eq_sz.
 apply/esym/(@eq_from_nth _ 0); rewrite ?size_map eq_sz // => i ltiB.
 rewrite (nth_map 0) //= /f (bigD1 (Ordinal ltiB)) //=.
@@ -1731,7 +1730,7 @@ Lemma zero_lappE x : (\0 x = 0)%VS.
 Proof. by rewrite /fun_of_lapp /= mulmx0 linear0. Qed.
 
 Lemma add_lappE f g x : (f \+ g)%VS x = f x + g x.
-Proof. by rewrite /fun_of_lapp mulmx_addr linearD. Qed.
+Proof. by rewrite /fun_of_lapp mulmxDr linearD. Qed.
 
 Lemma opp_lappE f x : (opp_lapp f) x = - f x.
 Proof. by rewrite /fun_of_lapp mulmxN linearN. Qed.
@@ -1751,10 +1750,10 @@ Lemma lapp_scale1 f : (1 \*: f = f)%VS.
 Proof. by case: f => [m]; congr LinearApp; exact: scale1r. Qed.
 
 Lemma lapp_addr k f1 f2 : (k \*: (f1 \+ f2) = (k \*: f1) \+ (k \*: f2))%VS.
-Proof. by congr LinearApp; exact: scaler_addr. Qed.
+Proof. by congr LinearApp; exact: scalerDr. Qed.
 
 Lemma lapp_addl f k1 k2 : ((k1 + k2) \*: f = (k1 \*: f) \+ (k2 \*: f))%VS.
-Proof. by congr LinearApp; exact: scaler_addl. Qed.
+Proof. by congr LinearApp; exact: scalerDl. Qed.
 
 Definition lapp_lmodMixin := 
   LmodMixin lapp_scaleA lapp_scale1 lapp_addr lapp_addl.
@@ -1781,7 +1780,7 @@ Variables (phV : phant V) (phW : phant W).
 
 Lemma hom_is_linear (f : linearVect phV phW) : linear f.
 Proof.
-by move=> a x y; rewrite /fun_of_lapp linearP mulmx_addl -scalemxAl linearP.
+by move=> a x y; rewrite /fun_of_lapp linearP mulmxDl -scalemxAl linearP.
 Qed.
 Canonical hom_linear f := Linear (hom_is_linear f).
 Canonical hom_additive f := Additive (hom_is_linear f).
@@ -1877,10 +1876,10 @@ Lemma comp_lappA f g h : (f \o (g \o h) = (f \o g) \o h)%VS.
 Proof. by apply: val_inj; rewrite /= !mulmxA. Qed.
 
 Lemma comp_lapp_addl f1 f2 g : ((f1 \+ f2) \o g = (f1 \o g) \+ (f2 \o g))%VS.
-Proof. by apply: val_inj; exact: mulmx_addr. Qed.
+Proof. by apply: val_inj; exact: mulmxDr. Qed.
 
 Lemma comp_lapp_addr f g1 g2 : (f \o (g1 \+ g2) = (f \o g1) \+ (f \o g2))%VS.
-Proof. by apply: val_inj; exact: mulmx_addl. Qed.
+Proof. by apply: val_inj; exact: mulmxDl. Qed.
 
 Lemma comp_1lapp f : (\1 \o f = f)%VS.
 Proof. by apply: val_inj; exact: mulmx1. Qed.
@@ -2121,7 +2120,7 @@ Lemma lker0P f : reflect (injective f) (lker f == 0%:VS).
 Proof.
 apply: (iffP idP).
   move=> Hf x y /eqP.
-  rewrite -GRing.subr_eq0 -linear_sub -memv_ker (eqP Hf) memv0 GRing.subr_eq0.
+  rewrite -GRing.subr_eq0 -linearB -memv_ker (eqP Hf) memv0 GRing.subr_eq0.
   by move/eqP.
 by move=> Hf; apply/vspaceP=> x; rewrite memv0 memv_ker; apply/eqP/eqP=> Hi;
    try apply: Hf; rewrite Hi linear0.
@@ -2204,7 +2203,7 @@ apply/idP/idP; last first.
   by move=> Hi; apply: (subv_trans Hi); exact: capvSl.
 move=> Hv; pose v1 := inv_lapp f (f v).
 have F1: v - v1 \in lker f.
- rewrite memv_ker linear_sub /v1.
+ rewrite memv_ker linearB /v1.
  have F1: ((f \o (f \^-1 \o f)) v = f v)%VS.
    by rewrite inv_lapp_def.
 by rewrite /= -{1}F1 comp_lappE /= comp_lappE /= addrN.
@@ -2275,7 +2274,7 @@ Proof. by rewrite -{2}[vs]limg_proj limgE memv_img // memvf. Qed.
 
 Lemma memv_projC vs v : v - projv vs v \in (vs^C)%VS.
 Proof.
-by rewrite -lker_proj memv_ker linear_sub /= (projv_id (memv_proj _ _)) subrr.
+by rewrite -lker_proj memv_ker linearB /= (projv_id (memv_proj _ _)) subrr.
 Qed.
 
 Definition addv_pi1 vs1 vs2 : 'End(V) :=
@@ -2299,7 +2298,7 @@ move=> Hv /=.
 rewrite add_lappE comp_lappE /= add_lappE opp_lappE unit_lappE
         projv_id; first by rewrite addrC subrK.
 move: Hv.
-rewrite /fun_of_lapp /in_mem /= /subsetv /injv !mx2vsK linear_sub /= rv2vK.
+rewrite /fun_of_lapp /in_mem /= /subsetv /injv !mx2vsK linearB /= rv2vK.
 move => Hv.
 by rewrite proj_mx_compl_sub.
 Qed.
@@ -2428,10 +2427,10 @@ Proof. by move=> *; apply: val_inj; exact: scalerA. Qed.
 Lemma subvect_scale1 : left_id 1 subvect_scale.
 Proof. by move=> *; apply: val_inj; exact: scale1r. Qed.
 Lemma subvect_scale_addr k : {morph (subvect_scale k) : x y / x + y}.
-Proof. by move=> u v; apply: val_inj; exact: scaler_addr. Qed.
+Proof. by move=> u v; apply: val_inj; exact: scalerDr. Qed.
 Lemma subvect_scale_addl u : 
   {morph (subvect_scale)^~ u : k1 k2 / k1 + k2}.
-Proof. by move=> k1 k2; apply: val_inj; exact: scaler_addl. Qed.
+Proof. by move=> k1 k2; apply: val_inj; exact: scalerDl. Qed.
 
 Definition subvect_lmodMixin :=
   GRing.Lmodule.Mixin subvect_scaleA subvect_scale1 

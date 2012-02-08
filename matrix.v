@@ -875,6 +875,13 @@ Proof.
 by move=> u; apply/rowP=> k; case/mxvec_indexP: k => i j; rewrite mxvecE mxE.
 Qed.
 
+Lemma curry_mxvec_bij : {on 'I_(m * n), bijective (prod_curry mxvec_index)}.
+Proof.
+exists (enum_val \o cast_ord (esym mxvec_cast)) => [[i j] _ | k _] /=.
+  by rewrite cast_ordK enum_rankK.
+by case/mxvec_indexP: k => i j /=; rewrite cast_ordK enum_rankK.
+Qed.
+
 End VecMatrix.
 
 End MatrixStructural.
@@ -1209,17 +1216,17 @@ Local Notation "x *m: A" := (scalemx x A) (at level 40) : ring_scope.
 Lemma scale1mx A : 1 *m: A = A.
 Proof. by apply/matrixP=> i j; rewrite !mxE mul1r. Qed.
 
-Lemma scalemx_addl A x y : (x + y) *m: A = x *m: A + y *m: A.
-Proof. by apply/matrixP=> i j; rewrite !mxE mulr_addl. Qed.
+Lemma scalemxDl A x y : (x + y) *m: A = x *m: A + y *m: A.
+Proof. by apply/matrixP=> i j; rewrite !mxE mulrDl. Qed.
 
-Lemma scalemx_addr x A B : x *m: (A + B) = x *m: A + x *m: B.
-Proof. by apply/matrixP=> i j; rewrite !mxE mulr_addr. Qed.
+Lemma scalemxDr x A B : x *m: (A + B) = x *m: A + x *m: B.
+Proof. by apply/matrixP=> i j; rewrite !mxE mulrDr. Qed.
 
 Lemma scalemxA x y A : x *m: (y *m: A) = (x * y) *m: A.
 Proof. by apply/matrixP=> i j; rewrite !mxE mulrA. Qed.
 
 Definition matrix_lmodMixin := 
-  LmodMixin scalemxA scale1mx scalemx_addr scalemx_addl.
+  LmodMixin scalemxA scale1mx scalemxDr scalemxDl.
 
 Canonical matrix_lmodType :=
   Eval hnf in LmodType R 'M[R]_(m, n) matrix_lmodMixin.
@@ -1337,7 +1344,7 @@ Proof. by apply/matrixP=> i j; rewrite !mxE eq_sym; case: eqP => // ->. Qed.
 
 Lemma diag_mx_is_linear n : linear (@diag_mx n).
 Proof.
-by move=> a A B; apply/matrixP=> i j; rewrite !mxE mulrnAr mulrn_addl.
+by move=> a A B; apply/matrixP=> i j; rewrite !mxE mulrnAr mulrnDl.
 Qed.
 Canonical diag_mx_additive n := Additive (@diag_mx_is_linear n).
 Canonical diag_mx_linear n := Linear (@diag_mx_is_linear n).
@@ -1367,7 +1374,7 @@ Proof. by apply/matrixP=> i j; rewrite !mxE eq_sym. Qed.
 Lemma trmx1 : (1%:M)^T = 1%:M. Proof. exact: tr_scalar_mx. Qed.
 
 Lemma scalar_mx_is_additive : additive scalar_mx.
-Proof. by move=> a b; rewrite -!diag_const_mx !raddf_sub. Qed.
+Proof. by move=> a b; rewrite -!diag_const_mx !raddfB. Qed.
 Canonical scalar_mx_additive := Additive scalar_mx_is_additive.
 
 Lemma scale_scalar_mx a1 a2 : a1 *: a2%:M = (a1 * a2)%:M :> 'M_n.
@@ -1446,48 +1453,48 @@ Qed.
 
 Lemma mulmxN m n p (A : 'M_(m, n)) (B : 'M_(n, p)) : A *m (- B) = - (A *m B).
 Proof.
-apply/matrixP=> i k; rewrite !mxE -sumr_opp.
+apply/matrixP=> i k; rewrite !mxE -sumrN.
 by apply: eq_bigr => j _; rewrite mxE mulrN.
 Qed.
 
 Lemma mulNmx m n p (A : 'M_(m, n)) (B : 'M_(n, p)) : - A *m B = - (A *m B).
 Proof.
-apply/matrixP=> i k; rewrite !mxE -sumr_opp.
+apply/matrixP=> i k; rewrite !mxE -sumrN.
 by apply: eq_bigr => j _; rewrite mxE mulNr.
 Qed.
 
-Lemma mulmx_addl m n p (A1 A2 : 'M_(m, n)) (B : 'M_(n, p)) :
+Lemma mulmxDl m n p (A1 A2 : 'M_(m, n)) (B : 'M_(n, p)) :
   (A1 + A2) *m B = A1 *m B + A2 *m B.
 Proof.
 apply/matrixP=> i k; rewrite !mxE -big_split /=.
-by apply: eq_bigr => j _; rewrite !mxE -mulr_addl.
+by apply: eq_bigr => j _; rewrite !mxE -mulrDl.
 Qed.
 
-Lemma mulmx_addr m n p (A : 'M_(m, n)) (B1 B2 : 'M_(n, p)) :
+Lemma mulmxDr m n p (A : 'M_(m, n)) (B1 B2 : 'M_(n, p)) :
   A *m (B1 + B2) = A *m B1 + A *m B2.
 Proof.
 apply/matrixP=> i k; rewrite !mxE -big_split /=.
-by apply: eq_bigr => j _; rewrite mxE mulr_addr.
+by apply: eq_bigr => j _; rewrite mxE mulrDr.
 Qed.
 
-Lemma mulmx_subl m n p (A1 A2 : 'M_(m, n)) (B : 'M_(n, p)) :
+Lemma mulmxBl m n p (A1 A2 : 'M_(m, n)) (B : 'M_(n, p)) :
   (A1 - A2) *m B = A1 *m B - A2 *m B.
-Proof. by rewrite mulmx_addl mulNmx. Qed.
+Proof. by rewrite mulmxDl mulNmx. Qed.
 
-Lemma mulmx_subr m n p (A : 'M_(m, n)) (B1 B2 : 'M_(n, p)) :
+Lemma mulmxBr m n p (A : 'M_(m, n)) (B1 B2 : 'M_(n, p)) :
   A *m (B1 - B2) = A *m B1 - A *m B2.
-Proof. by rewrite mulmx_addr mulmxN. Qed.
+Proof. by rewrite mulmxDr mulmxN. Qed.
 
 Lemma mulmx_suml m n p (A : 'M_(n, p)) I r P (B_ : I -> 'M_(m, n)) :
    (\sum_(i <- r | P i) B_ i) *m A = \sum_(i <- r | P i) B_ i *m A.
 Proof.
-by apply: (big_morph (mulmx^~ A)) => [B C|]; rewrite ?mul0mx ?mulmx_addl.
+by apply: (big_morph (mulmx^~ A)) => [B C|]; rewrite ?mul0mx ?mulmxDl.
 Qed.
 
 Lemma mulmx_sumr m n p (A : 'M_(m, n)) I r P (B_ : I -> 'M_(n, p)) :
    A *m (\sum_(i <- r | P i) B_ i) = \sum_(i <- r | P i) A *m B_ i.
 Proof.
-by apply: (big_morph (mulmx A)) => [B C|]; rewrite ?mulmx0 ?mulmx_addr.
+by apply: (big_morph (mulmx A)) => [B C|]; rewrite ?mulmx0 ?mulmxDr.
 Qed.
 
 Lemma scalemxAl m n p a (A : 'M_(m, n)) (B : 'M_(n, p)) :
@@ -1518,8 +1525,8 @@ Lemma mul_delta_mx_cond m n p (j1 j2 : 'I_n) (i1 : 'I_m) (k2 : 'I_p) :
   delta_mx i1 j1 *m delta_mx j2 k2 = delta_mx i1 k2 *+ (j1 == j2).
 Proof.
 apply/matrixP=> i k; rewrite !mxE (bigD1 j1) //=.
-rewrite mulmxnE !mxE !eqxx andbT -natr_mul -mulrnA !mulnb !andbA andbAC.
-by rewrite big1 ?addr0 // => j; rewrite !mxE andbC -natr_mul; move/negbTE->.
+rewrite mulmxnE !mxE !eqxx andbT -natrM -mulrnA !mulnb !andbA andbAC.
+by rewrite big1 ?addr0 // => j; rewrite !mxE andbC -natrM; move/negbTE->.
 Qed.
 
 Lemma mul_delta_mx m n p (j : 'I_n) (i : 'I_m) (k : 'I_p) :
@@ -1697,8 +1704,8 @@ have [le_n_i | lt_i_n] := leqP n i.
   rewrite andbF big1 // => j _.
   by rewrite -pid_mx_minh !mxE leq_minr ltnNge le_n_i andbF mul0r.
 rewrite (bigD1 (Ordinal lt_i_n)) //= big1 ?addr0 => [|j].
-  by rewrite !mxE eqxx /= -natr_mul mulnb andbCA.
-by rewrite -val_eqE /= !mxE eq_sym -natr_mul => /negbTE->.
+  by rewrite !mxE eqxx /= -natrM mulnb andbCA.
+by rewrite -val_eqE /= !mxE eq_sym -natrM => /negbTE->.
 Qed.
 
 Lemma pid_mx_id m n p r :
@@ -1709,16 +1716,16 @@ Definition copid_mx {n} r : 'M_n := 1%:M - pid_mx r.
 
 Lemma mul_copid_mx_pid m n r :
   r <= m -> copid_mx r *m pid_mx r = 0 :> 'M_(m, n).
-Proof. by move=> le_r_m; rewrite mulmx_subl mul1mx pid_mx_id ?subrr. Qed.
+Proof. by move=> le_r_m; rewrite mulmxBl mul1mx pid_mx_id ?subrr. Qed.
 
 Lemma mul_pid_mx_copid m n r :
   r <= n -> pid_mx r *m copid_mx r = 0 :> 'M_(m, n).
-Proof. by move=> le_r_n; rewrite mulmx_subr mulmx1 pid_mx_id ?subrr. Qed.
+Proof. by move=> le_r_n; rewrite mulmxBr mulmx1 pid_mx_id ?subrr. Qed.
 
 Lemma copid_mx_id n r :
   r <= n -> copid_mx r *m copid_mx r = copid_mx r :> 'M_n.
 Proof.
-by move=> le_r_n; rewrite mulmx_subl mul1mx mul_pid_mx_copid // oppr0 addr0.
+by move=> le_r_n; rewrite mulmxBl mul1mx mul_pid_mx_copid // oppr0 addr0.
 Qed.
 
 (* Block products; we cover all 1 x 2, 2 x 1, and 2 x 2 block products. *)
@@ -1816,7 +1823,7 @@ Proof. by rewrite mul_rV_lin !mxvecK. Qed.
 
 End LinMatrix.
 
-Canonical mulmx_additive m n p A := Additive (@mulmx_subr m n p A).
+Canonical mulmx_additive m n p A := Additive (@mulmxBr m n p A).
 
 Section Mulmxr.
 
@@ -1830,14 +1837,14 @@ Local Notation mulmxr := (mulmxr_head tt).
 Definition lin_mulmxr B := lin_mx (mulmxr B).
 
 Lemma mulmxr_is_linear B : linear (mulmxr B).
-Proof. by move=> a A1 A2; rewrite /= mulmx_addl scalemxAl. Qed.
+Proof. by move=> a A1 A2; rewrite /= mulmxDl scalemxAl. Qed.
 Canonical mulmxr_additive B := Additive (mulmxr_is_linear B).
 Canonical mulmxr_linear B := Linear (mulmxr_is_linear B).
 
 Lemma lin_mulmxr_is_linear : linear lin_mulmxr.
 Proof.
 move=> a A B; apply/row_matrixP; case/mxvec_indexP=> i j.
-rewrite linearP /= !rowE !mul_rV_lin /= vec_mx_delta -linearP mulmx_addr.
+rewrite linearP /= !rowE !mul_rV_lin /= vec_mx_delta -linearP mulmxDr.
 congr (mxvec (_ + _)); apply/row_matrixP=> k.
 rewrite linearZ /= !row_mul rowE mul_delta_mx_cond.
 by case: (k == i); [rewrite -!rowE linearZ | rewrite !mul0mx raddf0]. 
@@ -1858,21 +1865,17 @@ Local Notation "'\tr' A" := (mxtrace A) : ring_scope.
 Lemma mxtrace_tr A : \tr A^T = \tr A.
 Proof. by apply: eq_bigr=> i _; rewrite mxE. Qed.
 
-Lemma mxtrace_is_linear : linear (mxtrace : 'M_n -> R^o).
+Lemma mxtrace_is_scalar : scalar mxtrace.
 Proof.
-move=> a A B; rewrite raddf_sum -big_split /=; apply: eq_bigr=> i _.
+move=> a A B; rewrite mulr_sumr -big_split /=; apply: eq_bigr=> i _.
 by rewrite !mxE.
 Qed.
-Canonical mxtrace_additive := Additive mxtrace_is_linear.
-Canonical mxtrace_linear := Linear mxtrace_is_linear.
+Canonical mxtrace_additive := Additive mxtrace_is_scalar.
+Canonical mxtrace_linear := Linear mxtrace_is_scalar.
 
 Lemma mxtrace0 : \tr 0 = 0. Proof. exact: raddf0. Qed.
-
-Lemma mxtraceD A B : \tr (A + B) = \tr A + \tr B.
-Proof. exact: raddfD. Qed.
-
-Lemma mxtraceZ a A : \tr (a *: A) = a * \tr A.
-Proof. by rewrite linearZ. Qed.
+Lemma mxtraceD A B : \tr (A + B) = \tr A + \tr B. Proof. exact: raddfD. Qed.
+Lemma mxtraceZ a A : \tr (a *: A) = a * \tr A. Proof. exact: scalarZ. Qed.
 
 Lemma mxtrace_diag D : \tr (diag_mx D) = \sum_j D 0 j.
 Proof. by apply: eq_bigr => j _; rewrite mxE eqxx. Qed.
@@ -1910,7 +1913,7 @@ Proof. by apply/eqP=> /matrixP/(_ 0 0)/eqP; rewrite !mxE oner_eq0. Qed.
 
 Definition matrix_ringMixin :=
   RingMixin (@mulmxA n n n n) (@mul1mx n n) (@mulmx1 n n)
-            (@mulmx_addl n n n) (@mulmx_addr n n n) matrix_nonzero1.
+            (@mulmxDl n n n) (@mulmxDr n n n) matrix_nonzero1.
 
 Canonical matrix_ringType := Eval hnf in RingType 'M[R]_n matrix_ringMixin.
 Canonical matrix_lAlgType := Eval hnf in LalgType R 'M[R]_n (@scalemxAl n n n).
@@ -2201,8 +2204,8 @@ Proof.
 rewrite -[_ + _](row_id 0); move/row_eq=> ABC.
 move/row'_eq=> BA; move/row'_eq=> CA.
 rewrite !big_distrr -big_split; apply: eq_bigr => s _ /=.
-rewrite -!(mulrCA (_ ^+s)) -mulr_addr; congr (_ * _).
-rewrite !(bigD1 i0 (_ : predT i0)) //= {}ABC !mxE mulr_addl !mulrA.
+rewrite -!(mulrCA (_ ^+s)) -mulrDr; congr (_ * _).
+rewrite !(bigD1 i0 (_ : predT i0)) //= {}ABC !mxE mulrDl !mulrA.
 by congr (_ * _ + _ * _); apply: eq_bigr => i i0i; rewrite ?BA ?CA.
 Qed.
 
@@ -2212,7 +2215,7 @@ Proof.
 move=> neq_i12 eqA12; pose t := tperm i1 i2.
 have oddMt s: (t * s)%g = ~~ s :> bool by rewrite odd_permM odd_tperm neq_i12.
 rewrite [\det A](bigID (@odd_perm _)) /=.
-apply: canLR (subrK _) _; rewrite add0r -sumr_opp.
+apply: canLR (subrK _) _; rewrite add0r -sumrN.
 rewrite (reindex_inj (mulgI t)); apply: eq_big => //= s.
 rewrite oddMt => /negPf->; rewrite mulN1r mul1r; congr (- _).
 rewrite (reindex_inj (@perm_inj _ t)); apply: eq_bigr => /= i _.
@@ -2398,7 +2401,7 @@ move=> AB1; rewrite leqNgt; apply/negP=> /subnKC; rewrite addSnnS.
 move: (_ - _)%N => m' def_m; move: AB1; rewrite -{m}def_m in A B *.
 rewrite -(vsubmxK A) -(hsubmxK B) mul_col_row scalar_mx_block.
 case/eq_block_mx=> /mulmx1C BlAu1 AuBr0 _ => /eqP/idPn[].
-by rewrite -[_ B]mul1mx -BlAu1 -mulmxA AuBr0 !mulmx0 eq_sym nonzero1r.
+by rewrite -[_ B]mul1mx -BlAu1 -mulmxA AuBr0 !mulmx0 eq_sym oner_neq0.
 Qed.
 
 Lemma det_ublock n1 n2 Aul (Aur : 'M[R]_(n1, n2)) Adr :
@@ -2447,24 +2450,24 @@ Proof. by []. Qed.
 Lemma unitmx1 : 1%:M \in unitmx. Proof. by rewrite unitmxE det1 unitr1. Qed.
 
 Lemma unitmx_perm s : perm_mx s \in unitmx.
-Proof. by rewrite unitmxE det_perm unitr_exp ?unitr_opp ?unitr1. Qed.
+Proof. by rewrite unitmxE det_perm unitrX ?unitrN ?unitr1. Qed.
 
 Lemma unitmx_tr A : (A^T \in unitmx) = (A \in unitmx).
 Proof. by rewrite unitmxE det_tr. Qed.
 
 Lemma unitmxZ a A : GRing.unit a -> (a *: A \in unitmx) = (A \in unitmx).
-Proof. by move=> Ua; rewrite !unitmxE detZ unitr_mul unitr_exp. Qed.
+Proof. by move=> Ua; rewrite !unitmxE detZ unitrM unitrX. Qed.
 
 Lemma invmx1 : invmx 1%:M = 1%:M.
 Proof. by rewrite /invmx det1 invr1 scale1r adj1 if_same. Qed.
 
 Lemma invmxZ a A : a *: A \in unitmx -> invmx (a *: A) = a^-1 *: invmx A.
 Proof.
-rewrite /invmx !unitmxE detZ unitr_mul => /andP[Ua U_A].
+rewrite /invmx !unitmxE detZ unitrM => /andP[Ua U_A].
 rewrite Ua U_A adjZ !scalerA invr_mul {U_A}//=.
 case: (posnP n) A => [-> | n_gt0] A; first by rewrite flatmx0 [_ *: _]flatmx0.
-rewrite unitr_pexp // in Ua; rewrite -[_ * _](mulrK Ua) mulrC -!mulrA.
-by rewrite -exprSr prednK // !mulrA divrK ?unitr_exp.
+rewrite unitrX_pos // in Ua; rewrite -[_ * _](mulrK Ua) mulrC -!mulrA.
+by rewrite -exprSr prednK // !mulrA divrK ?unitrX.
 Qed.
 
 Lemma invmx_scalar a : invmx (a%:M) = a^-1%:M.
@@ -2472,7 +2475,7 @@ Proof.
 case Ua: (a%:M \in unitmx).
   by rewrite -scalemx1 in Ua *; rewrite invmxZ // invmx1 scalemx1.
 rewrite /invmx Ua; have [->|n_gt0] := posnP n; first by rewrite ![_%:M]flatmx0.
-by rewrite unitmxE det_scalar unitr_pexp // in Ua; rewrite invr_out ?Ua.
+by rewrite unitmxE det_scalar unitrX_pos // in Ua; rewrite invr_out ?Ua.
 Qed.
 
 Lemma mulVmx : {in unitmx, left_inverse 1%:M invmx mulmx}.
@@ -2504,10 +2507,10 @@ by apply: (mulrI uA); rewrite -det_mulmx mulmxV ?divrr ?det1.
 Qed.
 
 Lemma unitmx_inv A : (invmx A \in unitmx) = (A \in unitmx).
-Proof. by rewrite !unitmxE det_inv unitr_inv. Qed.
+Proof. by rewrite !unitmxE det_inv unitrV. Qed.
 
 Lemma unitmx_mul A B : (A *m B \in unitmx) = (A \in unitmx) && (B \in unitmx).
-Proof. by rewrite -unitr_mul -det_mulmx. Qed.
+Proof. by rewrite -unitrM -det_mulmx. Qed.
 
 Lemma trmx_inv (A : 'M_n) : (invmx A)^T = invmx (A^T).
 Proof. by rewrite (fun_if trmx) linearZ /= trmx_adj -unitmx_tr -det_tr. Qed.
@@ -2655,7 +2658,7 @@ Lemma scalemx_inj m n a :
 Proof.
 move=> nz_a A B eq_aAB; apply: contraNeq nz_a.
 rewrite -[A == B]subr_eq0 -[a == 0]orbF => /negPf<-.
-by rewrite -scalemx_eq0 linear_sub subr_eq0 /= eq_aAB.
+by rewrite -scalemx_eq0 linearB subr_eq0 /= eq_aAB.
 Qed.
 
 Lemma det0P n (A : 'M[R]_n) :
@@ -2695,7 +2698,7 @@ have [aj0 | nz_aj] := eqVneq aj 0.
 exists (aj *: w0 - a0 *: wj).
   apply: contraNneq nz_aj; move/rowP/(_ j)/eqP; rewrite !mxE wj0_0 mulr0 subr0.
   by rewrite mulf_eq0 (negPf nz_w0j) orbF.
-rewrite defA (@mul_mx_row _ _ _ 1) !mulmx_subl -!scalemxAl w0A' wjA' !linear0.
+rewrite defA (@mul_mx_row _ _ _ 1) !mulmxBl -!scalemxAl w0A' wjA' !linear0.
 by rewrite -mul_mx_scalar -mul_scalar_mx -!mx11_scalar subrr addr0 row_mx0.
 Qed.
 
@@ -2786,7 +2789,7 @@ set k := odflt _ _; set A1 : 'M_(1 + _) := xrow _ _ _.
 set A' := _ - _; move/(_ A'): IHn; case: cormen_lup => [[P' L' U']] /= IHn.
 rewrite -mulrA -!mulmxE -xrowE -/A1 /= -[n.+2]/(1 + n.+1)%N -{1}(submxK A1).
 rewrite !mulmx_block !mul0mx !mulmx0 !add0r !addr0 !mul1mx -{L' U'}[L' *m _]IHn.
-rewrite -scalemxAl !scalemxAr -!mulmxA addrC -mulr_addr {A'}subrK.
+rewrite -scalemxAl !scalemxAr -!mulmxA addrC -mulrDr {A'}subrK.
 congr (block_mx _ _ (_ *m _) _).
 rewrite [_ *: _]mx11_scalar !mxE lshift0 tpermL {}/A1 {}/k.
 case: pickP => /= [k nzAk0 | no_k]; first by rewrite mulVf ?mulmx1.

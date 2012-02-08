@@ -152,14 +152,14 @@ Lemma addC : commutative add.
 Proof. by move=> x y; rewrite /add addrC [_.2 * _.2]mulrC. Qed.
 Lemma addA : associative add.
 Proof.
-by move=> x y z; rewrite /add !mulrA !mulr_addl addrA ![_ * x.2]mulrC !mulrA.
+by move=> x y z; rewrite /add !mulrA !mulrDl addrA ![_ * x.2]mulrC !mulrA.
 Qed.
 
 Lemma addq_frac x y : x.2 != 0 -> y.2 != 0 -> (addq (fracq x) (fracq y)) = fracq (add x y).
 Proof.
 rewrite /add; case: fracqP=> // {x} k x k0 _; case: fracqP=> // {y} k' y k'0 _.
 apply/eqP; rewrite fracq_eq /= ?mulf_neq0 ?denq_neq0 //; apply/eqP.
-by rewrite !mulr_addl !mulrA ![_ * k]mulrC !mulrA ![_ * k']mulrC !mulrA.
+by rewrite !mulrDl !mulrA ![_ * k]mulrC !mulrA ![_ * k']mulrC !mulrA.
 Qed.
 
 Lemma qnumzD : {morph qnumz : x y / x + y >-> addq x y}.
@@ -247,7 +247,7 @@ Lemma mulq_addl : left_distributive mulq addq.
 Proof.
 move=> x y z; rewrite -[x]valqK -[y]valqK -[z]valqK /=.
 rewrite !(mulq_frac, addq_frac) ?mulf_neq0 ?denq_neq0 //=.
-apply/eqP; rewrite fracq_eq ?mulf_neq0 ?denq_neq0 //= !mulr_addl; apply/eqP.
+apply/eqP; rewrite fracq_eq ?mulf_neq0 ?denq_neq0 //= !mulrDl; apply/eqP.
 by rewrite !mulrA ![_ * numq z]mulrC !mulrA ![_ * denq x]mulrC !mulrA.
 Qed.
 
@@ -355,7 +355,7 @@ Lemma zintqE n : n%:Q = qnumz n.
 Proof.
 elim: n=> [|n ihn|n ihn]; first by rewrite mulr0z qnumzE.
   by rewrite zintS mulrz_addl QnumField.qnumzD ihn.
-by rewrite zintS oppr_add mulrz_addl QnumField.qnumzD ihn.
+by rewrite zintS opprD mulrz_addl QnumField.qnumzD ihn.
 Qed.
 
 Lemma numq_zint n : numq n%:Q = n. Proof. by rewrite zintqE. Qed.

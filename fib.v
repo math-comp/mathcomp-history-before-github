@@ -334,7 +334,7 @@ elim=> [|n IH].
 rewrite exprS -IH; apply/matrixP=> i j.
 by rewrite !mxE !big_ord_recl big_ord0 !mxE;
    case: i=> [[|[|]]] //= _; case: j=> [[|[|]]] //= _;
-   rewrite !mul1r ?mul0r !addr0  // fibSS natr_add.
+   rewrite !mul1r ?mul0r !addr0  // fibSS natrD.
 Qed.
 
 End Matrix.

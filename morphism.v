@@ -312,6 +312,21 @@ move=> Dx; apply/setP=> y; rewrite conjIg !inE conjGid // !mem_conjg inE.
 by case Dy: (y \in D); rewrite // morphJ ?(morphV, groupV).
 Qed.
 
+Lemma morphim_class x A :
+  x \in D -> A \subset D -> f @* (x ^: A) = f x ^: f @* A.
+Proof.
+move=> Dx sAD; rewrite !morphimEsub ?class_subG // /class -!imset_comp.
+by apply: eq_in_imset => y Ay /=; rewrite morphJ // (subsetP sAD).
+Qed.
+
+Lemma classes_morphim A :
+  A \subset D -> classes (f @* A) = [set f @* xA | xA <- classes A].
+Proof.
+move=> sAD; rewrite morphimEsub // /classes -!imset_comp.
+apply: eq_in_imset => x /(subsetP sAD) Dx /=.
+by rewrite morphim_class ?morphimEsub.
+Qed.
+
 Lemma morphimT : f @* setT = f @* D.
 Proof. by rewrite -morphimIdom setIT. Qed.
 
@@ -397,6 +412,9 @@ move=> sKG; apply/eqP; rewrite eqEsubset morphimD andbT !setDE subsetI.
 rewrite morphimS ?subsetIl // -[~: f @* G]setU0 -subDset setDE setCK.
 by rewrite -morphimIG //= setIAC -setIA setICr setI0 morphim0.
 Qed.
+
+Lemma morphimD1 A : (f @* A)^# \subset f @* A^#.
+Proof. by rewrite -!set1gE -morphim1 morphimD. Qed.
 
 (* group structure preservation *)
 
@@ -759,6 +777,16 @@ have sfI: f @* A :&: f @* B \subset f @* D.
   by apply/setIidPr; rewrite setIA morphimIim.
 rewrite -(morphpreK sfI) morphpreI -(morphimIdom A) -(morphimIdom B).
 by rewrite !injmK ?subsetIl // setICA -setIA !morphimIdom.
+Qed.
+
+Lemma injmD1 A : f @* A^# = (f @* A)^#.
+Proof. by have:= morphimDG A injf; rewrite morphim1. Qed.
+
+Lemma nclasses_injm A : A \subset D -> #|classes (f @* A)| = #|classes A|.
+Proof.
+move=> sAD; rewrite classes_morphim // card_in_imset //.
+move=> _ _ /imsetP[x Ax ->] /imsetP[y Ay ->].
+by apply: injm_morphim_inj; rewrite // class_subG ?(subsetP sAD).
 Qed.
 
 Lemma injm_norm A : A \subset D -> f @* 'N(A) = 'N_(f @* D)(f @* A).
@@ -1301,6 +1329,9 @@ have defG: f @*^-1 (f @* G) = G by rewrite morphimGK ?subsetIl.
 rewrite -morphim_comp -{1 8}defG.
 by apply/isogP; exists [morphism of g \o f]; rewrite ?injm_comp.
 Qed.
+
+Lemma nclasses_isog : G \isog H -> #|classes G| = #|classes H|.
+Proof. by case/isogP=> f injf <-; rewrite nclasses_injm. Qed.
 
 End Isomorphisms.
 

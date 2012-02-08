@@ -349,7 +349,7 @@ move=> nsHG chiHj; have [sHG nHG] := andP nsHG; rewrite -(cfResE _ sHG) //.
 rewrite {1}(Clifford_Res_sum_cfclass nsHG chiHj) cfunE sum_cfunE.
 have /isNatCP[n ->]: isNatC '['Res[H] 'chi_i, 'chi_j].
   by rewrite cfdot_char_Nat ?cfRes_char ?irr_char.
-exists (n * size ('chi_j ^: G)%CF)%N; rewrite natr_mul -mulrA; congr (_ * _).
+exists (n * size ('chi_j ^: G)%CF)%N; rewrite natrM -mulrA; congr (_ * _).
 rewrite mulr_natl -[size _]card_ord big_tnth -sumr_const; apply: eq_bigr => k _.
 by have /cfclassP[y Gy ->]:=  mem_tnth k (in_tuple _); rewrite cfConjg_val1.
 Qed.

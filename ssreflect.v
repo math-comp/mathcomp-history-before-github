@@ -28,8 +28,6 @@ Set SsrAstVersion.
 (* ssreflect manual, and in specific comments below.                          *)
 (******************************************************************************)
 
-(* Global Set Bullet Behavior "None". *)
-
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.

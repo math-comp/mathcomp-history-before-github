@@ -282,7 +282,7 @@ Proof.
 move=> p q e.
 elim: p q=> [|a p Hp] q /=; first by rewrite add0r.
 case: q=> [|b q] /=; first by rewrite addr0.
-rewrite Hp mulr_addl -!addrA; congr (_+_).
+rewrite Hp mulrDl -!addrA; congr (_+_).
 rewrite polyC_add addrC -addrA; congr (_+_).
 by rewrite addrC.
 Qed.  
@@ -304,9 +304,9 @@ Lemma eval_mulpT : forall p q e,
 Proof.
 move=> p q e.
 elim: p q=> [|a p Hp] q /=; first by rewrite mul0r.
-rewrite eval_sumpT /= Hp addr0 mulr_addl addrC mulrAC; congr (_+_).
+rewrite eval_sumpT /= Hp addr0 mulrDl addrC mulrAC; congr (_+_).
 elim: q=> [|b q Hq] /=; first by rewrite mulr0.
-by rewrite Hq polyC_mul mulr_addr mulrA.
+by rewrite Hq polyC_mul mulrDr mulrA.
 Qed.
 
 Lemma rpoly_map_mul : forall t p, rterm t -> rpoly (map (Mul t) p) = rpoly p.
@@ -327,7 +327,7 @@ Definition opppT := map (Mul (@Const F (-1))).
 Lemma eval_opppT : forall p e, eval_poly e (opppT p) = - eval_poly e p.
 Proof.
 move=> p e; elim: p; rewrite //= ?oppr0 // => t ts ->.
-by rewrite !mulNr !oppr_add polyC_opp mul1r.
+by rewrite !mulNr !opprD polyC_opp mul1r.
 Qed.
 
 Definition natmulpT n := map (Mul (@NatConst F n)).
@@ -335,7 +335,7 @@ Lemma eval_natmulpT : forall p n e,
   eval_poly e (natmulpT n p) = (eval_poly e p) *+ n.
 Proof.
 move=> p n e; elim: p; rewrite //= ?mul0rn // => c p ->.
-rewrite mulrn_addl mulr_natl polyC_natmul; congr (_+_). 
+rewrite mulrnDl mulr_natl polyC_natmul; congr (_+_). 
 by rewrite -mulr_natl mulrAC -mulrA mulr_natl mulrC.
 Qed.
 

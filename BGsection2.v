@@ -201,7 +201,7 @@ Hypothesis prim_eps : h.-primitive_root eps.
 
 Let h_gt0 := prim_order_gt0 prim_eps.
 Let eps_h := prim_expr_order prim_eps.
-Let eps_mod_h m := exprn_mod m eps_h.
+Let eps_mod_h m := expr_mod m eps_h.
 Let inj_eps : injective (fun i : 'I_h => eps ^+ i).
 Proof.
 move=> i j eq_ij; apply/eqP; move/eqP: eq_ij.
@@ -228,12 +228,12 @@ Local Notation "'E_ ( i , t )" := (E2_ i t)
   (at level 8, format "''E_' ( i ,  t )").
 
 Let inj_g : GRing.unit g.
-Proof. by rewrite -(unitr_pexp _ h_gt0) gh1 unitr1. Qed.
+Proof. by rewrite -(unitrX_pos _ h_gt0) gh1 unitr1. Qed.
 
 Let Vi_mod i : 'V_(i %% h) = 'V_i.
 Proof. by rewrite /V_ eps_mod_h. Qed.
 
-Let g_mod i := exprn_mod i gh1.
+Let g_mod i := expr_mod i gh1.
 
 Let EiP i e : reflect (e^g = eps ^+ i *: e) (e \in 'E_i)%MS.
 Proof.
@@ -267,7 +267,7 @@ have F'Zh: [char F]^'.-group (Zp h).
   have d_gt0: d > 0 by move: h_gt0; rewrite def_h; case d.
   have: eps ^+ d == 1.
     rewrite -(inj_eq (fmorph_inj [rmorphism of Frobenius_aut charFp])).
-    by rewrite rmorph1 /= Frobenius_autE -exprn_mulr -def_h eps_h.
+    by rewrite rmorph1 /= Frobenius_autE -exprM -def_h eps_h.
   by rewrite -(prim_order_dvd prim_eps) gtnNdvd // def_h ltn_Pmulr // prime_gt1.
 case: (ltngtP h 1) => [|h_gt1|h1]; last first; last by rewrite ltnNge h_gt0.
   rewrite /sumV mxdirectE /= h1 !big_ord1; split=> //.
@@ -275,7 +275,7 @@ case: (ltngtP h 1) => [|h_gt1|h1]; last first; last by rewrite ltnNge h_gt0.
   by rewrite mul1mx scale1r idmxE -gh1 h1.
 pose mxZ (i : 'Z_h) := g ^+ i.
 have mxZ_repr: mx_repr (Zp h) mxZ.
-  by split=> // i j _ _; rewrite /mxZ /= {3}Zp_cast // exprn_mod // exprn_addr.
+  by split=> // i j _ _; rewrite /mxZ /= {3}Zp_cast // expr_mod // exprD.
 pose rZ := MxRepresentation mxZ_repr.
 have ZhT: Zp h = setT by rewrite /Zp h_gt1.
 have memZh: _ \in Zp h by move=> i; rewrite ZhT inE.
@@ -300,7 +300,7 @@ have [a defvg]: exists a, v *m rZ 1%R = a *: v.
   by apply/sub_rVP; rewrite -defMi mxmodule_trans ?socle_module ?defMi.
 have: a ^+ h - 1 == 0.
   apply: contraR nz_v => nz_pZa; rewrite -(eqmx_eq0 (eqmx_scale _ nz_pZa)).
-  by rewrite scaler_subl scale1r -lin_rZ // subr_eq0 char_Zp ?mulmx1.
+  by rewrite scalerBl scale1r -lin_rZ // subr_eq0 char_Zp ?mulmx1.
 rewrite subr_eq0; move/eqP; case/(prim_rootP prim_eps) => k def_a.
 by rewrite defMi (sumsmx_sup k) // /V_ -def_a; exact/eigenspaceP.
 Qed.
@@ -320,7 +320,7 @@ pose p (i : 'I_h) := proj_mx 'V_i (\sum_(j | j != i) 'V_j)%MS.
 have def1p: 1%:M = \sum_i p i.
   rewrite -[\sum_i _]mul1mx; move/eqmxP: def1V; rewrite submx1.
   case/sub_sumsmxP=> u ->; rewrite mulmx_sumr; apply: eq_bigr => i _.
-  rewrite (bigD1 i) //= mulmx_addl proj_mx_id ?submxMl ?dxV //.
+  rewrite (bigD1 i) //= mulmxDl proj_mx_id ?submxMl ?dxV //.
   rewrite proj_mx_0 ?dxV ?addr0 ?summx_sub // => j ne_ji.
   by rewrite (sumsmx_sup j) ?submxMl.
 split; first do [apply/eqmxP; rewrite submx1].
@@ -356,7 +356,7 @@ pose p (i : 'I_h) := proj_mx 'V_i (\sum_(j | j != i) 'V_j)%MS.
 have def1p: 1%:M = \sum_i p i.
   rewrite -[\sum_i _]mul1mx; move/eqmxP: def1V; rewrite submx1.
   case/sub_sumsmxP=> u ->; rewrite mulmx_sumr; apply: eq_bigr => j _.
-  rewrite (bigD1 j) //= mulmx_addl proj_mx_id ?submxMl ?dxV //.
+  rewrite (bigD1 j) //= mulmxDl proj_mx_id ?submxMl ?dxV //.
   rewrite proj_mx_0 ?dxV ?addr0 ?summx_sub // => k ne_kj.
   by rewrite (sumsmx_sup k) ?submxMl.
 move: i t => i0 t0; pose i := inh i0; pose t := inh t0.
@@ -400,7 +400,7 @@ case/sub_sumsmxP=> p ->; rewrite -!mulmxA !mulmx_suml.
 apply: eq_bigr=> k _; have [-> | ne_ki] := eqVneq (k : nat) (i %% h)%N.
   rewrite Vi_mod -mulmxA (mulmxA _ A) (eigenspaceP ViA).
   rewrite (mulmxA _ g) (eigenspaceP (submxMl _ _)).
-  by rewrite -!(scalemxAl, scalemxAr) scalerA mulmxA exprn_addr.
+  by rewrite -!(scalemxAl, scalemxAr) scalerA mulmxA exprD.
 rewrite 2!mulmxA (eigenspaceP (submxMl _ _)) -!(scalemxAr, scalemxAl).
 by rewrite -(mulmxA _ 'V_k A) Vi'A ?linear0 ?mul0mx ?scaler0 // modn_small.
 Qed.
@@ -932,7 +932,7 @@ have{ab1 ap1 def_x} ne_ab: a != b.
   apply/eqP=> defa; have defb: b = 1.
     rewrite -ap1 (divn_eq p 2) modn2.
     have ->: odd p by rewrite -oxp (oddSg _ oddG) // cycle_subG.
-    by rewrite addn1 exprS mulnC exprn_mulr exprS {1 3}defa ab1 exp1rn mulr1.
+    by rewrite addn1 exprS mulnC exprM exprS {1 3}defa ab1 expr1n mulr1.
   suff x1: x \in [1] by rewrite -oxp (set1P x1) order1 in p_pr.
   rewrite (subsetP ffulG) // inE Gx def_x defa defb -scalar_mx_block mulmx1.
   by rewrite mul1mx mulVmx ?eqxx.
@@ -941,7 +941,7 @@ have{a b ne_ab def_ux def_vx} nx_uv (w : 'rV_2):
 - case/submxP=> c; have:= mulmxKV uB w.
   rewrite -[_ *m invmx B]hsubmxK [lsubmx _]mx11_scalar [rsubmx _]mx11_scalar.
   move: (_ 0) (_ 0) => dv du; rewrite mul_row_col !mul_scalar_mx => <-{w}.
-  rewrite mulmx_addl -!scalemxAl def_ux def_vx mulmx_addr -!scalemxAr.
+  rewrite mulmxDl -!scalemxAl def_ux def_vx mulmxDr -!scalemxAr.
   rewrite !scalemxAl -!mul_row_col; move/(can_inj (mulmxK uB)).
   case/eq_row_mx => eqac eqbc; apply/orP.
   have [-> | nz_dv] := eqVneq dv 0; first by rewrite scale0r addr0 scalemx_sub.
@@ -1043,7 +1043,7 @@ have fixB: {in P, forall x, exists2 a, u *m rG x = u & v *m rG x = v + a *: u}.
   by rewrite addrC -mul_scalar_mx -mx11_scalar -def_vx subrK.
 rewrite -(inj_eq (can_inj (mulKmx uB))) // !mulmxA !mul_col_mx.
 case/fixB: Py => a uy vy; case/fixB: Pz => b uz vz.
-by rewrite uy uz vy vz !mulmx_addl -!scalemxAl uy uz vy vz addrAC.
+by rewrite uy uz vy vz !mulmxDl -!scalemxAl uy uz vy vz addrAC.
 Qed.
 
 (* This is B & G, Lemma 2.7. *)
@@ -1099,7 +1099,7 @@ have lam_q Pi b:
 - move=> modPi linPi Qb; apply/eqP; rewrite eq_sym -subr_eq0.
   have: \rank Pi != 0%N by rewrite linPi.
   apply: contraR; move/eqmx_scale=> <-.
-  rewrite mxrank_eq0 scaler_subl subr_eq0 -mul_mx_scalar -(repr_mx1 rQ).
+  rewrite mxrank_eq0 scalerBl subr_eq0 -mul_mx_scalar -(repr_mx1 rQ).
   have <-: (b ^+ q = 1)%g by case/and3P: abelQ => _ _; move/exponentP->.
   apply/eqP; rewrite repr_mxX //.
   elim: (q) => [|k IHk]; first by rewrite scale1r mulmx1.
@@ -1107,7 +1107,7 @@ have lam_q Pi b:
 pose f b := (lam P1 b, lam P2 b).
 have inj_f: {in Q &, injective f}.
   move=> b c Qb Qc /= [eq_bc1 eq_bc2]; apply: (mx_faithful_inj ffulQ) => //.
-  rewrite -[rQ b]mul1mx -[rQ c]mul1mx {}def1 !mulmx_addl -!mulmxA.
+  rewrite -[rQ b]mul1mx -[rQ c]mul1mx {}def1 !mulmxDl -!mulmxA.
   by rewrite !{1}rQ_lam ?eq_bc1 ?eq_bc2.
 pose rs := [set x : 'F_p | x ^+ q == 1].
 have s_fQ_rs: f @: Q \subset setX rs rs.
@@ -1127,23 +1127,23 @@ have: ~~ (rs \subset [set (1 : 'F_p)]).
 case/subsetPn => r rs_r; rewrite inE => ne_r_1.
 have rq1: r ^+ q = 1 by apply/eqP; rewrite inE in rs_r.
 split.
-  have Ur: GRing.unit r by rewrite -(unitr_pexp _ (prime_gt0 q_pr)) rq1 unitr1.
+  have Ur: GRing.unit r by rewrite -(unitrX_pos _ (prime_gt0 q_pr)) rq1 unitr1.
   pose u_r : {unit 'F_p} := Sub r Ur; have:= order_dvdG (in_setT u_r).
   rewrite card_units_Zp ?pdiv_gt0 // {2}/pdiv primes_prime //=.
   rewrite (@phi_pfactor p 1) // muln1; apply: dvdn_trans.
   have: (u_r ^+ q == 1)%g.
-    by rewrite -val_eqE unit_Zp_expgn -Zp_nat natr_exp natr_Zp rq1.
+    by rewrite -val_eqE unit_Zp_expgn -Zp_nat natrX natr_Zp rq1.
   case/primeP: q_pr => _ q_min; rewrite -order_dvdn; move/q_min.
   by rewrite order_eq1 -val_eqE (negPf ne_r_1) /=; move/eqnP->.
 have /imsetP[a Qa [def_a1 def_a2]]: (r, r) \in f @: Q.
   by rewrite -rs2_Q inE andbb.
 have rQa: rQ a = r%:M.
-  rewrite -[rQ a]mul1mx def1 mulmx_addl -!mulmxA !rQ_lam //.
-  by rewrite -def_a1 -def_a2 !linearZ -scaler_addr -def1 /= scalemx1.
+  rewrite -[rQ a]mul1mx def1 mulmxDl -!mulmxA !rQ_lam //.
+  by rewrite -def_a1 -def_a2 !linearZ -scalerDr -def1 /= scalemx1.
 exists a.
   rewrite !inE Qa andbT; apply: contra ne_r_1 => a1.
   by rewrite (eqP a1) repr_mx1 in rQa; rewrite (fmorph_inj _ rQa).
-exists r; rewrite -!val_Fp_nat // natr_exp natr_Zp rq1.
+exists r; rewrite -!val_Fp_nat // natrX natr_Zp rq1.
 split=> // x Px; apply: (@abelem_rV_inj _ _ _ abelP ntP); rewrite ?groupX //.
   by rewrite memJ_norm ?(subsetP nPQ).
 by rewrite abelem_rV_X // -mul_mx_scalar natr_Zp -rQa -abelem_rV_J.

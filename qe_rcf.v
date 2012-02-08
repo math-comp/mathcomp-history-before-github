@@ -316,7 +316,7 @@ Lemma eval_AddPoly p q e :
 Proof.
 elim: p q=> [|a p Hp] q /=; first by rewrite add0r.
 case: q=> [|b q] /=; first by rewrite addr0.
-by rewrite Hp mulr_addl rmorphD /= !addrA [X in _ = X + _]addrAC.
+by rewrite Hp mulrDl rmorphD /= !addrA [X in _ = X + _]addrAC.
 Qed.
 
 Fixpoint MulPoly (p q : polyF) := if p is a :: p'
@@ -329,7 +329,7 @@ Lemma eval_map_mul e t p :
   eval_poly e (map (Mul t) p) = (eval e t) *: (eval_poly e p).
 Proof.
 elim: p=> [|a p ihp] /=; first by rewrite scaler0.
-by rewrite ihp scaler_addr scaler_mull -!mul_polyC rmorphM.
+by rewrite ihp scalerDr scalerAl -!mul_polyC rmorphM.
 Qed.
 
 Lemma eval_MulPoly e p q :
@@ -337,7 +337,7 @@ Lemma eval_MulPoly e p q :
 Proof.
 elim: p q=> [|a p Hp] q /=; first by rewrite mul0r.
 rewrite eval_AddPoly /= eval_map_mul Hp.
-by rewrite addr0 mulr_addl addrC mulrAC mul_polyC.
+by rewrite addr0 mulrDl addrC mulrAC mul_polyC.
 Qed.
 
 Definition ExpPoly p n := iterop n MulPoly p [::1%qfT].
@@ -355,7 +355,7 @@ Definition OppPoly := map (Mul (@Const F (-1))).
 Lemma eval_OppPoly p e : eval_poly e (OppPoly p) = - eval_poly e p.
 Proof.
 elim: p; rewrite //= ?oppr0 // => t ts ->.
-by rewrite !mulNr !oppr_add polyC_opp mul1r.
+by rewrite !mulNr !opprD polyC_opp mul1r.
 Qed.
 
 Definition NatMulPoly n := map (Mul (NatConst F n)).
@@ -363,7 +363,7 @@ Lemma eval_NatMulPoly p n e :
   eval_poly e (NatMulPoly n p) = (eval_poly e p) *+ n.
 Proof.
 elim: p; rewrite //= ?mul0rn // => c p ->.
-rewrite mulrn_addl mulr_natl polyC_natmul; congr (_+_).
+rewrite mulrnDl mulr_natl polyC_natmul; congr (_+_).
 by rewrite -mulr_natl mulrAC -mulrA mulr_natl mulrC.
 Qed.
 
