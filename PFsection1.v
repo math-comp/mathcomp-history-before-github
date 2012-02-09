@@ -58,9 +58,9 @@ have F3: forall c, c \in classes G -> c^-1%g = c -> c = 1%g.
     by rewrite -Hx mulgK mulVg.
   have F5 : x \in 'C_G[g].
     suff->: (x = (x ^+ 2) ^+ (#|G| %/2).+1)%g by apply: groupX.
-    rewrite -expgn_mul -[(_%/_).+1]addn1 muln_addr muln1 -{3}addn1 addnA.
+    rewrite -expgM -[(_%/_).+1]addn1 muln_addr muln1 -{3}addn1 addnA.
     move: (modn2 #|G|); rewrite {1}OG /= => HH; rewrite -{3}HH.
-    rewrite [(2 * _)%N]mulnC -divn_eq expgn_add expg1.
+    rewrite [(2 * _)%N]mulnC -divn_eq expgD expg1.
     by move: (order_dvdG XiG); rewrite order_dvdn; move/eqP->; rewrite mul1g.
   move: Hx; rewrite conjgE; case/subcent1P: F5=> _ ->.
   rewrite mulgA mulVg mul1g => HH.
@@ -428,7 +428,7 @@ have F1: ('chi_t ^ (g ^+ 2))%CF = 'chi_t.
 suffices /eqP->: g == ((g ^+ 2) ^+ #|G|./2.+1)%g.
   elim: _./2.+1 => [|n IHn]; first exact: cfConjg1.
   by rewrite expgS (cfConjgM _ nsHG) ?groupX // F1.
-rewrite eq_mulVg1 expgS -expgn_mul mul2n -mulgA mulKg -expgS -order_dvdn.
+rewrite eq_mulVg1 expgS -expgM mul2n -mulgA mulKg -expgS -order_dvdn.
 by rewrite -add1n -[1%N](congr1 nat_of_bool oddG) odd_double_half order_dvdG.
 Qed.
 

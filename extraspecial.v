@@ -129,12 +129,12 @@ unlock gtype; apply: intro_isoGrp => [|rT H].
     by rewrite mulVg.
   have def_xi i: x ^+ i = sdpair1 _ (0, i%:R)%R.
     rewrite -morphX ?inE //; congr (sdpair1 _ _).
-    by apply/eqP; rewrite /eq_op /= !morphX ?inE ?exp1gn //=.
+    by apply/eqP; rewrite /eq_op /= !morphX ?inE ?expg1n //=.
   have def_yi i: y ^+ i = sdpair2 _ i%:R.
     by rewrite -morphX ?inE //.
   have def_zi i: z ^+ i = sdpair1 _ (i%:R, 0)%R.
     rewrite def_z -morphX ?inE //; congr (sdpair1 _ _).
-    by apply/eqP; rewrite /eq_op /= !morphX ?inE ?exp1gn ?andbT //=.
+    by apply/eqP; rewrite /eq_op /= !morphX ?inE ?expg1n ?andbT //=.
   rewrite def_xi def_yi char_Zp ?morph1 //.
   rewrite def_z -morphR ?inE // !commgEl -sdpair_act ?inE //= mulr0 addr0.
   rewrite mulVg -[_ * _]/(_ , _) /= !invg1 mulg1 !mul1g mulVg morph1 !andbT.
@@ -154,15 +154,15 @@ have zp: z ^+ p = 1 by rewrite -commXg // xp comm1g.
 pose f1 (ij : 'Z_p * 'Z_p) := let: (i, j) := ij in z ^+ i * x ^+ j.
 have f1M: {in setT &, {morph f1 : u v / u * v}}.
   case=> /= [i1 j1] [i2 j2] _ _ /=; rewrite {3 6}Zp_cast // !expg_mod //.
-  rewrite !expgn_add !mulgA; congr (_ * _); rewrite -!mulgA; congr (_ * _).
+  rewrite !expgD !mulgA; congr (_ * _); rewrite -!mulgA; congr (_ * _).
   by apply: commuteX2.
 pose f2 (k : 'Z_p) := y ^+ k.
 have f2M: {in setT &, {morph f2 : u v / u * v}}.
-  by move=> k1 k2 _ _; rewrite /f2 /= {3}Zp_cast // expg_mod // expgn_add.
+  by move=> k1 k2 _ _; rewrite /f2 /= {3}Zp_cast // expg_mod // expgD.
 have actf: {in setT & setT, morph_act actp 'J (Morphism f1M) (Morphism f2M)}.
-  case=> /= i j k _ _; rewrite modn_addmr {4}Zp_cast // expg_mod // expgn_add.
+  case=> /= i j k _ _; rewrite modn_addmr {4}Zp_cast // expg_mod // expgD.
   rewrite /f2 conjMg {1}/conjg (commuteX2 i k czy) mulKg -mulgA.
-  congr (_ * _); rewrite (commuteX2 _ _ czx) mulnC expgn_mul.
+  congr (_ * _); rewrite (commuteX2 _ _ czx) mulnC expgM.
   by rewrite -commXg // -commgX ?mulKVg // commXg // /commute commuteX.
 apply/homgP; exists (xsdprod_morphism actf).
 apply/eqP; rewrite eqEsubset -{2}defH -genM_join gen_subG /= im_xsdprodm.
@@ -291,7 +291,7 @@ elim: n => [|n IHn].
   by rewrite (dvdn_trans (exponent_dvdn _)) ?card_pX1p2n.
 case: pX1p2S => gz isoZ; rewrite -im_cpair /=.
 apply/exponentP=> xy; case/imset2P=> x y C1x C2y ->{xy}.
-rewrite expMgn; last by red; rewrite -(centsP (im_cpair_cent isoZ)).
+rewrite expgMn; last by red; rewrite -(centsP (im_cpair_cent isoZ)).
 rewrite (exponentP _ y C2y) ?exponent_injm ?injm_cpair1g // mulg1.
 by rewrite (exponentP _ x C1x) ?exponent_injm ?injm_cpairg1 // exponent_pX1p2.
 Qed.

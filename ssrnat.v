@@ -75,7 +75,7 @@ Require Export Ring.
 (*   This returns the largest n such that P n holds (given an explicit upper  *)
 (*   bound).                                                                  *)
 (*                                                                            *)
-(*  This file adds the following suffix conventions to those dodumented in    *)
+(*  This file adds the following suffix conventions to those documented in    *)
 (* ssrbool.v and eqtype.v:                                                    *)
 (*   A (infix) -- conjunction, as in                                          *)
 (*      ltn_neqAle : (m < n) = (m != n) && (m <= n)                           *)

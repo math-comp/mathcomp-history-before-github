@@ -399,8 +399,8 @@ rewrite leq_eqVlt; case: eqP => [eqYX _ | _ ltYX _]; last first.
   have defX1: 'Ohm_1(<[x]>) = 'Mho^n.-1(S).
     rewrite -(Mho_dprod _ defS) (Mho_p_cycle _ py).
     rewrite /order (card_pgroup px) (card_pgroup py) ltn_exp2l // -/n in ltYX.
-    rewrite -{2}(subnKC ltYX) addSn expn_add -card_pgroup // expgn_mul.
-    rewrite expg_order exp1gn cycle1 dprodg1.
+    rewrite -{2}(subnKC ltYX) addSn expn_add -card_pgroup // expgM.
+    rewrite expg_order expg1n cycle1 dprodg1.
     by rewrite (Ohm_p_cycle _ px) (Mho_p_cycle _ px) subn1.
   exists <[x]>%G; rewrite /sameExp expS exponent_cycle eqxx.
   rewrite /cyclicRegular (subset_trans Sx) //=.

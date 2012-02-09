@@ -210,8 +210,8 @@ Require Import finfun bigop prime binomial.
 (* QEdecFieldMixin wfP okP == a decidable field Mixin built from a quantifier *)
 (*                           eliminator p and proofs wfP : GRing.wf_QE_proj p *)
 (*                           and okP : GRing.valid_QE_proj p that p returns   *)
-(*                           well-formed and valid formulae: p i (us, vs)     *)
-(*                           should be a quntifier free formula equivalent to *)
+(*                           well-formed and valid formulae, i.e., p i (u, v) *)
+(*                           is a quantifier-free formula equivalent to       *)
 (*        'exists 'X_i, u1 == 0 /\ ... /\ u_m == 0 /\ v1 != 0 ... /\ v_n != 0 *)
 (*                                                                            *)
 (*  * ClosedField (algebraically closed fields):                              *)
@@ -447,6 +447,11 @@ Require Import finfun bigop prime binomial.
 (*   V -- ring inverse, as in mulVr : x^-1 * x = 1.                           *)
 (*   X -- ring exponentiation, as in rmorphX : f (x ^+ n) = f x ^+ n.         *)
 (*   Z -- (left) module scaling, as in linearZ : f (a *: v)  = s *: f v.      *)
+(* The operator suffixes D, B, M and X are also used for the corresponding    *)
+(* operations on nat, as in natrX : (m ^ n)%:R = m%:R ^+ n. For the binary    *)
+(* power operator, a trailing "n" suffix is used to indicate the operator     *)
+(* suffix applies to the left-hand ring argument, as in                       *)
+(*   expr1n : 1 ^+ n = 1 vs. expr1 : x ^+ 1 = x.                              *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -2044,19 +2049,21 @@ Module Linear.
 
 Section ClassDef.
 
-Variables (R : ringType) (U V : lmodType R).
+Variables (R : ringType) (U : lmodType R) (V : zmodType) (s : R -> V -> V).
 Implicit Type phUV : phant (U -> V).
 
-Definition axiom (f : U -> V) := forall a, {morph f : u v / a *: u + v}.
-Definition mixin_of (f : U -> V) := forall a, {morph f : v / a *: v}.
+Definition axiom (_ : s (- 1) =1 -%R) (f : U -> V) :=
+  forall a, {morph f : u v / a *: u + v >-> s a u + v}.
+Definition mixin_of (f : U -> V) :=
+  forall a, {morph f : v / a *: v >-> s a v}.
 
 Record class_of f : Prop := Class {base : additive f; mixin : mixin_of f}.
 Local Coercion base : class_of >-> additive.
 
-Lemma class_of_axiom f : axiom f -> class_of f.
+Lemma class_of_axiom sN1 f : axiom sN1 f -> class_of f.
 Proof.
 move=> fL.
-have fA: additive f by move=> x y /=; rewrite -!scaleN1r addrC fL addrC.
+have fA: additive f by move=> x y /=; rewrite -scaleN1r -sN1 addrC fL addrC.
 split=> // a v /=.
 by rewrite -[a *: v]addr0 fL [f 0](raddf0 (Additive fA)) addr0.
 Qed.
@@ -2077,41 +2084,27 @@ Canonical additive := Additive.Pack phUV class.
 
 End ClassDef.
 
-Section Scalar.
-
-Variables (R : ringType) (U : lmodType R) (f : U -> R).
-Definition scalar_lmodType := LmodType R R (regular_lmodMixin R).
-Local Notation Ro := scalar_lmodType.
-
-Definition scalar_axiom := forall a, {morph f : u v / a *: u + v >-> a * u + v}.
-Definition scalar_mixin_of := forall a, {morph f : u / a *: u >-> a * u}.
-
-Definition mixin_of_scalar (fZ : scalar_mixin_of) := fZ : @mixin_of R U Ro f.
-Definition axiom_of_scalar (f_lin : scalar_axiom) := f_lin : @axiom R U Ro f.
-
-End Scalar.
-
 Module Exports.
-Notation scalable f := (mixin_of f).
-Notation scalableM f := (scalar_mixin_of f).
-Notation linear f := (axiom f).
-Notation scalar f := (scalar_axiom f).
-Notation lmorphism f := (class_of f).
-Coercion class_of_axiom : linear >-> lmorphism.
+Notation scalable_for s f := (mixin_of s f).
+Notation scalable f := (scalable_for *:%R f).
+Notation linear f := (axiom (@scaleN1r _ _) f).
+Notation scalar f := (axiom (@mulN1r _) f).
+Notation lmorphism s f := (class_of s f).
+Coercion class_of_axiom : axiom >-> lmorphism.
 Coercion base : lmorphism >-> Additive.axiom.
 Coercion mixin : lmorphism >-> scalable.
 Coercion apply : map >-> Funclass.
-Coercion mixin_of_scalar : scalableM >-> scalable.
-Coercion axiom_of_scalar : scalar >-> linear.
 Notation Linear fL := (Pack (Phant _) fL).
 Notation AddLinear fZ := (pack fZ id).
-Notation "{ 'linear' fUV }" := (map (Phant fUV))
+Notation "{ 'linear' fUV 'for' s }" := (map s (Phant fUV))
+  (at level 0, format "{ 'linear'  fUV  'for'  s }") : ring_scope.
+Notation "{ 'linear' fUV }" := {linear fUV for *:%R}
   (at level 0, format "{ 'linear'  fUV }") : ring_scope.
-Notation "{ 'scalar' U }" := (@map _ _ (scalar_lmodType _) (Phant (U -> _)))
+Notation "{ 'scalar' U }" := {linear U -> _ for *%R}
   (at level 0, format "{ 'scalar'  U }") : ring_scope.
-Notation "[ 'linear' 'of' f 'as' g ]" := (@clone _ _ _ _ f g _ _ idfun id)
+Notation "[ 'linear' 'of' f 'as' g ]" := (@clone _ _ _ _ _ f g _ _ idfun id)
   (at level 0, format "[ 'linear'  'of'  f  'as'  g ]") : form_scope.
-Notation "[ 'linear' 'of' f ]" := (@clone _ _ _ _ f f _ _ id id)
+Notation "[ 'linear' 'of' f ]" := (@clone _ _ _ _ _ f f _ _ id id)
   (at level 0, format "[ 'linear'  'of'  f ]") : form_scope.
 Coercion additive : map >-> Additive.map.
 Canonical additive.
@@ -2124,9 +2117,10 @@ Section LinearTheory.
 
 Variable R : ringType.
 
-Section Properties.
+Section GenericProperties.
 
-Variables (U V : lmodType R) (f : {linear U -> V}).
+Variables (U : lmodType R) (V : zmodType) (s : R -> V -> V).
+Variable f : {linear U -> V for s}.
 
 Lemma linear0 : f 0 = 0. Proof. exact: raddf0. Qed.
 Lemma linearN : {morph f : x / - x}. Proof. exact: raddfN. Qed.
@@ -2137,12 +2131,19 @@ Lemma linearMNn n : {morph f : x / x *- n}. Proof. exact: raddfMNn. Qed.
 Lemma linear_sum I r (P : pred I) E :
   f (\sum_(i <- r | P i) E i) = \sum_(i <- r | P i) f (E i).
 Proof. exact: raddf_sum. Qed.
-Lemma linearZsign n : {morph f : v / (-1) ^+ n *: v}.
-Proof. exact: raddfZsign. Qed.
 
-Lemma linearZ : scalable f. Proof. exact: (Linear.class f). Qed.
-Lemma linearP : linear f.
-Proof. by move=> a x y /=; rewrite linearD linearZ. Qed.
+Lemma linearZ : scalable_for s f. Proof. exact: (Linear.class f). Qed.
+Lemma linearP a : {morph f : u v / a *: u + v >-> s a u + v}.
+Proof. by move=> u v /=; rewrite linearD linearZ. Qed.
+
+End GenericProperties.
+
+Section LmodProperties.
+
+Variables (U V : lmodType R) (f : {linear U -> V}).
+
+Lemma lmod_linearZ : scalable f. Proof. exact: linearZ. Qed.
+Lemma lmod_linearP : linear f. Proof. exact: linearP. Qed.
 
 Lemma can2_linear f' : cancel f f' -> cancel f' f -> linear f'.
 Proof. by move=> fK f'K a x y /=; apply: (canLR fK); rewrite linearP !f'K. Qed.
@@ -2151,28 +2152,26 @@ Lemma bij_linear :
   bijective f -> exists2 f' : {linear V -> U}, cancel f f' & cancel f' f.
 Proof. by case=> f' fK f'K; exists (Linear (can2_linear fK f'K)). Qed.
 
-End Properties.
+End LmodProperties.
 
 Section ScalarProperties.
 
 Variable (U : lmodType R) (f : {scalar U}).
 
-Lemma scalarZ : scalableM f. Proof. exact: (linearZ f). Qed.
-Lemma scalarP : scalar f. Proof. exact: (linearP f). Qed.
-Lemma scalarZsign n : {morph f : v / (-1) ^+ n *: v >-> (-1) ^+ n * v}.
-Proof. exact: (linearZsign f). Qed.
+Lemma scalarZ : scalable_for *%R f. Proof. exact: linearZ. Qed.
+Lemma scalarP : scalar f. Proof. exact: linearP. Qed.
 
 End ScalarProperties.
 
 Section LinearLmod.
 
-Variables U V W : lmodType R.
-Variables (f g : {linear U -> V}) (h : {linear W -> U}).
+Variables (W U : lmodType R) (V : zmodType) (s : R -> V -> V).
+Variables (f : {linear U -> V for s}) (g : {linear W -> U}).
 
 Lemma idfun_is_scalable : scalable (idfun : U -> U). Proof. by []. Qed.
 Canonical idfun_linear := AddLinear idfun_is_scalable.
 
-Lemma comp_is_scalable : scalable (f \o h).
+Lemma comp_is_scalable : scalable_for s (f \o g).
 Proof. by move=> a v /=; rewrite !linearZ. Qed.
 Canonical comp_linear := AddLinear comp_is_scalable.
 
@@ -2180,13 +2179,19 @@ Lemma opp_is_scalable : scalable (-%R : U -> U).
 Proof. by move=> a v /=; rewrite scalerN. Qed.
 Canonical opp_linear := AddLinear opp_is_scalable.
 
-Lemma scale_is_additive a : additive ( *:%R a : V -> V).
+Lemma scale_is_additive a : additive ( *:%R a : U -> U).
 Proof. by move=> u v /=; rewrite scalerDr scalerN. Qed.
 Canonical scale_additive a := Additive (scale_is_additive a).
 
 Lemma null_fun_is_scalable : scalable (\0 : U -> U).
 Proof. by move=> a v /=; rewrite scaler0. Qed.
 Canonical null_fun_linear := AddLinear null_fun_is_scalable.
+
+End LinearLmod.
+
+Section LinearLmodAdd.
+
+Variables (U V : lmodType R) (f g : {linear U -> V}).
 
 Lemma add_fun_is_scalable : scalable (f \+ g).
 Proof. by move=> a v /=; rewrite raddfD /= !linearZ. Qed.
@@ -2196,7 +2201,7 @@ Lemma sub_fun_is_scalable : scalable (f \- g).
 Proof. by move=> a v /=; rewrite raddfB /= !linearZ. Qed.
 Canonical sub_fun_linear := AddLinear sub_fun_is_scalable.
 
-End LinearLmod.
+End LinearLmodAdd.
 
 Section LinearLalg.
 
@@ -2239,7 +2244,8 @@ Definition class := let: Pack _ c as cF' := cF return class_of cF' in c.
 
 Definition clone :=
   fun (g : RMorphism.map phAB) fM & phant_id (RMorphism.class g) fM =>
-  fun (h : Linear.map phAB) fZ & phant_id (Linear.mixin (Linear.class h)) fZ =>
+  fun (h : Linear.map *:%R phAB) fZ &
+     phant_id (Linear.mixin (Linear.class h)) fZ =>
   Pack phAB (@Class f fM fZ).
 
 Definition pack (fZ : scalable f) :=
@@ -2250,7 +2256,7 @@ Canonical additive := Additive.Pack phAB class.
 Canonical rmorphism := RMorphism.Pack phAB class.
 Canonical linear := Linear.Pack phAB class.
 Canonical join_rmorphism := @RMorphism.Pack _ _ phAB linear class.
-Canonical join_linear := @Linear.Pack R _ _ phAB rmorphism class.
+Canonical join_linear := @Linear.Pack R _ _ *:%R phAB rmorphism class.
 
 End ClassDef.
 
@@ -4848,7 +4854,6 @@ Definition invrZ := invrZ.
 Definition raddfZnat := raddfZnat.
 Definition raddfZsign := raddfZsign.
 Definition in_algE := in_algE.
-Definition linearP := linearP.
 Definition linear0 := linear0.
 Definition linearN := linearN.
 Definition linearD := linearD.
@@ -4856,13 +4861,12 @@ Definition linearB := linearB.
 Definition linear_sum := linear_sum.
 Definition linearMn := linearMn.
 Definition linearMNn := linearMNn.
-Definition lmod_linearZ := linearZ.
+Definition linearP := linearP.
+Definition linearZ := (lmod_linearZ, scalarZ).
+Definition lmod_linearP := lmod_linearP.
+Definition lmod_linearZ := lmod_linearZ.
 Definition scalarP := scalarP.
 Definition scalarZ := scalarZ.
-Definition linearZ := (lmod_linearZ, scalarZ).
-Definition lmod_linearZsign := linearZsign.
-Definition scalarZsign := scalarZsign.
-Definition linearZsign := (lmod_linearZsign, scalarZsign).
 Definition can2_linear := can2_linear.
 Definition bij_linear := bij_linear.
 Definition can2_lrmorphism := can2_lrmorphism.

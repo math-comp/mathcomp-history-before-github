@@ -1132,7 +1132,7 @@ split.
   rewrite card_units_Zp ?pdiv_gt0 // {2}/pdiv primes_prime //=.
   rewrite (@phi_pfactor p 1) // muln1; apply: dvdn_trans.
   have: (u_r ^+ q == 1)%g.
-    by rewrite -val_eqE unit_Zp_expgn -Zp_nat natrX natr_Zp rq1.
+    by rewrite -val_eqE unit_Zp_expg -Zp_nat natrX natr_Zp rq1.
   case/primeP: q_pr => _ q_min; rewrite -order_dvdn; move/q_min.
   by rewrite order_eq1 -val_eqE (negPf ne_r_1) /=; move/eqnP->.
 have /imsetP[a Qa [def_a1 def_a2]]: (r, r) \in f @: Q.

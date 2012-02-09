@@ -113,7 +113,7 @@ Lemma commgV : [~ x, y^-1] = [~ x, y]^-1.
 Proof. by rewrite -invg_comm commVg -(invg_comm x y) ?invgK. Qed.
 
 Lemma commgX : [~ x, y ^+ i] = [~ x, y] ^+ i.
-Proof. by rewrite -invg_comm commXg -(invg_comm x y) ?expVgn ?invgK. Qed.
+Proof. by rewrite -invg_comm commXg -(invg_comm x y) ?expgVn ?invgK. Qed.
 
 End RightComm.
 
@@ -123,13 +123,13 @@ Variables (i j : nat) (x y : gT).
 Hypotheses (cxz : commute x [~ x, y]) (cyz : commute y [~ x, y]).
 
 Lemma commXXg : [~ x ^+ i, y ^+ j] = [~ x, y] ^+ (i * j).
-Proof. rewrite expgn_mul commgX commXg //; exact: commuteX. Qed.
+Proof. rewrite expgM commgX commXg //; exact: commuteX. Qed.
 
 Lemma expMg_Rmul : (y * x) ^+ i = y ^+ i * x ^+ i * [~ x, y] ^+ 'C(i, 2).
 Proof.
 rewrite -triangular_sum; symmetry.
 elim: i => [|k IHk] /=; first by rewrite big_geq ?mulg1.
-rewrite big_nat_recr /= addnC expgn_add !expgS -{}IHk !mulgA; congr (_ * _).
+rewrite big_nat_recr /= addnC expgD !expgS -{}IHk !mulgA; congr (_ * _).
 by rewrite -!mulgA commuteX2 // -commgX // [mulg y]lock 3!mulgA -commgC.
 Qed.
 

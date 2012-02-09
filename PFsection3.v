@@ -46,7 +46,7 @@ have: (y ^+ l = 1)%g.
 have: (z ^+ l = 1)%g.
  apply/eqP; rewrite -order_dvdn.
  by apply: dvdn_trans (order_dvdG _) (dvdn_lcmr _ _).
-rewrite expMgn;first by  move=> -> ->; rewrite mulg1.
+rewrite expgMn;first by  move=> -> ->; rewrite mulg1.
 have YiG : y \in G.
   case/dprodP: KxH =>_ <- _ _; apply/imset2P; exists y (1%g : gT)=> //.
   by rewrite mulg1.

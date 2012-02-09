@@ -466,9 +466,9 @@ set u := x^-1; set v := x ^ a; pose w := [~ v, u].
 have [Gu Gv]: u \in G /\ v \in G by rewrite groupV memJ_norm ?(subsetP nGA).
 have Zw: w \in 'Z(G) by rewrite -defG' mem_commg.
 rewrite (OhmE 1 pG) mem_gen // !inE expn1 groupM //=.
-rewrite expMg_Rmul /commute ?(cGZ w) // bin2odd // expgn_mul.
+rewrite expMg_Rmul /commute ?(cGZ w) // bin2odd // expgM.
 case/(abelemP p_pr): abelZ => _ /(_ w)-> //.
-rewrite exp1gn mulg1 expVgn -conjXg (sameP commgP eqP) cAZ // -defPhi.
+rewrite expg1n mulg1 expgVn -conjXg (sameP commgP eqP) cAZ // -defPhi.
 by rewrite (Phi_joing pG) joingC mem_gen // inE (Mho_p_elt 1) ?(mem_p_elt pG).
 Qed.
 
@@ -544,10 +544,10 @@ have /centerP[_ Zz]: z \in 'Z(H) by rewrite (subsetP clH) // mem_commg ?groupV.
 have fy: f y = y.
   apply: (IHi); first by rewrite groupM ?groupV.
   rewrite expMg_Rmul; try by apply: commute_sym; apply: Zz; rewrite ?groupV.
-  rewrite -/z bin2odd ?odd_exp // {3}expnS -mulnA expgn_mul expH' ?groupV //.
-  rewrite exp1gn mulg1 expVgn -(autmE Af) -morphX ?(subsetP sHG) //= autmE.
-  rewrite IHi ?mulVg ?groupX // {2}expnS expgn_mul -(expgn_mul x _ p) -expnSr.
-  by rewrite xp1 exp1gn.
+  rewrite -/z bin2odd ?odd_exp // {3}expnS -mulnA expgM expH' ?groupV //.
+  rewrite expg1n mulg1 expgVn -(autmE Af) -morphX ?(subsetP sHG) //= autmE.
+  rewrite IHi ?mulVg ?groupX // {2}expnS expgM -(expgM x _ p) -expnSr.
+  by rewrite xp1 expg1n.
 have /eqP: (f ^+ q) x = x * y ^+ q.
   elim: (q) => [|j IHj]; first by rewrite perm1 mulg1.
   rewrite expgSr permM {}IHj -(autmE Af).
@@ -846,8 +846,8 @@ have gGSeq0: (fmod abelSK (alpha g) *+ #|G : S| = 0)%R.
   exact: mulg_exp_card_rcosets.
 move: (congr_fmod gGSeq0).
 rewrite fmval0 morphX ?inE //= fmodK ?mem_morphim // /restrm /=.
-move/((congr1 (expgn^~ (expgn_inv (S / K) #|G : S|))) _).
-rewrite exp1gn expgnK ?mem_quotient ?coprime_morphl // => Kg1.
+move/((congr1 (expgn^~ (expg_invn (S / K) #|G : S|))) _).
+rewrite expg1n expgK ?mem_quotient ?coprime_morphl // => Kg1.
 by rewrite coset_idr ?(subsetP nKS).
 Qed.
 

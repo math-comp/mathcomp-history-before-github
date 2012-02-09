@@ -160,11 +160,11 @@ Proof. exact: Zp_addC. Qed.
 Lemma Zp_abelian : abelian [set: 'I_p].
 Proof. exact: FinRing.zmod_abelian. Qed.
 
-Lemma Zp_expgn x n : x ^+ n = inZp (x * n).
+Lemma Zp_expg x n : x ^+ n = inZp (x * n).
 Proof. exact: Zp_mulrn. Qed.
 
 Lemma Zp1_expgz x : Zp1 ^+ x = x.
-Proof. by rewrite Zp_expgn; exact: Zp_mul1z. Qed.
+Proof. by rewrite Zp_expg; exact: Zp_mul1z. Qed.
 
 Lemma Zp_cycle : setT = <[Zp1]>.
 Proof. by apply/setP=> x; rewrite -[x]Zp1_expgz inE groupX ?mem_gen ?set11. Qed.
@@ -239,7 +239,7 @@ Import GroupScope.
 Lemma unit_Zp_mulgC : @commutative {unit 'I_p} _ mulg.
 Proof. by move=> u v; apply: val_inj; rewrite /= GRing.mulrC. Qed.
 
-Lemma unit_Zp_expgn (u : {unit 'I_p}) n :
+Lemma unit_Zp_expg (u : {unit 'I_p}) n :
   val (u ^+ n) = inZp (val u ^ n) :> 'I_p.
 Proof.
 apply: val_inj => /=; elim: n => [|n IHn] //.

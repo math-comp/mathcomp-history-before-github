@@ -1349,7 +1349,7 @@ have [Y [{cplA1C} cycY sZ0Y defC cCC]]: exists Y, cplA1C Y.
     apply/subsetP=> ey; case/LdivP; rewrite -mulEY.
     case/imset2P=> e y Ee Yy -> eyp; rewrite groupM //.
     rewrite (subsetP (center_sub E)) // -defY1 (OhmE 1 pY) mem_gen //.
-    rewrite expMgn in eyp; last by red; rewrite -(centsP cEY).
+    rewrite expgMn in eyp; last by red; rewrite -(centsP cEY).
     by rewrite (exponentP eE) // mul1g in eyp; rewrite !inE Yy eyp eqxx.
   have sAE: A \subset E by rewrite -defS1 -(Ohm1_id abelA) OhmS.
   have defC: A * Y = C.

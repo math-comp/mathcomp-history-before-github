@@ -172,11 +172,11 @@ have XGeX1 : x^ g = x1.
     have: commute x2 y2.
       case/dprodP: HdP=> _ _.
       by move/subsetP /(_ _ Y2iW) /centP /(_ _ X2iW) /commute_sym.
-    move/expMgn=> ->.
-    rewrite -{1}HH expgn_add expg1 mulnC [(v * _)%N]mulnC !expgn_mul.
+    move/expgMn=> ->.
+    rewrite -{1}HH expgD expg1 mulnC [(v * _)%N]mulnC !expgM.
     move/order_dvdG: X2iW=> /dvdnP=> [[k1 ->]].
     move/order_dvdG: Y2iW=> /dvdnP=> [[k2 ->]].
-    by rewrite mulnC [(k2 * _)%N]mulnC !expgn_mul !expg_order !exp1gn !mulg1.
+    by rewrite mulnC [(k2 * _)%N]mulnC !expgM !expg_order !expg1n !mulg1.
   by rewrite -(F1 _ _ X1iW Y1iW) -XYeX1Y1 -conjXg F1.
 have /(mem_sdprod SdP) [k1 [x2 [K1iK X2iW _ Hu]]] : 
         x ^ g \in L by rewrite groupJ // (subsetP W1sL).

@@ -723,7 +723,7 @@ move=> pG [defPhi defG'].
 have [-> | ntG] := eqsVneq G 1; first by rewrite center1 abelem1. 
 have [p_pr _ _] := pgroup_pdiv pG ntG.  
 have fM: {in 'Z(G) &, {morph expgn^~ p : x y / x * y}}.
-  by move=> x y /setIP[_ /centP cxG] /setIP[/cxG cxy _]; exact: expMgn.
+  by move=> x y /setIP[_ /centP cxG] /setIP[/cxG cxy _]; exact: expgMn.
 rewrite abelemE //= center_abelian; apply/exponentP=> /= z Zz.
 apply: (@kerP _ _ _ (Morphism fM)) => //; apply: subsetP z Zz.
 rewrite -{1}defG' gen_subG; apply/subsetP=> _ /imset2P[x y Gx Gy ->].
@@ -740,7 +740,7 @@ Lemma exponent_special : p.-group G -> special G -> exponent G %| p ^ 2.
 Proof.
 move=> pG spG; have [defPhi _] := spG.
 have /and3P[_ _ expZ] := center_special_abelem pG spG.
-apply/exponentP=> x Gx; rewrite expgn_mul (exponentP expZ) // -defPhi.
+apply/exponentP=> x Gx; rewrite expgM (exponentP expZ) // -defPhi.
 by rewrite (Phi_joing pG) mem_gen // inE orbC (Mho_p_elt 1) ?(mem_p_elt pG).
 Qed.
 
@@ -785,16 +785,16 @@ rewrite join_subG subxx andbT /= -defZ -(subnn n.-1).
 elim: {2}n.-1 => [|m IHm].
   rewrite (MhoE _ pG) gen_subG; apply/subsetP=> _ /imsetP[x Gx ->].
   rewrite subn0 -subn1 -add1n add_sub_maxn maxnC -add_sub_maxn expn_add.
-  by rewrite expgn_mul -expGpn expg_exponent ?groupX ?group1.
+  by rewrite expgM -expGpn expg_exponent ?groupX ?group1.
 rewrite cChaG ?Mho_char //= (MhoE _ pG) /abelian cent_gen gen_subG.
 apply/centsP=> _ /imsetP[x Gx ->] _ /imsetP[y Gy ->].
 move: sG'Z; rewrite subsetI centsC => /andP[_ /centsP cGG'].
-apply/commgP; rewrite {1}expnSr expgn_mul.
+apply/commgP; rewrite {1}expnSr expgM.
 rewrite commXg -?commgX; try by apply: cGG'; rewrite ?mem_commg ?groupX.
 apply/commgP; rewrite subsetI Mho_sub centsC in IHm.
 apply: (centsP IHm); first by rewrite groupX.
 rewrite -add1n -(addn1 m) -subn_sub add_sub_maxn maxnC -add_sub_maxn.
-rewrite -expgn_mul -expnSr -addSn expn_add expgn_mul groupX //=.
+rewrite -expgM -expnSr -addSn expn_add expgM groupX //=.
 by rewrite Mho_p_elt ?(mem_p_elt pG).
 Qed.
 
@@ -1274,7 +1274,7 @@ have [x [Ex notZx oxp]]: exists x, [/\ x \in E, x \notin 'Z(E) & #[x] %| p]%N.
   pose z := [~ xi, y]; have Zz: z \in 'Z(E) by rewrite -defE' mem_commg.
   case: (setIP Zz) => _; move/centP=> cEz.
   rewrite order_dvdn expMg_Rmul; try by apply: commute_sym; apply: cEz.
-  rewrite def_yp expVgn -!expgn_mul mulnC mulgV mul1g -order_dvdn.
+  rewrite def_yp expgVn -!expgM mulnC mulgV mul1g -order_dvdn.
   by rewrite (dvdn_trans (order_dvdG Zz)) //= oZE bin2odd // dvdn_mulr.
 have{oxp} ox: #[x] = p.
   apply/eqP; case/primeP: p_pr => _ dvd_p; case/orP: (dvd_p _ oxp) => //.
@@ -1298,12 +1298,12 @@ have /cyclicP[z defZ]: cyclic 'Z(E) by rewrite prime_cyclic ?oZE.
 apply/(Aut_sub_fullP (center_sub E)); rewrite /= defZ => g injg gZ.
 pose k := invm (injm_Zp_unitm z) (aut injg gZ).
 have fM: {in K &, {morph expgn^~ (val k): u v / u * v}}.
-  by move=> u v Ku Kv; rewrite /= expMgn // /commute (centsP cKK).
+  by move=> u v Ku Kv; rewrite /= expgMn // /commute (centsP cKK).
 pose f := Morphism fM; have fK: f @* K = K.
   apply/setP=> u; rewrite morphimEdom.
   apply/imsetP/idP=> [[v Kv ->] | Ku]; first exact: groupX.
-  exists (u ^+ expgn_inv K (val k)); first exact: groupX.
-  rewrite /f /= expgnC expgnK // oK coprime_expl // -unitZpE //.
+  exists (u ^+ expg_invn K (val k)); first exact: groupX.
+  rewrite /f /= expgC expgK // oK coprime_expl // -unitZpE //.
   by case: (k) => /=; rewrite orderE -defZ oZE => j; rewrite natr_Zp.
 have fMact: {in K & <[x]>, morph_act 'J 'J f (idm <[x]>)}.
   by move=> u v _ _; rewrite /= conjXg.
@@ -1330,7 +1330,7 @@ have ZSfull := Aut_sub_fullP (center_sub S) Aut_extraspecial_full.
 have [f [injf fS fZ]] := ZSfull _ (injm_autm AutZg) (im_autm AutZg).
 exists (aut injf fS) => [|u Zu]; first exact: Aut_aut.
 have [Su _] := setIP Zu; have z_u: u \in <[z]> by rewrite -defZ.
-by rewrite autE // fZ //= autmE permE /= z_u /cyclem expgn_znat.
+by rewrite autE // fZ //= autmE permE /= z_u /cyclem expg_znat.
 Qed.
 
 End StructureCorollaries.
@@ -1353,7 +1353,7 @@ Lemma exponent_Ohm1_class2 H :
 Proof.
 move=> odd_p pH; rewrite nil_class2 => sH'Z; apply/exponentP=> x /=.
 rewrite (OhmE 1 pH) expn1 gen_set_id => {x} [/LdivP[] //|].
-apply/group_setP; split=> [|x y]; first by rewrite !inE group1 exp1gn //=.
+apply/group_setP; split=> [|x y]; first by rewrite !inE group1 expg1n //=.
 case/LdivP=> Hx xp1 /LdivP[Hy yp1]; rewrite !inE groupM //=.
 have [_ czH]: [~ y, x] \in H /\ centralises [~ y, x] H.
   by apply/centerP; rewrite (subsetP sH'Z) ?mem_commg.
@@ -1525,7 +1525,7 @@ move/eqP=> defU1 expUp' minU sUX; case/negP: expUp'.
 have{nsXG} pU := pgroupS (subset_trans sUX (normal_sub nsXG)) pG.
 case gsetU1: (group_set 'Ldiv_p(U)).
   by rewrite -defU1 (OhmE 1 pU) gen_set_id // -sub_LdivT subsetIr.
-move: gsetU1; rewrite /group_set 2!inE group1 exp1gn eqxx; case/subsetPn=> xy.
+move: gsetU1; rewrite /group_set 2!inE group1 expg1n eqxx; case/subsetPn=> xy.
 case/imset2P=> x y; rewrite !inE => /andP[Ux xp1] /andP[Uy yp1] ->{xy}.
 rewrite groupM //= => nt_xyp; pose XY := <[x]> <*> <[y]>.
 have{yp1 nt_xyp} defXY: XY = U.

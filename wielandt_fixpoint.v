@@ -41,7 +41,7 @@ have nA1X: X \subset 'N('Ohm_1(A)) := char_norm_trans (Ohm_char 1 A) nAX.
 have sAnA1: 'Mho^n(A) \subset 'Ohm_1(A).
   rewrite (MhoE n pA) (OhmE 1 pA) genS //.
   apply/subsetP=> xpn; case/imsetP=> x Ax ->{xpn}; rewrite !inE groupX //.
-  by rewrite -expgn_mul -expnSr -eA -order_dvdn dvdn_exponent.
+  by rewrite -expgM -expnSr -eA -order_dvdn dvdn_exponent.
 have nAnX: X \subset 'N('Mho^n(A)) := char_norm_trans (Mho_char n A) nAX.
 have [B minB sBAn]: {B : {group gT} | minnormal B X & B \subset 'Mho^n(A)}.
   apply: mingroup_exists; rewrite nAnX andbT; apply/trivgPn.
@@ -63,7 +63,7 @@ have [U1 | {defA1 minB}ntU] := eqsVneq U 1.
   have OhmMho: forall k, 'Ohm_k(A) = 'Mho^(n.+1 - k)(A).
     by move=> k; rewrite (homocyclic_Ohm_Mho k pA) // eA pfactorK.
   have fM: {in A &, {morph (fun x => x ^+ (p ^ n)) : x y / x * y >-> x * y}}.
-    by move=> x y Ax Ay /=; rewrite expMgn // /commute -(centsP cAA).
+    by move=> x y Ax Ay /=; rewrite expgMn // /commute -(centsP cAA).
   pose f := Morphism fM; have ker_f: 'ker f = 'Phi(A).
     apply/setP=> z; rewrite (Phi_Mho pA cAA) -(subSnn n) -OhmMho.
     by rewrite (OhmEabelian pA) ?(abelianS (Ohm_sub n A)) ?inE.

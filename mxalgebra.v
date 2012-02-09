@@ -2206,7 +2206,7 @@ Proof. by rewrite submx0 mxvec_eq0; move/eqP. Qed.
 Lemma memmx1 n (A : 'M_n) : (A \in mxvec 1%:M) = is_scalar_mx A.
 Proof.
 apply/sub_rVP/is_scalar_mxP=> [[a] | [a ->]].
-  by rewrite -linearZ scale_scalar_mx mulr1; move/(can_inj mxvecK); exists a.
+  by rewrite -linearZ scale_scalar_mx mulr1 => /(can_inj mxvecK); exists a.
 by exists a; rewrite -linearZ scale_scalar_mx mulr1.
 Qed.
 

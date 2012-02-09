@@ -114,7 +114,10 @@ Require Import div path bigop prime finset.
 (*     [min H of G | P] <=> H is the smallest group G such that P holds.      *)
 (* In addition to the generic suffixes described in ssrbool.v and finset.v,   *)
 (* we associate the following suffixes to group operations:                   *)
+(*   1 - identity element, and in group1 : 1 \in G.                           *)
 (*   M - multiplication, as is invMg : (x * y)^-1 = x^-1 * y^-1.              *)
+(*       Also nat multiplication, for expgM : x ^+ (m * n) = x ^+ m ^+ n.     *)
+(*   D - (nat) addition, for expgD : x ^+ (m + n) = x ^+ m * x ^+ n.          *)
 (*   V - inverse, as in mulgV : x * x^-1 = 1.                                 *)
 (*   X - exponentiation, as in conjXg : (x + n) ^ y = (x ^ y) ^+ n.           *)
 (*   J - conjugation, as in orderJ : #[x ^ y] = #[x].                         *)
@@ -423,23 +426,23 @@ Lemma expg1 x : x ^+ 1 = x. Proof. by []. Qed.
 Lemma expgS x n : x ^+ n.+1 = x * x ^+ n.
 Proof. by case: n => //; rewrite mulg1. Qed.
 
-Lemma exp1gn n : 1 ^+ n = 1 :> T.
+Lemma expg1n n : 1 ^+ n = 1 :> T.
 Proof. by elim: n => // n IHn; rewrite expgS mul1g. Qed.
 
-Lemma expgn_add x n m : x ^+ (n + m) = x ^+ n * x ^+ m.
+Lemma expgD x n m : x ^+ (n + m) = x ^+ n * x ^+ m.
 Proof. by elim: n => [|n IHn]; rewrite ?mul1g // !expgS IHn mulgA. Qed.
 
 Lemma expgSr x n : x ^+ n.+1 = x ^+ n * x.
-Proof. by rewrite -addn1 expgn_add expg1. Qed.
+Proof. by rewrite -addn1 expgD expg1. Qed.
 
-Lemma expgn_mul x n m : x ^+ (n * m) = x ^+ n ^+ m.
+Lemma expgM x n m : x ^+ (n * m) = x ^+ n ^+ m.
 Proof.
 elim: m => [|m IHm]; first by rewrite muln0 expg0.
-by rewrite mulnS expgn_add IHm expgS.
+by rewrite mulnS expgD IHm expgS.
 Qed.
 
-Lemma expgnC x m n : x ^+ m ^+ n = x ^+ n ^+ m.
-Proof. by rewrite -!expgn_mul mulnC. Qed.
+Lemma expgC x m n : x ^+ m ^+ n = x ^+ n ^+ m.
+Proof. by rewrite -!expgM mulnC. Qed.
 
 Definition commute x y := x * y = y * x.
 
@@ -463,10 +466,10 @@ Qed.
 Lemma commuteX2 x y m n : commute x y -> commute (x ^+ m) (y ^+ n).
 Proof. by move=> cxy; exact/commuteX/commute_sym/commuteX. Qed.
 
-Lemma expVgn x n : x^-1 ^+ n = x ^- n.
+Lemma expgVn x n : x^-1 ^+ n = x ^- n.
 Proof. by elim: n => [|n IHn]; rewrite ?invg1 // expgSr expgS invMg IHn. Qed.
 
-Lemma expMgn x y n : commute x y -> (x * y) ^+ n  = x ^+ n * y ^+ n.
+Lemma expgMn x y n : commute x y -> (x * y) ^+ n  = x ^+ n * y ^+ n.
 Proof.
 move=> cxy; elim: n => [|n IHn]; first by rewrite mulg1.
 by rewrite !expgS IHn -mulgA (mulgA y) (commuteX _ (commute_sym cxy)) !mulgA.
@@ -2424,7 +2427,7 @@ rewrite -ltnNge size_traject -def_n ?subset_leq_card //.
 rewrite -(eq_subset_r (in_set _)) {}/t; set G := finset _.
 rewrite -[x]mulg1 -[G]gen_set_id ?genS ?sub1set ?inE ?(t_xi 1%N)//.
 apply/group_setP; split=> [|y z]; rewrite !inE ?(t_xi 0) //.
-by do 2!case/trajectP=> ? _ ->; rewrite -!iteropE -expgn_add [x ^+ _]iteropE.
+by do 2!case/trajectP=> ? _ ->; rewrite -!iteropE -expgD [x ^+ _]iteropE.
 Qed.
 
 Lemma cycle2g x : #[x] = 2 -> <[x]> = [set 1; x].
@@ -2447,7 +2450,7 @@ Proof.
 have: uniq (traject (mulg x) 1 #[x]).
   by apply/card_uniqP; rewrite size_traject -(eq_card (cycle_traject x)).
 case/cyclePmin: (mem_cycle x #[x]) => [] [//|i] ltix.
-rewrite -(subnKC ltix) addSnnS /= expgn_add; move: (_ - _) => j x_j1.
+rewrite -(subnKC ltix) addSnnS /= expgD; move: (_ - _) => j x_j1.
 case/andP=> /trajectP[]; exists j; first exact: leq_addl.
 by apply: (mulgI (x ^+ i.+1)); rewrite -iterSr iterS -iteropE -expgS mulg1.
 Qed.
@@ -2455,7 +2458,7 @@ Qed.
 Lemma expg_mod p k x : x ^+ p = 1 -> x ^+ (k %% p) = x ^+ k.
 Proof.
 move=> xp.
-by rewrite {2}(divn_eq k p) expgn_add mulnC expgn_mul xp exp1gn mul1g.
+by rewrite {2}(divn_eq k p) expgD mulnC expgM xp expg1n mul1g.
 Qed.
 
 Lemma expg_mod_order x i : x ^+ (i %% #[x]) = x ^+ i.

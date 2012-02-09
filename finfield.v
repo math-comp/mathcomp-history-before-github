@@ -48,7 +48,7 @@ have HfM : {morph (@FinRing.uval F) : u v  / (u * v)%g >-> u * v} by done.
 by apply: field_mul_group_cyclic (fun a b _ _ => HfM a b) (fun a _ => Hf1 a).
 Qed.
 
-Lemma unit_finField_expgn (u : {unit F}) n :
+Lemma unit_finField_expg (u : {unit F}) n :
   val (u ^+ n)%g = val u ^+ n.
 Proof.
 elim: n => [//|n IHn].
@@ -64,7 +64,7 @@ rewrite exprS -subr_eq0 -[X in - X]mulr1 -mulrBr mulf_eq0 -[_ == _]negbK.
 case Hx0 : (x != 0); last done.
 move/idP : Hx0.
 rewrite /= subr_eq0 -unitfE => Hx.
-rewrite -[x](SubK [subType of {unit F}] Hx) -unit_finField_expgn.
+rewrite -[x](SubK [subType of {unit F}] Hx) -unit_finField_expg.
 set x' := (Sub _ Hx).
 have/order_dvdG : x' \in [set: {unit F}] by rewrite inE.
 rewrite order_dvdn.

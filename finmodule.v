@@ -269,7 +269,7 @@ Hypotheses (abelH : abelian H) (coHiPG : coprime #|H| #|G : P|).
 Let sHG := normal_sub nsHG.
 Let nHG := subsetP (normal_norm nsHG).
 
-Let m := (expgn_inv H #|G : P|).
+Let m := (expg_invn H #|G : P|).
 
 Implicit Types a b : fmod_of abelH.
 Local Notation fmod := (fmod abelH).
@@ -343,7 +343,7 @@ have{cocycle_nu} fM: {in G &, {morph f : x y / x * y}}.
   rewrite (mulgA _ (rH y)) (conjgC _ (rH y)) -mulgA; congr (_ * _).
   rewrite -fmvalJ ?actrH ?nHG ?GrH // -!fmvalA actZr -mulrnDl.
   rewrite  -(addrC (nu y)) cocycle_nu // mulrnDl !fmvalA; congr (_ * _).
-  by rewrite !fmvalZ expgnK ?fmodP.
+  by rewrite !fmvalZ expgK ?fmodP.
 exists (Morphism fM @* G)%G; apply/complP; split.
   apply/trivgP/subsetP=> x /setIP[Hx /morphimP[y _ Gy eq_x]].
   apply/set1P; move: Hx; rewrite {x}eq_x /= groupMr ?subgP //.
@@ -392,7 +392,7 @@ rewrite (eq_bigr (fun _ => nu x)) => [|_ /imsetP[y Ky ->]]; last first.
   rewrite !nu_cocycle ?groupM ?(sKG y) // ?sLG //.
   by rewrite (nuL z) ?(nuL t) // !act0r !add0r addrC addKr.
 apply: val_inj; rewrite sumr_const !fmvalZ.
-rewrite -{2}(expgnK coHiPG (fmodP (nu x))); congr (_ ^+ _ ^+ _).
+rewrite -{2}(expgK coHiPG (fmodP (nu x))); congr (_ ^+ _ ^+ _).
 rewrite -[#|_|]divgS ?subsetIl // -(divn_pmul2l (cardG_gt0 H)).
 rewrite -!TI_cardMg //; last by rewrite setIA setIAC (setIidPl sHP).
 by rewrite group_modl // eqHK (setIidPr sPG) divgS.
@@ -424,7 +424,7 @@ have kerR: [~: G, A] \subset 'ker (Morphism fM).
   by rewrite nfA ?mulVg.
 apply/trivgP; apply/subsetP=> x /setIP[Rx cAx]; apply/set1P.
 have Gx: x \in G by apply: subsetP Rx; rewrite commg_subl.
-rewrite -(expgnK coGA Gx) (_ : x ^+ _ = 1) ?exp1gn //.
+rewrite -(expgK coGA Gx) (_ : x ^+ _ = 1) ?expg1n //.
 rewrite -(fmodK abG Gx) -fmvalZ -(mker (subsetP kerR x Rx)); congr fmval.
 rewrite -GRing.sumr_const; apply: eq_bigr => a Aa.
 by rewrite -fmodJ ?(subsetP nGA) // /conjg (centP cAx) // mulKg.

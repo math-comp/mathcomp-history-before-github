@@ -411,11 +411,11 @@ Lemma p_elt_exp pi x m : pi.-elt (x ^+ m) = (#[x]`_pi^' %| m).
 Proof.
 apply/idP/idP=> [pi_xm | /dvdnP[q ->{m}]]; last first.
   rewrite mulnC; apply: pnat_dvd (part_pnat pi #[x]).
-  by rewrite order_dvdn -expgn_mul mulnC mulnA partnC // -order_dvdn dvdn_mulr.
+  by rewrite order_dvdn -expgM mulnC mulnA partnC // -order_dvdn dvdn_mulr.
 rewrite -(@gauss _ #[x ^+ m]); last first.
   by rewrite coprime_sym (pnat_coprime pi_xm) ?part_pnat.
 apply: (@dvdn_trans #[x]); first by rewrite -{2}[#[x]](partnC pi) ?dvdn_mull.
-by rewrite order_dvdn mulnC expgn_mul expg_order.
+by rewrite order_dvdn mulnC expgM expg_order.
 Qed.
 
 Lemma mem_p_elt pi x G : pi.-group G -> x \in G -> pi.-elt x.
@@ -469,10 +469,10 @@ Lemma cycle_constt pi x : x.`_pi \in <[x]>.
 Proof. exact: mem_cycle. Qed.
 
 Lemma consttV pi x : (x^-1).`_pi = (x.`_pi)^-1.
-Proof. by rewrite /constt expVgn orderV. Qed.
+Proof. by rewrite /constt expgVn orderV. Qed.
 
 Lemma constt1 pi : 1.`_pi = 1 :> gT.
-Proof. exact: exp1gn. Qed.
+Proof. exact: expg1n. Qed.
 
 Lemma consttJ pi x y : (x ^ y).`_pi = x.`_pi ^ y.
 Proof. by rewrite /constt orderJ conjXg. Qed.
@@ -482,7 +482,7 @@ Proof. by rewrite p_elt_exp /chinese addn0 mul1n dvdn_mulr. Qed.
 
 Lemma consttC pi x : x.`_pi * x.`_pi^' = x.
 Proof.
-apply/eqP; rewrite -{3}[x]expg1 -expgn_add eq_expg_mod_order.
+apply/eqP; rewrite -{3}[x]expg1 -expgD eq_expg_mod_order.
 rewrite partnNK -{5 6}(@partnC pi #[x]) // /chinese !addn0.
 by rewrite chinese_remainder ?chinese_modl ?chinese_modr ?coprime_partC ?eqxx.
 Qed.
@@ -502,7 +502,7 @@ Proof.
 move=> cxy; pose m := #|<<[set x; y]>>|; have m_gt0: 0 < m := cardG_gt0 _.
 pose k := chinese m`_pi m`_pi^' 1 0.
 suffices kXpi z: z \in <<[set x; y]>> -> z.`_pi = z ^+ k.
-  by rewrite !kXpi ?expMgn // ?groupM ?mem_gen // !inE eqxx ?orbT.
+  by rewrite !kXpi ?expgMn // ?groupM ?mem_gen // !inE eqxx ?orbT.
 move=> xyz; have{xyz} zm: #[z] %| m by rewrite cardSg ?cycle_subG.
 apply/eqP; rewrite eq_expg_mod_order -{3 4}[#[z]](partnC pi) //.
 rewrite chinese_remainder ?chinese_modl ?chinese_modr ?coprime_partC //.

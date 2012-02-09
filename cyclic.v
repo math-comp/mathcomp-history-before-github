@@ -25,7 +25,7 @@ Require Import finset fingroup morphism perm automorphism quotient finalg zmodp.
 (*                    Zp_unitm x maps u to cyclem x u.                        *)
 (*    eltm dvd_y_x == the smallest morphism (with domain <[x]>) mapping x to  *)
 (*                    y, given a proof dvd_y_x : #[y] %| #[x].                *)
-(*   expgn_inv G k == if coprime #|G| k, the inverse of exponent k in G.      *)
+(*   expg_invn G k == if coprime #|G| k, the inverse of exponent k in G.      *)
 (* Basic results for these notions, plus the classical result that any finite *)
 (* group isomorphic to a subgroup of a field is cyclic, hence that Aut G is   *)
 (* cyclic when G is of prime order.                                           *)
@@ -70,8 +70,8 @@ Definition Zpm (i : 'Z_#[a]) := a ^+ i.
 Lemma ZpmM : {in Zp #[a] &, {morph Zpm : x y / x * y}}.
 Proof.
 rewrite /Zpm; case: (eqVneq a 1) => [-> | nta] i j _ _.
-  by rewrite !exp1gn ?mulg1.
-by rewrite /= {3}Zp_cast ?order_gt1 // expg_mod_order expgn_add.
+  by rewrite !expg1n ?mulg1.
+by rewrite /= {3}Zp_cast ?order_gt1 // expg_mod_order expgD.
 Qed.
 
 Canonical Zpm_morphism := Morphism ZpmM.
@@ -93,7 +93,7 @@ Qed.
 
 Lemma eq_expg_mod_order m n : (a ^+ m == a ^+ n) = (m == n %[mod #[a]]).
 Proof.
-have [->|] := eqVneq a 1; first by rewrite order1 !modn1 !exp1gn eqxx.
+have [->|] := eqVneq a 1; first by rewrite order1 !modn1 !expg1n eqxx.
 rewrite -order_gt1 => lt1a; have ZpT: Zp #[a] = setT by rewrite /Zp lt1a.
 have: injective Zpm by move=> i j; apply (injmP _ injm_Zpm); rewrite /= ZpT inE.
 move/inj_eq=> eqZ; symmetry; rewrite -(Zp_cast lt1a).
@@ -120,8 +120,8 @@ Lemma cycleMsub a b :
 Proof.
 move=> cab co_ab; apply/subsetP=> _ /cycleP[k ->].
 apply/cycleP; exists (chinese #[a] #[b] k 0); symmetry.
-rewrite expMgn // -expg_mod_order chinese_modl // expg_mod_order.
-by rewrite /chinese addn0 -mulnA mulnCA expgn_mul expg_order exp1gn mulg1.
+rewrite expgMn // -expg_mod_order chinese_modl // expg_mod_order.
+by rewrite /chinese addn0 -mulnA mulnCA expgM expg_order expg1n mulg1.
 Qed.
 
 Lemma cycleM a b :
@@ -158,17 +158,17 @@ Proof. by rewrite -order_dvdn; exact: dvdn_leq. Qed.
 Lemma order_dvdG G a : a \in G -> #[a] %| #|G|.
 Proof. by move=> Ga; apply: cardSg; rewrite cycle_subG. Qed.
 
-Lemma expgn_znat G x k : x \in G -> x ^+ (k%:R : 'Z_(#|G|))%R = x ^+ k.
+Lemma expg_znat G x k : x \in G -> x ^+ (k%:R : 'Z_(#|G|))%R = x ^+ k.
 Proof.
-case: (eqsVneq G 1) => [-> /set1P-> | ntG Gx]; first by rewrite !exp1gn.
+case: (eqsVneq G 1) => [-> /set1P-> | ntG Gx]; first by rewrite !expg1n.
 apply/eqP; rewrite val_Zp_nat ?cardG_gt1 // eq_expg_mod_order.
 by rewrite modn_dvdm ?order_dvdG.
 Qed.
 
-Lemma expgn_zneg G x (k : 'Z_(#|G|)) : x \in G -> x ^+ (- k)%R = x ^- k.
+Lemma expg_zneg G x (k : 'Z_(#|G|)) : x \in G -> x ^+ (- k)%R = x ^- k.
 Proof.
-move=> Gx; apply/eqP; rewrite eq_sym eq_invg_mul -expgn_add.
-by rewrite -(expgn_znat _ Gx) natrD natr_Zp natr_negZp subrr.
+move=> Gx; apply/eqP; rewrite eq_sym eq_invg_mul -expgD.
+by rewrite -(expg_znat _ Gx) natrD natr_Zp natr_negZp subrr.
 Qed.
 
 Lemma nt_gen_prime G x : prime #|G| -> x \in G^# -> G :=: <[x]>.
@@ -190,11 +190,11 @@ Proof. by apply: order_dvdG; exact: mem_cycle. Qed.
 Lemma orderXgcd a n : #[a ^+ n] = #[a] %/ gcdn #[a] n.
 Proof.
 apply/eqP; rewrite eqn_dvd; apply/andP; split.
-  rewrite order_dvdn -expgn_mul -gcdn_divnC //.
-  by rewrite expgn_mul expg_order exp1gn.
+  rewrite order_dvdn -expgM -gcdn_divnC //.
+  by rewrite expgM expg_order expg1n.
 have [-> | n_gt0] := posnP n; first by rewrite gcdn0 divnn order_gt0 dvd1n.
 rewrite -(dvdn_pmul2r n_gt0) divn_mulAC ?dvdn_gcdl // dvdn_lcm.
-by rewrite order_dvdn mulnC expgn_mul expg_order eqxx dvdn_mulr.
+by rewrite order_dvdn mulnC expgM expg_order eqxx dvdn_mulr.
 Qed.
 
 Lemma orderXdiv a n : n %| #[a] -> #[a ^+ n] = #[a] %/ n.
@@ -203,8 +203,8 @@ Proof. by case/dvdnP=> q defq; rewrite orderXgcd {2}defq gcdnC gcdn_mull. Qed.
 Lemma orderXexp p m n x : #[x] = (p ^ n)%N -> #[x ^+ (p ^ m)] = (p ^ (n - m))%N.
 Proof.
 move=> ox; have [n_le_m | m_lt_n] := leqP n m.
-  rewrite -(subnKC n_le_m) -subn_sub subnn expn_add expgn_mul -ox.
-  by rewrite expg_order exp1gn order1.
+  rewrite -(subnKC n_le_m) -subn_sub subnn expn_add expgM -ox.
+  by rewrite expg_order expg1n order1.
 rewrite orderXdiv ox ?dvdn_exp2l ?expn_sub ?(ltnW m_lt_n) //.
 by have:= order_gt0 x; rewrite ox expn_gt0 orbC -(ltn_predK m_lt_n).
 Qed.
@@ -215,7 +215,7 @@ Proof.
 move=> oxp p_pr dv_p_n.
 suffices pk_x: p ^ k %| #[x] by rewrite -oxp orderXdiv // mulnC divnK.
 rewrite pfactor_dvdn // leqNgt; apply: contraL dv_p_n => lt_x_k.
-rewrite -oxp -p'natE // -(subnKC (ltnW lt_x_k)) expn_add expgn_mul.
+rewrite -oxp -p'natE // -(subnKC (ltnW lt_x_k)) expn_add expgM.
 rewrite (pnat_dvd (orderXdvd _ _)) // -p_part // orderXdiv ?dvdn_part //.
 by rewrite -{1}[#[x]](partnC p) // mulKn // part_pnat.
 Qed.
@@ -231,7 +231,7 @@ suffices m_x: m %| #[x] by rewrite -oxm orderXdiv // mulnC divnK.
 apply/dvdn_partP=> // p; rewrite mem_primes => /and3P[p_pr _ p_m].
 have n_p: p \in \pi(n) by apply: (pnatP _ _ n_m).
 have p_oxm: p %| #[x ^+ (p ^ logn p m)].
-  apply: dvdn_trans (orderXdvd _ m`_p^'); rewrite -expgn_mul -p_part ?partnC //.
+  apply: dvdn_trans (orderXdvd _ m`_p^'); rewrite -expgM -p_part ?partnC //.
   by rewrite oxm; rewrite mem_primes in n_p; case/and3P: n_p.
 by rewrite (orderXpfactor (erefl _) p_pr p_oxm) p_part // dvdn_mulr.
 Qed.
@@ -240,13 +240,13 @@ Lemma orderM a b :
   commute a b -> coprime #[a] #[b] -> #[a * b] = (#[a] * #[b])%N.
 Proof. by move=> cab co_ab; rewrite -coprime_cardMg -?cycleM. Qed.
 
-Definition expgn_inv A k := (egcdn k #|A|).1.
+Definition expg_invn A k := (egcdn k #|A|).1.
 
-Lemma expgnK G k :
-  coprime #|G| k -> {in G, cancel (expgn^~ k) (expgn^~ (expgn_inv G k))}.
+Lemma expgK G k :
+  coprime #|G| k -> {in G, cancel (expgn^~ k) (expgn^~ (expg_invn G k))}.
 Proof.
 move=> coGk x /order_dvdG Gx; apply/eqP.
-rewrite -expgn_mul (eq_expg_mod_order _ _ 1) -(modn_dvdm 1 Gx).
+rewrite -expgM (eq_expg_mod_order _ _ 1) -(modn_dvdm 1 Gx).
 by rewrite -(chinese_modl coGk 1 0) /chinese mul1n addn0 modn_dvdm.
 Qed.
 
@@ -276,7 +276,7 @@ case: n => [|[|n']] //; [by rewrite !modn1 | set n := n'.+2] => co_a_n.
 have{co_a_n} Ua: coprime n (inZp a : 'I_n) by rewrite coprime_sym coprime_modl.
 have: (Sub _ : _ -> {unit 'I_n}) Ua ^+ phi n == 1.
   by rewrite -card_units_Zp // -order_dvdn order_dvdG ?inE.
-by rewrite -2!val_eqE unit_Zp_expgn /= -/n modn_exp => /eqP.
+by rewrite -2!val_eqE unit_Zp_expg /= -/n modn_exp => /eqP.
 Qed.
 
 Section Eltm.
@@ -293,7 +293,7 @@ apply/eqP; rewrite eq_expg_mod_order.
 have [x_le1 | x_gt1] := leqP #[x] 1. 
   suffices: #[y] %| 1 by rewrite dvdn1 => /eqP->; rewrite !modn1.
   by rewrite (dvdn_trans dvd_y_x) // dvdn1 order_eq1 -cycle_eq1 trivg_card_le1.
-rewrite -(expgn_znat i (cycle_id x)) invmE /=; last by rewrite /Zp x_gt1 inE.
+rewrite -(expg_znat i (cycle_id x)) invmE /=; last by rewrite /Zp x_gt1 inE.
 by rewrite val_Zp_nat // modn_dvdm.
 Qed.
 
@@ -302,7 +302,7 @@ Lemma eltm_id : eltm dvd_y_x x = y. Proof. exact: (eltmE 1). Qed.
 Lemma eltmM : {in <[x]> &, {morph eltm dvd_y_x : x_i x_j / x_i * x_j}}.
 Proof.
 move=> _ _ /cycleP[i ->] /cycleP[j ->].
-by apply/eqP; rewrite -expgn_add !eltmE expgn_add.
+by apply/eqP; rewrite -expgD !eltmE expgD.
 Qed.
 Canonical eltm_morphism := Morphism eltmM.
 
@@ -340,9 +340,9 @@ apply/subsetP=> X; rewrite in_set1 inE -val_eqE /= eqEcard oam.
 case/andP=> sXa /eqP oX; rewrite oX leqnn andbT.
 apply/subsetP=> x Xx; case/cycleP: (subsetP sXa _ Xx) => k def_x.
 have: (x ^+ m == 1)%g by rewrite -oX -order_dvdn cardSg // gen_subG sub1set.
-rewrite {x Xx}def_x -expgn_mul -order_dvdn -[#[a]](LaGrange sXa) -oX mulnC.
+rewrite {x Xx}def_x -expgM -order_dvdn -[#[a]](LaGrange sXa) -oX mulnC.
 rewrite dvdn_pmul2r // mulnK // => /dvdnP[i ->].
-by rewrite mulnC expgn_mul groupX // cycle_id.
+by rewrite mulnC expgM groupX // cycle_id.
 Qed.
 
 Lemma cycle_subgroup_char a (H : {group gT}) : H \subset <[a]> -> H \char <[a]>.
@@ -549,7 +549,7 @@ Definition cyclem of gT := fun x : gT => x ^+ n.
 
 Lemma cyclemM : {in <[a]> & , {morph cyclem a : x y / x * y}}.
 Proof.
-by move=> x y ax ay; apply: expMgn; exact: (centsP (cycle_abelian a)).
+by move=> x y ax ay; apply: expgMn; exact: (centsP (cycle_abelian a)).
 Qed.
 
 Canonical cyclem_morphism := Morphism cyclemM.
@@ -582,7 +582,7 @@ Lemma Zp_unitmM : {in units_Zp #[a] &, {morph Zp_unitm : u v / u * v}}.
 Proof.
 move=> u v _ _; apply: (eq_Aut (Aut_aut _ _)) => [|x a_x].
   by rewrite groupM ?Aut_aut.
-rewrite permM !autE ?groupX //= /cyclem -expgn_mul.
+rewrite permM !autE ?groupX //= /cyclem -expgM.
 rewrite -expg_mod_order modn_dvdm ?expg_mod_order //.
 case: (leqP #[a] 1) => [lea1 | lt1a]; last by rewrite Zp_cast ?order_dvdG.
 by rewrite card_le1_trivg // in a_x; rewrite (set1P a_x) order1 dvd1n.
@@ -623,7 +623,7 @@ have co_a_n: coprime #[a].-2.+2 n.
 exists ((Sub _ : _-> {unit 'Z__}) co_a_n); rewrite ?inE //.
 apply: eq_Aut (Af) (Aut_aut _ _) _ => x ax.
 rewrite autE //= /cyclem; case/cycleP: ax => k ->{x}.
-by rewrite -(autmE Af) morphX ?cycle_id //= autmE -def_n -!expgn_mul mulnC.
+by rewrite -(autmE Af) morphX ?cycle_id //= autmE -def_n -!expgM mulnC.
 Qed.
 
 Lemma Zp_unit_isom : isom (units_Zp #[a]) (Aut <[a]>) Zp_unitm.
