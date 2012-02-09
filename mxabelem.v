@@ -84,7 +84,7 @@ End FinRingRepr.
 
 Notation "''MR' rG" := (mx_repr_action rG)
   (at level 10, rG at level 8) : action_scope.
-Local Notation "''MR' rG" := (mx_repr_groupAction rG) : groupAction_scope.
+Notation "''MR' rG" := (mx_repr_groupAction rG) : groupAction_scope.
 
 Section FinFieldRepr.
 

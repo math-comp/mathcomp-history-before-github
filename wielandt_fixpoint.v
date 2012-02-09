@@ -20,34 +20,6 @@ Local Open Scope ring_scope.
 Import GroupScope GRing.Theory.
 Import FinRing.Theory.
 
-(*
-Section ExtrasForHuppertBlackburn_5_9.
-
-Implicit Type gT : finGroupType.
-
-Lemma  bigprod_expg : forall gT I r (P : pred I) (F : I -> gT)(G : {group gT}) n, 
-  abelian G -> (forall i, P i -> F i \in G) -> 
-    (\prod_(i <- r | P i) F i) ^+ n = \prod_(i <- r | P i) (F i ^+ n).
-Proof.
-move=> gT I r P F G n cGG inG; elim: r => [| x r ih] /=. 
-  by rewrite !big_nil exp1gn.
-rewrite !big_cons; case Px: (P x) => //; rewrite -ih expMgn //; red.
-rewrite -(centsP cGG) //; first exact: group_prod.
-exact: inG.
-Qed.
-
-Lemma bigprod_norm :  forall gT I r (P : pred I) F (X : {group gT}), 
-    (forall i, P i -> X \subset 'N(F i)) -> 
-    X \subset 'N( \prod_(i <- r | P i) F i).
-Proof.
-move=> gT I r P F X Xn; elim: r => [| x r ih] /=.
-  by rewrite big_nil norm1 subsetT.
-rewrite big_cons; case Px : (P x) => //; rewrite normsM //; exact: Xn.
-Qed.
-
-End ExtrasForHuppertBlackburn_5_9.
-*)
-
 Section HuppertBlackburn_5_9.
 
 Implicit Types (gT : finGroupType) (p : nat).
@@ -57,7 +29,7 @@ Lemma huppert_blackburn_5_9 gT p (A X : {group gT}) :
   exists2 s : {set {group gT}}, \big[dprod/1]_(B \in s) B = A
       & forall B, B \in s -> [/\ homocyclic B, X \subset 'N(B)
         & acts_irreducibly X (B / 'Phi(B)) 'Q].
-Proof. Admitted. (*
+Proof.
 move: {2}_.+1 (ltnSn #|A|) => m.
 elim: m => // m IHm in gT A X *; rewrite ltnS => leAm cAA pA p'X nAX.
 have [n1 eA]: {n | exponent A = p ^ n}%N by apply p_natP; rewrite pnat_exponent.
@@ -246,7 +218,7 @@ rewrite 2!inE /= qact_domE ?subsetT // astabsJ.
 rewrite (subsetP (char_norm_trans (Phi_char _) nKuX)) ?mem_quotient //=.
 apply/subsetP=> fy; case/morphimP=> y Dy Yy ->{fy}.
 by rewrite inE /= -act_f // morphimEsub // mem_imset // (acts_act actsXY).
-Qed. *)
+Qed.
 
 End HuppertBlackburn_5_9.
 
@@ -261,7 +233,7 @@ Lemma huppert_blackburn_12_3 gT (V G : {group gT}) p m :
     isom V (W / 'Mho^1(W)) f
   & exists toW : groupAction G W,
     {in V & G, morph_act 'J (toW / 'Mho^1(W)) f (idm G)}.
-Proof. Admitted. (*
+Proof. 
 move=> minV copG abelV m_gt0; set q := (p ^ m)%N => W.
 have [ntV nVG] := andP (mingroupp minV).
 have [p_pr pVdvdn [n Vpexpn]] := pgroup_pdiv (abelem_pgroup abelV) ntV.
@@ -478,45 +450,18 @@ rewrite -mulmxA hJ // mulmxA rVabelemJ //; congr (_ ^ x).
 apply: set1_inj; rewrite -(morphim_set1 (Morphism f3M)) ?in_setT //.
 rewrite -im_f' quotient_set1 // morphim_set1 ?mem_quotient ?in_setT //.
 by rewrite -def_fv def_f invmK // im_f' im_f3.
-Qed. *)
+Qed.
 
 
 End HuppertBlackburn_12_3.
 
-(* Auxiliary lemma for the second part of the proof *)
-Lemma expdiv_0 : forall p x, p > 1 -> 
-  (forall n, n > 0 -> p ^ n %| x) -> x = 0%N.
-Proof.
-move=> p x ltp1 hdiv; apply/eqP; case abs: (x == 0%N) => //.
-suff [m pmlex] : {m | p ^ m > x}.
-  have mgt0 : 0 < m.
-    rewrite lt0n; move: pmlex;  case m0: (m == 0%N) => //.
-    by rewrite (eqP m0) expn0 ltnS leqn0 abs.
-  move: (hdiv _ mgt0); move: (lt0n x); rewrite abs /= => xgt0.
-  by move/(dvdn_leq xgt0); rewrite leqNgt pmlex.
-elim: x {hdiv abs} => [|n [k hk]]; first by exists 0%N.
-exists k.+1.
-suff h : (p ^ k).+1 <= p ^k.+1 by apply: leq_trans h.
-by rewrite expnS; apply: ltn_Pmull => //; apply: leq_trans hk.
-Qed.
 
 Lemma exprdiv_eq : forall p x y, p > 1 -> 
   (forall n, n > 0 -> x = y %[mod p ^ n]) -> x = y.
 Proof.
-move=> p x y; wlog hwlog : x y / x <= y.
-  move=> hwlog lt1p hmod; case: (leqP x y) => hxy; first by exact: hwlog.
-  apply: sym_eq; apply: hwlog => // [| n lt0n]; first by rewrite ltnW.
-  by apply: sym_eq; apply: hmod.
-move=> lt1p hmod; apply/eqP; rewrite eqn_leq hwlog /= -subn_eq0; apply/eqP.
-apply: (expdiv_0 lt1p) => n lt0n; rewrite (divn_eq y (p ^ n)).
-by rewrite (divn_eq x (p ^ n)) (hmod _ lt0n) subn_add2r -muln_subl dvdn_mull.
-Qed.
-
-Lemma muln_sum :  forall (R : ringType) I r P (F : I -> nat),
-  \sum_(i <- r | P i) (F i)%:R  = (\sum_(i <- r | P i) F i)%:R :> R.
-Proof.
-move=> R I r P F; apply: sym_eq.
-exact: (big_morph _ (fun x1 y1 : nat => natrD _ x1 y1) (refl_equal 0%:R)).
+move=> p x y lt1p h; have /h : 0 < (x.+1 * y.+1)%N by [].
+by rewrite !modn_small // 1?[in X in x < X]mulnC expn_mulr 
+  !(leq_trans _ (ltn_expl _ _)).
 Qed.
 
 Theorem solvable_Wielandt_fixpoint : forall (I : finType) (gT : finGroupType),
@@ -659,7 +604,7 @@ suff tr_rW_Ai : forall i, 0 < m i + n i  ->
     \tr (\sum_(x \in A i) rW x *+ mn i) = (f i * mn i * #|A i|)%:R.
     move=> mn i hi; rewrite mulnAC natrM -tr_rW_Ai // mulrC -mxtraceZ.
     by rewrite scaler_nat sumrMnl.
-  rewrite !(eq_bigr _ (hp _)) !muln_sum; move/(f_equal (@nat_of_ord _)).
+  rewrite !(eq_bigr _ (hp _)) !sumrMnr; move/(f_equal (@nat_of_ord _)).
   by rewrite !val_Zp_nat.
 move=> i hi.
 pose Aibar := (sdpair2 toW) @* (A i). 

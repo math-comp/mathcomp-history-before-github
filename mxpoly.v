@@ -13,7 +13,7 @@ Require Import poly polydiv.
 (*     poly_rV p == the partial inverse to rVpoly, for polynomials of degree  *)
 (*                  less than d to 'rV_d (d is inferred from the context).    *)
 (* Sylvester_mx p q == the Sylvester matrix of p and q.                       *)
-(* resultant p q == the rusultant of p and q, i.e., \det (Sylvester_mx p q).  *)
+(* resultant p q == the resultant of p and q, i.e., \det (Sylvester_mx p q).  *)
 (*   horner_mx A == the morphism from {poly R} to 'M_n (n of the form n'.+1)  *)
 (*                  mapping a (scalar) polynomial p to the value of its       *)
 (*                  scalar matrix interpretation at A (this is an instance of *)
