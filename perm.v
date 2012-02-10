@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq path choice fintype.
-Require Import finfun bigop finset binomial fingroup.
+Require Import tuple finfun bigop finset binomial fingroup.
 
 (******************************************************************************)
 (* This file contains the definition and properties associated to the group   *)
@@ -291,6 +291,28 @@ apply/permP => z; rewrite -(permKV s z) permJ; apply: inj_tperm.
 exact: perm_inj.
 Qed.
 
+Lemma tuple_perm_eqP {T : eqType} {n} {s : seq T} {t : n.-tuple T} :
+  reflect (exists p : 'S_n, s = [tuple tnth t (p i) | i < n]) (perm_eq s t).
+Proof.
+apply: (iffP idP) => [|[p ->]]; last first.
+  rewrite /= (map_comp (tnth t)) -{1}(map_tnth_enum t) perm_map //.
+  apply: uniq_perm_eq => [||i]; rewrite ?enum_uniq //.
+    by apply/injectiveP; apply: perm_inj.
+  by rewrite mem_enum -[i](permKV p) image_f.
+case: n => [|n] in t *; last have x0 := tnth t ord0.
+  rewrite tuple0 => /perm_eq_small-> //.
+  by exists 1; rewrite [mktuple _]tuple0.
+case/(perm_eq_iotaP x0); rewrite size_tuple => Is eqIst ->{s}.
+have uniqIs: uniq Is by rewrite (perm_eq_uniq eqIst) iota_uniq.
+have szIs: size Is == n.+1 by rewrite (perm_eq_size eqIst) !size_tuple.
+have pP i : tnth (Tuple szIs) i < n.+1.
+  by rewrite -[_ < _](mem_iota 0) -(perm_eq_mem eqIst) mem_tnth.
+have inj_p: injective (fun i => Ordinal (pP i)).
+  by apply/injectiveP/(@map_uniq _ _ val); rewrite -map_comp map_tnth_enum.
+exists (perm inj_p); rewrite -[Is]/(tval (Tuple szIs)); congr (tval _).
+by apply: eq_from_tnth => i; rewrite tnth_map tnth_mktuple permE (tnth_nth x0).
+Qed.
+
 Section PermutationParity.
 
 Variable T : finType.
@@ -550,4 +572,5 @@ Qed.
 
 End LiftPerm.
 
-Unset Implicit Arguments.
+
+

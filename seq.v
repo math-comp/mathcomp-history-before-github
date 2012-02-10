@@ -1446,7 +1446,6 @@ Lemma catCA_perm_subst R F :
   (forall s1 s2, perm_eq s1 s2 -> F s1 = F s2).
 Proof.
 move=> FcatCA s1 s2 /catCA_perm_ind => ind_s12.
-(* To check on pl2: elim/ind_s12: s2 raises an Anomaly on 1.3pl1. *)
 by apply: (ind_s12 (eq _ \o F)) => //= *; rewrite FcatCA.
 Qed.
 
@@ -1859,6 +1858,15 @@ Qed.
 
 End Map.
 
+Notation "[ 'seq' E | i <- s ]" := (map (fun i => E) s)
+  (at level 0, i ident,
+   format "[ '[hv' 'seq'  E '/ '  |  i  <-  s ] ']'") : form_scope.
+
+Notation "[ 'seq' E | i <- s , C ]" :=
+     (map (fun i => E) (filter (fun i => C) s))
+  (at level 0, i ident,
+   format "[ '[hv' 'seq'  E '/ '  |  i  <-  s , '/ '  C ] ']'") : form_scope.
+
 Lemma filter_mask T a (s : seq T) : filter a s = mask (map a s) s.
 Proof. by elim: s => //= x s <-; case: (a x). Qed.
 
@@ -1949,6 +1957,9 @@ elim: s => //= y s IHs inj_f s_x; rewrite (inj_in_eq inj_f) ?mem_head //.
 move: s_x; rewrite inE eq_sym; case: eqP => [-> | _] //=; apply: IHs.
 by apply: sub_in2 inj_f => z; exact: predU1r.
 Qed.
+
+Lemma perm_map s t : perm_eq s t -> perm_eq (map f s) (map f t).
+Proof. by move/perm_eqP=> Est; apply/perm_eqP=> a; rewrite !count_map Est. Qed.
 
 Hypothesis Hf : injective f.
 
@@ -2132,9 +2143,30 @@ Qed.
 
 End MakeSeq.
 
-Lemma mkseq_uniq (T : eqType) (f : nat -> T) n :
-  injective f -> uniq (mkseq f n).
-Proof. by move=> injf; rewrite map_inj_uniq // iota_uniq. Qed.
+Section MakeEqSeq.
+
+Variable T : eqType.
+
+Lemma mkseq_uniq (f : nat -> T) n : injective f -> uniq (mkseq f n).
+Proof. by move/map_inj_uniq->; apply: iota_uniq. Qed.
+
+Lemma perm_eq_iotaP {s t : seq T} x0 (It := iota 0 (size t)) :
+  reflect (exists2 Is, perm_eq Is It & s = map (nth x0 t) Is) (perm_eq s t).
+Proof.
+apply: (iffP idP) => [Est | [Is eqIst ->]]; last first.
+  by rewrite -{2}[t](mkseq_nth x0) perm_map.
+elim: t => [|x t IHt] in s It Est *.
+  by rewrite (perm_eq_small _ Est) //; exists [::].
+have /rot_to[k s1 Ds]: x \in s by rewrite (perm_eq_mem Est) mem_head.
+have [|Is1 eqIst1 Ds1] := IHt s1; first by rewrite -(perm_cons x) -Ds perm_rot.
+exists (rotr k (0 :: map succn Is1)).
+  by rewrite perm_rot /It /= perm_cons (iota_addl 1) perm_map.
+by rewrite map_rotr /= -map_comp -(@eq_map _ _ (nth x0 t)) // -Ds1 -Ds rotK.
+Qed.
+
+End MakeEqSeq.
+
+Implicit Arguments perm_eq_iotaP [[T] [s] [t]].
 
 Section FoldRight.
 
@@ -2354,19 +2386,11 @@ Proof. by elim: s1 => //= x s1 ->; rewrite catA. Qed.
 
 End AllPairs.
 
-Notation "[ 'seq' E | i <- s ]" := (map (fun i => E) s)
-  (at level 0, i ident,
-   format "[ '[hv' 'seq'  E '/ '  |   i  <-  s ] ']'") : form_scope.
+Prenex Implicits flatten shape reshape allpairs.
 
 Notation "[ 'seq' E | i <- s , j <- t ]" := (allpairs (fun i j => E) s t)
   (at level 0, i ident,
-   format "[ '[hv' 'seq'  E '/ '  |   i  <-  s , '/ '  j  <-  t ] ']'")
-   : form_scope.
-
-Notation "[ 'seq' E | i <- s , C ]" :=
-     (map (fun i => E) (filter (fun i => C) s))
-  (at level 0, i ident,
-   format "[ '[hv' 'seq'  E '/ '  |   i  <-  s , '/ '  C ] ']'")
+   format "[ '[hv' 'seq'  E '/ '  |  i  <-  s , '/ '  j  <-  t ] ']'")
    : form_scope.
 
 Section EqAllPairs.
@@ -2420,4 +2444,3 @@ Qed.
 
 End EqAllPairs.
 
-Prenex Implicits flatten shape reshape allpairs.
