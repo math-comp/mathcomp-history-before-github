@@ -1252,7 +1252,7 @@ Proof. rewrite ltn_neqAle cardG_gt1 odd_neq2 //. Qed.
 Let tLW2 : (2 < #|W2|)%N.
 Proof. rewrite ltn_neqAle cardG_gt1 odd_neq2 //. Qed.
 
-(* Second part of PeterFalvi (4.8) *)
+(* Second part of PeterFalvi (4.8). *)
 Lemma cDade_mu2_delta i j k : 
   mu2 i j 1%g = mu2 i k 1%g -> delta j = delta k.
 Proof.
@@ -1382,7 +1382,6 @@ wlog : d j k NZj NZk {Cmu Zmu Emu1}Djk /  d = false=> [WL|->].
   rewrite -[true]negbK signC_negb scaleNr -scalerN opprB.
   by apply: WL; rewrite // eq_sym.
 rewrite scale1r opprB addrA.
-(* pose NC : 'CF(G) -> nat  := cyclicTI_NC W W1 W2. *)
 pose cB k := forallb ij,  '['chi_k, sigma (w_ ij.1 ij.2)] == 0.
 pose dB1 x := (subrr, sub0r, subr0, oppr0, subrK,
                 add0r, addr0, addrK, opprK, (I, opprD),
@@ -1721,7 +1720,7 @@ Qed.
 Definition uniform_Dade_mu_seq k :=
   image mu [pred j | (mu j 1%g == mu k 1%g) && (j != 0)].
 
-(* This is Peterfalvi (4.9). *)
+(* This is Peterfalvi (4.9)                                                   *)
 (* We have added the "obvious" fact that calT is pairwise orthogonal, since   *)
 (* we require this to prove membership in 'Z[calT], we encapsulate the        *)
 (* construction of tau1, and state its conformance to tau on the "larger"     *)
