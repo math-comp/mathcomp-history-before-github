@@ -2441,10 +2441,10 @@ Section Defs.
 Variable n : nat.
 Implicit Type A : 'M[R]_n.
 
-Definition unitmx : pred 'M[R]_n := fun A => GRing.unit (\det A).
+Definition unitmx : pred 'M[R]_n := fun A => \det A \in GRing.unit.
 Definition invmx A := if A \in unitmx then (\det A)^-1 *: \adj A else A.
 
-Lemma unitmxE A : (A \in unitmx) = GRing.unit (\det A).
+Lemma unitmxE A : (A \in unitmx) = (\det A \in GRing.unit).
 Proof. by []. Qed.
 
 Lemma unitmx1 : 1%:M \in unitmx. Proof. by rewrite unitmxE det1 unitr1. Qed.
@@ -2527,7 +2527,7 @@ Proof. by move=> AB1; apply/andP; rewrite -unitmx_mul AB1 unitmx1. Qed.
 Lemma intro_unitmx A B : B *m A = 1%:M /\ A *m B = 1%:M -> unitmx A.
 Proof. by case=> _ /mulmx1_unit[]. Qed.
 
-Lemma invmx_out : {in predC unitmx, invmx =1 id}.
+Lemma invmx_out : {in [predC unitmx], invmx =1 id}.
 Proof. by move=> A; rewrite inE /= /invmx -if_neg => ->. Qed.
 
 End Defs.
@@ -2546,7 +2546,7 @@ Canonical matrix_unitAlg := Eval hnf in [unitAlgType R of 'M[R]_n].
 Lemma detV (A : 'M_n) : \det A^-1 = (\det A)^-1.
 Proof. exact: det_inv. Qed.
 
-Lemma unitr_trmx (A : 'M_n) : GRing.unit A^T = GRing.unit A.
+Lemma unitr_trmx (A : 'M_n) : (A^T  \in GRing.unit) = (A \in GRing.unit).
 Proof. exact: unitmx_tr. Qed.
 
 Lemma trmxV (A : 'M_n) : A^-1^T = (A^T)^-1.
@@ -2618,7 +2618,7 @@ Lemma GL_VE u : GLval u^-1 = (GLval u)^-1. Proof. by []. Qed.
 Lemma GL_VxE u : GLval u^-1 = invmx u. Proof. by []. Qed.
 Lemma GL_ME u v : GLval (u * v) = GLval u * GLval v. Proof. by []. Qed.
 Lemma GL_MxE u v : GLval (u * v) = u *m v. Proof. by []. Qed.
-Lemma GL_unit u : GRing.unit (GLval u). Proof. exact: valP. Qed.
+Lemma GL_unit u : GLval u \in GRing.unit. Proof. exact: valP. Qed.
 Lemma GL_unitmx u : val u \in unitmx. Proof. exact: GL_unit. Qed.
 
 Lemma GL_det u : \det u != 0.
@@ -2728,7 +2728,7 @@ Qed.
 Lemma map_unitmx n (A : 'M_n) : (A^f \in unitmx) = (A \in unitmx).
 Proof. by rewrite unitmxE det_map_mx // fmorph_unit // -unitfE. Qed.
 
-Lemma map_mx_unit n' (A : 'M_n'.+1) : GRing.unit A^f = GRing.unit A.
+Lemma map_mx_unit n' (A : 'M_n'.+1) : (A^f \in GRing.unit) = (A \in GRing.unit).
 Proof. exact: map_unitmx. Qed.
 
 Lemma map_invmx n (A : 'M_n) : (invmx A)^f = invmx A^f.

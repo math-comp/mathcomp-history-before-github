@@ -227,7 +227,7 @@ Local Notation "e ^g" := (g^-1 *m (e *m g))
 Local Notation "'E_ ( i , t )" := (E2_ i t)
   (at level 8, format "''E_' ( i ,  t )").
 
-Let inj_g : GRing.unit g.
+Let inj_g : g \in GRing.unit.
 Proof. by rewrite -(unitrX_pos _ h_gt0) gh1 unitr1. Qed.
 
 Let Vi_mod i : 'V_(i %% h) = 'V_i.
@@ -1127,7 +1127,8 @@ have: ~~ (rs \subset [set (1 : 'F_p)]).
 case/subsetPn => r rs_r; rewrite inE => ne_r_1.
 have rq1: r ^+ q = 1 by apply/eqP; rewrite inE in rs_r.
 split.
-  have Ur: GRing.unit r by rewrite -(unitrX_pos _ (prime_gt0 q_pr)) rq1 unitr1.
+  have Ur: r \in GRing.unit.
+    by rewrite -(unitrX_pos _ (prime_gt0 q_pr)) rq1 unitr1.
   pose u_r : {unit 'F_p} := Sub r Ur; have:= order_dvdG (in_setT u_r).
   rewrite card_units_Zp ?pdiv_gt0 // {2}/pdiv primes_prime //=.
   rewrite (@phi_pfactor p 1) // muln1; apply: dvdn_trans.

@@ -208,7 +208,7 @@ Fixpoint holds (e : seq R) (f : ord.formula R) {struct f} : Prop :=
   | (t1 == t2)%oT => eval e t1 = eval e t2
   | (t1 <% t2)%oT => eval e t1 < eval e t2
   | (t1 <=% t2)%oT => eval e t1 <= eval e t2
-  | Unit t1 => unit (eval e t1)
+  | Unit t1 => eval e t1 \in unit
   | (f1 /\ f2)%oT => holds e f1 /\ holds e f2
   | (f1 \/ f2)%oT => holds e f1 \/ holds e f2
   | (f1 ==> f2)%oT => holds e f1 -> holds e f2
@@ -470,7 +470,7 @@ suffices{t} rsub_to_r t r0 m: (m >= ub_var t)%N -> ub_sub _ m r0 ->
     apply: t_h0.
     rewrite nth_set_nth /= eqxx -(eval_tsubst e u (m, Const _)).
     rewrite sub_var_tsubst //= -/y.
-    case Uy: (unit y); [left | right]; first by rewrite mulVr ?divrr.
+    case Uy: (y \in unit); [left | right]; first by rewrite mulVr ?divrr.
     split=> [|[z]]; first by rewrite invr_out ?Uy.
     rewrite nth_set_nth /= eqxx.
     rewrite -!(eval_tsubst _ _ (m, Const _)) !sub_var_tsubst // -/y => yz1.
@@ -485,11 +485,10 @@ suffices{t} rsub_to_r t r0 m: (m >= ub_var t)%N -> ub_sub _ m r0 ->
     rewrite nth_set_nth /= eqxx -!(eval_tsubst _ _ (m, _%:T)%T).
     by rewrite !sub_var_tsubst.
   + case: (IHr1 m.+1 (set_nth 0 e m y^-1) ub_r1) =>  _ h _. apply/h.
-
     apply: t_h0.
     rewrite nth_set_nth /= eqxx -(eval_tsubst e u (m, Const _)).
     rewrite sub_var_tsubst //= -/y.
-    case Uy: (unit y); [left | right]; first by rewrite mulVr ?divrr.
+    case Uy: (y \in unit); [left | right]; first by rewrite mulVr ?divrr.
     split=> [|[z]]; first by rewrite invr_out ?Uy.
     rewrite nth_set_nth /= eqxx.
     rewrite -!(eval_tsubst _ _ (m, Const _)) !sub_var_tsubst // -/y => yz1.
@@ -507,7 +506,7 @@ suffices{t} rsub_to_r t r0 m: (m >= ub_var t)%N -> ub_sub _ m r0 ->
     apply: t_h0.
     rewrite nth_set_nth /= eqxx -(eval_tsubst e u (m, Const _)).
     rewrite sub_var_tsubst //= -/y.
-    case Uy: (unit y); [left | right]; first by rewrite mulVr ?divrr.
+    case Uy: (y \in unit); [left | right]; first by rewrite mulVr ?divrr.
     split=> [|[z]]; first by rewrite invr_out ?Uy.
     rewrite nth_set_nth /= eqxx.
     rewrite -!(eval_tsubst _ _ (m, Const _)) !sub_var_tsubst // -/y => yz1.
@@ -575,7 +574,7 @@ Definition qf_eval e := fix loop (f : formula R) : bool :=
   | t1 == t2 => (eval e t1 == eval e t2)%bool
   | t1 <% t2 => (eval e t1 < eval e t2)%bool
   | t1 <=% t2 => (eval e t1 <= eval e t2)%bool
-  | Unit t1 => unit (eval e t1)
+  | Unit t1 => eval e t1 \in unit
   | f1 /\ f2 => loop f1 && loop f2
   | f1 \/ f2 => loop f1 || loop f2
   | f1 ==> f2 => (loop f1 ==> loop f2)%bool

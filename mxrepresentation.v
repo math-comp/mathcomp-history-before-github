@@ -436,7 +436,7 @@ Lemma repr_mxVr : {in G, {morph rG : x / (x^-1)%g >-> x^-1}}.
 Proof. exact: repr_mxV.
  Qed.
 
-Lemma repr_mx_unitr x : x \in G -> GRing.unit (rG x).
+Lemma repr_mx_unitr x : x \in G -> rG x \in GRing.unit.
 Proof. exact: repr_mx_unit. Qed.
 
 Lemma repr_mxX m : {in G, {morph rG : x / (x ^+ m)%g >-> x ^+ m}}.
@@ -4495,7 +4495,7 @@ elim: n => [|n IHn] x Zx; first exact: irr_mode1.
 by rewrite expgS irr_modeM ?groupX // exprS IHn.
 Qed.
 
-Lemma irr_mode_unit : {in 'Z(G), forall x, GRing.unit (irr_mode x)}.
+Lemma irr_mode_unit : {in 'Z(G), forall x, irr_mode x \in GRing.unit}.
 Proof.
 move=> x Zx /=; have:= unitr1 F.
 by rewrite -irr_mode1 -(mulVg x) irr_modeM ?groupV // unitrM; case/andP=> _.
@@ -5080,7 +5080,7 @@ Lemma mxval_genV : {morph mxval : x / genV x >-> invmx x}.
 Proof.
 move=> x; rewrite /mxval [pval _]poly_rV_K ?size_poly ?mx_inv_hornerK //.
 pose m B : 'M[F]_(n * n) := lin_mx (mulmxr B); set B := mxval x.
-case uB: (GRing.unit B); last by rewrite invr_out ?uB ?horner_mx_mem.
+case uB: (B \in GRing.unit); last by rewrite invr_out ?uB ?horner_mx_mem.
 have defAd: Ad = Ad *m m B *m m B^-1.
   apply/row_matrixP=> i.
   by rewrite !row_mul mul_rV_lin /= mx_rV_lin /= mulmxK ?vec_mxK.

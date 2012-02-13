@@ -241,13 +241,13 @@ have mV: {in A, {morph m : a / a^-1 >-> (a^-1)%R}}.
   move=> a Aa /=; rewrite -div1r; apply: canRL (mulrK (valP _)) _.
   by rewrite -mM ?groupV ?mulVg.
 have inv_m (u : 'Z_q) : coprime q u -> {a | a \in A & m a = u}.
-  rewrite -?unitZpE // natr_Zp -[_ u]im_m => m_u.
+  rewrite -?unitZpE // natr_Zp -im_m => m_u.
   by exists (iinv m_u); [exact: mem_iinv | rewrite f_iinv].
 have [cycF ffulF]: cyclic F /\ [faithful F, on 'Ohm_1(G) | [Aut G]].
-  have Um0 a: GRing.unit ((m a)%:R : 'F_p).
-    have: GRing.unit (m a) by exact: valP.
+  have Um0 a: ((m a)%:R : 'F_p) \in GRing.unit.
+    have: m a \in GRing.unit by exact: valP.
     by rewrite -{1}[m a]natr_Zp unitFpE ?unitZpE // {1}/q oG coprime_pexpl.
-  pose fm0 a : {unit 'F_p} := Sub _ (Um0 a).
+  pose fm0 a := FinRing.unit 'F_p (Um0 a).
   have natZqp u: (u%:R : 'Z_q)%:R = u %:R :> 'F_p.
     by rewrite val_Zp_nat // -Fp_nat_mod // modn_dvdm ?Fp_nat_mod.
   have m0M: {in A &, {morph fm0 : a b / a * b}}.
@@ -620,8 +620,8 @@ suffices isoED: ED \isog Grp (x : y : (x ^+ q, y ^+ p, x ^ y = x ^+ q.-1)).
   apply: eq_existsb => [[x y]] /=; rewrite !xpair_eqE.
   congr (_ && _); apply: andb_id2l; move/eqP=> xq1; congr (_ && (_ == _)).
   by apply/eqP; rewrite eq_sym eq_invg_mul -expgS (ltn_predK q_gt1) xq1.
-have unitrN1 : GRing.unit (- 1) by move=> ?; rewrite unitrN unitr1.
-pose uN1 : {unit 'Z_#[Zp1 : 'Z_q]} := Sub _ (unitrN1 _).
+have unitrN1 : - 1 \in GRing.unit by move=> R; rewrite unitrN unitr1.
+pose uN1 := FinRing.unit ('Z_#[Zp1 : 'Z_q]) (unitrN1 _).
 apply: Extremal.Grp => //; exists (Zp_unitm uN1).
 rewrite Aut_aut order_injm ?injm_Zp_unitm ?in_setT //; split=> //.
   by rewrite (dvdn_trans _ even_p) // order_dvdn -val_eqE /= mulrNN.

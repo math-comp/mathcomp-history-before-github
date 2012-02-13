@@ -1500,7 +1500,7 @@ Definition mulr_cp1 := (mulr_ilte1, mulr_egte1).
 
 Lemma invr_gt0 x : 0 < x^-1 = (0 < x).
 Proof.
-have [ux|nux] := boolP (GRing.unit x); last by rewrite invr_out.
+have [ux | nux] := boolP (x \in GRing.unit); last by rewrite invr_out.
 by apply/idP/idP=> /ltr_pmul2r<-; rewrite mul0r (mulrV, mulVr) ?ltr01.
 Qed.
 
@@ -1807,10 +1807,10 @@ Hint Resolve lerr.
 Variable F : PField.type.
 Implicit Types x y z t : F.
 
-Lemma unitf_gt0 x : 0 < x -> GRing.unit x.
+Lemma unitf_gt0 x : 0 < x -> x \in GRing.unit.
 Proof. by move=> hx; rewrite unitfE eq_sym ltr_eqF. Qed.
 
-Lemma unitf_lt0 x : x < 0 -> GRing.unit x.
+Lemma unitf_lt0 x : x < 0 -> x \in GRing.unit.
 Proof. by move=> hx; rewrite unitfE ltr_eqF. Qed.
 
 Lemma ler_pinv : {in >%R 0 &, {mono (@GRing.inv F) : x y /~ x <= y}}.

@@ -338,7 +338,7 @@ move=> vs; apply: (iffP andP).
   case=> Hd; case/vsolve_eqP=> /=.
     move=> i.
     rewrite -[i]splitK /unsplit; case: split=> o.
-    rewrite (feq_lshift ( *%R) f); exact: linearP.
+      by rewrite (feq_lshift ( *%R) f); exact: linearP.
     by rewrite (feq_rshift ( *%R) f); exact: (linearP (amulr_linear _)).
   move=> u [H1u H2u]; exists u; rewrite H1u.
   suff Hu: forall x : A, x \in vs -> u * x = x /\ x = x * u.

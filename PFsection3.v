@@ -65,16 +65,6 @@ rewrite cfIndE // big1 ?mulr0 // => h HiG.
 apply: (cfun_on0 Cf); apply: contra GniC => GHiA.
 by rewrite -[g](conjgK h) mem_class_support // groupV.
 Qed.
- 
-
-Section MoreField.
-
-Variables (F : fieldType) (R : ringType) (f : {rmorphism F -> R}).
-
-Lemma fmorph_eq1 (x : F) : (f x == 1) = (x == 1).
-Proof. by rewrite -{1}(rmorph1 f) (inj_eq (fmorph_inj f)). Qed.
-
-End MoreField.
 
 Section MoreAutC.
 
@@ -1155,7 +1145,7 @@ wlog: v2 v3 v4 v5 / v4 = ndirr v2.
   move=> IW dAi1j1 dAi2j2.
   case/and3P: (dAi1j1) => NZi1 NZj1 /eqP pAi1j1E.
   case/and3P: (dAi2j2) => NZi2 NZj2 /eqP pAi2j2E.
-  case: (beta_diff NZi1 NZj1 NZi2 NZj2)=> Card IA /(_ I1dI2 J1dJ2) [] HH _ _.
+  case: (beta_diff NZi1 NZj1 NZi2 NZj2)=> Card IA /(_ I1dI2 J1dJ2) HH _ _.
   case: (beta_diff NZi2 NZj2 NZi2 NZj2)=> Card' IA' _ _ _.
   move: HH; set A := _ :&: nA _ _; case: (set_0Vmem A)=> [-> /eqP | [u]].
     by rewrite cards0 pAi1j1E pAi2j2E (cardsD1 v1) 9!{1}inE !eqxx.
@@ -1180,7 +1170,7 @@ wlog: v2 v3 v4 v5 / v4 = ndirr v2.
 move=> -> dAi1j1 dAi2j2; rewrite eqxx.
 case/and3P: (dAi1j1) => NZi1 NZj1 /eqP pAi1j1E.
 case/and3P: (dAi2j2) => NZi2 NZj2 /eqP pAi2j2E.
-case: (beta_diff NZi1 NZj1 NZi2 NZj2)=> Card IA /(_ I1dI2 J1dJ2) [] HH _ _.
+case: (beta_diff NZi1 NZj1 NZi2 NZj2)=> Card IA /(_ I1dI2 J1dJ2) HH _ _.
 move/eqP: HH; rewrite pAi1j1E pAi2j2E.
 rewrite (cardsD1 v1) !inE eqxx /=.
 set A1 := _ :&: nA _ _.
@@ -1224,7 +1214,7 @@ wlog: v2 v3 v4 v5 / v4 = v2.
   move=> IW dAi1j1 dAi2j2.
   case/and3P: (dAi1j1) => NZi1 NZj1 /eqP pAi1j1E.
   case/and3P: (dAi2j2) => NZi2 NZj2 /eqP pAi2j2E.
-  case: (beta_diff NZi1 NZj1 NZi2 NZj2)=> Card IA /(_ I1dI2 J1dJ2) [] HH _ _.
+  case: (beta_diff NZi1 NZj1 NZi2 NZj2)=> Card IA /(_ I1dI2 J1dJ2) HH _ _.
   case: (beta_diff NZi2 NZj2 NZi2 NZj2)=> Card' IA' _ _ _.
   move: HH.
   set A := _ :&: nA _ _; rewrite [#|A|](cardsD1 v1) inE dirr_constt_oppr.
@@ -1250,7 +1240,7 @@ wlog: v2 v3 v4 v5 / v4 = v2.
 move=> -> dAi1j1 dAi2j2; rewrite eqxx.
 case/and3P: (dAi1j1) => NZi1 NZj1 /eqP pAi1j1E.
 case/and3P: (dAi2j2) => NZi2 NZj2 /eqP pAi2j2E.
-case: (beta_diff NZi1 NZj1 NZi2 NZj2)=> Card IA /(_ I1dI2 J1dJ2) [] HH _ _.
+case: (beta_diff NZi1 NZj1 NZi2 NZj2)=> Card IA /(_ I1dI2 J1dJ2) HH _ _.
 move/eqP: HH; rewrite pAi1j1E pAi2j2E.
 rewrite (cardsD1 v2) !inE eqxx ?orbT /=.
 set A1 := _ :&: nA _ _.

@@ -25,7 +25,7 @@ rewrite -[_ \in predC1 0]unitfE.
 apply/imsetP/idP.
  by case => [[y Hy]] _ -> /=.
 move => Hx.
-exists (Sub _ Hx); first by rewrite inE.
+exists (FinRing.unit F Hx); first by rewrite inE.
 by rewrite SubK.
 Qed.
 
@@ -65,7 +65,7 @@ case Hx0 : (x != 0); last done.
 move/idP : Hx0.
 rewrite /= subr_eq0 -unitfE => Hx.
 rewrite -[x](SubK [subType of {unit F}] Hx) -unit_finField_expg.
-set x' := (Sub _ Hx).
+pose x' := FinRing.unit F Hx.
 have/order_dvdG : x' \in [set: {unit F}] by rewrite inE.
 rewrite order_dvdn.
 by move/eqP ->.

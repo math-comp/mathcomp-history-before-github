@@ -677,7 +677,7 @@ Implicit Type p q r d : {poly R}.
 
 Definition edivp p q :=
 let: (k, d, r) := redivp p q in
-  if GRing.unit (lead_coef q) 
+  if lead_coef q \in GRing.unit 
     then (0%N, (lead_coef q)^-k *: d, (lead_coef q)^-k *: r) else (k, d, r). 
 
 Definition divp p q := ((edivp p q).1).2.
@@ -706,35 +706,35 @@ Implicit Type p q r d : {poly R}.
 Lemma edivp_def p q : edivp p q = (scalp p q, divp p q, modp p q).
 Proof. by rewrite /scalp /divp /modp; case: (edivp p q) => [[]] /=. Qed.
 
-Lemma edivp_redivp p q : GRing.unit (lead_coef q) = false ->
+Lemma edivp_redivp p q : (lead_coef q \in GRing.unit) = false ->
   edivp p q = redivp p q.
 Proof. by move=> hu; rewrite /edivp hu; case: (redivp p q) => [[? ?] ?]. Qed.
 
 Lemma divpE p q :
-  p %/ q = if GRing.unit (lead_coef q) 
+  p %/ q = if lead_coef q \in GRing.unit
     then (lead_coef q)^-(rscalp p q) *: (rdivp p q)
     else rdivp p q.
 Proof.
-by case ulcq: (GRing.unit (lead_coef q)); rewrite /divp /edivp redivp_def ulcq.
+by case ulcq: (lead_coef q \in GRing.unit); rewrite /divp /edivp redivp_def ulcq.
 Qed.
 
 Lemma modpE p q :
-  p %% q = if GRing.unit (lead_coef q) 
+  p %% q = if lead_coef q \in GRing.unit 
     then (lead_coef q)^-(rscalp p q) *: (rmodp p q)
     else rmodp p q.
 Proof.
-by case ulcq: (GRing.unit (lead_coef q)); rewrite /modp /edivp redivp_def ulcq.
+by case ulcq: (lead_coef q \in GRing.unit); rewrite /modp /edivp redivp_def ulcq.
 Qed.
 
 Lemma scalpE p q :
-  scalp p q = if GRing.unit (lead_coef q) then 0%N else rscalp p q.
+  scalp p q = if lead_coef q \in GRing.unit then 0%N else rscalp p q.
 Proof.
-by case ulcq: (GRing.unit (lead_coef q)); rewrite /scalp /edivp redivp_def ulcq.
+by case ulcq: (lead_coef q \in GRing.unit); rewrite /scalp /edivp redivp_def ulcq.
 Qed.
 
 Lemma dvdpE p q : p %| q = rdvdp p q.
 Proof.
-rewrite /dvdp modpE /rdvdp; case ulcq: (GRing.unit (lead_coef p))=> //.
+rewrite /dvdp modpE /rdvdp; case ulcq: (lead_coef p \in GRing.unit)=> //.
 rewrite -[_ *: _ == 0]size_poly_eq0 size_scaler ?size_poly_eq0 //.
 by rewrite invr_eq0 expf_neq0 //; apply: contraTneq ulcq => ->; rewrite unitr0.
 Qed.
@@ -749,21 +749,20 @@ Hint Resolve lc_expn_scalp_neq0.
   
 CoInductive edivp_spec (m d : {poly R}) : nat * {poly R} * {poly R} -> bool -> Type :=
   |Redivp_spec k (q r: {poly R}) of
-    (lead_coef d ^+ k) *: m = q * d + r & ~~(GRing.unit (lead_coef d)) &
+    (lead_coef d ^+ k) *: m = q * d + r & lead_coef d \notin GRing.unit &
    (d != 0 -> size r < size d) : edivp_spec m d (k, q, r) false
-  |Fedivp_spec (q r: {poly R}) of m = q * d + r & (GRing.unit (lead_coef d)) &
+  |Fedivp_spec (q r: {poly R}) of m = q * d + r & (lead_coef d \in GRing.unit) &
    (d != 0 -> size r < size d) : edivp_spec m d (0%N, q, r) true.
 
 
 (* Is this the most appropriate statement?*)
-Lemma edivpP m d : edivp_spec m d (edivp m d) (GRing.unit (lead_coef d)).
+Lemma edivpP m d : edivp_spec m d (edivp m d) (lead_coef d \in GRing.unit).
 Proof.
 have hC : GRing.comm d (lead_coef d)%:P by rewrite /GRing.comm mulrC.
-case ud: (GRing.unit (lead_coef d)); last first.
+case ud: (lead_coef d \in GRing.unit); last first.
   rewrite edivp_redivp // redivp_def; constructor; rewrite ?ltn_rmodp // ?ud //.
   by rewrite rdivp_eq.
-have cdn0 : lead_coef d != 0.
-  by move: ud; case d0: (lead_coef d == 0) => //; rewrite (eqP d0) unitr0.
+have cdn0: lead_coef d != 0 by apply: contraTneq ud => ->; rewrite unitr0.
 rewrite /edivp ud redivp_def; constructor => //.
   rewrite -scalerAl -scalerDr -mul_polyC.
   have hn0 : (lead_coef d ^+ rscalp m d)%:P != 0.
@@ -774,10 +773,10 @@ move=> dn0; rewrite size_scaler ?ltn_rmodp // -exprVn expf_eq0 negb_and.
 by rewrite invr_eq0 cdn0 orbT.
 Qed.
 
-Lemma edivp_eq d q r : size r < size d -> GRing.unit (lead_coef d) ->
+Lemma edivp_eq d q r : size r < size d -> lead_coef d \in GRing.unit ->
   edivp (q * d + r) d = (0%N, q, r).
 Proof.
-have hC : GRing.comm d (lead_coef d)%:P by rewrite /GRing.comm mulrC.
+have hC : GRing.comm d (lead_coef d)%:P by exact: mulrC.
 move=> hsrd hu; rewrite /edivp hu; case et: (redivp _ _) => [[s qq] rr].
 have cdn0 : lead_coef d != 0.
   by move: hu; case d0: (lead_coef d == 0) => //; rewrite (eqP d0) unitr0.
@@ -794,7 +793,7 @@ Lemma divp_eq  p q :
     (lead_coef q ^+ (scalp p q)) *: p = (p %/ q) * q + (p %% q).
 Proof.
 rewrite divpE modpE scalpE.
-case uq: (GRing.unit (lead_coef q)); last by rewrite rdivp_eq.
+case uq: (lead_coef q \in GRing.unit); last by rewrite rdivp_eq.
 rewrite expr0 scale1r; case: (altP (q =P 0)) => [-> | qn0].
   rewrite mulr0 add0r lead_coef0 rmodp0 /rscalp /redivp eqxx expr0 invr1.
   by rewrite scale1r.
@@ -917,8 +916,6 @@ End MonicDivisor.
 End mon.
 
 End ID.
-
-
 
 Notation "m %/ d" := (@divp _ m d) : ring_scope.
 Notation "m %% d" := (@modp _ m d) : ring_scope.
@@ -1100,7 +1097,7 @@ Proof. by move=> pq hq; apply: contraL pq=> /eqP ->; rewrite dvd0p. Qed.
 
 Lemma dvdp1 d : (d %| 1) = ((size d) == 1%N).
 Proof.
-rewrite /dvdp modpE; case ud: (GRing.unit (lead_coef d)); last exact: rdvdp1.
+rewrite /dvdp modpE; case ud: (lead_coef d \in GRing.unit); last exact: rdvdp1.
 rewrite -size_poly_eq0 size_scaler; first by rewrite size_poly_eq0; exact: rdvdp1.
 by rewrite invr_eq0 expf_neq0 //; apply: contraTneq ud => ->; rewrite unitr0.
 Qed.
@@ -2402,7 +2399,7 @@ Section UnitDivisor.
 Variable R : idomainType.
 Variable d : {poly R}.
 
-Hypothesis ulcd : GRing.unit (lead_coef d).
+Hypothesis ulcd : lead_coef d \in GRing.unit.
 
 Implicit Type p q r : {poly R}.
 
@@ -2596,7 +2593,7 @@ Section MoreUnitDivisor.
 
 Variable R : idomainType.
 Variable d : {poly R}.
-Hypothesis ulcd : GRing.unit (lead_coef d).
+Hypothesis ulcd : lead_coef d \in GRing.unit.
 
 Implicit Types p q : {poly R}.
 
@@ -2605,10 +2602,10 @@ Proof.
 by move/subnK=> {2}<-; rewrite exprD mulpK // lead_coef_exp_id unitrX. 
 Qed.
 
-Lemma divp_pmul2l p q : GRing.unit (lead_coef q) -> d * p %/ (d * q) = p %/ q.
+Lemma divp_pmul2l p q : lead_coef q \in GRing.unit -> d * p %/ (d * q) = p %/ q.
 Proof.
 move=> uq.
-have udq: GRing.unit (lead_coef (d * q)).
+have udq: lead_coef (d * q) \in GRing.unit.
   by rewrite lead_coef_Imul unitrM_comm ?ulcd //; red; rewrite mulrC.
 rewrite {1}(divp_eq uq p) mulrDr mulrCA divp_addl_mul //.
 have dn0 : d != 0.
@@ -2624,10 +2621,12 @@ rewrite !size_mul_id //; move: dn0; rewrite -size_poly_gt0.
 by move/prednK<-; rewrite !addSn /= ltn_add2l ltn_modp.
 Qed.
 
-Lemma divp_pmul2r p q : GRing.unit (lead_coef p) ->  q * d %/ (p * d) = q %/ p.
+Lemma divp_pmul2r p q :
+  lead_coef p \in GRing.unit ->  q * d %/ (p * d) = q %/ p.
 Proof. by move=> uq; rewrite -!(mulrC d) divp_pmul2l. Qed.
 
-Lemma divp_divl r p q : GRing.unit (lead_coef r) -> GRing.unit (lead_coef p) -> 
+Lemma divp_divl r p q :
+    lead_coef r \in GRing.unit -> lead_coef p \in GRing.unit -> 
   q %/ p %/ r = q %/ (p * r).
 Proof.
 move=> ulcr ulcp. 
@@ -2649,10 +2648,10 @@ case: (edivpP _ e s) => //; rewrite lead_coef_Imul unitrM_comm ?ulcp //.
 by red; rewrite mulrC.
 Qed.
 
-Lemma divpAC p q : GRing.unit (lead_coef p) -> q %/ d %/ p =  q %/ p %/ d.
+Lemma divpAC p q : lead_coef p \in GRing.unit -> q %/ d %/ p =  q %/ p %/ d.
 Proof. by move=> ulcp; rewrite !divp_divl // mulrC. Qed.
 
-Lemma modp_scaler c p : GRing.unit c -> p %% (c *: d) = (p %% d).
+Lemma modp_scaler c p : c \in GRing.unit -> p %% (c *: d) = (p %% d).
 Proof.
 move=> cn0; case: (eqVneq d 0) => [-> | dn0]; first by rewrite scaler0 !modp0. 
 have e : p = (c^-1 *: (p %/ d)) * (c *: d) + (p %% d).
@@ -2662,7 +2661,7 @@ suff s : size (p %% d) < size (c *: d).
 by rewrite size_scaler ?ltn_modp //; apply: contraTneq cn0 => ->; rewrite unitr0.
 Qed.
 
-Lemma divp_scaler c p :  GRing.unit c -> p %/ (c *: d) = c^-1 *: (p %/ d).
+Lemma divp_scaler c p : c \in GRing.unit -> p %/ (c *: d) = c^-1 *: (p %/ d).
 Proof.
 move=> cn0; case: (eqVneq d 0) => [-> | dn0].
    by rewrite scaler0 !divp0 scaler0.
@@ -2673,19 +2672,13 @@ suff s : size (p %% d) < size (c *: d).
 by rewrite size_scaler ?ltn_modp //; apply: contraTneq cn0 => ->; rewrite unitr0.
 Qed.
 
-
 End MoreUnitDivisor.
 
 End unit.
 
-
 Section FieldDivision.
 
-Import RPdiv.
-Import ComRing.
-Import UnitRing.
-Import ID.
-Import unit.
+Import RPdiv ComRing UnitRing ID unit.
 
 Variable F : fieldType.
 
@@ -2694,13 +2687,13 @@ Implicit Type p q r d : {poly F}.
 Lemma divp_eq p q : p = (p %/ q) * q + (p %% q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite modp0 mulr0 add0r.
-by apply: divp_eq; rewrite GRing.unitfE lead_coef_eq0. 
+by apply: divp_eq; rewrite unitfE lead_coef_eq0. 
 Qed.
 
 Lemma divp_modpP p q d r : p = q * d + r -> size r < size d -> 
   q = (p %/ d) /\ r = p %% d.
 Proof.
-move=> he hs; apply: edivpP => //; rewrite GRing.unitfE lead_coef_eq0.
+move=> he hs; apply: edivpP => //; rewrite unitfE lead_coef_eq0.
 by rewrite -size_poly_gt0; apply: leq_trans hs. 
 Qed.
 
@@ -2714,13 +2707,13 @@ Proof. by move/divp_modpP=> h; case/h. Qed.
 Lemma dvdp_eq q p : (q %| p) = (p == p %/ q * q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite dvd0p mulr0 eq_sym.
-by apply: dvdp_eq; rewrite GRing.unitfE lead_coef_eq0. 
+by apply: dvdp_eq; rewrite unitfE lead_coef_eq0. 
 Qed.
 
 Lemma modp_scalel c p q : (c *: p) %% q = c *: (p %% q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite !modp0.
-by apply: modp_scalel; rewrite GRing.unitfE lead_coef_eq0. 
+by apply: modp_scalel; rewrite unitfE lead_coef_eq0. 
 Qed.
 
 Lemma mulpK p q : q != 0 -> p * q %/ q = p.
@@ -2732,7 +2725,7 @@ Proof. by rewrite mulrC; exact: mulpK. Qed.
 Lemma divp_scalel c p q : (c *: p) %/ q = c *: (p %/ q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite !divp0 scaler0.
-by apply: divp_scalel; rewrite GRing.unitfE lead_coef_eq0. 
+by apply: divp_scalel; rewrite unitfE lead_coef_eq0. 
 Qed.
 
 Lemma modp_scaler c p d : c != 0 -> p %% (c *: d) = (p %% d).
@@ -2828,25 +2821,25 @@ Qed.
 Lemma modp_opp p q : (- p) %% q = - (p %% q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite !modp0.
-by apply: modp_opp; rewrite GRing.unitfE lead_coef_eq0. 
+by apply: modp_opp; rewrite unitfE lead_coef_eq0. 
 Qed.
 
 Lemma divp_opp p q : (- p) %/ q = - (p %/ q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite !divp0 oppr0.
-by apply: divp_opp; rewrite GRing.unitfE lead_coef_eq0. 
+by apply: divp_opp; rewrite unitfE lead_coef_eq0. 
 Qed.
 
 Lemma modp_add d p q : (p + q) %% d = p %% d + q %% d.
 Proof.
 case: (eqVneq d 0) => [-> | dn0]; first by rewrite !modp0.
-by apply: modp_add; rewrite GRing.unitfE lead_coef_eq0. 
+by apply: modp_add; rewrite unitfE lead_coef_eq0. 
 Qed.
 
 Lemma divp_add d p q : (p + q) %/ d = p %/ d + q %/ d.
 Proof.
 case: (eqVneq d 0) => [-> | dn0]; first by rewrite !divp0 addr0.
-by apply: divp_add; rewrite GRing.unitfE lead_coef_eq0. 
+by apply: divp_add; rewrite unitfE lead_coef_eq0. 
 Qed.
 
 Lemma divp_addl_mul_small d q r : 
@@ -2864,18 +2857,18 @@ Lemma divp_addl_mul d q r : d != 0 -> (q * d + r) %/ d = q + r %/ d.
 Proof. by move=> dn0; rewrite divp_add mulpK. Qed.
 
 Lemma divpp d : d != 0 -> d %/ d = 1.
-Proof. by move=> dn0; apply: divpp; rewrite GRing.unitfE lead_coef_eq0. Qed.
+Proof. by move=> dn0; apply: divpp; rewrite unitfE lead_coef_eq0. Qed.
 
 Lemma leq_floorp d m : size (m %/ d * d) <= size m.
 Proof.
 case: (eqVneq d 0) => [-> | dn0]; first by rewrite mulr0 size_poly0.
-by apply: leq_floorp; rewrite GRing.unitfE lead_coef_eq0. 
+by apply: leq_floorp; rewrite unitfE lead_coef_eq0. 
 Qed.
 
 Lemma divpK d p : d %| p -> p %/ d * d = p.
 Proof.
 case: (eqVneq d 0) => [-> | dn0]; first by move/dvd0pP->; rewrite mulr0.
-by apply: divpK; rewrite GRing.unitfE lead_coef_eq0. 
+by apply: divpK; rewrite unitfE lead_coef_eq0. 
 Qed.
 
 Lemma divpKC d p : d %| p -> d * (p %/ d) = p.
@@ -2883,7 +2876,7 @@ Proof. by move=> ?; rewrite mulrC divpK. Qed.
 
 Lemma dvdp_eq_div d p q :  d != 0 -> d %| p -> (q == p %/ d) = (q * d == p).
 Proof.
-by move=> dn0; apply: dvdp_eq_div; rewrite GRing.unitfE lead_coef_eq0.
+by move=> dn0; apply: dvdp_eq_div; rewrite unitfE lead_coef_eq0.
 Qed. 
 
 Lemma dvdp_eq_mul d p q : d != 0 -> d %| p -> (p == q * d) = (p %/ d == q).
@@ -2892,7 +2885,7 @@ Proof. by move=> dn0 dv_d_p; rewrite eq_sym -dvdp_eq_div // eq_sym. Qed.
 Lemma divp_mulA d p q : d %| q -> p * (q %/ d) = p * q %/ d.
 Proof.
 case: (eqVneq d 0) => [-> | dn0]; first by move/dvd0pP->; rewrite !divp0 mulr0.
-by apply: divp_mulA; rewrite GRing.unitfE lead_coef_eq0.
+by apply: divp_mulA; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma divp_mulAC d m n : d %| m -> m %/ d * n = m * n %/ d.
@@ -2906,7 +2899,7 @@ Proof. by move=> dn0 /subnK=> {2}<-; rewrite exprD mulpK // expf_neq0. Qed.
 
 Lemma divp_pmul2l d q p : d != 0 -> q != 0 -> d * p %/ (d * q) = p %/ q.
 Proof.
-by move=> dn0 qn0; apply: divp_pmul2l; rewrite GRing.unitfE lead_coef_eq0. 
+by move=> dn0 qn0; apply: divp_pmul2l; rewrite unitfE lead_coef_eq0. 
 Qed.
 
 Lemma divp_pmul2r d p q : d != 0 -> p != 0 ->  q * d %/ (p * d) = q %/ p.
@@ -2916,7 +2909,7 @@ Lemma divp_divl r p q :  q %/ p %/ r = q %/ (p * r).
 Proof.
 case: (eqVneq r 0) => [-> | rn0]; first by rewrite mulr0 !divp0.
 case: (eqVneq p 0) => [-> | pn0]; first by rewrite mul0r !divp0 div0p.
-by apply: divp_divl; rewrite GRing.unitfE lead_coef_eq0.
+by apply: divp_divl; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma divpAC d p q : q %/ d %/ p =  q %/ p %/ d.
@@ -2926,27 +2919,27 @@ Lemma edivp_def p q : edivp p q = (0%N, p %/ q, p %% q).
 Proof. 
 rewrite edivp_def; congr (_, _, _); rewrite /scalp /edivp /redivp /=.
 case (eqVneq q 0) => [-> | qn0]; first by rewrite eqxx lead_coef0 unitr0.
-rewrite (negPf qn0) /= GRing.unitfE lead_coef_eq0 qn0 /=.
+rewrite (negPf qn0) /= unitfE lead_coef_eq0 qn0 /=.
 by case: (redivp_rec _ _ _ _) => [[]].
 Qed.
 
 Lemma divpE p q : p %/ q = (lead_coef q)^-(rscalp p q) *: (rdivp p q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite rdivp0 divp0 scaler0.
-by rewrite divpE GRing.unitfE lead_coef_eq0 qn0.
+by rewrite divpE unitfE lead_coef_eq0 qn0.
 Qed.
 
 Lemma modpE p q : p %% q = (lead_coef q)^-(rscalp p q) *: (rmodp p q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0].
   by rewrite rmodp0 modp0 /rscalp /redivp eqxx lead_coef0 expr0 invr1 scale1r.
-by rewrite modpE GRing.unitfE lead_coef_eq0 qn0.
+by rewrite modpE unitfE lead_coef_eq0 qn0.
 Qed.
 
 Lemma scalpE p q : scalp p q = 0%N.
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite scalp0.
-by rewrite scalpE GRing.unitfE lead_coef_eq0 qn0.
+by rewrite scalpE unitfE lead_coef_eq0 qn0.
 Qed.
 
 (* Just to have it without importing the weak theory *)
@@ -2964,7 +2957,7 @@ Qed.
 
 Lemma edivp_eq d q r : size r < size d -> edivp (q * d + r) d = (0%N, q, r).
 Proof.
-move=> srd; apply: edivp_eq ; rewrite // GRing.unitfE lead_coef_eq0.
+move=> srd; apply: edivp_eq ; rewrite // unitfE lead_coef_eq0.
 rewrite -size_poly_gt0; exact: leq_trans srd.
 Qed.
 
@@ -2978,7 +2971,7 @@ Qed.
 Lemma dvdpP p q : reflect (exists qq, p = qq * q) (q %| p).
 Proof.
 case: (eqVneq q 0)=> [-> | qn0]; last first.
-  by apply: dvdpP; rewrite GRing.unitfE lead_coef_eq0.
+  by apply: dvdpP; rewrite unitfE lead_coef_eq0.
 rewrite dvd0p. 
 by apply: (iffP idP) => [/eqP->| [? ->]]; [exists 1|]; rewrite mulr0.
 Qed.
@@ -3054,9 +3047,9 @@ Proof.
 case: (eqVneq b 0) => [-> | bn0].
   rewrite (rmorph0 (map_poly_rmorphism f)) ID.edivp_def !modp0 !divp0.
   by rewrite (rmorph0 (map_poly_rmorphism f)) scalp0.
-rewrite /edivp redivp_map lead_coef_map GRing.rmorph_unit; last first.
-  by rewrite GRing.unitfE lead_coef_eq0.
-rewrite modpE divpE !map_poly_scaler !rmorphV ?rmorphX // GRing.unitfE.
+rewrite /edivp redivp_map lead_coef_map rmorph_unit; last first.
+  by rewrite unitfE lead_coef_eq0.
+rewrite modpE divpE !map_poly_scaler !rmorphV ?rmorphX // unitfE.
 by rewrite expf_neq0 // lead_coef_eq0.
 Qed.
 

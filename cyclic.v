@@ -274,7 +274,7 @@ Theorem Euler a n : coprime a n -> a ^ phi n  = 1 %[mod n].
 Proof.
 case: n => [|[|n']] //; [by rewrite !modn1 | set n := n'.+2] => co_a_n.
 have{co_a_n} Ua: coprime n (inZp a : 'I_n) by rewrite coprime_sym coprime_modl.
-have: (Sub _ : _ -> {unit 'I_n}) Ua ^+ phi n == 1.
+have: FinRing.unit 'Z_n Ua ^+ phi n == 1.
   by rewrite -card_units_Zp // -order_dvdn order_dvdG ?inE.
 by rewrite -2!val_eqE unit_Zp_expg /= -/n modn_exp => /eqP.
 Qed.
@@ -597,7 +597,7 @@ case: (eqVneq a 1) => [a1 | nta].
 apply/subsetP=> /= u /morphpreP[_ /set1P/= um1].
 have{um1}: Zp_unitm u a == Zp_unitm 1 a by rewrite um1 morph1.
 rewrite !autE ?cycle_id // eq_expg_mod_order.
-by rewrite -{5 11}[#[a]]Zp_cast ?order_gt1 // !modZp inE.
+by rewrite -[n in _ == _ %[mod n]]Zp_cast ?order_gt1 // !modZp inE.
 Qed.
 
 Lemma generator_coprime m : generator <[a]> (a ^+ m) = coprime #[a] m.
@@ -620,7 +620,7 @@ have def_n: a ^+ n = f a.
   by rewrite -/(Zpm n) invmK // im_Zpm a_fa cycle_id.
 have co_a_n: coprime #[a].-2.+2 n.
   by rewrite {1}Zp_cast ?order_gt1 // -generator_coprime def_n; exact/eqP.
-exists ((Sub _ : _-> {unit 'Z__}) co_a_n); rewrite ?inE //.
+exists (FinRing.unit 'Z_#[a] co_a_n); rewrite ?inE //.
 apply: eq_Aut (Af) (Aut_aut _ _) _ => x ax.
 rewrite autE //= /cyclem; case/cycleP: ax => k ->{x}.
 by rewrite -(autmE Af) morphX ?cycle_id //= autmE -def_n -!expgM mulnC.
@@ -643,7 +643,7 @@ have [lea1 | lt1a] := leqP #[a] 1.
 rewrite -(card_injm (injm_invm (injm_Zpm a))) /= ?im_Zpm; last first.
   by apply/subsetP=> x; rewrite inE; exact: cycle_generator.
 rewrite -card_units_Zp // cardsE card_sub morphim_invmE; apply: eq_card => /= d.
-by rewrite !inE /= /Zp lt1a inE /= generator_coprime -{2}(Zp_cast lt1a).
+by rewrite !inE /= /Zp lt1a inE /= generator_coprime unfold_in {1}Zp_cast.
 Qed.
 
 Lemma Aut_cycle_abelian : abelian (Aut <[a]>).
@@ -724,13 +724,13 @@ Qed.
 
 Lemma div_ring_mul_group_cyclic (R : unitRingType) (f : gT -> R) :
     f 1 = 1%R -> {in G &, {morph f : u v / u * v >-> (u * v)%R}} ->
-    {in G^#, forall x, GRing.unit (f x - 1)%R} ->
+    {in G^#, forall x, f x - 1 \in GRing.unit}%R ->
   abelian G -> cyclic G.
 Proof.
 move=> f1 fM f1P abelG.
 have fX n: {in G, {morph f : u / u ^+ n >-> (u ^+ n)%R}}.
   by case: n => // n x Gx; elim: n => //= n IHn; rewrite expgS fM ?groupX ?IHn.
-have fU x: x \in G -> GRing.unit (f x).
+have fU x: x \in G -> f x \in GRing.unit.
   by move=> Gx; apply/unitrP; exists (f x^-1); rewrite -!fM ?groupV ?gsimp.
 apply: order_inj_cyclic => x y Gx Gy; set n := #[x] => yn.
 apply/eqP; rewrite eq_sym eqEcard -[#|_|]/n yn leqnn andbT cycle_subG /=.

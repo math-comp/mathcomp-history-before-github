@@ -22,6 +22,8 @@ Require Import ssralg finset fingroup morphism perm action.
 (*      [finGroupType of R for +%R]    structures for R                      *)
 (*                         {unit R} == the type of units of R, which has a   *)
 (*                                     canonical group structure.            *)
+(*                FinRing.unit R Ux == the element of {unit R} corresponding *)
+(*                                     to x, where Ux : x \in GRing.unit.    *)
 (*                           'U%act == the action by right multiplication of *)
 (*                                     {unit R} on R, via FinRing.unit_act.  *)
 (*                                     (This is also a group action.)        *)
@@ -232,7 +234,7 @@ rewrite /inv => x Ux; case: pickP => [y | no_y]; last by case/pred0P: Ux.
 by case/andP; move/eqP.
 Qed.
 
-Lemma intro_unit x y : y * x = 1 /\ x * y = 1 -> unit x.
+Lemma intro_unit x y : y * x = 1 /\ x * y = 1 -> x \in unit.
 Proof.
 by case=> yx1 xy1; apply/existsP; exists y; rewrite /is_inv xy1 yx1 !eqxx.
 Qed.
@@ -403,7 +405,7 @@ Section UnitsGroup.
 
 Variable R : finUnitRingType.
 
-Inductive unit_of (phR : phant R) := Unit (x : R) of GRing.unit x.
+Inductive unit_of (phR : phant R) := Unit (x : R) of x \in GRing.unit.
 Bind Scope group_scope with unit_of.
 
 Let phR := Phant R.
@@ -424,10 +426,10 @@ Canonical unit_finType := Eval hnf in FinType uT unit_finMixin.
 Canonical unit_subFinType := Eval hnf in [subFinType of uT].
 
 Definition unit1 := Unit phR (@GRing.unitr1 _).
-Lemma unit_inv_proof u : GRing.unit (val u)^-1.
+Lemma unit_inv_proof u : (val u)^-1 \in GRing.unit.
 Proof. by rewrite GRing.unitrV ?(valP u). Qed.
 Definition unit_inv u := Unit phR (unit_inv_proof u).
-Lemma unit_mul_proof u v : GRing.unit (val u * val v).
+Lemma unit_mul_proof u v : val u * val v \in GRing.unit.
 Proof. by rewrite (GRing.unitrMr _ (valP u)) ?(valP v). Qed.
 Definition unit_mul u v := Unit phR (unit_mul_proof u v).
 Lemma unit_muluA : associative unit_mul.
@@ -476,6 +478,8 @@ Canonical unit_finGroupType.
 Canonical unit_action.
 Canonical unit_groupAction.
 End UnitsGroupExports.
+
+Notation unit R Ux := (Unit (Phant R) Ux).
 
 Module ComUnitRing.
 
@@ -791,7 +795,7 @@ Fixpoint sat e f :=
   match f with
   | GRing.Bool b => b
   | t1 == t2 => (GRing.eval e t1 == GRing.eval e t2)%bool
-  | GRing.Unit t => GRing.unit (GRing.eval e t)
+  | GRing.Unit t => GRing.eval e t \in GRing.unit
   | f1 /\ f2 => sat e f1 && sat e f2
   | f1 \/ f2 => sat e f1 || sat e f2
   | f1 ==> f2 => (sat e f1 ==> sat e f2)%bool

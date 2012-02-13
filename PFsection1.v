@@ -522,10 +522,10 @@ Qed.
 Hypothesis QTHa : abelian (T / H)%G.
 
 Lemma inertia_quo_cfReg:
-            cfMod (cfReg (T / H)%G) = \sum_(i | H \subset cfker 'chi_i) 'chi_i.
+  cfMod (cfReg (T / H)%G) = \sum_(i | H \subset cfker 'chi_i) 'chi_i.
 Proof.
 rewrite cfReg_sum linear_sum (eq_bigr (fun  i => (cfMod 'chi_i)));first last.
-  move => i _ ;rewrite linearZ;move/char_abelianP: QTHa; move/(_ i).
+  move => i _ ;rewrite linearZ /=; move/char_abelianP: QTHa; move/(_ i).
   by move/lin_char1 ->; rewrite scale1r.
 have HNT: H <| T by apply:(@normalS _ G T H);rewrite ?sub_inertia ?inertia_sub.
 rewrite (reindex _ (mod_Iirr_bij HNT)) /=.
@@ -533,7 +533,8 @@ by apply/eq_big=> [i | i _]; rewrite mod_IirrE ?cfker_Mod.
 Qed.
 
 Lemma inertia_ker_1 (l: Iirr T) x :
-          H \subset cfker 'chi_l -> x \in H -> 'chi_l x = 1.
+  H \subset cfker 'chi_l -> x \in H -> 'chi_l x = 1.
+Proof.
 move=>Hl Hx. 
 have HNT: H <| T by apply:(@normalS _ G T H);rewrite ?sub_inertia ?inertia_sub.
 have [sHT _] := andP HNT.

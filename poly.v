@@ -1432,17 +1432,17 @@ by rewrite eq_sym pq0 size_poly0 (polySpred p_nz) (polySpred q_nz) addnS.
 Qed.
 
 Definition poly_unit : pred {poly R} :=
-  fun p => (size p == 1%N) && GRing.unit p`_0.
+  fun p => (size p == 1%N) && (p`_0 \in GRing.unit).
 
-Definition poly_inv p := if poly_unit p then (p`_0)^-1%:P else p.
+Definition poly_inv p := if p \in poly_unit then (p`_0)^-1%:P else p.
 
 Fact poly_mulVp : {in poly_unit, left_inverse 1 poly_inv *%R}.
 Proof.
-move=> p Up; rewrite /poly_inv [poly_unit p]Up.
+move=> p Up; rewrite /poly_inv Up.
 by case/andP: Up => /size1P[c _ ->]; rewrite coefC -polyC_mul => /mulVr->.
 Qed.
 
-Fact poly_intro_unit p q : q * p = 1 -> poly_unit p.
+Fact poly_intro_unit p q : q * p = 1 -> p \in poly_unit.
 Proof.
 move=> pq1; apply/andP; split; last first.
   apply/unitrP; exists q`_0.
@@ -1454,8 +1454,8 @@ rewrite size_mul_id // (polySpred nz_p) (polySpred nz_q) addnS addSn !eqSS.
 by rewrite addn_eq0 => /andP[].
 Qed.
 
-Fact poly_inv_out : {in predC poly_unit, poly_inv =1 id}.
-Proof. by rewrite /poly_inv => p /negbTE->. Qed.
+Fact poly_inv_out : {in [predC poly_unit], poly_inv =1 id}.
+Proof. by rewrite /poly_inv => p /negbTE/= ->. Qed.
 
 Definition poly_comUnitMixin :=
   ComUnitRingMixin poly_mulVp poly_intro_unit poly_inv_out.
@@ -1477,15 +1477,16 @@ Canonical poly_idomainType :=
 Canonical polynomial_idomainType :=
   Eval hnf in [idomainType of polynomial R for poly_idomainType].
 
-Lemma poly_unitE p : GRing.unit p = (size p == 1%N) && GRing.unit p`_0.
+Lemma poly_unitE p :
+  (p \in GRing.unit) = (size p == 1%N) && (p`_0 \in GRing.unit).
 Proof. by []. Qed.
 
-Lemma poly_invE p : p ^-1 = if GRing.unit p then (p`_0)^-1%:P else p.
+Lemma poly_invE p : p ^-1 = if p \in GRing.unit then (p`_0)^-1%:P else p.
 Proof. by []. Qed.
 
 Lemma polyCV c : c%:P^-1 = (c^-1)%:P.
 Proof.
-have [/rmorphV-> // | nUc] := boolP (GRing.unit c).
+have [/rmorphV-> // | nUc] := boolP (c \in GRing.unit).
 by rewrite !invr_out // poly_unitE coefC (negbTE nUc) andbF.
 Qed.
 
@@ -1626,7 +1627,7 @@ Section MaxRoots.
 Variable R : unitRingType.
 Implicit Types (x y : R) (rs : seq R) (p : {poly R}).
 
-Definition diff_roots (x y : R) := (x * y == y * x) && GRing.unit (y - x).
+Definition diff_roots (x y : R) := (x * y == y * x) && (y - x \in GRing.unit).
 
 Fixpoint uniq_roots rs :=
   if rs is x :: rs' then all (diff_roots x) rs' && uniq_roots rs' else true.

@@ -844,7 +844,7 @@ set C := ursubmx (_) + _.
 have -> : C = 0.
  apply/matrixP => ? j.
  by rewrite ord1 mxE mulNmx mulmxKV // !(row_mxEr, mxE) lshift0 subrr.
-rewrite det_lblock unitrM -[_ (_ M')]unitmxE HM' andbT.
+rewrite det_lblock unitrM andbC -unitmxE HM'.
 rewrite [_ + _](_ : _ = (comb w0)%:M); first by rewrite det_scalar1 unitfE.
 set UL := ulsubmx _.
 have -> : UL = (val (f_ 0) w0)%:M.

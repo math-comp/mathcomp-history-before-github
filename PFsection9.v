@@ -507,7 +507,8 @@ have{cEE} [F [outF [inF outFK inFK] E_F]]:
   pose F := FieldType (IdomainType _ (FieldIdomainMixin Ffield)) Ffield.
   by exists [finFieldType of F], (AddRMorphism outRM); first exists inF.
 pose in_uF (a : F) : {unit F} := insubd (1 : {unit F}) a.
-have in_uF_E a: a != 1 -> val (in_uF a) = a by rewrite -unitfE; exact: insubdK.
+have in_uF_E a: a != 1 -> val (in_uF a) = a.
+  by move=> nt_a; rewrite insubdK /= ?unitfE.
 have [psi psiK]: {psi : {morphism U >-> {unit F}}
                       | {in U, forall x, outF (val (psi x)) = rU (inMb x)}}.
 - pose psi x := in_uF (inF (rU (inMb x))).

@@ -794,7 +794,7 @@ have{irrG faithfulG cGz1} Urz1: rG z - 1%:M \in unitmx.
 do [case: n n_gt0 => // n' _; set n := n'.+1] in rG Urz1 *.
 have charMp: p \in [char 'M[F]_n].
   exact: (rmorph_char (scalar_mx_rmorphism _ _)).
-have{Urz1}: GRing.unit (Frobenius_aut charMp (rG z - 1)) by rewrite unitrX.
+have{Urz1}: Frobenius_aut charMp (rG z - 1) \in GRing.unit by rewrite unitrX.
 rewrite (Frobenius_autB_comm _ (commr1 _)) Frobenius_aut1.
 by rewrite -[_ (rG z)](repr_mxX rG) // -ozp expg_order repr_mx1 subrr unitr0.
 Qed.
@@ -921,10 +921,9 @@ have prim_w e: 0 < e < p -> p.-primitive_root (w ^+ e).
   rewrite -order_dvdn ozp euclid // gtnNdvd //=; move: ltdp; rewrite leq_eqVlt.
   by case: eqP => [-> _ | _ ltd1p]; rewrite (dvdnn, gtnNdvd).
 have /cyclicP[a defAutZ]: cyclic (Aut 'Z(S)) by rewrite Aut_prime_cyclic ?ozp.
-have phi_unitP (i : 'I_p.-1): GRing.unit (i.+1%:R : 'Z_#[z]).
-  rewrite /GRing.unit /= ozp val_Zp_nat ?Zp_cast //.
-  by rewrite prime_coprime // -lt0n !modIp'.
-pose ephi i := invm (injm_Zpm a) (Zp_unitm (Sub _ (phi_unitP i))).
+have phi_unitP (i : 'I_p.-1): (i.+1%:R : 'Z_#[z]) \in GRing.unit.
+  by rewrite unitZpE ?order_gt1 // ozp prime_coprime // -lt0n !modIp'.
+pose ephi i := invm (injm_Zpm a) (Zp_unitm (FinRing.Unit _ (phi_unitP i))).
 pose j : 'Z_#[z] := val (invm (injm_Zp_unitm z) a).
 have co_j_p: coprime j p.
   rewrite coprime_sym /j; case: (invm _ a) => /=.

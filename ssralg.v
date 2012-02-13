@@ -120,7 +120,7 @@ Require Import finfun bigop prime binomial.
 (*                           NOT BE USED during type inference.               *)
 (* [unitRingType of R for S] == R-clone of the unitRingType structure S.      *)
 (*    [unitRingType of R] == clones a canonical unitRingType structure on R.  *)
-(*           GRing.unit x <=> x is a unit (i.e., has an inverse).             *)
+(*       x \in GRing.unit <=> x is a unit (i.e., has an inverse).             *)
 (*                   x^-1 == the ring inverse of x, if x is a unit, else x.   *)
 (*                  x / y == x divided by y (notation for x * y^-1).          *)
 (*                 x ^- n := notation for (x ^+ n)^-1, the inverse of x ^+ n. *)
@@ -331,67 +331,90 @@ Require Import finfun bigop prime binomial.
 (*     to declare all Additive instances.                                     *)
 (*                                                                            *)
 (* * Linear (linear functions):                                               *)
-(*             scalable f <-> f of type U -> V is scalable, i.e., f maps      *)
-(*                           scaling on U to scaling on V, a *: _ to a*: _.   *)
+(*             scalable f <-> f of type U -> V is scalable, i.e., f morphs    *)
+(*                           scaling on U to scaling on V, a *: _ to a *: _.  *)
 (*                           U and V must both have lmodType R structures,    *)
 (*                           for the same ringType R.                         *)
-(*               linear f <-> f of type U -> V is linear, i.e., f maps linear *)
-(*                           combinations in U to linear combinations in V;   *)
-(*                           U and V must both have lmodType R structures,    *)
-(*                           for the same ringType R.                         *)
+(*       scalable_for s f <-> f is scalable for scaling operator s, i.e.,     *)
+(*                           f morphs a *: _ to s a _; the range of f only    *)
+(*                           need to be a zmodType. The scaling operator s    *)
+(*                           should be one of *:%R (see scalable, above), *%R *)
+(*                           or a combination nu \; *%R or nu \; *:%R with    *)
+(*                           nu : {rmorphism R}; otherwise some of the theory *)
+(*                           (e.g., the linearZ rule) will not apply.         *)
+(*               linear f <-> f of type U -> V is linear, i.e., f morphs      *)
+(*                           linear combinations a *: u + v in U to similar   *)
+(*                           linear combinations in V; U and V must both have *)
+(*                           lmodType R structures, for the same ringType R.  *)
 (*                        := forall a, {morph f: u v / a *: u + v}.           *)
+(*               scalar f <-> f of type U -> R is a scalar function, i.e.,    *)
+(*                           f (a *: u + v) = a * f u + f v.                  *)
+(*         linear_for s f <-> f is linear for the scaling operator s, i.e.,   *)
+(*                           f (a *: u + v) = s a (f u) + f v. The range of f *)
+(*                           only needs to be a zmodType, but s MUST be of    *)
+(*                           the form described in in scalable_for paragraph  *)
+(*                           for this predicate to type check.                *)
 (*            lmorphism f <-> f is both additive and scalable. This is in     *)
 (*                           fact equivalent to linear f, although somewhat   *)
 (*                           less convenient to prove.                        *)
+(*     lmorphism_for s f <-> f is both additive and scalable for s.           *)
 (*        {linear U -> V} == the interface type for linear functions, i.e., a *)
 (*                           Structure that encapsulates the linear property  *)
 (*                           for functions f : U -> V; both U and V must have *)
 (*                           lmodType R structures, for the same R.           *)
-(*           Linear lin_f == packs lin_f : lmorphism f into a linear function *)
-(*                           structure of type {linear U -> V}. As linear f   *)
-(*                           coerces to lmorphism f, Linear can also be used  *)
-(*                           with lin_f : linear f (indeed, that is the       *)
-(*                           recommended usage).                              *)
-(*       AddLinear scal_f == packs scal_f : scalable f into a {linear U -> V} *)
-(*                           structure; f must already have an additive       *)
-(*                           structure; lin_f : linear f may be used instead  *)
-(*                           of scal_f.                                       *)
+(*             {scalar U} == the interface type for scalar functions, of type *)
+(*                           U -> R where U has an lmodType R structure.      *)
+(*    {linear U -> V | s} == the interface type for functions linear for s.   *)
+(*           Linear lin_f == packs lin_f : lmorphism_for s f into a linear    *)
+(*                           function structure of type {linear U -> V | s}.  *)
+(*                           As linear_for s f coerces to lmorphism_for s f,  *)
+(*                           Linear can be used with lin_f : linear_for s f   *)
+(*                           (indeed, that is the recommended usage). Note    *)
+(*                           that as linear f, scalar f, {linear U -> V} and  *)
+(*                           {scalar U} are simply notation for corresponding *)
+(*                           generic "_for" forms, Linear can be used for any *)
+(*                           of these special cases, transparantly.           *)
+(*       AddLinear scal_f == packs scal_f : scalable_for s f into a           *)
+(*                           {linear U -> V | s} structure; f must already    *)
+(*                           have an additive structure; as with Linear,      *)
+(*                           AddLinear can be used with lin_f : linear f, etc *)
 (*     [linear of f as g] == an f-clone of the linear structure of g.         *)
 (*          [linear of f] == a clone of an existing linear structure on f.    *)
-(*           scalableM f <-> f of type U -> R is scalable, if R is viewed as  *)
-(*                           its regular module R^o.                          *)
-(*                         := forall a u, f (a *: u) = a * f u.               *)
-(*               scalar f <-> f of type U -> R is scalar, i.e., linear when   *)
-(*                           its range is viewed as the regular module R^o.   *)
-(*                         := forall a, f (a *: u + v) = a * f u + f v.       *)
-(*             {scalar U} == the interface type for scalar functions with     *)
-(*                           domain U. This is just notation for an instance  *)
-(*                           of {linear U -> R} that uses the non-canonical   *)
-(*                           GRing.Linear.scalar_lmodType R structure for R.  *)
+(*          (a *: u)%Rlin == transient forms that simplifiy to a *: u, a * u, *)
+(*           (a * u)%Rlin    nu a *: u, and nu a * u, respectively, and are   *)
+(*       (a *:^nu u)%Rlin    created by rewriting with the linearZ lemma. The *)
+(*        (a *^nu u)%Rlin    forms allows the RHS of linearZ to be matched    *)
+(*                           reliably, using the GRing.Scale.law structure.   *)
 (* -> Similarly to Ring morphisms, additive properties are specialized for    *)
 (*    linear functions.                                                       *)
-(* -> As scalableM and scalar coerce to scalable and linear, respectively,    *)
-(*    AddLinear and Linear can be used to create instances of {scalar U}.     *)
 (* -> Although {scalar U} is convertible to {linear U -> R^o}, it does not    *)
-(*    actually use R^o. The linearZ lemma is a multirule with a special case  *)
-(*    for {scalar U}, that uses normal multiplication in R rathere than       *)
-(*    scaling in R^o.                                                         *)
+(*    actually use R^o, so that rewriting preserves the canonical structure   *)
+(*    of the range of scalar functions.                                       *)
 (*                                                                            *)
 (* * LRMorphism (linear ring morphisms, i.e., algebra morphisms):             *)
 (*           lrmorphism f <-> f of type A -> B is a linear Ring (Algebra)     *)
 (*                           morphism: f is both additive, multiplicative and *)
 (*                           scalable. A and B must both have lalgType R      *)
 (*                           canonical structures, for the same ringType R.   *)
+(*     lrmorphism_for s f <-> f a linear Ring morphism for the scaling        *)
+(*                           operator s: f is additive, multiplicative and    *)
+(*                           scalable for s. A must be an lalgType R, but B   *)
+(*                           only needs to have a ringType structure.         *)
 (*    {lrmorphism A -> B} == the interface type for linear morphisms, i.e., a *)
 (*                           Structure that encapsulates the lrmorphism       *)
 (*                           property for functions f : A -> B; both A and B  *)
 (*                           must have lalgType R structures, for the same R. *)
-(*   LRmorphism lrmorph_f == packs lrmorph_f : lrmorphism f into a linear     *)
-(*                           morphism structure of type {lrmorphism U -> V}.  *)
-(*   AddLRmorphism scal_f == packs scal_f : scalable f into a linear morphism *)
-(*                           structure of type {lrmorphism U -> V}; f must    *)
-(*                           already have a Ring morphism structure, and      *)
-(*                           lin_f : linear f may be used instead of scal_f.  *)
+(* {lrmorphism A -> B | s} == the interface type for morphisms linear for s.  *)
+(*   LRmorphism lrmorph_f == packs lrmorph_f : lrmorphism_for s f into a      *)
+(*                           linear morphism structure of type                *)
+(*                           {lrmorphism A -> B | s}. Like Linear, LRmorphism *)
+(*                           can be used transparently for lrmorphism f.      *)
+(*   AddLRmorphism scal_f == packs scal_f : scalable_for s f into a linear    *)
+(*                           morphism structure of type                       *)
+(*                           {lrmorphism A -> B | s}; f must already have an  *)
+(*                           {rmorphism A -> B} structure, and AddLRmorphism  *)
+(*                           can be applied to a linear_for s f, linear f,    *)
+(*                           scalar f, etc argument, like AddLinear.          *)
 (*      [lrmorphism of f] == creates an lrmorphism structure from existing    *)
 (*                           rmorphism and linear structures on f; this is    *)
 (*                           the preferred way of creating lrmorphism         *)
@@ -715,12 +738,12 @@ Section Predicates.
 Variable S : pred V.
 
 Class addSemigroupPred := AddSemigroupPred {
-  ringp0 : 0 \in S;
-  ringpD : {in S &, forall u v, u + v \in S}
+  rpred0 : 0 \in S;
+  rpredD : {in S &, forall u v, u + v \in S}
 }.
 
 Class unsignedPred := UnsignedPred {
-  ringpNr : {in S, forall u, - u \in S}
+  rpredNr : {in S, forall u, - u \in S}
 }.
 
 Class addSubgroupPred := AddSubgroupPred {
@@ -732,17 +755,17 @@ Section Semigroup.
 
 Context {addS : addSemigroupPred}.
 
-Lemma ringp_sum I r (P : pred I) F :
+Lemma rpred_sum I r (P : pred I) F :
   (forall i, P i -> F i \in S) -> \sum_(i <- r | P i) F i \in S.
-Proof. by move=> IH; elim/big_ind: _; [exact: ringp0 | exact: ringpD |]. Qed.
+Proof. by move=> IH; elim/big_ind: _; [exact: rpred0 | exact: rpredD |]. Qed.
 
-Lemma ringpMn n : {in S, forall u, u *+ n \in S}.
-Proof. by move=> u Su; rewrite -(card_ord n) -sumr_const ringp_sum. Qed.
+Lemma rpredMn n : {in S, forall u, u *+ n \in S}.
+Proof. by move=> u Su; rewrite -(card_ord n) -sumr_const rpred_sum. Qed.
 
 End Semigroup.
 
-Lemma ringpN {sgnS : unsignedPred} u : (- u \in S) = (u \in S).
-Proof. by apply/idP/idP=> /ringpNr; rewrite ?opprK; apply. Qed.
+Lemma rpredN {sgnS : unsignedPred} u : (- u \in S) = (u \in S).
+Proof. by apply/idP/idP=> /rpredNr; rewrite ?opprK; apply. Qed.
 
 Lemma SubgroupPredFromSub :
   0 \in S -> {in S &, forall u v, u - v \in S} -> addSubgroupPred.
@@ -755,33 +778,33 @@ Section SubType.
 
 Context {addS : addSubgroupPred}.
 
-Lemma ringpB : {in S &, forall u v, u - v \in S}.
-Proof. by move=> u v Su Sv; rewrite /= ringpD ?ringpN. Qed.
+Lemma rpredB : {in S &, forall u v, u - v \in S}.
+Proof. by move=> u v Su Sv; rewrite /= rpredD ?rpredN. Qed.
 
-Lemma ringpMNn n : {in S, forall u, u *- n \in S}.
-Proof. by move=> u Su; rewrite /= ringpN ringpMn. Qed.
+Lemma rpredMNn n : {in S, forall u, u *- n \in S}.
+Proof. by move=> u Su; rewrite /= rpredN rpredMn. Qed.
 
-Lemma ringpDr x y : x \in S -> (y + x \in S) = (y \in S).
+Lemma rpredDr x y : x \in S -> (y + x \in S) = (y \in S).
 Proof.
-move=> Sx; apply/idP/idP=> [Sxy | /ringpD-> //].
-by rewrite -(addrK x y) ringpB.
+move=> Sx; apply/idP/idP=> [Sxy | /rpredD-> //].
+by rewrite -(addrK x y) rpredB.
 Qed.
 
-Lemma ringpDl x y : x \in S -> (x + y \in S) = (y \in S).
-Proof. by rewrite addrC; apply: ringpDr. Qed.
+Lemma rpredDl x y : x \in S -> (x + y \in S) = (y \in S).
+Proof. by rewrite addrC; apply: rpredDr. Qed.
 
-Lemma ringpBr x y : x \in S -> (y - x \in S) = (y \in S).
-Proof. by rewrite -ringpN; apply: ringpDr. Qed.
+Lemma rpredBr x y : x \in S -> (y - x \in S) = (y \in S).
+Proof. by rewrite -rpredN; apply: rpredDr. Qed.
 
-Lemma ringpBl x y : x \in S -> (x - y \in S) = (y \in S).
-Proof. by rewrite -(ringpN y); apply: ringpDl. Qed.
+Lemma rpredBl x y : x \in S -> (x - y \in S) = (y \in S).
+Proof. by rewrite -(rpredN y); apply: rpredDl. Qed.
 
 Variable U : subType S.
 
 Let inU v Sv : U := Sub v Sv.
-Let zeroU := inU ringp0.
-Let oppU (u : U) := inU (ringpNr (valP u)).
-Let addU (u1 u2 : U) := inU (ringpD (valP u1) (valP u2)).
+Let zeroU := inU rpred0.
+Let oppU (u : U) := inU (rpredNr (valP u)).
+Let addU (u1 u2 : U) := inU (rpredD (valP u1) (valP u2)).
 
 Fact subZmod_addA : associative addU.
 Proof. by move=> u1 u2 u3; apply: val_inj; rewrite !SubK addrA. Qed.
@@ -1319,8 +1342,8 @@ Section Predicates.
 Variable S : pred R.
 
 Class mulSemigroupPred := MulSemigroupPred {
-  ringp1 : 1 \in S;
-  ringpM : {in S &, forall u v, u * v \in S}
+  rpred1 : 1 \in S;
+  rpredM : {in S &, forall u v, u * v \in S}
 }.
 
 Class semiringPred := SemiringPred {
@@ -1333,25 +1356,25 @@ Class subringPred := SubringPred {
   subring_mulSemigroupPred :> mulSemigroupPred
 }.
 
-Lemma ringpMsign {sgnS : unsignedPred S} e x :
+Lemma rpredMsign {sgnS : unsignedPred S} e x :
   ((-1) ^+ e * x \in S) = (x \in S).
-Proof. by rewrite -signr_odd mulr_sign fun_if if_arg ringpN ?if_same. Qed.
+Proof. by rewrite -signr_odd mulr_sign fun_if if_arg rpredN ?if_same. Qed.
 
 Section MulSemigroup.
 
 Context {mulS : mulSemigroupPred}.
 
-Lemma ringp_prod I r (P : pred I) F :
+Lemma rpred_prod I r (P : pred I) F :
   (forall i, P i -> F i \in S) -> \prod_(i <- r | P i) F i \in S.
-Proof. by move=> IH; elim/big_ind: _; [exact: ringp1 | exact: ringpM |]. Qed.
+Proof. by move=> IH; elim/big_ind: _; [exact: rpred1 | exact: rpredM |]. Qed.
 
-Lemma ringpX n : {in S, forall u, u ^+ n \in S}.
-Proof. by move=> u Su; rewrite -(card_ord n) -prodr_const ringp_prod. Qed.
+Lemma rpredX n : {in S, forall u, u ^+ n \in S}.
+Proof. by move=> u Su; rewrite -(card_ord n) -prodr_const rpred_prod. Qed.
 
 End MulSemigroup.
 
-Lemma ringp_nat {mulS : semiringPred} n : n%:R \in S.
-Proof. by rewrite ringpMn ?ringp1. Qed.
+Lemma rpred_nat {mulS : semiringPred} n : n%:R \in S.
+Proof. by rewrite rpredMn ?rpred1. Qed.
 
 Lemma SubringPredFromSub :
     1 \in S ->
@@ -1367,8 +1390,8 @@ Lemma subring_semiringPred {mulS : subringPred} : semiringPred.
 Proof. exact: SemiringPred. Qed.
 Existing Instance subring_semiringPred.
 
-Lemma ringp_sign {mulS : subringPred} n : (-1) ^+ n \in S.
-Proof. by rewrite ringpX ?ringpN ?ringp1. Qed.
+Lemma rpred_sign {mulS : subringPred} n : (-1) ^+ n \in S.
+Proof. by rewrite rpredX ?rpredN ?rpred1. Qed.
 
 Section SubType.
 
@@ -1379,8 +1402,8 @@ Definition cast_zmodType (V : zmodType) T (VeqT : V = T :> Type) :=
 Context {mulS : mulSemigroupPred} (T : subType S).
 
 Let inT x Sx : T := Sub x Sx.
-Let oneT := inT ringp1.
-Let mulT (u1 u2 : T) := inT (ringpM (valP u1) (valP u2)).
+Let oneT := inT rpred1.
+Let mulT (u1 u2 : T) := inT (rpredM (valP u1) (valP u2)).
 
 Hypotheses (V : zmodType) (VeqT: V = T :> Type).
 Let T' := cast_zmodType VeqT.
@@ -1590,20 +1613,20 @@ Section Predicates.
 
 Variable S : pred V.
 
-Lemma ringpZsign {sgnS : unsignedPred S} n u :
+Lemma rpredZsign {sgnS : unsignedPred S} n u :
   ((-1) ^+ n *: u \in S) = (u \in S).
-Proof. by rewrite -signr_odd scaler_sign fun_if if_arg ringpN if_same. Qed.
+Proof. by rewrite -signr_odd scaler_sign fun_if if_arg rpredN if_same. Qed.
 
-Lemma ringpZnat {addS : addSemigroupPred S} n :
+Lemma rpredZnat {addS : addSemigroupPred S} n :
   {in S, forall u, n%:R *: u \in S}.
-Proof. by move=> u Su; rewrite /= scaler_nat ringpMn. Qed.
+Proof. by move=> u Su; rewrite /= scaler_nat rpredMn. Qed.
 
 Class unscaledPred :=
-   UnscaledPred {ringpZ : forall a v, v \in S -> a *: v \in S}.
+   UnscaledPred {rpredZ : forall a v, v \in S -> a *: v \in S}.
 
 Context {linS : unscaledPred} (W : subType S).
 
-Let scaleW a (w : W) := (Sub _ : _ -> W) (ringpZ a (valP w)).
+Let scaleW a (w : W) := (Sub _ : _ -> W) (rpredZ a (valP w)).
 
 Hypotheses (Z : zmodType) (ZeqW : Z = W :> Type).
 Let W' := cast_zmodType ZeqW.
@@ -1854,29 +1877,29 @@ Section AddFun.
 
 Variables (U V W : zmodType) (f g : {additive V -> W}) (h : {additive U -> V}).
 
-Lemma idfun_is_additive : additive (idfun : U -> U).
+Fact idfun_is_additive : additive (@idfun U).
 Proof. by []. Qed.
 Canonical idfun_additive := Additive idfun_is_additive.
 
-Lemma comp_is_additive : additive (f \o h).
+Fact comp_is_additive : additive (f \o h).
 Proof. by move=> x y /=; rewrite !raddfB. Qed.
 Canonical comp_additive := Additive comp_is_additive.
 
-Lemma opp_is_additive : additive (-%R : U -> U).
+Fact opp_is_additive : additive (-%R : U -> U).
 Proof. by move=> x y; rewrite /= opprD. Qed.
 Canonical opp_additive := Additive opp_is_additive.
 
-Lemma null_fun_is_additive : additive (\0 : U -> V).
+Fact null_fun_is_additive : additive (\0 : U -> V).
 Proof. by move=> /=; rewrite subr0. Qed.
 Canonical null_fun_additive := Additive null_fun_is_additive.
 
-Lemma add_fun_is_additive : additive (f \+ g).
+Fact add_fun_is_additive : additive (f \+ g).
 Proof.
 by move=> x y /=; rewrite !raddfB addrCA -!addrA addrCA -opprD.
 Qed.
 Canonical add_fun_additive := Additive add_fun_is_additive.
 
-Lemma sub_fun_is_additive : additive (f \- g).
+Fact sub_fun_is_additive : additive (f \- g).
 Proof.
 by move=> x y /=; rewrite !raddfB addrAC -!addrA -!opprD addrAC addrA.
 Qed.
@@ -1889,11 +1912,11 @@ Section MulFun.
 Variables (R : ringType) (U : zmodType).
 Variables (a : R) (f : {additive U -> R}).
 
-Lemma mull_fun_is_additive : additive (a \*o f).
+Fact mull_fun_is_additive : additive (a \*o f).
 Proof. by move=> x y /=; rewrite raddfB mulrBr. Qed.
 Canonical mull_fun_additive := Additive mull_fun_is_additive.
 
-Lemma mulr_fun_is_additive : additive (a \o* f).
+Fact mulr_fun_is_additive : additive (a \o* f).
 Proof. by move=> x y /=; rewrite raddfB mulrBl. Qed.
 Canonical mulr_fun_additive := Additive mulr_fun_is_additive.
 
@@ -1904,9 +1927,8 @@ Section ScaleFun.
 Variables (R : ringType) (U : zmodType) (V : lmodType R).
 Variables (a : R) (f : {additive U -> V}).
 
-Lemma scale_fun_is_additive : additive (a \*: f).
-Proof. by move=> u v /=; rewrite raddfB scalerBr. Qed.
-Canonical scale_fun_additive := Additive scale_fun_is_additive.
+Canonical scale_additive := Additive (@scalerBr R V a).
+Canonical scale_fun_additive := [additive of a \*: f as f \; *:%R a].
 
 End ScaleFun.
 
@@ -1992,11 +2014,11 @@ Proof. exact: (big_morph f rmorphM rmorph1). Qed.
 Lemma rmorphX n : {morph f: x / x ^+ n}.
 Proof. by elim: n => [|n IHn] x; rewrite ?rmorph1 // !exprS rmorphM IHn. Qed.
 
-Lemma rmorph_nat n : f n%:R = n%:R.
-Proof. by rewrite rmorphMn rmorph1. Qed.
+Lemma rmorph_nat n : f n%:R = n%:R. Proof. by rewrite rmorphMn rmorph1. Qed.
+Lemma rmorphN1 : f (- 1) = (- 1). Proof. by rewrite rmorphN rmorph1. Qed.
 
 Lemma rmorph_sign n : f ((- 1) ^+ n) = (- 1) ^+ n.
-Proof. by rewrite rmorphX rmorphN rmorph1. Qed.
+Proof. by rewrite rmorphX rmorphN1. Qed.
 
 Lemma rmorph_char p : p \in [char R] -> p \in [char S].
 Proof. by rewrite !inE -rmorph_nat => /andP[-> /= /eqP->]; rewrite rmorph0. Qed.
@@ -2017,11 +2039,11 @@ Section Projections.
 
 Variables (R S T : ringType) (f : {rmorphism S -> T}) (g : {rmorphism R -> S}).
 
-Lemma idfun_is_multiplicative : multiplicative (idfun : R -> R).
+Fact idfun_is_multiplicative : multiplicative (@idfun R).
 Proof. by []. Qed.
 Canonical idfun_rmorphism := AddRMorphism idfun_is_multiplicative.
 
-Definition comp_is_multiplicative : multiplicative (f \o g).
+Fact comp_is_multiplicative : multiplicative (f \o g).
 Proof. by split=> [x y|] /=; rewrite ?rmorph1 ?rmorphM. Qed.
 Canonical comp_rmorphism := AddRMorphism comp_is_multiplicative.
 
@@ -2031,7 +2053,7 @@ Section InAlgebra.
 
 Variables (R : ringType) (A : lalgType R).
 
-Lemma in_alg_is_rmorphism : rmorphism (in_alg_loc A).
+Fact in_alg_is_rmorphism : rmorphism (in_alg_loc A).
 Proof.
 split=> [x y|]; first exact: scalerBl.
 by split=> [x y|] /=; rewrite ?scale1r // -scalerAl mul1r scalerA.
@@ -2045,6 +2067,40 @@ End InAlgebra.
 
 End RmorphismTheory.
 
+Module Scale.
+
+Section ScaleLaw.
+
+Variable R : ringType.
+
+Structure law (V : zmodType) (s : R -> V -> V) := Law {
+  op : R -> V -> V;
+  _ : op = s;
+  _ : op (-1) =1 -%R;
+  _ : forall a, additive (op a)
+}.
+
+Definition mul_law := Law (erefl *%R) (@mulN1r R) (@mulrBr R).
+Definition scale_law U := Law (erefl *:%R) (@scaleN1r R U) (@scalerBr R U).
+
+Variables (V : zmodType) (s : R -> V -> V) (s_law : law s).
+Local Notation s_op := (op s_law).
+
+Lemma opE : s_op = s. Proof. by case: s_law. Qed.
+Lemma N1op : s_op (-1) =1 -%R. Proof. by case: s_law. Qed.
+Fact opB a : additive (s_op a). Proof. by case: s_law. Qed.
+Definition op_additive a := Additive (opB a).
+
+Variable nu : {rmorphism R -> R}.
+Fact comp_opE : nu \; s_op = nu \; s. Proof. exact: congr1 opE. Qed.
+Fact compN1op : (nu \; s_op) (-1) =1 -%R.
+Proof. by move=> v; rewrite /= rmorphN1 N1op. Qed.
+Definition comp_law : law (nu \; s) := Law comp_opE compN1op (fun a => opB _).
+
+End ScaleLaw.
+
+End Scale.
+
 Module Linear.
 
 Section ClassDef.
@@ -2052,7 +2108,8 @@ Section ClassDef.
 Variables (R : ringType) (U : lmodType R) (V : zmodType) (s : R -> V -> V).
 Implicit Type phUV : phant (U -> V).
 
-Definition axiom (_ : s (- 1) =1 -%R) (f : U -> V) :=
+Local Coercion Scale.op : Scale.law >-> Funclass.
+Definition axiom (f : U -> V) (s_law : Scale.law s) of s = s_law :=
   forall a, {morph f : u v / a *: u + v >-> s a u + v}.
 Definition mixin_of (f : U -> V) :=
   forall a, {morph f : v / a *: v >-> s a v}.
@@ -2060,12 +2117,11 @@ Definition mixin_of (f : U -> V) :=
 Record class_of f : Prop := Class {base : additive f; mixin : mixin_of f}.
 Local Coercion base : class_of >-> additive.
 
-Lemma class_of_axiom sN1 f : axiom sN1 f -> class_of f.
+Lemma class_of_axiom f s_law Ds : @axiom f s_law Ds -> class_of f.
 Proof.
-move=> fL.
-have fA: additive f by move=> x y /=; rewrite -scaleN1r -sN1 addrC fL addrC.
-split=> // a v /=.
-by rewrite -[a *: v]addr0 fL [f 0](raddf0 (Additive fA)) addr0.
+move=> fL; have fB: additive f.
+  by move=> x y /=; rewrite -scaleN1r addrC fL Ds Scale.N1op addrC.
+by split=> // a v /=; rewrite -[a *: v](addrK v) fB fL addrK Ds.
 Qed.
 
 Structure map (phUV : phant (U -> V)) := Pack {apply; _ : class_of apply}.
@@ -2085,22 +2141,35 @@ Canonical additive := Additive.Pack phUV class.
 End ClassDef.
 
 Module Exports.
+Canonical Scale.mul_law.
+Canonical Scale.scale_law.
+Canonical Scale.comp_law.
+Canonical Scale.op_additive.
+Delimit Scope linear_ring_scope with linR.
+Notation "a *: u" := (@Scale.op _ _ *:%R _ a u) : linear_ring_scope.
+Notation "a * u" := (@Scale.op _ _ *%R _ a u) : linear_ring_scope.
+Notation "a *:^ nu u" := (@Scale.op _ _ (nu \; *:%R) _ a u)
+  (at level 40, nu at level 1, format "a  *:^ nu  u") : linear_ring_scope.
+Notation "a *^ nu u" := (@Scale.op _ _ (nu \; *%R) _ a u)
+  (at level 40, nu at level 1, format "a  *^ nu  u") : linear_ring_scope.
 Notation scalable_for s f := (mixin_of s f).
 Notation scalable f := (scalable_for *:%R f).
-Notation linear f := (axiom (@scaleN1r _ _) f).
-Notation scalar f := (axiom (@mulN1r _) f).
-Notation lmorphism s f := (class_of s f).
-Coercion class_of_axiom : axiom >-> lmorphism.
-Coercion base : lmorphism >-> Additive.axiom.
-Coercion mixin : lmorphism >-> scalable.
+Notation linear_for s f := (axiom f (erefl s)).
+Notation linear f := (linear_for *:%R f).
+Notation scalar f := (linear_for *%R f).
+Notation lmorphism_for s f := (class_of s f).
+Notation lmorphism f := (lmorphism_for *:%R f).
+Coercion class_of_axiom : axiom >-> lmorphism_for.
+Coercion base : lmorphism_for >-> Additive.axiom.
+Coercion mixin : lmorphism_for >-> scalable.
 Coercion apply : map >-> Funclass.
 Notation Linear fL := (Pack (Phant _) fL).
 Notation AddLinear fZ := (pack fZ id).
-Notation "{ 'linear' fUV 'for' s }" := (map s (Phant fUV))
-  (at level 0, format "{ 'linear'  fUV  'for'  s }") : ring_scope.
-Notation "{ 'linear' fUV }" := {linear fUV for *:%R}
+Notation "{ 'linear' fUV | s }" := (map s (Phant fUV))
+  (at level 0, format "{ 'linear'  fUV  |  s }") : ring_scope.
+Notation "{ 'linear' fUV }" := {linear fUV | *:%R}
   (at level 0, format "{ 'linear'  fUV }") : ring_scope.
-Notation "{ 'scalar' U }" := {linear U -> _ for *%R}
+Notation "{ 'scalar' U }" := {linear U -> _ | *%R}
   (at level 0, format "{ 'scalar'  U }") : ring_scope.
 Notation "[ 'linear' 'of' f 'as' g ]" := (@clone _ _ _ _ _ f g _ _ idfun id)
   (at level 0, format "[ 'linear'  'of'  f  'as'  g ]") : form_scope.
@@ -2120,21 +2189,25 @@ Variable R : ringType.
 Section GenericProperties.
 
 Variables (U : lmodType R) (V : zmodType) (s : R -> V -> V).
-Variable f : {linear U -> V for s}.
+Variable f : {linear U -> V | s}.
 
 Lemma linear0 : f 0 = 0. Proof. exact: raddf0. Qed.
 Lemma linearN : {morph f : x / - x}. Proof. exact: raddfN. Qed.
 Lemma linearD : {morph f : x y / x + y}. Proof. exact: raddfD. Qed.
-Lemma linearB : {morph f: x y / x - y}. Proof. exact: raddfB. Qed.
+Lemma linearB : {morph f : x y / x - y}. Proof. exact: raddfB. Qed.
 Lemma linearMn n : {morph f : x / x *+ n}. Proof. exact: raddfMn. Qed.
 Lemma linearMNn n : {morph f : x / x *- n}. Proof. exact: raddfMNn. Qed.
 Lemma linear_sum I r (P : pred I) E :
   f (\sum_(i <- r | P i) E i) = \sum_(i <- r | P i) f (E i).
 Proof. exact: raddf_sum. Qed.
 
-Lemma linearZ : scalable_for s f. Proof. exact: (Linear.class f). Qed.
+Lemma linearZ_LR : scalable_for s f. Proof. by case: f => ? []. Qed.
 Lemma linearP a : {morph f : u v / a *: u + v >-> s a u + v}.
-Proof. by move=> u v /=; rewrite linearD linearZ. Qed.
+Proof. by move=> u v /=; rewrite linearD linearZ_LR. Qed.
+
+Lemma linearZ a b h (h_law : @Scale.law R V h) (h_b := Scale.op h_law b) :
+  forall Dhb : constraint (h_b = s a), {morph f : u / a *: u >-> h_b u}.
+Proof. by move->; apply: linearZ_LR. Qed.
 
 End GenericProperties.
 
@@ -2142,7 +2215,7 @@ Section LmodProperties.
 
 Variables (U V : lmodType R) (f : {linear U -> V}).
 
-Lemma lmod_linearZ : scalable f. Proof. exact: linearZ. Qed.
+Lemma lmod_linearZ : scalable f. Proof. exact: linearZ_LR. Qed.
 Lemma lmod_linearP : linear f. Proof. exact: linearP. Qed.
 
 Lemma can2_linear f' : cancel f f' -> cancel f' f -> linear f'.
@@ -2158,7 +2231,7 @@ Section ScalarProperties.
 
 Variable (U : lmodType R) (f : {scalar U}).
 
-Lemma scalarZ : scalable_for *%R f. Proof. exact: linearZ. Qed.
+Lemma scalarZ : scalable_for *%R f. Proof. exact: linearZ_LR. Qed.
 Lemma scalarP : scalar f. Proof. exact: linearP. Qed.
 
 End ScalarProperties.
@@ -2166,42 +2239,35 @@ End ScalarProperties.
 Section LinearLmod.
 
 Variables (W U : lmodType R) (V : zmodType) (s : R -> V -> V).
-Variables (f : {linear U -> V for s}) (g : {linear W -> U}).
+Variables (f : {linear U -> V | s}) (h : {linear W -> U}).
 
-Lemma idfun_is_scalable : scalable (idfun : U -> U). Proof. by []. Qed.
+Lemma idfun_is_scalable : scalable (@idfun U). Proof. by []. Qed.
 Canonical idfun_linear := AddLinear idfun_is_scalable.
-
-Lemma comp_is_scalable : scalable_for s (f \o g).
-Proof. by move=> a v /=; rewrite !linearZ. Qed.
-Canonical comp_linear := AddLinear comp_is_scalable.
 
 Lemma opp_is_scalable : scalable (-%R : U -> U).
 Proof. by move=> a v /=; rewrite scalerN. Qed.
 Canonical opp_linear := AddLinear opp_is_scalable.
 
-Lemma scale_is_additive a : additive ( *:%R a : U -> U).
-Proof. by move=> u v /=; rewrite scalerDr scalerN. Qed.
-Canonical scale_additive a := Additive (scale_is_additive a).
-
 Lemma null_fun_is_scalable : scalable (\0 : U -> U).
 Proof. by move=> a v /=; rewrite scaler0. Qed.
 Canonical null_fun_linear := AddLinear null_fun_is_scalable.
 
-End LinearLmod.
+Lemma comp_is_scalable : scalable_for s (f \o h).
+Proof. by move=> a v /=; rewrite !linearZ_LR. Qed.
+Canonical comp_linear := AddLinear comp_is_scalable.
 
-Section LinearLmodAdd.
+Variables (s_law : Scale.law s) (g : {linear U -> V | Scale.op s_law}).
+Let Ds : s =1 Scale.op s_law. Proof. by rewrite Scale.opE. Qed.
 
-Variables (U V : lmodType R) (f g : {linear U -> V}).
-
-Lemma add_fun_is_scalable : scalable (f \+ g).
-Proof. by move=> a v /=; rewrite raddfD /= !linearZ. Qed.
+Lemma add_fun_is_scalable : scalable_for s (f \+ g).
+Proof. by move=> a u; rewrite /= !linearZ_LR !Ds raddfD. Qed.
 Canonical add_fun_linear := AddLinear add_fun_is_scalable.
 
-Lemma sub_fun_is_scalable : scalable (f \- g).
-Proof. by move=> a v /=; rewrite raddfB /= !linearZ. Qed.
+Lemma sub_fun_is_scalable : scalable_for s (f \- g).
+Proof. by move=> a u; rewrite /= !linearZ_LR !Ds raddfB. Qed.
 Canonical sub_fun_linear := AddLinear sub_fun_is_scalable.
 
-End LinearLmodAdd.
+End LinearLmod.
 
 Section LinearLalg.
 
@@ -2216,7 +2282,7 @@ Qed.
 
 Variables (a : A) (f : {linear U -> A}).
 
-Lemma mulr_fun_is_scalable : scalable (a \o* f).
+Fact mulr_fun_is_scalable : scalable (a \o* f).
 Proof. by move=> k x /=; rewrite linearZ scalerAl. Qed.
 Canonical mulr_fun_linear := AddLinear mulr_fun_is_scalable.
 
@@ -2224,14 +2290,16 @@ End LinearLalg.
 
 End LinearTheory.
 
+Implicit Arguments linearZ [R U V s [b] [h] [h_law] [Dhb]].
+
 Module LRMorphism.
 
 Section ClassDef.
 
-Variables (R : ringType) (A B : lalgType R).
+Variables (R : ringType) (A : lalgType R) (B : ringType) (s : R -> B -> B).
 
 Record class_of (f : A -> B) : Prop :=
-  Class {base : rmorphism f; mixin : scalable f}.
+  Class {base : rmorphism f; mixin : scalable_for s f}.
 Local Coercion base : class_of >-> rmorphism.
 Definition base2 f (fLM : class_of f) := Linear.Class fLM (mixin fLM).
 Local Coercion base2 : class_of >-> lmorphism.
@@ -2244,11 +2312,11 @@ Definition class := let: Pack _ c as cF' := cF return class_of cF' in c.
 
 Definition clone :=
   fun (g : RMorphism.map phAB) fM & phant_id (RMorphism.class g) fM =>
-  fun (h : Linear.map *:%R phAB) fZ &
+  fun (h : Linear.map s phAB) fZ &
      phant_id (Linear.mixin (Linear.class h)) fZ =>
   Pack phAB (@Class f fM fZ).
 
-Definition pack (fZ : scalable f) :=
+Definition pack (fZ : scalable_for s f) :=
   fun (g : RMorphism.map phAB) fM & phant_id (RMorphism.class g) fM =>
   Pack phAB (Class fM fZ).
 
@@ -2256,20 +2324,23 @@ Canonical additive := Additive.Pack phAB class.
 Canonical rmorphism := RMorphism.Pack phAB class.
 Canonical linear := Linear.Pack phAB class.
 Canonical join_rmorphism := @RMorphism.Pack _ _ phAB linear class.
-Canonical join_linear := @Linear.Pack R _ _ *:%R phAB rmorphism class.
+Canonical join_linear := @Linear.Pack R A B s phAB rmorphism class.
 
 End ClassDef.
 
 Module Exports.
-Notation lrmorphism f := (class_of f).
-Coercion base : lrmorphism >-> RMorphism.class_of.
-Coercion base2 : lrmorphism >-> Linear.class_of.
+Notation lrmorphism_for s f := (class_of s f).
+Notation lrmorphism f := (lrmorphism_for *:%R f).
+Coercion base : lrmorphism_for >-> RMorphism.class_of.
+Coercion base2 : lrmorphism_for >-> lmorphism_for.
 Coercion apply : map >-> Funclass.
 Notation LRMorphism f_lrM := (Pack (Phant _) (Class f_lrM f_lrM)).
 Notation AddLRMorphism fZ := (pack fZ id).
-Notation "{ 'lrmorphism' fAB }" := (map (Phant fAB))
+Notation "{ 'lrmorphism' fAB | s }" := (map s (Phant fAB))
+  (at level 0, format "{ 'lrmorphism'  fAB  |  s }") : ring_scope.
+Notation "{ 'lrmorphism' fAB }" := {lrmorphism fAB | *:%R}
   (at level 0, format "{ 'lrmorphism'  fAB }") : ring_scope.
-Notation "[ 'lrmorphism' 'of' f ]" := (@clone _ _ _ _ f _ _ id _ _ id)
+Notation "[ 'lrmorphism' 'of' f ]" := (@clone _ _ _ _ _ f _ _ id _ _ id)
   (at level 0, format "[ 'lrmorphism'  'of'  f ]") : form_scope.
 Coercion additive : map >-> Additive.map.
 Canonical additive.
@@ -2286,11 +2357,11 @@ Include LRMorphism.Exports.
 
 Section LRMorphismTheory.
 
-Variables (R : ringType) (A B C : lalgType R) (f : {lrmorphism B -> C}).
+Variables (R : ringType) (A B : lalgType R) (C : ringType) (s : R -> C -> C).
+Variables (f : {lrmorphism A -> B}) (g : {lrmorphism B -> C | s}).
 
-Definition idfun_lrmorphism := [lrmorphism of (idfun : A -> A)].
-
-Definition comp_lrmorphism (g : {lrmorphism A -> B}) := [lrmorphism of f \o g].
+Definition idfun_lrmorphism := [lrmorphism of @idfun A].
+Definition comp_lrmorphism := [lrmorphism of g \o f].
 
 Lemma can2_lrmorphism f' : cancel f f' -> cancel f' f -> lrmorphism f'.
 Proof.
@@ -2298,7 +2369,7 @@ move=> fK f'K; split; [exact: (can2_rmorphism fK) | exact: (can2_linear fK)].
 Qed.
 
 Lemma bij_lrmorphism :
-  bijective f -> exists2 f' : {lrmorphism C -> B}, cancel f f' & cancel f' f.
+  bijective f -> exists2 f' : {lrmorphism B -> A}, cancel f f' & cancel f' f.
 Proof.
 by case/bij_rmorphism=> f' fK f'K; exists (AddLRMorphism (can2_linear fK f'K)).
 Qed.
@@ -2585,7 +2656,7 @@ Record mixin_of (R : ringType) : Type := Mixin {
   _ : {in unit, left_inverse 1 inv *%R};
   _ : {in unit, right_inverse 1 inv *%R};
   _ : forall x y, y * x = 1 /\ x * y = 1 -> unit x;
-  _ : {in predC unit, inv =1 id}
+  _ : {in [predC unit], inv =1 id}
 }.
 
 Definition EtaMixin R unit inv mulVr mulrV unitP inv_out :=
@@ -2655,40 +2726,40 @@ Section UnitRingTheory.
 Variable R : unitRingType.
 Implicit Types x y : R.
 
-Lemma divrr x : unit x -> x / x = 1.
-Proof. by case: R x => T [? []]. Qed.
+Lemma divrr : {in unit, right_inverse 1 (@inv R) *%R}.
+Proof. by case: R => T [? []]. Qed.
 Definition mulrV := divrr.
 
-Lemma mulVr x : unit x -> x^-1 * x = 1.
+Lemma mulVr : {in unit, left_inverse 1 (@inv R) *%R}.
+Proof. by case: R => T [? []]. Qed.
+
+Lemma invr_out x : x \notin unit -> x^-1 = x.
 Proof. by case: R x => T [? []]. Qed.
 
-Lemma invr_out x : ~~ unit x -> x^-1 = x.
-Proof. by case: R x => T [? []]. Qed.
-
-Lemma unitrP x : reflect (exists y, y * x = 1 /\ x * y = 1) (unit x).
+Lemma unitrP x : reflect (exists y, y * x = 1 /\ x * y = 1) (x \in unit).
 Proof.
 apply: (iffP idP) => [Ux | []]; last by case: R x => T [? []].
 by exists x^-1; rewrite divrr ?mulVr.
 Qed.
 
-Lemma mulKr x : unit x -> cancel (mul x) (mul x^-1).
-Proof. by move=> Ux y; rewrite mulrA mulVr ?mul1r. Qed.
+Lemma mulKr : {in unit, left_loop (@inv R) *%R}.
+Proof. by move=> x Ux y; rewrite mulrA mulVr ?mul1r. Qed.
 
-Lemma mulVKr x : unit x -> cancel (mul x^-1) (mul x).
-Proof. by move=> Ux y; rewrite mulrA mulrV ?mul1r. Qed.
+Lemma mulVKr : {in unit, rev_left_loop (@inv R) *%R}.
+Proof. by move=> x Ux y; rewrite mulrA mulrV ?mul1r. Qed.
 
-Lemma mulrK x : unit x -> cancel ( *%R^~ x) ( *%R^~ x^-1).
-Proof. by move=> Ux y; rewrite -mulrA divrr ?mulr1. Qed.
+Lemma mulrK : {in unit, right_loop (@inv R) *%R}.
+Proof. by move=> x Ux y; rewrite -mulrA divrr ?mulr1. Qed.
 
-Lemma mulrVK x : unit x -> cancel ( *%R^~ x^-1) ( *%R^~ x).
-Proof. by move=> Ux y; rewrite -mulrA mulVr ?mulr1. Qed.
+Lemma mulrVK : {in unit, rev_right_loop (@inv R) *%R}.
+Proof. by move=> x Ux y; rewrite -mulrA mulVr ?mulr1. Qed.
 Definition divrK := mulrVK.
 
-Lemma mulrI x : unit x -> injective (mul x).
-Proof. move=> Ux; exact: can_inj (mulKr Ux). Qed.
+Lemma mulrI : {in @unit R, right_injective *%R}.
+Proof. by move=> x Ux; exact: can_inj (mulKr Ux). Qed.
 
-Lemma mulIr x : unit x -> injective ( *%R^~ x).
-Proof. move=> Ux; exact: can_inj (mulrK Ux). Qed.
+Lemma mulIr : {in @unit R, left_injective *%R}.
+Proof. by move=> x Ux; exact: can_inj (mulrK Ux). Qed.
 
 Lemma commrV x y : comm x y -> comm x y^-1.
 Proof.
@@ -2696,7 +2767,7 @@ have [Uy cxy | /invr_out-> //] := boolP (unit y).
 by apply: (canLR (mulrK Uy)); rewrite -mulrA cxy mulKr.
 Qed.
 
-Lemma unitrE x : unit x = (x / x == 1).
+Lemma unitrE x : (x \in unit) = (x / x == 1).
 Proof.
 apply/idP/eqP=> [Ux | xx1]; first exact: divrr.
 by apply/unitrP; exists x^-1; rewrite -commrV.
@@ -2704,7 +2775,7 @@ Qed.
 
 Lemma invrK : involutive (@inv R).
 Proof.
-move=> x; case Ux: (unit x); last by rewrite !invr_out ?Ux.
+move=> x; case Ux: (x \in unit); last by rewrite !invr_out ?Ux.
 rewrite -(mulrK Ux _^-1) -mulrA commrV ?mulKr //.
 by apply/unitrP; exists x; rewrite divrr ?mulVr.
 Qed.
@@ -2712,10 +2783,10 @@ Qed.
 Lemma invr_inj : injective (@inv R).
 Proof. exact: inv_inj invrK. Qed.
 
-Lemma unitrV x : unit x^-1 = unit x.
+Lemma unitrV x : (x^-1 \in unit) = (x \in unit).
 Proof. by rewrite !unitrE invrK commrV. Qed.
 
-Lemma unitr1 : unit (1 : R).
+Lemma unitr1 : 1 \in @unit R.
 Proof. by apply/unitrP; exists 1; rewrite mulr1. Qed.
 
 Lemma invr1 : 1^-1 = 1 :> R.
@@ -2725,12 +2796,12 @@ Lemma div1r x : 1 / x = x^-1. Proof. by rewrite mul1r. Qed.
 Lemma divr1 x : x / 1 = x. Proof. by rewrite invr1 mulr1. Qed.
 
 Lemma natr_div m d :
-  d %| m -> unit (d%:R : R) -> (m %/ d)%:R = m%:R / d%:R :> R.
+  d %| m -> d%:R \in @unit R -> (m %/ d)%:R = m%:R / d%:R :> R.
 Proof.
 by rewrite dvdn_eq => /eqP def_m unit_d; rewrite -{2}def_m natrM mulrK.
 Qed.
 
-Lemma unitr0 : unit (0 : R) = false.
+Lemma unitr0 : (0 \in @unit R) = false.
 Proof.
 by apply/unitrP=> [[x [_]]]; apply/eqP; rewrite mul0r eq_sym oner_neq0.
 Qed.
@@ -2738,77 +2809,78 @@ Qed.
 Lemma invr0 : 0^-1 = 0 :> R.
 Proof. by rewrite invr_out ?unitr0. Qed.
 
-Lemma unitrN x : unit (- x) = unit x.
+Lemma unitrN x : (- x \in unit) = (x \in unit).
 Proof.
-wlog Ux: x / unit x.
+wlog Ux: x / x \in unit.
   by move=> WHx; apply/idP/idP=> Ux; first rewrite -(opprK x); rewrite WHx.
 by rewrite Ux; apply/unitrP; exists (- x^-1); rewrite !mulrNN mulVr ?divrr.
 Qed.
 
 Lemma invrN x : (- x)^-1 = - x^-1.
 Proof.
-case Ux: (unit x) (unitrN x) => [] Unx.
+case Ux: (x \in unit) (unitrN x) => [] Unx.
   by apply: (mulrI Unx); rewrite mulrNN !divrr.
 by rewrite !invr_out ?Ux ?Unx.
 Qed.
 
-Lemma unitrMl x y : unit y -> unit (x * y) = unit x.
+Lemma unitrMl x y : y \in unit -> (x * y \in unit) = (x \in unit).
 Proof.
-move=> Uy; wlog Ux: x y Uy / unit x => [WHxy|].
+move=> Uy; wlog Ux: x y Uy / x\in unit => [WHxy|].
   by apply/idP/idP=> Ux; first rewrite -(mulrK Uy x); rewrite WHxy ?unitrV.
 rewrite Ux; apply/unitrP; exists (y^-1 * x^-1).
 by rewrite -!mulrA mulKr ?mulrA ?mulrK ?divrr ?mulVr.
 Qed.
 
-Lemma unitrMr x y : unit x -> unit (x * y) = unit y.
+Lemma unitrMr x y : x \in unit -> (x * y \in unit) = (y \in unit).
 Proof.
 move=> Ux; apply/idP/idP=> [Uxy | Uy]; last by rewrite unitrMl.
 by rewrite -(mulKr Ux y) unitrMl ?unitrV.
 Qed.
 
-Lemma invr_mul x y : unit x -> unit y -> (x * y)^-1 = y^-1 * x^-1.
+Lemma invr_mul : {in unit &, forall x y, (x * y)^-1 = y^-1 * x^-1}.
 Proof.
-move=> Ux Uy; have Uxy: unit (x * y) by rewrite unitrMl.
+move=> x y Ux Uy; have Uxy: (x * y \in unit) by rewrite unitrMl.
 by apply: (mulrI Uxy); rewrite divrr ?mulrA ?mulrK ?divrr.
 Qed.
 
-Lemma unitrM_comm x y : comm x y -> unit (x * y) = unit x && unit y.
+Lemma unitrM_comm x y :
+  comm x y -> (x * y \in unit) = (x \in unit) && (y \in unit).
 Proof.
 move=> cxy; apply/idP/andP=> [Uxy | [Ux Uy]]; last by rewrite unitrMl.
-suffices Ux: unit x by rewrite unitrMr in Uxy.
+suffices Ux: x \in unit by rewrite unitrMr in Uxy.
 apply/unitrP; case/unitrP: Uxy => z [zxy xyz]; exists (y * z).
 rewrite mulrA xyz -{1}[y]mul1r -{1}zxy cxy -!mulrA (mulrA x) (mulrA _ z) xyz.
 by rewrite mul1r -cxy.
 Qed.
 
-Lemma unitrX x n : unit x -> unit (x ^+ n).
+Lemma unitrX x n : x \in unit -> x ^+ n \in unit.
 Proof.
 by move=> Ux; elim: n => [|n IHn]; rewrite ?unitr1 // exprS unitrMl.
 Qed.
 
-Lemma unitrX_pos x n : n > 0 -> unit (x ^+ n) = unit x.
+Lemma unitrX_pos x n : n > 0 -> (x ^+ n \in unit) = (x \in unit).
 Proof.
 case: n => // n _; rewrite exprS unitrM_comm; last exact: commrX.
-by case Ux: (unit x); rewrite // unitrX.
+by case Ux: (x \in unit); rewrite // unitrX.
 Qed.
 
 Lemma exprVn x n : x^-1 ^+ n = x ^- n.
 Proof.
 elim: n => [|n IHn]; first by rewrite !expr0 ?invr1.
-case Ux: (unit x); first by rewrite exprSr exprS IHn -invr_mul // unitrX.
+case Ux: (x \in unit); first by rewrite exprSr exprS IHn -invr_mul // unitrX.
 by rewrite !invr_out ?unitrX_pos ?Ux.
 Qed.
 
 Lemma invr_neq0 x : x != 0 -> x^-1 != 0.
 Proof.
-move=> nx0; case Ux: (unit x); last by rewrite invr_out ?Ux.
+move=> nx0; case Ux: (x \in unit); last by rewrite invr_out ?Ux.
 by apply/eqP=> x'0; rewrite -unitrV x'0 unitr0 in Ux.
 Qed.
 
 Lemma invr_eq0 x : (x^-1 == 0) = (x == 0).
 Proof. by apply: negb_inj; apply/idP/idP; move/invr_neq0; rewrite ?invrK. Qed.
 
-Lemma rev_unitrP (x y : R^c) : y * x = 1 /\ x * y = 1 -> unit x.
+Lemma rev_unitrP (x y : R^c) : y * x = 1 /\ x * y = 1 -> x \in unit.
 Proof. by case=> [yx1 xy1]; apply/unitrP; exists y. Qed.
 
 Definition converse_unitRingMixin :=
@@ -2822,12 +2894,12 @@ Variable S : pred R.
 
 Class mulSubgroupPred := MulSubgroupPred {
   mulSubgroup_semigroupPred :> mulSemigroupPred S;
-  ringpVr : {in S, forall x, x^-1 \in S}
+  rpredVr : {in S, forall x, x^-1 \in S}
 }.
 
 Class subfieldPred := SubfieldPred {
   subfield_subringPred :> subringPred S;
-  subfield_ringpVr : {in S, forall x, x^-1 \in S}
+  subfield_rpredVr : {in S, forall x, x^-1 \in S}
 }.
 
 Instance subfield_mulSubgroupPred {fieldS : subfieldPred} : mulSubgroupPred.
@@ -2852,14 +2924,14 @@ Qed.
 
 Context {mulS : mulSubgroupPred}.
 
-Lemma ringpV x : (x^-1 \in S) = (x \in S).
-Proof. by apply/idP/idP=> /ringpVr; rewrite ?invrK; apply. Qed.
+Lemma rpredV x : (x^-1 \in S) = (x \in S).
+Proof. by apply/idP/idP=> /rpredVr; rewrite ?invrK; apply. Qed.
 
-Lemma ringp_div : {in S &, forall x y, x / y \in S}.
-Proof. by move=> x y Sx Sy; rewrite /= ringpM ?ringpV. Qed.
+Lemma rpred_div : {in S &, forall x y, x / y \in S}.
+Proof. by move=> x y Sx Sy; rewrite /= rpredM ?rpredV. Qed.
 
-Lemma ringpXN n : {in S, forall x, x ^- n \in S}.
-Proof. by move=> x Sx; rewrite /= ringpV ringpX. Qed.
+Lemma rpredXN n : {in S, forall x, x ^- n \in S}.
+Proof. by move=> x Sx; rewrite /= rpredV rpredX. Qed.
 
 Definition cast_ringType (Q : ringType) T (QeqT : Q = T :> Type) :=
   let cast rQ := let: erefl in _ = T := QeqT return Ring.class_of T in rQ in
@@ -2868,7 +2940,7 @@ Definition cast_ringType (Q : ringType) T (QeqT : Q = T :> Type) :=
 Variable T : subType S.
 
 Let inT x Sx : T := Sub x Sx.
-Let invT (u : T) := inT (ringpVr (valP u)).
+Let invT (u : T) := inT (rpredVr (valP u)).
 Let unitT (u : T) := unit (val u).
 
 Hypotheses (Q : ringType) (QeqT: Q = T :> Type).
@@ -2899,7 +2971,7 @@ End Predicates.
 Lemma unitr_mulSubgroupPred : mulSubgroupPred unit.
 Proof.
 apply: SubgroupPredFromDiv => [|x y Ux Ur]; first exact: unitr1.
-by rewrite -topredE /= unitrMl ?unitrV.
+by rewrite unitrMl ?unitrV.
 Qed.
 
 End UnitRingTheory.
@@ -2911,19 +2983,19 @@ Section UnitRingMorphism.
 
 Variables (R S : unitRingType) (f : {rmorphism R -> S}).
 
-Lemma rmorph_unit x : unit x -> unit (f x).
+Lemma rmorph_unit x : x \in unit -> f x \in unit.
 Proof.
 case/unitrP=> y [yx1 xy1]; apply/unitrP.
 by exists (f y); rewrite -!rmorphM // yx1 xy1 rmorph1.
 Qed.
 
-Lemma rmorphV x : unit x -> f x^-1 = (f x)^-1.
+Lemma rmorphV : {in unit, {morph f: x / x^-1}}.
 Proof.
-move=> Ux; rewrite -[(f x)^-1]mul1r; apply: (canRL (mulrK (rmorph_unit Ux))).
-by rewrite -rmorphM mulVr ?rmorph1.
+move=> x Ux; rewrite /= -[(f x)^-1]mul1r.
+by apply: (canRL (mulrK (rmorph_unit Ux))); rewrite -rmorphM mulVr ?rmorph1.
 Qed.
 
-Lemma rmorph_div x y : unit y -> f (x / y) = f x / f y.
+Lemma rmorph_div x y : y \in unit -> f (x / y) = f x / f y.
 Proof. by move=> Uy; rewrite rmorphM rmorphV. Qed.
 
 End UnitRingMorphism.
@@ -3079,10 +3151,10 @@ Section ComUnitRingTheory.
 Variable R : comUnitRingType.
 Implicit Types x y : R.
 
-Lemma unitrM x y : unit (x * y) = unit x && unit y.
+Lemma unitrM x y : (x * y \in unit) = (x \in unit) && (y \in unit).
 Proof. by apply: unitrM_comm; exact: mulrC. Qed.
 
-Lemma unitrPr x : reflect (exists y, x * y = 1) (unit x).
+Lemma unitrPr x : reflect (exists y, x * y = 1) (x \in unit).
 Proof.
 by apply: (iffP (unitrP x)) => [[y []] | [y]]; exists y; rewrite // mulrC.
 Qed.
@@ -3100,28 +3172,28 @@ Section UnitAlgebraTheory.
 Variable (R : comUnitRingType) (A : unitAlgType R).
 Implicit Types (k : R) (x y : A).
 
-Lemma scaler_injl k : unit k -> @injective _ A ( *:%R k).
+Lemma scaler_injl : {in unit, @right_injective R A A *:%R}.
 Proof.
-move=> Uk x1 x2 Hx1x2.
+move=> k Uk x1 x2 Hx1x2.
 by rewrite -[x1]scale1r -(mulVr Uk) -scalerA Hx1x2 scalerA mulVr // scale1r.
 Qed.
 
-Lemma scaler_unit k x : unit k -> unit x = unit (k *: x).
+Lemma scaler_unit k x : k \in unit -> (k *: x \in unit) = (x \in unit).
 Proof.
-move=> Uk; apply/idP/idP=> [Ux | Ukx]; apply/unitrP.
+move=> Uk; apply/idP/idP=> [Ukx | Ux]; apply/unitrP; last first.
   exists (k^-1 *: x^-1).
   by rewrite -!scalerAl -!scalerAr !scalerA !mulVr // !mulrV // scale1r.
 exists (k *: (k *: x)^-1); split.
-  apply (mulrI Ukx).
+  apply: (mulrI Ukx).
   by rewrite mulr1 mulrA -scalerAr mulrV // -scalerAl mul1r.
-apply (mulIr Ukx).
+apply: (mulIr Ukx).
 by rewrite mul1r -mulrA -scalerAl mulVr // -scalerAr mulr1.
 Qed.
  
-Lemma invrZ k x : unit k -> unit x -> (k *: x)^-1 = k^-1 *: x^-1.
+Lemma invrZ k x : k \in unit -> x \in unit -> (k *: x)^-1 = k^-1 *: x^-1.
 Proof.
-move=> Uk Ux; have Ukx : unit (k *: x) by rewrite -scaler_unit //.
-apply (mulIr Ukx).
+move=> Uk Ux; have Ukx: (k *: x \in unit) by rewrite scaler_unit.
+apply: (mulIr Ukx).
 by rewrite mulVr // -scalerAl -scalerAr scalerA !mulVr // scale1r.
 Qed.  
 
@@ -3269,7 +3341,7 @@ Fixpoint holds (e : seq R) (f : formula R) {struct f} : Prop :=
   match f with
   | Bool b => b
   | (t1 == t2)%T => eval e t1 = eval e t2
-  | Unit t1 => unit (eval e t1)
+  | Unit t1 => eval e t1 \in unit
   | (f1 /\ f2)%T => holds e f1 /\ holds e f2
   | (f1 \/ f2)%T => holds e f1 \/ holds e f2
   | (f1 ==> f2)%T => holds e f1 -> holds e f2
@@ -3478,7 +3550,7 @@ suffices{t} rsub_to_r t r0 m: m >= ub_var t -> ub_sub m r0 ->
     apply/IHr1=> //; apply: t_eq0.
     rewrite nth_set_nth /= eqxx -(eval_tsubst e u (m, Const _)).
     rewrite sub_var_tsubst //= -/y.
-    case Uy: (unit y); [left | right]; first by rewrite mulVr ?divrr.
+    case Uy: (y \in unit); [left | right]; first by rewrite mulVr ?divrr.
     split=> [|[z]]; first by rewrite invr_out ?Uy.
     rewrite nth_set_nth /= eqxx.
     rewrite -!(eval_tsubst _ _ (m, Const _)) !sub_var_tsubst // -/y => yz1.
@@ -3540,7 +3612,7 @@ Definition qf_eval e := fix loop (f : formula R) : bool :=
   match f with
   | Bool b => b
   | t1 == t2 => (eval e t1 == eval e t2)%bool
-  | Unit t1 => unit (eval e t1)
+  | Unit t1 => eval e t1 \in unit
   | f1 /\ f2 => loop f1 && loop f2
   | f1 \/ f2 => loop f1 || loop f2
   | f1 ==> f2 => (loop f1 ==> loop f2)%bool
@@ -3910,7 +3982,7 @@ Implicit Arguments rregP [[R] [x]].
 
 Module Field.
 
-Definition mixin_of (F : unitRingType) := forall x : F, x != 0 -> unit x.
+Definition mixin_of (F : unitRingType) := forall x : F, x != 0 -> x \in unit.
 
 Lemma IdomainMixin R : mixin_of R -> IntegralDomain.axiom R.
 Proof.
@@ -4009,7 +4081,7 @@ Section FieldTheory.
 Variable F : fieldType.
 Implicit Types x y : F.
 
-Lemma unitfE x : unit x = (x != 0).
+Lemma unitfE x : (x \in unit) = (x != 0).
 Proof.
 apply/idP/idP=> [Ux |]; last by case: F x => T [].
 by apply/eqP=> x0; rewrite x0 unitr0 in Ux.
@@ -4030,7 +4102,7 @@ Lemma mulfVK x : x != 0 -> cancel ( *%R^~ x^-1) ( *%R^~ x).
 Proof. by rewrite -unitfE; exact: divrK. Qed.
 Definition divfK := mulfVK.
 
-Lemma invfM : {morph (fun x => x^-1) : x y / x * y}.
+Lemma invfM : {morph @inv F : x y / x * y}.
 Proof.
 move=> x y; case: (eqVneq x 0) => [-> |nzx]; first by rewrite !(mul0r, invr0).
 case: (eqVneq y 0) => [-> |nzy]; first by rewrite !(mulr0, invr0).
@@ -4092,6 +4164,9 @@ move=> x y eqfxy; apply/eqP; rewrite -subr_eq0 -fmorph_eq0 rmorphB //.
 by rewrite eqfxy subrr.
 Qed.
 
+Lemma fmorph_eq1 x : (f x == 1) = (x == 1).
+Proof. by rewrite -(inj_eq fmorph_inj) rmorph1. Qed.
+
 Lemma fmorph_char : [char R] =i [char F].
 Proof. by move=> p; rewrite !inE -fmorph_eq0 rmorph_nat. Qed.
 
@@ -4101,7 +4176,7 @@ Section FieldMorphismInv.
 
 Variables (R : unitRingType) (f : {rmorphism F -> R}).
 
-Lemma fmorph_unit x : unit (f x) = (x != 0).
+Lemma fmorph_unit x : (f x \in unit) = (x != 0).
 Proof.
 have [-> |] := altP (x =P _); first by rewrite rmorph0 unitr0.
 by rewrite -unitfE; exact: rmorph_unit.
@@ -4146,25 +4221,25 @@ Section Predicates.
 
 Context (S : pred F) {fieldS : subfieldPred S}.
 
-Lemma ringpMr x y : x \in S -> x != 0 -> (y * x \in S) = (y \in S).
+Lemma rpredMr x y : x \in S -> x != 0 -> (y * x \in S) = (y \in S).
 Proof.
-move=> Sx nz_x; apply/idP/idP=> [Sxy | /ringpM-> //].
-by rewrite -(mulfK nz_x y); rewrite ringp_div.
+move=> Sx nz_x; apply/idP/idP=> [Sxy | /rpredM-> //].
+by rewrite -(mulfK nz_x y); rewrite rpred_div.
 Qed.
 
-Lemma ringpMl x y : x \in S -> x != 0 -> (x * y \in S) = (y \in S).
-Proof. by rewrite mulrC; apply: ringpMr. Qed.
+Lemma rpredMl x y : x \in S -> x != 0 -> (x * y \in S) = (y \in S).
+Proof. by rewrite mulrC; apply: rpredMr. Qed.
 
-Lemma ringp_divr x y : x \in S -> x != 0 -> (y / x \in S) = (y \in S).
-Proof. by rewrite -ringpV -invr_eq0; apply: ringpMr. Qed.
+Lemma rpred_divr x y : x \in S -> x != 0 -> (y / x \in S) = (y \in S).
+Proof. by rewrite -rpredV -invr_eq0; apply: rpredMr. Qed.
 
-Lemma ringp_divl x y : x \in S -> x != 0 -> (x / y \in S) = (y \in S).
-Proof. by rewrite -(ringpV y); apply: ringpMl. Qed.
+Lemma rpred_divl x y : x \in S -> x != 0 -> (x / y \in S) = (y \in S).
+Proof. by rewrite -(rpredV y); apply: rpredMl. Qed.
 
 End Predicates.
 
 Lemma SubFieldMixin (K : unitRingType) (f : K -> F) : 
-    phant K -> injective f -> f 0 = 0 -> {mono f : u / unit u} -> 
+    phant K -> injective f -> f 0 = 0 -> {mono f : u / u \in unit} -> 
   @Field.mixin_of K.
 Proof. by move=> _ injf f0 fU u; rewrite -fU unitfE -f0 inj_eq. Qed.
 
@@ -4549,18 +4624,18 @@ Definition mulrnBl := mulrnBl.
 Definition mulrnBr := mulrnBr.
 Definition mulrnA := mulrnA.
 Definition mulrnAC := mulrnAC.
-Definition ringp0 U S {addS} := @ringp0 U S addS.
-Definition ringpD U S {addS} := @ringpD U S addS.
-Definition ringpNr U S {sgnS} := @ringpNr U S sgnS.
-Definition ringp_sum U S {addS} := @ringp_sum U S addS.
-Definition ringpMn U S {addS} := @ringpMn U S addS.
-Definition ringpN U S {sgnS} := @ringpN U S sgnS.
-Definition ringpB U S {addS} := @ringpB U S addS.
-Definition ringpMNn U S {addS} := @ringpMNn U S addS.
-Definition ringpDr U S {addS} := @ringpDr U S addS.
-Definition ringpDl U S {addS} := @ringpDl U S addS.
-Definition ringpBr U S {addS} := @ringpBr U S addS.
-Definition ringpBl U S {addS} := @ringpBl U S addS.
+Definition rpred0 U S {addS} := @rpred0 U S addS.
+Definition rpredD U S {addS} := @rpredD U S addS.
+Definition rpredNr U S {sgnS} := @rpredNr U S sgnS.
+Definition rpred_sum U S {addS} := @rpred_sum U S addS.
+Definition rpredMn U S {addS} := @rpredMn U S addS.
+Definition rpredN U S {sgnS} := @rpredN U S sgnS.
+Definition rpredB U S {addS} := @rpredB U S addS.
+Definition rpredMNn U S {addS} := @rpredMNn U S addS.
+Definition rpredDr U S {addS} := @rpredDr U S addS.
+Definition rpredDl U S {addS} := @rpredDl U S addS.
+Definition rpredBr U S {addS} := @rpredBr U S addS.
+Definition rpredBl U S {addS} := @rpredBl U S addS.
 Definition mulrA := mulrA.
 Definition mul1r := mul1r.
 Definition mulr1 := mulr1.
@@ -4631,12 +4706,12 @@ Definition lreg1 := lreg1.
 Definition lregM := lregM.
 Definition lregX := lregX.
 Definition lregP {R x} := @lregP R x.
-Definition ringp1 R S {mulS} := @ringp1 R S mulS.
-Definition ringpM R S {mulS} := @ringpM R S mulS.
-Definition ringpMsign R S {mulS} := @ringpMsign R S mulS.
-Definition ringp_prod R S {mulS} := @ringp_prod R S mulS.
-Definition ringpX R S {mulS} := @ringpX R S mulS.
-Definition ringp_nat R S {ringS} := @ringp_nat R S ringS.
+Definition rpred1 R S {mulS} := @rpred1 R S mulS.
+Definition rpredM R S {mulS} := @rpredM R S mulS.
+Definition rpredMsign R S {mulS} := @rpredMsign R S mulS.
+Definition rpred_prod R S {mulS} := @rpred_prod R S mulS.
+Definition rpredX R S {mulS} := @rpredX R S mulS.
+Definition rpred_nat R S {ringS} := @rpred_nat R S ringS.
 Definition mulIr_eq0 := mulIr_eq0.
 Definition mulIr0_rreg := mulIr0_rreg.
 Definition rreg_neq0 := rreg_neq0.
@@ -4727,9 +4802,9 @@ Definition unitrM_comm := unitrM_comm.
 Definition unitrX := unitrX.
 Definition unitrX_pos := unitrX_pos.
 Definition exprVn := exprVn.
-Definition ringpV R S {mulS} := @ringpV R S mulS.
-Definition ringp_div R S {mulS} := @ringp_div R S mulS.
-Definition ringpXN R S {mulS} := @ringpXN R S mulS.
+Definition rpredV R S {mulS} := @rpredV R S mulS.
+Definition rpred_div R S {mulS} := @rpred_div R S mulS.
+Definition rpredXN R S {mulS} := @rpredXN R S mulS.
 Definition eq_eval := eq_eval.
 Definition eval_tsubst := eval_tsubst.
 Definition eq_holds := eq_holds.
@@ -4763,10 +4838,10 @@ Definition natf0_char := natf0_char.
 Definition charf'_nat := charf'_nat.
 Definition charf0P := charf0P.
 Definition char0_natf_div := char0_natf_div.
-Definition ringpMr F S {mulS} := @ringpMr F S mulS.
-Definition ringpMl F S {mulS} := @ringpMl F S mulS.
-Definition ringp_divr F S {mulS} := @ringp_divr F S mulS.
-Definition ringp_divl F S {mulS} := @ringp_divl F S mulS.
+Definition rpredMr F S {mulS} := @rpredMr F S mulS.
+Definition rpredMl F S {mulS} := @rpredMl F S mulS.
+Definition rpred_divr F S {mulS} := @rpred_divr F S mulS.
+Definition rpred_divl F S {mulS} := @rpred_divl F S mulS.
 Definition satP {F e f} := @satP F e f.
 Definition eq_sat := eq_sat.
 Definition solP {F n f} := @solP F n f.
@@ -4799,6 +4874,7 @@ Definition rmorphMsign := rmorphMsign.
 Definition rmorph_nat := rmorph_nat.
 Definition rmorph_prod := rmorph_prod.
 Definition rmorphX := rmorphX.
+Definition rmorphN1 := rmorphN1.
 Definition rmorph_sign := rmorph_sign.
 Definition rmorph_char := rmorph_char.
 Definition can2_rmorphism := can2_rmorphism.
@@ -4810,6 +4886,7 @@ Definition rmorph_div := rmorph_div.
 Definition fmorph_eq0 := fmorph_eq0.
 Definition fmorph_inj := @fmorph_inj.
 Implicit Arguments fmorph_inj [[F] [R] x1 x2].
+Definition fmorph_eq1 := fmorph_eq1.
 Definition fmorph_char := fmorph_char.
 Definition fmorph_unit := fmorph_unit.
 Definition fmorphV := fmorphV.
@@ -4836,9 +4913,9 @@ Definition scalerKV := scalerKV.
 Definition scalerI := scalerI.
 Definition scalerAl := scalerAl.
 Definition mulr_algl := mulr_algl.
-Definition ringpZsign R U S {sgnS} := @ringpZsign R U S sgnS.
-Definition ringpZnat R U S {addS} := @ringpZnat R U S addS.
-Definition ringpZ R U S {scalS} := @ringpZ R U S scalS.
+Definition rpredZsign R U S {sgnS} := @rpredZsign R U S sgnS.
+Definition rpredZnat R U S {addS} := @rpredZnat R U S addS.
+Definition rpredZ R U S {scalS} := @rpredZ R U S scalS.
 Definition scaler_sign := scaler_sign.
 Definition signrZK := signrZK.
 Definition scalerCA := scalerCA.
@@ -4862,7 +4939,9 @@ Definition linear_sum := linear_sum.
 Definition linearMn := linearMn.
 Definition linearMNn := linearMNn.
 Definition linearP := linearP.
-Definition linearZ := (lmod_linearZ, scalarZ).
+Definition linearZ_LR := linearZ_LR.
+Definition linearZ {R U V s} f a {b h h_law Dhb} :=
+  @linearZ R U V s f a b h h_law Dhb.
 Definition lmod_linearP := lmod_linearP.
 Definition lmod_linearZ := lmod_linearZ.
 Definition scalarP := scalarP.

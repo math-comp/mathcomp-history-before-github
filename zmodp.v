@@ -274,9 +274,9 @@ Proof. by apply: ord_inj; rewrite !val_Zp_nat // modn_mod. Qed.
 Lemma char_Zp : p > 1 -> p%:R = 0 :> 'Z_p.
 Proof. by move=> p_gt1; rewrite -Zp_nat_mod ?modnn. Qed.
 
-Lemma unitZpE x : p > 1 -> GRing.unit (x%:R : 'Z_p) = coprime p x.
+Lemma unitZpE x : p > 1 -> ((x%:R : 'Z_p) \in GRing.unit) = coprime p x.
 Proof.
-by move=> p_gt1; rewrite /GRing.unit /= val_Zp_nat ?Zp_cast ?coprime_modr.
+by move=> p_gt1; rewrite unfold_in val_Zp_nat ?Zp_cast ?coprime_modr.
 Qed.
 
 Lemma Zp_group_set : group_set Zp.
@@ -337,14 +337,14 @@ Proof. by rewrite !inE -Fp_nat_mod p_pr ?modnn. Qed.
 Lemma char_Fp_0 : p%:R = 0 :> 'F_p.
 Proof. exact: GRing.charf0 char_Fp. Qed.
 
-Lemma unitFpE x : GRing.unit (x%:R : 'F_p) = coprime p x.
+Lemma unitFpE x : ((x%:R : 'F_p) \in GRing.unit) = coprime p x.
 Proof. by rewrite pdiv_id // unitZpE // prime_gt1. Qed.
 
 End F_prime.
 
 Lemma Fp_fieldMixin : GRing.Field.mixin_of [the unitRingType of 'F_p].
 Proof.
-move=> x nzx; rewrite /GRing.unit /= prime_coprime ?gtnNdvd ?lt0n //.
+move=> x nzx; rewrite unfold_in prime_coprime ?gtnNdvd ?lt0n //.
 case: (ltnP 1 p) => [lt1p | ]; last by case: p => [|[|p']].
 by rewrite Zp_cast ?prime_gt1 ?pdiv_prime.
 Qed.
