@@ -149,7 +149,7 @@ rewrite -andbA; apply: andb_id2l => /imsetP[x Gx ->].
 by rewrite !class_sub_norm ?normsD ?normG // inE andbC.
 Qed.
 
-(* This is Peterfalvi (1.3)(a) *)
+(* This is Peterfalvi (1.3a). *)
 Lemma equiv_restrict_compl A m (Phi : m.-tuple 'CF(H)) (mu : 'CF(G)) d :
     H \subset G -> A <| H -> is_basis 'CF(H, A) Phi ->
   ({in A, mu =1 \sum_i d i *: 'chi_i} <-> 
@@ -186,7 +186,7 @@ rewrite raddfD /= {1}(cfdot_complement Cf Cg) addr0 => /eqP.
 by rewrite cfnorm_eq0 defD => /eqP->; rewrite add0r.
 Qed.
 
-(* This is Peterfalvi (1.3)(b). *)
+(* This is Peterfalvi (1.3b). *)
 Lemma equiv_restrict_compl_ortho A m  (Phi : m.-tuple 'CF(H)) mu_ :
     H \subset G -> A <| H -> is_basis 'CF(H, A) Phi -> 
      (forall i j, '[mu_ i, mu_ j] = (i == j)%:R) ->
@@ -323,7 +323,7 @@ rewrite -(tnth_nth 0 _ 0) tnth_map tnth_ord_tuple.
 by case: (muP 0) => /= k /(k =P k0).
 Qed.
 
-(* This is Peterfalvi (1.5)(a) *)
+(* This is Peterfalvi (1.5a) *)
 Lemma induced_sum_rcosets t : H <| G ->
   'Res[H] ('Ind[G] 'chi_t)
      = #|'I_G['chi_t] : H|%:R *: \sum_(xi <- ('chi_t ^: G)%CF) xi.
@@ -346,7 +346,7 @@ rewrite groupV; case/andP=> Gz /eqP <-.
 by rewrite conjg_IirrE cfConjgE ?(subsetP nHG).
 Qed.
 
-(* This is Peterfalvi (1.5)(b), main formula. *)
+(* This is Peterfalvi (1.5b), main formula. *)
 Lemma induced_prod_index t :
   H <| G -> '['Ind[G] 'chi[H]_t] = #|'I_G['chi_t] : H|%:R.
 Proof.
@@ -357,7 +357,7 @@ rewrite big1 ?addr0 ?mulr1 // => j /andP[_ /negbTE].
 by rewrite eq_sym cfdot_irr => ->.
 Qed.
 
-(* This is Peterfalvi (1.5)(b), irreducibility remark. *)
+(* This is Peterfalvi (1.5b), irreducibility remark. *)
 Lemma inertia_Ind_irr t :
   H <| G -> 'I_G['chi[H]_t] \subset H -> 'Ind[G] 'chi_t \in irr G.
 Proof.
@@ -369,7 +369,7 @@ Qed.
 (* GG: keeping as is, but it is highly unlikely that the if-then-else style *)
 (* conclusion will be usable; as the first part is already covered by       *)
 (* cfclass_Ind, it would make sense to only keep the orthogonality part.    *)
-(* This is Peterfalvi (1.5)(c). *)
+(* This is Peterfalvi (1.5c). *)
 Lemma cfclass_irr_induced t1 t2 : H <| G ->
    if 'chi_t2 \in ('chi[H]_t1 ^: G)%CF
    then 'Ind[G] 'chi_t1 = 'Ind[G] 'chi_t2 
@@ -382,7 +382,7 @@ case: eqP => // <- /idPn[]; apply: contra not_ch1Gt2 => /cfclassP[y Gy ->].
 by apply/cfclassP; exists y^-1%g; rewrite ?groupV ?cfConjgK.
 Qed.
 
-(* A more useful reformulation of (1.5)(c) *)
+(* A more useful reformulation of (1.5c) *)
 Lemma not_cfclass_Ind_ortho i j :
     H <| G -> ('chi_i \notin 'chi_j ^: G)%CF ->
   '['Ind[G, H] 'chi_i, 'Ind[G, H] 'chi_j] = 0. 
@@ -398,7 +398,7 @@ right=> eq_chijG; have /negP[]: 'Ind[G] 'chi_i != 0 by exact: Ind_irr_neq0.
 by rewrite -cfnorm_eq0 {1}eq_chijG Oji.
 Qed.
 
-(* This is Peterfalvi (1.5) (d). *)
+(* This is Peterfalvi (1.5d). *)
 Lemma induced_sum_rcosets1 t : H <| G ->
   let chiG := 'Ind[G] 'chi_t in
   (chiG 1%g / '[chiG]) *: 'Res[H] chiG
@@ -411,7 +411,7 @@ congr (_ *: _); apply: eq_bigr => _ /cfclassP[y _ ->].
 by rewrite cfConjg_val1.
 Qed.
 
-(* This is Peterfalvi (1.5)(e). *)
+(* This is Peterfalvi (1.5e). *)
 Lemma odd_induced_orthogonal t :
      H <| G -> odd #|G| -> t != 0 ->
   '['Ind[G, H] 'chi_t, ('Ind[G] 'chi_t)^*] = 0. 
@@ -432,7 +432,7 @@ rewrite eq_mulVg1 expgS -expgM mul2n -mulgA mulKg -expgS -order_dvdn.
 by rewrite -add1n -[1%N](congr1 nat_of_bool oddG) odd_double_half order_dvdG.
 Qed.
 
-(* This is Peterfalvi (1.6)(a). *)
+(* This is Peterfalvi (1.6a). *)
 Lemma sub_cfker_Ind_irr A i :
     G \subset 'N(A) -> H \subset G ->
   (A \subset cfker ('Ind[G, H] 'chi_i)) = (A \subset cfker 'chi_i).
@@ -446,7 +446,7 @@ rewrite -subGcfker -(sub_cfker_Ind_irr _ nHG sHG) chi1 -chi0_1.
 by rewrite sub_cfker_Ind_irr ?cfker_chi0.
 Qed.
 
-(* This is Peterfalvi (1.6)(b). *)
+(* This is Peterfalvi (1.6b). *)
 Lemma induced_quotientE (A : {group gT}) t :
     H <| G -> A <| G -> A \subset cfker 'chi[H]_t ->
   'Ind[G / A] ('chi_t / A)%CF = ('Ind[G] 'chi_t / A)%CF.
@@ -500,7 +500,7 @@ move => y;rewrite inE;case/andP; rewrite inE =>/andP [] _ Hy /eqP {1}<-.
 by rewrite cfConjgE // -conjgM mulgV conjg1.
 Qed.
 
-(* This is Peterfalvi (1.7) (a). *)
+(* This is Peterfalvi (1.7a). *)
 Lemma induced_inertia_irr (i j: Iirr T):
         i \in irr_constt ('Ind[T] 'chi_t) -> 
         j \in irr_constt ('Ind[T] 'chi_t) -> 
@@ -636,7 +636,7 @@ case:(I_K_lpsi Hi Hj)=> lj Hlj <-.
   by rewrite !lpsi_dot  -?cfdot_Res_r.
 Qed.
 
-(* This is Peterfalvi (1.7) (b). *)
+(* This is Peterfalvi (1.7b). *)
  Lemma induced_inertia_quo:
       exists e1:algC, 
      let tcomp := irr_constt ('Ind[T] 'chi_t) in 
@@ -691,7 +691,7 @@ Qed.
 Lemma xxx: forall (N : {group gT}) (t : Iirr N), N <| G -> 
  solvable (G/N)%G -> forall g ,  g \in G -> ('chi_t ^ g)%CF = 'chi_t -> *)
 
-(* This is Peterfalvi (1.7) (c). *)
+(* This is Peterfalvi (1.7c). *)
 Lemma induced_inertia_quo1:
      coprime #|H| #|T:H| -> 
      let tcomp := irr_constt ('Ind[T] 'chi_t) in 

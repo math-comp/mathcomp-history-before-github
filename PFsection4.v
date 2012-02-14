@@ -10,6 +10,40 @@ Require Import inertia vcharacter PFsection1 PFsection2 PFsection3.
 (* This file covers Peterfalvi, Section 4: The Dade isometry of a certain     *)
 (* type of subgroup.                                                          *)
 (* Defined here:                                                              *)
+(* cyclicDade_hypothesis L K W W1 W2 ==                                       *)
+(*         W is the direct sum of W1 W2 (two non-trivial cyclic groups of odd *)
+(*           cardinal)                                                        *)
+(*         L is the semi direct sum of K and W1                               *)
+(*         W1 is a subgroup of Hall of L                                      *)
+(*         W2 is the centraliser in K of all the elements of W1^#.            *)
+(*         This is Peterfalvi (4.2).                                          *)
+(*    ecTIirr i j ==  the virtual character that corresponds to               *)
+(*                       w_ i j - w_ 0 j                                      *)
+(*                   where w_ i j = acTIirr i j .                             *)
+(*  ecTIirr_base  == the base of 'CF(W, W :\: W2) composed of the ecTIirr i j.*)
+(* Dade_delta i j == a boolean associated to i an index of an irreducible     *)
+(*                     character of W1 and j an index of an irreducible       *)
+(*                     character of W2.                                       *)
+(*   Dade_mu2 i j == an index of an irreducible character of L such that      *)
+(*               'Ind[L] (e_ i j) =                                           *)
+(*                   (-1) ^+ (delta j) *: ('chi_(mu2 i j) - 'chi_(mu2 0 j))   *)
+(*                   where e_ i j = ecTIirr i j                               *)
+(*                      delta i j = Dade_delta i j                            *)
+(*                        mu2 i j = Dade_mu2 i j.                             *)
+(*      Dade_mu j == the sum of all the 'chi_(mu2 i j) with i in Iirr W1.     *)
+(*     Dade_chi j == the restriction to K of 'chi_(mu2 0 j).                  *)
+(*   uniform_Dade_mu_seq k                                                    *)
+(*                == the predicates that checks if a non zero index j is such *)
+(*                       mu j 1 = mu k 1.                                     *)
+(*                                                                            *)
+(* centralDade_hypothesis A G H L K W W1 W2                                   *)
+(*               == the hypothesis that corresponds to Peterfalvi (4.6).      *)
+(* For cdH : centralDade_hypothesis A G H L K W W1 W2 we have                 *)
+(* cDade_cTI_h   == the cyclic hypothesis between G W W1 and W2.              *)
+(* cDade_cDa_h   == the cyclic dade hypothesis between L K W W1 W2.           *)
+(* cDade_dAd_h   == the date hypothesis between G L and A0                    *)
+(*                  where A0 is                                               *)
+(*                     A :|: class_support (cyclicTIset cDade_cTI_h) L.       *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -563,7 +597,7 @@ rewrite cfdotZr cfdot_irr; case: (_ =P _)=> [Heq|Hneq]; last by rewrite mulr0.
 by case/eqP: (Hk i1 j1); rewrite Heq.
 Qed.
 
-(* Last part of PeterFalvi (4.3b) *)
+(* Last part of PeterFalvi (4.3b). *)
 Lemma Dade_mu2_sigma i j :
   sigma (w_ i j) = (-1) ^+ delta j *: 'chi_(mu2 i j).
 Proof.
@@ -584,7 +618,7 @@ Proof.
 by have:= cyclic_abelian CW2; rewrite card_classes_abelian => /eqP ->.
 Qed.
 
-(* This is PeterFalvi (4.3d) *)
+(* This is PeterFalvi (4.3d). *)
 Lemma Dade_mu2_mod i j : 
   {a | isIntC a /\ 'chi_(mu2 i j) 1%g = (-1) ^+ delta j + a *+ #|W1| }.
 Proof.
@@ -813,7 +847,7 @@ move: (LaGrange KsL)=> /eqP; rewrite -{1}(sdprod_card SdP) eqn_mul2l.
 by case: #|K| (cardG_gt0 K)=> //= _ _ /eqP.
 Qed.
 
-(* These are the first two parts of PeterFalvi (4.5a) *)
+(* These are the first two parts of PeterFalvi (4.5a). *)
 Lemma Dade_chiE i j : 'chi_(chi j) = 'Res[K] 'chi_(mu2 i j).
 Proof.
 rewrite {i}Dade_chi_eq /chi; case: pickP=> [k /eqP // | /=].
@@ -870,7 +904,7 @@ apply: posC_add; apply: posC_sum=> k _; rewrite !cfunE; last first.
   by rewrite -(eqN_eqC _ 0) -(leq_leC 1); case: n.
 Qed.
 
-(* This is the last part of PeterFalvi (4.5a) *)
+(* This is the last part of PeterFalvi (4.5a). *)
 Lemma Dade_Ind_chi j : 'Ind[L] 'chi_(chi j) = mu j.
 Proof.
 move: (cfInd1 'chi_(chi j) KsL).
@@ -1720,7 +1754,7 @@ Qed.
 Definition uniform_Dade_mu_seq k :=
   image mu [pred j | (mu j 1%g == mu k 1%g) && (j != 0)].
 
-(* This is Peterfalvi (4.9)                                                   *)
+(* This is Peterfalvi (4.9).                                                  *)
 (* We have added the "obvious" fact that calT is pairwise orthogonal, since   *)
 (* we require this to prove membership in 'Z[calT], we encapsulate the        *)
 (* construction of tau1, and state its conformance to tau on the "larger"     *)
