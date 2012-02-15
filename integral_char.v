@@ -191,15 +191,6 @@ Notation "m %:~R" := (1 *~ m) : ring_scope.
 
 Section MoreQnum.
 
-Lemma numqE x : (numq x)%:~R = x * (denq x)%:~R.
-Proof. by rewrite -{2}[x]divq_num_den divfK // zintr_eq0 denq_eq0. Qed.
-
-Lemma denqP x : {d | denq x = d.+1}.
-Proof. by rewrite /denq; case: x => [[_ [[|d]|]] //= _]; exists d. Qed.
-
-Lemma absz_denq x : absz (denq x) = denq x :> zint.
-Proof. by have [d ->] := denqP x. Qed.
-
 Definition Qint := [pred x | denq x == 1].
 
 Lemma numqK : {in Qint, cancel (fun x => numq x) zintr}.
@@ -1596,7 +1587,20 @@ Section AlgCorder.
 Import orderedalg.
 
 Fact algC_poRingMixin : ORing.mixin_of algC.
-Proof. exact: ORing.PosMixin repC0 repC1 repCD repCMl repC_anti. Qed.
+Proof.
+apply: (@PartialOrderMixin _ leC ltC normC) => //.
++ exact: normC_add.
++ by move=> x y x_gt0 y_gt0; rewrite sposC_addl // ltCW.
++ by move=> x /eqP; rewrite normC_eq0 => /eqP.
++ by rewrite normC1 oner_eq0.
++ move=> x y x_ge0 y_ge0; apply/orP.
+  rewrite -leC_sub -[leC y x]leC_sub -opprB posC_opp.
+  by apply: leC_real_total; rewrite rmorphB !posC_conjK.
++ exact: normC_mul.
++ move=> x y; rewrite -leC_sub; move: (_ - _) => z; apply/idP/eqP.
+    by move=> /normC_pos.
+  by move<-; rewrite posC_norm.
+Qed.
 
 Definition algC_poIdomainType := POIdomainType algC algC_poRingMixin.
 Definition algC_poFieldType := POFieldType algC algC_poRingMixin.

@@ -244,9 +244,6 @@ Fixpoint eval_poly (e : seq F) pf :=
 Notation "'bind' x <- y ; z" :=
   (y (fun x => z)) (at level 99, x at level 0, y at level 0,
     format "'[hv' 'bind'  x  <-  y ;  '/' z ']'", only parsing).
-(* :BUG: There is a stack overflow when rendering this notation in coq
-trunk, when printing the Size function above, that's why I turned it
-in "only printing" -- Cyril *)
 
 Fixpoint Size (p : polyF) : cps nat := fun k =>
   if p is c :: q then
@@ -712,48 +709,46 @@ Qed.
 Implicit Arguments eval_ProdStaqCoefs [e p a b sq k].
 Prenex Implicits eval_ProdStaqCoefs.
 
-Import AbsrNotation.
-
-Definition Absr (x : tF) : cps tF := fun k =>
+Definition Normr (x : tF) : cps tF := fun k =>
   (If Lt 0 x Then k x Else k (- x))%qfT.
 
-Lemma eval_Absr e x k k' : (forall x, qf_eval e (k x) = k' (eval e x)) ->
-  qf_eval e (Absr x k) = k' `|(eval e x)|.
-Proof. by move=> Pk; rewrite eval_If !Pk /=;case: absrP; rewrite ?oppr0. Qed.
+Lemma eval_Normr e x k k' : (forall x, qf_eval e (k x) = k' (eval e x)) ->
+  qf_eval e (Normr x k) = k' `|(eval e x)|.
+Proof. by move=> Pk; rewrite eval_If !Pk /=; case: ler0P. Qed.
 
-Implicit Arguments eval_Absr [e x k].
-Prenex Implicits eval_Absr.
+Implicit Arguments eval_Normr [e x k].
+Prenex Implicits eval_Normr.
 
-Fixpoint SumAbs n (f : nat -> tF) : cps tF := fun k =>
+Fixpoint SumNorm n (f : nat -> tF) : cps tF := fun k =>
   if n is n.+1 then
-    bind a <- Absr (f n);
-    bind c <- SumAbs n f;
+    bind a <- Normr (f n);
+    bind c <- SumNorm n f;
     k (c + a)%qfT else k 0%qfT.
 
-Lemma eval_SumAbs e n f k k' :
+Lemma eval_SumNorm e n f k k' :
   (forall x, qf_eval e (k x) = k' (eval e x)) ->
-  qf_eval e (SumAbs n f k) = k' (\sum_(i < n) `|eval e (f i)|).
+  qf_eval e (SumNorm n f k) = k' (\sum_(i < n) `|eval e (f i)|).
 Proof.
 elim: n k k'=> /= [|n ihn] k k' Pk.
  by rewrite big_ord0 Pk.
 rewrite big_ord_recr /=.
-rewrite (eval_Absr (fun a => k' (\sum_(i < n) `|eval e (f i)| + a))) //.
+rewrite (eval_Normr (fun a => k' (\sum_(i < n) `|eval e (f i)| + a))) //.
 move=> x; rewrite (ihn _ (fun c => k' (c + eval e x))) //.
 by move=> y; rewrite Pk.
 Qed.
 
-Implicit Arguments eval_SumAbs [e n f k].
-Prenex Implicits eval_SumAbs.
+Implicit Arguments eval_SumNorm [e n f k].
+Prenex Implicits eval_SumNorm.
 
 Definition CauchyBound (p : polyF) : cps tF := fun k =>
-  bind sp <- Size p; SumAbs sp (nth 0%qfT p) k.
+  bind sp <- Size p; SumNorm sp (nth 0%qfT p) k.
 
 Lemma eval_CauchyBound e p k k' :
   monic (eval_poly e p) -> (forall x, qf_eval e (k x) = k' (eval e x)) ->
   qf_eval e (CauchyBound p k) = k' (cauchy_bound (eval_poly e p)).
 Proof.
 move=> mp Pk; rewrite /CauchyBound /cauchy_bound.
-rewrite eval_Size (monicP mp) absr1 invr1 mul1r (eval_SumAbs k') //.
+rewrite eval_Size (monicP mp) normr1 invr1 mul1r (eval_SumNorm k') //.
 congr k'; apply: eq_big=> //= i _.
 elim: p {mp} i=> /= [|a p ihp] i; first by rewrite nth_nil coef0.
 move: i; rewrite size_MXaddC.
@@ -1065,20 +1060,20 @@ by move=> i _; rewrite eval_Size (eval_LeadCoef (fun lq =>
   (0 < (-1) ^+ (size (eval_poly e i)).-1 * lq))).
 Qed.
 
-Fixpoint abstrX (i : nat) (t : tF) : polyF :=
+Fixpoint normtrX (i : nat) (t : tF) : polyF :=
   (match t with
     | 'X_n => if n == i then [::0; 1] else [::t]
-    | - x => OppPoly (abstrX i x)
-    | x + y => AddPoly (abstrX i x) (abstrX i y)
-    | x * y => MulPoly (abstrX i x) (abstrX i y)
-    | x *+ n => NatMulPoly n (abstrX i x)
-    | x ^+ n => let ax := (abstrX i x) in
+    | - x => OppPoly (normtrX i x)
+    | x + y => AddPoly (normtrX i x) (normtrX i y)
+    | x * y => MulPoly (normtrX i x) (normtrX i y)
+    | x *+ n => NatMulPoly n (normtrX i x)
+    | x ^+ n => let ax := (normtrX i x) in
       iter n (MulPoly ax) [::1]
     | _ => [::t]
   end)%qfT.
 
-Lemma abstrXP e i t x :
-  (eval_poly e (abstrX i t)).[x] = eval (set_nth 0 e i x) t.
+Lemma normtrXP e i t x :
+  (eval_poly e (normtrX i t)).[x] = eval (set_nth 0 e i x) t.
 Proof.
 elim: t.
 - move=> n /=; case ni: (_ == _);
@@ -1096,8 +1091,8 @@ Qed.
 
 Definition wproj (n : nat) (s : seq (GRing.term F) * seq (GRing.term F)) :
   formula F :=
-  let sp := map (abstrX n \o to_rterm) s.1%PAIR in
-  let sq := map (abstrX n \o to_rterm) s.2%PAIR in
+  let sp := map (normtrX n \o to_rterm) s.1%PAIR in
+  let sq := map (normtrX n \o to_rterm) s.2%PAIR in
     CcountGt0 sp sq.
 
 Lemma wf_QE_wproj i bc (bc_i := wproj i bc) :
@@ -1119,9 +1114,9 @@ suff: forall x, P1 x <-> P2 x.
   by move=> hP; split=> [] [x Px]; exists x; rewrite (hP, =^~ hP).
 move=> x; rewrite /P1 /P2 {P1 P2} !big_map !(big_seq_cond xpredT) /=.
 rewrite (eq_bigr (fun t => GRing.eval (set_nth 0 e i x) t == 0)); last first.
-  by move=> t /andP[t_in_sp _]; rewrite abstrXP evalE to_rtermE ?(allP rsp).
+  by move=> t /andP[t_in_sp _]; rewrite normtrXP evalE to_rtermE ?(allP rsp).
 rewrite [X in _ && X](eq_bigr (fun t => 0 < GRing.eval (set_nth 0 e i x) t));
-  last by move=> t /andP[tsq _]; rewrite abstrXP evalE to_rtermE ?(allP rsq).
+  last by move=> t /andP[tsq _]; rewrite normtrXP evalE to_rtermE ?(allP rsq).
 rewrite -!big_seq_cond !(rwP (qf_evalP _ _)); first last.
 + elim: sp rsp => //= p sp ihsp /andP[rp rsp]; first by rewrite ihsp.
 + elim: sq rsq => //= q sq ihsq /andP[rq rsq]; first by rewrite ihsq.

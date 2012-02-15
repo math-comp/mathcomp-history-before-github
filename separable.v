@@ -642,8 +642,10 @@ elim/poly_ind: p Hp => [|p c IHp].
   by rewrite !raddf0 horner0 mul0r add0r linear0.
 move/polyOverP => Hp.
 have Hp0: p \in polyOver E.
- apply/polyOverP => i; move: (Hp _ i.+1).
- by rewrite coefD coefMX coefC /= addr0.
+ apply/(@polyOverP _ E _ _) => i.
+ (* :BUG: v8.4 move: (Hp _ i.+1). ->  generalized term didn't match *)
+ have := Hp _ i.+1.
+ by rewrite coefD coefMX coefC /= addr0; apply.
 have->: map_poly D (p * 'X + c%:P) = map_poly D p * 'X + (D c)%:P.
  apply/polyP => i.
  by rewrite !(coefD, coefMX, coefC, (coef_map [linear of D])) ?linear0
@@ -1290,7 +1292,8 @@ have Dx : D x = 1.
  rewrite (_ : (poly_for_Fadjoin K x x) = 'X) ?derivX ?hornerC //.
  apply: (@poly_Fadjoin_small_uniq _ _ K x).
      apply: poly_for_polyOver.
-    apply: polyOverX.
+    (* :BUG: v8.4  apply: @polyOverX _. does not terminate *)
+    apply: (@polyOverX _ K).
    apply: size_poly_for.
   rewrite size_polyX ltn_neqAle andbT eq_sym.
   apply: contra nsep.
@@ -1361,13 +1364,15 @@ rewrite KyxEqKx => DED.
 rewrite (DerivationPoly DED); last first.
   apply: memx_Fadjoin.
  apply: (polyOverSv (subsetKFadjoin _ _)).
- by apply: polyOver_comp.
+ (* :BUG: v8.4  by apply: polyOver_comp. does not terminate *)
+ by apply: (@polyOver_comp _ K).
 suff hmD : forall t, polyOver K t ->
            (map_poly (DerivationExtend x D (Fadjoin K q.[x])) t).[x] = 0.
  rewrite (DerivationSeparable DED); last done.
  rewrite !{1}hmD; first by rewrite oppr0 mul0r mulr0 addr0.
   by apply: minPolyOver.
- by apply: polyOver_comp.
+ (* :BUG: v8.4  by apply: polyOver_comp. does not terminate *)
+ by apply: (@polyOver_comp _ K).
 move => t.
 move/polyOverP => Ht.
 rewrite /horner_morph (_ : map_poly _ _ = 0); first by rewrite horner0.
@@ -1507,7 +1512,10 @@ move/eqP => Hszc.
 move: HK'c (Hszc).
 rewrite (size1_polyC (eq_leq Hszc)) size_polyC mulrDr -polyC_opp -polyC_mul.
 move/polyOverP => Hx.
-move: (Hx _ 1%N) (Hx _ 0%N).
+(* :BUG: v8.4 -> move: (Hx _ 1%N) (Hx _ 0%N). *)
+(* Error: generalized term didn't match *)
+have SGK' : addSemigroupPred K' by auto with typeclass_instances.
+move: (Hx SGK' 1%N) (Hx SGK' 0%N).
 rewrite !coefD !coefMX !coefC add0r addr0 => Hx1 Hx0.
 case Hc0 : (c`_0 != 0) => // _.
 by rewrite memvNl // -[(- x)](mulKf Hc0) memv_mul // -memv_inv.

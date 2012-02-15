@@ -1,6 +1,6 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 Require Import bigop ssralg orderedalg poly.
-Import GRing.Theory ORing.Theory AbsrNotation.
+Import GRing.Theory ORing.Theory.
 
  (****************************************************************)
  (* zint has two constructors : Posz for positive integers       *)
@@ -324,6 +324,9 @@ Canonical zint_comUnitRing := Eval hnf in [comUnitRingType of zint].
 Canonical zint_iDomain := Eval hnf in IdomainType zint
   zintUnitRing.idomain_axiomz.
 
+Definition absz m := match m with Posz p => p | Negz n => n.+1 end.
+Notation normz m := (absz m)%:Z.
+
 Module zintOrdered.
 Section zintOrdered.
 Implicit Types m n p : zint.
@@ -336,16 +339,36 @@ Definition lez m n :=
     | Negz m', Negz n' => (n' <= m')%N
   end.
 
-Fact addz_ge0 m n : lez 0 m -> lez 0 n -> lez 0 (m + n).
-Proof. by move: m n=> [] ? []. Qed.
+Definition ltz m n :=
+  match m, n with
+    | Posz m', Posz n' => (m' < n')%N
+    | Posz m', Negz n' => false
+    | Negz m', Posz n' => true
+    | Negz m', Negz n' => (n' < m')%N
+  end.
 
-Fact mulz_ge0 m n : lez 0 m -> lez 0 n -> lez 0 (m * n).
-Proof. by move: m n=> [] ? []. Qed.
+Fact lez_norm_add x y : lez (normz (x + y)) (normz x + normz y).
+Proof.
+move: x y=> [] m [] n; rewrite /= ?addnS //=;
+rewrite /GRing.add /GRing.Zmodule.add /=; case: ltnP=> //=;
+rewrite ?addSn ?ltnS ?leq_sub_add ?(addnS, addSn) ?(leq_trans _ (leqnSn _)) //;
+by rewrite 1?addnCA ?leq_addr ?addnA ?leq_addl.
+Qed.
 
-Lemma lez0_anti n : lez 0 n -> lez 0 (- n) -> n = 0.
-Proof. by move: n=> [[]|]. Qed.
+Fact ltz_add x y : ltz 0 x -> ltz 0 y -> ltz 0 (x + y).
+Proof. by move: x y => [] x [] y //= hx hy; rewrite ltn_addr. Qed.
 
-Lemma lez_nat (m n : nat) : (lez m n) = (m <= n)%N. Proof. by []. Qed.
+Fact eq0_normz x : normz x = 0 -> x = 0. Proof. by case: x. Qed.
+
+Fact norm1z_neq0 : normz 1 != 0. Proof. done. Qed.
+
+Fact lez_total x y : lez x y || lez y x.
+Proof. by move: x y => [] x [] y //=; apply: leq_total. Qed.
+
+Lemma abszN (n : nat) : absz (- n%:Z) = n. Proof. by case: n. Qed.
+
+Fact normzM : {morph (fun n => normz n) : x y / x * y}.
+Proof. by move=> [] x [] y; rewrite // abszN // mulnC. Qed.
 
 Lemma subz_ge0 m n : lez 0 (n - m) = lez m n.
 Proof.
@@ -357,17 +380,22 @@ case: leqP=> // hmn; do
      move: hmn; rewrite -subn_gt0; case: (_ - _)%N].
 Qed.
 
-Lemma lez0_total n : lez 0 n || lez 0 (- n).
-Proof. by move: n=> [[]|]. Qed.
+Fact lez_def x y : (lez x y) = (normz (y - x) == y - x).
+Proof. by rewrite -subz_ge0; move: (_ - _) => [] n //=; rewrite eqxx. Qed.
 
-Definition Mixin :=
-  TotalOrder_PartialLeMixin addz_ge0 mulz_ge0 lez0_anti subz_ge0 lez0_total.
+Fact ltz_def x y : (ltz x y) = (y != x) && (lez x y).
+Proof.
+by move: x y=> [] x [] y //=; rewrite (ltn_neqAle, leq_eqVlt) // eq_sym.
+Qed.
+
+Definition Mixin := PartialOrderMixin lez_norm_add ltz_add eq0_normz
+   norm1z_neq0 (fun x y _ _ => lez_total x y) normzM lez_def ltz_def.
 
 End zintOrdered.
 End zintOrdered.
 
 Canonical zint_poIdomainType := POIdomainType zint zintOrdered.Mixin.
-Canonical zint_oIdomainType := OIdomainType zint zintOrdered.lez0_total.
+Canonical zint_oIdomainType := OIdomainType zint (zintOrdered.lez_total 0).
 
 Section zintOrderedTheory.
 
@@ -417,7 +445,6 @@ Lemma ltz_addr1 x y : (x < y + 1) = (x <= y).
 Proof. by rewrite -lez_addr1 ler_add2r. Qed.
 
 End zintOrderedTheory.
-
 
 (* definition of zintmul *)
 Definition zintmul (R : zmodType) (x : R) (n : zint) := nosimpl
@@ -487,7 +514,8 @@ Local Notation "n *z x" := (zintmul x n)
   (at level 41, right associativity, format "n  *z  x") : ring_scope.
 
 Definition Mzint_LmodMixin :=
-  @LmodMixin _ [zmodType of M] (fun n x => n *z x) mulrzA_rev mulr1z mulrz_addr mulrz_addl.
+  @LmodMixin _ [zmodType of M] (fun n x => n *z x)
+   mulrzA_rev mulr1z mulrz_addr mulrz_addl.
 Canonical Mzint_LmodType := LmodType zint M Mzint_LmodMixin.
 
 Lemma mulrzA x m n :  x *~ (m * n) = x *~ m *~ n.
@@ -786,13 +814,13 @@ Qed.
 
 Lemma ler_pmulz2l x (hx : 0 < x) : {mono *~%R x : x y / x <= y}.
 Proof.
-move=> m n /=; rewrite cpable_homo_ler ?cpable_ordered // => {m n}.
+move=> m n /=; rewrite Rreal_mono ?ordered_Rreal // => {m n}.
 by move=> m n /= hmn; rewrite -subr_gt0 -mulrz_subr pmulrz_lgt0 // subr_gt0.
 Qed.
 
 Lemma ler_nmulz2l x (hx : x < 0) : {mono *~%R x : x y /~ x <= y}.
 Proof.
-move=> m n /=; rewrite cpable_nhomo_ler ?cpable_ordered // => {m n}.
+move=> m n /=; rewrite Rreal_nmono ?ordered_Rreal // => {m n}.
 by move=> m n /= hmn; rewrite -subr_gt0 -mulrz_subr nmulrz_lgt0 // subr_lt0.
 Qed.
 
@@ -862,9 +890,9 @@ Proof. by rewrite -mulrzl mulf_eq0 zintr_eq0. Qed.
 Lemma mulrz_neq0 x n : x *~ n != 0 = ((n != 0) && (x != 0)).
 Proof. by rewrite mulrz_eq0 negb_or. Qed.
 
-Lemma cpablen m n : ORing.cpable (n%:~R : R) m%:~R.
-Proof. by rewrite mono_cpable ?cpable_ordered //; apply: ler_pmulz2l. Qed.
-Hint Resolve cpablen.
+Lemma Rreal_zint n : n%:~R \in @ORing.Rreal R.
+Proof. by rewrite -topredE /ORing.Rreal /= ler0z lerz0 ler_total. Qed.
+Hint Resolve Rreal_zint.
 
 End PO.
 
@@ -1104,8 +1132,8 @@ Lemma ler_wniexpz2l x (x0 : 0 <= x) (x1 : x <= 1) :
 Proof.
 move=> [] m [] n; rewrite ?NegzE -!topredE /= ?oppr_cp0 ?ltz_nat // => _ _.
 rewrite ler_opp2 lez_nat -?invr_expz=> hmn; move: (x0).
-rewrite ler_eqVlt=> /orP [/eqP->|lx0]; first by rewrite !exp0rz invr0.
-by rewrite ler_pinv -?topredE /= ?exprz_gt0 // ler_wiexpn2l.
+rewrite le0r=> /orP [/eqP->|lx0]; first by rewrite !exp0rz invr0.
+by rewrite lef_pinv -?topredE /= ?exprz_gt0 // ler_wiexpn2l.
 Qed.
 
 Fact ler_wpeexpz2l x (x1 : 1 <= x) : {in >=%R 0 &, {homo (exprz x) : x y / x <= y}}.
@@ -1117,7 +1145,7 @@ Qed.
 Fact ler_wneexpz2l x (x1 : 1 <= x) : {in <=%R 0 &, {homo (exprz x) : x y / x <= y}}.
 Proof.
 move=> m n hm hn /= hmn.
-rewrite -ler_pinv -?topredE /= ?exprz_gt0 ?(ltr_le_trans ltr01) //.
+rewrite -lef_pinv -?topredE /= ?exprz_gt0 ?(ltr_le_trans ltr01) //.
 by rewrite !invr_expz ler_wpeexpz2l ?ler_opp2 -?topredE //= oppr_cp0.
 Qed.
 
@@ -1186,13 +1214,13 @@ Proof. by case: n hn=> // n _; apply: ler_expn2r. Qed.
 Lemma ler_wnexpz2r n (hn : n <= 0) :
 {in >%R 0 & , {homo ((@exprz R)^~ n) : x y /~ x <= y}}.
 Proof.
-move=> x y /= hx hy hxy; rewrite -ler_pinv ?[_ \in _]exprz_gt0 //.
+move=> x y /= hx hy hxy; rewrite -lef_pinv ?[_ \in _]exprz_gt0 //.
 by rewrite !invr_expz ler_wpexpz2r  ?[_ \in _]ltrW // oppr_cp0.
 Qed.
 
 Lemma pexpIrz n (n0 : n != 0) : {in >=%R 0 &, injective ((@exprz R)^~ n)}.
 Proof.
-move=> x y; rewrite ![_ \in _]ler_eqVlt=> /orP [/eqP-> _ /eqP|hx].
+move=> x y; rewrite ![_ \in _]le0r=> /orP [/eqP-> _ /eqP|hx].
   by rewrite exp0rz ?(negPf n0) eq_sym expfz_eq0=> /andP [_ /eqP->].
 case/orP=> [/eqP-> /eqP|hy].
   by rewrite exp0rz ?(negPf n0) expfz_eq0=> /andP [_ /eqP].
@@ -1204,9 +1232,9 @@ Qed.
 
 Lemma nexpIrz n (n0 : n != 0) : {in <=%R 0 &, injective ((@exprz R)^~ n)}.
 Proof.
-move=> x y; rewrite ![_ \in _]ler_eqVlt => /orP [/eqP<- _ /eqP|hx].
+move=> x y; rewrite ![_ \in _]ler_eqVlt => /orP [/eqP -> _ /eqP|hx].
   by rewrite exp0rz ?(negPf n0) eq_sym expfz_eq0=> /andP [_ /eqP->].
-case/orP=> [/eqP<- /eqP|hy].
+case/orP=> [/eqP -> /eqP|hy].
   by rewrite exp0rz ?(negPf n0) expfz_eq0=> /andP [_ /eqP].
 move=> /(f_equal ( *%R^~ (y ^ (- n)))) /eqP.
 rewrite -expfz_addr ?(ltr_eqF hy) // subrr expr0z -exprz_inv -expfz_mull.
@@ -1375,28 +1403,26 @@ Proof. by apply/eqP; rewrite sgz_eq ?zintr_eq0 ?ltr0z !eqxx. Qed.
 Lemma sgr_zint m : sgr (m%:~R : R) = (sgr m)%:~R.
 Proof. by rewrite sgrEz sgz_zint -sgrz. Qed.
 
-Lemma absr_zint m : `|m%:~R| = `|m|%:~R :> R.
-Proof. by rewrite !absr_dec sgr_zint rmorphM. Qed.
+Lemma normr_zint m : `|m%:~R| = `|m|%:~R :> R.
+Proof. by rewrite !normr_dec sgr_zint rmorphM. Qed.
 
 Lemma sgrMz m x : sgr (x *~ m) = sgr x *~ sgr m.
 Proof. by rewrite -mulrzr sgrM sgr_zint mulrzr. Qed.
 
-Lemma absr_sgz x : `|sgz x| = (x != 0).
+Lemma normr_sgz x : `|sgz x| = (x != 0).
 Proof. by case: sgzP. Qed.
 
-Lemma absr_sg x :  `|sgr x| = (x != 0)%:~R.
-Proof. by rewrite sgrEz absr_zint absr_sgz. Qed.
+Lemma normr_sg x :  `|sgr x| = (x != 0)%:~R.
+Proof. by rewrite sgrEz normr_zint normr_sgz. Qed.
 
-Lemma absrMz m x : `|x *~ m| = `|x| *~ `|m|.
-Proof. by rewrite -mulrzl absrM absr_zint mulrzl. Qed.
+Lemma normrMz m x : `|x *~ m| = `|x| *~ `|m|.
+Proof. by rewrite -mulrzl normrM normr_zint mulrzl. Qed.
 
 End SgzIdomain.
 
 Section Absz.
 
 Implicit Types m n p : zint.
-
-Definition absz m := match m with Posz p => p | Negz n => n.+1 end.
 
 Lemma absz_nat (m : nat) : absz m = m. Proof. by []. Qed.
 

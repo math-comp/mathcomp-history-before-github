@@ -127,7 +127,11 @@ move => p.
 case/kHomP => HK _.
 move/polyOverP => Hp.
 apply/polyP => i.
-by rewrite coef_map /= HK ?Hp.
+(* :BUG: v8.4 -> by rewrite coef_map /= HK ?Hp //. *)
+(* No applicable tactic *)
+rewrite coef_map /= HK //.
+have : addSemigroupPred K by auto with typeclass_instances.
+by move=> /Hp.
 Qed.
 
 Definition kAut : pred 'End(L) := fun f =>  kHom f && (f @: E == E)%VS.

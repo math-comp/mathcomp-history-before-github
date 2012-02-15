@@ -1814,7 +1814,7 @@ have oTGgt_g2: (g / 2%:R < #|TG|%:R)%R.
     by move=> H; rewrite pdiv_gt0 dvdn_leq ?pdiv_dvd.
   have hm_pdiv := hm_inc _ _ (le_pdiv _).
   have hm_ge0: forall u, (0 <= hm u)%R.
-    by case=> // u; rewrite subr_ge0 invr_le1 ?ltr0Sn ?(ler_nat _ 1).
+    by case=> // u; rewrite subr_ge0 invf_le1 ?ltr0Sn ?(ler_nat _ 1).
   do 2![rewrite mulrC (ltr_le_trans _ (ler_wpmul2r (hm_ge0 _) (hm_pdiv _))) //].
   set p := pdiv #|K|; set q := pdiv #|Ks|.
   have [odd_p odd_q]: odd p /\ odd q.

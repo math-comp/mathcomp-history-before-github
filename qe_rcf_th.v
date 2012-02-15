@@ -1253,8 +1253,8 @@ Qed.
 (* Todo : move to polyrcf *)
 Lemma cauchy_bound_ge0 : forall (p : {poly R}), 0 <= cauchy_bound p.
 Proof.
-move=> p; rewrite /cauchy_bound mulr_ge0 // ?invr_ge0 ?absr_ge0 //.
-by rewrite sumr_ge0 // => i; rewrite absr_ge0.
+move=> p; rewrite /cauchy_bound mulr_ge0 // ?invr_ge0 ?normr_ge0 //.
+by rewrite sumr_ge0 // => i; rewrite normr_ge0.
 Qed.
 
 
@@ -1408,7 +1408,7 @@ have hsub : forall x,
     rewrite mulf_eq0 expf_eq0 (negPf a_neq0) andbF /=; congr andb.
     rewrite big_map; apply: eq_big=> // i _.
     rewrite change_varqP pmulr_rgt0 //.
-    rewrite ltr_neqAle expf_eq0 (negPf a_neq0) andbF /=.
+    rewrite lt0r expf_eq0 (negPf a_neq0) andbF /=.
     by rewrite exprn_even_ge0 // even_to_even.
 split => [] [] x hx; last by exists (a * x); rewrite hsub.
 by exists (a ^-1 * x); rewrite -hsub !mulVKf.
@@ -1442,7 +1442,7 @@ Qed.
 Lemma too_many_roots_eq0 x p :
 (forall i : 'I_(size p).+1, root p (x + i.+1%:R)) -> p = 0.
 Proof.
-move=> h; case: (altP (p =P 0)) => //; move/max_poly_roots => habs.
+move=> h; case: (altP (p =P 0)) => //; move/max_poly_roots => hnorm.
 pose s :=
   (map ((+%R x) \o (fun x : 'I_(size p).+1 => x.+1%:R)) (ord_enum (size p).+1)).
 have sroots : all (root p) s by apply/allP=> xi; case/mapP=> i hi ->; apply: h.
@@ -1453,7 +1453,7 @@ have : uniq s.
     by apply/val_inj => /=; apply/eqP; rewrite eqn_leq hij.
   rewrite -subr_eq0 -natrB  1?ltnW // pnatr_eq0 subn_eq0 => hij'.
   by apply/val_inj => /=; apply/eqP; rewrite eqn_leq (ltnW hij) andbT.
-by move/(habs _ sroots); rewrite size_map /= size_ord_enum ltnNge leqnSn.
+by move/(hnorm _ sroots); rewrite size_map /= size_ord_enum ltnNge leqnSn.
 Qed.
 
 Lemma maj_not_root_lt x p : x < maj_not_root x p.
@@ -1472,9 +1472,9 @@ Qed.
 Lemma maj_not_rootP x p : p != 0 -> ~~ (root p (maj_not_root x p)).
 Proof.
 move=> pn0; rewrite /maj_not_root.
-case: pickP=> [y hy | habs] //=.
+case: pickP=> [y hy | hnorm] //=.
   suff : p = 0 by move/eqP; rewrite (negPf pn0).
-by apply: (@too_many_roots_eq0 x) => i; move/negbT: (habs i); rewrite negbK.
+by apply: (@too_many_roots_eq0 x) => i; move/negbT: (hnorm i); rewrite negbK.
 Qed.
 
 Definition pick_right x p := maj_not_root x ((p \Po (- 'X)) * p).
@@ -1561,7 +1561,7 @@ apply: (iffP (ex_roots_in _ _ _ _ _))=> //.
   rewrite -root_prod_fintype; exact: pick_rightP.
 * by case=> x /and3P [hpx hsqx xb]; exists x; rewrite hpx.
 case=> x /andP [hpx hsqx]; exists x; rewrite hpx hsqx /=.
-rewrite -[_ \in _]ltr_absl.
+rewrite -[_ \in _]ltr_norml.
 apply: ler_lt_trans (pick_right_lt _ _ ).
 by apply: cauchy_boundP=> //; apply/eqP.
 Qed.
@@ -1712,7 +1712,7 @@ split=> [] [x].
     have : (\prod_(q <- sq) q).[z] = 0.
       rewrite horner_prod; apply/eqP; apply/myprodf_eq0. 
       by exists r; rewrite ?hr //; apply/eqP.
-    by move/(cauchy_boundP pn0) => /=; rewrite ler_absl => /andP [].
+    by move/(cauchy_boundP pn0) => /=; rewrite ler_norml => /andP [].
   - rewrite big_all => /allP hsq.
     have sqn0 : {in sq, forall q, q != 0}.
       by move=> q' /= /hsq; apply: contraL=> /eqP->; rewrite lead_coef0 mulr0 ltrr.
@@ -1727,7 +1727,7 @@ split=> [] [x].
     have : (\prod_(q <- sq) q).[z] = 0.
       rewrite horner_prod; apply/eqP; apply/myprodf_eq0. 
       by exists r; rewrite ?hr //; apply/eqP.
-    by move/(cauchy_boundP pn0) => /=; rewrite ler_absl => /andP [].
+    by move/(cauchy_boundP pn0) => /=; rewrite ler_norml => /andP [].
 rewrite big_all => /allP hsq; set bnd := cauchy_bound (\prod_(q <- sq) q) + 1.
 rewrite /bounding_poly; set q := \prod_(q <- _) _.
 have sqn0 : {in sq, forall q, q != 0}.
@@ -1741,7 +1741,7 @@ case: (next_rootP q x bnd); [by move/eqP; rewrite (negPf q0)| |]; last first.
   rewrite big_all; apply/allP=> r hr; have rxp := hsq r hr.
   rewrite -sgr_cp0 -(@pol_sg_pinfty x x) ?sgr_cp0 // => z hxz.
   case: (ltrP z bnd) => [hzb|].
-    move: hxz; rewrite ler_eqVlt; case/orP=> [/eqP-> | hxz].
+    move: hxz; rewrite ler_eqVlt; case/orP=> [/eqP<- | hxz].
       by rewrite neqr_lt rxp orbT.
     have : z \in `]x, bnd[ by apply/int_dec.
     rewrite -/(root r z); move/(hc z); apply: contra; rewrite /root /q => hrx.
@@ -1754,7 +1754,7 @@ case: (next_rootP q x bnd); [by move/eqP; rewrite (negPf q0)| |]; last first.
      by exists r; rewrite ?hr //; apply/eqP.
    have pn0 : (\prod_(q <- sq) q) != 0.
      by apply/negP=> /myprodf_eq0 [] ?; rewrite andbT => /sqn0 /negPf ->.
-   by move/(cauchy_boundP pn0) => /=; rewrite ler_absl => /andP [].
+   by move/(cauchy_boundP pn0) => /=; rewrite ler_norml => /andP [].
 move=> y1 _ rqy1 hy1xb hy1.
 have hnr r z :  r \in sq -> ~~(root q z) -> ~~(root r z).
     move=> hr; apply: contra; rewrite /root /q => hrx.
@@ -1766,7 +1766,7 @@ case: (prev_rootP q (- bnd) x); [by move/eqP; rewrite (negPf q0)| |]; last first
   rewrite big_all; apply/allP=> r hr; have rxp := hsq r hr.
   rewrite -sgr_cp0 -(@pol_sg_minfty x x) ?sgr_cp0 // => z hxz.
   case: (lerP z (- bnd)) => [|hzb]; last first.
-    move: hxz; rewrite ler_eqVlt; case/orP=> [/eqP<- | hxz].
+    move: hxz; rewrite ler_eqVlt; case/orP=> [/eqP-> | hxz].
       by rewrite neqr_lt rxp orbT.
     have : z \in `] (- bnd), x[ by apply/int_dec. (* assia : int not? *)
     rewrite -/(root r z); move/(hc z); exact: hnr.
@@ -1778,7 +1778,7 @@ case: (prev_rootP q (- bnd) x); [by move/eqP; rewrite (negPf q0)| |]; last first
       by exists r; rewrite ?hr //; apply/eqP.
     have pn0 : (\prod_(q <- sq) q) != 0.
       by apply/negP=> /myprodf_eq0 [] ?; rewrite andbT => /sqn0 /negPf ->.
-    by move/(cauchy_boundP pn0) => /=; rewrite ler_absl => /andP [].
+    by move/(cauchy_boundP pn0) => /=; rewrite ler_norml => /andP [].
 move=> y2 _ rqy2 hy2xb hy2.
 have lty12 : y2 < y1.
   by apply: (@ltr_trans _ x); rewrite 1?(intP hy1xb) 1?(intP hy2xb).
@@ -1887,7 +1887,7 @@ case: (boolP (_ == 0))=> hsp /=.
       move/eqP: bsq0; rewrite /bounding_poly.
       rewrite -derivn1 -derivn_poly0 leq_eqVlt ltnS leqn0; case/orP; last first.
         rewrite size_poly_eq0; case/myprodf_eq0=> q1; rewrite andbT; move/hy.
-        by move=> habs /eqP q10; move: habs; rewrite q10 horner0 ltrr.
+        by move=> hnorm /eqP q10; move: hnorm; rewrite q10 horner0 ltrr.
 (* assia : ltrr could be hint resolve *)
      move/size_prod_eq1; move/(_ _ qsq) => /eqP; case/size_poly1P=> c cn0 eqc.
      by move: (hy _ qsq); rewrite eqc hornerC lead_coefC.

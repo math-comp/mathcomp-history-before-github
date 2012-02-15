@@ -634,7 +634,9 @@ Lemma polyOver_suba (p : {poly L}) :
   reflect (exists q : {poly (suba_of K)}, p = map_poly (@sa_val _ _ K) q)
           (p \in polyOver K).
 Proof.
-apply: (iffP polyOverP) => [Hp | [q ->] i]; last first.
+(* apply: (iffP polyOverP)) => [Hp | [q ->] i]; last first. *)
+(* :BUG: v8.4 it never stops and takes all my 5GB of memory *)
+apply: (iffP (@polyOverP _ K _ _)) => [Hp | [q ->] i]; last first.
   by rewrite coef_map // subaP.
 exists (\poly_(i < size p) (Suba (Hp i))).
 rewrite -{1}[p]coefK.

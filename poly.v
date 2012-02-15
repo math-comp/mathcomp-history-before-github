@@ -867,7 +867,11 @@ Proof. exact: rpredX. Qed.
 
 Lemma monic_prod I rI (P : pred I) (F : I -> {poly R}):
   (forall i, P i -> monic (F i)) -> monic (\prod_(i <- rI | P i) F i).
-Proof. exact: rpred_prod. Qed.
+Proof.
+(* exact: rpred_prod. *)
+(* :BUG: v8.4 -> could not fill dependent hole in "apply" *)
+exact: (@rpred_prod _ monic).
+Qed.
 
 Lemma monicXsubC c : monic ('X - c%:P).
 Proof. exact/eqP/lead_coefXsubC. Qed.

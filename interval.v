@@ -50,30 +50,31 @@ Notation "`] -oo , '+oo' [" := (Interval (BInfty _) (BInfty _))
   (at level 0, format "`] -oo ,  '+oo' [") : ring_scope.
 
 
-Definition int_rewrite (i : interval R) x : Prop :=
+Definition int_rewrite (i : interval R) x : Type :=
   let: Interval l u := i in
-    (match l, u with
+    (match l with
+       | BClose true a => (a <= x) * (x < a = false)
+       | BClose false a => (a <= x) * (a < x) * (x <= a = false)
+       | BInfty => forall x : R, x == x
+     end *
+    match u with
+       | BClose true b => (x <= b) * (b < x = false)
+       | BClose false b => (x <= b) * (x < b) * (b <= x = false)
+       | BInfty => forall x : R, x == x
+     end *
+    match l, u with
        | BClose true a, BClose true b =>
-         (a <= x) * (x < a = false) * (x <= b) * (b < x = false)
-         * (a <= b) * (b < a = false)
-         * (a \in `[a, b]) * (b \in `[a, b])
+         (a <= b) * (b < a = false) * (a \in `[a, b]) * (b \in `[a, b])
        | BClose true a, BClose false b =>
-         (a <= x) * (x < a = false) * (x <= b) * (x < b) * (b <= x = false)
-         * (a <= b) * (a < b) * (b <= a = false)
+         (a <= b) * (a < b) * (b <= a = false)
          * (a \in `[a, b]) * (a \in `[a, b[)* (b \in `[a, b]) * (b \in `]a, b])
        | BClose false a, BClose true b =>
-         (a <= x) * (a < x) * (x <= a = false) * (x <= b) * (b < x = false)
-         * (a <= b) * (a < b) * (b <= a = false)
+         (a <= b) * (a < b) * (b <= a = false)
          * (a \in `[a, b]) * (a \in `[a, b[)* (b \in `[a, b]) * (b \in `]a, b])
        | BClose false a, BClose false b =>
-         (a <= x) * (a < x) * (x <= a = false) * (x <= b) * (x < b) * (b <= x = false)
-         * (a <= b) * (a < b) * (b <= a = false)
+         (a <= b) * (a < b) * (b <= a = false)
          * (a \in `[a, b]) * (a \in `[a, b[)* (b \in `[a, b]) * (b \in `]a, b])
-       | BInfty, BClose true b => (x <= b) * (b < x = false)
-       | BInfty, BClose false b => (x <= b) * (x < b) * (b <= x = false)
-       | BClose true a, BInfty => (a <= x) * (x < a = false)
-       | BClose false a, BInfty => (a <= x) * (a < x) * (x <= a = false)
-       | BInfty, BInfty => forall x : R, x == x
+       | _, _ => forall x : R, x == x
     end)%type.
 
 Definition int_decompose (i : interval R) x : Prop :=
@@ -101,7 +102,7 @@ Local Notation "x < y ?<= 'if' b" := (ltreif x y b)
   (at level 70, y at next level,
   format "x '[hv'  <  y '/'  ?<=  'if'  b ']'") : ring_scope.
 
-Lemma ltreifxx : forall x b, x < x ?<= if b = b.
+Lemma ltreifxx : forall x b, (x < x ?<= if b) = b.
 Proof. by move=> x [] /=; rewrite lterr. Qed.
 
 Lemma ltreif_trans : forall x y z b1 b2,
@@ -128,9 +129,10 @@ Definition le_boundr b1 b2 :=
     | _, _ => true
   end.
 
-Lemma int_boundlr : forall bl br, forall x,
-  x \in Interval bl br = le_boundl bl (BClose true x) && le_boundr (BClose true x) br.
-Proof. by move=> [[] a|] [[] b|] x. Qed.
+Lemma int_boundlr bl br x :
+  x \in Interval bl br = le_boundl bl (BClose true x) 
+                      && le_boundr (BClose true x) br.
+Proof. by move: bl br => [[] a|] [[] b|]. Qed.
 
 Lemma le_boundr_refl : reflexive le_boundr.
 Proof. by move=> [[] b|]; rewrite /le_boundr /= ?lerr. Qed.
@@ -247,7 +249,7 @@ Lemma int_splitI : forall a b, forall x,
   x \in Interval a b = (x \in Interval a (BInfty _)) && (x \in Interval (BInfty _) b).
 Proof. by move=> [[] a|] [[] b|] x; rewrite ?inE ?andbT. Qed.
 
-Lemma ltreifN_po : forall x y b, y < x ?<= if ~~ b ->  x < y ?<= if b = false.
+Lemma ltreifNF : forall x y b, y < x ?<= if ~~ b ->  x < y ?<= if b = false.
 Proof. by move=> x y [] /=; [apply: ltr_geF|apply: ler_gtF]. Qed.
 
 Lemma ltreifS : forall b x y, x < y -> x < y ?<= if b.
@@ -257,62 +259,62 @@ Lemma ltreifT : forall x y, x < y ?<= if true = (x <= y). Proof. by []. Qed.
 
 Lemma ltreifF : forall x y, x < y ?<= if false = (x < y). Proof. by []. Qed.
 
-Lemma ltreif_neg : forall x y b, ORing.cpable x y ->
+Lemma Rreal_ltreifN : forall x y b, x \in ORing.Rreal -> y \in ORing.Rreal ->
   x < y ?<= if ~~b = ~~ (y < x ?<= if b).
-Proof. by move=> x y [] cxy /=; rewrite (cpable_ltrNge, cpable_lerNgt). Qed.
+Proof. by move=> x y [] xR yR /=; rewrite (Rreal_ltrNge, Rreal_lerNgt). Qed.
 
-Lemma int_splitU_po : forall xc bc a b, xc \in Interval a b ->
-  forall y, ORing.cpable y xc -> y \in Interval a b =
-    (y \in Interval a (BClose bc xc)) || (y \in Interval (BClose (~~bc) xc) b).
-Proof.
-move=> xc bc [ba xa|] [bb xb|] cab y cyc; move: cab;
- rewrite !int_boundlr /le_boundl /le_boundr /=.
-* case/andP=> hac hcb; case hay: ltreif=> /=; case hyb: ltreif=> //=.
-  + by case: bc=> /=; case: cpable3P cyc.
-  + rewrite ltreifN_po ?andbF // ltreifS // cpable_ltrNge 1?cpable_sym //.
-    move/negP:hyb; move/negP; apply: contra.
-    case: bb hcb=> /= hcb hyc; first exact: ler_trans hcb.
-    exact: ler_lt_trans hcb.
-  move/ltreifW:hyb=> hyb; suff: false by [].
-  by rewrite -hay -[ba]andbT (ltreif_trans hac).
-* rewrite !andbT; move=> hac; case hay: ltreif=> /=; symmetry.
-    by case: bc=> /=; case: cpable3P cyc.
-  apply: negbTE; move/negP: hay; move/negP; apply: contra.
-  by move/ltreifW; rewrite -[ba]andbT -ltreifT; move/(ltreif_trans _); apply.
-* move=> hcb; case hyb: ltreif=> /=; symmetry; rewrite ?(andbF, orbF).
-    by case: bc=> /=; case: cpable3P cyc.
-  apply: negbTE; move/negP: hyb; move/negP; apply: contra.
-  by move/ltreifW; rewrite -ltreifT; move/ltreif_trans; apply.
-by case: bc=> /=; case: cpable3P cyc.
-Qed.
+(* Lemma int_splitU_po xc bc : xc \in ORing.Rreal -> *)
+(*   forall a b, xc \in Interval a b -> *)
+(*   forall y, y \in Interval a b = (y \in Interval a (BClose bc xc)) *)
+(*                               || (y \in Interval (BClose (~~bc) xc) b). *)
+(* Proof. *)
+(* move=> xc bc [ba xa|] [bb xb|] cab y cyc; move: cab; *)
+(* * case/andP=> hac hcb; case hay: ltreif=> /=; case hyb: ltreif=> //=. *)
+(*   + by case: bc=> /=; case: cpable3P cyc. *)
+(*   + rewrite ltreifN_po ?andbF // ltreifS // cpable_ltrNge 1?cpable_sym //. *)
+(*     move/negP:hyb; move/negP; apply: contra. *)
+(*     case: bb hcb=> /= hcb hyc; first exact: ler_trans hcb. *)
+(*     exact: ler_lt_trans hcb. *)
+(*   move/ltreifW:hyb=> hyb; suff: false by []. *)
+(*   by rewrite -hay -[ba]andbT (ltreif_trans hac). *)
+(* * rewrite !andbT; move=> hac; case hay: ltreif=> /=; symmetry. *)
+(*     by case: bc=> /=; case: cpable3P cyc. *)
+(*   apply: negbTE; move/negP: hay; move/negP; apply: contra. *)
+(*   by move/ltreifW; rewrite -[ba]andbT -ltreifT; move/(ltreif_trans _); apply. *)
+(* * move=> hcb; case hyb: ltreif=> /=; symmetry; rewrite ?(andbF, orbF). *)
+(*     by case: bc=> /=; case: cpable3P cyc. *)
+(*   apply: negbTE; move/negP: hyb; move/negP; apply: contra. *)
+(*   by move/ltreifW; rewrite -ltreifT; move/ltreif_trans; apply. *)
+(* by case: bc=> /=; case: cpable3P cyc. *)
+(* Qed. *)
 
-Lemma int_splitU2_po : forall x a b, x \in Interval a b ->
-  forall y, ORing.cpable y x -> y \in Interval a b =
-    [|| (y \in Interval a (BClose false x)), (y == x)
-      | (y \in Interval (BClose false x) b)].
-Proof.
-move=> x a b hx y cxy; rewrite (@int_splitU_po x false) //.
-case hyx: (_ \in _); rewrite //= (@int_splitU_po x true) ?int_xx //=.
-by rewrite bound_in_int; move: hx; rewrite int_boundlr; case/andP.
-Qed.
+(* Lemma int_splitU2_po : forall x a b, x \in Interval a b -> *)
+(*   forall y, ORing.cpable y x -> y \in Interval a b = *)
+(*     [|| (y \in Interval a (BClose false x)), (y == x) *)
+(*       | (y \in Interval (BClose false x) b)]. *)
+(* Proof. *)
+(* move=> x a b hx y cxy; rewrite (@int_splitU_po x false) //. *)
+(* case hyx: (_ \in _); rewrite //= (@int_splitU_po x true) ?int_xx //=. *)
+(* by rewrite bound_in_int; move: hx; rewrite int_boundlr; case/andP. *)
+(* Qed. *)
 
-Lemma intUff : forall x y b1 b2 a b,
-  x \in Interval (BClose b2 y) b -> y \in Interval a (BClose b1 x) ->
-  forall z, ORing.cpable z x -> ORing.cpable z y ->
-    (z \in Interval a (BClose b1 x)) || (z \in Interval (BClose b2 y) b)
-      = (z \in Interval a b).
-Proof.
-move=> x y b1 b2 a b /= hx hy z czx czy.
-rewrite (int_splitU_po (~~b2) hy) //; rewrite (int_splitU_po b1 hx) //.
-rewrite negbK orbA orbC -!orbA orbb orbC; symmetry.
-rewrite (@int_splitU_po y (~~b2)) //.
-  by rewrite -orbA; congr orb; rewrite (@int_splitU_po x b1) ?negbK.
-apply: subintP hy=> /=; rewrite le_boundl_refl /=.
-move: hx; rewrite int_boundlr; case/andP=> _.
-rewrite /le_boundr; case: b=> [[] b|] //=.
-  by rewrite implybT.
-exact: ltreifS.
-Qed.
+(* Lemma intUff : forall x y b1 b2 a b, *)
+(*   x \in Interval (BClose b2 y) b -> y \in Interval a (BClose b1 x) -> *)
+(*   forall z, ORing.cpable z x -> ORing.cpable z y -> *)
+(*     (z \in Interval a (BClose b1 x)) || (z \in Interval (BClose b2 y) b) *)
+(*       = (z \in Interval a b). *)
+(* Proof. *)
+(* move=> x y b1 b2 a b /= hx hy z czx czy. *)
+(* rewrite (int_splitU_po (~~b2) hy) //; rewrite (int_splitU_po b1 hx) //. *)
+(* rewrite negbK orbA orbC -!orbA orbb orbC; symmetry. *)
+(* rewrite (@int_splitU_po y (~~b2)) //. *)
+(*   by rewrite -orbA; congr orb; rewrite (@int_splitU_po x b1) ?negbK. *)
+(* apply: subintP hy=> /=; rewrite le_boundl_refl /=. *)
+(* move: hx; rewrite int_boundlr; case/andP=> _. *)
+(* rewrite /le_boundr; case: b=> [[] b|] //=. *)
+(*   by rewrite implybT. *)
+(* exact: ltreifS. *)
+(* Qed. *)
 
 Lemma oppr_int : forall ba bb (xa xb x : R),
   (-x \in Interval (BClose ba xa) (BClose bb xb))
@@ -360,16 +362,37 @@ Section IntervalOrdered.
 
 Variable R : oIdomainType.
 
-Lemma int_splitU : forall (xc : R) bc a b, xc \in Interval a b ->
-  forall y, y \in Interval a b
-    = (y \in Interval a (BClose bc xc)) || (y \in Interval (BClose (~~bc) xc) b).
-Proof. by move=> xc bc a b hxc y; apply: int_splitU_po. Qed.
+Lemma ltreifN (x y : R) b : x < y ?<= if ~~b = ~~ (y < x ?<= if b).
+Proof. by rewrite Rreal_ltreifN ?ordered_Rreal. Qed.
 
-Lemma int_splitU2 : forall (x : R) a b, x \in Interval a b ->
+Lemma int_splitU (xc : R) bc a b : xc \in Interval a b ->
+  forall y, y \in Interval a b =
+    (y \in Interval a (BClose bc xc)) || (y \in Interval (BClose (~~bc) xc) b).
+Proof.
+move=> hxc y; rewrite !int_boundlr [le_boundr]lock /=.
+have [la /=|nla /=] := boolP (le_boundl a _); rewrite -lock.
+  have [lb /=|nlb /=] := boolP (le_boundr _ b); rewrite ?andbT ?andbF ?orbF //.
+    by rewrite /le_boundl /le_boundr /= ltreifN orbN.
+  symmetry; apply: contraNF nlb; rewrite /le_boundr /=.
+  case: b hxc => // bb xb hxc hyc.
+  suff /(ltreif_trans hyc) : xc < xb ?<= if bb.
+     by case: bc {hyc}=> //= /ltreifS.
+  by case: a bb hxc {la} => [[] ?|] [] /= /intP->.
+symmetry; apply: contraNF nla => /andP [hc _].
+case: a hxc hc => [[] xa|] hxc; rewrite /le_boundl //=.
+  by move=> /ltreifW /(ler_trans _) -> //; move: b hxc=> [[] ?|] /intP->.
+by move=> /ltreifW /(ltr_le_trans _) -> //; move: b hxc=> [[] ?|] /intP->.
+Qed.
+
+Lemma int_splitU2 (x : R) a b : x \in Interval a b ->
   forall y, y \in Interval a b =
     [|| (y \in Interval a (BClose false x)), (y == x)
       | (y \in Interval (BClose false x) b)].
-Proof. by move=> x a b hx y; apply: int_splitU2_po. Qed.
+Proof.
+move=> xab y; rewrite (int_splitU false xab y); congr (_ || _).
+rewrite (@int_splitU x true _ _ _ y); first by rewrite int_xx inE.
+by move: xab; rewrite boundl_in_int int_boundlr => /andP [].
+Qed.
 
 End IntervalOrdered.
 
