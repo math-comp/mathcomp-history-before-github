@@ -742,7 +742,7 @@ have szP: size P = n.+1 by rewrite size_addl size_polyXn ?size_opp ?size_poly1.
 rewrite -ltnS -szP -(size_map f) max_ring_poly_roots -?size_poly_eq0 ?{}szP //.
   apply/allP=> fy /mapP[y]; rewrite mem_enum !inE order_dvdn => /andP[Gy].
   move/eqP=> yn1 ->{fy}; apply/eqP.
-  by rewrite !(horner_lin, hornerXn) -fX // yn1 f1 subrr.
+  by rewrite !(hornerE, hornerXn) -fX // yn1 f1 subrr.
 have: uniq rs by exact: enum_uniq.
 have: all (mem G) rs by apply/allP=> y; rewrite mem_enum; case/setIP.
 elim: rs => //= y rs IHrs /andP[Gy Grs] /andP[y_rs]; rewrite andbC.

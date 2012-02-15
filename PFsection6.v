@@ -580,10 +580,11 @@ by rewrite ?(rmorphM, QnC_nu0).
 Qed.
 
 Lemma map_Qnum_poly (nu : {rmorphism algC -> algC}) p :
-  polyOver 1%:VS p -> map_poly (nu \o QnC) p = (map_poly QnC p).
+  p \in polyOver 1%:VS -> map_poly (nu \o QnC) p = (map_poly QnC p).
 Proof.
-move/polyOverP=> Qp; apply/polyP=> i; rewrite /= !coef_map /=.
-by have /injvP[a ->]:= Qp i; rewrite alg_num_field !fmorph_qnum.
+move=> Qp; apply/polyP=> i; rewrite /= !coef_map /=.
+have /injvP[a ->]: p`_i \in 1%:VS by exact: polyOverP.
+by rewrite alg_num_field !fmorph_qnum.
 Qed.
 
 Lemma restrict_aut_to_normal_num_field (nu : {rmorphism algC -> algC}) :
@@ -597,9 +598,9 @@ elim/last_ind: {-1}r => [|r1 z IHr] /= in x *.
   by move=> _ /injvP[a ->]; exists a%:A; rewrite alg_num_field !fmorph_qnum.
 rewrite all_rcons genField_rcons => /andP[/= rz r_r1] /poly_Fadjoin[q [r_q ->]].
 have /mapP[y _ Dy]: nu (QnC z) \in map QnC r.
-  rewrite -root_prod_factors big_map.
+  rewrite -root_prod_XsubC big_map.
   have: root (map_poly (nu \o QnC) p) (nu (QnC z)).
-    by rewrite fmorph_root (eqp_root Dp) root_prod_factors rz.
+    by rewrite fmorph_root (eqp_root Dp) root_prod_XsubC rz.
   rewrite map_Qnum_poly // (eqp_root (etrans (eqp_map _ _ _) Dp)) rmorph_prod.
   congr (root _ _); apply: eq_bigr => z1 _.
   by rewrite rmorphB /= map_polyX map_polyC.
@@ -632,11 +633,11 @@ pose k1 := chinese a b k 1; have /Qn_Aut_exists[nu Dnu]: coprime k1 (a * b).
   by rewrite !coprime_modl co_k_a coprime1n.
 exists nu => [x | y].
   have /poly_Fadjoin[p [Qp ->]]: x \in Fadjoin 1%:VS w_a by rewrite genQa memvf.
-  rewrite -!horner_map -!map_comp_poly !map_Qnum_poly // Dmu Dnu -rmorphX /=.
+  rewrite -!horner_map -!map_poly_comp !map_Qnum_poly // Dmu Dnu -rmorphX /=.
     by rewrite -(prim_expr_mod pr_w_a) chinese_modl // prim_expr_mod.
   by rewrite exprM (prim_expr_order pr_w_a) expr1n rmorph1.
 have /poly_Fadjoin[p [Qp ->]]: y \in Fadjoin 1%:VS w_b by rewrite genQb memvf.
-rewrite -!horner_map -!map_comp_poly !map_Qnum_poly // Dnu -rmorphX /=.
+rewrite -!horner_map -!map_poly_comp !map_Qnum_poly // Dnu -rmorphX /=.
   by rewrite -(prim_expr_mod pr_w_b) chinese_modr // prim_expr_mod.
 by rewrite mulnC exprM (prim_expr_order pr_w_b) expr1n rmorph1.
 Qed.
@@ -818,13 +819,13 @@ suffices: (n ^+ p.-1 == 0 %[mod p])%A.
 rewrite /eqAmod subr0 inE -if_neg -neq0N_neqC -lt0n p_gt0 // /algC_nat_dvd.
 pose F := \prod_(1 <= i < p) ('X - (eps ^+ i)%:P).
 have defF: F = \sum_(i < p) 'X^i.
-  apply: (mulfI (monic_neq0 (monic_factor 1))); rewrite -subrX1.
-  by rewrite -(prod_factors_of_unity pr_eps) big_ltn.
+  apply: (mulfI (monic_neq0 (monicXsubC 1))); rewrite -subrX1.
+  by rewrite -(factor_Xn_sub_1 pr_eps) big_ltn.
 have{defF} <-: F.[1] = p%:R.
   rewrite -[p]card_ord -sumr_const defF horner_sum; apply: eq_bigr => i _.
   by rewrite hornerXn expr1n.
 rewrite -[p.-1]card_ord {F}horner_prod big_add1 big_mkord -prodf_inv.
-rewrite -prodr_const -big_split rpred_prod //= => k _; rewrite !horner_lin.
+rewrite -prodr_const -big_split rpred_prod //= => k _; rewrite !hornerE.
 rewrite -[n](divfK nz_e) -[_ * _ / _]mulrA rpredM {e_dv_n}//.
 have p'k: ~~ (p %| k.+1)%N by rewrite gtnNdvd // -{2}(prednK p_gt0) ltnS.
 have [r {1}->]: exists r, eps = eps ^+ k.+1 ^+ r.

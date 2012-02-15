@@ -9,81 +9,8 @@ Unset Printing Implicit Defensive.
 Import GRing.
 Open Local Scope ring_scope.
 
-Import RPdiv.
+Import RPdiv PreClosedField.
 
-Module PolyDivPreClosedField.
-Section PolyDivPreClosedField.
-
-Variable F : fieldType.
-
-(* With ClosedField axiom *)
-Variable axiom : GRing.ClosedField.axiom F.
-
-Lemma root_size_neq1 : forall p : {poly F},
-  reflect (exists x, root p x) (size p != 1%N).
-Proof.
-move=> p; case p0: (p == 0).
-  rewrite (eqP p0) /= size_poly0 /=.
-  by constructor; exists 0; rewrite root0.
-apply: (iffP idP); last first.
-  case=> x; rewrite root_factor_theorem; move/rdvdp_leq.
-  by move/(_ (negbT p0)); rewrite size_factor neq_ltn; move->; rewrite orbT.
-move/negPf => sp.
-case: (ltnP (size p).-1 1)=> [|s2].
-  rewrite ltnS leqn0 -subn1 subn_eq0 leq_eqVlt ltnS leqn0.
-  by rewrite size_poly_eq0 sp p0.
-have := axiom (fun n => -p`_n * (lead_coef p)^-1) s2.
-case=> x H; exists x.
-have : 0 < size p by apply: leq_trans s2 _; apply: leq_pred.
-rewrite rootE horner_coef; move/prednK<-; rewrite big_ord_recr /= H.
-apply/eqP; rewrite big_distrr -big_split big1 //= => i _.
-rewrite mulrA [ _ * (_ / _)]mulrCA mulfV; last by rewrite lead_coef_eq0 p0.
-by rewrite mulr1 mulNr addrN.
-Qed.
-
-Lemma ex_px_neq0 : forall p : {poly F}, p != 0 -> exists x, ~~ root p x.
-Proof.
-move=> p p0.
-case sp1: (size p == 1%N).
-  by move/size1P: sp1=> [x x0 ->]; exists x; rewrite rootC.
-have: (size (1 + p) != 1%N).
-  rewrite addrC size_addl ?sp1 //.
-  move/negPf: p0 => p0f.
-  rewrite size_poly1 ltnNge leq_eqVlt sp1.
-  by move: p0f; rewrite -size_poly_eq0; case: size.
-move/root_size_neq1 => [x rx]; exists x.
-move: rx; rewrite rootE horner_add hornerC.
-rewrite addrC -(inj_eq (@addIr _ (-1))) addrK sub0r rootE.
-move/eqP->; rewrite eq_sym -(inj_eq (addrI 1)).
-by rewrite addr0 subrr oner_eq0.
-Qed.
-
-End PolyDivPreClosedField.
-End PolyDivPreClosedField.
-
-Section PolyDivClosedFields.
-
-(* Same thing with a proper ClosedField *)
-Variable F : closedFieldType.
-
-Lemma root_size_neq1 : forall p : {poly F},
-  reflect (exists x, root p x) (size p != 1%N).
-Proof. by apply: PolyDivPreClosedField.root_size_neq1; case: F=> [? []]. Qed.
-
-Lemma ex_px_neq0 : forall p : {poly F}, p != 0 -> exists x, ~~ root p x.
-Proof. by apply: PolyDivPreClosedField.ex_px_neq0; case: F=> [? []]. Qed.
-
-End PolyDivClosedFields.
-
-
-
-Import PolyDivPreClosedField.
-
-Set Implicit Arguments.
-Unset Strict Implicit.
-Unset Printing Implicit Defensive.
-
-Open Scope ring_scope.
 (*
 Section TermEqType.
 
@@ -178,9 +105,10 @@ Proof.
 move=> k pf e. 
 elim: pf e k; first by move=> *; rewrite size_poly0.
 move=> c qf Pqf e k; rewrite Pqf.
-rewrite size_amulX -(size_poly_eq0 (eval_poly _ _)).
+rewrite size_MXaddC -(size_poly_eq0 (eval_poly _ _)).
 by case: (size (eval_poly e qf))=> //=; case: eqP; rewrite // orbF.
 Qed.
+
 Lemma sizeT_qf : forall k p, (forall n, qf (k n))
   -> rpoly p -> qf (sizeT k p).
 Proof.
@@ -210,7 +138,7 @@ Definition lift (p : {poly F}) := let: q := p in map Const q.
 Lemma eval_lift : forall e p, eval_poly e (lift p) = p.
 Proof.
 move=> e p; elim/poly_ind: p => [|p c]; first by rewrite /lift polyseq0.
-rewrite -poly_cons_def /lift polyseq_cons /nilp.
+rewrite -cons_poly_def /lift polyseq_cons /nilp.
 case pn0: (_==_)=> /=. 
   move=> _; rewrite polyseqC.
   case c0: (_==_)=> /=.
@@ -218,7 +146,7 @@ case pn0: (_==_)=> /=.
     by apply:val_inj=> /=; rewrite polyseq_cons // polyseq0.
   rewrite mul0r add0r.
   by apply:val_inj=> /=; rewrite polyseq_cons // /nilp pn0.
-by move->; rewrite -poly_cons_def.
+by move->; rewrite -cons_poly_def.
 Qed.
 
 Fixpoint lead_coefT (k : term F -> fF) p :=  
@@ -238,8 +166,8 @@ rewrite Pp'; last by move=> *; rewrite //= -Pk.
 rewrite GRing.eval_If /= lead_coef_eq0.
 case p'0: (_ == _).
   by rewrite (eqP p'0) mul0r add0r lead_coefC -Pk.
-rewrite lead_coef_addl ?lead_coef_mulX //.
-rewrite polyseqC size_mul_id ?p'0 //.
+rewrite lead_coefDl ?lead_coefMX //.
+rewrite polyseqC size_mul ?p'0 //.
   rewrite size_polyX addnC /=.
   case: (_ == _)=> //=.
   by rewrite ltnS lt0n size_poly_eq0 p'0.
@@ -335,7 +263,7 @@ Lemma eval_natmulpT : forall p n e,
   eval_poly e (natmulpT n p) = (eval_poly e p) *+ n.
 Proof.
 move=> p n e; elim: p; rewrite //= ?mul0rn // => c p ->.
-rewrite mulrnDl mulr_natl polyC_natmul; congr (_+_). 
+rewrite mulrnDl mulr_natl polyC_muln; congr (_+_). 
 by rewrite -mulr_natl mulrAC -mulrA mulr_natl mulrC.
 Qed.
 
@@ -711,13 +639,13 @@ move=> i t e x rt; elim: t rt.
     by rewrite // nth_set_nth /= ni.
 - by move=> r rt; rewrite /= mul0r add0r hornerC.
 - by move=> r rt; rewrite /= mul0r add0r hornerC.
-- by move=> t tP s sP; case/andP=>??; rewrite /= eval_sumpT horner_add tP ?sP. 
-- by move=> t tP rt; rewrite /= eval_opppT horner_opp tP.
-- by move=> t tP n rt; rewrite /= eval_natmulpT horner_mulrn tP.
-- by move=> t tP s sP; case/andP=>??; rewrite /= eval_mulpT horner_mul tP ?sP.
+- by move=> t tP s sP; case/andP=>??; rewrite /= eval_sumpT hornerD tP ?sP. 
+- by move=> t tP rt; rewrite /= eval_opppT hornerN tP.
+- by move=> t tP n rt; rewrite /= eval_natmulpT hornerMn tP.
+- by move=> t tP s sP; case/andP=>??; rewrite /= eval_mulpT hornerM tP ?sP.
 - by move=> t tP.
 - move=> t tP /=; elim; first by rewrite /= expr0 mul0r add0r hornerC.
-  by move=> n ihn rt; rewrite /= eval_mulpT exprSr horner_mul ihn ?tP // mulrC.
+  by move=> n ihn rt; rewrite /= eval_mulpT exprSr hornerM ihn ?tP // mulrC.
 Qed.
 
 Lemma rabstrX : forall i t, rterm t -> rpoly (abstrX i t).
@@ -812,14 +740,14 @@ case g0: (\big[(@rgcdp F)/0%:P]_(j <- map (eval_poly e \o abstrX i) ps) j == 0).
     case=> _; move/holds_conjn=> hc; move/hc:rqs.
     by rewrite -root_bigmul //= (eqP m0) root0.
   constructor; move/negP:m0; move/negP=>m0.
-  case: (ex_px_neq0 axiom m0)=> x {m0}.
+  case: (closed_nonrootP axiom _ m0) => x {m0}.
   rewrite abstrX_bigmul eval_bigmul -bigmap_id.
   rewrite root_bigmul=> m0.
   exists x; do 2?constructor=> //.
     apply/holds_conj; rewrite //= -root_biggcd.
     by rewrite (eqp_root (aux _ _ _ )) (eqP g0) root0.
   by apply/holds_conjn.
-apply:(iffP (root_size_neq1 axiom _)); case=> x Px; exists x; move:Px => //=.
+apply:(iffP (closed_rootP axiom _)); case=> x Px; exists x; move:Px => //=.
   rewrite (eqp_root (eqp_rgdco_gdco _ _)).
   rewrite root_gdco ?g0 //.
   rewrite -(eqp_root (aux _ _ _ )) root_biggcd.

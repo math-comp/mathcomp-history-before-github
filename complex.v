@@ -358,11 +358,11 @@ case: (boolP (0 <= x)) (@ivt ('X^2 - x%:P) 0 (1 + x))=> px; last first.
   by move=> _; exists 0; rewrite lerr eqxx.
 case.
 * by rewrite ler_paddr ?ler01.
-* rewrite !horner_lin oppr_le0 px /=.
+* rewrite !hornerE oppr_le0 px /=.
   rewrite subr_ge0 (@ler_trans _ (1 + x)) //.
     by rewrite ler_paddl ?ler01 ?lerr.
   by rewrite ler_pemulr // addrC -subr_ge0 ?addrK // subr0 ler_paddl ?ler01.
-* move=> y hy; rewrite /root !horner_lin; move/eqP.
+* move=> y hy; rewrite /root !hornerE; move/eqP.
   move/(canRL (@addrNK _ _)); rewrite add0r=> <-.
 by exists y; case/andP: hy=> -> _; rewrite eqxx.
 Qed.

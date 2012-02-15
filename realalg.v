@@ -15,6 +15,7 @@ Reserved Notation "{ 'alg' T }" (at level 0, format "{ 'alg'  T }").
 Module RealAlg.
 
 Local Open Scope ring_scope.
+Local Notation eval := horner_eval.
 
 Section RealAlg.
 
@@ -254,7 +255,7 @@ have [|ncop] := boolP (coprimep p p^`()).
 case: (@smaller_factor _ p p^`() x); rewrite ?monic_annul_creal //.
   rewrite gtNdvdp // -?size_poly_eq0 size_deriv eq_sp_Sn //=.
   apply: contra ncop=> /eqP n_eq0; move: eq_sp_Sn; rewrite n_eq0.
-  by move=> /eqP /size1P [c c_neq0 ->]; rewrite derivC coprimep0 polyC_eqp1.
+  by move=> /eqP /size_poly1P [c c_neq0 ->]; rewrite derivC coprimep0 polyC_eqp1.
 move=> r /andP [hsr monic_r rx_eq0].
 apply: (ihn (AlgCReal monic_r rx_eq0))=> /=.
 by rewrite -ltnS -eq_sp_Sn.
@@ -322,7 +323,7 @@ have [eq_pq|] := altP (p =P q).
     by close.
   case: (@smaller_factor _ p p^`() x); rewrite ?monic_annul_creal //.
     have sp_gt1 : (1 < size p)%N.
-      have [|//|/eqP /size1P [c c_neq0 eq_pc]] := ltngtP.
+      have [|//|/eqP /size_poly1P [c c_neq0 eq_pc]] := ltngtP.
          rewrite ltnS leqn0=> /eqP sp_eq0.
          by move: eq_sp_Sn; rewrite -eq_pq sp_eq0.
       by move/negPf: ncpp'<-; rewrite eq_pc derivC coprimep0 polyC_eqp1.
@@ -387,7 +388,7 @@ Canonical alg_of_quotType := [quotType of {alg F}].
 Local Open Scope quotient_scope.
 
 Definition cst_algcreal (x : F) :=
-  AlgCReal (monic_factor _) (@root_cst_creal _ x).
+  AlgCReal (monicXsubC _) (@root_cst_creal _ x).
 
 Lemma size_annul_creal_gt1 (x : algcreal) :
   (1 < size (annul_creal x))%N.
@@ -452,9 +453,9 @@ elim: size {-3}x x_neq0 (leqnn (size (annul_creal x))) =>
   {x} [|n ihn] x x_neq0 hx.
   by move: hx; rewrite leqn0 size_poly_eq0 annul_creal_eq0.
 have [dvdX|ndvdX] := boolP ('X %| annul_creal x); last first.
-  by exists x=> //; rewrite -rootE -dvdp_factorl subr0.
+  by exists x=> //; rewrite -rootE -dvdp_XsubCl subr0.
 have monic_p: monic (@annul_creal x %/ 'X).
-  by rewrite -(monic_mulr _ (@monicX _)) divpK //.
+  by rewrite -(monicMr _ (@monicX _)) divpK //.
 have root_p: ((@annul_creal x %/ 'X).[x] == 0)%CR.
   have := @eq_creal_refl _ ((annul_creal x).[x])%CR.
   rewrite -{1}(divpK dvdX) horner_crealM // root_annul_creal.
@@ -497,7 +498,7 @@ apply: eq_crealP; exists_big_modulus m F.
 by close.
 Qed.
 
-Lemma root_mul_algcreal (x y : algcreal) :
+Lemma rootM_algcreal (x y : algcreal) :
   ((annul_creal (div_algcreal x (inv_algcreal y))).[x * y] == 0)%CR.
 Proof.
 rewrite /div_algcreal /inv_algcreal.
@@ -513,7 +514,7 @@ by apply: eq_crealP; exists m0=> * /=; rewrite invrK subrr absr0.
 Qed.
 
 Definition mul_algcreal (x y : algcreal) :=
-  AlgCReal (@monic_annul_creal _) (@root_mul_algcreal x y).
+  AlgCReal (@monic_annul_creal _) (@rootM_algcreal x y).
 
 Local Open Scope quotient_scope.
 
@@ -918,7 +919,7 @@ Canonical alg_seq_poly_ChoiceType :=
 
 Require Import zmodp.
 
-Lemma map_poly_comp (aR : fieldType) (rR : idomainType) (f : {rmorphism aR -> rR})
+Lemma map_comp_poly (aR : fieldType) (rR : idomainType) (f : {rmorphism aR -> rR})
    (p q : {poly aR}) : (p \Po q) ^ f = (p ^ f) \Po (q ^ f).
 Proof.
 rewrite !comp_polyE size_map_poly; apply: (big_ind2 (fun x y => x ^ f = y)).
@@ -941,8 +942,8 @@ exists (x *+ n - a, q :: [seq r \Po p | r <- sp]); last first.
   by rewrite /= size_map hsize.
 apply/forallP=> /=; rewrite -add1n=> i; apply/eqP.
 have [k->|l->] := splitP i; first by rewrite !ord1.
-rewrite add1n /= (nth_map 0) ?hsize // map_poly_comp /=.
-by rewrite horner_comp_poly hp; apply/eqP.
+rewrite add1n /= (nth_map 0) ?hsize // map_comp_poly /=.
+by rewrite horner_comp hp; apply/eqP.
 Qed.
 
 Definition pet_alg s : {alg F} :=
@@ -1060,7 +1061,7 @@ Lemma poly_groundK p :
 Proof.
 have [->|p_neq0] := eqVneq p 0; first by rewrite poly_ground0 rmorph0 horner0.
 unlock poly_ground; rewrite horner_polyC /eval /= swapXY_map_poly2 swapXYK.
-apply/polyP=> i /=; rewrite coef_map_id0_poly ?horner0 // coef_map /=.
+apply/polyP=> i /=; rewrite coef_map_id0 ?horner0 // coef_map /=.
 by rewrite coef_Poly pet_algK.
 Qed.
 
@@ -1073,11 +1074,11 @@ move=> /andP[pa_le0 pb_ge0]; apply/sig2W.
 have hpab: p.[a] * p.[b] <= 0 by rewrite mulr_le0_ge0.
 move=> {pa_le0 pb_ge0}; wlog monic_p : p hpab p_neq0 / monic p.
   set q := (lead_coef p) ^-1 *: p => /(_ q).
-  rewrite !horner_scaler mulrCA !mulrA -mulrA mulr_ge0_le0 //; last first.
+  rewrite !hornerZ mulrCA !mulrA -mulrA mulr_ge0_le0 //; last first.
     by rewrite (@exprn_even_ge0 _ 2).
-  have mq: monic q by rewrite /monic lead_coef_scale mulVf ?lead_coef_eq0.
+  have mq: monic q by rewrite /monic lead_coefZ mulVf ?lead_coef_eq0.
   rewrite monic_neq0 ?mq=> // [] [] // x hx hqx; exists x=> //.
-  move: hqx; rewrite /q -mul_polyC rmorphM /= root_mul map_polyC rootC.
+  move: hqx; rewrite /q -mul_polyC rmorphM /= rootM map_polyC rootC.
   by rewrite fmorph_eq0 invr_eq0 lead_coef_eq0 (negPf p_neq0).
 pose c := mid a b; pose r := mid b (-a).
 have r_ge0 : 0 <= r by rewrite mulr_ge0 ?ger0E // subr_ge0.
@@ -1138,10 +1139,10 @@ rewrite ?size_map_polyC in ltn_uq ltn_vp.
 rewrite ?size_poly_gt0 in u_neq0 v_neq0.
 pose a := pet_alg p.
 have := erefl (size ((u * poly_ground p) ^ (map_poly to_alg)).[a%:P]).
-rewrite {2}hpq !{1}rmorphM /= !{1}horner_mul poly_groundK -map_comp_poly /=.
+rewrite {2}hpq !{1}rmorphM /= !{1}hornerM poly_groundK -map_poly_comp /=.
 have /eq_map_poly-> : (map_poly to_alg) \o polyC =1 polyC \o to_alg.
   by move=> r /=; rewrite map_polyC.
-rewrite map_comp_poly horner_map (rootP hq) mulr0 size_poly0.
+rewrite map_poly_comp horner_map (rootP hq) mulr0 size_poly0.
 move/eqP; rewrite size_poly_eq0 mulf_eq0 (negPf p_neq0) orbF.
 pose u' : {poly F} := lead_coef (swapXY u).
 have [/rootP u'a_eq0|u'a_neq0] := eqVneq (u' ^ to_alg).[a] 0; last first.
@@ -1342,7 +1343,7 @@ Proof.
 do 2!apply: eq_to_alg_creal.
 rewrite -!horner_to_alg_creal from_alg_crealK !to_alg_creal0.
 rewrite horner_creal_cst; apply/eq_creal_cst; rewrite -rootE.
-rewrite /annul_from_alg; have [/size1P [c c_neq0 hc]|sp_neq1] := boolP (_ == _).
+rewrite /annul_from_alg; have [/size_poly1P [c c_neq0 hc]|sp_neq1] := boolP (_ == _).
   set p := _ ^ _; suff ->: p = (annul_alg x) ^ to_alg by apply: root_annul_alg.
   congr (_ ^ _); rewrite -{2}[annul_alg x]poly_groundK /=.
   by rewrite !hc lead_coefC map_polyC /= hornerC.
@@ -1351,16 +1352,16 @@ have [||[u v] /= [hu hv] hpq] := @resultant_in_ideal _
 + rewrite ltn_neqAle eq_sym sp_neq1 //= lt0n size_poly_eq0.
   by rewrite poly_ground_eq0 annul_alg_neq0.
 + rewrite size_map_polyC -(size_map_poly [rmorphism of to_alg]) /=.
-  rewrite (has_root_size_gt1 _ (root_annul_pet_alg _)) //.
+  rewrite (root_size_gt1 _ (root_annul_pet_alg _)) //.
   by rewrite map_poly_eq0 annul_pet_alg_neq0 ?annul_alg_neq0.
 move: hpq=> /(f_equal (map_poly (map_poly to_alg))).
 rewrite map_polyC /= => /(f_equal (eval (pet_alg (annul_alg x))%:P)).
 rewrite {1}/eval hornerC !rmorphD !{1}rmorphM /= /eval /= => ->.
-rewrite -map_comp_poly /=.
+rewrite -map_poly_comp /=.
 have /eq_map_poly->: (map_poly (@to_alg F)) \o polyC =1 polyC \o (@to_alg F).
   by move=> r /=; rewrite map_polyC.
-rewrite map_comp_poly horner_map /= (rootP (root_annul_pet_alg _)) mulr0 addr0.
-by rewrite rmorphM /= root_mul orbC poly_groundK root_annul_alg.
+rewrite map_poly_comp horner_map /= (rootP (root_annul_pet_alg _)) mulr0 addr0.
+by rewrite rmorphM /= rootM orbC poly_groundK root_annul_alg.
 Qed.
 
 Lemma annul_alg_from_alg_creal_neq0 (x : {alg {alg F}}) :

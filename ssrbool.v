@@ -622,21 +622,6 @@ Proof. by split=> x; case: (hP x). Qed.
 
 End AllAnd.
 
-Section AndConstraint.
-
-Variables P1 P2 P3 P4 P5 : Prop.
-Context {cP1 : constraint P1} {cP2 : constraint P2} {cP3 : constraint P3}.
-Context {cP4 : constraint P4} {cP5 : constraint P5}.
-
-Global Instance and3_constraint : constraint [/\ P1, P2 & P3].
-Proof. by []. Qed.
-Global Instance and4_constraint : constraint [/\ P1, P2, P3 & P4].
-Proof. by []. Qed.
-Global Instance and5_constraint : constraint [/\ P1, P2, P3, P4 & P5].
-Proof. by []. Qed.
-
-End AndConstraint.
-
 Section ReflectConnectives.
 
 Variable b1 b2 b3 b4 b5 : bool.

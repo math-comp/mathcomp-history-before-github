@@ -1,9 +1,7 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq tuple.
-Require Import fintype finfun bigop ssralg poly polydiv.
-Require Import zmodp vector algebra fieldext.
-Require Import fingroup perm finset matrix mxalgebra.
-Require Import separable choice.
-Require Import quotient morphism.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
+Require Import tuple finfun bigop ssralg poly polydiv.
+Require Import finset fingroup zmodp morphism perm quotient cyclic.
+Require Import matrix mxalgebra vector algebra fieldext separable.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -57,7 +55,7 @@ split=>//.
 move/Hvs: Hlx.
 rewrite eigenspaceIn.
 move/eqP ->.
-by rewrite GRing.scalerA GRing.divff // GRing.scale1r.
+by rewrite scalerA divff // scale1r.
 Qed.
 
 End Eigenspace.
@@ -121,13 +119,15 @@ Proof. apply/kHomP. by split; move => ? ?; rewrite !unit_lappE. Qed.
 
 Variable (f : 'End(L)).
 
-Lemma kHomFixedPoly : forall p, kHom f -> (polyOver K p) -> map_poly f p = p.
+Let K_P : addSubgroupPred K := _.
+
+Lemma kHomFixedPoly : forall p, kHom f -> p \in polyOver K -> map_poly f p = p.
 Proof.
 move => p.
 case/kHomP => HK _.
 move/polyOverP => Hp.
 apply/polyP => i.
-by rewrite coef_map /= HK.
+by rewrite coef_map /= HK ?Hp.
 Qed.
 
 Definition kAut : pred 'End(L) := fun f =>  kHom f && (f @: E == E)%VS.
@@ -139,10 +139,10 @@ Let kHomExtendF_linear : forall x y,
  linear (kHomExtendF x y).
 Proof.
 move => x y k a b.
-rewrite /kHomExtendF poly_is_linear raddfD horner_lin.
+rewrite /kHomExtendF linearP /= raddfD hornerE.
 congr (_ + _).
 rewrite -[(map_poly f (poly_for_Fadjoin E x a)).[y]]mul1r.
-rewrite scalerAl -horner_scaler.
+rewrite scalerAl -hornerZ.
 congr (_.[_]).
 apply/polyP => i.
 rewrite !(coefZ, coef_map [linear of f]).
@@ -218,7 +218,7 @@ split; first by move => a b; rewrite /= HE // subaP.
 by rewrite /= aunit_eq1 HK // mem1v.
 Qed.
 
-Lemma kHom_root : forall p x, polyOver E p -> x \in E ->
+Lemma kHom_root : forall p x, p \in polyOver E -> x \in E ->
  root p x -> root (map_poly f p) (f x).
 Proof.
 rewrite/root.
@@ -226,17 +226,17 @@ move => ? x.
 case/polyOver_suba => p -> Hx.
 set (f' := (RMorphism kHomRmorph_subproof)).
 set (g := (RMorphism (sa_val_rmorph E))).
-rewrite -[x]/(sa_val (Suba Hx)) -map_comp_poly ?linear0 //.
+rewrite -[x]/(sa_val (Suba Hx)) -map_poly_comp ?linear0 //.
 rewrite (horner_map f') horner_map.
 move/eqP => /= ->.
 by rewrite linear0.
 Qed.
 
-Lemma kHom_rootK : forall p x, polyOver K p -> x \in E ->
+Lemma kHom_rootK : forall p x, p \in polyOver K -> x \in E ->
  root p x -> root p (f x).
 Proof.
 move => p x Hp Hx Hroot.
-by rewrite -(kHomFixedPoly Hf Hp) kHom_root // (polyOver_subset HKE).
+by rewrite -(kHomFixedPoly Hf Hp) kHom_root // (polyOverSv HKE).
 Qed.
 
 Variables (x y : L).
@@ -249,7 +249,7 @@ by rewrite kHomExtendE poly_for_K // map_polyC hornerC.
 Qed.
 
 Lemma kHomExtend_poly : forall p,
- polyOver E p -> kHomExtend E f x y (p.[x]) = (map_poly f p).[y].
+  p \in polyOver E -> kHomExtend E f x y (p.[x]) = (map_poly f p).[y].
 Proof.
 move => p Hp.
 rewrite kHomExtendE.
@@ -259,12 +259,12 @@ have Hfmin : monic (map_poly f (minPoly E x)).
  by rewrite /monic lead_coef_map_eq;
   move/eqP: (monic_minPoly E x) ->;
   rewrite /= HK ?mem1v // oner_neq0.
-rewrite (divp_eq (map_poly f p) (map_poly f (minPoly E x))) !horner_lin.
+rewrite (divp_eq (map_poly f p) (map_poly f (minPoly E x))) !hornerE.
 move/eqP: Hy ->.
 rewrite mulr0 add0r.
 case/polyOver_suba: Hp => p' ->.
 case/polyOver_suba: (minPolyOver E x) => q' ->.
-rewrite -map_modp -!map_comp_poly ?linear0 //=.
+rewrite -map_modp -!map_poly_comp ?linear0 //=.
 have Hmorph := kHomRmorph_subproof.
 rewrite -[f \o sa_val_rmorphism E]/(GRing.RMorphism.apply (RMorphism Hmorph)).
 by rewrite map_modp !map_polyE /= 2![map (_ \o _) _]map_comp.
@@ -282,14 +282,12 @@ apply/kHomP; split.
 move => a b.
 case/poly_Fadjoin => p [Hp ->].
 case/poly_Fadjoin => q [Hq ->].
-rewrite -horner_mul !kHomExtend_poly ?mulp_polyOver // -horner_mul.
+rewrite -hornerM !kHomExtend_poly ?rpredM // -hornerM.
 congr (_.[_]).
 apply/polyP => i.
 rewrite coef_map !coefM /= linear_sum.
 apply: eq_bigr => j _.
-move/polyOverP: Hp => Hp.
-move/polyOverP: Hq => Hq.
-by rewrite !coef_map /= HE.
+by rewrite !coef_map /= HE ?(polyOverP _).
 Qed.
 
 End kHomExtend.
@@ -318,10 +316,7 @@ move => Hf.
 split; last by move => x y _ _; apply: (rmorphM (RMorphism Hf)).
 move => ?; case/injvP => k ->.
 rewrite linearZ /=.
-(* There has got to be a better way than this *)
-rewrite -[fun_of_lapp f]/(GRing.RMorphism.apply 
-                          (RMorphism (GRing.LRMorphism.base Hf))).
-by rewrite (rmorph1 (RMorphism Hf)).
+by rewrite [f 1](rmorph1 (RMorphism Hf)).
 Qed.
 
 (* To prove this hypothesis it is suffices to prove NormalFieldExt F.
@@ -362,7 +357,7 @@ exists (map f (vbasis (fullv L))).
  apply/allpairsP.
  exists (f v, map f vs); split => //.
  move: (xchooseP (NormalFieldExt F v)).
- rewrite -root_prod_factors.
+ rewrite -root_prod_XsubC.
  move/eqP <-.
  by rewrite (kHom_rootK Hf) ?subvf ?minPolyOver ?memvf ?root_minPoly.
 apply/eqP/eq_lapp => v.
@@ -524,15 +519,15 @@ have HaE : a \notin E.
  rewrite -memv_cap -memv0.
  apply/subvP.
  by rewrite capvC capv_compl subv_refl.
-have HminE : polyOver E (minPoly K a).
- by rewrite (polyOver_subset HKE) // minPolyOver.
+have HminE: minPoly K a \in polyOver E.
+ by rewrite (polyOverSv HKE) // minPolyOver.
 have : (1 < size (minPoly E a)) by rewrite size_minPoly ltnS.
 move: (minPoly_dvdp HminE (root_minPoly K a)).
 case/polyOver_suba : HminE => p Hp.
 case/polyOver_suba : (minPolyOver E a) => q Hq.
 have Hmorph := (kHomRmorph_subproof Hx).
 rewrite Hp Hq dvdp_map size_map_poly -(dvdp_map (RMorphism Hmorph)).
-rewrite -(size_map_poly (RMorphism Hmorph)) !map_comp_poly ?linear0 // -Hp /=.
+rewrite -(size_map_poly (RMorphism Hmorph)) !map_poly_comp ?linear0 // -Hp /=.
 rewrite [map_poly x (minPoly K a)](kHomFixedPoly Hx) -?Hq; last first.
  by apply: minPolyOver.
 clear p Hp q Hq Hmorph.
@@ -556,9 +551,9 @@ have [b] : exists b, root (map_poly x (minPoly E a)) b.
  apply: contraR.
  rewrite root_factor_theorem.
  move/(conj (dvdpp ('X - z%:P)))/andP.
- rewrite -size2_dvdp_gdco -?size_poly_eq0 ?size_factor //.
+ rewrite -size2_dvdp_gdco -?size_poly_eq0 ?size_XsubC //.
  case: gdcopP => q _.
- rewrite -size_poly_eq0 size_factor orbF.
+ rewrite -size_poly_eq0 size_XsubC orbF.
  move/coprimepP => Hpq Hq Hzq.
  apply/coprimepP => d Hdp Hdz.
  apply: Hpq; last done.
@@ -1122,11 +1117,11 @@ apply/andP; split; last first.
  move: Ha.
  rewrite -{1}HfE.
  case/memv_imgP => b [Hb Hfb].
- rewrite Hfb Hfxb // -Aut_mul // -[X in _ \in X]HfE.
+ rewrite Hfb Hfxb // -Aut_mul // -[in X in _ \in X]HfE.
  apply/memv_imgP.
  exists (val (repr (x * (y * x^-1))%g) b).
- split; first by rewrite -[X in _ \in X]HxyxVE memv_img.
- rewrite Hfxb; last by rewrite -[X in _ \in X]HxyxVE memv_img.
+ split; first by rewrite -[in X in _ \in X]HxyxVE memv_img.
+ rewrite Hfxb; last by rewrite -[in X in _ \in X]HxyxVE memv_img.
  by rewrite -Aut_mul // mulgA mulgKV.
 apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
 move => _ /memv_imgP [a [Ha ->]].
@@ -1134,7 +1129,7 @@ case/kHomP: HxyxV => /(_ _ Ha) => HxyxVa _.
 move: HxyxVa.
 have HaE : a \in E by move/subvP: HKE; apply.
 move/(f_equal (val f)).
-rewrite Hfxb; last by rewrite -[X in _ \in X]HxyxVE // memv_img.
+rewrite Hfxb; last by rewrite -[in X in _ \in X]HxyxVE // memv_img.
 rewrite -Aut_mul // mulgA mulgKV Aut_mul; last done.
 by rewrite -Hfxb.
 Qed.
@@ -1144,7 +1139,7 @@ Lemma memv_aut (K E : {algebra L}) x a : (K <= E)%VS ->
 Proof.
 move => HKE.
 case/(Aut_kAut HKE)/(_ (mem_repr_coset _))/andP => _ /eqP HE HaE.
-by rewrite -[X in _ \in X]HE memv_img.
+by rewrite -[in X in _ \in X]HE memv_img.
 Qed.
 
 Lemma uniq_aut (K E : {algebra L}) n f_ :
@@ -1262,7 +1257,7 @@ apply/FixedFieldP.
 split.
  apply: memv_suml => i.
  case/(Aut_kAut HKE)/(_ (mem_repr_coset _))/andP => _ /eqP HE.
- by rewrite -[X in _ \in X]HE memv_img.
+ by rewrite -[in X in _ \in X]HE memv_img.
 move => x Hx.
 rewrite rmorph_sum /galoisTrace -{2}['Aut(E | K)%g](rcoset_id Hx).
 rewrite (reindex_inj (mulIg (x^-1)%g)).
@@ -1316,7 +1311,7 @@ apply/FixedFieldP.
 split.
  apply: memv_prodl => i.
  case/(Aut_kAut HKE)/(_ (mem_repr_coset _))/andP => _ /eqP HE.
- by rewrite -[X in _ \in X]HE memv_img.
+ by rewrite -[in X in _ \in X]HE memv_img.
 move => x Hx.
 rewrite rmorph_prod /galoisNorm -{2}['Aut(E | K)%g](rcoset_id Hx).
 rewrite (reindex_inj (mulIg (x^-1)%g)).
@@ -1356,7 +1351,7 @@ move/mulfI; apply.
 rewrite !mul_polyC Hpq.
 congr (_ *: _).
 move: (f_equal (fun f => lead_coef f) Hpq).
-by rewrite -!mul_polyC !lead_coef_mul_monic // !lead_coefC.
+by rewrite -!mul_polyC !lead_coef_Mmonic // !lead_coefC.
 Qed.
 
 Lemma normalP : forall (K E : {algebra L}), 
@@ -1375,16 +1370,16 @@ apply: (iffP forallP); last first.
  case: (Hnorm _ Ha) => r.
  move/allP => Hr Har.
  apply: Hr.
- rewrite -root_prod_factors.
+ rewrite -root_prod_XsubC.
  move/(f_equal (map_poly (fun_of_lapp (val x)))): (Har).
  rewrite (kHomFixedPoly Hx) ?minPolyOver //= Har => ->.
- by rewrite root_map_poly // -Har root_minPoly.
+ by rewrite rmorph_root // -Har root_minPoly.
 move => Hnorm a HaE.
 case: (NormalFieldExt K a) => r.
 move/eqP => Hr.
 exists r => //.
 apply/allP => b.
-rewrite -root_prod_factors -Hr -[minPoly K a]polyseqK.
+rewrite -root_prod_XsubC -Hr -[minPoly K a]polyseqK.
 rewrite -[polyseq _](@map_id_in _ [rmorphism of (val (1:LAut))%g]); last first.
  move => z _ /=.
  by rewrite unit_lappE.
@@ -1421,11 +1416,11 @@ set E := Fadjoin K x.
 case/normalP/(_ _ (memx_Fadjoin K x)) => r.
 move/allP => Hr Hmin.
 apply/succn_inj.
-rewrite -size_minPoly Hmin size_prod_factors.
+rewrite -size_minPoly Hmin size_prod_XsubC.
 congr (_.+1).
 apply/eqP.
 move: Hsep.
-rewrite /separableElement Hmin separable_factors => Huniq.
+rewrite /separableElement Hmin separable_prod_XsubC => Huniq.
 rewrite eqn_leq.
 apply/andP; split; last first.
  rewrite cardE.
@@ -1445,7 +1440,7 @@ apply/andP; split; last first.
   by move/(kHomFixedPoly)/(_ Hp) => -> _.
  move => ? /mapP [a Ha ->].
  rewrite mem_enum in Ha.
- rewrite -root_prod_factors -Hmin /f.
+ rewrite -root_prod_XsubC -Hmin /f.
  case/andP: (Aut_kAut (subsetKFadjoin _ _) Ha (mem_repr_coset _)).
  move/(kHom_rootK)/(_ (subsetKFadjoin _ _) _ _
                       (minPolyOver K x) (memx_Fadjoin _ _)) => Hroot _.
@@ -1466,14 +1461,12 @@ have Hroot : forall c, c \in r -> root (map_poly \1%VS (minPoly K x)) c.
  move => c Hc.
  rewrite (eq_map_poly (fun x => unit_lappE x)).
  rewrite map_polyE map_id polyseqK.
- by rewrite Hmin root_prod_factors.
+ by rewrite Hmin root_prod_XsubC.
 have Hpoly : forall c, c \in r -> c = (kHomExtend K \1%VS x c) x.
  move => c Hc.
  rewrite -{2}[x]hornerX.
- rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Hc) (polyOverX _)).
- rewrite (eq_map_poly (fun x => unit_lappE x)).
- rewrite map_polyE map_id polyseqK.
- by rewrite hornerX.
+ rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Hc)); last exact: polyOverX.
+ by rewrite map_poly_id ?hornerX => [|? _]; rewrite /= ?unit_lappE.
 rewrite (Hpoly _ Ha) (Hpoly _ Hb) {Hpoly} -/fa -/fb.
 pose g := val (repr (kAut_pick K (Fadjoin_aspace K x) fa)).
 have HAuta : kAut K (Fadjoin K x) fa.
@@ -1483,12 +1476,12 @@ have HAuta : kAut K (Fadjoin K x) fa.
  rewrite (eq_map_poly (fun x => unit_lappE x)).
  rewrite map_polyE map_id polyseqK.
  case/poly_Fadjoin: (Hr _ Ha) => q [Hq ->].
- by rewrite -horner_comp_poly mempx_Fadjoin ?compose_polyOver.
+ by rewrite -horner_comp mempx_Fadjoin ?polyOver_comp.
 transitivity (g x).
  apply: (kAut_pick_eq (subsetKFadjoin K x) HAuta).
   by apply: mem_repr_coset.
  by apply: memx_Fadjoin.
-rewrite /g Hab.
+rewrite /g {}Hab.
 symmetry.
 apply: (kAut_pick_eq (subsetKFadjoin K x)); first last.
   by apply: memx_Fadjoin.
@@ -1496,10 +1489,9 @@ apply: (kAut_pick_eq (subsetKFadjoin K x)); first last.
 rewrite kAutE (kHomExtendkHom (kHom1 K K) (subv_refl K) (Hroot _ Hb)).
 apply/subvP => ? /memv_imgP [? [/poly_Fadjoin [p [Hp ->]] ->]].
 rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Hb) Hp).
-rewrite (eq_map_poly (fun x => unit_lappE x)).
-rewrite map_polyE map_id polyseqK.
+rewrite map_poly_id => [|xx _ /=]; last by rewrite unit_lappE.
 case/poly_Fadjoin: (Hr _ Hb) => q [Hq ->].
-by rewrite -horner_comp_poly mempx_Fadjoin ?compose_polyOver.
+by rewrite -horner_comp mempx_Fadjoin ?polyOver_comp.
 Qed.
 
 Lemma galois_dim : forall (K E : {algebra L}), galois K E ->
@@ -1528,11 +1520,11 @@ Proof.
 case/and3P => [HKE Hsep Hnorm] a HaE.
 rewrite elemDeg1 -eqSS -size_minPoly.
 case/normalP/(_ a HaE): (Hnorm) (root_minPoly K a) => r Hr Hmin.
-rewrite Hmin root_prod_factors => Har.
-move: (size_prod_factors r) => Hsz1 Hsz2.
+rewrite Hmin root_prod_XsubC => Har.
+move: (size_prod_XsubC r id) => Hsz1 Hsz2.
 have [b Hbr Hba] : exists2 b, b \in r & b != a.
  move/separableP/(_ _ HaE): Hsep.
- rewrite /separableElement Hmin separable_factors.
+ rewrite /separableElement Hmin separable_prod_XsubC.
  move: r {Hr Hmin} Har Hsz1 Hsz2 => [//|x [|y r]]; first by move => _ ->.
  rewrite /= !inE.
  case: (eqVneq a x) => [->|Hax] _ _ _.
@@ -1546,7 +1538,7 @@ have [b Hbr Hba] : exists2 b, b \in r & b != a.
 have: kHom K (Fadjoin K a) (kHomExtend K \1%VS a b).
  rewrite kHomExtendkHom ?kHom1 ?subv_refl //.
  rewrite (eq_map_poly (fun x => unit_lappE x)) map_polyE map_id polyseqK.
- by rewrite Hmin root_prod_factors.
+ by rewrite Hmin root_prod_XsubC.
 case/(kHomExtendLAut (subsetKFadjoin K a)) => f /andP [HKf /eqvP Hf].
 move/forallP/(_ f)/implyP/(_ HKf): Hnorm => HfE.
 have: kAut K E (val f).
@@ -1557,7 +1549,7 @@ rewrite HxAut -Hx // Hf ?memx_Fadjoin //.
 rewrite -{2}[a]hornerX.
 have Hminb : root (map_poly \1%VS (minPoly K a)) b.
  rewrite (eq_map_poly (fun x => unit_lappE x)) map_polyE map_id polyseqK.
- by rewrite Hmin root_prod_factors.
+ by rewrite Hmin root_prod_XsubC.
 rewrite (kHomExtend_poly (kHom1 K K) Hminb) ?polyOverX //.
 rewrite (eq_map_poly (fun x => unit_lappE x)) map_polyE map_id polyseqK.
 by rewrite hornerX.
@@ -1589,12 +1581,12 @@ suff : forall n, n.+1 < size (minPoly K a) ->
  exists r; split => //.
  apply/eqP.
  rewrite -(big_map h predT f).
- rewrite -eqpMP ?monic_minPoly ?monic_prod_factors //.
- rewrite eqp_sym -dvdp_size_eqp // size_prod_factors.
+ rewrite -eqpMP ?monic_minPoly ?monic_prod_XsubC //.
+ rewrite eqp_sym -dvdp_size_eqp // size_prod_XsubC.
  by rewrite size_minPoly Hnr.
 elim => [|n IH] Hn.
  exists [:: 1%g]; split => //; last first.
-  rewrite big_cons big_nil mulr1 dvdp_factorl repr_coset1 /= unit_lappE.
+  rewrite big_cons big_nil mulr1 dvdp_XsubCl repr_coset1 /= unit_lappE.
   by rewrite root_minPoly.
  apply/subsetP.
  move => x.
@@ -1605,17 +1597,17 @@ case/(ltn_trans (leqnn _))/IH: (Hn) => {IH} r [Haut Hr Hnr Hmin].
 set g := \prod_ (i <- _) _ in Hmin.
 have := (minPoly_irr _ Hmin).
 move/contra.
-rewrite negb_or -size_poly_eq1 {2}/g size_prod_factors Hnr andbT.
-rewrite -(dvdp_size_eqp Hmin) {1}/g size_prod_factors Hnr neq_ltn Hn.
+rewrite negb_or -size_poly_eq1 {2}/g size_prod_XsubC Hnr andbT.
+rewrite -(dvdp_size_eqp Hmin) {1}/g size_prod_XsubC Hnr neq_ltn Hn.
 case/(_ isT)/allPn => c Hcg HcK.
-have/allP : polyOver E g.
+have/allP : g \in polyOver E.
  rewrite /g big_map.
  rewrite (big_nth 1%g) big_mkord.
- apply: prodp_polyOver => i _.
- rewrite polyOver_factor //.
+ apply: rpred_prod => i _.
+ rewrite polyOverXsubC //.
  move/subsetP/allP/(all_nthP 1%g)/(_ _ (@ltn_ord _ i))/(Aut_kAut HKE): Haut.
  case/(_ _ (mem_repr_coset _))/andP => _ /eqP => HE.
- by rewrite -[X in (_ \in X)]HE memv_img.
+ by rewrite -[in X in (_ \in X)]HE memv_img.
 move/(_ _ Hcg) => HcE.
 case/(_ _ HcE HcK): Hgal => x /andP [Hx Hxc].
 have/allPn : ~~(all (fun x => x \in (map h r)) (map (val (repr x)) (map h r))).
@@ -1633,11 +1625,11 @@ have/allPn : ~~(all (fun x => x \in (map h r)) (map (val (repr x)) (map h r))).
   by rewrite rmorphB /= map_polyX map_polyC.
  rewrite -(big_map (val (repr x)) predT f).
  apply/eqP.
- rewrite -eqpMP ?monic_prod_factors // -dvdp_size_eqp.
-  by rewrite !size_prod_factors size_map.
+ rewrite -eqpMP ?monic_prod_XsubC // -dvdp_size_eqp.
+  by rewrite !size_prod_XsubC size_map.
  apply: uniq_roots_dvdp.
   apply/allP => b Hb.
-  rewrite root_prod_factors.
+  rewrite root_prod_XsubC.
   by apply: Hsubset.
  rewrite uniq_rootsE map_inj_uniq //.
  (* TODO: abstract this *)
@@ -1687,7 +1679,7 @@ apply/and3P; split; first done.
  apply/separableP => a /H [r [_ Hr Hmin]].
  pose h (i : coset_of [set x : LAut | kAut E (fullv L) (val x)])
        := ((val (repr i)) a).
- by rewrite /separableElement Hmin -(big_map h predT f) separable_factors.
+ by rewrite /separableElement Hmin -(big_map h predT f) separable_prod_XsubC.
 apply/normalP => a Ha.
 case/H: (Ha) => r [/subsetP Haut Hr Hmin].
 pose h (i : coset_of [set x : LAut | kAut E (fullv L) (val x)])
@@ -1814,61 +1806,32 @@ exists (Sigma (vpick V)).
  rewrite sum_lappE.
  apply: memv_suml => i _.
  rewrite comp_lappE /= lapp_of_funK; last by apply: amull_linear_p.
- by rewrite memv_mul // -[X in _ \in X](HxE i) memv_img.
+ by rewrite memv_mul // -[in X in _ \in X](HxE i) memv_img.
 apply: (canRL (mulfK _)); first by rewrite fmorph_eq0.
 rewrite sum_lappE rmorph_sum mulr_sumr /n -(prednK (order_gt0 x)).
 rewrite big_ord_recr /=; symmetry; rewrite addrC big_ord_recl.
 congr (_ + _).
- do 2 (rewrite comp_lappE /= lapp_of_funK; last by apply: amull_linear_p).
- rewrite [c_ 0%N]big_ord0 /f_ expg0 repr_coset1 unit_lappE.
- rewrite rmorphM /= -Aut_mul //.
- rewrite -expgSr (prednK (order_gt0 x)) expg_order repr_coset1 unit_lappE.
- rewrite rmorph_prod -{1}Hnorm mulrA.
- congr (_ * _).
- rewrite /galoisNorm.
- rewrite -Hx.
- suff Hbij : {on [pred i | i \in <[x]>%g],
-                  bijective (fun i : 'I_n => (x ^+ i)%g)}.
-  rewrite (reindex _ Hbij) (eq_bigl _ _ (fun i : 'I_n => mem_cycle x i)).
-  rewrite -[n](prednK (order_gt0 x)) big_ord_recl.
-  rewrite expg0 repr_coset1 unit_lappE.
+  do 2 (rewrite comp_lappE /= lapp_of_funK; last by apply: amull_linear_p).
+  rewrite [c_ 0%N]big_ord0 /f_ expg0 repr_coset1 unit_lappE.
+  rewrite rmorphM /= -Aut_mul //.
+  rewrite -expgSr (prednK (order_gt0 x)) expg_order repr_coset1 unit_lappE.
+  rewrite rmorph_prod -{1}Hnorm mulrA.
   congr (_ * _).
-  apply: eq_bigr => i _.
-  by rewrite /= -Aut_mul // -expgSr.
- rewrite -[n](prednK (order_gt0 x)).
- (* This is way harder than it ought to be. *)
- exists (fun y => inord (index y (map (fun i : 'I_#[x]%g.-1.+1 => (x ^+ i)%g)
-                                 (enum predT)))).
-  move => i /= Hi.
-  have -> : (x ^+ i)%g = nth 1%g [seq (x ^+ (nat_of_ord i0))%g
-                                 | i0 <- enum 'I_#[x]%g.-1.+1] i.
-   rewrite (nth_map ord0); first by rewrite [nth _ _ _]nth_ord_enum.
-   by rewrite size_enum_ord; case: i {Hi}.
-  rewrite index_uniq; first by apply: inord_val.
-   by rewrite size_map size_enum_ord; case: i {Hi}.
-  rewrite map_inj_uniq; first by apply: enum_uniq.
-  by rewrite (prednK (order_gt0 x)).
- move => y /=.
- rewrite inE /= => /cyclePmin [i].
- rewrite -{1}(prednK (order_gt0 x)) => Hi.
- rewrite -{1}(inordK Hi) => ->.
- congr (x ^+ inord _)%g.
- set j := inord _.
- have -> : (x ^+ j)%g = nth 1%g [seq (x ^+ (nat_of_ord i0))%g
-                                | i0 <- enum 'I_#[x]%g.-1.+1] j.
-   rewrite (nth_map ord0); first by rewrite [nth _ _ _]nth_ord_enum.
-   by rewrite size_enum_ord; case: j.
- rewrite index_uniq; first by apply: inordK.
-  by rewrite size_map size_enum_ord.
- rewrite map_inj_uniq; first by apply: enum_uniq.
- by rewrite (prednK (order_gt0 x)).
+  rewrite /galoisNorm -Hx /n.
+  have [-> | nt_x] := eqVneq x 1%g.
+    by rewrite order1 cycle1 big_set1 big_ord0 mulr1 repr_group unit_lappE.
+  rewrite -im_Zpm morphimEdom big_imset; last by apply/injmP; exact: injm_Zpm.
+  rewrite -order_gt1 in nt_x; rewrite /= /Zp nt_x.
+  rewrite (eq_bigl _ _ (fun i => in_setT i)) big_ord_recl repr_group unit_lappE.
+  rewrite /Zpm /= -(subnKC nt_x) /=; congr (_ * _).
+  by apply: eq_bigr => i _ /=; rewrite -Aut_mul // -expgSr.
 apply: eq_bigr => i _.
 do 2 (rewrite comp_lappE /= lapp_of_funK; last by apply: amull_linear_p).
 rewrite rmorphM mulrA.
 rewrite rmorph_prod [c_ _]big_ord_recl expg0 repr_coset1 unit_lappE.
 congr (_ * _ * _).
- apply eq_bigr => j _.
- by rewrite /= -Aut_mul // -expgSr.
+  apply eq_bigr => j _.
+  by rewrite /= -Aut_mul // -expgSr.
 by rewrite /= -Aut_mul // -expgSr.
 Qed.
 

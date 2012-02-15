@@ -1452,15 +1452,15 @@ Proof. by move=> p [] n i; rewrite ?NegzE (coefMNn, coefMn). Qed.
 
 Lemma polyC_mulrz : forall n, {morph (@polyC R) : c / c *~ n}.
 Proof.
-move=> [] n c; rewrite ?NegzE -?natmulP ?polyC_natmul //.
-by rewrite polyC_opp mulrNz polyC_natmul natmulN.
+move=> [] n c; rewrite ?NegzE -?natmulP ?polyC_muln //.
+by rewrite polyC_opp mulrNz polyC_muln natmulN.
 Qed.
 
-Lemma horner_mulrz : forall n (p : {poly R}) x, (p *~ n).[x] = p.[x] *~ n.
-Proof. by case=> *; rewrite ?NegzE ?mulNzr ?(horner_opp, horner_mulrn). Qed.
+Lemma hornerMz : forall n (p : {poly R}) x, (p *~ n).[x] = p.[x] *~ n.
+Proof. by case=> *; rewrite ?NegzE ?mulNzr ?(hornerN, hornerMn). Qed.
 
-Lemma horner_zmul : forall n x, (n%:~R : {poly R}).[x] = n%:~R.
-Proof. by move=> n x; rewrite horner_mulrz hornerC. Qed.
+Lemma horner_zint : forall n x, (n%:~R : {poly R}).[x] = n%:~R.
+Proof. by move=> n x; rewrite hornerMz hornerC. Qed.
 
 Lemma derivMz : forall n p, (p *~ n)^`() = p^`() *~ n.
 Proof. by move=> [] n p; rewrite ?NegzE -?natmulP (derivMn, derivMNn). Qed.

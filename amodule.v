@@ -401,7 +401,7 @@ have Himf: forall v, v \in ms1 -> f v = v.
   rewrite /f !lappE (eq_bigr (fun x => v)); last move=> i Hi.
     by rewrite sumr_const -scaler_nat scalerA mulVf // ?scale1r // -?charf'_nat.
   rewrite !lappE /= !lappE /= projv_id !actE; last first.
-    by rewrite (memv_mod_mul Hms1) // /in_mem /= /gvspace (bigD1 i) //=  addvSl.
+    by rewrite (memv_mod_mul Hms1) // unfold_in /= /gvspace (bigD1 i) // addvSl.
   by rewrite -rmulA -injGM // ?groupV // mulgV rmul1.
 have If: limg f = ms1.
   apply: subv_anti; apply/andP; split; last first.
@@ -409,7 +409,7 @@ have If: limg f = ms1.
   rewrite limgE; apply/subvP=> i; case/memv_imgP=> x [_ ->].
   rewrite !lappE memvZl // memv_suml=> // j Hj.
   rewrite lappE /= lappE (memv_mod_mul Hms1) //; first by exact: memv_proj.
-  by rewrite  /in_mem /= /gaspace /gvspace (bigD1 (j^-1)%g) ?addvSl // groupV.
+  by rewrite  unfold_in /= /gvspace (bigD1 (j^-1)%g) ?addvSl // groupV.
 exists (ms :&: lker f)%VS; split.
   - apply: modv_ker=> //; apply/modfP=> *; exact: Cf.
   apply/eqP; rewrite -subv0; apply/subvP=> v; rewrite memv0.

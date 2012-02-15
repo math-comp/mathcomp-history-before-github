@@ -340,7 +340,7 @@ Require Import finfun bigop prime binomial.
 (*                           need to be a zmodType. The scaling operator s    *)
 (*                           should be one of *:%R (see scalable, above), *%R *)
 (*                           or a combination nu \; *%R or nu \; *:%R with    *)
-(*                           nu : {rmorphism R}; otherwise some of the theory *)
+(*                           nu : {rmorphism _}; otherwise some of the theory *)
 (*                           (e.g., the linearZ rule) will not apply.         *)
 (*               linear f <-> f of type U -> V is linear, i.e., f morphs      *)
 (*                           linear combinations a *: u + v in U to similar   *)
@@ -735,7 +735,7 @@ Proof. by rewrite big_const -iteropE. Qed.
 
 Section Predicates.
 
-Variable S : pred V.
+Variable S : predPredType V.
 
 Class addSemigroupPred := AddSemigroupPred {
   rpred0 : 0 \in S;
@@ -1339,7 +1339,7 @@ Canonical converse_ringType := RingType R^c converse_ringMixin.
 
 Section Predicates.
 
-Variable S : pred R.
+Variable S : predPredType R.
 
 Class mulSemigroupPred := MulSemigroupPred {
   rpred1 : 1 \in S;
@@ -1611,7 +1611,7 @@ Proof. exact: big_endo (scalerDr a) (scaler0 a) I r P F. Qed.
 
 Section Predicates.
 
-Variable S : pred V.
+Variable S : predPredType V.
 
 Lemma rpredZsign {sgnS : unsignedPred S} n u :
   ((-1) ^+ n *: u \in S) = (u \in S).
@@ -2071,19 +2071,17 @@ Module Scale.
 
 Section ScaleLaw.
 
-Variable R : ringType.
-
-Structure law (V : zmodType) (s : R -> V -> V) := Law {
+Structure law (R : ringType) (V : zmodType) (s : R -> V -> V) := Law {
   op : R -> V -> V;
   _ : op = s;
   _ : op (-1) =1 -%R;
   _ : forall a, additive (op a)
 }.
 
-Definition mul_law := Law (erefl *%R) (@mulN1r R) (@mulrBr R).
-Definition scale_law U := Law (erefl *:%R) (@scaleN1r R U) (@scalerBr R U).
+Definition mul_law R := Law (erefl *%R) (@mulN1r R) (@mulrBr R).
+Definition scale_law R U := Law (erefl *:%R) (@scaleN1r R U) (@scalerBr R U).
 
-Variables (V : zmodType) (s : R -> V -> V) (s_law : law s).
+Variables (R : ringType) (V : zmodType) (s : R -> V -> V) (s_law : law s).
 Local Notation s_op := (op s_law).
 
 Lemma opE : s_op = s. Proof. by case: s_law. Qed.
@@ -2091,7 +2089,7 @@ Lemma N1op : s_op (-1) =1 -%R. Proof. by case: s_law. Qed.
 Fact opB a : additive (s_op a). Proof. by case: s_law. Qed.
 Definition op_additive a := Additive (opB a).
 
-Variable nu : {rmorphism R -> R}.
+Variables (aR : ringType) (nu : {rmorphism aR -> R}).
 Fact comp_opE : nu \; s_op = nu \; s. Proof. exact: congr1 opE. Qed.
 Fact compN1op : (nu \; s_op) (-1) =1 -%R.
 Proof. by move=> v; rewrite /= rmorphN1 N1op. Qed.
@@ -2890,7 +2888,7 @@ Canonical regular_unitRingType := [unitRingType of R^o].
 
 Section Predicates.
 
-Variable S : pred R.
+Variable S : predPredType R.
 
 Class mulSubgroupPred := MulSubgroupPred {
   mulSubgroup_semigroupPred :> mulSemigroupPred S;
@@ -4219,7 +4217,7 @@ End ModuleTheory.
 
 Section Predicates.
 
-Context (S : pred F) {fieldS : subfieldPred S}.
+Context (S : pred_class) {fieldS : @subfieldPred F S}.
 
 Lemma rpredMr x y : x \in S -> x != 0 -> (y * x \in S) = (y \in S).
 Proof.

@@ -34,13 +34,9 @@ Section poly_extra.
 
 Local Open Scope ring_scope.
 
-Lemma lead_coef_scale (R : idomainType) c (p : {poly R}) :
-  lead_coef (c *: p) = c * (lead_coef p).
-Proof. by rewrite -mul_polyC lead_coef_Imul lead_coefC. Qed.
-
 Lemma monic_monic_from_neq0  (F : fieldType) (p : {poly F}) :
   (p != 0)%B -> monic ((lead_coef p) ^-1 *: p).
-Proof. by move=> ?; rewrite /monic lead_coef_scale mulVf ?lead_coef_eq0. Qed.
+Proof. by move=> ?; rewrite /monic lead_coefZ mulVf ?lead_coef_eq0. Qed.
 
 Lemma size_derivn (R : oIdomainType) (p : {poly R}) n :
   size p^`(n) = (size p - n)%N.
@@ -53,10 +49,12 @@ Lemma size_nderivn (R : oIdomainType) (p : {poly R}) n :
   size p^`N(n) = (size p - n)%N.
 Proof.
 rewrite -size_derivn nderivn_def -mulr_natl.
-by rewrite -polyC1 -!polyC_natmul size_polyC_mul // pnatr_eq0 -lt0n fact_gt0.
+by rewrite -polyC1 -!polyC_muln size_Cmul // pnatr_eq0 -lt0n fact_gt0.
 Qed.
 
 End poly_extra.
+
+Local Notation eval := horner_eval.
 
 Section polydiv_extra.
 
@@ -76,7 +74,7 @@ move=> monic_p monic_q; apply/idP/eqP; last by move->; rewrite eqpxx.
 move=> /eqpP [[a b]] /andP [a_neq0 b_neq0 hpq]; move: (hpq).
 suff -> : a = b by rewrite -!mul_polyC=> /mulfI-> //; rewrite polyC_eq0.
 move: hpq=> /(f_equal lead_coef).
-by rewrite -!mul_polyC !lead_coef_mul_monic ?lead_coefC.
+by rewrite -!mul_polyC !lead_coef_Mmonic ?lead_coefC.
 Qed.
 
 End polydiv_extra.
@@ -106,7 +104,7 @@ rewrite ler_distl=> /andP[lx ux].
 rewrite ler_paddl //.
 elim/poly_ind: p=> [|p c ihp].
   by rewrite horner0 absr0 size_poly0 big_ord0.
-rewrite horner_amulX size_amulX.
+rewrite hornerMXaddC size_MXaddC.
 have [->|p_neq0 /=] := altP eqP.
   rewrite horner0 !mul0r !add0r size_poly0.
   have [->|c_neq0] /= := altP eqP; first by rewrite absr0 big_ord0.
@@ -246,7 +244,7 @@ Definition abs_poly2 (p : {poly {poly F}}) := p ^ (map_poly (fun x => `|x|)).
 
 Lemma coef_abs_poly2 p i j : (abs_poly2 p)`_i`_j = `|p`_i`_j|.
 Proof.
-rewrite !coef_map_id0_poly ?absr0 //; last first.
+rewrite !coef_map_id0 ?absr0 //; last first.
 by rewrite /map_poly poly_def size_poly0 big_ord0.
 Qed.
 
@@ -377,16 +375,16 @@ Lemma accr_negN p a r : accr_pos p a r -> accr_neg (- p) a r.
 Proof.
 case=> [[k k_gt0 hk] h].
 split; [ exists k=> // x y nxy hx hy;
-    by rewrite !horner_opp -opprD mulNr ltr_opp2; apply: hk
-  | by move=> x hx; rewrite derivN horner_opp oppr_lt0; apply: h ].
+    by rewrite !hornerN -opprD mulNr ltr_opp2; apply: hk
+  | by move=> x hx; rewrite derivN hornerN oppr_lt0; apply: h ].
 Qed.
 
 Lemma accr_posN p a r : accr_neg p a r -> accr_pos (- p) a r.
 Proof.
 case=> [[k k_gt0 hk] h].
 split; [ exists k=> // x y nxy hx hy;
-    by rewrite !horner_opp -opprD mulNr ltr_oppr; apply: hk
-  | by move=> x hx; rewrite derivN horner_opp oppr_gt0; apply: h ].
+    by rewrite !hornerN -opprD mulNr ltr_oppr; apply: hk
+  | by move=> x hx; rewrite derivN hornerN oppr_gt0; apply: h ].
 Qed.
 
 Lemma strong_monoN p a r : strong_mono p a r -> strong_mono (- p) a r.
@@ -1299,7 +1297,7 @@ Proof. by apply: eq_crealP; exists m0=> *; rewrite /= hornerX subrr absr0. Qed.
 Lemma horner_crealM (p q : {poly F}) (x : creal) :
   ((p * q).[x] == p.[x] * q.[x])%CR.
 Proof.
-by apply: eq_crealP; exists m0=> * /=; rewrite horner_mul subrr absr0.
+by apply: eq_crealP; exists m0=> * /=; rewrite hornerM subrr absr0.
 Qed.
 
 Lemma neq_creal_cst x y : reflect (cst_creal x != cst_creal y) (x != y).
@@ -1366,21 +1364,21 @@ Lemma poly_mul_creal_eq0_coprime p q x :
 Proof.
 move=> /bezout_eq1_coprimepP /sig_eqW [[u v] /= hpq]; pose_big_enough i.
   have := (erefl ((1 : {poly F}).[x i])).
-  rewrite -{1}hpq /= horner_add hornerC.
+  rewrite -{1}hpq /= hornerD hornerC.
   set upxi := (u * _).[_].
   move=> hpqi.
   have [p_small|p_big] := lerP `|upxi| 2%:R^-1=> pqx0; [left|right].
     move=> px0; apply: pqx0; apply: mul_creal_neq0=> //.
     apply: (@mul_neq0_creal v.[x]).
     apply: (@neq_crealP 2%:R^-1 i i); rewrite ?gtr0E //; do ?by big.
-    rewrite /= subr0 -horner_mul -(ler_add2l `|upxi|).
+    rewrite /= subr0 -hornerM -(ler_add2l `|upxi|).
     rewrite (ler_trans _ (ler_abs_add _ _)) // hpqi absr1.
     rewrite (monoLR (addrNK _) (ler_add2r _)).
     by rewrite {1}[1](splitf 2) /= mul1r addrK.
   move=> qx0; apply: pqx0; apply: mul_creal_neq0=> //.
   apply: (@mul_neq0_creal u.[x]).
   apply: (@neq_crealP 2%:R^-1 i i); rewrite ?gtr0E //; do ?by big.
-  by rewrite /= subr0 -horner_mul ltrW.
+  by rewrite /= subr0 -hornerM ltrW.
 by close.
 Qed.
 
@@ -1470,16 +1468,16 @@ move=> /bezout_eq1_coprimepP /sig_eqW [[u v] hpq] px0.
 have upx_eq0 : u.[x] * p.[x] == 0 by rewrite px0 mul_creal0.
 pose_big_enough i.
   have := (erefl ((1 : {poly F}).[x i])).
-  rewrite -{1}hpq /= horner_add hornerC.
+  rewrite -{1}hpq /= hornerD hornerC.
   set upxi := (u * _).[_]; move=> hpqi.
   apply: (@neq_crealP ((ubound v.[x])%CR^-1 / 2%:R) i i); do ?by big.
     by rewrite pmulr_rgt0 ?gtr0E // ubound_gt0.
   rewrite /= subr0 ler_pdivr_mull ?ubound_gt0 //.
   rewrite (@ler_trans _  `|(v * q).[x i]|) //; last first.
-    by rewrite horner_mul absrM ler_wpmul2r ?absr_ge0 ?(uboundP v.[x]).
+    by rewrite hornerM absrM ler_wpmul2r ?absr_ge0 ?(uboundP v.[x]).
   rewrite -(ler_add2l `|upxi|) (ler_trans _ (ler_abs_add _ _)) // hpqi absr1.
   rewrite (monoLR (addrNK _) (ler_add2r _)).
-  rewrite {1}[1](splitf 2) /= mul1r addrK ltrW // /upxi horner_mul.
+  rewrite {1}[1](splitf 2) /= mul1r addrK ltrW // /upxi hornerM.
   by rewrite (@eq0modP _ upx_eq0) ?gtr0E; do ?big.
 by close.
 Qed.
@@ -1495,13 +1493,13 @@ wlog : p px_neq0 / (0 < p^`().[x])%CR.
   + pose_big_enough i.
       apply: (@neq_crealP (lbound px_neq0) i i); do ?by big.
         by rewrite lbound_gt0.
-      rewrite /= derivN horner_opp subr0 absrN.
+      rewrite /= derivN hornerN subr0 absrN.
       by rewrite (lbound0_of px_neq0) //; big.
     by close.
   + pose_big_enough i.
       apply: (@lt_crealP (diff px_lt0) i i); do ?by big.
         by rewrite diff_gt0.
-      rewrite /= add0r derivN horner_opp -subr_le0 opprK addrC.
+      rewrite /= add0r derivN hornerN -subr_le0 opprK addrC.
       by rewrite (diff_of px_lt0) //; big.
     by close.
   move=> r r_ge0 [i hi]; move/strong_monoN; rewrite opprK=> sm.
@@ -1578,11 +1576,11 @@ pose r2 := p %/ r1.
 have ld_neq0 : lead_coef d != 0 :> F.
   by rewrite lead_coef_eq0 gcdp_eq0 negb_and monic_neq0.
 have monic_r1 : monic r1.
-  by rewrite /monic /r1 -mul_polyC lead_coef_Imul lead_coefC mulVf.
+  by rewrite /monic /r1 -mul_polyC lead_coefM lead_coefC mulVf.
 have eq_p_r2r1: p = r2 * r1.
   by rewrite divpK // (@eqp_dvdl _ d) ?dvdp_gcdl // eqp_scale ?invr_eq0.
-have monic_r2 : monic r2 by rewrite -(monic_mulr _ monic_r1) -eq_p_r2r1.
-have eq_sr1_sd : size r1 = size d by rewrite size_scaler ?invr_eq0.
+have monic_r2 : monic r2 by rewrite -(monicMr _ monic_r1) -eq_p_r2r1.
+have eq_sr1_sd : size r1 = size d by rewrite size_scale ?invr_eq0.
 have sr1 : (1 < size r1)%N.
   by rewrite ltn_neqAle eq_sym lt0n size_poly_eq0 monic_neq0 ?andbT ?eq_sr1_sd.
 have sr2 : (1 < size r2)%N.
@@ -1602,7 +1600,7 @@ Qed.
 Lemma root_cst_creal (x : F) : ('X - x%:P).[cst_creal x] == 0.
 Proof.
 apply: eq_crealP; exists_big_modulus m F.
-  by move=> e i e_gt0 hi; rewrite /= subr0 !horner_lin subrr absr0.
+  by move=> e i e_gt0 hi; rewrite /= subr0 !hornerE subrr absr0.
 by close.
 Qed.
 
@@ -1611,7 +1609,7 @@ Lemma has_root_creal_size_gt1 (x : creal) (p : {poly F}) :
 Proof.
 move=> p_neq0 rootpa.
 rewrite ltnNge leq_eqVlt ltnS leqn0 size_poly_eq0 (negPf p_neq0) orbF.
-apply/negP=> /size1P [c c_neq0 eq_pc]; apply: rootpa.
+apply/negP=> /size_poly1P [c c_neq0 eq_pc]; apply: rootpa.
 by rewrite eq_pc horner_cst_creal; apply/neq_creal_cst.
 Qed.
 

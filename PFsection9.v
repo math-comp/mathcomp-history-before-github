@@ -642,7 +642,7 @@ exists F.
     have charF: p \in [char F]%R by rewrite !inE p_pr -order_dvdn -o_nF /=.
     by rewrite -(dvdn_charf charF) (dvdn_charf (char_Fp p_pr)) natr_Zp.
   have{Pr0 nP} fPr0 f: autF f -> root P (f r).
-    move=> fRM; suff <-: map_poly (RMorphism fRM) P = P by exact: root_map_poly.
+    move=> fRM; suff <-: map_poly (RMorphism fRM) P = P by exact: rmorph_root.
     apply/polyP=> i; rewrite coef_map.
     have [/(nth_default _)-> | lt_i_P] := leqP (size P) i; first exact: rmorph0.
     by have /cycleP[n ->] := all_nthP 0%R nP i lt_i_P; exact: rmorph_nat.
@@ -896,7 +896,7 @@ exists finF.
     split=> // h w Hh Ww /=; rewrite /aperm permE subgK // /phi' abelem_rV_K //.
     by congr (phi _); rewrite qactJ (subsetP nH0W1).
   have{Pr0 nP} fPr0 f: autF f -> root P (f r).
-    move=> fRM; suff <-: map_poly (RMorphism fRM) P = P by exact: root_map_poly.
+    move=> fRM; suff <-: map_poly (RMorphism fRM) P = P by exact: rmorph_root.
     apply/polyP=> i; rewrite coef_map.
     have [/(nth_default _)-> | lt_i_P] := leqP (size P) i; first exact: rmorph0.
     by have /cycleP[n ->] := all_nthP 0%R nP i lt_i_P; exact: rmorph_nat.

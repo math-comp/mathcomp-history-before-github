@@ -262,7 +262,7 @@ Proof.
 rewrite /p' fun_if monicX.
 case: ifP => // /andP [Hp0 _].
 rewrite /monic /p' /lead_coef coefZ.
-by rewrite size_scaler ?mulVf ?invr_neq0 // -/(lead_coef p) lead_coef_eq0.
+by rewrite size_scale ?mulVf ?invr_neq0 // -/(lead_coef p) lead_coef_eq0.
 Qed.
 
 Let p'ne0 : p' != 0.
@@ -276,7 +276,7 @@ Let Hp'z : root (p' ^ iota) z'.
 Proof.
 rewrite /p' /z'.
 case: ifP => [/andP [_ Hpz]|]; last by rewrite map_polyX rootX.
-rewrite map_poly_scaler /root horner_scaler mulf_eq0 -/(root (p ^ iota) z) Hpz.
+rewrite map_polyZ /root hornerZ mulf_eq0 -/(root (p ^ iota) z) Hpz.
 by rewrite orbT.
 Qed.
 
@@ -314,17 +314,13 @@ Definition subfx_inj : subFExtend -> L := (mfun1 subfext_injm).
 
 Lemma subfext_addm : mop2_spec (fun x y => x + y) subFExtend.
 Proof.
-move => x y /=.
-apply/equivP/eqP.
-rewrite /n !linearD !rmorphD /=.
+move=> x y /=; apply/equivP/eqP; rewrite /n !linearD /=.
 by congr (_ + _); apply subfext_injm.
 Qed.
 
 Lemma subfext_oppm : mop1_spec (fun x => - x) subFExtend.
 Proof.
-move => y /=.
-apply/equivP/eqP.
-rewrite /n !linearN !rmorphN /=.
+move=> y /=; apply/equivP/eqP; rewrite /n !linearN /=.
 congr (- _); apply subfext_injm.
 Qed.
 
@@ -353,7 +349,7 @@ Lemma poly_rV_K_modp_subproof q :
 Proof.
 apply: poly_rV_K.
 have Hl : (lead_coef p')^-1 != 0 by rewrite invr_neq0 // lead_coef_eq0.
-by rewrite -(size_scaler _ Hl) -ltnS -polySpred // size_scaler // ltn_modp //.
+by rewrite -(size_scale _ Hl) -ltnS -polySpred // size_scale // ltn_modp //.
 Qed.
 
 Definition subfx_mul_rep (x y : 'rV[F]_(size p').-1) : 'rV[F]_(size p').-1
@@ -442,7 +438,7 @@ case: gdcopP => r _.
 rewrite -[p' == 0]negbK p'ne0 orbF coprimep_sym -gcdp_eqp1 eqp_sym => Hcoprime.
 move/(eqp_trans Hcoprime): (egcdpE q r).
 rewrite eqp_sym -size_poly_eq1.
-case/size1P => k Hk0 Hk Hr Hroot.
+case/size_poly1P => k Hk0 Hk Hr Hroot.
 rewrite Hk -mul_polyC rmorphM coefC eqxx [_ _%:P]horner_morphC fmorphV.
 apply: (canLR (mulKf _)); first by rewrite fmorph_eq0.
 apply: (canRL (mulfK _)); first done.
@@ -485,10 +481,8 @@ Qed.
 
 Lemma subfx_inv0 : subfext_inv (0:subFExtend) = (0:subFExtend).
 Proof.
-rewrite mopP.
-apply/equivP.
-rewrite /= /n /subfx_inv_rep linear0 /poly_invert rmorph0 eqxx mod0p !linear0.
-by rewrite rmorph0.
+rewrite mopP; apply/equivP; rewrite /= /n /subfx_inv_rep linear0.
+by rewrite /poly_invert rmorph0 eqxx mod0p !linear0.
 Qed.
 
 Canonical Structure subfext_unitRing := Eval hnf in
@@ -575,56 +569,8 @@ rewrite suff //= -{1}[K]prodv1 -(mulfV Hx) prodv_inj prodvA suff //.
 by rewrite invr_neq0.
 Qed.
 
-Definition polyOver (K : {vspace L}) := [pred p : {poly L} | all (mem K) p].
-
 Definition matrixOver (K : {vspace L}) n m (A : 'M_(n,m)) :=
   forallb i, forallb j, A i j \in K.
-
-Lemma polyOverP (K : {vspace L}) (p : {poly L}) :
-  reflect (forall i, p`_i \in K) (polyOver K p).
-Proof.
-apply: (iffP allP); last by move => hP x /= /(nth_index 0) <-.
-move => Hp i.
-case E : (leq (size p) i); first by rewrite nth_default // mem0v.
-apply: Hp.
-by rewrite mem_nth // ltnNge E.
-Qed.
-
-Lemma addp_polyOver (K : {vspace L}) (p q : {poly L}) :
-  polyOver K p -> polyOver K q -> polyOver K (p + q).
-Proof.
-move=> /polyOverP Hp /polyOverP Hq.
-apply/polyOverP => i.
-by rewrite coefD memvD.
-Qed.
-
-Lemma opp_polyOver (K : {vspace L}) (p : {poly L}) :
-  polyOver K p -> polyOver K (- p).
-Proof.
-move=> /polyOverP Hp.
-apply/polyOverP => i.
-by rewrite coefN memvN.
-Qed.
-
-Lemma polyOver0 (K : {vspace L}) : polyOver K 0.
-Proof.
-apply/polyOverP => i.
-by rewrite coef0 mem0v.
-Qed.
-
-Lemma sump_polyOver (K : {vspace L}) (I : finType) (P : pred I) 
-  (p_ : I -> {poly L}) :
-  (forall i, P i -> polyOver K (p_ i)) -> polyOver K (\sum_(i | P i) p_ i).
-Proof.
-move=> Hp; apply big_ind => //; first by apply polyOver0.
-by exact: addp_polyOver.
-Qed.
-
-Lemma polyOverC (K : {vspace L}) c : c \in K -> polyOver K (c%:P).
-Proof.
-move => cK; apply/polyOverP => i.
-by rewrite coefC; case: (_ == _) => //; apply: mem0v.
-Qed.
 
 Lemma matrixOverP (K : {vspace L}) n m (A : 'M_(n,m)) :
   reflect (forall i j, A i j \in K) (matrixOver K A).
@@ -678,83 +624,23 @@ Proof. move=> u v; apply: val_inj; exact: mulrC. Qed.
 Canonical Structure suba_comRingType :=
   Eval hnf in ComRingType (suba_of K) suba_mul_com.
 
-Lemma polyOver_suba : forall p : {poly L},
-  reflect (exists q : {poly (suba_of K)}, p = map_poly (@sa_val _ _ K) q)
-          (polyOver K p).
+Global Instance aspace_subringPred : subringPred K.
 Proof.
-move => p.
-apply: (iffP (polyOverP _ _)); last first.
-  by move => [q ->] i; rewrite coef_map // subaP.
-move => Hp.
+split; first exact: vspace_addSubgroupPred.
+by split; [exact: mem1v | exact: memv_mul].
+Defined.
+
+Lemma polyOver_suba (p : {poly L}) :
+  reflect (exists q : {poly (suba_of K)}, p = map_poly (@sa_val _ _ K) q)
+          (p \in polyOver K).
+Proof.
+apply: (iffP polyOverP) => [Hp | [q ->] i]; last first.
+  by rewrite coef_map // subaP.
 exists (\poly_(i < size p) (Suba (Hp i))).
 rewrite -{1}[p]coefK.
 apply/polyP => i.
 rewrite coef_map !coef_poly.
 by case: ifP.
-Qed.
-
-Lemma mulp_polyOver : forall p q : {poly L},
-  polyOver K p -> polyOver K q -> polyOver K (p * q).
-Proof.
-move => ? ?; move/polyOver_suba => [p ->]; move/polyOver_suba => [q ->].
-by apply/polyOver_suba; exists (p * q); rewrite rmorphM.
-Qed.
-
-Lemma prodp_polyOver (I : finType) (P : pred I) (p_ : I -> {poly L}) :
-  (forall i, P i -> polyOver K (p_ i)) -> polyOver K (\prod_(i | P i) p_ i).
-Proof.
-move=> Hp; apply big_ind => //; first by rewrite polyOverC // mem1v.
-by exact: mulp_polyOver.
-Qed.
-
-Lemma exp_polyOver : forall (p : {poly L}) n, polyOver K p ->
-  polyOver K (p ^+ n).
-Proof.
-move => ? n; move/polyOver_suba => [p ->].
-by apply/polyOver_suba; exists (p ^+ n); rewrite rmorphX.
-Qed.
-
-Lemma scalep_polyOver : forall (c : L) (q : {poly L}),
-  c \in K -> polyOver K q -> polyOver K (c *: q).
-Proof.
-move => ? ? cK; move/polyOver_suba => [q ->].
-apply/polyOver_suba; exists ((Suba cK) *: q).
-by rewrite -!mul_polyC rmorphM /= map_polyC.
-Qed.
-
-Lemma polyOverX : polyOver K 'X.
-Proof.
-apply/polyOverP => i.
-by rewrite coefX; case: (_ == _); [apply: mem1v | apply: mem0v].
-Qed.
-
-Lemma polyOver_factor c : c \in K -> polyOver K ('X - c%:P).
-Proof.
-move => Hc.
-by rewrite addp_polyOver ?polyOverX // opp_polyOver // polyOverC.
-Qed.
-
-Lemma poly_polyOver : forall n (E : nat -> L),
-  (forall i, E i \in K) -> polyOver K (\poly_(i < n) E i).
-Proof.
-move => n E HE.
-rewrite poly_def.
-apply: sump_polyOver => i _.
-by rewrite scalep_polyOver // exp_polyOver // polyOverX.
-Qed.
-
-Lemma compose_polyOver : forall p q : {poly L},
-  polyOver K p -> polyOver K q -> polyOver K (p \Po q).
-Proof.
-move => p q; move/polyOverP => Hp Hq.
-rewrite comp_polyE sump_polyOver // => i _.
-by rewrite scalep_polyOver // exp_polyOver.
-Qed.
-
-Lemma deriv_polyOver :  forall (p : {poly L}), polyOver K p -> polyOver K p^`().
-Proof.
-move => ?; move/polyOver_suba => [p ->].
-by apply/polyOver_suba; exists (p^`()); apply: deriv_map.
 Qed.
 
 Lemma matrixOver_suba n m (A : 'M_(n,m)) :
@@ -780,21 +666,9 @@ Canonical Structure fspace_cap : {algebra L} :=
 
 End aspace_cap.
 
-Lemma polyOver_subset : forall (K E : {vspace L}) p, (K <= E)%VS ->
-  polyOver K p -> polyOver E p.
-Proof.
-move => K E p; move/subvP => KE; move/polyOverP => Kp.
-by apply/polyOverP => i; rewrite KE.
-Qed.
-
-Lemma memv_horner: forall (K E : {algebra L}) p, polyOver K p -> (K <= E)%VS ->
-  forall x, x \in E -> p.[x] \in E.
-Proof.
-move => K E p; move/polyOverP => x HE pK Hx.
-rewrite horner_coef memv_suml // => i _.
-rewrite memv_mul //; last by rewrite memv_exp.
-by move/subvP : HE; apply.
-Qed.
+Lemma polyOverSv (K E : {vspace L}):
+  (K <= E)%VS -> {subset polyOver K <= polyOver E}.
+Proof. by move/subvP=> sKE; exact: polyOverS. Qed.
 
 Section FadjoinDefinitions.
 
@@ -882,9 +756,9 @@ rewrite prodv0 memv0 => /eqP ->.
 by rewrite mulr0.
 Qed.
 
-Lemma poly_for_polyOver v : polyOver K (poly_for_Fadjoin v).
+Lemma poly_for_polyOver v : poly_for_Fadjoin v \in polyOver K.
 Proof.
-apply/polyOverP => i.
+apply/(all_nthP 0) => i _ /=.
 rewrite /poly_for_Fadjoin coef_sum memv_suml // => j _.
 rewrite coefZ coefXn.
 case: (i == j);last by rewrite mulr0 mem0v.
@@ -898,7 +772,7 @@ rewrite (leq_trans (size_sum _ _ _)) //.
 apply/bigmax_leqP => i _.
 set c := (_ / _).
 case: (eqVneq c 0) => [-> | nzc]; first by rewrite scale0r size_poly0.
-by rewrite (size_scaler _ nzc) size_polyXn.
+by rewrite (size_scale _ nzc) size_polyXn.
 Qed.
 
 Lemma poly_for_eq v : v \in Fadjoin -> (poly_for_Fadjoin v).[x] = v.
@@ -906,30 +780,31 @@ Proof.
 move => Hv.
 rewrite /poly_for_Fadjoin horner_sum {2}(sumv_sum_pi Hv) sum_lappE.
 apply: eq_bigr => i _.
-by rewrite !horner_lin hornerXn -memv_prodv_inj_coef // memv_sum_pi.
+by rewrite !hornerE hornerXn -memv_prodv_inj_coef // memv_sum_pi.
 Qed.
 
 Lemma poly_Fadjoin_small v :
- reflect (exists p, [/\ polyOver K p, size p <= elementDegree & v = p.[x]])
+ reflect (exists p, [/\ p \in polyOver K, size p <= elementDegree & v = p.[x]])
          (v \in Fadjoin).
 Proof.
-apply: (iffP idP) => [Hp|[p [/polyOverP pK sizep vp]]].
+apply: (iffP idP) => [Hp|[p [/(all_nthP 0)/= pK sizep vp]]].
   exists (poly_for_Fadjoin v).
-  by split; rewrite ?poly_for_polyOver ?size_poly_for ?poly_for_eq.
+  by rewrite poly_for_polyOver size_poly_for poly_for_eq.
 apply/memv_sumP.
 exists (fun i : 'I_elementDegree => p`_i * x ^+ i).
-split => [i _|]; first by rewrite memv_prod ?memv_inj.
-by rewrite vp (horner_coef_wide _ sizep).
+split => [i _|]; last by rewrite vp (horner_coef_wide _ sizep).
+rewrite memv_prod ?memv_inj //.
+by have [/pK// | /(nth_default 0)->] := ltnP i (size p); exact: mem0v.
 Qed.
 
-Lemma poly_is_linear a u v :
- poly_for_Fadjoin (a *: u + v) = 
- (a%:A) *: poly_for_Fadjoin u + poly_for_Fadjoin v.
+Lemma poly_is_linear : linear_for (in_alg L \; *:%R) poly_for_Fadjoin.
 Proof.
-rewrite /poly_for_Fadjoin scaler_sumr -big_split.
+move=> a p q; rewrite /poly_for_Fadjoin /= scaler_sumr -big_split /=.
 apply eq_bigr => i _ /=.
 by rewrite linearP mulrDl scalerA -2!scalerAl mul1r scalerDl.
 Qed.
+Canonical poly_for_Fadjoin_addidive := Additive poly_is_linear.
+Canonical poly_for_Fadjoin_linear := AddLinear poly_is_linear.
 
 Lemma size_minPoly : size minPoly = elementDegree.+1.
 Proof.
@@ -938,7 +813,7 @@ Qed.
 
 Lemma monic_minPoly : monic minPoly.
 Proof.
-rewrite /monic /lead_coef size_minPoly coef_sub coefXn eq_refl.
+rewrite /monic /lead_coef size_minPoly coefB coefXn eq_refl.
 by rewrite nth_default ?subr0 // size_poly_for.
 Qed.
 
@@ -946,11 +821,11 @@ Lemma root_minPoly_subproof : x ^+ elementDegree \in Fadjoin ->
   root minPoly x.
 Proof.
 move => HxED.
-rewrite /root !horner_lin_comm horner_sum hornerXn.
+rewrite /root !hornerE_comm horner_sum hornerXn.
 rewrite {1}(sumv_sum_pi HxED) sum_lappE subr_eq0.
 apply/eqP.
 apply: eq_bigr => i _.
-by rewrite !horner_lin_comm hornerXn -memv_prodv_inj_coef ?memv_sum_pi.
+by rewrite !hornerE_comm hornerXn -memv_prodv_inj_coef ?memv_sum_pi.
 Qed.
 
 End FadjoinDefinitions.
@@ -1010,28 +885,25 @@ rewrite -addn1 mulnC -[(2 * _)%N]/(\dim K + (\dim K + 0))%N leq_add2l addn0.
 by rewrite -(dimv1 L) dimvS // sub1v.
 Qed.
 
-Lemma minPolyOver : polyOver K (minPoly K x).
-Proof.
-rewrite /minPoly addp_polyOver ?exp_polyOver ?polyOverX // opp_polyOver //.
-by rewrite poly_for_polyOver.
-Qed.
+Lemma minPolyOver : minPoly K x \in polyOver K.
+Proof. by rewrite /minPoly rpredB ?rpredX ?polyOverX ?poly_for_polyOver. Qed.
 
 (* This lemma could be generalized if I instead defined elementDegree 0 x = 0 *)
-Lemma poly_Fadjoin_small_uniq : forall p q, polyOver K p -> polyOver K q ->
-  size p <= elementDegree K x -> size q <= elementDegree K x ->
+Lemma poly_Fadjoin_small_uniq : forall p q,
+    p \in polyOver K -> q \in polyOver K ->
+    size p <= elementDegree K x -> size q <= elementDegree K x ->
   p.[x] = q.[x] -> p = q.
 Proof.
 case (eqVneq x 0).
   move/eqP; rewrite -memv0 => x0.
   move: (subv_trans x0 (sub0v K)).
   move/elemDeg1_subproof => -> p q pK qK.
-  by do 2 move/size1_polyC ->; rewrite !horner_lin => ->.
+  by do 2 move/size1_polyC ->; rewrite !hornerE => ->.
 move => nzx p q; move/polyOverP => pK; move/polyOverP => qK szp szq.
 rewrite (horner_coef_wide _ szp) (horner_coef_wide _ szq).
 move/eqP; move: (direct_Fadjoin K x); move/directv_sum_unique => sumUniq.
-rewrite sumUniq {sumUniq}; do ? move => i _; rewrite ?memv_prod ?memv_inj //.
-move/forall_inP => Hpq.
-apply/polyP => i.
+rewrite sumUniq {sumUniq}; try by move=> i; rewrite memv_prod ?memv_inj ?pK ?qK.
+move/forall_inP => Hpq; apply/polyP => i.
 apply: (mulIf (expf_neq0 i nzx)).
 case: (leqP (elementDegree K x) i) => Hi; last first.
   by apply/eqP; apply (Hpq (Ordinal Hi)).
@@ -1065,16 +937,11 @@ have Hxi : x ^+ ((elementDegree K x).-1) != 0.
 rewrite -(can_eq (mulfK Hxi)) mul0r -memv0.
 move/(_ ord_max isT) <-.
 rewrite memv_cap lead_coefE sizep.
-apply/andP; split; first by rewrite memv_prod ?memv_inj //.
-move: sump.
-(* why is this line so slow? *)
-rewrite (bigID (fun j => j == ord_max)).
-rewrite big_pred1_eq eq_sym -subr_eq add0r eq_sym exprSr mulrA  (mulfK Hx).
-rewrite /ord_max.
-move/eqP ->.
-apply: memvNr.
-apply: memv_sumr=> i _.
-by rewrite exprSr mulrA (mulfK Hx) memv_prod ?memv_inj.
+apply/andP; split; first by rewrite memv_prod ?memv_inj ?pK.
+rewrite [nth 0]lock /= (bigID (fun j => j == ord_max)) -lock in sump.
+rewrite big_pred1_eq addr_eq0 exprSr mulrA mulfK // in sump.
+rewrite {sump}(eqP sump) memvN memv_sumr // => i _.
+by rewrite exprSr mulrA (mulfK Hx) memv_prod ?memv_inj ?pK.
 Qed.
 
 Lemma subsetFadjoinE_subproof: forall E : {algebra L},

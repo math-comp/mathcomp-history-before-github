@@ -398,7 +398,7 @@ have hdng : d %/ (lg^-1 *: g) != 0.
 rewrite !numden_Ratio //= /insubd.
 set n' : {poly R} := _ *: (_ %/ _); set d' : {poly R} := _ *: (_ %/ _).
 have hg : lg^-1 *: g = 1.
-  rewrite /lg /g; move: cnd; rewrite coprimep_def=> /size1P [c hc ->].
+  rewrite /lg /g; move: cnd; rewrite coprimep_def=> /size_poly1P [c hc ->].
   by rewrite lead_coefC -mul_polyC -rmorphM mulVr // unitfE.
 have -> : n' = n by rewrite /n' hg !divp1 (eqP md) scale1r.
 have -> : d' = d by rewrite /d' hg !divp1 (eqP md) invr1 scale1r.

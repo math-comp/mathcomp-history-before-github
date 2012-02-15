@@ -259,7 +259,7 @@ Lemma eval_Size k p e :
   qf_eval e (Size p k) = qf_eval e (k (size (eval_poly e p))).
 Proof.
 elim: p e k=> [|c p ihp] e k; first by rewrite size_poly0.
-rewrite ihp /= size_amulX -size_poly_eq0; case: size=> //.
+rewrite ihp /= size_MXaddC -size_poly_eq0; case: size=> //.
 by rewrite eval_If /=; case: (_ == _).
 Qed.
 
@@ -288,8 +288,8 @@ rewrite (ihp _ (fun l => if l == 0 then qf_eval e (k a) else (k' l))); last firs
   by move=> x; rewrite eval_If /= !Pk.
 rewrite lead_coef_eq0; have [->|p_neq0] := altP (_ =P 0).
   by rewrite mul0r add0r lead_coefC.
-rewrite lead_coef_addl ?lead_coef_mul_monic ?monicX //.
-rewrite size_mul_id ?polyX_eq0 // size_polyX addn2 /= ltnS size_polyC.
+rewrite lead_coefDl ?lead_coef_Mmonic ?monicX //.
+rewrite size_mul ?polyX_eq0 // size_polyX addn2 /= ltnS size_polyC.
 by case: (_ == _)=> //=; rewrite size_poly_gt0.
 Qed.
 
@@ -363,7 +363,7 @@ Lemma eval_NatMulPoly p n e :
   eval_poly e (NatMulPoly n p) = (eval_poly e p) *+ n.
 Proof.
 elim: p; rewrite //= ?mul0rn // => c p ->.
-rewrite mulrnDl mulr_natl polyC_natmul; congr (_+_).
+rewrite mulrnDl mulr_natl polyC_muln; congr (_+_).
 by rewrite -mulr_natl mulrAC -mulrA mulr_natl mulrC.
 Qed.
 
@@ -373,7 +373,7 @@ Fixpoint Horner (p : polyF) (x : tF) : tF :=
 Lemma eval_Horner e p x : eval e (Horner p x) = (eval_poly e p).[eval e x].
 Proof.
 elim: p=> //= [|a p ihp]; first by rewrite horner0.
-by rewrite !horner_lin ihp.
+by rewrite !hornerE ihp.
 Qed.
 
 Lemma eval_ConstPoly e c : eval_poly e [::c] = (eval e c)%:P.
@@ -395,10 +395,10 @@ Fixpoint SymPoly p :=
 
 Lemma eval_SymPoly e p : eval_poly e (SymPoly p) = (eval_poly e p) \Po (-'X).
 Proof.
-elim: p=> [|a p ihp]; first by rewrite comp_poly0p //.
+elim: p=> [|a p ihp]; first by rewrite comp_poly0 //.
 rewrite /= eval_AddPoly eval_MulPoly eval_OppPoly /=.
 rewrite  !(mul0r, add0r, mul1r, addr0) ihp.
-by rewrite comp_poly_addl comp_polyCp comp_poly_mull comp_polyXp mulrN mulNr.
+by rewrite comp_polyD comp_polyC comp_polyM comp_polyX mulrN mulNr.
 Qed.
 
 Definition eval_OpPoly :=
@@ -756,12 +756,12 @@ move=> mp Pk; rewrite /CauchyBound /cauchy_bound.
 rewrite eval_Size (monicP mp) absr1 invr1 mul1r (eval_SumAbs k') //.
 congr k'; apply: eq_big=> //= i _.
 elim: p {mp} i=> /= [|a p ihp] i; first by rewrite nth_nil coef0.
-move: i; rewrite size_amulX.
+move: i; rewrite size_MXaddC.
 have [->|ep_neq0//] /= := altP (_ =P 0).
   have [->|ea_neq0//] /= := altP (_ =P 0); first by case.
   rewrite size_poly0=> i.
   by rewrite ord1 mul0r add0r polyseqC ea_neq0 /=.
-rewrite -poly_cons_def polyseq_cons /nilp size_poly_eq0 ep_neq0.
+rewrite -cons_poly_def polyseq_cons /nilp size_poly_eq0 ep_neq0.
 rewrite -add1n; move=> i; have [j ->|j ->] := fintype.splitP i.
   by rewrite ord1 /=.
 by rewrite add1n /= ihp.
@@ -794,7 +794,7 @@ Definition ChangeVarp (p : polyF) : cps polyF := fun k =>
     [::lp ^+ (sp - i.+2) * nth 0 p i] (ExpPoly [::0; 1] i))))%qfT.
 
 Lemma eval_polyP e p : eval_poly e p = Poly (map (eval e) p).
-Proof. by elim: p=> // a p /= ->; rewrite poly_cons_def. Qed.
+Proof. by elim: p=> // a p /= ->; rewrite cons_poly_def. Qed.
 
 Lemma eval_ChangeVarp e p k k' :
   (forall p, monic (eval_poly e p) -> qf_eval e (k p) = k' (eval_poly e p)) ->
@@ -805,7 +805,7 @@ rewrite (eval_LeadCoef (fun lp => k' ('X^(size p').-1 +
   \poly_(i < (size p').-1) (lp ^+ (size p' - i.+2) * p'`_i)))) //.
 move=> lp; set q := AddPoly _ _; set q' := _ + _.
 suff eqq': eval_poly e q = q'.
-  rewrite Pk eqq' // /monic lead_coef_addl ?lead_coefXn //.
+  rewrite Pk eqq' // /monic lead_coefDl ?lead_coefXn //.
   by rewrite size_polyXn (leq_ltn_trans (size_poly _ _)).
 rewrite /q /q' !eval_OpPoly /= mul0r add0r addr0 mul1r.
 congr (_ + _); move: (size _)=> n; rewrite poly_def.
@@ -1086,12 +1086,12 @@ elim: t.
     by rewrite // nth_set_nth /= ni.
 - by move=> r; rewrite /= mul0r add0r hornerC.
 - by move=> r; rewrite /= mul0r add0r hornerC.
-- by move=> t tP s sP; rewrite /= eval_AddPoly horner_add tP ?sP.
-- by move=> t tP; rewrite /= eval_OppPoly horner_opp tP.
-- by move=> t tP n; rewrite /= eval_NatMulPoly horner_mulrn tP.
-- by move=> t tP s sP; rewrite /= eval_MulPoly horner_mul tP ?sP.
+- by move=> t tP s sP; rewrite /= eval_AddPoly hornerD tP ?sP.
+- by move=> t tP; rewrite /= eval_OppPoly hornerN tP.
+- by move=> t tP n; rewrite /= eval_NatMulPoly hornerMn tP.
+- by move=> t tP s sP; rewrite /= eval_MulPoly hornerM tP ?sP.
 - move=> t tP /=; elim; first by rewrite /= expr0 mul0r add0r hornerC.
-  by move=> n ihn; rewrite /= eval_MulPoly exprSr horner_mul ihn ?tP // mulrC.
+  by move=> n ihn; rewrite /= eval_MulPoly exprSr hornerM ihn ?tP // mulrC.
 Qed.
 
 Definition wproj (n : nat) (s : seq (GRing.term F) * seq (GRing.term F)) :

@@ -380,21 +380,29 @@ Prenex Implicits esym nesym.
 (* Delayed (equality) constraints. *)
 
 Class constraint (C : Prop) := Constraint : C.
-Global Instance equality_constraint T a : constraint (a = a :> T).
-Proof. by []. Qed.
-Global Instance conj_constraint P Q {cP : constraint P} {cQ : constraint Q} :
-  constraint (P /\ Q).
-Proof. by []. Qed.
-Global Instance all_constraint T P {cP : forall x : T, constraint (P x)} :
-  constraint (forall x, P x).
-Proof. by []. Qed.
-Global Instance exists_constraint T P (x : T) {cP : constraint (P x)} :
-  constraint (exists x, P x).
-Proof. by exists x. Qed.
-Global Instance exists2_constraint T P Q (x : T)
-   {cP : constraint (P x)} {cQ : constraint (Q x)} :
-  constraint (exists2 x, P x & Q x).
-Proof. by exists x. Qed.
+
+(*   We need to use an extern hint here because of a serious shortcoming of   *)
+(* unification in Coq 8.3, which appears to fail to perform non-head constant *)
+(* delta-expansion in the presence of pre-existing evars, which spoils        *)
+(* obvious conversions such as structure projections or self-expanding funs   *)
+(* such as @idfun T, f \o g, etc. Even the undocumented bespoke "unify" fails *)
+(* in this way. The "simpl" in force_constraint is a partial workaround for   *)
+(* this "feature" (which appears to be discontinued in 8.4).                  *)
+(*   The apparently redundant unify_equals using the undocumented "unify" is  *)
+(* in fact needed, because split/esplit implement canonical structure         *)
+(* inference incompletely in the presence of persistent evars. The separate   *)
+(* definition isn't cosmetic, either: there's code in tacinterp.ml that       *)
+(* causes our plugin "do" tactical to crash if one of the branches contains   *)
+(* an Ltac "match" constrauct.                                                *)
+(*   On the brighter side, this hack has the advantage that it covers all     *)
+(* forms of equalities, conjuctions, universal and existential quantification *)
+(* with a single meta-instance.                                               *)
+Ltac unify_equals :=
+  match goal with |- ?x = ?y => unify x y with typeclass_instances; split end.
+Ltac force_constraint :=
+  unfold constraint;
+  do 30?[esplit | unify_equals | intro; intros | progress simpl]; fail.
+Global Hint Extern 0 (constraint _) => force_constraint : typeclass_instances.
 
 (* A predicate for singleton types.                                           *)
 Definition all_equal_to T (x0 : T) := forall x, unkeyed x = x0.
@@ -461,9 +469,9 @@ End Composition.
 Notation comp := (funcomp tt).
 Notation "@ 'comp'" := (fun A B C => @funcomp A B C tt).
 Notation "f1 \o f2" := (comp f1 f2)
-  (at level 50, format "f1 \o '/ '  f2") : fun_scope.
+  (at level 50, format "f1  \o '/ '  f2") : fun_scope.
 Notation "f1 \; f2" := (catcomp tt f1 f2)
-  (at level 60, right associativity, format "f1 \; '/ '  f2") : fun_scope.
+  (at level 60, right associativity, format "f1  \; '/ '  f2") : fun_scope.
 
 Notation "[ 'eta' f ]" := (fun x => f x)
   (at level 0, format "[ 'eta'  f ]") : fun_scope.

@@ -406,7 +406,7 @@ Qed.
 (* rewrite [val _]/= subnn=> subnK subnK'. *)
 (* have ->: subnK = erefl (n.+1); first exact: nat_irrelevance. *)
 (* have ->: subnK' = erefl (n.+1); first exact: nat_irrelevance. *)
-(* rewrite ![cast_multi _ _]/= addrC mulrC -poly_cons_def polyseq_cons Hs. *)
+(* rewrite ![cast_multi _ _]/= addrC mulrC -cons_poly_def polyseq_cons Hs. *)
 (*   move=> {Hs En e subnK' subnK}. *)
 (*   case:s ls; last by move=> a s /=. *)
 (*   rewrite /=. *)

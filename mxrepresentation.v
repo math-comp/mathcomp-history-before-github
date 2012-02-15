@@ -4569,7 +4569,7 @@ case: (pickP [pred x \in G | ~~ is_scalar_mx (rG x)]) => [x | scalG].
     rewrite rmorphB rmorphX /= horner_mx_C horner_mx_X.
     rewrite -repr_mxX ?inE // ((_ ^+ _ =P 1)%g _) ?repr_mx1 ?subrr //.
     by rewrite -order_dvdn order_dvdG.
-  case/idPn; rewrite -mxrank_eq0 -(prod_factors_of_unity ozG).
+  case/idPn; rewrite -mxrank_eq0 -(factor_Xn_sub_1 ozG).
   elim: #|G| => [|i IHi]; first by rewrite big_nil horner_mx_C mxrank1.
   rewrite big_nat_recr /= rmorphM mxrankMfree {IHi}//.
   rewrite row_free_unit rmorphB /= horner_mx_X horner_mx_C.
@@ -5211,7 +5211,7 @@ have qAf0: horner_mx Af q = 0.
   rewrite -[_ q]mulr1 -[1]XAK mulrA -{2}(horner_mx_X Af) -(horner_mx_C Af).
   by rewrite -rmorphB -rmorphM -def_pAf /= mx_root_minpoly mul0r.
 have{qAf0} := dvdp_leq q_nz (mxminpoly_min qAf0); rewrite def_pAf.
-by rewrite size_mul_monic ?monic_factor // seq_factor addn2 ltnn.
+by rewrite size_Mmonic ?monicXsubC // polyseqXsubC addn2 ltnn.
 Qed.
 
 (* An alternative to the above, used in the proof of the p-stability of       *)
@@ -5834,7 +5834,7 @@ have [a]: exists a, eigenvalue A a.
     by rewrite -(eqP (mxminpoly_monic A)) /lead_coef size_mxminpoly.
   have d_gt0: d > 0 := mxminpoly_nonconstant A.
   have [a def_ad] := solve_monicpoly (nth 0 (- P)) d_gt0.
-  exists a; rewrite eigenvalue_root_min -/P /root -oppr_eq0 -horner_opp.
+  exists a; rewrite eigenvalue_root_min -/P /root -oppr_eq0 -hornerN.
   rewrite horner_coef size_opp size_mxminpoly -/d big_ord_recr -def_ad.
   by rewrite coefN Pd1 mulN1r /= subrr.
 case/negP; rewrite kermx_eq0 row_free_unit (mx_Schur irrG) ?subr_eq0 //.

@@ -22,128 +22,26 @@ Unset Printing Implicit Defensive.
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
-Section MorePoly.
+Section CyclotomicPoly.
 
 Section Ring.
 
 Variable R : ringType.
 
-Lemma lead_coef_lreg (p : {poly R}) a :
-  GRing.lreg a -> lead_coef (a *: p) = a * lead_coef p.
-Proof. by move=> reg_a; rewrite !lead_coefE coefZ lreg_size. Qed.
-
-Lemma rpred_horner S {ringS : semiringPred S} (p : {poly R}) x : 
-  all (mem S) p -> x \in S -> p.[x] \in S.
-Proof.
-move/(all_nthP 0)=> /= Sp Sx; rewrite horner_coef rpred_sum // => i _.
-by rewrite rpredM ?Sp ?rpredX.
-Qed.
-
-Lemma prod_monic I r (P : pred I) (F : I -> {poly R}):
-  (forall i, P i -> monic (F i)) -> monic (\prod_(i <- r | P i) F i).
-Proof.
-by move=> monF; elim/big_ind: _ => // [|p q /monic_mull-> //]; exact: monic1.
-Qed.
-
-Lemma prod_factors_monic I r (P : pred I) (F : I -> R) :
-  monic (\prod_(i <- r | P i) ('X - (F i)%:P)).
-Proof. by apply: prod_monic => i _; exact: monic_factor. Qed.
-
-Lemma size_prod_factors I r (F : I -> R) :
-  size (\prod_(i <- r) ('X - (F i)%:P)) = (size r).+1.
-Proof.
-elim: r => [|i r /= <-]; rewrite ?big_nil ?size_poly1 // big_cons.
-rewrite size_monic_mul ?monic_factor ?monic_neq0 ?prod_factors_monic //.
-by rewrite size_factor //.
-Qed.
-
 Definition cyclotomic (z : R) n :=
   \prod_(k < n | coprime k n) ('X - (z ^+ k)%:P).
 
 Lemma cyclotomic_monic z n : monic (cyclotomic z n).
-Proof. exact: prod_factors_monic. Qed.
+Proof. exact: monic_prod_XsubC. Qed.
 
 Lemma size_cyclotomic z n : size (cyclotomic z n) = (phi n).+1.
 Proof.
-rewrite /cyclotomic -big_filter filter_index_enum size_prod_factors; congr _.+1.
+rewrite /cyclotomic -big_filter filter_index_enum size_prod_XsubC; congr _.+1.
 rewrite -cardE -sum1_card phi_count_coprime big_mkord.
 by apply: eq_bigl => k; rewrite coprime_sym.
 Qed.
 
-Section MorePrimRoot.
-
-Variables (n : nat) (z : R).
-Hypothesis prim_z : n.-primitive_root z.
-Let n_gt0 := prim_order_gt0 prim_z.
-
-Lemma exp_prim_root k : (n %/ gcdn k n).-primitive_root (z ^+ k).
-Proof.
-set d := gcdn k n; have d_gt0: (0 < d)%N by rewrite gcdn_gt0 orbC n_gt0.
-have [d_dv_k d_dv_n]: (d %| k /\ d %| n)%N by rewrite dvdn_gcdl dvdn_gcdr.
-set q := (n %/ d)%N; rewrite /q.-primitive_root ltn_divr // n_gt0.
-apply/forallP=> i; rewrite unity_rootE -exprM -(prim_order_dvd prim_z).
-rewrite -(divnK d_dv_n) -/q -(divnK d_dv_k) mulnAC dvdn_pmul2r //.
-apply/eqP; apply/idP/idP=> [|/eqP->]; last by rewrite dvdn_mull.
-rewrite gauss; first by rewrite eqn_leq ltn_ord; exact: dvdn_leq.
-by rewrite /coprime gcdnC -(eqn_pmul2r d_gt0) mul1n muln_gcdl !divnK.
-Qed.
-
-Lemma dvdn_prim_root d : (d %| n)%N -> d.-primitive_root (z ^+ (n %/ d)).
-Proof.
-set k := (n %/ d)%N => d_dv_n; rewrite -{1}(mulKn d n_gt0) -divn_divr // -/k.
-by rewrite -{1}(@dvdn_gcd_idl k n) ?exp_prim_root // -(divnK d_dv_n) dvdn_mulr.
-Qed.
-
-End MorePrimRoot.
-
 End Ring.
-
-Section MapRing.
-
-Variables aR rR : ringType.
-
-Section CombinatorialMap.
-
-Variable f : aR -> rR.
-
-Lemma map_poly0 : map_poly f 0 = 0.
-Proof. by rewrite map_polyE polyseq0. Qed.
-
-Hypotheses (inj_f : injective f) (f_0 : f 0 = 0).
-
-Lemma size_map_inj_poly p : size (map_poly f p) = size p.
-Proof.
-have [-> | nz_p] := eqVneq p 0; first by rewrite map_poly0 !size_poly0.
-by rewrite size_poly_eq // -f_0 (inj_eq inj_f) -lead_coefE lead_coef_eq0.
-Qed.
-
-Lemma map_inj_poly : injective (map_poly f).
-Proof.
-move=> p q /polyP eq_pq; apply/polyP=> i; apply: inj_f.
-by rewrite -!coef_map_id0_poly ?eq_pq.
-Qed.
-
-Lemma lead_coef_map_inj p : lead_coef (map_poly f p) = f (lead_coef p).
-Proof. by rewrite !lead_coefE size_map_inj_poly coef_map_id0_poly. Qed.
-
-End CombinatorialMap.
-
-Lemma map_poly_comp (f : {rmorphism aR -> rR}) p q :
-  map_poly f (p \Po q) = map_poly f p \Po map_poly f q.
-Proof.
-elim/poly_ind: p => [|p a IHp]; first by rewrite !raddf0.
-rewrite comp_poly_amulX !rmorphD !rmorphM /= !map_polyC map_polyX.
-by rewrite comp_poly_amulX -IHp.
-Qed.
-
-End MapRing.
-
-Lemma lead_coefZ (R : idomainType) (p : {poly R}) a :
-  lead_coef (a *: p) = a * lead_coef p.
-Proof.
-have [-> | /mulfI/lead_coef_lreg//] := eqVneq a 0.
-by rewrite mul0r scale0r lead_coef0.
-Qed.
 
 Section Field.
 
@@ -163,7 +61,7 @@ have defDn: divisors n = map val (map (@inord n) (divisors n)).
 rewrite defDn big_map big_uniq /=; last first.
   by rewrite -(map_inj_uniq val_inj) -defDn.
 pose h (k : 'I_n) : 'I_n.+1 := inord (n %/ gcdn k n).
-rewrite -(prod_factors_of_unity prim_z) big_mkord.
+rewrite -(factor_Xn_sub_1 prim_z) big_mkord.
 rewrite (partition_big h (dvdn^~ n)) /= => [|k _]; last by rewrite in_d ?dv_n.
 apply: eq_big => d; first by rewrite -(mem_map val_inj) -defDn inDn.
 set q := (n %/ d)%N => d_dv_n.
@@ -183,73 +81,44 @@ Qed.
 
 End Field.
 
-Section ClosedField.
-
-Variable F : closedFieldType.
-
-Lemma closed_field_poly_normal p :
-  {r : seq F | p = lead_coef p *: \prod_(z <- r) ('X - z%:P)}.
-Proof.
-apply: sig_eqW; elim: {p}_.+1 {-2}p (ltnSn (size p)) => // n IHn p lePn.
-have [/size1_polyC-> | p_gt1] := leqP (size p) 1.
-  by exists nil; rewrite big_nil lead_coefC scale_poly1.
-have nz_p: p != 0 by rewrite -size_poly_eq0 -(subnKC p_gt1).
-set a := lead_coef p; pose p1 i := - p`_i / a.
-have nz_a: a != 0 by rewrite lead_coef_eq0.
-have p1_gt0: (0 < (size p).-1)%N by rewrite -subn1 subn_gt0.
-have [z pz0] := solve_monicpoly p1 p1_gt0.
-have{pz0} /factor_theorem[q Dp]: root p z.
-  rewrite /root horner_coef -(ltn_predK p_gt1) big_ord_recr /= -lead_coefE -/a.
-  rewrite addr_eq0 pz0 -mulNr mulr_sumr; apply/eqP/eq_bigr=> i _.
-  by rewrite mulrCA mulrA mulrN divfK // opprK.
-have nz_q: q != 0 by rewrite Dp mulf_eq0 factor_eq0 orbF in nz_p.
-have [|r Dq] := IHn q.
-  rewrite -ltnS (leq_trans _ lePn) // Dp size_mul_monic ?monic_factor //.
-  by rewrite size_factor addn2.
-exists (z :: r); rewrite big_cons /a Dp lead_coef_mul_monic ?monic_factor //.
-by rewrite scalerAr -Dq mulrC.
-Qed.
-
-End ClosedField.
-
-End MorePoly.
+End CyclotomicPoly.
 
 Section MorePolyDiv.
 
 Variable R : idomainType.
 
-Lemma modp_factor p (c : R): p %% ('X - c%:P) = p.[c]%:P.
+Lemma modp_XsubC p (c : R): p %% ('X - c%:P) = p.[c]%:P.
 Proof.
-have: root (p - p.[c]%:P) c by rewrite /root !horner_lin subrr.
+have: root (p - p.[c]%:P) c by rewrite /root !hornerE subrr.
 case/factor_theorem=> q /(canRL (subrK _))/unit.modpP-> //.
-  by rewrite lead_coef_factor unitr1.
-by rewrite size_polyC size_factor ltnS leq_b1.
+  by rewrite lead_coefXsubC unitr1.
+by rewrite size_polyC size_XsubC ltnS leq_b1.
 Qed.
 
-Lemma coprimep_factor p (c : R): coprimep p ('X - c%:P) = ~~ root p c.
+Lemma coprimep_XsubC p (c : R): coprimep p ('X - c%:P) = ~~ root p c.
 Proof.
-rewrite -coprimep_modl modp_factor /root -scale_poly1.
+rewrite -coprimep_modl modp_XsubC /root -scale_poly1.
 have [-> | /coprimep_scalel->] := altP eqP; last exact: coprime1p.
-by rewrite scale0r /coprimep gcd0p size_factor.
+by rewrite scale0r /coprimep gcd0p size_XsubC.
 Qed.
 
-Lemma dvdp_mul_factor p q (c : R):
+Lemma dvdp_mul_XsubC p q (c : R):
   (p %| ('X - c%:P) * q) = ((if root p c then p %/ ('X - c%:P) else p) %| q).
 Proof.
-case: ifPn => [| not_pc0]; last by rewrite gausspr ?coprimep_factor.
-rewrite root_factor_theorem -eqp_div_factor mulrC => /eqP{1}->.
-by rewrite dvdp_mul2l ?factor_eq0.
+case: ifPn => [| not_pc0]; last by rewrite gausspr ?coprimep_XsubC.
+rewrite root_factor_theorem -eqp_div_XsubC mulrC => /eqP{1}->.
+by rewrite dvdp_mul2l ?polyXsubC_eq0.
 Qed.
 
-Lemma dvdp_prod_factors I r (F : I -> R) p :
+Lemma dvdp_prod_XsubC I r (F : I -> R) p :
     p %| \prod_(i <- r) ('X - (F i)%:P) ->
   {m | p %= \prod_(i <- mask m r) ('X - (F i)%:P)}.
 Proof.
 elim: r => [|i r IHr] in p *.
   by rewrite big_nil dvdp1; exists nil; rewrite // big_nil -size_poly_eq1.
-rewrite big_cons dvdp_mul_factor root_factor_theorem -eqp_div_factor.
+rewrite big_cons dvdp_mul_XsubC root_factor_theorem -eqp_div_XsubC.
 case: eqP => [{2}-> | _] /IHr[m Dp]; last by exists (false :: m).
-by exists (true :: m); rewrite /= mulrC big_cons eqp_mul2l ?factor_eq0.
+by exists (true :: m); rewrite /= mulrC big_cons eqp_mul2l ?polyXsubC_eq0.
 Qed.
 
 End MorePolyDiv.
@@ -506,7 +375,7 @@ have [nz_a nz_q]: a != 0 /\ q != 0 by apply/norP; rewrite -scale_poly_eq0 -Dp.
 exists ((-1) ^+ e * b%:Z).
   rewrite negzMsign addbF -lt0n divn_gt0 ?(absz_gt0, dvdn_leq) //.
   by rewrite int_poly_scale_eq0.
-apply/eqP; rewrite -subr_eq0 -(lreg_scale0 _ (mulfI nz_a)) scalerBr subr_eq0.
+apply/eqP; rewrite -subr_eq0 -(lreg_polyZ_eq0 _ (mulfI nz_a)) scalerBr subr_eq0.
 rewrite -Dp scalerA {1}[p]int_polyEscale; apply/eqP; congr (_ *: _).
 rewrite [a]zintEsign mulrAC -!mulrA -PoszM divnK // mulrA -signr_addb.
 rewrite {1}[int_poly_scale p]zintEsign; congr (_ ^+ _ * _).
@@ -557,7 +426,7 @@ rewrite {1}[p1]int_polyEscale {1}[p2]int_polyEscale -scalerAl -scalerAr.
 rewrite scalerA unscale_int_polyZ ?mulf_neq0 ?int_poly_scale_eq0 //.
 set p := _ * _; rewrite {2}[p]int_polyEscale; set d := int_poly_scale p.
 have [||d1] := ltngtP (absz d) 1%N; last 1 first.
-- rewrite [d]zintEsign d1 mulr1 negz_int_poly_scale lead_coef_Imul.
+- rewrite [d]zintEsign d1 mulr1 negz_int_poly_scale lead_coefM.
   rewrite negzM !lead_coef_eq0 !unscale_int_poly_eq0 nz_p1 nz_p2 /=.
   by rewrite !(negPf (negz_lead_unscale_int_poly _)) scale1r.
 - by rewrite ltnNge absz_gt0 int_poly_scale_eq0 mulf_neq0 ?unscale_int_poly_eq0.
@@ -575,14 +444,14 @@ have nz_unscale_r q: q != 0 -> map_poly to_r (unscale_int_poly q) != 0.
   by move/(unscale_int_poly_irr nz_q); case: (negz _) => // [[->]].
 suffices{nz_unscale_r} /idPn[]: map_poly to_r p == 0.
   by rewrite rmorphM mulf_neq0 ?nz_unscale_r.
-rewrite [p]int_polyEscale -/d [d]zintEsign mulrC -scalerA map_poly_scaler /=.
+rewrite [p]int_polyEscale -/d [d]zintEsign mulrC -scalerA map_polyZ /=.
 by rewrite scale_poly_eq0 -val_eqE /= val_Fp_nat ?(eqnP r_dv_d).
 Qed.
 
 Lemma size_unscale_int_poly p : size (unscale_int_poly p) = size p.
 Proof.
 have [-> | ] := eqVneq p 0; first by rewrite unscale_int_poly0.
-by rewrite {1 3}[p]int_polyEscale scale_poly_eq0 => /norP[/size_scaler-> _].
+by rewrite {1 3}[p]int_polyEscale scale_poly_eq0 => /norP[/size_scale-> _].
 Qed.
 
 Lemma int_scale_monic p : monic p -> int_poly_scale p = 1.
@@ -614,7 +483,7 @@ pose a := \prod_(i < size p) denq p`_i.
 have nz_a: a != 0 by apply/prodf_neq0=> i _; exact: denq_neq0.
 exists (map_poly numq (a%:~R *: p)), a => //.
 apply: canRL (scalerK _) _; rewrite ?zintr_eq0 //.
-apply/polyP=> i; rewrite !(coefZ, coef_map_id0_poly) // numqK // inE mulrC.
+apply/polyP=> i; rewrite !(coefZ, coef_map_id0) // numqK // inE mulrC.
 have [ltip | /(nth_default 0)->] := ltnP i (size p); last by rewrite mul0r.
 by rewrite [a](bigD1 (Ordinal ltip)) // rmorphM mulrA -numqE -rmorphM denq_zint.
 Qed.
@@ -641,7 +510,7 @@ have [-> | nz_p] := eqVneq p 0.
   by exists 1; rewrite ?oner_eq0 // unscale_int_poly0 map_poly0 !scaler0.
 exists ((int_poly_scale p)%:~R / a%:~R).
   by rewrite mulf_neq0 ?invr_eq0 ?zintr_eq0 ?int_poly_scale_eq0.
-by rewrite mulrC -scalerA -map_poly_scaler -int_polyEscale.
+by rewrite mulrC -scalerA -map_polyZ -int_polyEscale.
 Qed.
 
 End ZpolyScale.
@@ -1297,7 +1166,7 @@ Proof. by rewrite rmorphM /= subfx_inj_eval // map_polyC hornerC. Qed.
 Lemma subfx_inj_base b : subfx_inj b%:A = iota b.
 Proof. by rewrite subfx_injZ rmorph1 mulr1. Qed.
 
-(* The vectTyoe mixin requires irreducibility... *)
+(* The vectType mixin requires irreducibility... *)
 Lemma min_subfx_vectMixin :
     (forall q, root (map_poly iota q) z -> q != 0 -> (size p <= size q)%N) ->
   {Vm : VectorType.mixin_of subfx_lmodType | VectorType.dim Vm = (size p).-1}.
@@ -1309,7 +1178,7 @@ have FLinj: injective (@subfx_inj F L iota z p) by exact: fmorph_inj.
 have Fz2vK: cancel Fz2v vFz.
   move=> x; rewrite /vFz /Fz2v; case: (sig_eqW _) => /= q ->.
   apply: FLinj; rewrite !subfx_inj_eval // {2}(divp_eq q p) rmorphD rmorphM /=.
-  by rewrite !horner_lin (eqP pz0) mulr0 add0r poly_rV_K // -ltnS Dn ltn_modpN0.
+  by rewrite !hornerE (eqP pz0) mulr0 add0r poly_rV_K // -ltnS Dn ltn_modpN0.
 have vFzK: cancel vFz Fz2v.
   apply: inj_can_sym Fz2vK _ => v1 v2 /(congr1 (@subfx_inj F L _ z p))/eqP.
   rewrite -subr_eq0 -!raddfB /= subfx_inj_eval // => /min_p/implyP.
@@ -1337,7 +1206,7 @@ Proof.
 move=> a p; rewrite -mul_polyC rmorphM /= fieldExt_hornerC.
 by rewrite -scalerAl mul1r.
 Qed.
-Canonical fieldExt_horner_linear := AddLinear fieldExt_hornerZ.
+Canonical fieldExt_hornerEear := AddLinear fieldExt_hornerZ.
 Canonical fieldExt_horner_lrmorhism := [lrmorphism of fieldExt_horner].
 
 End Horner.
@@ -1461,7 +1330,7 @@ by rewrite eqEsubv subvf -genF genFieldSl.
 Qed.
 
 Lemma kHom_extends K E f p U :
-    (K <= E)%VS -> kHom K E f -> polyOver K p -> splittingFieldFor E p U ->
+    (K <= E)%VS -> kHom K E f -> p \in polyOver K -> splittingFieldFor E p U ->
   {g | kHom K U g & {in E, f =1 g}}.
 Proof.
 move=> sKE homEf Kp /sig2_eqW[rs Dp <-{U}]; set r := rs.
@@ -1475,23 +1344,23 @@ suffices{IHr} /sigW[y fpEz_y]: exists y, root fpEz y.
   have [g homGg Dg] := IHr rs_r _ _ sKEz homEz_fz; exists g => // x Ex.
   by rewrite -Dg ?memK_Fadjoin // kHomExtendExt.
 have [m DfpEz]: {m | fpEz %= \prod_(w <- mask m rs) ('X - w%:P)}.
-  apply: dvdp_prod_factors; rewrite -(eqp_dvdr _ Dp) -(kHomFixedPoly homEf Kp).
-  have /polyOver_suba[q Dq] := polyOver_subset sKE Kp.
+  apply: dvdp_prod_XsubC; rewrite -(eqp_dvdr _ Dp) -(kHomFixedPoly homEf Kp).
+  have /polyOver_suba[q Dq] := polyOverSv sKE Kp.
   have /polyOver_suba[qz Dqz] := minPolyOver E z.
-  rewrite /fpEz Dq Dqz -2?{1}map_comp_poly.
+  rewrite /fpEz Dq Dqz -2?{1}map_poly_comp.
   rewrite (dvdp_map (RMorphism (kHomRmorph_subproof homEf))).
   rewrite -(dvdp_map (sa_val_rmorphism E)) -Dqz -Dq.
-  rewrite minPoly_dvdp ?(polyOver_subset sKE) //.
-  by rewrite (eqp_root Dp) root_prod_factors.
-exists (mask m rs)`_0; rewrite (eqp_root DfpEz) root_prod_factors mem_nth //.
-rewrite -ltnS -(size_prod_factors _ id) -(eqp_size DfpEz).
+  rewrite minPoly_dvdp ?(polyOverSv sKE) //.
+  by rewrite (eqp_root Dp) root_prod_XsubC.
+exists (mask m rs)`_0; rewrite (eqp_root DfpEz) root_prod_XsubC mem_nth //.
+rewrite -ltnS -(size_prod_XsubC _ id) -(eqp_size DfpEz).
 rewrite size_poly_eq ?coef_map -?lead_coefE ?size_minPoly //.
 rewrite (monicP (monic_minPoly E z)).
 by have /kHomP[fK _] := homEf; rewrite fK ?mem1v ?oner_eq0.
 Qed.
 
 Lemma enum_kHom K p (F := fullv L) :
-    polyOver K p -> splittingFieldFor K p F ->
+    p \in polyOver K -> splittingFieldFor K p F ->
   {homK : (\dim_K F).-tuple 'End(L) | separablePolynomial p -> uniq homK
         & forall f, kHom K F f = (f \in homK)}.
 Proof.
@@ -1506,19 +1375,19 @@ have [Ez | E'z] := boolP (z \in E).
 set Ez := Fadjoin E z in defF; pose pEz := minPoly E z.
 have sEEz: (E <= Ez)%VS := subsetKFadjoin E z; have sKEz := subv_trans sKE sEEz.
 have{IHr} [homEz UhomEz DhomEz] := IHr rs_r _ sKEz defF.
-have Ep: polyOver E p := polyOver_subset sKE Kp.
+have Ep: p \in polyOver E := polyOverSv sKE Kp.
 have [m DpEz]: {m | pEz %= \prod_(w <- mask m rs) ('X - w%:P)}.
-  apply: dvdp_prod_factors; rewrite -(eqp_dvdr _ Dp).
-  rewrite minPoly_dvdp ?(polyOver_subset sKE) //.
-  by rewrite (eqp_root Dp) root_prod_factors.
+  apply: dvdp_prod_XsubC; rewrite -(eqp_dvdr _ Dp).
+  rewrite minPoly_dvdp ?(polyOverSv sKE) //.
+  by rewrite (eqp_root Dp) root_prod_XsubC.
 set rz := mask m rs in Dp; pose n := \dim_E Ez.
 have sz_rz: size rz == n.
   rewrite /n dim_Fadjoin mulKn ?adim_gt0 // -eqSS.
-  by rewrite -size_minPoly -(size_prod_factors _ id) -(eqp_size DpEz).
+  by rewrite -size_minPoly -(size_prod_XsubC _ id) -(eqp_size DpEz).
 have fEz i (y := tnth (Tuple sz_rz) i): {f | kHom E F f & f z = y}.
   have homEfz: kHom E Ez (kHomExtend E \1%VS z y).
     rewrite kHomExtendkHom ?kHom1 // (eq_map_poly (fun _ => unit_lappE _)).
-    rewrite map_polyE map_id polyseqK (eqp_root DpEz) -/rz root_prod_factors.
+    rewrite map_polyE map_id polyseqK (eqp_root DpEz) -/rz root_prod_XsubC.
     exact: mem_tnth.
   have splitFp: splittingFieldFor Ez p F.
     exists rs => //; apply/eqP; rewrite eqEsubv subvf -defF genFieldSr //.
@@ -1537,7 +1406,7 @@ exists [tuple of codom mkHom] => [sepP | f].
   apply/injectiveP => /= [[i1 j1]] [i2 j2] /= /eqP/eq_lapp Eij12.
   have /eqP Ei12: i1 == i2.
     have /eqP := Eij12 z; rewrite !mkHom_z nth_uniq ?(eqP sz_rz) //.
-    by rewrite mask_uniq // -separable_factors -(eqp_separable Dp).
+    by rewrite mask_uniq // -separable_prod_XsubC -(eqp_separable Dp).
   rewrite -Ei12 in Eij12 *; congr (_, _); apply/val_inj/eqP.
   case: (fEz i1) Eij12 => f /= /(subv_kHom (sub1v _))/LAut_lrmorph fM _ Ej12.
   rewrite -(nth_uniq 0 _ _ (UhomEz sepP)) ?size_tuple // -!tnth_nth.
@@ -1547,7 +1416,7 @@ apply/idP/imageP=> [homFf | [[i j] _ ->] /=]; last first.
   case: (fEz i) => fi /= /comp_kAut->; rewrite ?(subv_kHom sEEz) //.
   by rewrite DhomEz mem_tnth.
 have /tnthP[i Dfz]: f z \in Tuple sz_rz.
-  rewrite memtE /= -root_prod_factors -(eqp_root DpEz).
+  rewrite memtE /= -root_prod_XsubC -(eqp_root DpEz).
   by rewrite (kHom_rootK homFf) ?memvf ?subvf ?minPolyOver ?root_minPoly.
 case Dfi: (fEz i) => [fi homFfi fi_z]; have kerfi0 := kAut_lker0 homFfi.
 set fj := (fi \^-1 \o f)%VS; suffices /tnthP[j Dfj]: fj \in homEz.
@@ -1561,17 +1430,18 @@ by rewrite /= lappE /= Dfz -fi_z lker0_lappK.
 Qed.
 
 Lemma splitting_field_normal p (F := fullv L) :
-    polyOver 1%:VS p -> splittingFieldFor 1%:VS p F -> separablePolynomial p ->
+    p \in polyOver 1%:VS -> splittingFieldFor 1%:VS p F ->
+    separablePolynomial p ->
   isNormalFieldExt L.
 Proof.
 move=> F0p splitFp sep_p K x; set pKx := minPoly K x.
 have [autL /(_ sep_p)UautL DautL] := enum_kHom F0p splitFp.
 pose q := \prod_(z <- [image tnth autL i x | i <- 'I__]) ('X - z%:P).
-suffices F0q: polyOver 1%:VS q.
-  suffices /dvdp_prod_factors[m]: pKx %| q.
+suffices F0q: q \in polyOver 1%:VS.
+  suffices /dvdp_prod_XsubC[m]: pKx %| q.
     move: (mask m _) => r; exists r.
-    by rewrite -eqpMP ?prod_factors_monic ?monic_minPoly.
-  rewrite minPoly_dvdp ?(polyOver_subset (sub1v K)) // root_prod_factors.
+    by rewrite -eqpMP ?monic_prod_XsubC ?monic_minPoly.
+  rewrite minPoly_dvdp ?(polyOverSv (sub1v K)) // root_prod_XsubC.
   have /tnthP[i def1]: \1%VS \in autL by rewrite -DautL kHom1.
   by apply/imageP; exists i; rewrite // -def1 unit_lappE.
 have fixed_q f: f \in autL -> map_poly f q = q.
@@ -1595,7 +1465,7 @@ rewrite -(@leq_pmul2l (\dim F)) -?leq_divr ?adim_gt0 //.
 rewrite muln1 -[elementDegree _ _]mul1n -{1}[\dim F]divn1.
 rewrite -(dimv1 L) -dim_Fadjoin -(size_tuple autL).
 set E := Fadjoin _ _; have s1E: (1%:VS <= E)%VS := sub1v _.
-have Ep := polyOver_subset s1E F0p.
+have Ep := polyOverSv s1E F0p.
 have splitEp := splittingFieldForS s1E splitFp.
 have [autE _ DautE] := enum_kHom Ep splitEp; rewrite /= -/E in autE DautE.
 rewrite -(size_tuple autE) uniq_leq_size // => f autLf; rewrite -DautE.
@@ -1606,7 +1476,8 @@ by rewrite (kHomFixedPoly hom_f) // -coef_map fixed_q.
 Qed.
 
 Lemma splitting_field_galois p (F := fullv L) :
-    polyOver 1%:VS p -> splittingFieldFor 1%:VS p F -> separablePolynomial p ->
+    p \in polyOver 1%:VS -> splittingFieldFor 1%:VS p F ->
+    separablePolynomial p ->
   {normL : isNormalFieldExt L & galois normL 1%:VS F}.
 Proof.
 move=> F0p splitFp sep_p; have nL := splitting_field_normal F0p splitFp sep_p.
@@ -1615,7 +1486,7 @@ exists nL; apply/and3P; split; first exact: subvf; last first.
   by exists r => //; apply/allP=> cy _; rewrite /= memvf.
 have [r Dp <-] := splitFp; apply/separableP=> x /separableinK/=.
 have{Dp}: all (root p) r.
-  by apply/allP=> z r_z; rewrite (eqp_root Dp) root_prod_factors.
+  by apply/allP=> z r_z; rewrite (eqp_root Dp) root_prod_XsubC.
 elim/last_ind: r => [//| r z IHr].
 rewrite all_rcons genField_rcons => /andP[pz0 pr0] sep_x; apply: IHr pr0 _.
 apply: separableFadjoinExtend sep_x; apply: subsetSeparable (sub1v _) _.
@@ -1624,16 +1495,16 @@ Qed.
 
 Lemma normal_field_splitting (F := fullv L) :
     isNormalFieldExt L ->
-  {p : {poly L} & polyOver 1%:VS p & splittingFieldFor 1%:VS p F}.
+  {p : {poly L} & p \in polyOver 1%:VS & splittingFieldFor 1%:VS p F}.
 Proof.
 move=> normL; pose r i := sval (sigW (normL (aspace1 L) (tnth (vbasis F) i))).
 have sz_r i: (size (r i) <= \dim F)%N.
-  rewrite -ltnS -(size_prod_factors _ id) /r; case: (sigW _) => _ /= /eqP <-.
+  rewrite -ltnS -(size_prod_XsubC _ id) /r; case: (sigW _) => _ /= /eqP <-.
   rewrite size_minPoly ltnS; move: (tnth _ _) => x.
   by rewrite -[_ x]mul1n -(dimv1 L) -dim_Fadjoin dimvS ?subvf.
 pose mkf (z : L) := 'X - z%:P; pose mkfr i j := mkf (r i)`_j.
 exists (\prod_i \prod_(j < \dim F | (j < size (r i))%N) mkfr i j).
-  apply: prodp_polyOver => i _; rewrite big_ord_narrow /=.
+  apply: rpred_prod => i _; rewrite big_ord_narrow /=.
   rewrite -(big_mkord xpredT (mkfr i)) -(big_nth _ xpredT mkf) /r.
   by case: (sigW _) => _ /= /eqP <-; exact: minPolyOver.
 rewrite pair_big_dep /= -big_filter filter_index_enum -(big_map _ xpredT mkf).
@@ -1642,7 +1513,7 @@ apply/eqP; rewrite eqEsubv subvf.
 rewrite -((_ =P F) (is_span_is_basis (is_basis_vbasis F))) -span_subsetl.
 apply/allP=> _ /tnthP[i ->]; set x := tnth _ i.
 have /(nthP 0)[j lt_j_ri <-]: x \in r i.
-  rewrite -root_prod_factors /r -/x; case: (sigW _) => _ /= /eqP <-.
+  rewrite -root_prod_XsubC /r -/x; case: (sigW _) => _ /= /eqP <-.
   exact: root_minPoly.
 by apply/mem_genField/imageP; exists (i, Ordinal (leq_trans lt_j_ri (sz_r i))).
 Qed.
@@ -1678,8 +1549,8 @@ Lemma conjCi : algCi^* = - algCi.
 Proof.
 have: root (\prod_(z <- [:: algCi; -algCi]) ('X - z%:P)) algCi^*.
   rewrite big_cons big_seq1 raddfN opprK -subr_sqr -rmorphX sqr_algCi.
-  by rewrite /root !horner_lin -expr2 -rmorphX sqr_algCi rmorphN rmorph1 subrr.
-by rewrite root_prod_factors !inE [_ == _](negPf algCi_nonReal) => /eqP.
+  by rewrite /root !hornerE -expr2 -rmorphX sqr_algCi rmorphN rmorph1 subrr.
+by rewrite root_prod_XsubC !inE [_ == _](negPf algCi_nonReal) => /eqP.
 Qed.
 
 Lemma invCi : algCi^-1 = - algCi.
@@ -1801,7 +1672,7 @@ rewrite -map_polyE; case: (sig2_eqW _) => p /= nz_p px0.
 case: (closed_field_poly_normal _) => r /= Dp; apply: nth_index.
 have nz_a: lead_coef (pZtoC p) != 0.
   by rewrite lead_coef_map_inj // zintr_eq0 lead_coef_eq0.
-by rewrite -root_prod_factors -(root_scaler _ _ nz_a) -Dp.
+by rewrite -root_prod_XsubC -(rootZ _ _ nz_a) -Dp.
 Qed.
 
 (* This should be file-local, as it makes algC into THE canonical countable *)
@@ -1844,7 +1715,7 @@ Lemma getCintpK (p : {poly algC}) :
   all isIntC p -> pZtoC (map_poly CtoZ p) = p.
 Proof.
 move/(all_nthP 0)=> Zp; apply/polyP=> i.
-rewrite coef_map coef_map_id0_poly //= -[p]coefK coef_poly.
+rewrite coef_map coef_map_id0 //= -[p]coefK coef_poly.
 by case: ifP => [/Zp/getCintK// | _]; rewrite getCint0.
 Qed.
 
@@ -1872,11 +1743,11 @@ without loss{nz_x} nz_p0: p nz_p px0 / p`_0 != 0.
   have [a0 | nz_a] := eqVneq a 0; last first.
     by apply: IH nz_p px0 _; rewrite coefD coefC coefMX add0r.
   rewrite a0 addr0 mulrC mulf_eq0 -size_poly_eq0 size_polyX in nz_p px0.
-  apply: IHp nz_p _; rewrite rmorphM root_mul /= map_polyX in px0.
+  apply: IHp nz_p _; rewrite rmorphM rootM /= map_polyX in px0.
   by rewrite {1}/root hornerX (negPf nz_x) in px0.
 pose p_n := lead_coef p; pose q e m : qnum := (-1) ^+ e * m%:R / (absz p_n)%:R.
 exists [seq q e m | e <- iota 0 2, m <- divisors (absz (p_n * p`_0))] => a Dx.
-rewrite {x}Dx (eq_map_poly defZtoC) map_comp_poly fmorph_root /root in px0.
+rewrite {x}Dx (eq_map_poly defZtoC) map_poly_comp fmorph_root /root in px0.
 have [n Dn]: {n | size p = n.+2}.
   exists (size p - 2)%N; rewrite -addn2 subnK // ltnNge. 
   apply: contra nz_p => /size1_polyC Dp; rewrite Dp polyC_eq0.
@@ -1983,23 +1854,23 @@ have /sig2_eqW[p0 nz_p0 p0x] := algC_algebraic x.
 have [r Dp0] := closed_field_poly_normal (pZtoC p0).
 do [rewrite lead_coef_map_inj //; set d0 := _%:~R] in Dp0.
 have{nz_p0} nz_d0: d0 != 0 by rewrite zintr_eq0 lead_coef_eq0.
-have r_x: x \in r by rewrite Dp0 root_scaler // root_prod_factors in p0x.
+have r_x: x \in r by rewrite Dp0 rootZ // root_prod_XsubC in p0x.
 pose p_ (I : {set 'I_(size r)}) := \prod_(i <- enum I) ('X - (r`_i)%:P).
 pose Qpx I := root (p_ I) x && all (mem Crat) (p_ I).
 have{d0 p0 nz_d0 p0x Dp0} /minset_exists[I /minsetP[]]: Qpx setT.
   rewrite /Qpx; have ->: p_ setT = d0^-1 *: intrp p0.
      rewrite Dp0 scalerK // (big_nth 0) big_mkord /p_ big_filter /=.
      by apply: eq_bigl => i; rewrite inE.
-   rewrite root_scaler ?invr_eq0 // p0x; apply/(all_nthP 0)=> i _ /=.
+   rewrite rootZ ?invr_eq0 // p0x; apply/(all_nthP 0)=> i _ /=.
    by rewrite coefZ mulrC coef_map Crat_div ?rpred_int.
 case/andP=> pIx QpI minI _; pose p := map_poly CtoQ (p_ I).
 have DpI: p_ I = pQtoC p.
-  rewrite -[p_ I]coefK; apply/polyP=> i; rewrite -map_comp_poly !coef_poly.
+  rewrite -[p_ I]coefK; apply/polyP=> i; rewrite -map_poly_comp !coef_poly.
   by case: ifP => //= lti_pI; rewrite getCratK //; exact: (all_nthP 0 QpI).
-exists p; first by rewrite -(map_monic QtoC_M) -DpI prod_factors_monic.
+exists p; first by rewrite -(map_monic QtoC_M) -DpI monic_prod_XsubC.
 move=> q; rewrite -(dvdp_map QtoC_M) -DpI.
-apply/idP/idP=> [qx0 | /dvdpP[{q} q ->]]; last by rewrite root_mul pIx orbT.
-pose q1 := gcdp p q; have /dvdp_prod_factors[m Dq1]: pQtoC q1 %| p_ I.
+apply/idP/idP=> [qx0 | /dvdpP[{q} q ->]]; last by rewrite rootM pIx orbT.
+pose q1 := gcdp p q; have /dvdp_prod_XsubC[m Dq1]: pQtoC q1 %| p_ I.
   by rewrite gcdp_map DpI dvdp_gcdl.
 pose B := [set i \in mask m (enum I)].
 have{Dq1} Dq1: pQtoC q1 %= p_ B.
@@ -2011,7 +1882,7 @@ rewrite -(minI B); first by rewrite -(eqp_dvdl _ Dq1) gcdp_map dvdp_gcdr.
   rewrite -[p_ B](scalerK nz_d2) -Dq1 scalerA mulrC.
   have ->: d1 / d2 = (QtoC (lead_coef q1))^-1.
     have:= congr1 lead_coef Dq1; rewrite !lead_coefZ lead_coef_map.
-    rewrite (monicP (prod_factors_monic _ _ _)) mulr1 => <-.
+    rewrite (monicP (monic_prod_XsubC _ _ _)) mulr1 => <-.
     by rewrite invfM mulVKf.
   apply/(all_nthP 0)=> i _; rewrite coefZ coef_map mulrC /=.
   by rewrite Crat_div ?ratr_Crat.
@@ -2060,12 +1931,12 @@ suffices /sig_eqW[[n [|px [|pz []]]]// [Dpx Dpz]]:
     by apply: eq_bigr => i _; rewrite ffunE liftK.
   exists (px :: [seq p \Po pz | p <- ps]); rewrite /= -Dpx; congr (_ :: _).
   rewrite -map_comp Ds; apply: eq_map => p /=.
-  by rewrite map_poly_comp horner_comp_poly -Dpz.
+  by rewrite map_comp_poly horner_comp -Dpz.
 have [rx nz_rx rx0] := r_exists x.
 have [rz nz_rz rz0] := r_exists (- z).
 have char0_Q: [char qnum] =i pred0 by exact: orderedalg.ORing.PField.char_po.
 have [n [[pz Dpz] [px Dpx]]] := PET_char0 nz_rz rz0 nz_rx rx0 char0_Q.
-by exists (n, [:: px; - pz]); rewrite /= !raddfN horner_opp -[z]opprK Dpz Dpx.
+by exists (n, [:: px; - pz]); rewrite /= !raddfN hornerN -[z]opprK Dpz Dpx.
 Qed.
 
 Lemma num_field_exists (s : seq algC) :
@@ -2078,7 +1949,7 @@ suffices [Qs [QsC [z1 z1C z1gen]]]:
      {z1 : Qs | QsC z1 = z & forall x, exists p, fieldExt_horner z1 p = x}}}.
 - set inQs := fieldExt_horner z1 in z1gen *; pose s1 := map inQs ps.
   have inQsK p: QsC (inQs p) = (pQtoC p).[z].
-    rewrite /= -horner_map z1C -map_comp_poly; congr _.[z].
+    rewrite /= -horner_map z1C -map_poly_comp; congr _.[z].
     apply: eq_map_poly => b /=; apply: canRL (mulfK _) _.
       by rewrite zintr_eq0 denq_eq0.
     rewrite /= mulrzr -rmorphMz scalerMzl -{1}[b]divq_num_den -mulrzr.
@@ -2103,7 +1974,7 @@ exists (subfx_eval _ z r 'X) => [|x].
   by rewrite /= subfx_inj_eval ?map_polyX ?hornerX.
 have{x} [p ->] := subfxE x; exists p.
 apply: (@fmorph_inj _ _ (subfx_inj_rmorphism _ z r)).
-rewrite -horner_map -map_comp_poly [rhs in _ = rhs]subfx_inj_eval //.
+rewrite -horner_map -map_poly_comp [rhs in _ = rhs]subfx_inj_eval //.
 congr _.[_]; last by rewrite /= subfx_inj_eval // map_polyX hornerX.
 apply: eq_map_poly; exact: subfx_inj_base.
 Qed.
@@ -2166,7 +2037,7 @@ have SinjZ Qr (QrC : numF_inj Qr) a x: QrC (a *: x) = QtoC a * QrC x.
   by rewrite mulrzr mulrzl -!rmorphMz scalerMzl -scalezr -mulrzr -numqE.
 have Sinj_poly Qr (QrC : numF_inj Qr) p:
   map_poly QrC (map_poly (in_alg Qr) p) = pQtoC p.
-- rewrite -map_comp_poly; apply: eq_map_poly => a.
+- rewrite -map_poly_comp; apply: eq_map_poly => a.
   by rewrite /= SinjZ rmorph1 mulr1.
 have ext1 mu0 x: {mu1 | exists y, x = Sinj mu1 y
   & exists2 in01 : {lrmorphism _}, Sinj mu0 =1 Sinj mu1 \o in01
@@ -2176,7 +2047,7 @@ have ext1 mu0 x: {mu1 | exists y, x = Sinj mu1 y
   have [p [_ mon_p] /(_ p) pz0] := minCpolyP z; rewrite dvdpp in pz0.
   have [r Dr] := closed_field_poly_normal (pQtoC p : {poly algC}).
   rewrite lead_coef_map {mon_p}(monicP mon_p) rmorph1 scale1r in Dr.
-  have{pz0} rz: z \in r by rewrite -root_prod_factors -Dr.
+  have{pz0} rz: z \in r by rewrite -root_prod_XsubC -Dr.
   have [Qr [QrC [rr Drr genQr]]] := num_field_exists r.
   have{rz} [zz Dz]: {zz | QrC zz = z}.
     by move: rz; rewrite -Drr => /mapP/sig2_eqW[zz]; exists zz.
@@ -2214,7 +2085,8 @@ have ext1 mu0 x: {mu1 | exists y, x = Sinj mu1 y
       by rewrite -(rmorph1 in01) -linearZ Df !linearZ !rmorph1.
     by rewrite -rmorphM !Df !rmorphM.
   pose pr := map_poly (in_alg Qr) p.
-  have Qpr: polyOver 1%:VS pr.
+  have rpQ: subringPred (1%:VS : {vspace Qr}) by apply: id.
+  have Qpr: pr \in polyOver 1%:VS.
     by apply/polyOverP=> i; rewrite coef_map memvZl ?memv_inj.
   have splitQr: splittingFieldFor K pr (fullv Qr).
     apply: splittingFieldForS (sub1v (ASpace algK)) _; exists rr => //.
@@ -2282,11 +2154,11 @@ Lemma C_prim_root_exists n : (n > 0)%N -> {z : algC | n.-primitive_root z}.
 Proof.
 pose p : {poly algC} := 'X^n - 1; have [r Dp] := closed_field_poly_normal p.
 move=> n_gt0; apply/sigW; rewrite (monicP _) ?monic_Xn_sub_1 // scale1r in Dp.
-have rn1: all n.-unity_root r by apply/allP=> z; rewrite -root_prod_factors -Dp.
+have rn1: all n.-unity_root r by apply/allP=> z; rewrite -root_prod_XsubC -Dp.
 have sz_r: (n < (size r).+1)%N.
-  by rewrite -(size_prod_factors r id) -Dp size_Xn_sub_1.
+  by rewrite -(size_prod_XsubC r id) -Dp size_Xn_sub_1.
 have [|z] := hasP (has_prim_root n_gt0 rn1 _ sz_r); last by exists z.
-by rewrite -separable_factors -Dp separable_Xn_sub_1 // -neq0N_neqC -lt0n.
+by rewrite -separable_prod_XsubC -Dp separable_Xn_sub_1 // -neq0N_neqC -lt0n.
 Qed.
 
 (* (Integral) Cyclotomic polynomials. *)
@@ -2301,7 +2173,7 @@ Notation "''Phi_' n" := (Cyclotomic n)
 Lemma Cyclotomic_monic n : monic 'Phi_n.
 Proof.
 rewrite /'Phi_n; case: (C_prim_root_exists _) => z /= _.
-rewrite /monic lead_coefE coef_map_id0_poly ?(int_algC_K 0) //.
+rewrite /monic lead_coefE coef_map_id0 ?(int_algC_K 0) //.
 by rewrite size_poly_eq -lead_coefE (monicP (cyclotomic_monic _ _)) (CintrK 1).
 Qed.
 
@@ -2313,7 +2185,7 @@ rewrite /'Phi_n; case: (C_prim_root_exists _) => z /=.
 have n_gt0 := prim_order_gt0 prim_z0; rewrite prednK // => prim_z.
 have [uDn _ inDn] := divisors_correct n_gt0.
 pose q := \prod_(d <- rem n (divisors n)) 'Phi_d.
-have mon_q: monic q by apply: prod_monic => d _; exact: Cyclotomic_monic.
+have mon_q: monic q by apply: monic_prod => d _; exact: Cyclotomic_monic.
 have defXn1: cyclotomic z n * pZtoC q = 'X^n - 1.
   rewrite (prod_cyclotomic prim_z) (big_rem n) ?inDn //=.
   rewrite divnn n_gt0 rmorph_prod /=; congr (_ * _).
@@ -2328,14 +2200,14 @@ have nz_q: pZtoC q != 0.
 have [r def_zn]: exists r, cyclotomic z n = pZtoC r.
   have defZtoC: ZtoC =1 QtoC \o ZtoQ by move=> a; rewrite /= rmorph_zint.
   have /dvdpP[r0 Dr0]: map_poly ZtoQ q %| 'X^n - 1.
-    rewrite -(dvdp_map QtoC_M) mapXn1 -map_comp_poly.
+    rewrite -(dvdp_map QtoC_M) mapXn1 -map_poly_comp.
     by rewrite -(eq_map_poly defZtoC) -defXn1 dvdp_mull.
   have [r [a nz_a Dr]] := rat_poly_scale r0.
   exists (unscale_int_poly r); apply: (mulIf nz_q); rewrite defXn1.
   rewrite -rmorphM -(unscale_int_monic mon_q) -unscale_int_polyM /=.
   have ->: r * q = a *: ('X^n - 1).
     apply: (map_inj_poly (zintr_inj : injective ZtoQ)) => //.
-    rewrite map_poly_scaler mapXn1 Dr0 Dr -scalerAl scalerKV ?zintr_eq0 //.
+    rewrite map_polyZ mapXn1 Dr0 Dr -scalerAl scalerKV ?zintr_eq0 //.
     by rewrite rmorphM.
   by rewrite unscale_int_polyZ // unscale_int_monic ?monic_Xn_sub_1 ?mapXn1.
 rewrite getCintpK; last first.
@@ -2374,7 +2246,7 @@ have [-> | n_gt0] := posnP n; first by rewrite Cyclotomic0 polyseq1.
 have [z prim_z] := C_prim_root_exists n_gt0.
 rewrite -(size_map_inj_poly (can_inj CintrK)) //.
 rewrite (Cintr_Cyclotomic prim_z) -[_ n]big_filter filter_index_enum.
-rewrite size_prod_factors -cardE phi_count_coprime big_mkord -sum1_card.
+rewrite size_prod_XsubC -cardE phi_count_coprime big_mkord -sum1_card.
 by congr _.+1; apply: eq_bigl => k; rewrite coprime_sym.
 Qed.
 
@@ -2387,17 +2259,17 @@ have mon_pz: monic pz by exact: cyclotomic_monic.
 have pz0: root pz z.
   have [|n_gt1|n1] := ltngtP n 1; first by rewrite ltnNge n_gt0.
     rewrite [pz](bigD1 (Ordinal n_gt1)) ?coprime1n //=.
-    by rewrite root_mul root_factor eqxx.
-  rewrite /pz n1 [_ z _]big_ord1_cond root_factor expr0.
+    by rewrite rootM root_XsubC eqxx.
+  rewrite /pz n1 [_ z _]big_ord1_cond root_XsubC expr0.
   by rewrite -(prim_expr_order prim_z) n1.
 have [pf [Dpf mon_pf] dv_pf] := minCpolyP z.
 have /dvdpP_rat_int[f [af nz_af Df] [g /esym Dfg]]: pf %| pZtoQ 'Phi_n.
-  rewrite -dv_pf; congr (root _ z): pz0; rewrite -Dpz -map_comp_poly.
+  rewrite -dv_pf; congr (root _ z): pz0; rewrite -Dpz -map_poly_comp.
   by apply: eq_map_poly => b; rewrite /= rmorph_zint.
 without loss{nz_af} [mon_f mon_g]: af f g Df Dfg / monic f /\ monic g.
   move=> IH; pose cf := lead_coef f; pose cg := lead_coef g.
   have cfg1: cf * cg = 1.
-    by rewrite -lead_coef_Imul Dfg (monicP (Cyclotomic_monic n)).
+    by rewrite -lead_coefM Dfg (monicP (Cyclotomic_monic n)).
   apply: (IH (af *~ cf) (f *~ cg) (g *~ cf)).
   - by rewrite rmorphMz -scalerMzr scalerMzl -mulrzA cfg1.
   - by rewrite mulrzAl mulrzAr -mulrzA cfg1.
@@ -2405,7 +2277,7 @@ without loss{nz_af} [mon_f mon_g]: af f g Df Dfg / monic f /\ monic g.
 have{af Df} Df: pQtoC pf = pZtoC f.
   have:= congr1 lead_coef Df.
   rewrite lead_coefZ lead_coef_map_inj //; last exact: zintr_inj.
-  rewrite !(monicP _) // mulr1 Df => <-; rewrite scale1r -map_comp_poly.
+  rewrite !(monicP _) // mulr1 Df => <-; rewrite scale1r -map_poly_comp.
   by apply: eq_map_poly => b; rewrite /= rmorph_zint.
 have [/size1_polyC Dg | g_gt1] := leqP (size g) 1.
   rewrite /monic Dg lead_coefC in mon_g.
@@ -2414,12 +2286,12 @@ have [zk gzk0]: exists zk, root (pZtoC g) zk.
   have [rg] := closed_field_poly_normal (pZtoC g).
   rewrite lead_coef_map_inj // (monicP mon_g) scale1r => Dg.
   rewrite -(size_map_inj_poly (can_inj CintrK)) // Dg in g_gt1.
-  rewrite size_prod_factors in g_gt1.
-  by exists rg`_0; rewrite Dg root_prod_factors mem_nth.
+  rewrite size_prod_XsubC in g_gt1.
+  by exists rg`_0; rewrite Dg root_prod_XsubC mem_nth.
 have [k cokn Dzk]: exists2 k, coprime k n & zk = z ^+ k.
-  have: root pz zk by rewrite -Dpz -Dfg rmorphM root_mul gzk0 orbT.
+  have: root pz zk by rewrite -Dpz -Dfg rmorphM rootM gzk0 orbT.
   rewrite -[pz]big_filter -(big_map _ xpredT (fun a => _ - a%:P)).
-  by rewrite root_prod_factors => /imageP[k]; exists k.
+  by rewrite root_prod_XsubC => /imageP[k]; exists k.
 have co_fg (R : idomainType): n%:R != 0 :> R -> @coprimep R (intrp f) (intrp g).
   move=> nz_n; have: separablePolynomial (intrp ('X^n - 1) : {poly R}).
     by rewrite rmorphB rmorph1 /= map_polyXn separable_Xn_sub_1.
@@ -2433,7 +2305,7 @@ rewrite ltnS => lekm gzk0 cokn.
 have [|k_gt1] := leqP k 1; last have [p p_pr /dvdnP[k1 Dk]] := pdivP k_gt1.
   rewrite -[leq k 1](mem_iota 0 2) !inE => /pred2P[k0 | ->]; last first.
     by rewrite -Df dv_pf.
-  have /eqP := size_Cyclotomic n; rewrite -Dfg size_mul_monic ?monic_neq0 //.
+  have /eqP := size_Cyclotomic n; rewrite -Dfg size_Mmonic ?monic_neq0 //.
   rewrite k0 /coprime gcd0n in cokn; rewrite (eqP cokn).
   rewrite -(size_map_inj_poly (can_inj CintrK)) // -Df -Dpf.
   by rewrite -(subnKC g_gt1) -(subnKC (size_minCpoly z)) !addnS.
@@ -2442,20 +2314,20 @@ rewrite prime_coprime // (dvdn_charf (char_Fp p_pr)) => /co_fg {co_fg}.
 have charFpX: p \in [char {poly 'F_p}].
   by rewrite (rmorph_char (polyC_rmorphism _)) ?char_Fp.
 rewrite -(coprimep_pexpr _ _ (prime_gt0 p_pr)) -(Frobenius_autE charFpX).
-rewrite -[g]comp_polyX map_poly_comp -horner_map /= Frobenius_autE -rmorphX.
-rewrite -!map_comp_poly (@eq_map_poly _ _ _ (polyC \o *~%R 1)); last first.
+rewrite -[g]comp_polyXr map_comp_poly -horner_map /= Frobenius_autE -rmorphX.
+rewrite -!map_poly_comp (@eq_map_poly _ _ _ (polyC \o *~%R 1)); last first.
   by move=> a; rewrite /= !rmorph_zint.
-rewrite map_comp_poly -[_.[_]]map_poly_comp /= => co_fg.
+rewrite map_poly_comp -[_.[_]]map_comp_poly /= => co_fg.
 suffices: coprimep (pZtoC f) (pZtoC (g \Po 'X^p)).
   move/coprimep_root=> /=/(_ (z ^+ k1))/implyP.
-  rewrite map_poly_comp map_polyXn horner_comp_poly hornerXn.
+  rewrite map_comp_poly map_polyXn horner_comp hornerXn.
   rewrite -exprM -Dk [_ == 0]gzk0 implybF => /negP[].
   have: root pz (z ^+ k1).
     rewrite -[pz]big_filter -(big_map _ xpredT (fun a => _ - a%:P)).
-    rewrite filter_index_enum root_prod_factors; apply/imageP.
+    rewrite filter_index_enum root_prod_XsubC; apply/imageP.
     exists (Ordinal (ltn_pmod k1 n_gt0)); rewrite ?unfold_in ?coprime_modl //=.
     by rewrite prim_expr_mod.
-  rewrite -Dpz -Dfg rmorphM root_mul => /orP[] //= /IHm-> //.
+  rewrite -Dpz -Dfg rmorphM rootM => /orP[] //= /IHm-> //.
   rewrite (leq_trans _ lekm) // -[k1]muln1 Dk ltn_pmul2l ?prime_gt1 //.
   by have:= ltnW k_gt1; rewrite Dk muln_gt0 => /andP[].
 suffices: coprimep f (g \Po 'X^p).
@@ -2470,7 +2342,7 @@ have d_dv_mon h: d %| h -> monic h -> exists h1, h = d1 * h1.
   case/ID.dvdpP=> [[c h1] /= nz_c Dh] mon_h; exists (unscale_int_poly h1).
   by rewrite -unscale_int_polyM mulrC -Dh unscale_int_polyZ ?unscale_int_monic.
 case/d_dv_mon=> // f1 Df1 /d_dv_mon[|f2 ->].
-  rewrite /monic lead_coefE size_comp_poly_id size_polyXn /=.
+  rewrite /monic lead_coefE size_comp_poly size_polyXn /=.
   rewrite comp_polyE coef_sum polySpred ?monic_neq0 //= mulnC.
   rewrite big_ord_recr /= -lead_coefE (monicP mon_g) scale1r.
   rewrite -exprM coefXn eqxx big1 ?add0r // => i _.
@@ -2484,7 +2356,7 @@ rewrite Df1 !rmorphM dvdp_gcd !dvdp_mulr //= -size_poly_eq1.
 rewrite monFp ?size_unscale_int_poly //.
 rewrite /monic [_ d1]zintEsign (negPf (negz_lead_unscale_int_poly d)).
 have/esym/eqP := congr1 (absz \o lead_coef) Df1.
-by rewrite /= (monicP mon_f) lead_coef_Imul abszM muln_eq1 => /andP[/eqP-> _].
+by rewrite /= (monicP mon_f) lead_coefM abszM muln_eq1 => /andP[/eqP-> _].
 Qed.
 
 (* Extended automorphisms of Q_n. *)
@@ -2497,13 +2369,15 @@ have [-> /eqnP | n_gt0 co_k_n] := posnP n.
 have [z prim_z] := C_prim_root_exists n_gt0.
 have [Qn [QnC [[|zn []] // [Dz]]] genQn] := num_field_exists [:: z].
 pose Q1 := aspace1 Qn; pose phi := kHomExtend Q1 \1%VS zn (zn ^+ k).
+have rpQ1: subringPred Q1 by exact: id.
 have homQn1: kHom Q1 Q1 \1%VS by rewrite kHom1.
 have pzn_zk0: root (map_poly \1%VS (minPoly Q1 zn)) (zn ^+ k).
-  rewrite -(fmorph_root QnC) rmorphX Dz -map_comp_poly.
+  rewrite -(fmorph_root QnC) rmorphX Dz -map_poly_comp.
   rewrite (@eq_map_poly _ _ _ QnC) => [|a]; last by rewrite /= unit_lappE.
   set p1 := map_poly _ _.
   have [q1 Dp1]: exists q1, p1 = pQtoC q1.
-    have /polyOverP/(_ _)/injvP/sig_eqW a_ := minPolyOver Q1 zn.
+    have a_ i: (minPoly Q1 zn)`_i \in Q1 by apply/polyOverP; exact: minPolyOver.
+    have{a_} a_ i := sig_eqW (injvP _ _ (a_ i)).
     exists (\poly_(i < size (minPoly Q1 zn)) sval (a_ i)).
     apply/polyP=> i; rewrite coef_poly coef_map coef_poly /=.
     case: ifP => _; rewrite ?rmorph0 //; case: (a_ i) => a /= ->.
@@ -2512,10 +2386,10 @@ have pzn_zk0: root (map_poly \1%VS (minPoly Q1 zn)) (zn ^+ k).
     by rewrite rmorph_zint.
   have: root p1 z by rewrite -Dz fmorph_root root_minPoly.
   rewrite Dp1; have [q2 [Dq2 _] ->] := minCpolyP z.
-  case/dvdpP=> r1 ->; rewrite rmorphM root_mul /= -Dq2; apply/orP; right.
+  case/dvdpP=> r1 ->; rewrite rmorphM rootM /= -Dq2; apply/orP; right.
   rewrite (minCpoly_cyclotomic prim_z) /cyclotomic.
   rewrite (bigD1 (Ordinal (ltn_pmod k n_gt0))) ?coprime_modl //=.
-  by rewrite root_mul root_factor prim_expr_mod ?eqxx.
+  by rewrite rootM root_XsubC prim_expr_mod ?eqxx.
 have phiM: lrmorphism phi.
   by apply/LAut_lrmorph; rewrite -genQn /= kHomExtendkHom.
 have [nu Dnu] := extend_algC_subfield_aut QnC (RMorphism phiM).
@@ -2549,16 +2423,16 @@ exists Qn, QnC; last first.
     by have /dvdnP[q ->] := x_dv_n; rewrite mulnC exprM enx1 expr1n.
   exists (\sum_i w ^+ k i); rewrite rmorph_sum; apply/eq_bigr => i _.
   by rewrite rmorphX Dz Dk.
-have Q_Xn1: polyOver 1%:VS ('X^n - 1 : {poly Qn}).
-  rewrite addp_polyOver ?exp_polyOver ?polyOverX //.
-  by rewrite opp_polyOver // polyOverC ?mem1v.
+have rpQ1: subringPred (1%:VS : {vspace Qn}) by exact: id.
+have Q_Xn1: ('X^n - 1 : {poly Qn}) \in polyOver 1%:VS.
+  by rewrite rpredB ?rpred1 ?rpredX //= polyOverX.
 have splitXn1: splittingFieldFor 1%:VS ('X^n - 1) (fullv Qn).
   pose r := codom (fun i : 'I_n => w ^+ i).
   have Dr: 'X^n - 1 = \prod_(y <- r) ('X - y%:P).
-    by rewrite -(prod_factors_of_unity prim_w) big_mkord big_map enumT.
+    by rewrite -(factor_Xn_sub_1 prim_w) big_mkord big_map enumT.
   exists r; first by rewrite -Dr eqpxx.
   apply/eqP; rewrite eqEsubv subvf -genQn genFieldSr //; apply/allP=> /=.
-  by rewrite andbT -root_prod_factors -Dr; apply/unity_rootP/prim_expr_order.
+  by rewrite andbT -root_prod_XsubC -Dr; apply/unity_rootP/prim_expr_order.
 have [|nQn GalQn] := splitting_field_galois Q_Xn1 splitXn1.
   apply: separable_Xn_sub_1; rewrite -(fmorph_eq0 QnC) rmorph_nat.
   by rewrite -neq0N_neqC -lt0n cardG_gt0.
@@ -2889,12 +2763,12 @@ Lemma root_monic_algInt p x :
   root p x -> monic p -> all isIntC p -> x \in algInt.
 Proof.
 have pZtoQtoC pz: pQtoC (pZtoQ pz) = pZtoC pz.
-  by rewrite -map_comp_poly; apply: eq_map_poly => b; rewrite /= rmorph_zint.
+  by rewrite -map_poly_comp; apply: eq_map_poly => b; rewrite /= rmorph_zint.
 move=> px0 mon_p /getCintpP[pz Dp]; rewrite unfold_in.
 move: px0; rewrite Dp -pZtoQtoC; have [q [-> mon_q] ->] := minCpolyP x.
 case/dvdpP_rat_int=> qz [a nz_a Dq] [r].
 move/(congr1 (fun q1 => lead_coef (a *: pZtoQ q1))).
-rewrite rmorphM scalerAl -Dq lead_coefZ lead_coef_Imul /=.
+rewrite rmorphM scalerAl -Dq lead_coefZ lead_coefM /=.
 have /monicP->: monic (pZtoQ pz) by rewrite -(map_monic QtoC_M) pZtoQtoC -Dp.
 rewrite (monicP mon_q) mul1r mulr1 lead_coef_map_inj //; last exact: zintr_inj.
 rewrite Dq => ->; apply/(all_nthP 0)=> i _; rewrite !(coefZ, coef_map).
@@ -2906,17 +2780,17 @@ Proof.
 case/CratP=> a ->{z} /(all_nthP 0)/(_ 0%N)/implyP.
 have [p [Dp mon_p] dv_p] := minCpolyP (qnumr a).
 rewrite ltnW ?size_minCpoly // Dp coef_map.
-suffices ->: p = ('X - a%:P) by rewrite seq_factor /= rmorphN isIntC_opp.
-have /irredp_factor: p %| 'X - a%:P by rewrite -dv_p fmorph_root root_factor.
+suffices ->: p = ('X - a%:P) by rewrite polyseqXsubC /= rmorphN isIntC_opp.
+have /irredp_XsubC: p %| 'X - a%:P by rewrite -dv_p fmorph_root root_XsubC.
 rewrite -size_poly_eq1 -(size_map_poly QtoC_M) -Dp.
-by rewrite eqn_leq leqNgt size_minCpoly eqpMP ?monic_factor //= => /eqP.
+by rewrite eqn_leq leqNgt size_minCpoly eqpMP ?monicXsubC //= => /eqP.
 Qed.
 
 Lemma algInt_Cint x : isIntC x -> x \in algInt.
 Proof.
-move=> Zx; apply: root_monic_algInt (monic_factor x) _.
-  by rewrite root_factor eqxx.
-by rewrite seq_factor /= isIntC_opp Zx isIntC_1.
+move=> Zx; apply: root_monic_algInt (monicXsubC x) _.
+  by rewrite root_XsubC eqxx.
+by rewrite polyseqXsubC /= isIntC_opp Zx isIntC_1.
 Qed.
 
 Lemma algInt_int x : x%:~R \in algInt.
@@ -2929,7 +2803,7 @@ Hint Resolve algInt0 algInt1.
 Lemma algInt_unity_root n x : (n > 0)%N -> n.-unity_root x -> x \in algInt.
 Proof.
 move=> n_gt0 xn1; apply: root_monic_algInt xn1 (monic_Xn_sub_1 _ n_gt0) _.
-apply/(all_nthP 0)=> i _; rewrite coef_sub coefC -mulrb coefXn.
+apply/(all_nthP 0)=> i _; rewrite coefB coefC -mulrb coefXn.
 by rewrite isIntC_sub ?isIntC_nat.
 Qed.
 
@@ -3013,7 +2887,7 @@ have ZP_1: 1 \in ZP by rewrite inE /= polyseq1 /= isIntC_1.
 have ZP_X: 'X \in ZP by rewrite inE /= polyseqX /= isIntC_1 isIntC_0.
 have ringZP: subringPred ZP.
   apply: SubringPredFromSub => // p q /allcP Zp /allcP Zq; apply/allcP=> i.
-    by rewrite coef_sub isIntC_sub ?Zp ?Zq.
+    by rewrite coefB isIntC_sub ?Zp ?Zq.
   by rewrite coefM isIntC_sum // => j _; rewrite isIntC_mul ?Zp ?Zq.
 have ZP_C c: (ZtoC c)%:P \in ZP by rewrite raddfMz rpred_int.
 move=> ringS S_P x Sx; pose v := \row_(i < n) Y`_i.
@@ -3265,9 +3139,9 @@ Lemma algC_invaut_subproof nu x : {y | nu y = x}.
 Proof.
 have [r Dp] := closed_field_poly_normal (minCpoly x).
 suffices /mapP/sig2_eqW[y _ ->]: x \in map nu r by exists y.
-rewrite -root_prod_factors; congr (root _ x): (root_minCpoly x).
+rewrite -root_prod_XsubC; congr (root _ x): (root_minCpoly x).
 have [q [Dq _] _] := minCpolyP x; rewrite Dq -(eq_map_poly (fmorph_qnum nu)).
-rewrite (map_comp_poly nu) -{q}Dq Dp (monicP (minCpoly_monic x)) scale1r.
+rewrite (map_poly_comp nu) -{q}Dq Dp (monicP (minCpoly_monic x)) scale1r.
 rewrite rmorph_prod big_map; apply: eq_bigr => z _.
 by rewrite rmorphB /= map_polyX map_polyC.
 Qed.
@@ -3291,7 +3165,7 @@ wlog suffices dvd_nu: nu x / minCpoly x %| minCpoly (nu x).
   apply/eqP; rewrite -eqpMP ?minCpoly_monic //; apply/andP; split=> //.
   by rewrite -{2}(algC_autK nu x) dvd_nu.
 have [[q [Dq _] min_q] [q1 [Dq1 _] _]] := (minCpolyP x, minCpolyP (nu x)).
-rewrite Dq Dq1 dvdp_map -min_q -(fmorph_root nu) -map_comp_poly.
+rewrite Dq Dq1 dvdp_map -min_q -(fmorph_root nu) -map_poly_comp.
 by rewrite (eq_map_poly (fmorph_qnum nu)) -Dq1 root_minCpoly.
 Qed.
 

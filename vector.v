@@ -276,10 +276,9 @@ Definition injv (v : V) : {vspace V} := mx2vs (v2rv v).
 Local Notation "v %:VS" := (injv v) : ring_scope.
 
 (* This injection allows us to define a notion of membership *)
-Definition vpredType := mkPredType (fun vs v => (v%:VS <= vs)%VS).
+Coercion pred_of_vspace (U : vspace) : pred_class := fun v => (v%:VS <= U)%VS.
+Canonical vspace_predType := @mkPredType _ (unkeyed vspace) pred_of_vspace.
 
-Definition pred_of_vspace : vspace -> pred_sort vpredType := id.
-Coercion pred_of_vspace: vspace >-> pred_sort.
 Lemma vs2mx0 : vs2mx 0%:VS = 0.
 Proof. by rewrite /injv linear0 /= genmx0. Qed.
 
@@ -288,20 +287,20 @@ Proof. by apply: val_inj; rewrite /= linear0 !genmx0. Qed.
 
 Lemma injvP v1 v2 : reflect (exists k, v1 = k *: v2) (v1 \in v2%:VS).
 Proof.
-apply: (iffP idP); rewrite /in_mem /= /subsetv /injv !genmxE.
+apply: (iffP idP); rewrite unfold_in /subsetv !genmxE.
   by move/sub_rVP=> [k Hk]; exists k;apply: v2rv_inj; rewrite linearZ.
 move=> [k ->]; rewrite linearZ;apply: scalemx_sub; apply submx_refl.
 Qed.
 
 Lemma mem0v vs : 0 \in vs.
-Proof. by rewrite /in_mem /= /subsetv vs2mx0 sub0mx. Qed.
+Proof. by rewrite unfold_in /subsetv vs2mx0 sub0mx. Qed.
 
 Lemma memv_inj v : v \in v%:VS.
 Proof. by apply/injvP; exists 1; rewrite scale1r. Qed.
 
 Lemma memvD vs v1 v2 : v1 \in vs -> v2 \in vs -> v1 + v2 \in vs.
 Proof.
-rewrite /in_mem /= /subsetv /injv !mx2vsK => H1 H2.
+rewrite !unfold_in /subsetv /injv !mx2vsK => H1 H2.
 by rewrite linearD addmx_sub.
 Qed.
 
@@ -313,7 +312,7 @@ Qed.
 
 Lemma memvZl vs k v : v \in vs -> k *: v \in vs.
 Proof.
-rewrite /in_mem /= /subsetv /injv /= !mx2vsK => Hvvs.
+rewrite !unfold_in /subsetv /injv /= !mx2vsK => Hvvs.
 by rewrite linearZ scalemx_sub.
 Qed.
 
@@ -333,27 +332,30 @@ Proof. by move/memvNr; rewrite opprK. Qed.
 Lemma memv_sub vs v1 v2 : v1 \in vs -> v2 \in vs -> v1 - v2 \in vs.
 Proof. by move=> Hv1 Hv2; rewrite memvD // memvNr. Qed.
 
+Global Instance vspace_addSubgroupPred (U : {vspace V}) : addSubgroupPred U.
+Proof. by apply: SubgroupPredFromSub; [exact: mem0v | exact: memv_sub]. Qed.
+
+Global Instance vspace_unscaledPred (U : {vspace V}) : unscaledPred U.
+Proof. by split; exact: memvZl. Qed.
+
 Lemma memvDl vs v1 v2 : v1 \in vs -> (v1 + v2 \in vs) = (v2 \in vs).
-Proof.
-move=> Hv1; apply/idP/idP=> Hv2; last exact: memvD.
-by rewrite -[v2](addKr v1); apply: memvD => //; exact: memvNr.
-Qed.
+Proof. exact: rpredDl. Qed.
 
 Lemma memvDr  vs v1 v2 : v1 \in vs -> (v2 + v1 \in vs) = (v2 \in vs).
-Proof. by rewrite addrC; exact: memvDl. Qed.
+Proof. exact: rpredDr. Qed.
 
 Lemma memvN vs v : (- v \in vs) = (v \in vs).
-Proof. by apply/idP/idP; [exact: memvNl | exact: memvNr]. Qed. 
+Proof. exact: rpredN. Qed.
 
 Lemma memv_subl vs v1 v2 : v1 \in vs -> (v1 - v2 \in vs) = (v2 \in vs).
-Proof. by move=> vs_v1; rewrite memvDl //; exact: memvN. Qed.
+Proof. exact: rpredBl. Qed.
 
 Lemma memv_subr vs v1 v2 : v1 \in vs -> (v2 - v1 \in vs) = (v2 \in vs).
-Proof. by move=> vs_v1; rewrite memvDr //; exact: memvNr. Qed.
+Proof. exact: rpredBr. Qed.
 
 Lemma memv_suml I r  (P : pred I) (vs_ : I -> V) vs :
   (forall i, P i -> vs_ i \in vs) -> \sum_(i <- r | P i) vs_ i \in vs.
-Proof. by move=> Hp; elim/big_ind: _ => //; [exact: mem0v | exact: memvD]. Qed.
+Proof. exact: rpred_sum. Qed.
 
 (* The ith row of the canonical matrice as a vector *)
 Lemma rv2v_iE i vs :
@@ -363,12 +365,10 @@ Proof. by rewrite /injv /=; congr genmx; rewrite rv2vK. Qed.
 Lemma subvP vs1 vs2 :
   reflect (forall v, v \in vs1 -> v \in vs2) (vs1 <= vs2)%VS.
 Proof.
-apply: (iffP idP).
-  rewrite /in_mem /= /subsetv => Hvs1vs2 v.
-  by rewrite /injv !genmxE => Hv1; apply: submx_trans Hvs1vs2.
-move=> Hv; rewrite /subsetv; apply/row_subP=> i; rewrite -genmxE.
-rewrite (rv2v_iE i vs1); apply: Hv.
-rewrite /in_mem /= /subsetv -(rv2v_iE i vs1) genmxE.
+apply: (iffP idP) => [Hvs1vs2 v | Hv].
+  by rewrite !unfold_in /subsetv !genmxE => Hv1; apply: submx_trans Hvs1vs2.
+apply/row_subP=> i; rewrite -genmxE (rv2v_iE i vs1); apply: Hv.
+rewrite unfold_in /subsetv -(rv2v_iE i vs1) genmxE.
 move: i; apply/row_subP; apply submx_refl.
 Qed.
 
@@ -417,7 +417,7 @@ Definition vpick vs : V :=
 Lemma memv_pick vs : vpick vs \in vs.
 Proof.
 rewrite /vpick; case: pickP => [i|] Hi; last by exact: mem0v.
-by rewrite /in_mem /= /subsetv -rv2v_iE genmxE row_sub.
+by rewrite unfold_in /subsetv -rv2v_iE genmxE row_sub.
 Qed.
 
 Lemma vpick0 vs : (vpick vs == 0) = (vs == 0%:VS).
@@ -547,12 +547,12 @@ Lemma memv_addP v vs1 vs2 :
           (v \in (vs1 + vs2)%VS).
 Proof.
 apply: (iffP idP) => [|[v1 [v2 [Hv1 Hv2 ->]]]]; last exact: memv_add.
-rewrite {1}/in_mem /= /subsetv /addv /= !genmxE addsmxE => /submxP[x Hx].
+rewrite unfold_in /subsetv !genmxE addsmxE => /submxP[x Hx].
 exists (rv2v (lsubmx x *m vs2mx vs1)); exists (rv2v (rsubmx x *m vs2mx vs2));
    split.
-- rewrite /in_mem /= /injv rv2vK /= /subsetv /= genmxE; apply/submxP.
+- rewrite unfold_in /injv rv2vK /= /subsetv /= genmxE; apply/submxP.
   by exists (lsubmx x).
-- rewrite /in_mem /= /injv rv2vK /= /subsetv /= genmxE; apply/submxP.
+- rewrite unfold_in /injv rv2vK /= /subsetv /= genmxE; apply/submxP.
   by exists (rsubmx x).
 by rewrite -linearD -mul_row_col hsubmxK -Hx /= v2rvK.
 Qed.
@@ -697,7 +697,7 @@ Proof. by move=> vs; rewrite /capv /fullv capv_mx2vsr capmx1 vs2mxK. Qed.
 
 Lemma memv_cap v vs1 vs2 : 
   (v \in (vs1 :&: vs2)%VS) = (v \in vs1) && (v \in vs2).
-Proof. by rewrite /in_mem /= subv_cap. Qed.
+Proof. by rewrite unfold_in subv_cap. Qed.
 
 Lemma vspace_modl vs1 vs2 vs3 : 
   (vs1 <= vs3 -> vs1 + (vs2 :&: vs3) = (vs1 + vs2) :&: vs3)%VS.
@@ -1509,14 +1509,14 @@ have->(a : V) l : a::l = [::a] ++ l by done.
 rewrite -{1}(addv_diff_cap_eq vs (vpick vs)%:VS) addvC //.
 apply: is_basis_add => //.
 - rewrite directv_addE /directv_def /= !eqxx !andTb.
-  move: (memv_pick vs); rewrite /in_mem /= capvKr; move/eqP->.
+  move: (memv_pick vs); rewrite unfold_in capvKr; move/eqP->.
   by rewrite capvC capv_diff.
-- move: (memv_pick vs); rewrite /in_mem /= capvKr; move/eqP->.
+- move: (memv_pick vs); rewrite unfold_in capvKr; move/eqP->.
   apply: is_basis_seq1; rewrite vpick0.
   by apply/eqP=> HH; rewrite HH dimv0 in Hs.
 apply: Hrec.
 apply/eqP; rewrite -eqSS -Hs -(dimv_cap_compl vs (vpick vs)%:VS).
-- move: (memv_pick vs); rewrite /in_mem /= capvKr; move/eqP->.
+- move: (memv_pick vs); rewrite unfold_in capvKr; move/eqP->.
 suff ->: \dim (vpick vs)%:VS = 1%N by done.
 rewrite dim_injv vpick0.
 by case: eqP=> // HH; move: Hs; rewrite HH dimv0.
@@ -2025,11 +2025,11 @@ Lemma lim0g vs : (0 @: vs)%VS = 0%:VS.
 Proof. by rewrite /fun_of_limg /= mulmx0 mx2vs0. Qed.
 
 Lemma memv_img f v vs : v \in vs -> f v \in (f @: vs)%VS.
-Proof. by move=> Hv; rewrite /in_mem /= -limg_inj limg_monotone. Qed.
+Proof. by move=> Hv; rewrite unfold_in -limg_inj limg_monotone. Qed.
 
 Lemma memv_ker f v : (v \in lker f)%VS = (f v == 0).
 Proof.
-rewrite /in_mem /= -lkerE limg_inj.
+rewrite unfold_in -lkerE limg_inj.
 apply/idP/idP; last by move/eqP->.
 rewrite -memv0; move/eqP<-; exact: memv_inj.
 Qed.
@@ -2240,7 +2240,7 @@ Definition projv vs : 'End(V) := LinearApp (pinvmx (vs2mx vs) *m (vs2mx vs)).
 Lemma projv_id vs v : v \in vs -> projv vs v = v.
 Proof.
 move=> Hv; rewrite /fun_of_lapp mulmxA mulmxKpV ?v2rvK //.
-by move: Hv; rewrite /in_mem /= /subsetv /injv mx2vsK.
+by move: Hv; rewrite unfold_in /subsetv /injv mx2vsK.
 Qed.
 
 Lemma lker_proj vs : lker (projv vs) = (vs^C)%VS.
@@ -2285,7 +2285,7 @@ Definition addv_pi2 vs1 vs2 : 'End(V) :=
 
 Lemma memv_pi1 vs1 vs2 v : (addv_pi1 vs1 vs2) v \in vs1.
 Proof.
-by rewrite /fun_of_lapp /in_mem /= /subsetv /injv rv2vK mx2vsK proj_mx_sub.
+by rewrite /fun_of_lapp unfold_in /subsetv /injv rv2vK mx2vsK proj_mx_sub.
 Qed.
 
 Lemma memv_pi2 vs1 vs2 v : (addv_pi2 vs1 vs2) v \in vs2.
@@ -2298,7 +2298,7 @@ move=> Hv /=.
 rewrite add_lappE comp_lappE /= add_lappE opp_lappE unit_lappE
         projv_id; first by rewrite addrC subrK.
 move: Hv.
-rewrite /fun_of_lapp /in_mem /= /subsetv /injv !mx2vsK linearB /= rv2vK.
+rewrite /fun_of_lapp !unfold_in /subsetv /injv !mx2vsK linearB /= rv2vK.
 move => Hv.
 by rewrite proj_mx_compl_sub.
 Qed.
