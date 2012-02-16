@@ -119,7 +119,7 @@ Require Import div path bigop prime finset.
 (*       Also nat multiplication, for expgM : x ^+ (m * n) = x ^+ m ^+ n.     *)
 (*   D - (nat) addition, for expgD : x ^+ (m + n) = x ^+ m * x ^+ n.          *)
 (*   V - inverse, as in mulgV : x * x^-1 = 1.                                 *)
-(*   X - exponentiation, as in conjXg : (x + n) ^ y = (x ^ y) ^+ n.           *)
+(*   X - exponentiation, as in conjXg : (x ^+ n) ^ y = (x ^ y) ^+ n.          *)
 (*   J - conjugation, as in orderJ : #[x ^ y] = #[x].                         *)
 (*   R - commutator, as in conjRg : [~ x, y] ^ z = [~ x ^ z, y ^ z].          *)
 (*   Y - join, as in centY : 'C(G <*> H) = 'C(G) :&: 'C(H).                   *)
