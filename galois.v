@@ -1469,7 +1469,8 @@ have Hroot : forall c, c \in r -> root (map_poly \1%VS (minPoly K x)) c.
 have Hpoly : forall c, c \in r -> c = (kHomExtend K \1%VS x c) x.
  move => c Hc.
  rewrite -{2}[x]hornerX.
- rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Hc)); last exact: polyOverX.
+ rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Hc)); last first.
+   exact: (@polyOverX _ K).
  by rewrite map_poly_id ?hornerX => [|? _]; rewrite /= ?unit_lappE.
 rewrite (Hpoly _ Ha) (Hpoly _ Hb) {Hpoly} -/fa -/fb.
 pose g := val (repr (kAut_pick K (Fadjoin_aspace K x) fa)).

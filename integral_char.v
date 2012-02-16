@@ -2380,7 +2380,9 @@ have pzn_zk0: root (map_poly \1%VS (minPoly Q1 zn)) (zn ^+ k).
   rewrite (@eq_map_poly _ _ _ QnC) => [|a]; last by rewrite /= unit_lappE.
   set p1 := map_poly _ _.
   have [q1 Dp1]: exists q1, p1 = pQtoC q1.
-    have a_ i: (minPoly Q1 zn)`_i \in Q1 by apply/polyOverP; exact: minPolyOver.
+    have a_ i: (minPoly Q1 zn)`_i \in Q1.
+      (* :BUG: v8.4 on the inferance of Q1 ... again *)
+      by apply/(@polyOverP _ Q1); exact: minPolyOver.
     have{a_} a_ i := sig_eqW (injvP _ _ (a_ i)).
     exists (\poly_(i < size (minPoly Q1 zn)) sval (a_ i)).
     apply/polyP=> i; rewrite coef_poly coef_map coef_poly /=.
