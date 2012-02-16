@@ -3432,7 +3432,7 @@ let filter_upat i0 f n u fpats =
     let np = na + nb_cs_proj_args pc f u in if n < np then -1 else np
   | _ -> -1 in
   if np < na then fpats else
-  let () = if !i0 < np then i0 := np in (u, np) :: fpats
+  let () = if !i0 < np then i0 := n in (u, np) :: fpats
 
 let filter_upat_FO i0 f n u fpats =
   let np = nb_args u.up_FO in
