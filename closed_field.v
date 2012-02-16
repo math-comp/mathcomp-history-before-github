@@ -404,7 +404,7 @@ Lemma redivpTP : forall k,
 Proof.
 move=> k Pk.
 move=> p q e /=.
-rewrite isnullP /redivp.
+rewrite isnullP redivpE.
 case q0 : (_==_); first by rewrite Pk /= mul0r add0r polyC0.
 rewrite !sizeTP lead_coefTP /=; last by move=> *; rewrite !redivp_rec_loopTP.
 rewrite redivp_rec_loopTP /=; last by move=> *; rewrite Pk.

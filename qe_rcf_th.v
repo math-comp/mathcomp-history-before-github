@@ -74,7 +74,7 @@ Proof. by case: n=> [|n] //=; rewrite eqxx. Qed.
 Lemma lc_expn_rscalp_neq0 (p q : {poly R}): lead_coef q ^+ rscalp p q != 0.
 Proof.
 case: (eqVneq q 0) => [->|nzq]; last by rewrite expf_neq0 ?lead_coef_eq0.
-by rewrite /rscalp /redivp /= eqxx /= expr0 oner_neq0.
+by rewrite /rscalp redivpE /= eqxx /= expr0 oner_neq0.
 Qed.
 
 Notation lcn_neq0 := lc_expn_rscalp_neq0.
