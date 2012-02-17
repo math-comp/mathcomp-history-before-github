@@ -6,7 +6,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GRing.Theory ORing.Theory RPdiv ComRing.
+Import GRing.Theory ORing.Theory ORing.OrderDef RPdiv ComRing.
 
 Local Open Scope nat_scope.
 Local Open Scope ring_scope.
@@ -1617,7 +1617,7 @@ case e: (size p1) => [|k].
 case:k e => [|k] e.
   move/eqP: e; case/size_poly1P=> v vn0 ev; rewrite ev.
   exists ((m - c) * (v ^-1)) => x hx.
-  rewrite hornerD hornerM !hornerC hornerX -lter_subl_addr.
+  rewrite hornerD hornerM !hornerC hornerX -lter_sub_addr.
   rewrite mulrC -lter_pdivr_mulr //; move: hlp; rewrite ev mul_polyC. 
   rewrite lead_coefDl; first by rewrite lead_coef_scale lead_coefX mulr1.
   by rewrite size_polyC size_scale // size_polyX; case: (c == 0).

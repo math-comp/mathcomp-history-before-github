@@ -9,117 +9,7 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
-
-Section MoreSsralg.
-
-(* :TODO: move to ssralg + version in idomainType *)
-Lemma addf_div2 (R : fieldType) (a b c d : R) : b != 0 -> d != 0 ->
-  a / b + c / d = (a * d + c * b) / (b * d).
-Proof.
-move=> b_neq0 d_neq0; apply: (@mulIf _ (b * d)); rewrite ?divfK ?mulf_neq0 //.
-by rewrite mulrDl mulrA divfK // [b * d]mulrC mulrA divfK.
-Qed.
-
-Lemma mulrMM (R : comRingType) (a b c d : R) : 
-  (a * b) * (c * d) = (a * c) * (b * d). 
-Proof. by rewrite !mulrA [a * _ * _]mulrAC. Qed.
-
-(* :TODO: move to ssralg + version in idomainType *)
-Lemma mulf_div2 (R : fieldType) (a b c d : R) :
-  (a / b) * (c / d) = (a * c) / (b * d).
-Proof. by rewrite mulrMM -invfM. Qed.
-
-Lemma signrN (R : unitRingType) b : (-1) ^+ (~~ b) = - (-1) ^+ b :> R.
-Proof. by case: b; rewrite // opprK. Qed.
-
-Lemma mul_sign  (R : ringType) (s1 s2 : bool) :
-  (-1) ^+ s1 * (-1) ^+ s2 = (-1) ^+ (s1 (+) s2) :> R.
-Proof. by move: s1 s2 => [] []; rewrite (mul1r, mulN1r) ?opprK. Qed.
-
-(* :TODO: move to ssralg + version in idomainType *)
-Lemma dvdfM_sign (R : fieldType) (s1 s2 : bool) (a b : R) :
-  ((-1) ^+ s1 * a) / ((-1) ^+ s2 * b) = (-1) ^+ (s1 (+) s2) * (a / b).
-Proof.
-by move: s1 s2 => [] []; rewrite ?(mul1r, mulN1r, mulNr, invrN, mulrN, opprK).
-Qed.
-
-Lemma mulrM_sign (R : idomainType) (s1 s2 : bool) (a b : R) :
-  ((-1) ^+ s1 * a) * ((-1) ^+ s2 * b) = (-1) ^+ (s1 (+) s2) * (a * b).
-Proof.
-by move: s1 s2 => [] []; rewrite ?(mul1r, mulN1r, mulNr, mulrN, opprK).
-Qed.
-
-Lemma invr_sign (R : unitRingType) (s : bool) : ((-1) ^- s) = (-1) ^+ s :> R.
-Proof. by case: s; rewrite ?(invr0, invrN) invr1. Qed.
-
-End MoreSsralg.
-
-Section MoreOrderedalg.
-
-Lemma normr_sign (R : poIdomainType) (s : nat) : `|(-1) ^+ s| = 1 :> R.
-Proof. by rewrite normrX normrN1 expr1n. Qed.
-
-Lemma mulr_sign_norm (R : oIdomainType) (x : R) : (-1) ^+ (x < 0)%R * `|x| = x.
-Proof. by case: ger0P; rewrite (mul1r, mulN1r) ?opprK. Qed.
-
-Lemma mulr_Nsign_norm (R : oIdomainType) (x : R) :
-  (-1) ^+ (0 < x)%R * `|x| = - x.
-Proof. by rewrite -normrN -oppr_lt0 mulr_sign_norm. Qed.
-
-Lemma normr_dec_sign (R : oIdomainType) (x : R) : `|x| = (-1) ^+ (x < 0)%R * x.
-Proof. by rewrite -{3}[x]mulr_sign_norm mulrA mul_sign addbb mul1r. Qed.
-
-Lemma sgr_sign (R : oIdomainType) (x : R) : sgr x = (-1) ^ (x < 0) *+ (x != 0).
-Proof. by case: sgrP. Qed.
-
-Definition ltr_gtF R x y hxy := ler_gtF (@ltrW R x y hxy).
-
-Lemma signr_gt0 (R : oIdomainType) (b : bool) : (0 < (-1) ^+ b :> R) = ~~ b.
-Proof. by case: b; rewrite (ltr01, ltr0N1). Qed.
-
-Lemma signr_lt0 (R : oIdomainType) (b : bool) : ((-1) ^+ b < 0 :> R) = b.
-Proof. by case: b; rewrite // ?(ltrN10, ltr10). Qed.
-
-Lemma signr_ge0 (R : oIdomainType) (b : bool) : (0 <= (-1) ^+ b :> R) = ~~ b.
-Proof. by rewrite le0r signr_eq0 signr_gt0. Qed.
-
-Lemma signr_le0 (R : oIdomainType) (b : bool) : ((-1) ^+ b <= 0 :> R) = b.
-Proof. by rewrite ler_eqVlt signr_eq0 signr_lt0. Qed.
-
-Lemma signr_sg (R : oIdomainType) (x : R) : x != 0 -> (-1) ^+ (x < 0)%R = sgr x.
-Proof. by rewrite sgr_sign => ->. Qed.
-
-Lemma neq0_mulr_lt0 (R : oIdomainType) (x y : R) : x != 0 -> y != 0 ->
-         (x * y < 0) = (x < 0) (+) (y < 0).
-Proof.
-move=> x_neq0 y_neq0; case: (ltrgt0P x) x_neq0 => //= hx _.
-  by rewrite pmulr_rlt0.
-by rewrite nmulr_rlt0 //; case: ltrgt0P y_neq0.
-Qed.
-
-End MoreOrderedalg.
-
-Section MoreZint.
-
-Lemma absz_sign (s : nat) : absz ((-1) ^+ s) = 1%N.
-Proof. by rewrite abszX exp1n. Qed.
-
-Lemma mulz_sign_abs n : (-1) ^+ (n < 0)%R * (absz n : zint) = n.
-Proof. by rewrite abszE mulr_sign_norm. Qed.
-
-Lemma mulz_Nsign_abs n : (-1) ^+ (0 < n)%R * (absz n : zint) = - n.
-Proof. by rewrite abszE mulr_Nsign_norm. Qed.
-
-Lemma zintr_sign (R : unitRingType) (s : bool) : ((-1) ^+ s)%:~R = (-1) ^+ s :> R.
-Proof. by case: s. Qed.
-
-Lemma zintrV (R : unitRingType) (n : zint) : n \in [:: 0; 1; -1] ->
-                                             n%:~R ^-1 = n%:~R :> R.
-Proof.
-by case: (zintP n)=> // [|[]|[]] //; rewrite ?rmorphN ?invrN (invr0, invr1).
-Qed.
-
-End MoreZint.
+Local Notation sgr := ORing.sg.
 
 Record qnum : Set := Qnum {
   valq : (zint * zint) ;
@@ -458,8 +348,8 @@ Notation "n %:Q" := ((n : zint)%:~R : qnum)
 Lemma zintqE n : n%:Q = qnumz n.
 Proof.
 elim: n=> [|n ihn|n ihn]; first by rewrite mulr0z qnumzE.
-  by rewrite zintS mulrz_addl QnumField.qnumzD ihn.
-by rewrite zintS opprD mulrz_addl QnumField.qnumzD ihn.
+  by rewrite zintS mulrzDl QnumField.qnumzD ihn.
+by rewrite zintS opprD mulrzDl QnumField.qnumzD ihn.
 Qed.
 
 Lemma numq_zint n : numq n%:Q = n. Proof. by rewrite zintqE. Qed.
@@ -616,16 +506,16 @@ Proof. by case: b; rewrite ?(mul1r, mulN1r) // numqN. Qed.
 Lemma numq_div_lt0 n d : n != 0 -> d != 0 ->
   (numq (n%:~R / d%:~R) < 0)%R = (n < 0)%R (+) (d < 0)%R.
 Proof.
-move=> n0 d0; rewrite -sgr_cp0 sgr_numq_div !sgr_sign n0 d0.
-by rewrite !mulr1n mul_sign; case: (_ (+) _).
+move=> n0 d0; rewrite -sgr_cp0 sgr_numq_div !sgr_def n0 d0.
+by rewrite !mulr1n -signr_addb; case: (_ (+) _).
 Qed.
 
 Lemma normr_num_div n d : `|numq (n%:~R / d%:~R)| = numq (`|n|%:~R / `|d|%:~R).
 Proof.
-rewrite (normr_dec n) (normr_dec d) !rmorphM /= invfM mulrMM !sgr_sign.
+rewrite (normr_dec n) (normr_dec d) !rmorphM /= invfM mulrMM !sgr_def.
 have [->|n_neq0] := altP eqP; first by rewrite mul0r mulr0.
 have [->|d_neq0] := altP eqP; first by rewrite invr0 !mulr0.
-rewrite !zintr_sign invr_sign mul_sign numq_sign_mul -numq_div_lt0 //.
+rewrite !zintr_sign invr_sign -signr_addb numq_sign_mul -numq_div_lt0 //.
 by apply: (canRL (signrMK _)); rewrite mulz_sign_abs.
 Qed.
 

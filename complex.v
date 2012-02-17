@@ -9,135 +9,10 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
 
-Section MoreRcf.
-
-Variable R : rcfType.
-
-Lemma sqrtr_subproof (x : R) : 
-  {y | (0 <= y) && if 0 <= x then (y ^ 2 == x) else y == 0}.
-Proof.
-have [x_ge0|] := ger0P x; last by exists 0; rewrite lerr eqxx.
-have [] := @poly_ivt _ ('X^2 - x%:P) 0 (x + 1).
-* by rewrite ler_paddr ?ler01.
-* rewrite !hornerD !hornerN !horner_exp !hornerC !hornerX.
-  rewrite exprS mul0r sub0r oppr_le0 x_ge0 /= sqrrD1 -!addrA.
-  by rewrite addr_ge0 ?mulr_ge0 // addrCA subrr addr0 addr_ge0 ?ler01.
-move=> y /andP[y_ge0 _]; rewrite /root !hornerE subr_eq0.
-by move/eqP <-; exists y; rewrite y_ge0 eqxx.
-Qed.
-
-Definition sqrtr (a : R) : R := projT1 (sqrtr_subproof a).
-
-Lemma sqrtr_ge0 a : 0 <= sqrtr a.
-Proof. by rewrite /sqrtr; case: sqrtr_subproof => x /= /andP []. Qed.
-Hint Resolve sqrtr_ge0.
-
-Lemma sqr_sqrtr a : 0 <= a -> (sqrtr a)^+2 = a.
-Proof. 
-move=> a_ge0; rewrite /sqrtr; case: sqrtr_subproof.
-by move=> x /= /andP [_]; rewrite a_ge0 => /eqP.
-Qed.
-
-Lemma ler0_sqrtr a : a <= 0 -> sqrtr a = 0.
-Proof. 
-rewrite /sqrtr; case: sqrtr_subproof => x /=.
-have [//|_ /andP [_ /eqP] //|->] := ltrgt0P a.
-by rewrite mulf_eq0 orbb => /andP [_ /eqP].
-Qed.
-
-Lemma ltr0_sqrtr a : a < 0 -> sqrtr a = 0.
-Proof. by move=> /ltrW; apply: ler0_sqrtr. Qed.
-
-CoInductive sqrtr_spec (a : R) : R -> bool -> bool -> R -> Type :=
-| IsNoSqrtr of a < 0 : sqrtr_spec a a false true 0
-| IsSqrtr b of 0 <= b : sqrtr_spec a (b ^+ 2) true false b.
-
-Lemma sqrtrP a : sqrtr_spec a a (0 <= a) (a < 0) (sqrtr a).
-Proof.
-have [a_ge0|a_lt0] := ger0P a.
-  by rewrite -{1 2}[a]sqr_sqrtr //; constructor.
-by rewrite ltr0_sqrtr //; constructor.
-Qed.
-
-(* move to orderedalg for any oIdomainType of with precondition a \in Rreal *)
-Lemma sqr_ge0 (a : R) : 0 <= a ^+ 2.
-Proof. by case: (ger0P a) => ?; [rewrite mulr_ge0|rewrite mulr_le0 ?ltrW]. Qed.
-
-Lemma sqr_eq0 (a : R) : (a ^+ 2 == 0) = (a == 0).
-Proof. by rewrite mulf_eq0 orbb. Qed.
-
-Lemma sqrtr_sqr a : sqrtr (a ^+ 2) = `|a|.
-Proof.
-have /eqP : sqrtr (a ^+ 2) ^+2 = `|a| ^+ 2.
-  by rewrite -normrX ger0_norm ?sqr_sqrtr ?sqr_ge0.
-rewrite -subr_eq0 subr_sqr mulf_eq0 subr_eq0 addr_eq0 => /orP [/eqP-> //|ha].
-have := sqrtr_ge0 (a ^+ 2); rewrite (eqP ha) oppr_ge0 normr_le0 => /eqP ->.
-by rewrite normr0 oppr0.
-Qed.
-
-Lemma sqrtrM a b : 0 <= a -> 0 <= b ->
-  sqrtr (a * b) = sqrtr a * sqrtr b.
-Proof.
-case: (sqrtrP a) => // {a} a a_ge0; case: (sqrtrP b) => // {b} b b_ge0 _ _.
-by rewrite mulrMM sqrtr_sqr ger0_norm ?mulr_ge0.
-Qed.
-
-Lemma sqrtr0 : sqrtr 0 = 0.
-Proof. by move: (sqrtr_sqr 0); rewrite exprS mul0r => ->; rewrite normr0. Qed.
-
-Lemma sqrtr1 : sqrtr 1 = 1.
-Proof. by move: (sqrtr_sqr 1); rewrite expr1n => ->; rewrite normr1. Qed.
-
-Lemma sqrtr_eq0 a : (sqrtr a == 0) = (a <= 0).
-Proof.
-case: sqrtrP => [/ltrW ->|b]; first by rewrite eqxx.
-case: ltrgt0P => [b_gt0|//|->]; last by rewrite exprS mul0r lerr.
-by rewrite ltr_geF ?pmulr_rgt0.
-Qed.
-
-Lemma sqrtr_gt0 a : (0 < sqrtr a) = (0 < a).
-Proof. by rewrite lt0r sqrtr_ge0 sqrtr_eq0 -ltrNge andbT. Qed.
-
-Lemma eqr_sqrt (a b : R) : 0 <= a -> 0 <= b ->
-  (sqrtr a == sqrtr b) = (a == b).
-Proof.
-move=> a_ge0 b_ge0; apply/eqP/eqP=> [HS|->] //.
-by move: (sqr_sqrtr a_ge0); rewrite HS (sqr_sqrtr b_ge0).
-Qed.
-
-Lemma ler_wsqrtr : {homo sqrtr : a b / a <= b}.
-Proof.
-move=> a b /= le_ab; case: (boolP (0 <= a))=> [pa|]; last first.
-  by rewrite -ltrNge; move/ltrW; rewrite -sqrtr_eq0; move/eqP->.
-rewrite -(@ler_pexpn2r R 2) -?topredE /= ?sqrtr_ge0 //.
-by rewrite !sqr_sqrtr // (ler_trans pa).
-Qed.
-
-Lemma ler_psqrt : {in >%R 0 &, {mono sqrtr : a b / a <= b}}.
-Proof.
-apply: homo_mono_in => x y; rewrite -!topredE /= => x_gt0 y_gt0.
-rewrite !ltr_neqAle => /andP [neq_xy le_xy].
-by rewrite ler_wsqrtr // eqr_sqrt ?ltrW // neq_xy.
-Qed.
-
-Lemma ler_sqrt a b : 0 < b -> (sqrtr a <= sqrtr b) = (a <= b).
-Proof.
-move=> b_gt0; have [a_le0|a_gt0] := ler0P a; last by rewrite ler_psqrt.
-by rewrite ler0_sqrtr // sqrtr_ge0 (ler_trans a_le0) ?ltrW.
-Qed.
-
-Lemma ltr_sqrt a b : 0 < b -> (sqrtr a < sqrtr b) = (a < b).
-Proof.
-move=> b_gt0; have [a_le0|a_gt0] := ler0P a; last first.
-  by rewrite (lerW_mono_in ler_psqrt).
-by rewrite ler0_sqrtr // sqrtr_gt0 b_gt0 (ler_lt_trans a_le0).
-Qed.
-
-End MoreRcf.
-
-
 Reserved Notation "x +i* y" (at level 40, left associativity, format "x  +i*  y").
 Reserved Notation "x -i* y" (at level 40, left associativity, format "x  -i*  y").
+
+Local Notation sgr := ORing.sg.
 
 CoInductive cplx (R : Type) : Type := Cplx { Re : R; Im : R }.
 
@@ -255,7 +130,7 @@ Lemma mulVc : forall x, x != C0 -> mulc (invc x) x = C1.
 Proof.
 move=> [a b]; rewrite eq_cplx => /= hab; rewrite !mulNr opprK.
 rewrite ![_ / _ * _]mulrAC [b * a]mulrC subrr cplxr0 -mulrDl mulfV //.
-by rewrite paddr_eq0 ?sqr_eq0 // -expr2 exprn_even_ge0.
+by rewrite paddr_eq0 ?sqr_eq0 // -expr2 ?sqr_ge0.
 Qed.
 
 Lemma invc0 : invc C0 = C0. Proof. by rewrite /= !mul0r oppr0. Qed.
@@ -316,11 +191,6 @@ move=> [a b] [c d] /= /andP [/eqP-> ha] /andP [/eqP-> hc].
 by rewrite addr0 eqxx addr_gt0.
 Qed.
 
-Lemma normc1 : normc 1 = 1.
-Proof. by rewrite /= expr1n exprS mul0r addr0 sqrtr1. Qed.
-
-Lemma normC1_neq0 : normC 1 != 0. Proof. by rewrite normc1 oner_eq0. Qed.
-
 Lemma eq0_normc x : normc x = 0 -> x = 0.
 Proof.
 case: x => a b /= /eqP; rewrite sqrtr_eq0 ler_eqVlt => /orP [|]; last first.
@@ -336,13 +206,14 @@ move: x y => [a b] [c d] /= /andP[/eqP -> a_ge0] /andP[/eqP -> c_ge0].
 by rewrite eqxx ler_total.
 Qed.
 
-Lemma sqrM (a b : R) : (a * b) ^+ 2 = a ^+ 2 * b ^+ 2.
+(* :TODO: put in ssralg ? *)
+Lemma exprM (a b : R) : (a * b) ^+ 2 = a ^+ 2 * b ^+ 2.
 Proof. by rewrite mulrMM. Qed.
 
 Lemma normcM x y : normc (x * y) = normc x * normc y.
 Proof.
 move: x y => [a b] [c d] /=; rewrite -sqrtrM ?addr_ge0 ?sqr_ge0 //.
-rewrite sqrrB sqrrD mulrDl !mulrDr -!sqrM.
+rewrite sqrrB sqrrD mulrDl !mulrDr -!exprM.
 rewrite mulrAC [b * d]mulrC !mulrA.
 suff -> : forall (u v w z t : R), (u - v + w) + (z + v + t) = u + w + (z + t).
   by rewrite addrAC !addrA.
@@ -384,16 +255,16 @@ have [huv|] := ger0P (u + v); last first.
   by move=> /ltrW /ler_trans -> //; rewrite pmulrn_lge0 // mulr_ge0 ?sqrtr_ge0.
 rewrite -(@ler_pexpn2r _ 2) -?topredE //=; last first.
   by rewrite ?(pmulrn_lge0, mulr_ge0, sqrtr_ge0) //.
-rewrite -mulr_natl !sqrM !sqr_sqrtr ?(ler_paddr, sqr_ge0) //.
-rewrite -mulrnDl -mulr_natl !sqrM ler_pmul2l ?exprn_gt0 ?ltr0n //.
-rewrite sqrrD mulrDl !mulrDr -!sqrM addrAC.
+rewrite -mulr_natl !exprM !sqr_sqrtr ?(ler_paddr, sqr_ge0) //.
+rewrite -mulrnDl -mulr_natl !exprM ler_pmul2l ?exprn_gt0 ?ltr0n //.
+rewrite sqrrD mulrDl !mulrDr -!exprM addrAC.
 rewrite [_ + (b * d) ^+ 2]addrC [X in _ <= X]addrAC -!addrA !ler_add2l.
 rewrite mulrAC mulrA -mulrA mulrMM mulrC.
 by rewrite -subr_ge0 addrAC -sqrrB sqr_ge0.
 Qed.
 
 Definition cplx_POrderedMixin := PartialOrderMixin lec_normD ltc0_add eq0_normC
-  normC1_neq0 ge0_lec_total normCM lec_def ltc_def.
+     ge0_lec_total normCM lec_def ltc_def.
 Canonical Structure cplx_poIdomainType := POIdomainType C cplx_POrderedMixin.
 
 End CplxField.
@@ -698,4 +569,3 @@ by rewrite mulVf // expf_neq0 ?normr_eq0.
 Qed.
 
 End CplxClosed.
-

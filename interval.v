@@ -8,6 +8,8 @@ Unset Printing Implicit Defensive.
 Local Open Scope ring_scope.
 Import GRing.Theory ORing.Theory.
 
+Local Notation mid x y := ((x + y) / 2%:R).
+
 Section IntervalPo.
 
 CoInductive int_bound (T : Type) : Type := BClose of bool & T | BInfty.
@@ -259,11 +261,11 @@ Lemma ltreifT : forall x y, x < y ?<= if true = (x <= y). Proof. by []. Qed.
 
 Lemma ltreifF : forall x y, x < y ?<= if false = (x < y). Proof. by []. Qed.
 
-Lemma Rreal_ltreifN : forall x y b, x \in ORing.Rreal -> y \in ORing.Rreal ->
+Lemma real_ltreifN : forall x y b, x \in ORing.real -> y \in ORing.real ->
   x < y ?<= if ~~b = ~~ (y < x ?<= if b).
-Proof. by move=> x y [] xR yR /=; rewrite (Rreal_ltrNge, Rreal_lerNgt). Qed.
+Proof. by move=> x y [] xR yR /=; rewrite (real_ltrNge, real_lerNgt). Qed.
 
-(* Lemma int_splitU_po xc bc : xc \in ORing.Rreal -> *)
+(* Lemma int_splitU_po xc bc : xc \in ORing.real -> *)
 (*   forall a b, xc \in Interval a b -> *)
 (*   forall y, y \in Interval a b = (y \in Interval a (BClose bc xc)) *)
 (*                               || (y \in Interval (BClose (~~bc) xc) b). *)
@@ -363,7 +365,7 @@ Section IntervalOrdered.
 Variable R : oIdomainType.
 
 Lemma ltreifN (x y : R) b : x < y ?<= if ~~b = ~~ (y < x ?<= if b).
-Proof. by rewrite Rreal_ltreifN ?ordered_Rreal. Qed.
+Proof. by rewrite real_ltreifN ?ordered_real. Qed.
 
 Lemma int_splitU (xc : R) bc a b : xc \in Interval a b ->
   forall y, y \in Interval a b =

@@ -1092,7 +1092,7 @@ move=> {pa_le0 pb_ge0}; wlog monic_p : p hpab p_neq0 / monic p.
   rewrite monic_neq0 ?mq=> // [] [] // x hx hqx; exists x=> //.
   move: hqx; rewrite /q -mul_polyC rmorphM /= rootM map_polyC rootC.
   by rewrite fmorph_eq0 invr_eq0 lead_coef_eq0 (negPf p_neq0).
-pose c := mid a b; pose r := mid b (-a).
+pose c := (a + b) / 2%:R; pose r := (b - a) / 2%:R.
 have r_ge0 : 0 <= r by rewrite mulr_ge0 ?ger0E // subr_ge0.
 have hab: ((c - r = a)%R * (c + r = b)%R)%type.
   rewrite -mulrDl -mulrBl opprD addrA addrK opprK.

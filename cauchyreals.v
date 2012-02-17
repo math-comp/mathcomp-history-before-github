@@ -2,7 +2,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import bigop ssralg orderedalg zint qnum poly polydiv polyorder.
 Require Import perm matrix mxpoly polyXY binomial.
 
-Import GRing.Theory ORing.Theory.
+Import GRing.Theory ORing.Theory ORing.OrderDef.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -404,7 +404,7 @@ Qed.
 Definition merge_intervals (ar1 ar2 : F * F) :=
   let l := minr (ar1.1 - ar1.2) (ar2.1 - ar2.2) in
   let u := maxr (ar1.1 + ar1.2) (ar2.1 + ar2.2) in
-    (mid l u, (u - l) / 2%:R).
+    ((l + u) / 2%:R, (u - l) / 2%:R).
 Local Notation center ar1 ar2 := ((merge_intervals ar1 ar2).1).
 Local Notation radius ar1 ar2 := ((merge_intervals ar1 ar2).2).
 

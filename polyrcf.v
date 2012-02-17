@@ -3,7 +3,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import bigop ssralg poly polydiv orderedalg zmodp polydiv.
 Require Import polyorder path interval zint.
 
-Import GRing.Theory ORing.Theory.
+Import GRing.Theory ORing.Theory ORing.OrderDef.
 Import ID.
 
 Set Implicit Arguments.
@@ -14,6 +14,7 @@ Open Scope nat_scope.
 Open Scope ring_scope.
 
 Local Notation noroot p := (forall x, ~~ root p x).
+Local Notation mid x y := ((x + y) / 2%:R).
 
 Section ToBeMoved.
 Section SeqR.
@@ -128,7 +129,7 @@ case: (ltrgtP x 1)=> hx; last by exists 1; rewrite ?hx ?lter01// expr1n.
   by rewrite exprS mul0r=> x0; move: l0x; rewrite -x0 ltrr.
 case: (@poly_ivt ('X ^+ n.+1 - x%:P) 0 x); first by rewrite ltrW.
   rewrite ?(hornerE,horner_exp) exprS mul0r sub0r ?inE.
-  by rewrite oppr_cp0 (ltrW l0x) subr_ge0 ler_eexprS// ltrW.
+  by rewrite oppr_cp0 (ltrW l0x) subr_ge0 ler_eexpr // ltrW.
 move=> y; case/andP=> l0y lyx; rewrite rootE ?(hornerE,horner_exp).
 rewrite subr_eq0; move/eqP=> hyx; exists y=> //; rewrite lt0r l0y.
 rewrite andbT; apply/eqP=> y0; move: hyx; rewrite y0.

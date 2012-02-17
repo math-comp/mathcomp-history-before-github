@@ -125,7 +125,7 @@ End MorePolyDiv.
 
 Section MoreZint.
 
-Canonical zintmul_additive M u := Additive (@mulrz_subr M u).
+Canonical zintmul_additive M u := Additive (@mulrzBr M u).
 
 Definition negz z := if z is Negz _ then true else false.
 
