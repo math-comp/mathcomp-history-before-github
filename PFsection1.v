@@ -323,7 +323,7 @@ rewrite -(tnth_nth 0 _ 0) tnth_map tnth_ord_tuple.
 by case: (muP 0) => /= k /(k =P k0).
 Qed.
 
-(* This is Peterfalvi (1.5a) *)
+(* This is Peterfalvi (1.5a). *)
 Lemma induced_sum_rcosets t : H <| G ->
   'Res[H] ('Ind[G] 'chi_t)
      = #|'I_G['chi_t] : H|%:R *: \sum_(xi <- ('chi_t ^: G)%CF) xi.
@@ -525,8 +525,8 @@ Lemma inertia_quo_cfReg:
   cfMod (cfReg (T / H)%G) = \sum_(i | H \subset cfker 'chi_i) 'chi_i.
 Proof.
 rewrite cfReg_sum linear_sum (eq_bigr (fun  i => (cfMod 'chi_i)));first last.
-  move => i _ ;rewrite linearZ /=; move/char_abelianP: QTHa; move/(_ i).
-  by move/lin_char1 ->; rewrite scale1r.
+  move => i _ ; rewrite linearZ; move/char_abelianP: QTHa; move/(_ i).
+  by move/lin_char1 ->; rewrite /= scale1r.
 have HNT: H <| T by apply:(@normalS _ G T H);rewrite ?sub_inertia ?inertia_sub.
 rewrite (reindex _ (mod_Iirr_bij HNT)) /=.
 by apply/eq_big=> [i | i _]; rewrite mod_IirrE ?cfker_Mod.
@@ -685,12 +685,6 @@ by apply:(@mulfI _ e1); rewrite  -?irr_consttE.
 Qed.
 
 
-(* This is Isaacs (6.28) . *)
-(*Require Import nilpotent.
-
-Lemma xxx: forall (N : {group gT}) (t : Iirr N), N <| G -> 
- solvable (G/N)%G -> forall g ,  g \in G -> ('chi_t ^ g)%CF = 'chi_t -> *)
-
 (* This is Peterfalvi (1.7c). *)
 Lemma induced_inertia_quo1:
      coprime #|H| #|T:H| -> 
@@ -707,23 +701,29 @@ move:(H1); suff ->: e1 = 1;first rewrite /= scale1r expr1n !mulr1.
   case=> ->; case=> /eqP He Hi; split =>//;split => //.
   by move: He; rewrite -eqN_eqC; move/eqP.
 (* from Isaacs 6.28*)
-have : exists i: Iirr T , (i \in irr_constt ('Ind[T] 'chi_t)) /\ 
+have: exists i: Iirr T , 'Res[H] 'chi_i = 'chi_t.
+  admit.
+move=>[i Hi].
+have [Hin1 Hi1] :(i \in irr_constt ('Ind[T] 'chi_t)) /\ 
                                 '['Ind[G] 'chi_t, 'Ind[G]'chi_i] = 1.
-admit.
-case => i1 [Hin1 Hi1];rewrite -Hi1; move:H1=> [-> []] => _ _.
-rewrite cfdotZl  cfdot_suml (bigD1 i1) //= big1.
+  split.
+    by rewrite irr_consttE -Frobenius_reciprocity Hi cfnorm_irr oner_neq0.
+  rewrite -Frobenius_reciprocity cfdotC -cfdot_constt_inertia //.
+    by rewrite Hi  cfnorm_irr  conjC1.
+  by rewrite Hi  irr_consttE cfnorm_irr oner_neq0.
+rewrite -Hi1; move:H1=> [-> []] => _ _.
+rewrite cfdotZl  cfdot_suml (bigD1 i) //= big1.
   rewrite addr0.
   case (induced_inertia_irr Hin1 Hin1) ; rewrite char_cfnorm_irrE.
     by move/eqP ->; rewrite mulr1.
   by rewrite cfInd_char // irr_char.
-move => i /andP [Hi He].
-case (induced_inertia_irr Hi Hin1); case/irrP=>ii Hii [Hii1 _].
-case (induced_inertia_irr Hin1 Hin1); 
-case/irrP=> ii1 Hii1e [] _ _.
-rewrite Hii1e Hii cfdot_irr.
-case:(boolP (ii == ii1))=>// /eqP Hie.
-move:(Hii); rewrite Hie -Hii1e;move/eqP/Hii1=> /eqP he.
-by move:He; rewrite he eqxx.
+move => j /andP [Hj Hji].
+case (induced_inertia_irr Hj Hin1); case/irrP=>k Hk [Hk1 _].
+case (induced_inertia_irr Hin1 Hin1); case/irrP=> l Hil [] _ _.
+rewrite Hil Hk cfdot_irr.
+case:(boolP (k == l))=>// /eqP Hie.
+move:(Hk); rewrite Hie -Hil;move/eqP/Hk1=> /eqP he.
+by move:Hji; rewrite he eqxx.
 Qed.
 
 
