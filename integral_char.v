@@ -162,7 +162,7 @@ Proof. by rewrite rpredMz ?rpred1. Qed.
 Lemma rpredZint (R : ringType) (M : lmodType R) S
                  {ringS : @addSubgroupPred M S} m :
   {in S, forall u, m%:~R *: u \in S}.
-Proof. by move=> u Su; rewrite /= scalezr rpredMz. Qed.
+Proof. by move=> u Su; rewrite /= scaler_zint rpredMz. Qed.
 
 Lemma rpredXint R S {ringS : @mulSubgroupPred R S} m :
   {in S, forall x, x ^ m \in S}.
@@ -178,7 +178,7 @@ Proof. by case: z => n; rewrite ?ffunE ffunMnE. Qed.
 
 Lemma raddf_int_scalable (aV rV : lmodType zint) (f : {additive aV -> rV}) :
   scalable f.
-Proof. by move=> z u; rewrite -[z]zintz !scalezr raddfMz. Qed.
+Proof. by move=> z u; rewrite -[z]zintz !scaler_zint raddfMz. Qed.
 
 Import orderedalg.
 
@@ -483,10 +483,10 @@ Lemma dvdp_rat_int p q : (pZtoQ p %| pZtoQ q) = (p %| q).
 Proof.
 apply/dvdpP/ID.dvdpP=> [[/= r1 Dq] | [[/= a r] nz_a Dq]]; last first.
   exists (a%:~R^-1 *: pZtoQ r); rewrite -scalerAl -rmorphM -Dq.
-  by rewrite -{2}[a]zintz scalezr rmorphMz -scalezr scalerK ?zintr_eq0.
+  by rewrite -{2}[a]zintz scaler_zint rmorphMz -scaler_zint scalerK ?zintr_eq0.
 have [r [a nz_a Dr1]] := rat_poly_scale r1; exists (a, r) => //=.
 apply: (map_inj_poly _ _ : injective pZtoQ) => //; first exact: zintr_inj.
-rewrite -[a]zintz scalezr rmorphMz -scalezr /= Dq Dr1.
+rewrite -[a]zintz scaler_zint rmorphMz -scaler_zint /= Dq Dr1.
 by rewrite -scalerAl -rmorphM scalerKV ?zintr_eq0.
 Qed.
 
@@ -1592,7 +1592,6 @@ apply: (@PartialOrderMixin _ leC ltC normC) => //.
 + exact: normC_add.
 + by move=> x y x_gt0 y_gt0; rewrite sposC_addl // ltCW.
 + by move=> x /eqP; rewrite normC_eq0 => /eqP.
-+ by rewrite normC1 oner_eq0.
 + move=> x y x_ge0 y_ge0; apply/orP.
   rewrite -leC_sub -[leC y x]leC_sub -opprB posC_opp.
   by apply: leC_real_total; rewrite rmorphB !posC_conjK.
@@ -1957,7 +1956,7 @@ suffices [Qs [QsC [z1 z1C z1gen]]]:
     apply: eq_map_poly => b /=; apply: canRL (mulfK _) _.
       by rewrite zintr_eq0 denq_eq0.
     rewrite /= mulrzr -rmorphMz scalerMzl -{1}[b]divq_num_den -mulrzr.
-    by rewrite divfK ?zintr_eq0 ?denq_eq0 // scalezr rmorph_zint.
+    by rewrite divfK ?zintr_eq0 ?denq_eq0 // scaler_zint rmorph_zint.
   exists Qs, QsC, s1; first by rewrite -map_comp Ds (eq_map inQsK).
   have sz_ps: size ps = size s by rewrite Ds size_map.
   apply/eqP/vspaceP=> x; rewrite memvf; have [p {x}<-] := z1gen x.
@@ -1991,7 +1990,7 @@ Proof.
 have [Qxs [QxsC [[|x1 s1] // [<- <-] {x s} _]]] := num_field_exists (x :: s).
 have QxsC_Z a z: QxsC (a *: z) = QtoC a * QxsC z.
   rewrite mulrAC; apply: (canRL (mulfK _)); first by rewrite zintr_eq0 denq_eq0.
-  by rewrite mulrzr mulrzl -!rmorphMz scalerMzl -mulrzr -numqE scalezr.
+  by rewrite mulrzr mulrzl -!rmorphMz scalerMzl -mulrzr -numqE scaler_zint.
 apply: decP (x1 \in span (in_tuple s1)) _; rewrite /in_ratC_span size_map.
 apply: (iffP idP) => [/coord_span-> | [a Dx]].
   move: (coord _ x1) => a; exists a; rewrite rmorph_sum.
@@ -2038,7 +2037,7 @@ pose Saut (mu : subAut) : {rmorphism Sdom mu -> Sdom mu} := (projS2 mu).2.
 have SinjZ Qr (QrC : numF_inj Qr) a x: QrC (a *: x) = QtoC a * QrC x.
   rewrite mulrAC; apply: canRL (mulfK _) _.
     by rewrite zintr_eq0 denq_neq0.
-  by rewrite mulrzr mulrzl -!rmorphMz scalerMzl -scalezr -mulrzr -numqE.
+  by rewrite mulrzr mulrzl -!rmorphMz scalerMzl -scaler_zint -mulrzr -numqE.
 have Sinj_poly Qr (QrC : numF_inj Qr) p:
   map_poly QrC (map_poly (in_alg Qr) p) = pQtoC p.
 - rewrite -map_poly_comp; apply: eq_map_poly => a.
@@ -2277,7 +2276,7 @@ without loss{nz_af} [mon_f mon_g]: af f g Df Dfg / monic f /\ monic g.
   apply: (IH (af *~ cf) (f *~ cg) (g *~ cf)).
   - by rewrite rmorphMz -scalerMzr scalerMzl -mulrzA cfg1.
   - by rewrite mulrzAl mulrzAr -mulrzA cfg1.
-  by rewrite !(zintz, =^~ scalezr) /monic !lead_coefZ mulrC cfg1.
+  by rewrite !(zintz, =^~ scaler_zint) /monic !lead_coefZ mulrC cfg1.
 have{af Df} Df: pQtoC pf = pZtoC f.
   have:= congr1 lead_coef Df.
   rewrite lead_coefZ lead_coef_map_inj //; last exact: zintr_inj.
@@ -2388,7 +2387,7 @@ have pzn_zk0: root (map_poly \1%VS (minPoly Q1 zn)) (zn ^+ k).
     apply/polyP=> i; rewrite coef_poly coef_map coef_poly /=.
     case: ifP => _; rewrite ?rmorph0 //; case: (a_ i) => a /= ->.
     apply: canRL (mulfK _) _; first by rewrite zintr_eq0 denq_eq0.
-    rewrite mulrzr -rmorphMz scalerMzl -mulrzr -numqE scalezr.
+    rewrite mulrzr -rmorphMz scalerMzl -mulrzr -numqE scaler_zint.
     by rewrite rmorph_zint.
   have: root p1 z by rewrite -Dz fmorph_root root_minPoly.
   rewrite Dp1; have [q2 [Dq2 _] ->] := minCpolyP z.
@@ -2605,7 +2604,7 @@ Lemma dec_intQ_span (V : vectType qnum) m (s : m.-tuple V) v :
 Proof.
 have s_s (i : 'I_m): s`_i \in span s by rewrite memv_span ?mem_nth ?size_tuple.
 have s_Zs a: \sum_(i < m) s`_i *~ a i \in span s.
-  by rewrite memv_suml // => i _; rewrite -scalezr memvZl.
+  by rewrite memv_suml // => i _; rewrite -scaler_zint memvZl.
 case s_v: (v \in span s); last by right=> [[a Dv]]; rewrite Dv s_Zs in s_v.
 pose S := \matrix_(i < m, j < _) coord (vbasis (span s)) s`_i j.
 pose r := \rank S; pose k := (m - r)%N; pose Em := erefl m.
@@ -2665,11 +2664,11 @@ case Zv: (map_mx (fun x => denq x) (vv *m pinvmx T) == const_mx 1).
     by rewrite -(mulmxA _ _ S) mulmxKpV ?mxE // -eqST submx_full.
   rewrite (coord_basis (s_Zs _)); apply: eq_bigr => j _; congr (_ *: _).
   rewrite linear_sum sum_ffunE mxE; apply: eq_bigr => i _.
-  by rewrite -scalezr linearZ [a]lock !mxE !ffunE.
+  by rewrite -scaler_zint linearZ [a]lock !mxE !ffunE.
 right=> [[a Dv]]; case/eqP: Zv; apply/rowP.
 have ->: vv = map_mx ZtoQ (\row_i a i) *m S.
   apply/rowP=> j; rewrite !mxE Dv linear_sum sum_ffunE.
-  by apply: eq_bigr => i _; rewrite -scalezr linearZ ffunE !mxE.
+  by apply: eq_bigr => i _; rewrite -scaler_zint linearZ ffunE !mxE.
 rewrite -defS -2!mulmxA; have ->: T *m pinvmx T = 1%:M.
   have uT: row_free T by rewrite /row_free -eqST.
   by apply: (row_free_inj uT); rewrite mul1mx mulmxKpV.
@@ -2681,7 +2680,7 @@ Lemma dec_intC_span (V : vectType algC) m (s : m.-tuple V) v :
 Proof.
 have s_s (i : 'I_m): s`_i \in span s by rewrite memv_span ?mem_nth ?size_tuple.
 have s_Zs a: \sum_(i < m) s`_i *~ a i \in span s.
-  by rewrite memv_suml // => i _; rewrite -scalezr memvZl.
+  by rewrite memv_suml // => i _; rewrite -scaler_zint memvZl.
 case s_v: (v \in span s); last by right=> [[a Dv]]; rewrite Dv s_Zs in s_v.
 pose IzT := {: 'I_m * 'I_(\dim (span s))}; pose Iz := 'I_#|IzT|.
 pose b := vbasis (span s).
@@ -2695,7 +2694,7 @@ have Qz_Zs a: inQzs (\sum_(i < m) s`_i *~ a i).
   exists [ffun ij => (a (val21 ij))%:Q *+ ((enum_val ij).2 == j)].
   rewrite linear_sum sum_ffunE {1}(reindex_onto _ _ (enum_pairK j)).
   rewrite big_mkcond; apply: eq_bigr => ij _ /=; rewrite nth_image (tnth_nth 0).
-  rewrite (can2_eq (@enum_rankK _) (@enum_valK _)) ffunE -scalezr /val21.
+  rewrite (can2_eq (@enum_rankK _) (@enum_valK _)) ffunE -scaler_zint /val21.
   case Dij: (enum_val ij) => [i j1]; rewrite xpair_eqE eqxx /= eq_sym -mulrb.
   by rewrite linearZ ffunE rmorphMn rmorph_zint mulrnAl; case: eqP => // ->.
 case Qz_v: (inQzs v); last by right=> [[a Dv]]; rewrite Dv Qz_Zs in Qz_v.
@@ -2706,7 +2705,7 @@ have xv j: {x | coord b v j = QzC x}.
   exists (\sum_ij x ij *: z1s`_ij); rewrite rmorph_sum.
   apply: eq_bigr => ij _; rewrite mulrAC.
   apply: canLR (mulfK _) _; first by rewrite zintr_eq0 denq_neq0.
-  rewrite mulrzr -rmorphMz scalerMzl -(mulrzr (x _)) -numqE scalezr.
+  rewrite mulrzr -rmorphMz scalerMzl -(mulrzr (x _)) -numqE scaler_zint.
   by rewrite rmorphMz mulrzl -(nth_map _ 0) ?Dz_s // -(size_map QzC) Dz_s.
 pose sz := [tuple [ffun j => z1s`_(rank2 j i)] | i < m].
 have [Zsv | Zs'v] := dec_intQ_span sz [ffun j => sval (xv j)].
@@ -2737,11 +2736,11 @@ Proof.
 rewrite unfold_in; case: (dec_intC_span _ _) => [Zs_x | Zs'x] /=.
   left; have{Zs_x} [] := Zs_x; rewrite /= size_map size_tuple => a /rowP/(_ 0).
   rewrite !mxE => ->; exists a; rewrite summxE; apply: eq_bigr => i _.
-  by rewrite -scalezr (nth_map 0) ?size_tuple // !mxE mulrzl.
+  by rewrite -scaler_zint (nth_map 0) ?size_tuple // !mxE mulrzl.
 right=> [[a Dx]]; have{Zs'x} [] := Zs'x.
 rewrite /inIntSpan /= size_map size_tuple; exists a.
 apply/rowP=> i0; rewrite !mxE summxE Dx; apply: eq_bigr => i _.
-by rewrite -scalezr mxE mulrzl (nth_map 0) ?size_tuple // !mxE.
+by rewrite -scaler_zint mxE mulrzl (nth_map 0) ?size_tuple // !mxE.
 Qed.
 
 Lemma mem_intC_span s : {subset s <= intC_span s}.
