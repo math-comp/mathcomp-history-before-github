@@ -328,9 +328,9 @@ have [q <- lt_q_n] := split_diagA; have le_q_n := leq_trans lt_q_n (leq_pred n).
 by rewrite size_addl size_prod_XsubC size_diagA.
 Qed.
 
-Lemma char_poly_monic : monic char_poly.
+Lemma char_poly_monic : char_poly \is monic.
 Proof.
-rewrite /monic -(monicP (monic_prod_XsubC diagA xpredT id)).
+rewrite monicE -(monicP (monic_prod_XsubC diagA xpredT id)).
 rewrite !lead_coefE size_char_poly.
 have [q <- lt_q_n] := split_diagA; have le_q_n := leq_trans lt_q_n (leq_pred n).
 by rewrite size_prod_XsubC size_diagA coefD (nth_default 0 le_q_n) addr0.
@@ -497,9 +497,9 @@ Local Notation p_A := mxminpoly.
 Lemma size_mxminpoly : size p_A = d.+1.
 Proof. by rewrite size_addl ?size_polyXn // size_opp ltnS size_poly. Qed.
 
-Lemma mxminpoly_monic : monic p_A.
+Lemma mxminpoly_monic : p_A \is monic.
 Proof.
-rewrite /monic /lead_coef size_mxminpoly coefB coefXn eqxx /=.
+rewrite monicE /lead_coef size_mxminpoly coefB coefXn eqxx /=.
 by rewrite nth_default ?size_poly // subr0.
 Qed.
 

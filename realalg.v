@@ -25,11 +25,11 @@ Local Notation m0 := (fun _ => 0%N).
 CoInductive algcreal := AlgCReal {
   creal_of_alg :> creal F;
   annul_creal : {poly F};
-  _ : monic annul_creal;
+  _ : annul_creal \is monic;
   _ : (annul_creal.[creal_of_alg] == 0)%CR
 }.
 
-Lemma monic_annul_creal x : monic (annul_creal x).
+Lemma monic_annul_creal x : annul_creal x \is monic.
 Proof. by case: x. Qed.
 Hint Resolve monic_annul_creal.
 
@@ -106,7 +106,7 @@ elim: size {-3}x x_neq0 (leqnn (size (annul_creal x))) =>
   by move: hx; rewrite leqn0 size_poly_eq0 annul_creal_eq0.
 have [dvdX|ndvdX] := boolP ('X %| annul_creal x); last first.
   by exists x=> //; rewrite -rootE -dvdp_XsubCl subr0.
-have monic_p: monic (@annul_creal x %/ 'X).
+have monic_p: @annul_creal x %/ 'X \is monic.
   by rewrite -(monicMr _ (@monicX _)) divpK //.
 have root_p: ((@annul_creal x %/ 'X).[x] == 0)%CR.
   have := @eq_creal_refl _ ((annul_creal x).[x])%CR.
@@ -296,7 +296,7 @@ CoInductive algdom := AlgDom {
   annul_algdom : {poly F};
   center_alg : F;
   radius_alg : F;
-  _ : monic annul_algdom;
+  _ : annul_algdom \is monic;
   _ : radius_alg >= 0;
   _ : annul_algdom.[center_alg - radius_alg]
       * annul_algdom.[center_alg + radius_alg] <= 0
@@ -304,7 +304,7 @@ CoInductive algdom := AlgDom {
 
 Lemma radius_alg_ge0 x : 0 <= radius_alg x. Proof. by case: x. Qed.
 
-Lemma monic_annul_algdom x : monic (annul_algdom x). Proof. by case: x. Qed.
+Lemma monic_annul_algdom x : annul_algdom x \is monic. Proof. by case: x. Qed.
 Hint Resolve monic_annul_algdom.
 
 Lemma annul_algdom_eq0 x : (annul_algdom x == 0) = false.
@@ -322,7 +322,7 @@ Definition encode_algdom (x : algdom) : algdom' :=
 Definition decode_algdom  (x : algdom') : option algdom :=
   if x is [::c, r & p']
   then let p := Poly p' in
-    if (monic p =P true, (r >= 0) =P true,
+    if ((p \is monic) =P true, (r >= 0) =P true,
        (p.[c - r] * p.[c + r] <= 0) =P true)
     is (ReflectT monic_p, ReflectT r_gt0, ReflectT hp)
       then Some (AlgDom monic_p r_gt0 hp)
@@ -917,7 +917,7 @@ apply/rootP; rewrite -[x]reprK horner_pi /= zeroE -equiv_alg.
 by rewrite horner_algcrealE root_annul_algcreal.
 Qed.
 
-Lemma monic_annul_alg (x : {alg F}) : monic (annul_alg x).
+Lemma monic_annul_alg (x : {alg F}) : annul_alg x \is monic.
 Proof. by unlock annul_alg; rewrite monic_annul_creal. Qed.
 
 Lemma annul_alg_neq0 (x : {alg F}) : annul_alg x != 0.
@@ -1084,11 +1084,11 @@ move=> le_ab; have [->  _|p_neq0] := eqVneq p 0.
   by exists a%:RA; rewrite ?lerr ?ler_to_alg // rmorph0 root0.
 move=> /andP[pa_le0 pb_ge0]; apply/sig2W.
 have hpab: p.[a] * p.[b] <= 0 by rewrite mulr_le0_ge0.
-move=> {pa_le0 pb_ge0}; wlog monic_p : p hpab p_neq0 / monic p.
+move=> {pa_le0 pb_ge0}; wlog monic_p : p hpab p_neq0 / p \is monic.
   set q := (lead_coef p) ^-1 *: p => /(_ q).
   rewrite !hornerZ mulrCA !mulrA -mulrA mulr_ge0_le0 //; last first.
     by rewrite (@exprn_even_ge0 _ 2).
-  have mq: monic q by rewrite /monic lead_coefZ mulVf ?lead_coef_eq0.
+  have mq: q \is monic by rewrite monicE lead_coefZ mulVf ?lead_coef_eq0.
   rewrite monic_neq0 ?mq=> // [] [] // x hx hqx; exists x=> //.
   move: hqx; rewrite /q -mul_polyC rmorphM /= rootM map_polyC rootC.
   by rewrite fmorph_eq0 invr_eq0 lead_coef_eq0 (negPf p_neq0).

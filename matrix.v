@@ -2441,10 +2441,10 @@ Section Defs.
 Variable n : nat.
 Implicit Type A : 'M[R]_n.
 
-Definition unitmx : pred 'M[R]_n := fun A => \det A \in GRing.unit.
+Definition unitmx : pred 'M[R]_n := fun A => \det A \is a GRing.unit.
 Definition invmx A := if A \in unitmx then (\det A)^-1 *: \adj A else A.
 
-Lemma unitmxE A : (A \in unitmx) = (\det A \in GRing.unit).
+Lemma unitmxE A : (A \in unitmx) = (\det A \is a GRing.unit).
 Proof. by []. Qed.
 
 Lemma unitmx1 : 1%:M \in unitmx. Proof. by rewrite unitmxE det1 unitr1. Qed.
@@ -2455,7 +2455,7 @@ Proof. by rewrite unitmxE det_perm unitrX ?unitrN ?unitr1. Qed.
 Lemma unitmx_tr A : (A^T \in unitmx) = (A \in unitmx).
 Proof. by rewrite unitmxE det_tr. Qed.
 
-Lemma unitmxZ a A : GRing.unit a -> (a *: A \in unitmx) = (A \in unitmx).
+Lemma unitmxZ a A : a \is a GRing.unit -> (a *: A \in unitmx) = (A \in unitmx).
 Proof. by move=> Ua; rewrite !unitmxE detZ unitrM unitrX. Qed.
 
 Lemma invmx1 : invmx 1%:M = 1%:M.
@@ -2464,7 +2464,7 @@ Proof. by rewrite /invmx det1 invr1 scale1r adj1 if_same. Qed.
 Lemma invmxZ a A : a *: A \in unitmx -> invmx (a *: A) = a^-1 *: invmx A.
 Proof.
 rewrite /invmx !unitmxE detZ unitrM => /andP[Ua U_A].
-rewrite Ua U_A adjZ !scalerA invr_mul {U_A}//=.
+rewrite Ua U_A adjZ !scalerA invrM {U_A}//=.
 case: (posnP n) A => [-> | n_gt0] A; first by rewrite flatmx0 [_ *: _]flatmx0.
 rewrite unitrX_pos // in Ua; rewrite -[_ * _](mulrK Ua) mulrC -!mulrA.
 by rewrite -exprSr prednK // !mulrA divrK ?unitrX.
@@ -2546,7 +2546,7 @@ Canonical matrix_unitAlg := Eval hnf in [unitAlgType R of 'M[R]_n].
 Lemma detV (A : 'M_n) : \det A^-1 = (\det A)^-1.
 Proof. exact: det_inv. Qed.
 
-Lemma unitr_trmx (A : 'M_n) : (A^T  \in GRing.unit) = (A \in GRing.unit).
+Lemma unitr_trmx (A : 'M_n) : (A^T  \is a GRing.unit) = (A \is a GRing.unit).
 Proof. exact: unitmx_tr. Qed.
 
 Lemma trmxV (A : 'M_n) : A^-1^T = (A^T)^-1.
@@ -2618,7 +2618,7 @@ Lemma GL_VE u : GLval u^-1 = (GLval u)^-1. Proof. by []. Qed.
 Lemma GL_VxE u : GLval u^-1 = invmx u. Proof. by []. Qed.
 Lemma GL_ME u v : GLval (u * v) = GLval u * GLval v. Proof. by []. Qed.
 Lemma GL_MxE u v : GLval (u * v) = u *m v. Proof. by []. Qed.
-Lemma GL_unit u : GLval u \in GRing.unit. Proof. exact: valP. Qed.
+Lemma GL_unit u : GLval u \is a GRing.unit. Proof. exact: valP. Qed.
 Lemma GL_unitmx u : val u \in unitmx. Proof. exact: GL_unit. Qed.
 
 Lemma GL_det u : \det u != 0.
@@ -2728,7 +2728,8 @@ Qed.
 Lemma map_unitmx n (A : 'M_n) : (A^f \in unitmx) = (A \in unitmx).
 Proof. by rewrite unitmxE det_map_mx // fmorph_unit // -unitfE. Qed.
 
-Lemma map_mx_unit n' (A : 'M_n'.+1) : (A^f \in GRing.unit) = (A \in GRing.unit).
+Lemma map_mx_unit n' (A : 'M_n'.+1) :
+  (A^f \is a GRing.unit) = (A \is a GRing.unit).
 Proof. exact: map_unitmx. Qed.
 
 Lemma map_invmx n (A : 'M_n) : (invmx A)^f = invmx A^f.

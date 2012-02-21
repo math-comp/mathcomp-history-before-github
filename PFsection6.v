@@ -539,22 +539,22 @@ Section NumFieldProj.
 
 Variables (Qn : fieldExtType qnum) (QnC : {rmorphism Qn -> algC}).
 
-Lemma ratC_spanZ b a : {in ratC_span b, forall x, qnumr a * x \in ratC_span b}.
+Lemma Crat_spanZ b a : {in Crat_span b, forall x, qnumr a * x \in Crat_span b}.
 Proof.
-move=> _ /ratC_spanP[a1 ->]; apply/ratC_spanP; exists [ffun i => a * a1 i].
+move=> _ /Crat_spanP[a1 ->]; apply/Crat_spanP; exists [ffun i => a * a1 i].
 by rewrite mulr_sumr; apply: eq_bigr => i _; rewrite ffunE mulrA -rmorphM.
 Qed.
 
-Lemma ratC_spanM b : {in Crat & ratC_span b, forall a x, a * x \in ratC_span b}.
-Proof. by move=> _ x /CratP[a ->]; exact: ratC_spanZ. Qed.
+Lemma Crat_spanM b : {in Crat & Crat_span b, forall a x, a * x \in Crat_span b}.
+Proof. by move=> _ x /CratP[a ->]; exact: Crat_spanZ. Qed.
 
 (* In principle CtoQn could be taken to be additive and Q-linear, but this    *)
 (* would require a limit construction.                                        *)
 Lemma num_field_proj : {CtoQn | CtoQn 0 = 0 & cancel QnC CtoQn}.
 Proof.
 pose b := vbasis (fullv Qn).
-have Qn_bC (u : {x | x \in ratC_span (map QnC b)}): {y | QnC y = sval u}.
-  case: u => _ /= /ratC_spanP/sig_eqW[a ->].
+have Qn_bC (u : {x | x \in Crat_span (map QnC b)}): {y | QnC y = sval u}.
+  case: u => _ /= /Crat_spanP/sig_eqW[a ->].
   exists (\sum_i a i *: b`_i); rewrite rmorph_sum; apply: eq_bigr => i _.
   by rewrite rmorphZ_num (nth_map 0) // -(size_map QnC).
 pose CtoQn x := oapp (fun u => sval (Qn_bC u)) 0 (insub x).
@@ -562,7 +562,7 @@ suffices QnCK: cancel QnC CtoQn by exists CtoQn; rewrite // -(rmorph0 QnC).
 move=> x; rewrite /CtoQn insubT => /= [|Qn_x]; last first.
   by case: (Qn_bC _) => x1 /= /fmorph_inj.
 rewrite (coord_basis (memvf x)) rmorph_sum rpred_sum // => i _.
-rewrite rmorphZ_num ratC_spanZ ?mem_ratC_span // -/b.
+rewrite rmorphZ_num Crat_spanZ ?mem_Crat_span // -/b.
 by rewrite -tnth_nth -tnth_map mem_tnth.
 Qed.
 
@@ -687,14 +687,18 @@ Coercion algC_nat_dvd (n : nat) : algC_dvd_type := n%:R.
 (* Could perhaps replace dvdC. *)
 Definition dvdA (e : algC_dvd_type) : pred algC :=
   [pred z | if e == 0 then z == 0 else z / e \in algInt].
+Fact dvdA_key e : pred_key (dvdA e). Proof. by []. Qed.
+Canonical dvdA_keyed e := KeyedPred (dvdA_key e).
 
-Global Instance dvdA_subadd e : addSubgroupPred (dvdA e).
+Fact dvdA_zmod_closed e : zmod_closed (dvdA e).
 Proof.
-apply: SubgroupPredFromSub=> [|x y].
-  by rewrite inE mul0r eqxx rpred0 ?if_same.
+split=> [|x y]; first by rewrite inE mul0r eqxx rpred0 ?if_same.
 rewrite !inE; case: ifP => [_ x0 /eqP-> | _]; first by rewrite subr0.
 by rewrite mulrBl; apply: rpredB.
 Qed.
+Canonical dvdA_opprPred e := OpprPred (dvdA_zmod_closed e).
+Canonical dvdA_addrPred e := AddrPred (dvdA_zmod_closed e).
+Canonical dvdA_zmodPred e := ZmodPred (dvdA_zmod_closed e).
 
 Delimit Scope algC_scope with A.
 Notation "e %| x" := (@in_mem algC_dvd_type x (mem (dvdA e))) : algC_scope.
@@ -921,13 +925,13 @@ suffices Ea2 l (phi := 'chi[G]_l):
   have: kerZ 0 by move=> x y /setD1P[_ Zx] /setD1P[_ Zy]; rewrite !chi0.
   move/Ea2/(eqAmodMl (algInt_irr l z)); rewrite !{}chi0 // -/phi eqAmod_sym.
   rewrite mulrDr mulr1 !mulr_natr => /eqAmod_trans/(_ (Ea2 l kerZphi)).
-  rewrite eqAmodDr -/phi eqAmod_rat ?rpred_nat ?(rpred_Cint Zphi1) //.
+  rewrite eqAmodDr -/phi eqAmod_rat ?rpred_nat ?(rpred_Cint _ Zphi1) //.
     move=> PdvDphi; split; rewrite // -[phi z](subrK (phi 1%g)) isIntC_add //.
     by have /dvdCP[b Zb ->] := PdvDphi; rewrite isIntC_mul ?isIntC_nat.
   have nz_Z1: #|Z^#|%:R != 0 :> algC.
     by rewrite -neq0N_neqC cards_eq0 setD_eq0 subG1.
   rewrite -[phi z](mulfK nz_Z1) Crat_div ?rpred_nat // mulr_natr.
-  rewrite -(rpredDl _ (rpred_Cint Zphi1)) //.
+  rewrite -(rpredDl _ (rpred_Cint _ Zphi1)) //.
   rewrite -[_ + _](mulVKf (neq0GC Z)) rpredM ?rpred_nat //.
   have: '['Res[Z] phi, 'chi_0] \in Crat.
     by rewrite rpred_Cnat ?cfdot_char_Nat ?cfRes_char ?irr_char.

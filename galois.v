@@ -119,19 +119,10 @@ Proof. apply/kHomP. by split; move => ? ?; rewrite !unit_lappE. Qed.
 
 Variable (f : 'End(L)).
 
-Let K_P : addSubgroupPred K := _.
-
-Lemma kHomFixedPoly : forall p, kHom f -> p \in polyOver K -> map_poly f p = p.
+Lemma kHomFixedPoly p : kHom f -> p \is a polyOver K -> map_poly f p = p.
 Proof.
-move => p.
-case/kHomP => HK _.
-move/polyOverP => Hp.
-apply/polyP => i.
-(* :BUG: v8.4 -> by rewrite coef_map /= HK ?Hp //. *)
-(* No applicable tactic *)
-rewrite coef_map /= HK //.
-have : addSemigroupPred K by auto with typeclass_instances.
-by move=> /Hp.
+case/kHomP => HK _ /polyOverP Hp.
+by apply/polyP => i; rewrite coef_map /= HK ?Hp.
 Qed.
 
 Definition kAut : pred 'End(L) := fun f =>  kHom f && (f @: E == E)%VS.
@@ -222,7 +213,7 @@ split; first by move => a b; rewrite /= HE // subaP.
 by rewrite /= aunit_eq1 HK // mem1v.
 Qed.
 
-Lemma kHom_root : forall p x, p \in polyOver E -> x \in E ->
+Lemma kHom_root : forall p x, p \is a polyOver E -> x \in E ->
  root p x -> root (map_poly f p) (f x).
 Proof.
 rewrite/root.
@@ -236,7 +227,7 @@ move/eqP => /= ->.
 by rewrite linear0.
 Qed.
 
-Lemma kHom_rootK : forall p x, p \in polyOver K -> x \in E ->
+Lemma kHom_rootK : forall p x, p \is a polyOver K -> x \in E ->
  root p x -> root p (f x).
 Proof.
 move => p x Hp Hx Hroot.
@@ -259,8 +250,8 @@ move => p Hp.
 rewrite kHomExtendE.
 move/(poly_for_modp x): (Hp) ->.
 case/kHomP: Hf => HK HE.
-have Hfmin : monic (map_poly f (minPoly E x)).
- by rewrite /monic lead_coef_map_eq;
+have Hfmin : map_poly f (minPoly E x) \is monic.
+ by rewrite monicE lead_coef_map_eq;
   move/eqP: (monic_minPoly E x) ->;
   rewrite /= HK ?mem1v // oner_neq0.
 rewrite (divp_eq (map_poly f p) (map_poly f (minPoly E x))) !hornerE.
@@ -1341,8 +1332,7 @@ Definition normal (K E : {vspace L}) :=
 
 (* Move this to poly.v *)
 Lemma eqpMP : forall (R : idomainType) (p q : {poly R}),
-  monic p -> monic q -> (p %= q) = (p == q).
-
+  p \is monic -> q \is monic -> (p %= q) = (p == q).
 Proof.
 move => R p q Hp Hq.
 case: eqP; first by move ->; rewrite eqpxx.
@@ -1609,7 +1599,7 @@ have/allP : g \in polyOver E.
  rewrite /g big_map.
  rewrite (big_nth 1%g) big_mkord.
  apply: rpred_prod => i _.
- rewrite polyOverXsubC //.
+ rewrite polyOverXsubC /=.
  move/subsetP/allP/(all_nthP 1%g)/(_ _ (@ltn_ord _ i))/(Aut_kAut HKE): Haut.
  case/(_ _ (mem_repr_coset _))/andP => _ /eqP => HE.
  by rewrite -[in X in (_ \in X)]HE memv_img.

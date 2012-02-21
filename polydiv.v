@@ -459,7 +459,7 @@ Implicit Types p q r : {poly R}.
 
 
 Variable d : {poly R}.
-Hypothesis mond : monic d.
+Hypothesis mond : d \is monic.
 
 Lemma redivp_eq q r :  size r < size d ->
   let k := (redivp (q * d + r) d).1.1 in
@@ -887,7 +887,7 @@ Import UnitRing.
 
 Variable R : idomainType.
 Variable q : {poly R}.
-Hypothesis monq : monic q.
+Hypothesis monq : q \is monic.
 
 Implicit Type p d r : {poly R}.
 

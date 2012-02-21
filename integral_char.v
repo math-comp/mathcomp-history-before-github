@@ -31,7 +31,7 @@ Variable R : ringType.
 Definition cyclotomic (z : R) n :=
   \prod_(k < n | coprime k n) ('X - (z ^+ k)%:P).
 
-Lemma cyclotomic_monic z n : monic (cyclotomic z n).
+Lemma cyclotomic_monic z n : cyclotomic z n \is monic.
 Proof. exact: monic_prod_XsubC. Qed.
 
 Lemma size_cyclotomic z n : size (cyclotomic z n) = (phi n).+1.
@@ -152,24 +152,25 @@ Proof. by rewrite negzM signr_eq0 negz_sign. Qed.
 Lemma negzPn z : ~~ negz z -> {n : nat | z = n}.
 Proof. by case: z => // n; exists n. Qed.
 
-Lemma rpredMz M S {addS : @addSubgroupPred M S} m :
-  {in S, forall u, u *~ m \in S}.
+Lemma rpredMz M S (addS : @zmodPred M S) (kS : keyed_pred addS) m :
+  {in kS, forall u, u *~ m \in kS}.
 Proof. by case: m => n u Su; rewrite ?rpredN ?rpredMn. Qed.
 
-Lemma rpred_int R S {ringS : @subringPred R S} m : m%:~R \in S.
+Lemma rpred_int R S (ringS : @subringPred R S) (kS : keyed_pred ringS) m :
+  m%:~R \in kS.
 Proof. by rewrite rpredMz ?rpred1. Qed.
 
 Lemma rpredZint (R : ringType) (M : lmodType R) S
-                 {ringS : @addSubgroupPred M S} m :
-  {in S, forall u, m%:~R *: u \in S}.
+                 (addS : @zmodPred M S) (kS : keyed_pred addS) m :
+  {in kS, forall u, m%:~R *: u \in kS}.
 Proof. by move=> u Su; rewrite /= scaler_zint rpredMz. Qed.
 
-Lemma rpredXint R S {ringS : @mulSubgroupPred R S} m :
-  {in S, forall x, x ^ m \in S}.
+Lemma rpredXint R S (divS : @divrPred R S) (kS : keyed_pred divS) m :
+  {in kS, forall x, x ^ m \in kS}.
 Proof. by case: m => n x Sx; rewrite ?rpredV rpredX. Qed.
 
-Lemma rpredXsign R S {ringS : @mulSubgroupPred R S} n x :
-  (x ^ ((-1) ^+ n) \in S) = (x \in S).
+Lemma rpredXsign R S (divS : @divrPred R S) (kS : keyed_pred divS) n x :
+  (x ^ ((-1) ^+ n) \in kS) = (x \in kS).
 Proof. by rewrite -signr_odd; case: (odd n); rewrite ?rpredV. Qed.
 
 Lemma ffunMzE (I : finType) (M : zmodType) (f : {ffun I -> M}) z x :
@@ -191,7 +192,9 @@ Notation "m %:~R" := (1 *~ m) : ring_scope.
 
 Section MoreQnum.
 
-Definition Qint := [pred x | denq x == 1].
+Definition Qint : pred qnum := [pred x | denq x == 1].
+Fact Qint_key : pred_key Qint. Proof. by []. Qed.
+Canonical Qint_keyed := KeyedPred Qint_key.
 
 Lemma numqK : {in Qint, cancel (fun x => numq x) zintr}.
 Proof. by move=> x /(_ =P 1 :> zint) Zx; rewrite numqE Zx rmorph1 mulr1. Qed.
@@ -202,12 +205,19 @@ apply: (iffP idP) => [/numqK <- | [z ->]]; first by exists (numq x).
 by rewrite !inE denq_zint.
 Qed.
 
-Global Instance Qint_subringPred : subringPred Qint.
+Fact Qint_subring_closed : subring_closed Qint.
 Proof.
-apply: SubringPredFromSub => // _ _ /QintP[x ->] /QintP[y ->]; apply/QintP.
+split=> // _ _ /QintP[x ->] /QintP[y ->]; apply/QintP.
   by exists (x - y); rewrite -rmorphB.
 by exists (x * y); rewrite -rmorphM.
 Qed.
+Canonical Qint_opprPred := OpprPred Qint_subring_closed.
+Canonical Qint_addrPred := AddrPred Qint_subring_closed.
+Canonical Qint_mulrPred := MulrPred Qint_subring_closed.
+Canonical Qint_zmodPred := ZmodPred Qint_subring_closed.
+Canonical Qint_semiringPred := SemiringPred Qint_subring_closed.
+Canonical Qint_smulrPred := SmulrPred Qint_subring_closed.
+Canonical Qint_subringPred := SubringPred Qint_subring_closed.
 
 Section InRing.
 
@@ -221,7 +231,8 @@ Proof. by rewrite /qnumr numq_zint denq_zint divr1. Qed.
 Lemma qnumr_nat n : qnumr n%:R = n%:R.
 Proof. exact: (qnumr_int n). Qed.
 
-Lemma rpred_rat S {fieldS : @subfieldPred R S} a : qnumr a \in S.
+Lemma rpred_rat S (ringS : @divringPred R S) (kS : keyed_pred ringS) a :
+  qnumr a \in kS.
 Proof. by rewrite rpred_div ?rpred_int. Qed.
 
 End InRing.
@@ -445,14 +456,14 @@ have [-> | ] := eqVneq p 0; first by rewrite unscale_int_poly0.
 by rewrite {1 3}[p]int_polyEscale scale_poly_eq0 => /norP[/size_scale-> _].
 Qed.
 
-Lemma int_scale_monic p : monic p -> int_poly_scale p = 1.
+Lemma int_scale_monic p : p \is monic -> int_poly_scale p = 1.
 Proof.
 move/monicP=> lead_p_1; rewrite [_ p]zintEsign negz_int_poly_scale lead_p_1.
 have /esym/eqP := congr1 (absz \o lead_coef) (int_polyEscale p).
 by rewrite /= lead_p_1 lead_coefZ abszM muln_eq1 => /andP[/eqP-> _].
 Qed.
 
-Lemma unscale_int_monic p : monic p -> unscale_int_poly p = p.
+Lemma unscale_int_monic p : p \in monic -> unscale_int_poly p = p.
 Proof. by move=> ?; rewrite {2}[p]int_polyEscale int_scale_monic ?scale1r. Qed.
 
 Lemma dvdpP_int p q : p %| q -> {r | q = unscale_int_poly p * r}.
@@ -1321,7 +1332,7 @@ by rewrite eqEsubv subvf -genF genFieldSl.
 Qed.
 
 Lemma kHom_extends K E f p U :
-    (K <= E)%VS -> kHom K E f -> p \in polyOver K -> splittingFieldFor E p U ->
+    (K <= E)%VS -> kHom K E f -> p \is a polyOver K -> splittingFieldFor E p U ->
   {g | kHom K U g & {in E, f =1 g}}.
 Proof.
 move=> sKE homEf Kp /sig2_eqW[rs Dp <-{U}]; set r := rs.
@@ -1351,7 +1362,7 @@ by have /kHomP[fK _] := homEf; rewrite fK ?mem1v ?oner_eq0.
 Qed.
 
 Lemma enum_kHom K p (F := fullv L) :
-    p \in polyOver K -> splittingFieldFor K p F ->
+    p \is a polyOver K -> splittingFieldFor K p F ->
   {homK : (\dim_K F).-tuple 'End(L) | separablePolynomial p -> uniq homK
         & forall f, kHom K F f = (f \in homK)}.
 Proof.
@@ -1421,14 +1432,14 @@ by rewrite /= lappE /= Dfz -fi_z lker0_lappK.
 Qed.
 
 Lemma splitting_field_normal p (F := fullv L) :
-    p \in polyOver 1%:VS -> splittingFieldFor 1%:VS p F ->
+    p \is a polyOver 1%:VS -> splittingFieldFor 1%:VS p F ->
     separablePolynomial p ->
   isNormalFieldExt L.
 Proof.
 move=> F0p splitFp sep_p K x; set pKx := minPoly K x.
 have [autL /(_ sep_p)UautL DautL] := enum_kHom F0p splitFp.
 pose q := \prod_(z <- [image tnth autL i x | i <- 'I__]) ('X - z%:P).
-suffices F0q: q \in polyOver 1%:VS.
+suffices F0q: q \is a polyOver 1%:VS.
   suffices /dvdp_prod_XsubC[m]: pKx %| q.
     move: (mask m _) => r; exists r.
     by rewrite -eqpMP ?monic_prod_XsubC ?monic_minPoly.
@@ -1467,7 +1478,7 @@ by rewrite (kHomFixedPoly hom_f) // -coef_map fixed_q.
 Qed.
 
 Lemma splitting_field_galois p (F := fullv L) :
-    p \in polyOver 1%:VS -> splittingFieldFor 1%:VS p F ->
+    p \is a polyOver 1%:VS -> splittingFieldFor 1%:VS p F ->
     separablePolynomial p ->
   {normL : isNormalFieldExt L & galois normL 1%:VS F}.
 Proof.
@@ -1486,7 +1497,7 @@ Qed.
 
 Lemma normal_field_splitting (F := fullv L) :
     isNormalFieldExt L ->
-  {p : {poly L} & p \in polyOver 1%:VS & splittingFieldFor 1%:VS p F}.
+  {p : {poly L} & p \is a polyOver 1%:VS & splittingFieldFor 1%:VS p F}.
 Proof.
 move=> normL; pose r i := sval (sigW (normL (aspace1 L) (tnth (vbasis F) i))).
 have sz_r i: (size (r i) <= \dim F)%N.
@@ -1705,10 +1716,12 @@ case: z => n; first by rewrite mul1r leC_gtF ?posC_nat.
 by rewrite -sposC_opp mulN1r opprK -(ltn_ltC 0).
 Qed.
 
-Lemma rpred_Cnat S {ringS : semiringPred S} x : isNatC x -> x \in S.
+Lemma rpred_Cnat S (ringS : semiringPred S) (kS : keyed_pred ringS) x :
+  isNatC x -> x \in kS.
 Proof. by case/isNatCP=> n ->; apply: rpred_nat. Qed.
 
-Lemma rpred_Cint S {ringS : subringPred S} x : isIntC x -> x \in S.
+Lemma rpred_Cint S (ringS : subringPred S) (kS : keyed_pred ringS) x :
+  isIntC x -> x \in kS.
 Proof. by move/getCintK <-; apply: rpred_int. Qed.
 
 Lemma getCint0 : CtoZ 0 = 0. Proof. exact: (CintrK 0). Qed.
@@ -1797,6 +1810,8 @@ Qed.
 Definition getCrat := sval getCrat_subproof.
 Local Notation CtoQ := getCrat.
 Definition Crat : pred algC := (fun x => x == QtoC (CtoQ x)).
+Fact Crat_key : pred_key Crat. Proof. by []. Qed.
+Canonical Crat_keyed := KeyedPred Crat_key.
 
 Lemma CqnumrK : cancel QtoC CtoQ.
 Proof. by rewrite /getCrat; case: getCrat_subproof. Qed.
@@ -1816,15 +1831,26 @@ Lemma Crat0 : 0 \in Crat. Proof. by apply/CratP; exists 0; rewrite rmorph0. Qed.
 Lemma Crat1 : 1 \in Crat. Proof. by apply/CratP; exists 1; rewrite rmorph1. Qed.
 Hint Resolve Crat0 Crat1.
 
-Lemma rpred_Crat S {fieldS : subfieldPred S} : {subset Crat <= S}.
-Proof. move=> _ /CratP[a ->]; apply: rpred_rat. Qed.
-
-Global Instance Crat_subfieldPred : subfieldPred Crat.
+Fact Crat_divring_closed : divring_closed Crat.
 Proof.
-apply: SubfieldPredFromSubDiv => // _ _ /CratP[x ->] /CratP[y ->].
+split=> // _ _ /CratP[x ->] /CratP[y ->].
   by rewrite -rmorphB ratr_Crat.
 by rewrite -fmorph_div ratr_Crat.
 Qed.
+Canonical Crat_opprPred := OpprPred Crat_divring_closed.
+Canonical Crat_addrPred := AddrPred Crat_divring_closed.
+Canonical Crat_mulrPred := MulrPred Crat_divring_closed.
+Canonical Crat_zmodPred := ZmodPred Crat_divring_closed.
+Canonical Crat_semiringPred := SemiringPred Crat_divring_closed.
+Canonical Crat_smulrPred := SmulrPred Crat_divring_closed.
+Canonical Crat_divrPred := DivrPred Crat_divring_closed.
+Canonical Crat_subringPred := SubringPred Crat_divring_closed.
+Canonical Crat_sdivrPred := SdivrPred Crat_divring_closed.
+Canonical Crat_divringPred := DivringPred Crat_divring_closed.
+
+Lemma rpred_Crat S (ringS : divringPred S) (kS : keyed_pred ringS) :
+  {subset Crat <= kS}.
+Proof. by move=> _ /CratP[a ->]; apply: rpred_rat. Qed.
 
 Lemma CratV x : (x^-1 \in Crat) = (x \in Crat).
 Proof. exact: rpredV. Qed.
@@ -1851,7 +1877,7 @@ Qed.
 (* Minimal polynomial. *)
 
 Fact minCpoly_subproof (x : algC) :
-  {p | monic p & forall q, root (pQtoC q) x = (p %| q)}.
+  {p | p \is monic & forall q, root (pQtoC q) x = (p %| q)}.
 Proof.
 have /sig2_eqW[p0 nz_p0 p0x] := algC_algebraic x.
 have [r Dp0] := closed_field_poly_normal (pZtoC p0).
@@ -1896,11 +1922,11 @@ Definition minCpoly x : {poly algC} :=
   locked (pQtoC (s2val (minCpoly_subproof x))).
 
 Lemma minCpolyP x :
-   {p | minCpoly x = pQtoC p /\ monic p
+   {p | minCpoly x = pQtoC p /\ p \is monic
       & forall q, root (pQtoC q) x = (p %| q)}.
 Proof. by unlock minCpoly; case: (minCpoly_subproof x) => p /=; exists p. Qed.
 
-Lemma minCpoly_monic x : monic (minCpoly x).
+Lemma minCpoly_monic x : minCpoly x \is monic.
 Proof. by have [p [-> mon_p] _] := minCpolyP x; rewrite map_monic. Qed.
 
 Lemma minCpoly_eq0 x : (minCpoly x == 0) = false.
@@ -1982,16 +2008,16 @@ congr _.[_]; last by rewrite /= subfx_inj_eval // map_polyX hornerX.
 apply: eq_map_poly; exact: subfx_inj_base.
 Qed.
 
-Definition in_ratC_span s x :=
+Definition in_Crat_span s x :=
   exists a : {ffun 'I_(size s) -> qnum}, x = \sum_i QtoC (a i) * s`_i.
 
-Fact ratC_span_subproof s x : {in_ratC_span s x} + {~ in_ratC_span s x}.
+Fact Crat_span_subproof s x : {in_Crat_span s x} + {~ in_Crat_span s x}.
 Proof.
 have [Qxs [QxsC [[|x1 s1] // [<- <-] {x s} _]]] := num_field_exists (x :: s).
 have QxsC_Z a z: QxsC (a *: z) = QtoC a * QxsC z.
   rewrite mulrAC; apply: (canRL (mulfK _)); first by rewrite zintr_eq0 denq_eq0.
   by rewrite mulrzr mulrzl -!rmorphMz scalerMzl -mulrzr -numqE scaler_zint.
-apply: decP (x1 \in span (in_tuple s1)) _; rewrite /in_ratC_span size_map.
+apply: decP (x1 \in span (in_tuple s1)) _; rewrite /in_Crat_span size_map.
 apply: (iffP idP) => [/coord_span-> | [a Dx]].
   move: (coord _ x1) => a; exists a; rewrite rmorph_sum.
   by apply: eq_bigr => i _; rewrite (nth_map 0) // QxsC_Z.
@@ -2001,29 +2027,33 @@ have{Dx} ->: x1 = \sum_i a i *: s1`_i.
 by apply: memv_suml => i _; rewrite memvZl ?memv_span ?mem_nth.
 Qed.
 
-Definition ratC_span s : pred algC := ratC_span_subproof s.
-Lemma ratC_spanP s x : reflect (in_ratC_span s x) (x \in ratC_span s).
+Definition Crat_span s : pred algC := Crat_span_subproof s.
+Lemma Crat_spanP s x : reflect (in_Crat_span s x) (x \in Crat_span s).
 Proof. exact: sumboolP. Qed.
+Fact Crat_span_key s : pred_key (Crat_span s). Proof. by []. Qed.
+Canonical Crat_span_keyed s := KeyedPred (Crat_span_key s).
 
-Lemma mem_ratC_span s : {subset s <= ratC_span s}.
+Lemma mem_Crat_span s : {subset s <= Crat_span s}.
 Proof.
 move=> _ /(nthP 0)[ix ltxs <-]; pose i0 := Ordinal ltxs.
-apply/ratC_spanP; exists [ffun i => (i == i0)%:R].
+apply/Crat_spanP; exists [ffun i => (i == i0)%:R].
 rewrite (bigD1 i0) //= ffunE eqxx // rmorph1 mul1r.
 by rewrite big1 ?addr0 // => i; rewrite ffunE rmorph_nat mulr_natl => /negbTE->.
 Qed.
 
-Global Instance ratC_span_addSubgroupPred s : addSubgroupPred (ratC_span s).
+Fact Crat_span_zmod_closed s : zmod_closed (Crat_span s).
 Proof.
-apply: SubgroupPredFromSub=> [|_ _ /ratC_spanP[x ->] /ratC_spanP[y ->]].
-  apply/ratC_spanP; exists 0.
+split=> [|_ _ /Crat_spanP[x ->] /Crat_spanP[y ->]].
+  apply/Crat_spanP; exists 0.
   by apply/esym/big1=> i _; rewrite ffunE rmorph0 mul0r.
-apply/ratC_spanP; exists (x - y); rewrite -sumrB; apply: eq_bigr => i _.
+apply/Crat_spanP; exists (x - y); rewrite -sumrB; apply: eq_bigr => i _.
 by rewrite -mulrBl -rmorphB !ffunE.
 Qed.
+Canonical Crat_span_opprPred s := OpprPred (Crat_span_zmod_closed s).
+Canonical Crat_span_addrPred s := AddrPred (Crat_span_zmod_closed s).
+Canonical Crat_span_zmodPred s := ZmodPred (Crat_span_zmod_closed s).
 
 (* Automorphism extensions. *)
-
 Lemma extend_algC_subfield_aut (Qs : fieldExtType qnum)
   (QsC : {rmorphism Qs -> algC}) (phi : {rmorphism Qs -> Qs}) :
   {nu : {rmorphism algC -> algC} | {morph QsC : x / phi x >-> nu x}}.
@@ -2088,8 +2118,7 @@ have ext1 mu0 x: {mu1 | exists y, x = Sinj mu1 y
       by rewrite -(rmorph1 in01) -linearZ Df !linearZ !rmorph1.
     by rewrite -rmorphM !Df !rmorphM.
   pose pr := map_poly (in_alg Qr) p.
-  have rpQ: subringPred (1%:VS : {vspace Qr}) by apply: id.
-  have Qpr: pr \in polyOver 1%:VS.
+  have Qpr: pr \is a polyOver 1%:VS.
     by apply/polyOverP=> i; rewrite coef_map memvZl ?memv_inj.
   have splitQr: splittingFieldFor K pr (fullv Qr).
     apply: splittingFieldForS (sub1v (ASpace algK)) _; exists rr => //.
@@ -2173,10 +2202,10 @@ Definition Cyclotomic n : {poly zint} :=
 Notation "''Phi_' n" := (Cyclotomic n)
   (at level 8, n at level 2, format "''Phi_' n").
 
-Lemma Cyclotomic_monic n : monic 'Phi_n.
+Lemma Cyclotomic_monic n : 'Phi_n \is monic.
 Proof.
 rewrite /'Phi_n; case: (C_prim_root_exists _) => z /= _.
-rewrite /monic lead_coefE coef_map_id0 ?(int_algC_K 0) //.
+rewrite monicE lead_coefE coef_map_id0 ?(int_algC_K 0) //.
 by rewrite size_poly_eq -lead_coefE (monicP (cyclotomic_monic _ _)) (CintrK 1).
 Qed.
 
@@ -2188,7 +2217,7 @@ rewrite /'Phi_n; case: (C_prim_root_exists _) => z /=.
 have n_gt0 := prim_order_gt0 prim_z0; rewrite prednK // => prim_z.
 have [uDn _ inDn] := divisors_correct n_gt0.
 pose q := \prod_(d <- rem n (divisors n)) 'Phi_d.
-have mon_q: monic q by apply: monic_prod => d _; exact: Cyclotomic_monic.
+have mon_q: q \is monic by apply: monic_prod => d _; exact: Cyclotomic_monic.
 have defXn1: cyclotomic z n * pZtoC q = 'X^n - 1.
   rewrite (prod_cyclotomic prim_z) (big_rem n) ?inDn //=.
   rewrite divnn n_gt0 rmorph_prod /=; congr (_ * _).
@@ -2258,7 +2287,7 @@ Lemma minCpoly_cyclotomic n z :
 Proof.
 move=> prim_z; have n_gt0 := prim_order_gt0 prim_z.
 have Dpz := Cintr_Cyclotomic prim_z; set pz := cyclotomic z n in Dpz *.
-have mon_pz: monic pz by exact: cyclotomic_monic.
+have mon_pz: pz \is monic by exact: cyclotomic_monic.
 have pz0: root pz z.
   have [|n_gt1|n1] := ltngtP n 1; first by rewrite ltnNge n_gt0.
     rewrite [pz](bigD1 (Ordinal n_gt1)) ?coprime1n //=.
@@ -2269,21 +2298,21 @@ have [pf [Dpf mon_pf] dv_pf] := minCpolyP z.
 have /dvdpP_rat_int[f [af nz_af Df] [g /esym Dfg]]: pf %| pZtoQ 'Phi_n.
   rewrite -dv_pf; congr (root _ z): pz0; rewrite -Dpz -map_poly_comp.
   by apply: eq_map_poly => b; rewrite /= rmorph_zint.
-without loss{nz_af} [mon_f mon_g]: af f g Df Dfg / monic f /\ monic g.
+without loss{nz_af} [mon_f mon_g]: af f g Df Dfg / f \is monic /\ g \is monic.
   move=> IH; pose cf := lead_coef f; pose cg := lead_coef g.
   have cfg1: cf * cg = 1.
     by rewrite -lead_coefM Dfg (monicP (Cyclotomic_monic n)).
   apply: (IH (af *~ cf) (f *~ cg) (g *~ cf)).
   - by rewrite rmorphMz -scalerMzr scalerMzl -mulrzA cfg1.
   - by rewrite mulrzAl mulrzAr -mulrzA cfg1.
-  by rewrite !(zintz, =^~ scaler_zint) /monic !lead_coefZ mulrC cfg1.
+  by rewrite !(zintz, =^~ scaler_zint) !monicE !lead_coefZ mulrC cfg1.
 have{af Df} Df: pQtoC pf = pZtoC f.
   have:= congr1 lead_coef Df.
   rewrite lead_coefZ lead_coef_map_inj //; last exact: zintr_inj.
   rewrite !(monicP _) // mulr1 Df => <-; rewrite scale1r -map_poly_comp.
   by apply: eq_map_poly => b; rewrite /= rmorph_zint.
 have [/size1_polyC Dg | g_gt1] := leqP (size g) 1.
-  rewrite /monic Dg lead_coefC in mon_g.
+  rewrite monicE Dg lead_coefC in mon_g.
   by rewrite -Dpz -Dfg Dg (eqP mon_g) mulr1 Dpf.
 have [zk gzk0]: exists zk, root (pZtoC g) zk.
   have [rg] := closed_field_poly_normal (pZtoC g).
@@ -2341,23 +2370,23 @@ suffices: coprimep f (g \Po 'X^p).
 apply: contraLR co_fg => /coprimepPn[|d]; first exact: monic_neq0.
 rewrite andbC -size_poly_eq1 dvdp_gcd => /and3P[sz_d].
 pose d1 := unscale_int_poly d.
-have d_dv_mon h: d %| h -> monic h -> exists h1, h = d1 * h1.
+have d_dv_mon h: d %| h -> h \is monic -> exists h1, h = d1 * h1.
   case/ID.dvdpP=> [[c h1] /= nz_c Dh] mon_h; exists (unscale_int_poly h1).
   by rewrite -unscale_int_polyM mulrC -Dh unscale_int_polyZ ?unscale_int_monic.
 case/d_dv_mon=> // f1 Df1 /d_dv_mon[|f2 ->].
-  rewrite /monic lead_coefE size_comp_poly size_polyXn /=.
+  rewrite monicE lead_coefE size_comp_poly size_polyXn /=.
   rewrite comp_polyE coef_sum polySpred ?monic_neq0 //= mulnC.
   rewrite big_ord_recr /= -lead_coefE (monicP mon_g) scale1r.
   rewrite -exprM coefXn eqxx big1 ?add0r // => i _.
   rewrite coefZ -exprM coefXn eqn_pmul2l ?prime_gt0 //.
   by rewrite eqn_leq leqNgt ltn_ord mulr0.
-have monFp h: monic h -> size (map_poly ( *~%R 1) h) = size h.
+have monFp h: h \is monic -> size (map_poly ( *~%R 1) h) = size h.
   by move=> mon_h; rewrite size_poly_eq // -lead_coefE (monicP mon_h) oner_eq0.
 apply/coprimepPn; last exists (map_poly ( *~%R 1) d1).
   by rewrite -size_poly_eq0 monFp // size_poly_eq0 monic_neq0.
 rewrite Df1 !rmorphM dvdp_gcd !dvdp_mulr //= -size_poly_eq1.
 rewrite monFp ?size_unscale_int_poly //.
-rewrite /monic [_ d1]zintEsign (negPf (negz_lead_unscale_int_poly d)).
+rewrite monicE [_ d1]zintEsign (negPf (negz_lead_unscale_int_poly d)).
 have/esym/eqP := congr1 (absz \o lead_coef) Df1.
 by rewrite /= (monicP mon_f) lead_coefM abszM muln_eq1 => /andP[/eqP-> _].
 Qed.
@@ -2372,7 +2401,6 @@ have [-> /eqnP | n_gt0 co_k_n] := posnP n.
 have [z prim_z] := C_prim_root_exists n_gt0.
 have [Qn [QnC [[|zn []] // [Dz]]] genQn] := num_field_exists [:: z].
 pose Q1 := aspace1 Qn; pose phi := kHomExtend Q1 \1%VS zn (zn ^+ k).
-have rpQ1: subringPred Q1 by exact: id.
 have homQn1: kHom Q1 Q1 \1%VS by rewrite kHom1.
 have pzn_zk0: root (map_poly \1%VS (minPoly Q1 zn)) (zn ^+ k).
   rewrite -(fmorph_root QnC) rmorphX Dz -map_poly_comp.
@@ -2428,8 +2456,7 @@ exists Qn, QnC; last first.
     by have /dvdnP[q ->] := x_dv_n; rewrite mulnC exprM enx1 expr1n.
   exists (\sum_i w ^+ k i); rewrite rmorph_sum; apply/eq_bigr => i _.
   by rewrite rmorphX Dz Dk.
-have rpQ1: subringPred (1%:VS : {vspace Qn}) by exact: id.
-have Q_Xn1: ('X^n - 1 : {poly Qn}) \in polyOver 1%:VS.
+have Q_Xn1: ('X^n - 1 : {poly Qn}) \is a polyOver 1%:VS.
   by rewrite rpredB ?rpred1 ?rpredX //= polyOverX.
 have splitXn1: splittingFieldFor 1%:VS ('X^n - 1) (fullv Qn).
   pose r := codom (fun i : 'I_n => w ^+ i).
@@ -2599,7 +2626,7 @@ Qed.
 Definition inIntSpan (V : zmodType) m (s : m.-tuple V) v :=
   exists a : {ffun 'I_m -> zint}, v = \sum_(i < m) s`_i *~ a i.
 
-Lemma dec_intQ_span (V : vectType qnum) m (s : m.-tuple V) v :
+Lemma dec_Qint_span (V : vectType qnum) m (s : m.-tuple V) v :
   {inIntSpan s v} + {~ inIntSpan s v}.
 Proof.
 have s_s (i : 'I_m): s`_i \in span s by rewrite memv_span ?mem_nth ?size_tuple.
@@ -2675,7 +2702,7 @@ rewrite -defS -2!mulmxA; have ->: T *m pinvmx T = 1%:M.
 by move=> i; rewrite mulmx1 -map_mxM 2!mxE denq_zint mxE.
 Qed.
 
-Lemma dec_intC_span (V : vectType algC) m (s : m.-tuple V) v :
+Lemma dec_Cint_span (V : vectType algC) m (s : m.-tuple V) v :
   {inIntSpan s v} + {~ inIntSpan s v}.
 Proof.
 have s_s (i : 'I_m): s`_i \in span s by rewrite memv_span ?mem_nth ?size_tuple.
@@ -2686,11 +2713,11 @@ pose IzT := {: 'I_m * 'I_(\dim (span s))}; pose Iz := 'I_#|IzT|.
 pose b := vbasis (span s).
 pose z_s := [image coord b (tnth s ij.1) ij.2 | ij <- IzT].
 pose rank2 j i: Iz := enum_rank (i, j); pose val21 (p : Iz) := (enum_val p).1.
-pose inQzs w := forallb j, ratC_span z_s (coord b w j).
+pose inQzs w := forallb j, Crat_span z_s (coord b w j).
 have enum_pairK j: {in predT, cancel (rank2 j) val21}.
   by move=> i; rewrite /val21 enum_rankK. 
 have Qz_Zs a: inQzs (\sum_(i < m) s`_i *~ a i).
-  apply/forallP=> j; apply/ratC_spanP; rewrite /in_ratC_span size_map -cardE.
+  apply/forallP=> j; apply/Crat_spanP; rewrite /in_Crat_span size_map -cardE.
   exists [ffun ij => (a (val21 ij))%:Q *+ ((enum_val ij).2 == j)].
   rewrite linear_sum sum_ffunE {1}(reindex_onto _ _ (enum_pairK j)).
   rewrite big_mkcond; apply: eq_bigr => ij _ /=; rewrite nth_image (tnth_nth 0).
@@ -2701,14 +2728,14 @@ case Qz_v: (inQzs v); last by right=> [[a Dv]]; rewrite Dv Qz_Zs in Qz_v.
 have [Qz [QzC [z1s Dz_s _]]] := num_field_exists z_s.
 have sz_z1s: size z1s = #|IzT| by rewrite -(size_map QzC) Dz_s size_map cardE.
 have xv j: {x | coord b v j = QzC x}.
-  apply: sig_eqW; have /ratC_spanP[x ->] := forallP Qz_v j.
+  apply: sig_eqW; have /Crat_spanP[x ->] := forallP Qz_v j.
   exists (\sum_ij x ij *: z1s`_ij); rewrite rmorph_sum.
   apply: eq_bigr => ij _; rewrite mulrAC.
   apply: canLR (mulfK _) _; first by rewrite zintr_eq0 denq_neq0.
   rewrite mulrzr -rmorphMz scalerMzl -(mulrzr (x _)) -numqE scaler_zint.
   by rewrite rmorphMz mulrzl -(nth_map _ 0) ?Dz_s // -(size_map QzC) Dz_s.
 pose sz := [tuple [ffun j => z1s`_(rank2 j i)] | i < m].
-have [Zsv | Zs'v] := dec_intQ_span sz [ffun j => sval (xv j)].
+have [Zsv | Zs'v] := dec_Qint_span sz [ffun j => sval (xv j)].
   left; have{Zsv} [a Dv] := Zsv; exists a.
   transitivity (\sum_j \sum_(i < m) QzC ((sz`_i *~ a i) j) *: b`_j).
     rewrite {1}(coord_basis s_v) -/b; apply: eq_bigr => j _.
@@ -2727,13 +2754,15 @@ apply: eq_bigr => i _; rewrite nth_mktuple raddfMz !ffunMzE rmorphMz ffunE.
 by rewrite -(nth_map _ 0 QzC) ?sz_z1s // Dz_s nth_image enum_rankK -tnth_nth.
 Qed.
 
-Definition intC_span (s : seq algC) : pred algC :=
-  fun x => dec_intC_span (in_tuple [seq \row_(i < 1) y | y <- s]) (\row_i x).
+Definition Cint_span (s : seq algC) : pred algC :=
+  fun x => dec_Cint_span (in_tuple [seq \row_(i < 1) y | y <- s]) (\row_i x).
+Fact Cint_span_key s : pred_key (Cint_span s). Proof. by []. Qed.
+Canonical Cint_span_keyed s := KeyedPred (Cint_span_key s).
 
-Lemma intC_spanP n (s : n.-tuple algC) x :
-  reflect (inIntSpan s x) (x \in intC_span s).
+Lemma Cint_spanP n (s : n.-tuple algC) x :
+  reflect (inIntSpan s x) (x \in Cint_span s).
 Proof.
-rewrite unfold_in; case: (dec_intC_span _ _) => [Zs_x | Zs'x] /=.
+rewrite unfold_in; case: (dec_Cint_span _ _) => [Zs_x | Zs'x] /=.
   left; have{Zs_x} [] := Zs_x; rewrite /= size_map size_tuple => a /rowP/(_ 0).
   rewrite !mxE => ->; exists a; rewrite summxE; apply: eq_bigr => i _.
   by rewrite -scaler_zint (nth_map 0) ?size_tuple // !mxE mulrzl.
@@ -2743,29 +2772,33 @@ apply/rowP=> i0; rewrite !mxE summxE Dx; apply: eq_bigr => i _.
 by rewrite -scaler_zint mxE mulrzl (nth_map 0) ?size_tuple // !mxE.
 Qed.
 
-Lemma mem_intC_span s : {subset s <= intC_span s}.
+Lemma mem_Cint_span s : {subset s <= Cint_span s}.
 Proof.
-move=> _ /(nthP 0)[ix ltxs <-]; apply/(intC_spanP (in_tuple s)).
+move=> _ /(nthP 0)[ix ltxs <-]; apply/(Cint_spanP (in_tuple s)).
 exists [ffun i => i == Ordinal ltxs : zint].
 rewrite (bigD1 (Ordinal ltxs)) //= ffunE eqxx.
 by rewrite big1 ?addr0 // => i; rewrite ffunE => /negbTE->.
 Qed.
 
-Lemma intC_span_addSubgroupPred s : addSubgroupPred (intC_span s).
+Lemma Cint_span_zmod_closed s : zmod_closed (Cint_span s).
 Proof.
-have sP := intC_spanP (in_tuple s).
-apply: SubgroupPredFromSub=> [|_ _ /sP[x ->] /sP[y ->]]; apply/sP.
-  by exists 0; rewrite big1 // => i; rewrite ffunE.
-exists (x - y); rewrite -sumrB; apply: eq_bigr => i _.
+have sP := Cint_spanP (in_tuple s); split=> [|_ _ /sP[x ->] /sP[y ->]].
+  by apply/sP; exists 0; rewrite big1 // => i; rewrite ffunE.
+apply/sP; exists (x - y); rewrite -sumrB; apply: eq_bigr => i _.
 by rewrite !ffunE raddfB.
 Qed.
+Canonical Cint_span_opprPred s := OpprPred (Cint_span_zmod_closed s).
+Canonical Cint_span_addrPred s := AddrPred (Cint_span_zmod_closed s).
+Canonical Cint_span_zmodPred s := ZmodPred (Cint_span_zmod_closed s).
 
 (* Algebraic integers. *)
 
 Definition algInt : pred algC := fun x => all isIntC (minCpoly x).
+Fact algInt_key : pred_key algInt. Proof. by []. Qed.
+Canonical algInt_keyed := KeyedPred algInt_key.
 
 Lemma root_monic_algInt p x :
-  root p x -> monic p -> all isIntC p -> x \in algInt.
+  root p x -> p \is monic -> all isIntC p -> x \in algInt.
 Proof.
 have pZtoQtoC pz: pQtoC (pZtoQ pz) = pZtoC pz.
   by rewrite -map_poly_comp; apply: eq_map_poly => b; rewrite /= rmorph_zint.
@@ -2774,7 +2807,7 @@ move: px0; rewrite Dp -pZtoQtoC; have [q [-> mon_q] ->] := minCpolyP x.
 case/dvdpP_rat_int=> qz [a nz_a Dq] [r].
 move/(congr1 (fun q1 => lead_coef (a *: pZtoQ q1))).
 rewrite rmorphM scalerAl -Dq lead_coefZ lead_coefM /=.
-have /monicP->: monic (pZtoQ pz) by rewrite -(map_monic QtoC_M) pZtoQtoC -Dp.
+have /monicP->: pZtoQ pz \is monic by rewrite -(map_monic QtoC_M) pZtoQtoC -Dp.
 rewrite (monicP mon_q) mul1r mulr1 lead_coef_map_inj //; last exact: zintr_inj.
 rewrite Dq => ->; apply/(all_nthP 0)=> i _; rewrite !(coefZ, coef_map).
 by rewrite -rmorphM /= rmorph_zint isIntC_int.
@@ -2825,7 +2858,7 @@ Proof. by move/isIntC_Nat/algInt_Cint. Qed.
 Lemma algInt_subring_exists (X : seq algC) :
     {subset X <= algInt} ->
   {S : pred algC &
-     (*a*) subringPred S
+     (*a*) subring_closed S
   /\ (*b*) {subset X <= S}
    & (*c*) {Y : {n : nat & n.-tuple algC} &
                 {subset tagged Y <= S}
@@ -2837,9 +2870,8 @@ pose IY := family (fun i => [pred e : 'I_N | e <= n i]%N).
 have IY_0: 0 \in IY by apply/familyP=> // i; rewrite ffunE.
 pose inIY := enum_rank_in IY_0.
 pose Y := [image \prod_(i < m) X`_i ^+ (f : {ffun 'I_m -> 'I_N}) i | f <- IY].
-have S_P := intC_spanP [tuple of Y]; set S := intC_span _ in S_P.
-have Sadd: addSubgroupPred S by exact: intC_span_addSubgroupPred.
-have sYS: {subset Y <= S} by exact: mem_intC_span.
+have S_P := Cint_spanP [tuple of Y]; set S := Cint_span _ in S_P.
+have sYS: {subset Y <= S} by exact: mem_Cint_span.
 have S_1: 1 \in S.
   by apply/sYS/imageP; exists 0 => //; rewrite big1 // => i; rewrite ffunE.
 have SmulX (i : 'I_m): {in S, forall x, x * X`_i \in S}.
@@ -2870,7 +2902,7 @@ have SmulX (i : 'I_m): {in S, forall x, x * X`_i \in S}.
 exists S; last by exists (Tagged (fun n => n.-tuple _) [tuple of Y]).
 split=> [|x Xx]; last first.
   by rewrite -[x]mul1r -(nth_index 0 Xx) (SmulX (Ordinal _)) // ltnS index_size.
-apply: SubringPredFromSub=> // x y Sx Sy; first by rewrite rpredB.
+split=> // x y Sx Sy; first by rewrite rpredB.
 case/S_P: Sy => {y}[y ->]; rewrite mulr_sumr rpred_sum //= => j.
 rewrite mulrzAr rpredMz {y}// nth_image; move: {j}(enum_val j) => f.
 elim/big_rec: _ => [|i y _ IHy] in x Sx *; first by rewrite mulr1.
@@ -2879,28 +2911,34 @@ elim: {f}(f i : nat) => [|e IHe] in x Sx *; first by rewrite mulr1.
 by rewrite exprS mulrA IHe // SmulX.
 Qed.
 
+Section AlgIntSubring.
+
+Import DefaultKeying GRing.DefaultPred.
+
 (* This is Isaacs, Theorem (3.4). *)
 Theorem fin_Csubring_algInt S n (Y : n.-tuple algC) :
-    subringPred S -> (forall x, reflect (inIntSpan Y x) (x \in S)) ->
+     mulr_closed S -> (forall x, reflect (inIntSpan Y x) (x \in S)) ->
   {subset S <= algInt}.
 Proof.
-pose ZP := [pred p : {poly algC} | all isIntC p].
+pose ZP : pred {poly algC} := fun p => all isIntC p.
 have allcP (p : {poly algC}): reflect (forall i, isIntC p`_i) (p \in ZP).
   apply: (iffP (all_nthP 0)) => // IH i; have [/IH//|p_le_n] := ltnP i (size p).
   by rewrite nth_default ?isIntC_0.
-have ZP_1: 1 \in ZP by rewrite inE /= polyseq1 /= isIntC_1.
-have ZP_X: 'X \in ZP by rewrite inE /= polyseqX /= isIntC_1 isIntC_0.
-have ringZP: subringPred ZP.
-  apply: SubringPredFromSub => // p q /allcP Zp /allcP Zq; apply/allcP=> i.
+have ZP_1: 1 \in ZP by rewrite unfold_in polyseq1 /= isIntC_1.
+have ZP_X: 'X \in ZP by rewrite unfold_in polyseqX /= isIntC_1 isIntC_0.
+have ringZP: subring_closed ZP.
+  split=> // p q /allcP Zp /allcP Zq; apply/allcP=> i.
     by rewrite coefB isIntC_sub ?Zp ?Zq.
   by rewrite coefM isIntC_sum // => j _; rewrite isIntC_mul ?Zp ?Zq.
+have [oppZP addZP] := (ringZP : oppr_closed ZP, ringZP : addr_closed ZP).
+have mulZP : mulr_closed ZP := ringZP.
 have ZP_C c: (ZtoC c)%:P \in ZP by rewrite raddfMz rpred_int.
-move=> ringS S_P x Sx; pose v := \row_(i < n) Y`_i.
+move=> mulS S_P x Sx; pose v := \row_(i < n) Y`_i.
 have [v0 | nz_v] := eqVneq v 0.
   case/S_P: Sx => {x}x ->; rewrite big1 ?isAlgInt0 // => i _.
   by have /rowP/(_ i) := v0; rewrite !mxE => ->; rewrite mul0rz.
 have sYS (i : 'I_n): x * Y`_i \in S.
-  by rewrite rpredM //; apply/S_P/intC_spanP/mem_intC_span/memt_nth.
+  by rewrite rpredM //; apply/S_P/Cint_spanP/mem_Cint_span/memt_nth.
 pose A := \matrix_(i, j < n) sval (sig_eqW (S_P _ (sYS j))) i.
 pose p := char_poly (map_mx ZtoC A).
 have: p \in ZP.
@@ -2913,17 +2951,25 @@ by rewrite !mxE DxY; apply: eq_bigr => i _; rewrite !mxE dAj /= mulrzr.
 Qed.
 
 (* This is Isaacs, Corollary (3.5). *)
-Corollary algInt_subring : subringPred algInt.
+Corollary algInt_subring : subring_closed algInt.
 Proof.
 suff rAZ: {in algInt &, forall x y, (x - y \in algInt) * (x * y \in algInt)}.
-  by apply: SubringPredFromSub => // x y AZx AZy; rewrite rAZ.
+  by split=> // x y AZx AZy; rewrite rAZ.
 move=> x y AZx AZy.
 have [|S [ringS] ] := @algInt_subring_exists [:: x; y]; first exact/allP/and3P.
 move=> /allP/and3P[Sx Sy _] [Y _ genYS].
 have AZ_S := fin_Csubring_algInt ringS genYS.
-by rewrite !AZ_S ?rpredB ?rpredM.
+by have [_ S_B S_M] := ringS; rewrite !AZ_S ?S_B ?S_M.
 Qed.
-Global Existing Instance algInt_subring.
+Canonical algInt_opprPred := OpprPred algInt_subring.
+Canonical algInt_addrPred := AddrPred algInt_subring.
+Canonical algInt_mulrPred := MulrPred algInt_subring.
+Canonical algInt_zmodPred := ZmodPred algInt_subring.
+Canonical algInt_semiringPred := SemiringPred algInt_subring.
+Canonical algInt_smulrPred := SmulrPred algInt_subring.
+Canonical algInt_subringPred := SubringPred algInt_subring.
+
+End AlgIntSubring.
 
 (* At last, some character theory. *)
 
@@ -3086,16 +3132,15 @@ Lemma gring_mode_class_sum_algInt k : 'omega_i['K_k] \in algInt.
 Proof.
 move: k; pose X := [tuple 'omega_i['K_k] | k < #|classes G| ].
 have memX k: 'omega_i['K_k] \in X by apply: map_f; exact: mem_enum.
-have S_P := intC_spanP X; set S := intC_span X in S_P.
-have Sadd: addSubgroupPred S by exact: intC_span_addSubgroupPred.
-have S_X: {subset X <= S} by exact: mem_intC_span.
+have S_P := Cint_spanP X; set S := Cint_span X in S_P.
+have S_X: {subset X <= S} by exact: mem_Cint_span.
 have S_1: 1 \in S.
   apply: S_X; apply/imageP; exists (enum_rank_in (classes1 G) 1%g) => //.
   rewrite (@gring_mode_class_sum_eq _ 1%g) ?enum_rankK_in ?classes1 //.
   by rewrite mulfK ?irr1_neq0 // class1G cards1.
-suffices Sring: subringPred S.
+suffices Smul: mulr_closed S.
   by move=> k; apply: fin_Csubring_algInt S_P _ _; rewrite ?S_X.
-do 2![split=> //] => _ _ /S_P[x ->] /S_P[y ->].
+split=> // _ _ /S_P[x ->] /S_P[y ->].
 rewrite mulr_sumr rpred_sum // => j _.
 rewrite mulrzAr mulr_suml rpredMz ?rpred_sum // => k _.
 rewrite mulrzAl rpredMz {x y}// !nth_mktuple.

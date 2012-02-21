@@ -288,23 +288,23 @@ Module zintUnitRing.
 Section zintUnitRing.
 Implicit Types m n : zint.
 
-Definition unitz := [pred n : zint | (n == 1) || (n == -1)].
+Definition unitz := [qualify a n : zint | (n == 1) || (n == -1)].
 Definition invz n : zint := n.
 
 Lemma mulVz : {in unitz, left_inverse 1%R invz *%R}.
-Proof. by move=> n; rewrite !inE; case/orP; move/eqP->. Qed.
+Proof. by move=> n /pred2P[] ->. Qed.
 
 Lemma mulzn_eq1 m (n : nat) : (m * n == 1) = (m == 1) && (n == 1%N).
 Proof. by case: m=> m /=; [rewrite -PoszM [_==_]muln_eq1 | case: n]. Qed.
 
-Lemma unitzPl m n : n * m = 1 -> unitz m.
+Lemma unitzPl m n : n * m = 1 -> m \is a unitz.
 Proof.
-case: m=> m; move/eqP; rewrite !inE //=.
+case: m => m; move/eqP; rewrite unfold_in /=.
 * by rewrite mulzn_eq1; case/andP=> _; move/eqP->.
 * by rewrite NegzE zintS mulrN -mulNr mulzn_eq1; case/andP=> _.
 Qed.
 
-Lemma  invz_out : {in predC unitz, invz =1 id}.
+Lemma  invz_out : {in [predC unitz], invz =1 id}.
 Proof. exact. Qed.
 
 Lemma idomain_axiomz m n : m * n = 0 -> (m == 0) || (n == 0).
@@ -955,16 +955,16 @@ rewrite /GRing.comm; elim: n x y=> [|n ihn|n ihn] x y com_xy //=.
 * by rewrite expr0z mul1r mulr1.
 * by rewrite -exprnP commrX //.
 rewrite -exprz_inv -exprnP commrX //.
-case: (boolP (GRing.unit y))=> uy; last by rewrite invr_out.
+case: (boolP (y \is a GRing.unit))=> uy; last by rewrite invr_out.
 by apply/eqP; rewrite (can2_eq (mulrVK _) (mulrK _)) // -mulrA com_xy mulKr.
 Qed.
 
-Lemma exprMz_comm x y n : x \in GRing.unit -> y \in GRing.unit ->
+Lemma exprMz_comm x y n : x \is a GRing.unit -> y \is a GRing.unit ->
   GRing.comm x y -> (x * y) ^ n = x ^ n * y ^ n.
 Proof.
 move=> ux uy com_xy; elim: n => [|n _|n _]; first by rewrite expr0z mulr1.
   by rewrite -!exprnP exprMn_comm.
-rewrite -!exprnN -!exprVn com_xy -exprMn_comm ?invr_mul//.
+rewrite -!exprnN -!exprVn com_xy -exprMn_comm ?invrM//.
 exact/commrV/commr_sym/commrV.
 Qed.
 
@@ -975,23 +975,23 @@ move=> n0 com_xy; elim: n n0 => [|n _|n _] //; first by rewrite expr0z mulr1.
 by rewrite -!exprnP exprMn_comm.
 Qed.
 
-Lemma unitrXz x n (ux : x \in GRing.unit) : x ^ n \in GRing.unit.
+Lemma unitrXz x n (ux : x \is a GRing.unit) : x ^ n \is a GRing.unit.
 Proof.
 case: (zintP n)=> {n} [|n|n]; rewrite ?expr0z ?unitr1 ?unitrX //.
 by rewrite -invr_expz unitrV unitrX.
 Qed.
 
-Lemma exprzDr x (ux : x \in GRing.unit) m n : x ^ (m + n) = x ^ m * x ^ n.
+Lemma exprzDr x (ux : x \is a GRing.unit) m n : x ^ (m + n) = x ^ m * x ^ n.
 Proof.
 move: n m; apply: wlog_ler=> n m hnm.
   by rewrite addrC hnm commrXz //; apply: commr_sym; apply: commrXz.
 case: (zintP m) hnm=> {m} [|m|m]; rewrite ?mul1r ?add0r //;
  case: (zintP n)=> {n} [|n|n _]; rewrite ?mulr1 ?addr0 //;
    do ?by rewrite exprzD_ss.
-rewrite -invr_expz subzSS !exprSzr invr_mul ?unitrX // -mulrA mulVKr //.
+rewrite -invr_expz subzSS !exprSzr invrM ?unitrX // -mulrA mulVKr //.
 case: (leqP n m)=> [|/ltnW] hmn; rewrite -{2}(subnK hmn) exprzD_nat -subzn //.
   by rewrite mulrK ?unitrX.
-by rewrite invr_mul ?unitrXz // mulVKr ?unitrXz // -opprB -invr_expz.
+by rewrite invrM ?unitrXz // mulVKr ?unitrXz // -opprB -invr_expz.
 Qed.
 
 Lemma exprz_exp x m n : (x ^ m) ^ n = (x ^ (m * n)).
@@ -1006,7 +1006,7 @@ Qed.
 Lemma exprzAC x m n : (x ^ m) ^ n = (x ^ n) ^ m.
 Proof. by rewrite !exprz_exp mulrC. Qed.
 
-Lemma exprz_out x n (nux : x \notin GRing.unit) (hn : 0 <= n) :
+Lemma exprz_out x n (nux : x \isn't a GRing.unit) (hn : 0 <= n) :
   x ^ (- n) = x ^ n.
 Proof. by case: (zintP n) hn=> //= m; rewrite -exprnN -exprVn invr_out. Qed.
 
@@ -1026,7 +1026,7 @@ Qed.
 Lemma exprz_pzintl m n (hn : 0 <= n) : m%:~R ^ n = (m ^ n)%:~R :> R.
 Proof. by rewrite exprz_pmulzl // exp1rz. Qed.
 
-Lemma exprzMzl x m n (ux : x \in GRing.unit) (um : m%:~R \in @GRing.unit R) :
+Lemma exprzMzl x m n (ux : x \is a GRing.unit) (um : m%:~R \is a @GRing.unit R):
    (x *~ m) ^ n = (m%:~R ^ n) * x ^ n :> R.
 Proof.
 rewrite -[x *~ _]mulrzl exprMz_comm //.
@@ -1039,7 +1039,8 @@ case: n=> [] n; rewrite ?NegzE; first by apply: exprNn.
 by rewrite -!exprz_inv !invrN invr1; apply: exprNn.
 Qed.
 
-Lemma unitr_n0expz x n : n != 0 -> (x ^ n \in  GRing.unit) = (x \in GRing.unit).
+Lemma unitr_n0expz x n :
+  n != 0 -> (x ^ n \is a GRing.unit) = (x \is a GRing.unit).
 Proof.
 by case: n => *; rewrite ?NegzE -?exprz_inv ?unitrX_pos ?unitrV ?lt0n.
 Qed.
@@ -1066,7 +1067,7 @@ Qed.
 Lemma expfz_neq0 x n : x != 0 -> x ^ n != 0.
 Proof. by move=> x_nz; rewrite expfz_eq0; apply/nandP; right. Qed.
 
-Lemma exprzMl x y n (ux : x \in GRing.unit) (uy : y \in GRing.unit) :
+Lemma exprzMl x y n (ux : x \is a GRing.unit) (uy : y \is a GRing.unit) :
   (x * y) ^ n = x ^ n * y ^ n.
 Proof. by rewrite exprMz_comm //; apply: mulrC. Qed.
 

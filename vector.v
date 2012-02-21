@@ -278,6 +278,8 @@ Local Notation "v %:VS" := (injv v) : ring_scope.
 (* This injection allows us to define a notion of membership *)
 Coercion pred_of_vspace (U : vspace) : pred_class := fun v => (v%:VS <= U)%VS.
 Canonical vspace_predType := @mkPredType _ (unkeyed vspace) pred_of_vspace.
+Fact vspace_key (U : {vspace V}) : pred_key U. Proof. by []. Qed.
+Canonical vspace_keyed U := KeyedPred (vspace_key U).
 
 Lemma vs2mx0 : vs2mx 0%:VS = 0.
 Proof. by rewrite /injv linear0 /= genmx0. Qed.
@@ -332,11 +334,12 @@ Proof. by move/memvNr; rewrite opprK. Qed.
 Lemma memv_sub vs v1 v2 : v1 \in vs -> v2 \in vs -> v1 - v2 \in vs.
 Proof. by move=> Hv1 Hv2; rewrite memvD // memvNr. Qed.
 
-Global Instance vspace_addSubgroupPred (U : {vspace V}) : addSubgroupPred U.
-Proof. by apply: SubgroupPredFromSub; [exact: mem0v | exact: memv_sub]. Qed.
-
-Global Instance vspace_unscaledPred (U : {vspace V}) : unscaledPred U.
-Proof. by split; exact: memvZl. Qed.
+Fact memv_submod_closed (U : {vspace V}) : submod_closed U.
+Proof. by split=> [|a u v Uu Uv]; rewrite ?mem0v ?memvD ?memvZl. Qed.
+Canonical memv_opprPred U := OpprPred (memv_submod_closed U).
+Canonical memv_addrPred U := AddrPred (memv_submod_closed U).
+Canonical memv_zmodPred U := ZmodPred (memv_submod_closed U).
+Canonical memv_submodPred U := SubmodPred (memv_submod_closed U).
 
 Lemma memvDl vs v1 v2 : v1 \in vs -> (v1 + v2 \in vs) = (v2 \in vs).
 Proof. exact: rpredDl. Qed.

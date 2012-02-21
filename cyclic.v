@@ -643,7 +643,7 @@ have [lea1 | lt1a] := leqP #[a] 1.
 rewrite -(card_injm (injm_invm (injm_Zpm a))) /= ?im_Zpm; last first.
   by apply/subsetP=> x; rewrite inE; exact: cycle_generator.
 rewrite -card_units_Zp // cardsE card_sub morphim_invmE; apply: eq_card => /= d.
-by rewrite !inE /= /Zp lt1a inE /= generator_coprime unfold_in {1}Zp_cast.
+by rewrite !inE /= unfold_in /= /Zp lt1a inE /= generator_coprime {1}Zp_cast.
 Qed.
 
 Lemma Aut_cycle_abelian : abelian (Aut <[a]>).

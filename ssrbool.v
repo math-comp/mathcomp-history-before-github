@@ -74,6 +74,13 @@ Require Import ssreflect ssrfun.
 (*             simpl_rel T == type of simplifying relations.                  *)
 (*                predType == the generic predicate interface, supported for  *)
 (*                            for lists and sets.                             *)
+(*              pred_class == a coercion class for the predType projection to *)
+(*                            pred; declaring a coercion to pred_class is an  *)
+(*                            alternative way of equipping a type with a      *)
+(*                            predType structure, which interoperates better  *)
+(*                            with coercion subtyping. This is used, e.g.,    *)
+(*                            for finite sets, so that finite groups inherit  *)
+(*                            the membership operation by coercing to sets.   *)
 (* If P is a predicate the proposition "x satisfies P" can be written         *)
 (* applicatively as (P x), or using an explicit connective as (x \in P); in   *)
 (* the latter case we say that P is a "collective" predicate. We use A, B     *)
@@ -139,7 +146,43 @@ Require Import ssreflect ssrfun.
 (*     pred T, which makes it especially useful for ambivalent predicates     *)
 (*     as the relational transitive closure connect, that are used in both    *)
 (*     applicative and collective styles.                                     *)
-(* Some properties of predicates and relations:                               *)
+(* Purely for aesthetics, we provide two subtypes of collecttive predictes    *)
+(*   qualifier n T == a pred T pretty-printing wrapper. An A : qualifier n T  *)
+(*                    coerces to pred_class and thus behaves as a collective  *)
+(*                    predicate, but x \in A and x \notin A are displayed as: *)
+(*             x \is A and x \isn't A when n = 0,                             *)
+(*         x \is a A and x \isn't a A when n = 1,                             *)
+(*       x \is an A and x \isn't an A when n = 2, respectively.               *)
+(*   [qualify x | P] := Qualifier 0 (fun x => P), constructors for the above. *)
+(* [qualify x : T | P], [qualify a x | P], [qualify an X | P], etc.           *)
+(*                  variants of the above with type constraints and different *)
+(*                  syntax options.                                           *)
+(* We provide an internal interface to support attaching properties (such as  *)
+(* being multiplicative) to predicates:                                       *)
+(*    pred_key p == phantom type that will serve as a support for properties  *)
+(*                  to be attached to p : pred_class; instances should be     *)
+(*                  created with Fact/Qed so as to be opaque.                 *)
+(* KeyedPred k_p == an instance of the interface structure that attaches      *)
+(*                  (k_p : pred_key P) to P; the structure projection is a    *)
+(*                  coercion to pred_class.                                   *)
+(* KeyedQualifier k_q == an instance of the interface structure that attaches *)
+(*                  (k_q : pred_key q) to (q : qualifier n T).                *)
+(* DefaultPredKey p == a default value for pred_key p; the vernacular command *)
+(*                  Import DefaultPredKeying attaches this key to all         *)
+(*                  predicates that are not explicitly keyed.                 *)
+(* Keys can be used to attach properties to predicates, qualifiers and        *)
+(* generic nouns in a way that allows them to be used tranparently. The key   *)
+(* projection of a predicate property structure such as unsignedPred should   *)
+(* be a pred_key, not a pred, and corresponding lemmas will have the form     *)
+(*    Lemma rpredN R S (oppS : @opprPred R S) (kS : keyed_pred oppS) :        *)
+(*       {mono -%R: x / x \in kS}.                                            *)
+(* Because x \in kS will be displayed as x \in S (or x \is S, etc), the       *)
+(* canonical instance of opprPred will not normally be exposed (it will also  *)
+(* be erased by /= simplification). In addition each predicate structure      *)
+(* should have a DefaultPredKey Canonical instance that simply issues the     *)
+(* property as a proof obligation (which can be caught by the Prop-irrelevant *)
+(* feature of the ssreflect plugin).                                          *)
+(*   Some properties of predicates and relations:                             *)
 (*                  A =i B <-> A and B are extensionally equivalent.          *)
 (*         {subset A <= B} <-> A is a (collective) subpredicate of B.         *)
 (*             subpred P Q <-> P is an (applicative) subpredicate or Q.       *)
@@ -200,9 +243,12 @@ Unset Printing Implicit Defensive.
 Reserved Notation "~~ b" (at level 35, right associativity).
 Reserved Notation "b ==> c" (at level 55, right associativity).
 Reserved Notation "b1  (+)  b2" (at level 50, left associativity).
-Reserved Notation "x \in A" (at level 70, no associativity).
-Reserved Notation "x \notin A" (at level 70, no associativity).
-Reserved Notation "p1 =i p2" (at level 70, no associativity).
+Reserved Notation "x \in A"
+  (at level 70, format "'[hv' x '/ '  \in  A ']'", no associativity).
+Reserved Notation "x \notin A"
+  (at level 70, format "'[hv' x '/ '  \notin  A ']'", no associativity).
+Reserved Notation "p1 =i p2"
+  (at level 70, format "'[hv' p1 '/ '  =i  p2 ']'", no associativity).
 
 (* We introduce a number of n-ary "list-style" notations that share a common  *)
 (* format, namely                                                             *)
@@ -249,7 +295,6 @@ Reserved Notation "[ ==> b1 , b2 , .. , bn => c ]" (at level 0, format
   "'[hv' [ ==> '['  b1 , '/'  b2 , '/'  .. , '/'  bn ']' '/'  =>  c ] ']'").
 
 Reserved Notation "[ 'pred' : T => E ]" (at level 0, format
-
   "'[hv' [ 'pred' :  T  => '/ '  E ] ']'").
 Reserved Notation "[ 'pred' x => E ]" (at level 0, x at level 8, format
   "'[hv' [ 'pred'  x  => '/ '  E ] ']'").
@@ -1200,6 +1245,86 @@ Lemma mem_mem (pp : pT) : (mem (mem pp) = mem pp) * (mem [mem pp] = mem pp).
 Proof. by rewrite -mem_topred. Qed.
 
 End simpl_mem.
+
+(* Qualifiers and keyed predicates. *)
+
+CoInductive qualifier (q : nat) T := Qualifier of predPredType T.
+
+Coercion has_quality n T (q : qualifier n T) : pred_class :=
+  fun x => let: Qualifier p := q in p x.
+Implicit Arguments has_quality [T].
+
+Notation "x \is A" := (x \in has_quality 0 A) 
+  (at level 70, no associativity,
+   format "'[hv' x '/ '  \is  A ']'") : bool_scope.
+Notation "x \is 'a' A" := (x \in has_quality 1 A) 
+  (at level 70, no associativity,
+   format "'[hv' x '/ '  \is  'a'  A ']'") : bool_scope.
+Notation "x \is 'an' A" := (x \in has_quality 2 A) 
+  (at level 70, no associativity,
+   format "'[hv' x '/ ' \is  'an'  A ']'") : bool_scope.
+Notation "x \isn't A" := (x \notin has_quality 0 A) 
+  (at level 70, no associativity,
+   format "'[hv' x '/ '  \isn't  A ']'") : bool_scope.
+Notation "x \isn't 'a' A" := (x \notin has_quality 1 A) 
+  (at level 70, no associativity,
+   format "'[hv' x '/ '  \isn't  'a'  A ']'") : bool_scope.
+Notation "x \isn't 'an' A" := (x \notin has_quality 2 A) 
+  (at level 70, no associativity,
+   format "'[hv' x '/ ' \isn't  'an'  A ']'") : bool_scope.
+Notation "[ 'qualify' x | P ]" := (Qualifier 0 (fun x => P))
+  (at level 0, x at level 99,
+   format "'[hv' [  'qualify'  x  | '/ '  P ] ']'") : form_scope.
+Notation "[ 'qualify' x : T | P ]" := (Qualifier 0 (fun x : T => P))
+  (at level 0, x at level 99, only parsing) : form_scope.
+Notation "[ 'qualify' 'a' x | P ]" := (Qualifier 1 (fun x => P))
+  (at level 0, x at level 99,
+   format "'[hv' [ 'qualify'  'a'  x  | '/ '  P ] ']'") : form_scope.
+Notation "[ 'qualify' 'a' x : T | P ]" := (Qualifier 1 (fun x : T => P))
+  (at level 0, x at level 99, only parsing) : form_scope.
+Notation "[ 'qualify' 'an' x | P ]" := (Qualifier 2 (fun x => P))
+  (at level 0, x at level 99,
+   format "'[hv' [ 'qualify'  'an'  x  | '/ '  P ] ']'") : form_scope.
+Notation "[ 'qualify' 'an' x : T | P ]" := (Qualifier 2 (fun x : T => P))
+  (at level 0, x at level 99, only parsing) : form_scope.
+
+CoInductive pred_key T (p : predPredType T) := DefaultPredKey.
+Structure keyed_pred T p (k_p : @pred_key T p) :=
+  PackKeyedPred {unkey_pred :> pred_class; _ : unkey_pred = p}.
+Lemma keyed_predE T p k_p (kk_p : @keyed_pred T p k_p) : kk_p = p :> pred_class.
+Proof. by case: kk_p. Qed.
+Definition KeyedPred T p (k_p : @pred_key T p) := PackKeyedPred k_p (erefl p).
+Notation "x \i 'n' S" := (x \in @unkey_pred _ S _ _)
+  (at level 70, format "'[hv' x '/ '  \i 'n'  S ']'") : bool_scope.
+
+Section KeyedQualifier.
+
+Variables (T : Type) (n : nat) (q : qualifier n T).
+
+Structure keyed_qualifier (k_q : pred_key q) :=
+  PackKeyedQualifier {unkey_qualifier; _ : unkey_qualifier = q}.
+Definition KeyedQualifier k_q := PackKeyedQualifier k_q (erefl q).
+Variables (k_q : pred_key q) (k_qq : keyed_qualifier k_q).
+Fact keyed_qualifier_suproof : unkey_qualifier k_qq = q :> pred_class.
+Proof. by case: k_qq => /= _ ->. Qed.
+Canonical keyed_qualifier_keyed := PackKeyedPred k_q keyed_qualifier_suproof.
+
+End KeyedQualifier.
+
+Notation "x \i 's' A" := (x \i n has_quality 0 A) 
+  (at level 70, format "'[hv' x '/ '  \i 's'  A ']'") : bool_scope.
+Notation "x \i 's' 'a' A" := (x \i n has_quality 1 A) 
+  (at level 70, format "'[hv' x '/ '  \i 's'  'a'  A ']'") : bool_scope.
+Notation "x \i 's' 'an' A" := (x \i n has_quality 2 A) 
+  (at level 70, format "'[hv' x '/ '  \i 's'  'an'  A ']'") : bool_scope.
+
+Module DefaultKeying.
+
+Canonical default_keyed_pred T p := KeyedPred (@DefaultPredKey T p).
+Canonical default_keyed_qualifier T n (q : qualifier n T) :=
+  KeyedQualifier (DefaultPredKey q).
+
+End DefaultKeying.
 
 Section RelationProperties.
 

@@ -257,11 +257,11 @@ Let p' := if ((p != 0) && (root (p ^ iota) z))
           then  (lead_coef p)^-1 *: p
           else 'X.
 
-Let p'_mon : monic p'.
+Let p'_mon : p' \is monic.
 Proof.
-rewrite /p' fun_if monicX.
+rewrite (fun_if (fun p => p \in _)) monicX.
 case: ifP => // /andP [Hp0 _].
-rewrite /monic /p' /lead_coef coefZ.
+rewrite monicE /p' /lead_coef coefZ.
 by rewrite size_scale ?mulVf ?invr_neq0 // -/(lead_coef p) lead_coef_eq0.
 Qed.
 
@@ -624,20 +624,18 @@ Proof. move=> u v; apply: val_inj; exact: mulrC. Qed.
 Canonical Structure suba_comRingType :=
   Eval hnf in ComRingType (suba_of K) suba_mul_com.
 
-Global Instance aspace_subringPred : subringPred K.
-Proof.
-split; first exact: vspace_addSubgroupPred.
-by split; [exact: mem1v | exact: memv_mul].
-Defined.
+Fact aspace_mulr_closed : mulr_closed K.
+Proof. by split; [exact: mem1v | exact: memv_mul]. Qed.
+Canonical aspace_mulrPred := MulrPred aspace_mulr_closed.
+Canonical aspace_smulrPred := SmulrPred aspace_mulr_closed.
+Canonical aspace_semiringPred := SemiringPred aspace_mulr_closed.
+Canonical aspace_subringPred := SubringPred aspace_mulr_closed.
 
 Lemma polyOver_suba (p : {poly L}) :
   reflect (exists q : {poly (suba_of K)}, p = map_poly (@sa_val _ _ K) q)
-          (p \in polyOver K).
+          (p \is a polyOver K).
 Proof.
-(* apply: (iffP polyOverP)) => [Hp | [q ->] i]; last first. *)
-(* :BUG: v8.4 it never stops and takes all my 5GB of memory *)
-apply: (iffP (@polyOverP _ K _ _)) => [Hp | [q ->] i]; last first.
-  by rewrite coef_map // subaP.
+apply: (iffP polyOverP) => [Hp | [q ->] i]; last by rewrite coef_map // subaP.
 exists (\poly_(i < size p) (Suba (Hp i))).
 rewrite -{1}[p]coefK.
 apply/polyP => i.
@@ -758,7 +756,7 @@ rewrite prodv0 memv0 => /eqP ->.
 by rewrite mulr0.
 Qed.
 
-Lemma poly_for_polyOver v : poly_for_Fadjoin v \in polyOver K.
+Lemma poly_for_polyOver v : poly_for_Fadjoin v \is a polyOver K.
 Proof.
 apply/(all_nthP 0) => i _ /=.
 rewrite /poly_for_Fadjoin coef_sum memv_suml // => j _.
@@ -786,8 +784,9 @@ by rewrite !hornerE hornerXn -memv_prodv_inj_coef // memv_sum_pi.
 Qed.
 
 Lemma poly_Fadjoin_small v :
- reflect (exists p, [/\ p \in polyOver K, size p <= elementDegree & v = p.[x]])
-         (v \in Fadjoin).
+  reflect (exists p,
+            [/\ p \is a polyOver K, size p <= elementDegree & v = p.[x]])
+          (v \in Fadjoin).
 Proof.
 apply: (iffP idP) => [Hp|[p [/(all_nthP 0)/= pK sizep vp]]].
   exists (poly_for_Fadjoin v).
@@ -813,9 +812,9 @@ Proof.
 by rewrite /minPoly size_addl ?size_polyXn // size_opp ltnS size_poly_for.
 Qed.
 
-Lemma monic_minPoly : monic minPoly.
+Lemma monic_minPoly : minPoly \is monic.
 Proof.
-rewrite /monic /lead_coef size_minPoly coefB coefXn eq_refl.
+rewrite monicE /lead_coef size_minPoly coefB coefXn eq_refl.
 by rewrite nth_default ?subr0 // size_poly_for.
 Qed.
 
@@ -887,14 +886,13 @@ rewrite -addn1 mulnC -[(2 * _)%N]/(\dim K + (\dim K + 0))%N leq_add2l addn0.
 by rewrite -(dimv1 L) dimvS // sub1v.
 Qed.
 
-Lemma minPolyOver : minPoly K x \in polyOver K.
+Lemma minPolyOver : minPoly K x \is a polyOver K.
 Proof. by rewrite /minPoly rpredB ?rpredX ?polyOverX ?poly_for_polyOver. Qed.
 
 (* This lemma could be generalized if I instead defined elementDegree 0 x = 0 *)
-Lemma poly_Fadjoin_small_uniq : forall p q,
-    p \in polyOver K -> q \in polyOver K ->
+Lemma poly_Fadjoin_small_uniq : {in polyOver K &, forall p q : {poly L}, 
     size p <= elementDegree K x -> size q <= elementDegree K x ->
-  p.[x] = q.[x] -> p = q.
+  p.[x] = q.[x] -> p = q}.
 Proof.
 case (eqVneq x 0).
   move/eqP; rewrite -memv0 => x0.

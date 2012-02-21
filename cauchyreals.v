@@ -35,8 +35,8 @@ Section poly_extra.
 Local Open Scope ring_scope.
 
 Lemma monic_monic_from_neq0  (F : fieldType) (p : {poly F}) :
-  (p != 0)%B -> monic ((lead_coef p) ^-1 *: p).
-Proof. by move=> ?; rewrite /monic lead_coefZ mulVf ?lead_coef_eq0. Qed.
+  (p != 0)%B -> (lead_coef p) ^-1 *: p \is monic.
+Proof. by move=> ?; rewrite monicE lead_coefZ mulVf ?lead_coef_eq0. Qed.
 
 Lemma size_derivn (R : oIdomainType) (p : {poly R}) n :
   size p^`(n) = (size p - n)%N.
@@ -68,9 +68,9 @@ Lemma bezout_eq1_coprimepP (p q : {poly F}) :
          (coprimep p q).
 Proof. exact: bezout_eq1_coprimepP. Qed.
 
-Lemma monic_eqp (p q : {poly F}) : monic p -> monic q -> p %= q = (p == q)%B.
+Lemma monic_eqp : {in monic &, forall p q : {poly F}, (p %= q) = (p == q)%B}.
 Proof.
-move=> monic_p monic_q; apply/idP/eqP; last by move->; rewrite eqpxx.
+move=> p q monic_p monic_q; apply/idP/eqP; last by move->; rewrite eqpxx.
 move=> /eqpP [[a b]] /andP [a_neq0 b_neq0 hpq]; move: (hpq).
 suff -> : a = b by rewrite -!mul_polyC=> /mulfI-> //; rewrite polyC_eq0.
 move: hpq=> /(f_equal lead_coef).
@@ -1559,9 +1559,9 @@ by close.
 Qed.
 
 Lemma smaller_factor (p q : {poly F}) x :
-  monic p -> p.[x] == 0 ->
+  p \is monic-> p.[x] == 0 ->
   ~~(p %| q) -> ~~ coprimep p q ->
-  {r : {poly F} | (size r < size p)%N && (monic r) & r.[x] == 0}.
+  {r : {poly F} | (size r < size p)%N && (r \is monic) & r.[x] == 0}.
 Proof.
 move=> monic_p px0 ndvd_pq.
 rewrite /coprimep; set d := gcdp _ _=> sd_neq1.
@@ -1569,11 +1569,11 @@ pose r1 : {poly F} := (lead_coef d)^-1 *: d.
 pose r2 := p %/ r1.
 have ld_neq0 : lead_coef d != 0 :> F.
   by rewrite lead_coef_eq0 gcdp_eq0 negb_and monic_neq0.
-have monic_r1 : monic r1.
-  by rewrite /monic /r1 -mul_polyC lead_coefM lead_coefC mulVf.
+have monic_r1 : r1 \is monic.
+  by rewrite monicE /r1 -mul_polyC lead_coefM lead_coefC mulVf.
 have eq_p_r2r1: p = r2 * r1.
   by rewrite divpK // (@eqp_dvdl _ d) ?dvdp_gcdl // eqp_scale ?invr_eq0.
-have monic_r2 : monic r2 by rewrite -(monicMr _ monic_r1) -eq_p_r2r1.
+have monic_r2 : r2 \is monic by rewrite -(monicMr _ monic_r1) -eq_p_r2r1.
 have eq_sr1_sd : size r1 = size d by rewrite size_scale ?invr_eq0.
 have sr1 : (1 < size r1)%N.
   by rewrite ltn_neqAle eq_sym lt0n size_poly_eq0 monic_neq0 ?andbT ?eq_sr1_sd.

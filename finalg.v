@@ -219,7 +219,7 @@ Section Unit.
 Variable R : finRingType.
 
 Definition is_inv (x y : R) := (x * y == 1) && (y * x == 1).
-Definition unit : pred R := fun x => existsb y, is_inv x y.
+Definition unit := [qualify a x : R | existsb y, is_inv x y].
 Definition inv x := odflt x (pick (is_inv x)).
 
 Lemma mulVr : {in unit, left_inverse 1 inv *%R}.
@@ -234,12 +234,12 @@ rewrite /inv => x Ux; case: pickP => [y | no_y]; last by case/pred0P: Ux.
 by case/andP; move/eqP.
 Qed.
 
-Lemma intro_unit x y : y * x = 1 /\ x * y = 1 -> x \in unit.
+Lemma intro_unit x y : y * x = 1 /\ x * y = 1 -> x \is a unit.
 Proof.
 by case=> yx1 xy1; apply/existsP; exists y; rewrite /is_inv xy1 yx1 !eqxx.
 Qed.
 
-Lemma invr_out : {in predC unit, inv =1 id}.
+Lemma invr_out : {in [predC unit], inv =1 id}.
 Proof.
 rewrite /inv => x nUx; case: pickP => // y invxy.
 by case/existsP: nUx; exists y.
@@ -405,7 +405,7 @@ Section UnitsGroup.
 
 Variable R : finUnitRingType.
 
-Inductive unit_of (phR : phant R) := Unit (x : R) of x \in GRing.unit.
+Inductive unit_of (phR : phant R) := Unit (x : R) of x \is a GRing.unit.
 Bind Scope group_scope with unit_of.
 
 Let phR := Phant R.
@@ -426,10 +426,10 @@ Canonical unit_finType := Eval hnf in FinType uT unit_finMixin.
 Canonical unit_subFinType := Eval hnf in [subFinType of uT].
 
 Definition unit1 := Unit phR (@GRing.unitr1 _).
-Lemma unit_inv_proof u : (val u)^-1 \in GRing.unit.
+Lemma unit_inv_proof u : (val u)^-1 \is a GRing.unit.
 Proof. by rewrite GRing.unitrV ?(valP u). Qed.
 Definition unit_inv u := Unit phR (unit_inv_proof u).
-Lemma unit_mul_proof u v : val u * val v \in GRing.unit.
+Lemma unit_mul_proof u v : val u * val v \is a GRing.unit.
 Proof. by rewrite (GRing.unitrMr _ (valP u)) ?(valP v). Qed.
 Definition unit_mul u v := Unit phR (unit_mul_proof u v).
 Lemma unit_muluA : associative unit_mul.
@@ -795,7 +795,7 @@ Fixpoint sat e f :=
   match f with
   | GRing.Bool b => b
   | t1 == t2 => (GRing.eval e t1 == GRing.eval e t2)%bool
-  | GRing.Unit t => GRing.eval e t \in GRing.unit
+  | GRing.Unit t => GRing.eval e t \is a GRing.unit
   | f1 /\ f2 => sat e f1 && sat e f2
   | f1 \/ f2 => sat e f1 || sat e f2
   | f1 ==> f2 => (sat e f1 ==> sat e f2)%bool

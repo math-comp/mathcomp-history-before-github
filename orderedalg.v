@@ -748,7 +748,7 @@ Qed.
 (* norm theory*)
 
 Lemma ler0_norm x : x <= 0 -> `|x| = - x.
-Proof. by move=> x_le0; rewrite -[RHS]ger0_norm ?normrN ?oppr_ge0. Qed.
+Proof. by move=> x_le0; rewrite -[r in _ = r]ger0_norm ?normrN ?oppr_ge0. Qed.
 
 Definition gtr0_norm x (hx : 0 < x) := ger0_norm (ltrW hx).
 Definition ltr0_norm x (hx : x < 0) := ler0_norm (ltrW hx).
@@ -1511,7 +1511,7 @@ Definition mulr_cp1 := (mulr_ilte1, mulr_egte1).
 
 Lemma invr_gt0 x : (0 < x^-1) = (0 < x).
 Proof.
-have [ux | nux] := boolP (x \in GRing.unit); last by rewrite invr_out.
+have [ux | nux] := boolP (x \is a GRing.unit); last by rewrite invr_out.
 by apply/idP/idP=> /ltr_pmul2r<-; rewrite mul0r (mulrV, mulVr) ?ltr01.
 Qed.
 
@@ -1739,7 +1739,7 @@ Proof. by rewrite pexpr_eq1. Qed.
 Lemma sqrn_eq1 x (hx : x <= 0) : (x ^+ 2 == 1) = (x == -1).
 Proof. by rewrite -[_ ^+ 2]mulrNN sqrp_eq1 ?oppr_ge0 // eqr_oppC. Qed.
 
-Lemma ler_pinv : {in [pred x | (x \in GRing.unit) && (0 < x)] &,
+Lemma ler_pinv : {in [pred x \in GRing.unit | 0 < x] &,
   {mono (@GRing.inv R) : x y /~ x <= y}}.
 Proof.
 move=> x y /andP [ux hx] /andP [uy hy] /=.
@@ -1747,7 +1747,7 @@ rewrite -(ler_pmul2l hx) -(ler_pmul2r hy).
 by rewrite !(divrr, mulrVK) ?unitf_gt0 // mul1r.
 Qed.
 
-Lemma ler_ninv : {in [pred x | (x \in GRing.unit) && (x < 0)] &,
+Lemma ler_ninv : {in [pred x \in GRing.unit | x < 0] &,
   {mono (@GRing.inv R) : x y /~ x <= y}}.
 Proof.
 move=> x y /andP [ux hx] /andP [uy hy] /=.
@@ -1755,26 +1755,28 @@ rewrite -(ler_nmul2l hx) -(ler_nmul2r hy).
 by rewrite !(divrr, mulrVK) ?unitf_lt0 // mul1r.
 Qed.
 
-Lemma ltr_pinv : {in [pred x | (x \in GRing.unit) && (0 < x)] &,
+Lemma ltr_pinv : {in [pred x \in GRing.unit | 0 < x] &,
   {mono (@GRing.inv R) : x y /~ x < y}}.
 Proof. exact: lerW_nmono_in ler_pinv. Qed.
 
-Lemma ltr_ninv : {in [pred x | (x \in GRing.unit) && (x < 0)] &,
+Lemma ltr_ninv : {in [pred x \in GRing.unit | x < 0] &,
   {mono (@GRing.inv R) : x y /~ x < y}}.
 Proof. exact: lerW_nmono_in ler_ninv. Qed.
 
-Lemma invr_gt1 x (ux : x \in GRing.unit) (hx : 0 < x) : (1 < x^-1) = (x < 1).
+Lemma invr_gt1 x (ux : x \is a GRing.unit) (hx : 0 < x) : (1 < x^-1) = (x < 1).
 Proof. by rewrite -{1}[1]invr1 ltr_pinv ?inE ?unitr1 ?ltr01 // ux hx. Qed.
 
-Lemma invr_ge1 x (ux : x \in GRing.unit) (hx : 0 < x) : (1 <= x^-1) = (x <= 1).
+Lemma invr_ge1 x (ux : x \is a GRing.unit) (hx : 0 < x) :
+  (1 <= x^-1) = (x <= 1).
 Proof. by rewrite -{1}[1]invr1 ler_pinv ?inE ?unitr1 ?ltr01 // ux hx. Qed.
 
 Definition invr_gte1 := (invr_ge1, invr_gt1).
 
-Lemma invr_le1 x (ux : x \in GRing.unit) (hx : 0 < x) : (x^-1 <= 1) = (1 <= x).
+Lemma invr_le1 x (ux : x \is a GRing.unit) (hx : 0 < x) :
+  (x^-1 <= 1) = (1 <= x).
 Proof. by rewrite -invr_ge1 ?invr_gt0 ?unitrV // invrK. Qed.
 
-Lemma invr_lt1 x (ux : x \in GRing.unit) (hx : 0 < x) : (x^-1 < 1) = (1 < x).
+Lemma invr_lt1 x (ux : x \is a GRing.unit) (hx : 0 < x) : (x^-1 < 1) = (1 < x).
 Proof. by rewrite -invr_gt1 ?invr_gt0 ?unitrV // invrK. Qed.
 
 Definition invr_lte1 := (invr_le1, invr_lt1).
@@ -1922,7 +1924,7 @@ Proof. by move=> xR; rewrite real_exprn_even_ge0. Qed.
 
 (* norm    and    unit & inv *)
 
-Lemma normr_unit : {homo (@normr R) : x / x \in GRing.unit}.
+Lemma normr_unit : {homo (@normr R) : x / x \is a GRing.unit}.
 Proof.
 move=> x /= /unitrP [y [yx xy]]; apply/unitrP; exists `|y|.
 by rewrite -!normrM xy yx normr1.
@@ -2081,10 +2083,10 @@ Hint Resolve lerr.
 Variable F : PField.type.
 Implicit Types x y z t : F.
 
-Lemma unitf_gt0 x : 0 < x -> x \in GRing.unit.
+Lemma unitf_gt0 x : 0 < x -> x \is a GRing.unit.
 Proof. by move=> hx; rewrite unitfE eq_sym ltr_eqF. Qed.
 
-Lemma unitf_lt0 x : x < 0 -> x \in GRing.unit.
+Lemma unitf_lt0 x : x < 0 -> x \is a GRing.unit.
 Proof. by move=> hx; rewrite unitfE ltr_eqF. Qed.
 
 Lemma lef_pinv : {in >%R 0 &, {mono (@GRing.inv F) : x y /~ x <= y}}.
@@ -2186,7 +2188,7 @@ Definition lter_ndivr_mull := (ler_ndivr_mull, ltr_ndivr_mull).
 
 Lemma normfV : {morph (@normr F) : x / x ^-1}.
 Proof.
-move=> x /=; have [/normrV //|Nux] := boolP (GRing.unit x).
+move=> x /=; have [/normrV //|Nux] := boolP (x \is a GRing.unit).
 by rewrite !invr_out // unitfE normr_eq0 -unitfE.
 Qed.
 
@@ -2282,7 +2284,7 @@ Hypothesis ge0_norm : forall x, le 0 x -> norm x = x.
 Hypothesis lt_def : forall x y, (lt x y) = (y != x) && (le x y).
 
 Fact le0N x : le 0 (-x) = le x 0.
-Proof. by rewrite -[RHS]sub_ge0 sub0r. Qed.
+Proof. by rewrite -[r in _ = r]sub_ge0 sub0r. Qed.
 
 Fact lt0N x : lt 0 (-x) = lt x 0.
 Proof. by rewrite !lt_def oppr_eq0 le0N eq_sym. Qed.

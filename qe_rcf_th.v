@@ -1339,9 +1339,9 @@ move=> p_neq0; rewrite /change_varp size_addl ?size_polyXn -?polySpred //.
 by rewrite (leq_ltn_trans (size_poly _ _)) // -polySpred.
 Qed.
 
-Lemma monic_change_varp p : monic (change_varp p).
+Lemma monic_change_varp p : change_varp p \is monic.
 Proof.
-rewrite /change_varp /monic lead_coefDl ?lead_coefXn //.
+rewrite /change_varp monicE lead_coefDl ?lead_coefXn //.
 by rewrite size_polyXn (leq_ltn_trans (size_poly _ _)).
 Qed.
 
@@ -1376,7 +1376,7 @@ Definition to_monic (p : {poly R})(sq : seq {poly R}) :=
   let a := lead_coef p in (change_varp p, map (change_varq a) sq).
 
 (* polyX or X suffix in poly ? *)
-Lemma monic_to_monic p sq : (size p > 1)%N -> monic (to_monic p sq).1.
+Lemma monic_to_monic p sq : (size p > 1)%N -> (to_monic p sq).1 \is monic.
 Proof. by move=> hsp /=; apply: monic_change_varp. Qed.
 
 Lemma root_size_gt1 (a : R) (p : {poly R}) :

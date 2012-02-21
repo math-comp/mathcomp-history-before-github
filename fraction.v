@@ -337,7 +337,7 @@ Section PolyFracDef.
 Variable R : fieldType.
 
 Definition polyfrac_axiom (x : {ratio {poly R}}) :=
-  (coprimep \n_x \d_x) && (monic \d_x).
+  (coprimep \n_x \d_x) && (\d_x \is monic).
 
 Record polynomialfrac := PolyFrac {
   polyfrac :> {ratio {poly R}};
@@ -350,8 +350,8 @@ Identity Coercion type_pfrac_of : polyfrac_of >-> polynomialfrac.
 Lemma coprime_polyfrac (x : pfrac) : coprimep \n_x \d_x.
 Proof. by case: x=> pf /= /andP []. Qed.
 
-Lemma monic_polyfrac (x : pfrac) : monic \d_x.
-Proof. by case: x=> pf /= /andP []. Qed.
+Lemma monic_polyfrac (x : pfrac) : \d_x \is monic.
+Proof. by case: x => pf /= /andP []. Qed.
 
 End PolyFracDef.
 Notation "{ 'polyfrac' T }" := (polyfrac_of (Phant T)).

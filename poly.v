@@ -34,11 +34,9 @@ Require Import bigop ssralg binomial.
 (*                       generic seq function combined with polyseq).         *)
 (*        lead_coef p == the coefficient of the highest monomial in p, or 0   *)
 (*                       if p = 0 (hence lead_coef p = 0 iff p = 0)           *)
-(*            monic p == p is monic, i.e., lead_coef p = 1 (0 is not monic)   *)
-(*   p \in polyOver S == the coefficients of p satisfy S; there should be (at *)
-(*                       least) a semiringPred S class Instance; polyOver can *)
-(*                       be used for any S that coerces to pred_class (e.g.,  *)
-(*                       K : {algebra F}).                                    *)
+(*        p \is monic <=> lead_coef p == 1 (0 is not monic).                  *)
+(* p \is a polyOver S <=> the coefficients of p satisfy S; S should have a    *)
+(*                        key that should be (at least) an addrPred.          *)
 (*             p.[x]  == the evaluation of a polynomial p at a point x using  *)
 (*                       the Horner scheme                                    *)
 (*                   *** The multi-rule hornerE (resp., hornerE_comm) unwinds *)
@@ -815,69 +813,69 @@ by apply: eq_bigr => i _; rewrite -scalerAl exprSr.
 Qed.
 
 (* Monic predicate *)
-Definition monic p := lead_coef p == 1.
+Definition monic := [qualify p | lead_coef p == 1].
+Fact monic_key : pred_key monic. Proof. by []. Qed.
+Canonical monic_keyed := KeyedQualifier monic_key.
 
-Lemma monicP p : reflect (lead_coef p = 1) (monic p).
+Lemma monicE p : (p \is monic) = (lead_coef p == 1). Proof. by []. Qed.
+Lemma monicP p : reflect (lead_coef p = 1) (p \is monic).
 Proof. exact: eqP. Qed.
 
-Lemma monic1 : monic 1. Proof. exact/eqP/lead_coef1. Qed.
-Lemma monicX : monic 'X. Proof. exact/eqP/lead_coefX. Qed.
-Lemma monicXn n : monic 'X^n. Proof. exact/eqP/lead_coefXn. Qed.
+Lemma monic1 : 1 \is monic. Proof. exact/eqP/lead_coef1. Qed.
+Lemma monicX : 'X \is monic. Proof. exact/eqP/lead_coefX. Qed.
+Lemma monicXn n : 'X^n \is monic. Proof. exact/eqP/lead_coefXn. Qed.
 
-Lemma monic_neq0 p : monic p -> p != 0.
+Lemma monic_neq0 p : p \is monic -> p != 0.
 Proof. by rewrite -lead_coef_eq0 => /eqP->; exact: oner_neq0. Qed.
 
-Lemma lead_coef_monicM p q : monic p -> lead_coef (p * q) = lead_coef q.
+Lemma lead_coef_monicM p q : p \is monic -> lead_coef (p * q) = lead_coef q.
 Proof.
 have [-> | nz_q] := eqVneq q 0; first by rewrite mulr0.
 by move/monicP=> mon_p; rewrite lead_coef_proper_mul mon_p mul1r ?lead_coef_eq0.
 Qed.
 
-Lemma lead_coef_Mmonic p q : monic q -> lead_coef (p * q) = lead_coef p.
+Lemma lead_coef_Mmonic p q : q \is monic -> lead_coef (p * q) = lead_coef p.
 Proof.
 have [-> | nz_p] := eqVneq p 0; first by rewrite mul0r.
 by move/monicP=> mon_q; rewrite lead_coef_proper_mul mon_q mulr1 ?lead_coef_eq0.
 Qed.
 
 Lemma size_monicM p q :
-  monic p -> q != 0 -> size (p * q) = (size p + size q).-1.
+  p \is monic -> q != 0 -> size (p * q) = (size p + size q).-1.
 Proof.
 move/monicP=> mon_p nz_q.
 by rewrite size_proper_mul // mon_p mul1r lead_coef_eq0.
 Qed.
 
 Lemma size_Mmonic p q :
-  p != 0 -> monic q -> size (p * q) = (size p + size q).-1.
+  p != 0 -> q \is monic -> size (p * q) = (size p + size q).-1.
 Proof.
 move=> nz_p /monicP mon_q.
 by rewrite size_proper_mul // mon_q mulr1 lead_coef_eq0.
 Qed.
 
-Lemma monicMl p q : monic p -> monic (p * q) = monic q.
-Proof. by move=> mon_p; rewrite /monic lead_coef_monicM. Qed.
+Lemma monicMl p q : p \is monic -> (p * q \is monic) = (q \is monic).
+Proof. by move=> mon_p; rewrite !monicE lead_coef_monicM. Qed.
 
-Lemma monicMr p q : monic q -> monic (p * q) = monic p.
-Proof. by move=> mon_q; rewrite /monic lead_coef_Mmonic. Qed.
+Lemma monicMr p q : q \is monic -> (p * q \is monic) = (p \is monic).
+Proof. by move=> mon_q; rewrite !monicE lead_coef_Mmonic. Qed.
 
-Global Instance monic_mulSemigroupPred : mulSemigroupPred monic.
-Proof. by split=> [|p q mon_p]; rewrite /in_mem /= (monic1, monicMl). Qed.
+Fact monic_mulr_closed : mulr_closed monic.
+Proof. by split=> [|p q mon_p]; rewrite (monic1, monicMl). Qed.
+Canonical monic_mulrPred := MulrPred monic_mulr_closed.
 
-Lemma monic_exp p n : monic p -> monic (p ^+ n).
+Lemma monic_exp p n : p \is monic -> p ^+ n \is monic.
 Proof. exact: rpredX. Qed.
 
 Lemma monic_prod I rI (P : pred I) (F : I -> {poly R}):
-  (forall i, P i -> monic (F i)) -> monic (\prod_(i <- rI | P i) F i).
-Proof.
-(* exact: rpred_prod. *)
-(* :BUG: v8.4 -> could not fill dependent hole in "apply" *)
-exact: (@rpred_prod _ monic).
-Qed.
+  (forall i, P i -> F i \is monic) -> \prod_(i <- rI | P i) F i \is monic.
+Proof. exact: rpred_prod. Qed.
 
-Lemma monicXsubC c : monic ('X - c%:P).
+Lemma monicXsubC c : 'X - c%:P \is monic.
 Proof. exact/eqP/lead_coefXsubC. Qed.
 
 Lemma monic_prod_XsubC I rI (P : pred I) (F : I -> R) :
-  monic (\prod_(i <- rI | P i) ('X - (F i)%:P)).
+  \prod_(i <- rI | P i) ('X - (F i)%:P) \is monic.
 Proof. by apply: monic_prod => i _; exact: monicXsubC. Qed.
 
 Lemma size_prod_XsubC I rI (F : I -> R) :
@@ -947,7 +945,7 @@ by rewrite (polySpred nz_q) leq_addl.
 Qed.
 
 Lemma monic_comreg p :
-  monic p -> GRing.comm p (lead_coef p)%:P /\ GRing.rreg (lead_coef p).
+  p \is monic -> GRing.comm p (lead_coef p)%:P /\ GRing.rreg (lead_coef p).
 Proof. by move/monicP->; split; [exact: commr1 | exact: rreg1]. Qed.
 
 (* Horner evaluation of polynomials *)
@@ -1158,9 +1156,9 @@ Proof.
 by move=> n_gt0; rewrite size_addl size_polyXn // size_opp size_poly1.
 Qed.
 
-Lemma monic_Xn_sub_1 n : n > 0 -> monic ('X^n - 1 : {poly R}).
+Lemma monic_Xn_sub_1 n : n > 0 -> 'X^n - 1 \is monic.
 Proof.
-move=> n_gt0; rewrite /monic lead_coefE size_Xn_sub_1 // coefB.
+move=> n_gt0; rewrite monicE lead_coefE size_Xn_sub_1 // coefB.
 by rewrite coefXn coef1 eqxx eqn0Ngt n_gt0 subr0.
 Qed.
 
@@ -1270,7 +1268,11 @@ Qed.
 
 (* Lifting a ring predicate to polynomials. *)
 
-Definition polyOver (S : pred_class) : pred {poly R} := all (mem S).
+Definition polyOver (S : pred_class) :=
+  [qualify a p : {poly R} | all (mem S) p].
+
+Fact polyOver_key S : pred_key (polyOver S). Proof. by []. Qed.
+Canonical polyOver_keyed S := KeyedQualifier (polyOver_key S).
 
 Lemma polyOverS (S1 S2 : pred_class) :
   {subset S1 <= S2} -> {subset polyOver S1 <= polyOver S2}.
@@ -1278,81 +1280,83 @@ Proof.
 by move=> sS12 p /(all_nthP 0)S1p; apply/(all_nthP 0)=> i /S1p; apply: sS12.
 Qed.
 
-Lemma polyOver0 S : 0 \in polyOver S.
-Proof. by rewrite unfold_in polyseq0. Qed.
+Lemma polyOver0 S : 0 \is a polyOver S.
+Proof. by rewrite unfold_in /= polyseq0. Qed.
 
 Lemma polyOver_poly (S : pred_class) n E :
-  (forall i, i < n -> E i \in S) -> \poly_(i < n) E i \in polyOver S.
+  (forall i, i < n -> E i \in S) -> \poly_(i < n) E i \is a polyOver S.
 Proof.
 move=> S_E; apply/(all_nthP 0)=> i lt_i_p /=; rewrite coef_poly.
 by case: ifP => [/S_E// | /idP[]]; apply: leq_trans lt_i_p (size_poly n E).
 Qed.
 
-Section PolyOverAddSemigroup.
+Section PolyOverAdd.
 
-Context (S : pred_class) {addS : @addSemigroupPred R S}.
+Variables (S : predPredType R) (addS : addrPred S) (kS : keyed_pred addS).
 
-Lemma polyOverP {p} : reflect (forall i, p`_i \in S) (p \in polyOver S).
+Lemma polyOverP {p} : reflect (forall i, p`_i \in kS) (p \in polyOver kS).
 Proof.
 apply: (iffP (all_nthP 0)) => [Sp i | Sp i _]; last exact: Sp.
 by have [/Sp // | /(nth_default 0)->] := ltnP i (size p); apply: rpred0.
 Qed.
 
-Lemma polyOverC c : (c%:P \in polyOver S) = (c \in S).
+Lemma polyOverC c : (c%:P \in polyOver kS) = (c \in kS).
 Proof.
-by rewrite unfold_in polyseqC; case: eqP => [-> | _] /=; rewrite ?andbT ?rpred0.
+by rewrite unfold_in /= polyseqC; case: eqP => [->|] /=; rewrite ?andbT ?rpred0.
 Qed.
 
-Global Instance polyOver_addSemigroupPred : addSemigroupPred (polyOver S).
-Proof.
+Fact polyOver_addr_closed : addr_closed (polyOver kS).
+Proof. 
 split=> [|p q Sp Sq]; first exact: polyOver0.
 by apply/polyOverP=> i; rewrite coefD rpredD ?(polyOverP _).
 Qed.
+Canonical polyOver_addrPred := AddrPred polyOver_addr_closed.
 
-End PolyOverAddSemigroup.
+End PolyOverAdd.
 
-Global Instance polyOver_addSubgroupPred S {addS : addSubgroupPred S} :
-  addSubgroupPred (polyOver S).
+Fact polyOverNr S (addS : zmodPred S) (kS : keyed_pred addS) :
+  oppr_closed (polyOver kS).
 Proof.
-split; [exact: id | split=> p Sp].
-by apply/polyOverP=> i; rewrite coefN rpredN ?(polyOverP _).
+by move=> p /polyOverP Sp; apply/polyOverP=> i; rewrite coefN rpredN.
 Qed.
+Canonical polyOver_opprPred S addS kS := OpprPred (@polyOverNr S addS kS).
+Canonical polyOver_zmodPred S addS kS := ZmodPred (@polyOverNr S addS kS).
 
 Section PolyOverSemiring.
 
-Context (S : pred_class) {ringS : @semiringPred R S}.
+Context (S : pred_class) (ringS : @semiringPred R S) (kS : keyed_pred ringS).
 
-Global Instance polyOver_semiringPred : semiringPred (polyOver S).
+Fact polyOver_mulr_closed : mulr_closed (polyOver kS).
 Proof.
-split; [exact: id | split=> [|p q Sp Sq]; first by rewrite ?polyOverC ?rpred1].
-apply/polyOverP=> i; rewrite coefM rpred_sum // => j _.
-by rewrite rpredM ?(polyOverP _ _).
+split=> [|p q /polyOverP Sp /polyOverP Sq]; first by rewrite polyOverC rpred1.
+by apply/polyOverP=> i; rewrite coefM rpred_sum // => j _; apply: rpredM.
 Qed.
+Canonical polyOver_mulrPred := MulrPred polyOver_mulr_closed.
+Canonical polyOver_semiringPred := SemiringPred polyOver_mulr_closed.
 
-Lemma polyOverZ : {in S & polyOver S, forall c p, c *: p \in polyOver S}.
+Lemma polyOverZ : {in kS & polyOver kS, forall c p, c *: p \is a polyOver kS}.
 Proof.
 by move=> c p Sc /polyOverP Sp; apply/polyOverP=> i; rewrite coefZ rpredM ?Sp. 
 Qed.
 
-Lemma polyOverX : 'X \in polyOver S.
-Proof. by rewrite unfold_in polyseqX /= rpred0 rpred1. Qed.
+Lemma polyOverX : 'X \in polyOver kS.
+Proof. by rewrite unfold_in /= polyseqX /= rpred0 rpred1. Qed.
 
-Lemma rpred_horner : {in polyOver S & S, forall p x, p.[x] \in S}.
+Lemma rpred_horner : {in polyOver kS & kS, forall p x, p.[x] \in kS}.
 Proof.
 move=> p x /polyOverP Sp Sx; rewrite horner_coef rpred_sum // => i _.
-by rewrite rpredM ?Sp ?rpredX.
+by rewrite rpredM ?rpredX.
 Qed.
 
 End PolyOverSemiring.
 
 Section PolyOverRing.
 
-Context (S : pred_class) {ringS : @subringPred R S}.
+Context (S : pred_class) (ringS : @subringPred R S) (kS : keyed_pred ringS).
+Canonical polyOver_smulrPred := SmulrPred (polyOver_mulr_closed kS).
+Canonical polyOver_subringPred := SubringPred (polyOver_mulr_closed kS).
 
-Global Instance polyOver_subringPred : subringPred (polyOver S).
-Proof. by split; apply: id. Qed.
-
-Lemma polyOverXsubC c : ('X - c%:P \in polyOver S) = (c \in S).
+Lemma polyOverXsubC c : ('X - c%:P \in polyOver kS) = (c \in kS).
 Proof. by rewrite rpredBl ?polyOverX ?polyOverC. Qed.
 
 End PolyOverRing.
@@ -1369,8 +1373,8 @@ rewrite coef_poly -subn1 -ltn_add_sub.
 by case: leqP => // /(nth_default 0) ->; rewrite mul0rn.
 Qed.
 
-Lemma polyOver_deriv (S : pred_class) {ringS : semiringPred S} :
-  {in polyOver S, forall p, p^`() \in polyOver S}.
+Lemma polyOver_deriv S (ringS : semiringPred S) (kS : keyed_pred ringS) :
+  {in polyOver kS, forall p, p^`() \is a polyOver kS}.
 Proof.
 by move=> p /polyOverP Kp; apply/polyOverP=> i; rewrite coef_deriv rpredMn ?Kp.
 Qed.
@@ -1463,11 +1467,11 @@ elim: n i => [|n IHn] i; first by rewrite ffactn0 mulr1n.
 by rewrite derivnS coef_deriv IHn -mulrnA ffactnSr addSnnS addKn.
 Qed.
 
-Lemma polyOver_derivn (S : pred_class) {ringS : semiringPred S} :
-  {in polyOver S, forall p n, p^`(n) \in polyOver S}.
+Lemma polyOver_derivn S (ringS : semiringPred S) (kS : keyed_pred ringS) :
+  {in polyOver kS, forall p n, p^`(n) \is a polyOver kS}.
 Proof.
-move=> p Kp /= n; apply/polyOverP=> i.
-by rewrite coef_derivn rpredMn ?(polyOverP _).
+move=> p /polyOverP Kp /= n; apply/polyOverP=> i.
+by rewrite coef_derivn rpredMn.
 Qed.
 
 Fact derivn_is_linear n : linear (derivn n).
@@ -1540,11 +1544,11 @@ Proof.
 by apply/polyP=> i; rewrite coefMn coef_nderivn coef_derivn -mulrnA bin_ffact.
 Qed.
 
-Lemma polyOver_nderivn (S : pred_class) {ringS : semiringPred S} :
-  {in polyOver S, forall p n, p^`N(n) \in polyOver S}.
+Lemma polyOver_nderivn S (ringS : semiringPred S) (kS : keyed_pred ringS) :
+  {in polyOver kS, forall p n, p^`N(n) \in polyOver kS}.
 Proof.
-move=> p Kp /= n; apply/polyOverP=> i.
-by rewrite coef_nderivn rpredMn ?(polyOverP _).
+move=> p /polyOverP Sp /= n; apply/polyOverP=> i.
+by rewrite coef_nderivn rpredMn.
 Qed.
 
 Lemma nderivn0 p : p^`N(0) = p.
@@ -1638,7 +1642,8 @@ Qed.
 
 End PolynomialTheory.
 
-Prenex Implicits polyC Poly lead_coef monic root horner polyOver.
+Prenex Implicits polyC Poly lead_coef root horner polyOver.
+Implicit Arguments monic [[R]].
 Notation "\poly_ ( i < n ) E" := (poly n (fun i => E)) : ring_scope.
 Notation "c %:P" := (polyC c) : ring_scope.
 Notation "'X" := (polyX _) : ring_scope.
@@ -1655,7 +1660,7 @@ Implicit Arguments rootP [R p x].
 Implicit Arguments rootPf [R p x].
 Implicit Arguments rootPt [R p x].
 Implicit Arguments unity_rootP [R n z].
-Implicit Arguments polyOverP [[R] [S] [addS] [p]].
+Implicit Arguments polyOverP [[R] [S0] [addS] [kS] [p]].
 
 (* Container morphism. *)
 Section MapPoly.
@@ -1899,11 +1904,11 @@ Proof.
 by rewrite [p \Po q]horner_poly; apply: eq_bigr => i _; rewrite mul_polyC.
 Qed.
 
-Lemma polyOver_comp (S : pred_class) {ringS : semiringPred S} :
-  {in polyOver S &, forall p q, p \Po q \in polyOver S}.
+Lemma polyOver_comp S (ringS : semiringPred S) (kS : keyed_pred ringS) :
+  {in polyOver kS &, forall p q, p \Po q \in polyOver kS}.
 Proof.
 move=> p q /polyOverP Sp Sq; rewrite comp_polyE rpred_sum // => i _.
-by rewrite polyOverZ ?rpredX ?Sp.
+by rewrite polyOverZ ?rpredX.
 Qed.
 
 Lemma comp_polyCr p c : p \Po c%:P = p.[c]%:P.
@@ -2256,8 +2261,8 @@ move=> p q eqfpq; apply/eqP; rewrite -subr_eq0 -map_poly_eq0.
 by rewrite rmorphB /= eqfpq subrr.
 Qed.
 
-Lemma map_monic p : monic p^f = monic p.
-Proof. by rewrite /monic lead_coef_map -(inj_eq (fmorph_inj f)) rmorph1. Qed.
+Lemma map_monic p : (p^f \is monic) = (p \is monic).
+Proof. by rewrite monicE lead_coef_map fmorph_eq1. Qed.
 
 Lemma map_poly_com p x : comm_poly p^f (f x).
 Proof. exact: map_comm_poly (mulrC x _). Qed.

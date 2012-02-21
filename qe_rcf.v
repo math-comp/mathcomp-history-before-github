@@ -744,7 +744,7 @@ Definition CauchyBound (p : polyF) : cps tF := fun k =>
   bind sp <- Size p; SumNorm sp (nth 0%qfT p) k.
 
 Lemma eval_CauchyBound e p k k' :
-  monic (eval_poly e p) -> (forall x, qf_eval e (k x) = k' (eval e x)) ->
+  eval_poly e p \is monic -> (forall x, qf_eval e (k x) = k' (eval e x)) ->
   qf_eval e (CauchyBound p k) = k' (cauchy_bound (eval_poly e p)).
 Proof.
 move=> mp Pk; rewrite /CauchyBound /cauchy_bound.
@@ -792,7 +792,7 @@ Lemma eval_polyP e p : eval_poly e p = Poly (map (eval e) p).
 Proof. by elim: p=> // a p /= ->; rewrite cons_poly_def. Qed.
 
 Lemma eval_ChangeVarp e p k k' :
-  (forall p, monic (eval_poly e p) -> qf_eval e (k p) = k' (eval_poly e p)) ->
+  (forall p, eval_poly e p \is monic -> qf_eval e (k p) = k' (eval_poly e p)) ->
   qf_eval e (ChangeVarp p k) = k' (change_varp (eval_poly e p)).
 Proof.
 move=> Pk; rewrite eval_Size; pose p' := eval_poly e p.
@@ -800,7 +800,7 @@ rewrite (eval_LeadCoef (fun lp => k' ('X^(size p').-1 +
   \poly_(i < (size p').-1) (lp ^+ (size p' - i.+2) * p'`_i)))) //.
 move=> lp; set q := AddPoly _ _; set q' := _ + _.
 suff eqq': eval_poly e q = q'.
-  rewrite Pk eqq' // /monic lead_coefDl ?lead_coefXn //.
+  rewrite Pk eqq' // monicE lead_coefDl ?lead_coefXn //.
   by rewrite size_polyXn (leq_ltn_trans (size_poly _ _)).
 rewrite /q /q' !eval_OpPoly /= mul0r add0r addr0 mul1r.
 congr (_ + _); move: (size _)=> n; rewrite poly_def.
@@ -866,7 +866,7 @@ Definition ToMonic (p : polyF) (sq : seq polyF) :
   k (cp, csq).
 
 Lemma eval_ToMonic e p sq k k' :
-  (forall p sq, monic (eval_poly e p) -> qf_eval e (k (p, sq)) =
+  (forall p sq, eval_poly e p \is monic -> qf_eval e (k (p, sq)) =
     k' (eval_poly e p, map (eval_poly e) sq)) ->
   qf_eval e (ToMonic p sq k) =
   k' (to_monic (eval_poly e p) (map (eval_poly e) sq)).
