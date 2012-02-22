@@ -125,161 +125,31 @@ End MorePolyDiv.
 
 Section MoreZint.
 
-Canonical zintmul_additive M u := Additive (@mulrzBr M u).
-
 Definition negz z := if z is Negz _ then true else false.
 
+(* this is mulz_sign_abs *)
 Lemma zintEsign z : z = (-1) ^+ negz z * (absz z)%:Z.
 Proof. by rewrite mulr_sign; case: z. Qed.
 
-Lemma absz_sign n : absz ((-1) ^+ n) = 1%N. Proof.
-by rewrite abszX exp1n. Qed.
-
-Lemma abszMsign n z : absz ((-1) ^+ n * z) = absz z.
-Proof. by rewrite abszM absz_sign mul1n. Qed.
-
+(* this is signr_lt0 *)
 Lemma negz_sign (b : bool) : negz ((-1) ^+ b) = b.
 Proof. by case: b. Qed.
 
+(* this is mulr_lt0 *)
 Lemma negzM z1 z2 :
   negz (z1 * z2) = [&& z1 != 0, z2 != 0 & negz z1 (+) negz z2].
 Proof. by case: z1 z2 => [[|m]|m] [[]|]. Qed.
 
+(* this is mulr_sign_lt0 *)
 Lemma negzMsign (b : bool) z : 
   negz ((-1) ^+ b * z) = (z != 0) && (b (+) negz z).
 Proof. by rewrite negzM signr_eq0 negz_sign. Qed.
 
+(* subsumed by natzP *)
 Lemma negzPn z : ~~ negz z -> {n : nat | z = n}.
 Proof. by case: z => // n; exists n. Qed.
 
-Lemma rpredMz M S (addS : @zmodPred M S) (kS : keyed_pred addS) m :
-  {in kS, forall u, u *~ m \in kS}.
-Proof. by case: m => n u Su; rewrite ?rpredN ?rpredMn. Qed.
-
-Lemma rpred_int R S (ringS : @subringPred R S) (kS : keyed_pred ringS) m :
-  m%:~R \in kS.
-Proof. by rewrite rpredMz ?rpred1. Qed.
-
-Lemma rpredZint (R : ringType) (M : lmodType R) S
-                 (addS : @zmodPred M S) (kS : keyed_pred addS) m :
-  {in kS, forall u, m%:~R *: u \in kS}.
-Proof. by move=> u Su; rewrite /= scaler_zint rpredMz. Qed.
-
-Lemma rpredXint R S (divS : @divrPred R S) (kS : keyed_pred divS) m :
-  {in kS, forall x, x ^ m \in kS}.
-Proof. by case: m => n x Sx; rewrite ?rpredV rpredX. Qed.
-
-Lemma rpredXsign R S (divS : @divrPred R S) (kS : keyed_pred divS) n x :
-  (x ^ ((-1) ^+ n) \in kS) = (x \in kS).
-Proof. by rewrite -signr_odd; case: (odd n); rewrite ?rpredV. Qed.
-
-Lemma ffunMzE (I : finType) (M : zmodType) (f : {ffun I -> M}) z x :
-  (f *~ z) x = f x *~ z.
-Proof. by case: z => n; rewrite ?ffunE ffunMnE. Qed.
-
-Lemma raddf_int_scalable (aV rV : lmodType zint) (f : {additive aV -> rV}) :
-  scalable f.
-Proof. by move=> z u; rewrite -[z]zintz !scaler_zint raddfMz. Qed.
-
-Import orderedalg.
-
-Definition zintr_inj {R} := @mulrIz R 1 (oner_neq0 R).
-
 End MoreZint.
-
-Notation zintr := ( *~%R 1).
-Notation "m %:~R" := (1 *~ m) : ring_scope.
-
-Section MoreQnum.
-
-Definition Qint : pred qnum := [pred x | denq x == 1].
-Fact Qint_key : pred_key Qint. Proof. by []. Qed.
-Canonical Qint_keyed := KeyedPred Qint_key.
-
-Lemma numqK : {in Qint, cancel (fun x => numq x) zintr}.
-Proof. by move=> x /(_ =P 1 :> zint) Zx; rewrite numqE Zx rmorph1 mulr1. Qed.
-
-Lemma QintP x : reflect (exists z, x = z%:~R) (x \in Qint).
-Proof.
-apply: (iffP idP) => [/numqK <- | [z ->]]; first by exists (numq x).
-by rewrite !inE denq_zint.
-Qed.
-
-Fact Qint_subring_closed : subring_closed Qint.
-Proof.
-split=> // _ _ /QintP[x ->] /QintP[y ->]; apply/QintP.
-  by exists (x - y); rewrite -rmorphB.
-by exists (x * y); rewrite -rmorphM.
-Qed.
-Canonical Qint_opprPred := OpprPred Qint_subring_closed.
-Canonical Qint_addrPred := AddrPred Qint_subring_closed.
-Canonical Qint_mulrPred := MulrPred Qint_subring_closed.
-Canonical Qint_zmodPred := ZmodPred Qint_subring_closed.
-Canonical Qint_semiringPred := SemiringPred Qint_subring_closed.
-Canonical Qint_smulrPred := SmulrPred Qint_subring_closed.
-Canonical Qint_subringPred := SubringPred Qint_subring_closed.
-
-Section InRing.
-
-Variable R : unitRingType.
-
-Definition qnumr x : R := (numq x)%:~R / (denq x)%:~R.
-
-Lemma qnumr_int z : qnumr z%:~R = z%:~R.
-Proof. by rewrite /qnumr numq_zint denq_zint divr1. Qed.
-
-Lemma qnumr_nat n : qnumr n%:R = n%:R.
-Proof. exact: (qnumr_int n). Qed.
-
-Lemma rpred_rat S (ringS : @divringPred R S) (kS : keyed_pred ringS) a :
-  qnumr a \in kS.
-Proof. by rewrite rpred_div ?rpred_int. Qed.
-
-End InRing.
-
-Section Fmorph.
-
-Implicit Type rR : unitRingType.
-
-Lemma fmorph_qnum (aR : fieldType) rR (f : {rmorphism aR -> rR}) a :
-  f (qnumr _ a) = qnumr _ a.
-Proof. by rewrite fmorph_div !rmorph_zint. Qed.
-
-Lemma fmorph_eq_qnum rR (f : {rmorphism qnum -> rR}) : f =1 qnumr _.
-Proof. by move=> a; rewrite -{1}[a]divq_num_den fmorph_div !rmorph_zint. Qed.
-
-End Fmorph.
-
-Section InPoField.
-
-Import orderedalg.
-Variable F : poFieldType.
-
-Fact qnumr_is_rmorphism : rmorphism (@qnumr F).
-Proof.
-have injZtoQ: @injective qnum zint zintr by exact: zintr_inj.
-have nz_den x: (denq x)%:~R != 0 :> F by rewrite zintr_eq0 denq_eq0.
-do 2?split; rewrite /qnumr ?divr1 // => x y; last first.
-  rewrite mulrC mulrAC; apply: canLR (mulKf (nz_den _)) _; rewrite !mulrA.
-  do 2!apply: canRL (mulfK (nz_den _)) _; rewrite -!rmorphM; congr _%:~R.
-  apply: injZtoQ; rewrite !rmorphM [x * y]lock /= !numqE -lock.
-  by rewrite -!mulrA mulrA mulrCA -!mulrA (mulrCA y).
-apply: (canLR (mulfK (nz_den _))); apply: (mulIf (nz_den x)).
-rewrite mulrAC mulrBl divfK ?nz_den // mulrAC -!rmorphM.
-apply: (mulIf (nz_den y)); rewrite mulrAC mulrBl divfK ?nz_den //.
-rewrite -!(rmorphM, rmorphB); congr _%:~R; apply: injZtoQ.
-rewrite !(rmorphM, rmorphB) [_ - _]lock /= -lock !numqE.
-by rewrite (mulrAC y) -!mulrBl -mulrA mulrAC !mulrA.
-Qed.
-
-Canonical qnumr_additive := Additive qnumr_is_rmorphism.
-Canonical qnumr_rmorphism := RMorphism qnumr_is_rmorphism.
-
-End InPoField.
-
-End MoreQnum.
-
-Implicit Arguments qnumr [[R]].
 
 Section ZpolyScale.
 
@@ -485,7 +355,7 @@ pose a := \prod_(i < size p) denq p`_i.
 have nz_a: a != 0 by apply/prodf_neq0=> i _; exact: denq_neq0.
 exists (map_poly numq (a%:~R *: p)), a => //.
 apply: canRL (scalerK _) _; rewrite ?zintr_eq0 //.
-apply/polyP=> i; rewrite !(coefZ, coef_map_id0) // numqK // inE mulrC.
+apply/polyP=> i; rewrite !(coefZ, coef_map_id0) // numqK // Qint_def mulrC.
 have [ltip | /(nth_default 0)->] := ltnP i (size p); last by rewrite mul0r.
 by rewrite [a](bigD1 (Ordinal ltip)) // rmorphM mulrA -numqE -rmorphM denq_zint.
 Qed.

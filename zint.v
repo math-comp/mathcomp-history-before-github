@@ -1,5 +1,5 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
-Require Import bigop ssralg orderedalg poly.
+Require Import fintype finfun bigop ssralg orderedalg poly.
 Import GRing.Theory ORing.Theory.
 
  (****************************************************************)
@@ -454,6 +454,7 @@ Definition zintmul (R : zmodType) (x : R) (n : zint) := nosimpl
 Notation "*~%R" := (@zintmul _) (at level 0) : ring_scope.
 Notation "x *~ n" := (zintmul x n)
   (at level 40, left associativity, format "x  *~  n") : ring_scope.
+Notation zintr := ( *~%R 1).
 Notation "n %:~R" := (1 *~ n)%R
   (at level 2, left associativity, format "n %:~R")  : ring_scope.
 
@@ -473,7 +474,7 @@ Variable M : zmodType.
 Implicit Types m n : zint.
 Implicit Types x y z : M.
 
-Lemma mulrzA_C m n x : (x *~ n) *~ m = x *~ (m * n).
+Fact mulrzA_C m n x : (x *~ n) *~ m = x *~ (m * n).
 Proof.
 elim: m=> [|m _|m _]; elim: n=> [|n _|n _]; rewrite /zintmul //=;
 rewrite ?(muln0, mulr0n, mul0rn, oppr0, mulNrn, opprK) //;
@@ -482,12 +483,12 @@ rewrite ?(muln0, mulr0n, mul0rn, oppr0, mulNrn, opprK) //;
 * by rewrite -mulrnA.
 Qed.
 
-Lemma mulrzAC m n x : (x *~ n) *~ m = (x *~ m) *~ n.
+Fact mulrzAC m n x : (x *~ n) *~ m = (x *~ m) *~ n.
 Proof. by rewrite !mulrzA_C mulrC. Qed.
 
-Lemma mulr1z (x : M) : x *~ 1 = x. Proof. done. Qed.
+Fact mulr1z (x : M) : x *~ 1 = x. Proof. done. Qed.
 
-Lemma mulrzDr m : {morph ( *~%R^~ m : M -> M) : x y / x + y}.
+Fact mulrzDr m : {morph ( *~%R^~ m : M -> M) : x y / x + y}.
 Proof.
 by elim: m=> [|m _|m _] x y;
   rewrite ?addr0 /zintmul //= ?mulrnDl // opprD.
@@ -504,7 +505,7 @@ rewrite  -{2}[m](@subnKC n)// mulrnDr addrAC subrr add0r.
 by rewrite subzn.
 Qed.
 
-Lemma mulrzDl x : {morph *~%R x : m n / m + n}.
+Fact mulrzDl x : {morph *~%R x : m n / m + n}.
 Proof.
 elim=> [|m _|m _]; elim=> [|n _|n _]; rewrite /zintmul //=;
 rewrite -?(opprD) ?(add0r, addr0, mulrnDr, subn0) //.
@@ -552,7 +553,13 @@ Lemma mulrz_suml : forall n I r (P : pred I) (F : I -> M),
   (\sum_(i <- r | P i) F i) *~ n= \sum_(i <- r | P i) F i *~ n.
 Proof. by rewrite -/M^z; exact: scaler_sumr. Qed.
 
+Canonical zintmul_additive x := Additive (@mulrzBr x).
+
 End ZintLmod.
+
+Lemma ffunMzE (I : finType) (M : zmodType) (f : {ffun I -> M}) z x :
+  (f *~ z) x = f x *~ z.
+Proof. by case: z => n; rewrite ?ffunE ffunMnE. Qed.
 
 Lemma zintz n : n%:~R = n.
 Proof.
@@ -600,7 +607,6 @@ Lemma zintmul1_is_rmorphism : rmorphism ( *~%R (1 : R)).
 Proof.
 by do ?split; move=> // x y /=; rewrite ?zintrD ?mulrNz ?zintrM.
 Qed.
-
 Canonical zintmul1_rmorphism := RMorphism zintmul1_is_rmorphism.
 
 End RzintMod.
@@ -665,6 +671,10 @@ Variables (U V : lmodType R) (f : {linear U -> V}).
 Lemma linearMn : forall n, {morph f : x / x *~ n}. Proof. exact: raddfMz. Qed.
 
 End Linear.
+
+Lemma raddf_int_scalable (aV rV : lmodType zint) (f : {additive aV -> rV}) :
+  scalable f.
+Proof. by move=> z u; rewrite -[z]zintz !scaler_zint raddfMz. Qed.
 
 Section Zintmul1rMorph.
 
@@ -882,11 +892,15 @@ Lemma real_zint n : (n%:~R : R) \in ORing.real.
 Proof. by rewrite -topredE /ORing.real /= ler0z lerz0 ler_total. Qed.
 Hint Resolve real_zint.
 
+Definition zintr_inj := @mulrIz 1 (oner_neq0 R).
+
 End PO.
 
 End ORingMorphism.
 
 End MorphTheory.
+
+Implicit Arguments zintr_inj [[R] x1 x2].
 
 Definition exprz (R : unitRingType) (x : R) (n : zint) := nosimpl
   match n with
@@ -1470,10 +1484,13 @@ Proof. by case: (zintP x). Qed.
 Lemma absz_sign (s : nat) : absz ((-1) ^+ s) = 1%N.
 Proof. by rewrite abszX exp1n. Qed.
 
-Lemma mulz_sign_abs n : (-1) ^+ (n < 0)%R * (absz n : zint) = n.
+Lemma abszMsign s n : absz ((-1) ^+ s * n) = absz n.
+Proof. by rewrite abszM absz_sign mul1n. Qed.
+
+Lemma mulz_sign_abs n : (-1) ^+ (n < 0)%R * (absz n)%:Z = n.
 Proof. by rewrite abszE mulr_sign_norm. Qed.
 
-Lemma mulz_Nsign_abs n : (-1) ^+ (0 < n)%R * (absz n : zint) = - n.
+Lemma mulz_Nsign_abs n : (-1) ^+ (0 < n)%R * (absz n)%:Z = - n.
 Proof. by rewrite abszE mulr_Nsign_norm. Qed.
 
 End Absz.
@@ -1515,3 +1532,47 @@ Lemma mulpz (p : {poly R}) (n : zint) : p *~ n = n%:~R *: p.
 Proof. by rewrite -[p *~ n]mulrzl -mul_polyC polyC_mulrz polyC1. Qed.
 
 End PolyZintOIdom.
+
+Section ZnatPred.
+
+Definition Znat := [qualify a n : zint | 0 <= n].
+Fact Znat_key : pred_key Znat. by []. Qed.
+Canonical Znat_keyd := KeyedQualifier Znat_key.
+
+Lemma Znat_def n : (n \is a Znat) = (0 <= n). Proof. by []. Qed.
+
+Lemma Znat_semiring_closed : semiring_closed Znat.
+Proof. by do 2?split => //; [exact: addr_ge0 | exact: mulr_ge0]. Qed.
+Canonical Znat_addrPred := AddrPred Znat_semiring_closed.
+Canonical Znat_mulrPred := MulrPred Znat_semiring_closed.
+Canonical Znat_semiringPred := SemiringPred Znat_semiring_closed.
+
+Lemma ZnatP (m : zint) : reflect (exists n : nat, m = n) (m \is a Znat).
+Proof. by apply: (iffP idP) => [|[n -> //]]; case: m => // n; exists n. Qed.
+
+End ZnatPred.
+
+Section rpred.
+
+Lemma rpredMz M S (addS : @zmodPred M S) (kS : keyed_pred addS) m :
+  {in kS, forall u, u *~ m \in kS}.
+Proof. by case: m => n u Su; rewrite ?rpredN ?rpredMn. Qed.
+
+Lemma rpred_int R S (ringS : @subringPred R S) (kS : keyed_pred ringS) m :
+  m%:~R \in kS.
+Proof. by rewrite rpredMz ?rpred1. Qed.
+
+Lemma rpredZint (R : ringType) (M : lmodType R) S
+                 (addS : @zmodPred M S) (kS : keyed_pred addS) m :
+  {in kS, forall u, m%:~R *: u \in kS}.
+Proof. by move=> u Su; rewrite /= scaler_zint rpredMz. Qed.
+
+Lemma rpredXint R S (divS : @divrPred R S) (kS : keyed_pred divS) m :
+  {in kS, forall x, x ^ m \in kS}.
+Proof. by case: m => n x Sx; rewrite ?rpredV rpredX. Qed.
+
+Lemma rpredXsign R S (divS : @divrPred R S) (kS : keyed_pred divS) n x :
+  (x ^ ((-1) ^+ n) \in kS) = (x \in kS).
+Proof. by rewrite -signr_odd; case: (odd n); rewrite ?rpredV. Qed.
+
+End rpred.

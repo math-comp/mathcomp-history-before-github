@@ -250,10 +250,12 @@ Definition minr (R : PIntegralDomain.type) (x y : R) :=
 Definition maxr (R : PIntegralDomain.type) (x y : R) :=
   if y <= x then x else y.
 
-Definition Rreal (R : PIntegralDomain.type) : pred R :=
-  (fun x => (0 <= x) || (x <= 0)).
+Definition Rreal {R : PIntegralDomain.type} :=
+  [ qualify x : R | (0 <= x) || (x <= 0) ].
+Fact real_key R : pred_key (@Rreal R). Proof. by []. Qed.
+Canonical real_keyed R := KeyedQualifier (@real_key R).
 
-Prenex Implicits sgr minr maxr normr Rreal.
+Prenex Implicits sgr minr maxr normr.
 
 Definition lerif (R : PIntegralDomain.type) (x y : R) c :=
   ((x <= y) * ((x == y) = c))%type.
@@ -267,7 +269,7 @@ Coercion ler_of_leif (R : PIntegralDomain.type)
 End OrderDef.
 Import OrderDef.
 
-Notation norm := (@ORing.OrderDef.normr _).
+Notation norm := (@ORing.OrderDef.normr _) (only parsing).
 Notation sg := (@ORing.OrderDef.sgr _).
 Notation max := (@ORing.OrderDef.maxr _).
 Notation min := (@ORing.OrderDef.minr _).
@@ -770,55 +772,50 @@ Proof. by elim: n=> [|n ihn]; rewrite ?normr1 // !exprS normrM ihn. Qed.
 
 (* real theory *)
 
-Lemma realE x : (x \in real) = (0 <= x) || (x <= 0). Proof. by []. Qed.
+Lemma realE x : (x \is real) = (0 <= x) || (x <= 0). Proof. by []. Qed.
 
-Lemma ger0_real x : 0 <= x -> x \in real.
+Lemma ger0_real x : 0 <= x -> x \is real.
 Proof. by rewrite realE => ->. Qed.
 
-Lemma ler0_real x : x <= 0 -> x \in real.
+Lemma ler0_real x : x <= 0 -> x \is real.
 Proof. by rewrite realE orbC => ->. Qed.
 
-Lemma real0 : 0 \in (@Rreal R). Proof. by rewrite realE lerr. Qed.
+Lemma real0 : 0 \is (@Rreal R). Proof. by rewrite realE lerr. Qed.
 Hint Resolve real0.
 
-Lemma real1 : 1 \in (@Rreal R). Proof. by rewrite realE ler01. Qed.
+Lemma real1 : 1 \is (@Rreal R). Proof. by rewrite realE ler01. Qed.
 Hint Resolve real1.
 
-Lemma realn n : n%:R \in (@Rreal R). Proof. by rewrite realE ler0n. Qed.
+Lemma realn n : n%:R \is (@Rreal R). Proof. by rewrite realE ler0n. Qed.
 
 Lemma ler_leVge x y : x <= 0 -> y <= 0 -> (x <= y) || (y <= x).
 Proof. by rewrite -!oppr_ge0 => /(ger_leVge _) h /h; rewrite !ler_opp2. Qed.
 
-Lemma real_leVge x y : x \in real -> y \in real -> (x <= y) || (y <= x).
+Lemma real_leVge x y : x \is real -> y \is real -> (x <= y) || (y <= x).
 Proof.
 rewrite !realE; have [x_ge0 _|x_nge0 /= x_le0] := boolP (_ <= _); last first.
   by have [/(ler_trans x_le0)->|_ /(ler_leVge x_le0) //] := boolP (0 <= _).
 by have [/(ger_leVge x_ge0)|_ /ler_trans->] := boolP (0 <= _); rewrite ?orbT.
 Qed.
 
-Lemma realB : {in real &, forall x y, x - y \in real}.
+Lemma realB : {in real &, forall x y, x - y \is real}.
 Proof. by move=> x y xR yR /=; rewrite realE !subr_cp0 real_leVge. Qed.
 
-Lemma realN : {mono (@GRing.opp R) : x /  x \in real}.
-Proof.
-move=> x /=; have [xR|] := boolP (x \in _); first by rewrite -sub0r realB.
-by apply: contraNF=> NxR; rewrite -[x]opprK -sub0r realB.
-Qed.
+Lemma real_zmod_closed : zmod_closed (@Rreal R).
+Proof. by split => //; apply: realB. Qed.
 
-Lemma realBC x y : (x - y \in real) = (y - x \in real).
+Canonical real_opprPred := OpprPred real_zmod_closed.
+Canonical real_addrPred := AddrPred real_zmod_closed.
+Canonical real_zmodPred := ZmodPred real_zmod_closed.
+
+Lemma realN : {mono (@GRing.opp R) : x /  x \is real}.
+Proof. exact: rpredN. Qed.
+
+Lemma realBC x y : (x - y \is real) = (y - x \is real).
 Proof. by rewrite -realN opprB. Qed.
 
-Lemma realD : {in real &, forall x y, x + y \in real}.
-Proof. by move=> x y xR yR /=; rewrite -[y]opprK realB ?realN. Qed.
-
-Lemma add_real_l x y : x \in real -> (x + y \in real) = (y \in real).
-Proof.
-move=> xR; have [yR|] := boolP (y \in _); first by rewrite realD.
-by apply: contraNF=> xyR; rewrite -(addrK x y) realB // addrC.
-Qed.
-
-Lemma add_real_r x y : y \in real -> (x + y \in real) = (x \in real).
-Proof. by move=> yR; rewrite addrC add_real_l. Qed.
+Lemma realD : {in real &, forall x y, x + y \is real}.
+Proof. exact: rpredD. Qed.
 
 (* dichotomy and trichotomy *)
 
@@ -830,16 +827,16 @@ CoInductive ltr_xor_ge (x y : R) : R -> R -> bool -> bool -> Set :=
   | LtrNotGe of x < y  : ltr_xor_ge x y (y - x) (y - x) false true
   | GerNotLt of y <= x : ltr_xor_ge x y (x - y) (x - y) true false.
 
-CoInductive cparer x y : R -> R ->
+CoInductive comparer x y : R -> R ->
   bool -> bool -> bool -> bool -> bool -> bool -> Set :=
-  | CparerLt of x < y : cparer x y (y - x) (y - x)
+  | ComparerLt of x < y : comparer x y (y - x) (y - x)
     false false true false true false
-  | CparerGt of x > y : cparer x y (x - y) (x - y)
+  | ComparerGt of x > y : comparer x y (x - y) (x - y)
     false false false true false true
-  | CparerEq of x = y : cparer x y 0 0
+  | ComparerEq of x = y : comparer x y 0 0
     true true true true false false.
 
-Lemma real_lerP x y : x \in real -> y \in real ->
+Lemma real_lerP x y : x \is real -> y \is real ->
   ler_xor_gt x y `|x - y| `|y - x| (x <= y) (y < x).
 Proof.
 move=> xR /(real_leVge xR); have [le_xy _|Nle_xy /= le_yx] := boolP (_ <= _).
@@ -850,7 +847,7 @@ have [lt_yx|] := boolP (_ < _).
 by rewrite ltr_def le_yx andbT negbK=> /eqP exy; rewrite exy lerr in Nle_xy.
 Qed.
 
-Lemma real_ltrP x y : x \in real -> y \in real ->
+Lemma real_ltrP x y : x \is real -> y \is real ->
   ltr_xor_ge x y `|x - y| `|y - x| (y <= x) (x < y).
 Proof. by move=> xR yR; case: real_lerP=> //; constructor. Qed.
 
@@ -860,8 +857,9 @@ Proof. by move=> x y xR yR /=; case: real_lerP. Qed.
 Lemma real_lerNgt : {in real &, forall x y, (x <= y) = ~~ (y < x)}.
 Proof. by move=> x y xR yR /=; case: real_lerP. Qed.
 
-Lemma real_ltrgtP x y : x \in real -> y \in real ->
-  cparer x y `|x - y| `|y - x| (y == x) (x == y) (x <= y) (y <= x) (x < y) (x > y).
+Lemma real_ltrgtP x y : x \is real -> y \is real ->
+  comparer x y `|x - y| `|y - x| (y == x) (x == y)
+  (x <= y) (y <= x) (x < y) (x > y).
 Proof.
 move=> xR yR; case: real_lerP => // [le_yx|lt_xy]; last first.
   by rewrite gtr_eqF // ltr_eqF // ler_gtF ?ltrW //; constructor.
@@ -879,25 +877,25 @@ CoInductive ler0_xor_gt0 (x : R) : R -> bool -> bool -> Set :=
   | Ler0NotLe0 of x <= 0 : ler0_xor_gt0 x (- x) false true
   | Gtr0NotGt0 of 0 < x  : ler0_xor_gt0 x x true false.
 
-CoInductive cparer0 x : R -> bool -> bool -> bool -> bool -> bool -> bool -> Set :=
-  | CparerGt0 of 0 < x : cparer0 x x false false false true false true
-  | CparerLt0 of x < 0 : cparer0 x (- x) false false true false true false
-  | CparerEq0 of x = 0 : cparer0 x 0 true true true true false false.
+CoInductive comparer0 x : R -> bool -> bool -> bool -> bool -> bool -> bool -> Set :=
+  | ComparerGt0 of 0 < x : comparer0 x x false false false true false true
+  | ComparerLt0 of x < 0 : comparer0 x (- x) false false true false true false
+  | ComparerEq0 of x = 0 : comparer0 x 0 true true true true false false.
 
-Lemma real_ger0P x : x \in real -> ger0_xor_lt0 x `|x| (x < 0) (0 <= x).
+Lemma real_ger0P x : x \is real -> ger0_xor_lt0 x `|x| (x < 0) (0 <= x).
 Proof.
 move=> hx; rewrite -{2}[x]subr0; case: real_ltrP;
 by rewrite ?subr0 ?sub0r //; constructor.
 Qed.
 
-Lemma real_ler0P x : x \in real -> ler0_xor_gt0 x `|x| (0 < x) (x <= 0).
+Lemma real_ler0P x : x \is real -> ler0_xor_gt0 x `|x| (0 < x) (x <= 0).
 Proof.
 move=> hx; rewrite -{2}[x]subr0; case: real_ltrP;
 by rewrite ?subr0 ?sub0r //; constructor.
 Qed.
 
-Lemma real_ltrgt0P x : x \in real ->
-  cparer0 x `|x| (0 == x) (x == 0) (x <= 0) (0 <= x) (x < 0) (x > 0).
+Lemma real_ltrgt0P x : x \is real ->
+  comparer0 x `|x| (0 == x) (x == 0) (x <= 0) (0 <= x) (x < 0) (x > 0).
 Proof.
 move=> hx; rewrite -{2}[x]subr0; case: real_ltrgtP;
 by rewrite ?subr0 ?sub0r //; constructor.
@@ -906,38 +904,38 @@ Qed.
 Lemma real_neqr_lt : {in real &, forall x y, (x != y) = (x < y) || (y < x)}.
 Proof. by move=> * /=; case: real_ltrgtP. Qed.
 
-Lemma ler_sub_real x y : x <= y -> y - x \in real.
+Lemma ler_sub_real x y : x <= y -> y - x \is real.
 Proof. by move=> le_xy; rewrite ger0_real // subr_ge0. Qed.
 
-Lemma ger_sub_real x y : x <= y -> x - y \in real.
+Lemma ger_sub_real x y : x <= y -> x - y \is real.
 Proof. by move=> le_xy; rewrite ler0_real // subr_le0. Qed.
 
-Lemma ler_real y x : x <= y -> (x \in real) = (y \in real).
-Proof. by move=> le_xy; rewrite -(addrNK x y) add_real_l ?ler_sub_real. Qed.
+Lemma ler_real y x : x <= y -> (x \is real) = (y \is real).
+Proof. by move=> le_xy; rewrite -(addrNK x y) rpredDl ?ler_sub_real. Qed.
 
-Lemma ger_real x y : y <= x -> (x \in real) = (y \in real).
+Lemma ger_real x y : y <= x -> (x \is real) = (y \is real).
 Proof. by move=> le_yx; rewrite -(ler_real le_yx). Qed.
 
-Lemma ger1_real x : 1 <= x -> x \in real. Proof. by move=> /ger_real->. Qed.
-Lemma ler1_real x : x <= 1 -> x \in real. Proof. by move=> /ler_real->. Qed.
+Lemma ger1_real x : 1 <= x -> x \is real. Proof. by move=> /ger_real->. Qed.
+Lemma ler1_real x : x <= 1 -> x \is real. Proof. by move=> /ler_real->. Qed.
 
-Lemma Nreal_leF x y : y \in real -> x \notin real -> (x <= y) = false.
+Lemma Nreal_leF x y : y \is real -> x \notin real -> (x <= y) = false.
 Proof. by move=> yR; apply: contraNF=> /ler_real->. Qed.
 
-Lemma Nreal_geF x y : y \in real -> x \notin real -> (y <= x) = false.
+Lemma Nreal_geF x y : y \is real -> x \notin real -> (y <= x) = false.
 Proof. by move=> yR; apply: contraNF=> /ger_real->. Qed.
 
-Lemma Nreal_ltF x y : y \in real -> x \notin real -> (x < y) = false.
+Lemma Nreal_ltF x y : y \is real -> x \notin real -> (x < y) = false.
 Proof. by move=> yR xNR; rewrite ltr_def Nreal_leF ?andbF. Qed.
 
-Lemma Nreal_gtF x y : y \in real -> x \notin real -> (y < x) = false.
+Lemma Nreal_gtF x y : y \is real -> x \notin real -> (y < x) = false.
 Proof. by move=> yR xNR; rewrite ltr_def Nreal_geF ?andbF. Qed.
 
 (* real wlog *)
 
 Lemma real_wlog_ler P : (forall a b, P b a -> P a b)
   -> (forall a b, a <= b -> P a b) ->
-  forall a b : R, a \in real -> b \in real -> P a b.
+  forall a b : R, a \is real -> b \is real -> P a b.
 Proof.
 move=> sP hP a b ha hb; wlog: a b ha hb / a <= b=> [hwlog|]; last exact: hP.
 by case: (real_lerP ha hb)=> [/hP //|/ltrW hba]; apply: sP; apply: hP.
@@ -945,7 +943,7 @@ Qed.
 
 Lemma real_wlog_ltr P : (forall a, P a a) -> (forall a b, (P b a -> P a b))
   -> (forall a b, a < b -> P a b) ->
-  forall a b : R, a \in real -> b \in real -> P a b.
+  forall a b : R, a \is real -> b \is real -> P a b.
 Proof.
 move=> rP sP hP; apply: real_wlog_ler=> // a b.
 by rewrite ler_eqVlt; case: (altP (_ =P _))=> [->|] //= _ lab; apply: hP.
@@ -1394,24 +1392,30 @@ Proof. by move=> x_le0 y_le0; rewrite -(mulr0 x) ler_wnmul2l. Qed.
 
 (* real of mul *)
 
-Lemma realIr x y : x != 0 -> x \in real -> (x * y \in real) = (y \in real).
+Lemma realMr x y : x != 0 -> x \is real -> (x * y \is real) = (y \is real).
 Proof.
 move=> x_neq0 xR; case: real_ltrgtP x_neq0 => // hx _; rewrite !realE.
-* by rewrite nmulr_rge0 // nmulr_rle0 // orbC.
+  by rewrite nmulr_rge0 // nmulr_rle0 // orbC.
 by rewrite pmulr_rge0 // pmulr_rle0 // orbC.
 Qed.
 
-Lemma realrI x y : y != 0 -> y \in real -> (x * y \in real) = (x \in real).
-Proof. by move=> y_neq0 yR; rewrite mulrC realIr. Qed.
+Lemma realrM x y : y != 0 -> y \is real -> (x * y \is real) = (x \is real).
+Proof. by move=> y_neq0 yR; rewrite mulrC realMr. Qed.
 
-Lemma realM : {in real &, forall x y, x * y \in real}.
+Lemma realM : {in real &, forall x y, x * y \is real}.
 Proof.
 move=> x y xR yR; have [->|x_neq0] := eqVneq x 0; first by rewrite mul0r.
-by rewrite realIr.
+by rewrite realMr.
 Qed.
 
-Lemma realrIn x n : (n != 0)%N -> (x *+ n \in real) = (x \in real).
-Proof. by move=> n_neq0; rewrite -mulr_natl realIr ?realn ?pnatr_eq0. Qed.
+Lemma realrMn x n : (n != 0)%N -> (x *+ n \is real) = (x \is real).
+Proof. by move=> n_neq0; rewrite -mulr_natl realMr ?realn ?pnatr_eq0. Qed.
+
+Lemma real_subring_closed : subring_closed (@Rreal R).
+Proof. by split => //; [apply: rpredB | apply: realM]. Qed.
+Canonical real_mulrPred := MulrPred real_subring_closed.
+Canonical real_semiringPred := SemiringPred real_subring_closed.
+Canonical real_subringPred := SubringPred real_subring_closed.
 
 (* ler/ltr and multiplication between a positive/negative *)
 
@@ -1527,20 +1531,20 @@ Proof. by rewrite -oppr_cp0 -invrN invr_ge0 oppr_cp0. Qed.
 Definition invr_gte0 := (invr_ge0, invr_gt0).
 Definition invr_lte0 := (invr_le0, invr_lt0).
 
-Lemma realV : {mono (@GRing.inv R) : x / x \in real}.
+Lemma realV : {mono (@GRing.inv R) : x / x \is real}.
 Proof. by move=> x /=; rewrite !realE invr_ge0 invr_le0. Qed.
+
+Lemma real_invr_closed : GRing.invr_closed (@Rreal R).
+Proof. by move=> x xR /=; rewrite realV. Qed.
+Canonical real_divrPred := DivrPred real_invr_closed.
+Canonical real_divringPred := DivringPred real_invr_closed.
 
 (* ler and exprn *)
 Lemma exprn_ge0 n x (hx : 0 <= x) : (0 <= x ^+ n).
 Proof. by elim: n=> [|n ihn]; rewrite ?ler01 // exprS mulr_ge0 ?ihn. Qed.
 
-Lemma realX n : {in real, forall x, x ^+ n \in real}.
-Proof.
-move=> x /orP [x_ge0|x_le0]; first by rewrite ger0_real ?exprn_ge0.
-rewrite -[x]opprK -mulN1r exprMn realM -1?signr_odd //.
-  by case: odd; rewrite (expr0, expr1) ?realN ?real1.
-by rewrite ger0_real ?exprn_ge0 ?oppr_ge0.
-Qed.
+Lemma realX n : {in real, forall x, x ^+ n \is real}.
+Proof. exact: rpredX. Qed.
 
 Lemma exprn_gt0 n x (hx : 0 < x) : (0 < x ^+ n).
 Proof. by elim: n=> [|n ihn]; rewrite ?ltr01 // exprS pmulr_rgt0 ?ihn. Qed.
@@ -1782,9 +1786,16 @@ Proof. by rewrite -invr_gt1 ?invr_gt0 ?unitrV // invrK. Qed.
 Definition invr_lte1 := (invr_le1, invr_lt1).
 Definition invr_cp1 := (invr_gte1, invr_lte1).
 
+(* norm *)
+
+Lemma real_ler_norm x : x \is real -> x <= `|x|.
+Proof.
+by case/real_ger0P=> hx //; rewrite (ler_trans (ltrW hx)) // oppr_ge0 ltrW.
+Qed.
+
 (* norm + add *)
 
-Lemma normr_real x : `|x| \in real. Proof. by rewrite ger0_real. Qed.
+Lemma normr_real x : `|x| \is real. Proof. by rewrite ger0_real. Qed.
 Hint Resolve normr_real.
 
 Lemma ler_norm_sum I r (G : I -> R) (P : pred I):
@@ -1818,7 +1829,7 @@ Qed.
 Lemma ler_dist_norm_add x y : `| `|x| - `|y| | <= `| x + y |.
 Proof. by rewrite -[y]opprK normrN ler_dist_dist. Qed.
 
-Lemma real_ler_norml x y : x \in real -> (`|x| <= y) = (- y <= x <= y).
+Lemma real_ler_norml x y : x \is real -> (`|x| <= y) = (- y <= x <= y).
 Proof.
 move=> xR; wlog x_ge0 : x xR / 0 <= x => [hwlog|].
   move: (xR) => /(@real_leVge 0) /orP [|/hwlog->|hx] //.
@@ -1827,14 +1838,14 @@ rewrite ger0_norm //; have [le_xy|] := boolP (x <= y); last by rewrite andbF.
 by rewrite (ler_trans _ x_ge0) // oppr_le0 (ler_trans x_ge0).
 Qed.
 
-Lemma real_ler_normlP x y (xR : x \in real) :
+Lemma real_ler_normlP x y (xR : x \is real) :
   reflect ((-x <= y) * (x <= y)) (`|x| <= y).
 Proof.
 by rewrite real_ler_norml // ler_oppl; apply: (iffP (@andP _ _)); case.
 Qed.
 Implicit Arguments real_ler_normlP [x y xR].
 
-Lemma real_eqr_norml x y (xR : x \in real) :
+Lemma real_eqr_norml x y (xR : x \is real) :
   (`|x| == y) = ((x == y) || (x == -y)) && (0 <= y).
 Proof.
 apply/idP/idP=> [|/andP [/orP [] /eqP-> /ger0_norm /eqP]]; rewrite ?normrE //.
@@ -1843,14 +1854,14 @@ case: real_ler0P => // hx; rewrite 1?eqr_oppC => /eqP exy.
 by move: hx=> /ltrW; rewrite exy eqxx.
 Qed.
 
-Lemma real_eqr_norm2 x y (xR : x \in real) (yR : y \in real) :
+Lemma real_eqr_norm2 x y (xR : x \is real) (yR : y \is real) :
   (`|x| == `|y|) = (x == y) || (x == -y).
 Proof.
 rewrite real_eqr_norml // normrE andbT.
 by case: real_ler0P; rewrite // opprK orbC.
 Qed.
 
-Lemma real_ltr_norml x y (xR : x \in real) : (`|x| < y) = (- y < x < y).
+Lemma real_ltr_norml x y (xR : x \is real) : (`|x| < y) = (- y < x < y).
 Proof.
 wlog x_ge0 : x xR / 0 <= x => [hwlog|].
   move: (xR) => /(@real_leVge 0) /orP [|/hwlog->|hx] //.
@@ -1861,25 +1872,25 @@ Qed.
 
 Definition real_lter_norml := (real_ler_norml, real_ltr_norml).
 
-Lemma real_ltr_normlP x y (xR : x \in real) :
+Lemma real_ltr_normlP x y (xR : x \is real) :
   reflect ((-x < y) * (x < y)) (`|x| < y).
 Proof.
 by rewrite real_ltr_norml // ltr_oppl; apply: (iffP (@andP _ _)); case.
 Qed.
 Implicit Arguments real_ltr_normlP [x y xR].
 
-Lemma real_ler_normr x y (yR : y \in real) :
+Lemma real_ler_normr x y (yR : y \is real) :
   (x <= `|y|) = (x <= y) || (x <= - y).
 Proof.
-have [xR|xNR] := boolP (x \in real); last by rewrite ?Nreal_leF ?realN.
+have [xR|xNR] := boolP (x \is real); last by rewrite ?Nreal_leF ?realN.
 rewrite real_lerNgt ?real_ltr_norml // negb_and -?real_lerNgt ?realN //.
 by rewrite orbC ler_oppr.
 Qed.
 
-Lemma real_ltr_normr x y (yR : y \in real) :
+Lemma real_ltr_normr x y (yR : y \is real) :
   (x < `|y|) = (x < y) || (x < - y).
 Proof.
-have [xR|xNR] := boolP (x \in real); last by rewrite ?Nreal_ltF ?realN.
+have [xR|xNR] := boolP (x \is real); last by rewrite ?Nreal_ltF ?realN.
 rewrite real_ltrNge ?real_ler_norml // negb_and -?real_ltrNge ?realN //.
 by rewrite orbC ltr_oppr.
 Qed.
@@ -1894,11 +1905,11 @@ Proof. by rewrite ler_gtF // (ler_trans hy). Qed.
 
 Definition lter_nnormr := (ler_nnorml, ltr_nnorml).
 
-Lemma real_ler_distl x y e (xyR : x - y \in real) :
+Lemma real_ler_distl x y e (xyR : x - y \is real) :
   (`|x - y| <= e) = (y - e <= x <= y + e).
 Proof. by rewrite real_lter_norml // !lter_sub_addl. Qed.
 
-Lemma real_ltr_distl x y e (xyR : x - y \in real) :
+Lemma real_ltr_distl x y e (xyR : x - y \is real) :
   (`|x - y| < e) = (y - e < x < y + e).
 Proof. by rewrite real_lter_norml // !lter_sub_addl. Qed.
 
@@ -1911,7 +1922,7 @@ Lemma eqr_norm_id x : (`|x| == x) = (0 <= x). Proof. by rewrite ger0_def. Qed.
 Lemma eqr_normN x : (`|x| == -x) = (x <= 0). Proof. by rewrite ler0_def. Qed.
 Definition eqr_norm_idVN := (eqr_norm_id, eqr_normN).
 
-Lemma real_exprn_even_ge0 n x : x \in real -> ~~ odd n -> 0 <= x ^+ n.
+Lemma real_exprn_even_ge0 n x : x \is real -> ~~ odd n -> 0 <= x ^+ n.
 Proof.
 move=> xR even_n; have [/exprn_ge0 -> //|x_lt0] := real_ger0P xR.
 rewrite -[x]opprK -mulN1r exprMn -signr_odd (negPf even_n) expr0 mul1r.
@@ -1919,7 +1930,8 @@ by rewrite exprn_ge0 ?oppr_ge0 ?ltrW.
 Qed.
 
 (* particular case for squares *)
-Lemma real_sqr_ge0 (x : R) : x \in real -> 0 <= x ^+ 2.
+
+Lemma real_sqr_ge0 (x : R) : x \is real -> 0 <= x ^+ 2.
 Proof. by move=> xR; rewrite real_exprn_even_ge0. Qed.
 
 (* norm    and    unit & inv *)
@@ -1959,6 +1971,55 @@ Proof. by rewrite ler_eqVlt signr_eq0 signr_lt0. Qed.
 Lemma neqr0_sign (x : R) : x != 0 -> (-1) ^+ (x < 0)%R = sgr x.
 Proof. by rewrite sgr_def  => ->. Qed.
 
+(* lerif *)
+
+Lemma lerif_refl x c : reflect (x <= x ?= iff c) c.
+Proof. by apply: (iffP idP) => [-> | <-] //; split; rewrite ?eqxx. Qed.
+
+Lemma lerif_trans x1 x2 x3 c1 c2 :
+  x1 <= x2 ?= iff c1 -> x2 <= x3 ?= iff c2 -> x1 <= x3 ?= iff c1 && c2.
+Proof.
+move=> ltx12 ltx23; apply/lerifP; rewrite -ltx12.
+case eqx12: (x1 == x2).
+  by rewrite (eqP eqx12) ltr_neqAle !ltx23 andbT; case c2.
+by rewrite (@ltr_le_trans _ x2) ?ltx23 // ltr_neqAle eqx12 ltx12.
+Qed.
+
+Lemma lerif_le x y : x <= y -> x <= y ?= iff (x >= y).
+Proof. by move=> lexy; split=> //; rewrite eqr_le lexy. Qed.
+
+Lemma lerif_eq x y : x <= y -> x <= y ?= iff (x == y).
+Proof. by []. Qed.
+
+Lemma ger_lerif x y C : x <= y ?= iff C -> (y <= x) = C.
+Proof. by case=> le_xy; rewrite eqr_le le_xy. Qed.
+
+Lemma mono_lerif (f : R -> R) : {mono f : x y / x <= y} ->
+  forall x y c, (f x <= f y ?= iff c) <-> (x <= y ?= iff c).
+Proof. by move=> mf x y c; rewrite /lerif mf (inj_eq (mono_inj _)). Qed.
+
+Lemma lerif_add x1 y1 c1 x2 y2 c2 :
+    x1 <= y1 ?= iff c1 -> x2 <= y2 ?= iff c2 ->
+    x1 + x2 <= y1 + y2 ?= iff c1 && c2.
+Proof.
+move=> /(mono_lerif (ler_add2r x2)) le1 /(mono_lerif (ler_add2l y1)).
+exact: lerif_trans le1.
+Qed.
+
+Lemma lerif_sum (I : finType) (P C : pred I) (E1 E2 : I -> R) :
+    (forall i, P i -> E1 i <= E2 i ?= iff C i) ->
+  \sum_(i | P i) E1 i <= \sum_(i | P i) E2 i ?= iff (forallb i, P i ==> C i).
+Proof.
+move=> leE12; rewrite -big_andE.
+elim/big_rec3: _ => [|i Ci m1 m2 /leE12]; first by rewrite /lerif lerr eqxx.
+exact: lerif_add.
+Qed.
+
+Lemma real_lerif_norm x : x \is real -> x <= `|x| ?= iff (0 <= x).
+Proof. 
+by move=> xR; rewrite ger0_def eq_sym; apply: lerif_eq; rewrite real_ler_norm.
+Qed.
+
 End PIntegralDomainOperationTheory.
 
 Section PIntegralDomainMonotonyTheoryBis.
@@ -1988,7 +2049,7 @@ by rewrite ltrW_nhomo.
 Qed.
 
 Lemma real_mono_in (mf : {in D &, {homo f : x y / x < y}}) :
-  {in [pred x | (x \in real) && (x \in D)] &, {mono f : x y / x <= y}}.
+  {in [pred x | (x \is real) && (x \in D)] &, {mono f : x y / x <= y}}.
 Proof.
 move=> x y /andP [xR hx] /andP [yR hy] /=.
 have [lt_xy|le_yx] := real_lerP xR yR.
@@ -1997,7 +2058,7 @@ by rewrite ltr_geF ?mf.
 Qed.
 
 Lemma real_nmono_in  (mf : {in D &, {homo f : x y /~ x < y}}) :
-  {in [pred x | (x \in real) && (x \in D)] &, {mono f : x y /~ x <= y}}.
+  {in [pred x | (x \is real) && (x \in D)] &, {mono f : x y /~ x <= y}}.
 Proof.
 move=> x y /andP [xR hx] /andP [yR hy] /=.
 have [lt_xy|le_yx] := real_ltrP xR yR.
@@ -2266,7 +2327,7 @@ End ClosedField.
 Import ClosedField.Exports.
 
 Definition total_mixin_of (R : PIntegralDomain.type) :=
-  forall x : R, x \in real.
+  forall x : R, x \is real.
 
 Section POLeMixin.
 
@@ -2500,7 +2561,7 @@ Hint Resolve lerr.
 Variable R : TIntegralDomain.type.
 Implicit Types x y z t : R.
 
-Lemma ordered_real x : x \in real. Proof. by case: R x=> T []. Qed.
+Lemma ordered_real x : x \is real. Proof. by case: R x=> T []. Qed.
 Hint Resolve ordered_real.
 
 Lemma ler_total : total (@ler R). Proof. by move=> *; apply: real_leVge. Qed.
@@ -2526,7 +2587,7 @@ Proof. by case: real_lerP=> // *; constructor. Qed.
 Lemma ltrP x y : ltr_xor_ge x y `|x - y| `|y - x| (y <= x) (x < y).
 Proof. by case: real_ltrP=> // *; constructor. Qed.
 
-Lemma ltrgtP x y : cparer x y `|x - y| `|y - x| (y == x) (x == y)
+Lemma ltrgtP x y : comparer x y `|x - y| `|y - x| (y == x) (x == y)
   (x <= y) (y <= x) (x < y) (x > y) .
 Proof. by case: real_ltrgtP=> // *; constructor. Qed.
 
@@ -2537,7 +2598,7 @@ Lemma ler0P x : ler0_xor_gt0 x `|x| (0 < x) (x <= 0).
 Proof. by case: real_ler0P=> //; constructor. Qed.
 
 Lemma ltrgt0P x :
-  cparer0 x `|x| (0 == x) (x == 0) (x <= 0) (0 <= x) (x < 0) (x > 0).
+  comparer0 x `|x| (0 == x) (x == 0) (x <= 0) (0 <= x) (x < 0) (x > 0).
 Proof. by case: real_ltrgt0P=> //; constructor. Qed.
 
 Lemma neqr_lt x y : (x != y) = (x < y) || (y < x).
@@ -2571,13 +2632,22 @@ Proof. by rewrite -normrN -oppr_lt0 mulr_sign_norm. Qed.
 Lemma normr_dec_sign (x : R) : `|x| = (-1) ^+ (x < 0)%R * x.
 Proof. by rewrite -{3}[x]mulr_sign_norm mulrA -signr_addb addbb mul1r. Qed.
 
+Lemma mulr_lt0 (x y : R) :
+         (x * y < 0) = [&& x != 0, y != 0 & (x < 0) (+) (y < 0)].
+Proof.
+have [x_gt0|x_lt0|->] /= := ltrgt0P x; last by rewrite mul0r.
+  by rewrite pmulr_rlt0 //; case: ltrgt0P.
+by rewrite nmulr_rlt0 //; case: ltrgt0P.
+Qed.
+
 Lemma neq0_mulr_lt0 (x y : R) : x != 0 -> y != 0 ->
          (x * y < 0) = (x < 0) (+) (y < 0).
-Proof.
-move=> x_neq0 y_neq0; case: (ltrgt0P x) x_neq0 => //= hx _.
-  by rewrite pmulr_rlt0.
-by rewrite nmulr_rlt0 //; case: ltrgt0P y_neq0.
-Qed.
+Proof. by move=> x_neq0 y_neq0; rewrite mulr_lt0 x_neq0 y_neq0. Qed.
+
+Lemma mulr_sign_lt0 (b : bool) (x : R) :
+  ((-1) ^+ b * x < 0) = (x != 0) && (b (+) (x < 0)%R).
+Proof. by rewrite mulr_lt0 signr_lt0 signr_eq0. Qed.
+
 
 Section FinGroup.
 
@@ -3441,7 +3511,7 @@ have [a_ge0|a_lt0] := ger0P a.
 by rewrite ltr0_sqrtr //; constructor.
 Qed.
 
-(* move to orderedalg for any oIdomainType of with precondition a \in real *)
+(* move to orderedalg for any oIdomainType of with precondition a \is real *)
 
 Lemma sqrtr_sqr a : sqrtr (a ^+ 2) = `|a|.
 Proof.

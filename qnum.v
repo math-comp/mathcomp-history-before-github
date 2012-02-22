@@ -50,10 +50,10 @@ Proof. exact: negPf (denq_neq0 _). Qed.
 Lemma coprime_num_den x : coprime (absz (numq x)) (absz (denq x)).
 Proof. by rewrite /numq /denq; case: x=> [[a b] /= /andP []]. Qed.
 
-Lemma QnumK x P : @Qnum (numq x, denq x) P = x.
+Fact QnumK x P : @Qnum (numq x, denq x) P = x.
 Proof. by move:x P => [[a b] P'] P; apply: val_inj. Qed.
 
-Lemma fracq_subproof : forall x : zint * zint,
+Fact fracq_subproof : forall x : zint * zint,
   let n := if x.2 == 0 then 0 else
     (-1) ^ ((x.2 < 0) (+) (x.1 < 0)) 
          * ((absz x.1) %/ gcdn (absz x.1) (absz x.2))%:Z in
@@ -74,10 +74,10 @@ Qed.
 
 Definition fracq (x : zint * zint) := nosimpl (@Qnum (_, _) (fracq_subproof x)).
 
-Lemma qnumzE n : qnumz n = fracq (n, 1).
+Fact qnumzE n : qnumz n = fracq (n, 1).
 Proof. by apply: val_inj; rewrite /= gcdn1 !divn1 abszE mulr_sign_norm. Qed.
 
-Lemma valqK x : fracq (valq x) = x.
+Fact valqK x : fracq (valq x) = x.
 Proof.
 move:x => [[n d] /= Pnd]; apply: val_inj=> /=.
 move: Pnd; rewrite /coprime /fracq /=; case/andP=> hd; move/eqP=> hnd.
@@ -87,7 +87,7 @@ Qed.
 Definition scalq := locked (fun x =>
            sgr x.2 * (gcdn (absz x.1) (absz x.2))%:Z).
 
-Lemma scalq_eq0 x : (scalq x == 0) = (x.2 == 0).
+Fact scalq_eq0 x : (scalq x == 0) = (x.2 == 0).
 Proof.
 case: x => n d; rewrite /scalq -lock /= mulf_eq0 sgr_eq0 /= eqz_nat.
 rewrite -[gcdn _ _ == 0%N]negbK -lt0n gcdn_gt0 ?absz_gt0 [X in ~~ X]orbC.
@@ -107,7 +107,7 @@ Lemma scalqE x : x.2 != 0 -> scalq x =
           (-1) ^+ (x.2 < 0)%R * (gcdn (absz x.1) (absz x.2))%:Z.
 Proof. by unlock scalq; case: sgrP. Qed.
 
-Lemma valq_frac x : x.2 != 0 ->
+Fact valq_frac x : x.2 != 0 ->
  x = (scalq x * numq (fracq x), scalq x * denq (fracq x)).
 Proof.
 case: x => [n d] /= d_neq0; rewrite /denq /numq scalqE //= (negPf d_neq0).
@@ -119,20 +119,20 @@ Qed.
 Local Notation zeroq := (fracq (0, 1)).
 Local Notation oneq := (fracq (1, 1)).
 
-Lemma frac0q x : fracq (0, x) = zeroq.
+Fact frac0q x : fracq (0, x) = zeroq.
 Proof.
 apply: val_inj; rewrite //= div0n !gcd0n !mulr0 !divnn.
 by have [//|x_neq0] := altP eqP; rewrite absz_gt0 x_neq0.
 Qed.
 
-Lemma fracq0  x : fracq (x, 0) = zeroq. Proof. exact/eqP. Qed.
+Fact fracq0  x : fracq (x, 0) = zeroq. Proof. exact/eqP. Qed.
 
 CoInductive fracq_spec (x : zint * zint) : zint * zint -> qnum -> Type :=
 | FracqSpecN of x.2 = 0 : fracq_spec x (x.1, 0) zeroq
 | FracqSpecP k fx of k != 0 :
   fracq_spec x (k * numq fx, k * denq fx) fx.
 
-Lemma fracqP x : fracq_spec x x (fracq x).
+Fact fracqP x : fracq_spec x x (fracq x).
 Proof.
 case: x => n d /=; have [d_eq0|d_neq0] := eqVneq d 0.
   by rewrite d_eq0 fracq0; constructor.
@@ -146,7 +146,9 @@ by rewrite xpair_eqE.
 Qed.
 
 Lemma sgr_denq x : sgr (denq x) = 1. Proof. by apply/eqP; rewrite sgr_cp0. Qed.
+
 Lemma normr_denq x : `|denq x| = denq x. Proof. by rewrite gtr0_norm. Qed.
+
 Lemma absz_denq x : absz (denq x) = denq x :> zint.
 Proof. by rewrite abszE normr_denq. Qed.
 
@@ -161,7 +163,7 @@ rewrite -(@gauss _ (absz (numq y))) 1?coprime_sym ?coprime_num_den //.
 by rewrite -!abszM hxy -{1}hxy !abszM !dvdn_mull ?dvdnn.
 Qed.
 
-Lemma fracq_eq x y : x.2 != 0 -> y.2 != 0 ->
+Fact fracq_eq x y : x.2 != 0 -> y.2 != 0 ->
   (fracq x == fracq y) = (x.1 * y.2 == y.1 * x.2).
 Proof.
 case: fracqP=> //= u fx u_neq0 _; case: fracqP=> //= v fy v_neq0 _; symmetry.
@@ -169,14 +171,14 @@ rewrite [X in (_ == X)]mulrC mulrMM [X in (_ == X)]mulrMM.
 by rewrite [denq _ * _]mulrC (inj_eq (mulfI _)) ?mulf_neq0 // qnum_eq.
 Qed.
 
-Lemma fracq_eq0 x : (fracq x == fracq (0, 1)) = (x.1 == 0) || (x.2 == 0).
+Fact fracq_eq0 x : (fracq x == fracq (0, 1)) = (x.1 == 0) || (x.2 == 0).
 Proof.
 move: x=> [n d] /=; have [->|d0] := altP (d =P 0).
   by rewrite fracq0 eqxx orbT.
 by rewrite orbF fracq_eq ?d0 //= mulr1 mul0r.
 Qed.
 
-Lemma fracqMM x n d : x != 0 -> fracq (x * n, x * d) = fracq (n, d).
+Fact fracqMM x n d : x != 0 -> fracq (x * n, x * d) = fracq (n, d).
 Proof.
 move=> x_neq0; apply/eqP.
 have [->|d_neq0] := eqVneq d 0; first by rewrite mulr0 !fracq0.
@@ -191,15 +193,15 @@ Definition addq (x y : qnum) := nosimpl fracq (add (valq x) (valq y)).
 Definition opp (x : zint * zint) := (- x.1, x.2).
 Definition oppq (x : qnum) := nosimpl fracq (opp (valq x)).
 
-Lemma addC : commutative add.
+Fact addC : commutative add.
 Proof. by move=> x y; rewrite /add addrC [_.2 * _]mulrC. Qed.
 
-Lemma addA : associative add.
+Fact addA : associative add.
 Proof.
 by move=> x y z; rewrite /add !mulrA !mulrDl addrA ![_ * x.2]mulrC !mulrA.
 Qed.
 
-Lemma addq_frac x y : x.2 != 0 -> y.2 != 0 ->
+Fact addq_frac x y : x.2 != 0 -> y.2 != 0 ->
   (addq (fracq x) (fracq y)) = fracq (add x y).
 Proof.
 case: fracqP => // u fx u_neq0 _; case: fracqP => // v fy v_neq0 _.
@@ -207,34 +209,34 @@ rewrite /add /= ![(_ * numq _) * _]mulrMM [(_ * denq _) * _]mulrMM.
 by rewrite [v * _]mulrC -mulrDr fracqMM ?mulf_neq0.
 Qed.
 
-Lemma qnumzD : {morph qnumz : x y / x + y >-> addq x y}.
+Fact qnumzD : {morph qnumz : x y / x + y >-> addq x y}.
 Proof. by move=> x y /=; rewrite !qnumzE addq_frac // /add /= !mulr1. Qed.
 
-Lemma oppq_frac x : oppq (fracq x) = fracq (opp x).
+Fact oppq_frac x : oppq (fracq x) = fracq (opp x).
 Proof.
 rewrite /opp; case: fracqP=> /= [|u fx u_neq0]; first by rewrite fracq0.
 by rewrite -mulrN fracqMM.
 Qed.
 
-Lemma qnumzN : {morph qnumz : x / - x >-> oppq x}.
+Fact qnumzN : {morph qnumz : x / - x >-> oppq x}.
 Proof. by move=> x /=; rewrite !qnumzE oppq_frac // /add /= !mulr1. Qed.
 
-Lemma addqC : commutative addq.
+Fact addqC : commutative addq.
 Proof. by move=> x y; rewrite /addq /=; rewrite addC. Qed.
 
-Lemma addqA : associative addq.
+Fact addqA : associative addq.
 Proof.
 move=> x y z; rewrite -[x]valqK -[y]valqK -[z]valqK.
 by rewrite !addq_frac ?mulf_neq0 ?denq_neq0 // addA.
 Qed.
 
-Lemma add0q : left_id (fracq (0, 1)) addq.
+Fact add0q : left_id (fracq (0, 1)) addq.
 Proof.
 move=> x; rewrite -[x]valqK addq_frac ?denq_neq0 // /add /=.
 by rewrite mul0r add0r mulr1 mul1r -surjective_pairing.
 Qed.
 
-Lemma addNq : left_inverse (fracq (0, 1)) oppq addq.
+Fact addNq : left_inverse (fracq (0, 1)) oppq addq.
 Proof.
 move=> x; rewrite -[x]valqK !(addq_frac, oppq_frac) ?denq_neq0 /add /opp //=.
 rewrite mulNr addNr; apply/eqP.
@@ -247,15 +249,15 @@ Canonical qnum_ZmodType := ZmodType qnum qnum_ZmodMixin.
 Definition mul (x y : zint * zint) := nosimpl (x.1 * y.1, x.2 * y.2).
 Definition mulq (x y : qnum) := nosimpl fracq (mul (valq x) (valq y)).
 
-Lemma mulC : commutative mul.
+Fact mulC : commutative mul.
 Proof. by move=> x y; rewrite /mul mulrC [_ * x.2]mulrC. Qed.
 
-Lemma mulA : associative mul. Proof. by move=> x y z; rewrite /mul !mulrA. Qed.
+Fact mulA : associative mul. Proof. by move=> x y z; rewrite /mul !mulrA. Qed.
 
 Definition inv (x : zint * zint) := nosimpl (x.2, x.1).
 Definition invq (x : qnum) := nosimpl fracq (inv (valq x)).
 
-Lemma mulq_frac x y : (mulq (fracq x) (fracq y)) = fracq (mul x y).
+Fact mulq_frac x y : (mulq (fracq x) (fracq y)) = fracq (mul x y).
 Proof.
 rewrite /mul; case: fracqP => /= [|u fx u_neq0].
   by rewrite mul0r fracq0 /mulq /mul /= mul0r frac0q.
@@ -264,26 +266,26 @@ case: fracqP=> /= [|v fy v_neq0].
 by rewrite ![_ * (v * _)]mulrMM fracqMM ?mulf_neq0.
 Qed.
 
-Lemma qnumzM : {morph qnumz : x y / x * y >-> mulq x y}.
+Fact qnumzM : {morph qnumz : x y / x * y >-> mulq x y}.
 Proof. by move=> x y /=; rewrite !qnumzE mulq_frac // /mul /= !mulr1. Qed.
 
-Lemma invq_frac x : x.1 != 0 -> x.2 != 0 -> invq (fracq x) = fracq (inv x).
+Fact invq_frac x : x.1 != 0 -> x.2 != 0 -> invq (fracq x) = fracq (inv x).
 Proof. by rewrite /inv; case: fracqP => // k {x} x k0; rewrite fracqMM. Qed.
 
-Lemma mulqC : commutative mulq. Proof. by move=> x y; rewrite /mulq mulC. Qed.
+Fact mulqC : commutative mulq. Proof. by move=> x y; rewrite /mulq mulC. Qed.
 
-Lemma mulqA : associative mulq.
+Fact mulqA : associative mulq.
 Proof.
 by move=> x y z; rewrite -[x]valqK -[y]valqK -[z]valqK !mulq_frac mulA.
 Qed.
 
-Lemma mul1q : left_id (fracq (1,1)) mulq.
+Fact mul1q : left_id (fracq (1,1)) mulq.
 Proof.
 move=> x; rewrite -[x]valqK; rewrite mulq_frac /mul.
 by rewrite !mul1r -surjective_pairing.
 Qed.
 
-Lemma mulq_addl : left_distributive mulq addq.
+Fact mulq_addl : left_distributive mulq addq.
 Proof.
 move=> x y z; rewrite -[x]valqK -[y]valqK -[z]valqK /=.
 rewrite !(mulq_frac, addq_frac) ?mulf_neq0 ?denq_neq0 //=.
@@ -291,7 +293,7 @@ apply/eqP; rewrite fracq_eq ?mulf_neq0 ?denq_neq0 //= !mulrDl; apply/eqP.
 by rewrite !mulrA ![_ * (valq z).1]mulrC !mulrA ![_ * (valq x).2]mulrC !mulrA.
 Qed.
 
-Lemma nonzero1q : (fracq (1, 1)) != (fracq (0, 1)). Proof. by []. Qed.
+Fact nonzero1q : (fracq (1, 1)) != (fracq (0, 1)). Proof. by []. Qed.
 
 Definition qnum_comRingMixin :=
   ComRingMixin mulqA mulqC mul1q mulq_addl nonzero1q.
@@ -299,21 +301,21 @@ Canonical  qnum_Ring := Eval hnf in RingType qnum qnum_comRingMixin.
 Canonical qnum_comRing := Eval hnf in ComRingType qnum mulqC.
 
 
-Lemma mulVq x : x != (fracq (0, 1)) -> mulq (invq x) x = (fracq (1, 1)).
+Fact mulVq x : x != (fracq (0, 1)) -> mulq (invq x) x = (fracq (1, 1)).
 Proof.
 rewrite -[x]valqK fracq_eq ?denq_neq0 //= mulr1 mul0r=> nx0.
 rewrite !(mulq_frac, invq_frac) ?denq_neq0 //.
 by apply/eqP; rewrite fracq_eq ?mulf_neq0 ?denq_neq0 //= mulr1 mul1r mulrC.
 Qed.
 
-Lemma invq0 : invq (fracq (0, 1)) = (fracq (0, 1)). Proof. by apply/eqP. Qed.
+Fact invq0 : invq (fracq (0, 1)) = (fracq (0, 1)). Proof. by apply/eqP. Qed.
 
 Definition QnumFieldUnitMixin := FieldUnitMixin mulVq invq0.
 Canonical qnum_unitRing :=
   Eval hnf in UnitRingType qnum QnumFieldUnitMixin.
 Canonical qnum_comUnitRing := Eval hnf in [comUnitRingType of qnum].
 
-Lemma field_axiom : GRing.Field.mixin_of qnum_unitRing.
+Fact field_axiom : GRing.Field.mixin_of qnum_unitRing.
 Proof. exact. Qed.
 
 Definition QnumFieldIdomainMixin := (FieldIdomainMixin field_axiom).
@@ -345,7 +347,7 @@ Notation "n %:Q" := ((n : zint)%:~R : qnum)
 
 (* Eval compute in (8%:Q / 15%:Q >= 1 / 2%:Q :> qnum). (* OK *) *)
 
-Lemma zintqE n : n%:Q = qnumz n.
+Fact zintqE n : n%:Q = qnumz n.
 Proof.
 elim: n=> [|n ihn|n ihn]; first by rewrite mulr0z qnumzE.
   by rewrite zintS mulrzDl QnumField.qnumzD ihn.
@@ -375,7 +377,8 @@ rewrite /denq; case: x=> [[a b] /= /andP [hb]]; rewrite /coprime=> /eqP hab.
 by rewrite gtr_eqF // abszN hab divn1 gtz0_abs.
 Qed.
 
-Lemma zintq_eq0 n : (n%:~R == 0 :> qnum) = (n == 0)%N.
+(* Will be subsumed by pnatr_eq0 *)
+Fact zintq_eq0 n : (n%:~R == 0 :> qnum) = (n == 0)%N.
 Proof. by rewrite zintqE /qnumz qnum_eqE /numq /denq /= mulr0 eqxx andbT. Qed.
 
 (* fracq should never apear, its canonical form is _%:Q / _%:Q *)
@@ -396,7 +399,8 @@ CoInductive divq_spec (n d : zint) : zint -> zint -> qnum -> Type :=
 | DivqSpecN of d = 0 : divq_spec n d n 0 0
 | DivqSpecP k x of k != 0 : divq_spec n d (k * numq x) (k * denq x) x.
 
-Lemma  divqP n d : divq_spec n d n d (n%:Q / d%:Q).
+(* replaces fracqP *)
+Lemma divqP n d : divq_spec n d n d (n%:Q / d%:Q).
 Proof.
 set x := (n, d); rewrite -[n]/x.1 -[d]/x.2 -fracqE.
 by case: fracqP => [_|k fx k_neq0] /=; constructor. 
@@ -460,7 +464,7 @@ Proof. by rewrite /le_qnum mul0r mulr1. Qed.
 Lemma le_qnum0 x : le_qnum x 0 = (numq x <= 0).
 Proof. by rewrite /le_qnum mul0r mulr1. Qed.
 
-Lemma le_qnum0D x y : le_qnum 0 x -> le_qnum 0 y -> le_qnum 0 (x + y).
+Fact le_qnum0D x y : le_qnum 0 x -> le_qnum 0 y -> le_qnum 0 (x + y).
 Proof.
 rewrite !ge_qnum0 => hnx hny.
 have hxy: (0 <= numq x * denq y + numq y * denq x).
@@ -468,7 +472,7 @@ have hxy: (0 <= numq x * denq y + numq y * denq x).
 by rewrite /numq /= -!/(denq _) ?mulf_eq0 ?denq_eq0 !ler_gtF ?mulr_ge0.
 Qed.
 
-Lemma le_qnum0M x y : le_qnum 0 x -> le_qnum 0 y -> le_qnum 0 (x * y).
+Fact le_qnum0M x y : le_qnum 0 x -> le_qnum 0 y -> le_qnum 0 (x * y).
 Proof.
 rewrite !ge_qnum0 => hnx hny.
 have hxy: (0 <= numq x * denq y + numq y * denq x).
@@ -476,7 +480,7 @@ have hxy: (0 <= numq x * denq y + numq y * denq x).
 by rewrite /numq /= -!/(denq _) ?mulf_eq0 ?denq_eq0 !ler_gtF ?mulr_ge0.
 Qed.
 
-Lemma le_qnum0_anti x : le_qnum 0 x -> le_qnum x 0 -> x = 0.
+Fact le_qnum0_anti x : le_qnum 0 x -> le_qnum x 0 -> x = 0.
 Proof.
 by move=> hx hy; apply/eqP; rewrite -numq_eq0 eqr_le -ge_qnum0 -le_qnum0 hx hy.
 Qed.
@@ -488,7 +492,7 @@ case: fracqP => [|k fx k_neq0] /=; first by rewrite mulr0.
 by rewrite !sgrM mulrMM mulr_sg k_neq0 sgr_denq mulr1 mul1r.
 Qed.
 
-Lemma subq_ge0 x y : le_qnum 0 (y - x) = le_qnum x y.
+Fact subq_ge0 x y : le_qnum 0 (y - x) = le_qnum x y.
 Proof.
 symmetry; rewrite ge_qnum0 /le_qnum -subr_ge0.
 case: qnumP => nx dx cndx; case: qnumP => ny dy cndy.
@@ -497,13 +501,13 @@ symmetry; rewrite !lerNgt -sgr_cp0 sgr_numq_div mulrC gtr0_sg //.
 by rewrite mul1r sgr_cp0.
 Qed.
 
-Lemma le_qnum_total : total le_qnum.
+Fact le_qnum_total : total le_qnum.
 Proof. by move=> x y; apply: ler_total. Qed.
 
-Lemma numq_sign_mul (b : bool) x : numq ((-1) ^+ b * x) = (-1) ^+ b * numq x.
+Fact numq_sign_mul (b : bool) x : numq ((-1) ^+ b * x) = (-1) ^+ b * numq x.
 Proof. by case: b; rewrite ?(mul1r, mulN1r) // numqN. Qed.
 
-Lemma numq_div_lt0 n d : n != 0 -> d != 0 ->
+Fact numq_div_lt0 n d : n != 0 -> d != 0 ->
   (numq (n%:~R / d%:~R) < 0)%R = (n < 0)%R (+) (d < 0)%R.
 Proof.
 move=> n0 d0; rewrite -sgr_cp0 sgr_numq_div !sgr_def n0 d0.
@@ -519,16 +523,16 @@ rewrite !zintr_sign invr_sign -signr_addb numq_sign_mul -numq_div_lt0 //.
 by apply: (canRL (signrMK _)); rewrite mulz_sign_abs.
 Qed.
 
-Lemma norm_qnumN x : normq (- x) = normq x.
+Fact norm_qnumN x : normq (- x) = normq x.
 Proof. by rewrite /normq numqN denqN normrN. Qed.
 
-Lemma ge_qnum0_norm x : le_qnum 0 x -> normq x = x.
+Fact ge_qnum0_norm x : le_qnum 0 x -> normq x = x.
 Proof.
 rewrite ge_qnum0; case: qnumP=> [] // n d cnd n_ge0.
 by rewrite /normq /= normr_num_div ?ger0_norm // divq_num_den.
 Qed.
 
-Lemma lt_qnum_def x y : (lt_qnum x y) = (y != x) && (le_qnum x y).
+Fact lt_qnum_def x y : (lt_qnum x y) = (y != x) && (le_qnum x y).
 Proof. by rewrite /lt_qnum ltr_def qnum_eq. Qed.
 
 Definition qnumLeMixin := TotalPartialLeMixin le_qnum0D le_qnum0M le_qnum0_anti
@@ -569,7 +573,7 @@ Proof. by rewrite normr_dec_sign denq_mulr_sign. Qed.
 
 Definition qnum_archi_bound (x : qnum) := (absz (numq x)).+1.
 
-Lemma qnum_archi_boundP (x : qnum) : 0 <= x -> x < (qnum_archi_bound x)%:R.
+Fact qnum_archi_boundP (x : qnum) : 0 <= x -> x < (qnum_archi_bound x)%:R.
 Proof.
 rewrite -numq_ge0 /qnum_archi_bound; case: qnumP=> [] [] // n d cnd _.
 rewrite absz_nat ltr_pdivr_mulr ?ltr0z // natmulP -rmorphM /=.
@@ -578,3 +582,147 @@ Qed.
 
 Definition archiMixin := ArchimedianMixin qnum_archi_boundP.
 Canonical archiType := ArchiFieldType qnum archiMixin.
+
+Section QintPred.
+
+Definition Qint := [qualify a x : qnum | denq x == 1].
+Fact Qint_key : pred_key Qint. Proof. by []. Qed.
+Canonical Qint_keyed := KeyedQualifier Qint_key.
+
+Lemma Qint_def x : (x \is a Qint) = (denq x == 1). Proof. by []. Qed.
+
+Lemma numqK : {in Qint, cancel (fun x => numq x) zintr}.
+Proof. by move=> x /(_ =P 1 :> zint) Zx; rewrite numqE Zx rmorph1 mulr1. Qed.
+
+Lemma QintP x : reflect (exists z, x = z%:~R) (x \in Qint).
+Proof.
+apply: (iffP idP) => [/numqK <- | [z ->]]; first by exists (numq x).
+by rewrite Qint_def denq_zint.
+Qed.
+
+Fact Qint_subring_closed : subring_closed Qint.
+Proof.
+split=> // _ _ /QintP[x ->] /QintP[y ->]; apply/QintP.
+  by exists (x - y); rewrite -rmorphB.
+by exists (x * y); rewrite -rmorphM.
+Qed.
+
+Canonical Qint_opprPred := OpprPred Qint_subring_closed.
+Canonical Qint_addrPred := AddrPred Qint_subring_closed.
+Canonical Qint_mulrPred := MulrPred Qint_subring_closed.
+Canonical Qint_zmodPred := ZmodPred Qint_subring_closed.
+Canonical Qint_semiringPred := SemiringPred Qint_subring_closed.
+Canonical Qint_smulrPred := SmulrPred Qint_subring_closed.
+Canonical Qint_subringPred := SubringPred Qint_subring_closed.
+
+End QintPred.
+
+Section QnatPred.
+
+Definition Qnat := [qualify a x : qnum | (x \is a Qint) && (0 <= x)].
+Fact Qnat_key : pred_key Qnat. Proof. by []. Qed.
+Canonical Qnat_keyed := KeyedQualifier Qnat_key.
+
+Lemma Qnat_def x : (x \is a Qnat) = (x \is a Qint) && (0 <= x). Proof. by []. Qed.
+
+Lemma QnatP x : reflect (exists n : nat, x = n%:R) (x \in Qnat).
+Proof.
+rewrite Qnat_def; apply: (iffP idP) => [/andP []|[n ->]]; last first.
+  by rewrite Qint_def natmulP denq_zint eqxx ler0z.
+by move=> /QintP [] [] n ->; rewrite ?ler0z // => _; exists n.
+Qed.
+
+Fact Qnat_semiring_closed : semiring_closed Qnat.
+Proof.
+do 2?split; move => // x y; rewrite !Qnat_def => /andP[xQ hx] /andP[yQ hy].
+  by rewrite rpredD // addr_ge0.
+by rewrite rpredM // mulr_ge0.
+Qed.
+
+Canonical Qnat_addrPred := AddrPred Qnat_semiring_closed.
+Canonical Qnat_mulrPred := MulrPred Qnat_semiring_closed.
+Canonical Qnat_semiringPred := SemiringPred Qnat_semiring_closed.
+
+End QnatPred.
+
+Section InRing.
+
+Variable R : unitRingType.
+
+Definition qnumr x : R := (numq x)%:~R / (denq x)%:~R.
+
+Lemma qnumr_int z : qnumr z%:~R = z%:~R.
+Proof. by rewrite /qnumr numq_zint denq_zint divr1. Qed.
+
+Lemma qnumr_nat n : qnumr n%:R = n%:R.
+Proof. exact: (qnumr_int n). Qed.
+
+Lemma rpred_rat S (ringS : @divringPred R S) (kS : keyed_pred ringS) a :
+  qnumr a \in kS.
+Proof. by rewrite rpred_div ?rpred_int. Qed.
+
+End InRing.
+
+Section Fmorph.
+
+Implicit Type rR : unitRingType.
+
+Lemma fmorph_qnum (aR : fieldType) rR (f : {rmorphism aR -> rR}) a :
+  f (qnumr _ a) = qnumr _ a.
+Proof. by rewrite fmorph_div !rmorph_zint. Qed.
+
+Lemma fmorph_eq_qnum rR (f : {rmorphism qnum -> rR}) : f =1 qnumr _.
+Proof. by move=> a; rewrite -{1}[a]divq_num_den fmorph_div !rmorph_zint. Qed.
+
+End Fmorph.
+
+Section InPoField.
+
+Import orderedalg.
+Variable F : poFieldType.
+
+Fact qnumr_is_rmorphism : rmorphism (@qnumr F).
+Proof.
+have injZtoQ: @injective qnum zint zintr by exact: zintr_inj.
+have nz_den x: (denq x)%:~R != 0 :> F by rewrite zintr_eq0 denq_eq0.
+do 2?split; rewrite /qnumr ?divr1 // => x y; last first.
+  rewrite mulrC mulrAC; apply: canLR (mulKf (nz_den _)) _; rewrite !mulrA.
+  do 2!apply: canRL (mulfK (nz_den _)) _; rewrite -!rmorphM; congr _%:~R.
+  apply: injZtoQ; rewrite !rmorphM [x * y]lock /= !numqE -lock.
+  by rewrite -!mulrA mulrA mulrCA -!mulrA (mulrCA y).
+apply: (canLR (mulfK (nz_den _))); apply: (mulIf (nz_den x)).
+rewrite mulrAC mulrBl divfK ?nz_den // mulrAC -!rmorphM.
+apply: (mulIf (nz_den y)); rewrite mulrAC mulrBl divfK ?nz_den //.
+rewrite -!(rmorphM, rmorphB); congr _%:~R; apply: injZtoQ.
+rewrite !(rmorphM, rmorphB) [_ - _]lock /= -lock !numqE.
+by rewrite (mulrAC y) -!mulrBl -mulrA mulrAC !mulrA.
+Qed.
+
+Canonical qnumr_additive := Additive qnumr_is_rmorphism.
+Canonical qnumr_rmorphism := RMorphism qnumr_is_rmorphism.
+
+Lemma ler_qnum : {mono (@qnumr F) : x y / x <= y}.
+Proof.
+move=> x y /=; case: (qnumP x) => nx dx cndx; case: (qnumP y) => ny dy cndy.
+rewrite !fmorph_div /= !qnumr_int !ler_pdivl_mulr ?ltr0z //.
+by rewrite ![_ / _ * _]mulrAC !ler_pdivr_mulr ?ltr0z // -!rmorphM /= !ler_zint.
+Qed.
+
+Lemma ltr_qnum : {mono (@qnumr F) : x y / x < y}.
+Proof. exact: lerW_mono ler_qnum. Qed.
+
+Lemma ler0q x : (0 <= qnumr F x) = (0 <= x).
+Proof. by rewrite (_ : 0 = qnumr F 0) ?ler_qnum ?rmorph0. Qed.
+
+Lemma lerq0 x : (qnumr F x <= 0) = (x <= 0).
+Proof. by rewrite (_ : 0 = qnumr F 0) ?ler_qnum ?rmorph0. Qed.
+
+Lemma ltr0q x : (0 < qnumr F x) = (0 < x).
+Proof. by rewrite (_ : 0 = qnumr F 0) ?ltr_qnum ?rmorph0. Qed.
+
+Lemma ltrq0 x : (qnumr F x < 0) = (x < 0).
+Proof. by rewrite (_ : 0 = qnumr F 0) ?ltr_qnum ?rmorph0. Qed.
+
+End InPoField.
+
+Implicit Arguments qnumr [[R]].

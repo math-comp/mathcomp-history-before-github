@@ -1334,6 +1334,7 @@ Variable S : predPredType R.
 Definition mulr_2closed := {in S &, forall u v, u * v \in S}.
 Definition mulr_closed := 1 \in S /\ mulr_2closed.
 Definition smulr_closed := -1 \in S /\ mulr_2closed.
+Definition semiring_closed := [/\ 1 \in S, addr_closed S & mulr_2closed].
 Definition subring_closed := [/\ 1 \in S, subr_2closed S & mulr_2closed].
 
 Lemma smulr_closedM : smulr_closed -> mulr_closed.
@@ -1342,6 +1343,10 @@ Proof. by case=> SN1 SM; split=> //; rewrite -[1]mulr1 -mulrNN SM. Qed.
 Lemma smulr_closedN : smulr_closed -> oppr_closed S.
 Proof. by case=> SN1 SM x Sx; rewrite -mulN1r SM. Qed.
 
+Lemma semiring_closedD : semiring_closed -> addr_closed S. Proof. by case. Qed.
+
+Lemma semiring_closedM : semiring_closed -> mulr_closed. Proof. by case. Qed.
+
 Lemma subring_closedB : subring_closed -> zmod_closed S.
 Proof. by case=> S1 SB _; split; rewrite // -(subrr 1) SB. Qed.
 
@@ -1349,6 +1354,9 @@ Lemma subring_closedM : subring_closed -> smulr_closed.
 Proof.
 by case=> S1 SB SM; split; rewrite ?(zmod_closedN (subring_closedB _)).
 Qed.
+
+Lemma subring_closed_semi : subring_closed -> semiring_closed.
+Proof. by case=> S1 SB SM; split => //; apply: zmod_closedD; apply: subring_closedB. Qed.
  
 End ClosedPredicates.
 
@@ -3129,9 +3137,11 @@ Notation addr_closed := addr_closed.
 Notation mulr_closed := mulr_closed.
 Notation zmod_closed := zmod_closed.
 Notation smulr_closed := smulr_closed.
+Notation invr_closed := invr_closed.
 Notation divr_closed := divr_closed.
 Notation linear_closed := linear_closed.
 Notation submod_closed := submod_closed.
+Notation semiring_closed := semiring_closed.
 Notation subring_closed := subring_closed.
 Notation sdivr_closed := sdivr_closed.
 Notation subalg_closed := subalg_closed.
@@ -3146,8 +3156,11 @@ Coercion divr_closedV : divr_closed >-> invr_closed.
 Coercion divr_closedM : divr_closed >-> mulr_closed.
 Coercion submod_closedZ : submod_closed >-> scaler_closed.
 Coercion submod_closedB : submod_closed >-> zmod_closed.
+Coercion semiring_closedD : semiring_closed >-> addr_closed.
+Coercion semiring_closedM : semiring_closed >-> mulr_closed.
 Coercion subring_closedB : subring_closed >-> zmod_closed.
 Coercion subring_closedM : subring_closed >-> smulr_closed.
+Coercion subring_closed_semi : subring_closed >-> semiring_closed.
 Coercion sdivr_closedM : sdivr_closed >-> smulr_closed.
 Coercion sdivr_closed_div : sdivr_closed >-> divr_closed.
 Coercion subalg_closedZ : subalg_closed >-> submod_closed.
