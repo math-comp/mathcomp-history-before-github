@@ -1281,7 +1281,7 @@ by move=> sS12 p /(all_nthP 0)S1p; apply/(all_nthP 0)=> i /S1p; apply: sS12.
 Qed.
 
 Lemma polyOver0 S : 0 \is a polyOver S.
-Proof. by rewrite unfold_in /= polyseq0. Qed.
+Proof. by rewrite qualifE polyseq0. Qed.
 
 Lemma polyOver_poly (S : pred_class) n E :
   (forall i, i < n -> E i \in S) -> \poly_(i < n) E i \is a polyOver S.
@@ -1302,7 +1302,7 @@ Qed.
 
 Lemma polyOverC c : (c%:P \in polyOver kS) = (c \in kS).
 Proof.
-by rewrite unfold_in /= polyseqC; case: eqP => [->|] /=; rewrite ?andbT ?rpred0.
+by rewrite qualifE polyseqC; case: eqP => [->|] /=; rewrite ?andbT ?rpred0.
 Qed.
 
 Fact polyOver_addr_closed : addr_closed (polyOver kS).
@@ -1340,7 +1340,7 @@ by move=> c p Sc /polyOverP Sp; apply/polyOverP=> i; rewrite coefZ rpredM ?Sp.
 Qed.
 
 Lemma polyOverX : 'X \in polyOver kS.
-Proof. by rewrite unfold_in /= polyseqX /= rpred0 rpred1. Qed.
+Proof. by rewrite qualifE polyseqX /= rpred0 rpred1. Qed.
 
 Lemma rpred_horner : {in polyOver kS & kS, forall p x, p.[x] \in kS}.
 Proof.

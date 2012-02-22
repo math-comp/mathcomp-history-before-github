@@ -751,7 +751,7 @@ Lemma gring_mxJ a x :
 Proof.
 move=> Gx; rewrite /gring_mx /= ![a *m _]mulmx_sum_row.
 rewrite !(mulmx_suml, linear_sum); apply: eq_bigr => i _.
-rewrite linearZ -!scalemxAl linearZ; congr (_ *: _) => {a}.
+rewrite linearZ -!scalemxAl linearZ /=; congr (_ *: _) => {a}.
 rewrite !rowK /= !mxvecK -rowE rowK mxvecK.
 by rewrite gring_indexK ?groupM ?repr_mxM ?enum_valP.
 Qed.

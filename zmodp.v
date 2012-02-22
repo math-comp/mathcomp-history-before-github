@@ -276,7 +276,7 @@ Proof. by move=> p_gt1; rewrite -Zp_nat_mod ?modnn. Qed.
 
 Lemma unitZpE x : p > 1 -> ((x%:R : 'Z_p) \is a GRing.unit) = coprime p x.
 Proof.
-by move=> p_gt1; rewrite unfold_in /= val_Zp_nat ?Zp_cast ?coprime_modr.
+by move=> p_gt1; rewrite qualifE /= val_Zp_nat ?Zp_cast ?coprime_modr.
 Qed.
 
 Lemma Zp_group_set : group_set Zp.
@@ -344,7 +344,7 @@ End F_prime.
 
 Lemma Fp_fieldMixin : GRing.Field.mixin_of [the unitRingType of 'F_p].
 Proof.
-move=> x nzx; rewrite unfold_in /= prime_coprime ?gtnNdvd ?lt0n //.
+move=> x nzx; rewrite qualifE /= prime_coprime ?gtnNdvd ?lt0n //.
 case: (ltnP 1 p) => [lt1p | ]; last by case: p => [|[|p']].
 by rewrite Zp_cast ?prime_gt1 ?pdiv_prime.
 Qed.

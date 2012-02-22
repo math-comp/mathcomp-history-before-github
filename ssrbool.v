@@ -1254,6 +1254,8 @@ Coercion has_quality n T (q : qualifier n T) : pred_class :=
   fun x => let: Qualifier p := q in p x.
 Implicit Arguments has_quality [T].
 
+Lemma qualifE n T p x : (x \in @Qualifier n T p) = p x. Proof. by []. Qed.
+
 Notation "x \is A" := (x \in has_quality 0 A) 
   (at level 70, no associativity,
    format "'[hv' x '/ '  \is  A ']'") : bool_scope.

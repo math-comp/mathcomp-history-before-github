@@ -2809,7 +2809,7 @@ Qed.
 Lemma cfAut_cycTIiso u phi : cfAut u (sigma phi) = sigma (cfAut u phi).
 Proof.
 rewrite [phi]cfun_sum_cfdot !raddf_sum; apply: eq_bigr => ij _.
-rewrite /= !(linearZ, cfAutZ) -aut_IirrE; congr (_ *: _) => {phi}.
+rewrite /= !(linearZ, cfAutZ) /= -aut_IirrE; congr (_ *: _) => {phi}.
 apply: cyclicTI_dirr => [|x Vx /=].
   by have /cyclicTIirrP[i [j ->]] := irr_chi ij; rewrite dirr_cfAut dirr_sigma.
 by rewrite cfunE cyclicTIsigma_restrict // aut_IirrE cfunE.

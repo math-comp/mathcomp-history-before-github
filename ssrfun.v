@@ -41,20 +41,6 @@ Require Import ssreflect.
 (*                    Structure inference, as in the implementation of        *)
 (*                    the mxdirect predicate in matrix.v.                     *)
 (*                                                                            *)
-(* - Delayed eqational constraints:                                           *)
-(*   constraint C <-> a type class identical to C : Prop, but constrained to  *)
-(*                    be provable by splitting and unification. P should be a *)
-(*                    conjunction of quantified equalities.                   *)
-(* *** This can be used to delay unifications constraints that would preclude *)
-(* bidirectional use of a rewrite rule. For example, given f : S p where S p  *)
-(* is a structure with a (canonical) projection to a function, stating        *)
-(*   foo a b {Db : constraint (b = k p a)} : f (g a) = h b (f a)              *)
-(* rather than                                                                *)
-(*   foo a : f (g a) = h (k p a) (f a)                                        *)
-(* allows foo to be used right-to-left even in cases where (k p a) simplifies *)
-(* non-trivially, because unification with the first argument of h is delayed *)
-(* until unification with f a has determined both p and a.                    *)
-(*                                                                            *)
 (* - Identity functions:                                                      *)
 (*    id           == NOTATION for the explicit identity function fun x => x. *)
 (*    @id T        == notation for the explicit identity at type T.           *)
@@ -376,33 +362,6 @@ Definition congr1 := f_equal.
 Definition congr2 := f_equal2.
 (* Force at least one implicit when used as a view. *)
 Prenex Implicits esym nesym.
-
-(* Delayed (equality) constraints. *)
-
-Class constraint (C : Prop) := Constraint : C.
-
-(*   We need to use an extern hint here because of a serious shortcoming of   *)
-(* unification in Coq 8.3, which appears to fail to perform non-head constant *)
-(* delta-expansion in the presence of pre-existing evars, which spoils        *)
-(* obvious conversions such as structure projections or self-expanding funs   *)
-(* such as @idfun T, f \o g, etc. Even the undocumented bespoke "unify" fails *)
-(* in this way. The "simpl" in force_constraint is a partial workaround for   *)
-(* this "feature" (which appears to be discontinued in 8.4).                  *)
-(*   The apparently redundant unify_equals using the undocumented "unify" is  *)
-(* in fact needed, because split/esplit implement canonical structure         *)
-(* inference incompletely in the presence of persistent evars. The separate   *)
-(* definition isn't cosmetic, either: there's code in tacinterp.ml that       *)
-(* causes our plugin "do" tactical to crash if one of the branches contains   *)
-(* an Ltac "match" constrauct.                                                *)
-(*   On the brighter side, this hack has the advantage that it covers all     *)
-(* forms of equalities, conjuctions, universal and existential quantification *)
-(* with a single meta-instance.                                               *)
-Ltac unify_equals :=
-  match goal with |- ?x = ?y => unify x y with typeclass_instances; split end.
-Ltac force_constraint :=
-  unfold constraint;
-  do 30?[esplit | unify_equals | intro; intros | progress simpl]; fail.
-Global Hint Extern 0 (constraint _) => force_constraint : typeclass_instances.
 
 (* A predicate for singleton types.                                           *)
 Definition all_equal_to T (x0 : T) := forall x, unkeyed x = x0.

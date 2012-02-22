@@ -450,6 +450,17 @@ Require Import finfun bigop prime binomial.
 (* -> Although {scalar U} is convertible to {linear U -> R^o}, it does not    *)
 (*    actually use R^o, so that rewriting preserves the canonical structure   *)
 (*    of the range of scalar functions.                                       *)
+(* -> The generic linearZ lemma uses a set of bespoke interface structures to *)
+(*    ensure that both left-to-right and right-to-left rewriting work even in *)
+(*    the presence of scaling functions that simplify non-trivially (e.g.,    *)
+(*    idfun \; *%R). Because most of the canonical instances and projections  *)
+(*    are coercions the machinery will be mostly invisible (with only the     *)
+(*    {linear ...} structure and %Rlin notations showing), but users should   *)
+(*    beware that in (a *: f u)%Rlin, a actually occurs in the f u subterm.   *)
+(* -> The simpler linear_LR, or more specialized linearZ_lmod and scalarZ     *)
+(*    rules should be used instead of linearZ if there are complexity issues, *)
+(*    and for explicit forward and backward application, as the main          *)
+(*    parameter of linearZ is a proper sub-interface of {linear fUV | s}.     *)
 (*                                                                            *)
 (* * LRMorphism (linear ring morphisms, i.e., algebra morphisms):             *)
 (*           lrmorphism f <-> f of type A -> B is a linear Ring (Algebra)     *)
@@ -1447,7 +1458,7 @@ Notation LmodMixin := Mixin.
 Notation "[ 'lmodType' R 'of' T 'for' cT ]" := (@clone _ (Phant R) T cT _ idfun)
   (at level 0, format "[ 'lmodType'  R  'of'  T  'for'  cT ]") : form_scope.
 Notation "[ 'lmodType' R 'of' T ]" := (@clone _ (Phant R) T _ _ id)
-  (at level 0, format "[ 'lmodType'  R 'of'  T ]") : form_scope.
+  (at level 0, format "[ 'lmodType'  R  'of'  T ]") : form_scope.
 End Exports.
 
 End Lmodule.
@@ -1613,7 +1624,7 @@ Notation "[ 'lalgType' R 'of' T 'for' cT ]" := (@clone _ (Phant R) T cT _ idfun)
   (at level 0, format "[ 'lalgType'  R  'of'  T  'for'  cT ]")
   : form_scope.
 Notation "[ 'lalgType' R 'of' T ]" := (@clone _ (Phant R) T _ _ id)
-  (at level 0, format "[ 'lalgType'  R 'of'  T ]") : form_scope.
+  (at level 0, format "[ 'lalgType'  R  'of'  T ]") : form_scope.
 End Exports.
 
 End Lalgebra.
@@ -2054,6 +2065,15 @@ Definition pack (fZ : mixin_of f) :=
 
 Canonical additive := Additive.Pack phUV class.
 
+(* Support for right-to-left rewriting with the generic linearZ rule. *)
+Notation mapUV := (map (Phant (U -> V))).
+Definition map_class := mapUV.
+Definition map_at (a : R) := mapUV.
+Structure map_for a s_a := MapFor {map_for_map : mapUV; _ : s a = s_a}.
+Definition unify_map_at a (f : map_at a) := MapFor f (erefl (s a)).
+Structure wrapped := Wrap {unwrap : mapUV}.
+Definition wrap (f : map_class) := Wrap f.
+
 End ClassDef.
 
 Module Exports.
@@ -2093,6 +2113,13 @@ Notation "[ 'linear' 'of' f ]" := (@clone _ _ _ _ _ f f _ _ id id)
   (at level 0, format "[ 'linear'  'of'  f ]") : form_scope.
 Coercion additive : map >-> Additive.map.
 Canonical additive.
+(* Support for right-to-left rewriting with the generic linearZ rule. *)
+Coercion map_for_map : map_for >-> map.
+Coercion unify_map_at : map_at >-> map_for.
+Canonical unify_map_at.
+Coercion unwrap : wrapped >-> map.
+Coercion wrap : map_class >-> wrapped.
+Canonical wrap.
 End Exports.
 
 End Linear.
@@ -2121,11 +2148,45 @@ Lemma linearZ_LR : scalable_for s f. Proof. by case: f => ? []. Qed.
 Lemma linearP a : {morph f : u v / a *: u + v >-> s a u + v}.
 Proof. by move=> u v /=; rewrite linearD linearZ_LR. Qed.
 
-Lemma linearZ a b h (h_law : @Scale.law R V h) (h_b := Scale.op h_law b) :
-  forall Dhb : constraint (h_b = s a), {morph f : u / a *: u >-> h_b u}.
-Proof. by move->; apply: linearZ_LR. Qed.
-
 End GenericProperties.
+
+Section BidirectionalLinearZ.
+
+Variables (U : lmodType R) (V : zmodType) (s : R -> V -> V).
+
+(*   The general form of the linearZ lemma uses some bespoke interfaces to   *)
+(* allow right-to-left rewriting when a composite scaling operation such as  *)
+(* conjC \; *%R has been expanded, say in a^* * f u. This redex is matched   *)
+(* by using the Scale.law interface to recognize a "head" scaling operation  *)
+(* h (here *%R), stow away its "scalar" c, then reconcile h c and s a, once  *)
+(* s is known, that is, once the Linear.map structure for f has been found.  *)
+(* In general, s and a need not be equal to h and c; indeed they need not    *)
+(* have the same type! The unification is performed by the unify_map_at      *)
+(* default instance for the Linear.map_for U s a h_c sub-interface of        *)
+(* Linear.map; the h_c pattern uses the Scale.law structure to insure it is  *)
+(* inferred when rewriting right-to-left.                                    *)
+(*   The wrap on the rhs allows rewriting f (a *: b *: u) into a *: b *: f u *)
+(* with rewrite !linearZ /= instead of rewrite linearZ /= linearZ /=.        *)
+(* Without it, the first rewrite linearZ would produce                       *)
+(*    (a *: apply (map_for_map (@check_map_at .. a f)) (b *: u)%R)%Rlin      *)
+(* and matching the second rewrite LHS would bypass the unify_map_at default *)
+(* instance for b, reuse the one for a, and subsequently fail to match the   *)
+(* b *: u argument. The extra wrap / unwrap ensures that this can't happen.  *)
+(* In the RL direction, the wrap / unwrap will be inserted on the redex side *)
+(* as needed, without causing unnecessary delta-expansion: using an explicit *)
+(* identity function would have Coq normalize the redex to head normal, then *)
+(* reduce the identity to expose the map_for_map projection, and the         *)
+(* expanded Linear.map structure would then be exposed in the result.        *)
+(*   Most of this machinery will be invisible to a casual user, because all  *)
+(* the projections and default instances involved are declared as coercions. *)
+
+Variables (S : ringType) (h : S -> V -> V) (h_law : Scale.law h).
+
+Lemma linearZ c a (h_c := Scale.op h_law c) (f : Linear.map_for U s a h_c) u :
+  f (a *: u) = h_c (Linear.wrap f u).
+Proof. by rewrite linearZ_LR; case: f => f /= ->. Qed.
+
+End BidirectionalLinearZ.
 
 Section LmodProperties.
 
@@ -2198,8 +2259,6 @@ Canonical mulr_fun_linear := AddLinear mulr_fun_is_scalable.
 End LinearLalg.
 
 End LinearTheory.
-
-Implicit Arguments linearZ [R U V s [b] [h] [h_law] [Dhb]].
 
 Module LRMorphism.
 
@@ -2493,7 +2552,7 @@ Notation "[ 'algType' R 'of' T 'for' cT ]" := (@clone _ (Phant R) T cT _ idfun)
   (at level 0, format "[ 'algType'  R  'of'  T  'for'  cT ]")
   : form_scope.
 Notation "[ 'algType' R 'of' T ]" := (@clone _ (Phant R) T _ _ id)
-  (at level 0, format "[ 'algType'  R 'of'  T ]") : form_scope.
+  (at level 0, format "[ 'algType'  R  'of'  T ]") : form_scope.
 End Exports.
 
 End Algebra.
@@ -2983,7 +3042,7 @@ Canonical lalg_unitRingType.
 Canonical alg_unitRingType.
 Notation unitAlgType R := (type (Phant R)).
 Notation "[ 'unitAlgType' R 'of' T ]" := (@pack _ (Phant R) T _ _ id _ _ id)
-  (at level 0, format "[ 'unitAlgType' R 'of'  T ]") : form_scope.
+  (at level 0, format "[ 'unitAlgType'  R  'of'  T ]") : form_scope.
 End Exports.
 
 End UnitAlgebra.
@@ -5372,8 +5431,7 @@ Definition linearMn := linearMn.
 Definition linearMNn := linearMNn.
 Definition linearP := linearP.
 Definition linearZ_LR := linearZ_LR.
-Definition linearZ {R U V s} f a {b h h_law Dhb} :=
-  @linearZ R U V s f a b h h_law Dhb.
+Definition linearZ := linearZ.
 Definition lmod_linearP := lmod_linearP.
 Definition lmod_linearZ := lmod_linearZ.
 Definition scalarP := scalarP.

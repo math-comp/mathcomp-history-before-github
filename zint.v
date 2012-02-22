@@ -299,7 +299,7 @@ Proof. by case: m=> m /=; [rewrite -PoszM [_==_]muln_eq1 | case: n]. Qed.
 
 Lemma unitzPl m n : n * m = 1 -> m \is a unitz.
 Proof.
-case: m => m; move/eqP; rewrite unfold_in /=.
+case: m => m; move/eqP; rewrite qualifE.
 * by rewrite mulzn_eq1; case/andP=> _; move/eqP->.
 * by rewrite NegzE zintS mulrN -mulNr mulzn_eq1; case/andP=> _.
 Qed.

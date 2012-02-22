@@ -178,7 +178,7 @@ Notation "[ 'th' 'e' sT 'of' v 'by' f ]" := (@get_by _ sT f v _ _)
   (at level 0,  format "[ 'th' 'e'  sT  'of'  v  'by'  f ]") : form_scope.
 
 Notation "[ 'th' 'e' sT 'of' v ]" := (@get _ sT v _ _)
-  (at level 0, format "[ 'th' 'e'  sT   'of'  v ]") : form_scope.
+  (at level 0, format "[ 'th' 'e'  sT  'of'  v ]") : form_scope.
 
 (* We would like to recognize
 Notation "[ 'th' 'e' sT 'of' v : 'Type' ]" := (@get Type sT v _ _)
