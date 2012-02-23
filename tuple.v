@@ -141,7 +141,7 @@ Variables (n m : nat) (T U rT : Type).
 Implicit Type t : n.-tuple T.
 
 Lemma rcons_tupleP t x : size (rcons t x) == n.+1.
-Proof. by rewrite size_rcons !size_tuple. Qed.
+Proof. by rewrite size_rcons size_tuple. Qed.
 Canonical rcons_tuple t x := Tuple (rcons_tupleP t x).
 
 Lemma nseq_tupleP x : @size T (nseq n x) == n.
