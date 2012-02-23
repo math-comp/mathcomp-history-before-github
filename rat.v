@@ -74,7 +74,7 @@ Qed.
 
 Definition fracq (x : int * int) := nosimpl (@Rat (_, _) (fracq_subproof x)).
 
-Fact ratzE n : ratz n = fracq (n, 1).
+Fact ratz_frac n : ratz n = fracq (n, 1).
 Proof. by apply: val_inj; rewrite /= gcdn1 !divn1 abszE mulr_sign_norm. Qed.
 
 Fact valqK x : fracq (valq x) = x.
@@ -210,7 +210,7 @@ by rewrite [v * _]mulrC -mulrDr fracqMM ?mulf_neq0.
 Qed.
 
 Fact ratzD : {morph ratz : x y / x + y >-> addq x y}.
-Proof. by move=> x y /=; rewrite !ratzE addq_frac // /add /= !mulr1. Qed.
+Proof. by move=> x y /=; rewrite !ratz_frac addq_frac // /add /= !mulr1. Qed.
 
 Fact oppq_frac x : oppq (fracq x) = fracq (opp x).
 Proof.
@@ -219,7 +219,7 @@ by rewrite -mulrN fracqMM.
 Qed.
 
 Fact ratzN : {morph ratz : x / - x >-> oppq x}.
-Proof. by move=> x /=; rewrite !ratzE oppq_frac // /add /= !mulr1. Qed.
+Proof. by move=> x /=; rewrite !ratz_frac oppq_frac // /add /= !mulr1. Qed.
 
 Fact addqC : commutative addq.
 Proof. by move=> x y; rewrite /addq /=; rewrite addC. Qed.
@@ -267,7 +267,7 @@ by rewrite ![_ * (v * _)]mulrMM fracqMM ?mulf_neq0.
 Qed.
 
 Fact ratzM : {morph ratz : x y / x * y >-> mulq x y}.
-Proof. by move=> x y /=; rewrite !ratzE mulq_frac // /mul /= !mulr1. Qed.
+Proof. by move=> x y /=; rewrite !ratz_frac mulq_frac // /mul /= !mulr1. Qed.
 
 Fact invq_frac x : x.1 != 0 -> x.2 != 0 -> invq (fracq x) = fracq (inv x).
 Proof. by rewrite /inv; case: fracqP => // k {x} x k0; rewrite fracqMM. Qed.
@@ -345,22 +345,19 @@ Hint Resolve denq_neq0 denq_gt0 denq_ge0.
 Notation "n %:Q" := ((n : int)%:~R : rat)
   (at level 2, left associativity, format "n %:Q")  : ring_scope.
 
-(* Eval compute in (8%:Q / 15%:Q >= 1 / 2%:Q :> rat). (* OK *) *)
-
-Fact intqE n : n%:Q = ratz n.
+(* ratz should not be used, %:Q should be used instead *)
+Lemma ratzE n : ratz n = n%:Q.
 Proof.
-elim: n=> [|n ihn|n ihn]; first by rewrite mulr0z ratzE.
+elim: n=> [|n ihn|n ihn]; first by rewrite mulr0z ratz_frac.
   by rewrite intS mulrzDl RatField.ratzD ihn.
 by rewrite intS opprD mulrzDl RatField.ratzD ihn.
 Qed.
 
-Lemma numq_int n : numq n%:Q = n. Proof. by rewrite intqE. Qed.
-Lemma denq_int n : denq n%:Q = 1. Proof. by rewrite intqE. Qed.
+Lemma numq_int n : numq n%:Q = n. Proof. by rewrite -ratzE. Qed.
+Lemma denq_int n : denq n%:Q = 1. Proof. by rewrite -ratzE. Qed.
 
 Lemma rat0 : 0%:Q = 0. Proof. by []. Qed.
 Lemma rat1 : 1%:Q = 1. Proof. by []. Qed.
-
-(* Todo : prove morphism/compatibility lemmas for _%:zR  and/or %:Q *)
 
 Lemma numq_eq0 x : (numq x == 0) = (x == 0).
 Proof. exact: RatField.numq_eq0. Qed.
@@ -379,7 +376,7 @@ Qed.
 
 (* Will be subsumed by pnatr_eq0 *)
 Fact intq_eq0 n : (n%:~R == 0 :> rat) = (n == 0)%N.
-Proof. by rewrite intqE /ratz rat_eqE /numq /denq /= mulr0 eqxx andbT. Qed.
+Proof. by rewrite -ratzE /ratz rat_eqE /numq /denq /= mulr0 eqxx andbT. Qed.
 
 (* fracq should never apear, its canonical form is _%:Q / _%:Q *)
 Lemma fracqE x : fracq x = x.1%:Q / x.2%:Q.
