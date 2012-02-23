@@ -28,6 +28,7 @@ commutator.v
 ssralg.v
 finalg.v
 poly.v
+multinom.v
 zmodp.v
 matrix.v
 mxalgebra.v
@@ -74,7 +75,6 @@ burnside_app.v
 vector.v
 fib.v
 generic_quotient.v
-generic_quotient2.v
 finfield.v
 separable.v
 galois.v

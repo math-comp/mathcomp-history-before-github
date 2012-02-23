@@ -2,7 +2,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq tuple.
 Require Import fintype finfun bigop ssralg poly polydiv.
 Require Import zmodp vector algebra fieldext finalg finfield.
 Require Import fingroup perm finset matrix mxalgebra mxpoly polyXY.
-Require Import div cyclic prime binomial choice generic_quotient.
+Require Import div cyclic prime binomial choice.
 
 (******************************************************************************)
 (* This file is supposed to provide theory of separable and inseparable field *)
