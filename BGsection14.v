@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div path fintype.
 Require Import bigop finset prime fingroup morphism perm automorphism quotient.
 Require Import action gproduct gfunctor pgroup cyclic center commutator.
 Require Import gseries nilpotent sylow abelian maximal hall frobenius.
-Require Import ssralg orderedalg zint qnum.
+Require Import ssralg orderedalg int rat.
 Require Import BGsection1 BGsection3 BGsection4 BGsection5 BGsection6.
 Require Import BGsection7 BGsection9 BGsection10 BGsection12 BGsection13.
 
@@ -1343,7 +1343,7 @@ Theorem Ptype_embedding : forall M K,
               & {in K^# & Kstar^#, forall x y, 'C[x * y] = Z}]
 & [/\ (*e*) [/\ trivIset (Zhat :^: G), 'N(Zhat) = Z,
                 {in ~: M, forall g, [disjoint Zhat & M :^ g]}
-              & (#|G|%:R / 2%:R < #|class_support Zhat G|%:R :> qnum)%R ],
+              & (#|G|%:R / 2%:R < #|class_support Zhat G|%:R :> rat)%R ],
       (*f*) M \in 'M_'P2 /\ prime #|K| \/ Mstar \in 'M_'P2 /\ prime #|Kstar|,
       (*g*) {in 'M_'P, forall H, gval H \in M :^: G :|: Mstar :^: G}
     & (*h*) M^`(1) ><| K = M]].
@@ -1616,10 +1616,10 @@ have [tiT defNT]: trivIset (T :^: G) /\ 'N(T) = Z.
   apply/implyP; apply: contraR nty'; rewrite negb_imply andbC -in_setD.
   rewrite -in_set1 -set1gE; move/tiKi <-; rewrite inE Kiy' defy' mem_conjg.
   by rewrite -consttJ (mem_normal_Hall hallKi nsKiZ) ?p_elt_constt ?groupX.
-pose n : qnum := #|MNX|%:R; pose g : qnum := #|G|%:R.
-pose z : qnum := #|Z|%:R; have nz_z: z != 0%R := natrG_neq0 _ _.
-pose k_ Mi : qnum := #|K_ Mi|%:R.
-have nz_ks: #|Ks_ _|%:R != 0%R :> qnum := natrG_neq0 _ _.
+pose n : rat := #|MNX|%:R; pose g : rat := #|G|%:R.
+pose z : rat := #|Z|%:R; have nz_z: z != 0%R := natrG_neq0 _ _.
+pose k_ Mi : rat := #|K_ Mi|%:R.
+have nz_ks: #|Ks_ _|%:R != 0%R :> rat := natrG_neq0 _ _.
 pose TG := class_support T G.
 have oTG: (#|TG|%:R = (1 + n / z - \sum_(Mi \in MX) (k_ Mi)^-1) * g)%R.
   rewrite /TG class_supportEr -cover_imset -(eqnP tiT).
@@ -1802,7 +1802,7 @@ have oTGgt_g2: (g / 2%:R < #|TG|%:R)%R.
   rewrite oTG big_setU1 //= /n defMNX big_set1 cards1 mulrC mul1r.
   rewrite ltr_pmul2r ?(ltr_nat _ 0) ?cardG_gt0 //  /k_ K0 -defKs.
   rewrite /z -defZ -(dprod_card defNK) natrM invfM opprD.
-  pose hm u : qnum := (1 - u%:R^-1)%R; set lhs := (_^-1)%R.
+  pose hm u : rat := (1 - u%:R^-1)%R; set lhs := (_^-1)%R.
   suffices: (lhs < hm #|K| * hm #|Ks|)%R.
     by rewrite mulrBl !mulrBr !mul1r mulr1 opprB addrAC !addrA.
   have hm_inc: forall u v, 0 < u <= v -> (hm u <= hm v)%R.
@@ -1914,7 +1914,7 @@ have{IHn} oSGgt_g2: (g / 2%:R < #|class_support S G|%:R)%R.
   exact: leq_trans leTGn nTG_leS.
 have{oSGgt_g2 oTGgt_g2} meetST: ~~ [disjoint TG & class_support S G].
   rewrite -leq_card_setU; apply: contraTneq (leqnn #|G|) => tiTGS.
-  rewrite -ltnNge -(ltr_nat [oFieldType of qnum]) -/g.
+  rewrite -ltnNge -(ltr_nat [oFieldType of rat]) -/g.
   rewrite -{1}[g](@divfK _ 2%:R) // mulr_natr.
   apply: ltr_le_trans (ltr_add oTGgt_g2 oSGgt_g2) _.
   by rewrite -natrD -tiTGS ler_nat cardsT max_card.

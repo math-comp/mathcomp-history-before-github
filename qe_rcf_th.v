@@ -1,5 +1,5 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype path.
-Require Import bigop ssralg poly polydiv orderedalg zmodp div zint.
+Require Import bigop ssralg poly polydiv orderedalg zmodp div int.
 Require Import polyorder polyrcf interval matrix mxtens perm.
 
 Set Implicit Arguments.
@@ -148,11 +148,11 @@ Notation midf a b := ((a + b) / 2%:~R).
 
 Notation seq_mids a s b := (pairmap (fun x y => midf x y) a (rcons s b)).
 
-Definition jump q p x: zint :=
+Definition jump q p x: int :=
   ((-1) ^+ (sgp_right (q * p) x < 0)%R) *+
   [&& q != 0 & odd ((\mu_x p) - (\mu_x q))].
 
-Definition sjump q p x: zint :=
+Definition sjump q p x: int :=
   ((-1) ^+ (sgp_right (q * p) x < 0)%R) *+ (odd ((\mu_x (q*p)))).
 
 Lemma sjumpC : forall q p x, sjump q p x = sjump p q x.
@@ -190,9 +190,9 @@ have yln: yl \in neighpl p a x by rewrite !inE; apply/andP.
 have yrn: yr \in neighpr p x b by rewrite !inE; apply/andP.
 move: (neighpr_root yrn).
 rewrite (sgr_neighpl yln) -!(sgr_neighpr yrn) rootE -[_==0]sgr_cp0.
-rewrite sgr_id sgrEz zintr_eq0 -[- 1 : R]mulrN1z.
+rewrite sgr_id sgrEz intr_eq0 -[- 1 : R]mulrN1z.
 rewrite (inj_eq (mulrIz _)) ?oner_eq0 //.
-rewrite [_ ^+ odd _]exprnP exprz_pzintl //.
+rewrite [_ ^+ odd _]exprnP exprz_pintl //.
 rewrite -!rmorphM (inj_eq (mulrIz _)) ?oner_eq0 //.
 by case ho: (odd _); case: (sgzP p.[yr]).
 Qed.
@@ -254,8 +254,8 @@ case q0: (q == 0); first by rewrite (eqP q0) !jumppc mulr0.
 rewrite /jump scale_poly_eq0 mu_mulC ?c0 // orFb.
 rewrite -scalerAl sgp_right_scale //.
 case: sgzP c0=> //; first by rewrite !mul1r.
-(* Todo : replace nat by zint everywhere *)
-move=> _ _; rewrite !mulN1r !natmulP -mulNrz ?p0 /= ?oppr_cp0; congr (_ *~ _).
+(* Todo : replace nat by int everywhere *)
+move=> _ _; rewrite !mulN1r !pmulrn -mulNrz ?p0 /= ?oppr_cp0; congr (_ *~ _).
 by case: ltrgtP=> //; move/eqP; rewrite sgp_right_eq0 mulf_eq0 p0 q0.
 Qed.
 
@@ -268,7 +268,7 @@ case p0: (p == 0); first by rewrite (eqP p0) !jump0p mulr0.
 case q0: (q == 0); first by rewrite (eqP q0) scaler0 !jumppc mulr0.
 rewrite /jump mu_mulC ?c0 //= -scalerAr sgp_right_scale //.
 case: sgzP c0 => //; first by rewrite !mul1r.
-move=> _ _; rewrite !mulN1r !natmulP -mulNrz lter_oppl/= oppr0; congr (_ *~ _).
+move=> _ _; rewrite !mulN1r !pmulrn -mulNrz lter_oppl/= oppr0; congr (_ *~ _).
 by case: ltrgtP=> //; move/eqP; rewrite sgp_right_eq0 mulf_eq0 p0 q0.
 Qed.
 
@@ -392,7 +392,7 @@ rewrite !sgp_right_mul sgp_right_mod ?muxp // /r -rdivp_eq.
 by rewrite -mul_polyC sgp_right_mul sgp_rightc sgrX.
 Qed.
 
-Definition cind (a b : R) (q p : {poly R}) : zint :=
+Definition cind (a b : R) (q p : {poly R}) : int :=
   \sum_(x <- roots p a b) jump q p x.
 
 Lemma cind0p : forall a b, a < b -> forall q, cind a b 0 q = 0.
@@ -577,16 +577,16 @@ rewrite cind_seq_mids//.
 rewrite nb_varP//= -cats1 pairmap_cat/= cats1 map_rcons.
   rewrite last_rcons -sgr_cp0 !sgrM -sgz_sgr.
   rewrite [sgr _.[_]](@sgr_neighplN _ _ a b) //; last first.
-    by rewrite /neighpl /prev_root pq0 minr_l // mid_in_int //= last_roots_le.
+    by rewrite /neighpl /prev_root pq0 minr_l // mid_in_itv //= last_roots_le.
   case hr: (roots (p * q) a b)=> [|x r] //=.
     rewrite (@sgr_neighprN _ _ a b _ (_/2%:~R)) //; last first.
-      by rewrite /neighpr /next_root pq0 maxr_l // hr mid_in_int.
+      by rewrite /neighpr /next_root pq0 maxr_l // hr mid_in_itv.
     by rewrite -[_<_]sgr_cp0 sgz_sgr sgrM.
   move/eqP:(hr); rewrite roots_cons; case/and5P=> _.
   case/andP=> ax xr hax rpqx hr'.
   rewrite -sgz_sgr.
   rewrite (@sgr_neighprN _ _ a b _ (_/2%:~R)) //; last first.
-    by rewrite /neighpr /next_root pq0 maxr_l // hr mid_in_int.
+    by rewrite /neighpr /next_root pq0 maxr_l // hr mid_in_itv.
   by rewrite -[_<_]sgr_cp0 !sgz_sgr sgrM.
 rewrite -cats1 mem_cat negb_or in_cons in_nil orbF eq_sym; apply/andP; split.
   elim: (roots (p * q) a b) {-2}a (erefl (roots (p * q) a b)).
@@ -596,9 +596,9 @@ rewrite -cats1 mem_cat negb_or in_cons in_nil orbF eq_sym; apply/andP; split.
   case/andP=> ax xs hax rpqx hs.
   rewrite -(eqP hs) ihs ?(eqP hs)// andbT.
   rewrite (@neighpl_root _ _ a' x)//.
-  by rewrite /neighpl /prev_root pq0 minr_l ?(ltrW ax) // (eqP hax) mid_in_int.
+  by rewrite /neighpl /prev_root pq0 minr_l ?(ltrW ax) // (eqP hax) mid_in_itv.
 rewrite (@neighpl_root _ _ a b) // /neighpl /prev_root.
-rewrite mulf_eq0 (negPf p0) (negPf q0) minr_l //= mid_in_int //=.
+rewrite mulf_eq0 (negPf p0) (negPf q0) minr_l //= mid_in_itv //=.
 by rewrite last_roots_le.
 Qed.
 
@@ -687,7 +687,7 @@ rewrite cind_mulCp ?r0 //.
 by rewrite sgzN mulNr opprK sgzX -cind_mod.
 Qed.
 
-Definition taq (z : seq R) (q : {poly R}) : zint := \sum_(x <- z) (sgz q.[x]).
+Definition taq (z : seq R) (q : {poly R}) : int := \sum_(x <- z) (sgz q.[x]).
 
 Lemma taq_cind : forall a b, a < b -> forall p q,
   taq (roots p a b) q = cind a b (p^`() * q) p.
@@ -742,7 +742,7 @@ case p'0: (p^`() == 0).
 by rewrite taq_cind// -var_rem_cind// mulf_neq0 // p'0.
 Qed.
 
-Definition croots (z : seq R) (sq : seq {poly R}) (sc : seq zint) : nat :=
+Definition croots (z : seq R) (sq : seq {poly R}) (sc : seq int) : nat :=
   (\sum_(x <- z) \prod_(i < size sq) (sgz (sq`_i).[x] == sc`_ i))%N.
 
 Lemma taq_croots1 : forall z q,
@@ -779,10 +779,10 @@ Qed.
 Definition comb_exp (R : oIdomainType) (s : R) :=
   match sgz s with Posz 1 => 1%N | Negz 0 => 2 | _ => 0%N end.
 
-Definition poly_comb (sq : seq {poly R}) (sc : seq zint) : {poly R} :=
+Definition poly_comb (sq : seq {poly R}) (sc : seq int) : {poly R} :=
   \prod_(i < size sq) ((sq`_i) ^+ (comb_exp sc`_i)).
 
-Fixpoint sg_tab n : seq (seq zint) :=
+Fixpoint sg_tab n : seq (seq int) :=
   if n is m.+1
     then flatten (map (fun x => map (fun l => x :: l) (sg_tab m)) [::1;-1;0])
     else [::[::]].
@@ -790,7 +790,7 @@ Fixpoint sg_tab n : seq (seq zint) :=
 (* Eval compute in sg_tab 4. *)
 
 Definition cvec z sq := let sg_tab := sg_tab (size sq) in
-  \row_(i < 3^size sq) ((croots z sq (nth [::] sg_tab i))%:~R : zint).
+  \row_(i < 3^size sq) ((croots z sq (nth [::] sg_tab i))%:~R : int).
 Definition tvec z sq := let sg_tab := sg_tab (size sq) in
   \row_(i < 3^size sq) (taq z (map (poly_comb sq) sg_tab)`_i).
 
@@ -810,12 +810,12 @@ by do ?[rewrite (expand_det_row _ ord0) //=;
         do ?rewrite [row' _ _]mx11_scalar det_scalar1 !mxE /=].
 Qed.
 
-Notation zmxR := ((map_mx ((zintmul 1) : zint -> R)) _ _).
+Notation zmxR := ((map_mx ((intmul 1) : int -> R)) _ _).
 
 Lemma ctmat1_unit : zmxR ctmat1 \in unitmx.
 Proof.
 rewrite /mem /in_mem /= /unitmx det_map_mx //.
-by rewrite det_ctmat1 unitfE zintr_eq0.
+by rewrite det_ctmat1 unitfE intr_eq0.
 Qed.
 
 Lemma tvec_cvec1 : forall z q,
@@ -1096,7 +1096,7 @@ Lemma croots_varpI : forall z sq,
     (zmxR (tvec z (sq)) *m (invmx (zmxR (ctmat (size (sq))))))) ord0 ord0.
 Proof.
 move=> z sq.
-rewrite -cvec_tvec castmxE /= cast_ord_id /= /cvec !mxE //= zintz.
+rewrite -cvec_tvec castmxE /= cast_ord_id /= /cvec !mxE //= intz.
 congr ((croots _ _ _)%:~R); elim: sq=> //=  _ s -> /=.
 set l := sg_tab _; suff: size l != 0%N by case: l.
 exact: size_sg_tab_neq0.
@@ -1437,8 +1437,7 @@ rewrite (leq_trans (size_poly _ _)) // polySpred ?expf_neq0 // size_exp.
 by rewrite -(subnKC nc_q) ltn_pmul2l.
 Qed.
 
-(* assia : pnatr_eq should be provided in ssralg and name is bad *)
-(* the proof is really too long *)
+(* the proof is really too long, is it ? *)
 Lemma too_many_roots_eq0 x p :
 (forall i : 'I_(size p).+1, root p (x + i.+1%:R)) -> p = 0.
 Proof.
@@ -1663,9 +1662,9 @@ move=> hnr hxy; case: (ltngtP (size p) 1) => [| hsp | ].
   have {hnr} hnr z : x <= z -> sgr p.[z] = sgr p.[x].
     move=> hxz. 
       have : {in `[x, +oo[, forall t, ~~ root p t}.
-      move=> t; case/int_dec=> htl _; rewrite /root; exact: hnr.
-    move/polyrN0_int; move/(_ x z); apply; first by rewrite boundl_in_int.
-    by apply/int_dec.
+      move=> t; case/itv_dec=> htl _; rewrite /root; exact: hnr.
+    move/polyrN0_itv; move/(_ x z); apply; first by rewrite boundl_in_itv.
+    by apply/itv_dec.
   case: (lerP m x) => hmx; last first.
     rewrite hnr // -(hnr m) ?ltrW //; apply/eqP; rewrite sgr_cp0.
     by apply: ltr_le_trans (hm _ (lerr m)).
@@ -1743,7 +1742,7 @@ case: (next_rootP q x bnd); [by move/eqP; rewrite (negPf q0)| |]; last first.
   case: (ltrP z bnd) => [hzb|].
     move: hxz; rewrite ler_eqVlt; case/orP=> [/eqP<- | hxz].
       by rewrite neqr_lt rxp orbT.
-    have : z \in `]x, bnd[ by apply/int_dec.
+    have : z \in `]x, bnd[ by apply/itv_dec.
     rewrite -/(root r z); move/(hc z); apply: contra; rewrite /root /q => hrx.
     by rewrite horner_prod; apply/myprodf_eq0; exists r; rewrite // hr.
    apply: contraL => /eqP rx0; rewrite -ltrNge.
@@ -1768,7 +1767,7 @@ case: (prev_rootP q (- bnd) x); [by move/eqP; rewrite (negPf q0)| |]; last first
   case: (lerP z (- bnd)) => [|hzb]; last first.
     move: hxz; rewrite ler_eqVlt; case/orP=> [/eqP-> | hxz].
       by rewrite neqr_lt rxp orbT.
-    have : z \in `] (- bnd), x[ by apply/int_dec. (* assia : int not? *)
+    have : z \in `] (- bnd), x[ by apply/itv_dec. (* assia : int not? *)
     rewrite -/(root r z); move/(hc z); exact: hnr.
   apply: contraL => /eqP rx0; rewrite -ltrNge.
     apply: (@ltr_le_trans _ (- cauchy_bound (\prod_(q <- sq) q))).
@@ -1781,20 +1780,20 @@ case: (prev_rootP q (- bnd) x); [by move/eqP; rewrite (negPf q0)| |]; last first
     by move/(cauchy_boundP pn0) => /=; rewrite ler_norml => /andP [].
 move=> y2 _ rqy2 hy2xb hy2.
 have lty12 : y2 < y1.
-  by apply: (@ltr_trans _ x); rewrite 1?(intP hy1xb) 1?(intP hy2xb).
+  by apply: (@ltr_trans _ x); rewrite 1?(itvP hy1xb) 1?(itvP hy2xb).
 have : q.[y2] = q.[y1] by rewrite rqy1 rqy2.
 case/(rolle lty12) => z hz rz; exists z.
 suff -> : ((q^`()).[z] == 0) && \big[andb/true]_(q1 <- sq) (0 < q1.[z]) by [].
 rewrite rz eqxx /= big_all; apply/allP=> r hr; have rxp := hsq r hr.
 suff hs: sgr r.[x] = sgr r.[z] by rewrite -sgr_cp0 -hs sgr_cp0.
 suff : {in `]y2, y1[, forall x : R, ~~ root r x}.
-move/polyrN0_int; apply=> //.
-  by apply/int_dec; split; rewrite 1?(intP hy1xb) 1?(intP hy2xb).
-move=> t; case/int_dec=> htl htr; case: (ltrgtP t x)=>[htx | hxt|->].
+move/polyrN0_itv; apply=> //.
+  by apply/itv_dec; split; rewrite 1?(itvP hy1xb) 1?(itvP hy2xb).
+move=> t; case/itv_dec=> htl htr; case: (ltrgtP t x)=>[htx | hxt|->].
 - suff : ~~ root q t by apply: hnr.
-  by apply: hy2; apply/int_dec.
+  by apply: hy2; apply/itv_dec.
 - suff : ~~ root q t by apply: hnr.
-  by apply: hy1; apply/int_dec.
+  by apply: hy1; apply/itv_dec.
 - by rewrite /root neqr_lt rxp orbT.
 Qed.
 

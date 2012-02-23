@@ -1,5 +1,5 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigop ssralg orderedalg zint qnum poly polydiv polyorder.
+Require Import bigop ssralg orderedalg int rat poly polydiv polyorder.
 Require Import perm matrix mxpoly polyXY binomial.
 
 Import GRing.Theory ORing.Theory ORing.OrderDef.

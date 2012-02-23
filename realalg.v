@@ -1,5 +1,5 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigop ssralg orderedalg zint qnum poly polydiv polyorder.
+Require Import bigop ssralg orderedalg int rat poly polydiv polyorder.
 Require Import perm matrix mxpoly polyXY binomial generic_quotient2.
 Require Import cauchyreals.
 
@@ -1408,7 +1408,7 @@ End AlgAlgAlg.
 End RealAlg.
 
 Notation "{ 'realalg'  F }" := (RealAlg.alg_of (Phant F)).
-Definition realalg := {realalg qnum}.
+Definition realalg := {realalg rat}.
 
 Canonical RealAlg.alg_eqType.
 Canonical RealAlg.alg_choiceType.

@@ -1,6 +1,6 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import finfun path.
-Require Import bigop ssralg poly polydiv orderedalg zmodp div zint.
+Require Import bigop ssralg poly polydiv orderedalg zmodp div int.
 Require Import polyorder polyrcf interval polyXY.
 Require Import qe_rcf_th ordered_qelim.
 
@@ -571,7 +571,7 @@ rewrite eval_Variation /varp; congr (qf_eval _ (k (var _))).
 by rewrite -!map_comp; apply: eq_map=> p /=; rewrite eval_Horner.
 Qed.
 
-Definition VarpI (a b : tF) (sp : seq polyF) (k : zint -> fF) : fF :=
+Definition VarpI (a b : tF) (sp : seq polyF) (k : int -> fF) : fF :=
   bind va <- Varp sp a; bind vb <- Varp sp b; k (va%:Z - vb%:Z).
 
 Lemma eval_VarpI e a b sp k :
@@ -627,7 +627,7 @@ Prenex Implicits eval_Sremps.
 
 Notation taq' p a b q := (varpI a b (sremps p (p^`() * q))).
 
-Definition Taq (p : polyF) (a b : tF) (q : polyF) : cps zint := fun k =>
+Definition Taq (p : polyF) (a b : tF) (q : polyF) : cps int := fun k =>
   bind r <- Sremps p (MulPoly (Deriv p) q); VarpI a b r k.
 
 Lemma eval_Taq e a b p q k :
@@ -639,7 +639,7 @@ rewrite (eval_Sremps (fun r => qf_eval e (k (varpI (eval e a) (eval e b) r)))).
 by move=> sp; rewrite !eval_Varp.
 Qed.
 
-Definition PolyComb (sq : seq polyF) (sc : seq zint) :=
+Definition PolyComb (sq : seq polyF) (sc : seq int) :=
   \big[MulPoly/[::1%qfT]]_(i < size sq)
   ExpPoly (nth [::] sq i) (comb_exp sc`_i).
 

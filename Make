@@ -87,8 +87,8 @@ classfun.v
 character.v
 vcharacter.v
 orderedalg.v
-zint.v
-qnum.v
+int.v
+rat.v
 interval.v
 closed_field.v
 complex.v

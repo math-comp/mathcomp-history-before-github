@@ -533,13 +533,13 @@ split=> // [_ /mapP[xi /Schi2/Znu ? -> //]||].
 by rewrite -raddfB -cfunD1E Dnu // irr_vchar_on ?Ztau.
 Qed.
 
-Import polydiv qnum algebra fieldext separable galois.
+Import polydiv rat algebra fieldext separable galois.
 
 Section NumFieldProj.
 
-Variables (Qn : fieldExtType qnum) (QnC : {rmorphism Qn -> algC}).
+Variables (Qn : fieldExtType rat) (QnC : {rmorphism Qn -> algC}).
 
-Lemma Crat_spanZ b a : {in Crat_span b, forall x, qnumr a * x \in Crat_span b}.
+Lemma Crat_spanZ b a : {in Crat_span b, forall x, ratr a * x \in Crat_span b}.
 Proof.
 move=> _ /Crat_spanP[a1 ->]; apply/Crat_spanP; exists [ffun i => a * a1 i].
 by rewrite mulr_sumr; apply: eq_bigr => i _; rewrite ffunE mulrA -rmorphM.
@@ -584,7 +584,7 @@ Lemma map_Qnum_poly (nu : {rmorphism algC -> algC}) p :
 Proof.
 move=> Qp; apply/polyP=> i; rewrite /= !coef_map /=.
 have /injvP[a ->]: p`_i \in 1%:VS by exact: polyOverP.
-by rewrite alg_num_field !fmorph_qnum.
+by rewrite alg_num_field !fmorph_rat.
 Qed.
 
 Lemma restrict_aut_to_normal_num_field (nu : {rmorphism algC -> algC}) :
@@ -595,7 +595,7 @@ case/normal_field_splitting=> [p Qp /sig2_eqW[r Dp genQn]].
 apply: restrict_aut_to_num_field => x.
 have:= memvf x; rewrite -{}genQn; have: all (mem r) r by exact/allP.
 elim/last_ind: {-1}r => [|r1 z IHr] /= in x *.
-  by move=> _ /injvP[a ->]; exists a%:A; rewrite alg_num_field !fmorph_qnum.
+  by move=> _ /injvP[a ->]; exists a%:A; rewrite alg_num_field !fmorph_rat.
 rewrite all_rcons genField_rcons => /andP[/= rz r_r1] /poly_Fadjoin[q [r_q ->]].
 have /mapP[y _ Dy]: nu (QnC z) \in map QnC r.
   rewrite -root_prod_XsubC big_map.
@@ -615,7 +615,7 @@ Qed.
 End NumFieldProj.
 
 (* This is Peterfalvi (1.9)(a). *)
-Lemma extend_coprime_Qn_aut a b (Qa Qb : fieldExtType qnum) w_a w_b
+Lemma extend_coprime_Qn_aut a b (Qa Qb : fieldExtType rat) w_a w_b
           (QaC : {rmorphism Qa -> algC}) (QbC : {rmorphism Qb -> algC})
           (mu : {rmorphism algC -> algC}) :
     coprime a b ->

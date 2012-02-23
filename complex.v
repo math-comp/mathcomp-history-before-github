@@ -1,5 +1,5 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigop ssralg zint div orderedalg qnum poly.
+Require Import bigop ssralg int div orderedalg rat poly.
 
 Import GRing.Theory ORing.Theory.
 

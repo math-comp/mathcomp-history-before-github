@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq choice div fintype.
-Require Import bigop prime ssralg poly zint.
+Require Import bigop prime ssralg poly int.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -45,7 +45,7 @@ Axiom repC_pconj : forall x, repC (x * x ^*).
 Axiom realC_archimedean : forall x, repC x ->
   exists n, [&& repC (x - n%:R), repC (n.+1%:R - x) & x != n.+1%:R].
 Axiom algC_algebraic :
-  forall x, exists2 p, p != 0 & root (map_poly (zintmul 1) p) x.
+  forall x, exists2 p, p != 0 & root (map_poly (intmul 1) p) x.
 
 (* Note and caveat: Q-automorphisms of algC do not necessarily commute with   *)
 (* conjugation. However, they necessarily do so on the subfield of algC       *)
