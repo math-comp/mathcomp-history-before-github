@@ -142,7 +142,7 @@ have{Bs_le2} sCE: 'C_B(E) \subset E.
   rewrite (sameP joing_idPl eqP) eq_sym eqEcard joing_subl /=.
   by rewrite (card_pgroup (pgroupS sBsR pR)) oE leq_exp2l.
 have dimCBE: 2 <= logn p #|'C_B(E)|.
-  rewrite -ltnS -dimB -addn1 -leq_sub_add -logn_div ?divgS ?cardSg //.
+  rewrite -ltnS -dimB -addn1 -leq_subLR -logn_div ?divgS ?cardSg //.
   by rewrite logn_quotient_cent_abelem ?dimE ?(subset_trans sBR nER).
 have defE: 'C_B(E) = E.
   apply/eqP; rewrite eqEcard sCE oE /=.
@@ -223,7 +223,7 @@ have defZ: 'C_W(E) = Z.
   rewrite subsetI sZW (centsS sER); last by rewrite centsC -subsetIidl defCRZ.
   by rewrite (leq_exp2l _ 1) // -ltnS -dimE properG_ltn_log.
 have dimW: logn p #|W| = 2.
-  apply/eqP; rewrite -(LaGrange sZW) logn_mul ?cardG_gt0 // oZ (pfactorK 1) //=.
+  apply/eqP; rewrite -(LaGrange sZW) lognM ?cardG_gt0 // oZ (pfactorK 1) //=.
   rewrite -/Z eqSS eqn_leq -{1}defZ logn_quotient_cent_abelem ?dimE // -/W.
   by rewrite -divgS // logn_div ?cardSg // subn_gt0 properG_ltn_log.
 have abelW: p.-abelem W.
@@ -451,7 +451,7 @@ have{pS cSS} oLb: #|L / K| = p.
   have ntLb: L / K != 1 by rewrite -subG1 quotient_sub1 ?proper_subn.
   have [_ p_dv_Lb _] := pgroup_pdiv (quotient_pgroup _ pL) ntLb.
   apply/eqP; rewrite eqn_leq {p_dv_Lb}(dvdn_leq _ p_dv_Lb) // andbT.
-  rewrite -divg_normal ?(normalS sKL sLH nsKH) // leq_divl ?cardSg //= -/K.
+  rewrite -divg_normal ?(normalS sKL sLH nsKH) // leq_divLR ?cardSg //= -/K.
   rewrite -(card_lcoset K v) -(LaGrangeI L 'C(S)) -indexgI /= -oCHS /K commGC.
   rewrite {2}defS cent_cycle index_cent1 leq_mul ?subset_leq_card ?setSI //.
   by apply/subsetP=> vx; case/imsetP=> x Lx ->; rewrite mem_lcoset mem_commg.
@@ -477,7 +477,7 @@ rewrite (abelianS _ (Aut_cyclic_abelian cycLb)); last first.
 apply/subsetP=> a; case/morphimP=> xp _; case/imsetP=> x Ax -> ->{a xp}.
 have Dx := subsetP sAD x Ax; rewrite inE morphX //= -order_dvdn.
 apply: dvdn_trans (order_dvdG (actperm_Aut _ Dx)) _.
-by rewrite card_Aut_cyclic // oLb (@phi_pfactor p 1) ?muln1.
+by rewrite card_Aut_cyclic // oLb (@totient_pfactor p 1) ?muln1.
 Qed.
 
 End OneGroup. 

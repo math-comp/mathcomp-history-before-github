@@ -160,7 +160,7 @@ pose f2 (k : 'Z_p) := y ^+ k.
 have f2M: {in setT &, {morph f2 : u v / u * v}}.
   by move=> k1 k2 _ _; rewrite /f2 /= {3}Zp_cast // expg_mod // expgD.
 have actf: {in setT & setT, morph_act actp 'J (Morphism f1M) (Morphism f2M)}.
-  case=> /= i j k _ _; rewrite modn_addmr {4}Zp_cast // expg_mod // expgD.
+  case=> /= i j k _ _; rewrite modnDmr {4}Zp_cast // expg_mod // expgD.
   rewrite /f2 conjMg {1}/conjg (commuteX2 i k czy) mulKg -mulgA.
   congr (_ * _); rewrite (commuteX2 _ _ czx) mulnC expgM.
   by rewrite -commXg // -commgX ?mulKVg // commXg // /commute commuteX.
@@ -275,7 +275,7 @@ have oZ := card_center_extraspecial pG esG.
 elim: n => [|n IHn]; first by rewrite (card_isog (ncprod0 _)) oZ.
 case: pX1p2S => gz isoZ; rewrite -im_cpair cardMg_divn setI_im_cpair.
 rewrite -injm_center ?{1}card_injm ?injm_cpairg1 ?injm_cpair1g ?center_sub //.
-by rewrite oG oZ IHn -expn_add mulKn ?prime_gt0.
+by rewrite oG oZ IHn -expnD mulKn ?prime_gt0.
 Qed.
 
 Lemma pX1p2n_pgroup n : prime p -> p.-group p^{1+2*n}.
@@ -553,7 +553,7 @@ have zI_ET: E :&: T = 'Z(E).
   by apply/eqP; rewrite eqEsubset subsetI sZT subsetIl setIS // centsC.
 have{n def_n oG} oT: #|T| = (p ^ n'.*2.+1)%N.
   apply/eqP; rewrite -(eqn_pmul2l (cardG_gt0 E)) mul_cardG zI_ET defET.
-  by rewrite defZE oE oG oZ -expnSr -expn_add def_n.
+  by rewrite defZE oE oG oZ -expnSr -expnD def_n.
 have{IHs oT expT defT Es} isoT: T \isog p^{1+2*n'} by rewrite IHs.
 case: pX1p2S => gz isoZ; rewrite (isog_cprod_by _ defG) //.
 exact: Aut_extraspecial_full (pX1p2_pgroup p_pr) (pX1p2_extraspecial p_pr).
@@ -606,7 +606,7 @@ case: DnQ_P => gz isoZ.
 rewrite -im_cpair cardMg_divn setI_im_cpair cpair_center_id.
 rewrite -injm_center 3?{1}card_injm ?injm_cpairg1 ?injm_cpair1g ?center_sub //.
 rewrite oQ card_pX1p2n // (card_center_extraspecial pQ Q8_extraspecial).
-by rewrite -divn_mulA // mulnC -(expn_add 2 2).
+by rewrite -muln_divA // mulnC -(expnD 2 2).
 Qed.
 
 Lemma DnQ_pgroup n : 2.-group 'D^n*Q.
@@ -691,7 +691,7 @@ have isoE: E \isog 2^{1+2}.
   have [[y z] genE _] := generators_quaternion gt32 isoE.
   have [_ _ [defZx _ eq_y2 _ _] _ _] := quaternion_structure gt32 genE isoE.
   by rewrite (eq_y2 x) // -cycle_subG -defZx defZE.
-rewrite oG doubleS 2!expnS divn_pmul2l ?mulKn // in oR.
+rewrite oG doubleS 2!expnS divnMl ?mulKn // in oR.
 case: ifP esR => [_ defR | _ esR].
   have ->: n = 0%N by move/eqP: oR; rewrite defR oZ (eqn_exp2l 1) //; case n.
   left; apply: isog_trans (isog_symr (ncprod1 _)).
@@ -742,7 +742,7 @@ have pDDn: 2.-group DDn by rewrite /pgroup oDDn pnat_exp.
 apply/eqP; rewrite eqn_leq; apply/andP; split.
   have [E EprE]:= p_rank_witness 2 [group of DDn].
   have [sEDDn abelE <-] := pnElemP EprE; have [pE cEE _]:= and3P abelE.
-  rewrite -(@leq_exp2l 2) // -p_part part_pnat_id // -leq_sqr -expn_mulr -mulnn.
+  rewrite -(@leq_exp2l 2) // -p_part part_pnat_id // -leq_sqr -expnM -mulnn.
   rewrite muln2 doubleS expnS -oDDn -(@leq_pmul2r #|'C_DDn(E)|) ?cardG_gt0 //.
   rewrite {1}(card_subcent_extraspecial pDDn) // mulnCA -mulnA LaGrange //=.
   rewrite mulnAC mulnA leq_pmul2r ?cardG_gt0 // setTI.
@@ -767,7 +767,7 @@ have def_xE: <[x]> \x E = <[x]> <*> E.
   by rewrite cycle_subG (contra (subsetP sEDn x)).
 apply/p_rank_geP; exists (<[x]> <*> E)%G.
 rewrite 2!inE subsetT (dprod_abelem _ def_xE) abelE -(dprod_card def_xE).
-by rewrite prime_abelem -?orderE ?ox //= logn_mul ?cardG_gt0 ?dimE.
+by rewrite prime_abelem -?orderE ?ox //= lognM ?cardG_gt0 ?dimE.
 Qed.
 
 (* The second concluding remark of Aschbacher (23.14). *)
@@ -802,7 +802,7 @@ have scE: 'C_Dn(E) = E.
   rewrite -injm_center // cpairg1_center (setIidPl sZE) oZ.
   rewrite -(dvdn_pmul2l (cardG_gt0 E)) mulnn mulnCA LaGrange //.
   rewrite card_injm ?card_pX1p2n // -expnS pfactor_dvdn ?expn_gt0 ?cardG_gt0 //.
-  by rewrite logn_exp dimE mul2n.
+  by rewrite lognX dimE mul2n.
 apply/pmaxElemP; split=> [|F E2F sEF]; first by rewrite inE subsetT abelE.
 have{E2F} [_ abelF] := pElemP E2F; have [pF cFF eF] := and3P abelF.
 apply/eqP; rewrite eqEsubset sEF andbT; apply/subsetP=> x Fx.

@@ -441,7 +441,7 @@ elim: m => [|m IHm]; first by rewrite muln0 expg0.
 by rewrite mulnS expgD IHm expgS.
 Qed.
 
-Lemma expgC x m n : x ^+ m ^+ n = x ^+ n ^+ m.
+Lemma expgAC x m n : x ^+ m ^+ n = x ^+ n ^+ m.
 Proof. by rewrite -!expgM mulnC. Qed.
 
 Definition commute x y := x * y = y * x.
@@ -2102,7 +2102,7 @@ Proof.
 move=> sHG sKG co_iG_HK; apply/eqP; rewrite eqEcard mul_subG //=.
 rewrite -(@leq_pmul2r #|H :&: K|) ?cardG_gt0 // -mul_cardG.
 rewrite -(LaGrange sHG) -(LaGrangeI K H) mulnAC setIC -mulnA.
-rewrite !leq_pmul2l ?cardG_gt0 // dvdn_leq // -(gauss _ co_iG_HK).
+rewrite !leq_pmul2l ?cardG_gt0 // dvdn_leq // -(Gauss_dvdr _ co_iG_HK).
 by rewrite -(indexgI K) LaGrange_index ?indexgS ?subsetIl ?subsetIr.
 Qed.
 

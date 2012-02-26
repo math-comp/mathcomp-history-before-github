@@ -58,7 +58,7 @@ have F3: forall c, c \in classes G -> c^-1%g = c -> c = 1%g.
     by rewrite -Hx mulgK mulVg.
   have F5 : x \in 'C_G[g].
     suff->: (x = (x ^+ 2) ^+ (#|G| %/2).+1)%g by apply: groupX.
-    rewrite -expgM -[(_%/_).+1]addn1 muln_addr muln1 -{3}addn1 addnA.
+    rewrite -expgM -[(_%/_).+1]addn1 mulnDr muln1 -{3}addn1 addnA.
     move: (modn2 #|G|); rewrite {1}OG /= => HH; rewrite -{3}HH.
     rewrite [(2 * _)%N]mulnC -divn_eq expgD expg1.
     by move: (order_dvdG XiG); rewrite order_dvdn; move/eqP->; rewrite mul1g.

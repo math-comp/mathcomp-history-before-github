@@ -113,7 +113,7 @@ have root_p: ((@annul_creal x %/ 'X).[x] == 0)%CR.
   rewrite -{1}(divpK dvdX) horner_crealM // root_annul_creal.
   by case/poly_mul_creal_eq0=> //; rewrite horner_crealX.
 have [//|/=|y *] := ihn (AlgCReal monic_p root_p); last by exists y.
-by rewrite size_divp ?size_polyX ?polyX_eq0 ?leq_sub_add ?add1n.
+by rewrite size_divp ?size_polyX ?polyX_eq0 ?leq_subLR ?add1n.
 Qed.
 
 Lemma algcreal_eq0_dec (x : algcreal) :
@@ -1141,7 +1141,7 @@ have [|apq_neq0] :=
   eqVneq (resultant (poly_ground p) (q ^ polyC)) 0; last first.
   by exists q=> //; rewrite q_neq0.
 move/eqP; rewrite resultant_eq0 ltn_neqAle eq_sym -coprimep_def.
-move=> /andP[] /(bezout_coprimepPn _ _) [].
+move=> /andP[] /(Bezout_coprimepPn _ _) [].
 + by rewrite poly_ground_eq0.
 + by rewrite map_polyC_eq0.
 move=> [u v] /and3P [] /andP [u_neq0 ltn_uq] v_neq0 ltn_vp hpq.

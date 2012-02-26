@@ -278,7 +278,7 @@ have p'_neq0 : p' != 0 by rewrite poly_XaY_eq0.
 have q'_neq0 : q' != 0 by rewrite map_polyC_eq0.
 rewrite resultant_eq0 -leqNgt leq_eqVlt ltnS leqn0; apply/orP; left.
 have [// | ] := boolP (coprimep p' q').
-case/(bezout_coprimepPn p'_neq0 q'_neq0) => [[u v]] /=.
+case/(Bezout_coprimepPn p'_neq0 q'_neq0) => [[u v]] /=.
 case/and3P=> /andP [u_gt0 ltn_uq] v_gt0 ltn_vp hpq.
 have u_neq0 : u != 0 by rewrite -size_poly_gt0.
 have v_neq0 : v != 0 by rewrite -size_poly_gt0.
@@ -292,7 +292,7 @@ rewrite -[X in (X + _).-1]prednK ?addSn /=; last first.
   by rewrite lt0n size_poly_eq0 lead_coef_eq0 swapXY_eq0.
 move=> huvq; have := leq_size_lead_coef (swapXY u).
 rewrite huvq sizeYE swapXYK=> /leq_ltn_trans /(_ ltn_uq).
-by rewrite size_map_poly addnC ltn_add_sub subnn.
+by rewrite size_map_poly addnC -ltn_subRL subnn.
 Qed.
 
 Definition annul_div (R : ringType) (p q : {poly R}) :=
@@ -366,7 +366,7 @@ Proof.
 move=> p_neq0 q0_neq0; rewrite /annul_div.
 rewrite resultant_eq0 -leqNgt leq_eqVlt ltnS leqn0; apply/orP; left.
 rewrite -coprimep_def; have [//|] := boolP (coprimep _ _).
-case/(bezout_coprimepPn _ _); do ?by rewrite poly_XmY_eq0.
+case/(Bezout_coprimepPn _ _); do ?by rewrite poly_XmY_eq0.
   by rewrite map_polyC_eq0; apply: contra q0_neq0=> /eqP ->; rewrite horner0.
 move=> [u v] /= /and3P [] /andP [u_neq0 ltn_uq] v_neq0 ltn_vp hpq.
 rewrite ?size_map_polyC ?size_poly_XmY in ltn_uq ltn_vp.

@@ -62,10 +62,9 @@ Require Export Ring.
 (*   maximum and minimum                                                      *)
 (*      maxn m n, minn m n                                                    *)
 (*   Note that maxn m n = m + (m - n), due to the truncating subtraction.     *)
-(*                                                                            *)
-(*   absolute difference (linear distance)                                    *)
-(*     `|m - n|                                                               *)
-(*   This either m - n or n - m, depending on whether m >= n or m <= n.       *)
+(*   Absolute difference (linear distance) between nats is defined in the int *)
+(*   library (in the int.IntDist sublibrary), with the syntax `|m - n|. The   *)
+(*   '-' in this notation is the signed integer difference.                   *)
 (*                                                                            *)
 (*   countable choice                                                         *)
 (*     ex_minn : forall P : pred nat, (exists n, P n) -> nat                  *)
@@ -78,14 +77,28 @@ Require Export Ring.
 (*  This file adds the following suffix conventions to those documented in    *)
 (* ssrbool.v and eqtype.v:                                                    *)
 (*   A (infix) -- conjunction, as in                                          *)
-(*      ltn_neqAle : (m < n) = (m != n) && (m <= n)                           *)
-(*  p (prefix) -- positive, as in                                             *)
-(*      eqn_pmul2l : m > 0 -> (m * n1 == m * n2) = (n1 == n2)                 *)
-(*  P (prefix) -- greater than 1, as in                                       *)
+(*      ltn_neqAle : (m < n) = (m != n) && (m <= n).                          *)
+(*   B -- subtraction, as in subBn : (m - n) - p = m - (n + p).               *)
+(*   D -- addition, as in mulnDl : (m + n) * p = m * p + n * p.               *)
+(*   M -- multiplication, as in expnMn : (m * n) ^ p = m ^ p * n ^ p.         *)
+(*   p (prefix) -- positive, as in                                            *)
+(*      eqn_pmul2l : m > 0 -> (m * n1 == m * n2) = (n1 == n2).                *)
+(*   P  -- greater than 1, as in                                              *)
 (*      ltn_Pmull : 1 < n -> 0 < m -> m < n * m.                              *)
-(*           S -- successor, as in addSn : n.+1 + m = (n + m).+1              *)
+(*   S -- successor, as in addSn : n.+1 + m = (n + m).+1.                     *)
 (*   V (infix) -- disjunction, as in                                          *)
-(*      leq_eqVlt : (m <= n) = (m == n) || (m < n)                            *)
+(*      leq_eqVlt : (m <= n) = (m == n) || (m < n).                           *)
+(*   X - exponentiation, as in lognX : logn p (m ^ n) = logn p m * n in       *)
+(*         file prime.v (the suffix is not used in ths file).                 *)
+(* Suffixes that abreviate operations (D, B, M and X) are used to abbreviate  *)
+(* second-rank operations in equational lemma names that describe left-hand   *)
+(* sides (e.g., mulnDl); they are not used to abbreviate the main operation   *)
+(* of relational lemmas (e.g., leq_add2l).                                    *)
+(*   For the asymmetrical exponentiation operator expn (m ^ n) a right suffix *)
+(* indicates an operation on the exponent, e.g., expnM : m ^ (n1 * n2) = ...; *)
+(* a trailing "n" is used to indicate the left operand, e.g.,                 *)
+(* expnMn : (m1 * m2) ^ n = ... The operands of other operators a selected    *)
+(* using the l/r suffixes.                                                    *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -204,17 +217,20 @@ Proof. by move=> m n p; rewrite (addnC n) addnCA addnC. Qed.
 Lemma addnAC : right_commutative addn.
 Proof. by move=> m n p; rewrite -!addnA (addnC n). Qed.
 
+Lemma addnACA : interchange addn addn.
+Proof. by move=> m n p q; rewrite -!addnA (addnCA n). Qed.
+
 Lemma addn_eq0 m n : (m + n == 0) = (m == 0) && (n == 0).
 Proof. by case: m; case: n. Qed.
 
-Lemma eqn_addl p m n : (p + m == p + n) = (m == n).
+Lemma eqn_add2l p m n : (p + m == p + n) = (m == n).
 Proof. by elim: p. Qed.
 
-Lemma eqn_addr p m n : (m + p == n + p) = (m == n).
-Proof. by rewrite -!(addnC p) eqn_addl. Qed.
+Lemma eqn_add2r p m n : (m + p == n + p) = (m == n).
+Proof. by rewrite -!(addnC p) eqn_add2l. Qed.
 
 Lemma addnI : right_injective addn.
-Proof. by move=> p m n Heq; apply: eqP; rewrite -(eqn_addl p) Heq eqxx. Qed.
+Proof. by move=> p m n Heq; apply: eqP; rewrite -(eqn_add2l p) Heq eqxx. Qed.
 
 Lemma addIn : left_injective addn.
 Proof. move=> p m n; rewrite -!(addnC p); apply addnI. Qed.
@@ -246,14 +262,14 @@ Lemma subSS n m : m.+1 - n.+1 = m - n. Proof. by []. Qed.
 Lemma subn1 n : n - 1 = n.-1.          Proof. by case: n => [|[]]. Qed.
 Lemma subn2 n : (n - 2)%N = n.-2.      Proof. by case: n => [|[|[]]]. Qed.
 
-Lemma subn_add2l p m n : (p + m) - (p + n) = m - n.
+Lemma subnDl p m n : (p + m) - (p + n) = m - n.
 Proof. by elim: p. Qed.
 
-Lemma subn_add2r p m n : (m + p) - (n + p) = m - n.
-Proof. by rewrite -!(addnC p) subn_add2l. Qed.
+Lemma subnDr p m n : (m + p) - (n + p) = m - n.
+Proof. by rewrite -!(addnC p) subnDl. Qed.
 
 Lemma addKn n : cancel (addn n) (subn^~ n).
-Proof. by move=> m; rewrite /= -{2}[n]addn0 subn_add2l subn0. Qed.
+Proof. by move=> m; rewrite /= -{2}[n]addn0 subnDl subn0. Qed.
 
 Lemma addnK n : cancel (addn^~ n) (subn^~ n).
 Proof. by move=> m; rewrite /= (addnC m) addKn. Qed.
@@ -261,17 +277,17 @@ Proof. by move=> m; rewrite /= (addnC m) addKn. Qed.
 Lemma subSnn n : n.+1 - n = 1.
 Proof. exact (addnK n 1). Qed.
 
-Lemma subn_sub m n p : (n - m) - p = n - (m + p).
+Lemma subnDA m n p : n - (m + p) = (n - m) - p.
 Proof. by elim: m n => [|m IHm] [|n]; try exact (IHm n). Qed.
 
 Lemma subnAC : right_commutative subn.
-Proof. by move=> m n p; rewrite !subn_sub addnC. Qed.
+Proof. by move=> m n p; rewrite -!subnDA addnC. Qed.
 
-Lemma predn_sub m n : (m - n).-1 = m - n.+1.
-Proof. by rewrite -subn1 subn_sub addn1. Qed.
+Lemma subnS m n : m - n.+1 = (m - n).-1.
+Proof. by rewrite -addn1 subnDA subn1. Qed.
 
-Lemma predn_subS m n : (m.+1 - n).-1 = m - n.
-Proof. by rewrite predn_sub. Qed.
+Lemma subSKn m n : (m.+1 - n).-1 = m - n.
+Proof. by rewrite -subnS. Qed.
 
 (* Integer ordering, and its interaction with the other operations.       *)
 
@@ -475,11 +491,11 @@ Proof. by elim: m n => [|m IHm] [|n] //; exact: IHm n. Qed.
 Lemma subn_eq0 m n : (m - n == 0) = (m <= n).
 Proof. by []. Qed.
 
-Lemma leq_sub_add m n p : (m - n <= p) = (m <= n + p).
-Proof. by rewrite -subn_eq0 subn_sub. Qed.
+Lemma leq_subLR m n p : (m - n <= p) = (m <= n + p).
+Proof. by rewrite -subn_eq0 -subnDA. Qed.
 
 Lemma leq_subr m n : n - m <= n.
-Proof. by rewrite leq_sub_add leq_addl. Qed.
+Proof. by rewrite leq_subLR leq_addl. Qed.
 
 Lemma subnKC m n : m <= n -> m + (n - m) = n.
 Proof. by elim: m n => [|m IHm] [|n] // /(IHm n) {2}<-. Qed.
@@ -487,45 +503,43 @@ Proof. by elim: m n => [|m IHm] [|n] // /(IHm n) {2}<-. Qed.
 Lemma subnK m n : m <= n -> (n - m) + m = n.
 Proof. by rewrite addnC; exact: subnKC. Qed.
 
-Lemma addn_subA m n p : p <= n -> m + (n - p) = m + n - p.
+Lemma addnBA m n p : p <= n -> m + (n - p) = m + n - p.
 Proof. by move=> le_pn; rewrite -{2}(subnK le_pn) addnA addnK. Qed.
 
-Lemma subn_subA m n p : p <= n -> m - (n - p) = m + p - n.
-Proof. by move=> le_pn; rewrite -{2}(subnK le_pn) subn_add2r. Qed.
+Lemma subnBA m n p : p <= n -> m - (n - p) = m + p - n.
+Proof. by move=> le_pn; rewrite -{2}(subnK le_pn) subnDr. Qed.
 
 Lemma subKn m n : m <= n -> n - (n - m) = m.
-Proof. by move/subn_subA->; rewrite addKn. Qed.
+Proof. by move/subnBA->; rewrite addKn. Qed.
 
-Lemma leq_subS m n : m <= n -> n.+1 - m = (n - m).+1.
-Proof. by rewrite -add1n => /addn_subA <-. Qed.
+Lemma subSn m n : m <= n -> n.+1 - m = (n - m).+1.
+Proof. by rewrite -add1n => /addnBA <-. Qed.
 
-Lemma ltn_subS m n : m < n -> n - m = (n - m.+1).+1.
-Proof. exact: leq_subS m.+1 n. Qed.
+Lemma subnSK m n : m < n -> (n - m.+1).+1 = n - m.
+Proof. by move/subSn. Qed.
 
 Lemma leq_sub2r p m n : m <= n -> m - p <= n - p.
 Proof.
-by move=> le_mn; rewrite leq_sub_add (leq_trans le_mn) // -leq_sub_add.
+by move=> le_mn; rewrite leq_subLR (leq_trans le_mn) // -leq_subLR.
 Qed.
 
 Lemma leq_sub2l p m n : m <= n -> p - n <= p - m.
 Proof.
-rewrite -(leq_add2r (p - m)) leq_sub_add.
-by apply: leq_trans; rewrite -leq_sub_add.
+rewrite -(leq_add2r (p - m)) leq_subLR.
+by apply: leq_trans; rewrite -leq_subLR.
 Qed.
 
-Lemma leq_sub2 m1 m2 n1 n2 : m1 <= m2 -> n2 <= n1 -> m1 - n1 <= m2 - n2.
-Proof.
-by move/(leq_sub2r n1)=> le_m12; move/(leq_sub2l m2); exact: leq_trans.
-Qed.
+Lemma leq_sub m1 m2 n1 n2 : m1 <= m2 -> n2 <= n1 -> m1 - n1 <= m2 - n2.
+Proof. by move/(leq_sub2r n1)=> le_m12 /(leq_sub2l m2); apply: leq_trans. Qed.
 
 Lemma ltn_sub2r p m n : p < n -> m < n -> m - p < n - p.
-Proof. by move/ltn_subS->; exact: (@leq_sub2r p.+1). Qed.
+Proof. by move/subnSK <-; exact: (@leq_sub2r p.+1). Qed.
 
 Lemma ltn_sub2l p m n : m < p -> m < n -> p - n < p - m.
-Proof. by move/ltn_subS->; exact: leq_sub2l. Qed.
+Proof. by move/subnSK <-; exact: leq_sub2l. Qed.
 
-Lemma ltn_add_sub m n p : (m + n < p) = (n < p - m).
-Proof. by rewrite !ltnNge leq_sub_add. Qed.
+Lemma ltn_subRL m n p : (n < p - m) = (m + n < p).
+Proof. by rewrite !ltnNge leq_subLR. Qed.
 
 (* Eliminating the idiom for structurally decreasing compare and subtract. *)
 Lemma subn_if_gt T m n F (E : T) :
@@ -534,7 +548,7 @@ Proof.
 by case: leqP => [le_nm | /eqnP-> //]; rewrite -{1}(subnK le_nm) -addSn addnK.
 Qed.
 
-(* Max and min *)
+(* Max and min. *)
 
 Definition maxn m n := if m < n then n else m.
 
@@ -546,19 +560,11 @@ Lemma maxn0 : right_id 0 maxn. Proof. by []. Qed.
 Lemma maxnC : commutative maxn.
 Proof. by move=> m n; rewrite /maxn; case ltngtP. Qed.
 
-Lemma maxnl m n : m >= n -> maxn m n = m.
-Proof. by rewrite /maxn; case leqP. Qed.
-
-Lemma maxnr m n : m <= n -> maxn m n = n.
-Proof. by move/maxnl; rewrite maxnC. Qed.
-
-Lemma add_sub_maxn m n : m + (n - m) = maxn m n.
+Lemma maxnE m n : maxn m n = m + (n - m).
 Proof. by rewrite /maxn addnC; case: leqP => [/eqnP-> | /ltnW/subnK]. Qed.
 
 Lemma maxnAC : right_commutative maxn.
-Proof.
-by move=> m n p; rewrite -!add_sub_maxn -!addnA -!subn_sub !add_sub_maxn maxnC.
-Qed.
+Proof. by move=> m n p; rewrite !maxnE -!addnA !subnDA -!maxnE maxnC. Qed.
 
 Lemma maxnA : associative maxn.
 Proof. by move=> m n p; rewrite !(maxnC m) maxnAC. Qed.
@@ -566,28 +572,38 @@ Proof. by move=> m n p; rewrite !(maxnC m) maxnAC. Qed.
 Lemma maxnCA : left_commutative maxn.
 Proof. by move=> m n p; rewrite !maxnA (maxnC m). Qed.
 
-Lemma eqn_maxr m n : (maxn m n == n) = (m <= n).
-Proof. by rewrite maxnC -{2}[n]addn0 -add_sub_maxn eqn_addl. Qed.
+Lemma maxnACA : interchange maxn maxn.
+Proof. by move=> m n p q; rewrite -!maxnA (maxnCA n). Qed.
 
-Lemma eqn_maxl m n : (maxn m n == m) = (m >= n).
-Proof. by rewrite -{2}[m]addn0 -add_sub_maxn eqn_addl. Qed.
+Lemma maxn_idPl {m n} : reflect (maxn m n = m) (m >= n).
+Proof. by rewrite -subn_eq0 -(eqn_add2l m) addn0 -maxnE; apply: eqP. Qed.
+
+Lemma maxn_idPr {m n} : reflect (maxn m n = n) (m <= n).
+Proof. by rewrite maxnC; apply: maxn_idPl. Qed.
 
 Lemma maxnn : idempotent maxn.
-Proof. by move=> n; rewrite maxnl. Qed.
+Proof. by move=> n; apply/maxn_idPl. Qed.
 
-Lemma leq_maxr m n1 n2 : (m <= maxn n1 n2) = (m <= n1) || (m <= n2).
+Lemma leq_max m n1 n2 : (m <= maxn n1 n2) = (m <= n1) || (m <= n2).
 Proof.
-wlog le_n21: n1 n2 / n2 <= n1.
-  by case/orP: (leq_total n2 n1) => le_n12; last rewrite maxnC orbC; auto.
-rewrite /maxn ltnNge le_n21 /=; case: leqP => // lt_m_n1.
-by rewrite leqNgt (leq_trans _ lt_m_n1).
+without loss le_n21: n1 n2 / n2 <= n1.
+  by case/orP: (leq_total n2 n1) => le_n12; last rewrite maxnC orbC; apply.
+by rewrite (maxn_idPl le_n21) orb_idr // => /leq_trans->.
 Qed.
+Lemma leq_maxl m n : m <= maxn m n. Proof. by rewrite leq_max leqnn. Qed.
+Lemma leq_maxr m n : n <= maxn m n. Proof. by rewrite maxnC leq_maxl. Qed.
 
-Lemma leq_maxl m n1 n2 : (maxn n1 n2 <= m) = (n1 <= m) && (n2 <= m).
-Proof. by rewrite leqNgt leq_maxr negb_or -!leqNgt. Qed.
+Lemma gtn_max m n1 n2 : (m > maxn n1 n2) = (m > n1) && (m > n2).
+Proof. by rewrite !ltnNge leq_max negb_or. Qed.
+
+Lemma geq_max m n1 n2 : (m >= maxn n1 n2) = (m >= n1) && (m >= n2).
+Proof. by rewrite -ltnS gtn_max. Qed.
+
+Lemma maxnSS m n : maxn m.+1 n.+1 = (maxn m n).+1.
+Proof. by rewrite !maxnE. Qed.
 
 Lemma addn_maxl : left_distributive addn maxn.
-Proof. by move=> m1 m2 n; rewrite -!add_sub_maxn subn_add2r addnAC. Qed.
+Proof. by move=> m1 m2 n; rewrite !maxnE subnDr addnAC. Qed.
 
 Lemma addn_maxr : right_distributive addn maxn.
 Proof. by move=> m n1 n2; rewrite !(addnC m) addn_maxl. Qed.
@@ -598,86 +614,84 @@ Lemma minn0 : right_zero 0 minn. Proof. by []. Qed.
 Lemma minnC : commutative minn.
 Proof. by move=> m n; rewrite /minn; case ltngtP. Qed.
 
-Lemma minnr m n : m >= n -> minn m n = n.
-Proof. by rewrite /minn; case leqP. Qed.
-
-Lemma minnl m n : m <= n -> minn m n = m.
-Proof. by move/minnr; rewrite minnC. Qed.
-
 Lemma addn_min_max m n : minn m n + maxn m n = m + n.
 Proof. by rewrite /minn /maxn; case: ltngtP => // [_|->] //; exact: addnC. Qed.
 
-Remark minn_to_maxn m n : minn m n = m + n - maxn m n.
-Proof. by rewrite -addn_min_max addnK. Qed.
+Lemma minnE m n : minn m n = m - (m - n).
+Proof. by rewrite -(subnDl n) -maxnE -addn_min_max addnK minnC. Qed.
 
-Lemma sub_sub_minn m n : m - (m - n) = minn m n.
-Proof. by rewrite minnC minn_to_maxn -add_sub_maxn subn_add2l. Qed.
-
-Lemma minnCA : left_commutative minn.
+Lemma minnAC : right_commutative minn.
 Proof.
-move=> m1 m2 m3; rewrite !(minn_to_maxn _ (minn _ _)).
-rewrite -(subn_add2r (maxn m2 m3)) -(subn_add2r (maxn m1 m3) (m2 + _)) -!addnA.
-by rewrite !addn_maxl !addn_min_max !addn_maxr addnCA maxnAC (addnC m2 m1).
+by move=> m n p; rewrite !minnE -subnDA subnAC -maxnE maxnC maxnE subnAC subnDA.
 Qed.
 
 Lemma minnA : associative minn.
-Proof. by move=> m1 m2 m3; rewrite (minnC m2) minnCA minnC. Qed.
+Proof. by move=> m n p; rewrite minnC minnAC (minnC n). Qed.
 
-Lemma minnAC : right_commutative minn.
-Proof. by move=> m1 m2 m3; rewrite minnC minnCA minnA. Qed.
+Lemma minnCA : left_commutative minn.
+Proof. by move=> m n p; rewrite !minnA (minnC n). Qed.
 
-Lemma eqn_minr m n : (minn m n == n) = (n <= m).
+Lemma minnACA : interchange minn minn.
+Proof. by move=> m n p q; rewrite -!minnA (minnCA n). Qed.
+
+Lemma minn_idPl {m n} : reflect (minn m n = m) (m <= n).
 Proof.
-by rewrite -(eqn_addr m) eq_sym addnC -addn_min_max eqn_addl eqn_maxl.
+rewrite (sameP maxn_idPr eqP) -(eqn_add2l m) eq_sym -addn_min_max eqn_add2r.
+exact: eqP.
 Qed.
 
-Lemma eqn_minl m n : (minn m n == m) = (m <= n).
-Proof. by rewrite -(eqn_addr n) eq_sym -addn_min_max eqn_addl eqn_maxr. Qed.
+Lemma minn_idPr {m n} : reflect (minn m n = n) (m >= n).
+Proof. by rewrite minnC; apply: minn_idPl. Qed.
 
 Lemma minnn : idempotent minn.
-Proof. by move=> n; exact: minnr. Qed.
+Proof. by move=> n; apply/minn_idPl. Qed.
 
-Lemma leq_minr m n1 n2 : (m <= minn n1 n2) = (m <= n1) && (m <= n2).
+Lemma leq_min m n1 n2 : (m <= minn n1 n2) = (m <= n1) && (m <= n2).
 Proof.
 wlog le_n21: n1 n2 / n2 <= n1.
   by case/orP: (leq_total n2 n1) => ?; last rewrite minnC andbC; auto.
 by rewrite /minn ltnNge le_n21 /= andbC; case: leqP => // /leq_trans->.
 Qed.
 
-Lemma leq_minl m n1 n2 : (minn n1 n2 <= m) = (n1 <= m) || (n2 <= m).
-Proof. by rewrite leqNgt leq_minr negb_and -!leqNgt. Qed.
+Lemma gtn_min m n1 n2 : (m > minn n1 n2) = (m > n1) || (m > n2).
+Proof. by rewrite !ltnNge leq_min negb_and. Qed.
 
-Lemma addn_minl : left_distributive addn minn.
-Proof.
-move=> m1 m2 n; rewrite !minn_to_maxn -addn_maxl addnA subn_add2r addnAC.
-by rewrite -!(addnC n) addn_subA // -addn_min_max leq_addl.
-Qed.
+Lemma geq_min m n1 n2 : (m >= minn n1 n2) = (m >= n1) || (m >= n2).
+Proof. by rewrite -ltnS gtn_min. Qed.
+
+Lemma geq_minl m n : minn m n <= m. Proof. by rewrite geq_min leqnn. Qed.
+Lemma geq_minr m n : minn m n <= n. Proof. by rewrite minnC geq_minl. Qed.
 
 Lemma addn_minr : right_distributive addn minn.
-Proof. by move=> m n1 n2; rewrite !(addnC m) addn_minl. Qed.
+Proof. by move=> m1 m2 n; rewrite !minnE subnDl addnBA ?leq_subr. Qed.
+
+Lemma addn_minl : left_distributive addn minn.
+Proof. by move=> m1 m2 n; rewrite -!(addnC n) addn_minr. Qed.
+
+Lemma minnSS m n : minn m.+1 n.+1 = (minn m n).+1.
+Proof. by rewrite -(addn_minr 1). Qed.
 
 (* Quasi-cancellation (really, absorption) lemmas *)
 Lemma maxnK m n : minn (maxn m n) m = m.
-Proof. by rewrite minnr // leq_maxr leqnn. Qed.
+Proof. exact/minn_idPr/leq_maxl. Qed.
 
 Lemma maxKn m n : minn n (maxn m n) = n.
-Proof. by rewrite minnC maxnC maxnK. Qed.
+Proof. exact/minn_idPl/leq_maxr. Qed.
 
 Lemma minnK m n : maxn (minn m n) m = m.
-Proof. by rewrite maxnr // leq_minl leqnn. Qed.
+Proof. exact/maxn_idPr/geq_minl. Qed.
 
 Lemma minKn m n : maxn n (minn m n) = n.
-Proof. by rewrite minnC maxnC minnK. Qed.
+Proof. exact/maxn_idPl/geq_minr. Qed.
 
 (* Distributivity. *)
-
 Lemma maxn_minl : left_distributive maxn minn.
 Proof.
 move=> m1 m2 n; wlog le_m21: m1 m2 / m2 <= m1.
   move=> IH; case/orP: (leq_total m2 m1) => /IH //.
   by rewrite minnC [in R in _ = R]minnC.
-apply/eqP; rewrite /minn ltnNge le_m21 eq_sym eqn_minr leq_maxr !leq_maxl.
-by rewrite le_m21 leqnn andbT; case: leqP => // /ltnW/(leq_trans le_m21)->.
+rewrite (minn_idPr le_m21); apply/esym/minn_idPr.
+by rewrite geq_max leq_maxr leq_max le_m21.
 Qed.
 
 Lemma maxn_minr : right_distributive maxn minn.
@@ -738,8 +752,8 @@ Lemma ex_maxnP : ex_maxn_spec ex_maxn.
 Proof.
 rewrite /ex_maxn; case: ex_minnP => i Pmi min_i; split=> // j Pj.
 have le_i_mj: i <= m - j by rewrite min_i // subKn // ubP.
-rewrite -subn_eq0 subn_subA ?(leq_trans le_i_mj) ?leq_subr //.
-by rewrite addnC -subn_subA ?ubP.
+rewrite -subn_eq0 subnBA ?(leq_trans le_i_mj) ?leq_subr //.
+by rewrite addnC -subnBA ?ubP.
 Qed.
 
 End ExMaxn.
@@ -827,29 +841,32 @@ Proof.
 by move=> m n; elim: m => [|m]; rewrite (muln0, mulnS) // mulSn => ->.
 Qed.
 
-Lemma muln_addl : left_distributive muln addn.
+Lemma mulnDl : left_distributive muln addn.
 Proof. by move=> m1 m2 n; elim: m1 => //= m1 IHm; rewrite -addnA -IHm. Qed.
 
-Lemma muln_addr : right_distributive muln addn.
-Proof. by move=> m n1 n2; rewrite !(mulnC m) muln_addl. Qed.
+Lemma mulnDr : right_distributive muln addn.
+Proof. by move=> m n1 n2; rewrite !(mulnC m) mulnDl. Qed.
 
-Lemma muln_subl : left_distributive muln subn.
+Lemma mulnBl : left_distributive muln subn.
 Proof.
 move=> m n [|p]; first by rewrite !muln0.
-by elim: m n => // [m IHm] [|n] //; rewrite mulSn subn_add2l -IHm.
+by elim: m n => // [m IHm] [|n] //; rewrite mulSn subnDl -IHm.
 Qed.
 
-Lemma muln_subr : right_distributive muln subn.
-Proof. by move=> m n p; rewrite !(mulnC m) muln_subl. Qed.
+Lemma mulnBr : right_distributive muln subn.
+Proof. by move=> m n p; rewrite !(mulnC m) mulnBl. Qed.
 
 Lemma mulnA : associative muln.
-Proof. by move=> m n p; elim: m => //= m; rewrite mulSn muln_addl => ->. Qed.
+Proof. by move=> m n p; elim: m => //= m; rewrite mulSn mulnDl => ->. Qed.
 
 Lemma mulnCA : left_commutative muln.
 Proof. by move=> m n1 n2; rewrite !mulnA (mulnC m). Qed.
 
 Lemma mulnAC : right_commutative muln.
 Proof. by move=> m n p; rewrite -!mulnA (mulnC n). Qed.
+
+Lemma mulnACA : interchange muln muln.
+Proof. by move=> m n p q; rewrite -!mulnA (mulnCA n). Qed.
 
 Lemma muln_eq0 m n : (m * n == 0) = (m == 0) || (n == 0).
 Proof. by case: m n => // m [|n] //=; rewrite muln0. Qed.
@@ -867,7 +884,7 @@ Lemma leq_pmulr m n : n > 0 -> m <= m * n.
 Proof. by move/leq_pmull; rewrite mulnC. Qed.
 
 Lemma leq_mul2l m n1 n2 : (m * n1 <= m * n2) = (m == 0) || (n1 <= n2).
-Proof. by rewrite {1}/leq -muln_subr muln_eq0. Qed.
+Proof. by rewrite {1}/leq -mulnBr muln_eq0. Qed.
 
 Lemma leq_mul2r m n1 n2 : (n1 * m <= n2 * m) = (m == 0) || (n1 <= n2).
 Proof. by rewrite -!(mulnC m) leq_mul2l. Qed.
@@ -949,31 +966,30 @@ Notation "m ^ n" := (expn m n) : nat_scope.
 
 Lemma expnE : expn = expn_rec. Proof. by []. Qed.
 
-Lemma expn0 : forall m, m ^ 0 = 1. Proof. by []. Qed.
-Lemma expn1 : forall m, m ^ 1 = m. Proof. by []. Qed.
-
-Lemma expnS : forall m n, m ^ n.+1 = m * m ^ n.
-Proof. by move=> m [|n] //; rewrite muln1. Qed.
-
-Lemma expnSr : forall m n, m ^ n.+1 = m ^ n * m.
-Proof. by move=> m n; rewrite mulnC expnS. Qed.
+Lemma expn0 m : m ^ 0 = 1. Proof. by []. Qed.
+Lemma expn1 m : m ^ 1 = m. Proof. by []. Qed.
+Lemma expnS m n : m ^ n.+1 = m * m ^ n. Proof. by case: n; rewrite ?muln1. Qed.
+Lemma expnSr m n : m ^ n.+1 = m ^ n * m. Proof. by rewrite mulnC expnS. Qed.
 
 Lemma exp0n n : 0 < n -> 0 ^ n = 0. Proof. by case: n => [|[]]. Qed.
 
 Lemma exp1n n : 1 ^ n = 1.
 Proof. by elim: n => // n; rewrite expnS mul1n. Qed.
 
-Lemma expn_add m n1 n2 : m ^ (n1 + n2) = m ^ n1 * m ^ n2.
+Lemma expnD m n1 n2 : m ^ (n1 + n2) = m ^ n1 * m ^ n2.
 Proof. by elim: n1 => [|n1 IHn]; rewrite !(mul1n, expnS) // IHn mulnA. Qed.
 
-Lemma expn_mull m1 m2 n : (m1 * m2) ^ n = m1 ^ n * m2 ^ n.
+Lemma expnMn m1 m2 n : (m1 * m2) ^ n = m1 ^ n * m2 ^ n.
 Proof. by elim: n => // n IHn; rewrite !expnS IHn -!mulnA (mulnCA m2). Qed.
 
-Lemma expn_mulr m n1 n2 : m ^ (n1 * n2) = (m ^ n1) ^ n2.
+Lemma expnM m n1 n2 : m ^ (n1 * n2) = (m ^ n1) ^ n2.
 Proof.
 elim: n1 => [|n1 IHn]; first by rewrite exp1n.
-by rewrite expn_add expnS expn_mull IHn.
+by rewrite expnD expnS expnMn IHn.
 Qed.
+
+Lemma expnAC m n1 n2 : (m ^ n1) ^ n2 = (m ^ n2) ^ n1.
+Proof. by rewrite -!expnM mulnC. Qed.
 
 Lemma expn_gt0 m n : (0 < m ^ n) = (0 < m) || (n == 0).
 Proof.
@@ -1107,14 +1123,14 @@ Proof. by rewrite mulSn mul1n addnn. Qed.
 Lemma muln2 m : m * 2 = m.*2.
 Proof. by rewrite mulnC mul2n. Qed.
 
-Lemma double_add m n : (m + n).*2 = m.*2 + n.*2.
+Lemma doubleD m n : (m + n).*2 = m.*2 + n.*2.
 Proof. by rewrite -!addnn -!addnA (addnCA n). Qed.
 
-Lemma double_sub m n : (m - n).*2 = m.*2 - n.*2.
+Lemma doubleB m n : (m - n).*2 = m.*2 - n.*2.
 Proof. elim: m n => [|m IHm] [|n] //; exact: IHm n. Qed.
 
 Lemma leq_double m n : (m.*2 <= n.*2) = (m <= n).
-Proof. by rewrite /leq -double_sub; case (m - n). Qed.
+Proof. by rewrite /leq -doubleB; case (m - n). Qed.
 
 Lemma ltn_double m n : (m.*2 < n.*2) = (m < n).
 Proof. by rewrite 2!ltnNge leq_double. Qed.
@@ -1134,10 +1150,10 @@ Proof. by case: n. Qed.
 Lemma double_eq0 n : (n.*2 == 0) = (n == 0).
 Proof. by case: n. Qed.
 
-Lemma double_mull m n : (m * n).*2 = m.*2 * n.
+Lemma doubleMl m n : (m * n).*2 = m.*2 * n.
 Proof. by rewrite -!mul2n mulnA. Qed.
 
-Lemma double_mulr m n : (m * n).*2 = m * n.*2.
+Lemma doubleMr m n : (m * n).*2 = m * n.*2.
 Proof. by rewrite -!muln2 mulnA. Qed.
 
 (* Halving. *)
@@ -1160,20 +1176,20 @@ Proof. by elim: n => //= n ->; rewrite addnA addn_negb. Qed.
 
 Lemma odd_double_half n : odd n + n./2.*2 = n.
 Proof.
-by elim: n => //= n {3}<-; rewrite uphalf_half double_add; case (odd n).
+by elim: n => //= n {3}<-; rewrite uphalf_half doubleD; case (odd n).
 Qed.
 
 Lemma half_bit_double n (b : bool) : (b + n.*2)./2 = n.
 Proof. by case: b; rewrite /= (half_double, uphalf_double). Qed.
 
-Lemma half_add m n : (m + n)./2 = (odd m && odd n) + (m./2 + n./2).
+Lemma halfD m n : (m + n)./2 = (odd m && odd n) + (m./2 + n./2).
 Proof.
-rewrite -{1}[n]odd_double_half addnCA -{1}[m]odd_double_half -addnA -double_add.
+rewrite -{1}[n]odd_double_half addnCA -{1}[m]odd_double_half -addnA -doubleD.
 by do 2!case: odd; rewrite /= ?add0n ?half_double ?uphalf_double.
 Qed.
 
 Lemma half_leq m n : m <= n -> m./2 <= n./2.
-Proof. by move/subnK <-; rewrite half_add addnA leq_addl. Qed.
+Proof. by move/subnK <-; rewrite halfD addnA leq_addl. Qed.
 
 Lemma half_gt0 n : (0 < n./2) = (1 < n).
 Proof. by case: n => [|[]]. Qed.
@@ -1183,26 +1199,26 @@ Proof. by case: n => [|[]]. Qed.
 Lemma mulnn m : m * m = m ^ 2.
 Proof. by rewrite !expnS muln1. Qed.
 
-Lemma sqrn_add m n : (m + n) ^ 2 = m ^ 2 + n ^ 2 + 2 * (m * n).
+Lemma sqrnD m n : (m + n) ^ 2 = m ^ 2 + n ^ 2 + 2 * (m * n).
 Proof.
-rewrite -!mulnn mul2n muln_addr !muln_addl (mulnC n) -!addnA.
+rewrite -!mulnn mul2n mulnDr !mulnDl (mulnC n) -!addnA.
 by congr (_ + _); rewrite addnA addnn addnC.
 Qed.
 
 Lemma sqrn_sub m n : n <= m -> (m - n) ^ 2 = m ^ 2 + n ^ 2 - 2 * (m * n).
 Proof.
-move/subnK=> def_m; rewrite -{2}def_m sqrn_add -addnA addnAC.
-by rewrite -2!addnA addnn -mul2n -muln_addr -muln_addl def_m addnK.
+move/subnK=> def_m; rewrite -{2}def_m sqrnD -addnA addnAC.
+by rewrite -2!addnA addnn -mul2n -mulnDr -mulnDl def_m addnK.
 Qed.
 
-Lemma sqrn_add_sub m n : n <= m -> (m + n) ^ 2 - 4 * (m * n) = (m - n) ^ 2.
+Lemma sqrnD_sub m n : n <= m -> (m + n) ^ 2 - 4 * (m * n) = (m - n) ^ 2.
 Proof.
-move=> le_nm; rewrite -[4]/(2 * 2) -mulnA mul2n -addnn -subn_sub.
-by rewrite sqrn_add addnK sqrn_sub.
+move=> le_nm; rewrite -[4]/(2 * 2) -mulnA mul2n -addnn subnDA.
+by rewrite sqrnD addnK sqrn_sub.
 Qed.
 
 Lemma subn_sqr m n : m ^ 2 - n ^ 2 = (m - n) * (m + n).
-Proof. by rewrite muln_subl !muln_addr addnC (mulnC m) subn_add2l !mulnn. Qed.
+Proof. by rewrite mulnBl !mulnDr addnC (mulnC m) subnDl !mulnn. Qed.
 
 Lemma ltn_sqr m n : (m ^ 2 < n ^ 2) = (m < n).
 Proof. by rewrite ltn_exp2r. Qed.
@@ -1231,9 +1247,7 @@ Proof. exact: expIn. Qed.
 
 Definition leqif m n c := ((m <= n) * ((m == n) = c))%type.
 
-Notation "m <= n ?= 'iff' c" := (leqif m n c)
-    (at level 70, n at next level,
-  format "m '[hv'  <=  n '/'  ?=  'iff'  c ']'") : nat_scope.
+Notation "m <= n ?= 'iff' c" := (leqif m n c) : nat_scope.
 
 Coercion leq_of_leqif m n c (H : m <= n ?= iff c) := H.1 : m <= n.
 
@@ -1309,87 +1323,8 @@ Qed.
 
 Lemma nat_AGM2 m n : 4 * (m * n) <= (m + n) ^ 2 ?= iff (m == n).
 Proof.
-rewrite -[4]/(2 * 2) -mulnA mul2n -addnn sqrn_add; apply/leqifP.
-by rewrite ltn_add2r eqn_addr ltn_neqAle !nat_Cauchy; case: ifP => ->.
-Qed.
-
-(* Absolute difference / linear distance. *)
-
-(* An auxiliary argument type allows lets us use the same grammar rules as   *)
-(* generic ordered rings.                                                    *)
-
-CoInductive distn_arg := DistnArg of nat & nat.
-Notation "m - n" := (DistnArg m n) : distn_arg_scope.
-
-Definition distn a := nosimpl (let: DistnArg m n := a in (m - n) + (n - m)).
-Arguments Scope distn [distn_arg_scope].
-Notation "`| a |" := (distn a) : nat_scope.
-
-Lemma distnC m n : `|m - n| = `|n - m|.
-Proof. exact: addnC. Qed.
-
-Lemma distn_add2l d m n : `|d + m - (d + n)| = `|m - n|.
-Proof. by rewrite /distn !subn_add2l. Qed.
-
-Lemma distn_add2r d m n : `|m + d - (n + d)| = `|m - n|.
-Proof. by rewrite /distn !subn_add2r. Qed.
-
-Lemma distnEr m n : m <= n -> `|m - n| = n - m.
-Proof. by move=> le_m_n; rewrite /distn (eqnP le_m_n). Qed.
-
-Lemma distnEl m n : n <= m -> `|m - n| = m - n.
-Proof. by move=> le_n_m; rewrite distnC distnEr. Qed.
-
-Lemma dist0n n : `|0 - n| = n.
-Proof. by case: n. Qed.
-
-Lemma distn0 n : `|n - 0| = n.
-Proof. by rewrite distnC dist0n. Qed.
-
-Lemma distnn m : `|m - m| = 0.
-Proof. by rewrite /distn subnn. Qed.
-
-Lemma distn_eq0 m n : (`|m - n| == 0) = (m == n).
-Proof. by rewrite addn_eq0 !subn_eq0 -eqn_leq. Qed.
-
-Lemma distnS m : `|m - m.+1| = 1.
-Proof. exact: distn_add2r m 0 1. Qed.
-
-Lemma distSn m : `|m.+1 - m| = 1.
-Proof. exact: distn_add2r m 1 0. Qed.
-
-Lemma distn_eq1 m n :
-  (`|m - n| == 1) = (if m < n then m.+1 == n else m == n.+1).
-Proof.
-case: ltnP => [lt_mn | le_nm].
-  by rewrite eq_sym -(eqn_addr m) distnEr ?subnK // ltnW.
-by rewrite -(eqn_addr n) distnEl ?subnK.
-Qed.
-
-Lemma leqif_add_distn m n p :
-  `|m - p| <= `|m - n| + `|n - p| ?= iff (m <= n <= p) || (p <= n <= m).
-Proof.
-apply/leqifP; wlog le_mp : m p / m <= p.
-  move=> IH; case/orP: (leq_total m p) => /IH //.
-  by rewrite addnC orbC (distnC n) !(distnC p).
-rewrite distnEr //; have [[le_mn le_np] /= | ] := altP andP.
-  by rewrite !distnEr // addnC -(eqn_addr m) -addnA !subnK.
-rewrite negb_and -!ltnNge => /orP[lt_nm | lt_pn].
-  have lt_np := leq_trans lt_nm le_mp.
-  by rewrite leqNgt lt_np ltn_addl //= distnEr ?ltn_sub2l // ltnW.
-have lt_mn := leq_ltn_trans le_mp lt_pn.
-by rewrite andbC leqNgt lt_mn ltn_addr //= distnEr ?ltn_sub2r // ltnW.
-Qed.
-
-Lemma leq_add_distn m n p : `|m - p| <= `|m - n| + `|n - p|.
-Proof. by rewrite leqif_add_distn. Qed.
-
-Lemma sqrn_distn m n : `|m - n| ^ 2 + 2 * (m * n) = m ^ 2 + n ^ 2.
-Proof.
-wlog le_nm: m n / n <= m.
-  move=> IH; case/orP: (leq_total n m) => /IH //.
-  by rewrite (addnC (n ^ 2)) (mulnC n) distnC.
-by rewrite distnEl ?sqrn_sub ?subnK ?nat_Cauchy.
+rewrite -[4]/(2 * 2) -mulnA mul2n -addnn sqrnD; apply/leqifP.
+by rewrite ltn_add2r eqn_add2r ltn_neqAle !nat_Cauchy; case: ifP => ->.
 Qed.
 
 (* Support for larger integers. The normal definitions of +, - and even  *)
@@ -1523,7 +1458,7 @@ Lemma nat_of_addn_gt0 p q : (p + q)%positive = p + q :> nat.
 Proof.
 apply: fst (Pplus_carry p q = (p + q).+1 :> nat) _.
 elim: p q => [p IHp|p IHp|] [q|q|] //=; rewrite !natTrecE //;
-  by rewrite ?IHp ?nat_of_succ_gt0 ?(doubleS, double_add, addn1, addnS).
+  by rewrite ?IHp ?nat_of_succ_gt0 ?(doubleS, doubleD, addn1, addnS).
 Qed.
 
 Lemma nat_of_add_bin b1 b2 : (b1 + b2)%num = b1 + b2 :> nat.
@@ -1532,13 +1467,13 @@ Proof. case: b1 b2 => [|p] [|q] //=; exact: nat_of_addn_gt0. Qed.
 Lemma nat_of_mul_bin b1 b2 : (b1 * b2)%num = b1 * b2 :> nat.
 Proof.
 case: b1 b2 => [|p] [|q] //=; elim: p => [p IHp|p IHp|] /=;
-  by rewrite ?(mul1n, nat_of_addn_gt0, mulSn) //= !natTrecE IHp double_mull.
+  by rewrite ?(mul1n, nat_of_addn_gt0, mulSn) //= !natTrecE IHp doubleMl.
 Qed.
 
 Lemma nat_of_exp_bin n (b : N) : n ^ b = pow_N 1 muln n b.
 Proof.
 case: b => [|p] /=; first exact: expn0.
-by elim: p => //= p <-; rewrite natTrecE mulnn -expn_mulr muln2 ?expnS.
+by elim: p => //= p <-; rewrite natTrecE mulnn -expnM muln2 ?expnS.
 Qed.
 
 End NumberInterpretation.
@@ -1566,7 +1501,7 @@ Notation "[ 'Num' 'of' e ]" := (Num (bin_of_nat e))
 (* Interface to ring/ring_simplify tactics *)
 
 Lemma nat_semi_ring : semi_ring_theory 0 1 addn muln (@eq _).
-Proof. exact: mk_srt add0n addnC addnA mul1n mul0n mulnC mulnA muln_addl. Qed.
+Proof. exact: mk_srt add0n addnC addnA mul1n mul0n mulnC mulnA mulnDl. Qed.
 
 Lemma nat_semi_morph :
   semi_morph 0 1 addn muln (@eq _) 0%num 1%num Nplus Nmult pred1 nat_of_bin.

@@ -411,7 +411,7 @@ Qed.
 Lemma pi_Msigma : \pi(M`_\sigma) =i \sigma(M).
 Proof.
 move=> p; apply/idP/idP=> [|s_p /=]; first exact: pnatPpi (pcore_pgroup _ _).
-by rewrite (card_Hall Msigma_Hall) pi_of_partn // inE /= sigma_sub_pi.
+by rewrite (card_Hall Msigma_Hall) pi_of_part // inE /= sigma_sub_pi.
 Qed.
 
 (* This is B & G, Theorem 10.2(b2). *) 
@@ -420,7 +420,7 @@ Proof.
 rewrite pHallE subsetT /= eqn_dvd {1}(card_Hall Msigma_Hall).
 rewrite partn_dvd ?cardG_gt0 ?cardSg ?subsetT //=.
 apply/dvdn_partP; rewrite ?part_gt0 // => p.
-rewrite pi_of_partn ?cardG_gt0 //; case/andP=> _ s_p.
+rewrite pi_of_part ?cardG_gt0 //; case/andP=> _ s_p.
 rewrite partn_part => [|q]; last by move/eqnP=> ->.
 have [P sylP] := Sylow_exists p M; have [sPM pP _] := and3P sylP.
 rewrite -(card_Hall (sigma_Sylow_G _ _ sylP)) ?cardSg //.

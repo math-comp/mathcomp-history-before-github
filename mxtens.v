@@ -33,7 +33,7 @@ Qed.
 Definition mxtens_index m n ij := Ordinal (@mxtens_index_proof m n ij).
 
 Lemma mxtens_index_proof1 m n (k : 'I_(m * n)) : k %/ n < m.
-Proof. by move: m n k=> [_ [] //|m] [|n] k; rewrite ?divn0 // ltn_divl. Qed.
+Proof. by move: m n k=> [_ [] //|m] [|n] k; rewrite ?divn0 // ltn_divLR. Qed.
 Lemma mxtens_index_proof2 m n (k : 'I_(m * n)) : k %% n < n.
 Proof. by rewrite ltn_mod; case: n k=> //; rewrite muln0=> [] []. Qed.
 
@@ -47,8 +47,8 @@ Lemma mxtens_indexK m n : cancel (@mxtens_index m n) (@mxtens_unindex m n).
 Proof.
 case: m=> [[[] //]|m]; case: n=> [[_ [] //]|n].
 move=> [i j]; congr (_, _); apply: val_inj=> /=.
-  by rewrite divn_addl_mul // divn_small.
-by rewrite modn_addl_mul // modn_small.
+  by rewrite divnMDl // divn_small.
+by rewrite modnMDl // modn_small.
 Qed.
 
 Lemma mxtens_unindexK m n : cancel (@mxtens_unindex m n) (@mxtens_index m n).
@@ -174,7 +174,7 @@ Proof. by apply/matrixP=> i j; rewrite !mxE. Qed.
 Lemma tens_col_mx {m n p q} (r : 'rV[R]_n)
   (M :'M[R]_(m, n)) (N : 'M[R]_(p, q)) :
   (col_mx r M) *t N =
-  castmx (esym (muln_addl _ _ _), erefl _) (col_mx (r *t N) (M *t N)).
+  castmx (esym (mulnDl _ _ _), erefl _) (col_mx (r *t N) (M *t N)).
 Proof.
 apply/matrixP=> i j.
 case: (mxtens_indexP i)=> i0 i1; case: (mxtens_indexP j)=> j0 j1.
@@ -186,16 +186,16 @@ case: splitP=> i0' /= hi0'; case: splitP=> k /= hk.
 + move: hk (ltn_ord i1); rewrite hi0'.
   by rewrite [i0']ord1 mul0n mul1n add0n ltnNge=> ->; rewrite leq_addr.
 + move: (ltn_ord k); rewrite -hk hi0' ltnNge {1}mul1n.
-  by rewrite muln_addl {1}mul1n -addnA leq_addr.
+  by rewrite mulnDl {1}mul1n -addnA leq_addr.
 case: (mxtens_indexP k) hk=> k0 k1 /=; rewrite tensmxE.
-rewrite hi0' muln_addl -addnA=> /addnI.
+rewrite hi0' mulnDl -addnA=> /addnI.
  move=> /(f_equal (edivn^~ p)); rewrite !edivn_eq // => [] [h0 h1].
 by congr (M _ _ * N _ _); apply:val_inj; rewrite /= -?h0 ?h1.
 Qed.
 
 Lemma tens_row_mx {m n p q} (r : 'cV[R]_m) (M :'M[R]_(m,n)) (N : 'M[R]_(p,q)) :
   (row_mx r M) *t N =
-  castmx (erefl _, esym (muln_addl _ _ _)) (row_mx (r *t N) (M *t N)).
+  castmx (erefl _, esym (mulnDl _ _ _)) (row_mx (r *t N) (M *t N)).
 Proof.
 rewrite -[_ *t _]trmxK trmx_tens tr_row_mx tens_col_mx.
 apply/eqP; rewrite -(can2_eq (castmxKV _ _) (castmxK _ _)); apply/eqP.
@@ -206,7 +206,7 @@ Lemma tens_block_mx {m n p q}
   (ul : 'M[R]_1) (ur : 'rV[R]_n) (dl : 'cV[R]_m)
   (M :'M[R]_(m,n)) (N : 'M[R]_(p,q)) :
   (block_mx ul ur dl M) *t N =
-  castmx (esym (muln_addl _ _ _), esym (muln_addl _ _ _))
+  castmx (esym (mulnDl _ _ _), esym (mulnDl _ _ _))
   (block_mx (ul *t N) (ur *t N) (dl *t N) (M *t N)).
 Proof.
 rewrite !block_mxEv tens_col_mx !tens_row_mx -!cast_col_mx castmx_comp.

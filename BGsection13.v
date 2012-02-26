@@ -499,8 +499,8 @@ have [eqCsPR | ltCsPR] := eqVproper sCsPR.
   have sXE := subset_trans sXE31 sE31E; have sYE := subset_trans sYX sXE.
   have [t1'x | not_t1'x] := boolP (\tau1(M)^'.-elt x).
     rewrite (cent_semiprime prE3 _ ntX) // (sub_normal_Hall hallE3) //.
-    apply: pnat_dvd t3E3; rewrite -(gauss _ (p'nat_coprime t1'x t1E1)) mulnC.
-    by rewrite (dvdn_trans _ (dvdn_cardMg _ _)) -?norm_joinEr ?cardSg.
+    apply: pnat_dvd t3E3; rewrite -(Gauss_dvdr _ (p'nat_coprime t1'x t1E1)).
+    by rewrite mulnC (dvdn_trans _ (dvdn_cardMg _ _)) -?norm_joinEr ?cardSg.
   have{not_t1'x} ntY: #[y] != 1%N by rewrite order_constt partn_eq1.
   apply: subset_trans (setIS _ (centS sYX)) _.
   have [solE nMsE] := (sigma_compl_sol hallE, subset_trans sEM nMsM).
@@ -694,7 +694,7 @@ have{hypU} [r bLr piHr]: exists2 r, r \in \beta(L) & r \in \pi(H).
   have [r _ ->] := rank_witness 'C_(L`_\beta)(P); rewrite p_rank_gt0 => piCr _.
   have [piLb_r piCPr] := (piSg (subsetIl _ _) piCr, piSg (subsetIr _ _) piCr).
   have bLr: r \in \beta(L) := pnatPpi (pcore_pgroup _ L) piLb_r.
-  exists r; rewrite //= (card_Hall hallH) pi_of_partn // inE /= piCPr.
+  exists r; rewrite //= (card_Hall hallH) pi_of_part // inE /= piCPr.
   by rewrite inE /= bLr orbT.
 have sM'r: r \notin \sigma(M).
   by apply: contraFN (ti_aLsM r) => sMr; rewrite inE /= beta_sub_alpha.
@@ -731,7 +731,7 @@ have{not_pM'} [R ErR nQR]: exists2 R, R \in 'E_r^1('C_M(P)) & R \subset 'N(Q).
   have [sSK nQS]: S \subset K /\ S \subset 'N(Q) := subsetIP (pHall_sub sylS).
   have sylS_K: r.-Sylow(K) S.
     rewrite pHallE sSK /= -/K -(setIidPr sKM) -defM -group_modl // setIAC.
-    rewrite (setIidPr sKM) -LaGrangeMr partn_mul // -(card_Hall sylS).
+    rewrite (setIidPr sKM) -LaGrangeMr partnM // -(card_Hall sylS).
     rewrite part_p'nat ?mul1n 1?(pnat_dvd (dvdn_indexg _ _)) //.
     by apply: (pi_p'nat bMb); apply: contra sM'r; exact: beta_sub_sigma.
   have rC: 'r_r('C_M(P)) > 0 by rewrite p_rank_gt0 (piSg _ piHr) // subsetI sHM.

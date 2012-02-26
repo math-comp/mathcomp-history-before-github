@@ -1163,7 +1163,7 @@ rewrite -(@card_in_image _ _ ff); first last.
   apply/ffunP=> i; apply/eqP; apply: (allP eqp12).
   by rewrite (subset_cardP _ (subset_predT _)) // (card_uniqP Uxv) card_ord.
 have ->:forall n, (n ^ 4)%N= (n*n*n*n)%N.
-  by move => n0;rewrite (expn_add n0 2 2) -mulnn mulnA.
+  by move => n0;rewrite (expnD n0 2 2) -mulnn mulnA.
 rewrite -!card_prod; apply: eq_card => [] [[[c d]e ]g] /=; apply/imageP.
 rewrite (cat_uniq [::x; y;z;t]) in Uxv; case/and3P: Uxv => _ hasxt.
 rewrite /= !inE andbT.
@@ -1199,7 +1199,7 @@ pose ff (p : col_cubes) := (p x, p u , p v);
   apply/ffunP=> i; apply/eqP; apply: (allP eqp12).
   by rewrite (subset_cardP _ (subset_predT _)) // (card_uniqP Uxv) card_ord.
 have ->:forall n, (n ^ 3)%N= (n*n*n)%N.
-  by move => n0 ; rewrite (expn_add n0 2 1) -mulnn expn1.
+  by move => n0 ; rewrite (expnD n0 2 1) -mulnn expn1.
 rewrite -!card_prod; apply: eq_card => [] [[c d]e ] /=; apply/imageP.
 rewrite (cat_uniq [::x; y;z;t]) in Uxv; case/and3P: Uxv => _ hasxt.
 rewrite /uniq !inE !andbT; move/negbTE=> nuv.
@@ -1251,7 +1251,7 @@ rewrite -(@card_in_image _ _ ff); first last.
   apply/ffunP=> i; apply/eqP; apply: (allP eqp12).
   by rewrite (subset_cardP _ (subset_predT _)) // (card_uniqP Uxv) card_ord.
 have ->:forall n, (n ^ 3)%N= (n*n*n)%N.
-  by move => n0 ; rewrite (expn_add n0 2 1) -mulnn expn1.
+  by move => n0 ; rewrite (expnD n0 2 1) -mulnn expn1.
 rewrite -!card_prod. apply: eq_card => [] [[c d]e ] /=; apply/imageP.
 rewrite (cat_uniq [::x; y;z;t]) in Uxv; case/and3P: Uxv => Uxt hasxt nuv .
 rewrite (cat_uniq [::x; y]) in Uxt; case/and3P: Uxt => _.

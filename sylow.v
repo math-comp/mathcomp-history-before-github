@@ -141,7 +141,7 @@ have sylP: p.-Sylow(G) P.
   case p_pr: (prime p); last first.
     rewrite p_part lognE p_pr /= -trivg_card1; apply/idPn=> ntP.
     by case/pgroup_pdiv: pP p_pr => // ->.
-  rewrite -(LaGrangeI G 'N(P)) /= mulnC partn_mul ?cardG_gt0 // part_p'nat.
+  rewrite -(LaGrangeI G 'N(P)) /= mulnC partnM ?cardG_gt0 // part_p'nat.
     by rewrite mul1n (card_Hall (sylS P S_P)).
   by rewrite p'natE // -indexgI -oSiN // /dvdn oS1.
 have eqS Q: maxp G Q = p.-Sylow(G) Q.
@@ -260,7 +260,7 @@ case: (eqVneq (P / Z) 1) => [-> |]; first exact: cyclic1.
 have pPq := quotient_pgroup 'Z(P) pP; case/(pgroup_pdiv pPq) => _ _ [j oPq].
 rewrite prime_cyclic // oPq; case: j oPq lePp2 => //= j.
 rewrite card_quotient ?gfunctor.gFnorm //.
-by rewrite -(LaGrange sZP) logn_mul // => ->; rewrite oZ !pfactorK ?addnS.
+by rewrite -(LaGrange sZP) lognM // => ->; rewrite oZ !pfactorK ?addnS.
 Qed.
 
 Lemma card_p2group_abelian P : prime p -> #|P| = (p ^ 2)%N -> abelian P.
@@ -475,11 +475,11 @@ move=> pP; move def_c: (nil_class P) => c.
 elim: c => // c IHc in gT P def_c pP *; set e := logn p _.
 have nilP := pgroup_nil pP; have sZP := center_sub P.
 have [e_le2 | e_gt2] := leqP e 2.
-  by rewrite -def_c leq_maxr nil_class1 (p2group_abelian pP).
+  by rewrite -def_c leq_max nil_class1 (p2group_abelian pP).
 have pPq: p.-group (P / 'Z(P)) by exact: quotient_pgroup.
-rewrite -(subnKC e_gt2) maxnr // 2!addSn ltnS.
-rewrite (leq_trans (IHc _ _ _ pPq)) ?nil_class_quotient_center ?def_c //.
-rewrite leq_maxl /= -subn1 -subSS -leq_sub_add subn_sub leq_sub2r //.
+rewrite -(subnKC e_gt2) ltnS (leq_trans (IHc _ _ _ pPq)) //.
+  by rewrite nil_class_quotient_center ?def_c.
+rewrite geq_max /= -add1n -leq_subLR -subn1 -subnDA -subSS leq_sub2r //.
 rewrite ltn_log_quotient //= -(setIidPr sZP) meet_center_nil //.
 by rewrite -nil_class0 def_c.
 Qed.
@@ -566,7 +566,7 @@ have: N / <[z]> <| P / <[z]> by rewrite morphim_normal.
 case/IHr=> [||Qb [sQNb nQPb]]; first exact: morphim_pgroup.
   rewrite card_quotient ?(subset_trans (normal_sub nNP)) // -ltnS.
   apply: (leq_trans le_r); rewrite -(LaGrange szN) [#|_|]ozp.
-  by rewrite logn_mul // ?prime_gt0 // logn_prime ?eqxx.
+  by rewrite lognM // ?prime_gt0 // logn_prime ?eqxx.
 case/(inv_quotientN _): nQPb sQNb => [|Q -> szQ nQP]; first exact/andP.
 have nzQ := subset_trans (normal_sub nQP) nzP.
 rewrite quotientSGK // card_quotient // => sQN izQ.

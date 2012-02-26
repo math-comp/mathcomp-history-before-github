@@ -41,8 +41,8 @@ case nPG: (P <| G); last first.
   have nsH'N: H' <| N.
     by rewrite /normal subsetIr normsI ?normG ?(subset_trans sNG).
   have eq_iH: #|G : H| = #|N| %/ #|H'|.
-    rewrite -divgS // -(divn_pmul2l (cardG_gt0 H')) mulnC -eqHN_G.
-    by rewrite -mul_cardG (mulnC #|H'|) divn_pmul2l // cardG_gt0.
+    rewrite -divgS // -(divnMl (cardG_gt0 H')) mulnC -eqHN_G.
+    by rewrite -mul_cardG (mulnC #|H'|) divnMl // cardG_gt0.
   have hallH': Hall N H'.
     rewrite /Hall -divgS subsetIr //= -eq_iH.
     by case/andP: hallH => _; apply: coprimeSg; exact: subsetIl.
@@ -75,7 +75,7 @@ have nZZK: Z <| ZK by exact: normalS nZG.
 have cardZK: #|ZK| = (#|Z| * #|G : H|)%N.
   rewrite -(LaGrange sZZK); congr (_ * _)%N.
   rewrite -card_quotient -?quoZK; last by case/andP: nZZK.
-  rewrite -(divgS sHG) -(LaGrange sZG) -(LaGrange sZH) divn_pmul2l //.
+  rewrite -(divgS sHG) -(LaGrange sZG) -(LaGrange sZH) divnMl //.
   rewrite -!card_quotient ?normal_norm //= -/Gbar -/Hbar.
   by rewrite -eqHKbar (TI_cardMg tiHKbar) mulKn.
 have: [splits ZK, over Z].
@@ -173,7 +173,7 @@ case nMG: (G \subset 'N(M)).
   have sMB: M \subset B.
     have [Q sylQ]:= Sylow_exists q B; have sQB := pHall_sub sylQ.
     apply: subset_trans (normal_sub_max_pgroup (Hall_max _) qM nsM_AG) (sQB).
-    rewrite pHallE (subset_trans sQB) //= oAG partn_mul // q'G muln1 oAB.
+    rewrite pHallE (subset_trans sQB) //= oAG partnM // q'G muln1 oAB.
     by rewrite (card_Hall sylQ).
   have defAGq: AG / M = (A / M) <*> (G / M).
     by rewrite quotient_gen ?quotientU ?subUset ?nMA.
@@ -189,7 +189,7 @@ have defK: K = M * G by rewrite -norm_joinEl ?(subset_trans sMA).
 have oK: #|K| = (#|M| * #|G|)%N.
   by rewrite defK coprime_cardMg // coprime_sym (coprimegS sMA).
 have sylM: q.-Sylow(K) M.
-  by rewrite pHallE joing_subl /= oK partn_mul // q'G muln1 part_pnat_id.
+  by rewrite pHallE joing_subl /= oK partnM // q'G muln1 part_pnat_id.
 have sylR: q.-Sylow(K) R.
   rewrite pHallE subsetIl /= -(card_Hall sylM) -(@eqn_pmul2r #|G|) // -oK.
   rewrite -coprime_cardMg ?(coprimeSg _ coBG) ?subsetIr //=.
@@ -244,7 +244,7 @@ have{transHb} transH (K : {group gT}):
   by rewrite mem_conjg (subsetP sMH) // -mem_conjg (normP Nx).
 have{pi'Hb'} pi'H': pi^'.-nat #|G : H|.
   move: pi'Hb'; rewrite -!divgS // def_H !card_quotient //.
-  by rewrite -(divn_pmul2l (cardG_gt0 M)) !LaGrange.
+  by rewrite -(divnMl (cardG_gt0 M)) !LaGrange.
 have [pi_p | pi'p] := boolP (p \in pi).
   exists H => //; apply/and3P; split=> //; rewrite /pgroup.
   by rewrite -(LaGrange sMH) -card_quotient // pnat_mul -def_H (pi_pnat pM).
@@ -602,7 +602,7 @@ have nMHM := subset_trans sHMG nMG.
 have{sXHq} sXHM: X \subset HM by rewrite -(quotientSGK nMX) -?defHM.
 have{pi'Hq' sHGq} pi'HM': pi^'.-nat #|G : HM|.
   move: pi'Hq'; rewrite -!divgS // defHM !card_quotient //.
-  by rewrite -(divn_pmul2l (cardG_gt0 M)) !LaGrange.
+  by rewrite -(divnMl (cardG_gt0 M)) !LaGrange.
 have{nHAq} nHMA: A \subset 'N(HM).
   by rewrite -(quotientSGK nMA) ?normsG ?quotient_normG -?defHM //; exact/andP.
 case/orP: (orbN (p \in pi)) => pi_p.

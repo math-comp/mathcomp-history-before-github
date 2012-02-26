@@ -48,7 +48,7 @@ move=> S P P_V P_A; pose fix sz (t : term S) :=
   if t is App _ a then (foldr maxn 0 (map sz a)).+1 else 0.
 move=> t; elim: {t}(sz t) {-2}t (leqnn (sz t)) => [|n IHn] [i | s a] //=.
 rewrite ltnS => sz_a; apply: P_A; elim: a sz_a => //= t a IHa.
-by rewrite leq_maxl; case/andP; move/IHn=> Pt; move/IHa.
+by rewrite geq_max; case/andP; move/IHn=> Pt; move/IHa.
 Qed.
 
 Bind Scope quote_scope with term.

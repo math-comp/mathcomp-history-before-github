@@ -575,7 +575,7 @@ have oK1:  #|K1| = #|G : H|.
   rewrite -(eqnP tiHG) (eq_bigr (fun _ => #|H|.-1)); last first.
     by move=> _ /imsetP[x _ ->]; rewrite cardJg (cardsD1 1%g H) group1.
   rewrite sum_nat_const card_orbit astab1Js normD1 defNH.
-  by rewrite -subn1 muln_subr mulnC LaGrange // muln1 subKn ?leq_imset_card.
+  by rewrite -subn1 mulnBr mulnC LaGrange // muln1 subKn ?leq_imset_card.
 suffices extG i: {j | {in H, 'chi[G]_j =1 'chi[H]_i} & K1 \subset cfker 'chi_j}.
   pose K := [group of \bigcap_i cfker 'chi_(s2val (extG i))].
   have nKH: H \subset 'N(K).

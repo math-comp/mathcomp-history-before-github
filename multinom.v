@@ -275,7 +275,7 @@ Lemma cast_multi_inj n i i' n' (m1 m2 : multi n)
   (p1: (i + n)%N=n') (p2: (i' + n)%N=n') :
   cast_multi p1 m1 == cast_multi p2 m2 = (m1 == m2).
 Proof.
-have := p2; rewrite -{1}[n']p1; move/eqP; rewrite eqn_addr.
+have := p2; rewrite -{1}[n']p1; move/eqP; rewrite eqn_add2r.
 move=> /eqP /= Eii; move:p2; rewrite Eii=> p2 {Eii}.
 have <-: p1 = p2; first exact: nat_irrelevance.
 apply/idP/idP; last by move/eqP->.
@@ -345,11 +345,11 @@ elim: m nltn' dmltn dmltn'.
   move: (refl_equal (_ N < n')) (refl_equal (_ N < n)).
   rewrite {2 3}[_ N < n]dmltn {2 3}[_ N < n']dmltn' => Nn' Nn.
   by apply/eqP; rewrite cast_multi_add cast_multi_inj.
-- move=> m1 Hm1 m2 Hm2 nltn' /=; rewrite !leq_maxl.
+- move=> m1 Hm1 m2 Hm2 nltn' /=; rewrite !geq_max.
   move/andP=>[dm1n dm1n']; move/andP=>[dm2n dm2n'].
   rewrite (Hm1 nltn') // (Hm2 nltn') //.
   by rewrite rmorphD.
-- move=> m1 Hm1 m2 Hm2 nltn' /=; rewrite !leq_maxl.
+- move=> m1 Hm1 m2 Hm2 nltn' /=; rewrite !geq_max.
   move/andP=>[dm1n dm1n']; move/andP=>[dm2n dm2n'].
   rewrite (Hm1 nltn') // (Hm2 nltn') //.
   by rewrite rmorphM.
@@ -366,7 +366,7 @@ Qed.
 (* Lemma nbvar_term_reify : forall n (m : multi n), nbvar_term (reify m) <= n. *)
 (* Proof. *)
 (* elim=> // n Hn /= [p]; elim: p => //; set f := foldr _ _. *)
-(* move=> a s /= Hs ls; rewrite !leq_maxl (leqW (Hn _)). *)
+(* move=> a s /= Hs ls; rewrite !geq_max (leqW (Hn _)). *)
 (* rewrite Hs ?andbT; last by case: s ls {Hs}; rewrite //= oner_eq0. *)
 (* rewrite /mkVar; case hx: pickle_inv => [x|] //=. *)
 (* by have ->: pickle x = n by rewrite -(@pickle_invK X n) hx. *)
@@ -422,7 +422,7 @@ Definition equivm m1 m2 := let n := maxn (nbvar_term m1) (nbvar_term m2) in
 Lemma interp_gtn n m1 m2 : maxn (nbvar_term m1) (nbvar_term m2) <= n -> 
                            equivm m1 m2 = (interp n m1 == interp n m2).
 Proof.
-move=> hn; rewrite !(interp_cast_multi hn) ?leq_maxr ?leqnn ?orbT //.
+move=> hn; rewrite !(interp_cast_multi hn) ?leq_max ?leqnn ?orbT //.
 by rewrite cast_multi_inj.
 Qed.
 
@@ -436,9 +436,9 @@ Proof.
 move=> x y z.
 rewrite !(@interp_gtn (maxn (maxn (nbvar_term x) (nbvar_term y)) (nbvar_term z))).
 - by move/eqP->; move/eqP->.
-- by rewrite -maxnA leq_maxr leqnn orbT.
-- by rewrite maxnAC leq_maxr leqnn.
-- by rewrite maxnC leq_maxr leqnn.
+- by rewrite -maxnA leq_max leqnn orbT.
+- by rewrite maxnAC leq_max leqnn.
+- by rewrite maxnC leq_max leqnn.
 Qed.
 
 Canonical equivm_equivRel := EquivRel equivm_refl equivm_sym equivm_trans.
@@ -472,7 +472,7 @@ apply/eqmodP=> /=; set x' := repr _; set y' := repr _.
 rewrite (@interp_gtn (nbvar_term (Sum (Sum x y) (Sum x' y')))) /=.
   apply/eqP; congr (_ + _); apply/eqP; do[
   rewrite -interp_gtn; do ?[by apply/eqmodP; rewrite reprK];
-  by rewrite !(leq_maxl, leq_maxr, leqnn, orbT)].
+  by rewrite !(geq_max, leq_max, leqnn, orbT)].
 by rewrite maxnC.
 Qed.
 Canonical pi_addm_morph := PiMorph2 addm pi_addm.
@@ -495,7 +495,7 @@ apply/eqmodP=> /=; set x' := repr _; set y' := repr _.
 rewrite (@interp_gtn (nbvar_term (Sum (Sum x y) (Sum x' y')))) /=.
   apply/eqP; congr (_ * _); apply/eqP; do[
   rewrite -interp_gtn; do ?[by apply/eqmodP; rewrite reprK];
-  by rewrite !(leq_maxl, leq_maxr, leqnn, orbT)].
+  by rewrite !(geq_max, leq_max, leqnn, orbT)].
 by rewrite maxnC.
 Qed.
 Canonical pi_mulm_morph := PiMorph2 mulm pi_mulm.
@@ -660,9 +660,9 @@ Notation "n %:X" := (varm n) (at level 2, format "n %:X").
 (*   by rewrite leqnn. *)
 (* move/eqP=> ixy. *)
 (* have xltxy : (nbvar_term x) <= (maxn (nbvar_term x) (nbvar_term y)). *)
-(*    by rewrite leq_maxr leqnn. *)
+(*    by rewrite leq_max leqnn. *)
 (* have yltxy : (nbvar_term y) <= (maxn (nbvar_term x) (nbvar_term y)). *)
-(*    by rewrite leq_maxr leqnn orbT. *)
+(*    by rewrite leq_max leqnn orbT. *)
 (* by apply/idP/idP; rewrite (unit_interp xltxy) (unit_interp yltxy) ixy. *)
 (* Qed. *)
 (* Local Notation unitm := [pred m : multinom | qT_op1 unitm_compat m ]. *)
@@ -675,12 +675,12 @@ Notation "n %:X" := (varm n) (at level 2, format "n %:X").
 (* rewrite {1}/equivm /=. *)
 (* have ixyleqxy : maxn (nbvar_term ix) (nbvar_term iy)  *)
 (*   <= maxn (nbvar_term x) (nbvar_term y). *)
-(*   by rewrite leq_maxl !leq_maxr !nbvar_term_reify orbT. *)
+(*   by rewrite geq_max !leq_max !nbvar_term_reify orbT. *)
 (* rewrite (interp_gtn ixyleqxy). *)
 (* have xleqxy : nbvar_term x <= maxn (nbvar_term x) (nbvar_term y). *)
-(*   by rewrite leq_maxr leqnn. *)
+(*   by rewrite leq_max leqnn. *)
 (* have yleqxy : nbvar_term y <= maxn (nbvar_term x) (nbvar_term y). *)
-(*   by rewrite leq_maxr leqnn orbT. *)
+(*   by rewrite leq_max leqnn orbT. *)
 (* rewrite (interp_reify_cast_multi xleqxy).  *)
 (* rewrite (interp_reify_cast_multi yleqxy). *)
 (* move/eqP=> exy. *)
@@ -701,7 +701,7 @@ Notation "n %:X" := (varm n) (at level 2, format "n %:X").
 (* set im :=  reify _. *)
 (* rewrite /equivm /= maxn0. *)
 (* have mlimm : nbvar_term m <= maxn (nbvar_term im) (nbvar_term m). *)
-(*   by rewrite leq_maxr leqnn orbT. *)
+(*   by rewrite leq_max leqnn orbT. *)
 (* rewrite (interp_reify_cast_multi mlimm). *)
 (* rewrite (ringM_inv (cast_multiM _ _)) ?um //. *)
 (* rewrite -interp_cast_multi //. *)
@@ -722,7 +722,7 @@ Notation "n %:X" := (varm n) (at level 2, format "n %:X").
 (*   apply/unitrP. *)
 (*   exists (interp (maxn (nbvar_term y) (nbvar_term x)) y). *)
 (*   by rewrite ixiy1 mulrC ixiy1. *)
-(* by rewrite leq_maxr leqnn orbT. *)
+(* by rewrite leq_max leqnn orbT. *)
 (* Qed. *)
 
 
@@ -733,7 +733,7 @@ Notation "n %:X" := (varm n) (at level 2, format "n %:X").
 (* apply/eqP; rewrite -eqmodP equivmP /equivm /=. *)
 (* set rx := reify _. *)
 (* have xltrxx: nbvar_term x <= (maxn (nbvar_term rx) (nbvar_term x)). *)
-(*   by rewrite leq_maxr leqnn orbT. *)
+(*   by rewrite leq_max leqnn orbT. *)
 (* rewrite (interp_reify_cast_multi xltrxx). *)
 (* by rewrite -interp_cast_multi. *)
 (* Qed. *)
@@ -754,13 +754,13 @@ Notation "n %:X" := (varm n) (at level 2, format "n %:X").
 (*   rewrite -!eqmodP equivmP. *)
 (*   rewrite (@interp_gtn (maxn (nbvar_term x) (nbvar_term y))). *)
 (*     by move/eqP->=> /=; rewrite (ringM_0 (multiC_morph _ _)) eqxx. *)
-(*   by rewrite maxn0 leq_maxr leqnn. *)
+(*   by rewrite maxn0 leq_max leqnn. *)
 (* move/eqP=> y0. *)
 (* apply/orP; right. *)
 (* rewrite -!eqmodP equivmP. *)
 (* rewrite (@interp_gtn (maxn (nbvar_term x) (nbvar_term y))). *)
 (*   by rewrite y0 /= (ringM_0 (multiC_morph _ _)) eqxx. *)
-(* by rewrite maxn0 leq_maxr leqnn orbT. *)
+(* by rewrite maxn0 leq_max leqnn orbT. *)
 (* Qed. *)
 
 (* (* (* Why can't we have simply : *) *) *)

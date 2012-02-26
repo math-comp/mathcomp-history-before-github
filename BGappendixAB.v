@@ -375,7 +375,7 @@ Lemma sub_Puig_eq : forall G H, H \subset G -> 'L(G) \subset H -> 'L(H) = 'L(G).
 Proof.
 move=> G H sHG sLG_H.
 have [kG defLG] := Puig_limit G; have [kH defLH] := Puig_limit H.
-move: {2}(maxn _ _) (leqnn (maxn kH kG)) => k; rewrite leq_maxl; case/andP.
+move: {2}(maxn _ _) (leqnn (maxn kH kG)) => k; rewrite geq_max; case/andP.
 case/defLH=> _ <-; case/defLG=> _ {defLH defLG}defL.
 have sLH_G := subset_trans (Puig_succ_sub _ _) sHG.
 have gPuig := norm_abgenS _ (Puig_gen _ _).
@@ -412,7 +412,7 @@ Let sSG := pHall_sub sylS.
 Lemma pcore_Sylow_Puig_sub : 'L_*(S) \subset 'L_*(T) /\ 'L(T) \subset 'L(S).
 Proof.
 have [kS defLS] := Puig_limit S; have [kT defLT] := Puig_limit [group of T].
-move: {2}(maxn _ _) (leqnn (maxn kS kT)) => k; rewrite leq_maxl; case/andP.
+move: {2}(maxn _ _) (leqnn (maxn kS kT)) => k; rewrite geq_max; case/andP.
 case/defLS=> <- <-; case/defLT=> <- <- {defLS defLT}/=.
 have sL_ := subset_trans (Puig_succ_sub _ _).
 elim: k => [|k [_ sL1]]; first by rewrite !Puig1 pcore_sub_Hall.

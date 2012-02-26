@@ -161,9 +161,9 @@ have{Ss u} ->: Ss = Ss_ dS.
     case: (split i) => {i}i; rewrite !mxE coefMXn;
     case: ifP => // /negbT; rewrite -ltnNge ltnS => hi.
       apply: (leq_sizeP _ _ (leqnn (size p))); rewrite -(ltn_predK p_nc).
-      by rewrite -ltn_add_sub (leq_trans _ k_ge_dS) // ltn_add2r.
+      by rewrite ltn_subRL (leq_trans _ k_ge_dS) // ltn_add2r.
     - apply: (leq_sizeP _ _ (leqnn (size q))); rewrite -(ltn_predK q_nc).
-      by rewrite -ltn_add_sub (leq_trans _ k_ge_dS) // addnC ltn_add2l.
+      by rewrite ltn_subRL (leq_trans _ k_ge_dS) // addnC ltn_add2l.
   by rewrite insubdK //; case: (split i) => {i}i;
      rewrite !mxE coefMXn; case: leqP.
 elim: {-2}dS (leqnn dS) (dS_gt0) => // dj IHj dj_lt_dS _.
@@ -206,8 +206,8 @@ apply/det0P/idP=> [[uv nz_uv] | r_nonC].
   have lt_vp: size v < size p by rewrite (polySpred p_nz) ltnS size_poly.
   move/(congr1 rVpoly); rewrite linearD linear0 /=; move/(canRL (addKr _)).
   rewrite !poly_rV_K ?(leq_trans (size_mul_leq _ _)) // => [vq_up||]; first 1 last.
-  - by rewrite -subn1 leq_sub_add addnCA leq_add ?leqSpred ?size_poly.
-  - by rewrite -subn1 leq_sub_add addnC addnA leq_add ?leqSpred ?size_poly.
+  - by rewrite -subn1 leq_subLR addnCA leq_add ?leqSpred ?size_poly.
+  - by rewrite -subn1 leq_subLR addnC addnA leq_add ?leqSpred ?size_poly.
   have nz_v: v != 0.
     apply: contraNneq nz_uv => v0; apply/eqP.
     congr row_mx; apply: (can_inj (@rVpolyK _ _)); rewrite linear0 // -/u.
@@ -224,7 +224,7 @@ apply/det0P/idP=> [[uv nz_uv] | r_nonC].
   have w_nz: w != 0 := dvdpN0 w_r r_nz.
   have p_m: p %| m by rewrite dvdp_gcd vq_up addr0 -mulNr !dvdp_mull.
   rewrite (leq_trans _ (dvdp_leq r_nz w_r)) // -(ltn_add2l (size v)).
-  rewrite addnC ltn_add_sub subn1 -size_mul // mulrC -wv size_scale //.
+  rewrite addnC -ltn_subRL subn1 -size_mul // mulrC -wv size_scale //.
   rewrite (leq_trans lt_vp) // dvdp_leq // -size_poly_eq0.
   by rewrite -(size_scale _ nz_c) size_poly_eq0 wv mulf_neq0.
 have [[c p'] /= nz_c p'r] := dvdpP _ _ r_p.
@@ -313,7 +313,7 @@ apply: leq_trans (_ : #|[pred j | s j == j]|.+1 <= n.-1).
   apply: (big_ind2 (fun p m => size p <= m.+1)) => [| p mp q mq IHp IHq | j _].
   - by rewrite size_poly1.
   - apply: leq_trans (size_mul_leq _ _) _.
-    by rewrite -subn1 -addnS leq_sub_add addnA leq_add.
+    by rewrite -subn1 -addnS leq_subLR addnA leq_add.
   rewrite !mxE eq_sym !inE; case: (s j == j); first by rewrite polyseqXsubC. 
   by rewrite sub0r size_opp size_polyC leq_b1.
 rewrite -{8}[n]card_ord -(cardC (pred2 (s i) i)) card2 nfix_i !ltnS.
@@ -723,7 +723,7 @@ elim: m r n A => [|m IHm] r [|n] A /=; try by case r.
 rewrite GRing.eval_Pick /mxrank -lock /=; set pf := fun _ => _.
 rewrite -(@eq_pick _ pf) => [|k]; rewrite {}/pf ?mxE // eq_sym.
 case: pick => [[i j]|] //=; set B := _ - _; have:= mxrankE B.
-case: (gaussian_elimination B) r => [[_ _] _] [|r] //= <-; rewrite {}IHm eqSS.
+case: (Gaussian_elimination B) r => [[_ _] _] [|r] //= <-; rewrite {}IHm eqSS.
 by congr (\rank _ == r); apply/matrixP=> k l; rewrite !(mxE, big_ord1) !tpermR.
 Qed.
 
@@ -809,7 +809,7 @@ exists (\row_i e'`_(k * d + i)); apply: eq_holds f_e' => j /=.
 move/(_ j): ee'; rewrite [j]d_eq !nth_row_env nth_set_nth /=.
 case: eqP => [-> | ne_j_k -> //]; first by rewrite mxE.
 apply/mapP=> [[r lt_r_d]]; rewrite -d_eq => def_j; case: ne_j_k.
-by rewrite def_j divn_addl_mul // divn_small ?addn0.
+by rewrite def_j divnMDl // divn_small ?addn0.
 Qed.
 
 End Env.

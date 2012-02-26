@@ -436,6 +436,9 @@ Proof. by rewrite !setUA (setUC B). Qed.
 Lemma setUAC A B C : A :|: B :|: C = A :|: C :|: B.
 Proof. by rewrite -!setUA (setUC B). Qed.
 
+Lemma setUACA A B C D : (A :|: B) :|: (C :|: D) = (A :|: C) :|: (B :|: D).
+Proof. by rewrite -!setUA (setUCA B). Qed.
+
 Lemma setTU A : setT :|: A = setT.
 Proof. by apply/setP => x; rewrite !inE orTb. Qed.
 
@@ -502,6 +505,9 @@ Proof. by rewrite !setIA (setIC A). Qed.
 
 Lemma setIAC A B C : A :&: B :&: C = A :&: C :&: B.
 Proof. by rewrite -!setIA (setIC B). Qed.
+
+Lemma setIACA A B C D : (A :&: B) :&: (C :&: D) = (A :&: C) :&: (B :&: D).
+Proof. by rewrite -!setIA (setICA B). Qed.
 
 Lemma setIid A : A :&: A = A.
 Proof. by apply/setP=> x; rewrite inE andbb. Qed.

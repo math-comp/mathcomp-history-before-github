@@ -5,7 +5,7 @@ Require Import perm zmodp matrix.
 
 (*****************************************************************************)
 (* In this file we develop the rank and row space theory of matrices, based  *)
-(* on an extended gaussian elimination procedure similar to LUP              *)
+(* on an extended Gaussian elimination procedure similar to LUP              *)
 (* decomposition. This provides us with a concrete but generic model of      *)
 (* finite dimensional vector spaces and F-algebras, in which vectors, linear *)
 (* functions, families, bases, subspaces, ideals and subrings are all        *)
@@ -14,7 +14,7 @@ Require Import perm zmodp matrix.
 (* develop directly substantial theories, such as the theory of finite group *)
 (* linear representation.                                                    *)
 (*   Here we define the following concepts and notations:                    *)
-(* gaussian_elimination A == a permuted triangular decomposition (L, U, r)   *)
+(* Gaussian_elimination A == a permuted triangular decomposition (L, U, r)   *)
 (*                   of A, with L a column permutation of a lower triangular *)
 (*                   invertible matrix, U a row permutation of an upper      *)
 (*                   triangular invertible matrix, and r the rank of A, all  *)
@@ -25,9 +25,9 @@ Require Import perm zmodp matrix.
 (*    row_full A <=> the row-space of A spans all row-vectors (i.e., the     *)
 (*                   rank and width of A are equal).                         *)
 (*    col_ebase A == the extended column basis of A (the first matrix L      *)
-(*                   returned by gaussian_elimination A).                    *)
+(*                   returned by Gaussian_elimination A).                    *)
 (*    row_ebase A == the extended row base of A (the second matrix U         *)
-(*                   returned by gaussian_elimination A).                    *)
+(*                   returned by Gaussian_elimination A).                    *)
 (*     col_base A == a basis for the columns of A: a row-full matrix         *)
 (*                   consisting of the first \rank A columns of col_ebase A. *)
 (*     row_base A == a basis for the rows of A: a row-free matrix consisting *)
@@ -173,13 +173,13 @@ Local Notation "''M_' n" := 'M[F]_(n, n) : type_scope.
 (* Decomposition with double pivoting; computes the rank, row and column  *)
 (* images, kernels, and complements of a matrix.                          *)
 
-Fixpoint gaussian_elimination {m n} : 'M_(m, n) -> 'M_m * 'M_n * nat :=
+Fixpoint Gaussian_elimination {m n} : 'M_(m, n) -> 'M_m * 'M_n * nat :=
   match m, n with
   | _.+1, _.+1 => fun A : 'M_(1 + _, 1 + _) =>
     if [pick ij | A ij.1 ij.2 != 0] is Some (i, j) then
       let a := A i j in let A1 := xrow i 0 (xcol j 0 A) in
       let u := ursubmx A1 in let v := a^-1 *: dlsubmx A1 in
-      let: (L, U, r) := gaussian_elimination (drsubmx A1 - v *m u) in
+      let: (L, U, r) := Gaussian_elimination (drsubmx A1 - v *m u) in
       (xrow i 0 (block_mx 1 0 v L), xcol j 0 (block_mx a%:M u 0 U), r.+1)
     else (1%:M, 1%:M, 0%N)
   | _, _ => fun _ => (1%:M, 1%:M, 0%N)
@@ -189,7 +189,7 @@ Section Defs.
 
 Variables (m n : nat) (A : 'M_(m, n)).
 
-Let LUr := locked (@gaussian_elimination) m n A.
+Let LUr := locked (@Gaussian_elimination) m n A.
 
 Definition col_ebase := LUr.1.1.
 Definition row_ebase := LUr.1.2.
@@ -346,16 +346,16 @@ Local Notation "A :\: B" := (diffmx A B) : matrix_set_scope.
 
 Definition proj_mx n (U V : 'M_n) : 'M_n := pinvmx (col_mx U V) *m col_mx U 0.
 
-Local Notation gaussE := gaussian_elimination.
+Local Notation GaussE := Gaussian_elimination.
 
-Fact mxrankE m n (A : 'M_(m, n)) : \rank A = (gaussE A).2.
+Fact mxrankE m n (A : 'M_(m, n)) : \rank A = (GaussE A).2.
 Proof. by unlock mxrank; case: m n A => [|m] [|n]. Qed.
 
 Lemma rank_leq_row m n (A : 'M_(m, n)) : \rank A <= m.
 Proof.
 rewrite mxrankE.
 elim: m n A => [|m IHm] [|n] //= A; case: pickP => [[i j] _|] //=.
-by move: (_ - _) => B; case: gaussE (IHm _ B) => [[L U] r] /=.
+by move: (_ - _) => B; case: GaussE (IHm _ B) => [[L U] r] /=.
 Qed.
 
 Lemma row_leq_rank m n (A : 'M_(m, n)) : (m <= \rank A) = row_free A.
@@ -365,7 +365,7 @@ Lemma rank_leq_col m n (A : 'M_(m, n)) : \rank A <= n.
 Proof.
 rewrite mxrankE.
 elim: m n A => [|m IHm] [|n] //= A; case: pickP => [[i j] _|] //=.
-by move: (_ - _) => B; case: gaussE (IHm _ B) => [[L U] r] /=.
+by move: (_ - _) => B; case: GaussE (IHm _ B) => [[L U] r] /=.
 Qed.
 
 Lemma col_leq_rank m n (A : 'M_(m, n)) : (n <= \rank A) = row_full A.
@@ -376,7 +376,7 @@ Lemma row_ebase_unit m n (A : 'M_(m, n)) : row_ebase A \in unitmx.
 Proof.
 unlock row_ebase; elim: m n A => [|m IHm] [|n] //= A.
 case: pickP => [[i j] /= nzAij | //=]; move: (_ - _) => B.
-case: gaussE (IHm _ B) => [[L U] r] /= uU.
+case: GaussE (IHm _ B) => [[L U] r] /= uU.
 rewrite unitmxE xcolE det_mulmx (@det_ublock _ 1) det_scalar1 !unitrM.
 by rewrite unitfE nzAij -!unitmxE uU unitmx_perm.
 Qed.
@@ -385,7 +385,7 @@ Lemma col_ebase_unit m n (A : 'M_(m, n)) : col_ebase A \in unitmx.
 Proof.
 unlock col_ebase; elim: m n A => [|m IHm] [|n] //= A.
 case: pickP => [[i j] _|] //=; move: (_ - _) => B.
-case: gaussE (IHm _ B) => [[L U] r] /= uL.
+case: GaussE (IHm _ B) => [[L U] r] /= uL.
 rewrite unitmxE xrowE det_mulmx (@det_lblock _ 1) det1 mul1r unitrM.
 by rewrite -unitmxE unitmx_perm.
 Qed.
@@ -404,7 +404,7 @@ case: pickP => [[i0 j0] | A0] /=; last first.
 set a := A i0 j0 => nz_a; set A1 := xrow _ _ _.
 set u := ursubmx _; set v := _ *: _; set B : 'M_(m, n) := _ - _.
 move: (rank_leq_col B) (rank_leq_row B) {IHm}(IHm n B); rewrite mxrankE.
-case: (gaussE B) => [[L U] r] /= r_m r_n defB.
+case: (GaussE B) => [[L U] r] /= r_m r_n defB.
 have ->: pid_mx (1 + r) = block_mx 1 0 0 (pid_mx r) :> 'M[F]_(1 + m, 1 + n).
   rewrite -(subnKC r_m) -(subnKC r_n) pid_mx_block -col_mx0 -row_mx0.
   by rewrite block_mxA castmx_id col_mx0 row_mx0 -scalar_mx_block -pid_mx_block.
@@ -1204,7 +1204,7 @@ Qed.
 Lemma mxrank_mul_min m n p (A : 'M_(m, n)) (B : 'M_(n, p)) :
   \rank A + \rank B - n <= \rank (A *m B).
 Proof.
-by have:= mxrank_Frobenius A 1%:M B; rewrite mulmx1 mul1mx mxrank1 leq_sub_add.
+by have:= mxrank_Frobenius A 1%:M B; rewrite mulmx1 mul1mx mxrank1 leq_subLR.
 Qed.
 
 Lemma addsmx_compl_full m n (A : 'M_(m, n)) : row_full (A + A^C)%MS.
@@ -1454,7 +1454,7 @@ Lemma mxrank_mul_ker m n p (A : 'M_(m, n)) (B : 'M_(n, p)) :
 Proof.
 apply/eqP; set K := kermx B; set C := (A :&: K)%MS.
 rewrite -(eqmxMr B (eq_row_base A)); set K' := _ *m B.
-rewrite -{2}(subnKC (rank_leq_row K')) -mxrank_ker eqn_addl.
+rewrite -{2}(subnKC (rank_leq_row K')) -mxrank_ker eqn_add2l.
 rewrite -(mxrankMfree _ (row_base_free A)) mxrank_leqif_sup.
   rewrite sub_capmx -(eq_row_base A) submxMl. 
   by apply/sub_kermxP; rewrite -mulmxA mulmx_ker.
@@ -1466,7 +1466,7 @@ Qed.
 Lemma mxrank_injP m n p (A : 'M_(m, n)) (f : 'M_(n, p)) :
   reflect (\rank (A *m f) = \rank A) ((A :&: kermx f)%MS == 0).
 Proof.
-rewrite -mxrank_eq0 -(eqn_addl (\rank (A *m f))).
+rewrite -mxrank_eq0 -(eqn_add2l (\rank (A *m f))).
 by rewrite mxrank_mul_ker addn0 eq_sym; exact: eqP.
 Qed.
 
@@ -1542,7 +1542,7 @@ Lemma mxrank_adds_leqif m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
   \rank (A + B) <= \rank A + \rank B ?= iff (A :&: B <= (0 : 'M_n))%MS.
 Proof.
 rewrite -mxrank_sum_cap; split; first exact: leq_addr.
-by rewrite addnC (@eqn_addr _ 0) eq_sym mxrank_eq0 -submx0.
+by rewrite addnC (@eqn_add2r _ 0) eq_sym mxrank_eq0 -submx0.
 Qed.
 
 (* Subspace projection matrix *)
@@ -2096,7 +2096,7 @@ set m := {-7}n; transitivity #|fr m|.
 elim: m (leqnn m : m <= n) => [_|m IHm]; last move/ltnW=> le_mn.
   rewrite (@eq_card1 _ (0 : 'M_(0, n))) ?big_geq //= => A.
   by rewrite flatmx0 !inE !eqxx.
-rewrite big_nat_recr -{}IHm //= !subSS muln_subr muln1 -expn_add subnKC //.
+rewrite big_nat_recr -{}IHm //= !subSS mulnBr muln1 -expnD subnKC //.
 rewrite -sum_nat_const /= -sum1_card -add1n.
 rewrite (partition_big dsubmx (fr m)) /= => [|A]; last first.
   rewrite !inE -{1}(vsubmxK A); move: {A}(_ A) (_ A) => Ad Au Afull.
@@ -2127,7 +2127,7 @@ rewrite cardsT /= card_sub /GRing.unit /= big_add1 /= -triangular_sum -/n.
 elim: {n'}n => [|n IHn].
   rewrite !big_geq // mul1n (@eq_card _ _ predT) ?card_matrix //= => M.
   by rewrite {1}[M]flatmx0 -(flatmx0 1%:M) unitmx1.
-rewrite !big_nat_recr /= expn_add mulnAC mulnA -{}IHn -mulnA mulnC.
+rewrite !big_nat_recr /= expnD mulnAC mulnA -{}IHn -mulnA mulnC.
 set LHS := #|_|; rewrite -[n.+1]muln1 -{2}[n]mul1n {}/LHS.
 rewrite -!card_matrix subn1 -(cardC1 0) -mulnA; set nzC := predC1 _.
 rewrite -sum1_card (partition_big lsubmx nzC) => [|A]; last first.
@@ -2184,9 +2184,9 @@ have p_i_gt0: p ^ _ > 0 by move=> i; rewrite expn_gt0 ltnW.
 rewrite (card_GL _ (ltn0Sn n.-1)) card_ord Fp_cast // big_add1 /=.
 pose p'gt0 m := m > 0 /\ logn p m = 0%N.
 suffices [Pgt0 p'P]: p'gt0 (\prod_(0 <= i < n.-1.+1) (p ^ i.+1 - 1))%N.
-  by rewrite logn_mul // p'P pfactorK //; case n.
+  by rewrite lognM // p'P pfactorK //; case n.
 apply big_ind => [|m1 m2 [m10 p'm1] [m20]|i _]; rewrite {}/p'gt0 ?logn1 //.
-  by rewrite muln_gt0 m10 logn_mul ?p'm1.
+  by rewrite muln_gt0 m10 lognM ?p'm1.
 rewrite lognE -if_neg subn_gt0 p_pr /= -{1 2}(exp1n i.+1) ltn_exp2r // p_gt1.
 by rewrite dvdn_subr ?dvdn_exp // gtnNdvd.
 Qed.
@@ -2626,8 +2626,8 @@ Section MapMatrixSpaces.
 Variables (aF rF : fieldType) (f : {rmorphism aF -> rF}).
 Local Notation "A ^f" := (map_mx f A) : ring_scope.
 
-Lemma gaussian_elimination_map m n (A : 'M_(m, n)) :
-  gaussian_elimination A^f = ((col_ebase A)^f, (row_ebase A)^f, \rank A).
+Lemma Gaussian_elimination_map m n (A : 'M_(m, n)) :
+  Gaussian_elimination A^f = ((col_ebase A)^f, (row_ebase A)^f, \rank A).
 Proof.
 rewrite mxrankE /row_ebase /col_ebase -lock.
 elim: m n A => [|m IHm] [|n] A /=; rewrite ?map_mx1 //.
@@ -2636,12 +2636,12 @@ rewrite (@eq_pick _ _ pAnz) => [|k]; last by rewrite /= mxE fmorph_eq0.
 case: {+}(pick _) => [[i j]|]; last by rewrite !map_mx1.
 rewrite mxE -fmorphV  -map_xcol -map_xrow -map_dlsubmx -map_drsubmx.
 rewrite -map_ursubmx -map_mxZ -map_mxM -map_mx_sub {}IHm /=.
-case: {+}(gaussian_elimination _) => [[L U] r] /=; rewrite map_xrow map_xcol.
+case: {+}(Gaussian_elimination _) => [[L U] r] /=; rewrite map_xrow map_xcol.
 by rewrite !(@map_block_mx _ _ f 1 _ 1) !map_mx0 ?map_mx1 ?map_scalar_mx.
 Qed.
 
 Lemma mxrank_map m n (A : 'M_(m, n)) : \rank A^f = \rank A.
-Proof. by rewrite mxrankE gaussian_elimination_map. Qed.
+Proof. by rewrite mxrankE Gaussian_elimination_map. Qed.
 
 Lemma row_free_map m n (A : 'M_(m, n)) : row_free A^f = row_free A.
 Proof. by rewrite /row_free mxrank_map. Qed.
@@ -2650,10 +2650,10 @@ Lemma row_full_map m n (A : 'M_(m, n)) : row_full A^f = row_full A.
 Proof. by rewrite /row_full mxrank_map. Qed.
 
 Lemma map_row_ebase m n (A : 'M_(m, n)) : (row_ebase A)^f = row_ebase A^f.
-Proof. by unlock {2}row_ebase; rewrite gaussian_elimination_map. Qed.
+Proof. by unlock {2}row_ebase; rewrite Gaussian_elimination_map. Qed.
 
 Lemma map_col_ebase m n (A : 'M_(m, n)) : (col_ebase A)^f = col_ebase A^f.
-Proof. by unlock {2}col_ebase; rewrite gaussian_elimination_map. Qed.
+Proof. by unlock {2}col_ebase; rewrite Gaussian_elimination_map. Qed.
 
 Lemma map_row_base m n (A : 'M_(m, n)) :
   (row_base A)^f = castmx (mxrank_map A, erefl n) (row_base A^f).

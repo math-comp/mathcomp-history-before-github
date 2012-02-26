@@ -480,7 +480,7 @@ set a1 := \sum_(i | _) _; set a2 := \sum_(i | _) _; suffices ->: a1 = a2.
     by rewrite ?isIntC_sum // => i _; rewrite isIntC_mul ?cfdot_vchar_irr_Int.
   have /isIntCP[e1 [n1 ->]] := cfdot_vchar_irr_Int 0 Zphi.
   have /isIntCP[e2 [n2 ->]] := cfdot_vchar_irr_Int 0 Zpsi.
-  by rewrite mulrCA -!mulrA !dvdC_mul_sign -natrM !dvdC_nat ?euclid.
+  by rewrite mulrCA -!mulrA !dvdC_mul_sign -natrM !dvdC_nat ?Euclid_dvdM.
 rewrite /a2 (reindex_inj (inv_inj (@conjC_IirrK _ _))) /=.
 apply: eq_big => [t | t _]; last first.
   by rewrite !conjC_IirrE !cfdot_real_conjC ?isIntC_conj ?cfdot_vchar_irr_Int.
@@ -611,7 +611,8 @@ have /dvdnP[m def_h1]: 2 %| #|H i|.-1 by rewrite defH dvdn2 in oddH *.
 rewrite /h_ defH def_h1 mulrSr addrK natrM mulfK -?neq0N_neqC //.
 rewrite -leq_leC dvdn_leq //.
   by rewrite -ltn_double -!muln2 -def_h1 -ltnS -defH cardG_gt1.
-rewrite -(@gauss _ 2); last by rewrite coprime_sym prime_coprime // dvdn2 oddE.
+rewrite -(@Gauss_dvdr _ 2); last first.
+  by rewrite coprime_sym prime_coprime // dvdn2 oddE.
 by rewrite mulnC -def_h1 (Frobenius_dvd_ker1 frobL).
 Qed.
 

@@ -13,7 +13,7 @@ Local Notation sgr := ORing.sg.
 
 Record rat : Set := Rat {
   valq : (int * int) ;
-  _ : (0 < valq.2) && (coprime (absz valq.1) (absz (valq.2)))
+  _ : (0 < valq.2) && coprime `|valq.1| `|valq.2|
 }.
 
 Bind Scope ring_scope with rat.
@@ -47,7 +47,7 @@ Hint Resolve denq_neq0.
 Lemma denq_eq0 x : (denq x == 0) = false.
 Proof. exact: negPf (denq_neq0 _). Qed.
 
-Lemma coprime_num_den x : coprime (absz (numq x)) (absz (denq x)).
+Lemma coprime_num_den x : coprime `|numq x| `|denq x|.
 Proof. by rewrite /numq /denq; case: x=> [[a b] /= /andP []]. Qed.
 
 Fact RatK x P : @Rat (numq x, denq x) P = x.
@@ -56,19 +56,19 @@ Proof. by move:x P => [[a b] P'] P; apply: val_inj. Qed.
 Fact fracq_subproof : forall x : int * int,
   let n := if x.2 == 0 then 0 else
     (-1) ^ ((x.2 < 0) (+) (x.1 < 0)) 
-         * ((absz x.1) %/ gcdn (absz x.1) (absz x.2))%:Z in
+         * (`|x.1| %/ gcdn `|x.1| `|x.2|)%:Z in
     let d := if x.2 == 0 then 1 else
-      (absz x.2 %/ gcdn (absz (x.1)) (absz x.2))%:Z in
-        (0 < d) && (coprime (absz n) (absz d)).
+      (`|x.2| %/ gcdn `|x.1| `|x.2|)%:Z in
+        (0 < d) && (coprime `|n| `|d|).
 Proof.
 move=> [m n] /=; case: (altP (n =P 0))=> [//|n0].
 rewrite ltz_nat divn_gt0 ?gcdn_gt0 ?absz_gt0 ?n0 ?orbT //.
 rewrite dvdn_leq ?absz_gt0 ?dvdn_gcdr //= !abszM absz_sign mul1n.
 have [->|m0] := altP (m =P 0); first by rewrite div0n gcd0n divnn absz_gt0 n0.
 move: n0 m0; rewrite -!absz_gt0 absz_nat.
-move: (absz _) (absz _)=> {m n} [|m] [|n] // _ _.
+move: `|_|%N `|_|%N => {m n} [|m] [|n] // _ _.
 rewrite /coprime -(@eqn_pmul2l (gcdn m.+1 n.+1)) ?gcdn_gt0 //.
-rewrite -gcdn_mul2l; do 2!rewrite divn_mulCA ?(dvdn_gcdl, dvdn_gcdr) ?divnn //.
+rewrite muln_gcdr; do 2!rewrite muln_divCA ?(dvdn_gcdl, dvdn_gcdr) ?divnn //.
 by rewrite ?gcdn_gt0 ?muln1.
 Qed.
 
@@ -84,8 +84,7 @@ move: Pnd; rewrite /coprime /fracq /=; case/andP=> hd; move/eqP=> hnd.
 by rewrite ltr_gtF ?gtr_eqF //= hnd !divn1 mulz_sign_abs abszE gtr0_norm.
 Qed.
 
-Definition scalq := locked (fun x =>
-           sgr x.2 * (gcdn (absz x.1) (absz x.2))%:Z).
+Definition scalq := locked (fun x => sgr x.2 * (gcdn `|x.1| `|x.2|)%:Z).
 
 Fact scalq_eq0 x : (scalq x == 0) = (x.2 == 0).
 Proof.
@@ -104,15 +103,15 @@ Lemma signr_scalq x : (scalq x < 0) = (x.2 < 0).
 Proof. by rewrite -!sgr_cp0 sgr_scalq. Qed.
 
 Lemma scalqE x : x.2 != 0 -> scalq x =
-          (-1) ^+ (x.2 < 0)%R * (gcdn (absz x.1) (absz x.2))%:Z.
+          (-1) ^+ (x.2 < 0)%R * (gcdn `|x.1| `|x.2|)%:Z.
 Proof. by unlock scalq; case: sgrP. Qed.
 
 Fact valq_frac x : x.2 != 0 ->
  x = (scalq x * numq (fracq x), scalq x * denq (fracq x)).
 Proof.
 case: x => [n d] /= d_neq0; rewrite /denq /numq scalqE //= (negPf d_neq0).
-rewrite mulrM_sign -mulrA -!PoszM addKb.
-do 2!rewrite divn_mulCA ?(dvdn_gcdl, dvdn_gcdr) // divnn.
+rewrite mulr_signM -mulrA -!PoszM addKb.
+do 2!rewrite muln_divCA ?(dvdn_gcdl, dvdn_gcdr) // divnn.
 by rewrite gcdn_gt0 !absz_gt0 d_neq0 orbT !muln1 !mulz_sign_abs.
 Qed.
 
@@ -149,7 +148,7 @@ Lemma sgr_denq x : sgr (denq x) = 1. Proof. by apply/eqP; rewrite sgr_cp0. Qed.
 
 Lemma normr_denq x : `|denq x| = denq x. Proof. by rewrite gtr0_norm. Qed.
 
-Lemma absz_denq x : absz (denq x) = denq x :> int.
+Lemma absz_denq x : `|denq x|%N = denq x :> int.
 Proof. by rewrite abszE normr_denq. Qed.
 
 Lemma rat_eq x y : (x == y) = (numq x * denq y == numq y * denq x).
@@ -158,8 +157,9 @@ symmetry; rewrite rat_eqE andbC.
 have [->|] /= := altP (denq _ =P _); first by rewrite (inj_eq (mulIf _)).
 apply: contraNF => /eqP hxy; rewrite -absz_denq -[X in _ == X]absz_denq.
 rewrite eqz_nat /= eqn_dvd.
-rewrite -(@gauss _ (absz (numq x))) 1?coprime_sym ?coprime_num_den // andbC.
-rewrite -(@gauss _ (absz (numq y))) 1?coprime_sym ?coprime_num_den //.
+rewrite -(@Gauss_dvdr _ `|numq x|) 1?coprime_sym ?coprime_num_den //.
+rewrite andbC.
+rewrite -(@Gauss_dvdr _ `|numq y|) 1?coprime_sym ?coprime_num_den //.
 by rewrite -!abszM hxy -{1}hxy !abszM !dvdn_mull ?dvdnn.
 Qed.
 
@@ -167,7 +167,7 @@ Fact fracq_eq x y : x.2 != 0 -> y.2 != 0 ->
   (fracq x == fracq y) = (x.1 * y.2 == y.1 * x.2).
 Proof.
 case: fracqP=> //= u fx u_neq0 _; case: fracqP=> //= v fy v_neq0 _; symmetry.
-rewrite [X in (_ == X)]mulrC mulrMM [X in (_ == X)]mulrMM.
+rewrite [X in (_ == X)]mulrC mulrACA [X in (_ == X)]mulrACA.
 by rewrite [denq _ * _]mulrC (inj_eq (mulfI _)) ?mulf_neq0 // rat_eq.
 Qed.
 
@@ -205,7 +205,7 @@ Fact addq_frac x y : x.2 != 0 -> y.2 != 0 ->
   (addq (fracq x) (fracq y)) = fracq (add x y).
 Proof.
 case: fracqP => // u fx u_neq0 _; case: fracqP => // v fy v_neq0 _.
-rewrite /add /= ![(_ * numq _) * _]mulrMM [(_ * denq _) * _]mulrMM.
+rewrite /add /= ![(_ * numq _) * _]mulrACA [(_ * denq _) * _]mulrACA.
 by rewrite [v * _]mulrC -mulrDr fracqMM ?mulf_neq0.
 Qed.
 
@@ -263,7 +263,7 @@ rewrite /mul; case: fracqP => /= [|u fx u_neq0].
   by rewrite mul0r fracq0 /mulq /mul /= mul0r frac0q.
 case: fracqP=> /= [|v fy v_neq0].
   by rewrite mulr0 fracq0 /mulq /mul /= mulr0 frac0q.
-by rewrite ![_ * (v * _)]mulrMM fracqMM ?mulf_neq0.
+by rewrite ![_ * (v * _)]mulrACA fracqMM ?mulf_neq0.
 Qed.
 
 Fact ratzM : {morph ratz : x y / x * y >-> mulq x y}.
@@ -411,7 +411,7 @@ by rewrite mulrA divfK // mulrCA divfK // [dx * _ ]mulrC.
 Qed.
 
 CoInductive rat_spec (* (x : rat) *) : rat -> int -> int -> Type :=
-  Rat_spec (n : int) (d : nat)  & coprime (absz n) d.+1
+  Rat_spec (n : int) (d : nat)  & coprime `|n| d.+1
   : rat_spec (* x  *) (n%:Q / d.+1%:Q) n d.+1.
 
 Lemma ratP x : rat_spec x (numq x) (denq x).
@@ -419,12 +419,11 @@ Proof.
 rewrite -{1}[x](divq_num_den); case hd: denq => [p|n].
   have: 0 < p%:Z by rewrite -hd denq_gt0.
   case: p hd=> //= n hd; constructor; rewrite -?hd ?divq_num_den //.
-  by rewrite -[n.+1]/(absz n.+1) -hd coprime_num_den.
+  by rewrite -[n.+1]/`|n.+1|%N -hd coprime_num_den.
 by move: (denq_gt0 x); rewrite hd.
 Qed.
 
-Lemma coprimeq_num n d : coprime (absz n) (absz d) ->
-  numq (n%:~R / d%:~R) = sgr d * n.
+Lemma coprimeq_num n d : coprime `|n| `|d| -> numq (n%:~R / d%:~R) = sgr d * n.
 Proof.
 move=> cnd /=; have <- := fracqE (n, d%:Z).
 rewrite /numq /= (eqP (cnd : _ == 1%N)) divn1.
@@ -432,8 +431,8 @@ have [|d_gt0|d_lt0] := sgrP d;
 by rewrite (mul0r, mul1r, mulN1r) //= ?[_ ^ _]signrN ?mulNr mulz_sign_abs.
 Qed.
 
-Lemma coprimeq_den n d : coprime (absz n) (absz d) ->
-  denq (n%:~R / d%:~R) = if d == 0 then 1 else `|d|.
+Lemma coprimeq_den n d :
+  coprime `|n| `|d| -> denq (n%:~R / d%:~R) = (if d == 0 then 1 else `|d|).
 Proof.
 move=> cnd; have <- := fracqE (n, d%:Z).
 by rewrite /denq /= (eqP (cnd : _ == 1%N)) divn1; case: d {cnd}.
@@ -486,14 +485,14 @@ Lemma sgr_numq_div (n d : int) : sgr (numq (n%:Q / d%:Q)) = sgr n * sgr d.
 Proof.
 set x := (n, d); rewrite -/x.1 -/x.2 -fracqE.
 case: fracqP => [|k fx k_neq0] /=; first by rewrite mulr0.
-by rewrite !sgrM mulrMM mulr_sg k_neq0 sgr_denq mulr1 mul1r.
+by rewrite !sgrM mulrACA mulr_sg k_neq0 sgr_denq mulr1 mul1r.
 Qed.
 
 Fact subq_ge0 x y : le_rat 0 (y - x) = le_rat x y.
 Proof.
 symmetry; rewrite ge_rat0 /le_rat -subr_ge0.
 case: ratP => nx dx cndx; case: ratP => ny dy cndy.
-rewrite -!mulNr addf_div2 ?intq_eq0 // !mulNr -!rmorphM -rmorphB /=.
+rewrite -!mulNr addf_div ?intq_eq0 // !mulNr -!rmorphM -rmorphB /=.
 symmetry; rewrite !lerNgt -sgr_cp0 sgr_numq_div mulrC gtr0_sg //.
 by rewrite mul1r sgr_cp0.
 Qed.
@@ -513,7 +512,7 @@ Qed.
 
 Lemma normr_num_div n d : `|numq (n%:~R / d%:~R)| = numq (`|n|%:~R / `|d|%:~R).
 Proof.
-rewrite (normr_dec n) (normr_dec d) !rmorphM /= invfM mulrMM !sgr_def.
+rewrite (normr_dec n) (normr_dec d) !rmorphM /= invfM mulrACA !sgr_def.
 have [->|n_neq0] := altP eqP; first by rewrite mul0r mulr0.
 have [->|d_neq0] := altP eqP; first by rewrite invr0 !mulr0.
 rewrite !intr_sign invr_sign -signr_addb numq_sign_mul -numq_div_lt0 //.
@@ -568,7 +567,7 @@ Proof. by case: b; rewrite ?(mul1r, mulN1r) // denqN. Qed.
 Lemma denq_norm x : denq `|x| = denq x.
 Proof. by rewrite normr_dec_sign denq_mulr_sign. Qed.
 
-Definition rat_archi_bound (x : rat) := (absz (numq x)).+1.
+Definition rat_archi_bound (x : rat) := `|numq x|.+1.
 
 Fact rat_archi_boundP (x : rat) : 0 <= x -> x < (rat_archi_bound x)%:R.
 Proof.

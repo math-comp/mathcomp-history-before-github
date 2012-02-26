@@ -457,9 +457,9 @@ Require Import finfun bigop prime binomial.
 (*    are coercions the machinery will be mostly invisible (with only the     *)
 (*    {linear ...} structure and %Rlin notations showing), but users should   *)
 (*    beware that in (a *: f u)%Rlin, a actually occurs in the f u subterm.   *)
-(* -> The simpler linear_LR, or more specialized linearZ_lmod and scalarZ     *)
-(*    rules should be used instead of linearZ if there are complexity issues, *)
-(*    and for explicit forward and backward application, as the main          *)
+(* -> The simpler linear_LR, or more specialized linearZZ and scalarZ rules   *)
+(*    should be used instead of linearZ if there are complexity issues, as    *)
+(*    well as for explicit forward and backward application, as the main      *)
 (*    parameter of linearZ is a proper sub-interface of {linear fUV | s}.     *)
 (*                                                                            *)
 (* * LRMorphism (linear ring morphisms, i.e., algebra morphisms):             *)
@@ -683,6 +683,7 @@ Canonical add_comoid := Monoid.ComLaw addrC.
 
 Lemma addrCA : @left_commutative V V +%R. Proof. exact: mulmCA. Qed.
 Lemma addrAC : @right_commutative V V +%R. Proof. exact: mulmAC. Qed.
+Lemma addrACA : @interchange V +%R +%R. Proof. exact: mulmACA. Qed.
 
 Lemma addKr : @left_loop V V -%R +%R.
 Proof. by move=> x y; rewrite addrA addNr add0r. Qed.
@@ -729,7 +730,7 @@ Proof. by rewrite -[x == _]subr_eq0 opprK. Qed.
 Lemma eqr_opp x y : (- x == - y) = (x == y).
 Proof. exact: can_eq opprK x y. Qed.
 
-Lemma eqr_oppC x y : (- x == y) = (x == - y).
+Lemma eqr_oppLR x y : (- x == y) = (x == - y).
 Proof. exact: inv_eq opprK x y. Qed. 
 
 Lemma mulr0n x : x *+ 0 = 0. Proof. by []. Qed.
@@ -1076,7 +1077,7 @@ elim: m => [|m IHm]; first by rewrite expr1n.
 by rewrite mulSn exprD IHm exprS exprMn_comm //; exact: commrX.
 Qed.
 
-Lemma exprC x m n : (x ^+ m) ^+ n = (x ^+ n) ^+ m.
+Lemma exprAC x m n : (x ^+ m) ^+ n = (x ^+ n) ^+ m.
 Proof. by rewrite -!exprM mulnC. Qed.
 
 Lemma expr_mod n x i : x ^+ n = 1 -> x ^+ (i %% n) = x ^+ i.
@@ -1111,6 +1112,15 @@ Proof. by rewrite mulr_sign; case: b1 b2 => [] []; rewrite ?opprK. Qed.
 Lemma signrE (b : bool) : (-1) ^+ b = 1 - b.*2%:R :> R.
 Proof. by case: b; rewrite ?subr0 // opprD addNKr. Qed.
 
+Lemma signrN b : (-1) ^+ (~~ b) = - (-1) ^+ b :> R.
+Proof. by case: b; rewrite ?opprK. Qed.
+
+Lemma mulr_signM (b1 b2 : bool) x1 x2 :
+  ((-1) ^+ b1 * x1) * ((-1) ^+ b2 * x2) = (-1) ^+ (b1 (+) b2) * (x1 * x2).
+Proof.
+by rewrite signr_addb -!mulrA; congr (_ * _); rewrite !mulrA commr_sign.
+Qed.
+
 Lemma exprNn x n : (- x) ^+ n = (-1) ^+ n * x ^+ n :> R.
 Proof. by rewrite -mulN1r exprMn_comm // /comm mulN1r mulrN mulr1. Qed.
 
@@ -1118,7 +1128,7 @@ Lemma sqrrN x : (- x) ^+ 2 = x ^+ 2.
 Proof. exact: mulrNN. Qed.
 
 Lemma sqrr_sign n : ((-1) ^+ n) ^+ 2 = 1 :> R.
-Proof. by rewrite exprC sqrrN !expr1n. Qed.
+Proof. by rewrite exprAC sqrrN !expr1n. Qed.
 
 Lemma signrMK n : @involutive R ( *%R ((-1) ^+ n)).
 Proof. by move=> x; rewrite mulrA -expr2 sqrr_sign mul1r. Qed.
@@ -1172,7 +1182,7 @@ elim: n => [|n IHn]; rewrite big_ord_recl mulr1 ?big_ord0 ?addr0 //=.
 rewrite exprS {}IHn /= mulrDl !big_distrr /= big_ord_recl mulr1 subn0.
 rewrite !big_ord_recr /= !binn !subnn !mul1r !subn0 bin0 !exprS -addrA.
 congr (_ + _); rewrite addrA -big_split /=; congr (_ + _).
-apply: eq_bigr => i _; rewrite !mulrnAr !mulrA -exprS -leq_subS ?(valP i) //.
+apply: eq_bigr => i _; rewrite !mulrnAr !mulrA -exprS -subSn ?(valP i) //.
 by rewrite  subSS (commrX _ (commr_sym cxy)) -mulrA -exprS -mulrnDr.
 Qed.
 
@@ -1190,7 +1200,7 @@ Proof.
 case: n => [|n]; first by rewrite big_ord0 mulr0 subrr.
 rewrite mulrBl !big_distrr big_ord_recl big_ord_recr /= subnn mulr1 mul1r.
 rewrite subn0 -!exprS opprD -!addrA; congr (_ + _); rewrite addrA -sumrB.
-rewrite big1 ?add0r // => i _; rewrite !mulrA -exprS -leq_subS ?(valP i) //.
+rewrite big1 ?add0r // => i _; rewrite !mulrA -exprS -subSn ?(valP i) //.
 by rewrite subSS (commrX _ (commr_sym cxy)) -mulrA -exprS subrr.
 Qed.
 
@@ -1236,7 +1246,7 @@ Lemma dvdn_charf n : (p %| n)%N = (n%:R == 0 :> R).
 Proof.
 apply/idP/eqP=> [/dvdnP[n' ->]|n0]; first by rewrite natrM charf0 mulr0.
 apply/idPn; rewrite -prime_coprime // => /eqnP pn1.
-have [a _ /dvdnP[b]] := bezoutl n (prime_gt0 charf_prime).
+have [a _ /dvdnP[b]] := Bezoutl n (prime_gt0 charf_prime).
 move/(congr1 (fun m => m%:R : R))/eqP.
 by rewrite natrD !natrM charf0 n0 !mulr0 pn1 addr0 oner_eq0.
 Qed.
@@ -1345,7 +1355,7 @@ Variable S : predPredType R.
 Definition mulr_2closed := {in S &, forall u v, u * v \in S}.
 Definition mulr_closed := 1 \in S /\ mulr_2closed.
 Definition smulr_closed := -1 \in S /\ mulr_2closed.
-Definition semiring_closed := [/\ 1 \in S, addr_closed S & mulr_2closed].
+Definition semiring_closed := addr_closed S /\ mulr_closed.
 Definition subring_closed := [/\ 1 \in S, subr_2closed S & mulr_2closed].
 
 Lemma smulr_closedM : smulr_closed -> mulr_closed.
@@ -1367,7 +1377,9 @@ by case=> S1 SB SM; split; rewrite ?(zmod_closedN (subring_closedB _)).
 Qed.
 
 Lemma subring_closed_semi : subring_closed -> semiring_closed.
-Proof. by case=> S1 SB SM; split => //; apply: zmod_closedD; apply: subring_closedB. Qed.
+Proof.
+by move=> ringS; split; [apply/zmod_closedD/subring_closedB | case: ringS].
+Qed.
  
 End ClosedPredicates.
 
@@ -2192,8 +2204,8 @@ Section LmodProperties.
 
 Variables (U V : lmodType R) (f : {linear U -> V}).
 
-Lemma lmod_linearZ : scalable f. Proof. exact: linearZ_LR. Qed.
-Lemma lmod_linearP : linear f. Proof. exact: linearP. Qed.
+Lemma linearZZ : scalable f. Proof. exact: linearZ_LR. Qed.
+Lemma linearPZ : linear f. Proof. exact: linearP. Qed.
 
 Lemma can2_linear f' : cancel f f' -> cancel f' f -> linear f'.
 Proof. by move=> fK f'K a x y /=; apply: (canLR fK); rewrite linearP !f'K. Qed.
@@ -2407,6 +2419,7 @@ Lemma mulrC : @commutative R R *%R. Proof. by case: R => T []. Qed.
 Canonical mul_comoid := Monoid.ComLaw mulrC.
 Lemma mulrCA : @left_commutative R R *%R. Proof. exact: mulmCA. Qed.
 Lemma mulrAC : @right_commutative R R *%R. Proof. exact: mulmAC. Qed.
+Lemma mulrACA : @interchange R *%R *%R. Proof. exact: mulmACA. Qed.
 
 Lemma exprMn n : {morph (fun x => x ^+ n) : x y / x * y}.
 Proof. move=> x y; apply: exprMn_comm; exact: mulrC. Qed.
@@ -2774,6 +2787,9 @@ Proof. by apply/unitrP; exists (-1); rewrite mulrNN mulr1. Qed.
 Lemma invrN1 : (-1)^-1 = -1 :> R.
 Proof. by rewrite -{2}(divrr unitrN1) mulN1r opprK. Qed.
 
+Lemma invr_sign n : ((-1) ^- n) = (-1) ^+ n :> R.
+Proof. by rewrite -signr_odd; case: (odd n); rewrite (invr1, invrN1). Qed.
+
 Lemma unitrMl x y : y \is a unit -> (x * y \is a unit) = (x \is a unit).
 Proof.
 move=> Uy; wlog Ux: x y Uy / x \is a unit => [WHxy|].
@@ -2830,6 +2846,9 @@ Qed.
 
 Lemma invr_eq0 x : (x^-1 == 0) = (x == 0).
 Proof. by apply: negb_inj; apply/idP/idP; move/invr_neq0; rewrite ?invrK. Qed.
+
+Lemma invr_eq1 x : (x^-1 == 1) = (x == 1).
+Proof. by rewrite (inv_eq invrK) invr1. Qed.
 
 Lemma rev_unitrP (x y : R^c) : y * x = 1 /\ x * y = 1 -> x \is a unit.
 Proof. by case=> [yx1 xy1]; apply/unitrP; exists y. Qed.
@@ -3170,6 +3189,35 @@ Definition divalg_alg R A S (algS : @divalg R A S) :=
 
 End Subtyping.
 
+Section Extensionality.
+(* This could be avoided by exploiting the Coq 8.4 eta-convertibility.        *)
+
+Lemma opp_ext (U : zmodType) S k (kS : @keyed_pred U S k) :
+  oppr_closed kS -> oppr_closed S.
+Proof. by move=> oppS x; rewrite -!(keyed_predE kS); apply: oppS. Qed.
+
+Lemma add_ext (U : zmodType) S k (kS : @keyed_pred U S k) :
+  addr_closed kS -> addr_closed S.
+Proof.
+by case=> S0 addS; split=> [|x y]; rewrite -!(keyed_predE kS) //; apply: addS.
+Qed.
+
+Lemma mul_ext (R : ringType) S k (kS : @keyed_pred R S k) :
+  mulr_closed kS -> mulr_closed S.
+Proof.
+by case=> S1 mulS; split=> [|x y]; rewrite -!(keyed_predE kS) //; apply: mulS.
+Qed.
+
+Lemma scale_ext (R : ringType) (U : lmodType R) S k (kS : @keyed_pred U S k) :
+  scaler_closed kS -> scaler_closed S.
+Proof. by move=> linS a x; rewrite -!(keyed_predE kS); apply: linS. Qed.
+
+Lemma inv_ext (R : unitRingType) S k (kS : @keyed_pred R S k) :
+  invr_closed kS -> invr_closed S.
+Proof. by move=> invS x; rewrite -!(keyed_predE kS); apply: invS. Qed.
+
+End Extensionality.
+
 Module Default.
 Definition opp V S oppS := @Opp V S (DefaultPredKey S) oppS.
 Definition add V S addS := @Add V S (DefaultPredKey S) addS.
@@ -3275,22 +3323,21 @@ Notation subalgPred := subalg.
 Notation divringPred := divring.
 Notation divalgPred := divalg.
 
-Local Notation def_pack K :=
-  (fun R S k kS PkS => K R S k (eq_rect _ _ PkS S (@keyed_predE _ S k kS))).
-
-Definition OpprPred := def_pack Opp.
-Definition AddrPred := def_pack Add.
-Definition MulrPred := def_pack Mul.
-Definition ZmodPred := def_pack Zmod.
-Definition SemiringPred := def_pack Semiring.
-Definition SmulrPred := def_pack Smul.
-Definition DivrPred := def_pack Div.
-Definition SubmodPred R := def_pack (@Submod R).
-Definition SubringPred := def_pack Subring.
-Definition SdivrPred := def_pack Sdiv.
-Definition SubalgPred R := def_pack (@Subalg R).
-Definition DivringPred := def_pack Divring.
-Definition DivalgPred R := def_pack (@Divalg R).
+Definition OpprPred U S k kS NkS := Opp k (@opp_ext U S k kS NkS).
+Definition AddrPred U S k kS DkS := Add k (@add_ext U S k kS DkS).
+Definition MulrPred R S k kS MkS := Mul k (@mul_ext R S k kS MkS).
+Definition ZmodPred U S k kS NkS := Zmod k (@opp_ext U S k kS NkS).
+Definition SemiringPred R S k kS MkS := Semiring k (@mul_ext R S k kS MkS).
+Definition SmulrPred R S k kS MkS := Smul k (@mul_ext R S k kS MkS).
+Definition DivrPred R S k kS VkS := Div k (@inv_ext R S k kS VkS).
+Definition SubmodPred R U S k kS ZkS := Submod k (@scale_ext R U S k kS ZkS).
+Definition SubringPred R S k kS MkS := Subring k (@mul_ext R S k kS MkS).
+Definition SdivrPred R S k kS VkS := Sdiv k (@inv_ext R S k kS VkS).
+Definition SubalgPred (R : ringType) (A : lalgType R) S k kS ZkS :=
+  Subalg k (@scale_ext R A S k kS ZkS).
+Definition DivringPred R S k kS VkS := Divring k (@inv_ext R S k kS VkS).
+Definition DivalgPred (R : ringType) (A : unitAlgType R) S k kS ZkS :=
+  Divalg k (@scale_ext R A S k kS ZkS).
 
 End Exports.
 
@@ -3324,7 +3371,9 @@ Section Add.
 Variables (addS : addrPred S) (kS : keyed_pred addS).
 
 Lemma rpred0D : addr_closed kS.
-Proof. by rewrite keyed_predE; case: addS. Qed.
+Proof.
+by split=> [|x y]; rewrite !keyed_predE; case: addS => _ [_]//; apply.
+Qed.
 
 Lemma rpred0 : 0 \in kS.
 Proof. by case: rpred0D. Qed.
@@ -3346,7 +3395,7 @@ Section Opp.
 Variables (oppS : opprPred S) (kS : keyed_pred oppS).
 
 Lemma rpredNr : oppr_closed kS.
-Proof. by rewrite keyed_predE; case: oppS. Qed.
+Proof. by move=> x; rewrite !keyed_predE; case: oppS => _; apply. Qed.
 
 Lemma rpredN : {mono -%R: u / u \in kS}.
 Proof. by move=> u; apply/idP/idP=> /rpredNr; rewrite ?opprK; apply. Qed.
@@ -3395,7 +3444,9 @@ Section Mul.
 Variables (mulS : mulrPred S) (kS : keyed_pred mulS).
 
 Lemma rpred1M : mulr_closed kS.
-Proof. by rewrite keyed_predE; case: mulS. Qed.
+Proof.
+by split=> [|x y]; rewrite !keyed_predE; case: mulS => _ [_] //; apply.
+Qed.
 
 Lemma rpred1 : 1 \in kS.
 Proof. by case: rpred1M. Qed.
@@ -3437,7 +3488,7 @@ Lemma rpredZnat (subS : zmodPred S) (kS : keyed_pred subS) n :
 Proof. by move=> u Su; rewrite /= scaler_nat rpredMn. Qed.
 
 Lemma rpredZ (linS : submodPred S) (kS : keyed_pred linS) : scaler_closed kS.
-Proof. by rewrite {kS}keyed_predE; case: linS. Qed.
+Proof. by move=> a u; rewrite !keyed_predE; case: {kS}linS => _; apply. Qed.
 
 End LmodPred.
 
@@ -3499,6 +3550,13 @@ Proof.
 have [Ux | U'x] := boolP (x \is a unit); last by rewrite !invr_out ?unitrN.
 by rewrite -mulN1r invrM ?unitrN1 // invrN1 mulrN1.
 Qed.
+
+Lemma invr_signM n x : ((-1) ^+ n * x)^-1 = (-1) ^+ n * x^-1.
+Proof. by rewrite -signr_odd !mulr_sign; case: ifP => // _; rewrite invrN. Qed.
+
+Lemma divr_signM (b1 b2 : bool) x1 x2:
+  ((-1) ^+ b1 * x1) / ((-1) ^+ b2 * x2) = (-1) ^+ (b1 (+) b2) * (x1 / x2).
+Proof. by rewrite invr_signM mulr_signM. Qed.
 
 End UnitRingPred.
 
@@ -3830,10 +3888,10 @@ rewrite -/(eval e (t1 - t2)); move: (t1 - t2)%T => {t1 t2} t.
 have sub_var_tsubst s t0: s.1 >= ub_var t0 -> tsubst t0 s = t0.
   elim: t0 {t} => //=.
   - by move=> n; case: ltngtP.
-  - by move=> t1 IHt1 t2 IHt2; rewrite leq_maxl => /andP[/IHt1-> /IHt2->].
+  - by move=> t1 IHt1 t2 IHt2; rewrite geq_max => /andP[/IHt1-> /IHt2->].
   - by move=> t1 IHt1 /IHt1->.
   - by move=> t1 IHt1 n /IHt1->.
-  - by move=> t1 IHt1 t2 IHt2; rewrite leq_maxl => /andP[/IHt1-> /IHt2->].
+  - by move=> t1 IHt1 t2 IHt2; rewrite geq_max => /andP[/IHt1-> /IHt2->].
   - by move=> t1 IHt1 /IHt1->.
   - by move=> t1 IHt1 n /IHt1->.
 pose fix rsub t' m r : term R :=
@@ -3874,15 +3932,15 @@ have rsub_acc r s t1 m1:
 elim: t r0 m => /=; try do [
   by move=> n r m hlt hub; rewrite take_size (ltn_addr _ hlt) rsub_id
 | by move=> n r m hlt hub; rewrite leq0n take_size rsub_id
-| move=> t1 IHt1 t2 IHt2 r m; rewrite leq_maxl; case/andP=> hub1 hub2 hmr;
+| move=> t1 IHt1 t2 IHt2 r m; rewrite geq_max; case/andP=> hub1 hub2 hmr;
   case: to_rterm {IHt1 hub1 hmr}(IHt1 r m hub1 hmr) => t1' r1;
   case=> htake1 hub1' hsub1 <-;
   case: to_rterm {IHt2 hub2 hsub1}(IHt2 r1 m hub2 hsub1) => t2' r2 /=;
-  rewrite leq_maxl; case=> htake2 -> hsub2 /= <-;
+  rewrite geq_max; case=> htake2 -> hsub2 /= <-;
   rewrite -{1 2}(cat_take_drop (size r1) r2) htake2; set r3 := drop _ _;
   rewrite size_cat addnA (leq_trans _ (leq_addr _ _)) //;
   split=> {hsub2}//;
-   first by [rewrite takel_cat // -htake1 size_take leq_minl leqnn orbT];
+   first by [rewrite takel_cat // -htake1 size_take geq_min leqnn orbT];
   rewrite -(rsub_acc r1 r3 t1') {hub1'}// -{htake1}htake2 {r3}cat_take_drop;
   by elim: r2 m => //= u r2 IHr2 m; rewrite IHr2
 | do [ move=> t1 IHt1 r m; do 2!move/IHt1=> {IHt1}IHt1
@@ -3892,7 +3950,7 @@ elim: t r0 m => /=; try do [
 move=> t1 IH r m letm /IH {IH} /(_ letm) {letm}.
 case: to_rterm => t1' r1 /= [def_r ub_t1' ub_r1 <-].
 rewrite size_rcons addnS leqnn -{1}cats1 takel_cat ?def_r; last first.
-  by rewrite -def_r size_take leq_minl leqnn orbT.
+  by rewrite -def_r size_take geq_min leqnn orbT.
 elim: r1 m ub_r1 ub_t1' {def_r} => /= [|u r1 IHr1] m => [_|[->]].
   by rewrite addn0 eqxx.
 by rewrite -addSnnS => /IHr1 IH /IH[_ _ ub_r1 ->].
@@ -4219,6 +4277,10 @@ rewrite big_cons /=; have [Pi | _] := ifP; last exact: IHr.
 by rewrite mulf_eq0; case/orP=> // Fi0; exists i.
 Qed.
 
+Lemma prodf_seq_eq0 I r (P : pred I) (F : I -> R) :
+  (\prod_(i <- r | P i) F i == 0) = has (fun i => P i && (F i == 0)) r.
+Proof. by rewrite (big_morph _ mulf_eq0 (oner_eq0 _)) big_has_cond. Qed.
+
 Lemma mulf_neq0 x y : x != 0 -> y != 0 -> x * y != 0.
 Proof. move=> x0 y0; rewrite mulf_eq0; exact/norP. Qed.
 
@@ -4226,6 +4288,13 @@ Lemma prodf_neq0 (I : finType) (P : pred I) (F : I -> R) :
   reflect (forall i, P i -> (F i != 0)) (\prod_(i | P i) F i != 0).
 Proof.
 by rewrite (sameP (prodf_eq0 _ _) exists_inP) negb_exists_in; exact: forall_inP.
+Qed.
+
+Lemma prodf_seq_neq0 I r (P : pred I) (F : I -> R) :
+  (\prod_(i <- r | P i) F i != 0) = all (fun i => P i ==> (F i != 0)) r.
+Proof.
+rewrite prodf_seq_eq0 -all_predC; apply: eq_all => i /=.
+by rewrite implybE negb_and.
 Qed.
 
 Lemma expf_eq0 x n : (x ^+ n == 0) = (n > 0) && (x == 0).
@@ -4407,6 +4476,13 @@ Qed.
 Lemma prodf_inv I r (P : pred I) (E : I -> F) :
   \prod_(i <- r | P i) (E i)^-1 = (\prod_(i <- r | P i) E i)^-1.
 Proof. by rewrite (big_morph _ invfM (invr1 _)). Qed.
+
+Lemma addf_div x1 y1 x2 y2 :
+  y1 != 0 -> y2 != 0 -> x1 / y1 + x2 / y2 = (x1 * y2 + x2 * y1) / (y1 * y2).
+Proof. by move=> nzy1 nzy2; rewrite invfM mulrDl !mulrA mulrAC !mulfK. Qed.
+
+Lemma mulf_div x1 y1 x2 y2 : (x1 / y1) * (x2 / y2) = (x1 * x2) / (y1 * y2).
+Proof. by rewrite mulrACA -invfM. Qed.
 
 Lemma natf0_char n : n > 0 -> n%:R == 0 :> F -> exists p, p \in [char F].
 Proof.
@@ -4623,7 +4699,7 @@ apply: (iffP (satP _ _)) => [|[s]]; last first.
   exists s => // i; rewrite !inE mem_iota -leqNgt add0n => le_n_i.
   by rewrite !nth_default ?sz_s.
 case/foldExistsP=> e e0 f_e; set s := take n (set_nth 0 e n 0).
-have sz_s: size s = n by rewrite size_take size_set_nth leq_maxr leqnn.
+have sz_s: size s = n by rewrite size_take size_set_nth leq_max leqnn.
 exists s; rewrite sz_s eqxx; apply/satP; apply: eq_holds f_e => i.
 case: (leqP n i) => [le_n_i | lt_i_n].
   by rewrite -e0 ?nth_default ?sz_s // !inE mem_iota -leqNgt.
@@ -4864,10 +4940,11 @@ Section Zmodule.
 
 Variables (V : zmodType) (S : predPredType V).
 Variables (subS : zmodPred S) (kS : keyed_pred subS).
-Variable U : subType (kS : pred_class).
+Variable U : subType (mem kS).
 
 Let inU v Sv : U := Sub v Sv.
 Let zeroU := inU (rpred0 kS).
+
 Let oppU (u : U) := inU (rpredNr (valP u)).
 Let addU (u1 u2 : U) := inU (rpredD (valP u1) (valP u2)).
 
@@ -4893,7 +4970,7 @@ Definition cast_zmodType (V : zmodType) T (VeqT : V = T :> Type) :=
   let cast mV := let: erefl in _ = T := VeqT return Zmodule.class_of T in mV in
   Zmodule.Pack (cast (Zmodule.class V)) T.
 
-Variable (T : subType (kS : pred_class)) (V : zmodType) (VeqT: V = T :> Type).
+Variable (T : subType (mem kS)) (V : zmodType) (VeqT: V = T :> Type).
 
 Let inT x Sx : T := Sub x Sx.
 Let oneT := inT (rpred1 kS).
@@ -4932,7 +5009,7 @@ Section Lmodule.
 
 Variables (R : ringType) (V : lmodType R) (S : predPredType V).
 Variables (linS : submodPred S) (kS : keyed_pred linS).
-Variables (W : subType (kS : pred_class)) (Z : zmodType) (ZeqW : Z = W :> Type).
+Variables (W : subType (mem kS)) (Z : zmodType) (ZeqW : Z = W :> Type).
 
 Let scaleW a (w : W) := (Sub _ : _ -> W) (rpredZ a (valP w)).
 Let W' := cast_zmodType ZeqW.
@@ -4979,7 +5056,7 @@ Definition cast_ringType (Q : ringType) T (QeqT : Q = T :> Type) :=
 Variables (R : unitRingType) (S : predPredType R).
 Variables (ringS : divringPred S) (kS : keyed_pred ringS).
 
-Variables (T : subType (kS : pred_class)) (Q : ringType) (QeqT : Q = T :> Type).
+Variables (T : subType (mem kS)) (Q : ringType) (QeqT : Q = T :> Type).
 
 Let inT x Sx : T := Sub x Sx.
 Let invT (u : T) := inT (rpredVr (valP u)).
@@ -5065,6 +5142,7 @@ Definition addrN := addrN.
 Definition subrr := subrr.
 Definition addrCA := addrCA.
 Definition addrAC := addrAC.
+Definition addrACA := addrACA.
 Definition addKr := addKr.
 Definition addNKr := addNKr.
 Definition addrK := addrK.
@@ -5087,7 +5165,7 @@ Definition subr_eq := subr_eq.
 Definition subr_eq0 := subr_eq0.
 Definition addr_eq0 := addr_eq0.
 Definition eqr_opp := eqr_opp.
-Definition eqr_oppC := eqr_oppC.
+Definition eqr_oppLR := eqr_oppLR.
 Definition sumrN := sumrN.
 Definition sumrB := sumrB.
 Definition sumrMnl := sumrMnl.
@@ -5157,14 +5235,16 @@ Definition exprMn_comm := exprMn_comm.
 Definition commr_sign := commr_sign.
 Definition exprMn_n := exprMn_n.
 Definition exprM := exprM.
-Definition exprC := exprC.
+Definition exprAC := exprAC.
 Definition expr_mod := expr_mod.
 Definition expr_dvd := expr_dvd.
 Definition signr_odd := signr_odd.
 Definition signr_eq0 := signr_eq0.
 Definition mulr_sign := mulr_sign.
-Definition signrE := signrE.
 Definition signr_addb := signr_addb.
+Definition signrN := signrN.
+Definition signrE := signrE.
+Definition mulr_signM := mulr_signM.
 Definition exprNn := exprNn.
 Definition sqrrN := sqrrN.
 Definition sqrr_sign := sqrr_sign.
@@ -5219,6 +5299,7 @@ Definition prodr_const := prodr_const.
 Definition mulrC := mulrC.
 Definition mulrCA := mulrCA.
 Definition mulrAC := mulrAC.
+Definition mulrACA := mulrACA.
 Definition exprMn := exprMn.
 Definition prodrXl := prodrXl.
 Definition prodrXr := prodrXr.
@@ -5260,15 +5341,19 @@ Definition unitrN1 := unitrN1.
 Definition unitrN := unitrN.
 Definition invrN1 := invrN1.
 Definition invrN := invrN.
+Definition invr_sign := invr_sign.
 Definition unitrMl := unitrMl.
 Definition unitrMr := unitrMr.
 Definition invrM := invrM.
 Definition invr_eq0 := invr_eq0.
+Definition invr_eq1 := invr_eq1.
 Definition invr_neq0 := invr_neq0.
 Definition unitrM_comm := unitrM_comm.
 Definition unitrX := unitrX.
 Definition unitrX_pos := unitrX_pos.
 Definition exprVn := exprVn.
+Definition invr_signM := invr_signM.
+Definition divr_signM := divr_signM.
 Definition rpred0D := rpred0D.
 Definition rpred0 := rpred0.
 Definition rpredD := rpredD.
@@ -5308,8 +5393,10 @@ Definition unitrPr {R x} := @unitrPr R x.
 Definition expr_div_n := expr_div_n.
 Definition mulf_eq0 := mulf_eq0.
 Definition prodf_eq0 := prodf_eq0.
+Definition prodf_seq_eq0 := prodf_seq_eq0.
 Definition mulf_neq0 := mulf_neq0.
 Definition prodf_neq0 := prodf_neq0.
+Definition prodf_seq_neq0 := prodf_seq_neq0.
 Definition expf_eq0 := expf_eq0.
 Definition expf_neq0 := expf_neq0.
 Definition natf_neq0 := natf_neq0.
@@ -5328,6 +5415,8 @@ Definition mulfVK := mulfVK.
 Definition divfK := divfK.
 Definition invfM := invfM.
 Definition prodf_inv := prodf_inv.
+Definition addf_div := addf_div.
+Definition mulf_div := mulf_div.
 Definition natf0_char := natf0_char.
 Definition charf'_nat := charf'_nat.
 Definition charf0P := charf0P.
@@ -5432,8 +5521,8 @@ Definition linearMNn := linearMNn.
 Definition linearP := linearP.
 Definition linearZ_LR := linearZ_LR.
 Definition linearZ := linearZ.
-Definition lmod_linearP := lmod_linearP.
-Definition lmod_linearZ := lmod_linearZ.
+Definition linearPZ := linearPZ.
+Definition linearZZ := linearZZ.
 Definition scalarP := scalarP.
 Definition scalarZ := scalarZ.
 Definition can2_linear := can2_linear.
@@ -5746,12 +5835,12 @@ Canonical ffun_lmodType :=
 End FinFunLmod.
 
 (* begin hide *)
-(* Testing subtype hierarchy 
+(* Testing subtype hierarchy
 Section Test0.
 
 Variables (T : choiceType) (S : predPredType T).
 
-Inductive B := mkB x & S x.
+Inductive B := mkB x & x \in S.
 Definition vB u := let: mkB x _ := u in x.
 
 Canonical B_subType := [subType for vB by B_rect].

@@ -100,10 +100,10 @@ Lemma sremps_recP n (p q : {poly R}) :
 Proof.
 case: ltnP=> hpq hn.
   rewrite sremps_recP_subproof//; symmetry.
-  by rewrite /sremps sremps_recP_subproof// maxnl.
-rewrite /sremps maxnr ?leqW//=.
-case: n hn=> // n; rewrite ltnS=> hn /=.
-case p0: (_ == 0)=> //; congr (_ :: _).
+  by rewrite /sremps sremps_recP_subproof// (maxn_idPl _).
+rewrite /sremps (maxn_idPr (leqW _)) //=.
+case: n hn => // n; rewrite ltnS => hn /=.
+case p0: (_ == 0) => //; congr (_ :: _).
 rewrite sremps_recP_subproof //.
 rewrite size_scale ?oppr_eq0 ?lcn_neq0 // ltn_rmodp //.
 by rewrite -size_poly_eq0 -lt0n (leq_trans _ hpq) // lt0n size_poly_eq0 p0.
@@ -112,9 +112,8 @@ Qed.
 Lemma sremps_recW : forall n (p q : {poly R}),
  ((maxn (size p) (size q).+1) <= n)%N -> sremps_rec p q n = sremps p q.
 Proof.
-move=> n p q hn; rewrite sremps_recP//; apply: leq_trans hn.
-case: ltnP=> hpq; first by rewrite maxnl.
-by rewrite maxnr ?ltnS ?leqW.
+move=> n p q hn; rewrite sremps_recP //; apply: leq_trans hn.
+by case: ifP => _; rewrite (leq_maxr, leq_maxl).
 Qed.
 
 Definition varpI a b p := (varp p a)%:Z - (varp p b)%:Z.
@@ -227,7 +226,7 @@ move=> p q r p0 x; rewrite /jump.
 case q0: (q == 0); first by rewrite (eqP q0) mulr0 eqxx.
 have ->: p * q != 0 by rewrite mulf_neq0 ?p0 ?q0.
 case r0: (r == 0); first by rewrite (eqP r0) !mulr0 mu0 !sub0n.
-rewrite !mu_mul ?mulf_neq0 ?andbT ?q0 ?r0 //; rewrite subn_add2l.
+rewrite !mu_mul ?mulf_neq0 ?andbT ?q0 ?r0 //; rewrite subnDl.
 rewrite mulrAC mulrA -mulrA.
 rewrite (@sgp_right_mul _ (p * p)) // sgp_right_mul // sgp_right_square //.
 by rewrite mul1r mulrC /=.
@@ -323,8 +322,8 @@ move=> p q x pq0.
 case p0: (p == 0); first by rewrite (eqP p0) mu0 min0n add0r.
 case q0: (q == 0); first by rewrite (eqP q0) mu0 minn0 addr0.
 case: (ltngtP (\mu_x p) (\mu_x q))=> hmupq.
-* by rewrite mu_addr ?p0 // minnl // ltnW.
-* by rewrite mu_addl ?q0 // minnr // ltnW.
+* by rewrite mu_addr ?p0 ?geq_minl.
+* by rewrite mu_addl ?q0 ?geq_minr.
 * case: (@mu_spec _ p x)=> [|p' nrp'x hp]; first by rewrite p0.
   case: (@mu_spec _ q x)=> [|q' nrq'x hq]; first by rewrite q0.
   rewrite hmupq minnn hp {2}hq hmupq -mulrDl mu_mul; last first.
@@ -344,7 +343,7 @@ rewrite eq_sym (can2_eq (addKr _ ) (addNKr _)); move/eqP=> hr.
 rewrite hr; case qpq0: (rdivp p q == 0).
   by rewrite (eqP qpq0) mul0r oppr0 add0r mu_mulC // lcn_neq0.
 rewrite  (leq_trans _ (mu_add _ _)) // -?hr //.
-rewrite leq_minr mu_opp mu_mul ?mulf_neq0 ?qpq0 ?q0 // leq_addl.
+rewrite leq_min mu_opp mu_mul ?mulf_neq0 ?qpq0 ?q0 // leq_addl.
 by rewrite mu_mulC // lcn_neq0.
 Qed.
 
@@ -602,10 +601,6 @@ rewrite mulf_eq0 (negPf p0) (negPf q0) minr_l //= mid_in_itv //=.
 by rewrite last_roots_le.
 Qed.
 
-(* Todo : move to ssrnat ? *)
-Lemma maxnSS: forall m n, maxn m.+1 n.+1 = (maxn m n).+1.
-Proof. by move=> m n; rewrite /maxn ltnS; case: ifP. Qed.
-
 Lemma sremps_ind : forall p q, p != 0 ->
   sremps p q = p :: (sremps q ((- lead_coef q ^+ rscalp p q) *: (rmodp p q))).
 Proof.
@@ -614,7 +609,7 @@ case hsp: (size p)=> [|sp] /=.
   by move/eqP: hsp np0; rewrite size_poly_eq0; move/eqP->; rewrite eqxx.
 rewrite maxnSS /= (negPf np0); congr cons.
 case q0: (q == 0); first by rewrite /sremps (eqP q0) !sremps_recp0.
-rewrite sremps_recW // maxnl; first by rewrite !leq_maxr leqnn orbT.
+rewrite sremps_recW // (maxn_idPl _); first by rewrite leq_maxr.
 by rewrite size_scale ?oppr_eq0 ?lcn_neq0 ?ltn_rmodp ?q0.
 Qed.
 
@@ -635,7 +630,7 @@ elim: (sremps _ _) {-2}p {-2}q (erefl (sremps p q)) hp hq pa0 pb0 qa0 qb0
   suff: (p == 0) by rewrite (negPf hp).
   move/eqP: hr; apply: contraLR=> pn0; rewrite /sremps.
   case hm: (maxn (size p) (size q).+1)=> [|m] //=.
-    by move/eqP:hm; rewrite -leqn0 leq_maxl leqn0 size_poly_eq0 (negPf pn0).
+    by move/eqP:hm; rewrite -leqn0 geq_max leqn0 size_poly_eq0 (negPf pn0).
   by rewrite (negPf pn0).
 rewrite hr; move: hr; rewrite /sremps.
 case hm: (maxn (size p) (size q).+1)=> [|m] //=.
@@ -645,17 +640,17 @@ rewrite /varpI /varp !map_cons !var_cons.
 have hmqr: (maxn (size q) (size ((- lead_coef q ^+ rscalp p q) *: (rmodp p q))%R).+1 <= m)%N.
   rewrite size_scale ?oppr_eq0 ?lcn_neq0 //.
   case: (ltnP (size p) (size q).+1) hm=> hpq.
-    move/ltnW: hpq; move/maxnr=> hpq; rewrite hpq => [[hm]].
-    by rewrite hm leq_maxl leqnn/= -hm ltn_rmodp ?q0.
-  move/maxnl: (hpq)=> hmpq; rewrite hmpq=> hm.
-  by move: hpq; rewrite maxnl ?ltn_rmodp ?q0// hm ltnS.
+    move/ltnW: hpq; move/maxn_idPr=> hpq; rewrite hpq => [[hm]].
+    by rewrite hm geq_max leqnn /= -hm ltn_rmodp ?q0.
+  move/maxn_idPl: (hpq) => hmpq; rewrite hmpq=> hm.
+  by move: hpq; rewrite (maxn_idPl _) ?ltn_rmodp ?q0// hm ltnS.
 rewrite sremps_recW// in es.
 have m0 x : 0 = (0 : {poly R}).[a] by rewrite hornerC.
 rewrite !PoszD addrAC opprD -!addrA addrA [- _ + _]addrC.
 rewrite -[(varp _ _)%:Z - _]/(varpI _ _ _).
 rewrite {3}sremps_recW//.
 case: m hm es {hmqr} => [|m hm es] //=.
-  move/eqP; rewrite eqn_leq; case/andP; rewrite leq_maxl; case/andP=> _.
+  move/eqP; rewrite eqn_leq; case/andP; rewrite geq_max; case/andP=> _.
   by rewrite ltnS leqn0 size_poly_eq0 q0.
 rewrite q0 /=; apply/eqP; rewrite (can2_eq (addrK _) (addrNK _)); apply/eqP.
 transitivity (cind a b q p + cind a b p q).
@@ -718,7 +713,7 @@ case emq: (\mu_(_) q)=> [|m].
   rewrite sgp_right_square// mul1r sgp_rightNroot//.
   rewrite sgr_lt0 -sgz_cp0.
   by move: qxn0; rewrite -[root q x]sgz_cp0; case: sgzP.
-rewrite addnS subSS -{1}[\mu_(_) _]addn0 subn_add2l sub0n mulr0n.
+rewrite addnS subSS -{1}[\mu_(_) _]addn0 subnDl sub0n mulr0n.
 by apply/eqP; rewrite sgz_cp0 -[_ == 0]mu_gt0// emq.
 Qed.
 
@@ -1330,7 +1325,7 @@ rewrite mulrDr mulrA -exprSr [rhs in _ = rhs]addrC; congr (_ + _).
   by rewrite prednK ?exprMn // -subn1 subn_gt0.
 rewrite mulr_sumr; apply: eq_big=> // i _.
 rewrite subSS exprMn mulrCA -mulrA mulrA -exprD.
-by rewrite addn_subA // addnC -predn_sub addnK.
+by rewrite addnBA // addnC subnS addnK.
 Qed.
 
 Lemma size_change_varp p : p != 0 -> size (change_varp p) = size p.
@@ -1518,7 +1513,6 @@ rewrite /sremps; move: (maxn _ _) => n; elim: n p q => [|n ihn] p q //=.
 by case: ifP=> hp //=; rewrite in_cons eq_sym hp /= ihn.
 Qed.
 
-
 Lemma ex_roots_weak : forall p (sq : seq {poly R}), p != 0 ->
   reflect (exists x, (p.[x] == 0) && \big[andb/true]_(q <- sq) (q.[x] > 0))
     (ccount_weak p sq > 0).
@@ -1686,7 +1680,6 @@ have : - y >= - x by rewrite ler_opp2.
 Qed.
 
 (* assia : i should at least use trichotomy *)
-
 Let shrink (sq : seq {poly R}) :
   (exists x, 
     [|| ((bounding_poly sq).[x] == 0) && \big[andb/true]_(q <- sq) (q.[x] > 0),

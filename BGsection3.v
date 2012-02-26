@@ -689,7 +689,7 @@ have nVP := subset_trans sPH nVH.
 have coKP: coprime #|K| #|P| by rewrite coprime_sym (pnat_coprime pP).
 have{sylP} sylVP: p.-Sylow(H) (V <*> P).
   rewrite pHallE /= norm_joinEr ?mul_subG //= -defH -!LaGrangeMl.
-  rewrite partn_mul // part_pnat_id // -!card_quotient //.
+  rewrite partnM // part_pnat_id // -!card_quotient //.
   by apply/eqP; congr (_ * _)%N; apply: card_Hall; exact: quotient_pHall.
 have [trKP | {sylV sVU nVU}ntKP] := eqVneq [~: K, P] 1.
   suffices sylVH: p.-Sylow(H) V.
@@ -1026,9 +1026,9 @@ case cKK: (abelian K); last first.
     rewrite /K' dK' subsetI subIset ?sKR_K // -{3}mulKR_Krx centM centJ.
     by rewrite setISS ?conjSg.
   suffices: q ^ 2 >= #|K / K'| by rewrite leqNgt iK'K.
-  rewrite -divg_normal // leq_divl ?cardSg //.
+  rewrite -divg_normal // leq_divLR ?cardSg //.
   rewrite -(@leq_pmul2l (#|[~: K, R]| ^ 2)) ?expn_gt0 ?cardG_gt0 // mulnA.
-  rewrite -expn_mull -iKR LaGrange // -mulnn -{2}(cardJg _ x) mul_cardG.
+  rewrite -expnMn -iKR LaGrange // -mulnn -{2}(cardJg _ x) mul_cardG.
   by rewrite mulKR_Krx mulnAC leq_pmul2l ?muln_gt0 ?cardG_gt0 ?subset_leq_card.
 have tiKcP: 'C_K(P) = 1 by rewrite -defKP coprime_abel_cent_TI.
 have{IHsub} abelK: q.-abelem K.
@@ -1637,8 +1637,8 @@ have partG: {in G, forall a,
   by apply: val_inj; rewrite conjD1g /= genD1 ?group1 // genGid.
 move/eqP: (solvable_Wielandt_fixpoint Gmn nMG coMG solM partG).
 rewrite (bigD1 1%G) // (bigD1 G) //= eqxx (setIidPl (cents1 _)) cards1 muln1.
-rewrite (negbTE ntG) eqxx mul1n -(sdprod_card defG) (mulnC #|K|) expn_mulr.
-rewrite mulnA -expn_mull big1 ?muln1 => [|A]; last first.
+rewrite (negbTE ntG) eqxx mul1n -(sdprod_card defG) (mulnC #|K|) expnM.
+rewrite mulnA -expnMn big1 ?muln1 => [|A]; last first.
   by rewrite -negb_or -in_set2; move/out_m; rewrite /m => /= ->.
 rewrite mulnC eq_sym (bigID (mem Dn)) /= mulnC.
 rewrite big1 ?mul1n => [|A]; last by move/out_n->.
@@ -1649,7 +1649,7 @@ rewrite (eq_bigr (fun _ => #|'C_M(R)| ^ #|R|)%N) => [|A R_A]; last first.
   exact: subsetP (subsetP sKG x Kx).
 rewrite mulnC prod_nat_const card_orbit astab1JG.
 have ->: 'N_K(R) = 1 by rewrite -(setIidPl sKG) -setIA snRG tiKR.
-rewrite indexg1 -expn_mull eq_sym eqn_exp2r ?cardG_gt0 //; move/eqP=> eq_fix.
+rewrite indexg1 -expnMn eq_sym eqn_exp2r ?cardG_gt0 //; move/eqP=> eq_fix.
 split=> // [regR | regK].
   rewrite centsC (sameP setIidPl eqP) eqEcard subsetIl /=.
   move: eq_fix; rewrite regR cards1 exp1n mul1n => <-.

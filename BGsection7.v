@@ -591,7 +591,7 @@ have: existsb C : grT, [&& 'C_Q1(C) != 1, cyclic (B / C) & C <| B].
 case/existsP=> C; case/and3P=> ntCQ1 cycBC nsCB; have [sCB nCB]:= andP nsCB.
 have{mB3} ncycC: ~~ cyclic C.
   rewrite (abelem_cyclic (quotient_abelem _ abelB)) ?card_quotient // in cycBC.
-  rewrite -divgS // logn_div ?cardSg // leq_sub_add addn1 (eqP mB3) in cycBC.
+  rewrite -divgS // logn_div ?cardSg // leq_subLR addn1 (eqP mB3) in cycBC.
   by rewrite (abelem_cyclic (abelemS sCB abelB)) -ltnNge.
 have: existsb z, ('C_Q2[z] != 1) && (z \in C^#).
   apply: contraR ntQ2 => trQ2; have:= subset_trans sCB (subset_trans sBA nQ2A).
@@ -755,7 +755,7 @@ have hallP: pi.-Hall('N_KBP(Q2)) P.
   rewrite pHallE eqn_leq -{1}(part_pnat_id piP) dvdn_leq ?partn_dvd ?cardSg //.
   have ->: #|P| = #|KBP|`_pi.
     rewrite /KBP joingC norm_joinEl // coprime_cardMg ?(pnat_coprime piP) //.
-    by rewrite partn_mul // part_pnat_id // part_p'nat // muln1.
+    by rewrite partnM // part_pnat_id // part_p'nat // muln1.
   by rewrite sPN dvdn_leq ?partn_dvd ?cardSg ?cardG_gt0 ?subsetIl.
 have hallPk: pi.-Hall('N_KBP(Q2)) (P :^ k).
   rewrite pHallE -(card_Hall hallP) cardJg eqxx andbT subsetI /=.

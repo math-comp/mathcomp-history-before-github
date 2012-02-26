@@ -946,7 +946,7 @@ apply: (iffP eqP) => [<- | ]; last first.
     have [X EpX]: exists X, X \in 'E_p^1(U0).
       apply/p_rank_geP; rewrite p_rank_gt0 -pi_of_exponent expU0 pi_of_exponent.
       have: p \in \pi(M) by rewrite kappa_pi.
-      rewrite /= -(sdprod_card defM) pi_of_muln ?cardG_gt0 //; case/orP=> // Fk.
+      rewrite /= -(sdprod_card defM) pi_ofM ?cardG_gt0 //; case/orP=> // Fk.
       have [[_ sMFMs _ _] _] := Fcore_structure maxM.
       case/negP: (kappa_sigma' kp).
       exact: pnatPpi (pcore_pgroup _ _) (piSg sMFMs Fk).

@@ -98,12 +98,14 @@ Require Import ssreflect.
 (*                      left/right cosets in groups).                         *)
 (*       'C(A), 'C_B(A) centralisers (in groups, rings, and matrix algebras). *)
 (*                'Z(A) centers (in groups, rings, and matrix algebras).      *)
-(*       m %/ d, m %% d Eclidean division and remainder (nat and polynomial). *)
-(*               d %| m Euclidean divisibility (nat and polynomial).          *)
+(*       m %/ d, m %% d Euclidean division and remainder (nat, polynomials).  *)
+(*               d %| m Euclidean divisibility (nat, polynomial).             *)
 (*       m = n %[mod d] equality mod d (also defined for <>, ==, and !=).     *)
 (*               e^`(n) nth formal derivative (groups, polynomials).          *)
 (*                e^`() simple formal derivative (polynomials only).          *)
-(*                 `|e| absolute value (ordered rings, integers).             *)
+(*                 `|x| norm, absolute value, distance (rings, int, nat).     *)
+(*      x <= y ?= iff C x is less than y, and equal iff C holds (nat, rings). *)
+(*     x <= y :> T, etc cast comparison (rings, all comparison operators).    *)
 (*    [rec a1, ..., an] standard shorthand for hidden recursor (see prime.v). *)
 (*   The interpretation of these notations is not defined here, but the       *)
 (*   declarations help maintain consistency across the library.               *)
@@ -117,31 +119,43 @@ Require Import ssreflect.
 (*     involutive f <-> f is involutive.                                      *)
 (*                                                                            *)
 (* - Properties for operations.                                               *)
-(*              left_id e op <-> e is a left identity for op.                 *)
-(*             right_id e op <-> e is a right identity for op.                *)
-(*       left_inverse e i op <-> i is a left inverse for op with identity e.  *)
-(*      right_inverse e i op <-> i is a right inverse for op with identity e. *)
-(*         self_inverse e op <-> each x is its own op-inverse (op x x = e).   *)
-(*             idempotent op <-> op is idempotent for op.                     *)
-(*              associate op <-> op is associative.                           *)
-(*            commutative op <-> op is commutative.                           *)
-(*       left_commutative op <-> op is left commutative.                      *)
-(*      right_commutative op <-> op is right commutative.                     *)
-(*            left_zero z op <-> z is a right zero for op.                    *)
-(*           right_zero z op <-> z is a right zero for op.                    *)
-(*  left_distributive op add <-> op distributes over add to the left.         *)
-(* right_distributive op add <-> op distributes over add to the right.        *)
-(*         left_injective op <-> op is injective in its left argument.        *)
-(*        right_injective op <-> op is injective in its right argument.       *)
+(*              left_id e op <-> e is a left identity for op (e op x = x).    *)
+(*             right_id e op <-> e is a right identity for op (x op e = x).   *)
+(*      eft_inverse e inv op <-> inv is a left inverse for op wrt identity e, *)
+(*                               i.e., (inv x) op x = e.                      *)
+(*    right_inverse e inv op <-> inv is a right inverse for op wrt identity e *)
+(*                               i.e., x op (i x) = e.                        *)
+(*         self_inverse e op <-> each x is its own op-inverse (x op x = e).   *)
+(*             idempotent op <-> op is idempotent for op (x op x = x).        *)
+(*              associate op <-> op is associative, i.e.,                     *)
+(*                               x op (y op z) = (x op y) op z.               *)
+(*            commutative op <-> op is commutative (x op y = y op x).         *)
+(*       left_commutative op <-> op is left commutative, i.e.,                *)
+(*                                   x op (y op z) = y op (x op z).           *)
+(*      right_commutative op <-> op is right commutative, i.e.,               *)
+(*                                   (x op y) op z = (x op z) op y.           *)
+(*            left_zero z op <-> z is a left zero for op (z op x = z).        *)
+(*           right_zero z op <-> z is a right zero for op (x op z = z).       *)
+(*  left_distributive op1 op2 <-> op1 distributes over op2 to the left:       *)
+(*                             (x op2 y) op1 z = (x op1 z) op2 (y op1 z).     *)
+(* right_distributive op1 op2 <-> op distributes over add to the right:       *)
+(*                             x op1 (y op2 z) = (x op1 z) op2 (x op1 z).     *)
+(*        interchange op1 op2 <-> op1 and op2 satisfy an interchange law:     *)
+(*                        (x op2 y) op1 (z op2 t) = (x op1 z) op2 (y op1 t).  *)
+(*  Note that interchange op op is a commutativity property.                  *)
+(*         left_injective op <-> op is injective in its left argument:        *)
+(*                             x op y = z op y -> x = z.                      *)
+(*        right_injective op <-> op is injective in its right argument:       *)
+(*                             x op y = x op z -> y = z.                      *)
 (*          left_loop inv op <-> op, inv obey the inverse loop left axiom:    *)
-(*                              op (inv x) (op x y) = y for all x, y, i.e.,   *)
+(*                              (inv x) op (x op y) = y for all x, y, i.e.,   *)
 (*                              op (inv x) is always a left inverse of op x   *)
 (*      rev_left_loop inv op <-> op, inv obey the inverse loop reverse left   *)
-(*                              axiom: op x (op (inv x) y) = y, for all x, y. *)
+(*                              axiom: x op ((inv x) op y) = y, for all x, y. *)
 (*         right_loop inv op <-> op, inv obey the inverse loop right axiom:   *)
-(*                              op (op x y) (inv y) = x for all x, y.         *)
+(*                              (x op y) op (inv y) = x for all x, y.         *)
 (*     rev_right_loop inv op <-> op, inv obey the inverse loop reverse right  *)
-(*                              axiom: op (op x y) (inv y) = x for all x, y.  *)
+(*                              axiom: (x op y) op (inv y) = x for all x, y.  *)
 (*   Note that familiar "cancellation" identities like x + y - y = x or       *)
 (* x - y + x = x are respectively instances of right_loop and rev_right_loop  *)
 (* The corresponding lemmas will use the K and NK/VK suffixes, respectively.  *)
@@ -180,6 +194,14 @@ Require Import ssreflect.
 (*                               expression (fun x y => a).                   *)
 (*                                                                            *)
 (* The file also contains some basic lemmas for the above concepts.           *)
+(* Lemmas relative to cancellation laws use some abbreviated suffixes:        *)
+(*   K - a cancellation rule like esymK : cancel (@esym T x y) (@esym T y x). *)
+(*  LR - a lemma moving an operation from the left hand side of a relation to *)
+(*       the right hand side, like canLR: cancel g f -> x = g y -> f x = y.   *)
+(*  RL - a lemma moving an operation from the right to the left, e.g., canRL. *)
+(* Beware that the LR and RL orientations refer to an "apply" (back chaining) *)
+(* usage; when using the same lemmas with "have" or "move" (forward chaining) *)
+(* the directions will be reversed!.                                          *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -234,7 +256,7 @@ Reserved Notation "''Z' ( A )" (at level 8, format "''Z' ( A )").
 (* Compatibility with group action centraliser notation. *)
 Reserved Notation "''C_' ( B ) ( A )" (at level 8, only parsing).
 
-(* Reserved notation for Euclidean division *)
+(* Reserved notation for Euclidean division and divisibility. *)
 Reserved Notation "m %/ d" (at level 40, no associativity). 
 Reserved Notation "m %% d" (at level 40, no associativity). 
 Reserved Notation "m %| d" (at level 70, no associativity). 
@@ -247,12 +269,24 @@ Reserved Notation "m <> n %[mod d ]" (at level 70, n at next level,
 Reserved Notation "m != n %[mod d ]" (at level 70, n at next level,
   format "'[hv ' m '/'  !=  n '/'  %[mod  d ] ']'").
 
-(* Reserved notation for derivatives *)
+(* Reserved notation for derivatives. *)
 Reserved Notation "a ^` ()" (at level 8, format "a ^` ()").
 Reserved Notation "a ^` ( n )" (at level 8, format "a ^` ( n )").
 
-(* Reserved notation for absolute value *)
+(* Reserved notation for absolute value. *)
 Reserved Notation  "`| x |" (at level 0, x at level 99, format "`| x |").
+
+(* Reserved notation for conditional comparison *)
+Reserved Notation "x <= y ?= 'iff' c" (at level 70, y, c at next level,
+  format "x '[hv'  <=  y '/'  ?=  'iff'  c ']'").
+
+(* Reserved notation for cast comparison. *)
+Reserved Notation "x <= y :> T" (at level 70, y at next level).
+Reserved Notation "x >= y :> T" (at level 70, y at next level, only parsing).
+Reserved Notation "x < y :> T" (at level 70, y at next level).
+Reserved Notation "x > y :> T" (at level 70, y at next level, only parsing).
+Reserved Notation "x <= y ?= 'iff' c :> T" (at level 70, y, c at next level,
+  format "x '[hv'  <=  y '/'  ?=  'iff'  c  :> T ']'").
 
 (* Complements on the option type constructor, used below to  *)
 (* encode partial functions.                                  *)
@@ -713,9 +747,13 @@ Section SopSisS.
 Implicit Type op :  S -> S -> S.
 Definition idempotent op := forall x, op x x = x.
 Definition associative op := forall x y z, op x (op y z) = op (op x y) z.
+Definition interchange op1 op2 :=
+  forall x y z t, op1 (op2 x y) (op2 z t) = op2 (op1 x z) (op1 y t).
 End SopSisS.
 
 End OperationProperties.
+
+
 
 
 

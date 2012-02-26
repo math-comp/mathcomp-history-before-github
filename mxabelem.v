@@ -228,7 +228,7 @@ Lemma rowgD m1 m2 (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
 Proof.
 apply/eqP; rewrite eq_sym eqEcard mulG_subG /= !rowgS.
 rewrite addsmxSl addsmxSr -(@leq_pmul2r #|rowg A :&: rowg B|) ?cardG_gt0 //=.
-by rewrite -mul_cardG -rowgI !card_rowg -!expn_add mxrank_sum_cap.
+by rewrite -mul_cardG -rowgI !card_rowg -!expnD mxrank_sum_cap.
 Qed.
 
 Lemma cprod_rowg m1 m2 (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
@@ -881,7 +881,7 @@ have nb_irr: #|sS| = (p ^ n.*2 + p.-1)%N.
   rewrite sum1dep_card setIdE (setIidPr _) 1?cardsE ?cardZcl; last first.
     by apply/subsetP=> zS; rewrite 2!inE => /andP[].
   have pn_gt0: p ^ n.*2 > 0 by rewrite expn_gt0 p_gt0.
-  rewrite card_irr // oSpn expnS -(prednK pn_gt0) mulnS eqn_addl.
+  rewrite card_irr // oSpn expnS -(prednK pn_gt0) mulnS eqn_add2l.
   rewrite (eq_bigr (fun _ => p)) => [|xS]; last first.
     case/andP=> SxS; rewrite inE SxS; case/imsetP: SxS => x Sx ->{xS} notZxS.
     have [y Sy ->] := repr_class S x; apply: p_maximal_index => //.
@@ -918,7 +918,8 @@ have prim_w e: 0 < e < p -> p.-primitive_root (w ^+ e).
   case/andP=> e_gt0 lt_e_p; apply/andP; split=> //.
   apply/forallP=> [[d ltdp] /=]; apply/eqP; rewrite unity_rootE -exprM.
   rewrite -(irr_mode1 i0) -irr_modeX // (inj_in_eq injw) ?groupX ?group1 //.
-  rewrite -order_dvdn ozp euclid // gtnNdvd //=; move: ltdp; rewrite leq_eqVlt.
+  rewrite -order_dvdn ozp Euclid_dvdM // gtnNdvd //=.
+  move: ltdp; rewrite leq_eqVlt.
   by case: eqP => [-> _ | _ ltd1p]; rewrite (dvdnn, gtnNdvd).
 have /cyclicP[a defAutZ]: cyclic (Aut 'Z(S)) by rewrite Aut_prime_cyclic ?ozp.
 have phi_unitP (i : 'I_p.-1): (i.+1%:R : 'Z_#[z]) \in GRing.unit.
@@ -987,8 +988,8 @@ rewrite (eq_bigl (mem (codom iphi))) // => [|i]; last first.
 rewrite (eq_bigr (fun _ => d ^ 2))%N => [|_ /imageP[i _ ->]]; last first.
   by rewrite deg_phi.
 rewrite sum_nat_const card_image // card_ord oSpn (expnS p) -{3}[p]prednK //.
-rewrite mulSn eqn_addl eqn_pmul2l; last by rewrite -ltnS prednK.
-by rewrite -muln2 expn_mulr eqn_sqr.
+rewrite mulSn eqn_add2l eqn_pmul2l; last by rewrite -ltnS prednK.
+by rewrite -muln2 expnM eqn_sqr.
 Qed.
 
 (* This is the corolloray of the above that is actually used in the proof of  *)

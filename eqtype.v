@@ -13,8 +13,11 @@ Require Import ssreflect ssrfun ssrbool.
 (*     x == y :> T <=> x == y at type T.                                      *)
 (*          x != y <=> x and y compare unequal.                               *)
 (*     x != y :> T <=>  "    "      "    "     at type T.                     *)
-(*         x =P y  <=> a proof of reflect (x = y) (x == y); this coerces      *)
+(*         x =P y  :: a proof of reflect (x = y) (x == y); this coerces       *)
 (*                     to x == y -> x = y.                                    *)
+(*    comparable T <-> equality on T is decidable                             *)
+(*                    := forall x y : T, decidable (x = y)                    *)
+(*  comparableClass compT == eqType mixin/class for compT : comparable T.     *)
 (*             pred1 a == the singleton predicate [pred x | x == a].          *)
 (* pred2, pred3, pred4 == pair, triple, quad predicates.                      *)
 (*            predC1 a == [pred x | x != a].                                  *)
@@ -252,6 +255,9 @@ Proof. by case: b. Qed.
 Lemma eqbF_neg b : (b == false) = ~~ b.
 Proof. by case: b. Qed.
 
+Lemma eqb_negLR b1 b2 : (~~ b1 == b2) = (b1 == ~~ b2).
+Proof. by case: b1; case: b2. Qed.
+
 (* Equality-based predicates.       *)
 
 Notation xpred1 := (fun a1 x => x == a1).
@@ -423,9 +429,9 @@ Section ComparableType.
 
 Variable T : Type.
 
-Definition comparable := forall x y : T, {x = y} + {x <> y}.
+Definition comparable := forall x y : T, decidable (x = y).
 
-Hypothesis Hcompare : forall x y : T, {x = y} + {x <> y}.
+Hypothesis Hcompare : comparable.
 
 Definition compareb x y : bool := Hcompare x y.
 

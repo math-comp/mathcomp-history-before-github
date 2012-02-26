@@ -1,5 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq tuple.
 Require Import fintype finfun bigop ssralg poly polydiv.
+Require int.
 Require Import zmodp vector algebra fieldext finalg finfield.
 Require Import fingroup perm finset matrix mxalgebra mxpoly polyXY.
 Require Import div cyclic prime binomial choice.
@@ -33,7 +34,7 @@ Unset Printing Implicit Defensive.
 
 Open Local Scope ring_scope.
 
-Import GRing.Theory.
+Import GRing.Theory int.IntDist.
 
 (* :TODO: Move to polydiv.v *)
 Lemma coprimep_addl_mul (R : idomainType) (p q r : {poly R}) :
@@ -93,7 +94,7 @@ have [|p_gt1|//] := ltngtP.
 have: g %| (c *: p^`()) by rewrite dvdp_scaler ?dvdp_gcdr.
 rewrite -derivZ -ID.divpK ?dvdp_gcdl // derivM.
 rewrite dvdp_addr; last by rewrite dvdp_mull.
-rewrite gausspr ?hp2 1?mulrC ?ID.divpK ?dvdp_gcdl -/c ?dvdp_scalel //.
+rewrite Gauss_dvdpr ?hp2 1?mulrC ?ID.divpK ?dvdp_gcdl -/c ?dvdp_scalel //.
 move=> /dvdp_leq; rewrite leqNgt lt_size_deriv; last first.
   by rewrite -size_poly_gt0 (leq_trans _ p_gt1).
 by apply; rewrite hp1 ?dvdp_gcdl.
@@ -121,12 +122,12 @@ Qed.
 (* Lemma decompose_dvdp p q : coprimep p q -> *)
 (*   forall u, u %| p * q -> u %= gcdp u p * gcdp u q. *)
 (* Proof. *)
-(* move=> cpq u dvd_u_pq; rewrite /eqp gaussp_inv ?dvdp_gcdl ?andbT; last first. *)
+(* move=> cpq u dvd_u_pq; rewrite /eqp Gauss_dvdp ?dvdp_gcdl ?andbT; last first. *)
 (*   by rewrite (coprimep_dvdl (dvdp_gcdr _ _)) ?(coprimep_dvdr (dvdp_gcdr _ _)). *)
 (* have [|pq_neq0] := boolP ((p * q) == 0). *)
 (*   by rewrite mulf_eq0=> /orP[] /eqP->; rewrite gcdp0 (dvdp_mulIr, dvdp_mulIl). *)
 (* rewrite -(@dvdp_mul2l _ (p * q %/ u)) ?dvdp_div_eq // ID.divpK //. *)
-(* rewrite dvdp_scalel ?lcn_neq0 ?gaussp_inv // mulrA [in X in _ && X]mulrAC. *)
+(* rewrite dvdp_scalel ?lcn_neq0 ?Gauss_dvdp // mulrA [in X in _ && X]mulrAC. *)
 (* rewrite !(eqp_dvdr _ (eqp_mulr _ (mulp_gcdr _ _ _))) ?ID.divpK //. *)
 (* rewrite !(eqp_dvdr _ (eqp_mulr _ (gcdp_scalel _ _ _))) ?lcn_neq0 // dvdp_mulr. *)
 (*   by rewrite dvdp_mulr // (eqp_dvdr _ (gcdp_mul2r _ _ _)) dvdp_mull. *)
@@ -147,7 +148,7 @@ Proof.
 apply/idP/and3P => [H|].
   by rewrite !(dvdp_separable _ H) (dvdp_mulIr,dvdp_mulIl,separable_coprime H).
 rewrite /sep=> [] [Hp Hq Hpq]; rewrite derivM coprimep_mull {1}addrC mulrC.
-rewrite !coprimep_addl_mul !coprimep_def !(eqp_size (gaussp_gcdr _ _)) //.
+rewrite !coprimep_addl_mul !coprimep_def !(eqp_size (Gauss_gcdpr _ _)) //.
 by rewrite -?coprimep_def Hpq coprimep_sym.
 Qed.
 
@@ -300,7 +301,7 @@ have : coprimep ((p' ^ polyC) \Po ('Y * 'X)) (q' ^ polyC).
   rewrite (negPf p'ne0) (negPf q'ne0) /= -resultant_eq0.
   by rewrite annul_div_neq0.
 rewrite -gcdp_eqp1.
-move: (bezoutp (p' ^ polyC \Po 'Y * 'X) (q' ^ polyC)) => [[u v] /= Huv].
+move: (Bezoutp (p' ^ polyC \Po 'Y * 'X) (q' ^ polyC)) => [[u v] /= Huv].
 rewrite -(eqp_ltrans Huv) -size_poly_eq1.
 case/size_poly1P => {Huv} r Hr0 Hr.
 exists r.
@@ -333,7 +334,7 @@ set p1 := (_ \Po _).
 rewrite /horner_morph map_polyE map_id polyseqK.
 move => Hlincomb.
 have : (coprimep p1 q').
- apply/bezout_coprimepP.
+ apply/Bezout_coprimepP.
  exists (u1, v1).
  by rewrite Hlincomb polyC_eqp1.
 clear -Hpx Hqy pne0 qne0 Hqq.
@@ -411,7 +412,7 @@ move:(oner_neq0 L).
 rewrite -Hgcd1 mulf_eq0 negb_or.
 move/andP => [Hc120 Hgcd10].
 move/eqP:(Hgcd 0%N).
-rewrite coefD coefN coefC coefX coefZ coef_map sub0r -eqr_oppC.
+rewrite coefD coefN coefC coefX coefZ coef_map sub0r -eqr_oppLR.
 move:Hgcd1.
 move/(canRL (mulfK Hgcd10)) ->.
 rewrite mul1r -fmorphV -rmorphM -rmorphN.
@@ -858,7 +859,7 @@ case: n szp szpx {IH}.
 move => n szp szpx.
 rewrite ltnS.
 apply: (leq_trans (size_add _ _)).
-rewrite leq_maxl.
+rewrite geq_max.
 apply/andP; split.
  apply: (leq_trans (size_poly _ _)).
  by rewrite -2!ltnS -ltnS (ltn_predK szpx).
@@ -1569,7 +1570,7 @@ case/p_natP => em ->.
 rewrite (separableCharp _ _ (em - en.+1)%N Hp) => Hsepn.
 rewrite ltn_exp2l; last by apply/prime_gt1/(charf_prime Hp).
 move/subnKC <-.
-rewrite addSnnS expn_add exprM FadjoinxK.
+rewrite addSnnS expnD exprM FadjoinxK.
 by move/eqP <-.
 Qed.
 
@@ -2178,7 +2179,7 @@ rewrite -{1}[y]FermatLittleTheorem.
  case: (p_natP (finField_card F)) => [[|n ->]].
  move/eqP.
  by rewrite expn0 -{1}(subnK (finField_card_gt1 F)) addnC.
-rewrite -expn_mulr.
+rewrite -expnM.
 suff -> : (n.+1 * (vdim L))%N = (n.+1 * (vdim L)).-1.+1.
  by rewrite expnS exprM memv_exp // memx_Fadjoin.
 rewrite prednK // muln_gt0.

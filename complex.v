@@ -130,7 +130,7 @@ Lemma mulVc : forall x, x != C0 -> mulc (invc x) x = C1.
 Proof.
 move=> [a b]; rewrite eq_cplx => /= hab; rewrite !mulNr opprK.
 rewrite ![_ / _ * _]mulrAC [b * a]mulrC subrr cplxr0 -mulrDl mulfV //.
-by rewrite paddr_eq0 ?sqr_eq0 // -expr2 ?sqr_ge0.
+by rewrite paddr_eq0 -!expr2 ?expf_eq0 ?sqr_ge0.
 Qed.
 
 Lemma invc0 : invc C0 = C0. Proof. by rewrite /= !mul0r oppr0. Qed.
@@ -195,7 +195,7 @@ Lemma eq0_normc x : normc x = 0 -> x = 0.
 Proof.
 case: x => a b /= /eqP; rewrite sqrtr_eq0 ler_eqVlt => /orP [|]; last first.
   by rewrite ltrNge addr_ge0 ?sqr_ge0.
-by rewrite paddr_eq0 ?sqr_ge0 // ?sqr_eq0 => /andP [/eqP -> /eqP ->].
+by rewrite paddr_eq0 ?sqr_ge0 ?expf_eq0 //= => /andP[/eqP -> /eqP ->].
 Qed.
 
 Lemma eq0_normC x : normC x = 0 -> x = 0. Proof. by case=> /eq0_normc. Qed.
@@ -208,7 +208,7 @@ Qed.
 
 (* :TODO: put in ssralg ? *)
 Lemma exprM (a b : R) : (a * b) ^+ 2 = a ^+ 2 * b ^+ 2.
-Proof. by rewrite mulrMM. Qed.
+Proof. by rewrite mulrACA. Qed.
 
 Lemma normcM x y : normc (x * y) = normc x * normc y.
 Proof.
@@ -259,7 +259,7 @@ rewrite -mulr_natl !exprM !sqr_sqrtr ?(ler_paddr, sqr_ge0) //.
 rewrite -mulrnDl -mulr_natl !exprM ler_pmul2l ?exprn_gt0 ?ltr0n //.
 rewrite sqrrD mulrDl !mulrDr -!exprM addrAC.
 rewrite [_ + (b * d) ^+ 2]addrC [X in _ <= X]addrAC -!addrA !ler_add2l.
-rewrite mulrAC mulrA -mulrA mulrMM mulrC.
+rewrite mulrAC mulrA -mulrA mulrACA mulrC.
 by rewrite -subr_ge0 addrAC -sqrrB sqr_ge0.
 Qed.
 
@@ -386,7 +386,7 @@ Lemma conjc1 : (1 : C) ^* = 1.
 Proof. exact: (conjc_nat 1). Qed.
 
 Lemma conjc_eq0 : forall x : C, (x ^* == 0) = (x == 0).
-Proof. by move=> [a b]; rewrite !eq_cplx /= eqr_oppC oppr0. Qed.
+Proof. by move=> [a b]; rewrite !eq_cplx /= eqr_oppLR oppr0. Qed.
 
 Lemma conjc_inv: forall x : C, (x^-1)^* = (x^* )^-1.
 Proof. exact: fmorphV. Qed.

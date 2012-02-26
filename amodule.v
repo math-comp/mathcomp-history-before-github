@@ -112,7 +112,7 @@ Lemma rmulA v x y: v :* (x * y) = (v :* x) :* y.
 Proof. exact: AModuleType.action_morph. Qed.
 
 Lemma rmulZ : forall c v x, (c *: v) :* x = c *: (v :* x).
-Proof. move=> c v x; exact: lmod_linearZ. Qed.
+Proof. move=> c v x; exact: linearZZ. Qed.
 
 Lemma rmul0 : left_zero 0 rmul.
 Proof. move=> x; exact: linear0. Qed.

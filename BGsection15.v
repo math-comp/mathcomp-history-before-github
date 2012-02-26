@@ -92,7 +92,7 @@ Proof.
 move=> p /=; rewrite -(bigdprod_card Fcore_dprod) mem_primes.
 case/and3P=> p_pr _; have ?: ~ p %| 1 by rewrite gtnNdvd ?prime_gt1.
 apply big_ind=> // [p1 p2 IH1 IH2|P].
-  rewrite euclid //; case/orP; [exact: IH1 | exact: IH2].
+  rewrite Euclid_dvdM //; case/orP; [exact: IH1 | exact: IH2].
 case/andP; case/SylowP=> q q_pr sylP nsPM p_dv_P; have qP := pHall_pgroup sylP.
 by rewrite (eqnP (pgroupP qP p p_pr p_dv_P)) (normal_Hall_pcore sylP).
 Qed.
@@ -109,7 +109,7 @@ Proof.
 rewrite Hall_pi // /Hall Fcore_sub coprime_pi' ?cardG_gt0 //=.
 apply/pnatP=> // p p_pr; apply: contraL => /= piMFp; rewrite -p'natE //.
 rewrite -partn_eq1 // -(eqn_pmul2l (part_gt0 p #|M`_\F|)) muln1.
-rewrite -partn_mul ?cardG_gt0 // LaGrange ?Fcore_sub //.
+rewrite -partnM ?cardG_gt0 // LaGrange ?Fcore_sub //.
 rewrite -(card_Hall (nilpotent_pcore_Hall p Fcore_nil)) /=.
 by rewrite p_core_Fcore // (card_Hall (Fcore_pcore_Sylow piMFp)).
 Qed.
@@ -328,7 +328,7 @@ suffices mkZ: forall S, {Z | ntUsylow S ==> sameExp Z S && cyclicRegular Z}.
     rewrite cent_joinEr ?(sub_abelian_cent2 cUU) //.
     suffices p'U1: p^'.-group U1.
       rewrite coprime_cardMg ?(pnat_coprime pZ) //.
-      by rewrite partn_mul // part_pnat_id // part_p'nat // muln1.
+      by rewrite partnM // part_pnat_id // part_p'nat // muln1.
     pose p'inU X := X \subset U -> p^'.-group X.
     apply: (@big_ind _ p'inU) => // [_|X Y IHX IHY|T]; first exact: pgroup1.
       rewrite /p'inU join_subG /=; case/andP=> sXE2 sYE2.
@@ -399,7 +399,7 @@ rewrite leq_eqVlt; case: eqP => [eqYX _ | _ ltYX _]; last first.
   have defX1: 'Ohm_1(<[x]>) = 'Mho^n.-1(S).
     rewrite -(Mho_dprod _ defS) (Mho_p_cycle _ py).
     rewrite /order (card_pgroup px) (card_pgroup py) ltn_exp2l // -/n in ltYX.
-    rewrite -{2}(subnKC ltYX) addSn expn_add -card_pgroup // expgM.
+    rewrite -{2}(subnKC ltYX) addSn expnD -card_pgroup // expgM.
     rewrite expg_order expg1n cycle1 dprodg1.
     by rewrite (Ohm_p_cycle _ px) (Mho_p_cycle _ px) subn1.
   exists <[x]>%G; rewrite /sameExp expS exponent_cycle eqxx.

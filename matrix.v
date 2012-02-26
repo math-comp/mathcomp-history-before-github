@@ -1422,7 +1422,7 @@ Lemma scalar_mx_block n1 n2 a : a%:M = block_mx a%:M 0 0 a%:M :> 'M_(n1 + n2).
 Proof.
 apply/matrixP=> i j; rewrite !mxE -val_eqE /=.
 by do 2![case: splitP => ? ->; rewrite !mxE];
-  rewrite ?eqn_addl // -?(eq_sym (n1 + _)%N) eqn_leq leqNgt lshift_subproof.
+  rewrite ?eqn_add2l // -?(eq_sym (n1 + _)%N) eqn_leq leqNgt lshift_subproof.
 Qed.
 
 (* Matrix multiplication using bigops. *)
@@ -1691,7 +1691,7 @@ Lemma tr_pid_mx m n r : (pid_mx r)^T = pid_mx r :> 'M_(n, m).
 Proof. by apply/matrixP=> i j; rewrite !mxE eq_sym; case: eqP => // ->. Qed.
 
 Lemma pid_mx_minv m n r : pid_mx (minn m r) = pid_mx r :> 'M_(m, n).
-Proof. by apply/matrixP=> i j; rewrite !mxE leq_minr ltn_ord. Qed.
+Proof. by apply/matrixP=> i j; rewrite !mxE leq_min ltn_ord. Qed.
  
 Lemma pid_mx_minh m n r : pid_mx (minn n r) = pid_mx r :> 'M_(m, n).
 Proof. by apply: trmx_inj; rewrite !tr_pid_mx pid_mx_minv. Qed.
@@ -1699,10 +1699,10 @@ Proof. by apply: trmx_inj; rewrite !tr_pid_mx pid_mx_minv. Qed.
 Lemma mul_pid_mx m n p q r :
   (pid_mx q : 'M_(m, n)) *m (pid_mx r : 'M_(n, p)) = pid_mx (minn n (minn q r)).
 Proof.
-apply/matrixP=> i k; rewrite !mxE !leq_minr.
+apply/matrixP=> i k; rewrite !mxE !leq_min.
 have [le_n_i | lt_i_n] := leqP n i. 
   rewrite andbF big1 // => j _.
-  by rewrite -pid_mx_minh !mxE leq_minr ltnNge le_n_i andbF mul0r.
+  by rewrite -pid_mx_minh !mxE leq_min ltnNge le_n_i andbF mul0r.
 rewrite (bigD1 (Ordinal lt_i_n)) //= big1 ?addr0 => [|j].
   by rewrite !mxE eqxx /= -natrM mulnb andbCA.
 by rewrite -val_eqE /= !mxE eq_sym -natrM => /negbTE->.
@@ -1710,7 +1710,7 @@ Qed.
 
 Lemma pid_mx_id m n p r :
   r <= n -> (pid_mx r : 'M_(m, n)) *m (pid_mx r : 'M_(n, p)) = pid_mx r.
-Proof. by move=> le_r_n; rewrite mul_pid_mx minnn minnr. Qed.
+Proof. by move=> le_r_n; rewrite mul_pid_mx minnn (minn_idPr _). Qed.
 
 Definition copid_mx {n} r : 'M_n := 1%:M - pid_mx r.
 

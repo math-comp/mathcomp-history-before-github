@@ -923,7 +923,7 @@ Lemma index_morphpre L M :
 Proof.
 move=> dL; rewrite -!divgI -morphpreI card_morphpre //.
 have: L :&: M \subset f @* D by rewrite subIset ?dL.
-by move/card_morphpre->; rewrite divn_pmul2l ?cardG_gt0.
+by move/card_morphpre->; rewrite divnMl ?cardG_gt0.
 Qed.
 
 End CardMorphism.

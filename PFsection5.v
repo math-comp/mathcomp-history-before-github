@@ -568,7 +568,7 @@ have oS1sigma phi: phi \in S1 -> orthogonal (R1 phi) (map sigma (irr W)).
   pose w1 := #|W1|; pose w2 := #|W2|.
   have minw_gt2: (2 < minn w1 w2)%N.
     have [[/dprod_card <- _ oddW _] [ntW1 ntW2] _] := cDade_cTI_h ddA.
-    rewrite leq_minr !(ltn_neqAle 2) !cardG_gt1 ntW1 ntW2 /=.
+    rewrite leq_min !(ltn_neqAle 2) !cardG_gt1 ntW1 ntW2 /=.
     move: oddW; rewrite odd_mul -/w1 -/w2 => /andP[].
     by do 2!case: eqP => [<- | _].
   apply: contraTeq (minw_gt2) => ntNC; rewrite -leqNgt.
@@ -982,7 +982,7 @@ rewrite -(subrK chi chi^*%CF) -(addrC chi) scalerDr !addrA -scalerDl.
 rewrite -{1 4}(subrK (a *: xi1) chi) scalerDr addrAC addrC -!addrA.
 rewrite -opprB 3!cfunE (cfun_on0 (vchar_on Zcc')) ?inE ?eqxx // oppr0 mulr0.
 rewrite 2!cfunE (cfun_on0 (vchar_on Zachi)) ?inE ?eqxx // mulr0 !add0r => ph10.
-rewrite 2!(linearD tau) 2!(lmod_linearZ tau) (linearN tau) -def_XXc opprB.
+rewrite 2!(linearD tau) 2!(linearZZ tau) (linearN tau) -def_XXc opprB.
 rewrite eqXY defY !scalerBr addrCA -!addrA; congr (_ + _).
 rewrite addrCA addrA -scalerBl addrK; congr (_ + _).
 rewrite -eq_t1_tau; last first.

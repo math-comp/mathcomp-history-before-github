@@ -250,7 +250,7 @@ have FF (H : {group {perm T}}): H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
       by rewrite {1}Hgh3x -!permM /= mulgV mulg1 -expgSr.
     rewrite commuteX // mulgK {1}[expgn]lock expgS permM -lock.
     by move/perm_inj=> eqxhx; case/eqP: (diff_hnx_x 1%N isT isT); rewrite expg1.
-  by rewrite (@gauss_inv 4 5) // F7.
+  by rewrite (@Gauss_dvd 4 5) // F7.
 apply/simpleP; split => [|H Hnorm]; first by rewrite trivg_card1 F1.
 case Hcard1: (#|H| == 1%N); move/eqP: Hcard1 => Hcard1.
   by left; apply: card1_trivg; rewrite Hcard1.

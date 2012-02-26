@@ -274,12 +274,12 @@ Qed.
 Lemma pi_of_exponent G : \pi(exponent G) = \pi(G).
 Proof. by rewrite /pi_of primes_exponent. Qed.
 
-Lemma partn_exponentS pi H G :
+Lemma partnXonentS pi H G :
   H \subset G -> #|G|`_pi %| #|H| -> (exponent H)`_pi = (exponent G)`_pi.
 Proof.
 move=> sHG Gpi_dvd_H; apply/eqP; rewrite eqn_dvd.
 rewrite partn_dvd ?exponentS ?exponent_gt0 //=; apply/dvdn_partP=> // p.
-rewrite pi_of_partn ?exponent_gt0 // => /andP[_ /= pi_p].
+rewrite pi_of_part ?exponent_gt0 // => /andP[_ /= pi_p].
 have sppi: {subset (p : nat_pred) <= pi} by move=> q /eqnP->.
 have [P sylP] := Sylow_exists p H; have sPH := pHall_sub sylP.
 have{sylP} sylP: p.-Sylow(G) P.
@@ -298,7 +298,7 @@ Qed.
 Lemma exponent_Hall pi G H : pi.-Hall(G) H -> exponent H = (exponent G)`_pi.
 Proof.
 move=> hallH; have [sHG piH _] := and3P hallH.
-rewrite -(partn_exponentS sHG) -?(card_Hall hallH) ?part_pnat_id //.
+rewrite -(partnXonentS sHG) -?(card_Hall hallH) ?part_pnat_id //.
 by apply: pnat_dvd piH; exact: exponent_dvdn.
 Qed.
 
@@ -1076,9 +1076,9 @@ Proof. exact: morphim_grank. Qed.
 
 Lemma p_rank_quotient G H : G \subset 'N(H) -> 'r_p(G) - 'r_p(H) <= 'r_p(G / H).
 Proof.
-move=> nHG; rewrite leq_sub_add.
+move=> nHG; rewrite leq_subLR.
 have [E EpE] := p_rank_witness p G; have{EpE} [sEG abelE <-] := pnElemP EpE.
-rewrite -(LaGrangeI E H) logn_mul ?cardG_gt0 //.
+rewrite -(LaGrangeI E H) lognM ?cardG_gt0 //.
 rewrite -card_quotient ?(subset_trans sEG) // leq_add ?logn_le_p_rank // !inE.
   by rewrite subsetIr (abelemS (subsetIl E H)).
 by rewrite quotientS ?quotient_abelem.
@@ -1086,7 +1086,7 @@ Qed.
 
 Lemma p_rank_dprod K H G : K \x H = G -> 'r_p(K) + 'r_p(H) = 'r_p(G).
 Proof.
-move=> defG; apply/eqP; rewrite eqn_leq -leq_sub_add andbC.
+move=> defG; apply/eqP; rewrite eqn_leq -leq_subLR andbC.
 have [_ defKH cKH tiKH] := dprodP defG; have nKH := cents_norm cKH.
 rewrite {1}(isog_p_rank (quotient_isog nKH tiKH)) /= -quotientMidl defKH.
 rewrite p_rank_quotient; last by rewrite -defKH mul_subG ?normG.
@@ -1095,7 +1095,7 @@ have [[sEK abelE <-] [sFH abelF <-]] := (pnElemP EpE, pnElemP EpF).
 have defEF: E \x F = E <*> F.
   by rewrite dprodEY ?(centSS sFH sEK) //; apply/trivgP; rewrite -tiKH setISS.
 apply/p_rank_geP; exists (E <*> F)%G; rewrite !inE (dprod_abelem p defEF).
-rewrite -logn_mul ?cargG_gt0 // (dprod_card defEF) abelE abelF eqxx.
+rewrite -lognM ?cargG_gt0 // (dprod_card defEF) abelE abelF eqxx.
 by rewrite -(genGid G) -defKH genM_join genS ?setUSS.
 Qed.
 
@@ -1173,10 +1173,10 @@ move=> p_x; apply/eqP; rewrite (OhmE p_x) eqEsubset cycle_subG mem_gen.
     apply: congr_group; apply/set1P.
     by rewrite -cycle_sub_group ?cardSg ?inE ?cycle_subG ?x_y /=.
   rewrite -cycle_subG def_y cycle_subG -{1}(part_pnat_id p_x) p_part.
-  rewrite -{1}(subnK (ltnW lt_n_x)) expn_add -divn_mulA ?order_dvdn ?ypn //.
+  rewrite -{1}(subnK (ltnW lt_n_x)) expnD -muln_divA ?order_dvdn ?ypn //.
   by rewrite expgM mem_cycle.
-rewrite !inE mem_cycle -expgM -expn_add addnC add_sub_maxn -order_dvdn.
-by rewrite -{1}(part_pnat_id p_x) p_part dvdn_exp2l // leq_maxr leqnn orbT.
+rewrite !inE mem_cycle -expgM -expnD addnC -maxnE -order_dvdn.
+by rewrite -{1}(part_pnat_id p_x) p_part dvdn_exp2l ?leq_maxr.
 Qed.
 
 Lemma Ohm_dprod A B G : A \x B = G -> 'Ohm_n(A) \x 'Ohm_n(B) = 'Ohm_n(G).
@@ -1334,7 +1334,7 @@ Qed.
 Lemma Ohm_leq m n G : m <= n -> 'Ohm_m(G) \subset 'Ohm_n(G).
 Proof.
 move/subnKC <-; rewrite genS //; apply/subsetP=> y.
-by rewrite !inE expn_add expgM => /andP[-> /eqP->]; rewrite expg1n /=.
+by rewrite !inE expnD expgM => /andP[-> /eqP->]; rewrite expg1n /=.
 Qed.
 
 Lemma OhmJ n G x : 'Ohm_n(G :^ x) = 'Ohm_n(G) :^ x.
@@ -1354,7 +1354,7 @@ Lemma Mho_leq m n G : m <= n -> 'Mho^n(G) \subset 'Mho^m(G).
 Proof.
 move/subnKC <-; rewrite gen_subG //.
 apply/subsetP=> _ /imsetP[x /setIdP[Gx p_x] ->].
-by rewrite expn_add expgM groupX ?(Mho_p_elt _ _ p_x).
+by rewrite expnD expgM groupX ?(Mho_p_elt _ _ p_x).
 Qed.
 
 Lemma MhoJ n G x : 'Mho^n(G :^ x) = 'Mho^n(G) :^ x.
@@ -1502,7 +1502,7 @@ Proof.
 move=> cGG; have nilG := abelian_nil cGG; case p_pr: (prime p); last first.
   by apply/eqP; rewrite lognE p_pr eqn0Ngt p_rank_gt0 mem_primes p_pr.
 case/dprodP: (Ohm_dprod 1 (nilpotent_pcoreC p nilG)) => _ <- _ /TI_cardMg->.
-rewrite mulnC logn_gauss; last first.
+rewrite mulnC logn_Gauss; last first.
   rewrite prime_coprime // -p'natE // -/(pgroup _ _).
   exact: pgroupS (Ohm_sub _ _) (pcore_pgroup _ _).
 rewrite -(p_rank_Sylow (nilpotent_pcore_Hall p nilG)) -p_rank_Ohm1.
@@ -1538,8 +1538,8 @@ have{x_yp} xp_yp: (y ^+ p \in <[x ^+ p]>).
   have: <[y ^+ p]>%G \in [set <[x ^+ (#[x] %/ #[y ^+ p])]>%G].
     by rewrite -cycle_sub_group ?order_dvdG // inE cycle_subG x_yp eqxx.
   rewrite inE -cycle_subG -val_eqE /=; move/eqP->.
-  rewrite cycle_subG orderXdiv // divn_divr // mulnC ox.
-  by rewrite -divn_mulA ?dvdn_exponent ?expgM 1?groupX ?cycle_id.
+  rewrite cycle_subG orderXdiv // divnA // mulnC ox.
+  by rewrite -muln_divA ?dvdn_exponent ?expgM 1?groupX ?cycle_id.
 have: p <= #[y] by rewrite dvdn_leq.
 rewrite leq_eqVlt; case/predU1P=> [{xp_yp m IHm leym}oy | ltpy]; last first.
   case/cycleP: xp_yp => k; rewrite -expgM mulnC expgM => def_yp.
@@ -1665,13 +1665,13 @@ have lnO_le H: lnO n H <= lnO n.+1 H.
 have lnOx i A B H: A \x B = H -> lnO i A + lnO i B = lnO i H.
   move=> defH; case/dprodP: defH (defH) => {A B}[[A B -> ->]] _ _ _ defH.
   rewrite /lnO; case/dprodP: (Ohm_dprod i defH) => _ <- _ tiOAB.
-  by rewrite TI_cardMg ?logn_mul.
+  by rewrite TI_cardMg ?lognM.
 rewrite -divgS //= logn_div ?cardSg //= -/(lnO _ _) -/(lnO _ _).
 elim: b G => [_ <-|x b IHb G] /=.
   by rewrite big_nil /lnO !(trivgP (Ohm_sub _ _)) subnn.
-rewrite /= big_cons => defG; rewrite -!(lnOx _ _ _ _ defG) -subn_sub.
+rewrite /= big_cons => defG; rewrite -!(lnOx _ _ _ _ defG) subnDA.
 case/dprodP: defG => [[_ H _ defH] _ _ _] {G}; rewrite defH (IHb _ defH).
-symmetry; do 2!rewrite addnC -addn_subA ?lnO_le //; congr (_ + _).
+symmetry; do 2!rewrite addnC -addnBA ?lnO_le //; congr (_ + _).
 pose y := x.`_p; have p_y: p.-elt y by rewrite p_elt_constt.
 have{lnOx} lnOy i: lnO i <[x]> = lnO i <[y]>.
   have cXX := cycle_abelian x.
@@ -1685,15 +1685,15 @@ have{lnOx} lnOy i: lnO i <[x]> = lnO i <[y]>.
   exact: pgroupS (Ohm_sub _ _) (p_elt_constt _ _).
 rewrite -logn_part -order_constt -/y !{}lnOy /lnO !(Ohm_p_cycle _ p_y).
 case: leqP => [| lt_n_y].
-  by rewrite -subn_eq0 -addn1 -subn_sub => /eqP->; rewrite subnn.
-rewrite -!orderE -(subSS n) leq_subS // expnSr expgM.
+  by rewrite -subn_eq0 -addn1 subnDA => /eqP->; rewrite subnn.
+rewrite -!orderE -(subSS n) subSn // expnSr expgM.
 have p_pr: prime p by move: lt_n_y; rewrite lognE; case: prime.
 set m := (p ^ _)%N; have m_gt0: m > 0 by rewrite expn_gt0 prime_gt0.
 suffices p_ym: p %| #[y ^+ m].
-  rewrite -logn_div ?orderXdvd // (orderXdiv p_ym) divn_divr // mulKn //.
+  rewrite -logn_div ?orderXdvd // (orderXdiv p_ym) divnA // mulKn //.
   by rewrite logn_prime ?eqxx.
 rewrite orderXdiv ?pfactor_dvdn ?leq_subr // -(dvdn_pmul2r m_gt0).
-by rewrite -expnS -leq_subS // subSS divnK pfactor_dvdn ?leq_subr.
+by rewrite -expnS -subSn // subSS divnK pfactor_dvdn ?leq_subr.
 Qed.
 
 Lemma perm_eq_abelian_type p b G :
@@ -1725,7 +1725,7 @@ have cnt_b b: \big[dprod/1]_(x <- b) <[x]> = G ->
   count [pred x | #[x] == p ^ k.+1]%N b = cnt_p k b - cnt_p k.+1 b.
 - move/p_bG; elim: b => //= _ b IHb /andP[/p_natP[j ->] /IHb-> {IHb}].
   rewrite eqn_leq !leq_exp2l ?prime_gt1 // -eqn_leq pfactorK // leqNgt.
-  case: ltngtP => // _ {j}; rewrite leq_subS // add0n; elim: b => //= y b IHb.
+  case: ltngtP => // _ {j}; rewrite subSn // add0n; elim: b => //= y b IHb.
   by rewrite leq_add // ltn_neqAle; case: (~~ _).
 by rewrite !cnt_b // /cnt_p !(@count_logn_dprod_cycle _ _ _ G).
 Qed.
@@ -1785,10 +1785,10 @@ case/p_groupP: p_x => p p_pr p_x.
 rewrite (Ohm_p_cycle n p_x) (Mho_p_cycle n p_x) -!orderE.
 set k := logn p #[x]; have ox: #[x] = (p ^ k)%N by rewrite -card_pgroup.
 case: (leqP k n) => [le_k_n | lt_n_k].
-  rewrite -(subnKC le_k_n) -subn_sub subnn expg1 expn_add expgM -ox.
+  rewrite -(subnKC le_k_n) subnDA subnn expg1 expnD expgM -ox.
   by rewrite expg_order expg1n order1 muln1.
-rewrite !orderXgcd ox -{-3}(subnKC (ltnW lt_n_k)) expn_add.
-rewrite gcdnC gcdn_mull gcdnC gcdn_mulr.
+rewrite !orderXgcd ox -{-3}(subnKC (ltnW lt_n_k)) expnD.
+rewrite gcdnC gcdnMl gcdnC gcdnMr.
 by rewrite mulnK ?mulKn ?expn_gt0 ?prime_gt0.
 Qed.
 
@@ -1820,7 +1820,7 @@ have le_Kxp_1: logn p #[coset K x] <= 1.
   rewrite order_dvdn -morph_constt // -morphX ?groupX //= coset_id //.
   by rewrite Mho_p_elt ?p_elt_constt ?groupX -?cycle_subG.
 apply: leq_trans (leq_add le_Kxp_1 (IHm _ ltB'm sB'G)).
-by rewrite -logn_mul ?dvdn_leq_log ?muln_gt0 ?cardG_gt0 // mul_cardG dvdn_mulr.
+by rewrite -lognM ?dvdn_leq_log ?muln_gt0 ?cardG_gt0 // mul_cardG dvdn_mulr.
 Qed.
 
 Lemma rank_cycle (x : gT) : 'r(<[x]>) = (x != 1).
@@ -1883,8 +1883,8 @@ move/eqP; rewrite eqEcard => /andP[_].
 have p_x: p.-elt x := mem_p_elt pG Gx.
 have [p_pr p_dv_x _] := pgroup_pdiv p_x ntx.
 rewrite !dprodg1 (Ohm_p_cycle _ p_x) (Mho_p_cycle _ p_x) -!orderE.
-rewrite orderXdiv ?leq_divl ?pfactor_dvdn ?leq_subr //.
-rewrite orderXgcd divn_mulAC ?dvdn_gcdl // leq_divr ?gcdn_gt0 ?order_gt0 //.
+rewrite orderXdiv ?leq_divLR ?pfactor_dvdn ?leq_subr //.
+rewrite orderXgcd divn_mulAC ?dvdn_gcdl // leq_divRL ?gcdn_gt0 ?order_gt0 //.
 rewrite leq_pmul2l //; apply: contraLR.
 rewrite eqn_dvd dvdn_exponent //= -ltnNge => lt_x_e.
 rewrite (leq_trans (ltn_Pmull (prime_gt1 p_pr) _)) ?expn_gt0 ?prime_gt0 //.

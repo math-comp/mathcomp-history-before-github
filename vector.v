@@ -839,7 +839,7 @@ Qed.
 
 Lemma subv_diffv0 vs1 vs2 : ((vs1 <= vs2) = (vs1 :\: vs2 == 0%:VS))%VS.
 Proof.
-rewrite -dimv_eq0 -(eqn_addl (\dim (vs1 :&: vs2)%VS)) addn0 dimv_cap_compl.
+rewrite -dimv_eq0 -(eqn_add2l (\dim (vs1 :&: vs2)%VS)) addn0 dimv_cap_compl.
 by rewrite eq_sym (dimv_leqif_eq (capvSl _ _)) capvKl.
 Qed.
 
@@ -2226,8 +2226,7 @@ have Hr: \rank Mf = vdim V.
   apply: anti_leq.
   rewrite rank_leq_row row_leq_rank -kermx_eq0 -submx0.
   by move: Hf; rewrite -(@mx2vs0 _ _ (vdim V)) -mxeq2vseq; case/andP.
-have: vdim V <= vdim W by rewrite -Hr rank_leq_col.
-rewrite -{1}Hr -eqn_minr; move/eqP->.
+have /minn_idPr->: \rank Mf <= vdim W by rewrite rank_leq_col.
 by rewrite Hr pid_mx_1 mul1mx mulmxV // col_ebase_unit.
 Qed.
 

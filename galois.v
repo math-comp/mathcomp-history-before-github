@@ -306,7 +306,7 @@ apply: (iffP (kHomP _ _ _)).
  - by apply: linearB.
  - by move => x y; apply: HL; rewrite memvf.
  - by rewrite HF // mem1v.
- - by apply: lmod_linearZ.
+ - by apply: linearZZ.
 move => Hf.
 split; last by move => x y _ _; apply: (rmorphM (RMorphism Hf)).
 move => ?; case/injvP => k ->.
@@ -538,7 +538,7 @@ have [b] : exists b, root (map_poly x (minPoly E a)) b.
   by move/negbTE ->.
  rewrite big_cons mulrC.
  case (eqVneq (size (gcdp p ('X - z%:P))) 1%N).
-  move/eqP/gausspl ->.
+  move/eqP/Gauss_dvdpl ->.
   by apply: IH => a Ha.
  rewrite -coprimep_def => Hcoprime _ _.
  exists z.

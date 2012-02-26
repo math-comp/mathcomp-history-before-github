@@ -147,22 +147,22 @@ rewrite /decode padKl nconsK Nat.codeK.
 case le_s2': (maxn (sumn sh) 1 <= size s2'); last first.
   rewrite drop0 le_s2' /= -size_flatten size_drop subKn ?find_size // stripK.
   exact: flattenK.
-move: le_s2'; rewrite !leq_maxl size_drop size_flatten -/sh andbC subn_gt0.
+move: le_s2'; rewrite !geq_max size_drop size_flatten -/sh andbC subn_gt0.
 case/andP=> lt_sh; rewrite lt_sh -subn_eq0 subKn /s2' /strip; last exact: ltnW.
 move/eqP->; rewrite subn0 drop1 drop0; case def_sh: sh lt_sh => //= [n sh'] _.
-by rewrite leq_addl addnK addnC -subn_sub subnn -[ncons _ _ _]def_sh flattenK.
+by rewrite leq_addl addnK addnC subnDA subnn -[ncons _ _ _]def_sh flattenK.
 Qed.
 
 Lemma decodeK : cancel decode code.
 Proof.
 rewrite /decode => s2; set sh' := Nat.decode _; set s2' := drop _ _.
 set sh := ncons _ _ _; set s3' := pad _ _; have sz_s3': sumn sh = size s3'.
-  rewrite size_ncons {s3'}/sh addnC add_sub_maxn leq_maxl andbC.
+  rewrite size_ncons {s3'}/sh addnC -maxnE geq_max andbC.
   case: posnP => [->|_]; first by rewrite max0n.
-  case: leqP => [_|lt_m_m'] /=; first by rewrite addnC add_sub_maxn maxnC.
-  by apply/eqP; rewrite eq_sym eqn_maxr ltnW.
+  case: leqP => [_|lt_m_m'] /=; first by rewrite addnC -maxnE maxnC.
+  exact/esym/maxn_idPr/ltnW.
 rewrite /code reshapeKl ?reshapeKr ?{}sz_s3' // padKr size_ncons addnC.
-by rewrite add_sub_maxn -maxnA leq_maxl leqnn {sh}nconsK Nat.decodeK stripK.
+by rewrite -maxnE -maxnA geq_max leqnn {sh}nconsK Nat.decodeK stripK.
 Qed.
 
 End Seq2.

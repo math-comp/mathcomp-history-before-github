@@ -446,10 +446,10 @@ rewrite -subr_lt0 -subr_le0 -/(eval e (t1 - t2)); move: (t1 - t2)%T => {t1 t2} t
 have sub_var_tsubst s t0: (s.1%PAIR >= ub_var t0)%N -> tsubst t0 s = t0.
   elim: t0 {t} => //=.
   - by move=> n; case: ltngtP.
-  - by move=> t1 IHt1 t2 IHt2; rewrite leq_maxl => /andP[/IHt1-> /IHt2->].
+  - by move=> t1 IHt1 t2 IHt2; rewrite geq_max => /andP[/IHt1-> /IHt2->].
   - by move=> t1 IHt1 /IHt1->.
   - by move=> t1 IHt1 n /IHt1->.
-  - by move=> t1 IHt1 t2 IHt2; rewrite leq_maxl => /andP[/IHt1-> /IHt2->].
+  - by move=> t1 IHt1 t2 IHt2; rewrite geq_max => /andP[/IHt1-> /IHt2->].
   - by move=> t1 IHt1 /IHt1->.
   - by move=> t1 IHt1 n /IHt1->.
 pose fix rsub t' m r : term R :=
@@ -529,15 +529,15 @@ have rsub_acc r s t1 m1:
 elim: t r0 m => /=; try do [
   by move=> n r m hlt hub; rewrite take_size (ltn_addr _ hlt) rsub_id
 | by move=> n r m hlt hub; rewrite leq0n take_size rsub_id
-| move=> t1 IHt1 t2 IHt2 r m; rewrite leq_maxl; case/andP=> hub1 hub2 hmr;
+| move=> t1 IHt1 t2 IHt2 r m; rewrite geq_max; case/andP=> hub1 hub2 hmr;
   case: to_rterm {IHt1 hub1 hmr}(IHt1 r m hub1 hmr) => t1' r1;
   case=> htake1 hub1' hsub1 <-;
   case: to_rterm {IHt2 hub2 hsub1}(IHt2 r1 m hub2 hsub1) => t2' r2 /=;
-  rewrite leq_maxl; case=> htake2 -> hsub2 /= <-;
+  rewrite geq_max; case=> htake2 -> hsub2 /= <-;
   rewrite -{1 2}(cat_take_drop (size r1) r2) htake2; set r3 := drop _ _;
   rewrite size_cat addnA (leq_trans _ (leq_addr _ _)) //;
   split=> {hsub2}//;
-   first by [rewrite takel_cat // -htake1 size_take leq_minl leqnn orbT];
+   first by [rewrite takel_cat // -htake1 size_take geq_minr];
   rewrite -(rsub_acc r1 r3 t1') {hub1'}// -{htake1}htake2 {r3}cat_take_drop;
   by elim: r2 m => //= u r2 IHr2 m; rewrite IHr2
 | do [ move=> t1 IHt1 r m; do 2!move/IHt1=> {IHt1}IHt1
@@ -547,7 +547,7 @@ elim: t r0 m => /=; try do [
 move=> t1 IH r m letm /IH {IH} /(_ letm) {letm}.
 case: to_rterm => t1' r1 /= [def_r ub_t1' ub_r1 <-].
 rewrite size_rcons addnS leqnn -{1}cats1 takel_cat ?def_r; last first.
-  by rewrite -def_r size_take leq_minl leqnn orbT.
+  by rewrite -def_r size_take geq_minr.
 elim: r1 m ub_r1 ub_t1' {def_r} => /= [|u r1 IHr1] m => [_|[->]].
   by rewrite addn0 eqxx.
 by rewrite -addSnnS => /IHr1 IH /IH[_ _ ub_r1 ->].

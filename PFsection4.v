@@ -199,7 +199,7 @@ have XdiW: x \in W1^#.
 rewrite {HH}inE andbC => /andP [].
 case/(mem_dprod HdP)=> x1 [y1 [X1iW Y1iW XYeX1Y1] _ JJ].
 have XGeX1 : x^ g = x1.
-  case: (bezoutl #|W1| (cardG_gt0 W2))=> u Hu /dvdnP [] v.
+  case: (Bezoutl #|W1| (cardG_gt0 W2))=> u Hu /dvdnP [] v.
   move: Hcoprime; rewrite coprime_sym /coprime => /eqP-> HH.
   have F1 x2 y2 : (x2 \in W1 -> y2 \in W2 -> (x2 * y2) ^+ (v * #|W2|)%N = x2)%g.
     move=> X2iW Y2iW.
@@ -377,7 +377,7 @@ have:= cyclic_abelian CW1; rewrite card_classes_abelian => /eqP ->.
 have:= cyclic_abelian CW2; rewrite card_classes_abelian => /eqP ->.
 rewrite cardsD -(dprod_card W1xW2).
 move/setIidPr: W2sW->.
-by rewrite -{2}[#|W2|]mul1n -muln_subl subn1.
+by rewrite -{2}[#|W2|]mul1n -mulnBl subn1.
 Qed.
 
 Lemma memc_ecTIirr i j : e_ i j \in 'CF(W, W :\: W2).
@@ -1422,7 +1422,7 @@ pose dB1 x := (subrr, sub0r, subr0, oppr0, subrK,
              (I, natrD algC 1%N), (I, natrD algC x 1%N),
              (I, natrD algC 1%N 1%N), (I, natrD),
              oppr_eq0, (I, eqN_eqC 1 0), (I,  eqN_eqC x 0)).
-pose dB2 :=  (eqr_opp, eqr_oppC, opprK, (sigma_opp_neq CDH)).
+pose dB2 :=  (eqr_opp, eqr_oppLR, opprK, (sigma_opp_neq CDH)).
 wlog : i1 i2  j k Di1i2 NZj NZk Djk / 
  '['chi_i1 - 'chi_i2 + sigma (w_ i k) - sigma (w_ i j), sigma (w_ i j)] != 0.
   set phi := _ - _ => WL Zphi.
@@ -1465,7 +1465,7 @@ set phi := _ + _ => NZphi Vphi.
 have: (NC phi < 2 * minn #|W1| #|W2|)%N.
   suff:  (NC phi <= 2 * 2)%N.
     move/leq_ltn_trans; apply.
-    by rewrite ltn_mul2l /= leq_minr // tLW1.
+    by rewrite ltn_mul2l /= leq_min // tLW1.
   apply: leq_trans (cyclicTI_NC_sub _ _ _ _ _) _.
   have->: (2 * 2 = 1 + 1 + 1 + 1)%N by [].
   apply: leq_add; last by rewrite (cyclicTI_NC_sigma CDH).

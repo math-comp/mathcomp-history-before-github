@@ -170,12 +170,12 @@ have CADge2: 'r('C_A(D)) >= 2.
   move: rA3; rewrite (rank_pgroup pA); case/p_rank_geP=> E.
   case/pnElemP=> sEA abelE dimE3; apply: leq_trans (rankS (setSI _ sEA)).
   rewrite (rank_abelem (abelemS (subsetIl _ _) abelE)) -(leq_add2r 1) addn1.
-  rewrite -dimE3 -leq_sub_add -logn_div ?cardSg ?divgS ?subsetIl //.
+  rewrite -dimE3 -leq_subLR -logn_div ?cardSg ?divgS ?subsetIl //.
   rewrite logn_quotient_cent_abelem ?dimD2 //.
   exact: subset_trans (subset_trans sAP nDP).
 have CCDge2: 'r('C_C(D)) >= 2.
   rewrite (rank_abelem (abelemS (subsetIl _ _) abelC)) -(leq_add2r 1) addn1.
-  rewrite -dimC3 -leq_sub_add -logn_div ?cardSg ?divgS ?subsetIl //.
+  rewrite -dimC3 -leq_subLR -logn_div ?cardSg ?divgS ?subsetIl //.
   by rewrite logn_quotient_cent_abelem ?dimD2 //; exact: subset_trans nDP.
 rewrite centsC in cBC; apply: cent_uniq_Uniqueness cBC _; last first.
   by rewrite ltnNge (rank_pgroup pB) -odd_pgroup_rank1_cyclic ?mFT_odd.
@@ -322,7 +322,7 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
     have sBA := subset_trans sBA1 sA1A.
     have{cycqB} ncycB: ~~ cyclic B.
       move: cycqB; rewrite (abelem_cyclic (quotient_abelem _ abelA1)).
-      rewrite card_quotient // -divgS // logn_div ?cardSg // leq_sub_add addn1.
+      rewrite card_quotient // -divgS // logn_div ?cardSg // leq_subLR addn1.
       move/(leq_trans dimA1ge3); rewrite ltnS ltnNge.
       by rewrite -(abelem_cyclic abelB).
     have [x Bx sCxM']: exists2 x, x \in B^# & ~~ ('C[x] \subset M).

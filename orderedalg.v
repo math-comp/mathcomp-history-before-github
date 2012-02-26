@@ -33,20 +33,13 @@ Unset Printing Implicit Defensive.
 Local Open Scope ring_scope.
 Import GRing.Theory.
 
-Reserved Notation  "`| x |" (at level 0, x at level 99, format "`| x |").
-Reserved Notation "x <= y :> T" (at level 70, y at next level).
-Reserved Notation "x >= y :> T" (at level 70, y at next level, only parsing).
-Reserved Notation "x < y :> T" (at level 70, y at next level).
-Reserved Notation "x > y :> T" (at level 70, y at next level, only parsing).
+(* begin hide *)
 (* Reserved Notation "x ?= y" (at level 70). *)
 (* Reserved Notation "x ?= y :> T"
    (at level 70, y at next level, only parsing). *)
 
-Reserved Notation "x <= y ?= 'iff' c" (at level 70, y at next level,
-  format "x '[hv'  <=  y '/'  ?=  'iff'  c ']'").
-Reserved Notation "x <= y ?= 'iff' c :> T" (at level 70, y at next level,
-  c at next level, format "x '[hv'  <=  y '/'  ?=  'iff'  c  :> T ']'").
-
+(* GG: not convinced these additions are worthwhile -- sqrr_eq0 is not even
+   used in the rest of the development.
 Section extra_ssrnat.
 
 Lemma wlog_leq P : (forall a b, P b a -> P a b)
@@ -62,60 +55,10 @@ Proof. by move=> rP sP hP; apply: wlog_leq=> // a [|n //]; rewrite addn0. Qed.
 
 End extra_ssrnat.
 
-Section MoreSsralg.
-
-Lemma invr_eq1 (F : unitRingType) (x : F): (x^-1 == 1 :> F) = (x == 1).
-Proof. by rewrite (can2_eq (@invrK _) (@invrK _)) invr1. Qed.
-
-Lemma prodf_seq_eq0 (R : idomainType) (I : eqType)
-  (s : seq I) (P : pred I) (F : I -> R) :
-   (\prod_(i <- s | P i) F i == 0) = (has (fun i => P i && (F i == 0)) s).
-Proof. by rewrite (big_morph _ (@mulf_eq0 _) (oner_eq0 _)) big_has_cond. Qed.
-
-Lemma prodf_seq_neq0 (R : idomainType) (I : eqType)
-  (s : seq I) (P : pred I) (F : I -> R) :
-   (\prod_(i <- s | P i) F i != 0) = (all (fun i => P i ==> (F i != 0)) s).
-Proof.
-rewrite prodf_seq_eq0 -all_predC; apply: eq_all => i /=.
-by rewrite implybE negb_and.
-Qed.
-
-(* :TODO: + version in idomainType *)
-Lemma addf_div2 (R : fieldType) (a b c d : R) : b != 0 -> d != 0 ->
-  a / b + c / d = (a * d + c * b) / (b * d).
-Proof.
-move=> b_neq0 d_neq0; apply: (@mulIf _ (b * d)); rewrite ?divfK ?mulf_neq0 //.
-by rewrite mulrDl mulrA divfK // [b * d]mulrC mulrA divfK.
-Qed.
-
-Lemma mulrMM (R : comRingType) (a b c d : R) :
-  (a * b) * (c * d) = (a * c) * (b * d).
-Proof. by rewrite !mulrA [a * _ * _]mulrAC. Qed.
-
-(* :TODO: + version in idomainType *)
-Lemma mulf_div2 (R : fieldType) (a b c d : R) :
-  (a / b) * (c / d) = (a * c) / (b * d).
-Proof. by rewrite mulrMM -invfM. Qed.
-
-Lemma signrN (R : unitRingType) b : (-1) ^+ (~~ b) = - (-1) ^+ b :> R.
-Proof. by case: b; rewrite // opprK. Qed.
-
-Lemma mulrM_sign (R : idomainType) (s1 s2 : bool) (a b : R) :
-  ((-1) ^+ s1 * a) * ((-1) ^+ s2 * b) = (-1) ^+ (s1 (+) s2) * (a * b).
-Proof. by rewrite mulrMM -signr_addb. Qed.
-
-Lemma invr_sign (R : unitRingType) (s : bool) : ((-1) ^- s) = (-1) ^+ s :> R.
-Proof. by case: s; rewrite ?(invr0, invrN) invr1. Qed.
-
-(* :TODO: + version in idomainType *)
-Lemma dvdfM_sign (R : fieldType) (s1 s2 : bool) (a b : R) :
-  ((-1) ^+ s1 * a) / ((-1) ^+ s2 * b) = (-1) ^+ (s1 (+) s2) * (a / b).
-Proof. by rewrite invfM invr_sign mulrM_sign. Qed.
-
-Lemma sqr_eq0 (R : idomainType) (x : R) : (x ^+ 2 == 0) = (x == 0).
+Lemma sqrr_eq0 (R : idomainType) (x : R) : (x ^+ 2 == 0) = (x == 0).
 Proof. by rewrite expf_eq0. Qed.
-
-End MoreSsralg.
+*)
+(* end hide *)
 
 Module ORing.
 
@@ -1237,9 +1180,9 @@ Proof. by rewrite -mulr_natl mulf_eq0 pnatr_eq0. Qed.
 
 Lemma mulrIn x : x != 0 -> injective (GRing.natmul x).
 Proof.
-move=> x_neq0; apply: wlog_leq=> m n; first by move=> hx hab; rewrite hx.
-move/eqP; rewrite eq_sym -subr_eq0 -mulrnBr ?leq_addr // addnC addnK.
-by rewrite mulrn_eq0 (negPf x_neq0) orbF => /eqP->.
+move=> x_neq0 m n; without loss /subnK <-: m n / (n <= m)%N.
+  by move=> IH eq_xmn; case/orP: (leq_total m n) => /IH->.
+by move/eqP; rewrite mulrnDr -subr_eq0 addrK mulrn_eq0 => /predU1P[-> | /idPn].
 Qed.
 
 Lemma ler_wpmuln2l x (hx : 0 <= x) :
@@ -1623,12 +1566,12 @@ case: (@real_ltrgtP x 1); do ?by rewrite ?ger0_real.
 by move->; rewrite expr1n eqxx.
 Qed.
 
-Lemma ieexprIn x (x0 : 0 < x) (nx1 : x != 1) : injective (GRing.exp x).
+Lemma ieexprIn x : 0 < x -> x != 1 -> injective (GRing.exp x).
 Proof.
-apply: wlog_ltn=> // m n hmn; first by move=> hmn'; rewrite hmn.
-move/eqP: hmn; rewrite exprD -{1}[x ^+ m]mulr1 eq_sym (inj_eq (mulfI _)).
-  by rewrite ieexprn_weq1 ?ltrW //= (negPf nx1).
-by rewrite expf_eq0 gtr_eqF // andbF.
+move=> x_gt0 x_neq1 m n; without loss /subnK <-: m n / (n <= m)%N.
+  by move=> IH eq_xmn; case/orP: (leq_total m n) => /IH->.
+case: {m}(m - n)%N => // m /eqP/idPn[]; rewrite -[x ^+ n]mul1r exprD.
+by rewrite (inj_eq (mulIf _)) ?ieexprn_weq1 ?ltrW // expf_neq0 ?gtr_eqF.
 Qed.
 
 Lemma ler_iexpn2l x (x0 : 0 < x) (x1 : x < 1) :
@@ -1741,7 +1684,7 @@ Lemma sqrp_eq1 x (hx : 0 <= x) : (x ^+ 2 == 1) = (x == 1).
 Proof. by rewrite pexpr_eq1. Qed.
 
 Lemma sqrn_eq1 x (hx : x <= 0) : (x ^+ 2 == 1) = (x == -1).
-Proof. by rewrite -[_ ^+ 2]mulrNN sqrp_eq1 ?oppr_ge0 // eqr_oppC. Qed.
+Proof. by rewrite -[_ ^+ 2]mulrNN sqrp_eq1 ?oppr_ge0 // eqr_oppLR. Qed.
 
 Lemma ler_pinv : {in [pred x \in GRing.unit | 0 < x] &,
   {mono (@GRing.inv R) : x y /~ x <= y}}.
@@ -1849,7 +1792,7 @@ Lemma real_eqr_norml x y (xR : x \is real) :
   (`|x| == y) = ((x == y) || (x == -y)) && (0 <= y).
 Proof.
 apply/idP/idP=> [|/andP [/orP [] /eqP-> /ger0_norm /eqP]]; rewrite ?normrE //.
-case: real_ler0P => // hx; rewrite 1?eqr_oppC => /eqP exy.
+case: real_ler0P => // hx; rewrite 1?eqr_oppLR => /eqP exy.
   by move: hx; rewrite exy ?oppr_le0 eqxx orbT //.
 by move: hx=> /ltrW; rewrite exy eqxx.
 Qed.
@@ -2765,11 +2708,11 @@ Proof. by case: sgrP; rewrite ?(mulr0, mulr1, mulrNN). Qed.
 Lemma mulr_sg_eq1 x y : (sgr x * sgr y == 1) = (x != 0) && (sgr x == sgr y).
 Proof.
 do 2?case: sgrP=> _; rewrite ?(mulr0, mulr1, mulrN1, opprK, oppr0, eqxx);
-  by rewrite ?[0 == 1]eq_sym ?oner_eq0 //= eqr_oppC oppr0 oner_eq0.
+  by rewrite ?[0 == 1]eq_sym ?oner_eq0 //= eqr_oppLR oppr0 oner_eq0.
 Qed.
 
 Lemma mulr_sg_eqN1 x y : (sgr x * sgr y == -1) = (x != 0) && (sgr x == - sgr y).
-Proof. by rewrite -eqr_oppC -mulrN -sgrN mulr_sg_eq1. Qed.
+Proof. by rewrite -eqr_oppLR -mulrN -sgrN mulr_sg_eq1. Qed.
 
 Lemma normr_dec x : `|x| = sgr x * x.
 Proof. by case: sgrP; rewrite ?(mul0r, mul1r, mulN1r). Qed.
@@ -3526,7 +3469,7 @@ Lemma sqrtrM a b : 0 <= a -> 0 <= b ->
   sqrtr (a * b) = sqrtr a * sqrtr b.
 Proof.
 case: (sqrtrP a) => // {a} a a_ge0; case: (sqrtrP b) => // {b} b b_ge0 _ _.
-by rewrite mulrMM sqrtr_sqr ger0_norm ?mulr_ge0.
+by rewrite mulrACA sqrtr_sqr ger0_norm ?mulr_ge0.
 Qed.
 
 Lemma sqrtr0 : sqrtr 0 = 0.
@@ -3687,20 +3630,16 @@ Notation archi_bound := (@ORing.archi_bound _).
 
 Notation ">=%R" := (@ORing.OrderDef.ler _) : ring_scope.
 Notation "x <= y" := (ORing.OrderDef.ler x y) : ring_scope.
-Notation "x <= y :> T" := ((x : T) <= (y : T))
-  (at level 70, y at next level) : ring_scope.
+Notation "x <= y :> T" := ((x : T) <= (y : T)) : ring_scope.
 Notation "x >= y" := (y <= x) (only parsing) : ring_scope.
-Notation "x >= y :> T" := ((x : T) >= (y : T))
-  (at level 70, y at next level, only parsing) : ring_scope.
+Notation "x >= y :> T" := ((x : T) >= (y : T)) : ring_scope.
 Notation "<=%R" := [rel x y | y <= x] : ring_scope.
 
 Notation ">%R" := (@ORing.OrderDef.ltr _) : ring_scope.
 Notation "x < y"  := (ORing.OrderDef.ltr x y) : ring_scope.
-Notation "x < y :> T" := ((x : T) < (y : T))
-  (at level 70, y at next level) : ring_scope.
+Notation "x < y :> T" := ((x : T) < (y : T)) : ring_scope.
 Notation "x > y"  := (y < x) (only parsing) : ring_scope.
-Notation "x > y :> T" := ((x : T) > (y : T))
-  (at level 70, y at next level, only parsing) : ring_scope.
+Notation "x > y :> T" := ((x : T) > (y : T)) (only parsing) : ring_scope.
 Notation "<%R" := [rel x y | y < x] : ring_scope.
 
 Notation "x <= y <= z" := ((x <= y) && (y <= z)) : ring_scope.

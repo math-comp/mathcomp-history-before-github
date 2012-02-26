@@ -499,7 +499,7 @@ have [have_a nK1K ntE1 sE1K]: [/\ part_a, b1_hyp, E1 :!=: 1 & E1 \subset K].
       move=> p t1p; rewrite /kappa -lock 3!inE /= t1p /=.
       have [X]: exists X, X \in 'E_p^1(E1).
         apply/p_rank_geP; rewrite p_rank_gt0 /= (card_Hall hallE1).
-        by rewrite pi_of_partn // inE /= (partition_pi_sigma_compl maxM) ?t1p.
+        by rewrite pi_of_part // inE /= (partition_pi_sigma_compl maxM) ?t1p.
       rewrite -(setIidPr sE1M) pnElemI -setIdE; case/setIdP=> EpX sXE1.
       pose q := pdiv #|K|; have piKq: q \in \pi(K) by rewrite pi_pdiv cardG_gt1.
       have [Y]: exists Y, Y \in 'E_q^1(K).
@@ -544,7 +544,7 @@ have [have_a nK1K ntE1 sE1K]: [/\ part_a, b1_hyp, E1 :!=: 1 & E1 \subset K].
           by rewrite (subset_trans sXE3) ?joing_subl.
         apply: contraTeq (pnatPpi t3E3 piE3q) => nregMsX; apply: tau3'1.
         suffices kq: q \in \kappa(M).
-          rewrite (pnatPpi t1K) //= (card_Hall hallK) pi_of_partn //.
+          rewrite (pnatPpi t1K) //= (card_Hall hallK) pi_of_part //.
           by rewrite inE /= kappa_pi.
         rewrite /kappa -lock 3!inE /= (pnatPpi t3E3 piE3q) orbT /=.
         by apply/exists_inP; exists X.
@@ -731,7 +731,7 @@ have prK: prime #|K|.
 have eq_sb: \sigma(M) =i \beta(M).
   suffices bMs: \beta(M).-group Ms.
     move=> p; apply/idP/idP=> [sp|]; last exact: beta_sub_sigma.
-    rewrite (pnatPpi bMs) //= (card_Hall (Msigma_Hall maxM)) pi_of_partn //.
+    rewrite (pnatPpi bMs) //= (card_Hall (Msigma_Hall maxM)) pi_of_part //.
     by rewrite inE /= sigma_sub_pi.
   have [H hallH cHF'] := der_compl_cent_beta' maxM hallF.
   rewrite -pgroupNK -partG_eq1 -(card_Hall hallH) -trivg_card1 -subG1.
@@ -1562,7 +1562,7 @@ have oT: #|T| = #|Z| + #|MNX| - (\sum_(Mi \in MX) #|Ks_ Mi|).
     rewrite -(setID Z^# (cover PZ)) setUC (setIidPr _) /cover ?big_setU1 //=.
     apply/bigcupsP=> Ksi; case/imsetP=> Mi MXi ->; apply: setSD.
     by case/nsK_Z: MXi => _; case/andP.
-  by rewrite addnAC subn_add2l -(eqnP tiPZ) big_setU1 // big_imset //= addnK.
+  by rewrite addnAC subnDl -(eqnP tiPZ) big_setU1 // big_imset //= addnK.
 have tiTscov: {in 'M, forall H, [disjoint T & H^~~]}.
   move=> H maxH; apply/pred0P=> t; apply/andP=> [[/= Tt scovHt]].
   have ntt: t != 1 by case/setDP: Tt; case/setD1P.
@@ -1716,7 +1716,7 @@ have [prKi nilMis]: prime #|K_ Mi| /\ nilpotent Mi`_\sigma.
   by have [PmaxMi] := PmaxMX _ MXi; case/Ptype_structure=> // _ _ _ _ [].
 have [Mj MXj neqMji]: exists2 Mj, Mj \in MX & Mj :!=: Mi.
   have [Mj |] := pickP (mem ((MX) :\ Mi)); first by case/setD1P; exists Mj.
-  move/eq_card0; move/eqP; rewrite -(eqn_addl true) -{1}MXi -cardsD1 cardsU1.
+  move/eq_card0; move/eqP; rewrite -(eqn_add2l true) -{1}MXi -cardsD1 cardsU1.
   by rewrite notMNX0 eqSS cards_eq0 (negPf neMNX).
 have defKjs: Ks_ Mj = K_ Mi.
   have sKjsKi: Ks_ Mj \subset K_ Mi by rewrite sKsKX.
@@ -1852,7 +1852,7 @@ rewrite defZhat {1}defKs; split; first 2 [by split].
   apply: (pnatPpi (pHall_pgroup hallK)); have [_ _ not_p_dv_M'] := and3P t1p.
   have: p \in \pi(M) by rewrite (partition_pi_mmax maxM) t1p ?orbT.
   rewrite !mem_primes !cardG_gt0 /=; case/andP=> p_pr.
-  by rewrite p_pr -(sdprod_card defM) euclid // (negPf not_p_dv_M').
+  by rewrite p_pr -(sdprod_card defM) Euclid_dvdM // (negPf not_p_dv_M').
 - split=> // [| x | y | x y K1_x Ks1_y].
   + have defMsMstar: M`_\sigma :&: Mstar = Ks.
       apply: sub_pHall hallKs _ _ (subsetIr _ _).

@@ -19,6 +19,7 @@ Require Import ssreflect ssrfun.
 (*                   elimT :: coercion reflect >-> Funclass, which allows the *)
 (*                            direct application of `reflect' views to        *)
 (*                            boolean assertions.                             *)
+(*             decidable P <-> P is effectively decidable (:= {P} + {~ P}.    *)
 (*    contra, contraL, ... :: contraposition lemmas.                          *)
 (*           altP my_viewP :: natural alternative for reflection; given       *)
 (*                            lemma myvieP: reflect my_Prop my_formula,       *)
@@ -218,20 +219,26 @@ Require Import ssreflect ssrfun.
 (*                           when P1' is convertible to Pf f                  *)
 (*                           and P1' g is convertible to forall x, Qx.        *)
 (*    {on C, bijective f} == f has a right inverse on C.                      *)
-(* This file introduces the following suffix policy for lemma names:          *)
+(* This file extends the lemma name suffix conventions of ssrfun as follows:  *)
 (*   A -- associativity, as in andbA : associative andb.                      *)
+(*  AC -- right commutativity.                                                *)
+(* ACA -- self-interchange (inner commutativity), e.g.,                       *)
+(*        orbACA : (a || b) || (c || d) = (a || c) || (b || d).               *)
+(*   b -- a boolean argument, as in andbb : idempotent andb.                  *)
 (*   C -- commutativity, as in andbC : commutative andb,                      *)
 (*        or predicate complement, as in predC.                               *)
+(*  CA -- left commutativity.                                                 *)
 (*   D -- predicate difference, as in predD.                                  *)
 (*   E -- elimination, as in negbEf : ~~ b = false -> b.                      *)
-(*   F -- boolean false, as in andbF : b && false = false.                    *)
+(*   F or f -- boolean false, as in andbF : b && false = false.               *)
 (*   I -- left/right injectivity, as in addbI : right_injective addb,         *)
 (*        or predicate intersection, as in predI.                             *)
-(*   K -- cancellation, as in negbK : involutive negb.                        *)
-(*   N -- boolean negation, as in andbN : a && (~~ a) = false.                *)
+(*   l -- a left-hand operation, as andb_orl : left_distributive andb orb.    *)
+(*   N or n -- boolean negation, as in andbN : a && (~~ a) = false.           *)
 (*   P -- a characteristic property, often a reflection lemma, as in          *)
 (*        andP : reflect (a /\ b) (a && b).                                   *)
-(*   T -- boolean truth, as in andbT: right_id true andb.                     *)
+(*   r -- a right-hand operation, as orb_andr : rightt_distributive orb andb. *)
+(*   T or t -- boolean truth, as in andbT: right_id true andb.                *)
 (*   U -- predicate union, as in predU.                                       *)
 (*   W -- weakening, as in in1W : {in D, forall x, P} -> forall x, P.         *)
 (******************************************************************************)
@@ -401,6 +408,8 @@ Coercion is_inleft A B (u : A + {B}) := if u is inleft _ then true else false.
 
 Prenex Implicits  isSome is_inl is_left is_inleft.
 
+Definition decidable P := {P} + {~ P}.
+
 (* Lemmas for ifs with large conditions, which allow reasoning about the  *)
 (* condition without repeating it inside the proof (the latter IS         *)
 (* preferable when the condition is short).                               *)
@@ -528,7 +537,7 @@ Proof. by case: Pb; constructor; auto. Qed.
 Lemma equivP : (P <-> Q) -> reflect Q b.
 Proof. by case; exact: iffP. Qed.
 
-Lemma sumboolP (decQ : {Q} + {~ Q}) : reflect Q decQ.
+Lemma sumboolP (decQ : decidable Q) : reflect Q decQ.
 Proof. by case: decQ; constructor. Qed.
 
 Lemma appP : reflect Q b -> P -> Q.
@@ -539,7 +548,7 @@ Proof. case; [exact: introT | exact: introF]. Qed.
 
 Lemma decPcases : if b then P else ~ P. Proof. by case Pb. Qed.
 
-Definition decP : {P} + {~ P}. by case: b decPcases; [left | right]. Defined.
+Definition decP : decidable P. by case: b decPcases; [left | right]. Defined.
 
 Lemma rwP : P <-> b. Proof. by split; [exact: introT | exact: elimT]. Qed.
 
@@ -588,7 +597,7 @@ Lemma classic_bind : forall P Q,
   (P -> classically Q) -> (classically P -> classically Q).
 Proof. by move=> P Q IH IH_P b IH_Q; apply: IH_P; move/IH; exact. Qed.
 
-Lemma classic_EM : forall P, classically ({P} + {~ P}).
+Lemma classic_EM : forall P, classically (decidable P).
 Proof.
 by move=> P [] // IH; apply IH; right => ?; apply: notF (IH _); left.
 Qed.
@@ -763,6 +772,7 @@ Lemma andbC : commutative andb.        Proof. by do 2!case. Qed.
 Lemma andbA : associative andb.        Proof. by do 3!case. Qed.
 Lemma andbCA : left_commutative andb.  Proof. by do 3!case. Qed.
 Lemma andbAC : right_commutative andb. Proof. by do 3!case. Qed.
+Lemma andbACA : interchange andb andb. Proof. by do 4!case. Qed.
 
 Lemma orTb : forall b, true || b.      Proof. by []. Qed.
 Lemma orFb : left_id false orb.        Proof. by []. Qed.
@@ -773,6 +783,7 @@ Lemma orbC : commutative orb.          Proof. by do 2!case. Qed.
 Lemma orbA : associative orb.          Proof. by do 3!case. Qed.
 Lemma orbCA : left_commutative orb.    Proof. by do 3!case. Qed.
 Lemma orbAC : right_commutative orb.   Proof. by do 3!case. Qed.
+Lemma orbACA : interchange orb orb.    Proof. by do 4!case. Qed.
 
 Lemma andbN b : b && ~~ b = false. Proof. by case: b. Qed.
 Lemma andNb b : ~~ b && b = false. Proof. by case: b. Qed.
@@ -795,7 +806,7 @@ Proof. by case: a; case: b; case: c => // ->. Qed.
 
 Lemma orb_idl (a b : bool) : (a -> b) -> a || b = b.
 Proof. by case: a; case: b => // ->. Qed.
-Lemma orbb_idr (a b : bool) : (b -> a) -> a || b = a.
+Lemma orb_idr (a b : bool) : (b -> a) -> a || b = a.
 Proof. by case: a; case: b => // ->. Qed.
 Lemma orb_id2l (a b c : bool) : (~~ a -> b = c) -> a || b = a || c.
 Proof. by case: a; case: b; case: c => // ->. Qed.
@@ -854,6 +865,7 @@ Lemma addbC : commutative addb.                 Proof. by do 2!case. Qed.
 Lemma addbA : associative addb.                 Proof. by do 3!case. Qed.
 Lemma addbCA : left_commutative addb.           Proof. by do 3!case. Qed.
 Lemma addbAC : right_commutative addb.          Proof. by do 3!case. Qed.
+Lemma addbACA : interchange addb addb.          Proof. by do 4!case. Qed.
 Lemma andb_addl : left_distributive andb addb.  Proof. by do 3!case. Qed.
 Lemma andb_addr : right_distributive andb addb. Proof. by do 3!case. Qed.
 Lemma addKb : left_loop id addb.                Proof. by do 2!case. Qed.
@@ -1290,12 +1302,37 @@ Notation "[ 'qualify' 'an' x | P ]" := (Qualifier 2 (fun x => P))
 Notation "[ 'qualify' 'an' x : T | P ]" := (Qualifier 2 (fun x : T => P))
   (at level 0, x at level 99, only parsing) : form_scope.
 
-CoInductive pred_key T (p : predPredType T) := DefaultPredKey.
-Structure keyed_pred T p (k_p : @pred_key T p) :=
-  PackKeyedPred {unkey_pred :> pred_class; _ : unkey_pred = p}.
-Lemma keyed_predE T p k_p (kk_p : @keyed_pred T p k_p) : kk_p = p :> pred_class.
-Proof. by case: kk_p. Qed.
-Definition KeyedPred T p (k_p : @pred_key T p) := PackKeyedPred k_p (erefl p).
+(* Keyed predicates: support for property-bearing predicate interfaces. *)
+
+Section KeyPred.
+
+Variable T : Type.
+CoInductive pred_key (p : predPredType T) := DefaultPredKey.
+
+Variable p : predPredType T.
+Structure keyed_pred (k : pred_key p) :=
+  PackKeyedPred {unkey_pred :> pred_class; _ : unkey_pred =i p}.
+
+Variable k : pred_key p.
+Definition KeyedPred := @PackKeyedPred k p (frefl _).
+
+Variable k_p : keyed_pred k.
+Lemma keyed_predE : k_p =i p. Proof. by case: k_p. Qed.
+
+(* Instances that strip the mem cast; the first one has "pred_of_mem" as its  *)
+(* projection head value, while the second has "pred_of_simpl". The latter    *)
+(* has the side benefit of preempting accidental misdeclarations.             *)
+(* Note: pred_of_mem is the registered mem >-> pred_class coercion, while     *)
+(* simpl_of_mem; pred_of_simpl is the mem >-> pred >=> Funclass coercion. We  *)
+(* must write down the coercions explicitly as the Canonical head constant    *)
+(* computation does not strip casts !!                                        *)
+Canonical keyed_mem :=
+  @PackKeyedPred k (pred_of_mem (mem k_p)) keyed_predE.
+Canonical keyed_mem_simpl :=
+  @PackKeyedPred k (pred_of_simpl (mem k_p)) keyed_predE.
+
+End KeyPred.
+
 Notation "x \i 'n' S" := (x \in @unkey_pred _ S _ _)
   (at level 70, format "'[hv' x '/ '  \i 'n'  S ']'") : bool_scope.
 
@@ -1303,13 +1340,13 @@ Section KeyedQualifier.
 
 Variables (T : Type) (n : nat) (q : qualifier n T).
 
-Structure keyed_qualifier (k_q : pred_key q) :=
+Structure keyed_qualifier (k : pred_key q) :=
   PackKeyedQualifier {unkey_qualifier; _ : unkey_qualifier = q}.
-Definition KeyedQualifier k_q := PackKeyedQualifier k_q (erefl q).
-Variables (k_q : pred_key q) (k_qq : keyed_qualifier k_q).
-Fact keyed_qualifier_suproof : unkey_qualifier k_qq = q :> pred_class.
-Proof. by case: k_qq => /= _ ->. Qed.
-Canonical keyed_qualifier_keyed := PackKeyedPred k_q keyed_qualifier_suproof.
+Definition KeyedQualifier k := PackKeyedQualifier k (erefl q).
+Variables (k : pred_key q) (k_q : keyed_qualifier k).
+Fact keyed_qualifier_suproof : unkey_qualifier k_q =i q.
+Proof. by case: k_q => /= _ ->. Qed.
+Canonical keyed_qualifier_keyed := PackKeyedPred k keyed_qualifier_suproof.
 
 End KeyedQualifier.
 

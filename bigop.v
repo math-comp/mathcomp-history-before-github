@@ -361,6 +361,8 @@ Lemma mulmCA : left_commutative mul.
 Proof. by move=> x y z; rewrite !mulmA (mulmC x). Qed.
 Lemma mulmAC : right_commutative mul.
 Proof. by move=> x y z; rewrite -!mulmA (mulmC y). Qed.
+Lemma mulmACA : interchange mul mul.
+Proof. by move=> x y z t; rewrite -!mulmA (mulmCA y). Qed.
 End Commutative.
 
 Section Mul.
@@ -413,7 +415,7 @@ Canonical addn_comoid := ComLaw addnC.
 Canonical muln_monoid := Law mulnA mul1n muln1.
 Canonical muln_comoid := ComLaw mulnC.
 Canonical muln_muloid := MulLaw mul0n muln0.
-Canonical addn_addoid := AddLaw muln_addl muln_addr.
+Canonical addn_addoid := AddLaw mulnDl mulnDr.
 
 Canonical maxn_monoid := Law maxnA max0n maxn0.
 Canonical maxn_comoid := ComLaw maxnC.
@@ -421,7 +423,7 @@ Canonical maxn_addoid := AddLaw maxn_mull maxn_mulr.
 
 Canonical gcdn_monoid := Law gcdnA gcd0n gcdn0.
 Canonical gcdn_comoid := ComLaw gcdnC.
-Canonical gcdn_addoid := AddLaw muln_gcdl muln_gcdr.
+Canonical gcdnDoid := AddLaw muln_gcdl muln_gcdr.
 
 Canonical lcmn_monoid := Law lcmnA lcm1n lcmn1.
 Canonical lcmn_comoid := ComLaw lcmnC.
@@ -468,7 +470,7 @@ Definition index_enum (T : finType) := Finite.enum T.
 Lemma mem_index_iota m n i : i \in index_iota m n = (m <= i < n).
 Proof.
 rewrite mem_iota; case le_m_i: (m <= i) => //=.
-by rewrite -leq_sub_add leq_subS // -subn_gt0 subn_sub subnKC // subn_gt0.
+by rewrite -leq_subLR subSn // -subn_gt0 -subnDA subnKC // subn_gt0.
 Qed.
 
 Lemma mem_index_enum T i : i \in index_enum T.
@@ -855,7 +857,7 @@ Lemma big_ltn_cond m n (P : pred nat) F :
     m < n -> let x := \big[op/idx]_(m.+1 <= i < n | P i) F i in
   \big[op/idx]_(m <= i < n | P i) F i = if P m then op (F m) x else x.
 Proof.
-by case: n => [//|n] le_m_n; rewrite /index_iota leq_subS // big_cons.
+by case: n => [//|n] le_m_n; rewrite /index_iota subSn // big_cons.
 Qed.
 
 Lemma big_ltn m n F :
@@ -867,7 +869,7 @@ Lemma big_addn m n a (P : pred nat) F :
   \big[op/idx]_(m + a <= i < n | P i) F i =
      \big[op/idx]_(m <= i < n - a | P (i + a)) F (i + a).
 Proof.
-rewrite /index_iota subn_sub addnC iota_addl big_map.
+rewrite /index_iota -subnDA addnC iota_addl big_map.
 by apply: eq_big => ? *; rewrite addnC.
 Qed.
 
@@ -900,7 +902,7 @@ congr bigop; rewrite /index_iota; set d1 := n1 - m; set d2 := n2 - m.
 rewrite -(@subnKC d1 d2) /=; last by rewrite leq_sub2r ?leq_addr.
 have: ~~ has (fun i => i < n1) (iota (m + d1) (d2 - d1)).
   apply/hasPn=> i; rewrite mem_iota -leqNgt; case/andP=> le_mn1_i _.
-  by apply: leq_trans le_mn1_i; rewrite -leq_sub_add.
+  by apply: leq_trans le_mn1_i; rewrite -leq_subLR.
 rewrite iota_add filter_cat has_filter /=; case: filter => // _.
 rewrite cats0; apply/all_filterP; apply/allP=> i.
 rewrite mem_iota; case/andP=> le_m_i lt_i_md1.
@@ -1068,8 +1070,8 @@ Lemma big_cat_nat n m p (P : pred nat) F : m <= n -> n <= p ->
   \big[*%M/1]_(m <= i < p | P i) F i =
    (\big[*%M/1]_(m <= i < n | P i) F i) * (\big[*%M/1]_(n <= i < p | P i) F i).
 Proof.
-move=> le_mn le_np; rewrite -big_cat -{2}(subnKC le_mn) -iota_add -subn_sub.
-by rewrite subnKC // leq_sub2.
+move=> le_mn le_np; rewrite -big_cat -{2}(subnKC le_mn) -iota_add subnDA.
+by rewrite subnKC // leq_sub.
 Qed.
 
 Lemma big_nat1 n F : \big[*%M/1]_(n <= i < n.+1) F i = F n.
@@ -1259,7 +1261,7 @@ Proof.
 case: (ltnP m n) => ltmn; last by rewrite !big_geq.
 rewrite -{3 4}(subnK (ltnW ltmn)) addnA.
 do 2!rewrite (big_addn _ _ 0) big_mkord; rewrite (reindex_inj rev_ord_inj) /=.
-by apply: eq_big => [i | i _]; rewrite /= -addSn subn_add2r addnC addn_subA.
+by apply: eq_big => [i | i _]; rewrite /= -addSn subnDr addnC addnBA.
 Qed.
 
 Lemma pair_big_dep (I J : finType) (P : pred I) (Q : I -> pred J) F :
@@ -1571,7 +1573,7 @@ Proof. move=> Fpos; exact: prodn_cond_gt0. Qed.
 
 Lemma leq_bigmax_cond (I : finType) (P : pred I) F i0 :
   P i0 -> F i0 <= \max_(i | P i) F i.
-Proof. by move=> Pi0; rewrite -eqn_maxr (bigD1 i0) // maxnA /= maxnn eqxx. Qed.
+Proof. by move=> Pi0; rewrite (bigD1 i0) ?leq_maxl. Qed.
 Implicit Arguments leq_bigmax_cond [I P F].
 
 Lemma leq_bigmax (I : finType) F (i0 : I) : F i0 <= \max_i F i.
@@ -1583,7 +1585,7 @@ Lemma bigmax_leqP (I : finType) (P : pred I) m F :
 Proof.
 apply: (iffP idP) => leFm => [i Pi|].
   by apply: leq_trans leFm; exact: leq_bigmax_cond.
-by elim/big_ind: _ => // m1 m2; rewrite leq_maxl => ->.
+by elim/big_ind: _ => // m1 m2; rewrite geq_max => ->.
 Qed.
 
 Lemma bigmax_sup (I : finType) i0 (P : pred I) m F :
@@ -1611,7 +1613,7 @@ Proof. by case/(eq_bigmax_cond F) => x _ ->; exists x. Qed.
 
 Lemma expn_sum m I r (P : pred I) F :
   (m ^ (\sum_(i <- r | P i) F i) = \prod_(i <- r | P i) m ^ F i)%N.
-Proof. exact: (big_morph _ (expn_add m)). Qed.
+Proof. exact: (big_morph _ (expnD m)). Qed.
 
 Lemma dvdn_biglcmP (I : finType) (P : pred I) F m :
   reflect (forall i, P i -> F i %| m) (\big[lcmn/1%N]_(i | P i) F i %| m).

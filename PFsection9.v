@@ -358,7 +358,7 @@ have o_phiU w: w \in W1 / H0 -> #|phi w @* U| = a.
   by rewrite -{1}(normsP nUW1 w1 Ww1) indexJg.
 split=> //.
   rewrite -(o_phiU 1) // (dvdn_trans (cardSg (subsetT _))) // card_units_Zp //.
-  by rewrite subn1 conjg1 o_h (@phi_pfactor p 1) ?muln1.
+  by rewrite subn1 conjg1 o_h (@totient_pfactor p 1) ?muln1.
 have cycZhw w: cyclic (units_Zp #[h ^ w]).
   rewrite -(injm_cyclic (inj_Zp_h w)) // im_Zp_unitm Aut_prime_cyclic //=.
   by rewrite -orderE orderJ o_h.
@@ -673,7 +673,7 @@ have <-: #|[set: {unit F}]| = (p ^ q).-1.
   by rewrite !inE unitfE.
 rewrite /u (isog_cyclic isoUb) (card_isog isoUb) cyc_uF.
 suffices co_u_p1: coprime #|psi @* U| #|Group unFg|.
-  by rewrite -(gauss _ co_u_p1) mulnC divnK ?cardSg ?subsetT.
+  by rewrite -(Gauss_dvdr _ co_u_p1) mulnC divnK ?cardSg ?subsetT.
 rewrite -(cyclic_dprod (dprodEY _ _)) ?cyc_uF //.
   by rewrite (sub_abelian_cent2 (cyclic_abelian (cyc_uF [set:_]%G))) ?subsetT.
 apply/trivgP/subsetP=> _ /setIP[/morphimP[x Nx Ux ->] /imsetP[a nFa /eqP]].
@@ -927,7 +927,7 @@ have <-: #|[set: unitF]| = (p ^ q).-1.
   by rewrite !inE unitfE.
 rewrite /u (isog_cyclic isoUb) (card_isog isoUb) cyc_uF.
 suffices co_u_p1: coprime #|Mpsi @* U| #|Group unFg|.
-  by rewrite -(gauss _ co_u_p1) mulnC divnK ?cardSg ?subsetT.
+  by rewrite -(Gauss_dvdr _ co_u_p1) mulnC divnK ?cardSg ?subsetT.
 rewrite -(cyclic_dprod (dprodEY _ _)) ?cyc_uF //.
   by rewrite (sub_abelian_cent2 (cyclic_abelian (cyc_uF [set:_]%G))) ?subsetT.
 apply/trivgP/subsetP=> _ /setIP[/morphimP[x Nx Ux ->] /imsetP[a nFa /eqP]].

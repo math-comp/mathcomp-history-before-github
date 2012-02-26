@@ -190,7 +190,7 @@ Proof. by apply: order_dvdG; exact: mem_cycle. Qed.
 Lemma orderXgcd a n : #[a ^+ n] = #[a] %/ gcdn #[a] n.
 Proof.
 apply/eqP; rewrite eqn_dvd; apply/andP; split.
-  rewrite order_dvdn -expgM -gcdn_divnC //.
+  rewrite order_dvdn -expgM -muln_divCA_gcd //.
   by rewrite expgM expg_order expg1n.
 have [-> | n_gt0] := posnP n; first by rewrite gcdn0 divnn order_gt0 dvd1n.
 rewrite -(dvdn_pmul2r n_gt0) divn_mulAC ?dvdn_gcdl // dvdn_lcm.
@@ -198,14 +198,14 @@ by rewrite order_dvdn mulnC expgM expg_order eqxx dvdn_mulr.
 Qed.
 
 Lemma orderXdiv a n : n %| #[a] -> #[a ^+ n] = #[a] %/ n.
-Proof. by case/dvdnP=> q defq; rewrite orderXgcd {2}defq gcdnC gcdn_mull. Qed.
+Proof. by case/dvdnP=> q defq; rewrite orderXgcd {2}defq gcdnC gcdnMl. Qed.
 
 Lemma orderXexp p m n x : #[x] = (p ^ n)%N -> #[x ^+ (p ^ m)] = (p ^ (n - m))%N.
 Proof.
 move=> ox; have [n_le_m | m_lt_n] := leqP n m.
-  rewrite -(subnKC n_le_m) -subn_sub subnn expn_add expgM -ox.
+  rewrite -(subnKC n_le_m) subnDA subnn expnD expgM -ox.
   by rewrite expg_order expg1n order1.
-rewrite orderXdiv ox ?dvdn_exp2l ?expn_sub ?(ltnW m_lt_n) //.
+rewrite orderXdiv ox ?dvdn_exp2l ?expnB ?(ltnW m_lt_n) //.
 by have:= order_gt0 x; rewrite ox expn_gt0 orbC -(ltn_predK m_lt_n).
 Qed.
 
@@ -215,7 +215,7 @@ Proof.
 move=> oxp p_pr dv_p_n.
 suffices pk_x: p ^ k %| #[x] by rewrite -oxp orderXdiv // mulnC divnK.
 rewrite pfactor_dvdn // leqNgt; apply: contraL dv_p_n => lt_x_k.
-rewrite -oxp -p'natE // -(subnKC (ltnW lt_x_k)) expn_add expgM.
+rewrite -oxp -p'natE // -(subnKC (ltnW lt_x_k)) expnD expgM.
 rewrite (pnat_dvd (orderXdvd _ _)) // -p_part // orderXdiv ?dvdn_part //.
 by rewrite -{1}[#[x]](partnC p) // mulKn // part_pnat.
 Qed.
@@ -270,13 +270,13 @@ End Cyclic.
 Implicit Arguments cyclicP [gT A].
 
 (* Euler's theorem *)
-Theorem Euler a n : coprime a n -> a ^ phi n  = 1 %[mod n].
+Theorem Euler_exp_totient a n : coprime a n -> a ^ totient n  = 1 %[mod n].
 Proof.
 case: n => [|[|n']] //; [by rewrite !modn1 | set n := n'.+2] => co_a_n.
 have{co_a_n} Ua: coprime n (inZp a : 'I_n) by rewrite coprime_sym coprime_modl.
-have: FinRing.unit 'Z_n Ua ^+ phi n == 1.
+have: FinRing.unit 'Z_n Ua ^+ totient n == 1.
   by rewrite -card_units_Zp // -order_dvdn order_dvdG ?inE.
-by rewrite -2!val_eqE unit_Zp_expg /= -/n modn_exp => /eqP.
+by rewrite -2!val_eqE unit_Zp_expg /= -/n modnXm => /eqP.
 Qed.
 
 Section Eltm.
@@ -313,7 +313,7 @@ Lemma ker_eltm : 'ker (eltm dvd_y_x) = <[x ^+ #[y]]>.
 Proof.
 apply/eqP; rewrite eq_sym eqEcard cycle_subG 3!inE mem_cycle /= eltmE.
 rewrite expg_order eqxx (orderE y) -im_eltm card_morphim setIid -orderE.
-by rewrite orderXdiv ?dvdn_indexg //= leq_divr ?indexg_gt0 ?LaGrange ?subsetIl.
+by rewrite orderXdiv ?dvdn_indexg //= leq_divRL ?indexg_gt0 ?LaGrange ?subsetIl.
 Qed.
 
 Lemma injm_eltm : 'injm (eltm dvd_y_x) = (#[x] %| #[y]).
@@ -333,8 +333,8 @@ Lemma cycle_sub_group (a : gT) m :
 Proof.
 move=> m_dv_a; have m_gt0: 0 < m by apply: dvdn_gt0 m_dv_a.
 have oam: #|<[a ^+ (#[a] %/ m)]>| = m.
-  apply/eqP; rewrite [#|_|]orderXgcd -(divn_pmul2r m_gt0) muln_gcdl divnK //.
-  by rewrite gcdnC gcdn_mulr mulKn.
+  apply/eqP; rewrite [#|_|]orderXgcd -(divnMr m_gt0) muln_gcdl divnK //.
+  by rewrite gcdnC gcdnMr mulKn.
 apply/eqP; rewrite eqEsubset sub1set inE /= cycleX oam eqxx !andbT.
 apply/subsetP=> X; rewrite in_set1 inE -val_eqE /= eqEcard oam.
 case/andP=> sXa /eqP oX; rewrite oX leqnn andbT.
@@ -605,7 +605,7 @@ Proof.
 rewrite /generator eq_sym eqEcard cycleX -/#[a] [#|_|]orderXgcd /=.
 apply/idP/idP=> [le_a_am|co_am]; last by rewrite (eqnP co_am) divn1.
 have am_gt0: 0 < gcdn #[a] m by rewrite gcdn_gt0 order_gt0.
-by rewrite /coprime eqn_leq am_gt0 andbT -(@leq_pmul2l #[a]) ?muln1 -?leq_divr.
+by rewrite /coprime eqn_leq am_gt0 andbT -(@leq_pmul2l #[a]) ?muln1 -?leq_divRL.
 Qed.
 
 Lemma im_Zp_unitm : Zp_unitm @* units_Zp #[a] = Aut <[a]>.
@@ -632,10 +632,10 @@ Proof. by apply/isomP; rewrite ?injm_Zp_unitm ?im_Zp_unitm. Qed.
 Lemma Zp_unit_isog : isog (units_Zp #[a]) (Aut <[a]>).
 Proof. exact: isom_isog Zp_unit_isom. Qed.
 
-Lemma card_Aut_cycle : #|Aut <[a]>| = phi #[a].
+Lemma card_Aut_cycle : #|Aut <[a]>| = totient #[a].
 Proof. by rewrite -(card_isog Zp_unit_isog) card_units_Zp. Qed.
 
-Lemma phi_gen : phi #[a] = #|[set x | generator <[a]> x]|.
+Lemma totient_gen : totient #[a] = #|[set x | generator <[a]> x]|.
 Proof.
 have [lea1 | lt1a] := leqP #[a] 1.
   rewrite /order card_le1_trivg // cards1 (@eq_card1 _ 1) // => x.
@@ -656,11 +656,11 @@ Variable G : {group gT}.
 Lemma Aut_cyclic_abelian : cyclic G -> abelian (Aut G).
 Proof. by case/cyclicP=> x ->; exact: Aut_cycle_abelian. Qed.
 
-Lemma card_Aut_cyclic : cyclic G -> #|Aut G| = phi #|G|.
+Lemma card_Aut_cyclic : cyclic G -> #|Aut G| = totient #|G|.
 Proof. by case/cyclicP=> x ->; exact: card_Aut_cycle. Qed.
 
-Lemma sum_ncycle_phi :
-  \sum_(d < #|G|.+1) #|[set <[x]> | x <- G, #[x] == d]| * phi d = #|G|.
+Lemma sum_ncycle_totient :
+  \sum_(d < #|G|.+1) #|[set <[x]> | x <- G, #[x] == d]| * totient d = #|G|.
 Proof.
 pose h (x : gT) : 'I_#|G|.+1 := inord #[x].
 symmetry; rewrite -{1}sum1_card (partition_big h xpredT) //=.
@@ -670,19 +670,19 @@ rewrite -sum_nat_const sum1dep_card -sum1_card (_ : finset _ = Gd); last first.
   by rewrite /eq_op /= inordK // ltnS subset_leq_card ?cycle_subG.
 rewrite (partition_big_imset cycle) {}/Gd; apply: eq_bigr => C /=.
 case/imsetP=> x /setIdP[Gx /eqP <-] -> {C d}.
-rewrite sum1dep_card phi_gen; apply: eq_card => y; rewrite !inE /generator.
+rewrite sum1dep_card totient_gen; apply: eq_card => y; rewrite !inE /generator.
 move: Gx; rewrite andbC eq_sym -!cycle_subG /order.
 by case: eqP => // -> ->; rewrite eqxx.
 Qed.
 
 End CyclicAutomorphism.
 
-Lemma sum_phi_dvd n : \sum_(d < n.+1 | d %| n) phi d = n.
+Lemma sum_totient_dvd n : \sum_(d < n.+1 | d %| n) totient d = n.
 Proof.
 case: n => [|[|n']]; try by rewrite big_mkcond !big_ord_recl big_ord0.
 set n := n'.+2; pose x1 : 'Z_n := 1%R.
 have ox1 : #[x1] = n by rewrite /order -Zp_cycle card_Zp.
-rewrite -{8}ox1 -[#[_]]sum_ncycle_phi [#|_|]ox1 big_mkcond.
+rewrite -{8}ox1 -[#[_]]sum_ncycle_totient [#|_|]ox1 big_mkcond.
 apply: eq_bigr => d _; rewrite -{2}ox1; case: ifP => [|ndv_dG]; last first.
   rewrite eq_card0 // => C; apply/imsetP=> [[x /setIdP[Gx oxd] _{C}]].
   by rewrite -(eqP oxd) order_dvdG in ndv_dG.
@@ -709,9 +709,9 @@ Lemma order_inj_cyclic :
   {in G &, forall x y, #[x] = #[y] -> <[x]> = <[y]>} -> cyclic G.
 Proof.
 move=> ucG; apply: negbNE (contra _ (negbT (ltnn #|G|))) => ncG.
-rewrite -{2}[#|G|]sum_phi_dvd big_mkcond (bigD1 ord_max) ?dvdnn //=.
-rewrite -{1}[#|G|]sum_ncycle_phi (bigD1 ord_max) //= -addSn leq_add //.
-  rewrite eq_card0 ?phi_gt0 ?cardG_gt0 // => C.
+rewrite -{2}[#|G|]sum_totient_dvd big_mkcond (bigD1 ord_max) ?dvdnn //=.
+rewrite -{1}[#|G|]sum_ncycle_totient (bigD1 ord_max) //= -addSn leq_add //.
+  rewrite eq_card0 ?totient_gt0 ?cardG_gt0 // => C.
   apply/imsetP=> [[x /setIdP[Gx /eqP oxG]]]; case/cyclicP: ncG.
   by exists x; apply/eqP; rewrite eq_sym eqEcard cycle_subG Gx -oxG /=.
 elim/big_ind2: _ => // [m1 n1 m2 n2 | d _]; first exact: leq_add.

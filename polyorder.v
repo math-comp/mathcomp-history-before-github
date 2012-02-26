@@ -193,7 +193,7 @@ rewrite exprD mulrA -mulrDl mu_mul; last first.
   by rewrite mulrDl -mulrA -exprD subnK 1?ltnW // -hp -hq.
 rewrite muNroot ?add0n ?mu_exp ?mu_XsubC ?mul1n //.
 rewrite rootE !hornerE horner_exp hornerXsubC subrr.
-by rewrite ltn_subS // -predn_sub exprS mul0r mulr0 addr0.
+by rewrite -subnSK // subnS exprS mul0r mulr0 addr0.
 Qed.
 
 Lemma mu_addl p q x : q != 0 -> (\mu_x p > \mu_x q)%N ->
@@ -232,7 +232,7 @@ Lemma size_deriv (p : {poly R}) : size p^`() = (size p).-1.
 Proof.
 have [lep1|lt1p] := leqP (size p) 1.
   by rewrite {1}[p]size1_polyC // derivC size_poly0 -subn1 (eqnP lep1).
-rewrite size_poly_eq // mulrn_eq0 -subn2 -leq_subS // subn2.
+rewrite size_poly_eq // mulrn_eq0 -subn2 -subSn // subn2.
 by rewrite lead_coef_eq0 -size_poly_eq0 -(subnKC lt1p).
 Qed.
 

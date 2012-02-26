@@ -267,7 +267,7 @@ have kerg: 'ker (Morphism gM) = 'Phi(L).
   apply/setP=> u; apply/idP/imsetP=> [ | [v Lv ->{u}]]; last first.
     rewrite !inE groupX //=; apply/eqP/rowP=> i; apply: val_inj.
     rewrite !mxE morphX // mulmxnE Zp_mulrn /= val_Fp_nat //=.
-    by move: {i}(_ i); rewrite Zp_cast // => vi; rewrite modn_dvdm // modn_mull.
+    by move: {i}(_ i); rewrite Zp_cast // => vi; rewrite modn_dvdm // modnMl.
   case/morphpreP; case/morphimP=> v _ _ ->{u}; move/set1P=> /=.
   rewrite /g invmE ?in_setT //; move/rowP=> vp0.
   pose x := sdpair1 MR_G (map_mx (fun t : 'Z_q => (t %/ p)%:R) v).
@@ -460,7 +460,7 @@ Lemma exprdiv_eq : forall p x y, p > 1 ->
   (forall n, n > 0 -> x = y %[mod p ^ n]) -> x = y.
 Proof.
 move=> p x y lt1p h; have /h : 0 < (x.+1 * y.+1)%N by [].
-by rewrite !modn_small // 1?[in X in x < X]mulnC expn_mulr 
+by rewrite !modn_small // 1?[in X in x < X]mulnC expnM 
   !(leq_trans _ (ltn_expl _ _)).
 Qed.
 
@@ -520,7 +520,7 @@ wlog minV: / minnormal V (V <*> G).
     move=> mm j; move/sAiG=> sAjG.
     have nBAj : A j \subset 'N(B) by exact: subset_trans nBG.
     have copBAj : coprime #|B| #|A j| by rewrite  (coprimegS sAjG).
-    rewrite -(card_isog (quotient_isog _ _)) ?(coprime_TIg copBAj) // -expn_mull.
+    rewrite -(card_isog (quotient_isog _ _)) ?(coprime_TIg copBAj) // -expnMn.
     by rewrite cardps.
   rewrite !(eq_bigr _ (hp _)) !big_split /=; congr (_ * _)%N.
     exact: (IHc _ _ _ G).
@@ -552,7 +552,7 @@ have hindex : forall mn i, 0 < m i + n i ->
   move=> mn i _.
   have : p.-group 'C_V(A i).
     by apply: (pgroupS _ (abelem_pgroup pabV));apply: subsetIl.
-  by move/card_pgroup=> h; rewrite {1}h {h} -expn_mulr mulnA.
+  by move/card_pgroup=> h; rewrite {1}h {h} -expnM mulnA.
 rewrite !(eq_bigr _ (hindex _)) {hindex} -!expn_sum; congr (_ ^ _)%N.
 have coppG : coprime p #|G|.
   apply: (coprime_dvdl _ copVG); move/abelem_pgroup: pabV.

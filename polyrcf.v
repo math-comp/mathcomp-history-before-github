@@ -113,7 +113,7 @@ rewrite (@leq_trans (size (q * ('X - a%:P) ^+ n'))) //.
   rewrite size_mul ?expf_eq0 ?polyXsubC_eq0 ?andbF //; last first.
     by apply: contra hqa; move/eqP->; rewrite root0.
   by rewrite size_exp_XsubC addnS leq_addr.
-by rewrite -hp size_divp ?polyXsubC_eq0 ?size_XsubC // leq_sub_add.
+by rewrite -hp size_divp ?polyXsubC_eq0 ?size_XsubC // leq_subLR.
 Qed.
 
 Lemma nth_root x n : x > 0 -> { y | y > 0 & y ^+ (n.+1) = x }.
@@ -221,7 +221,7 @@ move=> c hc; rewrite rootZ ?sgr_eq0 // => rpc; exists c=> //.
 (* need for a lemma reditvP *)
 rewrite inE /= !ltr_neqAle andbCA -!andbA [_ && (_ <= _)]hc andbT eq_sym -negb_or.
 apply/negP=> /orP [] /eqP ec; move: rpc; rewrite -ec /root ?(negPf spb0) //.
-by rewrite -sgr_cp0 -[sgr _]opprK -spb eqr_oppC oppr0 sgr_cp0 (negPf spb0).
+by rewrite -sgr_cp0 -[sgr _]opprK -spb eqr_oppLR oppr0 sgr_cp0 (negPf spb0).
 Qed.
 
 Let rolle_weak : forall a b p, a < b ->

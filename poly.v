@@ -288,7 +288,7 @@ Definition opp_poly := locked (fun p => \poly_(i < size p) - p`_i).
 Fact coef_add_poly p q i : (add_poly p q)`_i = p`_i + q`_i.
 Proof.
 unlock add_poly; rewrite coef_poly; case: leqP => //.
-by rewrite leq_maxl => /andP[le_p_i le_q_i]; rewrite !nth_default ?add0r.
+by rewrite geq_max => /andP[le_p_i le_q_i]; rewrite !nth_default ?add0r.
 Qed.
 
 Fact coef_opp_poly p i : (opp_poly p)`_i = - p`_i.
@@ -434,7 +434,7 @@ Proof. rewrite -[+%R]/add_poly; unlock add_poly; exact: size_poly. Qed.
 Lemma size_addl p q : size p > size q -> size (p + q) = size p.
 Proof.
 move=> ltqp; rewrite -[+%R]/add_poly; unlock add_poly.
-rewrite size_poly_eq maxnl 1?ltnW //.
+rewrite size_poly_eq (maxn_idPl _) 1?ltnW //.
 by rewrite addrC nth_default ?simp ?nth_last //; case: p ltqp => [[]].
 Qed.
 
@@ -442,7 +442,7 @@ Lemma size_sum I (r : seq I) (P : pred I) (F : I -> {poly R}) :
   size (\sum_(i <- r | P i) F i) <= \max_(i <- r | P i) size (F i).
 Proof.
 elim/big_rec2: _ => [|i p q _ IHp]; first by rewrite size_poly0.
-by rewrite -(maxnr IHp) maxnA leq_maxr size_add.
+by rewrite -(maxn_idPr IHp) maxnA leq_max size_add.
 Qed.
 
 Lemma lead_coefDl p q : size p > size q -> lead_coef (p + q) = lead_coef p.
@@ -460,11 +460,11 @@ Fact coef_mul_poly p q i :
   (mul_poly p q)`_i = \sum_(j < i.+1) p`_j * q`_(i - j)%N.
 Proof.
 unlock mul_poly.
-rewrite coef_poly -subn1 -ltn_add_sub add1n; case: leqP => // le_pq_i1.
+rewrite coef_poly -subn1 ltn_subRL add1n; case: leqP => // le_pq_i1.
 rewrite big1 // => j _; have [lq_q_ij | gt_q_ij] := leqP (size q) (i - j).
   by rewrite [q`__]nth_default ?mulr0.
 rewrite nth_default ?mul0r // -(leq_add2r (size q)) (leq_trans le_pq_i1) //.
-by rewrite -leq_sub_add ltn_subS.
+by rewrite -leq_subLR -subnSK.
 Qed.
 
 Fact coef_mul_poly_rev p q i :
@@ -483,10 +483,10 @@ transitivity (\sum_(j < i.+1) \sum_(k < i.+1 | k <= i - j) coef3 j k).
   by rewrite (big_ord_narrow_leq (leq_subr _ _)).
 rewrite (exchange_big_dep predT) //=; apply: eq_bigr => k _.
 transitivity (\sum_(j < i.+1 | j <= i - k) coef3 j k).
-  apply: eq_bigl => j; rewrite -ltnS -(ltnS j) -!leq_subS ?leq_ord //.
-  by rewrite -subn_gt0 -(subn_gt0 j) !subn_sub addnC.
+  apply: eq_bigl => j; rewrite -ltnS -(ltnS j) -!subSn ?leq_ord //.
+  by rewrite -subn_gt0 -(subn_gt0 j) -!subnDA addnC.
 rewrite (big_ord_narrow_leq (leq_subr _ _)) coef_mul_poly big_distrl /=.
-by apply: eq_bigr => j _; rewrite /coef3 !subn_sub addnC mulrA.
+by apply: eq_bigr => j _; rewrite /coef3 -!subnDA addnC mulrA.
 Qed.
 
 Fact mul_1poly : left_id 1%:P mul_poly.
@@ -558,14 +558,14 @@ rewrite coefM (bigD1 (Ordinal lt_p_pq)) ?big1 ?simp ?addKn //= => i.
 rewrite -val_eqE neq_ltn /= => /orP[lt_i_p | gt_i_p]; last first.
   by rewrite nth_default ?mul0r //; rewrite -polySpred in gt_i_p.
 rewrite [q`__]nth_default ?mulr0 //= -subSS -{1}addnS -polySpred //.
-by rewrite addnC -addn_subA ?leq_addr.
+by rewrite addnC -addnBA ?leq_addr.
 Qed.
 
 Lemma size_proper_mul p q :
   lead_coef p * lead_coef q != 0 -> size (p * q) = (size p + size q).-1.
 Proof.
 apply: contraNeq; rewrite mul_lead_coef eqn_leq size_mul_leq -ltnNge => lt_pq.
-by rewrite nth_default // -subn1 -(leq_add2l 1) -leq_sub_add leq_sub2r.
+by rewrite nth_default // -subn1 -(leq_add2l 1) -leq_subLR leq_sub2r.
 Qed.
 
 Lemma lead_coef_proper_mul p q :
@@ -578,8 +578,8 @@ Proof.
 rewrite -sum1_card.
 elim/big_rec3: _ => [|i n m p _ IHp]; first by rewrite size_poly1.
 have [-> | nz_p] := eqVneq p 0; first by rewrite mulr0 size_poly0.
-rewrite (leq_trans (size_mul_leq _ _)) // -predn_sub -!subn1 leq_sub2r //.
-rewrite -addnS -addn_subA ?leq_add2l // ltnW // -subn_gt0 (leq_trans _ IHp) //.
+rewrite (leq_trans (size_mul_leq _ _)) // subnS -!subn1 leq_sub2r //.
+rewrite -addnS -addnBA ?leq_add2l // ltnW // -subn_gt0 (leq_trans _ IHp) //.
 by rewrite polySpred.
 Qed.
 
@@ -1015,7 +1015,7 @@ Lemma hornerD p q x : (p + q).[x] = p.[x] + q.[x].
 Proof.
 rewrite -[+%R]/add_poly; unlock add_poly.
 rewrite horner_poly; set m := maxn _ _.
-rewrite !(@horner_coef_wide m) ?leq_maxr ?leqnn ?orbT // -big_split /=.
+rewrite !(@horner_coef_wide m) ?leq_max ?leqnn ?orbT // -big_split /=.
 by apply: eq_bigr => i _; rewrite -mulrDl.
 Qed.
 
@@ -1233,18 +1233,18 @@ Lemma exp_prim_root k : (n %/ gcdn k n).-primitive_root (z ^+ k).
 Proof.
 set d := gcdn k n; have d_gt0: (0 < d)%N by rewrite gcdn_gt0 orbC n_gt0.
 have [d_dv_k d_dv_n]: (d %| k /\ d %| n)%N by rewrite dvdn_gcdl dvdn_gcdr.
-set q := (n %/ d)%N; rewrite /q.-primitive_root ltn_divr // n_gt0.
+set q := (n %/ d)%N; rewrite /q.-primitive_root ltn_divRL // n_gt0.
 apply/forallP=> i; rewrite unity_rootE -exprM -prim_order_dvd.
 rewrite -(divnK d_dv_n) -/q -(divnK d_dv_k) mulnAC dvdn_pmul2r //.
 apply/eqP; apply/idP/idP=> [|/eqP->]; last by rewrite dvdn_mull.
-rewrite gauss; first by rewrite eqn_leq ltn_ord; exact: dvdn_leq.
+rewrite Gauss_dvdr; first by rewrite eqn_leq ltn_ord; exact: dvdn_leq.
 by rewrite /coprime gcdnC -(eqn_pmul2r d_gt0) mul1n muln_gcdl !divnK.
 Qed.
 
 Lemma dvdn_prim_root m : (m %| n)%N -> m.-primitive_root (z ^+ (n %/ m)).
 Proof.
-set k := (n %/ m)%N => m_dv_n; rewrite -{1}(mulKn m n_gt0) -divn_divr // -/k.
-by rewrite -{1}(@dvdn_gcd_idl k n) ?exp_prim_root // -(divnK m_dv_n) dvdn_mulr.
+set k := (n %/ m)%N => m_dv_n; rewrite -{1}(mulKn m n_gt0) -divnA // -/k.
+by rewrite -{1}(@gcdn_idPl k n _) ?exp_prim_root // -(divnK m_dv_n) dvdn_mulr.
 Qed.
 
 End OnePrimitive.
@@ -1255,14 +1255,14 @@ Proof.
 move=> prim_z;have n_gt0 := prim_order_gt0 prim_z.
 apply/idP/idP=> [prim_zk | co_k_n].
   set d := gcdn k n; have dv_d_n: (d %| n)%N := dvdn_gcdr _ _.
-  rewrite /coprime -/d -(eqn_pmul2r n_gt0) mul1n -{2}(gcdn_mull n d).
-  rewrite -{2}(divnK dv_d_n) (mulnC _ d) gcdn_mul2l dvdn_gcd_idr //.
+  rewrite /coprime -/d -(eqn_pmul2r n_gt0) mul1n -{2}(gcdnMl n d).
+  rewrite -{2}(divnK dv_d_n) (mulnC _ d) -muln_gcdr (gcdn_idPr _) //.
   rewrite (prim_order_dvd prim_zk) -exprM -(prim_order_dvd prim_z).
-  by rewrite gcdn_divnC dvdn_mulr.
-have zkn_1: z ^+ k ^+ n = 1 by rewrite exprC (prim_expr_order prim_z) expr1n.
+  by rewrite muln_divCA_gcd dvdn_mulr.
+have zkn_1: z ^+ k ^+ n = 1 by rewrite exprAC (prim_expr_order prim_z) expr1n.
 have{zkn_1} [m prim_zk dv_m_n]:= prim_order_exists n_gt0 zkn_1.
 suffices /eqP <-: m == n by [].
-rewrite eqn_dvd dv_m_n -(@gauss n k m) 1?coprime_sym //=.
+rewrite eqn_dvd dv_m_n -(@Gauss_dvdr n k m) 1?coprime_sym //=.
 by rewrite (prim_order_dvd prim_z) exprM (prim_expr_order prim_zk).
 Qed.
 
@@ -1369,7 +1369,7 @@ Local Notation "a ^` ()" := (deriv a).
 
 Lemma coef_deriv p i : p^`()`_i = p`_i.+1 *+ i.+1.
 Proof.
-rewrite coef_poly -subn1 -ltn_add_sub.
+rewrite coef_poly -subn1 ltn_subRL.
 by case: leqP => // /(nth_default 0) ->; rewrite mul0rn.
 Qed.
 
@@ -1498,14 +1498,14 @@ Lemma derivnN n : {morph derivn n : p / - p}.
 Proof. exact: linearN. Qed.
 
 Lemma derivnZ n : scalable (derivn n).
-Proof. exact: lmod_linearZ. Qed.
+Proof. exact: linearZZ. Qed.
 
 Lemma derivnXn m n : 'X^m^`(n) = 'X^(m - n) *+ m ^_ n.
 Proof.
 apply/polyP=>i; rewrite coef_derivn coefMn !coefXn.
 case: (ltnP m n) => [lt_m_n | le_m_n].
   by rewrite eqn_leq leqNgt ltn_addr // mul0rn ffact_small.
-by rewrite -{1 3}(subnKC le_m_n) eqn_addl; case: eqP => [->|]; rewrite ?mul0rn.
+by rewrite -{1 3}(subnKC le_m_n) eqn_add2l; case: eqP => [->|]; rewrite ?mul0rn.
 Qed.
 
 Lemma derivnMXaddC n p c :
@@ -1534,7 +1534,7 @@ Local Notation "a ^`N ( n )" := (nderivn n a) : ring_scope.
 
 Lemma coef_nderivn n p i : p^`N(n)`_i = p`_(n + i) *+  'C(n + i, n).
 Proof.
-rewrite coef_poly -ltn_add_sub; case: leqP => // le_p_ni.
+rewrite coef_poly ltn_subRL; case: leqP => // le_p_ni.
 by rewrite nth_default ?mul0rn.
 Qed.
 
@@ -1568,7 +1568,7 @@ Proof.
 apply/polyP=> i; rewrite coef_nderivn coefMn !coefXn.
 have [lt_m_n | le_n_m] := ltnP m n.
   by rewrite eqn_leq leqNgt ltn_addr // mul0rn bin_small.
-by rewrite -{1 3}(subnKC le_n_m) eqn_addl; case: eqP => [->|]; rewrite ?mul0rn.
+by rewrite -{1 3}(subnKC le_n_m) eqn_add2l; case: eqP => [->|]; rewrite ?mul0rn.
 Qed.
 
 Fact nderivn_is_linear n : linear (nderivn n).
@@ -1595,7 +1595,7 @@ Lemma nderivnN n : {morph nderivn n : p / - p}.
 Proof. exact: linearN. Qed.
 
 Lemma nderivnZ n : scalable (nderivn n).
-Proof. exact: lmod_linearZ. Qed.
+Proof. exact: linearZZ. Qed.
 
 Lemma nderivnMXaddC n p c :
   (p * 'X + c%:P)^`N(n.+1) = p^`N(n) + p^`N(n.+1) * 'X.
@@ -1938,7 +1938,7 @@ Lemma comp_polyB p q r : (p - q) \Po r = (p \Po r) - (q \Po r).
 Proof. exact: raddfB. Qed.
 
 Lemma comp_polyZ c p q : (c *: p) \Po q = c *: (p \Po q).
-Proof. exact: lmod_linearZ. Qed.
+Proof. exact: linearZZ. Qed.
 
 Lemma comp_polyXr p : p \Po 'X = p.
 Proof. by rewrite -{2}/(idfun p) poly_initial. Qed.
@@ -2210,7 +2210,7 @@ Lemma size_comp_poly p q :
 Proof.
 have [-> | nz_p] := eqVneq p 0; first by rewrite comp_poly0 size_poly0.
 have [/size1_polyC-> | nc_q] := leqP (size q) 1.
-  by rewrite comp_polyCr !size_polyC -!sub1b !predn_sub muln0.
+  by rewrite comp_polyCr !size_polyC -!sub1b -!subnS muln0.
 have nz_q: q != 0 by rewrite -size_poly_eq0 -(subnKC nc_q).
 rewrite mulnC comp_polyE (polySpred nz_p) /= big_ord_recr /= addrC.
 rewrite size_addl size_scale ?lead_coef_eq0 ?size_exp //=.
@@ -2325,7 +2325,7 @@ move=> size_p /uniq_roots_prod_XsubC def_p Urs.
 case/def_p: Urs => q -> {p def_p} in size_p *.
 have [q0 | nz_q] := eqVneq q 0; first by rewrite q0 mul0r size_poly0 in size_p.
 have{q nz_q size_p} /size_poly1P[c _ ->]: size q == 1%N.
-  rewrite -(eqn_addr (size rs)) add1n -size_p.
+  rewrite -(eqn_add2r (size rs)) add1n -size_p.
   by rewrite size_Mmonic ?monic_prod_XsubC // size_prod_XsubC addnS.
 by rewrite lead_coef_Mmonic ?monic_prod_XsubC // lead_coefC mul_polyC.
 Qed.
@@ -2382,7 +2382,7 @@ have n_gt0: n > 0 := prim_order_gt0 prim_z.
 rewrite (@all_roots_prod_XsubC _ ('X^n - 1) zn); first 1 last.
 - by rewrite size_Xn_sub_1 // size_map size_iota subn0.
 - apply/allP=> _ /mapP[i _ ->] /=; rewrite rootE !hornerE hornerXn.
-  by rewrite exprC (prim_expr_order prim_z) expr1n subrr.
+  by rewrite exprAC (prim_expr_order prim_z) expr1n subrr.
 - rewrite uniq_rootsE map_inj_in_uniq ?iota_uniq // => i j.
   rewrite !mem_index_iota => ltin ltjn /eqP.
   by rewrite (eq_prim_root_expr prim_z) !modn_small // => /eqP.
@@ -2445,7 +2445,7 @@ Lemma aut_unity_rootC u v z n : n > 0 -> z ^+ n = 1 -> u (v z) = v (u z).
 Proof.
 move=> n_gt0 /(aut_unity_rootP _ n_gt0) def_z.
 have [[i def_uz] [j def_vz]] := (def_z u, def_z v).
-by rewrite !(def_uz, def_vz, rmorphX) exprC.
+by rewrite !(def_uz, def_vz, rmorphX) exprAC.
 Qed.
 
 End AutPolyRoot.

@@ -393,7 +393,7 @@ rewrite (eq_bigr (fun _ => nu x)) => [|_ /imsetP[y Ky ->]]; last first.
   by rewrite (nuL z) ?(nuL t) // !act0r !add0r addrC addKr.
 apply: val_inj; rewrite sumr_const !fmvalZ.
 rewrite -{2}(expgK coHiPG (fmodP (nu x))); congr (_ ^+ _ ^+ _).
-rewrite -[#|_|]divgS ?subsetIl // -(divn_pmul2l (cardG_gt0 H)).
+rewrite -[#|_|]divgS ?subsetIl // -(divnMl (cardG_gt0 H)).
 rewrite -!TI_cardMg //; last by rewrite setIA setIAC (setIidPl sHP).
 by rewrite group_modl // eqHK (setIidPr sPG) divgS.
 Qed.

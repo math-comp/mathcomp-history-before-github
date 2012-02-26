@@ -226,7 +226,7 @@ Qed.
 Lemma card_Hall pi G H : pi.-Hall(G) H -> #|H| = #|G|`_pi.
 Proof.
 case/and3P=> sHG piH pi'H; rewrite -(LaGrange sHG).
-by rewrite partn_mul ?LaGrange // part_pnat_id ?part_p'nat ?muln1.
+by rewrite partnM ?LaGrange // part_pnat_id ?part_p'nat ?muln1.
 Qed.
 
 Lemma pHall_sub pi A B : pi.-Hall(A) B -> B \subset A.
@@ -404,7 +404,7 @@ pose p := pdiv #|G|.+1; have p_pr: prime p by rewrite pdiv_prime ?ltnS.
 exists p; rewrite // pHallE sub1G cards1 part_p'nat //.
 apply/pgroupP=> q pr_q qG; apply/eqnP=> def_q.
 have: p %| #|G| + 1 by rewrite addn1 pdiv_dvd.
-by rewrite dvdn_addr -def_q // euclid1.
+by rewrite dvdn_addr -def_q // Euclid_dvd1.
 Qed.
 
 Lemma p_elt_exp pi x m : pi.-elt (x ^+ m) = (#[x]`_pi^' %| m).
@@ -412,7 +412,7 @@ Proof.
 apply/idP/idP=> [pi_xm | /dvdnP[q ->{m}]]; last first.
   rewrite mulnC; apply: pnat_dvd (part_pnat pi #[x]).
   by rewrite order_dvdn -expgM mulnC mulnA partnC // -order_dvdn dvdn_mulr.
-rewrite -(@gauss _ #[x ^+ m]); last first.
+rewrite -(@Gauss_dvdr _ #[x ^+ m]); last first.
   by rewrite coprime_sym (pnat_coprime pi_xm) ?part_pnat.
 apply: (@dvdn_trans #[x]); first by rewrite -{2}[#[x]](partnC pi) ?dvdn_mull.
 by rewrite order_dvdn mulnC expgM expg_order.
@@ -494,7 +494,7 @@ Lemma order_constt pi (x : gT) : #[x.`_pi] = #[x]`_pi.
 Proof.
 rewrite -{2}(consttC pi x) orderM; [|exact: commuteX2|]; last first.
   by apply: (@pnat_coprime pi); exact: p_elt_constt.
-by rewrite partn_mul // part_pnat_id ?part_p'nat ?muln1 //; exact: p_elt_constt.
+by rewrite partnM // part_pnat_id ?part_p'nat ?muln1 //; exact: p_elt_constt.
 Qed.
 
 Lemma consttM pi x y : commute x y -> (x * y).`_pi = x.`_pi * y.`_pi.
@@ -618,7 +618,7 @@ have{pG n leGn IHn} pZ: p %| #|'C_G(G)|.
     by apply/actsP=> x Gx y; rewrite !inE -!mem_conjgV -centJ conjGid ?groupV.
   elim/big_ind: _ => //; first exact: dvdn_add.
   move=> _ /imsetP[x /setDP[Gx nCx] ->]; rewrite card_orbit astab1J.
-  move: pG; rewrite -(LaGrange (subsetIl G 'C[x]%G)) euclid // => /orP[] //.
+  move: pG; rewrite -(LaGrange (subsetIl G 'C[x])) Euclid_dvdM // => /orP[] //.
   case/IHn=> [|y /setIP[Gy _ /eqP oyp]]; last by case/andP: (no_x y).
   apply: leq_trans leGn; apply: proper_card; rewrite properE subsetIl.
   by rewrite subsetI subxx /= -cent_set1 centsC sub1set.
@@ -632,7 +632,7 @@ rewrite -sub1set -gen_subG (normal_sub_max_pgroup maxQ) //; last first.
 rewrite /pgroup p'natE //= -[#|_|]/#[x]; apply/dvdnP=> [[m oxm]].
 have m_gt0: 0 < m by apply: dvdn_gt0 (order_gt0 x) _; rewrite oxm dvdn_mulr.
 case/idP: (no_x (x ^+ m)); rewrite /= groupX //= orderXgcd //= oxm.
-by rewrite gcdnC gcdn_mulr mulKn.
+by rewrite gcdnC gcdnMr mulKn.
 Qed.
 
 (* These lemmas actually hold for maximal pi-groups, but below we'll *)
@@ -733,7 +733,7 @@ Lemma pmorphim_pHall pi G H :
   pi.-Hall(f @* G) (f @* H) = pi.-Hall(G) H.
 Proof.
 move=> sGD sHD /andP[/subsetIP[sKH sKG] piK]; rewrite !pHallE morphimSGK //.
-apply: andb_id2l => sHG; rewrite -(LaGrange sKH) -(LaGrange sKG) partn_mul //.
+apply: andb_id2l => sHG; rewrite -(LaGrange sKH) -(LaGrange sKG) partnM //.
 by rewrite (part_pnat_id piK) !card_morphim !(setIidPr _) // eqn_pmul2l.
 Qed.
 
@@ -816,7 +816,7 @@ move=> pC cycC; have [-> | ntC] := eqsVneq C 1.
 have [p_pr _ [e oC]] := pgroup_pdiv pC ntC.
 rewrite -ker_conj_aut (card_isog (first_isog_loc _ _)) //.
 apply: leq_trans (dvdn_leq_log _ _ (cardSg (Aut_conj_aut _ _))) _ => //.
-rewrite card_Aut_cyclic // oC phi_pfactor //= logn_gauss ?pfactorK //.
+rewrite card_Aut_cyclic // oC totient_pfactor //= logn_Gauss ?pfactorK //.
 by rewrite prime_coprime // gtnNdvd // -(subnKC (prime_gt1 p_pr)).
 Qed.
 

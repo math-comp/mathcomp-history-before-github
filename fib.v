@@ -77,7 +77,7 @@ move/eqP->; case: m IH=> [|[|m]] IH n _.
 - by case: n=> [|n] //; rewrite fibSS mul1n.
 - by rewrite add2n fibSS addnC !mul1n.
 rewrite 2!addSn fibSS -addSn !IH // addnA [fib _ * _ + _ + _]addnAC.
-by rewrite -addnA -!muln_addl -!fibSS.
+by rewrite -addnA -!mulnDl -!fibSS.
 Qed.
 
 Theorem dvdn_fib: forall m n, m %| n -> fib m %| fib n.
@@ -164,7 +164,7 @@ Proof.
 elim=> [|m IH]; first by case=> /=.
 case=> [|n Hn]; first by rewrite muln0 muln1 !subn0.
 by rewrite -{2}[n.+1]add1n odd_add (addTb (odd n)) subSS IH //; case: odd;
-   rewrite !fibSS !muln_addr !muln_addl -!subn_sub !addKn.
+   rewrite !fibSS !mulnDr !mulnDl !subnDA !addKn.
 Qed.
 
 Lemma gcdn_fib: forall m n, gcdn (fib m) (fib n) = fib (gcdn m n).
@@ -235,16 +235,16 @@ Qed.
 Lemma double_lucas: forall n, 3 <= n -> (lucas n).*2 = fib (n.+3) + fib (n-3).
 Proof.
 case=> [|[|[|n]]] // _; rewrite !subSS subn0.
-apply/eqP; rewrite -(eqn_addl (lucas n.+4)) {2}lucasSS addnC -addnn.
-rewrite -2![lucas _ + _ + _]addnA eqn_addl addnC -lucasSS.
-rewrite !lucas_fib // [_ + (_ + _)]addnC -[fib _ + _ + _]addnA eqn_addl.
+apply/eqP; rewrite -(eqn_add2l (lucas n.+4)) {2}lucasSS addnC -addnn.
+rewrite -2![lucas _ + _ + _]addnA eqn_add2l addnC -lucasSS.
+rewrite !lucas_fib // [_ + (_ + _)]addnC -[fib _ + _ + _]addnA eqn_add2l.
 by rewrite [_ + (_ + _)]addnC -addnA -fibSS.
 Qed.
 
 Lemma fib_double_lucas : forall n, fib (n.*2) = fib n * lucas n.
 Proof.
-case=> [|n]; rewrite // -addnn fib_add // lucas_fib // muln_addr addnC.
-by apply/eqP; rewrite eqn_addl mulnC.
+case=> [|n]; rewrite // -addnn fib_add // lucas_fib // mulnDr addnC.
+by apply/eqP; rewrite eqn_add2l mulnC.
 Qed.
 
 Lemma fib_doubleS: forall n, fib (n.*2.+1) = fib n.+1 ^ 2 + fib n ^ 2.
@@ -256,7 +256,7 @@ Lemma fib_square: forall n, (fib n)^2 = if odd n then (fib n.+1 * fib n.-1).+1
                                         else (fib n.+1 * fib n.-1).-1.
 Proof.
 case=> [|n] //; move: (fib_sub (n.+1) n (leqnSn _)).
-rewrite leq_subS // subnn fib1 -{8}[n.+1]add1n odd_add addTb.
+rewrite subSn // subnn fib1 -{8}[n.+1]add1n odd_add addTb.
 case: odd=> H1; last first.
   by rewrite -[(_ * _).+1]addn1 {2}H1 addnC subnK // ltnW // -subn_gt0 -H1.
 by apply/eqP; rewrite -subn1 {2}H1 subKn // ltnW // -subn_gt0 -H1.
@@ -286,7 +286,7 @@ Lemma fib_sum_square: forall n, \sum_(i < n) (fib i)^2 = fib n * fib n.-1.
 Proof.
 elim=> [|n IH]; first by rewrite big_ord0.
 rewrite big_ord_recr /= IH.
-by rewrite -muln_addr addnC; case: (n)=> // n1; rewrite -fibSS mulnC.
+by rewrite -mulnDr addnC; case: (n)=> // n1; rewrite -fibSS mulnC.
 Qed.
 
 Lemma bin_sum_diag: forall n, \sum_(i < n) 'C(n.-1-i,i) = fib n.
@@ -300,7 +300,7 @@ move/eqP->; case: n IH=> [|[|n]] IH.
 rewrite fibSS -!IH // big_ord_recl bin0 big_ord_recr /= subnn bin0n addn0.
 set ss := \sum_(i < _) _.
 rewrite big_ord_recl bin0 -addnA -big_split; congr (_ + _).
-by apply eq_bigr=> i _ /=; rewrite -binS leq_subS //; case: i.
+by apply eq_bigr=> i _ /=; rewrite -binS subSn //; case: i.
 Qed.
 
 

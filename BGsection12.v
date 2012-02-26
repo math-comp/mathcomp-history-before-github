@@ -130,7 +130,7 @@ Proof. exact: pnat_coprime (pcore_pgroup _ _) (pHall_pgroup hallE). Qed.
 Let coMsE := coprime_sigma_compl.
 
 Lemma pi_sigma_compl : \pi(E) =i [predD \pi(M) & \sigma(M)].
-Proof. by move=> p; rewrite /= (card_Hall hallE) pi_of_partn // !inE andbC. Qed.
+Proof. by move=> p; rewrite /= (card_Hall hallE) pi_of_part // !inE andbC. Qed.
 
 Lemma sdprod_sigma : M`_\sigma ><| E = M.
 Proof.
@@ -182,7 +182,7 @@ rewrite 4!inE -(andb_idl (pnatPpi (pHall_pgroup hallE'))) -andbA.
 apply: andb_id2l => s'p; have sylP_M := subHall_Sylow hallE s'p sylP.
 rewrite -(p_rank_Sylow sylP_M) (p_rank_Sylow sylP) andbC; apply: andb_id2r.
 rewrite eqn_leq p_rank_gt0 mem_primes; case/and3P=> _ p_pr _.
-rewrite (card_Hall hallE') pi_of_partn 3?inE ?mem_primes ?cardG_gt0 //=.
+rewrite (card_Hall hallE') pi_of_part 3?inE ?mem_primes ?cardG_gt0 //=.
 by rewrite p_pr inE /= s'p andbT.
 Qed.
 
@@ -1713,8 +1713,8 @@ have [cSS | not_cSS] := boolP (abelian S); last first.
   split=> //; apply/eqP; rewrite eqn_dvd exponentS //=.
   rewrite -(partnC p (exponent_gt0 E0)) -(partnC p (exponent_gt0 E)).
   apply: dvdn_mul; last first.
-    rewrite (partn_exponentS sE0E) //.
-    rewrite -(sdprod_card defE) partn_mul ?cardG_gt0 //.
+    rewrite (partnXonentS sE0E) //.
+    rewrite -(sdprod_card defE) partnM ?cardG_gt0 //.
     by rewrite oA0 part_p'nat ?mul1n ?dvdn_part // pnatNK pnat_id.
   have pA0: p.-group A0 by rewrite /pgroup oA0 pnat_id.
   have [P sylP sA0P] := Sylow_superset (normal_sub nsA0E) pA0.
@@ -1727,7 +1727,7 @@ have [cSS | not_cSS] := boolP (abelian S); last first.
   have sylP0: p.-Sylow(E0) (E0 :&: P).
     rewrite pHallE subsetIl /= -(eqn_pmul2l (cardG_gt0 A0)).
     rewrite (dprod_card defP) (card_Hall sylP) -(sdprod_card defE).
-    by rewrite partn_mul // part_pnat_id.
+    by rewrite partnM // part_pnat_id.
   rewrite -(exponent_Hall sylP) -(dprod_exponent defP) (exponent_Hall sylP0).
   rewrite dvdn_lcm (dvdn_trans (exponent_dvdn A0)) //= oA0.
   apply: contraLR piE0p; rewrite -p'natE // -partn_eq1 // partn_part //.
@@ -1827,7 +1827,7 @@ suffices mkZ: forall S, {Z | ntE2sylow S ==> sameExp Z S && cyclicRegular Z}.
     rewrite cent_joinEl ?(sub_abelian_cent2 cE2E2) //=.
     suffices p'Z2': p^'.-group Z2'.
       rewrite coprime_cardMg ?(pnat_coprime pZ) //.
-      by rewrite partn_mul // part_pnat_id // part_p'nat // muln1.
+      by rewrite partnM // part_pnat_id // part_p'nat // muln1.
     pose p'inE2 X := X \subset E2 -> p^'.-group X.
     apply: (@big_ind _ p'inE2) => // [_|X Y IHX IHY|T]; first exact: pgroup1.
       move; rewrite join_subG /=; case/andP=> sXE2 sYE2.
@@ -1899,7 +1899,7 @@ have [trivCESb | ntCESb] := eqVneq (E / 'C_E(S)) 1.
     have defX1: 'Ohm_1(<[x]>) = 'Mho^n.-1(S).
       rewrite -(Mho_dprod _ defS) (Mho_p_cycle _ py).
       rewrite /order (card_pgroup px) (card_pgroup py) ltn_exp2l // -/n in ltYX.
-      rewrite -{2}(subnKC ltYX) addSn expn_add -card_pgroup // expgM.
+      rewrite -{2}(subnKC ltYX) addSn expnD -card_pgroup // expgM.
       rewrite expg_order expg1n cycle1 dprodg1.
       by rewrite (Ohm_p_cycle _ px) (Mho_p_cycle _ px) subn1.
     exists <[x]>%G; rewrite /sameExp expS exponent_cycle eqxx.
@@ -2035,7 +2035,7 @@ have [cycS1 cycS2]: cyclic S1 /\ cyclic S2.
   apply/andP; rewrite !(abelian_rank1_cyclic (abelianS _ cSS)) //.
   rewrite -(leqif_add (leqif_geq _) (leqif_geq _)) ?rank_gt0 // addn1 -rpS.
   rewrite !(rank_pgroup (pgroupS _ pS)) ?(p_rank_abelian p (abelianS _ cSS)) //.
-  by rewrite -logn_mul ?cardG_gt0 // (dprod_card (Ohm_dprod 1 defS12)).
+  by rewrite -lognM ?cardG_gt0 // (dprod_card (Ohm_dprod 1 defS12)).
 have [nsS2NS nsS1NS]: S2 <| 'N(S) /\ S1 <| 'N(S) := n_subNS X nSX.
 pose Z := if #|S1| < #|S2| then [group of S2] else [group of S1].
 have [ntZ sZS nsZN cycZ]: [/\ Z :!=: 1, Z \subset S, Z <| 'N(S) & cyclic Z].
@@ -2045,7 +2045,7 @@ exists Z; apply/and4P; rewrite /sameExp; split=> //; last first.
   by rewrite regNNS // (char_norm_trans (Ohm_char 1 Z)) // normal_norm.
 rewrite -(dprod_exponent defS12) /= (fun_if val) fun_if !exponent_cyclic //=.
 rewrite (card_pgroup (pgroupS sS1S pS)) (card_pgroup (pgroupS sS2S pS)) //.
-by rewrite /= -/S1 -/S2 ltn_exp2l ?prime_gt1 // -fun_if -lcmn_exp.
+by rewrite /= -/S1 -/S2 ltn_exp2l ?prime_gt1 // -fun_if expn_max.
 Qed.
 
 (* This is B & G, Theorem 12.13. *)
@@ -2344,12 +2344,12 @@ have [sRM sRH] := subsetIP sR_MH; have [sH'r rrH not_rH'] := and3P t1Hr.
 have bH'r: r \notin \beta(H).
   by apply: contra sH'r; rewrite -eq_abH; exact: alpha_sub_sigma.
 have sylR_H: r.-Sylow(H) R.
-  rewrite pHallE sRH -defH -LaGrangeMr partn_mul ?cardG_gt0 //.
+  rewrite pHallE sRH -defH -LaGrangeMr partnM ?cardG_gt0 //.
   rewrite -(card_Hall sylR) part_p'nat ?mul1n ?(pnat_dvd (dvdn_indexg _ _)) //=.
   by rewrite (pi_p'nat (pcore_pgroup _ _)).
 rewrite inE /= orbC -implyNb eq_abM; apply/implyP=> bM'r.
 have sylR_M: r.-Sylow(M) R.
-  rewrite pHallE sRM -defM -LaGrangeMr partn_mul ?cardG_gt0 //.
+  rewrite pHallE sRM -defM -LaGrangeMr partnM ?cardG_gt0 //.
   rewrite -(card_Hall sylR) part_p'nat ?mul1n ?(pnat_dvd (dvdn_indexg _ _)) //=.
   by rewrite (pi_p'nat (pcore_pgroup _ _)).
 have rrR: 'r_r(R) = 1%N by rewrite (p_rank_Sylow sylR_H) (eqP rrH).
@@ -2460,7 +2460,7 @@ have [x sYxMs]: exists x, Y :^ x \subset M`_\sigma.
   have [H hallH] := Hall_exists \sigma(M) solML.
   have [sHM sHL] := subsetIP (pHall_sub hallH).
   have hallH_L: \sigma(M).-Hall(L) H.
-    rewrite pHallE sHL -defL -LaGrangeMr partn_mul ?cardG_gt0 //.
+    rewrite pHallE sHL -defL -LaGrangeMr partnM ?cardG_gt0 //.
     rewrite -(card_Hall hallH) part_p'nat ?mul1n //=.
     exact: pnat_dvd (dvdn_indexg _ _) sM'K.
   have [x _ sYxH]:= Hall_Jsub (mmax_sol maxL) hallH_L sYL sM_Y.
@@ -2480,7 +2480,7 @@ rewrite (leq_trans (p_rankS p sNHY_L)); last first.
   have [P sylP] := Sylow_exists p (M :&: L).
   have [_ sPL] := subsetIP (pHall_sub sylP).
   have{sPL} sylP_L: p.-Sylow(L) P.
-    rewrite pHallE sPL -defL -LaGrangeMr partn_mul ?cardG_gt0 //.
+    rewrite pHallE sPL -defL -LaGrangeMr partnM ?cardG_gt0 //.
     rewrite -(card_Hall sylP) part_p'nat ?mul1n //=.
     exact: pnat_dvd (dvdn_indexg _ _) p'K.
   rewrite -(p_rank_Sylow sylP_L) {P sylP sylP_L}(p_rank_Sylow sylP).

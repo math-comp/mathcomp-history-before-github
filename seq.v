@@ -360,7 +360,7 @@ Lemma size_set_nth s n y : size (set_nth s n y) = maxn n.+1 (size s).
 Proof.
 elim: s n => [|x s IHs] [|n] //=.
 - by rewrite size_ncons addn1 maxn0.
-- by rewrite -add_sub_maxn subn1.
+- by rewrite maxnE subn1.
 by rewrite IHs -add1n addn_maxr.
 Qed.
 
@@ -1323,7 +1323,7 @@ Proof. by apply/perm_eqlP; apply/perm_eqP=> a; rewrite !count_cat addnC. Qed.
 Lemma perm_cat2l s1 s2 s3 : perm_eq (s1 ++ s2) (s1 ++ s3) = perm_eq s2 s3.
 Proof.
 apply/perm_eqP/perm_eqP=> eq23 a; apply/eqP;
-  by move/(_ a)/eqP: eq23; rewrite !count_cat eqn_addl.
+  by move/(_ a)/eqP: eq23; rewrite !count_cat eqn_add2l.
 Qed.
 
 Lemma perm_cons x s1 s2 : perm_eq (x :: s1) (x :: s2) = perm_eq s1 s2.
@@ -1527,7 +1527,7 @@ Lemma rot_add_mod m n s : n <= size s -> m <= size s ->
   rot m (rot n s) = rot (if m + n <= size s then m + n else m + n - size s) s.
 Proof.
 move=> Hn Hm; case: leqP => [/rot_addn // | /ltnW Hmn]; symmetry.
-by rewrite -{2}(rotK n s) /rotr -rot_addn size_rot addn_subA ?subnK ?addnK.
+by rewrite -{2}(rotK n s) /rotr -rot_addn size_rot addnBA ?subnK ?addnK.
 Qed.
 
 Lemma rot_rot m n s : rot m (rot n s) = rot n (rot m s).
@@ -1658,7 +1658,7 @@ case: eqP => [_ | ne_xy]; last first.
   by case: m def_s1 sz_m => [//|[m []//|m]] -> [<-]; exists m.
 pose i := index true m; have def_m_i: take i m = nseq (size (take i m)) false.
   apply/all_pred1P; apply/(all_nthP true) => j.
-  rewrite size_take ltnNge leq_minl negb_or -ltnNge; case/andP=> lt_j_i _.
+  rewrite size_take ltnNge geq_min negb_or -ltnNge; case/andP=> lt_j_i _.
   rewrite nth_take //= -negb_add addbF -addbT -negb_eqb.
   by rewrite [_ == _](before_find _ lt_j_i).
 have lt_i_m: i < size m.
@@ -2313,7 +2313,7 @@ Lemma nth_zip_cond p s t i :
    nth p (zip s t) i
      = (if i < size (zip s t) then (nth p.1 s i, nth p.2 t i) else p).
 Proof.
-rewrite size_zip ltnNge leq_minl.
+rewrite size_zip ltnNge geq_min.
 by elim: s t i => [|x s IHs] [|y t] [|i] //=; rewrite ?orbT -?IHs.
 Qed.
 
@@ -2358,14 +2358,14 @@ Qed.
 Lemma reshapeKr sh s : size s <= sumn sh -> flatten (reshape sh s) = s.
 Proof.
 elim: sh s => [[]|n sh IHsh] //= s sz_s; rewrite IHsh ?cat_take_drop //.
-by rewrite size_drop leq_sub_add.
+by rewrite size_drop leq_subLR.
 Qed.
 
 Lemma reshapeKl sh s : size s >= sumn sh -> shape (reshape sh s) = sh.
 Proof.
 elim: sh s => [[]|n sh IHsh] //= s sz_s.
 rewrite size_takel; last exact: leq_trans (leq_addr _ _) sz_s.
-by rewrite IHsh // -(leq_add2l n) size_drop add_sub_maxn leq_maxr sz_s orbT.
+by rewrite IHsh // -(leq_add2l n) size_drop -maxnE leq_max sz_s orbT.
 Qed.
 
 End Flatten.

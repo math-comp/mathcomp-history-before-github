@@ -784,7 +784,7 @@ have:= pG; rewrite -pnat_exponent => /p_natP[n expGpn].
 rewrite join_subG subxx andbT /= -defZ -(subnn n.-1).
 elim: {2}n.-1 => [|m IHm].
   rewrite (MhoE _ pG) gen_subG; apply/subsetP=> _ /imsetP[x Gx ->].
-  rewrite subn0 -subn1 -add1n add_sub_maxn maxnC -add_sub_maxn expn_add.
+  rewrite subn0 -subn1 -add1n -maxnE maxnC maxnE expnD.
   by rewrite expgM -expGpn expg_exponent ?groupX ?group1.
 rewrite cChaG ?Mho_char //= (MhoE _ pG) /abelian cent_gen gen_subG.
 apply/centsP=> _ /imsetP[x Gx ->] _ /imsetP[y Gy ->].
@@ -793,8 +793,8 @@ apply/commgP; rewrite {1}expnSr expgM.
 rewrite commXg -?commgX; try by apply: cGG'; rewrite ?mem_commg ?groupX.
 apply/commgP; rewrite subsetI Mho_sub centsC in IHm.
 apply: (centsP IHm); first by rewrite groupX.
-rewrite -add1n -(addn1 m) -subn_sub add_sub_maxn maxnC -add_sub_maxn.
-rewrite -expgM -expnSr -addSn expn_add expgM groupX //=.
+rewrite -add1n -(addn1 m) subnDA -maxnE maxnC maxnE.
+rewrite -expgM -expnSr -addSn expnD expgM groupX //=.
 by rewrite Mho_p_elt ?(mem_p_elt pG).
 Qed.
 
@@ -869,7 +869,7 @@ have [_ _ [m oZ]] := pgroup_pdiv (pgroupS sZG pG) ntZ.
 have lt_m1_n: m.+1 < n.
   suffices: 1 < logn p #|(G / 'Z(G))|.
     rewrite card_quotient // -divgS // logn_div ?cardSg //.
-    by rewrite oG oZ !pfactorK // -ltn_add_sub addn1. 
+    by rewrite oG oZ !pfactorK // ltn_subRL addn1. 
   rewrite ltnNge; apply: contra not_cGG => cycGs.
   apply: cyclic_center_factor_abelian; rewrite (dvdn_prime_cyclic p_pr) //.
   by rewrite (card_pgroup (quotient_pgroup _ pG)) (dvdn_exp2l _ cycGs).
@@ -1077,8 +1077,8 @@ have oR: #|R| = (p ^ n.-2)%N.
   by rewrite -{1}(subnKC n_gt1) subn2 !expnS !mulKn.
 have oE: #|E| = (p ^ 3)%N.
   apply/eqP; rewrite -(@eqn_pmul2r #|R|) ?cardG_gt0 // mul_cardG defG ziER.
-  by rewrite defZE oZ oG -{1}(subnKC n_gt1) oR -expnSr -expn_add subn2.
-rewrite cprodE // oR oG -expn_sub ?subn2 //; split=> //.
+  by rewrite defZE oZ oG -{1}(subnKC n_gt1) oR -expnSr -expnD subn2.
+rewrite cprodE // oR oG -expnB ?subn2 //; split=> //.
   by split=> //; apply: card_p3group_extraspecial _ oE _; rewrite // defZE.
 case: ifP => [cRR | not_cRR]; first by rewrite -defZR (center_idP _).
 split; rewrite /special defZR //.
@@ -1222,7 +1222,7 @@ rewrite -(mulnK #|T| (cardG_gt0 (E :&: U))) -defT -mul_cardG /=.
 have ->: E :&: U = 'Z(S).
   apply/eqP; rewrite eqEsubset subsetI -{1 2}defZE subsetIl setIS //=.
   by case/cprodP: defU => [[V _ -> _]]  <- _; exact: mulG_subr.
-rewrite (IHs U) // oEp3 oZ -expn_add addSn expnS mulKn ?prime_gt0 //.
+rewrite (IHs U) // oEp3 oZ -expnD addSn expnS mulKn ?prime_gt0 //.
 by rewrite pfactorK //= uphalf_double.
 Qed.
 
@@ -1303,7 +1303,7 @@ pose f := Morphism fM; have fK: f @* K = K.
   apply/setP=> u; rewrite morphimEdom.
   apply/imsetP/idP=> [[v Kv ->] | Ku]; first exact: groupX.
   exists (u ^+ expg_invn K (val k)); first exact: groupX.
-  rewrite /f /= expgC expgK // oK coprime_expl // -unitZpE //.
+  rewrite /f /= expgAC expgK // oK coprime_expl // -unitZpE //.
   by case: (k) => /=; rewrite orderE -defZ oZE => j; rewrite natr_Zp.
 have fMact: {in K & <[x]>, morph_act 'J 'J f (idm <[x]>)}.
   by move=> u v _ _; rewrite /= conjXg.

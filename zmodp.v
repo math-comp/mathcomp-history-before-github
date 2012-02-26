@@ -87,12 +87,12 @@ Proof. exact: valZpK. Qed.
 
 Lemma Zp_addNz : left_inverse Zp0 Zp_opp Zp_add.
 Proof.
-by move=> x; apply: val_inj; rewrite /= modn_addml subnK ?modnn // ltnW.
+by move=> x; apply: val_inj; rewrite /= modnDml subnK ?modnn // ltnW.
 Qed.
 
 Lemma Zp_addA : associative Zp_add.
 Proof.
-by move=> x y z; apply: val_inj; rewrite /= modn_addml modn_addmr addnA.
+by move=> x y z; apply: val_inj; rewrite /= modnDml modnDmr addnA.
 Qed.
 
 Lemma Zp_addC : commutative Zp_add.
@@ -107,7 +107,7 @@ Canonical Zp_finGroupType := Eval hnf in [finGroupType of 'I_p for +%R].
 (* Ring operations *)
 
 Lemma Zp_mul1z : left_id Zp1 Zp_mul.
-Proof. by move=> x; apply: val_inj; rewrite /= modn_mulml mul1n modZp. Qed.
+Proof. by move=> x; apply: val_inj; rewrite /= modnMml mul1n modZp. Qed.
 
 Lemma Zp_mulC : commutative Zp_mul.
 Proof. by move=> x y; apply: val_inj; rewrite /= mulnC. Qed.
@@ -117,12 +117,12 @@ Proof. by move=> x; rewrite Zp_mulC Zp_mul1z. Qed.
 
 Lemma Zp_mulA : associative Zp_mul.
 Proof.
-by move=> x y z; apply: val_inj; rewrite /= modn_mulml modn_mulmr mulnA.
+by move=> x y z; apply: val_inj; rewrite /= modnMml modnMmr mulnA.
 Qed.
 
 Lemma Zp_mul_addr : right_distributive Zp_mul Zp_add.
 Proof.
-by move=> x y z; apply: val_inj; rewrite /= modn_mulmr modn_add2m muln_addr.
+by move=> x y z; apply: val_inj; rewrite /= modnMmr modnDm mulnDr.
 Qed.
 
 Lemma Zp_mul_addl : left_distributive Zp_mul Zp_add.
@@ -130,7 +130,7 @@ Proof. by move=> x y z; rewrite -!(Zp_mulC z) Zp_mul_addr. Qed.
 
 Lemma Zp_mulVz x : coprime p x -> Zp_mul (Zp_inv x) x = Zp1.
 Proof.
-move=> co_p_x; apply: val_inj; rewrite /Zp_inv co_p_x /= modn_mulml.
+move=> co_p_x; apply: val_inj; rewrite /Zp_inv co_p_x /= modnMml.
 by rewrite -(chinese_modl co_p_x 1 0) /chinese addn0 mul1n mulnC.
 Qed.
 
@@ -149,7 +149,7 @@ Proof. by rewrite /Zp_inv => /negPf->. Qed.
 Lemma Zp_mulrn x n : x *+ n = inZp (x * n).
 Proof.
 apply: val_inj => /=; elim: n => [|n IHn]; first by rewrite muln0 modn_small.
-by rewrite !GRing.mulrS /= IHn modn_addmr mulnS.
+by rewrite !GRing.mulrS /= IHn modnDmr mulnS.
 Qed.
 
 Import GroupScope.
@@ -226,7 +226,7 @@ Canonical Zp_comUnitRingType := Eval hnf in [comUnitRingType of 'I_p].
 Canonical Zp_finComUnitRingType := Eval hnf in [finComUnitRingType of 'I_p].
 
 Lemma Zp_nat n : n%:R = inZp n :> 'I_p.
-Proof. by apply: val_inj; rewrite [n%:R]Zp_mulrn /= modn_mulml mul1n. Qed.
+Proof. by apply: val_inj; rewrite [n%:R]Zp_mulrn /= modnMml mul1n. Qed.
 
 Lemma natr_Zp (x : 'I_p) : x%:R = x.
 Proof. by rewrite Zp_nat valZpK. Qed.
@@ -243,7 +243,7 @@ Lemma unit_Zp_expg (u : {unit 'I_p}) n :
   val (u ^+ n) = inZp (val u ^ n) :> 'I_p.
 Proof.
 apply: val_inj => /=; elim: n => [|n IHn] //.
-by rewrite expgS /= IHn expnS modn_mulmr.
+by rewrite expgS /= IHn expnS modnMmr.
 Qed.
 
 End ZpRing.
@@ -293,10 +293,10 @@ Lemma mem_Zp x : p > 1 -> x \in Zp. Proof. by rewrite /Zp => ->. Qed.
 
 Canonical units_Zp_group := [group of units_Zp].
 
-Lemma card_units_Zp : p > 0 -> #|units_Zp| = phi p.
+Lemma card_units_Zp : p > 0 -> #|units_Zp| = totient p.
 Proof.
-move=> p_gt0; transitivity (phi p.-2.+2); last by case: p p_gt0 => [|[|p']].
-by rewrite cardsT card_sub phi_count_coprime big_mkord -sum1_card.
+move=> p_gt0; transitivity (totient p.-2.+2); last by case: p p_gt0 => [|[|p']].
+by rewrite cardsT card_sub totient_count_coprime big_mkord -sum1_card.
 Qed.
 
 Lemma units_Zp_abelian : abelian units_Zp.

@@ -42,7 +42,7 @@ Lemma size_derivn (R : oIdomainType) (p : {poly R}) n :
   size p^`(n) = (size p - n)%N.
 Proof.
 elim: n=> [|n ihn]; first by rewrite derivn0 subn0.
-by rewrite derivnS size_deriv ihn predn_sub.
+by rewrite derivnS size_deriv ihn -subnS.
 Qed.
 
 Lemma size_nderivn (R : oIdomainType) (p : {poly R}) n :
@@ -63,10 +63,10 @@ Local Open Scope ring_scope.
 Variable F : fieldType.
 
 (* :TODO: change lemmas of this form in polydiv to this form *)
-Lemma bezout_eq1_coprimepP (p q : {poly F}) :
+Lemma Bezout_eq1_coprimepP (p q : {poly F}) :
       reflect (exists u : square_type {poly F}, u.1 * p + u.2 * q = 1)
          (coprimep p q).
-Proof. exact: bezout_eq1_coprimepP. Qed.
+Proof. exact: Bezout_eq1_coprimepP. Qed.
 
 Lemma monic_eqp : {in monic &, forall p q : {poly F}, (p %= q) = (p == q)%B}.
 Proof.
@@ -517,7 +517,7 @@ End monotony.
 
 Module EpsilonReasonning.
 
-Definition leq_maxE := (orTb, orbT, leqnn, leq_maxr).
+Definition leq_maxE := (orTb, orbT, leqnn, leq_max).
 
 Fixpoint max_seq s := if s is a :: r then maxn a (max_seq r) else 0%N.
 
@@ -546,7 +546,7 @@ Proof. by rewrite -select ?leq_maxE. Qed.
 
 Ltac big_selected i :=
   rewrite ?[in X in selected X]/i;
-  rewrite ?[in X in selected X]leq_maxr -/max_seq;
+  rewrite ?[in X in selected X]leq_max -/max_seq;
   rewrite [max_seq in X in selected X]select;
   apply instantiate_max_seq;
   rewrite ?[in X in selected X]orbA;
@@ -1356,7 +1356,7 @@ Lemma poly_mul_creal_eq0_coprime p q x :
   coprimep p q ->
   p.[x] * q.[x] == 0 -> {p.[x] == 0} + {q.[x] == 0}.
 Proof.
-move=> /bezout_eq1_coprimepP /sig_eqW [[u v] /= hpq]; pose_big_enough i.
+move=> /Bezout_eq1_coprimepP /sig_eqW [[u v] /= hpq]; pose_big_enough i.
   have := (erefl ((1 : {poly F}).[x i])).
   rewrite -{1}hpq /= hornerD hornerC.
   set upxi := (u * _).[_].
@@ -1458,7 +1458,7 @@ Qed.
 Lemma coprimep_root (p q : {poly F}) x :
   coprimep p q -> p.[x] == 0 -> q.[x] != 0.
 Proof.
-move=> /bezout_eq1_coprimepP /sig_eqW [[u v] hpq] px0.
+move=> /Bezout_eq1_coprimepP /sig_eqW [[u v] hpq] px0.
 have upx_eq0 : u.[x] * p.[x] == 0 by rewrite px0 mul_creal0.
 pose_big_enough i.
   have := (erefl ((1 : {poly F}).[x i])).
@@ -1579,7 +1579,7 @@ have sr1 : (1 < size r1)%N.
   by rewrite ltn_neqAle eq_sym lt0n size_poly_eq0 monic_neq0 ?andbT ?eq_sr1_sd.
 have sr2 : (1 < size r2)%N.
   rewrite size_divp ?size_dvdp ?monic_neq0 //.
-  rewrite -ltn_add_sub addn1 prednK ?(leq_trans _ sr1) // eq_sr1_sd.
+  rewrite ltn_subRL addn1 prednK ?(leq_trans _ sr1) // eq_sr1_sd.
   rewrite ltn_neqAle dvdp_leq ?monic_neq0 ?andbT ?dvdp_size_eqp ?dvdp_gcdl //.
   by apply: contra ndvd_pq=> /eqp_dvdl <-; rewrite dvdp_gcdr.
 move: (px0); rewrite eq_p_r2r1=> r2r1x_eq0.
@@ -1618,7 +1618,7 @@ rewrite /poly_bound.
 pose f q (k : nat) :=  `|q^`N(j.+1)`_k| * (`|a| + `|r|) ^+ k.
 rewrite ler_add //=.
 rewrite (big_ord_widen (sizeY q) (f q.[(z i)%:P])); last first.
-  rewrite size_nderivn leq_sub_add (leq_trans (leq_size_evalC _ _)) //.
+  rewrite size_nderivn leq_subLR (leq_trans (leq_size_evalC _ _)) //.
   by rewrite leq_addl.
 rewrite big_mkcond /= ler_sum // /f => k _.
 case: ifP=> _; last by rewrite mulr_ge0 ?exprn_ge0 ?addr_ge0 ?normr_ge0.
@@ -1659,12 +1659,12 @@ rewrite (@ler_trans _ (u * vi)) //.
     by rewrite addr_ge0 ?ler01 // sumr_ge0 //= => j _; rewrite poly_bound_ge0.
   rewrite /ui /u; case: maxrP; first by rewrite !expr1n.
   move=> r2_gt1; rewrite ler_eexpn2l //.
-  rewrite -subn1 leq_sub_add add1n (leq_trans _ (leqSpred _)) //.
+  rewrite -subn1 leq_subLR add1n (leq_trans _ (leqSpred _)) //.
   by rewrite leq_size_evalC.
 rewrite ler_wpmul2l ?exprn_ge0 ?ler_maxr ?ler01 // ler_add //.
 pose f j :=  poly_bound q.[(z i)%:P]^`N(j.+1) a r.
 rewrite (big_ord_widen (sizeY q).-1 f); last first.
-  rewrite -subn1 leq_sub_add add1n (leq_trans _ (leqSpred _)) //.
+  rewrite -subn1 leq_subLR add1n (leq_trans _ (leqSpred _)) //.
   by rewrite leq_size_evalC.
 rewrite big_mkcond /= ler_sum // /f => k _.
 by case: ifP=> _; rewrite ?bound_poly_bound_ge0 ?bound_poly_boundP.

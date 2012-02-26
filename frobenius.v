@@ -649,7 +649,7 @@ have{leqm} lt_qp_mq: q %/ p < mq by apply: leq_trans leqm; rewrite ltn_Pdiv.
 have: n %| #|'Ldiv_(p * n)(G)|.
   have: p * n %| #|G| by rewrite oG dvdn_pmul2r ?pdiv_dvd.
   move/IHm=> IH; apply: dvdn_trans (IH _); first exact: dvdn_mull.
-  by rewrite oG divn_pmul2r.
+  by rewrite oG divnMr.
 rewrite -(cardsID 'Ldiv_n()) dvdn_addl.
   rewrite -setIA ['Ldiv_n(_)](setIidPr _) //.
   apply/subsetP=> x; rewrite !inE -!order_dvdn; exact: dvdn_mull.
@@ -657,19 +657,19 @@ rewrite setDE -setIA -setDE; set A := _ :\: _.
 have pA x: x \in A -> #[x]`_p = (n`_p * p)%N.
   rewrite !inE -!order_dvdn => /andP[xn xnp].
   rewrite !p_part // -expnSr; congr (p ^ _)%N; apply/eqP.
-  rewrite eqn_leq -{1}addn1 -(pfactorK 1 pr_p) -logn_mul ?expn1 // mulnC.
+  rewrite eqn_leq -{1}addn1 -(pfactorK 1 pr_p) -lognM ?expn1 // mulnC.
   rewrite dvdn_leq_log ?muln_gt0 ?p_gt0 //= ltnNge; apply: contra xn => xn.
   move: xnp; rewrite -[#[x]](partnC p) //.
-  rewrite !gauss_inv ?coprime_partC //; case/andP=> _.
-  rewrite p_part ?pfactor_dvdn // xn gauss // coprime_sym.
+  rewrite !Gauss_dvd ?coprime_partC //; case/andP=> _.
+  rewrite p_part ?pfactor_dvdn // xn Gauss_dvdr // coprime_sym.
   exact: pnat_coprime (pnat_id _) (part_pnat _ _).
-rewrite -(partnC p n_gt0) gauss_inv ?coprime_partC //; apply/andP; split.
+rewrite -(partnC p n_gt0) Gauss_dvd ?coprime_partC //; apply/andP; split.
   rewrite -sum1_card (partition_big_imset (@cycle _)) /=.
   apply: dvdn_sum => _ /imsetP[x /setIP[Gx Ax] ->].
   rewrite (eq_bigl (generator <[x]>)) => [|y].
-    rewrite sum1dep_card -phi_gen -[#[x]](partnC p) //.
-    rewrite phi_coprime ?coprime_partC // dvdn_mulr // .
-    by rewrite (pA x Ax) p_part // -expnSr phi_pfactor // dvdn_mull.
+    rewrite sum1dep_card -totient_gen -[#[x]](partnC p) //.
+    rewrite totient_coprime ?coprime_partC // dvdn_mulr // .
+    by rewrite (pA x Ax) p_part // -expnSr totient_pfactor // dvdn_mull.
   rewrite /generator eq_sym andbC; case xy: {+}(_ == _) => //.
   rewrite !inE -!order_dvdn in Ax *.
   by rewrite -cycle_subG /order -(eqP xy) cycle_subG Gx.
@@ -690,8 +690,8 @@ rewrite (eq_bigr (fun _ => #|'Ldiv_n'(G')|)) => [|_ /imsetP[a Ga ->]].
     rewrite muln_lcmr -oCy order_constt pA // mulnAC partnC // dvdn_lcm.
     by rewrite cardSg ?subsetIl // mulnC oG dvdn_pmul2r ?pdiv_dvd.
   apply: IHm; [exact: dvdn_gcdl | apply: leq_ltn_trans lt_qp_mq].
-  rewrite -(@divn_pmul2r n`_p^') // -muln_lcm_gcd mulnC divn_pmul2l //.
-  rewrite leq_divr // divn_mulAC ?leq_divl ?dvdn_mulr ?dvdn_lcmr //.
+  rewrite -(@divnMr n`_p^') // -muln_lcm_gcd mulnC divnMl //.
+  rewrite leq_divRL // divn_mulAC ?leq_divLR ?dvdn_mulr ?dvdn_lcmr //.
   rewrite dvdn_leq ?muln_gt0 ?q_gt0 //= mulnC muln_lcmr dvdn_lcm.
   rewrite -(@dvdn_pmul2l n`_p) // mulnA -oy -oCy mulnCA partnC // -oG.
   by rewrite cardSg ?subsetIl // dvdn_mul ?pdiv_dvd.

@@ -786,7 +786,7 @@ rewrite /arg_max; case: pickP => [i /andP[Pi /forallP max_i] | no_i].
   by split=> // j; exact/implyP.
 have (n): FP n -> n <= foldr maxn 0 (map F (enum P)).
   case/existsP=> i; rewrite -[P i]mem_enum andbC => /andP[/eqP <-].
-  elim: (enum P) => //= j e IHe; rewrite leq_maxr orbC !inE.
+  elim: (enum P) => //= j e IHe; rewrite leq_max orbC !inE.
   by case/predU1P=> [-> | /IHe-> //]; rewrite leqnn orbT.
 case/ex_maxnP=> // n ex_i max_i; case/pred0P: ex_i => i.
 apply: contraFF (no_i i) => /andP[Pi def_n]; rewrite /= Pi.
@@ -1535,7 +1535,7 @@ Qed.
 
 Lemma unbumpKcond h i : bump h (unbump h i) = (i == h) + i.
 Proof.
-rewrite /bump /unbump leqNgt -predn_subS.
+rewrite /bump /unbump leqNgt -subSKn.
 case: (ltngtP i h) => /= [-> | ltih | ->] //; last by rewrite ltnn.
 by rewrite subn1 /= leqNgt !(ltn_predK ltih, ltih, add1n).
 Qed.
@@ -1552,7 +1552,7 @@ Proof. exact: addnS. Qed.
 Lemma unbump_addl h i k : unbump (k + h) (k + i) = k + unbump h i.
 Proof.
 apply: (can_inj (bumpK (k + h))).
-by rewrite bump_addl !unbumpKcond eqn_addl addnCA.
+by rewrite bump_addl !unbumpKcond eqn_add2l addnCA.
 Qed.
 
 Lemma unbumpS h i : unbump h.+1 i.+1 = (unbump h i).+1.
@@ -1560,7 +1560,7 @@ Proof. exact: unbump_addl 1. Qed.
 
 Lemma leq_bump h i j : (i <= bump h j) = (unbump h i <= j).
 Proof.
-rewrite /bump leq_sub_add.
+rewrite /bump leq_subLR.
 case: (leqP i h) (leqP h j) => [le_i_h | lt_h_i] [le_h_j | lt_j_h] //.
   by rewrite leqW (leq_trans le_i_h).
 by rewrite !(leqNgt i) ltnW (leq_trans _ lt_h_i).
@@ -1644,7 +1644,7 @@ Definition lshift m n (i : 'I_m) := Ordinal (lshift_subproof n i).
 Definition rshift m n (i : 'I_n) := Ordinal (rshift_subproof m i).
 
 Lemma split_subproof m n (i : 'I_(m + n)) : i >= m -> i - m < n.
-Proof. by move/leq_subS <-; rewrite leq_sub_add. Qed.
+Proof. by move/subSn <-; rewrite leq_subLR. Qed.
 
 Definition split m n (i : 'I_(m + n)) : 'I_m + 'I_n :=
   match ltnP (i) m with

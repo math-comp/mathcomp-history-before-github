@@ -4,7 +4,7 @@ Require Import bigop prime binomial finset fingroup morphism perm automorphism.
 Require Import quotient action gfunctor commutator gproduct.
 Require Import ssralg finalg zmodp cyclic center pgroup gseries nilpotent.
 Require Import sylow abelian maximal hall.
-Require poly.
+Require poly int.
 Require Import matrix mxalgebra mxrepresentation mxabelem.
 Require Import BGsection1.
 
@@ -21,7 +21,7 @@ Unset Printing Implicit Defensive.
 
 Section BGsection2.
 
-Import GroupScope GRing.Theory FinRing.Theory poly.UnityRootTheory.
+Import GroupScope GRing.Theory FinRing.Theory poly.UnityRootTheory int.IntDist.
 Local Open Scope ring_scope.
 
 Implicit Types (F : fieldType) (gT : finGroupType) (p : nat).
@@ -307,7 +307,7 @@ Qed.
 
 (* This is B & G, Proposition 2.4(b). *)
 Proposition rank_step_eigenspace_cycle i : 'n_ (i + h) = 'n_ i.
-Proof. by rewrite /n_ -Vi_mod modn_addr Vi_mod. Qed.
+Proof. by rewrite /n_ -Vi_mod modnDr Vi_mod. Qed.
 
 Let sumE := (\sum_(it : 'I_h * 'I_h) 'E_(it.1, it.2))%MS.
 
@@ -421,23 +421,23 @@ pose p (it : 'I_h * 'I_h) := inh (h - it.1 + it.2).
 have def_diag: sum_diagE = sumE.
   rewrite /sumE (partition_big p xpredT) //.
   apply: eq_bigr => n _; apply: eq_bigl => [[i t]] /=.
-  rewrite /p -val_eqE /= -(modn_add2l (h - i)).
-  by rewrite addnA subnK 1?ltnW // modn_addl modn_small.
+  rewrite /p -val_eqE /= -(eqn_modDl (h - i)).
+  by rewrite addnA subnK 1?ltnW // modnDl modn_small.
 have [Efull dxE] := mxdirect_sum_proj_eigenspace_cycle.
 have /mxdirect_sumsE[/= dx_diag rank_diag]: mxdirect sum_diagE.
   apply/mxdirectP; rewrite /= -/sum_diagE def_diag (mxdirectP dxE) /=.
   rewrite (partition_big p xpredT) //.
   apply: eq_bigr => n _; apply: eq_bigl => [[i t]] /=.
-  symmetry; rewrite /p -val_eqE /= -(modn_add2l (h - i)).
-  by rewrite addnA subnK 1?ltnW // modn_addl modn_small.
+  symmetry; rewrite /p -val_eqE /= -(eqn_modDl (h - i)).
+  by rewrite addnA subnK 1?ltnW // modnDl modn_small.
 have dx_sumE1: mxdirect (\sum_(i < h) 'E_i).
   by apply: mxdirect_sum_eigenspace => i j _ _; exact: inj_eps.
 have diag_mod n: diagE (n %% h) = diagE n.
-  by apply: eq_bigl=> it; rewrite modn_addmr.
+  by apply: eq_bigl=> it; rewrite modnDmr.
 split; last first.
   apply/mxdirectP; rewrite /= -/(diagE m) -diag_mod.
   rewrite (mxdirectP (dx_diag (inh m) _)) //=.
-  by apply: eq_bigl=> it; rewrite modn_addmr.
+  by apply: eq_bigl=> it; rewrite modnDmr.
 apply/eqmxP; rewrite sub_diagE /=.
 rewrite -(capmx_idPl (_ : _ <= sumE))%MS ?Efull ?submx1 //.
 rewrite -def_diag /sum_diagE (bigD1 (inh m)) //= addsmxC.
@@ -467,12 +467,12 @@ Proof.
 rewrite !rank_quasi_cent_cycle !{1}mul2n -addnn.
 rewrite {1}(reindex (fun i : 'I_h => inh (i + m))) /=; last first.
   exists (fun i : 'I_h => inh (i + (h - m %% h))%N) => i _.
-    apply: val_inj; rewrite /= modn_addml -addnA addnCA -modn_addml addnCA.
-    by rewrite subnKC 1?ltnW ?ltn_mod // modn_addr modn_small.
-  apply: val_inj; rewrite /= modn_addml -modn_addmr -addnA.
-  by rewrite subnK 1?ltnW ?ltn_mod // modn_addr modn_small.
+    apply: val_inj; rewrite /= modnDml -addnA addnCA -modnDml addnCA.
+    by rewrite subnKC 1?ltnW ?ltn_mod // modnDr modn_small.
+  apply: val_inj; rewrite /= modnDml -modnDmr -addnA.
+  by rewrite subnK 1?ltnW ?ltn_mod // modnDr modn_small.
 rewrite -mul2n big_distrr -!big_split /=; apply: eq_bigr => i _.
-by rewrite !addn0 (addnC (2 * _)%N) sqrn_distn addnC /n_ Vi_mod.
+by rewrite !addn0 (addnC (2 * _)%N) sqrn_dist addnC /n_ Vi_mod.
 Qed.
 
 Hypothesis rankEm : forall m, m != 0 %[mod h] -> \rank 'E_0 = (\rank 'E_m).+1.
@@ -485,23 +485,23 @@ Proposition rank_eigenspaces_quasi_homocyclic :
 Proof.
 have [defV dxV] := mxdirect_sum_eigenspace_cycle.
 have sum_n: (\sum_(i < h) 'n_i)%N = q by rewrite -(mxdirectP dxV) defV mxrank1.
-suffices [n [i]]: exists n, exists2 i : 'I_h, 
+suffices [n [i]]: exists n : nat, exists2 i : 'I_h, 
   `|'n_i - n| == 1%N & forall i', i' != i -> 'n_i' = n.
 - move/eqP=> n_i n_i'; rewrite -{1 5}(prednK h_gt0).
   rewrite -sum_n (bigD1 i) //= (eq_bigr _ n_i') sum_nat_const cardC1 card_ord.
-  by exists n; last exists i; rewrite ?distn_add2r ?ltn_add2r.
+  by exists n; last exists i; rewrite ?distnDr ?ltn_add2r.
 case: (leqP h 1) sum_n {defV dxV} => [|h_gt1 _].
   rewrite leq_eqVlt ltnNge h_gt0 orbF; move/eqP->; rewrite big_ord1 => n_0.
-  by exists q'; exists 0 => [|i']; rewrite ?(ord1 i') // n_0 distSn.
+  by exists q', 0 => [|i']; rewrite ?(ord1 i') // n_0 distSn.
 pose dn1 i := `|'n_i - 'n_(i + 1)|.
 have sum_dn1: (\sum_(0 <= i < h) dn1 i ^ 2 == 2)%N.
-  rewrite big_mkord -(eqn_addl (2 * \rank 'E_1)) -diff_rank_quasi_cent_cycle.
+  rewrite big_mkord -(eqn_add2l (2 * \rank 'E_1)) -diff_rank_quasi_cent_cycle.
   by rewrite -mulnSr -rankEm ?modn_small.
 pose diff_n := filter (fun i => dn1 i != 0%N) (index_iota 0 h).
 have diff_n_1: all (fun i => dn1 i == 1%N) diff_n.
   apply: contraLR sum_dn1; case/allPn=> i; rewrite mem_filter.
   case def_i: (dn1 i) => [|[|ni]] //=; case/splitPr=> e e' _.
-  by rewrite big_cat big_cons /= addnCA def_i -add2n sqrn_add.
+  by rewrite big_cat big_cons /= addnCA def_i -add2n sqrnD.
 have: sorted ltn diff_n.
   by rewrite (sorted_filter ltn_trans) // /index_iota subn0 iota_ltn_sorted.
 have: all (ltn^~ h) diff_n.
@@ -544,21 +544,21 @@ suffices: \sum_(i < h) `|'n_i - 'n_(i + 2)| ^ 2 > 2.
   by rewrite -(prednK h_gt0) ltnS (leq_trans _ lt_kj_h1) // ltnS subn_gt0.
 have lt_k1h: k.-1 < h by rewrite ltnW // (ltn_predK lt_jk).
 rewrite (bigD1 (Ordinal lt_jh)) // (bigD1 (Ordinal lt_k1h)) /=; last first.
-  by rewrite -val_eqE neq_ltn /= orbC -subn1 -ltn_add_sub lt_j1_k.
+  by rewrite -val_eqE neq_ltn /= orbC -subn1 ltn_subRL lt_j1_k.
 rewrite (bigD1 (Ordinal lt_kh)) /=; last first.
   by rewrite -!val_eqE !neq_ltn /= lt_jk (ltn_predK lt_jk) leqnn !orbT.
 rewrite !addnA ltn_addr // !addn2 (ltn_predK lt_jk) n_k1.
 rewrite (def_n j (ltnW lt_jh)) leqnn (def_n _ (ltn_trans lt_j1_k lt_kh)).
 rewrite lt_j1_k -if_neg -leqNgt leqnSn n_j1.
 rewrite (def_n _ (ltnW lt_k1h)) leq_pred -if_neg -ltnNge.
-rewrite -subn1 -ltn_add_sub lt_j1_k n_j1.
+rewrite -subn1 ltn_subRL lt_j1_k n_j1.
 suffices ->: 'n_k.+2 = 'n_k.+1.
   by rewrite distnC -n_k1 -(addn1 k) -/(dn1 k) (eqP dn1k).
 case: (leqP k.+2 h) => [le_k2h | ].
   by rewrite (def_n _ le_k2h) (leqNgt _ k) leqnSn n_k1 if_same.
 rewrite ltnS leq_eqVlt ltnNge lt_kh orbF; move/eqP=> def_h.
 rewrite -{1}def_h -add1n rank_step_eigenspace_cycle (def_n _ h_gt0).
-rewrite -(leq_subS (ltnW lt_jk)) def_h leq_sub_add in lt_kj_h1.
+rewrite -(subSn (ltnW lt_jk)) def_h leq_subLR in lt_kj_h1.
 by rewrite -(leq_add2r k) lt_kj_h1 n_k1.
 Qed.
 
@@ -598,7 +598,7 @@ suffices IH F q (rG : mx_representation F G q):
   have F'G: [char 'F_r]^'.-group G.
     rewrite /pgroup (eq_pnat _ (eq_negn (charf_eq (char_Fp r_pr)))).
     rewrite p'natE // -prime_coprime // (coprime_dvdl (pdiv_dvd _)) //.
-    by rewrite /coprime -addn1 gcdnC gcdn_addl gcdn1.
+    by rewrite /coprime -addn1 gcdnC gcdnDl gcdn1.
   by case/andP: (IH _ _ _ F'G (regular_mx_faithful _ _)).
 move=> F'G ffulG.
 without loss closF: F rG F'G ffulG / group_closure_field F gT.
@@ -726,7 +726,7 @@ have B1_if: \rank <<B (b 1%g)>> <= 1 ?= iff (<<B (b 1%g)>> == mxvec 1%:M)%MS.
   by apply/row_subP=> i; rewrite rowK conj1g repr_mx1.
 have rankEP: \rank (1%:M : 'A[F]_q) = (\sum_(ZxH \in clPqH) #|ZxH|)%N.
   rewrite acts_sum_card_orbit ?astabsJ ?quotient_norms // card_quotient //.
-  rewrite mxrank1 -divgS // -mulnn oPpn oZp expnS -muln2 expn_mulr -def_q.
+  rewrite mxrank1 -divgS // -mulnn oPpn oZp expnS -muln2 expnM -def_q.
   by rewrite mulKn // ltnW.
 have cl1: 1%g \in clPqH by apply/imsetP; exists 1%g; rewrite ?group1 ?class1G.
 have{B1_if Bfree_if}:= leqif_add B1_if (leqif_sum Bfree_if).
@@ -1131,7 +1131,7 @@ split.
     by rewrite -(unitrX_pos _ (prime_gt0 q_pr)) rq1 unitr1.
   pose u_r : {unit 'F_p} := Sub r Ur; have:= order_dvdG (in_setT u_r).
   rewrite card_units_Zp ?pdiv_gt0 // {2}/pdiv primes_prime //=.
-  rewrite (@phi_pfactor p 1) // muln1; apply: dvdn_trans.
+  rewrite (@totient_pfactor p 1) // muln1; apply: dvdn_trans.
   have: (u_r ^+ q == 1)%g.
     by rewrite -val_eqE unit_Zp_expg -Zp_nat natrX natr_Zp rq1.
   case/primeP: q_pr => _ q_min; rewrite -order_dvdn; move/q_min.

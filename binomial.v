@@ -53,7 +53,7 @@ have toFpP m: m %% p < p by rewrite ltn_mod.
 pose toFp := Ordinal (toFpP _); pose mFp (i j : 'I_p) := toFp (i * j).
 have Fp_mod (i : 'I_p) : i %% p = i by exact: modn_small.
 have mFpA: associative mFp.
-  by move=> i j k; apply: val_inj; rewrite /= modn_mulml modn_mulmr mulnA.
+  by move=> i j k; apply: val_inj; rewrite /= modnMml modnMmr mulnA.
 have mFpC: commutative mFp by move=> i j; apply: val_inj; rewrite /= mulnC.
 have mFp1: left_id Fp1 mFp by move=> i; apply: val_inj; rewrite /= mul1n.
 have mFp1r: right_id Fp1 mFp by move=> i; apply: val_inj; rewrite /= muln1.
@@ -62,7 +62,7 @@ pose mFpM := Monoid.operator (@Monoid.ComLaw _ _ mFpLaw mFpC).
 pose vFp (i : 'I_p) := toFp (egcdn i p).1.
 have vFpV i: i != Fp0 -> mFp (vFp i) i = Fp1.
   rewrite -val_eqE /= -lt0n => i_gt0; apply: val_inj => /=.
-  rewrite modn_mulml; case: egcdnP => //= _ km -> _; rewrite {km}modn_addl_mul.
+  rewrite modnMml; case: egcdnP => //= _ km -> _; rewrite {km}modnMDl.
   suffices: coprime i p by move/eqnP->; rewrite modn_small.
   rewrite coprime_sym prime_coprime //; apply/negP=> /(dvdn_leq i_gt0).
   by rewrite leqNgt ltn_ord.
@@ -75,23 +75,23 @@ have vFpK: {in predC1 Fp0, involutive vFp}.
 have le_pmFp (i : 'I_p) m: i <= p + m.
   by apply: leq_trans (ltnW _) (leq_addr _ _).
 have eqFp (i j : 'I_p): (i == j) = (p %| p + i - j).
-  by rewrite -eqn_mod_dvd ?(modn_addl, Fp_mod).
+  by rewrite -eqn_mod_dvd ?(modnDl, Fp_mod).
 have vFpId i: (vFp i == i :> nat) = xpred2 Fp1 Fpn1 i.
   symmetry; have [->{i} | /eqP ni0] := i =P Fp0.
     by rewrite /= -!val_eqE /= -{2}[p]prednK //= modn_small //= -(subnKC lt1p).
-  rewrite 2!eqFp -euclid //= -[_ - p.-1]subSS prednK //.
+  rewrite 2!eqFp -Euclid_dvdM //= -[_ - p.-1]subSS prednK //.
   have lt0i: 0 < i by rewrite lt0n.
-  rewrite -addnS addKn -addn_subA // muln_addl -{2}(addn1 i) -subn_sqr.
-  rewrite addn_subA ?leq_sqr // mulnS -addnA -mulnn -muln_addl.
-  rewrite -(subnK (le_pmFp (vFp i) i)) muln_addl addnCA.
-  rewrite -[1 ^ 2]/(Fp1 : nat) -addn_subA // dvdn_addl.
-    by rewrite euclid // -eqFp eq_sym orbC /dvdn Fp_mod eqn0Ngt lt0i.
-  by rewrite -eqn_mod_dvd // Fp_mod modn_addl -(vFpV _ ni0) eqxx.
+  rewrite -addnS addKn -addnBA // mulnDl -{2}(addn1 i) -subn_sqr.
+  rewrite addnBA ?leq_sqr // mulnS -addnA -mulnn -mulnDl.
+  rewrite -(subnK (le_pmFp (vFp i) i)) mulnDl addnCA.
+  rewrite -[1 ^ 2]/(Fp1 : nat) -addnBA // dvdn_addl.
+    by rewrite Euclid_dvdM // -eqFp eq_sym orbC /dvdn Fp_mod eqn0Ngt lt0i.
+  by rewrite -eqn_mod_dvd // Fp_mod modnDl -(vFpV _ ni0) eqxx.
 suffices [mod_fact]: toFp (p.-1)`! = Fpn1.
-  by rewrite /dvdn -addn1 -modn_addml mod_fact addn1 prednK // modnn.
+  by rewrite /dvdn -addn1 -modnDml mod_fact addn1 prednK // modnn.
 rewrite dFact //; rewrite ((big_morph toFp) Fp1 mFpM) //; first last.
 - by apply: val_inj; rewrite /= modn_small.
-- by move=> i j; apply: val_inj; rewrite /= modn_mul2m.
+- by move=> i j; apply: val_inj; rewrite /= modnMm.
 rewrite big_mkord (eq_bigr id) => [|i _]; last by apply: val_inj => /=.
 pose ltv i := vFp i < i; rewrite (bigID ltv) -/mFpM [mFpM _ _]mFpC.
 rewrite (bigD1 Fp1) -/mFpM; last by rewrite [ltv _]ltn_neqAle vFpId.
@@ -198,7 +198,7 @@ Proof. by elim: n => [|n IHn] //; rewrite binS bin_small. Qed.
 Lemma mul_Sm_binm m n : m.+1 * 'C(m, n) = n.+1 * 'C(m.+1, n.+1).
 Proof.
 elim: m n => [|m IHm] [|n] //; first by rewrite bin0 bin1 muln1 mul1n.
-by rewrite mulSn {2}binS muln_addr addnCA !IHm -muln_addr.
+by rewrite mulSn {2}binS mulnDr addnCA !IHm -mulnDr.
 Qed.
 
 Lemma bin_fact m n : n <= m -> 'C(m, n) * (n`! * (m - n)`!) = m`!.
@@ -213,7 +213,7 @@ Lemma bin_factd n m : 0 < n -> 'C(n, m)  = n`! %/ (m`! * (n - m)`!).
 Proof.
 move=> n_gt0; have [/bin_fact <-|lt_n_m] := leqP m n.
   by rewrite mulnK // muln_gt0 !fact_gt0.
-by rewrite bin_small // -divn_divl !divn_small ?fact_gt0 // fact_smonotone.
+by rewrite bin_small // divnMA !divn_small ?fact_gt0 // fact_smonotone.
 Qed.
 
 Lemma bin_ffact n m : 'C(n, m) * m`! = n ^_ m.
@@ -241,13 +241,13 @@ by case: n => //= n; rewrite -{3}[n]bin1 mul_Sm_binm mul2n half_double.
 Qed.
 
 Lemma bin2odd n : odd n -> 'C(n, 2) = n * n.-1./2.
-Proof. by case: n => // n oddn; rewrite bin2 -!divn2 divn_mulA ?dvdn2. Qed.
+Proof. by case: n => // n oddn; rewrite bin2 -!divn2 muln_divA ?dvdn2. Qed.
 
 Lemma prime_dvd_bin k p : prime p -> 0 < k < p -> p %| 'C(p, k).
 Proof.
 move=> p_pr /andP[k_gt0 lt_k_p]; have def_p := ltn_predK lt_k_p.
 have: p %| p * 'C(p.-1, k.-1) by rewrite dvdn_mulr.
-by rewrite -def_p mul_Sm_binm def_p prednK // euclid // gtnNdvd.
+by rewrite -def_p mul_Sm_binm def_p prednK // Euclid_dvdM // gtnNdvd.
 Qed.
 
 Lemma triangular_sum n : \sum_(0 <= i < n) i = 'C(n, 2).
@@ -267,13 +267,13 @@ Theorem Pascal a b n :
   (a + b) ^ n = \sum_(i < n.+1) 'C(n, i) * (a ^ (n - i) * b ^ i).
 Proof.
 elim: n => [|n IHn]; rewrite big_ord_recl muln1 ?big_ord0 //.
-rewrite expnS {}IHn /= muln_addl !big_distrr /= big_ord_recl muln1 subn0.
+rewrite expnS {}IHn /= mulnDl !big_distrr /= big_ord_recl muln1 subn0.
 rewrite !big_ord_recr /= !binn !subnn bin0 !subn0 !mul1n -!expnS -addnA.
 congr (_ + _); rewrite addnA -big_split /=; congr (_ + _).
-apply: eq_bigr => i _; rewrite mulnCA (mulnA a) -expnS -ltn_subS //.
-by rewrite (mulnC b) -2!mulnA -expnSr -muln_addl.
+apply: eq_bigr => i _; rewrite mulnCA (mulnA a) -expnS subnSK //.
+by rewrite (mulnC b) -2!mulnA -expnSr -mulnDl.
 Qed.
-Definition expn_addl := Pascal.
+Definition expnDn := Pascal.
 
 Lemma Vandermonde k l i :
   \sum_(j < i.+1) 'C(k, j) * 'C(l, i - j) = 'C(k + l , i).
@@ -285,24 +285,24 @@ suffices{k i} fxx k i: f k.+1 i.+1 = f k i.+1 + f k i.
   by rewrite big_ord_recl big_ord0 addn0 !bin0 muln1.
 rewrite {}/f big_ord_recl (big_ord_recl (i.+1)) !bin0 !mul1n.
 rewrite -addnA -big_split /=; congr (_ + _).
-by apply: eq_bigr => j _ ; rewrite -muln_addl.
+by apply: eq_bigr => j _ ; rewrite -mulnDl.
 Qed.
 
 Lemma subn_exp m n k :
   m ^ k - n ^ k = (m - n) * (\sum_(i < k) m ^ (k.-1 -i) * n ^ i).
 Proof.
 case: k => [|k]; first by rewrite big_ord0.
-rewrite muln_subl !big_distrr big_ord_recl big_ord_recr /= subn0 muln1.
-rewrite subnn mul1n -!expnS -subn_sub; congr (_ - _).
+rewrite mulnBl !big_distrr big_ord_recl big_ord_recr /= subn0 muln1.
+rewrite subnn mul1n -!expnS subnDA; congr (_ - _).
 set F := fun _ => n * _; rewrite (eq_bigr F) ?addnK {}/F // => i _.
-by rewrite (mulnCA n) -expnS mulnA -expnS -ltn_subS.
+by rewrite (mulnCA n) -expnS mulnA -expnS subnSK.
 Qed.
 
 Lemma predn_exp m k : (m ^ k).-1 = m.-1 * (\sum_(i < k) m ^ i).
 Proof.
 rewrite -!subn1 -{1}(exp1n k) subn_exp; congr (_ * _).
 symmetry; rewrite (reindex_inj rev_ord_inj); apply: eq_bigr => i _ /=.
-by rewrite -subn1 subn_sub exp1n muln1.
+by rewrite -subn1 -subnDA exp1n muln1.
 Qed.
 
 (* Combinatorial characterizations. *)
@@ -439,7 +439,7 @@ exists (fun t => [tuple of map (sub_mn t) (ord_tuple m)]) => [t _ | t].
 rewrite inE /= => inc_t; apply: eq_from_tnth => i; apply: val_inj.
 rewrite tnth_map tnth_ord_tuple /= tnth_map tnth_ord_tuple.
 suffices [le_i_ti le_ti_ni]: i <= tnth t i /\ tnth t i <= i + n.
-  by rewrite /sub_mn inordK ?subnKC // ltnS leq_sub_add.
+  by rewrite /sub_mn inordK ?subnKC // ltnS leq_subLR.
 pose y0 := tnth t i; rewrite (tnth_nth y0) -(nth_map _ (val i)) ?size_tuple //.
 case def_e: (map _ _) => [|x e] /=; first by rewrite nth_nil ?leq_addr.
 rewrite def_e in inc_t; split.
@@ -491,7 +491,7 @@ Proof.
 symmetry; set In1 := 'I_n.+1; pose x0 : In1 := ord0. 
 pose f_add (t : m.-tuple In1) := [tuple of sub_ord (\sum_(x <- t) x) :: t].
 rewrite -card_partial_ord_partitions -!sum1dep_card (reindex f_add) /=.
-  by apply: eq_bigl => t; rewrite big_cons /= addnC add_sub_maxn eqn_maxr.
+  by apply: eq_bigl => t; rewrite big_cons /= addnC (sameP maxn_idPr eqP) maxnE.
 exists (fun t : m.+1.-tuple In1 => [tuple of behead t]) => [t _|].
   exact: val_inj.
 case/tupleP=> x t; rewrite inE /= big_cons => /eqP def_n.

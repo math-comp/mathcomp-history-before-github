@@ -858,7 +858,7 @@ apply/eqP; move: H.
 apply: contraLR => nzx.
 rewrite -subv0 -dimv_sum_leqif neq_ltn.
 apply/orP; left.
-rewrite dim_Fadjoin dim_prodvf ?expf_neq0 // -{1}[\dim K]muln1 -muln_addr add1n.
+rewrite dim_Fadjoin dim_prodvf ?expf_neq0 // -{1}[\dim K]muln1 -mulnDr add1n.
 move: elementDegreeBound.
 rewrite /Fadjoin /elementDegree.
 case: ex_minnP => [[|m]]; first by rewrite muln1 big_ord1 expr0 prodv1 !ltnn.

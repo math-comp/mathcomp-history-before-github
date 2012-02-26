@@ -268,7 +268,7 @@ have F i j : 'chi_i != -'chi[G]_ j.
   by rewrite oppr0 -(eqN_eqC 0 1).
 by case/dirrP=> [[]] [i1 ->] /dirrP [[]] [i2 ->];
    rewrite !(expr0, expr1, scaleN1r, scale1r, opprK, cfdotNr, cfdotNl);
-   rewrite ?(eqr_opp, eqr_oppC, cfdot_irr, (negPf (F _ _)));
+   rewrite ?(eqr_opp, eqr_oppLR, cfdot_irr, (negPf (F _ _)));
    case: (boolP (i1 == _))=> [/eqP->|Di1i2];
    rewrite ?eqxx //; case: (_ =P _); rewrite ?oppr0 // => /chi_inj HH;
    case/eqP: Di1i2.
@@ -2236,7 +2236,7 @@ Local Notation x_ i j := (dchi (dcTIirr i j)).
 Lemma card_cyclicTIset_pos : (0 < #|V|)%N.
 Proof.
 have F : (0 < #|W| - (w1 + w2))%N.
-  rewrite -subn_sub -(dprod_card W1xW2) -/w2 -(subnKC tLW2) addSn -predn_sub.
+  rewrite subnDA -(dprod_card W1xW2) -/w2 -(subnKC tLW2) addSn subnS.
   by rewrite mulnSr addnK -/w1 -(subnKC tLW1) mulSnr addnK. 
 apply: (leq_trans F).
 rewrite cardsD leq_sub2l //.
@@ -2688,7 +2688,7 @@ case: (boolP (forallb j1 : Iirr W2, (a i j1 != 0)))=> HH; last first.
       by apply/subUsetP.
     apply: leq_trans HH; rewrite cardsU !(cardLE _ _ _ _ Zaij1) //.
     rewrite LI eq_sym (negPf J2dJ) cards0 subn0.
-    by rewrite mulSn mul1n leq_add // leq_minl leqnn // orbT.
+    by rewrite mulSn mul1n leq_add ?geq_minl ?geq_minr.
   suff HL i2 j2 : j != j2 -> a i2 j2 = 0.
      move=> i2 j2; case: (boolP (_ == _))=> [/eqP <-| Djj2]; last first.
        by move: (HL i2 _ Djj2); rewrite mul0r.
@@ -2730,7 +2730,7 @@ move: NC_M; rewrite ltnNge; case/negP.
 have /subset_leqif_card[HH2 _]: C i :|: C i1 \subset S.
   by apply/subUsetP.
 apply: leq_trans HH2; rewrite cardsU !FC // CI (negPf IdI1) cards0 subn0.
-by rewrite mulSn mul1n leq_add // leq_minl leqnn // orbT.
+by rewrite mulSn mul1n leq_add ?geq_minl ?geq_minr.
 Qed.
 
 (* a weaker version of PeterFalvi (3.8). *)
@@ -2751,13 +2751,13 @@ have cC : #|C| = w1.
 case/(cyclicTI_NC_split ZphiV NN): (NZs) => HH.
 - suff: C \subset S.
     case/subset_leqif_cards; rewrite cC => LC _.
-    by apply: leq_trans LC; rewrite leq_minl leqnn.
+    by apply: leq_trans LC; rewrite geq_minl.
   apply/subsetP=> [[i2 j2]]; rewrite !inE /a.
   case/imsetP=> j3 J3Irr [] -> -> /=.
   by rewrite HH eqxx mul1r NZs.
 suff: L \subset S.
   case/subset_leqif_cards; rewrite cL => LL _.
-  by apply: leq_trans LL; rewrite leq_minl leqnn orbT.
+  by apply: leq_trans LL; rewrite geq_minr.
 apply/subsetP=> [[i2 j2]]; rewrite !inE /a.
 case/imsetP=> j3 J3Irr [] -> -> /=.
 by rewrite HH eqxx mul1r NZs.
@@ -2787,9 +2787,9 @@ have SLt: (#|S| <= 2)%N.
   by rewrite leq_add // !cyclicTI_NC_dirr // dirr_sigma.
 have: (0 < #|S| < 2 * minn w1 w2)%N.
   rewrite SPos; apply: leq_ltn_trans SLt _.
-  by rewrite -{1}[2%N]muln1 ltn_mul2l /= leq_minr ![(1 < _)%N]ltnW.
+  by rewrite -{1}[2%N]muln1 ltn_mul2l /= leq_min ![(1 < _)%N]ltnW.
 move/(cyclicTI_NC_minn ZpsiV); rewrite leqNgt; case/negP.
-by apply: leq_ltn_trans SLt _; rewrite leq_minr tLW1.
+by apply: leq_ltn_trans SLt _; rewrite leq_min tLW1.
 Qed.
 
 Lemma cyclicTIirrP chi : chi \in irr W -> {i : Iirr W1 & {j | chi = w_ i j}}.

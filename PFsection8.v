@@ -328,8 +328,8 @@ have coW12: coprime #|W1| #|W2|.
   by rewrite (coprime_sdprod_Hall defM) (sdprod_Hall defM).
 have defW: (W1 * W2 = W)%g by rewrite -cent_joinEr ?subsetIr.
 have oV: #|V| = (#|W1|.-1 * #|W2|.-1)%N.
-  rewrite -!subn1 muln_subr muln1 muln_subl mul1n -coprime_cardMg // defW.
-  rewrite subn_sub addn_subA // addnC -cardsUI coprime_TIg // cards1 addnK.
+  rewrite -!subn1 mulnBr muln1 mulnBl mul1n -coprime_cardMg // defW.
+  rewrite -subnDA addnBA // addnC -cardsUI coprime_TIg // cards1 addnK.
   by rewrite cardsD (setIidPr _) // subUset -join_subG.
 have cycW: cyclic W by rewrite cyclicY ?subsetIr.
 have tiVW: normedTI V G W.

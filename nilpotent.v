@@ -192,7 +192,7 @@ apply/idP/mapP=> {s}/= [nilG | [n _ Ln1]]; last first.
   by rewrite (subset_trans sHR) ?commSg.
 pose m := #|G|.-1; exists m; first by rewrite mem_iota /= prednK.
 rewrite ['L__(G)]card_le1_trivg //= -(subnn m).
-elim: {-2}m => [|n]; [by rewrite subn0 prednK | rewrite lcnSn -predn_sub].
+elim: {-2}m => [|n]; [by rewrite subn0 prednK | rewrite lcnSn subnS].
 case: (eqsVneq 'L_n.+1(G) 1) => [-> | ntLn]; first by rewrite comm1G cards1.
 case: (m - n) => [|m' /= IHn]; first by rewrite leqNgt cardG_gt1 ntLn.
 rewrite -ltnS (leq_trans (proper_card _) IHn) //.
@@ -491,7 +491,7 @@ move=> nilG; have nsZ1G := ucn_normal 1 G.
 apply/eqP; rewrite -ucn1 eqn_leq; apply/andP; split.
   apply/ucn_nil_classP; rewrite ?quotient_nil //= -quotient_ucn_add ucn1.
   by rewrite (ucn_nil_classP _ _ _) ?addn1 ?leqSpred.
-rewrite -subn1 leq_sub_add addnC; apply/ucn_nil_classP => //=.
+rewrite -subn1 leq_subLR addnC; apply/ucn_nil_classP => //=.
 apply: (quotient_inj _ nsZ1G) => /=.
   by apply: normalS (ucn_sub _ _) nsZ1G; rewrite /= addnS ucn_sub_geq.
 by rewrite quotient_ucn_add; apply/ucn_nil_classP; rewrite //= quotient_nil.
@@ -590,7 +590,7 @@ apply: (iffP idP) => [solG | [n solGn]]; last first.
 suffices IHn n: #|G^`(n)| <= (#|G|.-1 - n).+1.
   by exists #|G|.-1; rewrite [G^`(_)]card_le1_trivg ?(leq_trans (IHn _)) ?subnn.
 elim: n => [|n IHn]; first by rewrite subn0 prednK.
-rewrite dergSn -predn_sub -ltnS.
+rewrite dergSn subnS -ltnS.
 have [-> | ntGn] := eqVneq G^`(n) 1; first by rewrite commG1 cards1.
 case: (_ - _) IHn => [|n']; first by rewrite leqNgt cardG_gt1 ntGn.
 by apply: leq_trans (proper_card _); exact: sol_der1_proper (der_sub _ _) _.
