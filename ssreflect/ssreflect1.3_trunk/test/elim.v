@@ -177,10 +177,10 @@ apply/mapP/andP=> [[[q e]]|[pr_p]] /=.
   by rewrite -(prednK e_gt0) expnS mulnCA dvdn_mulr.
 rewrite {1}(prod_prime_decomp n_gt0) big_seq /=.
 elim/big_ind: _ => [| u v IHu IHv | [q e] /= mem_qe dv_p_qe].
-- by rewrite euclid1.
-- by rewrite euclid //; case/orP.
+- by rewrite Euclid_dvd1.
+- by rewrite Euclid_dvdM //; case/orP.
 exists (q, e) => //=; case/mem_prime_decomp: mem_qe => pr_q _ _.
-by rewrite euclid_exp // dvdn_prime2 // in dv_p_qe; case: eqP dv_p_qe.
+by rewrite Euclid_dvdX // dvdn_prime2 // in dv_p_qe; case: eqP dv_p_qe.
 Qed.
 
 Lemma sub_in_partn : forall pi1 pi2 n,
