@@ -639,9 +639,15 @@ by do ?split; move=> // x y /=; rewrite ?intrD ?mulrNz ?intrM.
 Qed.
 Canonical intmul1_rmorphism := RMorphism intmul1_is_rmorphism.
 
+Lemma mulr2z n : n *~ 2 = n + n. Proof. exact: mulr2n. Qed.
+
 End RintMod.
 
 Lemma mulrzz m n : m *~ n = m * n. Proof. by rewrite -mulrzr intz. Qed.
+
+Lemma mulz2 n : n * Posz 2 = n + n. Proof. by rewrite -mulrzz. Qed.
+
+Lemma mul2z n : Posz 2 * n = n + n. Proof. by rewrite mulrC -mulrzz. Qed.
 
 Section LMod.
 
