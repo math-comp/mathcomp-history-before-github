@@ -587,12 +587,15 @@ Lemma ffunMzE (I : finType) (M : zmodType) (f : {ffun I -> M}) z x :
   (f *~ z) x = f x *~ z.
 Proof. by case: z => n; rewrite ?ffunE ffunMnE. Qed.
 
-Lemma intz n : n%:~R = n.
+Lemma intz (n : int) : n%:~R = n.
 Proof.
 elim: n=> //= n ihn; rewrite /intmul /=.
   by rewrite -addn1 mulrnDr /= PoszD -ihn.
 by rewrite nmulrn intS opprD mulrzDl ihn.
 Qed.
+
+Lemma natz (n : nat) : n%:R = Posz n :> int.
+Proof. by rewrite pmulrn intz. Qed.
 
 Section RintMod.
 
