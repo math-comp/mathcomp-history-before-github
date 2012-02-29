@@ -114,6 +114,7 @@ polyXY.v
 realalg.v
 ordered_qelim.v
 qe_rcf.v
+ring_quotient.v
 
 COQC = ssrcoq
 COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"

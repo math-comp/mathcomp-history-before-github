@@ -522,10 +522,10 @@ Proof. by rewrite /to_algdom; case: to_algdom_exists. Qed.
 Lemma eq_algcreal_to_algdom x : eq_algcreal (to_algcreal (to_algdom x)) x.
 Proof. by apply/eq_algcrealP; apply: to_algdomK. Qed.
 
-Canonical eq_algcreal_rel := EquivRelIndirect eq_algcreal_to_algdom
+Canonical eq_algcreal_rel := EquivQuotIndirect eq_algcreal_to_algdom
   eq_algcreal_refl eq_algcreal_sym eq_algcreal_trans.
 
-Definition alg := [qT algcreal %/ eq_algcreal]%qT.
+Definition alg := {mod eq_algcreal}%qT.
 
 Definition alg_of of (phant F) := alg.
 Identity Coercion type_alg_of : alg_of >-> alg.
@@ -535,9 +535,11 @@ Notation "{ 'alg'  F }" := (alg_of (Phant F)).
 Canonical alg_eqType := [eqType of alg].
 Canonical alg_choiceType := [choiceType of alg].
 Canonical alg_quotType := [quotType of alg].
+Canonical alg_eqQuotType := [eqQuotType eq_algcreal of alg].
 Canonical alg_of_eqType := [eqType of {alg F}].
 Canonical alg_of_choiceType := [choiceType of {alg F}].
 Canonical alg_of_quotType := [quotType of {alg F}].
+Canonical alg_of_eqQuotType := [eqQuotType eq_algcreal of {alg F}].
 
 Local Open Scope quotient_scope.
 
@@ -569,21 +571,21 @@ Definition add_alg := mk_mop2 {alg F} add_algcreal.
 Lemma pi_add : {morph \pi_{alg F} : x y / add_algcreal x y >-> add_alg x y}.
 Proof. by unlock add_alg=> x y; rewrite -equiv_alg /= !pi_algK. Qed.
 
-Canonical add_pi_morph := PiMorph2 add_alg pi_add.
+Canonical add_pi_morph := PiMorph2 pi_add.
 
 Definition opp_alg := mk_mop1 {alg F} opp_algcreal.
 
 Lemma pi_opp : {morph \pi_{alg F} : x / opp_algcreal x >-> opp_alg x}.
 Proof. by unlock opp_alg=> x; rewrite -equiv_alg /= !pi_algK. Qed.
 
-Canonical opp_pi_morph := PiMorph1 opp_alg pi_opp.
+Canonical opp_pi_morph := PiMorph1 pi_opp.
 
 Definition mul_alg := mk_mop2 {alg F} mul_algcreal.
 
 Lemma pi_mul : {morph \pi_{alg F} : x y / mul_algcreal x y >-> mul_alg x y}.
 Proof. by unlock mul_alg=> x y; rewrite -equiv_alg /= !pi_algK. Qed.
 
-Canonical mul_pi_morph := PiMorph2 mul_alg pi_mul.
+Canonical mul_pi_morph := PiMorph2 pi_mul.
 
 Definition inv_alg := mk_mop1 {alg F} inv_algcreal.
 
@@ -597,7 +599,7 @@ case: eq_algcreal_dec=> // x'_neq0' x_neq0 x'_neq0 /=.
 by apply: eq_creal_inv; rewrite pi_algK.
 Qed.
 
-Canonical inv_pi_morph := PiMorph1 inv_alg pi_inv.
+Canonical inv_pi_morph := PiMorph1 pi_inv.
 
 Lemma add_algA : associative add_alg.
 Proof.
@@ -663,7 +665,7 @@ Implicit Arguments neq_creal_cst [F x y].
 Prenex Implicits neq_creal_cst.
 
 Lemma nonzero1_alg : one_alg != zero_alg.
-Proof. by rewrite !piE -(rwP nequiv_alg) (rwP neq_creal_cst) oner_eq0. Qed.
+Proof. by rewrite piE -(rwP neq_algcrealP) (rwP neq_creal_cst) oner_eq0. Qed.
 
 Definition alg_comRingMixin :=
   ComRingMixin mul_algA mul_algC mul_1alg mul_alg_addl nonzero1_alg.
@@ -681,8 +683,9 @@ Proof. by rewrite [1]piE. Qed.
 
 Lemma mul_Valg (x : alg) : x != zero_alg -> mul_alg (inv_alg x) x = one_alg.
 Proof.
-elim/quotW: x=> x; rewrite !piE /= -(rwP nequiv_alg) -equiv_alg /= => x_neq0.
-rewrite /inv_algcreal; case: eq_algcreal_dec=> [/(_ x_neq0) //|/= x_neq0'].
+elim/quotW: x=> x; rewrite piE -(rwP neq_algcrealP) /= => x_neq0.
+apply/eqP; rewrite piE; apply/eq_algcrealP; rewrite /= /inv_algcreal.
+case: eq_algcreal_dec=> [/(_ x_neq0) //|/= x_neq0'].
 apply: eq_crealP; exists_big_modulus m F.
   by move=> * /=; rewrite mulVf ?subrr ?normr0 ?creal_neq0_always //; big.
 by close.
@@ -728,7 +731,7 @@ move=> x y; unlock lt_alg; rewrite /lt_algcreal.
 by do 2!case: ltVge_algcreal_dec=> //=; rewrite !pi_algK.
 Qed.
 
-Canonical lt_alg_pi_mono := PiMono2 lt_alg lt_alg_pi.
+Canonical lt_alg_pi_mono := PiMono2 lt_alg_pi.
 
 Lemma le_alg_pi : {mono \pi_{alg F} : x y / le_algcreal x y >-> le_alg x y}.
 Proof.
@@ -736,7 +739,7 @@ move=> x y; unlock le_alg; rewrite /le_algcreal.
 by do 2!case: ltVge_algcreal_dec=> //=; rewrite !pi_algK.
 Qed.
 
-Canonical le_alg_pi_mono := PiMono2 le_alg le_alg_pi.
+Canonical le_alg_pi_mono := PiMono2 le_alg_pi.
 
 Definition norm_alg := mk_mop1 {alg F} norm_algcreal.
 
@@ -746,7 +749,7 @@ move=> x; unlock norm_alg; rewrite /norm_algcreal /le_algcreal.
 by do 2!case: ltVge_algcreal_dec=> //=; rewrite !(pi_opp, pi_algK, reprK).
 Qed.
 
-Canonical norm_alg_pi_morph := PiMorph1 norm_alg norm_alg_pi.
+Canonical norm_alg_pi_morph := PiMorph1 norm_alg_pi.
 
 (* Lemma norm_pi (x : algcreal) : `|\pi_{alg F} x| = \pi (norm_algcreal x). *)
 (* Proof. by rewrite /norm_algcreal -lt_pi -zeroE -lerNgt fun_if -opp_pi. Qed. *)
@@ -777,7 +780,7 @@ Qed.
 
 Lemma gt0_alg_nlt0 x : lt_alg zero_alg x -> ~~ lt_alg x zero_alg.
 Proof.
-rewrite -[x]reprK !piE -!(rwP lt_algcrealP, rwP (le_algcrealP)).
+rewrite -[x]reprK !piE -!(rwP lt_algcrealP, rwP le_algcrealP).
 move=> hx; pose_big_enough i.
   apply: (@le_crealP _ i)=> j /= hj.
   by rewrite ltrW // creal_gt0_always //; big.
@@ -800,7 +803,7 @@ Qed.
 Lemma lt0_alg_total (x : alg) : x != zero_alg ->
   lt_alg zero_alg x || lt_alg x zero_alg.
 Proof.
-rewrite -[x]reprK !piE -(rwP nequiv_alg) /= => x_neq0.
+rewrite -[x]reprK !piE => /neq_algcrealP /= x_neq0.
 apply/orP; rewrite -!(rwP lt_algcrealP).
 case/neq_creal_ltVgt: x_neq0=> /= [lt_x0|lt_0x]; [right|by left].
 pose_big_enough i.
@@ -828,7 +831,7 @@ Proof. by have /implyP := @gt0_alg_nlt0 0; case: lt_alg. Qed.
 
 Lemma le_alg_def x y : le_alg x y = (y == x) || lt_alg x y.
 Proof.
-rewrite -[x]reprK -[y]reprK !piE /= eq_sym; apply/le_algcrealP/orP.
+rewrite -[x]reprK -[y]reprK eq_sym piE [lt_alg _ _]piE; apply/le_algcrealP/orP.
   move=> /le_creal_neqVlt [/eq_algcrealP/eqmodP/eqP-> //|lt_xy]; first by left.
   by right; apply/lt_algcrealP.
 by move=> [/eqP/eqmodP/eq_algcrealP-> //| /lt_algcrealP /lt_crealW].
@@ -885,7 +888,6 @@ Definition annul_alg : {alg F} -> {poly F} := locked (annul_creal \o repr).
 
 Local Notation "p ^ f" := (map_poly f p) : ring_scope.
 Notation "'Y" := 'X%:P.
-
 
 Lemma expn_pi (x : algcreal) (n : nat) :
   (\pi_{alg F} x) ^+ n = \pi (exp_algcreal x n).

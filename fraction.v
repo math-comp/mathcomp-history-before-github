@@ -118,17 +118,24 @@ by rewrite -(inj_eq (mulfI Px)) mulrA xy -mulrA yz mulrCA.
 Qed.
 
 Canonical equivf_equiv := EquivRel equivf_refl equivf_sym equivf_trans.
-Canonical equivf_equiv_direct := EquivRelDirect equivf.
+Canonical equivf_equiv_direct := EquivQuotDirect equivf.
 
-Definition type := [mod equivf].
+Definition type := {mod equivf}.
 Definition type_of of phant R := type.
 Notation "{ 'fraction' T }" := (type_of (Phant T)).
 
 Canonical frac_quotType := [quotType of type].
 Canonical frac_eqType := [eqType of type].
 Canonical frac_choiceType := [choiceType of type].
+Canonical frac_eqQuotType := [eqQuotType equivf of type].
 
-Lemma equiv_def x y : x == y %[mod equivf] = (\n_x * \d_y == \d_x * \n_y).
+Canonical frac_of_quotType := [quotType of {fraction R}].
+Canonical frac_of_eqType := [eqType of {fraction R}].
+Canonical frac_of_choiceType := [choiceType of {fraction R}].
+Canonical frac_of_eqQuotType := [eqQuotType equivf of {fraction R}].
+
+Lemma equiv_def (x y : ratio R) : x == y %[m {mod equivf}]
+                                    = (\n_x * \d_y == \d_x * \n_y).
 Proof. by rewrite eqmodE. Qed.
 
 Lemma equivf_r x : \n_x * \d_(repr (\pi_type x)) = \d_x * \n_(repr (\pi_type x)).
@@ -167,7 +174,7 @@ congr (_ + _); first by rewrite -mulrA mulrCA !mulrA.
 rewrite -!mulrA [X in _ * X]mulrCA !mulrA equivf_l.
 by rewrite mulrC !mulrA -mulrA mulrC mulrA.
 Qed.
-Canonical pi_add_morph := PiMorph2 add pi_add.
+Canonical pi_add_morph := PiMorph2 pi_add.
 
 Definition oppf x : dom := Ratio (- \n_x) \d_x.
 Definition opp := mk_mop1 {fraction R} oppf.
@@ -176,7 +183,7 @@ Proof.
 move=> x; unlock opp; apply/eqmodP; rewrite /= /equivf /oppf /=.
 by rewrite !numden_Ratio ?(domP,mulf_neq0) // mulNr mulrN -equivf_r.
 Qed.
-Canonical pi_opp_morph := PiMorph1 opp pi_opp.
+Canonical pi_opp_morph := PiMorph1 pi_opp.
 
 Definition mulf x y : dom := Ratio (\n_x * \n_y) (\d_x * \d_y).
 Definition mul := mk_mop2 {fraction R} mulf.
@@ -188,7 +195,7 @@ rewrite equivfE /= /addf /= !numden_Ratio ?mulf_neq0 ?domP //.
 rewrite mulrAC !mulrA -mulrA equivf_r -equivf_l.
 by rewrite mulrA ![_ * \d_y]mulrC !mulrA.
 Qed.
-Canonical pi_mul_morph := PiMorph2 mul pi_mul.
+Canonical pi_mul_morph := PiMorph2 pi_mul.
 
 Definition invf x : dom := Ratio \d_x \n_x.
 Definition inv := mk_mop1 {fraction R} invf.
@@ -201,7 +208,7 @@ do 2?case: RatioP=> /= [/eqP|];
   by move=> hx /eqP hx'; rewrite hx' eqxx in hx.
 by move=> /eqP ->; rewrite eqxx.
 Qed.
-Canonical pi_inv_morph := PiMorph1 inv pi_inv.
+Canonical pi_inv_morph := PiMorph1 pi_inv.
 
 Lemma addA : associative add.
 Proof.
@@ -264,7 +271,7 @@ by rewrite -mulrA mulrC [X in X * _] mulrC.
 Qed.
 
 Lemma nonzero1 : 1%:F != 0%:F :> type.
-Proof. by rewrite !piE eqmodE /= equivfE !numden_Ratio ?mul1r ?oner_eq0. Qed.
+Proof. by rewrite !piE equivfE !numden_Ratio ?mul1r ?oner_eq0. Qed.
 
 Definition frac_comRingMixin := ComRingMixin mulA mulC mul1_l mul_addl nonzero1.
 Canonical frac_ringType := Eval hnf in RingType type frac_comRingMixin.
@@ -273,7 +280,7 @@ Canonical frac_comRingType := Eval hnf in ComRingType type mulC.
 Lemma mulV_l : forall a, a != 0%:F -> mul (inv a) a = 1%:F.
 Proof.
 elim/quotW=> x /=; rewrite !piE.
-rewrite equiv_def !numden_Ratio ?oner_eq0 // mulr1 mulr0=> nx0.
+rewrite /equivf !numden_Ratio ?oner_eq0 // mulr1 mulr0=> nx0.
 apply/eqmodP; rewrite /= equivfE.
 by rewrite !numden_Ratio ?(oner_eq0, mulf_neq0, domP) // !mulr1 mulrC.
 Qed.

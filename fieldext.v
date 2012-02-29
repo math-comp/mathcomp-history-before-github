@@ -304,11 +304,13 @@ Proof. by move=> u v w /=; apply: eq_op_trans. Qed.
 
 Canonical equiv_subfext_equiv := EquivRel equiv_subfext_refl
   equiv_subfext_sym equiv_subfext_trans.
-Canonical equiv_subfext_direct := EquivRelDirect equiv_subfext.
+Canonical equiv_subfext_direct := EquivQuotDirect equiv_subfext.
 
-Definition subFExtend : Type := [mod equiv_subfext].
-Canonical Structure subFExtend_eqType := [eqType of subFExtend].
-Canonical Structure subFExtend_choiceType := [choiceType of subFExtend].
+Definition subFExtend := {mod equiv_subfext}.
+Canonical subFExtend_eqType := [eqType of subFExtend].
+Canonical subFExtend_choiceType := [choiceType of subFExtend].
+Canonical subFExtend_quotType := [quotType of subFExtend].
+Canonical subFExtend_eqQuotType := [eqQuotType equiv_subfext of subFExtend].
 
 Definition subfx_inj := mk_mfun1 subFExtend n.
 
@@ -318,7 +320,10 @@ Proof.
 move=> x /=; unlock subfx_inj; apply/eqP.
 by rewrite -/(equiv_subfext _ _) -eqmodE reprK.
 Qed.
-Canonical pi_subfx_inj_morph := PiMono1 subfx_inj pi_subfx_inj.
+Canonical pi_subfx_inj_morph := PiMono1 pi_subfx_inj.
+
+Definition subfext0 := mk_mconst subFExtend 0.
+Canonical subfext0_morph := PiConst subfext0.
 
 Definition subfext_add := mk_mop2 subFExtend (@GRing.add _).
 Lemma pi_subfext_add : {morph \pi : x y / x + y >-> subfext_add x y}.
@@ -326,7 +331,7 @@ Proof.
 move=> x y /=; unlock subfext_add; apply/eqmodP/eqP.
 by rewrite /n !linearD /= -!pi_subfx_inj !reprK.
 Qed.
-Canonical pi_subfx_add_morph := PiMorph2 subfext_add pi_subfext_add.
+Canonical pi_subfx_add_morph := PiMorph2 pi_subfext_add.
 
 Definition subfext_opp := mk_mop1 subFExtend (@GRing.opp _).
 Lemma pi_subfext_opp : {morph \pi : x / - x >-> subfext_opp x}.
@@ -334,27 +339,22 @@ Proof.
 move=> y /=; unlock subfext_opp; apply/eqmodP/eqP. 
 by rewrite /n !linearN /= -!pi_subfx_inj !reprK.
 Qed.
-Canonical pi_subfext_opp_morph := PiMorph1 subfext_opp pi_subfext_opp.
-
-Definition subfext0 := mk_mconst subFExtend 0.
-Canonical subfext0_morph := PiConst subfext0 (lock _).
+Canonical pi_subfext_opp_morph := PiMorph1 pi_subfext_opp.
 
 Lemma addfxA : associative subfext_add.
-Proof.
-by elim/quotW => x; elim/quotW=> y; elim/quotW=> t /=; rewrite !piE addrA.
-Qed.
+Proof. by move=> x y t; rewrite -[x]reprK -[y]reprK -[t]reprK !piE addrA. Qed.
 
 Lemma addfxC : commutative subfext_add.
-Proof. by elim/quotW => x; elim/quotW=> y; rewrite !piE addrC. Qed.
+Proof. by move=> x y; rewrite -[x]reprK -[y]reprK !piE addrC. Qed.
 
 Lemma add0fx : left_id subfext0 subfext_add.
-Proof. by elim/quotW => x; rewrite !piE add0r. Qed.
+Proof. by move=> x; rewrite -[x]reprK !piE add0r. Qed.
 
 Lemma addfxN : left_inverse subfext0 subfext_opp subfext_add.
-Proof. by elim/quotW=> x; rewrite !piE addNr. Qed.
+Proof. by move=> x; rewrite -[x]reprK !piE addNr. Qed.
 
 Definition subfext_zmodMixin :=  ZmodMixin addfxA addfxC add0fx addfxN.
-Canonical Structure subfext_zmodType :=
+Canonical subfext_zmodType :=
   Eval hnf in ZmodType subFExtend subfext_zmodMixin.
 
 Lemma poly_rV_K_modp_subproof q :
@@ -383,10 +383,10 @@ move => x y /=; unlock subfext_mul; apply/eqmodP/eqP.
 rewrite /n !poly_rV_K_modp_subproof !horner_iotaz_modp_subproof 2!rmorphM.
 by rewrite /= -!pi_subfx_inj !reprK.
 Qed.
-Canonical pi_subfext_mul_morph := PiMorph2 subfext_mul pi_subfext_mul.
+Canonical pi_subfext_mul_morph := PiMorph2 pi_subfext_mul.
 
 Definition subfext1 := mk_mconst subFExtend (poly_rV 1).
-Canonical subfext1_morph := PiConst subfext1 (lock _).
+Canonical subfext1_morph := PiConst subfext1.
 
 Lemma mulfxA : associative (subfext_mul).
 Proof.
@@ -415,16 +415,16 @@ Qed.
 
 Lemma nonzero1fx : subfext1 != subfext0.
 Proof.
-rewrite !piE eqmodE /= /equiv_subfext /n !linear0.
+rewrite !piE /equiv_subfext /n !linear0.
 by rewrite poly_rV_K ?rmorph1 ?oner_eq0 // size_poly1 H1p'.
 Qed.
 
 Definition subfext_comRingMixin := ComRingMixin 
   (R:=[zmodType of subFExtend])
   mulfxA mulfxC mul1fx mulfx_addl nonzero1fx.
-Canonical Structure  subfext_Ring :=
+Canonical  subfext_Ring :=
   Eval hnf in RingType subFExtend subfext_comRingMixin.
-Canonical Structure subfext_comRing :=
+Canonical subfext_comRing :=
   Eval hnf in ComRingType subFExtend mulfxC.
 
 Definition poly_invert (q : {poly F}) : {poly F} :=
@@ -467,40 +467,36 @@ move => x /=; unlock subfext_inv; apply/eqmodP/eqP.
 rewrite /n 2!{1}poly_rV_K_modp_subproof 2!{1}horner_iotaz_modp_subproof.
 by rewrite !poly_invertE -!pi_subfx_inj !reprK.
 Qed.
-Canonical pi_subfext_inv_morph := PiMorph1 subfext_inv pi_subfext_inv.
+Canonical pi_subfext_inv_morph := PiMorph1 pi_subfext_inv.
 
 Lemma subfx_fieldAxiom : GRing.Field.axiom 
   (subfext_inv : subFExtend -> subFExtend).
 Proof.
-elim/quotW => x; rewrite [_ * _]piE [1]piE [0]piE => Hx; apply/eqmodP => /=.
-rewrite /equiv_subfext /n.
+elim/quotW => x Hx; apply/eqP; rewrite !piE /equiv_subfext /n.
 rewrite !poly_rV_K_modp_subproof horner_iotaz_modp_subproof rmorphM /=.
 rewrite horner_iotaz_modp_subproof poly_invertE mulVf.
   by rewrite poly_rV_K ?mul1r ?modp_size ?size_poly1 ?H1p' // rmorph1.
-apply: contra Hx.
-rewrite -(rmorph0 (horner_rmorphism iotaz)).
-rewrite -(linear0 (rVpoly_linear _ (size p').-1)).
-by rewrite -/(equiv_subfext _ _) => /eqmodP ->.
+apply: contra Hx; rewrite !piE -(rmorph0 (horner_rmorphism iotaz)).
+by rewrite -(linear0 (rVpoly_linear _ (size p').-1)).
 Qed.
 
 Lemma subfx_inv0 : subfext_inv (0:subFExtend) = (0:subFExtend).
 Proof.
-rewrite piE [X in _ = X]piE; apply/eqmodP.
-rewrite /= /equiv_subfext /n /subfx_inv_rep !linear0.
+apply/eqP; rewrite !piE /equiv_subfext /n /subfx_inv_rep !linear0.
 by rewrite /poly_invert rmorph0 eqxx mod0p !linear0.
 Qed.
 
-Canonical Structure subfext_unitRing := Eval hnf in
+Canonical subfext_unitRing := Eval hnf in
   UnitRingType subFExtend (FieldUnitMixin subfx_fieldAxiom subfx_inv0).
 
-Canonical Structure subfext_comUnitRing := Eval hnf in 
+Canonical subfext_comUnitRing := Eval hnf in 
   [comUnitRingType of subFExtend].
 
-Canonical Structure subfext_idomainType := Eval hnf in
+Canonical subfext_idomainType := Eval hnf in
   IdomainType subFExtend 
     (FieldIdomainMixin (@FieldMixin _ _ subfx_fieldAxiom subfx_inv0)).
 
-Canonical Structure subfext_fieldType := Eval hnf in 
+Canonical subfext_fieldType := Eval hnf in 
   FieldType subFExtend (@FieldMixin _ _ subfx_fieldAxiom subfx_inv0).
 
 Lemma subfx_inj_is_rmorphism : rmorphism subfx_inj.
@@ -511,8 +507,8 @@ elim/quotW=> x; elim/quotW=> y; rewrite !piE /subfx_mul_rep.
 by rewrite poly_rV_K_modp_subproof horner_iotaz_modp_subproof rmorphM.
 Qed.
 
-Canonical Structure subfx_inj_additive := Additive subfx_inj_is_rmorphism.
-Canonical Structure subfx_inj_rmorphism := RMorphism subfx_inj_is_rmorphism.
+Canonical subfx_inj_additive := Additive subfx_inj_is_rmorphism.
+Canonical subfx_inj_rmorphism := RMorphism subfx_inj_is_rmorphism.
 
 Definition subfx_eval := mk_embed subFExtend (fun q => poly_rV (q %% p')).
 Canonical subfx_eval_morph := PiEmbed subfx_eval.
@@ -523,21 +519,21 @@ Proof. by apply/eqP; rewrite -addr_eq0 -modp_add addNr mod0p. Qed.
 
 Lemma subfx_eval_is_rmorphism : rmorphism subfx_eval.
 Proof.
-do 2?split; do ?move=> x y /=; first 2 last.
-+ by rewrite piE [X in _ = X]piE modp_small // size_poly1 -subn_gt0 subn1.
-+ by rewrite piE [X in _ = X]piE -linearB modp_add modNp.
-rewrite piE [X in _ = X]piE /subfx_mul_rep !poly_rV_K_modp_subproof.
+do 2?split; do ?move=> x y /=; apply/eqP; first 2 last.
++ by rewrite piE modp_small // size_poly1 -subn_gt0 subn1.
++ by rewrite piE -linearB modp_add modNp.
+rewrite piE /subfx_mul_rep !poly_rV_K_modp_subproof.
 by rewrite modp_mul [_ %% _ * _]mulrC modp_mul mulrC.
 Qed.
 
-Canonical Structure subfx_eval_additive := Additive subfx_eval_is_rmorphism.
-Canonical Structure subfx_eval_rmorphism := RMorphism subfx_eval_is_rmorphism.
+Canonical subfx_eval_additive := Additive subfx_eval_is_rmorphism.
+Canonical subfx_eval_rmorphism := RMorphism subfx_eval_is_rmorphism.
 
 Lemma subfx_inj_eval q :
   (p != 0) -> root (p ^ iota) z -> subfx_inj (subfx_eval q) = (q ^ iota).[z].
 Proof.
 move => Hp0 Hpz.
-rewrite !piE poly_rV_K_modp_subproof horner_iotaz_modp_subproof.
+rewrite piE poly_rV_K_modp_subproof horner_iotaz_modp_subproof.
 by rewrite /horner_morph /z' Hp0 Hpz.
 Qed.
 
@@ -545,8 +541,7 @@ Definition inj_subfx := (subfx_eval \o polyC).
 
 Lemma subfxE : forall x, exists p, x = subfx_eval p.
 Proof.
-elim/quotW=> x; exists (rVpoly x); rewrite !piE; apply/eqmodP => /=.
-rewrite /equiv_subfext /n.
+elim/quotW=> x; exists (rVpoly x); apply/eqP; rewrite piE /equiv_subfext /n.
 by rewrite poly_rV_K_modp_subproof horner_iotaz_modp_subproof.
 Qed.
 
@@ -613,13 +608,13 @@ Proof.
 split => //=; split => //=; exact: aunit_eq1.
 Qed.
 
-Canonical Structure sa_val_additive := Additive sa_val_rmorph.
-Canonical Structure sa_val_rmorphism := RMorphism sa_val_rmorph.
+Canonical sa_val_additive := Additive sa_val_rmorph.
+Canonical sa_val_rmorphism := RMorphism sa_val_rmorph.
 
 Lemma suba_mul_com : commutative (@suba_mul _ _ K).
 Proof. move=> u v; apply: val_inj; exact: mulrC. Qed.
 
-Canonical Structure suba_comRingType :=
+Canonical suba_comRingType :=
   Eval hnf in ComRingType (suba_of K) suba_mul_com.
 
 Fact aspace_mulr_closed : mulr_closed K.
@@ -659,7 +654,7 @@ Section aspace_cap.
 
 Variable A B : {algebra L}.
 
-Canonical Structure fspace_cap : {algebra L} :=
+Canonical fspace_cap : {algebra L} :=
   Eval hnf in (aspace_cap (trans_eq (aunit_eq1 A) (sym_eq (aunit_eq1 B)))).
 
 End aspace_cap.

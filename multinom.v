@@ -442,18 +442,20 @@ rewrite !(@interp_gtn (maxn (maxn (nbvar_term x) (nbvar_term y)) (nbvar_term z))
 Qed.
 
 Canonical equivm_equivRel := EquivRel equivm_refl equivm_sym equivm_trans.
-Canonical equivm_equivRelDirect := EquivRelDirect equivm.
+Canonical equivm_equivRelDirect := EquivQuotDirect equivm.
 
-Definition multinom := [qT multi_term %/ equivm].
+Definition multinom := {mod equivm}.
 Definition multinom_of of phant X & phant R := multinom.
 
 Notation "{ 'multinom' R }" := (@multinom_of (Phant X) (Phant R))
    (at level 0, format "{ 'multinom'  R }").
 Canonical multinom_quotType := [quotType of multinom].
 Canonical multinom_eqType := [eqType of multinom].
+Canonical multinom_eqQuotType := [eqQuotType equivm of multinom].
 Canonical multinom_choiceType := [choiceType of multinom].
 Canonical multinom_of_quotType := [quotType of {multinom R}].
 Canonical multinom_of_eqType := [eqType of {multinom R}].
+Canonical multinom_of_eqQuotType := [eqQuotType equivm of {multinom R}].
 Canonical multinom_of_choiceType := [choiceType of {multinom R}].
 
 Definition cstm := mk_embed {multinom R} Coef.
@@ -475,7 +477,7 @@ rewrite (@interp_gtn (nbvar_term (Sum (Sum x y) (Sum x' y')))) /=.
   by rewrite !(geq_max, leq_max, leqnn, orbT)].
 by rewrite maxnC.
 Qed.
-Canonical pi_addm_morph := PiMorph2 addm pi_addm.
+Canonical pi_addm_morph := PiMorph2 pi_addm.
 
 Definition Opp := Prod (Coef (-1)).
 Definition oppm := mk_mop1 {multinom R} Opp.
@@ -485,7 +487,7 @@ move=> x; unlock oppm.
 apply/eqmodP; rewrite /= /equivm /= !max0n; apply/eqP; congr (_ * _).
 by apply/eqP; rewrite -interp_gtn //; apply/eqmodP; rewrite reprK.
 Qed.
-Canonical pi_oppm_morph := PiMorph1 oppm pi_oppm.
+Canonical pi_oppm_morph := PiMorph1 pi_oppm.
 
 Definition mulm := mk_mop2 {multinom R} Prod.
 Lemma pi_mulm : {morph \pi : x y / Prod x y >-> mulm x y}.
@@ -498,7 +500,7 @@ rewrite (@interp_gtn (nbvar_term (Sum (Sum x y) (Sum x' y')))) /=.
   by rewrite !(geq_max, leq_max, leqnn, orbT)].
 by rewrite maxnC.
 Qed.
-Canonical pi_mulm_morph := PiMorph2 mulm pi_mulm.
+Canonical pi_mulm_morph := PiMorph2 pi_mulm.
 
 Lemma addmA : associative addm.
 Proof.
@@ -549,17 +551,17 @@ Qed.
 Lemma mulm_addl : left_distributive mulm addm.
 Proof.
 elim/quotW=> x; elim/quotW=> y; elim/quotW=> z; apply/eqP.
-by rewrite !piE eqmodE /= /equivm /= mulrDl.
+by rewrite !piE /equivm /= mulrDl.
 Qed.
 
 Lemma mulm_addr : right_distributive mulm addm.
 Proof.
 elim/quotW=> x; elim/quotW=> y; elim/quotW=> z; apply/eqP.
-by rewrite !piE eqmodE /= /equivm /= mulrDr.
+by rewrite !piE /equivm /= mulrDr.
 Qed.
 
 Lemma nonzero1m : 1%:M != 0%:M.
-Proof. by rewrite !piE eqmodE /= /equivm /= rmorph1 rmorph0 oner_neq0. Qed.
+Proof. by rewrite piE /equivm /= rmorph1 rmorph0 oner_neq0. Qed.
 
 Definition multinom_ringMixin := RingMixin mulmA mul1m mulm1 mulm_addl mulm_addr nonzero1m.
 Canonical multinom_ringType := RingType multinom multinom_ringMixin.
