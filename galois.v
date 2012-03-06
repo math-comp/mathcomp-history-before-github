@@ -32,7 +32,7 @@ Proof.
 move => vs.
 move/subvP => Hvs.
 apply/subvP => x.
-case/memv_imgP => y [Hy ->].
+case/memv_imgP => y Hy ->.
 move/Hvs:(Hy).
 rewrite eigenspaceIn.
 move/eqP ->.
@@ -532,7 +532,7 @@ move/subvP => Hker.
 exists g.
 rewrite Hg lkerE -subv0.
 apply/subvP => ?.
-case/memv_imgP => z [Hz ->].
+case/memv_imgP => z Hz ->.
 apply: Hker.
 apply/memv_imgP.
 exists z; first by rewrite memK_Fadjoin.
@@ -548,7 +548,7 @@ Proof.
 apply/andP; split.
  apply has_aunit1.
  by rewrite -(rmorph1 [rmorphism of (val f)]) memv_img // mem1v.
-apply/prodvP => _ _ /memv_imgP [a [Ha ->]] /memv_imgP [b [Hb ->]].
+apply/prodvP => _ _ /memv_imgP [a Ha ->] /memv_imgP [b Hb ->].
 by rewrite -rmorphM memv_img // memv_mul.
 Qed.
 
@@ -846,7 +846,7 @@ move => a Ha.
 rewrite -{2}[a](id_lfunE) -[\1%VF]/(val (1%g : LAut)) -(mulVg x).
 rewrite !SubK !lfunE /= lfunE [X in ((val x) X) = _]Hy //.
 rewrite -Hx in Ha.
-case/memv_imgP: Ha => [b [Hb ->]].
+case/memv_imgP: Ha => [b Hb ->].
 by rewrite lker0_lfunK ?LAut_ker0.
 Qed.
 
@@ -925,7 +925,7 @@ case/andP: (Hf) => HfHom /eqP HfE.
 case: (kHomExtendLAut HKE HfHom) => g /andP [HKg /eqvP HEgf].
 have Hgf : (val g @: E <= E)%VS.
  rewrite -{2}HfE.
- apply/subvP => ? /memv_imgP [v [Hv ->]].
+ apply/subvP => ? /memv_imgP [v Hv ->].
  move/HEgf: (Hv) ->.
  by rewrite memv_img.
 exists (coset _ g).
@@ -959,7 +959,7 @@ move: Hx Hf; rewrite !inE.
 case/andP => /kHomP [Hx _] /eqP HxE.
 case/andP => /kHomP [Hf _] _.
 apply/andP; split; last first.
- apply/subvP => ? /memv_imgP [a [Ha ->]].
+ apply/subvP => ? /memv_imgP [a Ha ->].
  by rewrite comp_lfunE /= Hf // -HxE; apply: memv_img.
 apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
 move => a Ha.
@@ -1019,7 +1019,7 @@ Proof.
 move => HKE HfE Hfx.
 apply/eqP.
 have HKfE : (val f @: K <= E)%VS.
- apply/subvP => _ /memv_imgP [a [Ha ->]].
+ apply/subvP => _ /memv_imgP [a Ha ->].
  rewrite -HfE memv_img //.
  by move/subvP: HKE; apply.
 wlog suff : x f K HKE HfE HKfE Hfx / 
@@ -1043,10 +1043,10 @@ suff: (kAut (val f @: K)%VS E (val (repr y))).
  by move/(Aut_eq (mem_repr_coset _) (mem_repr_coset _))/eqP => ->.
 rewrite kAutE.
 apply/andP; split; last first.
- apply/subvP => _ /memv_imgP [a [Ha ->]].
+ apply/subvP => _ /memv_imgP [a Ha ->].
  move: Ha.
  rewrite -{1}HfE.
- case/memv_imgP => b [Hb Hfb].
+ case/memv_imgP => b Hb Hfb.
  rewrite Hfb Hfxb // -Aut_mul // -[in X in _ \in X]HfE.
  apply/memv_imgP.
  exists (val (repr (x * (y * x^-1))%g) b).
@@ -1054,7 +1054,7 @@ apply/andP; split; last first.
  rewrite Hfxb; last by rewrite -[in X in _ \in X]HxyxVE memv_img.
  by rewrite -Aut_mul // mulgA mulgKV.
 apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
-move => _ /memv_imgP[a Ha ->].
+move => _ /memv_imgP [a Ha ->].
 case/kHomP: HxyxV => /(_ _ Ha) => HxyxVa _.
 move: HxyxVa.
 have HaE : a \in E by move/subvP: HKE; apply.
@@ -1295,7 +1295,7 @@ apply: (iffP forallP); last first.
  suff: (kAut K E (val x)) by case/andP.
  rewrite kAutE (kHom_subv (subvf E)) //=.
  apply/subvP => a.
- case/memv_imgP => {a} a [Ha ->].
+ case/memv_imgP => {a} a Ha ->.
  case: (Hnorm _ Ha) => r.
  move/allP => Hr Har.
  apply: Hr.
@@ -1401,7 +1401,7 @@ rewrite (Hpoly _ Ha) (Hpoly _ Hb) {Hpoly} -/fa -/fb.
 pose g := val (repr (kAut_pick K (Fadjoin_aspace K x) fa)).
 have HAuta : kAut K (Fadjoin K x) fa.
  rewrite kAutE (kHomExtendkHom (kHom1 K K) (subv_refl K) (Hroot _ Ha)).
- apply/subvP => ? /memv_imgP [? [/poly_Fadjoin [p [Hp ->]] ->]].
+ apply/subvP => ? /memv_imgP [? /poly_Fadjoin [p [Hp ->]] ->].
  rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Ha) Hp).
  rewrite (eq_map_poly (fun x => id_lfunE x)).
  rewrite map_polyE map_id polyseqK.
@@ -1417,7 +1417,7 @@ apply: (kAut_pick_eq (subsetKFadjoin K x)); first last.
   by apply: memx_Fadjoin.
  by apply: mem_repr_coset.
 rewrite kAutE (kHomExtendkHom (kHom1 K K) (subv_refl K) (Hroot _ Hb)).
-apply/subvP => ? /memv_imgP [? [/poly_Fadjoin [p [Hp ->]] ->]].
+apply/subvP => ? /memv_imgP [? /poly_Fadjoin [p [Hp ->]] ->].
 rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Hb) Hp).
 rewrite map_poly_id => [|xx _ /=]; last by rewrite id_lfunE.
 case/poly_Fadjoin: (Hr _ Hb) => q [Hq ->].
@@ -1953,7 +1953,7 @@ apply/andP; split.
  by apply/(Aut_eq Hff (mem_repr_coset _)).
 move: (HE _ Hfs) => HEfs.
 rewrite -[X in (_ <= X)%VS]HEfs.
-apply/subvP => _ /memv_imgP [a [Ha ->]].
+apply/subvP => _ /memv_imgP [a Ha ->].
 apply/memv_imgP.
 exists a; first done.
 move: {Ha} a Ha.

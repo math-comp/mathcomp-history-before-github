@@ -342,7 +342,7 @@ Lemma modv_img : forall f ms al,
   modv ms al -> modf f ms al -> modv (f @: ms)%VS al.
 Proof.
 move=> f ms al Hmv Hmf; apply/eprodvP=> v x.
-case/memv_imgP=> u [Hu ->] Hx.
+case/memv_imgP=> u Hu -> Hx.
 move/modfP: Hmf<-=> //.
 apply: memv_img.
 by apply: (memv_mod_mul Hmv).

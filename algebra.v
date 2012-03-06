@@ -265,7 +265,7 @@ Qed.
 Lemma prodv_addl: left_distributive prodv addv.
 Proof.
 move=> vs1 vs2 vs3; apply subv_anti; apply/andP; split.
-  apply/prodvP=> a b;case/memv_addP=> v1 [v2 [Hv1 Hv2 ->]] Hb.
+  apply/prodvP=> a b; case/memv_addP=> v1 v2 [Hv1 Hv2 ->] Hb.
   by rewrite mulrDl; apply: memv_add; apply: memv_prod.
 apply/subvP=> v;  case/memv_addP=> v1 Hv1 [v2 Hv2 ->].
 apply: memvD.
@@ -514,4 +514,3 @@ Canonical Falg_fun_FalgType := Eval hnf in AlgFType R (lfun_vectMixin A A).
  
 End FalgLfun.
 End FalgLfun.
-

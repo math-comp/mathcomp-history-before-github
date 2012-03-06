@@ -428,7 +428,7 @@ Qed.
 Lemma memv_cosetP {U : {vspace L}} {x y : L} :
   reflect (exists2 a, a \in U & y = a * x) (y \in U :* x)%VS.
 Proof.
-rewrite cosetv_def; apply: (iffP memv_imgP) => [[a[]] |[a]] Ua ->;
+rewrite cosetv_def; apply: (iffP memv_imgP) => [] [a] Ua ->;
   by exists a; rewrite ?lfunE.
 Qed.
 

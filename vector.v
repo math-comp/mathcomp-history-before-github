@@ -1963,7 +1963,8 @@ Variable (I : finType) (R : ringType) (vT : vectType R).
 (* Type unification with exist is again a problem in this proof. *)
 Fact ffun_vect_iso : Vector.axiom (#|I| * Vector.dim vT) {ffun I -> vT}.
 Proof.
-hnf=> /=; exists (fun f => mxvec (\matrix_i v2r (f (enum_val i)))) => [k f g|].
+hnf=> /=; exists (fun f : {ffun I -> vT} =>
+  mxvec (\matrix_i v2r (f (enum_val i)))) => [k f g|].
   rewrite -linearP; congr (mxvec _); apply/matrixP=> i j.
   by rewrite !mxE /= !ffunE linearP !mxE.
 exists (fun r => [ffun i => r2v (row (enum_rank i) (vec_mx r)) : vT]) => [g|r].
