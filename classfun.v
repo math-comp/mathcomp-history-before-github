@@ -329,11 +329,10 @@ End Automorphism.
 
 Definition cfReal phi := cfAut conjC phi == phi.
 
-Definition cfun_v2rV phi := \row_(i < #|classes G|) phi (repr (enum_val i)).
-Fact cfun_v2rV_linear : linear cfun_v2rV.
-Proof. by move=> a phi psi; apply/rowP=> i; rewrite !(mxE, cfunE). Qed.
-Fact cfun_v2rV_bij : bijective cfun_v2rV.
+Fact cfun_vect_iso : Vector.axiom #|classes G| classfun.
 Proof.
+exists (fun phi => \row_i phi (repr (enum_val i))) => [a phi psi|].
+  by apply/rowP=> i; rewrite !(mxE, cfunE).
 set n := #|_|; pose eK x : 'I_n := enum_rank_in (classes1 _) (x ^: G).
 have rV2vP v : is_class_fun G [ffun x => v (eK x) *+ (x \in G)].
   apply: intro_class_fun => [x y Gx Gy | x /negbTE/=-> //].
@@ -345,9 +344,8 @@ apply/rowP=> i; rewrite mxE cfunE; have /imsetP[x Gx def_i] := enum_valP i.
 rewrite def_i; have [y Gy ->] := repr_class <<B>> x.
 by rewrite groupJ // /eK classGidl // -def_i enum_valK_in.
 Qed.
-
-Definition cfun_vectMixin := VectMixin cfun_v2rV_linear cfun_v2rV_bij.
-Canonical cfun_vectType := VectType algC cfun_vectMixin.
+Definition cfun_vectMixin := VectMixin cfun_vect_iso.
+Canonical cfun_vectType := VectType algC classfun cfun_vectMixin.
 Canonical cfun_fAlgType := AlgFType algC cfun_vectMixin.
 
 Definition cfun_base A : #|classes B ::&: A|.-tuple classfun :=
@@ -374,7 +372,7 @@ Arguments Scope cfdotr_head [_ group_scope _ cfun_scope cfun_scope].
 Arguments Scope cfdotr_head [_ group_scope _ cfun_scope].
 
 Notation "''CF' ( G )" := (classfun G) : type_scope.
-Notation "''CF' ( G )" := (fullv (cfun_vectType G)) : vspace_scope.
+Notation "''CF' ( G )" := (@fullv _ (cfun_vectType G)) : vspace_scope.
 Notation "''1_' A" := (cfun_indicator _ A) : ring_scope.
 Notation "''CF' ( G , A )" := (classfun_on G A) : ring_scope.
 
@@ -492,7 +490,8 @@ Qed.
 Lemma cfun_on_sum A :
   'CF(G, A) = (\sum_(xG \in classes G | xG \subset A) ('1_xG)%:VS)%VS.
 Proof.
-by rewrite ['CF(G, A)]big_map big_filter; apply: eq_bigl => xG; rewrite !inE.
+rewrite ['CF(G, A)]span_def big_map big_filter.
+by apply: eq_bigl => xG; rewrite !inE.
 Qed.
 
 Lemma cfun_onP A phi :
@@ -504,7 +503,7 @@ apply: (iffP idP) => [/coord_span-> x notAx | Aphi].
   rewrite mem_enum => /setIdP[/imsetP[y Gy ->] Ay] ->.
   by rewrite cfun_classE Gy (contraNF (subsetP Ay x)) ?mulr0.
 suffices <-: \sum_(xG \in classes G) phi (repr xG) *: '1_xG = phi.
-  apply: memv_suml => _ /imsetP[x Gx ->]; rewrite memvZ cfun_repr.
+  apply: memv_suml => _ /imsetP[x Gx ->]; rewrite memvZeq cfun_repr.
   have [s_xG_A | /subsetPn[_ /imsetP[y Gy ->]]] := boolP (x ^: G \subset A).
     by rewrite cfun_on_sum [_ \in _](sumv_sup (x ^: G)) ?mem_classes ?orbT.
   by move/Aphi; rewrite cfunJ // => ->; rewrite eqxx.
@@ -547,7 +546,7 @@ by rewrite -(eqN_eqC _ 0) -lt0n lt0b => /class_transr->.
 Qed.
 
 Lemma dim_cfun : \dim 'CF(G) = #|classes G|.
-Proof. by rewrite dimvf /vdim //= genGid. Qed.
+Proof. by rewrite dimvf /Vector.dim /= genGid. Qed.
 
 Lemma dim_cfun_on A : \dim 'CF(G, A) = #|classes G ::&: A|.
 Proof. by rewrite (eqnP (cfun_base_free A)) size_tuple. Qed.
@@ -591,7 +590,7 @@ Lemma cfunD1E phi : (phi \in 'CF(G, G^#)) = (phi 1%g == 0).
 Proof. by rewrite cfun_onD1 cfun_onG. Qed.
 
 Lemma cfunGid : 'CF(G, G) = 'CF(G)%VS.
-Proof. by apply/eqP/vspaceP=> phi; rewrite cfun_onG memvf. Qed.
+Proof. by apply/vspaceP=> phi; rewrite cfun_onG memvf. Qed.
 
 Lemma cfun_onS A B phi : B \subset A -> phi \in 'CF(G, B) -> phi \in 'CF(G, A).
 Proof. by rewrite !cfun_onE => sBA /subset_trans->. Qed.
@@ -881,7 +880,7 @@ have [[U [V [-> S_U oVS]]] [X [Y [-> S_X oYS]]]] := (IHS phi, IHS beta).
 pose Z := '[Y, V] / '[V] *: V; exists (X + Z), (Y - Z).
 split; first by rewrite addrCA !addrA addrK addrC.
   rewrite /Z -{4}(addKr U V) scalerDr scalerN addrA addrC span_cons.
-  by rewrite memv_add ?memv_sub ?memvZl ?memv_inj.
+  by rewrite memv_add ?memvB ?memvZ ?memv_inj.
 apply/orthoPl=> psi; rewrite !inE => /predU1P[-> | Spsi]; last first.
   by rewrite cfdot_subl cfdotZl (orthoPl oVS _ Spsi) mulr0 subr0 (orthoPl oYS).
 rewrite cfdot_subl !cfdotDr (span_orthogonal oYS) // ?memv_span ?mem_head //.
@@ -948,7 +947,8 @@ Qed.
 Lemma orthogonal_free S : pairwise_orthogonal S -> free S.
 Proof.
 case/pairwise_orthogonalP=> [/=/andP[notS0 uniqS] oSS].
-apply/(freeP (in_tuple S)) => a aS0 i; have S_i: S`_i \in S by exact: mem_nth.
+rewrite -(in_tupleE S); apply/freeP => a aS0 i.
+have S_i: S`_i \in S by exact: mem_nth.
 have /eqP: '[S`_i, 0]_G = 0 := cfdot0r _.
 rewrite -{2}aS0 raddf_sum /= (bigD1 i) //= big1 => [|j neq_ji]; last 1 first.
   by rewrite cfdotZr oSS ?mulr0 ?mem_nth // eq_sym nth_uniq.
@@ -961,7 +961,7 @@ Lemma filter_pairwise_orthogonal S p :
 Proof.
 move=> orthoS; apply: sub_pairwise_orthogonal (orthoS).
   exact: mem_subseq (filter_subseq p S).
-exact/filter_uniq/uniq_free/orthogonal_free.
+exact/filter_uniq/free_uniq/orthogonal_free.
 Qed.
 
 Lemma orthonormal_not0 S : orthonormal S -> 0 \notin S.
@@ -1430,11 +1430,11 @@ Proof. by move=> x; rewrite !inE cfunE fmorph_eq0. Qed.
 
 Lemma map_cfAut_free S : cfAut_closed u S -> free S -> free (map (cfAut u) S).
 Proof.
-set Su := map _ S => sSuS freeS; have uniqS := uniq_free freeS.
+set Su := map _ S => sSuS freeS; have uniqS := free_uniq freeS.
 have uniqSu: uniq Su by rewrite (map_inj_uniq cfAut_inj).
 have{sSuS} sSuS: {subset Su <= S} by move=> _ /mapP[phi Sphi ->]; exact: sSuS.
 have [|eqSuS _] := leq_size_perm uniqSu sSuS; first by rewrite size_map.
-by rewrite (free_perm_eq (uniq_perm_eq uniqSu uniqS eqSuS)).
+by rewrite (perm_free (uniq_perm_eq uniqSu uniqS eqSuS)).
 Qed.
 
 Lemma cfAut_on A phi : (phi^u \in 'CF(G, A)) = (phi \in 'CF(G, A)).

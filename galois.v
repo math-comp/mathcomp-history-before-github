@@ -16,14 +16,14 @@ Import GRing.Theory.
 
 Section Eigenspace.
 
-Variable (K: fieldType) (V:vspaceType K) (f:'End(V)) (lambda:K).
+Variable (K: fieldType) (V : vectType K) (f:'End(V)) (lambda:K).
 
-Definition eigenspace := lker (f - lambda *: \1)%VS.
+Definition eigenspace := lker (f - lambda *: \1%VF).
 
 Lemma eigenspaceIn : forall x, (x \in eigenspace) = (f x == lambda *: x) .
 Proof.
 move => x.
-by rewrite memv_ker add_lappE opp_lappE scale_lappE GRing.subr_eq0 unit_lappE.
+by rewrite memv_ker add_lfunE opp_lfunE scale_lfunE GRing.subr_eq0 id_lfunE.
 Qed.
 
 Lemma eigensubspaceImage :  forall vs, 
@@ -36,7 +36,7 @@ case/memv_imgP => y [Hy ->].
 move/Hvs:(Hy).
 rewrite eigenspaceIn.
 move/eqP ->.
-by apply: memvZl.
+by apply: memvZ.
 Qed.
 
 Lemma eigensubspaceImageEq :
@@ -49,9 +49,8 @@ split; first by apply: eigensubspaceImage.
 move/subvP: Hvs => Hvs.
 apply/subvP => x Hx.
 apply/memv_imgP.
-exists (lambda^-1 *: x).
-have Hlx : (lambda^-1 *: x \in vs) by rewrite memvZ Hx orbT.
-split=>//.
+have Hlx : (lambda^-1 *: x \in vs) by rewrite memvZ.
+exists (lambda^-1 *: x) => //.
 move/Hvs: Hlx.
 rewrite eigenspaceIn.
 move/eqP ->.
@@ -87,8 +86,8 @@ apply: (iffP andP); case; last first.
  split.
   apply/subvP => v Hv.
   by rewrite eigenspaceIn scale1r HK.
- apply/allP => x; move/memv_basis => Hx.
- apply/allP => y; move/memv_basis => Hy.
+ apply/allP => x; move/vbasis_mem => Hx.
+ apply/allP => y; move/vbasis_mem => Hy.
  apply/eqP.
  by apply: HE.
 move/subvP => HK.
@@ -98,24 +97,17 @@ split.
  apply/eqP.
  by rewrite -{2}[x]scale1r -eigenspaceIn HK.
 move => x y.
-do 2 move/coord_basis ->.
+do 2 move/coord_vbasis ->.
 rewrite mulr_suml ![f _]linear_sum mulr_suml.
 apply: eq_bigr => i _ /=.
 rewrite !mulr_sumr linear_sum.
 apply: eq_bigr => j _ /=.
-rewrite !linearZ /= -!scalerAl linearZ.
-repeat apply: f_equal.
-apply/eqP.
-move: (ltn_ord i).
-rewrite -{2}(size_tuple (vbasis _)).
-move/(HE 0).
-move/all_nthP.
-apply.
-by rewrite (size_tuple (vbasis _)).
+rewrite !linearZ /= -!scalerAr -!scalerAl 2!linearZ /=; congr (_ *: (_ *: _)).
+by apply/eqP/(all_nthP 0 (HE 0 _ _)); rewrite size_tuple.
 Qed.
 
-Lemma kHom1 : kHom \1%VS.
-Proof. apply/kHomP. by split; move => ? ?; rewrite !unit_lappE. Qed.
+Lemma kHom1 : kHom \1%VF.
+Proof. apply/kHomP. by split; move => ? ?; rewrite !id_lfunE. Qed.
 
 Variable (f : 'End(L)).
 
@@ -127,28 +119,18 @@ Qed.
 
 Definition kAut : pred 'End(L) := fun f =>  kHom f && (f @: E == E)%VS.
 
-Let kHomExtendF (x y z: L) :=
- (map_poly f (poly_for_Fadjoin E x z)).[y].
-
-Let kHomExtendF_linear : forall x y,
- linear (kHomExtendF x y).
+Fact kHomExtendF_subproof x y :
+  linear (fun z => (map_poly f (poly_for_Fadjoin E x z)).[y]).
 Proof.
-move => x y k a b.
-rewrite /kHomExtendF linearP /= raddfD hornerE.
-congr (_ + _).
-rewrite -[(map_poly f (poly_for_Fadjoin E x a)).[y]]mul1r.
-rewrite scalerAl -hornerZ.
-congr (_.[_]).
-apply/polyP => i.
-rewrite !(coefZ, coef_map [linear of f]).
-by rewrite -!scalerAl !mul1r /= linearZ.
+move=> k a b; rewrite linearP /= raddfD hornerE; congr (_ + _).
+rewrite -[rhs in _ = rhs]mulr_algl -hornerZ /=; congr _.[_].
+by apply/polyP => i; rewrite !(coefZ, coef_map) /= !mulr_algl linearZ.
 Qed.
-
-Definition kHomExtend x y := lapp_of_fun (kHomExtendF x y).
+Definition kHomExtend x y := linfun (Linear (kHomExtendF_subproof x y)).
 
 Lemma kHomExtendE : forall x y z,
  kHomExtend x y z = (map_poly f (poly_for_Fadjoin E x z)).[y].
-Proof. by move => x y z; rewrite lapp_of_funK. Qed.
+Proof. by move => x y z; rewrite lfunE. Qed.
 
 End Definitions.
 
@@ -205,11 +187,11 @@ apply: contraLR => Hv.
 by rewrite -unitfE unitrE -kHom_inv // -HE -?memv_inv // mulfV // HK // mem1v.
 Qed.
 
-Lemma kHomRmorph_subproof : rmorphism (f \o (sa_val (als:=E))).
+Lemma kHomRmorph_subproof : rmorphism (f \o @vsval _ _ E).
 Proof.
 case/kHomP: Hf => HK HE.
 split; first by move => a b; rewrite /= linearB.
-split; first by move => a b; rewrite /= HE // subaP.
+split; first by move => a b; rewrite /= HE // subvsP.
 by rewrite /= aunit_eq1 HK // mem1v.
 Qed.
 
@@ -218,10 +200,9 @@ Lemma kHom_root : forall p x, p \is a polyOver E -> x \in E ->
 Proof.
 rewrite/root.
 move => ? x.
-case/polyOver_suba => p -> Hx.
+case/polyOver_subvs => p -> Hx.
 set (f' := (RMorphism kHomRmorph_subproof)).
-set (g := (RMorphism (sa_val_rmorph E))).
-rewrite -[x]/(sa_val (Suba Hx)) -map_poly_comp ?linear0 //.
+rewrite -[x]/(vsval (Subvs Hx)) -map_poly_comp ?linear0 //.
 rewrite (horner_map f') horner_map.
 move/eqP => /= ->.
 by rewrite linear0.
@@ -257,12 +238,10 @@ have Hfmin : map_poly f (minPoly E x) \is monic.
 rewrite (divp_eq (map_poly f p) (map_poly f (minPoly E x))) !hornerE.
 move/eqP: Hy ->.
 rewrite mulr0 add0r.
-case/polyOver_suba: Hp => p' ->.
-case/polyOver_suba: (minPolyOver E x) => q' ->.
+case/polyOver_subvs: Hp => p' ->.
+case/polyOver_subvs: (minPolyOver E x) => q' ->.
 rewrite -map_modp -!map_poly_comp ?linear0 //=.
-have Hmorph := kHomRmorph_subproof.
-rewrite -[f \o sa_val_rmorphism E]/(GRing.RMorphism.apply (RMorphism Hmorph)).
-by rewrite map_modp !map_polyE /= 2![map (_ \o _) _]map_comp.
+by rewrite (map_modp (RMorphism kHomRmorph_subproof)) !map_polyE /=.
 Qed.
 
 Lemma kHomExtendkHom : kHom K (Fadjoin E x) (kHomExtend E f x y).
@@ -273,7 +252,7 @@ apply/kHomP; split.
  move => z Hz.
  rewrite kHomExtendE.
  move/HKE'/poly_for_K: (Hz) ->.
- by rewrite (map_polyC [linear of f]) hornerC /= HK.
+ by rewrite map_polyC hornerC /= HK.
 move => a b.
 case/poly_Fadjoin => p [Hp ->].
 case/poly_Fadjoin => q [Hq ->].
@@ -297,7 +276,7 @@ by rewrite -(dimv_leqif_eq HfE) (kHom_dim Hhom).
 Qed.
 
 Lemma LAut_lrmorph : forall f : 'End(L), 
-  reflect (lrmorphism f) (kHom F (fullv L) f).
+  reflect (lrmorphism f) (kHom F fullv f).
 Proof.
 move => f.
 apply: (iffP (kHomP _ _ _)).
@@ -327,10 +306,9 @@ Definition isNormalFieldExt :=
 Hypothesis NormalFieldExt : isNormalFieldExt.
 
 Definition LAut_enum : seq 'End(L):=
- let b := vbasis (fullv L) in
- let mkEnd (b' : seq L) := lapp_of_fun 
-  (fun v : L => \sum_i coord b v i *: b'`_i) in
- undup (filter (kHom F (fullv L))
+ let b := vbasis fullv in
+ let mkEnd (b' : seq L) := linfun (fun v => \sum_i coord b i v *: b'`_i) in
+ undup (filter (kHom F fullv)
    (map mkEnd (foldr (allpairs cons) [:: [::]]
      (map (fun x => xchoose (NormalFieldExt F x)) b)))).
 
@@ -347,21 +325,20 @@ apply: (iffP idP).
 move/LAut_lrmorph => Hf.
 rewrite Hf.
 apply/mapP.
-exists (map f (vbasis (fullv L))).
- elim: (tval (vbasis (fullv L))) => [//|v vs IH].
+exists (map f (vbasis fullv)).
+ elim: (tval (vbasis fullv)) => [//|v vs IH].
  apply/allpairsP.
  exists (f v, map f vs); split => //.
  move: (xchooseP (NormalFieldExt F v)).
  rewrite -root_prod_XsubC.
  move/eqP <-.
  by rewrite (kHom_rootK Hf) ?subvf ?minPolyOver ?memvf ?root_minPoly.
-apply/eqP/eq_lapp => v.
-rewrite lapp_of_funK; last first.
- move => x a b.
+apply/lfunP => v.
+rewrite (lfunE (Linear (_ : linear _))) => [x a b | linE].
  rewrite linear_sum -big_split.
  apply: eq_bigr => i _ /=.
- by rewrite scalerA -scalerDl coord_is_linear !ffunE.
-have Hv := coord_basis (memvf v).
+ by rewrite scalerA -scalerDl linearP.
+have Hv := coord_vbasis (memvf v).
 rewrite {1}Hv linear_sum.
 apply: eq_bigr => i _.
 rewrite linearZ (nth_map 0) //.
@@ -391,7 +368,7 @@ Canonical Structure LAut_lrmorphism :=
   fun f => AddLRMorphism (LAut_is_scalable f).
 
 Definition comp_in_LAut : forall (f g : LAut),
- (ssval f \o ssval g)%VS \in LAut_enum.
+ (ssval f \o ssval g)%VF \in LAut_enum.
 Proof.
 move => f g.
 apply/LAut_is_enum.
@@ -401,13 +378,13 @@ split; last first.
 split.
  move => a b.
  by rewrite linearB.
-by split;[move => a b|]; rewrite !lappE ?rmorph1 ?rmorphM.
+by split;[move => a b|]; rewrite !lfunE ?rmorph1 ?rmorphM.
 Qed.
 
-Definition id_in_LAut : \1%VS \in LAut_enum.
+Definition id_in_LAut : \1%VF \in LAut_enum.
 Proof. apply/LAut_is_enum/LAut_lrmorph. by apply: kHom1. Qed.
 
-Lemma LAut_ker0 : forall (f : LAut), lker (ssval f) = 0%:VS.
+Lemma LAut_ker0 : forall (f : LAut), lker (ssval f) = 0%VS.
 Proof.
 move => f.
 apply/eqP.
@@ -419,27 +396,23 @@ by rewrite mem0v.
 Qed.
 
 Definition inv_in_LAut : forall (f : LAut),
- (ssval f\^-1)%VS \in LAut_enum.
+ (ssval f)^-1%VF \in LAut_enum.
 Proof.
 move => f.
 move/LAut_is_enum/LAut_lrmorph: (ssvalP f) => Hf.
 apply/LAut_is_enum.
 apply:(@can2_lrmorphism _ _ _ [lrmorphism of (ssval f)]).
- move => a.
- rewrite -[_ (_ a)]comp_lappE inv_lker0 ?unit_lappE // -subv0.
- by rewrite LAut_ker0 subv_refl.
+  by move => a; rewrite lker0_lfunK ?LAut_ker0.
 move => a.
 move:(memvf a).
-rewrite -(addv_complf (ssval f @: fullv L)%VS).
-move/memv_addP => [? [z []]].
-case/memv_imgP => b [_ ->].
-rewrite (_ : (ssval f @: fullv L)^C = 0%:VS)%VS; last first.
+rewrite -(addv_complf (limg (ssval f))).
+case/memv_addP=> _ /memv_imgP[b _ ->] [z].
+rewrite (_ : _^C = 0)%VS; last first.
  apply/eqP.
  by rewrite -dimv_eq0 dimv_compl (kHom_dim Hf) dimvf subnn.
 rewrite memv0.
 move/eqP => -> ->.
-rewrite addr0 -[_ (_ (_ b))]comp_lappE -[fun_of_lapp _ (_ b)]comp_lappE.
-by rewrite -comp_lappA inv_lapp_def.
+by rewrite addr0 lker0_lfunK ?LAut_ker0.
 Qed.
 
 (* the group operation is the categorical composition operation *)
@@ -448,27 +421,14 @@ Definition inv_LAut (f : LAut) : LAut := SeqSub (inv_in_LAut f).
 Definition id_LAut : LAut := SeqSub id_in_LAut.
 
 Lemma comp_LAutA : associative comp_LAut.
-Proof. move => f g h. apply: val_inj. symmetry. apply: comp_lappA. Qed.
+Proof. move => f g h. apply: val_inj. symmetry. apply: comp_lfunA. Qed.
 
 Lemma comp_1LAut : left_id id_LAut comp_LAut.
-Proof. move => f. apply: val_inj. apply: comp_lapp1. Qed.
+Proof. by move=> f; apply/val_inj/comp_lfun1r. Qed.
 
 Lemma comp_LAutK : left_inverse id_LAut inv_LAut comp_LAut.
 Proof.
-move => f.
-apply: val_inj.
-(* TODO: abstract this into vector. v *)
-apply/eqP/eq_lapp => v.
-rewrite unit_lappE /=.
-move: (memvf v).
-rewrite -(addv_complf (val f @: (fullv L))%VS).
-suff/eqP -> : ((val f @: fullv L)^C == 0%:VS)%VS.
- rewrite addv0.
- move/memv_imgP => [x [_ ->]].
- by rewrite -[X in X = _]comp_lappE -comp_lappA inv_lapp_def.
-rewrite -dimv_eq0.
-rewrite dimv_compl.
-by rewrite limg_dim_eq ?dimvf ?subnn // capfv LAut_ker0.
+by move=> f; apply/val_inj/lfunP => v; rewrite /= lker0_compfV ?LAut_ker0.
 Qed.
 
 Definition LAut_baseFinGroupMixin := FinGroup.Mixin
@@ -486,7 +446,7 @@ Canonical LAut_of_finGroupType := Eval hnf in
 
 Lemma kHomExtendLAut : forall (K E : {algebra L}) x,
   (K <= E)%VS -> kHom K E x ->
-  exists y : LAut, kHom K (fullv L) (val y) && (E <= lker (val y - x))%VS.
+  exists y : LAut, kHom K fullv (val y) && (E <= lker (val y - x))%VS.
 Proof.
 move => K E x.
 pose n := (\dim E^C).
@@ -502,7 +462,7 @@ case (eqVneq (\dim E^C) 0%N).
  move: (Hx).
  move/(subv_kHom (sub1v _))/LAut_lrmorph/LAut_is_enum => xP.
  exists (SeqSub xP).
- by rewrite Hx subrr -lkerE lim0g eqxx.
+ by rewrite Hx subrr lkerE lim0g eqxx.
 move => Hdim Hm HKE Hx.
 have [a [Ha Ha0]] : exists a, a \in (E^C)%VS /\ a != 0.
  exists (vpick (E^C)%VS); split; first by apply: memv_pick.
@@ -518,8 +478,8 @@ have HminE: minPoly K a \in polyOver E.
  by rewrite (polyOverSv HKE) // minPolyOver.
 have : (1 < size (minPoly E a)) by rewrite size_minPoly ltnS.
 move: (minPoly_dvdp HminE (root_minPoly K a)).
-case/polyOver_suba : HminE => p Hp.
-case/polyOver_suba : (minPolyOver E a) => q Hq.
+case/polyOver_subvs : HminE => p Hp.
+case/polyOver_subvs : (minPolyOver E a) => q Hq.
 have Hmorph := (kHomRmorph_subproof Hx).
 rewrite Hp Hq dvdp_map size_map_poly -(dvdp_map (RMorphism Hmorph)).
 rewrite -(size_map_poly (RMorphism Hmorph)) !map_poly_comp ?linear0 // -Hp /=.
@@ -555,32 +515,28 @@ have [b] : exists b, root (map_poly x (minPoly E a)) b.
  by rewrite (dvdp_trans Hdz).
 move => Hb.
 case: (IH _ _ _ _ (kHomExtendkHom Hx HKE Hb)).
-  rewrite ltnS in Hm.
+- rewrite ltnS in Hm.
   apply: (leq_trans _ Hm).
-  rewrite -(ltn_add2l (\dim (Fadjoin E a))).
-  rewrite dimv_compl subnKC; last by rewrite -dimvf dimvS // subvf.
-  rewrite -(ltn_add2r (\dim E)) -addnA.
-  rewrite dimv_compl subnK; last by rewrite -dimvf dimvS // subvf.
-  rewrite ltnNge addnC leq_add2l.
-  move: HaE.
-  apply: contra.
+  rewrite !dimv_compl -subSn; last by rewrite dimvS // subvf.
+  rewrite -[rhs in _ <= rhs]subSS leq_sub2l // ltnNge.
+  apply: contra HaE.
   move/dimv_leqif_sup/geq_leqif: (subsetKFadjoin E a) ->.
   move/subvP/(_ a).
   rewrite memx_Fadjoin.
   by apply.
- by rewrite (subv_trans HKE) // subsetKFadjoin.
+- by rewrite (subv_trans HKE) // subsetKFadjoin.
 move => g.
-rewrite -lkerE -subv0.
+rewrite lkerE -subv0.
 case/andP => Hg.
 move/subvP => Hker.
 exists g.
-rewrite Hg -lkerE -subv0.
+rewrite Hg lkerE -subv0.
 apply/subvP => ?.
 case/memv_imgP => z [Hz ->].
 apply: Hker.
 apply/memv_imgP.
-exists z; split; first by rewrite memK_Fadjoin.
-rewrite !add_lappE !opp_lappE.
+exists z; first by rewrite memK_Fadjoin.
+rewrite !add_lfunE !opp_lfunE.
 congr (_ - _).
 by rewrite kHomExtendExt.
 Qed.
@@ -611,15 +567,14 @@ apply/prodvP => a b.
 rewrite !eigenspaceIn !scale1r rmorphM /=.
 by do 2 move/eqP ->.
 Qed.
-
-Canonical Structure LAut_FixedField_aspace f : {algebra L} :=
+Canonical LAut_FixedField_aspace f : {algebra L} :=
   ASpace (LAut_FixedField_is_aspace_subproof f).
 
 Lemma LAut_independent (E : {algebra L}) n (f_ : 'I_n -> LAut)
   (c_ : 'I_n -> L) : (forall i, (val (f_ i) @: E)%VS = E) -> 
-  uniq [seq (val (f_ i) \o projv E)%VS | i <- enum 'I_n] ->
+  uniq [seq (val (f_ i) \o projv E)%VF | i <- enum 'I_n] ->
   (forall i, c_ i \in E) ->
-  (E <= lker (\sum_i (amull (c_ i) \o val (f_ i))))%VS ->
+  (E <= lker (\sum_i (amull (c_ i) \o val (f_ i))%VF)%R)%VS ->
   (forall i, c_ i = 0).
 Proof.
 elim: n f_ c_ => [|n IH] f_ c_ Hf Huniq Hc Hsum; first by move => [].
@@ -636,24 +591,20 @@ have [j /andP [Hji Hcj]] : exists j, (j != i) && (c_ j != 0).
   move: (introNf idP Hi) <-.
   rewrite negbK addr0 => Hcfi.
   rewrite -[c_ i]mulr1 -(rmorph1 ([rmorphism of (val (f_ i))])).
-  rewrite -(lapp_of_funK (amull_linear_p (c_ i))).
-  rewrite -[_ (_ 1)]comp_lappE -memv_ker.
-  move/subvP: Hcfi; apply.
-  by rewrite mem1v.
+  by have:= subvP Hcfi _ (mem1v _); rewrite memv_ker lfunE /= lfunE.
  move => j Hji.
  move: (Hci j).
  rewrite negb_and Hji negbK.
  move/eqP ->.
- apply/eqP/eq_lapp => a.
- rewrite !lappE /= /amull lapp_of_funK ?mul0r //.
- by apply: amull_linear_p.
+ apply/lfunP => a.
+ by rewrite !lfun_simp /= mul0r.
 have [a HaE] : exists2 a, a \in E & val (f_ j) a != val (f_ i) a.
  move: Hji.
  rewrite -(inj_eq (@ord_inj _)).
- rewrite -(nth_uniq \0%VS _ _ Huniq) 1?size_map ?size_enum_ord ?ltn_ord //.
+ rewrite -(nth_uniq 0 _ _ Huniq) 1?size_map ?size_enum_ord ?ltn_ord //.
  do 2 rewrite (nth_map ord0) ?size_enum_ord ?ltn_ord // nth_ord_enum.
- case/neq_lapp => a.
- rewrite !lappE => Ha.
+ case/lfunPn => a.
+ rewrite !lfunE /= => Ha.
  exists (projv E a); last done.
  by apply: memv_proj.
 rewrite -subr_eq0.
@@ -664,31 +615,29 @@ have : forall i : 'I_n, c'_ i = 0.
  - by move => k; apply Hf.
  - rewrite /f'_.
    (* abstract this proof (same as in LAut_matrix) *)
-   rewrite (@map_comp _ _ _ (fun i => val (f_ i) \o projv E)%VS (lift j)).
+   rewrite (map_comp (fun i => val (f_ i) \o _)%VF).
    rewrite map_inj_uniq.
     rewrite map_inj_uniq ?enum_uniq //.
     apply: lift_inj.
    move => k1 k2 /eqP Hk.
    apply/eqP.
-   rewrite -[k1 == k2](nth_uniq \0%VS _ _ Huniq)
+   rewrite -[k1 == k2](nth_uniq 0 _ _ Huniq)
            1?size_map ?size_enum_ord ?ordP ?ltn_ord //.
    by do 2 rewrite (nth_map ord0) ?size_enum_ord ?ordP ?ltn_ord // nth_ord_enum.
  - move => k.
    apply: memv_mul; first by apply: Hc.
-   apply: memv_sub; first by rewrite -(Hf j) memv_img.
+   apply: memvB; first by rewrite -(Hf j) memv_img.
    by rewrite -(Hf (lift j k)) memv_img.
  - set S := \sum_ _ _.
    have -> : (S = (\sum_i (amull ((c_ i) * (val (f_ j) a - val (f_ i) a))%R
-                         \o val (f_ i))%VS)).
+                         \o val (f_ i))%VF)).
     rewrite (bigD1 j) //= {1}subrr mulr0.
     (* TODO abstract this into algebra.v *)
-    have -> : (amull 0 = \0%VS :> 'End(L)).
-     apply/eqP/eq_lapp => v.
-     rewrite {1}lapp_of_funK; last by apply: amull_linear_p.
-     by rewrite mul0r lappE.
-    rewrite comp_0lapp add0r.
-    set (G m := (amull (c_ m * ((ssval (f_ j)) a - (ssval (f_ m)) a))%R
-                \o ssval (f_ m))%VS).
+    have -> : (amull 0 = 0 :> 'End(L)).
+      by apply/lfunP => v; rewrite !lfunE /= mul0r.
+    rewrite comp_lfun0l add0r.
+    pose G m := (amull (c_ m * ((ssval (f_ j)) a - (ssval (f_ m)) a))%R
+                \o ssval (f_ m))%VF.
     set h := lift j.
     have n_gt0 : 0 < n.
      clear -Hji.
@@ -705,32 +654,26 @@ have : forall i : 'I_n, c'_ i = 0.
    apply/subvP => v Hv.
    rewrite memv_ker.
    rewrite -[X in _ == X]addr0 -[X in 0 + X]oppr0.
-   rewrite sum_lappE.
+   rewrite sum_lfunE.
    have HsumA : \sum_i (amull (c_ i * val (f_ j) a)%R \o val (f_ i))%VS v = 0.
     move/subvP/(_ _ Hv): Hsum.
     rewrite memv_ker.
     move/eqP/(f_equal (fun x => val (f_ j) a * x)).
     rewrite mulr0 => H0.
-    rewrite -[X in _ = X]H0 sum_lappE mulr_sumr.
+    rewrite -[X in _ = X]H0 sum_lfunE mulr_sumr.
     apply: eq_bigr => m _.
-    rewrite !{1}comp_lappE /=.
-    do 2 (rewrite lapp_of_funK; last by apply: amull_linear_p).
-    by rewrite [c_ m * _]mulrC mulrA.
-   have HsumB : \sum_i (amull (c_ i * val (f_ i) a)%R \o val (f_ i))%VS v = 0.
+    by rewrite !{1}lfun_simp /= lfunE /= mulrCA mulrA. 
+   have HsumB : \sum_i (amull (c_ i * val (f_ i) a)%R \o val (f_ i))%VF v = 0.
     move/subvP/(_ _ (memv_mul HaE Hv)): Hsum.
     rewrite memv_ker.
     move/eqP => H0.
-    rewrite -[X in _ = X]H0 sum_lappE.
+    rewrite -[X in _ = X]H0 sum_lfunE.
     apply: eq_bigr => m _.
-    rewrite !{1}comp_lappE /=.
-    do 2 (rewrite lapp_of_funK; last by apply: amull_linear_p).
-    by rewrite !rmorphM mulrA.
+    by rewrite !{1}comp_lfunE /= !lfunE /= rmorphM mulrA.
    rewrite -[X in (X - _)]HsumA -[X in (_ - X)]HsumB -sumrB.
    apply/eqP.
    apply: eq_bigr => m _.
-   rewrite !{1}(opp_lappE,lappE) /=.
-   do 3 (rewrite {1}lapp_of_funK; last by apply: amull_linear_p).
-   by rewrite mulrBr mulrBl.
+   by rewrite !{1}lfunE /= !{1}lfunE /= -mulrBl -mulrBr.
 move : Hji.
 case/unlift_some => i' Hii' Hi'i.
 move/(_ i')/eqP.
@@ -745,7 +688,7 @@ Qed.
 
 Lemma LAut_matrix_subproof (E : {algebra L}) n (f_ : 'I_n -> LAut) :
   (forall i, (val (f_ i) @: E)%VS = E) ->
-  uniq [seq (val (f_ i) \o (projv E))%VS | i <- enum 'I_n] ->
+  uniq [seq (val (f_ i) \o (projv E))%VF | i <- enum 'I_n] ->
   exists2 w_ : 'I_n -> L, (forall j, w_ j \in E) &
    \matrix_(i, j) (val (f_ i) (w_ j)) \in unitmx.
 Proof.
@@ -758,15 +701,13 @@ case: (IH f'_ _ _).
   by move => i; apply Hf.
  (* abstract this proof (same as in LAut_independent) *)
  rewrite /f'_.
- rewrite (@map_comp _ _ _ (fun i => val (f_ i) \o projv E)%VS
-                          (fun i => rshift 1 i)).
- rewrite map_inj_uniq.
+ rewrite (map_comp (fun i => val (f_ i) \o _)%VF) map_inj_uniq.
   rewrite (eq_map (@rshift1 _)).
   rewrite map_inj_uniq ?enum_uniq //.
   apply: lift_inj.
  move => k1 k2 /eqP Hk.
  apply/eqP.
- rewrite -[k1 == k2](nth_uniq \0%VS _ _ Huniq)
+ rewrite -[k1 == k2](nth_uniq 0 _ _ Huniq)
          1?size_map ?size_enum_ord ?ordP ?ltn_ord //.
  by do 2 rewrite (nth_map ord0) ?size_enum_ord ?ordP ?ltn_ord // nth_ord_enum.
 move => w'_ Hw'.
@@ -774,7 +715,7 @@ set M' := \matrix_(_,_) _ => HM'.
 pose x := \row_(j < n) (val (f_ 0) (w'_ j)).
 pose c' := (x *m invmx M').
 pose c_ := row_mx 1 (-c').
-pose comb := \sum_i (amull (c_ 0 i) \o val (f_ i))%VS.
+pose comb := \sum_i (amull (c_ 0 i) \o val (f_ i))%VF.
 have Hc : forall i, c_ 0 i \in E.
  move => i.
  rewrite mxE.
@@ -791,9 +732,8 @@ have Hc : forall i, c_ 0 i \in E.
  rewrite -invmx_matrixOver.
  apply/matrixOverP => j i'.
  by rewrite mxE -(Hf (rshift 1 j)) memv_img.
-case (eqVneq (E :\: lker comb)%VS 0%:VS).
- move/eqP.
- rewrite -subv_diffv0.
+case (eqVneq (E :\: lker comb) 0)%VS.
+ move/eqP; rewrite diffv_eq0.
  move/(LAut_independent Hf Huniq Hc)/(_ ord0)/eqP.
  rewrite -[ord0](@lshift0 _ 0) row_mxEl mxE eqxx -[_ == _]negbK.
  by rewrite oner_neq0.
@@ -841,13 +781,11 @@ have -> : UL = (val (f_ 0) w0)%:M.
  apply/matrixP => i j.
  by rewrite !ord1 !(row_mxEl, mxE) lshift0.
 apply/matrixP => ? ?.
-rewrite !ord1 !mxE !eqxx /comb sum_lappE big_ord_recl {1}lappE.
-rewrite /= lapp_of_funK; last by apply: amull_linear_p.
+rewrite !ord1 !mxE !eqxx /comb sum_lfunE big_ord_recl {1}lfunE /= lfunE /=.
 rewrite -[ord0](@lshift0 _ 0) row_mxEl mxE eqxx mul1r lshift0.
 congr (_ + _).
 apply eq_bigr => i _.
-rewrite -rshift1 row_mxEr {1}lappE.
-rewrite /= lapp_of_funK; last by apply: amull_linear_p.
+rewrite -rshift1 row_mxEr {1}lfunE /= lfunE /=.
 congr (_ * _).
 by rewrite !(row_mxEl, mxE).
 Qed.
@@ -858,7 +796,7 @@ Qed.
    notation for Aut(E/K) puts the larger field first. *)
 Definition Aut (E K : {vspace L}) :=
   ([set x : LAut | kAut K E (val x)] /
-             [set x : LAut | kAut E (fullv L) (val x)])%g.
+             [set x : LAut | kAut E fullv (val x)])%g.
 
 Reserved Notation "''Aut' ( A | B )"
   (at level 8, format "''Aut' ( A  |  B )").
@@ -873,7 +811,7 @@ apply/group_setP; split.
  apply/andP; split; last by rewrite SubK lim1g subv_refl.
  apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
  move => a _.
- by rewrite SubK unit_lappE.
+ by rewrite SubK id_lfunE.
 move => x y.
 rewrite !in_set !kAutE.
 case/andP; case/kHomP => Hx1 Hx2 Hx3.
@@ -882,14 +820,14 @@ apply/andP; split; last first.
  by rewrite SubK limg_comp (subv_trans _ Hy3) // limg_ker0 // LAut_ker0.
 apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
 move => a Ha.
-by rewrite SubK lappE /comp Hy1 // Hx1.
+by rewrite SubK lfunE /= Hy1 // Hx1.
 Qed.
 
 Canonical kAut_group K E := Eval hnf in group (kAut_group_set K E).
 
 Lemma kAut_normal : forall K E : {algebra L},
  ([set x : LAut | kAut K E (val x)] \subset
-   'N([set x : LAut | kAut E (fullv L) (val x)]))%g.
+   'N([set x : LAut | kAut E fullv (val x)]))%g.
 Proof.
 move => K E.
 apply/subsetP.
@@ -905,11 +843,11 @@ case/kHomP => Hy _ _ ->.
 rewrite kAutE subvf andbT.
 apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
 move => a Ha.
-rewrite -{2}[a](unit_lappE) -[\1%VS]/(val (1%g : LAut)) -(mulVg x).
-rewrite !SubK !lappE /= lappE [X in ((val x) X) = _]Hy //.
+rewrite -{2}[a](id_lfunE) -[\1%VF]/(val (1%g : LAut)) -(mulVg x).
+rewrite !SubK !lfunE /= lfunE [X in ((val x) X) = _]Hy //.
 rewrite -Hx in Ha.
 case/memv_imgP: Ha => [b [Hb ->]].
-by rewrite -[X in X \in _]comp_lappE inv_lker0 ?unit_lappE // LAut_ker0.
+by rewrite lker0_lfunK ?LAut_ker0.
 Qed.
 
 (* Move this to vector.v *)
@@ -918,19 +856,19 @@ Lemma eqvP (V : {vspace L}) (f g: 'End(L)) :
           (V <= lker (f - g))%VS.
 Proof.
 apply: (iffP idP).
- rewrite -lkerE.
+ rewrite lkerE.
  move/eqP => Hfg a /(memv_img (f - g)).
- rewrite Hfg memv0 lappE opp_lappE subr_eq0.
+ rewrite Hfg memv0 !lfun_simp /= subr_eq0.
  by move/eqP.
 move => Hfg.
 apply/subvP => v Hv.
-rewrite memv_ker lappE opp_lappE subr_eq0.
+rewrite memv_ker !lfun_simp subr_eq0.
 apply/eqP.
 by apply: Hfg.
 Qed.
 
 Lemma Aut_eq (E : {algebra L}) 
-  (x y : coset_of [set x : LAut | kAut E (fullv L) (val x)]) (f g : LAut) : 
+  (x y : coset_of [set x : LAut | kAut E fullv (val x)]) (f g : LAut) : 
   f \in x -> g \in y ->
   reflect (forall a, a \in E -> val f a = val g a)%VS (x == y).
 Proof.
@@ -946,7 +884,7 @@ apply: (iffP idP).
  case/rcosetP => h.
  rewrite inE kAutE subvf andbT.
  case/kHomP => Hh _ -> a Ha.
- rewrite /= lappE /= Hh //.
+ rewrite /= lfunE /= Hh //.
 move/coset_mem: Hf <-.
 move/coset_mem: (Hg) => <- Hfg.
 apply/eqP/coset_mem.
@@ -954,18 +892,15 @@ rewrite val_coset // mem_rcoset /=.
 rewrite inE kAutE subvf andbT.
 apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
 move => a Ha.
-rewrite comp_lappE /= Hfg //.
-rewrite -[X in X = _]comp_lappE.
-rewrite inv_lker0; last by rewrite LAut_ker0 eqxx.
-by rewrite unit_lappE.
+by rewrite comp_lfunE /= Hfg // lker0_lfunK ?LAut_ker0.
 Qed.
 
 Lemma Aut_mul (E : {algebra L})
- (x y : coset_of [set x : LAut | kAut E (fullv L) (val x)]) :
+ (x y : coset_of [set x : LAut | kAut E fullv (val x)]) :
  forall a, a \in E -> val (repr (x*y)%g) a = val (repr y) (val (repr x) a).
 Proof.
 move => a Ha.
-transitivity (val (repr x * repr y)%g a); last by rewrite /= comp_lappE.
+transitivity (val (repr x * repr y)%g a); last by rewrite /= comp_lfunE.
 move: a Ha.
 apply/(@Aut_eq _ (x*y) (x*y)) => //; first by rewrite mem_repr_coset.
 rewrite -{2}(coset_mem (mem_repr_coset x)).
@@ -1000,7 +935,7 @@ exists (coset _ g).
 move => h.
 rewrite val_coset.
  case/rcosetP => {h} h Hh -> a HaE.
- rewrite -HEgf // comp_lappE.
+ rewrite -HEgf // comp_lfunE.
  move: Hh.
  rewrite inE.
  case/andP.
@@ -1025,11 +960,11 @@ case/andP => /kHomP [Hx _] /eqP HxE.
 case/andP => /kHomP [Hf _] _.
 apply/andP; split; last first.
  apply/subvP => ? /memv_imgP [a [Ha ->]].
- by rewrite comp_lappE /= Hf // -HxE; apply: memv_img.
+ by rewrite comp_lfunE /= Hf // -HxE; apply: memv_img.
 apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
 move => a Ha.
 move/subvP/(_ _ Ha): HKE => HaE.
-by rewrite comp_lappE /= Hf // Hx.
+by rewrite comp_lfunE /= Hf // Hx.
 Qed.
 
 End Automorphism.
@@ -1053,7 +988,7 @@ Qed.
 
 (* TODO: make E not an algebra *)
 Definition kAut_pick K0 (E : {algebra L}) f : 
-  coset_of [set x : LAut | kAut E (fullv L) (val x)] :=
+  coset_of [set x : LAut | kAut E fullv (val x)] :=
   if insub K0 is Some K 
      then xchoose (kAut_pick_subproof K E f)
      else (coset_one _).
@@ -1077,7 +1012,7 @@ by apply: Hpick.
 Qed.
 
 Lemma Aut_conjg (K E : {algebra L})
-  (x : coset_of [set x : LAut | kAut E (fullv L) (val x)]) (f : LAut) :
+  (x : coset_of [set x : LAut | kAut E fullv (val x)]) (f : LAut) :
   (K <= E)%VS -> (val f @: E = E)%VS -> f \in x -> 
   ('Aut(E | K) :^ x = 'Aut(E | (val f @: K)%VS))%g.
 Proof.
@@ -1091,10 +1026,10 @@ wlog suff : x f K HKE HfE HKfE Hfx /
   (('Aut(E | K) :^ x)%g \subset ('Aut(E | (val f @: K)%VS))%g).
  move => Hsuff.
  rewrite eqEsubset Hsuff // -sub_conjgV -[X in _ \subset ('Aut(E | X))%g]lim1g.
- rewrite -[\1%VS]/(val (1 : LAut)%g) -[(1 : LAut)%g](mulgV f) limg_comp.
+ rewrite -[\1%VF]/(val (1 : LAut)%g) -[(1 : LAut)%g](mulgV f) limg_comp.
  apply: Hsuff; first done.
- - by rewrite -{1}HfE -limg_comp -[(_ \o _)%VS]/(val (f * f^-1)%g) mulgV lim1g.
- - by rewrite -limg_comp -[(_ \o _)%VS]/(val (f * f^-1)%g) mulgV lim1g.
+ - by rewrite -{1}HfE -limg_comp -[(_ \o _)%VF]/(val (f * f^-1)%g) mulgV lim1g.
+ - by rewrite -limg_comp -[(_ \o _)%VF]/(val (f * f^-1)%g) mulgV lim1g.
  - by rewrite inE invgK.
 have Hfxb : forall b, b \in E -> (val f b) = (val (repr x) b).
  apply/(Aut_eq Hfx (mem_repr_coset _)).
@@ -1115,11 +1050,11 @@ apply/andP; split; last first.
  rewrite Hfb Hfxb // -Aut_mul // -[in X in _ \in X]HfE.
  apply/memv_imgP.
  exists (val (repr (x * (y * x^-1))%g) b).
- split; first by rewrite -[in X in _ \in X]HxyxVE memv_img.
+   by rewrite -[in X in _ \in X]HxyxVE memv_img.
  rewrite Hfxb; last by rewrite -[in X in _ \in X]HxyxVE memv_img.
  by rewrite -Aut_mul // mulgA mulgKV.
 apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
-move => _ /memv_imgP [a [Ha ->]].
+move => _ /memv_imgP[a Ha ->].
 case/kHomP: HxyxV => /(_ _ Ha) => HxyxVa _.
 move: HxyxVa.
 have HaE : a \in E by move/subvP: HKE; apply.
@@ -1140,36 +1075,36 @@ Qed.
 Lemma uniq_aut (K E : {algebra L}) n f_ :
  (forall i, f_ i \in 'Aut(E | K)%g) ->
  uniq [seq f_ i | i <- enum 'I_n] ->
- uniq [seq (val (repr (f_ i)) \o projv E)%VS |  i <- enum 'I_n].
+ uniq [seq (val (repr (f_ i)) \o projv E)%VF |  i <- enum 'I_n].
 Proof.
 move => Hf.
 set (s := [seq f_ i |  i <- enum 'I_n]).
-set (g (x : coset_of [set x : LAut | kAut E (fullv L) (val x)]):= 
-     (val (repr x) \o projv E)%VS).
+pose g (x : coset_of [set x : LAut | kAut E fullv (val x)]):= 
+     (val (repr x) \o projv E)%VF.
 suff Hs : {in s &, injective g} by rewrite -(map_inj_in_uniq Hs) -map_comp.
 move=> x y Hx Hy /= Hg.
 apply/eqP/(Aut_eq (mem_repr_coset _) (mem_repr_coset _)) => a /projv_id <-.
-by rewrite -[_ (projv E a)]comp_lappE [(_ \o _)%VS]Hg comp_lappE.
+by rewrite -[_ (projv E a)]comp_lfunE [(_ \o _)%VF]Hg comp_lfunE.
 Qed.
 
 Definition FixedField (E : {vspace L})
-  (s : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :=
+  (s : {set coset_of [set x : LAut | kAut E fullv (val x)]}) :=
   (E :&: \bigcap_( i \in cover [set (set_of_coset x) | x <- s])
           (LAut_FixedField i))%VS.
 
 Lemma FixedFieldP (E : {algebra L})
-   (s : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) a :
+   (s : {set coset_of [set x : LAut | kAut E fullv (val x)]}) a :
  reflect (a \in E /\ forall x, (x \in s) -> (val (repr x) a = a))
          (a \in FixedField s).
 Proof.
 rewrite /FixedField big_trivIset; last first.
  apply/trivIsetP => ? ? /imsetP [x Hx ->] /imsetP [y Hy ->].
  by apply: contraR => /pred0Pn [f /andP [/coset_mem <- /coset_mem <-]].
-rewrite memv_cap.
+rewrite memv_cap /=.
 case HaE : (a \in E); last first.
  apply: ReflectF.
  by case.
-apply: (iffP (subv_bigcapP _ _ _)).
+apply: (iffP subv_bigcapP).
  move => Hcap; split; first done.
  move => x Hx.
  apply/eqP.
@@ -1198,7 +1133,7 @@ by move: (Aut_kAut HKE Hx (mem_repr_coset _)) => /andP [/kHomP [->]].
 Qed.
 
 Lemma FixedField_is_aspace_subproof  (E : {algebra L})
-   (s : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :
+   (s : {set coset_of [set x : LAut | kAut E fullv (val x)]}) :
   let FF := FixedField s in
   (has_aunit FF  && (FF * FF <= FF)%VS).
 Proof.
@@ -1210,11 +1145,11 @@ by apply: IH.
 Qed.
 
 Canonical Structure FixedField_aspace (E : {algebra L})
-   (s : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) : {algebra L}
+   (s : {set coset_of [set x : LAut | kAut E fullv (val x)]}) : {algebra L}
    := ASpace (FixedField_is_aspace_subproof s).
 
 Lemma FixedField_subset (E : {algebra L})
-   (s1 s2 : {set coset_of [set x : LAut | kAut E (fullv L) (val x)]}) :
+   (s1 s2 : {set coset_of [set x : LAut | kAut E fullv (val x)]}) :
    (s1 \subset s2) -> (FixedField s2 <= FixedField s1)%VS.
 Proof.
 move => /subsetP Hs.
@@ -1328,7 +1263,7 @@ Qed.
 End TraceAndNorm.
 
 Definition normal (K E : {vspace L}) :=
- forallb x : LAut, kHom K (fullv L) (val x) ==> ((val x) @: E == E)%VS.
+ forallb x : LAut, kHom K fullv (val x) ==> ((val x) @: E == E)%VS.
 
 (* Move this to poly.v *)
 Lemma eqpMP : forall (R : idomainType) (p q : {poly R}),
@@ -1365,7 +1300,7 @@ apply: (iffP forallP); last first.
  move/allP => Hr Har.
  apply: Hr.
  rewrite -root_prod_XsubC.
- move/(f_equal (map_poly (fun_of_lapp (val x)))): (Har).
+ move/(f_equal (map_poly (fun_of_lfun (val x)))): (Har).
  rewrite (kHomFixedPoly Hx) ?minPolyOver //= Har => ->.
  by rewrite rmorph_root // -Har root_minPoly.
 move => Hnorm a HaE.
@@ -1376,15 +1311,15 @@ apply/allP => b.
 rewrite -root_prod_XsubC -Hr -[minPoly K a]polyseqK.
 rewrite -[polyseq _](@map_id_in _ [rmorphism of (val (1:LAut))%g]); last first.
  move => z _ /=.
- by rewrite unit_lappE.
+ by rewrite id_lfunE.
 rewrite -map_polyE => Hab.
-set y := kHomExtend K \1%VS a b.
+set y := kHomExtend K \1%VF a b.
 rewrite -[b]hornerX -(map_polyX [rmorphism of (val (1:LAut))%g]).
 have H1 : kHom K K (val (1:LAut))%g.
  apply/kHomP.
  split; last by move => ? ? _ _; rewrite rmorphM.
  move => x _ /=.
- by rewrite unit_lappE.
+ by rewrite id_lfunE.
 rewrite -(kHomExtend_poly H1 Hab) ?polyOverX // hornerX -/y.
 have Hy : kHom K (Fadjoin K a) y by exact: kHomExtendkHom.
 case: (kHomExtendLAut (subsetKFadjoin K a) Hy) => z.
@@ -1395,7 +1330,7 @@ move/subvP; apply.
 suff -> : y a = (val z) a by apply: memv_img.
 symmetry.
 apply/eqP.
-rewrite -subr_eq0 -opp_lappE -add_lappE -memv_ker.
+rewrite -subr_eq0 -opp_lfunE -add_lfunE -memv_ker.
 move/subvP: Hzy; apply.
 by rewrite memx_Fadjoin.
 Qed.
@@ -1418,7 +1353,7 @@ rewrite /separableElement Hmin separable_prod_XsubC => Huniq.
 rewrite eqn_leq.
 apply/andP; split; last first.
  rewrite cardE.
- pose f (y : coset_of [set g : LAut | kAut E (fullv L) (val g)]) :=
+ pose f (y : coset_of [set g : LAut | kAut E fullv (val g)]) :=
     val (repr y) x.
  rewrite -(size_map f).
  apply: uniq_leq_size.
@@ -1439,7 +1374,7 @@ apply/andP; split; last first.
  move/(kHom_rootK)/(_ (subsetKFadjoin _ _) _ _
                       (minPolyOver K x) (memx_Fadjoin _ _)) => Hroot _.
  by rewrite Hroot // root_minPoly.
-pose f y := kAut_pick K (Fadjoin_aspace K x) (kHomExtend K \1%VS x y).
+pose f y := kAut_pick K (Fadjoin_aspace K x) (kHomExtend K \1%VF x y).
 rewrite -(size_map f).
 suff/card_uniqP <- : uniq (map f r).
  apply: subset_leq_card.
@@ -1451,24 +1386,24 @@ rewrite /f.
 set fa := (kHomExtend _ _ x a).
 set fb := (kHomExtend _ _ x b).
 move => Hab.
-have Hroot : forall c, c \in r -> root (map_poly \1%VS (minPoly K x)) c.
+have Hroot : forall c, c \in r -> root (map_poly \1%VF (minPoly K x)) c.
  move => c Hc.
- rewrite (eq_map_poly (fun x => unit_lappE x)).
+ rewrite (eq_map_poly (fun x => id_lfunE x)).
  rewrite map_polyE map_id polyseqK.
  by rewrite Hmin root_prod_XsubC.
-have Hpoly : forall c, c \in r -> c = (kHomExtend K \1%VS x c) x.
+have Hpoly : forall c, c \in r -> c = (kHomExtend K \1%VF x c) x.
  move => c Hc.
  rewrite -{2}[x]hornerX.
  rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Hc)); last first.
    exact: (@polyOverX _ K).
- by rewrite map_poly_id ?hornerX => [|? _]; rewrite /= ?unit_lappE.
+ by rewrite map_poly_id ?hornerX => [|? _]; rewrite /= ?id_lfunE.
 rewrite (Hpoly _ Ha) (Hpoly _ Hb) {Hpoly} -/fa -/fb.
 pose g := val (repr (kAut_pick K (Fadjoin_aspace K x) fa)).
 have HAuta : kAut K (Fadjoin K x) fa.
  rewrite kAutE (kHomExtendkHom (kHom1 K K) (subv_refl K) (Hroot _ Ha)).
  apply/subvP => ? /memv_imgP [? [/poly_Fadjoin [p [Hp ->]] ->]].
  rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Ha) Hp).
- rewrite (eq_map_poly (fun x => unit_lappE x)).
+ rewrite (eq_map_poly (fun x => id_lfunE x)).
  rewrite map_polyE map_id polyseqK.
  case/poly_Fadjoin: (Hr _ Ha) => q [Hq ->].
  by rewrite -horner_comp mempx_Fadjoin ?polyOver_comp.
@@ -1484,7 +1419,7 @@ apply: (kAut_pick_eq (subsetKFadjoin K x)); first last.
 rewrite kAutE (kHomExtendkHom (kHom1 K K) (subv_refl K) (Hroot _ Hb)).
 apply/subvP => ? /memv_imgP [? [/poly_Fadjoin [p [Hp ->]] ->]].
 rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Hb) Hp).
-rewrite map_poly_id => [|xx _ /=]; last by rewrite unit_lappE.
+rewrite map_poly_id => [|xx _ /=]; last by rewrite id_lfunE.
 case/poly_Fadjoin: (Hr _ Hb) => q [Hq ->].
 by rewrite -horner_comp mempx_Fadjoin ?polyOver_comp.
 Qed.
@@ -1530,9 +1465,9 @@ have [b Hbr Hba] : exists2 b, b \in r & b != a.
  move => _.
  exists x; last by rewrite eq_sym.
  by rewrite !inE eqxx.
-have: kHom K (Fadjoin K a) (kHomExtend K \1%VS a b).
+have: kHom K (Fadjoin K a) (kHomExtend K \1%VF a b).
  rewrite kHomExtendkHom ?kHom1 ?subv_refl //.
- rewrite (eq_map_poly (fun x => unit_lappE x)) map_polyE map_id polyseqK.
+ rewrite (eq_map_poly (fun x => id_lfunE x)) map_polyE map_id polyseqK.
  by rewrite Hmin root_prod_XsubC.
 case/(kHomExtendLAut (subsetKFadjoin K a)) => f /andP [HKf /eqvP Hf].
 move/forallP/(_ f)/implyP/(_ HKf): Hnorm => HfE.
@@ -1542,11 +1477,11 @@ case/(kAut_Aut HKE) => x HxAut /(_ _ (mem_repr_coset _)) Hx.
 exists x.
 rewrite HxAut -Hx // Hf ?memx_Fadjoin //.
 rewrite -{2}[a]hornerX.
-have Hminb : root (map_poly \1%VS (minPoly K a)) b.
- rewrite (eq_map_poly (fun x => unit_lappE x)) map_polyE map_id polyseqK.
+have Hminb : root (map_poly \1%VF (minPoly K a)) b.
+ rewrite (eq_map_poly (fun x => id_lfunE x)) map_polyE map_id polyseqK.
  by rewrite Hmin root_prod_XsubC.
 rewrite (kHomExtend_poly (kHom1 K K) Hminb) ?polyOverX //.
-rewrite (eq_map_poly (fun x => unit_lappE x)) map_polyE map_id polyseqK.
+rewrite (eq_map_poly (fun x => id_lfunE x)) map_polyE map_id polyseqK.
 by rewrite hornerX.
 Qed.
 
@@ -1556,17 +1491,17 @@ Lemma galois_factors_subproof (K E : {algebra L}) : (K <= E)%VS ->
  (forall a, a \in E -> 
    exists r, [/\
      r \subset 'Aut(E | K)%g,
-     uniq (map (fun i : coset_of [set x : LAut | kAut E (fullv L) (val x)] =>
+     uniq (map (fun i : coset_of [set x : LAut | kAut E fullv (val x)] =>
                          ((val (repr i)) a)) r) &
      minPoly K a = \prod_(i <- r)('X - (val (repr i) a)%:P)]).
 Proof.
 pose f (j : L) := ('X - j%:P).
 move => HKE Hgal a HaE.
-pose h (i : coset_of [set x : LAut | kAut E (fullv L) (val x)])
+pose h (i : coset_of [set x : LAut | kAut E fullv (val x)])
       := ((val (repr i)) a).
 suff : forall n, n.+1 < size (minPoly K a) -> 
         exists r, let r' := 
-           map (fun i : coset_of [set x : LAut | kAut E (fullv L) (val x)] =>
+           map (fun i : coset_of [set x : LAut | kAut E fullv (val x)] =>
                          ((val (repr i)) a)) r 
          in [/\ r \subset 'Aut(E | K)%g,  uniq r',
                 (size r') = n.+1 &
@@ -1581,7 +1516,7 @@ suff : forall n, n.+1 < size (minPoly K a) ->
  by rewrite size_minPoly Hnr.
 elim => [|n IH] Hn.
  exists [:: 1%g]; split => //; last first.
-  rewrite big_cons big_nil mulr1 dvdp_XsubCl repr_coset1 /= unit_lappE.
+  rewrite big_cons big_nil mulr1 dvdp_XsubCl repr_coset1 /= id_lfunE.
   by rewrite root_minPoly.
  apply/subsetP.
  move => x.
@@ -1629,9 +1564,9 @@ have/allPn : ~~(all (fun x => x \in (map h r)) (map (val (repr x)) (map h r))).
  rewrite uniq_rootsE map_inj_uniq //.
  (* TODO: abstract this *)
  move => b d Hbd.
- rewrite -[b](unit_lappE) -[d](unit_lappE).
- move/eqP/inv_lker0: (LAut_ker0 (repr x)) <-.
- by rewrite !comp_lappE /= Hbd.
+ rewrite -[b]id_lfunE -[d]id_lfunE.
+ move/eqP/lker0_compVf: (LAut_ker0 (repr x)) <-.
+ by rewrite !comp_lfunE /= Hbd.
 rewrite -map_comp.
 case => ? /mapP [y Hyr ->] Hyx.
 have Hy : y \in ('Aut(E | K))%g by move/subsetP: Haut; apply.
@@ -1657,7 +1592,7 @@ Lemma galois_factors (K E : {algebra L}) :
  reflect ((K <= E)%VS /\ (forall a, a \in E -> 
    exists r, [/\
      r \subset 'Aut(E | K)%g,
-     uniq (map (fun i : coset_of [set x : LAut | kAut E (fullv L) (val x)] =>
+     uniq (map (fun i : coset_of [set x : LAut | kAut E fullv (val x)] =>
                          ((val (repr i)) a)) r) &
      minPoly K a = \prod_(i <- r)('X - (val (repr i) a)%:P)]))
    (galois K E).
@@ -1672,12 +1607,12 @@ apply: (iffP idP).
 move => [HKE H].
 apply/and3P; split; first done.
  apply/separableP => a /H [r [_ Hr Hmin]].
- pose h (i : coset_of [set x : LAut | kAut E (fullv L) (val x)])
+ pose h (i : coset_of [set x : LAut | kAut E fullv (val x)])
        := ((val (repr i)) a).
  by rewrite /separableElement Hmin -(big_map h predT f) separable_prod_XsubC.
 apply/normalP => a Ha.
 case/H: (Ha) => r [/subsetP Haut Hr Hmin].
-pose h (i : coset_of [set x : LAut | kAut E (fullv L) (val x)])
+pose h (i : coset_of [set x : LAut | kAut E fullv (val x)])
       := ((val (repr i)) a).
 exists (map h r); last by rewrite big_map.
 apply/allP => ? /mapP [x Hx ->].
@@ -1756,7 +1691,7 @@ have HcE i : c_ i \in E.
  elim: i => [|i IH]; first by rewrite [c_ _]big_ord0 mem1v.
  by rewrite /c_ big_ord_recr memv_mul // (memv_aut HKE) // -Hx mem_cycle.
 have Hxc i : (val (repr x) (c_ i)) = a ^-1 * (c_ i.+1).
- rewrite rmorph_prod /c_ big_ord_recl expg0 repr_coset1 unit_lappE mulKf //.
+ rewrite rmorph_prod /c_ big_ord_recl expg0 repr_coset1 id_lfunE mulKf //.
  apply: eq_bigr => j _.
  by rewrite expgSr Aut_mul.
 pose f_ i := repr (x ^+ i)%g.
@@ -1772,14 +1707,14 @@ have Hexp_inj : injective (fun i : ordinal_finType n => (x ^+ i)%g).
  move => i j Hij.
  by move/injmP: (cyclic.injm_Zpm x); apply; last done; 
       rewrite /= /Zp [X in (1 < X)%N]Hxn inE.
-have Huniq : uniq [seq (val (f_ (nat_of_ord i)) \o projv E)%VS| i <- enum 'I_n].
+have Huniq : uniq [seq (val (f_ (nat_of_ord i)) \o projv E)%VF| i <- enum 'I_n].
  apply: (@uniq_aut K) => [i |]; first by rewrite -Hx mem_cycle.
  by rewrite map_inj_uniq ?enum_uniq.
 have Hexistb : (existsb i : 'I_n, c_ i != 0).
  apply/existsP.
  exists (Ordinal (order_gt0 _)).
  by rewrite /c_ big_ord0 oner_neq0.
-pose Sigma := \sum_(i : 'I_n) (amull (c_ i) \o val (f_ i))%VS.
+pose Sigma := \sum_(i : 'I_n) (amull (c_ i) \o val (f_ i))%VF.
 have: ((E <= lker Sigma)%VS -> forallb i : 'I_n, c_ i == 0).
  move => HE.
  apply/forallP => i.
@@ -1787,7 +1722,7 @@ have: ((E <= lker Sigma)%VS -> forallb i : 'I_n, c_ i == 0).
  apply:(LAut_independent (fun i : 'I_n => HxE i) Huniq (fun i : 'I_n => HcE i)).
  done.
 move/contra/(_ Hexistb).
-rewrite subv_diffv0.
+rewrite -diffv_eq0.
 set V := (_ :\: _)%VS.
 move: (subvP (diffvSl _ _) _ (memv_pick V)) => HbE.
 rewrite -vpick0 => Hb.
@@ -1798,32 +1733,31 @@ have : vpick V \notin lker Sigma.
 rewrite memv_ker => HSigmaV.
 exists (Sigma (vpick V)).
  split; last done.
- rewrite sum_lappE.
+ rewrite sum_lfunE.
  apply: memv_suml => i _.
- rewrite comp_lappE /= lapp_of_funK; last by apply: amull_linear_p.
+ rewrite comp_lfunE /= lfunE /=.
  by rewrite memv_mul // -[in X in _ \in X](HxE i) memv_img.
 apply: (canRL (mulfK _)); first by rewrite fmorph_eq0.
-rewrite sum_lappE rmorph_sum mulr_sumr /n -(prednK (order_gt0 x)).
+rewrite sum_lfunE rmorph_sum mulr_sumr /n -(prednK (order_gt0 x)).
 rewrite big_ord_recr /=; symmetry; rewrite addrC big_ord_recl.
 congr (_ + _).
-  do 2 (rewrite comp_lappE /= lapp_of_funK; last by apply: amull_linear_p).
-  rewrite [c_ 0%N]big_ord0 /f_ expg0 repr_coset1 unit_lappE.
+  rewrite !lfun_simp /=.
+  rewrite [c_ 0%N]big_ord0 /f_ expg0 repr_coset1 id_lfunE.
   rewrite rmorphM /= -Aut_mul //.
-  rewrite -expgSr (prednK (order_gt0 x)) expg_order repr_coset1 unit_lappE.
+  rewrite -expgSr (prednK (order_gt0 x)) expg_order repr_coset1 id_lfunE.
   rewrite rmorph_prod -{1}Hnorm mulrA.
   congr (_ * _).
   rewrite /galoisNorm -Hx /n.
   have [-> | nt_x] := eqVneq x 1%g.
-    by rewrite order1 cycle1 big_set1 big_ord0 mulr1 repr_group unit_lappE.
+    by rewrite order1 cycle1 big_set1 big_ord0 mulr1 repr_group id_lfunE.
   rewrite -im_Zpm morphimEdom big_imset; last by apply/injmP; exact: injm_Zpm.
   rewrite -order_gt1 in nt_x; rewrite /= /Zp nt_x.
-  rewrite (eq_bigl _ _ (fun i => in_setT i)) big_ord_recl repr_group unit_lappE.
+  rewrite (eq_bigl _ _ (fun i => in_setT i)) big_ord_recl repr_group id_lfunE.
   rewrite /Zpm /= -(subnKC nt_x) /=; congr (_ * _).
   by apply: eq_bigr => i _ /=; rewrite -Aut_mul // -expgSr.
 apply: eq_bigr => i _.
-do 2 (rewrite comp_lappE /= lapp_of_funK; last by apply: amull_linear_p).
-rewrite rmorphM mulrA.
-rewrite rmorph_prod [c_ _]big_ord_recl expg0 repr_coset1 unit_lappE.
+rewrite !lfun_simp /= rmorphM mulrA.
+rewrite rmorph_prod [c_ _]big_ord_recl expg0 repr_coset1 id_lfunE.
 congr (_ * _ * _).
   apply eq_bigr => j _.
   by rewrite /= -Aut_mul // -expgSr.
@@ -1835,19 +1769,19 @@ Section GaloisDim.
 Variable E : {algebra L}.
 
 Let Coset :=
- [finGroupType of coset_of [set x : LAut | kAut E (fullv L) (val x)]].
+ [finGroupType of coset_of [set x : LAut | kAut E fullv (val x)]].
 
 Let g_ (i : Coset) := val (repr i).
 
 Lemma uniq_projv_subproof 
   (s : {set Coset}) :
-  uniq [seq (g_ (enum_val i) \o (projv E))%VS | i <- enum 'I_#|s|].
+  uniq [seq (g_ (enum_val i) \o (projv E))%VF | i <- enum 'I_#|s|].
 Proof.
 rewrite map_inj_uniq; first by rewrite enum_uniq.
-move => i j /= /eqP/eq_lapp Hij.
+move => i j /= /lfunP Hij.
 apply: enum_val_inj.
 apply/eqP/(Aut_eq (mem_repr_coset _) (mem_repr_coset _)) => a /projv_id <-.
-by rewrite -[_ (_ a)]comp_lappE Hij comp_lappE.
+by rewrite -[_ (_ a)]comp_lfunE Hij comp_lfunE.
 Qed.
 
 Lemma dim_FixedField_subproof
@@ -1913,11 +1847,11 @@ have HMx : M *m x = \col_i val (f_ i) v by rewrite mulKVmx.
 move/colP/(_ (Ordinal H1)): (HMx).
 have H1s : 1%g \in enum s by rewrite mem_enum; apply: group1 (Group Hs).
 rewrite !mxE /f_ (enum_val_nth 1%g) nth_index; last done.
-rewrite repr_coset1 unit_lappE => <-.
+rewrite repr_coset1 id_lfunE => <-.
 apply: memv_sumr => i _.
 rewrite mulrC memv_prod //; last first.
  rewrite mxE /f_ (enum_val_nth 1%g) nth_index; last done.
- by rewrite repr_coset1 unit_lappE memv_inj.
+ by rewrite repr_coset1 id_lfunE memv_inj.
 apply/FixedFieldP.
 split.
  move: i (0 : 'I_1).
@@ -2009,7 +1943,7 @@ case: (cosetP x) => f Hf -> Hfs.
 rewrite mem_morphim //.
 rewrite inE.
 rewrite kAutE.
-have Hff : f \in coset [set x : LAut | kAut E (fullv L) (val x)] f.
+have Hff : f \in coset [set x : LAut | kAut E fullv (val x)] f.
  by rewrite val_coset // rcoset_refl.
 apply/andP; split.
  apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
@@ -2021,7 +1955,7 @@ move: (HE _ Hfs) => HEfs.
 rewrite -[X in (_ <= X)%VS]HEfs.
 apply/subvP => _ /memv_imgP [a [Ha ->]].
 apply/memv_imgP.
-exists a; split; first done.
+exists a; first done.
 move: {Ha} a Ha.
 by apply/(Aut_eq Hff (mem_repr_coset _)).
 Qed.
@@ -2085,8 +2019,8 @@ move/separableP => Hsep _.
 by apply: Hsep.
 Qed.
 
-Let f (y : coset_of [set x : LAut | kAut E (fullv L) (val x)]) :=
-     (coset [set x : LAut | kAut M (fullv L) (val x)] (repr y)).
+Let f (y : coset_of [set x : LAut | kAut E fullv (val x)]) :=
+     (coset [set x : LAut | kAut M fullv (val x)] (repr y)).
 
 Let Aut_normal z : z \in 'Aut (E | K)%g -> kAut K M (val (repr z)).
 Proof.
@@ -2147,7 +2081,7 @@ apply/andP; split; apply/subsetP => x.
  apply/andP; split.
   apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
   move => a Ha.
-  by rewrite HxM // repr_coset1 unit_lappE.
+  by rewrite HxM // repr_coset1 id_lfunE.
  case/and3P: HKE => Hsub _ _.
  by case/andP: (Aut_kAut Hsub Hx (mem_repr_coset _)).
 move => Hx.
@@ -2159,7 +2093,7 @@ move => a Ha.
 rewrite repr_coset1.
 move/(Aut_kAut HME)/(_ (mem_repr_coset _))/andP : Hx => [/kHomP [Hx _] _].
 move:(Hx _ Ha) ->.
-by rewrite unit_lappE.
+by rewrite id_lfunE.
 Qed.
 
 Let f_img : (fmorph @* 'Aut(E | K) = 'Aut(M | K))%g.
@@ -2217,7 +2151,7 @@ End IntermediateField.
 
 Section IntermediateGroup.
 
-Variable g : {group coset_of [set x : LAut | kAut E (fullv L) (val x)]}.
+Variable g : {group coset_of [set x : LAut | kAut E fullv (val x)]}.
 Hypothesis Hg : g \subset 'Aut(E | K)%g.
 
 Lemma SubGaloisField : (K <= FixedField g <= E)%VS.
@@ -2282,7 +2216,7 @@ apply/implyP => HaK.
 have HaE : (val a @: E)%VS = E.
  case/and3P: HKE => _ _.
  by move/forallP/(_ a)/implyP/(_ HaK)/eqP.
-pose x := coset [set x : LAut | kAut E (fullv L) (val x)] a.
+pose x := coset [set x : LAut | kAut E fullv (val x)] a.
 have HaKE : a \in [set x0 | kAut K E (val x0)].
  rewrite inE.
  apply/andP; split; last by apply/eqP.
@@ -2295,7 +2229,7 @@ move/subsetP/(_ _ Hx)/normP: Hnorm => Hxg.
 set Ma := (val a @: _)%VS.
 have : galois Ma E.
  apply: SubFieldGalois.
-  by rewrite -[X in (_ <= X)%VS]HaE limg_monotone.
+  by rewrite -[X in (_ <= X)%VS]HaE limgS.
  apply/subvP => b Hb.
  case/kHomP: HaK => /(_ _ Hb) <- _.
  rewrite memv_img //.

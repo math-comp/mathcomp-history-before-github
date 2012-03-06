@@ -365,7 +365,7 @@ have Xchi := sYX _ Ychi; have defY: perm_eq [:: chi, chi^*%CF & Y'] Y.
   by rewrite mem_rem_uniq ?inE ?ccY // (seqInd_conjC_neq _ _ _ Xchi).
 apply: perm_eq_coherent (defY) _ _.
   have: free calX by exact: seqInd_free.
-  by rewrite (free_perm_eq defY) -(free_perm_eq defX); exact: free_catl. 
+  by rewrite (perm_free defY) -(perm_free defX); exact: catl_free. 
 have d_chic: d chi^*%CF = d chi.
   by rewrite /d cfunE isNatC_conj // (seqInd1_Nat Xchi).
 have /andP[uniqY' Y'x1]: uniq Y' && (xi1 \in Y').
@@ -552,7 +552,7 @@ Proof. by move=> _ x /CratP[a ->]; exact: Crat_spanZ. Qed.
 (* would require a limit construction.                                        *)
 Lemma num_field_proj : {CtoQn | CtoQn 0 = 0 & cancel QnC CtoQn}.
 Proof.
-pose b := vbasis (fullv Qn).
+pose b := vbasis (fullv : {vspace Qn}).
 have Qn_bC (u : {x | x \in Crat_span (map QnC b)}): {y | QnC y = sval u}.
   case: u => _ /= /Crat_spanP/sig_eqW[a ->].
   exists (\sum_i a i *: b`_i); rewrite rmorph_sum; apply: eq_bigr => i _.
@@ -561,7 +561,7 @@ pose CtoQn x := oapp (fun u => sval (Qn_bC u)) 0 (insub x).
 suffices QnCK: cancel QnC CtoQn by exists CtoQn; rewrite // -(rmorph0 QnC).
 move=> x; rewrite /CtoQn insubT => /= [|Qn_x]; last first.
   by case: (Qn_bC _) => x1 /= /fmorph_inj.
-rewrite (coord_basis (memvf x)) rmorph_sum rpred_sum // => i _.
+rewrite (coord_vbasis (memvf x)) rmorph_sum rpred_sum // => i _.
 rewrite rmorphZ_num Crat_spanZ ?mem_Crat_span // -/b.
 by rewrite -tnth_nth -tnth_map mem_tnth.
 Qed.
@@ -619,8 +619,8 @@ Lemma extend_coprime_Qn_aut a b (Qa Qb : fieldExtType rat) w_a w_b
           (QaC : {rmorphism Qa -> algC}) (QbC : {rmorphism Qb -> algC})
           (mu : {rmorphism algC -> algC}) :
     coprime a b ->
-    a.-primitive_root w_a /\ Fadjoin 1%:VS w_a = fullv Qa -> 
-    b.-primitive_root w_b /\ Fadjoin 1%:VS w_b = fullv Qb ->
+    a.-primitive_root w_a /\ Fadjoin 1 w_a = fullv :> {vspace Qa} -> 
+    b.-primitive_root w_b /\ Fadjoin 1 w_b = fullv :> {vspace Qb} ->
   {nu : {rmorphism algC -> algC} | forall x, nu (QaC x) = mu (QaC x)
                                  & forall y, nu (QbC y) = QbC y}.
 Proof.
@@ -1674,7 +1674,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
       rewrite -cfdot_subr -raddfB Dtau1 // Itau //; last first.
         by rewrite (vchar_subset _ sYS) ?seqInd_free.
       rewrite cfdot_subl (span_orthogonal oXY) ?(vchar_span Xchi)//; last first.
-        by rewrite memv_sub ?memv_span.
+        by rewrite memvB ?memv_span.
       have [_ oYY] := orthonormalP oY; rewrite cfdotZl cfdot_subr !oYY //.
       by rewrite eqxx sub0r -mulrN opprB eq_sym.
     exists Y1 => //; have{Dalpha} [X1 oX1Y Dalpha] := Dalpha i0 nz_i0.
@@ -1682,7 +1682,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
     have norm_alpha: '[tau (alpha i0)] = (#|L : Z| + #|H : Z| ^ 2)%:R.
       rewrite natrD Itau // cfnorm_subd; last first.
         rewrite (span_orthogonal oXY) ?(vchar_span Xchi) //.
-        by rewrite memvZl ?memv_span.
+        by rewrite memvZ ?memv_span.
       rewrite induced_prod_index //; congr (#|_ : _|%:R + _).
         apply/setP=> y; rewrite 2!inE -andbA andb_idr // => Ly.
         have cZy: y \in 'C(Z).
@@ -1818,7 +1818,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
     have Aalpha i: i \in rp -> alpha i \in 'CF(L, A).
       move=> r_i; rewrite cfun_onD1 !cfunE cfInd1 // (uniY _ Yeta1).
       rewrite -divgS // -(sdprod_card defL) mulKn // Da_ // mulrC subrr eqxx.
-      by rewrite memv_sub ?cfInd_normal ?memvZl // (seqInd_on _ Yeta1).
+      by rewrite memvB ?cfInd_normal ?memvZ // (seqInd_on _ Yeta1).
     have [sum_alpha sum_a2]:
          'Ind phi - #|H : Z|%:R *: eta1 = \sum_(i \in rp) a_ i *: alpha i
       /\ \sum_(i \in rp) a_ i ^+ 2 = #|H : Z|%:R.

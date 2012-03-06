@@ -267,8 +267,8 @@ have part_a: {in A, chi^\rho =1 chi0}.
     apply: (canRL (mulKf nzL)); rewrite mulr_natl -sumr_const.
     by apply: eq_bigr => z Lz; rewrite cfResE ?memJ_norm ?cfunJ ?(subsetP nHL).
   have{def_phi} Tphi: phi \in span calT.
-    rewrite def_phi memvZl // ['Res _]cfun_sum_cfdot linear_sum.
-    apply: memv_suml => i _; rewrite linearZ memvZl ?memv_span //=.
+    rewrite def_phi memvZ // ['Res _]cfun_sum_cfdot linear_sum.
+    apply: memv_suml => i _; rewrite linearZ memvZ ?memv_span //=.
     by apply/seqIndP; exists i; rewrite ?inE.
   have{Tphi} [z def_phi _] := free_span (seqInd_free nsHL _) Tphi.
   have {phi def_phi phi1} ->: phi = \sum_(xi <- S) z xi *: psi xi.
@@ -279,7 +279,7 @@ have part_a: {in A, chi^\rho =1 chi0}.
   rewrite cfdot_suml big1_seq //= => xi Sxi; have Txi := sST xi Sxi.
   rewrite cfdotZl cfdot_subr -invDade_reciprocity -/(c xi); last first.
     rewrite cfun_onD1 !cfunE divfK // subrr eqxx andbT.
-    by rewrite memv_sub ?memvZl //= ((seqInd_on _) setT).
+    by rewrite memvB ?memvZ //= ((seqInd_on _) setT).
   have [oSS /orthoPl o_xi0S]: pairwise_orthogonal S /\ orthogonal xi0 S.
     have:= seqInd_orthogonal nsHL setT; rewrite (eq_pairwise_orthogonal defT).
     by rewrite /= -cat1s pairwise_orthogonal_cat => /and3P[].

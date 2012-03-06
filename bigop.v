@@ -836,6 +836,18 @@ Lemma eq_big_seq (I : eqType) (r : seq I) F1 F2 :
   {in r, F1 =1 F2} -> \big[op/idx]_(i <- r) F1 i = \big[op/idx]_(i <- r) F2 i.
 Proof. by move=> eqF; rewrite !big_seq (eq_bigr _ eqF). Qed.
 
+(* Similar lemmas for exposing integer indexing in the predicate. *)
+Lemma big_nat_cond m n (P : pred nat) F :
+  \big[op/idx]_(m <= i < n | P i) F i
+    = \big[op/idx]_(m <= i < n | (m <= i < n) && P i) F i.
+Proof.
+by rewrite big_seq_cond; apply: eq_bigl => i; rewrite mem_index_iota.
+Qed.
+
+Lemma big_nat m n F :
+  \big[op/idx]_(m <= i < n) F i = \big[op/idx]_(m <= i < n | m <= i < n) F i.
+Proof. by rewrite big_nat_cond big_andbC. Qed.
+
 Lemma congr_big_nat m1 n1 m2 n2 P1 P2 F1 F2 :
     m1 = m2 -> n1 = n2 ->
     (forall i, m1 <= i < n2 -> P1 i = P2 i) ->
@@ -848,6 +860,11 @@ apply: eq_big => i; rewrite ?inE /= !mem_index_iota.
   by apply: andb_id2l; exact: eqP12.
 by rewrite andbC; exact: eqF12.
 Qed.
+
+Lemma eq_big_nat m n F1 F2 :
+    (forall i, m <= i < n -> F1 i = F2 i) ->
+  \big[op/idx]_(m <= i < n) F1 i = \big[op/idx]_(m <= i < n) F2 i.
+Proof. by move=> eqF; apply: congr_big_nat. Qed.
 
 Lemma big_geq m n (P : pred nat) F :
   m >= n -> \big[op/idx]_(m <= i < n | P i) F i = idx.
@@ -898,16 +915,10 @@ Lemma big_nat_widen m n1 n2 (P : pred nat) F :
       = \big[op/idx]_(m <= i < n2 | P i && (i < n1)) F i.
 Proof.
 move=> len12; symmetry; rewrite -big_filter filter_predI big_filter.
-congr bigop; rewrite /index_iota; set d1 := n1 - m; set d2 := n2 - m.
-rewrite -(@subnKC d1 d2) /=; last by rewrite leq_sub2r ?leq_addr.
-have: ~~ has (fun i => i < n1) (iota (m + d1) (d2 - d1)).
-  apply/hasPn=> i; rewrite mem_iota -leqNgt; case/andP=> le_mn1_i _.
-  by apply: leq_trans le_mn1_i; rewrite -leq_subLR.
-rewrite iota_add filter_cat has_filter /=; case: filter => // _.
-rewrite cats0; apply/all_filterP; apply/allP=> i.
-rewrite mem_iota; case/andP=> le_m_i lt_i_md1.
-apply: (leq_trans lt_i_md1); rewrite subnKC // ltnW //.
-rewrite -subn_gt0 -(ltn_add2l m) addn0; exact: leq_trans lt_i_md1.
+have [ltn_trans eq_by_mem] := (ltn_trans, eq_sorted_irr ltn_trans ltnn).
+congr bigop; apply: eq_by_mem; rewrite ?sorted_filter ?iota_ltn_sorted // => i.
+rewrite mem_filter !mem_index_iota andbCA andbA andb_idr => // /andP[_].
+by move/leq_trans->.
 Qed.
 
 Lemma big_ord_widen_cond n1 n2 (P : pred nat) (F : nat -> R) :
@@ -1155,6 +1166,24 @@ Lemma big_rem (I : eqType) r x (P : pred I) F :
     = (if P x then F x else 1) * \big[*%M/1]_(y <- rem x r | P y) F y.
 Proof.
 by move/perm_to_rem/(eq_big_perm _)->; rewrite !(big_mkcond _ _ P) big_cons.
+Qed.
+
+Lemma big_undup (I : eqType) (r : seq I) (P : pred I) F :
+    idempotent *%M ->
+  \big[*%M/1]_(i <- undup r | P i) F i = \big[*%M/1]_(i <- r | P i) F i.
+Proof.
+move=> idM; rewrite -!(big_filter _ _ _ P) filter_undup.
+elim: {P r}(filter P r) => //= i r IHr.
+case: ifP => [r_i | _]; rewrite !big_cons {}IHr //.
+by rewrite (big_rem _ _ r_i) mulmA idM.
+Qed.
+
+Lemma eq_big_idem (I : eqType) (r1 r2 : seq I) (P : pred I) F :
+    idempotent *%M -> r1 =i r2 ->
+  \big[*%M/1]_(i <- r1 | P i) F i = \big[*%M/1]_(i <- r2 | P i) F i.
+Proof.
+move=> idM eq_r; rewrite -big_undup // -(big_undup r2) //; apply/eq_big_perm.
+by rewrite uniq_perm_eq ?undup_uniq // => i; rewrite !mem_undup eq_r.
 Qed.
 
 Lemma big_split I r (P : pred I) F1 F2 :

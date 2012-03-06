@@ -387,98 +387,6 @@ Qed.
 
 End ZpolyScale.
 
-Section MoreVector.
-
-Variables (K : fieldType) (L : vectType K).
-Implicit Types U V : {vspace L}.
-
-Lemma eqEsubv U V : (U == V) = (U <= V <= U)%VS.
-Proof.
-apply/idP/andP=> [/eqP->// | [sUV sVU]].
-by apply/vspaceP=> u; apply/idP/idP=> [/(subvP sUV) | /(subvP sVU)].
-Qed.
-
-Lemma eqEdim U V : (U == V) = (U <= V)%VS && (\dim V <= \dim U)%N.
-Proof.
-by apply/idP/andP=> [/eqP->// | [sUV]]; rewrite (geq_leqif (dimv_leqif_eq sUV)).
-Qed.
-
-Lemma subvPn {U V} : reflect (exists2 u, u \in U & u \notin V) (~~ (U <= V)%VS).
-Proof.
-apply: (iffP idP) => [|[u Uu]]; last by apply: contra => /subvP->.
-have <-: span (vbasis U) = U by exact/eqP/is_span_is_basis/is_basis_vbasis.
-by rewrite -span_subsetl => /allPn[u Uu V'u]; exists u; rewrite // memv_span.
-Qed.
-
-Lemma basisEdim b U : is_basis U b = (U <= span b)%VS && (size b <= \dim U)%N.
-Proof.
-apply/andP/idP=> [[defU /eqnP <-]| ]; first by rewrite -eqEdim eq_sym.
-case/andP=> sUb le_b_U; have lebb := dim_span (in_tuple b).
-rewrite /is_span /free eq_sym eqEdim sUb eqn_leq !(leq_trans lebb) //.
-by rewrite (leq_trans le_b_U (dimvS sUb)).
-Qed.
-
-Lemma perm_is_basis b1 b2 U : perm_eq b1 b2 -> is_basis U b1 = is_basis U b2.
-Proof.
-move=> eq_b12; congr ((_ == _) && _); last exact: free_perm_eq.
-by apply: span_eq; exact: perm_eq_mem.
-Qed.
-
-Implicit Type L : vectType K.
-
-Lemma linear_appE L2 (f : {linear L -> L2}) : lapp_of_fun f =1 f.
-Proof. exact: lapp_of_funK (linearP f). Qed.
-
-Definition lappE := (linear_appE, lappE).
-
-Lemma lpre_comp L2 L3 f (g : 'Hom(L2, L3)) U :
-  ((f \o g) @^-1: U = g @^-1: (f @^-1: U))%VS.
-Proof. by apply/eqP/vspaceP=> u; rewrite -!memv_pre_img lappE. Qed.
-
-Lemma limg_lappVK L2 (f : 'Hom(L, L2)) : {in limg f, cancel (f \^-1)%VS f}.
-Proof.
-rewrite limgE => _ /memv_imgP[x [_ ->]].
-by rewrite -{4}[f]inv_lapp_def lappE /= lappE /=.
-Qed.
-
-Definition lker0_compVf := inv_lker0.
-
-Lemma lker0_lappK (L2 : vectType K) (f : 'Hom(L, L2)) :
-  lker f == 0%:VS -> cancel f (f \^-1)%VS.
-Proof. by move/lker0_compVf=> fK x; rewrite -{2}[x]unit_lappE -fK lappE. Qed.
-
-Section LinAut.
-
-Variables f : 'End(L).
-Hypothesis kerf0 : lker f == 0%:VS.
-
-Lemma lker0_limgf : limg f = fullv L.
-Proof.
-by apply/eqP; rewrite eqEdim subvf limgE limg_dim_eq //= (eqP kerf0) capv0.
-Qed.
-
-Lemma lker0_lappVK : cancel (f \^-1)%VS f.
-Proof. by move=> u; rewrite limg_lappVK // lker0_limgf memvf. Qed.
-
-Lemma lker0_compfV : (f \o f \^-1 = \1)%VS.
-Proof. by apply/eqP/eq_lapp=> u; rewrite lappE unit_lappE /= lker0_lappVK. Qed.
-
-Lemma lker0_compVKf L2 (g : 'Hom(L2, L)) : (f \o (f \^-1 \o g))%VS = g.
-Proof. by rewrite comp_lappA lker0_compfV comp_1lapp. Qed.
-
-Lemma lker0_compKf L2 (g : 'Hom(L2, L)) : (f \^-1 \o (f \o g))%VS = g.
-Proof. by rewrite comp_lappA lker0_compVf ?comp_1lapp. Qed.
-
-Lemma lker0_compfK L2 (g : 'Hom(L, L2)) : ((g \o f) \o f \^-1)%VS = g.
-Proof. by rewrite -comp_lappA lker0_compfV comp_lapp1. Qed.
-
-Lemma lker0_compfVK L2 (g : 'Hom(L, L2)) : ((g \o f \^-1) \o f)%VS = g.
-Proof. by rewrite -comp_lappA lker0_compVf ?comp_lapp1. Qed.
-
-End LinAut.
-
-End MoreVector.
-
 Section MoreAlgebra.
 
 Variables (K : fieldType) (L : algFType K) (A : {algebra L}).
@@ -509,19 +417,19 @@ Qed.
 
 Local Notation "U :* x" := (prodv U x%:VS) : vspace_scope.
 
-Lemma cosetv_def U (x : L) : (U :* x = lapp_of_fun (x \o* idfun) @: U)%VS.
+Lemma cosetv_def U (x : L) : (U :* x = amulr x @: U)%VS.
 Proof.
 apply/eqP; rewrite eqEsubv; apply/andP; split.
-  apply/prodvP=> y kx Fy /injvP[a ->]; rewrite -scalerAr memvZl //.
-  by apply/memv_imgP; exists y; rewrite lappE.
-by apply/subvP=> _ /memv_imgP[y [Fy ->]]; rewrite lappE memv_prod ?memv_inj.
+  apply/prodvP=> y kx Fy /injvP[a ->]; rewrite -scalerAr memvZ //.
+  by apply/memv_imgP; exists y; rewrite ?lfunE.
+by apply/subvP=> _ /memv_imgP[y Fy ->]; rewrite lfunE memv_prod ?memv_inj.
 Qed.
  
 Lemma memv_cosetP {U : {vspace L}} {x y : L} :
   reflect (exists2 a, a \in U & y = a * x) (y \in U :* x)%VS.
 Proof.
-rewrite cosetv_def; apply: (iffP (memv_imgP _ _ _)) => [[a[]] |[a]] Ua ->;
-  by exists a; rewrite ?lappE.
+rewrite cosetv_def; apply: (iffP memv_imgP) => [[a[]] |[a]] Ua ->;
+  by exists a; rewrite ?lfunE.
 Qed.
 
 Canonical addv_addoid := Monoid.AddLaw (@prodv_addl K L) (@prodv_addr K L).
@@ -530,7 +438,7 @@ Canonical prodv_monoid := Monoid.Law (@prodvA K L) (@prod1v K L) (@prodv1 K L).
 
 End MoreAlgebra.
 
-Prenex Implicits sa_val Fadjoin.
+Prenex Implicits Fadjoin.
 Notation "A :* x" := (prodv A x%:VS) : vspace_scope.
 
 Notation "\dim_ E V" := (divn (\dim V) (\dim E))
@@ -544,15 +452,8 @@ Section FieldFacts.
 Variables (F0 : fieldType) (L : fieldExtType F0).
 Implicit Types (U V : {vspace L}) (E F A B : {algebra L}).
 
-(* This should be in algebra along with the other properties of sa_val, but  *)
-(* these are declared in fieldext, for L a fieldExtType...                   *)
-Fact sa_val_scalable A : scalable (@sa_val _ L A).
-Proof. by []. Qed.
-Canonical sa_val_linear A := AddLinear (@sa_val_scalable A).
-Canonical sa_val_lrmorphism A := [lrmorphism of @sa_val _ L A].
-
 (* extfield oversight... *)
-Canonical suba_fieldExtType F := FieldExtType F0 (suba_of F).
+Canonical subvs_fieldExtType F := FieldExtType F0 (subvs_of F).
 
 Lemma prodvC : commutative (@prodv F0 L).
 Proof.
@@ -594,7 +495,7 @@ Lemma dim_cosetv U x : x != 0 -> \dim (U :* x) = \dim U.
 Proof.
 move=> nz_x; rewrite cosetv_def limg_dim_eq //.
 apply/eqP; rewrite -subv0; apply/subvP=> y.
-by rewrite memv_cap memv0 memv_ker lappE mulf_eq0 (negPf nz_x) orbF => /andP[].
+by rewrite memv_cap memv0 memv_ker lfunE mulf_eq0 (negPf nz_x) orbF => /andP[].
 Qed.
 
 Lemma field_ideal_semisimple F J (m := \dim_F J) (idealJ : (F * J <= J)%VS) :
@@ -654,7 +555,7 @@ Section FieldOver.
 Variables (F0 : fieldType) (L : fieldExtType F0) (F : {algebra L}).
 
 Definition fieldOver of {vspace L} : Type := L.
-Local Notation K_F := (suba_of F).
+Local Notation K_F := (subvs_of F).
 Local Notation L_F := (fieldOver F).
 
 Canonical fieldOver_eqType := [eqType of L_F].
@@ -667,7 +568,7 @@ Canonical fieldOver_comUnitRingType := [comUnitRingType of L_F].
 Canonical fieldOver_idomainType := [idomainType of L_F].
 Canonical fieldOver_fieldType := [fieldType of L_F].
 
-Definition fieldOver_scale (a : K_F) (u : L_F) : L_F := sa_val a * u.
+Definition fieldOver_scale (a : K_F) (u : L_F) : L_F := vsval a * u.
 Local Infix "*F:" := fieldOver_scale (at level 40).
 
 Fact fieldOver_scaleA a b u : a *F: (b *F: u) = (a * b) *F: u.
@@ -699,7 +600,7 @@ Proof. exact: mulrCA. Qed.
 Canonical fieldOver_algType := AlgType K_F L_F fieldOver_scaleAr.
 Canonical fieldOver_unitAlgType := [unitAlgType K_F of L_F].
 
-Fact fieldOver_vectMixin : VectorType.mixin_of fieldOver_lmodType.
+Fact fieldOver_vectMixin : Vector.mixin_of fieldOver_lmodType.
 Proof.
 have [bL [_ nz_bL _] [defL dxSbL]] := field_ideal_semisimple (subvf (F * _)%VS).
 set n := (_ %/ _)%N in bL nz_bL defL dxSbL.
@@ -712,19 +613,19 @@ have r2v_lin: linear r2v.
   move=> a u v; rewrite /r2v scaler_sumr -big_split /=; apply: eq_bigr => i _.
   by rewrite scalerA -scalerDl !mxE.
 have v2rP x: {r : 'rV[K_F]_n | x = r2v r}.
-  apply: sig_eqW; have /memv_sumP[y [Fy ->]]: x \in SbL by rewrite defL memvf.
+  apply: sig_eqW; have /memv_sumP[y Fy ->]: x \in SbL by rewrite defL memvf.
   have /fin_all_exists[r Dr] i: exists r, y i = r *: (bL`_i : L_F).
-    by have /memv_cosetP[a Fa ->] := Fy i isT; exists (Suba Fa).
+    by have /memv_cosetP[a Fa ->] := Fy i isT; exists (Subvs Fa).
   by exists (\row_i r i); apply: eq_bigr => i _; rewrite mxE.
 pose v2r x := sval (v2rP x).
 have v2rK: cancel v2r (Linear r2v_lin) by rewrite /v2r => x; case: (v2rP x).
 suffices r2vK: cancel r2v v2r.
-  by exists n v2r; [exact: can2_linear v2rK | exists r2v].
+  by exists n, v2r; [exact: can2_linear v2rK | exists r2v].
 move=> r; apply/rowP=> i; apply/val_inj/(mulIf (nz_bLi i))/eqP; move: i isT.
 by apply/forall_inP; move/directv_sum_unique: dxSbL => <- //; exact/eqP/v2rK.
 Qed.
 
-Canonical fieldOver_vectType := VectType K_F fieldOver_vectMixin.
+Canonical fieldOver_vectType := VectType K_F L_F fieldOver_vectMixin.
 Canonical fieldOver_algFType := AlgFType K_F fieldOver_vectMixin.
 Canonical fieldOver_fieldExtType := FieldExtType K_F L_F.
 
@@ -736,10 +637,10 @@ Lemma mem_vspaceOver V : vspaceOver V =i (F * V)%VS.
 Proof.
 move=> y; apply/idP/idP=> /coord_span->.
   rewrite (@memv_suml F0 L) // => i _.
-  by rewrite memv_prod ?subaP // memv_basis ?memt_nth.
+  by rewrite memv_prod ?subvsP // vbasis_mem ?memt_nth.
 rewrite memv_suml // => ij _; rewrite -tnth_nth; set t := Tuple _.
 have/allpairsP[[u z] /= [Fu Vz ->]] := mem_tnth ij t.
-by rewrite scalerAl (memvZl (Suba _)) ?memvZl ?memv_span //= memv_basis.
+by rewrite scalerAl (memvZ (Subvs _)) ?memvZ ?memv_span //= vbasis_mem.
 Qed.
 
 Lemma mem_aspaceOver E : (F <= E)%VS -> vspaceOver E =i E.
@@ -759,17 +660,17 @@ Lemma dim_vspaceOver J : (F * J <= J)%VS -> \dim (vspaceOver J) = \dim_F J.
 Proof.
 move=> idealJ; have [] := field_ideal_semisimple idealJ; set n := (_ %/ _)%N.
 move=> b [Jb nz_b _] [defJ dx_b].
-suff: is_basis (vspaceOver J) b by exact: size_is_basis.
+suff: basis_of (vspaceOver J) b by exact: size_basis.
 apply/andP; split.
-  rewrite /is_span eqEsubv -!span_subsetl; apply/andP; split.
-    by apply/allP=> u /Jb; rewrite mem_vspaceOver field_ideal_eq.
-  apply/allP=> u /(@memv_basis _ _ _ J).
-  rewrite -defJ => /memv_sumP[{u}u [Fu ->]]; apply: memv_suml => i _.
-  have /memv_cosetP[a Fa ->] := Fu i isT; apply: (memvZl (Suba Fa)).
+  rewrite eqEsubv; apply/andP; split; apply/span_subvP=> u.
+    by rewrite mem_vspaceOver field_ideal_eq // => /Jb.
+  move/(@vbasis_mem _ _ _ J).
+  rewrite -defJ => /memv_sumP[{u}u Fu ->]; apply: memv_suml => i _.
+  have /memv_cosetP[a Fa ->] := Fu i isT; apply: (memvZ (Subvs Fa)).
   by rewrite memv_span ?memt_nth.
-apply/freeP=> a /(directv_sum_independent _ _ dx_b) a_0 i.
+apply/freeP=> a /(directv_sum_independent dx_b) a_0 i.
 have{a_0}: a i *: (b`_i : L_F) == 0.
-  by rewrite a_0 {i}// => i _; rewrite memv_prod ?memv_inj ?subaP.
+  by rewrite a_0 {i}// => i _; rewrite memv_prod ?memv_inj ?subvsP.
 by rewrite scaler_eq0=> /predU1P[] // /idPn[]; rewrite (memPn nz_b) ?memt_nth.
 Qed.
 
@@ -783,13 +684,13 @@ pose V := (F * span (vbasis V_F : seq L))%VS.
 have idV: (F * V)%VS = V by rewrite prodvA prodv_id.
 suffices defVF: V_F = vspaceOver V.
   by exists V; split=> [||u]; rewrite ?defVF ?mem_vspaceOver ?idV.
-apply/eqP/vspaceP=> v; rewrite mem_vspaceOver idV.
-apply/idP/idP=> [/coord_basis|/coord_span] ->; apply: memv_suml => i _.
-  by rewrite memv_prod ?subaP ?memv_span ?memt_nth.
+apply/vspaceP=> v; rewrite mem_vspaceOver idV.
+apply/idP/idP=> [/coord_vbasis|/coord_span] ->; apply: memv_suml => i _.
+  by rewrite memv_prod ?subvsP ?memv_span ?memt_nth.
 set bV := Tuple _; rewrite -tnth_nth.
-have /allpairsP[[x u] /= [/memv_basis Fx /memv_basis Vu ->]]:= mem_tnth i bV.
+have /allpairsP[[x u] /= [/vbasis_mem Fx /vbasis_mem Vu ->]]:= mem_tnth i bV.
 rewrite scalerAl (coord_span Vu) mulr_sumr memv_suml // => j_.
-by rewrite -scalerCA (memvZl (Suba _)) ?memvZl // memv_basis ?memt_nth.
+by rewrite -scalerCA (memvZ (Subvs _)) ?memvZ // vbasis_mem ?memt_nth.
 Qed.
 
 Lemma aspaceOverP (E_F : {algebra L_F}) :
@@ -854,32 +755,32 @@ Proof. exact: scalerAr. Qed.
 Canonical baseField_algType := AlgType F0 L0 baseField_scaleAr.
 Canonical baseField_unitAlgType := [unitAlgType F0 of L0].
 
-Let n := \dim (fullv F).
-Let bF : n.-tuple F := vbasis (fullv F).
-Let coordF (x : F) := (coord_basis (memvf x)).
+Let n := \dim (fullv : {vspace F}).
+Let bF : n.-tuple F := vbasis (fullv : {vspace F}).
+Let coordF (x : F) := (coord_vbasis (memvf x)).
 
-Fact baseField_vectMixin : VectorType.mixin_of baseField_lmodType.
+Fact baseField_vectMixin : Vector.mixin_of baseField_lmodType.
 Proof.
-pose bL := vbasis (fullv L); set m := \dim (fullv L) in bL.
-pose v2r (x : L0) := mxvec (\matrix_(i, j) coord bF (coord bL x i) j).
+pose bL := vbasis (@fullv _ L); set m := \dim fullv in bL.
+pose v2r (x : L0) := mxvec (\matrix_(i, j) coord bF j (coord bL i x)).
 have v2r_lin: linear v2r.
   move=> a x y; rewrite -linearP; congr (mxvec _); apply/matrixP=> i j.
-  by rewrite !mxE linearP !ffunE -[_ *: _]scalerAl mul1r linearP !ffunE.
+  by rewrite !mxE linearP mulr_algl linearP.
 pose r2v r := \sum_(i < m) (\sum_(j < n) vec_mx r i j *: bF`_j) *: bL`_i.
 have v2rK: cancel v2r r2v.
-  move=> x; transitivity (\sum_(i < m) coord bL x i *: bL`_i); last first.
-    by rewrite -coord_basis ?memvf.
-    (* GG: rewrite {2}(coord_basis (memvf x)) -/m would take 8s; *)
+  move=> x; transitivity (\sum_(i < m) coord bL i x *: bL`_i); last first.
+    by rewrite -coord_vbasis ?memvf.
+    (* GG: rewrite {2}(coord_vbasis (memvf x)) -/m would take 8s; *)
     (* The -/m takes 8s, and without it then apply: eq_bigr takes 12s. *)
     (* The time drops to 2s with  a -[GRing.Field.ringType F]/(F : fieldType) *)
   apply: eq_bigr => i _; rewrite mxvecK; congr (_ *: _ : L).
-  by rewrite (coordF (coord bL x i)); apply: eq_bigr => j _; rewrite mxE.
-exists (m * n)%N v2r => //; exists r2v => // r.
+  by rewrite (coordF (coord bL i x)); apply: eq_bigr => j _; rewrite mxE.
+exists (m * n)%N, v2r => //; exists r2v => // r.
 apply: (canLR vec_mxK); apply/matrixP=> i j; rewrite mxE.
-by rewrite !free_coords ?(free_is_basis (is_basis_vbasis _)).
+by rewrite !coord_sum_free ?(basis_free (vbasisP _)).
 Qed.
 
-Canonical baseField_vectType := VectType F0 baseField_vectMixin.
+Canonical baseField_vectType := VectType F0 L0 baseField_vectMixin.
 Canonical baseField_algFType := AlgFType F0 baseField_vectMixin.
 Canonical baseField_extFieldType := FieldExtType F0 L0.
 
@@ -892,24 +793,24 @@ Definition baseVspace V := span (baseVspace_basis V).
 
 Lemma mem_baseVspace V : baseVspace V =i V.
 Proof.
-move=> y; apply/idP/idP=> [/coord_span->|/coord_basis->]; last first.
-  apply: memv_suml => i _; rewrite (coordF (coord _ (y : L) i)) scaler_suml -/n.
-  apply: memv_suml => j _; rewrite -/bF -F0ZEZ memvZl ?memv_span // -!tnth_nth.
+move=> y; apply/idP/idP=> [/coord_span->|/coord_vbasis->]; last first.
+  apply: memv_suml => i _; rewrite (coordF (coord _ i (y : L))) scaler_suml -/n.
+  apply: memv_suml => j _; rewrite -/bF -F0ZEZ memvZ ?memv_span // -!tnth_nth.
   by apply/imageP; exists (i, j).
   (* GG: the F0ZEZ lemma avoids serious performance issues here. *)
 apply: memv_suml => k _; rewrite nth_image; case: (enum_val k) => i j /=.
-by rewrite F0ZEZ memvZl ?memv_basis ?mem_tnth.
+by rewrite F0ZEZ memvZ ?vbasis_mem ?mem_tnth.
 Qed.
 
 Lemma dim_baseVspace V : \dim (baseVspace V) = (\dim V * n)%N.
 Proof.
 pose bV0 := baseVspace_basis V; set m := \dim V in bV0 *.
-suffices /size_is_basis->: is_basis (baseVspace V) bV0.
+suffices /size_basis->: basis_of (baseVspace V) bV0.
   by rewrite card_prod !card_ord.
-rewrite /is_basis /is_span eqxx.
+rewrite /basis_of eqxx.
 apply/freeP=> s sb0 k; rewrite -(enum_valK k); case/enum_val: k => i j.
-have free_baseP := freeP _ (free_is_basis (is_basis_vbasis _)).
-move: j; apply: (free_baseP _ _ (fullv F)); move: i; apply: (free_baseP _ _ V).
+have free_baseP := freeP (basis_free (vbasisP _)).
+move: j; apply: (free_baseP _ _ fullv); move: i; apply: (free_baseP _ _ V).
 transitivity (\sum_i \sum_j s (enum_rank (i, j)) *: bV0`_(enum_rank (i, j))).
   apply: eq_bigr => i _; rewrite scaler_suml; apply: eq_bigr => j _.
   by rewrite -F0ZEZ nth_image enum_rankK -!tnth_nth.
@@ -934,7 +835,7 @@ Proof. by unlock F1; rewrite dim_baseVspace dimv1 mul1n. Qed.
 Lemma baseVspace_ideal V (V0 := baseVspace V) : (F1 * V0 <= V0)%VS.
 Proof.
 apply/prodvP=> u v; unlock F1; rewrite !mem_baseVspace => /injvP[x ->] Vv.
-by rewrite -(@scalerAl F L) mul1r; exact: memvZl.
+by rewrite -(@scalerAl F L) mul1r; exact: memvZ.
 Qed.
 
 Lemma sub_baseField (E : {algebra L}) : (F1 <= baseVspace E)%VS.
@@ -951,16 +852,16 @@ Lemma ideal_baseVspace J0 :
 Proof.
 move=> J0ideal; pose V := span (vbasis (vspaceOver F1 J0) : seq L).
 suffices memJ0: J0 =i V.
-  by exists V => //; apply/eqP/vspaceP=> v; rewrite mem_baseVspace memJ0.
+  by exists V => //; apply/vspaceP=> v; rewrite mem_baseVspace memJ0.
 move=> v; rewrite -{1}(field_ideal_eq J0ideal) -(mem_vspaceOver J0) {}/V.
 move: (vspaceOver F1 J0) => J.
-apply/idP/idP=> [/coord_basis|/coord_span]->; apply/memv_suml=> i _.
-  rewrite /(_ *: _) /= /fieldOver_scale; case: (coord _ _ i) => /= x.
+apply/idP/idP=> [/coord_vbasis|/coord_span]->; apply/memv_suml=> i _.
+  rewrite /(_ *: _) /= /fieldOver_scale; case: (coord _ i _) => /= x.
   unlock {1}F1; rewrite mem_baseVspace => /injvP[{x}x ->].
-  by rewrite -(@scalerAl F L) mul1r memvZl ?memv_span ?memt_nth.
-move: (coord _ _ i) => x; rewrite -[_`_i]mul1r scalerAl.
-apply: (@memvZl _ _ J (Suba _)); last by rewrite memv_basis ?memt_nth.
-by unlock F1; rewrite mem_baseVspace (@memvZl F L) ?mem1v.
+  by rewrite -(@scalerAl F L) mul1r memvZ ?memv_span ?memt_nth.
+move: (coord _ i _) => x; rewrite -[_`_i]mul1r scalerAl.
+apply: (@memvZ _ _ J (Subvs _)); last by rewrite vbasis_mem ?memt_nth.
+by unlock F1; rewrite mem_baseVspace (@memvZ F L) ?mem1v.
 Qed.
 
 Lemma ideal_baseAspace (E0 : {algebra L0}) :
@@ -1041,7 +942,7 @@ Proof. by rewrite subfx_injZ rmorph1 mulr1. Qed.
 (* The vectType mixin requires irreducibility... *)
 Lemma min_subfx_vectMixin :
     (forall q, root (map_poly iota q) z -> q != 0 -> (size p <= size q)%N) ->
-  {Vm : VectorType.mixin_of subfx_lmodType | VectorType.dim Vm = (size p).-1}.
+  Vector.axiom (size p).-1 subfx_lmodType.
 Proof.
 move=> min_p; set n := (size p).-1; have Dn: n.+1 = size p by rewrite polySpred.
 pose Fz2v (x : Fz) : 'rV_n := poly_rV (sval (sig_eqW (subfxE x)) %% p).
@@ -1056,7 +957,7 @@ have vFzK: cancel vFz Fz2v.
   rewrite -subr_eq0 -!raddfB /= subfx_inj_eval // => /min_p/implyP.
   rewrite leqNgt implybNN -Dn ltnS size_poly linearB subr_eq0 /=.
   by move/eqP/(can_inj (@rVpolyK _ _)).
-by exists (VectMixin (can2_linear vFzK Fz2vK) (Bijective Fz2vK vFzK)).
+by exists Fz2v; [apply: can2_linear Fz2vK | exists vFz].
 Qed.
 
 End SubfExtend.
@@ -1158,8 +1059,6 @@ Section MoreGalois.
 Variables (F0 : fieldType) (L : fieldExtType F0).
 Implicit Types (U V J : {vspace L}) (E K G : {algebra L}) (rs : seq L).
 
-Let LappBuggyCanonicalKludge := Phant L.
-
 Lemma kHomExtendX K E f x y :
   kHom K E f -> x \notin E -> kHomExtend E f x y x = y.
 Proof.
@@ -1167,34 +1066,33 @@ move=> homEf E'x; rewrite kHomExtendE poly_for_X //.
 by rewrite (kHomFixedPoly homEf) ?hornerX ?polyOverX.
 Qed.
 
-Lemma kAut_lker0 K (F := fullv L) f : kHom K F f -> lker f == 0%:VS.
+Lemma kAut_lker0 K (F := fullv) f : kHom K F f -> lker f == 0%VS.
 Proof.
 move/(subv_kHom (sub1v _))/LAut_lrmorph=> fM.
 by apply/lker0P; exact: (fmorph_inj (RMorphism fM)).
 Qed.
 
-Lemma inv_kAut K (F := fullv L) f : kHom K F f -> kHom K F (f \^-1)%VS.
+Lemma inv_kAut K (F := fullv) f : kHom K F f -> kHom K F f^-1%VF.
 Proof.
 move=> homFf; have [/kHomP[fKid fM] kerf0] := (homFf, kAut_lker0 homFf).
-have f1K: cancel (f \^-1)%VS f.
-  by move=> x; rewrite -{2}[x]unit_lappE -(lker0_compfV kerf0) lappE.
-apply/kHomP; split=> [x Kx | x y Fx Fy]; apply: (lker0P _ kerf0).
+have f1K: cancel f^-1%VF f by exact: lker0_lfunVK.
+apply/kHomP; split=> [x Kx | x y Fx Fy]; apply: (lker0P kerf0).
   by rewrite f1K fKid.
 by rewrite fM ?memvf ?{1}f1K.
 Qed.
 
-Lemma comp_kAut K E (F := fullv L) f g :
-  kHom K F f -> kHom K E g -> kHom K E (f \o g)%VS.
+Lemma comp_kAut K E (F := fullv) f g :
+  kHom K F f -> kHom K E g -> kHom K E (f \o g)%VF.
 Proof.
 move=> /kHomP[fKid fM] /kHomP[gKid gM]; apply/kHomP; split=> [x Kx | x y Ex Ey].
-  by rewrite lappE /= gKid ?fKid.
-by rewrite !lappE /= gM // fM ?memvf.
+  by rewrite lfunE /= gKid ?fKid.
+by rewrite !lfunE /= gM // fM ?memvf.
 Qed.  
 
 Definition splittingFieldFor U p V :=
   exists2 rs, p %= \prod_(z <- rs) ('X - z%:P) & genField U rs = V.
 
-Lemma splittingFieldForS K E p (F := fullv L) :
+Lemma splittingFieldForS K E p (F := fullv) :
   (K <= E)%VS -> splittingFieldFor K p F -> splittingFieldFor E p F.
 Proof.
 move=> sKE [rs Dp genF]; exists rs => //; apply/eqP.
@@ -1217,11 +1115,11 @@ suffices{IHr} /sigW[y fpEz_y]: exists y, root fpEz y.
   by rewrite -Dg ?memK_Fadjoin // kHomExtendExt.
 have [m DfpEz]: {m | fpEz %= \prod_(w <- mask m rs) ('X - w%:P)}.
   apply: dvdp_prod_XsubC; rewrite -(eqp_dvdr _ Dp) -(kHomFixedPoly homEf Kp).
-  have /polyOver_suba[q Dq] := polyOverSv sKE Kp.
-  have /polyOver_suba[qz Dqz] := minPolyOver E z.
+  have /polyOver_subvs[q Dq] := polyOverSv sKE Kp.
+  have /polyOver_subvs[qz Dqz] := minPolyOver E z.
   rewrite /fpEz Dq Dqz -2?{1}map_poly_comp.
   rewrite (dvdp_map (RMorphism (kHomRmorph_subproof homEf))).
-  rewrite -(dvdp_map (sa_val_rmorphism E)) -Dqz -Dq.
+  rewrite -(dvdp_map [rmorphism of @vsval _ _ E]) -Dqz -Dq.
   rewrite minPoly_dvdp ?(polyOverSv sKE) //.
   by rewrite (eqp_root Dp) root_prod_XsubC.
 exists (mask m rs)`_0; rewrite (eqp_root DfpEz) root_prod_XsubC mem_nth //.
@@ -1231,7 +1129,7 @@ rewrite (monicP (monic_minPoly E z)).
 by have /kHomP[fK _] := homEf; rewrite fK ?mem1v ?oner_eq0.
 Qed.
 
-Lemma enum_kHom K p (F := fullv L) :
+Lemma enum_kHom K p (F := fullv) :
     p \is a polyOver K -> splittingFieldFor K p F ->
   {homK : (\dim_K F).-tuple 'End(L) | separablePolynomial p -> uniq homK
         & forall f, kHom K F f = (f \in homK)}.
@@ -1239,9 +1137,9 @@ Proof.
 move=> Kp /sig2_eqW[rs Dp]; set r := rs; set E := K => defF.
 have [sKE rs_r]: (K <= E)%VS /\ all (mem rs) r by split=> //; exact/allP.
 elim: r rs_r => [_|z r IHr /=/andP[rs_z rs_r]] /= in (E) sKE defF *.
-  rewrite defF divnn ?adim_gt0 //; exists [tuple \1%VS] => // f.
-  rewrite inE; apply/idP/idP=> [/kHomP[f1 _] | /eqP->]; last exact: kHom1.
-  by apply/eq_lapp=> x; rewrite unit_lappE f1 ?memvf.
+  rewrite defF divnn ?adim_gt0 //; exists [tuple \1%VF] => // f.
+  rewrite inE; apply/idP/eqP=> [/kHomP[f1 _] | ->]; last exact: kHom1.
+  by apply/lfunP=> x; rewrite id_lfunE f1 ?memvf.
 have [Ez | E'z] := boolP (z \in E).
   by rewrite FadjoinxK in Ez; apply: IHr => //; rewrite -(eqP Ez).
 set Ez := Fadjoin E z in defF; pose pEz := minPoly E z.
@@ -1257,33 +1155,32 @@ have sz_rz: size rz == n.
   rewrite /n dim_Fadjoin mulKn ?adim_gt0 // -eqSS.
   by rewrite -size_minPoly -(size_prod_XsubC _ id) -(eqp_size DpEz).
 have fEz i (y := tnth (Tuple sz_rz) i): {f | kHom E F f & f z = y}.
-  have homEfz: kHom E Ez (kHomExtend E \1%VS z y).
-    rewrite kHomExtendkHom ?kHom1 // (eq_map_poly (fun _ => unit_lappE _)).
-    rewrite map_polyE map_id polyseqK (eqp_root DpEz) -/rz root_prod_XsubC.
-    exact: mem_tnth.
+  have homEfz: kHom E Ez (kHomExtend E \1%VF z y).
+    rewrite kHomExtendkHom ?kHom1 // map_poly_id => [|u]; last by rewrite lfunE.
+    by rewrite (eqp_root DpEz) -/rz root_prod_XsubC mem_tnth.
   have splitFp: splittingFieldFor Ez p F.
     exists rs => //; apply/eqP; rewrite eqEsubv subvf -defF genFieldSr //.
     exact/allP.
   have [f homFf Df] := kHom_extends sEEz homEfz Ep splitFp.
   by exists f => //; rewrite -Df ?memx_Fadjoin ?(kHomExtendX _ (kHom1 E E)).
-pose mkHom ij := let: (i, j) := ij in (s2val (fEz i) \o tnth homEz j)%VS.
+pose mkHom ij := let: (i, j) := ij in (s2val (fEz i) \o tnth homEz j)%VF.
 have mkHom_z i j: mkHom (i, j) z = rz`_i.
   have /kHomP[fj_id _]: kHom Ez F (tnth homEz j) by rewrite DhomEz mem_tnth.
-  rewrite /= lappE /= fj_id ?memx_Fadjoin //.
+  rewrite /= lfunE /= fj_id ?memx_Fadjoin //.
   by case: (fEz i) => _ /= _ ->; rewrite (tnth_nth 0).
 have ->: \dim_E F = #|{: 'I_n * 'I_(\dim_Ez F)}|.
   rewrite card_prod mulnC !card_ord muln_divA ?field_dimS ?subsetKFadjoin //.
   by rewrite -dim_sup_field ?subvf.
 exists [tuple of codom mkHom] => [sepP | f].
-  apply/injectiveP => /= [[i1 j1]] [i2 j2] /= /eqP/eq_lapp Eij12.
+  apply/injectiveP => /= [[i1 j1]] [i2 j2] /= /lfunP Eij12.
   have /eqP Ei12: i1 == i2.
     have /eqP := Eij12 z; rewrite !mkHom_z nth_uniq ?(eqP sz_rz) //.
     by rewrite mask_uniq // -separable_prod_XsubC -(eqp_separable Dp).
   rewrite -Ei12 in Eij12 *; congr (_, _); apply/val_inj/eqP.
   case: (fEz i1) Eij12 => f /= /(subv_kHom (sub1v _))/LAut_lrmorph fM _ Ej12.
   rewrite -(nth_uniq 0 _ _ (UhomEz sepP)) ?size_tuple // -!tnth_nth.
-  apply/eq_lapp=> u; apply: (fmorph_inj (RMorphism fM)) => /=.
-  by have:= Ej12 u; rewrite !lappE.
+  apply/eqP/lfunP=> u; apply: (fmorph_inj (RMorphism fM)) => /=.
+  by have:= Ej12 u; rewrite !lfunE.
 apply/idP/imageP=> [homFf | [[i j] _ ->] /=]; last first.
   case: (fEz i) => fi /= /comp_kAut->; rewrite ?(subv_kHom sEEz) //.
   by rewrite DhomEz mem_tnth.
@@ -1291,37 +1188,37 @@ have /tnthP[i Dfz]: f z \in Tuple sz_rz.
   rewrite memtE /= -root_prod_XsubC -(eqp_root DpEz).
   by rewrite (kHom_rootK homFf) ?memvf ?subvf ?minPolyOver ?root_minPoly.
 case Dfi: (fEz i) => [fi homFfi fi_z]; have kerfi0 := kAut_lker0 homFfi.
-set fj := (fi \^-1 \o f)%VS; suffices /tnthP[j Dfj]: fj \in homEz.
+set fj := (fi^-1 \o f)%VF; suffices /tnthP[j Dfj]: fj \in homEz.
   by exists (i, j) => //=; rewrite {}Dfi /= -Dfj lker0_compVKf.
 rewrite -DhomEz; apply/kHomP.
 have homFfj: kHom E F fj := comp_kAut (inv_kAut homFfi) homFf.
 split=> [_ /poly_Fadjoin[q [Eq ->]]|]; last by case/kHomP: homFfj.
 have /LAut_lrmorph fjM := subv_kHom (sub1v _) homFfj.
 rewrite -[fj _](horner_map (RMorphism fjM)) (kHomFixedPoly homFfj) //.
-by rewrite /= lappE /= Dfz -fi_z lker0_lappK.
+by rewrite /= lfunE /= Dfz -fi_z lker0_lfunK.
 Qed.
 
-Lemma splitting_field_normal p (F := fullv L) :
-    p \is a polyOver 1%:VS -> splittingFieldFor 1%:VS p F ->
+Lemma splitting_field_normal p (F := fullv) :
+    p \is a polyOver 1%VS -> splittingFieldFor 1%VS p F ->
     separablePolynomial p ->
   isNormalFieldExt L.
 Proof.
 move=> F0p splitFp sep_p K x; set pKx := minPoly K x.
 have [autL /(_ sep_p)UautL DautL] := enum_kHom F0p splitFp.
 pose q := \prod_(z <- [image tnth autL i x | i <- 'I__]) ('X - z%:P).
-suffices F0q: q \is a polyOver 1%:VS.
+suffices F0q: q \is a polyOver 1%VS.
   suffices /dvdp_prod_XsubC[m]: pKx %| q.
     move: (mask m _) => r; exists r.
     by rewrite -eqpMP ?monic_prod_XsubC ?monic_minPoly.
   rewrite minPoly_dvdp ?(polyOverSv (sub1v K)) // root_prod_XsubC.
-  have /tnthP[i def1]: \1%VS \in autL by rewrite -DautL kHom1.
-  by apply/imageP; exists i; rewrite // -def1 unit_lappE.
+  have /tnthP[i def1]: \1%VF \in autL by rewrite -DautL kHom1.
+  by apply/imageP; exists i; rewrite // -def1 id_lfunE.
 have fixed_q f: f \in autL -> map_poly f q = q.
   rewrite -DautL => aut_f.
   have [/LAut_lrmorph fM kerf0] := (aut_f, kAut_lker0 aut_f).
   rewrite /q big_map -filter_index_enum big_filter /= -/F.
   rewrite (rmorph_prod (map_poly_rmorphism (RMorphism fM))).
-  have hfP g i: kHom 1%:VS F g -> (g \o tnth autL i)%VS \in autL.
+  have hfP g i: kHom 1 F g -> (g \o tnth autL i)%VF \in autL.
     by rewrite -DautL => /comp_kAut->; rewrite ?DautL ?mem_tnth.
   pose hf i := sval (sig_eqW (tnthP _ _ (hfP _ i _))).
   have inj_hf: injective (hf f aut_f).
@@ -1331,12 +1228,12 @@ have fixed_q f: f \in autL -> map_poly f q = q.
     by rewrite !(tnth_nth 0) nth_uniq ?size_tuple // => /eqP/val_inj.
   rewrite [rhs in _ = rhs](reindex_inj inj_hf); apply: eq_bigr => i _.
   rewrite [RMorphism _]lock rmorphB /= map_polyX map_polyC -lock.
-  by rewrite /hf; case: (sig_eqW _) => /= _ <-; rewrite lappE.
+  by rewrite /hf; case: (sig_eqW _) => /= _ <-; rewrite lfunE.
 apply/(all_nthP 0)=> i _ /=; rewrite elemDeg1 eqn_leq andbT.
 rewrite -(@leq_pmul2l (\dim F)) -?leq_divRL ?adim_gt0 //.
 rewrite muln1 -[elementDegree _ _]mul1n -{1}[\dim F]divn1.
 rewrite -(dimv1 L) -dim_Fadjoin -(size_tuple autL).
-set E := Fadjoin _ _; have s1E: (1%:VS <= E)%VS := sub1v _.
+set E := Fadjoin _ _; have s1E: (1 <= E)%VS := sub1v _.
 have Ep := polyOverSv s1E F0p.
 have splitEp := splittingFieldForS s1E splitFp.
 have [autE _ DautE] := enum_kHom Ep splitEp; rewrite /= -/E in autE DautE.
@@ -1347,10 +1244,10 @@ have /LAut_lrmorph fM := hom_f; rewrite -[f _](horner_map (RMorphism fM)).
 by rewrite (kHomFixedPoly hom_f) // -coef_map fixed_q.
 Qed.
 
-Lemma splitting_field_galois p (F := fullv L) :
-    p \is a polyOver 1%:VS -> splittingFieldFor 1%:VS p F ->
+Lemma splitting_field_galois p (F := fullv) :
+    p \is a polyOver 1%VS -> splittingFieldFor 1 p F ->
     separablePolynomial p ->
-  {normL : isNormalFieldExt L & galois normL 1%:VS F}.
+  {normL : isNormalFieldExt L & galois normL 1 F}.
 Proof.
 move=> F0p splitFp sep_p; have nL := splitting_field_normal F0p splitFp sep_p.
 exists nL; apply/and3P; split; first exact: subvf; last first.
@@ -1365,9 +1262,9 @@ apply: separableFadjoinExtend sep_x; apply: subsetSeparable (sub1v _) _.
 by apply/separableElementP; exists p.
 Qed.
 
-Lemma normal_field_splitting (F := fullv L) :
+Lemma normal_field_splitting (F := fullv) :
     isNormalFieldExt L ->
-  {p : {poly L} & p \is a polyOver 1%:VS & splittingFieldFor 1%:VS p F}.
+  {p : {poly L} & p \is a polyOver 1%VS & splittingFieldFor 1 p F}.
 Proof.
 move=> normL; pose r i := sval (sigW (normL (aspace1 L) (tnth (vbasis F) i))).
 have sz_r i: (size (r i) <= \dim F)%N.
@@ -1381,9 +1278,8 @@ exists (\prod_i \prod_(j < \dim F | (j < size (r i))%N) mkfr i j).
   by case: (sigW _) => _ /= /eqP <-; exact: minPolyOver.
 rewrite pair_big_dep /= -big_filter filter_index_enum -(big_map _ xpredT mkf).
 set rF := map _ _; exists rF; first exact: eqpxx.
-apply/eqP; rewrite eqEsubv subvf.
-rewrite -((_ =P F) (is_span_is_basis (is_basis_vbasis F))) -span_subsetl.
-apply/allP=> _ /tnthP[i ->]; set x := tnth _ i.
+apply/eqP; rewrite eqEsubv subvf -(span_basis (vbasisP F)).
+apply/span_subvP=> _ /tnthP[i ->]; set x := tnth _ i.
 have /(nthP 0)[j lt_j_ri <-]: x \in r i.
   rewrite -root_prod_XsubC /r -/x; case: (sigW _) => _ /= /eqP <-.
   exact: root_minPoly.
@@ -1813,7 +1709,7 @@ Qed.
 
 (* Number fields and rational spans. *)
 Lemma algC_PET (s : seq algC) :
-  {z | exists a : {ffun _ -> nat}, z = \sum_(i < size s) s`_i *+ a i
+  {z | exists a : nat ^ size s, z = \sum_(i < size s) s`_i *+ a i
      & exists ps, s = [seq (pQtoC p).[z] | p <- ps]}.
 Proof.
 elim: s => [|x s [z /sig_eqW[a Dz] /sig_eqW[ps Ds]]].
@@ -1840,7 +1736,7 @@ Qed.
 
 Lemma num_field_exists (s : seq algC) :
   {Qs : fieldExtType rat & {QsC : {rmorphism Qs -> algC}
-   & {s1 : seq Qs |  map QsC s1 = s & genField 1%:VS s1 = fullv Qs}}}.
+   & {s1 : seq Qs | map QsC s1 = s & genField 1 s1 = fullv}}}.
 Proof.
 have [z /sig_eqW[a Dz] /sig_eqW[ps Ds]] := algC_PET s.
 suffices [Qs [QsC [z1 z1C z1gen]]]:
@@ -1855,19 +1751,19 @@ suffices [Qs [QsC [z1 z1C z1gen]]]:
     by rewrite divfK ?intr_eq0 ?denq_eq0 // scaler_int rmorph_int.
   exists Qs, QsC, s1; first by rewrite -map_comp Ds (eq_map inQsK).
   have sz_ps: size ps = size s by rewrite Ds size_map.
-  apply/eqP/vspaceP=> x; rewrite memvf; have [p {x}<-] := z1gen x.
+  apply/vspaceP=> x; rewrite memvf; have [p {x}<-] := z1gen x.
   elim/poly_ind: p => [|p b ApQs]; first by rewrite /inQs rmorph0 mem0v.
   rewrite /inQs rmorphD rmorphM /= fieldExt_hornerX fieldExt_hornerC -/inQs /=.
   suffices ->: z1 = \sum_(i < size s) s1`_i *+ a i.
-    rewrite memvD ?memvZl ?mem1v ?memv_mul ?memv_suml // => i _.
-    by rewrite memvMn ?mem_genField ?mem_nth // size_map sz_ps.
+    rewrite memvD ?memvZ ?mem1v ?memv_mul ?memv_suml // => i _.
+    by rewrite rpredMn ?mem_genField ?mem_nth // size_map sz_ps.
   apply: (fmorph_inj QsC); rewrite z1C Dz rmorph_sum; apply: eq_bigr => i _.
   by rewrite rmorphMn {1}Ds !(nth_map 0) ?sz_ps //= inQsK.
 have [r [Dr mon_r] dv_r] := minCpolyP z; have nz_r := monic_neq0 mon_r.
 have rz0: root (pQtoC r) z by rewrite dv_r.
-have [q qz0 nz_q | QsV _] := min_subfx_vectMixin rz0 nz_r.
+have [q qz0 nz_q | nV QsV] := VectMixin (min_subfx_vectMixin rz0 nz_r _).
   by rewrite dvdp_leq // -dv_r.
-pose Qs := AlgFType rat QsV.
+pose Qs := AlgFType rat (VectMixin QsV).
 exists (FieldExtType rat Qs), (subfx_inj_rmorphism QtoC_M z r).
 exists (subfx_eval _ z r 'X) => [|x].
   by rewrite /= subfx_inj_eval ?map_polyX ?hornerX.
@@ -1879,7 +1775,7 @@ apply: eq_map_poly; exact: subfx_inj_base.
 Qed.
 
 Definition in_Crat_span s x :=
-  exists a : {ffun 'I_(size s) -> rat}, x = \sum_i QtoC (a i) * s`_i.
+  exists a : rat ^ size s, x = \sum_i QtoC (a i) * s`_i.
 
 Fact Crat_span_subproof s x : decidable (in_Crat_span s x).
 Proof.
@@ -1889,12 +1785,12 @@ have QxsC_Z a z: QxsC (a *: z) = QtoC a * QxsC z.
   by rewrite mulrzr mulrzl -!rmorphMz scalerMzl -mulrzr -numqE scaler_int.
 apply: decP (x1 \in span (in_tuple s1)) _; rewrite /in_Crat_span size_map.
 apply: (iffP idP) => [/coord_span-> | [a Dx]].
-  move: (coord _ x1) => a; exists a; rewrite rmorph_sum.
-  by apply: eq_bigr => i _; rewrite (nth_map 0) // QxsC_Z.
+  move: (coord _) => a; exists [ffun i => a i x1]; rewrite rmorph_sum.
+  by apply: eq_bigr => i _; rewrite ffunE (nth_map 0).
 have{Dx} ->: x1 = \sum_i a i *: s1`_i.
   apply: (fmorph_inj QxsC); rewrite Dx rmorph_sum.
   by apply: eq_bigr => i _; rewrite QxsC_Z (nth_map 0).
-by apply: memv_suml => i _; rewrite memvZl ?memv_span ?mem_nth.
+by apply: memv_suml => i _; rewrite memvZ ?memv_span ?mem_nth.
 Qed.
 
 Definition Crat_span s : pred algC := Crat_span_subproof s.
@@ -1945,7 +1841,7 @@ have Sinj_poly Qr (QrC : numF_inj Qr) p:
 have ext1 mu0 x: {mu1 | exists y, x = Sinj mu1 y
   & exists2 in01 : {lrmorphism _}, Sinj mu0 =1 Sinj mu1 \o in01
   & {morph in01: y / Saut mu0 y >-> Saut mu1 y}}.
-- pose b0 := vbasis (fullv (Sdom mu0)).
+- pose b0 := vbasis (@fullv _ (Sdom mu0)).
   have [z _ /sig_eqW[[|px ps] // [Dx Ds]]] := algC_PET (x :: map (Sinj mu0) b0).
   have [p [_ mon_p] /(_ p) pz0] := minCpolyP z; rewrite dvdpp in pz0.
   have [r Dr] := closed_field_poly_normal (pQtoC p : {poly algC}).
@@ -1956,8 +1852,8 @@ have ext1 mu0 x: {mu1 | exists y, x = Sinj mu1 y
     by move: rz; rewrite -Drr => /mapP/sig2_eqW[zz]; exists zz.
   have{ps Ds} [in01 Din01]: {in01 : {lrmorphism _} | Sinj mu0 =1 QrC \o in01}.
     have in01P y: {yy | Sinj mu0 y = QrC yy}.
-      exists (\sum_i coord b0 y i *: (map_poly (in_alg Qr) ps`_i).[zz]).
-      rewrite {1}(coord_basis (memvf y)) !rmorph_sum; apply: eq_bigr => i _.
+      exists (\sum_i coord b0 i y *: (map_poly (in_alg Qr) ps`_i).[zz]).
+      rewrite {1}(coord_vbasis (memvf y)) !rmorph_sum; apply: eq_bigr => i _.
       rewrite !SinjZ; congr (_ * _); rewrite -(nth_map _ 0) ?size_tuple // Ds.
       rewrite -horner_map Dz Sinj_poly (nth_map 0) //.
       by have:= congr1 size Ds; rewrite !size_map size_tuple => <-.
@@ -1969,28 +1865,28 @@ have ext1 mu0 x: {mu1 | exists y, x = Sinj mu1 y
   have {z zz Dz px Dx} Dx: exists xx, x = QrC xx.
     exists (map_poly (in_alg Qr) px).[zz].
     by rewrite -horner_map Dz Sinj_poly Dx.
-  pose lin01 := lapp_of_fun in01; pose K := (lin01 @: fullv _)%VS.
+  pose lin01 := linfun in01; pose K := (lin01 @: fullv)%VS.
   have memK y: reflect (exists yy, y = in01 yy) (y \in K).
-    apply: (iffP (memv_imgP _ _ _)) => [[yy [_ ->]] | [yy ->]];
-      by exists yy; rewrite lappE ?memvf.
+    apply: (iffP memv_imgP) => [[yy _ ->] | [yy ->]];
+      by exists yy; rewrite ?lfunE ?memvf.
   have algK: has_aunit K && (K * K <= K)%VS.
     rewrite has_aunit1; last by apply/memK; exists 1; rewrite rmorph1.
     apply/prodvP=> _ _ /memK[y1 ->] /memK[y2 ->].
     by apply/memK; exists (y1 * y2); rewrite rmorphM.
   have ker_in01: lker lin01 == 0%:VS.
-    by apply/lker0P=> y1 y2; rewrite !lappE; apply: fmorph_inj.
-  pose f := (lin01 \o lapp_of_fun (Saut mu0) \o lin01 \^-1)%VS.
+    by apply/lker0P=> y1 y2; rewrite !lfunE; apply: fmorph_inj.
+  pose f := (lin01 \o linfun (Saut mu0) \o lin01^-1)%VF.
   have Df y: f (in01 y) = in01 (Saut mu0 y).
-    transitivity (f (lin01 y)); first by rewrite !lappE.
-    by do 4!rewrite lappE /=; rewrite lker0_lappK.
-  have hom_f: kHom 1%:VS (ASpace algK) f.
+    transitivity (f (lin01 y)); first by rewrite !lfunE.
+    by do 4!rewrite lfunE /=; rewrite lker0_lfunK.
+  have hom_f: kHom 1 (ASpace algK) f.
     apply/kHomP; split=> [_ /injvP[a ->] | _ _ /memK[y1 ->] /memK[y2 ->]].
-      by rewrite -(rmorph1 in01) -linearZ Df !linearZ !rmorph1.
+      by rewrite -(rmorph1 in01) -linearZ /= Df {1}linearZ /= rmorph1.
     by rewrite -rmorphM !Df !rmorphM.
   pose pr := map_poly (in_alg Qr) p.
-  have Qpr: pr \is a polyOver 1%:VS.
-    by apply/polyOverP=> i; rewrite coef_map memvZl ?memv_inj.
-  have splitQr: splittingFieldFor K pr (fullv Qr).
+  have Qpr: pr \is a polyOver 1%VS.
+    by apply/polyOverP=> i; rewrite coef_map memvZ ?memv_inj.
+  have splitQr: splittingFieldFor K pr fullv.
     apply: splittingFieldForS (sub1v (ASpace algK)) _; exists rr => //.
     congr (_ %= _): (eqpxx pr); apply: (@map_poly_inj _ _ QrC).
     rewrite Sinj_poly Dr -Drr big_map rmorph_prod; apply: eq_bigr => zz _.
@@ -2270,11 +2166,11 @@ have [-> /eqnP | n_gt0 co_k_n] := posnP n.
   by rewrite gcdn0 => ->; exists [rmorphism of idfun].
 have [z prim_z] := C_prim_root_exists n_gt0.
 have [Qn [QnC [[|zn []] // [Dz]]] genQn] := num_field_exists [:: z].
-pose Q1 := aspace1 Qn; pose phi := kHomExtend Q1 \1%VS zn (zn ^+ k).
-have homQn1: kHom Q1 Q1 \1%VS by rewrite kHom1.
-have pzn_zk0: root (map_poly \1%VS (minPoly Q1 zn)) (zn ^+ k).
+pose Q1 := aspace1 Qn; pose phi := kHomExtend Q1 \1%VF zn (zn ^+ k).
+have homQn1: kHom Q1 Q1 \1%VF by rewrite kHom1.
+have pzn_zk0: root (map_poly \1%VF (minPoly Q1 zn)) (zn ^+ k).
   rewrite -(fmorph_root QnC) rmorphX Dz -map_poly_comp.
-  rewrite (@eq_map_poly _ _ _ QnC) => [|a]; last by rewrite /= unit_lappE.
+  rewrite (@eq_map_poly _ _ _ QnC) => [|a]; last by rewrite /= id_lfunE.
   set p1 := map_poly _ _.
   have [q1 Dp1]: exists q1, p1 = pQtoC q1.
     have a_ i: (minPoly Q1 zn)`_i \in Q1.
@@ -2299,17 +2195,17 @@ have [nu Dnu] := extend_algC_subfield_aut QnC (RMorphism phiM).
 exists nu => _ /(prim_rootP prim_z)[i ->].
 rewrite rmorphX exprAC -Dz -Dnu /= -{1}[zn]hornerX /phi.
 rewrite (kHomExtend_poly homQn1) ?polyOverX //.
-rewrite map_polyE map_id_in => [|?]; last by rewrite unit_lappE.
+rewrite map_polyE map_id_in => [|?]; last by rewrite id_lfunE.
 by rewrite polyseqK hornerX rmorphX.
 Qed.
 
 Lemma group_num_field_exists (gT : finGroupType) (G : {group gT}) :
   {Qn : fieldExtType rat & {QnC : {rmorphism Qn -> algC} &
-    {nQn : isNormalFieldExt Qn & galois nQn 1%:VS (fullv Qn)
-         & forall nuQn : argumentType (mem (Aut nQn (fullv Qn) 1%:VS)),
+    {nQn : isNormalFieldExt Qn & galois nQn 1 fullv
+         & forall nuQn : argumentType (mem (Aut nQn fullv 1)),
               {nu : {rmorphism algC -> algC} |
                  {morph QnC: a / val (repr nuQn) a >-> nu a}}}
-  & {w : Qn & #|G|.-primitive_root w /\ Fadjoin 1%:VS w = fullv Qn
+  & {w : Qn & #|G|.-primitive_root w /\ Fadjoin 1 w = fullv
        & forall (hT : finGroupType) (H : {group hT}) (phi : 'CF(H)),
          is_char phi -> forall x, (#[x] %| #|G|)%N -> {a | QnC a = phi x}}}}.
 Proof.
@@ -2326,9 +2222,9 @@ exists Qn, QnC; last first.
     by have /dvdnP[q ->] := x_dv_n; rewrite mulnC exprM enx1 expr1n.
   exists (\sum_i w ^+ k i); rewrite rmorph_sum; apply/eq_bigr => i _.
   by rewrite rmorphX Dz Dk.
-have Q_Xn1: ('X^n - 1 : {poly Qn}) \is a polyOver 1%:VS.
+have Q_Xn1: ('X^n - 1 : {poly Qn}) \is a polyOver 1%VS.
   by rewrite rpredB ?rpred1 ?rpredX //= polyOverX.
-have splitXn1: splittingFieldFor 1%:VS ('X^n - 1) (fullv Qn).
+have splitXn1: splittingFieldFor 1 ('X^n - 1) (@fullv _ Qn).
   pose r := codom (fun i : 'I_n => w ^+ i).
   have Dr: 'X^n - 1 = \prod_(y <- r) ('X - y%:P).
     by rewrite -(factor_Xn_sub_1 prim_w) big_mkord big_map enumT.
@@ -2494,16 +2390,16 @@ by rewrite -Da scalerA a2 scale1r -dM1 addNKr submxK.
 Qed.
 
 Definition inIntSpan (V : zmodType) m (s : m.-tuple V) v :=
-  exists a : {ffun 'I_m -> int}, v = \sum_(i < m) s`_i *~ a i.
+  exists a : int ^ m, v = \sum_(i < m) s`_i *~ a i.
 
 Lemma dec_Qint_span (V : vectType rat) m (s : m.-tuple V) v :
   decidable (inIntSpan s v).
 Proof.
 have s_s (i : 'I_m): s`_i \in span s by rewrite memv_span ?mem_nth ?size_tuple.
 have s_Zs a: \sum_(i < m) s`_i *~ a i \in span s.
-  by rewrite memv_suml // => i _; rewrite -scaler_int memvZl.
+  by rewrite memv_suml // => i _; rewrite -scaler_int memvZ.
 case s_v: (v \in span s); last by right=> [[a Dv]]; rewrite Dv s_Zs in s_v.
-pose S := \matrix_(i < m, j < _) coord (vbasis (span s)) s`_i j.
+pose S := \matrix_(i < m, j < _) coord (vbasis (span s)) j s`_i.
 pose r := \rank S; pose k := (m - r)%N; pose Em := erefl m.
 have Dm: (m = k + r)%N by rewrite subnK ?rank_leq_row.
 have [K kerK]: {K : 'M_(k, m) | map_mx ZtoQ K == kermx S}%MS.
@@ -2541,31 +2437,30 @@ have{kerGu} defS: map_mx ZtoQ (rsubmx G'lr) *m T = S.
   rewrite -{1}[G'lr]hsubmxK -[Gud]vsubmxK mulmxA mul_row_col -map_mxM.
   move/(canRL (addKr _))->; rewrite -mulNmx raddfD /= map_mx1 map_mxM /=.
   by rewrite mulmxDl -mulmxA kerGu mulmx0 add0r mul1mx.
-pose vv := \row_j coord (vbasis (span s)) v j.
+pose vv := \row_j coord (vbasis (span s)) j v.
 have uS: row_full S.
-  apply/row_fullP; exists (\matrix_(j, i) coord s (vbasis (span s))`_j i).
+  apply/row_fullP; exists (\matrix_(i, j) coord s j (vbasis (span s))`_i).
   apply/matrixP=> j1 j2; rewrite !mxE.
-  rewrite -(free_coordt _ _ (free_is_basis (is_basis_vbasis _))).
-  rewrite -!tnth_nth (coord_span (memv_basis (mem_tnth j1 _))) linear_sum.
-  rewrite sum_ffunE; apply: eq_bigr => i _; rewrite !mxE (tnth_nth 0).
-  by rewrite !linearZ !ffunE.
+  rewrite -(coord_free _ _ (basis_free (vbasisP _))).
+  rewrite -!tnth_nth (coord_span (vbasis_mem (mem_tnth j1 _))) linear_sum.
+  by apply: eq_bigr => i _; rewrite !mxE (tnth_nth 0) !linearZ.
 have eqST: (S :=: T)%MS by apply/eqmxP; rewrite -{1}defS !submxMl.
 case Zv: (map_mx (fun x => denq x) (vv *m pinvmx T) == const_mx 1).
   pose a := map_mx (fun x => numq x) (vv *m pinvmx T) *m dsubmx Gud.
   left; exists [ffun j => a 0 j].
   transitivity (\sum_j (map_mx ZtoQ a *m S) 0 j *: (vbasis (span s))`_j).
-    rewrite {1}(coord_basis s_v); apply: eq_bigr => j _; congr (_ *: _).
+    rewrite {1}(coord_vbasis s_v); apply: eq_bigr => j _; congr (_ *: _).
     have ->: map_mx ZtoQ a = vv *m pinvmx T *m map_mx ZtoQ (dsubmx Gud).
       rewrite map_mxM /=; congr (_ *m _); apply/rowP=> i; rewrite 2!mxE numqE.
       by have /eqP/rowP/(_ i) := Zv; rewrite !mxE => ->; rewrite mulr1.
     by rewrite -(mulmxA _ _ S) mulmxKpV ?mxE // -eqST submx_full.
-  rewrite (coord_basis (s_Zs _)); apply: eq_bigr => j _; congr (_ *: _).
-  rewrite linear_sum sum_ffunE mxE; apply: eq_bigr => i _.
-  by rewrite -scaler_int linearZ [a]lock !mxE !ffunE.
+  rewrite (coord_vbasis (s_Zs _)); apply: eq_bigr => j _; congr (_ *: _).
+  rewrite linear_sum mxE; apply: eq_bigr => i _.
+  by rewrite -scaler_int linearZ [a]lock !mxE ffunE.
 right=> [[a Dv]]; case/eqP: Zv; apply/rowP.
 have ->: vv = map_mx ZtoQ (\row_i a i) *m S.
-  apply/rowP=> j; rewrite !mxE Dv linear_sum sum_ffunE.
-  by apply: eq_bigr => i _; rewrite -scaler_int linearZ ffunE !mxE.
+  apply/rowP=> j; rewrite !mxE Dv linear_sum.
+  by apply: eq_bigr => i _; rewrite -scaler_int linearZ !mxE.
 rewrite -defS -2!mulmxA; have ->: T *m pinvmx T = 1%:M.
   have uT: row_free T by rewrite /row_free -eqST.
   by apply: (row_free_inj uT); rewrite mul1mx mulmxKpV.
@@ -2577,27 +2472,27 @@ Lemma dec_Cint_span (V : vectType algC) m (s : m.-tuple V) v :
 Proof.
 have s_s (i : 'I_m): s`_i \in span s by rewrite memv_span ?mem_nth ?size_tuple.
 have s_Zs a: \sum_(i < m) s`_i *~ a i \in span s.
-  by rewrite memv_suml // => i _; rewrite -scaler_int memvZl.
+  by rewrite memv_suml // => i _; rewrite -scaler_int memvZ.
 case s_v: (v \in span s); last by right=> [[a Dv]]; rewrite Dv s_Zs in s_v.
 pose IzT := {: 'I_m * 'I_(\dim (span s))}; pose Iz := 'I_#|IzT|.
 pose b := vbasis (span s).
-pose z_s := [image coord b (tnth s ij.1) ij.2 | ij <- IzT].
+pose z_s := [image coord b ij.2 (tnth s ij.1) | ij <- IzT].
 pose rank2 j i: Iz := enum_rank (i, j); pose val21 (p : Iz) := (enum_val p).1.
-pose inQzs w := forallb j, Crat_span z_s (coord b w j).
+pose inQzs w := forallb j, Crat_span z_s (coord b j w).
 have enum_pairK j: {in predT, cancel (rank2 j) val21}.
   by move=> i; rewrite /val21 enum_rankK. 
 have Qz_Zs a: inQzs (\sum_(i < m) s`_i *~ a i).
   apply/forallP=> j; apply/Crat_spanP; rewrite /in_Crat_span size_map -cardE.
   exists [ffun ij => (a (val21 ij))%:Q *+ ((enum_val ij).2 == j)].
-  rewrite linear_sum sum_ffunE {1}(reindex_onto _ _ (enum_pairK j)).
+  rewrite linear_sum {1}(reindex_onto _ _ (enum_pairK j)).
   rewrite big_mkcond; apply: eq_bigr => ij _ /=; rewrite nth_image (tnth_nth 0).
   rewrite (can2_eq (@enum_rankK _) (@enum_valK _)) ffunE -scaler_int /val21.
   case Dij: (enum_val ij) => [i j1]; rewrite xpair_eqE eqxx /= eq_sym -mulrb.
-  by rewrite linearZ ffunE rmorphMn rmorph_int mulrnAl; case: eqP => // ->.
+  by rewrite linearZ rmorphMn rmorph_int mulrnAl; case: eqP => // ->.
 case Qz_v: (inQzs v); last by right=> [[a Dv]]; rewrite Dv Qz_Zs in Qz_v.
 have [Qz [QzC [z1s Dz_s _]]] := num_field_exists z_s.
 have sz_z1s: size z1s = #|IzT| by rewrite -(size_map QzC) Dz_s size_map cardE.
-have xv j: {x | coord b v j = QzC x}.
+have xv j: {x | coord b j v = QzC x}.
   apply: sig_eqW; have /Crat_spanP[x ->] := forallP Qz_v j.
   exists (\sum_ij x ij *: z1s`_ij); rewrite rmorph_sum.
   apply: eq_bigr => ij _; rewrite mulrAC.
@@ -2608,18 +2503,18 @@ pose sz := [tuple [ffun j => z1s`_(rank2 j i)] | i < m].
 have [Zsv | Zs'v] := dec_Qint_span sz [ffun j => sval (xv j)].
   left; have{Zsv} [a Dv] := Zsv; exists a.
   transitivity (\sum_j \sum_(i < m) QzC ((sz`_i *~ a i) j) *: b`_j).
-    rewrite {1}(coord_basis s_v) -/b; apply: eq_bigr => j _.
+    rewrite {1}(coord_vbasis s_v) -/b; apply: eq_bigr => j _.
     rewrite -scaler_suml; congr (_ *: _).
     have{Dv} /ffunP/(_ j) := Dv; rewrite sum_ffunE !ffunE -rmorph_sum => <-.
     by case: (xv j).
   rewrite exchange_big; apply: eq_bigr => i _.
-  rewrite (coord_basis (s_s i)) -/b mulrz_suml; apply: eq_bigr => j _.
+  rewrite (coord_vbasis (s_s i)) -/b mulrz_suml; apply: eq_bigr => j _.
   rewrite scalerMzl ffunMzE rmorphMz; congr ((_ *~ _) *: _).
   rewrite nth_mktuple ffunE -(nth_map _ 0) ?sz_z1s // Dz_s.
   by rewrite nth_image enum_rankK /= (tnth_nth 0).
 right=> [[a Dv]]; case: Zs'v; exists a.
 apply/ffunP=> j; rewrite sum_ffunE !ffunE; apply: (fmorph_inj QzC).
-case: (xv j) => /= _ <-; rewrite Dv linear_sum sum_ffunE rmorph_sum.
+case: (xv j) => /= _ <-; rewrite Dv linear_sum rmorph_sum.
 apply: eq_bigr => i _; rewrite nth_mktuple raddfMz !ffunMzE rmorphMz ffunE.
 by rewrite -(nth_map _ 0 QzC) ?sz_z1s // Dz_s nth_image enum_rankK -tnth_nth.
 Qed.
@@ -2739,7 +2634,7 @@ pose n (i : 'I_m) := (size (minCpoly X`_i)).-2; pose N := (\max_i n i).+1.
 pose IY := family (fun i => [pred e : 'I_N | e <= n i]%N).
 have IY_0: 0 \in IY by apply/familyP=> // i; rewrite ffunE.
 pose inIY := enum_rank_in IY_0.
-pose Y := [image \prod_(i < m) X`_i ^+ (f : {ffun 'I_m -> 'I_N}) i | f <- IY].
+pose Y := [image \prod_(i < m) X`_i ^+ (f : 'I_N ^ m) i | f <- IY].
 have S_P := Cint_spanP [tuple of Y]; set S := Cint_span _ in S_P.
 have sYS: {subset Y <= S} by exact: mem_Cint_span.
 have S_1: 1 \in S.
@@ -3126,8 +3021,8 @@ have norm_a_nu nu: `|sval (gQnC nu) alpha| <= 1.
   rewrite normC_nat -Dm -(leC_pmul2r _ _ (ltC_irr1 (aut_Iirr nu i))) mul1r.
   congr (_ <= _): (char1_ge_norm g (irr_char (aut_Iirr nu i))).
   by rewrite !aut_IirrE !cfunE Dm rmorph_nat divfK.
-pose beta := QnC (galoisNorm nQn 1%:VS (fullv Qn) a).
-have Dbeta: beta = \prod_(nu \in Aut nQn (fullv Qn) 1%:VS) sval (gQnC nu) alpha.
+pose beta := QnC (galoisNorm nQn 1 fullv a).
+have Dbeta: beta = \prod_(nu \in Aut nQn fullv 1) sval (gQnC nu) alpha.
   rewrite /beta rmorph_prod; apply: eq_bigr => nu _.
   by case: (gQnC nu) => f /= ->; rewrite Da.
 have Zbeta: isIntC beta.
@@ -3139,7 +3034,7 @@ have [|nz_a] := boolP (alpha == 0).
 have: beta != 0 by rewrite Dbeta; apply/prodf_neq0 => nu _; rewrite fmorph_eq0.
 move/(isIntC_normC_ge1 Zbeta); rewrite ltC_geF //; apply: leC_ltC_trans a_lt1.
 rewrite -[`|alpha|]mulr1 Dbeta (bigD1 1%g) ?group1 //= -Da.
-case: (gQnC _) => /= _ <-; rewrite repr_coset1 unit_lappE normC_mul.
+case: (gQnC _) => /= _ <-; rewrite repr_coset1 id_lfunE normC_mul.
 rewrite -leC_sub -mulrBr posC_mul ?posC_norm // Da leC_sub.
 elim/big_rec: _ => [|nu c _]; first by rewrite normC1 leC_refl.
 apply: leC_trans; rewrite -leC_sub -{1}[`|c|]mul1r normC_mul -mulrBl.

@@ -1,5 +1,5 @@
-Require Import ssreflect ssrbool ssrfun eqtype fintype finfun finset ssralg.
-Require Import bigop seq ssrnat ssralg fingroup matrix vector algebra.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype finfun.
+Require Import bigop finset ssralg fingroup zmodp matrix vector algebra.
 
 (*****************************************************************************)
 (*  * Finite Group as an algebra                                             *)
@@ -23,15 +23,11 @@ Inductive galg : predArgType := GAlg of {ffun gT -> F}.
 
 Definition galg_val A := let: GAlg f := A in f.
 
-Canonical Structure galg_subType :=
-  Eval hnf in [newType for galg_val by galg_rect].
-Definition galg_eqMixin :=
-  Eval hnf in [eqMixin of galg by <:].
-Canonical Structure galg_eqType := Eval hnf in EqType galg galg_eqMixin.
-Require Import choice.
+Canonical galg_subType := Eval hnf in [newType for galg_val by galg_rect].
+Definition galg_eqMixin := Eval hnf in [eqMixin of galg by <:].
+Canonical galg_eqType := Eval hnf in EqType galg galg_eqMixin.
 Definition galg_choiceMixin := [choiceMixin of galg by <:].
-Canonical Structure galg_choiceType :=
-  Eval hnf in ChoiceType galg galg_choiceMixin.
+Canonical galg_choiceType := Eval hnf in ChoiceType galg galg_choiceMixin.
 
 Definition fun_of_galg A (i : gT) := galg_val A i.
 
@@ -96,10 +92,8 @@ Proof.
 by move=> *; apply: val_inj; apply/ffunP=> g; rewrite !ffunE mulrDl.
 Qed.
 
-Definition gAlgLmodMixin :=
-  LmodMixin mulvgA mulvg1 mulvg_addr mulvg_addl.
-Canonical Structure gAlgLmodType :=
-  Eval hnf in LmodType F galg gAlgLmodMixin.
+Definition gAlgLmodMixin := LmodMixin mulvgA mulvg1 mulvg_addr mulvg_addl.
+Canonical gAlgLmodType := Eval hnf in LmodType F galg gAlgLmodMixin.
 
 Lemma sum_fgE : forall I r (P : pred I) (E : I -> galg) i,
   (\sum_(k <- r | P k) E k) i = \sum_(k <- r | P k) E k i.
@@ -156,8 +150,7 @@ Qed.
 
 Definition gAlgRingMixin :=
   RingMixin mulrgA mulr1g mulrg1 mulrg_addl mulrg_addr nong0g1.
-Canonical Structure gAlgRingType :=
-  Eval hnf in RingType galg gAlgRingMixin.
+Canonical gAlgRingType := Eval hnf in RingType galg gAlgRingMixin.
 
 Implicit Types x y : galg.
 
@@ -175,10 +168,8 @@ rewrite !ffunE big_distrr /=.
 by apply: eq_bigr => i _; rewrite galgE mulrCA.
 Qed.
 
-Canonical Structure gAlgLalgType :=
-  Eval hnf in LalgType F galg mulg_mulvl.
-Canonical Structure gAlgAlgType :=
-  Eval hnf in AlgType F galg mulg_mulvr.
+Canonical gAlgLalgType := Eval hnf in LalgType F galg mulg_mulvl.
+Canonical gAlgAlgType := Eval hnf in AlgType F galg mulg_mulvr.
 
 Lemma injGM : forall g h, (g * h)%g %:FG = (g %:FG) * (h %:FG).
 Proof.
@@ -188,33 +179,24 @@ rewrite big1 1?addr0 => [| i Hi]; last by rewrite !galgE (negbTE Hi) mul0r.
 by rewrite -(inj_eq (mulgI (g^-1)%g)) mulgA mulVg mul1g.
 Qed.
 
-Definition fg2rv x := \row_(i < #|gT|) x (enum_val i).
-
-Lemma fg2rv_morph_p : linear fg2rv.
+Fact gAlg_iso_vect : Vector.axiom #|gT| galg.
 Proof.
-by move=> k /= x y; apply/matrixP=> [] [[|i] Hi] j; rewrite !mxE !galgE !ffunE.
-Qed.
-Canonical Structure fg2rv_morph := GRing.Linear fg2rv_morph_p.
-
-Lemma fg2rv_bij : bijective fg2rv.
-Proof.
-exists (fun (x: 'rV[F]_#|gT|) =>
-         let v0 := Ordinal (is_true_true: 0 < 1) in
-         GAlg ([ffun k:gT => (x v0 (enum_rank k))])) => x.
+exists (fun x => \row_(i < #|gT|) x (enum_val i)) => [k x y | ].
+  by apply/rowP=> i; rewrite !mxE !galgE !ffunE.
+exists (fun x : 'rV[F]_#|gT| => GAlg ([ffun k => (x 0 (enum_rank k))])) => x.
   by apply: val_inj; apply/ffunP=> i; rewrite ffunE mxE enum_rankK.
-apply/matrixP=> [] [[|i] Hi] j; rewrite // !mxE galgE enum_valK.
-by congr fun_of_matrix; apply/eqP.
+by apply/rowP=> i; rewrite // !mxE galgE enum_valK.
 Qed.
 
-Definition gAlgMixin := VectMixin fg2rv_morph_p fg2rv_bij.
-Canonical Structure gAlgVectType := VectType F gAlgMixin.
-Canonical Structure gAlgAlgFType := AlgFType F gAlgMixin.
+Definition gAlgMixin := VectMixin gAlg_iso_vect.
+Canonical gAlgVectType := VectType F galg gAlgMixin.
+Canonical gAlgAlgFType := AlgFType F gAlgMixin.
 
-Variable G: {group gT}.
+Variable G : {group gT}.
 
 Definition gvspace: {vspace galg} := (\sum_(g \in G) (g%:FG)%:VS)%VS.
 
-Lemma gspace_def: (has_aunit gvspace) && (gvspace * gvspace <= gvspace)%VS.
+Fact gspace_subproof : has_aunit gvspace && (gvspace * gvspace <= gvspace)%VS.
 Proof.
 apply/andP; split.
   apply: has_aunit1.
@@ -222,9 +204,9 @@ apply/andP; split.
   apply: subv_trans (addvSl _ _).
   by apply/injvP; exists 1; rewrite scale1r.
 apply/prodvP=> u v Hu Hv.
-case/memv_sumP: Hu => u_ [Hu ->]; rewrite big_distrl /=.
+case/memv_sumP: Hu => u_ Hu ->; rewrite big_distrl /=.
 apply: memv_suml=> i Hi.
-case/memv_sumP: Hv => v_ [Hv ->]; rewrite big_distrr /=.
+case/memv_sumP: Hv => v_ Hv ->; rewrite big_distrr /=.
 apply: memv_suml=> j Hj.
 rewrite /gvspace (bigD1 (i*j)%g) /=; last by exact: groupM.
 apply: subv_trans (addvSl _ _).
@@ -233,7 +215,7 @@ apply/injvP; exists (k * l).
 by rewrite -scalerAl -scalerAr scalerA injGM.
 Qed.
 
-Definition gaspace: {algebra galg} := ASpace gspace_def.
+Definition gaspace : {algebra galg} := ASpace gspace_subproof.
 
 End GroupAlgebraDef.
 

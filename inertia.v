@@ -298,7 +298,7 @@ Lemma cfclass_sum R idx (op : Monoid.com_law idx) (F : 'CF(H) -> R) i :
 Proof.
 move/cfclass_uniq=> chiGuniq; rewrite -big_map -big_filter; apply: eq_big_perm.
 rewrite -[index_enum _]enumT map_tnth_enum uniq_perm_eq // => [|chi].
-  by rewrite filter_uniq // uniq_free // irr_free.
+  by rewrite filter_uniq // free_uniq // irr_free.
 by rewrite mem_filter; apply: andb_idr => /imageP[Tx _ ->]; exact: irr_Conjg.
 Qed.
 
@@ -312,7 +312,7 @@ move=> nsHG chiHj; have [sHG /subsetP nHG] := andP nsHG.
 rewrite -cfclass_sum //= big_mkcond.
 rewrite {1}['Res _]cfun_sum_cfdot linear_sum /=; apply: eq_bigr => k _.
 have [[y Gy ->] | ] := altP (cfclassP _ _ _); first by rewrite cfdot_Res_Conjg.
-apply: contraNeq; rewrite scaler0 scalev_eq0 orbC => /norP[_ chiHk].
+apply: contraNeq; rewrite scaler0 scaler_eq0 orbC => /norP[_ chiHk].
 have{chiHk chiHj}: '['Res[H] ('Ind[G] 'chi_j), 'chi_k] != 0.
   rewrite !inE !cfdot_Res_l in chiHj chiHk *.
   apply: contraNneq chiHk; rewrite cfdot_sum_irr => /posC_sum_eq0/(_ i isT)/eqP.
@@ -568,7 +568,7 @@ have IC1: is_char ('Ind[G] 'chi_p) := cfInd_char G (irr_char p).
 have IC2: is_char ('Res[T] ('Ind[G] 'chi_p)) := cfRes_char _ IC1.
 rewrite -Heq !inE cfdot_charC ?irr_char //.
 rewrite Frobenius_reciprocity /= cfnorm_eq0 cfInd_eq0 ?irr_char //.
-exact: (free_notin0 (irr_free _) (irr_chi p)).
+exact: (free_not0 (irr_free _) (irr_chi p)).
 Qed.
 
 (* 6.11 b the inverse function *)

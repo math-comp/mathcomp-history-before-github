@@ -2263,7 +2263,7 @@ Proof. exact: det_scalar. Qed.
 Lemma det_mulmx n (A B : 'M[R]_n) : \det (A *m B) = \det A * \det B.
 Proof.
 rewrite big_distrl /=.
-pose F := {ffun 'I_n -> 'I_n}; pose AB s i j := A i j * B j (s i).
+pose F := ('I_n ^ n)%type; pose AB s i j := A i j * B j (s i).
 transitivity (\sum_(f : F) \sum_(s : 'S_n) (-1) ^+ s * \prod_i AB s i (f i)).
   rewrite exchange_big; apply: eq_bigr => /= s _; rewrite -big_distrr /=.
   congr (_ * _); rewrite -(bigA_distr_bigA (AB s)) /=.

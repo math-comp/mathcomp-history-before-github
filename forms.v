@@ -129,9 +129,9 @@ Variable x:V.
 
 Definition alpha : V-> (RVVectType F) := fun y => f y x.
 
-Definition alpha_lapp := (lapp_of_fun alpha).
+Definition alpha_lfun := (lfun_of_fun alpha).
 
-Definition  xbar := lker alpha_lapp .
+Definition  xbar := lker alpha_lfun .
 
 Lemma alpha_lin: linear alpha.
 Proof. by move => a b c; rewrite /alpha bilin2 bilina1. Qed.
@@ -139,7 +139,7 @@ Proof. by move => a b c; rewrite /alpha bilin2 bilina1. Qed.
 
 
 Lemma xbarP:  forall e1, reflect (orthogonal e1 x ) (e1 \in xbar).
-move=> e1; rewrite memv_ker  lapp_of_funK //=.
+move=> e1; rewrite memv_ker  lfun_of_funK //=.
   by apply: (iffP eqP).
 by apply alpha_lin.
 Qed.
@@ -148,27 +148,27 @@ Qed.
 Lemma dim_xbar :forall vs,(\dim vs ) -  1 <= \dim (vs :&: xbar).
 Proof. 
 move=> vs; rewrite -(addKn 1 (\dim (vs :&: xbar))) addnC leq_sub2r //.
-have H :\dim  (alpha_lapp @: vs )<= 1 by rewrite -(dimR F) -dimvf dimvS // subvf.
-by rewrite -(limg_ker_dim alpha_lapp vs)(leq_add (leqnn (\dim(vs :&: xbar)))). 
+have H :\dim  (alpha_lfun @: vs )<= 1 by rewrite -(dimR F) -dimvf dimvS // subvf.
+by rewrite -(limg_ker_dim alpha_lfun vs)(leq_add (leqnn (\dim(vs :&: xbar)))). 
 Qed.
 
 (* to be improved*)
 Lemma xbar_eqvs: forall vs,  (forall v , v \in vs -> orthogonal v x )-> \dim (vs :&: xbar)= (\dim vs ).
 move=> vs  Hvs.
-rewrite -(limg_ker_dim alpha_lapp vs).
-suff-> : \dim (alpha_lapp @: vs) = 0%nat by rewrite addn0.
+rewrite -(limg_ker_dim alpha_lfun vs).
+suff-> : \dim (alpha_lfun @: vs) = 0%nat by rewrite addn0.
 apply/eqP; rewrite dimv_eq0; apply /vspaceP => w.
 rewrite memv0;apply/memv_imgP.
 case e: (w==0).
   exists 0; split ;first by rewrite mem0v.
   apply sym_eq; rewrite (eqP e).
-  rewrite (lapp_of_funK alpha_lin 0).
-  rewrite /alpha_lapp /alpha /=.
+  rewrite (lfun_of_funK alpha_lin 0).
+  rewrite /alpha_lfun /alpha /=.
   by move:(bilina1 f 0 x x); rewrite scale0r mul0r.
 move/eqP:e =>H2;case=> x0 [Hx0 Hw].
 apply H2;rewrite Hw;move: (Hvs x0 Hx0).
 rewrite /orthogonal.
-by rewrite (lapp_of_funK alpha_lin x0).
+by rewrite (lfun_of_funK alpha_lin x0).
 Qed.
 
 

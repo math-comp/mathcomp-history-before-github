@@ -27,10 +27,10 @@ Module AModuleType.
 Section ClassDef.
 
 Variable R : ringType.
-Variable V: vspaceType R.
+Variable V: vectType R.
 Variable A: algFType R.
 
-Structure mixin_of (V : vspaceType R) : Type := Mixin {
+Structure mixin_of (V : vectType R) : Type := Mixin {
   action: A -> 'End(V);
   action_morph: forall x a b, action (a * b) x = action b (action a x);
   action_linear: forall x , linear (action^~ x);
@@ -38,10 +38,10 @@ Structure mixin_of (V : vspaceType R) : Type := Mixin {
 }.
 
 Structure class_of (V : Type) : Type := Class {
-  base : VectorType.class_of R V;
-   mixin : mixin_of (VectorType.Pack _ base V) 
+  base : Vector.class_of R V;
+   mixin : mixin_of (Vector.Pack _ base V) 
 }.
-Local Coercion base : class_of >-> VectorType.class_of.
+Local Coercion base : class_of >-> Vector.class_of.
 
 Implicit Type phA : phant A.
 
@@ -52,20 +52,20 @@ Definition class phA (cT : type phA):=
   let: Pack _ c _ := cT return class_of cT in c.
 Definition clone phA T cT c of phant_id (@class phA cT) c := @Pack phA T c T.
 
-Definition pack phA V V0 (m0 : mixin_of (@VectorType.Pack R _ V V0 V)) :=
-  fun bT b & phant_id (@VectorType.class _ (Phant R) bT) b =>
+Definition pack phA V V0 (m0 : mixin_of (@Vector.Pack R _ V V0 V)) :=
+  fun bT b & phant_id (@Vector.class _ (Phant R) bT) b =>
   fun    m & phant_id m0 m => Pack phA (@Class V b m) V.
 
 Definition eqType phA cT := Equality.Pack (@class phA cT) cT.
 Definition choiceType phA cT := choice.Choice.Pack (@class phA cT) cT.
 Definition zmodType phA cT := GRing.Zmodule.Pack (@class phA cT) cT.
 Definition lmodType phA cT := GRing.Lmodule.Pack (Phant R) (@class phA cT) cT.
-Definition vectType phA cT := VectorType.Pack (Phant R) (@class phA cT) cT.
+Definition vectType phA cT := Vector.Pack (Phant R) (@class phA cT) cT.
 
 End ClassDef.
 
 Module Exports.
-Coercion base : class_of >->  VectorType.class_of.
+Coercion base : class_of >->  Vector.class_of.
 Coercion mixin : class_of >-> mixin_of.
 Coercion sort : type >-> Sortclass.
 
@@ -77,7 +77,7 @@ Coercion zmodType : type >-> GRing.Zmodule.type.
 Canonical Structure zmodType.
 Coercion lmodType : type>->  GRing.Lmodule.type.
 Canonical Structure lmodType.
-Coercion vectType : type >-> VectorType.type.
+Coercion vectType : type >-> Vector.type.
 Canonical Structure vectType.
 
 Notation amoduleType A := (@type _ _ (Phant A)).
@@ -139,10 +139,10 @@ Local Notation "A :* B" := (eprodv A B) : vspace_scope.
 Lemma memv_eprod : forall vs ws a b , a \in vs -> b \in ws -> a :* b \in (vs :* ws)%VS.
 Proof. 
 move=> vs ws a b Ha Hb.
-rewrite (coord_basis Ha) (coord_basis Hb).
+rewrite (coord_vbasis Ha) (coord_vbasis Hb).
 rewrite linear_sum /=; apply: memv_suml => j _.
 rewrite -rmul_sum; apply: memv_suml => i _ /=.
-rewrite linearZ memvZl //= rmulZ memvZl //=.
+rewrite linearZ memvZ //= rmulZ memvZ //=.
 apply: memv_span; apply/allpairsP; exists ((vbasis vs)`_i, (vbasis ws)`_j)=> //.
 by rewrite !mem_nth //= size_tuple.
 Qed.
@@ -155,11 +155,11 @@ move=> vs1 ws vs2; apply: (iffP idP).
   by apply: subv_trans Hs; exact: memv_eprod.
 move=> Ha; apply/subvP=> v.
 move/coord_span->; apply: memv_suml=> i _ /=.
-apply: memvZl.
+apply: memvZ.
 set u := allpairs _ _ _.
 have: i < size u by rewrite (eqP (size_eprodv _ _)).
 move/(mem_nth 0); case/allpairsP=> [[x1 x2] [I1 I2 ->]].
-by apply Ha; apply: memv_basis.
+by apply Ha; apply: vbasis_mem.
 Qed.
 
 Lemma eprod0v: left_zero (0%:VS) eprodv.
@@ -181,12 +181,12 @@ Proof.
 case: (vbasis1 A)=> k [Hk He] /=.
 move=> vs; apply subv_anti; apply/andP; split.
   apply/eprodvP=> a b Ha; case/injvP=> k1 ->.
-  by rewrite linearZ /= rmul1 memvZl.
+  by rewrite linearZ /= rmul1 memvZ.
 apply/subvP=> v Hv.
-rewrite (coord_basis Hv); apply: memv_suml=> [] [i Hi] _ /=.  
-apply: memvZl.
+rewrite (coord_vbasis Hv); apply: memv_suml=> [] [i Hi] _ /=.  
+apply: memvZ.
 rewrite -[_`_i]rmul1; apply: memv_eprod; last by apply: memv_inj.
-by apply: memv_basis; apply: mem_nth; rewrite size_tuple.
+by apply: vbasis_mem; apply: mem_nth; rewrite size_tuple.
 Qed.
 
 Lemma eprodv_monol : forall ws vs1 vs2, (vs1 <= vs2 -> vs1 :* ws <= vs2 :* ws)%VS.
@@ -204,9 +204,9 @@ Qed.
 Lemma eprodv_addl: left_distributive eprodv addv.
 Proof.
 move=> vs1 vs2 ws; apply subv_anti; apply/andP; split.
-  apply/eprodvP=> a b;case/memv_addP=> v1 [v2 [Hv1 Hv2 ->]] Hb.
+  apply/eprodvP=> a b;case/memv_addP=> v1 Hv1 [v2 Hv2 ->] Hb.
   by rewrite rmulD; apply: memv_add; apply: memv_eprod.
-apply/subvP=> v;  case/memv_addP=> v1 [v2 [Hv1 Hv2 ->]].
+apply/subvP=> v;  case/memv_addP=> v1 Hv1 [v2 Hv2 ->].
 apply: memvD.
   move: v1 Hv1; apply/subvP; apply: eprodv_monol; exact: addvSl.
 move: v2 Hv2; apply/subvP; apply: eprodv_monol; exact: addvSr.
@@ -215,9 +215,9 @@ Qed.
 Lemma eprodv_sumr : forall vs ws1 ws2, (vs :* (ws1 + ws2) = vs :* ws1 + vs :* ws2)%VS.
 Proof.
 move=> vs ws1 ws2; apply subv_anti; apply/andP; split.
-  apply/eprodvP=> a b Ha;case/memv_addP=> v1 [v2 [Hv1 Hv2 ->]].
+  apply/eprodvP=> a b Ha;case/memv_addP=> v1 Hv1 [v2 Hv2 ->].
   by rewrite linearD; apply: memv_add; apply: memv_eprod.
-apply/subvP=> v;  case/memv_addP=> v1 [v2 [Hv1 Hv2 ->]].
+apply/subvP=> v;  case/memv_addP=> v1 Hv1 [v2 Hv2 ->].
 apply: memvD.
   move: v1 Hv1; apply/subvP; apply: eprodv_monor; exact: addvSl.
 move: v2 Hv2; apply/subvP; apply: eprodv_monor; exact: addvSr.
@@ -226,13 +226,13 @@ Qed.
 Definition modv (vs: {vspace M}) (al: {algebra A}) :=
    (vs :* al  <= vs)%VS.
  
-Lemma mod0v : forall al , modv 0%:VS al.
+Lemma mod0v : forall al, modv 0%:VS al.
 Proof. by move=> al; rewrite /modv eprod0v subv_refl. Qed.
 
-Lemma modv1 : forall vs , modv vs (aspace1 A).
+Lemma modv1 : forall vs, modv vs (aspace1 A).
 Proof. by move=> vs; rewrite /modv eprodv1 subv_refl. Qed.
 
-Lemma modfv : forall al,  modv (fullv M) al.
+Lemma modfv : forall al, modv fullv al.
 Proof. by move=> al; exact: subvf. Qed.
 
 Lemma memv_mod_mul : forall ms al m a, 
@@ -271,29 +271,13 @@ Definition completely_reducible ms al :=
 Lemma completely_reducible0 : forall al, completely_reducible 0%:VS al.
 Proof.
 move=> al ms1 Hms1; rewrite subv0; move/eqP->.
-by exists 0%:VS; split; [exact: mod0v | exact: cap0v | exact: sum0v].
+by exists 0%:VS; split; [exact: mod0v | exact: cap0v | exact: add0v].
 Qed.
 
 End AModuleDef.
 
 Notation "a :* b" := (rmul a b): ring_scope.
 Notation "A :* B" := (eprodv A B) : vspace_scope.
-
-Module LApp.
-
-Section LinearAppStruct.
-
-(* Endomorphisms over V have an algebra structure as soon as dim V != 0 *)
-Variable (R : comRingType) (V: vectType R).
-Hypothesis dim_nz: (vdim V != 0)%N.
-
-Canonical Structure algType := LApp.algType dim_nz.
-
-Canonical Structure algFType := Eval hnf in AlgFType R (linearMixin V V).
- 
-End LinearAppStruct.
-
-End LApp.
 
 Section HomMorphism.
 
@@ -313,8 +297,8 @@ Lemma modfP : forall f ms al,
 Proof.
 move=> f ms al; apply: (iffP idP)=> H; last first.
   apply/allP=> [] [v x]; case/allpairsP=> [[x1 x2] [I1 I2 ->]].
-  by apply/eqP; apply: H; apply: memv_basis.
-move=> x v Hv Hx; rewrite (coord_basis Hv) (coord_basis Hx).
+  by apply/eqP; apply: H; apply: vbasis_mem.
+move=> x v Hv Hx; rewrite (coord_vbasis Hv) (coord_vbasis Hx).
 rewrite !linear_sum; apply: eq_big=> //= i _.
 rewrite !linearZ /=; congr (_ *: _).
 rewrite -!rmul_sum linear_sum; apply: eq_big=> //= j _.
@@ -326,22 +310,22 @@ by rewrite !mem_nth //= size_tuple.
 Qed.
 
 Lemma modf_zero : forall ms al, modf 0 ms al.
-Proof. by move=> ms al; apply/allP=> i _; rewrite !lappE rmul0. Qed.
+Proof. by move=> ms al; apply/allP=> i _; rewrite !lfunE rmul0. Qed.
 
 Lemma modf_add : forall f1 f2 ms al, 
   modf f1 ms al -> modf f2 ms al -> modf (f1 + f2) ms al.
 Proof.
 move=> f1 f2 ms al Hm1 Hm2; apply/allP=> [] [v x].
-case/allpairsP=> [[x1 x2] [I1 I2 ->]]; rewrite !lappE rmulD.
-move/modfP: Hm1->; try apply: memv_basis=>//.
-by move/modfP: Hm2->; try apply: memv_basis.
+case/allpairsP=> [[x1 x2] [I1 I2 ->]]; rewrite !lfunE rmulD /=.
+move/modfP: Hm1->; try apply: vbasis_mem=>//.
+by move/modfP: Hm2->; try apply: vbasis_mem.
 Qed.
 
 Lemma modf_scale : forall k f ms al, modf f ms al -> modf (k *: f) ms al.
 Proof.
 move=> k f ms al Hm; apply/allP=>  [] [v x].
-case/allpairsP=> [[x1 x2] [I1 I2 ->]]; rewrite !lappE rmulZ.
-by move/modfP: Hm->; try apply: memv_basis.
+case/allpairsP=> [[x1 x2] [I1 I2 ->]]; rewrite !lfunE rmulZ /=.
+by move/modfP: Hm->; try apply: vbasis_mem.
 Qed.
 
 Lemma modv_ker : forall f ms al, 
@@ -381,35 +365,35 @@ Proof.
 move=> ms Hmv ms1 Hms1 Hsub; rewrite /completely_reducible.
 pose act g : 'End(M) := rmorph M (g%:FG).
 have actE: forall g v, act g v  = v :* g%:FG by done.
-pose f: 'End(M) :=  (#|G|%:R^-1 \*: 
-        (\sum_(i \in G) (act (i^-1)%g \o projv ms1 \o (act i))%VS)%R)%VS.
+pose f: 'End(M) :=  #|G|%:R^-1 *: 
+        \sum_(i \in G) (act (i^-1)%g \o projv ms1 \o act i)%VF.
 have Cf: forall v x, x \in FG -> f (v :* x) = f v :* x.
-  move=> v x; case/memv_sumP=> g_ [Hg_ ->].
+  move=> v x; case/memv_sumP=> g_ Hg_ ->.
   rewrite !linear_sum; apply: eq_big => //= i Hi.
   move: (Hg_ _ Hi); case/injvP=> k ->.
   rewrite !linearZ /=; congr (_ *: _).
-  rewrite /f /= !lappE rmulZ; congr (_ *: _).
+  rewrite /f /= !lfunE /= !sum_lfunE rmulZ /=; congr (_ *: _).
   rewrite -rmul_sum (reindex (fun g => (i^-1 * g)%g)); last first.
     by exists (fun g => (i * g)%g)=> h; rewrite mulgA (mulVg, mulgV) mul1g.
   apply: eq_big=> g; first by rewrite groupMl // groupV.
-  rewrite !lappE /= !lappE /= !actE -rmulA=> Hig.
+  rewrite !lfunE /= !lfunE /= !actE -rmulA=> Hig.
   have Hg: g \in G by rewrite -[g]mul1g -[1%g](mulgV i) -mulgA groupM.
   by rewrite -injGM // mulgA mulgV mul1g invMg invgK !injGM
              ?groupV // rmulA.
 have Himf: forall v, v \in ms1 -> f v = v.
   move=> v Hv.
-  rewrite /f !lappE (eq_bigr (fun x => v)); last move=> i Hi.
+  rewrite /f !lfunE /= sum_lfunE (eq_bigr (fun x => v)); last move=> i Hi.
     by rewrite sumr_const -scaler_nat scalerA mulVf // ?scale1r // -?charf'_nat.
-  rewrite !lappE /= !lappE /= projv_id !actE; last first.
-    by rewrite (memv_mod_mul Hms1) // unfold_in /= /gvspace (bigD1 i) // addvSl.
+  rewrite !lfunE /= !lfunE /= projv_id !actE; last first.
+    by rewrite (memv_mod_mul Hms1) //= /gvspace (bigD1 i) // memvE addvSl.
   by rewrite -rmulA -injGM // ?groupV // mulgV rmul1.
 have If: limg f = ms1.
   apply: subv_anti; apply/andP; split; last first.
-    by apply/subvP=> v Hv; rewrite limgE -(Himf _ Hv) memv_img // memvf.
-  rewrite limgE; apply/subvP=> i; case/memv_imgP=> x [_ ->].
-  rewrite !lappE memvZl // memv_suml=> // j Hj.
-  rewrite lappE /= lappE (memv_mod_mul Hms1) //; first by exact: memv_proj.
-  by rewrite  unfold_in /= /gvspace (bigD1 (j^-1)%g) ?addvSl // groupV.
+    by apply/subvP=> v Hv; rewrite -(Himf _ Hv) memv_img // memvf.
+  apply/subvP=> i; case/memv_imgP=> x _ ->.
+  rewrite !lfunE memvZ //= sum_lfunE memv_suml=> // j Hj.
+  rewrite lfunE /= lfunE (memv_mod_mul Hms1) //; first by exact: memv_proj.
+  by rewrite memvE /= /gvspace (bigD1 (j^-1)%g) ?addvSl // groupV.
 exists (ms :&: lker f)%VS; split.
   - apply: modv_ker=> //; apply/modfP=> *; exact: Cf.
   apply/eqP; rewrite -subv0; apply/subvP=> v; rewrite memv0.
@@ -418,11 +402,11 @@ exists (ms :&: lker f)%VS; split.
 apply: subv_anti; rewrite  subv_add Hsub capvSl.
 apply/subvP=> v Hv.
 have->: v = f v + (v - f v) by rewrite addrC -addrA addNr addr0.
-apply: memv_add; first by rewrite -If limgE memv_img // memvf.
+apply: memv_add; first by rewrite -If memv_img // memvf.
 rewrite memv_cap; apply/andP; split.
-  apply: memv_sub=> //; apply: subv_trans Hsub.
-  by rewrite -If limgE; apply: memv_img; exact: memvf.
-rewrite memv_ker linearB /= (Himf (f v)) ?subrr // /in_mem /= -If limgE.
+  apply: memvB=> //; apply: subv_trans Hsub.
+  by rewrite -If; apply: memv_img; exact: memvf.
+rewrite memv_ker linearB /= (Himf (f v)) ?subrr // /in_mem /= -If.
 by apply: memv_img; exact: memvf. 
 Qed.
 

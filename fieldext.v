@@ -63,7 +63,7 @@ Record class_of (T : Type) : Type := Class {
   (* Do I really need this since it can be derived? *)
   alg_ext : Algebra.axiom (Lalgebra.Pack (Phant R)
                                           (Lalgebra.Class lalg_ext) T);
-  vec_ext : VectorType.mixin_of (Lmodule.Pack _ (Lmodule.Class lmod_ext) T)
+  vec_ext : Vector.mixin_of (Lmodule.Pack _ (Lmodule.Class lmod_ext) T)
 }.
 
 Local Coercion base1 : class_of >-> Field.class_of.
@@ -112,7 +112,7 @@ Definition lmodType phR cT := Lmodule.Pack phR (@class phR cT) cT.
 Definition lalgType phR cT := Lalgebra.Pack phR (@class phR cT) cT.
 Definition algType phR cT := Algebra.Pack phR (@class phR cT) cT.
 Definition unitAlgType phR cT := UnitAlgebra.Pack phR (@class phR cT) cT.
-Definition vectorType phR cT := VectorType.Pack phR (@class phR cT) cT.
+Definition vectorType phR cT := Vector.Pack phR (@class phR cT) cT.
 Definition algfType phR cT := AlgFType.Pack phR (@class phR cT) cT.
 
 Definition unitRing_algfType phR  cT :=
@@ -137,7 +137,7 @@ Definition lmodule_algfType phR  cT :=
   @Lmodule.Pack R phR (AlgFType.sort (@algfType phR cT)) 
     (class cT) (AlgFType.sort (algfType cT)).
 Definition vector_algfType phR  cT :=
-  @VectorType.Pack R phR (AlgFType.sort (@algfType phR cT)) 
+  @Vector.Pack R phR (AlgFType.sort (@algfType phR cT)) 
     (class cT) (AlgFType.sort (algfType cT)).
 
 Definition unitRing_unitAlgType phR  cT :=
@@ -165,7 +165,7 @@ Definition algebra_unitAlgType phR  cT :=
   @Algebra.Pack R phR (UnitAlgebra.sort (@unitAlgType phR cT)) 
     (class cT) (UnitAlgebra.sort (unitAlgType cT)).
 Definition vector_unitAlgType phR  cT :=
-  @VectorType.Pack R phR (UnitAlgebra.sort (@unitAlgType phR cT)) 
+  @Vector.Pack R phR (UnitAlgebra.sort (@unitAlgType phR cT)) 
     (class cT) (UnitAlgebra.sort (unitAlgType cT)).
 Definition algfType_unitAlgType phR  cT :=
   @AlgFType.Pack R phR (UnitAlgebra.sort (@unitAlgType phR cT)) 
@@ -180,7 +180,7 @@ Coercion base1 : class_of >-> Field.class_of.
 Coercion lmod_ext : class_of >-> Lmodule.mixin_of.
 Coercion lalg_ext : class_of >-> Lalgebra.axiom.
 Coercion alg_ext : class_of >-> Algebra.axiom.
-Coercion vec_ext : class_of >-> VectorType.mixin_of.
+Coercion vec_ext : class_of >-> Vector.mixin_of.
 Coercion base2 : class_of >-> AlgFType.class_of.
 Coercion base3 : class_of >-> UnitAlgebra.class_of.
 Coercion eqType : type >-> Equality.type.
@@ -209,7 +209,7 @@ Coercion algType : type >-> Algebra.type.
 Canonical algType.
 Coercion unitAlgType : type >-> UnitAlgebra.type.
 Canonical unitAlgType.
-Coercion vectorType : type >-> VectorType.type.
+Coercion vectorType : type >-> Vector.type.
 Canonical vectorType.
 Coercion algfType : type >-> AlgFType.type.
 Canonical algfType.
@@ -242,7 +242,7 @@ Notation FieldExtType R T :=
 
 End Exports.
 End FieldExt.
-Import FieldExt.Exports.
+Export FieldExt.Exports.
 
 Section SubFieldExtension.
 
@@ -587,7 +587,7 @@ Qed.
 Lemma aunit_eq1 : aunit K = 1.
 Proof. by apply/eqP; rewrite aunit1 mem1v. Qed.
 
-Lemma sub1v : (1%:VS <= K)%VS.
+Lemma sub1v : (1 <= K)%VS.
 Proof. by apply: mem1v. Qed.
 
 Lemma memv_exp : forall x i, x \in K -> x ^+ i \in K.
@@ -603,19 +603,13 @@ Proof.
 by move=> Hp; elim/big_ind: _ => //; [exact: mem1v | exact: memv_mul].
 Qed.
 
-Lemma sa_val_rmorph : rmorphism (@sa_val _ _ K).
-Proof.
-split => //=; split => //=; exact: aunit_eq1.
-Qed.
+Fact vsval_multiplicative : multiplicative (vsval : subvs_of K -> L).
+Proof. by split => //=; exact: aunit_eq1. Qed.
+Canonical vsval_rmorphism := AddRMorphism vsval_multiplicative.
+Canonical vsval_lrmorphism := [lrmorphism of (vsval : subvs_of K -> L)].
 
-Canonical sa_val_additive := Additive sa_val_rmorph.
-Canonical sa_val_rmorphism := RMorphism sa_val_rmorph.
-
-Lemma suba_mul_com : commutative (@suba_mul _ _ K).
-Proof. move=> u v; apply: val_inj; exact: mulrC. Qed.
-
-Canonical suba_comRingType :=
-  Eval hnf in ComRingType (suba_of K) suba_mul_com.
+Definition subvs_mulC := [comRingMixin of subvs_of K by <:].
+Canonical subvs_comRingType := Eval hnf in ComRingType (subvs_of K) subvs_mulC.
 
 Fact aspace_mulr_closed : mulr_closed K.
 Proof. by split; [exact: mem1v | exact: memv_mul]. Qed.
@@ -624,26 +618,26 @@ Canonical aspace_smulrPred := SmulrPred aspace_mulr_closed.
 Canonical aspace_semiringPred := SemiringPred aspace_mulr_closed.
 Canonical aspace_subringPred := SubringPred aspace_mulr_closed.
 
-Lemma polyOver_suba (p : {poly L}) :
-  reflect (exists q : {poly (suba_of K)}, p = map_poly (@sa_val _ _ K) q)
+Lemma polyOver_subvs (p : {poly L}) :
+  reflect (exists q : {poly subvs_of K}, p = map_poly vsval q)
           (p \is a polyOver K).
 Proof.
-apply: (iffP polyOverP) => [Hp | [q ->] i]; last by rewrite coef_map // subaP.
-exists (\poly_(i < size p) (Suba (Hp i))).
+apply: (iffP polyOverP) => [Hp | [q ->] i]; last by rewrite coef_map // subvsP.
+exists (\poly_(i < size p) (Subvs (Hp i))).
 rewrite -{1}[p]coefK.
 apply/polyP => i.
 rewrite coef_map !coef_poly.
 by case: ifP.
 Qed.
 
-Lemma matrixOver_suba n m (A : 'M_(n,m)) :
-  reflect (exists B, A = map_mx (@sa_val _ _ K) B)
+Lemma matrixOver_subvs n m (A : 'M_(n, m)) :
+  reflect (exists B : 'M[subvs_of K]_(n, m), A = map_mx vsval B)
           (matrixOver K A).
 Proof.
 apply: (iffP (matrixOverP _ _)); last first.
-  by move => [B ->] i j; rewrite mxE subaP.
+  by move => [B ->] i j; rewrite mxE subvsP.
 move => HA.
-exists (\matrix_(i, j) (Suba (HA i j))).
+exists (\matrix_(i, j) (Subvs (HA i j))).
 apply/matrixP => i j.
 by rewrite !mxE.
 Qed.
@@ -668,11 +662,11 @@ Section FadjoinDefinitions.
 Variable (K : {vspace L}).
 Variable (x : L).
 
-Let P n := (vdim L < n) ||
+Let P n := (Vector.dim L < n) ||
            (\dim (\sum_(i < n.+1) (K * (x ^+ i)%:VS))%VS < \dim K * n.+1).
 
 Let Pholds : exists n, P n.
-Proof. by exists (vdim L).+1; rewrite /P ltnSn. Qed.
+Proof. by exists (Vector.dim L).+1; rewrite /P ltnSn. Qed.
 
 Definition elementDegree := (ex_minn Pholds).-1.+1.
 
@@ -681,14 +675,12 @@ Definition Fadjoin := (\sum_(i < elementDegree) (K * (x ^+ i)%:VS))%VS.
 (* Ideally this definition should use \poly; however we really make use of the
    fact that the index i has an ordinal type. *)
 Definition poly_for_Fadjoin (v : L) := 
-  \sum_(i < elementDegree) 
-    ((sumv_pi (fun j => (K * (x ^+ nat_of_ord j)%:VS)%VS) predT i v) / (x ^+ i))
-    *: 'X^i.
+  \sum_i sumv_pi Fadjoin i v / x ^+ i *: 'X^i.
 
 Definition minPoly : {poly L} := 
   'X^elementDegree - poly_for_Fadjoin (x ^+ elementDegree).
 
-Let Pholds_gt0 : (0%N < ex_minn Pholds).
+Let Pholds_gt0 : (0 < ex_minn Pholds).
 Proof.
 case: ex_minnP => [[|//]].
 by rewrite /P muln1 big_ord1 expr0 prodv1 !ltnn.
@@ -710,7 +702,7 @@ rewrite /Fadjoin /elementDegree.
 case: ex_minnP.
 move => m _ Hm m0.
 apply: anti_leq.
-rewrite (leq_trans (dimv_leq_sum _ _)) ?dim_Fadjoin_subproof //=.
+rewrite (leq_trans (dimv_leq_sum _ _ _)) ?dim_Fadjoin_subproof //=.
 case: m Hm m0 => [//|m Hm _].
 move: (ltnSn m).
 rewrite ltnNge.
@@ -730,15 +722,15 @@ Lemma prodv_inj_coefK y v : v \in (K * y%:VS)%VS -> v / y \in K.
 Proof.
 move/coord_span ->.
 rewrite mulr_suml memv_suml // => i _.
-rewrite -scalerAl memvZl //.
+rewrite -scalerAl memvZ //.
 have/(mem_nth 0)/allpairsP : (i < size (Tuple (size_prodv K y%:VS))).
   rewrite size_tuple.
   by case i.
-move => [[c d] [/memv_basis Hc /memv_basis/injvP [a ->]] ->].
+move => [[c d] [/vbasis_mem Hc /vbasis_mem/injvP [a ->]] ->].
 rewrite -mulrA -scalerAl.
 case: (eqVneq y 0) => [-> | Hy0].
   by rewrite invr0 mulr0 scaler0 mulr0 mem0v.
-by rewrite mulfV // mulrC -scalerAl mul1r memvZl.
+by rewrite mulfV // mulrC -scalerAl mul1r memvZ.
 Qed.
 
 Lemma memv_prodv_inj_coef y v : v \in (K * y%:VS)%VS ->
@@ -771,7 +763,7 @@ Qed.
 Lemma poly_for_eq v : v \in Fadjoin -> (poly_for_Fadjoin v).[x] = v.
 Proof.
 move => Hv.
-rewrite /poly_for_Fadjoin horner_sum {2}(sumv_sum_pi Hv) sum_lappE.
+rewrite /poly_for_Fadjoin horner_sum -{2}(sumv_pi_sum (erefl Fadjoin) Hv).
 apply: eq_bigr => i _.
 by rewrite !hornerE hornerXn -memv_prodv_inj_coef // memv_sum_pi.
 Qed.
@@ -785,20 +777,20 @@ apply: (iffP idP) => [Hp|[p [/(all_nthP 0)/= pK sizep vp]]].
   exists (poly_for_Fadjoin v).
   by rewrite poly_for_polyOver size_poly_for poly_for_eq.
 apply/memv_sumP.
-exists (fun i : 'I_elementDegree => p`_i * x ^+ i).
-split => [i _|]; last by rewrite vp (horner_coef_wide _ sizep).
+exists (fun i : 'I_elementDegree => p`_i * x ^+ i) => [i _|]; last first.
+  by rewrite vp (horner_coef_wide _ sizep).
 rewrite memv_prod ?memv_inj //.
 by have [/pK// | /(nth_default 0)->] := ltnP i (size p); exact: mem0v.
 Qed.
 
-Lemma poly_is_linear : linear_for (in_alg L \; *:%R) poly_for_Fadjoin.
+Fact Fadjoin_poly_is_linear : linear_for (in_alg L \; *:%R) poly_for_Fadjoin.
 Proof.
 move=> a p q; rewrite /poly_for_Fadjoin /= scaler_sumr -big_split /=.
 apply eq_bigr => i _ /=.
 by rewrite linearP mulrDl scalerA -2!scalerAl mul1r scalerDl.
 Qed.
-Canonical poly_for_Fadjoin_addidive := Additive poly_is_linear.
-Canonical poly_for_Fadjoin_linear := AddLinear poly_is_linear.
+Canonical poly_for_Fadjoin_addidive := Additive Fadjoin_poly_is_linear.
+Canonical poly_for_Fadjoin_linear := AddLinear Fadjoin_poly_is_linear.
 
 Lemma size_minPoly : size minPoly = elementDegree.+1.
 Proof.
@@ -816,9 +808,8 @@ Lemma root_minPoly_subproof : x ^+ elementDegree \in Fadjoin ->
 Proof.
 move => HxED.
 rewrite /root !hornerE_comm horner_sum hornerXn.
-rewrite {1}(sumv_sum_pi HxED) sum_lappE subr_eq0.
-apply/eqP.
-apply: eq_bigr => i _.
+rewrite -{1}(sumv_pi_sum (erefl Fadjoin) HxED) subr_eq0.
+apply/eqP/eq_bigr => i _.
 by rewrite !hornerE_comm hornerXn -memv_prodv_inj_coef ?memv_sum_pi.
 Qed.
 
@@ -829,14 +820,15 @@ Section Fadjoin.
 Variable (K : {algebra L}).
 Variable (x : L).
 
-Lemma elementDegreeBound : elementDegree K x <= vdim L.
+Lemma elementDegreeBound : elementDegree K x <= Vector.dim L.
 Proof.
 rewrite /elementDegree prednK; last first.
   case: ex_minnP => [[|//]].
   by rewrite muln1 big_ord1 expr0 prodv1 !ltnn.
 case: ex_minnP => m _. apply.
 apply/orP; right.
-apply: (@leq_trans ((vdim L).+1)); first by rewrite ltnS -dimvf dimvS // subvf.
+apply: (@leq_trans ((Vector.dim L).+1)).
+  by rewrite ltnS -dimvf dimvS // subvf.
 rewrite leq_pmull // lt0n dimv_eq0 -subv0.
 apply: contra (oner_neq0 L).
 rewrite -memv0.
@@ -846,24 +838,20 @@ by apply: memv_inj.
 Qed.
 
 Lemma capv_KxED_subproof :
-  (x == 0) = ((K * (x ^+ elementDegree K x)%:VS :&: Fadjoin K x)%VS == 0%:VS).
+  (x == 0) = (K * (x ^+ elementDegree K x)%:VS :&: Fadjoin K x == 0)%VS.
 Proof.
 apply/eqP/eqP => [->|/eqP H]; first by rewrite exprS mul0r prodv0 cap0v.
 apply/eqP; move: H.
 apply: contraLR => nzx.
-rewrite -subv0 -dimv_sum_leqif neq_ltn.
-apply/orP; left.
-rewrite dim_Fadjoin dim_prodvf ?expf_neq0 // -{1}[\dim K]muln1 -mulnDr add1n.
-move: elementDegreeBound.
-rewrite /Fadjoin /elementDegree.
+rewrite (sameP eqP directv_addP) directvE ltn_eqF //=.
+rewrite dim_Fadjoin dim_prodvf ?expf_neq0 // -mulnS.
+have:= elementDegreeBound; rewrite /Fadjoin /elementDegree.
 case: ex_minnP => [[|m]]; first by rewrite muln1 big_ord1 expr0 prodv1 !ltnn.
-rewrite leqNgt.
-case/orP => [|Hm _ _]; first by rewrite ltnS; move/negbTE ->.
-apply: (leq_trans _ Hm).
+rewrite leqNgt; case/orP => [/negP//|Hm _ _]; apply: leq_trans Hm.
 by rewrite [(\sum_(i < m.+2) _)%VS]big_ord_recr addvC.
 Qed.
 
-Lemma elemDeg1_subproof : (x \in K) -> elementDegree K x = 1%N.
+Lemma elemDeg1_subproof : x \in K -> elementDegree K x = 1%N.
 Proof.
 rewrite /elementDegree.
 case: ex_minnP => [[|m _ Hm xK]].
@@ -965,4 +953,3 @@ End Fadjoin.
 
 End FieldExtTheory.
 
-Export FieldExt.Exports.

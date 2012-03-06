@@ -389,13 +389,12 @@ rewrite !cfunE !(cTIirrE cyclicTI_Dade) !dprod_IirrE -[x]mul1g !cfDprodE //.
 by rewrite  !lin_char1 // subrr.
 Qed.
 
-Lemma ecTIirr_base_is_basis : is_basis 'CF(W, W :\: W2) ecTIirr_base.
+Lemma ecTIirr_base_basis : basis_of 'CF(W, W :\: W2) ecTIirr_base.
 Proof.
-rewrite /is_basis ecTIirr_base_free andbT /is_span -dimv_leqif_eq.
+rewrite /basis_of ecTIirr_base_free andbT -dimv_leqif_eq.
   by rewrite (eqnP ecTIirr_base_free) size_tuple cardsX !cardsC1 
              dim_cyclicTIcfun2 cardsT.
-rewrite -span_subsetl; apply/allP=> _ /imageP[[i j] _ ->].
-by exact: memc_ecTIirr.
+by apply/span_subvP=> _ /imageP[[i j] _ ->]; apply: memc_ecTIirr.
 Qed.
 
 Definition Dade_mudelta := 
@@ -563,7 +562,7 @@ Proof.
 pose m (k : Iirr W) : 'CF(L) := 
   let (i,j) := inv_dprod_Iirr W1xW2 k in (-1) ^+ delta j *: 'chi_(mu2 i j).
 pose t := [tuple of ecTIirr_base].
-have F1 : is_basis 'CF(W, W :\: W2) t by apply:  ecTIirr_base_is_basis.
+have F1 : basis_of 'CF(W, W :\: W2) t by apply: ecTIirr_base_basis.
 have F2 i j : '[m i, m j] = (i == j)%:R.
   rewrite -{2}[i](inv_dprod_IirrK W1xW2) -{2}[j](inv_dprod_IirrK W1xW2).
   rewrite /m; (do 2 case: (inv_dprod_Iirr _ _))=> i2 j2 i1 j1.
@@ -1808,7 +1807,7 @@ have Equiv: 'Z[calT, L^#] =i 'Z[calT, A].
     case: (vchar_expansion Zf)=> u Hu ->.
     rewrite big_map big_filter.
     apply: memv_suml=> i /andP [_ NZi].
-    by apply: memvZl; apply: cDade_mu_support.
+    by apply: memvZ; apply: cDade_mu_support.
   rewrite vchar_split cfun_onE=> /andP [_ Sf].
   rewrite vchar_split Zf /= cfun_onE.
   apply/subsetP=> g GniF.
@@ -1851,19 +1850,19 @@ have LmuFree: free Lmu.
 have Emu h : mu h = Lmu`_h by rewrite nth_mkseq //= inord_val.
 pose ftau1 (f : 'CF(L)) : 'CF(G) := 
     (-1) ^+ Dade_delta L W W1 k *:
-      \sum_j coord Lmu f j *: (\sum_i sigma (w_ i j)).
+      \sum_j coord Lmu j f *: (\sum_i sigma (w_ i j)).
 have ftau1_linear : linear ftau1.
   move=> l /= x y.
   rewrite scalerA mulrC -scalerA -scalerDr; congr (_ *: _).
   rewrite scaler_sumr -big_split /=; apply: eq_bigr => i _.
-  by rewrite linearD linearZ !ffunE scalerDl !scalerA.
+  by rewrite linearD linearZ scalerDl !scalerA.
 pose tau1 := locked (Linear ftau1_linear).
 have Tau1Mu j : tau1 (mu j) = 
               (-1) ^+ Dade_delta L W W1 k *: (\sum_i sigma (w_ i j)).
   rewrite Emu /tau1; unlock; rewrite /= /ftau1 /= (bigD1 j) //=.
   rewrite [X in _ + X]big1 ?addr0 // => [| i Dij].
-    by rewrite free_coordt ?(eqxx, scale1r).
-  by rewrite free_coordt // eq_sym (negPf Dij) scale0r.
+    by rewrite coord_free ?(eqxx, scale1r).
+  by rewrite coord_free // eq_sym (negPf Dij) scale0r.
 exists tau1=> //; split.
   split.
     apply: isometry_on_ortho_base.

@@ -133,6 +133,8 @@ Proof. by case: n / eq_mn eq_np; case: p /. Qed.
 Lemma tvalK n (t : n.-tuple T) : in_tuple t = tcast (esym (size_tuple t)) t.
 Proof. by apply: val_inj => /=; case: _ / (esym _). Qed.
 
+Lemma in_tupleE s : in_tuple s = s :> seq T. Proof. by []. Qed.
+
 End CastTuple.
 
 Section SeqTuple.
@@ -259,6 +261,12 @@ Lemma tnthP (t : n.-tuple T) x : reflect (exists i, x = tnth t i) (x \in t).
 Proof.
 apply: (iffP idP) => [/(nthP x)[i ltin <-] | [i ->]]; last exact: mem_tnth.
 by rewrite size_tuple in ltin; exists (Ordinal ltin); rewrite (tnth_nth x).
+Qed.
+
+Lemma seq_tnthP (s : seq T) x : x \in s -> {i | x = tnth (in_tuple s) i}.
+Proof.
+move=> s_x; pose i := index x s; have lt_i: i < size s by rewrite index_mem.
+by exists (Ordinal lt_i); rewrite (tnth_nth x) nth_index.
 Qed.
 
 End EqTuple.

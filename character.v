@@ -689,14 +689,14 @@ by rewrite -tnth_nth xcfunZl xcfun_id (negbTE ne_ji) mulr0.
 Qed.
 
 Lemma chi_inj : injective (tnth (irr G)).
-Proof. by apply/injectiveP/uniq_free; rewrite map_tnth_enum irr_free. Qed.
+Proof. by apply/injectiveP/free_uniq; rewrite map_tnth_enum irr_free. Qed.
 
 Lemma irr_eq1 i : ('chi_i == 1) = (i == 0).
 Proof. by rewrite -chi0_1 (inj_eq chi_inj). Qed.
 
-Lemma irr_is_basis : is_basis 'CF(G)%VS (irr G).
+Lemma irr_basis : basis_of 'CF(G)%VS (irr G).
 Proof.
-rewrite /is_basis irr_free andbT /is_span -dimv_leqif_eq ?subvf //.
+rewrite /basis_of irr_free andbT -dimv_leqif_eq ?subvf //.
 by rewrite dim_cfun (eqnP irr_free) size_tuple NirrE.
 Qed.
 
@@ -706,8 +706,8 @@ Proof. by apply: eq_bigr => i; rewrite -tnth_nth. Qed.
 (* This is Isaacs, Theorem (2.8). *)
 Theorem cfun_irr_sum phi : {a | phi = \sum_i a i *: 'chi[G]_i}.
 Proof.
-rewrite (is_span_span (is_span_is_basis irr_is_basis) (memvf phi)).
-by rewrite -eq_sum_chi_irr; exists (coord (irr G) phi).
+rewrite (coord_basis irr_basis (memvf phi)) -eq_sum_chi_irr.
+by exists ((coord (irr G))^~ phi).
 Qed.
 
 Lemma cfRepr_standard n (rG : mx_representation algC G n) :
@@ -726,7 +726,7 @@ have [rsim1 rsim2] := (mx_rsim_standard rG1, mx_rsim_standard rG2).
 apply: mx_rsim_trans (rsim1) (mx_rsim_sym _).
 suffices ->: standard_grepr rG1 = standard_grepr rG2 by [].
 apply: eq_bigr => Wi _; congr (muln_grepr _ _); apply/eqP; rewrite eqN_eqC.
-rewrite -[Wi]irr_of_socleK -!/(c _ _ _) -!(free_coords (c _ _) _ irr_free).
+rewrite -[Wi]irr_of_socleK -!/(c _ _ _) -!(coord_sum_free (c _ _) _ irr_free).
 rewrite -!eq_sum_chi_irr -!cfRepr_standard.
 by rewrite -(cfRepr_sim rsim1) -(cfRepr_sim rsim2) eq_repr12.
 Qed.
@@ -737,7 +737,7 @@ Proof. by apply: (iffP eqP) => [/cfRepr_inj | /cfRepr_sim]. Qed.
 
 Lemma irr_ReprP xi :
   reflect (exists2 rG : representation algC G,
-             mx_irreducible rG & xi = cfRepr rG)
+            mx_irreducible rG & xi = cfRepr rG)
           (xi \in irr G).
 Proof.
 apply: (iffP (irrP xi)) => [[i ->] | [[n rG] irr_rG ->]].
@@ -776,7 +776,7 @@ Section IsChar.
 Variable gT : finGroupType.
 
 Definition is_char (G : {set gT}) (phi : 'CF(G)) :=
-  forallb i, isNatC (coord (irr G) phi i).
+  forallb i, isNatC (coord (irr G) i phi).
 Arguments Scope is_char [group_scope cfun_scope].
 
 Variable G : {group gT}.
@@ -784,19 +784,19 @@ Implicit Types (phi chi xi : 'CF(G)) (i : Iirr G).
 
 Lemma irr_char i : is_char 'chi_i.
 Proof.
-by apply/forallP=> j; rewrite (tnth_nth 0) free_coordt ?irr_free ?isNatC_nat.
+by apply/forallP=> j; rewrite (tnth_nth 0) coord_free ?irr_free ?isNatC_nat.
 Qed.
 
 Lemma cfun1_char : is_char (1 : 'CF(G)).
 Proof. by rewrite -chi0_1 irr_char. Qed.
 
 Lemma cfun0_char : is_char (0 : 'CF(G)).
-Proof. by apply/forallP=> i; rewrite linear0 ffunE (isNatC_nat 0). Qed.
+Proof. by apply/forallP=> i; rewrite linear0 (isNatC_nat 0). Qed.
 
 Lemma add_char chi xi : is_char chi -> is_char xi -> is_char (chi + xi).
 Proof.
 move=> /forallP Nchi /forallP Nxi; apply/forallP=> i.
-by rewrite linearD ffunE isNatC_add.
+by rewrite linearD isNatC_add /=.
 Qed.
 
 Lemma sum_char J r (P : pred J) (chi : J -> 'CF(G)) :
@@ -818,7 +818,7 @@ apply: (iffP idP)=> [/forallP Nphi | [n ->]]; last first.
   by apply: sum_char => i _; rewrite scaler_nat muln_char // irr_char.
 do [have [a ->] := cfun_irr_sum phi] in Nphi *; exists (getNatC \o a).
 apply: eq_bigr => i _; congr (_ *: _); have:= eqP (Nphi i).
-by rewrite eq_sum_chi_irr free_coords ?irr_free.
+by rewrite eq_sum_chi_irr coord_sum_free ?irr_free.
 Qed.
 Implicit Arguments is_char_cbP [phi].
 
@@ -1274,9 +1274,9 @@ Qed.
 Lemma cfnorm_irr i : '['chi[G]_i] = 1.
 Proof. by rewrite cfdot_irr eqxx. Qed.
 
-Lemma coord_cfdot phi i : coord (irr G) phi i = '[phi, 'chi_i].
+Lemma coord_cfdot phi i : coord (irr G) i phi = '[phi, 'chi_i].
 Proof.
-rewrite {2}(is_span_span (is_span_is_basis (irr_is_basis G)) (memvf phi)).
+rewrite {2}(coord_basis (irr_basis G) (memvf phi)).
 rewrite cfdot_suml (bigD1 i) // cfdotZl /= -tnth_nth cfdot_irr eqxx mulr1.
 rewrite big1 ?addr0 // => j neq_ji; rewrite cfdotZl /= -tnth_nth cfdot_irr.
 by rewrite (negbTE neq_ji) mulr0.
@@ -1284,7 +1284,7 @@ Qed.
 
 Lemma cfun_sum_cfdot phi : phi = \sum_i '[phi, 'chi_i]_G *: 'chi_i.
 Proof.
-rewrite {1}(is_span_span (is_span_is_basis (irr_is_basis G)) (memvf phi)).
+rewrite {1}(coord_basis (irr_basis G) (memvf phi)).
 by apply: eq_bigr => i _; rewrite coord_cfdot -tnth_nth.
 Qed.
 

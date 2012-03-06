@@ -22,7 +22,7 @@ Local Open Scope ring_scope.
 Definition virtual_char (gT : finGroupType) (B : {set gT})
                         (S : seq 'CF(B)) (A : {set gT}) :=
   [pred phi \in span S | [&& phi \in 'CF(B, A), (phi == 0) || free S
-      & coord (in_tuple S) phi \in ffun_on [pred z | isIntC z]]].
+      & forallb i, isIntC (coord (in_tuple S) i phi)]].
 
 Notation "''Z[' S , A ]" := (virtual_char S A)
   (at level 8, format "''Z[' S ,  A ]") : group_scope. 
@@ -39,10 +39,10 @@ Lemma vcharP phi :
                        & phi = chi1 - chi2)
           (phi \in 'Z[irr G]).
 Proof.
-rewrite 2!inE irr_free cfun_onT tvalK /tcast; case: _ / (esym _).
-have /andP[/(span _ =P _)-> _] := irr_is_basis G; rewrite memvf orbT /=.
-apply: (iffP ffun_onP) => [Zphi | [chi1 Nchi1 [chi2 Nchi2 ->]] i]; last first.
-  rewrite linearB !ffunE !coord_cfdot inE /=.
+rewrite inE irr_free cfun_onT tvalK /tcast; case: _ / (esym _).
+have /andP[/(span _ =P _)-> _] := irr_basis G; rewrite memvf orbT /=.
+apply: (iffP forallP) => [Zphi | [chi1 Nchi1 [chi2 Nchi2 ->]] i]; last first.
+  rewrite linearB /= !coord_cfdot.
   by rewrite isIntC_add ?isIntC_opp // isIntCE cfdot_char_irr_Nat.
 pose Nphi i := isNatC '[phi, 'chi_i].
 rewrite [phi]cfun_sum_cfdot (bigID Nphi) /= -[rh in _ + rh]opprK -sumrN.
@@ -50,7 +50,7 @@ set chi1 := \sum_(i | _) _; set chi2 := \sum_(i | _) _; exists chi1.
   by apply: sum_char => i /scale_char-> //; exact: irr_char.
 exists chi2 => //; apply: sum_char => i /negbTE notNphi_i.
 rewrite -scaleNr scale_char ?irr_char //.
-by have:= Zphi i; rewrite coord_cfdot inE /= isIntCE [isNatC _]notNphi_i.
+by have:= Zphi i; rewrite coord_cfdot /= isIntCE [isNatC _]notNphi_i.
 Qed.
 
 Lemma char_vchar chi : is_char chi -> chi \in 'Z[irr G].
@@ -102,8 +102,8 @@ Lemma mem_vchar_on S A phi :
 Proof.
 move=> freeS Aphi Sphi; rewrite inE /= freeS orbT Aphi memv_span //=.
 have lt_phi_S: (index phi S < size S)%N by rewrite index_mem.
-apply/ffun_onP=> i; rewrite inE /=.
-by rewrite -(nth_index 0 Sphi) (free_coordt (Ordinal _)) ?isIntC_nat.
+apply/forallP=> i.
+by rewrite -(nth_index 0 Sphi) (coord_free (Ordinal _)) ?isIntC_nat.
 Qed.
 
 (* A special lemma is needed because trivial fails to use the cfun_onT Hint. *) 
@@ -117,23 +117,23 @@ Proof.
 case/and4P=> Sphi _; case: eqP => [-> _| _ freeS] Zphi.
   exists (fun _ => 0) => [a | ]; first exact: (isIntC_nat 0).
   by rewrite ?big1 // => a; rewrite scale0r.
-exists (fun a => oapp (coord (in_tuple S) phi) 0 (insub (index a S))) => [a|].
-  by case: insubP => [i|]; rewrite [isIntC _](isIntC_nat 0, ffun_onP Zphi).
+exists (fun a => oapp ((coord (in_tuple S))^~ phi) 0 (insub (index a S))).
+  by move=> a; case: insubP => [i|] /= _; rewrite (isIntC_nat 0, forallP Zphi).
 rewrite big_tnth {1}[phi](@coord_span _ _ _ (in_tuple S)) //.
-by apply: eq_bigr => i _; rewrite (tnth_nth 0) index_uniq ?uniq_free // valK.
+by apply: eq_bigr => i _; rewrite (tnth_nth 0) index_uniq ?free_uniq // valK.
 Qed.
 
 Lemma irr_orthonormal : orthonormal (irr G).
 Proof.
-apply/orthonormalP; split; first exact: uniq_free (irr_free G).
+apply/orthonormalP; split; first exact: free_uniq (irr_free G).
 move=> _ _ /irrP[i ->] /irrP[j ->].
 by rewrite cfdot_irr (inj_eq (@chi_inj _ G)).
 Qed.
 
 Lemma coord_vchar_Int m (S : m.-tuple _) A phi i : 
-  phi \in 'Z[S, A] -> isIntC (coord S phi i).
+  phi \in 'Z[S, A] -> isIntC (coord S i phi).
 Proof.
-by case/and4P=> _ _ _ /ffun_onP; rewrite tvalK; case: _ / (esym _); exact.
+by case/and4P=> _ _ _ /forallP; rewrite tvalK; case: _ / (esym _); exact.
 Qed.
 
 Lemma cfdot_vchar_irr_Int i phi : phi \in 'Z[irr G] -> isIntC '[phi, 'chi_i].
@@ -159,14 +159,13 @@ Qed.
 
 Lemma cfun0_vchar S A : 0 \in 'Z[S, A].
 Proof.
-rewrite !inE eqxx !mem0v /= linear0.
-by apply/ffun_onP=> i; rewrite ffunE !inE (isIntC_nat 0).
+by rewrite !inE eqxx !mem0v; apply/forallP=> i; rewrite linear0 (isIntC_nat 0).
 Qed.
 
 Lemma opp_vchar S A phi : (- phi \in 'Z[S, A]) = (phi \in 'Z[S, A]).
 Proof.
-rewrite !inE oppr_eq0 !memvN linearN; congr [&& _, _, _ & _].
-by apply: eq_forallb => i; rewrite !inE ffunE isIntC_opp.
+rewrite !inE oppr_eq0 !memvN /=; congr [&& _, _, _ & _].
+by apply: eq_forallb => i; rewrite linearN isIntC_opp.
 Qed.
 
 Lemma add_vchar S A phi psi :
@@ -174,8 +173,7 @@ Lemma add_vchar S A phi psi :
 Proof.
 case/and4P=> Sphi Aphi /predU1P[-> | freeS] Zphi; first by rewrite add0r.
 case/and4P=> Spsi Apsi _ Zpsi; rewrite !inE freeS orbT !memvD //=.
-apply/ffun_onP=> i; rewrite linearD ffunE !inE.
-by rewrite !isIntC_add // [isIntC _](ffun_onP Zphi, ffun_onP Zpsi). 
+by apply/forallP=> i; rewrite linearD isIntC_add ?(forallP Zphi, forallP Zpsi). 
 Qed.
 
 Lemma sub_vchar S A phi psi : 
@@ -258,7 +256,7 @@ Variables (M : {group gT}) (S : seq 'CF(G)) (nu : 'CF(G) -> 'CF(M)).
 Hypotheses (Inu : {in 'Z[S] &, isometry nu}) (oSS : pairwise_orthogonal S).
 
 Let freeS := orthogonal_free oSS.
-Let uniqS : uniq S := uniq_free freeS.
+Let uniqS : uniq S := free_uniq freeS.
 Let Z_S : {subset S <= 'Z[S]}. Proof. by move=> phi; exact: mem_vchar. Qed.
 Let notS0 : 0 \notin S. Proof. by case/andP: oSS. Qed.
 Let dotSS := proj2 (pairwise_orthogonalP oSS).
@@ -396,7 +394,7 @@ suffices def_xi: xi = (-1) ^+ b i *: 'chi_i.
   by case: (b i) def_xi Sxi => // ->; rewrite scale1r.
 move: Sxi; rewrite [xi]cfun_sum_cfdot (bigD1 i) //.
 rewrite big1 //= ?addr0 => [|j ne_ji]; last first.
-  apply/eqP; rewrite scalev_eq0 -normC_eq0 -[_ == 0](expf_eq0 _ 2) normCK.
+  apply/eqP; rewrite scaler_eq0 -normC_eq0 -[_ == 0](expf_eq0 _ 2) normCK.
   by rewrite xi_i'_0 ?eqxx.
 have:= norm_xi_i; rewrite (isIntC_conj (cfdot_vchar_irr_Int _ _)) //.
 rewrite -subr_eq0 subr_sqr_1 mulf_eq0 subr_eq0 addr_eq0 /b scaler_sign.

@@ -776,13 +776,12 @@ by rewrite cfdotZl cfdot_acTIirr // -xpair_eqE -def_ij ne_kl_ij mulr0.
 Qed.
 
 (* This is Peterfalvi (3.4). *)
-Lemma acTIirr_base_is_basis : is_basis 'CF(W,V) acTIirr_base.
+Lemma acTIirr_base_basis : basis_of 'CF(W,V) acTIirr_base.
 Proof.
-rewrite /is_basis acTIirr_base_free andbT /is_span -dimv_leqif_eq.
-  by rewrite (eqnP acTIirr_base_free) size_tuple cardsX !cardsC1 
-             dim_cyclicTIcfun.
-rewrite -span_subsetl; apply/allP=> _ /imageP[[i j] _ ->].
-by exact: memc_acTIirr.
+rewrite /basis_of acTIirr_base_free andbT -dimv_leqif_eq.
+  rewrite (eqnP acTIirr_base_free) size_tuple cardsX !cardsC1.
+  by rewrite dim_cyclicTIcfun.
+by apply/span_subvP=> _ /imageP[[i j] _ ->]; apply: memc_acTIirr.
 Qed.
 
 Lemma card_dirr_const_beta_diff i j i' j' :
@@ -2328,10 +2327,9 @@ rewrite /extIrrf; case: pickP=> [/= f /and3P [Ho H1 /allP /= HI]|].
   - rewrite /extIrrf (bigD1 (0 : Iirr W)) // (eqP H1) /= dchi1.
     rewrite -![1]chi0_1 cfdot_irr eqxx scale1r chi0_1 big1 ?addr0 // => i Hi.
     by rewrite cfdot_irr eq_sym (negPf Hi) scale0r.
-  rewrite /extIrrf.
-  rewrite linear_sum /=.
-  set l :=  [image _ | _ <- _]; set c := coord _ _; set n := #|_|.
-  pose FF i := \sum_(i0 < n) '[ c i0 *: l`_i0, 'chi_i] *: dchi (f i).
+  rewrite /extIrrf linear_sum /=.
+  set l :=  [image _ | _ <- _]; set c := coord _; set n := #|_|.
+  pose FF i := \sum_(j < n) '[ c j a *: l`_j, 'chi_i] *: dchi (f i).
   rewrite (eq_bigr FF)=> [| i _]; last first.
     by rewrite cfdot_suml scaler_suml; apply: eq_bigr=> j _.
   rewrite exchange_big /=; apply: eq_bigr=> i _.
@@ -2349,7 +2347,7 @@ move/(_ tt)=> /idP []; apply/and3P; split.
     move: (cfdot_dcTIirr (p u).1 (p u).2 (p v).1 (p v).2).
     rewrite {1}HH; rewrite cfdot_dcTIirr !eqxx.
     move: (inv_dprod_IirrK W1xW2 u) (inv_dprod_IirrK W1xW2 v).
-    rewrite /p; case:  (inv_dprod_Iirr _ _)=> /= i1 j1 <-.
+    rewrite /p; case: (inv_dprod_Iirr _ _)=> /= i1 j1 <-.
     case:  (inv_dprod_Iirr _ _)=> /= i2 j2 <-.
     case: (_ =P _)=> [->| _ /eqP]; last by rewrite -(eqN_eqC 1 0).
     by case: (_ =P _)=> [-> //| _ /eqP]; rewrite andbF -(eqN_eqC 1 0).
@@ -2361,9 +2359,9 @@ move/(_ tt)=> /idP []; apply/and3P; split.
 - by rewrite ffunE /p inv_dprod_Iirr0 /= d00 //.
 apply/allP=> /= u Hu.
 have: u \in 'CF(W,V) by apply: memv_span.
-move/(is_span_span (is_span_is_basis acTIirr_base_is_basis))->; apply/eqP.
-set t := image_tuple _ _; set c := coord t u.
-pose FF i :=  \sum_i0 (c i0 *: (('[t`_i0, 'chi_i] *: dchi (tt i)))).
+move/(coord_basis acTIirr_base_basis)->; apply/eqP.
+set t := image_tuple _ _; set c := coord t.
+pose FF i :=  \sum_j (c j u *: (('[t`_j, 'chi_i] *: dchi (tt i)))).
 rewrite (eq_bigr FF)=> [|i1 _]; last first.
   rewrite cfdot_suml scaler_suml; apply: eq_bigr=> i2 _.
   by rewrite cfdotZl !scalerA.
@@ -2393,13 +2391,13 @@ Lemma cyclicTIsigma_restrict a : {in V, sigma a =1 a}.
 Proof.
 have F1 i j : '[sigma ('chi_i), sigma ('chi_j)] = (i == j)%:R.
   by case: cyclicTIisometry=> ->; rewrite ? irr_vchar // cfdot_irr.
-case: (equiv_restrict_compl_ortho _ _ acTIirr_base_is_basis F1)
+case: (equiv_restrict_compl_ortho _ _ acTIirr_base_basis F1)
      => [||j|Er1 Er2 v Hv] //.
 - by case: tiW=> [[]].
 - by apply: norm_cyclicTIset.
 - set l := image_tuple _ _.
   have Hj: l`_j \in 'CF(W,V).
-    apply: (memv_is_basis acTIirr_base_is_basis).
+    apply: (basis_mem acTIirr_base_basis).
     by apply: mem_nth; rewrite size_image.
   rewrite -cyclicTIsigma_ind // [l`_j]cfun_sum_cfdot linear_sum.
   by apply: eq_bigr=> i _ //; rewrite -cfun_sum_cfdot linearZ.
@@ -2412,13 +2410,13 @@ Lemma cyclicTIsigma_orthogonal z :
 Proof.
 have F1 i j : '[sigma ('chi_i), sigma ('chi_j)] = (i == j)%:R.
   by case: cyclicTIisometry=> ->; rewrite ? irr_vchar // cfdot_irr.
-case: (equiv_restrict_compl_ortho _ _ acTIirr_base_is_basis F1)
+case: (equiv_restrict_compl_ortho _ _ acTIirr_base_basis F1)
      => [||j|Er1 Er2 Ho] //.
 - by case: tiW=> [[]].
 - by apply: norm_cyclicTIset.
 - set l := image_tuple _ _.
   have Hj: l`_j \in 'CF(W,V).
-    apply: (memv_is_basis acTIirr_base_is_basis).
+    apply: (basis_mem acTIirr_base_basis).
     by apply: mem_nth; rewrite size_image.
   rewrite -cyclicTIsigma_ind // [l`_j]cfun_sum_cfdot linear_sum.
   by apply: eq_bigr=> i _ //; rewrite -cfun_sum_cfdot linearZ.

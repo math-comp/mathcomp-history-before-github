@@ -181,7 +181,7 @@ move=> notA1 A_S phi; rewrite vcharD1E (vchar_split _ A).
 apply/andb_id2l=> ZSphi; apply/idP/idP=> [phi10 | /cfun_on0-> //].
 rewrite -(setU1K notA1) cfun_onD1 {}phi10 andbT.
 have{phi ZSphi} [c -> _] := free_span seqInd_free (vchar_span ZSphi).
-by rewrite big_seq memv_suml // => xi /A_S/memvZl.
+by rewrite big_seq memv_suml // => xi /A_S/memvZ.
 Qed.
 
 Lemma dvd_index_seqInd1 phi : phi \in S -> isNatC (phi 1%g / e).
@@ -884,8 +884,8 @@ have{defY leXchi lam Z Zlam oZS1 ub_chi1} defY: Y = a *: t1 xi1.
     by rewrite -(leC_add2l '[X]) nXY cfnormZ int_normCK // leC_add2r.
   rewrite defY cfnormDd; last first.
     rewrite cfdotC (span_orthogonal oZS1) ?rmorph0 ?memv_span1 //.
-    rewrite big_seq memv_sub ?memvZl ?memv_suml ?memv_span ?map_f //.
-    by move=> theta S1theta; rewrite memvZl ?memv_span.
+    rewrite big_seq memvB ?memvZ ?memv_suml ?memv_span ?map_f //.
+    by move=> theta S1theta; rewrite memvZ ?memv_span.
   rewrite -leC_sub cfnorm_sub cfnormZ int_normCK // iso_t1 ?Z_S1 //.
   rewrite -2!addrA (opprD (_ * _)) addNKr cfnormZ int_normCK // posC_opp.
   rewrite cfnorm_sum_orthogonal //; set sum_a := \sum_(xi <- _) _.
@@ -1111,7 +1111,7 @@ have{defX X_S'c} X_S': {in S' chi, X_spec X}.
   rewrite /D defRchi {1}big_seq sub_vchar ?sum_vchar //.
   have{defX} [E sER defX] := defX; pose Ec := filter [predC E] (R chi).
   have eqRchi: perm_eq (R chi) (E ++ Ec).
-    by rewrite -(perm_filterC (mem E)) -(subseq_uniqP _ _) ?uniq_free.
+    by rewrite -(perm_filterC (mem E)) -(subseq_uniqP _ _) ?free_uniq.
   have:= onRchi; rewrite (eq_orthonormal eqRchi) orthonormal_cat.
   case/and3P=> onE _ oEEc.
   rewrite (eq_big_perm _ eqRchi) big_cat /= -defX cfdotDr nX defX !big_seq.
@@ -1141,7 +1141,7 @@ have oXS: pairwise_orthogonal XS.
   rewrite /=; apply/andP; split.
     apply/mapP=> [[xi Sxi /eqP/idPn[]]]; rewrite eq_sym -cfnorm_eq0 X_iso //.
     by rewrite cfnorm_eq0 notS0.
-  rewrite map_inj_in_uniq ?uniq_free // => xi1 xi2 Sx1 Sx2 /= /addrI/eqP.
+  rewrite map_inj_in_uniq ?free_uniq // => xi1 xi2 Sx1 Sx2 /= /addrI/eqP.
   rewrite -addr_eq0 addrC -linearB addrAC opprD addNKr opprK.
   by rewrite -cfnorm_eq0 Itau ?Zd // cfnorm_eq0 subr_eq0 => /eqP.
 have nXS: map cfnorm XS = map cfnorm S.
@@ -1209,7 +1209,7 @@ have o_sumsw_eq a i j1: '[sum_sw a j1, sigma (w_ i j1)] = a i j1.
   by rewrite cfdotZl (cfdot_sigma ddA) i'i1 mulr0.
 have [a Dmuk Da0]: exists2 a, tau1 (mu k) = sum_sw a k + sum_sw a j
   & pred2 0 dk (a 0 k) /\ pred2 0 (- dk) (a 0 j).
-- have uRk: uniq (R (mu k)) by have [_ /orthonormal_free/uniq_free] := Rok _ Sk.
+- have uRk: uniq (R (mu k)) by have [_ /orthonormal_free/free_uniq] := Rok _ Sk.
   have [E sER ->] := Dtau1S _ Sk; rewrite (subseq_uniqP uRk sER).
   pose a i l (alpha := dk *: sigma (w_ i l)) :=
     if alpha \in E then dk else if - alpha \in E then - dk else 0.
@@ -1241,7 +1241,7 @@ have Zzeta1: zeta1 \in 'Z[S, L^#].
   by rewrite sub_vchar ?scale_vchar ?mem_vchar // isIntCE ?natS1.
 have zeta1V0: {in V, zeta1 =1 \0}.
   have /cfun_onP A1zeta1: zeta1 \in 'CF(L, A :|: [1]).
-    rewrite memv_sub ?memvZl ?(cDade_mu_support ddA) //.
+    rewrite memvB ?memvZ ?(cDade_mu_support ddA) //.
     have [_ sSS0 _ _] := uccS.
     have /seqIndP[kz /setIdP[kerH'kz _] Dzeta] := sSS0 _ Szeta.
     rewrite Dzeta (cDade_cfker_cfun_on_ind ddA) //.
@@ -1359,7 +1359,7 @@ have SuSirr j: 'chi_j \in calS -> 'chi_(aut_Iirr u j) \in calS.
   by rewrite aut_IirrE => /sSuS.
 have [j Sxj neq_ij]: exists2 j, 'chi_j \in calS & chi != 'chi_j.
   move: irrS_gt1; rewrite (perm_eqP (perm_to_rem Schi)) /= irr_chi ltnS.
-  rewrite -has_count => /hasP[xj]; rewrite mem_rem_uniq ?uniq_free // !inE.
+  rewrite -has_count => /hasP[xj]; rewrite mem_rem_uniq ?free_uniq // !inE.
   by case/andP=> neq_ji Sxj /irrP[j Dxj]; exists j; rewrite -Dxj // eq_sym.
 have: (tau1 (mu j))^u == tau1 (mu j)^u.
   by rewrite !tau1_tau ?cfAut_vchar ?ZAmu ?Dade_aut.

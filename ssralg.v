@@ -2237,16 +2237,16 @@ Lemma opp_is_scalable : scalable (-%R : U -> U).
 Proof. by move=> a v /=; rewrite scalerN. Qed.
 Canonical opp_linear := AddLinear opp_is_scalable.
 
-Lemma null_fun_is_scalable : scalable (\0 : U -> U).
-Proof. by move=> a v /=; rewrite scaler0. Qed.
-Canonical null_fun_linear := AddLinear null_fun_is_scalable.
-
 Lemma comp_is_scalable : scalable_for s (f \o h).
 Proof. by move=> a v /=; rewrite !linearZ_LR. Qed.
 Canonical comp_linear := AddLinear comp_is_scalable.
 
 Variables (s_law : Scale.law s) (g : {linear U -> V | Scale.op s_law}).
 Let Ds : s =1 Scale.op s_law. Proof. by rewrite Scale.opE. Qed.
+
+Lemma null_fun_is_scalable : scalable_for (Scale.op s_law) (\0 : U -> V).
+Proof. by move=> a v /=; rewrite raddf0. Qed.
+Canonical null_fun_linear := AddLinear null_fun_is_scalable.
 
 Lemma add_fun_is_scalable : scalable_for s (f \+ g).
 Proof. by move=> a u; rewrite /= !linearZ_LR !Ds raddfD. Qed.
@@ -5765,6 +5765,7 @@ Lemma ffunMnE f n x : (f *+ n) x = f x *+ n.
 Proof. by rewrite -[n]card_ord -!sumr_const sum_ffunE. Qed.
 
 End FinFunZmod.
+Canonical exp_zmodType (M : zmodType) n := [zmodType of M ^ n].
 
 Section FinFunRing.
 
@@ -5833,6 +5834,38 @@ Canonical ffun_lmodType :=
   Eval hnf in LmodType R {ffun aT -> rT} ffun_lmodMixin.
 
 End FinFunLmod.
+Canonical exp_lmodType (R : ringType) (M : lmodType R) n :=
+  [lmodType R of M ^ n].
+
+(* This section is a somewhat of a placeholder: we can construct a mixin, but *)
+(* not instances because the current choice interface does not let us define  *)
+(* a canonical instance for pairs. I plan to fix this in the next revision;   *)
+(* this will also provide a cleaner interface for multinomials.               *)
+(*   There should be further instances for rings, etc (the lmodType mixin     *)
+(* construction is in vector, where the isomorphism with row vectors supplies *)
+(* the choiceType structure).                                                 *)
+Section PairZmod.
+
+Variables M N : zmodType.
+
+Definition opp_pair (x : M * N) := (- x.1, - x.2).
+Definition add_pair (x y : M * N) := (x.1 + y.1, x.2 + y.2).
+
+Fact pair_addA : associative add_pair.
+Proof. by move=> x y z; congr (_, _); apply: addrA. Qed.
+
+Fact pair_addC : commutative add_pair.
+Proof. by move=> x y; congr (_, _); apply: addrC. Qed.
+
+Fact pair_add0 : left_id (0, 0) add_pair.
+Proof. by case=> x1 x2; congr (_, _); apply: add0r. Qed.
+
+Fact pair_addN : left_inverse (0, 0) opp_pair add_pair.
+Proof. by move=> x; congr (_, _); apply: addNr. Qed.
+
+Definition pair_zmodMixin := ZmodMixin pair_addA pair_addC pair_add0 pair_addN.
+
+End PairZmod.
 
 (* begin hide *)
 (* Testing subtype hierarchy

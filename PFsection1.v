@@ -151,14 +151,14 @@ Qed.
 
 (* This is Peterfalvi (1.3a). *)
 Lemma equiv_restrict_compl A m (Phi : m.-tuple 'CF(H)) (mu : 'CF(G)) d :
-    H \subset G -> A <| H -> is_basis 'CF(H, A) Phi ->
+    H \subset G -> A <| H -> basis_of 'CF(H, A) Phi ->
   ({in A, mu =1 \sum_i d i *: 'chi_i} <-> 
     (forall j : 'I_m,
         \sum_i '[Phi`_j, 'chi_i] * (d i)^* = '['Ind[G] Phi`_j, mu])).
 Proof.
 move=> sHG nsAH BPhi; have [sAH nAH] := andP nsAH.
 have APhi (i : 'I_m) : Phi`_i \in 'CF(H, A).
-  by apply: (memv_is_basis BPhi _); apply: mem_nth; rewrite size_tuple.
+  by apply: (basis_mem BPhi _); apply: mem_nth; rewrite size_tuple.
 pose D := 'Res[H] mu - \sum_i d i *: 'chi_i.
 transitivity (D \in 'CF(H, H :\: A)).
   split=> [A'D | /cfun_onP A'D x Ax].
@@ -177,10 +177,9 @@ split=> [HH j | HH].
 have{F0} F1 (j : 'I_m) : '[Phi`_j, D]_H = 0.
   by have/eqP := HH j; rewrite F0 => /eqP.
 have: (D \in 'CF(H))%VS by rewrite memvf.
-rewrite -(memc_class_compl nsAH).
-case/memv_addP=> /= f [g [Cf Cg defD]].
+rewrite -(memc_class_compl nsAH) => /memv_addP[f Cf [g Cg defD]].
 have: '[f, f + g] = 0.
-  rewrite -defD (is_span_span (is_span_is_basis BPhi) Cf) cfdot_suml.
+  rewrite -defD (coord_basis BPhi Cf) cfdot_suml.
   by rewrite big1 // => i _; rewrite cfdotZl F1 mulr0.
 rewrite raddfD /= {1}(cfdot_complement Cf Cg) addr0 => /eqP.
 by rewrite cfnorm_eq0 defD => /eqP->; rewrite add0r.
@@ -188,7 +187,7 @@ Qed.
 
 (* This is Peterfalvi (1.3b). *)
 Lemma equiv_restrict_compl_ortho A m  (Phi : m.-tuple 'CF(H)) mu_ :
-    H \subset G -> A <| H -> is_basis 'CF(H, A) Phi -> 
+    H \subset G -> A <| H -> basis_of 'CF(H, A) Phi -> 
      (forall i j, '[mu_ i, mu_ j] = (i == j)%:R) ->
      (forall j : 'I_m, 'Ind[G] Phi`_j = \sum_i '[Phi`_j, 'chi_i] *: mu_ i) ->
    [/\ forall i, {in A, mu_ i =1 'chi_i}
@@ -266,7 +265,7 @@ have chiE i: chi i = Chi`_i by rewrite -tnth_nth.
 have inChi i: chi i \in Chi by exact: mem_tnth.
 have{irrChi} irrChi i: chi i \in irr H by exact: irrChi.
 have eq_chi i j: (chi i == chi j) = (i == j).
-  by rewrite /chi !(tnth_nth 0) nth_uniq ?size_tuple ?uniq_free.
+  by rewrite /chi !(tnth_nth 0) nth_uniq ?size_tuple ?free_uniq.
 have dot_chi i j: '[chi i, chi j] = (i == j)%:R.
   rewrite -eq_chi; have [/irrP[{i}i ->] /irrP[{j}j ->]] := (irrChi i,irrChi j).
   by rewrite cfdot_irr inj_eq //; exact: chi_inj.
@@ -275,7 +274,7 @@ have DF i j : F i j =  F i 0 - F j 0 by rewrite /F opprB addrA subrK.
 have ZF i j: F i j \in 'Z[Chi, L].
   rewrite vchar_split; apply/andP; split.
     by apply: sub_vchar; apply: mem_vchar.
-  by rewrite DF memv_sub // /F !chiE.
+  by rewrite DF memvB // /F !chiE.
 have htau2 i j: i != j -> '[tau (F i j)] = 2%:R.
   rewrite iso_tau // cfnorm_sub -cfdotC !dot_chi !eqxx eq_sym => /negbTE->.
   by rewrite -!natrD subr0.

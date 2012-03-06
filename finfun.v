@@ -3,9 +3,11 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype tuple.
 
 (******************************************************************************)
 (* This file implements a type for functions with a finite domain:            *)
-(*   {ffun aT -> rT} where aT should have a finType structure.                *)
+(*    {ffun aT -> rT} where aT should have a finType structure.               *)
 (* Any eqType, choiceType, countType and finType structures on rT extend to   *)
 (* {ffun aT -> rT} as Leibnitz equality and extensional equalities coincide.  *)
+(*     (T ^ n)%type is notation for {ffun 'I_n -> T}, which is isomorphic     *)
+(*                     ot n.-tuple T.                                         *)
 (*  For f : {ffun aT -> rT}, we define                                        *)
 (*              f x == the image of x under f (f coerces to a CiC function)   *)
 (*         fgraph f == the graph of f, i.e., the #|aT|.-tuple rT of the       *)
@@ -48,6 +50,8 @@ End Def.
 
 Notation "{ 'ffun' fT }" := (finfun_of (Phant fT))
   (at level 0, format "{ 'ffun'  '[hv' fT ']' }") : type_scope.
+Definition finexp_domFinType n := ordinal_finType n.
+Notation "T ^ n" := (@finfun_of (finexp_domFinType n) T (Phant _)) : type_scope.
 
 Notation Local fun_of_fin_def :=
   (fun aT rT f x => tnth (@fgraph aT rT f) (enum_rank x)).
@@ -206,6 +210,7 @@ by move=> x Ax; apply: f_fam; apply/imageP; exists x.
 Qed.
 
 End EqTheory.
+Canonical exp_eqType (T : eqType) n := [eqType of T ^ n].
 
 Implicit Arguments supportP [aT rT y D g].
 Notation pfamily y D F := (pfamily_mem y (mem D) (fun_of_simpl (fmem F))).
@@ -217,6 +222,7 @@ Canonical finfun_choiceType aT rT :=
   Eval hnf in ChoiceType _ (finfun_choiceMixin aT rT).
 Canonical finfun_of_choiceType (aT : finType) (rT : choiceType) :=
   Eval hnf in [choiceType of {ffun aT -> rT}].
+Canonical exp_choiceType (T : choiceType) n := [choiceType of T ^ n].
 
 Definition finfun_countMixin aT (rT : countType) :=
   [countMixin of finfun_type aT rT by <:].
@@ -296,3 +302,5 @@ by rewrite -card_ffun_on; apply: eq_card => f; symmetry; exact/forallP.
 Qed.
 
 End FinTheory.
+Canonical exp_finType (T : finType) n := [finType of T ^ n].
+

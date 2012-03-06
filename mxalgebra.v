@@ -84,8 +84,8 @@ Require Import perm zmodp matrix.
 (*                   top \rank A rows zeroed out).                           *)
 (*   (A :\: B)%MS == a square matrix whose row-space is a complement of the  *)
 (*                   the row-space of (A :&: B)%MS in the row-space of A.    *)
-(*                   We have (A :\: B == A :&: (capmx_gen A B)^C)%MS, with   *)
-(*                   capmx_gen A B a recatangular matrix that generates      *)
+(*                   We have (A :\: B := A :&: (capmx_gen A B)^C)%MS, where  *)
+(*                   capmx_gen A B is a rectangular matrix equivalent to     *)
 (*                   (A :&: B)%MS, i.e., (capmx_gen A B == A :&: B)%MS.      *)
 (*    proj_mx A B == a square matrix that projects (A + B)%MS onto A         *)
 (*                   parellel to B, when (A :&: B)%MS = 0 (A and B must also *)
@@ -133,7 +133,6 @@ Import GRing.Theory.
 Open Local Scope ring_scope.
 
 Reserved Notation "\rank A" (at level 10, A at level 8, format "\rank  A").
-Reserved Notation "A :+: B" (at level 50, left associativity).
 Reserved Notation "A ^C"    (at level 8, format "A ^C").
 
 Notation "''A_' ( m , n )" := 'M_(m, n ^ 2)
@@ -300,6 +299,8 @@ Arguments Scope addsmx
 Prenex Implicits addsmx.
 Local Notation "A + B" := (addsmx A B) : matrix_set_scope.
 Local Notation "\sum_ ( i | P ) B" := (\big[addsmx/0]_(i | P) B%MS)
+  : matrix_set_scope.
+Local Notation "\sum_ ( i <- r | P ) B" := (\big[addsmx/0]_(i <- r | P) B%MS)
   : matrix_set_scope.
 
 (* The set intersection is similarly biased so that the identity matrix is a  *)
@@ -1759,13 +1760,13 @@ Canonical binary_mxsum_expr := ProperMxsumExpr binary_mxsum_proof.
 End Binary.
 
 Section Nary.
-Variables (P : pred I) (n : nat) (S_ : I -> mxsum_expr n n).
+Context J (r : seq J) (P : pred J) n (S_ : J -> mxsum_expr n n).
 Fact nary_mxsum_proof :
-  mxsum_spec (\sum_(i | P i) unwrap (S_ i))
-             (\sum_(i | P i) unwrap (mxsum_rank (S_ i))).
+  mxsum_spec (\sum_(j <- r | P j) unwrap (S_ j))
+             (\sum_(j <- r | P j) unwrap (mxsum_rank (S_ j))).
 Proof.
-elim/big_rec2: _ => [|i]; last by case: (S_ i); right.
-by rewrite -(mxrank0 n n); left.
+elim/big_rec2: _ => [|j]; first by rewrite -(mxrank0 n n); left.
+by case: (S_ j); right.
 Qed.
 Canonical nary_mxsum_expr := ProperMxsumExpr nary_mxsum_proof.
 End Nary.
