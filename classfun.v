@@ -148,7 +148,7 @@ Definition Cfun := locked (fun key : nat => Classfun).
 Canonical cfun_subType := Eval hnf in [subType for cfun_val by classfun_rect].
 Definition cfun_eqMixin := Eval hnf in [eqMixin of classfun by <:].
 Canonical cfun_eqType := Eval hnf in EqType classfun cfun_eqMixin.
-Canonical cfun_choiceMixin := Eval hnf in [choiceMixin of classfun by <:].
+Definition cfun_choiceMixin := Eval hnf in [choiceMixin of classfun by <:].
 Canonical cfun_choiceType := Eval hnf in ChoiceType classfun cfun_choiceMixin.
 
 Definition fun_of_cfun phi := cfun_val phi : gT -> algC.

@@ -1911,44 +1911,19 @@ Canonical regular_vectType := VectType R R^o regular_vectMixin.
 
 End RegularVectType.
 
-(* Simple Product of two vectTypes. *)
-(* This section is a somewhat of a placeholder -- see PairZmodType in ssralg. *)
+(* External direct product of two vectTypes. *)
 Section ProdVector.
 
 Variables (R : ringType) (vT1 vT2 : vectType R).
 
-Let rv (u : vT1 * vT2) := row_mx (v2r u.1) (v2r u.2).
-Let pv w := (r2v (lsubmx w) : vT1, r2v (rsubmx w) : vT2).
-Let pvK : cancel pv rv. Proof. by move=> w; rewrite /rv !r2vK hsubmxK. Qed.
-Let rvK : cancel rv pv.
-Proof. by case=> u1 u2; rewrite /pv row_mxKl row_mxKr !v2rK. Qed.
-
-Definition vpair_choiceType := ChoiceType (vT1 * vT2) (CanChoiceMixin rvK).
-Canonical vpair_zmodType :=
-  [zmodType of vT1 * vT2 for ZmodType vpair_choiceType (pair_zmodMixin _ _)].
-
-Definition scale_pair a (w : vT1 * vT2) : vT1 * vT2 := (a *: w.1, a *: w.2).
-
-Fact pair_scaleA a b u : scale_pair a (scale_pair b u) = scale_pair (a * b) u.
-Proof. by congr (_, _); apply: scalerA. Qed.
-
-Fact pair_scale1 u : scale_pair 1 u = u.
-Proof. by case: u => u1 u2; congr (_, _); apply: scale1r. Qed.
-
-Fact pair_scaleDr : right_distributive scale_pair +%R.
-Proof. by move=> a u v; congr (_, _); apply: scalerDr. Qed.
-
-Fact pair_scaleDl u : {morph scale_pair^~ u: a b / a + b}.
-Proof. by move=> a b; congr (_, _); apply: scalerDl. Qed.
-
-Definition vpair_lmodMixin :=
-  LmodMixin pair_scaleA pair_scale1 pair_scaleDr pair_scaleDl.
-Canonical vpair_lmodType := LmodType R (vT1 * vT2) vpair_lmodMixin.
-
 Fact pair_vect_iso : Vector.axiom (Vector.dim vT1 + Vector.dim vT2) (vT1 * vT2).
 Proof.
-have pv_lin: linear pv by move=> a u v; congr (_ , _); rewrite /= !linearP.
-by exists rv; [apply: (@can2_linear _ _ _ (Linear pv_lin)) | exists pv].
+pose p2r (u : vT1 * vT2) := row_mx (v2r u.1) (v2r u.2).
+pose r2p w := (r2v (lsubmx w) : vT1, r2v (rsubmx w) : vT2).
+have r2pK : cancel r2p p2r by move=> w; rewrite /p2r !r2vK hsubmxK.
+have p2rK : cancel p2r r2p by case=> u v; rewrite /r2p row_mxKl row_mxKr !v2rK.
+have r2p_lin: linear r2p by move=> a u v; congr (_ , _); rewrite /= !linearP.
+by exists p2r; [apply: (@can2_linear _ _ _ (Linear r2p_lin)) | exists r2p].
 Qed.
 Definition pair_vectMixin := VectMixin pair_vect_iso.
 Canonical pair_vectType := VectType R (vT1 * vT2) pair_vectMixin.
@@ -1963,9 +1938,9 @@ Variable (I : finType) (R : ringType) (vT : vectType R).
 (* Type unification with exist is again a problem in this proof. *)
 Fact ffun_vect_iso : Vector.axiom (#|I| * Vector.dim vT) {ffun I -> vT}.
 Proof.
-hnf=> /=; exists (fun f : {ffun I -> vT} =>
-  mxvec (\matrix_i v2r (f (enum_val i)))) => [k f g|].
-  rewrite -linearP; congr (mxvec _); apply/matrixP=> i j.
+pose fr (f : {ffun I -> vT}) := mxvec (\matrix_(i < #|I|) v2r (f (enum_val i))).
+exists fr => /= [k f g|].
+  rewrite /fr -linearP; congr (mxvec _); apply/matrixP=> i j.
   by rewrite !mxE /= !ffunE linearP !mxE.
 exists (fun r => [ffun i => r2v (row (enum_rank i) (vec_mx r)) : vT]) => [g|r].
   by apply/ffunP=> i; rewrite ffunE mxvecK rowK v2rK enum_rankK.

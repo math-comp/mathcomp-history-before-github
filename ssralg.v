@@ -5837,19 +5837,13 @@ End FinFunLmod.
 Canonical exp_lmodType (R : ringType) (M : lmodType R) n :=
   [lmodType R of M ^ n].
 
-(* This section is a somewhat of a placeholder: we can construct a mixin, but *)
-(* not instances because the current choice interface does not let us define  *)
-(* a canonical instance for pairs. I plan to fix this in the next revision;   *)
-(* this will also provide a cleaner interface for multinomials.               *)
-(*   There should be further instances for rings, etc (the lmodType mixin     *)
-(* construction is in vector, where the isomorphism with row vectors supplies *)
-(* the choiceType structure).                                                 *)
+(* External direct product. *)
 Section PairZmod.
 
-Variables M N : zmodType.
+Variables M1 M2 : zmodType.
 
-Definition opp_pair (x : M * N) := (- x.1, - x.2).
-Definition add_pair (x y : M * N) := (x.1 + y.1, x.2 + y.2).
+Definition opp_pair (x : M1 * M2) := (- x.1, - x.2).
+Definition add_pair (x y : M1 * M2) := (x.1 + y.1, x.2 + y.2).
 
 Fact pair_addA : associative add_pair.
 Proof. by move=> x y z; congr (_, _); apply: addrA. Qed.
@@ -5864,8 +5858,137 @@ Fact pair_addN : left_inverse (0, 0) opp_pair add_pair.
 Proof. by move=> x; congr (_, _); apply: addNr. Qed.
 
 Definition pair_zmodMixin := ZmodMixin pair_addA pair_addC pair_add0 pair_addN.
+Canonical pair_zmodType := Eval hnf in ZmodType (M1 * M2) pair_zmodMixin.
 
 End PairZmod.
+
+Section PairRing.
+
+Variables R1 R2 : ringType.
+
+Definition mul_pair (x y : R1 * R2) := (x.1 * y.1, x.2 * y.2).
+
+Fact pair_mulA : associative mul_pair.
+Proof. by move=> x y z; congr (_, _); apply: mulrA. Qed.
+
+Fact pair_mul1l : left_id (1, 1) mul_pair.
+Proof. by case=> x1 x2; congr (_, _); apply: mul1r. Qed.
+
+Fact pair_mul1r : right_id (1, 1) mul_pair.
+Proof. by case=> x1 x2; congr (_, _); apply: mulr1. Qed.
+
+Fact pair_mulDl : left_distributive mul_pair +%R.
+Proof. by move=> x y z; congr (_, _); apply: mulrDl. Qed.
+
+Fact pair_mulDr : right_distributive mul_pair +%R.
+Proof. by move=> x y z; congr (_, _); apply: mulrDr. Qed.
+
+Fact pair_one_neq0 : (1, 1) != 0 :> R1 * R2.
+Proof. by rewrite xpair_eqE oner_eq0. Qed.
+
+Definition pair_ringMixin :=
+  RingMixin pair_mulA pair_mul1l pair_mul1r pair_mulDl pair_mulDr pair_one_neq0.
+Canonical pair_ringType := Eval hnf in RingType (R1 * R2) pair_ringMixin.
+
+End PairRing.
+
+Section PairComRing.
+
+Variables R1 R2 : comRingType.
+
+Fact pair_mulC : commutative (@mul_pair R1 R2).
+Proof. by move=> x y; congr (_, _); apply: mulrC. Qed.
+
+Canonical pair_comRingType := Eval hnf in ComRingType (R1 * R2) pair_mulC.
+
+End PairComRing.
+
+Section PairLmod.
+
+Variables (R : ringType) (V1 V2 : lmodType R).
+
+Definition scale_pair a (v : V1 * V2) : V1 * V2 := (a *: v.1, a *: v.2).
+
+Fact pair_scaleA a b u : scale_pair a (scale_pair b u) = scale_pair (a * b) u.
+Proof. by congr (_, _); apply: scalerA. Qed.
+
+Fact pair_scale1 u : scale_pair 1 u = u.
+Proof. by case: u => u1 u2; congr (_, _); apply: scale1r. Qed.
+
+Fact pair_scaleDr : right_distributive scale_pair +%R.
+Proof. by move=> a u v; congr (_, _); apply: scalerDr. Qed.
+
+Fact pair_scaleDl u : {morph scale_pair^~ u: a b / a + b}.
+Proof. by move=> a b; congr (_, _); apply: scalerDl. Qed.
+
+Definition pair_lmodMixin :=
+  LmodMixin pair_scaleA pair_scale1 pair_scaleDr pair_scaleDl.
+Canonical pair_lmodType := Eval hnf in LmodType R (V1 * V2) pair_lmodMixin.
+
+End PairLmod.
+
+Section PairLalg.
+
+Variables (R : ringType) (A1 A2 : lalgType R).
+
+Fact pair_scaleAl a (u v : A1 * A2) : a *: (u * v) = (a *: u) * v.
+Proof. by congr (_, _); apply: scalerAl. Qed.
+Canonical pair_lalgType :=  Eval hnf in LalgType R (A1 * A2) pair_scaleAl.
+
+End PairLalg.
+
+Section PairAlg.
+
+Variables (R : comRingType) (A1 A2 : algType R).
+
+Fact pair_scaleAr a (u v : A1 * A2) : a *: (u * v) = u * (a *: v).
+Proof. by congr (_, _); apply: scalerAr. Qed.
+Canonical pair_algType :=  Eval hnf in AlgType R (A1 * A2) pair_scaleAr.
+
+End PairAlg.
+
+Section PairUnitRing.
+
+Variables R1 R2 : unitRingType.
+
+Definition pair_unitr :=
+  [qualify a x : R1 * R2 | (x.1 \is a GRing.unit) && (x.2 \is a GRing.unit)].
+Definition pair_invr x :=
+  if x \is a pair_unitr then (x.1^-1, x.2^-1) else x.
+
+Lemma pair_mulVl : {in pair_unitr, left_inverse 1 pair_invr *%R}.
+Proof.
+rewrite /pair_invr=> x; case: ifP => // /andP[Ux1 Ux2] _.
+by congr (_, _); apply: mulVr.
+Qed.
+
+Lemma pair_mulVr : {in pair_unitr, right_inverse 1 pair_invr *%R}.
+Proof.
+rewrite /pair_invr=> x; case: ifP => // /andP[Ux1 Ux2] _.
+by congr (_, _); apply: mulrV.
+Qed.
+
+Lemma pair_unitP x y : y * x = 1 /\ x * y = 1 -> x \is a pair_unitr.
+Proof.
+case=> [[y1x y2x] [x1y x2y]]; apply/andP.
+by split; apply/unitrP; [exists y.1 | exists y.2].
+Qed.
+
+Lemma pair_invr_out : {in [predC pair_unitr], pair_invr =1 id}.
+Proof. by rewrite /pair_invr => x /negPf/= ->. Qed.
+
+Definition pair_unitRingMixin :=
+  UnitRingMixin pair_mulVl pair_mulVr pair_unitP pair_invr_out.
+Canonical pair_unitRingType :=
+  Eval hnf in UnitRingType (R1 * R2) pair_unitRingMixin.
+
+End PairUnitRing.
+
+Canonical pair_comUnitRingType (R1 R2 : comUnitRingType) :=
+  Eval hnf in [comUnitRingType of R1 * R2].
+
+Canonical pair_unitAlgType (R : comUnitRingType) (A1 A2 : unitAlgType R) :=
+  Eval hnf in [unitAlgType R of A1 * A2].
 
 (* begin hide *)
 (* Testing subtype hierarchy

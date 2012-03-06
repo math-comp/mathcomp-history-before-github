@@ -945,7 +945,7 @@ Qed.
 
 Canonical alg_seq_poly_eqMixin := PcanEqMixin code_alg_seq_polyK.
 Canonical alg_seq_poly_eqType := EqType alg_seq_poly alg_seq_poly_eqMixin.
-Canonical alg_seq_poly_choiceMixin := PcanChoiceMixin code_alg_seq_polyK.
+Definition alg_seq_poly_choiceMixin := PcanChoiceMixin code_alg_seq_polyK.
 Canonical alg_seq_poly_ChoiceType :=
   ChoiceType alg_seq_poly alg_seq_poly_choiceMixin.
 
