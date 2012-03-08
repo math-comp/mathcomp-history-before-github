@@ -325,6 +325,7 @@ Canonical FracField.frac_unitRingType.
 Canonical FracField.frac_comUnitRingType.
 Canonical FracField.frac_idomainType.
 Canonical FracField.frac_fieldType.
+Canonical FracField.to_frac_pi_morph.
 Canonical frac_of_quotType := Eval hnf in [quotType of {fraction R}].
 Canonical frac_of_eqType := Eval hnf  in [eqType of {fraction R}].
 Canonical frac_of_choiceType := Eval hnf in [choiceType of {fraction R}].
@@ -342,6 +343,8 @@ Reserved Notation "{ 'polyfrac' T }" (at level 0, format "{ 'polyfrac'  T }").
 
 Section FracFieldTheory.
 
+Import FracField.
+
 Variable R : idomainType.
 
 Lemma Ratio_numden (x : {ratio R}) : Ratio \n_x \d_x = x.
@@ -353,6 +356,44 @@ Proof. exact: FracField.Ratio_numden. Qed.
 (* Lemma ratioP x : ratio_spec x \n_x \d_x (Ratio \n_x \d_x). *)
 (* Proof. by constructor; rewrite ?Ratio_numden. Qed. *)
 
+Local Notation to_frac := (@FracField.to_frac R).
+Local Notation "x %:F" := (to_frac x).
+
+Lemma to_frac_is_additive: additive to_frac.
+Proof.
+move=> p q /=; unlock to_frac.
+rewrite -[X in _ = _ + X]pi_opp -[X in _ = X]pi_add.
+by rewrite /addf /oppf /= !numden_Ratio ?(oner_neq0, mul1r, mulr1).
+Qed.
+
+Canonical to_frac_additive := Additive to_frac_is_additive.
+
+Lemma to_frac_is_multiplicative: multiplicative to_frac.
+Proof.
+split=> [p q|//]; unlock to_frac; rewrite -[X in _ = X]pi_mul.
+by rewrite /mulf /= !numden_Ratio ?(oner_neq0, mul1r, mulr1).
+Qed.
+
+Canonical to_frac_rmorphism := AddRMorphism to_frac_is_multiplicative.
+
+Lemma tofrac0 : 0%:F = 0. Proof. exact: rmorph0. Qed.
+Lemma tofracN : {morph to_frac: x / - x}. Proof. exact: rmorphN. Qed.
+Lemma tofracD : {morph to_frac: x y / x + y}. Proof. exact: rmorphD. Qed.
+Lemma tofracB : {morph to_frac: x y / x - y}. Proof. exact: rmorphB. Qed.
+Lemma tofracMn n : {morph to_frac: x / x *+ n}. Proof. exact: rmorphMn. Qed.
+Lemma tofracMNn n : {morph to_frac: x / x *- n}. Proof. exact: rmorphMNn. Qed.
+Lemma tofrac1 : 1%:F = 1. Proof. exact: rmorph1. Qed.
+Lemma tofracM : {morph to_frac: x y  / x * y}. Proof. exact: rmorphM. Qed.
+Lemma tofracX n : {morph to_frac: x / x ^+ n}. Proof. exact: rmorphX. Qed.
+
+Lemma tofrac_eq (p q : R): (p%:F == q%:F) = (p == q).
+Proof.
+apply/eqP/eqP=> [|->//]; unlock to_frac=> /eqmodP /eqP /=.
+by rewrite !numden_Ratio ?(oner_eq0, mul1r, mulr1).
+Qed.
+
+Lemma tofrac_eq0 (p : R): (p%:F == 0) = (p == 0).
+Proof. by rewrite tofrac_eq. Qed.
 End FracFieldTheory.
 
 (* Section PolyFracDef. *)
