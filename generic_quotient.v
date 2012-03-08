@@ -143,13 +143,16 @@ Section Morphism.
 
 Variables T U : Type.
 Variable (qT : quotType T).
+Variable (qU : quotType U).
 
 Variable (f : T -> T) (g : T -> T -> T) (p : T -> U) (r : T -> T -> U).
 Variable (fq : qT -> qT) (gq : qT -> qT -> qT) (pq : qT -> U) (rq : qT -> qT -> U).
+Variable (h : T -> U) (hq : qT -> qU).
 Hypothesis pi_f : {morph \pi : x / f x >-> fq x}.
 Hypothesis pi_g : {morph \pi : x y / g x y >-> gq x y}.
 Hypothesis pi_p : {mono \pi : x / p x >-> pq x}.
 Hypothesis pi_r : {mono \pi : x y / r x y >-> rq x y}.
+Hypothesis pi_h : forall (x : T), \pi_qU (h x) = hq (\pi_qT x).
 Variables (a b : T) (x : pi_morph (\pi_qT a)) (y : pi_morph (\pi_qT b)).
 
 (* Internal Lemmmas : do not use directly *)
@@ -157,14 +160,15 @@ Lemma pi_morph1 : \pi (f a) = fq (pi_op x). Proof. by rewrite !piE. Qed.
 Lemma pi_morph2 : \pi (g a b) = gq (pi_op x) (pi_op y). Proof. by rewrite !piE. Qed.
 Lemma pi_mono1 : p a = pq (pi_op x). Proof. by rewrite !piE. Qed.
 Lemma pi_mono2 : r a b = rq (pi_op x) (pi_op y). Proof. by rewrite !piE. Qed.
-
+Lemma pi_morph11 : \pi (h a) = hq (pi_op x). Proof. by rewrite !piE. Qed.
 End Morphism.
 
 Implicit Arguments pi_morph1 [T qT f fq].
 Implicit Arguments pi_morph2 [T qT g gq].
 Implicit Arguments pi_mono1 [T U qT p pq].
 Implicit Arguments pi_mono2 [T U qT r rq].
-Prenex Implicits pi_morph1 pi_morph2 pi_mono1 pi_mono2.
+Implicit Arguments pi_morph11 [T U qT qU h hq].
+Prenex Implicits pi_morph1 pi_morph2 pi_mono1 pi_mono2 pi_morph11.
 
 
 Notation mk_embed qT e := (locked (fun x => \pi_qT (e x) : qT)).
@@ -174,6 +178,7 @@ Notation mk_mop2 qT g :=
   (locked (fun x y : qT => \pi_qT (g (repr x) (repr y)) : qT)).
 Notation mk_mfun1 qT f := (locked (fun x : qT => f (repr x))).
 Notation mk_mfun2 qT g := (locked (fun x y : qT => g (repr x) (repr y))).
+Notation mk_mop11 qT qU f := (locked (fun x : qT => \pi_qU (f (repr x)) : qU)).
 
 Notation PiConst a := (@PiMorph _ _ a (lock _)).
 Notation PiMorph1 pi_f :=
@@ -186,6 +191,8 @@ Notation PiMono1 pi_p :=
 Notation PiMono2 pi_r :=
   (fun a b (x : pi_morph (\pi a)) (y : pi_morph (\pi b))
     => PiMorph (pi_mono2 pi_r a b x y)).
+Notation PiMorph11 pi_f :=
+  (fun a (x : pi_morph (\pi a)) => PiMorph (pi_morph11 pi_f a x)).
 
 Lemma eq_lock T T' e : e =1 (@locked (T -> T') (fun x : T => e x)).
 Proof. by rewrite -lock. Qed.
