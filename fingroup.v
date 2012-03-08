@@ -162,8 +162,6 @@ Reserved Notation "''C' [ x ]"  (at level 8, format "''C' [ x ]").
 Reserved Notation "''C_' G [ x ]" (at level 8, G at level 2,
   format "''C_' G [ x ]").
 Reserved Notation "''C_' ( G ) [ x ]" (at level 8, only parsing).
-Reserved Notation "<< A >>"  (at level 0, format "<< A >>").
-Reserved Notation "<[ x ] >"  (at level 0, format "<[ x ] >").
 Reserved Notation "#[ x ]" (at level 0, format "#[ x ]").
 Reserved Notation "A <*> B" (at level 40, left associativity).
 Reserved Notation "[ ~: A1 , A2 , .. , An ]" (at level 0,

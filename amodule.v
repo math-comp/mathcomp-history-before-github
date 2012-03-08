@@ -136,9 +136,9 @@ Proof. by move=> *; rewrite size_allpairs !size_tuple. Qed.
 Definition eprodv vs ws := span (Tuple (size_eprodv vs ws)).
 Local Notation "A :* B" := (eprodv A B) : vspace_scope.
 
-Lemma memv_eprod : forall vs ws a b , a \in vs -> b \in ws -> a :* b \in (vs :* ws)%VS.
+Lemma memv_eprod vs ws a b : a \in vs -> b \in ws -> a :* b \in (vs :* ws)%VS.
 Proof. 
-move=> vs ws a b Ha Hb.
+move=> Ha Hb.
 rewrite (coord_vbasis Ha) (coord_vbasis Hb).
 rewrite linear_sum /=; apply: memv_suml => j _.
 rewrite -rmul_sum; apply: memv_suml => i _ /=.
@@ -147,7 +147,8 @@ apply: memv_span; apply/allpairsP; exists ((vbasis vs)`_i, (vbasis ws)`_j)=> //.
 by rewrite !mem_nth //= size_tuple.
 Qed.
 
-Lemma eprodvP : forall vs1 ws vs2,   reflect (forall a b, a \in vs1 -> b \in ws -> a :* b \in vs2)
+Lemma eprodvP : forall vs1 ws vs2, 
+  reflect (forall a b, a \in vs1 -> b \in ws -> a :* b \in vs2)
           (vs1 :* ws <= vs2)%VS.
 Proof.
 move=> vs1 ws vs2; apply: (iffP idP).
@@ -162,42 +163,42 @@ move/(mem_nth 0); case/allpairsP=> [[x1 x2] [I1 I2 ->]].
 by apply Ha; apply: vbasis_mem.
 Qed.
 
-Lemma eprod0v: left_zero (0%:VS) eprodv.
+Lemma eprod0v: left_zero 0%VS eprodv.
 Proof.
 move=> vs; apply subv_anti; rewrite sub0v andbT.
-apply/eprodvP=> a b; case/injvP=> k1 -> Hb.
+apply/eprodvP=> a b; case/vlineP=> k1 -> Hb.
 by rewrite scaler0 rmul0 mem0v.
 Qed.
 
-Lemma eprodv0 : forall vs, (vs :* 0%:VS = 0%:VS)%VS.
+Lemma eprodv0 : forall vs, (vs :* 0 = 0)%VS.
 Proof.
 move=> vs; apply subv_anti; rewrite sub0v andbT.
-apply/eprodvP=> a b Ha; case/injvP=> k1 ->.
+apply/eprodvP=> a b Ha; case/vlineP=> k1 ->.
 by rewrite scaler0 linear0 mem0v.
 Qed.
 
-Lemma eprodv1 : forall vs, (vs :* 1%:VS = vs)%VS.
+Lemma eprodv1 : forall vs, (vs :* 1 = vs)%VS.
 Proof.
 case: (vbasis1 A)=> k [Hk He] /=.
 move=> vs; apply subv_anti; apply/andP; split.
-  apply/eprodvP=> a b Ha; case/injvP=> k1 ->.
+  apply/eprodvP=> a b Ha; case/vlineP=> k1 ->.
   by rewrite linearZ /= rmul1 memvZ.
 apply/subvP=> v Hv.
 rewrite (coord_vbasis Hv); apply: memv_suml=> [] [i Hi] _ /=.  
 apply: memvZ.
-rewrite -[_`_i]rmul1; apply: memv_eprod; last by apply: memv_inj.
+rewrite -[_`_i]rmul1; apply: memv_eprod; last by apply: memv_line.
 by apply: vbasis_mem; apply: mem_nth; rewrite size_tuple.
 Qed.
 
-Lemma eprodv_monol : forall ws vs1 vs2, (vs1 <= vs2 -> vs1 :* ws <= vs2 :* ws)%VS.
+Lemma eprodv_monol ws vs1 vs2 : (vs1 <= vs2 -> vs1 :* ws <= vs2 :* ws)%VS.
 Proof.
-move=> ws vs1 vs2 Hvs; apply/eprodvP=> a b Ha Hb; apply: memv_eprod=> //.
+move=> Hvs; apply/eprodvP=> a b Ha Hb; apply: memv_eprod=> //.
 by apply: subv_trans Hvs.
 Qed.
 
-Lemma eprodv_monor : forall vs ws1 ws2, (ws1 <= ws2 -> vs :* ws1 <= vs :* ws2)%VS.
+Lemma eprodv_monor vs ws1 ws2 : (ws1 <= ws2 -> vs :* ws1 <= vs :* ws2)%VS.
 Proof.
-move=> vs ws1 ws2 Hvs; apply/eprodvP=> a b Ha Hb; apply: memv_eprod=> //.
+move=> Hvs; apply/eprodvP=> a b Ha Hb; apply: memv_eprod=> //.
 by apply: subv_trans Hvs.
 Qed.
 
@@ -212,9 +213,9 @@ apply: memvD.
 move: v2 Hv2; apply/subvP; apply: eprodv_monol; exact: addvSr.
 Qed.
 
-Lemma eprodv_sumr : forall vs ws1 ws2, (vs :* (ws1 + ws2) = vs :* ws1 + vs :* ws2)%VS.
+Lemma eprodv_sumr vs ws1 ws2 : (vs :* (ws1 + ws2) = vs :* ws1 + vs :* ws2)%VS.
 Proof.
-move=> vs ws1 ws2; apply subv_anti; apply/andP; split.
+apply subv_anti; apply/andP; split.
   apply/eprodvP=> a b Ha;case/memv_addP=> v1 Hv1 [v2 Hv2 ->].
   by rewrite linearD; apply: memv_add; apply: memv_eprod.
 apply/subvP=> v;  case/memv_addP=> v1 Hv1 [v2 Hv2 ->].
@@ -226,7 +227,7 @@ Qed.
 Definition modv (vs: {vspace M}) (al: {algebra A}) :=
    (vs :* al  <= vs)%VS.
  
-Lemma mod0v : forall al, modv 0%:VS al.
+Lemma mod0v : forall al, modv 0 al.
 Proof. by move=> al; rewrite /modv eprod0v subv_refl. Qed.
 
 Lemma modv1 : forall vs, modv vs (aspace1 A).
@@ -243,7 +244,7 @@ by apply: memv_eprod.
 Qed.
 
 Lemma modvD : forall ms1 ms2 al , 
-  modv ms1 al -> modv ms2 al -> modv (ms1 + ms2)%VS al.
+  modv ms1 al -> modv ms2 al -> modv (ms1 + ms2) al.
 Proof.
 move=> ms1 ms2 al Hm1 Hm2; rewrite /modv eprodv_addl.
 apply: (subv_trans (addvS Hm1 (subv_refl _))).
@@ -251,7 +252,7 @@ exact: (addvS (subv_refl _) Hm2).
 Qed.
 
 Lemma modv_cap : forall ms1 ms2 al , 
-  modv ms1 al -> modv ms2 al -> modv (ms1:&: ms2)%VS al.
+  modv ms1 al -> modv ms2 al -> modv (ms1:&: ms2) al.
 Proof.
 move=> ms1 ms2 al Hm1 Hm2.
 by rewrite /modv subv_cap; apply/andP; split;
@@ -260,18 +261,18 @@ by rewrite /modv subv_cap; apply/andP; split;
 Qed.
 
 Definition irreducible ms al := 
-  [/\ modv ms al, ms != 0%:VS &
-    forall ms1, modv ms1 al -> (ms1 <= ms)%VS -> ms != 0%:VS -> ms1 = ms].
+  [/\ modv ms al, ms != 0%VS &
+    forall ms1, modv ms1 al -> (ms1 <= ms)%VS -> ms != 0%VS -> ms1 = ms].
 
 Definition completely_reducible ms al := 
   forall ms1, modv ms1 al -> (ms1 <= ms)%VS -> 
     exists ms2, 
-    [/\ modv ms2 al, (ms1 :&: ms2 = 0%:VS)%VS & (ms1 + ms2)%VS = ms].
+    [/\ modv ms2 al, (ms1 :&: ms2 = 0)%VS & (ms1 + ms2)%VS = ms].
 
-Lemma completely_reducible0 : forall al, completely_reducible 0%:VS al.
+Lemma completely_reducible0 : forall al, completely_reducible 0 al.
 Proof.
 move=> al ms1 Hms1; rewrite subv0; move/eqP->.
-by exists 0%:VS; split; [exact: mod0v | exact: cap0v | exact: add0v].
+by exists 0%VS; split; [exact: mod0v | exact: cap0v | exact: add0v].
 Qed.
 
 End AModuleDef.
@@ -329,7 +330,7 @@ by move/modfP: Hm->; try apply: vbasis_mem.
 Qed.
 
 Lemma modv_ker : forall f ms al, 
-  modv ms al -> modf f ms al -> modv (ms :&: lker f)%VS al.
+  modv ms al -> modf f ms al -> modv (ms :&: lker f) al.
 Proof.
 move=> f ms al Hmd Hmf; apply/eprodvP=> x v.
 rewrite memv_cap !memv_ker.
@@ -339,7 +340,7 @@ by move/modfP: Hmf=> ->; rewrite // (eqP Hf) rmul0 eqxx.
 Qed.
 
 Lemma modv_img : forall f ms al, 
-  modv ms al -> modf f ms al -> modv (f @: ms)%VS al.
+  modv ms al -> modf f ms al -> modv (f @: ms) al.
 Proof.
 move=> f ms al Hmv Hmf; apply/eprodvP=> v x.
 case/memv_imgP=> u Hu -> Hx.
@@ -370,7 +371,7 @@ pose f: 'End(M) :=  #|G|%:R^-1 *:
 have Cf: forall v x, x \in FG -> f (v :* x) = f v :* x.
   move=> v x; case/memv_sumP=> g_ Hg_ ->.
   rewrite !linear_sum; apply: eq_big => //= i Hi.
-  move: (Hg_ _ Hi); case/injvP=> k ->.
+  move: (Hg_ _ Hi); case/vlineP=> k ->.
   rewrite !linearZ /=; congr (_ *: _).
   rewrite /f /= !lfunE /= !sum_lfunE rmulZ /=; congr (_ *: _).
   rewrite -rmul_sum (reindex (fun g => (i^-1 * g)%g)); last first.

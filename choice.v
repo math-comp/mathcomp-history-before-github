@@ -169,7 +169,7 @@ Lemma codeK : pcancel encode decode.
 Proof.
 move=> t; rewrite /decode; set fs := (_, _).
 suffices ->: foldr decode_step fs (encode t) = (t :: fs.1, fs.2) by [].
-do [elim t => //={t} n f IHt] in (fs) *; elim: f IHt => //= t f IHf [].
+elim: t => //= n f IHt in (fs) *; elim: f IHt => //= t f IHf [].
 by rewrite rcons_cat foldr_cat => -> /= /IHf[-> -> ->].
 Qed.
 

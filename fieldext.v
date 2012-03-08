@@ -552,13 +552,13 @@ Section FieldExtTheory.
 Variable F0 : fieldType.
 Variable L : fieldExtType F0.
 
-Lemma dim_prodvf : forall (K:{vspace L}) x, x != 0 -> \dim (K * x%:VS) = \dim K.
+Lemma dim_prodvf : forall (K:{vspace L}) x, x != 0 -> \dim (K * <[x]>) = \dim K.
 Proof.
-have (K:{vspace L}) x : x != 0 -> \dim (K * x%:VS) <= \dim K.
-  by move => Hx; rewrite (leq_trans (dim_prodv _ _)) // dim_injv Hx muln1.
+have (K:{vspace L}) x : x != 0 -> \dim (K * <[x]>) <= \dim K.
+  by move => Hx; rewrite (leq_trans (dim_prodv _ _)) // dim_vline Hx muln1.
 move => suff K x Hx.
 apply: anti_leq.
-rewrite suff //= -{1}[K]prodv1 -(mulfV Hx) prodv_inj prodvA suff //.
+rewrite suff //= -{1}[K]prodv1 -(mulfV Hx) prodv_line prodvA suff //.
 by rewrite invr_neq0.
 Qed.
 
@@ -663,14 +663,14 @@ Variable (K : {vspace L}).
 Variable (x : L).
 
 Let P n := (Vector.dim L < n) ||
-           (\dim (\sum_(i < n.+1) (K * (x ^+ i)%:VS))%VS < \dim K * n.+1).
+           (\dim (\sum_(i < n.+1) (K * <[x ^+ i]>)) < \dim K * n.+1).
 
 Let Pholds : exists n, P n.
 Proof. by exists (Vector.dim L).+1; rewrite /P ltnSn. Qed.
 
 Definition elementDegree := (ex_minn Pholds).-1.+1.
 
-Definition Fadjoin := (\sum_(i < elementDegree) (K * (x ^+ i)%:VS))%VS.
+Definition Fadjoin := (\sum_(i < elementDegree) (K * <[x ^+ i]>))%VS.
 
 (* Ideally this definition should use \poly; however we really make use of the
    fact that the index i has an ordinal type. *)
@@ -686,12 +686,11 @@ case: ex_minnP => [[|//]].
 by rewrite /P muln1 big_ord1 expr0 prodv1 !ltnn.
 Qed.
 
-Lemma dim_Fadjoin_subproof n :
-  \sum_(i < n) \dim (K * (x ^+ i)%:VS)%VS <= (\dim K * n)%N.
+Lemma dim_Fadjoin_subproof n : \sum_(i < n) \dim (K * <[x ^+ i]>) <= \dim K * n.
 Proof.
 elim: n => [|n IH]; first by rewrite big_ord0.
 rewrite big_ord_recr /= mulnSr leq_add ?IH // (leq_trans (dim_prodv _ _)) //.
-rewrite dim_injv.
+rewrite dim_vline.
 by case: (x ^+ n != 0); rewrite ?muln0 ?muln1.
 Qed.
 
@@ -718,23 +717,22 @@ apply/directvP => /=.
 by apply: anti_leq; rewrite dimv_leq_sum dim_Fadjoin dim_Fadjoin_subproof.
 Qed.
 
-Lemma prodv_inj_coefK y v : v \in (K * y%:VS)%VS -> v / y \in K.
+Lemma prodv_line_coefK y v : v \in (K * <[y]>)%VS -> v / y \in K.
 Proof.
 move/coord_span ->.
 rewrite mulr_suml memv_suml // => i _.
 rewrite -scalerAl memvZ //.
-have/(mem_nth 0)/allpairsP : (i < size (Tuple (size_prodv K y%:VS))).
+have/(mem_nth 0)/allpairsP : (i < size (Tuple (size_prodv K <[y]>))).
   rewrite size_tuple.
   by case i.
-move => [[c d] [/vbasis_mem Hc /vbasis_mem/injvP [a ->]] ->].
+move => [[c d] [/vbasis_mem Hc /vbasis_mem/vlineP [a ->]] ->].
 rewrite -mulrA -scalerAl.
 case: (eqVneq y 0) => [-> | Hy0].
   by rewrite invr0 mulr0 scaler0 mulr0 mem0v.
 by rewrite mulfV // mulrC -scalerAl mul1r memvZ.
 Qed.
 
-Lemma memv_prodv_inj_coef y v : v \in (K * y%:VS)%VS ->
- v = v / y * y.
+Lemma memv_prodv_line_coef y v : v \in (K * <[y]>)%VS -> v = v / y * y.
 Proof.
 case: (eqVneq y 0) => [-> | Hy0]; last by rewrite mulfVK.
 rewrite prodv0 memv0 => /eqP ->.
@@ -747,7 +745,7 @@ apply/(all_nthP 0) => i _ /=.
 rewrite /poly_for_Fadjoin coef_sum memv_suml // => j _.
 rewrite coefZ coefXn.
 case: (i == j);last by rewrite mulr0 mem0v.
-rewrite mulr1 prodv_inj_coefK //.
+rewrite mulr1 prodv_line_coefK //.
 by apply: memv_sum_pi.
 Qed.
 
@@ -765,7 +763,7 @@ Proof.
 move => Hv.
 rewrite /poly_for_Fadjoin horner_sum -{2}(sumv_pi_sum (erefl Fadjoin) Hv).
 apply: eq_bigr => i _.
-by rewrite !hornerE hornerXn -memv_prodv_inj_coef // memv_sum_pi.
+by rewrite !hornerE hornerXn -memv_prodv_line_coef // memv_sum_pi.
 Qed.
 
 Lemma poly_Fadjoin_small v :
@@ -779,7 +777,7 @@ apply: (iffP idP) => [Hp|[p [/(all_nthP 0)/= pK sizep vp]]].
 apply/memv_sumP.
 exists (fun i : 'I_elementDegree => p`_i * x ^+ i) => [i _|]; last first.
   by rewrite vp (horner_coef_wide _ sizep).
-rewrite memv_prod ?memv_inj //.
+rewrite memv_prod ?memv_line //.
 by have [/pK// | /(nth_default 0)->] := ltnP i (size p); exact: mem0v.
 Qed.
 
@@ -810,7 +808,7 @@ move => HxED.
 rewrite /root !hornerE_comm horner_sum hornerXn.
 rewrite -{1}(sumv_pi_sum (erefl Fadjoin) HxED) subr_eq0.
 apply/eqP/eq_bigr => i _.
-by rewrite !hornerE_comm hornerXn -memv_prodv_inj_coef ?memv_sum_pi.
+by rewrite !hornerE_comm hornerXn -memv_prodv_line_coef ?memv_sum_pi.
 Qed.
 
 End FadjoinDefinitions.
@@ -834,11 +832,11 @@ apply: contra (oner_neq0 L).
 rewrite -memv0.
 move/(subv_trans (sub1v K)).
 move/subvP; apply.
-by apply: memv_inj.
+by apply: memv_line.
 Qed.
 
 Lemma capv_KxED_subproof :
-  (x == 0) = (K * (x ^+ elementDegree K x)%:VS :&: Fadjoin K x == 0)%VS.
+  (x == 0) = (K * <[x ^+ elementDegree K x]> :&: Fadjoin K x == 0)%VS.
 Proof.
 apply/eqP/eqP => [->|/eqP H]; first by rewrite exprS mul0r prodv0 cap0v.
 apply/eqP; move: H.
@@ -883,7 +881,7 @@ case (eqVneq x 0).
 move => nzx p q; move/polyOverP => pK; move/polyOverP => qK szp szq.
 rewrite (horner_coef_wide _ szp) (horner_coef_wide _ szq).
 move/eqP; move: (direct_Fadjoin K x); move/directv_sum_unique => sumUniq.
-rewrite sumUniq {sumUniq}; try by move=> i; rewrite memv_prod ?memv_inj ?pK ?qK.
+rewrite sumUniq {sumUniq}; try by move=> i; rewrite memv_prod ?memv_line ?pK ?qK.
 move/forall_inP => Hpq; apply/polyP => i.
 apply: (mulIf (expf_neq0 i nzx)).
 case: (leqP (elementDegree K x) i) => Hi; last first.
@@ -918,11 +916,11 @@ have Hxi : x ^+ ((elementDegree K x).-1) != 0.
 rewrite -(can_eq (mulfK Hxi)) mul0r -memv0.
 move/(_ ord_max isT) <-.
 rewrite memv_cap lead_coefE sizep.
-apply/andP; split; first by rewrite memv_prod ?memv_inj ?pK.
+apply/andP; split; first by rewrite memv_prod ?memv_line ?pK.
 rewrite [nth 0]lock /= (bigID (fun j => j == ord_max)) -lock in sump.
 rewrite big_pred1_eq addr_eq0 exprSr mulrA mulfK // in sump.
 rewrite {sump}(eqP sump) memvN memv_sumr // => i _.
-by rewrite exprSr mulrA (mulfK Hx) memv_prod ?memv_inj ?pK.
+by rewrite exprSr mulrA (mulfK Hx) memv_prod ?memv_line ?pK.
 Qed.
 
 Lemma subsetFadjoinE_subproof: forall E : {algebra L},
@@ -946,7 +944,7 @@ move => _.
 rewrite !big_ord_recl.
 apply: (subv_trans _ (addvSr _ _)).
 apply: (subv_trans _ (addvSl _ _)).
-by rewrite -{1}[x%:VS]prod1v prodv_monol // sub1v.
+by rewrite -{1}[<[x]>%VS]prod1v prodv_monol // sub1v.
 Qed.
 
 End Fadjoin.

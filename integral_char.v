@@ -391,8 +391,8 @@ Section MoreAlgebra.
 
 Variables (K : fieldType) (L : algFType K) (A : {algebra L}).
 
-Lemma dim_aunit : \dim (aunit A)%:VS = 1%N.
-Proof. by apply/eqP; rewrite dim_injv aoner_neq0. Qed.
+Lemma dim_aunit : \dim <[aunit A]> = 1%N.
+Proof. by apply/eqP; rewrite dim_vline aoner_neq0. Qed.
 
 (* This property is in fact explicitly included in the definitional           *)
 (* property valP A of A; however the definition of has_aunit is such an       *)
@@ -400,10 +400,10 @@ Proof. by apply/eqP; rewrite dim_injv aoner_neq0. Qed.
 Lemma adim_gt0 : (0 < \dim A)%N.
 Proof. by rewrite -dim_aunit dimvS //; exact: memv_unit. Qed.
 
-Lemma not_asubv0 : ~~ (A <= 0%:VS)%VS.
+Lemma not_asubv0 : ~~ (A <= 0)%VS.
 Proof. by rewrite subv0 -dimv_eq0 -lt0n adim_gt0. Qed.
 
-Lemma adim1P : reflect (A = (aunit A)%:VS :> {vspace L}) (\dim A == 1%N).
+Lemma adim1P : reflect (A = <[aunit A]>%VS :> {vspace L}) (\dim A == 1%N).
 Proof.
 rewrite eqn_leq adim_gt0 -(memv_unit A) andbC -dim_aunit -eqEdim eq_sym.
 exact: eqP.
@@ -415,14 +415,14 @@ apply/eqP; rewrite eqEsubv asubv; apply/subvP=> x Ax.
 by rewrite -(aunitl Ax) memv_prod // memv_unit.
 Qed.
 
-Local Notation "U :* x" := (prodv U x%:VS) : vspace_scope.
+Local Notation "U :* x" := (prodv U <[x]>) : vspace_scope.
 
 Lemma cosetv_def U (x : L) : (U :* x = amulr x @: U)%VS.
 Proof.
 apply/eqP; rewrite eqEsubv; apply/andP; split.
-  apply/prodvP=> y kx Fy /injvP[a ->]; rewrite -scalerAr memvZ //.
+  apply/prodvP=> y kx Fy /vlineP[a ->]; rewrite -scalerAr memvZ //.
   by apply/memv_imgP; exists y; rewrite ?lfunE.
-by apply/subvP=> _ /memv_imgP[y Fy ->]; rewrite lfunE memv_prod ?memv_inj.
+by apply/subvP=> _ /memv_imgP[y Fy ->]; rewrite lfunE memv_prod ?memv_line.
 Qed.
  
 Lemma memv_cosetP {U : {vspace L}} {x y : L} :
@@ -439,7 +439,7 @@ Canonical prodv_monoid := Monoid.Law (@prodvA K L) (@prod1v K L) (@prodv1 K L).
 End MoreAlgebra.
 
 Prenex Implicits Fadjoin.
-Notation "A :* x" := (prodv A x%:VS) : vspace_scope.
+Notation "A :* x" := (prodv A <[x]>) : vspace_scope.
 
 Notation "\dim_ E V" := (divn (\dim V) (\dim E))
   (at level 10, E at level 2, V at level 8, format "\dim_ E  V") : nat_scope.
@@ -606,7 +606,7 @@ have [bL [_ nz_bL _] [defL dxSbL]] := field_ideal_semisimple (subvf (F * _)%VS).
 set n := (_ %/ _)%N in bL nz_bL defL dxSbL.
 set SbL := (\sum_i _)%VS in defL dxSbL.
 have in_bL i (a : K_F) : val a * (bL`_i : L_F) \in (F :* bL`_i)%VS.
-  by rewrite memv_prod ?(valP a) ?memv_inj.
+  by rewrite memv_prod ?(valP a) ?memv_line.
 have nz_bLi (i : 'I_n): bL`_i != 0 by rewrite (memPn nz_bL) ?memt_nth.
 pose r2v (v : 'rV[K_F]_n) : L_F := \sum_i v 0 i *: (bL`_i : L_F).
 have r2v_lin: linear r2v.
@@ -631,7 +631,7 @@ Canonical fieldOver_fieldExtType := FieldExtType K_F L_F.
 
 Implicit Types (V : {vspace L}) (E : {algebra L}).
 
-Definition vspaceOver V := span (vbasis V : seq L_F).
+Definition vspaceOver V := <<vbasis V : seq L_F>>%VS.
 
 Lemma mem_vspaceOver V : vspaceOver V =i (F * V)%VS.
 Proof.
@@ -670,7 +670,7 @@ apply/andP; split.
   by rewrite memv_span ?memt_nth.
 apply/freeP=> a /(directv_sum_independent dx_b) a_0 i.
 have{a_0}: a i *: (b`_i : L_F) == 0.
-  by rewrite a_0 {i}// => i _; rewrite memv_prod ?memv_inj ?subvsP.
+  by rewrite a_0 {i}// => i _; rewrite memv_prod ?memv_line ?subvsP.
 by rewrite scaler_eq0=> /predU1P[] // /idPn[]; rewrite (memPn nz_b) ?memt_nth.
 Qed.
 
@@ -680,7 +680,7 @@ Proof. by rewrite -sup_field_ideal; exact: dim_vspaceOver. Qed.
 Lemma vspaceOverP V_F :
   {V | [/\ V_F = vspaceOver V, (F * V <= V)%VS & V_F =i V]}.
 Proof.
-pose V := (F * span (vbasis V_F : seq L))%VS.
+pose V := (F * <<vbasis V_F : seq L>>)%VS.
 have idV: (F * V)%VS = V by rewrite prodvA prodv_id.
 suffices defVF: V_F = vspaceOver V.
   by exists V; split=> [||u]; rewrite ?defVF ?mem_vspaceOver ?idV.
@@ -789,7 +789,7 @@ Proof. by rewrite [a *: _]scalerA -scalerAl mul1r. Qed.
 
 Let baseVspace_basis V : seq L0 :=
   [image tnth bF ij.2 *: tnth (vbasis V) ij.1 | ij <- predT].
-Definition baseVspace V := span (baseVspace_basis V).
+Definition baseVspace V := <<baseVspace_basis V>>%VS.
 
 Lemma mem_baseVspace V : baseVspace V =i V.
 Proof.
@@ -834,7 +834,7 @@ Proof. by unlock F1; rewrite dim_baseVspace dimv1 mul1n. Qed.
 
 Lemma baseVspace_ideal V (V0 := baseVspace V) : (F1 * V0 <= V0)%VS.
 Proof.
-apply/prodvP=> u v; unlock F1; rewrite !mem_baseVspace => /injvP[x ->] Vv.
+apply/prodvP=> u v; unlock F1; rewrite !mem_baseVspace => /vlineP[x ->] Vv.
 by rewrite -(@scalerAl F L) mul1r; exact: memvZ.
 Qed.
 
@@ -850,14 +850,14 @@ Qed.
 Lemma ideal_baseVspace J0 :
   (F1 * J0 <= J0)%VS -> {V | J0 = baseVspace V & J0 =i V}.
 Proof.
-move=> J0ideal; pose V := span (vbasis (vspaceOver F1 J0) : seq L).
+move=> J0ideal; pose V := <<vbasis (vspaceOver F1 J0) : seq L>>%VS.
 suffices memJ0: J0 =i V.
   by exists V => //; apply/vspaceP=> v; rewrite mem_baseVspace memJ0.
 move=> v; rewrite -{1}(field_ideal_eq J0ideal) -(mem_vspaceOver J0) {}/V.
 move: (vspaceOver F1 J0) => J.
 apply/idP/idP=> [/coord_vbasis|/coord_span]->; apply/memv_suml=> i _.
   rewrite /(_ *: _) /= /fieldOver_scale; case: (coord _ i _) => /= x.
-  unlock {1}F1; rewrite mem_baseVspace => /injvP[{x}x ->].
+  unlock {1}F1; rewrite mem_baseVspace => /vlineP[{x}x ->].
   by rewrite -(@scalerAl F L) mul1r memvZ ?memv_span ?memt_nth.
 move: (coord _ i _) => x; rewrite -[_`_i]mul1r scalerAl.
 apply: (@memvZ _ _ J (Subvs _)); last by rewrite vbasis_mem ?memt_nth.
@@ -1238,7 +1238,7 @@ have Ep := polyOverSv s1E F0p.
 have splitEp := splittingFieldForS s1E splitFp.
 have [autE _ DautE] := enum_kHom Ep splitEp; rewrite /= -/E in autE DautE.
 rewrite -(size_tuple autE) uniq_leq_size // => f autLf; rewrite -DautE.
-have hom_f: kHom 1%:VS F f by rewrite DautL.
+have hom_f: kHom 1 F f by rewrite DautL.
 apply/kHomP; split=> [_ /poly_Fadjoin[t [F0t ->]]|]; last by case/kHomP: hom_f.
 have /LAut_lrmorph fM := hom_f; rewrite -[f _](horner_map (RMorphism fM)).
 by rewrite (kHomFixedPoly hom_f) // -coef_map fixed_q.
@@ -1783,7 +1783,7 @@ have [Qxs [QxsC [[|x1 s1] // [<- <-] {x s} _]]] := num_field_exists (x :: s).
 have QxsC_Z a z: QxsC (a *: z) = QtoC a * QxsC z.
   rewrite mulrAC; apply: (canRL (mulfK _)); first by rewrite intr_eq0 denq_eq0.
   by rewrite mulrzr mulrzl -!rmorphMz scalerMzl -mulrzr -numqE scaler_int.
-apply: decP (x1 \in span (in_tuple s1)) _; rewrite /in_Crat_span size_map.
+apply: decP (x1 \in <<in_tuple s1>>%VS) _; rewrite /in_Crat_span size_map.
 apply: (iffP idP) => [/coord_span-> | [a Dx]].
   move: (coord _) => a; exists [ffun i => a i x1]; rewrite rmorph_sum.
   by apply: eq_bigr => i _; rewrite ffunE (nth_map 0).
@@ -1873,19 +1873,19 @@ have ext1 mu0 x: {mu1 | exists y, x = Sinj mu1 y
     rewrite has_aunit1; last by apply/memK; exists 1; rewrite rmorph1.
     apply/prodvP=> _ _ /memK[y1 ->] /memK[y2 ->].
     by apply/memK; exists (y1 * y2); rewrite rmorphM.
-  have ker_in01: lker lin01 == 0%:VS.
+  have ker_in01: lker lin01 == 0%VS.
     by apply/lker0P=> y1 y2; rewrite !lfunE; apply: fmorph_inj.
   pose f := (lin01 \o linfun (Saut mu0) \o lin01^-1)%VF.
   have Df y: f (in01 y) = in01 (Saut mu0 y).
     transitivity (f (lin01 y)); first by rewrite !lfunE.
     by do 4!rewrite lfunE /=; rewrite lker0_lfunK.
   have hom_f: kHom 1 (ASpace algK) f.
-    apply/kHomP; split=> [_ /injvP[a ->] | _ _ /memK[y1 ->] /memK[y2 ->]].
+    apply/kHomP; split=> [_ /vlineP[a ->] | _ _ /memK[y1 ->] /memK[y2 ->]].
       by rewrite -(rmorph1 in01) -linearZ /= Df {1}linearZ /= rmorph1.
     by rewrite -rmorphM !Df !rmorphM.
   pose pr := map_poly (in_alg Qr) p.
   have Qpr: pr \is a polyOver 1%VS.
-    by apply/polyOverP=> i; rewrite coef_map memvZ ?memv_inj.
+    by apply/polyOverP=> i; rewrite coef_map memvZ ?memv_line.
   have splitQr: splittingFieldFor K pr fullv.
     apply: splittingFieldForS (sub1v (ASpace algK)) _; exists rr => //.
     congr (_ %= _): (eqpxx pr); apply: (@map_poly_inj _ _ QrC).
@@ -2176,7 +2176,7 @@ have pzn_zk0: root (map_poly \1%VF (minPoly Q1 zn)) (zn ^+ k).
     have a_ i: (minPoly Q1 zn)`_i \in Q1.
       (* :BUG: v8.4 on the inferance of Q1 ... again *)
       by apply/(@polyOverP _ Q1); exact: minPolyOver.
-    have{a_} a_ i := sig_eqW (injvP _ _ (a_ i)).
+    have{a_} a_ i := sig_eqW (vlineP _ _ (a_ i)).
     exists (\poly_(i < size (minPoly Q1 zn)) sval (a_ i)).
     apply/polyP=> i; rewrite coef_poly coef_map coef_poly /=.
     case: ifP => _; rewrite ?rmorph0 //; case: (a_ i) => a /= ->.
@@ -2395,11 +2395,11 @@ Definition inIntSpan (V : zmodType) m (s : m.-tuple V) v :=
 Lemma dec_Qint_span (V : vectType rat) m (s : m.-tuple V) v :
   decidable (inIntSpan s v).
 Proof.
-have s_s (i : 'I_m): s`_i \in span s by rewrite memv_span ?mem_nth ?size_tuple.
-have s_Zs a: \sum_(i < m) s`_i *~ a i \in span s.
+have s_s (i : 'I_m): s`_i \in <<s>>%VS by rewrite memv_span ?memt_nth.
+have s_Zs a: \sum_(i < m) s`_i *~ a i \in <<s>>%VS.
   by rewrite memv_suml // => i _; rewrite -scaler_int memvZ.
-case s_v: (v \in span s); last by right=> [[a Dv]]; rewrite Dv s_Zs in s_v.
-pose S := \matrix_(i < m, j < _) coord (vbasis (span s)) j s`_i.
+case s_v: (v \in <<s>>%VS); last by right=> [[a Dv]]; rewrite Dv s_Zs in s_v.
+pose S := \matrix_(i < m, j < _) coord (vbasis <<s>>) j s`_i.
 pose r := \rank S; pose k := (m - r)%N; pose Em := erefl m.
 have Dm: (m = k + r)%N by rewrite subnK ?rank_leq_row.
 have [K kerK]: {K : 'M_(k, m) | map_mx ZtoQ K == kermx S}%MS.
@@ -2437,9 +2437,9 @@ have{kerGu} defS: map_mx ZtoQ (rsubmx G'lr) *m T = S.
   rewrite -{1}[G'lr]hsubmxK -[Gud]vsubmxK mulmxA mul_row_col -map_mxM.
   move/(canRL (addKr _))->; rewrite -mulNmx raddfD /= map_mx1 map_mxM /=.
   by rewrite mulmxDl -mulmxA kerGu mulmx0 add0r mul1mx.
-pose vv := \row_j coord (vbasis (span s)) j v.
+pose vv := \row_j coord (vbasis <<s>>) j v.
 have uS: row_full S.
-  apply/row_fullP; exists (\matrix_(i, j) coord s j (vbasis (span s))`_i).
+  apply/row_fullP; exists (\matrix_(i, j) coord s j (vbasis <<s>>)`_i).
   apply/matrixP=> j1 j2; rewrite !mxE.
   rewrite -(coord_free _ _ (basis_free (vbasisP _))).
   rewrite -!tnth_nth (coord_span (vbasis_mem (mem_tnth j1 _))) linear_sum.
@@ -2448,7 +2448,7 @@ have eqST: (S :=: T)%MS by apply/eqmxP; rewrite -{1}defS !submxMl.
 case Zv: (map_mx (fun x => denq x) (vv *m pinvmx T) == const_mx 1).
   pose a := map_mx (fun x => numq x) (vv *m pinvmx T) *m dsubmx Gud.
   left; exists [ffun j => a 0 j].
-  transitivity (\sum_j (map_mx ZtoQ a *m S) 0 j *: (vbasis (span s))`_j).
+  transitivity (\sum_j (map_mx ZtoQ a *m S) 0 j *: (vbasis <<s>>)`_j).
     rewrite {1}(coord_vbasis s_v); apply: eq_bigr => j _; congr (_ *: _).
     have ->: map_mx ZtoQ a = vv *m pinvmx T *m map_mx ZtoQ (dsubmx Gud).
       rewrite map_mxM /=; congr (_ *m _); apply/rowP=> i; rewrite 2!mxE numqE.
@@ -2470,12 +2470,12 @@ Qed.
 Lemma dec_Cint_span (V : vectType algC) m (s : m.-tuple V) v :
   decidable (inIntSpan s v).
 Proof.
-have s_s (i : 'I_m): s`_i \in span s by rewrite memv_span ?mem_nth ?size_tuple.
-have s_Zs a: \sum_(i < m) s`_i *~ a i \in span s.
+have s_s (i : 'I_m): s`_i \in <<s>>%VS by rewrite memv_span ?memt_nth.
+have s_Zs a: \sum_(i < m) s`_i *~ a i \in <<s>>%VS.
   by rewrite memv_suml // => i _; rewrite -scaler_int memvZ.
-case s_v: (v \in span s); last by right=> [[a Dv]]; rewrite Dv s_Zs in s_v.
-pose IzT := {: 'I_m * 'I_(\dim (span s))}; pose Iz := 'I_#|IzT|.
-pose b := vbasis (span s).
+case s_v: (v \in <<s>>%VS); last by right=> [[a Dv]]; rewrite Dv s_Zs in s_v.
+pose IzT := {: 'I_m * 'I_(\dim <<s>>)}; pose Iz := 'I_#|IzT|.
+pose b := vbasis <<s>>.
 pose z_s := [image coord b ij.2 (tnth s ij.1) | ij <- IzT].
 pose rank2 j i: Iz := enum_rank (i, j); pose val21 (p : Iz) := (enum_val p).1.
 pose inQzs w := forallb j, Crat_span z_s (coord b j w).
@@ -3027,7 +3027,7 @@ have Dbeta: beta = \prod_(nu \in Aut nQn fullv 1) sval (gQnC nu) alpha.
   by case: (gQnC nu) => f /= ->; rewrite Da.
 have Zbeta: isIntC beta.
   apply: Cint_rat_algInt; last by rewrite Dbeta rpred_prod.
-  rewrite /beta; have /injvP[/= c ->] := mem_galoisNorm galQn (memvf a).
+  rewrite /beta; have /vlineP[/= c ->] := mem_galoisNorm galQn (memvf a).
   by rewrite alg_num_field fmorph_rat ratr_Crat.
 have [|nz_a] := boolP (alpha == 0).
   by rewrite (can2_eq (divfK _) (mulfK _)) // mul0r => /eqP.

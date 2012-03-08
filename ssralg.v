@@ -4586,6 +4586,13 @@ have [-> | nz_a] := altP (a =P _); first by rewrite scale0r eqxx.
 by rewrite (can2_eq (scalerK nz_a) (scalerKV nz_a)) scaler0.
 Qed.
 
+Lemma rpredZeq S (modS : submodPred S) (kS : keyed_pred modS) a v :
+  (a *: v \in kS) = (a == 0) || (v \in kS).
+Proof.
+have [-> | nz_a] := altP eqP; first by rewrite scale0r rpred0.
+by apply/idP/idP; first rewrite -{2}(scalerK nz_a v); apply: rpredZ.
+Qed.
+
 End ModuleTheory.
 
 Section Predicates.
@@ -5380,6 +5387,7 @@ Definition rpredZ := rpredZ.
 Definition rpredV := rpredV.
 Definition rpred_div := rpred_div.
 Definition rpredXN := rpredXN.
+Definition rpredZeq := rpredZeq.
 Definition rpredMr := rpredMr.
 Definition rpredMl := rpredMl.
 Definition rpred_divr := rpred_divr.

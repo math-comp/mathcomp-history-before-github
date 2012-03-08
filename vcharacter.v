@@ -21,7 +21,7 @@ Local Open Scope ring_scope.
 
 Definition virtual_char (gT : finGroupType) (B : {set gT})
                         (S : seq 'CF(B)) (A : {set gT}) :=
-  [pred phi \in span S | [&& phi \in 'CF(B, A), (phi == 0) || free S
+  [pred phi \in <<S>>%VS | [&& phi \in 'CF(B, A), (phi == 0) || free S
       & forallb i, isIntC (coord (in_tuple S) i phi)]].
 
 Notation "''Z[' S , A ]" := (virtual_char S A)
@@ -40,7 +40,7 @@ Lemma vcharP phi :
           (phi \in 'Z[irr G]).
 Proof.
 rewrite inE irr_free cfun_onT tvalK /tcast; case: _ / (esym _).
-have /andP[/(span _ =P _)-> _] := irr_basis G; rewrite memvf orbT /=.
+have /andP[/(<<_>>%VS =P _)-> _] := irr_basis G; rewrite memvf orbT /=.
 apply: (iffP forallP) => [Zphi | [chi1 Nchi1 [chi2 Nchi2 ->]] i]; last first.
   rewrite linearB /= !coord_cfdot.
   by rewrite isIntC_add ?isIntC_opp // isIntCE cfdot_char_irr_Nat.
@@ -82,7 +82,7 @@ Lemma vcharD1 phi S A :
   (phi \in 'Z[S, A^#]) = (phi \in 'Z[S, A]) && (phi 1%g == 0).
 Proof. by rewrite vchar_split cfun_onD1 andbA -vchar_split. Qed.
 
-Lemma vchar_span S A : {subset 'Z[S, A] <= span S}.
+Lemma vchar_span S A : {subset 'Z[S, A] <= <<S>>%VS}.
 Proof. by move=> phi /andP[]. Qed.
 
 Lemma vcharW S A : {subset 'Z[S, A] <= 'Z[S]}.
@@ -308,7 +308,7 @@ Qed.
 End CfdotPairwiseOrthogonal.
 
 Lemma orthogonal_span S phi :
-    pairwise_orthogonal S -> phi \in span S ->
+    pairwise_orthogonal S -> phi \in <<S>>%VS ->
   {z | z = fun xi => '[phi, xi] / '[xi] & phi = \sum_(xi <- S) z xi *: xi}.
 Proof.
 move=> oSS /free_span[|c -> _]; first exact: orthogonal_free.
@@ -350,7 +350,7 @@ by rewrite cfnorm_orthogonal // (eq_big_seq _ nS1) big_tnth sumr_const card_ord.
 Qed.
 
 Lemma orthonormal_span phi :
-    phi \in span S ->
+    phi \in <<S>>%VS ->
   {z | z = fun xi => '[phi, xi] & phi = \sum_(xi <- S) z xi *: xi}.
 Proof.
 case/orthogonal_span=> // _ -> {2}->; set z := fun _ => _ : algC.

@@ -51,8 +51,8 @@ Require Import finfun path.
 (* - the "\sum" and "\prod" reserved notations are overloaded in ssralg in    *)
 (*   the %R scope, in mxalgebra and vector in the %MS and %VS scopes; "\prod" *)
 (*   is also overloaded in fingroup, the %g and %G scopes.                    *)
-(* - finset defines "\bigcup" and "\bigcap" notations for iterated            *)
-(*   union and intersection.                                                  *)
+(* - we reserve "\bigcup" and "\bigcap" notations for iterated union and      *)
+(*   intersection (of sets, groups, vector spaces, etc).                      *)
 (******************************************************************************)
 (* Tips for using lemmas in this file:                                        *)
 (* to apply a lemma for a specific operator: if no special property is        *)
@@ -253,6 +253,86 @@ Reserved Notation "\prod_ ( i \in A | P ) F"
 Reserved Notation "\prod_ ( i \in A ) F"
   (at level 36, F at level 36, i, A at level 50,
            format "'[' \prod_ ( i  \in  A ) '/  '  F ']'").
+
+Reserved Notation "\bigcup_ i F"
+  (at level 41, F at level 41, i at level 0,
+           format "'[' \bigcup_ i '/  '  F ']'").
+Reserved Notation "\bigcup_ ( <- r | P ) F"
+  (at level 41, F at level 41, r at level 50,
+           format "'[' \bigcup_ ( <-  r  |  P ) '/  '  F ']'").
+Reserved Notation "\bigcup_ ( i <- r | P ) F"
+  (at level 41, F at level 41, i, r at level 50,
+           format "'[' \bigcup_ ( i  <-  r  |  P ) '/  '  F ']'").
+Reserved Notation "\bigcup_ ( i <- r ) F"
+  (at level 41, F at level 41, i, r at level 50,
+           format "'[' \bigcup_ ( i  <-  r ) '/  '  F ']'").
+Reserved Notation "\bigcup_ ( m <= i < n | P ) F"
+  (at level 41, F at level 41, m, i, n at level 50,
+           format "'[' \bigcup_ ( m  <=  i  <  n  |  P ) '/  '  F ']'").
+Reserved Notation "\bigcup_ ( m <= i < n ) F"
+  (at level 41, F at level 41, i, m, n at level 50,
+           format "'[' \bigcup_ ( m  <=  i  <  n ) '/  '  F ']'").
+Reserved Notation "\bigcup_ ( i | P ) F"
+  (at level 41, F at level 41, i at level 50,
+           format "'[' \bigcup_ ( i  |  P ) '/  '  F ']'").
+Reserved Notation "\bigcup_ ( i : t | P ) F"
+  (at level 41, F at level 41, i at level 50,
+           format "'[' \bigcup_ ( i   :  t   |  P ) '/  '  F ']'").
+Reserved Notation "\bigcup_ ( i : t ) F"
+  (at level 41, F at level 41, i at level 50,
+           format "'[' \bigcup_ ( i   :  t ) '/  '  F ']'").
+Reserved Notation "\bigcup_ ( i < n | P ) F"
+  (at level 41, F at level 41, i, n at level 50,
+           format "'[' \bigcup_ ( i  <  n  |  P ) '/  '  F ']'").
+Reserved Notation "\bigcup_ ( i < n ) F"
+  (at level 41, F at level 41, i, n at level 50,
+           format "'[' \bigcup_ ( i  <  n ) '/  '  F ']'").
+Reserved Notation "\bigcup_ ( i \in A | P ) F"
+  (at level 41, F at level 41, i, A at level 50,
+           format "'[' \bigcup_ ( i  \in  A  |  P ) '/  '  F ']'").
+Reserved Notation "\bigcup_ ( i \in A ) F"
+  (at level 41, F at level 41, i, A at level 50,
+           format "'[' \bigcup_ ( i  \in  A ) '/  '  F ']'").
+
+Reserved Notation "\bigcap_ i F"
+  (at level 41, F at level 41, i at level 0,
+           format "'[' \bigcap_ i '/  '  F ']'").
+Reserved Notation "\bigcap_ ( <- r | P ) F"
+  (at level 41, F at level 41, r at level 50,
+           format "'[' \bigcap_ ( <-  r  |  P ) '/  '  F ']'").
+Reserved Notation "\bigcap_ ( i <- r | P ) F"
+  (at level 41, F at level 41, i, r at level 50,
+           format "'[' \bigcap_ ( i  <-  r  |  P )  F ']'").
+Reserved Notation "\bigcap_ ( i <- r ) F"
+  (at level 41, F at level 41, i, r at level 50,
+           format "'[' \bigcap_ ( i  <-  r ) '/  '  F ']'").
+Reserved Notation "\bigcap_ ( m <= i < n | P ) F"
+  (at level 41, F at level 41, m, i, n at level 50,
+           format "'[' \bigcap_ ( m  <=  i  <  n  |  P ) '/  '  F ']'").
+Reserved Notation "\bigcap_ ( m <= i < n ) F"
+  (at level 41, F at level 41, i, m, n at level 50,
+           format "'[' \bigcap_ ( m  <=  i  <  n ) '/  '  F ']'").
+Reserved Notation "\bigcap_ ( i | P ) F"
+  (at level 41, F at level 41, i at level 50,
+           format "'[' \bigcap_ ( i  |  P ) '/  '  F ']'").
+Reserved Notation "\bigcap_ ( i : t | P ) F"
+  (at level 41, F at level 41, i at level 50,
+           format "'[' \bigcap_ ( i   :  t   |  P ) '/  '  F ']'").
+Reserved Notation "\bigcap_ ( i : t ) F"
+  (at level 41, F at level 41, i at level 50,
+           format "'[' \bigcap_ ( i   :  t ) '/  '  F ']'").
+Reserved Notation "\bigcap_ ( i < n | P ) F"
+  (at level 41, F at level 41, i, n at level 50,
+           format "'[' \bigcap_ ( i  <  n  |  P ) '/  '  F ']'").
+Reserved Notation "\bigcap_ ( i < n ) F"
+  (at level 41, F at level 41, i, n at level 50,
+           format "'[' \bigcap_ ( i  <  n ) '/  '  F ']'").
+Reserved Notation "\bigcap_ ( i \in A | P ) F"
+  (at level 41, F at level 41, i, A at level 50,
+           format "'[' \bigcap_ ( i  \in  A  |  P ) '/  '  F ']'").
+Reserved Notation "\bigcap_ ( i \in A ) F"
+  (at level 41, F at level 41, i, A at level 50,
+           format "'[' \bigcap_ ( i  \in  A ) '/  '  F ']'").
 
 Module Monoid.
 

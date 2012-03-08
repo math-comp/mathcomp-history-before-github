@@ -100,7 +100,7 @@ End Exports.
 End AlgFType.
 Export AlgFType.Exports.
 
-Notation "1" := (injv 1) : vspace_scope.
+Notation "1" := (vline 1) : vspace_scope.
 
 Section algFTypeTheory.
 
@@ -127,7 +127,7 @@ Lemma size_prodv (vs1 vs2 : {vspace A}) :
   size (allpairs ( *%R) (vbasis vs1) (vbasis vs2)) == (\dim vs1 * \dim vs2)%N.
 Proof. by rewrite size_allpairs !size_tuple. Qed.
 
-Definition prodv vs1 vs2: {vspace A} := span (Tuple (size_prodv vs1 vs2)).
+Definition prodv vs1 vs2: {vspace A} := <<Tuple (size_prodv vs1 vs2)>>%VS.
 
 Local Notation "A * B" := (prodv A B) : vspace_scope.
 
@@ -157,20 +157,19 @@ move/(mem_nth 0); case/allpairsP=> [[x1 x2] [I1 I2 ->]].
 by apply Ha; apply: vbasis_mem.
 Qed.
 
-Lemma prodv_inj : forall (x y : A), (x * y)%:VS = (x%:VS * y%:VS)%VS.
+Lemma prodv_line (x y : A) : (<[x * y]> = <[x]> * <[y]>)%VS.
 Proof.
-move => x y.
 apply: subv_anti.
 apply/andP; split.
- by apply: memv_prod; rewrite memv_inj.
+ by apply: memv_prod; rewrite memv_line.
 apply/prodvP => a b.
-case/injvP => ca ->.
-case/injvP => cb ->.
-by rewrite -scalerAr -scalerAl !memvZ ?memv_inj.
+case/vlineP => ca ->.
+case/vlineP => cb ->.
+by rewrite -scalerAr -scalerAl !memvZ ?memv_line.
 Qed.
 
 Lemma dimv1: \dim (1%VS : {vspace A}) = 1%N.
-Proof. by rewrite dim_injv oner_neq0. Qed.
+Proof. by rewrite dim_vline oner_neq0. Qed.
 
 Lemma dim_prodv : forall vs1 vs2, \dim (vs1 * vs2) <= \dim vs1 * \dim vs2.
 Proof.
@@ -183,9 +182,9 @@ Proof. by apply/eqP=> HH; move/eqP: dimv1; rewrite HH dimv0=> HH1. Qed.
 
 Lemma vbasis1 : exists k, k != 0 /\ vbasis 1 = [:: k%:A] :> seq A.
 Proof.
-move: (vbasis 1) (@vbasisP K A 1); rewrite dim_injv oner_neq0.
+move: (vbasis 1) (@vbasisP K A 1); rewrite dim_vline oner_neq0.
 case/tupleP=> x X0; rewrite {X0}tuple0 => defX; have Xx := mem_head x nil.
-have /injvP[k def_x] := basis_mem defX Xx.
+have /vlineP[k def_x] := basis_mem defX Xx.
 exists k; split; last by rewrite def_x.
 by have:= basis_not0 defX Xx; rewrite def_x scaler_eq0 oner_eq0 orbF.
 Qed.
@@ -193,14 +192,14 @@ Qed.
 Lemma prod0v: left_zero 0%VS prodv.
 Proof.
 move=> vs; apply subv_anti; rewrite sub0v andbT.
-apply/prodvP=> a b; case/injvP=> k1 -> Hb.
+apply/prodvP=> a b; case/vlineP=> k1 -> Hb.
 by rewrite scaler0 mul0r mem0v.
 Qed.
 
 Lemma prodv0: right_zero 0%VS prodv.
 Proof.
 move=> vs; apply subv_anti; rewrite sub0v andbT.
-apply/prodvP=> a b Ha; case/injvP=> k1 ->.
+apply/prodvP=> a b Ha; case/vlineP=> k1 ->.
 by rewrite scaler0 mulr0 mem0v.
 Qed.
 
@@ -208,11 +207,11 @@ Lemma prod1v: left_id 1%VS prodv.
 Proof.
 case: vbasis1=> k [Hk He] /=.
 move=> vs; apply subv_anti; apply/andP; split.
-  apply/prodvP=> a b; case/injvP=> k1 -> Hb.
+  apply/prodvP=> a b; case/vlineP=> k1 -> Hb.
   by rewrite -scalerAl mul1r memvZ.
 apply/subvP=> v Hv.
 rewrite (coord_vbasis Hv); apply: memv_suml => i _ /=.
-rewrite memvZ // -[_`_i]mul1r memv_prod ?(orbT, memv_inj) //.
+rewrite memvZ // -[_`_i]mul1r memv_prod ?(orbT, memv_line) //.
 by apply: vbasis_mem; apply: mem_nth; rewrite size_tuple.
 Qed.
 
@@ -220,11 +219,11 @@ Lemma prodv1: right_id 1%VS prodv.
 Proof.
 case: vbasis1=> k [Hk He] /=.
 move=> vs; apply subv_anti; apply/andP; split.
-  apply/prodvP=> a b Ha; case/injvP=> k1 ->.
+  apply/prodvP=> a b Ha; case/vlineP=> k1 ->.
   by rewrite -scalerAr mulr1 memvZ.
 apply/subvP=> v Hv; rewrite (coord_vbasis Hv).
 apply: memv_suml => i _ /=.
-rewrite memvZ // -[_`_i]mulr1 memv_prod ?(orbT, memv_inj) //.
+rewrite memvZ // -[_`_i]mulr1 memv_prod ?(orbT, memv_line) //.
 by apply: vbasis_mem; apply: mem_nth; rewrite size_tuple.
 Qed.
 
@@ -410,7 +409,7 @@ Qed.
 Fact aspace1_subproof : has_aunit 1 && (1 * 1 <= 1)%VS.
 Proof. 
 rewrite prod1v subv_refl andbT.
-apply/has_aunitP; exists 1; split; first by exact: memv_inj.
+apply/has_aunitP; exists 1; split; first by exact: memv_line.
   exact: oner_neq0.
 by move=> x; rewrite mul1r mulr1.
 Qed.

@@ -518,7 +518,7 @@ case: ex_minnP.
 case => //.
  by rewrite muln1 big_ord1 expr0 prodv1 !ltnn.
 move => m.
-rewrite dim_injv oner_neq0 mul1n big_ord_recr /=.
+rewrite dim_vline oner_neq0 mul1n big_ord_recr /=.
 case/orP => H.
  move/(_ (Vector.dim L)).
  move: (H).
@@ -537,7 +537,7 @@ move/(leq_trans H).
 rewrite ltnS prod1v.
 set V := (\sum_(i < m.+1) _)%VS.
 move => Hdim.
-have: \dim (V + (x ^+ m.+1)%:VS) = \dim V.
+have: \dim (V + <[x ^+ m.+1]>) = \dim V.
  by apply: anti_leq; rewrite Hdim dimvS // addvSl.
 move/eqP.
 rewrite eq_sym dimv_leqif_sup ?addvSl //.
@@ -615,7 +615,7 @@ Qed.
 
 Lemma DerivationF : forall x, x \in F -> D x = 0.
 Proof.
-move=> _ /injvP[x ->].
+move=> _ /vlineP[x ->].
 by rewrite linearZ /= Derivation1 scaler0.
 Qed.
 
@@ -684,12 +684,12 @@ move/eqP <-.
 rewrite memvN // -mulrA.
 move: c0.
 have: (minPoly F x)`_0 \in F by rewrite (polyOverP _) ?minPolyOver.
-case/injvP => k ->.
+case/vlineP => k ->.
 case: (eqVneq k 0); first by move ->; rewrite scale0r eq_refl.
 move => k0 _.
 rewrite invrZ ?unitr1 ?unitfE // invr1 -scalerAl mul1r memvZ //
         mulr_suml memv_sumr // => i _.
-rewrite exprSr mulrA (mulfK nzx) memv_prod ?memv_inj //.
+rewrite exprSr mulrA (mulfK nzx) memv_prod ?memv_line //.
 by rewrite (polyOverP _) ?minPolyOver.
 Qed.
 
@@ -795,13 +795,13 @@ set W := (_ :&: _)%VS.
 move: (memv_pick W).
 rewrite memv_cap.
 case/andP.
-move/memv_prodv_inj_coef ->.
+move/memv_prodv_line_coef ->.
 set k := (_ / _) => Hk.
 have: (k \in K).
  move: (memv_pick W).
  rewrite memv_cap.
  case/andP.
- by move/prodv_inj_coefK.
+ by move/prodv_line_coefK.
 rewrite memv_inv mulf_eq0 negb_or => Hkinv.
 case/andP => nzk _.
 rewrite -[x ^+ _](mulKf nzk).
@@ -809,8 +809,8 @@ apply/memv_sumP.
 case/memv_sumP: Hk => v_ Hv_1 Hv_2.
 exists (fun i => k^-1 * v_ i) => [i _|]; last by rewrite Hv_2 -mulr_sumr.
 move/(_ i isT): Hv_1 => Hv_1.
-move/memv_prodv_inj_coef: (Hv_1) ->.
-by rewrite mulrA memv_prod ?memv_inj // memv_mul // prodv_inj_coefK.
+move/memv_prodv_line_coef: (Hv_1) ->.
+by rewrite mulrA memv_prod ?memv_line // memv_mul // prodv_line_coefK.
 Qed.
 
 Lemma root_minPoly : root (minPoly K x) x. 

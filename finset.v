@@ -237,19 +237,18 @@ End setOpsDefs.
 
 Notation "[ 'set' a ]" := (set1 a)
   (at level 0, a at level 69, format "[ 'set'  a ]") : set_scope.
-Notation "A :|: B" := (setU A B) (at level 52, left associativity) : set_scope.
-Notation "a |: A" := ([set a] :|: A)
-  (at level 52, left associativity) : set_scope.
+Notation "A :|: B" := (setU A B) : set_scope.
+Notation "a |: A" := ([set a] :|: A) : set_scope.
 (* This is left-associative due to historical limitations of the .. Notation. *)
 Notation "[ 'set' a1 ; a2 ; .. ; an ]" := (setU .. (a1 |: [set a2]) .. [set an])
   (at level 0, a1, a2, an at level 69,
    format "[ 'set'  a1 ;  a2 ;  .. ;  an ]") : set_scope.
-Notation "A :&: B" := (setI A B) (at level 48, left associativity) : set_scope.
+Notation "A :&: B" := (setI A B) : set_scope.
 Notation "~: A" := (setC A) (at level 35, right associativity) : set_scope.
 Notation "[ 'set' ~ a ]" := (~: [set a])
   (at level 0, a at level 69, format "[ 'set' ~  a ]") : set_scope.
-Notation "A :\: B" := (setD A B) (at level 50) : set_scope.
-Notation "A :\ a" := (A :\: [set a]) (at level 50) : set_scope.
+Notation "A :\: B" := (setD A B) : set_scope.
+Notation "A :\ a" := (A :\: [set a]) : set_scope.
 Notation "P ::&: D" := (ssetI P D) (at level 48) : set_scope.
 
 Section setOps.
@@ -1406,46 +1405,6 @@ Qed.
 
 End FunImageComp.
 
-Reserved Notation "\bigcup_ i F"
-  (at level 41, F at level 41, i at level 0,
-           format "'[' \bigcup_ i '/  '  F ']'").
-Reserved Notation "\bigcup_ ( <- r | P ) F"
-  (at level 41, F at level 41, r at level 50,
-           format "'[' \bigcup_ ( <-  r  |  P ) '/  '  F ']'").
-Reserved Notation "\bigcup_ ( i <- r | P ) F"
-  (at level 41, F at level 41, i, r at level 50,
-           format "'[' \bigcup_ ( i  <-  r  |  P ) '/  '  F ']'").
-Reserved Notation "\bigcup_ ( i <- r ) F"
-  (at level 41, F at level 41, i, r at level 50,
-           format "'[' \bigcup_ ( i  <-  r ) '/  '  F ']'").
-Reserved Notation "\bigcup_ ( m <= i < n | P ) F"
-  (at level 41, F at level 41, m, i, n at level 50,
-           format "'[' \bigcup_ ( m  <=  i  <  n  |  P ) '/  '  F ']'").
-Reserved Notation "\bigcup_ ( m <= i < n ) F"
-  (at level 41, F at level 41, i, m, n at level 50,
-           format "'[' \bigcup_ ( m  <=  i  <  n ) '/  '  F ']'").
-Reserved Notation "\bigcup_ ( i | P ) F"
-  (at level 41, F at level 41, i at level 50,
-           format "'[' \bigcup_ ( i  |  P ) '/  '  F ']'").
-Reserved Notation "\bigcup_ ( i : t | P ) F"
-  (at level 41, F at level 41, i at level 50,
-           format "'[' \bigcup_ ( i   :  t   |  P ) '/  '  F ']'").
-Reserved Notation "\bigcup_ ( i : t ) F"
-  (at level 41, F at level 41, i at level 50,
-           format "'[' \bigcup_ ( i   :  t ) '/  '  F ']'").
-Reserved Notation "\bigcup_ ( i < n | P ) F"
-  (at level 41, F at level 41, i, n at level 50,
-           format "'[' \bigcup_ ( i  <  n  |  P ) '/  '  F ']'").
-Reserved Notation "\bigcup_ ( i < n ) F"
-  (at level 41, F at level 41, i, n at level 50,
-           format "'[' \bigcup_ ( i  <  n ) '/  '  F ']'").
-Reserved Notation "\bigcup_ ( i \in A | P ) F"
-  (at level 41, F at level 41, i, A at level 50,
-           format "'[' \bigcup_ ( i  \in  A  |  P ) '/  '  F ']'").
-Reserved Notation "\bigcup_ ( i \in A ) F"
-  (at level 41, F at level 41, i, A at level 50,
-           format "'[' \bigcup_ ( i  \in  A ) '/  '  F ']'").
-
 Notation "\bigcup_ ( <- r | P ) F" :=
   (\big[@setU _/set0]_(<- r | P%B) F%SET) : set_scope.
 Notation "\bigcup_ ( i <- r | P ) F" :=
@@ -1472,46 +1431,6 @@ Notation "\bigcup_ ( i \in A | P ) F" :=
   (\big[@setU _/set0]_(i \in A | P%B) F%SET) : set_scope.
 Notation "\bigcup_ ( i \in A ) F" :=
   (\big[@setU _/set0]_(i \in A) F%SET) : set_scope.
-
-Reserved Notation "\bigcap_ i F"
-  (at level 41, F at level 41, i at level 0,
-           format "'[' \bigcap_ i '/  '  F ']'").
-Reserved Notation "\bigcap_ ( <- r | P ) F"
-  (at level 41, F at level 41, r at level 50,
-           format "'[' \bigcap_ ( <-  r  |  P ) '/  '  F ']'").
-Reserved Notation "\bigcap_ ( i <- r | P ) F"
-  (at level 41, F at level 41, i, r at level 50,
-           format "'[' \bigcap_ ( i  <-  r  |  P )  F ']'").
-Reserved Notation "\bigcap_ ( i <- r ) F"
-  (at level 41, F at level 41, i, r at level 50,
-           format "'[' \bigcap_ ( i  <-  r ) '/  '  F ']'").
-Reserved Notation "\bigcap_ ( m <= i < n | P ) F"
-  (at level 41, F at level 41, m, i, n at level 50,
-           format "'[' \bigcap_ ( m  <=  i  <  n  |  P ) '/  '  F ']'").
-Reserved Notation "\bigcap_ ( m <= i < n ) F"
-  (at level 41, F at level 41, i, m, n at level 50,
-           format "'[' \bigcap_ ( m  <=  i  <  n ) '/  '  F ']'").
-Reserved Notation "\bigcap_ ( i | P ) F"
-  (at level 41, F at level 41, i at level 50,
-           format "'[' \bigcap_ ( i  |  P ) '/  '  F ']'").
-Reserved Notation "\bigcap_ ( i : t | P ) F"
-  (at level 41, F at level 41, i at level 50,
-           format "'[' \bigcap_ ( i   :  t   |  P ) '/  '  F ']'").
-Reserved Notation "\bigcap_ ( i : t ) F"
-  (at level 41, F at level 41, i at level 50,
-           format "'[' \bigcap_ ( i   :  t ) '/  '  F ']'").
-Reserved Notation "\bigcap_ ( i < n | P ) F"
-  (at level 41, F at level 41, i, n at level 50,
-           format "'[' \bigcap_ ( i  <  n  |  P ) '/  '  F ']'").
-Reserved Notation "\bigcap_ ( i < n ) F"
-  (at level 41, F at level 41, i, n at level 50,
-           format "'[' \bigcap_ ( i  <  n ) '/  '  F ']'").
-Reserved Notation "\bigcap_ ( i \in A | P ) F"
-  (at level 41, F at level 41, i, A at level 50,
-           format "'[' \bigcap_ ( i  \in  A  |  P ) '/  '  F ']'").
-Reserved Notation "\bigcap_ ( i \in A ) F"
-  (at level 41, F at level 41, i, A at level 50,
-           format "'[' \bigcap_ ( i  \in  A ) '/  '  F ']'").
 
 Notation "\bigcap_ ( <- r | P ) F" :=
   (\big[@setI _/setT]_(<- r | P%B) F%SET) : set_scope.

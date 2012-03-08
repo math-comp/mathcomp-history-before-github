@@ -266,7 +266,7 @@ have part_a: {in A, chi^\rho =1 chi0}.
     rewrite cfunE cfIndE // mulrA -invfM eh.
     apply: (canRL (mulKf nzL)); rewrite mulr_natl -sumr_const.
     by apply: eq_bigr => z Lz; rewrite cfResE ?memJ_norm ?cfunJ ?(subsetP nHL).
-  have{def_phi} Tphi: phi \in span calT.
+  have{def_phi} Tphi: phi \in <<calT>>%VS.
     rewrite def_phi memvZ // ['Res _]cfun_sum_cfdot linear_sum.
     apply: memv_suml => i _; rewrite linearZ memvZ ?memv_span //=.
     by apply/seqIndP; exists i; rewrite ?inE.

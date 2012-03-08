@@ -96,6 +96,10 @@ Require Import ssreflect.
 (*       x ^+ n, x ^- n integer exponent (groups and rings).                  *)
 (*       x *: A, A :* x external product (scaling/module product in rings,    *)
 (*                      left/right cosets in groups).                         *)
+(*             A :&: B  intersection (of sets, groups, subspaces, ...).       *)
+(*     A :|: B, a |: B  union, union with a singleton (of sets).              *)
+(*     A :\: B, A :\ b  relative complement (of sets, subspaces, ...).        *)
+(*        <<A>>, <[a]>  generated group/subspace, generated cycle/line.       *)
 (*       'C(A), 'C_B(A) centralisers (in groups, rings, and matrix algebras). *)
 (*                'Z(A) centers (in groups, rings, and matrix algebras).      *)
 (*       m %/ d, m %% d Euclidean division and remainder (nat, polynomials).  *)
@@ -121,7 +125,7 @@ Require Import ssreflect.
 (* - Properties for operations.                                               *)
 (*              left_id e op <-> e is a left identity for op (e op x = x).    *)
 (*             right_id e op <-> e is a right identity for op (x op e = x).   *)
-(*      eft_inverse e inv op <-> inv is a left inverse for op wrt identity e, *)
+(*     left_inverse e inv op <-> inv is a left inverse for op wrt identity e, *)
 (*                               i.e., (inv x) op x = e.                      *)
 (*    right_inverse e inv op <-> inv is a right inverse for op wrt identity e *)
 (*                               i.e., x op (i x) = e.                        *)
@@ -248,6 +252,17 @@ Reserved Notation "x ^- n" (at level 29, left associativity).
 Reserved Notation "x *: A" (at level 40).
 Reserved Notation "A :* x" (at level 40).
 
+(* Reserved notation for set-theretic operations. *)
+Reserved Notation "A :&: B"  (at level 48, left associativity).
+Reserved Notation "A :|: B" (at level 52, left associativity).
+Reserved Notation "a |: A" (at level 52, left associativity).
+Reserved Notation "A :\: B" (at level 50, left associativity).
+Reserved Notation "A :\ b" (at level 50, left associativity).
+
+(* Reserved notation for generated structures *)
+Reserved Notation "<< A >>"  (at level 0, format "<< A >>").
+Reserved Notation "<[ a ] >"  (at level 0, format "<[ a ] >").
+
 (* Reserved notation for centralisers and centers. *)
 Reserved Notation "''C' ( A )" (at level 8, format "''C' ( A )").
 Reserved Notation "''C_' B ( A )"
@@ -321,23 +336,28 @@ Notation some := (@Some _) (only parsing).
 (* End FooDefinition.                                         *)
 
 Reserved Notation "[ 'rec' a0 ]"
-  (at level 0).
+  (at level 0, format "[ 'rec'  a0 ]").
 Reserved Notation "[ 'rec' a0 , a1 ]"
-  (at level 0).
+  (at level 0, format "[ 'rec'  a0 ,  a1 ]").
 Reserved Notation "[ 'rec' a0 , a1 , a2 ]"
-  (at level 0).
+  (at level 0, format "[ 'rec'  a0 ,  a1 ,  a2 ]").
 Reserved Notation "[ 'rec' a0 , a1 , a2 , a3 ]"
-  (at level 0).
+  (at level 0, format "[ 'rec'  a0 ,  a1 ,  a2 ,  a3 ]").
 Reserved Notation "[ 'rec' a0 , a1 , a2 , a3 , a4 ]"
-  (at level 0).
+  (at level 0, format "[ 'rec'  a0 ,  a1 ,  a2 ,  a3 ,  a4 ]").
 Reserved Notation "[ 'rec' a0 , a1 , a2 , a3 , a4 , a5 ]"
-  (at level 0).
+  (at level 0, format "[ 'rec'  a0 ,  a1 ,  a2 ,  a3 ,  a4 ,  a5 ]").
+Reserved Notation "[ 'rec' a0 , a1 , a2 , a3 , a4 , a5 , a6 ]"
+  (at level 0, format "[ 'rec'  a0 ,  a1 ,  a2 ,  a3 ,  a4 ,  a5 ,  a6 ]").
 Reserved Notation "[ 'rec' a0 , a1 , a2 , a3 , a4 , a5 , a6 , a7 ]"
-  (at level 0).
+  (at level 0,
+  format "[ 'rec'  a0 ,  a1 ,  a2 ,  a3 ,  a4 ,  a5 ,  a6 ,  a7 ]").
 Reserved Notation "[ 'rec' a0 , a1 , a2 , a3 , a4 , a5 , a6 , a7 , a8 ]"
-  (at level 0).
+  (at level 0,
+  format "[ 'rec'  a0 ,  a1 ,  a2 ,  a3 ,  a4 ,  a5 ,  a6 ,  a7 ,  a8 ]").
 Reserved Notation "[ 'rec' a0 , a1 , a2 , a3 , a4 , a5 , a6 , a7 , a8 , a9 ]"
-  (at level 0).
+  (at level 0,
+  format "[ 'rec'  a0 ,  a1 ,  a2 ,  a3 ,  a4 ,  a5 ,  a6 ,  a7 ,  a8 ,  a9 ]").
 
 (* Definitions and notation for explicit functions with simplification,     *)
 (* i.e., which simpl and /= beta expand (this is complementary to nosimpl). *)

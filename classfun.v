@@ -350,7 +350,7 @@ Canonical cfun_fAlgType := AlgFType algC cfun_vectMixin.
 
 Definition cfun_base A : #|classes B ::&: A|.-tuple classfun :=
   [tuple of [image ('1_xB)%R | xB <- classes B ::&: A]].
-Definition classfun_on A := span (cfun_base A).
+Definition classfun_on A := <<cfun_base A>>%VS.
 
 Definition cfdot phi psi := #|B|%:R^-1 * \sum_(x \in B) phi x * (psi x)^*.
 Definition cfdotr_head k psi phi := let: tt := k in cfdot phi psi.
@@ -488,7 +488,7 @@ by apply: andb_id2r => /imsetP[z Gz ->]; rewrite groupJr.
 Qed.
 
 Lemma cfun_on_sum A :
-  'CF(G, A) = (\sum_(xG \in classes G | xG \subset A) ('1_xG)%:VS)%VS.
+  'CF(G, A) = (\sum_(xG \in classes G | xG \subset A) <['1_xG]>)%VS.
 Proof.
 rewrite ['CF(G, A)]span_def big_map big_filter.
 by apply: eq_bigl => xG; rewrite !inE.
@@ -503,7 +503,7 @@ apply: (iffP idP) => [/coord_span-> x notAx | Aphi].
   rewrite mem_enum => /setIdP[/imsetP[y Gy ->] Ay] ->.
   by rewrite cfun_classE Gy (contraNF (subsetP Ay x)) ?mulr0.
 suffices <-: \sum_(xG \in classes G) phi (repr xG) *: '1_xG = phi.
-  apply: memv_suml => _ /imsetP[x Gx ->]; rewrite memvZeq cfun_repr.
+  apply: memv_suml => _ /imsetP[x Gx ->]; rewrite rpredZeq cfun_repr.
   have [s_xG_A | /subsetPn[_ /imsetP[y Gy ->]]] := boolP (x ^: G \subset A).
     by rewrite cfun_on_sum [_ \in _](sumv_sup (x ^: G)) ?mem_classes ?orbT.
   by move/Aphi; rewrite cfunJ // => ->; rewrite eqxx.
@@ -865,7 +865,8 @@ Lemma orthogonal_catr R S1 S2 :
 Proof. by rewrite !(orthogonal_sym R) orthogonal_catl. Qed.
 
 Lemma span_orthogonal S1 S2 phi1 phi2 :
-  orthogonal S1 S2 -> phi1 \in span S1 -> phi2 \in span S2 -> '[phi1, phi2] = 0.
+    orthogonal S1 S2 -> phi1 \in <<S1>>%VS -> phi2 \in <<S2>>%VS ->
+ '[phi1, phi2] = 0.
 Proof.
 move/orthogonalP=> oS12; do 2!move/(@coord_span _ _ _ (in_tuple _))->.
 rewrite cfdot_suml big1 // => i _; rewrite cfdot_sumr big1 // => j _.
@@ -873,14 +874,14 @@ by rewrite cfdotZl cfdotZr oS12 ?mem_nth ?mulr0.
 Qed.
 
 Lemma orthogonal_split S beta :
-  {X : 'CF(G) & {Y | [/\ beta = X + Y, X \in span S & orthogonal Y S]}}.
+  {X : 'CF(G) & {Y | [/\ beta = X + Y, X \in <<S>>%VS & orthogonal Y S]}}.
 Proof.
 elim: S beta => [|phi S IHS] beta; first by exists 0, beta; rewrite add0r mem0v.
 have [[U [V [-> S_U oVS]]] [X [Y [-> S_X oYS]]]] := (IHS phi, IHS beta).
 pose Z := '[Y, V] / '[V] *: V; exists (X + Z), (Y - Z).
 split; first by rewrite addrCA !addrA addrK addrC.
   rewrite /Z -{4}(addKr U V) scalerDr scalerN addrA addrC span_cons.
-  by rewrite memv_add ?memvB ?memvZ ?memv_inj.
+  by rewrite memv_add ?memvB ?memvZ ?memv_line.
 apply/orthoPl=> psi; rewrite !inE => /predU1P[-> | Spsi]; last first.
   by rewrite cfdot_subl cfdotZl (orthoPl oVS _ Spsi) mulr0 subr0 (orthoPl oYS).
 rewrite cfdot_subl !cfdotDr (span_orthogonal oYS) // ?memv_span ?mem_head //.
@@ -1063,7 +1064,7 @@ Lemma isometry_of_cfnorm S tauS :
     pairwise_orthogonal S -> pairwise_orthogonal tauS ->
     map cfnorm tauS = map cfnorm S ->
   {tau : {linear 'CF(L) -> 'CF(G)} | map tau S = tauS
-                                   & {in span S &, isometry tau}}.
+                                   & {in <<S>>%VS &, isometry tau}}.
 Proof.
 move=> oS oT eq_nST; have freeS := orthogonal_free oS.
 have eq_sz: size tauS = size S by have:= congr1 size eq_nST; rewrite !size_map.

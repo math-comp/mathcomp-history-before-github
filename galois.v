@@ -288,7 +288,7 @@ apply: (iffP (kHomP _ _ _)).
  - by apply: linearZZ.
 move => Hf.
 split; last by move => x y _ _; apply: (rmorphM (RMorphism Hf)).
-move => ?; case/injvP => k ->.
+move => ?; case/vlineP => k ->.
 rewrite linearZ /=.
 by rewrite [f 1](rmorph1 (RMorphism Hf)).
 Qed.
@@ -1800,8 +1800,8 @@ case: (@LAut_matrix_subproof E _ f_).
 move => w_ HwE.
 set M := \matrix_(_,_) _ => Hw.
 set K := FixedField s.
-rewrite [(_ * _)%N](_: _ = \dim (\sum_(i < #|s|) K * (w_ i)%:VS)); last first.
- suff/directvP -> : (directv (\sum_i (K * (w_ i)%:VS))).
+rewrite [(_ * _)%N](_: _ = \dim (\sum_(i < #|s|) K * <[w_ i]>)); last first.
+ suff/directvP-> : directv (\sum_i K * <[w_ i]>).
   rewrite -{1}[#|s|]subn0 -sum_nat_const_nat big_mkord.
   apply: eq_bigr => i _.
   rewrite /= dim_prodvf //.
@@ -1816,7 +1816,7 @@ rewrite [(_ * _)%N](_: _ = \dim (\sum_(i < #|s|) K * (w_ i)%:VS)); last first.
  pose x := \col_j (u_ j / w_ j).
  suff : M *m x = 0.
   move/(f_equal (fun a => invmx M *m a)).
-  rewrite mulmx0 mulKmx // (memv_prodv_inj_coef (Hu i isT)).
+  rewrite mulmx0 mulKmx // (memv_prodv_line_coef (Hu i isT)).
   move/colP/(_ i).
   rewrite !mxE => ->.
   by rewrite mul0r.
@@ -1827,16 +1827,16 @@ rewrite [(_ * _)%N](_: _ = \dim (\sum_(i < #|s|) K * (w_ i)%:VS)); last first.
  rewrite !mxE.
  move: (Hu k isT) => Huk.
  suff <- : val (f_ j) (u_ k / w_ k) = (u_ k / w_ k).
-  by rewrite -rmorphM mulrC -(memv_prodv_inj_coef Huk).
- case/FixedFieldP: (prodv_inj_coefK Huk) => _; apply.
+  by rewrite -rmorphM mulrC -(memv_prodv_line_coef Huk).
+ case/FixedFieldP: (prodv_line_coefK Huk) => _; apply.
  by apply: enum_valP.
 split.
  apply: dimvS.
  apply/subv_sumP => i _.
  apply/subvP => v Hv.
- move/memv_prodv_inj_coef: (Hv) ->.
+ move/memv_prodv_line_coef: (Hv) ->.
  apply: memv_mul; last done.
- by case/prodv_inj_coefK/FixedFieldP: Hv.
+ by case/prodv_line_coefK/FixedFieldP: Hv.
 move => Hs.
 apply: dimvS.
 apply/subvP => v HvE.
@@ -1851,7 +1851,7 @@ rewrite repr_coset1 id_lfunE => <-.
 apply: memv_sumr => i _.
 rewrite mulrC memv_prod //; last first.
  rewrite mxE /f_ (enum_val_nth 1%g) nth_index; last done.
- by rewrite repr_coset1 id_lfunE memv_inj.
+ by rewrite repr_coset1 id_lfunE memv_line.
 apply/FixedFieldP.
 split.
  move: i (0 : 'I_1).

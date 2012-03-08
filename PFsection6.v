@@ -580,10 +580,10 @@ by rewrite ?(rmorphM, QnC_nu0).
 Qed.
 
 Lemma map_Qnum_poly (nu : {rmorphism algC -> algC}) p :
-  p \in polyOver 1%:VS -> map_poly (nu \o QnC) p = (map_poly QnC p).
+  p \in polyOver 1%VS -> map_poly (nu \o QnC) p = (map_poly QnC p).
 Proof.
 move=> Qp; apply/polyP=> i; rewrite /= !coef_map /=.
-have /injvP[a ->]: p`_i \in 1%:VS by exact: polyOverP.
+have /vlineP[a ->]: p`_i \in 1%VS by exact: polyOverP.
 by rewrite alg_num_field !fmorph_rat.
 Qed.
 
@@ -595,7 +595,7 @@ case/normal_field_splitting=> [p Qp /sig2_eqW[r Dp genQn]].
 apply: restrict_aut_to_num_field => x.
 have:= memvf x; rewrite -{}genQn; have: all (mem r) r by exact/allP.
 elim/last_ind: {-1}r => [|r1 z IHr] /= in x *.
-  by move=> _ /injvP[a ->]; exists a%:A; rewrite alg_num_field !fmorph_rat.
+  by move=> _ /vlineP[a ->]; exists a%:A; rewrite alg_num_field !fmorph_rat.
 rewrite all_rcons genField_rcons => /andP[/= rz r_r1] /poly_Fadjoin[q [r_q ->]].
 have /mapP[y _ Dy]: nu (QnC z) \in map QnC r.
   rewrite -root_prod_XsubC big_map.
@@ -632,11 +632,11 @@ pose k1 := chinese a b k 1; have /Qn_Aut_exists[nu Dnu]: coprime k1 (a * b).
   rewrite coprime_mulr -!(coprime_modl k1) chinese_modl ?chinese_modr //.
   by rewrite !coprime_modl co_k_a coprime1n.
 exists nu => [x | y].
-  have /poly_Fadjoin[p [Qp ->]]: x \in Fadjoin 1%:VS w_a by rewrite genQa memvf.
+  have /poly_Fadjoin[p [Qp ->]]: x \in Fadjoin 1 w_a by rewrite genQa memvf.
   rewrite -!horner_map -!map_poly_comp !map_Qnum_poly // Dmu Dnu -rmorphX /=.
     by rewrite -(prim_expr_mod pr_w_a) chinese_modl // prim_expr_mod.
   by rewrite exprM (prim_expr_order pr_w_a) expr1n rmorph1.
-have /poly_Fadjoin[p [Qp ->]]: y \in Fadjoin 1%:VS w_b by rewrite genQb memvf.
+have /poly_Fadjoin[p [Qp ->]]: y \in Fadjoin 1 w_b by rewrite genQb memvf.
 rewrite -!horner_map -!map_poly_comp !map_Qnum_poly // Dnu -rmorphX /=.
   by rewrite -(prim_expr_mod pr_w_b) chinese_modr // prim_expr_mod.
 by rewrite mulnC exprM (prim_expr_order pr_w_b) expr1n rmorph1.
@@ -2001,7 +2001,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
     have [_ oYYt] := orthonormalP oYtau.
     have [-> | [_ ->]] := defY1;
       by rewrite ?cfnormN oYYt ?eqxx ?map_f // cfAut_seqInd.
-  have YtauY1: Y1 \in span (map tau1 Y).
+  have YtauY1: Y1 \in <<map tau1 Y>>%VS.
     by have [-> | [_ ->]] := defY1;
       rewrite ?memvN memv_span ?map_f ?cfAut_seqInd.
   have Zalpha xi: xi \in X -> xi - a xi *: eta1 \in 'Z[S, L^#].

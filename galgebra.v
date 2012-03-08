@@ -194,7 +194,7 @@ Canonical gAlgAlgFType := AlgFType F gAlgMixin.
 
 Variable G : {group gT}.
 
-Definition gvspace: {vspace galg} := (\sum_(g \in G) (g%:FG)%:VS)%VS.
+Definition gvspace: {vspace galg} := (\sum_(g \in G) <[g%:FG]>)%VS.
 
 Fact gspace_subproof : has_aunit gvspace && (gvspace * gvspace <= gvspace)%VS.
 Proof.
@@ -202,7 +202,7 @@ apply/andP; split.
   apply: has_aunit1.
   rewrite /gvspace (bigD1 (1)%g) //=.
   apply: subv_trans (addvSl _ _).
-  by apply/injvP; exists 1; rewrite scale1r.
+  by apply/vlineP; exists 1; rewrite scale1r.
 apply/prodvP=> u v Hu Hv.
 case/memv_sumP: Hu => u_ Hu ->; rewrite big_distrl /=.
 apply: memv_suml=> i Hi.
@@ -210,8 +210,8 @@ case/memv_sumP: Hv => v_ Hv ->; rewrite big_distrr /=.
 apply: memv_suml=> j Hj.
 rewrite /gvspace (bigD1 (i*j)%g) /=; last by exact: groupM.
 apply: subv_trans (addvSl _ _).
-case/injvP: (Hu _ Hi)=> k ->; case/injvP: (Hv _ Hj)=> l ->.
-apply/injvP; exists (k * l).
+case/vlineP: (Hu _ Hi)=> k ->; case/vlineP: (Hv _ Hj)=> l ->.
+apply/vlineP; exists (k * l).
 by rewrite -scalerAl -scalerAr scalerA injGM.
 Qed.
 
