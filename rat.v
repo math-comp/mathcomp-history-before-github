@@ -341,8 +341,8 @@ Notation "n %:Q" := ((n : int)%:~R : rat)
 
 Hint Resolve denq_neq0 denq_gt0 denq_ge0.
 
-Definition divq (x y : rat) := (x * y^-1)%Q.
-Definition subq (x y : rat) := (x + (- y))%Q.
+Definition subq (x y : rat) : rat := (addq x (oppq y)).
+Definition divq (x y : rat) : rat := (mulq x (invq y)).
 
 Notation "0" := zeroq : rat_scope.
 Notation "1" := oneq : rat_scope.
@@ -751,7 +751,7 @@ split => * //; rat_to_ring;
 by rewrite ?(add0r, addrA, mul1r, mulrA, mulrDl, subrr) // (addrC, mulrC).
 Qed.
 
-Require Field_theory setoid_ring.Field_tac.
+Require setoid_ring.Field_theory setoid_ring.Field_tac.
 
 Lemma rat_field_theory : (Field_theory.field_theory 0%Q 1%Q addq mulq subq oppq divq invq eq).
 Proof.
