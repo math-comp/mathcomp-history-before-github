@@ -7,7 +7,8 @@ Import GRing.Theory ORing.Theory.
 (*         int == the type of signed integers, with two constructors : Posz   *)
 (*                for non-negative integers and Negz for negative integers.   *)
 (*                It supports the oIdomainType interface (and its parents).   *)
-(*        n%:Z == explicit cast from nat to int (:= Posz n); displayed as n.  *)
+(*        n%:Z == explicit cast from nat to int (:= Posz n);                  *)
+(*                displayed as n%:Z even when it is inserted automatically    *)
 (*                Lemma NegzE : turns (Negz n) into - n.+1%:Z.                *)
 (*      x *~ m == m times x, with m : int;                                    *)
 (*                convertible to x *+ n if m is Posz n                        *)
@@ -43,8 +44,8 @@ CoInductive int : Set := Posz of nat | Negz of nat.
 (* the Coq module system.                                                     *)
 (* Coercion Posz : nat >-> int. *)
 
-Notation "n %:Z" := (n : int)
-  (at level 2, left associativity, format "n %:Z")  : int_scope.
+Notation "n %:Z" := (Posz n)
+  (at level 2, left associativity, format "n %:Z") : int_scope.
 
 Definition natsum_of_int (m : int) : nat + nat :=
   match m with Posz p => inl _ p | Negz n => inr _ n end.
@@ -62,7 +63,7 @@ Canonical int_eqType := Eval hnf in EqType int int_eqMixin.
 Canonical int_choiceType := Eval hnf in ChoiceType int int_choiceMixin.
 Canonical int_countType := Eval hnf in CountType int int_countMixin.
 
-Lemma eqz_nat (m n : nat) : (Posz m == Posz n :> int) = (m == n :> nat).
+Lemma eqz_nat (m n : nat) : (m%:Z == n%:Z) = (m == n).
 Proof. by move: m n=> [|m] [|n]. Qed.
 
 Module intZmod.
@@ -175,10 +176,10 @@ End intZmod.
 
 Canonical int_ZmodType := ZmodType int intZmod.Mixin.
 
-Notation "n %:Z" := (n : int)
-  (at level 2, left associativity, format "n %:Z")  : ring_scope.
-
 Local Open Scope ring_scope.
+
+Notation "n %:Z" := (Posz n)
+  (at level 2, left associativity, format "n %:Z") : ring_scope.
 
 Section intZmoduleTheory.
 
@@ -483,10 +484,10 @@ Notation intr := ( *~%R 1).
 Notation "n %:~R" := (1 *~ n)%R
   (at level 2, left associativity, format "n %:~R")  : ring_scope.
 
-Lemma pmulrn (R : zmodType) (x : R) (n : nat) : x *+ n = x *~ Posz n.
+Lemma pmulrn (R : zmodType) (x : R) (n : nat) : x *+ n = x *~ n%:Z.
 Proof. by []. Qed.
 
-Lemma nmulrn (R : zmodType) (x : R) (n : nat) : x *- n = x *~ - Posz n.
+Lemma nmulrn (R : zmodType) (x : R) (n : nat) : x *- n = x *~ - n%:Z.
 Proof. by case: n=> [] //; rewrite ?oppr0. Qed.
 
 Section ZintLmod.
@@ -594,7 +595,7 @@ elim: n=> //= n ihn; rewrite /intmul /=.
 by rewrite nmulrn intS opprD mulrzDl ihn.
 Qed.
 
-Lemma natz (n : nat) : n%:R = Posz n :> int.
+Lemma natz (n : nat) : n%:R = n%:Z :> int.
 Proof. by rewrite pmulrn intz. Qed.
 
 Section RintMod.
@@ -645,9 +646,9 @@ End RintMod.
 
 Lemma mulrzz m n : m *~ n = m * n. Proof. by rewrite -mulrzr intz. Qed.
 
-Lemma mulz2 n : n * Posz 2 = n + n. Proof. by rewrite -mulrzz. Qed.
+Lemma mulz2 n : n * 2%:Z = n + n. Proof. by rewrite -mulrzz. Qed.
 
-Lemma mul2z n : Posz 2 * n = n + n. Proof. by rewrite mulrC -mulrzz. Qed.
+Lemma mul2z n : 2%:Z * n = n + n. Proof. by rewrite mulrC -mulrzz. Qed.
 
 Section LMod.
 
@@ -1534,10 +1535,10 @@ Proof. by rewrite abszX exp1n. Qed.
 Lemma abszMsign s m : `|((-1) ^+ s * m)%R| = `|m|.
 Proof. by rewrite abszM absz_sign mul1n. Qed.
 
-Lemma mulz_sign_abs m : ((-1) ^+ (m < 0)%R * Posz `|m|)%R = m.
+Lemma mulz_sign_abs m : ((-1) ^+ (m < 0)%R * `|m|%:Z)%R = m.
 Proof. by rewrite abszE mulr_sign_norm. Qed.
 
-Lemma mulz_Nsign_abs m : ((-1) ^+ (0 < m)%R * Posz `|m|)%R = - m.
+Lemma mulz_Nsign_abs m : ((-1) ^+ (0 < m)%R * `|m|%:Z)%R = - m.
 Proof. by rewrite abszE mulr_Nsign_norm. Qed.
 
 End Absz.

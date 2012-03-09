@@ -425,7 +425,7 @@ Qed.
 
 Lemma coprimeq_num n d : coprime `|n| `|d| -> numq (n%:~R / d%:~R) = sgr d * n.
 Proof.
-move=> cnd /=; have <- := fracqE (n, d%:Z).
+move=> cnd /=; have <- := fracqE (n, d).
 rewrite /numq /= (eqP (cnd : _ == 1%N)) divn1.
 have [|d_gt0|d_lt0] := sgrP d;
 by rewrite (mul0r, mul1r, mulN1r) //= ?[_ ^ _]signrN ?mulNr mulz_sign_abs.
@@ -434,7 +434,7 @@ Qed.
 Lemma coprimeq_den n d :
   coprime `|n| `|d| -> denq (n%:~R / d%:~R) = (if d == 0 then 1 else `|d|).
 Proof.
-move=> cnd; have <- := fracqE (n, d%:Z).
+move=> cnd; have <- := fracqE (n, d).
 by rewrite /denq /= (eqP (cnd : _ == 1%N)) divn1; case: d {cnd}.
 Qed.
 
@@ -640,6 +640,9 @@ Canonical Qnat_mulrPred := MulrPred Qnat_semiring_closed.
 Canonical Qnat_semiringPred := SemiringPred Qnat_semiring_closed.
 
 End QnatPred.
+
+Lemma natq_div m n : n %| m -> (m %/ n)%:R = m%:R / n%:R :> rat.
+Proof. by apply: char0_natf_div; apply: char_po. Qed.
 
 Section InRing.
 
