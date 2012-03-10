@@ -179,7 +179,7 @@ Qed.
 
 Lemma eprodv1 : forall vs, (vs :* 1 = vs)%VS.
 Proof.
-case: (vbasis1 A)=> k [Hk He] /=.
+case: (vbasis1 A) => k Hk He /=.
 move=> vs; apply subv_anti; apply/andP; split.
   apply/eprodvP=> a b Ha; case/vlineP=> k1 ->.
   by rewrite linearZ /= rmul1 memvZ.

@@ -209,15 +209,21 @@ Implicit Types (u v : aT) (U V W : {vspace aT}).
 
 Definition amull u : 'End(aT) := linfun (u \*o @idfun aT).
 Definition amulr u : 'End(aT) := linfun (u \o* @idfun aT).
-Definition prodv U V : {vspace aT} := <<allpairs *%R (vbasis U) (vbasis V)>>%VS.
+Fact prodv_key : unit. Proof. by []. Qed.
+Definition prodv :=
+   let: tt := prodv_key in
+   fun U V => <<allpairs *%R (vbasis U) (vbasis V)>>%VS.
 Local Notation "A * B" := (prodv A B) : vspace_scope.
+
+Lemma prodvE U V : (U * V = <<allpairs *%R (vbasis U) (vbasis V)>>)%VS.
+Proof. by rewrite /prodv; case: prodv_key. Qed.
 
 Lemma memv_prod U V : {in U & V, forall u v, u * v \in (U * V)%VS}.
 Proof.
 move=> u v /coord_vbasis-> /coord_vbasis->.
 rewrite mulr_suml; apply: memv_suml => i _.
 rewrite mulr_sumr; apply: memv_suml => j _.
-rewrite -scalerAl -scalerAr !memvZ ?memv_span //.
+rewrite -scalerAl -scalerAr !memvZ // prodvE memv_span //.
 by apply/allpairsP; exists ((vbasis U)`_i, (vbasis V)`_j); rewrite !memt_nth.
 Qed.
 
@@ -226,7 +232,7 @@ Lemma prodvP {U V W} :
 Proof.
 apply: (iffP idP) => [sUVW u v Uu Vv | sUVW].
   by rewrite (subvP sUVW) ?memv_prod.
-apply/span_subvP=> _ /allpairsP[[u v] /= [Uu Vv ->]].
+rewrite prodvE; apply/span_subvP=> _ /allpairsP[[u v] /= [Uu Vv ->]].
 by rewrite sUVW ?vbasis_mem.
 Qed.
 
@@ -241,7 +247,7 @@ Lemma dimv1: \dim (1%VS : {vspace aT}) = 1%N.
 Proof. by rewrite dim_vline oner_neq0. Qed.
 
 Lemma dim_prodv U V : \dim (U * V) <= \dim U * \dim V.
-Proof. by rewrite (leq_trans (dim_span _)) ?size_tuple. Qed.
+Proof. by rewrite prodvE (leq_trans (dim_span _)) ?size_tuple. Qed.
 
 Lemma vspace1_neq0 : (1 != 0 :> {vspace aT})%VS.
 Proof. by rewrite -dimv_eq0 dimv1. Qed.

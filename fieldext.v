@@ -866,13 +866,14 @@ Section FadjoinDefinitions.
 Variable (K : {vspace L}).
 Variable (x : L).
 
-Let P n := (Vector.dim L < n) ||
-           (\dim (\sum_(i < n.+1) (K * <[x ^+ i]>)) < \dim K * n.+1).
+Definition elementDegree_property n :=
+  (Vector.dim L < n) ||
+  (\dim (\sum_(i < n.+1) (K * <[x ^+ i]>)) < \dim K * n.+1).
 
-Let Pholds : exists n, P n.
-Proof. by exists (Vector.dim L).+1; rewrite /P ltnSn. Qed.
+Fact elementDegree_property_holds : exists n, elementDegree_property n.
+Proof. by exists (Vector.dim L).+1; rewrite /elementDegree_property ltnSn. Qed.
 
-Definition elementDegree := (ex_minn Pholds).-1.+1.
+Definition elementDegree := (ex_minn elementDegree_property_holds).-1.+1.
 
 Definition Fadjoin := (\sum_(i < elementDegree) (K * <[x ^+ i]>))%VS.
 
@@ -884,10 +885,10 @@ Definition poly_for_Fadjoin (v : L) :=
 Definition minPoly : {poly L} := 
   'X^elementDegree - poly_for_Fadjoin (x ^+ elementDegree).
 
-Let Pholds_gt0 : (0 < ex_minn Pholds).
+Let Pholds_gt0 : (0 < ex_minn elementDegree_property_holds).
 Proof.
 case: ex_minnP => [[|//]].
-by rewrite /P muln1 big_ord1 expr0 prodv1 !ltnn.
+by rewrite /elementDegree_property muln1 big_ord1 expr0 prodv1 !ltnn.
 Qed.
 
 Lemma dim_Fadjoin_subproof n : \sum_(i < n) \dim (K * <[x ^+ i]>) <= \dim K * n.
@@ -1017,7 +1018,7 @@ Lemma elementDegreeBound : elementDegree K x <= Vector.dim L.
 Proof.
 rewrite /elementDegree prednK; last first.
   case: ex_minnP => [[|//]].
-  by rewrite muln1 big_ord1 expr0 prodv1 !ltnn.
+  by rewrite /elementDegree_property muln1 big_ord1 expr0 prodv1 !ltnn.
 case: ex_minnP => m _. apply.
 apply/orP; right.
 apply: (@leq_trans ((Vector.dim L).+1)).
@@ -1039,8 +1040,9 @@ apply: contraLR => nzx.
 rewrite (sameP eqP directv_addP) directvE ltn_eqF //=.
 rewrite dim_Fadjoin dim_cosetv ?expf_neq0 // -mulnS.
 have:= elementDegreeBound; rewrite /Fadjoin /elementDegree.
-case: ex_minnP => [[|m]]; first by rewrite muln1 big_ord1 expr0 prodv1 !ltnn.
-rewrite leqNgt; case/orP => [/negP//|Hm _ _]; apply: leq_trans Hm.
+case: ex_minnP => [[|m]].
+  by rewrite /elementDegree_property muln1 big_ord1 expr0 prodv1 !ltnn.
+rewrite ltnNge; case/orP => [/idPn//|Hm _ _]; apply: leq_trans Hm.
 by rewrite [(\sum_(i < m.+2) _)%VS]big_ord_recr addvC.
 Qed.
 
@@ -1048,9 +1050,9 @@ Lemma elemDeg1_subproof : x \in K -> elementDegree K x = 1%N.
 Proof.
 rewrite /elementDegree.
 case: ex_minnP => [[|m _ Hm xK]].
-  by rewrite muln1 big_ord1 expr0 prodv1 !ltnn.
+  by rewrite /elementDegree_property muln1 big_ord1 expr0 prodv1 !ltnn.
 apply/eqP.
-rewrite eqSS -leqn0 -ltnS Hm //.
+rewrite eqSS -leqn0 -ltnS Hm // /elementDegree_property.
 rewrite !big_ord_recl big_ord0 expr1 expr0 addv0 prodv1.
 apply/orP; right.
 apply (@leq_trans (\dim K).+1).
@@ -1144,8 +1146,8 @@ rewrite -(can_eq (mulfK Hxi)) mul0r -memv0.
 move/(_ ord_max isT) <-.
 rewrite memv_cap lead_coefE sizep.
 apply/andP; split; first by rewrite memv_prod ?memv_line ?pK.
-rewrite [nth 0]lock /= (bigID (fun j => j == ord_max)) -lock in sump.
-rewrite big_pred1_eq addr_eq0 exprSr mulrA mulfK // in sump.
+rewrite [nth 0]lock /= (bigD1 ord_max) // [ord_max]lock /= -!lock in sump.
+rewrite -/(elementDegree K x) addr_eq0 exprSr mulrA mulfK // in sump.
 rewrite {sump}(eqP sump) memvN memv_sumr // => i _.
 by rewrite exprSr mulrA (mulfK Hx) memv_prod ?memv_line ?pK.
 Qed.
@@ -1380,8 +1382,7 @@ Qed.
 
 Definition genField V rs := foldl Fadjoin V rs.
 
-Fact genField_is_aspace K rs :
-  let E := genField K rs in has_algid E && (E * E <= E)%VS.
+Fact genField_is_aspace K rs : is_aspace (genField K rs).
 Proof. by elim: rs K => [|z rs IHrs] K; [exact: (valP K) | exact: IHrs]. Qed.
 Canonical genField_aspace K rs := ASpace (genField_is_aspace K rs).
 
@@ -1548,7 +1549,7 @@ Definition vspaceOver V := <<vbasis V : seq L_F>>%VS.
 
 Lemma mem_vspaceOver V : vspaceOver V =i (F * V)%VS.
 Proof.
-move=> y; apply/idP/idP=> /coord_span->.
+move=> y; apply/idP/idP; last rewrite prodvE; move/coord_span->.
   rewrite (@memv_suml F0 L) // => i _.
   by rewrite memv_prod ?subvsP // vbasis_mem ?memt_nth.
 rewrite memv_suml // => ij _; rewrite -tnth_nth; set x := tnth _ ij.
@@ -1561,10 +1562,9 @@ Proof.
 by move=> sFE y; rewrite mem_vspaceOver field_ideal_eq ?sup_field_ideal.
 Qed.
 
-Fact aspaceOver_suproof E (E_F := vspaceOver E) : 
-  has_algid E_F && (E_F * E_F <= E_F)%VS.
+Fact aspaceOver_suproof E : is_aspace (vspaceOver E).
 Proof.
-rewrite has_algid1; last by rewrite mem_vspaceOver (@mem1v _ L).
+rewrite /is_aspace has_algid1; last by rewrite mem_vspaceOver (@mem1v _ L).
 by apply/prodvP=> u v; rewrite !mem_vspaceOver; exact: memv_mul.
 Qed.
 Canonical aspaceOver E := ASpace (aspaceOver_suproof E).
@@ -1598,9 +1598,9 @@ have idV: (F * V)%VS = V by rewrite prodvA prodv_id.
 suffices defVF: V_F = vspaceOver V.
   by exists V; split=> [||u]; rewrite ?defVF ?mem_vspaceOver ?idV.
 apply/vspaceP=> v; rewrite mem_vspaceOver idV.
-apply/idP/idP=> [/coord_vbasis|/coord_span] ->; apply: memv_suml => i _.
-  by rewrite memv_prod ?subvsP ?memv_span ?memt_nth.
-rewrite -tnth_nth; set xu := tnth _ i.
+do [apply/idP/idP; last rewrite /V prodvE] => [/coord_vbasis|/coord_span] ->.
+  by apply: memv_suml => i _; rewrite memv_prod ?subvsP ?memv_span ?memt_nth.
+apply: memv_suml => i _; rewrite -tnth_nth; set xu := tnth _ i.
 have /allpairsP[[x u] /=]: xu \in _ := mem_tnth i _.
 case=> /vbasis_mem Fx /vbasis_mem Vu ->.
 rewrite scalerAl (coord_span Vu) mulr_sumr memv_suml // => j_.
@@ -1732,10 +1732,9 @@ rewrite pair_bigA (reindex _ (onW_bij _ (enum_val_bij _))); apply: etrans sb0.
 by apply: eq_bigr => k _; rewrite -{5 6}[k](enum_valK k); case/enum_val: k.
 Qed.
 
-Fact baseAspace_suproof (E : {subfield L}) (E0 := baseVspace E) : 
-  has_algid E0 && (E0 * E0 <= E0)%VS.
+Fact baseAspace_suproof (E : {subfield L}) : is_aspace (baseVspace E).
 Proof.
-rewrite has_algid1; last by rewrite mem_baseVspace (mem1v E).
+rewrite /is_aspace has_algid1; last by rewrite mem_baseVspace (mem1v E).
 by apply/prodvP=> u v; rewrite !mem_baseVspace; exact: memv_mul.
 Qed.
 Canonical baseAspace E := ASpace (baseAspace_suproof E).

@@ -507,44 +507,6 @@ Let F : {subfield L } := aspace1 _.
 Definition separableElement (K : {vspace L}) x :=
   separablePolynomial (minPoly K x).
 
-Lemma memXED_Fadjoin_subproof : forall x, 
-  x ^+ elementDegree F x \in Fadjoin F x.
-Proof.
-move => x.
-case (eqVneq x 0) => [->|xn0]; first by rewrite exprS mul0r mem0v.
-rewrite /Fadjoin /elementDegree.
-case: ex_minnP.
-case => //.
- by rewrite muln1 big_ord1 expr0 prodv1 !ltnn.
-move => m.
-rewrite dim_vline oner_neq0 mul1n big_ord_recr /=.
-case/orP => H.
- move/(_ (Vector.dim L)).
- move: (H).
- rewrite ltnn /= ltnNge.
- move/negbTE ->; move/implyP.
- rewrite  implybF -[(\sum_i _)%VS]capfv mul1n ltnS -dimvf.
- by rewrite dimvS // subvf.
-move/(_ m).
-move/contra.
-rewrite -ltnNge mul1n.
-move/(_ (leqnn _)).
-rewrite negb_or.
-case/andP => _.
-rewrite -ltnNge.
-move/(leq_trans H).
-rewrite ltnS prod1v.
-set V := (\sum_(i < m.+1) _)%VS.
-move => Hdim.
-have: \dim (V + <[x ^+ m.+1]>) = \dim V.
- by apply: anti_leq; rewrite Hdim dimvS // addvSl.
-move/eqP.
-rewrite eq_sym dimv_leqif_sup ?addvSl //.
-move => HV.
-apply: (subv_trans _ HV).
-by rewrite addvSr.
-Qed.
-
 Section Derivation.
 
 Variables (K : {vspace L}) (D:'End(L)).
