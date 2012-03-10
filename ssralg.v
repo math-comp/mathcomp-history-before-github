@@ -5384,6 +5384,7 @@ Definition rpred_nat := rpred_nat.
 Definition rpredZsign := rpredZsign.
 Definition rpredZnat := rpredZnat.
 Definition rpredZ := rpredZ.
+Definition rpredVr := rpredVr.
 Definition rpredV := rpredV.
 Definition rpred_div := rpred_div.
 Definition rpredXN := rpredXN.

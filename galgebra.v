@@ -1,5 +1,5 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype finfun.
-Require Import bigop finset ssralg fingroup zmodp matrix vector algebra.
+Require Import bigop finset ssralg fingroup zmodp matrix vector falgebra.
 
 (*****************************************************************************)
 (*  * Finite Group as an algebra                                             *)
@@ -190,16 +190,16 @@ Qed.
 
 Definition gAlgMixin := VectMixin gAlg_iso_vect.
 Canonical gAlgVectType := VectType F galg gAlgMixin.
-Canonical gAlgAlgFType := AlgFType F gAlgMixin.
+Canonical gAlgAlgFType := [FalgType F of galg].
 
 Variable G : {group gT}.
 
 Definition gvspace: {vspace galg} := (\sum_(g \in G) <[g%:FG]>)%VS.
 
-Fact gspace_subproof : has_aunit gvspace && (gvspace * gvspace <= gvspace)%VS.
+Fact gspace_subproof : has_algid gvspace && (gvspace * gvspace <= gvspace)%VS.
 Proof.
 apply/andP; split.
-  apply: has_aunit1.
+  apply: has_algid1.
   rewrite /gvspace (bigD1 (1)%g) //=.
   apply: subv_trans (addvSl _ _).
   by apply/vlineP; exists 1; rewrite scale1r.
@@ -215,7 +215,7 @@ apply/vlineP; exists (k * l).
 by rewrite -scalerAl -scalerAr scalerA injGM.
 Qed.
 
-Definition gaspace : {algebra galg} := ASpace gspace_subproof.
+Definition gaspace : {aspace galg} := ASpace gspace_subproof.
 
 End GroupAlgebraDef.
 

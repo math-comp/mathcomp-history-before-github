@@ -4,7 +4,7 @@ Require Import fintype tuple finfun bigop prime ssralg poly finset center.
 Require Import fingroup morphism perm automorphism quotient action zmodp.
 Require Import gfunctor gproduct cyclic pgroup commutator gseries nilpotent.
 Require Import sylow abelian maximal hall.
-Require Import matrix mxalgebra mxrepresentation vector algC.
+Require Import matrix mxalgebra mxrepresentation vector falgebra algC.
 Require Import classfun character frobenius inertia vcharacter integral_char. 
 Require Import PFsection1 PFsection2 PFsection3 PFsection4 PFsection5.
 
@@ -533,9 +533,11 @@ split=> // [_ /mapP[xi /Schi2/Znu ? -> //]||].
 by rewrite -raddfB -cfunD1E Dnu // irr_vchar_on ?Ztau.
 Qed.
 
-Import polydiv rat algebra fieldext separable galois.
-
 Section NumFieldProj.
+
+(* Note: the galois library can't be imported in files that deal with group   *)
+(* theory, because it overrides the binding of "normal"!                      *)
+Require Import polydiv rat fieldext separable galois.
 
 Variables (Qn : fieldExtType rat) (QnC : {rmorphism Qn -> algC}).
 
@@ -552,7 +554,7 @@ Proof. by move=> _ x /CratP[a ->]; exact: Crat_spanZ. Qed.
 (* would require a limit construction.                                        *)
 Lemma num_field_proj : {CtoQn | CtoQn 0 = 0 & cancel QnC CtoQn}.
 Proof.
-pose b := vbasis (fullv : {vspace Qn}).
+pose b := vbasis {:Qn}.
 have Qn_bC (u : {x | x \in Crat_span (map QnC b)}): {y | QnC y = sval u}.
   case: u => _ /= /Crat_spanP/sig_eqW[a ->].
   exists (\sum_i a i *: b`_i); rewrite rmorph_sum; apply: eq_bigr => i _.
@@ -619,8 +621,8 @@ Lemma extend_coprime_Qn_aut a b (Qa Qb : fieldExtType rat) w_a w_b
           (QaC : {rmorphism Qa -> algC}) (QbC : {rmorphism Qb -> algC})
           (mu : {rmorphism algC -> algC}) :
     coprime a b ->
-    a.-primitive_root w_a /\ Fadjoin 1 w_a = fullv :> {vspace Qa} -> 
-    b.-primitive_root w_b /\ Fadjoin 1 w_b = fullv :> {vspace Qb} ->
+    a.-primitive_root w_a /\ Fadjoin 1 w_a = {:Qa}%VS -> 
+    b.-primitive_root w_b /\ Fadjoin 1 w_b = {:Qb}%VS ->
   {nu : {rmorphism algC -> algC} | forall x, nu (QaC x) = mu (QaC x)
                                  & forall y, nu (QbC y) = QbC y}.
 Proof.

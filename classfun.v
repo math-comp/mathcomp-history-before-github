@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset.
 Require Import fingroup morphism perm automorphism quotient finalg action.
 Require Import gproduct zmodp commutator cyclic center pgroup sylow.
-Require Import matrix vector algebra algC.
+Require Import matrix vector falgebra algC.
 
 (******************************************************************************)
 (* This file contains the basic theory of class functions:                    *)
@@ -346,7 +346,7 @@ by rewrite groupJ // /eK classGidl // -def_i enum_valK_in.
 Qed.
 Definition cfun_vectMixin := VectMixin cfun_vect_iso.
 Canonical cfun_vectType := VectType algC classfun cfun_vectMixin.
-Canonical cfun_fAlgType := AlgFType algC cfun_vectMixin.
+Canonical cfun_FalgType := [FalgType algC of classfun].
 
 Definition cfun_base A : #|classes B ::&: A|.-tuple classfun :=
   [tuple of [image ('1_xB)%R | xB <- classes B ::&: A]].

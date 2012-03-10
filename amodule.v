@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype fintype finfun finset ssralg.
 Require Import bigop seq tuple choice ssrnat prime ssralg fingroup pgroup.
-Require Import zmodp matrix vector galgebra algebra.
+Require Import zmodp matrix vector falgebra galgebra.
 
 (*****************************************************************************)
 (*  * Module over an algebra                                                 *)
@@ -28,7 +28,7 @@ Section ClassDef.
 
 Variable R : ringType.
 Variable V: vectType R.
-Variable A: algFType R.
+Variable A: FalgType R.
 
 Structure mixin_of (V : vectType R) : Type := Mixin {
   action: A -> 'End(V);
@@ -91,7 +91,7 @@ End AModuleType.
 Import AModuleType.Exports.
 
 Section AModuleDef.
-Variables (F : fieldType) (A: algFType F) (M: amoduleType A).
+Variables (F : fieldType) (A: FalgType F) (M: amoduleType A).
 
 Definition rmorph (a: A) := AModuleType.action (AModuleType.class M) a.
 Definition rmul (a: M) (b: A) : M := rmorph b a.
@@ -190,13 +190,13 @@ rewrite -[_`_i]rmul1; apply: memv_eprod; last by apply: memv_line.
 by apply: vbasis_mem; apply: mem_nth; rewrite size_tuple.
 Qed.
 
-Lemma eprodv_monol ws vs1 vs2 : (vs1 <= vs2 -> vs1 :* ws <= vs2 :* ws)%VS.
+Lemma eprodvSl ws vs1 vs2 : (vs1 <= vs2 -> vs1 :* ws <= vs2 :* ws)%VS.
 Proof.
 move=> Hvs; apply/eprodvP=> a b Ha Hb; apply: memv_eprod=> //.
 by apply: subv_trans Hvs.
 Qed.
 
-Lemma eprodv_monor vs ws1 ws2 : (ws1 <= ws2 -> vs :* ws1 <= vs :* ws2)%VS.
+Lemma eprodvSr vs ws1 ws2 : (ws1 <= ws2 -> vs :* ws1 <= vs :* ws2)%VS.
 Proof.
 move=> Hvs; apply/eprodvP=> a b Ha Hb; apply: memv_eprod=> //.
 by apply: subv_trans Hvs.
@@ -209,8 +209,8 @@ move=> vs1 vs2 ws; apply subv_anti; apply/andP; split.
   by rewrite rmulD; apply: memv_add; apply: memv_eprod.
 apply/subvP=> v;  case/memv_addP=> v1 Hv1 [v2 Hv2 ->].
 apply: memvD.
-  move: v1 Hv1; apply/subvP; apply: eprodv_monol; exact: addvSl.
-move: v2 Hv2; apply/subvP; apply: eprodv_monol; exact: addvSr.
+  move: v1 Hv1; apply/subvP; apply: eprodvSl; exact: addvSl.
+move: v2 Hv2; apply/subvP; apply: eprodvSl; exact: addvSr.
 Qed.
 
 Lemma eprodv_sumr vs ws1 ws2 : (vs :* (ws1 + ws2) = vs :* ws1 + vs :* ws2)%VS.
@@ -220,11 +220,11 @@ apply subv_anti; apply/andP; split.
   by rewrite linearD; apply: memv_add; apply: memv_eprod.
 apply/subvP=> v;  case/memv_addP=> v1 Hv1 [v2 Hv2 ->].
 apply: memvD.
-  move: v1 Hv1; apply/subvP; apply: eprodv_monor; exact: addvSl.
-move: v2 Hv2; apply/subvP; apply: eprodv_monor; exact: addvSr.
+  move: v1 Hv1; apply/subvP; apply: eprodvSr; exact: addvSl.
+move: v2 Hv2; apply/subvP; apply: eprodvSr; exact: addvSr.
 Qed.
 
-Definition modv (vs: {vspace M}) (al: {algebra A}) :=
+Definition modv (vs: {vspace M}) (al: {aspace A}) :=
    (vs :* al  <= vs)%VS.
  
 Lemma mod0v : forall al, modv 0 al.
@@ -257,7 +257,7 @@ Proof.
 move=> ms1 ms2 al Hm1 Hm2.
 by rewrite /modv subv_cap; apply/andP; split;
   [apply: subv_trans Hm1 | apply: subv_trans Hm2]; 
-   apply: eprodv_monol; rewrite (capvSr,capvSl).
+   apply: eprodvSl; rewrite (capvSr,capvSl).
 Qed.
 
 Definition irreducible ms al := 
@@ -282,11 +282,11 @@ Notation "A :* B" := (eprodv A B) : vspace_scope.
 
 Section HomMorphism.
 
-Variable (K: fieldType) (A: algFType K) (M1 M2: amoduleType A).
+Variable (K: fieldType) (A: FalgType K) (M1 M2: amoduleType A).
 
 Implicit Types ms : {vspace M1}.
 Implicit Types f : 'Hom(M1, M2).
-Implicit Types al : {algebra A}.
+Implicit Types al : {aspace A}.
 
 Definition modf f ms al :=
        all (fun p => f (p.1 :* p.2) == f p.1 :* p.2) 
