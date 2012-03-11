@@ -10,15 +10,15 @@ Unset Printing Implicit Defensive.
 Local Open Scope ring_scope.
 Local Open Scope quotient_scope.
 
-Reserved Notation "{quot I }" (at level 0, format "{quot I }").
-Reserved Notation "m = n %[quot I ]" (at level 70, n at next level,
-  format "'[hv ' m '/'  =  n '/'  %[quot  I ] ']'").
-Reserved Notation "m == n %[quot I ]" (at level 70, n at next level,
-  format "'[hv ' m '/'  ==  n '/'  %[quot  I ] ']'").
-Reserved Notation "m <> n %[quot I ]" (at level 70, n at next level,
-  format "'[hv ' m '/'  <>  n '/'  %[quot  I ] ']'").
-Reserved Notation "m != n %[quot I ]" (at level 70, n at next level,
-  format "'[hv ' m '/'  !=  n '/'  %[quot  I ] ']'").
+Reserved Notation "{ideal_quot I }" (at level 0, format "{ideal_quot I }").
+Reserved Notation "m = n %[mod_ideal I ]" (at level 70, n at next level,
+  format "'[hv ' m '/'  =  n '/'  %[mod_ideal  I ] ']'").
+Reserved Notation "m == n %[mod_ideal I ]" (at level 70, n at next level,
+  format "'[hv ' m '/'  ==  n '/'  %[mod_ideal  I ] ']'").
+Reserved Notation "m <> n %[mod_ideal I ]" (at level 70, n at next level,
+  format "'[hv ' m '/'  <>  n '/'  %[mod_ideal  I ] ']'").
+Reserved Notation "m != n %[mod_ideal I ]" (at level 70, n at next level,
+  format "'[hv ' m '/'  !=  n '/'  %[mod_ideal  I ] ']'").
 
 
 Section ZmodQuot.
@@ -420,21 +420,17 @@ Definition equiv (x y : R) := (x - y) \in kI.
 
 Lemma equivE x y : (equiv x y) = (x - y \in kI). Proof. by []. Qed.
 
-Lemma equiv_refl: reflexive equiv.
-Proof. by move=> x; rewrite /equiv subrr rpred0. Qed.
-
-Lemma equiv_sym: symmetric equiv.
-Proof. by move=> x y; rewrite !equivE -opprB rpredN. Qed.
-
-Lemma equiv_trans: transitive equiv.
+Lemma equiv_is_equiv : equiv_class_of equiv.
 Proof.
-by move=> x y z *; rewrite !equivE -[y](addrNK x) -addrA rpredD.
+split=> [x|x y|y x z]; rewrite !equivE ?subrr ?rpred0 //.
+   by rewrite -opprB rpredN.
+by move=> *; rewrite -[x](addrNK y) -addrA rpredD.
 Qed.
 
-Canonical equiv_equiv := EquivRel equiv_refl equiv_sym equiv_trans.
-Canonical equiv_direct_equiv := EquivQuotDirect equiv.
+Canonical equiv_equiv := EquivRelPack equiv_is_equiv.
+Canonical equiv_encModRel := defaultEncModRel equiv.
 
-Definition type := {mod equiv}.
+Definition type := {eq_quot equiv}.
 Definition type_of of phant R := type.
 
 Canonical rquot_quotType := [quotType of type].
@@ -442,15 +438,15 @@ Canonical rquot_eqType := [eqType of type].
 Canonical rquot_choiceType := [choiceType of type].
 Canonical rquot_eqQuotType := [eqQuotType equiv of type].
 
-Lemma idealrBE x y : (x - y) \in kI = (x == y %[m type]).
+Lemma idealrBE x y : (x - y) \in kI = (x == y %[mod type]).
 Proof. by rewrite piE equivE. Qed.
 
-Lemma idealrDE x y : (x + y) \in kI = (x == - y %[m type]).
+Lemma idealrDE x y : (x + y) \in kI = (x == - y %[mod type]).
 Proof. by rewrite -idealrBE opprK. Qed.
 
-Definition zero : type := mk_mconst type 0.
-Definition add := mk_mop2 type +%R.
-Definition opp := mk_mop1 type -%R.
+Definition zero : type := lift_cst type 0.
+Definition add := lift_op2 type +%R.
+Definition opp := lift_op1 type -%R.
 
 Canonical pi_zero_morph := PiConst zero.
 
@@ -499,8 +495,8 @@ Variables (R : comRingType) (I : predPredType R)
 
 Local Notation type := {quot kI}.
 
-Definition one: type := mk_mconst type 1.
-Definition mul := mk_mop2 type *%R.
+Definition one: type := lift_cst type 1.
+Definition mul := lift_op2 type *%R.
 
 Canonical pi_one_morph := PiConst one.
 
@@ -526,7 +522,7 @@ Proof. by move=> x; rewrite -[x]reprK !piE mul1r. Qed.
 Lemma mulq_addl: left_distributive mul +%R.
 Proof.
 move=> x y z; rewrite -[x]reprK -[y]reprK -[z]reprK.
-by apply/eqP; rewrite piE -eqmodE mulrDl.
+by apply/eqP; rewrite piE /= mulrDl equiv_refl.
 Qed.
 
 Lemma nonzero1q: one != 0.
@@ -557,11 +553,15 @@ End IDomainQuotient.
 
 End Quotient.
 
-Notation "{quot I }" := (@Quotient.type_of _ _ _ I (Phant _)).
-Notation "x == y %[quot I ]" := (x == y %[m {mod I}]) : quotient_scope.
-Notation "x = y %[quot I ]" := (x = y %[m {mod I}]) : quotient_scope.
-Notation "x != y %[quot I ]" := (x != y %[m {mod I}]) : quotient_scope.
-Notation "x <> y %[quot I ]" := (x <> y %[m {mod I}]) : quotient_scope.
+Notation "{ideal_quot I }" := (@Quotient.type_of _ _ _ I (Phant _)).
+Notation "x == y %[mod_ideal I ]" :=
+  (x == y %[mod {ideal_quot I}]) : quotient_scope.
+Notation "x = y %[mod_ideal I ]" :=
+  (x = y %[mod {ideal_quot I}]) : quotient_scope.
+Notation "x != y %[mod_ideal I ]" :=
+  (x != y %[mod {ideal_quot I}]) : quotient_scope.
+Notation "x <> y %[mod_ideal I ]" :=
+  (x <> y %[mod {ideal_quot I}]) : quotient_scope.
 
 Canonical Quotient.rquot_eqType.
 Canonical Quotient.rquot_choiceType.

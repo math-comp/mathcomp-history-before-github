@@ -117,10 +117,10 @@ move=> [x Px] [y Py] [z Pz]; rewrite /equivf /= mulrC => /eqP xy /eqP yz.
 by rewrite -(inj_eq (mulfI Px)) mulrA xy -mulrA yz mulrCA.
 Qed.
 
-Canonical equivf_equiv := EquivRel equivf_refl equivf_sym equivf_trans.
-Canonical equivf_equiv_direct := EquivQuotDirect equivf.
+Canonical equivf_equiv := EquivRel equivf equivf_refl equivf_sym equivf_trans.
+Canonical equivf_encModRel := defaultEncModRel equivf.
 
-Definition type := {mod equivf}.
+Definition type := {eq_quot equivf}.
 Definition type_of of phant R := type.
 Notation "{ 'fraction' T }" := (type_of (Phant T)).
 
@@ -134,17 +134,17 @@ Canonical frac_of_eqType := [eqType of {fraction R}].
 Canonical frac_of_choiceType := [choiceType of {fraction R}].
 Canonical frac_of_eqQuotType := [eqQuotType equivf of {fraction R}].
 
-Lemma equiv_def (x y : ratio R) : x == y %[m {mod equivf}]
+Lemma equivf_def (x y : ratio R) : x == y %[mod type]
                                     = (\n_x * \d_y == \d_x * \n_y).
 Proof. by rewrite eqmodE. Qed.
 
 Lemma equivf_r x : \n_x * \d_(repr (\pi_type x)) = \d_x * \n_(repr (\pi_type x)).
-Proof. by apply/eqP; rewrite -/(equivf _ _); apply/eqmodP; rewrite reprK. Qed.
+Proof. by apply/eqP; rewrite -equivf_def reprK. Qed.
 
 Lemma equivf_l x : \n_(repr (\pi_type x)) * \d_x = \d_(repr (\pi_type x)) * \n_x.
-Proof. by apply/eqP; rewrite -/(equivf _ _); apply/eqmodP; rewrite reprK. Qed.
+Proof. by apply/eqP; rewrite -equivf_def reprK. Qed.
 
-Lemma numer0 x : (\n_x == 0) = (x == (ratio0 R) %[mod equivf]).
+Lemma numer0 x : (\n_x == 0) = (x == (ratio0 R) %[mod_eq equivf]).
 Proof. by rewrite eqmodE /= !equivfE // mulr1 mulr0. Qed.
 
 Lemma Ratio_numden : forall x, Ratio \n_x \d_x = x.
@@ -153,16 +153,15 @@ case=> [[n d] /= nd]; rewrite /Ratio /insubd; apply: val_inj=> /=.
 by case: insubP=> //=; rewrite nd.
 Qed.
 
-Definition to_frac := mk_embed {fraction R} (fun x : R => Ratio x 1).
-Canonical to_frac_pi_morph := PiEmbed to_frac.
+Definition tofrac := lift_embed {fraction R} (fun x : R => Ratio x 1).
+Canonical tofrac_pi_morph := PiEmbed tofrac.
 
-Notation "x %:F"  := (@to_frac x).
-
+Notation "x %:F"  := (@tofrac x).
 
 Implicit Types a b c : type.
 
 Definition addf x y : dom := Ratio (\n_x * \d_y + \n_y * \d_x) (\d_x * \d_y).
-Definition add := mk_mop2 {fraction R} addf.
+Definition add := lift_op2 {fraction R} addf.
 
 Lemma pi_add : {morph \pi : x y / addf x y >-> add x y}.
 Proof.
@@ -177,7 +176,7 @@ Qed.
 Canonical pi_add_morph := PiMorph2 pi_add.
 
 Definition oppf x : dom := Ratio (- \n_x) \d_x.
-Definition opp := mk_mop1 {fraction R} oppf.
+Definition opp := lift_op1 {fraction R} oppf.
 Lemma pi_opp : {morph \pi : x / oppf x >-> opp x}.
 Proof.
 move=> x; unlock opp; apply/eqmodP; rewrite /= /equivf /oppf /=.
@@ -186,7 +185,7 @@ Qed.
 Canonical pi_opp_morph := PiMorph1 pi_opp.
 
 Definition mulf x y : dom := Ratio (\n_x * \n_y) (\d_x * \d_y).
-Definition mul := mk_mop2 {fraction R} mulf.
+Definition mul := lift_op2 {fraction R} mulf.
 
 Lemma pi_mul : {morph \pi : x y / mulf x y >-> mul x y}.
 Proof.
@@ -198,13 +197,13 @@ Qed.
 Canonical pi_mul_morph := PiMorph2 pi_mul.
 
 Definition invf x : dom := Ratio \d_x \n_x.
-Definition inv := mk_mop1 {fraction R} invf.
+Definition inv := lift_op1 {fraction R} invf.
 
 Lemma pi_inv : {morph \pi : x / invf x >-> inv x}.
 Proof.
 move=> x; unlock inv; apply/eqmodP=> /=; rewrite equivfE /invf eq_sym.
 do 2?case: RatioP=> /= [/eqP|];
-  rewrite ?mul0r ?mul1r -?equiv_def ?numer0 ?reprK //.
+  rewrite ?mul0r ?mul1r -?equivf_def ?numer0 ?reprK //.
   by move=> hx /eqP hx'; rewrite hx' eqxx in hx.
 by move=> /eqP ->; rewrite eqxx.
 Qed.
@@ -212,8 +211,8 @@ Canonical pi_inv_morph := PiMorph1 pi_inv.
 
 Lemma addA : associative add.
 Proof.
-elim/quotW=> x; elim/quotW=> y; elim/quotW=> z.
-rewrite !piE /addf /= !numden_Ratio ?mulf_neq0 ?domP // !mulrDl !mulrA !addrA.
+elim/quotW=> x; elim/quotW=> y; elim/quotW=> z; rewrite !piE.
+rewrite /addf /= !numden_Ratio ?mulf_neq0 ?domP // !mulrDl !mulrA !addrA.
 by congr (\pi (Ratio (_ + _ + _) _)); rewrite mulrAC.
 Qed.
 
@@ -230,7 +229,7 @@ Qed.
 
 Lemma addN_l : left_inverse 0%:F opp add.
 Proof.
-elim/quotW=> x; rewrite !piE; apply/eqmodP; rewrite /= /equivf.
+elim/quotW=> x; apply/eqP; rewrite piE /equivf.
 rewrite /addf /oppf !numden_Ratio ?(oner_eq0, mulf_neq0, domP) //.
 by rewrite mulr1 mulr0 mulNr addNr.
 Qed.
@@ -258,9 +257,8 @@ Qed.
 
 Lemma mul_addl : left_distributive mul add.
 Proof.
-elim/quotW=> x; elim/quotW=> y; elim/quotW=> z.
-rewrite !piE; apply/eqmodP.
-rewrite /= /equivf /mulf /addf !numden_Ratio ?mulf_neq0 ?domP //; apply/eqP.
+elim/quotW=> x; elim/quotW=> y; elim/quotW=> z; apply/eqP.
+rewrite !piE /equivf /mulf /addf !numden_Ratio ?mulf_neq0 ?domP //; apply/eqP.
 rewrite !(mulrDr, mulrDl) !mulrA; congr (_ * _ + _ * _).
   rewrite ![_ * \n_z]mulrC -!mulrA; congr (_ * _).
   rewrite ![\d_y * _]mulrC !mulrA; congr (_ * _ * _).
@@ -271,7 +269,7 @@ by rewrite -mulrA mulrC [X in X * _] mulrC.
 Qed.
 
 Lemma nonzero1 : 1%:F != 0%:F :> type.
-Proof. by rewrite !piE equivfE !numden_Ratio ?mul1r ?oner_eq0. Qed.
+Proof. by rewrite piE equivfE !numden_Ratio ?mul1r ?oner_eq0. Qed.
 
 Definition frac_comRingMixin := ComRingMixin mulA mulC mul1_l mul_addl nonzero1.
 Canonical frac_ringType := Eval hnf in RingType type frac_comRingMixin.
@@ -325,7 +323,7 @@ Canonical FracField.frac_unitRingType.
 Canonical FracField.frac_comUnitRingType.
 Canonical FracField.frac_idomainType.
 Canonical FracField.frac_fieldType.
-Canonical FracField.to_frac_pi_morph.
+Canonical FracField.tofrac_pi_morph.
 Canonical frac_of_quotType := Eval hnf in [quotType of {fraction R}].
 Canonical frac_of_eqType := Eval hnf  in [eqType of {fraction R}].
 Canonical frac_of_choiceType := Eval hnf in [choiceType of {fraction R}].
@@ -356,39 +354,39 @@ Proof. exact: FracField.Ratio_numden. Qed.
 (* Lemma ratioP x : ratio_spec x \n_x \d_x (Ratio \n_x \d_x). *)
 (* Proof. by constructor; rewrite ?Ratio_numden. Qed. *)
 
-Local Notation to_frac := (@FracField.to_frac R).
-Local Notation "x %:F" := (to_frac x).
+Local Notation tofrac := (@FracField.tofrac R).
+Local Notation "x %:F" := (tofrac x).
 
-Lemma to_frac_is_additive: additive to_frac.
+Lemma tofrac_is_additive: additive tofrac.
 Proof.
-move=> p q /=; unlock to_frac.
+move=> p q /=; unlock tofrac.
 rewrite -[X in _ = _ + X]pi_opp -[X in _ = X]pi_add.
 by rewrite /addf /oppf /= !numden_Ratio ?(oner_neq0, mul1r, mulr1).
 Qed.
 
-Canonical to_frac_additive := Additive to_frac_is_additive.
+Canonical tofrac_additive := Additive tofrac_is_additive.
 
-Lemma to_frac_is_multiplicative: multiplicative to_frac.
+Lemma tofrac_is_multiplicative: multiplicative tofrac.
 Proof.
-split=> [p q|//]; unlock to_frac; rewrite -[X in _ = X]pi_mul.
+split=> [p q|//]; unlock tofrac; rewrite -[X in _ = X]pi_mul.
 by rewrite /mulf /= !numden_Ratio ?(oner_neq0, mul1r, mulr1).
 Qed.
 
-Canonical to_frac_rmorphism := AddRMorphism to_frac_is_multiplicative.
+Canonical tofrac_rmorphism := AddRMorphism tofrac_is_multiplicative.
 
 Lemma tofrac0 : 0%:F = 0. Proof. exact: rmorph0. Qed.
-Lemma tofracN : {morph to_frac: x / - x}. Proof. exact: rmorphN. Qed.
-Lemma tofracD : {morph to_frac: x y / x + y}. Proof. exact: rmorphD. Qed.
-Lemma tofracB : {morph to_frac: x y / x - y}. Proof. exact: rmorphB. Qed.
-Lemma tofracMn n : {morph to_frac: x / x *+ n}. Proof. exact: rmorphMn. Qed.
-Lemma tofracMNn n : {morph to_frac: x / x *- n}. Proof. exact: rmorphMNn. Qed.
+Lemma tofracN : {morph tofrac: x / - x}. Proof. exact: rmorphN. Qed.
+Lemma tofracD : {morph tofrac: x y / x + y}. Proof. exact: rmorphD. Qed.
+Lemma tofracB : {morph tofrac: x y / x - y}. Proof. exact: rmorphB. Qed.
+Lemma tofracMn n : {morph tofrac: x / x *+ n}. Proof. exact: rmorphMn. Qed.
+Lemma tofracMNn n : {morph tofrac: x / x *- n}. Proof. exact: rmorphMNn. Qed.
 Lemma tofrac1 : 1%:F = 1. Proof. exact: rmorph1. Qed.
-Lemma tofracM : {morph to_frac: x y  / x * y}. Proof. exact: rmorphM. Qed.
-Lemma tofracX n : {morph to_frac: x / x ^+ n}. Proof. exact: rmorphX. Qed.
+Lemma tofracM : {morph tofrac: x y  / x * y}. Proof. exact: rmorphM. Qed.
+Lemma tofracX n : {morph tofrac: x / x ^+ n}. Proof. exact: rmorphX. Qed.
 
 Lemma tofrac_eq (p q : R): (p%:F == q%:F) = (p == q).
 Proof.
-apply/eqP/eqP=> [|->//]; unlock to_frac=> /eqmodP /eqP /=.
+apply/eqP/eqP=> [|->//]; unlock tofrac=> /eqmodP /eqP /=.
 by rewrite !numden_Ratio ?(oner_eq0, mul1r, mulr1).
 Qed.
 
@@ -505,3 +503,4 @@ End FracFieldTheory.
 
 (* End PolyFraction. *)
 (* End PolyFraction. *)
+

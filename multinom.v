@@ -441,13 +441,13 @@ rewrite !(@interp_gtn (maxn (maxn (nbvar_term x) (nbvar_term y)) (nbvar_term z))
 - by rewrite maxnC leq_max leqnn.
 Qed.
 
-Canonical equivm_equivRel := EquivRel equivm_refl equivm_sym equivm_trans.
-Canonical equivm_equivRelDirect := EquivQuotDirect equivm.
+Canonical equivm_equivRel := EquivRel equivm
+  equivm_refl equivm_sym equivm_trans.
 
-Definition multinom := {mod equivm}.
+Definition multinom := {eq_quot equivm}.
 Definition multinom_of of phant X & phant R := multinom.
 
-Notation "{ 'multinom' R }" := (@multinom_of (Phant X) (Phant R))
+Local Notation "{ 'multinom' R }" := (multinom_of (Phant X) (Phant R))
    (at level 0, format "{ 'multinom'  R }").
 Canonical multinom_quotType := [quotType of multinom].
 Canonical multinom_eqType := [eqType of multinom].
@@ -458,71 +458,67 @@ Canonical multinom_of_eqType := [eqType of {multinom R}].
 Canonical multinom_of_eqQuotType := [eqQuotType equivm of {multinom R}].
 Canonical multinom_of_choiceType := [choiceType of {multinom R}].
 
-Definition cstm := mk_embed {multinom R} Coef.
+Lemma eqm_interp n m1 m2 : maxn (nbvar_term m1) (nbvar_term m2) <= n -> 
+         (interp n m1 == interp n m2) = (m1 == m2 %[mod {multinom R}]).
+Proof. by move=> hn; rewrite eqmodE /= -interp_gtn. Qed.
+
+Definition cstm := lift_embed {multinom R} Coef.
 Notation "c %:M" := (cstm c) (at level 2, format "c %:M").
 Canonical pi_cstm_morph := PiEmbed cstm.
 
-Definition varm := mk_embed {multinom R} Var.
+Definition varm := lift_embed {multinom R} Var.
 Notation "n %:X" := (varm n) (at level 2, format "n %:X").
 Canonical pi_varm_morph := PiEmbed varm.
 
-Definition addm := mk_mop2 {multinom R} Sum.
+Definition addm := lift_op2 {multinom R} Sum.
 Lemma pi_addm : {morph \pi : x y / Sum x y >-> addm x y}.
 Proof.
-move=> x y /=; unlock addm.
-apply/eqmodP=> /=; set x' := repr _; set y' := repr _.
-rewrite (@interp_gtn (nbvar_term (Sum (Sum x y) (Sum x' y')))) /=.
-  apply/eqP; congr (_ + _); apply/eqP; do[
-  rewrite -interp_gtn; do ?[by apply/eqmodP; rewrite reprK];
-  by rewrite !(geq_max, leq_max, leqnn, orbT)].
+move=> x y /=; unlock addm; apply/eqP; set x' := repr _; set y' := repr _.
+rewrite -(@eqm_interp (nbvar_term (Sum (Sum x y) (Sum x' y')))) /=.
+  apply/eqP; congr (_ + _); apply/eqP;
+  by rewrite eqm_interp ?reprK // !(geq_max, leq_max, leqnn, orbT).
 by rewrite maxnC.
 Qed.
 Canonical pi_addm_morph := PiMorph2 pi_addm.
 
 Definition Opp := Prod (Coef (-1)).
-Definition oppm := mk_mop1 {multinom R} Opp.
+Definition oppm := lift_op1 {multinom R} Opp.
 Lemma pi_oppm : {morph \pi : x / Opp x >-> oppm x}.
 Proof.
-move=> x; unlock oppm.
-apply/eqmodP; rewrite /= /equivm /= !max0n; apply/eqP; congr (_ * _).
-by apply/eqP; rewrite -interp_gtn //; apply/eqmodP; rewrite reprK.
+move=> x; unlock oppm; apply/eqmodP => /=.
+rewrite /equivm /= !max0n; apply/eqP; congr (_ * _).
+by apply/eqP; rewrite eqm_interp ?reprK.
 Qed.
 Canonical pi_oppm_morph := PiMorph1 pi_oppm.
 
-Definition mulm := mk_mop2 {multinom R} Prod.
+Definition mulm := lift_op2 {multinom R} Prod.
 Lemma pi_mulm : {morph \pi : x y / Prod x y >-> mulm x y}.
 Proof.
-move=> x y; unlock mulm.
-apply/eqmodP=> /=; set x' := repr _; set y' := repr _.
-rewrite (@interp_gtn (nbvar_term (Sum (Sum x y) (Sum x' y')))) /=.
-  apply/eqP; congr (_ * _); apply/eqP; do[
-  rewrite -interp_gtn; do ?[by apply/eqmodP; rewrite reprK];
-  by rewrite !(geq_max, leq_max, leqnn, orbT)].
+move=> x y; unlock mulm; apply/eqP; set x' := repr _; set y' := repr _.
+rewrite -(@eqm_interp (nbvar_term (Sum (Sum x y) (Sum x' y')))) /=.
+  apply/eqP; congr (_ * _); apply/eqP;
+  by rewrite eqm_interp ?reprK // !(geq_max, leq_max, leqnn, orbT).
 by rewrite maxnC.
 Qed.
 Canonical pi_mulm_morph := PiMorph2 pi_mulm.
 
 Lemma addmA : associative addm.
 Proof.
-elim/quotW=> x; elim/quotW=> y; elim/quotW=> z.
-by rewrite !piE; apply/eqmodP; rewrite /= /equivm /= addrA.
+elim/quotW=> x; elim/quotW=> y; elim/quotW=> z; apply/eqP.
+by rewrite !piE /equivm /= addrA.
 Qed.
 
 Lemma addmC : commutative addm.
 Proof.
-elim/quotW=> x; elim/quotW=> y.
-by rewrite !piE; apply/eqmodP; rewrite /= /equivm /= addrC.
+by elim/quotW=> x; elim/quotW=> y; apply/eqP; rewrite !piE /equivm /= addrC.
 Qed.
 
 Lemma add0m : left_id 0%:M addm.
-Proof.
-elim/quotW=> x; rewrite !piE; apply/eqmodP; rewrite /= /equivm /=.
-by rewrite rmorph0 add0r.
-Qed.
+Proof. by elim/quotW=> x; apply/eqP; rewrite piE /equivm /= rmorph0 add0r. Qed.
 
 Lemma addmN : left_inverse 0%:M oppm addm.
 Proof.
-elim/quotW=> x; rewrite !piE; apply/eqmodP; rewrite /= /equivm /=.
+elim/quotW=> x; apply/eqP; rewrite piE /equivm /=.
 by rewrite !rmorph0 rmorphN rmorph1 mulN1r addNr.
 Qed.
 
@@ -532,15 +528,12 @@ Canonical multinom_of_zmodType := ZmodType {multinom R} multinom_zmodMixin.
 
 Lemma mulmA : associative mulm.
 Proof.
-elim/quotW=> x; elim/quotW=> y; elim/quotW=> z.
-by rewrite !piE; apply/eqmodP; rewrite /= /equivm /= mulrA.
+elim/quotW=> x; elim/quotW=> y; elim/quotW=> z; apply/eqP.
+by rewrite piE /equivm /= mulrA.
 Qed.
 
 Lemma mul1m : left_id 1%:M mulm.
-Proof.
-elim/quotW=> x; rewrite !piE /=; apply/eqmodP; rewrite /= /equivm /=.
-by rewrite rmorph1 mul1r.
-Qed.
+Proof. by elim/quotW=> x; apply/eqP; rewrite piE /equivm /= rmorph1 mul1r. Qed.
 
 Lemma mulm1 : right_id 1%:M mulm.
 Proof.

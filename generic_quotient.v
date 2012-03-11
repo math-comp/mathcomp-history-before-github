@@ -3,9 +3,83 @@
 
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq bigop.
 
-(*******)
-(* Doc *)
-(*******)
+(*****************************************************************************)
+(* Provided a base type T, this files defines an interface for quotients Q   *)
+(* of the type T with explicit functions for canonical surjection (\pi       *)
+(* : T -> Q) and for choosing a representative (repr : Q -> T).  It then     *)
+(* provide a helper to quotient T by a decidable equivalence relation (e     *)
+(* : rel T) if T is a choiceType (or encodable as a choiceType modulo e).    *)
+(*                                                                           *)
+(* *** Generic Quotienting ***                                               *)
+(*   QuotClass (reprK : cancel repr pi) == builds the quotient which         *)
+(*              canonical surjection function is pi and which                *)
+(*              representative selection function is repr.                   *)
+(*   QuotType Q class == packs the quotClass class to build a quotType       *)
+(*                       You may declare such elements as Canonical          *)
+(*            \pi_Q x == the class in Q of the element x of T                *)
+(*              \pi x == the class of x where Q is inferred from the context *)
+(*             repr c == canonical representative in T of the class c        *)
+(*    [quotType of Q] == clone of the canonical quotType structure of Q on T *)
+(*     x = y %[mod Q] := \pi_Q x = \pi_Q y                                   *)
+(*                    <-> x and y are equal modulo Q                         *)
+(*    x <> y %[mod Q] := \pi_Q x <> \pi_Q y                                  *)
+(*    x == y %[mod Q] := \pi_Q x == \pi_Q y                                  *)
+(*    x != y %[mod Q] := \pi_Q x != \pi_Q y                                  *)
+(*                                                                           *)
+(* The quotient_scope is delimited by %qT                                    *)
+(* The most useful lemmas are piE and reprK                                  *)
+(*                                                                           *)
+(* *** Morphisms ***                                                         *)
+(* One may declare existing functions and predicates as liftings of some     *)
+(* morphisms for a quotient.                                                 *)
+(*    PiMorph1 pi_f == where pi_f : {morph \pi : x / f x >-> fq x}           *)
+(*                     declares fq : Q -> Q as the lifting of f : T -> T     *)
+(*    PiMorph2 pi_g == idem with pi_g : {morph \pi : x y / g x y >-> gq x y} *)
+(*     PiMono1 pi_p == idem with pi_p : {mono \pi : x / p x >-> pq x}        *)
+(*     PiMono2 pi_r == idem with pi_r : {morph \pi : x y / r x y >-> rq x y} *)
+(*   PiMorph11 pi_f == idem with pi_f : {morph \pi : x / f x >-> fq x}       *)
+(*                     where fq : Q -> Q' and f : T -> T'.                   *)
+(*       PiMorph eq == Most general declaration of compatibility,            *)
+(*                     /!\ use with caution /!\                              *)
+(* One can use the following helpers to build the liftings which may or      *)
+(* may not satisfy the above properties (but if they do not, it is           *)
+(* probably not a good idea to define them):                                 *)
+(*       lift_op1 Q f := lifts f : T -> T                                    *)
+(*       lift_op2 Q g := lifts g : T -> T -> T                               *)
+(*      lift_fun1 Q p := lifts p : T -> R                                    *)
+(*      lift_fun2 Q r := lifts r : T -> T -> R                               *)
+(*   lift_op11 Q Q' f := lifts f : T -> T'                                   *)
+(* There is also the special case of constants and embedding functions       *)
+(* that one may define and declare as compatible with Q using:               *)
+(*    lift_cst Q x := lifts x : T to Q                                       *)
+(*       PiConst c := declare the result c of the previous construction as   *)
+(*                    compatible with Q                                      *)
+(*  lift_embed Q e := lifts e : R -> T to R -> Q                             *)
+(*       PiEmbed f := declare the result f of the previous construction as   *)
+(*                    compatible with Q                                      *)
+(*                                                                           *)
+(* *** Quotients that have an eqType structure ***                           *)
+(* Having a canonical (eqQuotType e) structure enables piE to replace terms  *)
+(* of the form (x == y) by terms of the form (e x' y') if x and y are        *)
+(* canonical surjections of some x' and y'.                                  *)
+(*    EqQuotType e Q m == builds an (eqQuotType e) structure on Q from the   *)
+(*                        morphism property m                                *)
+(*                        where m : {mono \pi : x y / e x y >-> x == y}      *)
+(*   [eqQuotType of Q] == clones the canonical eqQuotType structure of Q     *)
+(*                                                                           *)
+(* *** Equivalence and quotient by an equivalence ***                        *)
+(*  EquivRel r er es et == builds an equiv_rel structure based on the        *)
+(*                         reflexivity, symmetry and transitivity property   *)
+(*                         of a boolean relation.                            *)
+(*          {eq_quot e} == builds the quotType of T by equiv                 *)
+(*                         where e : rel T is an equiv_rel                   *)
+(*                         and T is a choiceType or a (choiceTypeMod e)      *)
+(*                         it is canonically an eqType, a choiceType,        *)
+(*                         a quotType and an eqQuotType.                     *)
+(*    x = y %[mod_eq e] := x = y %[mod {eq_quot e}]                          *)
+(*                      <-> x and y are equal modulo e                       *)
+(*    ...                                                                    *)
+(*****************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -13,16 +87,16 @@ Unset Printing Implicit Defensive.
 
 Reserved Notation "\pi_ Q" (at level 0, format "\pi_ Q").
 Reserved Notation "\pi" (at level 0, format "\pi").
-Reserved Notation "x == y %[m Q ]" (at level 70, y at next level,
-  no associativity,   format "'[hv ' x '/'  ==  y '/'  %[m  Q ] ']'").
-Reserved Notation "x = y %[m Q ]" (at level 70, y at next level,
-  no associativity,   format "'[hv ' x '/'  =  y '/'  %[m  Q ] ']'").
-Reserved Notation "x != y %[m Q ]" (at level 70, y at next level,
-  no associativity,   format "'[hv ' x '/'  !=  y '/'  %[m  Q ] ']'").
-Reserved Notation "x <> y %[m Q ]" (at level 70, y at next level,
-  no associativity,   format "'[hv ' x '/'  <>  y '/'  %[m  Q ] ']'").
-Reserved Notation "{mod e }" (at level 0, T at level 0,
-  format "{mod  e }", only parsing).
+Reserved Notation "x == y %[mod_eq e ]" (at level 70, y at next level,
+  no associativity,   format "'[hv ' x '/'  ==  y '/'  %[mod_eq  e ] ']'").
+Reserved Notation "x = y %[mod_eq e ]" (at level 70, y at next level,
+  no associativity,   format "'[hv ' x '/'  =  y '/'  %[mod_eq  e ] ']'").
+Reserved Notation "x != y %[mod_eq e ]" (at level 70, y at next level,
+  no associativity,   format "'[hv ' x '/'  !=  y '/'  %[mod_eq  e ] ']'").
+Reserved Notation "x <> y %[mod_eq e ]" (at level 70, y at next level,
+  no associativity,   format "'[hv ' x '/'  <>  y '/'  %[mod_eq  e ] ']'").
+Reserved Notation "{eq_quot e }" (at level 0, T at level 0,
+  format "{eq_quot  e }", only parsing).
 
 Delimit Scope quotient_scope with qT.
 Local Open Scope quotient_scope.
@@ -41,16 +115,16 @@ Notation quot_class_of := quot_mixin_of.
 
 Record quotType := QuotTypePack {
   quot_sort :> Type;
-  quot_class :> quot_class_of quot_sort;
+  quot_class : quot_class_of quot_sort;
   _ : Type
 }.
 
 Definition QuotType_pack qT m := @QuotTypePack qT m qT.
 
 Variable qT : quotType.
-Definition pi_of of phant qT := quot_pi qT.
+Definition pi_of of phant qT := quot_pi (quot_class qT).
 Local Notation "\pi" := (pi_of (Phant qT)).
-Definition repr_of := quot_repr qT.
+Definition repr_of := quot_repr (quot_class qT).
 
 Lemma repr_ofK : cancel repr_of \pi.
 Proof. by rewrite /pi_of /repr_of /=; case:qT=> [? []]. Qed.
@@ -88,10 +162,10 @@ End Repr.
 Notation repr := Repr.f.
 Notation "\pi_ Q" := (@Pi.f _ _ (Phant Q)) : quotient_scope.
 Notation "\pi" := (@Pi.f _ _ (Phant _))  (only parsing) : quotient_scope.
-Notation "x == y %[m Q ]" := (\pi_Q x == \pi_Q y) : quotient_scope.
-Notation "x = y %[m Q ]" := (\pi_Q x = \pi_Q y) : quotient_scope.
-Notation "x != y %[m Q ]" := (\pi_Q x != \pi_Q y) : quotient_scope.
-Notation "x <> y %[m Q ]" := (\pi_Q x <> \pi_Q y) : quotient_scope.
+Notation "x == y %[mod Q ]" := (\pi_Q x == \pi_Q y) : quotient_scope.
+Notation "x = y %[mod Q ]" := (\pi_Q x = \pi_Q y) : quotient_scope.
+Notation "x != y %[mod Q ]" := (\pi_Q x != \pi_Q y) : quotient_scope.
+Notation "x <> y %[mod Q ]" := (\pi_Q x <> \pi_Q y) : quotient_scope.
 
 Local Notation "\mpi" := (@MPi.f _ _ (Phant _)).
 Canonical mpi_unlock := Unlockable MPi.E.
@@ -161,6 +235,7 @@ Lemma pi_morph2 : \pi (g a b) = gq (pi_op x) (pi_op y). Proof. by rewrite !piE. 
 Lemma pi_mono1 : p a = pq (pi_op x). Proof. by rewrite !piE. Qed.
 Lemma pi_mono2 : r a b = rq (pi_op x) (pi_op y). Proof. by rewrite !piE. Qed.
 Lemma pi_morph11 : \pi (h a) = hq (pi_op x). Proof. by rewrite !piE. Qed.
+
 End Morphism.
 
 Implicit Arguments pi_morph1 [T qT f fq].
@@ -170,17 +245,7 @@ Implicit Arguments pi_mono2 [T U qT r rq].
 Implicit Arguments pi_morph11 [T U qT qU h hq].
 Prenex Implicits pi_morph1 pi_morph2 pi_mono1 pi_mono2 pi_morph11.
 
-
-Notation mk_embed qT e := (locked (fun x => \pi_qT (e x) : qT)).
-Notation mk_mconst qT x := (locked (\pi_qT x : qT)).
-Notation mk_mop1 qT f := (locked (fun x : qT => \pi_qT (f (repr x)) : qT)).
-Notation mk_mop2 qT g := 
-  (locked (fun x y : qT => \pi_qT (g (repr x) (repr y)) : qT)).
-Notation mk_mfun1 qT f := (locked (fun x : qT => f (repr x))).
-Notation mk_mfun2 qT g := (locked (fun x y : qT => g (repr x) (repr y))).
-Notation mk_mop11 qT qU f := (locked (fun x : qT => \pi_qU (f (repr x)) : qU)).
-
-Notation PiConst a := (@PiMorph _ _ a (lock _)).
+(* Declaration of morphisms *)
 Notation PiMorph1 pi_f :=
   (fun a (x : pi_morph (\pi a)) => PiMorph (pi_morph1 pi_f a x)).
 Notation PiMorph2 pi_g :=
@@ -194,12 +259,31 @@ Notation PiMono2 pi_r :=
 Notation PiMorph11 pi_f :=
   (fun a (x : pi_morph (\pi a)) => PiMorph (pi_morph11 pi_f a x)).
 
+(* lifiting helpers *)
+Notation lift_op1 qT f := (locked (fun x : qT => \pi_qT (f (repr x)) : qT)).
+Notation lift_op2 qT g := 
+  (locked (fun x y : qT => \pi_qT (g (repr x) (repr y)) : qT)).
+Notation lift_fun1 qT f := (locked (fun x : qT => f (repr x))).
+Notation lift_fun2 qT g := (locked (fun x y : qT => g (repr x) (repr y))).
+Notation lift_op11 qT qU f := (locked (fun x : qT => \pi_qU (f (repr x)) : qU)).
+
+(* constant declaration *)
+Notation lift_cst qT x := (locked (\pi_qT x : qT)).
+Notation PiConst a := (@PiMorph _ _ a (lock _)).
+
+(* embedding declaration, please don't redefine \pi *)
+Notation lift_embed qT e := (locked (fun x => \pi_qT (e x) : qT)).
+
 Lemma eq_lock T T' e : e =1 (@locked (T -> T') (fun x : T => e x)).
 Proof. by rewrite -lock. Qed.
 Prenex Implicits eq_lock.
 
 Notation PiEmbed e := 
   (fun x => @PiMorph _ _ (e x) (eq_lock (fun _ => \pi _) _)).
+
+(********************)
+(* About eqQuotType *)
+(********************)
 
 Section EqQuotTypeStructure.
 
@@ -253,6 +337,14 @@ Notation EqQuotType e Q m := (@EqQuotType_pack _ e Q _ _ _ _ id id m).
 Notation "[ 'eqQuotType' e 'of' Q ]" := (@EqQuotType_clone _ e Q _ _ id)
  (at level 0, format "[ 'eqQuotType'  e  'of'  Q ]") : form_scope.
 
+(**************************************************************************)
+(* Even if a quotType is a natural subType, we do not make this subType   *)
+(* canonical, to allow the user to define the subtyping he wants. However *)
+(* one can:                                                               *)
+(* - get the eqMixin and the choiceMixin by subtyping                     *)
+(* - get the subType structure and maybe declare it Canonical.            *)
+(**************************************************************************)
+
 Module QuotSubType.
 Section SubTypeMixin.
 
@@ -295,6 +387,10 @@ Notation "[ 'choiceMixin' 'of' Q 'by' <:%/ ]" :=
   (@QuotSubType.choiceMixin _ _: Choice.mixin_of (seq (seq Q)))
   (at level 0, format "[ 'choiceMixin'  'of'  Q  'by'  <:%/ ]") : form_scope.
 
+(****************************************************)
+(* Definition of a (decidable) equivalence relation *)
+(****************************************************)
+
 Section EquivRel.
 
 Variable T : Type.
@@ -307,18 +403,25 @@ Lemma right_trans (e : rel T) :
   symmetric e -> transitive e -> right_transitive e.
 Proof. by move=> s t ? * x; rewrite ![e x _]s; apply: left_trans. Qed.
 
-Record equiv_rel := EquivRel {
+Record equiv_class_of (equiv : rel T) :=
+  EquivClass of reflexive equiv & symmetric equiv & transitive equiv.
+
+Record equiv_rel := EquivRelPack {
   equiv :> rel T;
-  _ : reflexive equiv;
-  _ : symmetric equiv;
-  _ : transitive equiv
+  _ : equiv_class_of equiv
 }.
 
 Variable e : equiv_rel.
 
-Lemma equiv_refl x : e x x. Proof. by case: e. Qed.
-Lemma equiv_sym : symmetric e. Proof. by case: e. Qed.
-Lemma equiv_trans : transitive e. Proof. by case: e. Qed.
+Definition equiv_class :=
+  let: EquivRelPack _ ce as e' := e return equiv_class_of e' in ce.
+
+Definition equiv_pack (r : rel T) ce of phant_id ce equiv_class :=
+  @EquivRelPack r ce.
+
+Lemma equiv_refl x : e x x. Proof. by case: e => [] ? []. Qed.
+Lemma equiv_sym : symmetric e. Proof. by case: e => [] ? []. Qed.
+Lemma equiv_trans : transitive e. Proof. by case: e => [] ? []. Qed.
 
 Lemma eq_op_trans (T' : eqType) : transitive (@eq_op T').
 Proof. by move=> x y z;  move/eqP->; move/eqP->. Qed.
@@ -333,272 +436,228 @@ End EquivRel.
 
 Hint Resolve equiv_refl.
 
+Notation EquivRel r er es et := (@EquivRelPack _ r (EquivClass er es et)).
+Notation "[ 'equiv_rel' 'of' e ]" := (@equiv_pack _ _ e _ id)
+ (at level 0, format "[ 'equiv_rel'  'of'  e ]") : form_scope.
+
+(**************************************************)
+(* Encoding to another type modulo an equivalence *)
+(**************************************************)
+
+Section EncodingModuloRel.
+
+Variables (D E : Type) (ED : E -> D) (DE : D -> E) (e : rel D).
+
+Record encModRel_class_of (r : rel D) :=
+  EncModRelClassPack of (forall x, r x x -> r (ED (DE x)) x) & (r =2 e).
+
+Record encModRel := EncModRelPack {
+  enc_mod_rel :> rel D;
+  _ : encModRel_class_of enc_mod_rel
+}.
+
+Variable r : encModRel.
+
+Definition encModRelClass := 
+  let: EncModRelPack _ c as r' := r return encModRel_class_of r' in c.
+
+Definition encModRelP (x : D) : r x x -> r (ED (DE x)) x.
+Proof. by case: r => [] ? [] /= he _ /he. Qed.
+
+Definition encModRelE : r =2 e. Proof. by case: r => [] ? []. Qed.
+
+Definition encoded_equiv : rel E := [rel x y | r (ED x) (ED y)].
+
+End EncodingModuloRel.
+
+Notation EncModRelClass m :=
+  (EncModRelClassPack (fun x _ => m x) (fun _ _ => erefl _)).
+Notation EncModRel r m := (@EncModRelPack _ _ _ _ _ r (EncModRelClass m)).
+
+Section EncodingModuloEquiv.
+
+Variables (D E : Type) (ED : E -> D) (DE : D -> E) (e : equiv_rel D).
+Variable (r : encModRel ED DE e).
+
+Lemma enc_mod_rel_is_equiv : equiv_class_of (enc_mod_rel r).
+Proof.
+split => [x|x y|y x z]; rewrite !encModRelE //; first by rewrite equiv_sym.
+by move=> exy /(equiv_trans exy).
+Qed.
+
+Definition enc_mod_rel_equiv_rel := EquivRelPack enc_mod_rel_is_equiv.
+
+Definition encModEquivP (x : D) : r (ED (DE x)) x.
+Proof. by rewrite encModRelP ?encModRelE. Qed.
+
+Local Notation e' := (encoded_equiv r).
+
+Lemma encoded_equivE : e' =2 [rel x y | e (ED x) (ED y)].
+Proof. by move=> x y; rewrite /encoded_equiv /= encModRelE. Qed.
+Local Notation e'E := encoded_equivE.
+
+Lemma encoded_equiv_is_equiv : equiv_class_of e'.
+Proof.
+split => [x|x y|y x z]; rewrite !e'E //=; first by rewrite equiv_sym.
+by move=> exy /(equiv_trans exy).
+Qed.
+
+Canonical encoded_equiv_equiv_rel := EquivRelPack encoded_equiv_is_equiv.
+
+Lemma encoded_equivP x : e' (DE (ED x)) x. 
+Proof. by rewrite /encoded_equiv /= encModEquivP. Qed.
+
+End EncodingModuloEquiv.
+
+(**************************************)
+(* Quotient by a equivalence relation *)
+(**************************************)
+
 Module EquivQuot.
 Section EquivQuot.
 
-Variable D : Type.
-Variable T : choiceType.
+Variables (D : Type) (C : choiceType) (CD : C -> D) (DC : D -> C).
+Variables (eD : equiv_rel D) (encD : encModRel CD DC eD).
+Notation eC := (encoded_equiv encD).
 
-Variable TD : T -> D.
-Variable DT : D -> T.
-
-Local Notation cancelTD e := (forall x, e (TD (DT x)) x).
-
-Record indirect := Indirect {
-  equiv_indirect :> rel D;
-  _ : cancelTD equiv_indirect;
-  _ : reflexive equiv_indirect;
-  _ : symmetric equiv_indirect;
-  _ : transitive equiv_indirect
-}.
-
-Implicit Type e : indirect.
-
-Definition indirect_refl e : reflexive e. Proof. by case: e. Qed.
-Definition indirect_sym e : symmetric e. Proof. by case: e. Qed.
-Definition indirect_trans e : transitive e. Proof. by case: e. Qed.
-Definition indirect_TDK e : cancelTD e. Proof. by case: e. Qed.
-
-Canonical indirect_equivRel e :=
-  @EquivRel _ e (indirect_refl e)
-  (indirect_sym e) (@indirect_trans e).
-
-Coercion indirect_equivRel : indirect >-> equiv_rel.
-
-Variable e : indirect.
-Local Notation TDK := (@indirect_TDK e).
-
-Definition equivQuotEquiv : rel T := [rel x y | e (TD x) (TD y)].
-Local Notation eT := equivQuotEquiv.
-
-Lemma quotEquiv_refl x : eT x x. Proof. by rewrite /eT /=. Qed.
-Lemma quotEquiv_sym : symmetric eT.
-Proof. by move=> *; rewrite /eT /= equiv_sym. Qed.
-Lemma quotEquiv_trans : transitive eT.
-Proof. by rewrite /eT=> y x z /= exy eyz; rewrite (equiv_trans exy). Qed.
-
-Canonical quotEquiv_equivRel :=
-  EquivRel quotEquiv_refl quotEquiv_sym quotEquiv_trans.
-
-Definition equiv_canon x : T := choose (eT x) (x).
+Definition canon x := choose (eC x) (x).
 
 Record equivQuotient := EquivQuotient {
-  equiv_repr : T;
-  _ : (frel equiv_canon) equiv_repr equiv_repr
+  erepr : C;
+  _ : (frel canon) erepr erepr
 }.
 
-Definition type_of of (phantom (rel _) e) := equivQuotient.
+Definition type_of of (phantom (rel _) encD) := equivQuotient.
 
-Lemma equiv_canon_id : forall x, (invariant equiv_canon equiv_canon) x.
+Lemma canon_id : forall x, (invariant canon canon) x.
 Proof.
-move=> x /=; rewrite /equiv_canon (@eq_choose _ _ (eT x)).
-  by rewrite (@choose_id _ (eT x) _ x) ?chooseP ?equiv_refl.
+move=> x /=; unlock canon; rewrite (@eq_choose _ _ (eC x)).
+  by rewrite (@choose_id _ (eC x) _ x) ?chooseP ?equiv_refl.
 by move=> y; apply: equiv_ltrans; rewrite equiv_sym /= chooseP.
 Qed.
 
-Definition equiv_pi (x : T) := EquivQuotient (equiv_canon_id x).
+Definition pi := locked (fun x => EquivQuotient (canon_id x)).
 
-Lemma equiv_reprK : cancel equiv_repr equiv_pi.
+Lemma ereprK : cancel erepr pi.
 Proof.
-case=> x hx; move/eqP:(hx)=> hx'.
-exact: (@val_inj _ _ [subType for equiv_repr by equivQuotient_rect]).
+unlock pi; case=> x hx; move/eqP:(hx)=> hx'.
+exact: (@val_inj _ _ [subType for erepr by equivQuotient_rect]).
 Qed.
 
-Lemma equiv_pi_TD (x y : T) : reflect (equiv_pi x = equiv_pi y) (eT x y).
+Local Notation encDE := (encModRelE encD).
+Local Notation encDP := (encModEquivP encD).
+Canonical encD_equiv_rel := EquivRelPack (enc_mod_rel_is_equiv encD).
+
+Lemma pi_CD (x y : C) : reflect (pi x = pi y) (eC x y).
 Proof.
-apply: (iffP idP)=> hxy.
-  apply: (can_inj equiv_reprK); rewrite /= /equiv_canon.
-  rewrite -(@eq_choose _ (eT x) (eT y)); last first.
-    by move=> z; rewrite /eT /=; apply: equiv_ltrans.
+apply: (iffP idP) => hxy.
+  apply: (can_inj ereprK); unlock pi canon => /=.
+  rewrite -(@eq_choose _ (eC x) (eC y)); last first.
+    by move=> z; rewrite /eC /=; apply: equiv_ltrans.
   by apply: choose_id; rewrite ?equiv_refl //.
 rewrite (equiv_trans (chooseP (equiv_refl _ _))) //=.
-move: hxy=> /(f_equal equiv_repr) /=; rewrite /equiv_canon=> ->.
+move: hxy => /(f_equal erepr) /=; unlock pi canon => /= ->.
 by rewrite equiv_sym /= chooseP.
 Qed.
 
-Lemma equiv_pi_DT (x y : D) :
-  reflect (equiv_pi (DT x) = equiv_pi (DT y)) (e x y).
+Lemma pi_DC (x y : D) :
+  reflect (pi (DC x) = pi (DC y)) (eD x y).
 Proof.
 apply: (iffP idP)=> hxy.
-  apply/equiv_pi_TD; rewrite /eT /=.
-  by rewrite (equiv_ltrans (TDK _)) (equiv_rtrans (TDK _)).
-rewrite -(equiv_ltrans (TDK _)) -(equiv_rtrans (TDK _)) /= -[e _ _]/(eT _ _).
-by apply/equiv_pi_TD.
+  apply/pi_CD; rewrite /eC /=.
+  by rewrite (equiv_ltrans (encDP _)) (equiv_rtrans (encDP _)) /= encDE.
+rewrite -encDE -(equiv_ltrans (encDP _)) -(equiv_rtrans (encDP _)) /=.
+exact/pi_CD.
 Qed.
 
-Lemma equivQTP : cancel (TD \o equiv_repr) (equiv_pi \o DT).
+Lemma equivQTP : cancel (CD \o erepr) (pi \o DC).
 Proof.
 move=> x /=.
-by rewrite (equiv_pi_TD _ (equiv_repr x) _) ?equiv_reprK /eT /= ?TDK.
+by rewrite (pi_CD _ (erepr x) _) ?ereprK /eC /= ?encDP.
 Qed.
 
-Local Notation qT := (type_of (Phantom (rel D) e)).
+Local Notation qT := (type_of (Phantom (rel D) encD)).
 Definition quotClass := QuotClass equivQTP.
 Canonical quotType := QuotType qT quotClass.
 
-Lemma eqmodP x y : reflect (x = y %[m qT]) (e x y).
-Proof. by apply: (iffP (equiv_pi_DT _ _)); rewrite !unlock. Qed.
+Lemma eqmodP x y : reflect (x = y %[mod qT]) (eD x y).
+Proof. by apply: (iffP (pi_DC _ _)); rewrite !unlock. Qed.
 
-Definition eqMixin := CanEqMixin equiv_reprK.
+Fact eqMixin : Equality.mixin_of qT. Proof. exact: CanEqMixin ereprK. Qed.
 Canonical eqType := EqType qT eqMixin.
-Definition choiceMixin := CanChoiceMixin equiv_reprK.
+Definition choiceMixin := CanChoiceMixin ereprK.
 Canonical choiceType := ChoiceType qT choiceMixin.
 
-Lemma eqmodE x y : x == y %[m qT] = e x y.
+Lemma eqmodE x y : x == y %[mod qT] = eD x y.
 Proof. exact: sameP eqP (@eqmodP _ _). Qed.
 
-Canonical eqQuotType := EqQuotType e qT eqmodE.
+Canonical eqQuotType := EqQuotType eD qT eqmodE.
 
 End EquivQuot.
 End EquivQuot.
-
-Canonical EquivQuot.indirect_equivRel.
-Coercion EquivQuot.indirect_equivRel : EquivQuot.indirect >-> equiv_rel.
-
-Definition eqmodE := EquivQuot.eqmodE.
-Implicit Arguments eqmodE [D T DT TD e].
-Prenex Implicits eqmodE.
-
-Definition eqmodP := EquivQuot.eqmodP.
-Implicit Arguments eqmodP [D T TD DT e x y].
-Prenex Implicits eqmodP.
-
-(* begin hide *)
-(* Notation "[ 'eqMixin' 'of' Q 'by' %/ ]" :=  *)
-(*   (@EquivQuot.eqMixin _ _ _ _ _ : Equality.class_of Q) *)
-(*   (at level 0, format "[ 'eqMixin'  'of'  Q  'by'  %/ ]") : form_scope. *)
-
-(* Notation "[ 'choiceMixin' 'of' Q 'by' %/ ]" :=  *)
-(*   (@EquivQuot.choiceMixin _ _ _ _ _ : Choice.mixin_of (seq (seq Q))) *)
-(*   (at level 0, format "[ 'choiceMixin'  'of'  Q  'by'  %/ ]") : form_scope. *)
-
-(* Notation "[ 'eqType' 'of' Q 'by' %/ ]" := (EqType Q [eqMixin of Q by %/]) *)
-(*   (at level 0, format "[ 'eqType'  'of'  Q  'by'  %/ ]") : form_scope. *)
-
-(* Notation "[ 'choiceType' 'of' Q 'by' %/ ]" := *)
-(*   (ChoiceType Q [choiceMixin of Q by %/]) *)
-(*   (at level 0, format "[ 'choiceType'  'of'  Q  'by'  %/ ]") : form_scope. *)
-
-(* Notation "[ 'eqQuotType' e 'of' Q 'by' %/ ]" := (EqQuotType e Q eqmodE) *)
-(*   (at level 0, format "[ 'eqQuotType'  e  'of'  Q  'by'  %/ ]") : form_scope. *)
-(* end hide *)
 
 Canonical EquivQuot.quotType.
 Canonical EquivQuot.eqType.
 Canonical EquivQuot.choiceType.
 Canonical EquivQuot.eqQuotType.
 
-Notation "{mod e }" := (@EquivQuot.type_of _ _ _ _ _ (Phantom (rel _) e)) : quotient_scope.
-Notation "x == y %[mod r ]" := (x == y %[m {mod r}]) : quotient_scope.
-Notation "x = y %[mod r ]" := (x = y %[m {mod r}]) : quotient_scope.
-Notation "x != y %[mod r ]" := (x != y %[m {mod r}]) : quotient_scope.
-Notation "x <> y %[mod r ]" := (x <> y %[m {mod r}]) : quotient_scope.
+Notation "{eq_quot e }" :=
+(@EquivQuot.type_of _ _ _ _ _ _ (Phantom (rel _) e)) : quotient_scope.
+Notation "x == y %[mod_eq r ]" := (x == y %[mod {eq_quot r}]) : quotient_scope.
+Notation "x = y %[mod_eq r ]" := (x = y %[mod {eq_quot r}]) : quotient_scope.
+Notation "x != y %[mod_eq r ]" := (x != y %[mod {eq_quot r}]) : quotient_scope.
+Notation "x <> y %[mod_eq r ]" := (x <> y %[mod {eq_quot r}]) : quotient_scope.
 
-Notation EquivQuotIndirect := EquivQuot.Indirect.
+Section EquivQuotTheory.
 
-Section EquivQuotDirect.
+Variables (D : Type) (C : choiceType) (CD : C -> D) (DC : D -> C).
+Variables (eD : equiv_rel D) (encD : encModRel CD DC eD).
 
-Variable T : choiceType.
-Variable R : rel T.
-Variable e : equiv_rel T.
+Lemma eqmodE x y : x == y %[mod_eq encD] = encD x y.
+Proof. by rewrite EquivQuot.eqmodE encModRelE. Qed.
 
-Definition MkEquivQuotDirect (er : reflexive R)
-  (es : symmetric R) (et : transitive R) of phant_id R (equiv e) &
-  phant_id er (@equiv_refl _ e) &
-  phant_id es (@equiv_sym _ e) &
-  phant_id et (@equiv_trans _ e) :=
-  @EquivQuotIndirect T T id id R (fun _ => er _) er es et.
+Lemma eqmodP x y : reflect (x = y %[mod_eq encD]) (encD x y).
+Proof. by rewrite encModRelE; apply: EquivQuot.eqmodP. Qed.
 
-End EquivQuotDirect.
+End EquivQuotTheory.
 
-Notation EquivQuotDirect R := (@MkEquivQuotDirect _ R _ _ _ _ id id id id).
+Implicit Arguments eqmodE [D C DC CD eD encD].
+Implicit Arguments eqmodP [D C CD DC eD encD x y].
+Prenex Implicits eqmodE eqmodP.
 
+(* (* begin hide *) *)
+(* Module OK. *)
+(* Section OK. *)
 
-(* begin hide *)
-(* Section MonoidQuotient. *)
+(* Variables (D : Type) (C : choiceType) (CD : C -> D) (DC : D -> C). *)
+(* Variables (eD : equiv_rel D) (encD : encModRel CD DC eD). *)
+(* Canonical encD_equiv_rel := EquivRelPack (enc_mod_rel_is_equiv encD). *)
+(* Check [equiv_rel of encD]. *)
+(* (* OK *) *)
+(* End OK. *)
+(* End OK. *)
+(* (* end hide *) *)
 
-(* Variables (T : Type) (idm : T). *)
-(* Variables (qT : quotType T). *)
+Section DefaultEncodingModuloRel.
 
-(* Import Monoid. *)
+Variables (D : choiceType) (r : rel D).
 
-(* Section QuotOp2Structure. *)
-(* Variable op : T -> T -> T. *)
+Definition defaultEncModRelClass :=
+  @EncModRelClassPack D D id id r r (fun _ rxx => rxx) (fun _ _ => erefl _).
 
-(* Structure quot_op2 := QuotOp2 { *)
-(*   quot_op2_op :> qT -> qT -> qT; *)
-(*   _ : {morph \pi : x y / op x y >-> quot_op2_op x y} *)
-(* }. *)
+Canonical defaultEncModRel := EncModRelPack defaultEncModRelClass.
 
-(* Lemma pi_quot_op2 (q_op : quot_op2) : *)
-(*   {morph \pi : x y / op x y >-> q_op x y}. *)
-(* Proof. by case: q_op. Qed. *)
+End DefaultEncodingModuloRel.
 
-(* Canonical pi_quot_op2_morph (q_op : quot_op2) := *)
-(*   PiMorph2 (pi_quot_op2 q_op). *)
+(* (* begin hide *) *)
+(* Module Error. *)
+(* Section Error. *)
 
-(* Structure quot_law := QuotLaw { *)
-(*   quot_law_op :> quot_op2; *)
-(*   idq :> pi_morph (\pi_qT idm) *)
-(* }. *)
-
-(* End QuotOp2Structure. *)
-
-(* Section Plain. *)
-(* Variable mul : law idm. *)
-(* Variable mulq : quot_law mul. *)
-
-(* Lemma mulqA : associative mulq. *)
-(* Proof. by move=> x y z; rewrite -[x]reprK -[y]reprK -[z]reprK !piE mulmA. Qed. *)
-
-(* Lemma mul1q : left_id (pi_op mulq) mulq. *)
-(* Proof. by move=> x; rewrite -[x]reprK !piE mul1m. Qed. *)
-
-(* Lemma mulq1 : right_id (pi_op mulq) mulq. *)
-(* Proof. by move=> x; rewrite -[x]reprK !piE mulm1. Qed. *)
-
-(* Canonical mulq_law := Law mulqA mul1q mulq1. *)
-(* End Plain. *)
-
-(* Section Commutative. *)
-(* Variable mul : com_law idm. *)
-(* Variable mulq : quot_law mul. *)
-
-(* Lemma mulqC : commutative mulq. *)
-(* Proof. by move=> x y; rewrite -[x]reprK -[y]reprK !piE mulmC. Qed. *)
-
-(* Canonical mulq_com_law := ComLaw mulqC. *)
-(* End Commutative. *)
-
-(* Section Mul. *)
-(* Variable mul : mul_law idm. *)
-(* Variable mulq : quot_law mul. *)
-
-(* Lemma mul0q : left_zero (pi_op mulq) mulq. *)
-(* Proof. by move=> x; rewrite -[x]reprK !piE mul0m. Qed. *)
-
-(* Lemma mulq0 : right_zero (pi_op mulq) mulq. *)
-(* Proof. by move=> x; rewrite -[x]reprK !piE mulm0. Qed. *)
-
-(* Canonical mulq_mul_law := MulLaw mul0q mulq0. *)
-(* End Mul. *)
-
-(* Section Add. *)
-(* Variables (mul : T -> T -> T) (add : add_law idm mul). *)
-(* Variables (mulq : quot_op2 mul) (addq : quot_law add). *)
-
-(* Lemma mulq_addl : left_distributive mulq addq. *)
-(* Proof. *)
-(* by move=> x y z; rewrite -[x]reprK -[y]reprK -[z]reprK !piE mulm_addl. *)
-(* Qed. *)
-
-(* Lemma mulq_addr : right_distributive mulq addq. *)
-(* Proof. *)
-(* by move=> x y z; rewrite -[x]reprK -[y]reprK -[z]reprK !piE mulm_addr. *)
-(* Qed. *)
-
-(* Canonical addq_add_law := AddLaw mulq_addl mulq_addr. *)
-(* End Add. *)
-
-(* End MonoidQuotient. *)
-(* end hide *)
+(* Variables (D : Type) (C : choiceType) (CD : C -> D) (DC : D -> C). *)
+(* Variables (eD : equiv_rel D) (encD : encModRel CD DC eD). *)
+(* Canonical encD_equiv_rel := EquivRelPack (enc_mod_rel_is_equiv encD). *)
+(* Check [equiv_rel of encD]. *)
+(* (* Error : Why ?? *) *)
+(* End Error. *)
+(* End Error. *)
+(* (* end hide *) *)

@@ -320,39 +320,34 @@ Let n (x : 'rV[F]_(size p').-1) := (horner_morph iotaz (rVpoly x)).
 
 Definition equiv_subfext x y := (n x == n y).
 
-Fact equiv_subfext_refl : reflexive equiv_subfext.
-Proof. exact: (fun _ => eqxx _). Qed.
+Fact equiv_subfext_is_equiv : equiv_class_of equiv_subfext.
+Proof. by rewrite /equiv_subfext; split => [x|x y|t x y] // /eqP ->. Qed.
 
-Fact equiv_subfext_sym : symmetric equiv_subfext.
-Proof. exact: (fun _ _ => eq_sym _ _). Qed.
+Canonical equiv_subfext_equiv := EquivRelPack equiv_subfext_is_equiv.
+Canonical equiv_subfext_encModRel := defaultEncModRel equiv_subfext.
 
-Fact equiv_subfext_trans : transitive equiv_subfext.
-Proof. by move=> u v w /=; apply: eq_op_trans. Qed.
-
-Canonical equiv_subfext_equiv := EquivRel equiv_subfext_refl
-  equiv_subfext_sym equiv_subfext_trans.
-Canonical equiv_subfext_direct := EquivQuotDirect equiv_subfext.
-
-Definition subFExtend := {mod equiv_subfext}.
+Definition subFExtend := {eq_quot equiv_subfext}.
 Canonical subFExtend_eqType := [eqType of subFExtend].
 Canonical subFExtend_choiceType := [choiceType of subFExtend].
 Canonical subFExtend_quotType := [quotType of subFExtend].
 Canonical subFExtend_eqQuotType := [eqQuotType equiv_subfext of subFExtend].
 
-Definition subfx_inj := mk_mfun1 subFExtend n.
+Definition subfx_inj := lift_fun1 subFExtend n.
+
+Lemma equiv_subfextE x y : (n x == n y) = (x == y %[mod subFExtend]).
+Proof. by rewrite piE. Qed.
 
 Lemma pi_subfx_inj : {mono \pi : x / 
   (horner_morph iotaz (rVpoly x)) >-> subfx_inj x}.
 Proof.
-move=> x /=; unlock subfx_inj; apply/eqP.
-by rewrite -/(equiv_subfext _ _) -eqmodE reprK.
+by move=> x; unlock subfx_inj; apply/eqP; rewrite equiv_subfextE reprK.
 Qed.
 Canonical pi_subfx_inj_morph := PiMono1 pi_subfx_inj.
 
-Definition subfext0 := mk_mconst subFExtend 0.
+Definition subfext0 := lift_cst subFExtend 0.
 Canonical subfext0_morph := PiConst subfext0.
 
-Definition subfext_add := mk_mop2 subFExtend +%R.
+Definition subfext_add := lift_op2 subFExtend +%R.
 Lemma pi_subfext_add : {morph \pi : x y / x + y >-> subfext_add x y}.
 Proof.
 move=> x y /=; unlock subfext_add; apply/eqmodP/eqP.
@@ -360,7 +355,7 @@ by rewrite /n !linearD /= -!pi_subfx_inj !reprK.
 Qed.
 Canonical pi_subfx_add_morph := PiMorph2 pi_subfext_add.
 
-Definition subfext_opp := mk_mop1 subFExtend -%R.
+Definition subfext_opp := lift_op1 subFExtend -%R.
 Lemma pi_subfext_opp : {morph \pi : x / - x >-> subfext_opp x}.
 Proof.
 move=> y /=; unlock subfext_opp; apply/eqmodP/eqP. 
@@ -402,7 +397,7 @@ rewrite {2}(divp_eq q p') rmorphD rmorphM /= {3}/horner_morph.
 by move/eqP: Hp'z ->; rewrite mulr0 add0r.
 Qed.
 
-Definition subfext_mul := mk_mop2 subFExtend subfx_mul_rep.
+Definition subfext_mul := lift_op2 subFExtend subfx_mul_rep.
 Lemma pi_subfext_mul :
   {morph \pi : x y / subfx_mul_rep x y >-> subfext_mul x y}.
 Proof.
@@ -412,7 +407,7 @@ by rewrite /= -!pi_subfx_inj !reprK.
 Qed.
 Canonical pi_subfext_mul_morph := PiMorph2 pi_subfext_mul.
 
-Definition subfext1 := mk_mconst subFExtend (poly_rV 1).
+Definition subfext1 := lift_cst subFExtend (poly_rV 1).
 Canonical subfext1_morph := PiConst subfext1.
 
 Lemma mulfxA : associative (subfext_mul).
@@ -486,7 +481,7 @@ Qed.
 Definition subfx_inv_rep (x : 'rV[F]_(size p').-1) :
   'rV[F]_(size p').-1 := poly_rV (poly_invert (rVpoly x) %% p').
 
-Definition subfext_inv := mk_mop1 subFExtend subfx_inv_rep.
+Definition subfext_inv := lift_op1 subFExtend subfx_inv_rep.
 Lemma pi_subfext_inv : {morph \pi : x / subfx_inv_rep x >-> subfext_inv x}.
 Proof.
 move => x /=; unlock subfext_inv; apply/eqmodP/eqP.
@@ -533,7 +528,7 @@ Qed.
 Canonical subfx_inj_additive := Additive subfx_inj_is_rmorphism.
 Canonical subfx_inj_rmorphism := RMorphism subfx_inj_is_rmorphism.
 
-Definition subfx_eval := mk_embed subFExtend (fun q => poly_rV (q %% p')).
+Definition subfx_eval := lift_embed subFExtend (fun q => poly_rV (q %% p')).
 Canonical subfx_eval_morph := PiEmbed subfx_eval.
 
 Lemma subfx_eval_is_rmorphism : rmorphism subfx_eval.
