@@ -134,7 +134,7 @@ have irrG := mx_abs_irrW absG.
 wlog [L simL _]: / exists2 L, mxsimple rH L & (L <= 1%:M)%MS.
   by apply: mxsimple_exists; rewrite ?mxmodule1 //; case: irrG.
 have ltHG: H \proper G.
-  by rewrite properEcard sHG -(LaGrange sHG) ltn_Pmulr // prime_gt1.
+  by rewrite properEcard sHG -(Lagrange sHG) ltn_Pmulr // prime_gt1.
 have dvLH: \rank L %| #|H|.
   have absL: mx_absolutely_irreducible (submod_repr (mxsimple_module simL)).
     by apply: closF; exact/submod_mx_irr.
@@ -175,7 +175,7 @@ have [|] := prime_subgroupVti ('C_G[W | 'Cl] / H)%G prGH.
 rewrite (setIidPl _) ?quotientS ?subsetIl // => /trivgP.
 rewrite quotient_sub1 //; last by rewrite subIset // normal_norm.
 move/setIidPl; rewrite (setIidPr sHcW) /= => defH.
-rewrite -(LaGrange sHG) -(Clifford_rank_components irrG W) card_sH -defH.
+rewrite -(Lagrange sHG) -(Clifford_rank_components irrG W) card_sH -defH.
 rewrite mulnC dvdn_pmul2r // (_ : W :=: L)%MS //; apply/eqmxP.
 have sLW: (L <= W)%MS by rewrite PackSocleK component_mx_id.
 rewrite andbC sLW; have [modL nzL _] := simL.

@@ -104,7 +104,7 @@ Lemma neq0GiC G B : (#|G : B|)%:R != 0 :> algC.
 Proof. by rewrite -neq0N_neqC -lt0n. Qed.
 
 Lemma divgS_C G H : H \subset G -> #|G : H|%:R = #|G|%:R / #|H|%:R :> algC.
-Proof. by move/LaGrange <-; rewrite mulnC natrM mulfK ?neq0GC. Qed.
+Proof. by move/Lagrange <-; rewrite mulnC natrM mulfK ?neq0GC. Qed.
 
 Lemma sposGC G : 0 < #|G|%:R.
 Proof. by rewrite -(ltn_ltC 0). Qed.
@@ -1274,7 +1274,7 @@ Lemma cfMorph_iso (rT : finGroupType) G D (f : {morphism D >-> rT}) :
   G \subset D -> isometry (@cfMorph _ _ G D f).
 Proof.
 move=> sGD phi psi; rewrite !cfdotE card_morphim (setIidPr sGD).
-rewrite -(LaGrangeI G ('ker f)) /= mulnC natrM invfM -mulrA.
+rewrite -(LagrangeI G ('ker f)) /= mulnC natrM invfM -mulrA.
 congr (_ * _); apply: (canLR (mulKf (neq0GC _))).
 rewrite mulr_sumr (partition_big_imset f) /= -morphimEsub //.
 apply: eq_bigr => _ /morphimP[x Dx Gx ->].
@@ -1356,7 +1356,7 @@ Qed.
 Lemma cfInd1 phi : H \subset G -> 'Ind[G] phi 1%g = #|G : H|%:R * phi 1%g.
 Proof.
 move=> sHG; rewrite cfIndE //; apply: canLR (mulKf (neq0GC H)) _.
-rewrite mulrA -natrM LaGrange // mulr_natl -sumr_const; apply: eq_bigr => x.
+rewrite mulrA -natrM Lagrange // mulr_natl -sumr_const; apply: eq_bigr => x.
 by rewrite conj1g.
 Qed.
 
@@ -1364,7 +1364,7 @@ Lemma cfInd_cfun1 : H <| G -> 'Ind[G, H] 1 = #|G : H|%:R *: '1_H.
 Proof.
 move=> nsHG; have [sHG nHG] := andP nsHG.
 apply/cfunP=> x; rewrite cfIndE // cfunE cfuniE //.
-apply: canLR (mulKf (neq0GC H)) _; rewrite mulrA -natrM LaGrange //.
+apply: canLR (mulKf (neq0GC H)) _; rewrite mulrA -natrM Lagrange //.
 rewrite mulr_natl -sumr_const; apply: eq_bigr => y Gy.
 by rewrite cfun1E -{1}(normsP nHG y Gy) memJ_conjg.
 Qed.
@@ -1372,7 +1372,7 @@ Qed.
 Lemma cfnorm_Ind_cfun1 : H <| G -> '['Ind[G, H] 1] = #|G : H|%:R.
 Proof.
 move=> nsHG; rewrite cfInd_cfun1 // cfnormZ normC_nat cfdot_cfuni // setIid.
-rewrite mulrC -mulrA mulrCA (mulrA _%:R) -natrM LaGrange ?normal_sub //.
+rewrite mulrC -mulrA mulrCA (mulrA _%:R) -natrM Lagrange ?normal_sub //.
 by rewrite mulKf ?neq0GC.
 Qed.
 

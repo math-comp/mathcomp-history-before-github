@@ -72,7 +72,7 @@ rewrite eqEcard card_rcoset {1}class_supportEr; apply/andP; split.
   by rewrite mulSg ?mul_subG ?subsetIl // sub1set ?memJ_norm ?groupV.
 have oCg Cx: Cx \in Cg :^: H -> #|Cx| = #|C|.
   by case/imsetP=> x _ ->; rewrite cardJg card_rcoset.
-by rewrite (card_uniform_partition oCg partCg) oCgH mulnC LaGrange ?subsetIl.
+by rewrite (card_uniform_partition oCg partCg) oCgH mulnC Lagrange ?subsetIl.
 Qed.
 
 Definition is_Dade_signalizer (G L A : {set gT}) (H : gT -> {group gT}) :=
@@ -347,8 +347,8 @@ rewrite sumr_const -index_cent1 mulrC -mulr_natr -!mulrA.
 rewrite (eq_bigr (fun xa => alpha a * (phi xa)^*)) => [|xa Fa_xa]; last first.
   by rewrite (DadeE _ Aa).
 rewrite -big_distrr /= -rmorph_sum; congr (_ * _).
-rewrite mulrC mulrA -natrM mulnC -(LaGrange (subsetIl G 'C[a])).
-rewrite -mulnA mulnCA -(sdprod_card def_Ca) -mulnA LaGrange ?subsetIl //.
+rewrite mulrC mulrA -natrM mulnC -(Lagrange (subsetIl G 'C[a])).
+rewrite -mulnA mulnCA -(sdprod_card def_Ca) -mulnA Lagrange ?subsetIl //.
 rewrite mulnA natrM mulfK ?neq0GC // -conjC_nat -rmorphM; congr (_ ^*).
 have /andP[tiHa _] := Dade_cover_TI Aa.
 rewrite (set_partition_big _ (partition_class_support _ _)) //=.
@@ -608,7 +608,7 @@ transitivity (- aa a / #|L|%:R * \sum_(b \in a ^: L) sumB b); last first.
   rewrite -mulrA mulrCA -!mulrA; congr (_ * _).
   rewrite -invfM mulrCA -invfM -!natrM; congr (_ / _%:R).
   rewrite -(sdprod_card (Dade_set_sdprod dB)) mulnA mulnAC; congr (_ * _)%N.
-  by rewrite mulnC LaGrange ?subsetIl.
+  by rewrite mulnC Lagrange ?subsetIl.
 rewrite (eq_bigr (fun _ => sumB a)) /= => [|_ /imsetP[x Lx ->]]; last first.
   rewrite {1}/sumB (reindex_inj (@conjsg_inj _ x)) /=.
   symmetry; apply: eq_big => B.
@@ -633,7 +633,7 @@ have ->: aa2 [set a] a = #|'C_G[a]|%:R.
   have [-> // _] := normedTI_memJ_P (notHa0 a) (Dade_cover_TI Aa).
   by rewrite inE Gxy.
 rewrite mulN1r mulrC mulrA -natrM -(sdprod_card (defCA Aa)).
-rewrite -mulnA card_orbit astab1J LaGrange ?subsetIl // mulnC natrM.
+rewrite -mulnA card_orbit astab1J Lagrange ?subsetIl // mulnC natrM.
 rewrite mulrAC mulfK ?neq0GC // mulrC divfK ?neq0GC // opprK.
 rewrite (bigID [pred B : {set gT} | a \in B]) /= mulrDl addrA.
 apply: canRL (subrK _) _; rewrite -mulNr -sumrN; congr (_ + _ * _).
@@ -659,7 +659,7 @@ suffices ->: aa2 B a = #|'H(B) : 'H(a |: B)|%:R * aa2 (a |: B) a.
   rewrite /nn2 cardsU1 notBa exprS mulN1r !mulNr; congr (- _).
   rewrite !mulrA; congr (_ * _); rewrite -!mulrA; congr (_ * _).
   apply: canLR (mulKf (neq0GC _)) _; apply: canRL (mulfK (neq0GC _)) _ => /=.
-  by rewrite -natrM mulnC LaGrange //= Dade_setU1 ?subsetIl.
+  by rewrite -natrM mulnC Lagrange //= Dade_setU1 ?subsetIl.
 rewrite /aa2 Dade_setU1 //= -natrM; congr _%:R.
 have defMB := Dade_set_sdprod dB; have [_ mulHNB nHNB tiHNB] := sdprodP defMB.
 have [sHMB sNMB] := mulG_sub mulHNB; have [La nBa] := setIP Na.

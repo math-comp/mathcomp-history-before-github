@@ -76,7 +76,7 @@ Qed.
 
 Lemma card_Alt : 1 < n -> (2 * #|'Alt_T|)%N = n`!.
 Proof.
-by move/Alt_index <-; rewrite mulnC (LaGrange Alt_subset) card_Sym.
+by move/Alt_index <-; rewrite mulnC (Lagrange Alt_subset) card_Sym.
 Qed.
 
 Lemma Sym_trans : [transitive^n 'Sym_T, on setT | 'P].

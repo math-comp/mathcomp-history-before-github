@@ -1078,7 +1078,7 @@ Lemma p_rank_quotient G H : G \subset 'N(H) -> 'r_p(G) - 'r_p(H) <= 'r_p(G / H).
 Proof.
 move=> nHG; rewrite leq_subLR.
 have [E EpE] := p_rank_witness p G; have{EpE} [sEG abelE <-] := pnElemP EpE.
-rewrite -(LaGrangeI E H) lognM ?cardG_gt0 //.
+rewrite -(LagrangeI E H) lognM ?cardG_gt0 //.
 rewrite -card_quotient ?(subset_trans sEG) // leq_add ?logn_le_p_rank // !inE.
   by rewrite subsetIr (abelemS (subsetIl E H)).
 by rewrite quotientS ?quotient_abelem.

@@ -2344,12 +2344,12 @@ have [sRM sRH] := subsetIP sR_MH; have [sH'r rrH not_rH'] := and3P t1Hr.
 have bH'r: r \notin \beta(H).
   by apply: contra sH'r; rewrite -eq_abH; exact: alpha_sub_sigma.
 have sylR_H: r.-Sylow(H) R.
-  rewrite pHallE sRH -defH -LaGrangeMr partnM ?cardG_gt0 //.
+  rewrite pHallE sRH -defH -LagrangeMr partnM ?cardG_gt0 //.
   rewrite -(card_Hall sylR) part_p'nat ?mul1n ?(pnat_dvd (dvdn_indexg _ _)) //=.
   by rewrite (pi_p'nat (pcore_pgroup _ _)).
 rewrite inE /= orbC -implyNb eq_abM; apply/implyP=> bM'r.
 have sylR_M: r.-Sylow(M) R.
-  rewrite pHallE sRM -defM -LaGrangeMr partnM ?cardG_gt0 //.
+  rewrite pHallE sRM -defM -LagrangeMr partnM ?cardG_gt0 //.
   rewrite -(card_Hall sylR) part_p'nat ?mul1n ?(pnat_dvd (dvdn_indexg _ _)) //=.
   by rewrite (pi_p'nat (pcore_pgroup _ _)).
 have rrR: 'r_r(R) = 1%N by rewrite (p_rank_Sylow sylR_H) (eqP rrH).
@@ -2460,7 +2460,7 @@ have [x sYxMs]: exists x, Y :^ x \subset M`_\sigma.
   have [H hallH] := Hall_exists \sigma(M) solML.
   have [sHM sHL] := subsetIP (pHall_sub hallH).
   have hallH_L: \sigma(M).-Hall(L) H.
-    rewrite pHallE sHL -defL -LaGrangeMr partnM ?cardG_gt0 //.
+    rewrite pHallE sHL -defL -LagrangeMr partnM ?cardG_gt0 //.
     rewrite -(card_Hall hallH) part_p'nat ?mul1n //=.
     exact: pnat_dvd (dvdn_indexg _ _) sM'K.
   have [x _ sYxH]:= Hall_Jsub (mmax_sol maxL) hallH_L sYL sM_Y.
@@ -2480,7 +2480,7 @@ rewrite (leq_trans (p_rankS p sNHY_L)); last first.
   have [P sylP] := Sylow_exists p (M :&: L).
   have [_ sPL] := subsetIP (pHall_sub sylP).
   have{sPL} sylP_L: p.-Sylow(L) P.
-    rewrite pHallE sPL -defL -LaGrangeMr partnM ?cardG_gt0 //.
+    rewrite pHallE sPL -defL -LagrangeMr partnM ?cardG_gt0 //.
     rewrite -(card_Hall sylP) part_p'nat ?mul1n //=.
     exact: pnat_dvd (dvdn_indexg _ _) p'K.
   rewrite -(p_rank_Sylow sylP_L) {P sylP sylP_L}(p_rank_Sylow sylP).

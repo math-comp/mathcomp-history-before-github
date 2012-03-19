@@ -120,16 +120,18 @@ Local Coercion sort : type >-> Sortclass.
 Variables (phR : phant R) (T : Type) (cT : type phR).
 Definition class := let: Pack _ c _ := cT return class_of cT in c.
 Definition clone c of phant_id class c := @Pack phR T c T.
+Let xT := let: Pack T _ _ := cT in T.
+Notation xclass := (class : class_of xT).
 Definition dim := let: Mixin n _ := mixin class in n.
 
 Definition pack b0 (m0 : mixin_of (@GRing.Lmodule.Pack R _ T b0 T)) :=
   fun bT b & phant_id (@GRing.Lmodule.class _ phR bT) b =>
   fun    m & phant_id m0 m => Pack phR (@Class T b m) T.
 
-Definition eqType := Equality.Pack class cT.
-Definition choiceType := Choice.Pack class cT.
-Definition zmodType := GRing.Zmodule.Pack class cT.
-Definition lmodType := GRing.Lmodule.Pack phR class cT.
+Definition eqType := @Equality.Pack cT xclass xT.
+Definition choiceType := @Choice.Pack cT xclass xT.
+Definition zmodType := @GRing.Zmodule.Pack cT xclass xT.
+Definition lmodType := @GRing.Lmodule.Pack R phR cT xclass xT.
 
 End ClassDef.
 Notation axiom n V := (axiom_def n (Phant V)).

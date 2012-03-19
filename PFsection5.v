@@ -72,7 +72,7 @@ Lemma sum_Iirr_kerD_square H M :
   \sum_(i \in Iirr_kerD H M) 'chi_i 1%g ^+ 2 = #|K : H|%:R * (#|H : M|%:R - 1).
 Proof.
 move=> nsHK nsMK sMH; have [sHK _] := andP nsHK.
-rewrite mulrBr mulr1 -natrM LaGrange_index // -!sum_Iirr_ker_square //.
+rewrite mulrBr mulr1 -natrM Lagrange_index // -!sum_Iirr_ker_square //.
 apply/esym/(canLR (addrK _)); rewrite /= addrC (big_setID (Iirr_ker H)).
 by rewrite (setIidPr _) ?Iirr_kerS //.
 Qed.
@@ -324,7 +324,7 @@ Lemma sum_seqIndD_square :
     H <| L -> M <| L -> M \subset H ->
   \sum_(phi <- S) phi 1%g ^+ 2 / '[phi] = #|L : H|%:R * (#|H : M|%:R - 1).
 Proof.
-move=> nsHL nsML sMH; rewrite -(LaGrange_index sKL sHK) natrM -/e -mulrA.
+move=> nsHL nsML sMH; rewrite -(Lagrange_index sKL sHK) natrM -/e -mulrA.
 rewrite -sum_Iirr_kerD_square ?(normalS _ sKL) ?(subset_trans sMH) //.
 pose h i := @Ordinal (size S).+1 _ (index_size ('Ind 'chi[K]_i) S).
 rewrite (partition_big h (ltn^~ (size S))) => /= [|i Xi]; last first.

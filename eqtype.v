@@ -108,7 +108,8 @@ Section ClassDef.
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
 Variables (T : Type) (cT : type).
-Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+
+Definition class := let: Pack _ c _ := cT return class_of cT in c.
 
 Definition pack c := @Pack T c T.
 Definition clone := fun c & cT -> T & phant_id (pack c) cT => pack c.

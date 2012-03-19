@@ -375,7 +375,7 @@ have [Q sylQ nQA]: exists2 Q : {group gT}, q.-Sylow(K) Q & A \subset 'N(Q).
 have [sQK qQ q'iQK] := and3P sylQ; have [sKE tauK _]:= and3P hallK.
 have{q'iQK} not_cQA: ~~ (A \subset 'C(Q)).
   apply: contraL q'iQK => cQA; rewrite p'natE // negbK.
-  rewrite -(LaGrange_index (subsetIl K 'C(A))) ?dvdn_mulr ?pdiv_dvd //.
+  rewrite -(Lagrange_index (subsetIl K 'C(A))) ?dvdn_mulr ?pdiv_dvd //.
   by rewrite subsetI sQK centsC.
 have ntQ: Q :!=: 1 by apply: contraNneq not_cQA => ->; exact: cents1.
 have q_dv_K: q %| #|K| := dvdn_trans (pdiv_dvd _) (dvdn_indexg _ _).

@@ -322,7 +322,7 @@ Proposition coprime_cent_prod gT (A G : {group gT}) :
   [~: G, A] * 'C_G(A) = G.
 Proof.
 move=> nGA; have sRG: [~: G, A] \subset G by rewrite commg_subl.
-rewrite -(LaGrange sRG) coprime_mull => /andP[coRA _] /(solvableS sRG).
+rewrite -(Lagrange sRG) coprime_mull => /andP[coRA _] /(solvableS sRG).
 exact: coprimeR_cent_prod.
 Qed.
 

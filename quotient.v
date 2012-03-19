@@ -890,10 +890,10 @@ Lemma index_morphim_ker G H :
   (#|f @* G : f @* H| * #|'ker_G f : H|)%N = #|G : H|.
 Proof.
 move=> sHG sGD; apply/eqP.
-rewrite -(eqn_pmul2l (cardG_gt0 (f @* H))) mulnA LaGrange ?morphimS //.
+rewrite -(eqn_pmul2l (cardG_gt0 (f @* H))) mulnA Lagrange ?morphimS //.
 rewrite !card_morphim (setIidPr sGD) (setIidPr (subset_trans sHG sGD)).
 rewrite -(eqn_pmul2l (cardG_gt0 ('ker_H f))) /=.
-by rewrite -{1}(setIidPr sHG) setIAC mulnCA mulnC mulnA !LaGrangeI LaGrange.
+by rewrite -{1}(setIidPr sHG) setIAC mulnCA mulnC mulnA !LagrangeI Lagrange.
 Qed.
 
 Lemma index_morphim G H : G :&: H \subset D -> #|f @* G : f @* H| %| #|G : H|.
@@ -915,7 +915,7 @@ Qed.
 Lemma card_morphpre L : L \subset f @* D -> #|f @*^-1 L| = (#|'ker f| * #|L|)%N.
 Proof.
 move/morphpreK=> {2} <-; rewrite card_morphim morphpreIdom.
-by rewrite LaGrange // morphpreS ?sub1G.
+by rewrite Lagrange // morphpreS ?sub1G.
 Qed.
 
 Lemma index_morphpre L M :

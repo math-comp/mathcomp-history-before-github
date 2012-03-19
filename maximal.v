@@ -138,12 +138,12 @@ Qed.
 Lemma p_index_maximal : M \subset P -> prime #|P : M| -> maximal M P.
 Proof.
 move=> sMP /primeP[lt1PM pr_PM].
-apply/maxgroupP; rewrite properEcard sMP -(LaGrange sMP).
+apply/maxgroupP; rewrite properEcard sMP -(Lagrange sMP).
 rewrite -{1}(muln1 #|M|) ltn_pmul2l //; split=> // H sHP sMH.
 apply/eqP; rewrite eq_sym eqEcard sMH.
 case/orP: (pr_PM _ (indexSg sMH (proper_sub sHP))) => /eqP iM.
-  by rewrite -(LaGrange sMH) iM muln1 /=.
-by have:= proper_card sHP; rewrite -(LaGrange sMH) iM LaGrange ?ltnn.
+  by rewrite -(Lagrange sMH) iM muln1 /=.
+by have:= proper_card sHP; rewrite -(Lagrange sMH) iM Lagrange ?ltnn.
 Qed.
 
 End PMax.
@@ -994,7 +994,7 @@ Proof.
 move=> sUG; rewrite setIAC (setIidPr sUG).
 elim: {U}_.+1 {-2}U (ltnSn #|U|) sUG => // m IHm U leUm sUG.
 have [cUG | not_cUG]:= orP (orbN (G \subset 'C(U))).
-  by rewrite !(setIidPl _) ?LaGrange // centsC.
+  by rewrite !(setIidPl _) ?Lagrange // centsC.
 have{not_cUG} [x Gx not_cUx] := subsetPn not_cUG.
 pose W := 'C_U[x]; have sCW_G: 'C_G(W) \subset G := subsetIl G _.
 have maxW: maximal W U by rewrite subcent1_extraspecial_maximal // inE not_cUx.
@@ -1008,9 +1008,9 @@ have iCW_CU: #|'C_G(W) : 'C_G(U)| = p.
   apply: subcent1_extraspecial_maximal sCW_G _.
   rewrite inE andbC (subsetP sUG) //= -sub_cent1.
   by apply/subsetPn; exists x; rewrite // inE Gx -sub_cent1 subsetIr.
-apply/eqP; rewrite -(eqn_pmul2r p_gt0) -{1}iCW_CU LaGrange ?setIS ?centS //.
+apply/eqP; rewrite -(eqn_pmul2r p_gt0) -{1}iCW_CU Lagrange ?setIS ?centS //.
 rewrite IHm ?(leq_trans (proper_card ltWU)) // -setIA -mulnA.
-rewrite -(LaGrange_index sUG sWU) (p_maximal_index (pgroupS sUG pG)) //=.
+rewrite -(Lagrange_index sUG sWU) (p_maximal_index (pgroupS sUG pG)) //=.
 by rewrite -cent_set1 (setIidPr (centS _)) ?sub1set.
 Qed.
 
@@ -1121,7 +1121,7 @@ have [sVE sWF]: V \subset E /\ W \subset F by rewrite -defE -defF !mulG_subr.
 have [sVG sWG] := (subset_trans sVE sEG, subset_trans sWF sFG).
 rewrite -defE -defF !TI_cardMg // leq_pmul2l ?cardG_gt0 //.
 rewrite -(leq_pmul2r (cardG_gt0 'C_G(W))) mul_cardG.
-rewrite card_subcent_extraspecial // mulnCA LaGrange // mulnC.
+rewrite card_subcent_extraspecial // mulnCA Lagrange // mulnC.
 rewrite leq_mul ?subset_leq_card //; last by rewrite mul_subG ?subsetIl.
 apply: subset_trans (sub1G _); rewrite -tiUV !subsetI subsetIl subIset ?sVE //=.
 rewrite -(pmaxElem_LdivP p_pr maxF) -defF centM -!setIA -(setICA 'C(W)).

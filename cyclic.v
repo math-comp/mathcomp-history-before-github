@@ -313,7 +313,7 @@ Lemma ker_eltm : 'ker (eltm dvd_y_x) = <[x ^+ #[y]]>.
 Proof.
 apply/eqP; rewrite eq_sym eqEcard cycle_subG 3!inE mem_cycle /= eltmE.
 rewrite expg_order eqxx (orderE y) -im_eltm card_morphim setIid -orderE.
-by rewrite orderXdiv ?dvdn_indexg //= leq_divRL ?indexg_gt0 ?LaGrange ?subsetIl.
+by rewrite orderXdiv ?dvdn_indexg //= leq_divRL ?indexg_gt0 ?Lagrange ?subsetIl.
 Qed.
 
 Lemma injm_eltm : 'injm (eltm dvd_y_x) = (#[x] %| #[y]).
@@ -340,7 +340,7 @@ apply/subsetP=> X; rewrite in_set1 inE -val_eqE /= eqEcard oam.
 case/andP=> sXa /eqP oX; rewrite oX leqnn andbT.
 apply/subsetP=> x Xx; case/cycleP: (subsetP sXa _ Xx) => k def_x.
 have: (x ^+ m == 1)%g by rewrite -oX -order_dvdn cardSg // gen_subG sub1set.
-rewrite {x Xx}def_x -expgM -order_dvdn -[#[a]](LaGrange sXa) -oX mulnC.
+rewrite {x Xx}def_x -expgM -order_dvdn -[#[a]](Lagrange sXa) -oX mulnC.
 rewrite dvdn_pmul2r // mulnK // => /dvdnP[i ->].
 by rewrite mulnC expgM groupX // cycle_id.
 Qed.

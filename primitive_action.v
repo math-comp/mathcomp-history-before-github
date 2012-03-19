@@ -67,8 +67,8 @@ apply/forallP/maximal_eqP=> /= [primG | [_ maxCx] Q].
   have [|/proper_card oCH] := eqVproper sCH; [by left | right].
   apply/eqP; rewrite eqEcard sHG leqNgt.
   apply: contra {primG}(primG Q) => oHG; apply/and3P; split; last first.
-  - rewrite card_orbit astab1_set defH -(@ltn_pmul2l #|H|) ?LaGrange // muln1.
-    rewrite oHG -(@ltn_pmul2l #|H|) ?LaGrange // -(card_orbit_stab to G x).
+  - rewrite card_orbit astab1_set defH -(@ltn_pmul2l #|H|) ?Lagrange // muln1.
+    rewrite oHG -(@ltn_pmul2l #|H|) ?Lagrange // -(card_orbit_stab to G x).
     by rewrite -(atransP trG x Sx) mulnC card_orbit ltn_pmul2r.
   - by apply/actsP=> a Ga Y; apply: orbit_transr; exact: mem_orbit.
   apply/and3P; split; last 1 first.

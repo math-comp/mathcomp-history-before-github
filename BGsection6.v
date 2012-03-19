@@ -101,7 +101,7 @@ have nsG'G: G' <| G := der_normal 1 G; have [sG'G nG'G] := andP nsG'G.
 have nsG'p'G: 'O_p^'(G') <| G := char_normal_trans (pcore_char _ _) nsG'G.
 have nG'p'G := normal_norm nsG'p'G; have solG' := nilpotent_sol nilG'.
 have{nilG'} pGb: p.-group (G / 'O_p^'(G')).
-  rewrite /pgroup card_quotient -?(LaGrange_index sG'G (pcore_sub _ _)) //=.
+  rewrite /pgroup card_quotient -?(Lagrange_index sG'G (pcore_sub _ _)) //=.
   rewrite pnat_mul // -card_quotient // pnat_id //= -pnatNK.
   by case/and3P: (nilpotent_pcore_Hall p^' nilG').
 have{pGb} cycGb: cyclic (G / 'O_p^'(G')).

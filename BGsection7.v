@@ -896,7 +896,7 @@ wlog Zb: b X Y defX B'b p'Y nYA sYX / b \in Z.
     have pP2 := pHall_pgroup sylP2.
     have: logn p #|P2 : P1| <= 1.
       apply: leq_trans dimPP1; rewrite dvdn_leq_log //.
-      rewrite -(dvdn_pmul2l (cardG_gt0 [group of P1])) !LaGrange ?subsetIl //.
+      rewrite -(dvdn_pmul2l (cardG_gt0 [group of P1])) !Lagrange ?subsetIl //.
       rewrite -(part_pnat_id pP2) (card_Hall sylP).
       by rewrite partn_dvd ?cardSg ?subsetT.
     rewrite -(pfactorK 1 p_pr) -pfactor_dvdn ?prime_gt0 // -p_part.

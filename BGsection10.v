@@ -899,7 +899,7 @@ have{nilM'W} nilW: nilpotent W.
     by rewrite (quotientYidr (subset_trans sXW nM'W)) quotient_pgroup.
   have{qWWM'} sylWp: p.-Sylow(W) Wp.
     rewrite /pHall pcore_pgroup (subset_trans (pcore_sub _ _)) ?subsetIr //=.
-    rewrite -(LaGrange_index (subsetIr _ _) (pcore_sub _ _)) pnat_mul //.
+    rewrite -(Lagrange_index (subsetIr _ _) (pcore_sub _ _)) pnat_mul //.
     rewrite -(divgS (pcore_sub _ _)) -card_quotient ?normsI ?normG //= -pgroupE.
     rewrite (pi_p'group qWWM') //= -(dprod_card (nilpotent_pcoreC p nilM'W)).
     by rewrite  mulKn ?cardG_gt0 // -pgroupE pcore_pgroup.

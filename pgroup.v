@@ -118,7 +118,7 @@ Proof.
 move=> prG; have [|[p p_pr pG]] := trivgVpdiv (H :&: G); first by right.
 left; rewrite (sameP setIidPr eqP) eqEcard subsetIr.
 suffices <-: p = #|G| by rewrite dvdn_leq ?cardG_gt0.
-by apply/eqP; rewrite -dvdn_prime2 // -(LaGrangeI G H) setIC dvdn_mulr.
+by apply/eqP; rewrite -dvdn_prime2 // -(LagrangeI G H) setIC dvdn_mulr.
 Qed.
 
 Lemma pgroupE pi A : pi.-group A = pi.-nat #|A|. Proof. by []. Qed.
@@ -187,8 +187,8 @@ Qed.
 Lemma pgroupM pi G H : pi.-group (G * H) = pi.-group G && pi.-group H.
 Proof.
 have GH_gt0: 0 < #|G :&: H| := cardG_gt0 _.
-rewrite /pgroup -(mulnK #|_| GH_gt0) -mul_cardG -(LaGrangeI G H) -mulnA.
-by rewrite mulKn // -(LaGrangeI H G) setIC !pnat_mul andbCA; case: (pnat _).
+rewrite /pgroup -(mulnK #|_| GH_gt0) -mul_cardG -(LagrangeI G H) -mulnA.
+by rewrite mulKn // -(LagrangeI H G) setIC !pnat_mul andbCA; case: (pnat _).
 Qed.
 
 Lemma pgroupJ pi G x : pi.-group (G :^ x) = pi.-group G.
@@ -225,8 +225,8 @@ Qed.
 
 Lemma card_Hall pi G H : pi.-Hall(G) H -> #|H| = #|G|`_pi.
 Proof.
-case/and3P=> sHG piH pi'H; rewrite -(LaGrange sHG).
-by rewrite partnM ?LaGrange // part_pnat_id ?part_p'nat ?muln1.
+case/and3P=> sHG piH pi'H; rewrite -(Lagrange sHG).
+by rewrite partnM ?Lagrange // part_pnat_id ?part_p'nat ?muln1.
 Qed.
 
 Lemma pHall_sub pi A B : pi.-Hall(A) B -> B \subset A.
@@ -618,7 +618,7 @@ have{pG n leGn IHn} pZ: p %| #|'C_G(G)|.
     by apply/actsP=> x Gx y; rewrite !inE -!mem_conjgV -centJ conjGid ?groupV.
   elim/big_ind: _ => //; first exact: dvdn_add.
   move=> _ /imsetP[x /setDP[Gx nCx] ->]; rewrite card_orbit astab1J.
-  move: pG; rewrite -(LaGrange (subsetIl G 'C[x])) Euclid_dvdM // => /orP[] //.
+  move: pG; rewrite -(Lagrange (subsetIl G 'C[x])) Euclid_dvdM // => /orP[] //.
   case/IHn=> [|y /setIP[Gy _ /eqP oyp]]; last by case/andP: (no_x y).
   apply: leq_trans leGn; apply: proper_card; rewrite properE subsetIl.
   by rewrite subsetI subxx /= -cent_set1 centsC sub1set.
@@ -680,7 +680,7 @@ case/Cauchy=> //= Hx; rewrite -sub1set -gen_subG -/<[Hx]> /order.
 case/inv_quotientS=> //= K -> sHK sKG {Hx}.
 rewrite card_quotient ?(subset_trans sKG) // => iKH; apply/negP=> pi_p.
 rewrite -iKH -divgS // (maxH K) ?divnn ?cardG_gt0 // in p_pr.
-by rewrite /psubgroup sKG /pgroup -(LaGrange sHK) mulnC pnat_mul iKH pi_p.
+by rewrite /psubgroup sKG /pgroup -(Lagrange sHK) mulnC pnat_mul iKH pi_p.
 Qed.
 
 Lemma setI_normal_Hall G H K :
@@ -733,7 +733,7 @@ Lemma pmorphim_pHall pi G H :
   pi.-Hall(f @* G) (f @* H) = pi.-Hall(G) H.
 Proof.
 move=> sGD sHD /andP[/subsetIP[sKH sKG] piK]; rewrite !pHallE morphimSGK //.
-apply: andb_id2l => sHG; rewrite -(LaGrange sKH) -(LaGrange sKG) partnM //.
+apply: andb_id2l => sHG; rewrite -(Lagrange sKH) -(Lagrange sKG) partnM //.
 by rewrite (part_pnat_id piK) !card_morphim !(setIidPr _) // eqn_pmul2l.
 Qed.
 

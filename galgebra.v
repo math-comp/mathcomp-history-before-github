@@ -188,9 +188,13 @@ exists (fun x : 'rV[F]_#|gT| => GAlg ([ffun k => (x 0 (enum_rank k))])) => x.
 by apply/rowP=> i; rewrite // !mxE galgE enum_valK.
 Qed.
 
-Definition gAlgMixin := VectMixin gAlg_iso_vect.
-Canonical gAlgVectType := VectType F galg gAlgMixin.
+Definition galg_vectMixin := VectMixin gAlg_iso_vect.
+Canonical galg_vectType := VectType F galg galg_vectMixin.
+
+Canonical galg_unitRingType := FalgUnitRingType galg.
+Canonical galg_unitAlgFType := [unitAlgType F of galg].
 Canonical gAlgAlgFType := [FalgType F of galg].
+
 
 Variable G : {group gT}.
 

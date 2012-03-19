@@ -305,7 +305,7 @@ case/pnElemP=> sAR abelA dimA3; have [pA cAA _] := and3P abelA.
 have{nsZR} nZA := subset_trans sAR (normal_norm nsZR).
 have sHA: H \subset A := subsetIl A _; have abelH := abelemS sHA abelA.
 have geH2: logn p #|H| >= 2. 
-  rewrite -ltnS -dimA3 -(LaGrange sHA) lognM // -addn1 leq_add2l /= -/H.
+  rewrite -ltnS -dimA3 -(Lagrange sHA) lognM // -addn1 leq_add2l /= -/H.
   by rewrite logn_quotient_cent_abelem ?dimZ2.
 have{abelH} abelK : p.-abelem K.
   by rewrite (cprod_abelem _ (cprodEY _)) 1?centsC ?subsetIr ?abelH.
@@ -334,7 +334,7 @@ have cardA : logn p #|A| <= 2.
   by rewrite -rank_abelem // (leq_trans (rankS sAR) rankR). 
 have cardRA : logn p #|R : A| <= 1.
   by rewrite -cRAA logn_quotient_cent_abelem // (normal_norm nAR).
-rewrite -(LaGrange sAR) lognM ?cardG_gt0 //.
+rewrite -(Lagrange sAR) lognM ?cardG_gt0 //.
 by apply: (leq_trans (leq_add cardA cardRA)).
 Qed.
 
@@ -384,7 +384,7 @@ have dimS1b: logn p #|R / 'Ohm_1(S)| <= 1.
   rewrite (leq_trans (logn_quotient _ _ _)) // -(pfactorK 1 p_pr).
   by rewrite dvdn_leq_log ?prime_gt0 // order_dvdn yp1.
 rewrite (leq_trans (nil_class_pgroup pR)) // geq_max /= -subn1 leq_subLR.
-by rewrite -(LaGrange sS1R) lognM // -card_quotient // addnC leq_add.
+by rewrite -(Lagrange sS1R) lognM // -card_quotient // addnC leq_add.
 Qed. 
 
 (* This is B & G, Lemma 4.9. *)
@@ -431,7 +431,7 @@ have [dimRb eRb] : logn p #|R / T| = 3 /\ exponent (R / T) %| p.
 have ntRb : (R / T) != 1.
   by rewrite -cardG_gt1 (card_pgroup pRb) dimRb (ltn_exp2l 0) ?prime_gt1.
 have{dimRb} dimR : logn p #|R| = 4.
-  by rewrite -(LaGrange sTR) lognM ?cardG_gt0 // dimT -card_quotient ?dimRb.
+  by rewrite -(Lagrange sTR) lognM ?cardG_gt0 // dimT -card_quotient ?dimRb.
 have nsR1R: 'Ohm_1(R) <| R := Ohm_normal 1 R; have [sR1R nR1R] := andP nsR1R.
 have pR1: p.-group 'Ohm_1(R) := pgroupS sR1R pR.
 have p_odd: odd p by case/even_prime: p_pr p_gt3 => ->.
@@ -1352,7 +1352,7 @@ have pGq: p.-group (G / H).
   rewrite /pgroup -(card_isog (third_isog sFH nsFG nsHG)) /= -/F -/(pgroup _ _).
   case/dprodP: (nilpotent_pcoreC p nilGq) => /= _ <- _ _.
   by rewrite defH quotientMidr quotient_pgroup ?pcore_pgroup.
-rewrite pHallE pcore_sub -(LaGrange sHG) partnM // -card_quotient //=.
+rewrite pHallE pcore_sub -(Lagrange sHG) partnM // -card_quotient //=.
 have hallHp': p^'.-Hall(H) 'O_p^'(H).
   case p'H: (p^'.-group H).
     by rewrite pHallE /= pcore_pgroup_id ?subxx //= part_pnat_id.

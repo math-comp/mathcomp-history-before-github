@@ -118,7 +118,7 @@ rewrite realC_ltNge /isRealC ?rmorphB ?rmorph1 ?rmorph_nat //; last first.
   by rewrite posC_conjK ?posC_mul ?posC_nat // Spos ?(sSS SBpsi).
 apply: contra not_ineq => /leC_trans-> //.
 rewrite -mulrA leC_pmul2l -?(ltn_ltC 0) // def_psi cfInd1 //.
-rewrite -(LaGrange_index sKL sCK) natrM -mulrA leC_pmul2l ?sposGiC //.
+rewrite -(Lagrange_index sKL sCK) natrM -mulrA leC_pmul2l ?sposGiC //.
 exact: irr1_bound_quo sDbZC.
 Qed.
 
@@ -165,12 +165,12 @@ have [defA | ltAH] := eqVproper sAH.
   by rewrite addn1 defA indexgg in lbHA.
 have [sAK ltAK] := (subset_trans sAH sHK, proper_sub_trans ltAH sHK).
 case: (@coherent_seqIndD_bound A B H A) => // /idPn[].
-apply: contraL lbHA; rewrite -ltnNge ltn_ltC -(LaGrange_index sHK sAH) natrM.
+apply: contraL lbHA; rewrite -ltnNge ltn_ltC -(Lagrange_index sHK sAH) natrM.
 set x := #|H : A|%:R => ub_x.
 have nz_x2: sqrtC x != 0 by rewrite sqrtC_eq0 neq0GiC.
 have x2_gt0: 0 < sqrtC x by rewrite ltCE nz_x2 sqrtC_pos posC_nat.
 have{ub_x}: sqrtC x - (sqrtC x)^-1 <= (2 * #|L : K|)%:R.
-  rewrite -(leC_pmul2r _ _ (sposGiC K H)) -natrM -mulnA LaGrange_index //.
+  rewrite -(leC_pmul2r _ _ (sposGiC K H)) -natrM -mulnA Lagrange_index //.
   rewrite natrM -(leC_pmul2r _ _ x2_gt0) mulrC mulrBl mulrBr.
   rewrite !mulrA -expr2 sqrtCK divff // (leC_trans _ ub_x) // mulrC.
   by rewrite leC_add2l leC_opp mul1r -(leq_leC 1).
@@ -247,12 +247,12 @@ have chiefH1: chief_factor L H1 K.
     by apply/subsetP; rewrite setSD ?quotientS.
   have dv_H21 := dv_e H2 sH12 sH2K nH2L.
   have dv_KH2: #|K : H2| == 1 %[mod e].
-    have:= dv_e K sH1K (subxx K) nKL; rewrite -(LaGrange_index sH2K sH12).
+    have:= dv_e K sH1K (subxx K) nKL; rewrite -(Lagrange_index sH2K sH12).
     by rewrite -modnMmr (eqP dv_H21) modnMmr muln1.
   have odd_iK := dvdn_odd (dvdn_indexg _ _) (oddSg (subset_trans _ sKL) oddL).
   have iK_gt1 H3 H4: H4 \proper H3 -> (#|H3 : H4| > 1)%N.
     by rewrite indexg_gt1 => /andP[].
-  by rewrite -(LaGrange_index sH2K sH12) leq_mul ?mod1e_lb ?odd_iK ?iK_gt1.
+  by rewrite -(Lagrange_index sH2K sH12) leq_mul ?mod1e_lb ?odd_iK ?iK_gt1.
 split=> //; have nMK := subset_trans sKL (normal_norm nsML).
 have not_abKb: ~~ abelian (K / M).
   apply: contra (proper_subn ltMH1) => /derG1P/trivgP.
@@ -415,7 +415,7 @@ have /dvdn_addl <-: p ^ (d chi * 2) %| e ^ 2 * sum_p2d X''.
 rewrite -mulnDr -big_cat (eq_big_perm _ defX) -(getNatC_nat (e ^ 2 * _)) /=.
 rewrite -def_sum_xi1 // /sum_xi1 sum_seqIndD_square ?normal1 ?sub1G //.
 rewrite indexg1 -(natrB _ (cardG_gt0 Z)) -natrM getNatC_nat.
-rewrite -(LaGrange_index sKL sZK) mulnAC dvdn_mull //.
+rewrite -(Lagrange_index sKL sZK) mulnAC dvdn_mull //.
 have /p_natP[k defKZ]: p.-nat #|K : Z| by rewrite (pnat_dvd (dvdn_indexg K Z)).
 rewrite defKZ dvdn_exp2l // -(leq_exp2l _ _ (prime_gt1 p_pr)) -{k}defKZ.
 rewrite leq_leC expnM natrX -d_r ?(leC_trans (irr1_bound r).1) //.
@@ -1622,7 +1622,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
           by rewrite -Epsi1 !cfunE !psi1Z.
         by rewrite -Epsi1 !cfunE -mulrBr dvdC_mul_sign psi1Z.
       apply/dvdCP; exists (- x); first by rewrite isIntC_opp.
-      rewrite /a -opprB Dx -(LaGrange sZH) mulnC natrM -!mulNr.
+      rewrite /a -opprB Dx -(Lagrange sZH) mulnC natrM -!mulNr.
       by rewrite !mulrA !mulfK ?neq0GC.
     pose x1 := '[eta1, 'Res psi1]; pose x := x0 + 1 - x1.
     have Zx: isIntC x.
@@ -1647,7 +1647,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
           by rewrite cfker1 ?(subsetP kerZk).
         by rewrite cfdotZr -chi0_1 cfdot_irr (negPf nzi) mulr0.
       split=> //; rewrite vcharD1E !cfunE cfInd1 // uniY // lin_i mulr1.
-      rewrite -divgS // -(sdprod_card defL) -(LaGrange sZH) -mulnA mulKn //.
+      rewrite -divgS // -(sdprod_card defL) -(Lagrange sZH) -mulnA mulKn //.
       rewrite -natrM subrr sub_vchar //=.
         by rewrite (vchar_subset _ sXS) ?seqInd_free.
       by rewrite scale_vchar ?isIntC_nat // seqInd_vcharW ?sYS. 
@@ -1698,7 +1698,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
       by rewrite sqrtCK rmorph_nat -natrM.
     have{norm_alpha} ub_norm_alpha: '[tau (alpha i0)] < (#|H : Z| ^ 2).*2%:R.
       rewrite norm_alpha -addnn -ltn_ltC ltn_add2r.
-      rewrite -divgS // -(sdprod_card defL) -(LaGrange sZH) -mulnA mulKn //.
+      rewrite -divgS // -(sdprod_card defL) -(Lagrange sZH) -mulnA mulKn //.
       rewrite ltn_pmul2l //.
       have frobL2: [Frobenius L / Z = (H / Z) ><| (W1 / Z)]%g.
         apply: (Frobenius_coprime_quotient defL nsZL) => //.
@@ -2160,7 +2160,7 @@ rewrite big_seq posC_add ?posC_sum // => [phi Sphi|].
   suffices /(allP (seqInd_char _ _)): phi \in S by [].
   rewrite sS1S // !mem_cat; rewrite mem_cat in Sphi.
   by case/orP: Sphi => [/mem_rem-> | ->]; rewrite ?orbT.
-rewrite leC_sub -(LaGrange_index sHL sZH) -oW1 natrM mulrC -mulrA.
+rewrite leC_sub -(Lagrange_index sHL sZH) -oW1 natrM mulrC -mulrA.
 rewrite uniY ?leC_pmul2l ?sposGC //.
 rewrite  -(prednK (cardG_gt0 Z)) [zz in zz - 1]mulrSr addrK -natrM.
 rewrite Dpsi cfInd1 // -oW1.
@@ -2186,7 +2186,7 @@ have [in_caseA | in_caseB] := boolP caseA.
   by rewrite regular_norm_dvd_pred // (subset_trans sW1L) ?normal_norm.
 rewrite -(muln1 (4 * _)%N) leq_mul //; last first.
   by rewrite expn_gt0 -subn1 subn_gt0 orbF cardG_gt1.
-rewrite -(expnMn 2 _ 2) -(LaGrange_index (der_sub 1 H) sZH') leq_mul //.
+rewrite -(expnMn 2 _ 2) -(Lagrange_index (der_sub 1 H) sZH') leq_mul //.
   rewrite -(prednK (indexg_gt0 _ _)) leqW // dvdn_leq //.
     by rewrite -subn1 subn_gt0 indexg_gt1 proper_subn.
   rewrite Gauss_dvd ?(@pnat_coprime 2) -?odd_2'nat ?(oddSg sW1L) //.

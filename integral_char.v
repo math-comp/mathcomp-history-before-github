@@ -793,6 +793,9 @@ have [n [[pz Dpz] [px Dpx]]] := PET_char0 nz_rz rz0 nz_rx rx0 char0_Q.
 by exists (n, [:: px; - pz]); rewrite /= !raddfN hornerN -[z]opprK Dpz Dpx.
 Qed.
 
+Canonical subfx_unitAlgType (F L : fieldType) iota (z : L) p :=
+  Eval hnf in [unitAlgType F of subFExtend iota z p].
+
 Lemma num_field_exists (s : seq algC) :
   {Qs : fieldExtType rat & {QsC : {rmorphism Qs -> algC}
    & {s1 : seq Qs | map QsC s1 = s & genField 1 s1 = fullv}}}.
@@ -823,7 +826,7 @@ have rz0: root (pQtoC r) z by rewrite dv_r.
 have [q qz0 nz_q | QsV] := Wrap (VectMixin (min_subfx_vectAxiom rz0 nz_r _)).
   by rewrite dvdp_leq // -dv_r.
 pose Qs := [FalgType rat of _ for VectType rat _ QsV].
-exists [fieldExtType rat of _ for Qs], (subfx_inj_rmorphism QtoC_M z r).
+exists [fieldExtType rat of Qs], (subfx_inj_rmorphism QtoC_M z r).
 exists (subfx_eval _ z r 'X) => [|x].
   by rewrite /= subfx_inj_eval ?map_polyX ?hornerX.
 have{x} [p ->] := subfxE x; exists p.
@@ -2339,7 +2342,7 @@ have [j ->]: exists j, 'chi_i = 'Res 'chi[G]_j.
     by exists (iinv (all_rH i)); rewrite DrH f_iinv.
   apply/subset_cardP; last exact/subsetP; apply/esym/eqP.
   rewrite card_Iirr_abelian ?(abelianS sHG) //.
-  rewrite -(eqn_pmul2r (indexg_gt0 G H)) LaGrange //; apply/eqP.
+  rewrite -(eqn_pmul2r (indexg_gt0 G H)) Lagrange //; apply/eqP.
   rewrite -sum_nat_const -card_Iirr_abelian // -sum1_card.
   rewrite (partition_big rH (mem (codom rH))) /=; last exact: image_f.
   have nsHG: H <| G by rewrite -sub_abelian_normal.
@@ -2368,7 +2371,7 @@ have [j ->]: exists j, 'chi_i = 'Res 'chi[G]_j.
   by rewrite cfker1 ?linG1 ?mul1r ?(subsetP _ x Hx) // mod_IirrE ?cfker_Mod.
 have: dvdNC #|G : H| (#|G : H|%:R * '[chi, 'chi_j]).
   by rewrite dvdC_mulr ?isIntC_Nat ?cfdot_char_irr_Nat.
-congr (dvdNC _ _); rewrite (cfdotEl _ Hchi) -(LaGrange sHG) mulnC natrM.
+congr (dvdNC _ _); rewrite (cfdotEl _ Hchi) -(Lagrange sHG) mulnC natrM.
 rewrite invfM -mulrA mulVKf ?neq0GiC //; congr (_ * _).
 by apply: eq_bigr => x Hx; rewrite !cfResE.
 Qed.

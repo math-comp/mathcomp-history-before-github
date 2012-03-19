@@ -279,7 +279,7 @@ have [cycF ffulF]: cyclic F /\ [faithful F, on 'Ohm_1(G) | [Aut G]].
     rewrite pHallE -(card_Hall sylP) oP subsetIl /=.
     rewrite -(@eqn_pmul2r #|m0 @* A|) ?cardG_gt0 //; apply/eqP.
     rewrite -{1}(card_isog (first_isog _)) card_quotient ?ker_norm //.
-    by rewrite LaGrange ?subsetIl // oA im_m0 mulnC card_units_Fp.
+    by rewrite Lagrange ?subsetIl // oA im_m0 mulnC card_units_Fp.
   have inj_m0: 'ker_F m0 \subset [1] by rewrite setIC ker_m0_P tiPF.
   split; last by rewrite /faithful -ker_m0.
   have isogF: F \isog [set: {unit 'F_p}].
@@ -516,7 +516,7 @@ have defZ: 'Z(G) = <[x ^+ p]>.
   rewrite 2!cycle_subG !groupX ?cent1id //= centsC cXpY /= -orderE oxp leqNgt.
   apply: contra notcGG => gtZr; apply: cyclic_center_factor_abelian.
   rewrite (dvdn_prime_cyclic p_pr) // card_quotient //.
-  rewrite -(dvdn_pmul2l (cardG_gt0 'Z(G))) LaGrange // oG -def_m dvdn_pmul2r //.
+  rewrite -(dvdn_pmul2l (cardG_gt0 'Z(G))) Lagrange // oG -def_m dvdn_pmul2r //.
   case/p_natP: (pgroupS sZG pG) gtZr => k ->.
   by rewrite ltn_exp2l // def_n1; exact: dvdn_exp2l.
 have Zxr: x ^+ r \in 'Z(G) by rewrite /r def_n expnS expgM defZ mem_cycle.
@@ -1059,7 +1059,7 @@ split.
     by case/or3P; move/eqP->; rewrite ?maxMt.
   have [sHG nHG]:= andP (p_maximal_normal pG maxH).
   have oH: #|H| = q. 
-    apply: double_inj; rewrite -muln2 -(p_maximal_index pG maxH) LaGrange //.
+    apply: double_inj; rewrite -muln2 -(p_maximal_index pG maxH) Lagrange //.
     by rewrite oG -mul2n.
   rewrite !(eq_sym (gval H)) -eq_sym !eqEcard oH -orderE ox !oMt // !leqnn.
   case sHX: (H \subset X) => //=; case/subsetPn: sHX => t Ht notXt.
@@ -1089,7 +1089,7 @@ have isoMt: {in G :\: X, forall t, <<t ^: G>> \isog 'D_q}.
   by rewrite !expg_order !eqxx /= invXX' ?mem_cycle.
 rewrite !isoMt //; split=> // C; case/cyclicP=> z ->{C} sCG iCG.
 rewrite [X]defU // defU -?cycle_subG //.
-by apply: double_inj; rewrite -muln2 -iCG LaGrange // oG -mul2n.
+by apply: double_inj; rewrite -muln2 -iCG Lagrange // oG -mul2n.
 Qed.
 
 Theorem quaternion_structure :
@@ -1223,7 +1223,7 @@ have sMtG: {in G :\: X, forall t, <<t ^: G>> \subset G}.
   by move=> t; case/setDP=> Gt _; rewrite gen_subG class_subG.
 have oMt: {in G :\: X, forall t, #|<<t ^: G>>| = q}.
   move=> t X't; have [Gt notXt] := setDP X't.
-  rewrite -defMt // -(LaGrange (joing_subl _ _)) -orderE ox2 -def2r mulnC.
+  rewrite -defMt // -(Lagrange (joing_subl _ _)) -orderE ox2 -def2r mulnC.
   congr (_ * r)%N; rewrite -card_quotient /=; last first.
     by rewrite defMt // (subset_trans _ (nXiG 2)) ?sMtG.
   rewrite joingC quotientYidr ?(subset_trans _ (nXiG 2)) ?cycle_subG //.
@@ -1270,7 +1270,7 @@ rewrite pprodE //; split=> // [|||n_gt3].
     by case/or3P=> /eqP->; rewrite ?maxMt.
   have [sHG nHG]:= andP (p_maximal_normal pG maxH).
   have oH: #|H| = q.
-    apply: double_inj; rewrite -muln2 -(p_maximal_index pG maxH) LaGrange //.
+    apply: double_inj; rewrite -muln2 -(p_maximal_index pG maxH) Lagrange //.
     by rewrite oG -mul2n.
   rewrite !(eq_sym (gval H)) -eq_sym !eqEcard oH -orderE ox !oMt // !leqnn.
   case sHX: (H \subset X) => //=; case/subsetPn: sHX => z Hz notXz.
@@ -1286,7 +1286,7 @@ have isoMt: {in G :\: X, forall z, <<z ^: G>> \isog 'Q_q}.
   by rewrite X'2 // def_xr !eqxx /= invXX' ?mem_cycle.
 rewrite !isoMt //; split=> // C; case/cyclicP=> z ->{C} sCG iCG.
 rewrite [X]defU // defU -?cycle_subG //.
-by apply: double_inj; rewrite -muln2 -iCG LaGrange // oG -mul2n.
+by apply: double_inj; rewrite -muln2 -iCG Lagrange // oG -mul2n.
 Qed.
 
 Theorem semidihedral_structure :
@@ -1410,7 +1410,7 @@ have sMtG: {in G :\: X, forall t, <<t ^: G>> \subset G}.
   by move=> t; case/setDP=> Gt _; rewrite gen_subG class_subG.
 have oMt: {in G :\: X, forall t, #|<<t ^: G>>| = q}.
   move=> t X't; have [Gt notXt] := setDP X't.
-  rewrite -defMt // -(LaGrange (joing_subl _ _)) -orderE ox2 -def2r mulnC.
+  rewrite -defMt // -(Lagrange (joing_subl _ _)) -orderE ox2 -def2r mulnC.
   congr (_ * r)%N; rewrite -card_quotient /=; last first.
     by rewrite defMt // (subset_trans _ (nXiG 2)) ?sMtG.
   rewrite joingC quotientYidr ?(subset_trans _ (nXiG 2)) ?cycle_subG //.
@@ -1465,7 +1465,7 @@ split.
     by case/or3P=> /eqP->; rewrite ?maxMt.
   have [sHG nHG]:= andP (p_maximal_normal pG maxH).
   have oH: #|H| = q.
-    apply: double_inj; rewrite -muln2 -(p_maximal_index pG maxH) LaGrange //.
+    apply: double_inj; rewrite -muln2 -(p_maximal_index pG maxH) Lagrange //.
     by rewrite oG -mul2n.
   rewrite !(eq_sym (gval H)) -eq_sym !eqEcard oH -orderE ox !oMt // !leqnn.
   case sHX: (H \subset X) => //=; case/subsetPn: sHX => t Ht notXt.
@@ -1484,7 +1484,7 @@ have invX2X': {in G :\: X, forall t, x ^+ 2 ^ t == x ^- 2}.
   rewrite -!expgM def2r -order_dvdn ox xy2 dvdnn eqxx invX2X' //=.
   by rewrite andbT /r -(subnKC n_gt3).
 case/cyclicP=> z ->{C} sCG iCG; rewrite [X]defU // defU -?cycle_subG //.
-by apply: double_inj; rewrite -muln2 -iCG LaGrange // oG -mul2n.
+by apply: double_inj; rewrite -muln2 -iCG Lagrange // oG -mul2n.
 Qed.
 
 End ExtremalStructure.

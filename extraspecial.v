@@ -235,7 +235,7 @@ have defZ: <[z]> = 'Z(G).
   by rewrite (sameP commgP cent1P) cent1C.
 have sZ_XY: 'Z(G) \subset <[x]> <*> <[y]>.
   by rewrite -defZ cycle_subG groupR // mem_gen // inE cycle_id ?orbT.
-rewrite eqEcard sXY_G /= oG -(LaGrange sZ_XY) oZ leq_pmul2l //.
+rewrite eqEcard sXY_G /= oG -(Lagrange sZ_XY) oZ leq_pmul2l //.
 rewrite -card_quotient ?(subset_trans sXY_G) //.
 rewrite quotientY ?quotient_cycle ?cycle_subG ?(subsetP nZG) //.
 have abelGz: p.-abelem (G / 'Z(G)) by rewrite -defPhiG Phi_quotient_abelem.
@@ -390,7 +390,7 @@ have iYG: #|G : Y| = p.
     by rewrite mulKn ?cardG_gt0 //= -oZ cardSg ?(subset_trans (MhoS 1 sUG)).
   have oU: #|U| = (p ^ 3)%N.
     have nvu := subsetP nvG u Gu; have nvU := subset_trans sUG nvG.
-    rewrite -(LaGrange (joing_subr _ _)) -orderE ov mulnC; congr (_ * _)%N.
+    rewrite -(Lagrange (joing_subr _ _)) -orderE ov mulnC; congr (_ * _)%N.
     rewrite -card_quotient //= quotientYidr ?cycle_subG //=.
     rewrite quotient_cycle // -orderE; apply: nt_prime_order => //.
       by rewrite -morphX //= coset_id // (subsetP sZv) // Z_Gp.
@@ -411,14 +411,14 @@ have iC1U (U : {group gT}) x:
     rewrite cent1_extraspecial_maximal //; apply: contra not_cUx.
     by rewrite inE Gx; exact: subsetP (centS sUG) _.
   rewrite {1}mul_cardG setIA (setIidPl sUG) -(p_maximal_index pG maxCx) -!mulnA.
-  rewrite !LaGrange ?subsetIl // mulnC dvdn_pmul2l //.
+  rewrite !Lagrange ?subsetIl // mulnC dvdn_pmul2l //.
   have [sCxG nCxG] := andP (p_maximal_normal pG maxCx).
   by rewrite -norm_joinEl ?cardSg ?join_subG ?(subset_trans sUG).
 have oCG (U : {group gT}):
   Z \subset U -> U \subset G -> #|'C_G(U)| = (p * #|G : U|)%N.
 - elim: {U}_.+1 {-2}U (ltnSn #|U|) => // m IHm U leUm sZU sUG.
   have [<- | neZU] := eqVneq Z U.
-    by rewrite -oZ LaGrange // (setIidPl _) // centsC subsetIr.
+    by rewrite -oZ Lagrange // (setIidPl _) // centsC subsetIr.
   have{neZU} [x Gx not_cUx]: exists2 x, x \in G & x \notin 'C(U).
     by apply/subsetPn; rewrite eqEsubset sZU subsetI sUG centsC in neZU.
   pose W := 'C_U[x]; have iWU: #|U : W| = p by rewrite iC1U // inE not_cUx.
@@ -437,9 +437,9 @@ have oCG (U : {group gT}):
     rewrite -sub_cent1; apply/subsetPn; exists x.
       by rewrite inE Gx -sub_cent1 subsetIr.
     by rewrite -defU centM cent_cycle inE -sub_cent1 subsetIr in not_cUx.
-  apply/eqP; rewrite -(eqn_pmul2r p_gt0) -{1}iCW_CU LaGrange ?setIS ?centS //.
+  apply/eqP; rewrite -(eqn_pmul2r p_gt0) -{1}iCW_CU Lagrange ?setIS ?centS //.
   rewrite IHm ?(leq_trans (proper_card ltWU)) //= -/W.
-  by rewrite -(LaGrange_index sUG sWU) iWU mulnA.
+  by rewrite -(Lagrange_index sUG sWU) iWU mulnA.
 have oCY: #|'C_G(Y)| = (p ^ 2)%N by rewrite oCG // iYG.
 have [x cYx notZx]: exists2 x, x \in 'C_G(Y) & x \notin Z.
   apply/subsetPn; rewrite proper_subn // properEcard setIS ?centS //=.
@@ -447,7 +447,7 @@ have [x cYx notZx]: exists2 x, x \in 'C_G(Y) & x \notin Z.
 have{cYx} [Gx cYx] := setIP cYx; have nZx := subsetP nZG x Gx.
 have defCx: 'C_G[x] = Y.
   apply/eqP; rewrite eq_sym eqEcard subsetI sYG sub_cent1 cYx /=.
-  rewrite -(leq_pmul2r p_gt0) -{2}iYG -(iC1U G x) ?LaGrange ?subsetIl //.
+  rewrite -(leq_pmul2r p_gt0) -{2}iYG -(iC1U G x) ?Lagrange ?subsetIl //.
   by rewrite !inE Gx ?andbT in notZx *.
 have Yx: x \in Y by rewrite -defCx inE Gx cent1id.
 have ox: #[x] = p.
@@ -494,7 +494,7 @@ split=> //; first 2 [by exists [group of <[x]>]].
   split=> //; rewrite -defE'; apply/joing_idPl.
   by rewrite /= defE' -defPhiG (Phi_joing pG) joingC sub_gen ?subsetU ?MhoS.
 have iEG: #|G : E| = (p ^ 2)%N.
-  apply/eqP; rewrite -(@eqn_pmul2l #|E|) // LaGrange // -(LaGrange sYG) iYG.
+  apply/eqP; rewrite -(@eqn_pmul2l #|E|) // Lagrange // -(Lagrange sYG) iYG.
   by rewrite -(dprod_card defY) -mulnA mulnCA -orderE ox.
 pose M := 'C_G(E); exists [group of M] => /=.
 have sMG: M \subset G := subsetIl _ _; have pM: p.-group M := pgroupS sMG pG.
@@ -503,7 +503,7 @@ have oM: #|M| = (p ^ 3)%N by rewrite oCG ?iEG.
 have defME: M * E = G.
   apply/eqP; rewrite eqEcard mulG_subG sMG sEG /= -(leq_pmul2r p_gt0).
   rewrite -{2}oZ -defZE /('Z(E)) -{2}(setIidPr sEG) setIAC -mul_cardG /= -/M.
-  by rewrite -(LaGrange sEG) mulnAC -mulnA mulnC iEG oM.
+  by rewrite -(Lagrange sEG) mulnAC -mulnA mulnC iEG oM.
 have defZM: 'Z(M) = Z.
   apply/eqP; rewrite eqEsubset andbC subsetI sZM subIset ?centS ?orbT //=.
   by rewrite /Z /('Z(G)) -{2}defME centM setIA setIAC.
@@ -744,7 +744,7 @@ apply/eqP; rewrite eqn_leq; apply/andP; split.
   have [sEDDn abelE <-] := pnElemP EprE; have [pE cEE _]:= and3P abelE.
   rewrite -(@leq_exp2l 2) // -p_part part_pnat_id // -leq_sqr -expnM -mulnn.
   rewrite muln2 doubleS expnS -oDDn -(@leq_pmul2r #|'C_DDn(E)|) ?cardG_gt0 //.
-  rewrite {1}(card_subcent_extraspecial pDDn) // mulnCA -mulnA LaGrange //=.
+  rewrite {1}(card_subcent_extraspecial pDDn) // mulnCA -mulnA Lagrange //=.
   rewrite mulnAC mulnA leq_pmul2r ?cardG_gt0 // setTI.
   have ->: (2 * #|'C(E)| = #|'Z(DDn)| * #|'C(E)|)%N.
     by rewrite (card_center_extraspecial pDDn).
@@ -800,7 +800,7 @@ have scE: 'C_Dn(E) = E.
     exact: injm_extraspecial (pX1p2n_extraspecial _ _).
   rewrite dvdn_leq ?cardG_gt0 // (card_subcent_extraspecial pDn) //=.
   rewrite -injm_center // cpairg1_center (setIidPl sZE) oZ.
-  rewrite -(dvdn_pmul2l (cardG_gt0 E)) mulnn mulnCA LaGrange //.
+  rewrite -(dvdn_pmul2l (cardG_gt0 E)) mulnn mulnCA Lagrange //.
   rewrite card_injm ?card_pX1p2n // -expnS pfactor_dvdn ?expn_gt0 ?cardG_gt0 //.
   by rewrite lognX dimE mul2n.
 apply/pmaxElemP; split=> [|F E2F sEF]; first by rewrite inE subsetT abelE.

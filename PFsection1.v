@@ -330,7 +330,7 @@ Proof.
 set T := 'I_G['chi_t] => nsHG; have [sHG nHG] := andP nsHG.
 apply/cfun_inP=> h Hh; rewrite cfResE ?cfIndE // cfunE sum_cfunE.
 apply: (canLR (mulKf (neq0GC H))).
-rewrite mulrA -natrM LaGrange ?sub_inertia //= -/T -cfclass_sum //=.
+rewrite mulrA -natrM Lagrange ?sub_inertia //= -/T -cfclass_sum //=.
 rewrite mulr_sumr [s in _ = s]big_mkcond /= (reindex_inj invg_inj).
 rewrite (partition_big (conjg_Iirr t) xpredT) //=; apply: eq_bigr => i _.
 have [[y Gy chi_i] | not_i_t] := cfclassP _ _ _; last first.
@@ -466,7 +466,7 @@ have [Hg | notHg] := boolP (g \in H); last first.
   rewrite !(cfun_on0 (cfInd_normal _ _)) //.
   by rewrite -(quotientGK AnH) !(Ng, inE) in notHg.
 rewrite !cfIndE ?quotientS //; apply: (canRL (mulKf (neq0GC H))).
-rewrite -(LaGrange AsH) natrM mulrA -card_quotient ?normal_norm //.
+rewrite -(Lagrange AsH) natrM mulrA -card_quotient ?normal_norm //.
 rewrite (mulfK (neq0GC _)) mulr_sumr.
 rewrite (partition_big _  _ (fun x => (mem_quotient A) x G)) /=.
 apply: eq_bigr => _ /morphimP[x Nx Gx ->].
@@ -571,7 +571,7 @@ have [HxH | notHxH] := boolP (x \in H); last first.
   move=> y Hy; move/supportP:(support_cfun ('Res[H] 'chi_i1))->=>//.   
   by rewrite memJ_norm //; apply/(subsetP nHT).
 rewrite mulr1 cfIndE // (eq_bigr (fun _ => 'chi_i1 x)).
-  rewrite sumr_const -(mulr_natl _ #|T|) mulrA  -(LaGrange sHT).
+  rewrite sumr_const -(mulr_natl _ #|T|) mulrA  -(Lagrange sHT).
   congr (_ *_); rewrite natrM mulrA mulVf ?mul1r //.
   by move: (cardG_gt0 H); rewrite -neq0N_neqC;case: #|H|.
 move => y Hy;rewrite cfResE ?cfunJgen ?genGid //.
@@ -760,9 +760,9 @@ have I1B: 'chi_i1 1%g ^+ 2 <= #|C : D|%:R.
   move/leC_trans; apply.
   rewrite -leq_leC // -(index_quotient_eq CBsH) ?normal_norm //.
   rewrite -(@leq_pmul2l #|'Z('chi_i2)%CF|) ?cardG_gt0 ?cfcenter_sub //.
-  rewrite  LaGrange ?quotientS ?cfcenter_sub //.
+  rewrite  Lagrange ?quotientS ?cfcenter_sub //.
   rewrite -(@leq_pmul2l #|(D / B)%g|) ?cardG_gt0 //.
-  rewrite mulnA mulnAC LaGrange ?quotientS //.
+  rewrite mulnA mulnAC Lagrange ?quotientS //.
   rewrite mulnC leq_pmul2l ?cardG_gt0 // subset_leq_card //.
   exact: subset_trans QsZ ZsC.
 have IC': is_char ('Ind[G] 'chi_i1) := cfInd_char G (irr_char i1).

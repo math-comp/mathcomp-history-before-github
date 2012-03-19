@@ -1925,12 +1925,12 @@ Notation "\prod_ ( i \in A | P ) F" :=
 Notation "\prod_ ( i \in A ) F" :=
   (\big[joinG/1%G]_(i \in A) F%G) : Group_scope.
 
-Section LaGrange.
+Section Lagrange.
 
 Variable gT : finGroupType.
 Implicit Types G H K : {group gT}.
 
-Lemma LaGrangeI G H : (#|G :&: H| * #|G : H|)%N = #|G|.
+Lemma LagrangeI G H : (#|G :&: H| * #|G : H|)%N = #|G|.
 Proof.
 rewrite -[#|G|]sum1_card (partition_big_imset (rcoset H)) /=.
 rewrite mulnC -sum_nat_const; apply: eq_bigr => _ /rcosetsP[x Gx ->].
@@ -1940,19 +1940,19 @@ by rewrite group_modr sub1set // inE.
 Qed.
 
 Lemma divgI G H : #|G| %/ #|G :&: H| = #|G : H|.
-Proof. by rewrite -(LaGrangeI G H) mulKn ?cardG_gt0. Qed.
+Proof. by rewrite -(LagrangeI G H) mulKn ?cardG_gt0. Qed.
 
 Lemma divg_index G H : #|G| %/ #|G : H| = #|G :&: H|.
-Proof. by rewrite -(LaGrangeI G H) mulnK. Qed.
+Proof. by rewrite -(LagrangeI G H) mulnK. Qed.
 
 Lemma dvdn_indexg G H : #|G : H| %| #|G|.
-Proof. by rewrite -(LaGrangeI G H) dvdn_mull. Qed.
+Proof. by rewrite -(LagrangeI G H) dvdn_mull. Qed.
 
-Theorem LaGrange G H : H \subset G -> (#|H| * #|G : H|)%N = #|G|.
-Proof. by move/setIidPr=> sHG; rewrite -{1}sHG LaGrangeI. Qed.
+Theorem Lagrange G H : H \subset G -> (#|H| * #|G : H|)%N = #|G|.
+Proof. by move/setIidPr=> sHG; rewrite -{1}sHG LagrangeI. Qed.
 
 Lemma cardSg G H : H \subset G -> #|H| %| #|G|.
-Proof. by move/LaGrange <-; rewrite dvdn_mulr. Qed.
+Proof. by move/Lagrange <-; rewrite dvdn_mulr. Qed.
 
 Lemma lognSg p G H : G \subset H -> logn p #|G| <= logn p #|H|.
 Proof. by move=> sGH; rewrite dvdn_leq_log ?cardSg. Qed.
@@ -1964,7 +1964,7 @@ exact: dvdn_trans (cardSg sGH).
 Qed.
 
 Lemma divgS G H : H \subset G -> #|G| %/ #|H| = #|G : H|.
-Proof. by move/LaGrange <-; rewrite mulKn. Qed.
+Proof. by move/Lagrange <-; rewrite mulKn. Qed.
 
 Lemma coprimeSg G H p : H \subset G -> coprime #|G| p -> coprime #|H| p.
 Proof. by move=> sHG; exact: coprime_dvdl (cardSg sHG). Qed.
@@ -1984,11 +1984,11 @@ apply/esym/eqP; rewrite eqEcard sub1set [#|_|]indexgg cards1 andbT.
 by apply/rcosetsP; exists 1; rewrite ?mulg1.
 Qed.
 
-Lemma LaGrange_index G H K :
+Lemma Lagrange_index G H K :
   H \subset G -> K \subset H -> (#|G : H| * #|H : K|)%N = #|G : K|.
 Proof.
 move=> sHG sKH; apply/eqP; rewrite mulnC -(eqn_pmul2l (cardG_gt0 K)).
-by rewrite mulnA !LaGrange // (subset_trans sKH).
+by rewrite mulnA !Lagrange // (subset_trans sKH).
 Qed.
 
 Lemma indexgI G H : #|G : G :&: H| = #|G : H|.
@@ -1996,19 +1996,19 @@ Proof. by rewrite -divgI divgS ?subsetIl. Qed.
 
 Lemma indexgS G H K : H \subset K -> #|G : K| %| #|G : H|.
 Proof.
-move=> sHK; rewrite -(@dvdn_pmul2l #|G :&: K|) ?cardG_gt0 // LaGrangeI.
-by rewrite -(LaGrange (setIS G sHK)) mulnAC LaGrangeI dvdn_mulr.
+move=> sHK; rewrite -(@dvdn_pmul2l #|G :&: K|) ?cardG_gt0 // LagrangeI.
+by rewrite -(Lagrange (setIS G sHK)) mulnAC LagrangeI dvdn_mulr.
 Qed.
 
 Lemma indexSg G H K : H \subset K -> K \subset G -> #|K : H| %| #|G : H|.
 Proof.
 move=> sHK sKG; rewrite -(@dvdn_pmul2l #|H|) ?cardG_gt0 //.
-by rewrite !LaGrange ?(cardSg, subset_trans sHK).
+by rewrite !Lagrange ?(cardSg, subset_trans sHK).
 Qed.
 
 Lemma indexg_eq1 G H : (#|G : H| == 1%N) = (G \subset H).
 Proof.
-rewrite eqn_leq -(leq_pmul2l (cardG_gt0 (G :&: H))) LaGrangeI muln1.
+rewrite eqn_leq -(leq_pmul2l (cardG_gt0 (G :&: H))) LagrangeI muln1.
 by rewrite indexg_gt0 andbT (sameP setIidPl eqP) eqEcard subsetIl.
 Qed.
 
@@ -2044,17 +2044,17 @@ Qed.
 Lemma rcosets_partition G H : H \subset G -> partition (rcosets H G) G.
 Proof. by move/mulSGid=> {2}<-; exact: rcosets_partition_mul. Qed.
 
-Lemma LaGrangeMl G H : (#|G| * #|H : G|)%N = #|G * H|.
+Lemma LagrangeMl G H : (#|G| * #|H : G|)%N = #|G * H|.
 Proof.
 rewrite mulnC -(card_uniform_partition _ (rcosets_partition_mul H G)) //.
 by move=> _ /rcosetsP[x Hx ->]; rewrite card_rcoset.
 Qed.
 
-Lemma LaGrangeMr G H : (#|G : H| * #|H|)%N = #|G * H|.
-Proof. by rewrite mulnC LaGrangeMl -card_invg invMg !invGid. Qed.
+Lemma LagrangeMr G H : (#|G : H| * #|H|)%N = #|G * H|.
+Proof. by rewrite mulnC LagrangeMl -card_invg invMg !invGid. Qed.
 
 Lemma mul_cardG G H : (#|G| * #|H| = #|G * H|%g * #|G :&: H|)%N.
-Proof. by rewrite -LaGrangeMr -(LaGrangeI G H) -mulnA mulnC. Qed.
+Proof. by rewrite -LagrangeMr -(LagrangeI G H) -mulnA mulnC. Qed.
 
 Lemma dvdn_cardMg G H : #|G * H| %| #|G| * #|H|.
 Proof. by rewrite mul_cardG dvdn_mulr. Qed.
@@ -2099,12 +2099,12 @@ Lemma coprime_index_mulG G H K :
 Proof.
 move=> sHG sKG co_iG_HK; apply/eqP; rewrite eqEcard mul_subG //=.
 rewrite -(@leq_pmul2r #|H :&: K|) ?cardG_gt0 // -mul_cardG.
-rewrite -(LaGrange sHG) -(LaGrangeI K H) mulnAC setIC -mulnA.
+rewrite -(Lagrange sHG) -(LagrangeI K H) mulnAC setIC -mulnA.
 rewrite !leq_pmul2l ?cardG_gt0 // dvdn_leq // -(Gauss_dvdr _ co_iG_HK).
-by rewrite -(indexgI K) LaGrange_index ?indexgS ?subsetIl ?subsetIr.
+by rewrite -(indexgI K) Lagrange_index ?indexgS ?subsetIl ?subsetIr.
 Qed.
 
-End LaGrange.
+End Lagrange.
 
 Section GeneratedGroup.
 
@@ -2768,7 +2768,7 @@ Lemma rcoset_index2 G H x :
   H \subset G -> #|G : H| = 2 -> x \in G :\: H -> H :* x = G :\: H.
 Proof.
 move=> sHG indexHG => /setDP[Gx notHx]; apply/eqP.
-rewrite eqEcard -(leq_add2l #|G :&: H|) cardsID -(LaGrangeI G H) indexHG muln2.
+rewrite eqEcard -(leq_add2l #|G :&: H|) cardsID -(LagrangeI G H) indexHG muln2.
 rewrite (setIidPr sHG) card_rcoset addnn leqnn andbT.
 apply/subsetP=> _ /rcosetP[y Hy ->]; apply/setDP.
 by rewrite !groupMl // (subsetP sHG).

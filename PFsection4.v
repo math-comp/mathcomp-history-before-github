@@ -842,7 +842,7 @@ Qed.
 
 Let Dade_indexE : #|L : K| = #|W1|.
 Proof.
-move: (LaGrange KsL)=> /eqP; rewrite -{1}(sdprod_card SdP) eqn_mul2l.
+move: (Lagrange KsL)=> /eqP; rewrite -{1}(sdprod_card SdP) eqn_mul2l.
 by case: #|K| (cardG_gt0 K)=> //= _ _ /eqP.
 Qed.
 

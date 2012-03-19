@@ -223,7 +223,7 @@ have defZ: 'C_W(E) = Z.
   rewrite subsetI sZW (centsS sER); last by rewrite centsC -subsetIidl defCRZ.
   by rewrite (leq_exp2l _ 1) // -ltnS -dimE properG_ltn_log.
 have dimW: logn p #|W| = 2.
-  apply/eqP; rewrite -(LaGrange sZW) lognM ?cardG_gt0 // oZ (pfactorK 1) //=.
+  apply/eqP; rewrite -(Lagrange sZW) lognM ?cardG_gt0 // oZ (pfactorK 1) //=.
   rewrite -/Z eqSS eqn_leq -{1}defZ logn_quotient_cent_abelem ?dimE // -/W.
   by rewrite -divgS // logn_div ?cardSg // subn_gt0 properG_ltn_log.
 have abelW: p.-abelem W.
@@ -277,7 +277,7 @@ have{SZ sSSZ maxSZ} not_sST: ~~ (S \subset T).
 have tiST: S :&: T :=: 1 by rewrite prime_TIg ?oS. 
 have defST: S * T = R.
   apply/eqP; rewrite eqEcard TI_cardMg ?mul_subG ?subsetIl //=.
-  by rewrite  mulnC oS -maxT LaGrange ?subsetIl.
+  by rewrite  mulnC oS -maxT Lagrange ?subsetIl.
 have cRRb: abelian (R / T) by rewrite -defST quotientMidr quotient_abelian.
 have sR'T: R^`(1) \subset T by rewrite der1_min ?char_norm. 
 have TI_SR': S :&: R^`(1) :=: 1.
@@ -452,7 +452,7 @@ have{pS cSS} oLb: #|L / K| = p.
   have [_ p_dv_Lb _] := pgroup_pdiv (quotient_pgroup _ pL) ntLb.
   apply/eqP; rewrite eqn_leq {p_dv_Lb}(dvdn_leq _ p_dv_Lb) // andbT.
   rewrite -divg_normal ?(normalS sKL sLH nsKH) // leq_divLR ?cardSg //= -/K.
-  rewrite -(card_lcoset K v) -(LaGrangeI L 'C(S)) -indexgI /= -oCHS /K commGC.
+  rewrite -(card_lcoset K v) -(LagrangeI L 'C(S)) -indexgI /= -oCHS /K commGC.
   rewrite {2}defS cent_cycle index_cent1 leq_mul ?subset_leq_card ?setSI //.
   by apply/subsetP=> vx; case/imsetP=> x Lx ->; rewrite mem_lcoset mem_commg.
 have cycLb: cyclic (L / K) by rewrite prime_cyclic ?oLb.

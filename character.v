@@ -2027,7 +2027,7 @@ Lemma cfnorm_Res_leqif H phi :
     H \subset G ->
   '['Res[H] phi] <= #|G : H|%:R * '[phi] ?= iff (phi \in 'CF(G, H)).
 Proof.
-move=> sHG; rewrite cfun_onE !cfdotE -(LaGrange sHG) mulnC natrM invfM.
+move=> sHG; rewrite cfun_onE !cfdotE -(Lagrange sHG) mulnC natrM invfM.
 rewrite -!mulrA mulVKf -?neq0N_neqC -?lt0n //.
 rewrite (@big_setID _ _ _ _ G H) /= (setIidPr sHG) mulrDr addrC.
 rewrite (eq_bigr (fun x => phi x * (phi x)^*)) => [|i Hi]; last first.
@@ -2142,7 +2142,7 @@ Lemma cfker_Ind chi :
 Proof.
 move=> sHG Nchi nzchi; rewrite !cfker_nzcharE ?cfInd_char ?cfInd_eq0 //.
 apply/setP=> x; rewrite inE cfIndE // (can2_eq (mulVKf _) (mulKf _)) ?neq0GC //.
-rewrite cfInd1 // mulrA -natrM LaGrange // mulr_natl -sumr_const.
+rewrite cfInd1 // mulrA -natrM Lagrange // mulr_natl -sumr_const.
 apply/eqP/bigcapP=> [/normC_sum_upper ker_chiG_x y Gy | ker_chiG_x].
   by rewrite mem_conjg inE ker_chiG_x ?groupV // => z _; exact: char1_ge_norm.
 by apply: eq_bigr => y /groupVr/ker_chiG_x; rewrite mem_conjgV inE => /eqP.

@@ -141,7 +141,7 @@ have sylP: p.-Sylow(G) P.
   case p_pr: (prime p); last first.
     rewrite p_part lognE p_pr /= -trivg_card1; apply/idPn=> ntP.
     by case/pgroup_pdiv: pP p_pr => // ->.
-  rewrite -(LaGrangeI G 'N(P)) /= mulnC partnM ?cardG_gt0 // part_p'nat.
+  rewrite -(LagrangeI G 'N(P)) /= mulnC partnM ?cardG_gt0 // part_p'nat.
     by rewrite mul1n (card_Hall (sylS P S_P)).
   by rewrite p'natE // -indexgI -oSiN // /dvdn oS1.
 have eqS Q: maxp G Q = p.-Sylow(G) Q.
@@ -238,7 +238,7 @@ apply: (iffP idP) => [syl1 | [P sylP nPG]]; last first.
   by rewrite (card_Syl sylP) (setIidPl _) (indexgg, normal_norm).
 have [P sylP] := Sylow_exists p G; exists P => //.
 rewrite /normal (pHall_sub sylP); apply/setIidPl; apply/eqP.
-rewrite eqEcard subsetIl -(LaGrangeI G 'N(P)) -indexgI /=.
+rewrite eqEcard subsetIl -(LagrangeI G 'N(P)) -indexgI /=.
 by rewrite -(card_Syl sylP) (eqP syl1) muln1.
 Qed.
 
@@ -260,7 +260,7 @@ case: (eqVneq (P / Z) 1) => [-> |]; first exact: cyclic1.
 have pPq := quotient_pgroup 'Z(P) pP; case/(pgroup_pdiv pPq) => _ _ [j oPq].
 rewrite prime_cyclic // oPq; case: j oPq lePp2 => //= j.
 rewrite card_quotient ?gfunctor.gFnorm //.
-by rewrite -(LaGrange sZP) lognM // => ->; rewrite oZ !pfactorK ?addnS.
+by rewrite -(Lagrange sZP) lognM // => ->; rewrite oZ !pfactorK ?addnS.
 Qed.
 
 Lemma card_p2group_abelian P : prime p -> #|P| = (p ^ 2)%N -> abelian P.
@@ -565,12 +565,12 @@ have{cPz} nzP: P \subset 'N(<[z]>) by rewrite cents_norm // centsC.
 have: N / <[z]> <| P / <[z]> by rewrite morphim_normal.
 case/IHr=> [||Qb [sQNb nQPb]]; first exact: morphim_pgroup.
   rewrite card_quotient ?(subset_trans (normal_sub nNP)) // -ltnS.
-  apply: (leq_trans le_r); rewrite -(LaGrange szN) [#|_|]ozp.
+  apply: (leq_trans le_r); rewrite -(Lagrange szN) [#|_|]ozp.
   by rewrite lognM // ?prime_gt0 // logn_prime ?eqxx.
 case/(inv_quotientN _): nQPb sQNb => [|Q -> szQ nQP]; first exact/andP.
 have nzQ := subset_trans (normal_sub nQP) nzP.
 rewrite quotientSGK // card_quotient // => sQN izQ.
-by exists Q; split=> //; rewrite expnS -izQ -ozp LaGrange.
+by exists Q; split=> //; rewrite expnS -izQ -ozp Lagrange.
 Qed.
 
 Theorem Baer_Suzuki x G :

@@ -109,7 +109,7 @@ Proof.
 rewrite Hall_pi // /Hall Fcore_sub coprime_pi' ?cardG_gt0 //=.
 apply/pnatP=> // p p_pr; apply: contraL => /= piMFp; rewrite -p'natE //.
 rewrite -partn_eq1 // -(eqn_pmul2l (part_gt0 p #|M`_\F|)) muln1.
-rewrite -partnM ?cardG_gt0 // LaGrange ?Fcore_sub //.
+rewrite -partnM ?cardG_gt0 // Lagrange ?Fcore_sub //.
 rewrite -(card_Hall (nilpotent_pcore_Hall p Fcore_nil)) /=.
 by rewrite p_core_Fcore // (card_Hall (Fcore_pcore_Sylow piMFp)).
 Qed.

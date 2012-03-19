@@ -224,7 +224,7 @@ Let nzh : h != 0 := neq0GC H.
 Let nze : e != 0 := neq0GiC L H.
 Let nzL : #|L|%:R != 0 := neq0GC L.
 
-Let eh : e * h = #|L|%:R. Proof. by rewrite -natrM mulnC LaGrange. Qed.
+Let eh : e * h = #|L|%:R. Proof. by rewrite -natrM mulnC Lagrange. Qed.
 
 Section InvDadeSeqInd.
 
@@ -672,7 +672,7 @@ have o_nu i j: i != j -> {in S i & S j, forall xi xj, '[nu i xi, nu j xj] = 0}.
   by apply: o_ij => //; exact: cohS.
 have /all_and2[nze nzh] i: e_ i != 0 /\ h_ i != 0 by rewrite neq0GiC neq0GC.
 have h_gt1 i: 1 < h_ i by rewrite -(ltn_ltC 1) cardG_gt1.
-have eh i: e_ i * h_ i = #|L i|%:R by rewrite -natrM mulnC LaGrange.
+have eh i: e_ i * h_ i = #|L i|%:R by rewrite -natrM mulnC Lagrange.
 have def_h1 i: h_ i - 1 = #|A i|%:R.
   by rewrite /h_ (cardsD1 1%g) group1 addnC natrD addrK.
 have [i1 min_i1]: {i1 | forall i, i != i1 -> h_ i1 + 2%:R <= h_ i}.

@@ -682,9 +682,9 @@ pose G' := ('C_G[y] / <[y]>)%G; pose n' := gcdn #|G'| n`_p^'.
 have n'_gt0: 0 < n' by rewrite gcdn_gt0 cardG_gt0.
 rewrite (eq_bigr (fun _ => #|'Ldiv_n'(G')|)) => [|_ /imsetP[a Ga ->]].
   rewrite sum_nat_const -index_cent1 indexgI.
-  rewrite -(dvdn_pmul2l (cardG_gt0 'C_G[y])) mulnA LaGrangeI.
+  rewrite -(dvdn_pmul2l (cardG_gt0 'C_G[y])) mulnA LagrangeI.
   have oCy: #|'C_G[y]| = (#[y] * #|G'|)%N.
-    rewrite card_quotient ?subcent1_cycle_norm // LaGrange //.
+    rewrite card_quotient ?subcent1_cycle_norm // Lagrange //.
     by rewrite subcent1_cycle_sub ?groupX.
   rewrite oCy -mulnA -(muln_lcm_gcd #|G'|) -/n' mulnA dvdn_mul //.
     rewrite muln_lcmr -oCy order_constt pA // mulnAC partnC // dvdn_lcm.
@@ -710,7 +710,7 @@ apply: eq_bigl => z; apply/andP/andP=> [[]|[]].
   have G'z: h z \in G' by rewrite mem_morphim //= inE groupJ // groupV.
   rewrite inE G'z inE -order_dvdn dvdn_gcd order_dvdG //=.
   rewrite /order -morphim_cycle // -quotientE card_quotient ?cycle_subG //.
-  rewrite -(@dvdn_pmul2l #[y]) // LaGrange; last first.
+  rewrite -(@dvdn_pmul2l #[y]) // Lagrange; last first.
     by rewrite /= cycleJ cycle_subG mem_conjgV -zp_ya mem_cycle.
   rewrite oy mulnAC partnC // [#|_|]orderJ; split.
     by rewrite !inE -!order_dvdn mulnC in Az; case/andP: Az.
@@ -740,7 +740,7 @@ rewrite -(conjgKV a z) !inE groupJ //= -!order_dvdn orderJ; apply/andP; split.
 rewrite -(partnC p n_gt0) mulnCA mulnA -oy -(@partnC p #[_]) // ozp.
 apply dvdn_mul => //; apply: dvdn_trans (dvdn_trans n'Z (dvdn_gcdr _ _)).
 rewrite {2}/order -morphim_cycle // -quotientE card_quotient ?cycle_subG //.
-rewrite -(@dvdn_pmul2l #|<[z ^ a^-1]> :&: <[y]>|) ?cardG_gt0 // LaGrangeI.
+rewrite -(@dvdn_pmul2l #|<[z ^ a^-1]> :&: <[y]>|) ?cardG_gt0 // LagrangeI.
 rewrite -[#|<[_]>|](partnC p) ?order_gt0 // dvdn_pmul2r // ozp.
 by rewrite cardSg ?subsetIr.
 Qed.

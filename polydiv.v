@@ -1503,7 +1503,6 @@ by rewrite !exprS (@eqp_trans (q * p ^+ k)) // (eqp_mulr, eqp_mull).
 Qed.
 
 Lemma polyC_eqp1 c : (c%:P %= 1) = (c != 0).
-
 Proof.
 apply/eqpP/idP => [[[x y]] |nc0] /=.
   case c0: (c == 0); rewrite // scale_poly1 (eqP c0) scaler0.

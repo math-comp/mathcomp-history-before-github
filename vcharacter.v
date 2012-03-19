@@ -573,7 +573,7 @@ have oK1:  #|K1| = #|G : H|.
   rewrite -(eqnP tiHG) (eq_bigr (fun _ => #|H|.-1)); last first.
     by move=> _ /imsetP[x _ ->]; rewrite cardJg (cardsD1 1%g H) group1.
   rewrite sum_nat_const card_orbit astab1Js normD1 defNH.
-  by rewrite -subn1 mulnBr mulnC LaGrange // muln1 subKn ?leq_imset_card.
+  by rewrite -subn1 mulnBr mulnC Lagrange // muln1 subKn ?leq_imset_card.
 suffices extG i: {j | {in H, 'chi[G]_j =1 'chi[H]_i} & K1 \subset cfker 'chi_j}.
   pose K := [group of \bigcap_i cfker 'chi_(s2val (extG i))].
   have nKH: H \subset 'N(K).
@@ -584,7 +584,7 @@ suffices extG i: {j | {in H, 'chi[G]_j =1 'chi[H]_i} & K1 \subset cfker 'chi_j}.
     by case: (extG i) => /= j def_j _; rewrite !def_j.
   exists K; rewrite sdprodE // eqEcard TI_cardMg // mul_subG //=; last first.
     by rewrite (bigcap_min (0 : Iirr H)) ?cfker_sub.
-  rewrite -(LaGrange sHG) mulnC leq_pmul2r // -oK1 subset_leq_card //.
+  rewrite -(Lagrange sHG) mulnC leq_pmul2r // -oK1 subset_leq_card //.
   by apply/bigcapsP=> i _; case: (extG i).
 case i0: (i == 0).
   exists 0 => [x Hx|]; last by rewrite chi0_1 cfker_cfun1 subsetDl.

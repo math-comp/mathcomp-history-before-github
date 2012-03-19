@@ -776,7 +776,7 @@ Qed.
 
 Lemma card_orbit_in_stab G x :
   G \subset D -> (#|orbit to G x| * #|'C_G[x | to]|)%N = #|G|.
-Proof. by move=> sGD; rewrite mulnC card_orbit_in ?LaGrange ?subsetIl. Qed.
+Proof. by move=> sGD; rewrite mulnC card_orbit_in ?Lagrange ?subsetIl. Qed.
 
 Lemma acts_sum_card_orbit G S :
   [acts G, on S | to] -> \sum_(T \in orbit to G @: S) #|T| = #|S|.
@@ -983,7 +983,7 @@ Lemma dvdn_orbit G x : #|orbit to G x| %| #|G|.
 Proof. by rewrite card_orbit dvdn_indexg. Qed.
 
 Lemma card_orbit_stab G x : (#|orbit to G x| * #|'C_G[x | to]|)%N = #|G|.
-Proof. by rewrite mulnC card_orbit LaGrange ?subsetIl. Qed.
+Proof. by rewrite mulnC card_orbit Lagrange ?subsetIl. Qed.
 
 Lemma actsP A S : reflect {acts A, on S | to} [acts A, on S | to].
 Proof.

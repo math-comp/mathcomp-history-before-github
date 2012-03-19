@@ -512,7 +512,7 @@ wlog minV: / minnormal V (V <*> G).
     rewrite -(coprime_quotient_cent sBV nBAj copVAj solV).
     have -> : 'C_B(A j) = 'C_V(A j) :&: B.
       by rewrite [_ :&: B]setIC setIA (setIidPl sBV).
-    by rewrite card_quotient ?LaGrangeI // subIset ?nBV.
+    by rewrite card_quotient ?LagrangeI // subIset ?nBV.
   have hp : forall mm j, 0 < m j + n j ->  
      (#|'C_V(A j)| ^ (mm j * #|A j|))%N  = 
      ((#|'C_B(A j)| ^ (mm j * #|A j|) * 

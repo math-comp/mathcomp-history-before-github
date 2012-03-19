@@ -609,12 +609,14 @@ Local Coercion sort : type >-> Sortclass.
 Variables (T : Type) (cT : type).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c T.
+Let xT := let: Pack T _ _ := cT in T.
+Notation xclass := (class : class_of xT).
 
 Definition pack m :=
   fun bT b & phant_id (Choice.class bT) b => Pack (@Class T b m) T.
 
-Definition eqType := Equality.Pack class cT.
-Definition choiceType := Choice.Pack class cT.
+Definition eqType := @Equality.Pack cT xclass xT.
+Definition choiceType := @Choice.Pack cT xclass xT.
 
 End ClassDef.
 
@@ -861,14 +863,17 @@ Local Coercion sort : type >-> Sortclass.
 Variables (T : Type) (cT : type).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c T.
+Let xT := let: Pack T _ _ := cT in T.
+Notation xclass := (class : class_of xT).
+
 
 Definition pack b0 (m0 : mixin_of (@Zmodule.Pack T b0 T)) :=
   fun bT b & phant_id (Zmodule.class bT) b =>
   fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
-Definition eqType := Equality.Pack class cT.
-Definition choiceType := Choice.Pack class cT.
-Definition zmodType := Zmodule.Pack class cT.
+Definition eqType := @Equality.Pack cT xclass xT.
+Definition choiceType := @Choice.Pack cT xclass xT.
+Definition zmodType := @Zmodule.Pack cT xclass xT.
 
 End ClassDef.
 
@@ -1442,14 +1447,17 @@ Local Coercion sort : type >-> Sortclass.
 Variable (phR : phant R) (T : Type) (cT : type phR).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack phR T c T.
+Let xT := let: Pack T _ _ := cT in T.
+Notation xclass := (class : class_of xT).
+
 
 Definition pack b0 (m0 : mixin_of R (@Zmodule.Pack T b0 T)) :=
   fun bT b & phant_id (Zmodule.class bT) b =>
   fun    m & phant_id m0 m => Pack phR (@Class T b m) T.
 
-Definition eqType := Equality.Pack class cT.
-Definition choiceType := Choice.Pack class cT.
-Definition zmodType := Zmodule.Pack class cT.
+Definition eqType := @Equality.Pack cT xclass xT.
+Definition choiceType := @Choice.Pack cT xclass xT.
+Definition zmodType := @Zmodule.Pack cT xclass xT.
 
 End ClassDef.
 
@@ -1598,6 +1606,8 @@ Local Coercion sort : type >-> Sortclass.
 Variable (phR : phant R) (T : Type) (cT : type phR).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack phR T c T.
+Let xT := let: Pack T _ _ := cT in T.
+Notation xclass := (class : class_of xT).
 
 Definition pack T b0 mul0 (axT : @axiom R (@Lmodule.Pack R _ T b0 T) mul0) :=
   fun bT b & phant_id (Ring.class bT) (b : Ring.class_of T) =>
@@ -1605,12 +1615,12 @@ Definition pack T b0 mul0 (axT : @axiom R (@Lmodule.Pack R _ T b0 T) mul0) :=
   fun ax & phant_id axT ax =>
   Pack (Phant R) (@Class T b m ax) T.
 
-Definition eqType := Equality.Pack class cT.
-Definition choiceType := Choice.Pack class cT.
-Definition zmodType := Zmodule.Pack class cT.
-Definition ringType := Ring.Pack class cT.
-Definition lmodType := Lmodule.Pack phR class cT.
-Definition lmod_ringType := @Lmodule.Pack R phR ringType class cT.
+Definition eqType := @Equality.Pack cT xclass xT.
+Definition choiceType := @Choice.Pack cT xclass xT.
+Definition zmodType := @Zmodule.Pack cT xclass xT.
+Definition ringType := @Ring.Pack cT xclass xT.
+Definition lmodType := @Lmodule.Pack R phR cT xclass xT.
+Definition lmod_ringType := @Lmodule.Pack R phR ringType xclass xT.
 
 End ClassDef.
 
@@ -2374,15 +2384,17 @@ Local Coercion sort : type >-> Sortclass.
 Variable (T : Type) (cT : type).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c T.
+Let xT := let: Pack T _ _ := cT in T.
+Notation xclass := (class : class_of xT).
 
 Definition pack mul0 (m0 : @commutative T T mul0) :=
   fun bT b & phant_id (Ring.class bT) b =>
   fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
-Definition eqType := Equality.Pack class cT.
-Definition choiceType := Choice.Pack class cT.
-Definition zmodType := Zmodule.Pack class cT.
-Definition ringType := Ring.Pack class cT.
+Definition eqType := @Equality.Pack cT xclass xT.
+Definition choiceType := @Choice.Pack cT xclass xT.
+Definition zmodType := @Zmodule.Pack cT xclass xT.
+Definition ringType := @Ring.Pack cT xclass xT.
 
 End ClassDef.
 
@@ -2528,17 +2540,19 @@ Local Coercion sort : type >-> Sortclass.
 Variable (phR : phant R) (T : Type) (cT : type phR).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack phR T c T.
+Let xT := let: Pack T _ _ := cT in T.
+Notation xclass := (class : class_of xT).
 
 Definition pack b0 (ax0 : @axiom R b0) :=
   fun bT b & phant_id (@Lalgebra.class R phR bT) b =>
   fun   ax & phant_id ax0 ax => Pack phR (@Class T b ax) T.
 
-Definition eqType := Equality.Pack class cT.
-Definition choiceType := Choice.Pack class cT.
-Definition zmodType := Zmodule.Pack class cT.
-Definition ringType := Ring.Pack class cT.
-Definition lmodType := Lmodule.Pack phR class cT.
-Definition lalgType := Lalgebra.Pack phR class cT.
+Definition eqType := @Equality.Pack cT xclass xT.
+Definition choiceType := @Choice.Pack cT xclass xT.
+Definition zmodType := @Zmodule.Pack cT xclass xT.
+Definition ringType := @Ring.Pack cT xclass xT.
+Definition lmodType := @Lmodule.Pack R phR cT xclass xT.
+Definition lalgType := @Lalgebra.Pack R phR cT xclass xT.
 
 End ClassDef.
 
@@ -2646,15 +2660,17 @@ Local Coercion sort : type >-> Sortclass.
 Variables (T : Type) (cT : type).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c T.
+Let xT := let: Pack T _ _ := cT in T.
+Notation xclass := (class : class_of xT).
 
 Definition pack b0 (m0 : mixin_of (@Ring.Pack T b0 T)) :=
   fun bT b & phant_id (Ring.class bT) b =>
   fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
-Definition eqType := Equality.Pack class cT.
-Definition choiceType := Choice.Pack class cT.
-Definition zmodType := Zmodule.Pack class cT.
-Definition ringType := Ring.Pack class cT.
+Definition eqType := @Equality.Pack cT xclass xT.
+Definition choiceType := @Choice.Pack cT xclass xT.
+Definition zmodType := @Zmodule.Pack cT xclass xT.
+Definition ringType := @Ring.Pack cT xclass xT.
 
 End ClassDef.
 
@@ -2953,19 +2969,21 @@ Structure type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
 Variables (T : Type) (cT : type).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Let xT := let: Pack T _ _ := cT in T.
+Notation xclass := (class : class_of xT).
 
 Definition pack :=
   fun bT b & phant_id (ComRing.class bT) (b : ComRing.class_of T) =>
   fun mT m & phant_id (UnitRing.class mT) (@UnitRing.Class T b m) =>
   Pack (@Class T b m) T.
 
-Definition eqType := Equality.Pack class cT.
-Definition choiceType := Choice.Pack class cT.
-Definition zmodType := Zmodule.Pack class cT.
-Definition ringType := Ring.Pack class cT.
-Definition comRingType := ComRing.Pack class cT.
-Definition unitRingType := UnitRing.Pack class cT.
-Definition com_unitRingType := @UnitRing.Pack comRingType class cT.
+Definition eqType := @Equality.Pack cT xclass xT.
+Definition choiceType := @Choice.Pack cT xclass xT.
+Definition zmodType := @Zmodule.Pack cT xclass xT.
+Definition ringType := @Ring.Pack cT xclass xT.
+Definition comRingType := @ComRing.Pack cT xclass xT.
+Definition unitRingType := @UnitRing.Pack cT xclass xT.
+Definition com_unitRingType := @UnitRing.Pack comRingType xclass xT.
 
 End ClassDef.
 
@@ -3015,23 +3033,25 @@ Structure type (phR : phant R) := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
 Variable (phR : phant R) (T : Type) (cT : type phR).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Let xT := let: Pack T _ _ := cT in T.
+Notation xclass := (class : class_of xT).
 
 Definition pack :=
   fun bT b & phant_id (@Algebra.class R phR bT) (b : Algebra.class_of R T) =>
   fun mT m & phant_id (UnitRing.class mT) (@UnitRing.Class T b m) =>
   Pack (Phant R) (@Class T b m) T.
 
-Definition eqType := Equality.Pack class cT.
-Definition choiceType := Choice.Pack class cT.
-Definition zmodType := Zmodule.Pack class cT.
-Definition ringType := Ring.Pack class cT.
-Definition unitRingType := UnitRing.Pack class cT.
-Definition lmodType := Lmodule.Pack phR class cT.
-Definition lalgType := Lalgebra.Pack phR class cT.
-Definition algType := Algebra.Pack phR class cT.
-Definition lmod_unitRingType := @Lmodule.Pack R phR unitRingType class cT.
-Definition lalg_unitRingType := @Lalgebra.Pack R phR unitRingType class cT.
-Definition alg_unitRingType := @Algebra.Pack R phR unitRingType class cT.
+Definition eqType := @Equality.Pack cT xclass xT.
+Definition choiceType := @Choice.Pack cT xclass xT.
+Definition zmodType := @Zmodule.Pack cT xclass xT.
+Definition ringType := @Ring.Pack cT xclass xT.
+Definition unitRingType := @UnitRing.Pack cT xclass xT.
+Definition lmodType := @Lmodule.Pack R phR cT xclass xT.
+Definition lalgType := @Lalgebra.Pack R phR cT xclass xT.
+Definition algType := @Algebra.Pack R phR cT xclass xT.
+Definition lmod_unitRingType := @Lmodule.Pack R phR unitRingType xclass xT.
+Definition lalg_unitRingType := @Lalgebra.Pack R phR unitRingType xclass xT.
+Definition alg_unitRingType := @Algebra.Pack R phR unitRingType xclass xT.
 
 End ClassDef.
 
@@ -4212,18 +4232,20 @@ Local Coercion sort : type >-> Sortclass.
 Variable (T : Type) (cT : type).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c T.
+Let xT := let: Pack T _ _ := cT in T.
+Notation xclass := (class : class_of xT).
 
 Definition pack b0 (m0 : axiom (@Ring.Pack T b0 T)) :=
   fun bT b & phant_id (ComUnitRing.class bT) b =>
   fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
-Definition eqType := Equality.Pack class cT.
-Definition choiceType := Choice.Pack class cT.
-Definition zmodType := Zmodule.Pack class cT.
-Definition ringType := Ring.Pack class cT.
-Definition comRingType := ComRing.Pack class cT.
-Definition unitRingType := UnitRing.Pack class cT.
-Definition comUnitRingType := ComUnitRing.Pack class cT.
+Definition eqType := @Equality.Pack cT xclass xT.
+Definition choiceType := @Choice.Pack cT xclass xT.
+Definition zmodType := @Zmodule.Pack cT xclass xT.
+Definition ringType := @Ring.Pack cT xclass xT.
+Definition comRingType := @ComRing.Pack cT xclass xT.
+Definition unitRingType := @UnitRing.Pack cT xclass xT.
+Definition comUnitRingType := @ComUnitRing.Pack cT xclass xT.
 
 End ClassDef.
 
@@ -4390,19 +4412,21 @@ Local Coercion sort : type >-> Sortclass.
 Variable (T : Type) (cT : type).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c T.
+Let xT := let: Pack T _ _ := cT in T.
+Notation xclass := (class : class_of xT).
 
 Definition pack b0 (m0 : mixin_of (@UnitRing.Pack T b0 T)) :=
   fun bT b & phant_id (IntegralDomain.class bT) b =>
   fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
-Definition eqType := Equality.Pack class cT.
-Definition choiceType := Choice.Pack class cT.
-Definition zmodType := Zmodule.Pack class cT.
-Definition ringType := Ring.Pack class cT.
-Definition comRingType := ComRing.Pack class cT.
-Definition unitRingType := UnitRing.Pack class cT.
-Definition comUnitRingType := ComUnitRing.Pack class cT.
-Definition idomainType := IntegralDomain.Pack class cT.
+Definition eqType := @Equality.Pack cT xclass xT.
+Definition choiceType := @Choice.Pack cT xclass xT.
+Definition zmodType := @Zmodule.Pack cT xclass xT.
+Definition ringType := @Ring.Pack cT xclass xT.
+Definition comRingType := @ComRing.Pack cT xclass xT.
+Definition unitRingType := @UnitRing.Pack cT xclass xT.
+Definition comUnitRingType := @ComUnitRing.Pack cT xclass xT.
+Definition idomainType := @IntegralDomain.Pack cT xclass xT.
 
 End ClassDef.
 
@@ -4636,20 +4660,22 @@ Local Coercion sort : type >-> Sortclass.
 Variable (T : Type) (cT : type).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c T.
+Let xT := let: Pack T _ _ := cT in T.
+Notation xclass := (class : class_of xT).
 
 Definition pack b0 (m0 : mixin_of (@UnitRing.Pack T b0 T)) :=
   fun bT b & phant_id (Field.class bT) b =>
   fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
-Definition eqType := Equality.Pack class cT.
-Definition choiceType := Choice.Pack class cT.
-Definition zmodType := Zmodule.Pack class cT.
-Definition ringType := Ring.Pack class cT.
-Definition comRingType := ComRing.Pack class cT.
-Definition unitRingType := UnitRing.Pack class cT.
-Definition comUnitRingType := ComUnitRing.Pack class cT.
-Definition idomainType := IntegralDomain.Pack class cT.
-Definition fieldType := Field.Pack class cT.
+Definition eqType := @Equality.Pack cT xclass xT.
+Definition choiceType := @Choice.Pack cT xclass xT.
+Definition zmodType := @Zmodule.Pack cT xclass xT.
+Definition ringType := @Ring.Pack cT xclass xT.
+Definition comRingType := @ComRing.Pack cT xclass xT.
+Definition unitRingType := @UnitRing.Pack cT xclass xT.
+Definition comUnitRingType := @ComUnitRing.Pack cT xclass xT.
+Definition idomainType := @IntegralDomain.Pack cT xclass xT.
+Definition fieldType := @Field.Pack cT xclass xT.
 
 End ClassDef.
 
@@ -4876,6 +4902,8 @@ Local Coercion sort : type >-> Sortclass.
 Variable (T : Type) (cT : type).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c T.
+Let xT := let: Pack T _ _ := cT in T.
+Notation xclass := (class : class_of xT).
 
 Definition pack b0 (m0 : axiom (@Ring.Pack T b0 T)) :=
   fun bT b & phant_id (DecidableField.class bT) b =>
@@ -4884,16 +4912,16 @@ Definition pack b0 (m0 : axiom (@Ring.Pack T b0 T)) :=
 (* There should eventually be a constructor from polynomial resolution *)
 (* that builds the DecidableField mixin using QE.                      *)
 
-Definition eqType := Equality.Pack class cT.
-Definition choiceType := Choice.Pack class cT.
-Definition zmodType := Zmodule.Pack class cT.
-Definition ringType := Ring.Pack class cT.
-Definition comRingType := ComRing.Pack class cT.
-Definition unitRingType := UnitRing.Pack class cT.
-Definition comUnitRingType := ComUnitRing.Pack class cT.
-Definition idomainType := IntegralDomain.Pack class cT.
-Definition fieldType := Field.Pack class cT.
-Definition decFieldType := DecidableField.Pack class cT.
+Definition eqType := @Equality.Pack cT xclass xT.
+Definition choiceType := @Choice.Pack cT xclass xT.
+Definition zmodType := @Zmodule.Pack cT xclass xT.
+Definition ringType := @Ring.Pack cT xclass xT.
+Definition comRingType := @ComRing.Pack cT xclass xT.
+Definition unitRingType := @UnitRing.Pack cT xclass xT.
+Definition comUnitRingType := @ComUnitRing.Pack cT xclass xT.
+Definition idomainType := @IntegralDomain.Pack cT xclass xT.
+Definition fieldType := @Field.Pack cT xclass xT.
+Definition decFieldType := @DecidableField.Pack cT class xT.
 
 End ClassDef.
 

@@ -731,7 +731,7 @@ have{not_pM'} [R ErR nQR]: exists2 R, R \in 'E_r^1('C_M(P)) & R \subset 'N(Q).
   have [sSK nQS]: S \subset K /\ S \subset 'N(Q) := subsetIP (pHall_sub sylS).
   have sylS_K: r.-Sylow(K) S.
     rewrite pHallE sSK /= -/K -(setIidPr sKM) -defM -group_modl // setIAC.
-    rewrite (setIidPr sKM) -LaGrangeMr partnM // -(card_Hall sylS).
+    rewrite (setIidPr sKM) -LagrangeMr partnM // -(card_Hall sylS).
     rewrite part_p'nat ?mul1n 1?(pnat_dvd (dvdn_indexg _ _)) //.
     by apply: (pi_p'nat bMb); apply: contra sM'r; exact: beta_sub_sigma.
   have rC: 'r_r('C_M(P)) > 0 by rewrite p_rank_gt0 (piSg _ piHr) // subsetI sHM.

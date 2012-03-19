@@ -688,7 +688,7 @@ have [sPH nKP]: P \subset H /\ P \subset 'N(K) by apply/andP; rewrite -subsetI.
 have nVP := subset_trans sPH nVH.
 have coKP: coprime #|K| #|P| by rewrite coprime_sym (pnat_coprime pP).
 have{sylP} sylVP: p.-Sylow(H) (V <*> P).
-  rewrite pHallE /= norm_joinEr ?mul_subG //= -defH -!LaGrangeMl.
+  rewrite pHallE /= norm_joinEr ?mul_subG //= -defH -!LagrangeMl.
   rewrite partnM // part_pnat_id // -!card_quotient //.
   by apply/eqP; congr (_ * _)%N; apply: card_Hall; exact: quotient_pHall.
 have [trKP | {sylV sVU nVU}ntKP] := eqVneq [~: K, P] 1.
@@ -1028,7 +1028,7 @@ case cKK: (abelian K); last first.
   suffices: q ^ 2 >= #|K / K'| by rewrite leqNgt iK'K.
   rewrite -divg_normal // leq_divLR ?cardSg //.
   rewrite -(@leq_pmul2l (#|[~: K, R]| ^ 2)) ?expn_gt0 ?cardG_gt0 // mulnA.
-  rewrite -expnMn -iKR LaGrange // -mulnn -{2}(cardJg _ x) mul_cardG.
+  rewrite -expnMn -iKR Lagrange // -mulnn -{2}(cardJg _ x) mul_cardG.
   by rewrite mulKR_Krx mulnAC leq_pmul2l ?muln_gt0 ?cardG_gt0 ?subset_leq_card.
 have tiKcP: 'C_K(P) = 1 by rewrite -defKP coprime_abel_cent_TI.
 have{IHsub} abelK: q.-abelem K.
@@ -1154,7 +1154,7 @@ have [cSR | not_cSR]:= boolP (R \subset 'C(S | 'JG)).
     move/subset_trans; apply; exact: bigcap_inf.
   rewrite -afixJG; move/orbit1P => -> allV1.
   have defV1: V1 = V by apply: group_inj; rewrite /= -defV allV1 big_set1.
-  case/idPn: oKq2; rewrite -(LaGrange (subsetIl K 'C(V1))).
+  case/idPn: oKq2; rewrite -(Lagrange (subsetIl K 'C(V1))).
   rewrite (p_maximal_index qK (maxSK V1 S1)) defV1 /= tiKcV cards1 mul1n.
   by rewrite (ltn_exp2l 2 1).
 have actsR: [acts R, on S | 'JG] := subset_trans (joing_subr P R) actsPR.
@@ -1212,7 +1212,7 @@ have nVjR: forall Vj, Vj \in S :\: D -> 'C_K(Vj) = [~: K, R].
     have abelCKR: q.-abelem 'C_K(R) := abelemS (subsetIl _ _) abelK.
     have [qCKR _] := andP abelCKR.
     apply/eqP; rewrite eq_sym eqEcard sKRVj -(leq_pmul2r (ltnW q_gt1)).
-    rewrite -{1}iKj LaGrange ?subsetIl // -{1}defKR (TI_cardMg tiKRcR).
+    rewrite -{1}iKj Lagrange ?subsetIl // -{1}defKR (TI_cardMg tiKRcR).
     rewrite leq_pmul2l ?cardG_gt0 //= (card_pgroup qCKR).
     rewrite (leq_exp2l _ 1) // -abelem_cyclic // (forall_inP Z_CK) //.
     by rewrite (@p_Sylow _ q) // /pHall subxx indexgg qCKR.
