@@ -41,7 +41,7 @@ open Extend
 open Goptions
 open Tacexpr
 open Tacinterp
-open Pretyping.Default
+open Pretyping
 open Constr
 open Tactic
 open Extraargs
