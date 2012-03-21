@@ -1225,7 +1225,7 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
       apply: contraR (Dade_mu_not_irr PtypeL1 j1).
       case/(Dade_Ind_chi'_irr PtypeL)=> /irrP[ell Dell] _.
       rewrite -(Dade_Ind_chi PtypeL1) -/Ichi1 -['chi__]cfModK //.
-      rewrite -mod_IirrE ?induced_quotientE ?Dell ?mod_IirrE ?cfker_Mod //.
+      rewrite -mod_IirrE ?induced_quotientE ?Dell 1?mod_IirrE ?cfker_Mod //.
       rewrite -quo_IirrE ?irr_chi // -Dell sub_cfker_Ind_irr //.
       by rewrite mod_IirrE ?cfker_Mod.
     move=> _ /seqIndP[k /setDP[_ kZ'k] ->].

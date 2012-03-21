@@ -645,7 +645,7 @@ Lemma getCratK : {in Crat, cancel CtoQ QtoC}.
 Proof. by move=> x /eqP. Qed.
 
 Lemma ratr_Crat y : QtoC y \in Crat.
-Proof. by rewrite unfold_in CratrK. Qed.
+Proof. by rewrite unfold_in /Crat CratrK. Qed.
 
 Lemma CratP x : reflect (exists a, x = QtoC a) (x \in Crat).
 Proof.
@@ -1589,7 +1589,7 @@ Canonical Cint_span_keyed s := KeyedPred (Cint_span_key s).
 Lemma Cint_spanP n (s : n.-tuple algC) x :
   reflect (inIntSpan s x) (x \in Cint_span s).
 Proof.
-rewrite unfold_in; case: (dec_Cint_span _ _) => [Zs_x | Zs'x] /=.
+rewrite unfold_in /Cint_span; case: (dec_Cint_span _ _) => [Zs_x | Zs'x] /=.
   left; have{Zs_x} [] := Zs_x; rewrite /= size_map size_tuple => a /rowP/(_ 0).
   rewrite !mxE => ->; exists a; rewrite summxE; apply: eq_bigr => i _.
   by rewrite -scaler_int (nth_map 0) ?size_tuple // !mxE mulrzl.
@@ -1630,7 +1630,7 @@ Proof.
 have pZtoQtoC pz: pQtoC (pZtoQ pz) = pZtoC pz.
   by rewrite -map_poly_comp; apply: eq_map_poly => b; rewrite /= rmorph_int.
 move=> px0 mon_p /getCintpP[pz Dp]; rewrite unfold_in.
-move: px0; rewrite Dp -pZtoQtoC; have [q [-> mon_q] ->] := minCpolyP x.
+move: px0; rewrite Dp -pZtoQtoC /algInt; have [q [-> mon_q] ->] := minCpolyP x.
 case/dvdpP_rat_int=> qz [a nz_a Dq] [r].
 move/(congr1 (fun q1 => lead_coef (a *: pZtoQ q1))).
 rewrite rmorphM scalerAl -Dq lead_coefZ lead_coefM /=.
@@ -1751,8 +1751,8 @@ pose ZP : pred {poly algC} := fun p => all isIntC p.
 have allcP (p : {poly algC}): reflect (forall i, isIntC p`_i) (p \in ZP).
   apply: (iffP (all_nthP 0)) => // IH i; have [/IH//|p_le_n] := ltnP i (size p).
   by rewrite nth_default ?isIntC_0.
-have ZP_1: 1 \in ZP by rewrite unfold_in polyseq1 /= isIntC_1.
-have ZP_X: 'X \in ZP by rewrite unfold_in polyseqX /= isIntC_1 isIntC_0.
+have ZP_1: 1 \in ZP by rewrite unfold_in /ZP polyseq1 /= isIntC_1.
+have ZP_X: 'X \in ZP by rewrite unfold_in /ZP polyseqX /= isIntC_1 isIntC_0.
 have ringZP: subring_closed ZP.
   split=> // p q /allcP Zp /allcP Zq; apply/allcP=> i.
     by rewrite coefB isIntC_sub ?Zp ?Zq.
@@ -2047,7 +2047,7 @@ by rewrite (eq_map_poly (fmorph_rat nu)) -Dq1 root_minCpoly.
 Qed.
 
 Lemma algInt_aut nu x : (nu x \in algInt) = (x \in algInt).
-Proof. by rewrite !unfold_in minCpoly_aut. Qed.
+Proof. by rewrite !unfold_in /algInt minCpoly_aut. Qed.
 
 End MoreAlgCaut.
 
@@ -2286,8 +2286,9 @@ pose h x := (x ^: G * 'Z(G))%g; rewrite (partition_big_imset h).
 rewrite !mulr_suml rpred_sum //= => _ /imsetP[x /setDP[Gx nz_chi_x] ->].
 have: #|x ^: G|%:R * ('chi_i x * 'chi_i x^-1%g) / 'chi_i 1%g \in algInt.
   by rewrite !mulrA mulrAC rpredM ?algInt_irr ?class_div_irr1_algInt.
+set X1 := (X in X / _ \in _); set X2 := (_ / _ as X in X / _ \in algInt).
 congr (_ / _ \in algInt); apply: canRL (mulfK (neq0GC _)) _.
-rewrite inE in nz_chi_x.
+rewrite inE in nz_chi_x; rewrite {}/X1 {}/X2.
 transitivity ('chi_i x * 'chi_i (x^-1)%g *+ #|h x|); last first.
   rewrite -sumr_const.
   apply: eq_big => [y | _ /mulsgP[_ z /imsetP[u Gu ->] Zz] ->].

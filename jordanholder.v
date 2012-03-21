@@ -560,7 +560,7 @@ have injf2 : 'injm f2.
   by rewrite ker_factm f1ker /= ker_coset /= subG1 /= -quotientE trivg_quotient.
 have iHK : H \isog K.
   apply/isogP; pose f3 := restrm_morphism (normal_sub nHQ2) f2.
-  by exists f3; rewrite ?injm_restrm // morphim_restrm setIid.
+  by exists f3; rewrite 1?injm_restrm // morphim_restrm setIid.
 case: (max1 _ nKQ1 aKQ1).
   by move/eqP; rewrite -(isog_eq1 iHK); move/eqP->; left.
 move=> he /=; right; apply/eqP; rewrite eqEcard normal_sub //=.
