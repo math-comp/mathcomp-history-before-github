@@ -1,12 +1,12 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype path.
-Require Import bigop ssralg poly polydiv orderedalg zmodp div int.
+Require Import bigop ssralg poly polydiv ssrnum zmodp div ssrint.
 Require Import polyorder polyrcf interval matrix mxtens perm.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GRing.Theory ORing.Theory ORing.OrderDef RPdiv ComRing.
+Import GRing.Theory Num.Theory Num.Def RPdiv ComRing.
 
 Local Open Scope nat_scope.
 Local Open Scope ring_scope.
@@ -564,10 +564,10 @@ wlog cpq: p q p0 q0 hpqa hpqb / coprimep p q.
   rewrite hc ?rootE ?{1}hornerM ?{1}hornerZ;
     do ?by rewrite ?sgrM ?(mulf_neq0, scaler_eq0, negb_or, sp0, sq0) //=.
   rewrite -!sgr_cp0 !sgrM.
-  have hss (R' : oIdomainType) s s' s'' (c : R') : c != 0 ->
+  have hss (R' : realIdomainType) s s' s'' (c : R') : c != 0 ->
     (s * sgr c) * s' * s'' * sgr c = s * s' * s''.
     by move=> nc0; rewrite ![_ * sgr _]mulrC !mulrA mulr_sg nc0 mul1r.
-  have hss' (R' : oIdomainType) s s' s'' (c : R') : c != 0 ->
+  have hss' (R' : realIdomainType) s s' s'' (c : R') : c != 0 ->
     (s * sgz c) * s' * s'' * sgz c = s * s' * s''.
     by move=> nc0; rewrite ![_ * sgz _]mulrC !mulrA mulz_sg nc0 mul1r.
   by rewrite !(hss, hss', mulrA) // !sgzM.
@@ -771,7 +771,7 @@ rewrite horner_exp sgzX.
 by case: (sgzP q.[x])=> _.
 Qed.
 
-Definition comb_exp (R : oIdomainType) (s : R) :=
+Definition comb_exp (R : realIdomainType) (s : R) :=
   match sgz s with Posz 1 => 1%N | Negz 0 => 2 | _ => 0%N end.
 
 Definition poly_comb (sq : seq {poly R}) (sc : seq int) : {poly R} :=
@@ -972,7 +972,7 @@ Lemma poly_comb_cons : forall q sq s ss,
   poly_comb (q :: sq) (s :: ss) = (q ^ (comb_exp s)) * poly_comb sq ss.
 Proof. by move=> q sq s ss; rewrite /poly_comb /= big_ord_recl /=. Qed.
 
-Lemma comb_expE : forall (R : oIdomainType),
+Lemma comb_expE : forall (R : realIdomainType),
   (comb_exp (1 : R) = 1%N) * (comb_exp (-1 : R) = 2%N) * (comb_exp (0 : R) = 0%N).
 Proof. by move=> R0; rewrite /comb_exp sgzN sgz1 sgz0. Qed.
 

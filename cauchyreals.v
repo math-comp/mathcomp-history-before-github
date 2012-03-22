@@ -1,8 +1,8 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigop ssralg orderedalg int rat poly polydiv polyorder.
+Require Import bigop ssralg ssrnum ssrint rat poly polydiv polyorder.
 Require Import perm matrix mxpoly polyXY binomial.
 
-Import GRing.Theory ORing.Theory ORing.OrderDef.
+Import GRing.Theory Num.Theory Num.Def.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -38,14 +38,14 @@ Lemma monic_monic_from_neq0  (F : fieldType) (p : {poly F}) :
   (p != 0)%B -> (lead_coef p) ^-1 *: p \is monic.
 Proof. by move=> ?; rewrite monicE lead_coefZ mulVf ?lead_coef_eq0. Qed.
 
-Lemma size_derivn (R : oIdomainType) (p : {poly R}) n :
+Lemma size_derivn (R : realIdomainType) (p : {poly R}) n :
   size p^`(n) = (size p - n)%N.
 Proof.
 elim: n=> [|n ihn]; first by rewrite derivn0 subn0.
 by rewrite derivnS size_deriv ihn -subnS.
 Qed.
 
-Lemma size_nderivn (R : oIdomainType) (p : {poly R}) n :
+Lemma size_nderivn (R : realIdomainType) (p : {poly R}) n :
   size p^`N(n) = (size p - n)%N.
 Proof.
 rewrite -size_derivn nderivn_def -mulr_natl.
@@ -88,7 +88,7 @@ End ordered_extra.
 
 Section polyorder_extra.
 
-Variable F : oIdomainType.
+Variable F : realIdomainType.
 
 Local Open Scope ring_scope.
 
@@ -234,7 +234,7 @@ End polyXY_extra.
 
 Section polyXY_order_extra.
 
-Variable F : oFieldType.
+Variable F : realFieldType.
 Local Open Scope ring_scope.
 
 Local Notation "p ^ f" := (map_poly f p) : ring_scope.
@@ -261,7 +261,7 @@ End polyXY_order_extra.
 
 Section polyorder_field_extra.
 
-Variable F : oFieldType.
+Variable F : realFieldType.
 
 Local Open Scope ring_scope.
 
@@ -329,7 +329,7 @@ End polyorder_field_extra.
 
 Section monotony.
 
-Variable F : oFieldType.
+Variable F : realFieldType.
 
 Local Open Scope ring_scope.
 
@@ -574,10 +574,10 @@ Local Open Scope nat_scope.
 Local Open Scope creal_scope.
 Local Open Scope ring_scope.
 
-Definition asympt1 (R : poIdomainType) (P : R -> nat -> Prop)
+Definition asympt1 (R : numIdomainType) (P : R -> nat -> Prop)
   := {m : R -> nat | forall eps i, 0 < eps -> (m eps <= i)%N -> P eps i}.
 
-Definition asympt2 (R : poIdomainType)  (P : R -> nat -> nat -> Prop)
+Definition asympt2 (R : numIdomainType)  (P : R -> nat -> nat -> Prop)
   := {m : R -> nat | forall eps i j, 0 < eps -> (m eps <= i)%N -> (m eps <= j)%N -> P eps i j}.
 
 Notation "{ 'asympt' e : i / P }" := (asympt1 (fun e i => P))
@@ -586,15 +586,15 @@ Notation "{ 'asympt' e : i / P }" := (asympt1 (fun e i => P))
 Notation "{ 'asympt' e : i j / P }" := (asympt2 (fun e i j => P))
   (at level 0, e ident, i ident, j ident, format "{ 'asympt'  e  :  i  j  /  P }") : type_scope.
 
-Lemma asympt1modP (R : poIdomainType) P (a : asympt1 P) e i :
+Lemma asympt1modP (R : numIdomainType) P (a : asympt1 P) e i :
   0 < e :> R -> (projT1 a e <= i)%N -> P e i.
 Proof. by case: a e i. Qed.
 
-Lemma asympt2modP (R : poIdomainType) P (a : asympt2 P) e i j :
+Lemma asympt2modP (R : numIdomainType) P (a : asympt2 P) e i j :
   0 < e :> R -> (projT1 a e <= i)%N -> (projT1 a e <= j)%N -> P e i j.
 Proof. by case: a e i j. Qed.
 
-Variable F : oFieldType.
+Variable F : realFieldType.
 
 (* Lemma asympt_mulLR (k : F) (hk : 0 < k) (P : F -> nat -> Prop) : *)
 (*   {asympt e : i / P e i} -> {asympt e : i / P (e * k) i}. *)

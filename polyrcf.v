@@ -1,9 +1,9 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigop ssralg poly polydiv orderedalg zmodp polydiv.
-Require Import polyorder path interval int.
+Require Import bigop ssralg poly polydiv ssrnum zmodp polydiv.
+Require Import polyorder path interval ssrint.
 
-Import GRing.Theory ORing.Theory ORing.OrderDef.
+Import GRing.Theory Num.Theory Num.Def.
 Import ID.
 
 Set Implicit Arguments.
@@ -216,7 +216,7 @@ Lemma ivt_sign : forall (p : {poly R}) (a b : R),
 Proof.
 move=> p a b hab /eqP; rewrite mulrC mulr_sg_eqN1=> /andP [spb0 /eqP spb].
  case: (@poly_ivt (sgr p.[b] *: p) a b)=> //.
-  by rewrite !hornerZ {1}spb mulNr -!normr_dec inE /= oppr_cp0 !normrE.
+  by rewrite !hornerZ {1}spb mulNr -!normrEsg inE /= oppr_cp0 !normrE.
 move=> c hc; rewrite rootZ ?sgr_eq0 // => rpc; exists c=> //.
 (* need for a lemma reditvP *)
 rewrite inE /= !ltr_neqAle andbCA -!andbA [_ && (_ <= _)]hc andbT eq_sym -negb_or.

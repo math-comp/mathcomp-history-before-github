@@ -1,15 +1,15 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigop ssralg div orderedalg int.
+Require Import bigop ssralg div ssrnum ssrint.
 
 Import GRing.Theory.
-Import ORing.Theory.
+Import Num.Theory.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
-Local Notation sgr := ORing.sg.
+Local Notation sgr := Num.sg.
 
 Record rat : Set := Rat {
   valq : (int * int) ;
@@ -517,7 +517,7 @@ Qed.
 
 Lemma normr_num_div n d : `|numq (n%:~R / d%:~R)| = numq (`|n|%:~R / `|d|%:~R).
 Proof.
-rewrite (normr_dec n) (normr_dec d) !rmorphM /= invfM mulrACA !sgr_def.
+rewrite (normrEsg n) (normrEsg d) !rmorphM /= invfM mulrACA !sgr_def.
 have [->|n_neq0] := altP eqP; first by rewrite mul0r mulr0.
 have [->|d_neq0] := altP eqP; first by rewrite invr0 !mulr0.
 rewrite !intr_sign invr_sign -signr_addb numq_sign_mul -numq_div_lt0 //.
@@ -536,14 +536,14 @@ Qed.
 Fact lt_rat_def x y : (lt_rat x y) = (y != x) && (le_rat x y).
 Proof. by rewrite /lt_rat ltr_def rat_eq. Qed.
 
-Definition ratLeMixin := TotalPartialLeMixin le_rat0D le_rat0M le_rat0_anti
+Definition ratLeMixin := RealNumLeMixin le_rat0D le_rat0M le_rat0_anti
   subq_ge0 (@le_rat_total 0) norm_ratN ge_rat0_norm lt_rat_def.
 
-Canonical rat_poIdomainType := POIdomainType rat ratLeMixin.
-Canonical rat_poFieldType := POFieldType rat ratLeMixin.
+Canonical rat_numIdomainType := NumIdomainType rat ratLeMixin.
+Canonical rat_numFieldType := NumFieldType rat ratLeMixin.
 
-Canonical rat_oIdomainType :=  OIdomainType rat (@le_rat_total 0).
-Canonical rat_oFieldType :=  OFieldType rat (@le_rat_total 0).
+Canonical rat_realIdomainType :=  RealIdomainType rat (@le_rat_total 0).
+Canonical rat_realFieldType :=  RealFieldType rat (@le_rat_total 0).
 
 
 Lemma numq_ge0 x : (0 <= numq x) = (0 <= x).
@@ -570,7 +570,7 @@ Lemma denq_mulr_sign (b : bool) x : denq ((-1) ^+ b * x) = denq x.
 Proof. by case: b; rewrite ?(mul1r, mulN1r) // denqN. Qed.
 
 Lemma denq_norm x : denq `|x| = denq x.
-Proof. by rewrite normr_dec_sign denq_mulr_sign. Qed.
+Proof. by rewrite normrEsign denq_mulr_sign. Qed.
 
 Definition rat_archi_bound (x : rat) := `|numq x|.+1.
 
@@ -647,7 +647,7 @@ Canonical Qnat_semiringPred := SemiringPred Qnat_semiring_closed.
 End QnatPred.
 
 Lemma natq_div m n : n %| m -> (m %/ n)%:R = m%:R / n%:R :> rat.
-Proof. by apply: char0_natf_div; apply: char_po. Qed.
+Proof. by apply: char0_natf_div; apply: char_num. Qed.
 
 Section InRing.
 
@@ -680,10 +680,10 @@ Proof. by move=> a; rewrite -{1}[a]divq_num_den fmorph_div !rmorph_int. Qed.
 
 End Fmorph.
 
-Section InPoField.
+Section InPrealField.
 
-Import orderedalg.
-Variable F : poFieldType.
+Import ssrnum.
+Variable F : numFieldType.
 
 Fact ratr_is_rmorphism : rmorphism (@ratr F).
 Proof.
@@ -727,7 +727,7 @@ Proof. by rewrite (_ : 0 = ratr F 0) ?ltr_rat ?rmorph0. Qed.
 Lemma ltrq0 x : (ratr F x < 0) = (x < 0).
 Proof. by rewrite (_ : 0 = ratr F 0) ?ltr_rat ?rmorph0. Qed.
 
-End InPoField.
+End InPrealField.
 
 Implicit Arguments ratr [[R]].
 

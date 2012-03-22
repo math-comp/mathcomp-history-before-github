@@ -1,14 +1,16 @@
+
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
-Require Import fintype finfun bigop ssralg orderedalg poly.
-Import GRing.Theory ORing.Theory.
+Require Import fintype finfun bigop ssralg ssrnum poly.
+Import GRing.Theory Num.Theory.
 
 (******************************************************************************)
 (* This file develops a basic theory of signed integers, defining:            *)
-(*         int == the type of signed integers, with two constructors : Posz   *)
-(*                for non-negative integers and Negz for negative integers.   *)
-(*                It supports the oIdomainType interface (and its parents).   *)
-(*        n%:Z == explicit cast from nat to int (:= Posz n);                  *)
-(*                displayed as n%:Z even when it is inserted automatically    *)
+(*         int == the type of signed integers, with two constructors Posz for *)
+(*                non-negative integers and Negz for negative integers. It    *)
+(*                supports the realIdomainType interface (and its parents).   *)
+(*        n%:Z == explicit cast from nat to int (:= Posz n); displayed as n.  *)
+(*                However (Posz m = Posz n) is displayed as (m = n :> int)    *)
+(*                (and so are ==, != and <>)                                  *)
 (*                Lemma NegzE : turns (Negz n) into - n.+1%:Z.                *)
 (*      x *~ m == m times x, with m : int;                                    *)
 (*                convertible to x *+ n if m is Posz n                        *)
@@ -45,7 +47,18 @@ CoInductive int : Set := Posz of nat | Negz of nat.
 (* Coercion Posz : nat >-> int. *)
 
 Notation "n %:Z" := (Posz n)
-  (at level 2, left associativity, format "n %:Z") : int_scope.
+  (at level 2, left associativity, format "n %:Z", only parsing) : int_scope.
+Notation "n %:Z" := (Posz n)
+  (at level 2, left associativity, format "n %:Z", only parsing) : ring_scope.
+
+Notation "n = m :> 'in' 't'" := (Posz n = Posz m)
+  (at level 70, m at next level, format "n  =  m  :>  'in' 't'") : ring_scope.
+Notation "n == m :> 'in' 't'" := (Posz n == Posz m)
+  (at level 70, m at next level, format "n  ==  m  :>  'in' 't'") : ring_scope.
+Notation "n != m :> 'in' 't'" := (Posz n != Posz m)
+  (at level 70, m at next level, format "n  !=  m  :>  'in' 't'") : ring_scope.
+Notation "n <> m :> 'in' 't'" := (Posz n <> Posz m)
+  (at level 70, m at next level, format "n  <>  m  :>  'in' 't'") : ring_scope.
 
 Definition natsum_of_int (m : int) : nat + nat :=
   match m with Posz p => inl _ p | Negz n => inr _ n end.
@@ -63,8 +76,7 @@ Canonical int_eqType := Eval hnf in EqType int int_eqMixin.
 Canonical int_choiceType := Eval hnf in ChoiceType int int_choiceMixin.
 Canonical int_countType := Eval hnf in CountType int int_countMixin.
 
-Lemma eqz_nat (m n : nat) : (m%:Z == n%:Z) = (m == n).
-Proof. by move: m n=> [|m] [|n]. Qed.
+Lemma eqz_nat (m n : nat) : (m%:Z == n%:Z) = (m == n). Proof. by []. Qed.
 
 Module intZmod.
 Section intZmod.
@@ -83,18 +95,18 @@ Definition oppz m := nosimpl
     | Negz n => Posz (n.+1)%N
   end.
 
-Local Notation "0" := (0 : int) : int_scope.
+Local Notation "0" := (Posz 0) : int_scope.
 Local Notation "-%Z" := (@oppz) : int_scope.
 Local Notation "- x" := (oppz x) : int_scope.
 Local Notation "+%Z" := (@addz) : int_scope.
 Local Notation "x + y" := (addz x y) : int_scope.
 Local Notation "x - y" := (x + - y) : int_scope.
 
-Lemma PoszD : {morph Posz : m n / (m + n)%N >-> m + n}. Proof. done. Qed.
+Lemma PoszD : {morph Posz : m n / (m + n)%N >-> m + n}. Proof. by []. Qed.
 
 Local Coercion Posz : nat >-> int.
 
-Lemma NegzE (n : nat) : Negz n = - n.+1. Proof. done. Qed.
+Lemma NegzE (n : nat) : Negz n = - n.+1. Proof. by []. Qed.
 
 Lemma int_rect (P : int -> Type) :
   P 0 -> (forall n : nat, P n -> P (n.+1))
@@ -178,16 +190,13 @@ Canonical int_ZmodType := ZmodType int intZmod.Mixin.
 
 Local Open Scope ring_scope.
 
-Notation "n %:Z" := (Posz n)
-  (at level 2, left associativity, format "n %:Z") : ring_scope.
-
 Section intZmoduleTheory.
 
 Local Coercion Posz : nat >-> int.
 
-Lemma PoszD : {morph Posz : n m / (n + m)%N >-> n + m}. Proof. done. Qed.
+Lemma PoszD : {morph Posz : n m / (n + m)%N >-> n + m}. Proof. by []. Qed.
 
-Lemma NegzE (n : nat) : Negz n = -(n.+1)%:Z. Proof. done. Qed.
+Lemma NegzE (n : nat) : Negz n = -(n.+1)%:Z. Proof. by []. Qed.
 
 Lemma int_rect (P : int -> Type) :
   P 0 -> (forall n : nat, P n -> P (n.+1)%N)
@@ -278,7 +287,7 @@ rewrite !mulzN !mulzS -!opprD=> /(inv_inj (@opprK _))->.
 by rewrite !addrA [X in X + _]addrAC.
 Qed.
 
-Lemma nonzero1z : 1%Z != 0. Proof. done. Qed.
+Lemma nonzero1z : 1%Z != 0. Proof. by []. Qed.
 
 Definition comMixin := ComRingMixin mulzA mulzC mul1z mulz_addl nonzero1z.
 
@@ -293,7 +302,7 @@ Section intRingTheory.
 Implicit Types m n : int.
 Local Coercion Posz : nat >-> int.
 
-Lemma PoszM : {morph Posz : n m / (n * m)%N >-> n * m}. Proof. done. Qed.
+Lemma PoszM : {morph Posz : n m / (n * m)%N >-> n * m}. Proof. by []. Qed.
 
 Lemma intS (n : nat) : n.+1%:Z = 1 + n%:Z. Proof. by rewrite -PoszD. Qed.
 
@@ -396,11 +405,10 @@ Proof. by move=> [] x [] y; rewrite // abszN // mulnC. Qed.
 Lemma subz_ge0 m n : lez 0 (n - m) = lez m n.
 Proof.
 case: (intP m); case: (intP n)=> // {m n} m n /=;
-rewrite ?ltnS -?opprD ?opprB ?subzSS;
-case: leqP=> // hmn; do
-  ?[ by rewrite subzn //
-   | by rewrite -opprB subzn ?(ltnW hmn) //;
-     move: hmn; rewrite -subn_gt0; case: (_ - _)%N].
+rewrite ?ltnS -?opprD ?opprB ?subzSS; case: leqP=> // hmn;
+by [ rewrite subzn //
+   | rewrite -opprB subzn ?(ltnW hmn) //;
+      move: hmn; rewrite -subn_gt0; case: (_ - _)%N].
 Qed.
 
 Fact lez_def x y : (lez x y) = (normz (y - x) == y - x).
@@ -411,14 +419,14 @@ Proof.
 by move: x y=> [] x [] y //=; rewrite (ltn_neqAle, leq_eqVlt) // eq_sym.
 Qed.
 
-Definition Mixin := PartialOrderMixin lez_norm_add ltz_add eq0_normz
+Definition Mixin := NumMixin lez_norm_add ltz_add eq0_normz
    (fun x y _ _ => lez_total x y) normzM lez_def ltz_def.
 
 End intOrdered.
 End intOrdered.
 
-Canonical int_poIdomainType := POIdomainType int intOrdered.Mixin.
-Canonical int_oIdomainType := OIdomainType int (intOrdered.lez_total 0).
+Canonical int_numIdomainType := NumIdomainType int intOrdered.Mixin.
+Canonical int_realIdomainType := RealIdomainType int (intOrdered.lez_total 0).
 
 Section intOrderedTheory.
 
@@ -470,6 +478,8 @@ Proof. by rewrite -lez_addr1 ler_add2r. Qed.
 
 End intOrderedTheory.
 
+Bind Scope ring_scope with int.
+
 (* definition of intmul *)
 Definition intmul (R : zmodType) (x : R) (n : int) := nosimpl
   match n with
@@ -513,7 +523,7 @@ Qed.
 Fact mulrzAC m n x : (x *~ n) *~ m = (x *~ m) *~ n.
 Proof. by rewrite !mulrzA_C mulrC. Qed.
 
-Fact mulr1z (x : M) : x *~ 1 = x. Proof. done. Qed.
+Fact mulr1z (x : M) : x *~ 1 = x. Proof. by []. Qed.
 
 Fact mulrzDr m : {morph ( *~%R^~ m : M -> M) : x y / x + y}.
 Proof.
@@ -551,7 +561,8 @@ Lemma scalezrE n x : n *: (x : M^z) = x *~ n. Proof. by []. Qed.
 Lemma mulrzA x m n :  x *~ (m * n) = x *~ m *~ n.
 Proof. by rewrite -!scalezrE scalerA mulrC. Qed.
 
-Lemma mulr0z x : x *~ 0 = 0. Proof. done. Qed.
+Lemma mulr0z x : x *~ 0 = 0. Proof. by []. Qed.
+
 Lemma mul0rz n : 0 *~ n = 0 :> M.
 Proof. by rewrite -scalezrE scaler0. Qed.
 
@@ -762,11 +773,11 @@ Proof. by rewrite Frobenius_autMz Frobenius_aut1. Qed.
 
 End Frobenius.
 
-Section ORingMorphism.
+Section NumMorphism.
 
 Section PO.
 
-Variables (R : poIdomainType).
+Variables (R : numIdomainType).
 
 Implicit Types n m : int.
 Implicit Types x y : R.
@@ -927,15 +938,15 @@ Proof. by rewrite -mulrzl mulf_eq0 intr_eq0. Qed.
 Lemma mulrz_neq0 x n : x *~ n != 0 = ((n != 0) && (x != 0)).
 Proof. by rewrite mulrz_eq0 negb_or. Qed.
 
-Lemma real_int n : (n%:~R : R) \in ORing.real.
-Proof. by rewrite -topredE /ORing.real /= ler0z lerz0 ler_total. Qed.
+Lemma real_int n : (n%:~R : R) \in Num.real.
+Proof. by rewrite -topredE /Num.real /= ler0z lerz0 ler_total. Qed.
 Hint Resolve real_int.
 
 Definition intr_inj := @mulrIz 1 (oner_neq0 R).
 
 End PO.
 
-End ORingMorphism.
+End NumMorphism.
 
 End MorphTheory.
 
@@ -1159,7 +1170,7 @@ End ExprzField.
 
 Section ExprzOrder.
 
-Variable R : oFieldType.
+Variable R : realFieldType.
 Implicit Types x y : R.
 Implicit Types m n : int.
 Local Coercion Posz : nat >-> int.
@@ -1325,11 +1336,11 @@ Proof. by  move=> *; rewrite (inj_in_eq (pexpIrz _)). Qed.
 
 End ExprzOrder.
 
-Local Notation sgr := ORing.sg.
+Local Notation sgr := Num.sg.
 
 Section Sgz.
 
-Variable R : oIdomainType.
+Variable R : realIdomainType.
 Implicit Types x y z : R.
 Implicit Types m n p : int.
 Local Coercion Posz : nat >-> int.
@@ -1437,7 +1448,7 @@ End Sgz.
 
 Lemma sgrz (n : int) : sgr n = sgz n. Proof. by rewrite sgrEz intz. Qed.
 
-Lemma sgz_eq (R R' : oIdomainType) (x : R) (y : R') :
+Lemma sgz_eq (R R' : realIdomainType) (x : R) (y : R') :
   (sgz x == sgz y) = ((x == 0) == (y == 0)) && ((0 < x) == (0 < y)).
 Proof. by do 2!case: sgzP. Qed.
 
@@ -1446,7 +1457,7 @@ Proof. by case: s. Qed.
 
 Section SgzIdomain.
 
-Variable R : oIdomainType.
+Variable R : realIdomainType.
 Implicit Types x y z : R.
 Implicit Types m n p : int.
 Local Coercion Posz : nat >-> int.
@@ -1469,7 +1480,7 @@ Lemma sgr_int m : sgr (m%:~R : R) = (sgr m)%:~R.
 Proof. by rewrite sgrEz sgz_int -sgrz. Qed.
 
 Lemma normr_int m : `|m%:~R| = `|m|%:~R :> R.
-Proof. by rewrite !normr_dec sgr_int rmorphM. Qed.
+Proof. by rewrite !normrEsg sgr_int rmorphM. Qed.
 
 Lemma sgrMz m x : sgr (x *~ m) = sgr x *~ sgr m.
 Proof. by rewrite -mulrzr sgrM sgr_int mulrzr. Qed.
@@ -1664,7 +1675,7 @@ End PolyZintRing.
 
 Section PolyZintOIdom.
 
-Variable R : oIdomainType.
+Variable R : realIdomainType.
 
 Lemma mulpz (p : {poly R}) (n : int) : p *~ n = n%:~R *: p.
 Proof. by rewrite -[p *~ n]mulrzl -mul_polyC polyC_mulrz polyC1. Qed.

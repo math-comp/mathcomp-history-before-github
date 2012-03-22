@@ -1,9 +1,9 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigop ssralg orderedalg int rat poly polydiv polyorder.
+Require Import bigop ssralg ssrnum ssrint rat poly polydiv polyorder.
 Require Import perm matrix mxpoly polyXY binomial generic_quotient.
 Require Import cauchyreals.
 
-Import GRing.Theory ORing.Theory EpsilonReasonning.
+Import GRing.Theory Num.Theory EpsilonReasonning.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -834,18 +834,18 @@ rewrite -[x]reprK -[y]reprK eq_sym piE [lt_alg _ _]piE; apply/le_algcrealP/orP.
 by move=> [/eqP/eqmodP/eq_algcrealP-> //| /lt_algcrealP /lt_crealW].
 Qed.
 
-Definition AlgPOFieldMixin := TotalPartialLtMixin add_alg_gt0 mul_alg_gt0
+Definition AlgNumFieldMixin := RealNumLtMixin add_alg_gt0 mul_alg_gt0
   gt0_alg_nlt0 sub_alg_gt0 lt0_alg_total norm_algN ge0_norm_alg le_alg_def.
-Canonical alg_poIdomainType := POIdomainType alg AlgPOFieldMixin.
-Canonical alg_poFieldType := POFieldType alg AlgPOFieldMixin.
-Canonical alg_of_poIdomainType := POIdomainType {alg F} AlgPOFieldMixin.
-Canonical alg_of_poFieldType := POFieldType {alg F} AlgPOFieldMixin.
+Canonical alg_numIdomainType := NumIdomainType alg AlgNumFieldMixin.
+Canonical alg_numFieldType := NumFieldType alg AlgNumFieldMixin.
+Canonical alg_of_numIdomainType := NumIdomainType {alg F} AlgNumFieldMixin.
+Canonical alg_of_numFieldType := NumFieldType {alg F} AlgNumFieldMixin.
 
-Definition AlgOFieldMixin := TotalLtMixin lt0_alg_total le_alg_def.
-Canonical alg_oIdomainType := OIdomainType alg AlgOFieldMixin.
-Canonical alg_oFieldType := OFieldType alg AlgOFieldMixin.
-Canonical alg_of_oIdomainType := OIdomainType {alg F} AlgOFieldMixin.
-Canonical alg_of_oFieldType := OFieldType {alg F} AlgOFieldMixin.
+Definition AlgRealFieldMixin := RealLtMixin lt0_alg_total le_alg_def.
+Canonical alg_realIdomainType := RealIdomainType alg AlgRealFieldMixin.
+Canonical alg_realFieldType := RealFieldType alg AlgRealFieldMixin.
+Canonical alg_of_realIdomainType := RealIdomainType {alg F} AlgRealFieldMixin.
+Canonical alg_of_realFieldType := RealFieldType {alg F} AlgRealFieldMixin.
 
 Lemma lt_pi x y : \pi_{alg F} x < \pi y = lt_algcreal x y.
 Proof. by rewrite [_ < _]lt_alg_pi. Qed.
@@ -966,7 +966,7 @@ Proof.
 apply: sig2_eqW; elim: s; first by exists (0,[::])=> //; apply/forallP=> [] [].
 move=> x s [[a sp] /forallP /= hs hsize].
 have := PET_char0 _ (root_annul_alg a) _ (root_annul_alg x).
-rewrite !annul_alg_neq0=> /(_ isT isT (char_po _)) /= [n [[p hp] [q hq]]].
+rewrite !annul_alg_neq0=> /(_ isT isT (char_num _)) /= [n [[p hp] [q hq]]].
 exists (x *+ n - a, q :: [seq r \Po p | r <- sp]); last first.
   by rewrite /= size_map hsize.
 apply/forallP=> /=; rewrite -add1n=> i; apply/eqP.
@@ -1415,10 +1415,10 @@ Canonical RealAlg.alg_unitRing.
 Canonical RealAlg.alg_comUnitRing.
 Canonical RealAlg.alg_iDomain.
 Canonical RealAlg.alg_fieldType.
-Canonical RealAlg.alg_poIdomainType.
-Canonical RealAlg.alg_poFieldType.
-Canonical RealAlg.alg_oIdomainType.
-Canonical RealAlg.alg_oFieldType.
+Canonical RealAlg.alg_numIdomainType.
+Canonical RealAlg.alg_numFieldType.
+Canonical RealAlg.alg_realIdomainType.
+Canonical RealAlg.alg_realFieldType.
 Canonical RealAlg.alg_archiFieldType.
 Canonical RealAlg.alg_rcfType.
 
@@ -1431,9 +1431,9 @@ Canonical RealAlg.alg_of_unitRing.
 Canonical RealAlg.alg_of_comUnitRing.
 Canonical RealAlg.alg_of_iDomain.
 Canonical RealAlg.alg_of_fieldType.
-Canonical RealAlg.alg_of_poIdomainType.
-Canonical RealAlg.alg_of_poFieldType.
-Canonical RealAlg.alg_of_oIdomainType.
-Canonical RealAlg.alg_of_oFieldType.
+Canonical RealAlg.alg_of_numIdomainType.
+Canonical RealAlg.alg_of_numFieldType.
+Canonical RealAlg.alg_of_realIdomainType.
+Canonical RealAlg.alg_of_realFieldType.
 Canonical RealAlg.alg_of_archiFieldType.
 Canonical RealAlg.alg_of_rcfType.

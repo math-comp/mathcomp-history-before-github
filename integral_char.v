@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset.
 Require Import fingroup morphism perm automorphism quotient finalg action.
 Require Import zmodp commutator cyclic center pgroup sylow matrix mxalgebra.
-Require Import int polydiv rat.
+Require Import ssrint polydiv rat.
 Require Import mxpoly mxrepresentation vector falgebra algC classfun character.
 Require Import fieldext separable galois.
 
@@ -416,15 +416,15 @@ Qed.
 End AlgCRect.
 
 Section AlgCorder.
-(* Link to poFieldType, used (for now) only to get intr injectivity and      *)
+(* Link to numFieldType, used (for now) only to get intr injectivity and      *)
 (* ratr morphism properties. Note that since the head symbol of algC : Type  *)
 (* is in fact GRing.ClosedField.sort, the structures below are in fact        *)
-(* incompatible with some the canonical ones declared by orderedalg.          *)
-Import orderedalg.
+(* incompatible with some the canonical ones declared by ssrnum.          *)
+Import ssrnum.
 
-Fact algC_poRingMixin : ORing.mixin_of algC.
+Fact algC_numRingMixin : Num.mixin_of algC.
 Proof.
-apply: (@PartialOrderMixin _ leC ltC normC) => //.
+apply: (@NumMixin _ leC ltC normC) => //.
 + exact: normC_add.
 + by move=> x y x_gt0 y_gt0; rewrite sposC_addl // ltCW.
 + by move=> x /eqP; rewrite normC_eq0 => /eqP.
@@ -437,13 +437,13 @@ apply: (@PartialOrderMixin _ leC ltC normC) => //.
   by move<-; rewrite posC_norm.
 Qed.
 
-Definition algC_poIdomainType := POIdomainType algC algC_poRingMixin.
-Definition algC_poFieldType := POFieldType algC algC_poRingMixin.
+Definition algC_numIdomainType := NumIdomainType algC algC_numRingMixin.
+Definition algC_numFieldType := NumFieldType algC algC_numRingMixin.
 
 End AlgCorder.
 
-Canonical algC_poIdomainType.
-Canonical algC_poFieldType.
+Canonical algC_numIdomainType.
+Canonical algC_numFieldType.
 
 Local Notation ZtoQ := (intr : int -> rat).
 Local Notation ZtoC := (intr : int -> algC).
@@ -454,8 +454,8 @@ Local Notation pZtoQ := (map_poly ZtoQ).
 Local Notation pZtoC := (map_poly ZtoC).
 Local Notation pQtoC := (map_poly ratr).
 
-Local Hint Resolve (@intr_inj algC_poIdomainType).
-Local Notation QtoC_M := (ratr_rmorphism algC_poFieldType).
+Local Hint Resolve (@intr_inj algC_numIdomainType).
+Local Notation QtoC_M := (ratr_rmorphism algC_numFieldType).
 
 (* More axiom reconstruction... *)
 Lemma algC_archimedean x : 0 <= x -> {n | n%:R <= x & x < n.+1%:R}.
@@ -788,7 +788,7 @@ suffices /sig_eqW[[n [|px [|pz []]]]// [Dpx Dpz]]:
   by rewrite map_comp_poly horner_comp -Dpz.
 have [rx nz_rx rx0] := r_exists x.
 have [rz nz_rz rz0] := r_exists (- z).
-have char0_Q: [char rat] =i pred0 by exact: orderedalg.ORing.PField.char_po.
+have char0_Q: [char rat] =i pred0 by exact: ssrnum.Num.char_num.
 have [n [[pz Dpz] [px Dpx]]] := PET_char0 nz_rz rz0 nz_rx rx0 char0_Q.
 by exists (n, [:: px; - pz]); rewrite /= !raddfN hornerN -[z]opprK Dpz Dpx.
 Qed.

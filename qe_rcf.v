@@ -1,6 +1,6 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import finfun path.
-Require Import bigop ssralg poly polydiv orderedalg zmodp div int.
+Require Import bigop ssralg poly polydiv ssrnum zmodp div ssrint.
 Require Import polyorder polyrcf interval polyXY.
 Require Import qe_rcf_th ordered_qelim.
 
@@ -8,7 +8,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GRing.Theory ORing.Theory.
+Import GRing.Theory Num.Theory.
 
 Local Open Scope nat_scope.
 Local Open Scope ring_scope.
@@ -123,7 +123,7 @@ Notation "x != y" := (Not (x == y)) : qf_scope.
 
 Section evaluation.
 
-Variable R : oIdomainType.
+Variable R : realIdomainType.
 
 Fixpoint eval (e : seq R) (t : term R) {struct t} : R :=
   match t with

@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq choice div fintype.
-Require Import bigop prime ssralg poly int.
+Require Import bigop prime ssralg poly ssrint.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

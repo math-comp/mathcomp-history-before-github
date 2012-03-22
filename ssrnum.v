@@ -7,11 +7,11 @@ Require Import poly.
 (*          x <= y == x is smaller than y                                    *)
 (*           x < y := (x <= y) && (x != y)                                   *)
 (*           sgr x == sign of x, equals (0 : R) if and only x == 0,          *)
-(*      ORing.sg x == sign of x, equals (0 : R) if and only x == 0,          *)
+(*      Num.sg x == sign of x, equals (0 : R) if and only x == 0,            *)
 (*                    equals (1 : R) if x is positive, and -1 otherwise      *)
 (*            `|x| == x if x is positive and - x otherwise                   *)
-(*   ORing.min x y == minimum of x y                                         *)
-(*   ORing.max x y == maximum of x y                                         *)
+(*   Num.min x y == minimum of x y                                           *)
+(*   Num.max x y == maximum of x y                                           *)
 (*                                                                           *)
 (* - list of prefixes :                                                      *)
 (*   p : positive                                                            *)
@@ -60,7 +60,7 @@ Proof. by rewrite expf_eq0. Qed.
 *)
 (* end hide *)
 
-Module ORing.
+Module Num.
 
 Record mixin_of (R : ringType) := Mixin {
   le_op : rel R;
@@ -102,7 +102,7 @@ End Generic.
 Implicit Arguments
    gen_pack [BFtype base_type BFclass_of base_of to_ring base_sort].
 
-Module PIntegralDomain.
+Module NumIntegralDomain.
 
 Section ClassDef.
 
@@ -155,14 +155,14 @@ Coercion idomainType : type >-> GRing.IntegralDomain.type.
 Canonical idomainType.
 End Exports.
 
-End PIntegralDomain.
-Import PIntegralDomain.Exports.
+End NumIntegralDomain.
+Import NumIntegralDomain.Exports.
 
 Open Scope ring_scope.
 
-Module OrderDef.
+Module Def.
 
-Definition ltr (R : PIntegralDomain.type) : rel R := lt_op (PIntegralDomain.class R).
+Definition ltr (R : NumIntegralDomain.type) : rel R := lt_op (NumIntegralDomain.class R).
 Notation ">%R" := (@ltr _) : ring_scope.
 Notation "x < y"  := (ltr x y) : ring_scope.
 Notation "x < y :> T" := ((x : T) < (y : T)) : ring_scope.
@@ -170,7 +170,7 @@ Notation "x > y"  := (y < x) (only parsing) : ring_scope.
 Notation "x > y :> T" := ((x : T) > (y : T)) (only parsing) : ring_scope.
 Notation "<%R" := [rel x y | y < x] : ring_scope.
 
-Definition ler (R : PIntegralDomain.type) : rel R := le_op (PIntegralDomain.class R).
+Definition ler (R : NumIntegralDomain.type) : rel R := le_op (NumIntegralDomain.class R).
 Notation ">=%R" := (@ler _) : ring_scope.
 Notation "x <= y" := (ler x y) : ring_scope.
 Notation "x <= y :> T" := ((x : T) <= (y : T)) : ring_scope.
@@ -183,51 +183,53 @@ Notation "x < y <= z" := ((x < y) && (y <= z)) : ring_scope.
 Notation "x <= y < z" := ((x <= y) && (y < z)) : ring_scope.
 Notation "x < y < z" := ((x < y) && (y < z)) : ring_scope.
 
-Definition normr (R : PIntegralDomain.type) : R -> R :=
-  norm_op (PIntegralDomain.class R).
-Notation "`| x |" := (@normr _ x) : ring_scope.
+Definition normr (R : NumIntegralDomain.type) : R -> R :=
+  norm_op (NumIntegralDomain.class R).
 Prenex Implicits normr.
 
-Definition sgr (R : PIntegralDomain.type) (x : R) : R :=
+Definition sgr (R : NumIntegralDomain.type) (x : R) : R :=
   if x == 0 then 0 else if (x < 0) then -1 else 1.
 
-Definition minr (R : PIntegralDomain.type) (x y : R) :=
+Definition minr (R : NumIntegralDomain.type) (x y : R) :=
   if x <= y then x else y.
-Definition maxr (R : PIntegralDomain.type) (x y : R) :=
+Definition maxr (R : NumIntegralDomain.type) (x y : R) :=
   if y <= x then x else y.
 
-Definition Rreal {R : PIntegralDomain.type} :=
+Definition Rreal {R : NumIntegralDomain.type} :=
   [ qualify x : R | (0 <= x) || (x <= 0) ].
 Fact real_key R : pred_key (@Rreal R). Proof. by []. Qed.
 Canonical real_keyed R := KeyedQualifier (@real_key R).
 
 Prenex Implicits sgr minr maxr normr.
 
-Definition lerif (R : PIntegralDomain.type) (x y : R) c :=
+Definition lerif (R : NumIntegralDomain.type) (x y : R) c :=
   ((x <= y) * ((x == y) = c))%type.
 Notation "<?=%R" := lerif : ring_scope.
 Notation "x <= y ?= 'iff' c" := (lerif x y c) : ring_scope.
 Notation "x <= y ?= 'iff' c :> R" := ((x : R) <= (y : R) ?= iff c) : ring_scope.
 
-Coercion ler_of_leif (R : PIntegralDomain.type)
+Definition ler_of_leif (R : NumIntegralDomain.type)
   (x y : R) c (le_xy : x <= y ?= iff c) := le_xy.1 : x <= y.
 
-End OrderDef.
-Import OrderDef.
+Coercion ler_of_leif : lerif >-> is_true.
 
-Notation norm := (@ORing.OrderDef.normr _) (only parsing).
-Notation sg := (@ORing.OrderDef.sgr _).
-Notation max := (@ORing.OrderDef.maxr _).
-Notation min := (@ORing.OrderDef.minr _).
-Notation real := (@ORing.OrderDef.Rreal _).
+End Def.
+Import Def.
+
+Notation norm := (@Num.Def.normr _).
+Notation "`| x |" := (@normr _ x) : ring_scope.
+Notation sg := (@Num.Def.sgr _).
+Notation max := (@Num.Def.maxr _).
+Notation min := (@Num.Def.minr _).
+Notation real := (@Num.Def.Rreal _).
 
 Prenex Implicits Rreal.
 
-Module PIntegralDomainTheory.
+Module NumIntegralDomainTheory.
 
-Section PIntegralDomainTheory.
+Section NumIntegralDomainTheory.
 
-Variable R : PIntegralDomain.type.
+Variable R : NumIntegralDomain.type.
 Implicit Types x y z t : R.
 
 (* Lemmas from the signature *)
@@ -457,7 +459,7 @@ Proof. by apply: contraTF=> /ltr_geF->. Qed.
 
 Definition ltr_gtF x y hxy := ler_gtF (@ltrW x y hxy).
 
-End PIntegralDomainTheory.
+End NumIntegralDomainTheory.
 
 Hint Resolve ler01.
 Implicit Arguments ler01 [R].
@@ -471,9 +473,9 @@ Hint Resolve ltr0Sn.
 Hint Resolve ler0n.
 Hint Resolve normr_ge0.
 
-Section PIntegralDomainMonotonyTheory.
+Section NumIntegralDomainMonotonyTheory.
 
-Variables R R' : PIntegralDomain.type.
+Variables R R' : NumIntegralDomain.type.
 Implicit Types m n p : nat.
 Implicit Types x y z : R.
 Implicit Types u v w : R'.
@@ -621,12 +623,12 @@ Qed.
 
 End natR.
 
-End PIntegralDomainMonotonyTheory.
+End NumIntegralDomainMonotonyTheory.
 
-Section PIntegralDomainOperationTheory.
+Section NumIntegralDomainOperationTheory.
 (* Comparision and opposite *)
 
-Variable R : PIntegralDomain.type.
+Variable R : NumIntegralDomain.type.
 Implicit Types x y z t : R.
 
 Lemma ler_opp2 : {mono -%R : x y /~ x <= y :> R}.
@@ -1175,7 +1177,7 @@ Proof. by case: n=> [|n]; rewrite ?lerr ?eqxx // ltr_pmuln2r. Qed.
 
 (* Characteristic is null *)
 
-Lemma char_po : [char R] =i pred0.
+Lemma char_num : [char R] =i pred0.
 Proof. by case=> // p /=; rewrite !inE pnatr_eq0 andbF. Qed.
 
 Lemma mulrn_eq0 x n : (x *+ n == 0) = ((n == 0)%N || (x == 0)).
@@ -1962,15 +1964,15 @@ exact: lerif_add.
 Qed.
 
 Lemma real_lerif_norm x : x \is real -> x <= `|x| ?= iff (0 <= x).
-Proof. 
+Proof.
 by move=> xR; rewrite ger0_def eq_sym; apply: lerif_eq; rewrite real_ler_norm.
 Qed.
 
-End PIntegralDomainOperationTheory.
+End NumIntegralDomainOperationTheory.
 
-Section PIntegralDomainMonotonyTheoryBis.
+Section NumIntegralDomainMonotonyTheoryBis.
 
-Variables R R' : PIntegralDomain.type.
+Variables R R' : NumIntegralDomain.type.
 Implicit Types m n p : nat.
 Implicit Types x y z : R.
 Implicit Types u v w : R'.
@@ -2012,21 +2014,21 @@ have [lt_xy|le_yx] := real_ltrP xR yR.
 by rewrite (ltrW_nhomo_in mf).
 Qed.
 
-End PIntegralDomainMonotonyTheoryBis.
+End NumIntegralDomainMonotonyTheoryBis.
 
-End PIntegralDomainTheory.
+End NumIntegralDomainTheory.
 
-Module PField.
+Include NumIntegralDomainTheory.
 
-Include PIntegralDomainTheory.
+Module NumField.
 
 Section ClassDef.
 
 Record class_of R :=
   Class { base : GRing.Field.class_of R; mixin : ring_mixin_of R base }.
-Definition base2 R (c : class_of R) := PIntegralDomain.Class (mixin c).
+Definition base2 R (c : class_of R) := NumIntegralDomain.Class (mixin c).
 Local Coercion base : class_of >-> GRing.Field.class_of.
-Local Coercion base2 : class_of >-> PIntegralDomain.class_of.
+Local Coercion base2 : class_of >-> NumIntegralDomain.class_of.
 
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
@@ -2045,15 +2047,15 @@ Definition comRingType := @GRing.ComRing.Pack cT xclass xT.
 Definition unitRingType := @GRing.UnitRing.Pack cT xclass xT.
 Definition comUnitRingType := @GRing.ComUnitRing.Pack cT xclass xT.
 Definition idomainType := @GRing.IntegralDomain.Pack cT xclass xT.
-Definition poIdomainType := @PIntegralDomain.Pack cT xclass xT.
+Definition numIdomainType := @NumIntegralDomain.Pack cT xclass xT.
 Definition fieldType := @GRing.Field.Pack cT xclass xT.
-Definition join_poIdomainType := @PIntegralDomain.Pack fieldType xclass xT.
+Definition join_numIdomainType := @NumIntegralDomain.Pack fieldType xclass xT.
 
 End ClassDef.
 
 Module Exports.
 Coercion base : class_of >-> GRing.Field.class_of.
-Coercion base2 : class_of >-> PIntegralDomain.class_of.
+Coercion base2 : class_of >-> NumIntegralDomain.class_of.
 Coercion sort : type >-> Sortclass.
 Bind Scope ring_scope with sort.
 Coercion eqType : type >-> Equality.type.
@@ -2072,24 +2074,23 @@ Coercion comUnitRingType : type >-> GRing.ComUnitRing.type.
 Canonical comUnitRingType.
 Coercion idomainType : type >-> GRing.IntegralDomain.type.
 Canonical idomainType.
-Coercion poIdomainType : type >-> PIntegralDomain.type.
-Canonical poIdomainType.
+Coercion numIdomainType : type >-> NumIntegralDomain.type.
+Canonical numIdomainType.
 Coercion fieldType : type >-> GRing.Field.type.
 Canonical fieldType.
 
 End Exports.
 
-End PField.
-Import PField.Exports.
+End NumField.
+Import NumField.Exports.
 
-Module PFieldTheory.
-Import PIntegralDomainTheory.
+Module NumFieldTheory.
 
-Section PFieldTheory.
+Section NumFieldTheory.
 
 Hint Resolve lerr.
 
-Variable F : PField.type.
+Variable F : NumField.type.
 Implicit Types x y z t : F.
 
 Lemma unitf_gt0 x : 0 < x -> x \is a GRing.unit.
@@ -2201,8 +2202,10 @@ move=> x /=; have [/normrV //|Nux] := boolP (x \is a GRing.unit).
 by rewrite !invr_out // unitfE normr_eq0 -unitfE.
 Qed.
 
-End PFieldTheory.
-End PFieldTheory.
+End NumFieldTheory.
+End NumFieldTheory.
+
+Include NumFieldTheory.
 
 Module ClosedField.
 
@@ -2210,9 +2213,9 @@ Section ClassDef.
 
 Record class_of R :=
   Class { base : GRing.ClosedField.class_of R; mixin : ring_mixin_of R base }.
-Definition base2 R (c : class_of R) := PField.Class (mixin c).
+Definition base2 R (c : class_of R) := NumField.Class (mixin c).
 Local Coercion base : class_of >-> GRing.ClosedField.class_of.
-Local Coercion base2 : class_of >-> PField.class_of.
+Local Coercion base2 : class_of >-> NumField.class_of.
 
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
@@ -2231,19 +2234,19 @@ Definition comRingType := @GRing.ComRing.Pack cT xclass xT.
 Definition unitRingType := @GRing.UnitRing.Pack cT xclass xT.
 Definition comUnitRingType := @GRing.ComUnitRing.Pack cT xclass xT.
 Definition idomainType := @GRing.IntegralDomain.Pack cT xclass xT.
-Definition poIdomainType := @PIntegralDomain.Pack cT xclass xT.
+Definition numIdomainType := @NumIntegralDomain.Pack cT xclass xT.
 Definition fieldType := @GRing.Field.Pack cT xclass xT.
 Definition decFieldType := @GRing.DecidableField.Pack cT xclass xT.
 Definition closedFieldType := @GRing.ClosedField.Pack cT xclass xT.
-Definition join_poIdomainType :=
-  @PIntegralDomain.Pack closedFieldType xclass xT.
-Definition join_poFieldType := @PField.Pack closedFieldType xclass xT.
+Definition join_numIdomainType :=
+  @NumIntegralDomain.Pack closedFieldType xclass xT.
+Definition join_numFieldType := @NumField.Pack closedFieldType xclass xT.
 
 End ClassDef.
 
 Module Exports.
 Coercion base : class_of >-> GRing.ClosedField.class_of.
-Coercion base2 : class_of >-> PField.class_of.
+Coercion base2 : class_of >-> NumField.class_of.
 Coercion sort : type >-> Sortclass.
 Bind Scope ring_scope with sort.
 Coercion eqType : type >-> Equality.type.
@@ -2262,8 +2265,8 @@ Coercion comUnitRingType : type >-> GRing.ComUnitRing.type.
 Canonical comUnitRingType.
 Coercion idomainType : type >-> GRing.IntegralDomain.type.
 Canonical idomainType.
-Coercion poIdomainType : type >-> PIntegralDomain.type.
-Canonical poIdomainType.
+Coercion numIdomainType : type >-> NumIntegralDomain.type.
+Canonical numIdomainType.
 Coercion fieldType : type >-> GRing.Field.type.
 Canonical fieldType.
 Coercion decFieldType : type >-> GRing.DecidableField.type.
@@ -2276,10 +2279,10 @@ End Exports.
 End ClosedField.
 Import ClosedField.Exports.
 
-Definition total_mixin_of (R : PIntegralDomain.type) :=
+Definition total_mixin_of (R : NumIntegralDomain.type) :=
   forall x : R, x \is real.
 
-Section POLeMixin.
+Section NumLeMixin.
 
 Variable R : GRing.IntegralDomain.type.
 Variable le : rel R.
@@ -2360,13 +2363,13 @@ Qed.
 Lemma le_total x y : le x y || le y x.
 Proof. by rewrite -sub_ge0 -opprB le0N orbC -sub_ge0 le0_total. Qed.
 
-Definition TotalPLeMixin := Mixin le_normD lt0_add eq0_norm
+Definition RealNumLeMixin := Mixin le_normD lt0_add eq0_norm
               (fun x y _ _ => le_total x y) normM le_def lt_def.
 
-End POLeMixin.
+End NumLeMixin.
 
 
-Section POLtMixin.
+Section NumLtMixin.
 
 Variable R : GRing.IntegralDomain.type.
 Variable le : rel R.
@@ -2409,24 +2412,24 @@ rewrite !le_def; case: (altP eqP) => //= ->; rewrite -sub_gt0 subrr.
 by have /implyP := (@lt0_ngt0 0); case: lt.
 Qed.
 
-Lemma TLtMixin x : le 0 x || le x 0.
+Lemma RealLtMixin x : le 0 x || le x 0.
 Proof.
 by rewrite !le_def [0 == _]eq_sym; have [//|/lt0_total] := altP eqP.
 Qed.
 
-Definition TotalPLtMixin := TotalPLeMixin le0_add le0_mul le0_anti sub_ge0
-  TLtMixin normN ge0_norm lt_def.
+Definition RealNumLtMixin := RealNumLeMixin le0_add le0_mul le0_anti sub_ge0
+  RealLtMixin normN ge0_norm lt_def.
 
-End POLtMixin.
+End NumLtMixin.
 
 Local Notation oidom_mixin_of T b :=
-  (total_mixin_of (@PIntegralDomain.Pack T b T)).
+  (total_mixin_of (@NumIntegralDomain.Pack T b T)).
 
 Section Generic'.
 
 (* Implicits *)
 Variables (BFtype base_type : Type) (BFclass_of base_of : Type -> Type).
-Variable to_oidom : forall T, base_of T -> PIntegralDomain.class_of T.
+Variable to_oidom : forall T, base_of T -> NumIntegralDomain.class_of T.
 Variable base_sort : base_type -> Type.
 
 (* Explicits *)
@@ -2443,22 +2446,22 @@ End Generic'.
 Implicit Arguments
    gen_pack' [BFtype base_type BFclass_of base_of to_oidom base_sort].
 
-Module TIntegralDomain.
+Module RealIntegralDomain.
 
 Section ClassDef.
 
 Record class_of (R : Type) : Type := Class {
-  base : PIntegralDomain.class_of R;
-  mixin : total_mixin_of (PIntegralDomain.Pack base R)
+  base : NumIntegralDomain.class_of R;
+  mixin : total_mixin_of (NumIntegralDomain.Pack base R)
 }.
-Local Coercion base : class_of >-> PIntegralDomain.class_of.
+Local Coercion base : class_of >-> NumIntegralDomain.class_of.
 Local Coercion mixin : class_of >-> total_mixin_of.
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
 Variables (T : Type) (cT : type).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c T.
-Definition pack := gen_pack' Pack Class PIntegralDomain.class.
+Definition pack := gen_pack' Pack Class NumIntegralDomain.class.
 Let xT := let: Pack T _ _ := cT in T.
 Notation xclass := (class : class_of xT).
 
@@ -2470,14 +2473,14 @@ Definition comRingType := @GRing.ComRing.Pack cT xclass xT.
 Definition unitRingType := @GRing.UnitRing.Pack cT xclass xT.
 Definition comUnitRingType := @GRing.ComUnitRing.Pack cT xclass xT.
 Definition idomainType := @GRing.IntegralDomain.Pack cT xclass xT.
-Definition poidomainType := @PIntegralDomain.Pack cT xclass xT.
+Definition numIdomainType := @NumIntegralDomain.Pack cT xclass xT.
 Definition join_idomainType :=
-  @GRing.IntegralDomain.Pack poidomainType xclass xT.
+  @GRing.IntegralDomain.Pack numIdomainType xclass xT.
 
 End ClassDef.
 
 Module Exports.
-Coercion base : class_of >-> PIntegralDomain.class_of.
+Coercion base : class_of >-> NumIntegralDomain.class_of.
 Coercion mixin : class_of >-> total_mixin_of.
 Coercion sort : type >-> Sortclass.
 Bind Scope ring_scope with sort.
@@ -2497,21 +2500,20 @@ Coercion comUnitRingType : type >-> GRing.ComUnitRing.type.
 Canonical comUnitRingType.
 Coercion idomainType : type >-> GRing.IntegralDomain.type.
 Canonical idomainType.
-Coercion poidomainType : type >-> PIntegralDomain.type.
-Canonical poidomainType.
+Coercion numIdomainType : type >-> NumIntegralDomain.type.
+Canonical numIdomainType.
 End Exports.
 
-End TIntegralDomain.
-Import TIntegralDomain.Exports.
+End RealIntegralDomain.
+Import RealIntegralDomain.Exports.
 
-Module TIntegralDomainTheory.
-Import PIntegralDomainTheory.
+Module RealIntegralDomainTheory.
 
-Section TIntegralDomainTheory.
+Section RealIntegralDomainTheory.
 
 Hint Resolve lerr.
 
-Variable R : TIntegralDomain.type.
+Variable R : RealIntegralDomain.type.
 Implicit Types x y z t : R.
 
 Lemma ordered_real x : x \is real. Proof. by case: R x=> T []. Qed.
@@ -2582,7 +2584,13 @@ Lemma mulr_Nsign_norm (x : R) :
   (-1) ^+ (0 < x)%R * `|x| = - x.
 Proof. by rewrite -normrN -oppr_lt0 mulr_sign_norm. Qed.
 
-Lemma normr_dec_sign (x : R) : `|x| = (-1) ^+ (x < 0)%R * x.
+Lemma numEsign (x : R) : x = (-1) ^+ (x < 0)%R * `|x|.
+Proof. by case: ger0P; rewrite (mul1r, mulN1r) ?opprK. Qed.
+
+Lemma numNEsign (x : R) : -x = (-1) ^+ (0 < x)%R * `|x|.
+Proof. by rewrite -normrN -oppr_lt0 mulr_sign_norm. Qed.
+
+Lemma normrEsign (x : R) : `|x| = (-1) ^+ (x < 0)%R * x.
 Proof. by rewrite -{3}[x]mulr_sign_norm mulrA -signr_addb addbb mul1r. Qed.
 
 Lemma mulr_lt0 (x y : R) :
@@ -2600,7 +2608,6 @@ Proof. by move=> x_neq0 y_neq0; rewrite mulr_lt0 x_neq0 y_neq0. Qed.
 Lemma mulr_sign_lt0 (b : bool) (x : R) :
   ((-1) ^+ b * x < 0) = (x != 0) && (b (+) (x < 0)%R).
 Proof. by rewrite mulr_lt0 signr_lt0 signr_eq0. Qed.
-
 
 Section FinGroup.
 
@@ -2623,13 +2630,13 @@ Proof. by rewrite gtr_eqF // natr_indexg_gt0. Qed.
 
 End FinGroup.
 
-End TIntegralDomainTheory.
+End RealIntegralDomainTheory.
 
 Hint Resolve ordered_real.
 
-Section TIntegralDomainMonotonyTheory.
+Section RealIntegralDomainMonotonyTheory.
 
-Variables R R' : TIntegralDomain.type.
+Variables R R' : RealIntegralDomain.type.
 Implicit Types m n p : nat.
 Implicit Types x y z : R.
 Implicit Types u v w : R'.
@@ -2655,15 +2662,15 @@ Proof.
 by move=> *; apply: (real_nmono_in mf); rewrite ?inE ?ordered_real.
 Qed.
 
-End TIntegralDomainMonotonyTheory.
+End RealIntegralDomainMonotonyTheory.
 
-Section TIntegralDomainOperationTheory.
+Section RealIntegralDomainOperationTheory.
 (* sgr section *)
 
 Hint Resolve lerr.
 Hint Resolve ordered_real.
 
-Variable R : TIntegralDomain.type.
+Variable R : RealIntegralDomain.type.
 Implicit Types x y z t : R.
 
 Lemma sgr_cp0 x :
@@ -2724,14 +2731,14 @@ Qed.
 Lemma mulr_sg_eqN1 x y : (sgr x * sgr y == -1) = (x != 0) && (sgr x == - sgr y).
 Proof. by rewrite -eqr_oppLR -mulrN -sgrN mulr_sg_eq1. Qed.
 
-Lemma normr_dec x : `|x| = sgr x * x.
+Lemma normrEsg x : `|x| = sgr x * x.
 Proof. by case: sgrP; rewrite ?(mul0r, mul1r, mulN1r). Qed.
 
 Lemma sgrM x y : sgr (x * y) = sgr x * sgr y.
 Proof.
 have [/eqP|/mulIf] := eqVneq (x * y) 0; last apply.
   by rewrite mulf_eq0 => /orP [] /eqP ->; rewrite !(sgr0, mulr0, mul0r).
-by rewrite -normr_dec normrM normr_dec mulrAC normr_dec -!mulrA [y * x]mulrC.
+by rewrite -normrEsg normrM normrEsg mulrAC normrEsg -!mulrA [y * x]mulrC.
 Qed.
 
 Lemma sgrX n x : sgr (x ^+ n) = (sgr x) ^+ n.
@@ -2748,6 +2755,7 @@ Proof.
 case: n=> [|n]; first by rewrite mulr0n sgr0 mul0r.
 by rewrite !sgr_def mulrn_eq0 mul1r pmulrn_llt0.
 Qed.
+
 Lemma sgr_nat n : sgr (n%:R) = (n != 0%N)%:R :> R.
 Proof. by rewrite sgrMn sgr1 mulr1. Qed.
 
@@ -2772,6 +2780,9 @@ Proof. by rewrite !lerNgt sgr_gt0. Qed.
 (* normr section *)
 
 Lemma mulr_sg_norm x : sgr x * `|x| = x.
+Proof. by case: sgrP; rewrite !(mul1r, mul0r, mulrNN). Qed.
+
+Lemma normrNsg x : x = sgr x * `|x|.
 Proof. by case: sgrP; rewrite !(mul1r, mul0r, mulrNN). Qed.
 
 Lemma ler_norml x y : (`|x| <= y) = (-y <= x <= y).
@@ -2805,14 +2816,6 @@ Proof. by rewrite ltrNge ler_norml negb_and -!ltrNge orbC ltr_oppr. Qed.
 
 Definition lter_normr :=  (ler_normr, ltr_normr).
 
-Lemma ler_nnorml x y (hy : y < 0) : (`|x| <= y = false).
-Proof. by apply: negbTE; rewrite -ltrNge (ltr_le_trans hy) ?normrE. Qed.
-
-Lemma ltr_nnorml x y (hy : y <= 0) : (`|x| < y = false).
-Proof. by apply: negbTE; rewrite -lerNgt (ler_trans hy) ?normrE. Qed.
-
-Definition lter_nnormr := (ler_nnorml, ltr_nnorml).
-
 Lemma ler_distl x y e : (`|x - y| <= e) = (y - e <= x <= y + e).
 Proof. by rewrite lter_norml !lter_sub_addl. Qed.
 
@@ -2825,7 +2828,7 @@ Lemma normr_sg x : `|sgr x| = (x != 0)%:R.
 Proof. by case: sgrP; rewrite ?normrE. Qed.
 
 Lemma sgr_norm x : sgr `|x| = (x != 0)%:R.
-Proof. by rewrite normr_dec sgr_smul mulr_sg. Qed.
+Proof. by rewrite normrEsg sgr_smul mulr_sg. Qed.
 
 Lemma exprn_even_ge0 n x : ~~ odd n -> 0 <= x ^+ n.
 Proof. by move=> even_n; rewrite real_exprn_even_ge0 ?ordered_real. Qed.
@@ -3092,27 +3095,27 @@ Proof. by rewrite -[minr _ _]opprK oppr_min opprK maxrN. Qed.
 
 End MinMax.
 
-End TIntegralDomainOperationTheory.
-End TIntegralDomainTheory.
+End RealIntegralDomainOperationTheory.
+End RealIntegralDomainTheory.
 
-Include TIntegralDomainTheory.
+Include RealIntegralDomainTheory.
 
-Module TField.
+Module RealField.
 
 Section ClassDef.
 
 Record class_of R :=
-  Class { base : PField.class_of R; mixin : oidom_mixin_of R base }.
-Definition base2 R (c : class_of R) := TIntegralDomain.Class (@mixin _ c).
-Local Coercion base : class_of >-> PField.class_of.
-Local Coercion base2 : class_of >-> TIntegralDomain.class_of.
+  Class { base : NumField.class_of R; mixin : oidom_mixin_of R base }.
+Definition base2 R (c : class_of R) := RealIntegralDomain.Class (@mixin _ c).
+Local Coercion base : class_of >-> NumField.class_of.
+Local Coercion base2 : class_of >-> RealIntegralDomain.class_of.
 
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
 Variables (T : Type) (cT : type).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c T.
-Definition pack := gen_pack' Pack Class PField.class.
+Definition pack := gen_pack' Pack Class NumField.class.
 Let xT := let: Pack T _ _ := cT in T.
 Notation xclass := (class : class_of xT).
 
@@ -3124,19 +3127,19 @@ Definition comRingType := @GRing.ComRing.Pack cT xclass xT.
 Definition unitRingType := @GRing.UnitRing.Pack cT xclass xT.
 Definition comUnitRingType := @GRing.ComUnitRing.Pack cT xclass xT.
 Definition idomainType := @GRing.IntegralDomain.Pack cT xclass xT.
-Definition poIdomainType := @PIntegralDomain.Pack cT xclass xT.
-Definition oIdomainType := @TIntegralDomain.Pack cT xclass xT.
+Definition numIdomainType := @NumIntegralDomain.Pack cT xclass xT.
+Definition realIdomainType := @RealIntegralDomain.Pack cT xclass xT.
 Definition fieldType := @GRing.Field.Pack cT xclass xT.
-Definition poFieldType := @PField.Pack cT xclass xT.
-Definition join_poIdomainType := @PIntegralDomain.Pack poFieldType xclass xT.
-Definition join_oIdomainType := @TIntegralDomain.Pack poFieldType xclass xT.
-Definition join_fieldType := @GRing.Field.Pack poFieldType xclass xT.
+Definition numFieldType := @NumField.Pack cT xclass xT.
+Definition join_numIdomainType := @NumIntegralDomain.Pack numFieldType xclass xT.
+Definition join_realIdomainType := @RealIntegralDomain.Pack numFieldType xclass xT.
+Definition join_fieldType := @GRing.Field.Pack numFieldType xclass xT.
 
 End ClassDef.
 
 Module Exports.
-Coercion base : class_of >-> PField.class_of.
-Coercion base2 : class_of >-> TIntegralDomain.class_of.
+Coercion base : class_of >-> NumField.class_of.
+Coercion base2 : class_of >-> RealIntegralDomain.class_of.
 Coercion sort : type >-> Sortclass.
 Bind Scope ring_scope with sort.
 Coercion eqType : type >-> Equality.type.
@@ -3155,33 +3158,29 @@ Coercion comUnitRingType : type >-> GRing.ComUnitRing.type.
 Canonical comUnitRingType.
 Coercion idomainType : type >-> GRing.IntegralDomain.type.
 Canonical idomainType.
-Coercion poIdomainType : type >-> PIntegralDomain.type.
-Canonical poIdomainType.
-Coercion oIdomainType : type >-> TIntegralDomain.type.
-Canonical oIdomainType.
+Coercion numIdomainType : type >-> NumIntegralDomain.type.
+Canonical numIdomainType.
+Coercion realIdomainType : type >-> RealIntegralDomain.type.
+Canonical realIdomainType.
 Coercion fieldType : type >-> GRing.Field.type.
 Canonical fieldType.
-Coercion poFieldType : type >-> PField.type.
-Canonical poFieldType.
+Coercion numFieldType : type >-> NumField.type.
+Canonical numFieldType.
 
-Canonical join_poIdomainType.
-Canonical join_oIdomainType.
+Canonical join_numIdomainType.
+Canonical join_realIdomainType.
 Canonical join_fieldType.
 
 End Exports.
 
-End TField.
-Import TField.Exports.
+End RealField.
+Import RealField.Exports.
 
-Module TFieldTheory.
+Module RealFieldTheory.
 
-Import PIntegralDomainTheory.
-Import PFieldTheory.
-Import TIntegralDomainTheory.
+Section RealFieldTheory.
 
-Section TFieldTheory.
-
-Variable F : TField.type.
+Variable F : RealField.type.
 Implicit Types x y z t : F.
 
 Hint Resolve lerr.
@@ -3209,7 +3208,7 @@ Qed.
 Definition midf_lte := (midf_le, midf_lt).
 
 Lemma natf_div (m d : nat) : (d %| m)%N -> (m %/ d)%:R = m%:R / d%:R :> F.
-Proof. by apply: char0_natf_div; apply: (@char_po F). Qed.
+Proof. by apply: char0_natf_div; apply: (@char_num F). Qed.
 
 Section FinGroup.
 
@@ -3223,31 +3222,33 @@ Proof. by move=> sHG; rewrite -divgS // natf_div ?cardSg. Qed.
 
 End FinGroup.
 
-End TFieldTheory.
-End TFieldTheory.
+End RealFieldTheory.
+End RealFieldTheory.
+
+Include RealFieldTheory.
 
 Module ArchimedianField.
 
 Section ClassDef.
 
-Record mixin_of (R : PIntegralDomain.type) := Mixin {
+Record mixin_of (R : NumIntegralDomain.type) := Mixin {
   archi_bound : R -> nat;
   _ : forall (x : R), 0 <= x -> x < (archi_bound x)%:R
 }.
 
 Record class_of (R : Type) : Type := Class {
-  base : TField.class_of R;
-  mixin : mixin_of (PIntegralDomain.Pack base R)
+  base : RealField.class_of R;
+  mixin : mixin_of (NumIntegralDomain.Pack base R)
 }.
-Local Coercion base : class_of >-> TField.class_of.
+Local Coercion base : class_of >-> RealField.class_of.
 
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
 Variables (T : Type) (cT : type).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c T.
-Definition pack b0 (m0 : mixin_of (@TField.Pack T b0 T)) :=
-  fun bT b & phant_id (TField.class bT) b =>
+Definition pack b0 (m0 : mixin_of (@RealField.Pack T b0 T)) :=
+  fun bT b & phant_id (RealField.class bT) b =>
   fun    m & phant_id m0 m => Pack (@Class T b m) T.
 Let xT := let: Pack T _ _ := cT in T.
 Notation xclass := (class : class_of xT).
@@ -3260,16 +3261,16 @@ Definition comRingType := @GRing.ComRing.Pack cT xclass xT.
 Definition unitRingType := @GRing.UnitRing.Pack cT xclass xT.
 Definition comUnitRingType := @GRing.ComUnitRing.Pack cT xclass xT.
 Definition idomainType := @GRing.IntegralDomain.Pack cT xclass xT.
-Definition poIdomainType := @PIntegralDomain.Pack cT xclass xT.
-Definition oIdomainType := @TIntegralDomain.Pack cT xclass xT.
+Definition numIdomainType := @NumIntegralDomain.Pack cT xclass xT.
+Definition realIdomainType := @RealIntegralDomain.Pack cT xclass xT.
 Definition fieldType := @GRing.Field.Pack cT xclass xT.
-Definition poFieldType := @PField.Pack cT xclass xT.
-Definition oFieldType := @TField.Pack cT xclass xT.
+Definition numFieldType := @NumField.Pack cT xclass xT.
+Definition realFieldType := @RealField.Pack cT xclass xT.
 
 End ClassDef.
 
 Module Exports.
-Coercion base : class_of >-> TField.class_of.
+Coercion base : class_of >-> RealField.class_of.
 Coercion sort : type >-> Sortclass.
 Bind Scope ring_scope with sort.
 Coercion eqType : type >-> Equality.type.
@@ -3288,16 +3289,16 @@ Coercion comUnitRingType : type >-> GRing.ComUnitRing.type.
 Canonical comUnitRingType.
 Coercion idomainType : type >-> GRing.IntegralDomain.type.
 Canonical idomainType.
-Coercion poIdomainType : type >-> PIntegralDomain.type.
-Canonical poIdomainType.
-Coercion oIdomainType : type >-> TIntegralDomain.type.
-Canonical oIdomainType.
+Coercion numIdomainType : type >-> NumIntegralDomain.type.
+Canonical numIdomainType.
+Coercion realIdomainType : type >-> RealIntegralDomain.type.
+Canonical realIdomainType.
 Coercion fieldType : type >-> GRing.Field.type.
 Canonical fieldType.
-Coercion poFieldType : type >-> PField.type.
-Canonical poFieldType.
-Coercion oFieldType : type >-> TField.type.
-Canonical oFieldType.
+Coercion numFieldType : type >-> NumField.type.
+Canonical numFieldType.
+Coercion realFieldType : type >-> RealField.type.
+Canonical realFieldType.
 End Exports.
 
 End ArchimedianField.
@@ -3308,10 +3309,6 @@ Definition archi_bound (R : ArchimedianField.type) : R -> nat
   (ArchimedianField.mixin (ArchimedianField.class R)).
 
 Module ArchimedianFieldTheory.
-Import PIntegralDomainTheory.
-Import PFieldTheory.
-Import TIntegralDomainTheory.
-Import TFieldTheory.
 
 Section ArchimedianFieldTheory.
 Variable F : ArchimedianField.type.
@@ -3331,30 +3328,32 @@ Qed.
 End ArchimedianFieldTheory.
 End ArchimedianFieldTheory.
 
+Include ArchimedianFieldTheory.
+
 Module RealClosedField.
 
 Section ClassDef.
 
-Definition axiom (F : TField.type) := forall (p : {poly F}) (a b : F), a <= b
+Definition axiom (F : RealField.type) := forall (p : {poly F}) (a b : F), a <= b
     -> p.[a] <= 0 <= p.[b] -> { x | a <= x <= b & root p x }.
 
-Record mixin_of (F : TField.type) := Mixin {
+Record mixin_of (F : RealField.type) := Mixin {
   _ : axiom F
 }.
 
 Record class_of (R : Type) : Type := Class {
-  base : TField.class_of R;
-  mixin : mixin_of (TField.Pack base R)
+  base : RealField.class_of R;
+  mixin : mixin_of (RealField.Pack base R)
 }.
-Local Coercion base : class_of >-> TField.class_of.
+Local Coercion base : class_of >-> RealField.class_of.
 
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
 Variables (T : Type) (cT : type).
 Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c T.
-Definition pack b0 (m0 : mixin_of (@TField.Pack T b0 T)) :=
-  fun bT b & phant_id (TField.class bT) b =>
+Definition pack b0 (m0 : mixin_of (@RealField.Pack T b0 T)) :=
+  fun bT b & phant_id (RealField.class bT) b =>
   fun    m & phant_id m0 m => Pack (@Class T b m) T.
 Let xT := let: Pack T _ _ := cT in T.
 Notation xclass := (class : class_of xT).
@@ -3367,16 +3366,16 @@ Definition comRingType := @GRing.ComRing.Pack cT xclass xT.
 Definition unitRingType := @GRing.UnitRing.Pack cT xclass xT.
 Definition comUnitRingType := @GRing.ComUnitRing.Pack cT xclass xT.
 Definition idomainType := @GRing.IntegralDomain.Pack cT xclass xT.
-Definition poIdomainType := @PIntegralDomain.Pack cT xclass xT.
-Definition oIdomainType := @TIntegralDomain.Pack cT xclass xT.
+Definition numIdomainType := @NumIntegralDomain.Pack cT xclass xT.
+Definition realIdomainType := @RealIntegralDomain.Pack cT xclass xT.
 Definition fieldType := @GRing.Field.Pack cT xclass xT.
-Definition poFieldType := @PField.Pack cT xclass xT.
-Definition oFieldType := @TField.Pack cT xclass xT.
+Definition numFieldType := @NumField.Pack cT xclass xT.
+Definition realFieldType := @RealField.Pack cT xclass xT.
 
 End ClassDef.
 
 Module Exports.
-Coercion base : class_of >-> TField.class_of.
+Coercion base : class_of >-> RealField.class_of.
 Coercion sort : type >-> Sortclass.
 Bind Scope ring_scope with sort.
 Coercion eqType : type >-> Equality.type.
@@ -3395,26 +3394,22 @@ Coercion comUnitRingType : type >-> GRing.ComUnitRing.type.
 Canonical comUnitRingType.
 Coercion idomainType : type >-> GRing.IntegralDomain.type.
 Canonical idomainType.
-Coercion poIdomainType : type >-> PIntegralDomain.type.
-Canonical poIdomainType.
-Coercion oIdomainType : type >-> TIntegralDomain.type.
-Canonical oIdomainType.
+Coercion numIdomainType : type >-> NumIntegralDomain.type.
+Canonical numIdomainType.
+Coercion realIdomainType : type >-> RealIntegralDomain.type.
+Canonical realIdomainType.
 Coercion fieldType : type >-> GRing.Field.type.
 Canonical fieldType.
-Coercion poFieldType : type >-> PField.type.
-Canonical poFieldType.
-Coercion oFieldType : type >-> TField.type.
-Canonical oFieldType.
+Coercion numFieldType : type >-> NumField.type.
+Canonical numFieldType.
+Coercion realFieldType : type >-> RealField.type.
+Canonical realFieldType.
 End Exports.
 
 End RealClosedField.
 Import RealClosedField.Exports.
 
 Module RealClosedFieldTheory.
-Import PIntegralDomainTheory.
-Import PFieldTheory.
-Import TIntegralDomainTheory.
-Import TFieldTheory.
 
 Section RealClosedFieldTheory.
 Variable R : RealClosedField.type.
@@ -3470,7 +3465,7 @@ have [a_ge0|a_lt0] := ger0P a.
 by rewrite ltr0_sqrtr //; constructor.
 Qed.
 
-(* move to orderedalg for any oIdomainType of with precondition a \is real *)
+(* move to ssrnum for any RealIdomainType of with precondition a \is real *)
 
 Lemma sqrtr_sqr a : sqrtr (a ^+ 2) = `|a|.
 Proof.
@@ -3544,10 +3539,10 @@ End RealClosedFieldTheory.
 Include RealClosedFieldTheory.
 
 Module Theory.
-Export PIntegralDomainTheory.
-Export PFieldTheory.
-Export TIntegralDomainTheory.
-Export TFieldTheory.
+Export NumIntegralDomainTheory.
+Export NumFieldTheory.
+Export RealIntegralDomainTheory.
+Export RealFieldTheory.
 Export ArchimedianFieldTheory.
 Export RealClosedFieldTheory.
 
@@ -3567,92 +3562,82 @@ Hint Resolve ordered_real.
 
 End Theory.
 
-End ORing.
+End Num.
 
-Export ORing.PIntegralDomain.Exports.
-Export ORing.PField.Exports.
-Export ORing.ClosedField.Exports.
-Export ORing.TIntegralDomain.Exports.
-Export ORing.TField.Exports.
-Export ORing.ArchimedianField.Exports.
-Export ORing.RealClosedField.Exports.
+Export Num.NumIntegralDomain.Exports.
+Export Num.NumField.Exports.
+Export Num.ClosedField.Exports.
+Export Num.RealIntegralDomain.Exports.
+Export Num.RealField.Exports.
+Export Num.ArchimedianField.Exports.
+Export Num.RealClosedField.Exports.
 
-Notation PartialOrderMixin := ORing.Mixin.
-(* Notation PartialOrderLeMixin := ORing.LeMixin. *)
-(* Notation PartialOrderLtMixin := ORing.LtMixin. *)
-(* Notation PartialOrderPosMixin := ORing.PosMixin. *)
-(* Notation PartialOrderNonNegMixin := ORing.NonNegMixin. *)
+Notation NumMixin := Num.Mixin.
+Notation RealNumLeMixin := Num.RealNumLeMixin.
+Notation RealNumLtMixin := Num.RealNumLtMixin.
+Notation RealLeMixin := Num.le_total.
+Notation RealLtMixin := Num.RealLtMixin.
 
-Notation TotalPartialLeMixin := ORing.TotalPLeMixin.
-Notation TotalPartialLtMixin := ORing.TotalPLtMixin.
-(* Notation TotalOrder_PartialPosMixin := ORing.TotalPPosMixin. *)
-(* Notation TotalOrder_PartialNonNegMixin := ORing.TotalPNonNegMixin. *)
+Notation ArchimedianMixin := Num.ArchimedianField.Mixin.
+Notation RcfMixin := Num.RealClosedField.Mixin.
 
-Notation TotalLeMixin := ORing.le_total.
-Notation TotalLtMixin := ORing.TLtMixin.
-(* Notation TotalOrderPosMixin := ORing.TPosMixin. *)
-(* Notation TotalOrderNonNegMixin := ORing.TNonNegMixin. *)
+Notation numIdomainType := Num.NumIntegralDomain.type.
+Notation numFieldType := Num.NumField.type.
+Notation numClosedFieldType := Num.ClosedField.type.
+Notation realIdomainType := Num.RealIntegralDomain.type.
+Notation realFieldType := Num.RealField.type.
+Notation archiFieldType := Num.ArchimedianField.type.
+Notation rcfType := Num.RealClosedField.type.
 
-Notation ArchimedianMixin := ORing.ArchimedianField.Mixin.
-Notation RcfMixin := ORing.RealClosedField.Mixin.
-
-Notation poIdomainType := ORing.PIntegralDomain.type.
-Notation poFieldType := ORing.PField.type.
-Notation poClosedFieldType := ORing.ClosedField.type.
-Notation oIdomainType := ORing.TIntegralDomain.type.
-Notation oFieldType := ORing.TField.type.
-Notation archiFieldType := ORing.ArchimedianField.type.
-Notation rcfType := ORing.RealClosedField.type.
-
-Notation POIdomainType T m :=
-  (@ORing.PIntegralDomain.pack T _ m _ _ id _ id).
-Notation POFieldType T m :=
-  (@ORing.PField.pack T _ m _ _ id _ id).
-Notation POClosedFieldType T m :=
-  (@ORing.ClosedField.pack T _ m _ _ id _ id).
-Notation OIdomainType T m :=
-  (@ORing.TIntegralDomain.pack T _ m _ _ id _ id).
-Notation OFieldType T m :=
-  (@ORing.TField.pack T _ m _ _ id _ id).
+Notation NumIdomainType T m :=
+  (@Num.NumIntegralDomain.pack T _ m _ _ id _ id).
+Notation NumFieldType T m :=
+  (@Num.NumField.pack T _ m _ _ id _ id).
+Notation NumClosedFieldType T m :=
+  (@Num.ClosedField.pack T _ m _ _ id _ id).
+Notation RealIdomainType T m :=
+  (@Num.RealIntegralDomain.pack T _ m _ _ id _ id).
+Notation RealFieldType T m :=
+  (@Num.RealField.pack T _ m _ _ id _ id).
 Notation ArchiFieldType T m :=
-  (@ORing.ArchimedianField.pack T _ m _ _ id _ id).
+  (@Num.ArchimedianField.pack T _ m _ _ id _ id).
 Notation RcfType T m :=
-  (@ORing.RealClosedField.pack T _ m _ _ id _ id).
+  (@Num.RealClosedField.pack T _ m _ _ id _ id).
 
-Notation "[ 'poIdomainType' 'of' T ]" :=
-    (@ORing.PIntegralDomain.clone T _ _ id)
-  (at level 0, format "[ 'poIdomainType'  'of'  T ]") : form_scope.
-Notation "[ 'poFieldType' 'of' T ]" :=
-  (@ORing.PField.clone T _ _ id)
-  (at level 0, format "[ 'poFieldType'  'of'  T ]") : form_scope.
-Notation "[ 'poClosedFieldType' 'of' T ]" :=
-  (@ORing.ClosedField.clone T _ _ id)
-  (at level 0, format "[ 'poClosedFieldType'  'of'  T ]") : form_scope.
-Notation "[ 'oIdomainType' 'of' T ]" :=
-    (@ORing.TIntegralDomain.clone T _ _ id)
-  (at level 0, format "[ 'oIdomainType'  'of'  T ]") : form_scope.
-Notation "[ 'oFieldType' 'of' T ]" :=
-  (@ORing.TField.clone T _ _ id)
-  (at level 0, format "[ 'oFieldType'  'of'  T ]") : form_scope.
+Notation "[ 'numIdomainType' 'of' T ]" :=
+    (@Num.NumIntegralDomain.clone T _ _ id)
+  (at level 0, format "[ 'numIdomainType'  'of'  T ]") : form_scope.
+Notation "[ 'numFieldType' 'of' T ]" :=
+  (@Num.NumField.clone T _ _ id)
+  (at level 0, format "[ 'numFieldType'  'of'  T ]") : form_scope.
+Notation "[ 'numClosedFieldType' 'of' T ]" :=
+  (@Num.ClosedField.clone T _ _ id)
+  (at level 0, format "[ 'numClosedFieldType'  'of'  T ]") : form_scope.
+Notation "[ 'realIdomainType' 'of' T ]" :=
+    (@Num.RealIntegralDomain.clone T _ _ id)
+  (at level 0, format "[ 'realIdomainType'  'of'  T ]") : form_scope.
+Notation "[ 'realFieldType' 'of' T ]" :=
+  (@Num.RealField.clone T _ _ id)
+  (at level 0, format "[ 'realFieldType'  'of'  T ]") : form_scope.
 Notation "[ 'archiFieldType' 'of' T ]" :=
-  (@ORing.ArchimedianField.clone T _ _ id)
+  (@Num.ArchimedianField.clone T _ _ id)
   (at level 0, format "[ 'archiFieldType'  'of'  T ]") : form_scope.
 Notation "[ 'rcfType' 'of' T ]" :=
-  (@ORing.RealClosedField.clone T _ _ id)
+  (@Num.RealClosedField.clone T _ _ id)
   (at level 0, format "[ 'rcfType'  'of'  T ]") : form_scope.
 
-Notation rcf_axiom := (@ORing.RealClosedField.axiom).
-Notation archi_bound := (@ORing.archi_bound _).
+Notation rcf_axiom := (@Num.RealClosedField.axiom).
+Notation archi_bound := (@Num.archi_bound _).
 
-Notation ">=%R" := (@ORing.OrderDef.ler _) : ring_scope.
-Notation "x <= y" := (ORing.OrderDef.ler x y) : ring_scope.
+Notation ">=%R" := (@Num.Def.ler _) : ring_scope.
+Notation "x <= y" := (Num.Def.ler x y) : ring_scope.
 Notation "x <= y :> T" := ((x : T) <= (y : T)) : ring_scope.
 Notation "x >= y" := (y <= x) (only parsing) : ring_scope.
 Notation "x >= y :> T" := ((x : T) >= (y : T)) : ring_scope.
 Notation "<=%R" := [rel x y | y <= x] : ring_scope.
 
-Notation ">%R" := (@ORing.OrderDef.ltr _) : ring_scope.
-Notation "x < y"  := (ORing.OrderDef.ltr x y) : ring_scope.
+Notation ">%R" := (@Num.Def.ltr _) : ring_scope.
+Notation "x < y"  := (Num.Def.ltr x y) : ring_scope.
 Notation "x < y :> T" := ((x : T) < (y : T)) : ring_scope.
 Notation "x > y"  := (y < x) (only parsing) : ring_scope.
 Notation "x > y :> T" := ((x : T) > (y : T)) (only parsing) : ring_scope.
@@ -3663,14 +3648,10 @@ Notation "x < y <= z" := ((x < y) && (y <= z)) : ring_scope.
 Notation "x <= y < z" := ((x <= y) && (y < z)) : ring_scope.
 Notation "x < y < z" := ((x < y) && (y < z)) : ring_scope.
 
-Notation "<?=%R" := (@ORing.OrderDef.lerif _) : ring_scope.
-Notation "x <= y ?= 'iff' c" := (ORing.OrderDef.lerif x y c) : ring_scope.
+Notation "<?=%R" := (@Num.Def.lerif _) : ring_scope.
+Notation "x <= y ?= 'iff' c" := (Num.Def.lerif x y c) : ring_scope.
 Notation "x <= y ?= 'iff' c :> R" := ((x : R) <= (y : R) ?= iff c) : ring_scope.
 
-Coercion ler_of_leif (R : poIdomainType)
-  (x y : R) c (le_xy : x <= y ?= iff c) := le_xy.1 : x <= y.
+Coercion Num.Def.ler_of_leif : Num.Def.lerif >-> is_true.
 
-(* Module NormrNotation. *)
-Notation "`| x |" := (ORing.OrderDef.normr x) : ring_scope.
-(* End NormrNotation. *)
-
+Notation "`| x |" := (Num.Def.normr x) : ring_scope.

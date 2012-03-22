@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div choice fintype.
 Require Import tuple finfun bigop prime binomial ssralg poly polydiv.
-Require int.
+Require ssrint.
 Require Import finset fingroup perm finalg zmodp cyclic finfield.
 Require Import matrix mxalgebra mxpoly polyXY vector falgebra fieldext.
 
@@ -33,7 +33,7 @@ Unset Printing Implicit Defensive.
 
 Open Local Scope ring_scope.
 
-Import GRing.Theory int.IntDist.
+Import GRing.Theory ssrint.IntDist.
 
 (* :TODO: Move to polydiv.v *)
 Lemma coprimep_addl_mul (R : idomainType) (p q r : {poly R}) :

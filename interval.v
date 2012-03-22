@@ -1,12 +1,12 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice fintype.
-Require Import bigop ssralg finset fingroup zmodp int orderedalg.
+Require Import bigop ssralg finset fingroup zmodp ssrint ssrnum.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
-Import GRing.Theory ORing.Theory.
+Import GRing.Theory Num.Theory.
 
 Local Notation mid x y := ((x + y) / 2%:R).
 
@@ -16,7 +16,7 @@ CoInductive itv_bound (T : Type) : Type := BClose of bool & T | BInfty.
 
 CoInductive interval (T : Type) := Interval of itv_bound T & itv_bound T.
 
-Variable (R : poIdomainType).
+Variable (R : numIdomainType).
 
 Definition pred_of_itv (i : interval R) : pred R :=
   [pred x | let: Interval l u := i in
@@ -261,11 +261,11 @@ Lemma ltreifT : forall x y, x < y ?<= if true = (x <= y). Proof. by []. Qed.
 
 Lemma ltreifF : forall x y, x < y ?<= if false = (x < y). Proof. by []. Qed.
 
-Lemma real_ltreifN : forall x y b, x \in ORing.real -> y \in ORing.real ->
+Lemma real_ltreifN : forall x y b, x \in Num.real -> y \in Num.real ->
   x < y ?<= if ~~b = ~~ (y < x ?<= if b).
 Proof. by move=> x y [] xR yR /=; rewrite (real_ltrNge, real_lerNgt). Qed.
 
-(* Lemma itv_splitU_po xc bc : xc \in ORing.real -> *)
+(* Lemma itv_splitU_po xc bc : xc \in Num.real -> *)
 (*   forall a b, xc \in Interval a b -> *)
 (*   forall y, y \in Interval a b = (y \in Interval a (BClose bc xc)) *)
 (*                               || (y \in Interval (BClose (~~bc) xc) b). *)
@@ -291,7 +291,7 @@ Proof. by move=> x y [] xR yR /=; rewrite (real_ltrNge, real_lerNgt). Qed.
 (* Qed. *)
 
 (* Lemma itv_splitU2_po : forall x a b, x \in Interval a b -> *)
-(*   forall y, ORing.cpable y x -> y \in Interval a b = *)
+(*   forall y, Num.cpable y x -> y \in Interval a b = *)
 (*     [|| (y \in Interval a (BClose false x)), (y == x) *)
 (*       | (y \in Interval (BClose false x) b)]. *)
 (* Proof. *)
@@ -302,7 +302,7 @@ Proof. by move=> x y [] xR yR /=; rewrite (real_ltrNge, real_lerNgt). Qed.
 
 (* Lemma itvUff : forall x y b1 b2 a b, *)
 (*   x \in Interval (BClose b2 y) b -> y \in Interval a (BClose b1 x) -> *)
-(*   forall z, ORing.cpable z x -> ORing.cpable z y -> *)
+(*   forall z, Num.cpable z x -> Num.cpable z y -> *)
 (*     (z \in Interval a (BClose b1 x)) || (z \in Interval (BClose b2 y) b) *)
 (*       = (z \in Interval a b). *)
 (* Proof. *)
@@ -362,7 +362,7 @@ Notation "x < y ?<= 'if' b" := (ltreif x y b)
 
 Section IntervalOrdered.
 
-Variable R : oIdomainType.
+Variable R : realIdomainType.
 
 Lemma ltreifN (x y : R) b : x < y ?<= if ~~b = ~~ (y < x ?<= if b).
 Proof. by rewrite real_ltreifN ?ordered_real. Qed.
@@ -400,7 +400,7 @@ End IntervalOrdered.
 
 Section IntervalField.
 
-Variable R : oFieldType.
+Variable R : realFieldType.
 
 Lemma mid_in_itv : forall ba bb (xa xb : R), xa < xb ?<= if (ba && bb)
   -> mid xa xb \in Interval (BClose ba xa) (BClose bb xb).

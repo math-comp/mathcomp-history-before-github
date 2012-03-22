@@ -4,7 +4,7 @@ Require Import bigop prime binomial finset fingroup morphism perm automorphism.
 Require Import quotient action gfunctor commutator gproduct.
 Require Import ssralg finalg zmodp cyclic center pgroup gseries nilpotent.
 Require Import sylow abelian maximal hall.
-Require poly int.
+Require poly ssrint.
 Require Import matrix mxalgebra mxrepresentation mxabelem.
 Require Import BGsection1.
 
@@ -21,7 +21,7 @@ Unset Printing Implicit Defensive.
 
 Section BGsection2.
 
-Import GroupScope GRing.Theory FinRing.Theory poly.UnityRootTheory int.IntDist.
+Import GroupScope GRing.Theory FinRing.Theory poly.UnityRootTheory ssrint.IntDist.
 Local Open Scope ring_scope.
 
 Implicit Types (F : fieldType) (gT : finGroupType) (p : nat).

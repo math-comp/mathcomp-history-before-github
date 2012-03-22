@@ -86,8 +86,8 @@ algC.v
 classfun.v
 character.v
 vcharacter.v
-orderedalg.v
-int.v
+ssrnum.v
+ssrint.v
 rat.v
 interval.v
 closed_field.v

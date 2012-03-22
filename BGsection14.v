@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div path fintype.
 Require Import bigop finset prime fingroup morphism perm automorphism quotient.
 Require Import action gproduct gfunctor pgroup cyclic center commutator.
 Require Import gseries nilpotent sylow abelian maximal hall frobenius.
-Require Import ssralg orderedalg int rat.
+Require Import ssralg ssrnum ssrint rat.
 Require Import BGsection1 BGsection3 BGsection4 BGsection5 BGsection6.
 Require Import BGsection7 BGsection9 BGsection10 BGsection12 BGsection13.
 
@@ -66,7 +66,7 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
 Local Open Scope nat_scope.
-Import GRing.Theory ORing.Theory GroupScope.
+Import GRing.Theory Num.Theory GroupScope.
 
 Section Definitons.
 
@@ -1914,7 +1914,7 @@ have{IHn} oSGgt_g2: (g / 2%:R < #|class_support S G|%:R)%R.
   exact: leq_trans leTGn nTG_leS.
 have{oSGgt_g2 oTGgt_g2} meetST: ~~ [disjoint TG & class_support S G].
   rewrite -leq_card_setU; apply: contraTneq (leqnn #|G|) => tiTGS.
-  rewrite -ltnNge -(ltr_nat [oFieldType of rat]) -/g.
+  rewrite -ltnNge -(ltr_nat [realFieldType of rat]) -/g.
   rewrite -{1}[g](@divfK _ 2%:R) // mulr_natr.
   apply: ltr_le_trans (ltr_add oTGgt_g2 oSGgt_g2) _.
   by rewrite -natrD -tiTGS ler_nat cardsT max_card.

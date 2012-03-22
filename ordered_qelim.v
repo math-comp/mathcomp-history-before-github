@@ -1,6 +1,6 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice fintype.
 Require Import bigop ssralg finset fingroup zmodp.
-Require Import poly orderedalg.
+Require Import poly ssrnum.
 
 
 Set Implicit Arguments.
@@ -198,7 +198,7 @@ Prenex Implicits oclause_eq.
 
 Section EvalTerm.
 
-Variable R : oIdomainType.
+Variable R : realIdomainType.
 
 (* Evaluation of a reified formula *)
 
@@ -415,7 +415,7 @@ split=> t1.
   + by move=> t1 IHt1 n r /IHt1; case: to_rterm.
 Qed.
 
-Import ORing.Theory.
+Import Num.Theory.
 
 (* Correctness of the transformation. *)
 Lemma to_rformP e f : holds e (to_rform f) <-> holds e f.

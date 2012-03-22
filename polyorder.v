@@ -1,9 +1,9 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import ssralg poly orderedalg zmodp polydiv interval.
+Require Import ssralg poly ssrnum zmodp polydiv interval.
 
 Import GRing.Theory.
-Import ORing.Theory.
+Import Num.Theory.
 
 Import ID.
 
@@ -219,14 +219,14 @@ Notation "'\mu_' x" := (multiplicity x)
   (at level 8, format "'\mu_' x") : ring_scope.
 
 
-Section PolyoIdomain.
+Section PolyrealIdomain.
 
  (*************************************************************************)
  (* This should be replaced by a 0-characteristic condition + integrality *)
  (* and merged into poly and polydiv                                      *)
  (*************************************************************************)
 
-Variable R : oIdomainType.
+Variable R : realIdomainType.
 
 Lemma size_deriv (p : {poly R}) : size p^`() = (size p).-1.
 Proof.
@@ -267,7 +267,7 @@ Proof.
 by move=> x p p0 rpx; rewrite mu_deriv // subn1 addn1 prednK // mu_gt0.
 Qed.
 
-End PolyoIdomain.
+End PolyrealIdomain.
 
 
 

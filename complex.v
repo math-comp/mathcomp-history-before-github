@@ -1,7 +1,7 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigop ssralg int div orderedalg rat poly.
+Require Import bigop ssralg ssrint div ssrnum rat poly.
 
-Import GRing.Theory ORing.Theory.
+Import GRing.Theory Num.Theory.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -12,11 +12,11 @@ Local Open Scope ring_scope.
 Reserved Notation "x +i* y" (at level 40, left associativity, format "x  +i*  y").
 Reserved Notation "x -i* y" (at level 40, left associativity, format "x  -i*  y").
 
-Local Notation sgr := ORing.sg.
+Local Notation sgr := Num.sg.
 
 CoInductive cplx (R : Type) : Type := Cplx { Re : R; Im : R }.
 
-(* Definition cplx_of(R : oFieldType) of (phant R) := cplx R. *)
+(* Definition cplx_of(R : realFieldType) of (phant R) := cplx R. *)
 (* Identity Coercion type_cplx_of : cplx_of >-> cplx. *)
 (* Notation "{ 'cplx'  R }" := (cplx_of (Phant R)). *)
 
@@ -263,9 +263,9 @@ rewrite mulrAC mulrA -mulrA mulrACA mulrC.
 by rewrite -subr_ge0 addrAC -sqrrB sqr_ge0.
 Qed.
 
-Definition cplx_POrderedMixin := PartialOrderMixin lec_normD ltc0_add eq0_normC
+Definition cplx_POrderedMixin := NumMixin lec_normD ltc0_add eq0_normC
      ge0_lec_total normCM lec_def ltc_def.
-Canonical Structure cplx_poIdomainType := POIdomainType C cplx_POrderedMixin.
+Canonical Structure cplx_numIdomainType := NumIdomainType C cplx_POrderedMixin.
 
 End CplxField.
 End CplxField.
@@ -284,10 +284,10 @@ Canonical Structure cplx_iDomain (R : rcfType) :=
   Eval hnf in IdomainType (cplx R) (FieldIdomainMixin (@CplxField.field_axiom R)).
 Canonical Structure cplx_fieldType (R : rcfType) :=
   FieldType (cplx R) (@CplxField.field_axiom R).
-Canonical Structure cplx_poIdomainType (R : rcfType) :=
-  POIdomainType (cplx R) (CplxField.cplx_POrderedMixin R).
-Canonical Structure cplx_poFieldType (R : rcfType) :=
-  POFieldType (cplx R) (CplxField.cplx_POrderedMixin R).
+Canonical Structure cplx_numIdomainType (R : rcfType) :=
+  NumIdomainType (cplx R) (CplxField.cplx_POrderedMixin R).
+Canonical Structure cplx_numFieldType (R : rcfType) :=
+  NumFieldType (cplx R) (CplxField.cplx_POrderedMixin R).
 
 Definition conjc (R : ringType) (x : cplx R) := let: a +i* b := x in a -i* b.
 Notation "x ^*" := (conjc x) (at level 2, format "x ^*").
@@ -402,7 +402,7 @@ End CplxTheory.
 
 (* Section RcfDef. *)
 
-(* Variable R : oFieldType. *)
+(* Variable R : realFieldType. *)
 (* Notation C := (cplx R). *)
 
 (* Definition rcf_even := forall (p : {poly R}), *)
@@ -452,7 +452,7 @@ End CplxTheory.
 
 Require Import closed_field fintype.
 
-Import ORing.Theory.
+Import Num.Theory.
 
 Section CplxClosed.
 

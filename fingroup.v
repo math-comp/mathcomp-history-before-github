@@ -83,7 +83,7 @@ Require Import div path bigop prime finset.
 (*          lcosets H G == the set of the left cosets of H by elements of G.  *)
 (*               H :* x == right coset of H by x.                             *)
 (*          rcosets H G == the set of the right cosets of H by elements of G. *)
-(*             #|G : H| == the index of H in G, i.e., #|rcosets G : H|.       *)
+(*             #|G : H| == the index of H in G, i.e., #|rcosets G H|.         *)
 (*               H :^ x == the conjugate of H by x.                           *)
 (*               x ^: H == the conjugate class of x in H.                     *)
 (*            classes G == the set of all conjugate classes of G.             *)
