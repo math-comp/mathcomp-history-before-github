@@ -567,7 +567,10 @@ have F2 i j : '[m i, m j] = (i == j)%:R.
   rewrite -{2}[i](inv_dprod_IirrK W1xW2) -{2}[j](inv_dprod_IirrK W1xW2).
   rewrite /m; (do 2 case: (inv_dprod_Iirr _ _))=> i2 j2 i1 j1.
   rewrite cfdotZl cfdotZr cfdot_irr mulrA isIntC_conj ?isIntC_sign // -signr_addb.
-  case: (_ (i1,_) =P _).
+(* GG -- was case: (_ (i1, _) =P _).
+   this fails in trunk, possibly due to unwanted additional lifting
+   performed by some primitive in pf_abs_evars *)
+  case: (dprod_Iirr W1xW2 (i1, j1) =P _).
     by case/dprod_Iirr_inj=> <- <-; rewrite -negb_eqb !eqxx expr0 mul1r.
   case: (_ =P _); last by rewrite mulr0.
   by case/Dade_mu2_inj=> <- <- [].
