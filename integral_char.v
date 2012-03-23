@@ -2286,9 +2286,8 @@ pose h x := (x ^: G * 'Z(G))%g; rewrite (partition_big_imset h).
 rewrite !mulr_suml rpred_sum //= => _ /imsetP[x /setDP[Gx nz_chi_x] ->].
 have: #|x ^: G|%:R * ('chi_i x * 'chi_i x^-1%g) / 'chi_i 1%g \in algInt.
   by rewrite !mulrA mulrAC rpredM ?algInt_irr ?class_div_irr1_algInt.
-set X1 := (X in X / _ \in _); set X2 := (_ / _ as X in X / _ \in algInt).
-congr (_ / _ \in algInt); apply: canRL (mulfK (neq0GC _)) _.
-rewrite inE in nz_chi_x; rewrite {}/X1 {}/X2.
+congr 2 (_ * _ \in algInt); apply: canRL (mulfK (neq0GC _)) _.
+rewrite inE in nz_chi_x.
 transitivity ('chi_i x * 'chi_i (x^-1)%g *+ #|h x|); last first.
   rewrite -sumr_const.
   apply: eq_big => [y | _ /mulsgP[_ z /imsetP[u Gu ->] Zz] ->].

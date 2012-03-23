@@ -449,7 +449,9 @@ Lemma cfun_sum_dconstt (phi : 'CF(G)) :
   phi \in 'Z[irr G] ->
   phi = \sum_(i \in dirr_constt phi) '[phi, dchi i] *: dchi i.
 Proof.
-move=> PiZ; rewrite [X in X = _]cfun_sum_constt.
+(* GG -- rewrite pattern fails in trunk
+  move=> PiZ; rewrite [X in X = _]cfun_sum_constt. *)
+move=> PiZ; rewrite {1}[phi]cfun_sum_constt.
 rewrite (reindex (to_dirr phi))=> [/= |]; last first.
   by exists (@of_irr _)=> //; exact: of_irrK .
 by apply: eq_big=> i; rewrite ?irr_constt_to_dirr // cfdot_todirrE.

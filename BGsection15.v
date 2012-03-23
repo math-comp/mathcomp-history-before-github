@@ -237,7 +237,8 @@ set part_c := forall U, _; have c_holds: part_c.
     move=> x'; case/setD1P=> ntx' Xx'; have Ex' := subsetP sXE x' Xx'.
     rewrite 3!inE ntx' (subsetP sEM) ?(mem_p_elt s'M_E) //=.
     by rewrite (subsetP _ _ Xx') ?sub_cent1.   
-  have piCx := let: conj c e := piCx_hyp _ _ in pi_of_cent_sigma maxM Ms1x c e.
+  have piCx x' X1x' := (* GG -- ssreflect evar generalization fails in trunk *)
+    let: conj c e := piCx_hyp x' X1x' in pi_of_cent_sigma maxM Ms1x c e.
   have t2X: \tau2(M).-group X.
     apply/pgroupP=> p p_pr; case/Cauchy=> // x' Xx' ox'.
     have X1x': x' \in X^# by rewrite !inE Xx' -order_gt1 ox' prime_gt1.
