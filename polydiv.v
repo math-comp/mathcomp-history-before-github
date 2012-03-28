@@ -3118,3 +3118,24 @@ Proof. by rewrite /gdcop gdcop_rec_map !size_map_poly. Qed.
 End FieldMap.
 
 End FieldDivision.
+
+Module closed.
+Section closed.
+
+Variable F : closedFieldType.
+
+Lemma root_coprimep (p q : {poly F}):
+  (forall x, root p x -> q.[x] != 0) -> coprimep p q.
+Proof.
+move=> Ncmn; rewrite -gcdp_eqp1 -size_poly_eq1; apply/closed_rootP.
+by case=> r; rewrite root_gcd !rootE=> /andP [/Ncmn/negbTE->].
+Qed.
+
+Lemma coprimepP (p q : {poly F}):
+  reflect (forall x, root p x -> q.[x] != 0) (coprimep p q).
+Proof.
+  by apply: (iffP idP)=> [/coprimep_root|/root_coprimep].
+Qed.
+
+End closed.
+End closed.
