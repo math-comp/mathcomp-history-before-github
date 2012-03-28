@@ -1387,6 +1387,15 @@ case/size_poly1P=> c cn0 cqe; exists (c2, c); first by rewrite Hc2.
 by rewrite Hq2 -mul_polyC -cqe.
 Qed.
 
+Lemma eqp_eq p q: p %= q -> (lead_coef q) *: p = (lead_coef p) *: q.
+Proof.
+move=> /eqpP [[c1 c2] /= /andP [nz_c1 nz_c2]] eq.
+have/(congr1 lead_coef) := eq; rewrite !lead_coefZ.
+move=> eqC; apply/(@mulfI _ c2%:P); rewrite ?polyC_eq0 //.
+rewrite !mul_polyC scalerA -eqC mulrC -scalerA eq.
+by rewrite !scalerA mulrC.
+Qed.
+
 Lemma eqpxx : reflexive eqp.
 Proof. by move=> p; rewrite /eqp dvdpp. Qed.
 
@@ -2450,10 +2459,30 @@ Proof. by move/edivpP=> h; case/h. Qed.
 Lemma modpP p q r :  p = q * d + r -> size r < size d -> r = (p %% d).
 Proof. by move/edivpP=> h; case/h. Qed.
 
+Lemma ulc_eqpP p q : lead_coef q \is a GRing.unit ->
+  reflect (exists2 c : R, c != 0 & p = c *: q) (p %= q).
+Proof.
+  case: (altP (lead_coef q =P 0)) => [->|]; first by rewrite unitr0.
+  rewrite lead_coef_eq0 => nz_q ulcq; apply: (iffP idP).
+    case: (altP (p =P 0)) => [->|nz_p].
+      by rewrite eqp_sym eqp0 (negbTE nz_q).
+    move/eqp_eq=> eq; exists (lead_coef p / lead_coef q).
+      by rewrite mulf_neq0 // ?invr_eq0 lead_coef_eq0.
+    by apply/(scaler_injl ulcq); rewrite scalerA mulrCA divrr // mulr1.
+  by case=> c nz_c ->; apply/eqpP; exists (1, c); rewrite ?scale1r ?oner_eq0.
+Qed.
+
 Lemma dvdp_eq p : (d %| p) = (p == p %/ d * d).
 Proof.
 apply/eqP/eqP=> [modp0 | ->]; last exact: modp_mull.
 by rewrite {1}(divp_eq p) modp0 addr0.
+Qed.
+
+Lemma ucl_eqp_eq p q : lead_coef q \is a GRing.unit ->
+  p %= q -> p = (lead_coef p / lead_coef q) *: q.
+Proof.
+move=> ulcq /eqp_eq; move/(congr1 ( *:%R (lead_coef q)^-1 )).
+by rewrite !scalerA mulrC divrr // scale1r mulrC.
 Qed.
 
 Lemma modp_scalel c p : (c *: p) %% d = c *: (p %% d).
@@ -2491,7 +2520,6 @@ Proof.
 case/eqpP=> [[c1 c2]] /andP /=  [c1n0 c2n0 e].
 by apply/eqpP; exists (c1, c2); rewrite ?c1n0 // -!divp_scalel e.
 Qed.
-
 
 Lemma modp_opp p : (- p) %% d = - (p %% d).
 Proof.
@@ -2721,10 +2749,29 @@ Proof. by move/divp_modpP=> h; case/h. Qed.
 Lemma modpP p q d r :  p = q * d + r -> size r < size d -> r = (p %% d).
 Proof. by move/divp_modpP=> h; case/h. Qed.
 
+Lemma eqpfP p q : p %= q -> p = (lead_coef p / lead_coef q) *: q.
+Proof.
+have [->|nz_q] := altP (q =P 0).
+  by rewrite eqp0 => /eqP ->; rewrite scaler0.
+move/ucl_eqp_eq; apply; rewrite unitfE.
+by move: nz_q; rewrite -lead_coef_eq0 => nz_qT.
+Qed.
+
 Lemma dvdp_eq q p : (q %| p) = (p == p %/ q * q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite dvd0p mulr0 eq_sym.
 by apply: dvdp_eq; rewrite unitfE lead_coef_eq0.
+Qed.
+
+Lemma eqpf_eq p q : reflect (exists2 c, c != 0 & p = c *: q) (p %= q).
+Proof.
+apply: (iffP idP); last first.
+  case=> c nz_c ->; apply/eqpP.
+  by exists (1, c); rewrite ?scale1r ?oner_eq0.
+have [->|nz_q] := altP (q =P 0).
+  by rewrite eqp0=> /eqP ->; exists 1; rewrite ?scale1r ?oner_eq0.
+case/unit.ulc_eqpP; first by rewrite unitfE lead_coef_eq0.
+by move=> c nz_c ->; exists c.
 Qed.
 
 Lemma modp_scalel c p q : (c *: p) %% q = c *: (p %% q).
