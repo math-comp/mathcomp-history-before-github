@@ -26,7 +26,6 @@ Require Import matrix mxalgebra mxpoly polyXY vector falgebra fieldext.
 (*                           unique extension of D to K(x).                   *)
 (******************************************************************************)
 
-
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -34,11 +33,6 @@ Unset Printing Implicit Defensive.
 Open Local Scope ring_scope.
 
 Import GRing.Theory ssrint.IntDist.
-
-(* :TODO: Move to polydiv.v *)
-Lemma coprimep_addl_mul (R : idomainType) (p q r : {poly R}) :
-  coprimep r (p * r + q) = coprimep r q.
-Proof. by rewrite !coprimep_def (eqp_size (gcdp_addl_mul _ _ _)). Qed.
 
 Section SeparablePoly.
 
@@ -116,24 +110,6 @@ Proof.
 by move=> /separablePolynomialP[_ h] u hu su; apply: negbTE; rewrite h.
 Qed.
 
-(* begin hide *)
-(* Cyril : Could it be useful ? *)
-(* Lemma decompose_dvdp p q : coprimep p q -> *)
-(*   forall u, u %| p * q -> u %= gcdp u p * gcdp u q. *)
-(* Proof. *)
-(* move=> cpq u dvd_u_pq; rewrite /eqp Gauss_dvdp ?dvdp_gcdl ?andbT; last first. *)
-(*   by rewrite (coprimep_dvdl (dvdp_gcdr _ _)) ?(coprimep_dvdr (dvdp_gcdr _ _)). *)
-(* have [|pq_neq0] := boolP ((p * q) == 0). *)
-(*   by rewrite mulf_eq0=> /orP[] /eqP->; rewrite gcdp0 (dvdp_mulIr, dvdp_mulIl). *)
-(* rewrite -(@dvdp_mul2l _ (p * q %/ u)) ?dvdp_div_eq // ID.divpK //. *)
-(* rewrite dvdp_scalel ?lcn_neq0 ?Gauss_dvdp // mulrA [in X in _ && X]mulrAC. *)
-(* rewrite !(eqp_dvdr _ (eqp_mulr _ (mulp_gcdr _ _ _))) ?ID.divpK //. *)
-(* rewrite !(eqp_dvdr _ (eqp_mulr _ (gcdp_scalel _ _ _))) ?lcn_neq0 // dvdp_mulr. *)
-(*   by rewrite dvdp_mulr // (eqp_dvdr _ (gcdp_mul2r _ _ _)) dvdp_mull. *)
-(* by rewrite mulrC (eqp_dvdr _ (gcdp_mul2r _ _ _)) dvdp_mull. *)
-(* Qed. *)
-(* end hide *)
-
 Lemma dvdp_separable p q : q %| p -> sep p -> sep q.
 Proof.
 move=> dvd_qp sep_p; apply/separablePolynomialP; split=> [u v huv|u hu su].
@@ -154,38 +130,10 @@ Qed.
 Lemma eqp_separable p q : p %= q -> sep p = sep q.
 Proof. by move=> /andP[hpq hqp]; apply/idP/idP=> /dvdp_separable; apply. Qed.
 
-(* begin hide *)
-(* (* Cyril : I liked these Def, Hint and two lemmas *) *)
-(* Definition irredp p := forall d, size d != 1%N -> d %| p -> d %= p. *)
-
-(* Lemma irredp_XsubC x : irredp ('X - x%:P). *)
-(* Proof. *)
-(* move=> d size_d dvd_df; rewrite -dvdp_size_eqp // size_XsubC. *)
-(* have := dvdp_leq _ dvd_df; rewrite polyXsubC_eq0 size_XsubC=> /(_ isT). *)
-(* case hs: size size_d dvd_df=> [|[|[]]] // _. *)
-(* by move/eqP: hs; rewrite size_poly_eq0=> /eqP->; rewrite dvd0p polyXsubC_eq0. *)
-(* Qed. *)
-(* Hint Resolve irredp_XsubC. *)
-
-(* Lemma irredp_XsubCP d p : irredp p -> d %| p -> {d %= 1} + {d %= p}. *)
-(* Proof. *)
-(* move=> irred_p dvd_dp; have [] := boolP (_ %= 1); first by left. *)
-(* by rewrite -size_poly_eq1=> /irred_p /(_ dvd_dp); right. *)
-(* Qed. *)
-(* end hide *)
-
-(* :TODO: change polydiv.v lemma to this *)
-Lemma irredp_XsubC (x : R) (d : {poly R}) :
-   d %| 'X - x%:P -> (d %= 1) || (d %= 'X - x%:P).
-Proof. by move=> /irredp_XsubC; rewrite size_poly_eq1. Qed.
-
 Lemma separable_root p x : sep (p * ('X - x%:P)) = sep p && ~~ root p x.
 Proof.
 rewrite separable_mul; have [sep_p /=|//] := boolP (sep p).
-rewrite /sep derivXsubC coprimep1 rootE coprimep_sym /=.
-apply/idP/idP; first by move=> /coprimep_root/=/(_ x) ->; rewrite ?root_XsubC.
-move=> px_neq0; apply/coprimepP=> d /irredp_XsubC /orP[] // eq_d.
-by rewrite (eqp_dvdl _ eq_d) dvdp_XsubCl rootE (negPf px_neq0).
+by rewrite /sep derivXsubC coprimep1 coprimep_XsubC.
 Qed.
 
 Lemma separable_prod_XsubC (r : seq R) :
@@ -231,33 +179,6 @@ by rewrite !derivCE dvdp_add // -1?mulr_natl ?exprS !dvdp_mull.
 Qed.
 
 End SeparablePoly.
-
-(* :TODO: Move this to polydiv.v *)
-Lemma egcdp_rec_map (F : fieldType) (R : idomainType)
-  (f : {rmorphism F -> R}) (p q : {poly F}) n :
-    (map_poly f (egcdp_rec p q n).1, map_poly f (egcdp_rec p q n).2) =
-    (egcdp_rec (map_poly f p) (map_poly f q) n).
-Proof.
-elim: n p q => [|n IH] => /= p q; first by rewrite rmorph1 rmorph0.
-rewrite map_poly_eq0.
-case: eqP => Hq0; first by rewrite rmorph1 rmorph0.
-rewrite -map_modp -(IH q (p %% q)).
-case: (egcdp_rec _ _ n) => a b /=.
-rewrite map_polyZ lead_coef_map -rmorphX scalp_map rmorphB rmorphM.
-by rewrite -map_divp.
-Qed.
-
-(* :TODO: Move this to polydiv.v *)
-Lemma egcdp_map (F : fieldType) (R : idomainType)
-  (f : {rmorphism F -> R}) (p q : {poly F}) :
-    (map_poly f (egcdp p q).1, map_poly f (egcdp p q).2) =
-    (egcdp (map_poly f p) (map_poly f q)).
-Proof.
-rewrite /egcdp !size_map_poly.
-case: ifP=> /= hspq; first by apply: egcdp_rec_map.
-move: (egcdp_rec_map f q p (size p)).
-by case: (egcdp_rec (map_poly _ _) _ _)=> [a b [-> ->]].
-Qed.
 
 Section InfinitePrimitiveElementTheorem.
 

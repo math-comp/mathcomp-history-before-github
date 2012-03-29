@@ -203,7 +203,7 @@ Qed.
 
 Lemma irr_Conjg i y : ('chi_i ^ y)%CF \in irr H.
 Proof.
-rewrite char_cfnorm_irrE; last by rewrite cfConjg_char ?irr_char.
+rewrite irr_char1E cfConjg_char ?irr_char //=.
 by rewrite cfdot_Conjg cfdot_irr eqxx.
 Qed.
  

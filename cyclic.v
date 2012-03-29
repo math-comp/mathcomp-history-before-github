@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import seq div fintype bigop prime ssralg poly.
-Require Import finset fingroup morphism perm automorphism quotient finalg zmodp.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype bigop.
+Require Import prime finset fingroup morphism perm automorphism quotient.
+Require Import gproduct ssralg finalg zmodp poly.
 
 (******************************************************************************)
 (*  Properties of cyclic groups.                                              *)
@@ -248,6 +248,20 @@ Proof.
 move=> coGk x /order_dvdG Gx; apply/eqP.
 rewrite -expgM (eq_expg_mod_order _ _ 1) -(modn_dvdm 1 Gx).
 by rewrite -(chinese_modl coGk 1 0) /chinese mul1n addn0 modn_dvdm.
+Qed.
+
+Lemma cyclic_dprod K H G :
+  K \x H = G -> cyclic K -> cyclic H -> cyclic G = coprime #|K| #|H| .
+Proof.
+case/dprodP=> _ defKH cKH tiKH cycK cycH; pose m := lcmn #|K| #|H|.
+apply/idP/idP=> [/cyclicP[x defG] | coKH]; last by rewrite -defKH cyclicM.
+rewrite /coprime -dvdn1 -(@dvdn_pmul2l m) ?lcmn_gt0 ?cardG_gt0 //.
+rewrite muln_lcm_gcd muln1 -TI_cardMg // defKH defG order_dvdn.
+have /mulsgP[y z Ky Hz ->]: x \in K * H by rewrite defKH defG cycle_id.
+rewrite -[1]mulg1 expgMn; last exact/commute_sym/(centsP cKH).
+apply/eqP; congr (_ * _); apply/eqP; rewrite -order_dvdn.
+  exact: dvdn_trans (order_dvdG Ky) (dvdn_lcml _ _).
+exact: dvdn_trans (order_dvdG Hz) (dvdn_lcmr _ _).
 Qed.
 
 (***********************************************************************)

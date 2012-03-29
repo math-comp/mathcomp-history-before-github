@@ -1,6 +1,6 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype path.
-Require Import bigop ssralg poly polydiv ssrnum zmodp div ssrint.
-Require Import polyorder polyrcf interval matrix mxtens perm.
+Require Import div bigop ssralg poly polydiv ssrnum perm zmodp ssrint.
+Require Import polyorder polyrcf interval matrix mxtens.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

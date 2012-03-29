@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq choice div fintype.
-Require Import bigop prime ssralg poly ssrint.
+Require Import bigop finset prime ssralg poly polydiv ssrint rat.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -30,7 +30,8 @@ Local Open Scope ring_scope.
 Parameter algC : closedFieldType.
 Parameter conjC : {rmorphism algC -> algC}.
 Parameter repC : algC -> bool. (* C -> R^+ *)
-Implicit Types (x y z : algC) (m n p : nat) (b : bool).
+(* Against all logic, Implicit Types declarations are Local. *)
+Implicit Types (x y z : algC) (m n : nat) (b : bool).
 
 Notation "x ^*" := (conjC x) (at level 2, format "x ^*") : C_scope.
 Open Scope C_scope.
@@ -44,8 +45,7 @@ Axiom repC_anti : forall x, repC x -> repC (- x) -> x = 0.
 Axiom repC_pconj : forall x, repC (x * x ^*).
 Axiom realC_archimedean : forall x, repC x ->
   exists n, [&& repC (x - n%:R), repC (n.+1%:R - x) & x != n.+1%:R].
-Axiom algC_algebraic :
-  forall x, exists2 p, p != 0 & root (map_poly (intmul 1) p) x.
+Axiom algC_algebraic : forall x, exists2 p, p != 0 & root (map_poly intr p) x.
 
 (* Note and caveat: Q-automorphisms of algC do not necessarily commute with   *)
 (* conjugation. However, they necessarily do so on the subfield of algC       *)
@@ -421,7 +421,7 @@ Lemma sqrtC1 : sqrtC 1 = 1.
 Proof. by rewrite -{2}(sqrtC_sqr_pos posC1) expr1n. Qed. 
 
 Definition normC x := sqrtC (x * x^*).
-Notation "`| z |" := (normC z) : C_scope.
+Notation "`| z |" := (normC z) : ring_scope.
 
 Lemma normCK x : `|x| ^+ 2 = x * x^*.
 Proof. exact: sqrtCK. Qed.
@@ -904,7 +904,7 @@ Proof. by move=> Zx; apply/dvdCP; exists x; rewrite ?mulr_natr ?IsIntC_nat. Qed.
 Lemma dvdC_mul_sign x e y : dvdC x ((-1) ^+ e * y) = dvdC x y.
 Proof. by rewrite -signr_odd mulr_sign fun_if dvdC_opp if_same. Qed.
 
-Lemma dvdC_nat p n : dvdNC p (n%:R) = (p %| n).
+Lemma dvdC_nat p n : dvdNC p (n%:R) = (p %| n)%N.
 Proof.
 rewrite /dvdC isIntC_pos ?posC_div ?posC_nat // -(eqN_eqC n 0) -dvd0n.
 have [|nz_p] := ifPn; first by rewrite -(eqN_eqC p 0) => /eqP->.
@@ -913,7 +913,7 @@ apply/isNatCP/dvdnP=> [[q def_q] | [q ->]]; exists q.
 by rewrite natrM mulfK.
 Qed.
 
-Lemma dvdC_int p x : isIntC x -> dvdNC p x = (p %| getNatC `|x|).
+Lemma dvdC_int p x : isIntC x -> dvdNC p x = (p %| getNatC `|x|%R)%N.
 Proof.
 case/isIntCP=> e [n ->{x}]; rewrite dvdC_mul_sign {e}normC_mul_sign.
 by rewrite normC_nat getNatC_nat dvdC_nat.
@@ -974,3 +974,481 @@ by move/eqP->; case: (getIntC a) => e n; rewrite -!scalerA raddfZsign raddfZnat.
 Qed.
 
 End AutLmodC.
+
+Section AlgCRect.
+(* Imaginary numbers and rectangular coordinates. This is proof-of-concept    *)
+(* only, and not currently used in the rest of the formalization (it was part *)
+(* of a failed early automorphism construction attempt).                      *)
+Definition algCi : algC := sqrtC (- 1).
+Definition alg_Re x := (x + x^*) / 2%:R.
+Definition alg_Im x := (x - x^*) / (algCi *+ 2).
+
+Lemma sqr_algCi : algCi ^+ 2 = -1. Proof. exact: sqrtCK. Qed.
+
+Lemma algCi_nonReal : ~~ isRealC algCi.
+Proof.
+apply: contraFN (ltC_geF sposC1) => /real_normCK norm_i.
+by rewrite -posC_opp -sqr_algCi -norm_i sqrtCK posC_pconj.
+Qed.
+
+Lemma algCi_neq0 : algCi != 0.
+Proof. by apply: contraNneq algCi_nonReal => ->; exact: isIntC_Real. Qed.
+
+Lemma normCi : `|algCi| = 1.
+Proof.
+apply/eqP; rewrite -(@posC_unit_exp _ 1) ?posC_norm // -normC_exp sqr_algCi.
+by rewrite normC_opp normC1.
+Qed.
+
+Lemma conjCi : algCi^* = - algCi.
+Proof.
+have: root (\prod_(z <- [:: algCi; -algCi]) ('X - z%:P)) algCi^*.
+  rewrite big_cons big_seq1 raddfN opprK -subr_sqr -rmorphX sqr_algCi.
+  by rewrite /root !hornerE -expr2 -rmorphX sqr_algCi rmorphN rmorph1 subrr.
+by rewrite root_prod_XsubC !inE [_ == _](negPf algCi_nonReal) => /eqP.
+Qed.
+
+Lemma invCi : algCi^-1 = - algCi.
+Proof. by rewrite invC_norm normCi conjCi expr1n invr1 mul1r. Qed.
+
+Lemma algCrect x : x = alg_Re x + algCi * alg_Im x.
+Proof. 
+rewrite mulrCA -mulr_natr invfM mulVKf ?algCi_neq0 // -mulrDl.
+by rewrite addrCA !addrA addrK -mulr2n -mulr_natr mulfK -?neq0N_neqC.
+Qed.
+
+Lemma alg_Re_Real x : isRealC (alg_Re x).
+Proof. by rewrite /isRealC fmorph_div rmorph_nat rmorphD conjCK addrC. Qed.
+
+Lemma alg_Im_Real x : isRealC (alg_Im x).
+Proof.
+rewrite /isRealC fmorph_div rmorphMn conjCi mulNrn invrN mulrN -mulNr.
+by rewrite rmorphB conjCK opprB.
+Qed.
+
+Lemma isRealC_conj x : isRealC x -> x^* = x. Proof. by move/eqP. Qed.
+
+Lemma alg_Re_rect x y : isRealC x -> isRealC y -> alg_Re (x + algCi * y) = x.
+Proof.
+move=> Rx Ry; rewrite /alg_Re rmorphD addrCA !addrA rmorphM conjCi mulNr.
+by rewrite !isRealC_conj // addrK -mulr2n -(mulr_natr x) mulfK -?neq0N_neqC.
+Qed.
+
+Lemma alg_Im_rect x y : isRealC x -> isRealC y -> alg_Im (x + algCi * y) = y.
+Proof.
+move=> Rx Ry; rewrite /alg_Im rmorphD opprD addrAC -!addrA rmorphM conjCi.
+rewrite mulNr opprK !isRealC_conj // addNKr -(mulrC y) -mulr2n -mulrnAr.
+by rewrite mulfK // -mulr_natr mulf_neq0 ?algCi_neq0 -?neq0N_neqC.
+Qed.
+
+End AlgCRect.
+
+Section AlgCorder.
+(* Link to numFieldType, used (for now) only to get intr injectivity and      *)
+(* ratr morphism properties. Note that since the head symbol of algC : Type  *)
+(* is in fact GRing.ClosedField.sort, the structures below are in fact        *)
+(* incompatible with some the canonical ones declared by ssrnum.          *)
+Import ssrnum.
+
+Fact algC_numMixin : Num.mixin_of algC.
+Proof.
+apply: (@NumMixin _ leC ltC normC) => //.
++ exact: normC_add.
++ by move=> x y x_gt0 y_gt0; rewrite sposC_addl // ltCW.
++ by move=> x /eqP; rewrite normC_eq0 => /eqP.
++ move=> x y x_ge0 y_ge0; apply/orP.
+  rewrite -leC_sub -[leC y x]leC_sub -opprB posC_opp.
+  by apply: leC_real_total; rewrite rmorphB !posC_conjK.
++ exact: normC_mul.
++ move=> x y; rewrite -leC_sub; move: (_ - _) => z; apply/idP/eqP.
+    by move=> /normC_pos.
+  by move<-; rewrite posC_norm.
+Qed.
+
+Definition algC_numIdomainType := NumIdomainType algC algC_numMixin.
+Definition algC_numFieldType := NumFieldType algC algC_numMixin.
+
+End AlgCorder.
+
+Canonical algC_numIdomainType.
+Canonical algC_numFieldType.
+
+Local Notation ZtoQ := (intr : int -> rat).
+Local Notation ZtoC := (intr : int -> algC).
+Local Notation QtoC := (ratr : rat -> algC).
+
+Local Notation intrp := (map_poly intr).
+Local Notation pZtoQ := (map_poly ZtoQ).
+Local Notation pZtoC := (map_poly ZtoC).
+Local Notation pQtoC := (map_poly ratr).
+
+Local Hint Resolve (@intr_inj algC_numIdomainType).
+Local Notation QtoC_M := (ratr_rmorphism algC_numFieldType).
+
+Notation negz x := (ssrnum.Num.Def.ltr x 0).
+
+(* More axiom reconstruction... *)
+Lemma algC_archimedean x : 0 <= x -> {n | n%:R <= x & x < n.+1%:R}.
+Proof.
+have trichotomy01 y: 0 <= y -> 1 <= y \/ y <= 1.
+  move=> y_ge0; rewrite -leC_sub -(leC_sub y) -opprB posC_opp.
+  by apply/realC_leP; rewrite /isRealC rmorphB rmorph1 posC_conjK.
+move=> pos_x; suffices /ex_minnP[n lt_x_n1 min_n]: exists n, x < n.+1%:R.
+  exists n => //; case Dn: n => // [n1]; rewrite -Dn.
+  have /trichotomy01/orP: 0 <= x / n%:R by rewrite posC_div ?posC_nat.
+  have n_gt0: 0 < n%:R by [rewrite -(ltn_ltC 0) Dn].
+  have [nz_n _] := andP n_gt0.
+  rewrite -(leC_pmul2r _ _ n_gt0) -(leC_pmul2r _ 1 n_gt0) divfK // mul1r.
+  case/orP=> //; rewrite leC_eqVlt.
+  case/predU1P=> [-> | ]; first exact: leC_refl.
+  by rewrite Dn => /min_n; rewrite Dn ltnn.
+suffices [n x_le_n]: exists n, x <= n%:R.
+  by exists n; rewrite (leC_ltC_trans x_le_n) -?ltn_ltC.
+have [x_ge1 | x_le1] := trichotomy01 x pos_x; last by exists 1%N.
+have [p nz_p px0] := algC_algebraic x; pose n := (size p).-2.
+have Dn: n.+2 = size p.
+  rewrite /n -subn2 -addn2 subnK // ltnNge.
+  apply: contra nz_p => /size1_polyC Dp; rewrite Dp polyC_eq0.
+  by rewrite Dp /root map_polyC hornerC intr_eq0 in px0.
+have xk_gt0 k: 0 < x ^+ k by rewrite sposC_exp // (ltC_leC_trans sposC1).  
+exists (\sum_(i < n.+1) `|(p`_i)%R|)%N.
+apply: leC_trans (_ : x <= `|lead_coef p|%:R * x) _.
+  rewrite -{1}[x]mul1r leC_pmul2r ?(xk_gt0 1%N) // -(leq_leC 1) lt0n.
+  by rewrite absz_eq0 lead_coef_eq0.
+rewrite -[_ * x]subr0 -(leC_pmul2r _ _ (xk_gt0 n)) mulrBl mul0r -mulrA.
+rewrite -exprS -(mulr0 ((-1) ^+ negz (lead_coef p))) -(eqP px0).
+rewrite horner_coef size_map_inj_poly // lead_coefE -Dn big_ord_recr coef_map.
+move: p`_n.+1 => a /=; rewrite addrC {2}[a]intEsign mulrDr.
+rewrite !rmorphM rmorph_sign -mulrA signrMK opprD addrNK mulr_sumr.
+rewrite -leC_sub opprK natr_sum mulr_suml -big_split /= posC_sum // => i _.
+rewrite coef_map {2}[p`_i]intEsign /= rmorphM rmorph_sign !mulrA -signr_addb.
+rewrite -mulrA mulrCA -mulrDr posC_mul ?posC_nat // mulr_sign.
+case: ifP => _; last by rewrite posC_add ?ltCW.
+rewrite leC_sub -{2}(subnK (leq_ord i)) -[x ^+ i]mul1r exprD.
+by case: (n - i)%N => [|k]; rewrite ?leC_refl // leC_pmul2r // leC1exp.
+Qed.
+
+(* Countability. *)
+Lemma algC_countMixin : Countable.mixin_of algC.
+Proof.
+pose code x :=
+  let p := s2val (sig2_eqW (algC_algebraic x)) in
+  (p : seq int, index x (sval (closed_field_poly_normal (pZtoC p)))).
+pose decode pi :=
+  (sval (closed_field_poly_normal (Poly (map ZtoC pi.1))))`_(pi.2).
+apply: CanCountMixin (code) (decode) _ => x; rewrite {}/decode {code}/=.
+rewrite -map_polyE; case: (sig2_eqW _) => p /= nz_p px0.
+case: (closed_field_poly_normal _) => r /= Dp; apply: nth_index.
+have nz_a: lead_coef (pZtoC p) != 0.
+  by rewrite lead_coef_map_inj // intr_eq0 lead_coef_eq0.
+by rewrite -root_prod_XsubC -(rootZ _ _ nz_a) -Dp.
+Qed.
+
+Module Import AlgCcountable.
+(* This must be file-local, as it makes algC into THE canonical countable *)
+(* closedFieldType.                                                         *)
+Canonical algC_countType := CountType algC algC_countMixin.
+End AlgCcountable.
+
+(* Integer subring; this should replace isIntC / getIntC. *)
+Lemma isIntC_int (m : int) : isIntC m%:~R.
+Proof.
+by rewrite [m]intEsign rmorphM rmorph_sign isIntC_mul_sign isIntC_nat.
+Qed.
+
+Definition getCint z := (-1) ^+ (z < 0)%R * (getNatC `|z|)%:Z.
+Local Notation CtoZ := getCint.
+
+Lemma getCintK z : isIntC z -> {for z, cancel CtoZ ZtoC}.
+Proof.
+rewrite /{for z, _} /= => Zz; rewrite rmorphM rmorph_sign /= -pmulrn.
+by rewrite -(eqP (normIntC_Nat Zz)) -isIntC_signE.
+Qed.
+
+Lemma CintrK : cancel ZtoC CtoZ. 
+Proof.
+move=> z; rewrite [z]intEsign rmorphM rmorph_sign /= /getCint.
+rewrite normC_mul_sign normC_nat getNatC_nat; congr (_ ^+ _ * _).
+case: z => n; first by rewrite mul1r leC_gtF ?posC_nat.
+by rewrite -sposC_opp mulN1r opprK -(ltn_ltC 0).
+Qed.
+
+Lemma rpred_Cnat S (ringS : semiringPred S) (kS : keyed_pred ringS) x :
+  isNatC x -> x \in kS.
+Proof. by case/isNatCP=> n ->; apply: rpred_nat. Qed.
+
+Lemma rpred_Cint S (ringS : subringPred S) (kS : keyed_pred ringS) x :
+  isIntC x -> x \in kS.
+Proof. by move/getCintK <-; apply: rpred_int. Qed.
+
+Lemma getCint0 : CtoZ 0 = 0. Proof. exact: (CintrK 0). Qed.
+Hint Resolve getCint0.
+
+Lemma getCintpK (p : {poly algC}) :
+  all isIntC p -> pZtoC (map_poly CtoZ p) = p.
+Proof.
+move/(all_nthP 0)=> Zp; apply/polyP=> i.
+rewrite coef_map coef_map_id0 //= -[p]coefK coef_poly.
+by case: ifP => [/Zp/getCintK// | _]; rewrite getCint0.
+Qed.
+
+Lemma getCintpP (p : {poly algC}) : all isIntC p -> {q | p = pZtoC q}.
+Proof. by exists (map_poly CtoZ p); rewrite getCintpK. Qed.
+
+(* Reconstructed rational subring. *)
+(* Note that this proof is tweaked so that it depends only on the fact that *)
+(* QtoC is a field embedding, and not on the order structure assumed for C. *)
+(* Thus, it could be used in (and moved to) the construction of C.          *)
+Fact getCrat_subproof : {CtoQ | cancel QtoC CtoQ}.
+Proof.
+have QtoCinj: injective QtoC by exact: fmorph_inj.
+have ZtoQinj: injective ZtoQ by exact: intr_inj.
+have defZtoC: ZtoC =1 QtoC \o ZtoQ by move=> m; rewrite /= rmorph_int.
+suffices CtoQ x: {xa : seq rat | forall a, x = QtoC a -> a \in xa}.
+  exists (fun x => let: exist xa _ := CtoQ x in xa`_(index x (map QtoC xa))).
+  move=> a /=; case: (CtoQ _) => xa /= /(_ a (erefl _)) xa_a; apply: QtoCinj.
+  by rewrite -(nth_map _ 0) ?nth_index -?(size_map QtoC) ?index_mem ?map_f.
+have [-> | nz_x] := eqVneq x 0.
+  by exists [:: 0] => a; rewrite inE -(inj_eq QtoCinj) rmorph0 => <-.
+have /sig2_eqW[p nz_p px0] := algC_algebraic x.
+without loss{nz_x} nz_p0: p nz_p px0 / p`_0 != 0.
+  move=> IH; elim/poly_ind: p nz_p => [/eqP// | p a IHp nz_p] in px0.
+  have [a0 | nz_a] := eqVneq a 0; last first.
+    by apply: IH nz_p px0 _; rewrite coefD coefC coefMX add0r.
+  rewrite a0 addr0 mulrC mulf_eq0 -size_poly_eq0 size_polyX in nz_p px0.
+  apply: IHp nz_p _; rewrite rmorphM rootM /= map_polyX in px0.
+  by rewrite {1}/root hornerX (negPf nz_x) in px0.
+pose p_n := lead_coef p; pose q e m : rat := (-1) ^+ e * m%:R / `|p_n|%:R.
+exists [seq q e m | e <- iota 0 2, m <- divisors `|p_n * p`_0|] => a Dx.
+rewrite {x}Dx (eq_map_poly defZtoC) map_poly_comp fmorph_root /root in px0.
+have [n Dn]: {n | size p = n.+2}.
+  exists (size p - 2)%N; rewrite -addn2 subnK // ltnNge. 
+  apply: contra nz_p => /size1_polyC Dp; rewrite Dp polyC_eq0.
+  by rewrite Dp map_polyC hornerC intr_eq0 in px0.
+pose qn (c : int) m := c * (m ^ n.+1)%N.
+pose Eqn (c0 c1 c2 : int) d m := qn c0 d + qn c1 m = c2 * d * m.
+have Eqn_div c1 c2 d m c0: coprime m d -> Eqn c0 c1 c2 d m -> (m %| `|c0|)%N.
+  move=> co_m_d /(canRL (addrK _))/(congr1 (dvdn m \o absz))/=.
+  rewrite abszM mulnC Gauss_dvdr ?coprime_expr // => ->.
+  by rewrite -mulNr expnSr PoszM mulrA -mulrDl abszM dvdn_mull.
+pose m := numq a; pose d := `|denq a|%N.
+have co_md: coprime `|m| d by exact: coprime_num_den.
+have Dd: denq a = d by rewrite /d; case: (denq a) (denq_gt0 a).
+have{px0} [c Dc1 Emd]: {c | `|c.1|%N = `|p_n|%N & Eqn p`_0 c.1 c.2 d `|m|%N}.
+  pose e : int := (-1) ^+ negz m.
+  pose r := \sum_(i < n) p`_i.+1 * m ^+ i * (d ^ (n - i.+1))%N.
+  exists (e ^+ n.+1 * p_n, - (r * e)); first by rewrite -exprM abszMsign.
+  apply/eqP; rewrite !mulNr -addr_eq0 (mulrAC r) -!mulrA -intEsign addrAC.
+  apply/eqP; transitivity (\sum_(i < n.+2) p`_i * m ^+ i * (d ^ (n.+1 - i))%N).
+    rewrite big_ord_recr big_ord_recl subnn !mulr1; congr (_ + _ + _).
+      rewrite mulr_suml; apply: eq_bigr => i _; rewrite -!mulrA; congr (_ * _).
+      by rewrite /= mulrC -!mulrA -exprS mulrA -PoszM -expnSr mulrC -subSn.
+    rewrite /qn /p_n lead_coefE Dn mulrAC mulrC; congr (_ * _).
+    rewrite -[Posz (_ ^ _)]intz -pmulrn natrX pmulrn intz.
+    by rewrite -exprMn -intEsign.
+  apply: (ZtoQinj); rewrite rmorph0 -(mul0r (ZtoQ (d ^ n.+1)%N)) -(eqP px0).
+  rewrite rmorph_sum horner_coef (size_map_inj_poly ZtoQinj) // Dn mulr_suml.
+  apply: eq_bigr => i _; rewrite coef_map !rmorphM !rmorphX /= numqE Dd.
+  by rewrite -!pmulrn !natrX exprMn -!mulrA -exprD subnKC ?leq_ord.
+have{Dc1} /dvdnP[d1 Dp_n]: (d %| `|p_n|)%N.
+  rewrite -Dc1 (Eqn_div p`_0 c.2 `|m|%N) 1?coprime_sym //.
+  by rewrite /Eqn mulrAC addrC //.
+have [d1_gt0 _]: (0 < d1 /\ 0 < d)%N.
+  by apply/andP; rewrite -muln_gt0 -Dp_n absz_gt0 lead_coef_eq0. 
+have dv_md1_p0n: (`|m| * d1 %| `|p_n| * `|(p`_0)%R|)%N.
+  by rewrite Dp_n mulnC -mulnA dvdn_pmul2l ?dvdn_mull // (Eqn_div c.1 c.2 d).
+apply/allpairsP; exists (negz m : nat, `|m| * d1)%N.
+rewrite mem_iota ltnS leq_b1; split=> //.
+  by rewrite abszM -dvdn_divisors // muln_gt0 !absz_gt0 lead_coef_eq0 nz_p.
+rewrite /q Dp_n !natrM invfM !mulrA !pmulrn -rmorphMsign -intEsign /=.
+by rewrite -Dd mulfK ?divq_num_den // intr_eq0 -lt0n.
+Qed.
+
+Definition getCrat := sval getCrat_subproof.
+Local Notation CtoQ := getCrat.
+Definition Crat : pred algC := (fun x => x == QtoC (CtoQ x)).
+Fact Crat_key : pred_key Crat. Proof. by []. Qed.
+Canonical Crat_keyed := KeyedPred Crat_key.
+
+Lemma CratrK : cancel QtoC CtoQ.
+Proof. by rewrite /getCrat; case: getCrat_subproof. Qed.
+
+Lemma getCratK : {in Crat, cancel CtoQ QtoC}.
+Proof. by move=> x /eqP. Qed.
+
+Lemma ratr_Crat (a : rat) : QtoC a \in Crat.
+Proof. by rewrite unfold_in /Crat CratrK. Qed.
+
+Lemma CratP x : reflect (exists a, x = QtoC a) (x \in Crat).
+Proof.
+by apply: (iffP eqP) => [-> | [a ->]]; [exists (CtoQ x) | rewrite CratrK].
+Qed.
+
+Lemma Crat0 : 0 \in Crat. Proof. by apply/CratP; exists 0; rewrite rmorph0. Qed.
+Lemma Crat1 : 1 \in Crat. Proof. by apply/CratP; exists 1; rewrite rmorph1. Qed.
+Hint Resolve Crat0 Crat1.
+
+Fact Crat_divring_closed : divring_closed Crat.
+Proof.
+split=> // _ _ /CratP[x ->] /CratP[y ->].
+  by rewrite -rmorphB ratr_Crat.
+by rewrite -fmorph_div ratr_Crat.
+Qed.
+Canonical Crat_opprPred := OpprPred Crat_divring_closed.
+Canonical Crat_addrPred := AddrPred Crat_divring_closed.
+Canonical Crat_mulrPred := MulrPred Crat_divring_closed.
+Canonical Crat_zmodPred := ZmodPred Crat_divring_closed.
+Canonical Crat_semiringPred := SemiringPred Crat_divring_closed.
+Canonical Crat_smulrPred := SmulrPred Crat_divring_closed.
+Canonical Crat_divrPred := DivrPred Crat_divring_closed.
+Canonical Crat_subringPred := SubringPred Crat_divring_closed.
+Canonical Crat_sdivrPred := SdivrPred Crat_divring_closed.
+Canonical Crat_divringPred := DivringPred Crat_divring_closed.
+
+Lemma rpred_Crat S (ringS : divringPred S) (kS : keyed_pred ringS) :
+  {subset Crat <= kS}.
+Proof. by move=> _ /CratP[a ->]; apply: rpred_rat. Qed.
+
+Lemma CratV x : (x^-1 \in Crat) = (x \in Crat).
+Proof. exact: rpredV. Qed.
+
+Lemma CratXz m : {in Crat, forall x, x ^ m \in Crat}.
+Proof. exact: rpredXint. Qed.
+
+Lemma Crat_div : {in Crat &, forall x y, x / y \in Crat}.
+Proof. exact: rpred_div. Qed.
+
+Lemma conj_Crat z : z \in Crat -> z^* = z.
+Proof. by move/getCratK <-; rewrite fmorph_div !rmorph_int. Qed.
+
+Lemma Creal_Rat z : z \in Crat -> isRealC z.
+Proof. by move/conj_Crat/eqP. Qed.
+
+Lemma Cint_ratr a : isIntC (QtoC a) = (a \in Qint).
+Proof.
+apply/idP/idP=> [Za | /numqK <-]; last by rewrite rmorph_int isIntC_int.
+apply/QintP; exists (CtoZ (QtoC a)); apply: (can_inj CratrK).
+by rewrite rmorph_int getCintK.
+Qed.
+
+(* Minimal polynomial. *)
+Fact minCpoly_subproof (x : algC) :
+  {p | p \is monic & forall q, root (pQtoC q) x = (p %| q)%R}.
+Proof.
+have /sig2_eqW[p0 nz_p0 p0x] := algC_algebraic x.
+have [r Dp0] := closed_field_poly_normal (pZtoC p0).
+do [rewrite lead_coef_map_inj //; set d0 := _%:~R] in Dp0.
+have{nz_p0} nz_d0: d0 != 0 by rewrite intr_eq0 lead_coef_eq0.
+have r_x: x \in r by rewrite Dp0 rootZ // root_prod_XsubC in p0x.
+pose p_ (I : {set 'I_(size r)}) := \prod_(i <- enum I) ('X - (r`_i)%:P).
+pose Qpx I := root (p_ I) x && all (mem Crat) (p_ I).
+have{d0 p0 nz_d0 p0x Dp0} /minset_exists[I /minsetP[]]: Qpx setT.
+  rewrite /Qpx; have ->: p_ setT = d0^-1 *: intrp p0.
+     rewrite Dp0 scalerK // (big_nth 0) big_mkord /p_ big_filter /=.
+     by apply: eq_bigl => i; rewrite inE.
+   rewrite rootZ ?invr_eq0 // p0x; apply/(all_nthP 0)=> i _ /=.
+   by rewrite coefZ mulrC coef_map Crat_div ?rpred_int.
+case/andP=> pIx QpI minI _; pose p := map_poly CtoQ (p_ I).
+have DpI: p_ I = pQtoC p.
+  rewrite -[p_ I]coefK; apply/polyP=> i; rewrite -map_poly_comp !coef_poly.
+  by case: ifP => //= lti_pI; rewrite getCratK //; exact: (all_nthP 0 QpI).
+exists p; first by rewrite -(map_monic QtoC_M) -DpI monic_prod_XsubC.
+move=> q; rewrite -(dvdp_map QtoC_M) -DpI.
+apply/idP/idP=> [qx0 | /dvdpP[{q} q ->]]; last by rewrite rootM pIx orbT.
+pose q1 := gcdp p q; have /dvdp_prod_XsubC[m Dq1]: pQtoC q1 %| p_ I.
+  by rewrite gcdp_map DpI dvdp_gcdl.
+pose B := [set i \in mask m (enum I)].
+have{Dq1} Dq1: pQtoC q1 %= p_ B.
+  congr (_ %= _): Dq1; apply: eq_big_perm.
+  by rewrite uniq_perm_eq ?mask_uniq ?enum_uniq // => i; rewrite mem_enum inE.
+rewrite -(minI B); first by rewrite -(eqp_dvdl _ Dq1) gcdp_map dvdp_gcdr.
+  rewrite /Qpx -(eqp_root Dq1) gcdp_map root_gcd qx0 -DpI pIx.
+  have{Dq1} /eqpP[[d1 d2] /= /andP[nz_d1 nz_d2] Dq1] := Dq1.
+  rewrite -[p_ B](scalerK nz_d2) -Dq1 scalerA mulrC.
+  have ->: d1 / d2 = (QtoC (lead_coef q1))^-1.
+    have:= congr1 lead_coef Dq1; rewrite !lead_coefZ lead_coef_map.
+    rewrite (monicP (monic_prod_XsubC _ _ _)) mulr1 => <-.
+    by rewrite invfM mulVKf.
+  apply/(all_nthP 0)=> i _; rewrite coefZ coef_map mulrC /=.
+  by rewrite Crat_div ?ratr_Crat.
+by apply/subsetP=> i; rewrite inE => /mem_mask; rewrite mem_enum.
+Qed.
+
+Definition minCpoly x : {poly algC} :=
+  locked (pQtoC (s2val (minCpoly_subproof x))).
+
+Lemma minCpolyP x :
+   {p | minCpoly x = pQtoC p /\ p \is monic
+      & forall q, root (pQtoC q) x = (p %| q)}.
+Proof. by unlock minCpoly; case: (minCpoly_subproof x) => p /=; exists p. Qed.
+
+Lemma minCpoly_monic x : minCpoly x \is monic.
+Proof. by have [p [-> mon_p] _] := minCpolyP x; rewrite map_monic. Qed.
+
+Lemma minCpoly_eq0 x : (minCpoly x == 0) = false.
+Proof. exact/negbTE/monic_neq0/minCpoly_monic. Qed.
+
+Lemma root_minCpoly x : root (minCpoly x) x.
+Proof. by have [p [-> _] ->] := minCpolyP x. Qed.
+
+Lemma size_minCpoly x : (1 < size (minCpoly x))%N.
+Proof.
+apply: contraFT (minCpoly_eq0 x); rewrite -leqNgt => /size1_polyC Dp.
+by have /eqP := root_minCpoly x; rewrite Dp hornerC => ->.
+Qed.
+
+Section MoreAlgCaut.
+
+Implicit Type nu : {rmorphism algC -> algC}.
+
+Lemma Crat_aut nu x : (nu x \in Crat) = (x \in Crat).
+Proof.
+apply/idP/idP=> /CratP[a] => [|->]; last by rewrite fmorph_rat ratr_Crat.
+by rewrite -(fmorph_rat nu) => /fmorph_inj->; apply: ratr_Crat.
+Qed.
+
+Lemma aut_Crat nu : {in Crat, nu =1 id}.
+Proof. by move=> _ /CratP[a ->]; apply: fmorph_rat. Qed.
+
+Lemma algC_invaut_subproof nu x : {y | nu y = x}.
+Proof.
+have [r Dp] := closed_field_poly_normal (minCpoly x).
+suffices /mapP/sig2_eqW[y _ ->]: x \in map nu r by exists y.
+rewrite -root_prod_XsubC; congr (root _ x): (root_minCpoly x).
+have [q [Dq _] _] := minCpolyP x; rewrite Dq -(eq_map_poly (fmorph_rat nu)).
+rewrite (map_poly_comp nu) -{q}Dq Dp (monicP (minCpoly_monic x)) scale1r.
+rewrite rmorph_prod big_map; apply: eq_bigr => z _.
+by rewrite rmorphB /= map_polyX map_polyC.
+Qed.
+Definition algC_invaut nu x := sval (algC_invaut_subproof nu x).
+
+Lemma algC_invautK nu : cancel (algC_invaut nu) nu.
+Proof. by move=> x; rewrite /algC_invaut; case: algC_invaut_subproof. Qed.
+
+Lemma algC_autK nu : cancel nu (algC_invaut nu).
+Proof. exact: inj_can_sym (algC_invautK nu) (fmorph_inj nu). Qed.
+
+Fact algC_invaut_is_rmorphism nu : rmorphism (algC_invaut nu).
+Proof. exact: can2_rmorphism (algC_autK nu) (algC_invautK nu). Qed.
+Canonical algC_invaut_additive nu := Additive (algC_invaut_is_rmorphism nu).
+Canonical algC_invaut_rmorphism nu := RMorphism (algC_invaut_is_rmorphism nu).
+
+Lemma isNatC_rmorph nu x : isNatC (nu x) = isNatC x.
+Proof.
+by do [apply/idP/idP=> Nx; have:= rmorph_NatC nu Nx] => [/fmorph_inj <- | ->].
+Qed.
+
+Lemma isIntC_rmorph nu x : isIntC (nu x) = isIntC x.
+Proof. by rewrite !isIntCE -rmorphN !isNatC_rmorph. Qed.
+
+Lemma minCpoly_aut nu x : minCpoly (nu x) = minCpoly x.
+Proof.
+wlog suffices dvd_nu: nu x / minCpoly x %| minCpoly (nu x).
+  apply/eqP; rewrite -eqp_monic ?minCpoly_monic //; apply/andP; split=> //.
+  by rewrite -{2}(algC_autK nu x) dvd_nu.
+have [[q [Dq _] min_q] [q1 [Dq1 _] _]] := (minCpolyP x, minCpolyP (nu x)).
+rewrite Dq Dq1 dvdp_map -min_q -(fmorph_root nu) -map_poly_comp.
+by rewrite (eq_map_poly (fmorph_rat nu)) -Dq1 root_minCpoly.
+Qed.
+
+End MoreAlgCaut.

@@ -2782,7 +2782,7 @@ Proof. by rewrite !lerNgt sgr_gt0. Qed.
 Lemma mulr_sg_norm x : sgr x * `|x| = x.
 Proof. by case: sgrP; rewrite !(mul1r, mul0r, mulrNN). Qed.
 
-Lemma normrNsg x : x = sgr x * `|x|.
+Lemma numEsg x : x = sgr x * `|x|.
 Proof. by case: sgrP; rewrite !(mul1r, mul0r, mulrNN). Qed.
 
 Lemma ler_norml x y : (`|x| <= y) = (-y <= x <= y).

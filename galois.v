@@ -10,65 +10,6 @@ Unset Printing Implicit Defensive.
 Open Local Scope ring_scope.
 Import GRing.Theory.
 
-(******************************************************************************)
-
-Section MorePolyDiv.
-
-Variable R : idomainType.
-Implicit Types p q : {poly R}.
-
-Lemma modp_XsubC p c : p %% ('X - c%:P) = p.[c]%:P.
-Proof.
-have: root (p - p.[c]%:P) c by rewrite /root !hornerE subrr.
-case/factor_theorem=> q /(canRL (subrK _))/unit.modpP-> //.
-  by rewrite lead_coefXsubC unitr1.
-by rewrite size_polyC size_XsubC ltnS leq_b1.
-Qed.
-
-Lemma coprimep_XsubC p c : coprimep p ('X - c%:P) = ~~ root p c.
-Proof.
-rewrite -coprimep_modl modp_XsubC /root -scale_poly1.
-have [-> | /coprimep_scalel->] := altP eqP; last exact: coprime1p.
-by rewrite scale0r /coprimep gcd0p size_XsubC.
-Qed.
-
-Lemma dvdp_mul_XsubC p q c :
-  (p %| ('X - c%:P) * q) = ((if root p c then p %/ ('X - c%:P) else p) %| q).
-Proof.
-case: ifPn => [| not_pc0]; last by rewrite Gauss_dvdpr ?coprimep_XsubC.
-rewrite root_factor_theorem -eqp_div_XsubC mulrC => /eqP{1}->.
-by rewrite dvdp_mul2l ?polyXsubC_eq0.
-Qed.
-
-Lemma dvdp_prod_XsubC I r (F : I -> R) p :
-    p %| \prod_(i <- r) ('X - (F i)%:P) ->
-  {m | p %= \prod_(i <- mask m r) ('X - (F i)%:P)}.
-Proof.
-elim: r => [|i r IHr] in p *.
-  by rewrite big_nil dvdp1; exists nil; rewrite // big_nil -size_poly_eq1.
-rewrite big_cons dvdp_mul_XsubC root_factor_theorem -eqp_div_XsubC.
-case: eqP => [{2}-> | _] /IHr[m Dp]; last by exists (false :: m).
-by exists (true :: m); rewrite /= mulrC big_cons eqp_mul2l ?polyXsubC_eq0.
-Qed.
-
-Lemma eqpMP p q : p \is monic -> q \is monic -> (p %= q) = (p == q).
-Proof.
-move => Hp Hq.
-case: eqP; first by move ->; rewrite eqpxx.
-move => neqpq.
-apply/negbTE/negP.
-move/eqpP => [[a b]] /= /andP [Ha Hb] Hpq.
-apply: neqpq.
-have : a%:P != 0 by rewrite polyC_eq0.
-move/mulfI; apply.
-rewrite !mul_polyC Hpq.
-congr (_ *: _).
-move: (f_equal (fun f => lead_coef f) Hpq).
-by rewrite -!mul_polyC !lead_coef_Mmonic // !lead_coefC.
-Qed.
-
-End MorePolyDiv.
-
 (* This should be moved to vector.v *)
 
 Section Eigenspace.
@@ -1706,7 +1647,7 @@ suff : forall n, n.+1 < size (minPoly K a) ->
  exists r; split => //.
  apply/eqP.
  rewrite -(big_map h predT f).
- rewrite -eqpMP ?monic_minPoly ?monic_prod_XsubC //.
+ rewrite -eqp_monic ?monic_minPoly ?monic_prod_XsubC //.
  rewrite eqp_sym -dvdp_size_eqp // size_prod_XsubC.
  by rewrite size_minPoly Hnr.
 elim => [|n IH] Hn.
@@ -1750,7 +1691,7 @@ have/allPn : ~~(all (fun x => x \in (map h r)) (map (val (repr x)) (map h r))).
   by rewrite rmorphB /= map_polyX map_polyC.
  rewrite -(big_map (val (repr x)) predT f).
  apply/eqP.
- rewrite -eqpMP ?monic_prod_XsubC // -dvdp_size_eqp.
+ rewrite -eqp_monic ?monic_prod_XsubC // -dvdp_size_eqp.
   by rewrite !size_prod_XsubC size_map.
  apply: uniq_roots_dvdp.
   apply/allP => b Hb.
@@ -2474,9 +2415,9 @@ suffices{K} autL_px q:
 elim: {q}_.+1 {-2}q (ltnSn (size q)) => // d IHd q leqd q_dv_q1 q_gt1.
 without loss{d leqd IHd q_gt1} irr_q: q q_dv_q1 / irreducible_poly q.
   move=> IHq; apply: wlog_neg => not_autLx_q; apply: IHq => //.
-  split=> // q2 q2_dv_q; apply: contraR not_autLx_q => /norP[q2_neq1 ltq2q].
+  split=> // q2 q2_neq1 q2_dv_q; apply: contraR not_autLx_q => ltq2q.
   have{q2_neq1} q2_gt1: size q2 > 1.
-    rewrite ltn_neqAle eq_sym size_poly_eq1 q2_neq1 size_poly_gt0.
+    rewrite ltn_neqAle eq_sym q2_neq1 size_poly_gt0.
     apply: contraTneq q_gt1 => q2_0; rewrite -(divpK q2_dv_q) q2_0 mulr0.
     by rewrite size_poly0.
   have ltq2d: size q2 < d.

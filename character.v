@@ -1023,6 +1023,9 @@ Qed.
 
 End OneChar.
 
+Lemma card_Iirr_abelian : abelian G -> #|Iirr G| = #|G|.
+Proof. by rewrite card_ord NirrE card_classes_abelian => /eqP. Qed.
+
 Lemma char_abelianP : reflect (forall i : Iirr G, lin_char 'chi_i) (abelian G).
 Proof.
 apply: (iffP idP) => [cGG i | CF_G].
@@ -1317,10 +1320,10 @@ Proof.
 by move=> Nchi Nxi; rewrite cfdotC isNatC_conj ?cfdot_char_Nat.
 Qed.
 
-Lemma char_cfnorm_irrE chi : is_char chi -> chi \in irr G = ('[chi] == 1).
+Lemma irr_char1E chi : (chi \in irr G) = is_char chi && ('[chi] == 1).
 Proof.
-move=> Nchi; apply/irrP/eqP=> [[i ->]|]; first by rewrite cfdot_irr eqxx.
-rewrite cfdot_sum_irr => /isNatC_sum_eq1[i _| i [_ ci1 cj0]].
+apply/irrP/andP=> [[i ->] | [Nchi]]; first by rewrite irr_char cfnorm_irr.
+rewrite cfdot_sum_irr => /eqP/isNatC_sum_eq1[i _| i [_ ci1 cj0]].
   by rewrite isNatC_mul ?isNatC_conj ?cfdot_char_irr_Nat.
 exists i; rewrite [chi]cfun_sum_cfdot (bigD1 i) //=.
 rewrite -(normC_pos (posC_Nat (cfdot_char_irr_Nat i Nchi))).
@@ -1482,7 +1485,7 @@ Proof. exact: cfdot_cfAut_char (irr_char i). Qed.
 
 Lemma cfAut_irr u i : cfAut u 'chi_i \in irr G.
 Proof.
-rewrite char_cfnorm_irrE; last by rewrite cfAut_char ?irr_char.
+rewrite irr_char1E cfAut_char ?irr_char //=.
 by rewrite cfdot_cfAut_irr // cfdot_irr eqxx rmorph1.
 Qed.
 
@@ -1505,9 +1508,34 @@ Proof. exact: aut_IirrE. Qed.
 Lemma conjC_IirrK : involutive (@conjC_Iirr G).
 Proof. by move=> i; apply: chi_inj; rewrite !conjC_IirrE cfConjCK. Qed.
 
+Lemma aut_Iirr0 u : aut_Iirr u 0 = 0 :> Iirr G.
+Proof.  by apply/chi_inj; rewrite aut_IirrE chi0_1 cfAut_cfun1. Qed.
+
+Lemma conjC_Iirr0 : conjC_Iirr 0 = 0 :> Iirr G.
+Proof. exact: aut_Iirr0. Qed.
+
+Lemma aut_Iirr_inj u : injective ((aut_Iirr u) G).
+Proof.
+by move=> i j eq_ij; apply/chi_inj/(cfAut_inj u); rewrite -!aut_IirrE eq_ij.
+Qed.
+
+Lemma char_cfAut u (chi : 'CF(G)) : is_char (cfAut u chi) = is_char chi.
+Proof.
+apply/idP/idP=> [Nuchi|]; last exact: cfAut_char.
+rewrite [chi]cfun_sum_cfdot sum_char // => i _; rewrite scale_char ?irr_char //.
+by rewrite -(isNatC_rmorph u) -cfdot_cfAut_irr -aut_IirrE cfdot_char_irr_Nat.
+Qed.
+
+Lemma irr_cfAut u chi : (cfAut u chi \in irr G) = (chi \in irr G).
+Proof.
+rewrite !irr_char1E char_cfAut; apply/andb_id2l=> /cfdot_cfAut_char->.
+by rewrite fmorph_eq1.
+Qed.
+
 End MoreIsChar.
 
 Arguments Scope irr_constt [_ group_scope cfun_scope].
+Implicit Arguments aut_Iirr_inj [gT G x1 x2].
 
 Section MoreInnerProd.
 
@@ -1543,7 +1571,7 @@ Variable (G K H : {group gT}) (KxH : K \x H = G).
 
 Lemma cfDprod_irr i j : cfDprod KxH 'chi_i 'chi_j \in irr G.
 Proof.
-rewrite char_cfnorm_irrE; last by rewrite cfDprod_char ?irr_char.
+rewrite irr_char1E cfDprod_char ?irr_char //=.
 by rewrite cfdot_dprod !cfdot_irr !eqxx mul1r.
 Qed.
 
@@ -2082,6 +2110,13 @@ Lemma irr_faithful_center i : cfaithful 'chi[G]_i -> cyclic 'Z(G).
 Proof.
 rewrite (isog_cyclic (isog_center (quotient1_isog G))) /=.
 by move/trivgP <-; rewrite -cfcenter_eq_center cfcenter_cyclic.
+Qed.
+
+Lemma cfcenter_fful_irr i : cfaithful 'chi[G]_i -> 'Z('chi_i)%CF = 'Z(G).
+Proof.
+move/trivgP=> Ki1; have:= cfcenter_eq_center i; rewrite {}Ki1.
+have inj1: 'injm (@coset gT 1%g) by rewrite ker_coset.
+by rewrite -injm_center; first apply: injm_morphim_inj; rewrite ?norms1.
 Qed.
 
 (* This is Isaacs (2.32)(b). *)

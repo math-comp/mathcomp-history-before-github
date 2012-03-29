@@ -10,6 +10,7 @@ Unset Printing Implicit Defensive.
 
 Delimit Scope creal_scope with CR.
 
+(* GG - subsumed by new Choice interface
 Section choice_extra.
 
 Definition square_type (T : Type) := (T * T)%type.
@@ -29,7 +30,7 @@ Canonical square_type_ChoiceType (T : choiceType) :=
   ChoiceType (square_type T) (@square_type_ChoiceMixin T).
 
 End choice_extra.
-
+*)
 Section poly_extra.
 
 Local Open Scope ring_scope.
@@ -38,6 +39,7 @@ Lemma monic_monic_from_neq0  (F : fieldType) (p : {poly F}) :
   (p != 0)%B -> (lead_coef p) ^-1 *: p \is monic.
 Proof. by move=> ?; rewrite monicE lead_coefZ mulVf ?lead_coef_eq0. Qed.
 
+(* GG -- lemmas with ssrnum dependencies cannot go in poly! *)
 Lemma size_derivn (R : realIdomainType) (p : {poly R}) n :
   size p^`(n) = (size p - n)%N.
 Proof.
@@ -55,29 +57,6 @@ Qed.
 End poly_extra.
 
 Local Notation eval := horner_eval.
-
-Section polydiv_extra.
-
-Local Open Scope ring_scope.
-
-Variable F : fieldType.
-
-(* :TODO: change lemmas of this form in polydiv to this form *)
-Lemma Bezout_eq1_coprimepP (p q : {poly F}) :
-      reflect (exists u : square_type {poly F}, u.1 * p + u.2 * q = 1)
-         (coprimep p q).
-Proof. exact: Bezout_eq1_coprimepP. Qed.
-
-Lemma monic_eqp : {in monic &, forall p q : {poly F}, (p %= q) = (p == q)%B}.
-Proof.
-move=> p q monic_p monic_q; apply/idP/eqP; last by move->; rewrite eqpxx.
-move=> /eqpP [[a b]] /andP [a_neq0 b_neq0 hpq]; move: (hpq).
-suff -> : a = b by rewrite -!mul_polyC=> /mulfI-> //; rewrite polyC_eq0.
-move: hpq=> /(f_equal lead_coef).
-by rewrite -!mul_polyC !lead_coef_Mmonic ?lead_coefC.
-Qed.
-
-End polydiv_extra.
 
 Section ordered_extra.
 

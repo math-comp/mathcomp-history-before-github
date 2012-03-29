@@ -21,6 +21,10 @@ Require Import PFsection1 PFsection2 PFsection3 PFsection4.
 (*                         chi \in S, to the sum of an orthonormal family     *)
 (*                         R chi of virtual characters of G; also, R chi and  *)
 (*                         R phi are orthogonal unless phi \in chi :: chi^*.  *)
+(*          dual_iso nu == the Z-linear (additive) mapping phi |-> - nu phi^* *)
+(*                         for nu : {additive 'CF(L) -> 'CF(G)}. If nu is an  *)
+(*                         isometry extending a subcoherent tau on 'Z[S] with *)
+(*                         size S = 2, then so is dual_iso nu.                *)
 (* We provide a set of definitions that cover the various \cal S notations    *)
 (* introduces in Peterfalvi sections 5, 6, 7, and 9 to 14.                    *)
 (*         Iirr_ker K A == the set of all i : Iirr K such that the kernel of  *)
@@ -420,13 +424,17 @@ Definition subcoherent S tau R :=
     & (*e*) {in S &, forall xi phi : 'CF(L),
               orthogonal phi (xi :: xi^*%CF) -> orthogonal (R phi) (R xi)}].
 
+Definition dual_iso (nu : {additive 'CF(L) -> 'CF(G)}) :=
+  [additive of -%R \o nu \o cfAut conjC].
+
 End Defs.
 
 Section SubsetCoherent.
 
-Variables (L G : {group gT}) (tau : 'CF(L) -> 'CF(G)).
+Variables L G : {group gT}.
+Implicit Type tau : 'CF(L) -> 'CF(G).
 
-Lemma subgen_coherent A S1 S2 :
+Lemma subgen_coherent S1 S2 A tau:
   {subset S2 <= 'Z[S1]} -> coherent S1 A tau -> coherent S2 A tau.
 Proof.
 move/vchar_trans=> sS21 [tau1 [[Itau1 Ztau1] def_tau]].
@@ -434,16 +442,60 @@ exists tau1; split; last exact: sub_in1 def_tau.
 by split; [exact: sub_in2 Itau1 | exact: sub_in1 Ztau1].
 Qed.
 
-Lemma subset_coherent A S1 S2 :
+Lemma subset_coherent S1 S2 A tau:
   {subset S2 <= S1} -> free S1 -> coherent S1 A tau -> coherent S2 A tau.
 Proof.
 by move=> sS21 freeS1; apply: subgen_coherent => phi /sS21/mem_vchar->.
 Qed.
 
-Lemma perm_eq_coherent A S1 S2 :
+Lemma perm_eq_coherent S1 S2 A tau:
   perm_eq S1 S2 -> free S1 -> coherent S1 A tau -> coherent S2 A tau.
 Proof.
 by move=> eqS12; apply: subset_coherent => phi; rewrite (perm_eq_mem eqS12).
+Qed.
+
+Lemma dual_coherence S tau R nu :
+    subcoherent S tau R -> coherent_with S L^# tau nu -> (size S <= 2)%N ->
+  coherent_with S L^# tau (dual_iso nu).
+Proof.
+move=> [[charS nrS ccS] _ oSS _ _] [[Inu Znu] Dnu] szS2.
+split=> [|{Inu Znu oSS} phi ZSphi].
+  have{oSS} ccZS := cfAut_vchar (orthogonal_free oSS) ccS.
+  have vcharS: {subset S <= 'Z[irr L]} by move=> phi /(allP charS)/char_vchar.
+  split=> [phi1 phi2 Sphi1 Sphi2 | phi Sphi].
+    rewrite cfdotNl cfdotNr opprK Inu ?ccZS // cfdot_conjC isIntC_conj //.
+    by rewrite cfdot_vchar_Int ?(vchar_sub_irr vcharS).
+  by rewrite opp_vchar Znu ?ccZS.
+rewrite -{}Dnu //; move: ZSphi; rewrite vcharD1E => /andP[].
+case/vchar_expansion=> z Zz ->{phi}.
+case: S charS nrS ccS szS2 => [|eta S1]; first by rewrite !big_nil !raddf0.
+case/andP=> Neta _ /norP[eta'c _] /allP/andP[S1_etac _].
+rewrite inE [_ == _](negPf eta'c) /= in S1_etac.
+case: S1 S1_etac => [|_ []] // /predU1P[] // <- _.
+rewrite big_cons big_seq1 !raddfD !raddfZ_IntC ?Zz //.
+rewrite !cfunE (isNatC_conj (char1_Nat Neta)) -mulrDl mulf_eq0.
+rewrite addr_eq0 char1_eq0 // !scalerN cfConjCK addrC.
+by case/pred2P=> ->; rewrite ?raddf0 // !scaleNr opprK.
+Qed.
+
+Lemma coherent_seqInd_conjCirr S tau R nu r :
+    subcoherent S tau R -> coherent_with S L^# tau nu ->
+    let chi := 'chi_r in let chi2 := (chi :: chi^*)%CF in
+    chi \in S ->
+  [/\ {subset map nu chi2 <= 'Z[irr G]}, orthonormal (map nu chi2),
+      chi - chi^*%CF \in 'Z[S, L^#] & (nu chi - nu chi^*)%CF 1%g == 0].
+Proof.
+move=> [[charS nrS ccS] [_ Ztau] oSS _ _] [[Inu Znu] Dnu] chi chi2 Schi.
+have sSZ: {subset S <= 'Z[S]} by have /mem_vchar := orthogonal_free oSS.
+have vcharS: {subset S <= 'Z[irr L]} by move=> phi /(allP charS)/char_vchar.
+have Schi2: {subset chi2 <= 'Z[S]} by apply/allP; rewrite /= !sSZ ?ccS.
+have Schi_diff: chi - chi^*%CF \in 'Z[S, L^#].
+  by rewrite sub_Aut_vchar // vchar_onG sSZ ?ccS.
+split=> // [_ /mapP[xi /Schi2/Znu ? -> //]||].
+  apply: map_orthonormal; first by apply: sub_in2 Inu; exact: vchar_trans_on.
+  rewrite orthonormalE (conjC_pair_orthogonal ccS) //=.
+  by rewrite cfnorm_conjC !cfnorm_irr !eqxx.
+by rewrite -raddfB -cfunD1E Dnu // irr_vchar_on ?Ztau.
 Qed.
 
 End SubsetCoherent.

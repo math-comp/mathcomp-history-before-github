@@ -1,4 +1,4 @@
-
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 Require Import fintype finfun bigop ssralg ssrnum poly.
 Import GRing.Theory Num.Theory.
@@ -1504,11 +1504,11 @@ Local Coercion Posz : nat >-> int.
 
 Lemma absz_nat (n : nat) : `|n| = n. Proof. by []. Qed.
 
-Lemma abszE (m : int) : `|m| = `|m|%R :> int. Proof. by case: m. Qed.
+Lemma abszE (m : int) : `|m| = `|m|%R :> int. Proof. by []. Qed.
 
 Lemma absz0 : `|0%R| = 0. Proof. by []. Qed.
 
-Lemma abszN m : `|- m| = `|m|. Proof. by case: (intP m). Qed.
+Lemma abszN m : `|- m| = `|m|. Proof. by case: (normrN m). Qed.
 
 Lemma absz_eq0 m : (`|m| == 0) = (m == 0%R). Proof. by case: (intP m). Qed.
 
@@ -1551,6 +1551,18 @@ Proof. by rewrite abszE mulr_sign_norm. Qed.
 
 Lemma mulz_Nsign_abs m : ((-1) ^+ (0 < m)%R * `|m|%:Z)%R = - m.
 Proof. by rewrite abszE mulr_Nsign_norm. Qed.
+
+Lemma intEsign  m : m = ((-1) ^+ (m < 0)%R * `|m|%:Z)%R.
+Proof. exact: numEsign. Qed.
+
+Lemma abszEsign m : `|m|%:Z = ((-1) ^+ (m < 0)%R * m)%R.
+Proof. exact: normrEsign. Qed.
+
+Lemma intEsg m : m = (sgz m * `|m|%:Z)%R.
+Proof. by rewrite -sgrz -numEsg. Qed.
+
+Lemma abszEsg m : (`|m|%:Z = sgz m * m)%R.
+Proof. by rewrite -sgrz -normrEsg. Qed.
 
 End Absz.
 

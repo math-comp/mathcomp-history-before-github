@@ -70,23 +70,9 @@ Require Import poly polydiv mxpoly generic_quotient.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
-Open Local Scope ring_scope.
 
+Local Open Scope ring_scope.
 Import GRing.Theory.
-
-(* :TODO: put in polydiv *)
-Lemma modNp (R : fieldType) (r q : {poly R}) :
-  ((- r) %% q) = (- (r %% q)) :> {poly R}.
-Proof. by apply/eqP; rewrite -addr_eq0 -modp_add addNr mod0p. Qed.
-
-Definition irreducible_poly (R : idomainType) (p : {poly R}) :=
-  (size p > 1) * (forall q, q %| p -> (q %= 1) || (q %= p)) : Prop.
-
-Lemma irredp_neq0 (R : idomainType) (p : {poly R}) :
-  irreducible_poly p -> p != 0.
-Proof. by rewrite -size_poly_eq0 -lt0n => [[/ltnW]]. Qed.
-
-(* Finite Dimensional Field Extension *)
 
 Module FieldExt.
 
@@ -1849,10 +1835,9 @@ have unitE: GRing.Field.mixin_of urL.
   move=> x nz_x; apply/unitrP; set q := toPF x.
   have nz_q: q != 0 by rewrite -(inj_eq toPinj) /toPF raddf0 in nz_x.
   have /Bezout_eq1_coprimepP[u upq1]: coprimep p q.
-    have /orP[|/eqp_size sz_pq] := irr_p _ (dvdp_gcdl p q).
-      by rewrite -size_poly_eq1.
-    have: size (gcdp p q) <= size q by exact: leq_gcdpr. 
-    by rewrite sz_pq leqNgt (polySpred nz_p) ltnS size_poly.
+    apply: contraLR (leq_gcdpr p nz_q) => /irr_p/implyP.
+    rewrite dvdp_gcdl -ltnNge /= => /eqp_size->.
+    by rewrite (polySpred nz_p) ltnS size_poly.
   suffices: x * toL u.2 = 1 by exists (toL u.2); rewrite mulrC.
   apply: toPinj; rewrite !toL_K -upq1 modp_mul modp_add mulrC.
   by rewrite modp_mull add0r.

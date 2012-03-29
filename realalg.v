@@ -129,7 +129,7 @@ have [cpX|ncpX] := boolP (coprimep p 'X).
   by right; move: (cpX)=> /coprimep_root /(_ px0); rewrite horner_crealX.
 have [eq_pX|] := altP (p =P 'X).
   by left; move: px0; rewrite eq_pX horner_crealX.
-rewrite -monic_eqp /p ?monicX // /eqp negb_and.
+rewrite -eqp_monic /p ?monicX // /eqp negb_and.
 rewrite dvdXp -{1}coprimepX (negPf ncpX) orbF=> ndiv_pX.
 case: (@smaller_factor _ p 'X x); rewrite /p //.
 move=> r /andP[r_gt0 monic_r rx_eq0].

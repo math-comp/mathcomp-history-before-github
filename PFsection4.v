@@ -1970,12 +1970,12 @@ case: (boolP (g \in class_support V G))=> [/imset2P [w h WiV HG] ->|GniS].
   by rewrite -signr_addb addbb !mul1r.
 have CA := memc_acTIirr tiW i j.
 rewrite !cyclicTIsigma_ind //.
-move/cfun_onP: (cfInd_on_class_support WsG (CA))=> -> //.
+move/cfun_onP: (cfInd_on WsG (CA))=> -> //.
 rewrite cfunElock; case: pickP=> //= h.
 rewrite !inE /cDade_V /=.
 case: (boolP (h \in class_support _ _))=> 
           [/imset2P [v l ViV LiL ->] | HinVl]; last first.
-  by rewrite BE; move/cfun_onP: (cfInd_on_class_support WsL (CA))=> ->.
+  by rewrite BE; move/cfun_onP: (cfInd_on WsL (CA))=> ->.
 rewrite orbT; case/imset2P=> y z /imset2P [u1 u2].
 rewrite DadeJ => // /imsetP [v1 Hv1 ->].
 rewrite inE => /eqP-> -> ZiG Eg.

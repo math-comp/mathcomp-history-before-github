@@ -596,6 +596,27 @@ Implicit Arguments normedTI_P [gT A G L].
 Implicit Arguments normedTI_memJ_P [gT A G L].
 Implicit Arguments Frobenius_kerP [gT G K].
 
+Lemma Frobenius_coprime_quotient (gT : finGroupType) (G K H N : {group gT}) :
+    K ><| H = G -> N <| G -> coprime #|K| #|H| /\ H :!=: 1%g ->
+    N \proper K /\ {in H^#, forall x, 'C_K[x] \subset N} ->
+  [Frobenius G / N = (K / N) ><| (H / N)]%g.
+Proof.
+move=> defG nsNG [coKH ntH] [ltNK regH].
+have [[sNK _] [_ /mulG_sub[sKG sHG] _ _]] := (andP ltNK, sdprodP defG).
+have [_ nNG] := andP nsNG; have nNH := subset_trans sHG nNG.
+apply/Frobenius_semiregularP; first exact: quotient_coprime_sdprod.
+- by rewrite quotient_neq1 ?(normalS _ sKG).
+- by rewrite -(isog_eq1 (quotient_isog _ _)) ?coprime_TIg ?(coprimeSg sNK).
+move=> _ /(subsetP (quotientD1 _ _))/morphimP[x nNx H1x ->].
+rewrite -cent_cycle -quotient_cycle //=.
+rewrite -strongest_coprime_quotient_cent ?cycle_subG //.
+- by rewrite cent_cycle quotientS1 ?regH.
+- by rewrite subIset ?sNK.
+- rewrite (coprimeSg (subsetIl N _)) ?(coprimeSg sNK) ?(coprimegS _ coKH) //.
+  by rewrite cycle_subG; case/setD1P: H1x.
+by rewrite orbC abelian_sol ?cycle_abelian.
+Qed.
+
 Section InjmFrobenius.
 
 Variables (gT rT : finGroupType) (D G : {group gT}) (f : {morphism D >-> rT}).
