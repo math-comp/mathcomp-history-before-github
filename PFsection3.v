@@ -161,7 +161,7 @@ by rewrite opprB !addrA addrAC (addrAC 1).
 Qed.
 
 Lemma acTIirr_vchar i j : alpha_ i j \in 'Z[irr W].
-Proof. by rewrite mul_vchar // -chi0_1 sub_vchar ?irr_vchar. Qed.
+Proof. by rewrite mul_vchar // -chi0_1 sub_zchar ?irr_vchar. Qed.
 
 Lemma memc_acTIirr i j : alpha_ i j \in 'CF(W, V).
 Proof.
@@ -180,7 +180,7 @@ Local Notation beta_ := bcTIirr.
 
 Lemma bcTIirr_vchar i j : beta_ i j \in 'Z[irr G].
 Proof. 
-by rewrite sub_vchar ?cfInd_vchar ?acTIirr_vchar // -chi0_1 irr_vchar. 
+by rewrite sub_zchar ?cfInd_vchar ?acTIirr_vchar // -chi0_1 irr_vchar. 
 Qed.
 
 Lemma cfdot_cTIirr i j i' j' :
@@ -1812,8 +1812,8 @@ rewrite /sigma; unlock.
 rewrite /extIrrf; case: pickP=> [/= f /and3P [Ho H1 /allP /= HI]|].
   split=> [|| a /coord_span ->].
   - split=> [i j Hi Hj /=|i Hi]; last first.
-      rewrite /extIrrf; apply: sum_vchar=> j _.
-      repeat apply: scale_vchar; last by apply: irr_vchar.
+      rewrite /extIrrf; apply: sum_zchar=> j _.
+      repeat apply: scale_zchar; last by apply: irr_vchar.
         by apply: cfdot_vchar_irr_Int.
       by apply: isIntC_sign.
     rewrite /extIrrf.

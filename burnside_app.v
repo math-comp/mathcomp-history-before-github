@@ -28,22 +28,22 @@ Section colouring.
 
 Variable n : nat.
 Definition  colors := 'I_n.
-Canonical Structure colors_eqType := Eval hnf in [eqType of colors].
-Canonical Structure colors_choiceType := Eval hnf in [choiceType of colors].
-Canonical Structure colors_countType := Eval hnf in [countType of colors].
-Canonical Structure colors_finType := Eval hnf in [finType of colors].
+Canonical colors_eqType := Eval hnf in [eqType of colors].
+Canonical colors_choiceType := Eval hnf in [choiceType of colors].
+Canonical colors_countType := Eval hnf in [countType of colors].
+Canonical colors_finType := Eval hnf in [finType of colors].
 
 Section square_colouring.
 
 Definition square := 'I_4.
-Canonical Structure square_eqType := Eval hnf in [eqType of square].
-Canonical Structure square_choiceType := Eval hnf in [choiceType of square].
-Canonical Structure square_countType := Eval hnf in [countType of square].
-Canonical Structure square_finType := Eval hnf in [finType of square].
-Canonical Structure square_subType := Eval hnf in [subType of square].
-Canonical Structure square_subCountType :=
+Canonical square_eqType := Eval hnf in [eqType of square].
+Canonical square_choiceType := Eval hnf in [choiceType of square].
+Canonical square_countType := Eval hnf in [countType of square].
+Canonical square_finType := Eval hnf in [finType of square].
+Canonical square_subType := Eval hnf in [subType of square].
+Canonical square_subCountType :=
   Eval hnf in [subCountType of square].
-Canonical Structure square_subFinType := Eval hnf in [subFinType of square].
+Canonical square_subFinType := Eval hnf in [subFinType of square].
 
 Definition mksquare i : square := Sub (i %% _) (ltn_mod i 4).
 Definition c0 := mksquare 0.
@@ -98,7 +98,7 @@ move => x1 y; rewrite /rot !inE /= /is_rot; move/eqP => hx1; move/eqP => hy.
 by rewrite -mulgA hy !mulgA hx1.
 Qed.
 
-Canonical Structure rot_group := Group group_set_rot.
+Canonical rot_group := Group group_set_rot.
 
 Definition rotations := [set id1; r1; r2; r3].
 
@@ -216,7 +216,7 @@ apply/group_setP; split => [|x y]; rewrite !inE ?eqxx //.
 do 2![case/orP; move/eqP->]; gsimpl; rewrite ?(eqxx, orbT) //.
 by rewrite -/sh -{1}sh_inv mulVg eqxx.
 Qed.
-Canonical Structure iso2_group := Group group_set_iso2.
+Canonical iso2_group := Group group_set_iso2.
 
 Definition isometries :=
   [set p | [|| p == 1, p == r1, p == r2, p == r3,
@@ -266,7 +266,7 @@ apply/group_setP; split; first by rewrite inE eqxx /=.
 by move=> x y hx hy; apply/is_isoP => ci; rewrite !permM !isometries_iso.
 Qed.
 
-Canonical Structure iso_group := Group group_set_iso.
+Canonical iso_group := Group group_set_iso.
 
 Lemma card_rot : #|rot| = 4.
 Proof.
@@ -278,7 +278,7 @@ Qed.
 Lemma group_set_rotations : group_set rotations.
 Proof. by rewrite -rot_is_rot group_set_rot. Qed.
 
-Canonical Structure rotations_group := Group group_set_rotations.
+Canonical rotations_group := Group group_set_rotations.
 
 Notation col_squares := {ffun square -> colors}.
 
@@ -476,13 +476,13 @@ End square_colouring.
 Section cube_colouring.
 
 Definition cube := 'I_6.
-Canonical Structure cube_eqType := Eval hnf in [eqType of cube].
-Canonical Structure cube_choiceType := Eval hnf in [choiceType of cube].
-Canonical Structure cube_countType := Eval hnf in [countType of cube].
-Canonical Structure cube_finType := Eval hnf in [finType of cube].
-Canonical Structure cube_subType := Eval hnf in [subType of cube].
-Canonical Structure cube_subCountType := Eval hnf in [subCountType of cube].
-Canonical Structure cube_subFinType := Eval hnf in [subFinType of cube].
+Canonical cube_eqType := Eval hnf in [eqType of cube].
+Canonical cube_choiceType := Eval hnf in [choiceType of cube].
+Canonical cube_countType := Eval hnf in [countType of cube].
+Canonical cube_finType := Eval hnf in [finType of cube].
+Canonical cube_subType := Eval hnf in [subType of cube].
+Canonical cube_subCountType := Eval hnf in [subCountType of cube].
+Canonical cube_subFinType := Eval hnf in [subFinType of cube].
 
 Definition mkFcube i : cube := Sub (i %% 6) (ltn_mod i 6).
 Definition F0 := mkFcube 0.
@@ -820,14 +820,14 @@ move/eqP => hx1; move/eqP => hy.
 rewrite hy !mulgA. by  rewrite -hx1.
 Qed.
 
-Canonical Structure iso_group3 := Group group_set_iso3.
+Canonical iso_group3 := Group group_set_iso3.
 
 Lemma group_set_diso3 : group_set  dir_iso3.
 Proof.
 apply/group_setP;split;first by   rewrite inE eqxx /=.
 by exact:stable.
 Qed.
-Canonical Structure diso_group3 := Group group_set_diso3.
+Canonical diso_group3 := Group group_set_diso3.
 
 Lemma gen_diso3 :  dir_iso3 = <<[set r05; r14]>>.
 Proof.

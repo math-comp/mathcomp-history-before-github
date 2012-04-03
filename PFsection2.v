@@ -450,7 +450,7 @@ Local Notation rDadeE := Dade_restrictionE.
 Lemma Dade_restriction_vchar B : aa \in 'Z[irr L] -> 'aa_B \in 'Z[irr 'M(B)].
 Proof.
 rewrite /'aa_B => /vcharP[a1 Na1 [a2 Na2 ->]].
-by rewrite !linearB /= sub_vchar // char_vchar ?cfMorph_char ?cfRes_char.
+by rewrite !linearB /= sub_zchar // char_vchar ?cfMorph_char ?cfRes_char.
 Qed.
 
 Let sMG B : B \in calP -> 'M(B) \subset G.
@@ -694,10 +694,10 @@ End DadeExpansion.
 (* This is Peterfalvi (2.6)(b) *)
 Lemma Dade_vchar alpha : alpha \in 'Z[irr L, A] -> alpha^\tau \in 'Z[irr G].
 Proof.
-rewrite [alpha \in _]vchar_split => /andP[Zaa CFaa].
-rewrite Dade_expansion // opp_vchar // sum_vchar // => B dB.
+rewrite [alpha \in _]zchar_split => /andP[Zaa CFaa].
+rewrite Dade_expansion // opp_zchar // sum_zchar // => B dB.
 suffices calP_B: B \in calP.
-  by rewrite sign_vchar // cfInd_vchar // Dade_restriction_vchar.
+  by rewrite sign_zchar // cfInd_vchar // Dade_restriction_vchar.
 case/imsetP: dB => B0 /setIdP[sB0A notB00] defB.
 have [x Lx ->]: exists2 x, x \in L & B = B0 :^ x.
   by apply/imsetP; rewrite defB (mem_repr B0) ?orbit_refl.
@@ -707,8 +707,8 @@ Qed.
 (* This summarizes Peterfalvi (2.6). *)
 Lemma Dade_Zisometry : {in 'Z[irr L, A], isometry Dade, to 'Z[irr G, G^#]}.
 Proof.
-split; first by apply: sub_in2 Dade_isometry; exact: vchar_on.
-by move=> phi Zphi; rewrite /= vchar_split Dade_vchar ?Dade_cfun.
+split; first by apply: sub_in2 Dade_isometry; exact: zchar_on.
+by move=> phi Zphi; rewrite /= zchar_split Dade_vchar ?Dade_cfun.
 Qed.
 
 End Two.

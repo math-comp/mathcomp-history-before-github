@@ -468,16 +468,16 @@ have: forall j, injective (md j).1 /\
     have->: 0%N = (0 : Iirr W1) by [].
     by rewrite !Chi_nth memc_ecTIirr.
   have ChiI:  {in 'Z[Chi, W :\: W2], isometry 'Ind[L], to 'Z[irr L, L^#]}.
-    split=> [u v U V |fi Hfi]; first by apply: TH (vchar_on U) (vchar_on V).
+    split=> [u v U V |fi Hfi]; first by apply: TH (zchar_on U) (zchar_on V).
     have Wfi: fi \in 'Z[irr W].
       have: {subset Chi <= 'Z[irr W]}.
         by move=> u /mapP [i1 Hi1 ->]; exact: irr_vchar.
-      by move/vchar_sub_irr; apply; apply: vcharW Hfi.
-    rewrite vchar_split cfInd_vchar //.
+      by move/zchar_sub_irr; apply; apply: zcharW Hfi.
+    rewrite zchar_split cfInd_vchar //.
     apply: irr_vchar_on.
-    rewrite vcharD1E cfInd_vchar // cfInd1 //.
+    rewrite zcharD1E cfInd_vchar // cfInd1 //.
     case: (boolP (fi 1%g == 0))=> [/eqP->|HH]; first by rewrite mulr0 eqxx.
-    move: (vchar_on Hfi); rewrite cfun_onE=> /subsetP /(_ _ HH).
+    move: (zchar_on Hfi); rewrite cfun_onE=> /subsetP /(_ _ HH).
     by rewrite inE (group1 W2).
   (* Now we can apply 1.3 *)
   case: (vchar_isometry_base NirrW1Gt ChiS ChiF Chi1 ChiC ChiI)
@@ -626,7 +626,7 @@ Lemma Dade_mu2_mod i j :
 Proof.
 pose rD := 'Res[W1] 'chi_(mu2 i j) - 'Res[W1] ((-1) ^+ delta j *: w_ i j). 
 have rDV: rD \in 'Z[irr W1].
-  by rewrite sub_vchar // cfRes_vchar ?sign_vchar // irr_vchar.
+  by rewrite sub_zchar // cfRes_vchar ?sign_zchar // irr_vchar.
 have rDF: rD \in 'CF(W1, 1%g).
   apply/cfun_onP=> g Gni1. 
   case: (boolP (g \in W1))=> [GiW1|GniW1]; last by rewrite cfun0.
@@ -1402,10 +1402,10 @@ have Zphi: {in V, forall x, phi x = 0}=> [g GiV|].
   rewrite !(cyclicTIsigma_restrict _ GiV) // !cfunE (cDade_mu2_delta Emu1).
   by rewrite -mulrBr subrr.
 have Cmu: mu2 i j - mu2 i k \in 'CF(L, A0).
-  by rewrite cDade_mu2_on // andbT sub_vchar // irr_vchar.
+  by rewrite cDade_mu2_on // andbT sub_zchar // irr_vchar.
 have Zmu: tau (mu2 i j - mu2 i k) \in 'Z[irr G, G^#].
   case: (Dade_Zisometry CDH)=> _ -> //.
-  by rewrite vchar_split sub_vchar ?irr_vchar.
+  by rewrite zchar_split sub_zchar ?irr_vchar.
 have /(vchar_norm2 Zmu) [/= i1 [i2 Di1i2] Etau]: 
              '[tau (mu2 i j - mu2 i k)] = 2%:R.
   rewrite (Dade_isometry CDH) // cfdot_subl !cfdot_subr !cfdot_irr.
@@ -1718,8 +1718,8 @@ Lemma isometry_on_ortho_base :
   {in 'Z[S] &, isometry nu}.
 Proof.
 move=> Hn u v.
-case/vchar_expansion=> s1 Hs1 ->.
-case/vchar_expansion=> s2 Hs2 ->.
+case/zchar_expansion=> s1 Hs1 ->.
+case/zchar_expansion=> s2 Hs2 ->.
 rewrite !linear_sum !cfdot_suml big_seq_cond [X in _ = X]big_seq_cond.
 apply: eq_bigr=> i; rewrite andbT => IiS.
 rewrite !cfdot_sumr big_seq_cond [X in _ = X]big_seq_cond.
@@ -1799,20 +1799,20 @@ have ConjC: conjC_closed calT.
   apply: contra NZj=> /eqP HH.
   by rewrite -[j]conjC_IirrK HH conjC_Iirr0.
 have Equiv: 'Z[calT, L^#] =i 'Z[calT, A].
-  move=> f; rewrite vcharD1E; apply/idP/idP; last first.
-    rewrite (vchar_split _ A)=> /andP [-> FiA] /=.
+  move=> f; rewrite zcharD1E; apply/idP/idP; last first.
+    rewrite (zchar_split _ A)=> /andP [-> FiA] /=.
     apply/eqP; apply: (cfun_onP FiA).
     case: OH=> _ _ _ _ /subsetP=> /(_ 1%g).
     by move/contra; apply; rewrite !inE eqxx.
   case/andP=> Zf Vf1.
   have: f \in 'Z[calT, A :|: 1%G].
-    rewrite vchar_split Zf /=.
-    case: (vchar_expansion Zf)=> u Hu ->.
+    rewrite zchar_split Zf /=.
+    case: (zchar_expansion Zf)=> u Hu ->.
     rewrite big_map big_filter.
     apply: memv_suml=> i /andP [_ NZi].
     by apply: memvZ; apply: cDade_mu_support.
-  rewrite vchar_split cfun_onE=> /andP [_ Sf].
-  rewrite vchar_split Zf /= cfun_onE.
+  rewrite zchar_split cfun_onE=> /andP [_ Sf].
+  rewrite zchar_split Zf /= cfun_onE.
   apply/subsetP=> g GniF.
   move/subsetP: Sf => /(_ _ GniF).
   rewrite !inE => /orP [] // /eqP Ge1.
@@ -1823,8 +1823,8 @@ have NEmpty: exists2 psi, psi != 0 & psi \in 'Z[calT, A].
   exists (mu (conjC_Iirr k) - mu k).
     rewrite subr_eq0.
     by move/hasPn: NReal => /(_ _ FF); rewrite (Dade_mu_aut PtypeL).
-  rewrite -Equiv vcharD1E; apply/andP; split.
-    apply: sub_vchar; apply: mem_vchar=> //; try by apply: orthogonal_free.
+  rewrite -Equiv zcharD1E; apply/andP; split.
+    apply: sub_zchar; apply: mem_zchar=> //; try by apply: orthogonal_free.
     by rewrite (Dade_mu_aut PtypeL); apply: ConjC.
   rewrite !cfunE (Dade_mu_aut PtypeL).
   move: (ConjC _ FF); case/imageP=> i1 /andP [/eqP <- _] ->.
@@ -1888,13 +1888,13 @@ exists tau1=> //; split.
     move=> i2 Di2i1.
     case: (cyclicTIisometry tiW)=> ->; rewrite ?irr_vchar //.
     by rewrite (cfdot_cTIirr tiW) (negPf Di2i1).
- move=> u; case/vchar_expansion=> s Hs ->.
- rewrite linear_sum big_seq_cond; apply: sum_vchar=> i.
+ move=> u; case/zchar_expansion=> s Hs ->.
+ rewrite linear_sum big_seq_cond; apply: sum_zchar=> i.
  rewrite andbT=> /imageP [i1 /andP [Hi1 Hi2]] ->.
- rewrite linearZ scale_vchar // Tau1Mu scale_vchar ?isIntC_sign //.
- apply: sum_vchar=> j1 _.
+ rewrite linearZ scale_zchar // Tau1Mu scale_zchar ?isIntC_sign //.
+ apply: sum_zchar=> j1 _.
  by case: (cyclicTIisometry tiW)=> _; apply; apply: irr_vchar.
-move=> u; rewrite vcharD1E => /andP [] /vchar_expansion [s Hs ->] Hu.
+move=> u; rewrite zcharD1E => /andP [] /zchar_expansion [s Hs ->] Hu.
 have->: \sum_(a <- calT) s a *: a =
         \sum_(a <- calT | (a \in calT) && (a != mu k)) s a *: (a - mu k).
   move: Hu; rewrite sum_cfunE.

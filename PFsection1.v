@@ -273,8 +273,8 @@ have dot_chi i j: '[chi i, chi j] = (i == j)%:R.
 pose F i j := chi i - chi j.
 have DF i j : F i j =  F i 0 - F j 0 by rewrite /F opprB addrA subrK.
 have ZF i j: F i j \in 'Z[Chi, L].
-  rewrite vchar_split; apply/andP; split.
-    by apply: sub_vchar; apply: mem_vchar.
+  rewrite zchar_split; apply/andP; split.
+    by apply: sub_zchar; apply: mem_zchar.
   by rewrite DF memvB // /F !chiE.
 have htau2 i j: i != j -> '[tau (F i j)] = 2%:R.
   rewrite iso_tau // cfnorm_sub -cfdotC !dot_chi !eqxx eq_sym => /negbTE->.
@@ -669,6 +669,33 @@ apply:(@mulfI _ ('chi_t 1%g)); rewrite ?irr1_neq0 // !(mulrC ('chi_t 1%g)).
 by apply:(@mulfI _ e1); rewrite  -?irr_consttE.
 Qed.
 
+(* Isaacs 6.28 preliminary *)
+
+Fact cfRepr_det_subproof  (rG : mx_representation algC G 1%N) :
+  is_class_fun <<G>> [ffun x => \det (rG x) *+ (x \in G)].
+Proof.
+rewrite genGid; apply: intro_class_fun => [x y Gx Gy | _ /negbTE-> //].
+rewrite groupJr // !repr_mxM ?groupM ?groupV // !det_mulmx.
+by rewrite mulrC  repr_mxV // det_inv  mulrK // -unitmxE  repr_mx_unit.
+Qed.
+
+Definition cfRepr_det  rG := Cfun 0 (@cfRepr_det_subproof  rG).
+
+
+
+Goal  forall  (rG:  mx_representation algC G 1%N), 
+ lin_char (cfRepr_det rG).
+Proof.
+move =>  rG; apply/andP; split; last by rewrite cfunE group1 repr_mx1 det1.
+apply/is_charP.  
+have rGyP: mx_repr G (fun x =>  (\det (rG x) *+ (x \in G))%:M:'M_1).
+  split=> [|x1 x2 Hx1 Hx2]; first by rewrite group1 repr_mx1 det1 ?groupM.   
+  rewrite  !repr_mxM ?groupM  ?det_mulmx /= ?Hx1 ?Hx2 //=.
+  by rewrite !mulr1n scalar_mxM.
+exists (Representation (MxRepresentation rGyP) )=> //=.
+apply/cfunP=> x;rewrite !cfunE  mxtrace_scalar mulr1n.
+by case:(boolP (x \in G)); rewrite ?mulr1n.
+Qed.
 
 (* This is Peterfalvi (1.7c). *)
 Lemma induced_inertia_quo1:
@@ -839,7 +866,7 @@ have [Xx Xy]: x \in X /\ y \in X by apply/andP; rewrite -!sub1set -join_subG.
 have sXG: X \subset G by rewrite join_subG !sub1set Gx.
 suffices{chi Zchi} IHiX i: ('chi[X]_i (x * y)%g == 'chi_i y %[mod e])%A.
   rewrite -!(cfResE _ sXG) ?groupM //.
-  have /vchar_expansion[c Zc ->] := cfRes_vchar X Zchi.
+  have /zchar_expansion[c Zc ->] := cfRes_vchar X Zchi.
   rewrite !sum_cfunE /eqAmod -sumrB big_seq rpred_sum // => _  /irrP[i ->].
   by rewrite !cfunE [(_ %| _)%A]eqAmodMl // rpred_Cint.
 have lin_chi: lin_char 'chi_i.
