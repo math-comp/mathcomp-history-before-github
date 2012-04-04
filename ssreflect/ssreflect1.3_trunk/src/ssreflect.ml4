@@ -2899,8 +2899,8 @@ let tclDO n tac =
     try tac gl
     with 
     | Errors.UserError (l, s) -> raise (Errors.UserError (l, prefix i ++ s))
-    | Stdpp.Exc_located(loc, Errors.UserError (l, s))  -> 
-        raise (Stdpp.Exc_located(loc, Errors.UserError (l, prefix i ++ s))) in
+    | Compat.Loc.Exc_located(loc, Errors.UserError (l, s))  -> 
+        raise (Compat.Loc.Exc_located(loc, Errors.UserError (l, prefix i ++ s))) in
   let rec loop i gl =
     if i = n then tac_err_at i gl else
     (tclTHEN (tac_err_at i) (loop (i + 1))) gl in
@@ -5183,7 +5183,9 @@ let unfoldintac occ rdx t (kt,_) gl =
         with _ -> errorstrm (str "The term " ++
           pr_constr c ++spc()++ str "does not unify with " ++ pr_constr_pat t)),
     fake_pmatcher_end in
-  let concl = beta env0 (eval_pattern env0 sigma0 concl0 rdx occ unfold) in
+  let concl = 
+    try beta env0 (eval_pattern env0 sigma0 concl0 rdx occ unfold) 
+    with Option.IsNone -> errorstrm (str"Failed to unfold " ++ pr_constr_pat t) in
   let _ = conclude () in
   convert_concl concl gl
 ;;
