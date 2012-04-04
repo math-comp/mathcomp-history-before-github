@@ -3254,58 +3254,13 @@ let nf_open_term sigma0 ise c =
     | _ -> () in
   let c' = nf c in let _ = Evd.fold copy_def sigma0 () in !s', c'
 
-(* We try to work around the fact that evarconv drops secondary unification *)
-(* problems; we give up after 10 iterations because Evarutil.solve_refl can *)
-(* cause divergence. We also need to recheck type-correctness of all evar   *)
-(* assignments because the checks in both evarconv and unification are      *)
-(* INCOMPLETE.                                                              *)
-
-(* Workaround for Coq bug #2129. *)
-let is_unfiltered evi = List.for_all (fun b -> b) (Evd.evar_filter evi)
-(*
 let unif_end env sigma0 ise0 pt ok =
-  let rec loop sigma ise m =
-    if snd (extract_all_conv_pbs ise) != [] then
-      if m = 0 then raise NoMatch
-      else let ise' = Evarconv.consider_remaining_unif_problems env ise in
-	loop sigma ise' (m - 1)
-    else
-    let sigma' = ise in
-    if sigma' != sigma then
-      let undefined ev = try not (Evd.is_defined sigma ev) with _ -> true in
-      let unif_evtype ev evi ise' = match evi.evar_body with
-      | Evar_defined c when undefined ev && is_unfiltered evi ->
-        let ev_env = Evd.evar_env evi in
-        let t = Retyping.get_type_of ev_env ise' c in
-        unif_HOtype ev_env ise' t evi.evar_concl
-      | _ -> ise' in
-      loop sigma' (Evd.fold unif_evtype sigma' ise) m    
-    else
-      (* Assume the proof engine ensures that typeclass evar assignments *)
-      (* are type-correct. *)
-      let s, t = nf_open_term sigma0 ise pt in
-      let ise1 = create_evar_defs s in
-      let ise2 = Typeclasses.resolve_typeclasses ~fail:true env ise1 in
-      if not (ok ise) then raise NoMatch else (* RW progress check *)
-      if ise2 == ise1 then (s, t) else nf_open_term sigma0 ise2 t in
-   loop sigma0 ise0 10
-   *)
-
-(* This a version of unif_end without retyping; it should replace the one
-   above if/when evarconv and unification get fixed.
-*)
-let unif_end env sigma0 ise0 pt ok =
-  let rec loop ise m =
-    if snd (extract_all_conv_pbs ise) = [] then
-      let s, t = nf_open_term sigma0 ise pt in
-      let ise1 = create_evar_defs s in
-      let ise2 = Typeclasses.resolve_typeclasses ~fail:true env ise1 in
-      if not (ok ise) then raise NoMatch else (* RW progress check *)
-      if ise2 == ise1 then (s, t) else nf_open_term sigma0 ise2 t
-    else if m = 0 then raise NoMatch
-    else let ise' = Evarconv.consider_remaining_unif_problems env ise in
-	loop ise' (m - 1) in
-  loop ise0 10
+  let ise = Evarconv.consider_remaining_unif_problems env ise0 in
+  let s, t = nf_open_term sigma0 ise pt in
+  let ise1 = create_evar_defs s in
+  let ise2 = Typeclasses.resolve_typeclasses ~fail:true env ise1 in
+  if not (ok ise) then raise NoMatch else (* RW progress check *)
+  if ise2 == ise1 then (s, t) else nf_open_term sigma0 ise2 t
 
 let pf_unif_HO gl sigma pt p c =
   let env = pf_env gl in
