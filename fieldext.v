@@ -960,16 +960,6 @@ rewrite monicE /lead_coef size_minPoly coefB coefXn eq_refl.
 by rewrite nth_default ?subr0 // size_poly_for.
 Qed.
 
-Lemma root_minPoly_subproof : x ^+ elementDegree \in Fadjoin ->
-  root minPoly x.
-Proof.
-move => HxED.
-rewrite /root !hornerE_comm horner_sum hornerXn.
-rewrite -{1}(sumv_pi_sum (erefl Fadjoin) HxED) subr_eq0.
-apply/eqP/eq_bigr => i _.
-by rewrite !hornerE_comm hornerXn -memv_prodv_line_coef ?memv_sum_pi.
-Qed.
-
 End FadjoinDefinitions.
 
 Section Fadjoin.
@@ -1047,14 +1037,14 @@ apply: (mulIf (expf_neq0 i nzx)).
 case: (leqP (elementDegree K x) i) => Hi; last first.
   by apply/eqP; apply (Hpq (Ordinal Hi)).
 by rewrite (_ : p`_i = 0) ?mul0r; first rewrite (_ : q`_i = 0) ?mul0r //;
- move: Hi; [ move/(leq_trans szq) | move/(leq_trans szp) ];
- move/leq_sizeP; apply.
+  move: Hi; [ move/(leq_trans szq) | move/(leq_trans szp) ];
+  move/leq_sizeP; apply.
 Qed.
 
 Lemma XED_subproof : x ^+ (elementDegree K x) \in (Fadjoin K x).
 case: (eqVneq x 0).
- move ->.
- by rewrite exprS mul0r mem0v.
+  move ->.
+  by rewrite exprS mul0r mem0v.
 rewrite capv_KxED_subproof.
 rewrite -vpick0.
 set W := (_ :&: _)%VS.
@@ -1064,10 +1054,10 @@ case/andP.
 move/memv_prodv_line_coef ->.
 set k := (_ / _) => Hk.
 have: (k \in K).
- move: (memv_pick W).
- rewrite memv_cap.
- case/andP.
- by move/prodv_line_coefK.
+  move: (memv_pick W).
+  rewrite memv_cap.
+  case/andP.
+  by move/prodv_line_coefK.
 rewrite -memv_inv mulf_eq0 negb_or => Hkinv.
 case/andP => nzk _.
 rewrite -[x ^+ _](mulKf nzk).
@@ -1080,40 +1070,15 @@ by rewrite mulrA memv_prod ?memv_line // memv_mul // prodv_line_coefK.
 Qed.
 
 Lemma root_minPoly : root (minPoly K x) x. 
-Proof. by rewrite root_minPoly_subproof // XED_subproof. Qed.
+Proof.
+rewrite /root !hornerE_comm horner_sum hornerXn.
+rewrite -{1}(sumv_pi_sum (erefl (Fadjoin _ _)) XED_subproof) subr_eq0.
+apply/eqP/eq_bigr => i _.
+by rewrite !hornerE_comm hornerXn -(@memv_prodv_line_coef K) ?memv_sum_pi.
+Qed.
 
 Lemma minPolyxx : (minPoly K x).[x] = 0.
 Proof. by move: root_minPoly; rewrite /root; move/eqP ->. Qed.
-
-(* GG - not used !! *)
-Lemma minPoly_coef0 : ((minPoly K x)`_0 == 0) = (x == 0).
-Proof.
-case (@eqP _ x 0) => Hx.
-  move: Hx root_minPoly => ->.
-  rewrite /root horner_coef size_minPoly big_ord_recl big1
-          ?expr0 ?mulr1 ?addr0 // => i _.
-  by rewrite exprSr !mulr0.
-move: (minPoly K x) minPolyOver root_minPoly (size_minPoly K x) => p.
-move/polyOverP => pK rootp sizep.
-do 2 apply/negP.
-have: (lead_coef p != 0) by rewrite lead_coef_eq0 -size_poly_eq0 sizep.
-apply: contra.
-move/eqP => p0.
-move/directv_sumP: (direct_Fadjoin K x).
-move/eqP: Hx rootp => Hx.
-rewrite /root horner_coef sizep big_ord_recl p0 mul0r add0r
-        -(can_eq (mulfVK Hx)) mulr_suml mul0r => sump.
-have Hxi : x ^+ ((elementDegree K x).-1) != 0.
-  by rewrite expf_eq0 negb_and Hx orbT.
-rewrite -(can_eq (mulfK Hxi)) mul0r -memv0.
-move/(_ ord_max isT) <-.
-rewrite memv_cap lead_coefE sizep.
-apply/andP; split; first by rewrite memv_prod ?memv_line ?pK.
-rewrite [nth 0]lock /= (bigD1 ord_max) // [ord_max]lock /= -!lock in sump.
-rewrite -/(elementDegree K x) addr_eq0 exprSr mulrA mulfK // in sump.
-rewrite {sump}(eqP sump) memvN memv_sumr // => i _.
-by rewrite exprSr mulrA (mulfK Hx) memv_prod ?memv_line ?pK.
-Qed.
 
 Lemma poly_Fadjoin v :
   reflect (exists p, p \in polyOver K /\ v = p.[x]) (v \in Fadjoin K x).

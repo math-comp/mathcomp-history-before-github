@@ -5,9 +5,7 @@ Require Import finset fingroup perm finalg zmodp cyclic finfield.
 Require Import matrix mxalgebra mxpoly polyXY vector falgebra fieldext.
 
 (******************************************************************************)
-(* This file is supposed to provide theory of separable and inseparable field *)
-(* extensions, however it is currently half about general field extentions    *)
-(* and this half should perhaps be move elsewhere.                            *)
+(* This file provides a theory of separable and inseparable field extensions  *)
 (*                                                                            *)
 (*  separablePolynomial p == p has no repeated roots in any field extension   *)
 (*   separableElement K x == the minimal polynomial for x is separable        *)
@@ -180,6 +178,12 @@ Qed.
 
 End SeparablePoly.
 
+Lemma separable_map (F : fieldType) (R:idomainType) (f : {rmorphism F -> R})
+ (p : {poly F}) : separablePolynomial (map_poly f p) = separablePolynomial p.
+Proof.
+by rewrite /separablePolynomial deriv_map /coprimep -gcdp_map size_map_poly.
+Qed.
+
 Section InfinitePrimitiveElementTheorem.
 
 Local Notation "p ^ f" := (map_poly f p) : ring_scope.
@@ -349,10 +353,7 @@ Lemma PET_char0 : forall q : {poly F},
   (exists q0, (q0 ^ iota).[y *+ n - x] = y).
 Proof.
 move => q qne0 Hqy; move/charf0P => Hchar.
-move: (dvdp_gcdl q q^`()).
-(* assia : should use dvdpP here *)
-rewrite dvdp_eq.
-set qq := _ %/ _ => /eqP Hq.
+case/dvdpP: (dvdp_gcdl q q^`()) => [qq Hq].
 have Hqqy : root (qq ^ iota) y.
   have [[|n] [r Hry Hqr]] := multiplicity_XsubC (q ^ iota) y.
     by move: Hqy Hry; rewrite map_poly_eq0 qne0 Hqr mulr1 => ->.
@@ -1312,7 +1313,6 @@ End FiniteCase.
 
 Hypothesis sep : separableElement K y.
 
-(* TODO: clean up this proof *)
 Lemma PrimitiveElementTheorem : exists z, Fadjoin (Fadjoin K y) x = Fadjoin K z.
 Proof.
 move/monic_neq0: (monic_minPoly K x).
@@ -1322,20 +1322,12 @@ case/separableElementP: sep => q0 [HKq0 [Hrootq0 Hsepq0]].
 move: (minPoly_dvdp HKq0 Hrootq0).
 case/polyOver_subvs: (minPolyOver K y) (root_minPoly K y) => q-> Hrootq Hqq0.
 move: (dvdp_separable Hqq0 Hsepq0).
-(* :TODO: make this into a theorem map_separablePolynomail *)
-rewrite /separablePolynomial.
-rewrite deriv_map.
-rewrite /coprimep.
-rewrite -gcdp_map.
-rewrite size_map_poly.
-rewrite -[_ == _]/(separablePolynomial q) => Hsepq.
+rewrite separable_map => Hsepq.
 case: (PET_Infinite_Case Hp0 Hrootp Hrootq Hsepq) => r [Hr HPET].
-case: (PET_finiteCase_subproof (size r)) => [[l]|//].
-case/and3P; move/allP => HKl Hl Hnml.
+case: (PET_finiteCase_subproof (size r)) => [[l /and3P [/allP HKl Hl Hnml]]|//].
 move/contra: (fun x => max_poly_roots Hr x Hl).
 rewrite -leqNgt.
-move/(_ (ltnW Hnml)).
-case/allPn => c /HKl Hc Hrootc.
+case/(_ (ltnW Hnml))/allPn => c /HKl Hc Hrootc.
 case: (HPET (Subvs Hc) Hrootc).
 set z := (_ * y - x) => [[a Ha] [b Hb]].
 exists z.
@@ -1623,7 +1615,8 @@ by rewrite (subsetSeparable _ (Hsep _ Hv)) // subsetKFadjoin.
 Qed.
 
 Lemma separableSeparableGenerator : forall E K,
- separable K E -> (K <= E)%VS -> E = Fadjoin K (separableGenerator K E) :> {vspace _}.
+ separable K E -> (K <= E)%VS ->
+ E = Fadjoin K (separableGenerator K E) :> {vspace _}.
 Proof.
 move => E K Hsep HKE.
 apply: subv_anti.
