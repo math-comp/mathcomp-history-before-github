@@ -157,39 +157,6 @@ Qed.
 
 End polyorder_extra.
 
-Section polyXY_extra.
-
-Variable R R' : comRingType.
-Local Open Scope ring_scope.
-
-Local Notation "p ^ f" := (map_poly f p) : ring_scope.
-Local Notation "'Y" := 'X%:P.
-
-Lemma horner_swapXY (p : {poly {poly R}}) (x : R) :
-  (swapXY p).[x%:P] = (p ^ (eval x)).
-Proof.
-have [->|p_neq0] := eqVneq p 0; first by rewrite !(horner0, rmorph0).
-apply/polyP=> i /=; rewrite coef_map /= /eval horner_coef coef_sum -sizeYE.
-rewrite (@horner_coef_wide _ (sizeY p)); last first.
-  have [hi|hi] := leqP (size p) i; first by rewrite nth_default ?size_poly0.
-  by unlock sizeY; apply: leq_bigmax (Ordinal hi).
-by apply: eq_big=> // j _; rewrite -polyC_exp coefMC coef_swapXY.
-Qed.
-
-Lemma horner_polyC (p : {poly {poly R}}) x : p.[x%:P] = ((swapXY p) ^ (eval x)).
-Proof. by rewrite -horner_swapXY swapXYK. Qed.
-
-Lemma swapXY_map_poly2 (p : {poly {poly R}}) (f : {rmorphism  R -> R'}) :
-  swapXY (p ^ map_poly f) = (swapXY p) ^ map_poly f.
-Proof.
-by apply/polyP=> i; apply/polyP=> j; rewrite !(coef_swapXY, coef_map).
-Qed.
-
-Lemma sizeY_eq0 (p : {poly {poly R}}) : (sizeY p == 0%N) = (p == 0)%B.
-Proof. by rewrite sizeYE size_poly_eq0 swapXY_eq0. Qed.
-
-End polyXY_extra.
-
 Section polyXY_order_extra.
 
 Variable F : realFieldType.

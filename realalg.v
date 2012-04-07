@@ -1,7 +1,7 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import bigop ssralg ssrnum ssrint rat poly polydiv polyorder.
 Require Import perm matrix mxpoly polyXY binomial generic_quotient.
-Require Import cauchyreals.
+Require Import cauchyreals separable zmodp.
 
 Import GRing.Theory Num.Theory EpsilonReasonning.
 
@@ -919,35 +919,6 @@ Proof. by unlock annul_alg; rewrite monic_annul_creal. Qed.
 Lemma annul_alg_neq0 (x : {alg F}) : annul_alg x != 0.
 Proof. by rewrite monic_neq0 ?monic_annul_alg. Qed.
 
-Require Import separable.
-
-Definition alg_seq_poly := ({alg F} * seq {poly F})%type.
-Definition seq_seqF := seq (seq F).
-
-Definition encode_alg_seq_poly (ap : alg_seq_poly) : seq_seqF :=
-  encode_algdom (to_algdom (repr ap.1)) :: map (@polyseq _) ap.2.
-
-Definition decode_alg_seq_poly (s : seq_seqF) : option alg_seq_poly :=
-  if decode_algdom (head [::] s) is Some a
-    then Some (\pi (to_algcreal a), map Poly (behead s)) else None.
-
-Lemma code_alg_seq_polyK : pcancel encode_alg_seq_poly decode_alg_seq_poly.
-Proof.
-move=> []; elim/quotW=> x sp; rewrite /encode_alg_seq_poly /=.
-rewrite [encode_algdom _]lock /decode_alg_seq_poly /=.
-rewrite -lock encode_algdomK; congr (Some (_, _)).
-  by rewrite -equiv_alg to_algdomK equiv_alg reprK.
-by rewrite -map_comp map_id_in // => p _ /=; rewrite polyseqK.
-Qed.
-
-Canonical alg_seq_poly_eqMixin := PcanEqMixin code_alg_seq_polyK.
-Canonical alg_seq_poly_eqType := EqType alg_seq_poly alg_seq_poly_eqMixin.
-Definition alg_seq_poly_choiceMixin := PcanChoiceMixin code_alg_seq_polyK.
-Canonical alg_seq_poly_ChoiceType :=
-  ChoiceType alg_seq_poly alg_seq_poly_choiceMixin.
-
-Require Import zmodp.
-
 Lemma map_comp_poly (aR : fieldType) (rR : idomainType) (f : {rmorphism aR -> rR})
    (p q : {poly aR}) : (p \Po q) ^ f = (p ^ f) \Po (q ^ f).
 Proof.
@@ -956,40 +927,6 @@ rewrite !comp_polyE size_map_poly; apply: (big_ind2 (fun x y => x ^ f = y)).
 + by move=> u u' v v' /=; rewrite rmorphD /= => -> ->.
 move=> /= i _; rewrite -mul_polyC rmorphM /= map_polyC mul_polyC.
 by rewrite coef_map rmorphX.
-Qed.
-
-Lemma pet_alg_proof (s : seq alg) :
-  { ap : alg_seq_poly |
-    forallb i : 'I_(size s), (ap.2`_i ^ to_alg).[ap.1] == s`_i
-    &  size ap.2 = size s }.
-Proof.
-apply: sig2_eqW; elim: s; first by exists (0,[::])=> //; apply/forallP=> [] [].
-move=> x s [[a sp] /forallP /= hs hsize].
-have := PET_char0 _ (root_annul_alg a) _ (root_annul_alg x).
-rewrite !annul_alg_neq0=> /(_ isT isT (char_num _)) /= [n [[p hp] [q hq]]].
-exists (x *+ n - a, q :: [seq r \Po p | r <- sp]); last first.
-  by rewrite /= size_map hsize.
-apply/forallP=> /=; rewrite -add1n=> i; apply/eqP.
-have [k->|l->] := splitP i; first by rewrite !ord1.
-rewrite add1n /= (nth_map 0) ?hsize // map_comp_poly /=.
-by rewrite horner_comp hp; apply/eqP.
-Qed.
-
-Definition pet_alg s : {alg F} :=
-  let: exist2 (a, _) _ _ := pet_alg_proof s in a.
-Definition pet_alg_poly s : seq {poly F}:=
-  let: exist2 (_, sp) _ _ := pet_alg_proof s in sp.
-
-Lemma size_pet_alg_poly s : size (pet_alg_poly s) = size s.
-Proof. by unlock pet_alg_poly; case: pet_alg_proof. Qed.
-
-Lemma pet_algK s i :
-   ((pet_alg_poly s)`_i ^ to_alg).[pet_alg s] = s`_i.
-Proof.
-rewrite /pet_alg /pet_alg_poly; case: pet_alg_proof.
-move=> [a sp] /= /forallP hs hsize; have [lt_is|le_si] := ltnP i (size s).
-  by rewrite -[i]/(val (Ordinal lt_is)); apply/eqP; apply: hs.
-by rewrite !nth_default ?hsize // rmorph0 horner0.
 Qed.
 
 Lemma ler_to_alg : {mono to_alg : x y / x <= y}.
@@ -1045,32 +982,21 @@ Proof.
 by unlock approx; case: approx_proof=> /= y hy /hy /ltr_le_trans hy' /hy'.
 Qed.
 
-Definition poly_ground := locked (fun (p : {poly {alg F}}) =>
-  swapXY (Poly (pet_alg_poly p)) : {poly {poly F}}).
-
-Lemma sizeY_poly_ground p : sizeY (poly_ground p) = size p.
+Lemma pet_alg_proof (s : seq alg) :
+  { ap : {alg F} * seq {poly F} |
+    forallb i : 'I_(size s), (ap.2`_i ^ to_alg).[ap.1] == s`_i
+    &  size ap.2 = size s }.
 Proof.
-unlock poly_ground; rewrite sizeYE swapXYK; have [->|p_neq0] := eqVneq p 0.
-  apply/eqP; rewrite size_poly0 eqn_leq leq0n (leq_trans (size_Poly _)) //.
-  by rewrite size_pet_alg_poly size_poly0.
-rewrite (@PolyK _ 0) -?nth_last ?size_pet_alg_poly //.
-have /eqP := (pet_algK p (size p).-1); apply: contraL=> /eqP->.
-by rewrite rmorph0 horner0 -lead_coefE eq_sym lead_coef_eq0.
-Qed.
-
-Lemma poly_ground_eq0 p : (poly_ground p == 0) = (p == 0).
-Proof. by rewrite -sizeY_eq0 sizeY_poly_ground size_poly_eq0. Qed.
-
-Lemma poly_ground0 : poly_ground 0 = 0.
-Proof. by apply/eqP; rewrite poly_ground_eq0. Qed.
-
-Lemma poly_groundK p :
-  ((poly_ground p) ^ (map_poly to_alg)).[(pet_alg p)%:P] = p.
-Proof.
-have [->|p_neq0] := eqVneq p 0; first by rewrite poly_ground0 rmorph0 horner0.
-unlock poly_ground; rewrite horner_polyC /eval /= swapXY_map_poly2 swapXYK.
-apply/polyP=> i /=; rewrite coef_map_id0 ?horner0 // coef_map /=.
-by rewrite coef_Poly pet_algK.
+apply: sig2_eqW; elim: s; first by exists (0,[::])=> //; apply/forallP=> [] [].
+move=> x s [[a sp] /forallP /= hs hsize].
+have := PET_char0 _ (root_annul_alg a) _ (root_annul_alg x).
+rewrite !annul_alg_neq0=> /(_ isT isT (char_num _)) /= [n [[p hp] [q hq]]].
+exists (x *+ n - a, q :: [seq r \Po p | r <- sp]); last first.
+  by rewrite /= size_map hsize.
+apply/forallP=> /=; rewrite -add1n=> i; apply/eqP.
+have [k->|l->] := splitP i; first by rewrite !ord1.
+rewrite add1n /= (nth_map 0) ?hsize // map_comp_poly /=.
+by rewrite horner_comp hp; apply/eqP.
 Qed.
 
 Lemma weak_ivt (p : {poly F}) (a b : F) : a <= b -> p.[a] <= 0 <= p.[b] ->
@@ -1126,6 +1052,51 @@ move=> x /=; have [] := ger0P; have [] := ger0P x%:RA;
   rewrite ?rmorph0 ?rmorphN ?oppr0 //=.
   by rewrite ltr_to_alg lerNgt => ->.
 by rewrite ler_to_alg ltrNge => ->.
+Qed.
+
+Definition pet_alg s : {alg F} :=
+  let: exist2 (a, _) _ _ := pet_alg_proof s in a.
+Definition pet_alg_poly s : seq {poly F}:=
+  let: exist2 (_, sp) _ _ := pet_alg_proof s in sp.
+
+Lemma size_pet_alg_poly s : size (pet_alg_poly s) = size s.
+Proof. by unlock pet_alg_poly; case: pet_alg_proof. Qed.
+
+Lemma pet_algK s i :
+   ((pet_alg_poly s)`_i ^ to_alg).[pet_alg s] = s`_i.
+Proof.
+rewrite /pet_alg /pet_alg_poly; case: pet_alg_proof.
+move=> [a sp] /= /forallP hs hsize; have [lt_is|le_si] := ltnP i (size s).
+  by rewrite -[i]/(val (Ordinal lt_is)); apply/eqP; apply: hs.
+by rewrite !nth_default ?hsize // rmorph0 horner0.
+Qed.
+
+Definition poly_ground := locked (fun (p : {poly {alg F}}) =>
+  swapXY (Poly (pet_alg_poly p)) : {poly {poly F}}).
+
+Lemma sizeY_poly_ground p : sizeY (poly_ground p) = size p.
+Proof.
+unlock poly_ground; rewrite sizeYE swapXYK; have [->|p_neq0] := eqVneq p 0.
+  apply/eqP; rewrite size_poly0 eqn_leq leq0n (leq_trans (size_Poly _)) //.
+  by rewrite size_pet_alg_poly size_poly0.
+rewrite (@PolyK _ 0) -?nth_last ?size_pet_alg_poly //.
+have /eqP := (pet_algK p (size p).-1); apply: contraL=> /eqP->.
+by rewrite rmorph0 horner0 -lead_coefE eq_sym lead_coef_eq0.
+Qed.
+
+Lemma poly_ground_eq0 p : (poly_ground p == 0) = (p == 0).
+Proof. by rewrite -sizeY_eq0 sizeY_poly_ground size_poly_eq0. Qed.
+
+Lemma poly_ground0 : poly_ground 0 = 0.
+Proof. by apply/eqP; rewrite poly_ground_eq0. Qed.
+
+Lemma poly_groundK p :
+  ((poly_ground p) ^ (map_poly to_alg)).[(pet_alg p)%:P] = p.
+Proof.
+have [->|p_neq0] := eqVneq p 0; first by rewrite poly_ground0 rmorph0 horner0.
+unlock poly_ground; rewrite horner_polyC /eval /= swapXY_map_poly2 swapXYK.
+apply/polyP=> i /=; rewrite coef_map_id0 ?horner0 // coef_map /=.
+by rewrite coef_Poly pet_algK.
 Qed.
 
 Lemma annul_from_alg_proof (p : {poly alg}) (q : {poly F}) :
