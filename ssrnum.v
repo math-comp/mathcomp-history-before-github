@@ -198,7 +198,7 @@ Definition maxr (R : NumIntegralDomain.type) (x y : R) :=
 Definition Rreal {R : NumIntegralDomain.type} :=
   [ qualify x : R | (0 <= x) || (x <= 0) ].
 Fact real_key R : pred_key (@Rreal R). Proof. by []. Qed.
-Canonical real_keyed R := KeyedQualifier (@real_key R).
+Definition real_keyed R := KeyedQualifier (@real_key R).
 
 Prenex Implicits sgr minr maxr normr.
 
@@ -231,6 +231,10 @@ Section NumIntegralDomainTheory.
 
 Variable R : NumIntegralDomain.type.
 Implicit Types x y z t : R.
+
+(* Define real_keyed as canonical *)
+
+Canonical real_keyed.
 
 (* Lemmas from the signature *)
 
