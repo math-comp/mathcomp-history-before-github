@@ -10,27 +10,6 @@ Unset Printing Implicit Defensive.
 
 Delimit Scope creal_scope with CR.
 
-(* GG - subsumed by new Choice interface
-Section choice_extra.
-
-Definition square_type (T : Type) := (T * T)%type.
-Definition encode_square_type T (x : square_type T) : seq T := [::x.1; x.2].
-Definition decode_square_type T (x : seq T) : option (square_type T) :=
-  if x is [::a; b] then Some (a, b) else None.
-Lemma code_square_typeK T :
-  pcancel (@encode_square_type T) (@decode_square_type T). Proof. by case. Qed.
-
-Definition square_type_EqMixin (T : eqType) :=
-  PcanEqMixin (@code_square_typeK T).
-Canonical square_type_EqType (T : eqType) :=
-  EqType (square_type T) (@square_type_EqMixin T).
-Definition square_type_ChoiceMixin (T : choiceType) :=
-  PcanChoiceMixin (@code_square_typeK T).
-Canonical square_type_ChoiceType (T : choiceType) :=
-  ChoiceType (square_type T) (@square_type_ChoiceMixin T).
-
-End choice_extra.
-*)
 Section poly_extra.
 
 Local Open Scope ring_scope.
