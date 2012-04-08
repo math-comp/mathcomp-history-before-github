@@ -732,6 +732,12 @@ Proof. by rewrite realE => ->. Qed.
 Lemma ler0_real x : x <= 0 -> x \is real.
 Proof. by rewrite realE orbC => ->. Qed.
 
+Lemma gtr0_real x : 0 < x -> x \is real.
+Proof. by move=> /ltrW /ger0_real. Qed.
+
+Lemma ltr0_real x : x < 0 -> x \is real.
+Proof. by move=> /ltrW /ler0_real. Qed.
+
 Lemma real0 : 0 \is (@Rreal R). Proof. by rewrite realE lerr. Qed.
 Hint Resolve real0.
 
@@ -763,6 +769,7 @@ Canonical real_zmodPred := ZmodPred real_zmod_closed.
 Lemma realN : {mono (@GRing.opp R) : x /  x \is real}.
 Proof. exact: rpredN. Qed.
 
+(* :TODO: add a rpredBC in ssralg *)
 Lemma realBC x y : (x - y \is real) = (y - x \is real).
 Proof. by rewrite -realN opprB. Qed.
 
@@ -1088,6 +1095,15 @@ elim: r=> [|a r ihr hr] /=; rewrite (big_nil, big_cons); first by rewrite eqxx.
 by case: ifP=> pa /=; rewrite ?paddr_eq0 ?ihr ?hr // sumr_ge0.
 Qed.
 
+(* :TODO: Cyril : See which form to keep *)
+Lemma psumr_eq0P (I : finType) (P : pred I) (F : I -> R) :
+     (forall i, P i -> 0 <= F i) -> \sum_(i | P i) F i = 0 ->
+  (forall i, P i -> F i = 0).
+Proof.
+move=> F_ge0 /eqP; rewrite psumr_eq0 // -big_all big_andE => /forallP hF i Pi.
+by move: (hF i); rewrite implyTb Pi /= => /eqP.
+Qed.
+
 (* mulr and ler/ltr *)
 
 Lemma ler_pmul2l x (hx : 0 < x) : {mono *%R x : x y / x <= y}.
@@ -1238,8 +1254,11 @@ Proof. by rewrite ler_pmuln2l. Qed.
 Lemma ltr_nat m n : (m%:R < n%:R :> R) = (m < n)%N.
 Proof. by rewrite ltr_pmuln2l. Qed.
 
-Lemma eqr_nat  m n : (m%:R == n%:R :> R) = (m == n)%N.
+Lemma eqr_nat m n : (m%:R == n%:R :> R) = (m == n)%N.
 Proof. by rewrite (inj_eq (mulrIn _)) ?oner_eq0. Qed.
+
+Lemma pnatr_eq1 n : (n%:R == 1 :> R) = (n == 1)%N.
+Proof. exact: eqr_nat 1%N. Qed.
 
 Lemma lern0 n : (n%:R <= 0 :> R) = (n == 0%N).
 Proof. by rewrite -[0]/0%:R ler_nat leqn0. Qed.
@@ -1341,6 +1360,11 @@ Proof. by move=> x_le0 y_le0; rewrite -(mulr0 x) ler_wpmul2l. Qed.
 
 Lemma mulr_le0_ge0 x y : x <= 0 -> 0 <= y -> x * y <= 0.
 Proof. by move=> x_le0 y_le0; rewrite -(mulr0 x) ler_wnmul2l. Qed.
+
+(* mulr_gt0 with only one case *)
+
+Lemma mulr_gt0 x y : 0 < x -> 0 < y -> 0 < x * y.
+Proof. by move=> x_gt0 y_gt0; rewrite pmulr_rgt0. Qed.
 
 (* real of mul *)
 
@@ -1482,6 +1506,12 @@ Proof. by rewrite -oppr_cp0 -invrN invr_ge0 oppr_cp0. Qed.
 
 Definition invr_gte0 := (invr_ge0, invr_gt0).
 Definition invr_lte0 := (invr_le0, invr_lt0).
+
+Lemma divr_ge0 x y : 0 <= x -> 0 <= y -> 0 <= x * y.
+Proof. by move=> x_ge0 y_ge0; rewrite mulr_ge0 ?invr_ge0. Qed.
+
+Lemma divr_gt0 x y : 0 < x -> 0 < y -> 0 < x * y.
+Proof. by move=> x_gt0 y_gt0; rewrite pmulr_rgt0 ?invr_gt0. Qed.
 
 Lemma realV : {mono (@GRing.inv R) : x / x \is real}.
 Proof. by move=> x /=; rewrite !realE invr_ge0 invr_le0. Qed.
@@ -1881,6 +1911,48 @@ rewrite -[x]opprK -mulN1r exprMn -signr_odd (negPf even_n) expr0 mul1r.
 by rewrite exprn_ge0 ?oppr_ge0 ?ltrW.
 Qed.
 
+Lemma real_exprn_even_gt0 n x : x \is real ->
+  ~~ odd n -> (0 < x ^+ n) = (n == 0)%N || (x != 0).
+Proof.
+move=> xR n_even; rewrite lt0r real_exprn_even_ge0 ?expf_eq0 //.
+by rewrite andbT negb_and lt0n negbK.
+Qed.
+
+Lemma real_exprn_even_le0 n x : x \is real ->
+  ~~ odd n -> (x ^+ n <= 0) = (n != 0%N) && (x == 0).
+Proof.
+move=> xR n_even; rewrite !real_lerNgt ?rpred0 ?rpredX //.
+by rewrite real_exprn_even_gt0 // negb_or negbK.
+Qed.
+
+Lemma real_exprn_even_lt0 n x : x \is real ->
+  ~~ odd n -> (x ^+ n < 0) = false.
+Proof. by move=> xR n_even; rewrite ler_gtF // real_exprn_even_ge0. Qed.
+
+Lemma real_exprn_odd_ge0 n x : x \is real -> odd n ->
+  (0 <= x ^+ n) = (0 <= x).
+Proof.
+case/real_ger0P => [x_ge0|x_lt0] n_odd; first by rewrite exprn_ge0.
+apply: negbTE; rewrite ltr_geF //.
+case: n n_odd => // n /= n_even; rewrite exprS pmulr_llt0 //.
+by rewrite real_exprn_even_gt0 ?ler0_real ?ltrW // ltr_eqF ?orbT.
+Qed.
+
+Lemma real_exprn_odd_gt0 n x : x \is real -> odd n -> (0 < x ^+ n) = (0 < x).
+Proof.
+by move=> xR n_odd; rewrite !lt0r expf_eq0 real_exprn_odd_ge0; case: n n_odd.
+Qed.
+
+Lemma real_exprn_odd_le0 n x : x \is real -> odd n -> (x ^+ n <= 0) = (x <= 0).
+Proof.
+by move=> xR n_odd; rewrite !real_lerNgt ?rpred0 ?rpredX // real_exprn_odd_gt0.
+Qed.
+
+Lemma real_exprn_odd_lt0 n x: x \is real -> odd n -> (x ^+ n < 0) = (x < 0).
+Proof.
+by move=> xR n_odd; rewrite !real_ltrNge ?rpred0 ?rpredX // real_exprn_odd_ge0.
+Qed.
+
 (* particular case for squares *)
 
 Lemma real_sqr_ge0 (x : R) : x \is real -> 0 <= x ^+ 2.
@@ -1922,6 +1994,35 @@ Proof. by rewrite ler_eqVlt signr_eq0 signr_lt0. Qed.
 
 Lemma neqr0_sign (x : R) : x != 0 -> (-1) ^+ (x < 0)%R = sgr x.
 Proof. by rewrite sgr_def  => ->. Qed.
+
+(* sign and norm *)
+
+Lemma real_mulr_sign_norm (x : R) : x \is real -> (-1) ^+ (x < 0)%R * `|x| = x.
+Proof. by case/real_ger0P; rewrite (mul1r, mulN1r) ?opprK. Qed.
+
+Lemma real_mulr_Nsign_norm (x : R) (xR : x \is real) :
+  (-1) ^+ (0 < x)%R * `|x| = - x.
+Proof. by rewrite -normrN -oppr_lt0 real_mulr_sign_norm ?rpredN. Qed.
+
+Lemma realEsign (x : R) : x \is real -> x = (-1) ^+ (x < 0)%R * `|x|.
+Proof. by case/real_ger0P; rewrite (mul1r, mulN1r) ?opprK. Qed.
+
+Lemma realNEsign (x : R) (xR : x \is real) : -x = (-1) ^+ (0 < x)%R * `|x|.
+Proof. by rewrite -normrN -oppr_lt0 real_mulr_sign_norm ?rpredN. Qed.
+
+Lemma real_normrEsign (x : R) (xR : x \is real) : `|x| = (-1) ^+ (x < 0)%R * x.
+Proof.
+by rewrite -{3}[x]real_mulr_sign_norm // mulrA -signr_addb addbb mul1r.
+Qed.
+
+Lemma realEsg x : x \is real -> x = sgr x * `|x|.
+Proof.
+move=> xR; have [-> | ] := eqVneq x 0; first by rewrite normr0 mulr0.
+by move=> /neqr0_sign <-; rewrite -realEsign.
+Qed.
+
+Lemma normr_signM b x : `|(-1) ^+ b * x| = `|x|.
+Proof. by rewrite normrM normr_sign mul1r. Qed.
 
 (* lerif *)
 
@@ -2205,6 +2306,9 @@ Proof.
 move=> x /=; have [/normrV //|Nux] := boolP (x \is a GRing.unit).
 by rewrite !invr_out // unitfE normr_eq0 -unitfE.
 Qed.
+
+Lemma normf_div : {morph (@normr F) : x y / x / y}.
+Proof. by move=> x y /=; rewrite normrM normfV. Qed.
 
 End NumFieldTheory.
 End NumFieldTheory.
@@ -2520,8 +2624,8 @@ Hint Resolve lerr.
 Variable R : RealIntegralDomain.type.
 Implicit Types x y z t : R.
 
-Lemma ordered_real x : x \is real. Proof. by case: R x=> T []. Qed.
-Hint Resolve ordered_real.
+Lemma num_real x : x \is real. Proof. by case: R x=> T []. Qed.
+Hint Resolve num_real.
 
 Lemma ler_total : total (@ler R). Proof. by move=> *; apply: real_leVge. Qed.
 
@@ -2581,22 +2685,6 @@ Proof. by move=> *; symmetry; apply: eqr_ltLR. Qed.
 
 (* sign *)
 
-Lemma mulr_sign_norm (x : R) : (-1) ^+ (x < 0)%R * `|x| = x.
-Proof. by case: ger0P; rewrite (mul1r, mulN1r) ?opprK. Qed.
-
-Lemma mulr_Nsign_norm (x : R) :
-  (-1) ^+ (0 < x)%R * `|x| = - x.
-Proof. by rewrite -normrN -oppr_lt0 mulr_sign_norm. Qed.
-
-Lemma numEsign (x : R) : x = (-1) ^+ (x < 0)%R * `|x|.
-Proof. by case: ger0P; rewrite (mul1r, mulN1r) ?opprK. Qed.
-
-Lemma numNEsign (x : R) : -x = (-1) ^+ (0 < x)%R * `|x|.
-Proof. by rewrite -normrN -oppr_lt0 mulr_sign_norm. Qed.
-
-Lemma normrEsign (x : R) : `|x| = (-1) ^+ (x < 0)%R * x.
-Proof. by rewrite -{3}[x]mulr_sign_norm mulrA -signr_addb addbb mul1r. Qed.
-
 Lemma mulr_lt0 (x y : R) :
          (x * y < 0) = [&& x != 0, y != 0 & (x < 0) (+) (y < 0)].
 Proof.
@@ -2612,6 +2700,23 @@ Proof. by move=> x_neq0 y_neq0; rewrite mulr_lt0 x_neq0 y_neq0. Qed.
 Lemma mulr_sign_lt0 (b : bool) (x : R) :
   ((-1) ^+ b * x < 0) = (x != 0) && (b (+) (x < 0)%R).
 Proof. by rewrite mulr_lt0 signr_lt0 signr_eq0. Qed.
+
+(* sign & norm*)
+
+Lemma mulr_sign_norm (x : R) : (-1) ^+ (x < 0)%R * `|x| = x.
+Proof. by rewrite real_mulr_sign_norm. Qed.
+
+Lemma mulr_Nsign_norm (x : R) : (-1) ^+ (0 < x)%R * `|x| = - x.
+Proof. by rewrite real_mulr_Nsign_norm. Qed.
+
+Lemma numEsign (x : R) : x = (-1) ^+ (x < 0)%R * `|x|.
+Proof. by rewrite -realEsign. Qed.
+
+Lemma numNEsign (x : R) : -x = (-1) ^+ (0 < x)%R * `|x|.
+Proof. by rewrite -realNEsign. Qed.
+
+Lemma normrEsign (x : R) : `|x| = (-1) ^+ (x < 0)%R * x.
+Proof. by rewrite -real_normrEsign. Qed.
 
 Section FinGroup.
 
@@ -2636,7 +2741,7 @@ End FinGroup.
 
 End RealIntegralDomainTheory.
 
-Hint Resolve ordered_real.
+Hint Resolve num_real.
 
 Section RealIntegralDomainMonotonyTheory.
 
@@ -2649,21 +2754,21 @@ Variable D : pred R.
 Variable (f : R -> R').
 
 Lemma homo_mono (mf : {homo f : x y / x < y}) : {mono f : x y / x <= y}.
-Proof. by move=> *; apply: real_mono; rewrite ?ordered_real. Qed.
+Proof. by move=> *; apply: real_mono; rewrite ?num_real. Qed.
 
 Lemma nhomo_mono (mf : {homo f : x y /~ x < y}) : {mono f : x y /~ x <= y}.
-Proof. by move=> *; apply: real_nmono; rewrite ?ordered_real. Qed.
+Proof. by move=> *; apply: real_nmono; rewrite ?num_real. Qed.
 
 Lemma homo_mono_in (mf : {in D &, {homo f : x y / x < y}}) :
   {in D &, {mono f : x y / x <= y}}.
 Proof.
-by move=> *; apply: (real_mono_in mf); rewrite ?inE ?ordered_real.
+by move=> *; apply: (real_mono_in mf); rewrite ?inE ?num_real.
 Qed.
 
 Lemma nhomo_mono_in (mf : {in D &, {homo f : x y /~ x < y}}) :
   {in D &, {mono f : x y /~ x <= y}}.
 Proof.
-by move=> *; apply: (real_nmono_in mf); rewrite ?inE ?ordered_real.
+by move=> *; apply: (real_nmono_in mf); rewrite ?inE ?num_real.
 Qed.
 
 End RealIntegralDomainMonotonyTheory.
@@ -2672,7 +2777,7 @@ Section RealIntegralDomainOperationTheory.
 (* sgr section *)
 
 Hint Resolve lerr.
-Hint Resolve ordered_real.
+Hint Resolve num_real.
 
 Variable R : RealIntegralDomain.type.
 Implicit Types x y z t : R.
@@ -2790,25 +2895,25 @@ Lemma numEsg x : x = sgr x * `|x|.
 Proof. by case: sgrP; rewrite !(mul1r, mul0r, mulrNN). Qed.
 
 Lemma ler_norml x y : (`|x| <= y) = (-y <= x <= y).
-Proof. by rewrite real_ler_norml ?ordered_real. Qed.
+Proof. by rewrite real_ler_norml ?num_real. Qed.
 
 Lemma ler_normlP x y : reflect ((-x <= y) * (x <= y)) (`|x| <= y).
-Proof. by apply: real_ler_normlP; rewrite ordered_real. Qed.
+Proof. by apply: real_ler_normlP; rewrite num_real. Qed.
 Implicit Arguments ler_normlP [x y].
 
 Lemma eqr_norml x y : (`|x| == y) = ((x == y) || (x == -y)) && (0 <= y).
-Proof. by rewrite real_eqr_norml ?ordered_real. Qed.
+Proof. by rewrite real_eqr_norml ?num_real. Qed.
 
 Lemma eqr_norm2 x y : (`|x| == `|y|) = (x == y) || (x == -y).
-Proof. by rewrite real_eqr_norm2 ?ordered_real. Qed.
+Proof. by rewrite real_eqr_norm2 ?num_real. Qed.
 
 Lemma ltr_norml x y : (`|x| < y) = (-y < x < y).
-Proof. by rewrite real_ltr_norml ?ordered_real. Qed.
+Proof. by rewrite real_ltr_norml ?num_real. Qed.
 
 Definition lter_norml := (ler_norml, ltr_norml).
 
 Lemma ltr_normlP x y : reflect ((-x < y) * (x < y)) (`|x| < y).
-Proof. by apply: real_ltr_normlP; rewrite ordered_real. Qed.
+Proof. by apply: real_ltr_normlP; rewrite num_real. Qed.
 
 Implicit Arguments ltr_normlP [x y].
 
@@ -2835,7 +2940,28 @@ Lemma sgr_norm x : sgr `|x| = (x != 0)%:R.
 Proof. by rewrite normrEsg sgr_smul mulr_sg. Qed.
 
 Lemma exprn_even_ge0 n x : ~~ odd n -> 0 <= x ^+ n.
-Proof. by move=> even_n; rewrite real_exprn_even_ge0 ?ordered_real. Qed.
+Proof. by move=> even_n; rewrite real_exprn_even_ge0 ?num_real. Qed.
+
+Lemma exprn_even_gt0 n x : ~~ odd n -> (0 < x ^+ n) = (n == 0)%N || (x != 0).
+Proof. by move=> even_n; rewrite real_exprn_even_gt0 ?num_real. Qed.
+
+Lemma exprn_even_le0 n x : ~~ odd n -> (x ^+ n <= 0) = (n != 0%N) && (x == 0).
+Proof. by move=> even_n; rewrite real_exprn_even_le0 ?num_real. Qed.
+
+Lemma exprn_even_lt0 n x : ~~ odd n -> (x ^+ n < 0) = false.
+Proof. by move=> even_n; rewrite real_exprn_even_lt0 ?num_real. Qed.
+
+Lemma exprn_odd_ge0 n x : odd n -> (0 <= x ^+ n) = (0 <= x).
+Proof. by move=> even_n; rewrite real_exprn_odd_ge0 ?num_real. Qed.
+
+Lemma exprn_odd_gt0 n x : odd n -> (0 < x ^+ n) = (0 < x).
+Proof. by move=> even_n; rewrite real_exprn_odd_gt0 ?num_real. Qed.
+
+Lemma exprn_odd_le0 n x : odd n -> (x ^+ n <= 0) = (x <= 0).
+Proof. by move=> even_n; rewrite real_exprn_odd_le0 ?num_real. Qed.
+
+Lemma exprn_odd_lt0 n x : odd n -> (x ^+ n < 0) = (x < 0).
+Proof. by move=> even_n; rewrite real_exprn_odd_lt0 ?num_real. Qed.
 
 (* particular case for squares *)
 Lemma sqr_ge0 (x : R) : 0 <= x ^+ 2. Proof. by rewrite exprn_even_ge0. Qed.
@@ -3555,6 +3681,7 @@ Implicit Arguments ler01 [R].
 Hint Resolve lerr.
 Hint Resolve @ltr01.
 Implicit Arguments ltr01 [R].
+Implicit Arguments eqr_nat [R].
 Hint Resolve ltrr.
 Hint Resolve ltrW.
 Hint Resolve ltr_eqF.
@@ -3562,7 +3689,7 @@ Hint Resolve ltr0Sn.
 Hint Resolve ler0n.
 Hint Resolve normr_ge0.
 Hint Resolve ler_opp2.
-Hint Resolve ordered_real.
+Hint Resolve num_real.
 
 End Theory.
 
@@ -3637,7 +3764,7 @@ Notation ">=%R" := (@Num.Def.ler _) : ring_scope.
 Notation "x <= y" := (Num.Def.ler x y) : ring_scope.
 Notation "x <= y :> T" := ((x : T) <= (y : T)) : ring_scope.
 Notation "x >= y" := (y <= x) (only parsing) : ring_scope.
-Notation "x >= y :> T" := ((x : T) >= (y : T)) : ring_scope.
+Notation "x >= y :> T" := ((x : T) >= (y : T)) (only parsing) : ring_scope.
 Notation "<=%R" := [rel x y | y <= x] : ring_scope.
 
 Notation ">%R" := (@Num.Def.ltr _) : ring_scope.

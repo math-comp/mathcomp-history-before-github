@@ -365,7 +365,7 @@ Section IntervalOrdered.
 Variable R : realIdomainType.
 
 Lemma ltreifN (x y : R) b : x < y ?<= if ~~b = ~~ (y < x ?<= if b).
-Proof. by rewrite real_ltreifN ?ordered_real. Qed.
+Proof. by rewrite real_ltreifN ?num_real. Qed.
 
 Lemma itv_splitU (xc : R) bc a b : xc \in Interval a b ->
   forall y, y \in Interval a b =

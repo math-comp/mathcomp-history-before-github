@@ -862,13 +862,13 @@ Qed.
 
 Lemma ler_pmulz2l x (hx : 0 < x) : {mono *~%R x : x y / x <= y}.
 Proof.
-move=> m n /=; rewrite real_mono ?ordered_real // => {m n}.
+move=> m n /=; rewrite real_mono ?num_real // => {m n}.
 by move=> m n /= hmn; rewrite -subr_gt0 -mulrzBr pmulrz_lgt0 // subr_gt0.
 Qed.
 
 Lemma ler_nmulz2l x (hx : x < 0) : {mono *~%R x : x y /~ x <= y}.
 Proof.
-move=> m n /=; rewrite real_nmono ?ordered_real // => {m n}.
+move=> m n /=; rewrite real_nmono ?num_real // => {m n}.
 by move=> m n /= hmn; rewrite -subr_gt0 -mulrzBr nmulrz_lgt0 // subr_lt0.
 Qed.
 
@@ -938,9 +938,9 @@ Proof. by rewrite -mulrzl mulf_eq0 intr_eq0. Qed.
 Lemma mulrz_neq0 x n : x *~ n != 0 = ((n != 0) && (x != 0)).
 Proof. by rewrite mulrz_eq0 negb_or. Qed.
 
-Lemma real_int n : (n%:~R : R) \in Num.real.
+Lemma realz n : (n%:~R : R) \in Num.real.
 Proof. by rewrite -topredE /Num.real /= ler0z lerz0 ler_total. Qed.
-Hint Resolve real_int.
+Hint Resolve realz.
 
 Definition intr_inj := @mulrIz 1 (oner_neq0 R).
 
@@ -1636,7 +1636,7 @@ wlog le_m31 : m1 m3 / (m3 <= m1)%R.
 rewrite ger0_norm ?subr_ge0 // orb_idl => [|/andP[le_m12 le_m23]]; last first.
   by have /eqP->: m2 == m3; rewrite ?lerr // eqr_le le_m23 (ler_trans le_m31).
 rewrite -{1}(subrK m2 m1) -addrA -subr_ge0 andbC -subr_ge0.
-by apply: lerif_add; apply/real_lerif_norm/ordered_real.
+by apply: lerif_add; apply/real_lerif_norm/num_real.
 Qed.
 
 Lemma leqif_add_dist n1 n2 n3 :
