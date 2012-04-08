@@ -2,13 +2,13 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop ssralg finset fingroup.
 Require Import morphism perm automorphism action quotient zmodp center.
-Require Import matrix mxrepresentation vector algC classfun character.
+Require Import matrix mxrepresentation vector ssrnum algC classfun character.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GroupScope GRing.Theory.
+Import GroupScope GRing.Theory Num.Theory.
 Local Open Scope ring_scope.
 
 (******************************************************************************)
@@ -315,7 +315,7 @@ have [[y Gy ->] | ] := altP (cfclassP _ _ _); first by rewrite cfdot_Res_Conjg.
 apply: contraNeq; rewrite scaler0 scaler_eq0 orbC => /norP[_ chiHk].
 have{chiHk chiHj}: '['Res[H] ('Ind[G] 'chi_j), 'chi_k] != 0.
   rewrite !inE !cfdot_Res_l in chiHj chiHk *.
-  apply: contraNneq chiHk; rewrite cfdot_sum_irr => /posC_sum_eq0/(_ i isT)/eqP.
+  apply: contraNneq chiHk; rewrite cfdot_sum_irr => /psumr_eq0P/(_ i isT)/eqP.
   rewrite -cfdotC cfdotC mulf_eq0 conjC_eq0 (negbTE chiHj) /= => -> // i1.
   rewrite -cfdotC posC_Nat //.
   by rewrite isNatC_mul ?cfdot_char_Nat ?cfInd_char ?irr_char //.
@@ -325,7 +325,7 @@ have ->: 'Res ('Ind[G] 'chi_j) = #|H|%:R^-1 *: (\sum_(y \in G) 'chi_j ^ y)%CF.
   by apply: eq_big => [y | y Gy]; rewrite ?cfConjgE ?groupV ?invgK ?nHG.
 rewrite cfdotZl mulf_eq0 cfdot_suml => /norP[_]; apply: contraR => not_chjGk.
 rewrite big1 // => x Gx; apply: contraNeq not_chjGk.
-rewrite -conjg_IirrE cfdot_irr -neq0N_neqC; case: (_ =P k) => // <- _.
+rewrite -conjg_IirrE cfdot_irr pnatr_eq0; case: (_ =P k) => // <- _.
 by rewrite conjg_IirrE; apply/cfclassP; exists x.
 Qed.
 
@@ -438,7 +438,7 @@ Let IHP : is_char ('Res[H] 'chi_p).
 Proof. by rewrite cfRes_char ?irr_char. Qed.
 
 Fact constt_Res_inertia_constt_Ind : p \in irr_constt ('Res[T] 'chi_c).
-Proof. by rewrite !inE cfdot_charC ?irr_char ?Frobenius_reciprocity. Qed.
+Proof. by rewrite !inE cfdot_char_num ?irr_char ?Frobenius_reciprocity. Qed.
 
 Fact constt_Res_constt_Ind : t \in irr_constt ('Res[H] 'chi_c).
 Proof.
@@ -478,13 +478,13 @@ have le_f_e: f <= e.
   rewrite -cfclass_sum // cfdot_suml (bigD1 t) ?cfclass_refl //= cfdot_irr eqxx.
   rewrite big1 ?addr0 ?mulr1 // => i /andP[_ neq_it].
   by rewrite cfdot_irr (negbTE neq_it).
-apply: leC_anti=> //.
+apply/eqP; rewrite eqr_le le_f_e /=.
 have: 0 < #|G : T|%:R * 'chi_t 1%g.
-  by rewrite sposC_mul // ?ltC_irr1 // -(ltn_ltC 0).
-move/leC_pmul2r=> <-; rewrite mulrA -He1 mulrA -Hpsi1.
+  by rewrite pmulr_rgt0 // ?ltC_irr1 // ltr0n.
+move/ler_pmul2r => <-; rewrite !mulrA -He1 -Hpsi1.
 have IIP: is_char ('Ind[G] 'chi_p) := cfInd_char G (irr_char p).
 case/(constt_charP _ IIP): Hc => chi' /= IC' ->.
-by rewrite cfunE addrC -leC_sub addrK posC_Nat ?char1_Nat.
+by rewrite cfunE ler_addl posC_Nat ?char1_Nat.
 Qed.
 
 Fact cfInd_constt_inertia_constt : 'Ind[G] 'chi_p = 'chi_c.
@@ -545,12 +545,12 @@ have /(constt_charP _ IC1)[chi2 IC2 Hchi2]: p \in irr_constt chi1.
   by rewrite !inE Hchi1 cfdotDl cfdot_irr (negPf Dpsi) add0r.
 have: '['Res[H] 'chi_p, 'chi_t] < '['Res[H] ('Res[T] 'chi_c), 'chi_t].
   rewrite Hchi1 addrC Hchi2 !linearD !cfdotDl /=.
-  rewrite -addrA addrC ltC_sub addrK sposC_addl //.
+  rewrite -addrA addrC -subr_gt0 addrK ltr_paddl //.
     by rewrite posC_Nat ?cfdot_char_irr_Nat ?cfRes_char.
-  rewrite ltCE [~~ _]Ct posC_Nat ?cfdot_char_irr_Nat //.
+  rewrite ltr_def [~~ _]Ct posC_Nat ?cfdot_char_irr_Nat //.
   by rewrite cfRes_char ?irr_char.
 rewrite cfdot_constt_inertia (cfInd_constt_inertia_constt Hp Hc).
-by rewrite cfResRes // ltCE eqxx.
+by rewrite cfResRes // ltr_def eqxx.
 Qed.
 
 End S611A.
@@ -566,7 +566,7 @@ have TsG: T \subset G := inertia_sub G 'chi_t.
 apply: (single_constt_inertia HnG Hp' _ Hp).
 have IC1: is_char ('Ind[G] 'chi_p) := cfInd_char G (irr_char p).
 have IC2: is_char ('Res[T] ('Ind[G] 'chi_p)) := cfRes_char _ IC1.
-rewrite -Heq !inE cfdot_charC ?irr_char //.
+rewrite -Heq !inE cfdot_char_num ?irr_char //.
 rewrite Frobenius_reciprocity /= cfnorm_eq0 cfInd_eq0 ?irr_char //.
 exact: (free_not0 (irr_free _) (irr_chi p)).
 Qed.
@@ -615,7 +615,7 @@ Lemma inertia_Ind_invE (G H : {group gT}) (t : Iirr H) (c : Iirr G) :
 Proof.
 move=> HnG Cc.
 apply: cfInd_constt_inertia_constt => //; first exact: constt_inertia_Ind_inv.
-rewrite !inE -Frobenius_reciprocity cfdot_charC ?cfRes_char ?irr_char //.
+rewrite !inE -Frobenius_reciprocity cfdot_char_num ?cfRes_char ?irr_char //.
 exact: inertia_Ind_inv_constt.
 Qed.
 
@@ -688,7 +688,7 @@ have nz_i: i != 0.
   by apply: contraNneq not_chijK1 => i0; rewrite constt0_Res_cfker // -i0.
 have /irrP[k def_chik] := irr_induced_Frobenius_ker nz_i. 
 have: '['chi_j, 'chi_k] != 0 by rewrite -def_chik -cfdot_Res_l.
-by rewrite cfdot_irr -(eqN_eqC _ 0); case: (j =P k) => // ->; exists i.
+by rewrite cfdot_irr pnatr_eq0; case: (j =P k) => // ->; exists i.
 Qed.
 
 End Frobenius.

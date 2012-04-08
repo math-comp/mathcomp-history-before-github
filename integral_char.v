@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset.
 Require Import fingroup morphism perm automorphism quotient action finalg zmodp.
 Require Import commutator cyclic center pgroup sylow gseries nilpotent abelian.
-Require Import ssrint polydiv rat matrix mxalgebra intdiv mxpoly.
+Require Import ssrnum ssrint polydiv rat matrix mxalgebra intdiv mxpoly.
 Require Import vector falgebra fieldext separable galois algC cyclotomic algnum.
 Require Import mxrepresentation classfun character.
 
@@ -31,8 +31,10 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GroupScope GRing.Theory.
+Import GroupScope GRing.Theory Num.Theory.
 Local Open Scope ring_scope.
+
+Local Notation algCF := [fieldType of algC].
 
 Lemma group_num_field_exists (gT : finGroupType) (G : {group gT}) :
   {Qn : fieldExtType rat & {QnC : {rmorphism Qn -> algC} &
@@ -68,7 +70,7 @@ have splitXn1: splittingFieldFor 1 ('X^n - 1) {:Qn}.
   by rewrite andbT -root_prod_XsubC -Dr; apply/unity_rootP/prim_expr_order.
 have [|nQn GalQn] := splitting_field_galois Q_Xn1 splitXn1.
   apply: separable_Xn_sub_1; rewrite -(fmorph_eq0 QnC) rmorph_nat.
-  by rewrite -neq0N_neqC -lt0n cardG_gt0.
+  by rewrite pnatr_eq0 -lt0n cardG_gt0.
 exists nQn => // nuQn; case: {nuQn}(repr _) => f /= /LAut_is_enum fM.
 exact: (extend_algC_subfield_aut QnC (LRMorphism fM)).
 Qed.
@@ -165,11 +167,11 @@ Qed.
 Lemma algInt_irr i x : 'chi[G]_i x \in algInt.
 Proof. by apply: algInt_char; exact: irr_char. Qed.
 
-Local Notation R_G := (group_ring algC G).
+Local Notation R_G := (group_ring algCF G).
 Local Notation a := gring_classM_coef.
 
 (* This is Isaacs (2.25). *)
-Lemma mx_irr_gring_op_center_scalar n (rG : mx_representation algC G n) A :
+Lemma mx_irr_gring_op_center_scalar n (rG : mx_representation algCF G n) A :
   mx_irreducible rG -> (A \in 'Z(R_G))%MS -> is_scalar_mx (gring_op rG A).
 Proof.
 move/groupC=> irrG /center_mxP[R_A cGA].
@@ -182,10 +184,10 @@ Section GringIrrMode.
 Variable i : Iirr G.
 
 Let n := irr_degree (socle_of_Iirr i).
-Let mxZn_inj: injective (@scalar_mx algC n).
+Let mxZn_inj: injective (@scalar_mx algCF n).
 Proof. by rewrite -[n]prednK ?irr_degree_gt0 //; exact: fmorph_inj. Qed.
 
-Lemma cfRepr_gring_center n1 (rG : mx_representation algC G n1) A :
+Lemma cfRepr_gring_center n1 (rG : mx_representation algCF G n1) A :
   cfRepr rG = 'chi_i -> (A \in 'Z(R_G))%MS -> gring_op rG A = 'omega_i[A]%:M.
 Proof.
 unlock gring_irr_mode => def_rG Z_A; rewrite xcfunZl -{2}def_rG xcfun_Repr.
@@ -259,13 +261,13 @@ Proof.
 set m := getNatC _ => co_m_gG notZg.
 have [Gg | /cfun0-> //] := boolP (g \in G).
 have Dm: 'chi_i 1%g = m%:R by apply/eqP/isNatC_irr1.
-have m_gt0: (0 < m)%N by rewrite ltn_ltC -Dm ltC_irr1.
-have nz_m: m%:R != 0 :> algC by rewrite -neq0N_neqC -lt0n.
+have m_gt0: (0 < m)%N by rewrite -ltC_nat -Dm ltC_irr1.
+have nz_m: m%:R != 0 :> algC by rewrite pnatr_eq0 -lt0n.
 pose alpha := 'chi_i g / m%:R.
 have a_lt1: `|alpha| < 1.
-  rewrite normC_mul normC_inv normC_nat -{2}(divff nz_m).
-  rewrite ltCE (can_eq (mulfVK nz_m)) eq_sym -{1}Dm -irr_cfcenterE // notZg.
-  by rewrite leC_pmul2r ?sposC_inv -?(ltn_ltC 0) // -Dm char1_ge_norm ?irr_char.
+  rewrite normrM normfV normr_nat -{2}(divff nz_m).
+  rewrite ltr_def (can_eq (mulfVK nz_m)) eq_sym -{1}Dm -irr_cfcenterE // notZg.
+  by rewrite ler_pmul2r ?invr_gt0 ?ltr0n // -Dm char1_ge_norm ?irr_char.
 have Za: alpha \in algInt.
   have [u _ /dvdnP[v eq_uv]] := Bezoutl #|g ^: G| m_gt0.
   suffices ->: alpha = v%:R * 'chi_i g - u%:R * (alpha * #|g ^: G|%:R).
@@ -279,8 +281,8 @@ have{Qn_g} [a Da]: exists a, QnC a = alpha.
   by exists (a / m%:R); rewrite fmorph_div rmorph_nat.
 have Za_nu nu: sval (gQnC nu) alpha \in algInt by rewrite algInt_aut.
 have norm_a_nu nu: `|sval (gQnC nu) alpha| <= 1.
-  move: {nu}(sval _) => nu; rewrite fmorph_div rmorph_nat normC_mul normC_inv.
-  rewrite normC_nat -Dm -(leC_pmul2r _ _ (ltC_irr1 (aut_Iirr nu i))) mul1r.
+  move: {nu}(sval _) => nu; rewrite fmorph_div rmorph_nat normrM normfV.
+  rewrite normr_nat -Dm -(ler_pmul2r (ltC_irr1 (aut_Iirr nu i))) mul1r.
   congr (_ <= _): (char1_ge_norm g (irr_char (aut_Iirr nu i))).
   by rewrite !aut_IirrE !cfunE Dm rmorph_nat divfK.
 pose beta := QnC (galoisNorm nQn 1 fullv a).
@@ -294,13 +296,13 @@ have Zbeta: isIntC beta.
 have [|nz_a] := boolP (alpha == 0).
   by rewrite (can2_eq (divfK _) (mulfK _)) // mul0r => /eqP.
 have: beta != 0 by rewrite Dbeta; apply/prodf_neq0 => nu _; rewrite fmorph_eq0.
-move/(isIntC_normC_ge1 Zbeta); rewrite ltC_geF //; apply: leC_ltC_trans a_lt1.
+move/(isIntC_normC_ge1 Zbeta); rewrite ltr_geF //; apply: ler_lt_trans a_lt1.
 rewrite -[`|alpha|]mulr1 Dbeta (bigD1 1%g) ?group1 //= -Da.
-case: (gQnC _) => /= _ <-; rewrite repr_coset1 id_lfunE normC_mul.
-rewrite -leC_sub -mulrBr posC_mul ?posC_norm // Da leC_sub.
-elim/big_rec: _ => [|nu c _]; first by rewrite normC1 leC_refl.
-apply: leC_trans; rewrite -leC_sub -{1}[`|c|]mul1r normC_mul -mulrBl.
-by rewrite posC_mul ?posC_norm // leC_sub norm_a_nu.
+case: (gQnC _) => /= _ <-; rewrite repr_coset1 id_lfunE normrM.
+rewrite -subr_ge0 -mulrBr mulr_ge0 ?normr_ge0 // Da subr_ge0.
+elim/big_rec: _ => [|nu c _]; first by rewrite normr1 lerr.
+apply: ler_trans; rewrite -subr_ge0 -{1}[`|c|]mul1r normrM -mulrBl.
+by rewrite mulr_ge0 ?normr_ge0 // subr_ge0 norm_a_nu.
 Qed.
 
 End GringIrrMode.
@@ -333,7 +335,7 @@ have p_dvd_supp_g i: ~~ p_dv1 i && (i != 0) -> 'chi_i g = 0.
   rewrite coprime_degree_support_cfcenter ?trivZi ?inE //.
   by rewrite -/m Dm irr1_degree getNatC_nat coprime_sym coprime_expl.
 pose alpha := \sum_(i | p_dv1 i && (i != 0)) 'chi_i 1%g / p%:R * 'chi_i g.
-have nz_p: p%:R != 0 :> algC by rewrite -neq0N_neqC -lt0n prime_gt0.
+have nz_p: p%:R != 0 :> algC by rewrite pnatr_eq0 -lt0n prime_gt0.
 have Dalpha: alpha = - 1 / p%:R.
   apply/(canRL (mulfK nz_p))/eqP; rewrite -addr_eq0 addrC; apply/eqP/esym.
   transitivity (cfReg G g); first by rewrite cfRegE (negPf nt_g).
@@ -557,7 +559,7 @@ have ZchiP: 'Res[P] 'chi_i \in 'CF(P, P :&: 'Z(G)).
   apply: pnat_dvd p'PiG; rewrite -index_cent1 indexgS // subsetI sPG.
   by rewrite sub_cent1 (subsetP cPP).
 have /andP[_ nZG] := center_normal G; have nZP := subset_trans sPG nZG.
-apply/eqP; rewrite Dchi1C -eqN_eqC eqn_dvd -{1}(pfactorK a p_pr) -p_part.
+apply/eqP; rewrite Dchi1C eqr_nat eqn_dvd -{1}(pfactorK a p_pr) -p_part.
 rewrite partn_dvd //= -dvdC_nat -Dchi1C -card_quotient //=.
 rewrite -(card_Hall (quotient_pHall nZP sylP)) card_quotient // -indexgI.
 rewrite -(cfResE _ sPG) // index_support_dvd_degree ?subsetIl ?cPP ?orbT //.

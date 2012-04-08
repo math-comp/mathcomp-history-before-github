@@ -3,13 +3,13 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset.
 Require Import fingroup morphism perm automorphism quotient finalg action.
 Require Import gproduct zmodp commutator cyclic center pgroup sylow frobenius.
-Require Import vector algC algnum classfun character integral_char.
+Require Import vector ssrnum algC algnum classfun character integral_char.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GroupScope GRing.Theory.
+Import GroupScope GRing.Theory Num.Theory.
 Local Open Scope ring_scope.
 
 (******************************************************************************)
@@ -437,7 +437,7 @@ suffices def_xi: xi = (-1) ^+ b i *: 'chi_i.
   by case: (b i) def_xi Sxi => // ->; rewrite scale1r.
 move: Sxi; rewrite [xi]cfun_sum_cfdot (bigD1 i) //.
 rewrite big1 //= ?addr0 => [|j ne_ji]; last first.
-  apply/eqP; rewrite scaler_eq0 -normC_eq0 -[_ == 0](expf_eq0 _ 2) normCK.
+  apply/eqP; rewrite scaler_eq0 -normr_eq0 -[_ == 0](expf_eq0 _ 2) normCK.
   by rewrite xi_i'_0 ?eqxx.
 have:= norm_xi_i; rewrite (isIntC_conj (cfdot_vchar_irr_Int _ _)) //.
 rewrite -subr_eq0 subr_sqr_1 mulf_eq0 subr_eq0 addr_eq0 /b scaler_sign.
@@ -475,14 +475,14 @@ have orthS: orthonormal S.
   rewrite eq_scaled_irr cfdotZl cfdotZr cfdot_irr mulrA mulr_natr mulrb.
   rewrite mem_enum in phi_i; rewrite (negbTE phi_i) andbC; case: eqP => // <-.
   have /isNatCP[m def_m] := normIntC_Nat (cfdot_vchar_irr_Int i Zphi).
-  apply/eqP; rewrite eqxx /= -normCK def_m -natrX -eqN_eqC eqn_leq lt0n.
-  rewrite expn_eq0 andbT eqN_eqC -def_m normC_eq0 [~~ _]phi_i andbT.
+  apply/eqP; rewrite eqxx /= -normCK def_m -natrX eqr_nat eqn_leq lt0n.
+  rewrite expn_eq0 andbT -eqC_nat -def_m normr_eq0 [~~ _]phi_i andbT.
   rewrite (leq_exp2r _ 1) // -ltnS -(@ltn_exp2r _ _ 2) //.
-  apply: leq_ltn_trans lt_n_4; rewrite leq_leC -def_n natrX.
-  rewrite cfdot_sum_irr (bigD1 i) //= -normCK def_m addrC -leC_sub addrK.
-  by rewrite posC_sum // => ? _; exact: posC_pconj.
+  apply: leq_ltn_trans lt_n_4; rewrite -leC_nat -def_n natrX.
+  rewrite cfdot_sum_irr (bigD1 i) //= -normCK def_m addrC -subr_ge0 addrK.
+  by rewrite sumr_ge0 // => ? _; exact: mulCJ_ge0.
 have <-: size S = n.
-  by apply/eqP; rewrite eqN_eqC -def_n def_phi cfnorm_orthonormal.
+  by apply/eqP; rewrite -eqC_nat -def_n def_phi cfnorm_orthonormal.
 exists (in_tuple S); split=> // _ /mapP[i _ ->].
 by rewrite scale_zchar ?irr_vchar // cfdot_vchar_irr_Int.
 Qed.
@@ -503,8 +503,8 @@ have neq_ji: j != i.
   by rewrite signr_eq0.
 have neq_bc: b != c.
   apply: contraTneq phi1_0; rewrite def_phi def_chi def_xi => ->.
-  rewrite -scalerDr !cfunE mulf_eq0 signr_eq0 eqC_leC ltC_geF //.
-  by rewrite sposC_addl ?ltCW ?ltC_irr1.
+  rewrite -scalerDr !cfunE mulf_eq0 signr_eq0 eqr_le ltr_geF //.
+  by rewrite ltr_paddl ?ltrW ?ltC_irr1.
 rewrite {}def_phi {}def_chi {}def_xi !scaler_sign.
 case: b c neq_bc => [|] [|] // _; last by exists i, j.
 by exists j, i; rewrite 1?eq_sym // addrC.
@@ -681,8 +681,8 @@ have def_phi: {in H, phi =1 'chi_i}.
 have [j def_chi_j]: {j | 'chi_j = phi}.
   apply/sig_eqW; have [[] [j]] := vchar_norm1P Zphi n1phi; last first.
     by rewrite scale1r; exists j.
-  move/cfunP/(_ 1%g)/eqP; rewrite scaleN1r def_phi // cfunE -addr_eq0 eqC_leC.
-  by rewrite ltC_geF // sposC_addl ?ltCW ?ltC_irr1.
+  move/cfunP/(_ 1%g)/eqP; rewrite scaleN1r def_phi // cfunE -addr_eq0 eqr_le.
+  by rewrite ltr_geF // ltr_paddl ?ltrW ?ltC_irr1.
 exists j; rewrite ?cfker_irrE def_chi_j //; apply/subsetP => x /setDP[Gx notHx].
 rewrite inE cfunE def_phi // cfunE -/a cfun1E // Gx mulr1 cfIndE //.
 rewrite big1 ?mulr0 ?add0r // => y Gy; apply/theta0/(contra _ notHx) => Hxy.
@@ -735,8 +735,8 @@ have F i j : 'chi_i != - 'chi[G]_ j.
   apply/negP=> Echi.
   have: '['chi_i] = 1 by rewrite cfdot_irr eqxx.
   rewrite  {1}(eqP Echi) cfdotNl cfdot_irr; case: (_ == _)=> /eqP.
-    by rewrite eq_sym -subr_eq0 opprK -(natrD _ 1%N) -(eqN_eqC _ 0).
-  by rewrite oppr0 -(eqN_eqC 0 1).
+    by rewrite eq_sym -subr_eq0 opprK -(natrD _ 1%N) pnatr_eq0.
+  by rewrite oppr0 eq_sym oner_eq0.
 by case/dirrP=> [[]] [i1 ->] /dirrP [[]] [i2 ->];
    rewrite !(expr0, expr1, scaleN1r, scale1r, opprK, cfdotNr, cfdotNl);
    rewrite ?(eqr_opp, eqr_oppLR, cfdot_irr, (negPf (F _ _)));
@@ -820,7 +820,7 @@ Lemma dchi_inj : injective (@dchi G).
 Proof.
 move=> i j Chi; move/eqP: (cfnorm_dchi i); rewrite {2}Chi cfdot_dchi.
 by case: (i =P _)=> // _; rewrite sub0r; case: (i == _); 
-  rewrite eq_sym -subr_eq0 opprK -(natrD _ 1%N) -(eqN_eqC _ 0).
+  rewrite eq_sym -subr_eq0 opprK -(natrD _ 1%N) pnatr_eq0.
 Qed.
 
 Definition dirr_dIirr (B : {set gT}) J (f : J -> 'CF(B)) j : dIirr B :=
@@ -848,7 +848,7 @@ Proof. by rewrite inE. Qed.
 Lemma isNatC_dirr (phi : 'CF(G)) i :
   phi \in 'Z[irr G] -> i \in dirr_constt phi -> isNatC('[phi, dchi i]).
 Proof.
-move=> PiZ; rewrite isNatC_posInt dirr_consttE => /ltCW ->.
+move=> PiZ; rewrite isNatC_posInt dirr_consttE => /ltrW ->.
 case: i=> [b i]; rewrite andbT /dchi  cfdotZr (isIntC_conj (isIntC_sign _)).
 by rewrite isIntC_mul ?isIntC_sign // cfdot_vchar_irr_Int.
 Qed.
@@ -861,15 +861,15 @@ Lemma dirr_constt_oppI (phi: 'CF(G)) :
    dirr_constt phi :&: dirr_constt (-phi) = set0.
 Proof.
 apply/setP=> i; rewrite inE !dirr_consttE cfdotNl inE.
-apply/idP=> /andP [L1 L2]; have := sposC_addl (ltCW L1) L2.
-by rewrite subrr /ltC eqxx.
+apply/idP=> /andP [L1 L2]; have := ltr_paddl (ltrW L1) L2.
+by rewrite subrr ltr_def eqxx.
 Qed.
 
 Lemma dirr_constt_oppl (phi: 'CF(G)) i :
   i \in dirr_constt phi ->  (ndirr i) \notin dirr_constt phi.
 Proof.
-rewrite !dirr_consttE dchi_ndirrE cfdotNr sposC_opp.
-by move/ltCW=> /leC_gtF ->.
+rewrite !dirr_consttE dchi_ndirrE cfdotNr oppr_gt0.
+by move/ltrW=> /ler_gtF ->.
 Qed.
 
 Definition to_dirr  (B : {set gT}) (phi : 'CF(B)) (i : Iirr B) : dIirr B := 
@@ -882,22 +882,18 @@ Lemma irr_constt_to_dirr (phi: 'CF(G)) i : phi \in 'Z[irr G] ->
 Proof.
 move=> PiZ; rewrite irr_consttE dirr_consttE /dchi /to_dirr /=.
 rewrite cfdotZr (isIntC_conj (isIntC_sign _)).
-case: (boolP (_ == _)) => [/eqP-> | Di]; first by rewrite mulr0 /ltC eqxx.
-case/realC_leP: (isIntC_Real (cfdot_vchar_irr_Int i PiZ)) => Dl0.
-  have->: '[phi, 'chi_i] < 0 by rewrite /ltC eq_sym Di Dl0.
-  by rewrite mulN1r sposC_opp /ltC eq_sym Di Dl0.
-by rewrite (leC_gtF Dl0) mul1r /ltC Di Dl0.
+by rewrite -real_normrEsign ?normr_gt0 // isIntC_Real // cfdot_vchar_irr_Int.
 Qed.
 
 Lemma to_dirrK (phi: 'CF(G)) : cancel (to_dirr phi) (@of_irr G).
-Proof. done. Qed.
+Proof. by []. Qed.
 
 Lemma of_irrK (phi: 'CF(G)) :
   {in dirr_constt phi, cancel (@of_irr G) (to_dirr phi)}.
 Proof.
 case=> b i; rewrite dirr_consttE /dchi /to_dirr /=.
 rewrite cfdotZr (isIntC_conj (isIntC_sign _)).
-by (case: b; rewrite ?(mulN1r, mul1r,sposC_opp))=> [-> //| /ltCW /leC_gtF ->].
+by (case: b; rewrite ?(mulN1r, mul1r,oppr_gt0))=> [-> //| /ltrW /ler_gtF ->].
 Qed.
 
 Lemma cfdot_todirrE (phi: 'CF(G)) i :  phi \in 'Z[irr G] ->
@@ -941,25 +937,25 @@ Lemma dirr_small_norm (phi : 'CF(G)) n :
   [/\ #|dirr_constt phi| = n, dirr_constt phi :&: dirr_constt (-phi) = set0 & 
       phi = \sum_(i \in dirr_constt phi) dchi i].
 Proof.
-move=> PiZ Pln; rewrite ltnNge leq_leC => Nl4.
+move=> PiZ Pln; rewrite ltnNge -leC_nat => Nl4.
 suff Fd: forall i : dIirr G, i \in dirr_constt phi -> '[phi, dchi i] = 1.
   split.
-  - apply/eqP; rewrite eqN_eqC; apply/eqP.
+  - apply/eqP; rewrite -eqC_nat; apply/eqP.
     rewrite -sumr_const -Pln (cnorm_dconstt PiZ).
     by apply: eq_bigr=> i Hi; rewrite Fd // expr1n.
   - set A := (_ :&: _); case: (set_0Vmem A)=> // [[u]]; rewrite !inE cfdotNl.
-    by rewrite sposC_opp; case/andP; move/ltCW => /leC_gtF->.
+    by rewrite oppr_gt0; case/andP; move/ltrW => /ler_gtF->.
   rewrite {1}(cfun_sum_dconstt PiZ).
   by apply: eq_bigr=> i Hi; rewrite Fd // scale1r.
 move=> i IiD; move: Pln; rewrite (cnorm_dconstt PiZ).
 rewrite (bigD1 i) //=; move: (isNatC_dirr PiZ IiD) (IiD).
 rewrite dirr_consttE => /isNatCP=> [[[|[|m]]]] -> //.
-  by rewrite /ltC eqxx.
+  by rewrite ltrr.
 move=> _ HH; case/negP: Nl4; rewrite -HH -natrX /=.
 have->: (m.+2 ^ 2 = 4 + ((m.+2) * m + 2 * m))%N by ring.
-rewrite natrD -addrA addrC -leC_sub addrK posC_add ?posC_nat //.
-apply: posC_sum => j /andP [JiD _].
-by case/isNatCP: (isNatC_dirr PiZ JiD)=> k ->; apply: posC_exp (posC_nat _).
+rewrite natrD -addrA addrC -subr_ge0 addrK addr_ge0 ?ler0n //.
+apply: sumr_ge0 => j /andP [JiD _].
+by case/isNatCP: (isNatC_dirr PiZ JiD)=> k ->; rewrite exprn_ge0 ?ler0n.
 Qed.
 
 Lemma cfdot_sum_dchi (phi1 phi2 : 'CF(G)) :
@@ -980,8 +976,8 @@ rewrite cfdotDl; congr (_ + _).
 rewrite (bigID [pred i | i \in dirr_constt phi1 :&: dirr_constt (-phi2)]) /=.
 rewrite cfdotDl !cfdot_suml [X in _ + X = _]big1 ?addr0.
   rewrite -sumr_const -sumrN; apply: eq_big => [i|i /andP []].
-    rewrite !inE; case: (0 < _)=> //=; rewrite cfdotNl sposC_opp.
-    by case: (boolP (_ < 0)); [move/ltCW=> /leC_gtF-> | rewrite andbF].
+    rewrite !inE; case: (0 < _)=> //=; rewrite cfdotNl oppr_gt0.
+    by case: (boolP (_ < 0)); [move/ltrW=> /ler_gtF-> | rewrite andbF].
   case/andP=> _; rewrite inE negb_and => IoD1D2.
   rewrite inE => /andP [IiD1 IiND2]; rewrite cfdot_sumr.
   rewrite (bigD1 (ndirr i)) /=; last by rewrite -dirr_constt_oppr.
@@ -1005,7 +1001,7 @@ Proof.
 move=> _ _ /dirrP[b1 [i1 ->]] /dirrP[b2 [i2 ->]].
 rewrite eq_signed_irr cfdotZl cfdotZr rmorph_sign cfdot_irr mulrA -signr_addb.
 rewrite signrE mulrBl (can2_eq (subrK _) (addrK _)) mul1r -natrM.
-rewrite -(natrD _ 1) -eqN_eqC -negb_add.
+rewrite -(natrD _ 1) eqr_nat -negb_add.
 by case: (i1 == _) (_ (+) _) => [] [].
 Qed.
 
@@ -1016,7 +1012,7 @@ Proof.
 move=> _ _ _ /dirrP[b1 [i1 ->]] /dirrP[b2 [i2 ->]] /dirrP[c [j ->]] /eqP.
 rewrite cfdotDl !cfdotZl !cfdotZr !rmorph_sign !cfdot_irr !mulrA -!signr_addb.
 rewrite 2!{1}signrE !mulrBl !mul1r -!natrM addrCA -subr_eq0 -!addrA.
-rewrite -!opprD addrA subr_eq0 -mulrSr -!natrD -eqN_eqC => eq_phi_psi.
+rewrite -!opprD addrA subr_eq0 -mulrSr -!natrD eqr_nat => eq_phi_psi.
 apply/pred2P; rewrite /= !eq_signed_irr -!negb_add !(eq_sym j) !(addbC c).
 by case: (i1 == j) eq_phi_psi; case: (i2 == j); do 2!case: (_ (+) c).
 Qed.

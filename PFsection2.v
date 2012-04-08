@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset center.
 Require Import fingroup morphism perm automorphism quotient action zmodp.
-Require Import gfunctor gproduct cyclic pgroup frobenius.
+Require Import gfunctor gproduct cyclic pgroup frobenius ssrnum.
 Require Import matrix mxalgebra mxrepresentation vector algC classfun character.
 Require Import inertia vcharacter PFsection1.
 
@@ -40,7 +40,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GroupScope GRing.Theory.
+Import GroupScope GRing.Theory Num.Theory.
 Local Open Scope ring_scope.
 
 Reserved Notation "alpha ^\tau" (at level 2, format "alpha ^\tau").
@@ -588,7 +588,7 @@ transitivity (- (\sum_(B \in calP) n1 B * aa1 B)); last first.
     by rewrite [B2 :^: L](orbit_transl B1L_B2) -defB dB1L.
   rewrite (eq_bigr (fun _ => n1 B * aa1 B)) => [|_ /imsetP[x Lx ->]].
     rewrite cfunE sumr_const -mulr_natr mulrAC card_orbit astab1Js divfK //.
-    by rewrite -neq0N_neqC -lt0n indexg_gt0.
+    by rewrite pnatr_eq0 -lt0n indexg_gt0.
   rewrite /aa1 Dade_Ind_restr_J //; congr (_ * _).
   by rewrite /n1 cardJg -{1 2}(conjGid Lx) normJ -conjIg indexJg.
 case: pickP => /= [a /andP[Aa Ha_g] | notHAg]; last first.

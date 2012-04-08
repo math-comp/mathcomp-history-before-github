@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop ssralg finalg zmodp poly polydiv.
-Require Import ssrint rat intdiv algC matrix mxalgebra mxpoly.
+Require Import ssrnum ssrint rat intdiv algC matrix mxalgebra mxpoly.
 Require Import vector falgebra fieldext separable galois cyclotomic.
 
 (******************************************************************************)
@@ -33,7 +33,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GRing.Theory AlgCcountable.
+Import GRing.Theory Num.Theory.
 (* Import GroupScope GRing.Theory. *)
 Local Open Scope ring_scope.
 
@@ -46,8 +46,8 @@ Local Notation pZtoQ := (map_poly ZtoQ).
 Local Notation pZtoC := (map_poly ZtoC).
 Local Notation pQtoC := (map_poly ratr).
 
-Local Hint Resolve (@intr_inj algC_numIdomainType).
-Local Notation QtoC_M := (ratr_rmorphism algC_numFieldType).
+Local Hint Resolve (@intr_inj [numIdomainType of algC]).
+Local Notation QtoC_M := (ratr_rmorphism [numFieldType of algC]).
 
 (* Number fields and rational spans. *)
 Lemma algC_PET (s : seq algC) :
@@ -786,4 +786,4 @@ by rewrite rpred_div ?rpredB.
 Qed.
 
 Lemma eqAmod0_rat : {in Crat &, forall e n, (n == 0 %[mod e])%A = dvdC e n}.
-Proof. by move=> e n Qe Qn; rewrite /= eqAmod_rat // subr0. Qed.
+Proof. by move=> e n Qe Qn; rewrite /= eqAmod_rat ?subr0 ?Crat0. Qed.

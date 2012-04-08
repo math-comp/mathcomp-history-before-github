@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset.
 Require Import fingroup morphism perm automorphism quotient finalg action.
 Require Import gproduct zmodp commutator cyclic center pgroup sylow.
-Require Import matrix vector falgebra algC.
+Require Import matrix vector falgebra ssrnum algC.
 
 (******************************************************************************)
 (* This file contains the basic theory of class functions:                    *)
@@ -71,7 +71,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GroupScope GRing.Theory.
+Import GroupScope GRing.Theory Num.Theory.
 Local Open Scope ring_scope.
 Delimit Scope cfun_scope with CF.
 
@@ -98,22 +98,22 @@ Variable (gT : finGroupType).
 Implicit Types (G H : {group gT}) (B : {set gT}).
 
 Lemma neq0GC G : (#|G|)%:R != 0 :> algC.
-Proof. by rewrite -neq0N_neqC -lt0n. Qed.
+Proof. by rewrite pnatr_eq0 -lt0n. Qed.
 
 Lemma neq0GiC G B : (#|G : B|)%:R != 0 :> algC.
-Proof. by rewrite -neq0N_neqC -lt0n. Qed.
+Proof. by rewrite pnatr_eq0 -lt0n. Qed.
 
 Lemma divgS_C G H : H \subset G -> #|G : H|%:R = #|G|%:R / #|H|%:R :> algC.
 Proof. by move/Lagrange <-; rewrite mulnC natrM mulfK ?neq0GC. Qed.
 
-Lemma sposGC G : 0 < #|G|%:R.
-Proof. by rewrite -(ltn_ltC 0). Qed.
+Lemma sposGC G : 0 < #|G|%:R :> algC.
+Proof. by rewrite ltr0n. Qed.
 
-Lemma sposGiC G B : 0 < #|G : B|%:R.
-Proof. by rewrite -(ltn_ltC 0). Qed.
+Lemma sposGiC G B : 0 < #|G : B|%:R :> algC.
+Proof. by rewrite ltr0n. Qed.
 
 Lemma algC'G G : [char algC]^'.-group G.
-Proof. by apply/pgroupP=> p _; rewrite inE /= Cchar. Qed.
+Proof. by apply/pgroupP=> p _; rewrite inE /= char_num. Qed.
 
 End AlgC.
 
@@ -463,7 +463,7 @@ by rewrite class_sub_norm // andb_idl // => /(subsetP sAG).
 Qed.
 
 Lemma support_cfuni A : A <| G -> support '1_A =i A.
-Proof. by move=> nsAG x; rewrite !inE cfuniE // -(eqN_eqC _ 0) -lt0n lt0b. Qed.
+Proof. by move=> nsAG x; rewrite !inE cfuniE // pnatr_eq0 -lt0n lt0b. Qed.
 
 Lemma eq_mul_cfuni A phi : A <| G -> {in A, phi * '1_A =1 phi}.
 Proof. by move=> nsAG x Ax; rewrite cfunE cfuniE // Ax mulr1. Qed.
@@ -513,7 +513,7 @@ apply/cfun_inP=> x Gx; rewrite sum_cfunE (bigD1 (x ^: G)) ?mem_classes //=.
 rewrite cfunE cfun_repr cfun_classE Gx class_refl mulr1.
 rewrite big1 ?addr0 // => _ /andP[/imsetP[y Gy ->]]; apply: contraNeq.
 rewrite cfunE cfun_repr cfun_classE Gy mulf_eq0 => /norP[_].
-by rewrite -(eqN_eqC _ 0) -lt0n lt0b => /class_transr->.
+by rewrite pnatr_eq0 -lt0n lt0b => /class_transr->.
 Qed.
 Implicit Arguments cfun_onP [A phi].
 
@@ -544,7 +544,7 @@ apply: contraNeq; rewrite b_i !cfunE mulf_eq0 => /norP[_].
 rewrite -(inj_eq enum_val_inj).
 have /setIdP[/imsetP[x _ ->] _] := enum_valP i; rewrite cfun_repr.
 have /setIdP[/imsetP[y Gy ->] _] := enum_valP j; rewrite cfun_classE Gy.
-by rewrite -(eqN_eqC _ 0) -lt0n lt0b => /class_transr->.
+by rewrite pnatr_eq0 -lt0n lt0b => /class_transr->.
 Qed.
 
 Lemma dim_cfun : \dim 'CF(G) = #|classes G|.
@@ -778,15 +778,15 @@ Proof. by rewrite cfdot_cfAut. Qed.
 
 Lemma cfnorm_posC phi : 0 <= '[phi].
 Proof.
-by rewrite posC_mul ?posC_inv ?posC_nat ?posC_sum // => x _; exact: posC_pconj.
+by rewrite mulr_ge0 ?invr_ge0 ?ler0n ?sumr_ge0 // => x _; exact: mulCJ_ge0.
 Qed.
 
 Lemma cfnorm_eq0 phi : ('[phi] == 0) = (phi == 0).
 Proof.
 apply/idP/eqP=> [|->]; last by rewrite cfdot0r.
-rewrite mulf_eq0 invr_eq0 (negbTE (neq0GC G)) /= => /eqP/posC_sum_eq0 phi0.
-apply/cfun_inP=> x Gx; apply/eqP; rewrite cfunE -normC_eq0 sqrtC_eq0.
-by rewrite phi0 // => y _; exact: posC_pconj.
+rewrite mulf_eq0 invr_eq0 (negbTE (neq0GC G)) /= => /eqP/psumr_eq0P phi0.
+apply/cfun_inP=> x Gx; apply/eqP; rewrite cfunE -mulCJ_eq0.
+by rewrite phi0 // => y _; exact: mulCJ_ge0.
 Qed.
 
 Lemma cfnormZ a phi : '[a *: phi]= `|a| ^+ 2 * '[phi]_G.
@@ -815,7 +815,7 @@ by move=> ophipsi; rewrite cfnormDd ?cfnormN // cfdotNr ophipsi oppr0.
 Qed.
 
 Lemma cfnorm_conjC phi : '[phi^*] = '[phi].
-Proof. by rewrite cfdot_conjC posC_conjK // cfnorm_posC. Qed.
+Proof. by rewrite cfdot_conjC geC0_conj // cfnorm_posC. Qed.
 
 Lemma orthogonal_cons phi R S :
   orthogonal (phi :: R) S = orthogonal phi S && orthogonal R S.
@@ -1420,7 +1420,7 @@ Qed.
 
 Lemma cfnorm_Ind_cfun1 : H <| G -> '['Ind[G, H] 1] = #|G : H|%:R.
 Proof.
-move=> nsHG; rewrite cfInd_cfun1 // cfnormZ normC_nat cfdot_cfuni // setIid.
+move=> nsHG; rewrite cfInd_cfun1 // cfnormZ normr_nat cfdot_cfuni // setIid.
 rewrite mulrC -mulrA mulrCA (mulrA _%:R) -natrM Lagrange ?normal_sub //.
 by rewrite mulKf ?neq0GC.
 Qed.

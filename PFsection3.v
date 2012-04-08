@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset center.
 Require Import fingroup morphism perm automorphism quotient action zmodp.
-Require Import gfunctor gproduct cyclic pgroup.
+Require Import gfunctor gproduct cyclic pgroup ssrnum.
 Require Import matrix mxalgebra mxrepresentation vector algC classfun character.
 Require Import inertia vcharacter frobenius PFsection1 PFsection2.
 
@@ -38,7 +38,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GroupScope GRing.Theory.
+Import GroupScope GRing.Theory Num.Theory.
 Local Open Scope ring_scope.
 
 Section Definitions.
@@ -296,7 +296,7 @@ Lemma card_dirr_const_beta_diff i j i' j' :
   #|dirr_constt (beta_ i j) :&: dirr_constt (-beta_ i' j')|.
 Proof.
 move=> NZi NZj NZi' NZj' IdI' JdJ'.
-apply/eqP; rewrite eqN_eqC -subr_eq0; apply/eqP; rewrite -cfdot_sum_dchi.
+apply/eqP; rewrite -eqC_nat -subr_eq0; apply/eqP; rewrite -cfdot_sum_dchi.
 pose F i j N1 N2 := dirr_small_norm (bcTIirr_vchar i j) (cfnorm_bcTIirr N1 N2).
 case: (F _ _ NZi NZj)=> // _ _ <-; case: (F _ _ NZi' NZj')=> // _ _ <-.
 by rewrite cfdot_bcTIirr // (negPf IdI') (negPf JdJ').
@@ -315,7 +315,7 @@ pose DS i j N1 N2 :=
 case: (DS _ _ NZi NZj)=> // Acard IA AS.
 case: (DS _ _ NZi NZj')=> // Bcard IB BS.
 rewrite {1}AS {1}BS cfdot_sum_dchi => /eqP.
-rewrite subr_eq -(natrD _ 1%N) -eqN_eqC.
+rewrite subr_eq -(natrD _ 1%N) eqr_nat.
 set A := dirr_constt _; set B := dirr_constt _; set C := dirr_constt _.
 set A1 := _ :&: _; case: (set_0Vmem A1)=> [-> //| [u1 U1iA1]].
   by rewrite cards0.
@@ -382,7 +382,7 @@ rewrite /bcTIirr [X in _ - X]addrC opprD opprK addrA subrK.
 rewrite -raddfB /= cfInd1 //; last by case: tiW; case.
 rewrite 4!cfunE acTIirr1 cfunE acTIirr1 subr0 mulr0.
 rewrite cfun1Egen group1 -natrD.
-move/eqP; rewrite mulf_eq0 -(eqN_eqC _ 0) orFb.
+move/eqP; rewrite mulf_eq0 pnatr_eq0 orFb.
 by rewrite mulr_sign; case: u3.1; rewrite ?oppr_eq0 (negPf (irr1_neq0 u3.2)).
 Qed.
 
@@ -399,7 +399,7 @@ pose DS i j N1 N2 :=
 case: (DS _ _ NZi NZj) => // Acard IA AS.
 case: (DS _ _ NZi' NZj)=> // Bcard IB BS.
 rewrite {1}AS {1}BS cfdot_sum_dchi => /eqP.
-rewrite subr_eq -(natrD _ 1%N) -eqN_eqC.
+rewrite subr_eq -(natrD _ 1%N) eqr_nat.
 set A := dirr_constt _; set B := dirr_constt _; set C := dirr_constt _.
 set A1 := _ :&: _; case: (set_0Vmem A1)=> [-> //| [u1 U1iA1]].
   by rewrite cards0.
@@ -466,7 +466,7 @@ rewrite /bcTIirr [X in _ - X]addrC opprD opprK addrA subrK.
 rewrite -raddfB /= cfInd1 //; last by case: tiW; case.
 rewrite 4!cfunE acTIirr1 cfunE acTIirr1 subr0 mulr0.
 rewrite cfun1Egen group1 -natrD.
-move/eqP; rewrite mulf_eq0 -(eqN_eqC _ 0) orFb.
+move/eqP; rewrite mulf_eq0 pnatr_eq0 orFb.
 by rewrite mulr_sign; case: u3.1; rewrite ?oppr_eq0 (negPf (irr1_neq0 u3.2)).
 Qed.
 
@@ -481,7 +481,7 @@ move=> Acar _ betaE; apply/eqP; rewrite eqEcard; apply/andP; split; last first.
              addn1 ltnS leq_subr.
 apply/subsetP=> v; rewrite !inE BE !cfdotDl !cfdot_dchi.
 do 3 (case: (_ =P v)=> [<-| _]; first by rewrite eqxx ?orbT).
-by rewrite !sub0r -!opprD -!natrD sposC_opp -(ltn_ltC _ 0) ltn0.
+by rewrite !sub0r -!opprD -!natrD oppr_gt0 ltrn0.
 Qed.
 
 Section S3_5.
@@ -1562,15 +1562,13 @@ Qed.
 
 Lemma bcTIirr1 i j : i != 0 -> j != 0 -> 
   dirr1 _ \notin dirr_constt (beta_ i j).
-Proof.
-by move=> NZi NZj; rewrite inE dchi1 cfdot_bcTIirr_1 // /ltC eqxx.
-Qed.
+Proof. by move=> NZi NZj; rewrite inE dchi1 cfdot_bcTIirr_1 ?ltrr. Qed.
 
 Lemma bcTIirrM1 i j : i != 0 -> j != 0 -> 
   ndirr (dirr1 _) \notin dirr_constt (beta_ i j).
 Proof.
 move=> NZi NZj; rewrite inE dchi_ndirrE dchi1 cfdotNr cfdot_bcTIirr_1 //.
-by rewrite oppr0 /ltC eqxx.
+by rewrite oppr0 ltrr.
 Qed.
 
 Lemma dcTIirr_vchar i j : x_ i j \in 'Z[irr G].
@@ -1697,15 +1695,15 @@ case: (boolP (_ j == _))=> [/eqP H1|_].
   case/or4P: (dA2_split h_beta_hyp IdI' JdJ' F1 F2)=> /and3P [];
       rewrite ndirrK subr_eq0 => [/eqP H2 _ _].
   - move: (Pii' i i'); rewrite cfdot_dchi -H2 eqxx.
-    by rewrite (negPf (ndirr_diff _)) (negPf IdI') subr_eq0 -(eqN_eqC 0 1).
+    by rewrite (negPf (ndirr_diff _)) (negPf IdI') subr_eq0 eq_sym oner_eq0.
   - move: (Pij i' j); rewrite cfdot_dchi -H2 ndirrK eqxx.
     rewrite [_ 0 == _]eq_sym (negPf (ndirr_diff _)) (negPf NZi') (negPf NZj).
-    by rewrite  subr_eq0 -(eqN_eqC 0 1).
+    by rewrite  subr_eq0 eq_sym oner_eq0.
   - move: (Pij i j'); rewrite cfdot_dchi -H2 eqxx ndirrSK.
     rewrite [_ j' == _]eq_sym (negPf (ndirr_diff _)) (negPf NZi) (negPf NZj').
-    by rewrite  subr_eq0 -(eqN_eqC 0 1).
+    by rewrite  subr_eq0 eq_sym oner_eq0.
   move: (Pjj' j j'); rewrite cfdot_dchi -H2 eqxx.
-  by rewrite (negPf (ndirr_diff _)) (negPf JdJ') subr_eq0 -(eqN_eqC 0 1).
+  by rewrite (negPf (ndirr_diff _)) (negPf JdJ') subr_eq0 eq_sym oner_eq0.
 case: (boolP (_ j == _))=> [/eqP H1|_]; last by rewrite subrr.
 have F1 := dAr (TT _ _ NZi NZj).
 have := dAr (TT _ _ NZi' NZj'); rewrite -[dcTIirr i' j']ndirrK -{1}H1 => F2.
@@ -1713,16 +1711,16 @@ case/or4P: (dA2_n_split h_beta_hyp IdI' JdJ' F1 F2)=> /and3P [];
       rewrite ?(ndirrEK, ndirrK) subr_eq0 => [/eqP H2 _ _].
 - move: (Pii' i i'); rewrite cfdot_dchi -H2 eqxx.
   rewrite [_ 0 == _]eq_sym (negPf (ndirr_diff _)) (negPf IdI').
-  by rewrite subr0 -(eqN_eqC 1 0).
+  by rewrite subr0 eqr_nat.
 - move: (Pij i' j); rewrite cfdot_dchi -H2 eqxx.
   rewrite [_ 0 == _]eq_sym (negPf (ndirr_diff _)) (negPf NZi') (negPf NZj).
-  by rewrite  subr0 -(eqN_eqC 1 0).
+  by rewrite  subr0 eqr_nat.
 - move: (Pij i j'); rewrite cfdot_dchi -H2 eqxx.
   rewrite [_ j' == _]eq_sym (negPf (ndirr_diff _)) (negPf NZi) (negPf NZj').
-  by rewrite  subr0 -(eqN_eqC 1 0).
+  by rewrite  subr0 eqr_nat.
 move: (Pjj' j j'); rewrite cfdot_dchi -H2 eqxx.
 rewrite [_ j' == _]eq_sym (negPf (ndirr_diff _)) (negPf JdJ').
-by rewrite  subr0 -(eqN_eqC 1 0).
+by rewrite  subr0 eqr_nat.
 Qed.
 
 (* This is second_part of PeterFalvi (3.5). *)
@@ -1855,8 +1853,8 @@ move/(_ tt)=> /idP []; apply/and3P; split.
     move: (inv_dprod_IirrK W1xW2 u) (inv_dprod_IirrK W1xW2 v).
     rewrite /p; case: (inv_dprod_Iirr _ _)=> /= i1 j1 <-.
     case:  (inv_dprod_Iirr _ _)=> /= i2 j2 <-.
-    case: (_ =P _)=> [->| _ /eqP]; last by rewrite -(eqN_eqC 1 0).
-    by case: (_ =P _)=> [-> //| _ /eqP]; rewrite andbF -(eqN_eqC 1 0).
+    case: (_ =P _)=> [->| _ /eqP]; last by rewrite oner_eq0.
+    by case: (_ =P _)=> [-> //| _ /eqP]; rewrite andbF oner_eq0.
   move=> u v /imageP [i Hi ->] /imageP [j Hj ->].
   case: (_ =P _)=> [->|]; first by rewrite ffunE cfdot_dcTIirr !eqxx.
   rewrite !ffunE cfdot_dcTIirr => HH.
@@ -1986,7 +1984,7 @@ Lemma sigma_eqE i1 i2 j1 j2 :
 Proof.
 apply/eqP/idP=> [Hs|].
   have: '[sigma (w_ i1 j1)] == 1 by rewrite cfdot_sigma ?eqxx.
-  rewrite  {2}Hs cfdot_sigma -(eqN_eqC _ 1).
+  rewrite  {2}Hs cfdot_sigma pnatr_eq1.
   by case: (i1 == _)=> //; case: (j1 == _).
 by case/andP=> /eqP-> /eqP->.
 Qed.
@@ -1997,9 +1995,9 @@ Proof.
 apply/negP=> HH.
 have: '[sigma (w_ i1 j1)] = 1 by rewrite cfdot_sigma ?eqxx.
 rewrite  {1}(eqP HH) cfdotNl cfdot_sigma.
-case: (_ == _)=> /eqP; last by rewrite oppr0 -(eqN_eqC 0 1).
-case: (j2 == _); last by rewrite oppr0 -(eqN_eqC 0 1).
-by rewrite eq_sym -subr_eq0 opprK -(natrD _ 1) -(eqN_eqC _ 0).
+case: (_ == _)=> /eqP; last by rewrite oppr0 eq_sym oner_eq0.
+case: (j2 == _); last by rewrite oppr0 eq_sym oner_eq0.
+by rewrite eq_sym -subr_eq0 opprK -(natrD _ 1) pnatr_eq0.
 Qed.
 
 Lemma dirr_sigma i j : sigma(w_ i j) \in dirr G.
@@ -2025,7 +2023,7 @@ Qed.
 Lemma cyclicTI_NC_sigma i j : NC (sigma (w_ i j)) = 1%N.
 Proof.
 rewrite -(cards1 (i,j)); apply: eq_card=> [[i1 j1]]; rewrite !inE.
-rewrite cfdot_sigma //= -(eqN_eqC _ 0).
+rewrite cfdot_sigma //= pnatr_eq0.
 case: (i =P _)=> [->|IdI1 /=].
   case: (j =P _)=> [-> |Djj1 /=]; first by rewrite eqxx.
   by case: (_ =P _)=> // [[]] HH; case: Djj1.
@@ -2282,9 +2280,9 @@ case: (boolP ((i1, j1) \in S))=> [I1J1iS|]; last first.
   rewrite inE negbK /a  cfdot_subl cfdot_sigma !eqxx /=.
   rewrite cfdot_dirr ?(dirr_chi, dirr_sigma) //.
   case: (boolP (phi == _))=> [|_].
-    by rewrite opprK -(natrD _ 1 1) -(eqN_eqC _ 0).
+    by rewrite opprK -(natrD _ 1 1) pnatr_eq0.
   case: (boolP (phi == _))=> [/eqP //|].
-  by rewrite subr0 -(eqN_eqC 1 0).
+  by rewrite subr0 oner_eq0.
 have SPos : (0 < #|S|)%N by rewrite (cardD1 (i1,j1)) I1J1iS.
 have SLt: (#|S| <= 2)%N.
   rewrite -[2%N]add1n; apply: leq_trans (cyclicTI_NC_sub _ _) _.

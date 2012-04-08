@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset.
 Require Import fingroup finalg zmodp cyclic.
-Require Import ssrint polydiv rat intdiv.
+Require Import ssrnum ssrint polydiv rat intdiv.
 Require Import mxpoly vector falgebra fieldext separable galois algC.
 
 (******************************************************************************)
@@ -21,7 +21,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GRing.Theory.
+Import GRing.Theory Num.Theory.
 Local Open Scope ring_scope.
 
 Section CyclotomicPoly.
@@ -103,8 +103,8 @@ Local Notation pZtoQ := (map_poly ZtoQ).
 Local Notation pZtoC := (map_poly ZtoC).
 Local Notation pQtoC := (map_poly ratr).
 
-Local Hint Resolve (@intr_inj algC_numIdomainType).
-Local Notation QtoC_M := (ratr_rmorphism algC_numFieldType).
+Local Hint Resolve (@intr_inj [numIdomainType of algC]).
+Local Notation QtoC_M := (ratr_rmorphism [numFieldType of algC]).
 
 Lemma C_prim_root_exists n : (n > 0)%N -> {z : algC | n.-primitive_root z}.
 Proof.
@@ -114,7 +114,7 @@ have rn1: all n.-unity_root r by apply/allP=> z; rewrite -root_prod_XsubC -Dp.
 have sz_r: (n < (size r).+1)%N.
   by rewrite -(size_prod_XsubC r id) -Dp size_Xn_sub_1.
 have [|z] := hasP (has_prim_root n_gt0 rn1 _ sz_r); last by exists z.
-by rewrite -separable_prod_XsubC -Dp separable_Xn_sub_1 // -neq0N_neqC -lt0n.
+by rewrite -separable_prod_XsubC -Dp separable_Xn_sub_1 // pnatr_eq0 -lt0n.
 Qed.
 
 (* (Integral) Cyclotomic polynomials. *)
@@ -129,7 +129,7 @@ Notation "''Phi_' n" := (Cyclotomic n)
 Lemma Cyclotomic_monic n : 'Phi_n \is monic.
 Proof.
 rewrite /'Phi_n; case: (C_prim_root_exists _) => z /= _.
-rewrite monicE lead_coefE coef_map_id0 ?(int_algC_K 0) //.
+rewrite monicE lead_coefE coef_map_id0 ?(int_algC_K 0) ?getCint0 //.
 by rewrite size_poly_eq -lead_coefE (monicP (cyclotomic_monic _ _)) (CintrK 1).
 Qed.
 
@@ -255,7 +255,7 @@ have co_fg (R : idomainType): n%:R != 0 :> R -> @coprimep R (intrp f) (intrp g).
   by rewrite !rmorphM /= !separable_mul => /and3P[] /and3P[].
 suffices fzk0: root (pZtoC f) zk.
   have [] // := negP (coprimep_root (co_fg _ _) fzk0).
-  by rewrite -neq0N_neqC -lt0n.
+  by rewrite pnatr_eq0 -lt0n.
 move: gzk0 cokn; rewrite {zk}Dzk; elim: {k}_.+1 {-2}k (ltnSn k) => // m IHm k.
 rewrite ltnS => lekm gzk0 cokn.
 have [|k_gt1] := leqP k 1; last have [p p_pr /dvdnP[k1 Dk]] := pdivP k_gt1.
