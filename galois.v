@@ -3,6 +3,8 @@ Require Import tuple finfun bigop ssralg poly polydiv.
 Require Import finset fingroup zmodp morphism perm quotient cyclic.
 Require Import matrix mxalgebra vector falgebra fieldext separable.
 
+(******************************************************************************)
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -459,7 +461,7 @@ have /(nthP 0)[j lt_j_ri <-]: x \in r i.
 by apply/mem_genField/imageP; exists (i, Ordinal (leq_trans lt_j_ri (sz_r i))).
 Qed.
 
-Definition LAut_enum : seq 'End(L):=
+Definition LAut_enum : seq 'End(L) := 
  let b := vbasis fullv in
  let mkEnd (b' : seq L) := linfun (fun v => \sum_i coord b i v *: b'`_i) in
  undup (filter (kHom F fullv)
@@ -944,20 +946,22 @@ congr (_ * _).
 by rewrite !(row_mxEl, mxE).
 Qed.
 
+Definition LAut_over (K E : {vspace L}) := 
+  [set x : LAut | kAut K E (val x)].
+
 (* In most definitions I give the smaller field first, since the larger
    field can be seen as algebra over the smaller, and so in some moral sense
    the larger field depends on the smaller one.  However standard mathematical
    notation for Aut(E/K) puts the larger field first. *)
 Definition Aut (E K : {vspace L}) :=
-  ([set x : LAut | kAut K E (val x)] /
-             [set x : LAut | kAut E fullv (val x)])%g.
+  ((LAut_over K E) / (LAut_over E fullv))%g.
 
 Reserved Notation "''Aut' ( A | B )"
   (at level 8, format "''Aut' ( A  |  B )").
 Notation "''Aut' ( A | B )" := (Aut A B) : group_scope.
 
 Lemma kAut_group_set : forall K E : {subfield L}, 
-  group_set [set x : LAut | kAut K E (val x)].
+  group_set (LAut_over K E).
 Proof.
 move => K E.
 apply/group_setP; split.
@@ -980,8 +984,7 @@ Qed.
 Canonical kAut_group K E := Eval hnf in group (kAut_group_set K E).
 
 Lemma kAut_normal : forall K E : {subfield L},
- ([set x : LAut | kAut K E (val x)] \subset
-   'N([set x : LAut | kAut E fullv (val x)]))%g.
+ ((LAut_over K E) \subset 'N(LAut_over E fullv))%g.
 Proof.
 move => K E.
 apply/subsetP.
@@ -1022,7 +1025,7 @@ by apply: Hfg.
 Qed.
 
 Lemma Aut_eq (E : {subfield L}) 
-  (x y : coset_of [set x : LAut | kAut E fullv (val x)]) (f g : LAut) : 
+  (x y : coset_of (LAut_over E fullv)) (f g : LAut) : 
   f \in x -> g \in y ->
   reflect (forall a, a \in E -> val f a = val g a)%VS (x == y).
 Proof.
@@ -1050,7 +1053,7 @@ by rewrite comp_lfunE /= Hfg // lker0_lfunK ?LAut_ker0.
 Qed.
 
 Lemma Aut_mul (E : {subfield L})
- (x y : coset_of [set x : LAut | kAut E fullv (val x)]) :
+ (x y : coset_of (LAut_over E fullv)) :
  forall a, a \in E -> val (repr (x*y)%g) a = val (repr y) (val (repr x) a).
 Proof.
 move => a Ha.
@@ -1142,7 +1145,7 @@ Qed.
 
 (* TODO: make E not an algebra *)
 Definition kAut_pick U (E : {subfield L}) f : 
-  coset_of [set x : LAut | kAut E fullv (val x)] :=
+  coset_of (LAut_over E fullv) :=
   if insub U is Some K 
      then xchoose (kAut_pick_subproof K E f)
      else (coset_one _).
@@ -1166,7 +1169,7 @@ by apply: Hpick.
 Qed.
 
 Lemma Aut_conjg (K E : {subfield L})
-  (x : coset_of [set x : LAut | kAut E fullv (val x)]) (f : LAut) :
+  (x : coset_of (LAut_over E fullv)) (f : LAut) :
   (K <= E)%VS -> (val f @: E = E)%VS -> f \in x -> 
   ('Aut(E | K) :^ x = 'Aut(E | (val f @: K)%VS))%g.
 Proof.
@@ -1233,8 +1236,7 @@ Lemma uniq_aut (K E : {subfield L}) n f_ :
 Proof.
 move => Hf.
 set (s := [seq f_ i |  i <- enum 'I_n]).
-pose g (x : coset_of [set x : LAut | kAut E fullv (val x)]):= 
-     (val (repr x) \o projv E)%VF.
+pose g (x : coset_of (LAut_over E fullv)) := (val (repr x) \o projv E)%VF.
 suff Hs : {in s &, injective g} by rewrite -(map_inj_in_uniq Hs) -map_comp.
 move=> x y Hx Hy /= Hg.
 apply/eqP/(Aut_eq (mem_repr_coset _) (mem_repr_coset _)) => a /projv_id <-.
@@ -1242,12 +1244,12 @@ by rewrite -[_ (projv E a)]comp_lfunE [(_ \o _)%VF]Hg comp_lfunE.
 Qed.
 
 Definition FixedField (E : {vspace L})
-  (s : {set coset_of [set x : LAut | kAut E fullv (val x)]}) :=
+  (s : {set coset_of (LAut_over E fullv)}) :=
   (E :&: \bigcap_( i \in cover [set (set_of_coset x) | x <- s])
           (LAut_FixedField i))%VS.
 
 Lemma FixedFieldP (E : {subfield L})
-   (s : {set coset_of [set x : LAut | kAut E fullv (val x)]}) a :
+   (s : {set coset_of (LAut_over E fullv)}) a :
  reflect (a \in E /\ forall x, (x \in s) -> (val (repr x) a = a))
          (a \in FixedField s).
 Proof.
@@ -1287,7 +1289,7 @@ by move: (Aut_kAut HKE Hx (mem_repr_coset _)) => /andP [/kHomP [->]].
 Qed.
 
 Lemma FixedField_is_aspace_subproof  (E : {subfield L})
-   (s : {set coset_of [set x : LAut | kAut E fullv (val x)]}) :
+   (s : {set coset_of (LAut_over E fullv)}) :
   let FF := FixedField s in
   (has_algid FF  && (FF * FF <= FF)%VS).
 Proof.
@@ -1299,11 +1301,11 @@ by apply: IH.
 Qed.
 
 Canonical Structure FixedField_aspace (E : {subfield L})
-   (s : {set coset_of [set x : LAut | kAut E fullv (val x)]}) : {subfield L}
+   (s : {set coset_of (LAut_over E fullv)}) : {subfield L}
    := ASpace (FixedField_is_aspace_subproof s).
 
 Lemma FixedField_subset (E : {subfield L})
-   (s1 s2 : {set coset_of [set x : LAut | kAut E fullv (val x)]}) :
+   (s1 s2 : {set coset_of (LAut_over E fullv)}) :
    (s1 \subset s2) -> (FixedField s2 <= FixedField s1)%VS.
 Proof.
 move => /subsetP Hs.
@@ -1489,7 +1491,7 @@ rewrite /separableElement Hmin separable_prod_XsubC => Huniq.
 rewrite eqn_leq.
 apply/andP; split; last first.
  rewrite cardE.
- pose f (y : coset_of [set g : LAut | kAut E fullv (val g)]) :=
+ pose f (y : coset_of (LAut_over E fullv)) :=
     val (repr y) x.
  rewrite -(size_map f).
  apply: uniq_leq_size.
@@ -1627,17 +1629,17 @@ Lemma galois_factors_subproof (K E : {subfield L}) : (K <= E)%VS ->
  (forall a, a \in E -> 
    exists r, [/\
      r \subset 'Aut(E | K)%g,
-     uniq (map (fun i : coset_of [set x : LAut | kAut E fullv (val x)] =>
+     uniq (map (fun i : coset_of (LAut_over E fullv) =>
                          ((val (repr i)) a)) r) &
      minPoly K a = \prod_(i <- r)('X - (val (repr i) a)%:P)]).
 Proof.
 pose f (j : L) := ('X - j%:P).
 move => HKE Hgal a HaE.
-pose h (i : coset_of [set x : LAut | kAut E fullv (val x)])
+pose h (i : coset_of (LAut_over E fullv))
       := ((val (repr i)) a).
 suff : forall n, n.+1 < size (minPoly K a) -> 
         exists r, let r' := 
-           map (fun i : coset_of [set x : LAut | kAut E fullv (val x)] =>
+           map (fun i : coset_of (LAut_over E fullv) =>
                          ((val (repr i)) a)) r 
          in [/\ r \subset 'Aut(E | K)%g,  uniq r',
                 (size r') = n.+1 &
@@ -1728,7 +1730,7 @@ Lemma galois_factors (K E : {subfield L}) :
  reflect ((K <= E)%VS /\ (forall a, a \in E -> 
    exists r, [/\
      r \subset 'Aut(E | K)%g,
-     uniq (map (fun i : coset_of [set x : LAut | kAut E fullv (val x)] =>
+     uniq (map (fun i : coset_of (LAut_over E fullv) =>
                          ((val (repr i)) a)) r) &
      minPoly K a = \prod_(i <- r)('X - (val (repr i) a)%:P)]))
    (galois K E).
@@ -1743,12 +1745,12 @@ apply: (iffP idP).
 move => [HKE H].
 apply/and3P; split; first done.
  apply/separableP => a /H [r [_ Hr Hmin]].
- pose h (i : coset_of [set x : LAut | kAut E fullv (val x)])
+ pose h (i : coset_of (LAut_over E fullv))
        := ((val (repr i)) a).
  by rewrite /separableElement Hmin -(big_map h predT f) separable_prod_XsubC.
 apply/normalP => a Ha.
 case/H: (Ha) => r [/subsetP Haut Hr Hmin].
-pose h (i : coset_of [set x : LAut | kAut E fullv (val x)])
+pose h (i : coset_of (LAut_over E fullv))
       := ((val (repr i)) a).
 exists (map h r); last by rewrite big_map.
 apply/allP => ? /mapP [x Hx ->].
@@ -1905,7 +1907,7 @@ Section GaloisDim.
 Variable E : {subfield L}.
 
 Let Coset :=
- [finGroupType of coset_of [set x : LAut | kAut E fullv (val x)]].
+ [finGroupType of coset_of (LAut_over E fullv)].
 
 Let g_ (i : Coset) := val (repr i).
 
@@ -2079,7 +2081,7 @@ case: (cosetP x) => f Hf -> Hfs.
 rewrite mem_morphim //.
 rewrite inE.
 rewrite kAutE.
-have Hff : f \in coset [set x : LAut | kAut E fullv (val x)] f.
+have Hff : f \in coset (LAut_over E fullv) f.
  by rewrite val_coset // rcoset_refl.
 apply/andP; split.
  apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
@@ -2155,8 +2157,8 @@ move/separableP => Hsep _.
 by apply: Hsep.
 Qed.
 
-Let f (y : coset_of [set x : LAut | kAut E fullv (val x)]) :=
-     (coset [set x : LAut | kAut M fullv (val x)] (repr y)).
+Let f (y : coset_of (LAut_over E fullv)) :=
+     (coset (LAut_over M fullv) (repr y)).
 
 Let Aut_normal z : z \in 'Aut (E | K)%g -> kAut K M (val (repr z)).
 Proof.
@@ -2287,7 +2289,7 @@ End IntermediateField.
 
 Section IntermediateGroup.
 
-Variable g : {group coset_of [set x : LAut | kAut E fullv (val x)]}.
+Variable g : {group coset_of (LAut_over E fullv)}.
 Hypothesis Hg : g \subset 'Aut(E | K)%g.
 
 Lemma SubGaloisField : (K <= FixedField g <= E)%VS.
@@ -2352,8 +2354,8 @@ apply/implyP => HaK.
 have HaE : (val a @: E)%VS = E.
  case/and3P: HKE => _ _.
  by move/forallP/(_ a)/implyP/(_ HaK)/eqP.
-pose x := coset [set x : LAut | kAut E fullv (val x)] a.
-have HaKE : a \in [set x0 | kAut K E (val x0)].
+pose x := coset (LAut_over E fullv) a.
+have HaKE : a \in (LAut_over K E).
  rewrite inE.
  apply/andP; split; last by apply/eqP.
  apply/kHomP; split; last by move => ? ? _ _; rewrite rmorphM.
