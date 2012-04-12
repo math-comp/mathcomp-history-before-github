@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigop ssralg div ssrnum ssrint.
+Require Import bigop ssralg div countalg ssrnum ssrint.
 
 Import GRing.Theory.
 Import Num.Theory.
@@ -26,10 +26,11 @@ Definition ratz (n : int) := @Rat (n, 1) (coprimen1 _).
 Canonical rat_subType := Eval hnf in [subType for valq by rat_rect].
 Definition rat_eqMixin := [eqMixin of rat by <:].
 Canonical rat_eqType := EqType rat rat_eqMixin.
-Definition rat_countMixin := [countMixin of rat by <:].
-Definition rat_choiceMixin := CountChoiceMixin rat_countMixin.
+Definition rat_choiceMixin := [choiceMixin of rat by <:].
 Canonical rat_choiceType := ChoiceType rat rat_choiceMixin.
+Definition rat_countMixin := [countMixin of rat by <:].
 Canonical rat_countType := CountType rat rat_countMixin.
+Canonical rat_subCountType := [subCountType of rat].
 
 Definition numq x := nosimpl ((valq x).1).
 Definition denq x := nosimpl ((valq x).2).
@@ -249,6 +250,7 @@ Qed.
 
 Definition rat_ZmodMixin := ZmodMixin addqA addqC add0q addNq.
 Canonical rat_ZmodType := ZmodType rat rat_ZmodMixin.
+Canonical rat_countZmodType := [countZmodType of rat].
 
 Definition mulq_subdef (x y : int * int) := nosimpl (x.1 * y.1, x.2 * y.2).
 Definition mulq (x y : rat) := nosimpl fracq (mulq_subdef (valq x) (valq y)).
@@ -306,8 +308,10 @@ Fact nonzero1q : oneq != zeroq. Proof. by []. Qed.
 
 Definition rat_comRingMixin :=
   ComRingMixin mulqA mulqC mul1q mulq_addl nonzero1q.
-Canonical  rat_Ring := Eval hnf in RingType rat rat_comRingMixin.
+Canonical rat_Ring := Eval hnf in RingType rat rat_comRingMixin.
+Canonical rat_countRingType := [countRingType of rat].
 Canonical rat_comRing := Eval hnf in ComRingType rat mulqC.
+Canonical rat_countComRingType := [countComRingType of rat].
 
 Fact mulVq x : x != 0 -> mulq (invq x) x = 1.
 Proof.
@@ -321,14 +325,18 @@ Fact invq0 : invq 0 = 0. Proof. by apply/eqP. Qed.
 Definition RatFieldUnitMixin := FieldUnitMixin mulVq invq0.
 Canonical rat_unitRing :=
   Eval hnf in UnitRingType rat RatFieldUnitMixin.
+Canonical rat_countUnitRingType := [countUnitRingType of rat].
 Canonical rat_comUnitRing := Eval hnf in [comUnitRingType of rat].
+Canonical rat_countComUnitRingType := [countComUnitRingType of rat].
 
 Fact rat_field_axiom : GRing.Field.mixin_of rat_unitRing. Proof. exact. Qed.
 
 Definition RatFieldIdomainMixin := (FieldIdomainMixin rat_field_axiom).
 Canonical rat_iDomain :=
   Eval hnf in IdomainType rat (FieldIdomainMixin rat_field_axiom).
+Canonical rat_countIdomainType := [countIdomainType of rat].
 Canonical rat_fieldType := FieldType rat rat_field_axiom.
+Canonical rat_countFieldType := [countFieldType of rat].
 
 Lemma numq_eq0 x : (numq x == 0) = (x == 0).
 Proof.

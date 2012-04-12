@@ -28,6 +28,14 @@ Require Import poly polydiv.
 (* degree_mxminpoly A == the (positive) degree of mxminpoly A.                *)
 (* mx_inv_horner A == the inverse of horner_mx A for polynomials of degree    *)
 (*                  smaller than degree_mxminpoly A.                          *)
+(*  integralOver RtoK u <-> u is in the integral closure of the image of R    *)
+(*                  under RtoK : R -> K, i.e. u is a root of the image of a   *)
+(*                  monic polynomial in R.                                    *)
+(*  algebraicOver FtoE u <-> u : E is algebraic over E; it is a root of the   *)
+(*                  image of a nonzero polynomial under FtoE; as F must be a  *)
+(*                  fieldType, this is equivalent to integralOver FtoE u.     *)
+(*  integralRange RtoK <-> the integral closure of the image of R contains    *)
+(*                  all of K (:= forall u, integralOver RtoK u).              *)
 (* This toolkit for building formal matrix expressions is packaged in the     *)
 (* MatrixFormula submodule, and comprises the following:                      *)
 (*     eval_mx e == GRing.eval lifted to matrices (:= map_mx (GRing.eval e)). *)
@@ -655,6 +663,254 @@ by rewrite /mx_inv_horner degree_mxminpoly_map.
 Qed.
 
 End MapField.
+
+Section IntegralOverRing.
+
+Definition integralOver (R K : ringType) (RtoK : R -> K) (z : K) :=
+  exists2 p, p \is monic & root (map_poly RtoK p) z.
+
+Definition integralRange R K RtoK := forall z, @integralOver R K RtoK z.
+
+Variables (B R K : ringType) (BtoR : B -> R) (RtoK : {rmorphism R -> K}).
+
+Lemma integral_rmorph x :
+  integralOver BtoR x -> integralOver (RtoK \o BtoR) (RtoK x).
+Proof. by case=> p; exists p; rewrite // map_poly_comp rmorph_root. Qed.
+
+Lemma integral_id x : integralOver RtoK (RtoK x).
+Proof. by exists ('X - x%:P); rewrite ?monicXsubC ?rmorph_root ?root_XsubC. Qed.
+
+Lemma integral_nat n : integralOver RtoK n%:R.
+Proof. by rewrite -(rmorph_nat RtoK); apply: integral_id. Qed.
+
+Lemma integral0 : integralOver RtoK 0. Proof. exact: (integral_nat 0). Qed.
+
+Lemma integral1 : integralOver RtoK 1. Proof. exact: (integral_nat 1). Qed.
+
+Lemma integral_poly (p : {poly K}) :
+  (forall i, integralOver RtoK p`_i) <-> {in p : seq K, integralRange RtoK}.
+Proof.
+split=> intRp => [_ /(nthP 0)[i _ <-] // | i]; rewrite -[p]coefK coef_poly.
+by case: ifP => [ltip | _]; [apply/intRp/mem_nth | apply: integral0].
+Qed.
+
+End IntegralOverRing.
+
+Section IntegralOverComRing.
+
+Variables (R K : comRingType) (RtoK : {rmorphism R -> K}).
+
+Lemma integral_horner_root w (p q : {poly K}) :
+    p \is monic -> root p w ->
+    {in p : seq K, integralRange RtoK} -> {in q : seq K, integralRange RtoK} ->
+  integralOver RtoK q.[w].
+Proof.
+move=> mon_p pw0 intRp intRq.
+pose memR y := exists x, y = RtoK x.
+have memRid x: memR (RtoK x) by exists x.
+have memR_nat n: memR n%:R by rewrite -(rmorph_nat RtoK).
+have [memR0 memR1]: memR 0 * memR 1 := (memR_nat 0%N, memR_nat 1%N).
+have memRN1: memR (- 1) by exists (- 1); rewrite rmorphN1.
+pose rVin (E : K -> Prop) n (a : 'rV[K]_n) := forall i, E (a 0 i).
+pose pXin (E : K -> Prop) (r : {poly K}) := forall i, E r`_i.
+pose memM E n (X : 'rV_n) y := exists a, rVin E n a /\ y = (a *m X^T) 0 0.
+pose finM E S := exists n, exists X, forall y, memM E n X y <-> S y.
+have tensorM E n1 n2 X Y: finM E (memM (memM E n2 Y) n1 X).
+  exists (n1 * n2)%N, (mxvec (X^T *m Y)) => y.
+  split=> [[a [Ea Dy]] | [a1 [/fin_all_exists[a /all_and2[Ea Da1]] ->]]].
+    exists (Y *m (vec_mx a)^T); split=> [i|].
+      exists (row i (vec_mx a)); split=> [j|]; first by rewrite !mxE; apply: Ea.
+      by rewrite -row_mul -{1}[Y]trmxK -trmx_mul !mxE.
+    by rewrite -[Y]trmxK -!trmx_mul mulmxA -mxvec_dotmul trmx_mul trmxK vec_mxK.
+  exists (mxvec (\matrix_i a i)); split.
+    by case/mxvec_indexP=> i j; rewrite mxvecE mxE; apply: Ea.
+  rewrite -[mxvec _]trmxK -trmx_mul mxvec_dotmul -mulmxA trmx_mul !mxE.
+  apply: eq_bigr => i _; rewrite Da1 !mxE; congr (_ * _).
+  by apply: eq_bigr => j _; rewrite !mxE.
+suffices [m [X [[u [_ Du]] idealM]]]: exists m,
+  exists X, let M := memM memR m X in M 1 /\ forall y, M y -> M (q.[w] * y).
+- do [set M := memM _ m X; move: q.[w] => z] in idealM *.
+  have MX i: M (X 0 i).
+    by exists (delta_mx 0 i); split=> [j|]; rewrite -?rowE !mxE.
+  have /fin_all_exists[a /all_and2[Fa Da1]] i := idealM _ (MX i).
+  have /fin_all_exists[r Dr] i := fin_all_exists (Fa i).
+  pose A := \matrix_(i, j) r j i; pose B := z%:M - map_mx RtoK A.
+  have XB0: X *m B = 0.
+    apply/eqP; rewrite mulmxBr mul_mx_scalar subr_eq0; apply/eqP/rowP=> i.
+    by rewrite !mxE Da1 mxE; apply: eq_bigr=> j _; rewrite !mxE mulrC Dr.
+  exists (char_poly A); first exact: char_poly_monic.
+  have: (\det B *: (u *m X^T)) 0 0 == 0.
+    rewrite scalemxAr -linearZ -mul_mx_scalar -mul_mx_adj mulmxA XB0 /=.
+    by rewrite mul0mx trmx0 mulmx0 mxE.
+  rewrite mxE -Du mulr1 rootE -horner_evalE -!det_map_mx; congr (\det _ == 0).
+  rewrite !raddfB /= !map_scalar_mx /= map_polyX horner_evalE hornerX.
+  by apply/matrixP=> i j; rewrite !mxE map_polyC /horner_eval hornerC.
+pose gen1 x E y := exists2 r, pXin E r & y = r.[x]; pose gen := foldr gen1 memR.
+have gen1S (E : K -> Prop) x y: E 0 -> E y -> gen1 x E y.
+  by exists y%:P => [i|]; rewrite ?hornerC ?coefC //; case: ifP.
+have genR S y: memR y -> gen S y.
+  by elim: S => //= x S IH in y * => /IH; apply: gen1S; apply: IH.
+have gen0 := genR _ 0 memR0; have gen_1 := genR _ 1 memR1.
+have{gen1S} genS S y: y \in S -> gen S y.
+  elim: S => //= x S IH /predU1P[-> | /IH//]; last exact: gen1S.
+  by exists 'X => [i|]; rewrite ?hornerX // coefX; apply: genR.
+pose propD (R : K -> Prop) := forall x y, R x -> R y -> R (x + y).
+have memRD: propD memR.
+  by move=> _ _ [a ->] [b ->]; exists (a + b); rewrite rmorphD.
+have genD S: propD (gen S).
+  elim: S => //= x S IH _ _ [r1 Sr1 ->] [r2 Sr2 ->]; rewrite -hornerD.
+  by exists (r1 + r2) => // i; rewrite coefD; apply: IH.
+have gen_sum S := big_ind _ (gen0 S) (genD S).
+pose propM (R : K -> Prop) := forall x y, R x -> R y -> R (x * y).
+have memRM: propM memR.
+  by move=> _ _ [a ->] [b ->]; exists (a * b); rewrite rmorphM.
+have genM S: propM (gen S).
+  elim: S => //= x S IH _ _ [r1 Sr1 ->] [r2 Sr2 ->]; rewrite -hornerM.
+  by exists (r1 * r2) => // i; rewrite coefM; apply: gen_sum => j _; apply: IH.
+have gen_horner S r y: pXin (gen S) r -> gen S y -> gen S r.[y].
+  move=> Sq Sy; rewrite horner_coef; apply: gen_sum => [[i _] /= _].
+  by elim: {2}i => [|n IHn]; rewrite ?mulr1 // exprSr mulrA; apply: genM.
+pose S := w :: q ++ p; suffices [m [X defX]]: finM memR (gen S).
+  exists m, X => M; split=> [|y /defX Xy]; first exact/defX.
+  apply/defX/genM => //; apply: gen_horner => // [i|]; last exact/genS/mem_head.
+  rewrite -[q]coefK coef_poly; case: ifP => // lt_i_q.
+  by apply: genS; rewrite inE mem_cat mem_nth ?orbT.
+pose intR R y := exists r, [/\ r \is monic, root r y & pXin R r].
+pose fix genI s := if s is y :: s1 then intR (gen s1) y /\ genI s1 else True.
+have{mon_p pw0 intRp intRq}: genI S.
+  split; set S1 := _ ++ _; first exists p.
+    split=> // i; rewrite -[p]coefK coef_poly; case: ifP => // lt_i_p.
+    by apply: genS; rewrite mem_cat orbC mem_nth.
+  have: all (mem S1) S1 by exact/allP.
+  elim: {-1}S1 => //= y S2 IH /andP[S1y S12]; split; last exact: IH.
+  have{q S S1 IH S1y S12 intRp intRq} [q mon_q qx0]: integralOver RtoK y.
+    by move: S1y; rewrite mem_cat => /orP[]; [apply: intRq | apply: intRp].
+  exists (map_poly RtoK q); split=> // [|i]; first exact: monic_map.
+  by rewrite coef_map /=; apply: genR.
+elim: {w p q}S => /= [_|x S IH [[p [mon_p px0 Sp]] /IH{IH}[m2 [X2 defS]]]].
+  exists 1%N, 1 => y; split=> [[a [Fa ->]] | Fy].
+    by rewrite tr_scalar_mx mulmx1; apply: Fa.
+  by exists y%:M; split=> [i|]; rewrite 1?ord1 ?tr_scalar_mx ?mulmx1 mxE.
+pose m1 := (size p).-1; pose X1 := \row_(i < m1) x ^+ i.
+have [m [X defM]] := tensorM memR m1 m2 X1 X2; set M := memM _ _ _ in defM.
+exists m, X => y; rewrite -/M; split=> [/defM[a [M2a]] | [q Sq]] -> {y}.
+  exists (rVpoly a) => [i|].
+    by rewrite coef_rVpoly; case/insub: i => // i; apply/defS/M2a.
+  rewrite mxE (horner_coef_wide _ (size_poly _ _)) -/(rVpoly a).
+  by apply: eq_bigr => i _; rewrite coef_rVpoly_ord !mxE.
+have M_0: M 0 by exists 0; split=> [i|]; rewrite ?mul0mx mxE.
+have M_D: propD M.
+  move=> _ _ [a [Fa ->]] [b [Fb ->]]; exists (a + b).
+  by rewrite mulmxDl !mxE; split=> // i; rewrite mxE; apply: memRD.
+have{M_0 M_D} Msum := big_ind _ M_0 M_D.
+rewrite horner_coef; apply: (Msum) => i _; case: i q`_i {Sq}(Sq i) => /=.
+elim: {q}(size q) => // n IHn i i_le_n y Sy.
+have [i_lt_m1 | m1_le_i] := ltnP i m1.
+  apply/defM; exists (y *: delta_mx 0 (Ordinal i_lt_m1)); split=> [j|].
+    by apply/defS; rewrite !mxE /= mulr_natr; case: eqP.
+  by rewrite -scalemxAl -rowE !mxE.
+rewrite -(subnK m1_le_i) exprD -[x ^+ m1]subr0 -(rootP px0) horner_coef.
+rewrite polySpred ?monic_neq0 // -/m1 big_ord_recr /= -lead_coefE.
+rewrite opprD addrC (monicP mon_p) mul1r subrK !mulrN -mulNr !mulr_sumr.
+apply: Msum => j _; rewrite mulrA mulrACA -exprD; apply: IHn.
+  by rewrite -addnS addnC addnBA // leq_subLR leq_add.
+by rewrite -mulN1r; do 2!apply: (genM) => //; apply: genR. 
+Qed.
+
+Lemma integral_root_monic u p :
+    p \is monic -> root p u -> {in p : seq K, integralRange RtoK} -> 
+  integralOver RtoK u.
+Proof.
+move=> mon_p pu0 intRp; rewrite -[u]hornerX.
+apply: integral_horner_root mon_p pu0 intRp _.
+by apply/integral_poly => i; rewrite coefX; apply: integral_nat.
+Qed.
+
+Hint Resolve (integral0 RtoK) (integral1 RtoK) (@monicXsubC K).
+
+Let XsubC0 (u : K) : root ('X - u%:P) u. Proof. by rewrite root_XsubC. Qed.
+Let intR_XsubC u :
+  integralOver RtoK (- u) -> {in 'X - u%:P : seq K, integralRange RtoK}.
+Proof. by move=> intRu v; rewrite polyseqXsubC !inE => /pred2P[]->. Qed.
+
+Lemma integral_opp u : integralOver RtoK u -> integralOver RtoK (- u).
+Proof. by rewrite -{1}[u]opprK => /intR_XsubC/integral_root_monic; apply. Qed.
+
+Lemma integral_horner (p : {poly K}) u :
+    {in p : seq K, integralRange RtoK} -> integralOver RtoK u -> 
+  integralOver RtoK p.[u].
+Proof. by move=> ? /integral_opp/intR_XsubC/integral_horner_root; apply. Qed.
+
+Lemma integral_sub u v :
+  integralOver RtoK u -> integralOver RtoK v -> integralOver RtoK (u - v).
+Proof.
+move=> intRu /integral_opp/intR_XsubC/integral_horner/(_ intRu).
+by rewrite !hornerE.
+Qed.
+
+Lemma integral_add u v :
+  integralOver RtoK u -> integralOver RtoK v -> integralOver RtoK (u + v).
+Proof. by rewrite -{2}[v]opprK => intRu /integral_opp; apply: integral_sub. Qed.
+
+Lemma integral_mul u v :
+  integralOver RtoK u -> integralOver RtoK v -> integralOver RtoK (u * v).
+Proof.
+rewrite -{2}[v]hornerX -hornerZ => intRu; apply: integral_horner.
+by apply/integral_poly=> i; rewrite coefZ coefX mulr_natr mulrb; case: ifP.
+Qed.
+
+End IntegralOverComRing.
+
+Section IntegralOverField.
+
+Variables (F E : fieldType) (FtoE : {rmorphism F -> E}).
+
+Definition algebraicOver (fFtoE : F -> E) u :=
+  exists2 p, p != 0 & root (map_poly fFtoE p) u.
+
+Notation mk_mon p := ((lead_coef p)^-1 *: p).
+
+Lemma integral_algebraic u : algebraicOver FtoE u <-> integralOver FtoE u.
+Proof.
+split=> [] [p p_nz pu0]; last by exists p; rewrite ?monic_neq0.
+exists (mk_mon p); first by rewrite monicE lead_coefZ mulVf ?lead_coef_eq0.
+by rewrite linearZ rootE hornerZ (rootP pu0) mulr0.
+Qed.
+
+Lemma integral_inv u : integralOver FtoE u -> integralOver FtoE u^-1.
+Proof.
+have [-> | /expf_neq0 nz_u_n] := eqVneq u 0; first by rewrite invr0.
+case/integral_algebraic=> p nz_p pu0; apply/integral_algebraic.
+exists (Poly (rev p)).
+  apply/eqP=> /polyP/(_ 0%N); rewrite coef_Poly coef0 nth_rev ?size_poly_gt0 //.
+  by apply/eqP; rewrite subn1 lead_coef_eq0.
+apply/eqP/(mulfI (nz_u_n (size p).-1)); rewrite mulr0 -(rootP pu0).
+rewrite (@horner_coef_wide _ (size p)); last first.
+  by rewrite size_map_poly -(size_rev p) size_Poly.
+rewrite horner_coef mulr_sumr size_map_poly.
+rewrite [rhs in _ = rhs](reindex_inj rev_ord_inj) /=.
+apply: eq_bigr => i _; rewrite !coef_map coef_Poly nth_rev // mulrCA.
+by congr (_ * _); rewrite -{1}(subnKC (valP i)) addSn addnC exprD exprVn ?mulfK.
+Qed.
+
+Lemma integral_div u v :
+  integralOver FtoE u -> integralOver FtoE v -> integralOver FtoE (u / v).
+Proof. by move=> algFu /integral_inv; apply: integral_mul. Qed.
+
+Lemma integral_root p u :
+    p != 0 -> root p u -> {in p : seq E, integralRange FtoE} ->
+  integralOver FtoE u.
+Proof.
+move=> nz_p pu0 algFp.
+have mon_p1: mk_mon p \is monic.
+  by rewrite monicE lead_coefZ mulVf ?lead_coef_eq0.
+have p1u0: root (mk_mon p) u by rewrite rootE hornerZ (rootP pu0) mulr0.
+apply: integral_root_monic mon_p1 p1u0 _ => _ /(nthP 0)[i ltip <-].
+rewrite coefZ mulrC; rewrite size_scale ?invr_eq0 ?lead_coef_eq0 // in ltip.
+by apply: integral_div; apply/algFp/mem_nth; rewrite -?polySpred.
+Qed.
+
+End IntegralOverField.
 
 (* Lifting term, formula, envs and eval to matrices. Wlog, and for the sake  *)
 (* of simplicity, we only lift (tensor) envs to row vectors; we can always   *)

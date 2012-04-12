@@ -2154,6 +2154,17 @@ Proof. by rewrite mul_rV_lin1 /= mxvecK. Qed.
 
 End LinMulRow.
 
+Lemma mxvec_dotmul m n (A : 'M[R]_(m, n)) u v :
+  mxvec (u^T *m v) *m (mxvec A)^T = u *m A *m v^T.
+Proof.
+transitivity (\sum_i \sum_j (u 0 i * A i j *: row j v^T)).
+  apply/rowP=> i; rewrite {i}ord1 mxE (reindex _ (curry_mxvec_bij _ _)) /=.
+  rewrite pair_bigA summxE; apply: eq_bigr => [[i j]] /= _.
+  by rewrite !mxE !mxvecE mxE big_ord1 mxE mulrAC.
+rewrite mulmx_sum_row exchange_big; apply: eq_bigr => j _ /=.
+by rewrite mxE -scaler_suml.
+Qed.
+
 Section MatrixAlgType.
 
 Variable n' : nat.

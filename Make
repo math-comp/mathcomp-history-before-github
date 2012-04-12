@@ -79,6 +79,7 @@ galgebra.v
 fieldext.v
 fib.v
 generic_quotient.v
+countalg.v
 finfield.v
 separable.v
 galois.v

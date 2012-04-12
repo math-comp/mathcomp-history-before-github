@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
-Require Import fintype finfun bigop ssralg ssrnum poly.
+Require Import fintype finfun bigop ssralg ssrnum poly countalg.
 Import GRing.Theory Num.Theory.
 
 (******************************************************************************)
@@ -187,6 +187,7 @@ End intZmod.
 End intZmod.
 
 Canonical int_ZmodType := ZmodType int intZmod.Mixin.
+Canonical int_countZmodType := [countZmodType of int].
 
 Local Open Scope ring_scope.
 
@@ -295,7 +296,9 @@ End intRing.
 End intRing.
 
 Canonical int_Ring := Eval hnf in RingType int intRing.comMixin.
+Canonical int_countRingType := [countRingType of int].
 Canonical int_comRing := Eval hnf in ComRingType int intRing.mulzC.
+Canonical int_countComRingType := [countComRingType of int].
 
 Section intRingTheory.
 
@@ -348,9 +351,12 @@ End intUnitRing.
 
 Canonical int_unitRingType :=
   Eval hnf in UnitRingType int intUnitRing.comMixin.
+Canonical int_countUnitRingType := [countUnitRingType of int].
 Canonical int_comUnitRing := Eval hnf in [comUnitRingType of int].
+Canonical int_countComUnitRingType := [countComUnitRingType of int].
 Canonical int_iDomain := Eval hnf in IdomainType int
   intUnitRing.idomain_axiomz.
+Canonical int_countIdomainType := [countIdomainType of int].
 
 Definition absz m := match m with Posz p => p | Negz n => n.+1 end.
 Notation "m - n" :=

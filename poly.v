@@ -1808,6 +1808,12 @@ Proof. by apply/polyP=> i; rewrite coef_map !coefX /= rmorph_nat. Qed.
 Lemma map_polyXn n : ('X^n)^f = 'X^n.
 Proof. by rewrite rmorphX /= map_polyX. Qed.
 
+Lemma monic_map p : p \is monic -> p^f \is monic.
+Proof.
+move/monicP=> mon_p; rewrite monicE.
+by rewrite lead_coef_map_eq mon_p /= rmorph1 ?oner_neq0.
+Qed.
+
 Lemma horner_map p x : p^f.[f x] = f p.[x].
 Proof.
 elim/poly_ind: p => [|p c IHp]; first by rewrite !(rmorph0, horner0).

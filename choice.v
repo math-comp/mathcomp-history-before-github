@@ -88,6 +88,16 @@ rewrite expnS -mulnA mul2n -{1}addnn -[_ * _]prednK ?muln_gt0 ?expn_gt0 //.
 by rewrite doubleS addSn /= addSnnS; elim: {-2}_.-1 => //=.
 Qed.
 
+Lemma ltn_code s : all (fun j => j < code s) s.
+Proof.
+elim: s => //= i s IHs; rewrite -[_.+1]muln1 leq_mul 1?ltn_expl //=.
+apply: sub_all IHs => j /leqW lejs; rewrite -[j.+1]mul1n leq_mul ?expn_gt0 //.
+by rewrite ltnS -[j]mul1n -mul2n leq_mul.
+Qed.
+
+Lemma gtn_decode n : all (ltn^~ n) (decode n).
+Proof. by rewrite -{1}[n]decodeK ltn_code. Qed.
+
 End CodeSeq.
 
 Section OtherEncodings.
