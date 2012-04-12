@@ -342,7 +342,7 @@ have NatS1e xi (Sxi : xi \in calS) := dvd_index_seqInd1 nsHL Sxi.
 have oS1: {in calS, forall psi, '[psi, 1] = 0} by exact: seqInd_ortho_1.
 have oS1H: {in calS, forall psi, '[psi, Ind1H] = 0} by exact: seqInd_ortho_Ind1.
 have InuS: {in calS &, isometry nu} by apply: sub_in2 Inu; exact: seqInd_zcharW.
-have ZnuS xi (Sxi : xi \in calS) := Znu xi (seqInd_zcharW nsHL Sxi).
+have ZnuS xi (Sxi : xi \in calS) := Znu xi (seqInd_zcharW  Sxi).
 have S_Se xi (Sxi : xi \in calS) := seqInd_sub_lin_vchar nsHL Szeta zeta1 Sxi.
 have oSnu1: orthogonal calSnu (1 : 'CF(G)).
   have dotSnu1 psi : psi \in calS -> '[nu psi, 1] = psi 1%g / e * '[nu zeta, 1].

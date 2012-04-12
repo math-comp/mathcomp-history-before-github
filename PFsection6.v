@@ -1071,7 +1071,8 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
       by apply/allP=> phi Xphi; rewrite /= Ztau2 ?mem_zchar ?orthonormal_free.
     by apply/allP=> phi Yphi; rewrite /= Ztau1 ?mem_zchar ?orthonormal_free.
   exists tau3; split => // phi; rewrite zcharD1E => /andP[].
-  case/zchar_expansion=> z Zz ->{phi}; rewrite big_cat /= cfunE addrC addr_eq0.
+  have uniqXY := (free_uniq (orthogonal_free ooXY)).
+  case/zchar_expansion=> [//|z Zz ->{phi}]; rewrite big_cat /= cfunE addrC addr_eq0.
   set phi2 := \sum_(i <- X) _; set phi1 := \sum_(i <- Y) _ => /eqP opp_phi12.
   have Dtau32: {in X, forall xi, tau3 xi = tau2 xi}.
     move=> xi Xxi; pose i := index xi X; have:= congr1 (nth 0 ^~ i) Dtau3.
@@ -1650,7 +1651,8 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
     apply/allP=> eta3 Yeta3; rewrite /= add_zchar //.
     by rewrite (zcharW (Ztau _ _)) ?Zbeta.
   exists tau2; split=> // phi; rewrite zcharD1E => /andP[].
-  case/zchar_expansion=> c Zc ->{phi}; rewrite big_cat /= cfunE.
+  have uniqXY := (free_uniq (orthogonal_free ooXY)).
+  case/zchar_expansion=>[//| c Zc ->]{phi}; rewrite big_cat /= cfunE.
   set phi2 := \sum_(i <- X) _; set phi1 := \sum_(i <- Y) _ => /eqP opp_phi12.
   have Dtau22: {in X, forall xi, tau2 xi = tau22 xi}.
     move=> xi Xxi; pose i := index xi X; have:= congr1 (nth 0 ^~ i) Dtau2.

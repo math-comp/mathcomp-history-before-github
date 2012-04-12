@@ -40,10 +40,56 @@ Local Open Scope ring_scope.
 (*                   irreducible constituent i, when i \in irr_constt phi.    *)
 (******************************************************************************)
 
+Section More_around_dec_Cint_span.
+
+Require Import ssrint intdiv.
+
+Definition Vint_span (V : vectType algC) (s : seq V) : pred V:=
+  fun x => dec_Cint_span (in_tuple s) x.
+Fact Vint_span_key (V : vectType algC) (s : seq V) : pred_key (Vint_span s). 
+Proof. by []. Qed.
+Canonical Vint_span_keyed (V : vectType algC) (s : seq V) := 
+                                                KeyedPred (Vint_span_key s).
+
+Lemma Vint_spanP (V : vectType algC)  n (s : n.-tuple V) x :
+  reflect (inIntSpan s x) (x \in Vint_span s).
+Proof.
+rewrite unfold_in /Vint_span; case: (dec_Cint_span _ _) => [Zs_x | Zs'x] /=.
+  by left; have{Zs_x} [] := Zs_x; rewrite /= size_tuple => a ->; exists a.
+right=> [[a Dx]]; have{Zs'x} [] := Zs'x;rewrite /inIntSpan /= size_tuple.
+by  exists a.
+Qed.
+
+
+Lemma mem_Vint_span (V : vectType algC)(s : seq V) : {subset s <= Vint_span s}.
+Proof.
+move=> _ /(nthP 0)[ix ltxs <-]; apply/(Vint_spanP (in_tuple s)).
+exists [ffun i => i == Ordinal ltxs : int].
+rewrite (bigD1 (Ordinal ltxs)) //= ffunE eqxx.
+by rewrite big1 ?addr0 // => i; rewrite ffunE => /negbTE->.
+Qed.
+
+Lemma Vint_span_zmod_closed (V : vectType algC) (s : seq V) : 
+   zmod_closed (Vint_span s).
+Proof.
+have sP := Vint_spanP (in_tuple s); split=> [|_ _ /sP[x ->] /sP[y ->]].
+  by apply/sP; exists 0; rewrite big1 // => i; rewrite ffunE.
+apply/sP; exists (x - y); rewrite -sumrB; apply: eq_bigr => i _.
+by rewrite !ffunE raddfB.
+Qed.
+
+Canonical Vint_span_opprPred (V : vectType algC) (s : seq V) := 
+   OpprPred (Vint_span_zmod_closed s).
+Canonical Vint_span_addrPred (V : vectType algC) (s : seq V) := 
+   AddrPred (Vint_span_zmod_closed s).
+Canonical Vint_span_zmodPred (V : vectType algC) (s : seq V)  :=  
+   ZmodPred (Vint_span_zmod_closed s).
+
+End More_around_dec_Cint_span.
+
 Definition virtual_char (gT : finGroupType) (B : {set gT})
                         (S : seq 'CF(B)) (A : {set gT}) :=
-  [pred phi \in <<S>>%VS | [&& phi \in 'CF(B, A), (phi == 0) || free S
-      & forallb i, isIntC (coord (in_tuple S) i phi)]].
+  [pred phi \in <<S>>%VS | [&& phi \in 'CF(B, A) & Vint_span (in_tuple S) phi]].
 
 Notation "''Z[' S , A ]" := (virtual_char S A)
   (at level 8, format "''Z[' S ,  A ]") : group_scope. 
@@ -55,23 +101,34 @@ Section IsVChar.
 Variables (gT : finGroupType) (G : {group gT}).
 Implicit Types (A B : {set gT}) (phi chi : 'CF(G)) (S : seq 'CF(G)).
 
+Lemma char_Vzspan chi : is_char chi -> chi \in Vint_span (irr G) .
+Proof.
+move=> Nchi;apply/Vint_spanP; move/is_char_cbP:Nchi => [a1 Ha1].
+exists [ffun i =>  Posz (a1 i)].
+by rewrite Ha1 /=; apply:eq_bigr=> i _; rewrite -scaler_int  ffunE -tnth_nth.
+Qed.
+
 Lemma vcharP phi :
   reflect (exists2 chi1, is_char chi1 & exists2 chi2, is_char chi2
                        & phi = chi1 - chi2)
           (phi \in 'Z[irr G]).
 Proof.
-rewrite inE irr_free cfun_onT tvalK /tcast; case: _ / (esym _).
-have /andP[/(<<_>>%VS =P _)-> _] := irr_basis G; rewrite memvf orbT /=.
-apply: (iffP forallP) => [Zphi | [chi1 Nchi1 [chi2 Nchi2 ->]] i]; last first.
-  rewrite linearB /= !coord_cfdot.
-  by rewrite isIntC_add ?isIntC_opp // isIntCE cfdot_char_irr_Nat.
+rewrite inE cfun_onT tvalK /tcast; case: _ / (esym _).
+have /andP[/(<<_>>%VS =P _)-> _] := irr_basis G;  rewrite memvf /=.
+apply: (iffP idP) => [Zphi | [chi1 Nchi1 [chi2 Nchi2 ->]]]; last first.
+  by rewrite -unfold_in rpredB // char_Vzspan.
 pose Nphi i := isNatC '[phi, 'chi_i].
 rewrite [phi]cfun_sum_cfdot (bigID Nphi) /= -[rh in _ + rh]opprK -sumrN.
 set chi1 := \sum_(i | _) _; set chi2 := \sum_(i | _) _; exists chi1.
   by apply: sum_char => i /scale_char-> //; exact: irr_char.
 exists chi2 => //; apply: sum_char => i /negbTE notNphi_i.
 rewrite -scaleNr scale_char ?irr_char //.
-by have:= Zphi i; rewrite coord_cfdot /= isIntCE [isNatC _]notNphi_i.
+suff: isIntC ('[phi, 'chi_i]) by move:notNphi_i; rewrite /Nphi isIntCE => ->.
+move/Vint_spanP: Zphi; case=> x /= ->.
+rewrite  cfdot_suml (bigD1 i) //= -scaler_int cfdotZl -tnth_nth cfdot_irr.
+rewrite  eqxx mulr1 big1 ?addr0 ?isIntC_int //=.
+move => j neq_ji; rewrite -scaler_int cfdotZl /= -tnth_nth cfdot_irr.
+by rewrite (negbTE neq_ji) mulr0.
 Qed.
 
 Lemma char_vchar chi : is_char chi -> chi \in 'Z[irr G].
@@ -102,7 +159,7 @@ Lemma zchar_split S A phi :
   phi \in 'Z[S, A] = (phi \in 'Z[S]) && (phi \in 'CF(G, A)).
 Proof. by rewrite !inE cfun_onT /= -!andbA; do !bool_congr. Qed.
 
-Lemma zcharD1E phi S : (phi \in 'Z[S, G^#]) = (phi \in 'Z[S]) && (phi 1%g == 0).
+Lemma zcharD1E phi S: (phi \in 'Z[S, G^#]) = (phi \in 'Z[S]) && (phi 1%g == 0).
 Proof. by rewrite zchar_split cfunD1E. Qed.
 
 Lemma zcharD1 phi S A :
@@ -134,29 +191,32 @@ Lemma support_zchar S A phi : phi \in 'Z[S, A] -> support phi \subset A.
 Proof. by move/zchar_on; rewrite cfun_onE. Qed.
 
 Lemma mem_zchar_on S A phi : 
-  free S -> phi \in 'CF(G, A) -> phi \in S -> phi \in 'Z[S, A].
+  phi \in 'CF(G, A) -> phi \in S -> phi \in 'Z[S, A].
 Proof.
-move=> freeS Aphi Sphi; rewrite inE /= freeS orbT Aphi memv_span //=.
+move=> Aphi Sphi; rewrite inE /=   Aphi memv_span //=.
 have lt_phi_S: (index phi S < size S)%N by rewrite index_mem.
-apply/forallP=> i.
-by rewrite -(nth_index 0 Sphi) (coord_free (Ordinal _)) ?isIntC_nat.
+by apply: mem_Vint_span.
 Qed.
 
 (* A special lemma is needed because trivial fails to use the cfun_onT Hint. *) 
-Lemma mem_zchar S phi : free S -> phi \in S -> phi \in 'Z[S].
-Proof. by move=> freeS Sphi; rewrite mem_zchar_on ?cfun_onT. Qed.
+Lemma mem_zchar S phi : phi \in S -> phi \in 'Z[S].
+Proof. by move=> Sphi; rewrite mem_zchar_on ?cfun_onT. Qed.
 
-Lemma zchar_expansion S A phi :
+(* a version with the extra hypothesis of S's unicity.  *)
+Lemma zchar_expansion S A phi : uniq S -> 
     phi \in 'Z[S, A] ->
   {z | forall a, isIntC (z a) & phi = \sum_(a <- S) z a *: a}.
 Proof.
-case/and4P=> Sphi _; case: eqP => [-> _| _ freeS] Zphi.
-  exists (fun _ => 0) => [a | ]; first exact: (isIntC_nat 0).
-  by rewrite ?big1 // => a; rewrite scale0r.
-exists (fun a => oapp ((coord (in_tuple S))^~ phi) 0 (insub (index a S))).
-  by move=> a; case: insubP => [i|] /= _; rewrite (isIntC_nat 0, forallP Zphi).
-rewrite big_tnth {1}[phi](@coord_span _ _ _ (in_tuple S)) //.
-by apply: eq_bigr => i _; rewrite (tnth_nth 0) index_uniq ?free_uniq // valK.
+move=> Suniq; case/and3P=> Sphi _ /Vint_spanP /sig_eqW /= [x Hx].
+pose f a := (fun a => oapp  (fun i => (x i)%:~R) 0 (insub (index a S))).
+pose g a := index a S.
+exists (fun a => oapp  (fun i => (x i)%:~R) 0 (insub (index a S))).
+  by move=> a; case: insubP => [i|] /= _; rewrite (isIntC_nat 0, isIntC_int).
+rewrite Hx; apply/esym; rewrite big_tnth /=; apply: eq_bigr => i _ /=.
+rewrite -scaler_int (tnth_nth 0); congr (_ *: _).
+case: insubP => [j _|] /=; last by rewrite index_mem mem_nth.
+case: j => j Hj /=; case : i => i Hi //=.
+by rewrite index_uniq => // ij; do 2! apply: f_equal; apply: ord_inj.
 Qed.
 
 Lemma irr_orthonormal : orthonormal (irr G).
@@ -166,14 +226,14 @@ move=> _ _ /irrP[i ->] /irrP[j ->].
 by rewrite cfdot_irr (inj_eq (@chi_inj _ G)).
 Qed.
 
-Lemma coord_zchar_Int m (S : m.-tuple _) A phi i : 
-  phi \in 'Z[S, A] -> isIntC (coord S i phi).
-Proof.
-by case/and4P=> _ _ _ /forallP; rewrite tvalK; case: _ / (esym _); exact.
-Qed.
-
 Lemma cfdot_vchar_irr_Int i phi : phi \in 'Z[irr G] -> isIntC '[phi, 'chi_i].
-Proof. by rewrite -coord_cfdot => /coord_zchar_Int->. Qed.
+Proof.  
+rewrite -coord_cfdot; case/and3P=> _ _ /Vint_spanP. 
+rewrite tvalK /tcast; case: _ / (esym _).
+case=> x ->; rewrite linear_sum isIntC_sum // => i0 _ . 
+rewrite -scaler_int !linearZ isIntC_mul ?isIntC_int //=.
+by rewrite coord_free ?irr_free ?isIntC_nat.
+Qed.
 
 Lemma cfdot_vchar_r phi psi :
   psi \in 'Z[irr G] -> '[phi, psi] = \sum_i '[phi, 'chi_i] * '[psi, 'chi_i].
@@ -195,21 +255,20 @@ Qed.
 
 Lemma cfun0_zchar S A : 0 \in 'Z[S, A].
 Proof.
-by rewrite !inE eqxx !mem0v; apply/forallP=> i; rewrite linear0 (isIntC_nat 0).
+by rewrite inE !mem0v /= -unfold_in rpred0.
 Qed.
 
 Lemma opp_zchar S A phi : (- phi \in 'Z[S, A]) = (phi \in 'Z[S, A]).
 Proof.
-rewrite !inE oppr_eq0 !memvN /=; congr [&& _, _, _ & _].
-by apply: eq_forallb => i; rewrite linearN isIntC_opp.
+rewrite !inE !memvN /=; congr [&& _, _ & _].
+by rewrite -(unfold_in phi) -(unfold_in (- phi)) rpredN.
 Qed.
 
 Lemma add_zchar S A phi psi :
   phi \in 'Z[S, A] -> psi \in 'Z[S, A] -> (phi + psi) \in 'Z[S, A].
 Proof.
-case/and4P=> Sphi Aphi /predU1P[-> | freeS] Zphi; first by rewrite add0r.
-case/and4P=> Spsi Apsi _ Zpsi; rewrite !inE freeS orbT !memvD //=.
-by apply/forallP=> i; rewrite linearD isIntC_add ?(forallP Zphi, forallP Zpsi). 
+case/and3P=> Sphi Aphi  Zphi; case/and3P=> Spsi Apsi  Zpsi.
+by rewrite inE !memvD //= -unfold_in  rpredD.
 Qed.
 
 Lemma sub_zchar S A phi psi : 
@@ -255,16 +314,22 @@ Qed.
 Lemma zchar_trans S1 S2 A B :
   {subset S1 <= 'Z[S2, B]} -> {subset 'Z[S1, A] <= 'Z[S2, A]}.
 Proof.
-move=> sS12 phi; rewrite !(zchar_split _ A) andbC => /andP[->].
-case/zchar_expansion=> z Zz ->; rewrite big_seq sum_zchar // => a S1a.
-by rewrite scale_zchar //; exact: zcharW (sS12 a S1a).
+move=> sS12 phi; rewrite !(zchar_split _ A) andbC => /andP[->]; rewrite andbT.
+case/and3P=> Sphi _; case/(Vint_spanP (in_tuple S1))=>  x ->.
+rewrite sum_zchar // => a _.
+rewrite -scaler_int scale_zchar // ?isIntC_int //.
+by rewrite (@zcharW _ B) ?sS12 ?mem_nth.
 Qed.
 
 Lemma zchar_trans_on S1 S2 A :
   {subset S1 <= 'Z[S2, A]} -> {subset 'Z[S1] <= 'Z[S2, A]}.
 Proof.
-move=> sS12 _ /zchar_expansion[z Zz ->].
-rewrite big_seq sum_zchar // => phi /sS12; exact: scale_zchar.
+move=> sS12 phi /and3P [Sphi _] /(Vint_spanP (in_tuple S1)) [x ->].
+rewrite sum_zchar // => a _ .
+rewrite (zchar_trans sS12) // -scaler_int scale_zchar ?isIntC_int //.
+rewrite zchar_split mem_zchar ?mem_nth //=.
+have: S1`_a \in S1 by rewrite mem_nth .
+by move/(sS12 S1`_a ); case/and3P.
 Qed.
 
 Lemma zchar_sub_irr S A :
@@ -526,7 +591,8 @@ Proof.
 move=> oS oT eq_nTS Z_T.
 have [tau defT Itau] := isometry_of_cfnorm oS oT eq_nTS.
 exists tau => //; split; first exact: (sub_in2 (@zchar_span _ _ S _)).
-move=> _ /zchar_expansion[z Zz ->].
+have uniqS:= (free_uniq (orthogonal_free oS)).
+move=> _ /zchar_expansion [//|z Zz ->].
 rewrite big_seq linear_sum sum_zchar // => xi Sxi.
 by rewrite linearZ scale_zchar ?Z_T // -defT map_f.
 Qed.
@@ -548,9 +614,9 @@ Lemma cfAut_zchar S A psi :
 Proof.
 rewrite [psi \in _]zchar_split => freeS SuS /andP[Zpsi Apsi].
 rewrite zchar_split cfAut_on {}Apsi andbT.
-have{psi Zpsi}[z Zz ->] := zchar_expansion Zpsi.
+have {psi Zpsi}[z Zz ->] := (zchar_expansion (free_uniq freeS) Zpsi).
 rewrite rmorph_sum big_seq sum_zchar // => mu Smu /=.
-by rewrite cfAutZ_Int // scale_zchar // mem_zchar // SuS.
+by rewrite cfAutZ_Int ?scale_zchar ?mem_zchar ?SuS.
 Qed.
 
 Lemma cfAut_virr A psi : psi \in 'Z[irr G, A] -> psi^u \in 'Z[irr G, A].

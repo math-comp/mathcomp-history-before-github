@@ -869,7 +869,8 @@ have [Xx Xy]: x \in X /\ y \in X by apply/andP; rewrite -!sub1set -join_subG.
 have sXG: X \subset G by rewrite join_subG !sub1set Gx.
 suffices{chi Zchi} IHiX i: ('chi[X]_i (x * y)%g == 'chi_i y %[mod e])%A.
   rewrite -!(cfResE _ sXG) ?groupM //.
-  have /zchar_expansion[c Zc ->] := cfRes_vchar X Zchi.
+  have irr_free := (free_uniq (basis_free (irr_basis X))).
+  have [c Zc ->] := (zchar_expansion irr_free (cfRes_vchar X Zchi)).
   rewrite !sum_cfunE /eqAmod -sumrB big_seq rpred_sum // => _  /irrP[i ->].
   by rewrite !cfunE [(_ %| _)%A]eqAmodMl // rpred_Cint.
 have lin_chi: lin_char 'chi_i.

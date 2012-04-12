@@ -1725,13 +1725,10 @@ Lemma isometry_on_ortho_base :
   {in 'Z[S] &, isometry nu}.
 Proof.
 move=> Hn u v.
-case/zchar_expansion=> s1 Hs1 ->.
-case/zchar_expansion=> s2 Hs2 ->.
-rewrite !linear_sum !cfdot_suml big_seq_cond [X in _ = X]big_seq_cond.
-apply: eq_bigr=> i; rewrite andbT => IiS.
-rewrite !cfdot_sumr big_seq_cond [X in _ = X]big_seq_cond.
-apply: eq_bigr=> j; rewrite andbT => JiS.
-by rewrite !linearZ !cfdotZl !cfdotZr Hn.
+case/and3P=> _ _ /Vint_spanP [xu ->]; case/and3P=> _ _ /Vint_spanP [xv ->] /=.
+rewrite !linear_sum !cfdot_suml; apply: eq_bigr=> i _.
+rewrite !cfdot_sumr; apply: eq_bigr=> j _.  
+by rewrite -!ssrint.scaler_int !linearZ !cfdotZl !cfdotZr Hn ?mem_nth. 
 Qed. 
 
 End OrthoIso.
@@ -1811,7 +1808,7 @@ have Equiv: 'Z[calT, L^#] =i 'Z[calT, A].
   case/andP=> Zf Vf1.
   have: f \in 'Z[calT, A :|: 1%G].
     rewrite zchar_split Zf /=.
-    case: (zchar_expansion Zf)=> u Hu ->.
+    case: (zchar_expansion  (free_uniq (orthogonal_free Pog)) Zf) => s Hs ->.
     rewrite big_map big_filter.
     apply: memv_suml=> i /andP [_ NZi].
     by apply: memvZ; apply: cDade_mu_support.
@@ -1892,13 +1889,17 @@ exists tau1=> //; split.
     move=> i2 Di2i1.
     case: (cyclicTIisometry tiW)=> ->; rewrite ?irr_vchar //.
     by rewrite (cfdot_cTIirr tiW) (negPf Di2i1).
- move=> u; case/zchar_expansion=> s Hs ->.
+    move=> u; case/zchar_expansion; last move=> s Hs ->.
+      move/pairwise_orthogonalP: Pog; rewrite cons_uniq; case.
+      by move/andP => [_ ->].
  rewrite linear_sum big_seq_cond; apply: sum_zchar=> i.
  rewrite andbT=> /imageP [i1 /andP [Hi1 Hi2]] ->.
- rewrite linearZ scale_zchar // Tau1Mu scale_zchar ?isIntC_sign //.
+ rewrite linearZ scale_zchar //  Tau1Mu scale_zchar ?isIntC_sign //.
  apply: sum_zchar=> j1 _.
  by case: (cyclicTIisometry tiW)=> _; apply; apply: irr_vchar.
-move=> u; rewrite zcharD1E => /andP [] /zchar_expansion [s Hs ->] Hu.
+have Huniq: uniq calT by exact: (free_uniq (orthogonal_free Pog)).
+move=> u; rewrite zcharD1E => /andP [].
+case/zchar_expansion=>[//| s Hs -> Hu].
 have->: \sum_(a <- calT) s a *: a =
         \sum_(a <- calT | (a \in calT) && (a != mu k)) s a *: (a - mu k).
   move: Hu; rewrite sum_cfunE.
