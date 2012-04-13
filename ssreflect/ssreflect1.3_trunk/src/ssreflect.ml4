@@ -521,7 +521,8 @@ let mkCLambda loc name ty t =
 let mkCLetIn loc name bo t = 
    CLetIn (loc, (loc, name), bo, t)
 
-let mkCArrow loc ty t = CArrow (loc, ty, t)
+let mkCArrow loc ty t = CProdN (loc, [[dummy_loc,Anonymous], Default Explicit,
+ty], t)
 
 let mkCCast loc t ty = CCast (loc,t, dC ty)
 
