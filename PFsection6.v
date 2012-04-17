@@ -90,8 +90,7 @@ move: {2}_.+1 (ltnSn (size calS - size S1)) => n.
 elim: n => // n IHn in (S2) S1 wfS1 cohA *; rewrite ltnS => leSnS1.
 have [uniqS1 sS1S ccS1] := wfS1.
 have [sAB1 | /allPn[psi /= SBpsi notS1psi]] := altP (@allP _ (mem S1) (S B)).
-  apply: subset_coherent cohA => //.
-  exact: orthogonal_free (sub_pairwise_orthogonal _ _ orthS).
+  by apply: subset_coherent cohA.
 have [neq_psi_c SBpsic] := (hasPn nrS _ (sSS SBpsi), ccS SBpsi).
 have wfS1': wf [:: psi, psi^* & S1]%CF.
   split=> [|xi|xi]; rewrite /= !inE 1?andbC.
@@ -308,7 +307,7 @@ split=> [chi|].
   case/irrX/irrP: Xchi chi_r (Xchi) => r' ->.
   by rewrite cfdot_irr pnatr_eq0 -lt0n; case: eqP => // ->.
 have [|[]] := non_coherent_chief Frob_quo1.
-  by apply: subset_coherent; [exact: seqInd_sub | exact: orthogonal_free].
+  by apply: subset_coherent; exact: seqInd_sub.
 have [oddL _] := Frob_quo1; rewrite /= joingG1 => frobLb _ [p []].
 set e := #|L : K|; have e_gt0: (e > 0)%N by exact: indexg_gt0.
 have isoK1 := isog_symr (quotient1_isog K).
@@ -352,9 +351,7 @@ have ccY': conjC_closed Y'.
 have Xchi := sYX _ Ychi; have defY: perm_eq [:: chi, chi^*%CF & Y'] Y.
   rewrite (perm_eqrP (perm_to_rem Ychi)) perm_cons perm_eq_sym perm_to_rem //.
   by rewrite mem_rem_uniq ?inE ?ccY // (seqInd_conjC_neq _ _ _ Xchi).
-apply: perm_eq_coherent (defY) _ _.
-  have: free calX by exact: seqInd_free.
-  by rewrite (perm_free defY) -(perm_free defX); exact: catl_free. 
+apply: perm_eq_coherent (defY) _.
 have d_chic: d chi^*%CF = d chi.
   by rewrite /d cfunE isNatC_conj // (seqInd1_Nat Xchi).
 have /andP[uniqY' Y'x1]: uniq Y' && (xi1 \in Y').
@@ -834,7 +831,7 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
     have [Zj oNj Zj2 vj] := coherent_seqInd_conjCirr scohY cohY Yeta.
     apply: (orthonormal_vchar_diff_ortho (conj Zi Zj)); first by rewrite !oNi.
     rewrite vi vj !andbT -2!raddfB Dtau1 // Dtau2 //.
-    rewrite Itau ?(zchar_subset _ sXS Zi2) ?(zchar_subset _ sYS Zj2) //.
+    rewrite Itau ?(zchar_subset sXS Zi2) ?(zchar_subset sYS Zj2) //.
     have [[Xi2 _] [Yj2 _]] := (andP Zi2, andP Zj2).
     by rewrite (span_orthogonal oXY) // eqxx.
   have [a Na Dxi11]: exists2 a, isNatC a & xi1 1%g = a * #|W1|%:R.
@@ -866,7 +863,7 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
     apply: canRL (subrK _) _; rewrite -2!raddfB /=.
     have Zeta: (eta - eta1) \in 'Z[Y, L^#].
       by rewrite zcharD1E sub_zchar ?seqInd_zcharW //= !cfunE !uniY ?subrr.
-    rewrite Dtau1 // Itau // ?(zchar_subset _ sYS) //.
+    rewrite Dtau1 // Itau // ?(zchar_subset sYS) //.
     rewrite cfdot_subl cfdotZl !cfdot_subr 2?(orthogonalP oXY) // subr0 add0r.
     have [_ oYY] := orthonormalP oY; rewrite !oYY // eqxx.
     by rewrite eq_sym (negPf eta1'eta) add0r mulrN mulr1 opprK.
@@ -1213,7 +1210,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
       split=> //; rewrite zcharD1E !cfunE cfInd1 // uniY // lin_i mulr1.
       rewrite -divgS // -(sdprod_card defL) -(Lagrange sZH) -mulnA mulKn //.
       rewrite -natrM subrr sub_zchar //=.
-        by rewrite (zchar_subset _ sXS) ?seqInd_free.
+        by rewrite (zchar_subset sXS) ?seqInd_free.
       by rewrite scale_zchar ?isIntC_nat // seqInd_zcharW ?sYS. 
     have Dalpha (i : Iirr Z) (nzi : i != 0) :
       exists2 X1 : 'CF(G), orthogonal X1 (map tau1 Y)
@@ -1238,7 +1235,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
       have Zeta: eta - eta1 \in 'Z[Y, L^#].
         by rewrite zcharD1E sub_zchar ?seqInd_zcharW //= !cfunE !uniY ?subrr.
       rewrite -cfdot_subr -raddfB Dtau1 // Itau //; last first.
-        by rewrite (zchar_subset _ sYS) ?seqInd_free.
+        by rewrite (zchar_subset sYS) ?seqInd_free.
       rewrite cfdot_subl (span_orthogonal oXY) ?(zchar_span Xchi)//; last first.
         by rewrite memvB ?memv_span.
       have [_ oYY] := orthonormalP oY; rewrite cfdotZl cfdot_subr !oYY //.
@@ -1415,7 +1412,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
       have sY2Y: {subset (eta :: eta^*)%CF <= Y}.
         by apply/allP; rewrite /= Yeta cfAut_seqInd.
       have [||E sER ->] := (coherent_sum_subseq scohY) _ tau1 Yeta.
-      + exact: sub_iso_to (zchar_subset (seqInd_free _ _) sY2Y) sub_refl _.
+      + exact: sub_iso_to (zchar_subset sY2Y) sub_refl _.
       + rewrite Dtau1 // sub_Aut_zchar ?zchar_onG
              ?seqInd_zcharW ?cfAut_seqInd //.
         exact: seqInd_virrW.
@@ -1690,7 +1687,6 @@ elim: n => // n IHn in (S2) S1 wfS1 cohXY *; rewrite ltnS => leSnS1.
 have [uniqS1 sXYS1 sS1S ccS1] := wfS1.
 have [sSS1 | /allPn[psi /= Spsi notS1psi]] := altP (@allP _ (mem S1) S).
   apply: subset_coherent cohXY => //; have [_ _ oSS _ _] := scohS.
-  exact: orthogonal_free (sub_pairwise_orthogonal _ _ oSS).
 have [_ _ nrS ccS] := uccS.
 have [neq_psi_c Spsic] := (hasPn nrS _ Spsi, ccS _ Spsi).
 have wfS1': wf [:: psi, psi^* & S1]%CF.

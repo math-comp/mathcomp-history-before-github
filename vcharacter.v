@@ -337,19 +337,21 @@ Lemma zchar_sub_irr S A :
 Proof. exact: zchar_trans. Qed.
 
 Lemma zchar_subset S1 S2 A :
-  free S2 -> {subset S1 <= S2} -> {subset 'Z[S1, A] <= 'Z[S2, A]}.
+{subset S1 <= S2} -> {subset 'Z[S1, A] <= 'Z[S2, A]}.
 Proof.
-move=> freeS2 sS12; apply: zchar_trans setT _ => // f /sS12 S2f.
+move=> sS12; apply: zchar_trans setT _ => // f /sS12 S2f.
 by rewrite mem_zchar.
 Qed.
 
 Lemma zchar_subseq S1 S2 A :
-  free S2 -> subseq S1 S2 -> {subset 'Z[S1, A] <= 'Z[S2, A]}.
-Proof. move=> freeS2 sS12; exact: zchar_subset (mem_subseq sS12). Qed.
+  subseq S1 S2 -> {subset 'Z[S1, A] <= 'Z[S2, A]}.
+Proof. move=> sS12; exact: zchar_subset (mem_subseq sS12). Qed.
 
 Lemma zchar_filter S A (p : pred 'CF(G)) :
-  free S -> {subset 'Z[filter p S, A] <= 'Z[S, A]}.
-Proof. by move/zchar_subset; apply=> f; rewrite mem_filter => /andP[]. Qed.
+  {subset 'Z[filter p S, A] <= 'Z[S, A]}.
+Proof. 
+by apply/zchar_subset=> f; rewrite mem_filter => /andP[].
+Qed.
 
 Section CfdotPairwiseOrthogonal.
 
@@ -609,18 +611,21 @@ Variables (u : {rmorphism algC -> algC}) (gT : finGroupType) (G : {group gT}).
 Local Notation "alpha ^u" := (cfAut u alpha).
 Implicit Type (S : seq 'CF(G)) (phi chi : 'CF(G)).
 
+
 Lemma cfAut_zchar S A psi : 
-  free S -> cfAut_closed u S -> psi \in 'Z[S, A] -> psi^u \in 'Z[S, A].
+  cfAut_closed u S -> psi \in 'Z[S, A] -> psi^u \in 'Z[S, A].
 Proof.
-rewrite [psi \in _]zchar_split => freeS SuS /andP[Zpsi Apsi].
+rewrite [psi \in _]zchar_split => SuS /andP[Zpsi Apsi].
 rewrite zchar_split cfAut_on {}Apsi andbT.
-have {psi Zpsi}[z Zz ->] := (zchar_expansion (free_uniq freeS) Zpsi).
+case/and3P:Zpsi=> psiS psiCF /Vint_spanP [x psix].
+rewrite psix.
 rewrite rmorph_sum big_seq sum_zchar // => mu Smu /=.
-by rewrite cfAutZ_Int ?scale_zchar ?mem_zchar ?SuS.
+rewrite -scaler_int cfAutZ_Int ?scale_zchar ?isIntC_int ?mem_zchar ?SuS //.
+by rewrite mem_nth //.
 Qed.
 
 Lemma cfAut_virr A psi : psi \in 'Z[irr G, A] -> psi^u \in 'Z[irr G, A].
-Proof. by apply: cfAut_zchar; [exact: irr_free | exact: irr_Aut_closed]. Qed.
+Proof. by apply: cfAut_zchar; exact: irr_Aut_closed. Qed.
 
 Lemma sub_Aut_zchar S A psi :
    {subset S <= 'Z[irr G]} -> psi \in 'Z[S, A] -> psi^u \in 'Z[S, A] ->
@@ -684,7 +689,7 @@ Qed.
 Lemma sub_conjC_vchar A phi :
   phi \in 'Z[irr G, A] -> phi - (phi^*)%CF \in 'Z[irr G, A^#].
 Proof.
-move=> Zphi; rewrite sub_Aut_zchar ?cfAut_zchar ?irr_free // => _ /irrP[i ->].
+move=> Zphi; rewrite sub_Aut_zchar ?cfAut_zchar // => _ /irrP[i ->].
   exact: irr_vchar.
 exact: cfConjC_irr.
 Qed.

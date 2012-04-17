@@ -262,7 +262,7 @@ Lemma vchar_isometry_base m L (Chi : m.-tuple 'CF(H))
     & exists epsilon : bool, forall i : 'I_m,
       tau (Chi`_i - Chi`_0) = (-1) ^+ epsilon *: ('chi_(mu`_i) - 'chi_(mu`_0)).
 Proof. 
-case: m Chi => [|[|m]] // Chi _ irrChi uniqChi Chi1 ChiCF [iso_tau Ztau].
+case: m Chi => [|[|m]] // Chi _ irrChi Chifree Chi1 ChiCF [iso_tau Ztau].
 rewrite -(tnth_nth 0 _ 0); set chi := tnth Chi.
 have chiE i: chi i = Chi`_i by rewrite -tnth_nth.
 have inChi i: chi i \in Chi by exact: mem_tnth.

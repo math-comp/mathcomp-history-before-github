@@ -443,13 +443,13 @@ by split; [exact: sub_in2 Itau1 | exact: sub_in1 Ztau1].
 Qed.
 
 Lemma subset_coherent S1 S2 A tau:
-  {subset S2 <= S1} -> free S1 -> coherent S1 A tau -> coherent S2 A tau.
+  {subset S2 <= S1} -> coherent S1 A tau -> coherent S2 A tau.
 Proof.
-by move=> sS21 freeS1; apply: subgen_coherent => phi /sS21/mem_zchar->.
+by move=> sS21; apply: subgen_coherent => phi /sS21/mem_zchar->.
 Qed.
 
 Lemma perm_eq_coherent S1 S2 A tau:
-  perm_eq S1 S2 -> free S1 -> coherent S1 A tau -> coherent S2 A tau.
+  perm_eq S1 S2 -> coherent S1 A tau -> coherent S2 A tau.
 Proof.
 by move=> eqS12; apply: subset_coherent => phi; rewrite (perm_eq_mem eqS12).
 Qed.
@@ -460,7 +460,7 @@ Lemma dual_coherence S tau R nu :
 Proof.
 move=> [[charS nrS ccS] _ oSS _ _] [[Inu Znu] Dnu] szS2.
 split=> [|{Inu Znu oSS} phi ZSphi].
-  have{oSS} ccZS := cfAut_zchar (orthogonal_free oSS) ccS.
+  have{oSS} ccZS := cfAut_zchar ccS.
   have vcharS: {subset S <= 'Z[irr L]} by move=> phi /(allP charS)/char_vchar.
   split=> [phi1 phi2 Sphi1 Sphi2 | phi Sphi].
     rewrite cfdotNl cfdotNr opprK Inu ?ccZS // cfdot_conjC isIntC_conj //.
@@ -576,7 +576,7 @@ have defSA: 'Z[S, L^#] =i 'Z[S, A].
   move=> phi; have:= zcharD1_seqInd_Dade nsKL notA1 sS0A1 phi.
   rewrite !{1}(zchar_split _ A, zchar_split _ L^#) => eq_phiAL.
   have freeS0: free S0 by exact: seqInd_free.
-  apply: andb_id2l => /(zchar_subset freeS0 sSS0) S0phi.
+  apply: andb_id2l => /(zchar_subset sSS0) S0phi.
   by rewrite S0phi in eq_phiAL.    
 have Itau: {in 'Z[S, L^#], isometry tau, to 'Z[irr G, G^#]}.
   apply: sub_iso_to sub_refl (Dade_Zisometry _) => phi; rewrite defSA => SAphi.
@@ -728,8 +728,7 @@ case=> uS1 sS1 ccS1; have [[N_S nrS _] Itau oS defR oR] := cohS.
 split; last 1 [exact: sub_in1 defR | exact: sub_in2 oR].
 - split=> //; first by apply/allP=> xi /sS1/(allP N_S).
   by apply/hasPn; exact: sub_in1 (hasPn nrS).
-- apply: sub_iso_to Itau => //; apply: zchar_subset => //.
-  exact: orthogonal_free.
+- by apply: sub_iso_to Itau => //; apply: zchar_subset.
 exact: sub_pairwise_orthogonal oS.
 Qed.
 
@@ -918,7 +917,7 @@ have [lam Zlam [Z oZS1 defY]]:
   have Zbeta: beta \in 'Z[S1, L^#].
     rewrite zchar_split cfunD1E !cfunE mulrC subrr eqxx.
     by rewrite sub_zchar ?scale_zchar ?Z_S1 // isIntCE N_S1_1.
-  rewrite -eqXY eq_t1_tau // iso_tau // ?(zchar_subset _ sS1S) //.
+  rewrite -eqXY eq_t1_tau // iso_tau // ?(zchar_subset sS1S) //.
   rewrite cfdot_subl !cfdot_subr !cfdotZr !ocS1 // !mulr0 subrr add0r !cfdotZl.
   by rewrite opprB addrAC subrK subrr.
 have [|| leXchi defX] := subcoherent_norm _ _ (erefl _) defXY.
