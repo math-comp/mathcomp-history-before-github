@@ -413,7 +413,7 @@ have ext1 mu0 x: {mu1 | exists y, x = Sinj mu1 y
   have Df y: f (in01 y) = in01 (Saut mu0 y).
     transitivity (f (lin01 y)); first by rewrite !lfunE.
     by do 4!rewrite lfunE /=; rewrite lker0_lfunK.
-  have hom_f: kHom 1 (ASpace algK) f.
+  have hom_f: f \is a kHom 1 (ASpace algK).
     apply/kHomP; split=> [_ /vlineP[a ->] | _ _ /memK[y1 ->] /memK[y2 ->]].
       by rewrite -(rmorph1 in01) -linearZ /= Df {1}linearZ /= rmorph1.
     by rewrite -rmorphM !Df !rmorphM.
@@ -426,7 +426,7 @@ have ext1 mu0 x: {mu1 | exists y, x = Sinj mu1 y
     rewrite Sinj_poly Dr -Drr big_map rmorph_prod; apply: eq_bigr => zz _.
     by rewrite rmorphB /= map_polyX map_polyC.
   have [f1 aut_f1 Df1]:= kHom_extends (sub1v (ASpace algK)) hom_f Qpr splitQr.
-  pose nu := LRMorphism (LAut_lrmorph _ aut_f1).
+  pose nu := LRMorphism (kAut_lrmorph _ aut_f1).
   exists (SubAut Qr QrC nu) => //; exists in01 => //= y; rewrite -Df -Df1 //.
   by apply/memK; exists y.
 have phiZ: scalable phi.
@@ -481,7 +481,7 @@ have [-> /eqnP | n_gt0 co_k_n] := posnP n.
 have [z prim_z] := C_prim_root_exists n_gt0.
 have [Qn [QnC [[|zn []] // [Dz]]] genQn] := num_field_exists [:: z].
 pose phi := kHomExtend 1 \1%VF zn (zn ^+ k).
-have homQn1: kHom 1 1 (\1%VF : 'End(Qn)) by rewrite kHom1.
+have homQn1: (\1%VF : 'End(Qn)) \is a kHom 1 1 by rewrite kHom1.
 have pzn_zk0: root (map_poly \1%VF (minPoly 1 zn)) (zn ^+ k).
   rewrite -(fmorph_root QnC) rmorphX Dz -map_poly_comp.
   rewrite (@eq_map_poly _ _ _ QnC) => [|a]; last by rewrite /= id_lfunE.
@@ -504,7 +504,7 @@ have pzn_zk0: root (map_poly \1%VF (minPoly 1 zn)) (zn ^+ k).
   rewrite (bigD1 (Ordinal (ltn_pmod k n_gt0))) ?coprime_modl //=.
   by rewrite rootM root_XsubC prim_expr_mod ?eqxx.
 have phiM: lrmorphism phi.
-  by apply/LAut_lrmorph; rewrite -genQn /= kHomExtendkHom.
+  by apply/kAut_lrmorph; rewrite -genQn /= kHomExtendkHom.
 have [nu Dnu] := extend_algC_subfield_aut QnC (RMorphism phiM).
 exists nu => _ /(prim_rootP prim_z)[i ->].
 rewrite rmorphX exprAC -Dz -Dnu /= -{1}[zn]hornerX /phi.

@@ -39,7 +39,7 @@ Local Notation algCF := [fieldType of algC].
 Lemma group_num_field_exists (gT : finGroupType) (G : {group gT}) :
   {Qn : fieldExtType rat & {QnC : {rmorphism Qn -> algC} &
     {nQn : isNormalFieldExt Qn & galois nQn 1 fullv
-         & forall nuQn : argumentType (mem (Aut nQn fullv 1)),
+         & forall nuQn : argumentType (mem (aut nQn 1 fullv)),
               {nu : {rmorphism algC -> algC} |
                  {morph QnC: a / val (repr nuQn) a >-> nu a}}}
   & {w : Qn & #|G|.-primitive_root w /\ Fadjoin 1 w = fullv
@@ -71,8 +71,8 @@ have splitXn1: splittingFieldFor 1 ('X^n - 1) {:Qn}.
 have [|nQn GalQn] := splitting_field_galois Q_Xn1 splitXn1.
   apply: separable_Xn_sub_1; rewrite -(fmorph_eq0 QnC) rmorph_nat.
   by rewrite pnatr_eq0 -lt0n cardG_gt0.
-exists nQn => // nuQn; case: {nuQn}(repr _) => f /= /LAut_is_enum fM.
-exact: (extend_algC_subfield_aut QnC (LRMorphism fM)).
+exists nQn => // nuQn; move: {nuQn}(repr _) => f.
+exact: (extend_algC_subfield_aut QnC [rmorphism of f]).
 Qed.
 
 Section GenericClassSums.
@@ -286,8 +286,8 @@ have norm_a_nu nu: `|sval (gQnC nu) alpha| <= 1.
   congr (_ <= _): (char1_ge_norm g (irr_char (aut_Iirr nu i))).
   by rewrite !aut_IirrE !cfunE Dm rmorph_nat divfK.
 pose beta := QnC (galoisNorm nQn 1 fullv a).
-have Dbeta: beta = \prod_(nu \in Aut nQn fullv 1) sval (gQnC nu) alpha.
-  rewrite /beta rmorph_prod; apply: eq_bigr => nu _.
+have Dbeta: beta = \prod_(nu \in aut nQn 1 fullv) sval (gQnC nu) alpha.
+  rewrite /beta rmorph_prod. apply: eq_bigr => nu _.
   by case: (gQnC nu) => f /= ->; rewrite Da.
 have Zbeta: isIntC beta.
   apply: Cint_rat_algInt; last by rewrite Dbeta rpred_prod.

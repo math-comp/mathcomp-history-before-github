@@ -44,6 +44,12 @@ Require Import finfun ssralg matrix zmodp tuple vector.
 (*                       U : {vspace aT} (more instances of {aspace aT} will  *)
 (*                       be defined in extFieldType).                         *)
 (* [aspace of U for A] == a clone of A : {aspace aT} for U : {vspace aT}.     *)
+(*      'AHom(aT, rT) == the type of algebra homomorphisms from aT to rT,     *)
+(*                       where aT and rT ARE FalgType structures. Elements of *)
+(*                       'AHom(aT, rT) coerce to Coq functions.               *)
+(* --> Caveat: aT and rT must denote actual FalgType structures, not their    *)
+(*     projections on Type.                                                   *)
+(*          'AEnd(aT) == algebra endomorphisms of aT (:= 'AHom(aT, aT)).      *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -52,6 +58,9 @@ Unset Printing Implicit Defensive.
 Open Local Scope ring_scope.
 
 Reserved Notation "{ 'aspace' T }" (at level 0, format "{ 'aspace'  T }").
+Reserved Notation "''AHom' ( T , rT )"
+  (at level 8, format "''AHom' ( T ,  rT )").
+Reserved Notation "''AEnd' ( T )" (at level 8, format "''AEnd' ( T )").
 
 Import GRing.Theory.
 
@@ -608,3 +617,147 @@ Qed.
 (* Note that this implies algid A = 1. *)
 
 End SubFalgType.
+
+Section AHom.
+
+Variable K : fieldType.
+
+Section Class_Def.
+
+Variables (aT rT : FalgType K).
+
+Definition ahom_in (A : {vspace aT}) := 
+  [qualify f : 'Hom(aT,rT) |
+    (all (fun v1 =>
+      all (fun v2 => f (v1 * v2) == f v1 * f v2) (vbasis A)) (vbasis A))
+        && (f 1 == 1)].
+(*
+Fact ahom_in_key A : pred_key (ahom_in A). Proof. by []. Qed.
+Canonical ahom_in_keyed A := KeyedQualifier (ahom_in_key A).
+*)
+
+Lemma is_ahom_inP (f : 'Hom(aT,rT)) (A : {vspace aT}) :
+  reflect ({in A &, {morph f : x y / x * y >-> x * y}}*(f 1 = 1))
+    (f \is ahom_in A).
+Proof.
+apply: (iffP andP); last first.
+  move => [Hf Hf1].
+  split; last by apply/eqP.
+  do 2 apply/allP => ? ?.
+  by rewrite Hf //; apply: vbasis_mem.
+move => [/allP Hf Hf1].
+split; last by apply/eqP.
+move => v w /coord_vbasis -> /coord_vbasis ->.
+rewrite !mulr_suml ![f _]linear_sum mulr_suml.
+apply: eq_bigr => i _ /=.
+rewrite !mulr_sumr linear_sum.
+apply: eq_bigr => j _ /=.
+rewrite !linearZ -!scalerAr -!scalerAl 2!linearZ /=; congr (_ *: (_ *: _)).
+apply/eqP/(all_nthP 0 (Hf _ _)); last by rewrite size_tuple.
+by apply memt_nth.
+Qed.
+
+Lemma is_ahomP (f : 'Hom(aT,rT)) : reflect (lrmorphism f) (f \is ahom_in {:aT}).
+Proof.
+apply: (iffP (is_ahom_inP _ _)); last first.
+  move => Hf.
+  split; last by rewrite [f 1](rmorph1 (LRMorphism Hf)).
+  move => x y _ _ /=.
+  by rewrite [f _](rmorphM (LRMorphism Hf)).
+case => Hf Hf1.
+repeat split => //.
+- by apply: linearB.
+- by move => x y; apply: Hf; rewrite memvf.
+- by apply: linearZZ.
+Qed.
+
+Structure ahom := AHom {ahval :> 'Hom(aT, rT); _ : ahval \is ahom_in {:aT}}.
+
+Canonical ahom_subType := Eval hnf in [subType for ahval by ahom_rect].
+Definition ahom_eqMixin := [eqMixin of ahom by <:].
+Canonical ahom_eqType := Eval hnf in EqType ahom ahom_eqMixin.
+Definition ahom_choiceMixin := [choiceMixin of ahom by <:].
+Canonical ahom_choiceType := Eval hnf in ChoiceType ahom ahom_choiceMixin.
+
+End Class_Def.
+
+Implicit Arguments ahom_in [aT rT].
+
+Section LRMorphism.
+
+Variables (aT rT sT : FalgType K).
+Fact ahom_is_lrmorphism (f : ahom aT rT) : lrmorphism f.
+Proof. apply/is_ahomP. by case: f. Qed.
+
+Canonical ahom_rmorphism f := Eval hnf in AddRMorphism (ahom_is_lrmorphism f).
+Canonical ahom_lrmorphism f := Eval hnf in AddLRMorphism (ahom_is_lrmorphism f).
+
+Lemma id_is_ahom (A : {aspace aT}) : \1%VF \is ahom_in A.
+Proof.
+apply/is_ahom_inP.
+split; first move => x y /=; by rewrite !id_lfunE.
+Qed.
+
+Lemma comp_is_ahom (A : {aspace aT}) (f : 'Hom(rT,sT)) (g : 'Hom(aT,rT)) :
+  f \is ahom_in fullv -> g \is ahom_in A -> (f \o g)%VF \is ahom_in A .
+Proof.
+move => /is_ahom_inP Hf /is_ahom_inP Hg.
+apply/is_ahom_inP; split; last by rewrite comp_lfunE Hg Hf.
+move => x y Hx Hy /=.
+by rewrite !comp_lfunE Hg // Hf ?memvf.
+Qed.
+
+Definition id_ahom := AHom (id_is_ahom (aspacef aT)).
+
+Definition comp_ahom (f : ahom rT sT) (g : ahom aT rT) :=
+  nosimpl (AHom (comp_is_ahom (valP f) (valP g))).
+
+End LRMorphism.
+
+(* Move to vector.v *)
+Definition fixedSpace (vT:vectType K) (f:'End(vT)) : {vspace vT} :=
+  lker (f - \1%VF).
+
+Lemma fixedSpaceP (vT:vectType K) (f:'End(vT)) a :
+  reflect (f a = a) (a \in fixedSpace f).
+Proof.
+rewrite memv_ker add_lfunE opp_lfunE id_lfunE subr_eq0.
+by apply: eqP.
+Qed.
+
+Lemma fixedSpace_id (vT:vectType K) : fixedSpace \1 = {:vT}%VS.
+Proof.
+apply: subv_anti; rewrite subvf /=.
+apply/subvP => x _.
+apply/fixedSpaceP.
+by rewrite id_lfunE.
+Qed.
+
+Variable (aT : FalgType K) (f : ahom aT aT).
+
+Lemma fixedAlgebra_is_aspace_subproof : let FF := fixedSpace f in
+  (has_algid FF  && (FF * FF <= FF)%VS).
+Proof.
+apply/andP; split.
+  rewrite has_algid1 //.
+  by apply/fixedSpaceP/rmorph1.
+apply/prodvP => a b /fixedSpaceP Ha /fixedSpaceP Hb.
+apply/fixedSpaceP.
+by rewrite rmorphM /= Ha Hb.
+Qed.
+
+Canonical fixedAlgebra_aspace : {aspace aT} :=
+  ASpace fixedAlgebra_is_aspace_subproof.
+
+End AHom.
+
+Implicit Arguments ahom_in [K aT rT].
+
+Notation "''AHom' ( aT , rT )" := (ahom aT rT) : type_scope.
+Notation "''AEnd' ( aT )" := (ahom aT aT) : type_scope.
+
+Delimit Scope lrfun_scope with AF.
+Bind Scope lrfun_scope with ahom. 
+
+Notation "\1" := (@id_ahom _ _) : lrfun_scope.
+Notation "f \o g" := (comp_ahom f g) : lrfun_scope.
