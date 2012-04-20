@@ -2353,6 +2353,8 @@ Variables (f : {lrmorphism A -> B}) (g : {lrmorphism B -> C | s}).
 Definition idfun_lrmorphism := [lrmorphism of @idfun A].
 Definition comp_lrmorphism := [lrmorphism of g \o f].
 
+Lemma lrmorphismP : lrmorphism f. Proof. exact: LRMorphism.class. Qed.
+
 Lemma can2_lrmorphism f' : cancel f f' -> cancel f' f -> lrmorphism f'.
 Proof.
 move=> fK f'K; split; [exact: (can2_rmorphism fK) | exact: (can2_linear fK)].
@@ -5564,6 +5566,7 @@ Definition scalarP := scalarP.
 Definition scalarZ := scalarZ.
 Definition can2_linear := can2_linear.
 Definition bij_linear := bij_linear.
+Definition lrmorphismP := lrmorphismP.
 Definition can2_lrmorphism := can2_lrmorphism.
 Definition bij_lrmorphism := bij_lrmorphism.
 
