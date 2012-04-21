@@ -17,7 +17,7 @@ Require Export Ring.
 (*                                                                            *)
 (*   basic arithmetic                                                         *)
 (*     m + n, m - n, m * n                                                    *)
-(*   Important: m - n denotes TRUNCATED substraction: m - n = if m <= n.      *)
+(*   Important: m - n denotes TRUNCATED substraction: m - n = 0 if m <= n.    *)
 (*   The definitions use the nosimpl tag to prevent undesirable computation   *)
 (*   computation during simplification, but remain compatible with the ones   *)
 (*   provided in the Coq.Init.Peano prelude.                                  *)

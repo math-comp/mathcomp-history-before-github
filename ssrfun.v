@@ -131,7 +131,7 @@ Require Import ssreflect.
 (*                               i.e., x op (i x) = e.                        *)
 (*         self_inverse e op <-> each x is its own op-inverse (x op x = e).   *)
 (*             idempotent op <-> op is idempotent for op (x op x = x).        *)
-(*              associate op <-> op is associative, i.e.,                     *)
+(*              associative op <-> op is associative, i.e.,                   *)
 (*                               x op (y op z) = (x op y) op z.               *)
 (*            commutative op <-> op is commutative (x op y = y op x).         *)
 (*       left_commutative op <-> op is left commutative, i.e.,                *)
