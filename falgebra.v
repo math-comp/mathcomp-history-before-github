@@ -692,7 +692,7 @@ Proof. apply/is_ahomP. by case: f. Qed.
 Canonical ahom_rmorphism f := Eval hnf in AddRMorphism (ahom_is_lrmorphism f).
 Canonical ahom_lrmorphism f := Eval hnf in AddLRMorphism (ahom_is_lrmorphism f).
 
-Lemma id_is_ahom (A : {aspace aT}) : \1%VF \is ahom_in A.
+Lemma id_is_ahom (V : {vspace aT}) : \1%VF \is ahom_in V.
 Proof.
 apply/is_ahom_inP.
 split; first move => x y /=; by rewrite !id_lfunE.
@@ -707,10 +707,10 @@ move => x y Hx Hy /=.
 by rewrite !comp_lfunE Hg // Hf ?memvf.
 Qed.
 
-Definition id_ahom := AHom (id_is_ahom (aspacef aT)).
+Canonical id_ahom := AHom (id_is_ahom (aspacef aT)).
 
-Definition comp_ahom (f : ahom rT sT) (g : ahom aT rT) :=
-  nosimpl (AHom (comp_is_ahom (valP f) (valP g))).
+Canonical comp_ahom (f : ahom rT sT) (g : ahom aT rT) :=
+  AHom (comp_is_ahom (valP f) (valP g)).
 
 End LRMorphism.
 
