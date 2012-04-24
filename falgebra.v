@@ -255,6 +255,13 @@ End InvLfun.
 
 End FalgLfun.
 
+Canonical FalgLfun.Falg_fun_ringType.
+Canonical FalgLfun.Falg_fun_lalgType.
+Canonical FalgLfun.Falg_fun_algType.
+Canonical FalgLfun.lfun_unitRingType.
+Canonical FalgLfun.lfun_unitAlgType.
+Canonical FalgLfun.Falg_fun_FalgType.
+
 Section FalgebraTheory.
 
 Variables (K : fieldType) (aT : FalgType K).
@@ -262,6 +269,79 @@ Implicit Types (u v : aT) (U V W : {vspace aT}).
 
 Definition amull u : 'End(aT) := linfun (u \*o @idfun aT).
 Definition amulr u : 'End(aT) := linfun (u \o* @idfun aT).
+
+Lemma amull1 : amull 1 = \1%VF.
+Proof. by apply/lfunP => u; rewrite id_lfunE lfunE [X in X = _]mul1r. Qed.
+
+Lemma amulr1 : amulr 1 = \1%VF.
+Proof. by apply/lfunP => u; rewrite id_lfunE lfunE [X in X = _]mulr1. Qed.
+
+Lemma amull0 : amull 0 = 0%VF.
+Proof. by apply/lfunP => u; rewrite zero_lfunE lfunE [X in X = _]mul0r. Qed.
+
+Lemma amulr0 : amulr 0 = 0%VF.
+Proof. by apply/lfunP => u; rewrite zero_lfunE lfunE [X in X = _]mulr0. Qed.
+
+Lemma amull_eq1 x : (amull x == \1%VF) = (x == 1).
+Proof.
+apply/eqP/eqP; last by move ->; apply amull1.
+move/lfunP/(_ 1).
+by rewrite id_lfunE lfunE /= mulr1.
+Qed.
+
+Lemma amulr_eq1 x : (amulr x == \1%VF) = (x == 1).
+Proof.
+apply/eqP/eqP; last by move ->; apply amulr1.
+move/lfunP/(_ 1).
+by rewrite id_lfunE lfunE /= mul1r.
+Qed.
+
+Lemma amull_eq0 x : (amull x == 0%VF) = (x == 0).
+Proof.
+apply/eqP/eqP; last by move ->; apply amull0.
+move/lfunP/(_ 1).
+by rewrite zero_lfunE lfunE /= mulr1.
+Qed.
+
+Lemma amulr_eq0 x : (amulr x == 0%VF) = (x == 0).
+Proof.
+apply/eqP/eqP; last by move ->; apply amulr0.
+move/lfunP/(_ 1).
+by rewrite zero_lfunE lfunE /= mul1r.
+Qed.
+
+Fact amull_is_linear : linear amull.
+Proof.
+move => c a b; apply/lfunP => d.
+by rewrite !lfunE /= !scale_lfunE !lfunE mulrDl scalerAl.
+Qed.
+Canonical mull_additive := Eval hnf in Additive amull_is_linear.
+Canonical mull_linear := Eval hnf in AddLinear amull_is_linear.
+
+(* amull is a converse ring morphism *)
+Lemma amullM x y : (amull (x * y) = (amull y) * (amull x))%VF.
+Proof. 
+apply/lfunP => a.
+(* Why does this take 3 seconds while the next lemma is much faster? *)
+by rewrite comp_lfunE !lfunE /= mulrA.
+Qed.
+
+Lemma amulr_is_lrmorphism : lrmorphism amulr.
+Proof.
+repeat split.
+- move => a b /=; apply/lfunP => d.
+  by rewrite add_lfunE opp_lfunE !lfunE /= mulrBr.
+- move => a b /=; apply/lfunP => d.
+  by rewrite comp_lfunE !lfunE /= mulrA.
+- by rewrite amulr1.
+- move => c a /=; apply/lfunP => d.
+  by rewrite scale_lfunE !lfunE /= scalerAr.
+Qed.
+Canonical mulr_additive := Eval hnf in Additive amulr_is_lrmorphism.
+Canonical mulr_linear := Eval hnf in AddLinear amulr_is_lrmorphism.
+Canonical mulr_rmorphism := Eval hnf in AddRMorphism amulr_is_lrmorphism.
+Canonical mulr_lrmorphism := Eval hnf in LRMorphism amulr_is_lrmorphism.
+
 Fact prodv_key : unit. Proof. by []. Qed.
 Definition prodv :=
    let: tt := prodv_key in
