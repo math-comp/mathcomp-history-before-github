@@ -883,7 +883,7 @@ let pf_unabs_evars gl ise n c0 =
 let add_genarg tag pr =
   let wit, globwit, rawwit as wits = create_arg None tag in
   let glob _ rarg = in_gen globwit (out_gen rawwit rarg) in
-  let interp _ _ garg = in_gen wit (out_gen globwit garg) in
+  let interp _ gl garg = Tacmach.project gl,in_gen wit (out_gen globwit garg) in
   let subst _ garg = garg in
   add_interp_genarg tag (glob, interp, subst);
   let gen_pr _ _ _ = pr in
@@ -938,7 +938,8 @@ let pr_ssrltacctx _ _ _ _ = mt ()
 
 let ssrltacctxs = ref (1, [])
 
-let interp_ltacctx ist _ n0 =
+let interp_ltacctx ist gl n0 =
+  Tacmach.project gl,
   if n0 = 0 then 0 else
   let n, s = !ssrltacctxs in
   let n' = if n >= max_int then 1 else n + 1 in
@@ -974,8 +975,8 @@ let glob_constr ist gsigma genv = function
 
 let interp_wit globwit wit ist gl x = 
   let globarg = in_gen globwit x in
-  let arg = interp_genarg ist gl globarg in
-  out_gen wit arg
+  let sigma, arg = interp_genarg ist gl globarg in
+  sigma, out_gen wit arg
 
 let interp_intro_pattern = interp_wit globwit_intro_pattern wit_intro_pattern
 
@@ -1007,7 +1008,9 @@ let nbargs_open_constr gl oc =
 let interp_nbargs ist gl rc =
   try
     let rc6 = mkRApp rc (mkRHoles 6) in
-    6 + nbargs_open_constr gl (interp_open_constr ist gl (rc6, None))
+    let sigma, t = interp_open_constr ist gl (rc6, None) in
+    let si = sig_it gl in let gl = re_sig si sigma in
+    6 + nbargs_open_constr gl t
   with _ -> 5
 
 let pf_nbargs gl c = nbargs_open_constr gl (project gl, c)
@@ -1017,7 +1020,9 @@ let isAppInd gl c =
 
 let interp_view_nbimps ist gl rc =
   try
-    let pl, c = splay_open_constr gl (interp_open_constr ist gl (rc, None)) in
+    let sigma, t = interp_open_constr ist gl (rc, None) in
+    let si = sig_it gl in let gl = re_sig si sigma in
+    let pl, c = splay_open_constr gl t in
     if isAppInd gl c then List.length pl else ~-(List.length pl)
   with _ -> 0
 
@@ -1660,8 +1665,8 @@ let intern_hyp ist (SsrHyp (loc, id) as hyp) =
   hyp_err loc "Can't clear section hypothesis " id
 
 let interp_hyp ist gl (SsrHyp (loc, id)) =
-  let id' = interp_wit globwit_var wit_var ist gl (loc, id) in
-  if not_section_id id' then SsrHyp (loc, id') else
+  let s, id' = interp_wit globwit_var wit_var ist gl (loc, id) in
+  if not_section_id id' then s, SsrHyp (loc, id') else
   hyp_err loc "Can't clear section hypothesis " id'
 
 ARGUMENT EXTEND ssrhyp TYPED AS ssrhyprep PRINTED BY pr_ssrhyp
@@ -1687,8 +1692,8 @@ let check_hyp_exists hyps (SsrHyp(_, id)) =
   with Not_found -> errorstrm (str"No assumption is named " ++ pr_id id)
 
 let interp_hyps ist gl ghyps =
-  let hyps = List.map (interp_hyp ist gl) ghyps in
-  check_hyps_uniq [] hyps; hyps
+  let hyps = List.map snd (List.map (interp_hyp ist gl) ghyps) in
+  check_hyps_uniq [] hyps; Tacmach.project gl, hyps
 
 ARGUMENT EXTEND ssrhyps TYPED AS ssrhyp list PRINTED BY pr_ssrhyps
                         INTERPRETED BY interp_hyps
@@ -1760,7 +1765,7 @@ let pr_ssrterm _ _ _ = pr_term
 let pf_intern_term ist gl (_, c) = glob_constr ist (project gl) (pf_env gl) c
 let intern_term ist sigma env (_, c) = glob_constr ist sigma env c
 
-let interp_term ist gl (_, c) = interp_open_constr ist gl c
+let interp_term ist gl (_, c) = snd (interp_open_constr ist gl c)
 
 let force_term ist gl (_, c) = interp_constr ist gl c
 
@@ -1770,7 +1775,7 @@ let glob_ssrterm gs = function
 
 let subst_ssrterm s (k, c) = k, Tacinterp.subst_glob_constr_and_expr s c
 
-let interp_ssrterm _ _ t = t
+let interp_ssrterm _ gl t = Tacmach.project gl, t
 
 ARGUMENT EXTEND ssrterm
      PRINTED BY pr_ssrterm
@@ -2134,6 +2139,7 @@ let mk_index loc = function ArgArg i -> ArgArg (check_index loc i) | iv -> iv
 let get_index = function ArgArg i -> i | _ -> anomaly "Uninterpreted index"
 
 let interp_index ist gl idx =
+  Tacmach.project gl, 
   match idx with
   | ArgArg _ -> idx
   | ArgVar (loc, id) ->
@@ -2365,7 +2371,7 @@ let interp_view ist si env sigma gv rid =
   match intern_term ist sigma env gv with
   | GApp (loc, GHole _, rargs) ->
     let rv = GApp (loc, rid, rargs) in
-    interp_open_constr ist (re_sig si sigma) (rv, None)
+    snd (interp_open_constr ist (re_sig si sigma) (rv, None))
   | rv ->
   let interp rc rargs =
     interp_open_constr ist (re_sig si sigma) (mkRApp rc rargs, None) in
@@ -2377,7 +2383,7 @@ let interp_view ist si env sigma gv rid =
   let rec view_with = function
   | [] -> simple_view [rid] (interp_nbargs ist (re_sig si sigma) rv)
   | hint :: hints -> try interp hint view_args with _ -> view_with hints in
-  view_with (if view_nbimps < 0 then [] else viewtab.(0))
+  snd (view_with (if view_nbimps < 0 then [] else viewtab.(0)))
 
 let top_id = mk_internal_id "top assumption"
 
@@ -2458,8 +2464,8 @@ let intern_ipat ist ipat =
 let intern_ipats ist = List.map (intern_ipat ist)
 
 let interp_introid ist gl id =
-  try IntroIdentifier (hyp_id (interp_hyp ist gl (SsrHyp (dummy_loc, id))))
-  with _ -> snd (interp_intro_pattern ist gl (dummy_loc, IntroIdentifier id))
+ try IntroIdentifier (hyp_id (snd (interp_hyp ist gl (SsrHyp (dummy_loc, id)))))
+ with _ -> snd(snd (interp_intro_pattern ist gl (dummy_loc,IntroIdentifier id)))
 
 let rec add_intro_pattern_hyps (loc, ipat) hyps = match ipat with
   | IntroIdentifier id ->
@@ -2490,7 +2496,7 @@ let rec interp_ipat ist gl =
   | ipat -> ipat in
   interp
 
-let interp_ipats ist gl = List.map (interp_ipat ist gl)
+let interp_ipats ist gl l = project gl, List.map (interp_ipat ist gl) l
 
 let pushIpatRw = function
   | pats :: orpat -> (IpatRw ([noindex], L2R) :: pats) :: orpat
@@ -4704,7 +4710,7 @@ END
 let ssrelimtac (view, (eqid, (dgens, (ipats, ctx)))) =
   let ist = get_ltacctx ctx in
   let ndefectelimtac view eqid ipats deps gen ist gl =
-    let elim = match view with [v] -> Some (force_term ist gl v) | _ -> None in
+    let elim = match view with [v] -> Some (snd(force_term ist gl v)) | _ -> None in
     ssrelim ~ist deps (`EGen gen) ?elim eqid ipats gl
   in
   with_dgens dgens (ndefectelimtac view eqid ipats) ist 
@@ -4765,7 +4771,7 @@ let interp_agen ist gl ((goclr, _), (k, gc)) (clr, rcs) =
   match goclr with
   | None -> clr, rcs'
   | Some ghyps ->
-    let clr' = interp_hyps ist gl ghyps @ clr in
+    let clr' = snd (interp_hyps ist gl ghyps) @ clr in
     if k <> ' ' then clr', rcs' else
     match rc with
     | GVar (loc, id) when not_section_id id -> SsrHyp (loc, id) :: clr', rcs'
@@ -4813,14 +4819,14 @@ let refine_interp_apply_view i ist gl gv =
   let interp_with x = prof_apply_interp_with.profile interp_with x in
   let rec loop = function
   | [] -> (try apply_rconstr ~ist rv gl with _ -> view_error "apply" gv)
-  | h :: hs -> (try refine_with (interp_with h) gl with _ -> loop hs) in
+  | h :: hs -> (try refine_with (snd (interp_with h)) gl with _ -> loop hs) in
   loop (pair i viewtab.(i) @ if i = 2 then pair 1 viewtab.(1) else [])
 
 let apply_top_tac gl =
   tclTHENLIST [introid top_id; apply_rconstr (mkRVar top_id); clear [top_id]] gl
 
 let inner_ssrapplytac gviews ggenl gclr ist gl =
- let clr = interp_hyps ist gl gclr in
+ let _, clr = interp_hyps ist gl gclr in
  let vtac gv i gl' = refine_interp_apply_view i ist gl' gv in
  let ggenl, tclGENTAC =
    if gviews <> [] && ggenl <> [] then 
@@ -4834,7 +4840,7 @@ let inner_ssrapplytac gviews ggenl gclr ist gl =
       (List.fold_left (fun acc v -> tclTHENLAST acc (vtac v dbl)) (vtac v 1) tl)
       (cleartac clr) gl
   | [], [agens] ->
-    let clr', lemma = interp_agens ist gl agens in
+    let clr', (_, lemma) = interp_agens ist gl agens in
     tclTHENLIST [cleartac clr; refine_with lemma; cleartac clr'] gl
   | _, _ -> tclTHEN apply_top_tac (cleartac clr) gl) gl
 
@@ -4915,7 +4921,7 @@ let congrtac ((n, t), ty) ist gl =
   let ist' = {ist with lfun = [pattern_id, VConstr ([],f)]} in
   let rf = mkRltacVar pattern_id in
   let m = pf_nbargs gl f in
-  let cf = if n > 0 then
+  let _, cf = if n > 0 then
     match interp_congrarg_at ist' gl n rf ty m with
     | Some cf -> cf
     | None -> errorstrm (str "No " ++ pr_int n ++ str "-congruence with "
