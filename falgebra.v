@@ -778,6 +778,18 @@ apply/fixedSpaceP.
 by rewrite id_lfunE.
 Qed.
 
+Lemma fixedSpace_subv (vT:vectType K) (f:'End(vT)) U :
+  (U <= fixedSpace f -> f @: U = U)%VS.
+Proof.
+move/subvP => HU.
+apply:subv_anti; apply/andP; split; apply/subvP.
+  move => _ /memv_imgP [x Hx ->].
+  by have /fixedSpaceP -> := (HU _ Hx).
+move => x Hx.
+have /fixedSpaceP <- := (HU _ Hx).
+by apply: memv_img.
+Qed.  
+
 Variable (aT : FalgType K) (f : ahom aT aT).
 
 Lemma fixedAlgebra_is_aspace_subproof : let FF := fixedSpace f in

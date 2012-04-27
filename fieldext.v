@@ -1081,7 +1081,7 @@ Lemma minPolyxx : (minPoly K x).[x] = 0.
 Proof. by move: root_minPoly; rewrite /root; move/eqP ->. Qed.
 
 Lemma poly_Fadjoin v :
-  reflect (exists p, p \in polyOver K /\ v = p.[x]) (v \in Fadjoin K x).
+  reflect (exists2 p, p \in polyOver K & v = p.[x]) (v \in Fadjoin K x).
 Proof.
 apply: (iffP (poly_Fadjoin_small _ _ _)).
  by case => p [? ? ?]; exists p.
@@ -1133,7 +1133,7 @@ Proof.
 apply/andP; split.
  apply: has_algid1.
  apply/poly_Fadjoin.
- exists 1;split; last by rewrite hornerE.
+ exists 1; last by rewrite hornerE.
  apply/polyOverP => i.
  rewrite coefC.
  by case: ifP; rewrite ?mem0v ?mem1v.
@@ -1141,7 +1141,8 @@ apply/prodvP => ? ?.
 case/poly_Fadjoin => p1 [Hp1 ->].
 case/poly_Fadjoin => p2 [Hp2 ->].
 apply/poly_Fadjoin.
-by exists (p1 * p2); rewrite hornerM; split => //; rewrite rpredM.
+exists (p1 * p2); last by rewrite hornerM.
+by rewrite rpredM.
 Qed.
 Canonical Fadjoin_aspace : {subfield L} := ASpace Fadjoin_is_aspace.
 
@@ -1390,6 +1391,43 @@ Implicit Arguments genFieldP [F0 L K rs E].
 
 Notation "E :&: F" := (capv_aspace E F) : aspace_scope.
 Notation "E * F" := (prodv_aspace E F) : aspace_scope.
+
+Section Aimg.
+
+Variables (F : fieldType) (L1 L2 : fieldExtType F) (f : 'AHom(L1,L2)).
+
+Fact aimg_is_subfield (K : {subfield L1}) : is_aspace (f @: K).
+Proof.
+rewrite /is_aspace has_algid1; last first.
+  by rewrite -(rmorph1 [rmorphism of f]) memv_img // mem1v.
+apply/prodvP.
+move => _ _ /memv_imgP [u Hu ->] /memv_imgP [v Hv ->].
+by rewrite -rmorphM memv_img // memv_mul.
+Qed.
+Canonical aimg_aspace K : {subfield L2} := ASpace (aimg_is_subfield K).
+
+Lemma Fadjoin_aimg (K : {subfield L1}) x :
+  (f @: Fadjoin K x = Fadjoin (f @: K) (f x))%VS.
+Proof.
+apply:subv_anti; apply/andP; split; last first.
+  by rewrite -subsetFadjoinE limgS ?subsetKFadjoin ?memv_img ?memx_Fadjoin.
+apply/subvP => _ /memv_imgP [_ /poly_Fadjoin [p /polyOverP Hp ->] ->].
+rewrite -horner_map /=.
+apply: mempx_Fadjoin.
+apply/polyOverP => i.
+by rewrite coef_map memv_img.
+Qed.
+
+Lemma genField_aimg (K : {subfield L1}) xs :
+  (f @: genField K xs = genField (f @: K) (map f xs))%VS.
+Proof.
+elim: xs K => [//|x xs IH] K.
+rewrite IH /=.
+apply: f_equal2 => //.
+apply: Fadjoin_aimg.
+Qed.
+
+End Aimg.
 
 (* Changing up the reference field of a fieldExtType. *)
 Section FieldOver.
@@ -1759,7 +1797,7 @@ suffices [L dimL [toPF [toL toPF_K toL_K]]]:
   suffices q_z q: toPF (map_poly iota q).[z] = q %% p.
     exists z; first by rewrite /root -(can_eq toPF_K) q_z modpp linear0.
     apply/vspaceP=> x; rewrite memvf; apply/poly_Fadjoin.
-    exists (map_poly iota (toPF x)); split.
+    exists (map_poly iota (toPF x)).
       by apply/polyOverP=> i; rewrite coef_map memvZ ?mem1v.
     by apply: (can_inj toPF_K); rewrite q_z -toL_K toPF_K.
   elim/poly_ind: q => [|a q IHq].

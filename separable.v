@@ -1324,10 +1324,10 @@ apply/andP;split; rewrite -subsetFadjoinE; last first.
 rewrite -subsetFadjoinE.
 rewrite subsetKFadjoin /=.
 apply/andP; split; apply/poly_Fadjoin.
- exists (map_poly vsval b); split; last by rewrite Hb.
+ exists (map_poly vsval b); last by rewrite Hb.
  apply/polyOver_subvs.
  by exists b.
-exists (map_poly vsval a); split; last by rewrite Ha.
+exists (map_poly vsval a); last by rewrite Ha.
 apply/polyOver_subvs.
 by exists a.
 Qed.
@@ -1608,6 +1608,39 @@ by rewrite -subsetFadjoinE HKE separableGeneratorInE.
 Qed.
 
 End SeparableInseparableDecomposition.
+
+Lemma separable_refl (K : {subfield L}) : separable K K.
+Proof. by apply/separableP; apply: separableinK. Qed.
+
+Lemma separable_trans (M K E : {subfield L}) :
+  separable K M -> separable M E -> separable K E.
+Proof.
+move/separableSeparableGeneratorEx.
+set x := (separableGenerator K M) => HKM /separableP HME.
+apply/separableP => w /HME/(subsetSeparable HKM).
+case/StrongPrimitiveElementTheorem => _ _; apply.
+apply: separableGeneratorSep.
+Qed.
+
+Lemma separable_genField (K : {subfield L}) rs :
+  all (separableElement K) rs -> separable K (genField K rs).
+Proof.
+elim: rs K => [|/= x rs IH] K; first by rewrite separable_refl.
+case/andP => Hx /allP Hrs.
+apply: (@separable_trans (Fadjoin_aspace K x)).
+  by rewrite - separableSeparableExtension.
+apply: IH.
+apply/allP => y Hy.
+by apply: (subsetSeparable (subsetKFadjoin K x)) (Hrs _ _).
+Qed.
+
+Lemma purelyInseperable_refl (K : {subfield L}) : purelyInseparable K K.
+Proof. by apply/purelyInseparableP; apply: inseparableinK. Qed.
+
+(*
+Lemma purelyInseparable_trans (M K E : {subfield L}) :
+  purelyInseparable K M -> purelyInseparable M E -> purelyInseparable K E.
+*)
 
 End Separable.
 
