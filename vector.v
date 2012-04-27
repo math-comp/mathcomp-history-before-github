@@ -44,7 +44,7 @@ Require Import finfun tuple ssralg matrix mxalgebra zmodp.
 (*             (U^C)%VS == a complement of the vector subspace U.             *)
 (*         (U :\: V)%VS == a local complement to U :& V in the subspace U.    *)
 (*               \dim U == dimension of a vector space U.                     *)
-(*     span X, <<X>>%VS == the subspace spanned by the vector sequence B.     *)
+(*     span X, <<X>>%VS == the subspace spanned by the vector sequence X.     *)
 (*          coord X i v == i'th coordinate of v on X, when v \in <<X>>%VS and *)
 (*                         where X : n.-tuple vT and i : 'I_n. Note that      *)
 (*                         coord X i is a scalar function.                    *)
