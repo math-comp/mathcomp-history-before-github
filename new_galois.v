@@ -2604,18 +2604,6 @@ End FundamentalTheoremOfGaloisTheory.
 Lemma splitting_field_galois p :
     p \is a polyOver 1%VS -> splittingFieldFor 1 p {:L} ->
     separablePolynomial p -> galois 1 {:L}.
-Proof.
-move=> F0p splitLp sep_p.
-apply/and3P; split; first exact: subvf; last first.
-  apply/normalFieldP=> y _; have [r /eqP->] := splitting_field_normal 1%AS y.
-  by exists r => //; apply/allP=> cy _; rewrite /= memvf.
-have [r Dp <-] := splitLp; apply/separableP=> x /separableinK/=.
-have{Dp}: all (root p) r.
-  by apply/allP=> z r_z; rewrite (eqp_root Dp) root_prod_XsubC.
-elim/last_ind: r => [//| r z IHr].
-rewrite all_rcons genField_rcons => /andP[pz0 pr0] sep_x; apply: IHr pr0 _.
-apply: separableFadjoinExtend sep_x; apply: subsetSeparable (sub1v _) _.
-by apply/separableElementP; exists p.
-Qed.
+Proof. by apply: splitting_galoisField. Qed.
 
 End Galois.
