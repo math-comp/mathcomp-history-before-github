@@ -1138,8 +1138,8 @@ apply/andP; split.
  rewrite coefC.
  by case: ifP; rewrite ?mem0v ?mem1v.
 apply/prodvP => ? ?.
-case/poly_Fadjoin => p1 [Hp1 ->].
-case/poly_Fadjoin => p2 [Hp2 ->].
+case/poly_Fadjoin => p1 Hp1 ->.
+case/poly_Fadjoin => p2 Hp2 ->.
 apply/poly_Fadjoin.
 exists (p1 * p2); last by rewrite hornerM.
 by rewrite rpredM.
