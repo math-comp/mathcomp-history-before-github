@@ -746,7 +746,7 @@ apply introP.
   move => sep D DD.
   move/subvP => K0.
   apply/subvP => ?.
-  move/poly_Fadjoin => [p [Hp ->]].
+  move/poly_Fadjoin => [p Hp ->].
   have HD0 : forall q, q \is a polyOver K -> map_poly D q = 0.
     move=> q /polyOverP qK; apply/polyP => i; apply/eqP.
     by rewrite coef_map ?linear0 //= coef0 -memv_ker K0 ?qK.
@@ -824,11 +824,11 @@ Lemma allSeparableElement K x :
 Proof.
 apply: (iffP idP); last by apply; apply: memx_Fadjoin.
 move => sep ?.
-move/poly_Fadjoin => [q [Hq ->]].
+move/poly_Fadjoin => [q Hq ->].
 apply/separableDerivationP => D DD.
 move/subvP => KD0.
 apply/subvP => ?.
-move/poly_Fadjoin => [p [Hp ->]].
+move/poly_Fadjoin => [p Hp ->].
 rewrite memv_ker -(DerivationExtended x D (mempx_Fadjoin _ Hp)).
 have sepFyx : (separableElement (Fadjoin K (q.[x])) x).
   by apply: (subsetSeparable (subsetKFadjoin _ _)).
@@ -881,7 +881,7 @@ Lemma subsetFadjoin x K E :
 Proof.
 move => HKE.
 apply/subvP => y.
-case/poly_Fadjoin => p [Hp ->].
+case/poly_Fadjoin => p Hp ->.
 apply: mempx_Fadjoin.
 by apply: (polyOverSv HKE).
 Qed.
