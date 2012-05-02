@@ -1085,7 +1085,7 @@ Lemma poly_Fadjoin v :
 Proof.
 apply: (iffP (poly_Fadjoin_small _ _ _)).
  by case => p [? ? ?]; exists p.
-case => p [Kp ->].
+case => p Kp ->.
 move: {2}(size p).+1 (ltnSn (size p)) Kp => n.
 elim: n p => //.
 move => n IH p szp.
