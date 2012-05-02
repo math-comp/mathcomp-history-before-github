@@ -296,8 +296,8 @@ apply/kHomP; split.
   move/HKE'/poly_for_K: (Hz) ->.
   by rewrite map_polyC hornerC /= HK.
 move => a b.
-case/poly_Fadjoin => p [Hp ->].
-case/poly_Fadjoin => q [Hq ->].
+case/poly_Fadjoin => p Hp ->.
+case/poly_Fadjoin => q Hq ->.
 rewrite -hornerM !kHomExtend_poly ?rpredM // -hornerM.
 congr (_.[_]).
 apply/polyP => i.
@@ -488,7 +488,7 @@ set fj := (fi ^-1 \o f)%AF; suffices /tnthP[j Dfj]: fj \in homEz.
   by exists (i, j) => //=; apply/val_inj; rewrite {}Dfi /= -Dfj lker0_compVKf.
 rewrite -DhomEz; apply/kHomP.
 have homLfj: val fj \is a kHom E fullv := comp_kHom (inv_kAut homLfi) homLf.
-split=> [_ /poly_Fadjoin[q [Eq ->]]|]; last by case/kHomP: homLfj.
+split=> [_ /poly_Fadjoin[q Eq ->]|]; last by case/kHomP: homLfj.
 have /kAut_lrmorph fjM := subv_kHom (sub1v _) homLfj.
 rewrite -[fj _](horner_map (RMorphism fjM)) (kHomFixedPoly homLfj) //.
 by rewrite /= lfunE /= Dfz -fi_z lker0_lfunK.
@@ -690,7 +690,7 @@ have{splitLp} splitLpz: splittingFieldFor 1 pz imL.
   rewrite /= -{def_p}defL.
   elim/last_ind: r => [|r y IHr] /=; first by rewrite imL1.
   rewrite map_rcons !genField_rcons /=.
-  apply/subvP=> _ /memv_imgP[_ /poly_Fadjoin[p1 [r_p1 ->]] ->].
+  apply/subvP=> _ /memv_imgP[_ /poly_Fadjoin[p1 r_p1 ->] ->].
   rewrite lfunE -horner_map /= mempx_Fadjoin //=; apply/polyOverP=> i.
   by rewrite coef_map (subvP IHr) //= -lfunE memv_img ?(polyOverP r_p1).
 have [f homLf fxz]: exists2 f : 'End(Lz), f \is a kHom 1 imL & f (inLz x) = z.
@@ -735,7 +735,7 @@ have Df1 u: inLz (f1 u) = f (inLz u).
   have []: all (mem r) r /\ inLz u \in imL by split; first exact/allP.
   rewrite -{1}defLz; elim/last_ind: {-1}r {u}(inLz u) => [|r1 y IHr1] u.
     by move=> _ F0u; rewrite f1id // (subvP (sub1v _)).
-  rewrite all_rcons genField_rcons => /andP[rr1 ry] /poly_Fadjoin[pu [r1pu ->]].
+  rewrite all_rcons genField_rcons => /andP[rr1 ry] /poly_Fadjoin[pu r1pu ->].
   rewrite (kHom_horner homLf) -defLz; last exact: mem_genField; last first.
     by apply: polyOverS r1pu; apply/subvP/genFieldSr/allP.
   apply: rpred_horner.
@@ -1718,7 +1718,7 @@ apply/andP; split; last first.
   move => a b.
   rewrite 2!mem_enum => Ha Hb Hab.
   apply/eqP/aut_eqP => ?.
-  case/poly_Fadjoin => p [Hp ->].
+  case/poly_Fadjoin => p Hp ->.
   rewrite -!horner_map /= -/(f a) -/(f b) Hab.
   move: Ha; rewrite (aut_kAut (subsetKFadjoin _ _ )); case/andP.
   move/(kHomFixedPoly)/(_ Hp) => -> _.
@@ -1758,18 +1758,18 @@ rewrite (Hpoly _ Ha) (Hpoly _ Hb) {Hpoly} -/fa -/fb.
 pose g := repr (Aut K (Fadjoin_aspace K x) fa).
 have HAuta : fa \is a kAut K (Fadjoin K x).
  rewrite kAutE (kHomExtendkHom (kHom1 K K) (subv_refl K) (Hroot _ Ha)).
- apply/subvP => ? /memv_imgP [? /poly_Fadjoin [p [Hp ->]] ->].
+ apply/subvP => ? /memv_imgP [? /poly_Fadjoin [p Hp ->] ->].
  rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Ha) Hp).
  rewrite (eq_map_poly (fun x => id_lfunE x)).
  rewrite map_polyE map_id polyseqK.
- case/poly_Fadjoin: (Hr _ Ha) => q [Hq ->].
+ case/poly_Fadjoin: (Hr _ Ha) => q Hq ->.
  by rewrite -horner_comp mempx_Fadjoin ?polyOver_comp.
 have HAutb : fb \is a kAut K (Fadjoin K x).
  rewrite kAutE (kHomExtendkHom (kHom1 K K) (subv_refl K) (Hroot _ Hb)).
- apply/subvP => ? /memv_imgP [? /poly_Fadjoin [p [Hp ->]] ->].
+ apply/subvP => ? /memv_imgP [? /poly_Fadjoin [p Hp ->] ->].
  rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Hb) Hp).
  rewrite map_poly_id => [|xx _ /=]; last by rewrite id_lfunE.
- case/poly_Fadjoin: (Hr _ Hb) => q [Hq ->].
+ case/poly_Fadjoin: (Hr _ Hb) => q Hq ->.
  by rewrite -horner_comp mempx_Fadjoin ?polyOver_comp.
 by rewrite -(Aut_eq (subsetKFadjoin K x) HAuta)
            -?(Aut_eq (subsetKFadjoin K x) HAutb) ?Hab ?memx_Fadjoin.

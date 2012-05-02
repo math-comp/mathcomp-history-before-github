@@ -1596,18 +1596,18 @@ rewrite (Hpoly _ Ha) (Hpoly _ Hb) {Hpoly} -/fa -/fb.
 pose g := repr (Aut K (Fadjoin_aspace K x) fa).
 have HAuta : fa \is a kAut K (Fadjoin K x).
  rewrite kAutE (kHomExtendkHom (kHom1 K K) (subv_refl K) (Hroot _ Ha)).
- apply/subvP => ? /memv_imgP [? /poly_Fadjoin [p [Hp ->]] ->].
+ apply/subvP => ? /memv_imgP [? /poly_Fadjoin [p Hp ->] ->].
  rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Ha) Hp).
  rewrite (eq_map_poly (fun x => id_lfunE x)).
  rewrite map_polyE map_id polyseqK.
- case/poly_Fadjoin: (Hr _ Ha) => q [Hq ->].
+ case/poly_Fadjoin: (Hr _ Ha) => q Hq ->.
  by rewrite -horner_comp mempx_Fadjoin ?polyOver_comp.
 have HAutb : fb \is a kAut K (Fadjoin K x).
  rewrite kAutE (kHomExtendkHom (kHom1 K K) (subv_refl K) (Hroot _ Hb)).
- apply/subvP => ? /memv_imgP [? /poly_Fadjoin [p [Hp ->]] ->].
+ apply/subvP => ? /memv_imgP [? /poly_Fadjoin [p Hp ->] ->].
  rewrite (kHomExtend_poly (kHom1 K K) (Hroot _ Hb) Hp).
  rewrite map_poly_id => [|xx _ /=]; last by rewrite id_lfunE.
- case/poly_Fadjoin: (Hr _ Hb) => q [Hq ->].
+ case/poly_Fadjoin: (Hr _ Hb) => q Hq ->.
  by rewrite -horner_comp mempx_Fadjoin ?polyOver_comp.
 by rewrite -(Aut_eq (subsetKFadjoin K x) HAuta)
            -?(Aut_eq (subsetKFadjoin K x) HAutb) ?Hab ?memx_Fadjoin.
@@ -2505,7 +2505,7 @@ have{splitLp} splitLpz: splittingFieldFor 1 pz imL.
   rewrite /= -{def_p}defL.
   elim/last_ind: r => [|r y IHr] /=; first by rewrite imL1.
   rewrite map_rcons !genField_rcons /=.
-  apply/subvP=> _ /memv_imgP[_ /poly_Fadjoin[p1 [r_p1 ->]] ->].
+  apply/subvP=> _ /memv_imgP[_ /poly_Fadjoin[p1 r_p1 ->] ->].
   rewrite lfunE -horner_map /= mempx_Fadjoin //=; apply/polyOverP=> i.
   by rewrite coef_map (subvP IHr) //= -lfunE memv_img ?(polyOverP r_p1).
 have [f homLf fxz]: exists2 f : 'End(Lz), f \is a kHom 1 imL & f (inLz x) = z.
@@ -2550,7 +2550,7 @@ have Df1 u: inLz (f1 u) = f (inLz u).
   have []: all (mem r) r /\ inLz u \in imL by split; first exact/allP.
   rewrite -{1}defLz; elim/last_ind: {-1}r {u}(inLz u) => [|r1 y IHr1] u.
     by move=> _ F0u; rewrite f1id // (subvP (sub1v _)).
-  rewrite all_rcons genField_rcons => /andP[rr1 ry] /poly_Fadjoin[pu [r1pu ->]].
+  rewrite all_rcons genField_rcons => /andP[rr1 ry] /poly_Fadjoin[pu r1pu ->].
   rewrite (kHom_horner homLf) -defLz; last exact: mem_genField; last first.
     by apply: polyOverS r1pu; apply/subvP/genFieldSr/allP.
   apply: rpred_horner.
