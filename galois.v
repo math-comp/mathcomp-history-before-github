@@ -327,8 +327,8 @@ apply/kHomP; split.
   move/HKE'/poly_for_K: (Hz) ->.
   by rewrite map_polyC hornerC /= HK.
 move => a b.
-case/poly_Fadjoin => p [Hp ->].
-case/poly_Fadjoin => q [Hq ->].
+case/poly_Fadjoin => p Hp ->.
+case/poly_Fadjoin => q Hq ->.
 rewrite -hornerM !kHomExtend_poly ?rpredM // -hornerM.
 congr (_.[_]).
 apply/polyP => i.
@@ -529,7 +529,7 @@ set fj := (fi ^-1 \o f)%AF; suffices /tnthP[j Dfj]: fj \in homEz.
   by exists (i, j) => //=; apply/val_inj; rewrite {}Dfi /= -Dfj lker0_compVKf.
 rewrite -DhomEz; apply/kHomP.
 have homLfj: val fj \is a kHom E fullv := comp_kHom (inv_kAut homLfi) homLf.
-split=> [_ /poly_Fadjoin[q [Eq ->]]|]; last by case/kHomP: homLfj.
+split=> [_ /poly_Fadjoin[q Eq ->]|]; last by case/kHomP: homLfj.
 have /kAut_lrmorph fjM := subv_kHom (sub1v _) homLfj.
 rewrite -[fj _](horner_map (RMorphism fjM)) (kHomFixedPoly homLfj) //.
 by rewrite /= lfunE /= Dfz -fi_z lker0_lfunK.
@@ -1556,7 +1556,7 @@ apply/andP; split; last first.
   move => a b.
   rewrite 2!mem_enum => Ha Hb Hab.
   apply/eqP/aut_eqP => ?.
-  case/poly_Fadjoin => p [Hp ->].
+  case/poly_Fadjoin => p Hp ->.
   rewrite -!horner_map /= -/(f a) -/(f b) Hab.
   move: Ha; rewrite (aut_kAut (subsetKFadjoin _ _ )); case/andP.
   move/(kHomFixedPoly)/(_ Hp) => -> _.
