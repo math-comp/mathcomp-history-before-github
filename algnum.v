@@ -243,7 +243,7 @@ apply: restrict_aut_to_num_field => x.
 have:= memvf x; rewrite -{}genQn; have: all (mem r) r by exact/allP.
 elim/last_ind: {-1}r => [|r1 z IHr] /= in x *.
   by move=> _ /vlineP[a ->]; exists a%:A; rewrite alg_num_field !fmorph_rat.
-rewrite all_rcons genField_rcons => /andP[/= rz r_r1] /poly_Fadjoin[q [r_q ->]].
+rewrite all_rcons genField_rcons => /andP[/= rz r_r1] /poly_Fadjoin[q r_q ->].
 have /mapP[y _ Dy]: nu (QnC z) \in map QnC r.
   rewrite -root_prod_XsubC big_map.
   have: root (map_poly (nu \o QnC) p) (nu (QnC z)).
