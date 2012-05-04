@@ -621,6 +621,157 @@ Qed.
 
 End S611.
 
+
+(* Isaacs 6.28 preliminary *)
+Section S628.
+
+Variable (gT : finGroupType).
+Variable G: {group gT}.
+
+Local Notation algCF := [fieldType of algC].
+
+Variable n: nat.
+Variable rG: mx_representation algCF G n.
+
+Definition det_repr_mx  x : 'M_1 := (\det (rG x))%:M.
+
+Fact det_is_repr : mx_repr G det_repr_mx. 
+Proof.
+split; first by rewrite /det_repr_mx repr_mx1 det1.
+move => g h ginG hinG.
+by rewrite /det_repr_mx repr_mxM // det_mulmx  !mulmxE scalar_mxM.
+Qed.
+
+Canonical det_repr := MxRepresentation det_is_repr.
+
+Lemma det_lin_char:  lin_char (cfRepr det_repr).
+Proof.
+apply/andP; split;last by rewrite cfunE group1  repr_mx1 mxtrace1 mulr1n.
+apply/is_charP.  
+have rGdet: mx_repr G (fun x =>  (\det (rG x) *+ (x \in G))%:M:'M_1).
+  split=> [|x1 x2 x1inG x2inG]; first by rewrite group1 repr_mx1 det1 ?groupM.   
+  rewrite  !repr_mxM ?groupM  ?det_mulmx /= ?x1inG ?x2inG //=.
+  by rewrite !mulr1n scalar_mxM.
+exists (Representation (MxRepresentation rGdet) )=> //=.
+apply/cfunP=> x;rewrite !cfunE  mxtrace_scalar mulr1n.
+by rewrite /=; case:(boolP (x \in G)); rewrite mxtrace_scalar mulr1n.
+Qed.
+
+Lemma lin_char_group:
+     {linG : finGroupType & {cF : linG -> 'CF(G) | 
+         [/\ injective cF, forall l, lin_char (cF l) 
+          & forall phi, lin_char phi -> exists l, phi == cF l]
+        &[/\ {morph cF: k l / (k * l)%g >-> (k * l)%R},
+           cF 1%g = 1%R &
+           {morph cF: l / (l ^-1)%g >-> (l^*)%CF}  ]}}. 
+Proof.
+pose Ilchar := ({i| lin_char 'chi[G]_i}: predArgType).
+have one_lchar: lin_char 'chi[G]_0 by rewrite chi0_1 cfun1_lin_char.
+pose one:Ilchar := (exist (fun i : Iirr G => lin_char 'chi_i) _ one_lchar).
+have lcharM: forall (a b:'CF(G)), lin_char a -> lin_char b -> lin_char (a * b).
+  move=> a b /andP [Ha /eqP Ha1] /andP [Hb /eqP Hb1].
+  apply/andP;split; first by rewrite mul_char.
+  by rewrite cfunE Ha1 Hb1 mulr1.
+pose f:=  (fun i => (irr_Iirr  (fun  j => ('chi[G]_i * 'chi[G]_j)))).
+have f_flin:forall (a b: Ilchar), lin_char ('chi_(f (val a) (val b))).
+  move=> [a aIrr] [b bIrr].
+  have mul_irr: 
+    (forall j : Iirr G, lin_char 'chi_j -> 'chi_a * 'chi_j \in irr G).
+    by move=> j Hj;rewrite lin_char_irr // lcharM. 
+  by rewrite (irr_IirrPE mul_irr) // lcharM.
+pose mul (a b: Ilchar) := 
+          (exist (fun i : Iirr G => lin_char 'chi[G]_i) _ (f_flin a b)):Ilchar.
+have fmul: forall x y,lin_char 'chi_x -> lin_char 'chi_y ->  
+           'chi_(f x y)='chi_x * 'chi_y.
+  move => x y xlchar ylchar. 
+  have HP: (forall j : Iirr G, lin_char 'chi_j -> 'chi_x * 'chi_j \in irr G).
+    by move=> j Hj;rewrite lin_char_irr // lcharM.
+  by rewrite (irr_IirrPE HP).
+have mulA: associative mul.
+  move => [a alchar] [b blchar] [c clchar].
+  apply:val_inj; apply:chi_inj.
+  by rewrite !fmul ?mulrA ?lcharM.
+have mul_1g: left_id one mul.
+  move=> [x xlchar]; apply: val_inj; apply:chi_inj.
+  by rewrite fmul // chi0_1 // mul1r.
+pose i :=  (irr_Iirr (fun g =>   (('chi[G]_g) ^*)%CF)).
+have ilchar:forall (a : Ilchar), lin_char ('chi_(i (val a))).
+  move=> [a alchar];apply/andP;split; first by rewrite irr_char.
+  have HP: (forall j : Iirr G, lin_char 'chi_j -> (('chi_j)^*)%CF\in irr G).
+    move=> j Hj;rewrite lin_char_irr //.
+    case/andP:Hj=> Hj /eqP Hj1.
+    by apply/andP;split; rewrite ?cfConjC_char // cfunE Hj1 conjC1.
+  rewrite (irr_IirrPE HP) // cfunE /=.
+  by move/andP:alchar =>[_ /eqP->]; rewrite conjC1.
+pose inv (a : Ilchar) := 
+           (exist (fun j : Iirr G => lin_char 'chi[G]_j) _ (ilchar a )):Ilchar.
+have conj_irr: (forall j : Iirr G, lin_char 'chi_j -> (('chi_j)^*)%CF\in irr G).
+  move=> j Hj;rewrite lin_char_irr //; case/andP:Hj=> Hj /eqP Hj1.
+  by apply/andP;split; rewrite ?cfConjC_char // cfunE Hj1 conjC1.
+have inv_inv: (@left_inverse Ilchar Ilchar Ilchar one inv mul).
+  move=>x; case: x (ilchar x) => [x xlin] /= ixlin. 
+  apply:val_inj; apply:chi_inj.
+  rewrite  !fmul // ?mulrA // ?lcharM //.
+  rewrite (irr_IirrPE conj_irr) //.
+  apply/cfunP=> g.
+  rewrite !cfunE chi0_1 cfun1E.
+  case:(boolP (g \in G))=> giG.
+    rewrite -lin_charV_conj // -lin_charM // ?groupV // mulVg /=.
+    by case/andP: xlin => [_ /eqP ->].
+  by rewrite !cfun0 // mulr0.
+pose Ilchar_baseFinGroupMixin := FinGroup.Mixin mulA mul_1g inv_inv.
+pose Ilchar_baseFinGroupType:= BaseFinGroupType Ilchar Ilchar_baseFinGroupMixin.
+pose Ilchar_finGroupType :=  @FinGroupType Ilchar_baseFinGroupType inv_inv.
+exists Ilchar_finGroupType.
+pose cf:=(fun x:Ilchar => 'chi_(val x)).
+exists cf.
+  split.
+  + by move=> x;rewrite /cf => z /chi_inj/val_inj.
+  + by case.  
+  move=> phi Hphi.
+  case/irrP: ( lin_char_irr Hphi) (Hphi) => x -> {Hphi} Hphi.
+  by exists (exist (fun i : Iirr G => lin_char 'chi_i) _ Hphi).
+split.
++ by move=> [k Hk] [ l Hl]; rewrite /cf  fmul.
++ by rewrite /cf chi0_1.
+by move=> [k Hk] ; rewrite /cf  (irr_IirrPE conj_irr).
+Qed.
+
+End S628.
+
+
+Variable (gT : finGroupType).
+Variable G: {group gT}.
+Check (fun (phi: 'CF(G)) => (coord (irr G))^~ phi).
+
+Definition det_grepr (phi : 'CF(G)) :=
+  \big[dadd_grepr/grepr0]_i
+     muln_grepr (Representation 'Chi_i (gT:= gT) (G := G)) 1.
+
+Definition det_greprn (phi : 'CF(G)) :=
+  \big[dadd_grepr/grepr0]_i
+     muln_grepr (Representation  'Chi_i (gT:= gT) (G := G)) (getNatC (coord (irr G) i  phi)).
+
+Definition det (phi : 'CF(G)):=  cfRepr  (det_repr (mx_repr_of_repr (det_greprn phi))).
+
+Lemma lchar_det_lchar: forall (phi: 'CF(G)), is_char phi -> lin_char  (det phi).
+Proof.
+move=> phi. 
+case /is_char_cbP => [ni Ephi].
+apply:det_lin_char.
+Qed.
+
+
+Definition deto(phi : 'CF(G)): nat :=
+match (is_char phi) with 
+| false => 0%N
+| true => let (x, y ) := lin_char_group G in
+    let (cf, _, _) := y in
+ match (pickP (fun l : x => det phi == cf l)) with
+  |Pick xo _  => #[xo]
+   | _ => 0%N end
+end.
+
 Require Import frobenius BGsection3.
 Section Frobenius.
 
