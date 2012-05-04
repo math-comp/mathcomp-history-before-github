@@ -1005,6 +1005,48 @@ Canonical id_ahom := AHom (id_is_ahom (aspacef aT)).
 Canonical comp_ahom (f : ahom rT sT) (g : ahom aT rT) :=
   AHom (comp_is_ahom (valP f) (valP g)).
 
+Lemma aimgM (f : ahom aT rT) U V : (f @: (U * V) = f @: U * f @: V)%VS.
+Proof.
+apply: subv_anti; apply/andP; split; last first.
+  apply/prodvP => _ _ /memv_imgP [u Hu ->] /memv_imgP [v Hv ->].
+  by rewrite -rmorphM memv_img // memv_prod.
+apply/subvP; move => _ /memv_imgP [u Hu ->].
+rewrite prodvE in Hu.
+move/coord_span: Hu ->.
+rewrite rmorph_sum; apply: memv_suml => i _ /=.
+rewrite linearZ memvZ // -tnth_nth.
+set s := allpairs_tuple _ _ _.
+have /allpairsP [[x y] [/vbasis_mem Hx /vbasis_mem Hy ->]] := mem_tnth i s.
+by rewrite rmorphM memv_prod // memv_img.
+Qed.
+
+Lemma aimg1 (f : ahom aT rT) : (f @: 1 = 1)%VS.
+Proof. by rewrite limg_line rmorph1. Qed.
+
+Lemma aimgX (f : ahom aT rT) U n : (f @: (U ^+ n) = f @: U ^+ n)%VS.
+Proof.
+elim: n => [|n IH]; first by rewrite !expv0 aimg1.
+by rewrite !expvS aimgM IH.
+Qed.
+
+Lemma aimg_closure (f : ahom aT rT) U : (f @: <<U>>%AS = <<f @: U>>%AS)%VS.
+Proof.
+apply: subv_anti.
+rewrite closurea_ideall_sub.
+- rewrite andbT limg_sum; apply/subv_sumP => i _.
+  by rewrite aimgX subvX_closure.
+- by rewrite -(aimg1 f) limgS // sub1_closure.
+- by rewrite -aimgM limgS // [X in (_ <= X)%VS]closurea_add1_mull addvSr.
+Qed.
+
+Lemma aimg_adjoin (f : ahom aT rT) U x :
+  (f @: <<U; x>>%AS = <<f @: U; f x>>%AS)%VS.
+Proof. by rewrite aimg_closure limg_add limg_line. Qed.
+
+Lemma aimg_adjoins (f : ahom aT rT) U xs :
+  (f @: <<U & xs>>%AS = <<f @: U & map f xs>>%AS)%VS.
+Proof. by rewrite aimg_closure limg_add limg_span. Qed.
+
 End LRMorphism.
 
 (* Move to vector.v *)
