@@ -465,6 +465,18 @@ elim: m => [|m IH]; first by rewrite expv0 expv1n.
 rewrite mulSn expvD IH expvS.
 *)
 
+Lemma expv_sub U V n : (U <= V -> U ^+ n <= V ^+ n)%VS.
+move => HUV.
+elim: n => [|n IH]; first by rewrite !expv0 subv_refl.
+by rewrite !expvS prodvS.
+Qed.
+
+Lemma expv_line u n : (<[u]> ^+ n = <[u ^+ n]>)%VS.
+Proof.
+elim: n => [|n IH]; first by rewrite expr0 expv0.
+by rewrite exprS expvS IH prodv_line.
+Qed.
+
 (* Building the predicate that checks is a vspace has a unit *)
 Definition is_algid e U :=
   [/\ e \in U, e != 0 & {in U, forall u, e * u = u /\ u * e = u}].
@@ -557,6 +569,10 @@ Implicit Types (u v : aT) (U V W : {vspace aT}).
 (* Subspaces of an F-algebra form a Kleene algebra *)
 Definition closurea U := nosimpl (\sum_(i < \dim {:aT}) U ^+ i)%VS.
 Local Notation "<< A >>" := (closurea A) : aspace_scope.
+Local Notation "<< A & s >>" := <<(A + <<s>>)%VS>>%AS 
+  (at level 0, format "<< A  &  s >>") : aspace_scope.
+Local Notation "<< A ; a >>" := <<(A + <[a]>)%VS>>%AS 
+  (at level 0, format "<< A ;  a >>") : aspace_scope.
 
 Lemma closurea_add1_mull U : (<<U>> = (1 + U * <<U>>%AS)%VS)%AS.
 Proof.
@@ -630,24 +646,108 @@ rewrite [X in (<<U>>%AS <= X * _)%VS]closurea_add1_mull prodvDl prod1v addvSl.
 by rewrite closurea_ideall // [X in (_ <= X)%VS]closurea_add1_mull addvSr.
 Qed.
 
-Lemma suba1_closure U : (1 <= <<U>>%AS)%VS.
+Lemma closureaX n U : (<<U>>%AS ^+ n.+1 = <<U>>%AS)%VS.
+Proof. by elim: n => [//|n IH]; rewrite expvS IH closureaM. Qed.
+
+Lemma sub1_closure U : (1 <= <<U>>%AS)%VS.
 Proof. by rewrite closurea_add1_mull addvSl. Qed.
 
 Fact aspace_closure_subproof U : is_aspace <<U>>%AS.
 Proof. 
-by rewrite /is_aspace closureaM subv_refl has_algid1 // [_ \in _]suba1_closure.
+by rewrite /is_aspace closureaM subv_refl has_algid1 // [_ \in _]sub1_closure.
 Qed.
 Canonical aspace_closure U : {aspace aT} := ASpace (aspace_closure_subproof U).
 
 Lemma subv_closure U : (U <= <<U>>%AS)%VS.
 Proof. by rewrite 2!closurea_add1_mull addvC prodvDr prodv1 -addvA addvSl. Qed.
 
+Lemma subvX_closure U n : (U ^+ n <= <<U>>%AS)%VS.
+Proof.
+case: n => [|n]; first by rewrite sub1_closure.
+by rewrite -(closureaX n) expv_sub // subv_closure.
+Qed.
+
 Lemma closurea_closed U : (<< <<U>>%AS >> = <<U>>)%AS.
 Proof.
 apply:subv_anti.
 rewrite subv_closure andbT.
-rewrite closurea_add1_mull subv_add suba1_closure.
+rewrite closurea_add1_mull subv_add sub1_closure.
 by rewrite closurea_idealr // closureaM subv_refl.
+Qed.
+
+Lemma closurea_ideall_sub U V : (1 <= V -> U * V <= V -> <<U>>%AS <= V)%VS.
+Proof.
+move => H1V HUV.
+apply: subv_trans (closurea_ideall HUV).
+by rewrite -[X in (X <= _)%VS]prodv1 prodvSr.
+Qed.
+
+Lemma closurea_idealr_sub U V : (1 <= V -> V * U <= V -> <<U>>%AS <= V)%VS.
+Proof.
+move => H1V HUV.
+apply: subv_trans (closurea_idealr HUV).
+by rewrite -[X in (X <= _)%VS]prod1v prodvSl.
+Qed.
+
+Lemma closurea_monotone U V : (U <= V -> <<U>>%AS <= <<V>>%AS)%VS.
+Proof.
+move => HUV.
+rewrite closurea_ideall_sub ?sub1_closure //.
+rewrite -[X in (_ <= X)%VS]closureaM prodvSl //.
+apply: (subv_trans HUV).
+by rewrite subv_closure.
+Qed.
+
+Lemma closurea_add_closure U V : (<< <<U>>%AS + V>>%AS = <<U + V>>%AS)%VS.
+Proof.
+apply: subv_anti; rewrite [X in _ && X]closurea_monotone ?andbT; last first.
+  by rewrite addvS ?subv_refl ?subv_closure.
+apply: closurea_ideall_sub; first by apply: sub1_closure.
+rewrite -[X in (_ <= X)%VS]closureaM prodvSl // subv_add.
+rewrite closurea_monotone ?addvSl //=.
+apply: subv_trans (subv_closure _).
+by rewrite addvSr.
+Qed.
+
+Lemma subv_adjoin U x : (U <= <<U; x>>%AS)%VS.
+Proof.
+by rewrite (subv_trans (subv_closure _)) // closurea_monotone // addvSl.
+Qed.
+
+Lemma subv_adjoins U xs : (U <= <<U & xs>>%AS)%VS.
+Proof.
+by rewrite (subv_trans (subv_closure _)) // closurea_monotone // addvSl.
+Qed.
+
+Lemma mem_adjoin U x : x \in <<U; x>>%AS.
+Proof.
+apply: (subv_trans (subv_closure _)).
+by rewrite closurea_monotone // addvSr.
+Qed.
+
+Lemma sub_adjoins U xs : {subset xs <= <<U & xs>>%AS}.
+Proof.
+apply/span_subvP.
+by rewrite (subv_trans (subv_closure _)) // closurea_monotone // addvSr.
+Qed.
+
+Lemma memA_adjoin U x v : v \in U -> v \in <<U; x>>%AS.
+Proof. by move => Hx; apply/(subv_trans Hx); apply subv_adjoin. Qed.
+
+Lemma adjoins_rcons V rs z :
+  <<V & (rcons rs z)>>%AS = << <<V & rs>>%AS; z>>%AS.
+Proof. by rewrite -cats1 span_cat addvA span_seq1 closurea_add_closure. Qed.
+
+Lemma adjoinSl U V x : (U <= V -> <<U; x>>%AS <= <<V; x>>%AS)%VS.
+Proof. by move => HUV; rewrite closurea_monotone // addvS ?subv_refl. Qed.
+
+Lemma adjoinsSl U V rs : (U <= V -> <<U & rs>>%AS <= <<V & rs>>%AS)%VS.
+Proof. by move => HUV; rewrite closurea_monotone // addvS ?subv_refl. Qed.
+
+Lemma adjoinsSr U rs1 rs2 :
+  {subset rs1 <= rs2} -> (<<U & rs1>>%AS <= <<U & rs2>>%AS)%VS.
+Proof.
+by move/sub_span => s_rs12; rewrite closurea_monotone // addvS ?subv_refl.
 Qed.
 
 End Closure.
