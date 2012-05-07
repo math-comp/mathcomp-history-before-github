@@ -584,7 +584,7 @@ have{p0 p0x Dp0} /minset_exists[I /minsetP[]]: Qpx setT.
      rewrite Dp0 (big_nth 0) big_mkord /p_ big_filter /=.
      by apply: eq_bigl => i; rewrite inE.
    rewrite p0x; apply/(all_nthP 0) => i _ /=.
-   by rewrite coef_map unfold_in QtoC_K.
+   by rewrite coef_map unfold_in /Crat QtoC_K.
 case/andP=> pIx QpI minI _; pose p := map_poly CtoQ (p_ I).
 have DpI: p_ I = pQtoC p.
   rewrite -[p_ I]coefK; apply/polyP=> i; rewrite -map_poly_comp !coef_poly.
