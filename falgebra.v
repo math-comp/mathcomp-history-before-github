@@ -443,17 +443,17 @@ Proof. done. Qed.
 Lemma expv2 U : (U ^+ 2 = U * U)%VS.
 Proof. done. Qed.
 
-Lemma expvS U n : (U ^+ n.+1 = U * U ^+ n)%VS.
+Lemma expvSl U n : (U ^+ n.+1 = U * U ^+ n)%VS.
 Proof. by case: n => //; rewrite prodv1. Qed.
 
 Lemma expv0n n : (0 ^+ n = if n is n'.+1 then 0 else 1)%VS.
-Proof. by case: n => [//|n]; rewrite expvS prod0v. Qed.
+Proof. by case: n => [//|n]; rewrite expvSl prod0v. Qed.
 
 Lemma expv1n n : (1 ^+ n = 1)%VS.
-Proof. by elim: n => [//|n IH]; rewrite expvS IH prodv1. Qed.
+Proof. by elim: n => [//|n IH]; rewrite expvSl IH prodv1. Qed.
 
 Lemma expvD U m n : (U ^+ (m + n) = U ^+ m * U ^+ n)%VS.
-Proof. by elim: m => [//|m IH]; rewrite ?prod1v // !expvS IH prodvA. Qed.
+Proof. by elim: m => [//|m IH]; rewrite ?prod1v // !expvSl IH prodvA. Qed.
 
 Lemma expvSr U n : (U ^+ n.+1 = U ^+ n * U)%VS.
 Proof. by rewrite -addn1 expvD. Qed.
@@ -465,16 +465,16 @@ elim: m => [|m IH]; first by rewrite expv0 expv1n.
 rewrite mulSn expvD IH expvS.
 *)
 
-Lemma expv_sub U V n : (U <= V -> U ^+ n <= V ^+ n)%VS.
+Lemma expvS U V n : (U <= V -> U ^+ n <= V ^+ n)%VS.
 move => HUV.
 elim: n => [|n IH]; first by rewrite !expv0 subv_refl.
-by rewrite !expvS prodvS.
+by rewrite !expvSl prodvS.
 Qed.
 
 Lemma expv_line u n : (<[u]> ^+ n = <[u ^+ n]>)%VS.
 Proof.
 elim: n => [|n IH]; first by rewrite expr0 expv0.
-by rewrite exprS expvS IH prodv_line.
+by rewrite exprS expvSl IH prodv_line.
 Qed.
 
 (* Building the predicate that checks is a vspace has a unit *)
@@ -574,13 +574,13 @@ Local Notation "<< A & s >>" := <<(A + <<s>>)%VS>>%AS
 Local Notation "<< A ; a >>" := <<(A + <[a]>)%VS>>%AS 
   (at level 0, format "<< A ;  a >>") : aspace_scope.
 
-Lemma closurea_add1_mull U : (<<U>> = (1 + U * <<U>>%AS)%VS)%AS.
+Lemma closureaEl U : (<<U>> = (1 + U * <<U>>%AS)%VS)%AS.
 Proof.
 transitivity (\sum_(i < (\dim {:aT}).+1) U ^+ i)%VS; last first.
   rewrite big_ord_recl expv0 big_distrr.
   congr (_ + _)%VS.
   apply: eq_bigr => i _.
-  by rewrite expvS.
+  by rewrite expvSl.
 rewrite big_ord_recr /=.
 symmetry.
 apply/addv_idPl.
@@ -600,21 +600,21 @@ have [n Hn]: exists n : 'I_(\dim {:aT}).+1, (U ^+ n <= sumUn n)%VS.
   by rewrite eq_sym -dimv_leqif_eq ?addvSl //= eqn_leq Hdim dimvS // addvSl.
 move:(ltn_ord n); rewrite ltnS; move/subnK <-.
 elim: (\dim {:aT} - n)%N => // m IH.
-rewrite addSn [sumUn _]big_ord_recl expvS.
+rewrite addSn [sumUn _]big_ord_recl expvSl.
 have -> : (\sum_(i < m + n) U ^+ bump 0 i = U * \sum_(i < m + n) U ^+ i)%VS.
   rewrite big_distrr.
   apply: eq_bigr => i _.
-  by rewrite expvS.
+  by rewrite expvSl.
 apply/(subv_trans _ (addvSr _ _)).
 by apply: prodvSr IH.
 Qed.
 
-Lemma closurea_add1_mulr U : (<<U>>%AS = 1 + <<U>>%AS * U)%VS.
+Lemma closureaEr U : (<<U>>%AS = 1 + <<U>>%AS * U)%VS.
 Proof.
-rewrite [X in X = _]closurea_add1_mull; congr (_ + _)%VS.
+rewrite [X in X = _]closureaEl; congr (_ + _)%VS.
 rewrite big_distrr big_distrl.
 apply: eq_bigr => i _ /=.
-by rewrite -expvSr -expvS.
+by rewrite -expvSr -expvSl.
 Qed.
 
 Lemma closurea_ideall U V : (U * V <= V -> <<U>>%AS * V <= V)%VS.
@@ -632,7 +632,7 @@ Lemma closurea_idealr U V : (V * U <= V -> V * <<U>>%AS <= V)%VS.
 move => HUV.
 have HUnV : forall n, (V * U ^+ n <= V)%VS.
   elim => [|n IH]; first by rewrite expv0 prodv1 subv_refl.
-  rewrite expvS prodvA.
+  rewrite expvSl prodvA.
   by apply: (subv_trans (prodvSl _ HUV)).
 rewrite big_distrr /=.
 by apply/subv_sumP => i _.
@@ -642,15 +642,15 @@ Qed.
 Lemma closureaM U : (<<U>>%AS * <<U>>%AS = <<U>>%AS)%VS.
 Proof.
 apply:subv_anti.
-rewrite [X in (<<U>>%AS <= X * _)%VS]closurea_add1_mull prodvDl prod1v addvSl.
-by rewrite closurea_ideall // [X in (_ <= X)%VS]closurea_add1_mull addvSr.
+rewrite [X in (<<U>>%AS <= X * _)%VS]closureaEl prodvDl prod1v addvSl.
+by rewrite closurea_ideall // [X in (_ <= X)%VS]closureaEl addvSr.
 Qed.
 
 Lemma closureaX n U : (<<U>>%AS ^+ n.+1 = <<U>>%AS)%VS.
-Proof. by elim: n => [//|n IH]; rewrite expvS IH closureaM. Qed.
+Proof. by elim: n => [//|n IH]; rewrite expvSl IH closureaM. Qed.
 
 Lemma sub1_closure U : (1 <= <<U>>%AS)%VS.
-Proof. by rewrite closurea_add1_mull addvSl. Qed.
+Proof. by rewrite closureaEl addvSl. Qed.
 
 Fact aspace_closure_subproof U : is_aspace <<U>>%AS.
 Proof. 
@@ -659,40 +659,40 @@ Qed.
 Canonical aspace_closure U : {aspace aT} := ASpace (aspace_closure_subproof U).
 
 Lemma subv_closure U : (U <= <<U>>%AS)%VS.
-Proof. by rewrite 2!closurea_add1_mull addvC prodvDr prodv1 -addvA addvSl. Qed.
+Proof. by rewrite 2!closureaEl addvC prodvDr prodv1 -addvA addvSl. Qed.
 
 Lemma subvX_closure U n : (U ^+ n <= <<U>>%AS)%VS.
 Proof.
 case: n => [|n]; first by rewrite sub1_closure.
-by rewrite -(closureaX n) expv_sub // subv_closure.
+by rewrite -(closureaX n) expvS // subv_closure.
 Qed.
 
 Lemma closurea_closed U : (<< <<U>>%AS >> = <<U>>)%AS.
 Proof.
 apply:subv_anti.
 rewrite subv_closure andbT.
-rewrite closurea_add1_mull subv_add sub1_closure.
+rewrite closureaEl subv_add sub1_closure.
 by rewrite closurea_idealr // closureaM subv_refl.
 Qed.
 
-Lemma closurea_ideall_sub U V : (1 <= V -> U * V <= V -> <<U>>%AS <= V)%VS.
+Lemma ideall_closurea_sub U V : (1 <= V -> U * V <= V -> <<U>>%AS <= V)%VS.
 Proof.
 move => H1V HUV.
 apply: subv_trans (closurea_ideall HUV).
 by rewrite -[X in (X <= _)%VS]prodv1 prodvSr.
 Qed.
 
-Lemma closurea_idealr_sub U V : (1 <= V -> V * U <= V -> <<U>>%AS <= V)%VS.
+Lemma idealr_closurea_sub U V : (1 <= V -> V * U <= V -> <<U>>%AS <= V)%VS.
 Proof.
 move => H1V HUV.
 apply: subv_trans (closurea_idealr HUV).
 by rewrite -[X in (X <= _)%VS]prod1v prodvSl.
 Qed.
 
-Lemma closurea_monotone U V : (U <= V -> <<U>>%AS <= <<V>>%AS)%VS.
+Lemma closureaS U V : (U <= V -> <<U>>%AS <= <<V>>%AS)%VS.
 Proof.
 move => HUV.
-rewrite closurea_ideall_sub ?sub1_closure //.
+rewrite ideall_closurea_sub ?sub1_closure //.
 rewrite -[X in (_ <= X)%VS]closureaM prodvSl //.
 apply: (subv_trans HUV).
 by rewrite subv_closure.
@@ -700,54 +700,54 @@ Qed.
 
 Lemma closurea_add_closure U V : (<< <<U>>%AS + V>>%AS = <<U + V>>%AS)%VS.
 Proof.
-apply: subv_anti; rewrite [X in _ && X]closurea_monotone ?andbT; last first.
+apply: subv_anti; rewrite [X in _ && X]closureaS ?andbT; last first.
   by rewrite addvS ?subv_refl ?subv_closure.
-apply: closurea_ideall_sub; first by apply: sub1_closure.
+apply: ideall_closurea_sub; first by apply: sub1_closure.
 rewrite -[X in (_ <= X)%VS]closureaM prodvSl // subv_add.
-rewrite closurea_monotone ?addvSl //=.
+rewrite closureaS ?addvSl //=.
 apply: subv_trans (subv_closure _).
 by rewrite addvSr.
 Qed.
 
 Lemma subv_adjoin U x : (U <= <<U; x>>%AS)%VS.
 Proof.
-by rewrite (subv_trans (subv_closure _)) // closurea_monotone // addvSl.
+by rewrite (subv_trans (subv_closure _)) // closureaS // addvSl.
 Qed.
 
-Lemma subv_adjoins U xs : (U <= <<U & xs>>%AS)%VS.
+Lemma subv_adjoin_seq U xs : (U <= <<U & xs>>%AS)%VS.
 Proof.
-by rewrite (subv_trans (subv_closure _)) // closurea_monotone // addvSl.
+by rewrite (subv_trans (subv_closure _)) // closureaS // addvSl.
 Qed.
 
-Lemma mem_adjoin U x : x \in <<U; x>>%AS.
+Lemma memv_adjoin U x : x \in <<U; x>>%AS.
 Proof.
 apply: (subv_trans (subv_closure _)).
-by rewrite closurea_monotone // addvSr.
+by rewrite closureaS // addvSr.
 Qed.
 
-Lemma sub_adjoins U xs : {subset xs <= <<U & xs>>%AS}.
+Lemma seqv_sub_adjoin U xs : {subset xs <= <<U & xs>>%AS}.
 Proof.
 apply/span_subvP.
-by rewrite (subv_trans (subv_closure _)) // closurea_monotone // addvSr.
+by rewrite (subv_trans (subv_closure _)) // closureaS // addvSr.
 Qed.
 
-Lemma memA_adjoin U x v : v \in U -> v \in <<U; x>>%AS.
+Lemma memv_mem_adjoin U x v : v \in U -> v \in <<U; x>>%AS.
 Proof. by move => Hx; apply/(subv_trans Hx); apply subv_adjoin. Qed.
 
-Lemma adjoins_rcons V rs z :
+Lemma adjoin_rcons V rs z :
   <<V & (rcons rs z)>>%AS = << <<V & rs>>%AS; z>>%AS.
 Proof. by rewrite -cats1 span_cat addvA span_seq1 closurea_add_closure. Qed.
 
 Lemma adjoinSl U V x : (U <= V -> <<U; x>>%AS <= <<V; x>>%AS)%VS.
-Proof. by move => HUV; rewrite closurea_monotone // addvS ?subv_refl. Qed.
+Proof. by move => HUV; rewrite closureaS // addvS ?subv_refl. Qed.
 
-Lemma adjoinsSl U V rs : (U <= V -> <<U & rs>>%AS <= <<V & rs>>%AS)%VS.
-Proof. by move => HUV; rewrite closurea_monotone // addvS ?subv_refl. Qed.
+Lemma adjoin_seqSl U V rs : (U <= V -> <<U & rs>>%AS <= <<V & rs>>%AS)%VS.
+Proof. by move => HUV; rewrite closureaS // addvS ?subv_refl. Qed.
 
-Lemma adjoinsSr U rs1 rs2 :
+Lemma adjoin_seqSr U rs1 rs2 :
   {subset rs1 <= rs2} -> (<<U & rs1>>%AS <= <<U & rs2>>%AS)%VS.
 Proof.
-by move/sub_span => s_rs12; rewrite closurea_monotone // addvS ?subv_refl.
+by move/sub_span => s_rs12; rewrite closureaS // addvS ?subv_refl.
 Qed.
 
 End Closure.
@@ -1026,24 +1026,24 @@ Proof. by rewrite limg_line rmorph1. Qed.
 Lemma aimgX (f : ahom aT rT) U n : (f @: (U ^+ n) = f @: U ^+ n)%VS.
 Proof.
 elim: n => [|n IH]; first by rewrite !expv0 aimg1.
-by rewrite !expvS aimgM IH.
+by rewrite !expvSl aimgM IH.
 Qed.
 
 Lemma aimg_closure (f : ahom aT rT) U : (f @: <<U>>%AS = <<f @: U>>%AS)%VS.
 Proof.
 apply: subv_anti.
-rewrite closurea_ideall_sub.
+rewrite ideall_closurea_sub.
 - rewrite andbT limg_sum; apply/subv_sumP => i _.
   by rewrite aimgX subvX_closure.
 - by rewrite -(aimg1 f) limgS // sub1_closure.
-- by rewrite -aimgM limgS // [X in (_ <= X)%VS]closurea_add1_mull addvSr.
+- by rewrite -aimgM limgS // [X in (_ <= X)%VS]closureaEl addvSr.
 Qed.
 
 Lemma aimg_adjoin (f : ahom aT rT) U x :
   (f @: <<U; x>>%AS = <<f @: U; f x>>%AS)%VS.
 Proof. by rewrite aimg_closure limg_add limg_line. Qed.
 
-Lemma aimg_adjoins (f : ahom aT rT) U xs :
+Lemma aimg_adjoin_seq (f : ahom aT rT) U xs :
   (f @: <<U & xs>>%AS = <<f @: U & map f xs>>%AS)%VS.
 Proof. by rewrite aimg_closure limg_add limg_span. Qed.
 
