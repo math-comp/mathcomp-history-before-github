@@ -863,8 +863,9 @@ End PredInstances.
 Module Import ExtraDef.
 
 Definition archi_bound {R} x := sval (sigW (@archi_bound_subproof R x)).
-
+Set Printing All. (* diagnosing Coq 8.4 failure... *)
 Definition sqrtr {R} x := s2val (sig2W (@sqrtr_subproof R x)).
+Unset Printing All.
 
 End ExtraDef.
 
