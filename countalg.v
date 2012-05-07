@@ -20,7 +20,7 @@ Require Import poly polydiv mxpoly generic_quotient ring_quotient closed_field.
 (*                           zmodType and countType structures.              *)
 (*                    ... etc                                                *)
 (* This file provides constructions for both simple extension and algebraic  *)
-(* closure of countable fields.                                              *)  
+(* closure of countable fields.                                              *) 
 (*****************************************************************************)
 
 Set Implicit Arguments.

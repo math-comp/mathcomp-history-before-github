@@ -120,20 +120,14 @@ Qed.
 Lemma cTIirr_split i j : w_ i j = w_ i 0 * w_ 0 j.
 Proof. by rewrite !cTIirrE !dprod_IirrE !chi0_1 cfDprod1r cfDprod1l. Qed.
 
-Lemma cTIirr_linearW i : lin_char ('chi[W]_i).
-Proof.
-by apply/char_abelianP; apply: cyclic_abelian; case: tiW; case.
-Qed.
+Lemma cTIirr_linearW i : 'chi[W]_i \is a linear_char.
+Proof. by apply/char_abelianP/cyclic_abelian; case: tiW; case. Qed.
 
-Lemma cTIirr_linearW1 i : lin_char ('chi[W1]_i).
-Proof.
-by apply/char_abelianP; apply: cyclic_abelian; case: tiW; case.
-Qed.
+Lemma cTIirr_linearW1 i : 'chi[W1]_i \is a linear_char.
+Proof. by apply/char_abelianP/cyclic_abelian; case: tiW; case. Qed.
 
-Lemma cTIirr_linearW2 i : lin_char ('chi[W2]_i).
-Proof.
-by apply/char_abelianP; apply: cyclic_abelian; case: tiW; case.
-Qed.
+Lemma cTIirr_linearW2 i : 'chi[W2]_i \is a linear_char.
+Proof. by apply/char_abelianP/cyclic_abelian; case: tiW; case. Qed.
 
 Let classesW1 : #|classes W1| = w1.
 Proof.
@@ -150,7 +144,7 @@ Local Notation alpha_ := acTIirr.
 
 Lemma acTIirr1 i j : alpha_ i j 1%g = 0.
 Proof.
-rewrite !cfunE /cyclicTIirr cfun1Egen group1 (lin_char1 ( cTIirr_linearW _)).
+rewrite !cfunE /cyclicTIirr cfun1Egen group1 (lin_char1 (cTIirr_linearW _)).
 by rewrite addrN mul0r.
 Qed.
 
@@ -161,7 +155,7 @@ by rewrite opprB !addrA addrAC (addrAC 1).
 Qed.
 
 Lemma acTIirr_vchar i j : alpha_ i j \in 'Z[irr W].
-Proof. by rewrite mul_vchar // -chi0_1 sub_zchar ?irr_vchar. Qed.
+Proof. by rewrite mul_vchar // -chi0_1 rpredB ?irr_vchar. Qed.
 
 Lemma memc_acTIirr i j : alpha_ i j \in 'CF(W, V).
 Proof.
@@ -179,9 +173,7 @@ Definition bcTIirr i j : 'CF(G) := 'Ind[G] (alpha_ i j) - 1.
 Local Notation beta_ := bcTIirr.
 
 Lemma bcTIirr_vchar i j : beta_ i j \in 'Z[irr G].
-Proof. 
-by rewrite sub_zchar ?cfInd_vchar ?acTIirr_vchar // -chi0_1 irr_vchar. 
-Qed.
+Proof. by rewrite rpredB ?cfInd_vchar ?acTIirr_vchar // -chi0_1 irr_vchar. Qed.
 
 Lemma cfdot_cTIirr i j i' j' :
   '[w_ i j, w_ i' j'] = ((i == i') && (j == j'))%:R.
@@ -190,21 +182,21 @@ Proof. rewrite !cTIirrE cfdot_irr inj_eq //; exact: dprod_Iirr_inj. Qed.
 Lemma cfdot_acTIirr i j i' j' : i' != 0 -> j' != 0 ->
   '[alpha_ i j, w_ i' j'] = ((i == i') && (j == j'))%:R.
 Proof.
-move=> /negbTE Di' /negbTE Dj'; rewrite acTIirrE -cTIirr00 cfdotDl !cfdot_subl.
+move=> /negbTE Di' /negbTE Dj'; rewrite acTIirrE -cTIirr00 cfdotDl !cfdotBl.
 by rewrite !cfdot_cTIirr !(eq_sym 0) Di' Dj' !andbF !subr0 add0r.
 Qed.
 
 Lemma cfdot_acTIirr00 i j : i != 0 -> j != 0 -> '[alpha_ i j, 1] = 1.
 Proof.
-move=> /negbTE Di /negbTE Dj; rewrite acTIirrE -cTIirr00 cfdotDl !cfdot_subl.
+move=> /negbTE Di /negbTE Dj; rewrite acTIirrE -cTIirr00 cfdotDl !cfdotBl.
 by rewrite !cfdot_cTIirr Di Dj !subr0 addr0.
 Qed.
 
 Lemma cfnorm_acTIirr i j : i != 0 -> j != 0 -> '[alpha_ i j] = 4%:R.
 Proof.
-move=> Di Dj; rewrite {2}acTIirrE cfdotDr !cfdot_subr cfdot_acTIirr00 // addrC.
+move=> Di Dj; rewrite {2}acTIirrE cfdotDr !cfdotBr cfdot_acTIirr00 // addrC.
 rewrite cfdot_acTIirr // !addrA -mulrSr.
-rewrite acTIirrE -cTIirr00  !(cfdot_subl, cfdotDl) !cfdot_cTIirr.
+rewrite acTIirrE -cTIirr00  !(cfdotBl, cfdotDl) !cfdot_cTIirr.
 rewrite !eqxx !(eq_sym 0) (negbTE Di) (negbTE Dj) !andbF !subr0 !addr0.
 by rewrite !add0r !opprK -!mulrSr.
 Qed.
@@ -228,7 +220,7 @@ Qed.
 Lemma cfdot_bcTIirr_1 i j : i != 0 -> j != 0 -> '[beta_ i j, 1] = 0.
 Proof.
 move=> Di Dj.
-by rewrite cfdot_subl cfdot_Ind_acTIirr_1 // -chi0_1 cfdot_irr subrr.
+by rewrite cfdotBl cfdot_Ind_acTIirr_1 // -chi0_1 cfdot_irr subrr.
 Qed.
 
 (* These are the other equations of Peterfalvi (3.5.1). *)
@@ -237,12 +229,12 @@ Lemma cfdot_bcTIirr i j i' j' : i != 0 -> j != 0 -> i' != 0 -> j' != 0 ->
      ((i == i') * (j == j') + (i == i') + (j == j'))%:R.
 Proof.
 move=> Di Dj Di' Dj'. 
-rewrite cfdot_subr cfdot_bcTIirr_1 // subr0.
-rewrite cfdot_subl (cfdotC 1) cfdot_Ind_acTIirr_1 // rmorph1.
+rewrite cfdotBr cfdot_bcTIirr_1 // subr0.
+rewrite cfdotBl (cfdotC 1) cfdot_Ind_acTIirr_1 // rmorph1.
 have nTi: normedTI (W :\: (W1 :|: W2)) G W by case: tiW.
 rewrite (normedTI_isometry _ nTi) ?memc_acTIirr //.
-rewrite (acTIirrE i') cfdotDr !cfdot_subr cfdot_acTIirr00 //.
-rewrite addrC -!addrA addKr acTIirrE -cTIirr00 !(cfdot_subl, cfdotDl).
+rewrite (acTIirrE i') cfdotDr !cfdotBr cfdot_acTIirr00 //.
+rewrite addrC -!addrA addKr acTIirrE -cTIirr00 !(cfdotBl, cfdotDl).
 rewrite !cfdot_cTIirr !eqxx !(eq_sym 0) !andbT.
 do !rewrite (@negbTE (_ == 0)) ?andbF //; rewrite !opprD !oppr0 !opprK.
 by rewrite !add0r !addr0 mulnb addrA addrC addrA -!natrD.
@@ -1810,12 +1802,9 @@ rewrite /sigma; unlock.
 rewrite /extIrrf; case: pickP=> [/= f /and3P [Ho H1 /allP /= HI]|].
   split=> [|| a /coord_span ->].
   - split=> [i j Hi Hj /=|i Hi]; last first.
-      rewrite /extIrrf; apply: sum_zchar=> j _.
-      repeat apply: scale_zchar; last by apply: irr_vchar.
-        by apply: cfdot_vchar_irr_Int.
-      by apply: isIntC_sign.
-    rewrite /extIrrf.
-    rewrite {2}[i]cfun_sum_cfdot {2}[j]cfun_sum_cfdot.
+      rewrite /extIrrf; apply: rpred_sum => j _.
+      by rewrite scale_zchar ?Cint_cfdot_vchar_irr // rpredZsign irr_vchar.
+    rewrite /extIrrf {2}[i]cfun_sum_cfdot {2}[j]cfun_sum_cfdot.
     rewrite !cfdot_suml; apply: eq_bigr=> i1 _.
     rewrite !cfdot_sumr; apply: eq_bigr=> j1 _.
     rewrite cfdotZl [X in _ = X]cfdotZl; congr (_ * _).
@@ -1947,7 +1936,7 @@ have Cfa : a \in 'CF(W, V).
   rewrite !cfDprodEl // !cfDprodEr // !lin_char1 // !mul1r.
   by rewrite addrK subrr.
 suff: '[phi, 'Ind[G] a] == 0.
-  rewrite -!cyclicTIsigma_ind // !linearB !linearD !cfdot_subr !cfdotDr.
+  rewrite -!cyclicTIsigma_ind // !linearB !linearD !cfdotBr !cfdotDr.
   by rewrite -addrA -opprD subr_eq0=> /eqP.
 rewrite cfdotE big1 ?mulr0 // => g GiG.
 case: (boolP (g \in class_support V G))=> [/imset2P [v h ViV HiG ->]|GniC].
@@ -2277,7 +2266,7 @@ have ZpsiV: {in V, forall g, psi g = 0}=> [g GiV|].
 pose a i j := '[psi, sigma (w_ i j)].
 pose S := [set ij | a ij.1 ij.2 != 0].
 case: (boolP ((i1, j1) \in S))=> [I1J1iS|]; last first.
-  rewrite inE negbK /a  cfdot_subl cfdot_sigma !eqxx /=.
+  rewrite inE negbK /a  cfdotBl cfdot_sigma !eqxx /=.
   rewrite cfdot_dirr ?(dirr_chi, dirr_sigma) //.
   case: (boolP (phi == _))=> [|_].
     by rewrite opprK -(natrD _ 1 1) pnatr_eq0.

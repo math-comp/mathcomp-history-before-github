@@ -60,6 +60,18 @@ Variables (F : fieldType) (n : nat) (z : F).
 Hypothesis prim_z : n.-primitive_root z.
 Let n_gt0 := prim_order_gt0 prim_z.
 
+Lemma root_cyclotomic x : root (cyclotomic z n) x = n.-primitive_root x.
+Proof.
+rewrite /cyclotomic -big_filter filter_index_enum.
+rewrite -(big_map _ xpredT (fun y => 'X - y%:P)) root_prod_XsubC.
+apply/imageP/idP=> [[k co_k_n ->] | prim_x].
+  by rewrite prim_root_exp_coprime.
+have [k Dx] := prim_rootP prim_z (prim_expr_order prim_x).
+exists (Ordinal (ltn_pmod k n_gt0)) => /=.
+  by rewrite unfold_in /= coprime_modl -(prim_root_exp_coprime k prim_z) -Dx.
+by rewrite prim_expr_mod.
+Qed.
+
 Lemma prod_cyclotomic :
   'X^n - 1 = \prod_(d <- divisors n) cyclotomic (z ^+ (n %/ d)) d.
 Proof.
@@ -103,7 +115,7 @@ Local Notation pZtoQ := (map_poly ZtoQ).
 Local Notation pZtoC := (map_poly ZtoC).
 Local Notation pQtoC := (map_poly ratr).
 
-Local Hint Resolve (@intr_inj [numIdomainType of algC]).
+Local Hint Resolve (@intr_inj [numDomainType of algC]).
 Local Notation QtoC_M := (ratr_rmorphism [numFieldType of algC]).
 
 Lemma C_prim_root_exists n : (n > 0)%N -> {z : algC | n.-primitive_root z}.
@@ -121,7 +133,7 @@ Qed.
 
 Definition Cyclotomic n : {poly int} :=
   let: exist z _ := C_prim_root_exists (ltn0Sn n.-1) in
-  map_poly getCint (cyclotomic z n).
+  map_poly floorC (cyclotomic z n).
 
 Notation "''Phi_' n" := (Cyclotomic n)
   (at level 8, n at level 2, format "''Phi_' n").
@@ -130,7 +142,7 @@ Lemma Cyclotomic_monic n : 'Phi_n \is monic.
 Proof.
 rewrite /'Phi_n; case: (C_prim_root_exists _) => z /= _.
 rewrite monicE lead_coefE coef_map_id0 ?(int_algC_K 0) ?getCint0 //.
-by rewrite size_poly_eq -lead_coefE (monicP (cyclotomic_monic _ _)) (CintrK 1).
+by rewrite size_poly_eq -lead_coefE (monicP (cyclotomic_monic _ _)) (intCK 1).
 Qed.
 
 Lemma Cintr_Cyclotomic n z :
@@ -166,8 +178,7 @@ have [r def_zn]: exists r, cyclotomic z n = pZtoC r.
     rewrite map_polyZ mapXn1 Dr0 Dr -scalerAl scalerKV ?intr_eq0 //.
     by rewrite rmorphM.
   by rewrite zprimitiveZ // zprimitive_monic ?monic_Xn_sub_1 ?mapXn1.
-rewrite getCintpK; last first.
-  by apply/(all_nthP 0)=> i _; rewrite def_zn coef_map isIntC_int.
+rewrite floorCpK; last by apply/polyOverP=> i; rewrite def_zn coef_map Cint_int.
 pose f e (k : 'I_n) := Ordinal (ltn_pmod (k * e) n_gt0).
 have [e Dz0] := prim_rootP prim_z (prim_expr_order prim_z0).
 have co_e_n: coprime e n by rewrite -(prim_root_exp_coprime e prim_z) -Dz0.
@@ -183,7 +194,7 @@ Qed.
 Lemma prod_Cyclotomic n :
   (n > 0)%N -> \prod_(d <- divisors n) 'Phi_d = 'X^n - 1.
 Proof.
-move=> n_gt0; have [z prim_z] := C_prim_root_exists n_gt0.
+  move=> n_gt0; have [z prim_z] := C_prim_root_exists n_gt0.
 apply: (map_inj_poly (intr_inj : injective ZtoC)) => //.
 rewrite rmorphB rmorph1 rmorph_prod /= map_polyXn (prod_cyclotomic prim_z).
 apply: eq_big_seq => d; rewrite -dvdn_divisors // => d_dv_n.
@@ -193,14 +204,14 @@ Qed.
 Lemma Cyclotomic0 : 'Phi_0 = 1.
 Proof.
 rewrite /'Phi_0; case: (C_prim_root_exists _) => z /= _.
-by rewrite -[1]polyseqK /cyclotomic big_ord0 map_polyE !polyseq1 /= (CintrK 1).
+by rewrite -[1]polyseqK /cyclotomic big_ord0 map_polyE !polyseq1 /= (intCK 1).
 Qed.
 
 Lemma size_Cyclotomic n : size 'Phi_n = (totient n).+1.
 Proof.
 have [-> | n_gt0] := posnP n; first by rewrite Cyclotomic0 polyseq1.
 have [z prim_z] := C_prim_root_exists n_gt0.
-rewrite -(size_map_inj_poly (can_inj CintrK)) //.
+rewrite -(size_map_inj_poly (can_inj intCK)) //.
 rewrite (Cintr_Cyclotomic prim_z) -[_ n]big_filter filter_index_enum.
 rewrite size_prod_XsubC -cardE totient_count_coprime big_mkord -sum1_card.
 by congr _.+1; apply: eq_bigl => k; rewrite coprime_sym.
@@ -212,12 +223,7 @@ Proof.
 move=> prim_z; have n_gt0 := prim_order_gt0 prim_z.
 have Dpz := Cintr_Cyclotomic prim_z; set pz := cyclotomic z n in Dpz *.
 have mon_pz: pz \is monic by exact: cyclotomic_monic.
-have pz0: root pz z.
-  have [|n_gt1|n1] := ltngtP n 1; first by rewrite ltnNge n_gt0.
-    rewrite [pz](bigD1 (Ordinal n_gt1)) ?coprime1n //=.
-    by rewrite rootM root_XsubC eqxx.
-  rewrite /pz n1 [_ z _]big_ord1_cond root_XsubC expr0.
-  by rewrite -(prim_expr_order prim_z) n1.
+have pz0: root pz z by rewrite root_cyclotomic.
 have [pf [Dpf mon_pf] dv_pf] := minCpolyP z.
 have /dvdpP_rat_int[f [af nz_af Df] [g /esym Dfg]]: pf %| pZtoQ 'Phi_n.
   rewrite -dv_pf; congr (root _ z): pz0; rewrite -Dpz -map_poly_comp.
@@ -241,12 +247,12 @@ have [/size1_polyC Dg | g_gt1] := leqP (size g) 1.
 have [zk gzk0]: exists zk, root (pZtoC g) zk.
   have [rg] := closed_field_poly_normal (pZtoC g).
   rewrite lead_coef_map_inj // (monicP mon_g) scale1r => Dg.
-  rewrite -(size_map_inj_poly (can_inj CintrK)) // Dg in g_gt1.
+  rewrite -(size_map_inj_poly (can_inj intCK)) // Dg in g_gt1.
   rewrite size_prod_XsubC in g_gt1.
   by exists rg`_0; rewrite Dg root_prod_XsubC mem_nth.
 have [k cokn Dzk]: exists2 k, coprime k n & zk = z ^+ k.
   have: root pz zk by rewrite -Dpz -Dfg rmorphM rootM gzk0 orbT.
-  rewrite -[pz]big_filter -(big_map _ xpredT (fun a => _ - a%:P)).
+  rewrite -[pz]big_filter -(big_map _ xpredT (fun a => 'X - a%:P)).
   by rewrite root_prod_XsubC => /imageP[k]; exists k.
 have co_fg (R : idomainType): n%:R != 0 :> R -> @coprimep R (intrp f) (intrp g).
   move=> nz_n; have: separablePolynomial (intrp ('X^n - 1) : {poly R}).
@@ -263,7 +269,7 @@ have [|k_gt1] := leqP k 1; last have [p p_pr /dvdnP[k1 Dk]] := pdivP k_gt1.
     by rewrite -Df dv_pf.
   have /eqP := size_Cyclotomic n; rewrite -Dfg size_Mmonic ?monic_neq0 //.
   rewrite k0 /coprime gcd0n in cokn; rewrite (eqP cokn).
-  rewrite -(size_map_inj_poly (can_inj CintrK)) // -Df -Dpf.
+  rewrite -(size_map_inj_poly (can_inj intCK)) // -Df -Dpf.
   by rewrite -(subnKC g_gt1) -(subnKC (size_minCpoly z)) !addnS.
 move: cokn; rewrite Dk coprime_mull => /andP[cok1n].
 rewrite prime_coprime // (dvdn_charf (char_Fp p_pr)) => /co_fg {co_fg}.
@@ -279,16 +285,13 @@ suffices: coprimep (pZtoC f) (pZtoC (g \Po 'X^p)).
   rewrite map_comp_poly map_polyXn horner_comp hornerXn.
   rewrite -exprM -Dk [_ == 0]gzk0 implybF => /negP[].
   have: root pz (z ^+ k1).
-    rewrite -[pz]big_filter -(big_map _ xpredT (fun a => _ - a%:P)).
-    rewrite filter_index_enum root_prod_XsubC; apply/imageP.
-    exists (Ordinal (ltn_pmod k1 n_gt0)); rewrite ?unfold_in ?coprime_modl //=.
-    by rewrite prim_expr_mod.
+    by rewrite root_cyclotomic // prim_root_exp_coprime.
   rewrite -Dpz -Dfg rmorphM rootM => /orP[] //= /IHm-> //.
   rewrite (leq_trans _ lekm) // -[k1]muln1 Dk ltn_pmul2l ?prime_gt1 //.
   by have:= ltnW k_gt1; rewrite Dk muln_gt0 => /andP[].
 suffices: coprimep f (g \Po 'X^p).
   case/Bezout_coprimepP=> [[u v]]; rewrite -size_poly_eq1.
-  rewrite -(size_map_inj_poly (can_inj CintrK)) // rmorphD !rmorphM /=.
+  rewrite -(size_map_inj_poly (can_inj intCK)) // rmorphD !rmorphM /=.
   rewrite size_poly_eq1 => {co_fg}co_fg; apply/Bezout_coprimepP.
   by exists (pZtoC u, pZtoC v).
 apply: contraLR co_fg => /coprimepPn[|d]; first exact: monic_neq0.

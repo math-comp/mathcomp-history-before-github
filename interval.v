@@ -16,7 +16,7 @@ CoInductive itv_bound (T : Type) : Type := BClose of bool & T | BInfty.
 
 CoInductive interval (T : Type) := Interval of itv_bound T & itv_bound T.
 
-Variable (R : numIdomainType).
+Variable (R : numDomainType).
 
 Definition pred_of_itv (i : interval R) : pred R :=
   [pred x | let: Interval l u := i in
@@ -362,7 +362,7 @@ Notation "x < y ?<= 'if' b" := (ltreif x y b)
 
 Section IntervalOrdered.
 
-Variable R : realIdomainType.
+Variable R : realDomainType.
 
 Lemma ltreifN (x y : R) b : x < y ?<= if ~~b = ~~ (y < x ?<= if b).
 Proof. by rewrite real_ltreifN ?num_real. Qed.

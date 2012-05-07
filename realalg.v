@@ -834,18 +834,18 @@ rewrite -[x]reprK -[y]reprK eq_sym piE [lt_alg _ _]piE; apply/le_algcrealP/orP.
 by move=> [/eqP/eqmodP/eq_algcrealP-> //| /lt_algcrealP /lt_crealW].
 Qed.
 
-Definition AlgNumFieldMixin := RealNumLtMixin add_alg_gt0 mul_alg_gt0
+Definition AlgNumFieldMixin := RealLtMixin add_alg_gt0 mul_alg_gt0
   gt0_alg_nlt0 sub_alg_gt0 lt0_alg_total norm_algN ge0_norm_alg le_alg_def.
-Canonical alg_numIdomainType := NumIdomainType alg AlgNumFieldMixin.
-Canonical alg_numFieldType := NumFieldType alg AlgNumFieldMixin.
-Canonical alg_of_numIdomainType := NumIdomainType {alg F} AlgNumFieldMixin.
-Canonical alg_of_numFieldType := NumFieldType {alg F} AlgNumFieldMixin.
+Canonical alg_numDomainType := NumDomainType alg AlgNumFieldMixin.
+Canonical alg_numFieldType := [numFieldType of alg].
+Canonical alg_of_numDomainType := [numDomainType of {alg F}].
+Canonical alg_of_numFieldType := [numFieldType of {alg F}].
 
-Definition AlgRealFieldMixin := RealLtMixin lt0_alg_total le_alg_def.
-Canonical alg_realIdomainType := RealIdomainType alg AlgRealFieldMixin.
-Canonical alg_realFieldType := RealFieldType alg AlgRealFieldMixin.
-Canonical alg_of_realIdomainType := RealIdomainType {alg F} AlgRealFieldMixin.
-Canonical alg_of_realFieldType := RealFieldType {alg F} AlgRealFieldMixin.
+Definition AlgRealFieldMixin := RealLeAxiom alg.
+Canonical alg_realDomainType := RealDomainType alg AlgRealFieldMixin.
+Canonical alg_realFieldType := [realFieldType of alg].
+Canonical alg_of_realDomainType := [realDomainType of {alg F}].
+Canonical alg_of_realFieldType := [realFieldType of {alg F}].
 
 Lemma lt_pi x y : \pi_{alg F} x < \pi y = lt_algcreal x y.
 Proof. by rewrite [_ < _]lt_alg_pi. Qed.
@@ -1031,20 +1031,18 @@ apply/rootP. rewrite horner_pi zeroE -equiv_alg horner_algcrealE /=.
 by rewrite -(@to_algcrealP x); unlock to_algcreal.
 Qed.
 
-Definition alg_archi_bound := locked (fun x => archi_bound (approx x 1%:RA + 1)).
-
-Lemma alg_archi x : 0 <= x -> x < (alg_archi_bound x)%:R.
+Lemma alg_archi : Num.archimedean_axiom alg_of_numDomainType.
 Proof.
-move=> x_ge0; unlock alg_archi_bound; set a := approx _ _.
+move=> x; move: {x}`|x| (normr_ge0 x) => x x_ge0.
+pose a := approx x 1%:RA; exists (Num.bound (a + 1)).
 have := @archi_boundP _ (a + 1); rewrite -ltr_to_alg rmorph_nat.
 have := @approxP x _ _ ltr01 (lerr _); rewrite ltr_distl -/a => /andP [_ hxa].
 rewrite -ler_to_alg rmorphD /= (ler_trans _ (ltrW hxa)) //.
 by move=> /(_ isT) /(ltr_trans _)->.
 Qed.
 
-Definition alg_archiMixin := ArchimedianMixin alg_archi.
-Canonical alg_archiFieldType := ArchiFieldType alg alg_archiMixin.
-Canonical alg_of_archiFieldType := ArchiFieldType {alg F} alg_archiMixin.
+Canonical alg_archiFieldType := ArchiFieldType alg alg_archi.
+Canonical alg_of_archiFieldType := [archiFieldType of {alg F}].
 
 Lemma normr_to_alg : { morph to_alg : x / `|x| }.
 Proof.
@@ -1173,7 +1171,7 @@ Implicit Arguments to_alg [F].
 Notation "x %:RA" := (to_alg x) (at level 2, left associativity, format "x %:RA").
 
 Lemma upper_nthrootVP (F : archiFieldType) (x : F) (i : nat) :
-   0 < x -> (archi_bound (x ^-1) <= i)%N -> 2%:R ^- i < x.
+   0 < x -> (Num.bound (x ^-1) <= i)%N -> 2%:R ^- i < x.
 Proof.
 move=> x_gt0 hx; rewrite -ltf_pinv -?topredE //= ?gtr0E //.
 by rewrite invrK upper_nthrootP.
@@ -1360,16 +1358,15 @@ by apply: eq_to_alg_creal; rewrite from_alg_crealK to_alg_creal_repr.
 Qed.
 
 Lemma ivt (p : {poly (alg F)}) (a b : alg F) : a <= b ->
-  p.[a] <= 0 <= p.[b] -> { x : alg F | a <= x <= b & root p x }.
+  p.[a] <= 0 <= p.[b] -> exists2 x : alg F, a <= x <= b & root p x.
 Proof.
 move=> le_ab hp; have [x /andP [hax hxb]] := @weak_ivt _ _ _ _ le_ab hp.
 rewrite -[x]from_algK fmorph_root=> rpx; exists (from_alg x)=> //.
 by rewrite -ler_to_alg from_algK hax -ler_to_alg from_algK.
 Qed.
 
-Definition alg_rcfMixin := RcfMixin ivt.
-Canonical alg_rcfType := RcfType (alg F) alg_rcfMixin.
-Canonical alg_of_rcfType := RcfType {alg F} alg_rcfMixin.
+Canonical alg_rcfType := RcfType (alg F) ivt.
+Canonical alg_of_rcfType := [rcfType of {alg F}].
 
 End AlgAlgAlg.
 End RealAlg.
@@ -1386,9 +1383,9 @@ Canonical RealAlg.alg_unitRing.
 Canonical RealAlg.alg_comUnitRing.
 Canonical RealAlg.alg_iDomain.
 Canonical RealAlg.alg_fieldType.
-Canonical RealAlg.alg_numIdomainType.
+Canonical RealAlg.alg_numDomainType.
 Canonical RealAlg.alg_numFieldType.
-Canonical RealAlg.alg_realIdomainType.
+Canonical RealAlg.alg_realDomainType.
 Canonical RealAlg.alg_realFieldType.
 Canonical RealAlg.alg_archiFieldType.
 Canonical RealAlg.alg_rcfType.
@@ -1402,9 +1399,9 @@ Canonical RealAlg.alg_of_unitRing.
 Canonical RealAlg.alg_of_comUnitRing.
 Canonical RealAlg.alg_of_iDomain.
 Canonical RealAlg.alg_of_fieldType.
-Canonical RealAlg.alg_of_numIdomainType.
+Canonical RealAlg.alg_of_numDomainType.
 Canonical RealAlg.alg_of_numFieldType.
-Canonical RealAlg.alg_of_realIdomainType.
+Canonical RealAlg.alg_of_realDomainType.
 Canonical RealAlg.alg_of_realFieldType.
 Canonical RealAlg.alg_of_archiFieldType.
 Canonical RealAlg.alg_of_rcfType.

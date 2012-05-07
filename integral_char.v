@@ -44,14 +44,15 @@ Lemma group_num_field_exists (gT : finGroupType) (G : {group gT}) :
                  {morph QnC: a / val (repr nuQn) a >-> nu a}}}
   & {w : Qn & #|G|.-primitive_root w /\ Fadjoin 1 w = fullv
        & forall (hT : finGroupType) (H : {group hT}) (phi : 'CF(H)),
-         is_char phi -> forall x, (#[x] %| #|G|)%N -> {a | QnC a = phi x}}}}.
+         phi \is a character ->
+         forall x, (#[x] %| #|G|)%N -> {a | QnC a = phi x}}}}.
 Proof.
 have [z prim_z] := C_prim_root_exists (cardG_gt0 G); set n := #|G| in prim_z *.
 have [Qn [QnC [[|w []] // [Dz] genQn]]] := num_field_exists [:: z].
 have prim_w: n.-primitive_root w by rewrite -Dz fmorph_primitive_root in prim_z.
 exists Qn, QnC; last first.
   exists w => // hT H phi Nphi x x_dv_n.
-  apply: sig_eqW; have [rH ->] := is_charP Nphi.
+  apply: sig_eqW; have [rH ->] := char_reprP Nphi.
   have [Hx | /cfun0->] := boolP (x \in H); last by exists 0; rewrite rmorph0.  
   have [e [_ [enx1 _] [-> _] _]] := repr_rsim_diag rH Hx.
   have /fin_all_exists[k Dk] i: exists k, e 0 i = z ^+ k.
@@ -156,16 +157,16 @@ Section IntegralChar.
 Variables (gT : finGroupType) (G : {group gT}).
 
 (* This is Isaacs, Corollary (3.6). *)
-Lemma algInt_char (chi : 'CF(G)) x : is_char chi -> chi x \in algInt.
+Lemma Aint_char (chi : 'CF(G)) x : chi \is a character -> chi x \in Aint.
 Proof.
-have [Gx | /cfun0->//] := boolP (x \in G).
-case/is_charP=> rG ->; have [e [_ [unit_e _] [-> _] _]] := repr_rsim_diag rG Gx.
-rewrite rpred_sum // => i _; apply: (@algInt_unity_root #[x]) => //.
+have [Gx /char_reprP[rG ->] {chi} | /cfun0->//] := boolP (x \in G).
+have [e [_ [unit_e _] [-> _] _]] := repr_rsim_diag rG Gx.
+rewrite rpred_sum // => i _; apply: (@Aint_unity_root #[x]) => //.
 exact/unity_rootP.
 Qed.
 
-Lemma algInt_irr i x : 'chi[G]_i x \in algInt.
-Proof. by apply: algInt_char; exact: irr_char. Qed.
+Lemma Aint_irr i x : 'chi[G]_i x \in Aint.
+Proof. by apply: Aint_char; exact: irr_char. Qed.
 
 Local Notation R_G := (group_ring algCF G).
 Local Notation a := gring_classM_coef.
@@ -185,7 +186,7 @@ Variable i : Iirr G.
 
 Let n := irr_degree (socle_of_Iirr i).
 Let mxZn_inj: injective (@scalar_mx algCF n).
-Proof. by rewrite -[n]prednK ?irr_degree_gt0 //; exact: fmorph_inj. Qed.
+Proof. by rewrite -[n]prednK ?irr_degree_gt0 //; apply: fmorph_inj. Qed.
 
 Lemma cfRepr_gring_center n1 (rG : mx_representation algCF G n1) A :
   cfRepr rG = 'chi_i -> (A \in 'Z(R_G))%MS -> gring_op rG A = 'omega_i[A]%:M.
@@ -223,7 +224,7 @@ by apply: eq_bigr => _ /imsetP[u Gu ->]; rewrite xcfunG ?groupJ ?cfunJ.
 Qed.
 
 (* This is Isaacs, Theorem (3.7). *)
-Lemma gring_mode_class_sum_algInt k : 'omega_i['K_k] \in algInt.
+Lemma Aint_gring_mode_class_sum k : 'omega_i['K_k] \in Aint.
 Proof.
 move: k; pose X := [tuple 'omega_i['K_k] | k < #|classes G| ].
 have memX k: 'omega_i['K_k] \in X by apply: map_f; exact: mem_enum.
@@ -234,7 +235,7 @@ have S_1: 1 \in S.
   rewrite (@gring_mode_class_sum_eq _ 1%g) ?enum_rankK_in ?classes1 //.
   by rewrite mulfK ?irr1_neq0 // class1G cards1.
 suffices Smul: mulr_closed S.
-  by move=> k; apply: fin_Csubring_algInt S_P _ _; rewrite ?S_X.
+  by move=> k; apply: fin_Csubring_Aint S_P _ _; rewrite ?S_X.
 split=> // _ _ /S_P[x ->] /S_P[y ->].
 rewrite mulr_sumr rpred_sum // => j _.
 rewrite mulrzAr mulr_suml rpredMz ?rpred_sum // => k _.
@@ -244,59 +245,59 @@ rewrite gring_classM_expansion raddf_sum rpred_sum // => jk _.
 by rewrite scaler_nat raddfMn rpredMn ?S_X ?memX.
 Qed.
 
-(* A more useful form that does not involve the class sums. *)
-Corollary class_div_irr1_algInt x :
-  x \in G -> #|x ^: G|%:R * 'chi_i x / 'chi_i 1%g \in algInt.
+(* A more usable reformulation that does not involve the class sums. *)
+Corollary Aint_class_div_irr1 x :
+  x \in G -> #|x ^: G|%:R * 'chi_i x / 'chi_i 1%g \in Aint.
 Proof.
 move=> Gx; have clGxG := mem_classes Gx; pose k := enum_rank_in clGxG (x ^: G).
 have k_x: x \in enum_val k by rewrite enum_rankK_in // class_refl.
-by rewrite -(gring_mode_class_sum_eq k_x) gring_mode_class_sum_algInt.
+by rewrite -(gring_mode_class_sum_eq k_x) Aint_gring_mode_class_sum.
 Qed.
 
 (* This is Isaacs, Theorem (3.8). *)
 Theorem coprime_degree_support_cfcenter g :
-    coprime (getNatC ('chi_i 1%g)) #|g ^: G| -> g \notin ('Z('chi_i))%CF ->
+    coprime (truncC ('chi_i 1%g)) #|g ^: G| -> g \notin ('Z('chi_i))%CF ->
   'chi_i g = 0.
 Proof.
-set m := getNatC _ => co_m_gG notZg.
+set m := truncC _ => co_m_gG notZg.
 have [Gg | /cfun0-> //] := boolP (g \in G).
-have Dm: 'chi_i 1%g = m%:R by apply/eqP/isNatC_irr1.
-have m_gt0: (0 < m)%N by rewrite -ltC_nat -Dm ltC_irr1.
+have Dm: 'chi_i 1%g = m%:R by rewrite truncCK ?Cnat_irr1.
+have m_gt0: (0 < m)%N by rewrite -ltC_nat -Dm irr1_gt0.
 have nz_m: m%:R != 0 :> algC by rewrite pnatr_eq0 -lt0n.
 pose alpha := 'chi_i g / m%:R.
 have a_lt1: `|alpha| < 1.
   rewrite normrM normfV normr_nat -{2}(divff nz_m).
   rewrite ltr_def (can_eq (mulfVK nz_m)) eq_sym -{1}Dm -irr_cfcenterE // notZg.
   by rewrite ler_pmul2r ?invr_gt0 ?ltr0n // -Dm char1_ge_norm ?irr_char.
-have Za: alpha \in algInt.
+have Za: alpha \in Aint.
   have [u _ /dvdnP[v eq_uv]] := Bezoutl #|g ^: G| m_gt0.
   suffices ->: alpha = v%:R * 'chi_i g - u%:R * (alpha * #|g ^: G|%:R).
-    rewrite rpredB // rpredM ?rpred_nat ?algInt_irr //.
-    by rewrite mulrC mulrA -Dm class_div_irr1_algInt.
+    rewrite rpredB // rpredM ?rpred_nat ?Aint_irr //.
+    by rewrite mulrC mulrA -Dm Aint_class_div_irr1.
   rewrite -mulrCA -[v%:R](mulfK nz_m) -!natrM -eq_uv (eqnP co_m_gG).
   by rewrite mulrAC -mulrA -/alpha mulr_natl mulr_natr mulrS addrK.
 have [Qn [QnC [nQn galQn gQnC] [_ _ Qn_g]]] := group_num_field_exists <[g]>.
 have{Qn_g} [a Da]: exists a, QnC a = alpha.
   rewrite /alpha; have [a <-] := Qn_g _ G _ (irr_char i) g (dvdnn _).
   by exists (a / m%:R); rewrite fmorph_div rmorph_nat.
-have Za_nu nu: sval (gQnC nu) alpha \in algInt by rewrite algInt_aut.
+have Za_nu nu: sval (gQnC nu) alpha \in Aint by rewrite Aint_aut.
 have norm_a_nu nu: `|sval (gQnC nu) alpha| <= 1.
   move: {nu}(sval _) => nu; rewrite fmorph_div rmorph_nat normrM normfV.
-  rewrite normr_nat -Dm -(ler_pmul2r (ltC_irr1 (aut_Iirr nu i))) mul1r.
+  rewrite normr_nat -Dm -(ler_pmul2r (irr1_gt0 (aut_Iirr nu i))) mul1r.
   congr (_ <= _): (char1_ge_norm g (irr_char (aut_Iirr nu i))).
   by rewrite !aut_IirrE !cfunE Dm rmorph_nat divfK.
 pose beta := QnC (galoisNorm nQn 1 fullv a).
 have Dbeta: beta = \prod_(nu \in aut nQn 1 fullv) sval (gQnC nu) alpha.
   rewrite /beta rmorph_prod. apply: eq_bigr => nu _.
   by case: (gQnC nu) => f /= ->; rewrite Da.
-have Zbeta: isIntC beta.
-  apply: Cint_rat_algInt; last by rewrite Dbeta rpred_prod.
+have Zbeta: beta \in Cint.
+  apply: Cint_rat_Aint; last by rewrite Dbeta rpred_prod.
   rewrite /beta; have /vlineP[/= c ->] := mem_galoisNorm galQn (memvf a).
-  by rewrite alg_num_field fmorph_rat ratr_Crat.
+  by rewrite alg_num_field fmorph_rat rpred_rat.
 have [|nz_a] := boolP (alpha == 0).
   by rewrite (can2_eq (divfK _) (mulfK _)) // mul0r => /eqP.
 have: beta != 0 by rewrite Dbeta; apply/prodf_neq0 => nu _; rewrite fmorph_eq0.
-move/(isIntC_normC_ge1 Zbeta); rewrite ltr_geF //; apply: ler_lt_trans a_lt1.
+move/(norm_Cint_ge1 Zbeta); rewrite ltr_geF //; apply: ler_lt_trans a_lt1.
 rewrite -[`|alpha|]mulr1 Dbeta (bigD1 1%g) ?group1 //= -Da.
 case: (gQnC _) => /= _ <-; rewrite repr_coset1 id_lfunE normrM.
 rewrite -subr_ge0 -mulrBr mulr_ge0 ?normr_ge0 // Da subr_ge0.
@@ -321,7 +322,7 @@ have{p_natC} [p p_pr [a Dm]]: {p : nat & prime p & {a | m = p ^ a}%N}.
   rewrite big_seq1; exists p; last by exists (logn p m).
   by have:= mem_primes p m; rewrite Dpr mem_head => /esym/and3P[].
 have{simpleG} [ntG minG] := simpleP _ simpleG.
-pose p_dv1 i := dvdNC p ('chi[G]_i 1%g).
+pose p_dv1 i := (p %| 'chi[G]_i 1%g)%C.
 have p_dvd_supp_g i: ~~ p_dv1 i && (i != 0) -> 'chi_i g = 0.
   rewrite /p_dv1 irr1_degree dvdC_nat -prime_coprime // => /andP[co_p_i1 nz_i].
   have fful_i: cfker 'chi_i = [1].
@@ -333,7 +334,7 @@ have p_dvd_supp_g i: ~~ p_dv1 i && (i != 0) -> 'chi_i g = 0.
     rewrite fful_i subG1 -(isog_eq1 (isog_center (quotient1_isog G))) /=.
     by rewrite trivZ.
   rewrite coprime_degree_support_cfcenter ?trivZi ?inE //.
-  by rewrite -/m Dm irr1_degree getNatC_nat coprime_sym coprime_expl.
+  by rewrite -/m Dm irr1_degree natCK coprime_sym coprime_expl.
 pose alpha := \sum_(i | p_dv1 i && (i != 0)) 'chi_i 1%g / p%:R * 'chi_i g.
 have nz_p: p%:R != 0 :> algC by rewrite pnatr_eq0 -lt0n prime_gt0.
 have Dalpha: alpha = - 1 / p%:R.
@@ -344,14 +345,13 @@ have Dalpha: alpha = - 1 / p%:R.
   rewrite big1 => [|i /p_dvd_supp_g chig0]; last by rewrite cfunE chig0 mulr0.
   rewrite add0r big_andbC mulr_suml; apply: eq_bigr => i _.
   by rewrite mulrAC divfK // cfunE.
-suffices: dvdNC p 1 by rewrite (dvdC_nat p 1) dvdn1 -(subnKC (prime_gt1 p_pr)).
-rewrite /dvdC (negPf nz_p) Cint_rat_algInt ?Crat_div ?rpred1 ?rpred_nat //.
+suffices: (p %| 1)%C by rewrite (dvdC_nat p 1) dvdn1 -(subnKC (prime_gt1 p_pr)).
+rewrite unfold_in (negPf nz_p) Cint_rat_Aint ?rpred_div ?rpred1 ?rpred_nat //.
 rewrite -rpredN // -mulNr -Dalpha rpred_sum // => i /andP[/dvdCP[c Zc ->] _].
-by rewrite mulfK // rpredM ?algInt_irr ?algInt_Cint.
+by rewrite mulfK // rpredM ?Aint_irr ?Aint_Cint.
 Qed.
 
 End IntegralChar.
-
 
 Section MoreIntegralChar.
 
@@ -393,23 +393,23 @@ by rewrite !inE classG_eq1 nt_g mem_classes // (subsetP sPG).
 Qed.
 
 (* This is Isaacs, Theorem (3.11). *)
-Theorem dvd_irr1_cardG gT (G : {group gT}) i : dvdC ('chi[G]_i 1%g) #|G|%:R.
+Theorem dvd_irr1_cardG gT (G : {group gT}) i : ('chi[G]_i 1%g %| #|G|)%C.
 Proof.
-rewrite /dvdC -if_neg irr1_neq0 Cint_rat_algInt //=.
-  by rewrite Crat_div ?rpred_nat // rpred_Cnat ?isNatC_irr1.
-rewrite -(muln1 _ : #|G| * true = _)%N -(eqxx i) natrM.
-rewrite -first_orthogonality_relation mulVKf ?neq0GC //.
+rewrite unfold_in -if_neg irr1_neq0 Cint_rat_Aint //=.
+  by rewrite rpred_div ?rpred_nat // rpred_Cnat ?Cnat_irr1.
+rewrite -[n in n / _]/(_ *+ true) -(eqxx i) -mulr_natr.
+rewrite -first_orthogonality_relation mulVKf ?neq0CG //.
 rewrite sum_by_classes => [|x y Gx Gy]; rewrite -?conjVg ?cfunJ //.
 rewrite mulr_suml rpred_sum // => K /repr_classesP[Gx {1}->].
-by rewrite !mulrA mulrAC rpredM ?algInt_irr ?class_div_irr1_algInt.
+by rewrite !mulrA mulrAC rpredM ?Aint_irr ?Aint_class_div_irr1.
 Qed.
 
 (* This is Isaacs, Theorem (3.12). *)
 Theorem dvd_irr1_index_center gT (G : {group gT}) i :
-  dvdC ('chi[G]_i 1%g) #|G : 'Z('chi_i)%CF|%:R.
+  ('chi[G]_i 1%g %| #|G : 'Z('chi_i)%CF|)%C.
 Proof.
 without loss fful: gT G i / cfaithful 'chi_i.
-  rewrite -{1}[i](quo_IirrK _ (subxx _)) ?mod_IirrE ?cfModE ?cfker_normal //.
+  rewrite -{2}[i](quo_IirrK _ (subxx _)) ?mod_IirrE ?cfModE ?cfker_normal //.
   rewrite morph1; set i1 := quo_Iirr _ i => /(_ _ _ i1) IH.
   have fful_i1: cfaithful 'chi_i1.
     by rewrite quo_IirrE ?cfker_normal ?cfaithful_Quo.
@@ -433,19 +433,19 @@ have inj_lambda: {in 'Z(G) &, injective lambda}.
     by rewrite cfResE ?cfcenter_sub // groupM ?groupV.
   rewrite Dlambda !cfunE lin_charM ?groupV // -eq_xy -lin_charM ?groupV //.
   by rewrite mulrC mulVg lin_char1 ?mul1r.
-rewrite /dvdC -if_neg irr1_neq0 Cint_rat_algInt //.
-  by rewrite Crat_div ?rpred_nat // rpred_Cnat ?isNatC_irr1.
-rewrite (cfcenter_fful_irr fful) divgS_C ?center_sub //=.
+rewrite unfold_in -if_neg irr1_neq0 Cint_rat_Aint //.
+  by rewrite rpred_div ?rpred_nat // rpred_Cnat ?Cnat_irr1.
+rewrite (cfcenter_fful_irr fful) nCdivE natf_indexg ?center_sub //=.
 have ->: #|G|%:R = \sum_(x \in G) 'chi_i x * 'chi_i (x^-1)%g.
-  rewrite -[_%:R]mulr1; apply: canLR (mulVKf (neq0GC G)) _.
+  rewrite -[_%:R]mulr1; apply: canLR (mulVKf (neq0CG G)) _.
   by rewrite first_orthogonality_relation eqxx.
 rewrite (big_setID [set x | 'chi_i x == 0]) /= -setIdE.
 rewrite big1 ?add0r => [| x /setIdP[_ /eqP->]]; last by rewrite mul0r.
 pose h x := (x ^: G * 'Z(G))%g; rewrite (partition_big_imset h).
 rewrite !mulr_suml rpred_sum //= => _ /imsetP[x /setDP[Gx nz_chi_x] ->].
-have: #|x ^: G|%:R * ('chi_i x * 'chi_i x^-1%g) / 'chi_i 1%g \in algInt.
-  by rewrite !mulrA mulrAC rpredM ?algInt_irr ?class_div_irr1_algInt.
-congr 2 (_ * _ \in algInt); apply: canRL (mulfK (neq0GC _)) _.
+have: #|x ^: G|%:R * ('chi_i x * 'chi_i x^-1%g) / 'chi_i 1%g \in Aint.
+  by rewrite !mulrA mulrAC rpredM ?Aint_irr ?Aint_class_div_irr1.
+congr 2 (_ * _ \in Aint); apply: canRL (mulfK (neq0CG _)) _.
 rewrite inE in nz_chi_x.
 transitivity ('chi_i x * 'chi_i (x^-1)%g *+ #|h x|); last first.
   rewrite -sumr_const.
@@ -461,9 +461,8 @@ transitivity ('chi_i x * 'chi_i (x^-1)%g *+ #|h x|); last first.
       by rewrite conjMg -mulgA /(z ^ v)%g cGz // mulKg.
     exists ((x * z) ^ v)%g (z^-1 * z1)%g; rewrite ?mem_imset ?groupM ?groupV //.
     by rewrite conjMg -mulgA /(z ^ v)%g cGz // mulKg mulKVg.
-  rewrite !irr_inv DchiZ ?groupJ ?cfunJ // rmorphM mulrAC !mulrA mulrAC -!mulrA.
-  rewrite -!normCK normCK cfnorm_lin_char /= ?cfcenter_fful_irr // expr1n.
-  by rewrite mulr1.
+  rewrite !irr_inv DchiZ ?groupJ ?cfunJ // rmorphM mulrACA -!normCK -exprMn.
+  by rewrite (normC_lin_char lin_lambda) ?mulr1 //= cfcenter_fful_irr.
 rewrite mulrAC -natrM mulr_natl; congr (_ *+ _).
 symmetry; rewrite /h /mulg /= /set_mulg [in _ @2: (_, _)]unlock cardsE.
 rewrite -cardX card_in_image // => [] [y1 z1] [y2 z2] /=.
@@ -476,15 +475,14 @@ Qed.
 
 (* This is Isaacs, exercise (2.16). *)
 Lemma index_support_dvd_degree gT (G H : {group gT}) chi :
-    H \subset G -> is_char chi -> chi \in 'CF(G, H) ->
+    H \subset G -> chi \is a character -> chi \in 'CF(G, H) ->
     (H :==: 1%g) || abelian G ->
-  dvdNC #|G : H| (chi 1%g).
+  (#|G : H| %| chi 1%g)%C.
 Proof.
 move=> sHG Nchi Hchi ZHG.
-suffices: dvdNC #|G : H| ('Res[H] chi 1%g) by rewrite cfResE ?group1.
-rewrite ['Res _]cfun_sum_cfdot sum_cfunE.
-elim/big_ind: _ => [||i _]; [exact: dvdC0 | exact: dvdC_add | rewrite cfunE].
-rewrite dvdC_mulr ?isIntC_Nat ?isNatC_irr1 //.
+suffices: (#|G : H| %| 'Res[H] chi 1%g)%C by rewrite cfResE ?group1.
+rewrite ['Res _]cfun_sum_cfdot sum_cfunE rpred_sum // => i _.
+rewrite cfunE dvdC_mulr ?Cint_Cnat ?Cnat_irr1 //.
 have [j ->]: exists j, 'chi_i = 'Res 'chi[G]_j.
   case/predU1P: ZHG => [-> | cGG] in i *.
     suffices ->: i = 0 by exists 0; rewrite !chi0_1 cfRes_cfun1 ?sub1G.
@@ -505,8 +503,7 @@ have [j ->]: exists j, 'chi_i = 'Res 'chi[G]_j.
   apply: eq_bigr => _ /imageP[i _ ->]; rewrite -card_quotient ?normal_norm //.
   rewrite -card_Iirr_abelian ?quotient_abelian //.
   have Mlin j1 j2: exists k, 'chi_j1 * 'chi_j2 = 'chi[G]_k.
-    apply/irrP/lin_char_irr/andP.
-    by rewrite cfunE !linG1 mulr1 mul_char ?irr_char.
+    exact/irrP/lin_char_irr/rpredM.
   have /fin_all_exists[rQ DrQ] (j : Iirr (G / H)) := Mlin i (mod_Iirr j).
   have mulJi: ('chi[G]_i)^*%CF * 'chi_i = 1.
     apply/cfun_inP=> x Gx; rewrite !cfunE -lin_charV_conj ?linG // cfun1E Gx.
@@ -525,30 +522,29 @@ have [j ->]: exists j, 'chi_i = 'Res 'chi[G]_j.
     by rewrite -mulJi !cfunE -!(cfResE _ sHG Hx) eq_ij.
   rewrite -DrQ; apply/cfun_inP=> x Hx; rewrite !cfResE // cfunE mulrC.
   by rewrite cfker1 ?linG1 ?mul1r ?(subsetP _ x Hx) // mod_IirrE ?cfker_Mod.
-have: dvdNC #|G : H| (#|G : H|%:R * '[chi, 'chi_j]).
-  by rewrite dvdC_mulr ?isIntC_Nat ?cfdot_char_irr_Nat.
-congr (dvdNC _ _); rewrite (cfdotEl _ Hchi) -(Lagrange sHG) mulnC natrM.
-rewrite invfM -mulrA mulVKf ?neq0GiC //; congr (_ * _).
+have: (#|G : H| %| #|G : H|%:R * '[chi, 'chi_j])%C.
+  by rewrite dvdC_mulr ?Cint_Cnat ?Cnat_cfdot_char_irr.
+congr (_ %| _)%C; rewrite (cfdotEl _ Hchi) -(Lagrange sHG) mulnC natrM.
+rewrite invfM -mulrA mulVKf ?neq0CiG //; congr (_ * _).
 by apply: eq_bigr => x Hx; rewrite !cfResE.
 Qed.
 
 (* This is Isaacs, Theorem (3.13). *)
 Theorem faithful_degree_p_part gT (p : nat) (G P : {group gT}) i :
-    cfaithful 'chi[G]_i -> p.-nat (getNatC ('chi_i 1%g)) ->
+    cfaithful 'chi[G]_i -> p.-nat (truncC ('chi_i 1%g)) ->
     p.-Sylow(G) P -> abelian P ->
-  'chi_i 1%g = (#|G : 'Z(G)|`_p)%N%:R.
+  'chi_i 1%g = (#|G : 'Z(G)|`_p)%:R.
 Proof.
 have [p_pr | pr'p] := boolP (prime p); last first.
   have p'n n: (n > 0)%N -> p^'.-nat n.
     by move/p'natEpi->; rewrite mem_primes (negPf pr'p).
-  rewrite irr1_degree getNatC_nat => _ /pnat_1-> => [_ _|].
+  rewrite irr1_degree natCK => _ /pnat_1-> => [_ _|].
     by rewrite part_p'nat ?p'n.
   by rewrite p'n ?irr_degree_gt0.
 move=> fful_i /p_natP[a Dchi1] sylP cPP.
-have Dchi1C: 'chi_i 1%g = (p ^ a)%:R.
-  by rewrite -Dchi1 irr1_degree getNatC_nat.
+have Dchi1C: 'chi_i 1%g = (p ^ a)%:R by rewrite -Dchi1 irr1_degree natCK.
 have pa_dv_ZiG: (p ^ a %| #|G : 'Z(G)|)%N.
-  rewrite -dvdC_nat -Dchi1C -(cfcenter_fful_irr fful_i).
+  rewrite -dvdC_nat -[pa in (pa %| _)%C]Dchi1C -(cfcenter_fful_irr fful_i).
   exact: dvd_irr1_index_center.
 have [sPG pP p'PiG] := and3P sylP.
 have ZchiP: 'Res[P] 'chi_i \in 'CF(P, P :&: 'Z(G)).
@@ -560,7 +556,7 @@ have ZchiP: 'Res[P] 'chi_i \in 'CF(P, P :&: 'Z(G)).
   by rewrite sub_cent1 (subsetP cPP).
 have /andP[_ nZG] := center_normal G; have nZP := subset_trans sPG nZG.
 apply/eqP; rewrite Dchi1C eqr_nat eqn_dvd -{1}(pfactorK a p_pr) -p_part.
-rewrite partn_dvd //= -dvdC_nat -Dchi1C -card_quotient //=.
+rewrite partn_dvd //= -dvdC_nat -[pa in (_ %| pa)%C]Dchi1C -card_quotient //=.
 rewrite -(card_Hall (quotient_pHall nZP sylP)) card_quotient // -indexgI.
 rewrite -(cfResE _ sPG) // index_support_dvd_degree ?subsetIl ?cPP ?orbT //.
 by rewrite cfRes_char ?irr_char.

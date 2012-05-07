@@ -39,9 +39,9 @@ Implicit Types p q r : {poly R}.
 (* we restate poly_ivt in a nicer way. Perhaps the def of PolyRCF should *)
 (* be moved in this file, juste above this section                       *)
 
-Lemma poly_ivt : forall (p : {poly R}) (a b : R),
+Lemma poly_ivt (p : {poly R}) (a b : R) :
   a <= b -> 0 \in `[p.[a], p.[b]] -> { x : R | x \in `[a, b] & root p x }.
-Proof. exact: poly_ivt. Qed.
+Proof. by move=> leab root_p_ab; exact/sig2W/poly_ivt. Qed.
 
 Lemma polyrN0_itv (i : interval R) (p : {poly R}) : {in i, noroot p}
   -> forall y x : R, y \in i -> x \in i -> sgr p.[x] = sgr p.[y].
@@ -258,13 +258,12 @@ move=> -> _ p0 p'a0 qb0; case: (sgrP (q.[a] * q.[b])); first 2 last.
     by move=> x y z; rewrite mulrCA !mulrA [_ * y]mulrC mulrA.
   rewrite !fac -!mulrDl; set r := _ + _ + _.
   case: (@ivt_sign (sgr q.[b] *: r) a b); first exact: ltrW.
-    rewrite !hornerZ !sgrM sgr_id mulrCA !mulrA mulr_sg (rootPf qb0) mul1r.
-    rewrite /r !(subrr, mul0r, mulr0, addr0, add0r, hornerC, hornerXsubC,
+    rewrite !hornerZ !sgr_smul mulrACA -expr2 sqr_sg (rootPf qb0) mul1r.
+    rewrite !(subrr, mul0r, mulr0, addr0, add0r, hornerC, hornerXsubC,
       hornerD, hornerN, hornerM, hornerMn).
     rewrite [_ * _%:R]mulrC -!mulrA !pmulrn !mulrzl !sgrMz -sgrM.
-    rewrite mulrAC mulrA -mulrA sgrM -opprB mulNr sgrN sgrM mulr_sg.
-    rewrite subr_eq0 gtr_eqF // mulN1r.
-    by apply/eqP; rewrite eqr_opp sgr_cp0 mulrC.
+    rewrite mulrAC mulrA -mulrA sgrM -opprB mulNr sgrN sgrM.
+    by rewrite !gtr0_sg ?subr_gt0 ?mulr1 // mulrC.
 move=> c lacb; rewrite rootE hornerZ mulf_eq0.
 rewrite sgr_cp0 (rootPf qb0) orFb=> rc0.
 by exists c=> //; rewrite !hornerM !mulf_eq0 rc0.
@@ -434,7 +433,7 @@ Qed.
 
 Fact sgp x : sgr p.[x] = sp'c * sgr q.[x].
 Proof.
-by rewrite hornerZ sgrM sgr_id mulrA mulr_sg derp_neq0 ?mul1r.
+by rewrite hornerZ sgr_smul mulrA -expr2 sqr_sg derp_neq0 ?mul1r.
 Qed.
 
 Fact hsgp x : 0 < q.[x] -> sgr p.[x] = sp'c.
@@ -452,7 +451,7 @@ Qed.
 Lemma derspr : sgr p.[a] = sp'c -> forall x, x \in `[a, b] -> sgr p.[x] = sp'c.
 Proof.
 move=> spa x hx; rewrite hsgp // (@derppr _ a b) //; first exact: derq_pos.
-by rewrite -sgr_cp0 hornerZ sgrM sgr_id spa mulr_sg derp_neq0.
+by rewrite -sgr_cp0 hornerZ sgrM sgr_id spa -expr2 sqr_sg derp_neq0.
 Qed.
 
 Lemma ders0l : p.[b] = 0 -> forall x, x \in `[a, b[ -> sgr p.[x] = -sp'c.
@@ -464,7 +463,7 @@ Qed.
 Lemma derspl : sgr p.[b] = -sp'c -> forall x, x \in `[a, b] -> sgr p.[x] = -sp'c.
 Proof.
 move=> spb x hx; rewrite hsgpN // (@derpnl _ a b) //; first exact: derq_pos.
-by rewrite -sgr_cp0 hornerZ sgrM sgr_id spb mulrN mulr_sg derp_neq0.
+by rewrite -sgr_cp0 hornerZ sgr_smul spb mulrN -expr2 sqr_sg derp_neq0.
 Qed.
 
 End NoRoot_sg.
@@ -1567,7 +1566,7 @@ Proof.
 move=> p x np0; case: (@neighpr_wit p x (1 + x))=> [||m hpq] //.
   by rewrite ltr_spaddl ?ltr01.
 rewrite -(@sgr_neighpr (1 + x) _ _ m) //.
-by rewrite mulr_sg (@next_noroot _ x (1 + x)).
+by rewrite -expr2 sqr_sg (@next_noroot _ x (1 + x)).
 Qed.
 
 Lemma sgp_right_rec p x : sgp_right p x =

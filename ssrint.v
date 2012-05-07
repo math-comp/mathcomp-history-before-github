@@ -7,7 +7,7 @@ Import GRing.Theory Num.Theory.
 (* This file develops a basic theory of signed integers, defining:            *)
 (*         int == the type of signed integers, with two constructors Posz for *)
 (*                non-negative integers and Negz for negative integers. It    *)
-(*                supports the realIdomainType interface (and its parents).   *)
+(*                supports the realDomainType interface (and its parents).   *)
 (*        n%:Z == explicit cast from nat to int (:= Posz n); displayed as n.  *)
 (*                However (Posz m = Posz n) is displayed as (m = n :> int)    *)
 (*                (and so are ==, != and <>)                                  *)
@@ -425,14 +425,15 @@ Proof.
 by move: x y=> [] x [] y //=; rewrite (ltn_neqAle, leq_eqVlt) // eq_sym.
 Qed.
 
-Definition Mixin := NumMixin lez_norm_add ltz_add eq0_normz
-   (fun x y _ _ => lez_total x y) normzM lez_def ltz_def.
+Definition Mixin :=
+   NumMixin lez_norm_add ltz_add eq0_normz (in2W lez_total) normzM
+            lez_def ltz_def.
 
 End intOrdered.
 End intOrdered.
 
-Canonical int_numIdomainType := NumIdomainType int intOrdered.Mixin.
-Canonical int_realIdomainType := RealIdomainType int (intOrdered.lez_total 0).
+Canonical int_numDomainType := NumDomainType int intOrdered.Mixin.
+Canonical int_realDomainType := RealDomainType int (intOrdered.lez_total 0).
 
 Section intOrderedTheory.
 
@@ -783,7 +784,7 @@ Section NumMorphism.
 
 Section PO.
 
-Variables (R : numIdomainType).
+Variables (R : numDomainType).
 
 Implicit Types n m : int.
 Implicit Types x y : R.
@@ -1346,7 +1347,7 @@ Local Notation sgr := Num.sg.
 
 Section Sgz.
 
-Variable R : realIdomainType.
+Variable R : numDomainType.
 Implicit Types x y z : R.
 Implicit Types m n p : int.
 Local Coercion Posz : nat >-> int.
@@ -1356,26 +1357,60 @@ Definition sgz x : int := if x == 0 then 0 else if x < 0 then -1 else 1.
 Lemma sgz_def x : sgz x = (-1) ^+ (x < 0)%R *+ (x != 0).
 Proof. by rewrite /sgz; case: (_ == _); case: (_ < _). Qed.
 
-Lemma sgrEz x : sgr x = (sgz x)%:~R.
-Proof. by rewrite /sgz /sgr /=; case: (_ == _)=> //; case: ltrP. Qed.
-
-Lemma sgz_cp0 x :
-  ((sgz x == 1) = (0 < x)) *
-  ((sgz x == -1) = (x < 0)) *
-  ((sgz x == 0) = (x == 0)).
-Proof. by rewrite /sgz; case: ltrgtP. Qed.
+Lemma sgrEz x : sgr x = (sgz x)%:~R. Proof. by rewrite !(fun_if intr). Qed.
 
 Lemma gtr0_sgz x : 0 < x -> sgz x = 1.
-Proof. by move=> hx; apply/eqP; rewrite sgz_cp0. Qed.
+Proof. by move=> x_gt0; rewrite /sgz ltr_neqAle andbC eqr_le ltr_geF //. Qed.
 
 Lemma ltr0_sgz x : x < 0 -> sgz x = -1.
-Proof. by move=> hx; apply/eqP; rewrite sgz_cp0. Qed.
+Proof. by move=> x_lt0; rewrite /sgz eq_sym eqr_le x_lt0 ltr_geF. Qed.
 
 Lemma sgz0 : sgz (0 : R) = 0. Proof. by rewrite /sgz eqxx. Qed.
 Lemma sgz1 : sgz (1 : R) = 1. Proof. by rewrite gtr0_sgz // ltr01. Qed.
 Lemma sgzN1 : sgz (-1 : R) = -1. Proof. by rewrite ltr0_sgz // ltrN10. Qed.
 
 Definition sgzE := (sgz0, sgz1, sgzN1).
+
+Lemma sgz_sgr x : sgz (sgr x) = sgz x.
+Proof. by rewrite !(fun_if sgz) !sgzE. Qed.
+
+Lemma normr_sgz x : `|sgz x| = (x != 0).
+Proof. by rewrite sgz_def -mulr_natr normrMsign normr_nat natz. Qed.
+
+Lemma normr_sg x : `|sgr x| = (x != 0)%:~R.
+Proof. by rewrite sgr_def -mulr_natr normrMsign normr_nat. Qed.
+
+End Sgz.
+
+Section MoreSgz.
+
+Variable R : numDomainType.
+
+Lemma sgz_int m : sgz (m%:~R : R) = sgz m.
+Proof. by rewrite /sgz intr_eq0 ltrz0. Qed.
+
+Lemma sgrz (n : int) : sgr n = sgz n. Proof. by rewrite sgrEz intz. Qed.
+
+Lemma sgr_int m : sgr (m%:~R : R) = (sgr m)%:~R.
+Proof. by rewrite sgrEz sgz_int sgrz. Qed.
+
+Lemma sgz_id (x : R) : sgz (sgz x) = sgz x.
+Proof. by rewrite !(fun_if (@sgz _)). Qed.
+
+End MoreSgz.
+
+Section SgzReal.
+
+Variable R : realDomainType.
+Implicit Types x y z : R.
+Implicit Types m n p : int.
+Local Coercion Posz : nat >-> int.
+
+Lemma sgz_cp0 x :
+  ((sgz x == 1) = (0 < x)) *
+  ((sgz x == -1) = (x < 0)) *
+  ((sgz x == 0) = (x == 0)).
+Proof. by rewrite /sgz; case: ltrgtP. Qed.
 
 CoInductive sgz_val x : bool -> bool -> bool -> bool -> bool -> bool
   -> bool -> bool -> bool -> bool -> bool -> bool
@@ -1399,7 +1434,7 @@ rewrite ![_ == sgz _]eq_sym ![_ == sgr _]eq_sym !sgr_cp0 !sgz_cp0.
 by rewrite /sgr /sgz !lerNgt; case: ltrgt0P; constructor.
 Qed.
 
-Lemma sgzN x : sgz (-x) = - sgz x.
+Lemma sgzN x : sgz (- x) = - sgz x.
 Proof. by rewrite /sgz oppr_eq0 oppr_lt0; case: ltrgtP. Qed.
 
 Lemma mulz_sg x : sgz x * sgz x = (x != 0)%:~R.
@@ -1430,13 +1465,13 @@ by apply/eqP; rewrite mulN1r opprK sgz_cp0 nmulr_rgt0.
 Qed.
 
 Lemma sgzX (n : nat) x : sgz (x ^+ n) = (sgz x) ^+ n.
-Proof. by elim: n => [|n ihn]; rewrite ?sgz1 // !exprS sgzM ihn. Qed.
+Proof. by elim: n => [|n IHn]; rewrite ?sgz1 // !exprS sgzM IHn. Qed.
 
 Lemma sgz_eq0 x : (sgz x == 0) = (x == 0).
 Proof. by rewrite sgz_cp0. Qed.
 
 Lemma sgz_odd (n : nat) x : x != 0 -> (sgz x) ^+ n = (sgz x) ^+ (odd n).
-Proof. by case: sgzP=> //=; rewrite ?expr1n // signr_odd. Qed.
+Proof. by case: sgzP => //=; rewrite ?expr1n // signr_odd. Qed.
 
 Lemma sgz_gt0 x : (sgz x > 0) = (x > 0).
 Proof. by case: sgzP. Qed.
@@ -1450,57 +1485,20 @@ Proof. by case: sgzP. Qed.
 Lemma sgz_le0 x : (sgz x <= 0) = (x <= 0).
 Proof. by case: sgzP. Qed.
 
-End Sgz.
-
-Lemma sgrz (n : int) : sgr n = sgz n. Proof. by rewrite sgrEz intz. Qed.
-
-Lemma sgz_eq (R R' : realIdomainType) (x : R) (y : R') :
-  (sgz x == sgz y) = ((x == 0) == (y == 0)) && ((0 < x) == (0 < y)).
-Proof. by do 2!case: sgzP. Qed.
-
-Lemma intr_sign (R : unitRingType) (s : bool) : ((-1) ^+ s)%:~R = (-1) ^+ s :> R.
-Proof. by case: s. Qed.
-
-Section SgzIdomain.
-
-Variable R : realIdomainType.
-Implicit Types x y z : R.
-Implicit Types m n p : int.
-Local Coercion Posz : nat >-> int.
-
-Lemma sgz_id x : sgz (sgz x) = sgz x. Proof. by case: (sgzP x). Qed.
-
-Lemma sgz_sgr x : sgz (sgr x) = sgz x.
-Proof.
-rewrite sgrEz.
-by case: (sgzP x); rewrite (mulr0z, mulr1z, mulrN1z) (sgz0, sgz1, sgzN1).
-Qed.
-
 Lemma sgz_smul x y : sgz (y *~ (sgz x)) = (sgz x) * (sgz y).
 Proof. by rewrite -mulrzl sgzM -sgrEz sgz_sgr. Qed.
-
-Lemma sgz_int m : sgz (m%:~R : R) = sgz m.
-Proof. by apply/eqP; rewrite sgz_eq ?intr_eq0 ?ltr0z !eqxx. Qed.
-
-Lemma sgr_int m : sgr (m%:~R : R) = (sgr m)%:~R.
-Proof. by rewrite sgrEz sgz_int -sgrz. Qed.
-
-Lemma normr_int m : `|m%:~R| = `|m|%:~R :> R.
-Proof. by rewrite !normrEsg sgr_int rmorphM. Qed.
 
 Lemma sgrMz m x : sgr (x *~ m) = sgr x *~ sgr m.
 Proof. by rewrite -mulrzr sgrM sgr_int mulrzr. Qed.
 
-Lemma normr_sgz x : `|sgz x| = (x != 0).
-Proof. by case: sgzP. Qed.
+End SgzReal.
 
-Lemma normr_sg x :  `|sgr x| = (x != 0)%:~R.
-Proof. by rewrite sgrEz normr_int normr_sgz. Qed.
+Lemma sgz_eq (R R' : realDomainType) (x : R) (y : R') :
+  (sgz x == sgz y) = ((x == 0) == (y == 0)) && ((0 < x) == (0 < y)).
+Proof. by do 2!case: sgzP. Qed.
 
-Lemma normrMz m x : `|x *~ m| = `|x| *~ `|m|.
-Proof. by rewrite -mulrzl normrM normr_int mulrzl. Qed.
-
-End SgzIdomain.
+Lemma intr_sign (R : ringType) s : ((-1) ^+ s)%:~R = (-1) ^+ s :> R.
+Proof. exact: rmorph_sign. (* sic! GG *) Qed.
 
 Section Absz.
 
@@ -1662,7 +1660,18 @@ End Distn.
 
 End IntDist.
 
-(* Todo : div theory of int *)
+Section NormInt.
+
+Variable R : numDomainType.
+
+Lemma normr_int m : `|m%:~R| = `|m|%:~R :> R.
+Proof. by rewrite {1}[m]intEsign rmorphMsign normrMsign abszE normr_nat. Qed.
+
+Lemma normrMz m (x : R) : `|x *~ m| = `|x| *~ `|m|.
+Proof. by rewrite -mulrzl normrM normr_int mulrzl. Qed.
+
+End NormInt.
+
 Section PolyZintRing.
 
 Variable R : ringType.
@@ -1693,7 +1702,7 @@ End PolyZintRing.
 
 Section PolyZintOIdom.
 
-Variable R : realIdomainType.
+Variable R : realDomainType.
 
 Lemma mulpz (p : {poly R}) (n : int) : p *~ n = n%:~R *: p.
 Proof. by rewrite -[p *~ n]mulrzl -mul_polyC polyC_mulrz polyC1. Qed.

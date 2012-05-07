@@ -5,6 +5,7 @@ Require Import fingroup morphism perm automorphism quotient action zmodp.
 Require Import matrix mxalgebra mxrepresentation cyclic.
 Require Import vector falgebra fieldext ssrnum algC rat algnum.
 Require Import classfun character inertia integral_char vcharacter.
+Require ssrint.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -221,7 +222,7 @@ Proof.
 move=> Hf H2f Hf1 H2f1.
 have [j [i neq_ij ->]] := vchar_norm2 Hf H2f.
 have [j' [k neq_kj' ->]] := vchar_norm2 Hf1 H2f1.
-rewrite cfdot_subl !cfdot_subr !cfdot_irr opprB addrAC !addrA.
+rewrite cfdotBl !cfdotBr !cfdot_irr opprB addrAC !addrA.
 do 2!move/(canRL (subrK _)); rewrite -(natrD _ 1) -!natrD => /eqP.
 rewrite eqr_nat; have [eq_jj' | neq_jj'] := altP (j =P j').
   rewrite (eq_sym j) -eq_jj' {1}eq_jj' (negbTE neq_ij) (negbTE neq_kj').
@@ -242,12 +243,12 @@ Proof.
 move=> /= Hjk; wlog ->: eps n m / eps = false.
   case: eps; last exact; move/(_ false m n)=> IH nm_ji nm_ki.
   by apply: IH; rewrite // -opprB cfdotNl (nm_ji, nm_ki) opprK.
-rewrite !cfdot_subl !cfdot_subr !cfdot_irr !opprB addrAC addrA.
+rewrite !cfdotBl !cfdotBr !cfdot_irr !opprB addrAC addrA.
 do 2!move/(canRL (subrK _)); rewrite -(natrD _ 1) -!natrD.
-move/(can_inj getNatC_nat); case: (m == i) => //.
+move/(can_inj natCK); case: (m == i) => //.
 case: eqP => // ->; case: (j == i) => // _.
 rewrite subr0 add0r => /(canRL (subrK _)); rewrite -(natrD _ 1).
-by move/(can_inj getNatC_nat); rewrite (negbTE Hjk).
+by move/(can_inj natCK); rewrite (negbTE Hjk).
 Qed.
 
 (* This is Peterfalvi (1.4). *)
@@ -275,14 +276,12 @@ have dot_chi i j: '[chi i, chi j] = (i == j)%:R.
 pose F i j := chi i - chi j.
 have DF i j : F i j =  F i 0 - F j 0 by rewrite /F opprB addrA subrK.
 have ZF i j: F i j \in 'Z[Chi, L].
-  rewrite zchar_split; apply/andP; split.
-    by apply: sub_zchar; apply: mem_zchar.
-  by rewrite DF memvB // /F !chiE.
+  by rewrite zchar_split rpredB ?mem_zchar // DF memvB // /F !chiE.
 have htau2 i j: i != j -> '[tau (F i j)] = 2%:R.
-  rewrite iso_tau // cfnorm_sub -cfdotC !dot_chi !eqxx eq_sym => /negbTE->.
+  rewrite iso_tau // cfnormB -cfdotC !dot_chi !eqxx eq_sym => /negbTE->.
   by rewrite -!natrD subr0.
 have htau1 i j: j != 0 -> j != i -> i != 0 -> '[tau (F i 0), tau (F j 0)] = 1.
-  rewrite iso_tau // cfdot_subl !cfdot_subr opprB !dot_chi !(eq_sym j).
+  rewrite iso_tau // cfdotBl !cfdotBr opprB !dot_chi !(eq_sym j).
   by do 3!move/negbTE->; rewrite !subr0 add0r.
 have [m0 | nz_m] := boolP (m == 0%N).
   rewrite -2!eqSS eq_sym in m0; move: (htau2 1 0 isT).
@@ -332,7 +331,7 @@ Lemma induced_sum_rcosets t : H <| G ->
 Proof.
 set T := 'I_G['chi_t] => nsHG; have [sHG nHG] := andP nsHG.
 apply/cfun_inP=> h Hh; rewrite cfResE ?cfIndE // cfunE sum_cfunE.
-apply: (canLR (mulKf (neq0GC H))).
+apply: (canLR (mulKf (neq0CG H))).
 rewrite mulrA -natrM Lagrange ?sub_inertia //= -/T -cfclass_sum //=.
 rewrite mulr_sumr [s in _ = s]big_mkcond /= (reindex_inj invg_inj).
 rewrite (partition_big (conjg_Iirr t) xpredT) //=; apply: eq_bigr => i _.
@@ -467,9 +466,9 @@ apply/cfun_inP=> /= _  /morphimP[g Ng Gg ->]; rewrite cfQuoE //.
 have [Hg | notHg] := boolP (g \in H); last first.
   rewrite !(cfun_on0 (cfInd_normal _ _)) //.
   by rewrite -(quotientGK AnH) !(Ng, inE) in notHg.
-rewrite !cfIndE ?quotientS //; apply: (canRL (mulKf (neq0GC H))).
+rewrite !cfIndE ?quotientS //; apply: (canRL (mulKf (neq0CG H))).
 rewrite -(Lagrange AsH) natrM mulrA -card_quotient ?normal_norm //.
-rewrite (mulfK (neq0GC _)) mulr_sumr.
+rewrite (mulfK (neq0CG _)) mulr_sumr.
 rewrite (partition_big _  _ (fun x => (mem_quotient A) x G)) /=.
 apply: eq_bigr => _ /morphimP[x Nx Gx ->].
 rewrite -morphJ // cfQuoE ?memJ_norm ?(subsetP nHG) //.
@@ -570,47 +569,40 @@ move => y Hy;rewrite cfResE ?cfunJgen ?genGid //.
 by rewrite memJ_norm //; apply/(subsetP nHT).
 Qed.
 
-Lemma I_K_lpsi i1 i: i1 \in irr_constt('Ind[T] 'chi_t)->
-                  i \in irr_constt('Ind[T] 'chi_t)->  
-           exists2 l, (H \subset cfker 'chi_l) & ('chi_l * 'chi_i1 = 'chi_i).
+Lemma I_K_lpsi i1 i:
+    i1 \in irr_constt ('Ind[T] 'chi_t) -> i \in irr_constt ('Ind[T] 'chi_t) ->  
+  exists2 l, H \subset cfker 'chi_l & 'chi_l * 'chi_i1 = 'chi_i.
+Proof.
 move=> Hi1 Hi.
-have cRes:(is_char ('Res[H] 'chi_i)) by rewrite cfRes_char // irr_char.
-have t_comp: forall (i: Iirr T), 
-        i \in irr_constt ('Ind[T] 'chi_t) -> '['Res[H] 'chi_i, 'chi_t] != 0.
-  by move=> j Hj; rewrite -irr_consttE -constt_Ind_constt_Res. 
-have irr_lpsi: forall (l: Iirr T) i ,  
-     H \subset cfker 'chi_l ->('chi_l * 'chi_i) \in (irr T).
-  move=> l j Hl; set psii := 'chi_j; rewrite irr_char1E mul_char ?irr_char //=.
+have cRes j: 'Res[H, T] 'chi_j \is a character by rewrite cfRes_char ?irr_char.
+have t_comp j: j \in irr_constt ('Ind[T] 'chi_t) -> '['Res 'chi_j, 'chi_t] != 0.
+  by move=> Hj; rewrite -irr_consttE -constt_Ind_constt_Res. 
+have irr_lpsi l j: H \subset cfker 'chi_l -> 'chi_l * 'chi_j \in irr T.
+  set psii := 'chi_j => Hl; rewrite irr_char1E rpredM ?irr_char //=.
   apply/eqP; rewrite -(cfnorm_irr j) -/psii; congr (_ * _).
   apply/eq_bigr=> x Hx; rewrite !cfunE rmorphM mulrACA /= -!normCK.
-  rewrite [`|_|]cfnorm_lin_char ?expr1n ?mul1r //.
-  by rewrite /lin_char irr_char inertia_ker_1 /=.
-have H1:  i \in irr_constt ('Ind[T] ('Res[H] 'chi_i1)).
-  move:(t_comp i1 Hi1); move/constt_charP=> Hconstt.
-  case:Hconstt =>[| x Hx He]; first by rewrite cfRes_char // irr_char.
-  have: 'Ind[T] ('Res[H] 'chi_i1)  = 'Ind[T] 'chi_t + 'Ind[T] x.
+  rewrite [`|_|]normC_lin_char ?expr1n ?mul1r //.
+  by rewrite qualifE irr_char inertia_ker_1 /=.
+have H1: i \in irr_constt ('Ind[T] ('Res[H] 'chi_i1)).
+  have /constt_charP[//|x Hx He] := t_comp i1 Hi1.
+  have: 'Ind[T] ('Res[H] 'chi_i1) = 'Ind[T] 'chi_t + 'Ind[T] x.
     by rewrite He linearD.
-  case/constt_charP:Hi; first by rewrite cfInd_char// irr_char.
-  move=> u Hu -> H1; apply/constt_charP.
-    by rewrite cfInd_char // cfRes_char // irr_char.
-  by exists (u + 'Ind[T] x);rewrite ?add_char ?cfInd_char // H1 addrA.
-  case: (boolP (forallb l : Iirr T, 
-    (H \subset cfker 'chi_l)==>('['chi_l * 'chi_i1, 'chi_i] == 0)));last first.
-  rewrite negb_forall_in; move/existsP=> [l /andP [Hl1 Hl2]].
-  exists l; first by rewrite Hl1.
-  move/irrP: (irr_lpsi  l i1 Hl1);case=> i2 Hi2.
-  move: Hl2; rewrite Hi2 cfdot_irr.
-  case:(boolP (i2 == i)); first by move/eqP ->.
-  by rewrite pnatr_eq0.
-move/forallP=> HH1;move: H1; rewrite irr_consttE I_K_sum_IndRes // cfdot_suml big1.
-  by rewrite ?eqxx.
-by move=> i0 Hi0; move: (HH1 i0); rewrite Hi0 /=; move/eqP.
+  have /constt_charP[|u Hu -> H1] := Hi; first by rewrite cfInd_char ?irr_char.
+  apply/constt_charP; first exact: cfInd_char.
+  by exists (u + 'Ind[T] x); rewrite ?rpredD ?cfInd_char // H1 addrA.
+have: existsb l, (H \subset cfker 'chi_l) && ('['chi_l * 'chi_i1, 'chi_i] != 0).
+  rewrite -negb_forall_in; apply: contraL H1 => /forall_inP HH1.
+  rewrite irr_consttE negbK I_K_sum_IndRes // cfdot_suml.
+  by rewrite big1 // => i0 /HH1/eqP.
+case/exists_inP=> l Hl1 Hl2; exists l => //; apply: contraNeq Hl2.
+have /irrP[i2 ->] := irr_lpsi l i1 Hl1.
+by rewrite cfdot_irr (inj_eq chi_inj) => /negPf->.
 Qed.
 
 Lemma Ind_inertia_dot i j:
-            i \in irr_constt ('Ind[T] 'chi_t) -> 
-            j \in irr_constt ('Ind[T] 'chi_t) -> 
-            '['Ind[T] 'chi_t, 'chi_i] = '['Ind[T] 'chi_t, 'chi_j].
+    i \in irr_constt ('Ind[T] 'chi_t) -> j \in irr_constt ('Ind[T] 'chi_t) -> 
+  '['Ind[T] 'chi_t, 'chi_i] = '['Ind[T] 'chi_t, 'chi_j].
+Proof.
 move=> Hi Hj.
 have lpsi_dot i1 :
        forall (l : Iirr T),   H \subset cfker 'chi_l -> 
@@ -618,9 +610,9 @@ have lpsi_dot i1 :
   move=> l  Hl /=; rewrite -cfdot_Res_r /cfdot; congr (_ * _).
   apply:eq_bigr=> x Hx; congr (_ * _); apply:(inv_inj conjCK);rewrite !conjCK.
   by rewrite !cfResE ?sub_inertia // cfunE inertia_ker_1 // mul1r.
-case:(I_K_lpsi Hi Hi) => li Hli <-.
-case:(I_K_lpsi Hi Hj)=> lj Hlj <-.
-  by rewrite !lpsi_dot  -?cfdot_Res_r.
+case: (I_K_lpsi Hi Hi) => li Hli <-.
+case: (I_K_lpsi Hi Hj)=> lj Hlj <-.
+by rewrite !lpsi_dot -?cfdot_Res_r.
 Qed.
 
 (* This is Peterfalvi (1.7b). *)
@@ -634,9 +626,9 @@ Qed.
 Proof.
 have HNT: H <| T by apply:(@normalS _ G T H);rewrite ?sub_inertia ?inertia_sub.
 have [sHT nHT] := andP HNT; have [sHG nHG] := andP HnG.
-have eiN: forall i, (isNatC '['Ind[T] 'chi_t, 'chi_i]).
-  by move=> i; apply:cfdot_char_irr_Nat; rewrite cfInd_char ?irr_char.
-case: ( neq0_has_constt (Ind_irr_neq0 t sHT)) => i1 Hi1.
+have eiN i: '['Ind[T] 'chi_t, 'chi_i] \in Cnat.
+  by rewrite Cnat_cfdot_char_irr ?cfInd_char ?irr_char.
+case: (neq0_has_constt (Ind_irr_neq0 t sHT)) => i1 Hi1.
 pose e1:= '['Ind[T] 'chi_t, 'chi_i1].
 pose psi := 'chi_i1.
 exists e1=>/=;rewrite IndGT_chi.
@@ -646,25 +638,28 @@ have He: 'Ind[T] 'chi_t = e1*: \sum_(i \in irr_constt ('Ind[T] 'chi_t)) 'chi_i.
   rewrite {1}(cfun_sum_constt ('Ind[T] 'chi_t)) scaler_sumr.
   by apply : eq_bigr =>  i Hi;congr (_ *: _); rewrite Hdot.
 have HIGT: 'Ind[G] ('Ind[T] 'chi_t) =
-e1 *: (\sum_(i \in irr_constt ('Ind['I_G['chi_t]] 'chi_t)) 'Ind[G] 'chi_i).
+  e1 *: (\sum_(i \in irr_constt ('Ind['I_G['chi_t]] 'chi_t)) 'Ind[G] 'chi_i).
   by rewrite /= {1}He linearZ  linear_sum.
 split=> //.
 have Res_psi: 'Res[H] psi = e1 *:'chi_t.
   rewrite constt_Ind_constt_Res in Hi1.
   rewrite /psi (Clifford_Res_sum_cfclass HNT Hi1) cfclass_inertia.
   congr (_ *:_); last by rewrite big_cons big_nil addr0. 
-  by rewrite /e1 cfdot_Res_l cfdotC isNatC_conj.
+  by rewrite /e1 cfdot_Res_l cfdotC aut_Cnat.
 have Hpsi_1 i: i \in irr_constt('Ind[T] 'chi_t)-> 'chi_i 1%g = e1*('chi_t 1%g).
-  move=> Hi; case:(I_K_lpsi Hi1 Hi)=>l Hl <-; rewrite cfunE inertia_ker_1 // mul1r.
+  move=> Hi; case:(I_K_lpsi Hi1 Hi)=>l Hl <-.
+  rewrite cfunE inertia_ker_1 // mul1r.
   by rewrite -(cfResE psi sHT (group1 H)) Res_psi cfunE.
 have He1: 'Ind[T] 'chi_t 1%g = 
        #|irr_constt ('Ind['I_G['chi_t]] 'chi_t)|%:R * e1 ^+ 2 * 'chi_t 1%g. 
   rewrite {1}He cfunE sum_cfunE (eq_bigr (fun _ => e1 * ('chi_t 1%g))) //.
   rewrite sumr_const expr2 (mulrC _ (e1 * e1)) -!(mulrA e1); congr (_ * _).
   by rewrite -mulr_natr -mulrA;congr (_ * _); rewrite mulrC.
-have: ('Ind[T] ('Res[H] psi))  1%g =
-     (\sum_(l | H \subset cfker 'chi_l) ('chi_l * psi)) 1%g by rewrite I_K_sum_IndRes.
-rewrite sum_cfunE (inertia_ker_sum 1%g) // Res_psi linearZ cfunE He1 group1 mulr1  Hpsi_1 //.
+have: ('Ind[T] ('Res[H] psi)) 1%g =
+     (\sum_(l | H \subset cfker 'chi_l) ('chi_l * psi)) 1%g.
+   by rewrite I_K_sum_IndRes.
+rewrite sum_cfunE (inertia_ker_sum 1%g) //.
+rewrite Res_psi linearZ cfunE He1 group1 mulr1  Hpsi_1 //.
 rewrite (mulrA  #|T : H|%:R e1) (mulrC _ e1) -(mulrA e1  #|T : H|%:R) => H2.
 split; last by move=> i Hi; rewrite cfInd1 ?inertia_sub ?Hpsi_1 ?mulrA.
 apply:(@mulfI _ ('chi_t 1%g)); rewrite ?irr1_neq0 // !(mulrC ('chi_t 1%g)).
@@ -683,20 +678,17 @@ Qed.
 
 Definition cfRepr_det  rG := Cfun 0 (@cfRepr_det_subproof  rG).
 
-
-
-Goal  forall  (rG:  mx_representation algCF G 1%N), 
- lin_char (cfRepr_det rG).
+Goal forall (rG : mx_representation algCF G 1%N), 
+   cfRepr_det rG \is a linear_char.
 Proof.
-move =>  rG; apply/andP; split; last by rewrite cfunE group1 repr_mx1 det1.
-apply/is_charP.  
+move=>  rG; apply/andP; split; last by rewrite cfunE group1 repr_mx1 det1.
+apply/char_reprP.  
 have rGyP: mx_repr G (fun x =>  (\det (rG x) *+ (x \in G))%:M:'M_1).
   split=> [|x1 x2 Hx1 Hx2]; first by rewrite group1 repr_mx1 det1 ?groupM.   
   rewrite  !repr_mxM ?groupM  ?det_mulmx /= ?Hx1 ?Hx2 //=.
   by rewrite !mulr1n scalar_mxM.
-exists (Representation (MxRepresentation rGyP) )=> //=.
-apply/cfunP=> x;rewrite !cfunE  mxtrace_scalar mulr1n.
-by case:(boolP (x \in G)); rewrite ?mulr1n.
+exists (Representation (MxRepresentation rGyP)) => //=.
+by apply/cfunP=> x;rewrite !cfunE mxtrace_scalar mulr1n -mulrnA mulnb andbb.
 Qed.
 
 (* This is Peterfalvi (1.7c). *)
@@ -773,10 +765,10 @@ have I1B: 'chi_i1 1%g ^+ 2 <= #|C : D|%:R.
   rewrite mulnA mulnAC Lagrange ?quotientS //.
   rewrite mulnC leq_pmul2l ?cardG_gt0 // subset_leq_card //.
   exact: subset_trans QsZ ZsC.
-have IC': is_char ('Ind[G] 'chi_i1) := cfInd_char G (irr_char i1).
+have IC': 'Ind[G] 'chi_i1 \is a character := cfInd_char G (irr_char i1).
 move: (char1_ge_constt IC' CIr); rewrite cfInd1 //= => /ler_trans-> //.
-have chi1_1_ge0: 0 <= 'chi_i1 1%g by rewrite ltrW ?ltC_irr1.
-rewrite ler_pmul2l ?sposGiC //.
+have chi1_1_ge0: 0 <= 'chi_i1 1%g by rewrite ltrW ?irr1_gt0.
+rewrite ler_pmul2l ?gt0CiG //.
 by rewrite -(@ler_pexpn2r _ 2) -?topredE /= ?sqrtC_ge0 ?ler0n ?sqrtCK.
 Qed.
 
@@ -829,7 +821,7 @@ have [Qa [QaC _ [w_a genQa memQa]]] := group_num_field_exists [group of Zp a].
 have [Qb [QbC _ [w_b genQb memQb]]] := group_num_field_exists [group of Zp b].
 rewrite !card_Zp ?part_gt0 // in Qa QaC w_a genQa memQa Qb QbC w_b genQb memQb.
 have [nu nuQa nuQb] := extend_coprime_Qn_aut QaC QbC mu co_a_b genQa genQb.
-exists nu => chi x Zchi Gx; without loss{Zchi} Nchi: chi / is_char chi.
+exists nu => chi x Zchi Gx; without loss{Zchi} Nchi: chi / chi \is a character.
   move=> IH; case/vcharP: Zchi => [c1 /IH [Dc1a Dc1b] [c2 /IH [Dc2a Dc2b] ->]].
   rewrite !cfunE rmorphB in Dc1a Dc1b Dc2a Dc2b *.
   by split=> Dx; rewrite ?(Dc1a Dx, Dc2a Dx) ?(Dc1b Dx, Dc2b Dx).
@@ -839,7 +831,7 @@ split=> [x_dv_a | co_x_a].
   rewrite -!(cfResE chi sxG) ?cycle_id ?mem_cycle //.
   rewrite ['Res _]cfun_sum_cfdot !sum_cfunE rmorph_sum; apply: eq_bigr => i _.
   have chiX := lin_charX (char_abelianP _ (cycle_abelian x) i) _ (cycle_id x).
-  rewrite !cfunE rmorphM rmorph_NatC ?cfdot_char_irr_Nat ?cfRes_char //.
+  rewrite !cfunE rmorphM aut_Cnat ?Cnat_cfdot_char_irr ?cfRes_char //.
   by congr (_ * _); rewrite Dmu -chiX // (eqP x_dv_a) (chiX 0%N).
 have x_dv_b: (#[x] %| b)%N.
   rewrite coprime_sym coprime_pi' // in co_x_a.
@@ -848,6 +840,7 @@ by have [xb Dx] := memQb _ _ _ Nchi x x_dv_b; rewrite cfunE -Dx nuQb.
 Qed.
 
 Section ANT.
+Import ssrint.
 
 (* This section covers Peterfalvi (1.10). *)
 (* We have simplified the statement somewhat by substituting the global ring  *)
@@ -873,36 +866,34 @@ suffices{chi Zchi} IHiX i: ('chi[X]_i (x * y)%g == 'chi_i y %[mod e])%A.
   have [c Zc ->] := (zchar_expansion irr_free (cfRes_vchar X Zchi)).
   rewrite !sum_cfunE /eqAmod -sumrB big_seq rpred_sum // => _  /irrP[i ->].
   by rewrite !cfunE [(_ %| _)%A]eqAmodMl // rpred_Cint.
-have lin_chi: lin_char 'chi_i.
+have lin_chi: 'chi_i \is a linear_char.
   apply/char_abelianP; rewrite -[gval X]joing_idl -joing_idr abelianY.
   by rewrite !cycle_abelian cycle_subG /= cent_cycle.
-rewrite lin_charM // -{2}['chi_i y]mul1r eqAmodMr ?algInt_irr //.
+rewrite lin_charM // -{2}['chi_i y]mul1r eqAmodMr ?Aint_irr //.
 have [|k ->] := (prim_rootP pr_eps) ('chi_i x).
   by rewrite -lin_charX // -ox expg_order lin_char1.
 rewrite -[_ ^+ k](subrK 1) subrX1 -[_ - 1]opprB mulNr -mulrN mulrC.
 rewrite eqAmod_addl_mul // rpredN rpred_sum // => n _.
-by rewrite rpredX ?(algInt_prim_root pr_eps).
+by rewrite rpredX ?(Aint_prim_root pr_eps).
 Qed.
 
 (* This is Peterfalvi (1.10)(b); the primality condition is only needed here. *)
 Lemma int_eqAmod_prime_prim n :
-  prime p -> isIntC n -> (n == 0 %[mod e])%A -> dvdNC p n.
+  prime p -> n \in Cint -> (n == 0 %[mod e])%A -> (p %| n)%C.
 Proof.
-move=> p_pr Zn; rewrite /eqAmod inE subr0; have p_gt0 := prime_gt0 p_pr.
-case: ifPn => [_ /eqP-> | nz_e e_dv_n]; first by rewrite /dvdC mul0r; case: ifP.
+move=> p_pr Zn; rewrite /eqAmod unfold_in subr0; have p_gt0 := prime_gt0 p_pr.
+case: ifPn => [_ /eqP->// | nz_e e_dv_n].
 suffices: (n ^+ p.-1 == 0 %[mod p])%A.
-  rewrite eqAmod_rat ?rpredX ?rpred_nat ?rpred_Cint // subr0.
-  rewrite (isIntC_signE Zn) exprMn -exprM !dvdC_mul_sign.
-  have /isNatCP[n1 ->] := normIntC_Nat Zn.
-  by rewrite -natrX !dvdC_nat Euclid_dvdX // => /andP[].
-rewrite /eqAmod subr0 inE -if_neg pnatr_eq0 -lt0n p_gt0 // /algC_nat_dvd.
+  rewrite eqAmod0_rat ?rpredX ?rpred_nat 1?rpred_Cint // !dvdC_int ?rpredX //.
+  by rewrite -{1}(floorCK Zn) -rmorphX intCK abszX Euclid_dvdX // => /andP[].
+rewrite /eqAmod subr0 unfold_in pnatr_eq0 eqn0Ngt p_gt0 /=.
 pose F := \prod_(1 <= i < p) ('X - (eps ^+ i)%:P).
 have defF: F = \sum_(i < p) 'X^i.
   apply: (mulfI (monic_neq0 (monicXsubC 1))); rewrite -subrX1.
   by rewrite -(factor_Xn_sub_1 pr_eps) big_ltn.
-have{defF} <-: F.[1] = p%:R.
-  rewrite -[p]card_ord -sumr_const defF horner_sum; apply: eq_bigr => i _.
-  by rewrite hornerXn expr1n.
+have{defF} <-: F.[1] = p :> Algebraics.divisor.
+  rewrite -[p]card_ord -[rhs in _ = rhs]sumr_const defF horner_sum.
+  by apply: eq_bigr => i _; rewrite hornerXn expr1n.
 rewrite -[p.-1]card_ord {F}horner_prod big_add1 big_mkord -prodf_inv.
 rewrite -prodr_const -big_split rpred_prod //= => k _; rewrite !hornerE.
 rewrite -[n](divfK nz_e) -[_ * _ / _]mulrA rpredM {e_dv_n}//.
@@ -913,7 +904,7 @@ have [r {1}->]: exists r, eps = eps ^+ k.+1 ^+ r.
   by rewrite -prime_coprime // in p'k; rewrite (eqnP p'k) modnMDl.
 rewrite -[1 - _]opprB subrX1 -mulNr opprB mulrC.
 rewrite mulKf; last by rewrite subr_eq0 eq_sym -(prim_order_dvd pr_eps).
-by apply: rpred_sum => // i _; rewrite !rpredX ?(algInt_prim_root pr_eps).
+by apply: rpred_sum => // i _; rewrite !rpredX ?(Aint_prim_root pr_eps).
 Qed.
 
 End ANT.

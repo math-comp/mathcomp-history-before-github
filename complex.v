@@ -13,6 +13,7 @@ Reserved Notation "x +i* y" (at level 40, left associativity, format "x  +i*  y"
 Reserved Notation "x -i* y" (at level 40, left associativity, format "x  -i*  y").
 
 Local Notation sgr := Num.sg.
+Local Notation sqrtr := Num.sqrt.
 
 CoInductive cplx (R : Type) : Type := Cplx { Re : R; Im : R }.
 
@@ -265,7 +266,7 @@ Qed.
 
 Definition cplx_POrderedMixin := NumMixin lec_normD ltc0_add eq0_normC
      ge0_lec_total normCM lec_def ltc_def.
-Canonical Structure cplx_numIdomainType := NumIdomainType C cplx_POrderedMixin.
+Canonical Structure cplx_numDomainType := NumDomainType C cplx_POrderedMixin.
 
 End CplxField.
 End CplxField.
@@ -284,10 +285,10 @@ Canonical Structure cplx_iDomain (R : rcfType) :=
   Eval hnf in IdomainType (cplx R) (FieldIdomainMixin (@CplxField.field_axiom R)).
 Canonical Structure cplx_fieldType (R : rcfType) :=
   FieldType (cplx R) (@CplxField.field_axiom R).
-Canonical Structure cplx_numIdomainType (R : rcfType) :=
-  NumIdomainType (cplx R) (CplxField.cplx_POrderedMixin R).
+Canonical Structure cplx_numDomainType (R : rcfType) :=
+  NumDomainType (cplx R) (CplxField.cplx_POrderedMixin R).
 Canonical Structure cplx_numFieldType (R : rcfType) :=
-  NumFieldType (cplx R) (CplxField.cplx_POrderedMixin R).
+  [numFieldType of cplx R].
 
 Definition conjc (R : ringType) (x : cplx R) := let: a +i* b := x in a -i* b.
 Notation "x ^*" := (conjc x) (at level 2, format "x ^*").
@@ -493,7 +494,7 @@ congr (_ +i* _);  set u := if _ then _ else _.
   rewrite mulrCA !mulrA.
   have->: (u * u) = 1.
     rewrite /u; case: (altP (_ =P _)); rewrite ?mul1r //.
-    by rewrite mulr_sg=> ->.
+    by rewrite -expr2 sqr_sg => ->.
   rewrite mul1r -!sqr !sqr_sqrtr //.
   rewrite [_+a]addrC -mulrBl opprD addrA addrK.
   by rewrite opprK -mulr2n -mulr_natl [_*a]mulrC mulfK.

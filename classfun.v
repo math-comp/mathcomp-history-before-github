@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset.
 Require Import fingroup morphism perm automorphism quotient finalg action.
 Require Import gproduct zmodp commutator cyclic center pgroup sylow.
-Require Import matrix vector falgebra ssrnum algC.
+Require Import matrix vector falgebra ssrnum algC algnum.
 
 (******************************************************************************)
 (* This file contains the basic theory of class functions:                    *)
@@ -18,6 +18,7 @@ Require Import matrix vector falgebra ssrnum algC.
 (*       'CF(G)%VS == the (total) vector space of 'CF(G).                     *)
 (*       'CF(G, A) == the subspace of functions in 'CF(G) with support in A.  *)
 (*           phi x == the image of x : gT under phi : 'CF(G).                 *)
+(*       #[phi]%CF == the multiplicative order of phi : 'CF(G).               *)
 (*       cfker phi == the kernel of phi : 'CF(G); note that cfker phi <| G.   *)
 (*   cfaithful phi <=>  phi : 'CF(G) is faithful (has a trivial kernel).      *)
 (*            '1_A == the indicator function of A as a function of 'CF(G).    *)
@@ -95,22 +96,13 @@ Section AlgC.
 (* Arithmetic properties of group orders in the characteristic 0 field algC. *)
 
 Variable (gT : finGroupType).
-Implicit Types (G H : {group gT}) (B : {set gT}).
+Implicit Types (G : {group gT}) (B : {set gT}).
 
-Lemma neq0GC G : (#|G|)%:R != 0 :> algC.
-Proof. by rewrite pnatr_eq0 -lt0n. Qed.
-
-Lemma neq0GiC G B : (#|G : B|)%:R != 0 :> algC.
-Proof. by rewrite pnatr_eq0 -lt0n. Qed.
-
-Lemma divgS_C G H : H \subset G -> #|G : H|%:R = #|G|%:R / #|H|%:R :> algC.
-Proof. by move/Lagrange <-; rewrite mulnC natrM mulfK ?neq0GC. Qed.
-
-Lemma sposGC G : 0 < #|G|%:R :> algC.
-Proof. by rewrite ltr0n. Qed.
-
-Lemma sposGiC G B : 0 < #|G : B|%:R :> algC.
-Proof. by rewrite ltr0n. Qed.
+Lemma neq0CG G : (#|G|)%:R != 0 :> algC. Proof. exact: natrG_neq0. Qed.
+Lemma neq0CiG G B : (#|G : B|)%:R != 0 :> algC.
+Proof. exact: natr_indexg_neq0. Qed.
+Lemma gt0CG G : 0 < #|G|%:R :> algC. Proof. exact: natrG_gt0. Qed.
+Lemma gt0CiG G B : 0 < #|G : B|%:R :> algC. Proof. exact: natr_indexg_gt0. Qed.
 
 Lemma algC'G G : [char algC]^'.-group G.
 Proof. by apply/pgroupP=> p _; rewrite inE /= char_num. Qed.
@@ -262,6 +254,9 @@ Definition cfun_ringMixin :=
 Canonical cfun_ringType := RingType classfun cfun_ringMixin.
 Canonical cfun_comRingType := ComRingType classfun cfun_mulC.
 
+Lemma expS_cfunE phi n x : (phi ^+ n.+1) x = phi x ^+ n.+1.
+Proof. by elim: n => //= n IHn; rewrite !cfunE IHn. Qed.
+
 Fact cfun_mulV : {in cfun_unit, left_inverse 1 cfun_inv *%R}.
 Proof.
 move=> phi Uphi; rewrite /cfun_inv Uphi; apply/cfun_in_genP=> x Gx.
@@ -360,6 +355,8 @@ Definition cfnorm_head k phi := let: tt := k in cfdot phi phi.
 
 Coercion seq_of_cfun phi := [:: phi].
 
+Definition cfun_order phi := \big[lcmn/1%N]_(x \in <<B>>) #[phi x]%C.
+
 End Defs.
 
 Bind Scope cfun_scope with classfun.
@@ -384,6 +381,7 @@ Prenex Implicits cfReal.
 (* Workaround for overeager projection reduction. *)
 Notation eqcfP := (@eqP (cfun_eqType _) _ _) (only parsing).
 
+Notation "#[ phi ]" := (cfun_order phi) : cfun_scope.
 Notation "''[' u , v ]_ G":=  (@cfdot _ G u v) (only parsing) : ring_scope.
 Notation "''[' u , v ]" := (cfdot u v) : ring_scope.
 Notation "''[' u ]_ G" := '[u, u]_G (only parsing) : ring_scope.
@@ -476,6 +474,15 @@ Proof. by rewrite -[G in '1_G]genGid. Qed.
 
 Lemma cfun1E g : (1 : 'CF(G)) g = (g \in G)%:R.
 Proof. by rewrite -cfuniG cfuniE. Qed.
+
+Lemma prod_cfunE I r (P : pred I) (phi : I -> 'CF(G)) x :
+  x \in G -> (\prod_(i <- r | P i) phi i) x = \prod_(i <- r | P i) (phi i) x.
+Proof.
+by move=> Gx; elim/big_rec2: _ => [|i _ psi _ <-]; rewrite ?cfunE ?cfun1E ?Gx.
+Qed.
+
+Lemma exp_cfunE phi n x : x \in G -> (phi ^+ n) x = phi x ^+ n.
+Proof. by rewrite -[n]card_ord -!prodr_const; apply: prod_cfunE. Qed.
 
 Lemma mul_cfuni A B : '1_A * '1_B = '1_(A :&: B) :> 'CF(G).
 Proof.
@@ -709,7 +716,7 @@ by rewrite !cfuniE // Ax Bx rmorph1 mulr1.
 Qed.
 
 Lemma cfnorm1 : '[1]_G = 1.
-Proof. by rewrite cfdot_cfuni ?genGid // setIid divff ?neq0GC. Qed.
+Proof. by rewrite cfdot_cfuni ?genGid // setIid divff ?neq0CG. Qed.
 
 Lemma cfdotrE psi phi : cfdotr psi phi = '[phi, psi]. Proof. by []. Qed.
 
@@ -728,7 +735,7 @@ Lemma cfdotNl xi phi : '[- phi, xi] = - '[phi, xi].
 Proof. by rewrite -!cfdotrE linearN. Qed.
 Lemma cfdotDl xi phi psi : '[phi + psi, xi] = '[phi, xi] + '[psi, xi].
 Proof. by rewrite -!cfdotrE linearD. Qed.
-Lemma cfdot_subl xi phi psi : '[phi - psi, xi] = '[phi, xi] - '[psi, xi].
+Lemma cfdotBl xi phi psi : '[phi - psi, xi] = '[phi, xi] - '[psi, xi].
 Proof. by rewrite -!cfdotrE linearB. Qed.
 Lemma cfdotMnl xi phi n : '[phi *+ n, xi] = '[phi, xi] *+ n.
 Proof. by rewrite -!cfdotrE linearMn. Qed.
@@ -748,9 +755,9 @@ Lemma eq_cfdotr A phi psi1 psi2 :
   phi \in 'CF(G, A) -> {in A, psi1 =1 psi2} -> '[phi, psi1] = '[phi, psi2].
 Proof. by move=> Aphi /eq_cfdotl eq_dot; rewrite cfdotC eq_dot // -cfdotC. Qed.
 
-Lemma cfdot_subr xi phi psi : '[xi, phi - psi] = '[xi, phi] - '[xi, psi].
-Proof. by rewrite !(cfdotC xi) -rmorphB cfdot_subl. Qed.
-Canonical cfun_dot_additive xi := Additive (cfdot_subr xi).
+Lemma cfdotBr xi phi psi : '[xi, phi - psi] = '[xi, phi] - '[xi, psi].
+Proof. by rewrite !(cfdotC xi) -rmorphB cfdotBl. Qed.
+Canonical cfun_dot_additive xi := Additive (cfdotBr xi).
 
 Lemma cfdot0r xi : '[xi, 0] = 0. Proof. exact: raddf0. Qed.
 Lemma cfdotNr xi phi : '[xi, - phi] = - '[xi, phi].
@@ -778,15 +785,15 @@ Proof. by rewrite cfdot_cfAut. Qed.
 
 Lemma cfnorm_posC phi : 0 <= '[phi].
 Proof.
-by rewrite mulr_ge0 ?invr_ge0 ?ler0n ?sumr_ge0 // => x _; exact: mulCJ_ge0.
+by rewrite mulr_ge0 ?invr_ge0 ?ler0n ?sumr_ge0 // => x _; exact: mul_conjC_ge0.
 Qed.
 
 Lemma cfnorm_eq0 phi : ('[phi] == 0) = (phi == 0).
 Proof.
 apply/idP/eqP=> [|->]; last by rewrite cfdot0r.
-rewrite mulf_eq0 invr_eq0 (negbTE (neq0GC G)) /= => /eqP/psumr_eq0P phi0.
-apply/cfun_inP=> x Gx; apply/eqP; rewrite cfunE -mulCJ_eq0.
-by rewrite phi0 // => y _; exact: mulCJ_ge0.
+rewrite mulf_eq0 invr_eq0 (negbTE (neq0CG G)) /= => /eqP/psumr_eq0P phi0.
+apply/cfun_inP=> x Gx; apply/eqP; rewrite cfunE -mul_conjC_eq0.
+by rewrite phi0 // => y _; exact: mul_conjC_ge0.
 Qed.
 
 Lemma cfnormZ a phi : '[a *: phi]= `|a| ^+ 2 * '[phi]_G.
@@ -802,14 +809,14 @@ Lemma cfnormD phi psi :
   let d := '[phi, psi] in '[phi + psi] = '[phi] + '[psi] + (d + d^*).
 Proof. by rewrite /= addrAC -cfdotC cfdotDl !cfdotDr !addrA. Qed.
 
-Lemma cfnorm_sub phi psi :
+Lemma cfnormB phi psi :
   let d := '[phi, psi] in '[phi - psi] = '[phi] + '[psi] - (d + d^*).
 Proof. by rewrite /= cfnormD cfnormN cfdotNr rmorphN -opprD. Qed.
 
 Lemma cfnormDd phi psi : '[phi, psi] = 0 -> '[phi + psi] = '[phi] + '[psi].
 Proof. by move=> ophipsi; rewrite cfnormD ophipsi rmorph0 !addr0. Qed.
 
-Lemma cfnorm_subd phi psi : '[phi, psi] = 0 -> '[phi - psi] = '[phi] + '[psi].
+Lemma cfnormBd phi psi : '[phi, psi] = 0 -> '[phi - psi] = '[phi] + '[psi].
 Proof.
 by move=> ophipsi; rewrite cfnormDd ?cfnormN // cfdotNr ophipsi oppr0.
 Qed.
@@ -885,8 +892,8 @@ split; first by rewrite addrCA !addrA addrK addrC.
   rewrite /Z -{4}(addKr U V) scalerDr scalerN addrA addrC span_cons.
   by rewrite memv_add ?memvB ?memvZ ?memv_line.
 apply/orthoPl=> psi; rewrite !inE => /predU1P[-> | Spsi]; last first.
-  by rewrite cfdot_subl cfdotZl (orthoPl oVS _ Spsi) mulr0 subr0 (orthoPl oYS).
-rewrite cfdot_subl !cfdotDr (span_orthogonal oYS) // ?memv_span ?mem_head //.
+  by rewrite cfdotBl cfdotZl (orthoPl oVS _ Spsi) mulr0 subr0 (orthoPl oYS).
+rewrite cfdotBl !cfdotDr (span_orthogonal oYS) // ?memv_span ?mem_head //.
 rewrite !cfdotZl (span_orthogonal oVS _ S_U) ?mulr0 ?memv_span ?mem_head //.
 have [-> | nzV] := eqVneq V 0; first by rewrite cfdot0r !mul0r subrr.
 by rewrite divfK ?cfnorm_eq0 ?subrr.
@@ -1056,6 +1063,30 @@ Implicit Arguments orthoPr [gT G S psi].
 Implicit Arguments orthogonalP [gT G R S].
 Implicit Arguments pairwise_orthogonalP [gT G S].
 Implicit Arguments orthonormalP [gT G S].
+
+Section CfunOrder.
+
+Variables (gT : finGroupType) (G : {group gT}) (phi : 'CF(G)).
+
+Lemma dvdn_cfun_orderP n :
+  reflect {in G, forall x, phi x ^+ n = 1} (#[phi]%CF %| n)%N.
+Proof.
+apply: (iffP (dvdn_biglcmP _ _ _)); rewrite genGid => phiG1 x Gx.
+  by apply/eqP; rewrite -dvdn_orderC phiG1.
+by rewrite dvdn_orderC phiG1.
+Qed.
+
+Lemma dvdn_cfun_order n : (#[phi]%CF %| n) = (phi ^+ n == 1).
+Proof.
+apply/dvdn_cfun_orderP/eqP=> phi_n_1 => [|x Gx].
+  by apply/cfun_inP=> x Gx; rewrite exp_cfunE // cfun1E Gx phi_n_1.
+by rewrite -exp_cfunE // phi_n_1 // cfun1E Gx.
+Qed.
+
+Lemma exp_cfun_order : phi ^+ #[phi]%CF = 1.
+Proof. by apply/eqP; rewrite -dvdn_cfun_order. Qed.
+
+End CfunOrder.
 
 Section BuildIsometries.
 
@@ -1316,7 +1347,7 @@ Lemma cfMorph_iso (rT : finGroupType) G D (f : {morphism D >-> rT}) :
 Proof.
 move=> sGD phi psi; rewrite !cfdotE card_morphim (setIidPr sGD).
 rewrite -(LagrangeI G ('ker f)) /= mulnC natrM invfM -mulrA.
-congr (_ * _); apply: (canLR (mulKf (neq0GC _))).
+congr (_ * _); apply: (canLR (mulKf (neq0CG _))).
 rewrite mulr_sumr (partition_big_imset f) /= -morphimEsub //.
 apply: eq_bigr => _ /morphimP[x Dx Gx ->].
 rewrite -(card_rcoset _ x) mulr_natl -sumr_const.
@@ -1404,7 +1435,7 @@ Qed.
 
 Lemma cfInd1 phi : H \subset G -> 'Ind[G] phi 1%g = #|G : H|%:R * phi 1%g.
 Proof.
-move=> sHG; rewrite cfIndE //; apply: canLR (mulKf (neq0GC H)) _.
+move=> sHG; rewrite cfIndE //; apply: canLR (mulKf (neq0CG H)) _.
 rewrite mulrA -natrM Lagrange // mulr_natl -sumr_const; apply: eq_bigr => x.
 by rewrite conj1g.
 Qed.
@@ -1413,7 +1444,7 @@ Lemma cfInd_cfun1 : H <| G -> 'Ind[G, H] 1 = #|G : H|%:R *: '1_H.
 Proof.
 move=> nsHG; have [sHG nHG] := andP nsHG.
 apply/cfunP=> x; rewrite cfIndE // cfunE cfuniE //.
-apply: canLR (mulKf (neq0GC H)) _; rewrite mulrA -natrM Lagrange //.
+apply: canLR (mulKf (neq0CG H)) _; rewrite mulrA -natrM Lagrange //.
 rewrite mulr_natl -sumr_const; apply: eq_bigr => y Gy.
 by rewrite cfun1E -{1}(normsP nHG y Gy) memJ_conjg.
 Qed.
@@ -1422,14 +1453,14 @@ Lemma cfnorm_Ind_cfun1 : H <| G -> '['Ind[G, H] 1] = #|G : H|%:R.
 Proof.
 move=> nsHG; rewrite cfInd_cfun1 // cfnormZ normr_nat cfdot_cfuni // setIid.
 rewrite mulrC -mulrA mulrCA (mulrA _%:R) -natrM Lagrange ?normal_sub //.
-by rewrite mulKf ?neq0GC.
+by rewrite mulKf ?neq0CG.
 Qed.
 
 Lemma cfIndInd phi :
   K \subset G -> H \subset K -> 'Ind[G] ('Ind[K] phi) = 'Ind[G] phi.
 Proof.
 move=> sKG sHK; apply/cfun_inP=> x Gx; rewrite !cfIndE ?(subset_trans sHK) //.
-apply: canLR (mulKf (neq0GC K)) _; rewrite mulr_sumr mulr_natl.
+apply: canLR (mulKf (neq0CG K)) _; rewrite mulr_sumr mulr_natl.
 transitivity (\sum_(y \in G) \sum_(z \in K) #|H|%:R^-1 * phi ((x ^ y) ^ z)).
   by apply: eq_bigr => y Gy; rewrite cfIndE // -mulr_sumr.
 symmetry; rewrite exchange_big /= -sumr_const; apply: eq_bigr => z Kz.
@@ -1448,7 +1479,7 @@ transitivity (#|H|%:R^-1 * \sum_(x \in G) phi x * (psi x)^*).
   rewrite (big_setID H) /= (setIidPr sHG) addrC big1 ?add0r; last first.
     by move=> x /setDP[_ /cfun0->]; rewrite mul0r.
   by congr (_ * _); apply: eq_bigr => x Hx; rewrite cfResE.
-set h' := _^-1; apply: canRL (mulKf (neq0GC G)) _.
+set h' := _^-1; apply: canRL (mulKf (neq0CG G)) _.
 transitivity (h' * \sum_(y \in G) \sum_(x \in G) phi (x ^ y) * (psi (x ^ y))^*).
   rewrite mulrCA mulr_natl -sumr_const; congr (_ * _); apply: eq_bigr => y Gy.
   by rewrite (reindex_acts 'J _ Gy) ?astabsJ ?normG.
@@ -1476,11 +1507,11 @@ Local Notation "phi ^u" := (cfAut u phi) (at level 3, format "phi ^u").
 Lemma cfAutZ_nat n phi : (n%:R *: phi)^u = n%:R *: phi^u.
 Proof. exact: raddfZnat. Qed.
 
-Lemma cfAutZ_Nat z phi : isNatC z -> (z *: phi)^u = z *: phi^u.
-Proof. exact: raddfZ_NatC. Qed.
+Lemma cfAutZ_Cnat z phi : z \in Cnat -> (z *: phi)^u = z *: phi^u.
+Proof. exact: raddfZ_Cnat. Qed.
 
-Lemma cfAutZ_Int z phi : isIntC z -> (z *: phi)^u = z *: phi^u.
-Proof. exact: raddfZ_IntC. Qed.
+Lemma cfAutZ_Cint z phi : z \in Cint -> (z *: phi)^u = z *: phi^u.
+Proof. exact: raddfZ_Cint. Qed.
 
 Lemma cfAut_inj : injective (@cfAut gT G u).
 Proof.

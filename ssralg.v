@@ -1164,6 +1164,9 @@ Proof.
 by move=> reg_x; elim: n => [|n]; [exact: lreg1 | rewrite exprS; exact: lregM].
 Qed.
 
+Lemma lreg_sign n : lreg ((-1) ^+ n : R).
+Proof. by apply: lregX; apply: lregN; apply: lreg1. Qed.
+
 Lemma prodr_const (I : finType) (A : pred I) (x : R) :
   \prod_(i \in A) x = x ^+ #|A|.
 Proof. by rewrite big_const -iteropE. Qed.
@@ -4327,6 +4330,8 @@ elim: n => [|n IHn]; first by rewrite oner_eq0.
 by rewrite exprS mulf_eq0 IHn andKb.
 Qed.
 
+Lemma sqrf_eq0 x : (x ^+ 2 == 0) = (x == 0). Proof. exact: expf_eq0. Qed.
+
 Lemma expf_neq0 x m : x != 0 -> x ^+ m != 0.
 Proof. by move=> x_nz; rewrite expf_eq0; apply/nandP; right. Qed.
 
@@ -4337,6 +4342,9 @@ rewrite !big_seq; elim/big_rec: _ => [|[p e] s /=]; first by rewrite oner_eq0.
 case/mem_prime_decomp=> p_pr _ _; rewrite pnat_mul pnat_exp eqn0Ngt orbC => <-.
 by rewrite natrM natrX mulf_eq0 expf_eq0 negb_or negb_and pnatE ?inE p_pr.
 Qed.
+
+Lemma eqf_sqr x y : (x ^+ 2 == y ^+ 2) = (x == y) || (x == - y).
+Proof. by rewrite -subr_eq0 subr_sqr mulf_eq0 subr_eq0 addr_eq0. Qed.
 
 Lemma mulfI x : x != 0 -> injective ( *%R x).
 Proof.
@@ -5293,6 +5301,7 @@ Definition lregN := lregN.
 Definition lreg1 := lreg1.
 Definition lregM := lregM.
 Definition lregX := lregX.
+Definition lreg_sign := lreg_sign.
 Definition lregP {R x} := @lregP R x.
 Definition mulIr_eq0 := mulIr_eq0.
 Definition mulIr0_rreg := mulIr0_rreg.
@@ -5411,6 +5420,8 @@ Definition rpredM := rpredM.
 Definition rpred_prod := rpred_prod.
 Definition rpredX := rpredX.
 Definition rpred_nat := rpred_nat.
+Definition rpredN1 := rpredN1.
+Definition rpred_sign := rpred_sign.
 Definition rpredZsign := rpredZsign.
 Definition rpredZnat := rpredZnat.
 Definition rpredZ := rpredZ.
@@ -5437,8 +5448,10 @@ Definition mulf_neq0 := mulf_neq0.
 Definition prodf_neq0 := prodf_neq0.
 Definition prodf_seq_neq0 := prodf_seq_neq0.
 Definition expf_eq0 := expf_eq0.
+Definition sqrf_eq0 := sqrf_eq0.
 Definition expf_neq0 := expf_neq0.
 Definition natf_neq0 := natf_neq0.
+Definition eqf_sqr := eqf_sqr.
 Definition mulfI := mulfI.
 Definition mulIf := mulIf.
 Definition sqrf_eq1 := sqrf_eq1.

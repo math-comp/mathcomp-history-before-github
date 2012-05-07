@@ -19,14 +19,14 @@ Lemma monic_monic_from_neq0  (F : fieldType) (p : {poly F}) :
 Proof. by move=> ?; rewrite monicE lead_coefZ mulVf ?lead_coef_eq0. Qed.
 
 (* GG -- lemmas with ssrnum dependencies cannot go in poly! *)
-Lemma size_derivn (R : realIdomainType) (p : {poly R}) n :
+Lemma size_derivn (R : realDomainType) (p : {poly R}) n :
   size p^`(n) = (size p - n)%N.
 Proof.
 elim: n=> [|n ihn]; first by rewrite derivn0 subn0.
 by rewrite derivnS size_deriv ihn -subnS.
 Qed.
 
-Lemma size_nderivn (R : realIdomainType) (p : {poly R}) n :
+Lemma size_nderivn (R : realDomainType) (p : {poly R}) n :
   size p^`N(n) = (size p - n)%N.
 Proof.
 rewrite -size_derivn nderivn_def -mulr_natl.
@@ -46,7 +46,7 @@ End ordered_extra.
 
 Section polyorder_extra.
 
-Variable F : realIdomainType.
+Variable F : realDomainType.
 
 Local Open Scope ring_scope.
 
@@ -499,10 +499,10 @@ Local Open Scope nat_scope.
 Local Open Scope creal_scope.
 Local Open Scope ring_scope.
 
-Definition asympt1 (R : numIdomainType) (P : R -> nat -> Prop)
+Definition asympt1 (R : numDomainType) (P : R -> nat -> Prop)
   := {m : R -> nat | forall eps i, 0 < eps -> (m eps <= i)%N -> P eps i}.
 
-Definition asympt2 (R : numIdomainType)  (P : R -> nat -> nat -> Prop)
+Definition asympt2 (R : numDomainType)  (P : R -> nat -> nat -> Prop)
   := {m : R -> nat | forall eps i j, 0 < eps -> (m eps <= i)%N -> (m eps <= j)%N -> P eps i j}.
 
 Notation "{ 'asympt' e : i / P }" := (asympt1 (fun e i => P))
@@ -511,11 +511,11 @@ Notation "{ 'asympt' e : i / P }" := (asympt1 (fun e i => P))
 Notation "{ 'asympt' e : i j / P }" := (asympt2 (fun e i j => P))
   (at level 0, e ident, i ident, j ident, format "{ 'asympt'  e  :  i  j  /  P }") : type_scope.
 
-Lemma asympt1modP (R : numIdomainType) P (a : asympt1 P) e i :
+Lemma asympt1modP (R : numDomainType) P (a : asympt1 P) e i :
   0 < e :> R -> (projT1 a e <= i)%N -> P e i.
 Proof. by case: a e i. Qed.
 
-Lemma asympt2modP (R : numIdomainType) P (a : asympt2 P) e i j :
+Lemma asympt2modP (R : numDomainType) P (a : asympt2 P) e i j :
   0 < e :> R -> (projT1 a e <= i)%N -> (projT1 a e <= j)%N -> P e i j.
 Proof. by case: a e i j. Qed.
 

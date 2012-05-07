@@ -338,7 +338,7 @@ have [tiP_A injFA]: trivIset P_A /\ {in T &, injective (class^~ L)}.
   rewrite !rLid; apply: contraR => /pred0Pn[c /andP[/=]].
   by do 2!move/class_transr <-.
 rewrite big_trivIset //= big_imset {P_A tiP_A injFA}//=.
-apply: canRL (mulKf (neq0GC G)) _; rewrite mulrA big_distrr /=.
+apply: canRL (mulKf (neq0CG G)) _; rewrite mulrA big_distrr /=.
 apply: eq_bigr => a /sTA=> {T sTA}Aa.
 have [La def_Ca] := (subsetP sAL a Aa, defCA Aa).
 rewrite (eq_bigr (fun _ => alpha a * (psi a)^*)) => [|ax]; last first.
@@ -349,7 +349,7 @@ rewrite (eq_bigr (fun xa => alpha a * (phi xa)^*)) => [|xa Fa_xa]; last first.
 rewrite -big_distrr /= -rmorph_sum; congr (_ * _).
 rewrite mulrC mulrA -natrM mulnC -(Lagrange (subsetIl G 'C[a])).
 rewrite -mulnA mulnCA -(sdprod_card def_Ca) -mulnA Lagrange ?subsetIl //.
-rewrite mulnA natrM mulfK ?neq0GC // -conjC_nat -rmorphM; congr (_ ^*).
+rewrite mulnA natrM mulfK ?neq0CG // -conjC_nat -rmorphM; congr (_ ^*).
 have /andP[tiHa _] := Dade_cover_TI Aa.
 rewrite (set_partition_big _ (partition_class_support _ _)) //=.
 rewrite (eq_bigr (fun _ => \sum_(x \in H a) phi (x * a)%g)); last first.
@@ -357,7 +357,7 @@ rewrite (eq_bigr (fun _ => \sum_(x \in H a) phi (x * a)%g)); last first.
   rewrite (big_imset _ (in2W (conjg_inj x))) (big_imset _ (in2W (mulIg a))) /=.
   by apply: eq_bigr => u Hu; rewrite cfunJ ?groupM ?(subsetP sLG a).
 rewrite sumr_const card_orbit astab1Js norm_Dade_cover //.
-by rewrite natrM -mulrA mulr_natl psiA // mulVKf ?neq0GC.
+by rewrite natrM -mulrA mulr_natl psiA // mulVKf ?neq0CG.
 Qed.
 
 (* This is Peterfalvi (2.7), second part. *)
@@ -367,7 +367,7 @@ Lemma Dade_reciprocity alpha (phi : 'CF(G)) :
   '[alpha^\tau, phi] = '[alpha, 'Res[L] phi].
 Proof.
 move=> CFalpha phiH; apply: general_Dade_reciprocity => // a Aa.
-rewrite cfResE ?(subsetP sAL) //; apply: canRL (mulKf (neq0GC _)) _.
+rewrite cfResE ?(subsetP sAL) //; apply: canRL (mulKf (neq0CG _)) _.
 by rewrite mulr_natl -sumr_const; apply: eq_bigr => x Hx; rewrite phiH.
 Qed.
 
@@ -450,7 +450,7 @@ Local Notation rDadeE := Dade_restrictionE.
 Lemma Dade_restriction_vchar B : aa \in 'Z[irr L] -> 'aa_B \in 'Z[irr 'M(B)].
 Proof.
 rewrite /'aa_B => /vcharP[a1 Na1 [a2 Na2 ->]].
-by rewrite !linearB /= sub_zchar // char_vchar ?cfMorph_char ?cfRes_char.
+by rewrite !linearB /= rpredB // char_vchar ?cfMorph_char ?cfRes_char.
 Qed.
 
 Let sMG B : B \in calP -> 'M(B) \subset G.
@@ -634,7 +634,7 @@ have ->: aa2 [set a] a = #|'C_G[a]|%:R.
   by rewrite inE Gxy.
 rewrite mulN1r mulrC mulrA -natrM -(sdprod_card (defCA Aa)).
 rewrite -mulnA card_orbit astab1J Lagrange ?subsetIl // mulnC natrM.
-rewrite mulrAC mulfK ?neq0GC // mulrC divfK ?neq0GC // opprK.
+rewrite mulrAC mulfK ?neq0CG // mulrC divfK ?neq0CG // opprK.
 rewrite (bigID [pred B : {set gT} | a \in B]) /= mulrDl addrA.
 apply: canRL (subrK _) _; rewrite -mulNr -sumrN; congr (_ + _ * _).
 symmetry.
@@ -658,7 +658,7 @@ do 2![case/andP] => /setIdP[dB Na] _ notBa.
 suffices ->: aa2 B a = #|'H(B) : 'H(a |: B)|%:R * aa2 (a |: B) a.
   rewrite /nn2 cardsU1 notBa exprS mulN1r !mulNr; congr (- _).
   rewrite !mulrA; congr (_ * _); rewrite -!mulrA; congr (_ * _).
-  apply: canLR (mulKf (neq0GC _)) _; apply: canRL (mulfK (neq0GC _)) _ => /=.
+  apply: canLR (mulKf (neq0CG _)) _; apply: canRL (mulfK (neq0CG _)) _ => /=.
   by rewrite -natrM mulnC Lagrange //= Dade_setU1 ?subsetIl.
 rewrite /aa2 Dade_setU1 //= -natrM; congr _%:R.
 have defMB := Dade_set_sdprod dB; have [_ mulHNB nHNB tiHNB] := sdprodP defMB.
@@ -695,9 +695,9 @@ End DadeExpansion.
 Lemma Dade_vchar alpha : alpha \in 'Z[irr L, A] -> alpha^\tau \in 'Z[irr G].
 Proof.
 rewrite [alpha \in _]zchar_split => /andP[Zaa CFaa].
-rewrite Dade_expansion // opp_zchar // sum_zchar // => B dB.
+rewrite Dade_expansion // rpredN rpred_sum // => B dB.
 suffices calP_B: B \in calP.
-  by rewrite sign_zchar // cfInd_vchar // Dade_restriction_vchar.
+  by rewrite rpredZsign cfInd_vchar // Dade_restriction_vchar.
 case/imsetP: dB => B0 /setIdP[sB0A notB00] defB.
 have [x Lx ->]: exists2 x, x \in L & B = B0 :^ x.
   by apply/imsetP; rewrite defB (mem_repr B0) ?orbit_refl.

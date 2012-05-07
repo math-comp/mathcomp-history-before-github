@@ -226,7 +226,7 @@ Section PolyrealIdomain.
  (* and merged into poly and polydiv                                      *)
  (*************************************************************************)
 
-Variable R : realIdomainType.
+Variable R : realDomainType.
 
 Lemma size_deriv (p : {poly R}) : size p^`() = (size p).-1.
 Proof.

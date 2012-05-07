@@ -499,7 +499,7 @@ Lemma sgr_numq_div (n d : int) : sgr (numq (n%:Q / d%:Q)) = sgr n * sgr d.
 Proof.
 set x := (n, d); rewrite -/x.1 -/x.2 -fracqE.
 case: fracqP => [|k fx k_neq0] /=; first by rewrite mulr0.
-by rewrite !sgrM mulrACA mulr_sg k_neq0 sgr_denq mulr1 mul1r.
+by rewrite !sgrM  mulrACA -expr2 sqr_sg k_neq0 sgr_denq mulr1 mul1r.
 Qed.
 
 Fact subq_ge0 x y : le_rat 0 (y - x) = le_rat x y.
@@ -545,15 +545,13 @@ Qed.
 Fact lt_rat_def x y : (lt_rat x y) = (y != x) && (le_rat x y).
 Proof. by rewrite /lt_rat ltr_def rat_eq. Qed.
 
-Definition ratLeMixin := RealNumLeMixin le_rat0D le_rat0M le_rat0_anti
+Definition ratLeMixin := RealLeMixin le_rat0D le_rat0M le_rat0_anti
   subq_ge0 (@le_rat_total 0) norm_ratN ge_rat0_norm lt_rat_def.
 
-Canonical rat_numIdomainType := NumIdomainType rat ratLeMixin.
-Canonical rat_numFieldType := NumFieldType rat ratLeMixin.
-
-Canonical rat_realIdomainType :=  RealIdomainType rat (@le_rat_total 0).
-Canonical rat_realFieldType :=  RealFieldType rat (@le_rat_total 0).
-
+Canonical rat_numDomainType := NumDomainType rat ratLeMixin.
+Canonical rat_numFieldType := [numFieldType of rat].
+Canonical rat_realDomainType := RealDomainType rat (@le_rat_total 0).
+Canonical rat_realFieldType := [realFieldType of rat].
 
 Lemma numq_ge0 x : (0 <= numq x) = (0 <= x).
 Proof.
@@ -581,17 +579,14 @@ Proof. by case: b; rewrite ?(mul1r, mulN1r) // denqN. Qed.
 Lemma denq_norm x : denq `|x| = denq x.
 Proof. by rewrite normrEsign denq_mulr_sign. Qed.
 
-Definition rat_archi_bound (x : rat) := `|numq x|.+1.
-
-Fact rat_archi_boundP (x : rat) : 0 <= x -> x < (rat_archi_bound x)%:R.
+Fact rat_archimedean : Num.archimedean_axiom [numDomainType of rat].
 Proof.
-rewrite -numq_ge0 /rat_archi_bound; case: ratP=> [] [] // n d cnd _.
-rewrite absz_nat ltr_pdivr_mulr ?ltr0z // pmulrn -rmorphM /=.
-by rewrite ltr_nat mulnS leq_addr.
+move=> x; exists `|numq x|.+1; rewrite mulrS ltr_spaddl //.
+rewrite pmulrn abszE -normr_int numqE normrM ler_pemulr ?norm_ge0 //.
+by rewrite normr_int ler1n absz_gt0 denq_eq0.
 Qed.
 
-Definition archiMixin := ArchimedianMixin rat_archi_boundP.
-Canonical archiType := ArchiFieldType rat archiMixin.
+Canonical archiType := ArchiFieldType rat rat_archimedean.
 
 Section QintPred.
 
@@ -633,7 +628,8 @@ Definition Qnat := [qualify a x : rat | (x \is a Qint) && (0 <= x)].
 Fact Qnat_key : pred_key Qnat. Proof. by []. Qed.
 Canonical Qnat_keyed := KeyedQualifier Qnat_key.
 
-Lemma Qnat_def x : (x \is a Qnat) = (x \is a Qint) && (0 <= x). Proof. by []. Qed.
+Lemma Qnat_def x : (x \is a Qnat) = (x \is a Qint) && (0 <= x).
+Proof. by []. Qed.
 
 Lemma QnatP x : reflect (exists n : nat, x = n%:R) (x \in Qnat).
 Proof.
@@ -762,7 +758,8 @@ Qed.
 
 Require setoid_ring.Field_theory setoid_ring.Field_tac.
 
-Lemma rat_field_theory : (Field_theory.field_theory 0%Q 1%Q addq mulq subq oppq divq invq eq).
+Lemma rat_field_theory : 
+  Field_theory.field_theory 0%Q 1%Q addq mulq subq oppq divq invq eq.
 Proof.
 split => //; first exact rat_ring_theory.
 by move=> p /eqP p_neq0; rat_to_ring; rewrite mulVf.

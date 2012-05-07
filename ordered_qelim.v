@@ -198,7 +198,7 @@ Prenex Implicits oclause_eq.
 
 Section EvalTerm.
 
-Variable R : realIdomainType.
+Variable R : realDomainType.
 
 (* Evaluation of a reified formula *)
 

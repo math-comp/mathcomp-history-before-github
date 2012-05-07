@@ -123,7 +123,7 @@ Notation "x != y" := (Not (x == y)) : qf_scope.
 
 Section evaluation.
 
-Variable R : realIdomainType.
+Variable R : realDomainType.
 
 Fixpoint eval (e : seq R) (t : term R) {struct t} : R :=
   match t with
