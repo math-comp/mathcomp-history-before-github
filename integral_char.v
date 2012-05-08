@@ -346,7 +346,8 @@ have Dalpha: alpha = - 1 / p%:R.
   rewrite add0r big_andbC mulr_suml; apply: eq_bigr => i _.
   by rewrite mulrAC divfK // cfunE.
 suffices: (p %| 1)%C by rewrite (dvdC_nat p 1) dvdn1 -(subnKC (prime_gt1 p_pr)).
-rewrite unfold_in (negPf nz_p) Cint_rat_Aint ?rpred_div ?rpred1 ?rpred_nat //.
+rewrite unfold_in /dvdC (negPf nz_p).
+rewrite Cint_rat_Aint ?rpred_div ?rpred1 ?rpred_nat //.
 rewrite -rpredN // -mulNr -Dalpha rpred_sum // => i /andP[/dvdCP[c Zc ->] _].
 by rewrite mulfK // rpredM ?Aint_irr ?Aint_Cint.
 Qed.
@@ -395,7 +396,7 @@ Qed.
 (* This is Isaacs, Theorem (3.11). *)
 Theorem dvd_irr1_cardG gT (G : {group gT}) i : ('chi[G]_i 1%g %| #|G|)%C.
 Proof.
-rewrite unfold_in -if_neg irr1_neq0 Cint_rat_Aint //=.
+rewrite unfold_in /dvdC -if_neg irr1_neq0 Cint_rat_Aint //=.
   by rewrite rpred_div ?rpred_nat // rpred_Cnat ?Cnat_irr1.
 rewrite -[n in n / _]/(_ *+ true) -(eqxx i) -mulr_natr.
 rewrite -first_orthogonality_relation mulVKf ?neq0CG //.
@@ -433,7 +434,7 @@ have inj_lambda: {in 'Z(G) &, injective lambda}.
     by rewrite cfResE ?cfcenter_sub // groupM ?groupV.
   rewrite Dlambda !cfunE lin_charM ?groupV // -eq_xy -lin_charM ?groupV //.
   by rewrite mulrC mulVg lin_char1 ?mul1r.
-rewrite unfold_in -if_neg irr1_neq0 Cint_rat_Aint //.
+rewrite unfold_in /dvdC -if_neg irr1_neq0 Cint_rat_Aint //.
   by rewrite rpred_div ?rpred_nat // rpred_Cnat ?Cnat_irr1.
 rewrite (cfcenter_fful_irr fful) nCdivE natf_indexg ?center_sub //=.
 have ->: #|G|%:R = \sum_(x \in G) 'chi_i x * 'chi_i (x^-1)%g.

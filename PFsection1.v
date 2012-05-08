@@ -881,12 +881,13 @@ Qed.
 Lemma int_eqAmod_prime_prim n :
   prime p -> n \in Cint -> (n == 0 %[mod e])%A -> (p %| n)%C.
 Proof.
-move=> p_pr Zn; rewrite /eqAmod unfold_in subr0; have p_gt0 := prime_gt0 p_pr.
+move=> p_pr Zn; rewrite /eqAmod unfold_in /dvdA subr0.
+have p_gt0 := prime_gt0 p_pr.
 case: ifPn => [_ /eqP->// | nz_e e_dv_n].
 suffices: (n ^+ p.-1 == 0 %[mod p])%A.
   rewrite eqAmod0_rat ?rpredX ?rpred_nat 1?rpred_Cint // !dvdC_int ?rpredX //.
   by rewrite -{1}(floorCK Zn) -rmorphX intCK abszX Euclid_dvdX // => /andP[].
-rewrite /eqAmod subr0 unfold_in pnatr_eq0 eqn0Ngt p_gt0 /=.
+rewrite /eqAmod subr0 unfold_in /dvdA pnatr_eq0 eqn0Ngt p_gt0 /=.
 pose F := \prod_(1 <= i < p) ('X - (eps ^+ i)%:P).
 have defF: F = \sum_(i < p) 'X^i.
   apply: (mulfI (monic_neq0 (monicXsubC 1))); rewrite -subrX1.
