@@ -25,7 +25,7 @@ Require Import countalg ssrnum ssrint rat intdiv.
 (*       Cnat == the subset of natural integers.                              *)
 (*  getCrat z == some a : rat such that ratr a = z, provided z \in Crat.      *)
 (*   floorC z == for z \in Creal, an m : int s.t. m%:~R <= z < (m + 1)%:~R.   *)
-(*  truncC z == for z >= 0, an n : nat s.t. n%:R <= z < n.+1%:R, else 0%N.   *)
+(*   truncC z == for z >= 0, an n : nat s.t. n%:R <= z < n.+1%:R, else 0%N.   *)
 (* minCpoly z == the minimal (monic) polynomial over Crat with root z.        *)
 (* algC_invaut nu == an inverse of nu : {rmorphism algC -> algC}.             *)
 (*         (x %| y)%C <=> y is an integer (Cint) multiple of x; if x or y are *)
@@ -608,7 +608,7 @@ have ->: d1 / d2 = (QtoC (lead_coef q1))^-1.
   have /esym := congr1 lead_coef Dq1; rewrite !lead_coefZ lead_coef_map.
   by rewrite (monicP _) ?monic_prod_XsubC // mulr1 => ->; rewrite invfM mulVKf.
 apply/(all_nthP 0)=> i _; rewrite coefZ coef_map mulrC /=.
-by rewrite -fmorph_div unfold_in QtoC_K.
+by rewrite -fmorph_div unfold_in /Crat QtoC_K.
 Qed.
 
 Definition algC_divisor (x : algC) := x : divisor.
@@ -1056,7 +1056,7 @@ Lemma floorCpP (p : {poly algC}) :
 Proof. by exists (map_poly floorC p); rewrite floorCpK. Qed.
 
 Lemma Cint_int (m : int) : m%:~R \in Cint.
-Proof. by rewrite unfold_in intCK. Qed.
+Proof. by rewrite unfold_in /Cint intCK. Qed.
 
 Lemma CintP x : reflect (exists m, x = m%:~R) (x \in Cint).
 Proof.
@@ -1144,7 +1144,7 @@ Qed.
 
 Lemma dvdCP x y : reflect (exists2 z, z \in Cint & y = z * x) (x %| y)%C.
 Proof.
-rewrite unfold_in; have [-> | nz_x] := altP eqP.
+rewrite unfold_in /dvdC; have [-> | nz_x] := altP eqP.
   by apply: (iffP eqP) => [-> | [z _ ->]]; first exists 0; rewrite ?mulr0.
 apply: (iffP idP) => [Zyx | [z Zz ->]]; last by rewrite mulfK.
 by exists (y / x); rewrite ?divfK.
@@ -1162,7 +1162,7 @@ Lemma dvdC0 x : (x %| 0)%C.
 Proof. by apply/dvdCP; exists 0; rewrite ?mul0r. Qed.
 
 Lemma dvd0C x : (0 %| x)%C = (x == 0).
-Proof. by rewrite unfold_in eqxx. Qed.
+Proof. by rewrite unfold_in /dvdC eqxx. Qed.
 
 Lemma dvdC_mull x y z : y \in Cint -> (x %| z)%C -> (x %| y * z)%C.
 Proof.
@@ -1193,7 +1193,7 @@ Canonical dvdC_zmodPred x := ZmodPred (dvdC_zmod x).
 
 Lemma dvdC_nat (p n : nat) : (p %| n)%C = (p %| n)%N.
 Proof.
-rewrite unfold_in CintEge0 ?divr_ge0 ?invr_ge0 ?ler0n // !pnatr_eq0.
+rewrite unfold_in /dvdC CintEge0 ?divr_ge0 ?invr_ge0 ?ler0n // !pnatr_eq0.
 have [-> | nz_p] := altP eqP; first by rewrite dvd0n.
 apply/CnatP/dvdnP=> [[q def_q] | [q ->]]; exists q.
   by apply/eqP; rewrite -eqC_nat natrM -def_q divfK ?pnatr_eq0. 
@@ -1267,7 +1267,7 @@ Lemma getCratK : {in Crat, cancel CtoQ QtoC}.
 Proof. by move=> x /eqP. Qed.
 
 Lemma Crat_rat (a : rat) : QtoC a \in Crat.
-Proof. by rewrite unfold_in ratCK. Qed.
+Proof. by rewrite unfold_in /Crat ratCK. Qed.
 
 Lemma CratP x : reflect (exists a, x = QtoC a) (x \in Crat).
 Proof.

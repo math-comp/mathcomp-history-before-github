@@ -823,7 +823,7 @@ Variable R : rcfType.
 Lemma poly_ivt : real_closed_axiom R. Proof. by case: R => ? []. Qed.
 
 Fact sqrtr_subproof (x : R) :
-  exists2 y,  0 <= y & if 0 <= x then y ^+ 2 == x else y == 0.
+  exists2 y,  0 <= y & if 0 <= x return bool then y ^+ 2 == x else y == 0.
 Proof.
 case x_ge0: (0 <= x); last by exists 0; rewrite ?lerr.
 have le0x1: 0 <= x + 1 by rewrite -nnegrE rpredD ?rpred1.
@@ -863,9 +863,8 @@ End PredInstances.
 Module Import ExtraDef.
 
 Definition archi_bound {R} x := sval (sigW (@archi_bound_subproof R x)).
-Set Printing All. (* diagnosing Coq 8.4 failure... *)
+
 Definition sqrtr {R} x := s2val (sig2W (@sqrtr_subproof R x)).
-Unset Printing All.
 
 End ExtraDef.
 
@@ -3641,7 +3640,7 @@ End RealClosedFieldTheory.
 
 End Theory.
 
-Module Mixin.
+Module RealMixin.
 
 Section RealMixins.
 
@@ -3767,7 +3766,7 @@ End LtMixin.
 
 End RealMixins.
 
-End Mixin.
+End RealMixin.
 
 End Num.
 
@@ -3776,6 +3775,6 @@ Export Num.RealDomain.Exports Num.RealField.Exports.
 Export Num.ArchimedeanField.Exports Num.RealClosedField.Exports.
 Export Num.Syntax Num.PredInstances.
 
-Notation RealLeMixin := Num.Mixin.Le.
-Notation RealLtMixin := Num.Mixin.Lt.
-Notation RealLeAxiom R := (Num.Mixin.Real (Phant R) (erefl _)).
+Notation RealLeMixin := Num.RealMixin.Le.
+Notation RealLtMixin := Num.RealMixin.Lt.
+Notation RealLeAxiom R := (Num.RealMixin.Real (Phant R) (erefl _)).
