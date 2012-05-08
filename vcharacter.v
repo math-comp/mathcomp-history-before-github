@@ -901,11 +901,11 @@ Lemma dirr_small_norm (phi : 'CF(G)) n :
 Proof.
 move=> PiZ Pln; rewrite ltnNge -leC_nat => Nl4.
 suffices Fd i: i \in dirr_constt phi -> '[phi, dchi i] = 1.
-  rewrite [phi as lhs in lhs = _]cfun_sum_dconstt //.
-  split; last by apply: eq_bigr => i /Fd->; rewrite scale1r.
+  split; last 2 [by apply/setP=> u; rewrite !inE cfdotNl oppr_gt0 ltr_asym].
     apply/eqP; rewrite -eqC_nat -sumr_const -Pln (cnorm_dconstt PiZ).
     by apply/eqP/eq_bigr=> i Hi; rewrite Fd // expr1n.
-  by apply/setP=> u; rewrite !inE cfdotNl oppr_gt0 ltr_asym.
+  rewrite {1}[phi]cfun_sum_dconstt //.
+  by apply: eq_bigr => i /Fd->; rewrite scale1r.
 move=> IiD; apply: contraNeq Nl4 => phi_i_neq1.
 rewrite -Pln cnorm_dconstt // (bigD1 i) ?ler_paddr ?sumr_ge0 //=.
   by move=> j /andP[JiD _]; rewrite exprn_ge0 ?Cnat_ge0 ?Cnat_dirr.
