@@ -734,8 +734,13 @@ Qed.
 Lemma memv_mem_adjoin U x v : v \in U -> v \in <<U; x>>%AS.
 Proof. by move => Hx; apply/(subv_trans Hx); apply subv_adjoin. Qed.
 
-Lemma adjoin_rcons V rs z :
-  <<V & (rcons rs z)>>%AS = << <<V & rs>>%AS; z>>%AS.
+Lemma adjoin_nil V : <<V & [::]>>%AS = <<V>>%AS.
+Proof. by rewrite span_nil addv0. Qed.
+
+Lemma adjoin_cons V z rs : <<V & z :: rs>>%AS = << <<V; z>> & rs>>%AS.
+Proof. by rewrite span_cons addvA closurea_add_closure. Qed.
+
+Lemma adjoin_rcons V rs z : <<V & (rcons rs z)>>%AS = << <<V & rs>>%AS; z>>%AS.
 Proof. by rewrite -cats1 span_cat addvA span_seq1 closurea_add_closure. Qed.
 
 Lemma adjoinSl U V x : (U <= V -> <<U; x>>%AS <= <<V; x>>%AS)%VS.

@@ -42,7 +42,7 @@ Lemma group_num_field_exists (gT : finGroupType) (G : {group gT}) :
          & forall nuQn : argumentType (mem (aut nQn 1 fullv)),
               {nu : {rmorphism algC -> algC} |
                  {morph QnC: a / val (repr nuQn) a >-> nu a}}}
-  & {w : Qn & #|G|.-primitive_root w /\ Fadjoin 1 w = fullv
+  & {w : Qn & #|G|.-primitive_root w /\ <<1; w>>%AS = fullv
        & forall (hT : finGroupType) (H : {group hT}) (phi : 'CF(H)),
          phi \is a character ->
          forall x, (#[x] %| #|G|)%N -> {a | QnC a = phi x}}}}.
@@ -51,6 +51,7 @@ have [z prim_z] := C_prim_root_exists (cardG_gt0 G); set n := #|G| in prim_z *.
 have [Qn [QnC [[|w []] // [Dz] genQn]]] := num_field_exists [:: z].
 have prim_w: n.-primitive_root w by rewrite -Dz fmorph_primitive_root in prim_z.
 exists Qn, QnC; last first.
+  rewrite span_seq1 in genQn.
   exists w => // hT H phi Nphi x x_dv_n.
   apply: sig_eqW; have [rH ->] := char_reprP Nphi.
   have [Hx | /cfun0->] := boolP (x \in H); last by exists 0; rewrite rmorph0.  
@@ -67,7 +68,7 @@ have splitXn1: splittingFieldFor 1 ('X^n - 1) {:Qn}.
   have Dr: 'X^n - 1 = \prod_(y <- r) ('X - y%:P).
     by rewrite -(factor_Xn_sub_1 prim_w) big_mkord big_map enumT.
   exists r; first by rewrite -Dr eqpxx.
-  apply/eqP; rewrite eqEsubv subvf -genQn genFieldSr //; apply/allP=> /=.
+  apply/eqP; rewrite eqEsubv subvf -genQn adjoin_seqSr //; apply/allP=> /=.
   by rewrite andbT -root_prod_XsubC -Dr; apply/unity_rootP/prim_expr_order.
 have [|nQn GalQn] := splitting_field_galois Q_Xn1 splitXn1.
   apply: separable_Xn_sub_1; rewrite -(fmorph_eq0 QnC) rmorph_nat.

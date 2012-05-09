@@ -39,13 +39,11 @@ Require Import poly polydiv mxpoly generic_quotient.
 (*  subfx_eval iota z p q == Given q : {poly F} returns q.[z] as a valule of  *)
 (*                           type F^iota(z).                                  *)
 (*                                                                            *)
-(*            Fadjoin K x == K(x) as a vector space.                          *)
 (*            minPoly K x == the monic minimal polynomial of x over the       *)
 (*                           subfield K.                                      *)
 (*      elementDegree K x == the degree of the minimial polynomial or the     *)
 (*                           dimension of K(x)/K.                             *)
 (* poly_for_Fadjoin K x y == a polynomial p over K such that y = p.[x].       *)
-(*          genField K rs == K(rs : seq L) as a vector space.                 *)
 (*                                                                            *)
 (*            fieldOver F == L, but with an extFieldType (subvs_of F)         *)
 (*                           structure, for F : {subfield L}                  *)
@@ -627,66 +625,96 @@ Proof. exact: Monoid.mulmCA. Qed.
 Lemma prodvAC : right_commutative (@prodv F0 L).
 Proof. exact: Monoid.mulmAC. Qed.
 
-Section SubAlgebra.
-
-Variable K : {subfield L}.
-
-Lemma algid1 : algid K = 1.
+Lemma algid1 K : algid K = 1.
 Proof. by apply: (mulIf (algid_neq0 K)); rewrite mul1r algidl ?memv_algid. Qed.
 
-Lemma mem1v : 1 \in K. Proof. by rewrite -algid1 memv_algid. Qed.
-Lemma sub1v : (1 <= K)%VS. Proof. exact: mem1v. Qed.
+Lemma mem1v K : 1 \in K. Proof. by rewrite -(algid1 K) memv_algid. Qed.
+Lemma sub1v K : (1 <= K)%VS. Proof. exact: mem1v. Qed.
 
-Fact vsval_multiplicative : multiplicative (vsval : subvs_of K -> L).
+Lemma subfield_closed K : <<K>>%AS = K.
+Proof.
+apply: subv_anti.
+rewrite subv_closure andbT.
+rewrite closureaEl subv_add sub1v closurea_idealr //.
+by rewrite prodv_id subv_refl.
+Qed.
+
+Lemma memv_adjoin_eq K x : (x \in K) = (<<K; x>>%AS == K).
+Proof.
+apply/idP/eqP; first by move/addv_idPl ->; apply subfield_closed.
+by move <-; apply: memv_adjoin.
+Qed.
+
+Lemma Fadjoin_nil K : <<K & [::]>>%AS = K.
+Proof. by rewrite adjoin_nil subfield_closed. Qed.
+
+Lemma FadjoinP K x E :
+  reflect (K <= E /\ x \in E)%VS (<<K; x>>%AS <= E)%VS.
+Proof.
+apply: (iffP idP).
+  move => H.
+  rewrite memvE !(subv_trans _ H) ?subv_adjoin //.
+  by apply: memv_adjoin.
+move/andP.
+rewrite -subv_add -[X in (<<_>>%AS <= X)%VS]subfield_closed.
+apply: closureaS.
+Qed.
+
+Lemma Fadjoin_seqP K (rs : seq L) E :
+  reflect (K <= E /\ {subset rs <= E})%VS (<<K & rs>>%AS <= E)%VS.
+Proof.
+apply: (iffP idP).
+  move => H; split; first by apply: (subv_trans (subv_adjoin_seq _ _) H).
+  move => x /(seqv_sub_adjoin K); move: x.
+  by move/subvP: H; apply.
+case => HKE /span_subvP/(conj HKE)/andP.
+rewrite -subv_add -[X in (<<_>>%AS <= X)%VS]subfield_closed.
+apply: closureaS.
+Qed.
+
+Fact vsval_multiplicative K : multiplicative (vsval : subvs_of K -> L).
 Proof. by split => //=; exact: algid1. Qed.
-Canonical vsval_rmorphism := AddRMorphism vsval_multiplicative.
-Canonical vsval_lrmorphism := [lrmorphism of (vsval : subvs_of K -> L)].
+Canonical vsval_rmorphism K := AddRMorphism (vsval_multiplicative K).
+Canonical vsval_lrmorphism K := [lrmorphism of (vsval : subvs_of K -> L)].
 
-Lemma vsval_invf (w : subvs_of K) : val w^-1 = (vsval w)^-1.
+Lemma vsval_invf K (w : subvs_of K) : val w^-1 = (vsval w)^-1.
 Proof.
 have [-> | Uv] := eqVneq w 0; first by rewrite !invr0.
 by apply: vsval_invr; rewrite unitfE.
 Qed.
 
-Fact aspace_divr_closed : divr_closed K.
+Fact aspace_divr_closed K : divr_closed K.
 Proof.
 split=> [|u v Ku Kv]; first exact: mem1v.
 by rewrite -(vsval_invf (Subvs Kv)) memv_mul ?subvsP. 
 Qed.
-Canonical aspace_mulrPred := MulrPred aspace_divr_closed.
-Canonical aspace_divrPred := DivrPred aspace_divr_closed.
-Canonical aspace_smulrPred := SmulrPred aspace_divr_closed.
-Canonical aspace_sdivrPred := SdivrPred aspace_divr_closed.
-Canonical aspace_semiringPred := SemiringPred aspace_divr_closed.
-Canonical aspace_subringPred := SubringPred aspace_divr_closed.
-Canonical aspace_subalgPred := SubalgPred (memv_submod_closed K).
-Canonical aspace_divringPred := DivringPred aspace_divr_closed.
-Canonical aspace_divalgPred := DivalgPred (memv_submod_closed K).
+Canonical aspace_mulrPred K := MulrPred (aspace_divr_closed K).
+Canonical aspace_divrPred K := DivrPred (aspace_divr_closed K).
+Canonical aspace_smulrPred K := SmulrPred (aspace_divr_closed K).
+Canonical aspace_sdivrPred K := SdivrPred (aspace_divr_closed K).
+Canonical aspace_semiringPred K := SemiringPred (aspace_divr_closed K).
+Canonical aspace_subringPred K := SubringPred (aspace_divr_closed K).
+Canonical aspace_subalgPred K := SubalgPred (memv_submod_closed K).
+Canonical aspace_divringPred K := DivringPred (aspace_divr_closed K).
+Canonical aspace_divalgPred K := DivalgPred (memv_submod_closed K).
 
-Lemma memv_inv u : (u^-1 \in K) = (u \in K). Proof. exact: rpredV. Qed.
-Lemma memv_invl u : u \in K -> u^-1 \in K. Proof. exact: GRing.rpredVr. Qed.
-
-Lemma memv_exp x i : x \in K -> x ^+ i \in K. Proof. exact: rpredX. Qed.
-
-Lemma memv_prodl I r (P : pred I) (vs : I -> L) :
-  (forall i, P i -> vs i \in K) -> \prod_(i <- r | P i) vs i \in K.
-Proof. exact: rpred_prod. Qed.
-
-Definition subvs_mulC := [comRingMixin of subvs_of K by <:].
-Canonical subvs_comRingType := Eval hnf in ComRingType (subvs_of K) subvs_mulC.
-Canonical subvs_comUnitRingType := Eval hnf in [comUnitRingType of subvs_of K].
-Definition subvs_mul_eq0 := [idomainMixin of subvs_of K by <:].
-Canonical subvs_idomainType :=
-  Eval hnf in IdomainType (subvs_of K) subvs_mul_eq0.
-Lemma subvs_fieldMixin : GRing.Field.mixin_of subvs_idomainType.
+Definition subvs_mulC K := [comRingMixin of subvs_of K by <:].
+Canonical subvs_comRingType K :=
+  Eval hnf in ComRingType (subvs_of K) (@subvs_mulC K).
+Canonical subvs_comUnitRingType K :=
+  Eval hnf in [comUnitRingType of subvs_of K].
+Definition subvs_mul_eq0 K := [idomainMixin of subvs_of K by <:].
+Canonical subvs_idomainType K :=
+  Eval hnf in IdomainType (subvs_of K) (@subvs_mul_eq0 K).
+Lemma subvs_fieldMixin K : GRing.Field.mixin_of (@subvs_idomainType K).
 Proof.
 by move=> w nz_w; rewrite unitrE -val_eqE /= vsval_invf algid1 divff.
 Qed.
-Canonical subvs_fieldType :=
-  Eval hnf in FieldType (subvs_of K) subvs_fieldMixin.
-Canonical subvs_fieldExtType := Eval hnf in [fieldExtType F0 of subvs_of K].
+Canonical subvs_fieldType K :=
+  Eval hnf in FieldType (subvs_of K) (@subvs_fieldMixin K).
+Canonical subvs_fieldExtType K := Eval hnf in [fieldExtType F0 of subvs_of K].
 
-Lemma polyOver_subvs (p : {poly L}) :
+Lemma polyOver_subvs K (p : {poly L}) :
   reflect (exists q : {poly subvs_of K}, p = map_poly vsval q)
           (p \is a polyOver K).
 Proof.
@@ -695,7 +723,7 @@ exists (\poly_(i < size p) (Subvs (Hp i))); rewrite -{1}[p]coefK.
 by apply/polyP => i; rewrite coef_map !coef_poly; case: ifP.
 Qed.
 
-Lemma matrixOver_subvs n m (A : 'M_(n, m)) :
+Lemma matrixOver_subvs K n m (A : 'M_(n, m)) :
   reflect (exists B : 'M[subvs_of K]_(n, m), A = map_mx vsval B)
           (matrixOver K A).
 Proof.
@@ -704,47 +732,46 @@ apply: (iffP (matrixOverP _ _)) => [K_A | [B ->] i j]; last first.
 by exists (\matrix_(i, j) (Subvs (K_A i j))); apply/matrixP=> i j; rewrite !mxE.
 Qed.
 
-Lemma divp_polyOver : {in polyOver K &, forall p q, p %/ q \is a polyOver K}.
+Lemma divp_polyOver K : {in polyOver K &, forall p q, p %/ q \is a polyOver K}.
 Proof.
 move=> _ _ /polyOver_subvs[p ->] /polyOver_subvs[q ->].
 by apply/polyOver_subvs; exists (p %/ q); rewrite map_divp.
 Qed.
 
-Lemma modp_polyOver : {in polyOver K &, forall p q, p %% q \is a polyOver K}.
+Lemma modp_polyOver K : {in polyOver K &, forall p q, p %% q \is a polyOver K}.
 Proof.
 move=> _ _ /polyOver_subvs[p ->] /polyOver_subvs[q ->].
 by apply/polyOver_subvs; exists (p %% q); rewrite map_modp.
 Qed.
 
-Lemma scalp_polyOver :
+Lemma scalp_polyOver K :
   {in polyOver K &, forall p q, lead_coef p ^+ scalp p q \in K}.
 Proof.
 move=> _ _ /polyOver_subvs[p ->] /polyOver_subvs[q ->].
-by rewrite scalp_map // memv_exp // lead_coef_map // subvsP.
+by rewrite scalp_map // rpredX // lead_coef_map // subvsP.
 Qed.
 
-Lemma gcdp_polyOver : {in polyOver K &, forall p q, gcdp p q \is a polyOver K}.
+Lemma gcdp_polyOver K :
+  {in polyOver K &, forall p q, gcdp p q \is a polyOver K}.
 Proof.
 move=> _ _ /polyOver_subvs[p ->] /polyOver_subvs[q ->].
 by apply/polyOver_subvs; exists (gcdp p q); rewrite gcdp_map.
 Qed.
 
-Lemma mulmx_matrixOver n m o (A : 'M_(n, m)) (B : 'M_(m, o)) :
+Lemma mulmx_matrixOver K n m o (A : 'M_(n, m)) (B : 'M_(m, o)) :
   matrixOver K A -> matrixOver K B -> matrixOver K (A *m B).
 Proof.
 move => /matrixOverP K_A /matrixOverP K_B; apply/matrixOverP=> i j.
 by rewrite mxE memv_suml // => k _; rewrite memv_mul.
 Qed.
 
-Lemma invmx_matrixOver n (A : 'M_n) : matrixOver K A = matrixOver K (invmx A).
+Lemma invmx_matrixOver K n (A : 'M_n) : matrixOver K A = matrixOver K (invmx A).
 Proof.
 wlog suff Kinvmx: A / (matrixOver K A -> matrixOver K (invmx A)).
   by apply/idP/idP=> /Kinvmx; rewrite ?invmxK.
 case/matrixOver_subvs => B ->; rewrite -map_invmx; apply/matrixOver_subvs.
 by exists (invmx B).
 Qed.
-
-End SubAlgebra.
 
 Fact prodv_is_aspace E F : is_aspace (E * F).
 Proof.
@@ -808,7 +835,7 @@ rewrite /S big_ord_recl /= -/(S _ _) mulSn.
 rewrite dimv_disjoint_sum ?dimSb ?dim_cosetv //; apply/eqP; rewrite -subv0. 
 apply/subvP=> y; rewrite memv_cap memv0 => /andP[/memv_cosetP[a Fa ->{y}] Sax].
 apply: contraR S'x; rewrite mulf_eq0 => /norP[/mulKf/( _ x)<- _].
-rewrite -[S _ _](@field_ideal_eq F) ?memv_prod ?memv_inv //.
+rewrite -[S _ _](@field_ideal_eq F) ?memv_prod ?rpredV //.
 by rewrite /S -big_distrr prodvA prodv_id.
 Qed.
 
@@ -824,91 +851,81 @@ Proof. by move/dim_field_ideal->; exact: dvdn_mull. Qed.
 Lemma field_dimS F E : (F <= E)%VS -> (\dim F %| \dim E)%N.
 Proof. by rewrite -sup_field_ideal; exact: ideal_dimS. Qed.
 
-Section FadjoinDefinitions.
+Definition power_space U x n := (\sum_(i < n) U * <[x ^+ i]>)%VS.
 
-Variable (K : {vspace L}).
-Variable (x : L).
+Lemma power_space_in_adjoin U x n : (power_space U x n <= <<U; x>>%AS)%VS.
+Proof.
+apply/subv_sumP => i _.
+rewrite -[X in (_ <= X)%VS]prodv_id prodvS ?subv_adjoin //.
+rewrite -expv_line (subv_trans (subvX_closure _ _)) // closureaS //.
+by rewrite addvSr.
+Qed.
 
-Definition elementDegree_property n :=
-  (Vector.dim L < n) ||
-  (\dim (\sum_(i < n.+1) (K * <[x ^+ i]>)) < \dim K * n.+1).
+Lemma power_space_direct_or_complete K x n :
+   directv (power_space K x n) || (power_space K x n == <<K; x>>%AS).
+Proof.
+rewrite eqEsubv power_space_in_adjoin /=.
+elim: n => [|n /orP]; first by rewrite directvE /= !big_ord0 dimv0 eqxx.
+case => [/directvP /= IH | IH]; last first.
+  by rewrite (subv_trans IH) ?orbT // /power_space big_ord_recr addvSl.
+rewrite directvE /=; case: (altP eqP) => //=.
+rewrite !big_ord_recr -IH {IH} /= dimv_add_leqif subv0 -vpick0.
+set Z := (_ :&: _)%VS.
+move: (memv_pick Z).
+rewrite memv_cap andbC; case/andP => /memv_cosetP [z HzK ->] Hzsum.
+rewrite mulf_eq0 negb_or expf_eq0 negb_and; case/andP => Hz0.
+case: {Z} n Hzsum Hz0 => [|n Hzsum Hz0 /= Hx0].
+  by rewrite expr0 mulr1 big_ord0 memv0 => ->.
+rewrite /power_space big_ord_recr (subv_trans _ (addvSl _ _)) //=.
+apply: ideall_closurea_sub.
+  by rewrite big_ord_recl expr0 prodv1 (subv_trans (sub1v K)) // addvSl.
+rewrite prodvDl subv_add.
+rewrite -[X in (K * X)%VS]big_distrr prodvA prodv_id big_distrr subv_refl.
+rewrite prodvC big_distrl /=.
+apply/subv_sumP => [[i Hi] _].
+rewrite -prodvA -expv_line -expvSr expv_line /=.
+rewrite ltnS leq_eqVlt in Hi.
+case/orP: Hi => [/eqP -> | Hi]; last first.
+  by apply:(sumv_sup (lift ord0 (Ordinal Hi))) => //; rewrite lift0 subv_refl.
+rewrite -big_distrr /= -[in X in (_ <= X)%VS]prodv_id -prodvA big_distrr /=.
+rewrite -[in X in (_ <= (X * _))%VS]prodv_id -prodvA prodvSr //.
+rewrite -[X in <[X]>%VS](mulKf Hz0); apply: memv_prod => //.
+by rewrite rpredV.
+Qed.
 
-Fact elementDegree_property_holds : exists n, elementDegree_property n.
-Proof. by exists (Vector.dim L).+1; rewrite /elementDegree_property ltnSn. Qed.
+Section Fadjoin.
 
-Definition elementDegree := (ex_minn elementDegree_property_holds).-1.+1.
+Definition elementDegree U x := (\dim_U%AS <<U; x>>%AS).-1.+1.
 
-Definition Fadjoin := (\sum_(i < elementDegree) (K * <[x ^+ i]>))%VS.
+Lemma elementDegreeE K x : elementDegree K x = \dim_K <<K; x>>%AS.
+Proof.
+rewrite /elementDegree prednK => //.
+by rewrite ltn_divRL ?mul0n ?adim_gt0 // field_dimS // subv_adjoin.
+Qed.
+
+Let Fadjoin U x := power_space U x (elementDegree U x).
 
 (* Ideally this definition should use \poly; however we really make use of the
    fact that the index i has an ordinal type. *)
-Definition poly_for_Fadjoin (v : L) := 
-  \sum_i sumv_pi Fadjoin i v / x ^+ i *: 'X^i.
+Definition poly_for_Fadjoin U x v : {poly L} := 
+  \sum_i sumv_pi (Fadjoin U x) i v / x ^+ i *: 'X^i.
 
-Definition minPoly : {poly L} := 
-  'X^elementDegree - poly_for_Fadjoin (x ^+ elementDegree).
+Definition minPoly U x : {poly L} := 
+  'X^(elementDegree U x) - poly_for_Fadjoin U x (x ^+ (elementDegree U x)).
 
-Let Pholds_gt0 : (0 < ex_minn elementDegree_property_holds).
-Proof.
-case: ex_minnP => [[|//]].
-by rewrite /elementDegree_property muln1 big_ord1 expr0 prodv1 !ltnn.
-Qed.
-
-Lemma dim_Fadjoin_subproof n : \sum_(i < n) \dim (K * <[x ^+ i]>) <= \dim K * n.
-Proof.
-elim: n => [|n IH]; first by rewrite big_ord0.
-rewrite big_ord_recr /= mulnSr leq_add ?IH // (leq_trans (dim_prodv _ _)) //.
-rewrite dim_vline.
-by case: (x ^+ n != 0); rewrite ?muln0 ?muln1.
-Qed.
-
-Lemma dim_Fadjoin : \dim Fadjoin = (\dim K * elementDegree)%N.
-Proof.
-move: Pholds_gt0.
-rewrite /Fadjoin /elementDegree.
-case: ex_minnP.
-move => m _ Hm m0.
-apply: anti_leq.
-rewrite (leq_trans (dimv_leq_sum _ _ _)) ?dim_Fadjoin_subproof //=.
-case: m Hm m0 => [//|m Hm _].
-move: (ltnSn m).
-rewrite ltnNge.
-apply: contraR.
-rewrite -ltnNge => Hlt.
-apply: Hm.
-by apply/orP; right.
-Qed.
-
-Lemma direct_Fadjoin : directv Fadjoin.
-Proof.
-apply/directvP => /=.
-by apply: anti_leq; rewrite dimv_leq_sum dim_Fadjoin dim_Fadjoin_subproof.
-Qed.
-
-Lemma prodv_line_coefK y v : v \in (K * <[y]>)%VS -> v / y \in K.
-Proof.
-case/memv_cosetP=> u Ku ->; have [-> | /mulfK-> //] := eqVneq y 0.
-by rewrite mulr0 mul0r mem0v.
-Qed.
-
-Lemma memv_prodv_line_coef y v : v \in (K * <[y]>)%VS -> v = v / y * y.
-Proof.
-case: (eqVneq y 0) => [-> | Hy0]; last by rewrite mulfVK.
-rewrite prodv0 memv0 => /eqP ->.
-by rewrite mulr0.
-Qed.
-
-Lemma poly_for_polyOver v : poly_for_Fadjoin v \is a polyOver K.
+Lemma poly_for_polyOver U x v : poly_for_Fadjoin U x v \is a polyOver U.
 Proof.
 apply/(all_nthP 0) => i _ /=.
 rewrite /poly_for_Fadjoin coef_sum memv_suml // => j _.
 rewrite coefZ coefXn.
 case: (i == j);last by rewrite mulr0 mem0v.
-rewrite mulr1 prodv_line_coefK //.
-by apply: memv_sum_pi.
+rewrite mulr1.
+case/memv_cosetP: (memv_sum_pi (refl_equal (Fadjoin U x)) j v) => c Hc ->.
+have [-> | /mulfK-> //] := eqVneq (x ^+ j) 0.
+by rewrite mulr0 mul0r mem0v.
 Qed.
 
-Lemma size_poly_for v : size (poly_for_Fadjoin v) <= elementDegree.
+Lemma size_poly_for U x v : size (poly_for_Fadjoin U x v) <= elementDegree U x.
 Proof.
 rewrite (leq_trans (size_sum _ _ _)) //.
 apply/bigmax_leqP => i _.
@@ -917,56 +934,86 @@ case: (eqVneq c 0) => [-> | nzc]; first by rewrite scale0r size_poly0.
 by rewrite (size_scale _ nzc) size_polyXn.
 Qed.
 
-Lemma poly_for_eq v : v \in Fadjoin -> (poly_for_Fadjoin v).[x] = v.
-Proof.
-move => Hv.
-rewrite /poly_for_Fadjoin horner_sum -{2}(sumv_pi_sum (erefl Fadjoin) Hv).
-apply: eq_bigr => i _.
-by rewrite !hornerE hornerXn -memv_prodv_line_coef // memv_sum_pi.
-Qed.
-
-Lemma poly_Fadjoin_small v :
-  reflect (exists p,
-            [/\ p \is a polyOver K, size p <= elementDegree & v = p.[x]])
-          (v \in Fadjoin).
-Proof.
-apply: (iffP idP) => [Hp|[p [/(all_nthP 0)/= pK sizep vp]]].
-  exists (poly_for_Fadjoin v).
-  by rewrite poly_for_polyOver size_poly_for poly_for_eq.
-apply/memv_sumP.
-exists (fun i : 'I_elementDegree => p`_i * x ^+ i) => [i _|]; last first.
-  by rewrite vp (horner_coef_wide _ sizep).
-rewrite memv_prod ?memv_line //.
-by have [/pK// | /(nth_default 0)->] := ltnP i (size p); exact: mem0v.
-Qed.
-
-Fact Fadjoin_poly_is_linear : linear_for (in_alg L \; *:%R) poly_for_Fadjoin.
-Proof.
-move=> a p q; rewrite /poly_for_Fadjoin /= scaler_sumr -big_split /=.
-apply eq_bigr => i _ /=.
-by rewrite linearP mulrDl scalerA -2!scalerAl mul1r scalerDl.
-Qed.
-Canonical poly_for_Fadjoin_addidive := Additive Fadjoin_poly_is_linear.
-Canonical poly_for_Fadjoin_linear := AddLinear Fadjoin_poly_is_linear.
-
-Lemma size_minPoly : size minPoly = elementDegree.+1.
+Lemma size_minPoly U x : size (minPoly U x) = (elementDegree U x).+1.
 Proof.
 by rewrite /minPoly size_addl ?size_polyXn // size_opp ltnS size_poly_for.
 Qed.
 
-Lemma monic_minPoly : minPoly \is monic.
+Lemma monic_minPoly U x : minPoly U x \is monic.
 Proof.
 rewrite monicE /lead_coef size_minPoly coefB coefXn eq_refl.
 by rewrite nth_default ?subr0 // size_poly_for.
 Qed.
 
-End FadjoinDefinitions.
+Lemma elemDeg0 K : elementDegree K 0 = 1%N.
+Proof. by rewrite /elementDegree addv0 subfield_closed divnn adim_gt0. Qed.
 
-Section Fadjoin.
+Lemma Fadjoin_is_power_space K x : <<K; x>>%AS = Fadjoin K x.
+Proof.
+symmetry.
+apply/eqP.
+case/orP: (power_space_direct_or_complete K x (elementDegree K x)) => //.
+rewrite -[_ == _]dimv_leqif_eq; last by apply: power_space_in_adjoin.
+move/directvP => -> /=.
+rewrite (dim_sup_field (F:=K)) ?subv_adjoin //.
+rewrite /elementDegree prednK ?divn_gt0 ?dimvS ?subv_adjoin ?adim_gt0 //.
+rewrite -[X in (X * _)%N]subn0 -sum_nat_const_nat big_mkord.
+apply/eqP; apply: eq_bigr.
+case: (eqVneq x 0) => [->| Hx0 i _]; last first.
+  by rewrite dim_cosetv // expf_eq0 negb_and Hx0 orbT.
+rewrite addv0 subfield_closed divnn adim_gt0 => [[[] //= _] _].
+by rewrite expr0 prodv1.
+Qed.
 
-Variable (K : {subfield L}).
-Variable (x : L).
+Lemma directv_Fadjoin K x : directv (Fadjoin K x).
+Proof.
+case: (eqVneq x 0) => [-> | Hx0].
+  rewrite /Fadjoin /power_space elemDeg0.
+  apply/directvP => /=.
+  by rewrite !big_ord_recl !big_ord0 addv0 addn0.
+rewrite directvE /= -[(\sum_ _ _)%VS]/(Fadjoin K x).
+apply/eqP.
+rewrite -Fadjoin_is_power_space.
+rewrite (dim_sup_field (F:=K)) ?subv_adjoin /elementDegree //=.
+rewrite -[X in (X * _)%N]subn0 prednK; last first.
+  rewrite divn_gt0 ?adim_gt0 // dimvS // (subv_trans _ (subv_closure _)) //.
+  by rewrite addvSl.
+rewrite -sum_nat_const_nat big_mkord /=.
+apply: eq_bigr => i _.
+by rewrite dim_cosetv // expf_eq0 negb_and Hx0 orbT.
+Qed.
 
+End Fadjoin.
+
+Lemma poly_for_eq K x v : v \in <<K; x>>%AS -> (poly_for_Fadjoin K x v).[x] = v.
+Proof.
+rewrite Fadjoin_is_power_space => Hv.
+rewrite /poly_for_Fadjoin horner_sum -{2}(sumv_pi_sum (erefl _) Hv).
+apply: eq_bigr => i _.
+rewrite !hornerE hornerXn.
+have [/eqP | /mulfVK-> //] := eqVneq (x ^+ i) 0.
+rewrite expf_eq0.
+case/andP => Hi Hx.
+move: {Hv} i Hi.
+move/eqP: Hx ->.
+rewrite /elementDegree.
+move/addv_idPl: (sub0v K) ->.
+rewrite -[X in \dim_X _]subfield_closed divnn adim_gt0.
+by case; case.
+Qed.
+
+Fact Fadjoin_poly_is_linear U x :
+  linear_for (in_alg L \; *:%R) (poly_for_Fadjoin U x).
+Proof.
+move=> a p q; rewrite /poly_for_Fadjoin /= scaler_sumr -big_split /=.
+apply eq_bigr => i _ /=.
+by rewrite linearP mulrDl scalerA -2!scalerAl mul1r scalerDl.
+Qed.
+Canonical poly_for_Fadjoin_additive U x :=
+  Additive (Fadjoin_poly_is_linear U x).
+Canonical poly_for_Fadjoin_linear U x := AddLinear (Fadjoin_poly_is_linear U x).
+
+(*
 Lemma elementDegreeBound : elementDegree K x <= Vector.dim L.
 Proof.
 rewrite /elementDegree prednK; last first.
@@ -983,54 +1030,22 @@ move/(subv_trans (sub1v K)).
 move/subvP; apply.
 by apply: memv_line.
 Qed.
+*)
 
-Lemma capv_KxED_subproof :
-  (x == 0) = (K * <[x ^+ elementDegree K x]> :&: Fadjoin K x == 0)%VS.
-Proof.
-apply/eqP/eqP => [->|/eqP H]; first by rewrite exprS mul0r prodv0 cap0v.
-apply/eqP; move: H.
-apply: contraLR => nzx.
-rewrite (sameP eqP directv_addP) directvE ltn_eqF //=.
-rewrite dim_Fadjoin dim_cosetv ?expf_neq0 // -mulnS.
-have:= elementDegreeBound; rewrite /Fadjoin /elementDegree.
-case: ex_minnP => [[|m]].
-  by rewrite /elementDegree_property muln1 big_ord1 expr0 prodv1 !ltnn.
-rewrite ltnNge; case/orP => [/idPn//|Hm _ _]; apply: leq_trans Hm.
-by rewrite [(\sum_(i < m.+2) _)%VS]big_ord_recr addvC.
-Qed.
-
-Lemma elemDeg1_subproof : x \in K -> elementDegree K x = 1%N.
-Proof.
-rewrite /elementDegree.
-case: ex_minnP => [[|m _ Hm xK]].
-  by rewrite /elementDegree_property muln1 big_ord1 expr0 prodv1 !ltnn.
-apply/eqP.
-rewrite eqSS -leqn0 -ltnS Hm // /elementDegree_property.
-rewrite !big_ord_recl big_ord0 expr1 expr0 addv0 prodv1.
-apply/orP; right.
-apply (@leq_trans (\dim K).+1).
-  rewrite ltnS dimvS // subv_add subv_refl (subv_trans _ (asubv K)) //.
-  by rewrite prodvSr.
-rewrite -addn1 mulnC -[(2 * _)%N]/(\dim K + (\dim K + 0))%N leq_add2l addn0.
-by rewrite -(dimv1 L) dimvS // sub1v.
-Qed.
-
-Lemma minPolyOver : minPoly K x \is a polyOver K.
+Lemma minPolyOver K x : minPoly K x \is a polyOver K.
 Proof. by rewrite /minPoly rpredB ?rpredX ?polyOverX ?poly_for_polyOver. Qed.
 
-(* This lemma could be generalized if I instead defined elementDegree 0 x = 0 *)
-Lemma poly_Fadjoin_small_uniq : {in polyOver K &, forall p q : {poly L}, 
-    size p <= elementDegree K x -> size q <= elementDegree K x ->
+Lemma poly_Fadjoin_small_uniq K x: {in polyOver K &, forall p q : {poly L}, 
+  size p <= elementDegree K x -> size q <= elementDegree K x ->
   p.[x] = q.[x] -> p = q}.
 Proof.
-case (eqVneq x 0).
-  move/eqP; rewrite -memv0 => x0.
-  move: (subv_trans x0 (sub0v K)).
-  move/elemDeg1_subproof => -> p q pK qK.
-  by do 2 move/size1_polyC ->; rewrite !hornerE => ->.
-move => nzx p q; move/polyOverP => pK; move/polyOverP => qK szp szq.
+case: (eqVneq x 0) => [->|nzx].
+  rewrite elemDeg0.
+  move => p q _ _ /size1_polyC -> /size1_polyC ->.
+  by rewrite !hornerC => ->.
+move => p q; move/polyOverP => pK; move/polyOverP => qK szp szq.
 rewrite (horner_coef_wide _ szp) (horner_coef_wide _ szq).
-move/eqP; move: (direct_Fadjoin K x); move/directv_sum_unique => sumUniq.
+move/eqP; move: (directv_Fadjoin K x); move/directv_sum_unique => sumUniq.
 rewrite {}sumUniq; try by move=> i; rewrite memv_prod ?memv_line ?pK ?qK.
 move/forall_inP => Hpq; apply/polyP => i.
 apply: (mulIf (expf_neq0 i nzx)).
@@ -1041,162 +1056,49 @@ by rewrite (_ : p`_i = 0) ?mul0r; first rewrite (_ : q`_i = 0) ?mul0r //;
   move/leq_sizeP; apply.
 Qed.
 
-Lemma XED_subproof : x ^+ (elementDegree K x) \in (Fadjoin K x).
-case: (eqVneq x 0).
-  move ->.
-  by rewrite exprS mul0r mem0v.
-rewrite capv_KxED_subproof.
-rewrite -vpick0.
-set W := (_ :&: _)%VS.
-move: (memv_pick W).
-rewrite memv_cap.
-case/andP.
-move/memv_prodv_line_coef ->.
-set k := (_ / _) => Hk.
-have: (k \in K).
-  move: (memv_pick W).
-  rewrite memv_cap.
-  case/andP.
-  by move/prodv_line_coefK.
-rewrite -memv_inv mulf_eq0 negb_or => Hkinv.
-case/andP => nzk _.
-rewrite -[x ^+ _](mulKf nzk).
-apply/memv_sumP.
-case/memv_sumP: Hk => v_ Hv_1 Hv_2.
-exists (fun i => k^-1 * v_ i) => [i _|]; last by rewrite Hv_2 -mulr_sumr.
-move/(_ i isT): Hv_1 => Hv_1.
-move/memv_prodv_line_coef: (Hv_1) ->.
-by rewrite mulrA memv_prod ?memv_line // memv_mul // prodv_line_coefK.
-Qed.
-
-Lemma root_minPoly : root (minPoly K x) x. 
+Lemma root_minPoly K x : root (minPoly K x) x. 
 Proof.
-rewrite /root !hornerE_comm horner_sum hornerXn.
-rewrite -{1}(sumv_pi_sum (erefl (Fadjoin _ _)) XED_subproof) subr_eq0.
-apply/eqP/eq_bigr => i _.
-by rewrite !hornerE_comm hornerXn -(@memv_prodv_line_coef K) ?memv_sum_pi.
+apply/rootP.
+rewrite /minPoly hornerD hornerN poly_for_eq ?rpredX ?memv_adjoin //.
+by rewrite hornerXn subrr.
 Qed.
 
-Lemma minPolyxx : (minPoly K x).[x] = 0.
-Proof. by move: root_minPoly; rewrite /root; move/eqP ->. Qed.
+Lemma minPolyxx K x : (minPoly K x).[x] = 0.
+Proof. by apply/rootP; apply root_minPoly. Qed.
 
-Lemma poly_Fadjoin v :
-  reflect (exists2 p, p \in polyOver K & v = p.[x]) (v \in Fadjoin K x).
+Lemma poly_Fadjoin K x v :
+  reflect (exists2 p, p \in polyOver K & v = p.[x]) (v \in <<K; x>>%AS).
 Proof.
-apply: (iffP (poly_Fadjoin_small _ _ _)).
- by case => p [? ? ?]; exists p.
-case => p Kp ->.
-move: {2}(size p).+1 (ltnSn (size p)) Kp => n.
-elim: n p => //.
-move => n IH p szp.
-case: (leqP (size p) (elementDegree K x)) => szpx.
- by exists p.
-move/ltn_predK: (szpx) (szpx) <-.
-rewrite ltnS => szpx0.
-move/polyOverP => Kp.
-case/poly_Fadjoin_small: XED_subproof => r; case.
-move/polyOverP => Kr szr rxED.
-set q := (\poly_(i < (size p).-1) (p`_i)) + 
-         (p`_(size p).-1)%:P * r * 'X ^+ ((size p).-1 - elementDegree K x).
-have -> : (p.[x] = q.[x]).
- rewrite !(hornerE,hornerM).
- by rewrite -rxED hornerXn -mulrA -exprD subnKC // horner_poly horner_coef
-            -(ltn_predK szpx) /= big_ord_recr.
-apply IH; last first.
- apply/polyOverP => i.
- by rewrite coefD coef_poly -mulrA coefCM coefMXn !(fun_if, if_arg)
-            !(mulr0, add0r, addr0) !(mem0v, memvD, memv_mul) ?Kp ?if_same.
-case: n szp szpx {IH}.
- rewrite ltnS leqn0.
- by move/eqP ->.
-move => n szp szpx.
-rewrite ltnS.
-apply: (leq_trans (size_add _ _)).
-rewrite geq_max.
-apply/andP; split.
- apply: (leq_trans (size_poly _ _)).
- by rewrite -2!ltnS -ltnS (ltn_predK szpx).
-rewrite -mulrA.
-case: (eqVneq (p`_(size p).-1) 0).
- by move ->; rewrite mul0r size_poly0.
-move/size_Cmul ->.
-apply (leq_trans (size_mul_leq _ _)).
-rewrite size_polyXn addnS.
-move: szp.
-rewrite -{1}(ltn_predK szpx) !ltnS /=.
-move/(leq_trans _); apply.
-by rewrite -{2}(@subnKC (elementDegree K x) (size p).-1) ?leq_add2r.
+apply: (iffP idP).
+  move => Hv.
+  exists (poly_for_Fadjoin K x v); first by apply: poly_for_polyOver.
+  by symmetry; apply: poly_for_eq.
+case => p /polyOverP Hp ->.
+rewrite horner_coef.
+apply: rpred_sum => i _.
+rewrite rpredM ?rpredX ?memv_adjoin //.
+apply: (subv_trans (Hp i)); apply: subv_adjoin.
 Qed.
 
-Lemma Fadjoin_is_aspace : is_aspace (Fadjoin K x).
-Proof.
-apply/andP; split.
- apply: has_algid1.
- apply/poly_Fadjoin.
- exists 1; last by rewrite hornerE.
- apply/polyOverP => i.
- rewrite coefC.
- by case: ifP; rewrite ?mem0v ?mem1v.
-apply/prodvP => ? ?.
-case/poly_Fadjoin => p1 Hp1 ->.
-case/poly_Fadjoin => p2 Hp2 ->.
-apply/poly_Fadjoin.
-exists (p1 * p2); last by rewrite hornerM.
-by rewrite rpredM.
-Qed.
-Canonical Fadjoin_aspace : {subfield L} := ASpace Fadjoin_is_aspace.
-
-Lemma subsetFadjoinE E : (K <= E)%VS && (x \in E) = (Fadjoin K x <= E)%VS.
-Proof.
-apply/idP/idP.
-  case/andP => KE xE.
-  apply/subv_sumP => i _.
-  apply: (subv_trans _ (asubv _)).
-  apply: (subv_trans (prodvSl _ _) (prodvSr _ _)) => //.
-  by apply: memv_exp.
-move => HFxE.
-apply/andP; split; apply: (subv_trans _ HFxE).
-  by rewrite /Fadjoin big_ord_recl expr0 prodv1 addvSl.
-move: XED_subproof; rewrite /Fadjoin /elementDegree exprS.
-case: _.-1 => [|d _]; first by rewrite expr0 mulr1.
-rewrite !big_ord_recl.
-apply: (subv_trans _ (addvSr _ _)).
-apply: (subv_trans _ (addvSl _ _)).
-by rewrite -{1}[<[x]>%VS]prod1v prodvSl // sub1v.
-Qed.
-
-Lemma memx_Fadjoin : x \in Fadjoin K x.
-Proof.
-by move: (subv_refl (Fadjoin K x)); rewrite -subsetFadjoinE; case/andP.
-Qed.
-
-Lemma subsetKFadjoin : (K <= Fadjoin K x)%VS.
-Proof.
-by move: (subv_refl (Fadjoin K x)); rewrite -subsetFadjoinE; case/andP.
-Qed.
-
-Lemma memK_Fadjoin y : y \in K -> y \in Fadjoin K x.
-Proof. exact/subvP/subsetKFadjoin. Qed.
-
-Lemma mempx_Fadjoin p : p \is a polyOver K -> p.[x] \in Fadjoin K x.
+Lemma mempx_Fadjoin K x p : p \is a polyOver K -> p.[x] \in <<K; x>>%AS.
 Proof. by move=> pK; apply/poly_Fadjoin; exists p. Qed.
 
-Lemma poly_for_K v : v \in K -> poly_for_Fadjoin K x v = v%:P.
+Lemma poly_for_K K x v : v \in K -> poly_for_Fadjoin K x v = v%:P.
 Proof.
 move=> vK.
-apply: poly_Fadjoin_small_uniq.
+apply: (@poly_Fadjoin_small_uniq K x).
 - exact: poly_for_polyOver.
 - by rewrite polyOverC.
 - exact: size_poly_for.
 - by rewrite size_polyC (leq_trans (leq_b1 _)).
-by rewrite hornerC poly_for_eq // memK_Fadjoin.
+by rewrite hornerC poly_for_eq // memv_mem_adjoin.
 Qed.
 
-Lemma poly_for_modp p :
+Lemma poly_for_modp K x p :
   p \is a polyOver K -> poly_for_Fadjoin K x p.[x] = p %% minPoly K x.
 Proof.
 move=> Pk.
-apply: poly_Fadjoin_small_uniq.
+apply: (@poly_Fadjoin_small_uniq K x).
 - exact: poly_for_polyOver.
 - by rewrite modp_polyOver // minPolyOver.
 - exact: size_poly_for.
@@ -1205,163 +1107,90 @@ rewrite poly_for_eq ?mempx_Fadjoin // {1}(divp_eq p (minPoly K x)).
 by rewrite hornerD hornerM minPolyxx mulr0 add0r.
 Qed.
 
-Lemma elemDeg1 : (x \in K) = (elementDegree K x == 1%N).
+Lemma elemDeg1 K x : (x \in K) = (elementDegree K x == 1%N).
 Proof.
-apply/idP/eqP.
- apply: elemDeg1_subproof.
-move => ed1.
-suff <-: (Fadjoin K x = K) by apply: memx_Fadjoin.
-symmetry; apply/eqP.
-by rewrite -(dimv_leqif_eq subsetKFadjoin) dim_Fadjoin ed1 muln1.
+rewrite memv_adjoin_eq /elementDegree.
+apply/eqP/eqP; first by move ->; rewrite divnn adim_gt0.
+rewrite prednK; last first.
+  rewrite divn_gt0 ?adim_gt0 // dimvS // (subv_trans _ (subv_closure _)) //.
+  by rewrite addvSl.
+move/eqP; rewrite -eqn_mul ?adim_gt0 ?field_dimS ?subv_adjoin // mul1n.
+move => Hx.
+by apply/eqP; rewrite eq_sym -dimv_leqif_eq ?subv_adjoin // eq_sym.
 Qed.
 
-Lemma FadjoinxK : (x \in K) = (Fadjoin K x == K).
+Lemma poly_for_X K x : x \notin K -> poly_for_Fadjoin K x x = 'X.
 Proof.
-rewrite elemDeg1.
-apply/eqP/eqP.
- move => ed1.
- apply: subv_anti.
- by rewrite -dimv_leqif_sup subsetKFadjoin // dim_Fadjoin ed1 muln1 andbT.
-move => Fadjoin_eq_K.
-move/eqP: (dim_Fadjoin K x).
-rewrite Fadjoin_eq_K -{1}[\dim K]muln1 eqn_mul2l dimv_eq0.
-case/orP; last by move/eqP ->.
-move/eqP => K0.
-case: (negP (@oner_neq0 L)).
-by rewrite -memv0 -K0 mem1v.
+move=> K'z; rewrite -{2}[x]hornerX poly_for_modp ?polyOverX ?modp_small //.
+by rewrite size_minPoly ltnS size_polyX ltn_neqAle eq_sym andbT -elemDeg1.
 Qed.
 
-Lemma size_elementDegree p :
+Lemma size_elementDegree K x p :
   p \is a polyOver K -> size p <= elementDegree K x -> root p x = (p == 0).
 Proof.
 rewrite /root => Kp szp.
 apply/eqP/eqP => Hp; last by rewrite Hp horner0.
-by apply: poly_Fadjoin_small_uniq; rewrite ?polyOver0 ?size_poly0 ?horner0.
+by apply: (@poly_Fadjoin_small_uniq K x);
+  rewrite ?polyOver0 ?size_poly0 ?horner0.
 Qed. 
 
-Lemma minPoly_irr p :
+Lemma minPoly_irr K x p :
   p \is a polyOver K -> p %| (minPoly K x) -> (p %= minPoly K x) || (p %= 1).
 Proof.
 rewrite /dvdp => Kp /eqP pMin.
 pose q := minPoly K x %/ p.
 have Kq : q \is a polyOver K by rewrite divp_polyOver // minPolyOver.
-move: root_minPoly (size_minPoly K x).
+move: (root_minPoly K x) (size_minPoly K x).
 have -> : minPoly K x = q * p.
   by apply/eqP; rewrite -dvdp_eq; apply/modp_eq0P.
 move: q Kq => q Kq.
 rewrite {pMin} /root hornerM mulf_eq0 => pq0 szpq.
 have nzp: p != 0.
- move/eqP: szpq.
- apply: contraL.
- move/eqP ->.
- by rewrite mulr0 size_poly0.
+  move/eqP: szpq.
+  apply: contraL.
+  move/eqP ->.
+  by rewrite mulr0 size_poly0.
 have nzq: q != 0.
- move/eqP: szpq.
- apply: contraL.
- move/eqP ->.
- by rewrite mul0r size_poly0.
-wlog: q p Kp Kq nzp nzq szpq pq0 / (q.[x] == 0).
- case/orP: pq0 => [q0|p0].
+  move/eqP: szpq.
+  apply: contraL.
+  move/eqP ->.
+  by rewrite mul0r size_poly0.
+wlog: q p Kp Kq nzp nzq szpq pq0 / (q.[x] == 0); last first.
+  move => qx0.
+  apply/orP; right.
+  have nzq' : size q != 0%N by rewrite size_poly_eq0.
+  rewrite -size_poly_eq1 eqn_leq.
+  apply/andP; split; last by rewrite (polySpred nzp).
+  rewrite -(leq_add2r (size q)).
+  move: (size_mul nzp nzq); case: (_ + _)%N=> //= _ <-.
+  rewrite mulrC szpq ltnNge.
+  apply: contra nzq.
+  by move/(size_elementDegree Kq) <-.
+case/orP: pq0 => [q0|p0].
   apply => //.
   by apply/orP; left.
- move: szpq.
- rewrite mulrC => szpq H.
- have: (q %= p * q) || (q %= 1).
+move: szpq.
+rewrite mulrC => szpq H.
+have: (q %= p * q) || (q %= 1).
   apply: H => //.
   by apply/orP; left.
- case/orP.
+case/orP.
   rewrite -{1}[q]mul1r eqp_mul2r // eqp_sym => ->.
   by rewrite orbT.
- move/(eqp_mull p).
- by rewrite mulr1 [p * _]mulrC eqp_sym => ->.
-move => qx0.
-apply/orP; right.
-have nzq' : size q != 0%N by rewrite size_poly_eq0.
-rewrite -size_poly_eq1 eqn_leq.
-apply/andP; split; last by rewrite (polySpred nzp).
-rewrite -(leq_add2r (size q)).
-move: (size_mul nzp nzq); case: (_ + _)%N=> //= _ <-.
-rewrite mulrC szpq ltnNge.
-apply: contra nzq.
-by move/(size_elementDegree Kq) <-.
+move/(eqp_mull p).
+by rewrite mulr1 [p * _]mulrC eqp_sym => ->.
 Qed.
 
-Lemma minPoly_dvdp p : p \is a polyOver K -> root p x -> (minPoly K x) %| p.
+Lemma minPoly_dvdp K x p : p \is a polyOver K -> root p x -> (minPoly K x) %| p.
 Proof.
 move=> Kp rootp.
 have gcdK : gcdp (minPoly K x) p \is a polyOver K.
- by rewrite gcdp_polyOver ?minPolyOver //.
+  by rewrite gcdp_polyOver ?minPolyOver //.
 have [gcd_eqK|gcd_eq1] := orP (minPoly_irr gcdK (dvdp_gcdl (minPoly K x) p)).
- by rewrite -(eqp_dvdl _ gcd_eqK) dvdp_gcdr.
+  by rewrite -(eqp_dvdl _ gcd_eqK) dvdp_gcdr.
 case/negP: (root1 x).
 by rewrite -(eqp_root gcd_eq1) root_gcd rootp root_minPoly.
 Qed.
-
-End Fadjoin.
-
-Section GenField.
-
-Implicit Types rs : seq L.
-
-Lemma poly_for_X K z : z \notin K -> poly_for_Fadjoin K z z = 'X.
-Proof.
-move=> K'z; rewrite -{2}[z]hornerX poly_for_modp ?polyOverX ?modp_small //.
-by rewrite size_minPoly ltnS size_polyX ltn_neqAle eq_sym andbT -elemDeg1.
-Qed.
-
-Definition genField V rs := foldl Fadjoin V rs.
-
-Fact genField_is_aspace K rs : is_aspace (genField K rs).
-Proof. by elim: rs K => [|z rs IHrs] K; [exact: (valP K) | exact: IHrs]. Qed.
-Canonical genField_aspace K rs := ASpace (genField_is_aspace K rs).
-
-Lemma genField_rcons V rs z :
-  genField V (rcons rs z) = Fadjoin (genField V rs) z.
-Proof. by rewrite -cats1 /genField foldl_cat. Qed.
-
-Lemma genFieldP {K rs E} :
-  reflect (K <= E /\ {subset rs <= E})%VS (genField K rs <= E)%VS.
-Proof.
-elim: rs K => [|z rs IHrs] K /=; first by apply: (iffP idP) => // [[]].
-apply: (equivP (IHrs _)); rewrite -subsetFadjoinE.
-split=> [[/andP[-> Ez] /allP Ers] | [-> /allP/=/andP[-> /allP//]]].
-by split=> //; exact/allP/andP.
-Qed.
-
-Lemma sub_genField K rs : (K <= genField K rs)%VS.
-Proof. by have /genFieldP[] := subv_refl (genField K rs). Qed.
-
-Lemma mem_genField K rs : {subset rs <= genField K rs}.
-Proof. by have /genFieldP[] := subv_refl (genField K rs). Qed.
-
-Lemma genFieldSl K E rs : (K <= E)%VS -> (genField K rs <= genField E rs)%VS.
-Proof.
-move=> sKE; apply/genFieldP; split; last exact: mem_genField.
-exact: subv_trans sKE (sub_genField E rs).
-Qed.
-
-Lemma genFieldSr K rs1 rs2 :
-  {subset rs1 <= rs2} -> (genField K rs1 <= genField K rs2)%VS.
-Proof.
-move=> s_rs12; apply/genFieldP; split=> [|z /s_rs12]; first exact: sub_genField.
-exact: mem_genField.
-Qed.
-
-Lemma subv_genField K E : (K <= E)%VS -> {s | E = genField K s :> {vspace L}}.
-Proof.
-elim: _.+1 {-2}K (ltnSn (\dim E - \dim K)) => // n IHn F1 geFn sF1E.
-have [sEF1 | ltF1E] := boolP (E <= F1)%VS.
-  by exists [::]; apply/eqP; rewrite eqEsubv sEF1.
-have /sig2W[v Ev F1'v] := subvPn ltF1E.
-have [||s ->] := IHn (Fadjoin_aspace F1 v); last by exists (v :: s).
-  rewrite -ltnS (leq_trans _ geFn) // ltnS ltn_sub2l //.
-    by rewrite (ltn_leqif (dimv_leqif_sup sF1E)).
-  rewrite dim_Fadjoin ltn_Pmulr ?adim_gt0 // ltn_neqAle eq_sym.
-  by rewrite -elemDeg1 F1'v.
-by rewrite -subsetFadjoinE sF1E.
-Qed.
-
-End GenField.
 
 Section Horner.
 
@@ -1385,49 +1214,10 @@ Canonical fieldExt_horner_lrmorhism := [lrmorphism of fieldExt_horner].
 End Horner.
 
 End FieldExtTheory.
-
-Prenex Implicits Fadjoin.
-Implicit Arguments genFieldP [F0 L K rs E].
-
+(*
 Notation "E :&: F" := (capv_aspace E F) : aspace_scope.
 Notation "E * F" := (prodv_aspace E F) : aspace_scope.
-
-Section Aimg.
-
-Variables (F : fieldType) (L1 L2 : fieldExtType F) (f : 'AHom(L1,L2)).
-
-Fact aimg_is_subfield (K : {subfield L1}) : is_aspace (f @: K).
-Proof.
-rewrite /is_aspace has_algid1; last first.
-  by rewrite -(rmorph1 [rmorphism of f]) memv_img // mem1v.
-apply/prodvP.
-move => _ _ /memv_imgP [u Hu ->] /memv_imgP [v Hv ->].
-by rewrite -rmorphM memv_img // memv_mul.
-Qed.
-Canonical aimg_aspace K : {subfield L2} := ASpace (aimg_is_subfield K).
-
-Lemma Fadjoin_aimg (K : {subfield L1}) x :
-  (f @: Fadjoin K x = Fadjoin (f @: K) (f x))%VS.
-Proof.
-apply:subv_anti; apply/andP; split; last first.
-  by rewrite -subsetFadjoinE limgS ?subsetKFadjoin ?memv_img ?memx_Fadjoin.
-apply/subvP => _ /memv_imgP [_ /poly_Fadjoin [p /polyOverP Hp ->] ->].
-rewrite -horner_map /=.
-apply: mempx_Fadjoin.
-apply/polyOverP => i.
-by rewrite coef_map memv_img.
-Qed.
-
-Lemma genField_aimg (K : {subfield L1}) xs :
-  (f @: genField K xs = genField (f @: K) (map f xs))%VS.
-Proof.
-elim: xs K => [//|x xs IH] K.
-rewrite IH /=.
-apply: f_equal2 => //.
-apply: Fadjoin_aimg.
-Qed.
-
-End Aimg.
+*)
 
 (* Changing up the reference field of a fieldExtType. *)
 Section FieldOver.
@@ -1784,7 +1574,7 @@ End MoreFieldOver.
 Lemma irredp_FAdjoin (F : fieldType) (p : {poly F}) :
     irreducible_poly p ->
   {L : fieldExtType F & \dim {:L} = (size p).-1 &
-    {z | root (map_poly (in_alg L) p) z & Fadjoin 1 z = fullv}}.
+    {z | root (map_poly (in_alg L) p) z & <<1; z>>%AS = fullv}}.
 Proof.
 case=> p_gt1 irr_p; set n := (size p).-1; pose vL := [vectType F of 'rV_n].
 have Dn: n.+1 = size p := ltn_predK p_gt1.
@@ -1856,11 +1646,11 @@ do ?split; try exact: toLlin; move=> q r /=.
 by apply: toPinj; rewrite !toL_K modp_mul -!(mulrC r) modp_mul.
 Qed.
 
-(* Coq 8.3 processes this shorter proof correctly, but then crashes on Qed.
-Lemma irredp_FAdjoin (F : fieldType) (p : {poly F}) :
+(*Coq 8.3 processes this shorter proof correctly, but then crashes on Qed.
+Lemma Xirredp_FAdjoin (F : fieldType) (p : {poly F}) :
     irreducible_poly p ->
   {L : fieldExtType F & Vector.dim L = (size p).-1 &
-    {z | root (map_poly (in_alg L) p) z & Fadjoin 1 z = fullv}}.
+    {z | root (map_poly (in_alg L) p) z & <<1; z>>%AS = fullv}}.
 Proof.
 case=> p_gt1 irr_p; set n := (size p).-1; pose vL := [vectType F of 'rV_n].
 have Dn: n.+1 = size p := ltn_predK p_gt1.
@@ -1895,10 +1685,10 @@ have unitE: GRing.Field.mixin_of urL.
   move=> x nz_x; apply/unitrP; set q := rVpoly x.
   have nz_q: q != 0 by rewrite -(can_eq (@rVpolyK _ _)) raddf0 in nz_x.
   have /Bezout_eq1_coprimepP[u upq1]: coprimep p q.
-    have /orP[|/eqp_size sz_pq] := irr_p _ (dvdp_gcdl p q).
-      by rewrite -size_poly_eq1.
-    have: size (gcdp p q) <= size q by exact: leq_gcdpr. 
-    by rewrite sz_pq leqNgt (polySpred nz_p) ltnS size_poly.
+    have /contraR := irr_p _ _ (dvdp_gcdl p q); apply.
+    have: size (gcdp p q) <= size q by exact: leq_gcdpr.
+    rewrite leqNgt;apply:contra;move/eqp_size ->.
+    by rewrite (polySpred nz_p) ltnS size_poly.
   suffices: x * toL u.2 = 1 by exists (toL u.2); rewrite mulrC.
   congr (poly_rV _); rewrite toL_K modp_mul mulrC (canRL (addKr _) upq1).
   by rewrite -mulNr modp_addl_mul_small ?size_poly1.
@@ -1915,7 +1705,7 @@ have q_z q: rVpoly (map_poly iota q).[z] = q %% p.
   by rewrite !toL_K IHq mulrC modp_mul mulrC modp_mul.
 exists z; first by rewrite /root -(can_eq (@rVpolyK _ _)) q_z modpp linear0.
 apply/vspaceP=> x; rewrite memvf; apply/poly_Fadjoin.
-exists (map_poly iota (rVpoly x)); split.
+exists (map_poly iota (rVpoly x)).
   by apply/polyOverP=> i; rewrite coef_map memvZ ?mem1v.
 apply: (can_inj (@rVpolyK _ _)).
 by rewrite q_z modp_small // -Dn ltnS size_poly.

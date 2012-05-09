@@ -496,7 +496,7 @@ move => Hx.
 case: m; first by rewrite expr0 mulr0n mul0r Derivation1.
 elim; first by rewrite expr1 expr0 mul1r.
 move => m Hm.
-rewrite GRing.exprS (DerivationMul HD) //; last by apply: memv_exp.
+rewrite GRing.exprS (DerivationMul HD) //; last by apply: rpredX.
 rewrite Hm /= [_ *+ m.+2]GRing.mulrS mulrDl.
 rewrite {3}GRing.exprS mulrA -GRing.mulrnAr.
 congr (_ + _).
@@ -647,7 +647,7 @@ rewrite separable_nzdmp (size_elementDegree (_ : _ \is a polyOver K)).
 by rewrite (leq_trans (size_poly _ _)) // size_minPoly leqnn.
 Qed.
 
-Lemma DerivationSeparable D : Derivation (Fadjoin K x) D -> 
+Lemma DerivationSeparable D : Derivation <<K; x>>%AS D -> 
  (separableElement K x) ->
  D x = - (map_poly D (minPoly K x)).[x] / ((minPoly K x)^`()).[x].
 Proof.
@@ -658,8 +658,8 @@ move/addbP => <- Hroot.
 apply: (canRL (mulfK Hroot)).
 rewrite -sub0r.
 apply: (canRL (addrK _)).
-rewrite mulrC addrC -(DerivationPoly Dderiv) ?memx_Fadjoin //; last first.
-   by apply: polyOverSv (minPolyOver _ _); apply: subsetKFadjoin.
+rewrite mulrC addrC -(DerivationPoly Dderiv) ?memv_adjoin //; last first.
+   by apply: polyOverSv (minPolyOver _ _); apply: subv_adjoin.
 by rewrite minPolyxx linear0.
 Qed.
 
@@ -718,7 +718,7 @@ by rewrite [((minPoly K x)^`()).[x] * _]mulrC (mulfVK sep) mulrN addKr.
 Qed.
 
 Lemma DerivationExtendDerivation :
- (separableElement K x) -> Derivation (Fadjoin K x) (DerivationExtend K).
+ (separableElement K x) -> Derivation <<K; x>>%AS (DerivationExtend K).
 Proof.
 move => sep.
 apply/allP => u; move/vbasis_mem => Hu.
@@ -738,8 +738,8 @@ End DerivationExtend.
 (* Reference: 
 http://www.math.uconn.edu/~kconrad/blurbs/galoistheory/separable2.pdf *)
 Lemma separableDerivationP :
-  reflect (forall D, Derivation (Fadjoin K x) D ->
-                     (K <= lker D)%VS -> (Fadjoin K x <= lker D)%VS)
+  reflect (forall D, Derivation <<K; x>>%AS D ->
+                     (K <= lker D)%VS -> (<<K; x>>%AS <= lker D)%VS)
           (separableElement K x).
 Proof.
 apply introP.
@@ -750,9 +750,10 @@ apply introP.
   have HD0 : forall q, q \is a polyOver K -> map_poly D q = 0.
     move=> q /polyOverP qK; apply/polyP => i; apply/eqP.
     by rewrite coef_map ?linear0 //= coef0 -memv_ker K0 ?qK.
-  by rewrite memv_ker (DerivationPoly DD) ?memx_Fadjoin 
-         ?(polyOverSv (subsetKFadjoin _ _) Hp) // (DerivationSeparable DD sep)
-         /horner_morph !HD0 ?minPolyOver // horner0 oppr0 mul0r mulr0 addr0.
+  rewrite memv_ker (DerivationPoly DD) ?memv_adjoin
+          ?(polyOverSv (subv_adjoin _ _) Hp) //.
+  rewrite (DerivationSeparable DD sep) /horner_morph !HD0 ?minPolyOver //.
+  by rewrite horner0 oppr0 mul0r mulr0 addr0.
 move => nsep.
 move: separableNrootdmp (nsep).
 rewrite negb_eqb.
@@ -765,7 +766,7 @@ pose D := linfun (Linear Dlin).
 have DF : (K <= lker D)%VS.
   apply/subvP => v vK.
   by rewrite memv_ker lfunE /= poly_for_K // derivC horner0.
-have DDeriv : Derivation (Fadjoin K x) D.
+have DDeriv : Derivation <<K; x>>%AS D.
   apply/allP => u; move/vbasis_mem => Hu.
   apply/allP => v; move/vbasis_mem => Hv.
   by rewrite !lfunE /= -{-2}(poly_for_eq Hu)
@@ -791,13 +792,13 @@ have Dx : D x = 1.
     rewrite (_ : (minPoly K x)`_i.+2 = 0) ?mul0rn //.
     move: (leqnn (size (minPoly K x))); rewrite {2}size_minPoly eD.
     by move/leq_sizeP->.
-  by rewrite hornerX (poly_for_eq (memx_Fadjoin _ _)).
+  by rewrite hornerX (poly_for_eq (memv_adjoin _ _)).
 move/(_ _ DDeriv DF).
 apply/negP.
 move/eqP: Dx.
 apply: contraL.
 move/subvP.
-move/(_ _ (memx_Fadjoin _ _)).
+move/(_ _ (memv_adjoin _ _)).
 rewrite memv_ker.
 move/eqP ->.
 rewrite eq_sym.
@@ -819,10 +820,10 @@ by apply: (polyOverSv KE).
 Qed.
 
 Lemma allSeparableElement K x :
-  reflect (forall y, y \in Fadjoin K x -> separableElement K y)
+  reflect (forall y, y \in <<K; x>>%AS -> separableElement K y)
           (separableElement K x).
 Proof.
-apply: (iffP idP); last by apply; apply: memx_Fadjoin.
+apply: (iffP idP); last by apply; apply: memv_adjoin.
 move => sep ?.
 move/poly_Fadjoin => [q Hq ->].
 apply/separableDerivationP => D DD.
@@ -830,26 +831,21 @@ move/subvP => KD0.
 apply/subvP => ?.
 move/poly_Fadjoin => [p Hp ->].
 rewrite memv_ker -(DerivationExtended x D (mempx_Fadjoin _ Hp)).
-have sepFyx : (separableElement (Fadjoin K (q.[x])) x).
-  by apply: (subsetSeparable (subsetKFadjoin _ _)).
-have KyxEqKx : (Fadjoin (Fadjoin K (q.[x])) x = Fadjoin K x).
-  (* apply/eqP. *)
-  (* change (Fadjoin (Fadjoin K q.[x]) x == Fadjoin K x :> {vspace L}). *)
-  (* apply/eqP. *)
-  apply: subv_anti.
-  rewrite -!{1}subsetFadjoinE mempx_Fadjoin //=.
-  rewrite {1}subsetKFadjoin (subv_trans _ (subsetKFadjoin _ _)).
-    by rewrite !{1}memx_Fadjoin.
-  by rewrite subsetKFadjoin.
+have sepFyx : (separableElement <<K; q.[x]>>%AS x).
+  by apply: (subsetSeparable (subv_adjoin _ _)).
+have KyxEqKx : << <<K; q.[x]>>%AS; x>>%AS = <<K; x>>%AS.
+  apply: subv_anti; apply/andP; split; last by rewrite adjoinSl // subv_adjoin.
+  apply/FadjoinP/andP; rewrite memv_adjoin andbT.
+  by apply/FadjoinP/andP; rewrite subv_adjoin mempx_Fadjoin.
 rewrite -horner_comp.
 move: (DerivationExtendDerivation DD sepFyx).
 rewrite KyxEqKx => DED.
 rewrite (DerivationPoly DED); last first.
-    apply: memx_Fadjoin.
-  apply: (polyOverSv (subsetKFadjoin _ _)).
+    apply: memv_adjoin.
+  apply: (polyOverSv (subv_adjoin _ _)).
   exact: polyOver_comp.
 suff hmD : forall t, t \is a polyOver K ->
-           (map_poly (DerivationExtend x D (Fadjoin K q.[x])) t).[x] = 0.
+           (map_poly (DerivationExtend x D <<K; q.[x]>>%AS) t).[x] = 0.
   rewrite (DerivationSeparable DED); last done.
   rewrite !{1}hmD; first by rewrite oppr0 mul0r mulr0 addr0.
     exact: minPolyOver.
@@ -861,29 +857,8 @@ apply/polyP => i.
 rewrite coef0 {1}coef_map /= {1}DerivationExtended.
   apply/eqP.
   by rewrite -memv_ker KD0 ?Ht.
-apply: (subv_trans _ (subsetKFadjoin _ _)).
+apply: (subv_trans _ (subv_adjoin _ _)).
 by apply: Ht.
-Qed.
-
-Lemma FadjoinC x y K :
-  Fadjoin (Fadjoin K x) y = Fadjoin (Fadjoin K y) x.
-Proof.
-wlog suffices : x y K /
-  (Fadjoin (Fadjoin K x) y <= Fadjoin (Fadjoin K y) x)%VS.
-  move => H.
-  by apply:subv_anti; apply/andP; split.
-rewrite -!subsetFadjoinE memx_Fadjoin memK_Fadjoin ?memx_Fadjoin //.
-by rewrite (@subv_trans _ _ (Fadjoin K y)) ?subsetKFadjoin.
-Qed.
-
-Lemma subsetFadjoin x K E :
-  (K <= E)%VS -> (Fadjoin K x <= Fadjoin E x)%VS.
-Proof.
-move => HKE.
-apply/subvP => y.
-case/poly_Fadjoin => p Hp ->.
-apply: mempx_Fadjoin.
-by apply: (polyOverSv HKE).
 Qed.
 
 Section SeparableInCharP.
@@ -938,7 +913,7 @@ by case/andP: Hchar.
 Qed.
 
 Lemma separableCharp : forall x e p, p \in [char L] ->
- separableElement K x = (x \in Fadjoin K (x ^+ (p ^ e.+1))).
+ separableElement K x = (x \in <<K; x ^+ (p ^ e.+1)>>%AS).
 Proof.
 move => x e p Hp.
 apply/idP/idP; last first.
@@ -957,21 +932,22 @@ apply/idP/idP; last first.
  by rewrite polyC0 !mulr0 subr0 coprimep1.
 wlog: e x / e = 0%N.
  move => H.
- elim: e.+1; first by rewrite expr1 memx_Fadjoin.
+ elim: e.+1; first by rewrite expr1 memv_adjoin.
  move => {e} e IH Hsep.
  rewrite expnS mulnC exprM -{2}[p]expn1.
- have : (Fadjoin K (x ^+ (p ^ e)) <= Fadjoin K (x ^+ (p ^ e) ^+ (p ^ 1)))%VS.
+ have : (<<K; x ^+ (p ^ e)>>%AS <= <<K; x ^+ (p ^ e) ^+ (p ^ 1)>>%AS)%VS.
   move/allSeparableElement: Hsep => Hsep.
-  by rewrite -subsetFadjoinE subsetKFadjoin H ?Hsep ?memv_exp ?memx_Fadjoin.
+  apply/FadjoinP/andP.
+  by rewrite subv_adjoin H ?Hsep ?rpredX ?memv_adjoin.
  move/subvP; apply.
  by apply IH.
 move => -> {e}.
-pose K' := Fadjoin_aspace K (x ^+ p).
+pose K' : {subfield L} := [aspace of <<K; x ^+ p>>%AS].
 pose g := 'X^p - (x ^+ p)%:P.
 have HK'g : g \in polyOver K'.
-  by rewrite rpredB ?rpredX ?polyOverX // polyOverC memx_Fadjoin.
+  by rewrite rpredB ?rpredX ?polyOverX // polyOverC memv_adjoin.
 have rootg : root g x by rewrite /root !hornerE hornerXn subrr.
-move/(subsetSeparable (subsetKFadjoin _ (x ^+ p))).
+move/(subsetSeparable (subv_adjoin _ (x ^+ p))).
 move : (root_minPoly K' x) (minPoly_dvdp HK'g rootg) (minPolyOver K' x).
 rewrite root_factor_theorem /separableElement -/K'.
 case/(dvdpP) => c -> Hcg HK'c.
@@ -991,11 +967,11 @@ rewrite (size1_polyC (eq_leq Hszc)) size_polyC mulrDr -polyC_opp -polyC_mul.
 move/polyOverP => Hx; move: (Hx 1%N) (Hx 0%N).
 rewrite !coefD !coefMX !coefC add0r addr0 => Hx1 Hx0.
 case Hc0 : (c`_0 != 0) => // _.
-by rewrite -memvN -[(- x)](mulKf Hc0) memv_mul // memv_inv.
+by rewrite -memvN -[(- x)](mulKf Hc0) memv_mul // rpredV.
 Qed.
 
 Lemma separableCharn : forall x n, n \in [char L].-nat ->
- 1 < n -> separableElement K x = (x \in Fadjoin K (x ^+ n)).
+ 1 < n -> separableElement K x = (x \in <<K; x ^+ n>>%AS).
 Proof.
 move => x n Hn H1n.
 set p := pdiv n.
@@ -1049,7 +1025,7 @@ case/p_natP => em ->.
 rewrite (separableCharp _ _ (em - en.+1)%N Hp) => Hsepn.
 rewrite ltn_exp2l; last by apply/prime_gt1/(charf_prime Hp).
 move/subnKC <-.
-rewrite addSnnS expnD exprM FadjoinxK.
+rewrite addSnnS expnD exprM memv_adjoin_eq.
 by move/eqP <-.
 Qed.
 
@@ -1166,8 +1142,8 @@ have Hza: (z ^+ a1 != 0) by exact: expf_neq0.
 apply/eqP.
 rewrite -(can_eq (mulfK Hza)) -exprD mul1r subnK //.
 apply/eqP; symmetry.
-have Hzi : forall i,  z ^+ i \in Fadjoin K z.
- by move => i; apply: memv_exp; exact: memx_Fadjoin.
+have Hzi : forall i,  z ^+ i \in <<K; z>>%AS.
+ by move => i; apply: rpredX; exact: memv_adjoin.
 move/poly_for_eq:(Hzi a1) <-.
 move/poly_for_eq:(Hzi a2) <-.
 have Z:=(horner_coef_wide z (size_poly_for K z (z ^+ _))).
@@ -1180,29 +1156,29 @@ by move/(f_equal val) => /=.
 Qed.
 
 Lemma PET_finiteCase_subproof : 
-  KisBig \/ exists z, Fadjoin (Fadjoin K y) x = Fadjoin K z.
+  KisBig \/ exists z, << <<K; y>>%AS; x>>%AS = <<K; z>>%AS.
 Proof.
 case (eqVneq x 0) => [->|Hx0].
  right; exists y.
  apply/eqP.
- rewrite -FadjoinxK.
+ rewrite -memv_adjoin_eq.
  by apply: mem0v.
 move/cyclicOrBig: (Hx0) => [|[[|a] Hxa]]; first by left.
  rewrite expr1 in Hxa.
  right; exists y.
  apply/eqP.
- rewrite -FadjoinxK Hxa.
+ rewrite -memv_adjoin_eq Hxa.
  by apply: mem1v.
 case (eqVneq y 0) => [->|Hy0].
  right; exists x.
  move: (mem0v K).
- rewrite FadjoinxK.
+ rewrite memv_adjoin_eq.
  by move/eqP ->.
 move/cyclicOrBig: (Hy0) => [|[[|b] Hyb]]; first by left.
  rewrite expr1 in Hyb.
  right; exists x.
  move: (mem1v K).
- rewrite FadjoinxK Hyb.
+ rewrite memv_adjoin_eq Hyb.
  by move/eqP ->.
 right.
 pose h0 := fun (i:'I_a.+2) (j:'I_b.+2) => x ^+ i * y ^+ j.
@@ -1265,13 +1241,13 @@ have: cyclic [set: gT] by apply: (field_mul_group_cyclic (f:=h)).
 move/cyclicP => [z Hz].
 exists (h z).
 apply:subv_anti.
-apply/andP;split;rewrite -subsetFadjoinE; last first.
- rewrite (subv_trans (subsetKFadjoin K y) (subsetKFadjoin _ x)) /h /=.
+apply/andP;split;last first.
+ apply/FadjoinP/andP.
+ rewrite (subv_trans (subv_adjoin K y) (subv_adjoin _ x)) /h /=.
  case: z {Hz} => ? /=.
  move/allpairsP => [[ix iy] [_ _ ->]].
- rewrite /h0 /= memv_mul // memv_exp //; first by rewrite memx_Fadjoin.
- by rewrite memK_Fadjoin // memx_Fadjoin.
-rewrite -subsetFadjoinE subsetKFadjoin /=.
+ rewrite /h0 /= memv_mul // rpredX //; first by rewrite memv_adjoin.
+ by rewrite memv_mem_adjoin // memv_adjoin.
 have Hxl : x \in l.
  apply/allpairsP.
  exists (1,0).
@@ -1290,14 +1266,16 @@ move/(f_equal val) => /= ->.
 have: (SeqSub Hyl \in <[z]>)%g by rewrite -Hz in_setT.
 case/cycleP => j.
 move/(f_equal val) => /= ->.
-by rewrite ![ssval _]Hhz !memv_exp // memx_Fadjoin.
+rewrite ![ssval _]Hhz.
+do 2 (apply/FadjoinP/andP; rewrite rpredX ?memv_adjoin // andbT).
+by rewrite subv_adjoin.
 Qed.
 
 End FiniteCase.
 
 Hypothesis sep : separableElement K y.
 
-Lemma PrimitiveElementTheorem : exists z, Fadjoin (Fadjoin K y) x = Fadjoin K z.
+Lemma PrimitiveElementTheorem : exists z, << <<K; y>>%AS; x>>%AS = <<K; z>>%AS.
 Proof.
 move/monic_neq0: (monic_minPoly K x).
 case/polyOver_subvs: (minPolyOver K x) (root_minPoly K x) => p -> Hrootp.
@@ -1316,35 +1294,37 @@ case: (HPET (Subvs Hc) Hrootc).
 set z := (_ * y - x) => [[a Ha] [b Hb]].
 exists z.
 apply: subv_anti.
-apply/andP;split; rewrite -subsetFadjoinE; last first.
- rewrite (subv_trans (subsetKFadjoin K y) (subsetKFadjoin _ x)) /=.
- rewrite memvB //; last by rewrite memx_Fadjoin.
- rewrite memK_Fadjoin // memv_mul //; last by rewrite memx_Fadjoin.
- by rewrite memK_Fadjoin.
-rewrite -subsetFadjoinE.
-rewrite subsetKFadjoin /=.
-apply/andP; split; apply/poly_Fadjoin.
+apply/andP;split; apply/FadjoinP/andP; last first.
+ rewrite (subv_trans (subv_adjoin K y) (subv_adjoin _ x)) /=.
+ rewrite memvB //; last by rewrite memv_adjoin.
+ rewrite memv_mem_adjoin // rpredM //; last by rewrite memv_adjoin.
+ by rewrite memv_mem_adjoin.
+apply/andP; split; last first.
+ apply/poly_Fadjoin.
+ exists (map_poly vsval a); last by rewrite Ha.
+ apply/polyOver_subvs.
+ by exists a.
+apply/FadjoinP/andP.
+ rewrite subv_adjoin /=.
+ apply/poly_Fadjoin.
  exists (map_poly vsval b); last by rewrite Hb.
  apply/polyOver_subvs.
  by exists b.
-exists (map_poly vsval a); last by rewrite Ha.
-apply/polyOver_subvs.
-by exists a.
 Qed.
 
-Lemma separableFadjoinExtend : separableElement (Fadjoin K y) x -> 
+Lemma separableFadjoinExtend : separableElement <<K; y>>%AS x -> 
   separableElement K x.
 Proof.
 move/separableDerivationP => sepx.
 move/separableDerivationP: sep => sepy.
 case: PrimitiveElementTheorem => z Hz.
 suff/allSeparableElement : separableElement K z.
- by apply; rewrite -Hz memx_Fadjoin.
+ by apply; rewrite -Hz memv_adjoin.
 apply/separableDerivationP => D.
 rewrite -Hz => HDz.
-have HDy : Derivation (Fadjoin K y) D.
+have HDy : Derivation <<K; y>>%AS D.
  apply: (subvDerivation _ HDz).
- by rewrite subsetKFadjoin.
+ by rewrite subv_adjoin.
 move/(sepy _ HDy).
 by apply: sepx=> /=.
 Qed.
@@ -1353,8 +1333,8 @@ End PrimitiveElementTheorem.
 
 Lemma StrongPrimitiveElementTheorem
      : forall (K : {subfield L}) (x y : L),
-       separableElement (Fadjoin K x) y ->
-       exists2 z : L, Fadjoin (Fadjoin K y) x = Fadjoin K z &
+       separableElement <<K; x>>%AS y ->
+       exists2 z : L, << <<K; y>>%AS; x>>%AS = <<K; z>>%AS &
                       separableElement K x -> separableElement K y.
 Proof.
 move => K x y Hsep.
@@ -1365,11 +1345,16 @@ exists z; last by move/separableFadjoinExtend; apply.
 case (eqVneq n 1%N) => Hn1; first by move: Hz; rewrite Hn1 expr1.
 have : (1 < n) by case: n Hz Hn Hn1 => [|[|n]].
 move => {Hn1} Hn1.
-rewrite -Hz {1}FadjoinC [X in _ = X]FadjoinC.
+rewrite -Hz.
+rewrite closurea_add_closure -addvA [(<[_]> + <[_]>)%VS]addvC.
+rewrite addvA -closurea_add_closure.
+symmetry.
+rewrite closurea_add_closure -addvA [(<[_]> + <[_]>)%VS]addvC.
+rewrite addvA -closurea_add_closure.
 apply: subv_anti.
-apply/andP; split; rewrite -{1}subsetFadjoinE {1}subsetKFadjoin.
- by rewrite -separableCharn // Hsep.
-by rewrite memv_exp ?memx_Fadjoin.
+apply/andP; split; apply/FadjoinP/andP; rewrite subv_adjoin /=.
+  by rewrite rpredX ?memv_adjoin.
+by rewrite -separableCharn // Hsep.
 Qed.
 
 Section SeparableAndInseparableExtensions.
@@ -1387,14 +1372,14 @@ Lemma separable_add : forall x y,
 Proof.
 move => x y Hx Hy.
 case: (PrimitiveElementTheorem x Hy) => z Hz.
-have: (x + y) \in Fadjoin (Fadjoin K y) x.
- by apply: memvD; last apply: memK_Fadjoin; apply: memx_Fadjoin.
+have: (x + y) \in << <<K; y>>%AS; x>>%AS.
+  by apply: memvD; last apply: memv_mem_adjoin; apply: memv_adjoin.
 rewrite Hz.
 move: (x + y); apply/allSeparableElement.
 apply: (separableFadjoinExtend Hy).
 apply: (@separableFadjoinExtend _ _ x); last first.
- by rewrite Hz separableinK ?memx_Fadjoin.
-by apply: (subsetSeparable (subsetKFadjoin K y)).
+  by rewrite Hz separableinK ?memv_adjoin.
+by apply: (subsetSeparable (subv_adjoin K y)).
 Qed.
 
 Lemma separable_sum : forall I r (P : pred I) (v_ : I -> L),
@@ -1416,7 +1401,7 @@ case/purelyInseparableElementP => m Hm Hy.
 apply/purelyInseparableElementP.
 have Hnm : [char L].-nat (n * m)%N by rewrite pnat_mul Hn Hm.
 exists (n * m)%N => //.
-by rewrite exprDn_char // {2}mulnC !exprM memvD // memv_exp.
+by rewrite exprDn_char // {2}mulnC !exprM memvD // rpredX.
 Qed.
 
 Lemma inseparable_sum : forall I r (P : pred I) (v_ : I -> L),
@@ -1445,7 +1430,7 @@ have/allSeparableElement : (separableElement K (vbasis E)`_i).
  case: (leqP (size (vbasis E)) i); last by move/(mem_nth 0)/HEK.
  by move/(nth_default 0) ->; rewrite separableinK // mem0v.
 apply.
-by rewrite memvZ // memx_Fadjoin.
+by rewrite memvZ // memv_adjoin.
 Qed.
 
 Lemma purelyInseparableP :
@@ -1474,7 +1459,7 @@ End SeparableAndInseparableExtensions.
 Section SeparableInseparableDecomposition.
 
 Lemma separableSeparableExtension : forall K x,
- separableElement K x = separable K (Fadjoin K x).
+ separableElement K x = separable K <<K; x>>%AS.
 Proof.
 move => K x.
 by apply/(sameP (allSeparableElement _ _))/(iffP (separableP _ _)).
@@ -1482,7 +1467,7 @@ Qed.
 
 Lemma separableInseparableDecomposition : forall E K ,
  exists x, [&& x \in E, separableElement K x & 
-             purelyInseparable (Fadjoin K x) E].
+             purelyInseparable <<K; x>>%AS E].
 Proof.
 move => E K.
 wlog: K / (K <= E)%VS => [|HKE].
@@ -1494,7 +1479,7 @@ wlog: K / (K <= E)%VS => [|HKE].
   by apply/(subsetSeparable _ Hsep)/capvSl.
  apply/purelyInseparableP => y Hy.
  apply: subsetInseparable; last by apply Hinsep.
- by apply/subsetFadjoin/capvSl.
+ by apply/adjoinSl/capvSl.
 set (f := fun i => 
       (vbasis E)`_i ^+ ex_minn (separablePower K (vbasis E)`_i)).
 set (s := mkseq f (\dim E)).
@@ -1503,23 +1488,23 @@ have Hsep : all (separableElement K) s.
  case/mapP => i _ ->.
  rewrite /f.
  by case ex_minnP => m; case/andP.
-set (K' := foldr (fun x y => Fadjoin_aspace y x) K s).
+pose K' : {subfield L} :=
+  foldr (fun x (y : {subfield L}) => [aspace of <<y; x>>%AS]) K s.
 have: exists x, [&& x \in E, separableElement K x
-                  & K' == Fadjoin K x :> {vspace _}].
+                  & K' == <<K; x>>%AS :> {vspace _}].
  rewrite /K' {K'}.
  have: all (fun x => x \in E) s.
   apply/allP => ?.
   case/mapP => i.
   rewrite mem_iota => Hi ->.
-  rewrite /f memv_exp // vbasis_mem // mem_nth //.
+  rewrite /f rpredX // vbasis_mem // mem_nth //.
   case: (vbasis E) => ? /=.
   by move/eqP ->.
  elim: s Hsep => [|t s IH].
   exists 0.
   apply/and3P; split => //; first by rewrite mem0v.
    by rewrite separableinK // mem0v.
-  rewrite eq_sym -FadjoinxK.
-  by apply: mem0v.
+  by rewrite eq_sym addv0 subfield_closed.
  case/andP => Ht Hs.
  case/andP => HtE HsE.
  case: (IH Hs HsE) => y.
@@ -1527,12 +1512,14 @@ have: exists x, [&& x \in E, separableElement K x
  case: (PrimitiveElementTheorem t Hsep) => x Hx.
  exists x.
  apply/and3P; split.
-   suff: (Fadjoin K x <= E)%VS by move/subvP; apply; rewrite memx_Fadjoin.
-   by rewrite -Hx -!subsetFadjoinE HKE HyE.
+   suff: (<<K; x>>%AS <= E)%VS by move/subvP; apply; rewrite memv_adjoin.
+   rewrite -Hx.
+   apply/FadjoinP; split => //.
+   by apply/FadjoinP/andP; rewrite HKE HyE.
   apply/allSeparableElement => z.
   rewrite -Hx => Hz.
   apply: (separableFadjoinExtend Hsep).
-  move/allSeparableElement: (subsetSeparable (subsetKFadjoin K y) Ht).
+  move/allSeparableElement: (subsetSeparable (subv_adjoin K y) Ht).
   by apply.
  move/eqP: Hy => /= ->.
  by apply/eqP.
@@ -1553,9 +1540,9 @@ move/eqP ->.
 rewrite -[_ < _]/(0 <= i < 0 + (\dim E)).
 rewrite -mem_iota.
 elim: (iota 0 (\dim E)) => [//|a b IH].
-case/orP; last by move => ?; apply/memK_Fadjoin/IH.
+case/orP; last by move => ?; apply/memv_mem_adjoin/IH.
 move/eqP ->.
-by apply: memx_Fadjoin.
+by apply: memv_adjoin.
 Qed.
 
 (* Are these defintions not needed? *)
@@ -1579,7 +1566,7 @@ by case/and3P: (choice.xchooseP
 Qed.
 
 Lemma separableGeneratorMaximal : forall E K, 
- purelyInseparable (Fadjoin K (separableGenerator K E)) E.
+ purelyInseparable <<K; separableGenerator K E>>%AS E.
 Proof.
 move => E K.
 by case/and3P: (choice.xchooseP 
@@ -1587,24 +1574,24 @@ by case/and3P: (choice.xchooseP
 Qed.
 
 Lemma separableSeparableGeneratorEx : forall E K,
- separable K E -> (E <= Fadjoin K (separableGenerator K E))%VS.
+ separable K E -> (E <= <<K; separableGenerator K E>>%AS)%VS.
 Proof.
 move => E K.
 move/separableP => Hsep.
 apply/subvP => v Hv.
 rewrite separableInseparableElement.
 move/purelyInseparableP/(_ _ Hv): (separableGeneratorMaximal E K) ->.
-by rewrite (subsetSeparable _ (Hsep _ Hv)) // subsetKFadjoin.
+by rewrite (subsetSeparable _ (Hsep _ Hv)) // subv_adjoin.
 Qed.
 
 Lemma separableSeparableGenerator : forall E K,
  separable K E -> (K <= E)%VS ->
- E = Fadjoin K (separableGenerator K E) :> {vspace _}.
+ E = <<K; separableGenerator K E>>%AS :> {vspace _}.
 Proof.
 move => E K Hsep HKE.
 apply: subv_anti.
 rewrite separableSeparableGeneratorEx //=.
-by rewrite -subsetFadjoinE HKE separableGeneratorInE.
+by apply/FadjoinP/andP; rewrite HKE separableGeneratorInE.
 Qed.
 
 End SeparableInseparableDecomposition.
@@ -1622,16 +1609,18 @@ case/StrongPrimitiveElementTheorem => _ _; apply.
 apply: separableGeneratorSep.
 Qed.
 
-Lemma separable_genField (K : {subfield L}) rs :
-  all (separableElement K) rs -> separable K (genField K rs).
+Lemma separable_Fadjoin_seq (K : {subfield L}) rs :
+  all (separableElement K) rs -> separable K <<K & rs>>%AS.
 Proof.
-elim: rs K => [|/= x rs IH] K; first by rewrite separable_refl.
+elim: rs K => [|/= x rs IH] K.
+  by rewrite span_nil addv0 subfield_closed separable_refl.
 case/andP => Hx /allP Hrs.
-apply: (@separable_trans (Fadjoin_aspace K x)).
-  by rewrite - separableSeparableExtension.
-apply: IH.
+apply: (@separable_trans [aspace of <<K; x>>%AS]) => /=.
+  by rewrite -separableSeparableExtension.
+rewrite span_cons addvA -[<<_ & rs>>%AS]closurea_add_closure.
+apply IH.
 apply/allP => y Hy.
-by apply: (subsetSeparable (subsetKFadjoin K x)) (Hrs _ _).
+by apply: (subsetSeparable (subv_adjoin K x)) (Hrs _ _).
 Qed.
 
 Lemma purelyInseperable_refl (K : {subfield L}) : purelyInseparable K K.
@@ -1682,7 +1671,7 @@ rewrite -{1}[y]FermatLittleTheorem.
  by rewrite expn0 -{1}(subnK (finField_card_gt1 F)) addnC.
 rewrite -expnM.
 suff -> : (n.+1 * (Vector.dim L))%N = (n.+1 * (Vector.dim L)).-1.+1.
- by rewrite expnS exprM memv_exp // memx_Fadjoin.
+ by rewrite expnS exprM rpredX // memv_adjoin.
 by rewrite prednK // muln_gt0 FalgType_proper.
 Qed.
 

@@ -85,7 +85,7 @@ Canonical subfx_unitAlgType (F L : fieldType) iota (z : L) p :=
 
 Lemma num_field_exists (s : seq algC) :
   {Qs : fieldExtType rat & {QsC : {rmorphism Qs -> algC}
-   & {s1 : seq Qs | map QsC s1 = s & genField 1 s1 = fullv}}}.
+   & {s1 : seq Qs | map QsC s1 = s & <<1 & s1>>%AS = fullv}}}.
 Proof.
 have [z /sig_eqW[a Dz] /sig_eqW[ps Ds]] := algC_PET s.
 suffices [Qs [QsC [z1 z1C z1gen]]]:
@@ -105,7 +105,7 @@ suffices [Qs [QsC [z1 z1C z1gen]]]:
   rewrite /inQs rmorphD rmorphM /= fieldExt_hornerX fieldExt_hornerC -/inQs /=.
   suffices ->: z1 = \sum_(i < size s) s1`_i *+ a i.
     rewrite memvD ?memvZ ?mem1v ?memv_mul ?memv_suml // => i _.
-    by rewrite rpredMn ?mem_genField ?mem_nth // size_map sz_ps.
+    by rewrite rpredMn ?seqv_sub_adjoin ?mem_nth // size_map sz_ps.
   apply: (fmorph_inj QsC); rewrite z1C Dz rmorph_sum; apply: eq_bigr => i _.
   by rewrite rmorphMn {1}Ds !(nth_map 0) ?sz_ps //= inQsK.
 have [r [Dr mon_r] dv_r] := minCpolyP z; have nz_r := monic_neq0 mon_r.
@@ -246,8 +246,9 @@ case/normal_field_splitting=> [p Qp /sig2_eqW[r Dp genQn]].
 apply: restrict_aut_to_num_field => x.
 have:= memvf x; rewrite -{}genQn; have: all (mem r) r by exact/allP.
 elim/last_ind: {-1}r => [|r1 z IHr] /= in x *.
+  rewrite Fadjoin_nil.
   by move=> _ /vlineP[a ->]; exists a%:A; rewrite alg_num_field !fmorph_rat.
-rewrite all_rcons genField_rcons => /andP[/= rz r_r1] /poly_Fadjoin[q r_q ->].
+rewrite all_rcons adjoin_rcons => /andP[/= rz r_r1] /poly_Fadjoin[q r_q ->].
 have /mapP[y _ Dy]: nu (QnC z) \in map QnC r.
   rewrite -root_prod_XsubC big_map.
   have: root (map_poly (nu \o QnC) p) (nu (QnC z)).
@@ -506,7 +507,7 @@ have pzn_zk0: root (map_poly \1%VF (minPoly 1 zn)) (zn ^+ k).
   rewrite (bigD1 (Ordinal (ltn_pmod k n_gt0))) ?coprime_modl //=.
   by rewrite rootM root_XsubC prim_expr_mod ?eqxx.
 have phiM: lrmorphism phi.
-  by apply/kAut_lrmorph; rewrite -genQn /= kHomExtendkHom.
+  by apply/kAut_lrmorph; rewrite -genQn span_seq1 /= kHomExtendkHom.
 have [nu Dnu] := extend_algC_subfield_aut QnC (RMorphism phiM).
 exists nu => _ /(prim_rootP prim_z)[i ->].
 rewrite rmorphX exprAC -Dz -Dnu /= -{1}[zn]hornerX /phi.
