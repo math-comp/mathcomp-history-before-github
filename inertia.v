@@ -660,6 +660,23 @@ Definition cfdet phi := \prod_i detRepr 'Chi_i ^+ truncC '[phi, 'chi[G]_i].
 Lemma cfdet_lin_char phi : cfdet phi \is a linear_char.
 Proof. by apply: rpred_prod => i _; apply: rpredX; apply: detRepr_lin_char. Qed.
 
+Lemma cfdetD :
+  {in character &, {morph cfdet : phi psi / phi + psi >-> phi * psi}}.
+Proof.
+move=> phi psi Nphi Npsi; rewrite /= -big_split; apply: eq_bigr => i _ /=.
+by rewrite -exprD cfdotDl truncCD ?nnegrE ?Cnat_ge0 // Cnat_cfdot_char_irr.
+Qed.
+
+Lemma cfdet0 : cfdet 0 = 1.
+Proof. by rewrite /cfdet big1 // => i _; rewrite cfdot0l truncC0. Qed.
+
+Lemma cfdetMn k :
+  {in character, {morph cfdet : phi / phi *+ k >-> phi ^+ k}}.
+Proof.
+move=> phi Nphi; elim: k => [|k IHk]; rewrite ?cfdet0 // mulrS exprS -{}IHk.
+by rewrite cfdetD ?rpredMn.
+Qed.
+
 Lemma cfdet_Repr n rG : cfdet (cfRepr rG) = @detRepr n rG.
 Proof.
 transitivity (\prod_W detRepr (socle_repr W) ^+ standard_irr_coef rG W).
