@@ -238,33 +238,23 @@ have /vlineP[a ->]: p`_i \in 1%VS by exact: polyOverP.
 by rewrite alg_num_field !fmorph_rat.
 Qed.
 
-Lemma restrict_aut_to_normal_num_field (nu : {rmorphism algC -> algC}) :
-    isNormalFieldExt Qn ->
-  {nu0 : {lrmorphism Qn -> Qn} | {morph QnC : x / nu0 x >-> nu x}}.
-Proof.
-case/normal_field_splitting=> [p Qp /sig2_eqW[r Dp genQn]].
-apply: restrict_aut_to_num_field => x.
-have:= memvf x; rewrite -{}genQn; have: all (mem r) r by exact/allP.
-elim/last_ind: {-1}r => [|r1 z IHr] /= in x *.
-  rewrite Fadjoin_nil.
-  by move=> _ /vlineP[a ->]; exists a%:A; rewrite alg_num_field !fmorph_rat.
-rewrite all_rcons adjoin_rcons => /andP[/= rz r_r1] /poly_Fadjoin[q r_q ->].
-have /mapP[y _ Dy]: nu (QnC z) \in map QnC r.
-  rewrite -root_prod_XsubC big_map.
-  have: root (map_poly (nu \o QnC) p) (nu (QnC z)).
-    by rewrite fmorph_root (eqp_root Dp) root_prod_XsubC rz.
-  rewrite map_Qnum_poly // (eqp_root (etrans (eqp_map _ _ _) Dp)) rmorph_prod.
-  congr (root _ _); apply: eq_bigr => z1 _.
-  by rewrite rmorphB /= map_polyX map_polyC.
-have nu_q i: {c | nu (QnC q`_i) = QnC c}.
-  by apply/sig_eqW/IHr=> //; exact: polyOverP.
-exists (\poly_(i < size q) sval (nu_q i)).[y].
-rewrite -!horner_map; congr _.[_] => //.
-apply/polyP=> i; rewrite coef_map coef_poly coef_map coef_poly.
-by case: ifP => _; [case: (nu_q i) | rewrite /= !rmorph0].
-Qed.
-
 End NumFieldProj.
+
+Lemma restrict_aut_to_normal_num_field (Qn : splittingFieldType rat)
+  (QnC : {rmorphism Qn -> algC})(nu : {rmorphism algC -> algC}) :
+    {nu0 : {lrmorphism Qn -> Qn} | {morph QnC : x / nu0 x >-> nu x}}.
+Proof.
+apply: restrict_aut_to_num_field => x.
+case: (splitting_field_normal 1%AS x) => rs /eqP Hrs.
+have: root (map_poly (nu \o QnC) (minPoly 1%AS x)) (nu (QnC x)).
+  by rewrite fmorph_root root_minPoly.
+rewrite map_Qnum_poly ?minPolyOver // Hrs.
+rewrite [map_poly _ _](_:_ = \prod_(y <- map QnC rs) ('X - y%:P)); last first.
+  rewrite big_map rmorph_prod; apply eq_bigr => i _.
+  by rewrite rmorphB /= map_polyX map_polyC.
+rewrite root_prod_XsubC.
+by case/mapP => y _ ?; exists y.
+Qed.
 
 (* Integral spans. *)
 

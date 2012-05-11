@@ -8,16 +8,16 @@ Require Import matrix mxalgebra vector falgebra fieldext separable.
 (*       f \is a kHom K E == (f:'End(L)) is a ring morphism on E and fixes K. *)
 (*       f \is a kAut K E == (f:'End(L)) is a kHom K E and f @: E == E.       *)
 (*                                                                            *)
-(*              'Aut(E|K) == the group of automorphisms of E that fix K.      *)
-(*              Aut K E f == Constructs an 'Aut(E|K) when f \is a kAut K E.   *)
+(*            'Aut(E / K) == the group of automorphisms of E that fix K.      *)
+(*              Aut K E f == Constructs an 'Aut(E / K) when f \is a kAut K E. *)
 (*           fixedField G == The field fixed by the set of automorphisms G .  *)
-(*                           fixedField set0 == E when G \subset 'Aut(E|K).   *)
+(*                           fixedField set0 == E when G \subset 'Aut(E / K). *)
 (*        normalField K E == E is a normal field extension of K.              *)
 (*             galois K E == E is a normal and separable field extension of K.*)
 (*        pickAut K M E f == picks some 'Aut(E|K) extending f \is a kHom K M  *)
 (*                           when normalfield E K.                            *)
-(*      galoisTrace K E a == \sum_(x | x \in ('Aut(E / K))%g) (x a)           *)
-(*       galoisNorm K E a == \prod_(x | x \in ('Aut(E / K))%g) (x a)          *)
+(*      galoisTrace K E a == \sum_(x | x \in ('Aut(E / K))) (x a)             *)
+(*       galoisNorm K E a == \prod_(x | x \in ('Aut(E / K))) (x a)            *)
 (*                                                                            *)
 (******************************************************************************)
 
@@ -31,55 +31,6 @@ Reserved Notation "''Aut' ( A / B )"
 Open Local Scope ring_scope.
 Import GRing.Theory.
 Import FalgLfun.
-(*
-(* This should be moved to vector.v *)
-
-Section Eigenspace.
-
-Variable (K: fieldType) (V : vectType K) (f:'End(V)) (lambda:K).
-
-Definition eigenspace := lker (f - lambda *: \1%VF).
-
-Lemma eigenspaceIn : forall x, (x \in eigenspace) = (f x == lambda *: x) .
-Proof.
-move => x.
-by rewrite memv_ker add_lfunE opp_lfunE scale_lfunE GRing.subr_eq0 id_lfunE.
-Qed.
-
-Lemma eigensubspaceImage :  forall vs, 
-  (vs <= eigenspace)%VS -> (f @: vs <= vs)%VS.
-Proof.
-move => vs.
-move/subvP => Hvs.
-apply/subvP => x.
-case/memv_imgP => y Hy ->.
-move/Hvs:(Hy).
-rewrite eigenspaceIn.
-move/eqP ->.
-by apply: memvZ.
-Qed.
-
-Lemma eigensubspaceImageEq :
- forall vs, (lambda != 0) -> (vs <= eigenspace)%VS -> (f @: vs = vs)%VS.
-Proof.
-move => vs Hl Hvs.
-apply: subv_anti.
-apply/andP.
-split; first by apply: eigensubspaceImage.
-move/subvP: Hvs => Hvs.
-apply/subvP => x Hx.
-apply/memv_imgP.
-have Hlx : (lambda^-1 *: x \in vs) by rewrite memvZ.
-exists (lambda^-1 *: x) => //.
-move/Hvs: Hlx.
-rewrite eigenspaceIn.
-move/eqP ->.
-by rewrite scalerA divff // scale1r.
-Qed.
-
-End Eigenspace.
-*)
-
 
 (* Move this to vector.v *)
 Lemma limg_eq (F:fieldType) (vT wT:vectType F) (V : {vspace vT})
@@ -107,6 +58,24 @@ rewrite memv_ker !lfun_simp subr_eq0.
 apply/eqP.
 by apply: Hfg.
 Qed.
+
+Section SplittingFieldFor.
+
+Variables (F : fieldType) (L : fieldExtType F).
+
+(* Later fieldExtType could be replaced with FalgType if genField is similarly
+   generalized *)
+Definition splittingFieldFor (U : {vspace L}) (p : {poly L}) (V : {vspace L}) :=
+  exists2 rs, p %= \prod_(z <- rs) ('X - z%:P) & <<U & rs>>%AS = V.
+
+Lemma splittingFieldForS (K E : {subfield L}) p :
+  (K <= E)%VS -> splittingFieldFor K p fullv -> splittingFieldFor E p fullv.
+Proof.
+move=> sKE [rs Dp genL]; exists rs => //; apply/eqP.
+by rewrite eqEsubv subvf -genL adjoin_seqSl.
+Qed.
+
+End SplittingFieldFor.
 
 Section kHom.
 
@@ -421,16 +390,6 @@ move=> /kHomP[fKid fM] /kHomP[gKid gM]; apply/kHomP; split=> [x Kx | x y Ex Ey].
 by rewrite !lfunE /= gM // fM ?memvf.
 Qed.
 
-Definition splittingFieldFor U p V :=
-  exists2 rs, p %= \prod_(z <- rs) ('X - z%:P) & <<U & rs>>%AS = V.
-
-Lemma splittingFieldForS K E p :
-  (K <= E)%VS -> splittingFieldFor K p fullv -> splittingFieldFor E p fullv.
-Proof.
-move=> sKE [rs Dp genL]; exists rs => //; apply/eqP.
-by rewrite eqEsubv subvf -genL adjoin_seqSl.
-Qed.
-
 Lemma kHom_extends K E f p U :
     (K <= E)%VS -> f \is a kHom K E ->
     p \is a polyOver K -> splittingFieldFor E p U ->
@@ -542,28 +501,112 @@ Qed.
 
 End kHom.
 
-Section Galois.
+Module SplittingField.
 
-Variable F0 : fieldType.
-Variable L : fieldExtType F0.
+Import GRing.
 
-Let F : {subfield L} := aspace1 _.
+Section ClassDef.
 
-Implicit Types (K E : {aspace L}).
+Variable F : fieldType.
 
-(* The lemma for discharging this assumption for splitting fields is in a     *)
-(* separate section because its proof needs to apply kHom_extends to a larger *)
-(* extension field.                                                           *)
+Definition axiom (L : fieldExtType F) :=
+  exists2 p : {poly L}, p \is a polyOver 1%VS & splittingFieldFor 1%VS p {:L}.
 
-Definition isNormalFieldExt :=
-  forall K x, exists r, minPoly K x == \prod_(y <- r) ('X - y%:P).
+Record class_of (L : Type) : Type :=
+  Class {base : FieldExt.class_of F L; _ : axiom (FieldExt.Pack _ base L)}.
+Local Coercion base : class_of >-> FieldExt.class_of.
 
-Hypothesis NormalFieldExt : isNormalFieldExt.
+Structure type (phF : phant F) := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
+Variable (phF : phant F) (T : Type) (cT : type phF).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Let xT := let: Pack T _ _ := cT in T.
+Notation xclass := (class : class_of xT).
 
-Lemma normal_field_splitting :
-  {p : {poly L} & p \is a polyOver 1%VS & splittingFieldFor 1 p fullv}.
+Definition clone c of phant_id class c := @Pack phF T c T.
+
+Definition pack b0 (ax0 : axiom (@FieldExt.Pack F (Phant F) T b0 T)) :=
+ fun bT b & phant_id (@FieldExt.class F phF bT) b =>
+ fun   ax & phant_id ax0 ax => Pack (Phant F) (@Class T b ax) T.
+
+Definition eqType := @Equality.Pack cT xclass xT.
+Definition choiceType := @Choice.Pack cT xclass xT.
+Definition zmodType := @Zmodule.Pack cT xclass xT.
+Definition ringType := @Ring.Pack cT xclass xT.
+Definition unitRingType := @UnitRing.Pack cT xclass xT.
+Definition comRingType := @ComRing.Pack cT xclass xT.
+Definition comUnitRingType := @ComUnitRing.Pack cT xclass xT.
+Definition idomainType := @IntegralDomain.Pack cT xclass xT.
+Definition fieldType := @Field.Pack cT xclass xT.
+Definition lmodType := @Lmodule.Pack F phF cT xclass xT.
+Definition lalgType := @Lalgebra.Pack F phF cT xclass xT.
+Definition algType := @Algebra.Pack F phF cT xclass xT.
+Definition unitAlgType := @UnitAlgebra.Pack F phF cT xclass xT.
+Definition vectType := @Vector.Pack F phF cT xclass xT.
+Definition FalgType := @Falgebra.Pack F phF cT xclass xT.
+Definition fieldExtType := @FieldExt.Pack F phF cT xclass xT.
+
+End ClassDef.
+
+Module Exports.
+
+Coercion sort : type >-> Sortclass.
+Bind Scope ring_scope with sort.
+Coercion base : class_of >-> FieldExt.class_of.
+Coercion eqType : type >-> Equality.type.
+Canonical eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical choiceType.
+Coercion zmodType : type >-> Zmodule.type.
+Canonical zmodType.
+Coercion ringType : type >-> Ring.type.
+Canonical ringType.
+Coercion unitRingType : type >-> UnitRing.type.
+Canonical unitRingType.
+Coercion comRingType : type >-> ComRing.type.
+Canonical comRingType.
+Coercion comUnitRingType : type >-> ComUnitRing.type.
+Canonical comUnitRingType.
+Coercion idomainType : type >-> IntegralDomain.type.
+Canonical idomainType.
+Coercion fieldType : type >-> Field.type.
+Canonical fieldType.
+Coercion lmodType : type >-> Lmodule.type.
+Canonical lmodType.
+Coercion lalgType : type >-> Lalgebra.type.
+Canonical lalgType.
+Coercion algType : type >-> Algebra.type.
+Canonical algType.
+Coercion unitAlgType : type >-> UnitAlgebra.type.
+Canonical unitAlgType.
+Coercion vectType : type >-> Vector.type.
+Canonical vectType.
+Coercion FalgType : type >-> Falgebra.type.
+Canonical FalgType.
+Coercion fieldExtType : type >-> FieldExt.type.
+Canonical fieldExtType.
+
+Notation splittingFieldType F := (type (Phant F)).
+Notation SplittingFieldType F L ax := (@pack _ (Phant F) L _ ax _ _ id _ id).
+Notation "[ 'splittingFieldType' F 'of' L 'for' K ]" :=
+  (@clone _ (Phant F) L K _ idfun)
+  (at level 0, format "[ 'splittingFieldType'  F  'of'  L  'for'  K ]")
+  : form_scope.
+Notation "[ 'splittingFieldType' F 'of' L ]" :=
+  (@clone _ (Phant F) L _ _ idfun)
+  (at level 0, format "[ 'splittingFieldType'  F  'of'  L ]") : form_scope.
+
+End Exports.
+End SplittingField.
+Export SplittingField.Exports.
+
+Lemma normal_field_splitting (F : fieldType) (L : fieldExtType F) :
+  (forall (K : {subfield L}) x,
+    exists r, minPoly K x == \prod_(y <- r) ('X - y%:P)) ->
+  SplittingField.axiom L.
 Proof.
-pose r i := sval (sigW (NormalFieldExt F (tnth (vbasis fullv) i))).
+move => normalL.
+pose r i := sval (sigW (normalL 1%AS (tnth (vbasis fullv) i))).
 have sz_r i: (size (r i) <= \dim {:L})%N.
   rewrite -ltnS -(size_prod_XsubC _ id) /r; case: (sigW _) => _ /= /eqP <-.
   rewrite size_minPoly ltnS; move: (tnth _ _) => x.
@@ -584,68 +627,177 @@ apply: seqv_sub_adjoin.
 by apply/imageP; exists (i, Ordinal (leq_trans lt_j_ri (sz_r i))).
 Qed.
 
+Section SplittingFieldTheory.
+
+Variables (F : fieldType) (L : splittingFieldType F).
+
+Implicit Types (K E : {aspace L}).
+
+Lemma splittingFieldP : SplittingField.axiom L.
+Proof. by case: L => ? []. Qed.
+
+Lemma splitting_field_normal (K : {subfield L}) x :
+  exists r, minPoly K x == \prod_(y <- r) ('X - y%:P).
+Proof.
+pose q1 := minPoly 1 x.
+have [p F0p splitLp] := splittingFieldP.
+have [autL _ DautL] := enum_kHom F0p splitLp.
+suffices{K} autL_px q:
+  q %| q1 -> size q > 1 -> has (fun f : 'AEnd(L) => root q (f x)) autL.
+- set q := minPoly K x; have: q \is monic by exact: monic_minPoly.
+  have: q %| q1.
+    by rewrite minPoly_dvdp ?root_minPoly ?(polyOverSv (sub1v K)) ?minPolyOver.
+  elim: {q}_.+1 {-2}q (ltnSn (size q)) => // d IHd q leqd q_dv_q1.
+  move=> mon_q; have [/size1_polyC Dq | q_gt1] := leqP (size q) 1.
+    exists nil; rewrite big_nil Dq (inj_eq (@polyC_inj _)).
+    by rewrite qualifE Dq lead_coefC in mon_q.
+  have /hasP[f autLf /factor_theorem[q2 Dq]] := autL_px q q_dv_q1 q_gt1.
+  have mon_q2: q2 \is monic by rewrite -(monicMr _ (monicXsubC (f x))) -Dq.
+  rewrite Dq size_monicM -?size_poly_eq0 ?size_XsubC ?addn2 //= in leqd.
+  have q2_dv_q1: q2 %| q1 by rewrite (dvdp_trans _ q_dv_q1) // Dq dvdp_mulr.
+  rewrite Dq; have [r /eqP->] := IHd q2 leqd q2_dv_q1 mon_q2.
+  by exists (f x :: r); rewrite big_cons mulrC.
+elim: {q}_.+1 {-2}q (ltnSn (size q)) => // d IHd q leqd q_dv_q1 q_gt1.
+without loss{d leqd IHd q_gt1} irr_q: q q_dv_q1 / irreducible_poly q.
+  move=> IHq; apply: wlog_neg => not_autLx_q; apply: IHq => //.
+  split=> // q2 q2_neq1 q2_dv_q; apply: contraR not_autLx_q => ltq2q.
+  have{q2_neq1} q2_gt1: size q2 > 1.
+    rewrite ltn_neqAle eq_sym q2_neq1 size_poly_gt0.
+    apply: contraTneq q_gt1 => q2_0; rewrite -(divpK q2_dv_q) q2_0 mulr0.
+    by rewrite size_poly0.
+  have ltq2d: size q2 < d.
+    rewrite -ltnS (leq_trans _ leqd) // ltnS ltn_neqAle dvdp_size_eqp //.
+    by rewrite ltq2q dvdp_leq // -size_poly_eq0 -(subnKC q_gt1).
+  apply: sub_has (IHd _ ltq2d (dvdp_trans q2_dv_q q_dv_q1) q2_gt1) => f.
+  by rewrite !root_factor_theorem => /dvdp_trans->.
+have{irr_q} [Lz [inLz [z qz0]]]: {Lz : fieldExtType F &
+  {inLz : {lrmorphism L -> Lz} & {z : Lz | root (map_poly inLz q) z}}}.
+- have [Lz0 _ [z qz0 defLz]] := irredp_FAdjoin irr_q.
+  pose Lz := baseField_extFieldType Lz0.
+  pose inLz : {rmorphism L -> Lz} := [rmorphism of in_alg Lz0].
+  suffices inLzZ: scalable inLz by exists Lz, (AddLRMorphism inLzZ), z.
+  move=> a u; rewrite -{1}mulr_algl rmorphM /=.
+  by rewrite -{1}baseField_scaleE mulr_algl.
+have imL1: (linfun inLz @: 1 = 1)%VS by rewrite limg_line lfunE rmorph1.
+have imLaspace: is_aspace (limg (linfun inLz)).
+  rewrite /is_aspace has_algid1; last by rewrite memvE -imL1 limgS ?sub1v.
+  apply/prodvP=> _ _ /memv_imgP[y1 _ ->] /memv_imgP[y2 _ ->].
+  by rewrite !{1}lfunE -rmorphM -lfunE memv_img ?memvf.
+pose imL := ASpace imLaspace; pose pz := map_poly inLz p.
+have imLin u: inLz u \in imL by rewrite -lfunE memv_img ?memvf.
+have F0pz: pz \is a polyOver 1%VS.
+  apply/polyOverP=> i; rewrite -imL1 coef_map /= -lfunE memv_img //.
+  exact: (polyOverP F0p).
+have{splitLp} splitLpz: splittingFieldFor 1 pz imL.
+  have [r def_p defL] := splitLp; exists (map inLz r).
+    move: def_p; rewrite -(eqp_map inLz) rmorph_prod big_map; congr (_ %= _).
+    by apply: eq_big => // y _; rewrite rmorphB /= map_polyX map_polyC.
+  apply/eqP; rewrite eqEsubv; apply/andP; split.
+    by apply/Fadjoin_seqP; rewrite sub1v; split=> // _ /mapP[y r_y ->].
+  rewrite /= -{def_p}defL.
+  elim/last_ind: r => [|r y IHr] /=; first by rewrite !Fadjoin_nil imL1.
+  rewrite map_rcons !adjoin_rcons /=.
+  apply/subvP=> _ /memv_imgP[_ /poly_Fadjoin[p1 r_p1 ->] ->].
+  rewrite lfunE -horner_map /= mempx_Fadjoin //=; apply/polyOverP=> i.
+  by rewrite coef_map (subvP IHr) //= -lfunE memv_img ?(polyOverP r_p1).
+have [f homLf fxz]: exists2 f : 'End(Lz), f \is a kHom 1 imL & f (inLz x) = z.
+  pose q1z := minPoly 1 (inLz x).
+  have Dq1z: map_poly inLz q1 %| q1z.
+    have F0q1z i: exists a, q1z`_i = a%:A by exact/vlineP/polyOverP/minPolyOver.
+    have [q2 Dq2]: exists q2, q1z = map_poly inLz q2.
+      exists (\poly_(i < size q1z) (sval (sig_eqW (F0q1z i)))%:A).
+      rewrite -{1}[q1z]coefK; apply/polyP=> i; rewrite coef_map !{1}coef_poly.
+      by case: sig_eqW => a; case: ifP; rewrite /= ?rmorph0 ?linearZ ?rmorph1. 
+    rewrite Dq2 dvdp_map minPoly_dvdp //.
+      apply/polyOverP=> i; have[a] := F0q1z i; rewrite -(rmorph1 inLz) -linearZ.
+      by rewrite Dq2 coef_map => /fmorph_inj->; rewrite rpredZ ?mem1v.
+    by rewrite -(fmorph_root inLz) -Dq2 root_minPoly.
+  have q1z_z: root q1z z.
+    rewrite !root_factor_theorem in qz0 *.
+    by apply: dvdp_trans qz0 (dvdp_trans _ Dq1z); rewrite dvdp_map.
+  have map1q1z_z: root (map_poly \1%VF q1z) z.
+    by rewrite map_poly_id => // ? _; rewrite lfunE.
+  pose f0 := kHomExtend 1 \1 (inLz x) z.
+  have{map1q1z_z} hom_f0 : f0 \is a kHom 1 <<1; (inLz x)>>%AS.
+    by apply: kHomExtendkHom map1q1z_z => //; apply: kHom1.
+  have{splitLpz} splitLpz: splittingFieldFor <<1; inLz x>>%AS pz imL.
+    have [r def_pz defLz] := splitLpz; exists r => //.
+    apply/eqP; rewrite eqEsubv -{2}defLz adjoin_seqSl ?sub1v // andbT.
+    apply/Fadjoin_seqP; split; last by rewrite -defLz; apply: seqv_sub_adjoin.
+    by apply/FadjoinP/andP; rewrite sub1v -lfunE memv_img ?memvf.
+  have [f homLzf Df] := kHom_extends (sub1v _) hom_f0 F0pz splitLpz.
+  have [-> | x'z] := eqVneq (inLz x) z.
+    by exists \1%VF; rewrite ?lfunE ?kHom1.
+  exists f => //; rewrite -Df ?memv_adjoin ?(kHomExtendX _ (kHom1 1 1)) //.
+  apply: contra x'z; rewrite elemDeg1 -eqSS -size_minPoly -/q1z => sz_q1z.
+  have{Dq1z} Dq1z: q1z %= 'X - (inLz x)%:P.
+    rewrite eqp_sym -dvdp_size_eqp ?size_XsubC 1?eq_sym //.
+    by rewrite dvdp_XsubCl root_minPoly.
+  by rewrite (eqp_root Dq1z) root_XsubC eq_sym in q1z_z.
+pose f1 := ((linfun inLz)^-1 \o f \o linfun inLz)%VF.
+have /kHomP[f1id fM] := homLf.
+have Df1 u: inLz (f1 u) = f (inLz u).
+  rewrite !lfunE /= !lfunE /= -lfunE limg_lfunVK //= -[limg _]/(asval imL).
+  have [r def_pz defLz] := splitLpz.
+  have []: all (mem r) r /\ inLz u \in imL by split; first exact/allP.
+  rewrite -{1}defLz; elim/last_ind: {-1}r {u}(inLz u) => [|r1 y IHr1] u.
+    by rewrite Fadjoin_nil; move=> _ F0u; rewrite f1id // (subvP (sub1v _)).
+  rewrite all_rcons adjoin_rcons => /andP[rr1 ry] /poly_Fadjoin[pu r1pu ->].
+  rewrite (kHom_horner homLf) -defLz; last exact: seqv_sub_adjoin; last first.
+    by apply: polyOverS r1pu; apply/subvP/adjoin_seqSr/allP.
+  apply: rpred_horner.
+    by apply/polyOverP=> i; rewrite coef_map /= defLz IHr1 ?(polyOverP r1pu).
+  rewrite seqv_sub_adjoin // -root_prod_XsubC -(eqp_root def_pz).
+  rewrite (kHom_rootK homLf) ?sub1v //; first by rewrite -defLz seqv_sub_adjoin.
+  by rewrite (eqp_root def_pz) root_prod_XsubC.
+suff f1_is_ahom : f1 \is ahom_in fullv.
+  apply/hasP; exists (AHom f1_is_ahom); last first.
+    by rewrite -(fmorph_root inLz) /= Df1 fxz.
+  rewrite -DautL; apply/kHomP; split; last first.
+    by move => ? ?; cbv beta; rewrite rmorphM.
+  by move => _ /vlineP[a ->]; rewrite linearZ rmorph1.
+apply/is_ahom_inP; split.
+  move => a b _ _.
+  by apply: (fmorph_inj inLz); rewrite rmorphM /= !Df1 rmorphM fM ?imLin.
+apply: (fmorph_inj inLz).
+by rewrite /= Df1 /= f1id ?rmorph1 ?mem1v.
+Qed.
+
+Lemma splittingPoly : { p : {poly L} | 
+  p \is a polyOver 1%VS & splittingFieldFor 1%VS p {:L}}.
+Proof.
+have H : exists prs : {poly L}*(seq L), 
+  [&& prs.1 \is a polyOver 1%VS
+  , prs.1 %= \prod_(z <- prs.2) ('X - z%:P)
+  & <<1 & prs.2>>%AS == fullv].
+  have [p F0p [rs splitLp gen]] := splittingFieldP.
+  by exists (p,rs); rewrite F0p splitLp gen eqxx.
+case/and3P: (xchooseP H) => [HP1 HP2 HP3].
+exists (xchoose H).1; first done.
+exists (xchoose H).2; first done.
+by apply/eqP.
+Qed.
+
+End SplittingFieldTheory.
+
+Section Galois.
+
+Variables (F0 : fieldType) (L : splittingFieldType F0).
+
+Let F : {subfield L} := aspace1 _.
+
+Implicit Types (K E : {aspace L}).
+
 Lemma enum_fAutL : {fAutL : (\dim {:L}).-tuple 'AEnd(L)
   | forall f, (f \in fAutL)}.
 Proof.
-have [p Hp Hsfp] := normal_field_splitting.
+have [p Hp Hsfp] := (splittingPoly L).
 move: (enum_kHom Hp Hsfp).
 rewrite dimv1 divn1; move => [fAutL _ HfAutL].
 exists fAutL => f.
 rewrite -HfAutL.
 by apply/kAut_lrmorph/ahom_is_lrmorphism.
 Qed.
-
-(*
-Definition LAut_enum : seq 'End(L) := 
- let b := vbasis fullv in
- let mkEnd (b' : seq L) := linfun (fun v => \sum_i coord b i v *: b'`_i) in
- undup (filter (kHom F fullv)
-   (map mkEnd (foldr (allpairs cons) [:: [::]]
-     (map (fun x => xchoose (NormalFieldExt F x)) b)))).
-
-Lemma LAut_is_enum : forall f : 'End(L), 
-  reflect (lrmorphism f) (f \in LAut_enum).
-Proof.
-move => f.
-rewrite /LAut_enum mem_undup mem_filter.
-apply: (iffP idP).
- rewrite andbC.
- case/andP.
- case/mapP => x Hx ->.
- by move/LAut_lrmorph.
-move/LAut_lrmorph => Hf.
-rewrite Hf.
-apply/mapP.
-exists (map f (vbasis fullv)).
- elim: (tval (vbasis fullv)) => [//|v vs IH].
- apply/allpairsP.
- exists (f v, map f vs); split => //.
- move: (xchooseP (NormalFieldExt F v)).
- rewrite -root_prod_XsubC.
- move/eqP <-.
- by rewrite (kHom_rootK Hf) ?subvf ?minPolyOver ?memvf ?root_minPoly.
-apply/lfunP => v.
-rewrite (lfunE (Linear (_ : linear _))) => [x a b | linE].
- rewrite linear_sum -big_split.
- apply: eq_bigr => i _ /=.
- by rewrite scalerA -scalerDl linearP.
-have Hv := coord_vbasis (memvf v).
-rewrite {1}Hv linear_sum.
-apply: eq_bigr => i _.
-rewrite linearZ (nth_map 0) //.
-case : vbasis => ? /=.
-by move/eqP ->.
-Qed.
-*)
-
-(*
-Record LAut : Type := 
-  laut { LAut_end : 'End(L); LAutP : kHom F fullv LAut_end }.
-
-Canonical LAut_subType := Eval hnf in [subType for LAut_end by LAut_rect].
-Definition LAut_eqMixin := Eval hnf in [eqMixin of LAut by <:].
-Canonical LAut_eqType := Eval hnf in EqType LAut LAut_eqMixin.
-*)
 
 Lemma index_fAutL f : index f (sval enum_fAutL) < \dim {:L}.
 Proof.
@@ -669,32 +821,8 @@ Definition fAutL_finMixin := Eval hnf in CanFinMixin cancel_fAutL_ord.
 Canonical fAutL_finType := Eval hnf in FinType 'AEnd(L) fAutL_finMixin.
 Canonical fAutL_subFinType := Eval hnf in [subFinType of 'AEnd(L)].
 
-(*
-Definition comp_in_LAut (f g : LAut) :
-  (val f \o val g)%VF \in sval (enum_LAut).
-Proof. by rewrite -(svalP enum_LAut) comp_kAut ?(svalP enum_LAut) ?ssvalP. Qed.
-
-Definition id_in_LAut : \1%VF \in sval (enum_LAut).
-Proof. by rewrite -(svalP enum_LAut) kHom1. Qed.
-
-Lemma LAut_lker0 (f : LAut) : lker (ssval f) = 0%VS.
-Proof.
-apply/eqP.
-apply: (kAut_lker0 (K:=F)).
-rewrite (svalP enum_LAut).
-by apply: ssvalP.
-Qed.
-
-Definition inv_in_LAut (f : LAut) : (ssval f)^-1%VF \in sval (enum_LAut).
-Proof.
-Proof. by rewrite -(svalP enum_LAut) inv_kAut ?(svalP enum_LAut) ?ssvalP. Qed.
-*)
-
 (* the group operation is the categorical composition operation *)
 Definition comp_fAutL (f g : 'AEnd(L)) : 'AEnd(L) := (g \o f)%AF.
-(*
-Definition id_LAut : LAut := laut (kHom1 _ _).
-*)
 
 Lemma comp_fAutLA : associative comp_fAutL.
 Proof. move => f g h. apply: val_inj. symmetry. apply: comp_lfunA. Qed.
@@ -718,17 +846,15 @@ Canonical fAutL_baseFinGroupType := Eval hnf in
 Canonical fAutL_finGroupType := Eval hnf in
    @FinGroupType fAutL_baseFinGroupType comp_fAutLK.
 
-Canonical fAutL_of_baseFinGroupType := Eval hnf in
-   [baseFinGroupType of 'AEnd(L)].
-Canonical fAutL_of_finGroupType := Eval hnf in
-   [finGroupType of 'AEnd(L)].
+Lemma fAutL_lker0 (f : 'AEnd(L)) : lker f == 0%VS.
+Proof. by have /kAut_lrmorph/kAut_lker0 := lrmorphismP [lrmorphism of f]. Qed.
 
 Lemma kHom_extend_fAutL K E f :
   (K <= E)%VS -> f \is a kHom K E ->
   existsb g : 'AEnd(L), (E <= lker (val g - f))%VS.
 Proof.
 move => HKE Hf.
-have [p Hp Hsfp] := normal_field_splitting.
+have [p Hp Hsfp] := (splittingPoly L).
 move/(polyOverSv (mem1v K)): Hp => Hp.
 move/(splittingFieldForS (mem1v E)): Hsfp => Hsfp.
 have [g0 Hg Hfg] := kHom_extends HKE Hf Hp Hsfp.
@@ -1504,7 +1630,7 @@ apply: (iffP forallP); last first.
   rewrite (kHomFixedPoly Hx) ?minPolyOver //= Har => ->.
   by rewrite rmorph_root // -Har root_minPoly.
 move => Hnorm a HaE.
-case: (NormalFieldExt K a) => r.
+case: (splitting_field_normal K a) => r.
 move/eqP => Hr.
 exists r => //.
 apply/allP => b.
@@ -1536,7 +1662,44 @@ move/implyP/(_ HgK)/eqP: (Hnorm g) <-.
 by apply: memv_img.
 Qed.
 
+Lemma splitting_normalField E K p :
+  p \is a polyOver K -> splittingFieldFor K p E -> normalField K E.
+Proof.
+move => HpK [rs Hp HE].
+apply/forallP => x.
+rewrite inE kAutE.
+apply/implyP => /andP [Hx _].
+rewrite -dimv_leqif_eq ?limg_dim_eq //.
+  have /eqP -> := fAutL_lker0 x.
+  by rewrite capv0.
+rewrite -HE aimg_adjoin_seq.
+case/andP: (Hx) => /fixedSpace_subv -> _.
+apply/adjoin_seqSr.
+move => _ /mapP [y Hy ->].
+move: Hy.
+rewrite -!root_prod_XsubC -!(eqp_root Hp).
+by apply: (kHom_rootK Hx) => //; rewrite ?subvf ?memvf.
+Qed.
+
 Definition galois U V := [&& (U <= V)%VS, separable U V & normalField U V].
+
+Lemma splitting_galoisField E K p :
+  p \is a polyOver K -> splittingFieldFor K p E -> separablePolynomial p ->
+  galois K E.
+Proof.
+move => Hp Hsplit Hsep.
+apply/and3P; split.
+- have [? _ <-] := Hsplit.
+  by apply: subv_adjoin_seq.
+- have [rs Hrs <-] := Hsplit.
+  apply: separable_Fadjoin_seq.
+  apply/allP => x Hx.
+  apply/separableElementP.
+  exists p.
+  rewrite Hp Hsep; repeat split => //.
+  by rewrite (eqp_root Hrs) root_prod_XsubC.
+- by apply: splitting_normalField Hp Hsplit.
+Qed.
 
 Lemma separable_dim (K : {subfield L}) x : separableElement K x ->
   normalField K <<K; x>>%AS ->
@@ -2446,153 +2609,11 @@ End IntermediateGroup.
 
 End FundamentalTheoremOfGaloisTheory.
 
-End Galois.
-
-Section UseGalois.
-
-Variables (F0 : fieldType) (L : fieldExtType F0).
-
-Lemma splitting_field_normal p  :
-  p \is a polyOver 1%VS -> splittingFieldFor 1 p {:L} -> isNormalFieldExt L.
-Proof.
-move=> F0p splitLp K x; pose q1 := minPoly 1 x.
-have [autL _ DautL] := enum_kHom F0p splitLp.
-suffices{K} autL_px q:
-  q %| q1 -> size q > 1 -> has (fun f : 'AEnd(L) => root q (f x)) autL.
-- set q := minPoly K x; have: q \is monic by exact: monic_minPoly.
-  have: q %| q1.
-    by rewrite minPoly_dvdp ?root_minPoly ?(polyOverSv (sub1v K)) ?minPolyOver.
-  elim: {q}_.+1 {-2}q (ltnSn (size q)) => // d IHd q leqd q_dv_q1.
-  move=> mon_q; have [/size1_polyC Dq | q_gt1] := leqP (size q) 1.
-    exists nil; rewrite big_nil Dq (inj_eq (@polyC_inj _)).
-    by rewrite qualifE Dq lead_coefC in mon_q.
-  have /hasP[f autLf /factor_theorem[q2 Dq]] := autL_px q q_dv_q1 q_gt1.
-  have mon_q2: q2 \is monic by rewrite -(monicMr _ (monicXsubC (f x))) -Dq.
-  rewrite Dq size_monicM -?size_poly_eq0 ?size_XsubC ?addn2 //= in leqd.
-  have q2_dv_q1: q2 %| q1 by rewrite (dvdp_trans _ q_dv_q1) // Dq dvdp_mulr.
-  rewrite Dq; have [r /eqP->] := IHd q2 leqd q2_dv_q1 mon_q2.
-  by exists (f x :: r); rewrite big_cons mulrC.
-elim: {q}_.+1 {-2}q (ltnSn (size q)) => // d IHd q leqd q_dv_q1 q_gt1.
-without loss{d leqd IHd q_gt1} irr_q: q q_dv_q1 / irreducible_poly q.
-  move=> IHq; apply: wlog_neg => not_autLx_q; apply: IHq => //.
-  split=> // q2 q2_neq1 q2_dv_q; apply: contraR not_autLx_q => ltq2q.
-  have{q2_neq1} q2_gt1: size q2 > 1.
-    rewrite ltn_neqAle eq_sym q2_neq1 size_poly_gt0.
-    apply: contraTneq q_gt1 => q2_0; rewrite -(divpK q2_dv_q) q2_0 mulr0.
-    by rewrite size_poly0.
-  have ltq2d: size q2 < d.
-    rewrite -ltnS (leq_trans _ leqd) // ltnS ltn_neqAle dvdp_size_eqp //.
-    by rewrite ltq2q dvdp_leq // -size_poly_eq0 -(subnKC q_gt1).
-  apply: sub_has (IHd _ ltq2d (dvdp_trans q2_dv_q q_dv_q1) q2_gt1) => f.
-  by rewrite !root_factor_theorem => /dvdp_trans->.
-have{irr_q} [Lz [inLz [z qz0]]]: {Lz : fieldExtType F0 &
-  {inLz : {lrmorphism L -> Lz} & {z : Lz | root (map_poly inLz q) z}}}.
-- have [Lz0 _ [z qz0 defLz]] := irredp_FAdjoin irr_q.
-  pose Lz := baseField_extFieldType Lz0.
-  pose inLz : {rmorphism L -> Lz} := [rmorphism of in_alg Lz0].
-  suffices inLzZ: scalable inLz by exists Lz, (AddLRMorphism inLzZ), z.
-  move=> a u; rewrite -{1}mulr_algl rmorphM /=.
-  by rewrite -{1}baseField_scaleE mulr_algl.
-have imL1: (linfun inLz @: 1 = 1)%VS by rewrite limg_line lfunE rmorph1.
-have imLaspace: is_aspace (limg (linfun inLz)).
-  rewrite /is_aspace has_algid1; last by rewrite memvE -imL1 limgS ?sub1v.
-  apply/prodvP=> _ _ /memv_imgP[y1 _ ->] /memv_imgP[y2 _ ->].
-  by rewrite !{1}lfunE -rmorphM -lfunE memv_img ?memvf.
-pose imL := ASpace imLaspace; pose pz := map_poly inLz p.
-have imLin u: inLz u \in imL by rewrite -lfunE memv_img ?memvf.
-have F0pz: pz \is a polyOver 1%VS.
-  apply/polyOverP=> i; rewrite -imL1 coef_map /= -lfunE memv_img //.
-  exact: (polyOverP F0p).
-have{splitLp} splitLpz: splittingFieldFor 1 pz imL.
-  have [r def_p defL] := splitLp; exists (map inLz r).
-    move: def_p; rewrite -(eqp_map inLz) rmorph_prod big_map; congr (_ %= _).
-    by apply: eq_big => // y _; rewrite rmorphB /= map_polyX map_polyC.
-  apply/eqP; rewrite eqEsubv; apply/andP; split.
-    by apply/Fadjoin_seqP; rewrite sub1v; split=> // _ /mapP[y r_y ->].
-  rewrite /= -{def_p}defL.
-  elim/last_ind: r => [|r y IHr] /=; first by rewrite !Fadjoin_nil imL1.
-  rewrite map_rcons !adjoin_rcons /=.
-  apply/subvP=> _ /memv_imgP[_ /poly_Fadjoin[p1 r_p1 ->] ->].
-  rewrite lfunE -horner_map /= mempx_Fadjoin //=; apply/polyOverP=> i.
-  by rewrite coef_map (subvP IHr) //= -lfunE memv_img ?(polyOverP r_p1).
-have [f homLf fxz]: exists2 f : 'End(Lz), f \is a kHom 1 imL & f (inLz x) = z.
-  pose q1z := minPoly 1 (inLz x).
-  have Dq1z: map_poly inLz q1 %| q1z.
-    have F0q1z i: exists a, q1z`_i = a%:A by exact/vlineP/polyOverP/minPolyOver.
-    have [q2 Dq2]: exists q2, q1z = map_poly inLz q2.
-      exists (\poly_(i < size q1z) (sval (sig_eqW (F0q1z i)))%:A).
-      rewrite -{1}[q1z]coefK; apply/polyP=> i; rewrite coef_map !{1}coef_poly.
-      by case: sig_eqW => a; case: ifP; rewrite /= ?rmorph0 ?linearZ ?rmorph1. 
-    rewrite Dq2 dvdp_map minPoly_dvdp //.
-      apply/polyOverP=> i; have[a] := F0q1z i; rewrite -(rmorph1 inLz) -linearZ.
-      by rewrite Dq2 coef_map => /fmorph_inj->; rewrite rpredZ ?mem1v.
-    by rewrite -(fmorph_root inLz) -Dq2 root_minPoly.
-  have q1z_z: root q1z z.
-    rewrite !root_factor_theorem in qz0 *.
-    by apply: dvdp_trans qz0 (dvdp_trans _ Dq1z); rewrite dvdp_map.
-  have map1q1z_z: root (map_poly \1%VF q1z) z.
-    by rewrite map_poly_id => // ? _; rewrite lfunE.
-  pose f0 := kHomExtend 1 \1 (inLz x) z.
-  have{map1q1z_z} hom_f0 : f0 \is a kHom 1 <<1; inLz x>>%AS.
-    by apply: kHomExtendkHom map1q1z_z => //; apply: kHom1.
-  have{splitLpz} splitLpz: splittingFieldFor <<1; inLz x>>%AS pz imL.
-    have [r def_pz defLz] := splitLpz; exists r => //.
-    apply/eqP; rewrite eqEsubv -{2}defLz adjoin_seqSl ?sub1v // andbT.
-    apply/Fadjoin_seqP; split; last by rewrite -defLz; apply: seqv_sub_adjoin.
-    by apply/FadjoinP/andP; rewrite sub1v -lfunE memv_img ?memvf.
-  have [f homLzf Df] := kHom_extends (sub1v _) hom_f0 F0pz splitLpz.
-  have [-> | x'z] := eqVneq (inLz x) z.
-    by exists \1%VF; rewrite ?lfunE ?kHom1.
-  exists f => //; rewrite -Df ?memv_adjoin ?(kHomExtendX _ (kHom1 1 1)) //.
-  apply: contra x'z; rewrite elemDeg1 -eqSS -size_minPoly -/q1z => sz_q1z.
-  have{Dq1z} Dq1z: q1z %= 'X - (inLz x)%:P.
-    rewrite eqp_sym -dvdp_size_eqp ?size_XsubC 1?eq_sym //.
-    by rewrite dvdp_XsubCl root_minPoly.
-  by rewrite (eqp_root Dq1z) root_XsubC eq_sym in q1z_z.
-pose f1 := ((linfun inLz)^-1 \o f \o linfun inLz)%VF.
-have /kHomP[f1id fM] := homLf.
-have Df1 u: inLz (f1 u) = f (inLz u).
-  rewrite !lfunE /= !lfunE /= -lfunE limg_lfunVK //= -[limg _]/(asval imL).
-  have [r def_pz defLz] := splitLpz.
-  have []: all (mem r) r /\ inLz u \in imL by split; first exact/allP.
-  rewrite -{1}defLz; elim/last_ind: {-1}r {u}(inLz u) => [|r1 y IHr1] u.
-    by rewrite Fadjoin_nil; move=> _ F0u; rewrite f1id // (subvP (sub1v _)).
-  rewrite all_rcons adjoin_rcons => /andP[rr1 ry] /poly_Fadjoin[pu r1pu ->].
-  rewrite (kHom_horner homLf) -defLz; last exact: seqv_sub_adjoin; last first.
-    by apply: polyOverS r1pu; apply/subvP/adjoin_seqSr/allP.
-  apply: rpred_horner.
-    by apply/polyOverP=> i; rewrite coef_map /= defLz IHr1 ?(polyOverP r1pu).
-  rewrite seqv_sub_adjoin // -root_prod_XsubC -(eqp_root def_pz).
-  rewrite (kHom_rootK homLf) ?sub1v //; first by rewrite -defLz seqv_sub_adjoin.
-  by rewrite (eqp_root def_pz) root_prod_XsubC.
-suff f1_is_ahom : f1 \is ahom_in fullv.
-  apply/hasP; exists (AHom f1_is_ahom); last first.
-    by rewrite -(fmorph_root inLz) /= Df1 fxz.
-  rewrite -DautL; apply/kHomP; split; last first.
-    by move => ? ?; cbv beta; rewrite rmorphM.
-  by move => _ /vlineP[a ->]; rewrite linearZ rmorph1.
-apply/is_ahom_inP; split.
-  move => a b _ _.
-  by apply: (fmorph_inj inLz); rewrite rmorphM /= !Df1 rmorphM fM ?imLin.
-apply: (fmorph_inj inLz).
-by rewrite /= Df1 /= f1id ?rmorph1 ?mem1v.
-Qed.
-
 Lemma splitting_field_galois p :
     p \is a polyOver 1%VS -> splittingFieldFor 1 p {:L} ->
-    separablePolynomial p ->
-  {normL : isNormalFieldExt L & galois normL 1 fullv}.
-Proof.
-move=> F0p splitLp sep_p; have nL := splitting_field_normal F0p splitLp.
-exists nL; apply/and3P; split; first exact: subvf; last first.
-  apply/normalFieldP=> y _; have [r /eqP->] := nL 1%AS y.
-  by exists r => //; apply/allP=> cy _; rewrite /= memvf.
-have [r Dp <-] := splitLp.
-apply:separable_Fadjoin_seq.
-apply/allP => z r_z.
-apply/separableElementP.
-exists p.
-by rewrite (eqp_root Dp) root_prod_XsubC.
-Qed.
+    separablePolynomial p -> galois 1 {:L}.
+Proof. by apply: splitting_galoisField. Qed.
 
-End UseGalois.
+End Galois.
+
+Notation "''Aut' ( V / U )" := (aut U V).

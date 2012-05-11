@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset center.
 Require Import fingroup morphism perm automorphism quotient action zmodp.
 Require Import matrix mxalgebra mxrepresentation cyclic.
-Require Import vector falgebra fieldext ssrnum algC rat algnum.
+Require Import vector falgebra fieldext ssrnum algC rat algnum galois.
 Require Import classfun character inertia integral_char vcharacter.
 Require ssrint.
 
@@ -817,8 +817,8 @@ have [-> | a_gt0] := posnP a.
   by rewrite !cfunE.  
 case/Qn_Aut_exists=> mu Dmu; pose b := (#|G|`_(\pi(a)^'))%N.
 have co_a_b: coprime a b := pnat_coprime (pnat_pi a_gt0) (part_pnat _ _).
-have [Qa [QaC _ [w_a genQa memQa]]] := group_num_field_exists [group of Zp a].
-have [Qb [QbC _ [w_b genQb memQb]]] := group_num_field_exists [group of Zp b].
+have [Qa _ [QaC _ [w_a genQa memQa]]] := group_num_field_exists [group of Zp a].
+have [Qb _ [QbC _ [w_b genQb memQb]]] := group_num_field_exists [group of Zp b].
 rewrite !card_Zp ?part_gt0 // in Qa QaC w_a genQa memQa Qb QbC w_b genQb memQb.
 have [nu nuQa nuQb] := extend_coprime_Qn_aut QaC QbC mu co_a_b genQa genQb.
 exists nu => chi x Zchi Gx; without loss{Zchi} Nchi: chi / chi \is a character.

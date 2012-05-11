@@ -36,32 +36,22 @@ Local Open Scope ring_scope.
 
 Local Notation algCF := [fieldType of algC].
 
+
 Lemma group_num_field_exists (gT : finGroupType) (G : {group gT}) :
-  {Qn : fieldExtType rat & {QnC : {rmorphism Qn -> algC} &
-    {nQn : isNormalFieldExt Qn & galois nQn 1 fullv
-         & forall nuQn : argumentType (mem (aut nQn 1 fullv)),
+  {Qn : splittingFieldType rat & galois 1 {:Qn} &
+    {QnC : {rmorphism Qn -> algC}
+         & forall nuQn : argumentType (mem ('Aut({:Qn}%VS / 1%VS))),
               {nu : {rmorphism algC -> algC} |
-                 {morph QnC: a / val (repr nuQn) a >-> nu a}}}
-  & {w : Qn & #|G|.-primitive_root w /\ <<1; w>>%AS = fullv
-       & forall (hT : finGroupType) (H : {group hT}) (phi : 'CF(H)),
-         phi \is a character ->
-         forall x, (#[x] %| #|G|)%N -> {a | QnC a = phi x}}}}.
+                 {morph QnC: a / val (repr nuQn) a >-> nu a}}
+         & {w : Qn & #|G|.-primitive_root w /\ <<1; w>>%AS = fullv
+              & forall (hT : finGroupType) (H : {group hT}) (phi : 'CF(H)),
+                       phi \is a character ->
+                       forall x, (#[x] %| #|G|)%N -> {a | QnC a = phi x}}}}.
 Proof.
 have [z prim_z] := C_prim_root_exists (cardG_gt0 G); set n := #|G| in prim_z *.
 have [Qn [QnC [[|w []] // [Dz] genQn]]] := num_field_exists [:: z].
 have prim_w: n.-primitive_root w by rewrite -Dz fmorph_primitive_root in prim_z.
-exists Qn, QnC; last first.
-  rewrite span_seq1 in genQn.
-  exists w => // hT H phi Nphi x x_dv_n.
-  apply: sig_eqW; have [rH ->] := char_reprP Nphi.
-  have [Hx | /cfun0->] := boolP (x \in H); last by exists 0; rewrite rmorph0.  
-  have [e [_ [enx1 _] [-> _] _]] := repr_rsim_diag rH Hx.
-  have /fin_all_exists[k Dk] i: exists k, e 0 i = z ^+ k.
-    have [|k ->] := (prim_rootP prim_z) (e 0 i); last by exists k.
-    by have /dvdnP[q ->] := x_dv_n; rewrite mulnC exprM enx1 expr1n.
-  exists (\sum_i w ^+ k i); rewrite rmorph_sum; apply/eq_bigr => i _.
-  by rewrite rmorphX Dz Dk.
-have Q_Xn1: ('X^n - 1 : {poly Qn}) \is a polyOver 1%VS.
+have Q_Xn1: ('X^n - 1 : {poly Qn}) \is a polyOver 1%AS.
   by rewrite rpredB ?rpred1 ?rpredX //= polyOverX.
 have splitXn1: splittingFieldFor 1 ('X^n - 1) {:Qn}.
   pose r := codom (fun i : 'I_n => w ^+ i).
@@ -70,11 +60,24 @@ have splitXn1: splittingFieldFor 1 ('X^n - 1) {:Qn}.
   exists r; first by rewrite -Dr eqpxx.
   apply/eqP; rewrite eqEsubv subvf -genQn adjoin_seqSr //; apply/allP=> /=.
   by rewrite andbT -root_prod_XsubC -Dr; apply/unity_rootP/prim_expr_order.
-have [|nQn GalQn] := splitting_field_galois Q_Xn1 splitXn1.
+have Qn_ax : SplittingField.axiom Qn by exists ('X^n - 1).
+exists (SplittingFieldType _ _ Qn_ax).
+  apply: (splitting_galoisField (p:='X^n - 1)) => //.
   apply: separable_Xn_sub_1; rewrite -(fmorph_eq0 QnC) rmorph_nat.
   by rewrite pnatr_eq0 -lt0n cardG_gt0.
-exists nQn => // nuQn; move: {nuQn}(repr _) => f.
-exact: (extend_algC_subfield_aut QnC [rmorphism of f]).
+exists QnC => [// nuQn|].
+  move: {nuQn}(repr _) => f.
+  by exact: (extend_algC_subfield_aut QnC [rmorphism of f]).
+rewrite span_seq1 in genQn.
+exists w => // hT H phi Nphi x x_dv_n.
+apply: sig_eqW; have [rH ->] := char_reprP Nphi.
+have [Hx | /cfun0->] := boolP (x \in H); last by exists 0; rewrite rmorph0.  
+have [e [_ [enx1 _] [-> _] _]] := repr_rsim_diag rH Hx.
+have /fin_all_exists[k Dk] i: exists k, e 0 i = z ^+ k.
+  have [|k ->] := (prim_rootP prim_z) (e 0 i); last by exists k.
+  by have /dvdnP[q ->] := x_dv_n; rewrite mulnC exprM enx1 expr1n.
+exists (\sum_i w ^+ k i); rewrite rmorph_sum; apply/eq_bigr => i _.
+by rewrite rmorphX Dz Dk.
 Qed.
 
 Section GenericClassSums.
@@ -277,7 +280,7 @@ have Za: alpha \in Aint.
     by rewrite mulrC mulrA -Dm Aint_class_div_irr1.
   rewrite -mulrCA -[v%:R](mulfK nz_m) -!natrM -eq_uv (eqnP co_m_gG).
   by rewrite mulrAC -mulrA -/alpha mulr_natl mulr_natr mulrS addrK.
-have [Qn [QnC [nQn galQn gQnC] [_ _ Qn_g]]] := group_num_field_exists <[g]>.
+have [Qn galQn [QnC gQnC [_ _ Qn_g]]] := group_num_field_exists <[g]>.
 have{Qn_g} [a Da]: exists a, QnC a = alpha.
   rewrite /alpha; have [a <-] := Qn_g _ G _ (irr_char i) g (dvdnn _).
   by exists (a / m%:R); rewrite fmorph_div rmorph_nat.
@@ -287,8 +290,8 @@ have norm_a_nu nu: `|sval (gQnC nu) alpha| <= 1.
   rewrite normr_nat -Dm -(ler_pmul2r (irr1_gt0 (aut_Iirr nu i))) mul1r.
   congr (_ <= _): (char1_ge_norm g (irr_char (aut_Iirr nu i))).
   by rewrite !aut_IirrE !cfunE Dm rmorph_nat divfK.
-pose beta := QnC (galoisNorm nQn 1 fullv a).
-have Dbeta: beta = \prod_(nu \in aut nQn 1 fullv) sval (gQnC nu) alpha.
+pose beta := QnC (galoisNorm 1 {:Qn} a).
+have Dbeta: beta = \prod_(nu \in 'Aut({:Qn} / 1)) sval (gQnC nu) alpha.
   rewrite /beta rmorph_prod. apply: eq_bigr => nu _.
   by case: (gQnC nu) => f /= ->; rewrite Da.
 have Zbeta: beta \in Cint.
