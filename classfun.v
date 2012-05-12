@@ -783,7 +783,7 @@ Qed.
 Lemma cfdot_conjC phi psi : '[phi^*, psi^*] = '[phi, psi]^*.
 Proof. by rewrite cfdot_cfAut. Qed.
 
-Lemma cfnorm_posC phi : 0 <= '[phi].
+Lemma cfnorm_ge0 phi : 0 <= '[phi].
 Proof.
 by rewrite mulr_ge0 ?invr_ge0 ?ler0n ?sumr_ge0 // => x _; exact: mul_conjC_ge0.
 Qed.
@@ -822,7 +822,7 @@ by move=> ophipsi; rewrite cfnormDd ?cfnormN // cfdotNr ophipsi oppr0.
 Qed.
 
 Lemma cfnorm_conjC phi : '[phi^*] = '[phi].
-Proof. by rewrite cfdot_conjC geC0_conj // cfnorm_posC. Qed.
+Proof. by rewrite cfdot_conjC geC0_conj // cfnorm_ge0. Qed.
 
 Lemma orthogonal_cons phi R S :
   orthogonal (phi :: R) S = orthogonal phi S && orthogonal R S.

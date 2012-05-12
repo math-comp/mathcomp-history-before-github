@@ -646,8 +646,8 @@ case pr_p: (prime p); last by case: eqP pr_p pr_q => // -> ->.
 by rewrite dvdn_prime2 //; case: eqP => // ->; rewrite divnn q_gt0 logn1.
 Qed.
 
-Lemma pfactor_coprime p n : prime p -> n > 0 ->
-  {m | coprime p m & n = m * p ^ logn p n}.
+Lemma pfactor_coprime p n :
+  prime p -> n > 0 -> {m | coprime p m & n = m * p ^ logn p n}.
 Proof.
 move=> p_pr n_gt0; set k := logn p n.
 have dv_pk_n: p ^ k %| n by rewrite pfactor_dvdn.
@@ -671,6 +671,13 @@ Proof.
 move=> n_gt0 dv_m_n; have m_gt0 := dvdn_gt0 n_gt0 dv_m_n.
 case p_pr: (prime p); last by do 2!rewrite lognE p_pr /=.
 by rewrite -pfactor_dvdn //; apply: dvdn_trans dv_m_n; rewrite pfactor_dvdn.
+Qed.
+
+Lemma ltn_logl p n : 0 < n -> logn p n < n.
+Proof.
+move=> n_gt0; have [p_gt1 | p_le1] := boolP (1 < p).
+  by rewrite (leq_trans (ltn_expl _ p_gt1)) // dvdn_leq ?pfactor_dvdnn.
+by rewrite lognE (contraNF (@prime_gt1 _)).
 Qed.
 
 Lemma logn_Gauss p m n : coprime p m -> logn p (m * n) = logn p n.
@@ -739,6 +746,26 @@ case/mem_prime_decomp=> pr_q e1_gt0 _; rewrite coprime_pexpr //.
 rewrite prime_coprime // dvdn_prime2 //; apply: contra nji => eq_pq.
 rewrite -(nth_uniq 0 _ _ (primes_uniq n.+1)) ?size_map //=.
 by rewrite !(nth_map f0) //  def_f def_j /= eq_sym.
+Qed.
+
+(* Some combinatorial formulae. *)
+
+Lemma divn_count_dvd d n : n %/ d = \sum_(1 <= i < n.+1) (d %| i).
+Proof.
+have [-> | d_gt0] := posnP d; first by rewrite big_add1 divn0 big1.
+apply: (@addnI (d %| 0)); rewrite -(@big_ltn _ 0 _ 0 _ (dvdn d)) // big_mkord.
+rewrite (partition_big (fun i : 'I_n.+1 => inord (i %/ d)) 'I_(n %/ d).+1) //=.
+rewrite dvdn0 add1n -{1}[_.+1]card_ord -sum1_card; apply: eq_bigr => [[q ?] _].
+rewrite (bigD1 (inord (q * d))) /eq_op /= !inordK ?ltnS -?leq_divRL ?mulnK //.
+rewrite dvdn_mull ?big1 // => [[i /= ?] /andP[/eqP <- /negPf]].
+by rewrite eq_sym dvdn_eq inordK ?ltnS ?leq_div2r // => ->.
+Qed.
+
+Lemma logn_count_dvd p n : prime p -> logn p n = \sum_(1 <= k < n) (p ^ k %| n).
+Proof.
+rewrite big_add1 => p_prime; case: n => [|n]; first by rewrite logn0 big_geq.
+rewrite big_mkord -big_mkcond (eq_bigl _ _ (fun _ => pfactor_dvdn _ _ _)) //=.
+by rewrite big_ord_narrow ?sum1_card ?card_ord // -ltnS ltn_logl.
 Qed.
 
 (* pi- parts *)
@@ -1282,7 +1309,7 @@ rewrite logn_Gauss //; move: co_mn.
 by rewrite coprime_sym -(divnK dvp) coprime_mull => /andP[].
 Qed.
 
-Lemma totient_count_coprime n : totient n = \sum_(0 <= d < n | coprime n d) 1.
+Lemma totient_count_coprime n : totient n = \sum_(0 <= d < n) coprime n d.
 Proof.
 elim: {n}_.+1 {-2}n (ltnSn n) => // m IHm n; rewrite ltnS => le_n_m.
 case: (leqP n 1) => [|lt1n]; first by rewrite unlock; case: (n) => [|[]].
@@ -1315,7 +1342,7 @@ have ->: totient np = #|[pred d : 'I_np | coprime np d]|.
   by exists (Ordinal ltr) => //; apply: val_inj; rewrite /= -def_d modn_small.
 pose h (d : 'I_n) := (in_mod _ np0 d, in_mod _ np'0 d).
 pose h' (d : 'I_np * 'I_np') := in_mod _ n0 (chinese np np' d.1 d.2).
-rewrite -sum_nat_const pair_big (reindex_onto h h') => [|[d d'] _].
+rewrite -!big_mkcond -sum_nat_const pair_big (reindex_onto h h') => [|[d d'] _].
   apply: eq_bigl => [[d ltd] /=]; rewrite !inE /= -val_eqE /= andbC.
   rewrite !coprime_modr def_n -chinese_mod // -coprime_mull -def_n.
   by rewrite modn_small ?eqxx.

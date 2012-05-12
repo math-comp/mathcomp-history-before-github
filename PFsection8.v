@@ -658,7 +658,109 @@ rewrite !class_supportEl big_imset /=; last exact: in2W (conjg_inj x).
 by apply: eq_bigr => z _; rewrite -class_lcoset lcoset_id ?inE.
 Qed.
 
-(* Need more Section 3/4/5 material to complete the formalization of (8.15). *)
+Section PtypeMax.
+
+(* Subcoherence and cyclicTI properties of type II+ subgroups. *)
+
+Variables U W1 : {group gT}.
+Hypothesis MtypeP : of_typeP M U W1.
+
+Let H := M`_\F%G.
+Let W2 := 'C_H(W1)%G.
+Let W := (W1 <*> W2)%G.
+Let cycTI_M : cyclicTIhypothesis G W W1 W2 := FT_cycTI_hyp MtypeP.
+Let K := M^`(1)%G.
+
+Require Import PFsection4 PFsection5.
+Lemma FT_cycDade_hyp : cyclicDade_hypothesis M K W W1 W2.
+Proof.
+split; [by have [[]] := MtypeP | | by have [[]] := cycTI_M].
+have [_ _ _ [cycW2 ntW2 _ sW2M'' prW1] _] := MtypeP; split => //.
+by rewrite (subset_trans sW2M'') ?der_subS.
+Qed.
+
+Fact FTtypeP_supp0_def :
+  'A0(M) = 'A(M) :|: class_support (cyclicTIset cycTI_M) M.
+Proof.
+rewrite -(setID 'A0(M) 'A(M)) (FTsupp0_typeP maxM MtypeP) (setIidPr _) //.
+exact: FTsupp_sub.
+Qed.
+
+Lemma FTtypeP_neq1 : FTtype M != 1%N.
+Proof.
+apply/FTtypeP=> // [[V [MtypeF _]]].
+exact: FTtypePF_exclusion (conj MtypeF MtypeP).
+Qed.
+
+Fact FTtypeP_centralDade_properties :
+  centralDade_properties 'A(M) 'A0(M) H M K W W1 W2.
+Proof.
+have sHK: H \subset K by have [_ [_ _ _ /sdprod_context[/andP[]]]] := MtypeP.
+split; last exact: FTtypeP_supp0_def; first by rewrite gFnormal subsetIl.
+rewrite /normal FTsupp_norm andbT /'A(M) FTtypeP_neq1 -(erefl (gval K)).
+do ?split=> //; apply/bigcupsP=> x A1x; last by rewrite setSD ?subsetIl.
+  by rewrite setDE -setIA subIset // gFsub.
+by rewrite (bigcup_max x) // (subsetP _ x A1x) // setSD // /M`_\s; case: ifP.
+Qed.
+
+Definition FT_cDade_hyp : centralDade_hypothesis 'A(M)'A0(M) _ H M K W W1 W2 :=
+  CentralDadeHypothesis cycTI_M FT_cycDade_hyp FT_Dade0_hyp
+                        FTtypeP_centralDade_properties.
+
+Fact FTtypePs_centralDade_properties :
+  centralDade_properties 'A(M) 'A0(M) M`_\s M K W W1 W2.
+Proof.
+have [[_ sW2H sHK] [nsAM sCA sAK] defA0] := FTtypeP_centralDade_properties.
+split=> //.
+  rewrite FTcore_normal /= /M`_\s; case: ifP => _ //.
+  by have [_ []] := FT_cycDade_hyp.
+rewrite nsAM /= /'A(M) /M`_\s FTtypeP_neq1; split=> //.
+by apply/bigcupsP=> x _; rewrite setSD ?subsetIl.
+Qed.
+
+Definition FTs_cDade_hyp :
+    centralDade_hypothesis 'A(M) 'A0(M) _ M`_\s M K W W1 W2 :=
+  CentralDadeHypothesis cycTI_M FT_cycDade_hyp FT_Dade0_hyp
+                        FTtypePs_centralDade_properties.
+
+Let calS := seqIndD K M M`_\s 1.
+
+Fact FTtypeP_cohererence_base_subproof :
+  [/\ uniq calS, {subset calS <= calS}, ~~ has cfReal calS & conjC_closed calS].
+Proof.
+have [/= _ CDhyp _ [[_ _ sMsK] _ _]] := FTs_cDade_hyp.
+have [[/sdprod_context[nsKM _ _ _ _] _ _ _] _ _] := CDhyp.
+rewrite seqInd_uniq seqInd_notReal ?mFT_odd //; split=> //.
+exact: cfAut_seqInd.
+Qed.
+
+Definition FTtypeP_coh_base_sig :=
+  PtypeDade_subcoherent FTs_cDade_hyp FTtypeP_cohererence_base_subproof.
+
+Definition FTtypeP_coh_base := sval FTtypeP_coh_base_sig.
+
+Local Notation R := FTtypeP_coh_base.
+Let tau := Dade FT_cDade_hyp.
+
+Lemma FTtypeP_subcoherent : subcoherent calS tau R.
+Proof. by rewrite /R; case: FTtypeP_coh_base_sig => R1 []. Qed.
+
+Let sigma := cyclicTIsigma [set: gT] W W1 W2.
+
+Lemma FTtypeP_base_ortho :
+  {in [predI calS & irr M] & irr W,
+      forall phi w, orthogonal (R phi) (sigma w)}.
+Proof. by rewrite /R; case: FTtypeP_coh_base_sig => R1 []. Qed.
+
+Lemma FTtypeP_base_mu :
+  let mu := @Dade_mu _ M W W1 W2 in let w_ := @cyclicTIirr _ W W1 W2 in
+  let delta := fun j => (-1)^+ @Dade_delta _ M W W1 W2 j in
+  let dsw j k := [image delta j *: sigma (w_ i k) | i <- Iirr W1] in
+  let Rmu j := dsw j j ++ map -%R (dsw j (conjC_Iirr j)) in
+  forall j, R (mu j) = Rmu j.
+Proof. by rewrite /R; case: FTtypeP_coh_base_sig => R1 []. Qed.
+
+End PtypeMax.
 
 (* This is Peterfalvi (8.16). *)
 Lemma FTtypeII_ker_TI :

@@ -33,6 +33,18 @@ elim: n => [|n IHn] //; first by rewrite big_nil.
 by apply sym_equal; rewrite factS IHn // !big_add1 big_nat_recr /= mulnC.
 Qed.
 
+Lemma logn_fact p n : prime p -> logn p n`! = \sum_(1 <= k < n.+1) n %/ p ^ k.
+Proof.
+move=> p_prime; transitivity (\sum_(1 <= i < n.+1) logn p i).
+  rewrite big_add1; elim: n => /= [|n IHn]; first by rewrite logn1 big_geq.
+  by rewrite big_nat_recr -IHn /= factS mulnC lognM ?fact_gt0.
+transitivity (\sum_(1 <= i < n.+1) \sum_(1 <= k < n.+1) (p ^ k %| i)).
+  apply: eq_big_nat => i /andP[i_gt0 le_i_n]; rewrite logn_count_dvd //.
+  rewrite -!big_mkcond (big_nat_widen _ _ n.+1) 1?ltnW //; apply: eq_bigl => k.
+  by apply: andb_idr => /dvdn_leq/(leq_trans (ltn_expl _ (prime_gt1 _)))->.
+by rewrite exchange_big_nat; apply: eq_bigr => i _; rewrite divn_count_dvd.
+Qed.
+ 
 Theorem Wilson p : p > 1 -> prime p = (p %| ((p.-1)`!).+1).
 Proof.
 have dFact n: 0 < n -> (n.-1)`! = \prod_(0 <= i < n | i != 0) i.

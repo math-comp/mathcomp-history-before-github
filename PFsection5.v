@@ -550,8 +550,8 @@ by rewrite !(cfun_on0 (zchar_on (Ztau _ _))) ?Zbeta ?inE ?eqxx.
 Qed.
 
 (* This is Peterfalvi (5.3)(b). *)
-Lemma PtypeDade_subcoherent A (G H L K W W1 W2 : {group gT}) S
-    (ddA : centralDade_hypothesis A G H L K W W1 W2)
+Lemma PtypeDade_subcoherent A A0 (G H L K W W1 W2 : {group gT}) S
+    (ddA : centralDade_hypothesis A A0 G H L K W W1 W2)
     (tau := Dade ddA) (sigma := cyclicTIsigma G W W1 W2)
     (mu := @Dade_mu _ L W W1 W2) (w_ := @cyclicTIirr _ W W1 W2)
     (delta := fun j => (-1)^+ @Dade_delta _ L W W1 W2 j) :
@@ -567,7 +567,8 @@ Proof.
 pose mu2 i j := 'chi_(@Dade_mu2 _ L W W1 W2 i j).
 set S0 := seqIndD K L H 1 => dsw Rmu [uS sSS0 nrS ccS].
 have nsKL: K <| L by have [[/sdprod_context[]]] := cDade_cDa_h ddA.
-have /subsetD1P[sAK notA1]: A \subset K^# by have [/= _ _ _ []] := ddA.
+have /subsetD1P[sAK notA1]: A \subset K^# by have [/= _ _ _ [_ []]] := ddA.
+have [/= _ _ _ [_ _ defA0]] := ddA.
 have defSA: 'Z[S, L^#] =i 'Z[S, A].
   have sS0A1: {subset S0 <= 'CF(L, 1%g |: A)}.
     move=> _ /seqIndP[i /setDP[_ /negP kerH'i] ->]; rewrite inE in kerH'i.
@@ -579,7 +580,7 @@ have defSA: 'Z[S, L^#] =i 'Z[S, A].
   by rewrite S0phi in eq_phiAL.    
 have Itau: {in 'Z[S, L^#], isometry tau, to 'Z[irr G, G^#]}.
   apply: sub_iso_to sub_refl (Dade_Zisometry _) => phi; rewrite defSA => SAphi.
-  apply: zchar_onS (subsetUl _ _) _ _.
+  rewrite defA0; apply: zchar_onS (subsetUl _ _) _ _.
   by apply: zchar_sub_irr SAphi => ? /sSS0/seqInd_vcharW.
 have orthoS: pairwise_orthogonal S.
   exact: sub_pairwise_orthogonal sSS0 uS (seqInd_orthogonal nsKL _).
@@ -645,7 +646,8 @@ have oS1sigma phi: phi \in S1 -> orthogonal (R1 phi) (map sigma (irr W)).
     rewrite -(subnKC minw_gt2) (leq_ltn_trans NCpsi_le2) // andbT lt0n.
     by apply/existsP; exists (i, j); rewrite /= topredE inE.
   apply: cyclicTI_NC_minn (ddA) _ _ => x Vx.
-  rewrite Dade_id; last by rewrite inE orbC (subsetP (sub_class_support _ _)).
+  rewrite Dade_id; last first.
+    by rewrite defA0 inE orbC (subsetP (sub_class_support _ _)).
   rewrite defSA in Zpsi; rewrite (cfun_on0 (zchar_on Zpsi)) // -in_setC.
   by apply: subsetP (subsetP (Ptype_TIset_disjoint ddA) x Vx); rewrite setCS.
 exists R; split=> [|phi w S1phi irr_w|j]; first 1 last.
@@ -834,7 +836,7 @@ have [X [Y defXY]] := subcoherent_split Schi Zt1c.
 case/subcoherent_norm: (defXY); last 2 [by []].
 - by rewrite /orthogonal /= !cfdot0r eqxx Schi cfun0_zchar.
 - by split; [apply: sub_in2 iso_t1 | apply: sub_in1 Zt1].
-move=> _ [|_ /eqP]; rewrite cfdot0l ?cfnorm_posC // cfnorm_eq0 => /eqP Y0.
+move=> _ [|_ /eqP]; rewrite cfdot0l ?cfnorm_ge0 // cfnorm_eq0 => /eqP Y0.
 case=> E sER defX; exists E => //; rewrite -defX -[X]subr0 -Y0 -[chi]subr0.
 by case: defXY.
 Qed.
@@ -942,14 +944,14 @@ have{defY leXchi lam Z Zlam oZS1 ub_chi1} defY: Y = a *: t1 xi1.
   rewrite -cfdotC -mulr2n 2!mulrA divfK ?nz_nS1 // -mulrnAr addrA => ub_lam.
   have [lam0 | nz_lam] := eqVneq lam 0.
     suffices /eqP->: Z == 0 by rewrite lam0 scale0r subr0 addr0.
-    rewrite -cfnorm_eq0 eqr_le cfnorm_posC andbT.
+    rewrite -cfnorm_eq0 eqr_le cfnorm_ge0 andbT.
     by rewrite lam0 -mulrA !mul0r subrr add0r in ub_lam.
   set d := \sum_(xi <- _) _ in ub_chi1; pose b := 2%:R * chi 1%g * xi1 1%g / d.
   have pos_S1_1 := Cnat_ge0 (Cnat_char1 (N_S _ (sS1S _ _))).
   have xi11_gt0: 0 < xi1 1%g by rewrite ltr_def nz_xi11 pos_S1_1.
   have d_gt0: 0 < d.
     have a_xi_ge0 xi: xi \in S1 -> 0 <= xi 1%g ^+ 2 / '[xi].
-      by move/pos_S1_1 => xi_1_pos; rewrite 2?mulr_ge0 // invr_ge0 cfnorm_posC.
+      by move/pos_S1_1 => xi_1_pos; rewrite 2?mulr_ge0 // invr_ge0 cfnorm_ge0.
     rewrite [d]big_seq; case defS1: {1 2}S1 S1xi1 => // [xi S1'] _.
     have{defS1} S1xi: xi \in S1 by rewrite defS1 mem_head.
     rewrite big_cons S1xi ltr_spaddl ?sumr_ge0 // ltr_def a_xi_ge0 //=.
@@ -966,11 +968,11 @@ have{defY leXchi lam Z Zlam oZS1 ub_chi1} defY: Y = a *: t1 xi1.
     have ->: d / xi1 1%g ^+ 2 = sum_a.
       rewrite big_distrl /sum_a big_map !big_seq; apply: eq_bigr => xi S1xi /=.
       rewrite a_E // iso_t1 ?Z_S1 //= (normr_idP _); last first.
-        by rewrite !(cfnorm_posC, mulr_ge0, invr_ge0) ?pos_S1_1.
+        by rewrite !(cfnorm_ge0, mulr_ge0, invr_ge0) ?pos_S1_1.
       rewrite mulrAC 2!exprMn -!exprVn [p in p * '[xi]]mulrA.
       by rewrite divfK ?nz_nS1.
     rewrite -subr_ge0 -opprB oppr_ge0 (ler_trans _ ub_lam) //.
-    by rewrite (mulrC lam) -{1}[_ - _]addr0 ler_add2l cfnorm_posC.
+    by rewrite (mulrC lam) -{1}[_ - _]addr0 ler_add2l cfnorm_ge0.
   have lam_gt0: 0 < lam.
     rewrite ltr_def nz_lam -(ler_pmul2l b_gt0) mulr0.
     by apply: ler_trans ub_lam; rewrite -Cint_normK // mulr_ge0 ?normr_ge0.
@@ -1105,7 +1107,7 @@ have haveX xi: xi \in S'c chi -> exists2 X, Xspec X & Xi_spec X xi.
     by apply: zchar_trans_on; apply/allP; rewrite /= !Zd.
   have span_head := memv_span (mem_head _ _); have sRxiX1 := zchar_span RxiX1.
   have Y0: Y = 0.
-    apply/eqP; rewrite -cfnorm_eq0 eqr_le cfnorm_posC andbT.
+    apply/eqP; rewrite -cfnorm_eq0 eqr_le cfnorm_ge0 andbT.
     rewrite -(ler_add2l ('[X] + '[X1])) -!addrA.
     rewrite -2?cfnormBd -?eqX1Y -?eqXY1 ?addr0; first last.
     - by rewrite cfdotC (span_orthogonal oYxi) ?rmorph0 ?span_head.
@@ -1214,9 +1216,9 @@ Qed.
 End SubCoherentProperties.
 
 (* This is Peterfalvi (5.8). *)
-Lemma def_Ptype_coherent_mu A (G H L K W W1 W2 : {group gT}) S
+Lemma def_Ptype_coherent_mu A A0 (G H L K W W1 W2 : {group gT}) S
                             k (tau1 : {additive 'CF(L) -> 'CF(G)})
-    (ddA : centralDade_hypothesis A G H L K W W1 W2)
+    (ddA : centralDade_hypothesis A A0 G H L K W W1 W2)
     (tau := Dade ddA) (sigma := cyclicTIsigma G W W1 W2)
     (mu := @Dade_mu _ L W W1 W2) (w_ := @cyclicTIirr _ W W1 W2)
     (dk := (-1) ^+ Dade_delta L W W1 k) :
@@ -1295,10 +1297,11 @@ have zeta1V0: {in V, zeta1 =1 \0}.
     by apply/negP; rewrite inE in kerH'kz.
   move=> x Vx; rewrite /= A1zeta1 // -in_setC.
   apply: subsetP (subsetP (Ptype_TIset_disjoint ddA) x Vx); rewrite setCS.
-  by rewrite subUset sub1G; have [/= _ _ _ [_ _ _ _ /subsetD1P[->]]] := ddA.
+  by rewrite subUset sub1G; have [/= _ _ _ [_ [_ _ /subsetD1P[->]]]] := ddA.
 have /(@cyclicTI_dot_sum _ _ _ _ _ ddA) EkW: {in V, tau1 (mu k) =1 \0}.
   move=> x Vx; have: tau zeta1 x == 0.
-    by rewrite Dade_id ?zeta1V0 // inE orbC (subsetP (sub_class_support _ _)).
+    have [/= _ _ _ [_ _ defA0]] := ddA; rewrite Dade_id ?zeta1V0 //.
+    by rewrite defA0 inE orbC (subsetP (sub_class_support _ _)).
   rewrite -Dtau1 // raddfB !raddfZ_Cnat ?natS1 // !cfunE zetaV0 //.
   rewrite oppr0 mulr0 addr0 mulf_eq0 => /orP[/idPn[] | /eqP->//].
   by have /irrP[? ->] := irr_zeta; exact: irr1_neq0.

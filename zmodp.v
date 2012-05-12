@@ -296,7 +296,8 @@ Canonical units_Zp_group := [group of units_Zp].
 Lemma card_units_Zp : p > 0 -> #|units_Zp| = totient p.
 Proof.
 move=> p_gt0; transitivity (totient p.-2.+2); last by case: p p_gt0 => [|[|p']].
-by rewrite cardsT card_sub totient_count_coprime big_mkord -sum1_card.
+rewrite cardsT card_sub -sum1_card big_mkcond /=.
+by rewrite totient_count_coprime big_mkord.
 Qed.
 
 Lemma units_Zp_abelian : abelian units_Zp.

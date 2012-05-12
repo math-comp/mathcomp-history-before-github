@@ -110,7 +110,7 @@ set chi1 := _^\tau; rewrite -subr_eq0 -cfnorm_eq0; set mu := chi - chi1.
 have owv: '[chi1, mu] = 0.
   by rewrite invDade_reciprocity ?raddfB //= DadeK ?subrr.
 rewrite -(subrK chi1 chi) -/mu addrC cfnormD owv conjC0 !addr0.
-split; first by rewrite -subr_ge0 addrC addKr cfnorm_posC.
+split; first by rewrite -subr_ge0 addrC addKr cfnorm_ge0.
 by rewrite eq_sym addrC -subr_eq0 addrK.
 Qed.
 
@@ -430,7 +430,7 @@ split=> // [ | chi /irrP[t def_chi] o_chiSnu].
     rewrite -mulrA -sum_seqIndC1_square // mulr_sumr cfnorm_sum_orthogonal //.
     apply: eq_big_seq => xi Sxi.
     have [nz_xi Nxi1] := (cfnorm_seqInd_neq0 nsHL Sxi, Cnat_seqInd1 Sxi).
-    rewrite (normr_idP _) ?mulr_ge0 ?invr_ge0 ?ler0n ?cfnorm_posC ?Cnat_ge0 //.
+    rewrite (normr_idP _) ?mulr_ge0 ?invr_ge0 ?ler0n ?cfnorm_ge0 ?Cnat_ge0 //.
     by rewrite mulrCA !exprMn ['[xi]]lock !mulrA divfK // -lock.
   apply/andP; rewrite -subr_ge0 addrK andbC -subr_ge0 addrC opprB subrK.
   rewrite pmulr_rge0 ?gt0CG // andbb -mulr_natr (mulrAC v).
@@ -724,7 +724,7 @@ suffices{min_rho1} sumB_max: sumB <= (e - 1) / (h + 2%:R).
     by rewrite /sumG0 defG0 Dade_cover_inequality ?irr_chi.
   rewrite (bigID (mem calB)) /= addrC ler_add //.
     rewrite -subr_ge0 opprK -big_split sumr_ge0 //= => i _.
-    by rewrite def_h1 eh subrK cfnorm_posC.
+    by rewrite def_h1 eh subrK cfnorm_ge0.
   rewrite (bigD1 i1) ?inE ?eqxx ?andbF //= -ler_subl_addl (@ler_trans _ 0) //.
     rewrite opprB /ea -def_h1 -eh -/h -/e addrA subrK subr_le0.
     by rewrite -(cfnorm_sign eps) -linearZ -def_chi1.
@@ -761,7 +761,7 @@ have{betaP def_beta1} /cfnormDd->: '[Gamma1, X] = 0.
   rewrite -(conj_Cnat Nxie) // -cfdotZr -raddfZ_Cnat // -!raddfB /=.
   have [_ ->] := cohS i; last by rewrite seqInd_sub_lin_vchar ?Sr ?r1.
   by rewrite disjoint_Dade_ortho ?disjoint_Atau 1?eq_sym.
-rewrite -subr_ge0 cfdot_sumr -addrA -sumrB addr_ge0 ?cfnorm_posC //.
+rewrite -subr_ge0 cfdot_sumr -addrA -sumrB addr_ge0 ?cfnorm_ge0 //.
 rewrite sumr_ge0 // => i Bi; have [neq_i ci1_0] := setIdP Bi.
 have n_phi: '[phi i] = (h_ i - 1) / e_ i.
   rewrite cfnorm_sum_orthogonal ?seqInd_orthogonal //; last exact: Inu.
@@ -772,7 +772,7 @@ have n_phi: '[phi i] = (h_ i - 1) / e_ i.
 rewrite subr_ge0 cfdotZr cfdot_suml (bigD1 i) //=.
 rewrite big1 ?addr0 => [|j /andP[_ ne_j]]; last by rewrite cfdotZl o_phi ?mulr0.
 rewrite cfdotZl invfM 2!mulrA -n_phi -[_ * _]mulrA mulrC.
-rewrite ler_wpmul2r ?cfnorm_posC // (@ler_trans _ 1) //.
+rewrite ler_wpmul2r ?cfnorm_ge0 // (@ler_trans _ 1) //.
   by rewrite -{2}(mulVf (nzh i)) ler_wpmul2l ?invr_ge0 ?ler0n ?min_i1.
 rewrite mulrC -normCK expr_ge1 ?normr_ge0 // norm_Cint_ge1 //.
   rewrite Cint_cfdot_vchar ?Znu ?seqInd_zcharW ?Sr //.

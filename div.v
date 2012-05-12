@@ -169,6 +169,30 @@ Proof. by move=> d_gt1 m_gt0; rewrite ltn_divLR ?ltn_Pmulr // ltnW. Qed.
 Lemma divn_gt0 d m : 0 < d -> (0 < m %/ d) = (d <= m).
 Proof. by move=> d_gt0; rewrite leq_divRL ?mul1n. Qed.
 
+Lemma leq_div2r d m n : m <= n -> m %/ d <= n %/ d.
+Proof.
+have [-> //| d_gt0 le_mn] := posnP d.
+by rewrite leq_divRL // (leq_trans _ le_mn) -?leq_divRL.
+Qed.
+
+Lemma leq_div2l m d e : 0 < d -> d <= e -> m %/ e <= m %/ d.
+Proof.
+by move/leq_divRL=> -> le_de; apply: leq_trans (leq_floor m e); apply: leq_mul.
+Qed.
+
+Lemma leq_divDl p m n : (m + n) %/ p <= m %/ p + n %/ p + 1.
+Proof.
+have [-> //| p_gt0] := posnP p; rewrite -ltnS -addnS ltn_divLR // ltnW //.
+rewrite {1}(divn_eq n p) {1}(divn_eq m p) addnACA !mulnDl -3!addnS leq_add2l.
+by rewrite mul2n -addnn -addSn leq_add // ltn_mod.
+Qed.
+
+Lemma geq_divBl k m p : k %/ p - m %/ p <= (k - m) %/ p + 1.
+Proof.
+rewrite leq_subLR addnA; apply: leq_trans (leq_divDl _ _ _).
+by rewrite -maxnE leq_div2r ?leq_maxr.
+Qed.
+
 Lemma divnMA m n p : m %/ (n * p) = m %/ n %/ p. 
 Proof.
 case: n p => [|n] [|p]; rewrite ?muln0 ?div0n //.

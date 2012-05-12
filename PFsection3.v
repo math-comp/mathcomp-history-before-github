@@ -1,10 +1,11 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
-Require Import fintype tuple finfun bigop prime ssralg poly finset center.
+Require Import fintype tuple finfun bigop prime ssralg matrix poly finset.
 Require Import fingroup morphism perm automorphism quotient action zmodp.
-Require Import gfunctor gproduct cyclic pgroup ssrnum.
-Require Import matrix mxalgebra mxrepresentation vector algC classfun character.
-Require Import inertia vcharacter frobenius PFsection1 PFsection2.
+Require Import gfunctor center gproduct cyclic pgroup frobenius ssrnum rat.
+Require Import mxalgebra mxrepresentation vector falgebra fieldext galois.
+Require Import algC algnum classfun character integral_char inertia vcharacter.
+Require Import PFsection1 PFsection2.
 
 (******************************************************************************)
 (* This file covers Peterfalvi, Section 3: TI-Subsets with Cyclic Normalizers *)
@@ -2306,6 +2307,73 @@ apply: cyclicTI_dirr => [|x Vx /=].
 by rewrite cfunE cyclicTIsigma_restrict // aut_IirrE cfunE.
 Qed.
 
+(* This is Peterfalvi (3.9)(b). *)
+Lemma cyclicTI_Aut_exists i (w := 'chi[W]_i) (a := #[w]%CF) k :
+    coprime k a ->
+  [/\ exists u, sigma (w ^+ k) = cfAut u (sigma w)
+    & forall x, coprime #[x] a -> sigma (w ^+ k) x = sigma w x].
+Proof.
+have lin_w: w \is a linear_char := cTIirr_linearW i.
+have [-> | a_gt0] := posnP a.
+  rewrite /coprime gcdn0 => /eqP->; split=> //.
+  by exists [rmorphism of idfun]; apply/cfunP=> x; rewrite cfunE.
+case/Qn_Aut_exists=> mu Dmu; pose b := (#|G|`_(\pi(a)^'))%N.
+have co_a_b: coprime a b := pnat_coprime (pnat_pi a_gt0) (part_pnat _ _).
+have [Qa _ [QaC _ [w_a genQa memQa]]] := group_num_field_exists [group of Zp a].
+have [Qb _ [QbC _ [w_b genQb memQb]]] := group_num_field_exists [group of Zp b].
+rewrite !card_Zp ?part_gt0 // in Qa QaC w_a genQa memQa Qb QbC w_b genQb memQb.
+have [nu nuQa nuQb] := extend_coprime_Qn_aut QaC QbC mu co_a_b genQa genQb.
+have Dwk: sigma (w ^+ k) = cfAut nu (sigma w).
+  rewrite cfAut_cycTIiso; congr (sigma _); apply/cfun_inP=> x Wx.
+  have pr_wa: a.-primitive_root (QaC w_a).
+    by rewrite fmorph_primitive_root; case: genQa.
+  have /(prim_rootP pr_wa)[m Dwx]: w x ^+ a = 1 by exact: dvdn_cfun_orderP x Wx.
+  rewrite exp_cfunE // cfunE Dwx !rmorphX nuQa Dmu -?exprM 1?mulnC //.
+  by rewrite prim_expr_order.
+split=> [|x co_x_a]; rewrite Dwk ?cfunE; first by exists nu.
+have [Gx | /cfun0->] := boolP (x \in G); last exact: rmorph0.
+have x_dv_b: (#[x] %| b)%N.
+  rewrite coprime_sym coprime_pi' // in co_x_a.
+  by rewrite -(part_pnat_id co_x_a) partn_dvd ?order_dvdG.
+have /dIrrP[[s j] /= ->]: sigma w \in dirr G.
+  by have /cyclicTIirrP[? [? ->]]: w \in irr W := irr_chi i; apply: dirr_sigma.
+rewrite !cfunE rmorphMsign /=; congr (_ * _).
+by have [wx <-] := memQb _ _ _ (irr_char j) _ x_dv_b.
+Qed.
+
+(* This is Peterfalvi (3.9)(c). *)
+Lemma Cint_cyclicTI_coprime i (w := 'chi[W]_i) (a := #[w]%CF) x :
+  coprime #[x] a -> sigma w x \in Cint.
+Proof.
+have [Gx | /cfun0->] := boolP (x \in G); last by rewrite rpred0.
+have /dIrrP[[s j] Dw]: sigma w \in dirr G.
+  by have /cyclicTIirrP[? [? ->]]: w \in irr W := irr_chi i; apply: dirr_sigma.
+have [-> | a_gt0 co_x_a] := posnP a.
+  rewrite /coprime gcdn0 order_eq1 Dw !cfunE => /eqP->.
+  by rewrite rpredMsign ?Cint_Cnat ?Cnat_irr1.
+apply: Cint_rat_Aint (Aint_vchar _ _); last by rewrite Dw rpredZsign ?irr_vchar.
+have [Qb galQb QbP] := group_num_field_exists <[x]>.
+have [Qa _ [QaC _ [w_a genQa _]]] := group_num_field_exists [group of Zp a].
+rewrite !card_Zp ?part_gt0 // in Qb galQb QbP Qa QaC w_a genQa.
+have{QbP} [QbC AQbC [w_b genQb memQb]] := QbP.
+have{memQb} [wx Dwx]: exists wx, sigma w x = QbC wx.
+  rewrite Dw !cfunE /=; have [wx <-] := memQb _ _ _ (irr_char j) x (dvdnn _).
+  by exists ((-1) ^+ s * wx); rewrite rmorphMsign.
+suffices: wx \in fixedField 'Aut({:Qb} / 1).
+  rewrite Dwx (FixedField_of_Aut galQb) ?subvf // => /vlineP[z ->].
+  by rewrite -in_algE fmorph_eq_rat fmorph_rat Crat_rat.
+apply/fixedFieldP; split=> [|mu_b _]; first exact: memvf.
+have [mu Dmu] := AQbC mu_b.
+have [nu nuQb nuQa] := extend_coprime_Qn_aut QbC QaC mu co_x_a genQb genQa.
+apply: (fmorph_inj QbC); rewrite Dmu -nuQb -Dwx.
+transitivity (sigma (cfAut nu w) x); first by rewrite -cfAut_cycTIiso cfunE.
+congr (sigma _ _); apply/cfun_inP=> y Wy; rewrite cfunE /w.
+have pr_wa: a.-primitive_root (QaC w_a).
+  by rewrite fmorph_primitive_root; case: genQa.
+have /(prim_rootP pr_wa)[m ->]: w y ^+ a = 1 by exact: dvdn_cfun_orderP y Wy.
+by rewrite rmorphX nuQa.
+Qed.
+  
 End Proofs.
 
 Lemma cyclicTIsigma_sym (gT : finGroupType) (G W W1 W2 : {group gT}) : 

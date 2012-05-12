@@ -1103,69 +1103,58 @@ End CyclicDade.
 
 Section CentralDade.
 
-Variable (A : {set gT}) (G H L K W W1 W2 : {group gT}).
+Variable (A A0 : {set gT}) (G H L K W W1 W2 : {group gT}).
+
+Definition centralDade_properties :=
+  [/\ (*c*) [/\ H <| L, W2 \subset H & H \subset K],
+      (*d*) [/\ A <| L, \bigcup_(h \in H^#) 'C_K[h]^# \subset A & A \subset K^#]
+    &       A0 = A :|: class_support (W :\: (W1 :|: W2)) L].
  
-Record centralDade_hypothesis : Prop :=  CentralDadeHypothesis {
+Record centralDade_hypothesis : Prop := CentralDadeHypothesis {
   cDade_cTI_h    :> cyclicTIhypothesis G W W1 W2;
   cDade_cDa_h    :> cyclicDade_hypothesis L K W W1 W2;
-  cDade_V        := cyclicTIset cDade_cTI_h;
-  cDade_A0       := A :|: class_support cDade_V L;
-  cDade_dAd_h    :> Dade_hypothesis G L cDade_A0;
+  cDade_dAd_h    :> Dade_hypothesis G L A0;
+      _          : centralDade_properties;
   cDade_sigma    := cyclicTIsigma G W W1 W2;
-  cDade_w        := (@cyclicTIirr _ W W1 W2);
-  cDade_mu       := (@Dade_mu L W W1 W2);
+  cDade_w        := @cyclicTIirr gT W W1 W2;
+  cDade_mu       := @Dade_mu L W W1 W2;
   cDade_mu2 i j  := 'chi_(@Dade_mu2 L W W1 W2 i j);
   cDade_chi i    := 'chi_(@Dade_chi L K W W1 W2 i);
-  cDade_delta i  := ((-1)^+ (@Dade_delta L W W1 W2 i) : algC);
-  cDade_tau      := Dade cDade_dAd_h;
-      _            : [/\  H <| L, (W2 \subset H /\ H \subset K), A <| L, 
-                         \bigcup_(h \in H^#)('C_K[h]^#) \subset A  
-                      &   A \subset K^#]
+  cDade_delta i  := (-1)^+ @Dade_delta L W W1 W2 i : algC;
+  cDade_tau      := Dade cDade_dAd_h
 }.
 
 Hypothesis CDH : centralDade_hypothesis.
 
 Local Notation V := (cyclicTIset (cDade_cTI_h CDH)).
 
-Local Notation A0 := (A :|: class_support V L).
+Let CDH_P := let: CentralDadeHypothesis _ _ _ CDH_P := CDH in CDH_P.
 
-Let OH := match CDH with
-  CentralDadeHypothesis _ _ _ HH => HH end.
+Let defA0 : A0 = A :|: class_support V L. Proof. by have [] := CDH_P. Qed.
 
-Let AnL : A <| L.
-Proof. by case: OH. Qed.
+Let AnL : A <| L. Proof. by have [_ []] := CDH_P. Qed.
+
+Let sAA0 : A \subset A0. Proof. by rewrite defA0 subsetUl. Qed.
 
 Lemma cDade_DGA : Dade_hypothesis G L A.
-Proof. 
-exact: (restr_Dade_hyp CDH (subsetUl _ _) (normal_norm _)).
-Qed.
+Proof. exact: restr_Dade_hyp CDH sAA0 (normal_norm AnL). Qed.
 
-Let HnL : H <| L.
-Proof. by case: OH. Qed.
+Let HnL : H <| L. Proof. by have [[]] := CDH_P. Qed.
 
-Let HsK : H \subset K.
-Proof. by case: OH => _ []. Qed.
+Let HsK : H \subset K. Proof. by have [[]] := CDH_P. Qed.
 
 Let KsL : K \subset L.
-Proof. 
-case: (cDade_cDa_h CDH)=> [] [] /sdprodP [] _ <- *.
-by apply: mulg_subl (group1 _).
-Qed.
+Proof. by have [[/sdprod_context[/andP[]]]] := cDade_cDa_h CDH. Qed.
 
-Let CupA: \bigcup_(h0 \in H^#) ('C_K[h0])^# \subset A.
-Proof. by case: OH. Qed.
+Let CupA: \bigcup_(h \in H^#) 'C_K[h]^# \subset A.
+Proof. by have [_ []] := CDH_P. Qed.
 
-Let W2sH : W2 \subset H.
-Proof. by case: OH => _ []. Qed.
+Let W2sH : W2 \subset H. Proof. by have [[]] := CDH_P. Qed.
 
-Let HdP :  W1 \x W2 = W.
-Proof. by case: CDH=> [[[]]]. Qed.
+Let HdP :  W1 \x W2 = W. Proof. by have [[[]]] := CDH. Qed.
 
-Let dW1 :  W1 != 1%g :> {set gT}.
-Proof. by case: CDH=> [[]] p []. Qed.
-
-Let dW2 :  W2 != 1%g :> {set gT}.
-Proof. by case: CDH=> [[]] p []. Qed.
+Let dW1 : W1 :!=: 1%g. Proof. by have [[_ []]] := CDH. Qed.
+Let dW2 : W2 :!=: 1%g. Proof. by have [[_ []]] := CDH. Qed.
 
 Local Notation sigma := (cyclicTIsigma G W W1 W2).
 Local Notation w_ :=  (@cyclicTIirr _ W W1 W2).
@@ -1173,7 +1162,8 @@ Local Notation mu := (@Dade_mu L W W1 W2).
 Local Notation mu2 i j := ('chi_(@Dade_mu2 L W W1 W2 i j)).
 Local Notation chi i := ('chi_(@Dade_chi L K W W1 W2 i)).
 Local Notation delta i :=
-  ((@GRing.opp [zmodType of algC] 1) ^+ nat_of_bool (@Dade_delta L W W1 W2 i)).
+  ((@GRing.opp [the zmodType of algC] 1)
+       ^+ nat_of_bool (@Dade_delta L W W1 W2 i)).
 Local Notation tau := (Dade (cDade_dAd_h CDH)).
 
 (* This is the first part of PeterFalvi (4.7). *) 
@@ -1324,7 +1314,7 @@ have HF g : g \in W1^# -> mu2 i j g - mu2 i k g = 0.
   rewrite !HH // (cDade_mu2_delta Emu1) !cfunE -mulrBr -[g]mulg1.
   rewrite !(cTIirrE CDH) !dprod_IirrE !cfDprodE //.
   by rewrite !(lin_char1 (cTIirr_linearW2 CDH _)) subrr mulr0.
-apply/cfun_onP=> g; rewrite !inE negb_or !cfunE.
+apply/cfun_onP=> g; rewrite defA0 !inE negb_or !cfunE.
 case/andP=> GniA GniCL.
 case: (boolP (g \in L))=> [GiL | GniL]; last by rewrite !cfun0 // subrr.
 case: (boolP (g \in 1%G))=> [| Dg1].
@@ -1376,7 +1366,7 @@ case: (boolP (j == k))=> [/eqP<-| Djk].
 apply/eqP; rewrite -subr_eq0; apply/eqP; set phi := _ + _.
 have Zphi: {in V, forall x, phi x = 0}=> [g GiV|].
   rewrite !cfunE Dade_id; last first.
-    by rewrite inE -[g]conjg1 mem_class_support // orbT.
+    by rewrite defA0 inE -[g]conjg1 mem_class_support // orbT.
   rewrite !cfunE.
   have GiWW2: g \in W :\: W2.
     by move: GiV; rewrite !inE negb_or -andbA; case/andP.
@@ -1728,8 +1718,7 @@ have Equiv: 'Z[calT, L^#] =i 'Z[calT, A].
   move=> f; rewrite zcharD1E; apply/idP/idP; last first.
     rewrite (zchar_split _ A)=> /andP [-> FiA] /=.
     apply/eqP; apply: (cfun_onP FiA).
-    case: OH=> _ _ _ _ /subsetP=> /(_ 1%g).
-    by move/contra; apply; rewrite !inE eqxx.
+    by have [_ [_ _ /subsetD1P[]]] := CDH_P.
   case/andP=> Zf Vf1.
   have: f \in 'Z[calT, A :|: 1%G].
     rewrite zchar_split Zf /=.
@@ -1857,7 +1846,7 @@ have BE: beta = 'Ind[L] alpha.
 apply/cfunP=> g.
 case: (boolP (g \in class_support V G))=> [/imset2P [w h WiV HG] ->|GniS].
   rewrite !cfunJ // Dade_id; last first.
-    by rewrite inE -[w]conjg1 mem_class_support ?orbT //.
+    by rewrite defA0 inE -[w]conjg1 mem_class_support ?orbT //.
   rewrite cyclicTIsigma_restrict // AE !cfunE.
   have WiWdW2: w \in W :\: W2.
     by move: WiV; rewrite !inE => /andP []; rewrite negb_or=> /andP [_ ->].
@@ -1868,8 +1857,8 @@ have CA := memc_acTIirr tiW i j.
 rewrite !cyclicTIsigma_ind //.
 move/cfun_onP: (cfInd_on WsG (CA))=> -> //.
 rewrite cfunElock; case: pickP=> //= h.
-rewrite !inE /cDade_V /=.
-case: (boolP (h \in class_support _ _))=> 
+rewrite {1}defA0 !inE /=.
+case: (boolP (h \in class_support _ _)) => 
           [/imset2P [v l ViV LiL ->] | HinVl]; last first.
   by rewrite BE; move/cfun_onP: (cfInd_on WsL (CA))=> ->.
 rewrite orbT; case/imset2P=> y z /imset2P [u1 u2].
@@ -1882,8 +1871,8 @@ have: v1 \in 'C_G[v].
   rewrite inE (subsetP (Dade_signalizer_sub DadH v)) //.
   by apply: (subsetP (Dade_signalizer_cent DadH _)).
 rewrite inE=> /andP [V1iG V1iC] .
-have VinA0 : v \in cDade_A0 CDH.
-  by rewrite inE -[v]conjg1 mem_class_support ?orbT.
+have VinA0 : v \in A0.
+  by rewrite defA0 inE -[v]conjg1 mem_class_support ?orbT.
 apply/eqP; rewrite -cycle_eq1 trivg_card1 -dvdn1.
 move: (Dade_coprime DadH VinA0 VinA0); rewrite /coprime => /eqP<-.
 rewrite dvdn_gcd !cardSg //;

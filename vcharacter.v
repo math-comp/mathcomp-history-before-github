@@ -260,7 +260,7 @@ Qed.
 
 Lemma Cnat_cfnorm_vchar : {in 'Z[irr G], forall phi, '[phi] \in Cnat}.
 Proof.
-by move=> phi Zphi; rewrite /= CnatEint cfnorm_posC Cint_cfdot_vchar.
+by move=> phi Zphi; rewrite /= CnatEint cfnorm_ge0 Cint_cfdot_vchar.
 Qed.
 
 Fact vchar_mulr_closed : mulr_closed 'Z[irr G].

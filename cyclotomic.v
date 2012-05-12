@@ -39,7 +39,7 @@ Proof. exact: monic_prod_XsubC. Qed.
 Lemma size_cyclotomic z n : size (cyclotomic z n) = (totient n).+1.
 Proof.
 rewrite /cyclotomic -big_filter filter_index_enum size_prod_XsubC; congr _.+1.
-rewrite -cardE -sum1_card totient_count_coprime big_mkord.
+rewrite -cardE -sum1_card totient_count_coprime -big_mkcond big_mkord.
 by apply: eq_bigl => k; rewrite coprime_sym.
 Qed.
 
@@ -213,8 +213,8 @@ have [-> | n_gt0] := posnP n; first by rewrite Cyclotomic0 polyseq1.
 have [z prim_z] := C_prim_root_exists n_gt0.
 rewrite -(size_map_inj_poly (can_inj intCK)) //.
 rewrite (Cintr_Cyclotomic prim_z) -[_ n]big_filter filter_index_enum.
-rewrite size_prod_XsubC -cardE totient_count_coprime big_mkord -sum1_card.
-by congr _.+1; apply: eq_bigl => k; rewrite coprime_sym.
+rewrite size_prod_XsubC -cardE totient_count_coprime big_mkord -big_mkcond /=.
+by rewrite (eq_card (fun _ => coprime_sym _ _)) sum1_card.
 Qed.
 
 Lemma minCpoly_cyclotomic n z :
