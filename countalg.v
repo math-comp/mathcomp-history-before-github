@@ -1080,18 +1080,22 @@ have Kclosed: GRing.ClosedField.axiom Kfield.
   rewrite (eq_map_poly (toEleS _ _ _ _)) map_poly_comp {}IHk //= /incEp codeK.
   by rewrite -if_neg neq_ltn lemk.
 pose Kdec := DecFieldType Kfield (closed_fields_QEMixin Kclosed).
-exists [countClosedFieldType of CountType (ClosedFieldType Kdec Kclosed) cntK].
-exists (EtoKM 0%N) => /= z; have [i [{z}z ->]] := KtoE z.
-suffices{z} /(_ z)[p mon_p]: integralRange (toE 0%N i isT).
-  by rewrite -(fmorph_root (EtoKM i)) -map_poly_comp toEtoKp; exists p.
-rewrite /toE /E; clear - minXp_gt1 ext1root ext1gen.
-move: (i - 0)%N (subnK _) => n; case: i /.
-elim: n => [|n IHn] /= z; first exact: integral_id.
-have{z} [q ->] := ext1gen _ _ z; set pn := tagged (E_ _) _.
-apply: integral_horner.
+pose wit := EtoKM 0%N.
+have Hwit : integralRange wit.
+  move => /= z.
+  have [i [{z}z ->]] := KtoE z.
+  suffices{z} /(_ z)[p mon_p]: integralRange (toE 0%N i isT).
+    by rewrite -(fmorph_root (EtoKM i)) -map_poly_comp toEtoKp; exists p.
+  rewrite /toE /E; clear - minXp_gt1 ext1root ext1gen.
+  move: (i - 0)%N (subnK _) => n; case: i /.
+  elim: n => [|n IHn] /= z; first exact: integral_id.
+  have{z} [q ->] := ext1gen _ _ z; set pn := tagged (E_ _) _.
+  apply: integral_horner.
+    by apply/integral_poly=> i; rewrite coef_map; apply: integral_rmorph.
+  apply: integral_root (ext1root _ _) _.
+    by rewrite map_poly_eq0 -size_poly_gt0 ltnW.
   by apply/integral_poly=> i; rewrite coef_map; apply: integral_rmorph.
-apply: integral_root (ext1root _ _) _.
-  by rewrite map_poly_eq0 -size_poly_gt0 ltnW.
-by apply/integral_poly=> i; rewrite coef_map; apply: integral_rmorph.
+have wit2 : {wit : {rmorphism F -> Kfield} | integralRange wit} by exists wit.
+exists [countClosedFieldType of CountType (ClosedFieldType Kdec Kclosed) cntK]=> /=.
+exact: wit2.
 Qed.
-
