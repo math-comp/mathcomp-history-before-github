@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop ssralg ssrnum finset fingroup.
 Require Import morphism perm automorphism quotient action zmodp center.
 Require Import matrix mxalgebra mxrepresentation vector algC classfun character.
-Require Import frobenius BGsection3.
+Require Import frobenius.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -200,7 +200,7 @@ Lemma cfConjg_char (chi : 'CF(H)) y :
   chi \is a character -> (chi ^ y)%CF \is a character.
 Proof.
 have [nHy | /cfConjg_out-> //] := boolP (y \in 'N(H)).
-case/char_reprP=> rG ->; apply/char_reprP.
+case/char_ReprP=> rG ->; apply/char_ReprP.
 have rGyP: mx_repr H (fun x => rG (x ^ y^-1)%g).
   split=> [|x1 x2 Hx1 Hx2]; first by rewrite conj1g repr_mx1.
   by rewrite conjMg repr_mxM ?memJ_norm ?groupV.
@@ -210,7 +210,7 @@ Qed.
 
 Lemma irr_Conjg i y : ('chi_i ^ y)%CF \in irr H.
 Proof.
-rewrite irr_char1E cfConjg_char ?irr_char //=.
+rewrite irrEchar cfConjg_char ?irr_char //=.
 by rewrite cfdot_Conjg cfdot_irr eqxx.
 Qed.
  

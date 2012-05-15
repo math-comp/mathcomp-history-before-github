@@ -70,7 +70,7 @@ exists QnC => [// nuQn|].
   by exact: (extend_algC_subfield_aut QnC [rmorphism of f]).
 rewrite span_seq1 in genQn.
 exists w => // hT H phi Nphi x x_dv_n.
-apply: sig_eqW; have [rH ->] := char_reprP Nphi.
+apply: sig_eqW; have [rH ->] := char_ReprP Nphi.
 have [Hx | /cfun0->] := boolP (x \in H); last by exists 0; rewrite rmorph0.  
 have [e [_ [enx1 _] [-> _] _]] := repr_rsim_diag rH Hx.
 have /fin_all_exists[k Dk] i: exists k, e 0 i = z ^+ k.
@@ -163,7 +163,7 @@ Variables (gT : finGroupType) (G : {group gT}).
 (* This is Isaacs, Corollary (3.6). *)
 Lemma Aint_char (chi : 'CF(G)) x : chi \is a character -> chi x \in Aint.
 Proof.
-have [Gx /char_reprP[rG ->] {chi} | /cfun0->//] := boolP (x \in G).
+have [Gx /char_ReprP[rG ->] {chi} | /cfun0->//] := boolP (x \in G).
 have [e [_ [unit_e _] [-> _] _]] := repr_rsim_diag rG Gx.
 rewrite rpred_sum // => i _; apply: (@Aint_unity_root #[x]) => //.
 exact/unity_rootP.

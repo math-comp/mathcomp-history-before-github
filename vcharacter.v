@@ -510,27 +510,33 @@ End VChar.
 
 Section Isometries.
 
-Variables (gT : finGroupType) (L G : {group gT}).
-Implicit Types (S : seq 'CF(L)).
+Variables (gT : finGroupType) (L G : {group gT}) (S : seq 'CF(L)).
+Implicit Type nu : {additive 'CF(L) -> 'CF(G)}.
 
-Lemma Zisometry_of_cfnorm S tauS :
+Lemma Zisometry_of_cfnorm (tauS : seq 'CF(G)) :
     pairwise_orthogonal S -> pairwise_orthogonal tauS ->
     map cfnorm tauS = map cfnorm S -> {subset tauS <= 'Z[irr G]} ->
   {tau : {linear 'CF(L) -> 'CF(G)} | map tau S = tauS
        & {in 'Z[S], isometry tau, to 'Z[irr G]}}.
 Proof.
-move=> oS oT eq_nTS Z_T.
-have [tau defT Itau] := isometry_of_cfnorm oS oT eq_nTS.
-exists tau => //; split; first exact: (sub_in2 (@zchar_span _ _ S _)).
-have uniqS:= (free_uniq (orthogonal_free oS)).
-move=> _ /zchar_expansion [//|z Zz ->].
+move=> oSS oTT /isometry_of_cfnorm[||tau defT Itau] // Z_T; exists tau => //.
+split=> [|_ /zchar_nth_expansion[u Zu ->]].
+  by apply: sub_in2 Itau; apply: zchar_span.
 rewrite big_seq linear_sum rpred_sum // => xi Sxi.
-by rewrite linearZ scale_zchar ?Z_T // -defT map_f.
+by rewrite linearZ scale_zchar ?Z_T // -defT map_f ?mem_nth.
 Qed.
 
-Lemma Zisometry_inj S A (tau : {additive 'CF(L) -> 'CF(G)}) :
-    {in 'Z[S, A] &, isometry tau} -> {in 'Z[S, A] &, injective tau}.
+Lemma Zisometry_inj A nu :
+  {in 'Z[S, A] &, isometry nu} -> {in 'Z[S, A] &, injective nu}.
 Proof. by move/isometry_raddf_inj; apply; apply: rpredB. Qed.
+
+Lemma isometry_in_zchar nu : {in S &, isometry nu} -> {in 'Z[S] &, isometry nu}.
+Proof.
+move=> Inu _ _ /zchar_nth_expansion[u Zu ->] /zchar_nth_expansion[v Zv ->].
+rewrite !raddf_sum; apply: eq_bigr => j _ /=.
+rewrite !cfdot_suml; apply: eq_bigr => i _.  
+by rewrite !raddfZ_Cint //= !cfdotZl !cfdotZr Inu ?mem_nth.
+Qed. 
 
 End Isometries.
 

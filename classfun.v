@@ -355,7 +355,7 @@ Definition cfnorm_head k phi := let: tt := k in cfdot phi phi.
 
 Coercion seq_of_cfun phi := [:: phi].
 
-Definition cfun_order phi := \big[lcmn/1%N]_(x \in <<B>>) #[phi x]%C.
+Definition cforder phi := \big[lcmn/1%N]_(x \in <<B>>) #[phi x]%C.
 
 End Defs.
 
@@ -381,7 +381,7 @@ Prenex Implicits cfReal.
 (* Workaround for overeager projection reduction. *)
 Notation eqcfP := (@eqP (cfun_eqType _) _ _) (only parsing).
 
-Notation "#[ phi ]" := (cfun_order phi) : cfun_scope.
+Notation "#[ phi ]" := (cforder phi) : cfun_scope.
 Notation "''[' u , v ]_ G":=  (@cfdot _ G u v) (only parsing) : ring_scope.
 Notation "''[' u , v ]" := (cfdot u v) : ring_scope.
 Notation "''[' u ]_ G" := '[u, u]_G (only parsing) : ring_scope.
@@ -1068,7 +1068,7 @@ Section CfunOrder.
 
 Variables (gT : finGroupType) (G : {group gT}) (phi : 'CF(G)).
 
-Lemma dvdn_cfun_orderP n :
+Lemma dvdn_cforderP n :
   reflect {in G, forall x, phi x ^+ n = 1} (#[phi]%CF %| n)%N.
 Proof.
 apply: (iffP (dvdn_biglcmP _ _ _)); rewrite genGid => phiG1 x Gx.
@@ -1076,15 +1076,15 @@ apply: (iffP (dvdn_biglcmP _ _ _)); rewrite genGid => phiG1 x Gx.
 by rewrite dvdn_orderC phiG1.
 Qed.
 
-Lemma dvdn_cfun_order n : (#[phi]%CF %| n) = (phi ^+ n == 1).
+Lemma dvdn_cforder n : (#[phi]%CF %| n) = (phi ^+ n == 1).
 Proof.
-apply/dvdn_cfun_orderP/eqP=> phi_n_1 => [|x Gx].
+apply/dvdn_cforderP/eqP=> phi_n_1 => [|x Gx].
   by apply/cfun_inP=> x Gx; rewrite exp_cfunE // cfun1E Gx phi_n_1.
 by rewrite -exp_cfunE // phi_n_1 // cfun1E Gx.
 Qed.
 
-Lemma exp_cfun_order : phi ^+ #[phi]%CF = 1.
-Proof. by apply/eqP; rewrite -dvdn_cfun_order. Qed.
+Lemma exp_cforder : phi ^+ #[phi]%CF = 1.
+Proof. by apply/eqP; rewrite -dvdn_cforder. Qed.
 
 End CfunOrder.
 
@@ -1277,6 +1277,10 @@ rewrite val_coset_prim ?(subsetP (normal_norm nsBG)) //.
 by case: repr_rcosetP => _ /(subsetP sHK)/cfkerMl->.
 Qed.
 
+Lemma cfQuo1 (phi : 'CF(G)) :
+  B <| G -> B \subset cfker phi -> (phi / B)%CF 1%g = phi 1%g.
+Proof. by move=> nsBG /cfQuoE <- //; rewrite morph1. Qed.
+
 Lemma cfModE phi x : B <| G -> x \in G -> (phi %% B)%CF x = phi (coset B x).
 Proof. by move/normal_norm=> nBG; exact: cfMorphE. Qed.
 
@@ -1323,16 +1327,20 @@ Notation "phi %% H" := (@cfMod _ _ H phi) : cfun_scope.
 Section MoreCoset.
 
 Variables (gT : finGroupType) (G : {group gT}).
-Implicit Types G H : {group gT}.
+Implicit Types (H : {group gT}) (phi : 'CF(G)).
 
-Lemma cfker_Quo (H : {group gT}) (phi : 'CF(G)) :
+Lemma cfker_Quo H phi :
   H <| G -> H \subset cfker (phi) -> cfker (phi / H) = (cfker phi / H)%g.
 Proof.
 move=> nsHG /cfQuoK {2}<- //; have [sHG nHG] := andP nsHG.
 by rewrite cfker_Mod_pre 1?quotientGI // cosetpreK (setIidPr _) ?cfker_sub.
 Qed.
 
-Lemma cfaithful_Quo (phi : 'CF(G)) : cfaithful (phi / cfker phi).
+Lemma cfQuoEker phi x :
+  x \in G -> (phi / cfker phi)%CF (coset (cfker phi) x) = phi x.
+Proof. by move/cfQuoE->; rewrite ?cfker_normal. Qed.
+
+Lemma cfaithful_Quo phi : cfaithful (phi / cfker phi).
 Proof. by rewrite cfaithfulE cfker_Quo ?cfker_normal ?trivg_quotient. Qed.
 
 End MoreCoset.

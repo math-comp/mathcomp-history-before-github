@@ -1119,11 +1119,8 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
     have k_gt0: (0 < k)%N by rewrite lt0n (contraNneq _ nt_z0k) // => ->.
     have cokw2: coprime k w2 by rewrite coprime_sym prime_coprime // gtnNdvd.
     have sW2G: W2 \subset G by rewrite -defW2 subIset // (subset_trans sHL).
-    have [u vcharGu]:= make_pi_cfAut G cokw2.
-    have [] := vcharGu (tau1 eta) z0.
-    - by rewrite Ztau1 ?seqInd_zcharW.
-    - by rewrite -cycle_subG -cycZ defZ.
-    move <- => [_|]; last by rewrite orderE -cycZ defZ.
+    have [u Du _]:= make_pi_cfAut G cokw2.
+    rewrite -Du ?Ztau1 ?seqInd_zcharW //; last by rewrite orderE -cycZ defZ.
     have /irrY/irrP[j def_eta] := Yeta; rewrite def_eta in Yeta *.
     have nAL: L \subset 'N(A) by rewrite normD1 normal_norm.
     pose ddA := restr_Dade_hyp PtypeL (subsetUl _ _) nAL.

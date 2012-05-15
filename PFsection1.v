@@ -363,7 +363,7 @@ Lemma inertia_Ind_irr t :
   H <| G -> 'I_G['chi[H]_t] \subset H -> 'Ind[G] 'chi_t \in irr G.
 Proof.
 rewrite -indexg_eq1 => nsHG /eqP r1.
-by rewrite irr_char1E cfInd_char ?irr_char //= induced_prod_index ?r1.
+by rewrite irrEchar cfInd_char ?irr_char //= induced_prod_index ?r1.
 Qed.
 
 (* GG: keeping as is, but it is highly unlikely that the if-then-else style *)
@@ -578,7 +578,7 @@ have cRes j: 'Res[H, T] 'chi_j \is a character by rewrite cfRes_char ?irr_char.
 have t_comp j: j \in irr_constt ('Ind[T] 'chi_t) -> '['Res 'chi_j, 'chi_t] != 0.
   by move=> Hj; rewrite -irr_consttE -constt_Ind_constt_Res. 
 have irr_lpsi l j: H \subset cfker 'chi_l -> 'chi_l * 'chi_j \in irr T.
-  set psii := 'chi_j => Hl; rewrite irr_char1E rpredM ?irr_char //=.
+  set psii := 'chi_j => Hl; rewrite irrEchar rpredM ?irr_char //=.
   apply/eqP; rewrite -(cfnorm_irr j) -/psii; congr (_ * _).
   apply/eq_bigr=> x Hx; rewrite !cfunE rmorphM mulrACA /= -!normCK.
   rewrite [`|_|]normC_lin_char ?expr1n ?mul1r //.
@@ -682,7 +682,7 @@ Goal forall (rG : mx_representation algCF G 1%N),
    cfRepr_det rG \is a linear_char.
 Proof.
 move=>  rG; apply/andP; split; last by rewrite cfunE group1 repr_mx1 det1.
-apply/char_reprP.  
+apply/char_ReprP.  
 have rGyP: mx_repr G (fun x =>  (\det (rG x) *+ (x \in G))%:M:'M_1).
   split=> [|x1 x2 Hx1 Hx2]; first by rewrite group1 repr_mx1 det1 ?groupM.   
   rewrite  !repr_mxM ?groupM  ?det_mulmx /= ?Hx1 ?Hx2 //=.
@@ -800,43 +800,68 @@ rewrite -!horner_map -!map_poly_comp !map_Qnum_poly // Dnu -rmorphX /=.
 by rewrite mulnC exprM (prim_expr_order pr_w_b) expr1n rmorph1.
 Qed.
 
-(* This is Peterfalvi (1.9)(b). *)
-(* We have corrected a quantifier inversion in the original statement: the    *)
-(* automorphism is constructed uniformly for all characters, and indeed for   *)
-(* all virtual characters. We have also removed the spurrious condition that  *)
-(* a be a \pi(a) part of #|G| -- indeed the proof should work for all a!      *)
-Lemma make_pi_cfAut a k :
-    coprime k a ->
-  exists u : {rmorphism algC -> algC},
-    {in 'Z[irr G] & G, forall chi x,
-          [/\ (#[x] %| a)%N -> cfAut u chi x = chi (x ^+ k)%g
-            & coprime #[x] a -> cfAut u chi x = chi x]}.
+(* This intermediate result in the proof of Peterfalvi (1.9)(b) is used in    *)
+(* he proof of (3.9)(c).                                                      *)
+Lemma dvd_restrict_cfAut a (v : {rmorphism algC -> algC}) :
+  exists2 u : {rmorphism algC -> algC},
+    forall gT0 G0 chi x,
+      chi \in 'Z[irr (@gval gT0 G0)] -> #[x] %| a -> u (chi x) = v (chi x)
+  & forall chi x, chi \in 'Z[irr G] -> coprime #[x] a -> u (chi x) = chi x.
 Proof.
 have [-> | a_gt0] := posnP a.
-  rewrite /coprime gcdn0 => /eqP->; exists [rmorphism of idfun] => chi x _ _.
-  by rewrite !cfunE.  
-case/Qn_Aut_exists=> mu Dmu; pose b := (#|G|`_(\pi(a)^'))%N.
+  exists v => // chi x Zchi; rewrite /coprime gcdn0 order_eq1 => /eqP->.
+  by rewrite aut_Cint ?Cint_vchar1.
+pose b := (#|G|`_(\pi(a)^'))%N.
 have co_a_b: coprime a b := pnat_coprime (pnat_pi a_gt0) (part_pnat _ _).
 have [Qa _ [QaC _ [w_a genQa memQa]]] := group_num_field_exists [group of Zp a].
 have [Qb _ [QbC _ [w_b genQb memQb]]] := group_num_field_exists [group of Zp b].
 rewrite !card_Zp ?part_gt0 // in Qa QaC w_a genQa memQa Qb QbC w_b genQb memQb.
-have [nu nuQa nuQb] := extend_coprime_Qn_aut QaC QbC mu co_a_b genQa genQb.
-exists nu => chi x Zchi Gx; without loss{Zchi} Nchi: chi / chi \is a character.
-  move=> IH; case/vcharP: Zchi => [c1 /IH [Dc1a Dc1b] [c2 /IH [Dc2a Dc2b] ->]].
-  rewrite !cfunE rmorphB in Dc1a Dc1b Dc2a Dc2b *.
-  by split=> Dx; rewrite ?(Dc1a Dx, Dc2a Dx) ?(Dc1b Dx, Dc2b Dx).
-split=> [x_dv_a | co_x_a].
-  have [xa Dx] := memQa _ _ _ Nchi x x_dv_a; rewrite order_dvdn in x_dv_a.
-  rewrite cfunE -Dx nuQa {}Dx; have sxG: <[x]> \subset G by rewrite cycle_subG.
-  rewrite -!(cfResE chi sxG) ?cycle_id ?mem_cycle //.
-  rewrite ['Res _]cfun_sum_cfdot !sum_cfunE rmorph_sum; apply: eq_bigr => i _.
-  have chiX := lin_charX (char_abelianP _ (cycle_abelian x) i) _ (cycle_id x).
-  rewrite !cfunE rmorphM aut_Cnat ?Cnat_cfdot_char_irr ?cfRes_char //.
-  by congr (_ * _); rewrite Dmu -chiX // (eqP x_dv_a) (chiX 0%N).
-have x_dv_b: (#[x] %| b)%N.
+have [nu nuQa nuQb] := extend_coprime_Qn_aut QaC QbC v co_a_b genQa genQb.
+exists nu => [gt0 G0 chi x Zchi x_dv_a | chi x Zchi co_x_a].
+  without loss{Zchi} Nchi: chi / chi \is a character.
+    move=> IH; case/vcharP: Zchi => [chi1 Nchi1 [chi2 Nchi2 ->]].
+    by rewrite !cfunE !rmorphB !IH.
+  by have [xa <-] := memQa _ _ _ Nchi x x_dv_a; rewrite nuQa.
+without loss{Zchi} Nchi: chi / chi \is a character.
+  move=> IH; case/vcharP: Zchi => [chi1 Nchi1 [chi2 Nchi2 ->]].
+  by rewrite !cfunE rmorphB !IH.
+have [Gx | /cfun0->] := boolP (x \in G); last by rewrite rmorph0.
+have{Gx} x_dv_b: (#[x] %| b)%N.
   rewrite coprime_sym coprime_pi' // in co_x_a.
   by rewrite -(part_pnat_id co_x_a) partn_dvd ?order_dvdG.
-by have [xb Dx] := memQb _ _ _ Nchi x x_dv_b; rewrite cfunE -Dx nuQb.
+by have [xb <-] := memQb _ _ _ Nchi x x_dv_b; rewrite nuQb.
+Qed.
+
+(* This is Peterfalvi (1.9)(b). *)
+(* We have strengthened the statement of this lemma so that it can be used    *)
+(* rather than reproved for Peterfalvi (3.9). In particular we corrected a    *)
+(* quantifier inversion in the original statement: the automorphism is        *)
+(* constructed uniformly for all (virtual) characters. We have also removed   *)
+(* the spurrious condition that a be a \pi(a) part of #|G| -- the proof works *)
+(* for all a, and indeed the first part holds uniformaly for all groups!      *)
+Lemma make_pi_cfAut a k :
+    coprime k a ->
+  exists2 u : {rmorphism algC -> algC},
+    forall (gT0 : finGroupType) (G0 : {group gT0}) chi x,
+      chi \in 'Z[irr G0] -> #[x] %| a -> cfAut u chi x = chi (x ^+ k)%g
+  & forall chi x, chi \in 'Z[irr G] -> coprime #[x] a -> cfAut u chi x = chi x.
+Proof.
+move=> co_k_a; have [v Dv] := Qn_Aut_exists co_k_a.
+have [u Du_a Du_a'] := dvd_restrict_cfAut a v.
+exists u => [gt0 G0 | ] chi x Zchi a_x; last by rewrite cfunE Du_a'.
+rewrite cfunE {u Du_a'}Du_a //.
+without loss{Zchi} Nchi: chi / chi \is a character.
+  move=> IH; case/vcharP: Zchi => [chi1 Nchi1 [chi2 Nchi2 ->]].
+  by rewrite !cfunE rmorphB !IH.
+have [sXG0 | G0'x] := boolP (<[x]> \subset G0); last first.
+  have /(<[x]> =P _) gen_xk: generator <[x]> (x ^+ k).
+    by rewrite generator_coprime coprime_sym (coprime_dvdr a_x).
+  by rewrite !cfun0 ?rmorph0 -?cycle_subG -?gen_xk.
+rewrite -!(cfResE chi sXG0) ?cycle_id ?mem_cycle //.
+rewrite ['Res _]cfun_sum_cfdot !sum_cfunE rmorph_sum; apply: eq_bigr => i _.
+have chiX := lin_charX (char_abelianP _ (cycle_abelian x) i) _ (cycle_id x).
+rewrite !cfunE rmorphM aut_Cnat ?Cnat_cfdot_char_irr ?cfRes_char //.
+by congr (_ * _); rewrite Dv -chiX // -expg_mod_order (eqnP a_x) chiX.
 Qed.
 
 Section ANT.
