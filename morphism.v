@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype finfun finset.
-Require Import fingroup.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype finfun bigop.
+Require Import finset fingroup.
 
 (******************************************************************************)
 (* This file contains the definitions of:                                     *)
@@ -172,6 +172,15 @@ Variables (D : {group aT}) (f : {morphism D >-> rT}).
 
 Lemma morph1 : f 1 = 1.
 Proof. by apply: (mulgI (f 1)); rewrite -morphM ?mulg1. Qed.
+
+Lemma morph_prod I r (P : pred I) F :
+    (forall i, P i -> F i \in D) ->
+  f (\prod_(i <- r | P i) F i) = \prod_( i <- r | P i) f (F i).
+Proof.
+move=> D_F; elim/(big_load (fun x => x \in D)): _.
+elim/big_rec2: _ => [|i _ x Pi [Dx <-]]; first by rewrite morph1.
+by rewrite groupM ?morphM // D_F.
+Qed.
 
 Lemma morphV : {in D, {morph f : x / x^-1}}.
 Proof.

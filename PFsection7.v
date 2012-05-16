@@ -2,11 +2,10 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset center.
 Require Import fingroup morphism perm automorphism quotient action zmodp.
-Require Import gfunctor gproduct cyclic pgroup commutator nilpotent ssrnum.
-Require Import matrix mxalgebra mxrepresentation vector algC classfun character.
-Require Import frobenius BGsection3 inertia vcharacter.
+Require Import gfunctor gproduct cyclic pgroup commutator nilpotent frobenius.
+Require Import matrix mxalgebra mxrepresentation BGsection3 vector.
+Require Import ssrnum algC classfun character inertia vcharacter.
 Require Import PFsection1 PFsection2 PFsection4 PFsection5 PFsection6.
-Require Import PFsection3.
 
 (******************************************************************************)
 (* This file covers Peterfalvi, Section 7:                                    *)

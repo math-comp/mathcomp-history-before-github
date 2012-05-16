@@ -559,6 +559,12 @@ Proof. by move=> y x; rewrite -conjgM mulVg conjg1. Qed.
 Lemma conjg_inj : @left_injective T T T conjg.
 Proof. move=> y; exact: can_inj (conjgK y). Qed.
 
+Lemma conjg_prod I r (P : pred I) F z :
+  (\prod_(i <- r | P i) F i) ^ z = \prod_(i <- r | P i) (F i ^ z).
+Proof.
+by apply: (big_morph (conjg^~ z)) => [x y|]; rewrite ?conj1g ?conjMg.
+Qed.
+
 Lemma commgEl x y : [~ x, y] = x^-1 * x ^ y. Proof. by []. Qed.
 
 Lemma commgEr x y : [~ x, y] = y^-1 ^ x * y.
