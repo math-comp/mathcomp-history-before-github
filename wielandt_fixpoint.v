@@ -494,7 +494,7 @@ have co_pG: coprime p #|G|.
 have p'G: p^'.-group G by rewrite pgroupE p'natE -?prime_coprime.
 pose rC i := logn p #|'C_V(A i)|.
 have ErC k i: (#|'C_V(A i)| ^ (k i * #|A i|) = p ^ (rC i * k i * #|A i|))%N.
-  suffices /card_pgroup[->]: p.-group 'C_V(A i) by rewrite -expnM mulnA.
+  suffices /card_pgroup->: p.-group 'C_V(A i) by rewrite -expnM mulnA.
   by rewrite (pgroupS (subsetIl _ _)).
 rewrite !{1}(eq_bigr _ (fun i _ => ErC _ i)) {ErC} -!expn_sum; congr (_ ^ _)%N.
 have eqmodX x y: (forall e, x = y %[mod p ^ e]) -> x = y.
