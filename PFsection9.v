@@ -178,10 +178,10 @@ Let W2bar := 'C_Hbar(W1 / H0).
 Let c := #|C|.
 Let u := #|Ubar|.
 Notation "chi ^\tau" := (FT_Dade maxM chi).
-Let calX := Iirr_kerD [the {group _} of H] H 1.
-Let calS := seqIndD [the {group _} of H] M [the {group _} of H] 1.
-Let X_ Y := Iirr_kerD [the {group _} of H] H Y.
-Let S_ Y := seqIndD [the {group _} of H] M [the {group _} of H] Y.
+Let calX := Iirr_kerD M^`(1) H 1.
+Let calS := seqIndD M^`(1) M M`_\F 1.
+Let X_ Y := Iirr_kerD M^`(1) H Y.
+Let S_ Y := seqIndD M^`(1) M M`_\F Y.
 
 Let defW2bar : W2bar = W2 / H0.
 Proof.
@@ -264,7 +264,7 @@ Lemma typeP_Galois_Pn :
     [/\ #|H1| = p, U / H0 \subset 'N(H1), [acts U, on H1 | 'Q],
         \big[dprod/1]_(w \in W1 / H0) H1 :^ w = Hbar
       & let a := #|U : 'C_U(H1 | 'Q)| in
-        [/\ a > 1, a %| p - 1
+        [/\ a > 1, a %| p.-1, cyclic (U / 'C_U(H1 | 'Q))
           & exists V : {group 'rV['Z_a]_q.-1}, Ubar \isog V]]}.
 Proof.
 have [_ sUW1M defHUW1 nHUW1 _] := sdprod_context defHUW1.
@@ -356,13 +356,16 @@ have o_phiU w: w \in W1 / H0 -> #|phi w @* U| = a.
   rewrite card_morphim Kphi (setIidPr _); last by apply/subsetP; exact: dU.
   rewrite /a indexgI /= !astabQ centJ def_w morphpreJ //.
   by rewrite -{1}(normsP nUW1 w1 Ww1) indexJg.
-split=> //.
+have a_dv_p1: a %| p.-1.
   rewrite -(o_phiU 1) // (dvdn_trans (cardSg (subsetT _))) // card_units_Zp //.
-  by rewrite subn1 conjg1 o_h (@totient_pfactor p 1) ?muln1.
+  by rewrite conjg1 o_h (@totient_pfactor p 1) ?muln1.
 have cycZhw w: cyclic (units_Zp #[h ^ w]).
   rewrite -(injm_cyclic (inj_Zp_h w)) // im_Zp_unitm Aut_prime_cyclic //=.
   by rewrite -orderE orderJ o_h.
-have /cyclicP[z def_z]: cyclic (phi 1 @* U) := cyclicS (subsetT _) (cycZhw 1).
+have cyc_phi1U: cyclic (phi 1 @* U) := cyclicS (subsetT _) (cycZhw 1).
+split=> //; last have{cyc_phi1U a_dv_p1} [z def_z] := cyclicP cyc_phi1U.
+  rewrite -(conjsg1 H1) -Kphi (isog_cyclic (first_isog_loc _ _)) //.
+  by apply/subsetP; apply: dU.
 have o_hw w: #[h ^ w] = #[h ^ 1] by rewrite !orderJ.
 pose phi1 w x := eq_rect _ (fun m => {unit 'Z_m}) (phi w x) _ (o_hw w).
 have val_phi1 w x: val (phi1 w x) = val (phi w x) :> nat.
@@ -948,5 +951,134 @@ apply/(canLR (mulKg _))/val_inj; rewrite etaEpsi // mulg1 def_psi_x.
 exact: (rmorph_nat (RMorphism (eta_Aut w Ww))).
 Qed.
 *)
+
+Local Open Scope ring_scope.
+
+Lemma cfConjg_lin_char (g1T : finGroupType) (H : {group g1T}) (phi : 'CF(H)) yy:
+  phi \is a linear_char -> (phi ^ yy)%CF \is a linear_char.
+Proof. by case/andP=> Nphi phi1; rewrite qualifE cfConjg_val1 cfConjg_char. Qed.
+
+Local Notation H0C := (gval H0 <*> C).
+Local Notation H0Cg := [group of H0C].
+Local Notation HC := (H <*> C).
+Local Notation HCg := [group of HC].
+Local Notation HU := (gval M)^`(1)%g.
+Local Notation HUg := M^`(1)%G.
+Local Notation U' := (gval U)^`(1)%g.
+Local Notation U'g := U^`(1)%G.
+Local Notation H0U' := (gval H0 <*> U')%g.
+Local Notation H0U'g := (H0 <*> U^`(1))%G.
+
+Lemma typeP_nonGalois_characters (not_Galois : ~~ typeP_Galois) :
+    let H1 := sval (typeP_Galois_Pn not_Galois) in
+    let a := #|U : 'C_U(H1 | 'Q)| in
+    let isIndHC (zeta : 'CF(M)) :=
+      [/\ zeta 1%g = (q * u)%:R, zeta \in S_ H0Cg
+        & exists2 xi, xi \is a linear_char & zeta = 'Ind[M, HC] xi] in
+  [/\ (*a*) {in X_ H0, forall s, a %| 'chi_s 1%g}%C,
+      (*b*) let mu_ := filter [predC irr M] (S_ H0) in
+            size mu_ = p.-1 /\ {in mu_, forall mu_j, isIndHC mu_j},
+      (*c*) exists t, isIndHC 'chi_t
+    & (*d*) let irr_qa := [pred zeta \in irr M | zeta 1%g == (q * a)%:R] in
+            let lb_num := (p.-1 * #|U|)%N in
+            let lb_den := (a ^ 2 * #|U'|)%N in
+            (lb_den %| lb_num
+             /\ lb_num %/ lb_den <= count irr_qa (S_ H0U'g))%N].
+Proof.
+case: (typeP_Galois_Pn _) => H1 [oH1 nH1U nH1Uq defHbar aP]; rewrite [sval _]/=.
+move=> H1d; rewrite {+}/H1d => {H1d} a isIndHC; rewrite -/a in aP.
+have{aP}[a_gt1 a_dv_p1 cycUb1 _] := aP.
+set redM := [predC irr M]; set muH0 := filter redM _.
+set part_a := ({in _, _}); set part_b := let mu := muH0 in _.
+set part_c := exists t, _; set part_d := let irr_qa := _ in _.
+pose HCbar := (HCg / H0)%G; set W1bar := (W1 / H0)%g in defHbar.
+have [[_ _ _ defM] [_ _ nUW1 defHU] _ _ _] := MtypeP.
+have [_ /mulG_sub[sHUM sW1M] _ tiHUW1] := sdprodP defM.
+have [nsHHU _ /mulG_sub[sHHU sUHU] nHU tiHU] := sdprod_context defHU.
+have{sHUM} [nH0H nH0HU] := (normal_norm nsH0H, subset_trans sHUM nH0M).
+have nH0C : C \subset 'N(H0) by rewrite subIset ?(subset_trans sUHU).
+have nsH0HC: H0 <| HC.
+  by rewrite /normal (subset_trans sH0H) ?joing_subl // join_subG nH0H.
+have defHCbar: Hbar \x (C / H0)%g = HCbar.
+  rewrite /= quotientY //.
+  rewrite quotientIG /= ?quotient_astabQ ?astabQ ?sub_cosetpre //.
+  by rewrite dprodEY ?subsetIr //= setIA -quotientGI // tiHU quotient1 setI1g.
+have defHb1 := defHbar; rewrite (big_setD1 1%g) ?group1 ?conjsg1 //= in defHb1.
+have [[_ H1c _ defH1c] _ _ _] := dprodP defHb1; rewrite defH1c in defHb1.
+have [nsH1H _] := dprod_normal2 defHb1; have [sH1H _] := andP nsH1H.
+have Part_a: part_a.
+  move=> s; rewrite !inE => /andP[kers'H kersH0].
+  have NsH: 'Res[H] 'chi_s \is a character := cfRes_char _ (irr_char s).
+  have /neq0_has_constt[t sHt]: 'Res[H] 'chi_s != 0.
+    by rewrite cfRes_eq0 ?irr_char ?irr_neq0.
+  have{kers'H} t_neq0: t != 0.
+    by apply: contraNneq kers'H => t0; rewrite constt0_Res_cfker -?t0.
+  have{kersH0} kertH0: H0 \subset cfker 'chi_t.
+    apply: subset_trans (cfker_constt NsH sHt).
+    apply/subsetP=> x H0x; rewrite cfker_charE // inE cfRes1 //.
+    by rewrite cfResE ?(subsetP sH0H) //= cfker1 // (subsetP kersH0).
+  set T := 'I_HU['chi_t]; have sHT: H \subset T by rewrite sub_inertia.
+  have sTHU: T \subset HU by rewrite inertia_sub.
+  suffices{s sHt NsH} a_dv_iTHU: a %| #|HU : T|.
+  (* The statement of (1.7)(a) is clumsy: what's this silly witness for ?!!? *)
+    have /neq0_has_constt[r0 tTr0]: 'Ind[T] 'chi_t != 0.
+      by rewrite cfInd_eq0 ?irr_char ?irr_neq0.
+    have my17a := induced_inertia_irr nsHHU _ tTr0.
+    set tT := irr_constt _ in my17a tTr0.
+    suffices: existsb r, (r \in tT) && ('['chi_s, 'Ind 'chi_r] != 0).
+      case/exists_inP=> r /my17a[/irrP[r1 DrHU] _] /eqP.
+      rewrite DrHU cfdot_irr; case: eqP => // -> _; rewrite -DrHU cfInd1 //.
+      by rewrite dvdC_mulr ?dvdC_nat // Cint_Cnat ?Cnat_irr1.
+    rewrite -negb_forall_in; apply: contraL sHt => /forall_inP tT_s_0.
+    rewrite inE negbK cfdot_Res_l; have [_ [_ ->]] := my17a _ tTr0.
+    rewrite cfdot_sumr big1 // => r tTr; apply/eqP.
+    by rewrite cfdotZr mulf_eq0 orbC tT_s_0.
+  pose theta := ('chi_t / H0)%CF.
+  have nHW1: W1 \subset 'N(H) by rewrite (subset_trans sW1M) ?gFnorm.
+  have nHbarW1 := quotient_norms H0 nHW1.
+  have [w W1w nt_th_w]: exists2 w, w \in (W1 / H0)%g & 'Res[H1 :^ w] theta != 1.
+    apply/exists_inP; rewrite -negb_forall_in.
+    apply: contra t_neq0 => /forall_inP=> tH1w1; apply/eqP/chi_inj.
+    rewrite chi0_1 -(cfMod_cfun1 nsH0H) -(quo_IirrK nsH0H kertH0) mod_IirrE //.
+    congr (_ %% H0)%CF; apply/eqP; rewrite irr_eq1 -subGcfker.
+    rewrite -{1}(bigdprodEY defHbar) gen_subG /= cfker_irrE quo_IirrE //=.
+    apply/bigcupsP=> w W1w; apply/subsetP=> x H1w_x; rewrite inE.
+    have sH1wH: H1 :^ w \subset Hbar.
+      by rewrite sub_conjg (normP _) // groupV (subsetP nHbarW1).
+    rewrite -(cfResE _ _ H1w_x) // cfker1 ?cfResE // (eqP (tH1w1 _ W1w)).
+    by rewrite cfker_cfun1.
+  have sH1wH: H1 :^ w \subset Hbar.
+    by rewrite sub_conjg (normP _) // groupV (subsetP nHbarW1).
+  set th_w := 'Res _ in nt_th_w.
+  have abHbar := abelem_abelian abelHbar.
+  have lin_th_w: th_w \is a linear_char.
+    by rewrite cfRes_lin_char // /theta -quo_IirrE //; apply/char_abelianP.
+  have{nt_th_w} th_w_ff: cfaithful th_w.
+    rewrite cfaithfulE -(setIidPr (cfker_sub _)) prime_TIg ?cardJg ?oH1 //.
+    apply: contra nt_th_w; have /irrP[i ->] := lin_char_irr lin_th_w.
+    by rewrite irr_eq1 subGcfker.
+  have{th_w th_w_ff lin_th_w} theta_inj: {in H1 :^ w &, injective theta}.
+    move=> z1 z2 Hz1 Hz2 eq_th_z12; apply/eqP.
+    rewrite eq_mulgV1 -in_set1 (subsetP th_w_ff) // cfker_charE ?lin_charW //.
+    rewrite inE groupM ?lin_charM ?groupV // lin_charV ?lin_char1 //=.
+    by rewrite -(divff (lin_char_neq0 lin_th_w Hz2)) !cfResE // eq_th_z12.
+  have defT: H ><| (U :&: T) = T.
+    by rewrite (sdprod_modl defHU) // (setIidPr sTHU).
+  rewrite -divgS // -(sdprod_card defHU) -(sdprod_card defT) divnMl // divgI.
+  rewrite -indexgI; have ->: a = #|U : 'C_U(H1 :^ w | 'Q)|.
+    have [w1 nH0w1 W1w1 ->] := morphimP W1w; rewrite astabQ centJ morphpreJ //.
+    by rewrite -astabQ indexgI -(normsP nUW1 _ W1w1) indexJg -indexgI.
+  apply/indexgS/subsetP=> x /= /setIP[Ux /setIdP[_ /eqP tx_t]].
+  rewrite astabQ 2!inE Ux (subsetP nH0HU) ?(subsetP sUHU) //= inE.
+  apply/centP=> z H1z; have H1xz: (z ^ inMb x)%g \in H1 :^ w.
+    rewrite memJ_norm // normJ mem_conjg (subsetP nH1U) // -mem_conjg.
+    by rewrite (normsP (quotient_norms H0 nUW1)) ?mem_quotient.
+  apply/esym/commgP/conjg_fixP/theta_inj; rewrite ?cfResE {H1xz}//.
+  have{z H1z} /morphimP[z nH0z Hz ->]: z \in Hbar := subsetP sH1wH z H1z.
+  have nH0x : x \in 'N(H0) by rewrite (subsetP nH0HU) ?(subsetP sUHU).
+  rewrite -morphJ ?cfQuoE ?memJ_norm ?(subsetP nHU) //.
+  by rewrite -{1}tx_t cfConjgEnorm ?(subsetP nHU).
+Admitted.
+     
 
 End Nine.
