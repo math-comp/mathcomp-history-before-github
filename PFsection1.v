@@ -100,7 +100,7 @@ Variables G H : {group gT}.
 
 (* This is Peterfalvi (1.2). *)
 Lemma not_in_ker_char0 t g : g \in G ->
-  H <| G -> ~ (H \subset cfker 'chi[G]_t) -> 'C_H[g] = 1%g -> 'chi_t g = 0.
+  H <| G -> ~~ (H \subset cfker 'chi[G]_t) -> 'C_H[g] = 1%g -> 'chi_t g = 0.
 Proof.
 move=> GiG HnG nHsC CH1.
 have: (#|'C_G[g]| <= #|'C_(G/H)[coset H g]|)%N.
@@ -129,8 +129,8 @@ have /eqP F2: S == 0.
   rewrite eqr_le -(ler_add2l S') addr0 HH /=.
   by apply: sumr_ge0 => j _; rewrite mulr_ge0 ?normr_ge0.
 apply/eqP; have: `|'chi_t g| ^+ 2 == 0.
-  apply/eqP; apply: (psumr_eq0P _ F2); last exact/negP.
-  by move=> j _; rewrite mulr_ge0 ?normr_ge0.
+  apply/eqP; apply: (psumr_eq0P _ F2) nHsC => j _.
+  by rewrite mulr_ge0 ?normr_ge0.
 by rewrite mulf_eq0 orbb normr_eq0.
 Qed.
 

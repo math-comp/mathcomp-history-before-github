@@ -143,6 +143,9 @@ Local Notation "''I_' G [ f ]" := (inertia_group G f) : Group_scope.
 Variables G H : {group gT}.
 Implicit Type phi : 'CF(H).
 
+Lemma inertiaJ phi x y : y \in 'I_G[phi] -> phi (x ^ y)%g = phi x.
+Proof. by case/setIdP=> /setIP[_ nHy] /eqP {1}<-; rewrite cfConjgEnorm. Qed.
+
 Lemma inertia_sub phi : 'I_G[phi] \subset G.
 Proof. by rewrite ['I_G[_]]setIdE -setIA subsetIl. Qed.
 
@@ -207,6 +210,10 @@ have rGyP: mx_repr H (fun x => rG (x ^ y^-1)%g).
 exists (Representation (MxRepresentation rGyP)) => /=.
 by apply/cfunP=> x; rewrite cfConjgE // !cfunE memJ_norm ?groupV.
 Qed.
+
+Lemma cfConjg_lin_char (chi : 'CF(H)) y :
+  chi \is a linear_char -> (chi ^ y)%CF \is a linear_char.
+Proof. by case/andP=> Nchi chi1; rewrite qualifE cfConjg_val1 cfConjg_char. Qed.
 
 Lemma irr_Conjg i y : ('chi_i ^ y)%CF \in irr H.
 Proof.

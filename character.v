@@ -980,6 +980,14 @@ Proof. by rewrite qualifE cfunE lin_char1 rmorph1 cfAut_char ?lin_charW /=. Qed.
 Lemma cfConjC_lin_char : xi^*%CF \is a linear_char.
 Proof. exact: cfAut_lin_char. Qed.
 
+Lemma fful_lin_char_inj : cfaithful xi -> {in G &, injective xi}.
+Proof.
+move=> fful_phi x y Gx Gy xi_xy; apply/eqP; rewrite eq_mulgV1 -in_set1.
+rewrite (subsetP fful_phi) // inE groupM ?groupV //=; apply/forallP=> z.
+have [Gz | G'z] := boolP (z \in G); last by rewrite !cfun0 ?groupMl ?groupV.
+by rewrite -mulgA lin_charM ?xi_xy -?lin_charM ?groupM ?groupV // mulKVg.
+Qed.
+
 End OneChar.
 
 Lemma card_Iirr_abelian : abelian G -> #|Iirr G| = #|G|.
@@ -2293,10 +2301,10 @@ by rewrite Frobenius_reciprocity.
 Qed.
 
 Lemma cfker_Res phi :
-  H \subset G -> phi \is a character -> cfker ('Res[H] phi) \subset cfker phi.
+  H \subset G -> phi \is a character -> cfker ('Res[H] phi) = H :&: cfker phi.
 Proof.
-move=> sHG Nchi; apply/subsetP=> x; rewrite !cfker_charE ?cfRes_char // !inE.
-by case: (boolP (x \in H))=> // Hx; rewrite (subsetP sHG x Hx) !cfResE.
+move=> sHG Nphi; apply/setP=> x; rewrite !cfker_charE ?cfRes_char // !inE.
+by apply/andb_id2l=> Hx; rewrite (subsetP sHG) ?cfResE.
 Qed.
 
 (* This is Isaacs Lemma (5.11). *)

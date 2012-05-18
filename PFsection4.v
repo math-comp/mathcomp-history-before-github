@@ -134,9 +134,9 @@ Section Definitions.
 Variables (L K W W1 W2 : {set gT}).
 
 Definition cyclicDade_hypothesis :=
-  [/\ [/\ K ><| W1 = L, W1 != 1%g, Hall L W1 & cyclic W1],
-      [/\ W2 != 1%g, W2 \subset K, cyclic W2 & {in W1^#, forall x, 'C_K[x] = W2}]
-   &  [/\ W1 \x W2 = W & odd #|W|]].
+  [/\ [/\ K ><| W1 = L, W1 != 1, Hall L W1 & cyclic W1],
+      [/\ W2 != 1, W2 \subset K, cyclic W2 & {in W1^#, forall x, 'C_K[x] = W2}]
+   &  [/\ W1 \x W2 = W & odd #|W|]]%g.
 
 End Definitions.
 
@@ -1165,13 +1165,13 @@ Local Notation delta i :=
        ^+ nat_of_bool (@Dade_delta L W W1 W2 i)).
 Local Notation tau := (Dade (cDade_dAd_h CDH)).
 
-(* This is the first part of PeterFalvi (4.7). *) 
+(* This is the first part of Peterfalvi (4.7). *) 
 Lemma cDade_cfker_cfun_on i : 
-   ~ H \subset cfker 'chi[K]_i  -> 'chi_i \in 'CF(K, A :|: 1%G).
+   ~~ (H \subset cfker 'chi[K]_i) -> 'chi_i \in 'CF(K, A :|: 1%G).
 Proof.
 move=> HnsC; apply/cfun_onP=> g GniA.
-case: (boolP (g \in K))=> [GiK|GniK]; last by rewrite cfun0.
-apply:  (not_in_ker_char0 GiK (normalS _ _ HnL) HnsC)=> //.
+have [GiK | /cfun0-> //] := boolP (g \in K).
+apply: (not_in_ker_char0 GiK (normalS _ _ HnL) HnsC) => //.
 suff: [group of 'C_H[g]] = 1%G by move/val_eqP=> /= /eqP.
 apply/trivGP; apply/subsetP=> h /= HiC.
 case: (boolP (h \in _))=> [Hi1|] //.
@@ -1184,9 +1184,9 @@ rewrite 3!inE Gn1 GiK /=.
 by move: HiC; rewrite inE cent1C; case/andP.
 Qed.
 
-(* This is the second part of PeterFalvi (4.7). *) 
+(* This is the second part of Peterfalvi (4.7). *) 
 Lemma cDade_cfker_cfun_on_ind i : 
-   ~ H \subset cfker 'chi[K]_i -> 'Ind[L] 'chi_i \in 'CF(L, A :|: 1%G).
+   ~~ (H \subset cfker 'chi[K]_i) -> 'Ind[L] 'chi_i \in 'CF(L, A :|: 1%G).
 Proof.
 move/cDade_cfker_cfun_on=> CiCF; apply/cfun_onP=> g GiG.
 rewrite cfIndE // big1 ?mulr0 // => h HiL; move/cfun_onP: CiCF; apply.
@@ -1196,12 +1196,11 @@ case/normalP: AnL => [] _ /(_ _ HiL) {1}<-.
 by rewrite memJ_conjg => ->.
 Qed.
 
-Let cDade_chi_cher j : j != 0 ->  ~ H \subset cfker (chi j).
+(* Third part of Peterfalvi (4.7). *)
+Lemma not_cDade_core_sub_cfker_chi j : j != 0 ->  ~~ (H \subset cfker (chi j)).
 Proof.
-move=> NZj HsC; case/eqP: NZj.
-suff: w_ 0 j = 1.
-  rewrite -(cTIirr00 CDH) !(cTIirrE CDH).
-  by move/chi_inj=> /dprod_Iirr_inj [].
+apply: contra => HsC; suffices: w_ 0 j = 1.
+  by rewrite -(cTIirr00 CDH) !(cTIirrE CDH) => /chi_inj/dprod_Iirr_inj[->].
 apply/cfunP=> g.
 rewrite !cfun1E; case: (boolP (_ \in _))=> [|GnI]; last first.
   by rewrite cfun0.
@@ -1226,26 +1225,22 @@ have X1YiWW2 : (x1 * y)%g \in W :\: W2.
   by case/dprodP: HdP=> _ _ _ ->; rewrite inE.
 case: (Dade_mu2_restrict CDH)=> DMR _.
 have: mu2 0 j (x1 * y)%g = mu2 0 j x1.
-  apply: cfkerMr.
-  apply: (subsetP (cfker_Res KsL (irr_char _))).
-  rewrite -(Dade_chiE CDH).
-  by apply: (subsetP HsC); apply: (subsetP W2sH).
-rewrite (DMR 0 j _ X1YiWW2) (DMR 0 j _ X1iWW2) !cfunE.
-move/(mulfI _)->.
+  have: y \in cfker (chi j) by rewrite (subsetP HsC) ?(subsetP W2sH).
+  by rewrite ((Dade_chiE CDH) 0) cfker_Res ?irr_char // => /setIP[_ /cfkerMr->].
+rewrite (DMR 0 j _ X1YiWW2) (DMR 0 j _ X1iWW2) !cfunE => /lreg_sign->.
 rewrite -[x1]mulg1 (cTIirrE CDH) !dprod_IirrE !cfDprodE //.
-  rewrite chi0_1 cfun1E X1iW1 mul1r.
-  by rewrite  !(lin_char1 (cTIirr_linearW2 CDH _)).
-by rewrite signr_eq0.
+by rewrite chi0_1 cfun1E X1iW1 mul1r !(lin_char1 (cTIirr_linearW2 CDH _)).
 Qed.
 
-(* Third part of PeterFalvi (4.7). *)
+(* Fourth part of Peterfalvi (4.7). *)
 Lemma cDade_chi_support j : j != 0 -> chi j \in 'CF(K, A :|: 1%G).
-Proof. by move/cDade_chi_cher; exact: cDade_cfker_cfun_on. Qed.
+Proof. by move/not_cDade_core_sub_cfker_chi/cDade_cfker_cfun_on. Qed.
 
-(* Last part of PeterFalvi (4.7). *)
+(* Last part of Peterfalvi (4.7). *)
 Lemma cDade_mu_support j : j != 0 -> mu j \in 'CF(L, A :|: 1%G).
 Proof. 
-by rewrite -(Dade_Ind_chi CDH)=> /cDade_chi_cher /cDade_cfker_cfun_on_ind.
+move/not_cDade_core_sub_cfker_chi/cDade_cfker_cfun_on_ind.
+by rewrite (Dade_Ind_chi CDH).
 Qed.
 
 Let odd_neq2 m : odd m -> (2 == m)%N = false. Proof. by case: eqP => // <-. Qed.

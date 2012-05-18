@@ -571,7 +571,7 @@ have /subsetD1P[sAK notA1]: A \subset K^# by have [/= _ _ _ [_ []]] := ddA.
 have [/= _ _ _ [_ _ defA0]] := ddA.
 have defSA: 'Z[S, L^#] =i 'Z[S, A].
   have sS0A1: {subset S0 <= 'CF(L, 1%g |: A)}.
-    move=> _ /seqIndP[i /setDP[_ /negP kerH'i] ->]; rewrite inE in kerH'i.
+    move=> _ /seqIndP[i /setDP[_ kerH'i] ->]; rewrite inE in kerH'i.
     by rewrite setUC; exact: (cDade_cfker_cfun_on_ind ddA) kerH'i.
   move=> phi; have:= zcharD1_seqInd_Dade nsKL notA1 sS0A1 phi.
   rewrite !{1}(zchar_split _ A, zchar_split _ L^#) => eq_phiAL.
@@ -1293,8 +1293,7 @@ have zeta1V0: {in V, zeta1 =1 \0}.
     rewrite memvB ?memvZ ?(cDade_mu_support ddA) //.
     have [_ sSS0 _ _] := uccS.
     have /seqIndP[kz /setIdP[kerH'kz _] Dzeta] := sSS0 _ Szeta.
-    rewrite Dzeta (cDade_cfker_cfun_on_ind ddA) //.
-    by apply/negP; rewrite inE in kerH'kz.
+    by rewrite Dzeta (cDade_cfker_cfun_on_ind ddA) //; rewrite inE in kerH'kz.
   move=> x Vx; rewrite /= A1zeta1 // -in_setC.
   apply: subsetP (subsetP (Ptype_TIset_disjoint ddA) x Vx); rewrite setCS.
   by rewrite subUset sub1G; have [/= _ _ _ [_ [_ _ /subsetD1P[->]]]] := ddA.
