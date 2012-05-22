@@ -892,57 +892,6 @@ Canonical LAut_addlrmorphism f := AddLRMorphism (LAut_is_lrmorphism f).
 Lemma fAutL_mulr (f : 'AEnd(L)) a : amulr a * val f = val f * amulr (f a).
 Proof. by apply/lfunP => b; rewrite !comp_lfunE !lfunE /= rmorphM. Qed.
 
-(* The standard proof considers 'End(L) as a vector space over L, but
-   'End(L) is canonically a vector space over F.  I'm not sure if it is better
-   to put an L-vector space structure on 'End(L) or just use amulr. *)
-Lemma fAutL_independent (c_ : 'AEnd(L) -> L) :
-  (\sum_f val f * (amulr (c_ f)) == 0)%VF = (forallb i, c_ i == 0).
-Proof.
-apply/eqP/forallP; last first.
-  move => Hc.
-  apply: big1 => f _.
-  move/(_ f)/eqP:Hc ->.
-  by rewrite rmorph0 mulr0.
-move => Hf a.
-have : true by done.
-apply/implyP; move: a; apply/forallP; rewrite -big_andE.
-have: uniq (index_enum [finType of 'AEnd(L)]).
-  by rewrite /index_enum -enumT enum_uniq.
-elim: (index_enum _) c_ Hf => [|f r IH] c_ Hf; first by rewrite big_nil.
-rewrite cons_uniq.
-case/andP => Hfr Hr.
-rewrite big_all.
-suff Hcr : all (fun i : fAutL_finType => c_ i == 0) r.
-  move:(Hcr) => /= ->.
-  move/allP:Hcr => Hcr.
-  move: Hf.
-  rewrite big_cons big1_seq ?addr0; last first.
-    move => i Hi.
-    move/eqP: (Hcr i Hi) ->.
-    by rewrite rmorph0 mulr0.
-  move/(canRL (mulKr (unit_fAutL _)))/eqP.
-  rewrite mulr0 -(rmorph0 [rmorphism of (@amulr _ _)]).
-  by rewrite (inj_eq (@amulr_inj _ _)) => ->.
-apply/allP => i Hi.
-have /lfunPn [a] : f != i by apply: contraNneq Hfr => ->.
-rewrite -subr_eq0 => Ha.
-pose d_ i := c_ i * (f a - i a).
-move/eqP: Hf; rewrite big_cons addrC addr_eq0 => /eqP Hf.
-suff Hsum : \sum_(f <- r) val f * (amulr (d_ f))%VF = 0.
-  move: (IH _ Hsum Hr).
-  rewrite big_all.
-  move/allP/(_ _ Hi).
-  by rewrite /d_ mulf_eq0 orbC (negbTE Ha).
-transitivity (\sum_(i <- r) ( val i * amulr (c_ i) * amulr (f a)
-                            - amulr a * (val i * amulr (c_ i)))%VF).
-apply: eq_bigr => j _.
-  rewrite /d_ mulrBr rmorphB rmorphM mulrC rmorphM /=.
-  by rewrite mulrBr !mulrA fAutL_mulr.
-apply/eqP.
-rewrite sumrB -mulr_suml -mulr_sumr Hf addrC mulNr mulrN opprK subr_eq0.
-by rewrite -mulrA -rmorphM mulrC rmorphM /= !mulrA fAutL_mulr.
-Qed.
-
 Lemma old_fAutL_independent (E : {subfield L}) n (f_ : 'I_n -> 'AEnd(L))
   (c_ : 'I_n -> L) : (forall i, (val (f_ i) @: E)%VS = E) -> 
   uniq [seq (val (f_ i) \o projv E)%VF | i <- enum 'I_n] ->
@@ -1389,33 +1338,6 @@ apply/eqP/aut_eqP => _ /poly_Fadjoin [p Hp ->].
 by rewrite -!horner_map !(fixedPoly_aut (subv_adjoin K a)) //= Ha.
 Qed.
 
-Lemma aut_Fadjoin (K : {subfield L}) a b :
-  root (minPoly K a) b -> b \in <<K; a>>%AS ->
-  exists2 x, x \in 'Aut(<<K; a>>%AS / K) & repr x a = b.
-Proof.
-move => Hbroot Hb.
-exists (Aut K <<K; a>>%AS (kHomExtend  K \1 a b)); first by apply: Aut_aut.
-rewrite Aut_eq ?memv_adjoin ?subv_adjoin ?kAutE //.
-  case: (boolP (a \in K)) => Ha; last by rewrite (kHomExtendX _ (kHom1 K K)).
-  rewrite kHomExtendExt // id_lfunE.
-  rewrite elemDeg1 in Ha.
-  apply/eqP.
-  have: all (root (minPoly K a)) [::a; b] by rewrite /= root_minPoly Hbroot.
-  move/(max_poly_roots (monic_neq0 (monic_minPoly K a))) => /=.
-  rewrite inE andbT size_minPoly.
-  by move/contraR; apply; move/eqP: Ha ->.
-apply/andP; split.
-  rewrite kHomExtendkHom ?subv_refl ?kHom1 // map_poly_id // => ? _.
-  by rewrite id_lfunE.
-apply/subvP; move => _ /memv_imgP [_ /poly_Fadjoin [p Hp ->] ->].
-rewrite (kHomExtend_poly (kHom1 K K)) ?map_poly_id //;
-  try (move => ? _; by rewrite /= id_lfunE).
-apply/poly_Fadjoin.
-exists (p \Po (poly_for_Fadjoin K a b)).
-  by rewrite polyOver_comp // poly_for_polyOver.
-by rewrite horner_comp poly_for_eq //.
-Qed.
-
 Lemma subv_aut (E K1 K2 : {subfield L}) : (K1 <= K2)%VS -> (K2 <= E)%VS -> 
   ('Aut(E / K2) \subset 'Aut(E / K1)).
 Proof.
@@ -1475,20 +1397,6 @@ rewrite -(aut_mul (x^-1) x) ?mulVg ?repr_coset1 ?id_lfunE //.
 move/subvP: HyE; apply.
 rewrite memv_img // -[in X in _ \in X]HxE memv_img //.
 by move/subvP: HKE; apply.
-Qed.
-
-Lemma uniq_aut (K E : {subfield L}) n f_ :
- (forall i, f_ i \in 'Aut(E / K)) ->
- uniq [seq f_ i | i <- enum 'I_n] ->
- uniq [seq (val (repr (f_ i)) \o projv E)%VF |  i <- enum 'I_n].
-Proof.
-move => Hf.
-set (s := [seq f_ i |  i <- enum 'I_n]).
-pose g (x : coset_of (kAutL E)) := (val (repr x) \o projv E)%VF.
-suff Hs : {in s &, injective g} by rewrite -(map_inj_in_uniq Hs) -map_comp.
-move=> x y Hx Hy /= Hg.
-apply/eqP/(aut_eqP) => a /projv_id <-.
-by rewrite -[_ (projv E a)]comp_lfunE [(_ \o _)%VF]Hg comp_lfunE.
 Qed.
 
 Definition fixedField (E : {vspace L})
@@ -1763,6 +1671,68 @@ move: HgK; rewrite inE kAutE.
 by case/andP => /kHomP [].
 Qed.
 
+Lemma aut_root_minPoly K E a b : (K <= E)%VS -> normalField K E ->
+  a \in E -> root (minPoly K a) b ->
+  exists2 x, x \in 'Aut(E / K) & repr x a = b.
+Proof.
+move => HKE Hnormal Ha Hb.
+pose f := (kHomExtend K \1 a b).
+have HfK : f \is a kHom K <<K; a>>%AS.
+  apply: kHomExtendkHom; rewrite ?kHom1 ?subv_refl // map_poly_id // => ? _.
+  by rewrite id_lfunE.
+exists (pickAut K <<K; a>>%AS E f); first by rewrite pickAut_aut.
+rewrite (pickAut_eq _ _ Hnormal HfK) ?subv_adjoin ?memv_adjoin //; last first.
+  by apply/FadjoinP.
+case: (boolP (a \in K)) => HaK; last by rewrite (kHomExtendX _ (kHom1 K K)).
+rewrite kHomExtendExt // id_lfunE.
+rewrite elemDeg1 in HaK.
+apply/eqP.
+have: all (root (minPoly K a)) [::a; b] by rewrite /= root_minPoly Hb.
+move/(max_poly_roots (monic_neq0 (monic_minPoly K a))) => /=.
+rewrite inE andbT size_minPoly.
+by move/contraR; apply; move/eqP: HaK ->.
+Qed.
+
+Lemma normalField_factors K E : (K <= E)%VS ->
+ reflect (forall a, a \in E -> 
+   exists2 r : seq (coset_of (kAutL E)),
+     r \subset 'Aut(E / K) &
+     minPoly K a = \prod_(i <- r) ('X - (repr i a)%:P))
+   (normalField K E).
+Proof.
+move => HKE.
+apply: (iffP idP); last first.
+  move => Hfactor.
+  apply/normalFieldP => a Ha.
+  case: (Hfactor a Ha) => r /subsetP Hr ->.
+  exists (map (fun i :  coset_of (kAutL E) => repr i a) r); last first.
+    by rewrite big_map.
+  apply/allP => _ /mapP [b /(Hr _) Hb ->].
+  by apply: (memv_aut Hb).
+move => Hnorm a Ha.
+case/normalFieldP/(_ a Ha): (Hnorm) => r Hr Hmin.
+pose f b := [pick x \in 'Aut(E / K) | repr x a == b].
+exists (pmap f r).
+  apply/subsetP => x.
+  rewrite mem_pmap /f.
+  case/mapP => b _.
+  by case: (pickP _) => // c /andP [Hc _] [->].
+rewrite Hmin.
+have : all (root (minPoly K a)) r.
+  by apply/allP => b; rewrite Hmin root_prod_XsubC.
+elim: r {Hmin} Hr => [|b s IH /andP [Hb Hs] /andP [Hrootb Hroots]].
+  by rewrite !big_nil.
+rewrite /= [f b]/f.
+case: (pickP _) => /=; last first.
+  move/pred0P.
+  apply: contraTeq => _.
+  case: (aut_root_minPoly HKE Hnorm Ha Hrootb) => x Hx /eqP Hxa.
+  apply/existsP; exists x.
+  by apply/andP.
+move => x /andP [Hx /eqP Hxa].
+by rewrite !big_cons IH ?Hxa.
+Qed.
+
 Definition galois U V := [&& (U <= V)%VS, separable U V & normalField U V].
 
 Lemma splitting_galoisField E K p :
@@ -1787,9 +1757,9 @@ Lemma galois_dim K E : galois K E ->
  \dim E = (\dim K * #|'Aut(E / K)|)%N.
 Proof.
 case/and3P => HKE.
-move/(separableSeparableGenerator)/(_ HKE) => ->.
+move/(separableSeparableGenerator)/(_ HKE) => -> Hnorm.
 set (a:= separableGenerator K E).
-case/normalFieldP/(_ _ (memv_adjoin K a)) => rs /allP /= Hrs Hmin.
+case/normalFieldP/(_ _ (memv_adjoin K a)): (Hnorm) => rs /allP /= Hrs Hmin.
 rewrite (dim_sup_field (subv_adjoin K a)) mulnC.
 congr (_ * _)%N.
 apply: succn_inj.
@@ -1801,8 +1771,10 @@ move/card_seq_sub <-.
 have Hex : forall r : seq_sub rs, exists x,
   (x \in 'Aut(<<K; a>>%AS / K)) && ((repr x) a == val r).
   move => r.
-  case/Hrs/aut_Fadjoin: (valP r) => [|x HxK /eqP Hxa].
+  have : root (minPoly K a) (val r).
     by rewrite Hmin root_prod_XsubC; apply: valP.
+  case/(aut_root_minPoly (subv_adjoin _ _) Hnorm (memv_adjoin _ _)).
+  move => x HxK /eqP Hxa.
   by exists x; rewrite HxK Hxa.
 set (f r := xchoose (Hex r)).
 have /card_imset <- : injective f.
@@ -1823,220 +1795,110 @@ apply/eqP; case/andP: (xchooseP (Hex (SeqSub Hxa))) => ? ?.
 by rewrite aut_eq_Fadjoin // eq_sym.
 Qed.
 
-(* This theorem is stated backwards from the usual theorem.  This is 
-   because I was folling theorem VI.8.7(ii) from "A Course in
-   Constructive Algebra".  They give the result this way because it is,
-   in general, a stronger form than saying that K is the fixed field of
-   'Aut(E | K).  However, we are not in a general setting and all our
-   subfields are detachable subfields.  In our case the ususal
-   formulation is equivalent.  I should rewrite this theorem in the
-   usual way. *)
-Lemma GaloisUnfixedField (K E : {subfield L}) : galois K E ->
- forall a, a \in E -> a \notin K -> exists x, (x \in 'Aut(E / K)%g) && 
-   (repr x a != a).
-Proof.
-case/and3P => [HKE Hsep Hnorm] a HaE.
-rewrite elemDeg1 -eqSS -size_minPoly.
-case/normalFieldP/(_ a HaE): (Hnorm) (root_minPoly K a) => r Hr Hmin.
-rewrite Hmin root_prod_XsubC => Har.
-move: (size_prod_XsubC r id) => Hsz1 Hsz2.
-have [b Hbr Hba] : exists2 b, b \in r & b != a.
- move/separableP/(_ _ HaE): Hsep.
- rewrite /separableElement Hmin separable_prod_XsubC.
- move: r {Hr Hmin} Har Hsz1 Hsz2 => [//|x [|y r]]; first by move => _ ->.
- rewrite /= !inE.
- case: (eqVneq a x) => [->|Hax] _ _ _.
-  rewrite negb_or.
-  move => /andP [/andP [Hxy _] _].
-  exists y; last by rewrite eq_sym.
-  by rewrite !inE eqxx orbT.
- move => _.
- exists x; last by rewrite eq_sym.
- by rewrite !inE eqxx.
-have: kHomExtend K \1%VF a b \is a kHom K <<K; a>>%AS .
- rewrite kHomExtendkHom ?kHom1 ?subv_refl //.
- rewrite (eq_map_poly (fun x => id_lfunE x)) map_polyE map_id polyseqK.
- by rewrite Hmin root_prod_XsubC.
-(*  todo: try to generalize kAut_pick to support this *)
-case/(kHom_extend_fAutL (subv_adjoin K a))/existsP => f /eqvP Hf.
-have HfK: f \in kAutL K.
-  rewrite inE kAutE subvf andbT.
-  apply/kHomP; split; last by move => ? ? _ _; rewrite /= rmorphM.
-  move => x Hx.
-  rewrite /= Hf ?kHomExtendExt ?id_lfunE //.
-  by move/subvP: (subv_adjoin K a); apply.
-move/forallP/(_ f)/implyP/(_ HfK): Hnorm => HfE.
-exists (Aut K E f).
-rewrite Aut_aut Aut_eq //.
-  rewrite Hf ?memv_adjoin // (kHomExtendX (K:=F)) ?kHom1 //.
-  by rewrite elemDeg1 -eqSS -size_minPoly Hmin.
-rewrite qualifE /kAut HfE andbT.
-rewrite inE kAutE in HfK.
-case/andP: HfK.
-by move/(kHom_subv (subvf E)).
-Qed.
-
-Lemma galois_factors_subproof (K E : {subfield L}) : (K <= E)%VS ->
- (forall a, a \in E -> a \notin K -> exists x, (x \in 'Aut(E / K)%g) && 
-   (repr x a != a)) ->
- (forall a, a \in E -> 
-   exists r, [/\
-     r \subset 'Aut(E / K)%g,
-     uniq (map (fun i : coset_of (kAutL E) => repr i a) r) &
-     minPoly K a = \prod_(i <- r)('X - (repr i a)%:P)]).
-Proof.
-pose f (j : L) := ('X - j%:P).
-move => HKE Hgal a HaE.
-pose h (i : coset_of (kAutL E)) := repr i a.
-suff : forall n, n.+1 < size (minPoly K a) -> 
-        exists r, let r' := 
-           map (fun i : coset_of (kAutL E) => repr i a) r
-         in [/\ r \subset 'Aut(E / K)%g,  uniq r',
-                (size r') = n.+1 &
-                \prod_(i <- r')('X - i%:P) %| minPoly K a].
- rewrite size_minPoly.
- case/(_ _ (leqnn _)) => r [Haut Hr Hnr Hmin].
- exists r; split => //.
- apply/eqP.
- rewrite -(big_map h predT f).
- rewrite -eqp_monic ?monic_minPoly ?monic_prod_XsubC //.
- rewrite eqp_sym -dvdp_size_eqp // size_prod_XsubC.
- by rewrite size_minPoly Hnr.
-elim => [|n IH] Hn.
- exists [:: 1%g]; split => //; last first.
-  rewrite big_cons big_nil mulr1 dvdp_XsubCl repr_coset1 /= id_lfunE.
-  by rewrite root_minPoly.
- apply/subsetP.
- move => x.
- rewrite inE.
- move/eqP ->.
- apply: group1.
-case/(ltn_trans (leqnn _))/IH: (Hn) => {IH} r [Haut Hr Hnr Hmin].
-set g := \prod_ (i <- _) _ in Hmin.
-have := (minPoly_irr _ Hmin).
-move/contra.
-rewrite negb_or -size_poly_eq1 {2}/g size_prod_XsubC Hnr andbT.
-rewrite -(dvdp_size_eqp Hmin) {1}/g size_prod_XsubC Hnr neq_ltn Hn.
-case/(_ isT)/allPn => c Hcg HcK.
-have/allP : g \in polyOver E.
- rewrite /g big_map.
- rewrite (big_nth 1%g) big_mkord.
- apply: rpred_prod => i _.
- rewrite polyOverXsubC /=.
- move/subsetP/allP/(all_nthP 1%g)/(_ _ (@ltn_ord _ i)): Haut.
- rewrite aut_kAut //; case/andP => _ /eqP HE.
- by rewrite -[in X in (_ \in X)]HE memv_img.
-move/(_ _ Hcg) => HcE.
-case/(_ _ HcE HcK): Hgal => x /andP [Hx Hxc].
-have/allPn : ~~(all (fun x => x \in (map h r)) (map (repr x) (map h r))).
- move: Hxc.
- apply: contra.
- move/allP => Hsubset.
- case/(nthP 0): Hcg => i _ <-.
- rewrite -coef_map.
- apply/eqP.
- move: i.
- apply/polyP.
- rewrite rmorph_prod.
- transitivity (\prod_(i <- map h r)('X - (repr x i)%:P)).
-  apply: eq_bigr => i _.
-  by rewrite rmorphB /= map_polyX map_polyC.
- rewrite -(big_map (repr x) predT f).
- apply/eqP.
- rewrite -eqp_monic ?monic_prod_XsubC // -dvdp_size_eqp.
-  by rewrite !size_prod_XsubC size_map.
- apply: uniq_roots_dvdp.
-  apply/allP => b Hb.
-  rewrite root_prod_XsubC.
-  by apply: Hsubset.
- rewrite uniq_rootsE map_inj_uniq //.
- apply: (can_inj (g:= (repr x)^-1)%g).
- move => z; rewrite -comp_lfunE.
- by rewrite -[(_ \o _)%VF]/(ahval ((repr x) *(repr x)^-1)%g) mulgV id_lfunE.
-rewrite -map_comp.
-case => ? /mapP [y Hyr ->] Hyx.
-have Hy : y \in ('Aut(E / K))%g by move/subsetP: Haut; apply.
-have Huniq : uniq (map h ((y * x)%g :: r)).
- by rewrite /= Hr andbT [h _]aut_mul ?comp_lfunE.
-exists (cons (y * x)%g r); split.
-- by rewrite subset_all /= -subset_all Haut groupM.
-- by apply: Huniq.
-- by rewrite /= Hnr.
-- rewrite uniq_roots_dvdp //; last by rewrite uniq_rootsE; apply: Huniq.
-  apply/allP => ? /mapP [z Hz ->].
-  apply: (kHom_rootK _ HKE); rewrite ?minPolyOver ?root_minPoly //.
-  suff HyAut : z \in 'Aut(E / K)%g.
-    by move: HyAut; rewrite aut_kAut //; case/andP.
-  move: Hz.
-  rewrite inE.
-  case/orP; last by move: z; apply/subsetP.
-  move/eqP ->.
-  by rewrite groupM.
-Qed.
-
-Lemma galois_factors (K E : {subfield L}) : 
+Lemma galois_factors K E : 
  reflect ((K <= E)%VS /\ (forall a, a \in E -> 
-   exists r, [/\
+   exists r : seq (coset_of (kAutL E)), [/\
      r \subset 'Aut(E / K)%g,
      uniq (map (fun i : coset_of (kAutL E) => repr i a) r) &
-     minPoly K a = \prod_(i <- r)('X - (repr i a)%:P)]))
+     minPoly K a = \prod_(i <- (map (fun j : coset_of (kAutL E) => repr j a) r))
+                         ('X - i%:P)]))
    (galois K E).
 Proof.
-pose f (j : L) := ('X - j%:P).
+pose m (a:L) := map (fun i : coset_of (kAutL E) => repr i a).
 apply: (iffP idP).
- move => Hgal.
- case/and3P: (Hgal) => HKE _ _.
- split; first done.
- move/GaloisUnfixedField: Hgal => Hgal.
- by apply: galois_factors_subproof.
-move => [HKE H].
-apply/and3P; split; first done.
- apply/separableP => a /H [r [_ Hr Hmin]].
- pose h (i : coset_of (kAutL E)) := repr i a.
- by rewrite /separableElement Hmin -(big_map h predT f) separable_prod_XsubC.
-apply/normalFieldP => a Ha.
-case/H: (Ha) => r [/subsetP Haut Hr Hmin].
-pose h (i : coset_of (kAutL E)) := repr i a.
-exists (map h r); last by rewrite big_map.
-apply/allP => ? /mapP [x Hx ->].
-move: (Haut _ Hx); rewrite aut_kAut //; case/andP => _ /eqP <-.
-by rewrite memv_img.
+case/and3P => HKE Hsep /(normalField_factors HKE) Hnorm; split; first done.
+  move => a HaE.
+  case/Hnorm: (HaE) => r Hr Hmin.
+  exists r; split => //; last by rewrite big_map.
+  rewrite -separable_prod_XsubC big_map -Hmin.
+  by move/separableP/(_ _ HaE): Hsep.
+case => HKE Hfixed.
+apply/and3P; split => //.
+  apply/separableP => a /Hfixed [rs [_ Huniq Hmin]].
+  by rewrite /separableElement Hmin separable_prod_XsubC.
+apply/(normalField_factors HKE) => a.
+case/Hfixed => r [Hrs _ Hmin].
+exists r => //.
+by rewrite Hmin big_map.
 Qed.
 
-Lemma galois_fixedField (K E : {subfield L}) : reflect
- ((K <= E)%VS /\ fixedField 'Aut(E / K)%g = K)
- (galois K E).
+Lemma galois_fixedField K E : reflect 
+ ((K <= E)%VS /\ fixedField 'Aut(E / K)%g = K) (galois K E).
 Proof.
-apply: (iffP idP).
- move => Hgal.
- case/and3P: (Hgal) => HKE _ _.
- split; first done.
- apply: subv_anti.
- apply/andP; split; last by apply: galoisAdjuctionA.
- apply/subvP => a /fixedFieldP [HaE HFF].
- rewrite -[_ \in _]negbK.
- apply/negP.
- move/GaloisUnfixedField/(_ _ HaE): Hgal => Hgal.
- case/Hgal => x /andP [Hx].
- apply/negP.
- rewrite negbK.
- apply/eqP.
- by apply HFF.
-move => [HKE H].
-apply/galois_factors.
-split; first done.
-apply: galois_factors_subproof => //.
-move => a HaE HaK.
-apply/existsP.
-move: HaK.
-apply: contraR.
-rewrite negb_exists -{2}H.
-move/forallP => Hall.
-apply/fixedFieldP; split; first done.
-move => // x Hx.
-apply/eqP.
-move: (Hall x).
-by rewrite negb_and Hx negbK.
+apply (iffP idP).
+  case/and3P => HKE /separableP Hsep Hnorm.
+  split; first done.
+  apply:subv_anti.
+  rewrite galoisAdjuctionA ?andbT => //.
+  apply/subvP => a /fixedFieldP [HaE Ha].
+  case/normalFieldP/(_ _ HaE): (Hnorm) => rs /allP HrsE Hmin.
+  move/(_ _ HaE): Hsep.
+  rewrite elemDeg1 -eqSS -size_minPoly Hmin size_prod_XsubC eqSS.
+  rewrite /separableElement Hmin separable_prod_XsubC.
+  move/(count_uniq_mem a).
+  have -> : a \in rs by rewrite -root_prod_XsubC -Hmin root_minPoly.
+  move => /= <-; rewrite eq_sym -all_count.
+  apply/allP => b Hb.
+  have : root (minPoly K a) b by rewrite Hmin root_prod_XsubC.
+  case/(aut_root_minPoly HKE Hnorm HaE) => x Hx <-.
+  by rewrite /= Ha.
+case => HKE Hfixed.
+apply/galois_factors; split; first done.
+move => a HaE.
+pose roots :=
+  seq_sub (map (fun x : coset_of (kAutL E) => repr x a) (enum 'Aut(E / K))).
+have Hroot_aut (b : roots) :
+    exists x, (x \in 'Aut(E / K)) && (repr x a == val b).
+  case/mapP: (valP b) => [x Hx Hxb].
+  by exists x; rewrite Hxb eqxx andbT -mem_enum.
+pose root_repr b := xchoose (Hroot_aut b).
+have : forall b, (repr (root_repr b)) a = val b.
+  by move => b; case/andP: (xchooseP (Hroot_aut b)) => _ /eqP ->.
+have : forall b, root_repr b \in 'Aut(E / K).
+  by move => b;  case/andP: (xchooseP (Hroot_aut b)).
+move: root_repr => root_repr Hroot_repr_aut Hroot_repr.
+have Hroot_map_uniq : uniq
+    (map (fun x : coset_of (kAutL E) => repr x a) (map root_repr (enum predT))).
+  rewrite -map_comp map_inj_uniq ?enum_uniq //.
+  by move => b c //=; rewrite !Hroot_repr; apply: val_inj.
+exists (map root_repr (enum predT)); split => //.
+  by apply/subsetP => _ /mapP [b Hb ->].
+apply/eqP; rewrite -eqp_monic ?monic_minPoly ?monic_prod_XsubC //.
+apply/andP; split; last first.
+  apply uniq_roots_dvdp; last first.
+    by rewrite -[map _ _]map_id -[map _ ]/(map idfun) map_uniq_roots.
+  rewrite -map_comp; apply/allP => _ /mapP [b Hb ->] /=.
+  by rewrite root_minPoly_aut.
+apply minPoly_dvdp; last first.
+  rewrite root_prod_XsubC.
+  apply/mapP.
+  have Haroot :
+      a \in map (fun x : coset_of (kAutL E) => repr x a) (enum 'Aut(E / K)).
+    apply/mapP; exists 1%g; last by rewrite aut_id.
+    by rewrite mem_enum group1.
+  exists (root_repr (SeqSub Haroot)); last by rewrite Hroot_repr.
+  by apply: map_f; rewrite mem_enum.
+rewrite -map_comp big_map.
+apply/polyOverP => i /=.
+rewrite -[in X in _ \in X]Hfixed.
+apply/fixedFieldP; split.
+  apply: polyOverP i.
+  apply: rpred_prod => b Hb.
+  by rewrite rpredB ?polyOverX // polyOverC (memv_aut (K:=K)).
+move => x Hx.
+rewrite -coef_map rmorph_prod. congr ((polyseq _) `_ _).
+symmetry.
+have Hreindex (b : roots) : (repr x) (val b) \in
+     (map (fun x : coset_of (kAutL E) => repr x a) (enum 'Aut(E / K))).
+  rewrite -Hroot_repr -comp_lfunE -aut_mul //; apply: map_f.
+  by rewrite mem_enum groupM.
+pose h (b : roots) := SeqSub (Hreindex b) : roots.
+rewrite -filter_index_enum filter_predT (reindex_inj (h:=h)) /=.
+  apply: eq_bigr => {i} i _.
+  rewrite rmorphB /= map_polyX map_polyC /=; congr (_ - _%:P).
+  by rewrite !Hroot_repr.
+move => b c; move/(f_equal val) => /=.
+by move/fmorph_inj/val_inj.
 Qed.
 
 Lemma mem_galoisTrace (K E : {subfield L}) a :
@@ -2055,95 +1917,113 @@ rewrite -{2}HK.
 by apply: autNormFixedField.
 Qed.
 
-Lemma HilbertsTheorem90 (K E : {subfield L}) x a :
- galois K E -> (<[x]> = 'Aut(E / K))%g -> a \in E ->
+Lemma aut_independent E (P : pred (coset_of (kAutL E)))
+  (c_ : (coset_of (kAutL E)) -> L) :
+  (forall a, a \in E -> \sum_(x | P x) (c_ x) * (repr x a) = 0) ->
+  (forall x, P x -> c_ x = 0).
+Proof.
+move => Hsum; move: {2}(#|P|) (erefl #|P|) => n.
+elim: n c_ P Hsum => [|n IHn] c_ P Hsum.
+  by move/card0_eq => HP0 x; rewrite -[P x]/(x \in P) HP0.
+move => Hcard x Hx.
+suff Hcy : forall y, P y && (y != x) -> c_ y = 0.
+  move: (Hsum _ (mem1v E)).
+  rewrite (bigD1 _ Hx) big1 /=; first by rewrite rmorph1 mulr1 addr0.
+  by move => y Hy; rewrite (Hcy _ Hy) mul0r.
+move => y Hyx; case/andP:(Hyx) => HyP /aut_eqP/eqvP/subvPn [a HaE].
+rewrite memv_ker !lfun_simp => Hyxa.
+pose d_ y := c_ y * (repr y a - repr x a).
+apply: (mulIf Hyxa); rewrite mul0r.
+apply: (IHn d_ (fun i => P i && (i != x))) => //; last first.
+  by move: Hcard; rewrite (cardD1x Hx) add1n; case.
+move => b HbE.
+have HabE :  a * b \in E by rewrite memv_mul.
+rewrite -[X in _ = X]subr0 -[X in _ - X](mulr0 ((repr x) a)).
+rewrite -[X in _ * X](Hsum _ HbE) -[X in X - _](Hsum _ HabE).
+symmetry; rewrite mulr_sumr -sumrB (bigD1 _ Hx) rmorphM /=.
+rewrite !mulrA -[X in X * _]mulrC subrr add0r; apply eq_bigr => i Hi.
+by rewrite rmorphM /= /d_ mulrBr mulrBl !mulrA -[X in _ - X * _]mulrC.
+Qed.
+
+Lemma aut_independent_contra E (P : pred (coset_of (kAutL E)))
+  (c_ : (coset_of (kAutL E)) -> L) x : P x -> c_ x != 0 ->
+  exists2 a, a \in E & \sum_(x | P x) (c_ x) * (repr x a) != 0.
+Proof.
+move => HPx Hcx.
+pose f : 'End(L) := \sum_(y | P y) (val (repr y)) * (amull (c_ y)).
+suff /lfunPn [a] : projv E * f != 0.
+  rewrite zero_lfunE comp_lfunE sum_lfunE => Ha.
+  exists (projv E a); first by apply:memv_proj.
+  move: Ha; apply: contra; move/eqP => Ha; apply/eqP.
+  apply:{Ha} (eq_trans _ Ha); apply: eq_bigr => i _.
+  by rewrite comp_lfunE lfunE.
+have /existsP : exists x, P x && (c_ x != 0) by exists x; rewrite HPx.
+apply: contraL => /eqP/lfunP Hf {x HPx Hcx}.
+rewrite negb_exists_in; apply/forallP => x; apply/implyP => HPx; rewrite negbK.
+apply/eqP; apply: (aut_independent (P:=P)) => // a Ha; rewrite -(projv_id Ha).
+move: (Hf a); rewrite zero_lfunE comp_lfunE sum_lfunE /=; apply: eq_trans.
+apply: eq_bigr => i _.
+by rewrite comp_lfunE lfunE.
+Qed.
+
+Lemma HilbertsTheorem90 K E x a :
+ (K <= E)%VS -> <[x]>%g = 'Aut(E / K) -> a \in E ->
  reflect (exists2 b, b \in E /\ b != 0 & a = b / (repr x b))
          (galoisNorm K E a == 1).
 Proof.
-case/and3P => HKE _ _ Hx HaE.
+move => HKE Hx HaE.
+have HxEK : x \in 'Aut(E / K)%g by rewrite -Hx cycle_id.
 apply: (iffP eqP); last first.
- case => b [HbE Hb0] ->.
- have HxEK : x \in 'Aut(E / K)%g by rewrite -Hx cycle_id.
- by rewrite galoisNormM galoisNormV normAut // mulfV // galoisNorm_eq0.
+  case => b [HbE Hb0] ->.
+  by rewrite galoisNormM galoisNormV normAut // mulfV // galoisNorm_eq0.
 move => Hnorm.
-have Ha0 : a != 0 by rewrite -(galoisNorm_eq0 K E) Hnorm oner_neq0.
-pose n := #[x]%g.
-pose c_ i := \prod_(j < i) (repr (x ^+ j)%g a).
-have HcE i : c_ i \in E.
- elim: i => [|i IH]; first by rewrite [c_ _]big_ord0 mem1v.
- by rewrite /c_ big_ord_recr memv_mul // (memv_aut (K:=K)) // -Hx mem_cycle.
-have Hxc i : (repr x (c_ i)) = a ^-1 * (c_ i.+1).
- rewrite rmorph_prod /c_ big_ord_recl expg0 repr_coset1 id_lfunE mulKf //.
- apply: eq_bigr => j _.
- by rewrite expgSr aut_mul ?comp_lfunE.
-pose f_ i := repr (x ^+ i)%g.
-have HxE i : (val (f_ i) @: E)%VS = E.
- move: (mem_cycle x i).
- rewrite Hx aut_kAut //.
- by case/andP => _ /eqP. 
-have Hexp_inj : injective (fun i : ordinal_finType n => (x ^+ i)%g).
- case Hxn : n => [|m]; first by case.
- case: m Hxn => [|m] Hxn; first by move => i j; rewrite !ord1.
- have Hxn' : m.+2 = #[x]%g.-2.+2 by rewrite [#[x]%g]Hxn.
- rewrite Hxn'.
- move => i j Hij.
- by move/injmP: (cyclic.injm_Zpm x); apply; last done; 
-      rewrite /= /Zp [X in (1 < X)%N]Hxn inE.
-have Huniq : uniq [seq (val (f_ (nat_of_ord i)) \o projv E)%VF| i <- enum 'I_n].
- apply: (@uniq_aut K) => [i |]; first by rewrite -Hx mem_cycle.
- by rewrite map_inj_uniq ?enum_uniq.
-have Hexistb : (existsb i : 'I_n, c_ i != 0).
- apply/existsP.
- exists (Ordinal (order_gt0 _)).
- by rewrite /c_ big_ord0 oner_neq0.
-pose Sigma := \sum_(i : 'I_n) (amull (c_ i) \o val (f_ i))%VF.
-have: ((E <= lker Sigma)%VS -> forallb i : 'I_n, c_ i == 0).
- move => HE.
- apply/forallP => i.
- apply/eqP.
- by apply:(old_fAutL_independent
-   (fun i : 'I_n => HxE i) Huniq (fun i : 'I_n => HcE i)).
-move/contra/(_ Hexistb).
-rewrite -diffv_eq0.
-set V := (_ :\: _)%VS.
-move: (subvP (diffvSl _ _) _ (memv_pick V)) => HbE.
-rewrite -vpick0 => Hb.
-have : vpick V \notin lker Sigma.
- apply: contra Hb.
- move/(conj (memv_pick V))/andP.
- by rewrite -memv_cap capv_diff memv0.
-rewrite memv_ker => HSigmaV.
-exists (Sigma (vpick V)).
- split; last done.
- rewrite sum_lfunE.
- apply: memv_suml => i _.
- rewrite comp_lfunE /= lfunE /=.
- by rewrite memv_mul // -[in X in _ \in X](HxE i) memv_img.
+have Hlog y : {i : 'I_#[x] | y \in <[x]> -> x ^+ i = y}%g.
+  case: (boolP (y \in <[x]>%g)).
+    by case/cyclePmin => [i Hix Hi]; exists (Ordinal Hix).
+  by rewrite -(prednK (order_gt0 x)); exists ord0.
+pose log y := sval (Hlog y).
+have Hlog_small m : m < #[x]%g -> log (x ^+ m)%g = m :> nat.
+  move => Hm.
+  move: (svalP (Hlog (x ^+ m)%g) (groupX m (cycle_id _))).
+  by move => /eqP; rewrite eq_expg_mod_order !modn_small //; move/eqP.
+have Hlog1 : log 1%g = 0%N :> nat by rewrite -(expg0 x) Hlog_small.
+pose d_ n := \prod_(i < n) repr (x ^+ i)%g a.
+pose c_ y := d_ (log y).
+have Hc0 : c_ 1%g != 0 by rewrite /c_ /d_ Hlog1 big_ord0 oner_neq0.
+have : [pred i | i \in 'Aut(E / K)] 1%g by apply: group1.
+case/(aut_independent_contra)/(_ Hc0) => d HdE /=.
+set b := \sum_(i \in _) _ => Hb0.
+exists b; first split => //.
+  apply: rpred_sum => i Hi.
+  apply: rpredM; last by apply: (memv_aut Hi).
+  apply: rpred_prod => j _. by apply: (memv_aut (groupX _ HxEK)).
 apply: (canRL (mulfK _)); first by rewrite fmorph_eq0.
-rewrite sum_lfunE rmorph_sum mulr_sumr /n -(prednK (order_gt0 x)).
-rewrite big_ord_recr /=; symmetry; rewrite addrC big_ord_recl.
-congr (_ + _).
-  rewrite !lfun_simp /=.
-  rewrite [c_ 0%N]big_ord0 /f_ expg0 repr_coset1 id_lfunE.
-  rewrite rmorphM /= -comp_lfunE -aut_mul //.
-  rewrite -expgSr (prednK (order_gt0 x)) expg_order repr_coset1 id_lfunE.
-  rewrite rmorph_prod -{1}Hnorm mulrA.
-  congr (_ * _).
-  rewrite /galoisNorm -Hx /n.
-  have [-> | nt_x] := eqVneq x 1%g.
-    by rewrite order1 cycle1 big_set1 big_ord0 mulr1 repr_group id_lfunE.
-  rewrite -im_Zpm morphimEdom big_imset; last by apply/injmP; exact: injm_Zpm.
-  rewrite -order_gt1 in nt_x; rewrite /= /Zp nt_x.
-  rewrite (eq_bigl _ _ (fun i => in_setT i)) big_ord_recl repr_group id_lfunE.
-  rewrite /Zpm /= -(subnKC nt_x) /=; congr (_ * _).
-  by apply: eq_bigr => i _ /=; rewrite -comp_lfunE -aut_mul // -expgSr.
+have Hlog_bij : {on [pred i \in 'Aut(E / K)],
+                    bijective (fun i : 'I_#[x]%g => (x ^+ i)%g)}.
+  exists (fun x => sval (Hlog x)) => j Hj.
+    by apply: ord_inj; apply: Hlog_small; apply: ltn_ord.
+  apply: (svalP (Hlog j)).
+  by rewrite inE -Hx in Hj.
+move: Hnorm; rewrite /b /galoisNorm !(reindex _ Hlog_bij) /=.
+have Hxj: [pred j : 'I_#[x]%g | (x ^+ j)%g \in 'Aut(E / K)] =1 [pred j | true].
+  by move => j; rewrite !inE groupX.
+rewrite !(eq_bigl _ _ Hxj) /= => Hnorm.
+rewrite rmorph_sum mulr_sumr /=.
+have Had i : a * (repr x) (d_ i) = d_ i.+1.
+  rewrite /d_ rmorph_prod /=.
+  rewrite big_ord_recl expg0 aut_id; congr (_ * _).
+  by apply: eq_bigr => j _; rewrite expgSr aut_mul // comp_lfunE.
+rewrite -(prednK (order_gt0 x)) big_ord_recr /= big_ord_recl.
+rewrite addrC expg0 aut_id; congr (_ + _).
+  rewrite rmorphM /= mulrA Had /c_ Hlog1 /d_ big_ord0.
+  rewrite -comp_lfunE -aut_mul // -expgSr (prednK (order_gt0 x)).
+  rewrite expg_order aut_id.
+  by rewrite Hlog_small (prednK (order_gt0 x)) // Hnorm.
 apply: eq_bigr => i _.
-rewrite !lfun_simp /= rmorphM mulrA.
-rewrite rmorph_prod [c_ _]big_ord_recl expg0 repr_coset1 id_lfunE.
-congr (_ * _ * _).
-  apply eq_bigr => j _.
-  by rewrite /= -comp_lfunE -aut_mul // -expgSr.
-by rewrite /= -comp_lfunE -aut_mul // -expgSr.
+rewrite rmorphM /= -comp_lfunE -aut_mul // -expgSr mulrA.
+rewrite /c_ Had !Hlog_small //.
+  by move: (ltn_ord i); rewrite -ltnS (prednK (order_gt0 x)).
+by move/ltnW: (ltn_ord i); rewrite -ltnS (prednK (order_gt0 x)).
 Qed.
 
 Section GaloisDim.
