@@ -1172,7 +1172,7 @@ move => Hf Hg.
 move/subsetP/(_ _ Hf): (coset_norm x) => HfN.
 move/subsetP/(_ _ Hg): (coset_norm y) => HgN.
 apply: (iffP idP).
-  case/eqP => Hxy.
+  move/eqP => Hxy.
   move: Hf Hg.
   rewrite Hxy.
   move/coset_mem <-.
