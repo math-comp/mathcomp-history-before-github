@@ -1742,20 +1742,272 @@ rewrite inertia_Ind_irr ?gFnormal //.
 by apply/subsetP=> y /setIdP[/setIP[My _] /eqP/esym/injXtheta->].
 Qed.
 
-(* This is Peterfalvi (9.9). *)
+Lemma dvdn_pred_predX n e : n.-1 %| (n ^ e).-1.
+Proof. by rewrite binomial.predn_exp dvdn_mulr. Qed.
+
+Lemma constt_cfRes_irr (gTb : finGroupType) (Gb Hb : {group gTb}) i :
+  Hb \subset Gb -> {j | j \in irr_constt ('Res[Hb, Gb] 'chi_i)}.
+Proof.
+by move=> sHG; apply/sigW/neq0_has_constt; rewrite cfRes_eq0 ?irr_neq0 ?irr_char.
+Qed.
+
+Import ssrnum Num.Theory.
+Lemma constt_irr (gTb : finGroupType) (Gb : {group gTb}) i :
+  irr_constt 'chi[Gb]_i =i pred1 i.
+Proof. by move=> j; rewrite !inE cfdot_irr pnatr_eq0 (eq_sym j); case: (i == j). Qed.
+
+(* This is Peterfalvi (9.9); we have exported the fact that HU / H0 is a            *)
+(* Frobenius group in case (c), as this is directly used in (9.10).                 *)
 Lemma typeP_Galois_characters (is_Galois : typeP_Galois) :
   [/\ (*a*) {in X_ H0, forall s, u %| 'chi_s 1%g}%C,
             {in X_ H0C', forall s, 'chi_s 1%g = u%:R /\
              (exists2 xi : 'CF(HC), xi \is a linear_char & 'chi_s = 'Ind xi)},
       (*b*) size mu_ = p.-1 /\ {in mu_, forall mu_j, isIndHC mu_j}
-    & (*c*) all redM (S_ H0C') -> C = 1%g /\ u = (p ^ q - 1) %/ p.-1].
+    & (*c*) all redM (S_ H0C') ->
+            [/\ C = 1%g, u = (p ^ q).-1 %/ p.-1
+              & [Frobenius HU / H0 = Hbar ><| (U / H0)]%g]].
 Proof.
 have [F [phi [psi _ [Kpsi phiJ]]]] := typeP_Galois_P is_Galois.
-case=> [oF iso_phi phiW2] [cycUbar co_u_p1 u_dv_pq1].
-set part_a := ({in _, _}); set part_a' := ({in _, _}).
+case=> [oF /isomP[inj_phi im_phi] phiW2] [cycUbar co_u_p1 u_dv_pq1].
 have [nsHUM sW1M /mulG_sub[sHUM _] nHUW1 tiHUW1] := sdprod_context defM.
 have [nsHHU sUHU /mulG_sub[sHHU _] nHU tiHU] := sdprod_context defHU.
+have [nsH0C_M nsHC_M nsH0C'_M] := nsH0xx_M; have nH0H := normal_norm nsH0H.
+have nsH0HU: H0 <| HU by rewrite /normal (subset_trans sH0H) ?(subset_trans sHUM).
+have nH0U: U \subset 'N(H0) := subset_trans sUHU (normal_norm nsH0HU).
+have sCU: C \subset U := subsetIl U _; have nH0C := subset_trans sCU nH0U.
+have sH0C_HU: H0C \subset HU by rewrite join_subG normal_sub ?(subset_trans sCU). 
+have nsH0C_HU := normalS sH0C_HU sHUM nsH0C_M; have nH0C_HU := normal_norm nsH0C_HU.
+have coHU: coprime #|H| #|U|.
+  have hallH: \pi(H).-Hall(HU) H := pHall_subl sHHU sHUM (Fcore_Hall M).
+  by rewrite (coprime_sdprod_Hall defHU) (pHall_Hall hallH).
+have [coH0U coHC] := (coprimeSg sH0H coHU, coprimegS sCU coHU).
+have [nH0C_H nH0C_U] := (subset_trans sHHU nH0C_HU, subset_trans sUHU nH0C_HU).
+have{coHC} tiHOC_H: H0C :&: H = H0.
+  by rewrite /= norm_joinEr // -group_modl // setIC coprime_TIg ?mulg1.
+have{coH0U} tiHOC_U: H0C :&: U = C.
+  by rewrite /= norm_joinEr // setIC -group_modr // setIC coprime_TIg ?mul1g.
+have isoHbar: Hbar \isog (H / H0C)%g by have:= second_isog nH0C_H; rewrite tiHOC_H.
+have isoUbar: Ubar \isog (U / H0C)%g by have:= second_isog nH0C_U; rewrite tiHOC_U.
+have defHUbar: ((H / H0C) ><| (U / H0C) = HU / H0C)%g.
+  exact: quotient_coprime_sdprod.
 have frobHU: [Frobenius HU / H0C = (H / H0C) ><| (U / H0C)]%g.
-Admitted.
+  apply/Frobenius_semiregularP=> //; first by rewrite -(isog_eq1 isoHbar).
+    by rewrite -(isog_eq1 isoUbar); have [] := Frobenius_context frobUW1c.
+  move=> yb /setD1P[ntyb /morphimP[y nH0Cy Uy] Dyb] /=; rewrite Dyb.
+  apply/trivgP/subsetP=> _ /setIP[/morphimP[/= x nHOCx Hx ->] /cent1P/commgP].
+  rewrite -morphR //; set xy := [~ x, y] => /eqP/coset_idr/=H0Cxy.
+  rewrite inE coset_id ?mem_gen // inE coset_idr ?(subsetP nH0H) //.
+  apply: contraNeq ntyb; rewrite -(morph_injm_eq1 inj_phi) ?mem_quotient // => nz_x.
+  rewrite {yb}Dyb /= coset_id ?mem_gen // -Kpsi !inE Uy orbC /= -val_eqE.
+  have [nH0x nH0y] := (subsetP nH0H x Hx, subsetP nH0U y Uy).
+  rewrite -(inj_eq (mulfI nz_x)) mulr1 -[_ * _]phiJ ?mem_quotient // qactJ nH0y.
+  rewrite -morphJ // conjg_mulR -/xy mkerr ?eqxx // ker_coset -tiHOC_H inE andbC.
+  by rewrite groupM ?groupV ?memJ_norm ?(subsetP nHU) //= H0Cxy ?groupR.
+have I_XH0_C i: i != 0 -> 'I_HU['chi[Hbar]_i %% H0]%CF = HC.
+  move=> /= nz_i; apply/eqP; rewrite eqEsubset join_subG sub_inertia //= andbC.
+  have [j Dj]: exists j : Iirr (H / H0C),
+    {in H, forall x, 'chi_i (inMb x) = 'chi_j (coset H0C x)}.
+  - have{nz_i} [h injh Dh] := second_isom nH0C_H.
+    have [h' [Dh' _ _ im_h']] := domP (invm_morphism injh) (Dh _ (subxx _)).
+    do [set K := H0C; rewrite -tiHOC_H -(im_invm injh) -im_h' Dh //= {}/K] in i *.
+    exists (irr_Iirr (fun i => cfMorph 'chi_i) i) => x Hx.
+    rewrite (irr_IirrE (fun i => @cfMorph_irr _ _ _ _ _ i (subxx _))).
+    rewrite cfMorphE ?mem_quotient //=; congr ('chi_i _).
+    rewrite Dh'; apply: (canRL_in (invmE injh)); first exact: mem_quotient.
+    apply: set1_inj; rewrite -morphim_set1 ?mem_quotient //.
+    rewrite -!quotient_set1 ?Dh ?sub1set ?(subsetP nH0C_H) //= tiHOC_H.
+    by rewrite (subsetP nH0H).
+  have{nz_i} nz_j: j != 0.
+    apply: contraNneq nz_i => j0; apply/eqP/chi_inj/cfun_inP=> _ /morphimP[x _ Hx ->].
+    by rewrite Dj // j0 !chi0_1 !cfun1E !mem_quotient.
+  apply/andP; do [split; apply/subsetP] => [y /setIP[Uy] | xy Ixy].
+    rewrite astabQ => /morphpreP[nH0y /centP cHby]; have nHy := subsetP nHU y Uy.
+    rewrite 2!inE nHy (subsetP sUHU) //=; apply/eqP/cfun_inP=> /= x Hy.
+    rewrite cfConjgE // !cfModE ?memJ_norm ?morphJ ?groupV // ?(subsetP nH0H) //=.
+    by rewrite morphV // /conjg invgK mulgA cHby ?mem_quotient ?mulgK.
+  have [x [y [Hx Uy Dxy _]]] := mem_sdprod defHU (subsetP (inertia_sub _ _) _ Ixy).
+  have [nH0y nHOCy] := (subsetP nH0U y Uy, subsetP nH0C_U y Uy).
+  rewrite -genM_join Dxy mem_gen ?mem_mulg //= -/C -tiHOC_U inE Uy andbT coset_idr //.
+  rewrite {xy}Dxy groupMl ?(subsetP (sub_inertia _ _) x) {x Hx}//= in Ixy.
+  have [nHy [_ _ _ tiHUbar]] := (subsetP nHU y Uy, sdprodP defHUbar).
+  set yb := coset H0C y; apply/set1P; rewrite -set1gE -tiHUbar inE -groupV andbC.
+  have nHyb: yb \in 'N(H / _) by rewrite (subsetP (quotient_norm _ _)) ?mem_quotient.
+  rewrite -(inertia_Frobenius_ker (FrobeniusWker frobHU) nz_j).
+  rewrite 2!inE !groupV nHyb !{1}mem_quotient ?(subsetP sUHU) //=.
+  apply/eqP/cfun_inP=> _ /morphimP[x nH0Cx Hx ->]; rewrite cfConjgE ?groupV //= invgK.
+  by rewrite -morphJ -?Dj -?cfModE ?memJ_norm // (inertiaJ _ Ixy).
+have defHCbar: (Hbar \x (C / H0) = HC / H0)%g.
+  rewrite /= quotientY //.
+  rewrite quotientIG /= ?quotient_astabQ ?astabQ ?sub_cosetpre //.
+  by rewrite dprodEY ?subsetIr //= setIA -quotientGI // tiHU quotient1 setI1g.
+have sHCHU: HC \subset HU by rewrite join_subG sHHU (subset_trans sCU).
+have nsHCHC: HC <| HU := normalS sHCHU sHUM nsHC_M.
+have nsH0HC: H0 <| HC := normalS (subset_trans sH0H (joing_subl _ _)) sHCHU nsH0HU.
+have{I_XH0_C} irr_IndHC r: r \in Iirr_kerD HC H H0 -> 'Ind 'chi_r \in irr HU.
+  rewrite !inE andbC => /andP[/quo_IirrK <- //]; have nHHU := normal_norm nsHHU.
+  rewrite -[_ r](inv_dprod_IirrK defHCbar); case: (inv_dprod_Iirr _ _) => i j Kij'H.
+  have{Kij'H} nz_i: i != 0.
+    apply: contraNneq Kij'H => ->; rewrite mod_IirrE ?cfker_Morph_pre ?normal_norm //.
+    rewrite cfker_irrE dprod_IirrE chi0_1 subsetI joing_subl -sub_quotient_pre //.
+    by apply/subsetP=> x Hx; rewrite cfDprod1l !inE -[1%g]mulg1 -[x]mulg1 !cfDprodEr.
+  rewrite inertia_Ind_irr // mod_IirrE // dprod_IirrE; apply/subsetP=> y Iij_y.
+  have [/setIP[HUy nHCy] _] := setIdP Iij_y; have nHy := subsetP nHHU y HUy.
+  rewrite -(I_XH0_C i nz_i) -groupV 2!inE !groupV HUy nHy /=.
+  apply/eqP/cfun_inP=> x Hx; have HCx: x \in HC by rewrite mem_gen 1?inE ?Hx.
+  rewrite cfConjgE ?groupV ?invgK ?cfModE ?memJ_norm //; apply: (mulIf (irr1_neq0 j)).
+  rewrite -!(cfDprodE defHCbar) ?mem_quotient ?mulg1 -?cfModE ?memJ_norm //.
+  by rewrite (inertiaJ _ Iij_y).
+have [nb_mu H0C_mu] := nb_redM_H0; set part_a' := ({in X_ H0C', _}).
+have Part_a s: s \in X_ H0 -> exists r, 'chi_s = 'Ind[HU, HC] 'chi_r.
+  rewrite !inE => /andP[Ks'H KsH0]; have [r sHCr] := constt_cfRes_irr s sHCHU.
+  have{KsH0} KrH0: H0 \subset cfker 'chi_r.
+    apply: subset_trans (cfker_constt (cfRes_char _ (irr_char s)) sHCr).
+    by rewrite cfker_Res ?irr_char // subsetI normal_sub.
+  rewrite -constt_Ind_constt_Res in sHCr.
+  have{Ks'H} Kr'H: ~~ (H \subset cfker 'chi_r).
+    apply: contra Ks'H => KrH.
+    apply: subset_trans (cfker_constt (cfInd_char _ (irr_char r)) sHCr).
+    by rewrite cfker_Ind_irr ?sub_gcore ?normal_norm.
+  have [|s1 Ds1] := irrP _ (irr_IndHC r _); first by rewrite !inE Kr'H.
+  by exists r; rewrite Ds1 constt_irr !inE in sHCr *; rewrite (eqP sHCr).
+have Du: u = #|HU : HC|.
+  rewrite -divgS //= norm_joinEr ?(subset_trans sCU) //.
+  rewrite coprime_cardMg ?(coprimegS sCU) // -(sdprod_card defHU).
+  by rewrite divnMl ?divg_normal //= -/C -tiHOC_U setIC norm_normalI.
+have Part_a': part_a'.
+  move=> s /setDP[KsH0C' Ks'H]; have [|r Ds] := Part_a s.
+    by rewrite inE Ks'H (subsetP (Iirr_kerS _ _) _ KsH0C') ?joing_subl.
+  suffices lin_r: 'chi_r \is a linear_char.
+    by split; [rewrite Du Ds cfInd1 ?lin_char1 ?mulr1 | exists 'chi_r].
+  have KrH0C': H0C' \subset cfker 'chi_r.
+    by rewrite inE Ds sub_cfker_Ind_irr ?(subset_trans sHUM) ?normal_norm in KsH0C'.
+  rewrite lin_irr_der1 (subset_trans _ KrH0C') //=.
+  have nH0HC := subset_trans sHCHU (normal_norm nsH0HU).
+  rewrite (norm_joinEr (subset_trans (der_sub 1 _) nH0C)).
+  rewrite -quotientSK ?(subset_trans (der_sub 1 _)) ?quotient_der //= -/C.
+  have [_ _ _ tiHCbar] := dprodP defHCbar; rewrite dprodEcprod // in defHCbar.
+  by rewrite -(der_cprod 1 defHCbar) (derG1P (abelem_abelian abelHbar)) cprod1g.
+split=> // [s /Part_a[r ->] | | {Part_a' part_a'}red_H0C'].
+- by rewrite Du cfInd1 // dvdC_mulr // Cint_Cnat ?Cnat_irr1.
+- split=> // mu_j /H0C_mu H0C_mu_j; have [s XH0Cs Dmuj] := seqIndP H0C_mu_j.
+  have [|s1u [xi lin_xi Ds]] := Part_a' s.
+    by rewrite (subsetP _ _ XH0Cs) ?Iirr_kerDS // genS ?setUS ?der_sub.
+  split=> //; first by rewrite Dmuj cfInd1 // s1u -natrM -(sdprod_index defM).
+  by rewrite Dmuj Ds cfIndInd //; exists xi.
+have nsH0M: H0 <| M by rewrite /normal (subset_trans (normal_sub nsH0HU)).
+have C1: C = 1%g.
+  apply: contraTeq red_H0C' => ntC; apply/allPn.
+  have solCbar: solvable (C / H0)%g.
+    by rewrite quotient_sol ?(solvableS sCU) ?nilpotent_sol //; have [_ []] := MtypeP.
+  have [|{ntC solCbar} j lin_j nz_j] := lin_char_solvable _ solCbar.
+    rewrite -(isog_eq1 (quotient_isog _ _)) ?(subset_trans sCU) //.
+    by rewrite coprime_TIg ?(coprimegS sCU) ?(coprimeSg sH0H).
+  have [|i lin_i nz_i] := lin_char_solvable ntHbar.
+    exact: abelian_sol (abelem_abelian abelHbar).
+  pose r := mod_Iirr (dprod_Iirr defHCbar (i, j)).
+  have KrH0: H0 \subset cfker 'chi_r by rewrite mod_IirrE ?cfker_Mod.
+  have Kr'H: ~~ (H \subset cfker 'chi_r).
+    apply: contra nz_i => KrH; apply/eqP/cfun_inP=> xb /= Hxb.
+    rewrite -[_ xb]mulr1 -(lin_char1 lin_j) -(cfDprodE defHCbar) // mulg1.
+    rewrite cfun1E Hxb cfker1 ?lin_char1 ?cfDprod_lin_char //.
+    rewrite (subsetP _ _ Hxb) // sub_quotient_pre // (subset_trans KrH) //.
+    by rewrite mod_IirrE // dprod_IirrE cfker_Morph_pre ?normal_norm ?subsetIr.
+  have [|s Ds] := irrP _ (irr_IndHC r _); first by rewrite !inE Kr'H.
+  have Ks'H: s \notin Iirr_ker HU H by rewrite inE -Ds sub_cfker_Ind_irr ?normal_norm.
+  exists ('Ind 'chi_s).
+    rewrite mem_seqInd ?gFnormal // inE Ks'H inE -Ds.
+    rewrite sub_cfker_Ind_irr ?(subset_trans sHUM) ?normal_norm // mod_IirrE //=.
+    rewrite cfker_Morph_pre ?normal_norm // subsetI genS ?setUSS ?der_sub //=.
+    rewrite -sub_quotient_pre ?(subset_trans (normal_sub nsH0C'_M)) //.
+    rewrite quotientYidl ?(subset_trans (der_sub 1 _)) ?quotient_der //= -/C.
+    rewrite (subset_trans (dergS 1 (quotientS H0 (joing_subr H C)))) //=.
+    by rewrite -lin_irr_der1 dprod_IirrE cfDprod_lin_char.
+  apply: contra nz_j => red_j; have /implyP := H0C_mu ('Ind 'chi_s).
+  rewrite mem_filter red_j !mem_seqInd ?gFnormal // !in_setD Ks'H !inE -Ds.
+  rewrite !sub_cfker_Ind_irr ?(normal_norm nsH0HU) // mod_IirrE 1?{1}cfker_Mod //=.
+  rewrite dprod_IirrE cfker_Morph_pre ?(subset_trans (subset_trans sHCHU sHUM)) //=.
+  rewrite subsetI !join_subG andbA andbC -sub_quotient_pre //= => /andP[KijC _].
+  apply/eqP/cfun_inP=> yb Cyb; rewrite -[_ yb]mul1r -(lin_char1 lin_i) cfun1E Cyb.
+  rewrite -(cfDprodE defHCbar) // mul1g cfker1 ?(subsetP KijC) //.
+  by rewrite lin_char1 ?cfDprod_lin_char.
+rewrite /= -/C C1 joingG1 /= in frobHU; split=> //; move/FrobeniusWker in frobHU.
+have ->: (p ^ q).-1 = (#|X_ H0| * u)%N.
+  rewrite -oF -cardsT -im_phi card_injm // -sum_nat_const.
+  rewrite -(card_Iirr_abelian (abelem_abelian abelHbar)) -(cardC1 0).
+  pose h r := mod_Iirr (irr_Iirr (fun r => 'Ind[HU / H0, Hbar] 'chi_r) r).
+  have hE := irr_IirrPE (irr_induced_Frobenius_ker frobHU).
+  rewrite -sum1_card (partition_big h (mem (X_ H0))) /= => [|r nz_r]; last first.
+    rewrite !inE mod_IirrE // cfker_Mod // andbT hE //.
+    rewrite cfker_Morph_pre ?normal_norm // subsetI sHHU -sub_quotient_pre //.
+    by rewrite sub_cfker_Ind_irr ?quotientS ?quotient_norms ?normal_norm ?subGcfker.
+  apply: eq_bigr => s; rewrite !inE andbC => /andP[/quo_IirrK <- //].
+  move/(quo_Iirr H0) in s *; rewrite mod_IirrE // cfker_Morph_pre ?normal_norm //.
+  rewrite subsetI sHHU -sub_quotient_pre // => /(Frobenius_Ind_irrP frobHU)[r nzr Ds].
+  transitivity (\sum_(r1 | 'chi_r1 \in 'chi_r ^: (HU / H0)) 1)%N%CF.
+    apply/esym/eq_bigl=> r1; rewrite !inE; have [-> | nz_r1] /= := altP eqP.
+      rewrite cfclass_sym chi0_1 cfclass1 ?quotient_normal //.
+      by rewrite inE irr_eq1 (negPf nzr).
+    rewrite -(inj_eq chi_inj) !mod_IirrE ?hE // (can_eq (fun _ => cfModK _ _)) //.
+    by rewrite Ds (sameP (cfclass_Ind_irrP _ _ _) eqP) ?quotient_normal.
+  rewrite Du (cfclass_sum _ (fun _ => 1%N)) ?quotient_normal //= C1 joingG1.
+  rewrite (big_nth 0) sum_nat_const_nat subn0 cfclass_size inertia_Frobenius_ker //=.
+  by rewrite muln1 index_quotient_eq ?(subset_trans sHUM) // setIC subIset ?sH0H.
+suffices ->: #|X_ H0| = p.-1 by rewrite -(subnKC (prime_gt1 p_pr)) mulKn.
+have{red_H0C'} red_H0: all redM (S_ H0).
+  by rewrite (group_inj _ : H0 = H0C') //= C1 derg1 commG1 joingG1.
+rewrite cardE -(size_map (fun r => 'Ind[M] 'chi_r)) -nb_mu.
+apply/perm_eq_size/uniq_perm_eq; rewrite ?filter_uniq ?seqInd_uniq //; last first.
+  move=> eta; rewrite mem_filter (andb_idl (allP red_H0 eta)).
+  by rewrite (sameP (imageP _ _ _) seqIndP).
+pose unInd eta : 'CF(HU) := q%:R^-1 *: 'Res[HU, M] eta.
+suffices IndH0_K: {in X_ H0, forall s, unInd ('Ind 'chi_s) = 'chi_s}.
+  have unInd_irr: {in S_ H0, forall eta, unInd eta \in irr HU}.
+    by move=> _ /seqIndP[s /IndH0_K Ind_s_K ->]; rewrite Ind_s_K mem_tnth.
+  apply/dinjectiveP; apply: can_in_inj (irr_Iirr unInd) _ => s XH0s.
+  by apply/chi_inj; rewrite (irr_IirrPE unInd_irr) ?IndH0_K ?mem_seqInd ?gFnormal.
+move=> s XH0s; rewrite /= /unInd induced_sum_rcosets //; set T := 'I_M[_]%CF.
+have [sHUT sTM]: HU \subset T /\ T \subset M by rewrite inertia_sub sub_inertia.
+suffices defT: T = M.
+  rewrite defT -(sdprod_index defM) scalerK ?neq0CG //.
+  by rewrite -[in M in (_ ^: M)%CF]defT cfclass_inertia big_seq1.
+apply/eqP; rewrite eqEcard sTM -(Lagrange sHUT) /= -/T.
+suffices ->: #|T : HU| = q by rewrite /q (sdprod_index defM) Lagrange.
+apply/prime_nt_dvdP=> //; last by rewrite /q (sdprod_index defM) indexSg.
+have: redM ('Ind 'chi_s) by apply/(allP red_H0)/seqIndP; exists s.
+by apply: contra; rewrite indexg_eq1; apply: inertia_Ind_irr.
+Qed.
+
+(* This is Peterfalvi (9.10), formulated as a constructive alternative. *)
+Lemma typeP_reducible_core_cases :
+  {t : Iirr M & 'chi_t \in S_ H0C' /\ 'chi_t 1%g = (q * u)%:R
+              & {xi | xi \is a linear_char & 'chi_t = 'Ind[M, HC] xi}}
+  + [/\ typeP_Galois, [Frobenius HU / H0 = Hbar ><| (U / H0)]%g,
+        cyclic U, #|U| = (p ^ q).-1 %/ p.-1
+      & FTtype M == 2 -> [Frobenius HU = H ><| U]].
+Proof.
+have [galM | gal'M] := boolP typeP_Galois; last first.
+  pose eqInHCb nu r := ('chi_r \is a linear_char) && (nu == 'Ind[M, HC] 'chi_r).
+  pose isIndHCb (nu : 'CF(M)) := (nu 1%g == (q * u)%:R) && (existsb r, eqInHCb nu r).
+  suffices /sig2W[t H0C't]: exists2 t, 'chi_t \in S_ H0C' & isIndHCb 'chi_t.
+    case/andP=> /eqP t1qu /exists_inP/sig2W[r lin_r /eqP def_t].
+    by left; exists t => //; exists 'chi_r.
+  have [_ _ [t [t1qu H0Ct [xi lin_xi def_t]]] _] := typeP_nonGalois_characters gal'M.
+  exists t; first by apply: seqIndS H0Ct; rewrite Iirr_kerDS ?genS // setUS ?der_sub.
+  apply/andP; rewrite t1qu def_t; split=> //; apply/exists_inP.
+  by have /irrP[r Dxi] := lin_char_irr lin_xi; exists r; rewrite -Dxi.
+have [_ IndHC_SH0C' _] := typeP_Galois_characters galM; rewrite all_predC.
+case: hasP => [/sig2W[eta H0C'eta /irrP/sig_eqW[t Dt]] _ | _ [//|C1 <- frobHU]].
+  have /sig2_eqW[s /IndHC_SH0C'[s1u /sig2_eqW[xi lin_xi Ds]] Deta] := seqIndP H0C'eta.
+  have [[_ /mulG_sub[sHUM _] _ _] [_ mulHU _ _]] := (sdprodP defM, sdprodP defHU).
+  left; exists t; [split | exists xi]; rewrite -?Dt // Deta.
+    by rewrite cfInd1 // -(sdprod_index defM) s1u -natrM.
+  by rewrite Ds cfIndInd //= -genM_join gen_subG /= -mulHU mulgS ?subsetIl.
+have cycU: cyclic U.
+  rewrite (isog_cyclic (quotient1_isog _)) -C1.
+  by have [_ _ []] := typeP_Galois_P galM.
+right; split=> //; first by rewrite /u /Ubar C1 -(card_isog (quotient1_isog _)).
+case/(compl_of_typeII MtypeP) => // _ _ _ UtypeF <-.
+by have [_ -> _] := typeF_context UtypeF; apply/forall_inP=> S /and3P[_ /cyclicS->].
+Qed.
 
 End Nine.
