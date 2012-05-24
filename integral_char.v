@@ -42,7 +42,7 @@ Lemma group_num_field_exists (gT : finGroupType) (G : {group gT}) :
     {QnC : {rmorphism Qn -> algC}
          & forall nuQn : argumentType (mem ('Aut({:Qn}%VS / 1%VS))),
               {nu : {rmorphism algC -> algC} |
-                 {morph QnC: a / val (repr nuQn) a >-> nu a}}
+                 {morph QnC: a / nuQn a >-> nu a}}
          & {w : Qn & #|G|.-primitive_root w /\ <<1; w>>%AS = fullv
               & forall (hT : finGroupType) (H : {group hT}) (phi : 'CF(H)),
                        phi \is a character ->
@@ -66,8 +66,7 @@ exists (SplittingFieldType _ _ Qn_ax).
   apply: separable_Xn_sub_1; rewrite -(fmorph_eq0 QnC) rmorph_nat.
   by rewrite pnatr_eq0 -lt0n cardG_gt0.
 exists QnC => [// nuQn|].
-  move: {nuQn}(repr _) => f.
-  by exact: (extend_algC_subfield_aut QnC [rmorphism of f]).
+  by exact: (extend_algC_subfield_aut QnC [rmorphism of nuQn]).
 rewrite span_seq1 in genQn.
 exists w => // hT H phi Nphi x x_dv_n.
 apply: sig_eqW; have [rH ->] := char_ReprP Nphi.
@@ -303,7 +302,7 @@ have [|nz_a] := boolP (alpha == 0).
 have: beta != 0 by rewrite Dbeta; apply/prodf_neq0 => nu _; rewrite fmorph_eq0.
 move/(norm_Cint_ge1 Zbeta); rewrite ltr_geF //; apply: ler_lt_trans a_lt1.
 rewrite -[`|alpha|]mulr1 Dbeta (bigD1 1%g) ?group1 //= -Da.
-case: (gQnC _) => /= _ <-; rewrite repr_coset1 id_lfunE normrM.
+case: (gQnC _) => /= _ <-; rewrite aut_id normrM.
 rewrite -subr_ge0 -mulrBr mulr_ge0 ?normr_ge0 // Da subr_ge0.
 elim/big_rec: _ => [|nu c _]; first by rewrite normr1 lerr.
 apply: ler_trans; rewrite -subr_ge0 -{1}[`|c|]mul1r normrM -mulrBl.

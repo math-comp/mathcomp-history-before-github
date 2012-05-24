@@ -421,7 +421,7 @@ have ext1 mu0 x: {mu1 | exists y, x = Sinj mu1 y
     rewrite Sinj_poly Dr -Drr big_map rmorph_prod; apply: eq_bigr => zz _.
     by rewrite rmorphB /= map_polyX map_polyC.
   have [f1 aut_f1 Df1]:= kHom_extends (sub1v (ASpace algK)) hom_f Qpr splitQr.
-  pose nu := LRMorphism (kAut_lrmorph _ aut_f1).
+  pose nu := LRMorphism (fAutL_lrmorph _ aut_f1).
   exists (SubAut Qr QrC nu) => //; exists in01 => //= y; rewrite -Df -Df1 //.
   by apply/memK; exists y.
 have phiZ: scalable phi.
@@ -497,7 +497,7 @@ have pzn_zk0: root (map_poly \1%VF (minPoly 1 zn)) (zn ^+ k).
   rewrite (bigD1 (Ordinal (ltn_pmod k n_gt0))) ?coprime_modl //=.
   by rewrite rootM root_XsubC prim_expr_mod ?eqxx.
 have phiM: lrmorphism phi.
-  by apply/kAut_lrmorph; rewrite -genQn span_seq1 /= kHomExtendkHom.
+  by apply/fAutL_lrmorph; rewrite -genQn span_seq1 /= kHomExtendkHom.
 have [nu Dnu] := extend_algC_subfield_aut QnC (RMorphism phiM).
 exists nu => _ /(prim_rootP prim_z)[i ->].
 rewrite rmorphX exprAC -Dz -Dnu /= -{1}[zn]hornerX /phi.
