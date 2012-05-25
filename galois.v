@@ -2187,7 +2187,7 @@ move: (Hy).
 rewrite -mem_enum -index_mem -cardE => Hj.
 have <- : enum_val (Ordinal Hj) = y.
  by rewrite (enum_val_nth 1%g) nth_index // mem_enum.
-rewrite -[X in X = _](mulKmx Hw) -[X in _ = X](mulmx0 _ (invmx M)).
+rewrite -[X in X = _](mulKmx Hw) -(mulmx0 _ (invmx M)).
 congr (_ *m _).
 apply/eqP; rewrite mulmxBr HMx subr_eq0; apply/eqP.
 set (j := Ordinal Hj).
