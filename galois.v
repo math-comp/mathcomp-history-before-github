@@ -2023,11 +2023,11 @@ by rewrite comp_lfunE lfunE.
 Qed.
 
 Lemma HilbertsTheorem90 K E x a :
- (K <= E)%VS -> <[x]>%g = 'Aut(E / K) -> a \in E ->
+ <[x]>%g = 'Aut(E / K) -> a \in E ->
  reflect (exists2 b, b \in E /\ b != 0 & a = b / (x b))
          (galoisNorm K E a == 1).
 Proof.
-move => HKE Hx HaE.
+move => Hx HaE.
 have HxEK : x \in 'Aut(E / K)%g by rewrite -Hx cycle_id.
 apply: (iffP eqP); last first.
   case => b [HbE Hb0] ->.
