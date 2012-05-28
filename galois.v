@@ -2082,6 +2082,69 @@ rewrite /c_ Had !Hlog_small //.
 by move/ltnW: (ltn_ord i); rewrite -ltnS (prednK (order_gt0 x)).
 Qed.
 
+Lemma aut_matrix E (s : {set f_aut E}) :
+  exists2 w_ : 'I_#|s| -> L, forall i, w_ i \in E &
+    \matrix_(i < #|s|, j < #|s|) enum_val i (w_ j) \in unitmx.
+Proof.
+suff [w_ Hw Hmatrix] : exists2 w_ : 'I_#|s| -> L,
+  forall i : 'I_#|s|, w_ i \in E &
+  \matrix_(i, j) (nth 1%g (enum s) i) (w_ j) \in unitmx.
+  exists w_ => //.
+  rewrite (_ : \matrix_(i, j) _ _ = 
+               \matrix_(i, j) (nth 1%g (enum s) i) (w_ j)) //.
+  apply/matrixP => i j.
+  by rewrite !mxE -enum_val_nth.
+rewrite cardE.
+elim: (enum s) (enum_uniq (pred_of_set s)) => [_|x xs IH Huniq].
+  exists (fun _ => 0) => [i|]; first by move: (ltn_ord i).
+  by rewrite unitmxE det_mx00 unitr1.
+move: (Huniq); rewrite cons_uniq => /andP [Hx].
+move/(IH) => {IH} [w_ Hw].
+set M := \matrix_(i, j) _ => HM /=.
+pose a := \row_i x (w_ i) *m (invmx M).
+pose c_ y := nth (-1) [tuple a 0 i | i < (size xs)] (index y xs).
+pose P := [pred y | y \in (x :: xs)].
+have HPy : P x by rewrite !inE eqxx.
+have Pcx1 : c_ x = -1.
+  by rewrite /c_ nth_default // size_tuple leqNgt index_mem.
+have Pcx0 : c_ x != 0 by rewrite Pcx1 oppr_eq0 oner_neq0.
+have [w0 Hw0E] := aut_independent_contra HPy Pcx0.
+set S := BigOp.bigop _ _ _ _ _ => HS.
+exists (fun i => if @split 1 (size xs) i is inr i' then w_ i' else w0) => [i|].
+  by case: splitP.
+rewrite unitmxE -[\det _]mul1r.
+pose B := block_mx 1 (-a) 0 1%:M.
+have <- : \det B = 1 by rewrite det_ublock !det1 mulr1.
+set M' := \matrix_(_,_) _.
+rewrite -det_mulmx -[M'](@submxK _ 1 _ 1 _) mulmx_block !mul0mx !mul1mx !add0r.
+set DR := drsubmx _.
+have -> : DR = M.
+  apply/matrixP => i j.
+  by rewrite !mxE -[rshift 1 j]/(unsplit (inr _ j)) unsplitK.
+rewrite (_ : ursubmx (_) + _ = 0); last first.
+  apply/matrixP => ? j.
+  rewrite ord1 mxE mulNmx mulmxKV // !(row_mxEr, mxE).
+  by rewrite -[rshift 1 j]/(unsplit (inr _ j)) unsplitK subrr.
+rewrite det_lblock unitrM andbC -unitmxE HM /=.
+rewrite (_ : ulsubmx _ = (x w0)%:M); last first.
+  apply/matrixP => i j.
+  rewrite !ord1 !(row_mxEl, mxE).
+  by rewrite -[lshift (size xs) 0]/(unsplit (inl _ 0)) unsplitK.
+rewrite unitfE (_ : _ + _ = -(S%:M)).
+  by rewrite -scaleN1r detZ det_scalar1 expr1 mulN1r oppr_eq0.
+apply/matrixP => i j.
+rewrite !ord1 !mxE !eqxx /S -big_uniq // big_cons Pcx1 /=.
+rewrite -mulNrn !mulr1n mulN1r opprD opprK -sumrN; congr (_ + _).
+rewrite [X in _ = X](big_tnth 0); apply eq_bigr => k _.
+rewrite /c_ index_uniq; last first.
+- by case/andP: Huniq; rewrite in_tupleE.
+- by rewrite in_tupleE; apply: ltn_ord.
+- rewrite nth_mktuple.
+  rewrite -mulNr mxE; congr (_ * _).
+  rewrite !mxE -[lshift (size xs) 0]/(unsplit (inl _ 0)) unsplitK /=.
+  by rewrite (tnth_nth 1%g).
+Qed.
+
 Section GaloisDim.
 
 Variable E : {subfield L}.
