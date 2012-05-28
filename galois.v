@@ -2090,7 +2090,7 @@ suff [w_ Hw Hmatrix] : exists2 w_ : 'I_#|s| -> L,
   forall i : 'I_#|s|, w_ i \in E &
   \matrix_(i, j) (nth 1%g (enum s) i) (w_ j) \in unitmx.
   exists w_ => //.
-  rewrite (_ : \matrix_(i, j) _ _ = 
+  rewrite (_ : \matrix_(i, j) _ = 
                \matrix_(i, j) (nth 1%g (enum s) i) (w_ j)) //.
   apply/matrixP => i j.
   by rewrite !mxE -enum_val_nth.
