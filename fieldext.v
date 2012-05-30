@@ -605,12 +605,6 @@ apply/eqP; rewrite -subv0; apply/subvP=> y.
 by rewrite memv_cap memv0 memv_ker lfunE mulf_eq0 (negPf nz_x) orbF => /andP[].
 Qed.
 
-Definition matrixOver U n m (A : 'M_(n,m)) := forallb i, forallb j, A i j \in U.
-
-Lemma matrixOverP U n m (A : 'M_(n,m)) :
-  reflect (forall i j, A i j \in U) (matrixOver U A).
-Proof. by apply: (iffP forallP) => U_A i; exact/forallP. Qed.
-
 Lemma prodvC : commutative (@prodv F0 L).
 Proof.
 move=> U V; wlog suffices subC: U V / (U * V <= V * U)%VS.
@@ -723,15 +717,6 @@ exists (\poly_(i < size p) (Subvs (Hp i))); rewrite -{1}[p]coefK.
 by apply/polyP => i; rewrite coef_map !coef_poly; case: ifP.
 Qed.
 
-Lemma matrixOver_subvs K n m (A : 'M_(n, m)) :
-  reflect (exists B : 'M[subvs_of K]_(n, m), A = map_mx vsval B)
-          (matrixOver K A).
-Proof.
-apply: (iffP (matrixOverP _ _)) => [K_A | [B ->] i j]; last first.
-  by rewrite mxE subvsP.
-by exists (\matrix_(i, j) (Subvs (K_A i j))); apply/matrixP=> i j; rewrite !mxE.
-Qed.
-
 Lemma divp_polyOver K : {in polyOver K &, forall p q, p %/ q \is a polyOver K}.
 Proof.
 move=> _ _ /polyOver_subvs[p ->] /polyOver_subvs[q ->].
@@ -756,21 +741,6 @@ Lemma gcdp_polyOver K :
 Proof.
 move=> _ _ /polyOver_subvs[p ->] /polyOver_subvs[q ->].
 by apply/polyOver_subvs; exists (gcdp p q); rewrite gcdp_map.
-Qed.
-
-Lemma mulmx_matrixOver K n m o (A : 'M_(n, m)) (B : 'M_(m, o)) :
-  matrixOver K A -> matrixOver K B -> matrixOver K (A *m B).
-Proof.
-move => /matrixOverP K_A /matrixOverP K_B; apply/matrixOverP=> i j.
-by rewrite mxE memv_suml // => k _; rewrite memv_mul.
-Qed.
-
-Lemma invmx_matrixOver K n (A : 'M_n) : matrixOver K A = matrixOver K (invmx A).
-Proof.
-wlog suff Kinvmx: A / (matrixOver K A -> matrixOver K (invmx A)).
-  by apply/idP/idP=> /Kinvmx; rewrite ?invmxK.
-case/matrixOver_subvs => B ->; rewrite -map_invmx; apply/matrixOver_subvs.
-by exists (invmx B).
 Qed.
 
 Fact prodv_is_aspace E F : is_aspace (E * F).
@@ -1190,6 +1160,14 @@ have [gcd_eqK|gcd_eq1] := orP (minPoly_irr gcdK (dvdp_gcdl (minPoly K x) p)).
   by rewrite -(eqp_dvdl _ gcd_eqK) dvdp_gcdr.
 case/negP: (root1 x).
 by rewrite -(eqp_root gcd_eq1) root_gcd rootp root_minPoly.
+Qed.
+
+Lemma minPolyS K E a : (K <= E)%VS -> minPoly E a %| minPoly K a.
+Proof.
+move => HKE.
+apply: minPoly_dvdp; last by apply: root_minPoly.
+apply: (polyOverSv HKE).
+by rewrite minPolyOver.
 Qed.
 
 Section Horner.

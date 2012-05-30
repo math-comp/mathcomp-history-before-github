@@ -809,7 +809,7 @@ End SeparableElement.
 
 Implicit Types K E : {subfield L}.
 
-Lemma subsetSeparable : forall K E x, (K <= E)%VS -> 
+Lemma separableElementS : forall K E x, (K <= E)%VS -> 
  separableElement K x -> separableElement E x.
 Proof.
 move => K E x KE.
@@ -832,7 +832,7 @@ apply/subvP => ?.
 move/poly_Fadjoin => [p Hp ->].
 rewrite memv_ker -(DerivationExtended x D (mempx_Fadjoin _ Hp)).
 have sepFyx : (separableElement <<K; q.[x]>>%AS x).
-  by apply: (subsetSeparable (subv_adjoin _ _)).
+  by apply: (separableElementS (subv_adjoin _ _)).
 have KyxEqKx : << <<K; q.[x]>>%AS; x>>%AS = <<K; x>>%AS.
   apply: subv_anti; apply/andP; split; last by rewrite adjoinSl // subv_adjoin.
   apply/FadjoinP/andP; rewrite memv_adjoin andbT.
@@ -947,7 +947,7 @@ pose g := 'X^p - (x ^+ p)%:P.
 have HK'g : g \in polyOver K'.
   by rewrite rpredB ?rpredX ?polyOverX // polyOverC memv_adjoin.
 have rootg : root g x by rewrite /root !hornerE hornerXn subrr.
-move/(subsetSeparable (subv_adjoin _ (x ^+ p))).
+move/(separableElementS (subv_adjoin _ (x ^+ p))).
 move : (root_minPoly K' x) (minPoly_dvdp HK'g rootg) (minPolyOver K' x).
 rewrite root_factor_theorem /separableElement -/K'.
 case/(dvdpP) => c -> Hcg HK'c.
@@ -1379,7 +1379,7 @@ move: (x + y); apply/allSeparableElement.
 apply: (separableFadjoinExtend Hy).
 apply: (@separableFadjoinExtend _ _ x); last first.
   by rewrite Hz separableinK ?memv_adjoin.
-by apply: (subsetSeparable (subv_adjoin K y)).
+by apply: (separableElementS (subv_adjoin K y)).
 Qed.
 
 Lemma separable_sum : forall I r (P : pred I) (v_ : I -> L),
@@ -1476,7 +1476,7 @@ wlog: K / (K <= E)%VS => [|HKE].
  move/purelyInseparableP => Hinsep.
  exists x.
  apply/and3P; split; first done.
-  by apply/(subsetSeparable _ Hsep)/capvSl.
+  by apply/(separableElementS _ Hsep)/capvSl.
  apply/purelyInseparableP => y Hy.
  apply: subsetInseparable; last by apply Hinsep.
  by apply/adjoinSl/capvSl.
@@ -1519,7 +1519,7 @@ have: exists x, [&& x \in E, separableElement K x
   apply/allSeparableElement => z.
   rewrite -Hx => Hz.
   apply: (separableFadjoinExtend Hsep).
-  move/allSeparableElement: (subsetSeparable (subv_adjoin K y) Ht).
+  move/allSeparableElement: (separableElementS (subv_adjoin K y) Ht).
   by apply.
  move/eqP: Hy => /= ->.
  by apply/eqP.
@@ -1581,7 +1581,7 @@ move/separableP => Hsep.
 apply/subvP => v Hv.
 rewrite separableInseparableElement.
 move/purelyInseparableP/(_ _ Hv): (separableGeneratorMaximal E K) ->.
-by rewrite (subsetSeparable _ (Hsep _ Hv)) // subv_adjoin.
+by rewrite (separableElementS _ (Hsep _ Hv)) // subv_adjoin.
 Qed.
 
 Lemma separableSeparableGenerator : forall E K,
@@ -1604,9 +1604,34 @@ Lemma separable_trans (M K E : {subfield L}) :
 Proof.
 move/separableSeparableGeneratorEx.
 set x := (separableGenerator K M) => HKM /separableP HME.
-apply/separableP => w /HME/(subsetSeparable HKM).
+apply/separableP => w /HME/(separableElementS HKM).
 case/StrongPrimitiveElementTheorem => _ _; apply.
 apply: separableGeneratorSep.
+Qed.
+
+Lemma separableSl (K M E : {subfield L}) : (K <= M)%VS -> separable K E ->
+  separable M E.
+Proof.
+move => HKM /separableP HKE.
+apply/separableP => y Hy.
+apply: (separableElementS HKM).
+by apply: HKE.
+Qed.
+
+Lemma separableSr (K M E : {subfield L}) : (M <= E)%VS -> separable K E ->
+  separable K M.
+Proof.
+move => /subvP HME /separableP HKE.
+apply/separableP => y Hy.
+by apply: HKE; apply: HME.
+Qed.
+
+Lemma separableS (K1 K2 E2 E1 : {subfield L}) : 
+  (K1 <= K2)%VS -> (E2 <= E1)%VS -> separable K1 E1 ->
+  separable K2 E2.
+Proof.
+move => HK HE Hsep.
+by apply: (separableSr HE); apply (separableSl HK).
 Qed.
 
 Lemma separable_Fadjoin_seq (K : {subfield L}) rs :
@@ -1620,7 +1645,7 @@ apply: (@separable_trans [aspace of <<K; x>>%AS]) => /=.
 rewrite span_cons addvA -[<<_ & rs>>%AS]closurea_add_closure.
 apply IH.
 apply/allP => y Hy.
-by apply: (subsetSeparable (subv_adjoin K x)) (Hrs _ _).
+by apply: (separableElementS (subv_adjoin K x)) (Hrs _ _).
 Qed.
 
 Lemma purelyInseperable_refl (K : {subfield L}) : purelyInseparable K K.
