@@ -2,6 +2,19 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import bigop ssralg div countalg ssrnum ssrint.
 
+
+(******************************************************************************)
+(* This file defines the rational numbers                                     *)
+(*   rat == the type of rational number, with the constructor Rat that takes  *)
+(*          a pair of integers p and a proof of                               *) 
+(*             (0 < p.2) && coprime `|p.1| `|p.2|                             *)
+(*  n%:Q == explicit cast from int to rat                                     *)
+(*                                                                            *)
+(* The type rat has an archimedian field structure with int and nat being     *)
+(* closed subrings                                                            *)
+(*                                                                            *)
+(******************************************************************************)
+
 Import GRing.Theory.
 Import Num.Theory.
 
@@ -392,7 +405,7 @@ Qed.
 Fact intq_eq0 n : (n%:~R == 0 :> rat) = (n == 0)%N.
 Proof. by rewrite -ratzE /ratz rat_eqE /numq /denq /= mulr0 eqxx andbT. Qed.
 
-(* fracq should never apear, its canonical form is _%:Q / _%:Q *)
+(* fracq should never appear, its canonical form is _%:Q / _%:Q *)
 Lemma fracqE x : fracq x = x.1%:Q / x.2%:Q.
 Proof.
 move:x => [m n] /=.

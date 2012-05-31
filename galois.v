@@ -1977,7 +1977,7 @@ rewrite -unitmx_tr => HM.
 exists w_ => [|? Hs /subsetP HsE].
   split => //.
     move => i.
-    apply/contraL: HM => /eqP Hwi.
+    apply: contraL HM => /eqP Hwi.
     rewrite unitmxE unitfE negbK.
     rewrite (expand_det_row _ i).
     apply/eqP; apply: big1 => j _.
