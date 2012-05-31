@@ -2336,6 +2336,7 @@ rewrite -lin_charX ?cfQuo_lin_char ?cfker_normal // -Du_a ?cfunE //.
 by rewrite [a]cforder_lin_char // dvdn_exponent.
 Qed.
 
+
 (* This is Peterfalvi (3.9)(c). *)
 Lemma Cint_cyclicTI_coprime x : coprime #[x] a -> sigma w x \in Cint.
 Proof.
@@ -2346,7 +2347,7 @@ have{memQb} [wx Dwx]: exists wx, sigma w x = QbC wx.
   have [sw1 /Qbx[wx1 Dwx1] [sw2 /Qbx[wx2 Dwx2] ->]] := vcharP _ Zsigw.
   by exists (wx1 - wx2); rewrite rmorphB !cfunE Dwx1 Dwx2.
 suffices: wx \in fixedField 'Aut({:Qb} / 1).
-  rewrite Dwx (FixedField_of_Aut galQb) ?subvf // => /vlineP[z ->].
+  rewrite Dwx (fixedField_aut galQb) ?subvf // => /vlineP[z ->].
   by rewrite -in_algE fmorph_eq_rat fmorph_rat Crat_rat.
 apply/fixedFieldP; split=> [|v_b _]; first exact: memvf.
 have [v Dv] := AutQbC v_b; apply: (fmorph_inj QbC); rewrite Dv -Dwx.
