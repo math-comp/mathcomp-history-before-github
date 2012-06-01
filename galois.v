@@ -364,19 +364,6 @@ move/(kHomSl (sub1v _))/fAutL_lrmorph=> fM.
 by apply/lker0P; exact: (fmorph_inj (RMorphism fM)).
 Qed.
 
-Fact fAutL_img_is_aspace (f : 'AEnd(L)) (K : {subfield L}) :
-   let Kf := (f @: K)%VS in
-   has_algid Kf && (Kf * Kf <= Kf)%VS.
-Proof.
-apply/andP; split.
-  apply has_algid1.
-  by rewrite -(rmorph1 [rmorphism of (val f)]) memv_img // mem1v.
-apply/prodvP => _ _ /memv_imgP [a Ha ->] /memv_imgP [b Hb ->].
-by rewrite -rmorphM memv_img // memv_mul.
-Qed.
-Canonical Structure fAutL_img_aspace a Z : {subfield L} := Eval hnf in
-  ASpace (fAutL_img_is_aspace a Z).
-
 Lemma inv_kAutL K f : f \is a kHom K {:L} -> f^-1%VF \is a kHom K {:L}.
 Proof.
 move=> homFf; have [/kHomP[fKid fM] kerf0] := (homFf, kAutL_lker0 homFf).
@@ -651,12 +638,12 @@ Section SplittingFieldTheory.
 
 Variables (F : fieldType) (L : splittingFieldType F).
 
-Implicit Types (K E : {aspace L}).
+Implicit Types (K E : {subfield L}).
 
 Lemma splittingFieldP : SplittingField.axiom L.
 Proof. by case: L => ? []. Qed.
 
-Lemma splitting_field_normal (K : {subfield L}) x :
+Lemma splitting_field_normal K x :
   exists r, minPoly K x == \prod_(y <- r) ('X - y%:P).
 Proof.
 pose q1 := minPoly 1 x.
@@ -665,10 +652,9 @@ have [autL _ DautL] := enum_kAutL F0p splitLp.
 suffices{K} autL_px q:
   q %| q1 -> size q > 1 -> has (fun f : 'AEnd(L) => root q (f x)) autL.
 - set q := minPoly K x; have: q \is monic by exact: monic_minPoly.
-  have: q %| q1.
-    by rewrite minPoly_dvdp ?root_minPoly ?(polyOverSv (sub1v K)) ?minPolyOver.
-  elim: {q}_.+1 {-2}q (ltnSn (size q)) => // d IHd q leqd q_dv_q1.
-  move=> mon_q; have [/size1_polyC Dq | q_gt1] := leqP (size q) 1.
+  have: q %| q1 by rewrite minPolyS // sub1v.
+  elim: {q}_.+1 {-2}q (ltnSn (size q)) => // d IHd q leqd q_dv_q1 mon_q.
+  have [/size1_polyC Dq | q_gt1] := leqP (size q) 1.
     exists nil; rewrite big_nil Dq (inj_eq (@polyC_inj _)).
     by rewrite qualifE Dq lead_coefC in mon_q.
   have /hasP[f autLf /factor_theorem[q2 Dq]] := autL_px q q_dv_q1 q_gt1.
@@ -691,35 +677,38 @@ without loss{d leqd IHd q_gt1} irr_q: q q_dv_q1 / irreducible_poly q.
   apply: sub_has (IHd _ ltq2d (dvdp_trans q2_dv_q q_dv_q1) q2_gt1) => f.
   by rewrite !root_factor_theorem => /dvdp_trans->.
 have{irr_q} [Lz [inLz [z qz0]]]: {Lz : fieldExtType F &
-  {inLz : {lrmorphism L -> Lz} & {z : Lz | root (map_poly inLz q) z}}}.
+  {inLz : 'AHom(L, Lz) & {z : Lz | root (map_poly inLz q) z}}}.
 - have [Lz0 _ [z qz0 defLz]] := irredp_FAdjoin irr_q.
   pose Lz := baseField_extFieldType Lz0.
-  pose inLz : {rmorphism L -> Lz} := [rmorphism of in_alg Lz0].
-  suffices inLzZ: scalable inLz by exists Lz, (AddLRMorphism inLzZ), z.
-  move=> a u; rewrite -{1}mulr_algl rmorphM /=.
-  by rewrite -{1}baseField_scaleE mulr_algl.
-have imL1: (linfun inLz @: 1 = 1)%VS by rewrite limg_line lfunE rmorph1.
-have imLaspace: is_aspace (limg (linfun inLz)).
-  rewrite /is_aspace has_algid1; last by rewrite memvE -imL1 limgS ?sub1v.
-  apply/prodvP=> _ _ /memv_imgP[y1 _ ->] /memv_imgP[y2 _ ->].
-  by rewrite !{1}lfunE -rmorphM -lfunE memv_img ?memvf.
-pose imL := ASpace imLaspace; pose pz := map_poly inLz p.
-have imLin u: inLz u \in imL by rewrite -lfunE memv_img ?memvf.
+  have inLzL_linear : linear (in_alg Lz0 : L -> Lz).
+    move => a u v; rewrite rmorphD -{1}mulr_algl rmorphM /=.
+    by rewrite mulr_algl -{1}baseField_scaleE.
+  suffices ihLzZ : (linfun (Linear inLzL_linear)) \is ahom_in fullv.
+    exists Lz, (AHom ihLzZ), z.
+    rewrite (eq_map_poly (g:=(in_alg Lz0))) //.
+    by move => y; rewrite lfunE.
+  apply/is_ahomP; repeat split; last by move => a u; rewrite linearZ.
+  - by move => u v; rewrite !lfunE rmorphB.
+  - by move => u v; rewrite !lfunE rmorphM.
+  - by rewrite !lfunE rmorph1.
+pose imL := [aspace of limg inLz]; pose pz := map_poly inLz p.
+have imLin u: inLz u \in imL by rewrite memv_img ?memvf.
 have F0pz: pz \is a polyOver 1%VS.
-  apply/polyOverP=> i; rewrite -imL1 coef_map /= -lfunE memv_img //.
+  apply/polyOverP=> i; rewrite -(aimg1 inLz) coef_map /= memv_img //.
   exact: (polyOverP F0p).
 have{splitLp} splitLpz: splittingFieldFor 1 pz imL.
   have [r def_p defL] := splitLp; exists (map inLz r).
-    move: def_p; rewrite -(eqp_map inLz) rmorph_prod big_map; congr (_ %= _).
+    move: def_p.
+    rewrite -(eqp_map [rmorphism of inLz]) rmorph_prod big_map; congr (_ %= _).
     by apply: eq_big => // y _; rewrite rmorphB /= map_polyX map_polyC.
   apply/eqP; rewrite eqEsubv; apply/andP; split.
     by apply/Fadjoin_seqP; rewrite sub1v; split=> // _ /mapP[y r_y ->].
   rewrite /= -{def_p}defL.
-  elim/last_ind: r => [|r y IHr] /=; first by rewrite !Fadjoin_nil imL1.
+  elim/last_ind: r => [|r y IHr] /=; first by rewrite !Fadjoin_nil aimg1.
   rewrite map_rcons !adjoin_rcons /=.
   apply/subvP=> _ /memv_imgP[_ /poly_Fadjoin[p1 r_p1 ->] ->].
-  rewrite lfunE -horner_map /= mempx_Fadjoin //=; apply/polyOverP=> i.
-  by rewrite coef_map (subvP IHr) //= -lfunE memv_img ?(polyOverP r_p1).
+  rewrite -horner_map /= mempx_Fadjoin //=; apply/polyOverP=> i.
+  by rewrite coef_map (subvP IHr) //= memv_img ?(polyOverP r_p1).
 have [f homLf fxz]: exists2 f : 'End(Lz), f \is a kHom 1 imL & f (inLz x) = z.
   pose q1z := minPoly 1 (inLz x).
   have Dq1z: map_poly inLz q1 %| q1z.
@@ -729,9 +718,10 @@ have [f homLf fxz]: exists2 f : 'End(Lz), f \is a kHom 1 imL & f (inLz x) = z.
       rewrite -{1}[q1z]coefK; apply/polyP=> i; rewrite coef_map !{1}coef_poly.
       by case: sig_eqW => a; case: ifP; rewrite /= ?rmorph0 ?linearZ ?rmorph1. 
     rewrite Dq2 dvdp_map minPoly_dvdp //.
-      apply/polyOverP=> i; have[a] := F0q1z i; rewrite -(rmorph1 inLz) -linearZ.
+      apply/polyOverP=> i; have[a] := F0q1z i.
+      rewrite -(rmorph1 [rmorphism of inLz]) -linearZ.
       by rewrite Dq2 coef_map => /fmorph_inj->; rewrite rpredZ ?mem1v.
-    by rewrite -(fmorph_root inLz) -Dq2 root_minPoly.
+    by rewrite -(fmorph_root [rmorphism of inLz]) -Dq2 root_minPoly.
   have q1z_z: root q1z z.
     rewrite !root_factor_theorem in qz0 *.
     by apply: dvdp_trans qz0 (dvdp_trans _ Dq1z); rewrite dvdp_map.
@@ -743,8 +733,9 @@ have [f homLf fxz]: exists2 f : 'End(Lz), f \is a kHom 1 imL & f (inLz x) = z.
   have{splitLpz} splitLpz: splittingFieldFor <<1; inLz x>>%AS pz imL.
     have [r def_pz defLz] := splitLpz; exists r => //.
     apply/eqP; rewrite eqEsubv -{2}defLz adjoin_seqSl ?sub1v // andbT.
-    apply/Fadjoin_seqP; split; last by rewrite -defLz; apply: seqv_sub_adjoin.
-    by apply/FadjoinP/andP; rewrite sub1v -lfunE memv_img ?memvf.
+    apply/Fadjoin_seqP; split; last first.
+      by rewrite /= -[limg _]defLz; apply: seqv_sub_adjoin.
+    by apply/FadjoinP/andP; rewrite sub1v memv_img ?memvf.
   have [f homLzf Df] := kHom_extends (sub1v _) hom_f0 F0pz splitLpz.
   have [-> | x'z] := eqVneq (inLz x) z.
     by exists \1%VF; rewrite ?lfunE ?kHom1.
@@ -754,10 +745,10 @@ have [f homLf fxz]: exists2 f : 'End(Lz), f \is a kHom 1 imL & f (inLz x) = z.
     rewrite eqp_sym -dvdp_size_eqp ?size_XsubC 1?eq_sym //.
     by rewrite dvdp_XsubCl root_minPoly.
   by rewrite (eqp_root Dq1z) root_XsubC eq_sym in q1z_z.
-pose f1 := ((linfun inLz)^-1 \o f \o linfun inLz)%VF.
+pose f1 := (inLz^-1 \o f \o inLz)%VF.
 have /kHomP[f1id fM] := homLf.
 have Df1 u: inLz (f1 u) = f (inLz u).
-  rewrite !lfunE /= !lfunE /= -lfunE limg_lfunVK //= -[limg _]/(asval imL).
+  rewrite !comp_lfunE limg_lfunVK //= -[limg _]/(asval imL).
   have [r def_pz defLz] := splitLpz.
   have []: all (mem r) r /\ inLz u \in imL by split; first exact/allP.
   rewrite -{1}defLz; elim/last_ind: {-1}r {u}(inLz u) => [|r1 y IHr1] u.
@@ -773,14 +764,15 @@ have Df1 u: inLz (f1 u) = f (inLz u).
   by rewrite (eqp_root def_pz) root_prod_XsubC.
 suff f1_is_ahom : f1 \is ahom_in fullv.
   apply/hasP; exists (AHom f1_is_ahom); last first.
-    by rewrite -(fmorph_root inLz) /= Df1 fxz.
+    by rewrite -(fmorph_root [rmorphism of inLz]) /= Df1 fxz.
   rewrite -DautL; apply/kHomP; split; last first.
     by move => ? ?; cbv beta; rewrite rmorphM.
   by move => _ /vlineP[a ->]; rewrite linearZ rmorph1.
 apply/is_ahom_inP; split.
   move => a b _ _.
-  by apply: (fmorph_inj inLz); rewrite rmorphM /= !Df1 rmorphM fM ?imLin.
-apply: (fmorph_inj inLz).
+  apply: (fmorph_inj [rmorphism of inLz]).
+  by rewrite rmorphM /= !Df1 rmorphM fM ?imLin.
+apply: (fmorph_inj [rmorphism of inLz]).
 by rewrite /= Df1 /= f1id ?rmorph1 ?mem1v.
 Qed.
 
