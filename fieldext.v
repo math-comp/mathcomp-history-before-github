@@ -633,6 +633,22 @@ rewrite closureaEl subv_add sub1v closurea_idealr //.
 by rewrite prodv_id subv_refl.
 Qed.
 
+Fact ahom_img_is_aspace (aT : FalgType F0) (f : 'AHom(L, aT)) K :
+   let Kf := (f @: K)%VS in
+   has_algid Kf && (Kf * Kf <= Kf)%VS.
+Proof.
+apply/andP; split.
+  apply/has_algidP; exists (f 1); split.
+  - by rewrite memv_img // mem1v.
+  - by rewrite rmorph1 oner_neq0.
+  - move => u Hu /=.
+    by rewrite rmorph1 mulr1 mul1r.
+apply/prodvP => _ _ /memv_imgP [a Ha ->] /memv_imgP [b Hb ->].
+by rewrite -rmorphM memv_img // memv_mul.
+Qed.
+Canonical ahom_img_aspace (aT : FalgType F0) (f : 'AHom(L, aT)) K : {aspace aT}
+  := Eval hnf in ASpace (ahom_img_is_aspace f K).
+
 Lemma memv_adjoin_eq K x : (x \in K) = (<<K; x>>%AS == K).
 Proof.
 apply/idP/eqP; first by move/addv_idPl ->; apply subfield_closed.
