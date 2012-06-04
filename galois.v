@@ -893,10 +893,6 @@ Qed.
 
 Canonical kAAut_group K E := Eval hnf in group (kAAut_group_set K E).
 
-(* ???
-Lemma kAAut_normal K E : kAAut F E = 'N(kAAutL E)%g.
-*)
-
 Lemma kAAut_normal K E : kAAut K E \subset 'N(kAAutL E)%g.
 Proof.
 apply/subsetP.
@@ -959,20 +955,23 @@ Section f_aut_Definition.
 
 Variable (V : {vspace L}).
 
-Inductive f_aut := FAut of coset_of (kAAutL V).
+Inductive f_aut_type := FAut of [subg <<kAAut F V>>/kAAutL V].
+Definition faut x := FAut (subg _ x). 
 Definition f_aut_val A := let: FAut x := A in x.
 
-Canonical f_aut_subType := Eval hnf in [newType for f_aut_val by f_aut_rect].
-Definition f_aut_eqMixin := Eval hnf in [eqMixin of f_aut by <:].
-Canonical f_aut_eqType := Eval hnf in EqType f_aut f_aut_eqMixin.
-Definition f_aut_choiceMixin := [choiceMixin of f_aut by <:].
-Canonical f_aut_choiceType := Eval hnf in ChoiceType f_aut f_aut_choiceMixin.
-Definition f_aut_countMixin := [countMixin of f_aut by <:].
-Canonical f_aut_countType := Eval hnf in CountType f_aut f_aut_countMixin.
-Canonical f_aut_subCountType := Eval hnf in [subCountType of f_aut].
-Definition f_aut_finMixin := [finMixin of f_aut by <:].
-Canonical f_aut_finType := Eval hnf in FinType f_aut f_aut_finMixin.
-Canonical f_aut_subFinType := Eval hnf in [subFinType of f_aut].
+Canonical f_aut_subType :=
+  Eval hnf in [newType for f_aut_val by f_aut_type_rect].
+Definition f_aut_eqMixin := Eval hnf in [eqMixin of f_aut_type by <:].
+Canonical f_aut_eqType := Eval hnf in EqType f_aut_type f_aut_eqMixin.
+Definition f_aut_choiceMixin := [choiceMixin of f_aut_type by <:].
+Canonical f_aut_choiceType :=
+  Eval hnf in ChoiceType f_aut_type f_aut_choiceMixin.
+Definition f_aut_countMixin := [countMixin of f_aut_type by <:].
+Canonical f_aut_countType := Eval hnf in CountType f_aut_type f_aut_countMixin.
+Canonical f_aut_subCountType := Eval hnf in [subCountType of f_aut_type].
+Definition f_aut_finMixin := [finMixin of f_aut_type by <:].
+Canonical f_aut_finType := Eval hnf in FinType f_aut_type f_aut_finMixin.
+Canonical f_aut_subFinType := Eval hnf in [subFinType of f_aut_type].
 
 Definition f_aut_one := FAut 1%g.
 Definition f_aut_inv u := FAut (f_aut_val u)^-1.
@@ -988,14 +987,15 @@ Proof. move=> u v w; apply: val_inj; exact: mulgA. Qed.
 Definition f_aut_finGroupMixin :=
   FinGroup.Mixin f_aut_mulP f_aut_oneP f_aut_invP.
 Canonical f_aut_finBaseGroupType :=
-  Eval hnf in BaseFinGroupType f_aut f_aut_finGroupMixin.
+  Eval hnf in BaseFinGroupType f_aut_type f_aut_finGroupMixin.
 Canonical f_aut_finGroupType := Eval hnf in FinGroupType f_aut_invP.
 
-Lemma FAut_is_morph : {in setT &, {morph FAut : x y / (x * y)%g}}.
-Proof. done. Qed.
-Canonical FAut_morphism := Morphism FAut_is_morph.
+Lemma faut_is_morph : 
+  {in (<<kAAut F V>> / kAAutL V)%g &, {morph faut : x y / (x * y)%g}}.
+Proof. move => a b /= Ha Hb. by rewrite /faut subgM. Qed.
+Canonical faut_morphism  := Morphism faut_is_morph.
 
-Coercion f_aut_repr (x : f_aut) : 'AEnd(L) := repr (val x).
+Coercion f_aut_repr (x : f_aut_type) : 'AEnd(L) := repr (val (val x)).
 
 (*
 Lemma f_aut_repr_is_ahom x : f_aut_repr x \is ahom_in {:L}.
@@ -1005,44 +1005,62 @@ Canonical f_aut_repr_ahom x := AHom (f_aut_repr_is_ahom x).
 
 End f_aut_Definition.
 
-Lemma aut_eqP E (x y : f_aut E) : 
+
+Lemma aut_eqP E (x y : f_aut_type E) : 
   reflect {in E, x =1 y} (x == y).
 Proof. by apply: aut_mem_eqP; apply: mem_repr_coset. Qed.
 
-Lemma aut_id E a : (1:f_aut E)%g a = a.
+Lemma aut_id E a : (1:f_aut_type E)%g a = a.
 Proof. by rewrite /f_aut_repr repr_coset1 id_lfunE. Qed.
 
-Lemma aut_mul E (x y : f_aut E) :
+Lemma aut_mul E (x y : f_aut_type E) :
  {in E, (x * y)%g =1  val (f_aut_repr x) * val (f_aut_repr y)}.
 Proof.
-apply/(@aut_mem_eqP _ (val (x * y)%g) (val (x * y)%g)); last done.
+apply/(@aut_mem_eqP _ (val (val (x * y)%g)) (val (val (x * y)%g))); last done.
   by rewrite mem_repr_coset.
 rewrite [val _]/=.
-rewrite -[in X in _ \in X](coset_mem (mem_repr_coset (val x))).
-rewrite -[in X in _ \in X](coset_mem (mem_repr_coset (val y))).
+rewrite -[in X in _ \in X](coset_mem (mem_repr_coset (val (val x)))).
+rewrite -[in X in _ \in X](coset_mem (mem_repr_coset (val (val y)))).
 rewrite -coset_morphM ?repr_coset_norm //.
 rewrite val_coset; first by apply: rcoset_refl.
 by apply: groupM; apply: repr_coset_norm.
 Qed.
 
-Lemma aut_inv E (x : f_aut E) : {in E, (x^-1)%g =1 x^-1%VF}.
+Lemma aut_inv E (x : f_aut_type E) : {in E, (x^-1)%g =1 x^-1%VF}.
 Proof.
 case: x => x /= a Ha.
 apply: (canRL (lker0_lfunK _)); first by apply: fAutL_lker0.
 by rewrite -comp_lfunE -(aut_mul (FAut x)^-1%g (FAut x)) // mulVg aut_id.
 Qed.
 
-Definition aut U V := ((@FAut V) @* (kAAut U V / kAAutL V))%g.
+Lemma img_aut E (x : f_aut_type E) : (x @: E)%VS = E.
+Proof.
+rewrite /f_aut_repr.
+case/imsetP: (valP (val x)) => g.
+rewrite /= genGid !inE => /andP [_ Hg] -> {x} /=.
+move: (Hg); rewrite qualifE; case/andP => _ /eqP HE.
+rewrite -[X in _ = X]HE.
+apply: limg_eq => a Ha.
+move: (eqxx (coset (kAAutL E) g)).
+by move/(aut_mem_eqP (mem_repr_coset _) (mem_kAut_coset Hg)) => -> //.
+Qed.
+
+Lemma memv_aut E (x : f_aut_type E) a : a \in E -> x a \in E.
+Proof.
+move => Ha.
+rewrite -[in X in _ \in X](img_aut x).
+by apply: memv_img.
+Qed.
+
+Definition aut U V := ((@faut V) @* (<<kAAut U V>> / kAAutL V))%g.
 
 (* Standard mathematical notation for Aut(E/K) puts the larger field first. *)
 Notation "''Aut' ( V / U )" := (aut U V).
 
 Section Automorphism.
 
-Definition pickAut U V W f : f_aut W :=
-  odflt 1%g
-    [pick x \in 'Aut(W / U)
-    | (V <= lker (ahval x - f))%VS].
+Definition pickAut U V W f : f_aut_type W :=
+  odflt 1%g [pick x \in 'Aut(W / U)| (V <= lker (ahval x - f))%VS].
 
 (* Aut is the main "constructor" used for the aut type
    it converts (f: kAut K E) into 'Aut(E / K) *)
@@ -1061,17 +1079,6 @@ Qed.
 Lemma Aut_aut f : Aut K E f \in 'Aut(E / K).
 Proof. apply: pickAut_aut. Qed.
 
-Lemma memv_aut x a : x \in 'Aut(E / K) -> a \in E -> x a \in E.
-Proof.
-rewrite /aut -imset_coset.
-case/imsetP => h; rewrite inE => /andP [_ Hh] -> {x} /=.
-case/imsetP: Hh => g; rewrite inE => Hg -> Ha {h} /=.
-move: (eqxx (coset (kAAutL E) g)).
-move/(aut_mem_eqP (mem_repr_coset _) (mem_kAut_coset Hg)) => -> //.
-case/andP: Hg => _ /eqP Hg.
-by rewrite -[in X in _ \in X]Hg memv_img.
-Qed.
-
 Hypothesis HKE : (K <= E)%VS.
 
 Lemma Aut_eq f : f \is a kAut K E -> {in E, Aut K E f =1 f}.
@@ -1085,29 +1092,38 @@ apply/existsP.
 move: (Hf); rewrite kAutE; case/andP => HfKE HfE.
 case: (kHom_extend_fAutL HfKE) => g Hg.
 have HgKE : val g \is a kAut K E by rewrite -(kAut_eq HKE Hg).
-exists (FAut (coset _ g)); apply/andP; split.
-  by rewrite mem_morphim // ?mem_quotient // inE.
+exists (faut (coset _ g)); apply/andP; split.
+  rewrite mem_morphim // ?mem_quotient //= genGid inE //.
+  by apply: (kAutS (sub1v K)).
 apply/eqvP.
 move => b Hb /=; rewrite Hg //.
 move: b Hb.
-by apply/(aut_mem_eqP (mem_repr_coset _) (mem_kAut_coset HgKE)).
+apply/(aut_mem_eqP (mem_repr_coset _) (mem_kAut_coset HgKE)).
+rewrite subgK //= genGid mem_quotient // inE.
+by apply: (kAutS (sub1v K)).
 Qed.
 
 Lemma aut_kAut x : x \in 'Aut(E / K) = (val (f_aut_repr x) \is a kAut K E).
 Proof.
-case: x => x /=.
-rewrite /aut -imset_coset.
 apply/idP/idP.
   case/imsetP => y.
-  rewrite inE => /andP [_ Hy] [->].
-  case/imsetP: Hy => g; rewrite inE => {y} Hg ->.
+  rewrite inE => /andP [_ Hy] ->.
+  case/imsetP: Hy => g; rewrite genGid !inE => /andP [_ Hg] {y} ->.
   rewrite (kAut_eq (g:=val g) HKE _) //.
-  by apply/(aut_mem_eqP (mem_repr_coset _) (mem_kAut_coset Hg)).
+  apply/(aut_mem_eqP (mem_repr_coset _) (mem_kAut_coset Hg)).
+  rewrite subgK //= genGid mem_quotient // inE.
+  by apply: (kAutS (sub1v K)).
 move => Hx.
-apply: mem_morphim; first by rewrite inE.
 apply/imsetP.
-exists (repr x); first by rewrite inE.
-by rewrite coset_reprK.
+exists (val (val x)); last first.
+  do 2 apply: val_inj.
+  by rewrite /= sgvalK.
+rewrite (subsetP (quotientI _ _ _)) // !genGid /=.
+have /setIidPr -> : kAAut K E \subset kAAut 1 E.
+  by apply/subsetP => g; rewrite !inE; apply: kAutS; apply sub1v.
+apply/imsetP.
+exists (f_aut_repr x); first by rewrite (setIidPr _) ?inE // kAAut_normal.
+by rewrite /f_aut_repr /= coset_reprK.
 Qed.
 
 Lemma aut_repr x : x \in 'Aut(E / K) -> Aut K E x = x.
@@ -1167,45 +1183,41 @@ rewrite !aut_kAut //; last by apply:(subv_trans (y:=M)).
 by move/(kAutS HKM).
 Qed.
 
-Lemma Aut_conjg K E x : (K <= E)%VS -> x \in 'Aut(E / F) ->
+Lemma Aut_conjg K E x : (K <= E)%VS -> 
   ('Aut(E / K) :^ x)%g = 'Aut(E / (x @: K)%VS).
 Proof.
-move => HKE Hx.
+move => HKE.
 apply/eqP.
 have HxKE : (x @: K <= E)%VS.
   apply/subvP => _ /memv_imgP [a Ha ->].
-  apply: (memv_aut Hx).
+  apply: memv_aut.
   by move/subvP: HKE; apply.
-wlog suff Hsuff : x K HKE Hx HxKE / 
+wlog suff Hsuff : x K HKE HxKE / 
   (('Aut(E / K) :^ x)%g \subset ('Aut(E / (x @: K)%VS))).
   rewrite eqEsubset Hsuff // -sub_conjgV -[X in _ \subset ('Aut(E / X))]lim1g.
-  rewrite -[\1%VF]/((1:'AEnd(L))%g:'End(L)) -(mulgV (f_aut_repr x)) limg_comp.
-  suff: {in (x @: K)%VS, (x^-1)%g =1 x^-1%VF}.
-    move/limg_eq <-.
-    apply: Hsuff; first done.
-    - by rewrite groupV.
-    - rewrite -limg_comp.
-      move/eqvP/(subv_trans HKE)/eqvP/limg_eq: (aut_mul x (x^-1)%g) <-.
-      by rewrite mulgV /f_aut_repr repr_coset1 lim1g.
-  move => z Hz; apply: aut_inv.
-  by move/subvP: HxKE; apply.
+  rewrite -(lker0_compVf (fAutL_lker0 x)) limg_comp.
+  have -> : (x^-1 @: (x @: K) = x^-1%g @: (x @: K))%VS.
+    apply: limg_eq => a.
+    move/(subvP HxKE) => Ha.
+    by rewrite aut_inv.
+  apply: Hsuff => //.
+  rewrite -limg_comp.
+  apply: (subv_trans _ HKE).
+  apply/subvP => _ /memv_imgP [a Ha ->].
+  rewrite -aut_mul ?mulgV ?aut_id //.
+  by apply: (subvP HKE).
 apply/subsetP => y.
 rewrite mem_conjg !aut_kAut //=.
 have /(kAut_eq HKE) -> : {in E, (y ^ (x^-1))%g =1 (x^-1%g \o y \o x)%AF}.
   rewrite conjgE invgK => z Hz.
-  have Hxz : x z \in E by apply: (memv_aut Hx).
+  have Hxz : x z \in E by apply: memv_aut.
   by rewrite !(aut_mul,comp_lfunE) //.
 rewrite !kAutE.
 case/andP => HyKE.
 rewrite !limg_comp.
-move: (groupVr Hx).
-rewrite aut_kAut; last by apply: sub1v.
-case/andP => _ /eqP HxE.
-rewrite -[X in (_ <= X)%VS]HxE {HxE} limg_ker0; last by apply: fAutL_lker0.
-move: Hx.
-rewrite aut_kAut; last by apply: sub1v.
-case/andP => Hx /eqP HxE.
-rewrite HxE => HyE.
+rewrite -[X in (_ <= X)%VS](img_aut x^-1%g).
+rewrite limg_ker0; last by apply: fAutL_lker0.
+rewrite img_aut => HyE.
 rewrite HyE andbT.
 apply/kHomP; split; last by move => ? ? _ _; rewrite /= rmorphM.
 move => _ /memv_imgP [a Ha ->].
@@ -1213,14 +1225,14 @@ case/kHomP: HyKE => /(_ _ Ha) HyVa _.
 rewrite -[in X in _ = X]HyVa !comp_lfunE /= -[X in _ = X]comp_lfunE.
 rewrite -(aut_mul (x^-1)%g x) ?mulVg ?aut_id ?id_lfunE //.
 move/subvP: HyE; apply.
-rewrite memv_img // -[in X in _ \in X]HxE memv_img //.
+rewrite memv_img // memv_aut //.
 by move/subvP: HKE; apply.
 Qed.
 
-Definition fixedField V (s : {set f_aut V}) :=
+Definition fixedField V (s : {set f_aut_type V}) :=
   (V :&: \bigcap_(x \in s) (fixedSpace x))%VS.
 
-Lemma fixedFieldP E (s : {set f_aut E}) a :
+Lemma fixedFieldP E (s : {set f_aut_type E}) a :
  reflect (a \in E /\ (forall x, x \in s -> x a = a))
          (a \in fixedField s).
 Proof.
@@ -1232,28 +1244,28 @@ apply/subv_bigcapP => i Hi.
 by apply/fixedSpaceP; apply: H.
 Qed.
 
-Fact fixedField_is_aspace_subproof E (s : {set f_aut E}) :
+Fact fixedField_is_aspace_subproof E (s : {set f_aut_type E}) :
   let FF := fixedField s in
   (has_algid FF  && (FF * FF <= FF)%VS).
 Proof.
 rewrite /fixedField -big_filter.
 move : (filter _ _) => /= {s} r.
-pose f (i: f_aut E) := f_aut_repr i.
 have -> : (\bigcap_(i <- r) fixedSpace i
-        = \bigcap_(i <- [seq f i | i <- r]) fixedSpace i)%VS by rewrite big_map.
-move : {r f} (map _ r) => r.
+        = \bigcap_(i <- [seq f_aut_repr i | i <- r]) fixedSpace i)%VS.
+  by rewrite big_map.
+move : {r} (map _ r) => r.
 elim : r E => [|r rs IH] E; first by rewrite big_nil capvf; case: E.
 rewrite big_cons capvA.
 by apply: IH.
 Qed.
 Canonical fixedField_aspace (E : {subfield L})
-   (s : {set f_aut E}) : {subfield L}
+   (s : {set f_aut_type E}) : {subfield L}
    := ASpace (fixedField_is_aspace_subproof s).
 
-Lemma fixedField_bound E (s : {set f_aut E}) : (fixedField s <= E)%VS.
+Lemma fixedField_bound E (s : {set f_aut_type E}) : (fixedField s <= E)%VS.
 Proof. by apply: capvSl. Qed.
 
-Lemma fixedFieldS E (s1 s2 : {set f_aut E}) :
+Lemma fixedFieldS E (s1 s2 : {set f_aut_type E}) :
    (s1 \subset s2) -> (fixedField s2 <= fixedField s1)%VS.
 Proof.
 move => /subsetP Hs.
@@ -1272,29 +1284,26 @@ move => x Hx.
 by apply: (fixed_aut HKE).
 Qed.
 
-Lemma galoisConnectionB M E (s : {set f_aut E}):
- s \subset 'Aut(E / M) -> s \subset 'Aut(E / fixedField s).
+Lemma galoisConnectionB E (s : {set f_aut_type E}):
+  s \subset 'Aut(E / fixedField s).
 Proof.
-move => /subsetP HsEK.
 apply/subsetP => x Hxs.
-have HxEK := HsEK _ Hxs.
 rewrite aut_kAut ?capvSl // kAutE.
 apply/andP; split; last first.
-  by apply/subvP => _ /memv_imgP [v Hv ->]; apply: (memv_aut HxEK).
+  by rewrite img_aut subv_refl.
 apply/kHomP; split; last by move => ? ? _ _; rewrite /= rmorphM.
 by move => a /fixedFieldP [_]; apply.
 Qed.
 
-Lemma galoisConnection M K E (s : {set f_aut E}):
-  (K <= E)%VS -> s \subset 'Aut(E / M) ->
-  s \subset 'Aut(E / K) = (K <= fixedField s)%VS.
+Lemma galoisConnection K E (s : {set f_aut_type E}):
+  (K <= E)%VS -> s \subset 'Aut(E / K) = (K <= fixedField s)%VS.
 Proof.
-move => HKE HsEK.
+move => HKE.
 apply/idP/idP.
   by move/fixedFieldS; apply: subv_trans; apply galoisConnectionA.
 move => HKs.
 have : (K <= fixedField s <= E)%VS by rewrite HKs capvSl.
-by move/autS; apply: subset_trans; apply: (galoisConnectionB HsEK).
+by move/autS; apply: subset_trans; apply: galoisConnectionB.
 Qed.
 
 Definition galoisTrace U V a := \sum_(i | i \in ('Aut(V / U))) (i a).
@@ -1499,12 +1508,15 @@ apply: contraTeq => _.
 apply/existsP.
 case: (kHom_extend_fAutL Hf) => g Hg.
 suff HgKE : val g \is a kAut K E.
-  exists (FAut (coset _ g)); apply/andP; split.
-    by rewrite mem_morphim // ?mem_quotient // inE.
+  exists (faut (coset _ g)); apply/andP; split.
+    rewrite mem_morphim // ?mem_quotient //= genGid inE //.
+    by apply: (kAutS (sub1v K)).
   apply/eqvP.
   move => b Hb /=; rewrite Hg //.
   move/subvP/(_ _ Hb): {Hb} HME.
-  by move: b; apply/(aut_mem_eqP (mem_repr_coset _) (mem_kAut_coset HgKE)).
+  move: b; apply/(aut_mem_eqP (mem_repr_coset _) (mem_kAut_coset HgKE)).
+  rewrite subgK //= genGid mem_quotient // inE.
+  by apply: (kAutS (sub1v K)).
 have HgK : g \in kAAutL K.
   rewrite inE kAutE subvf andbT.
   apply/kHomP; split; last by move => ? ? _ _; rewrite /= rmorphM.
@@ -1543,7 +1555,7 @@ Qed.
 
 Lemma normalField_factors K E : (K <= E)%VS ->
  reflect (forall a, a \in E -> 
-   exists2 r : seq (f_aut E),
+   exists2 r : seq (f_aut_type E),
      r \subset 'Aut(E / K) &
      minPoly K a = \prod_(i <- r) ('X - (i a)%:P))
    (normalField K E).
@@ -1553,10 +1565,10 @@ apply: (iffP idP); last first.
   move => Hfactor.
   apply/normalFieldP => a Ha.
   case: (Hfactor a Ha) => r /subsetP Hr ->.
-  exists (map (fun i : f_aut E => i a) r); last first.
+  exists (map (fun i : f_aut_type E => i a) r); last first.
     by rewrite big_map.
   apply/allP => _ /mapP [b /(Hr _) Hb ->].
-  by apply: (memv_aut Hb).
+  by apply: memv_aut.
 move => Hnorm a Ha.
 case/normalFieldP/(_ a Ha): (Hnorm) => r Hr Hmin.
 pose f b := [pick x \in 'Aut(E / K) | x a == b].
@@ -1650,10 +1662,10 @@ Qed.
 
 Lemma galois_factors K E : 
  reflect ((K <= E)%VS /\ (forall a, a \in E -> 
-   exists r : seq (f_aut E), [/\
+   exists r : seq (f_aut_type E), [/\
      r \subset 'Aut(E / K)%g,
-     uniq (map (fun i : f_aut E => i a) r) &
-     minPoly K a = \prod_(i <- (map (fun j : f_aut E => j a) r))
+     uniq (map (fun i : f_aut_type E => i a) r) &
+     minPoly K a = \prod_(i <- (map (fun j : f_aut_type E => j a) r))
                          ('X - i%:P)]))
    (galois K E).
 Proof.
@@ -1704,7 +1716,7 @@ case => HKE Hfixed.
 apply/galois_factors; split; first done.
 move => a HaE.
 pose roots :=
-  seq_sub (map (fun x : f_aut E => x a) (enum 'Aut(E / K))).
+  seq_sub (map (fun x : f_aut_type E => x a) (enum 'Aut(E / K))).
 have Hroot_aut (b : roots) :
     exists x, (x \in 'Aut(E / K)) && (x a == val b).
   case/mapP: (valP b) => [x Hx Hxb].
@@ -1716,7 +1728,7 @@ have : forall b, root_repr b \in 'Aut(E / K).
   by move => b;  case/andP: (xchooseP (Hroot_aut b)).
 move: root_repr => root_repr Hroot_repr_aut Hroot_repr.
 have Hroot_map_uniq : uniq
-    (map (fun x : f_aut E => x a) (map root_repr (enum predT))).
+    (map (fun x : f_aut_type E => x a) (map root_repr (enum predT))).
   rewrite -map_comp map_inj_uniq ?enum_uniq //.
   by move => b c //=; rewrite !Hroot_repr; apply: val_inj.
 exists (map root_repr (enum predT)); split => //.
@@ -1731,7 +1743,7 @@ apply minPoly_dvdp; last first.
   rewrite root_prod_XsubC.
   apply/mapP.
   have Haroot :
-      a \in map (fun x : f_aut E => x a) (enum 'Aut(E / K)).
+      a \in map (fun x : f_aut_type E => x a) (enum 'Aut(E / K)).
     apply/mapP; exists 1%g; last by rewrite aut_id.
     by rewrite mem_enum group1.
   exists (root_repr (SeqSub Haroot)); last by rewrite Hroot_repr.
@@ -1742,12 +1754,12 @@ rewrite -[in X in _ \in X]Hfixed.
 apply/fixedFieldP; split.
   apply: polyOverP i.
   apply: rpred_prod => b Hb.
-  by rewrite rpredB ?polyOverX // polyOverC (memv_aut (K:=K)).
+  by rewrite rpredB ?polyOverX // polyOverC memv_aut.
 move => x Hx.
 rewrite -coef_map rmorph_prod. congr ((polyseq _) `_ _).
 symmetry.
 have Hreindex (b : roots) : x (val b) \in
-     (map (fun x : f_aut E => x a) (enum 'Aut(E / K))).
+     (map (fun x : f_aut_type E => x a) (enum 'Aut(E / K))).
   rewrite -Hroot_repr -comp_lfunE -aut_mul //; apply: map_f.
   by rewrite mem_enum groupM.
 pose h (b : roots) := SeqSub (Hreindex b) : roots.
@@ -1775,8 +1787,8 @@ rewrite -{2}HK.
 by apply: autNormFixedField.
 Qed.
 
-Lemma aut_independent E (P : pred (f_aut E))
-  (c_ : f_aut E -> L) :
+Lemma aut_independent E (P : pred (f_aut_type E))
+  (c_ : f_aut_type E -> L) :
   (forall a, a \in E -> \sum_(x | P x) (c_ x) * (x a) = 0) ->
   (forall x, P x -> c_ x = 0).
 Proof.
@@ -1803,8 +1815,8 @@ rewrite !mulrA -[X in X * _]mulrC subrr add0r; apply eq_bigr => i Hi.
 by rewrite rmorphM /= /d_ mulrBr mulrBl !mulrA -[X in _ - X * _]mulrC.
 Qed.
 
-Lemma aut_independent_contra E (P : pred (f_aut E))
-  (c_ : f_aut E -> L) x : P x -> c_ x != 0 ->
+Lemma aut_independent_contra E (P : pred (f_aut_type E))
+  (c_ : f_aut_type E -> L) x : P x -> c_ x != 0 ->
   exists2 a, a \in E & \sum_(x | P x) (c_ x) * (x a) != 0.
 Proof.
 move => HPx Hcx.
@@ -1853,8 +1865,8 @@ case/(aut_independent_contra)/(_ Hc0) => d HdE /=.
 set b := \sum_(i \in _) _ => Hb0.
 exists b; first split => //.
   apply: rpred_sum => i Hi.
-  apply: rpredM; last by apply: (memv_aut Hi).
-  apply: rpred_prod => j _. by apply: (memv_aut (groupX _ HxEK)).
+  apply: rpredM; last by apply: memv_aut.
+  apply: rpred_prod => j _. by apply: memv_aut.
 apply: (canRL (mulfK _)); first by rewrite fmorph_eq0.
 have Hlog_bij : {on [pred i \in 'Aut(E / K)],
                     bijective (fun i : 'I_#[x]%g => (x ^+ i)%g)}.
@@ -1886,7 +1898,7 @@ Qed.
 
 Section GaloisDim.
 
-Variable (E : {subfield L}) (s : {set f_aut E}).
+Variable (E : {subfield L}) (s : {set f_aut_type E}).
 
 Lemma aut_matrix :
   {w_ : 'I_#|s| -> L | forall i, w_ i \in E &
@@ -1960,13 +1972,12 @@ Lemma direct_sum_fixedField :
   { w_ : 'I_#|s| -> L | 
     [/\ forall i, w_ i \in E,
         forall i, w_ i != 0 & directv (\sum_i K * <[w_ i]>)]
-  & forall M : {subfield L}, group_set s -> s \subset 'Aut(E / M)->
-    (\sum_i K * <[w_ i]>)%VS = E }.
+  & group_set s -> (\sum_i K * <[w_ i]>)%VS = E }.
 Proof.
 have [w_ HwE] := aut_matrix.
 set M := \matrix_(i,j) _.
 rewrite -unitmx_tr => HM.
-exists w_ => [|? Hs /subsetP HsE].
+exists w_ => [|Hs].
   split => //.
     move => i.
     apply: contraL HM => /eqP Hwi.
@@ -2004,9 +2015,9 @@ pose wv := (\row_(i < #|s|) enum_val i w).
 pose v := wv *m invmx (M^T).
 have HvE i : v 0 i \in E.
   rewrite mxE; apply: rpred_sum => j _.
-  rewrite !mxE; apply: rpredM; first by apply: (memv_aut (HsE _ (enum_valP j))).
+  rewrite !mxE; apply: rpredM; first by apply: memv_aut.
   have HME (a b : 'I_#|s|) : enum_val a (w_ b) \in E.
-    by apply: (memv_aut (HsE _ (enum_valP a))).
+    by apply: memv_aut.
   suff HmatrixE n (N : 'M_n) : (forall i j, N i j \in E) -> \det N \in E.
     by rewrite /invmx HM !mxE rpredM ?rpredV ?rpredM ?rpredX ?rpredN ?rpred1 //;
       apply: HmatrixE => a b; rewrite !mxE; apply HME.
@@ -2033,8 +2044,8 @@ pose h (i : 'I_#|s|) :=
   enum_rank_in (group1 (group Hs)) (enum_val i * x^-1)%g.
 have Hh : enum_val (h i) = (enum_val i * x^-1)%g.
   rewrite enum_rankK_in //.
-  by rewrite -[s]/(group Hs : {set f_aut E}) groupM ?groupV ?enum_valP.
-transitivity ((v *m M^T) 0 (h i)); last by rewrite mulmxKV // mxE Hh. 
+  by rewrite -[s]/(group Hs : {set f_aut_type E}) groupM ?groupV ?enum_valP.
+transitivity ((v *m M^T) 0 (h i)); last by rewrite mulmxKV // mxE Hh.
 rewrite mxE; apply: eq_bigr => j _.
 rewrite rmorphM mxE /= -comp_lfunE -aut_mul // mulgV aut_id; congr (_ * _).
 by rewrite !mxE Hh aut_mul // comp_lfunE.
@@ -2042,12 +2053,10 @@ Qed.
 
 End GaloisDim.
 
-Lemma dim_fixedField K E (g : {group f_aut E}) :
-  g \subset 'Aut(E / K) ->
+Lemma dim_fixedField E (g : {group f_aut_type E}) :
   (#|g| = \dim_(fixedField g) E)%N.
 Proof.
-move => Hg.
-have [w [_ Hw0 Hdirect] /(_ _ (groupP g) Hg) HE] := (direct_sum_fixedField g).
+have [w [_ Hw0 Hdirect] /(_ (groupP g)) HE] := (direct_sum_fixedField g).
 rewrite directvE /= in Hdirect.
 rewrite -[X in dimv X]HE.
 move/eqP: Hdirect ->.
@@ -2057,29 +2066,25 @@ apply: eq_bigr => i _.
 by rewrite dim_cosetv.
 Qed.
 
-Lemma aut_fixedField (K E : {subfield L}) (g : {group f_aut E}) :
-  g \subset 'Aut(E / K)-> 'Aut(E / fixedField g) = g.
+Lemma aut_fixedField E (g : {group f_aut_type E}): 'Aut(E / fixedField g) = g.
 Proof.
-move => Hg.
 symmetry; apply/eqP; rewrite eqEcard; apply/andP; split.
-  by apply: (galoisConnectionB Hg).
-rewrite [X in _ <= X](_ : _ = \dim_(fixedField g) E) ?(dim_fixedField Hg) //.
+  by apply: galoisConnectionB.
+rewrite [X in _ <= X](_ : _ = \dim_(fixedField g) E); last first.
+  by apply: dim_fixedField.
 rewrite galois_dim ?leqnn //.
 apply/galois_fixedField; split; first by apply: capvSl.
 apply: subv_anti.
 rewrite galoisConnectionA ?capvSl // fixedFieldS //.
-by apply: (galoisConnectionB Hg).
+by apply: galoisConnectionB.
 Qed.
 
-Lemma fixedField_galois K E (s : {set f_aut E}) : 
-  s \subset 'Aut(E / K) -> galois (fixedField s) E.
+Lemma fixedField_galois E (s : {set f_aut_type E}): galois (fixedField s) E.
 Proof.
-move => Hs.
 apply: (galoisS (K:=[aspace of (fixedField <<s>>%g)])).
   by rewrite capvSl andbT fixedFieldS // subset_gen.
 apply/galois_fixedField => /=; split; first by rewrite capvSl.
-suff /aut_fixedField -> : <<s>>%g \subset 'Aut(E / K) by done.
-by rewrite -(gen_set_id (A:='Aut(E / K))) ?groupP // genS.
+by rewrite aut_fixedField.
 Qed.
 
 Section FundamentalTheoremOfGaloisTheory.
@@ -2100,7 +2105,7 @@ case/and3P: Hgalois => HKE Hsep HnormKE.
 by rewrite /galois HKM (separableSr HME).
 Qed.
 
-Definition normalField_cast (x : f_aut E) : f_aut M := Aut K M x.
+Definition normalField_cast (x : f_aut_type E) : f_aut_type M := Aut K M x.
 
 Lemma normalField_castM :
   {in 'Aut(E / K) &, {morph normalField_cast : x y / (x * y)%g}}.
@@ -2189,7 +2194,7 @@ End IntermediateField.
 
 Section IntermediateGroup.
 
-Variable g : {group f_aut E}.
+Variable g : {group f_aut_type E}.
 Hypothesis Hg : g \subset 'Aut(E / K)%g.
 Hypothesis Hnorm : 'Aut(E / K)%g \subset 'N(g)%g.
 
@@ -2197,7 +2202,7 @@ Lemma normal_fixedField_galois : galois K (fixedField g).
 Proof.
 case/and3P: Hgalois => HKE Hsep HnormEK.
 rewrite /galois.
-move: (Hg); rewrite (galoisConnection HKE Hg) => ->.
+move: (Hg); rewrite (galoisConnection _ HKE) => ->.
 rewrite (separableSr _ Hsep) ?capvSl //.
 apply/forallP => x; apply/implyP => Hx.
 rewrite eqEdim limg_dim_eq ?(eqP (fAutL_lker0 _)) ?capv0 // leqnn andbT.
@@ -2210,13 +2215,12 @@ rewrite -(Aut_eq HKE) ?kAutE //; last first.
   move: Hx; rewrite inE kAutE subvf andbT.
   by case/kHomP.
 apply/fixedFieldP; split => [|y Hy].
-  by rewrite (memv_aut (K:=K)) // Aut_aut.
+  by rewrite memv_aut // Aut_aut.
 rewrite -comp_lfunE -aut_mul //.
 apply: (canRL_in (limg_lfunVK (f:=Aut K E x))).
   by rewrite lker0_limgf ?memvf // fAutL_lker0.
 rewrite -aut_inv; last first.
-  rewrite (memv_aut (K:=K)) // groupM ?Aut_aut //.
-  by move/subsetP: Hg; apply.
+  by rewrite memv_aut // groupM ?Aut_aut.
 rewrite -comp_lfunE -aut_mul //.
 apply: Ha.
 rewrite -(class_sub_norm (G:=[group of 'Aut(E / K)])) // in Hy.
