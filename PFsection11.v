@@ -6,7 +6,7 @@ Require Import gfunctor gproduct cyclic commutator gseries nilpotent pgroup.
 Require Import sylow hall abelian maximal frobenius.
 Require Import matrix mxalgebra mxrepresentation mxabelem vector.
 Require Import BGsection1 BGsection3 BGsection7 BGsection15 BGsection16.
-Require Import algC classfun character inertia vcharacter.
+Require Import ssrnum ssrint algC classfun character inertia vcharacter.
 Require Import PFsection1 PFsection2 PFsection3 PFsection4.
 Require Import PFsection5 PFsection6 PFsection8 PFsection9.
 
@@ -19,25 +19,28 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GroupScope GRing.Theory FinRing.Theory.
+Import GroupScope GRing.Theory FinRing.Theory Num.Theory.
+Local Open Scope ring_scope.
 
 Section Eleven.
 
 Lemma lbound_expn_odd_prime p q : 
-   odd p -> odd q -> prime p -> prime q -> p != q -> 4 * q ^ 2 + 1 < p ^ q.
+   odd p -> odd q -> prime p -> prime q -> p != q -> (4 * q ^ 2 + 1 < p ^ q)%N.
 Proof.
 case: p=> [|[|[|p]]] //; case: q=> [|[|[|[|[|q]]]]] //.
   case: p=> [|[|p]] // _ _ _ _ _.
-  by have /(leq_trans _)-> : 5 ^ 3 <= p.+1.+4 ^ 3 by rewrite leq_exp2r.
+  by have /(leq_trans _)-> : (5 ^ 3 <= p.+1.+4 ^ 3)%N by rewrite leq_exp2r.
 set y := p.+3; set x := _.+4; move=> _ _ _ _ _.
-have /(leq_trans _)-> //: 3 ^ x <= y ^ x by rewrite leq_exp2r.
+have /(leq_trans _)-> //: (3 ^ x <= y ^ x)%N by rewrite leq_exp2r.
 rewrite {y}/x; elim: q => [| q IH] //.
 rewrite [(3 ^ _)%N]expnS; set x := q.+1.+4 in IH |- *.
-rewrite  -(ltn_pmul2l (_ : 0 < 3)) // in IH.
+rewrite  -(ltn_pmul2l (_ : 0 < 3)%N) // in IH.
 apply: (leq_trans _ IH); rewrite ltnS.
-set X := _ + 1; have{X}->: X = 4 * x ^ 2 + (x * (7 * 1).+1 + (2 * 1 + 3))
+set X := (_ + 1)%N.
+have{X}->: (X = 4 * x ^ 2 + (x * (7 * 1).+1 + (2 * 1 + 3)))%N
   by rewrite /X; ring.
-set X := (3 * _)%N; have{X}->: X = 4 * x ^ 2 +  (x * (7 * x) + (x * x + 3)) 
+set X := (3 * _)%N.
+have{X}->: (X = 4 * x ^ 2 +  (x * (7 * x) + (x * x + 3)))%N 
   by rewrite /X; ring.
 rewrite leq_add2l; apply: leq_add; first by rewrite leq_mul2l ltn_mul2l.
 by rewrite leq_add2r leq_mul.
@@ -71,12 +74,12 @@ Local Notation HCg := (H <*> C).
 Local Notation HC := [group of HCg].
 
 Let sol_M : solvable M := of_typeP_sol MtypeP.
-Let sol_M': solvable M^`(1) := (solvableS (der_subS 0 _) sol_M).
+Let sol_M': solvable (M^`(1))%G := (solvableS (der_subS 0 _) sol_M).
 Let M'_N_M : M^`(1) <| M := (der_normal _ _).
 Let tau := Dade (FT_cDade_hyp maxM MtypeP).
 Let R := FTtypeP_coh_base maxM MtypeP.
-Let defM : M^`(1) ><| W1 = M. Proof. by have [[]] := MtypeP. Qed.
-Let defHU : H ><| U = M^`(1). Proof. by have [_ []] := MtypeP. Qed.
+Let defM : M^`(1)%G ><| W1 = M. Proof. by have [[]] := MtypeP. Qed.
+Let defHU : H ><| U = M^`(1)%G. Proof. by have [_ []] := MtypeP. Qed.
 Let chiefH0 : chief_factor M H0 H.
 Proof. by have [] := Ptype_Fcore_kernel_exists maxM MtypeP Mtypen5. Qed.
 
@@ -114,8 +117,26 @@ Let coherent H :=
   coherent (seqIndD M^`(1) M M^`(1) H) M^#
          (Dade_linear (FT_cDade_hyp maxM MtypeP)).
 
-(* This is PF11.3 (should be changed when 10.8 is proved) *)
-Lemma ncoH0C : coherent H0C -> coherent 1.
+Let HC_dprod : H \x C = HC.
+Proof.
+rewrite /= norm_joinEr /=.
+apply: (dprodE (subsetIr _ _)).
+have [_ _ _ _ tiHU] := sdprod_context defHU.
+apply/eqP; rewrite -subG1 -tiHU.
+  by apply: setISS=> //; exact: subsetIl.
+apply: subset_trans (cent_sub _).
+by have[/dprodP[]]:= typeP_context MtypeP.
+Qed.
+
+Let H0C_dprod : H0 \x C = H0C.
+Proof.
+case/dprodP: HC_dprod=> _ _ sC_CH iH_C.
+apply: dprodEY.
+  by apply: subset_trans (subsetIr _ _) (centS sH0H).
+by apply/eqP; rewrite -subG1 -iH_C setSI.
+Qed.
+
+Let normal_hyps : [/\ 1 <| M, HC <| M & H0C <| M].
 Proof.
 have [nsHUM sW1M /mulG_sub[sHUM _] nHUW1 tiHUW1] := sdprod_context defM.
 have [nsHHU sUHU /mulG_sub[sHHU sUM'] nHU tiHU] := sdprod_context defHU.
@@ -124,24 +145,39 @@ have sCM: C \subset M by rewrite subIset ?sUM.
 have sH0C_M: H0C \subset M by rewrite /normal join_subG (subset_trans sH0H).
 have [nH0C nH0_H0C] := (subset_trans sCM nH0M, subset_trans sH0C_M nH0M).
 have sH0C_HC : H0C \subset HC by apply: genS (setSU _ _). 
-have normal_hyps : [/\ 1 <| M, HC <| M & H0C <| M].
-  suff nsH0C: H0C <| M.
-    split=> //; first by exact: normal1.
-    by rewrite /= -{1}(joing_idPl sH0H) -joingA normalY // gFnormal.
-  rewrite /normal sH0C_M //= -{1}defM sdprodEY //=. 
-  rewrite -defHU sdprodEY //= -joingA.
-  rewrite join_subG andbC normsY ?(normal_norm nsCUW1) //=; last first.
-    by rewrite (subset_trans _ nH0M) // join_subG sUM.
-  apply/subsetP=> h HiH; rewrite inE.
-  apply/subsetP=> g /imsetP [h1 H1iH0 ->].
-  move: H1iH0; rewrite norm_joinEr // => /imset2P [g1 g2 G1iH0 G2iC->].
-  rewrite conjMg; apply: mem_mulg; last first.
-    suff->: g2 ^h = g2 by [].
-    move: G2iC; rewrite conjgE inE => /andP[_ /centP /(_ _ HiH)->].
-    by rewrite mulgA mulVg mul1g.
-  case/normalP: nsH0H=> _ /(_ _ HiH)<-.
-  by apply/imsetP; exists g1.
-move=> coH0C.
+suff nsH0C: H0C <| M.
+  split=> //; first by exact: normal1.
+  by rewrite /= -{1}(joing_idPl sH0H) -joingA normalY // gFnormal.
+rewrite /normal sH0C_M //= -{1}defM sdprodEY //=. 
+rewrite -defHU sdprodEY //= -joingA.
+rewrite join_subG andbC normsY ?(normal_norm nsCUW1) //=; last first.
+  by rewrite (subset_trans _ nH0M) // join_subG sUM.
+apply/subsetP=> h HiH; rewrite inE.
+apply/subsetP=> g /imsetP [h1 H1iH0 ->].
+move: H1iH0; rewrite norm_joinEr // => /imset2P [g1 g2 G1iH0 G2iC->].
+rewrite conjMg; apply: mem_mulg; last first.
+  suff->: (g2 ^ h = g2)%g by [].
+  move: G2iC; rewrite conjgE inE => /andP[_ /centP /(_ _ HiH)->].
+  by rewrite mulgA mulVg mul1g.
+case/normalP: nsH0H=> _ /(_ _ HiH)<-.
+by apply/imsetP; exists g1.
+Qed.
+
+(* This should be proved in 10.8 *)
+Lemma nco1 : ~ coherent 1.
+Proof. admit. Qed.
+
+(* This is PF11.3 *)
+Lemma ncoH0C : ~ coherent H0C.
+Proof.
+move=> coH0C; case: nco1.
+have [nsHUM sW1M /mulG_sub[sHUM _] nHUW1 tiHUW1] := sdprod_context defM.
+have [nsHHU sUHU /mulG_sub[sHHU sUM'] nHU tiHU] := sdprod_context defHU.
+have [sHM sUM] := (subset_trans sHHU sHUM, subset_trans sUHU sHUM).
+have sCM: C \subset M by rewrite subIset ?sUM.
+have sH0C_M: H0C \subset M by rewrite /normal join_subG (subset_trans sH0H).
+have [nH0C nH0_H0C] := (subset_trans sCM nH0M, subset_trans sH0C_M nH0M).
+have sH0C_HC : H0C \subset HC by apply: genS (setSU _ _). 
 apply: (bounded_seqIndD_coherent M'_N_M sol_M' subc_M normal_hyps)=> //.
 - split=> //; first by apply/subsetP=> g; rewrite inE=> /eqP->.
   rewrite join_subG.
@@ -149,16 +185,9 @@ apply: (bounded_seqIndD_coherent M'_N_M sol_M' subc_M normal_hyps)=> //.
   apply/subsetP=> g; rewrite inE=> /andP[GiU _].
   by apply: (subsetP sUM').
 - apply: quotient_nil.
-  suff/dprod_nil->: H \x C = HC.
-    rewrite Fcore_nil /=.
-    have/nilpotentS: C \subset U by apply: subsetIl.
-    by apply; have[_ []]:= MtypeP.
-  rewrite /= norm_joinEr /=.
-    apply: (dprodE (subsetIr _ _)).
-    apply/eqP; rewrite -subG1 -tiHU.
-    by apply: setISS=> //; exact: subsetIl.
-  apply: subset_trans (cent_sub _).
-  by have[/dprodP[]]:= typeP_context MtypeP.
+  rewrite (dprod_nil HC_dprod) Fcore_nil /=.
+  have/nilpotentS: C \subset U by apply: subsetIl.
+  by apply; have[_ []]:= MtypeP.
 have/eqP->: #|M : (M^`(1))%G| == q.
   rewrite -(eqn_pmul2l (cardG_gt0 M^`(1))) (Lagrange sHUM).
   by move/sdprod_card: defM=> <-.
@@ -184,6 +213,72 @@ rewrite  /= !norm_joinEr ?TI_cardMg //.
   by apply: setIS; exact: subsetIl.
 apply: subset_trans (cent_sub _).
 by have[/dprodP[]]:= typeP_context MtypeP.
+Qed.
+
+Let minHbar : minnormal (H / H0)%g (M / H0)%g.
+Proof. by exact: chief_factor_minnormal. Qed.
+Let ntHbar : (H/H0 != 1)%g.
+Proof. by case/mingroupp/andP: minHbar. Qed.
+Let solHbar: solvable (H / H0)%g.
+Proof. by rewrite quotient_sol // nilpotent_sol // Fcore_nil. Qed.
+Let abelHbar: abelian (H /H0)%g.
+Proof.
+by case: (minnormal_solvable minHbar _ solHbar)=> // _ _ /and3P[].
+Qed.
+
+(* This is PF 11.4 *)
+Lemma bounded_proper_coherent H1 :
+  H1 <| M -> H1 \proper M^`(1)%G -> coherent H1 ->
+    (#|(M^`(1))%G : H1| <= 2 * q * #|U : C| + 1)%N.
+Proof.
+move=> nsH1_H psH1_M' coH1.
+have [nsHHU sUHU /mulG_sub[sHHU sUM'] nHU tiHU] := sdprod_context defHU.
+rewrite -leC_nat natrD !natrM -ler_subl_addr.
+set X := _ * _ : algC.
+have->: (X = 2%:R * #|M : HC|%:R * sqrtC #|HC : HC|%:R :> algC).
+  rewrite /X indexgg sqrtC1 mulr1.
+  rewrite -!natrM; congr (_ %:R).
+  apply/eqP; rewrite -mulnA eqn_pmul2l // -(eqn_pmul2l (cardG_gt0 HC)).
+  rewrite Lagrange; last by case normal_hyps=> _ /andP[].
+  rewrite mulnCA -(dprod_card HC_dprod) -mulnA.
+  rewrite (Lagrange (subsetIl _ _)) /=.
+  by rewrite -(sdprod_card defM) -(sdprod_card defHU) mulnC.
+pose CSB := coherent_seqIndD_bound M'_N_M sol_M' subc_M.
+case: (CSB H1 H0C HC HC); rewrite -/coherent {CSB}//;  first 2 last.
+- by move=> HH; case: ncoH0C.
+- by have [_ nsHOC_M nsHC_M] := normal_hyps; split.
+split=> //.
+- by apply: genS (setSU _ _). 
+- rewrite join_subG; case/andP: nsHHU=> -> _.
+  by rewrite (subset_trans (subsetIl _ _) sUM').
+suff: abelian (HC / H0C)%g by rewrite subsetI subxx.
+suff/isog_abelian->: (HC / H0C)%g \isog (H / H0)%g by [].
+have TT : H \subset 'N(H0) by case/andP: nsH0H.
+pose fH := [morphism of (restrm TT (coset H0))].
+pose fK := [morphism of (trivm (coset_groupType H0) C)].
+have XX :  fK @* C \subset 'C(fH @* H).
+  by rewrite morphim_trivm sub1G.
+pose f := [morphism of dprodm HC_dprod XX].
+suff<-: 'ker_HC f = H0C.
+  suff<-:  f @* HC = (H / H0)%g by apply: first_isog_loc.
+  by rewrite im_dprodm morphim_trivm mulg1 morphim_restrm setIid.
+have->: 'ker_HC f = 'ker f.
+ apply/setP=> g; rewrite inE.
+ case: (boolP (g \in 'ker f)); last by rewrite andbF.
+ by rewrite inE=> /andP[->].
+rewrite ker_dprodm /=.
+case/dprodP: H0C_dprod=> _ <- _ _.
+apply/setP=> g /=;  apply/imset2P/idP.
+  case=> g1 g2.
+  rewrite inE=> G1iH /andP[G2iC /eqP Eg1g2] ->.
+  rewrite mem_mulg ?groupV //.
+  apply: coset_idr=> //.
+  by case/andP: nsH0H=> _ /subsetP->.
+case/imset2P=> g1 g2 G1iH0 G2iC ->.
+exists g1 (g2^-1)%g; last by rewrite invgK.
+  by case/andP: nsH0H=> /subsetP->.
+rewrite inE groupV ?G2iC //=.
+apply/eqP; exact: coset_id.
 Qed.
 
 End Eleven.
