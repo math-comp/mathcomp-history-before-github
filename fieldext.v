@@ -1458,7 +1458,7 @@ Let F0ZEZ a x v : a *: ((x *: v : L) : L0)  = (a *: x) *: v.
 Proof. by rewrite [a *: _]scalerA -scalerAl mul1r. Qed.
 
 Let baseVspace_basis V : seq L0 :=
-  [image tnth bF ij.2 *: tnth (vbasis V) ij.1 | ij <- predT].
+  [seq tnth bF ij.2 *: tnth (vbasis V) ij.1 | ij : 'I_(\dim V) * 'I_n].
 Definition baseVspace V := <<baseVspace_basis V>>%VS.
 
 Lemma mem_baseVspace V : baseVspace V =i V.

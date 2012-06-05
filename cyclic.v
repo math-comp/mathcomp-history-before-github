@@ -46,7 +46,7 @@ Section Cyclic.
 Variable gT : finGroupType.
 Implicit Types (a x y : gT) (A B : {set gT}) (G K H : {group gT}).
 
-Definition cyclic A := existsb x, A == <[x]>.
+Definition cyclic A := [exists x, A == <[x]>].
 
 Lemma cyclicP A : reflect (exists x, A = <[x]>) (cyclic A).
 Proof. by apply: (iffP existsP) => [] [x /eqP]; exists x. Qed.
@@ -342,7 +342,7 @@ Variable gT : finGroupType.
 (*  Gorenstein, 1.3.1 (i) *)
 Lemma cycle_sub_group (a : gT) m :
      m %| #[a] ->
-  [set H : {group gT} | (H \subset <[a]>) && (#|H| == m)]
+  [set H : {group gT} | H \subset <[a]> & #|H| == m]
      = [set <[a ^+ (#[a] %/ m)]>%G].
 Proof.
 move=> m_dv_a; have m_gt0: 0 < m by apply: dvdn_gt0 m_dv_a.
@@ -516,7 +516,7 @@ Variable gT : finGroupType.
 Implicit Types (A : {set gT}) (G H : {group gT}).
 
 Definition metacyclic A :=
-  existsb H : {group gT}, [&& cyclic H, H <| A & cyclic (A / H)].
+  [exists H : {group gT}, [&& cyclic H, H <| A & cyclic (A / H)]].
 
 Lemma metacyclicP A : 
   reflect (exists H : {group gT}, [/\ cyclic H, H <| A & cyclic (A / H)]) 
@@ -674,7 +674,7 @@ Lemma card_Aut_cyclic : cyclic G -> #|Aut G| = totient #|G|.
 Proof. by case/cyclicP=> x ->; exact: card_Aut_cycle. Qed.
 
 Lemma sum_ncycle_totient :
-  \sum_(d < #|G|.+1) #|[set <[x]> | x <- G, #[x] == d]| * totient d = #|G|.
+  \sum_(d < #|G|.+1) #|[set <[x]> | x in G & #[x] == d]| * totient d = #|G|.
 Proof.
 pose h (x : gT) : 'I_#|G|.+1 := inord #[x].
 symmetry; rewrite -{1}sum1_card (partition_big h xpredT) //=.

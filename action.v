@@ -185,11 +185,11 @@ Implicit Type S : {set rT}.
 
 Definition actm to a := if a \in D then to^~ a else id.
 
-Definition setact to S a := [set to x a | x <- S].
+Definition setact to S a := [set to x a | x in S].
 
 Definition orbit to A x := to x @: A.
 
-Definition amove to A x y := [set a \in A | to x a == y].
+Definition amove to A x y := [set a in A | to x a == y].
 
 Definition afix to A := [set x | A \subset [set a | to x a == x]].
 
@@ -281,7 +281,7 @@ Proof. by rewrite /actm => ->. Qed.
 Lemma actmE a : a \in D -> actm to a =1 to^~ a.
 Proof. by move=> Da; rewrite actmEfun. Qed.
 
-Lemma setactE S a : to^* S a = [set to x a | x <- S].
+Lemma setactE S a : to^* S a = [set to x a | x in S].
 Proof. by []. Qed.
 
 Lemma mem_setact S a x : x \in S -> to x a \in to^* S a.
@@ -453,14 +453,14 @@ Section Reindex.
 Variables (vT : Type) (idx : vT) (op : Monoid.com_law idx) (S : {set rT}).
 
 Lemma reindex_astabs a F : a \in 'N(S | to) ->
-  \big[op/idx]_(i \in S) F i = \big[op/idx]_(i \in S) F (to i a).
+  \big[op/idx]_(i in S) F i = \big[op/idx]_(i in S) F (to i a).
 Proof.
 move=> nSa; rewrite (reindex_inj (act_inj a)); apply: eq_bigl => x.
 exact: astabs_act.
 Qed.
 
 Lemma reindex_acts A a F : [acts A, on S | to] -> a \in A ->
-  \big[op/idx]_(i \in S) F i = \big[op/idx]_(i \in S) F (to i a).
+  \big[op/idx]_(i in S) F i = \big[op/idx]_(i in S) F (to i a).
 Proof. by move=> nSA /(subsetP nSA); exact: reindex_astabs. Qed.
 
 End Reindex.
@@ -752,7 +752,7 @@ by rewrite actMin ?ssGD ?(eqP xbx).
 Qed.
 
 Lemma orbit_stabilizer :
-  orbit to G x = [set to x (repr Ca) | Ca <- rcosets 'C_G[x | to] G].
+  orbit to G x = [set to x (repr Ca) | Ca in rcosets 'C_G[x | to] G].
 Proof.
 rewrite -amove_orbit -imset_comp /=; apply/setP=> z.
 by apply/idP/imsetP=> [xGz | [y xGy ->]]; first exists z; rewrite /= ?amoveK.
@@ -779,7 +779,7 @@ Lemma card_orbit_in_stab G x :
 Proof. by move=> sGD; rewrite mulnC card_orbit_in ?Lagrange ?subsetIl. Qed.
 
 Lemma acts_sum_card_orbit G S :
-  [acts G, on S | to] -> \sum_(T \in orbit to G @: S) #|T| = #|S|.
+  [acts G, on S | to] -> \sum_(T in orbit to G @: S) #|T| = #|S|.
 Proof. by move/orbit_partition/card_partition. Qed.
 
 Lemma astab_setact_in S a : a \in D -> 'C(to^* S a | to) = 'C(S | to) :^ a.
@@ -793,10 +793,10 @@ Lemma astab1_act_in x a : a \in D -> 'C[to x a | to] = 'C[x | to] :^ a.
 Proof. by move=> Da; rewrite -astab_setact_in // /setact imset_set1. Qed.
 
 Theorem Frobenius_Cauchy G S : [acts G, on S | to] ->
-  \sum_(a \in G) #|'Fix_(S | to)[a]| = (#|orbit to G @: S| * #|G|)%N.
+  \sum_(a in G) #|'Fix_(S | to)[a]| = (#|orbit to G @: S| * #|G|)%N.
 Proof.
 move=> GactS; have sGD := acts_dom GactS.
-transitivity (\sum_(a \in G) \sum_(x \in 'Fix_(S | to)[a]) 1%N).
+transitivity (\sum_(a in G) \sum_(x in 'Fix_(S | to)[a]) 1%N).
   by apply: eq_bigr => a _; rewrite -sum1_card.
 rewrite (exchange_big_dep (mem S)) /= => [|a x _]; last by case/setIP.
 rewrite (set_partition_big _ (orbit_partition GactS)) -sum_nat_const /=.
@@ -1826,7 +1826,7 @@ Coercion actby_cond_group A S to : acts_on_group A S to -> actby_cond A S to :=
   @proj1 _ _.
 
 Definition acts_irreducibly A S to :=
-  [min S of G | (G :!=: 1) && [acts A, on G | to]].
+  [min S of G | G :!=: 1 & [acts A, on G | to]].
 
 End GroupActionDefs.
 
@@ -2597,7 +2597,7 @@ by rewrite eqEsubset sub1G andbT -quotientR // quotient_sub1 // comm_subG.
 Qed.
 
 Lemma astabQR A H : A \subset 'N(H) ->
-  'C(A / H | 'Q) = [set x \in 'N(H) | [~: [set x], A] \subset H].
+  'C(A / H | 'Q) = [set x in 'N(H) | [~: [set x], A] \subset H].
 Proof.
 move=> nHA; apply/setP=> x; rewrite astabQ -morphpreIdom 2!inE -astabQ.
 by case nHx: (x \in _); rewrite //= -sub1set sub_astabQR ?sub1set.
@@ -2605,6 +2605,14 @@ Qed.
 
 Lemma quotient_astabQ H Abar : 'C(Abar | 'Q) / H = 'C(Abar).
 Proof. by rewrite astabQ cosetpreK. Qed.
+
+Lemma conj_astabQ A H x :
+  x \in 'N(H) -> 'C(A / H | 'Q) :^ x = 'C(A :^ x / H | 'Q).
+Proof.
+move=> nHx; apply/setP=> y; rewrite !astabQ mem_conjg !in_setI -mem_conjg.
+rewrite -normJ (normP nHx) quotientJ //; apply/andb_id2l => nHy.
+by rewrite !inE centJ morphJ ?groupV ?morphV // -mem_conjg.
+Qed.
 
 Section CardClass.
 
@@ -2616,10 +2624,10 @@ Proof. by rewrite -astab1J -card_orbit. Qed.
 Lemma classes_partition : partition (classes G) G.
 Proof. by apply: orbit_partition; apply/actsP=> x Gx y; exact: groupJr. Qed.
 
-Lemma sum_card_class : \sum_(C \in classes G) #|C| = #|G|.
+Lemma sum_card_class : \sum_(C in classes G) #|C| = #|G|.
 Proof. by apply: acts_sum_card_orbit; apply/actsP=> x Gx y; exact: groupJr. Qed.
 
-Lemma class_formula : \sum_(C \in classes G) #|G : 'C_G[repr C]| = #|G|.
+Lemma class_formula : \sum_(C in classes G) #|G : 'C_G[repr C]| = #|G|.
 Proof.
 rewrite -sum_card_class; apply: eq_bigr => _ /imsetP[x Gx ->].
 have: x \in x ^: G by rewrite -{1}(conjg1 x) mem_imset.

@@ -302,7 +302,7 @@ Implicit Types p q : {poly R}.
 Definition char_poly_mx := 'X%:M - map_mx (@polyC R) A.
 Definition char_poly := \det char_poly_mx.
 
-Let diagA := [image A i i | i <- 'I_n].
+Let diagA := [seq A i i | i : 'I_n].
 Let size_diagA : size diagA = n.
 Proof. by rewrite size_image card_ord. Qed.
 

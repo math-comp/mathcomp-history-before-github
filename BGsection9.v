@@ -28,7 +28,7 @@ Implicit Types p q r : nat.
 (* This is B & G, Theorem 9.1(b). *)
 Theorem noncyclic_normed_sub_Uniqueness : forall p M B,
     M \in 'M -> B \in 'E_p(M) -> ~~ cyclic B ->
-    \bigcup_(K \in |/|_G(B; p^')) K \subset M ->
+    \bigcup_(K in |/|_G(B; p^')) K \subset M ->
   B \in 'U.
 Proof.
 move=> p M B maxM; case/pElemP=> sBM abelB ncycB snbBp'_M.
@@ -46,7 +46,7 @@ have [P sylP sRP] := Sylow_superset sRM pR; have [sPM pP _] := and3P sylP.
 have sHp'M: 'O_p^'(H) \subset M.
   apply: subset_trans snbBp'_M; rewrite (bigcup_max 'O_p^'(H)%G) // inE -andbA.
   by rewrite subsetT pcore_pgroup (subset_trans sBH) ?gFnorm.
-have{snbBp'_M} defMp': <<\bigcup_(K \in |/|_G(P; p^')) K>> = 'O_p^'(M).
+have{snbBp'_M} defMp': <<\bigcup_(K in |/|_G(P; p^')) K>> = 'O_p^'(M).
   have nMp'M: M \subset 'N('O_p^'(M)) by exact: gFnorm.
   have nMp'P := subset_trans sPM nMp'M.
   apply/eqP; rewrite eqEsubset gen_subG sub_gen ?andbT; last first.
@@ -117,7 +117,7 @@ Qed.
 (* This is B & G, Theorem 9.1(a). *)
 Theorem noncyclic_cent1_sub_Uniqueness : forall p M B,
     M \in 'M -> B \in 'E_p(M) -> ~~ cyclic B ->
-    \bigcup_(b \in B^#) 'C[b] \subset M ->
+    \bigcup_(b in B^#) 'C[b] \subset M ->
   B \in 'U.
 Proof.
 move=> p M B maxM EpB ncycB sCB_M.
@@ -137,7 +137,7 @@ Proof.
 move=> K L uL; have ntL := uniq_mmax_neq1 uL.
 case/uniq_mmaxP: uL => H uL_H cLK; have [maxH sLH] := mem_uniq_mmax uL_H.
 case/rank_geP=> B; case/nElemP=> p; case/pnElemP=> sBK abelB; move/eqP=> dimB2.
-have scBH: \bigcup_(b \in B^#) 'C[b] \subset H.
+have scBH: \bigcup_(b in B^#) 'C[b] \subset H.
   apply/bigcupsP=> b; case/setIdP; rewrite inE -cycle_eq1 => ntb Bb.
   apply: (sub_uniq_mmax uL_H); last by rewrite /= -cent_cycle mFT_cent_proper.
   by rewrite sub_cent1 (subsetP cLK) ?(subsetP sBK).
@@ -326,7 +326,7 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
       move/(leq_trans dimA1ge3); rewrite ltnS ltnNge.
       by rewrite -(abelem_cyclic abelB).
     have [x Bx sCxM']: exists2 x, x \in B^# & ~~ ('C[x] \subset M).
-      suff: ~~ (\bigcup_(x \in B^#) 'C[x] \subset M).
+      suff: ~~ (\bigcup_(x in B^#) 'C[x] \subset M).
         case/subsetPn=> y; case/bigcupP=> x Bx cxy My'.
         by exists x; last by apply/subsetPn; exists y.
       have EpB: B \in 'E_p(M) by rewrite inE (subset_trans sBA sAM).
@@ -415,7 +415,7 @@ have ncycA1: ~~ cyclic 'Ohm_1(A).
   rewrite (abelem_cyclic abelA1) -(rank_abelem abelA1) rank_Ohm1.
   by rewrite -(subnKC Age3).
 have [x A1x sCxM']: exists2 x, x \in 'Ohm_1(A)^# & ~~ ('C[x] \subset M).
-  suff: ~~ (\bigcup_(x \in 'Ohm_1(A)^#) 'C[x] \subset M).
+  suff: ~~ (\bigcup_(x in 'Ohm_1(A)^#) 'C[x] \subset M).
     case/subsetPn=> y; case/bigcupP=> x A1 cxy My'.
     by exists x; last by apply/subsetPn; exists y.
   apply: contra uA' => sCA1_M.

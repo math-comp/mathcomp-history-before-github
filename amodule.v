@@ -367,7 +367,7 @@ move=> ms Hmv ms1 Hms1 Hsub; rewrite /completely_reducible.
 pose act g : 'End(M) := rmorph M (g%:FG).
 have actE: forall g v, act g v  = v :* g%:FG by done.
 pose f: 'End(M) :=  #|G|%:R^-1 *: 
-        \sum_(i \in G) (act (i^-1)%g \o projv ms1 \o act i)%VF.
+        \sum_(i in G) (act (i^-1)%g \o projv ms1 \o act i)%VF.
 have Cf: forall v x, x \in FG -> f (v :* x) = f v :* x.
   move=> v x; case/memv_sumP=> g_ Hg_ ->.
   rewrite !linear_sum; apply: eq_big => //= i Hi.

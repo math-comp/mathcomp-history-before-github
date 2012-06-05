@@ -62,7 +62,7 @@ Lemma Iirr_kerS A B : B \subset A -> Iirr_ker A \subset Iirr_ker B.
 Proof. by move/subset_trans=> sBA; apply/subsetP=> i; rewrite !inE => /sBA. Qed.
 
 Lemma sum_Iirr_ker_square H :
-  H <| K -> \sum_(i \in Iirr_ker H) 'chi_i 1%g ^+ 2 = #|K : H|%:R.
+  H <| K -> \sum_(i in Iirr_ker H) 'chi_i 1%g ^+ 2 = #|K : H|%:R.
 Proof.
 move=> nsHK; rewrite -card_quotient ?normal_norm // -irr_sum_square.
 rewrite (eq_bigl _ _ (in_set _)) (reindex _ (mod_Iirr_bij nsHK)) /=.
@@ -73,7 +73,7 @@ Definition Iirr_kerD B A := Iirr_ker A :\: Iirr_ker B.
 
 Lemma sum_Iirr_kerD_square H M :
     H <| K -> M <| K -> M \subset H ->
-  \sum_(i \in Iirr_kerD H M) 'chi_i 1%g ^+ 2 = #|K : H|%:R * (#|H : M|%:R - 1).
+  \sum_(i in Iirr_kerD H M) 'chi_i 1%g ^+ 2 = #|K : H|%:R * (#|H : M|%:R - 1).
 Proof.
 move=> nsHK nsMK sMH; have [sHK _] := andP nsHK.
 rewrite mulrBr mulr1 -natrM Lagrange_index // -!sum_Iirr_ker_square //.
@@ -88,7 +88,7 @@ Lemma Iirr_ker_conjg A i x :
   x \in 'N(A) -> (conjg_Iirr i x \in Iirr_ker A) = (i \in Iirr_ker A).
 Proof.
 move=> nAx; rewrite !inE conjg_IirrE.
-have [nKx | /cfConjg_out-> //] := boolP (x \in 'N(K)).
+have [nKx | /cfConjgEout-> //] := boolP (x \in 'N(K)).
 by rewrite cfker_conjg // -{1}(normP nAx) conjSg.
 Qed.
 
@@ -115,7 +115,7 @@ Section SeqInd.
 Variable calX : {set (Iirr K)}.
 
 (* The set of characters induced from the irreducibles in calX. *)
-Definition seqInd := undup [image 'Ind[L] 'chi_i | i <- calX].
+Definition seqInd := undup [seq 'Ind[L] 'chi_i | i in calX].
 Local Notation S := seqInd.
 
 Lemma seqInd_uniq : uniq S. Proof. exact: undup_uniq. Qed.
@@ -248,7 +248,7 @@ Lemma seqInd_subT calX : {subset seqInd calX <= seqIndT}.
 Proof. exact: seqIndS (subsetT calX). Qed.
 
 Lemma seqIndT_Ind1 : 'Ind[L, K] 1 \in seqIndT.
-Proof. by apply/seqIndP; exists 0; rewrite ?chi0_1 ?inE. Qed.
+Proof. by apply/seqIndP; exists 0; rewrite ?irr0 ?inE. Qed.
 
 Implicit Arguments seqIndP [calX phi].
 
@@ -261,7 +261,7 @@ Lemma mem_seqInd H M i :
   H <| L -> M <| L -> ('Ind 'chi_i \in seqIndD H M) = (i \in Iirr_kerD H M).
 Proof.
 move=> nsHL nsML; apply/seqIndP/idP=> [[j Xj] | Xi]; last by exists i.
-case/cfclass_Ind_irrP/cfclassP=> // y Ly; rewrite -conjg_IirrE => /chi_inj->.
+case/cfclass_Ind_irrP/cfclassP=> // y Ly; rewrite -conjg_IirrE => /irr_inj->.
 by rewrite inE !Iirr_ker_conjg -?in_setD ?(subsetP _ y Ly) ?normal_norm.
 Qed.
 
@@ -309,7 +309,7 @@ Proof. by apply: seqIndS; exact: Iirr_kerDS (sub1G M) sHK. Qed.
 Lemma seqInd_ortho_Ind1 : {in S, forall phi, '[phi, 'Ind[L, K] 1] = 0}.
 Proof.
 move=> _ /seqInd_sub/seqIndC1P[i nzi ->].
-by rewrite -chi0_1 not_cfclass_Ind_ortho // chi0_1 cfclass1 // inE irr_eq1.
+by rewrite -irr0 not_cfclass_Ind_ortho // irr0 cfclass1 // inE irr_eq1.
 Qed.
 
 Lemma seqInd_ortho_cfuni : {in S, forall phi, '[phi, '1_K] = 0}.
@@ -321,7 +321,7 @@ Qed.
 Lemma seqInd_ortho_1 : {in S, forall phi, '[phi, 1] = 0}.
 Proof.
 move=> _ /seqInd_sub/seqIndC1P[i nzi ->].
-by rewrite -cfdot_Res_r cfRes_cfun1 // -chi0_1 cfdot_irr (negbTE nzi).
+by rewrite -cfdot_Res_r cfRes_cfun1 // -irr0 cfdot_irr (negbTE nzi).
 Qed.
 
 Lemma sum_seqIndD_square :
@@ -372,8 +372,8 @@ Qed.
 
 Lemma seqInd_nontrivial_irr : (count (mem (irr L)) S > 1)%N.
 Proof.
-rewrite (perm_eqP (perm_to_rem Schi)) /= irr_chi ltnS -has_count.
-apply/hasP; exists chi^*%CF; last by rewrite /= -conjC_IirrE irr_chi.
+rewrite (perm_eqP (perm_to_rem Schi)) /= mem_irr ltnS -has_count.
+apply/hasP; exists chi^*%CF; last by rewrite /= -conjC_IirrE mem_irr.
 by rewrite mem_rem_uniq ?seqInd_uniq // !inE seqInd_conjC_neq ?cfAut_seqInd.
 Qed.
 
@@ -555,7 +555,7 @@ Lemma PtypeDade_subcoherent A A0 (G H L K W W1 W2 : {group gT}) S
     (tau := Dade ddA) (sigma := cyclicTIsigma G W W1 W2)
     (mu := @Dade_mu _ L W W1 W2) (w_ := @cyclicTIirr _ W W1 W2)
     (delta := fun j => (-1)^+ @Dade_delta _ L W W1 W2 j) :
-  let dsw j k := [image delta j *: sigma (w_ i k) | i <- Iirr W1] in
+  let dsw j k := [seq delta j *: sigma (w_ i k) | i : Iirr W1] in
   let Rmu j := dsw j j ++ map -%R (dsw j (conjC_Iirr j)) in
   [/\ uniq S, {subset S <= seqIndD K L H 1},
       ~~ has cfReal S & conjC_closed S] ->
@@ -660,7 +660,7 @@ have Zw i j: w_ i j \in 'Z[irr W] by exact: irr_vchar.
 have{oS1sigma} oS1dsw psi j: psi \in S1 -> orthogonal (R1 psi) (dsw _ j).
   move/oS1sigma/orthogonalP=> opsiW.
   apply/orthogonalP=> aa _ R1aa /imageP[i _ ->].
-  by rewrite cfdotZr opsiW ?map_f ?irr_chi ?mulr0.
+  by rewrite cfdotZr opsiW ?map_f ?mem_irr ?mulr0.
 have odsw j1 j2: j1 != j2 -> orthogonal (dsw _ j1) (dsw _ j2).
   move/negPf=> j2'1; apply/orthogonalP=> _ _ /imageP[i1 _ ->] /imageP[i2 _ ->].
   by rewrite cfdotZl cfdotZr (cfdot_sigma ddA) j2'1 andbF !mulr0.
@@ -1048,7 +1048,7 @@ Qed.
 (* It would then only remain to show that the signs are chosen consistently,  *)
 (* by considering the degrees of the differences.                             *)
 Lemma uniform_degree_coherence :
-  constant [seq (chi : 'CF(L)) 1%g | chi <- S] -> coherent S L^# tau.
+  constant [seq chi 1%g | chi : 'CF(L) <- S] -> coherent S L^# tau.
 Proof.
 case defS: {1}S => /= [|chi S1] szS; first by rewrite defS; exact: nil_coherent.
 have{szS} unifS xi: xi \in S -> xi 1%g = chi 1%g.
@@ -1283,7 +1283,7 @@ have [a Dmuk Da0]: exists2 a, tau1 (mu k) = sum_sw a k + sum_sw a j
 pose V := cyclicTIset ddA; have zetaV0: {in V, tau1 zeta =1 \0}.
   have [E sER ->] := Dtau1S _ Szeta; apply: cyclicTIsigma_orthogonal => ij.
   rewrite big_seq cfdot_suml big1 // => aa /(mem_subseq sER) Raa.
-  by rewrite (orthoPr (oS1sig zeta _ _ _)) ?irr_chi // !inE Szeta.
+  by rewrite (orthoPr (oS1sig zeta _ _ _)) ?mem_irr // !inE Szeta.
 pose zeta1 := zeta 1%g *: mu k - mu k 1%g *: zeta.
 have Zzeta1: zeta1 \in 'Z[S, L^#].
   rewrite zcharD1E !cfunE mulrC subrr eqxx andbT.
@@ -1407,7 +1407,7 @@ have{Dtau1} Dtau1 j: 'chi_j \in calS -> exists t, tau1 'chi_j = eps *: 'chi_t.
 have SuSirr j: 'chi_j \in calS -> 'chi_(aut_Iirr u j) \in calS.
   by rewrite aut_IirrE => /sSuS.
 have [j Sxj neq_ij]: exists2 j, 'chi_j \in calS & chi != 'chi_j.
-  move: irrS_gt1; rewrite (perm_eqP (perm_to_rem Schi)) /= irr_chi ltnS.
+  move: irrS_gt1; rewrite (perm_eqP (perm_to_rem Schi)) /= mem_irr ltnS.
   rewrite -has_count => /hasP[xj]; rewrite mem_rem_uniq ?free_uniq // !inE.
   by case/andP=> neq_ji Sxj /irrP[j Dxj]; exists j; rewrite -Dxj // eq_sym.
 have: (tau1 (mu j))^u == tau1 (mu j)^u.
@@ -1419,7 +1419,7 @@ have: (tau1 chi)^u != (tau1 'chi_j)^u.
   by rewrite (inj_eq (@cfAut_inj _ _ _)) (inj_in_eq inj_tau1) ?sSZS.
 have /Dtau1[t ->] := Sxj; rewrite tau1_chi !cfAutZ_Cint ?GRing.rpred_sign //.
 rewrite !scalerA -!(mulrC eps) -!scalerA -!scalerBr -!aut_IirrE.
-rewrite !(inj_eq (scalerI _)) ?signr_eq0 // (inj_eq chi_inj) => /negPf neq_urt.
+rewrite !(inj_eq (scalerI _)) ?signr_eq0 // (inj_eq irr_inj) => /negPf neq_urt.
 have [/CnatP[a ->] /CnatP[b xj1]] := (Cnat_irr1 i, Cnat_irr1 j).
 rewrite xj1 eq_subZnat_irr neq_urt orbF andbC => /andP[_].
 by rewrite eqn0Ngt -ltC_nat -xj1 irr1_gt0 /= => /eqP->.
@@ -1445,7 +1445,7 @@ Lemma Dade_irr_sub_conjC i (chi := 'chi_i) (phi := chi - chi^*%CF):
   chi \in 'CF(L, 1%g |: A) -> exists t, phi^\tau = 'chi_t - ('chi_t)^*%CF.
 Proof.
 have [Rchi | notRchi Achi] := eqVneq (conjC_Iirr i) i.
-  by exists 0; rewrite chi0_1 cfConjC1 /phi -conjC_IirrE Rchi !subrr linear0.
+  by exists 0; rewrite irr0 cfConjC1 /phi -conjC_IirrE Rchi !subrr linear0.
 have Zphi: phi \in 'Z[irr L, A].
   have notA1: 1%g \notin A by have [] := ddA.
   by rewrite -(setU1K notA1) sub_conjC_vchar // zchar_split irr_vchar.

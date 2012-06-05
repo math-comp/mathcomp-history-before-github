@@ -248,7 +248,7 @@ have [sPM sRM] := (subset_trans sPE sEM, subset_trans sRE sEM).
 have [[pP cPP _] [rR _]] := (and3P abelP, andP abelR).
 have coCR: coprime #|C| #|R| := coprimeSg sCMs (coprimegS sRE coMsE).
 have ntP: P :!=: 1 by exact: nt_pnElem EpP _.
-pose ST := [set S | Sylow C (gval S) && (R \subset 'N(S))].
+pose ST := [set S | Sylow C (gval S) & R \subset 'N(S)].
 have sST_CP: forall S, S \in ST -> S \subset C.
   by move=> S; case/setIdP; case/SylowP=> q _; case/andP.
 rewrite -{sST_CP}[C](Sylow_transversal_gen sST_CP)  => [|q _]; last first.

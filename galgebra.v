@@ -198,7 +198,7 @@ Canonical gAlgAlgFType := [FalgType F of galg].
 
 Variable G : {group gT}.
 
-Definition gvspace: {vspace galg} := (\sum_(g \in G) <[g%:FG]>)%VS.
+Definition gvspace: {vspace galg} := (\sum_(g in G) <[g%:FG]>)%VS.
 
 Fact gspace_subproof : has_algid gvspace && (gvspace * gvspace <= gvspace)%VS.
 Proof.

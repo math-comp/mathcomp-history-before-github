@@ -1619,7 +1619,7 @@ Proof. exact: row_perm1. Qed.
 Lemma perm_mxM n (s t : 'S_n) : perm_mx (s * t) = perm_mx s *m perm_mx t.
 Proof. by rewrite -row_permE -row_permM. Qed.
 
-Definition is_perm_mx n (A : 'M_n) := existsb s, A == perm_mx s.
+Definition is_perm_mx n (A : 'M_n) := [exists s, A == perm_mx s].
 
 Lemma is_perm_mxP n (A : 'M_n) :
   reflect (exists s, A = perm_mx s) (is_perm_mx A).

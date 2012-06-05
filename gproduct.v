@@ -75,7 +75,7 @@ Definition direct_product A B :=
   if A :&: B \subset 1%G then central_product A B else set0.
 
 Definition complements_to_in A B :=
-  [set K : {group gT} | (A :&: K == 1) && (A * K == B)].
+  [set K : {group gT} | A :&: K == 1 & A * K == B].
 
 Definition splits_over B A := complements_to_in A B != set0.
 
@@ -538,12 +538,18 @@ Proof. by move=> cGH trGH; rewrite /dprod trGH sub1G cprodE. Qed.
 Lemma dprodEcprod A B : A :&: B = 1 -> A \x B = A \* B.
 Proof. by move=> trAB; rewrite /dprod trAB subxx. Qed.
 
+Lemma dprod_cprod A B G : A \x B = G -> A \* B = G.
+Proof. by move=> defG; have [_ _ _ /dprodEcprod <-] := dprodP defG. Qed.
+
 Lemma cprod_card_dprod G A B :
   A \* B = G -> #|A| * #|B| <= #|G| -> A \x B = G.
 Proof. by case/cprodP=> [[K H -> ->] <- cKH] /cardMg_TI; exact: dprodE. Qed.
 
 Lemma dprodEsdprod A B : B \subset 'C(A) -> A \x B = A ><| B.
 Proof. by rewrite /dprod /cprod => ->. Qed.
+
+Lemma dprod_sdprod A B G : A \x B = G -> A ><| B = G.
+Proof. by move=> defG; have [_ _ /dprodEsdprod <-] := dprodP defG. Qed.
 
 Lemma dprodEY G H : H \subset 'C(G) -> G :&: H = 1 -> G \x H = G <*> H.
 Proof. by move=> cGH trGH; rewrite /dprod trGH subxx cprodEY. Qed.
@@ -566,6 +572,9 @@ Qed.
 
 Lemma dprodC : commutative dprod.
 Proof. by move=> A B; rewrite /dprod setIC cprodC. Qed.
+
+Lemma dprod_sdprodC A B G : A \x B = G -> B ><| A = G.
+Proof. by rewrite dprodC => /dprod_sdprod. Qed.
 
 Lemma dprodA : associative dprod.
 Proof.
@@ -1240,7 +1249,7 @@ Proof.
 by move=> sBK; rewrite -{1}(mul1g B) morphim_pprodm ?sub1G // morphim1 mul1g.
 Qed.
 
-Lemma ker_pprodm : 'ker f = [set x * a^-1 | x <- H, a <- K, fH x == fK a].
+Lemma ker_pprodm : 'ker f = [set x * a^-1 | x in H, a in K & fH x == fK a].
 Proof.
 apply/setP=> y; rewrite 3!inE {1}norm_joinEr //=.
 apply/andP/imset2P=> [[/mulsgP[x a Hx Ka ->{y}]]|[x a Hx]].
@@ -1323,7 +1332,7 @@ by move=> sBK; rewrite -{1}(mul1g B) morphim_sdprodm ?sub1G // morphim1 mul1g.
 Qed.
 
 Lemma ker_sdprodm :
-  'ker sdprodm = [set a * b^-1 | a <- H, b <- K, fH a == fK b].
+  'ker sdprodm = [set a * b^-1 | a in H, b in K & fH a == fK b].
 Proof.
 rewrite ker_restrm (setIidPr _) ?subIset ?ker_pprodm //; apply/orP; left.
 by case/sdprodP: eqHK_G => _ <- nHK _; rewrite norm_joinEr.
@@ -1394,7 +1403,7 @@ Proof.
 by move=> sBK; rewrite -{1}(mul1g B) morphim_cprodm ?sub1G // morphim1 mul1g.
 Qed.
 
-Lemma ker_cprodm : 'ker cprodm = [set a * b^-1 | a <- H, b <- K, fH a == fK b].
+Lemma ker_cprodm : 'ker cprodm = [set a * b^-1 | a in H, b in K & fH a == fK b].
 Proof.
 rewrite ker_restrm (setIidPr _) ?subIset ?ker_pprodm //; apply/orP; left.
 by case/cprodP: eqHK_G => _ <- cHK; rewrite cent_joinEr.
@@ -1449,7 +1458,7 @@ Proof. exact: morphim_cprodml. Qed.
 Lemma morphim_dprodmr B : B \subset K -> dprodm @* B = fK @* B.
 Proof. exact: morphim_cprodmr. Qed.
 
-Lemma ker_dprodm : 'ker dprodm = [set a * b^-1 | a <- H, b <- K, fH a == fK b].
+Lemma ker_dprodm : 'ker dprodm = [set a * b^-1 | a in H, b in K & fH a == fK b].
 Proof. exact: ker_cprodm. Qed.
 
 Lemma injm_dprodm :

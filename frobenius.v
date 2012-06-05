@@ -68,13 +68,13 @@ Definition Frobenius_group_with_complement G H :=
   [&& H \proper G, trivIset (H^# :^: G) & 'N_G(H) == H].
 
 Definition Frobenius_group G :=
-  existsb H : {group gT}, Frobenius_group_with_complement G H.
+  [exists H : {group gT}, Frobenius_group_with_complement G H].
 
 Definition Frobenius_group_with_kernel_and_complement G K H :=
   (K ><| H == G) && Frobenius_group_with_complement G H.
 
 Definition Frobenius_group_with_kernel G K :=
-  existsb H : {group gT}, Frobenius_group_with_kernel_and_complement G K H.
+  [exists H : {group gT}, Frobenius_group_with_kernel_and_complement G K H].
 
 Section FrobeniusAction.
 
@@ -563,7 +563,7 @@ Qed.
 
 Lemma Frobenius_action_kernel_def G H K sT S to :
     K ><| H = G -> @Frobenius_action _ G H sT S to ->
-  K :=: 1 :|: [set x \in G | 'Fix_(S | to)[x] == set0].
+  K :=: 1 :|: [set x in G | 'Fix_(S | to)[x] == set0].
 Proof.
 move=> defG FrobG.
 have partG: partition (gval K |: (H^# :^: K)) G.

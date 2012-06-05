@@ -1001,8 +1001,8 @@ elim: (oclause_leq_elim bc) => [| t1 l1 ih1] //= h4.
 rewrite !map_cat !odnf_to_oform_cat.
 rewrite -[holds e (_ \/ _)]/(holds e _ \/ holds e _).
 suff <- : (oclause_neq_elim t1) = map w_to_oclause
-           [seq let: Oclause eq_l _  lt_l _ := x in (eq_l, lt_l)
-              |  x <- oclause_neq_elim t1].
+           [seq (let: Oclause eq_l _  lt_l _ := x in (eq_l, lt_l))
+              | x <- oclause_neq_elim t1].
   by rewrite ih1 //; move=> oc hoc; apply: h4; rewrite in_cons hoc orbT.
 have : forall oc, oc \in (oclause_neq_elim t1) -> oc.2 = [::] /\ oc.4 = [::].
   move=> oc hoc; move/oclause_neq_elim2: (hoc); case/andP=> /eqP -> /eqP ->.

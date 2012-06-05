@@ -60,13 +60,13 @@ Lemma exists_linInd M :
 Proof.
 move=> ltMK nsMK; have [sMK nMK] := andP nsMK.
 have ntKM: (K / M)%g != 1%g by rewrite -subG1 quotient_sub1 // proper_subn.
-have [r /andP[_ r1] ntr] := lin_char_solvable ntKM (quotient_sol M solK).
+have [r /andP[_ r1] ntr] := solvable_has_lin_char ntKM (quotient_sol M solK).
 exists ('Ind[L, K] ('chi_r %% M)%CF); last first.
   by rewrite cfInd1 // cfModE // morph1 (eqP r1) mulr1.
 apply/seqIndP; exists (mod_Iirr r); last by rewrite mod_IirrE.
 rewrite !inE subGcfker mod_IirrE ?cfker_Mod //= andbT.
 apply: contraNneq ntr => /(canRL (mod_IirrK nsMK))->.
-by rewrite quo_IirrE // chi0_1 ?cfker_cfun1 ?cfQuo_cfun1.
+by rewrite quo_IirrE // irr0 ?cfker_cfun1 ?cfQuo_cfun1.
 Qed.
 
 (* This is Peterfalvi (6.2). *)
@@ -286,7 +286,7 @@ Lemma seqIndD_irr_coherence (Z : {group gT}) (calX := seqIndD K L Z 1) :
     odd_Frobenius_quotient 1%G ->
     [/\ Z <| L, Z :!=: 1 & Z \subset 'Z(K)]%g ->
     {subset calX <= irr L} ->
-  calX =i [pred chi \in irr L | ~~ (Z \subset cfker chi)]
+  calX =i [pred chi in irr L | ~~ (Z \subset cfker chi)]
   /\ coherent calX L^#tau.
 Proof.
 move=> Frob_quo1 [nsZL ntZ sZ_ZK] irrX; have [sZL nZL] := andP nsZL.
@@ -296,7 +296,7 @@ split=> [chi|].
   apply/idP/andP=> [Xchi | [/irrP[r ->{chi}] nkerZr]].
     rewrite irrX //; case/seqIndP: Xchi => t /setIdP[nkerZt _] ->.
     by rewrite inE in nkerZt; rewrite sub_cfker_Ind_irr.
-  have [t Res_r_t] := neq0_has_constt (Res_irr_neq0 r sKL).
+  have [t Res_r_t] := neq0_has_constt (Res_irr_neq0 K r).
   pose chi := 'Ind[L] 'chi_t; have chi_r: '[chi, 'chi_r] != 0.
     by rewrite -cfdot_Res_r cfdotC fmorph_eq0 -irr_consttE.
   have Xchi: chi \in calX.
@@ -327,7 +327,7 @@ have uniqY: uniq Y.
   have: uniq calX := seqInd_uniq L _.
   by rewrite -(perm_eq_uniq defX) cat_uniq => /and3P[].
 have sYS: {subset Y <= calS} by move=> xi /sYX/seqInd_sub->.
-case homoY: (constant [seq (xi : 'CF(L)) 1%g | xi <- Y]).
+case homoY: (constant [seq xi 1%g | xi : 'CF(L) <- Y]).
   exact: uniform_degree_coherence (subset_subcoherent scohS _) homoY.
 have Ndg: {in calX, forall xi : 'CF(L), xi 1%g = (e * p ^ d xi)%:R}.
   rewrite /d => _ /seqIndP[i _ ->]; rewrite cfInd1 // -/e.
@@ -435,7 +435,7 @@ have actsGC i: {acts G, on C i | 'J}.
   by apply/normsP; apply: classGidr.
 have{actsGC} PdvKa i j s:
   ~~ dC i Z^# -> ~~ dC j Z^# -> dC s Z -> (#|P| %| a i j s * #|C s|)%N.
-- pose Omega := [set uv \in [predX C i & C j] | mulgm uv \in C s]%g.
+- pose Omega := [set uv in [predX C i & C j] | mulgm uv \in C s]%g.
   pose to_fn uv x := prod_curry (fun u v : gT => (u ^ x, v ^ x)%g) uv.
   have toAct: is_action setT to_fn.
     by apply: is_total_action => [[u v]|[u v] x y] /=; rewrite ?conjg1 ?conjgM.
@@ -483,7 +483,7 @@ suffices Ea2 l (phi := 'chi[G]_l):
 - move=> l phi kerZphi.
   have Zphi1: phi 1%g \in Cint by rewrite irr1_degree rpred_nat.
   have chi0 x: x \in Z -> 'chi[G]_0 x = 1.
-    by rewrite chi0_1 cfun1E => /(subsetP sZG) ->.  
+    by rewrite irr0 cfun1E => /(subsetP sZG) ->.  
   have: kerZ 0 by move=> x y /setD1P[_ Zx] /setD1P[_ Zy]; rewrite !chi0.
   move/Ea2/(eqAmodMl (Aint_irr l z)); rewrite !{}chi0 // -/phi eqAmod_sym.
   rewrite mulrDr mulr1 !mulr_natr => /eqAmod_trans/(_ (Ea2 l kerZphi)).
@@ -497,7 +497,7 @@ suffices Ea2 l (phi := 'chi[G]_l):
   rewrite -[_ + _](mulVKf (neq0CG Z)) rpredM ?rpred_nat //.
   have: '['Res[Z] phi, 'chi_0] \in Crat.
     by rewrite rpred_Cnat ?Cnat_cfdot_char ?cfRes_char ?irr_char.
-  rewrite chi0_1 cfdotE (big_setD1 _ (group1 Z)) cfun1E cfResE ?group1 //=.
+  rewrite irr0 cfdotE (big_setD1 _ (group1 Z)) cfun1E cfResE ?group1 //=.
   rewrite rmorph1 mulr1; congr (_ * (_ + _) \in Crat). 
   rewrite -sumr_const; apply: eq_bigr => x Z1x; have [_ Zx] := setD1P Z1x.
   by rewrite cfun1E cfResE ?Zx // rmorph1 mulr1; apply: kerZphi.
@@ -720,12 +720,12 @@ have irrY: {subset Y <= irr L}.
   move=> _ /seqIndP[i /setIdP[not_kHi kH'i] ->]; rewrite !inE in not_kHi kH'i.
   have kH'iInd: (H^`(1))%G \subset cfker ('Ind[L] 'chi_i).
     by rewrite sub_cfker_Ind_irr ?normal_norm.
-  rewrite -(cfQuoK nsH'L kH'iInd) -induced_quotientE // -quo_IirrE //.
+  rewrite -(cfQuoK nsH'L kH'iInd) -cfIndQuo // -quo_IirrE //.
   set i1 := quo_Iirr _ i; have /irrP[k ->]: 'Ind 'chi_i1 \in irr (L / H^`(1)).
     apply: irr_induced_Frobenius_ker; first exact: FrobeniusWker frobL1.
     apply: contraNneq not_kHi; rewrite -(quo_IirrK nsH'H kH'i) -/i1 => ->.
-    by rewrite mod_IirrE // chi0_1 cfMod_cfun1 ?cfker_cfun1.
-  by rewrite -mod_IirrE ?irr_chi.
+    by rewrite mod_IirrE // irr0 cfMod_cfun1 ?cfker_cfun1.
+  by rewrite -mod_IirrE ?mem_irr.
 have uniY: {in Y, forall phi : 'CF(L), phi 1%g = #|W1|%:R}.
   move=> _ /seqIndP[i /setIdP[_ kH'i] ->]; rewrite inE -lin_irr_der1 in kH'i.
   rewrite cfInd1 // -divgS // -(sdprod_card defL) mulKn //.
@@ -743,7 +743,7 @@ have [eta1 Yeta1]: exists eta1, eta1 \in Y.
   pose IY := Iirr_kerD H H H^`(1)%G.
   have [IY0 | [j IYj]] := set_0Vmem IY; last first.
     by exists ('Ind 'chi_j); apply/seqIndP; exists j.
-  have /idPn[]: \sum_(j \in IY) ('chi_j 1%g) ^+ 2 == 0 by rewrite IY0 big_set0.
+  have /idPn[]: \sum_(j in IY) ('chi_j 1%g) ^+ 2 == 0 by rewrite IY0 big_set0.
   rewrite sum_Iirr_kerD_square ?der_sub // indexgg mul1r subr_eq0.
   by rewrite pnatr_eq1 indexg_eq1 proper_subn.
 have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
@@ -780,16 +780,16 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
     pose Ichi1 := @Dade_chi _ (L / Z) (H / Z) (W / Z) (W1 / Z) (W2 / Z).
     have eq_Ichi: codom (fun j1 => mod_Iirr (Ichi1 j1)) =i codom Ichi.
       apply/subset_cardP.
-        rewrite !card_codom; last first; try exact: Dade_chi_inj.
-          apply: inj_comp (Dade_chi_inj PtypeL1).
+        rewrite !card_codom; last first; try exact: Dade_irr_inj.
+          apply: inj_comp (Dade_irr_inj PtypeL1).
           exact: can_inj (mod_IirrK (sub_center_normal sZZ)).
         by rewrite !card_ord !NirrE (nclasses_isog isoW2).
       apply/subsetP=> _ /imageP[/= j1 _ ->].
       apply: contraR (Dade_mu_not_irr PtypeL1 j1).
       case/(Dade_Ind_chi'_irr PtypeL)=> /irrP[ell Dell] _.
       rewrite -(Dade_Ind_chi PtypeL1) -/Ichi1 -['chi__]cfModK //.
-      rewrite -mod_IirrE ?induced_quotientE ?Dell 1?mod_IirrE ?cfker_Mod //.
-      rewrite -quo_IirrE ?irr_chi // -Dell sub_cfker_Ind_irr //.
+      rewrite -mod_IirrE ?cfIndQuo ?Dell 1?mod_IirrE ?cfker_Mod //.
+      rewrite -quo_IirrE ?mem_irr // -Dell sub_cfker_Ind_irr //.
       by rewrite mod_IirrE ?cfker_Mod.
     move=> _ /seqIndP[k /setDP[_ kZ'k] ->].
     case: ((Dade_Ind_chi'_irr PtypeL) k) => //; rewrite -eq_Ichi.
@@ -800,10 +800,10 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
     exists2 xi1, xi1 \in X & forall xi, xi \in X -> (xi1 1%g %| xi 1%g)%C.
   - pose IX := Iirr_kerD H Z 1%G; have [i0 IXi0]: exists i0, i0 \in IX.
       apply/set0Pn; apply: contraNneq ntZ => IX_0.
-      have: \sum_(i \in IX) ('chi_i 1%g) ^+ 2 == 0 by rewrite IX_0 big_set0.
+      have: \sum_(i in IX) ('chi_i 1%g) ^+ 2 == 0 by rewrite IX_0 big_set0.
       rewrite sum_Iirr_kerD_square ?normal1 ?sub1G // indexg1 mulf_eq0.
       by rewrite (negPf (neq0CiG H Z)) subr_eq0 trivg_card1 -eqC_nat.
-    have:= erefl [arg min_(i < i0 | i \in IX) truncC ('chi_i 1%g)].
+    have:= erefl [arg min_(i < i0 in IX) truncC ('chi_i 1%g)].
     have [//|{i0 IXi0} i1 IXi1 min_i1 _] := arg_minP.
     exists ('Ind 'chi_i1); first by apply/seqIndP; exists i1.
     move=> _ /seqIndP[i /min_i1 le_i1_i] ->; rewrite !cfInd1 //.
@@ -891,7 +891,7 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
     move=> Zz; rewrite [xi']cfun_sum_cfdot !sum_cfunE; apply: eq_bigr => ell _.
     have [Xell |] := boolP ('chi_ell \in X).
       by rewrite !cfunE (orthoPl oxi'X) ?mul0r.
-    by rewrite !cfunE defX inE /= irr_chi negbK => /subsetP/(_ z Zz)/cfker1->.
+    by rewrite !cfunE defX inE /= mem_irr negbK => /subsetP/(_ z Zz)/cfker1->.
   have Eba: '[psi, psi1] = b - a.
     rewrite cfdot_Res_l -/tau Dpsi1 -addrA !cfdotDr cfdotNr cfdotZr.
     rewrite cfdotC (orthoPl oX1tauY) ?map_f // conjC0 add0r addrC.
@@ -912,12 +912,12 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
       rewrite (eq_bigl _ _ (in_set _)) (reindex _ (mod_Iirr_bij nsZL)) /=.
       apply: eq_big => [i | i _]; first by rewrite mod_IirrE ?cfker_Mod.
       by rewrite linearZ mod_IirrE // cfMod1.
-    transitivity (\sum_(xi <- [image 'chi_i | i <- [predC Iirr_ker L Z]]) F xi).
+    transitivity (\sum_(xi <- [seq 'chi_i | i in [predC Iirr_ker L Z]]) F xi).
       apply: eq_big_perm; apply: uniq_perm_eq => // [|xi].
-        by rewrite (map_inj_uniq chi_inj) ?enum_uniq.
+        by rewrite (map_inj_uniq irr_inj) ?enum_uniq.
       rewrite defX inE /=; apply/andP/imageP=> [[/irrP[i ->] kerZ'i] | [i]].
         by exists i; rewrite ?inE.
-      by rewrite !inE => ? ->; rewrite irr_chi.
+      by rewrite !inE => ? ->; rewrite mem_irr.
     by rewrite big_map big_filter; apply: eq_bigl => i; rewrite !inE.
   have eta1tauZ z: z \in Z^# -> tau1 eta1 z - tau1 eta1 1%g = - c * #|H|%:R / a.
     case/setD1P=> ntz Zz; transitivity (psi z - psi 1%g).
@@ -1205,7 +1205,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
         have ->: 'Res[Z] 'chi_k = ('chi_k 1%g)%:A.
           apply: cfun_inP => z Zz; rewrite cfunE cfun1E Zz mulr1 cfResE //.
           by rewrite cfker1 ?(subsetP kerZk).
-        by rewrite cfdotZr -chi0_1 cfdot_irr (negPf nzi) mulr0.
+        by rewrite cfdotZr -irr0 cfdot_irr (negPf nzi) mulr0.
       split=> //; rewrite zcharD1E !cfunE cfInd1 // uniY // lin_i mulr1.
       rewrite -divgS // -(sdprod_card defL) -(Lagrange sZH) -mulnA mulKn //.
       rewrite -natrM subrr rpredB //=; first by rewrite (zchar_subset sXS).
@@ -1220,7 +1220,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
         rewrite cfdot_suml (bigD1 i) //= big1 => [|j i'j]; last first.
           by rewrite cfdotZl cfdot_irr (negPf i'j) mulr0.
         rewrite !cfdotZl cfnorm_irr lin_i addr0 !mulr1.
-        rewrite -chi0_1 cfdot_irr eq_sym (negPf nzi) mulr0 addr0.
+        rewrite -irr0 cfdot_irr eq_sym (negPf nzi) mulr0 addr0.
         by rewrite aut_Cint // Dx0 rpredM ?rpred_nat.
       have [Y2 [X1 [dX1 dY2 oX1Yt]]] :=
         orthogonal_split (map tau1 Y) (tau (alpha i)).
@@ -1245,7 +1245,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
         rewrite (span_orthogonal oXY) ?(zchar_span Xchi) //.
         by rewrite memvZ ?memv_span.
       rewrite induced_prod_index //; congr (#|_ : _|%:R + _).
-        apply/setP=> y; rewrite 2!inE -andbA andb_idr // => Ly.
+        apply/setP=> y; rewrite inE andb_idr // => Ly.
         have cZy: y \in 'C(Z).
           rewrite (subsetP _ y Ly) //; have [_ <- _ _] := sdprodP defL.
           rewrite mulG_subG centsC (subset_trans sZZ) ?subsetIr //=.
@@ -1338,11 +1338,11 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
         by rewrite -defRk -linearZ Da -defRkZ /= cfResRes ?cfcenter_sub.
       exists i => //; apply: contra kerZ'k.
       rewrite -subGcfker => /subsetP sZker.
-      apply/subsetP=> t Zt; rewrite cfker_irrE inE.
+      apply/subsetP=> t Zt; rewrite cfkerEirr inE.
       by rewrite -!(cfResE _ sZH) // defRk !cfunE cfker1 ?sZker.
     set phi := 'chi_i0 in Res_k; pose a_ i := '['Ind[H] phi, 'chi_i].
     pose rp := irr_constt ('Ind[H] phi).
-    have defIphi: 'Ind phi = \sum_(i \in rp) a_ i *: 'chi_i.
+    have defIphi: 'Ind phi = \sum_(i in rp) a_ i *: 'chi_i.
       exact: cfun_sum_constt.
     have a_k: a_ k = a.
       rewrite /a_ -Frobenius_reciprocity Res_k cfdotZr cfnorm_irr mulr1.
@@ -1358,14 +1358,14 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
       have: '['Ind[H] phi, 'Ind[H] 'chi_j] = 0.
         apply: not_cfclass_Ind_ortho => //.
         have defIj: 'I_H['chi_j] = H.
-          apply/setP=> y; rewrite 2!inE -andbA andb_idr // => Hy.
+          apply/setP=> y; rewrite inE andb_idr // => Hy.
           have cZy: y \in 'C(Z).
             by rewrite (subsetP _ _ Hy) // centsC (subset_trans sZZ) ?subsetIr.
           have nZy := subsetP (cent_sub Z) y cZy; rewrite nZy.
           apply/eqP/cfun_inP=> t Zt; rewrite cfConjgE // conjgE invgK mulgA.
           by rewrite (centP cZy) ?mulgK.
         rewrite -(congr1 (cfclass _) defIj) cfclass_inertia inE.
-        by rewrite eq_sym (inj_eq chi_inj).
+        by rewrite eq_sym (inj_eq irr_inj).
       rewrite defIphi cfdot_suml => /psumr_eq0P-> //; first by rewrite eqxx.
       move=> i1 _; rewrite cfdotZl.
       by rewrite mulr_ge0 ?Cnat_ge0 ?Cnat_cfdot_char ?cfInd_char ?irr_char.
@@ -1381,8 +1381,8 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
       rewrite -divgS // -(sdprod_card defL) mulKn // Da_ // mulrC subrr eqxx.
       by rewrite memvB ?cfInd_normal ?memvZ // (seqInd_on _ Yeta1).
     have [sum_alpha sum_a2]:
-         'Ind phi - #|H : Z|%:R *: eta1 = \sum_(i \in rp) a_ i *: alpha i
-      /\ \sum_(i \in rp) a_ i ^+ 2 = #|H : Z|%:R.
+         'Ind phi - #|H : Z|%:R *: eta1 = \sum_(i in rp) a_ i *: alpha i
+      /\ \sum_(i in rp) a_ i ^+ 2 = #|H : Z|%:R.
     + set rhs2 := _%:R; set lhs1 := _ - _; set rhs1 := \sum_(i | _) _.
       set lhs2 := \sum_(i | _) _.
       have eq_diff: lhs1 - rhs1 = (lhs2 - rhs2) *: eta1.
@@ -1402,7 +1402,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
       move=> rp_i; apply/seqIndP; exists i => //; rewrite !inE sub1G andbT.
       apply: contra rp_i => kerZi; rewrite -cfdot_Res_r.
       suffices ->: 'Res[Z] 'chi_i = ('chi_i 1%g)%:A.
-         by rewrite cfdotZr -chi0_1 cfdot_irr (negPf nzi0) mulr0.
+         by rewrite cfdotZr -irr0 cfdot_irr (negPf nzi0) mulr0.
       apply/cfun_inP=> t Zt; rewrite cfResE // cfunE cfun1E Zt mulr1.
       by rewrite cfker1 ?(subsetP kerZi).
     have oRY i: i \in rp -> orthogonal (R (chi i)) (map tau1 Y).

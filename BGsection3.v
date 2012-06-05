@@ -131,7 +131,7 @@ have fixsum: forall H : {group gT}, H \subset G -> (gsum H <= rfix_mx rG H)%MS.
   rewrite -gring_opG // -gring_opM ?envelop_mx_id //; congr (gring_op _ _).
   rewrite {2}/gset_mx (reindex_acts 'R _ Hx) ?astabsR //= mulmx_suml.
   by apply:eq_bigr=> y; move/sHG=> Gy; rewrite repr_mxM.
-have: gsum G + rG 1 *+ #|K| = gsum K + \sum_(x \in K) gsum (R :^ x).
+have: gsum G + rG 1 *+ #|K| = gsum K + \sum_(x in K) gsum (R :^ x).
   rewrite -gring_opG // -sumr_const -!linear_sum -!linearD; congr gring_op.
   rewrite {1}/gset_mx (set_partition_big _ (Frobenius_partition frobG)) /=.
   rewrite big_setU1 -?addrA /=; last first.
@@ -418,7 +418,7 @@ have [sKp | sK1 {ciK card_sK}]: #|[set: sK]| = p \/ #|[set: sK]| = 1%N.
   have inj_i: {in R &, injective ('Cl%act i)}.
     apply/dinjectiveP; apply/card_uniqP; rewrite size_map -cardE -/p.
     by rewrite -sKp def_sK /orbit Imset.imsetE cardsE.
-  pose sM := (\sum_(y \in R) M *m rU y)%MS.
+  pose sM := (\sum_(y in R) M *m rU y)%MS.
   have dxM: mxdirect sM.
     apply/mxdirect_sumsP=> y Ry; have Gy := subsetP sRG y Ry.
     pose j := 'Cl%act i y.
@@ -427,12 +427,12 @@ have [sKp | sK1 {ciK card_sK}]: #|[set: sK]| = p \/ #|[set: sK]| = 1%N.
     apply/sumsmx_subP => z; case/andP=> Rz ne_z_y; have Gz := subsetP sRG z Rz.
     rewrite (sumsmx_sup ('Cl%act i z)) ?(inj_in_eq inj_i) //.
     by rewrite val_Clifford_act // ?submxMr // ?component_mx_id.
-  pose inCR := \sum_(x \in R) rU x.
+  pose inCR := \sum_(x in R) rU x.
   have im_inCR: (inCR <= rfix_mx rU R)%MS.
     apply/rfix_mxP=> x Rx; have Gx := subsetP sRG x Rx.
     rewrite {2}[inCR](reindex_astabs 'R x) ?astabsR //= mulmx_suml.
     by apply: eq_bigr => y; move/(subsetP sRG)=> Gy; rewrite repr_mxM.
-  pose inM := proj_mx M (\sum_(x \in R | x != 1) M *m rU x)%MS.
+  pose inM := proj_mx M (\sum_(x in R | x != 1) M *m rU x)%MS.
   have dxM1 := mxdirect_sumsP dxM _ (group1 R).
   rewrite repr_mx1 mulmx1 in dxM1.
   have inCR_K: M *m inCR *m inM = M.
@@ -1040,7 +1040,7 @@ have{K' iK'K charK' nsK'K sK'K nK'K nK'PR} oKq2: q ^ 2 < #|K|.
   have K'1: K' :=: 1 by exact/commG1P.
   rewrite -indexg1 -K'1 -card_quotient ?normal_norm // iK'K // K'1.
   by rewrite -injm_subcent ?coset1_injm ?norms1 //= tiPRcK morphim1.
-pose S := [set Vi : {group gT} | ('C_V('C_K(Vi)) == Vi) && maximal 'C_K(Vi) K].
+pose S := [set Vi : {group gT} | 'C_V('C_K(Vi)) == Vi & maximal 'C_K(Vi) K].
 have defSV: forall Vi, Vi \in S -> 'C_V('C_K(Vi)) = Vi.
   by move=> Vi; rewrite inE; case: eqP.
 have maxSK: forall Vi, Vi \in S -> maximal 'C_K(Vi) K.
@@ -1053,7 +1053,7 @@ have ntSV: forall Vi, Vi \in S -> Vi :!=: 1.
 have nSK: forall Vi, Vi \in S -> K \subset 'N(Vi).
   move=> Vi; move/defSV <-; rewrite normsI ?norms_cent //.
   by rewrite sub_abelian_norm ?subsetIl.
-have defV: <<\bigcup_(Vi \in S) Vi>> = V.
+have defV: <<\bigcup_(Vi in S) Vi>> = V.
   apply/eqP; rewrite eqEsubset gen_subG.
   apply/andP; split; first by apply/bigcupsP; exact: sSV.
   rewrite -(coprime_abelian_gen_cent cKK nVK) ?(pnat_coprime pV) // gen_subG.
@@ -1073,9 +1073,9 @@ have defV: <<\bigcup_(Vi \in S) Vi>> = V.
   rewrite ['C_K(Vj)]maxKj //; last by rewrite subsetI sKjK centsC subsetIr.
   rewrite properEneq subsetIl andbT (sameP eqP setIidPl) centsC.
   by apply: contra ntVj; rewrite -subG1 -tiVcK subsetI subsetIl.
-pose dxp := [fun D : {set {group gT}} => \big[dprod/1]_(Vi \in D) Vi].
-have{defV} defV : \big[dprod/1]_(Vi \in S) Vi = V.
-  have [D maxD]: {D | maxset [pred E | group_set (dxp E) && (E \subset S)] D}.
+pose dxp := [fun D : {set {group gT}} => \big[dprod/1]_(Vi in D) Vi].
+have{defV} defV : \big[dprod/1]_(Vi in S) Vi = V.
+  have [D maxD]: {D | maxset [pred E | group_set (dxp E) & E \subset S] D}.
     by apply: ex_maxset; exists set0; rewrite /= sub0set big_set0 groupP.
   have [gW sDS] := andP (maxsetp maxD); have{maxD} [_ maxD] := maxsetP maxD.
   have{gW} [W /= defW]: {W : {group gT} | dxp D = W} by exists (Group gW).
@@ -1140,10 +1140,10 @@ have transPR: [transitive P <*> R, on S | 'JG].
   rewrite -tiUW eqUV subsetI sSV // -(bigdprodEY defW).
   by rewrite (bigD1 Vi) ?joing_subl // inE Si inE.
 have [cSR | not_cSR]:= boolP (R \subset 'C(S | 'JG)).
-  have{cSR} sRnSV: R \subset \bigcap_(Vi \in S) 'N(Vi).
+  have{cSR} sRnSV: R \subset \bigcap_(Vi in S) 'N(Vi).
     apply/bigcapsP=> Vi Si.
     by rewrite -astab1JG (subset_trans cSR) ?astabS ?sub1set.
-  have sPRnSV: P <*> R \subset 'N(\bigcap_(Vi \in S) 'N(Vi)).
+  have sPRnSV: P <*> R \subset 'N(\bigcap_(Vi in S) 'N(Vi)).
     apply/subsetP=> x PRx; rewrite inE; apply/bigcapsP=> Vi Si.
     by rewrite sub_conjg -normJ bigcap_inf ?(acts_act actsPR) ?groupV.
   have [V1 S1] := imsetP transPR.
@@ -1161,7 +1161,7 @@ have actsR: [acts R, on S | 'JG] := subset_trans (joing_subr P R) actsPR.
 have ntSRcR: forall Vi, Vi \in S -> ~~ (R \subset 'N(Vi)) ->
                  #|Vi| = p /\ 'C_V(R) \subset <<class_support Vi R>>.
 - move=> V1 S1 not_nV1R; have [sV1 nV] := (subsetP (sSV V1 S1), subsetP nVR).
-  pose f v := fmval (\sum_(x \in R) fmod cVV v ^@ x).
+  pose f v := fmval (\sum_(x in R) fmod cVV v ^@ x).
   have fM: {in V1 &, {morph f: u v / u * v}}.
     move=> u v; move/sV1=> Vu; move/sV1=> Vv; rewrite -fmvalA -big_split.
     by congr (fmval _); apply: eq_bigr => x Rx; rewrite /= -actAr fmodM.

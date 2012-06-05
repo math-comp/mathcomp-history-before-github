@@ -840,7 +840,7 @@ Qed.
 
 Lemma sol_coprime_Sylow_trans A G :
     solvable A -> A \subset 'N(G) -> coprime #|G| #|A| ->
-  [transitive 'C_G(A), on [set P \in 'Syl_p(G) | A \subset 'N(P)] | 'JG].
+  [transitive 'C_G(A), on [set P in 'Syl_p(G) | A \subset 'N(P)] | 'JG].
 Proof.
 move=> solA nGA coGA; pose AG := A <*> G; set FpA := finset _.
 have nG_AG: AG \subset 'N(G) by rewrite join_subG nGA normG.

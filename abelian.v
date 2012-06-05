@@ -30,11 +30,11 @@ Require Import pgroup gseries nilpotent sylow.
 (*                       p ^ 'm(G) and rank (logn p #|G|).                    *)
 (*        is_abelem G == G is an elementary abelian p-group for some prime p. *)
 (*            'E_p(G) == the set of elementary abelian p-subgroups of G.      *)
-(*                    := [set E : {group _} | p.-abelem E && (E \subset G)]   *)
+(*                    := [set E : {group _} | p.-abelem E & E \subset G]      *)
 (*          'E_p^n(G) == the set of elementary abelian p-subgroups of G of    *)
 (*                       order p ^ n (or, equivalently, of rank n).           *)
-(*                    := [set E \in 'E_p(G) | logn p #|E| == n]               *)
-(*                    := [set E \in 'E_p(G) | #|E| == p ^ n]%N if p is prime  *)
+(*                    := [set E in 'E_p(G) | logn p #|E| == n]                *)
+(*                    := [set E in 'E_p(G) | #|E| == p ^ n]%N if p is prime   *)
 (*           'E*_p(G) == the set of maximal elementary abelian p-subgroups    *)
 (*                       of G.                                                *)
 (*                    := [set E | [max E | E \in 'E_p(G)]]                    *)
@@ -43,7 +43,7 @@ Require Import pgroup gseries nilpotent sylow.
 (*                    := \bigcup_(0 <= p < #|G|.+1) 'E_p^n(G)                 *)
 (*            'r_p(G) == the p-rank of G: the maximal rank of an elementary   *)
 (*                       subgroup of G.                                       *)
-(*                    := \max_(E \in 'E_p(G)) logn p #|E|.                    *)
+(*                    := \max_(E in 'E_p(G)) logn p #|E|.                     *)
 (*              'r(G) == the rank of G.                                       *)
 (*                    := \max_(0 <= p < #|G|.+1) 'm_p(G).                     *)
 (* Note that 'r(G) coincides with 'r_p(G) if G is a p-group, and with 'm(G)   *)
@@ -80,21 +80,21 @@ Implicit Types (x : gT) (A B : {set gT}) (pi : nat_pred) (p n : nat).
 
 Definition Ldiv n := [set x : gT | x ^+ n == 1].
 
-Definition exponent A := \big[lcmn/1%N]_(x \in A) #[x].
+Definition exponent A := \big[lcmn/1%N]_(x in A) #[x].
 
 Definition abelem p A := [&& p.-group A, abelian A & exponent A %| p].
 
 Definition is_abelem A := abelem (pdiv #|A|) A.
 
-Definition pElem p A := [set E : {group gT} | (E \subset A) && abelem p E].
+Definition pElem p A := [set E : {group gT} | E \subset A & abelem p E].
 
-Definition pnElem p n A := [set E \in pElem p A | logn p #|E| == n].
+Definition pnElem p n A := [set E in pElem p A | logn p #|E| == n].
 
 Definition nElem n A :=  \bigcup_(0 <= p < #|A|.+1) pnElem p n A.
 
 Definition pmaxElem p A := [set E | [max E | E \in pElem p A]].
 
-Definition p_rank p A := \max_(E \in pElem p A) logn p #|E|.
+Definition p_rank p A := \max_(E in pElem p A) logn p #|E|.
 
 Definition rank A := \max_(0 <= p < #|A|.+1) p_rank p A.
 
@@ -143,9 +143,9 @@ Section Functors.
 
 Variables (n : nat) (gT : finGroupType) (A : {set gT}).
 
-Definition Ohm := <<[set x \in A | x ^+ (pdiv #[x] ^ n) == 1]>>.
+Definition Ohm := <<[set x in A | x ^+ (pdiv #[x] ^ n) == 1]>>.
 
-Definition Mho := <<[set x ^+ (pdiv #[x] ^ n) | x <- A, (pdiv #[x]).-elt x]>>.
+Definition Mho := <<[set x ^+ (pdiv #[x] ^ n) | x in A & (pdiv #[x]).-elt x]>>.
 
 Canonical Ohm_group : {group gT} := Eval hnf in [group of Ohm].
 Canonical Mho_group : {group gT} := Eval hnf in [group of Mho].
@@ -513,7 +513,7 @@ Lemma pnElem_prime p n A E : E \in 'E_p^n.+1(A) -> prime p.
 Proof. by case/pnElemP=> _ _; rewrite lognE; case: prime. Qed.
 
 Lemma pnElemE p n A :
-  prime p -> 'E_p^n(A) = [set E \in 'E_p(A) | #|E| == (p ^ n)%N].
+  prime p -> 'E_p^n(A) = [set E in 'E_p(A) | #|E| == (p ^ n)%N].
 Proof.
 move/pfactorK=> pnK; apply/setP=> E; rewrite 3!inE.
 case: (@andP (E \subset A)) => //= [[_]] /andP[/p_natP[k ->] _].
@@ -544,7 +544,7 @@ Qed.
 Lemma card_p1Elem p A X : X \in 'E_p^1(A) -> #|X| = p.
 Proof. exact: card_pnElem. Qed.
 
-Lemma p1ElemE p A : prime p -> 'E_p^1(A) = [set X \in subgroups A | #|X| == p].
+Lemma p1ElemE p A : prime p -> 'E_p^1(A) = [set X in subgroups A | #|X| == p].
 Proof.
 move=> p_pr; apply/setP=> X; rewrite pnElemE // !inE -andbA; congr (_ && _).
 by apply: andb_idl => /eqP oX; rewrite prime_abelem ?oX.
@@ -1228,7 +1228,7 @@ move=> sHG; apply: genS; apply: imsetS; apply/subsetP=> x.
 by rewrite !inE => /andP[Hx]; rewrite (subsetP sHG).
 Qed.
 
-Lemma MhoE p G : p.-group G -> 'Mho^n(G) = <<[set x ^+ (p ^ n) | x <- G]>>.
+Lemma MhoE p G : p.-group G -> 'Mho^n(G) = <<[set x ^+ (p ^ n) | x in G]>>.
 Proof.
 move=> pG; apply/eqP; rewrite eqEsubset !gen_subG; apply/andP.
 do [split; apply/subsetP=> xpn; case/imsetP=> x] => [|Gx ->]; last first.
@@ -1238,7 +1238,7 @@ by rewrite (pdiv_p_elt (mem_p_elt pG Gx) ntx) mem_gen //; exact: mem_imset.
 Qed.
 
 Lemma MhoEabelian p G :
-  p.-group G -> abelian G -> 'Mho^n(G) = [set x ^+ (p ^ n) | x <- G].
+  p.-group G -> abelian G -> 'Mho^n(G) = [set x ^+ (p ^ n) | x in G].
 Proof.
 move=> pG cGG; rewrite (MhoE pG); rewrite gen_set_id //; apply/group_setP.
 split=> [|xn yn]; first by apply/imsetP; exists 1; rewrite ?expg1n.
@@ -1374,7 +1374,7 @@ rewrite !expnS /= !expgM => /cycleP[j ->].
 by rewrite -!expgM mulnCA mulnC expgM mem_cycle.
 Qed.
 
-Lemma Ohm1Eprime G : 'Ohm_1(G) = <<[set x \in G | prime #[x]]>>.
+Lemma Ohm1Eprime G : 'Ohm_1(G) = <<[set x in G | prime #[x]]>>.
 Proof.
 rewrite -['Ohm_1(G)](genD1 (group1 _)); congr <<_>>.
 apply/setP=> x; rewrite !inE andbCA -order_dvdn -order_gt1; congr (_ && _).
@@ -1796,7 +1796,7 @@ Lemma grank_abelian G : abelian G -> 'm(G) = 'r(G).
 Proof.
 move=> cGG; apply/eqP; rewrite eqn_leq; apply/andP; split.
   rewrite -size_abelian_type //; case/abelian_structure: cGG => b defG <-.
-  suffices <-: <<[set x \in b]>> = G.
+  suffices <-: <<[set x in b]>> = G.
     by rewrite (leq_trans (grank_min _)) // size_map cardsE card_size.
   rewrite -{G defG}(bigdprodEY defG).
   elim: b => [|x b IHb]; first by rewrite big_nil gen0.

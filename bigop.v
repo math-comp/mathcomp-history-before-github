@@ -37,7 +37,7 @@ Require Import finfun path.
 (*    (i < n)      i ranges over the (finite) type 'I_n (i.e., ordinal n)     *)
 (*    (i : T)      i ranges over the finite type T                            *)
 (*    i or (i)     i ranges over its (inferred) finite type                   *)
-(*    (i \in A)    i ranges over the elements that satisfy the collective     *)
+(*    (i in A)     i ranges over the elements that satisfy the collective     *)
 (*                 predicate A (the domain of A must be a finite type)        *)
 (*    (i <- s | C) limits the range to those i for which C holds (i is thus   *)
 (*                 bound in C); works with all six kinds of ranges above.     *)
@@ -126,12 +126,12 @@ Reserved Notation "\big [ op / idx ]_ ( i < n | P ) F"
 Reserved Notation "\big [ op / idx ]_ ( i < n ) F"
   (at level 36, F at level 36, op, idx at level 10, i, n at level 50,
            format "'[' \big [ op / idx ]_ ( i  <  n )  F ']'").
-Reserved Notation "\big [ op / idx ]_ ( i \in A | P ) F"
+Reserved Notation "\big [ op / idx ]_ ( i 'in' A | P ) F"
   (at level 36, F at level 36, op, idx at level 10, i, A at level 50,
-           format "'[' \big [ op / idx ]_ ( i  \in  A  |  P ) '/  '  F ']'").
-Reserved Notation "\big [ op / idx ]_ ( i \in A ) F"
+           format "'[' \big [ op / idx ]_ ( i  'in'  A  |  P ) '/  '  F ']'").
+Reserved Notation "\big [ op / idx ]_ ( i 'in' A ) F"
   (at level 36, F at level 36, op, idx at level 10, i, A at level 50,
-           format "'[' \big [ op / idx ]_ ( i  \in  A ) '/  '  F ']'").
+           format "'[' \big [ op / idx ]_ ( i  'in'  A ) '/  '  F ']'").
 
 Reserved Notation "\sum_ i F"
   (at level 41, F at level 41, i at level 0,
@@ -167,12 +167,12 @@ Reserved Notation "\sum_ ( i < n | P ) F"
 Reserved Notation "\sum_ ( i < n ) F"
   (at level 41, F at level 41, i, n at level 50,
            format "'[' \sum_ ( i  <  n ) '/  '  F ']'").
-Reserved Notation "\sum_ ( i \in A | P ) F"
+Reserved Notation "\sum_ ( i 'in' A | P ) F"
   (at level 41, F at level 41, i, A at level 50,
-           format "'[' \sum_ ( i  \in  A  |  P ) '/  '  F ']'").
-Reserved Notation "\sum_ ( i \in A ) F"
+           format "'[' \sum_ ( i  'in'  A  |  P ) '/  '  F ']'").
+Reserved Notation "\sum_ ( i 'in' A ) F"
   (at level 41, F at level 41, i, A at level 50,
-           format "'[' \sum_ ( i  \in  A ) '/  '  F ']'").
+           format "'[' \sum_ ( i  'in'  A ) '/  '  F ']'").
 
 Reserved Notation "\max_ i F"
   (at level 41, F at level 41, i at level 0,
@@ -207,12 +207,12 @@ Reserved Notation "\max_ ( i < n | P ) F"
 Reserved Notation "\max_ ( i < n ) F"
   (at level 41, F at level 41, i, n at level 50,
            format "'[' \max_ ( i  <  n )  F ']'").
-Reserved Notation "\max_ ( i \in A | P ) F"
+Reserved Notation "\max_ ( i 'in' A | P ) F"
   (at level 41, F at level 41, i, A at level 50,
-           format "'[' \max_ ( i  \in  A  |  P ) '/  '  F ']'").
-Reserved Notation "\max_ ( i \in A ) F"
+           format "'[' \max_ ( i  'in'  A  |  P ) '/  '  F ']'").
+Reserved Notation "\max_ ( i 'in' A ) F"
   (at level 41, F at level 41, i, A at level 50,
-           format "'[' \max_ ( i  \in  A ) '/  '  F ']'").
+           format "'[' \max_ ( i  'in'  A ) '/  '  F ']'").
 
 Reserved Notation "\prod_ i F"
   (at level 36, F at level 36, i at level 0,
@@ -247,12 +247,12 @@ Reserved Notation "\prod_ ( i < n | P ) F"
 Reserved Notation "\prod_ ( i < n ) F"
   (at level 36, F at level 36, i, n at level 50,
            format "'[' \prod_ ( i  <  n ) '/  '  F ']'").
-Reserved Notation "\prod_ ( i \in A | P ) F"
+Reserved Notation "\prod_ ( i 'in' A | P ) F"
   (at level 36, F at level 36, i, A at level 50,
-           format "'[' \prod_ ( i  \in  A  |  P )  F ']'").
-Reserved Notation "\prod_ ( i \in A ) F"
+           format "'[' \prod_ ( i  'in'  A  |  P )  F ']'").
+Reserved Notation "\prod_ ( i 'in' A ) F"
   (at level 36, F at level 36, i, A at level 50,
-           format "'[' \prod_ ( i  \in  A ) '/  '  F ']'").
+           format "'[' \prod_ ( i  'in'  A ) '/  '  F ']'").
 
 Reserved Notation "\bigcup_ i F"
   (at level 41, F at level 41, i at level 0,
@@ -287,12 +287,12 @@ Reserved Notation "\bigcup_ ( i < n | P ) F"
 Reserved Notation "\bigcup_ ( i < n ) F"
   (at level 41, F at level 41, i, n at level 50,
            format "'[' \bigcup_ ( i  <  n ) '/  '  F ']'").
-Reserved Notation "\bigcup_ ( i \in A | P ) F"
+Reserved Notation "\bigcup_ ( i 'in' A | P ) F"
   (at level 41, F at level 41, i, A at level 50,
-           format "'[' \bigcup_ ( i  \in  A  |  P ) '/  '  F ']'").
-Reserved Notation "\bigcup_ ( i \in A ) F"
+           format "'[' \bigcup_ ( i  'in'  A  |  P ) '/  '  F ']'").
+Reserved Notation "\bigcup_ ( i 'in' A ) F"
   (at level 41, F at level 41, i, A at level 50,
-           format "'[' \bigcup_ ( i  \in  A ) '/  '  F ']'").
+           format "'[' \bigcup_ ( i  'in'  A ) '/  '  F ']'").
 
 Reserved Notation "\bigcap_ i F"
   (at level 41, F at level 41, i at level 0,
@@ -327,12 +327,12 @@ Reserved Notation "\bigcap_ ( i < n | P ) F"
 Reserved Notation "\bigcap_ ( i < n ) F"
   (at level 41, F at level 41, i, n at level 50,
            format "'[' \bigcap_ ( i  <  n ) '/  '  F ']'").
-Reserved Notation "\bigcap_ ( i \in A | P ) F"
+Reserved Notation "\bigcap_ ( i 'in' A | P ) F"
   (at level 41, F at level 41, i, A at level 50,
-           format "'[' \bigcap_ ( i  \in  A  |  P ) '/  '  F ']'").
-Reserved Notation "\bigcap_ ( i \in A ) F"
+           format "'[' \bigcap_ ( i  'in'  A  |  P ) '/  '  F ']'").
+Reserved Notation "\bigcap_ ( i 'in' A ) F"
   (at level 41, F at level 41, i, A at level 50,
-           format "'[' \bigcap_ ( i  \in  A ) '/  '  F ']'").
+           format "'[' \bigcap_ ( i  'in'  A ) '/  '  F ']'").
 
 Module Monoid.
 
@@ -586,9 +586,9 @@ Notation "\big [ op / idx ]_ ( i < n | P ) F" :=
   (\big[op/idx]_(i : ordinal n | P%B) F) : big_scope.
 Notation "\big [ op / idx ]_ ( i < n ) F" :=
   (\big[op/idx]_(i : ordinal n) F) : big_scope.
-Notation "\big [ op / idx ]_ ( i \in A | P ) F" :=
+Notation "\big [ op / idx ]_ ( i 'in' A | P ) F" :=
   (\big[op/idx]_(i | (i \in A) && P) F) : big_scope.
-Notation "\big [ op / idx ]_ ( i \in A ) F" :=
+Notation "\big [ op / idx ]_ ( i 'in' A ) F" :=
   (\big[op/idx]_(i | i \in A) F) : big_scope.
 
 Notation Local "+%N" := addn (at level 0, only parsing).
@@ -614,10 +614,10 @@ Notation "\sum_ ( i < n | P ) F" :=
   (\big[+%N/0%N]_(i < n | P%B) F%N) : nat_scope.
 Notation "\sum_ ( i < n ) F" :=
   (\big[+%N/0%N]_(i < n) F%N) : nat_scope.
-Notation "\sum_ ( i \in A | P ) F" :=
-  (\big[+%N/0%N]_(i \in A | P%B) F%N) : nat_scope.
-Notation "\sum_ ( i \in A ) F" :=
-  (\big[+%N/0%N]_(i \in A) F%N) : nat_scope.
+Notation "\sum_ ( i 'in' A | P ) F" :=
+  (\big[+%N/0%N]_(i in A | P%B) F%N) : nat_scope.
+Notation "\sum_ ( i 'in' A ) F" :=
+  (\big[+%N/0%N]_(i in A) F%N) : nat_scope.
 
 Notation Local "*%N" := muln (at level 0, only parsing).
 Notation "\prod_ ( <- r | P ) F" :=
@@ -642,10 +642,10 @@ Notation "\prod_ ( i < n | P ) F" :=
   (\big[*%N/1%N]_(i < n | P%B) F%N) : nat_scope.
 Notation "\prod_ ( i < n ) F" :=
   (\big[*%N/1%N]_(i < n) F%N) : nat_scope.
-Notation "\prod_ ( i \in A | P ) F" :=
-  (\big[*%N/1%N]_(i \in A | P%B) F%N) : nat_scope.
-Notation "\prod_ ( i \in A ) F" :=
-  (\big[*%N/1%N]_(i \in A) F%N) : nat_scope.
+Notation "\prod_ ( i 'in' A | P ) F" :=
+  (\big[*%N/1%N]_(i in A | P%B) F%N) : nat_scope.
+Notation "\prod_ ( i 'in' A ) F" :=
+  (\big[*%N/1%N]_(i in A) F%N) : nat_scope.
 
 Notation "\max_ ( <- r | P ) F" :=
   (\big[maxn/0%N]_(<- r | P%B) F%N) : nat_scope.
@@ -669,23 +669,23 @@ Notation "\max_ ( i < n | P ) F" :=
  (\big[maxn/0%N]_(i < n | P%B) F%N) : nat_scope.
 Notation "\max_ ( i < n ) F" :=
  (\big[maxn/0%N]_(i < n) F%N) : nat_scope.
-Notation "\max_ ( i \in A | P ) F" :=
- (\big[maxn/0%N]_(i \in A | P%B) F%N) : nat_scope.
-Notation "\max_ ( i \in A ) F" :=
- (\big[maxn/0%N]_(i \in A) F%N) : nat_scope.
+Notation "\max_ ( i 'in' A | P ) F" :=
+ (\big[maxn/0%N]_(i in A | P%B) F%N) : nat_scope.
+Notation "\max_ ( i 'in' A ) F" :=
+ (\big[maxn/0%N]_(i in A) F%N) : nat_scope.
 
 (* Redundant, unparseable notation to print some constant sums and products. *)
 Notation "\su 'm_' ( i | P ) e" :=
   (\sum_(<- index_enum _ | (fun i => P)) (fun _ => e%N))
   (at level 41, e at level 41, format "\su 'm_' ( i  |  P )  e") : nat_scope.
 
-Notation "\su 'm_' ( i \in A ) e" :=
+Notation "\su 'm_' ( i 'in' A ) e" :=
   (\sum_(<- index_enum _ | (fun i => i \in A)) (fun _ => e%N))
-  (at level 41, e at level 41, format "\su 'm_' ( i  \in  A )  e") : nat_scope.
+  (at level 41, e at level 41, format "\su 'm_' ( i  'in'  A )  e") : nat_scope.
 
-Notation "\su 'm_' ( i \in A | P ) e" :=
+Notation "\su 'm_' ( i 'in' A | P ) e" :=
   (\sum_(<- index_enum _ | (fun i => (i \in A) && P)) (fun _ => e%N))
-  (at level 41, e at level 41, format "\su 'm_' ( i  \in  A  |  P )  e")
+  (at level 41, e at level 41, format "\su 'm_' ( i  'in'  A  |  P )  e")
     : nat_scope.
 
 Notation "\pro 'd_' ( i | P ) e" :=
@@ -1074,7 +1074,7 @@ by apply: eq_bigr => i _; rewrite eqFG.
 Qed.
 
 Lemma big_const (I : finType) (A : pred I) x :
-  \big[op/idx]_(i \in A) x = iter #|A| (op x) idx.
+  \big[op/idx]_(i in A) x = iter #|A| (op x) idx.
 Proof. by rewrite big_const_seq count_filter cardE. Qed.
 
 Lemma big_const_nat m n x :
@@ -1226,7 +1226,7 @@ move/(_ a): eq_r12; rewrite !count_cat /= addnCA; exact: addnI.
 Qed.
 
 Lemma big_uniq (I : finType) (r : seq I) F :
-  uniq r -> \big[*%M/1]_(i <- r) F i = \big[*%M/1]_(i | i \in r) F i.
+  uniq r -> \big[*%M/1]_(i <- r) F i = \big[*%M/1]_(i in r) F i.
 Proof.
 move=> uniq_r; rewrite -(big_filter _ _ _ (mem r)); apply: eq_big_perm.
 by rewrite filter_index_enum uniq_perm_eq ?enum_uniq // => i; rewrite mem_enum.
@@ -1285,8 +1285,8 @@ Implicit Arguments bigID [I r].
 
 Lemma bigU (I : finType) (A B : pred I) F :
     [disjoint A & B] ->
-  \big[*%M/1]_(i \in [predU A & B]) F i =
-    (\big[*%M/1]_(i \in A) F i) * (\big[*%M/1]_(i \in B) F i).
+  \big[*%M/1]_(i in [predU A & B]) F i =
+    (\big[*%M/1]_(i in A) F i) * (\big[*%M/1]_(i in B) F i).
 Proof.
 move=> dAB; rewrite (bigID (mem A)).
 congr (_ * _); apply: eq_bigl => i; first by rewrite orbK.
@@ -1308,7 +1308,7 @@ Lemma bigD1_seq (I : eqType) (r : seq I) j F :
 Proof. by move=> /big_rem-> /rem_filter->; rewrite big_filter. Qed.
 
 Lemma cardD1x (I : finType) (A : pred I) j :
-  A j -> #|SimplPred A| = 1 + #|[pred i | A i && (i != j)]|.
+  A j -> #|SimplPred A| = 1 + #|[pred i | A i & i != j]|.
 Proof.
 move=> Aj; rewrite (cardD1 j) [j \in A]Aj; congr (_ + _).
 by apply: eq_card => i; rewrite inE /= andbC.
@@ -1524,11 +1524,11 @@ Proof. by rewrite big_distrl; apply: eq_bigr => i _; rewrite big_distrr. Qed.
 
 Lemma big_distr_big_dep (I J : finType) j0 (P : pred I) (Q : I -> pred J) F :
   \big[*%M/1]_(i | P i) \big[+%M/0]_(j | Q i j) F i j =
-     \big[+%M/0]_(f | f \in pfamily j0 P Q) \big[*%M/1]_(i | P i) F i (f i).
+     \big[+%M/0]_(f in pfamily j0 P Q) \big[*%M/1]_(i | P i) F i (f i).
 Proof.
 pose fIJ := {ffun I -> J}; pose Pf := pfamily j0 (_ : seq I) Q.
 rewrite -big_filter filter_index_enum; set r := enum P; symmetry.
-transitivity (\big[+%M/0]_(f | f \in Pf r) \big[*%M/1]_(i <- r) F i (f i)).
+transitivity (\big[+%M/0]_(f in Pf r) \big[*%M/1]_(i <- r) F i (f i)).
   apply: eq_big => f; last by rewrite -big_filter filter_index_enum.
   by apply: eq_forallb => i; rewrite /= mem_enum.
 have: uniq r by exact: enum_uniq.
@@ -1556,7 +1556,7 @@ Qed.
 
 Lemma big_distr_big (I J : finType) j0 (P : pred I) (Q : pred J) F :
   \big[*%M/1]_(i | P i) \big[+%M/0]_(j | Q j) F i j =
-     \big[+%M/0]_(f | f \in pffun_on j0 P Q) \big[*%M/1]_(i | P i) F i (f i).
+     \big[+%M/0]_(f in pffun_on j0 P Q) \big[*%M/1]_(i | P i) F i (f i).
 Proof.
 rewrite (big_distr_big_dep j0); apply: eq_bigl => f.
 by apply/familyP/familyP=> Pf i; case: ifP (Pf i).
@@ -1564,7 +1564,7 @@ Qed.
 
 Lemma bigA_distr_big_dep (I J : finType) (Q : I -> pred J) F :
   \big[*%M/1]_i \big[+%M/0]_(j | Q i j) F i j
-    = \big[+%M/0]_(f | f \in family Q) \big[*%M/1]_i F i (f i).
+    = \big[+%M/0]_(f in family Q) \big[*%M/1]_i F i (f i).
 Proof.
 case: (pickP J) => [j0 _ | J0]; first exact: (big_distr_big_dep j0).
 rewrite {1 4}/index_enum -enumT; case: (enum I) (mem_enum I) => [I0 | i r _].
@@ -1578,7 +1578,7 @@ Qed.
 
 Lemma bigA_distr_big (I J : finType) (Q : pred J) (F : I -> J -> R) :
   \big[*%M/1]_i \big[+%M/0]_(j | Q j) F i j
-    = \big[+%M/0]_(f | f \in ffun_on Q) \big[*%M/1]_i F i (f i).
+    = \big[+%M/0]_(f in ffun_on Q) \big[*%M/1]_i F i (f i).
 Proof. exact: bigA_distr_big_dep. Qed.
 
 Lemma bigA_distr_bigA (I J : finType) F :
@@ -1621,10 +1621,10 @@ Section FinType.
 
 Variables (I : finType) (P B : pred I).
 
-Lemma big_orE : \big[orb/false]_(i | P i) B i = (existsb i, P i && B i).
+Lemma big_orE : \big[orb/false]_(i | P i) B i = [exists (i | P i), B i].
 Proof. by rewrite big_has_cond; apply/hasP/existsP=> [] [i]; exists i. Qed.
 
-Lemma big_andE : \big[andb/true]_(i | P i) B i = (forallb i, P i ==> B i).
+Lemma big_andE : \big[andb/true]_(i | P i) B i = [forall (i | P i), B i].
 Proof.
 rewrite big_all_cond; apply/allP/forallP=> /= allB i; rewrite allB //.
 exact: mem_index_enum.
@@ -1638,13 +1638,19 @@ Section NatConst.
 
 Variables (I : finType) (A : pred I).
 
-Lemma sum_nat_const n : \sum_(i \in A) n = #|A| * n.
-Proof. by rewrite big_const; elim: #|A| => //= i ->. Qed.
+Lemma sum_nat_const n : \sum_(i in A) n = #|A| * n.
+Proof. by rewrite big_const iter_addn_0 mulnC. Qed.
 
-Lemma sum1_card : \sum_(i \in A) 1 = #|A|.
+Lemma sum1_card : \sum_(i in A) 1 = #|A|.
 Proof. by rewrite sum_nat_const muln1. Qed.
 
-Lemma prod_nat_const n : \prod_(i \in A) n = n ^ #|A|.
+Lemma sum1_count J (r : seq J) (a : pred J) : \sum_(j <- r | a j) 1 = count a r.
+Proof. by rewrite big_const_seq iter_addn_0 mul1n. Qed.
+
+Lemma sum1_size J (r : seq J) : \sum_(j <- r) 1 = size r.
+Proof. by rewrite sum1_count count_predT. Qed.
+
+Lemma prod_nat_const n : \prod_(i in A) n = n ^ #|A|.
 Proof. by rewrite big_const -Monoid.iteropE. Qed.
 
 Lemma sum_nat_const_nat n1 n2 n : \sum_(n1 <= i < n2) n = (n2 - n1) * n.
@@ -1657,7 +1663,7 @@ End NatConst.
 
 Lemma leqif_sum (I : finType) (P C : pred I) (E1 E2 : I -> nat) :
     (forall i, P i -> E1 i <= E2 i ?= iff C i) ->
-  \sum_(i | P i) E1 i <= \sum_(i | P i) E2 i ?= iff (forallb i, P i ==> C i).
+  \sum_(i | P i) E1 i <= \sum_(i | P i) E2 i ?= iff [forall (i | P i), C i].
 Proof.
 move=> leE12; rewrite -big_andE.
 by elim/big_rec3: _ => // i Ci m1 m2 /leE12; exact: leqif_add.
@@ -1669,7 +1675,7 @@ Lemma leq_sum I r (P : pred I) (E1 E2 : I -> nat) :
 Proof. by move=> leE12; elim/big_ind2: _ => // m1 m2 n1 n2; exact: leq_add. Qed.
 
 Lemma sum_nat_eq0 (I : finType) (P : pred I) (E : I -> nat) :
-  (\sum_(i | P i) E i == 0)%N = (forallb i, P i ==> (E i == 0))%N.
+  (\sum_(i | P i) E i == 0)%N = [forall (i | P i), E i == 0%N].
 Proof. by rewrite eq_sym -(@leqif_sum I P _ (fun _ => 0%N) E) ?big1_eq. Qed.
 
 Lemma prodn_cond_gt0 I r (P : pred I) F :
@@ -1711,10 +1717,10 @@ Qed.
 Implicit Arguments bigmax_eq_arg [I P F].
 
 Lemma eq_bigmax_cond (I : finType) (A : pred I) F :
-  #|A| > 0 -> {i0 | i0 \in A & \max_(i \in A) F i = F i0}.
+  #|A| > 0 -> {i0 | i0 \in A & \max_(i in A) F i = F i0}.
 Proof.
 case: (pickP A) => [i0 Ai0 _ | ]; last by move/eq_card0->.
-by exists [arg max_(i > i0 \in A) F i]; [case: arg_maxP | exact: bigmax_eq_arg].
+by exists [arg max_(i > i0 in A) F i]; [case: arg_maxP | exact: bigmax_eq_arg].
 Qed.
 
 Lemma eq_bigmax (I : finType) F : #|I| > 0 -> {i0 : I | \max_i F i = F i0}.

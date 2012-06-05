@@ -51,7 +51,7 @@ Variables (gT : finGroupType) (Q A : {set gT}).
 (******************************************************************************)
 
 Notation H := <<A>>.
-Definition coset_range := [pred B \in rcosets H 'N(A)].
+Definition coset_range := [pred B in rcosets H 'N(A)].
 
 Record coset_of : Type :=
   Coset { set_of_coset :> GroupSet.sort gT; _ : coset_range set_of_coset }.
@@ -387,7 +387,7 @@ Lemma quotient_class x A :
 Proof. exact: morphim_class. Qed.
 
 Lemma classes_quotient A :
-  A \subset 'N(H) -> classes (A / H) = [set xA / H | xA <- classes A].
+  A \subset 'N(H) -> classes (A / H) = [set xA / H | xA in classes A].
 Proof. exact: classes_morphim. Qed.
 
 Lemma cosetpre_set1 x :

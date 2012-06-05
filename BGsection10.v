@@ -49,12 +49,12 @@ Definition alpha_core := 'O_alpha(M).
 Canonical Structure alpha_core_group := Eval hnf in [group of alpha_core].
 
 Definition beta :=
-  [pred p | forallb P : {group gT}, p.-Sylow(M) P ==> ~~ p.-narrow P].
+  [pred p | [forall (P : {group gT} | p.-Sylow(M) P), ~~ p.-narrow P]].
 Definition beta_core := 'O_beta(M).
 Canonical Structure beta_core_group := Eval hnf in [group of beta_core].
 
 Definition sigma :=
-  [pred p | existsb P : {group gT}, p.-Sylow(M) P && ('N(P) \subset M)].
+  [pred p | [exists (P : {group gT} | p.-Sylow(M) P), 'N(P) \subset M]].
 Definition sigma_core := 'O_sigma(M).
 Canonical Structure sigma_core_group := Eval hnf in [group of sigma_core].
 
@@ -228,11 +228,11 @@ Theorem sigma_group_trans : forall M p X,
      M \in 'M -> p \in \sigma(M) -> p.-group X ->
   [/\ (*a*) forall g, X \subset M -> X :^ g \subset M ->
             exists2 c, c \in 'C(X) & exists2 m, m \in M & g = c * m,
-      (*b*) [transitive 'C(X), on [set Mg \in M :^: G | X \subset Mg] | 'Js ]
+      (*b*) [transitive 'C(X), on [set Mg in M :^: G | X \subset Mg] | 'Js ]
     & (*c*) X \subset M -> 'C(X) * 'N_M(X) = 'N(X)].
 Proof.
 move=> M p X maxM sMp pX; have defNM := norm_mmax maxM.
-pose OM (Y : {set gT}) : {set {set gT}} := [set Mg \in M :^: G | Y \subset Mg].
+pose OM (Y : {set gT}) : {set {set gT}} := [set Mg in M :^: G | Y \subset Mg].
 pose trM (Y : {set gT}) := [transitive 'C(Y), on OM Y | 'Js].
 have actsOM: forall Y, [acts 'N(Y), on OM Y | 'Js].
   move=> Y; apply/actsP=> z nYz Q; rewrite !inE -{1}(normP nYz) conjSg.
@@ -1445,7 +1445,7 @@ Proof.
 move=> p R b_p pR rRgt1; have [P sylP sRP] := Sylow_superset (subsetT R) pR.
 rewrite (rank_pgroup pR) in rRgt1; have [A Ep2A] := p_rank_geP rRgt1.
 have [sAR abelA dimA] := pnElemP Ep2A; have p_pr := pnElem_prime Ep2A.
-case: (pickP [pred F \in 'E_p(P) | A \proper F]) => [F | maxA]; last first.
+case: (pickP [pred F in 'E_p(P) | A \proper F]) => [F | maxA]; last first.
   have [_ nnSyl] := beta_not_narrow b_p; case/pred0Pn: (nnSyl P sylP).
   exists A; rewrite /= (subsetP (pnElemS p 2 sRP)) //.
   apply/pmaxElemP; split=> [|F EpF]; first by rewrite inE (subset_trans sAR).

@@ -88,7 +88,7 @@ Section GenericClassSums.
 Variable (gT : finGroupType) (G : {group gT}) (F : fieldType).
 
 Definition gring_classM_coef_set (Ki Kj : {set gT}) g :=
-  [set xy \in [predX Ki & Kj] | let: (x, y) := xy in x * y == g]%g.
+  [set xy in [predX Ki & Kj] | let: (x, y) := xy in x * y == g]%g.
 
 Definition gring_classM_coef (i j k : 'I_#|classes G|) :=
   #|gring_classM_coef_set (enum_val i) (enum_val j) (repr (enum_val k))|.
@@ -125,7 +125,7 @@ Theorem gring_classM_expansion i j : 'K_i *m 'K_j = \sum_k (a i j k)%:R *: 'K_k.
 Proof.
 have [/imsetP[zi Gzi dKi] /imsetP[zj Gzj dKj]] := (enum_valP i, enum_valP j).
 pose aG := regular_repr F G; have sKG := subsetP (class_subG _ (subxx G)).
-transitivity (\sum_(x \in zi ^: G) \sum_(y \in zj ^: G) aG (x * y)%g).
+transitivity (\sum_(x in zi ^: G) \sum_(y in zj ^: G) aG (x * y)%g).
   rewrite mulmx_suml -/aG dKi; apply: eq_bigr => x /sKG Gx.
   rewrite mulmx_sumr -/aG dKj; apply: eq_bigr => y /sKG Gy.
   by rewrite repr_mxM ?Gx ?Gy.
@@ -196,7 +196,7 @@ Lemma cfRepr_gring_center n1 (rG : mx_representation algCF G n1) A :
 Proof.
 unlock gring_irr_mode => def_rG Z_A; rewrite xcfunZl -{2}def_rG xcfun_Repr.
 have irr_rG: mx_irreducible rG.
-  have sim_rG: mx_rsim 'Chi_i rG by apply: cfRepr_inj; rewrite cfun_Chi.
+  have sim_rG: mx_rsim 'Chi_i rG by apply: cfRepr_inj; rewrite Repr_irr.
   exact: mx_rsim_irr sim_rG (socle_irr _).
 have /is_scalar_mxP[e ->] := mx_irr_gring_op_center_scalar irr_rG Z_A.
 congr _%:M; apply: (canRL (mulKf (irr1_neq0 i))).
@@ -205,7 +205,7 @@ Qed.
 
 Lemma irr_gring_center A :
   (A \in 'Z(R_G))%MS -> gring_op 'Chi_i A = 'omega_i[A]%:M.
-Proof. exact: cfRepr_gring_center (cfun_Chi i). Qed.
+Proof. exact: cfRepr_gring_center (Repr_irr i). Qed.
 
 Lemma gring_irr_modeM A B :
     (A \in 'Z(R_G))%MS -> (B \in 'Z(R_G))%MS ->
@@ -290,7 +290,7 @@ have norm_a_nu nu: `|sval (gQnC nu) alpha| <= 1.
   congr (_ <= _): (char1_ge_norm g (irr_char (aut_Iirr nu i))).
   by rewrite !aut_IirrE !cfunE Dm rmorph_nat divfK.
 pose beta := QnC (galoisNorm 1 {:Qn} a).
-have Dbeta: beta = \prod_(nu \in 'Aut({:Qn} / 1)) sval (gQnC nu) alpha.
+have Dbeta: beta = \prod_(nu in 'Aut({:Qn} / 1)) sval (gQnC nu) alpha.
   rewrite /beta rmorph_prod. apply: eq_bigr => nu _.
   by case: (gQnC nu) => f /= ->; rewrite Da.
 have Zbeta: beta \in Cint.
@@ -343,7 +343,7 @@ have nz_p: p%:R != 0 :> algC by rewrite pnatr_eq0 -lt0n prime_gt0.
 have Dalpha: alpha = - 1 / p%:R.
   apply/(canRL (mulfK nz_p))/eqP; rewrite -addr_eq0 addrC; apply/eqP/esym.
   transitivity (cfReg G g); first by rewrite cfRegE (negPf nt_g).
-  rewrite cfReg_sum sum_cfunE (bigD1 0) //= chi0_1 !cfunE !cfun1E group1 Gg.
+  rewrite cfReg_sum sum_cfunE (bigD1 0) //= irr0 !cfunE !cfun1E group1 Gg.
   rewrite mulr1; congr (1 + _); rewrite (bigID p_dv1) /= addrC big_andbC.
   rewrite big1 => [|i /p_dvd_supp_g chig0]; last by rewrite cfunE chig0 mulr0.
   rewrite add0r big_andbC mulr_suml; apply: eq_bigr => i _.
@@ -426,13 +426,13 @@ have DchiZ: {in G & 'Z(G), forall x y, 'chi_i (x * y)%g = 'chi_i x * lambda y}.
   apply: (mulfI (irr1_neq0 i)); rewrite mulrCA.
   transitivity ('chi_i x * ('chi_i 1%g *: lambda) y); last by rewrite !cfunE.
   rewrite -Dlambda cfResE ?cfcenter_sub //.
-  rewrite -cfun_Chi cfcenter_Repr !cfunE in Zy *.
+  rewrite -Repr_irr cfcenter_Repr !cfunE in Zy *.
   case/setIdP: Zy => Gy /is_scalar_mxP[e De].
   rewrite repr_mx1 group1 (groupM Gx Gy) (repr_mxM _ Gx Gy) Gx Gy De.
   by rewrite mul_mx_scalar mxtraceZ mulrCA mulrA mulrC -mxtraceZ scalemx1.
 have inj_lambda: {in 'Z(G) &, injective lambda}.
   rewrite -(cfcenter_fful_irr fful) => x y Zx Zy eq_xy.
-  apply/eqP; rewrite eq_mulVg1 -in_set1 (subsetP fful) // cfker_irrE inE.
+  apply/eqP; rewrite eq_mulVg1 -in_set1 (subsetP fful) // cfkerEirr inE.
   apply/eqP; transitivity ('Res['Z('chi_i)%CF] 'chi_i (x^-1 * y)%g).
     by rewrite cfResE ?cfcenter_sub // groupM ?groupV.
   rewrite Dlambda !cfunE lin_charM ?groupV // -eq_xy -lin_charM ?groupV //.
@@ -440,7 +440,7 @@ have inj_lambda: {in 'Z(G) &, injective lambda}.
 rewrite unfold_in /dvdC -if_neg irr1_neq0 Cint_rat_Aint //.
   by rewrite rpred_div ?rpred_nat // rpred_Cnat ?Cnat_irr1.
 rewrite (cfcenter_fful_irr fful) nCdivE natf_indexg ?center_sub //=.
-have ->: #|G|%:R = \sum_(x \in G) 'chi_i x * 'chi_i (x^-1)%g.
+have ->: #|G|%:R = \sum_(x in G) 'chi_i x * 'chi_i (x^-1)%g.
   rewrite -[_%:R]mulr1; apply: canLR (mulVKf (neq0CG G)) _.
   by rewrite first_orthogonality_relation eqxx.
 rewrite (big_setID [set x | 'chi_i x == 0]) /= -setIdE.
@@ -489,7 +489,7 @@ rewrite ['Res _]cfun_sum_cfdot sum_cfunE rpred_sum // => i _.
 rewrite cfunE dvdC_mulr ?Cint_Cnat ?Cnat_irr1 //.
 have [j ->]: exists j, 'chi_i = 'Res 'chi[G]_j.
   case/predU1P: ZHG => [-> | cGG] in i *.
-    suffices ->: i = 0 by exists 0; rewrite !chi0_1 cfRes_cfun1 ?sub1G.
+    suffices ->: i = 0 by exists 0; rewrite !irr0 cfRes_cfun1 ?sub1G.
     apply/val_inj; case: i => [[|i] //=]; rewrite ltnNge NirrE.
     by rewrite (@leq_trans 1) // leqNgt classes_gt1 eqxx.
   have linG := char_abelianP G cGG; have linG1 j := eqP (proj2 (andP (linG j))).
@@ -514,14 +514,14 @@ have [j ->]: exists j, 'chi_i = 'Res 'chi[G]_j.
     by rewrite lin_charV ?mulVf ?lin_char_neq0 ?linG.
   have inj_rQ: injective rQ.
     move=> j1 j2 /(congr1 (fun k => (('chi_i)^*%CF * 'chi_k) / H)%CF).
-    by rewrite -!DrQ !mulrA mulJi !mul1r !mod_IirrE ?cfModK // => /chi_inj.
+    by rewrite -!DrQ !mulrA mulJi !mul1r !mod_IirrE ?cfModK // => /irr_inj.
   rewrite -(card_imset _ inj_rQ) -sum1_card; apply: eq_bigl => j.
-  rewrite -(inj_eq chi_inj) -!DrH; apply/eqP/imsetP=> [eq_ij | [k _ ->]].
+  rewrite -(inj_eq irr_inj) -!DrH; apply/eqP/imsetP=> [eq_ij | [k _ ->]].
     have [k Dk] := Mlin (conjC_Iirr i) j; exists (quo_Iirr H k) => //.
-    apply/chi_inj; rewrite -DrQ quo_IirrK //.
+    apply/irr_inj; rewrite -DrQ quo_IirrK //.
       by rewrite -Dk conjC_IirrE mulrCA mulrA mulJi mul1r.
     apply/subsetP=> x Hx; have Gx := subsetP sHG x Hx.
-    rewrite cfker_irrE inE linG1 -Dk conjC_IirrE; apply/eqP.
+    rewrite cfkerEirr inE linG1 -Dk conjC_IirrE; apply/eqP.
     transitivity ((1 : 'CF(G)) x); last by rewrite cfun1E Gx.
     by rewrite -mulJi !cfunE -!(cfResE _ sHG Hx) eq_ij.
   rewrite -DrQ; apply/cfun_inP=> x Hx; rewrite !cfResE // cfunE mulrC.

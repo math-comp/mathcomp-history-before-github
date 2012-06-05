@@ -2557,7 +2557,7 @@ rewrite divpE ulcd rdivpp; [| by red; rewrite 1?mulrC | exact: mulIr].
 rewrite -mul_polyC -polyC_mul mulVr //; exact: unitrX.
 Qed.
 
-Lemma leq_floorp m : size (m %/ d * d) <= size m.
+Lemma leq_trunc_divp m : size (m %/ d * d) <= size m.
 Proof.
 have dn0 : d != 0.
   by rewrite -lead_coef_eq0; apply: contraTneq ulcd => ->; rewrite unitr0.
@@ -2900,10 +2900,10 @@ Proof. by move=> dn0; rewrite divp_add mulpK. Qed.
 Lemma divpp d : d != 0 -> d %/ d = 1.
 Proof. by move=> dn0; apply: divpp; rewrite unitfE lead_coef_eq0. Qed.
 
-Lemma leq_floorp d m : size (m %/ d * d) <= size m.
+Lemma leq_trunc_divp d m : size (m %/ d * d) <= size m.
 Proof.
 case: (eqVneq d 0) => [-> | dn0]; first by rewrite mulr0 size_poly0.
-by apply: leq_floorp; rewrite unitfE lead_coef_eq0.
+by apply: leq_trunc_divp; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma divpK d p : d %| p -> p %/ d * d = p.

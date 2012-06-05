@@ -16,8 +16,8 @@ Require Import matrix mxalgebra vector falgebra fieldext separable.
 (*             galois K E == E is a normal and separable field extension of K.*)
 (*        pickAut K M E f == picks some 'Aut(E|K) extending f \is a kHom K M  *)
 (*                           when normalfield E K.                            *)
-(*      galoisTrace K E a == \sum_(x | x \in ('Aut(E / K))) (x a)             *)
-(*       galoisNorm K E a == \prod_(x | x \in ('Aut(E / K))) (x a)            *)
+(*      galoisTrace K E a == \sum_(f in 'Aut(E / K)) (f a).                   *)
+(*       galoisNorm K E a == \prod_(f in 'Aut(E / K)) (f a).                  *)
 (*                                                                            *)
 (******************************************************************************)
 
@@ -1060,7 +1060,7 @@ Notation "''Aut' ( V / U )" := (aut U V).
 Section Automorphism.
 
 Definition pickAut U V W f : f_aut_type W :=
-  odflt 1%g [pick x \in 'Aut(W / U)| (V <= lker (ahval x - f))%VS].
+  odflt 1%g [pick x in 'Aut(W / U) | (V <= lker (ahval x - f))%VS].
 
 (* Aut is the main "constructor" used for the aut type
    it converts (f: kAut K E) into 'Aut(E / K) *)
@@ -1230,7 +1230,7 @@ by move/subvP: HKE; apply.
 Qed.
 
 Definition fixedField V (s : {set f_aut_type V}) :=
-  (V :&: \bigcap_(x \in s) (fixedSpace x))%VS.
+  (V :&: \bigcap_(x in s) (fixedSpace x))%VS.
 
 Lemma fixedFieldP E (s : {set f_aut_type E}) a :
  reflect (a \in E /\ (forall x, x \in s -> x a = a))
@@ -1306,9 +1306,9 @@ have : (K <= fixedField s <= E)%VS by rewrite HKs capvSl.
 by move/autS; apply: subset_trans; apply: galoisConnectionB.
 Qed.
 
-Definition galoisTrace U V a := \sum_(i | i \in ('Aut(V / U))) (i a).
+Definition galoisTrace U V a := \sum_(i in 'Aut(V / U)) (i a).
 
-Definition galoisNorm U V a := \prod_(i | i \in ('Aut(V / U))) (i a).
+Definition galoisNorm U V a := \prod_(i in 'Aut(V / U)) (i a).
 
 Section TraceAndNorm.
 
@@ -1409,7 +1409,7 @@ Qed.
 
 End TraceAndNorm.
 
-Definition normalField U V := forallb x, (x \in kAAutL U) ==> (x @: V == V)%VS.
+Definition normalField U V := [forall x in kAAutL U, x @: V == V]%VS.
 
 Lemma normalFieldP K E :
  reflect (forall a, a \in E -> exists2 r, all (fun y => y \in E) r
@@ -1571,7 +1571,7 @@ apply: (iffP idP); last first.
   by apply: memv_aut.
 move => Hnorm a Ha.
 case/normalFieldP/(_ a Ha): (Hnorm) => r Hr Hmin.
-pose f b := [pick x \in 'Aut(E / K) | x a == b].
+pose f b := [pick x in 'Aut(E / K) | x a == b].
 exists (pmap f r).
   apply/subsetP => x.
   rewrite mem_pmap /f.
@@ -1860,15 +1860,15 @@ have Hlog1 : log 1%g = 0%N :> nat by rewrite -(expg0 x) Hlog_small.
 pose d_ n := \prod_(i < n) (x ^+ i)%g a.
 pose c_ y := d_ (log y).
 have Hc0 : c_ 1%g != 0 by rewrite /c_ /d_ Hlog1 big_ord0 oner_neq0.
-have : [pred i | i \in 'Aut(E / K)] 1%g by apply: group1.
+have : [pred i in 'Aut(E / K)] 1%g by apply: group1.
 case/(aut_independent_contra)/(_ Hc0) => d HdE /=.
-set b := \sum_(i \in _) _ => Hb0.
+set b := \sum_(i in _) _ => Hb0.
 exists b; first split => //.
   apply: rpred_sum => i Hi.
   apply: rpredM; last by apply: memv_aut.
   apply: rpred_prod => j _. by apply: memv_aut.
 apply: (canRL (mulfK _)); first by rewrite fmorph_eq0.
-have Hlog_bij : {on [pred i \in 'Aut(E / K)],
+have Hlog_bij : {on [pred i in 'Aut(E / K)],
                     bijective (fun i : 'I_#[x]%g => (x ^+ i)%g)}.
   exists (fun x => sval (Hlog x)) => j Hj.
     by apply: ord_inj; apply: Hlog_small; apply: ltn_ord.
@@ -1921,7 +1921,7 @@ move/(IH) => {IH} [w_ Hw].
 set M := \matrix_(i, j) _ => HM /=.
 pose a := \row_i x (w_ i) *m (invmx M).
 pose c_ y := nth (-1) [tuple a 0 i | i < (size xs)] (index y xs).
-pose P := [pred y | y \in (x :: xs)].
+pose P := [pred y in x :: xs].
 have HPy : P x by rewrite !inE eqxx.
 have Pcx1 : c_ x = -1.
   by rewrite /c_ nth_default // size_tuple leqNgt index_mem.

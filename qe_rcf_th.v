@@ -1159,7 +1159,8 @@ Definition staq p a b sq i : R :=
   (taq' p a b (map (poly_comb sq) (sg_tab (size sq)))`_i)%:~R.
 
 Definition coefs n i :=
-  [seq (castmx (erefl _, exp3n _) (invmx (zmxR (ctmat n)))) i ord0 | i <- enum 'I__] `_i.
+  [seq (castmx (erefl _, exp3n _) (invmx (zmxR (ctmat n)))) i ord0
+     | i <- enum 'I__]`_i.
 
 Definition prod_staq_coefs p a b sq : R :=
   let fix aux s (i : nat) := if i is i'.+1
@@ -1237,7 +1238,7 @@ Qed.
 (* Todo : generalize, move to polydiv, and rename root_bigmul *)
 Lemma root_prod_fintype :
    forall (x : R) (I : finType) (p : I -> {poly R}),
-   ~~ root (\prod_(i : I) p i) x = forallb i : I, ~~ root (p i) x.
+   ~~ root (\prod_(i : I) p i) x = [forall i : I, ~~ root (p i) x].
 Proof.
 move=> x I p; rewrite (@big_morph _ _ (fun p => ~~ root p x) true andb).
 * by rewrite big_andE.

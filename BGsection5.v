@@ -88,7 +88,7 @@ Variables (gT : finGroupType) (p : nat) (R : {group gT}).
 Implicit Types B E S : {group gT}.
 
 Lemma narrowJ : forall x, p.-narrow (R :^ x) = p.-narrow R.
-Proof. by move=> x; exact: isog_narrow (conj_isog R x). Qed.
+Proof. by move=> x; apply: isog_narrow (isog_symr (conj_isog R x)). Qed.
 
 Hypotheses (pR : p.-group R) (oddR : odd #|R|).
 
@@ -133,7 +133,7 @@ suffices Bs_gt2: 2 < logn p #|Bs|.
   have nBsR: Bs <| R by rewrite /normal sBsR // normsY ?normsI ?norms_cent.
   have abelBs: p.-abelem Bs.
     by rewrite (cprod_abelem p (cprodEY _)) ?subsetIr // abelE (abelemS sCB).
-  have [C maxC sBsC] : {H | [max H | (H <| R) && abelian H ] & Bs \subset H}.
+  have [C maxC sBsC] : {H | [max H | H <| R & abelian H ] & Bs \subset H}.
     by apply: maxgroup_exists; rewrite nBsR (abelem_abelian abelBs).
   exists C; last by rewrite (subset_trans _ sBsC) ?joing_subl.
   by rewrite inE (max_SCN pR) ?(leq_trans Bs_gt2) // -rank_abelem ?rankS.
@@ -413,7 +413,7 @@ have{tiHS eH} oCHS: #|'C_H(S)| = p.
     by rewrite abelemE ?cyclic_abelian // -eH exponentS ?subsetIl.
   rewrite -(Ohm1_id abelCHS).
   by rewrite (Ohm1_cyclic_pgroup_prime _ (abelem_pgroup abelCHS)).
-pose B := A^`(1) <*> [set a ^+ p.-1 | a <- A].
+pose B := A^`(1) <*> [set a ^+ p.-1 | a in A].
 have sBA: B \subset A.
   rewrite join_subG (der_sub 1 A) /=.
   by apply/subsetP=> ap; case/imsetP=> a Aa ->; rewrite groupX.

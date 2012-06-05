@@ -324,7 +324,7 @@ Section Combinations.
 Implicit Types T D : finType.
 
 Lemma card_uniq_tuples T n (A : pred T) :
-  #|[set t : n.-tuple T | all A t && uniq t]| = #|A| ^_ n.
+  #|[set t : n.-tuple T | all A t & uniq t]| = #|A| ^_ n.
 Proof.
 elim: n A => [|n IHn] A.
   by rewrite (@eq_card1 _ [tuple]) // => t; rewrite [t]tuple0 inE.
@@ -342,7 +342,7 @@ by rewrite all_predI all_predC has_pred1 andbC.
 Qed.
 
 Lemma card_inj_ffuns_on D T (R : pred T) :
-  #|[set f : {ffun D -> T} | (f \in ffun_on R) && injectiveb f]| = #|R| ^_ #|D|.
+  #|[set f : {ffun D -> T} in ffun_on R | injectiveb f]| = #|R| ^_ #|D|.
 Proof.
 rewrite -card_uniq_tuples.
 have bijFF: {on (_ : pred _), bijective (@Finfun D T)}.
@@ -401,7 +401,7 @@ have [-> | n_gt0] := posnP n; last pose i0 := Ordinal n_gt0.
   case: m => [|m]; last by apply: eq_card0; case/tupleP=> [[]].
   by apply: (@eq_card1 _ [tuple]) => t; rewrite [t]tuple0 inE.
 rewrite -{12}[n]card_ord -card_draws.
-pose f_t (t : m.-tuple 'I_n) := [set i | i \in t].
+pose f_t (t : m.-tuple 'I_n) := [set i in t].
 pose f_A (A : {set 'I_n}) := [tuple of mkseq (nth i0 (enum A)) m].
 have val_fA (A : {set 'I_n}) : #|A| = m -> val (f_A A) = enum A.
   by move=> Am; rewrite -[enum _](mkseq_nth i0) -cardE Am.

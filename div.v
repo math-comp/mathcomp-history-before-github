@@ -138,14 +138,16 @@ Proof. by case: d => // d; rewrite modn_def; case: edivnP. Qed.
 Lemma ltn_pmod m d : 0 < d -> m %% d < d.
 Proof. by rewrite ltn_mod. Qed.
 
-Lemma leq_floor m d : m %/ d * d <= m.
+Lemma leq_trunc_div m d : m %/ d * d <= m.
 Proof. by rewrite {2}(divn_eq m d) leq_addr. Qed.
 
 Lemma leq_mod m d : m %% d  <= m.
 Proof. by rewrite {2}(divn_eq m d) leq_addl. Qed.
 
 Lemma leq_div m d : m %/ d <= m.
-Proof. case: d => // d; exact: leq_trans (leq_pmulr _ _) (leq_floor _ _). Qed.
+Proof.
+by case: d => // d; apply: leq_trans (leq_pmulr _ _) (leq_trunc_div _ _).
+Qed.
 
 Lemma ltn_ceil m d : 0 < d -> m < (m %/ d).+1 * d.
 Proof.
@@ -155,9 +157,9 @@ Qed.
 Lemma ltn_divLR m n d : d > 0 -> (m %/ d < n) = (m < n * d).
 Proof.
 move=> d_gt0; apply/idP/idP.
-  by rewrite -(leq_pmul2r d_gt0); exact: leq_trans (ltn_ceil _ _).
+  by rewrite -(leq_pmul2r d_gt0); apply: leq_trans (ltn_ceil _ _).
 rewrite !ltnNge -(@leq_pmul2r d n) //; apply: contra => le_nd_floor.
-exact: leq_trans le_nd_floor (leq_floor _ _).
+exact: leq_trans le_nd_floor (leq_trunc_div _ _).
 Qed.
 
 Lemma leq_divRL m n d : d > 0 -> (m <= n %/ d) = (m * d <= n).
@@ -177,7 +179,8 @@ Qed.
 
 Lemma leq_div2l m d e : 0 < d -> d <= e -> m %/ e <= m %/ d.
 Proof.
-by move/leq_divRL=> -> le_de; apply: leq_trans (leq_floor m e); apply: leq_mul.
+move/leq_divRL=> -> le_de.
+by apply: leq_trans (leq_trunc_div m e); apply: leq_mul.
 Qed.
 
 Lemma leq_divDl p m n : (m + n) %/ p <= m %/ p + n %/ p + 1.
@@ -761,6 +764,12 @@ Proof. by rewrite /coprime gcdn_modl. Qed.
 
 Lemma coprime_modr m n : coprime m (n %% m) = coprime m n.
 Proof. by rewrite /coprime gcdn_modr. Qed.
+
+Lemma coprime2n n : coprime 2 n = odd n.
+Proof. by rewrite -coprime_modr modn2; case: (odd n). Qed.
+
+Lemma coprimen2 n : coprime n 2 = odd n.
+Proof. by rewrite coprime_sym coprime2n. Qed.
 
 Lemma coprimeSn n : coprime n.+1 n.
 Proof. by rewrite -coprime_modl (modnDr 1) coprime_modl coprime1n. Qed.

@@ -1,8 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype finfun.
-Require Import bigop finset prime binomial fingroup morphism perm automorphism.
-Require Import quotient action commutator gproduct gfunctor ssralg finalg.
-Require Import zmodp cyclic pgroup center gseries.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice div fintype.
+Require Import finfun bigop finset prime binomial fingroup morphism perm.
+Require Import automorphism quotient action commutator gproduct gfunctor.
+Require Import ssralg finalg zmodp cyclic pgroup center gseries.
 Require Import nilpotent sylow abelian finmodule.
 
 (******************************************************************************)
@@ -49,7 +49,7 @@ Section Defs.
 Variable gT : finGroupType.
 Implicit Types (A B D : {set gT}) (G : {group gT}).
 
-Definition charsimple A := [min A of G | (G :!=: 1) && (G \char A)].
+Definition charsimple A := [min A of G | G :!=: 1 & G \char A].
 
 Definition Frattini A := \bigcap_(G : {group gT} | maximal_eq G A) G.
 
@@ -89,9 +89,9 @@ Definition special A := Frattini A = 'Z(A) /\  A^`(1) = 'Z(A).
 
 Definition extraspecial A := special A /\ prime #|'Z(A)|.
 
-Definition SCN B := [set A : {group gT} | (A <| B) && ('C_B(A) == A)].
+Definition SCN B := [set A : {group gT} | A <| B & 'C_B(A) == A].
 
-Definition SCN_at n B := [set A \in SCN B | n <= 'r(A)].
+Definition SCN_at n B := [set A in SCN B | n <= 'r(A)].
 
 End Defs.
 
@@ -560,7 +560,7 @@ Qed.
 Lemma charsimple_dprod G : charsimple G ->
   exists H : {group gT}, [/\ H \subset G, simple H
                          & exists2 I : {set {perm gT}}, I \subset Aut G
-                         & \big[dprod/1]_(f \in I) f @: H = G].
+                         & \big[dprod/1]_(f in I) f @: H = G].
 Proof.
 case/charsimpleP=> ntG simG.
 have [H minH sHG]: {H : {group gT} | minnormal H G & H \subset G}.
@@ -568,7 +568,7 @@ have [H minH sHG]: {H : {group gT} | minnormal H G & H \subset G}.
 case/mingroupP: minH => /andP[ntH nHG] minH.
 pose Iok (I : {set {perm gT}}) :=
   (I \subset Aut G) &&
-  (existsb M : {group gT}, (M <| G) && (\big[dprod/1]_(f \in I) f @: H == M)).
+  [exists (M : {group gT} | M <| G), \big[dprod/1]_(f in I) f @: H == M].
 have defH: (1 : {perm gT}) @: H = H.
   apply/eqP; rewrite eqEcard card_imset ?leqnn; last exact: perm_inj.
   by rewrite andbT; apply/subsetP=> _ /imsetP[x Hx ->]; rewrite perm1.
@@ -582,8 +582,8 @@ rewrite sub1set=> ntI; case/eqVproper: sMG => [defG | /andP[sMG not_sGM]].
   apply: minH => //; rewrite ntN /= -defG.
   move: defM; rewrite (bigD1 1) //= defH; case/dprodP=> [[_ K _ ->] <- cHK _].
   by rewrite mul_subG // cents_norm // (subset_trans cHK) ?centS.
-have defG: <<\bigcup_(f \in Aut G) f @: H>> = G.
-  have sXG: \bigcup_(f \in Aut G) f @: H \subset G.
+have defG: <<\bigcup_(f in Aut G) f @: H>> = G.
+  have sXG: \bigcup_(f in Aut G) f @: H \subset G.
     by apply/bigcupsP=> f Af; rewrite -(im_autm Af) morphimEdom imsetS.
   apply: simG.
     apply: contra ntH; rewrite -!subG1; apply: subset_trans.
@@ -1185,7 +1185,7 @@ Theorem extraspecial_structure S : p.-group S -> extraspecial S ->
 Proof.
 elim: {S}_.+1 {-2}S (ltnSn #|S|) => // m IHm S leSm pS esS.
 have [x Z'x]: {x | x \in S :\: 'Z(S)}.
-  apply: choice.sigW; apply/set0Pn; rewrite -subset0 subDset setU0.
+  apply/sigW/set0Pn; rewrite -subset0 subDset setU0.
   apply: contra (extraspecial_nonabelian esS) => sSZ.
   exact: abelianS sSZ (center_abelian S).
 have [E [R [[oE oR]]]]:= split1_extraspecial pS esS Z'x.
@@ -1362,7 +1362,7 @@ by rewrite bin2odd // -commXXg ?yp1 /commute ?czH // comm1g.
 Qed.
 
 (* SCN_max and max_SCN cover Aschbacher 23.15(1) *)
-Lemma SCN_max A : A \in 'SCN(G) -> [max A | (A <| G) && abelian A].
+Lemma SCN_max A : A \in 'SCN(G) -> [max A | A <| G & abelian A].
 Proof.
 case/SCN_P => nAG scA; apply/maxgroupP; split=> [|H].
   by rewrite nAG /abelian -{1}scA subsetIr.
@@ -1371,7 +1371,7 @@ by rewrite eqEsubset sAH -scA subsetI sHG centsC (subset_trans sAH).
 Qed.
 
 Lemma max_SCN A :
-  p.-group G -> [max A | (A <| G) && abelian A] -> A \in 'SCN(G).
+  p.-group G -> [max A | A <| G & abelian A] -> A \in 'SCN(G).
 Proof.
 move/pgroup_nil=> nilG; rewrite /abelian.
 case/maxgroupP=> /andP[nsAG abelA] maxA; have [sAG nAG] := andP nsAG.
@@ -1478,8 +1478,7 @@ End SCNseries.
 
 (* This is Aschbacher 23.16. *)
 Lemma Ohm1_cent_max_normal_abelem Z :
-    odd p -> p.-group G -> [max Z | (Z <| G) && p.-abelem Z] ->
-  'Ohm_1('C_G(Z)) = Z.
+  odd p -> p.-group G -> [max Z | Z <| G & p.-abelem Z] -> 'Ohm_1('C_G(Z)) = Z.
 Proof.
 move=> p_odd pG; set X := 'Ohm_1('C_G(Z)).
 case/maxgroupP=> /andP[nsZG abelZ] maxZ. 
@@ -1504,7 +1503,7 @@ suffices{sZX} expXp: (exponent X %| p).
   rewrite (maxZ D) // nsDG andbA (pgroupS sDG) ?(dvdn_trans (exponentS sDX)) //.
   have sZZD: Z \subset 'Z(D) by rewrite subsetI sZD centsC (subset_trans sDX).
   by rewrite (cyclic_factor_abelian sZZD) //= -defD cycle_cyclic.
-pose normal_abelian := [pred A : {group gT} | (A <| G) && abelian A].
+pose normal_abelian := [pred A : {group gT} | A <| G & abelian A].
 have{nsZG cZZ} normal_abelian_Z : normal_abelian Z by exact/andP.
 have{normal_abelian_Z} [A maxA sZA] := maxgroup_exists normal_abelian_Z.
 have SCN_A : A \in 'SCN(G) by apply: max_SCN pG maxA.
@@ -1518,7 +1517,7 @@ have{SCN_A} sX'A: X^`(1) \subset A.
     rewrite subsetI /X -defA1 (Ohm1_stab_Ohm1_SCN_series _ p_odd) //= andbT.
     exact: subset_trans (Ohm_sub _ _) (subsetIr _ _). 
   by apply: subset_trans (der1_stab_Ohm1_SCN_series SCN_A); rewrite commgSS.
-pose genXp := [pred U : {group gT} | ('Ohm_1(U) == U) && ~~(exponent U %| p)].
+pose genXp := [pred U : {group gT} | 'Ohm_1(U) == U & ~~ (exponent U %| p)].
 apply/idPn=> expXp'; have genXp_X: genXp [group of X] by rewrite /= Ohm_id eqxx.
 have{genXp_X expXp'} [U] := mingroup_exists genXp_X; case/mingroupP; case/andP.
 move/eqP=> defU1 expUp' minU sUX; case/negP: expUp'.

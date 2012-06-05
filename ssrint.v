@@ -7,7 +7,7 @@ Import GRing.Theory Num.Theory.
 (* This file develops a basic theory of signed integers, defining:            *)
 (*         int == the type of signed integers, with two constructors Posz for *)
 (*                non-negative integers and Negz for negative integers. It    *)
-(*                supports the realDomainType interface (and its parents).   *)
+(*                supports the realDomainType interface (and its parents).    *)
 (*        n%:Z == explicit cast from nat to int (:= Posz n); displayed as n.  *)
 (*                However (Posz m = Posz n) is displayed as (m = n :> int)    *)
 (*                (and so are ==, != and <>)                                  *)
@@ -1207,13 +1207,15 @@ rewrite le0r=> /orP [/eqP->|lx0]; first by rewrite !exp0rz invr0.
 by rewrite lef_pinv -?topredE /= ?exprz_gt0 // ler_wiexpn2l.
 Qed.
 
-Fact ler_wpeexpz2l x (x1 : 1 <= x) : {in >=%R 0 &, {homo (exprz x) : x y / x <= y}}.
+Fact ler_wpeexpz2l x (x1 : 1 <= x) :
+  {in >=%R 0 &, {homo (exprz x) : x y / x <= y}}.
 Proof.
 move=> [] m [] n; rewrite -!topredE /= ?oppr_cp0 ?ltz_nat // => _ _.
 by rewrite lez_nat -?exprnP=> /ler_weexpn2l; apply.
 Qed.
 
-Fact ler_wneexpz2l x (x1 : 1 <= x) : {in <=%R 0 &, {homo (exprz x) : x y / x <= y}}.
+Fact ler_wneexpz2l x (x1 : 1 <= x) :
+  {in <=%R 0 &, {homo (exprz x) : x y / x <= y}}.
 Proof.
 move=> m n hm hn /= hmn.
 rewrite -lef_pinv -?topredE /= ?exprz_gt0 ?(ltr_le_trans ltr01) //.
@@ -1498,7 +1500,7 @@ Lemma sgz_eq (R R' : realDomainType) (x : R) (y : R') :
 Proof. by do 2!case: sgzP. Qed.
 
 Lemma intr_sign (R : ringType) s : ((-1) ^+ s)%:~R = (-1) ^+ s :> R.
-Proof. exact: rmorph_sign. (* sic! GG *) Qed.
+Proof. exact: rmorph_sign. Qed.
 
 Section Absz.
 

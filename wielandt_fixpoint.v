@@ -25,7 +25,7 @@ Implicit Types (gT wT : finGroupType) (m n p q : nat).
 Lemma coprime_act_abelian_pgroup_structure gT p (A X : {group gT}) :
     abelian A -> p.-group A -> p^'.-group X -> X \subset 'N(A) -> 
   exists2 s : {set {group gT}},
-      \big[dprod/1]_(B \in s) B = A
+      \big[dprod/1]_(B in s) B = A
     & {in s, forall B : {group gT},
        [/\ homocyclic B, X \subset 'N(B)
          & acts_irreducibly X (B / 'Phi(B)) 'Q]}.
@@ -116,7 +116,7 @@ have nKX: X \subset 'N(K).
   by rewrite -(quotientSGK nUX) ?normsG ?quotient_normG // -defKu.
 pose K1 := 'Mho^1(K); have nsK1K: K1 <| K := Mho_normal 1 K.
 have nXKb: X / K1 \subset 'N(K / K1) by exact: quotient_norms.
-pose K'u := \big[dprod/1]_(Bu \in S :\ Ku) Bu.
+pose K'u := \big[dprod/1]_(Bu in S :\ Ku) Bu.
 have{S_Ku} defAu_K: K / U \x K'u = A / U by rewrite -defKu -big_setD1.
 have [[_ Pu _ defK'u]] := dprodP defAu_K; rewrite defK'u => mulKPu _ tiKPu.
 have [_ sPuA] := mulG_sub mulKPu.
@@ -340,7 +340,7 @@ have im_g: Morphism gM @* L = [set: 'rV_#|G|].
   rewrite -(mul_card_Ohm_Mho_abelian 1 cLL) mulnK ?cardG_gt0 //.
   rewrite (card_pgroup (pgroupS (Ohm_sub 1 L) pL)) -rank_abelian_pgroup //.
   by rewrite -imfL (injm_rank injL) //= rank_mx_group mul1n.
-have sumS: (\sum_(U \in S) gMx U :=: 1%:M)%MS.
+have sumS: (\sum_(U in S) gMx U :=: 1%:M)%MS.
   apply/eqmxP; rewrite submx1; apply/rV_subP=> v _.
   have: v \in Morphism gM @* L by rewrite im_g inE.
   case/morphimP=> u Lu _ ->{v}.
@@ -530,7 +530,7 @@ pose rW a1 := lin1_mx (Linear (toWlin a1)).
 pose fG := restrm sG1D f; have im_fG : fG @* G1 = G by rewrite im_restrm.
 have injfG: 'injm fG by rewrite -tiWG1 setIC ker_restrm kerf setIS ?Mho_sub.
 pose fG' := invm injfG; have im_fG': fG' @* G = G1 by rewrite -im_fG im_invm.
-pose gamma i := \sum_(a \in A i) rW (fG' a).
+pose gamma i := \sum_(a in A i) rW (fG' a).
 suffices{sum_k partG} tr_rW_Ai i: nz_k i -> \tr (gamma i) = (rC i * #|A i|)%:R.
   have Dtr k i: nz_k i -> (rC i * k i * #|A i|)%:R = \tr (gamma i *+ k i).
     by rewrite mulnAC natrM raddfMn mulr_natr /= => /tr_rW_Ai->.
@@ -549,7 +549,7 @@ suffices [Pl [Pr [Pu [Pd [PlrudK ErC ErR]]]]]:
   exists Pl, exists Pr, exists Pu, exists Pd,
     [/\ row_mx Pl Pr *m col_mx Pu Pd = 1%R,
         {in A i, forall a, Pd *m (rW (fG' a) *m Pr) = 1%:M :> 'M_(rC i)}
-      & \sum_(a \in A i) Pu *m (rW (fG' a) *m Pl) = 0 :> 'M_rR].
+      & \sum_(a in A i) Pu *m (rW (fG' a) *m Pl) = 0 :> 'M_rR].
 - rewrite -(mulmx1 (gamma i)) idmxE -PlrudK mulmxA mxtrace_mulC mul_mx_row.
   rewrite mul_col_row mxtrace_block !mulmx_suml !mulmx_sumr ErR mxtrace0 add0r.
   by rewrite (eq_bigr _ ErC) sumr_const raddfMn /= mxtrace1 natrM mulr_natr.
@@ -630,7 +630,7 @@ have RjR: jR \in [~: W, Ai1].
   by rewrite -(im_invm injhR) mem_morphim /= ?im_hR ?inE.
 rewrite rowE -row1 mulmx_sumr raddf0 -/jR.
 have /subsetP nRA1: Ai1 \subset 'N([~: W, Ai1]) by rewrite commg_normr.
-transitivity (\sum_(a1 \in Ai1) hR (jR ^ a1)).
+transitivity (\sum_(a1 in Ai1) hR (jR ^ a1)).
   rewrite {1}[Ai1 in rhs in _ = rhs]morphimEsub /= ?im_restrm ?imfG1 //.
   rewrite big_imset /=; last first.
     apply: sub_in2 (injmP _ (injm_invm injfG)); apply/subsetP.
@@ -641,11 +641,11 @@ transitivity (\sum_(a1 \in Ai1) hR (jR ^ a1)).
   rewrite subgK ?(subsetP sAiG1) // -DfW' !fW'K ?(subsetP sRW) //.
   by rewrite [hW _]dprodmEl // DfUl'.
 have [nf [fj Rfj ->]] := gen_prodgP RjR.
-transitivity (\sum_(a1 \in Ai1) (\prod_i1 hR (fj i1 ^ a1))%g).
+transitivity (\sum_(a1 in Ai1) (\prod_i1 hR (fj i1 ^ a1))%g).
   apply: eq_bigr => a1 Aa1; rewrite conjg_prod morph_prod // => i1 _.
   by rewrite memJ_norm ?mem_gen ?nRA1.
 rewrite exchange_big big1 //= => i1 _; have /imset2P[w a1 Ww Aa1 ->] := Rfj i1.
-apply: (addrI (\sum_(a2 \in Ai1) hR [~ w, a2])).
+apply: (addrI (\sum_(a2 in Ai1) hR [~ w, a2])).
 rewrite addr0 {2}(reindex_inj (mulgI a1)) -big_split /=.
 apply: eq_big => [a2 | a2 Aa2]; first by rewrite groupMl.
 by rewrite commgMJ [rhs in _ = rhs]morphM ?memJ_norm ?nRA1 ?mem_commg ?groupM.

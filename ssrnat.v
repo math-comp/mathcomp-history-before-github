@@ -451,8 +451,6 @@ Qed.
 
 (* Monotonicity lemmas *)
 
-Definition monotone f := forall m n, (f m <= f n) = (m <= n).
-
 Lemma leq_add2l p m n : (p + m <= p + n) = (m <= n).
 Proof. by elim: p. Qed.
 
@@ -811,6 +809,15 @@ Proof. by move=> eq_op x; apply: eq_iteri; case. Qed.
 
 End Iteration.
 
+Lemma iter_succn m n : iter n succn m = m + n.
+Proof. by elim: n => //= n ->. Qed.
+
+Lemma iter_succn_0 n : iter n succn 0 = n.
+Proof. exact: iter_succn. Qed.
+
+Lemma iter_predn m n : iter n predn m = m - n.
+Proof. by elim: n m => /= [|n IHn] m; rewrite ?subn0 // IHn subnS. Qed.
+
 (* Multiplication. *)
 
 Definition muln_rec := mult.
@@ -832,6 +839,12 @@ Lemma mulnS m n : m * n.+1 = m + m * n.
 Proof. by elim: m => // m; rewrite !mulSn !addSn addnCA => ->. Qed.
 Lemma mulnSr m n : m * n.+1 = m * n + m.
 Proof. by rewrite addnC mulnS. Qed.
+
+Lemma iter_addn m n p : iter n (addn m) p = m * n + p.
+Proof. by elim: n => /= [|n ->]; rewrite ?muln0 // mulnS addnA. Qed.
+
+Lemma iter_addn_0 m n : iter n (addn m) 0 = m * n.
+Proof. by rewrite iter_addn addn0. Qed.
 
 Lemma muln1 : right_id 1 muln.
 Proof. by move=> n; rewrite mulnSr muln0. Qed.
@@ -971,6 +984,12 @@ Lemma expn1 m : m ^ 1 = m. Proof. by []. Qed.
 Lemma expnS m n : m ^ n.+1 = m * m ^ n. Proof. by case: n; rewrite ?muln1. Qed.
 Lemma expnSr m n : m ^ n.+1 = m ^ n * m. Proof. by rewrite mulnC expnS. Qed.
 
+Lemma iter_muln m n p : iter n (muln m) p = m ^ n * p.
+Proof. by elim: n => /= [|n ->]; rewrite ?mul1n // expnS mulnA. Qed.
+
+Lemma iter_muln_1 m n : iter n (muln m) 1 = m ^ n.
+Proof. by rewrite iter_muln muln1. Qed.
+
 Lemma exp0n n : 0 < n -> 0 ^ n = 0. Proof. by case: n => [|[]]. Qed.
 
 Lemma exp1n n : 1 ^ n = 1.
@@ -1070,7 +1089,9 @@ Lemma leq_b1 (b : bool) : b <= 1. Proof. by case: b. Qed.
 
 Lemma addn_negb (b : bool) : ~~ b + b = 1. Proof. by case: b. Qed.
 
-Lemma eqb0 (b : bool) : (b == 0%N :> nat) = ~~ b. Proof. by case: b. Qed.
+Lemma eqb0 (b : bool) : (b == 0 :> nat) = ~~ b. Proof. by case: b. Qed.
+
+Lemma eqb1 (b : bool) : (b == 1 :> nat) = b. Proof. by case: b. Qed.
 
 Lemma lt0b (b : bool) : (b > 0) = b. Proof. by case: b. Qed.
 
@@ -1245,36 +1266,33 @@ Proof. exact: expIn. Qed.
 (* lemma); in addition, the conditional equality also coerces to a       *)
 (* non-strict one.                                                       *)
 
-Definition leqif m n c := ((m <= n) * ((m == n) = c))%type.
+Definition leqif m n C := ((m <= n) * ((m == n) = C))%type.
 
-Notation "m <= n ?= 'iff' c" := (leqif m n c) : nat_scope.
+Notation "m <= n ?= 'iff' C" := (leqif m n C) : nat_scope.
 
-Coercion leq_of_leqif m n c (H : m <= n ?= iff c) := H.1 : m <= n.
+Coercion leq_of_leqif m n C (H : m <= n ?= iff C) := H.1 : m <= n.
 
-Lemma leqifP m n c : reflect (m <= n ?= iff c) (if c then m == n else m < n).
+Lemma leqifP m n C : reflect (m <= n ?= iff C) (if C then m == n else m < n).
 Proof.
-rewrite ltn_neqAle; apply: (iffP idP) => [|lte]; last by rewrite !lte; case c.
-by case c => [/eqP-> | /andP[/negPf]]; split=> //; exact: eqxx.
+rewrite ltn_neqAle; apply: (iffP idP) => [|lte]; last by rewrite !lte; case C.
+by case C => [/eqP-> | /andP[/negPf]]; split=> //; exact: eqxx.
 Qed.
 
-Lemma leqif_refl m c : reflect (m <= m ?= iff c) c.
+Lemma leqif_refl m C : reflect (m <= m ?= iff C) C.
 Proof. by apply: (iffP idP) => [-> | <-] //; split; rewrite ?eqxx. Qed.
 
-Lemma leqif_trans m1 m2 m3 c1 c2 :
-  m1 <= m2 ?= iff c1 -> m2 <= m3 ?= iff c2 -> m1 <= m3 ?= iff c1 && c2.
+Lemma leqif_trans m1 m2 m3 C12 C23 :
+  m1 <= m2 ?= iff C12 -> m2 <= m3 ?= iff C23 -> m1 <= m3 ?= iff C12 && C23.
 Proof.
 move=> ltm12 ltm23; apply/leqifP; rewrite -ltm12.
 case eqm12: (m1 == m2).
-  by rewrite (eqP eqm12) ltn_neqAle !ltm23 andbT; case c2.
+  by rewrite (eqP eqm12) ltn_neqAle !ltm23 andbT; case C23.
 by rewrite (@leq_trans m2) ?ltm23 // ltn_neqAle eqm12 ltm12.
 Qed.
 
-Lemma monotone_leqif f : monotone f ->
-  forall m n c, (f m <= f n ?= iff c) <-> (m <= n ?= iff c).
-Proof.
-move=> f_mono m n c.
-by split=> /leqifP hyp; apply/leqifP; rewrite !eqn_leq !ltnNge !f_mono in hyp *.
-Qed.
+Lemma mono_leqif f : {mono f : m n / m <= n} ->
+  forall m n C, (f m <= f n ?= iff C) = (m <= n ?= iff C).
+Proof. by move=> f_mono m n C; rewrite /leqif !eqn_leq !f_mono. Qed.
 
 Lemma leqif_geq m n : m <= n -> m <= n ?= iff (m >= n).
 Proof. by move=> lemn; split=> //; rewrite eqn_leq lemn. Qed.
@@ -1288,17 +1306,17 @@ Proof. by case=> le_ab; rewrite eqn_leq le_ab. Qed.
 Lemma ltn_leqif a b C : a <= b ?= iff C -> (a < b) = ~~ C.
 Proof. by move=> le_ab; rewrite ltnNge (geq_leqif le_ab). Qed.
 
-Lemma leqif_add m1 n1 c1 m2 n2 c2 :
-    m1 <= n1 ?= iff c1 -> m2 <= n2 ?= iff c2 ->
-  m1 + m2 <= n1 + n2 ?= iff c1 && c2.
+Lemma leqif_add m1 n1 C1 m2 n2 C2 :
+    m1 <= n1 ?= iff C1 -> m2 <= n2 ?= iff C2 ->
+  m1 + m2 <= n1 + n2 ?= iff C1 && C2.
 Proof.
-move=> /(monotone_leqif (leq_add2r m2)) le1 /(monotone_leqif (leq_add2l n1)).
-exact: leqif_trans le1.
+rewrite -(mono_leqif (leq_add2r m2)) -(mono_leqif (leq_add2l n1) m2).
+exact: leqif_trans.
 Qed.
 
-Lemma leqif_mul m1 n1 c1 m2 n2 c2 :
-    m1 <= n1 ?= iff c1 -> m2 <= n2 ?= iff c2 ->
-  m1 * m2 <= n1 * n2 ?= iff (n1 * n2 == 0) || (c1 && c2).
+Lemma leqif_mul m1 n1 C1 m2 n2 C2 :
+    m1 <= n1 ?= iff C1 -> m2 <= n2 ?= iff C2 ->
+  m1 * m2 <= n1 * n2 ?= iff (n1 * n2 == 0) || (C1 && C2).
 Proof.
 move=> le1 le2; case: posnP => [n12_0 | ].
   rewrite n12_0; move/eqP: n12_0 {le1 le2}le1.1 le2.1; rewrite muln_eq0.
@@ -1308,9 +1326,9 @@ rewrite muln_gt0 => /andP[n1_gt0 n2_gt0].
 have [m2_0 | m2_gt0] := posnP m2.
   apply/leqifP; rewrite -le2 andbC eq_sym eqn_leq leqNgt m2_0 muln0.
   by rewrite muln_gt0 n1_gt0 n2_gt0.
-move/leq_pmul2l: n1_gt0 => /monotone_leqif Mn1; move/Mn1: le2 => {Mn1}.
-move/leq_pmul2r: m2_gt0 => /monotone_leqif Mm2; move/Mm2: le1 => {Mm2}.
-exact: leqif_trans.
+have mono_n1 := leq_pmul2l n1_gt0; have mono_m2 := leq_pmul2r m2_gt0.
+rewrite -(mono_leqif mono_m2) in le1; rewrite -(mono_leqif mono_n1) in le2.
+exact: leqif_trans le1 le2.
 Qed.
 
 Lemma nat_Cauchy m n : 2 * (m * n) <= m ^ 2 + n ^ 2 ?= iff (m == n).

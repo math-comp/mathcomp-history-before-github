@@ -15,7 +15,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 (* forces us to pass a default value. This default value can often be hidden  *)
 (* by a notation.                                                             *)
 (*   Here is the list of seq operations:                                      *)
-(*  ** constructors:                                                          *)
+(*  ** Constructors:                                                          *)
 (*                        seq T == the type of sequences with items of type T *)
 (*                       bitseq == seq bool                                   *)
 (*             [::], nil, Nil T == the empty sequence (of type T)             *)
@@ -30,23 +30,23 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 (* a dependent family type, so the ssreflect tactic case/lastP: p => [|p' x]  *)
 (* will generate two subgoals in which p has been replaced by [::] and by     *)
 (* rcons p' x, respectively.                                                  *)
-(*  ** factories:                                                             *)
+(*  ** Factories:                                                             *)
 (*             nseq n x == a sequence of n x's                                *)
 (*          ncons n x s == a sequence of n x's, followed by s                 *)
 (* seqn n x_0 ... x_n-1 == the sequence of the x_i (can be partially applied) *)
 (*             iota m n == the sequence m, m + 1, ..., m + n - 1              *)
 (*            mkseq f n == the sequence f 0, f 1, ..., f (n - 1)              *)
-(*  ** sequential access:                                                     *)
+(*  ** Sequential access:                                                     *)
 (*      head x0 s == the head (zero'th item) of s if s is non-empty, else x0  *)
 (*        ohead s == None if s is empty, else Some x where x is the head of s *)
 (*       behead s == s minus its head, i.e., s' if s = x :: s', else [::]     *)
 (*       last x s == the last element of x :: s (which is non-empty)          *)
 (*     belast x s == x :: s minus its last item                               *)
-(*  ** dimensions:                                                            *)
+(*  ** Dimensions:                                                            *)
 (*         size s == the number of items (length) in s                        *)
 (*       shape ss == the sequence of sizes of the items of the sequence of    *)
 (*                   sequences ss                                             *)
-(*  ** random access:                                                         *)
+(*  ** Random access:                                                         *)
 (*         nth x0 s i == the item i of s (numbered from 0), or x0 if s does   *)
 (*                       not have at least i+1 items (i.e., size x <= i)      *)
 (*               s`_i == standard notation for nth x0 s i for a default x0,   *)
@@ -56,7 +56,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 (*                       to size i+1.                                         *)
 (*       incr_nth s i == the nat sequence s with item i incremented (s is     *)
 (*                       first padded with 0's to size i+1, if needed).       *)
-(*  ** predicates:                                                            *)
+(*  ** Predicates:                                                            *)
 (*          nilp s == s is [::]                                               *)
 (*                 := (size s == 0)                                           *)
 (*         x \in s == x appears in s (this requires an eqType for T)          *)
@@ -79,7 +79,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 (*  perm_eqr s1 s2 <-> s1 and s2 behave identically on the rightt of perm_eq  *)
 (*    These left/right transitive versions of perm_eq make it easier to chain *)
 (* a sequence of equivalences.                                                *)
-(*  ** filtering:                                                             *)
+(*  ** Filtering:                                                             *)
 (*           filter p s == the subsequence of s consisting of all the items   *)
 (*                         for which the (boolean) predicate p holds          *)
 (* subfilter s : seq sT == when sT has a subType p structure, the sequence    *)
@@ -94,48 +94,54 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 (*             mask m s == the subsequence of s selected by m : bitseq, with  *)
 (*                         item i of s selected by bit i in m (extra items or *)
 (*                         bits are ignored.                                  *)
-(*  ** surgery:                                                               *)
-(* s1 ++ s2, cat s1 s2 == the concatenation of s1 and s2                      *)
+(*  ** Surgery:                                                               *)
+(* s1 ++ s2, cat s1 s2 == the concatenation of s1 and s2.                     *)
 (*            take n s == the sequence containing only the first n items of s *)
-(*                        (or all of s if size s <= n)                        *)
+(*                        (or all of s if size s <= n).                       *)
 (*            drop n s == s minus its first n items ([::] if size s <= n)     *)
-(*             rot n s == s rotated left n times (or s if size s <= n)        *)
+(*             rot n s == s rotated left n times (or s if size s <= n).       *)
 (*                     := drop n s ++ take n s                                *)
-(*            rotr n s == s rotated right n times (or s if size s <= n)       *)
-(*               rev s == the (linear time) reversal of s                     *)
+(*            rotr n s == s rotated right n times (or s if size s <= n).      *)
+(*               rev s == the (linear time) reversal of s.                    *)
 (*        catrev s1 s2 == the reversal of s1 followed by s2 (this is the      *)
-(*                        recursive form of rev)                              *)
-(*  ** iterators: for s == [:: x_1, ..., x_n], t == [:: y_1, ..., y_m],       *)
-(*        map f s == the sequence [:: f x_1, ..., f x_n]                      *)
-(*     [seq E | i <- s] := map (fun i => E) s                                 *)
-(*  [seq E | i <- s, C] := map (fun i => E) (filter (fun i => C) s)           *)
+(*                        recursive form of rev).                             *)
+(*  ** Iterators: for s == [:: x_1, ..., x_n], t == [:: y_1, ..., y_m],       *)
+(*        map f s == the sequence [:: f x_1, ..., f x_n].                     *)
+(* allpairs f s t == the sequence of all the f x y, with x and y drawn from   *)
+(*                  s and t, respectievly, in row-major order.                *)
+(*               := [:: f x_1 y_1; ...; f x_1 y_m; f x_2 y_1; ...; f x_n y_m] *)
 (*      pmap pf s == the sequence [:: y_i1, ..., y_ik] where i1 < ... < ik,   *)
 (*                   pf x_i = Some y_i, and pf x_j = None iff j is not in     *)
 (*                   {i1, ..., ik}.                                           *)
-(*   foldr f a s == the right fold of s by f (i.e., the natural iterator)     *)
+(*   foldr f a s == the right fold of s by f (i.e., the natural iterator).    *)
 (*               := f x_1 (f x_2 ... (f x_n a))                               *)
-(*        sumn s == x_1 + (x_2 + ... + (x_n + 0)) (when s : seq nat)          *)
-(*   foldl f a s == the left fold of s by f                                   *)
+(*        sumn s == x_1 + (x_2 + ... + (x_n + 0)) (when s : seq nat).         *)
+(*   foldl f a s == the left fold of s by f.                                  *)
 (*               := f (f ... (f a x_1) ... x_n-1) x_n                         *)
-(*   scanl f a s == the sequence of partial accumulators of foldl f a s       *)
+(*   scanl f a s == the sequence of partial accumulators of foldl f a s.      *)
 (*               := [:: f a x_1; ...; foldl f a s]                            *)
-(* pairmap f a s == the sequence of f applied to consecutie items in a :: s   *)
+(* pairmap f a s == the sequence of f applied to consecutie items in a :: s.  *)
 (*               := [:: f a x_1; f x_1 x_2; ...; f x_n-1 x_n]                 *)
-(*       zip s t == itemwise pairing of s and t (dropping any extra items)    *)
+(*       zip s t == itemwise pairing of s and t (dropping any extra items).   *)
 (*               := [:: (x_1, y_1); ...; (x_mn, y_mn)] with mn = minn n m.    *)
-(*      unzip1 s == [:: (x_1).1; ...; (x_n).1] when s : seq (S * T)           *)
-(*      unzip2 s == [:: (x_1).2; ...; (x_n).2] when s : seq (S * T)           *)
-(*     flatten s == x_1 ++ ... ++ x_n ++ [::] when s : seq (seq T)            *)
+(*      unzip1 s == [:: (x_1).1; ...; (x_n).1] when s : seq (S * T).          *)
+(*      unzip2 s == [:: (x_1).2; ...; (x_n).2] when s : seq (S * T).          *)
+(*     flatten s == x_1 ++ ... ++ x_n ++ [::] when s : seq (seq T).           *)
 (*   reshape r s == s reshaped into a sequence of sequences whose sizes are   *)
-(*                  given by r (trucating if s is too long or too short)      *)
+(*                  given by r (trucating if s is too long or too short).     *)
 (*               := [:: [:: x_1; ...; x_r1];                                  *)
 (*                      [:: x_(r1 + 1); ...; x_(r0 + r1)];                    *)
 (*                      ...;                                                  *)
 (*                      [:: x_(r1 + ... + r(k-1) + 1); ...; x_(r0 + ... rk)]] *)
-(* allpairs f s t == the sequence of all the f x y, with x and y drawn from   *)
-(*                  s and t, respectievly, in row-major order:                *)
-(*               := [:: f x_1 y_1; ...; f x_1 y_m; f x_2 y_1; ...; f x_n y_m] *)
-(*  [seq E | i <- s, j <- t] := allpairs (fun i j => E) s t                   *)
+(*  ** Notation for manifest comprehensions:                                  *)
+(*         [seq x <- s | C] := filter (fun x => C) s.                         *)
+(*         [seq E | x <- s] := map (fun x => E) s.                            *)
+(* [seq E | x <- s, y <- t] := allpairs (fun x y => E) s t.                   *)
+(*   [seq x <- s | C1 & C2] := [seq x <- s | C1 && C2].                       *)
+(*     [seq E | x <- s & C] := [seq E | x <- [seq x | C]].                    *)
+(*  --> The above allow optional type casts on the eigenvariables, as in      *)
+(*  [seq x : T <- s | C] or [seq E | x : T <- s, y : U <- t]. The cast may be *)
+(*  needed as type inference considers E or C before s.                       *)
 (*   We are quite systematic in providing lemmas to rewrite any composition   *)
 (* of two operations. "rev", whose simplifications are not natural, is        *)
 (* protected with nosimpl.                                                    *)
@@ -754,6 +760,17 @@ Prenex Implicits cat take drop rev rot rotr.
 Prenex Implicits find count nth all has filter all_filterP.
 
 Infix "++" := cat : seq_scope.
+
+Notation "[ 'seq' x <- s | C ]" := (filter (fun x => C%B) s)
+ (at level 0, x at level 99,
+  format "[ '[hv' 'seq'  x  <-  s '/ '  |  C ] ']'") : seq_scope.
+Notation "[ 'seq' x <- s | C1 & C2 ]" := [seq x <- s | C1 && C2]
+ (at level 0, x at level 99,
+  format "[ '[hv' 'seq'  x  <-  s '/ '  |  C1 '/ '  &  C2 ] ']'") : seq_scope.
+Notation "[ 'seq' x : T <- s | C ]" := (filter (fun x : T => C%B) s)
+ (at level 0, x at level 99, only parsing).
+Notation "[ 'seq' x : T <- s | C1 & C2 ]" := [seq x : T <- s | C1 && C2]
+ (at level 0, x at level 99, only parsing).
 
 Section Rev.
 
@@ -1859,13 +1876,19 @@ Qed.
 End Map.
 
 Notation "[ 'seq' E | i <- s ]" := (map (fun i => E) s)
-  (at level 0, i ident,
-   format "[ '[hv' 'seq'  E '/ '  |  i  <-  s ] ']'") : form_scope.
+  (at level 0, E at level 99, i ident,
+   format "[ '[hv' 'seq'  E '/ '  |  i  <-  s ] ']'") : seq_scope.
 
-Notation "[ 'seq' E | i <- s , C ]" :=
-     (map (fun i => E) (filter (fun i => C) s))
-  (at level 0, i ident,
-   format "[ '[hv' 'seq'  E '/ '  |  i  <-  s , '/ '  C ] ']'") : form_scope.
+Notation "[ 'seq' E | i <- s & C ]" := [seq E | i <- [seq i <- s | C]]
+  (at level 0, E at level 99, i ident,
+   format "[ '[hv' 'seq'  E '/ '  |  i  <-  s '/ '  &  C ] ']'") : seq_scope.
+
+Notation "[ 'seq' E | i : T <- s ]" := (map (fun i : T => E) s)
+  (at level 0, E at level 99, i ident, only parsing) : seq_scope.
+
+Notation "[ 'seq' E | i : T <- s & C ]" :=
+  [seq E | i : T <- [seq i : T <- s | C]]
+  (at level 0, E at level 99, i ident, only parsing) : seq_scope.
 
 Lemma filter_mask T a (s : seq T) : filter a s = mask (map a s) s.
 Proof. by elim: s => //= x s <-; case: (a x). Qed.
@@ -2389,9 +2412,12 @@ End AllPairs.
 Prenex Implicits flatten shape reshape allpairs.
 
 Notation "[ 'seq' E | i <- s , j <- t ]" := (allpairs (fun i j => E) s t)
-  (at level 0, i ident,
-   format "[ '[hv' 'seq'  E '/ '  |  i  <-  s , '/ '  j  <-  t ] ']'")
-   : form_scope.
+  (at level 0, E at level 99, i ident, j ident,
+   format "[ '[hv' 'seq'  E '/ '  |  i  <-  s , '/   '  j  <-  t ] ']'")
+   : seq_scope.
+Notation "[ 'seq' E | i : T <- s , j : U <- t ]" :=
+  (allpairs (fun (i : T) (j : U) => E) s t)
+  (at level 0, E at level 99, i ident, j ident, only parsing) : seq_scope.
 
 Section EqAllPairs.
 

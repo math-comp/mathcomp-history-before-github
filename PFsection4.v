@@ -400,11 +400,10 @@ Definition Dade_mudelta :=
    odflt ([ffun => [ffun => 0]], [ffun => true]) 
     [pick mudelta : ({ffun Iirr W1 -> {ffun Iirr W2 -> Iirr L}} *
                  {ffun Iirr W2 -> bool}) |
-        let (mu,delta) := mudelta in
-          injectiveb (prod_curry (fun a b => mu a b)) &&
-          forallb i : Iirr W1, forallb j : Iirr W2,
-       'Ind[L] (e_ i j) ==
-            (-1) ^+ (delta j) *: ('chi_(mu i j) - 'chi_(mu 0 j))].
+       let (mu, delta) := mudelta in
+       injectiveb (prod_curry (fun a b => mu a b)) &&
+       [forall i, forall j,
+       'Ind[L] (e_ i j) == (-1) ^+ delta j *: ('chi_(mu i j) - 'chi_(mu 0 j))]].
 
 Definition Dade_mu2 (i : Iirr W1) (j : Iirr W2) : Iirr L := 
   Dade_mudelta.1 i j. 
@@ -423,14 +422,13 @@ have linearW := cTIirr_linearW cyclicTI_Dade.
 rewrite /Dade_mu2 /Dade_delta /Dade_mudelta; case: pickP=> /= [[mu2 delta]|].
   move/andP=> [] /injectiveP Hi /forallP Hp; split=> // i j; apply/eqP.
   by move: (Hp i)=> /forallP /(_ j).
-pose md  (j : Iirr W2)  := 
+pose md (j : Iirr W2) := 
    odflt ([ffun => 0], true) 
     [pick mudelta : ({ffun Iirr W1 -> Iirr L} * bool) |
-        let (mu,delta) := mudelta in
-          injectiveb mu &&
-          forallb i : Iirr W1, 
-       'Ind[L] (e_ i j) ==
-            (-1) ^+ delta *: ('chi_(mu i) - 'chi_(mu 0))].
+        let (mu, delta) := mudelta in
+        injectiveb mu &&
+        [forall i, 
+         'Ind[L] (e_ i j) == (-1) ^+ delta *: ('chi_(mu i) - 'chi_(mu 0))]].
 move/(_ ([ffun i : Iirr W1 => [ffun j => (md j).1 i]], [ffun j => (md j).2])).
 move/idP=> [].
 have FF: W :\: W2 \subset L^#.
@@ -438,27 +436,27 @@ have FF: W :\: W2 \subset L^#.
   case: (boolP (u == _))=> [HH| _ /=]; last by apply: (subsetP WsL).
   by case/negP: Hu; rewrite (eqP HH) group1.
 pose TH := normedTI_isometry FF normedTI_Dade_W2.
-have: forall j, injective (md j).1 /\   
-        forall i, 'Ind[L] (e_ i j) = 
-                      (-1) ^+ (md j).2 *: ('chi_((md j).1 i) - 'chi_((md j).1 0)).
+have: forall j, injective (md j).1   
+      /\ (forall i, 'Ind[L] (e_ i j) = 
+                  (-1) ^+ (md j).2 *: ('chi_((md j).1 i) - 'chi_((md j).1 0))).
   move=> j; rewrite /md; case: pickP=> [[/= mu d] /andP [] |].
     by move/injectiveP=> Hi /forallP Hf; split=> // i; apply/eqP.
   (* All the conditions to apply 1.3 *)
-  pose Chi :=  [tuple of [seq w_ i j | i <- ord_tuple (Nirr W1)]].
+  pose Chi := [tuple of [seq w_ i j | i <- ord_tuple (Nirr W1)]].
   have ChiW i : w_ i j \in Chi by apply/imageP; exists i.
   have Chi_nth (i : Iirr W1) : Chi`_i = w_ i j.
     rewrite (nth_map 0) -?cardE ?card_ord //=.
     move: (tnth_ord_tuple i)=> /=.
     by rewrite (tnth_nth 0) -?cardE ?card_ord //= => ->.
   have ChiS: {subset Chi <= irr W}.
-    by move=> c /mapP [k KiI ->]; exact: irr_chi.
+    by move=> c /mapP [k KiI ->]; exact: mem_irr.
   have ChiF: free Chi.
     apply: orthonormal_free; apply/orthonormalP; split=> [|c1 c2].
       apply/injectiveP=> u v; rewrite !(cTIirrE cyclicTI_Dade).
-      by move/chi_inj=> /dprod_Iirr_inj []. 
+      by move/irr_inj=> /dprod_Iirr_inj []. 
     move=> /mapP [i1 Hi1 ->] /mapP [i2 Hi2 ->].
     apply/eqP; rewrite cfdot_irr eqr_nat; apply/eqP; congr nat_of_bool.
-    by rewrite /cyclicTIirr; apply/eqP/eqP=> [-> | /chi_inj].
+    by rewrite /cyclicTIirr; apply/eqP/eqP=> [-> | /irr_inj].
   have Chi1: (forall chi, chi \in Chi -> chi 1%g = Chi`_0 1%g).
     have->: 0%N = (0 : Iirr W1) by [].
     move=> c; rewrite Chi_nth => /mapP [k KiI ->].
@@ -603,7 +601,7 @@ Lemma Dade_mu2_sigma i j :
   sigma (w_ i j) = (-1) ^+ delta j *: 'chi_(mu2 i j).
 Proof.
 apply: sym_equal; apply: (@cyclicTI_dirr  _ _ _ _ _ cyclicTI_Dade)=> [|g].
-  by rewrite dirr_sign dirr_chi.
+  by rewrite dirr_sign dmem_irr.
 rewrite !inE !cfunE -/(w_ i j) negb_or -andbA => /and3P [GniW1 GniW2 GiW].
 case: Dade_mu2_restrict=> ->; last by rewrite inE GniW2.
 by rewrite cfunE mulrA -signr_addb -negb_eqb eqxx expr0 mul1r.
@@ -713,11 +711,11 @@ Proof.
 have F1: 'Res[W] 'chi[L]_0 = 'chi[W]_0.
   apply/cfunP=> g.
   case: (boolP (g \in W))=> [GiW|GniW]; last by rewrite !cfun0.
-  by rewrite cfResE // !chi0_1 !cfun1E (subsetP WsL) GiW.
-have F2: 'chi_0 \in dirr L by apply: dirr_chi.
+  by rewrite cfResE // !irr0 !cfun1E (subsetP WsL) GiW.
+have F2: 'chi_0 \in dirr L by apply: dmem_irr.
 have F3: {in cyclicTIset cyclicTI_Dade, 'chi[L]_0 =1 w_ 0 0}.
   move=> g; rewrite inE=> [/andP [_ GiW]].
-  rewrite (cTIirr00 cyclicTI_Dade) chi0_1 !cfun1E.
+  rewrite (cTIirr00 cyclicTI_Dade) irr0 !cfun1E.
   by rewrite (subsetP WsL) GiW.
 move: (cyclicTI_dirr F2 F3); rewrite Dade_mu2_sigma.
 case: (delta 0); rewrite (expr0, expr1).
@@ -725,7 +723,7 @@ case: (delta 0); rewrite (expr0, expr1).
   have: 0 < 'chi[L]_0 1%g + 'chi_(mu2 0 0) 1%g.
     by apply: ltr_paddl; try apply: ltrW; apply: irr1_gt0.
   by rewrite HH cfunE addNr ltr_def eqxx.
-by rewrite scale1r => /chi_inj<-.
+by rewrite scale1r => /irr_inj<-.
 Qed.
 
 Lemma Dade_delta0 : delta 0 = false.
@@ -736,7 +734,7 @@ Proof. by case/andP: Dade_delta0_mu20=> _ /eqP. Qed.
 
 (* This is PeterFalvi (4.4). *)
 Lemma Dade_mu2_subset_cfker :
- [set i |  K \subset cfker 'chi[L]_i] = [set (mu2 i 0) | i <- Iirr W1]. 
+  [set i | K \subset cfker 'chi[L]_i] = [set mu2 i 0 | i : Iirr W1]. 
 Proof.
 have KnL: K <| L by case/sdprod_context: SdP.
 apply/eqP; rewrite eqEcard; apply/andP; split.
@@ -760,22 +758,22 @@ apply/eqP; rewrite eqEcard; apply/andP; split.
       case: (inv_dprod_Iirr HdP j1)=> /= i2 j2.
       rewrite (cTIirrE cyclicTI_Dade) !dprod_IirrE !cfDprodE //.
       pose LW2 i := lin_char1 (cTIirr_linearW2 cyclicTI_Dade i).
-      by rewrite !LW2 // chi0_1 cfun1E H2iW2.
+      by rewrite !LW2 // irr0 cfun1E H2iW2.
     have H1iW: h1 \in W by apply: (subsetP W1sW _).
     have H2iW: h2 \in W by apply: (subsetP W2sW _).
     rewrite mulg1 -!Hj1 !cfResE ?groupM //.
     by rewrite cfkerMr // (subsetP KsK) // (subsetP W2sK).
   apply/imsetP; exists i=> //.
-  have F2: 'chi_j \in dirr L by apply: dirr_chi.
+  have F2: 'chi_j \in dirr L by apply: dmem_irr.
   have F3: {in cyclicTIset cyclicTI_Dade, 'chi_j =1 w_ i 0}.
     move=> g; rewrite inE=> [/andP [_ HH]].
     by rewrite -F1 -Hj1 cfResE.
   move: (cyclicTI_dirr F2 F3); rewrite Dade_mu2_sigma.
-  by rewrite Dade_delta0 scale1r=> /chi_inj.
+  by rewrite Dade_delta0 scale1r=> /irr_inj.
  (* could be improved surely *)
 rewrite imset_card card_image => [|x y]; last by case/Dade_mu2_inj.
 rewrite card_ord //  NirrE classesW1.
-have->: #|W1| = #|[image (mod_Iirr i) | i <- Iirr(L/K)]|.
+have->: #|W1| = #|[seq mod_Iirr i | i : Iirr (L / K)]|.
   rewrite card_in_image => [|g h GiQ hiQ].
     rewrite card_ord // NirrE.
     move: W1isoLqK; rewrite isog_cyclic_card // => /andP [CQ /eqP<-].
@@ -820,16 +818,16 @@ Qed.
 
 Let Dade_Ind_DI i j : 
   'Ind[L] 'chi_i = 
-      \sum_(i0 < Nirr W1) '['Res[K] 'chi_(mu2 i0 j), 'chi_i] *: 'chi_(mu2 i0 j) +
-      \sum_(i0 < Nirr L | i0 \notin [image mu2 i1 j  | i1 <- Iirr W1])
+      \sum_(i0 < Nirr W1)
+          '['Res[K] 'chi_(mu2 i0 j), 'chi_i] *: 'chi_(mu2 i0 j) +
+      \sum_(i0 < Nirr L | i0 \notin [seq mu2 i1 j | i1 : Iirr W1])
           '['Res[K] 'chi_i0, 'chi_i] *: 'chi_i0.
 Proof.
 rewrite [X in X = _]cfun_sum_cfdot.
 rewrite (eq_bigr (fun k => '['Res[K] 'chi_k, 'chi_i] *: 'chi_k)); last first.
   move=> k; rewrite -cfdot_Res_r cfdotC conj_Cnat //.
   by apply: Cnat_cfdot_char_irr (cfRes_char _ (irr_char _)).
-rewrite (bigID [pred k | k \in [image (mu2 i j) | i <- Iirr W1]]) /=.
-congr (_ + _).
+rewrite (bigID (mem [seq mu2 i j | i : Iirr W1])) /=; congr (_ + _).
 pose h i := odflt 0 [pick k | mu2 k j == i].
 rewrite (reindex_onto (mu2^~ j) h)=> [/= | i1]; last first.
   case/imageP=> i2 i2Irr ->.
@@ -918,7 +916,7 @@ rewrite (Dade_chiE 0) (cfResE _ KsL) // {1}(NirrE W1).
 have:= cyclic_abelian CW1; rewrite card_classes_abelian => /eqP ->.
 move/eqP; rewrite addrC -subr_eq0 addrK=> HH.
 rewrite [X in _ + X = _]big1 ?addr0 // => i Hi.
-suff: forall k, k \notin [image mu2 i1 j  | i1 <- Iirr W1] ->
+suff: forall k, k \notin [seq mu2 i1 j | i1 : Iirr W1] ->
      ('['Res[K] 'chi_k, 'Res[K] 'chi_(mu2 0 j)] *: 'chi_k) 1%g = 0.
   move/(_ _ Hi)=> /eqP.
   rewrite cfunE  mulf_eq0 (negPf (irr1_neq0 _)) orbF => /eqP ->.
@@ -935,7 +933,7 @@ by rewrite (Dade_chiE (aut_Iirr u 0)) Dade_mu2_aut -cfAutRes -Dade_chiE.
 Qed.
 
 Lemma Dade_chi0 : 'chi_(chi 0) = 1.
-Proof. by rewrite (Dade_chiE 0) Dade_mu20 chi0_1 cfRes_cfun1. Qed.
+Proof. by rewrite (Dade_chiE 0) Dade_mu20 irr0 cfRes_cfun1. Qed.
 
 Lemma Dade_mu0 : mu 0 = #|W1|%:R *: '1_K.
 Proof.
@@ -949,7 +947,7 @@ case: HC => [[_ _ H_Hall _] [_ WsK _ _] _].
 by rewrite coprime_sym (coprime_sdprod_Hall SdP) (sdprod_Hall SdP).
 Qed.
 
-Lemma Dade_chi_inj : injective chi.
+Lemma Dade_irr_inj : injective chi.
 Proof.
 by move=> j1 j2 Dj; apply: Dade_mu_inj; rewrite -!Dade_Ind_chi Dj.
 Qed.
@@ -966,39 +964,37 @@ suff IeK: 'I_L['chi_k] = K.
   split=> // i j; apply/eqP => PeJ; case/negP: (irr_neq0 (mu2 i j)).
   rewrite -cfnorm_eq0 -{1}PeJ -Frobenius_reciprocity -Dade_chiE cfdot_irr.
   by case: (k =P _) => // KeJ; case/negP: KniC; apply/imageP; exists j.
-have KsI := sub_inertia 'chi_k KnL.
+have KsI := sub_inertia 'chi_k KsL.
 apply/eqP; rewrite eqEsubset KsI andbT.
-apply/subsetP=> g; rewrite !inE => /andP [/andP []].
-case/sdprodP: SdP => _ <- _ _; case/imset2P=> k1 w1 K1iK W1iW -> _.
+apply/subsetP=> _ /setId2P[/(mem_sdprod SdP)[k1 [w1 [K1iK W1iW -> _]]] _].
 case: (boolP (w1 == 1%g)) => [/eqP-> |W1no]; first by rewrite mulg1.
-move: (subsetP KsI _ K1iK); rewrite inE => /andP [K1iNL /eqP ChiE].
-have K1iN: k1 \in 'N(K) by move: K1iNL; rewrite inE; case/andP. 
+have /setId2P[_ K1iN /eqP ChiE] := subsetP KsI _ K1iK.
 have W1iN: w1 \in 'N(K).
   by case/andP: KnL=> _ /subsetP; apply; apply: (subsetP W1sL).
 rewrite cfConjgMnorm // ChiE => /eqP ChiW1E.
 have actIirrK: is_action L (@conjg_Iirr _ K).
   split=> [y j k2 eq_jk2 | j y z Gy Gz].
-    by apply/chi_inj/(can_inj (cfConjgK y)); rewrite -!conjg_IirrE eq_jk2.
-  by apply: chi_inj; rewrite !conjg_IirrE (cfConjgM _ KnL).
+    by apply/irr_inj/(can_inj (cfConjgK y)); rewrite -!conjg_IirrE eq_jk2.
+  by apply: irr_inj; rewrite !conjg_IirrE (cfConjgM _ KnL).
 pose ito := Action actIirrK.
-suff FeC: 'Fix_ito[w1] = [set i | i \in codom chi].
+suff FeC: 'Fix_ito[w1] = [set i in codom chi].
   suff: k \in 'Fix_ito[w1] by rewrite FeC inE => HH; case/negP: KniC.
   rewrite inE; apply/subsetP=> w2; rewrite !inE => /eqP->.
-  by apply/eqP; apply: chi_inj; rewrite conjg_IirrE.
+  by apply/eqP; apply: irr_inj; rewrite conjg_IirrE.
 have W1iL := (subsetP W1sL _ W1iW).
 apply/eqP; rewrite eq_sym eqEcard; apply/andP; split.
   apply/subsetP=> i1; rewrite inE; case/imageP=> /= i2 I2iIW2 ->.
   rewrite inE; apply/subsetP=> w2; rewrite !inE => /eqP->.
-  apply/eqP; apply: chi_inj; rewrite conjg_IirrE.
+  apply/eqP; apply: irr_inj; rewrite conjg_IirrE.
   apply/cfunP=> u; case: (boolP (u \in K))=> [UiK|UniK]; last by rewrite !cfun0.
   have UWiK : u ^ w1 \in K.
     by rewrite -mem_conjgV; case/normalP: KnL=> _ ->; rewrite ?groupV.
   have UWIiK : u ^ w1^-1 \in K by rewrite -mem_conjg; case/normalP: KnL=> _ ->.
   by rewrite !(Dade_chiE 0) cfConjgE // !cfResE // cfunJ // groupV.
-have ->: #|[set i \in codom chi]| = #|W2|.
+have ->: #|[set i in codom chi]| = #|W2|.
   rewrite  -classesW2 -NirrE.
   suff {2}<-: #|codom chi| = Nirr W2  by apply: eq_card=> i; rewrite inE.
-  by rewrite card_codom  ?card_ord //; exact: Dade_chi_inj.
+  by rewrite card_codom  ?card_ord //; exact: Dade_irr_inj.
 have acts_Js : [acts L, on classes K | 'Js].
   apply/subsetP=> y YiL.
   have YiNK : y \in 'N(K) by case/andP: KnL=> _ /subsetP /(_ _ YiL).
@@ -1011,7 +1007,7 @@ rewrite (card_afix_irr_classes W1iL acts_JsL); last first.
   move=> k2 g1 h1 G1iK .
   case/imsetP=> x /imsetP [h2 H2iK ->] ->.
   by rewrite conjg_IirrE cfConjgEnorm // cfunJ.
-pose f (C : {set gT}) := odflt 1%g [pick i | i \in C :&: W2].
+pose f (C : {set gT}) := odflt 1%g [pick i in C :&: W2].
 set S := 'Fix_(_ | _)[_].
 have SE (C : {set gT}) : C \in S -> (C \in classes K) && (C :^ w1 == C)%g.
   rewrite !inE; case/andP=> -> /subsetP /(_ w1).
@@ -1066,8 +1062,8 @@ rewrite /index_enum -enumT cfnorm_map_orthonormal //.
   rewrite size_map -cardE card_ord pnatr_eq1 NirrE neq_ltn orbC.
   by rewrite classes_gt1; have [[_ ->] _ _] := HC.
 apply/orthonormalP; split=> [|_ _ /mapP[i1 _ ->] /mapP[i2 _ ->]].
-  by rewrite map_inj_uniq ?enum_uniq // => ? ? /chi_inj/Dade_mu2_inj[].
-by rewrite cfdot_irr (inj_eq chi_inj).
+  by rewrite map_inj_uniq ?enum_uniq // => ? ? /irr_inj/Dade_mu2_inj[].
+by rewrite cfdot_irr (inj_eq irr_inj).
 Qed.
 
 (* This is the second assertion of Peterfalvi (4.5b). *)
@@ -1075,11 +1071,11 @@ Theorem Ptype_irr_mu2Vchi'Ind ell (phi := 'chi_ell) :
    {i : _ & {j | phi = 'chi_(mu2 i j)}}
      + {k | k \notin codom chi & phi = 'Ind 'chi_k}.
 Proof.
-pose l := odflt 0 [pick i | i \in irr_constt ('Res[K] phi)].
+pose l := odflt 0 [pick i in irr_constt ('Res[K] phi)].
 have: ell \in irr_constt ('Ind[L] 'chi_l).
   rewrite constt_Ind_constt_Res /l.
   case: pickP=> //=.
-  case/neq0_has_constt: (Res_irr_neq0 ell KsL)=> j1 Hj1 /(_ j1).
+  case/neq0_has_constt: (Res_irr_neq0 K ell)=> j1 Hj1 /(_ j1).
   by rewrite Hj1.
 case: (boolP (l \in codom chi))=> [JiC|JniC EiI]; last first.
   right; exists l=> //.
@@ -1106,7 +1102,7 @@ Variable (A A0 : {set gT}) (G H L K W W1 W2 : {group gT}).
 
 Definition centralDade_properties :=
   [/\ (*c*) [/\ H <| L, W2 \subset H & H \subset K],
-      (*d*) [/\ A <| L, \bigcup_(h \in H^#) 'C_K[h]^# \subset A & A \subset K^#]
+      (*d*) [/\ A <| L, \bigcup_(h in H^#) 'C_K[h]^# \subset A & A \subset K^#]
     &       A0 = A :|: class_support (W :\: (W1 :|: W2)) L].
  
 Record centralDade_hypothesis : Prop := CentralDadeHypothesis {
@@ -1145,7 +1141,7 @@ Let HsK : H \subset K. Proof. by have [[]] := CDH_P. Qed.
 Let KsL : K \subset L.
 Proof. by have [[/sdprod_context[/andP[]]]] := cDade_cDa_h CDH. Qed.
 
-Let CupA: \bigcup_(h \in H^#) 'C_K[h]^# \subset A.
+Let CupA: \bigcup_(h in H^#) 'C_K[h]^# \subset A.
 Proof. by have [_ []] := CDH_P. Qed.
 
 Let W2sH : W2 \subset H. Proof. by have [[]] := CDH_P. Qed.
@@ -1200,14 +1196,14 @@ Qed.
 Lemma not_cDade_core_sub_cfker_chi j : j != 0 ->  ~~ (H \subset cfker (chi j)).
 Proof.
 apply: contra => HsC; suffices: w_ 0 j = 1.
-  by rewrite -(cTIirr00 CDH) !(cTIirrE CDH) => /chi_inj/dprod_Iirr_inj[->].
+  by rewrite -(cTIirr00 CDH) !(cTIirrE CDH) => /irr_inj/dprod_Iirr_inj[->].
 apply/cfunP=> g.
 rewrite !cfun1E; case: (boolP (_ \in _))=> [|GnI]; last first.
   by rewrite cfun0.
 case/dprodP: HdP=> _ {1}<- _ _; case/imset2P=> x y XiW1 YiW2->.
 case/trivgPn: dW1=> x1 X1iW1 NOx1.
 suff<-: w_ 0 j (x1 * y)%g = true%:R.
-  rewrite !(cTIirrE CDH) dprod_IirrE !cfDprodE ?group1 // chi0_1.
+  rewrite !(cTIirrE CDH) dprod_IirrE !cfDprodE ?group1 // irr0.
   by rewrite !cfun1E XiW1 X1iW1.
 have X1niW2 : x1 \notin W2.
   apply: contra NOx1=> X1iW2.
@@ -1229,7 +1225,7 @@ have: mu2 0 j (x1 * y)%g = mu2 0 j x1.
   by rewrite ((Dade_chiE CDH) 0) cfker_Res ?irr_char // => /setIP[_ /cfkerMr->].
 rewrite (DMR 0 j _ X1YiWW2) (DMR 0 j _ X1iWW2) !cfunE => /lreg_sign->.
 rewrite -[x1]mulg1 (cTIirrE CDH) !dprod_IirrE !cfDprodE //.
-by rewrite chi0_1 cfun1E X1iW1 mul1r !(lin_char1 (cTIirr_linearW2 CDH _)).
+by rewrite irr0 cfun1E X1iW1 mul1r !(lin_char1 (cTIirr_linearW2 CDH _)).
 Qed.
 
 (* Fourth part of Peterfalvi (4.7). *)
@@ -1389,7 +1385,7 @@ have dot_dj2: 0 < '[dsw, dsw - dchi dj1].
 have{dot_dj1 dot_dj2} [s [j1 [j2 Dj1 sw_j2]]]:
   exists s, exists j1, exists2 j2, swId (s, j1) = dj1 & swId (~~ s, j2) \in Isw.
 - move/cfdot_add_dirr_eq1: dot_dj1; rewrite dirr_dchi rpredN !dirr_sigma //.
-  case=> // Ddj1; [exists false, j, k | exists true, k, j]; try apply: dchi_inj;
+  case=> // Ddj1; [exists false, j, k | exists true, k, j]; try apply: dirr_inj;
     rewrite ?dirr_consttE swIdE scaler_sign //=.
   + by rewrite addrC Ddj1 addKr in dot_dj2.
   by rewrite Ddj1 addrK in dot_dj2.
@@ -1397,7 +1393,7 @@ rewrite -Dj1 swIdE cfdotZr rmorph_sign in phi_j1_lt0.
 have phi_j1_neq0: '[phi, sigma (w_ i j1)] != 0.
   by rewrite -(can_eq (signrMK s)) mulr0 ltr_eqF.
 set dj2 := swId _ in sw_j2; have NCj2'_le1 (dI : {set _}):
-  dj2 \in dI -> #|dI| = 2%N -> (NC (\sum_(dk \in dI :\ dj2) dchi dk)%R <= 1)%N.
+  dj2 \in dI -> #|dI| = 2%N -> (NC (\sum_(dk in dI :\ dj2) dchi dk)%R <= 1)%N.
 - rewrite (cardsD1 dj2) => -> /eqP/cards1P[dk ->].
   by rewrite big_set1 cyclicTI_NC_dirr ?dirr_dchi.
 suffices /mu'sw_lt0/ltr_geF/idP[]: dj2 \in Isw :\: Imu.
@@ -1447,7 +1443,7 @@ Lemma Dade_mu1_neq0 i : mu i 1%g != 0.
 Proof. by apply/eqP=> HH; move: (Dade_mu1_spos i); rewrite HH ltrr. Qed.
 
 Definition uniform_Dade_mu_seq k :=
-  image mu [pred j | (mu j 1%g == mu k 1%g) && (j != 0)].
+  image mu [pred j | mu j 1%g == mu k 1%g & j != 0].
 
 (* This is Peterfalvi (4.9).                                                  *)
 (* We have added the "obvious" fact that calT is pairwise orthogonal, since   *)
@@ -1520,7 +1516,7 @@ have NEmpty: exists2 psi, psi != 0 & psi \in 'Z[calT, A].
   by rewrite subrr.
 split; first by split.
 pose Lmu := [tuple of mkseq (mu \o inord) (Nirr W2)].
-have LmuE : Lmu = [image (mu i) | i <- Iirr W2] :> seq _.
+have LmuE : Lmu = [seq mu i | i : _] :> seq _.
   apply: (@eq_from_nth _ (mu 0)) => /=.
     by rewrite !size_map size_iota -enumT size_enum_ord.
   rewrite size_map size_iota=> i Hi.

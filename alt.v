@@ -180,7 +180,7 @@ move=> oT.
 have F1: #|'Alt_T| = 60 by apply: double_inj; rewrite -mul2n card_Alt oT.
 have FF (H : {group {perm T}}): H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
 - move=> Hh1 Hh3.
-  have [x _]: exists x, x \in T by apply/existsP; rewrite /pred0b oT.
+  have [x _]: exists x, x \in T by apply/existsP/eqP; rewrite oT.
   have F2 := Alt_trans T; rewrite oT /= in F2.
   have F3: [transitive 'Alt_T, on setT | 'P] by exact: ntransitive1 F2.
   have F4: [primitive 'Alt_T, on setT | 'P] by exact: ntransitive_primitive F2.

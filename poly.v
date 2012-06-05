@@ -1174,7 +1174,7 @@ Lemma unity_rootP n z : reflect (z ^+ n = 1) (n.-unity_root z).
 Proof. by rewrite unity_rootE; exact: eqP. Qed.
 
 Definition primitive_root_of_unity n z :=
-  (n > 0) && (forallb i : 'I_n, i.+1.-unity_root z == (i.+1 == n)).
+  (n > 0) && [forall i : 'I_n, i.+1.-unity_root z == (i.+1 == n)].
 Local Notation "n .-primitive_root" := (primitive_root_of_unity n) : ring_scope.
 
 Lemma prim_order_exists n z :
@@ -1184,7 +1184,7 @@ move=> n_gt0 zn1.
 have: exists m, (m > 0) && (z ^+ m == 1) by exists n; rewrite n_gt0 /= zn1.
 case/ex_minnP=> m /andP[m_gt0 /eqP zm1] m_min.
 exists m.
-  apply/andP; split=> //; apply/forallP=> i; apply/eqP; case: i => i /=.
+  apply/andP; split=> //; apply/eqfunP=> [[i]] /=.
   rewrite leq_eqVlt unity_rootE.
   case: eqP => [-> _ | _]; first by rewrite zm1 eqxx.
   by apply: contraTF => zi1; rewrite -leqNgt m_min.

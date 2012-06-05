@@ -594,7 +594,7 @@ apply/idP/idP=> [qx0 | /dvdpP[{q} q ->]]; last first.
   by rewrite rmorphM rootM /= -DpI pIx orbT.
 pose q1 := gcdp p q; have /dvdp_prod_XsubC[m Dq1]: pQtoC q1 %| p_ I.
   by rewrite gcdp_map DpI dvdp_gcdl.
-pose B := [set i \in mask m (enum I)].
+pose B := [set i in mask m (enum I)].
 have{Dq1} Dq1: pQtoC q1 %= p_ B.
   congr (_ %= _): Dq1; apply: eq_big_perm.
   by rewrite uniq_perm_eq ?mask_uniq ?enum_uniq // => i; rewrite mem_enum inE.
@@ -674,9 +674,9 @@ Definition Cnat : pred_class := fun x : algC => (truncC x)%:R == x.
 Definition minCpoly x : {poly algC} :=
   let: exist2 p _ _ := minCpoly_subproof x in map_poly ratr p.
 
-Coercion algC_divisor : algC >-> divisor.
-Coercion int_divisor : int >-> divisor.
 Coercion nat_divisor : nat >-> divisor.
+Coercion int_divisor : int >-> divisor.
+Coercion algC_divisor : algC >-> divisor.
 
 Lemma nCdivE (p : nat) : p = p%:R :> divisor. Proof. by []. Qed.
 Lemma zCdivE (p : int) : p = p%:~R :> divisor. Proof. by []. Qed.
@@ -853,7 +853,7 @@ Lemma normC_sum_eq (I : finType) (P : pred I) (F : I -> algC) :
      `|\sum_(i | P i) F i| = \sum_(i | P i) `|F i| ->
    {k : algC | `|k| == 1 & forall i, P i -> F i = `|F i| * k}.
 Proof.
-have [i /andP[Pi nzFi] | F0] := pickP [pred i | P i && (F i != 0)]; last first.
+have [i /andP[Pi nzFi] | F0] := pickP [pred i | P i & F i != 0]; last first.
   exists 1 => [|i Pi]; first by rewrite normr1.
   by case/nandP: (F0 i) => [/negP[]// | /negbNE/eqP->]; rewrite normr0 mul0r.
 rewrite !(bigD1 i Pi) /=; set Q := fun _ => _ : bool => norm_sumF.
@@ -1229,6 +1229,15 @@ Qed.
 Lemma dvdC_mulr x y z : y \in Cint -> (x %| z)%C -> (x %| z * y)%C.
 Proof. by rewrite mulrC; apply: dvdC_mull. Qed.
 
+Lemma dvdC_mul2r x y z : y != 0 -> (x * y %| z * y)%C = (x %| z)%C.
+Proof.
+move=> nz_y; rewrite !unfold_in /dvdC !(mulIr_eq0 _ (mulIf nz_y)).
+by rewrite mulrAC invfM mulrA divfK.
+Qed.
+
+Lemma dvdC_mul2l x y z : y != 0 -> (y * x %| y * z)%C = (x %| z)%C.
+Proof. by rewrite !(mulrC y); apply: dvdC_mul2r. Qed.
+
 Lemma dvdC_trans x y z : (x %| y)%C -> (y %| z)%C -> (x %| z)%C.
 Proof. by move=> x_dv_y /dvdCP[m Zm ->]; apply: dvdC_mull. Qed.
 
@@ -1461,6 +1470,20 @@ Lemma raddfZ_Cint a u : a \in Cint -> f (a *: u) = a *: f u.
 Proof. by case/CintP=> m ->; rewrite !scaler_int raddfMz. Qed.
 
 End AutLmodC.
+
+Section PredCmod.
+
+Variable V : lmodType algC.
+
+Lemma rpredZ_Cnat S (addS : @addrPred V S) (kS : keyed_pred addS) :
+  {in Cnat & kS, forall z u, z *: u \in kS}.
+Proof. by move=> _ u /CnatP[n ->]; apply: rpredZnat. Qed.
+
+Lemma rpredZ_Cint S (subS : @zmodPred V S) (kS : keyed_pred subS) :
+  {in Cint & kS, forall z u, z *: u \in kS}.
+Proof. by move=> _ u /CintP[m ->]; apply: rpredZint. Qed.
+
+End PredCmod.
 
 End AlgebraicsTheory.
 Hint Resolve Cnat_nat Cnat0 Cnat1 Cint0 Cint1 floorC0 Crat0 Crat1.

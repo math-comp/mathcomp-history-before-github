@@ -32,9 +32,9 @@ Require Import fingroup morphism.
 (*   (with rT : finGroupType).                                                *)
 (* - G \homg Grp (x_1 : ... x_n : (s_1 = t_1, ..., s_m = t_m)) : bool, with   *)
 (*   G : {set gT}, is convertible to the boolean expression                   *)
-(*     existsb t : gT * ... gT, let: (x_1, ..., x_n) := t in                  *)
+(*     [exists t : gT * ... gT, let: (x_1, ..., x_n) := t in                  *)
 (*       (<[x_1]> <*> ... <*> <[x_n]>, (s_1, ... (s_m-1, s_m) ...))           *)
-(*          == (G, (t_1, ... (t_m-1, t_m) ...))                               *)
+(*          == (G, (t_1, ... (t_m-1, t_m) ...))]                              *)
 (*   where the tuple comparison above is convertible to the conjunction       *)
 (*       [&& <[x_1]> <*> ... <*> <[x_n]> == G, s_1 == t_1, ... & s_m == t_m]  *)
 (*   Thus G \homg Grp (...) can be easily exploited by destructing the tuple  *)
@@ -108,7 +108,7 @@ Definition env1 {gT} (x : gT : finType) := Env <[x]> [:: x].
 Fixpoint sat gT vT B n (s : vT -> env gT) p :=
   match p with
   | Formula f =>
-    existsb v, let: Env A e := s v in and_rel A B (rel (rev e) f NoRel)
+    [exists v, let: Env A e := s v in and_rel A B (rel (rev e) f NoRel)]
   | Generator p' =>
     let s' v := let: Env A e := s v.1 in Env (A <*> <[v.2]>) (v.2 :: e) in
     sat B n.+1 s' (p' (Cst n))

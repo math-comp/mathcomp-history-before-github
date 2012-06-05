@@ -100,8 +100,10 @@ Require Import ssreflect ssrfun.
 (*            [pred x | E] == simplifying (see ssrfun) predicate x => E.      *)
 (*        [pred x : T | E] == predicate x => T, with a cast on the argument.  *)
 (*          [pred : T | P] == constant predicate P on type T.                 *)
-(*          [pred x \in A] == [pred x | x \in A].                             *)
-(*      [pred x \in A | E] == [pred x | (x \in A) && E].                      *)
+(*      [pred x | E1 & E2] == [pred x | E1 && E2]; an x : T cast is allowed.  *)
+(*           [pred x in A] == [pred x | x in A].                              *)
+(*       [pred x in A | E] == [pred x | x in A & E].                          *)
+(* [pred x in A | E1 & E2] == [pred x in A | E1 && E2].                       *)
 (*           [predU A & B] == union of two collective predicates A and B.     *)
 (*           [predI A & B] == intersection of collective predicates A and B.  *)
 (*           [predD A & B] == difference of collective predicates A and B.    *)
@@ -115,10 +117,10 @@ Require Import ssreflect ssrfun.
 (* In the following, x and y are bound in E:                                  *)
 (*           [rel x y | E] == simplifying relation x, y => E.                 *)
 (*       [rel x y : T | E] == simplifying relation with arguments cast.       *)
-(* [rel x y \in A & B | E] == [rel x y | [&& x \in A, y \in B & E]].          *)
-(*     [rel x y \in A & B] == [rel x y | (x \in A) && (y \in B)].             *)
-(*     [rel x y \in A | E] == [rel x y \in A & A | E].                        *)
-(*         [rel x y \in A] == [rel x y \in A & A].                            *)
+(*  [rel x y in A & B | E] == [rel x y | [&& x \in A, y \in B & E]].          *)
+(*      [rel x y in A & B] == [rel x y | (x \in A) && (y \in B)].             *)
+(*      [rel x y in A | E] == [rel x y in A & A | E].                         *)
+(*          [rel x y in A] == [rel x y in A & A].                             *)
 (*                relU R S == union of relations R and S.                     *)
 (* Explicit values of type pred T (i.e., lamdba terms) should always be used  *)
 (* applicatively, while values of collection types implementing the predType  *)
@@ -985,12 +987,12 @@ Ltac bool_congr :=
 (* The syntax for the preimage of a collective predicate A is                 *)
 (* - [preim f of A]                                                           *)
 (* Finally, the generic syntax for defining a simpl_pred T is                 *)
-(* - [pred x : T | P(x)], [pred x | P(x)], [pred x \in A | P(x)               *)
+(* - [pred x : T | P(x)], [pred x | P(x)], [pred x in A | P(x)], etc.         *)
 (* We also support boolean relations, but only the applicative form, with     *)
 (* types                                                                      *)
 (* - rel T, an alias for T -> pred T                                          *)
 (* - simpl_rel T, an auto-simplifying version, and syntax                     *)
-(*   [rel x y | P(x,y)], [rel x y \in A & B | P(x,y)], etc.                   *)
+(*   [rel x y | P(x,y)], [rel x y in A & B | P(x,y)], etc.                    *)
 (* The notation [rel of fA] can be used to coerce a function returning a      *)
 (* collective predicate to one returning pred T.                              *)
 (*   Finally, note that there is specific support for ambivalent predicates   *)
@@ -1087,15 +1089,19 @@ Implicit Arguments pred0 [T].
 Implicit Arguments predT [T].
 Prenex Implicits pred0 predT predI predU predC predD preim relU.
 
-Notation "[ 'pred' : T | E ]" := (SimplPred (fun _ : T => E))
+Notation "[ 'pred' : T | E ]" := (SimplPred (fun _ : T => E%B))
   (at level 0, format "[ 'pred' :  T  |  E ]") : fun_scope.
-Notation "[ 'pred' x | E ]" := (SimplPred (fun x => E))
+Notation "[ 'pred' x | E ]" := (SimplPred (fun x => E%B))
   (at level 0, x ident, format "[ 'pred'  x  |  E ]") : fun_scope.
-Notation "[ 'pred' x : T | E ]" := (SimplPred (fun x : T => E))
+Notation "[ 'pred' x | E1 & E2 ]" := [pred x | E1 && E2 ]
+  (at level 0, x ident, format "[ 'pred'  x  |  E1  &  E2 ]") : fun_scope.
+Notation "[ 'pred' x : T | E ]" := (SimplPred (fun x : T => E%B))
   (at level 0, x ident, only parsing) : fun_scope.
-Notation "[ 'rel' x y | E ]" := (SimplRel (fun x y => E))
+Notation "[ 'pred' x : T | E1 & E2 ]" := [pred x : T | E1 && E2 ]
+  (at level 0, x ident, only parsing) : fun_scope.
+Notation "[ 'rel' x y | E ]" := (SimplRel (fun x y => E%B))
   (at level 0, x ident, y ident, format "[ 'rel'  x  y  |  E ]") : fun_scope.
-Notation "[ 'rel' x y : T | E ]" := (SimplRel (fun x y : T => E))
+Notation "[ 'rel' x y : T | E ]" := (SimplRel (fun x y : T => E%B))
   (at level 0, x ident, y ident, only parsing) : fun_scope.
 
 Notation "[ 'predType' 'of' T ]" := (@clone_pred _ T _ id _ _ id)
@@ -1115,6 +1121,7 @@ Coercion sort_of_simpl_pred T (p : simpl_pred T) : pred_class := p : pred T.
 (* Unfortunately, this won't work for existing types like bool, unless we     *)
 (* redefine bool, true, false and all bool ops.                               *)
 Definition predArgType := Type.
+Bind Scope type_scope with predArgType.
 Identity Coercion sort_of_predArgType : predArgType >-> Sortclass.
 Coercion pred_of_argType (T : predArgType) : simpl_pred T := predT.
 
@@ -1162,23 +1169,26 @@ Notation "[ 'predC' A ]" := (predC [mem A])
 Notation "[ 'preim' f 'of' A ]" := (preim f [mem A])
   (at level 0, format "[ 'preim'  f  'of'  A ]") : fun_scope.
 
-Notation "[ 'pred' x \in A ]" := [pred x | x \in A]
-  (at level 0, x ident, format "[ 'pred'  x  \in  A ]") : fun_scope.
-Notation "[ 'pred' x \in A | E ]" := [pred x | (x \in A) && E]
-  (at level 0, x ident, format "[ 'pred'  x  \in  A  |  E ]") : fun_scope.
-Notation "[ 'rel' x y \in A & B | E ]" :=
+Notation "[ 'pred' x 'in' A ]" := [pred x | x \in A]
+  (at level 0, x ident, format "[ 'pred'  x  'in'  A ]") : fun_scope.
+Notation "[ 'pred' x 'in' A | E ]" := [pred x | x \in A & E]
+  (at level 0, x ident, format "[ 'pred'  x  'in'  A  |  E ]") : fun_scope.
+Notation "[ 'pred' x 'in' A | E1 & E2 ]" := [pred x | x \in A & E1 && E2 ]
+  (at level 0, x ident,
+   format "[ 'pred'  x  'in'  A  |  E1  &  E2 ]") : fun_scope.
+Notation "[ 'rel' x y 'in' A & B | E ]" :=
   [rel x y | (x \in A) && (y \in B) && E]
   (at level 0, x ident, y ident,
-   format "[ 'rel'  x  y  \in  A  &  B  |  E ]") : fun_scope.
-Notation "[ 'rel' x y \in A & B ]" := [rel x y | (x \in A) && (y \in B)]
+   format "[ 'rel'  x  y  'in'  A  &  B  |  E ]") : fun_scope.
+Notation "[ 'rel' x y 'in' A & B ]" := [rel x y | (x \in A) && (y \in B)]
   (at level 0, x ident, y ident,
-   format "[ 'rel'  x  y  \in  A  &  B ]") : fun_scope.
-Notation "[ 'rel' x y \in A | E ]" := [rel x y \in A & A | E]
+   format "[ 'rel'  x  y  'in'  A  &  B ]") : fun_scope.
+Notation "[ 'rel' x y 'in' A | E ]" := [rel x y in A & A | E]
   (at level 0, x ident, y ident,
-   format "[ 'rel'  x  y  \in  A  |  E ]") : fun_scope.
-Notation "[ 'rel' x y \in A ]" := [rel x y \in A & A]
+   format "[ 'rel'  x  y  'in'  A  |  E ]") : fun_scope.
+Notation "[ 'rel' x y 'in' A ]" := [rel x y in A & A]
   (at level 0, x ident, y ident,
-   format "[ 'rel'  x  y  \in  A ]") : fun_scope.
+   format "[ 'rel'  x  y  'in'  A ]") : fun_scope.
 
 Section simpl_mem.
 
@@ -1236,7 +1246,7 @@ Lemma in_simpl x p (msp : manifest_simpl_pred p) :
   in_mem x (Mem [eta fun_of_simpl (msp : simpl_pred T)]) = p x.
 Proof. by case: msp => _ /= ->. Qed.
 
-(* This lemma appears (under Coq 8.3 to unfold exactly one level of           *)
+(* This lemma appears (under Coq 8.3) to unfold exactly one level of          *)
 (* a collective predicate. The explicit identity function in the pattern      *)
 (* accomplishes this, apparently in contradiction with any rational analysis  *)
 (* of the unification heuristics used by Coq!                                 *)
@@ -1286,20 +1296,20 @@ Notation "x \isn't 'a' A" := (x \notin has_quality 1 A)
 Notation "x \isn't 'an' A" := (x \notin has_quality 2 A) 
   (at level 70, no associativity,
    format "'[hv' x '/ ' \isn't  'an'  A ']'") : bool_scope.
-Notation "[ 'qualify' x | P ]" := (Qualifier 0 (fun x => P))
+Notation "[ 'qualify' x | P ]" := (Qualifier 0 (fun x => P%B))
   (at level 0, x at level 99,
    format "'[hv' [  'qualify'  x  | '/ '  P ] ']'") : form_scope.
-Notation "[ 'qualify' x : T | P ]" := (Qualifier 0 (fun x : T => P))
+Notation "[ 'qualify' x : T | P ]" := (Qualifier 0 (fun x : T => P%B))
   (at level 0, x at level 99, only parsing) : form_scope.
-Notation "[ 'qualify' 'a' x | P ]" := (Qualifier 1 (fun x => P))
+Notation "[ 'qualify' 'a' x | P ]" := (Qualifier 1 (fun x => P%B))
   (at level 0, x at level 99,
    format "'[hv' [ 'qualify'  'a'  x  | '/ '  P ] ']'") : form_scope.
-Notation "[ 'qualify' 'a' x : T | P ]" := (Qualifier 1 (fun x : T => P))
+Notation "[ 'qualify' 'a' x : T | P ]" := (Qualifier 1 (fun x : T => P%B))
   (at level 0, x at level 99, only parsing) : form_scope.
-Notation "[ 'qualify' 'an' x | P ]" := (Qualifier 2 (fun x => P))
+Notation "[ 'qualify' 'an' x | P ]" := (Qualifier 2 (fun x => P%B))
   (at level 0, x at level 99,
    format "'[hv' [ 'qualify'  'an'  x  | '/ '  P ] ']'") : form_scope.
-Notation "[ 'qualify' 'an' x : T | P ]" := (Qualifier 2 (fun x : T => P))
+Notation "[ 'qualify' 'an' x : T | P ]" := (Qualifier 2 (fun x : T => P%B))
   (at level 0, x at level 99, only parsing) : form_scope.
 
 (* Keyed predicates: support for property-bearing predicate interfaces. *)

@@ -660,7 +660,7 @@ Local Notation "x *- n" := (- (x *+ n)) : ring_scope.
 Local Notation "\sum_ ( i <- r | P ) F" := (\big[+%R/0]_(i <- r | P) F).
 Local Notation "\sum_ ( m <= i < n ) F" := (\big[+%R/0]_(m <= i < n) F).
 Local Notation "\sum_ ( i < n ) F" := (\big[+%R/0]_(i < n) F).
-Local Notation "\sum_ ( i \in A ) F" := (\big[+%R/0]_(i \in A) F).
+Local Notation "\sum_ ( i 'in' A ) F" := (\big[+%R/0]_(i in A) F).
 
 Local Notation "s `_ i" := (nth 0 s i) : ring_scope.
 
@@ -804,7 +804,7 @@ Lemma sumrMnr x I r P (F : I -> nat) :
 Proof. by rewrite (big_morph _ (mulrnDr x) (erefl _)). Qed.
 
 Lemma sumr_const (I : finType) (A : pred I) (x : V) :
-  \sum_(i \in A) x = x *+ #|A|.
+  \sum_(i in A) x = x *+ #|A|.
 Proof. by rewrite big_const -iteropE. Qed.
 
 Section ClosedPredicates.
@@ -916,13 +916,13 @@ Local Notation "x ^+ n" := (exp x n) : ring_scope.
 
 Local Notation "\prod_ ( i <- r | P ) F" := (\big[*%R/1]_(i <- r | P) F).
 Local Notation "\prod_ ( i | P ) F" := (\big[*%R/1]_(i | P) F).
-Local Notation "\prod_ ( i \in A ) F" := (\big[*%R/1]_(i \in A) F).
+Local Notation "\prod_ ( i 'in' A ) F" := (\big[*%R/1]_(i in A) F).
 
 (* The ``field'' characteristic; the definition, and many of the theorems,   *)
 (* has to apply to rings as well; indeed, we need the Frobenius automorphism *)
 (* results for a non commutative ring in the proof of Gorenstein 2.6.3.      *)
 Definition char (R : Ring.type) of phant R : nat_pred :=
-  [pred p | prime p && (p%:R == 0 :> R)].
+  [pred p | prime p & p%:R == 0 :> R].
 
 Local Notation "[ 'char' R ]" := (char (Phant R)) : ring_scope.
 
@@ -1168,7 +1168,7 @@ Lemma lreg_sign n : lreg ((-1) ^+ n : R).
 Proof. by apply: lregX; apply: lregN; apply: lreg1. Qed.
 
 Lemma prodr_const (I : finType) (A : pred I) (x : R) :
-  \prod_(i \in A) x = x ^+ #|A|.
+  \prod_(i in A) x = x ^+ #|A|.
 Proof. by rewrite big_const -iteropE. Qed.
 
 Lemma prodrXr x I r P (F : I -> nat) :
@@ -1176,7 +1176,7 @@ Lemma prodrXr x I r P (F : I -> nat) :
 Proof. by rewrite (big_morph _ (exprD _) (erefl _)). Qed.
 
 Lemma prodrN (I : finType) (A : pred I) (F : I -> R) :
-  \prod_(i \in A) - F i = (- 1) ^+ #|A| * \prod_(i \in A) F i.
+  \prod_(i in A) - F i = (- 1) ^+ #|A| * \prod_(i in A) F i.
 Proof.
 rewrite -sum1_card /= -!(big_filter _ A) !unlock.
 elim: {A}(filter _ _) => /= [|i r ->]; first by rewrite mul1r.
@@ -2356,6 +2356,9 @@ Variables (f : {lrmorphism A -> B}) (g : {lrmorphism B -> C | s}).
 Definition idfun_lrmorphism := [lrmorphism of @idfun A].
 Definition comp_lrmorphism := [lrmorphism of g \o f].
 
+Lemma rmorph_alg a : f a%:A = a%:A.
+Proof. by rewrite linearZ rmorph1. Qed.
+
 Lemma lrmorphismP : lrmorphism f. Proof. exact: LRMorphism.class. Qed.
 
 Lemma can2_lrmorphism f' : cancel f f' -> cancel f' f -> lrmorphism f'.
@@ -2619,11 +2622,11 @@ by rewrite -scalerAl -scalerAr scalerA.
 Qed.
 
 Lemma scaler_prodl (I : finType) (S : pred I) (F : I -> A) k :
-  \prod_(i \in S) (k *: F i)  = k ^+ #|S| *: \prod_(i \in S) F i.
+  \prod_(i in S) (k *: F i)  = k ^+ #|S| *: \prod_(i in S) F i.
 Proof. by rewrite scaler_prod prodr_const. Qed.
 
 Lemma scaler_prodr (I : finType) (S : pred I) (F : I -> R) x :
-  \prod_(i \in S) (F i *: x)  = \prod_(i \in S) F i *: x ^+ #|S|.
+  \prod_(i in S) (F i *: x)  = \prod_(i in S) F i *: x ^+ #|S|.
 Proof. by rewrite scaler_prod prodr_const. Qed.
 
 Canonical regular_comRingType := [comRingType of R^o].
@@ -3508,7 +3511,7 @@ Lemma rpredZsign (oppS : opprPred S) (kS : keyed_pred oppS) n u :
   ((-1) ^+ n *: u \in kS) = (u \in kS).
 Proof. by rewrite -signr_odd scaler_sign fun_if if_arg rpredN if_same. Qed.
 
-Lemma rpredZnat (subS : zmodPred S) (kS : keyed_pred subS) n :
+Lemma rpredZnat (addS : addrPred S) (kS : keyed_pred addS) n :
   {in kS, forall u, n%:R *: u \in kS}.
 Proof. by move=> u Su; rewrite /= scaler_nat rpredMn. Qed.
 
@@ -5579,6 +5582,7 @@ Definition scalarP := scalarP.
 Definition scalarZ := scalarZ.
 Definition can2_linear := can2_linear.
 Definition bij_linear := bij_linear.
+Definition rmorph_alg := rmorph_alg.
 Definition lrmorphismP := lrmorphismP.
 Definition can2_lrmorphism := can2_lrmorphism.
 Definition bij_lrmorphism := bij_lrmorphism.
@@ -5656,10 +5660,10 @@ Notation "\sum_ ( i < n | P ) F" :=
   (\big[+%R/0%R]_(i < n | P%B) F%R) : ring_scope.
 Notation "\sum_ ( i < n ) F" :=
   (\big[+%R/0%R]_(i < n) F%R) : ring_scope.
-Notation "\sum_ ( i \in A | P ) F" :=
-  (\big[+%R/0%R]_(i \in A | P%B) F%R) : ring_scope.
-Notation "\sum_ ( i \in A ) F" :=
-  (\big[+%R/0%R]_(i \in A) F%R) : ring_scope.
+Notation "\sum_ ( i 'in' A | P ) F" :=
+  (\big[+%R/0%R]_(i in A | P%B) F%R) : ring_scope.
+Notation "\sum_ ( i 'in' A ) F" :=
+  (\big[+%R/0%R]_(i in A) F%R) : ring_scope.
 
 Notation "\prod_ ( <- r | P ) F" :=
   (\big[*%R/1%R]_(<- r | P%B) F%R) : ring_scope.
@@ -5683,10 +5687,10 @@ Notation "\prod_ ( i < n | P ) F" :=
   (\big[*%R/1%R]_(i < n | P%B) F%R) : ring_scope.
 Notation "\prod_ ( i < n ) F" :=
   (\big[*%R/1%R]_(i < n) F%R) : ring_scope.
-Notation "\prod_ ( i \in A | P ) F" :=
-  (\big[*%R/1%R]_(i \in A | P%B) F%R) : ring_scope.
-Notation "\prod_ ( i \in A ) F" :=
-  (\big[*%R/1%R]_(i \in A) F%R) : ring_scope.
+Notation "\prod_ ( i 'in' A | P ) F" :=
+  (\big[*%R/1%R]_(i in A | P%B) F%R) : ring_scope.
+Notation "\prod_ ( i 'in' A ) F" :=
+  (\big[*%R/1%R]_(i in A) F%R) : ring_scope.
 
 Canonical add_monoid.
 Canonical add_comoid.

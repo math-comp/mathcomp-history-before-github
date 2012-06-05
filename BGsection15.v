@@ -1,8 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div path fintype.
-Require Import bigop finset prime fingroup morphism perm automorphism quotient.
-Require Import action gproduct gfunctor pgroup cyclic center commutator.
-Require Import gseries nilpotent sylow abelian maximal hall frobenius.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice div fintype.
+Require Import path bigop finset prime fingroup morphism perm automorphism.
+Require Import quotient action gproduct gfunctor pgroup cyclic commutator.
+Require Import center gseries nilpotent sylow abelian maximal hall frobenius.
 Require Import BGsection1 BGsection2 BGsection3 BGsection4 BGsection5.
 Require Import BGsection6 BGsection7 BGsection9 BGsection10 BGsection12.
 Require Import BGsection13 BGsection14.
@@ -207,7 +207,7 @@ Lemma kappa_structure : forall M U K (Ms := M`_\sigma),
       (*b*) K :!=: 1 -> Ms ><| U = M^`(1) /\ abelian U,
       (*c*) forall X, X \subset U -> X :!=: 1 -> 'C_Ms(X) != 1 ->
             [/\ 'M('C(X)) = [set M], cyclic X & \tau2(M).-group X],
-      (*d*) abelian <<\bigcup_(x \in Ms^#) 'C_U[x]>>
+      (*d*) abelian <<\bigcup_(x in Ms^#) 'C_U[x]>>
     & (*e*) U :!=: 1 -> exists U0,
             [/\ gval U0 \subset U, exponent (gval U0) = exponent U
              & [Frobenius Ms <*> U0 = Ms ><| U0]]].
@@ -348,7 +348,7 @@ suffices mkZ: forall S, {Z | ntUsylow S ==> sameExp Z S && cyclicRegular Z}.
   rewrite (Ohm1_cyclic_pgroup_prime _ pZ) //.
   by apply: contraNneq nte => Z1; rewrite Z1 inE in Ze.
 move=> S; case sylS: (ntUsylow S); last by exists U.
-apply: choice.sigW; case/andP: sylS => ntS; case/SylowP=> p p_pr sylS.
+apply: sigW; case/andP: sylS => ntS /SylowP[p p_pr sylS].
 have [sSU pS _] := and3P sylS; have cSS := abelianS sSU cUU.
 have piSp: p \in \pi(S) by rewrite -p_rank_gt0 -rank_pgroup ?rank_gt0.
 have piUp := piSg sSU piSp; have [/= s'p k'p] := norP (pnatPpi sk'U piUp).
@@ -545,7 +545,7 @@ have{sQ_MF} piMFq: q \in \pi(M`_\F).
 without loss nDK: D hallD / K \subset 'N(D).
   have [E hallE nEK] := coprime_Hall_exists q^' nMsK coMsK solMs.
   have [x Ms_x ->] := Hall_trans solMs hallD hallE.
-  set Q0 := 'C__(_)%G; rewrite (isog_nil (conj_isog _ _)) -['C_Q(_)]/(gval Q0).
+  set Q0 := 'C__(_)%G; rewrite -(isog_nil (conj_isog _ _)) -['C_Q(_)]/(gval Q0).
   move/(_ E hallE nEK)=> IH; suffices ->: Q0 = [group of 'C_Q(E)] by [].
   apply: group_inj => /=; have Mx: x \in M := subsetP (pcore_sub _ _) x Ms_x.
   rewrite /= -/Q -{1}(normsP nQM x Mx) centJ -conjIg (normsP _ x Mx) //.
@@ -800,8 +800,8 @@ have [U complU] := ex_kappa_compl maxM hallK; have [hallU _ _] := complU.
 have [a Ma sXaU] := Hall_Jsub (mmax_sol maxM) hallU sXM sk'X.
 have [_ _ cycX _ _] := kappa_structure maxM complU.
 rewrite -(cyclicJ _ a) -(pgroupJ _ _ a); have [||//] := cycX _ sXaU.
-  by rewrite (isog_eq1 (conj_isog X a)).
-rewrite -(normsP nMsM a Ma) centJ -conjIg (isog_eq1 (conj_isog _ a)).
+  by rewrite -(isog_eq1 (conj_isog X a)).
+rewrite -(normsP nMsM a Ma) centJ -conjIg -(isog_eq1 (conj_isog _ a)).
 by rewrite (subG1_contra _ ntH) // subsetI sHMs centsC.
 Qed.
 
@@ -1391,7 +1391,7 @@ Lemma nonTI_Fitting_facts : forall M,
   [/\ M \in 'M_'F :|: 'M_'P1, M`_\F = M`_\sigma & M^`(1) \subset 'F(M)].
 Proof.
 move=> M maxM nonTI.
-have [|] := boolP (existsb y, (y \notin M) && ('F(M) :&: 'F(M) :^ y != 1)).
+have [|] := boolP [exists (y | y \notin M), 'F(M) :&: 'F(M) :^ y != 1].
   by case/exists_inP=> y notMy; case/nonTI_Fitting_structure=> // [[-> ?] _ []].
 rewrite -negb_forall_in negbK; move/forall_inP=> TI_F.
 case/TIconjP: nonTI => x y _ _.

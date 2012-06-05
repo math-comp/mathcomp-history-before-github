@@ -22,7 +22,7 @@ Require Import ssreflect ssrfun ssrbool.
 (* pred2, pred3, pred4 == pair, triple, quad predicates.                      *)
 (*            predC1 a == [pred x | x != a].                                  *)
 (*      [predU1 a & A] == [pred x | (x == a) || (x \in A)].                   *)
-(*      [predD1 A & a] == [pred x | (x != a) && (x \in A)].                   *)
+(*      [predD1 A & a] == [pred x | x != a & x \in A].                        *)
 (*  predU1 a P, predD1 P a == applicative versions of the above.              *)
 (*              frel f == the relation associated with f : T -> T.            *)
 (*                     := [rel x y | f x == y].                               *)
@@ -705,7 +705,7 @@ Implicit Arguments pair_eqP [T1 T2].
 Prenex Implicits pair_eqP.
 
 Definition predX T1 T2 (p1 : pred T1) (p2 : pred T2) :=
-  [pred z | p1 z.1 && p2 z.2].
+  [pred z | p1 z.1 & p2 z.2].
 
 Notation "[ 'predX' A1 & A2 ]" := (predX [mem A1] [mem A2])
   (at level 0, format "[ 'predX'  A1  &  A2 ]") : fun_scope.

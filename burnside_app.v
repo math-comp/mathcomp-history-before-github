@@ -1142,8 +1142,8 @@ case/existsP=> u Hu; exists u.
 move: (cardC (mem [:: x; y; z; t; u])); rewrite card_ord => hcard5.
 have: #|[predC [:: x; y; z; t; u]]| !=0.
   rewrite -lt0n  -(ltn_add2l #|[:: x; y; z; t; u]|) hcard5 addn0.
- by apply: (leq_ltn_trans (card_size [:: x; y; z; t; u])).
-case/existsP => v; rewrite 2!inE (mem_cat _ [:: _; _; _; _]).
+  by apply: (leq_ltn_trans (card_size [:: x; y; z; t; u])).
+case/existsP=> v; rewrite inE (mem_cat _ [:: _; _; _; _]).
 case/norP=> Hv Huv; exists v.
 rewrite (cat_uniq [:: x; y; z; t]) Uxt andTb.
 by rewrite 2!negb_or /= [~~ _]Hu Hv in_cons eq_sym Huv.

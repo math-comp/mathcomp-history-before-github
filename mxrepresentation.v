@@ -319,7 +319,7 @@ Section Stabiliser.
 
 Variables (m : nat) (U : 'M[R]_(m, n)).
 
-Definition rstab := [set x \in G | U *m rG x == U].
+Definition rstab := [set x in G | U *m rG x == U].
 
 Lemma rstab_sub : rstab \subset G.
 Proof. by apply/subsetP=> x; case/setIdP. Qed.
@@ -339,7 +339,7 @@ Section CentHom.
 
 Variable f : 'M[R]_n.
 
-Definition rcent := [set x \in G | f *m rG x == rG x *m f].
+Definition rcent := [set x in G | f *m rG x == rG x *m f].
 
 Lemma rcent_sub : rcent \subset G.
 Proof. by apply/subsetP=> x; case/setIdP. Qed.
@@ -400,7 +400,7 @@ Qed.
 
 (* Representation center. *)
 
-Definition rcenter := [set g \in G | is_scalar_mx (rG g)].
+Definition rcenter := [set g in G | is_scalar_mx (rG g)].
 
 Fact rcenter_group_set : group_set rcenter.
 Proof.
@@ -891,7 +891,7 @@ Section Stabilisers.
 
 Variables (m : nat) (U : 'M[F]_(m, n)).
 
-Definition rstabs := [set x \in G | U *m rG x <= U]%MS.
+Definition rstabs := [set x in G | U *m rG x <= U]%MS.
 
 Lemma rstabs_sub : rstabs \subset G.
 Proof. by apply/subsetP=> x /setIdP[]. Qed.
@@ -1230,7 +1230,7 @@ Lemma envelop_mx1 : (1%:M \in E_G)%MS.
 Proof. by rewrite -(repr_mx1 rG) envelop_mx_id. Qed.
 
 Lemma envelop_mxP A :
-  reflect (exists a, A = \sum_(x \in G) a x *: rG x) (A \in E_G)%MS.
+  reflect (exists a, A = \sum_(x in G) a x *: rG x) (A \in E_G)%MS.
 Proof.
 have G_1 := group1 G; have bijG := enum_val_bij_in G_1.
 set h := enum_val in bijG; have Gh: h _ \in G by exact: enum_valP.
@@ -1334,7 +1334,7 @@ Qed.
 
 (* The subspace fixed by a subgroup H of G; it is a module if H <| G.         *)
 (* The definition below is extensionally equivalent to the straightforward    *)
-(*    \bigcap_(x \in H) kermx (rG x - 1%:M)                                   *)
+(*    \bigcap_(x in H) kermx (rG x - 1%:M)                                    *)
 (* but it avoids the dependency on the choice function; this allows it to     *)
 (* commute with ring morphisms.                                               *)
 
@@ -1689,9 +1689,9 @@ CoInductive mxsemisimple (V : 'M_n) :=
 Lemma sum_mxsimple_direct_compl m I W (U : 'M_(m, n)) :
     let V := (\sum_(i : I) W i)%MS in
     (forall i : I, mxsimple (W i)) -> mxmodule U -> (U <= V)%MS -> 
-  {J : {set I} | let S := U + \sum_(i \in J) W i in S :=: V /\ mxdirect S}%MS.
+  {J : {set I} | let S := U + \sum_(i in J) W i in S :=: V /\ mxdirect S}%MS.
 Proof.
-move=> V simW modU sUV; pose V_ (J : {set I}) := (\sum_(i \in J) W i)%MS.
+move=> V simW modU sUV; pose V_ (J : {set I}) := (\sum_(i in J) W i)%MS.
 pose dxU (J : {set I}) := mxdirect (U + V_ J).
 have [J maxJ]: {J | maxset dxU J}; last case/maxsetP: maxJ => dxUVJ maxJ.
   apply: ex_maxset; exists set0.
@@ -1713,7 +1713,7 @@ Qed.
 
 Lemma sum_mxsimple_direct_sub I W (V : 'M_n) :
     (forall i : I, mxsimple (W i)) -> (\sum_i W i :=: V)%MS ->
-  {J : {set I} | let S := \sum_(i \in J) W i in S :=: V /\ mxdirect S}%MS.
+  {J : {set I} | let S := \sum_(i in J) W i in S :=: V /\ mxdirect S}%MS.
 Proof.
 move=> simW defV.
 have [|J [defS dxS]] := sum_mxsimple_direct_compl simW (mxmodule0 n).
@@ -1821,7 +1821,7 @@ Qed.
 Lemma mx_Maschke : [char F]^'.-group G -> mx_completely_reducible 1%:M.
 Proof.
 rewrite /pgroup charf'_nat; set nG := _%:R => nzG U => /mxmoduleP Umod _.
-pose phi := nG^-1 *: (\sum_(x \in G) rG x^-1 *m pinvmx U *m U *m rG x).
+pose phi := nG^-1 *: (\sum_(x in G) rG x^-1 *m pinvmx U *m U *m rG x).
 have phiG x: x \in G -> phi *m rG x = rG x *m phi.
   move=> Gx; rewrite -scalemxAl -scalemxAr; congr (_ *: _).
   rewrite {2}(reindex_acts 'R _ Gx) ?astabsR //= mulmx_suml mulmx_sumr.
@@ -1848,7 +1848,7 @@ Lemma mxsemisimple_reducible V : mxsemisimple V -> mx_completely_reducible V.
 Proof.
 case=> [I W /= simW defV _] U modU sUV; rewrite -defV in sUV.
 have [J [defV' dxV]] := sum_mxsimple_direct_compl simW modU sUV.
-exists (\sum_(i \in J) W i)%MS.
+exists (\sum_(i in J) W i)%MS.
 - by apply: sumsmx_module => i _; case: (simW i).
 - exact: eqmx_trans defV' defV.
 by rewrite mxdirect_addsE (sameP eqP mxdirect_addsP) /= in dxV; case/and3P: dxV.
@@ -2160,7 +2160,7 @@ Proof.
 move=> simM sMS; have [modM nzM _] := simM.
 have [V /= modV defMV] := mxsemisimple_reducible ssimS modM sMS.
 move/mxdirect_addsP=> dxMV; pose p := proj_mx M V; pose Sp (W : sG) := W *m p.
-case: (pickP [pred i | P i && (Sp i != 0)]) => [/= W | Sp0]; last first.
+case: (pickP [pred i | P i & Sp i != 0]) => [/= W | Sp0]; last first.
   case/negP: nzM; rewrite -submx0 -[M](proj_mx_id dxMV) //.
   rewrite (submx_trans (submxMr _ sMS)) // sumsmxMr big1 // => W P_W.
   by apply/eqP; move/negbT: (Sp0 W); rewrite /= P_W negbK.
@@ -2294,7 +2294,7 @@ Qed.
 Definition mx_absolutely_irreducible := (n > 0) && row_full E_G.
 
 Lemma mx_abs_irrP :
-  reflect (n > 0 /\ exists a_, forall A, A = \sum_(x \in G) a_ x A *: rG x)
+  reflect (n > 0 /\ exists a_, forall A, A = \sum_(x in G) a_ x A *: rG x)
           mx_absolutely_irreducible.
 Proof.
 have G_1 := group1 G; have bijG := enum_val_bij_in G_1.
@@ -3288,7 +3288,7 @@ Hypothesis irrG : mx_irreducible rG.
 
 Lemma Clifford_basis M : mxsimple rH M ->
   {X : {set gT} | X \subset G &
-    let S := \sum_(x \in X) M *m rG x in S :=: 1%:M /\ mxdirect S}%MS.
+    let S := \sum_(x in X) M *m rG x in S :=: 1%:M /\ mxdirect S}%MS.
 Proof.
 move=> simM. have simMG (g : [subg G]) : mxsimple rH (M *m rG (val g)).
   by case: g => x Gx; exact: Clifford_simple.
@@ -3344,7 +3344,7 @@ pose W1 := PackSocle (component_socle sH simM).
 have [X sXG [def1 _]] := Clifford_basis simM; move/subsetP: sXG => sXG.
 apply/imsetP; exists W1; first by rewrite inE.
 symmetry; apply/setP=> W; rewrite inE; have simW := socle_simple W.
-have:= submx1 (socle_base W); rewrite -def1 -[(\sum_(x \in X) _)%MS]mulmx1.
+have:= submx1 (socle_base W); rewrite -def1 -[(\sum_(x in X) _)%MS]mulmx1.
 case/(hom_mxsemisimple_iso simW) => [x Xx _ | | x Xx isoMxW].
 - by apply: Clifford_simple; rewrite ?sXG.
 - exact: scalar_mx_hom.
@@ -3381,9 +3381,9 @@ Theorem Clifford_component_basis M : mxsimple rH M ->
 Proof.
 move=> simM; pose t := (n %/ #|sH| %/ \rank M)%N; exists t.
 have [X /subsetP sXG [defX1 dxX1]] := Clifford_basis simM.
-pose sMv (W : sH) x := (M *m rG x <= W)%MS; pose Xv := [pred x \in X | sMv _ x].
+pose sMv (W : sH) x := (M *m rG x <= W)%MS; pose Xv := [pred x in X | sMv _ x].
 have sXvG W: {subset Xv W <= G} by move=> x /andP[/sXG].
-have defW W: (\sum_(x \in Xv W) M *m rG x :=: W)%MS.
+have defW W: (\sum_(x in Xv W) M *m rG x :=: W)%MS.
   apply/eqmxP; rewrite -(geq_leqif (mxrank_leqif_eq _)); last first.
     by apply/sumsmx_subP=> x /andP[].
   rewrite -(leq_add2r (\sum_(W' | W' != W) \rank W')) -((bigD1 W) predT) //=.
@@ -3395,7 +3395,7 @@ have defW W: (\sum_(x \in Xv W) M *m rG x :=: W)%MS.
   pose Wx := PackSocle (component_socle sH simMx).
   have sMxWx: (M *m rG x <= Wx)%MS by rewrite PackSocleK component_mx_id.
   by rewrite (sumsmx_sup Wx) //; apply: contra notW_Mx => /eqP <-.
-have dxXv W: mxdirect (\sum_(x \in Xv W) M *m rG x).
+have dxXv W: mxdirect (\sum_(x in Xv W) M *m rG x).
   move: dxX1; rewrite !mxdirectE /= !(bigID (sMv W) (mem X)) /=.
   by rewrite -mxdirectE mxdirect_addsE /= => /andP[].
 have def_t W: #|Xv W| = t.
@@ -3927,7 +3927,7 @@ Qed.
 
 End GringMx.
 
-Definition gset_mx (A : {set gT}) := \sum_(x \in A) aG x.
+Definition gset_mx (A : {set gT}) := \sum_(x in A) aG x.
 
 Local Notation tG := #|pred_of_set (classes (gval G))|.
 
@@ -4311,7 +4311,7 @@ by rewrite gring_opG // -hom_f // val_submodJ // gring_mxJ.
 Qed.
 
 Lemma regular_op_inj :
-  {in [pred A | A \in 'R_iG]%MS &, injective (gring_op rG)}.
+  {in [pred A | (A \in 'R_iG)%MS] &, injective (gring_op rG)}.
 Proof.
 move=> A B RnA RnB /= eqAB; apply/eqP; rewrite -subr_eq0 -mxvec_eq0 -submx0.
 rewrite -ker_irr_comp_op sub_capmx (sameP sub_kermxP eqP) mul_vec_lin.
@@ -4564,7 +4564,7 @@ Lemma primitive_root_splitting_abelian (z : F) :
   #|G|.-primitive_root z -> abelian G -> group_splitting_field G.
 Proof.
 move=> ozG cGG [|n] rG irrG; first by case/mx_irrP: irrG.
-case: (pickP [pred x \in G | ~~ is_scalar_mx (rG x)]) => [x | scalG].
+case: (pickP [pred x in G | ~~ is_scalar_mx (rG x)]) => [x | scalG].
   case/andP=> Gx nscal_rGx; have: horner_mx (rG x) ('X^#|G| - 1) == 0.
     rewrite rmorphB rmorphX /= horner_mx_C horner_mx_X.
     rewrite -repr_mxX ?inE // ((_ ^+ _ =P 1)%g _) ?repr_mx1 ?subrr //.
@@ -4690,7 +4690,7 @@ Variables (F : fieldType) (gT : finGroupType) (G : {group gT}) (n : nat).
 Variable rG : mx_representation F G n.
 
 Definition mxmodule_form (U : 'M[term F]_n) :=
-  \big[And/True]_(x \in G) submx_form (mulmx_term U (mx_term (rG x))) U.
+  \big[And/True]_(x in G) submx_form (mulmx_term U (mx_term (rG x))) U.
 
 Lemma mxmodule_form_qf U : qf_form (mxmodule_form U).
 Proof.
@@ -4942,7 +4942,7 @@ by rewrite mxmodule_trans ?section_module // val_submod1.
 Qed.
 
 Lemma map_regular_subseries U i (modU : mx_subseries (regular_repr aF G) U)
-   (modUf : mx_subseries (regular_repr rF G) (map (fun M => M^f) U)) :
+   (modUf : mx_subseries (regular_repr rF G) [seq M^f | M <- U]) :
   mx_rsim (map_repr f (subseries_repr i modU)) (subseries_repr i modUf).
 Proof.
 set mf := map _ in modUf *; rewrite /subseries_repr.
@@ -5227,11 +5227,11 @@ Qed.
 Definition subbase m (B : 'rV_m) : 'M_(m * d, n) :=
   \matrix_ik mxvec (\matrix_(i, k) (row (B 0 i) (A ^+ k))) 0 ik.
 
-Lemma gen_dim_ex_proof : exists m, existsb B : 'rV_m, row_free (subbase B).
+Lemma gen_dim_ex_proof : exists m, [exists B : 'rV_m, row_free (subbase B)].
 Proof. by exists 0%N; apply/existsP; exists 0. Qed.
 
 Lemma gen_dim_ub_proof m :
-  (existsb B : 'rV_m, row_free (subbase B)) -> (m <= n)%N.
+  [exists B : 'rV_m, row_free (subbase B)] -> (m <= n)%N.
 Proof.
 case/existsP=> B /eqnP def_md.
 by rewrite (leq_trans _ (rank_leq_col (subbase B))) // def_md leq_pmulr.
@@ -5775,7 +5775,7 @@ rewrite {cG}memmx_cent_envelop -mxminpoly_linear_is_scalar -ltnNge => cGA.
 move/(non_linear_gen_reducible irrG cGA).
 set F' := gen_fieldType _ _; set rG' := @map_repr _ F' _ _ _ _ rG.
 move: F' (gen_rmorphism _ _ : {rmorphism F -> F'}) => F' f' in rG' * => irrG'.
-pose U' := map (fun Ui => map_mx f' Ui) U.
+pose U' := [seq map_mx f' Ui | Ui <- U].
 have modU': mx_subseries (aG F') U'.
   apply: etrans modU; rewrite /mx_subseries all_map; apply: eq_all => Ui.
   rewrite -(mxmodule_map f'); apply: eq_subset_r => x.

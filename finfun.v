@@ -129,7 +129,7 @@ Qed.
 Lemma ffunK : cancel (@fun_of_fin aT rT) (@finfun aT rT).
 Proof. move=> f; apply/ffunP; exact: ffunE. Qed.
 
-Definition family_mem mF := [pred f : fT | forallb x, in_mem (f x) (mF x)].
+Definition family_mem mF := [pred f : fT | [forall x, in_mem (f x) (mF x)]].
 
 Lemma familyP (pT : predType rT) (F : aT -> pT) f :
   reflect (forall x, f x \in F x) (f \in family_mem (fmem F)).

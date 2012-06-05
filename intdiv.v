@@ -932,7 +932,7 @@ move=> {A leA IHa} IHa; wlog Di: i M Da / i = 0; last rewrite {i}Di in Da.
   exists (xrow i 0 L); first by rewrite xrowE unitmx_mul unitmx_perm.
   exists R => //; exists d; rewrite //= xrowE -!mulmxA (mulmxA L) -dM xrowE.
   by rewrite mulmxA -perm_mxM tperm2 perm_mx1 mul1mx.
-without loss /forallP a_dvM0: / forallb j, (a %| M 0 j)%Z.
+without loss /forallP a_dvM0: / [forall j, a %| M 0 j]%Z.
   have [_|] := altP forallP; first exact; rewrite negb_forall => /existsP/sigW.
   by move/IHa=> IH _; apply: IH. 
 without loss{Da a_dvM0} Da: M / forall j, M 0 j = a.
@@ -947,7 +947,7 @@ without loss{Da a_dvM0} Da: M / forall j, M 0 j = a.
     by rewrite mulrBr mulr1 mulrC divzK ?subrK.
   exists L => //; exists (R * U^-1); first by rewrite unitmx_mul uR unitmx_inv.
   by exists d; rewrite //= mulmxA -dM mulmxK.
-without loss{IHa} /forallP/(_ (_, _))/= a_dvM: / forallb k, (a %| M k.1 k.2)%Z.
+without loss{IHa} /forallP/(_ (_, _))/= a_dvM: / [forall k, a %| M k.1 k.2]%Z.
   have [_|] := altP forallP; first exact; rewrite negb_forall => /existsP/sigW.
   case=> [[i j] /= a'Mij] _.
   have [|||L uL [R uR [d dvD dM]]] := IHa _ _ M^T j; rewrite ?mxE 1?addnC //.

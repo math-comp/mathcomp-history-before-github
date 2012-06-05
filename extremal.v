@@ -70,7 +70,7 @@ Let b : 'Z_q := Zp1.
 Local Notation B := <[b]>.
 
 Definition aut_of :=
-  odflt 1 [pick s \in Aut B | [&& p > 1, #[s] %| p & s b == b ^+ e]].
+  odflt 1 [pick s in Aut B | p > 1 & (#[s] %| p) && (s b == b ^+ e)].
 
 Lemma aut_dvdn : #[aut_of] %| #[a].
 Proof.
@@ -149,7 +149,7 @@ Definition modular_gtype := gtype q p (q %/ p).+1.
 Definition dihedral_gtype := gtype q 2 q.-1.
 Definition semidihedral_gtype := gtype q 2 (q %/ p).-1.
 Definition quaternion_kernel :=
-  <<[set u | u ^+ 2 == 1] :\: [set u ^+ 2 | u <- [set: gtype q 4 q.-1]]>>.
+  <<[set u | u ^+ 2 == 1] :\: [set u ^+ 2 | u in [set: gtype q 4 q.-1]]>>.
 Definition quaternion_gtype := locked (coset_groupType quaternion_kernel).
 
 End SpecializeExtremals.
@@ -2023,7 +2023,7 @@ Lemma normal_rank1_structure gT p (G : {group gT}) :
 Proof.
 move=> pG dn_G_1.
 have [cGG | not_cGG] := boolP (abelian G); first by left; rewrite dn_G_1.
-have [X maxX]: {X | [max X | (X <| G) && abelian X]}.
+have [X maxX]: {X | [max X | X <| G & abelian X]}.
   by apply: ex_maxgroup; exists 1%G; rewrite normal1 abelian1.
 have cycX: cyclic X by rewrite dn_G_1; case/andP: (maxgroupp maxX).
 have scX: X \in 'SCN(G) := max_SCN pG maxX.

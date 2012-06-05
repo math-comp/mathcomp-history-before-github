@@ -61,7 +61,7 @@ Implicit Type p : nat.
 
 Definition plength_1 p (G : {set gT}) := 'O_{p^', p, p^'}(G) == G.
 
-Definition p_elt_gen p (G : {set gT}) := <<[set x \in G | p.-elt x]>>.
+Definition p_elt_gen p (G : {set gT}) := <<[set x in G | p.-elt x]>>.
 
 Definition p_constrained p (G : {set gT}) :=
   forall P : {group gT},
@@ -80,7 +80,7 @@ Definition p_stable p (G : {set gT}) :=
   A / 'C_G(P) \subset 'O_p('N_G(P) / 'C_G(P)).
 
 Definition generated_by (gp : pred {group gT}) (E : {set gT}) :=
-  existsb gE : {set {group gT}}, <<\bigcup_(G \in gE | gp G) G>> == E.
+  [exists gE : {set {group gT}}, <<\bigcup_(G in gE | gp G) G>> == E].
 
 Definition norm_abelian (D : {set gT}) : pred {group gT} :=
   fun A => (D \subset 'N(A)) && abelian A.
@@ -89,7 +89,7 @@ Definition p_norm_abelian p (D : {set gT}) : pred {group gT} :=
   fun A => p.-group A && norm_abelian D A.
 
 Definition Puig_succ (D E : {set gT}) :=
-  <<\bigcup_(A \in subgroups D | norm_abelian E A) A>>.
+  <<\bigcup_(A in subgroups D | norm_abelian E A) A>>.
 
 Definition Puig_rec D := iter n (Puig_succ D) 1.
 
@@ -191,7 +191,7 @@ have nsH'G : H' <| G.
   case=> U V /andP[/and3P[/= /maxgroupp/andP[_ nVG] _ nUG]].
   by rewrite (subset_trans _ (astab_norm _ _)) ?actsQ.
 apply/idPn=> s'H'F.
-have [K]: {K | [min K | (K <| G) && ~~ (K \subset 'F(G'))] & K \subset H'}.
+have [K]: {K | [min K | K <| G & ~~ (K \subset 'F(G'))] & K \subset H'}.
   by apply: mingroup_exists; rewrite nsH'G.
 case/mingroupP=> /andP[nsKG s'KF] minK; have [sKG nKG] := andP nsKG.
 case/subsetIP=> sKG' stabF'K; have nsKG' := normalS sKG' sG'G nsKG.
@@ -738,7 +738,7 @@ elim: n gT => // n IHn gT in A G abelA nGA coGA *; rewrite ltnS => leGn.
 without loss nilG: G nGA coGA leGn / nilpotent G.
   move=> {IHn} IHn; apply/eqP; rewrite eqEsubset gen_subG.
   apply/andP; split; last by apply/bigcupsP=> B _; exact: subsetIl.
-  pose T := [set P : {group gT} | Sylow G P && (A \subset 'N(P))].
+  pose T := [set P : {group gT} | Sylow G P & A \subset 'N(P)].
   rewrite -{1}(@Sylow_transversal_gen _ T G) => [|P | p _]; first 1 last.
   - by rewrite inE -!andbA; case/and4P.
   - have [//|P sylP nPA] := sol_coprime_Sylow_exists p (abelian_sol abelA) nGA.
@@ -782,7 +782,7 @@ Qed.
 (* B & G, Proposition 1.16, first assertion. *)
 Proposition coprime_abelian_gen_cent1 gT (A G : {group gT}) :
    abelian A -> ~~ cyclic A -> A \subset 'N(G) -> coprime #|G| #|A| ->
-  <<\bigcup_(a \in A^#) 'C_G[a]>> = G.
+  <<\bigcup_(a in A^#) 'C_G[a]>> = G.
 Proof.
 move=> abelA ncycA nGA coGA.
 apply/eqP; rewrite eq_sym eqEsubset /= gen_subG.
@@ -804,7 +804,7 @@ Import finalg FiniteModule GRing.Theory.
 (* This is B & G, Theorem 1.17 ("Focal Subgroup Theorem", D. G. Higman), also *)
 (* Gorenstein Theorem 7.3.4 and Aschbacher (37.4).                            *)
 Theorem focal_subgroup_gen :
-  S :&: G^`(1) = <<[set [~ x, u] | x <- S, u <- G, x ^ u \in S]>>.
+  S :&: G^`(1) = <<[set [~ x, u] | x in S, u in G & x ^ u \in S]>>.
 Proof.
 set K := <<_>>; set G' := G^`(1); have [sSG coSiSG] := andP (pHall_Hall sylS).
 apply/eqP; rewrite eqEsubset gen_subG andbC; apply/andP; split.
@@ -1243,7 +1243,7 @@ Qed.
 Lemma norm_abgenS D1 D2 E : D1 \subset D2 -> D2 --> E -> D1 --> E.
 Proof.
 move=> sD12 /existsP[gE /eqP <-{E}].
-apply/existsP; exists [set A \in gE | norm_abelian D2 A].
+apply/existsP; exists [set A in gE | norm_abelian D2 A].
 apply/eqP; congr <<_>>; apply: eq_bigl => A; rewrite !inE.
 apply: andb_idr => /and3P[_ nAD cAA].
 by apply/andP; rewrite (subset_trans sD12).

@@ -39,13 +39,14 @@ Local Open Scope ring_scope.
 (*                  If phi is not a character then 'Z(chi)%CF = cfker phi.    *)
 (*  aut_Iirr u i == the index of cfAut u 'chi_i in irr G.                     *)
 (*  conjC_Iirr i == the index of 'chi_i^*%CF in irr G.                        *)
-(*  morph_Iirr i == the index of cfMorph i in irr G, for i : Iirr (f @* G).   *)
-(*    mod_Iirr i == the index of (i %% H)%CF in irr G, for i : Iirr (G / H).  *)
-(*    quo_Iirr i == the index of (i / H)%CF in irr (G /H).                    *)
+(*  morph_Iirr i == the index of cfMorph 'chi[f @* G]_i in irr G.             *)
+(* invm_Iirr isoG i == the index of cfIsom isoG 'chi[G]_i in irr R.           *)
+(*    mod_Iirr i == the index of ('chi[G / H]_i %% H)%CF in irr G.            *)
+(*    quo_Iirr i == the index of ('chi[G]_i / H)%CF in irr (G / H).           *)
 (* And, for KxK : K \x H = G.                                                 *)
-(*      dprodl_Iirr KxH i == the index of cfDprodl KxH 'chi_i in irr G.       *)
-(*      dprodr_Iirr KxH j == the index of cfDprodr KxH 'chi_j in irr G.       *)
-(*  dprod_Iirr KxH (i, j) == the index of cfDprod KxH 'chi_i 'chi_j.          *)
+(*      dprodl_Iirr KxH i == the index of cfDprodl KxH 'chi[K]_i in irr G.    *)
+(*      dprodr_Iirr KxH j == the index of cfDprodr KxH 'chi[H]_j in irr G.    *)
+(*  dprod_Iirr KxH (i, j) == the index of cfDprod KxH 'chi[K]_i 'chi[H]_j.    *)
 (*     inv_dprod_Iirr KxH == the inverse of dprod_Iirr KxH.                   *)
 (* The following are used to define and exploit the character table:          *)
 (*  character_table G == the character table of G, whose i-th row lists the   *)
@@ -578,27 +579,30 @@ Variable (gT : finGroupType) (G : {group gT}).
 Implicit Type i : Iirr G.
 Open Scope group_ring_scope.
 
-Lemma cfun_Chi i : cfRepr 'Chi_i = 'chi[G]_i.
+Lemma has_nonprincipal_irr : G :!=: 1%g -> {i : Iirr G | i != 0}.
+Proof. by rewrite -classes_gt1 -NirrE => ntG; exists (Ordinal ntG). Qed.
+
+Lemma Repr_irr i : cfRepr 'Chi_i = 'chi[G]_i.
 Proof.
 unlock irr; rewrite (tnth_nth 0) nth_mkseq // -[<<G>>]/(gval _) genGidG.
 by rewrite cfRes_id inord_val.
 Qed.
 
-Lemma chi0_1 : 'chi[G]_0 = 1.
+Lemma irr0 : 'chi[G]_0 = 1.
 Proof.
-apply/cfun_inP=> x Gx; rewrite -cfun_Chi cfun1E cfunE Gx.
+apply/cfun_inP=> x Gx; rewrite -Repr_irr cfun1E cfunE Gx.
 by rewrite socle_Iirr0 irr1_repr // mxtrace1 degree_irr1.
 Qed.
 
-Lemma irr_cfuni : 1 \in irr G.
-Proof. by rewrite -chi0_1 mem_tnth. Qed.
+Lemma cfun1_irr : 1 \in irr G.
+Proof. by rewrite -irr0 mem_tnth. Qed.
 
-Lemma irr_chi i : 'chi_i \in irr G.
+Lemma mem_irr i : 'chi_i \in irr G.
 Proof. exact: mem_tnth. Qed.
 
 Lemma irrP xi : reflect (exists i, xi = 'chi_i) (xi \in irr G).
 Proof.
-apply: (iffP idP) => [/(nthP 0)[i] | [i ->]]; last exact: irr_chi.
+apply: (iffP idP) => [/(nthP 0)[i] | [i ->]]; last exact: mem_irr.
 rewrite size_tuple => lt_i_G <-.
 by exists (Ordinal lt_i_G); rewrite (tnth_nth 0).
 Qed.
@@ -612,7 +616,7 @@ Local Notation "''R_' i" := 'R_(W i).
 Local Notation "''e_' i" := 'e_(W i).
 
 Lemma irr1_degree i : 'chi_i 1%g = ('n_i)%:R.
-Proof. by rewrite -cfun_Chi cfRepr1. Qed.
+Proof. by rewrite -Repr_irr cfRepr1. Qed.
 
 Lemma Cnat_irr1 i : 'chi_i 1%g \in Cnat.
 Proof. by rewrite irr1_degree rpred_nat. Qed.
@@ -641,6 +645,9 @@ Lemma irr_IirrE J (f : J -> 'CF(G)) :
   (forall j, f j \in irr G) -> forall j, 'chi_(irr_Iirr f j) = f j.
 Proof. by move=> irrGf j; exact: (@irr_IirrPE _ _ xpredT). Qed.
 
+Lemma irr_IirrEid chi : chi \in irr G -> 'chi_(irr_Iirr id chi) = chi.
+Proof. exact: irr_IirrPE chi. Qed.
+
 (* This is Isaacs, Corollary (2.7). *)
 Corollary irr_sum_square : \sum_i ('chi[G]_i 1%g) ^+ 2 = #|G|%:R.
 Proof.
@@ -653,7 +660,7 @@ Lemma cfReg_sum : cfReg G = \sum_i 'chi_i 1%g *: 'chi_i.
 Proof.
 apply/cfun_inP=> x Gx; rewrite -cfReprReg cfunE Gx (mxtrace_regular sG) //=.
 rewrite sum_cfunE (reindex _ (socle_of_Iirr_bij _)); apply: eq_bigr => i _.
-by rewrite -cfun_Chi cfRepr1 !cfunE Gx mulr_natl.
+by rewrite -Repr_irr cfRepr1 !cfunE Gx mulr_natl.
 Qed.
 
 Let aG := regular_repr algCF G.
@@ -661,7 +668,7 @@ Let R_G := group_ring algCF G.
 
 Lemma xcfun_annihilate i j A : i != j -> (A \in 'R_j)%MS -> ('chi_i).[A]%CF = 0.
 Proof.
-move=> neq_ij RjA; rewrite -cfun_Chi xcfun_Repr.
+move=> neq_ij RjA; rewrite -Repr_irr xcfun_Repr.
 by rewrite (irr_repr'_op0 _ _ RjA) ?raddf0 // eq_sym (can_eq socle_of_IirrK).
 Qed.
 
@@ -673,7 +680,7 @@ Qed.
 Lemma xcfun_mul_id i A :
   (A \in R_G)%MS -> ('chi_i).['e_i *m A]%CF = ('chi_i).[A]%CF.
 Proof.
-move=> RG_A; rewrite -cfun_Chi !xcfun_Repr gring_opM //.
+move=> RG_A; rewrite -Repr_irr !xcfun_Repr gring_opM //.
 by rewrite op_Wedderburn_id ?mul1mx.
 Qed.
 
@@ -691,11 +698,11 @@ rewrite (bigD1 i) //= -tnth_nth xcfunZl xcfun_id eqxx big1 ?addr0 // => j ne_ji.
 by rewrite -tnth_nth xcfunZl xcfun_id (negbTE ne_ji) mulr0.
 Qed.
 
-Lemma chi_inj : injective (tnth (irr G)).
+Lemma irr_inj : injective (tnth (irr G)).
 Proof. by apply/injectiveP/free_uniq; rewrite map_tnth_enum irr_free. Qed.
 
 Lemma irr_eq1 i : ('chi_i == 1) = (i == 0).
-Proof. by rewrite -chi0_1 (inj_eq chi_inj). Qed.
+Proof. by rewrite -irr0 (inj_eq irr_inj). Qed.
 
 Lemma irr_basis : basis_of 'CF(G)%VS (irr G).
 Proof.
@@ -703,13 +710,13 @@ rewrite /basis_of irr_free andbT -dimv_leqif_eq ?subvf //.
 by rewrite dim_cfun (eqnP irr_free) size_tuple NirrE.
 Qed.
 
-Lemma eq_sum_chi_irr a : \sum_i a i *: 'chi[G]_i = \sum_i a i *: (irr G)`_i.
+Lemma eq_sum_nth_irr a : \sum_i a i *: 'chi[G]_i = \sum_i a i *: (irr G)`_i.
 Proof. by apply: eq_bigr => i; rewrite -tnth_nth. Qed.
 
 (* This is Isaacs, Theorem (2.8). *)
 Theorem cfun_irr_sum phi : {a | phi = \sum_i a i *: 'chi[G]_i}.
 Proof.
-rewrite (coord_basis irr_basis (memvf phi)) -eq_sum_chi_irr.
+rewrite (coord_basis irr_basis (memvf phi)) -eq_sum_nth_irr.
 by exists ((coord (irr G))^~ phi).
 Qed.
 
@@ -718,7 +725,7 @@ Lemma cfRepr_standard n (rG : mx_representation algCF G n) :
     = \sum_i (standard_irr_coef rG (W i))%:R *: 'chi_i.
 Proof.
 rewrite cfRepr_dsum (reindex _ (socle_of_Iirr_bij _)).
-by apply: eq_bigr => i _; rewrite scaler_nat cfRepr_muln cfun_Chi.
+by apply: eq_bigr => i _; rewrite scaler_nat cfRepr_muln Repr_irr.
 Qed.
 
 Lemma cfRepr_inj n1 n2 rG1 rG2 :
@@ -730,7 +737,7 @@ apply: mx_rsim_trans (rsim1) (mx_rsim_sym _).
 suffices ->: standard_grepr rG1 = standard_grepr rG2 by [].
 apply: eq_bigr => Wi _; congr (muln_grepr _ _); apply/eqP; rewrite -eqC_nat.
 rewrite -[Wi]irr_of_socleK -!/(c _ _ _) -!(coord_sum_free (c _ _) _ irr_free).
-rewrite -!eq_sum_chi_irr -!cfRepr_standard.
+rewrite -!eq_sum_nth_irr -!cfRepr_standard.
 by rewrite -(cfRepr_sim rsim1) -(cfRepr_sim rsim2) eq_repr12.
 Qed.
 
@@ -744,14 +751,14 @@ Lemma irr_ReprP xi :
           (xi \in irr G).
 Proof.
 apply: (iffP (irrP xi)) => [[i ->] | [[n rG] irr_rG ->]].
-  by exists (Representation 'Chi_i); [exact: socle_irr | rewrite cfun_Chi].
-exists (irr_of_socle (irr_comp sG rG)); rewrite -cfun_Chi irr_of_socleK /=.
+  by exists (Representation 'Chi_i); [exact: socle_irr | rewrite Repr_irr].
+exists (irr_of_socle (irr_comp sG rG)); rewrite -Repr_irr irr_of_socleK /=.
 exact/cfRepr_sim/rsim_irr_comp.
 Qed.
 
 (* This is Isaacs, Theorem (2.12). *)
 Lemma Wedderburn_id_expansion i :
-  'e_i = #|G|%:R^-1 *: \sum_(x \in G) 'chi_i 1%g * 'chi_i x^-1%g *: aG x.
+  'e_i = #|G|%:R^-1 *: \sum_(x in G) 'chi_i 1%g * 'chi_i x^-1%g *: aG x.
 Proof.
 have Rei: ('e_i \in 'R_i)%MS by exact: Wedderburn_id_mem.
 have /envelop_mxP[a def_e]: ('e_i \in R_G)%MS; last rewrite -/aG in def_e.
@@ -772,14 +779,14 @@ Qed.
 
 End IrrClass.
 
-Implicit Arguments chi_inj [[gT] [G] x1 x2].
+Implicit Arguments irr_inj [[gT] [G] x1 x2].
 
 Section IsChar.
 
 Variable gT : finGroupType.
 
 Definition character {G : {set gT}} :=
-  [qualify a phi : 'CF(G) | forallb i, coord (irr G) i phi \in Cnat].
+  [qualify a phi : 'CF(G) | [forall i, coord (irr G) i phi \in Cnat]].
 Fact character_key G : pred_key (@character G). Proof. by []. Qed.
 Canonical character_keyed G := KeyedQualifier (character_key G).
 
@@ -792,7 +799,7 @@ by apply/forallP=> j; rewrite (tnth_nth 0) coord_free ?irr_free ?isNatC_nat.
 Qed.
 
 Lemma cfun1_char : (1 : 'CF(G)) \is a character.
-Proof. by rewrite -chi0_1 irr_char. Qed.
+Proof. by rewrite -irr0 irr_char. Qed.
 
 Lemma cfun0_char : (0 : 'CF(G)) \is a character.
 Proof. by apply/forallP=> i; rewrite linear0 rpred0. Qed.
@@ -804,10 +811,6 @@ by apply/forallP=> i; rewrite linearD rpredD /=.
 Qed.
 Canonical character_addrPred := AddrPred add_char.
 
-Lemma scale_char chi a :
-  a \in Cnat -> chi \is a character -> a *: chi \is a character.
-Proof. by move=> /CnatP[n ->] Nchi; rewrite scaler_nat rpredMn. Qed.
-
 Lemma char_sum_irrP {phi} :
   reflect (exists n, phi = \sum_i (n i)%:R *: 'chi_i) (phi \is a character).
 Proof.
@@ -815,7 +818,7 @@ apply: (iffP idP)=> [/forallP Nphi | [n ->]]; last first.
   by apply: rpred_sum => i _; rewrite scaler_nat rpredMn // irr_char.
 do [have [a ->] := cfun_irr_sum phi] in Nphi *; exists (truncC \o a).
 apply: eq_bigr => i _; congr (_ *: _); have:= eqP (Nphi i).
-by rewrite eq_sum_chi_irr coord_sum_free ?irr_free.
+by rewrite eq_sum_nth_irr coord_sum_free ?irr_free.
 Qed.
 
 Lemma char_sum_irr chi :
@@ -853,7 +856,7 @@ apply: (iffP char_sum_irrP) => [[n ->] | [[n rG] ->]]; last first.
   by rewrite -cfRepr_standard (cfRepr_sim (mx_rsim_standard rG)).
 exists (\big[dadd_grepr/grepr0]_i muln_grepr (Representation 'Chi_i) (n i)).
 rewrite cfRepr_dsum; apply: eq_bigr => i _.
-by rewrite cfRepr_muln cfun_Chi scaler_nat.
+by rewrite cfRepr_muln Repr_irr scaler_nat.
 Qed.
 
 Lemma cfRepr_char n (rG : mx_representation algCF G n) :
@@ -1008,7 +1011,7 @@ Lemma irr_repr_lin_char (i : Iirr G) x :
     x \in G -> 'chi_i \is a linear_char ->
   irr_repr (socle_of_Iirr i) x = ('chi_i x)%:M.
 Proof.
-move=> Gx CFi; rewrite -cfun_Chi cfunE Gx.
+move=> Gx CFi; rewrite -Repr_irr cfunE Gx.
 move: (_ x); rewrite -[irr_degree _]natCK -irr1_degree lin_char1 //.
 by rewrite (natCK 1) => A; rewrite trace_mx11 -mx11_scalar.
 Qed.
@@ -1024,7 +1027,11 @@ Qed.
 Canonical lin_char_mulrPred := MulrPred linear_char_divr.
 Canonical lin_char_divrPred := DivrPred linear_char_divr.
 
+Lemma irr_prime_lin i : prime #|G| -> 'chi[G]_i \is a linear_char.
+Proof. by move/prime_cyclic/cyclic_abelian/char_abelianP->. Qed.
+
 End Linear.
+
 Prenex Implicits linear_char.
 
 Section Restrict.
@@ -1039,32 +1046,37 @@ Qed.
 
 Lemma cfRes_char chi : chi \is a character -> 'Res[H, G] chi \is a character.
 Proof.
-case sHG: (H \subset G).
+have [sHG | not_sHG] := boolP (H \subset G).
   by case/char_ReprP=> rG ->; rewrite -(cfRepr_sub rG sHG) cfRepr_char.
-rewrite (_ : 'Res _ = 0) ?cfun0_char //; apply/cfun_inP=> x Hx.
-by rewrite !cfunElock !genGid Hx sHG.
+by move/Cnat_char1=> Nchi1; rewrite cfResEout // rpredZ_Cnat ?rpred1.
 Qed.
 
-Lemma cfRes_eq0 phi :
-  H \subset G -> phi \is a character -> ('Res[H, G] phi == 0) = (phi == 0).
-Proof. by move=> sHG Nphi; rewrite -!char1_eq0 ?cfRes_char ?cfResE. Qed.
+Lemma cfRes_eq0 phi : phi \is a character -> ('Res[H, G] phi == 0) = (phi == 0).
+Proof. by move=> Nchi; rewrite -!char1_eq0 ?cfRes_char // cfRes1. Qed.
 
 Lemma cfRes_lin_char chi :
-  H \subset G -> chi \is a linear_char -> 'Res[H, G] chi \is a linear_char.
-Proof. by move=> sHG /andP[Nchi]; rewrite qualifE cfRes_char ?cfRes1. Qed.
+  chi \is a linear_char -> 'Res[H, G] chi \is a linear_char.
+Proof. by case/andP=> Nchi; rewrite qualifE cfRes_char ?cfRes1. Qed.
 
-Lemma Res_irr_neq0 i : H \subset G -> 'Res[H, G] 'chi_i != 0.
-Proof. by move/cfRes_eq0->; rewrite ?irr_neq0 ?irr_char. Qed.
+Lemma Res_irr_neq0 i : 'Res[H, G] 'chi_i != 0.
+Proof. by rewrite cfRes_eq0 ?irr_neq0 ?irr_char. Qed.
+
+Lemma cfRes_lin_lin (chi : 'CF(G)) :
+  chi \is a character -> 'Res[H] chi \is a linear_char -> chi \is a linear_char.
+Proof. by rewrite !qualifE cfRes1 => -> /andP[]. Qed.
 
 Lemma cfRes_irr_irr chi :
   chi \is a character -> 'Res[H] chi \in irr H -> chi \in irr G.
 Proof.
-have [sHG /char_ReprP[rG ->] | not_sHG _] := boolP (H \subset G); last first.
-  case/irrP=> i def_rG; case/eqP: (irr1_neq0 i).
-  by rewrite -def_rG cfunElock !genGid (negbTE not_sHG) andbF.
-rewrite -(cfRepr_sub _ sHG) => /irr_ReprP[rH irrH def_rH]; apply/irr_ReprP. 
-suffices /subg_mx_irr: mx_irreducible (subg_repr rG sHG) by exists rG.
-by apply: mx_rsim_irr irrH; exact/cfRepr_rsimP/eqP.
+have [sHG /char_ReprP[rG ->] | not_sHG Nchi] := boolP (H \subset G).
+  rewrite -(cfRepr_sub _ sHG) => /irr_ReprP[rH irrH def_rH]; apply/irr_ReprP. 
+  suffices /subg_mx_irr: mx_irreducible (subg_repr rG sHG) by exists rG.
+  by apply: mx_rsim_irr irrH; exact/cfRepr_rsimP/eqP.
+rewrite cfResEout // => /irrP[j Dchi_j]; apply/lin_char_irr/cfRes_lin_lin=> //.
+suffices j0: j = 0 by rewrite cfResEout // Dchi_j j0 irr0 rpred1.
+apply: contraNeq (irr1_neq0 j) => nz_j.
+have:= xcfun_id j 0; rewrite -Dchi_j cfunE xcfunZl -irr0 xcfun_id eqxx => ->.
+by rewrite (negPf nz_j).
 Qed.
 
 End Restrict.
@@ -1076,26 +1088,60 @@ Implicit Type chi : 'CF(f @* G).
 
 Lemma cfMorph_char chi : chi \is a character -> cfMorph chi \is a character.
 Proof.
-have [dG /char_ReprP[rG ->] | not_dG _] := boolP (G \subset D); last first.
-  congr (_ \is a _): (cfun0_char G); apply/esym/cfunP=> x.
-  by rewrite !cfunElock (negbTE not_dG) andbF.
+have [dG /char_ReprP[rG ->] | not_dG Nchi] := boolP (G \subset D); last first.
+  by rewrite cfMorphEout // rpredZ_Cnat ?rpred1 ?Cnat_char1.
 apply/char_ReprP; exists (Representation (morphim_repr rG dG)).
 apply/cfun_inP=> x Gx; have Dx: x \in D := subsetP dG x Gx.
 by rewrite cfMorphE // !cfunE ?mem_morphim ?Gx //.
 Qed.
 
 Lemma cfMorph_lin_char chi :
-  G \subset D -> chi \is a linear_char -> cfMorph chi \is a linear_char.
-Proof. by move=> sGD /andP[Nchi]; rewrite qualifE cfMorph_char ?cfMorph1. Qed.
+  chi \is a linear_char -> cfMorph chi \is a linear_char.
+Proof. by case/andP=> Nchi; rewrite qualifE cfMorph_char ?cfMorph1. Qed.
 
 Lemma cfMorph_irr i : G \subset D -> cfMorph 'chi[f @* G]_i \in irr G.
 Proof. 
-case/irr_ReprP: (irr_chi i) => rG irrG -> dG; apply/irr_ReprP.
+case/irr_ReprP: (mem_irr i) => rG irrG -> dG; apply/irr_ReprP.
 exists (Representation (morphim_repr rG dG)); first exact/morphim_mx_irr.
 by apply/cfun_inP=> x Gx; rewrite !cfunElock /= dG Gx mem_morphim ?(subsetP dG).
 Qed.
 
+Definition Iirr_morph := irr_Iirr (fun i => cfMorph 'chi[f @* G]_i).
+
+Lemma Iirr_morphE i : G \subset D -> 'chi_(Iirr_morph i) = cfMorph 'chi_i.
+Proof. exact: (irr_IirrPE cfMorph_irr). Qed.
+
 End Morphim.
+
+Section Isom.
+
+Variables (aT rT : finGroupType) (G : {group aT}) (f : {morphism G >-> rT}).
+Variables (R : {group rT}) (isoGR : isom G R f).
+Implicit Type chi : 'CF(G).
+
+Lemma cfIsom_char chi : chi \is a character -> cfIsom isoGR chi \is a character.
+Proof.
+rewrite /cfIsom; case: _ / (proj2 _) (proj1 _) => injf Nchi.
+by rewrite cfMorph_char ?cfRes_char.
+Qed.
+
+Lemma cfIsom_lin_char chi :
+  chi \is a linear_char -> cfIsom isoGR chi \is a linear_char.
+Proof. by case/andP=> Nchi; rewrite qualifE cfIsom_char ?cfIsom1. Qed.
+
+Lemma cfIsom_irr i : cfIsom isoGR 'chi_i \in irr R.
+Proof.
+rewrite /cfIsom; case: _ / (proj2 _) (proj1 _) => injf; set phi := 'Res _.
+have /irrP[j ->]: phi \in irr _ by rewrite /phi im_invm cfRes_id mem_tnth.
+exact: cfMorph_irr.
+Qed.
+
+Definition Iirr_invm := irr_Iirr (fun i => cfIsom isoGR 'chi_i).
+
+Lemma Iirr_invmE i : 'chi_(Iirr_invm i) = cfIsom isoGR 'chi_i.
+Proof. exact: (irr_IirrE cfIsom_irr). Qed.
+
+End Isom.
 
 Section DProd.
 
@@ -1104,16 +1150,16 @@ Hypothesis KxH : K \x H = G.
 
 Lemma cfDprodl_char phi :
   phi \is a character -> cfDprodl KxH phi \is a character.
-Proof. by move=> Nphi; rewrite !cfMorph_char // cfRes_char. Qed.
+Proof. by move=> Nphi; rewrite !(cfMorph_char, cfIsom_char). Qed.
 
 Lemma cfDprodr_char psi :
   psi \is a character -> cfDprodr KxH psi \is a character.
-Proof. by move=> Npsi; rewrite !cfMorph_char // cfRes_char. Qed.
+Proof. by move=> Npsi; rewrite !(cfMorph_char, cfIsom_char). Qed.
 
 Lemma cfDprod_char phi psi :
      phi \is a character -> psi \is a character ->
   cfDprod KxH phi psi \is a character.
-Proof. by move=> /cfDprodl_char Nphi /cfDprodr_char; exact: rpredM. Qed.
+Proof. by move=> /cfDprodl_char Nphi /cfDprodr_char; apply: rpredM. Qed.
 
 Lemma cfDprodl_lin_char phi :
   phi \is a linear_char -> cfDprodl KxH phi \is a linear_char.
@@ -1214,7 +1260,7 @@ Proof. exact/char_inv/irr_char. Qed.
 
 (* This is Isaacs, Theorem (2.13). *)
 Theorem generalized_orthogonality_relation y (i j : Iirr G) :
-  #|G|%:R^-1 * (\sum_(x \in G) 'chi_i (x * y)%g * 'chi_j x^-1%g)
+  #|G|%:R^-1 * (\sum_(x in G) 'chi_i (x * y)%g * 'chi_j x^-1%g)
     = (i == j)%:R * ('chi_i y / 'chi_i 1%g).
 Proof.
 pose W := @socle_of_Iirr _ G; pose e k := Wedderburn_id (W k).
@@ -1236,7 +1282,7 @@ Qed.
 
 (* This is Isaacs, Corollary (2.14). *)
 Corollary first_orthogonality_relation (i j : Iirr G) :
-  #|G|%:R^-1 * (\sum_(x \in G) 'chi_i x * 'chi_j x^-1%g) = (i == j)%:R.
+  #|G|%:R^-1 * (\sum_(x in G) 'chi_i x * 'chi_j x^-1%g) = (i == j)%:R.
 Proof.
 have:= generalized_orthogonality_relation 1 i j.
 rewrite mulrA mulfK ?irr1_neq0 // => <-; congr (_ * _).
@@ -1269,7 +1315,7 @@ Lemma class_IirrK : {in classes G, cancel iC c}.
 Proof. by move=> xG GxG; rewrite /c cast_ordKV enum_rankK_in. Qed.
 
 Lemma reindex_irr_class R idx (op : @Monoid.com_law R idx) F :
-  \big[op/idx]_(xG \in classes G) F xG = \big[op/idx]_i F (c i).
+  \big[op/idx]_(xG in classes G) F xG = \big[op/idx]_i F (c i).
 Proof.
 rewrite (reindex c); first by apply: eq_bigl => i; exact: enum_valP.
 by exists iC; [apply: in1W; exact: irr_classK | exact: class_IirrK].
@@ -1317,7 +1363,7 @@ Proof.
 move=> Gy; apply: (iffP idP) => [/imsetP[z Gz ->] i | xGy]; first exact: cfunJ.
 have Gx: x \in G.
   congr is_true: Gy; apply/eqP; rewrite -(can_eq oddb) -eqC_nat -!cfun1E.
-  by rewrite -chi0_1 xGy.
+  by rewrite -irr0 xGy.
 congr is_true: (class_refl G x); apply/eqP; rewrite -(can_eq oddb).
 rewrite -(eqn_pmul2l (cardG_gt0 'C_G[x])) -eqC_nat !mulrnA; apply/eqP.
 by rewrite -!second_orthogonality_relation //; apply/eq_bigr=> i _; rewrite xGy.
@@ -1371,7 +1417,7 @@ Lemma irr_orthonormal : orthonormal (irr G).
 Proof.
 apply/orthonormalP; split; first exact: free_uniq (irr_free G).
 move=> _ _ /irrP[i ->] /irrP[j ->].
-by rewrite cfdot_irr (inj_eq (@chi_inj _ G)).
+by rewrite cfdot_irr (inj_eq (@irr_inj _ G)).
 Qed.
 
 Lemma coord_cfdot phi i : coord (irr G) i phi = '[phi, 'chi_i].
@@ -1530,7 +1576,7 @@ by case: (truncC _) => // n _; rewrite mulrSr addrK ?isNatC_nat.
 Qed.
 
 Lemma cfun_sum_constt (phi : 'CF(G)) :
-  phi = \sum_(i \in irr_constt phi) '[phi, 'chi_i] *: 'chi_i.
+  phi = \sum_(i in irr_constt phi) '[phi, 'chi_i] *: 'chi_i.
 Proof.
 rewrite {1}[phi]cfun_sum_cfdot (bigID [pred i | '[phi, 'chi_i] == 0]) /=.
 by rewrite big1 ?add0r // => i /eqP->; rewrite scale0r.
@@ -1541,6 +1587,11 @@ Lemma neq0_has_constt (phi : 'CF(G)) :
 Proof.
 move=> nz_phi; apply/existsP; apply: contra nz_phi => /pred0P phi0.
 by rewrite [phi]cfun_sum_constt big_pred0.
+Qed.
+
+Lemma constt_irr i : irr_constt 'chi[G]_i =i pred1 i.
+Proof.
+by move=> j; rewrite !inE cfdot_irr pnatr_eq0 (eq_sym j); case: (i == j).
 Qed.
 
 Lemma char1_ge_constt (i : Iirr G) chi : 
@@ -1596,17 +1647,17 @@ Lemma conjC_IirrE i : 'chi[G]_(conjC_Iirr i) = ('chi_i)^*%CF.
 Proof. exact: aut_IirrE. Qed.
 
 Lemma conjC_IirrK : involutive (@conjC_Iirr G).
-Proof. by move=> i; apply: chi_inj; rewrite !conjC_IirrE cfConjCK. Qed.
+Proof. by move=> i; apply: irr_inj; rewrite !conjC_IirrE cfConjCK. Qed.
 
 Lemma aut_Iirr0 u : aut_Iirr u 0 = 0 :> Iirr G.
-Proof.  by apply/chi_inj; rewrite aut_IirrE chi0_1 cfAut_cfun1. Qed.
+Proof.  by apply/irr_inj; rewrite aut_IirrE irr0 cfAut_cfun1. Qed.
 
 Lemma conjC_Iirr0 : conjC_Iirr 0 = 0 :> Iirr G.
 Proof. exact: aut_Iirr0. Qed.
 
 Lemma aut_Iirr_inj u : injective ((aut_Iirr u) G).
 Proof.
-by move=> i j eq_ij; apply/chi_inj/(cfAut_inj u); rewrite -!aut_IirrE eq_ij.
+by move=> i j eq_ij; apply/irr_inj/(cfAut_inj u); rewrite -!aut_IirrE eq_ij.
 Qed.
 
 Lemma char_cfAut u (chi : 'CF(G)) :
@@ -1614,7 +1665,7 @@ Lemma char_cfAut u (chi : 'CF(G)) :
 Proof.
 apply/idP/idP=> [Nuchi|]; last exact: cfAut_char.
 rewrite [chi]cfun_sum_cfdot rpred_sum // => i _.
-rewrite scale_char ?irr_char // -(Cnat_aut u) -cfdot_cfAut_irr.
+rewrite rpredZ_Cnat ?irr_char // -(Cnat_aut u) -cfdot_cfAut_irr.
 by rewrite -aut_IirrE Cnat_cfdot_char_irr.
 Qed.
 
@@ -1637,8 +1688,7 @@ Lemma constt_Ind_constt_Res:
 forall (G H: {group gT})  (i: Iirr G) (j: Iirr H), 
    i \in irr_constt ('Ind[G] 'chi_j) =  (j \in irr_constt ('Res[H] 'chi_i)).
 Proof.
-move => G H i j; rewrite irr_consttE -cfdot_Res_r irr_consttE.
-by case: (boolP  ('[_ , _] == 0)); rewrite cfdotC conjC_eq0 => ->.
+by move=> G H i j; rewrite !irr_consttE cfdotC conjC_eq0 -cfdot_Res_l.
 Qed.
 
 Lemma cfdot_Res_ge_constt (G H : {group gT}) i j psi :
@@ -1668,10 +1718,10 @@ by rewrite cfdot_dprod !cfdot_irr !eqxx mul1r.
 Qed.
 
 Lemma cfDprodl_irr i : cfDprodl KxH 'chi[K]_i \in irr G.
-Proof. by rewrite -cfDprod1r -chi0_1 cfDprod_irr. Qed.
+Proof. by rewrite -cfDprod1r -irr0 cfDprod_irr. Qed.
 
 Lemma cfDprodr_irr j : cfDprodr KxH 'chi[H]_j \in irr G.
-Proof. by rewrite -cfDprod1l -chi0_1 cfDprod_irr. Qed.
+Proof. by rewrite -cfDprod1l -irr0 cfDprod_irr. Qed.
 
 Definition dprodl_Iirr := irr_Iirr (fun i => cfDprodl KxH 'chi_i).
 
@@ -1740,8 +1790,8 @@ rewrite inE Gx; apply/forallP=> y; rewrite !cfunE !mulrb groupMl //.
 by case: ifP => // Gy; rewrite repr_mxM // Kx mul1mx.
 Qed.
   
-Lemma cfker_charE chi :
-  chi \is a character -> cfker chi = [set x \in G | chi x == chi 1%g].
+Lemma cfkerEchar chi :
+  chi \is a character -> cfker chi = [set x in G | chi x == chi 1%g].
 Proof.
 move=> Nchi; apply/setP=> x; apply/idP/setIdP=> [Kx | [Gx /eqP chi_x]].
   by rewrite (subsetP (cfker_sub chi)) // cfker1.
@@ -1753,31 +1803,31 @@ Qed.
 Lemma cfker_nzcharE chi :
   chi \is a character -> chi != 0 -> cfker chi = [set x | chi x == chi 1%g].
 Proof.
-move=> Nchi nzchi; apply/setP=> x; rewrite cfker_charE // !inE andb_idl //.
+move=> Nchi nzchi; apply/setP=> x; rewrite cfkerEchar // !inE andb_idl //.
 by apply: contraLR => /cfun0-> //; rewrite eq_sym char1_eq0.
 Qed.
 
-Lemma cfker_irrE i : cfker 'chi[G]_i = [set x | 'chi_i x == 'chi_i 1%g].
+Lemma cfkerEirr i : cfker 'chi[G]_i = [set x | 'chi_i x == 'chi_i 1%g].
 Proof. by rewrite cfker_nzcharE ?irr_char ?irr_neq0. Qed.
 
-Lemma cfker_chi0 : cfker 'chi[G]_0 = G.
-Proof. by rewrite chi0_1 cfker_cfun1. Qed.
+Lemma cfker_irr0 : cfker 'chi[G]_0 = G.
+Proof. by rewrite irr0 cfker_cfun1. Qed.
 
 Lemma cfaithful_Reg : cfaithful (cfReg G).
 Proof.
-apply/subsetP=> x; rewrite cfker_charE ?cfReg_char // !inE !cfRegE eqxx.
+apply/subsetP=> x; rewrite cfkerEchar ?cfReg_char // !inE !cfRegE eqxx.
 by case/andP=> _; apply: contraLR => /negbTE->; rewrite eq_sym neq0CG.
 Qed.
 
 Lemma cfkerE chi :
     chi \is a character ->
-  cfker chi = G :&: \bigcap_(i \in irr_constt chi) cfker 'chi_i.
+  cfker chi = G :&: \bigcap_(i in irr_constt chi) cfker 'chi_i.
 Proof.
-move=> Nchi; rewrite cfker_charE //; apply/setP=> x; rewrite !inE.
+move=> Nchi; rewrite cfkerEchar //; apply/setP=> x; rewrite !inE.
 apply: andb_id2l => Gx; rewrite {1 2}[chi]cfun_sum_constt !sum_cfunE.
 apply/eqP/bigcapP=> [Kx i Ci | Kx]; last first.
   by apply: eq_bigr => i /Kx Kx_i; rewrite !cfunE cfker1.
-rewrite cfker_irrE inE /= -(inj_eq (mulfI Ci)).
+rewrite cfkerEirr inE /= -(inj_eq (mulfI Ci)).
 have:= (normC_sum_upper _ Kx) i; rewrite !cfunE => -> // {i Ci} i _.
 have chi_i_ge0: 0 <= '[chi, 'chi_i].
   by rewrite Cnat_ge0 ?Cnat_cfdot_char_irr.
@@ -1787,7 +1837,7 @@ Qed.
 Lemma TI_cfker_irr : \bigcap_i cfker 'chi[G]_i = [1].
 Proof.
 apply/trivgP; apply: subset_trans cfaithful_Reg; rewrite cfkerE ?cfReg_char //.
-rewrite subsetI (bigcap_min 0) //=; last by rewrite cfker_chi0.
+rewrite subsetI (bigcap_min 0) //=; last by rewrite cfker_irr0.
 by apply/bigcapsP=> i _; rewrite bigcap_inf.
 Qed.
 
@@ -1805,7 +1855,7 @@ Let Nxi: xi \is a character. Proof. by have [] := andP lin_xi. Qed.
 Lemma lin_char_der1 : G^`(1)%g \subset cfker xi.
 Proof.
 rewrite gen_subG /=; apply/subsetP=> _ /imset2P[x y Gx Gy ->].
-rewrite cfker_charE // inE groupR //= !lin_charM ?lin_charV ?in_group //.
+rewrite cfkerEchar // inE groupR //= !lin_charM ?lin_charV ?in_group //.
 by rewrite mulrCA mulKf ?mulVf ?lin_char_neq0 // lin_char1.
 Qed.
 
@@ -1817,7 +1867,7 @@ apply/eqP; rewrite eqn_dvd; apply/andP; split.
   by rewrite cfQuo1 ?cfker_normal ?lin_char1.
 have abGbar: abelian (G / cfker xi) := sub_der1_abelian lin_char_der1.
 have [_ /morphimP[x Nx Gx ->] ->] := exponent_witness (abelian_nil abGbar).
-rewrite order_dvdn -morphX //= coset_id cfker_charE // !inE groupX //=.
+rewrite order_dvdn -morphX //= coset_id cfkerEchar // !inE groupX //=.
 by rewrite lin_charX ?lin_char1 // (dvdn_cforderP _ _ _).
 Qed.
 
@@ -1842,31 +1892,43 @@ Implicit Types G H : {group gT}.
 Lemma cfQuo_char G H (chi : 'CF(G)) :
   chi \is a character -> (chi / H)%CF \is a character.
 Proof.
-case/char_ReprP=> rG ->; apply/char_ReprP.
-case nsHK: ((H <| G) && (H \subset rker rG)); last first.
-  exists grepr0; apply/cfunP=> Hx.
-  by rewrite cfRepr0 !cfunElock cfker_Repr nsHK.
-have [nsHG sHK] := andP nsHK.
-exists (Representation (quo_repr sHK (normal_norm nsHG))).
-apply/cfun_inP=> _ /morphimP[x Nx Gx ->]; rewrite cfQuoE ?cfker_Repr //=.
-by rewrite !cfunE Gx quo_repr_coset ?mem_quotient.
+move=> Nchi; case KchiH: (H \subset cfker chi); last first.
+  suffices ->: (chi / H)%CF = (chi 1%g)%:A.
+    by rewrite rpredZ_Cnat ?Cnat_char1 ?rpred1.
+  by apply/cfunP=> x; rewrite cfunE cfun1E mulr_natr cfunElock KchiH.
+have sHG := subset_trans KchiH (cfker_sub _).
+pose N := 'N_G(H); pose phi := 'Res[N] chi.
+have nsHN: H <| N by [rewrite normal_subnorm]; have [sHN nHN] := andP nsHN.
+have{Nchi} Nphi: phi \is a character by apply: cfRes_char.
+have KphiH: H \subset cfker phi.
+  apply/subsetP=> x Hx; have [Kx Nx] := (subsetP KchiH x Hx, subsetP sHN x Hx).
+  by rewrite cfkerEchar // inE Nx cfRes1 cfResE ?subsetIl //= cfker1.
+pose psi := 'Res[(N / H)%g] (chi / H)%CF.
+have ->: (chi / H)%CF = 'Res psi by rewrite /psi quotientInorm !cfRes_id.
+have{KchiH} ->: psi = (phi / H)%CF.
+  apply/cfun_inP => _ /morphimP[x nHx Nx ->]; have [Gx _] := setIP Nx.
+  rewrite cfResE ?mem_quotient ?quotientS ?subsetIl // cfQuoEnorm //.
+  by rewrite cfQuoE ?cfResE ?subsetIl.
+have [rG Dphi] := char_ReprP Nphi; rewrite {phi Nphi}Dphi cfker_Repr in KphiH *.
+apply/cfRes_char/char_ReprP; exists (Representation (quo_repr KphiH nHN)).
+apply/cfun_inP=> _ /morphimP[x nHx Nx ->]; rewrite cfQuoE ?cfker_Repr //=.
+by rewrite !cfunE Nx quo_repr_coset ?mem_quotient.
 Qed.
 
 Lemma cfQuo_lin_char G H (chi : 'CF(G)) :
-    H <| G -> H \subset cfker chi -> chi \is a linear_char ->
-  (chi / H)%CF \is a linear_char.
-Proof. by move=> nsHG sHK /andP[Nchi]; rewrite qualifE cfQuo_char ?cfQuo1. Qed.
- 
+  chi \is a linear_char -> (chi / H)%CF \is a linear_char.
+Proof. by case/andP=> Nchi; rewrite qualifE cfQuo_char ?cfQuo1. Qed.
+
 Lemma cfMod_char G H (chi : 'CF(G / H)) :
   chi \is a character -> (chi %% H)%CF \is a character.
 Proof. exact: cfMorph_char. Qed.
 
 Lemma cfMod_lin_char G H (chi : 'CF(G / H)) :
-  H <| G -> chi \is a linear_char -> (chi %% H)%CF \is a linear_char.
-Proof. by move=> nsHG /andP[Nchi]; rewrite qualifE cfMod_char ?cfMod1. Qed.
+  chi \is a linear_char -> (chi %% H)%CF \is a linear_char.
+Proof. exact: cfMorph_lin_char. Qed.
 
 Lemma cfMod_irr G H i : H <| G -> ('chi[G / H]_i %% H)%CF \in irr G.
-Proof. by case/andP=> _; exact: cfMorph_irr. Qed.
+Proof. by case/andP=> _; apply: cfMorph_irr. Qed.
 
 Definition mod_Iirr G H := irr_Iirr (fun i => 'chi[G / H]_i %% H)%CF.
 
@@ -1876,7 +1938,7 @@ Proof. by move=> nsHG; apply: irr_IirrE => x; exact: cfMod_irr. Qed.
 Lemma cfQuo_irr G H i :
   H <| G -> H \subset cfker 'chi[G]_i -> ('chi_i / H)%CF \in irr (G / H).
 Proof.
-case/irr_ReprP: (irr_chi i) => rG irrG -> nsHG sHK; have [sHG nHG] := andP nsHG.
+case/irr_ReprP: (mem_irr i) => rG irrG -> nsHG sHK; have [sHG nHG] := andP nsHG.
 have sHKr: H \subset rker rG by rewrite -cfker_Repr.
 apply/irr_ReprP; exists (Representation (quo_repr sHKr nHG)).
   exact/quo_mx_irr.
@@ -1890,13 +1952,13 @@ Proof.
 move=> nsHG; have [sHG nHG] := andP nsHG.
 apply/esym/eqP; rewrite eqEsubset (introT bigcapsP) //=.
 apply/subsetP=> x /bigcapP Kx.
-have Gx: x \in G by move/implyP: (Kx 0); rewrite cfker_chi0 sHG.
+have Gx: x \in G by move/implyP: (Kx 0); rewrite cfker_irr0 sHG.
 have nHx: x \in 'N(H) := subsetP nHG x Gx.
 suffices: coset H x \in \bigcap_i cfker 'chi[G / H]_i.
   by rewrite TI_cfker_irr => /set1P/coset_idr->.
 apply/bigcapP=> i _; have /irrP[j iModI] := cfMod_irr i nsHG. 
 have: x \in cfker 'chi_j by rewrite Kx // -iModI cfker_Mod.
-by rewrite !cfker_irrE !inE -iModI !cfModE ?morph1.
+by rewrite !cfkerEirr !inE -iModI !cfModE ?morph1.
 Qed.
 
 Definition quo_Iirr G H := irr_Iirr (fun i => 'chi[G]_i / H)%CF.
@@ -1907,14 +1969,14 @@ Proof. by move/cfQuo_irr=> irrHq sHK; exact: irr_IirrPE irrHq _ _. Qed.
 
 Lemma mod_IirrK G H : H <| G -> cancel (@mod_Iirr G H) (@quo_Iirr G H).
 Proof.
-move=> nsHG i; apply: chi_inj.
+move=> nsHG i; apply: irr_inj.
 by rewrite quo_IirrE ?mod_IirrE ?cfker_Mod // cfModK.
 Qed.
 
 Lemma quo_IirrK G H i :
   H <| G -> H \subset cfker 'chi[G]_i -> mod_Iirr (quo_Iirr H i) = i.
 Proof.
-by move=> nsHG sHK; apply: chi_inj; rewrite mod_IirrE ?quo_IirrE ?cfQuoK.
+by move=> nsHG sHK; apply: irr_inj; rewrite mod_IirrE ?quo_IirrE ?cfQuoK.
 Qed.
 
 Lemma quo_IirrKeq G H :
@@ -1943,7 +2005,7 @@ Qed.
 Lemma cfker_Reg_Quo G H : H <| G -> cfker (cfReg (G / H)%g %% H) = H.
 Proof.
 move=> nsHG; have [sHG nHG] := andP nsHG.
-apply/setP=> x; rewrite cfker_charE ?cfMod_char ?cfReg_char //.
+apply/setP=> x; rewrite cfkerEchar ?cfMod_char ?cfReg_char //.
 rewrite -[in RHS in _ = RHS](setIidPr sHG) !inE; apply: andb_id2l => Gx.
 rewrite !cfModE // !cfRegE // morph1 eqxx.
 rewrite (sameP eqP (kerP _ (subsetP nHG x Gx))) ker_coset.
@@ -1973,6 +2035,17 @@ apply/cfun_inP=> x Gx; rewrite cfun1E Gx cfker1 ?(subsetP chiG1) ?lin_char1 //.
 by rewrite lin_irr_der1 (subset_trans (der_sub 1 G)).
 Qed.
 
+Lemma irr_prime_injP G i :
+  prime #|G| -> reflect {in G &, injective 'chi[G]_i} (i != 0).
+Proof.
+move=> pr_G; apply: (iffP idP) => [nz_i | inj_chi].
+  apply: fful_lin_char_inj (irr_prime_lin i pr_G) _.
+  by rewrite cfaithfulE -(setIidPr (cfker_sub _)) prime_TIg // subGcfker.
+have /trivgPn[x Gx ntx]: G :!=: 1%g by rewrite -cardG_gt1 prime_gt1.
+apply: contraNneq ntx => i0; apply/eqP/inj_chi=> //.
+by rewrite i0 irr0 !cfun1E Gx group1.
+Qed.
+
 (* This is Isaacs (2.23)(a). *) 
 Lemma cap_cfker_lin_irr G :
   \bigcap_(i | 'chi[G]_i \is a linear_char) (cfker 'chi_i) = G^`(1)%g.
@@ -2000,13 +2073,13 @@ by apply: eq_card => i; rewrite !inE /lin_char irr_char irr1_degree -eqC_nat.
 Qed.
 
 (* A non-trivial solvable group has a nonprincipal linear character. *)
-Lemma lin_char_solvable G :
+Lemma solvable_has_lin_char G :
     G :!=: 1%g -> solvable G ->
   exists2 i, 'chi[G]_i \is a linear_char & 'chi_i != 1.
 Proof.
 move=> ntG solG.
 suff /subsetPn[i]: ~~ ([pred i | 'chi[G]_i \is a linear_char] \subset pred1 0).
-  by rewrite !inE -(inj_eq chi_inj) chi0_1; exists i.
+  by rewrite !inE -(inj_eq irr_inj) irr0; exists i.
 rewrite (contra (@subset_leq_card _ _ _)) // -ltnNge card1 card_lin_irr.
 by rewrite indexg_gt1 proper_subn // (sol_der1_proper solG).
 Qed.
@@ -2027,9 +2100,10 @@ Qed.
 
 End Derive.
 
+Implicit Arguments irr_prime_injP [gT G i].
+
 Definition cfcenter (gT : finGroupType) (G : {set gT}) (phi : 'CF(G)) := 
-  if phi \is a character then [set g \in G | `|phi g| == phi 1%g]
-                         else cfker phi.
+  if phi \is a character then [set g in G | `|phi g| == phi 1%g] else cfker phi.
 
 Notation "''Z' ( phi )" := (cfcenter phi) : cfun_scope.
 
@@ -2077,7 +2151,7 @@ Proof. by rewrite /cfcenter /cfker !setIdE -fun_if subsetIl. Qed.
 Lemma cfker_center_normal phi : cfker phi <| 'Z(phi)%CF.
 Proof.
 apply: normalS (cfcenter_sub phi) (cfker_normal phi).
-rewrite /= /cfcenter; case: ifP => // Hphi; rewrite cfker_charE //.
+rewrite /= /cfcenter; case: ifP => // Hphi; rewrite cfkerEchar //.
 apply/subsetP=> x; rewrite !inE => /andP[-> /eqP->] /=.
 by rewrite ger0_norm ?char1_ge0.
 Qed.
@@ -2118,14 +2192,14 @@ Proof.
 case Nchi: (chi \is a character); last first.
   by rewrite /cfcenter Nchi trivg_quotient cyclic1.
 have [-> | nz_chi] := eqVneq chi 0.
-  rewrite quotientS1 ?cyclic1 //= /cfcenter cfker_charE ?cfun0_char //.
+  rewrite quotientS1 ?cyclic1 //= /cfcenter cfkerEchar ?cfun0_char //.
   by apply/subsetP=> x /setIdP[Gx _]; rewrite inE Gx /= !cfunE.
 have [xi Lxi def_chi] := cfcenter_Res chi.
 set Z := ('Z(_))%CF in xi Lxi def_chi *.
 have sZG: Z \subset G by exact: cfcenter_sub.
 have ->: cfker chi = cfker xi.
   rewrite -(setIidPr (normal_sub (cfker_center_normal _))) -/Z.
-  rewrite !cfker_charE // ?lin_charW //= -/Z.
+  rewrite !cfkerEchar // ?lin_charW //= -/Z.
   apply/setP=> x; rewrite !inE; apply: andb_id2l => Zx.
   rewrite (subsetP sZG) //= -!(cfResE chi sZG) ?group1 // def_chi !cfunE.
   by rewrite (inj_eq (mulfI _)) ?char1_eq0.
@@ -2154,7 +2228,7 @@ Lemma cfcenter_eq_center (i : Iirr G) :
 Proof.
 apply/eqP; rewrite eqEsubset; rewrite cfcenter_subset_center ?irr_char //.
 apply/subsetP=> _ /setIP[/morphimP[x /= _ Gx ->] cGx]; rewrite mem_quotient //=.
-rewrite -cfun_Chi cfker_Repr cfcenter_Repr inE Gx in cGx *.
+rewrite -Repr_irr cfker_Repr cfcenter_Repr inE Gx in cGx *.
 apply: mx_abs_irr_cent_scalar 'Chi_i _ _ _.
   by apply: groupC; apply: socle_irr.
 have nKG: G \subset 'N(rker 'Chi_i) by exact: rker_norm.
@@ -2181,25 +2255,19 @@ by rewrite cfcenter_eq_center subsetIr.
 Qed.
 
 (* This is Isaacs (2.29). *)
-Lemma cfnorm_Res_leqif H phi :
+Lemma cfnorm_Res_lerif H phi :
     H \subset G ->
   '['Res[H] phi] <= #|G : H|%:R * '[phi] ?= iff (phi \in 'CF(G, H)).
 Proof.
-move=> sHG; rewrite cfun_onE !cfdotE -(Lagrange sHG) mulnC natrM invfM.
-rewrite -!mulrA mulVKf ?pnatr_eq0 -?lt0n //.
-rewrite (@big_setID _ _ _ _ G H) /= (setIidPr sHG) mulrDr addrC.
-rewrite (eq_bigr (fun x => phi x * (phi x)^*)) => [|i Hi]; last first.
-  by rewrite !cfResE //.
-split.
-  rewrite -subr_ge0 addrK mulr_ge0 ?invr_ge0 ?ler0n //.
-  by rewrite sumr_ge0 // => i _; exact: mul_conjC_ge0.
-rewrite eq_sym -subr_eq0 addrK mulf_eq0 invr_eq0 (negbTE (neq0CG H)).
-apply/eqP/supportP=> [|Hphi]; last first.
-  by rewrite big1 // => i /setDP[_ /Hphi->]; rewrite mul0r.
-move/psumr_eq0P=> Hphi x notHx; apply/eqP.
-have [Gx | /cfun0-> //] := boolP (x \in G).
-rewrite -mul_conjC_eq0 Hphi ?mem_index_enum ?inE ?notHx ?Gx // => i _.
-exact: mul_conjC_ge0.
+move=> sHG; rewrite cfun_onE mulrCA natf_indexg // -mulrA mulKf ?neq0CG //.
+rewrite (big_setID H) (setIidPr sHG) /= addrC.
+rewrite (mono_lerif (ler_pmul2l _)) ?invr_gt0 ?gt0CG // -lerif_subLR -sumrB.
+rewrite big1 => [|x Hx]; last by rewrite !cfResE ?subrr.
+have ->: (support phi \subset H) = (G :\: H \subset [set x | phi x == 0]).
+  rewrite subDset setUC -subDset; apply: eq_subset => x.
+  by rewrite !inE (andb_idr (contraR _)) // => /cfun0->.
+rewrite (sameP subsetP forall_inP); apply: lerif_0_sum => x _.
+by rewrite !inE /<?=%R mul_conjC_ge0 eq_sym mul_conjC_eq0.
 Qed.
 
 (* This is Isaacs (2.30). *)
@@ -2207,7 +2275,7 @@ Lemma irr1_bound (i : Iirr G) :
   ('chi_i 1%g) ^+ 2 <= #|G : 'Z('chi_i)%CF|%:R
                     ?= iff ('chi_i \in 'CF(G, 'Z('chi_i)%CF)).
 Proof.
-congr (_ <= _ ?= iff _): (cfnorm_Res_leqif 'chi_i (cfcenter_sub 'chi_i)).
+congr (_ <= _ ?= iff _): (cfnorm_Res_lerif 'chi_i (cfcenter_sub 'chi_i)).
   have [xi Lxi ->] := cfcenter_Res 'chi_i.
   have /irrP[j ->] := lin_char_irr Lxi; rewrite cfdotZl cfdotZr cfdot_irr eqxx.
   by rewrite mulr1 irr1_degree conjC_nat.
@@ -2228,7 +2296,7 @@ set z := [~ x, y]; rewrite coset_id //.
 have: z \in 'Z('chi_i)%CF.
   apply: subsetP (mem_commg Gx Gy).
   by rewrite der1_min // normal_norm ?cfcenter_normal.
-rewrite -cfun_Chi cfker_Repr cfcenter_Repr !inE in nz_chi_x *.
+rewrite -Repr_irr cfker_Repr cfcenter_Repr !inE in nz_chi_x *.
 case/andP=> Gz /is_scalar_mxP[c Chi_z]; rewrite Gz Chi_z mul1mx /=.
 apply/eqP; congr _%:M; apply: (mulIf nz_chi_x); rewrite mul1r.
 rewrite -{2}(cfunJ _ x Gy) conjg_mulR -/z !cfunE Gx groupM // !{1}mulrb.
@@ -2271,39 +2339,33 @@ Section Induced.
 Variables (gT : finGroupType) (G H : {group gT}).
 Implicit Types (phi : 'CF(G)) (chi : 'CF(H)).
 
-Lemma cfInd_eq0 chi :
-  H \subset G -> chi \is a character -> ('Ind[G] chi == 0) = (chi == 0).
-Proof.
-move=> sHG Nchi; apply/eqP/idP=>[|/eqP->]; last by rewrite linear0.
-move/cfunP/(_ 1%g)/eqP; rewrite cfInd1 // cfunE mulf_eq0 char1_eq0 //.
-by rewrite pnatr_eq0 eqn0Ngt indexg_gt0.
-Qed.
-
-Lemma Ind_irr_neq0 i : H \subset G -> 'Ind[G, H] 'chi_i != 0.
-Proof. by move/cfInd_eq0->; rewrite ?irr_neq0 ?irr_char. Qed.
-
 Lemma cfInd_char chi : chi \is a character -> 'Ind[G] chi \is a character.
 Proof.
 move=> Nchi; apply/forallP=> i; rewrite coord_cfdot -Frobenius_reciprocity //.
 by rewrite Cnat_cfdot_char ?cfRes_char ?irr_char.
 Qed.
 
-Lemma cfRes_irr_constt i :
-  H \subset G -> {j | i \in irr_constt ('Res[H, G] 'chi_j)}.
+Lemma cfInd_eq0 chi :
+  H \subset G -> chi \is a character -> ('Ind[G] chi == 0) = (chi == 0).
 Proof.
-move=> sHG; apply/sigW.
-have NchiG: 'Ind[G] 'chi_i \is a character by rewrite cfInd_char ?irr_char.
-have /neq0_has_constt[j chiGj]: 'Ind[G] 'chi_i != 0.
-  rewrite -char1_eq0 // cfInd1 // mulf_neq0 ?irr1_neq0 //.
-  by rewrite pnatr_eq0 eqn0Ngt indexg_gt0.
-exists j; rewrite inE /= cfdotC_char ?cfRes_char ?irr_char //. 
-by rewrite Frobenius_reciprocity.
+move=> sHG Nchi; rewrite -!(char1_eq0) ?cfInd_char // cfInd1 //.
+by rewrite (mulrI_eq0 _ (mulfI _)) ?neq0CiG.
 Qed.
+
+Lemma Ind_irr_neq0 i : H \subset G -> 'Ind[G, H] 'chi_i != 0.
+Proof. by move/cfInd_eq0->; rewrite ?irr_neq0 ?irr_char. Qed.
+
+Lemma constt_cfRes_irr i : {j | j \in irr_constt ('Res[H, G] 'chi_i)}.
+Proof. apply/sigW/neq0_has_constt/Res_irr_neq0. Qed.
+
+Lemma constt_cfInd_irr i :
+  H \subset G -> {j | j \in irr_constt ('Ind[G, H] 'chi_i)}.
+Proof. by move=> sHG; apply/sigW/neq0_has_constt/Ind_irr_neq0. Qed.
 
 Lemma cfker_Res phi :
   H \subset G -> phi \is a character -> cfker ('Res[H] phi) = H :&: cfker phi.
 Proof.
-move=> sHG Nphi; apply/setP=> x; rewrite !cfker_charE ?cfRes_char // !inE.
+move=> sHG Nphi; apply/setP=> x; rewrite !cfkerEchar ?cfRes_char // !inE.
 by apply/andb_id2l=> Hx; rewrite (subsetP sHG) ?cfResE.
 Qed.
 

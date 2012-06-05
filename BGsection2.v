@@ -70,7 +70,7 @@ have /morphimP[x nHx Gx defHx]: Hx \in (G / H)%g by rewrite defGH cycle_id.
 have{Hx defGH defHx} defG : G :=: <[x]> <*> H.
   rewrite -(quotientGK nsHG) defGH defHx -quotient_cycle //.
   by rewrite joingC quotientK ?norm_joinEr // cycle_subG.
-have [e def1]: exists e, 1%:M = \sum_(z \in G) e z *m (M *m rG z).
+have [e def1]: exists e, 1%:M = \sum_(z in G) e z *m (M *m rG z).
   apply/sub_sumsmxP; have [X sXG [<- _]] := Clifford_basis irrG simM.
   by apply/sumsmx_subP=> z Xz; rewrite (sumsmx_sup z) ?(subsetP sXG).
 have [phi inj_phi hom_phi defMx] := isoM x Gx.
@@ -497,7 +497,7 @@ pose dn1 i := `|'n_i - 'n_(i + 1)|.
 have sum_dn1: (\sum_(0 <= i < h) dn1 i ^ 2 == 2)%N.
   rewrite big_mkord -(eqn_add2l (2 * \rank 'E_1)) -diff_rank_quasi_cent_cycle.
   by rewrite -mulnSr -rankEm ?modn_small.
-pose diff_n := filter (fun i => dn1 i != 0%N) (index_iota 0 h).
+pose diff_n := [seq i <- index_iota 0 h | dn1 i != 0%N].
 have diff_n_1: all (fun i => dn1 i == 1%N) diff_n.
   apply: contraLR sum_dn1; case/allPn=> i; rewrite mem_filter.
   case def_i: (dn1 i) => [|[|ni]] //=; case/splitPr=> e e' _.
@@ -676,7 +676,7 @@ pose E_P := enveloping_algebra_mx rP; have{irrP} absP := closF P _ _ irrP.
 have [q_gt0 EPfull]: q > 0 /\ (1%:M <= E_P)%MS by apply/andP; rewrite sub1mx.
 pose Z := 'Z(P); have [sZP nZP] := andP (center_normal P : Z <| P).
 have nHZ: H \subset 'N(Z) := subset_trans sHG (normal_norm nsZG).
-pose clPqH := [set Zx ^: (H / Z) | Zx <- P / Z]%g.
+pose clPqH := [set Zx ^: (H / Z) | Zx in P / Z]%g.
 pose b (ZxH : {set coset_of Z}) := repr (repr ZxH).
 have Pb ZxH: ZxH \in clPqH -> b ZxH \in P.
   case/imsetP=> Zx P_Zx ->{ZxH}.
@@ -698,7 +698,7 @@ have{primeHP coPH} card_clPqH ZxH: ZxH \in clPqH^# -> #|ZxH| = #|H|.
     by rewrite /= cent_cycle primeHP // trivg_quotient inE.
   by apply: coprimegS coPH; rewrite cycle_subG; case/setD1P: Hy.
 pose B x := \matrix_(i < #|H|) mxvec (rP (x ^ enum_val i)%g).
-have{E_P EPfull absP} sumB: (\sum_(ZxH \in clPqH) <<B (b ZxH)>> :=: 1%:M)%MS.
+have{E_P EPfull absP} sumB: (\sum_(ZxH in clPqH) <<B (b ZxH)>> :=: 1%:M)%MS.
   apply/eqmxP; rewrite submx1 (submx_trans EPfull) //.
   apply/row_subP=> ix; set x := enum_val ix; pose ZxH := coset Z x ^: (H / Z)%g.
   have Px: x \in P by [rewrite enum_valP]; have nZx := subsetP nZP _ Px.
@@ -724,7 +724,7 @@ have B1_if: \rank <<B (b 1%g)>> <= 1 ?= iff (<<B (b 1%g)>> == mxvec 1%:M)%MS.
   rewrite -{1}r1; apply: mxrank_leqif_eq; rewrite genmxE.
   have ->: b 1%g = 1%g by rewrite /b repr_set1 repr_coset1.
   by apply/row_subP=> i; rewrite rowK conj1g repr_mx1.
-have rankEP: \rank (1%:M : 'A[F]_q) = (\sum_(ZxH \in clPqH) #|ZxH|)%N.
+have rankEP: \rank (1%:M : 'A[F]_q) = (\sum_(ZxH in clPqH) #|ZxH|)%N.
   rewrite acts_sum_card_orbit ?astabsJ ?quotient_norms // card_quotient //.
   rewrite mxrank1 -divgS // -mulnn oPpn oZp expnS -muln2 expnM -def_q.
   by rewrite mulKn // ltnW.
@@ -759,7 +759,7 @@ have dxE: mxdirect (\sum_(m < h) E_ m)%MS.
   apply: mxdirect_sum_eigenspace => m1 m2 _ _ eq_m12; apply/eqP.
   by move/eqP: eq_m12; rewrite (eq_prim_root_expr prim_w) !modn_small.
 pose B2 ZxH i : 'A_q := <<Wi i *m B (b ZxH)>>%MS.
-pose B1 i : 'A_q := (\sum_(ZxH \in clPqH^#) B2 ZxH i)%MS.
+pose B1 i : 'A_q := (\sum_(ZxH in clPqH^#) B2 ZxH i)%MS.
 pose SB := (<<B (b 1%g)>> + \sum_i B1 i)%MS.
 have{yr Wi_yr Pb mulBg} sB1E i: (B1 i <= E_ i)%MS.
   apply/sumsmx_subP=> ZxH /setIdP[_]; rewrite genmxE => P_ZxH.
@@ -915,7 +915,7 @@ have ap1: a ^+ p = 1.
   rewrite !exprS -IHk def_x -!mulmxE !mulmxA mulmxK // -2!(mulmxA B^-1).
   by rewrite -[2]/(1 + 1)%N mulmx_block !mulmx0 !mul0mx !addr0 mulmxA add0r.
 have ab1: a * b = 1.
-  have: Q \subset <<[set y \in G | \det (rG y) == 1]>>.
+  have: Q \subset <<[set y in G | \det (rG y) == 1]>>.
   rewrite subIset // genS //; apply/subsetP=> yz; case/imset2P=> y z Gy Gz ->.
     rewrite inE !repr_mxM ?groupM ?groupV //= !detM (mulrCA _ (\det (rG y))). 
     rewrite -!det_mulmx -!repr_mxM ?groupM ?groupV //.
@@ -1121,7 +1121,7 @@ rewrite card_in_imset // (card_pgroup (abelem_pgroup abelQ)) logQ.
 case/(leqif_trans (leqif_mul le_rs_q le_rs_q))=> _; move/esym.
 rewrite cardsX eqxx andbb muln_eq0 orbb eqn0Ngt prime_gt0 //= => /andP[rs_q].
 rewrite subEproper /proper {}s_fQ_rs andbF orbF => /eqP rs2_Q.
-have: ~~ (rs \subset [set (1 : 'F_p)]).
+have: ~~ (rs \subset [set 1 : 'F_p]).
   apply: contraL (prime_gt1 q_pr); move/subset_leq_card.
   by rewrite cards1 (eqnP rs_q) leqNgt.
 case/subsetPn => r rs_r; rewrite inE => ne_r_1.

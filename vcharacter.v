@@ -46,7 +46,7 @@ Section Basics.
 Variables (gT : finGroupType) (B : {set gT}) (S : seq 'CF(B)) (A : {set gT}).
 
 Definition Zchar : pred_class :=
-  [pred phi \in 'CF(B, A) | dec_Cint_span (in_tuple S) phi].
+  [pred phi in 'CF(B, A) | dec_Cint_span (in_tuple S) phi].
 Fact Zchar_key : pred_key Zchar. Proof. by []. Qed.
 Canonical Zchar_keyed := KeyedPred Zchar_key.
 
@@ -209,7 +209,7 @@ Qed.
 Lemma irr_vchar i : 'chi[G]_i \in 'Z[irr G].
 Proof. exact/char_vchar/irr_char. Qed.
 
-Lemma cfun1_vchar : 1 \in 'Z[irr G]. Proof. by rewrite -chi0_1 irr_vchar. Qed.
+Lemma cfun1_vchar : 1 \in 'Z[irr G]. Proof. by rewrite -irr0 irr_vchar. Qed.
 
 Lemma vcharP phi :
   reflect (exists2 chi1, chi1 \is a character
@@ -220,10 +220,10 @@ apply: (iffP idP) => [| [a Na [b Nb ->]]]; last by rewrite rpredB ?char_vchar.
 case/zchar_tuple_expansion=> z Zz ->; rewrite (bigID (fun i => 0 <= z i)) /=.
 set chi1 := \sum_(i | _) _; set nchi2 := \sum_(i | _) _.
 exists chi1; last exists (- nchi2); last by rewrite opprK.
-  apply: rpred_sum => i zi_ge0; rewrite -tnth_nth scale_char ?irr_char //.
+  apply: rpred_sum => i zi_ge0; rewrite -tnth_nth rpredZ_Cnat ?irr_char //.
   by rewrite CnatEint Zz.
 rewrite -sumrN rpred_sum // => i zi_lt0; rewrite -scaleNr -tnth_nth.
-rewrite scale_char ?irr_char // CnatEint rpredN Zz oppr_ge0 ltrW //.
+rewrite rpredZ_Cnat ?irr_char // CnatEint rpredN Zz oppr_ge0 ltrW //.
 by rewrite real_ltrNge ?Creal_Cint.
 Qed.
 
@@ -405,7 +405,7 @@ Proof. exact: cfnorm_map_orthonormal. Qed.
 Lemma zchar_orthonormalP S :
     {subset S <= 'Z[irr G]} ->
   reflect (exists I : {set Iirr G}, exists b : Iirr G -> bool,
-           perm_eq S [seq (-1) ^+ b i *: 'chi_i | i <- enum I])
+           perm_eq S [seq (-1) ^+ b i *: 'chi_i | i in I])
           (orthonormal S).
 Proof.
 move=> vcS; apply: (equivP orthonormalP).
@@ -460,7 +460,7 @@ Lemma zchar_small_norm phi n :
     [/\ orthonormal S, {subset S <= 'Z[irr G]} & phi = \sum_(xi <- S) xi]}.
 Proof.
 move=> Zphi def_n lt_n_4.
-pose S := [image '[phi, 'chi_i] *: 'chi_i | i <- irr_constt phi].
+pose S := [seq '[phi, 'chi_i] *: 'chi_i | i in irr_constt phi].
 have def_phi: phi = \sum_(xi <- S) xi.
   rewrite big_map /= big_filter big_mkcond {1}[phi]cfun_sum_cfdot.
   by apply: eq_bigr => i _; rewrite if_neg; case: eqP => // ->; rewrite scale0r.
@@ -595,25 +595,24 @@ Section MoreVchar.
 
 Variables (gT : finGroupType) (G H : {group gT}).
 
-Lemma cfRes_vchar A phi : 
-  phi \in 'Z[irr G, A] -> 'Res[H] phi \in 'Z[irr H, A].
+Lemma cfRes_vchar phi : phi \in 'Z[irr G] -> 'Res[H] phi \in 'Z[irr H].
 Proof.
-rewrite [phi \in _]zchar_split => /andP[/vcharP[xi1 Nx1 [xi2 Nxi2 ->]] Aphi].
-case sHG: (H \subset G); last first.
-  congr (_ \in 'Z[_, A]): (cfun0_zchar (irr H) A).
-  by apply/cfun_inP=> x Hx; rewrite !cfunElock !genGid Hx sHG.
-rewrite zchar_split; apply/andP; split.
-  by rewrite linearB rpredB // char_vchar // cfRes_char.
-by apply/cfun_onP=> x /(cfun_onP Aphi); rewrite !cfunElock => ->; exact: mul0rn.
+case/vcharP=> xi1 Nx1 [xi2 Nxi2 ->].
+by rewrite raddfB rpredB ?char_vchar ?cfRes_char.
+Qed.
+
+Lemma cfRes_vchar_on A phi :
+  H \subset G -> phi \in 'Z[irr G, A] -> 'Res[H] phi \in 'Z[irr H, A].
+Proof.
+rewrite zchar_split => sHG /andP[Zphi Aphi]; rewrite zchar_split cfRes_vchar //.
+apply/cfun_onP=> x /(cfun_onP Aphi); rewrite !cfunElock !genGid sHG => ->.
+exact: mul0rn.
 Qed.
 
 Lemma cfInd_vchar phi : phi \in 'Z[irr H] -> 'Ind[G] phi \in 'Z[irr G].
 Proof.
 move=> /vcharP[xi1 Nx1 [xi2 Nxi2 ->]].
-case sHG: (H \subset G); last first.
-  congr (_ \in 'Z[_]): (cfun0_zchar (irr G) setT).
-  by apply/cfunP=> x; rewrite !cfunElock !genGid sHG.
-by rewrite linearB rpredB // char_vchar // cfInd_char.
+by rewrite raddfB rpredB ?char_vchar ?cfInd_char.
 Qed.
 
 Lemma sub_conjC_vchar A phi :
@@ -646,16 +645,16 @@ suffices extG i: {j | {in H, 'chi[G]_j =1 'chi[H]_i} & K1 \subset cfker 'chi_j}.
     by apply/norms_bigcap/bigcapsP=> i _; exact: subset_trans (cfker_norm _).
   have tiKH: K :&: H = 1%g.
     apply/trivgP; rewrite -(TI_cfker_irr H) /= setIC; apply/bigcapsP=> i _.
-    apply/subsetP=> x /setIP[Hx /bigcapP/(_ i isT)/=]; rewrite !cfker_irrE !inE.
+    apply/subsetP=> x /setIP[Hx /bigcapP/(_ i isT)/=]; rewrite !cfkerEirr !inE.
     by case: (extG i) => /= j def_j _; rewrite !def_j.
   exists K; rewrite sdprodE // eqEcard TI_cardMg // mul_subG //=; last first.
     by rewrite (bigcap_min (0 : Iirr H)) ?cfker_sub.
   rewrite -(Lagrange sHG) mulnC leq_pmul2r // -oK1 subset_leq_card //.
   by apply/bigcapsP=> i _; case: (extG i).
 case i0: (i == 0).
-  exists 0 => [x Hx|]; last by rewrite chi0_1 cfker_cfun1 subsetDl.
-  by rewrite (eqP i0) !chi0_1 !cfun1E // (subsetP sHG) ?Hx.
-have ochi1: '['chi_i, 1] = 0 by rewrite -chi0_1 cfdot_irr i0.
+  exists 0 => [x Hx|]; last by rewrite irr0 cfker_cfun1 subsetDl.
+  by rewrite (eqP i0) !irr0 !cfun1E // (subsetP sHG) ?Hx.
+have ochi1: '['chi_i, 1] = 0 by rewrite -irr0 cfdot_irr i0.
 pose a := 'chi_i 1%g; have Za: a \in Cint by rewrite CintE Cnat_irr1.
 pose theta := 'chi_i - a%:A; pose phi := 'Ind[G] theta + a%:A.
 have /cfun_onP theta0: theta \in 'CF(H, H^#).
@@ -683,7 +682,7 @@ have [j def_chi_j]: {j | 'chi_j = phi}.
     by rewrite scale1r; exists j.
   move/cfunP/(_ 1%g)/eqP; rewrite scaleN1r def_phi // cfunE -addr_eq0 eqr_le.
   by rewrite ltr_geF // ltr_paddl ?ltrW ?irr1_gt0.
-exists j; rewrite ?cfker_irrE def_chi_j //; apply/subsetP => x /setDP[Gx notHx].
+exists j; rewrite ?cfkerEirr def_chi_j //; apply/subsetP => x /setDP[Gx notHx].
 rewrite inE cfunE def_phi // cfunE -/a cfun1E // Gx mulr1 cfIndE //.
 rewrite big1 ?mulr0 ?add0r // => y Gy; apply/theta0/(contra _ notHx) => Hxy.
 by rewrite -(conjgK y x) cover_imset -class_supportEr mem_imset2 ?groupV. 
@@ -710,13 +709,13 @@ Lemma dirr_opp v : (- v \in dirr G) = (v \in dirr G). Proof. exact: rpredN. Qed.
 Lemma dirr_sign n v : ((-1)^+ n *: v \in dirr G) = (v \in dirr G).
 Proof. exact: rpredZsign. Qed.
 
-Lemma dirr_chi i : 'chi_i \in dirr G.
-Proof. by rewrite !inE irr_chi. Qed.
+Lemma dmem_irr i : 'chi_i \in dirr G.
+Proof. by rewrite !inE mem_irr. Qed.
 
 Lemma dirrP f :
   reflect (exists b : bool, exists i, f = (-1) ^+ b *: 'chi_i) (f \in dirr G).
 Proof.
-apply: (iffP idP) => [| [b [i ->]]]; last by rewrite dirr_sign dirr_chi. 
+apply: (iffP idP) => [| [b [i ->]]]; last by rewrite dirr_sign dmem_irr. 
 case/orP=> /irrP[i Hf]; first by exists false, i; rewrite scale1r.
 by exists true, i; rewrite scaleN1r -Hf opprK.
 Qed.
@@ -766,7 +765,7 @@ Definition dchi (B : {set gT}) (i : dIirr B) : 'CF(B) :=
   (-1)^+ i.1 *: 'chi_i.2.
 
 Lemma dchi1 : dchi (dirr1 G) = 1.
-Proof. by rewrite /dchi scale1r chi0_1. Qed.
+Proof. by rewrite /dchi scale1r irr0. Qed.
 
 Lemma dirr_dchi i : dchi i \in dirr G.
 Proof. by apply/dirrP; exists i.1; exists i.2. Qed.
@@ -795,7 +794,7 @@ Proof. by case: i => b i; rewrite rpredZsign irr_vchar. Qed.
 Lemma cfnorm_dchi (i : dIirr G) : '[dchi i] = 1.
 Proof.  by case: i => b i; rewrite cfnorm_sign cfnorm_irr. Qed.
 
-Lemma dchi_inj : injective (@dchi G).
+Lemma dirr_inj : injective (@dchi G).
 Proof.
 case=> b1 i1 [b2 i2] /eqP; rewrite eq_scaled_irr (inj_eq (@signr_inj _)) /=.
 by rewrite signr_eq0 -xpair_eqE => /eqP.
@@ -877,7 +876,7 @@ Proof. by rewrite cfdotZr rmorph_sign mulrC -scalerA signrZK. Qed.
 
 Lemma cfun_sum_dconstt (phi : 'CF(G)) :
   phi \in 'Z[irr G] ->
-  phi = \sum_(i \in dirr_constt phi) '[phi, dchi i] *: dchi i.
+  phi = \sum_(i in dirr_constt phi) '[phi, dchi i] *: dchi i.
 Proof.
 (* GG -- rewrite pattern fails in trunk
   move=> PiZ; rewrite [X in X = _]cfun_sum_constt. *)
@@ -889,7 +888,7 @@ Qed.
 
 Lemma cnorm_dconstt (phi : 'CF(G)) :
   phi \in 'Z[irr G] ->
-  '[phi] = \sum_(i \in dirr_constt phi) '[phi, dchi i] ^+ 2.
+  '[phi] = \sum_(i in dirr_constt phi) '[phi, dchi i] ^+ 2.
 Proof.
 move=> PiZ; rewrite {1 2}(cfun_sum_dconstt PiZ).
 rewrite cfdot_suml; apply: eq_bigr=> i IiD.
@@ -903,7 +902,7 @@ Qed.
 Lemma dirr_small_norm (phi : 'CF(G)) n :
   phi \in 'Z[irr G] -> '[phi] = n%:R -> (n < 4)%N ->
   [/\ #|dirr_constt phi| = n, dirr_constt phi :&: dirr_constt (- phi) = set0 & 
-      phi = \sum_(i \in dirr_constt phi) dchi i].
+      phi = \sum_(i in dirr_constt phi) dchi i].
 Proof.
 move=> PiZ Pln; rewrite ltnNge -leC_nat => Nl4.
 suffices Fd i: i \in dirr_constt phi -> '[phi, dchi i] = 1.
@@ -920,8 +919,8 @@ by rewrite ltn_neqAle eq_sym -eqC_nat -ltC_nat -Dm phi_i_neq1 -dirr_consttE.
 Qed.
 
 Lemma cfdot_sum_dchi (phi1 phi2 : 'CF(G)) :
-  '[\sum_(i \in dirr_constt phi1) dchi i,
-    \sum_(i \in dirr_constt phi2) dchi i] = 
+  '[\sum_(i in dirr_constt phi1) dchi i,
+    \sum_(i in dirr_constt phi2) dchi i] = 
   #|dirr_constt phi1 :&: dirr_constt phi2|%:R -
     #|dirr_constt phi1 :&: dirr_constt (- phi2)|%:R.
 Proof.

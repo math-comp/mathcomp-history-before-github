@@ -93,10 +93,8 @@ Lemma cyclicTI_coprime : coprime #|W1| #|W2|.
 Proof. by rewrite -(cyclic_dprod W1xW2). Qed.
 
 Definition cyclicTIirr (i : Iirr W1) (j : Iirr W2) :=
- 'chi_(odflt 0 [pick k |
-       forallb g1 : gT, (g1 \in W1) ==> forallb g2 : gT, 
-          (g2 \in W2) ==> 
-                 ('chi[W]_k (g1 * g2)%g == 'chi_i g1 * 'chi_j g2)]).
+ 'chi_(odflt 0 [pick k | [forall g1 in W1, forall g2 in W2,
+                          'chi[W]_k (g1 * g2)%g == 'chi_i g1 * 'chi_j g2]]).
 Local Notation w_ := cyclicTIirr.
 
 Lemma cTIirrE i j : w_ i j = 'chi_(dprod_Iirr W1xW2 (i, j)).
@@ -113,14 +111,14 @@ Qed.
 
 Lemma cTIirr00 : w_ 0 0 = 1.
 Proof.
-rewrite cTIirrE dprod_IirrE !chi0_1.
+rewrite cTIirrE dprod_IirrE !irr0.
 apply/cfun_inP=> x Wx; rewrite cfun1E Wx.
 case/(mem_dprod W1xW2): Wx => y [z [W1y W2z -> _]].
 by rewrite cfDprodE // !cfun1E W1y W2z mulr1.
 Qed.
 
 Lemma cTIirr_split i j : w_ i j = w_ i 0 * w_ 0 j.
-Proof. by rewrite !cTIirrE !dprod_IirrE !chi0_1 cfDprod1r cfDprod1l. Qed.
+Proof. by rewrite !cTIirrE !dprod_IirrE !irr0 cfDprod1r cfDprod1l. Qed.
 
 Lemma cTIirr_linearW i : 'chi[W]_i \is a linear_char.
 Proof. by apply/char_abelianP/cyclic_abelian; case: tiW; case. Qed.
@@ -157,13 +155,13 @@ by rewrite opprB !addrA addrAC (addrAC 1).
 Qed.
 
 Lemma acTIirr_vchar i j : alpha_ i j \in 'Z[irr W].
-Proof. by rewrite mul_vchar // -chi0_1 rpredB ?irr_vchar. Qed.
+Proof. by rewrite mul_vchar // -irr0 rpredB ?irr_vchar. Qed.
 
 Lemma memc_acTIirr i j : alpha_ i j \in 'CF(W, V).
 Proof.
 apply/cfun_onP=> x; rewrite !inE negb_and negbK orbC.
 have [Wx /= | /cfun0->//] := boolP (x \in W).
-rewrite !cfunE cfun1E Wx !cTIirrE !dprod_IirrE !chi0_1 cfDprod1l cfDprod1r.
+rewrite !cfunE cfun1E Wx !cTIirrE !dprod_IirrE !irr0 cfDprod1l cfDprod1r.
 have LW1 := cTIirr_linearW1; have LW2 := cTIirr_linearW2.
 rewrite -{3}[x]mul1g -{4}[x]mulg1; case/orP=> [W1x | W2x]; last first.
   by rewrite cfDprodEl // lin_char1 ?(subrr, mul0r).
@@ -175,7 +173,7 @@ Definition bcTIirr i j : 'CF(G) := 'Ind[G] (alpha_ i j) - 1.
 Local Notation beta_ := bcTIirr.
 
 Lemma bcTIirr_vchar i j : beta_ i j \in 'Z[irr G].
-Proof. by rewrite rpredB ?cfInd_vchar ?acTIirr_vchar // -chi0_1 irr_vchar. Qed.
+Proof. by rewrite rpredB ?cfInd_vchar ?acTIirr_vchar // -irr0 irr_vchar. Qed.
 
 Lemma cfdot_cTIirr i j i' j' :
   '[w_ i j, w_ i' j'] = ((i == i') && (j == j'))%:R.
@@ -222,7 +220,7 @@ Qed.
 Lemma cfdot_bcTIirr_1 i j : i != 0 -> j != 0 -> '[beta_ i j, 1] = 0.
 Proof.
 move=> Di Dj.
-by rewrite cfdotBl cfdot_Ind_acTIirr_1 // -chi0_1 cfdot_irr subrr.
+by rewrite cfdotBl cfdot_Ind_acTIirr_1 // -irr0 cfdot_irr subrr.
 Qed.
 
 (* These are the other equations of Peterfalvi (3.5.1). *)
@@ -940,8 +938,8 @@ wlog:  x1 x2 x3 Ai1j / x1 \in pA i2 j => [WL | X1iAi2].
     by apply: WL (dAsl Ai1j) X2iAi2.
   by apply: WL (dAr Ai1j) X3iAi2.
 case: (dAEI NZi2 NZj X1iAi2)=> {X1iAi2}[] [x4 x5] /= Ai2j.
-case: (boolP (forallb i , (i != 0) ==> (x1 \in pA i j))) => [/forallP HH|].
-  by exists x1=> // i NZi; move/implyP: (HH i); move/(_ NZi).  
+case: (boolP [forall (i : 'I__| i != 0), x1 \in pA i j]) => [/forall_inP HH|].
+  by exists x1 => // i /HH.
 rewrite negb_forall; move/existsP=> HH; suff: false by [].
 case: HH=> i3; rewrite negb_imply; case/andP=> NZi3 X3niAi3.
 have I3dI1: i3 != i1.
@@ -1775,10 +1773,11 @@ Canonical extIrrf_linear f : {linear 'CF(W) -> 'CF(G)} :=
 
 Definition cyclicTIsigma := locked
    (extIrrf_linear
-    (oapp (fun  (f : {ffun Iirr W -> dIirr G}) i => dchi (f i)) (fun x: Iirr W => 0)
+    (oapp (fun (f : {ffun Iirr W -> dIirr G}) i => dchi (f i))
+          (fun x : Iirr W => 0)
      [pick f : {ffun Iirr W -> dIirr G} |
        let g i := dchi (f i) in
-       [&& orthonormal [image g x | x <- Iirr W], (f 0 == dirr1 _)
+       [&& orthonormal [seq g x | x : Iirr W], (f 0 == dirr1 _)
         &  all (fun a => 
                  'Ind[G, W] a == \sum_(i : Iirr W)  ('[a, 'chi_i] *: g i))
            (cfun_base W (W :\: (W1 :|: W2)))]])).
@@ -1790,7 +1789,7 @@ Lemma inv_dprod_Iirr0 : inv_dprod_Iirr W1xW2 0 = (0,0).
 Proof.
 apply:  (can_inj (dprod_IirrK W1xW2)).
 rewrite inv_dprod_IirrK /dprod_Iirr /= /irr_Iirr; case: pickP=> //= x.
-by rewrite /cfDprod !chi0_1 cfDprodl1 cfDprodr1 mul1r irr_eq1 => /eqP->.
+by rewrite /cfDprod !irr0 cfDprodl1 cfDprodr1 mul1r irr_eq1 => /eqP->.
 Qed.
 
 (* This is PeterFalvi (3.2). *)
@@ -1820,10 +1819,10 @@ rewrite /extIrrf; case: pickP=> [/= f /and3P [Ho H1 /allP /= HI]|].
     move=> Eqi /eqP Eqch; case/eqP: Eqi.
     by move/injectiveP: Hu; apply.
   - rewrite /extIrrf (bigD1 (0 : Iirr W)) // (eqP H1) /= dchi1.
-    rewrite -![1]chi0_1 cfdot_irr eqxx scale1r chi0_1 big1 ?addr0 // => i Hi.
+    rewrite -![1]irr0 cfdot_irr eqxx scale1r irr0 big1 ?addr0 // => i Hi.
     by rewrite cfdot_irr eq_sym (negPf Hi) scale0r.
   rewrite /extIrrf linear_sum /=.
-  set l :=  [image _ | _ <- _]; set c := coord _; set n := #|_|.
+  set l :=  [seq _ | _ in _]; set c := coord _; set n := #|_|.
   pose FF i := \sum_(j < n) '[ c j a *: l`_j, 'chi_i] *: dchi (f i).
   rewrite (eq_bigr FF)=> [| i _]; last first.
     by rewrite cfdot_suml scaler_suml; apply: eq_bigr=> j _.
@@ -1838,7 +1837,7 @@ pose tt : {ffun Iirr W -> dIirr G} :=
 have d00 : dcTIirr 0 0 = dirr1 _ by rewrite /dcTIirr !eqxx.
 move/(_ tt)=> /idP []; apply/and3P; split.
 - apply/orthonormalP; split.
-    apply/injectiveP=> /= u v /dchi_inj; rewrite !ffunE => HH.
+    apply/injectiveP=> /= u v /dirr_inj; rewrite !ffunE => HH.
     move: (cfdot_dcTIirr (p u).1 (p u).2 (p v).1 (p v).2).
     rewrite {1}HH; rewrite cfdot_dcTIirr !eqxx.
     move: (inv_dprod_IirrK W1xW2 u) (inv_dprod_IirrK W1xW2 v).
@@ -1869,8 +1868,8 @@ rewrite dcTIirrE //.
 set ss := \sum_(i < _) _. 
 have->: ss = (extIrrf (fun i => dchi (tt i)) (alpha_ i1 j1)) by done.
 rewrite acTIirrE !(linearD, linearB, linearN).
-by rewrite -![1]chi0_1 !cTIirrE /= !extIrrf_irr !ffunE /p /= !dprod_IirrK 
-           inv_dprod_Iirr0 /= chi0_1 d00 dchi1.
+by rewrite -![1]irr0 !cTIirrE /= !extIrrf_irr !ffunE /p /= !dprod_IirrK 
+           inv_dprod_Iirr0 /= irr0 d00 dchi1.
 Qed.
 
 Lemma cyclicTIisometry : {in 'Z[irr W], isometry sigma, to 'Z[irr G]}.
@@ -2026,7 +2025,7 @@ Proof.
 case:  cyclicTIisometry=> Isig Zsig.
 have: (0 <= NC 'chi_i)%N by done.
 rewrite leq_eqVlt; case/orP=> [/eqP-> //|/card_gt0P [[i1 j1]]].
-rewrite inE cfdot_dirr ?(dirr_chi, dirr_sigma) //=.
+rewrite inE cfdot_dirr ?(dmem_irr, dirr_sigma) //=.
 case: ('chi_i =P _)=> [->|_].
   by rewrite cyclicTI_NC_opp cyclicTI_NC_sigma.
 by case: ('chi_i =P _)=> [->|_]; rewrite ?(cyclicTI_NC_sigma, eqxx).
@@ -2083,8 +2082,8 @@ have LCI i1 j1 : (L j1 :&: C i1) \subset [set (i1,j1)].
   by case/andP=> /andP [/eqP-> _] /andP [/eqP-> _].
 have FC i1: (forall j, a i1 j != 0) -> #|C i1| = w2.
    move=> FF.
-  have<-: #|[image (i1,j) | j <- Iirr W2]| = w2.
-    rewrite card_in_image=> [|i3 i4 i3Irr i4Irr /= [] //].
+  have<-: #|[seq (i1, j) | j : Iirr W2]| = w2.
+    rewrite card_in_image => [|i3 i4 i3Irr i4Irr /= [] //].
     by rewrite card_ord NirrE classesW2.
   apply: eq_card=> [[i3 j3]]; rewrite !inE /=; apply/andP/imageP.
     by case=> /eqP-> _; exists j3.
@@ -2096,8 +2095,7 @@ have EqI i1 i2 j1 j2 : a i1 j2 == 0 -> a i2 j1 == 0 -> a i1 j1 == 0.
   move=> Zai1j2 Zai2j1; case: (boolP (_ == _)) => // NZa1j1.
   move: NC_M; rewrite ltnNge; case/negP.
   pose LS := 
-    [set x \in [image (if a k j1 == 0 then 
-                          (k, j2) else (k, j1)) | k <- Iirr W1]].
+    [set x in [seq (if a k j1 == 0 then (k, j2) else (k, j1)) | k : Iirr W1]].
   have LSsS : LS \subset S.
     apply/subsetP=> p; rewrite inE => /imageP [k KiIw1->].
     rewrite inE; case: (boolP (a k j1 == 0))=> //= Zakj1.
@@ -2108,8 +2106,7 @@ have EqI i1 i2 j1 j2 : a i1 j2 == 0 -> a i2 j1 == 0 -> a i1 j1 == 0.
     by rewrite cardsE card_in_image=> [|j3 j4 j3Irr j4Irr /=]; 
         [rewrite card_ord NirrE | do 2 case: (_ == _); case].
   pose CS := 
-     [set x \in [image (if a i1 k == 0 then 
-                          (i2, k) else (i1, k)) | k <- Iirr W2]].
+     [set x in [seq (if a i1 k == 0 then (i2, k) else (i1, k)) | k : Iirr W2]].
   have CSsS : CS \subset S.
     apply/subsetP=> p; rewrite inE => /imageP [k KiIw2->].
     rewrite inE; case: (boolP (a i1 k == 0))=> //= Zai1k.
@@ -2143,16 +2140,16 @@ have EqI i1 i2 j1 j2 : a i1 j2 == 0 -> a i2 j1 == 0 -> a i1 j1 == 0.
   by rewrite /odd /=; case/negP.
 have cardLE i1 j1 j2 : a i1 j1 != 0 -> a i1 j2 == 0 -> #|L j1| = w1.
   move=> NZai1j1 Zai1j2.
-  have <-: #|[image (i,j1) | i <- Iirr W1]| = w1.
-    by rewrite card_in_image=> [| i2 i3 _ _ [] //]; rewrite card_ord NirrE.
+  have <-: #|[seq (i, j1) | i : Iirr W1]| = w1.
+    by rewrite card_in_image => [| i2 i3 _ _ [] //]; rewrite card_ord NirrE.
   apply: eq_card=> [[i3 j3]]; rewrite !inE; apply/andP/imageP=> /=.
     by case=> /eqP-> _; exists i3.
   case=> i2 i2Irr [] -> ->; split=> //.
   by apply: contra NZai1j1; apply: EqI Zai1j2.
 have cardCE i1 i2 j1 : a i1 j1 != 0 -> a i2 j1 == 0 -> #|C i1| = w2.
   move=> NZai1j1 Zai2j1.
-  have <-: #|[image (i1,j) | j <- Iirr W2]| = w2.
-    by rewrite card_in_image=> [| j2 j3 _ _ [] //]; rewrite card_ord NirrE.
+  have <-: #|[seq (i1, j) | j : Iirr W2]| = w2.
+    by rewrite card_in_image => [| j2 j3 _ _ [] //]; rewrite card_ord NirrE.
   apply: eq_card=> [[i3 j3]]; rewrite !inE; apply/andP/imageP=> /=.
     by case=> /eqP-> _; exists j3.
   case=> j2 j2Irr [] -> ->; split=> //.
@@ -2167,7 +2164,7 @@ have BLe i1 j1: (2 * minn w1 w2 <= w1 + w2 - #|L j1 :&: C i1|)%N.
   - by rewrite addnC leq_add2l //.
   move: cyclicTI_coprime tLW1.
   by rewrite -/w1 -/w2 HL /coprime gcdnn => /eqP->.
-case: (boolP (forallb j1 : Iirr W2, (a i j1 != 0)))=> HH; last first.
+case: (boolP [forall j1, a i j1 != 0]) => HH; last first.
   (* This is 3.8.2 *)
   left; move: HH; rewrite negb_forall => /existsP [j1].
   rewrite negbK => Zaij1.
@@ -2212,7 +2209,7 @@ suff HL i1 j1 : i != i1 -> a i1 j1 = 0.
   move: (CDS i i2 j j1).
   by rewrite !(HL i2) 1?eq_sym // !addr0.
 move=> IdI1; case: (boolP (a i1 j1 == 0))=> [/eqP //| NZai1j1].
-case: (boolP (forallb j2 : Iirr W2, (a i1 j2 != 0))); last first.
+case: (boolP [forall j2, a i1 j2 != 0]); last first.
   rewrite negb_forall => /existsP [] j2; rewrite negbK => Zai1j2.
   move: NC_M; rewrite ltnNge; case/negP.
   have /subset_leqif_card[HH1 _]: L j1 :|: C i \subset S.
@@ -2235,10 +2232,10 @@ move=> ZphiV /andP []; rewrite card_gt0 => /set0Pn [[i1 j1]].
 rewrite inE /= => NZs NN.
 pose a i j := '[phi, sigma (w_ i j)].
 pose S := [set ij | a ij.1 ij.2 != 0].
-pose L :=  [set (i1, j) | j <- Iirr W2].
+pose L :=  [set (i1, j) | j : Iirr W2].
 have cL : #|L| = w2.
   by rewrite card_imset ?(card_ord, NirrE) // => i j [].
-pose C :=  [set (i, j1) | i <- Iirr W1].
+pose C :=  [set (i, j1) | i : Iirr W1].
 have cC : #|C| = w1.
   by rewrite card_imset ?(card_ord, NirrE) // => i j [].
 case/(cyclicTI_NC_split ZphiV NN): (NZs) => HH.
@@ -2269,7 +2266,7 @@ pose a i j := '[psi, sigma (w_ i j)].
 pose S := [set ij | a ij.1 ij.2 != 0].
 case: (boolP ((i1, j1) \in S))=> [I1J1iS|]; last first.
   rewrite inE negbK /a  cfdotBl cfdot_sigma !eqxx /=.
-  rewrite cfdot_dirr ?(dirr_chi, dirr_sigma) //.
+  rewrite cfdot_dirr ?(dmem_irr, dirr_sigma) //.
   case: (boolP (phi == _))=> [|_].
     by rewrite opprK -(natrD _ 1 1) pnatr_eq0.
   case: (boolP (phi == _))=> [/eqP //|].
@@ -2304,7 +2301,7 @@ Proof.
 rewrite [phi]cfun_sum_cfdot !raddf_sum; apply: eq_bigr => ij _.
 rewrite /= !(linearZ, cfAutZ) /= -aut_IirrE; congr (_ *: _) => {phi}.
 apply: cyclicTI_dirr => [|x Vx /=].
-  by have /cyclicTIirrP[i [j ->]] := irr_chi ij; rewrite dirr_cfAut dirr_sigma.
+  by have /cyclicTIirrP[i [j ->]] := mem_irr ij; rewrite dirr_cfAut dirr_sigma.
 by rewrite cfunE cyclicTIsigma_restrict // aut_IirrE cfunE.
 Qed.
 

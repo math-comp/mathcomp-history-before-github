@@ -562,7 +562,7 @@ elim: s k=> //= a q ihq k; rewrite ihq eval_If /= -nth0.
 by case: q {ihq}=> /= [|b q]; [rewrite /= mulr0 ltrr add0n | case: ltrP].
 Qed.
 
-Definition Varp sp x := Variation [seq (Horner p x) | p <- sp].
+Definition Varp sp x := Variation [seq Horner p x | p <- sp].
 
 Lemma eval_Varp e sp x k : qf_eval e (Varp sp x k) =
   qf_eval e (k (varp (map (eval_poly e) sp) (eval e x))).

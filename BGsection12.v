@@ -1,8 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div path fintype.
-Require Import bigop finset prime fingroup morphism perm automorphism quotient.
-Require Import action gproduct gfunctor pgroup cyclic center commutator.
-Require Import gseries nilpotent sylow abelian maximal hall frobenius.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice div fintype.
+Require Import path bigop finset prime fingroup morphism perm automorphism.
+Require Import quotient action gproduct gfunctor pgroup cyclic commutator.
+Require Import center gseries nilpotent sylow abelian maximal hall frobenius.
 Require Import BGsection1 BGsection3 BGsection4 BGsection5 BGsection6.
 Require Import BGsection7 BGsection9 BGsection10 BGsection11.
 
@@ -32,11 +32,11 @@ Variables (gT : finGroupType) (M : {set gT}).
 Local Notation sigma' := \sigma(M)^'.
 
 Definition tau1 :=
-  [pred p \in sigma' | ('r_p(M) == 1%N) && ~~ (p %| #|M^`(1)|)].
+  [pred p in sigma' | 'r_p(M) == 1%N & ~~ (p %| #|M^`(1)|)].
 Definition tau2 :=
-  [pred p \in sigma' | 'r_p(M) == 2].
+  [pred p in sigma' | 'r_p(M) == 2].
 Definition tau3 :=
-  [pred p \in sigma' | ('r_p(M) == 1%N) && (p %| #|M^`(1)|)].
+  [pred p in sigma' | 'r_p(M) == 1%N & p %| #|M^`(1)|].
 
 Definition sigma_complement E E1 E2 E3 :=
   [/\ sigma'.-Hall(M) E, tau1.-Hall(E) E1, tau2.-Hall(E) E2, tau3.-Hall(E) E3
@@ -495,8 +495,8 @@ Qed.
 Proposition p2Elem_mmax : forall M p A,
       M \in 'M -> A \in 'E_p^2(M) ->
     (*a*) 'C(A) \subset M
- /\ (*b*) ((forallb A0, (A0 \in 'E_p^1(A)) ==> ('M('N(A0)) != [set M])) ->
-          [/\ p \in \sigma(M), M`_\alpha = 1 & nilpotent M`_\sigma]).
+ /\ (*b*) ([forall A0 in 'E_p^1(A), 'M('N(A0)) != [set M]] ->
+           [/\ p \in \sigma(M), M`_\alpha = 1 & nilpotent M`_\sigma]).
 Proof.
 move=> M p A maxM Ep2A; have p_pr := pnElem_prime Ep2A.
 have [sAM abelA dimA] := pnElemP Ep2A; have [pA cAA _] := and3P abelA.
@@ -837,7 +837,7 @@ have def_t2: \tau2(M) =i (p : nat_pred).
   by rewrite (card_Hall sylP_E) -(card_Hall sylP1_E).
 have coMsA: coprime #|Ms| #|A|.
   by exact: pnat_coprime (pcore_pgroup _ _) (pi_pnat pA _).
-have defMs: <<\bigcup_(X \in 'E_p^1(A)) 'C_Ms(X)>> = Ms.
+have defMs: <<\bigcup_(X in 'E_p^1(A)) 'C_Ms(X)>> = Ms.
   have ncycA: ~~ cyclic A by rewrite (abelem_cyclic abelA) dimA.
   have [sAM _ _] := pnElemP Ep2A_M.
   have{sAM} nMsA: A \subset 'N(Ms) by rewrite (subset_trans sAM) ?gFnorm.
@@ -2100,7 +2100,7 @@ have rQgt1: 'r_p(Q) > 1.
   by rewrite ltnNge -(odd_pgroup_rank1_cyclic pQ) ?mFT_odd.
 have [A Ep2A]: exists A, A \in 'E_p^2(Q) by exact/p_rank_geP.
 wlog uniqNEpA: M H maxM maxH sP_MH sNMH sPM sPH sylP_M sylP_H /
-    ~~ (existsb A0, (A0 \in 'E_p^1(A) :\ Z) && ('M('N(A0)) == [set M])).
+    ~~ [exists A0 in 'E_p^1(A) :\ Z, 'M('N(A0)) == [set M]].
 - move=> IH; case: exists_inP (IH M H) => [[A0 EpA0 defMA0] _ | _ -> //].
   case: exists_inP {IH}(IH H M) => [[A1 EpA1 defMA1] _ | _]; last first.
     by rewrite setIC eq_sym => ->.

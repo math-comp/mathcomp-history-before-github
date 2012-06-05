@@ -984,7 +984,7 @@ Qed.
 
 Lemma pet_alg_proof (s : seq alg) :
   { ap : {alg F} * seq {poly F} |
-    forallb i : 'I_(size s), (ap.2`_i ^ to_alg).[ap.1] == s`_i
+    [forall i : 'I_(size s), (ap.2`_i ^ to_alg).[ap.1] == s`_i]
     &  size ap.2 = size s }.
 Proof.
 apply: sig2_eqW; elim: s; first by exists (0,[::])=> //; apply/forallP=> [] [].

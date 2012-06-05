@@ -2050,10 +2050,10 @@ Notation "\sum_ ( i < n | P ) B" :=
   (\big[addsmx/0%R]_(i < n | P%B) B%MS) : matrix_set_scope.
 Notation "\sum_ ( i < n ) B" :=
   (\big[addsmx/0%R]_(i < n) B%MS) : matrix_set_scope.
-Notation "\sum_ ( i \in A | P ) B" :=
-  (\big[addsmx/0%R]_(i \in A | P%B) B%MS) : matrix_set_scope.
-Notation "\sum_ ( i \in A ) B" :=
-  (\big[addsmx/0%R]_(i \in A) B%MS) : matrix_set_scope.
+Notation "\sum_ ( i 'in' A | P ) B" :=
+  (\big[addsmx/0%R]_(i in A | P%B) B%MS) : matrix_set_scope.
+Notation "\sum_ ( i 'in' A ) B" :=
+  (\big[addsmx/0%R]_(i in A) B%MS) : matrix_set_scope.
 
 Notation "\bigcap_ ( <- r | P ) B" :=
   (\big[capmx/1%:M]_(<- r | P%B) B%MS) : matrix_set_scope.
@@ -2077,10 +2077,10 @@ Notation "\bigcap_ ( i < n | P ) B" :=
   (\big[capmx/1%:M]_(i < n | P%B) B%MS) : matrix_set_scope.
 Notation "\bigcap_ ( i < n ) B" :=
   (\big[capmx/1%:M]_(i < n) B%MS) : matrix_set_scope.
-Notation "\bigcap_ ( i \in A | P ) B" :=
-  (\big[capmx/1%:M]_(i \in A | P%B) B%MS) : matrix_set_scope.
-Notation "\bigcap_ ( i \in A ) B" :=
-  (\big[capmx/1%:M]_(i \in A) B%MS) : matrix_set_scope.
+Notation "\bigcap_ ( i 'in' A | P ) B" :=
+  (\big[capmx/1%:M]_(i in A | P%B) B%MS) : matrix_set_scope.
+Notation "\bigcap_ ( i 'in' A ) B" :=
+  (\big[capmx/1%:M]_(i in A) B%MS) : matrix_set_scope.
 
 Section CardGL.
 
@@ -2107,7 +2107,7 @@ rewrite (partition_big dsubmx (fr m)) /= => [|A]; last first.
 apply: eq_bigr => A rAm; rewrite (reindex (col_mx^~ A)) /=; last first.
   exists usubmx => [v _ | vA]; first by rewrite col_mxKu.
   by case/andP=> _ /eqP <-; rewrite vsubmxK.
-transitivity #|~: [set v *m A | v <- 'rV_m]|; last first.
+transitivity #|~: [set v *m A | v in 'rV_m]|; last first.
   rewrite cardsCs setCK card_imset ?card_matrix ?card_ord ?mul1n //.
   have [B AB1] := row_freeP rAm; apply: can_inj (mulmx^~ B) _ => v.
   by rewrite -mulmxA AB1 mulmx1.

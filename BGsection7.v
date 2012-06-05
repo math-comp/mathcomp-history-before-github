@@ -188,13 +188,13 @@ Qed.
 Definition minSimple_max_groups := [set M : {group gT} | maximal M G].
 Local Notation "'M" := minSimple_max_groups : group_scope.
 
-Definition minSimple_max_groups_of (H : sT) := [set M \in 'M | H \subset M].
+Definition minSimple_max_groups_of (H : sT) := [set M in 'M | H \subset M].
 Local Notation "''M' ( H )" := (minSimple_max_groups_of H) : group_scope.
 
 Definition minSimple_uniq_max_groups := [set U : {group gT} | #|'M(U)| == 1%N].
 Local Notation "'U" := minSimple_uniq_max_groups : group_scope.
 
-Definition minSimple_SCN_at n p := \bigcup_(P \in 'Syl_p(G)) 'SCN_n(P).
+Definition minSimple_SCN_at n p := \bigcup_(P in 'Syl_p(G)) 'SCN_n(P).
 
 Lemma mmax_exists : forall H, H \proper G -> {M | M \in 'M(H)}.
 Proof.
@@ -374,11 +374,11 @@ Implicit Types X Y A P Q : {group gT}.
 Local Notation G := [set: gT].
 
 Definition normed_pgroups (X A : {set gT}) pi :=
-  [set Y : {group gT} | pi.-subgroup(X) Y && (A \subset 'N(Y))].
+  [set Y : {group gT} | pi.-subgroup(X) Y & A \subset 'N(Y)].
 Local Notation "|/|_ X ( A ; pi )" := (normed_pgroups X A pi) : group_scope.
 
 Definition max_normed_pgroups (A : {set gT}) pi :=
-  [set Y : {group gT} | [max Y | pi.-group Y && (A \subset 'N(Y))]].
+  [set Y : {group gT} | [max Y | pi.-group Y & A \subset 'N(Y)]].
 Local Notation "|/|* ( A ; pi )" := (max_normed_pgroups A pi) : group_scope.
 
 (* This is the statement for B & G, Hypothesis 7.1. *)
@@ -583,7 +583,7 @@ case: (eqVneq Q1 1%G) => [trQ1 | ntQ1].
   by rewrite trivg_max_norm -trQ1 // inE in maxQ2.
 case: (eqVneq Q2 1%G) => [trQ2 | ntQ2].
   by case/negP: ntQ1; rewrite trivg_max_norm -trQ2 // inE in maxQ1 *.
-have: existsb C : grT, [&& 'C_Q1(C) != 1, cyclic (B / C) & C <| B].
+have: [exists (C : grT | 'C_Q1(C) != 1), cyclic (B / C) && (C <| B)].
   apply: contraR ntQ1 => trQ1; have: B \subset 'N(Q1) := subset_trans sBA nQ1A.
   rewrite -val_eqE -subG1 /=; move/coprime_abelian_gen_cent <-; rewrite ?q'B //.
   rewrite gen_subG; apply/bigcupsP=> C cocyC; rewrite subG1.
@@ -593,7 +593,7 @@ have{mB3} ncycC: ~~ cyclic C.
   rewrite (abelem_cyclic (quotient_abelem _ abelB)) ?card_quotient // in cycBC.
   rewrite -divgS // logn_div ?cardSg // leq_subLR addn1 (eqP mB3) in cycBC.
   by rewrite (abelem_cyclic (abelemS sCB abelB)) -ltnNge.
-have: existsb z, ('C_Q2[z] != 1) && (z \in C^#).
+have: [exists (z | 'C_Q2[z] != 1), z \in C^#].
   apply: contraR ntQ2 => trQ2; have:= subset_trans sCB (subset_trans sBA nQ2A).
   rewrite -[_ == _]subG1 /=.
   move/coprime_abelian_gen_cent1 <-; rewrite ?(abelianS sCB) //; last first.
@@ -632,7 +632,7 @@ have ntRC: 'C_R(A) != 1.
   suffices: R0 :!=: 1 by rewrite -!proper1G; move/proper_sub_trans->.
   move: ntR; rewrite -!cardG_gt1 -(part_pnat_id qR) (card_Hall sylR0).
   by rewrite !p_part_gt1 !mem_primes !cardG_gt0 qC; case/and3P=> ->.
-have: existsb z, ('C_Q[z] != 1) && (z \in B^#).
+have: [exists (z | 'C_Q[z] != 1), z \in B^#].
   apply: contraR ntQ => trQ; have:= subset_trans sBA nQA.
   rewrite -[_ == _]subG1; move/coprime_abelian_gen_cent1 <- => //; last first.
     by rewrite coprime_sym (coprimeSg sBA) ?coprime_pi' /pgroup ?(pi_pnat qQ).
@@ -778,7 +778,7 @@ End NormedConstrained.
 
 (* This is B & G, Proposition 7.5(a). As this is only used in Proposition    *)
 (* 10.10, under the assumption A \in E*_p(G), we avoid the in_pmaxElemE      *)
-(* detour A = [set x \in 'C_G(A) | x ^+ p == 1], and just use A \in E*_p(G). *)
+(* detour A = [set x in 'C_G(A) | x ^+ p == 1], and just use A \in E*_p(G).  *)
 Proposition plength_1_normed_constrained : forall p A,
     A :!=: 1 -> A \in 'E*_p(G) -> (forall M, M \proper G -> p.-length_1 M) ->
   normed_constrained A.

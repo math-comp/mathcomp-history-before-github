@@ -1,7 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice fintype.
-Require Import bigop ssralg finset fingroup zmodp.
-Require Import poly.
+Require Import bigop ssralg finset fingroup zmodp poly.
 
 (******************************************************************************)
 (*                                                                            *)
@@ -73,7 +72,8 @@ Require Import poly.
 (*            `|x| == norm of x.                                              *)
 (*          x <= y <=> x is less than or equal to y (:= '|y - x| == y - x).   *)
 (*           x < y <=> x is less than y (:= (x <= y) && (x != y)).            *)
-(*          sg x == sign of x: equal to 0 iff x = 0, to 1 iff x > 0, and      *)
+(* x <= y ?= iff C <-> x is less than y, or equal iff C is true.              *)
+(*        Num.sg x == sign of x: equal to 0 iff x = 0, to 1 iff x > 0, and    *)
 (*                    to -1 in all other cases (including x < 0).             *)
 (*  x \is a Num.pos <=> x is positive (:= x > 0).                             *)
 (*  x \is a Num.neg <=> x is negative (:= x < 0).                             *)
@@ -2430,7 +2430,7 @@ Lemma sqrn_eq1 x : x <= 0 -> (x ^+ 2 == 1) = (x == -1).
 Proof. by rewrite -sqrrN -oppr_ge0 -eqr_oppLR => /sqrp_eq1. Qed.
 
 Lemma ler_pinv :
-  {in [pred x \in GRing.unit | 0 < x] &, {mono (@GRing.inv R) : x y /~ x <= y}}.
+  {in [pred x in GRing.unit | 0 < x] &, {mono (@GRing.inv R) : x y /~ x <= y}}.
 Proof.
 move=> x y /andP [ux hx] /andP [uy hy] /=.
 rewrite -(ler_pmul2l hx) -(ler_pmul2r hy).
@@ -2438,7 +2438,7 @@ by rewrite !(divrr, mulrVK) ?unitf_gt0 // mul1r.
 Qed.
 
 Lemma ler_ninv :
-  {in [pred x \in GRing.unit | x < 0] &, {mono (@GRing.inv R) : x y /~ x <= y}}.
+  {in [pred x in GRing.unit | x < 0] &, {mono (@GRing.inv R) : x y /~ x <= y}}.
 Proof.
 move=> x y /andP [ux hx] /andP [uy hy] /=.
 rewrite -(ler_nmul2l hx) -(ler_nmul2r hy).
@@ -2446,11 +2446,11 @@ by rewrite !(divrr, mulrVK) ?unitf_lt0 // mul1r.
 Qed.
 
 Lemma ltr_pinv :
-  {in [pred x \in GRing.unit | 0 < x] &, {mono (@GRing.inv R) : x y /~ x < y}}.
+  {in [pred x in GRing.unit | 0 < x] &, {mono (@GRing.inv R) : x y /~ x < y}}.
 Proof. exact: lerW_nmono_in ler_pinv. Qed.
 
 Lemma ltr_ninv :
-  {in [pred x \in GRing.unit | x < 0] &, {mono (@GRing.inv R) : x y /~ x < y}}.
+  {in [pred x in GRing.unit | x < 0] &, {mono (@GRing.inv R) : x y /~ x < y}}.
 Proof. exact: lerW_nmono_in ler_ninv. Qed.
 
 Lemma invr_gt1 x : x \is a GRing.unit -> 0 < x -> (1 < x^-1) = (x < 1).
@@ -2790,12 +2790,12 @@ Proof. by rewrite /sg ler_gtF ?normr_ge0 // normr_eq0 mulrb if_neg. Qed.
 Lemma lerif_refl x C : reflect (x <= x ?= iff C) C.
 Proof. by apply: (iffP idP) => [-> | <-] //; split; rewrite ?eqxx. Qed.
 
-Lemma lerif_trans x1 x2 x3 c1 c2 :
-  x1 <= x2 ?= iff c1 -> x2 <= x3 ?= iff c2 -> x1 <= x3 ?= iff c1 && c2.
+Lemma lerif_trans x1 x2 x3 C12 C23 :
+  x1 <= x2 ?= iff C12 -> x2 <= x3 ?= iff C23 -> x1 <= x3 ?= iff C12 && C23.
 Proof.
 move=> ltx12 ltx23; apply/lerifP; rewrite -ltx12.
 case eqx12: (x1 == x2).
-  by rewrite (eqP eqx12) ltr_neqAle !ltx23 andbT; case c2.
+  by rewrite (eqP eqx12) ltr_neqAle !ltx23 andbT; case C23.
 by rewrite (@ltr_le_trans _ x2) ?ltx23 // ltr_neqAle eqx12 ltx12.
 Qed.
 
@@ -2808,26 +2808,63 @@ Proof. by []. Qed.
 Lemma ger_lerif x y C : x <= y ?= iff C -> (y <= x) = C.
 Proof. by case=> le_xy; rewrite eqr_le le_xy. Qed.
 
-Lemma mono_lerif (f : R -> R) : {mono f : x y / x <= y} ->
-  forall x y c, (f x <= f y ?= iff c) <-> (x <= y ?= iff c).
-Proof. by move=> mf x y c; rewrite /lerif mf (inj_eq (mono_inj _)). Qed.
+Lemma ltr_lerif x y C : x <= y ?= iff C -> (x < y) = ~~ C.
+Proof. by move=> le_xy; rewrite ltr_neqAle !le_xy andbT. Qed.
 
-Lemma lerif_add x1 y1 c1 x2 y2 c2 :
-    x1 <= y1 ?= iff c1 -> x2 <= y2 ?= iff c2 ->
-    x1 + x2 <= y1 + y2 ?= iff c1 && c2.
+Lemma lerif_nat m n C : (m%:R <= n%:R ?= iff C :> R) = (m <= n ?= iff C)%N.
+Proof. by rewrite /lerif !ler_nat eqr_nat. Qed.
+
+Lemma mono_in_lerif (A : pred R) (f : R -> R) C :
+   {in A &, {mono f : x y / x <= y}} ->
+  {in A &, forall x y, (f x <= f y ?= iff C) = (x <= y ?= iff C)}.
 Proof.
-move=> /(mono_lerif (ler_add2r x2)) le1 /(mono_lerif (ler_add2l y1)).
-exact: lerif_trans le1.
+by move=> mf x y Ax Ay; rewrite /lerif mf ?(inj_in_eq (mono_inj_in mf)).
+Qed.
+
+Lemma mono_lerif (f : R -> R) C :
+    {mono f : x y / x <= y} ->
+  forall x y, (f x <= f y ?= iff C) = (x <= y ?= iff C).
+Proof. by move=> mf x y; rewrite /lerif mf (inj_eq (mono_inj _)). Qed.
+
+Lemma nmono_in_lerif (A : pred R) (f : R -> R) C :
+    {in A &, {mono f : x y /~ x <= y}} ->
+  {in A &, forall x y, (f x <= f y ?= iff C) = (y <= x ?= iff C)}.
+Proof.
+by move=> mf x y Ax Ay; rewrite /lerif eq_sym mf ?(inj_in_eq (nmono_inj_in mf)).
+Qed.
+
+Lemma nmono_lerif (f : R -> R) C :
+    {mono f : x y /~ x <= y} ->
+  forall x y, (f x <= f y ?= iff C) = (y <= x ?= iff C).
+Proof. by move=> mf x y; rewrite /lerif eq_sym mf ?(inj_eq (nmono_inj mf)). Qed.
+
+Lemma lerif_subLR x y z C : (x - y <= z ?= iff C) = (x <= z + y ?= iff C).
+Proof. by rewrite /lerif !eqr_le ler_subr_addr ler_subl_addr. Qed.
+
+Lemma lerif_subRL x y z C : (x <= y - z ?= iff C) = (x + z <= y ?= iff C).
+Proof. by rewrite -lerif_subLR opprK. Qed.
+
+Lemma lerif_add x1 y1 C1 x2 y2 C2 :
+    x1 <= y1 ?= iff C1 -> x2 <= y2 ?= iff C2 ->
+  x1 + x2 <= y1 + y2 ?= iff C1 && C2.
+Proof.
+rewrite -(mono_lerif _ (ler_add2r x2)) -(mono_lerif C2 (ler_add2l y1)).
+exact: lerif_trans.
 Qed.
 
 Lemma lerif_sum (I : finType) (P C : pred I) (E1 E2 : I -> R) :
     (forall i, P i -> E1 i <= E2 i ?= iff C i) ->
-  \sum_(i | P i) E1 i <= \sum_(i | P i) E2 i ?= iff (forallb i, P i ==> C i).
+  \sum_(i | P i) E1 i <= \sum_(i | P i) E2 i ?= iff [forall (i | P i), C i].
 Proof.
 move=> leE12; rewrite -big_andE.
 elim/big_rec3: _ => [|i Ci m1 m2 /leE12]; first by rewrite /lerif lerr eqxx.
 exact: lerif_add.
 Qed.
+
+Lemma lerif_0_sum (I : finType) (P C : pred I) (E : I -> R) :
+    (forall i, P i -> 0 <= E i ?= iff C i) ->
+  0 <= \sum_(i | P i) E i ?= iff [forall (i | P i), C i].
+Proof. by move/lerif_sum; rewrite big1_eq. Qed.
 
 Lemma real_lerif_norm x : x \is real -> x <= `|x| ?= iff (0 <= x).
 Proof.
@@ -2840,6 +2877,10 @@ Implicit Arguments signr_inj [[R] x1 x2].
 Implicit Arguments real_ler_normlP [R x y].
 Implicit Arguments real_ltr_normlP [R x y].
 Implicit Arguments lerif_refl [R x C].
+Implicit Arguments mono_in_lerif [R A f C].
+Implicit Arguments nmono_in_lerif [R A f C].
+Implicit Arguments mono_lerif [R f C].
+Implicit Arguments nmono_lerif [R f C].
 
 Section NumDomainMonotonyTheoryForReals.
 
@@ -2865,7 +2906,7 @@ Qed.
 (* GG: Domain should precede condition. *)
 Lemma real_mono_in :
     {in D &, {homo f : x y / x < y}} ->
-  {in [pred x \in D | x \is real] &, {mono f : x y / x <= y}}.
+  {in [pred x in D | x \is real] &, {mono f : x y / x <= y}}.
 Proof.
 move=> Dmf x y /andP[hx xR] /andP[hy yR] /=.
 have [lt_xy|le_yx] := real_lerP xR yR; first by rewrite (ltrW_homo_in Dmf).
@@ -2874,7 +2915,7 @@ Qed.
 
 Lemma real_nmono_in :
     {in D &, {homo f : x y /~ x < y}} ->
-  {in [pred x \in D | x \is real] &, {mono f : x y /~ x <= y}}.
+  {in [pred x in D | x \is real] &, {mono f : x y /~ x <= y}}.
 Proof.
 move=> Dmf x y /andP[hx xR] /andP[hy yR] /=.
 have [lt_xy|le_yx] := real_ltrP xR yR; last by rewrite (ltrW_nhomo_in Dmf).

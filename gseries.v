@@ -57,10 +57,9 @@ Definition maximal A B := [max A of G | G \proper B].
 
 Definition maximal_eq A B := (A == B) || maximal A B.
 
-Definition maxnormal A B U :=
-  [max A of G | (G \proper B) && (U \subset 'N(G))].
+Definition maxnormal A B U := [max A of G | G \proper B & U \subset 'N(G)].
 
-Definition minnormal A B := [min A of G | (G :!=: 1) && (B \subset 'N(G))].
+Definition minnormal A B := [min A of G | G :!=: 1 & B \subset 'N(G)].
 
 Definition simple A := minnormal A A.
 

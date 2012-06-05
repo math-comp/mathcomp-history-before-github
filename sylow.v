@@ -272,7 +272,7 @@ Qed.
 Lemma Sylow_transversal_gen (T : {set {group gT}}) G :
     (forall P, P \in T -> P \subset G) ->
     (forall p, p \in \pi(G) -> exists2 P, P \in T & p.-Sylow(G) P) ->
-  << \bigcup_(P \in T) P >> = G.
+  << \bigcup_(P in T) P >> = G.
 Proof.
 move=> G_T T_G; apply/eqP; rewrite eqEcard gen_subG.
 apply/andP; split; first exact/bigcupsP.
@@ -485,7 +485,7 @@ by rewrite -nil_class0 def_c.
 Qed.
 
 Definition Zgroup (gT : finGroupType) (A : {set gT}) :=
-  forallb V : {group gT}, Sylow A V ==> cyclic V.
+  [forall (V : {group gT} | Sylow A V), cyclic V].
 
 Section Zgroups.
 
@@ -594,8 +594,8 @@ case sEP: (E \subset P).
   apply: subsetP Ex; rewrite -gen_subG; apply: pcore_max.
     by apply: pgroupS (pHall_pgroup sylP); rewrite gen_subG.
   by rewrite /normal gen_subG class_subG // norms_gen.
-pose P_yD D := [pred y | (y \in E :\: P) && p.-group <<y |: D>>].
-pose P_D := [pred D : {set gT} | (D \subset P :&: E) && (existsb y, P_yD D y)].
+pose P_yD D := [pred y in E :\: P | p.-group <<y |: D>>].
+pose P_D := [pred D : {set gT} | D \subset P :&: E & [exists y, P_yD D y]].
 have{Ex Px}: P_D [set x].
   rewrite /= sub1set inE Px Ex; apply/existsP=> /=.
   by case/subsetPn: sEP => y Ey Py; exists y; rewrite inE Ey Py pE.

@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype finfun bigop.
-Require Import finset fingroup.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype finfun.
+Require Import bigop finset fingroup.
 
 (******************************************************************************)
 (* This file contains the definitions of:                                     *)
@@ -329,7 +329,7 @@ by apply: eq_in_imset => y Ay /=; rewrite morphJ // (subsetP sAD).
 Qed.
 
 Lemma classes_morphim A :
-  A \subset D -> classes (f @* A) = [set f @* xA | xA <- classes A].
+  A \subset D -> classes (f @* A) = [set f @* xA | xA in classes A].
 Proof.
 move=> sAD; rewrite morphimEsub // /classes -!imset_comp.
 apply: eq_in_imset => x /(subsetP sAD) Dx /=.
@@ -552,7 +552,7 @@ Lemma morphpre_inj :
 Proof. exact: can_in_inj morphpreK. Qed.
 
 Lemma morphim_injG :
-  {in [pred G : {group aT} | ('ker f \subset G) && (G \subset D)] &,
+  {in [pred G : {group aT} | 'ker f \subset G & G \subset D] &,
      injective (fun G => f @* G)}.
 Proof.
 move=> G H /andP[sKG sGD] /andP[sKH sHD] eqfGH.
@@ -1191,13 +1191,13 @@ Variables (A : {set aT}) (B : {set rT}).
 
 (* morphic is the morphM property of morphisms seen through morphicP *)
 Definition morphic (f : aT -> rT) :=
-  forallb u, (u \in [predX A & A]) ==> (f (u.1 * u.2) == f u.1 * f u.2).
+  [forall u in [predX A & A], f (u.1 * u.2) == f u.1 * f u.2].
 
 Definition isom f := f @: A^# == B^#.
 
 Definition misom f := morphic f && isom f.
 
-Definition isog := existsb f : {ffun aT -> rT}, misom f.
+Definition isog := [exists f : {ffun aT -> rT}, misom f].
 
 Section MorphicProps.
 
@@ -1235,6 +1235,11 @@ move=> sAD isof; apply: (@misom_isog f); rewrite /misom isof andbT.
 apply/morphicP; exact: (sub_in2 (subsetP sAD) (morphM f)).
 Qed.
 
+Lemma isog_isom : isog -> {f : {morphism A >-> rT} | isom f}.
+Proof.
+by case/existsP/sigW=> f /misomP[fM isom_f]; exists (morphm_morphism fM).
+Qed.
+
 End Defs.
 
 Implicit Arguments isom_isog [A B D].
@@ -1267,7 +1272,7 @@ Qed.
 Lemma isogP : reflect (exists2 f : fMT, 'injm f & f @* G = H) (G \isog H).
 Proof.
 apply: (iffP idP) => [| [f *]]; last by apply: (isom_isog f); last exact/isomP.
-by case/existsP=> f; case/misomP=> fM; case/isomP; exists (morphm_morphism fM).
+by case/isog_isom=> f /isomP[]; exists f.
 Qed.
 
 End Main.
@@ -1288,6 +1293,14 @@ Qed.
 
 Lemma sub_isog (A : {set aT}) : A \subset G -> 'injm f -> isog A (f @* A).
 Proof. by move=> sAG injf; apply: (isom_isog f sAG); exact: sub_isom. Qed.
+
+Lemma restr_isom_to (A : {set aT}) (C R : {group rT}) (sAG : A \subset G) :
+   f @* A = C -> isom G R f -> isom A C (restrm sAG f).
+Proof. by move=> defC /isomP[inj_f _]; apply: sub_isom. Qed.
+
+Lemma restr_isom (A : {group aT}) (R : {group rT}) (sAG : A \subset G) :
+  isom G R f -> isom A (f @* A) (restrm sAG f).
+Proof. exact: restr_isom_to. Qed.
 
 End ReflectProp.
 
@@ -1369,7 +1382,7 @@ Section Homg.
 Implicit Types rT gT aT : finGroupType.
 
 Definition homg rT aT (C : {set rT}) (D : {set aT}) :=
-  existsb f : {ffun aT -> rT}, (morphic D f && (f @: D == C)).
+  [exists (f : {ffun aT -> rT} | morphic D f), f @: D == C].
 
 Lemma homgP rT aT (C : {set rT}) (D : {set aT}) : 
   reflect (exists f : {morphism D >-> rT}, f @* D = C) (homg C D).

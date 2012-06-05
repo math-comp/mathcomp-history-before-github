@@ -396,7 +396,7 @@ case/orP: (orbN (p.-group 'F(M))) => [pF | npF].
   have [A] := rank3_SCN3 pP (mFT_odd _) dimP3.
   by case/(SCN_Fitting_Uniqueness maxM pF)=> // _ sAF; exact: uniq_mmaxS.
 case/p_rank_geP: dimF3 => A; case/setIdP=> EpA dimA3.
-have [A0 maxA0 sAA0] := @maxgroup_exists _ [pred X \in 'E_p('F(M))] _ EpA.
+have [A0 maxA0 sAA0] := @maxgroup_exists _ [pred X in 'E_p('F(M))] _ EpA.
 have [_ abelA] := pElemP EpA; have pmaxA0: A0 \in 'E*_p('F(M)) by rewrite inE.
 case/pElemP: (maxgroupp maxA0) => sA0F; case/and3P=> _ cA0A0 _.
 have dimA0_3: 'r_p(A0) >= 3.

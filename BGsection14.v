@@ -75,35 +75,34 @@ Implicit Type x : gT.
 Implicit Type M X : {set gT}.
 
 Definition sigma_decomposition x :=
-  [set x.`_\sigma(M : {group gT}) | M <- 'M]^#.
+  [set x.`_\sigma(M) | M : {group gT} in 'M]^#.
 Definition sigma_length x := #|sigma_decomposition x|.
 
-Definition sigma_mmax_of X := [set M \in 'M | X \subset M`_\sigma].
+Definition sigma_mmax_of X := [set M in 'M | X \subset M`_\sigma].
 
 Definition FT_signalizer_base x :=
   if #|sigma_mmax_of <[x]>| > 1 then odflt 1%G (pick (mem 'M('C[x]))) else 1%G.
 
 Definition FT_signalizer x := 'C_((FT_signalizer_base x)`_\sigma)[x].
 
-Definition sigma_cover M := \bigcup_(x \in (M`_\sigma)^#) x *: FT_signalizer x.
+Definition sigma_cover M := \bigcup_(x in (M`_\sigma)^#) x *: FT_signalizer x.
 
 Definition tau13 M := [predU \tau1(M) & \tau3(M)].
 
 Definition kappa := locked (fun M =>
-  [pred p \in tau13 M |
-     existsb P, (P \in 'E_p^1(M)) && ('C_(M`_\sigma)(P) != 1)]).
+  [pred p in tau13 M | [exists P in 'E_p^1(M), 'C_(M`_\sigma)(P) != 1]]).
 
 Definition sigma_kappa M := [predU \sigma(M) & kappa M].
 
 Definition kappa_complement (M U K : {set gT}) :=
   [/\ (sigma_kappa M)^'.-Hall(M) U, (kappa M).-Hall(M) K & group_set (U * K)].
 
-Definition TypeF_maxgroups := [set M \in 'M | (kappa M)^'.-group M].
+Definition TypeF_maxgroups := [set M in 'M | (kappa M)^'.-group M].
 
 Definition TypeP_maxgroups := 'M :\: TypeF_maxgroups.
 
 Definition TypeP1_maxgroups :=
-  [set M \in TypeP_maxgroups | (sigma_kappa M).-group M].
+  [set M in TypeP_maxgroups | (sigma_kappa M).-group M].
 
 Definition TypeP2_maxgroups := TypeP_maxgroups :\: TypeP1_maxgroups.
 
@@ -236,7 +235,7 @@ exact: groupX.
 Qed.
 
 Remark prod_sigma_decomposition : forall x,
-  \prod_(x_sM \in sigma_decomposition x) x_sM = x.
+  \prod_(x_sM in sigma_decomposition x) x_sM = x.
 Proof.
 move=> x; rewrite -big_filter filter_index_enum; set e := enum _.
 have: uniq e := enum_uniq _; have: e =i sigma_decomposition x := mem_enum _.
@@ -1165,7 +1164,7 @@ Lemma card_class_support_sigma : forall M,
   M \in 'M -> #|class_support M^~~ G| = (#|M`_\sigma|.-1 * #|G : M|)%N.
 Proof.
 move=> M maxM; rewrite [#|M`_\sigma|](cardsD1 1) group1 /=.
-set MsG := class_support (M`_\sigma)^# G; pose P := [set x *: 'R[x] | x <- MsG].
+set MsG := class_support (M`_\sigma)^# G; pose P := [set x *: 'R[x] | x in MsG].
 have ellMsG: forall x, x \in MsG -> \ell_\sigma(x) == 1%N.
   by move=> ?; case/imset2P=> x z ? _ ->; rewrite ell_sigmaJ (Msigma_ell1 maxM).
 have tiP: trivIset P.
@@ -1184,7 +1183,7 @@ rewrite -(eqnP tiP) big_imset /= => [|x y MsGx MsGy eq_xyR]; last first.
   by apply: contraNeq => neq_xy; rewrite sigma_cover_disjoint ?ellMsG.
 rewrite -{2}(norm_mmax maxM) -astab1JG -indexgI -card_orbit.
 set MG := orbit _ G M; rewrite mulnC -sum_nat_const.
-transitivity (\sum_(Mz \in MG) \sum_(x \in (Mz`_\sigma)^#) 1); last first.
+transitivity (\sum_(Mz in MG) \sum_(x in (Mz`_\sigma)^#) 1); last first.
   apply: eq_bigr => Mz; case/imsetP=> z _ ->; rewrite sum1_card.
   by rewrite MsigmaJ -conjD1g cardJg.
 rewrite (exchange_big_dep (mem MsG)) /= => [|Mz xz]; last first.
@@ -1205,10 +1204,10 @@ Qed.
 
 (* This is B & G, Lemma 14.6. *)
 Lemma sigma_decomposition_dichotomy : forall g : gT, g != 1 ->
-     (existsb x, (\ell_\sigma(x) == 1%N) && (x^-1 * g \in 'R[x]))
- (+) (existsb y, (\ell_\sigma(y) == 1%N) &&
-      (let y' := y^-1 * g in existsb M,
-       [&& M \in 'M_\sigma[y], y' \in ('C_M[y])^# & \kappa(M).-elt y'])).
+     [exists (x | \ell_\sigma(x) == 1%N), x^-1 * g \in 'R[x]]
+ (+) [exists (y | \ell_\sigma(y) == 1%N),
+      let y' := y^-1 * g in
+      [exists M in 'M_\sigma[y], (y' \in ('C_M[y])^#) && \kappa(M).-elt y']].
 Proof.
 move=> g ntg; have [[x ell1x Rx'] | ] := altP exists_inP.
   rewrite /= negb_exists_in; apply/forall_inP=> y ell1y.
@@ -1405,7 +1404,7 @@ have{notFmaxM} ntK: K :!=: 1 by rewrite (trivg_kappa maxM).
 have [_ [defNK defNX] [ntKs uniqCKs] _ _] := Ptype_structure PmaxM hallK.
 rewrite -/Ks in defNK ntKs uniqCKs; have [_ mulKKs cKKs _] := dprodP defNK.
 have{mulKKs} defZ: 'N_M(K) = Z by rewrite -mulKKs -cent_joinEr.
-pose MNX := \bigcup_(X \in 'E^1(K)) 'M('N(X)); pose MX := M |: MNX.
+pose MNX := \bigcup_(X in 'E^1(K)) 'M('N(X)); pose MX := M |: MNX.
 have notMG_MNX: {in MNX, forall Mi, gval Mi \notin M :^: G}.
   by move=> Mi; case/bigcupP=> X E1X; case/(Pmax_sym M K).
 have MX0: M \in MX := setU11 M MNX.
@@ -1482,12 +1481,12 @@ have exMNX: forall X,
   have [Mi maxNMi] := mmax_exists (mFT_norm_proper (nt_pnElem EpX isT) ltXG).
   have MNXi: Mi \in MNX by [apply/bigcupP; exists X]; exists Mi => //.
   by have [_ ->] := defNX X E1X.
-have dprodKs_eqZ: \big[dprod/1]_(Mi \in MX) Ks_ Mi = Z; last clear dprodKs_eqZ.
+have dprodKs_eqZ: \big[dprod/1]_(Mi in MX) Ks_ Mi = Z; last clear dprodKs_eqZ.
   have sYKs_KX: forall Mi,
-    Mi \in MX -> <<\bigcup_(Mj \in MX | Mj != Mi) Ks_ Mj>> \subset K_ Mi.
+    Mi \in MX -> <<\bigcup_(Mj in MX | Mj != Mi) Ks_ Mj>> \subset K_ Mi.
   - move=> Mi MXi; rewrite gen_subG.
     by apply/bigcupsP=> Mj /=; case/andP; exact: sKsKX.
-  transitivity <<\bigcup_(Mi \in MX) Ks_ Mi>>; apply/eqP.
+  transitivity <<\bigcup_(Mi in MX) Ks_ Mi>>; apply/eqP.
     rewrite -bigprodGE; apply/bigdprodYP => Mi MXi; rewrite bigprodGE.
     apply: subset_trans (sYKs_KX _ MXi) _; apply/dprodYP.
     have [_ defZi cKiKs tiKiKs] := dprodP (defZX _ MXi).
@@ -1506,8 +1505,8 @@ have dprodKs_eqZ: \big[dprod/1]_(Mi \in MX) Ks_ Mi = Z; last clear dprodKs_eqZ.
   rewrite sub_gen ?(bigcup_max Mi) // (sub_normal_Hall hallKsi) //.
   rewrite (pi_pgroup pP) // (pnatPpi (pcore_pgroup _ _) (piSg sXMis _)) //.
   by have [_ ? dimX] := pnElemP EpX; rewrite -p_rank_gt0 p_rank_abelem ?dimX.
-pose PZ := [set (Ks_ Mi)^# | Mi <- MX]; pose T := Z^# :\: cover PZ.
-have defT: \bigcup_(Mi \in MX) (Ks_ Mi)^# * (K_ Mi)^# = T.
+pose PZ := [set (Ks_ Mi)^# | Mi in MX]; pose T := Z^# :\: cover PZ.
+have defT: \bigcup_(Mi in MX) (Ks_ Mi)^# * (K_ Mi)^# = T.
   apply/setP=> x; apply/bigcupP/setDP=> [[Mi MXi] | [Zx notZXx]].
     case/mulsgP=> y y'; case/setD1P=> nty Ks_y; case/setD1P=> nty' Ky' defx.
     have [_ defZi cKsKi tiKsKi] := dprodP (defZX _ MXi).
@@ -1544,7 +1543,7 @@ have defT: \bigcup_(Mi \in MX) (Ks_ Mi)^# * (K_ Mi)^# = T.
   exists Mi; rewrite // defx mem_mulg // 2!inE Ki_y' andbT.
   apply: contraNneq notZXx => y'1; rewrite cover_imset.
   by apply/bigcupP; exists Mi; rewrite // defx y'1 mulg1.
-have oT: #|T| = #|Z| + #|MNX| - (\sum_(Mi \in MX) #|Ks_ Mi|).
+have oT: #|T| = #|Z| + #|MNX| - (\sum_(Mi in MX) #|Ks_ Mi|).
   have tiTPZ: forall Kis, Kis \in PZ -> [disjoint T & Kis].
     move=> Kis Z_Kis; rewrite -setI_eq0 [T]setDE setIAC -setDE setD_eq0.
     by rewrite (bigcup_max Kis) ?subsetIr.
@@ -1621,7 +1620,7 @@ pose z : rat := #|Z|%:R; have nz_z: z != 0%R := natrG_neq0 _ _.
 pose k_ Mi : rat := #|K_ Mi|%:R.
 have nz_ks: #|Ks_ _|%:R != 0%R :> rat := natrG_neq0 _ _.
 pose TG := class_support T G.
-have oTG: (#|TG|%:R = (1 + n / z - \sum_(Mi \in MX) (k_ Mi)^-1) * g)%R.
+have oTG: (#|TG|%:R = (1 + n / z - \sum_(Mi in MX) (k_ Mi)^-1) * g)%R.
   rewrite /TG class_supportEr -cover_imset -(eqnP tiT).
   rewrite (eq_bigr (fun _ => #|T|)) => [|Tx]; last first.
     by case/imsetP=> x _ ->; rewrite cardJg.
@@ -1660,7 +1659,7 @@ have [Mi MXi P2maxMi]: exists2 Mi, Mi \in MX & Mi \in 'M_'P2.
     have eqZ := group_inj (eq_mmax maxZ _ _); rewrite -(eqZ M) //.
     have [Xj E1Xj maxNMj] := bigcupP MNXj; have [maxMj _] := setIdP maxNMj.
     by rewrite (eqZ Mj) //; case/(Pmax_sym M K): maxNMj.
-  pose MXsup := [set ssup Mi | Mi <- MX].
+  pose MXsup := [set ssup Mi | Mi in MX].
   have notMXsup0: set0 \notin MXsup.
     apply/imsetP=> [[Mi]]; case/PmaxMX; case/setDP=> maxMi _ _.
     move/eqP; rewrite eq_sym; case/set0Pn.
@@ -1704,7 +1703,7 @@ have [Mi MXi P2maxMi]: exists2 Mi, Mi \in MX & Mi \in 'M_'P2.
     case/bigcupP=> x Mis_x xR1; apply/set0Pn; exists x.
     exact: mem_sigma_cover_decomposition (Msigma_ell1 maxMi Mis_x) xR1.
   rewrite -(eqnP tiPG) big_setU1 ?big_imset //= natrD natr_sum.
-  suffices: (g <= #|TG|%:R + \sum_(i \in MX) ((k_ i)^-1 - (z *+ 2)^-1) * g)%R.
+  suffices: (g <= #|TG|%:R + \sum_(i in MX) ((k_ i)^-1 - (z *+ 2)^-1) * g)%R.
     by move/ler_trans->; rewrite // ler_add2l ler_sum.
   rewrite -big_distrl /= oTG -/g -mulrDl big_split /= sumr_const.
   rewrite addrA subrK -(mulr_natl _ 2) -[_ *+ _]mulr_natl invfM mulrN.
@@ -1987,7 +1986,7 @@ Qed.
 
 (* This is B & G, Corollary 14.9. *)
 Corollary mFT_partition :
-  let Pcover := [set class_support (gval M)^~~ G | M <- 'M] in
+  let Pcover := [set class_support M^~~ G | M : {group gT} in 'M] in
   [/\ (*1*) 'M_'P == set0 :> {set {group gT}} -> partition Pcover G^#
     & (*2*) forall M K, M \in 'M_'P -> \kappa(M).-Hall(M) K ->
             let Ks := 'C_(M `_\sigma)(K) in let Z := K <*> Ks in
@@ -2118,7 +2117,7 @@ Qed.
 Corollary ell_sigma_leq_2 : forall x, \ell_\sigma(x) <= 2.
 Proof.
 move=> x; have [|ntx] := eqVneq x 1; first by move/ell_sigma0P; move/eqP->.
-case sigma_x: (x \in cover [set class_support (gval M)^~~ G | M <- 'M]).
+case sigma_x: (x \in cover [set class_support M^~~ G | M : {group gT} in 'M]).
   case/bigcupP: sigma_x => Msupport; case/imsetP=> M maxM ->{Msupport}.
   case/imset2P=> x0 a; case/bigcupP=> y Ms_y yRx0 _ ->; rewrite ell_sigmaJ.
   exact: ell_sigma_cover (Msigma_ell1 maxM Ms_y) yRx0.

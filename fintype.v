@@ -95,7 +95,9 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 (*                     only be used as a collective predicate is it is an     *)
 (*                     eqType.                                                *)
 (*          codom f == a sequence spanning the codomain of f (:= image f T).  *)
-(*  [image F | x <- A] == syntax for image (fun x => F) A.                    *)
+(*  [seq F | x : T in A] := image (fun x : T => F) A.                         *)
+(*       [seq F | x : T] := [seq F | x <- {: T}].                             *)
+(*      [seq F | x in A], [seq F | x] == variants without casts.              *)
 (*        iinv im_y == some x such that P x holds and f x = y, given          *)
 (*                     im_y : y \in image f P.                                *)
 (*     invF inj_f y == the x such that f x = y, for inj_j : injective f with  *)
@@ -104,20 +106,32 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 (*                     (this is a bolean predicate, R must be an eqType).     *)
 (*     injectiveb f == f : T -> R is injective (boolean predicate).           *)
 (*         pred0b A == no x : T satisfies x \in A.                            *)
-(* forallb x : T, P == for all x : T, P (in which x can appear) holds; the    *)
-(*                     type annotation can be omitted.                        *)
-(* existsb x : T, P == P holds for some x : T.                                *)
+(*    [forall x, P] == P (in which x can appear) is true for all values of x; *)
+(*                     x must range over a finType.                           *)
+(*    [exists x, P] == P is true for some value of x.                         *)
+(*      [forall (x | C), P] := [forall x, C ==> P].                           *)
+(*       [forall x in A, P] := [forall (x | x \in A), P].                     *)
+(*      [exists (x | C), P] := [exists x, C && P].                            *)
+(*       [exists x in A, P] := [exists (x | x \in A), P].                     *)
+(* and typed variants [forall x : T, P], [forall (x : T | C), P],             *)
+(*   [exists x : T, P], [exists x : T in A, P], etc.                          *)
+(* -> The outer brackets can be omitted when nesting finitary quantifiers,    *)
+(*    e.g., [forall i in I, forall j in J, exists a, f i j == a].             *)
 (*     [pick x | P] == Some x, for an x such that P holds, or None if there   *)
 (*                     is no such x.                                          *)
-(*   [pick x \in A] == Some x, with x \in A, or None if A is empty.           *)
-(* [pick x \in A | P] == Some x, with x \in A s.t. P holds, else None.        *)
+(*     [pick x : T] == Some x with x : T, provided T is nonempty, else None.  *)
+(*    [pick x in A] == Some x, with x \in A, or None if A is empty.           *)
+(* [pick x in A | P] == Some x, with x \in A s.t. P holds, else None.         *)
+(*   [pick x | P & Q] := [pick x | P & Q].                                    *)
+(* [pick x in A | P & Q] := [pick x | P & Q].                                 *)
+(* and (un)typed variants [pick x : T | P], [pick x : T in A], [pick x], etc. *)
 (* [arg min_(i < i0 | P) M] == a value of i : T minimizing M : nat, subject   *)
 (*                   to the condition P (i may appear in P and M), and        *)
 (*                   provided P holds for i0.                                 *)
 (* [arg max_(i > i0 | P) M] == a value of i maximizing M subject to P and     *)
 (*                   provided P holds for i0.                                 *)
-(* [arg min_(i < i0 \in A) M] == an i \in A minimizing M if i0 \in A.         *)
-(* [arg max_(i > i0 \in A) M] == an i \in A maximizing M if i0 \in A.         *)
+(* [arg min_(i < i0 in A) M] == an i \in A minimizing M if i0 \in A.          *)
+(* [arg max_(i > i0 in A) M] == an i \in A maximizing M if i0 \in A.          *)
 (* [arg min_(i < i0) M] == an i : T minimizing M, given i0 : T.               *)
 (* [arg max_(i > i0) M] == an i : T maximizing M, given i0 : T.               *)
 (******************************************************************************)
@@ -248,20 +262,42 @@ Definition enum_mem T (mA : mem_pred _) := filter mA (Finite.enum T).
 Notation enum A := (enum_mem (mem A)).
 Definition pick (T : finType) (P : pred T) := ohead (enum P).
 
-Notation "[ 'pick' x | P ]" := (pick (fun x => P))
+Notation "[ 'pick' x | P ]" := (pick (fun x => P%B))
   (at level 0, x ident, format "[ 'pick'  x  |  P  ]") : form_scope.
-Notation "[ 'pick' x : T | P ]" := (pick (fun x : T => P))
+Notation "[ 'pick' x : T | P ]" := (pick (fun x : T => P%B))
   (at level 0, x ident, only parsing) : form_scope.
-Notation "[ 'pick' x \in A ]" := (pick (fun x => x \in A))
-  (at level 0, x ident, format "[ 'pick'  x  \in  A  ]") : form_scope.
-Notation "[ 'pick' x \in A | P ]" := (pick (fun x => (x \in A) && P))
-  (at level 0, x ident, format "[ 'pick'  x  \in  A  |  P  ]") : form_scope.
+Definition pick_true T (x : T) := true.
+Notation "[ 'pick' x : T ]" := [pick x : T | pick_true x]
+  (at level 0, x ident, only parsing).
+Notation "[ 'pick' x ]" := [pick x : _]
+  (at level 0, x ident, only parsing) : form_scope.
+Notation "[ 'pic' 'k' x : T ]" := [pick x : T | pick_true _]
+  (at level 0, x ident, format "[ 'pic' 'k'  x : T ]") : form_scope.
+Notation "[ 'pick' x | P & Q ]" := [pick x | P && Q ]
+  (at level 0, x ident,
+   format "[ '[hv ' 'pick'  x  |  P '/ '   &  Q ] ']'") : form_scope.
+Notation "[ 'pick' x : T | P & Q ]" := [pick x : T | P && Q ]
+  (at level 0, x ident, only parsing) : form_scope.
+Notation "[ 'pick' x 'in' A ]" := [pick x | x \in A]
+  (at level 0, x ident, format "[ 'pick'  x  'in'  A  ]") : form_scope.
+Notation "[ 'pick' x : T 'in' A ]" := [pick x : T | x \in A]
+  (at level 0, x ident, only parsing) : form_scope.
+Notation "[ 'pick' x 'in' A | P ]" := [pick x | x \in A & P ]
+  (at level 0, x ident,
+   format "[ '[hv ' 'pick'  x  'in'  A '/ '   |  P ] ']'") : form_scope.
+Notation "[ 'pick' x : T 'in' A | P ]" := [pick x : T | x \in A & P ]
+  (at level 0, x ident, only parsing) : form_scope.
+Notation "[ 'pick' x 'in' A | P & Q ]" := [pick x in A | P && Q]
+  (at level 0, x ident, format
+  "[ '[hv ' 'pick'  x  'in'  A '/ '   |  P '/ '  &  Q ] ']'") : form_scope.
+Notation "[ 'pick' x : T 'in' A | P & Q ]" := [pick x : T in A | P && Q]
+  (at level 0, x ident, only parsing) : form_scope.
 
 (* We lock the definitions of card and subset to mitigate divergence of the   *)
 (* Coq term comparison algorithm.                                             *)
 
-Notation Local card_type := (forall T : finType, mem_pred T -> nat).
-Notation Local card_def := (fun T mA => size (enum_mem mA)).
+Local Notation card_type := (forall T : finType, mem_pred T -> nat).
+Local Notation card_def := (fun T mA => size (enum_mem mA)).
 Module Type CardDefSig.
 Parameter card : card_type. Axiom cardEdef : card = card_def.
 End CardDefSig.
@@ -278,16 +314,106 @@ Notation "#| A |" := (card (mem A))
 
 Definition pred0b (T : finType) (P : pred T) := #|P| == 0.
 Prenex Implicits pred0b.
-Notation "'forallb' x , F" := (pred0b (pred_of_simpl (predC (fun x => F%B))))
-  (at level 200, x at level 99,
-   format "'[hv' 'forallb'  x , '/ '  F ']'") : bool_scope.
-Notation "'forallb' x : T , F" := (pred0b (predC (fun x : T => F%B)))
-  (at level 200, x at level 99, only parsing) : bool_scope.
-Notation "'existsb' x , F" := (~~ pred0b (fun x => F%B))
-  (at level 200, x at level 99,
-   format "'[hv' 'existsb'  x , '/ '  F ']'") : bool_scope.
-Notation "'existsb' x : T , F" := (~~ pred0b (fun x : T => F%B))
-  (at level 200, x at level 99, only parsing) : bool_scope.
+
+Module FiniteQuant.
+
+CoInductive quantified := Quantified of bool.
+
+Delimit Scope fin_quant_scope with Q. (* Bogus, only used to declare scope. *)
+Bind Scope fin_quant_scope with quantified.
+
+Notation "F ^*" := (Quantified F) (at level 2).
+Notation "F ^~" := (~~ F) (at level 2).
+
+Section Definitions.
+
+Variable T : finType.
+Implicit Types (B : quantified) (x : T).
+
+Definition quant0b Bp := pred0b [pred x : T | let: F^* := Bp x in F].
+Definition ex B x := B.
+(* GG -- Binding the predicate value rather than projecting it prevents *)
+(* spurrious unfolding of the boolean connectives by unification.       *)
+Definition all B x := let: F^* := B in F^~^*.
+Definition all_in C B x := let: F^* := B in (C ==> F)^~^*.
+Definition ex_in C B x :=  let: F^* := B in (C && F)^*.
+
+End Definitions.
+
+Notation "[ x | B ]" := (quant0b (fun x => B x)) (at level 0, x ident).
+Notation "[ x : T | B ]" := (quant0b (fun x : T => B x)) (at level 0, x ident).
+
+Module Exports.
+
+Notation ", F" := F^* (at level 200, format ", '/ '  F") : fin_quant_scope.
+
+Notation "[ 'forall' x B ]" := [x | all B]
+  (at level 0, x at level 99, B at level 200,
+   format "[ '[hv' 'forall'  x B ] ']'") : bool_scope.
+
+Notation "[ 'forall' x : T B ]" := [x : T | all B]
+  (at level 0, x at level 99, B at level 200, only parsing) : bool_scope.
+Notation "[ 'forall' ( x | C ) B ]" := [x | all_in C B]
+  (at level 0, x at level 99, B at level 200,
+   format "[ '[hv' '[' 'forall'  ( x '/  '  |  C ) ']' B ] ']'") : bool_scope.
+Notation "[ 'forall' ( x : T | C ) B ]" := [x : T | all_in C B]
+  (at level 0, x at level 99, B at level 200, only parsing) : bool_scope.
+Notation "[ 'forall' x 'in' A B ]" := [x | all_in (x \in A) B]
+  (at level 0, x at level 99, B at level 200,
+   format "[ '[hv' '[' 'forall'  x '/  '  'in'  A ']' B ] ']'") : bool_scope.
+Notation "[ 'forall' x : T 'in' A B ]" := [x : T | all_in (x \in A) B]
+  (at level 0, x at level 99, B at level 200, only parsing) : bool_scope.
+Notation ", 'forall' x B" := [x | all B]^*
+  (at level 200, x at level 99, B at level 200,
+   format ", '/ '  'forall'  x B") : fin_quant_scope.
+Notation ", 'forall' x : T B" := [x : T | all B]^*
+  (at level 200, x at level 99, B at level 200, only parsing) : fin_quant_scope.
+Notation ", 'forall' ( x | C ) B" := [x | all_in C B]^*
+  (at level 200, x at level 99, B at level 200,
+   format ", '/ '  '[' 'forall'  ( x '/  '  |  C ) ']' B") : fin_quant_scope.
+Notation ", 'forall' ( x : T | C ) B" := [x : T | all_in C B]^*
+  (at level 200, x at level 99, B at level 200, only parsing) : fin_quant_scope.
+Notation ", 'forall' x 'in' A B" := [x | all_in (x \in A) B]^*
+  (at level 200, x at level 99, B at level 200,
+   format ", '/ '  '[' 'forall'  x '/  '  'in'  A ']' B") : bool_scope.
+Notation ", 'forall' x : T 'in' A B" := [x : T | all_in (x \in A) B]^*
+  (at level 200, x at level 99, B at level 200, only parsing) : bool_scope.
+
+Notation "[ 'exists' x B ]" := [x | ex B]^~
+  (at level 0, x at level 99, B at level 200,
+   format "[ '[hv' 'exists'  x B ] ']'") : bool_scope.
+Notation "[ 'exists' x : T B ]" := [x : T | ex B]^~
+  (at level 0, x at level 99, B at level 200, only parsing) : bool_scope.
+Notation "[ 'exists' ( x | C ) B ]" := [x | ex_in C B]^~
+  (at level 0, x at level 99, B at level 200,
+   format "[ '[hv' '[' 'exists'  ( x '/  '  |  C ) ']' B ] ']'") : bool_scope.
+Notation "[ 'exists' ( x : T | C ) B ]" := [x : T | ex_in C B]^~
+  (at level 0, x at level 99, B at level 200, only parsing) : bool_scope.
+Notation "[ 'exists' x 'in' A B ]" := [x | ex_in (x \in A) B]^~
+  (at level 0, x at level 99, B at level 200,
+   format "[ '[hv' '[' 'exists'  x '/  '  'in'  A ']' B ] ']'") : bool_scope.
+Notation "[ 'exists' x : T 'in' A B ]" := [x : T | ex_in (x \in A) B]^~
+  (at level 0, x at level 99, B at level 200, only parsing) : bool_scope.
+Notation ", 'exists' x B" := [x | ex B]^~^*
+  (at level 200, x at level 99, B at level 200,
+   format ", '/ '  'exists'  x B") : fin_quant_scope.
+Notation ", 'exists' x : T B" := [x : T | ex B]^~^*
+  (at level 200, x at level 99, B at level 200, only parsing) : fin_quant_scope.
+Notation ", 'exists' ( x | C ) B" := [x | ex_in C B]^~^*
+  (at level 200, x at level 99, B at level 200,
+   format ", '/ '  '[' 'exists'  ( x '/  '  |  C ) ']' B") : fin_quant_scope.
+Notation ", 'exists' ( x : T | C ) B" := [x : T | ex_in C B]^~^*
+  (at level 200, x at level 99, B at level 200, only parsing) : fin_quant_scope.
+Notation ", 'exists' x 'in' A B" := [x | ex_in (x \in A) B]^~^*
+  (at level 200, x at level 99, B at level 200,
+   format ", '/ '  '[' 'exists'  x '/  '  'in'  A ']' B") : bool_scope.
+Notation ", 'exists' x : T 'in' A B" := [x : T | ex_in (x \in A) B]^~^*
+  (at level 200, x at level 99, B at level 200, only parsing) : bool_scope.
+
+End Exports.
+
+End FiniteQuant.
+Export FiniteQuant.Exports.
 
 Definition disjoint T (A B : mem_pred _) := @pred0b T (predI A B).
 Notation "[ 'disjoint' A & B ]" := (disjoint (mem A) (mem B))
@@ -299,11 +425,10 @@ Notation Local subset_def := (fun T A B => pred0b (predD A B)).
 Module Type SubsetDefSig.
 Parameter subset : subset_type. Axiom subsetEdef : subset = subset_def.
 End SubsetDefSig.
-Module SubsetDef : SubsetDefSig.
+Module Export SubsetDef : SubsetDefSig.
 Definition subset : subset_type := subset_def.
 Definition subsetEdef := erefl subset.
 End SubsetDef.
-Export SubsetDef. (* Should become Include in 8.2. *)
 Canonical subset_unlock := Unlockable subsetEdef.
 Notation "A \subset B" := (subset (mem A) (mem B))
   (at level 70, no associativity) : bool_scope.
@@ -702,61 +827,64 @@ Prenex Implicits pred0P pred0Pn subsetP subsetPn subset_eqP card_uniqP.
 
 Section Quantifiers.
 
-Variable T : finType.
-Implicit Type D P : pred T.
+Variables (T : finType) (rT : eqType).
+Implicit Type (D P : pred T) (f : T -> rT).
 
-Lemma forallP P : reflect (forall x, P x) (forallb x, P x).
-Proof. by apply: (iffP pred0P) => P_ x /=; rewrite ?P_ ?(negbFE (P_ x)). Qed.
+Lemma forallP P : reflect (forall x, P x) [forall x, P x].
+Proof. by apply: (iffP pred0P) => /= P_ x; rewrite /= ?P_ ?(negbFE (P_ x)). Qed.
 
-Lemma forall_inP D P : reflect (forall x, D x -> P x) (forallb x, D x ==> P x).
-Proof. by apply: (iffP (forallP _)) => P_ x; apply/implyP; exact: P_. Qed.
+Lemma eqfunP f1 f2 : reflect (f1 =1 f2) [forall x, f1 x == f2 x].
+Proof. by apply: (iffP (forallP _)) => eq_f12 x; apply/eqP/eq_f12. Qed.
 
-Lemma existsP P : reflect (exists x, P x) (existsb x, P x).
+Lemma forall_inP D P : reflect (forall x, D x -> P x) [forall (x | D x), P x].
+Proof. by apply: (iffP (forallP _)) => /= P_ x /=; apply/implyP; apply: P_. Qed.
+
+Lemma eqfun_inP D f1 f2 :
+  reflect {in D, f1 =1 f2} [forall (x | x \in D), f1 x == f2 x].
+Proof. by apply: (iffP (forall_inP _ _)) => eq_f12 x Dx; apply/eqP/eq_f12. Qed.
+
+Lemma existsP P : reflect (exists x, P x) [exists x, P x].
 Proof. by apply: (iffP pred0Pn); case=> x; exists x. Qed.
 
-Lemma exists_inP D P : reflect (exists2 x, D x & P x) (existsb x, D x && P x).
+Lemma exists_inP D P : reflect (exists2 x, D x & P x) [exists (x | D x), P x].
 Proof.
-by apply: (iffP pred0Pn) => [[x /andP[]] | [x]]; exists x => //; exact/andP.
+by apply: (iffP pred0Pn) => [[x /andP[]] | [x]]; exists x => //; apply/andP.
 Qed.
 
-Lemma eq_forallb P1 P2 : P1 =1 P2 -> (forallb x, P1 x) = (forallb x, P2 x).
-Proof. by move=> eqP12; congr (_ == 0); apply: eq_card => x; congr (~~ _). Qed.
-
-Lemma eq_existsb P1 P2 : P1 =1 P2 -> (existsb x, P1 x) = (existsb x, P2 x).
+Lemma eq_existsb P1 P2 : P1 =1 P2 -> [exists x, P1 x] = [exists x, P2 x].
 Proof. by move=> eqP12; congr (_ != 0); apply: eq_card. Qed.
 
-Lemma negb_forall P : ~~ (forallb x, P x) = (existsb x, ~~ P x).
+Lemma eq_forallb P1 P2 : P1 =1 P2 -> [forall x, P1 x] = [forall x, P2 x].
+Proof. by move=> eqP12; apply/negb_inj/eq_existsb=> /= x; rewrite eqP12. Qed.
+
+Lemma negb_forall P : ~~ [forall x, P x] = [exists x, ~~ P x].
 Proof. by []. Qed.
 
 Lemma negb_forall_in D P :
-  ~~ (forallb x, D x ==> P x) = (existsb x, D x && ~~ P x).
-Proof. by congr (_ != 0); apply: eq_card => x; rewrite !inE negb_imply. Qed.
+  ~~ [forall (x | D x), P x] = [exists (x | D x), ~~ P x].
+Proof. by apply: eq_existsb => x; rewrite negb_imply. Qed.
 
-Lemma negb_exists P : ~~ (existsb x, P x) = (forallb x, ~~ P x).
-Proof.
-by rewrite negbK; congr (_ == 0); apply: eq_card => x; rewrite !inE /= negbK.
-Qed.
+Lemma negb_exists P : ~~ [exists x, P x] = [forall x, ~~ P x].
+Proof. by apply/negbLR/esym/eq_existsb=> x; apply: negbK. Qed.
 
 Lemma negb_exists_in D P :
-  ~~ (existsb x, D x && P x) = (forallb x, D x ==> ~~ P x).
-Proof.
-apply: (canLR negbK); rewrite negb_forall_in.
-by apply: eq_existsb => x; rewrite negbK.
-Qed.
+  ~~ [exists (x | D x), P x] = [forall (x | D x), ~~ P x].
+Proof. by rewrite negb_exists; apply/eq_forallb => x; rewrite [~~ _]fun_if. Qed.
 
 End Quantifiers.
 
 Implicit Arguments forallP [T P].
+Implicit Arguments eqfunP [T rT f1 f2].
 Implicit Arguments forall_inP [T D P].
+Implicit Arguments eqfun_inP [T rT D f1 f2].
 Implicit Arguments existsP [T P].
 Implicit Arguments exists_inP [T D P].
-Prenex Implicits forallP forall_inP existsP exists_inP.
 
 Section Extrema.
 
 Variables (I : finType) (i0 : I) (P : pred I) (F : I -> nat).
 
-Let arg_pred ord := [pred i | P i && (forallb j, P j ==> ord (F i) (F j))].
+Let arg_pred ord := [pred i | P i & [forall (j | P j), ord (F i) (F j)]].
 
 Definition arg_min := odflt i0 (pick (arg_pred leq)).
 
@@ -768,58 +896,58 @@ CoInductive extremum_spec (ord : rel nat) : I -> Type :=
 
 Hypothesis Pi0 : P i0.
 
-Let FP n := existsb i, P i && (F i == n).
+Let FP n := [exists (i | P i), F i == n].
 Let FP_F i : P i -> FP (F i).
 Proof. by move=> Pi; apply/existsP; exists i; rewrite Pi /=. Qed.
 Let exFP : exists n, FP n. Proof. by exists (F i0); exact: FP_F. Qed.
 
 Lemma arg_minP : extremum_spec leq arg_min.
 Proof.
-rewrite /arg_min; case: pickP => [i /andP[Pi /forallP min_i] | no_i].
-  by split=> // j; exact/implyP.
-case/ex_minnP: exFP => n ex_i min_i; case/pred0P: ex_i => i.
-apply: contraFF (no_i i) => /andP[Pi def_n]; rewrite /= Pi.
-by apply/forallP=> j; apply/implyP=> Pj; rewrite (eqP def_n) min_i ?FP_F.
+rewrite /arg_min; case: pickP => [i /andP[Pi /forallP/= min_i] | no_i].
+  by split=> // j; apply/implyP.
+case/ex_minnP: exFP => n ex_i min_i; case/pred0P: ex_i => i /=.
+apply: contraFF (no_i i) => /andP[Pi /eqP def_n]; rewrite /= Pi.
+by apply/forall_inP=> j Pj; rewrite def_n min_i ?FP_F.
 Qed.
 
 Lemma arg_maxP : extremum_spec geq arg_max.
 Proof.
-rewrite /arg_max; case: pickP => [i /andP[Pi /forallP max_i] | no_i].
-  by split=> // j; exact/implyP.
+rewrite /arg_max; case: pickP => [i /andP[Pi /forall_inP/= max_i] | no_i].
+  by split=> // j; apply/implyP.
 have (n): FP n -> n <= foldr maxn 0 (map F (enum P)).
-  case/existsP=> i; rewrite -[P i]mem_enum andbC => /andP[/eqP <-].
+  case/existsP=> i; rewrite -[P i]mem_enum andbC /= => /andP[/eqP <-].
   elim: (enum P) => //= j e IHe; rewrite leq_max orbC !inE.
   by case/predU1P=> [-> | /IHe-> //]; rewrite leqnn orbT.
-case/ex_maxnP=> // n ex_i max_i; case/pred0P: ex_i => i.
+case/ex_maxnP=> // n ex_i max_i; case/pred0P: ex_i => i /=.
 apply: contraFF (no_i i) => /andP[Pi def_n]; rewrite /= Pi.
-by apply/forallP=> j; apply/implyP=> Pj; rewrite (eqP def_n) max_i ?FP_F.
+by apply/forall_inP=> j Pj; rewrite (eqP def_n) max_i ?FP_F.
 Qed.
 
 End Extrema.
 
 Notation "[ 'arg' 'min_' ( i < i0 | P ) F ]" :=
-    (arg_min i0 (fun i => P) (fun i => F))
+    (arg_min i0 (fun i => P%B) (fun i => F))
   (at level 0, i, i0 at level 10,
    format "[ 'arg'  'min_' ( i  <  i0  |  P )  F ]") : form_scope.
  
-Notation "[ 'arg' 'min_' ( i < i0 \in A ) F ]" :=
+Notation "[ 'arg' 'min_' ( i < i0 'in' A ) F ]" :=
     [arg min_(i < i0 | i \in A) F]
   (at level 0, i, i0 at level 10,
-   format "[ 'arg'  'min_' ( i  <  i0  \in  A )  F ]") : form_scope.
+   format "[ 'arg'  'min_' ( i  <  i0  'in'  A )  F ]") : form_scope.
 
 Notation "[ 'arg' 'min_' ( i < i0 ) F ]" := [arg min_(i < i0 | true) F]
   (at level 0, i, i0 at level 10,
    format "[ 'arg'  'min_' ( i  <  i0 )  F ]") : form_scope.
  
 Notation "[ 'arg' 'max_' ( i > i0 | P ) F ]" :=
-     (arg_max i0 (fun i => P) (fun i => F))
+     (arg_max i0 (fun i => P%B) (fun i => F))
   (at level 0, i, i0 at level 10,
    format "[ 'arg'  'max_' ( i  >  i0  |  P )  F ]") : form_scope.
  
-Notation "[ 'arg' 'max_' ( i > i0 \in A ) F ]" :=
+Notation "[ 'arg' 'max_' ( i > i0 'in' A ) F ]" :=
     [arg max_(i > i0 | i \in A) F]
   (at level 0, i, i0 at level 10,
-   format "[ 'arg'  'max_' ( i  >  i0  \in  A )  F ]") : form_scope.
+   format "[ 'arg'  'max_' ( i  >  i0  'in'  A )  F ]") : form_scope.
 
 Notation "[ 'arg' 'max_' ( i > i0 ) F ]" := [arg max_(i > i0 | true) F]
   (at level 0, i, i0 at level 10,
@@ -850,7 +978,7 @@ apply: (iffP idP) => [injf | [x Dx [y Dxy eqfxy]]]; last first.
   rewrite inE /= -(mem_enum D) -(mem_rot i) defE inE in Dxy.
   rewrite andb_orr andbC andbN in Dxy.
   by rewrite eqfxy map_f //; case/andP: Dxy.
-pose p := [pred x \in D | existsb y, (y \in [predD1 D & x]) && (f x == f y)].
+pose p := [pred x in D | [exists (y | y \in [predD1 D & x]), f x == f y]].
 case: (pickP p) => [x /= /andP[Dx /exists_inP[y Dxy /eqP eqfxy]] | no_p].
   by exists x; last exists y.
 rewrite /dinjectiveb map_inj_in_uniq ?enum_uniq // in injf => x y Dx Dy eqfxy.
@@ -882,9 +1010,18 @@ End Injectiveb.
 
 Definition image_mem T T' f mA : seq T' := map f (@enum_mem T mA).
 Notation image f A := (image_mem f (mem A)).
-Notation "[ 'image' F | x <- A ]" := (image (fun x => F) A)
-  (at level 0,
-   format "'[hv' [ 'image'  F  '/ '  |  x  <-  A ] ']'") : form_scope.
+Notation "[ 'seq' F | x 'in' A ]" := (image (fun x => F) A)
+  (at level 0, F at level 99, x ident,
+   format "'[hv' [ 'seq'  F '/ '  |  x  'in'  A ] ']'") : seq_scope.
+Notation "[ 'seq' F | x : T 'in' A ]" := (image (fun x : T => F) A)
+  (at level 0, F at level 99, x ident, only parsing) : seq_scope.
+Notation "[ 'seq' F | x : T ]" :=
+  [seq F | x : T in sort_of_simpl_pred (@pred_of_argType T)]
+  (at level 0, F at level 99, x ident,
+   format "'[hv' [ 'seq'  F '/ '  |  x  :  T ] ']'") : seq_scope.
+Notation "[ 'seq' F , x ]" := [seq F | x : _ ]
+  (at level 0, F at level 99, x ident, only parsing) : seq_scope.
+
 Definition codom T T' f := @image_mem T T' f (mem T).
 
 Section Image.
@@ -987,6 +1124,7 @@ Qed.
 End Image.
 
 Prenex Implicits codom iinv.
+Implicit Arguments imageP [T T' f A y].
 
 Section CardFunImage.
 
@@ -1142,11 +1280,13 @@ Definition bool_finMixin := Eval hnf in FinMixin bool_enumP.
 Canonical bool_finType := Eval hnf in FinType bool bool_finMixin.
 Lemma card_bool : #|{: bool}| = 2. Proof. by rewrite cardT enumT unlock. Qed.
 
+Local Notation enumF T := (Finite.enum T).
+
 Section OptionFinType.
 
 Variable T : finType.
 
-Definition option_enum := None :: map some (Finite.enum T).
+Definition option_enum := None :: map some (enumF T).
 
 Lemma option_enumP : Finite.axiom option_enum.
 Proof. by case=> [x|]; rewrite /= count_map (count_pred0, enumP). Qed.
@@ -1163,8 +1303,7 @@ Section TransferFinType.
 
 Variables (eT : countType) (fT : finType) (f : eT -> fT).
 
-Lemma pcan_enumP g :
-  pcancel f g -> Finite.axiom (undup (pmap g (Finite.enum fT))).
+Lemma pcan_enumP g : pcancel f g -> Finite.axiom (undup (pmap g (enumF fT))).
 Proof.
 move=> fK x; rewrite count_uniq_mem ?undup_uniq // mem_undup.
 by rewrite mem_pmap -fK map_f // -enumT mem_enum.
@@ -1215,7 +1354,7 @@ Section FinTypeForSub.
 
 Variables (T : finType) (P : pred T) (sT : subCountType P).
 
-Definition sub_enum : seq sT := pmap insub (Finite.enum T).
+Definition sub_enum : seq sT := pmap insub (enumF T).
 
 Lemma mem_sub_enum u : u \in sub_enum.
 Proof. by rewrite mem_pmap_sub -enumT mem_enum. Qed.
@@ -1761,8 +1900,7 @@ Section TagFinType.
 Variables (I : finType) (T_ : I -> finType).
 
 Definition tag_enum :=
-  flatten [seq [seq Tagged T_ x | x <- Finite.enum (T_ i)]
-            | i <- Finite.enum I].
+  flatten [seq [seq Tagged T_ x | x <- enumF (T_ i)] | i <- enumF I].
 
 Lemma tag_enumP : Finite.axiom tag_enum.
 Proof.
@@ -1791,7 +1929,7 @@ Section SumFinType.
 Variables T1 T2 : finType.
 
 Definition sum_enum :=
-  [seq inl _ x | x <- Finite.enum T1] ++ [seq inr _ y | y <- Finite.enum T2].
+  [seq inl _ x | x <- enumF T1] ++ [seq inr _ y | y <- enumF T2].
 
 Lemma sum_enum_uniq : uniq sum_enum.
 Proof.

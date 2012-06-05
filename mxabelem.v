@@ -364,7 +364,7 @@ have expG: exponent G = q := exponent_mx_group m_gt0 n_gt0 q_gt1.
 apply/eqP; rewrite eqn_leq andbC -(leq_exp2l _ _ q_gt1) -{2}expG.
 have ->: (q ^ (m * n))%N = #|G| by rewrite cardsT card_matrix card_ord Zp_cast.
 rewrite max_card_abelian //= -grank_abelian //= -/G.
-pose B := [set (delta_mx ij.1 ij.2 : 'M['Z_q]_(m, n)) | ij <- {: 'I_m * 'I_n}].
+pose B : {set 'M['Z_q]_(m, n)} := [set delta_mx ij.1 ij.2 | ij : 'I_m * 'I_n].
 suffices ->: G = <<B>>.
   have ->: (m * n)%N = #|{: 'I_m * 'I_n}| by rewrite card_prod !card_ord. 
   exact: leq_trans (grank_min _) (leq_imset_card _ _).
@@ -861,7 +861,7 @@ have nb_lin: #|linS| = (p ^ n.*2)%N.
 have nb_irr: #|sS| = (p ^ n.*2 + p.-1)%N.
   pose Zcl := classes S ::&: 'Z(S).
   have cardZcl: #|Zcl| = p.
-    transitivity #|[set [set z] | z <- 'Z(S)]|; last first.
+    transitivity #|[set [set z] | z in 'Z(S)]|; last first.
       by rewrite card_imset //; exact: set1_inj.
     apply: eq_card => zS; apply/setIdP/imsetP=> [[] | [z]].
       case/imsetP=> z Sz ->{zS} szSZ.

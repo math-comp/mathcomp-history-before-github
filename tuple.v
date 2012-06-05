@@ -238,6 +238,34 @@ Proof. by case/tupleP: t => x t; rewrite !(tnth_nth x) inordK ?ltnS. Qed.
 Lemma tuple_eta n T (t : n.+1.-tuple T) : t = [tuple of thead t :: behead t].
 Proof. by case/tupleP: t => x t; exact: val_inj. Qed.
 
+Section TupleQuantifiers.
+
+Variables (n : nat) (T : Type).
+Implicit Types (a : pred T) (t : n.-tuple T).
+
+Lemma forallb_tnth a t : [forall i, a (tnth t i)] = all a t.
+Proof.
+apply: negb_inj; rewrite -has_predC -has_map negb_forall.
+apply/existsP/(has_nthP true) => [[i a_t_i] | [i lt_i_n a_t_i]].
+  by exists i; rewrite ?size_tuple // -tnth_nth tnth_map.
+rewrite size_tuple in lt_i_n; exists (Ordinal lt_i_n).
+by rewrite -tnth_map (tnth_nth true).
+Qed.
+
+Lemma existsb_tnth a t : [exists i, a (tnth t i)] = has a t.
+Proof. by apply: negb_inj; rewrite negb_exists -all_predC -forallb_tnth. Qed.
+
+Lemma all_tnthP a t : reflect (forall i, a (tnth t i)) (all a t).
+Proof. by rewrite -forallb_tnth; apply: forallP. Qed.
+
+Lemma has_tnthP a t : reflect (exists i, a (tnth t i)) (has a t).
+Proof. by rewrite -existsb_tnth; apply: existsP. Qed.
+
+End TupleQuantifiers.
+
+Implicit Arguments all_tnthP [n T a t].
+Implicit Arguments has_tnthP [n T a t].
+
 Section EqTuple.
 
 Variables (n : nat) (T : eqType).

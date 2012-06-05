@@ -45,7 +45,7 @@ Variable gT : finGroupType.
 Implicit Type A : {set gT}.
 Implicit Types a b : {perm gT}.
 
-Definition Aut A := [set a | perm_on A a && morphic A a].
+Definition Aut A := [set a | perm_on A a & morphic A a].
 
 Lemma Aut_morphic A a : a \in Aut A -> morphic A a.
 Proof. by case/setIdP. Qed.
@@ -291,19 +291,22 @@ Variable G : {group gT}.
 Lemma injm_conj x : 'injm (conjgm G x).
 Proof. by apply/injmP; apply: in2W; exact: conjg_inj. Qed.
 
-Lemma conj_isog x : G :^ x \isog G.
-Proof.
-by rewrite -{1}(setIid G) -morphim_conj isog_sym sub_isog ?injm_conj.
-Qed.
+Lemma conj_isom x : isom G (G :^ x) (conjgm G x).
+Proof. by apply/isomP; rewrite morphim_conj setIid injm_conj. Qed.
 
-Lemma im_conjgm_norm x : x \in 'N(G) -> conjgm G x @* G = G.
+Lemma conj_isog x : G \isog G :^ x.
+Proof. exact: isom_isog (conj_isom x). Qed.
+
+Lemma norm_conjg_im x : x \in 'N(G) -> conjgm G x @* G = G.
 Proof. by rewrite morphimEdom; exact: normP. Qed.
 
-Definition conj_aut x :=
-  aut (injm_conj _) (im_conjgm_norm (valP (insigd (group1 _) x))).
+Lemma norm_conj_isom x : x \in 'N(G) -> isom G G (conjgm G x).
+Proof. by move/norm_conjg_im/restr_isom_to/(_ (conj_isom x))->. Qed.
+
+Definition conj_aut x := aut (injm_conj _) (norm_conjg_im (subgP (subg _ x))).
 
 Lemma norm_conj_autE : {in 'N(G) & G, forall x y, conj_aut x y = y ^ x}.
-Proof. by move=> x y nGx Gy; rewrite /= autE //= val_insubd nGx. Qed.
+Proof. by move=> x y nGx Gy; rewrite /= autE //= subgK. Qed.
 
 Lemma conj_autE : {in G &, forall x y, conj_aut x y = y ^ x}.
 Proof. by apply: sub_in11 norm_conj_autE => //; exact: subsetP (normG G). Qed.
@@ -345,13 +348,14 @@ Implicit Types A B : {set gT}.
 Implicit Types G H K L : {group gT}.
 
 Definition characteristic A B :=
-  (A \subset B) && (forallb f, (f \in Aut B) ==> (f @: A \subset A)).
+  (A \subset B) && [forall f in Aut B, f @: A \subset A].
 
 Infix "\char" := characteristic.
 
 Lemma charP H G :
-  reflect [/\ H \subset G & forall f : {morphism G >-> gT},
-                            'injm f -> f @* G = G -> f @* H = H]
+  reflect [/\ H \subset G
+            & forall f : {morphism G >-> gT},
+               'injm f -> f @* G = G -> f @* H = H]
           (H \char G).
 Proof.
 apply: (iffP andP) => [] [sHG chHG]; split=> //.

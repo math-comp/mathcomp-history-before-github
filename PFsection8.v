@@ -61,10 +61,10 @@ Implicit Types L M X : {set gT}.
 Definition FTsignalizer M x := if 'C[x] \subset M then 1%G else 'R[x]%G.
 
 Definition FTsupports M L :=
-   existsb x, [&& x \in 'A(M), ~~ ('C[x] \subset M) & 'C[x] \subset L].
+  [exists x in 'A(M), ~~ ('C[x] \subset M) && ('C[x] \subset L)].
 
 Definition FT_Dade_support M X :=
-  \bigcup_(x \in X) class_support (FTsignalizer M x :* x) G.
+  \bigcup_(x in X) class_support (FTsignalizer M x :* x) G.
 
 End Definitions.
 
@@ -157,20 +157,20 @@ split=> // [|U1 i [nsU1U abU1 s_cUH_U1] nz_i].
 have itoP: is_action M (fun (j : Iirr H) x => conjg_Iirr j x).
   split=> [x | j x y Mx My].
     apply: can_inj (fun j => conjg_Iirr j x^-1) _ => j.
-    by apply: chi_inj; rewrite !conjg_IirrE cfConjgK.
-  by apply: chi_inj; rewrite !conjg_IirrE (cfConjgM _ nsHM).
+    by apply: irr_inj; rewrite !conjg_IirrE cfConjgK.
+  by apply: irr_inj; rewrite !conjg_IirrE (cfConjgM _ nsHM).
 pose ito := Action itoP; pose cto := ('Js \ subsetT M)%act.
 have actsMcH: [acts M, on classes H | cto].
   apply/subsetP=> x Mx; rewrite !inE Mx; apply/subsetP=> _ /imsetP[y Hy ->].
   have nHx: x \in 'N(H) by rewrite (subsetP (gFnorm _ _)).
   rewrite !inE /= -class_rcoset norm_rlcoset // class_lcoset mem_classes //.
   by rewrite memJ_norm.
-apply/subsetP=> g /setIdP[/setIP[Ug nHg] c_i_g]; have Mg := subsetP sUG g Ug.
+apply/subsetP=> g /setId2P[Ug nHg c_i_g]; have Mg := subsetP sUG g Ug.
 apply: contraR nz_i => notU1g; rewrite (sameP eqP set1P).
-suffices <-: 'Fix_ito[g] = [set (0 : Iirr H)].
-  by rewrite !inE sub1set inE -(inj_eq (@chi_inj _ _)) conjg_IirrE.
+suffices <-: 'Fix_ito[g] = [set 0 : Iirr H].
+  by rewrite !inE sub1set inE -(inj_eq (@irr_inj _ _)) conjg_IirrE.
 apply/eqP; rewrite eq_sym eqEcard cards1 !(inE, sub1set) /=.
-rewrite -(inj_eq (@chi_inj _ _)) conjg_IirrE chi0_1 cfConjg_cfun1 eqxx.
+rewrite -(inj_eq (@irr_inj _ _)) conjg_IirrE irr0 cfConjg_cfun1 eqxx.
 rewrite (card_afix_irr_classes Mg actsMcH) => [|j y z Hy /=]; last first.
   case/imsetP=> _ /imsetP[t Ht ->] -> {z}.
   by rewrite conjg_IirrE cfConjgE // conjgK cfunJ.
@@ -416,7 +416,7 @@ have U1: U = 1%G.
 by do 2?split=> //; rewrite -(congr_group U1).
 Qed.
 
-Definition all_typeI := forallb M, (M \in 'M) ==> (@FTtype gT M == 1%N).
+Definition all_typeI := [forall M : {group gT} in 'M, FTtype M == 1%N].
 
 (* This is the statement of Peterfalvi, Theorem (8.8)(b). *)
 Definition FT_Pstructure W W1 W2 S T :=
@@ -555,7 +555,7 @@ Qed.
 (* This is Peterfalvi (8.13). *)
 (* We have substituted the B & G notation for the unique maximal supergroup   *)
 (* of 'C[x], and specialized the lemma to X := 'A0(M).                        *)
-Lemma FTsupport_facts (X := 'A0(M)) (D := [set x \in X | ~~('C[x] \subset M)]) :
+Lemma FTsupport_facts (X := 'A0(M)) (D := [set x in X | ~~('C[x] \subset M)]) :
   [/\ (*a*) {in X &, forall x, {subset x ^: G <= x ^: M}},
       (*b*) D \subset 'A1(M) /\ {in D, forall x, 'M('C[x]) = [set 'N[x]]}
     & (*c*) {in D, forall x (L := 'N[x]) (H := L`_\F),
@@ -755,7 +755,7 @@ Proof. by rewrite /R; case: FTtypeP_coh_base_sig => R1 []. Qed.
 Lemma FTtypeP_base_mu :
   let mu := @Dade_mu _ M W W1 W2 in let w_ := @cyclicTIirr _ W W1 W2 in
   let delta := fun j => (-1)^+ @Dade_delta _ M W W1 W2 j in
-  let dsw j k := [image delta j *: sigma (w_ i k) | i <- Iirr W1] in
+  let dsw j k := [seq delta j *: sigma (w_ i k) | i : Iirr W1] in
   let Rmu j := dsw j j ++ map -%R (dsw j (conjC_Iirr j)) in
   forall j, R (mu j) = Rmu j.
 Proof. by rewrite /R; case: FTtypeP_coh_base_sig => R1 []. Qed.
@@ -794,12 +794,12 @@ End OneMaximal.
 
 (* This is Peterfalvi, Theorem (8.17). *)
 Theorem FT_Dade_support_partition :
-  [/\ (*a1*) \pi(G) =i [pred p | existsb M : {group gT},
-                                 (M \in 'M) && (p \in \pi(M`_\s))],
+  [/\ (*a1*)
+           \pi(G) =i [pred p | [exists M : {group gT} in 'M, p \in \pi(M`_\s)]],
       (*a2*) {in 'M &, forall M L,
                 gval L \notin M :^: G -> coprime #|M`_\s| #|L`_\s| },
       (*b*) {in 'M, forall M, #|'A1~(M)| = (#|M`_\s|.-1 * #|G : M|)%N}
-    & (*c*) let PG := [set 'A1~(gval Mi) | Mi <- 'M^G] in
+    & (*c*) let PG := [set 'A1~(Mi) | Mi : {group gT} in 'M^G] in
        [/\ {in 'M^G &, injective (fun M => 'A1~(M))},
            all_typeI -> partition PG G^#
          & forall W W1 W2 S T (VG := class_support (W :\: (W1 :|: W2)) G),
@@ -826,7 +826,7 @@ split=> [p | M L maxM maxL /a2 | M maxM | {b a1 a2}PG].
   by rewrite implybN /= pi_Msigma // implybE -negb_and [_ && _]coML.
 - by rewrite -defDsup // def_FTcore // b.
 have [/subsetP sMG_M _ injMG sM_MG] := mmax_transversalP gT.
-have{PG} ->: PG = [set class_support (gval M)^~~ G | M <- 'M].
+have{PG} ->: PG = [set class_support M^~~ G | M : {group gT} in 'M].
   apply/setP=> AG; apply/imsetP/imsetP=> [] [M maxM ->].
     by move/sMG_M in maxM; exists M; rewrite ?defDsup //.
   have [x MG_Mx] := sM_MG M maxM.
@@ -871,7 +871,7 @@ Lemma FT_Dade_support_disjoint S T :
   [/\ (*a*) FTsupports S T = ~~ [disjoint 'A1(S) & 'A(T)]
          /\ {in 'A1(S) :&: 'A(T), forall x,
                ~~ ('C[x] \subset S) /\ 'C[x] \subset T},
-      (*b*) (existsb x, FTsupports S (T :^ x)) = ~~ [disjoint 'A1~(S) & 'A~(T)]
+      (*b*) [exists x, FTsupports S (T :^ x)] = ~~ [disjoint 'A1~(S) & 'A~(T)]
     & (*c*) [disjoint 'A1~(S) & 'A~(T)] \/  [disjoint 'A1~(T) & 'A~(S)]].
 Proof.
 move: S T; pose NC S T := gval T \notin S :^: G.
@@ -924,7 +924,7 @@ have part_a1 S T (maxS : S \in 'M) (maxT : T \in 'M) (ncST : NC S T) :
   exists x; rewrite (subsetP (FTsupp1_sub maxS)) //=.
   by apply/andP/part_a2=> //; exact/setIP.
 have part_b S T (maxS : S \in 'M) (maxT : T \in 'M) (ncST : NC S T) :
-  (existsb x, FTsupports S (T :^ x)) = ~~ [disjoint 'A1~(S) & 'A~(T)].
+  [exists x, FTsupports S (T :^ x)] = ~~ [disjoint 'A1~(S) & 'A~(T)].
 - apply/existsP/pred0Pn=> [[x] | [y /andP[/= A1GSy AGTy]]].
     rewrite part_a1 ?mmaxJ // => [/pred0Pn[y /andP/=[A1Sy ATyx]]|]; last first.
       by rewrite /NC -(rcoset_id (in_setT x)) orbit_rcoset.
@@ -935,7 +935,7 @@ have part_b S T (maxS : S \in 'M) (maxT : T \in 'M) (ncST : NC S T) :
   have{AGTy} [x2 ATx2 x2R_yG] := bigcupP AGTy.
   have [sCx2T | not_sCx2T] := boolP ('C[x2] \subset T); last first.
     have [_ _ _ [injA1G pGI pGP]] := FT_Dade_support_partition.
-    have{pGI pGP} tiA1g: trivIset [set 'A1~(gval M) | M <- 'M^G].
+    have{pGI pGP} tiA1g: trivIset [set 'A1~(M) | M : {group gT} in 'M^G].
       case: ifP FT_FPstructure => [/pGI/and3P[] // | _ [W W1 W2 S' T' /pGP[]]].
       by case/and3P=> _ /(trivIsetS (subsetUr _ _)).
     have [_ _ injMG sM_MG] := mmax_transversalP gT.
@@ -974,7 +974,7 @@ without loss{suppST} suppST: T maxT ncST / FTsupports S T.
   rewrite FT_Dade1_supportJ (orbit_transr _ (mem_orbit _ _ _)) ?in_setT //.
   by rewrite mmaxJ => ->.
 have{suppST} [y /and3P[ASy not_sCyS sCyT]] := existsP suppST.
-have Dy: y \in [set z \in 'A0(S) | ~~ ('C[z] \subset S)] by rewrite !inE ASy.
+have Dy: y \in [set z in 'A0(S) | ~~ ('C[z] \subset S)] by rewrite !inE ASy.
 have [_ [_ /(_ y Dy) uCy]  /(_ y Dy)[_ coTcS _ typeT]] := FTsupport_facts maxS.
 rewrite  -mem_iota -(eq_uniq_mmax uCy maxT sCyT) !inE in coTcS typeT.
 apply/negbNE; rewrite -part_b /NC 1?orbit_sym // negb_exists.

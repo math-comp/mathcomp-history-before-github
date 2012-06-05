@@ -298,7 +298,7 @@ have rH_Pmul x y: x \in P -> rH (x * y) = pQ x * rH y.
 have rH_Hmul h y: h \in H -> rH (h * y) = rH y.
   by move=> Hh; rewrite rH_Pmul ?(subsetP sHP) // -(mulg1 h) pQhq ?mul1g.
 pose mu x y := fmod ((rH x * rH y)^-1 * rH (x * y)).
-pose nu y := (\sum_(Px \in rcosets P G) mu (repr Px) y)%R.
+pose nu y := (\sum_(Px in rcosets P G) mu (repr Px) y)%R.
 have rHmul: {in G &, forall x y, rH (x * y) = rH x * rH y * val (mu x y)}.
   move=> x y Gx Gy; rewrite /= fmodK ?mulKVg // -mem_lcoset lcoset_sym.
   rewrite -norm_rlcoset; last by rewrite nHG ?GrH ?groupM.
@@ -327,7 +327,7 @@ move: mu => mu in rHmul mu_Pmul cocycle_mu nu nu_Hmul.
 have{cocycle_mu} cocycle_nu: {in G &, forall y z,
   nu z + nu y ^@ z = mu y z *+ #|G : P| + nu (y * z)%g}%R.
 - move=> y z Gy Gz; rewrite /= (actr_sum z) /=.
-  have ->: (nu z = \sum_(Px \in rcosets P G) mu (repr Px * y)%g z)%R.
+  have ->: (nu z = \sum_(Px in rcosets P G) mu (repr Px * y)%g z)%R.
     rewrite /nu (reindex_acts _ (actsRs_rcosets P G) Gy) /=.
     apply: eq_bigr => _ /rcosetsP[x Gx /= ->].
     rewrite rcosetE -rcosetM.
@@ -376,7 +376,7 @@ have nu_cocycle: {in G &, forall x y, nu (x * y)%g = nu x ^@ y + nu y}%R.
 have nuL x: x \in L -> nu x = 0%R.
   move=> Lx; apply: val_inj; rewrite val_nu ?sLG //.
   by rewrite /divgr remgr_id ?groupV ?mulgV.
-exists (fmval ((\sum_(X \in rcosets Q K) nu (repr X)) *+ m)).
+exists (fmval ((\sum_(X in rcosets Q K) nu (repr X)) *+ m)).
   exact: fmodP.
 apply/eqP; rewrite eq_sym eqEcard; apply/andP; split; last first.
   by rewrite cardJg -(leq_pmul2l (cardG_gt0 H)) -!TI_cardMg // eqHL eqHK.
@@ -409,7 +409,7 @@ End Gaschutz.
 Lemma coprime_abel_cent_TI (gT : finGroupType) (A G : {group gT}) :
   A \subset 'N(G) -> coprime #|G| #|A| -> abelian G -> 'C_[~: G, A](A) = 1.
 Proof.
-move=> nGA coGA abG; pose f x := val (\sum_(a \in A) fmod abG x ^@ a)%R.
+move=> nGA coGA abG; pose f x := val (\sum_(a in A) fmod abG x ^@ a)%R.
 have fM: {in G &, {morph f : x y / x * y}}.
   move=> x y Gx Gy /=; rewrite -fmvalA -big_split /=; congr (fmval _).
   by apply: eq_bigr => a Aa; rewrite fmodM // actAr.
@@ -445,7 +445,7 @@ Proof. by rewrite -sub_morphim_pre. Qed.
 Let fmalpha := restrm transfer_morph_subproof (fmod abelA \o alpha).
 
 Let V (rX : {set gT} -> gT) g :=
-  \sum_(Hx \in rcosets H G) fmalpha (rX Hx * g * (rX (Hx :* g))^-1).
+  \sum_(Hx in rcosets H G) fmalpha (rX Hx * g * (rX (Hx :* g))^-1).
 
 Definition transfer g := V repr g.
 
@@ -467,7 +467,7 @@ Lemma transfer_indep X (rX := transversal_repr 1 X) :
   is_transversal X HG G -> {in G, transfer =1 V rX}.
 Proof.
 move=> trX g Gg; have mem_rX := repr_mem_pblock trX 1; rewrite -/rX in mem_rX.
-apply: (addrI (\sum_(Hx \in HG) fmalpha (repr Hx * (rX Hx)^-1))).
+apply: (addrI (\sum_(Hx in HG) fmalpha (repr Hx * (rX Hx)^-1))).
 rewrite {1}(reindex_acts 'Rs _ Gg) ?actsRs_rcosets // -!big_split /=.
 apply: eq_bigr => _ /rcosetsP[x Gx ->]; rewrite !rcosetE -!rcosetM.
 case: repr_rcosetP => h1 Hh1; case: repr_rcosetP => h2 Hh2.
@@ -541,13 +541,13 @@ apply/imset_injP; rewrite defHgX (card_transversal trX) defHGg.
 by rewrite (card_in_imset injHGg).
 Qed.
 
-Lemma sum_index_rcosets_cycle : (\sum_(x \in X) n_ x)%N = #|G : H|.
+Lemma sum_index_rcosets_cycle : (\sum_(x in X) n_ x)%N = #|G : H|.
 Proof. by rewrite [#|G : H|](card_partition partHGg) -defHgX big_imset. Qed.
 
 Lemma transfer_cycle_expansion :
-   transfer g = \sum_(x \in X) fmalpha ((g ^+ n_ x) ^ x^-1).
+   transfer g = \sum_(x in X) fmalpha ((g ^+ n_ x) ^ x^-1).
 Proof.
-pose Y := \bigcup_(x \in X) [set x * g ^+ (i : 'I__) | i <- 'I_(n_ x)].
+pose Y := \bigcup_(x in X) [set x * g ^+ i | i : 'I_(n_ x)].
 pose rY := transversal_repr 1 Y.
 pose pcyc x := pcycle (actperm 'Rs g) (H :* x).
 pose traj x := traject (actperm 'Rs g) (H :* x) #|pcyc x|.

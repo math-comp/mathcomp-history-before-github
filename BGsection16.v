@@ -169,10 +169,10 @@ Canonical Structure FTcore_group M := Group (FTcore_is_group M).
 Definition FTsupport1 M := (FTcore M)^#.
 
 Definition FTsupport M :=
-  \bigcup_(x \in FTsupport1 M) 'C_(M^`(FTtype M != 1%N))[x]^#.
+  \bigcup_(x in FTsupport1 M) 'C_(M^`(FTtype M != 1%N))[x]^#.
 
 Definition FTsupport0 M (su := \pi(M^`(FTtype M != 1%N))) :=
-  FTsupport M :|: [set x \in M | ~~ (su.-elt x) && ~~ (su^'.-elt x)].
+  FTsupport M :|: [set x in M | ~~ su.-elt x & ~~ su^'.-elt x].
 
 Definition mmax_transversal U := orbit_transversal 'JG U 'M.
 
@@ -539,7 +539,7 @@ have uniqB: forall y (u := y.`_\sigma(M)^'), y \in B -> 'M('C[u]) = [set M].
     rewrite /= -cycleJ cycle_eq1 -consttJ; apply: contraNneq notMs_y.
     move/constt1P; rewrite p_eltNK p_eltJ => sMy.
     by rewrite (mem_normal_Hall hallMs).
-  rewrite -(normsP nMsM' z M'z) centJ -conjIg (isog_eq1 (conj_isog _ _)).
+  rewrite -(normsP nMsM' z M'z) centJ -conjIg -(isog_eq1 (conj_isog _ _)).
   by apply/trivgPn; exists x; rewrite //= inE Ms_x cent_cycle cent1C groupX.
 apply: contraR notMa => /set0Pn[_ /imsetP[x /setIP[Bax /uniqB defM] _]].
 move: Bax; rewrite mem_conjg => /uniqB/(def_uniq_mmaxJ a); rewrite consttJ.
@@ -702,7 +702,7 @@ Theorem BGsummaryD M : M \in 'M ->
            Ms:&: M :^ g = Ms :&: Ms :^ g /\ cyclic (Ms :&: M :^ g),
      (*3*) {in M`_\sigma^#, forall x,
             [/\ Hall 'C[x] 'C_M[x], 'R[x] ><| 'C_M[x] = 'C[x]
-              & let MGx := [set Mg \in M :^: G | x \in Mg] in
+              & let MGx := [set Mg in M :^: G | x \in Mg] in
                 [transitive 'R[x], on MGx | 'Js] /\ #|'R[x]| = #|MGx| ]}
    & (*4*) {in M`_\sigma^#, forall x (N := 'N[x]), ~~ ('C[x] \subset M) ->
            [/\ 'M('C[x]) = [set N] /\ N`_\F = N`_\sigma,
@@ -714,8 +714,8 @@ Theorem BGsummaryD M : M \in 'M ->
                  & ~~ trivIset ((M`_\F)^# :^: G)]]}].
 Proof.
 move=> maxM; have [[U K] /= complU] := kappa_witness maxM.
-have defSM: {in M`_\sigma^#, forall x,
-  [set Mg \in M :^: G | x \in Mg] = val @: 'M_\sigma[x]}.
+have defSM: {in M`_\sigma^#,
+  forall x, [set Mg in M :^: G | x \in Mg] = val @: 'M_\sigma[x]}.
 - move=> x; case/setD1P=> ntx Ms_x.
   have SMxM: M \in 'M_\sigma[x] by rewrite inE maxM cycle_subG.
   apply/setP=> /= Mg; apply/setIdP/imsetP=> [[] | [H]].
@@ -819,7 +819,7 @@ Theorem BGsummaryE :
              exists2 M : {group gT}, M \in 'M & p \in \sigma(M)}
          /\ {in 'M &, forall M H,
              gval H \notin M :^: G -> [predI \sigma(M) & \sigma(H)] =i pred0}
-    & (*3*) let PG := [set class_support (gval M)^~~ G | M <- 'M] in
+    & (*3*) let PG := [set class_support M^~~ G | M : {group gT} in 'M] in
             [/\ partition PG (cover PG),
                 'M_'P = set0 :> {set {group gT}} -> cover PG = G^#
               & forall M K, M \in 'M_'P -> \kappa(M).-Hall(M) K ->
@@ -984,14 +984,14 @@ have [K1 | ntK] := eqsVneq K 1.
   exists U; split.
     have [_ _ _ cU1U1 exU0] := kappa_structure maxM complU.
     split=> //; last by rewrite -/Ms -defH in exU0; exact: exU0.
-    exists [group of <<\bigcup_(x \in (M`_\sigma)^#) 'C_U[x]>>].
+    exists [group of <<\bigcup_(x in (M`_\sigma)^#) 'C_U[x]>>].
     split=> //= [|x Hx]; last by rewrite sub_gen //= -/Ms -defH (bigcup_max x).
     rewrite -big_distrr /= /normal gen_subG subsetIl.
     rewrite norms_gen ?normsI ?normG //; apply/subsetP=> u Uu.
     rewrite inE sub_conjg; apply/bigcupsP=> x Msx.
     rewrite -sub_conjg -normJ conjg_set1 (bigcup_max (x ^ u)) ?memJ_norm //.
     by rewrite normD1 (subsetP (gFnorm _ _)) // (subsetP (pHall_sub hallU)).
-  have [|] := boolP (forallb y, (y \notin M) ==> ('F(M) :&: 'F(M) :^ y == 1)).
+  have [|] := boolP [forall (y | y \notin M), 'F(M) :&: 'F(M) :^ y == 1].
     move/forall_inP=> TI_F; constructor 1; apply/TIconjP=> x y _ _.
     rewrite setTI (mmax_normal maxM (Fcore_normal _)) //.
     have [_ | notMxy] := boolP (_ \in M); [by left | right].
@@ -1075,7 +1075,7 @@ rewrite defY1; have [Y1 | ntY] := altP (Y :=P: 1); last first.
   have [|_ tiFM prK] := types34; first by rewrite defY1.
   by case: ifPn; exists Y, K.
 exists K; split; first by rewrite -Y1.
-have [|] := boolP (forallb y, (y \notin M) ==> ('F(M) :&: 'F(M) :^ y == 1)).
+have [|] := boolP [forall (y | y \notin M), 'F(M) :&: 'F(M) :^ y == 1].
   move/forall_inP=> TI_F; constructor 1; apply/TIconjP=> x y _ _.
   rewrite setTI (mmax_normal maxM (Fcore_normal _)) //.
   have [_ | notMxy] := boolP (_ \in M); [by left | right].
@@ -1176,7 +1176,7 @@ Qed.
 (* fact that D is included in 'A1(M), not just 'A(M).                         *)
 Theorem BGsummaryII M (X : {set gT}) :
     M \in 'M -> X \in pred2 'A(M) 'A0(M) ->
-    let D := [set x \in X | ~~ ('C[x] \subset M)] in
+    let D := [set x in X | ~~ ('C[x] \subset M)] in
  [/\       D \subset 'A1(M), (* was 'A(M) in B & G *)
      (*i*) {in X, forall x a, x ^ a \in X -> exists2 y, y \in M & x ^ a = x ^ y}
   &  {in D, forall x (L := 'N[x]),

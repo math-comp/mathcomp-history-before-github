@@ -322,10 +322,10 @@ Notation "\sum_ ( i < n | P ) U" :=
   (\big[addv/0%VS]_(i < n | P%B) U%VS) : vspace_scope.
 Notation "\sum_ ( i < n ) U" :=
   (\big[addv/0%VS]_(i < n) U%VS) : vspace_scope.
-Notation "\sum_ ( i \in A | P ) U" :=
-  (\big[addv/0%VS]_(i \in A | P%B) U%VS) : vspace_scope.
-Notation "\sum_ ( i \in A ) U" :=
-  (\big[addv/0%VS]_(i \in A) U%VS) : vspace_scope.
+Notation "\sum_ ( i 'in' A | P ) U" :=
+  (\big[addv/0%VS]_(i in A | P%B) U%VS) : vspace_scope.
+Notation "\sum_ ( i 'in' A ) U" :=
+  (\big[addv/0%VS]_(i in A) U%VS) : vspace_scope.
 
 Notation "\bigcap_ ( <- r | P ) U" :=
   (\big[capv/fullv]_(<- r | P%B) U%VS) : vspace_scope.
@@ -349,10 +349,10 @@ Notation "\bigcap_ ( i < n | P ) U" :=
   (\big[capv/fullv]_(i < n | P%B) U%VS) : vspace_scope.
 Notation "\bigcap_ ( i < n ) U" :=
   (\big[capv/fullv]_(i < n) U%VS) : vspace_scope.
-Notation "\bigcap_ ( i \in A | P ) U" :=
-  (\big[capv/fullv]_(i \in A | P%B) U%VS) : vspace_scope.
-Notation "\bigcap_ ( i \in A ) U" :=
-  (\big[capv/fullv]_(i \in A) U%VS) : vspace_scope.
+Notation "\bigcap_ ( i 'in' A | P ) U" :=
+  (\big[capv/fullv]_(i in A | P%B) U%VS) : vspace_scope.
+Notation "\bigcap_ ( i 'in' A ) U" :=
+  (\big[capv/fullv]_(i in A) U%VS) : vspace_scope.
 
 Section VectorTheory.
 
@@ -897,10 +897,10 @@ Qed.
 
 Lemma directv_sum_unique {Us : I -> {vspace vT}} :
   reflect (forall us vs,
-    (forall i, P i -> us i \in Us i) ->
+              (forall i, P i -> us i \in Us i) ->
               (forall i, P i -> vs i \in Us i) ->
             (\sum_(i | P i) us i == \sum_(i | P i) vs i)
-              = (forallb i, P i ==> (us i == vs i)))
+              = [forall (i | P i), us i == vs i])
           (directv (\sum_(i | P i) Us i)).
 Proof.
 apply: (iffP directv_sum_independent) => [dxU us vs Uu Uv | dxU us Uu u_0 i Pi].
@@ -1057,7 +1057,7 @@ by rewrite subv_add subv_refl andbT -memvE.
 Qed.
 
 Lemma freeE n (X : n.-tuple vT) :
-  free X = (forallb i : 'I_n, X`_i \notin <<drop i.+1 X>>%VS).
+  free X = [forall i : 'I_n, X`_i \notin <<drop i.+1 X>>%VS].
 Proof.
 case: X => X /= /eqP <-{n}; rewrite -(big_andE xpredT) /=.
 elim: X => [|v X IH_X] /=; first by rewrite nil_free big_ord0.
@@ -1065,7 +1065,7 @@ by rewrite free_cons IH_X big_ord_recl drop0.
 Qed.
 
 Lemma freeNE n (X : n.-tuple vT) :
-  ~~ free X = (existsb i : 'I_n, X`_i \in <<drop i.+1 X>>%VS).
+  ~~ free X = [exists i : 'I_n, X`_i \in <<drop i.+1 X>>%VS].
 Proof. by rewrite freeE -negb_exists negbK. Qed.
 
 Lemma free_uniq X : free X -> uniq X.

@@ -12,11 +12,14 @@ Require Import finfun bigop.
 (*           x \in A == x belongs to A (i.e., {set T} implements predType,    *)
 (*                      by coercion to pred_sort).                            *)
 (*             mem A == the predicate corresponding to A.                     *)
-(*          finset p == the A corresponding to a predicate p.                 *)
-(*       [set x | C] == the A containing the x such that C holds (x is bound  *)
-(*                      in C).                                                *)
-(*     [set x \in D] == the A containing the x in the collective predicate D. *)
-(* [set x \in D | C] == the A containing the x in D such that C holds.        *)
+(*          finset p == the set corresponding to a predicate p.               *)
+(*       [set x | P] == the set containing the x such that P is true (x may   *)
+(*                      appear in P).                                         *)
+(*   [set x | P & Q] := [set x | P && Q].                                     *)
+(*      [set x in A] == the set containing the x in a collective predicate A. *)
+(*  [set x in A | P] == the set containing the x in A such that P is true.    *)
+(* [set x in A | P & Q] := [set x in A | P && Q].                             *)
+(*  All these have typed variants [set x : T | P], [set x : T in A], etc.     *)
 (*              set0 == the empty set.                                        *)
 (*  [set: T] or setT == the full set (the A containing all x : T).            *)
 (*           A :|: B == the union of A and B.                                 *)
@@ -40,19 +43,32 @@ Require Import finfun bigop.
 (*   transversal P D == a transversal of P, provided P is a partition of D.   *)
 (*  transversal_repr x0 X B == a representative of B \in P selected by the    *)
 (*                      tranversal X of P, or else x0.                        *)
-(*        powerset A == the set of all subset of A                            *)
-(*          P ::&: A == those sets in P that are subsets of A.                *)
-(*         f @^-1: R == the preimage of the collective predicate R under f.   *)
-(*            f @: D == the image set of the collective predicate D by f.     *)
-(*     f @2:(D1, D2) == the image of D1 and D2 by the binary function f.      *)
-(*  [set E | x <- D] == the set of all the values of the expression E, for x  *)
-(*                      drawn from the collective predicate D.                *)
-(*  [set E | x <- D, P] == the set of values of E for x drawn from D and such *)
-(*                      that P holds.                                         *)
-(*  [set E | x <- D1, y <- D2] == the set of values of E for x drawn from D1  *)
-(*                      and y drawn from D2.                                  *)
-(*  [set E | x <- D1, y <- D2, P] == the set of values of E for x drawn from  *)
-(*                      D1, y drawn from D2, such that P holds.               *)
+(*        powerset A == the set of all subset of the set A.                   *)
+(*          P ::&: A == those sets in P that are subsets of the set A.        *)
+(*         f @^-1: A == the preimage of the collective predicate A under f.   *)
+(*            f @: A == the image set of the collective predicate A by f.     *)
+(*       f @2:(A, B) == the image set of A x B by the binary function f.      *)
+(*  [set E | x in A] == the set of all the values of the expression E, for x  *)
+(*                      drawn from the collective predicate A.                *)
+(*  [set E | x in A & P] == the set of values of E for x drawn from A, such   *)
+(*                      that P is true.                                       *)
+(*  [set E | x in A, y in B] == the set of values of E for x drawn from A and *)
+(*                      and y drawn from B; B may depend on x.                *)
+(*  [set E | x <- A, y <- B & P] == the set of values of E for x drawn from A *)
+(*                      y drawn from B, such that P is trye.                  *)
+(*  [set E | x : T] == the set of all values of E, with x in type T.          *)
+(*  [set E | x : T & P] == the set of values of E for x : T s.t. P is true.   *)
+(*  [set E | x : T, y : U in B], [set E | x : T, y : U in B & P],             *)
+(*  [set E | x : T in A, y : U], [set E | x : T in A, y : U & P],             *)
+(*  [set E | x : T, y : U], [set E | x : T, y : U & P]                        *)
+(*             == type-ranging versions of the binary comprehensions.         *)
+(*   [set E | x : T in A], [set E | x in A, y], [set E | x, y & P], etc.      *)
+(*             == typed and untyped variants of the comprehensions above.     *)
+(*                The types may be required as type inference processes E     *)
+(*                before considering A or B. Note that type casts in the      *)
+(*                binary comprehension must either be both present or absent  *)
+(*                and that there are no untyped variants for single-type      *)
+(*                comprehension as Coq parsing confuses [x | P] and [E | x].  *)
 (*        minset p A == A is a minimal set satisfying p.                      *)
 (*        maxset p A == A is a maximal set satisfying p.                      *)
 (* We also provide notations A :=: B, A :<>: B, A :==: B, A :!=: B, A :=P: B  *)
@@ -159,14 +175,27 @@ Notation pred_of_set := SetDef.pred_of_set.
 Canonical finset_unlock := Unlockable SetDef.finsetE.
 Canonical pred_of_set_unlock := Unlockable SetDef.pred_of_setE.
 
-Notation "[ 'set' x : T | P ]" := (finset (fun x : T => P))
-  (at level 0, x at level 69, only parsing) : set_scope.
+Notation "[ 'set' x : T | P ]" := (finset (fun x : T => P%B))
+  (at level 0, x at level 99, only parsing) : set_scope.
 Notation "[ 'set' x | P ]" := [set x : _ | P]
-  (at level 0, x at level 69, format "[ 'set'  x  |  P ]") : set_scope.
-Notation "[ 'set' x \in A | P ]" := [set x | (x \in A) && P]
-  (at level 0, x at level 69, format "[ 'set'  x  \in  A  |  P ]") : set_scope.
-Notation "[ 'set' x \in A ]" := [set x | x \in A]
-  (at level 0, x at level 69, format "[ 'set'  x  \in  A ]") : set_scope.
+  (at level 0, x, P at level 99, format "[ 'set'  x  |  P ]") : set_scope.
+Notation "[ 'set' x 'in' A ]" := [set x | x \in A]
+  (at level 0, x at level 99, format "[ 'set'  x  'in'  A ]") : set_scope.
+Notation "[ 'set' x : T 'in' A ]" := [set x : T | x \in A]
+  (at level 0, x at level 99, only parsing) : set_scope.
+Notation "[ 'set' x : T | P & Q ]" := [set x : T | P && Q ]
+  (at level 0, x at level 99, only parsing) : set_scope.
+Notation "[ 'set' x | P & Q ]" := [set x | P && Q ]
+  (at level 0, x, P at level 99, format "[ 'set'  x  |  P  &  Q ]") : set_scope.
+Notation "[ 'set' x : T 'in' A | P ]" := [set x : T | x \in A & P]
+  (at level 0, x at level 99, only parsing) : set_scope.
+Notation "[ 'set' x 'in' A | P ]" := [set x | x \in A & P]
+  (at level 0, x at level 99, format "[ 'set'  x  'in'  A  |  P ]") : set_scope.
+Notation "[ 'set' x 'in' A | P & Q ]" := [set x in A | P && Q]
+  (at level 0, x at level 99,
+   format "[ 'set'  x  'in'  A  |  P  &  Q ]") : set_scope.
+Notation "[ 'set' x : T 'in' A | P & Q ]" := [set x : T in A | P && Q]
+  (at level 0, x at level 99, only parsing) : set_scope.
 
 (* This lets us use set and subtypes of set, like group or coset_of, both as  *)
 (* collective predicates and as arguments of the \pi(_) notation.             *)
@@ -227,26 +256,28 @@ Implicit Types (a x : T) (A B D : {set T}) (P : {set {set T}}).
 
 Definition set1 a := [set x | x == a].
 Definition setU A B := [set x | (x \in A) || (x \in B)].
-Definition setI A B := [set x | (x \in A) && (x \in B)].
+Definition setI A B := [set x in A | x \in B].
 Definition setC A := [set x | x \notin A].
-Definition setD A B := [set x | (x \notin B) && (x \in A)].
-Definition ssetI P D := [set A \in P | A \subset D].
+Definition setD A B := [set x | x \notin B & x \in A].
+Definition ssetI P D := [set A in P | A \subset D].
 Definition powerset D := [set A : {set T} | A \subset D].
 
 End setOpsDefs.
 
 Notation "[ 'set' a ]" := (set1 a)
-  (at level 0, a at level 69, format "[ 'set'  a ]") : set_scope.
+  (at level 0, a at level 99, format "[ 'set'  a ]") : set_scope.
+Notation "[ 'set' a : T ]" := [set (a : T)]
+  (at level 0, a at level 99, format "[ 'set'  a   :  T ]") : set_scope.
 Notation "A :|: B" := (setU A B) : set_scope.
 Notation "a |: A" := ([set a] :|: A) : set_scope.
 (* This is left-associative due to historical limitations of the .. Notation. *)
 Notation "[ 'set' a1 ; a2 ; .. ; an ]" := (setU .. (a1 |: [set a2]) .. [set an])
-  (at level 0, a1, a2, an at level 69,
+  (at level 0, a1 at level 99,
    format "[ 'set'  a1 ;  a2 ;  .. ;  an ]") : set_scope.
 Notation "A :&: B" := (setI A B) : set_scope.
 Notation "~: A" := (setC A) (at level 35, right associativity) : set_scope.
 Notation "[ 'set' ~ a ]" := (~: [set a])
-  (at level 0, a at level 69, format "[ 'set' ~  a ]") : set_scope.
+  (at level 0, format "[ 'set' ~  a ]") : set_scope.
 Notation "A :\: B" := (setD A B) : set_scope.
 Notation "A :\ a" := (A :\: [set a]) : set_scope.
 Notation "P ::&: D" := (ssetI P D) (at level 48) : set_scope.
@@ -254,7 +285,7 @@ Notation "P ::&: D" := (ssetI P D) (at level 48) : set_scope.
 Section setOps.
 
 Variable T : finType.
-Implicit Types (a x : T) (A B C D : {set T}) (pA pB : pred T).
+Implicit Types (a x : T) (A B C D : {set T}) (pA pB pC : pred T).
 
 Lemma eqEsubset A B : (A == B) = (A \subset B) && (B \subset A).
 Proof. by apply/eqP/subset_eqP=> /setP. Qed.
@@ -347,7 +378,7 @@ Proof. by rewrite !inE; exact: predU1P. Qed.
 Lemma in_setU1 x a B : (x \in a |: B) = (x == a) || (x \in B).
 Proof. by rewrite !inE. Qed.
 
-Lemma set_cons a s : [set x \in a :: s] = a |: [set x \in s].
+Lemma set_cons a s : [set x in a :: s] = a |: [set x in s].
 Proof. by apply/setP=> x; rewrite !inE. Qed.
 
 Lemma setU11 x B : x \in x |: B.
@@ -456,10 +487,14 @@ Proof. by rewrite !(setUC A) setUUl. Qed.
 (* intersection *)
 
 (* setIdP is a generalisation of setIP that applies to comprehensions. *)
-Lemma setIdP x pA pB : reflect (pA x /\ pB x) (x \in [set y | pA y && pB y]).
+Lemma setIdP x pA pB : reflect (pA x /\ pB x) (x \in [set y | pA y & pB y]).
 Proof. by rewrite !inE; exact: andP. Qed.
 
-Lemma setIdE A pB : [set x \in A | pB x] = A :&: [set x | pB x].
+Lemma setId2P x pA pB pC :
+  reflect [/\ pA x, pB x & pC x] (x \in [set y | pA y & pB y && pC y]).
+Proof. by rewrite !inE; exact: and3P. Qed.
+
+Lemma setIdE A pB : [set x in A | pB x] = A :&: [set x | pB x].
 Proof. by apply/setP=> x; rewrite !inE. Qed.
 
 Lemma setIP x A B : reflect (x \in A /\ x \in B) (x \in A :&: B).
@@ -581,10 +616,10 @@ Proof. by apply/setP=> x; rewrite !inE orbN. Qed.
 Lemma setICr A : A :&: ~: A = set0.
 Proof. by apply/setP=> x; rewrite !inE andbN. Qed.
 
-Lemma setC0 : ~: set0 = setT :> {set T}.
+Lemma setC0 : ~: set0 = [set: T].
 Proof. by apply/setP=> x; rewrite !inE. Qed.
 
-Lemma setCT : ~: setT = set0 :> {set T}.
+Lemma setCT : ~: [set: T] = set0.
 Proof. by rewrite -setC0 setCK. Qed.
 
 (* difference *)
@@ -668,7 +703,7 @@ Proof. by apply/setP=> B; rewrite !inE. Qed.
 
 (* cardinal lemmas for sets *)
 
-Lemma cardsE pA : #|[set x \in pA]| = #|pA|.
+Lemma cardsE pA : #|[set x in pA]| = #|pA|.
 Proof. by apply: eq_card; exact: in_set. Qed.
 
 Lemma sum1dep_card pA : \sum_(x | pA x) 1 = #|[set x | pA x]|.
@@ -961,7 +996,7 @@ Section CartesianProd.
 Variables fT1 fT2 : finType.
 Variables (A1 : {set fT1}) (A2 : {set fT2}).
 
-Definition setX := [set u | (u.1 \in A1) && (u.2 \in A2)].
+Definition setX := [set u | u.1 \in A1 & u.2 \in A2].
 
 Lemma in_setX x1 x2 : ((x1, x2) \in setX) = (x1 \in A1) && (x2 \in A2).
 Proof. by rewrite inE. Qed.
@@ -978,11 +1013,11 @@ Implicit Arguments setXP [x1 x2 fT1 fT2 A1 A2].
 Prenex Implicits setXP.
 
 Notation Local imset_def :=
-  (fun (aT rT : finType) f mD => [set y \in @image_mem aT rT f mD]).
+  (fun (aT rT : finType) f mD => [set y in @image_mem aT rT f mD]).
 Notation Local imset2_def :=
   (fun (aT1 aT2 rT : finType) f (D1 : mem_pred aT1) (D2 : _ -> mem_pred aT2) =>
-     [set y \in @image_mem _ rT (prod_curry f)
-                           (mem [pred u | D1 u.1 && D2 u.1 u.2])]).
+     [set y in @image_mem _ rT (prod_curry f)
+                           (mem [pred u | D1 u.1 & D2 u.1 u.2])]).
 
 Module Type ImsetSig.
 Parameter imset : forall aT rT : finType,
@@ -1007,32 +1042,136 @@ Canonical imset2_unlock := Unlockable Imset.imset2E.
 Definition preimset (aT : finType) rT f (R : mem_pred rT) :=
   [set x : aT | in_mem (f x) R].
 
-Notation "f @^-1: R" := (preimset f (mem R)) (at level 24) : set_scope.
-Notation "f @: D" := (imset f (mem D)) (at level 24) : set_scope.
-Notation "f @2: ( D1 , D2 )" := (imset2 f (mem D1) (fun _ => (mem D2)))
-  (at level 24, format "f  @2:  ( D1 ,  D2 )") : set_scope.
-Notation "[ 'set' E | x <- A ]" := ((fun x => E) @: A)
-  (at level 0, E at level 69,
-   format "[ 'set'  E  |  x  <-  A ]") : set_scope.
-Notation "[ 'set' E | x <- A , P ]" := ((fun x => E) @: [set x \in A | P])
-  (at level 0, E at level 69,
-   format "[ 'set'  E  |  x  <-  A ,  P ]") : set_scope.
-Notation "[ 'set' E | x <- A , y <- B ]" :=
+Notation "f @^-1: A" := (preimset f (mem A)) (at level 24) : set_scope.
+Notation "f @: A" := (imset f (mem A)) (at level 24) : set_scope.
+Notation "f @2: ( A , B )" := (imset2 f (mem A) (fun _ => mem B))
+  (at level 24, format "f  @2:  ( A ,  B )") : set_scope.
+
+(* Comprehensions *)
+Notation "[ 'set' E | x 'in' A ]" := ((fun x => E) @: A)
+  (at level 0, E, x at level 99,
+   format "[ '[hv' 'set'  E '/ '  |  x  'in'  A ] ']'") : set_scope.
+Notation "[ 'set' E | x 'in' A & P ]" := [set E | x in [set x in A | P]]
+  (at level 0, E, x at level 99,
+   format "[ '[hv' 'set'  E '/ '  |  x  'in'  A '/ '  &  P ] ']'") : set_scope.
+Notation "[ 'set' E | x 'in' A , y 'in' B ]" :=
   (imset2 (fun x y => E) (mem A) (fun x => (mem B)))
-  (at level 0, E at level 69,
-   format "[ 'set'  E  |  x  <-  A ,  y  <-  B ]") : set_scope.
-Notation "[ 'set' E | x <- A , y <- B , P ]" :=
-  [set E | x <- A, y <- [set y \in B | P]]
-  (at level 0, E at level 69,
-   format "[ 'set'  E  |  x  <-  A ,  y  <-  B ,  P ]") : set_scope.
-Notation "[ 'set' E | x <- A , y < - B ]" :=
+  (at level 0, E, x, y at level 99, format
+   "[ '[hv' 'set'  E '/ '  |  x  'in'  A , '/   '  y  'in'  B ] ']'"
+  ) : set_scope.
+Notation "[ 'set' E | x 'in' A , y 'in' B & P ]" :=
+  [set E | x in A, y in [set y in B | P]]
+  (at level 0, E, x, y at level 99, format
+   "[ '[hv' 'set'  E '/ '  |  x  'in'  A , '/   '  y  'in'  B '/ '  &  P ] ']'"
+  ) : set_scope.
+
+(* Typed variants. *)
+Notation "[ 'set' E | x : T 'in' A ]" := ((fun x : T => E) @: A)
+  (at level 0, E, x at level 99, only parsing) : set_scope.
+Notation "[ 'set' E | x : T 'in' A & P ]" :=
+  [set E | x : T in [set x : T in A | P]]
+  (at level 0, E, x at level 99, only parsing) : set_scope.
+Notation "[ 'set' E | x : T 'in' A , y : U 'in' B ]" :=
+  (imset2 (fun (x : T) (y : U) => E) (mem A) (fun (x : T) => (mem B)))
+  (at level 0, E, x, y at level 99, only parsing) : set_scope.
+Notation "[ 'set' E | x : T 'in' A , y : U 'in' B & P ]" :=
+  [set E | x : T in A, y : U in [set y : U in B | P]]
+  (at level 0, E, x, y at level 99, only parsing) : set_scope.
+
+(* Comprehensions over a type. *)
+Local Notation predOfType T := (sort_of_simpl_pred (@pred_of_argType T)).
+Notation "[ 'set' E | x : T ]" := [set E | x : T in predOfType T]
+  (at level 0, E, x at level 99,
+   format "[ '[hv' 'set'  E '/ '  |  x  :  T ] ']'") : set_scope.
+Notation "[ 'set' E | x : T & P ]" := [set E | x : T in [set x : T | P]]
+  (at level 0, E, x at level 99,
+   format "[ '[hv' 'set'  E '/ '  |  x  :  T '/ '  &  P ] ']'") : set_scope.
+Notation "[ 'set' E | x : T , y : U 'in' B ]" :=
+  [set E | x : T in predOfType T, y : U in B]
+  (at level 0, E, x, y at level 99, format
+   "[ '[hv' 'set'  E '/ '  |  x  :  T , '/   '  y  :  U  'in'  B ] ']'")
+   : set_scope.
+Notation "[ 'set' E | x : T , y : U 'in' B & P ]" :=
+  [set E | x : T, y : U in [set y in B | P]]
+  (at level 0, E, x, y at level 99, format
+ "[ '[hv ' 'set'  E '/'  |  x  :  T , '/  '  y  :  U  'in'  B '/'  &  P ] ']'"
+  ) : set_scope.
+Notation "[ 'set' E | x : T 'in' A , y : U ]" :=
+  [set E | x : T in A, y : U in predOfType U]
+  (at level 0, E, x, y at level 99, format
+   "[ '[hv' 'set'  E '/ '  |  x  :  T  'in'  A , '/   '  y  :  U ] ']'")
+   : set_scope.
+Notation "[ 'set' E | x : T 'in' A , y : U & P ]" :=
+  [set E | x : T in A, y : U in [set y in P]]
+  (at level 0, E, x, y at level 99, format
+   "[ '[hv' 'set'  E '/ '  |  x  :  T  'in'  A , '/   '  y  :  U  &  P ] ']'")
+   : set_scope.
+Notation "[ 'set' E | x : T , y : U ]" :=
+  [set E | x : T, y : U in predOfType U]
+  (at level 0, E, x, y at level 99, format
+   "[ '[hv' 'set'  E '/ '  |  x  :  T , '/   '  y  :  U ] ']'")
+   : set_scope.
+Notation "[ 'set' E | x : T , y : U & P ]" :=
+  [set E | x : T, y : U in [set y in P]]
+  (at level 0, E, x, y at level 99, format
+   "[ '[hv' 'set'  E '/ '  |  x  :  T , '/   '  y  :  U  &  P ] ']'")
+   : set_scope.
+
+(* Untyped variants. *)
+Notation "[ 'set' E | x , y 'in' B ]" := [set E | x : _, y : _ in B]
+  (at level 0, E, x, y at level 99, only parsing) : set_scope.
+Notation "[ 'set' E | x , y 'in' B & P ]" := [set E | x : _, y : _ in B & P]
+  (at level 0, E, x, y at level 99, only parsing) : set_scope.
+Notation "[ 'set' E | x 'in' A , y]" := [set E | x : _ in A, y : _]
+  (at level 0, E, x, y at level 99, only parsing) : set_scope.
+Notation "[ 'set' E | x 'in' A , y & P ]" := [set E | x : _ in A, y : _ & P]
+  (at level 0, E, x, y at level 99, only parsing) : set_scope.
+Notation "[ 'set' E | x , y]" := [set E | x : _, y : _]
+  (at level 0, E, x, y at level 99, only parsing) : set_scope.
+Notation "[ 'set' E | x , y & P ]" := [set E | x : _, y : _ & P ]
+  (at level 0, E, x, y at level 99, only parsing) : set_scope.
+
+(* Print-only variants to work around the Coq pretty-printer K-term kink. *)
+Notation "[ 'se' 't' E | x 'in' A , y 'in' B ]" :=
   (imset2 (fun x y => E) (mem A) (fun _ => mem B))
-  (at level 0, E at level 69,
-   format "[ 'set'  E  |  x  <-  A ,  y  < -  B ]") : set_scope.
-Notation "[ 'set' E | x <- A , y < - B , P ]" :=
-  (imset2 (fun x y => E) (mem A) (fun _ => mem [set y \in B | P]))
-  (at level 0, E at level 69,
-   format "[ 'set'  E  |  x  <-  A ,  y  < -  B ,  P ]") : set_scope.
+  (at level 0, E, x, y at level 99, format
+   "[ '[hv' 'se' 't'  E '/ '  |  x  'in'  A , '/   '  y  'in'  B ] ']'")
+   : set_scope.
+Notation "[ 'se' 't' E | x 'in' A , y 'in' B & P ]" :=
+  [se t E | x in A, y in [set y in B | P]]
+  (at level 0, E, x, y at level 99, format
+ "[ '[hv ' 'se' 't'  E '/'  |  x  'in'  A , '/  '  y  'in'  B '/'  &  P ] ']'"
+  ) : set_scope.
+Notation "[ 'se' 't' E | x : T , y : U 'in' B ]" :=
+  (imset2 (fun x (y : U) => E) (mem (predOfType T)) (fun _ => mem B))
+  (at level 0, E, x, y at level 99, format
+   "[ '[hv ' 'se' 't'  E '/'  |  x  :  T , '/  '  y  :  U  'in'  B ] ']'")
+   : set_scope.
+Notation "[ 'se' 't' E | x : T , y : U 'in' B & P ]" :=
+  [se t E | x : T, y : U in [set y in B | P]]
+  (at level 0, E, x, y at level 99, format
+"[ '[hv ' 'se' 't'  E '/'  |  x  :  T , '/  '  y  :  U  'in'  B '/'  &  P ] ']'"
+  ) : set_scope.
+Notation "[ 'se' 't' E | x : T 'in' A , y : U ]" :=
+  (imset2 (fun x y => E) (mem A) (fun _ : T => mem (predOfType U)))
+  (at level 0, E, x, y at level 99, format
+   "[ '[hv' 'se' 't'  E '/ '  |  x  :  T  'in'  A , '/   '  y  :  U ] ']'")
+   : set_scope.
+Notation "[ 'se' 't' E | x : T 'in' A , y : U & P ]" :=
+  (imset2 (fun x (y : U) => E) (mem A) (fun _ : T => mem [set y \in P]))
+  (at level 0, E, x, y at level 99, format
+"[ '[hv ' 'se' 't'  E '/'  |  x  :  T  'in'  A , '/  '  y  :  U '/'  &  P ] ']'"
+  ) : set_scope.
+Notation "[ 'se' 't' E | x : T , y : U ]" :=
+  [se t E | x : T, y : U in predOfType U]
+  (at level 0, E, x, y at level 99, format
+   "[ '[hv' 'se' 't'  E '/ '  |  x  :  T , '/   '  y  :  U ] ']'")
+   : set_scope.
+Notation "[ 'se' 't' E | x : T , y : U & P ]" :=
+  [se t E | x : T, y : U in [set y in P]]
+  (at level 0, E, x, y at level 99, format
+   "[ '[hv' 'se' 't'  E '/'  |  x  :  T , '/   '  y  :  U '/'  &  P ] ']'")
+   : set_scope.
 
 Section FunImage.
 
@@ -1055,7 +1194,7 @@ CoInductive imset2_spec D1 D2 y : Prop :=
 Lemma imset2P D1 D2 y : reflect (imset2_spec D1 D2 y) (y \in imset2 f2 D1 D2).
 Proof.
 rewrite [@imset2]unlock inE.
-apply: (iffP (imageP _ _ _)) => [[[x1 x2] Dx12] | [x1 x2 Dx1 Dx2]] -> {y}.
+apply: (iffP imageP) => [[[x1 x2] Dx12] | [x1 x2 Dx1 Dx2]] -> {y}.
   by case/andP: Dx12; exists x1 x2.
 by exists (x1, x2); rewrite //= !inE Dx1.
 Qed.
@@ -1205,7 +1344,7 @@ Qed.
 End ImsetTheory.
 
 Lemma imset2_pair (A : {set aT}) (B : {set aT2}) :
-  [set (x, y) | x <- A, y <- B] = setX A B.
+  [set (x, y) | x in A, y in B] = setX A B.
 Proof.
 apply/setP=> [[x y]]; rewrite !inE /=.
 by apply/imset2P/andP=> [[_ _ _ _ [-> ->]//]| []]; exists x y.
@@ -1231,44 +1370,44 @@ Implicit Type h : I -> J.
 Implicit Type P : pred I.
 Implicit Type F : I -> R.
 
-Lemma big_set0 F : \big[op/idx]_(i \in set0) F i = idx.
+Lemma big_set0 F : \big[op/idx]_(i in set0) F i = idx.
 Proof. by apply: big_pred0 => i; rewrite inE. Qed.
 
-Lemma big_set1 a F : \big[op/idx]_(i \in [set a]) F i = F a.
+Lemma big_set1 a F : \big[op/idx]_(i in [set a]) F i = F a.
 Proof. by apply: big_pred1 => i; rewrite !inE. Qed.
 
 Lemma big_setIDdep A B P F :
-  \big[aop/idx]_(i \in A | P i) F i =
-     aop (\big[aop/idx]_(i \in A :&: B | P i) F i)
-         (\big[aop/idx]_(i \in A :\: B | P i) F i).
+  \big[aop/idx]_(i in A | P i) F i =
+     aop (\big[aop/idx]_(i in A :&: B | P i) F i)
+         (\big[aop/idx]_(i in A :\: B | P i) F i).
 Proof.
 rewrite (bigID (mem B)) setDE.
 by congr (aop _ _); apply: eq_bigl => i; rewrite !inE andbAC.
 Qed.
 
 Lemma big_setID A B F :
-  \big[aop/idx]_(i \in A) F i =
-     aop (\big[aop/idx]_(i \in A :&: B) F i)
-         (\big[aop/idx]_(i \in A :\: B) F i).
+  \big[aop/idx]_(i in A) F i =
+     aop (\big[aop/idx]_(i in A :&: B) F i)
+         (\big[aop/idx]_(i in A :\: B) F i).
 Proof.
 rewrite (bigID (mem B)) !(eq_bigl _ _ (in_set _)) //=.
 by congr (aop _); apply: eq_bigl => i; rewrite andbC.
 Qed.
 
 Lemma big_setD1 a A F : a \in A ->
-  \big[aop/idx]_(i \in A) F i = aop (F a) (\big[aop/idx]_(i \in A :\ a) F i).
+  \big[aop/idx]_(i in A) F i = aop (F a) (\big[aop/idx]_(i in A :\ a) F i).
 Proof.
 move=> Aa; rewrite (bigD1 a Aa); congr (aop _).
 by apply: eq_bigl => x; rewrite !inE andbC.
 Qed.
 
 Lemma big_setU1 a A F : a \notin A ->
-  \big[aop/idx]_(i \in a |: A) F i = aop (F a) (\big[aop/idx]_(i \in A) F i).
+  \big[aop/idx]_(i in a |: A) F i = aop (F a) (\big[aop/idx]_(i in A) F i).
 Proof. by move=> notAa; rewrite (@big_setD1 a) ?setU11 //= setU1K. Qed.
 
 Lemma big_imset h A G :
      {in A &, injective h} ->
-  \big[aop/idx]_(j \in h @: A) G j = \big[aop/idx]_(i \in A) G (h i).
+  \big[aop/idx]_(j in h @: A) G j = \big[aop/idx]_(i in A) G (h i).
 Proof.
 move=> injh; pose hA := mem (image h A).
 have [-> | [x0 Ax0]] := set_0Vmem A.
@@ -1285,8 +1424,8 @@ by case/imageP: nhAhi; exists i.
 Qed.
 
 Lemma partition_big_imset h A F :
-  \big[aop/idx]_(i \in A) F i =
-     \big[aop/idx]_(j \in h @: A) \big[aop/idx]_(i \in A | h i == j) F i.
+  \big[aop/idx]_(i in A) F i =
+     \big[aop/idx]_(j in h @: A) \big[aop/idx]_(i in A | h i == j) F i.
 Proof. by apply: partition_big => i Ai; apply/imsetP; exists i. Qed.
 
 End BigOps.
@@ -1368,7 +1507,7 @@ suffices fx: x \in codom f by rewrite -(f_iinv fx) fK.
 move: x; apply/(subset_cardP (card_codom (can_inj fK))); exact/subsetP.
 Qed.
 
-Lemma imset_id (T : finType) (A : {set T}) : [set x | x <- A] = A.
+Lemma imset_id (T : finType) (A : {set T}) : [set x | x in A] = A.
 Proof. by apply/setP=> x; rewrite (@can_imset_pre _ _ id) ?inE. Qed.
 
 Lemma card_preimset (T : finType) (f : T -> T) (A : {set T}) :
@@ -1427,10 +1566,10 @@ Notation "\bigcup_ ( i < n | P ) F" :=
   (\big[@setU _/set0]_(i < n | P%B) F%SET) : set_scope.
 Notation "\bigcup_ ( i < n ) F" :=
   (\big[@setU _/set0]_ (i < n) F%SET) : set_scope.
-Notation "\bigcup_ ( i \in A | P ) F" :=
-  (\big[@setU _/set0]_(i \in A | P%B) F%SET) : set_scope.
-Notation "\bigcup_ ( i \in A ) F" :=
-  (\big[@setU _/set0]_(i \in A) F%SET) : set_scope.
+Notation "\bigcup_ ( i 'in' A | P ) F" :=
+  (\big[@setU _/set0]_(i in A | P%B) F%SET) : set_scope.
+Notation "\bigcup_ ( i 'in' A ) F" :=
+  (\big[@setU _/set0]_(i in A) F%SET) : set_scope.
 
 Notation "\bigcap_ ( <- r | P ) F" :=
   (\big[@setI _/setT]_(<- r | P%B) F%SET) : set_scope.
@@ -1454,10 +1593,10 @@ Notation "\bigcap_ ( i < n | P ) F" :=
   (\big[@setI _/setT]_(i < n | P%B) F%SET) : set_scope.
 Notation "\bigcap_ ( i < n ) F" :=
   (\big[@setI _/setT]_(i < n) F%SET) : set_scope.
-Notation "\bigcap_ ( i \in A | P ) F" :=
-  (\big[@setI _/setT]_(i \in A | P%B) F%SET) : set_scope.
-Notation "\bigcap_ ( i \in A ) F" :=
-  (\big[@setI _/setT]_(i \in A) F%SET) : set_scope.
+Notation "\bigcap_ ( i 'in' A | P ) F" :=
+  (\big[@setI _/setT]_(i in A | P%B) F%SET) : set_scope.
+Notation "\bigcap_ ( i 'in' A ) F" :=
+  (\big[@setI _/setT]_(i in A) F%SET) : set_scope.
 
 Section BigSetOps.
 
@@ -1497,15 +1636,15 @@ by apply/bigcupsP=> i /dUF; rewrite disjoint_sym disjoint_subset.
 Qed.
 
 Lemma bigcup_setU A B F :
-  \bigcup_(i \in A :|: B) F i =
-     (\bigcup_(i \in A) F i) :|: (\bigcup_ (i \in B) F i).
+  \bigcup_(i in A :|: B) F i =
+     (\bigcup_(i in A) F i) :|: (\bigcup_ (i in B) F i).
 Proof.
 apply/setP=> x; apply/bigcupP/setUP=> [[i] | ].
   by case/setUP; [left | right]; apply/bigcupP; exists i.
 by case=> /bigcupP[i Pi]; exists i; rewrite // inE Pi ?orbT.
 Qed.
 
-Lemma bigcup_seq r F : \bigcup_(i <- r) F i = \bigcup_(i \in r) F i.
+Lemma bigcup_seq r F : \bigcup_(i <- r) F i = \bigcup_(i in r) F i.
 Proof.
 elim: r => [|i r IHr]; first by rewrite big_nil big_pred0.
 rewrite big_cons {}IHr; case r_i: (i \in r).
@@ -1548,11 +1687,11 @@ Lemma setC_bigcap J r (P : pred J) (F : J -> {set T}) :
 Proof. by apply: big_morph => [A B|]; rewrite ?setCT ?setCI. Qed.
 
 Lemma bigcap_setU A B F :
-  (\bigcap_(i \in A :|: B) F i) =
-    (\bigcap_(i \in A) F i) :&: (\bigcap_(i \in B) F i).
+  (\bigcap_(i in A :|: B) F i) =
+    (\bigcap_(i in A) F i) :&: (\bigcap_(i in B) F i).
 Proof. by apply: setC_inj; rewrite setCI !setC_bigcap bigcup_setU. Qed.
 
-Lemma bigcap_seq r F : \bigcap_(i <- r) F i = \bigcap_(i \in r) F i.
+Lemma bigcap_seq r F : \bigcap_(i <- r) F i = \bigcap_(i in r) F i.
 Proof. by apply: setC_inj; rewrite !setC_bigcap bigcup_seq. Qed.
 
 End BigSetOps.
@@ -1582,14 +1721,14 @@ rewrite [@imset]unlock unlock; apply/setP=> x; rewrite !in_set; congr (x \in _).
 by apply: eq_image => u //=; rewrite !inE.
 Qed.
 
-Lemma curry_imset2l : f @2: (D1, D2) = \bigcup_(x1 \in D1) f x1 @: D2.
+Lemma curry_imset2l : f @2: (D1, D2) = \bigcup_(x1 in D1) f x1 @: D2.
 Proof.
 apply/setP=> y; apply/imset2P/bigcupP => [[x1 x2 Dx1 Dx2 ->{y}] | [x1 Dx1]].
   by exists x1; rewrite // mem_imset.
 by case/imsetP=> x2 Dx2 ->{y}; exists x1 x2.
 Qed.
 
-Lemma curry_imset2r : f @2: (D1, D2) = \bigcup_(x2 \in D2) f^~ x2 @: D1.
+Lemma curry_imset2r : f @2: (D1, D2) = \bigcup_(x2 in D2) f^~ x2 @: D1.
 Proof.
 apply/setP=> y; apply/imset2P/bigcupP => [[x1 x2 Dx1 Dx2 ->{y}] | [x2 Dx2]].
   by exists x2; rewrite // (mem_imset (f^~ x2)).
@@ -1614,24 +1753,23 @@ Variables T I : finType.
 Implicit Types (x y z : T) (A B D X : {set T}) (P Q : {set {set T}}).
 Implicit Types (J : pred I) (F : I -> {set T}).
 
-Definition cover P := \bigcup_(B \in P) B.
-Definition pblock P x := odflt set0 (pick [pred B \in P | x \in B]).
-Definition trivIset P := \sum_(B \in P) #|B| == #|cover P|.
+Definition cover P := \bigcup_(B in P) B.
+Definition pblock P x := odflt set0 (pick [pred B in P | x \in B]).
+Definition trivIset P := \sum_(B in P) #|B| == #|cover P|.
 Definition partition P D := [&& cover P == D, trivIset P & set0 \notin P].
 
 Definition is_transversal X P D :=
-  [&& partition P D, X \subset D & forallb B, (B \in P) ==> (#|X :&: B| == 1)].
-Definition transversal P D := [set odflt x [pick y \in pblock P x] | x <- D].
-Definition transversal_repr x0 X B := odflt x0 [pick x \in X :&: B].
+  [&& partition P D, X \subset D & [forall B in P, #|X :&: B| == 1]].
+Definition transversal P D := [set odflt x [pick y in pblock P x] | x in D].
+Definition transversal_repr x0 X B := odflt x0 [pick x in X :&: B].
 
 Lemma leq_card_setU A B : #|A :|: B| <= #|A| + #|B| ?= iff [disjoint A & B].
 Proof.
 rewrite -(addn0 #|_|) -setI_eq0 -cards_eq0 -cardsUI eq_sym.
-exact/(monotone_leqif (leq_add2l _)).
+by rewrite (mono_leqif (leq_add2l _)).
 Qed.
 
-Lemma leq_card_cover P :
-  #|cover P| <= \sum_(A \in P) #|A| ?= iff trivIset P.
+Lemma leq_card_cover P : #|cover P| <= \sum_(A in P) #|A| ?= iff trivIset P.
 Proof.
 split; last exact: eq_sym.
 rewrite /cover; elim/big_rec2: _ => [|A n U _ leUn]; first by rewrite cards0.
@@ -1641,13 +1779,13 @@ Qed.
 Lemma trivIsetP P :
   reflect {in P &, forall A B, A != B -> [disjoint A & B]} (trivIset P).
 Proof.
-have->: P = [set x \in enum (mem P)] by apply/setP=> x; rewrite inE mem_enum.
+have->: P = [set x in enum (mem P)] by apply/setP=> x; rewrite inE mem_enum.
 elim: {P}(enum _) (enum_uniq (mem P)) => [_ | A e IHe] /=.
   by rewrite /trivIset /cover !big_set0 cards0; left=> A; rewrite inE.
 case/andP; rewrite set_cons -(in_set (fun B => B \in e)) => PA {IHe}/IHe.
-move: {e}[set x \in e] PA => P PA IHP.
+move: {e}[set x in e] PA => P PA IHP.
 rewrite /trivIset /cover !big_setU1 //= eq_sym.
-move/(monotone_leqif (leq_add2l #|A|)): (leq_card_cover P).
+have:= leq_card_cover P; rewrite -(mono_leqif (leq_add2l #|A|)).
 move/(leqif_trans (leq_card_setU _ _))->; rewrite disjoints_subset setC_bigcup.
 case: bigcapsP => [disjA | meetA]; last first.
   right=> [tI]; case: meetA => B PB; rewrite -disjoints_subset.
@@ -1714,7 +1852,7 @@ apply/trivIsetP=> B1 B2 /setU1P[->|PB1] /setU1P[->|PB2];
   by [exact: (trivIsetP _ tiP) | rewrite ?eqxx // ?(tiAP, disjoint_sym)].
 Qed.
 
-Lemma cover_imset J F : cover (F @: J) = \bigcup_(i \in J) F i.
+Lemma cover_imset J F : cover (F @: J) = \bigcup_(i in J) F i.
 Proof.
 apply/setP=> x.
 apply/bigcupP/bigcupP=> [[_ /imsetP[i Ji ->]] | [i]]; first by exists i.
@@ -1735,7 +1873,7 @@ Qed.
 Lemma cover_partition P D : partition P D -> cover P = D.
 Proof. by case/and3P=> /eqP. Qed.
 
-Lemma card_partition P D : partition P D -> #|D| = \sum_(A \in P) #|A|.
+Lemma card_partition P D : partition P D -> #|D| = \sum_(A in P) #|A|.
 Proof. by case/and3P=> /eqP <- /eqnP. Qed.
 
 Lemma card_uniform_partition n P D :
@@ -1747,11 +1885,11 @@ Qed.
 Section BigOps.
 
 Variables (R : Type) (idx : R) (op : Monoid.com_law idx).
-Let rhs_cond P K E := \big[op/idx]_(A \in P) \big[op/idx]_(x \in A | K x) E x.
-Let rhs P E := \big[op/idx]_(A \in P) \big[op/idx]_(x \in A) E x.
+Let rhs_cond P K E := \big[op/idx]_(A in P) \big[op/idx]_(x in A | K x) E x.
+Let rhs P E := \big[op/idx]_(A in P) \big[op/idx]_(x in A) E x.
 
 Lemma big_trivIset_cond P (K : pred T) (E : T -> R) :
-  trivIset P -> \big[op/idx]_(x \in cover P | K x) E x = rhs_cond P K E.
+  trivIset P -> \big[op/idx]_(x in cover P | K x) E x = rhs_cond P K E.
 Proof.
 move=> tiP; rewrite (partition_big (pblock P) (mem P)) -/op => /= [|x].
   apply: eq_bigr => A PA; apply: eq_bigl => x; rewrite andbAC; congr (_ && _).
@@ -1761,26 +1899,26 @@ by case/andP=> Px _; exact: pblock_mem.
 Qed.
 
 Lemma big_trivIset P (E : T -> R) :
-  trivIset P -> \big[op/idx]_(x \in cover P) E x = rhs P E.
+  trivIset P -> \big[op/idx]_(x in cover P) E x = rhs P E.
 Proof.
 have biginT := eq_bigl _ _ (fun _ => andbT _) => tiP.
 by rewrite -biginT big_trivIset_cond //; apply: eq_bigr => A _; exact: biginT.
 Qed.
 
 Lemma set_partition_big_cond P D (K : pred T) (E : T -> R) :
-  partition P D -> \big[op/idx]_(x \in D | K x) E x = rhs_cond P K E.
+  partition P D -> \big[op/idx]_(x in D | K x) E x = rhs_cond P K E.
 Proof. by case/and3P=> /eqP <- tI_P _; exact: big_trivIset_cond. Qed.
 
 Lemma set_partition_big P D (E : T -> R) :
-  partition P D -> \big[op/idx]_(x \in D) E x = rhs P E.
+  partition P D -> \big[op/idx]_(x in D) E x = rhs P E.
 Proof. by case/and3P=> /eqP <- tI_P _; exact: big_trivIset. Qed.
 
 Lemma partition_disjoint_bigcup (F : I -> {set T}) E :
     (forall i j, i != j -> [disjoint F i & F j]) ->
-  \big[op/idx]_(x \in \bigcup_i F i) E x =
-    \big[op/idx]_i \big[op/idx]_(x \in F i) E x.
+  \big[op/idx]_(x in \bigcup_i F i) E x =
+    \big[op/idx]_i \big[op/idx]_(x in F i) E x.
 Proof.
-move=> disjF; pose P := [set F i | i <- I, F i != set0].
+move=> disjF; pose P := [set F i | i in I & F i != set0].
 have trivP: trivIset P.
   apply/trivIsetP=> _ _ /imsetP[i _ ->] /imsetP[j _ ->] neqFij.
   by apply: disjF; apply: contraNneq neqFij => ->.
@@ -1799,8 +1937,8 @@ Section Equivalence.
 
 Variables (R : rel T) (D : {set T}).
 
-Let Px x := [set y \in D | R x y].
-Definition equivalence_partition := [set Px x | x <- D].
+Let Px x := [set y in D | R x y].
+Definition equivalence_partition := [set Px x | x in D].
 Local Notation P := equivalence_partition.
 Hypothesis eqiR : {in D & &, equivalence_rel R}.
 
@@ -1843,7 +1981,7 @@ Lemma equivalence_partition_pblock P D :
   partition P D -> equivalence_partition (fun x y => y \in pblock P x) D = P.
 Proof.
 case/and3P=> /eqP <-{D} tiP notP0; apply/setP=> B /=; set D := cover P.
-have defP x: x \in D -> [set y \in D | y \in pblock P x] = pblock P x.
+have defP x: x \in D -> [set y in D | y \in pblock P x] = pblock P x.
   by move=> Dx; apply/setIidPr; rewrite (bigcup_max (pblock P x)) ?pblock_mem.
 apply/imsetP/idP=> [[x Px ->{B}] | PB]; first by rewrite defP ?pblock_mem.
 have /set0Pn[x Bx]: B != set0 := memPn notP0 B PB.
@@ -1876,7 +2014,7 @@ case/and3P=> /eqP <- tiP notP0; apply/and3P; split; first exact/and3P.
   apply/subsetP=> _ /imsetP[x Px ->]; case: pickP => //= y Pxy.
   by apply/bigcupP; exists (pblock P x); rewrite ?pblock_mem //.
 apply/forall_inP=> B PB; have /set0Pn[x Bx]: B != set0 := memPn notP0 B PB.
-apply/cards1P; exists (odflt x [pick y \in pblock P x]); apply/esym/eqP.
+apply/cards1P; exists (odflt x [pick y in pblock P x]); apply/esym/eqP.
 rewrite eqEsubset sub1set inE -andbA; apply/andP; split.
   by apply/mem_imset/bigcupP; exists B.
 rewrite (def_pblock tiP PB Bx); case def_y: _ / pickP => [y By | /(_ x)/idP//].
@@ -1985,7 +2123,7 @@ Notation sT := {set T}.
 Implicit Types A B C : sT.
 Implicit Type P : pred sT.
 
-Definition minset P A := forallb B : sT, (B \subset A) ==> ((B == A) == P B).
+Definition minset P A := [forall (B : sT | B \subset A), (B == A) == P B].
 
 Lemma minset_eq P1 P2 A : P1 =1 P2 -> minset P1 A = minset P2 A.
 Proof. by move=> eP12; apply: eq_forallb => B; rewrite eP12. Qed.
@@ -2008,7 +2146,7 @@ Proof. by case/minsetP=> _; exact. Qed.
 
 Lemma ex_minset P : (exists A, P A) -> {A | minset P A}.
 Proof.
-move=> exP; pose pS n := [pred B | P B && (#|B| == n)].
+move=> exP; pose pS n := [pred B | P B & #|B| == n].
 pose p n := ~~ pred0b (pS n); have{exP}: exists n, p n.
   by case: exP => A PA; exists #|A|; apply/existsP; exists A; rewrite /= PA /=.
 case/ex_minnP=> n /pred0P; case: (pickP (pS n)) => // A /andP[PA] /eqP <-{n} _.

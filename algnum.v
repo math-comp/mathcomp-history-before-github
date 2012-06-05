@@ -267,9 +267,9 @@ have s_Zs a: \sum_(i < m) s`_i *~ a i \in <<s>>%VS.
 case s_v: (v \in <<s>>%VS); last by right=> [[a Dv]]; rewrite Dv s_Zs in s_v.
 pose IzT := {: 'I_m * 'I_(\dim <<s>>)}; pose Iz := 'I_#|IzT|.
 pose b := vbasis <<s>>.
-pose z_s := [image coord b ij.2 (tnth s ij.1) | ij <- IzT].
+pose z_s := [seq coord b ij.2 (tnth s ij.1) | ij : IzT].
 pose rank2 j i: Iz := enum_rank (i, j); pose val21 (p : Iz) := (enum_val p).1.
-pose inQzs w := forallb j, Crat_span z_s (coord b j w).
+pose inQzs w := [forall j, Crat_span z_s (coord b j w)].
 have enum_pairK j: {in predT, cancel (rank2 j) val21}.
   by move=> i; rewrite /val21 enum_rankK. 
 have Qz_Zs a: inQzs (\sum_(i < m) s`_i *~ a i).
@@ -582,7 +582,7 @@ pose n (i : 'I_m) := (size (minCpoly X`_i)).-2; pose N := (\max_i n i).+1.
 pose IY := family (fun i => [pred e : 'I_N | e <= n i]%N).
 have IY_0: 0 \in IY by apply/familyP=> // i; rewrite ffunE.
 pose inIY := enum_rank_in IY_0.
-pose Y := [image \prod_(i < m) X`_i ^+ (f : 'I_N ^ m) i | f <- IY].
+pose Y := [seq \prod_(i < m) X`_i ^+ (f : 'I_N ^ m) i | f in IY].
 have S_P := Cint_spanP [tuple of Y]; set S := Cint_span _ in S_P.
 have sYS: {subset Y <= S} by exact: mem_Cint_span.
 have S_1: 1 \in S.

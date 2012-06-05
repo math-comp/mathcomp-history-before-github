@@ -9,6 +9,7 @@ Require Import div bigop.
 (*        pfactor == the type of prime factors, syntax (p ^ e)%pfactor.       *)
 (* prime_decomp m == the list of prime factors of m > 1, sorted by primes.    *)
 (*       logn p m == the e such that (p ^ e) \in prime_decomp n, else 0.      *)
+(*  trunc_log p m == the largest e such that p ^ e <= m, or 0 if p or m is 0. *)
 (*         pdiv n == the smallest prime divisor of n > 1, else 1.             *)
 (*     max_pdiv n == the largest prime divisor of n > 1, else 1.              *)
 (*     divisors m == the sorted list of divisors of m > 0, else [::].         *)
@@ -151,7 +152,7 @@ Coercion pi_arg_of_nat (n : nat) := Wrap n : pi_wrapped_arg.
 Coercion pi_arg_of_fin_pred T pT (A : @fin_pred_sort T pT) : pi_wrapped_arg :=
   Wrap #|A|.
 
-Definition pi_of (n : pi_unwrapped_arg) : nat_pred := [pred p \in primes n].
+Definition pi_of (n : pi_unwrapped_arg) : nat_pred := [pred p in primes n].
 
 Notation "\pi ( n )" := (pi_of n)
   (at level 2, format "\pi ( n )") : nat_scope.
@@ -766,6 +767,37 @@ Proof.
 rewrite big_add1 => p_prime; case: n => [|n]; first by rewrite logn0 big_geq.
 rewrite big_mkord -big_mkcond (eq_bigl _ _ (fun _ => pfactor_dvdn _ _ _)) //=.
 by rewrite big_ord_narrow ?sum1_card ?card_ord // -ltnS ltn_logl.
+Qed.
+
+(* Truncated real log. *)
+
+Definition trunc_log p n :=
+  let fix loop n k :=
+    if k is k'.+1 then if p <= n then (loop (n %/ p) k').+1 else 0 else 0
+  in loop n n.
+
+Lemma trunc_log_bounds p n :
+  1 < p -> 0 < n -> let k := trunc_log p n in p ^ k <= n < p ^ k.+1.
+Proof.
+rewrite {+}/trunc_log => p_gt1; have p_gt0 := ltnW p_gt1.
+elim: n {-2 5}n (leqnn n) => [|m IHm] [|n] //=; rewrite ltnS => le_n_m _.
+have [le_p_n | // ] := leqP p _; rewrite 2!expnSr -leq_divRL -?ltn_divLR //.
+by apply: IHm; rewrite ?divn_gt0 // -ltnS (leq_trans (ltn_Pdiv _ _)).
+Qed.
+
+Lemma trunc_log_ltn p n : 1 < p -> n < p ^ (trunc_log p n).+1.
+Proof.
+have [-> | n_gt0] := posnP n; first by move=> /ltnW; rewrite expn_gt0.
+by case/trunc_log_bounds/(_ n_gt0)/andP.
+Qed.
+
+Lemma trunc_logP p n : 1 < p -> 0 < n -> p ^ trunc_log p n <= n.
+Proof. by move=> p_gt1 /(trunc_log_bounds p_gt1)/andP[]. Qed.
+
+Lemma trunc_log_max p k j : 1 < p -> p ^ j <= k -> j <= trunc_log p k.
+Proof.
+move=> p_gt1 le_pj_k; rewrite -ltnS -(@ltn_exp2l p) //.
+exact: leq_ltn_trans (trunc_log_ltn _ _).
 Qed.
 
 (* pi- parts *)

@@ -5,7 +5,7 @@ Require Import ssralg finset fingroup morphism perm action.
 (*****************************************************************************)
 (* This file clones the entire ssralg hierachy for finite types; this allows *)
 (* type inference to function properly on expressions that mix combinatorial *)
-(* and algebraic operators (e.g., [set x + y | x, y <- A]).                  *)
+(* and algebraic operators (e.g., [set x + y | x in A, y in A]).             *)
 (*   finZmodType, finRingType, finComRingType, finUnitRingType,              *)
 (*   finComUnitRingType, finIdomType, finFieldType finLmodType,              *)
 (*   finLalgType finAlgType finUnitAlgType                                   *)
@@ -223,7 +223,7 @@ Section Unit.
 Variable R : finRingType.
 
 Definition is_inv (x y : R) := (x * y == 1) && (y * x == 1).
-Definition unit := [qualify a x : R | existsb y, is_inv x y].
+Definition unit := [qualify a x : R | [exists y, is_inv x y]].
 Definition inv x := odflt x (pick (is_inv x)).
 
 Lemma mulVr : {in unit, left_inverse 1 inv *%R}.
@@ -814,8 +814,8 @@ Fixpoint sat e f :=
   | f1 \/ f2 => sat e f1 || sat e f2
   | f1 ==> f2 => (sat e f1 ==> sat e f2)%bool
   | ~ f1 => ~~ sat e f1
-  | ('exists 'X_k, f1) => (existsb x : F, sat (set_nth 0%R e k x) f1)
-  | ('forall 'X_k, f1) => (forallb x : F, sat (set_nth 0%R e k x) f1)
+  | ('exists 'X_k, f1) => [exists x : F, sat (set_nth 0%R e k x) f1]
+  | ('forall 'X_k, f1) => [forall x : F, sat (set_nth 0%R e k x) f1]
   end%T.
 
 Lemma decidable : GRing.DecidableField.axiom sat.

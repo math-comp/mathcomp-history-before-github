@@ -176,7 +176,7 @@ Hypotheses (pR : p.-group R) (oddR : odd #|R|) (ncycR : ~~ cyclic R).
 (* This is B & G, Lemma 4.5(a), or Gorenstein 5.4.10. *)
 Lemma ex_odd_normal_p2Elem : {S : {group gT} | S <| R & S \in 'E_p^2(R)}.
 Proof.
-have [M minM]: {M | [min M | (M <| R) && ~~ cyclic M]}.
+have [M minM]: {M | [min M | M <| R & ~~ cyclic M]}.
   by apply: ex_mingroup; exists R; rewrite normal_refl.
 have{minM} [[nsMR ncycM] [_ minM]] := (andP (mingroupp minM), mingroupP minM).
 have [sMR _] := andP nsMR; have pM := pgroupS sMR pR.
@@ -295,7 +295,7 @@ have{SCN_3_empty} defZ: 'Ohm_1('C_R(Z)) = Z.
   apply/maxgroupP; split=> [|H]; first exact/andP.
   case/andP=> nsHR abelH sZH; have [pH cHH _] := and3P abelH.
   apply/eqP; rewrite eq_sym eqEproper sZH /=.
-  pose normal_abelian := [pred K : {group gT} | (K <| R) && abelian K].
+  pose normal_abelian := [pred K : {group gT} | K <| R & abelian K].
   have [|K maxK sHK] := @maxgroup_exists _ normal_abelian H; first exact/andP.
   apply: contraL SCN_3_empty => ltZR; apply/set0Pn; exists K.
   rewrite inE (max_SCN pR) {maxK}//= -dimZ2 (leq_trans _ (rankS sHK)) //.
@@ -323,7 +323,7 @@ Proposition rank2_exponent_p_p3group : forall gT (R : {group gT}) p,
   p.-group R -> rank R <= 2 -> exponent R %| p -> logn p #|R| <= 3.
 Proof.
 move=> gT R p pR rankR expR.
-have [A max_na_A]: {A | [max A | (A <| R) && abelian A]}.
+have [A max_na_A]: {A | [max A | A <| R & abelian A]}.
   by apply: ex_maxgroup; exists 1%G; rewrite normal1 abelian1.
 have {max_na_A} SCN_A := max_SCN pR max_na_A.
 have cAA := SCN_abelian SCN_A; case/SCN_P: SCN_A => nAR cRAA.
@@ -596,7 +596,7 @@ have{eR' def_r cTT} defR': R' = <[r]>.
   rewrite quotientMl ?(subset_trans sTR) // abelianM quotient_abelian //=.
   rewrite quotient_cents //= -der1_joing_cycles ?der_abelian //.
   by rewrite -sub_cent1 (subset_trans sXYR).
-have [S maxS sR'S] : {S | [max S | (S \subset R) && cyclic S] & (R' \subset S)}.
+have [S maxS sR'S] : {S | [max S | S \subset R & cyclic S] & R' \subset S}.
   by apply: maxgroup_exists; rewrite sR'R /= -/R' defR' cycle_cyclic.
 case/maxgroupP: maxS; case/andP=> sSR cycS maxS.
 have nsSR: S <| R := sub_der1_normal sR'S sSR; have [_ nSR] := andP nsSR.
@@ -756,7 +756,7 @@ wlog{q_dv_Ar} [a oa nRa]: gT R pR rR / {a | #[a] = q & a \in 'N(R) :\: 'C(R)}.
   by rewrite perm1 [a x](@astab_act _ _ _ [Aut R] R) ?astabEsd ?mem_morphpre.
 move: {2}_.+1 (ltnSn #|R|) => n.
 elim: n => // n IHn in gT a R pR rR nRa oa *; rewrite ltnS => leRn.
-case recR: (existsb S, (gval S \proper R) && (a \in 'N(S) :\: 'C(S))).
+case recR: [exists (S : {group gT} | S \proper R), a \in 'N(S) :\: 'C(S)].
   have [S ltSR nSa] := exists_inP recR; rewrite properEcard in ltSR.
   have{ltSR} [sSR ltSR] := andP ltSR; have rS := leq_trans (rankS sSR) rR.
   by apply: IHn nSa oa _; rewrite ?(pgroupS sSR) ?(leq_trans ltSR).

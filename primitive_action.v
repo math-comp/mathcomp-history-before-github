@@ -34,7 +34,7 @@ Definition imprimitivity_system Q :=
   [&& partition Q S, [acts A, on Q | to^*] & 1 < #|Q| < #|S|].
 
 Definition primitive :=
-  [transitive A, on S | to] && ~~ existsb Q, imprimitivity_system Q.
+  [transitive A, on S | to] && ~~ [exists Q, imprimitivity_system Q].
 
 End PrimitiveDef.
 
@@ -153,7 +153,7 @@ Section NTransitive.
 Variables (gT : finGroupType) (sT : finType).
 Variables (n :  nat) (A : {set gT}) (S : {set sT}) (to : {action gT &-> sT}).
 
-Definition dtuple_on := [set t : n.-tuple sT | uniq t && (t \subset S)].
+Definition dtuple_on := [set t : n.-tuple sT | uniq t & t \subset S].
 Definition ntransitive := [transitive A, on dtuple_on | to * n].
 
 Lemma dtuple_onP t :

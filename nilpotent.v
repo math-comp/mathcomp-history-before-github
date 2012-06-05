@@ -58,12 +58,12 @@ Section PropertiesDefs.
 Variables (gT : finGroupType) (A : {set gT}).
 
 Definition nilpotent :=
-  forallb G : {group gT}, (G \subset A :&: [~: G, A]) ==> (G :==: 1).
+  [forall (G : {group gT} | G \subset A :&: [~: G, A]), G :==: 1].
 
 Definition nil_class := index 1 (mkseq (fun n => 'L_n.+1(A)) #|A|).
 
 Definition solvable :=
-  forallb G : {group gT}, (G \subset A :&: [~: G, G]) ==> (G :==: 1).
+  [forall (G : {group gT} | G \subset A :&: [~: G, G]), G :==: 1].
 
 End PropertiesDefs.
 
@@ -179,8 +179,50 @@ rewrite !commMG ?normsR ?lcn_norm ?cents_norm // 1?centsC //.
 by rewrite -!(commGC 'L__(_)) -!lcnSn !(commG1P _) ?mul1g ?sL // centsC.
 Qed.
 
+Lemma lcn_dprod n A B G : A \x B = G -> 'L_n(A) \x 'L_n(B) = 'L_n(G).
+Proof.
+move=> defG; have [[K H defA defB] _ _ tiAB] := dprodP defG.
+rewrite !dprodEcprod // in defG *; first exact: lcn_cprod.
+by rewrite defA defB; apply/trivgP; rewrite -tiAB defA defB setISS ?lcn_sub.
+Qed.
+
 Lemma der_cprod n A B G : A \* B = G -> A^`(n) \* B^`(n) = G^`(n).
 Proof. by move=> defG; elim: n => {defG}// n; apply: (lcn_cprod 2). Qed.
+
+Lemma der_dprod n A B G : A \x B = G -> A^`(n) \x B^`(n) = G^`(n).
+Proof. by move=> defG; elim: n => {defG}// n; apply: (lcn_dprod 2). Qed.
+
+Lemma lcn_bigcprod n I r P (F : I -> {set gT}) G :
+    \big[cprod/1]_(i <- r | P i) F i = G ->
+  \big[cprod/1]_(i <- r | P i) 'L_n(F i) = 'L_n(G).
+Proof.
+elim/big_rec2: _ G => [_ <- | i A Z _ IH G dG]; first exact/esym/trivgP/lcn_sub.
+by rewrite -(lcn_cprod n dG); have [[_ H _ dH]] := cprodP dG; rewrite dH (IH H).
+Qed.
+
+Lemma lcn_bigdprod n I r P (F : I -> {set gT}) G :
+    \big[dprod/1]_(i <- r | P i) F i = G ->
+  \big[dprod/1]_(i <- r | P i) 'L_n(F i) = 'L_n(G).
+Proof.
+elim/big_rec2: _ G => [_ <- | i A Z _ IH G dG]; first exact/esym/trivgP/lcn_sub.
+by rewrite -(lcn_dprod n dG); have [[_ H _ dH]] := dprodP dG; rewrite dH (IH H).
+Qed.
+
+Lemma der_bigcprod n I r P (F : I -> {set gT}) G :
+    \big[cprod/1]_(i <- r | P i) F i = G ->
+  \big[cprod/1]_(i <- r | P i) (F i)^`(n) = G^`(n).
+Proof.
+elim/big_rec2: _ G => [_ <- | i A Z _ IH G dG]; first exact/esym/trivgP/gFsub.
+by rewrite -(der_cprod n dG); have [[_ H _ dH]] := cprodP dG; rewrite dH (IH H).
+Qed.
+
+Lemma der_bigdprod n I r P (F : I -> {set gT}) G :
+    \big[dprod/1]_(i <- r | P i) F i = G ->
+  \big[dprod/1]_(i <- r | P i) (F i)^`(n) = G^`(n).
+Proof.
+elim/big_rec2: _ G => [_ <- | i A Z _ IH G dG]; first exact/esym/trivgP/gFsub.
+by rewrite -(der_dprod n dG); have [[_ H _ dH]] := dprodP dG; rewrite dH (IH H).
+Qed.
 
 Lemma nilpotent_class G : nilpotent G = (nil_class G < #|G|).
 Proof.
@@ -359,13 +401,60 @@ apply: (quotient_inj (normal1 _) (normal1 _)).
 by rewrite /= (ucn_central 0) -injmF ?norms1 ?coset1_injm.
 Qed.
 
-Lemma ucnSnR n G :
-  'Z_n.+1(G) = [set x \in G | [~: [set x], G] \subset 'Z_n(G)].
+Lemma ucnSnR n G : 'Z_n.+1(G) = [set x in G | [~: [set x], G] \subset 'Z_n(G)].
 Proof.
 apply/setP=> x; rewrite inE -(setIidPr (ucn_sub n.+1 G)) inE ucnSn.
 case Gx: (x \in G) => //=; have nZG := ucn_norm n G.
 rewrite -sub1set -sub_quotient_pre -?quotient_cents2 ?sub1set ?(subsetP nZG) //.
 by rewrite subsetI quotientS ?sub1set.
+Qed.
+
+Lemma ucn_cprod n A B G : A \* B = G -> 'Z_n(A) \* 'Z_n(B) = 'Z_n(G).
+Proof.
+case/cprodP=> [[H K -> ->{A B}] mulHK cHK].
+elim: n => [|n /cprodP[_ /= defZ cZn]]; first exact: cprod1g.
+set Z := 'Z_n(G) in defZ cZn; rewrite (ucnSn n G) /= -/Z.
+have /mulGsubP[nZH nZK]: H * K \subset 'N(Z) by rewrite mulHK gFnorm.
+have <-: 'Z(H / Z) * 'Z(K / Z) = 'Z(G / Z).
+  by rewrite -mulHK quotientMl // center_prod ?quotient_cents.
+have ZquoZ (B A : {group gT}):
+  B \subset 'C(A) -> 'Z_n(A) * 'Z_n(B) = Z -> 'Z(A / Z) = 'Z_n.+1(A) / Z.
+- move=> cAB {defZ}defZ; have cAZnB := subset_trans (ucn_sub n B) cAB. 
+  have /second_isom[/=]: A \subset 'N(Z).
+    by rewrite -defZ normsM ?gFnorm ?cents_norm // centsC.
+  suffices ->: Z :&: A = 'Z_n(A).
+    by move=> f inj_f im_f; rewrite -!im_f ?gFsub // ucn_central injm_center.
+  rewrite -defZ -group_modl ?gFsub //; apply/mulGidPl.
+  have [-> | n_gt0] := posnP n; first exact: subsetIl.
+  by apply: subset_trans (ucn_sub_geq A n_gt0); rewrite /= setIC ucn1 setIS.
+rewrite (ZquoZ H K) 1?centsC 1?(centC cZn) // {ZquoZ}(ZquoZ K H) //.
+have cZn1: 'Z_n.+1(K) \subset 'C('Z_n.+1(H)) by apply: centSS cHK; apply: gFsub.
+rewrite -quotientMl ?quotientK ?mul_subG ?(subset_trans (gFsub _ _)) //=.
+rewrite cprodE // -cent_joinEr ?mulSGid //= cent_joinEr //= -/Z.
+by rewrite -defZ mulgSS ?ucn_subS.
+Qed.
+
+Lemma ucn_dprod n A B G : A \x B = G -> 'Z_n(A) \x 'Z_n(B) = 'Z_n(G).
+Proof.
+move=> defG; have [[K H defA defB] _ _ tiAB] := dprodP defG.
+rewrite !dprodEcprod // in defG *; first exact: ucn_cprod.
+by rewrite defA defB; apply/trivgP; rewrite -tiAB defA defB setISS ?ucn_sub.
+Qed.
+
+Lemma ucn_bigcprod n I r P (F : I -> {set gT}) G :
+    \big[cprod/1]_(i <- r | P i) F i = G ->
+  \big[cprod/1]_(i <- r | P i) 'Z_n(F i) = 'Z_n(G).
+Proof.
+elim/big_rec2: _ G => [_ <- | i A Z _ IH G dG]; first exact/esym/trivgP/gFsub.
+by rewrite -(ucn_cprod n dG); have [[_ H _ dH]] := cprodP dG; rewrite dH (IH H).
+Qed.
+
+Lemma ucn_bigdprod n I r P (F : I -> {set gT}) G :
+    \big[dprod/1]_(i <- r | P i) F i = G ->
+  \big[dprod/1]_(i <- r | P i) 'Z_n(F i) = 'Z_n(G).
+Proof.
+elim/big_rec2: _ G => [_ <- | i A Z _ IH G dG]; first exact/esym/trivgP/gFsub.
+by rewrite -(ucn_dprod n dG); have [[_ H _ dH]] := dprodP dG; rewrite dH (IH H).
 Qed.
 
 Lemma ucn_lcnP n G : ('L_n.+1(G) == 1) = ('Z_n(G) == G).
