@@ -1122,11 +1122,11 @@ Notation "[ 'set' E | x , y 'in' B ]" := [set E | x : _, y : _ in B]
   (at level 0, E, x, y at level 99, only parsing) : set_scope.
 Notation "[ 'set' E | x , y 'in' B & P ]" := [set E | x : _, y : _ in B & P]
   (at level 0, E, x, y at level 99, only parsing) : set_scope.
-Notation "[ 'set' E | x 'in' A , y]" := [set E | x : _ in A, y : _]
+Notation "[ 'set' E | x 'in' A , y ]" := [set E | x : _ in A, y : _]
   (at level 0, E, x, y at level 99, only parsing) : set_scope.
 Notation "[ 'set' E | x 'in' A , y & P ]" := [set E | x : _ in A, y : _ & P]
   (at level 0, E, x, y at level 99, only parsing) : set_scope.
-Notation "[ 'set' E | x , y]" := [set E | x : _, y : _]
+Notation "[ 'set' E | x , y ]" := [set E | x : _, y : _]
   (at level 0, E, x, y at level 99, only parsing) : set_scope.
 Notation "[ 'set' E | x , y & P ]" := [set E | x : _, y : _ & P ]
   (at level 0, E, x, y at level 99, only parsing) : set_scope.
