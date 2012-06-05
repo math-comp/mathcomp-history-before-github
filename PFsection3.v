@@ -1931,10 +1931,10 @@ have Cfa : a \in 'CF(W, V).
   rewrite inE negb_and negbK !inE -orbA 
           => /or3P [GiW1|GiW2|GniW]; last by rewrite cfun0.
     rewrite -[g]mulg1  /a !cTIirrE !dprod_IirrE !cfunE.
-    rewrite !cfDprodEl // !cfDprodEr // !lin_char1 // !mulr1.
+    rewrite 4?{1}cfDprodEl // !cfDprodEr // !lin_char1 // !mulr1.
     by rewrite addrAC addrK subrr.
   rewrite -[g]mul1g  /a !cTIirrE !dprod_IirrE !cfunE.
-  rewrite !cfDprodEl // !cfDprodEr // !lin_char1 // !mul1r.
+  rewrite 4?{1}cfDprodEl // !cfDprodEr // !lin_char1 // !mul1r.
   by rewrite addrK subrr.
 suff: '[phi, 'Ind[G] a] == 0.
   rewrite -!cyclicTIsigma_ind // !linearB !linearD !cfdotBr !cfdotDr.
