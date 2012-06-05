@@ -32,7 +32,7 @@ Require Import PFsection1 PFsection2 PFsection3 PFsection5.
 (*         'A1~(M) == the support of the image of the restricted Dade         *)
 (*                    isometry on M (when M is maximal).                      *)
 (*          'A~(M) == the support of the image of the Dade isometry on M.     *)
-(*         'A0~(M) == the support of the image of the externded Dade isometry *)
+(*         'A0~(M) == the support of the image of the extended Dade isometry  *)
 (*                    on M (this definition is not used).                     *)
 (*  FTsupports M L <-> L supports M in the sense of (8.14) and (8.18). This   *)
 (*                    definition is not used outside this file.               *)
