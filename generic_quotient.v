@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 (* -*- coding : utf-8 -*- *)
 
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq bigop.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 
 (*****************************************************************************)
 (* Provided a base type T, this files defines an interface for quotients Q   *)
