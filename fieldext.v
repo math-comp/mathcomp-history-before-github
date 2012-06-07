@@ -1208,10 +1208,9 @@ Canonical fieldExt_horner_lrmorhism := [lrmorphism of fieldExt_horner].
 End Horner.
 
 End FieldExtTheory.
-(*
+
 Notation "E :&: F" := (capv_aspace E F) : aspace_scope.
 Notation "E * F" := (prodv_aspace E F) : aspace_scope.
-*)
 
 (* Changing up the reference field of a fieldExtType. *)
 Section FieldOver.
