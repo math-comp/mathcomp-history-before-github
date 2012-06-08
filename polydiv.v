@@ -2,6 +2,91 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
 Require Import bigop ssralg poly choice.
 
+(******************************************************************************)
+(* This file provides a library for the basic theory of Euclidean and pseudo- *)
+(* Euclidean division for polynomials over ring structures.                   *)
+(* The library defines two versions of the pseudo-euclidean division: one for *)
+(* coefficients in a (not even commutative) ring structure, and one for       *)
+(* coefficients equipped with a structure of integral domain. From the latter *)
+(* we derive the definition of the usual Euclidean division for coefficients  *)
+(* in a field. Only the definition of the pseudo-division for coefficients in *)
+(* an integral domain is exported by default and benefits from notations.     *)
+(* Also, the only theory exported by default is the one of division for       *)
+(* polynomials with coefficients in a field.                                  *)
+(* Other definitions and facts are qualified using name spaces indicating the *)
+(* hypotheses made on the structure of coefficients and the properties of the *)
+(* polynomial one divides with.                                               *)
+(*                                                                            *)
+(* The empty name space defines:                                              *)
+(*          edivp p q == pseudo-division of p by q with p q : {poly R} and    *)
+(*                       R : idomainType.                                     *)
+(*                       Computes (k, quo, rem) : nat * {poly r} * {poly R},  *)
+(*                       such that size rem < size q and:                     *)
+(*                       + if lead_coef q is not a unit, then:                *)
+(*                         (lead_coef q ^+ k) *: p = q * quo + rem            *)
+(*                       + else if lead_coef q is a unit, then:               *)
+(*                         p = q * quo + rem and k = 0                        *)
+(*             p %/ q == quotient (second component) computed by (redivp p q) *)
+(*             p %% q == remainder (third component) computed by (redivp p q) *)
+(*          scalp p q == exponent (first component) computed by (redivp p q)  *)
+(*             p %| q == tests the nullity of the remainder of the            *)
+(*                       pseudo-division  of p by q                           *)
+(*         rgcdp p q  == Pseudo-greater common divisor obtained by performing *)
+(*                       the Euclidean algorithm on p and q using redivp as   *)
+(*                       Euclidean division.                                  *)
+(*             p %= q == p and q are associate polynomials, i.e. p %| q and   *)
+(*                       q %| p otherwise said, there is a constant c such    *)
+(*                       that p = c *: p                                      *)
+(*           gcdp p q == Pseudo-greater common divisor obtained by performing *)
+(*                       the Euclidean algorithm on p and q using  edivp as   *)
+(*                       Euclidean division.                                  *)
+(*          egcdp p q == The pair of Bézout coefficients: if e = (egcdp p q), *)
+(*                       the size e.1 <= size q and size e.2 <= size p and    *)
+(*                       gcdp p q %= e.1 * p + e.2 * q                        *)
+(*       coprimep p q == p and q are coprime ie.e (gcdp p q) is a constant    *)
+(*          gdcop q p == greatest Divisor of p which is coprime to q.         *)
+(* irreducible_poly p == p has only trivial (constant) divisors               *)
+(*                                                                            *)
+(*  Module RPdiv :                                                            *)
+(*   redivp p q == pseudo-division of p by q with p q : {poly R} and          *)
+(*                 R : ringType.                                              *)
+(*                 Computes (k, quo, rem) : nat * {poly r} * {poly R},        *)
+(*                 such that if rem = 0 then quo * q = p * (lead_coef q ^+ k) *)
+(*                                                                            *)
+(*   rdivp p q  == quotient (second component) computed by (redivp p q)       *)
+(*   rmodp p q  == remainder (third component) computed by (redivp p q)       *)
+(*   rscalp p q == exponent (first component) computed by (redivp p q)        *)
+(*   rdvdp p q  == tests the nullity of the remainder of the pseudo-division  *)
+(*                 of p by q                                                  *)
+(*   rgcdp p q  == analogue of gcdp for coefficients in a ringType            *)
+(*   rgdcop p q == analogue of gdcop for coefficients in a ringType           *)
+(*rcoprimep p q == analogue of coprimep p for coefficients in a ringTyp       *)
+(*                                                                            *)
+(* Module RPdiv.mon : theory of the operations defined in RPDiv, under the    *)
+(*   assumption that the divisor is monic.                                    *)
+(*                                                                            *)
+(* Module RPdiv.ComRing : theory of the operations defined in RPDiv, when the *)
+(*   ring of coefficients is canonically commutative (R : comRingType).       *)
+(*                                                                            *)
+(* Module RPdiv.UnitRing: theory of the operations defined in RPDiv, when the *)
+(*   ring R of coefficients is canonically with units (R : unitRingType).     *)
+(*                                                                            *)
+(*                                                                            *)
+(* Module Idomain: theory available for edivp and the related operation under *)
+(*    the sole assumption that the ring of coefficients is canonically an     *)
+(*    integral domain (R : idomainType).                                      *)
+(*                                                                            *)
+(*                                                                            *)
+(* Module Idomain.mon:  theory available for edivp and the related operation  *)
+(*    under the sole assumption that the ring of coefficients is canonically  *)
+(*    and integral domain (R : idomainType) an the divisor is monic.          *)
+(*                                                                            *)
+(* Module unit: theory available for edivp and the related operation under    *)
+(*    the sole assumption that the ring of coefficients is canonically an     *)
+(*    integral domain (R : idomainType) and the divisor has a unit leading    *)
+(*    coefficient                                                             *)
+(******************************************************************************)
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -43,7 +128,7 @@ Definition rdivp p q := ((redivp p q).1).2.
 Definition rmodp p q := (redivp p q).2.
 Definition rscalp p q := ((redivp p q).1).1.
 Definition rdvdp p q := rmodp q p == 0.
-Definition rmultp := [rel m d | rdvdp d m].
+(*Definition rmultp := [rel m d | rdvdp d m].*)
 Lemma redivp_def p q : redivp p q = (rscalp p q, rdivp p q, rmodp p q).
 Proof. by rewrite /rscalp /rdivp /rmodp; case: (redivp p q) => [[]] /=. Qed.
 
@@ -697,7 +782,7 @@ Notation "m %/ d" := (divp m d) : ring_scope.
 Notation "m %% d" := (modp m d) : ring_scope.
 Notation "p %| q" := (dvdp p q) : ring_scope.
 
-Module ID.
+Module Idomain.
 
 Section WeakTheoryForIDomainPseudoDivision.
 
@@ -921,7 +1006,7 @@ End MonicDivisor.
 
 End mon.
 
-End ID.
+End Idomain.
 
 Notation "m %/ d" := (@divp _ m d) : ring_scope.
 Notation "m %% d" := (@modp _ m d) : ring_scope.
@@ -932,7 +1017,7 @@ Section IDomainPseudoDivision.
 Import RPdiv.
 Import ComRing.
 Import UnitRing.
-Import ID.
+Import Idomain.
 
 Variable R : idomainType.
 Implicit Type p q r d m n : {poly R}.
@@ -2383,6 +2468,74 @@ rewrite comp_polyC => Hgcd.
 by apply: dvdp_trans Hgcd; case/andP: (gcdp_comp_poly r p q).
 Qed.
 
+Lemma coprimep_addl_mul p q r : coprimep r (p * r + q) = coprimep r q.
+Proof. by rewrite !coprimep_def (eqp_size (gcdp_addl_mul _ _ _)). Qed.
+
+Definition irreducible_poly p :=
+  (size p > 1) * (forall q, size q != 1%N -> q %| p -> q %= p) : Prop.
+
+Lemma irredp_neq0 p : irreducible_poly p -> p != 0.
+Proof. by rewrite -size_poly_eq0 -lt0n => [[/ltnW]]. Qed.
+
+Definition apply_irredp p (irr_p : irreducible_poly p) := irr_p.2.
+Coercion apply_irredp : irreducible_poly >-> Funclass.
+
+Lemma modp_XsubC p c : p %% ('X - c%:P) = p.[c]%:P.
+Proof.
+have: root (p - p.[c]%:P) c by rewrite /root !hornerE subrr.
+case/factor_theorem=> q /(canRL (subrK _)) Dp; rewrite modpE /= lead_coefXsubC.
+rewrite  GRing.unitr1 expr1n invr1 scale1r {1}Dp.
+rewrite mon.rmodp_addl_mul_small // ?monicXsubC // size_XsubC size_polyC.
+by case: (p.[c] == 0).
+Qed.
+
+Lemma coprimep_XsubC p c : coprimep p ('X - c%:P) = ~~ root p c.
+Proof.
+rewrite -coprimep_modl modp_XsubC /root -scale_poly1.
+have [-> | /coprimep_scalel->] := altP eqP; last exact: coprime1p.
+by rewrite scale0r /coprimep gcd0p size_XsubC.
+Qed.
+
+Lemma coprimepX p : coprimep p 'X =  ~~ root p 0.
+Proof. by rewrite -['X]subr0 coprimep_XsubC. Qed.
+
+Lemma eqp_monic : {in monic &, forall p q, (p %= q) = (p == q)}.
+Proof.
+move=> p q monic_p monic_q; apply/idP/eqP=> [|-> //].
+case/eqpP=> [[a b] /= /andP[a_neq0 _] eq_pq].
+apply: (@mulfI _ a%:P); first by rewrite polyC_eq0.
+rewrite !mul_polyC eq_pq; congr (_ *: q); apply: (mulIf (oner_neq0 _)).
+by rewrite -{1}(monicP monic_q) -(monicP monic_p) -!lead_coefZ eq_pq.
+Qed.
+
+
+Lemma dvdp_mul_XsubC p q c :
+  (p %| ('X - c%:P) * q) = ((if root p c then p %/ ('X - c%:P) else p) %| q).
+Proof.
+case: ifPn => [| not_pc0]; last by rewrite Gauss_dvdpr ?coprimep_XsubC.
+rewrite root_factor_theorem -eqp_div_XsubC mulrC => /eqP{1}->.
+by rewrite dvdp_mul2l ?polyXsubC_eq0.
+Qed.
+
+Lemma dvdp_prod_XsubC (I : Type) (r : seq I) (F : I -> R) p :
+    p %| \prod_(i <- r) ('X - (F i)%:P) ->
+  {m | p %= \prod_(i <- mask m r) ('X - (F i)%:P)}.
+Proof.
+elim: r => [|i r IHr] in p *.
+  by rewrite big_nil dvdp1; exists nil; rewrite // big_nil -size_poly_eq1.
+rewrite big_cons dvdp_mul_XsubC root_factor_theorem -eqp_div_XsubC.
+case: eqP => [{2}-> | _] /IHr[m Dp]; last by exists (false :: m).
+by exists (true :: m); rewrite /= mulrC big_cons eqp_mul2l ?polyXsubC_eq0.
+Qed.
+
+Lemma irredp_XsubC (x : R) : irreducible_poly ('X - x%:P).
+Proof.
+split=> [|d size_d d_dv_Xx]; first by rewrite size_XsubC.
+have: ~ d %= 1 by apply/negP; rewrite -size_poly_eq1.
+have [|m /=] := @dvdp_prod_XsubC _ [:: x] id d; first by rewrite big_seq1.
+by case: m => [|[] [|_ _] /=]; rewrite (big_nil, big_seq1).
+Qed.
+
 End IDomainPseudoDivision.
 
 Hint Resolve eqpxx divp0 divp1 mod0p modp0 modp1 dvdp_mull dvdp_mulr dvdpp.
@@ -2395,7 +2548,7 @@ Module unit.
 Import RPdiv.
 Import ComRing.
 Import UnitRing.
-Import ID.
+Import Idomain.
 
 Section UnitDivisor.
 
@@ -2700,7 +2853,7 @@ End unit.
 
 Section FieldDivision.
 
-Import RPdiv ComRing UnitRing ID unit.
+Import RPdiv ComRing UnitRing Idomain unit.
 
 Variable F : fieldType.
 
@@ -2876,6 +3029,10 @@ Proof.
 case: (eqVneq d 0) => [-> | dn0]; first by rewrite !modp0.
 by apply: modp_add; rewrite unitfE lead_coef_eq0.
 Qed.
+
+
+Lemma modNp p q : (- p) %% q = - (p %% q).
+Proof. by apply/eqP; rewrite -addr_eq0 -modp_add addNr mod0p. Qed.
 
 Lemma divp_add d p q : (p + q) %/ d = p %/ d + q %/ d.
 Proof.
@@ -3086,7 +3243,7 @@ Lemma edivp_map a b :
   edivp a^f b^f = (0%N, (a %/ b)^f, (a %% b)^f).
 Proof.
 case: (eqVneq b 0) => [-> | bn0].
-  rewrite (rmorph0 (map_poly_rmorphism f)) ID.edivp_def !modp0 !divp0.
+  rewrite (rmorph0 (map_poly_rmorphism f)) Idomain.edivp_def !modp0 !divp0.
   by rewrite (rmorph0 (map_poly_rmorphism f)) scalp0.
 rewrite edivpE redivp_map lead_coef_map rmorph_unit; last first.
   by rewrite unitfE lead_coef_eq0.
@@ -3108,6 +3265,21 @@ Proof. by rewrite /divp edivp_map edivp_def. Qed.
 
 Lemma map_modp p q : (p %% q)^f = p^f %% q^f.
 Proof. by rewrite /modp edivp_map edivp_def. Qed.
+
+Lemma egcdp_map p q :
+  egcdp (map_poly f p) (map_poly f q)
+     = (map_poly f (egcdp p q).1, map_poly f (egcdp p q).2).
+Proof.
+wlog le_qp: p q / size q <= size p.
+  move=> IH; have [/IH// | lt_qp] := leqP (size q) (size p).
+  have /IH := ltnW lt_qp; rewrite /egcdp !size_map_poly ltnW // leqNgt lt_qp /=.
+  by case: (egcdp_rec _ _ _) => u v [-> ->].
+rewrite /egcdp !size_map_poly {}le_qp; move: (size q) => n.
+elim: n => /= [|n IHn] in p q *; first by rewrite rmorph1 rmorph0.
+rewrite map_poly_eq0; have [_ | nz_q] := ifPn; first by rewrite rmorph1 rmorph0.
+rewrite -map_modp (IHn q (p %% q)); case: (egcdp_rec _ _ n) => u v /=.
+by rewrite map_polyZ lead_coef_map -rmorphX scalp_map rmorphB rmorphM -map_divp.
+Qed.
 
 Lemma dvdp_map p q : (p^f %| q^f) = (p %| q).
 Proof. by rewrite /dvdp -map_modp map_poly_eq0. Qed.
@@ -3143,78 +3315,6 @@ End FieldMap.
 
 End FieldDivision.
 
-(******************************************************************************)
-
-Section MoreIntegral.
-
-Variable R : idomainType.
-Implicit Types p q : {poly R}.
-
-Lemma eqp_monic : {in monic &, forall p q, (p %= q) = (p == q)}.
-Proof.
-move=> p q monic_p monic_q; apply/idP/eqP=> [|-> //]; last exact: eqpxx.
-case/eqpP=> [[a b] /= /andP[a_neq0 _] eq_pq].
-apply: (@mulfI _ a%:P); first by rewrite polyC_eq0.
-rewrite !mul_polyC eq_pq; congr (_ *: q); apply: (mulIf (oner_neq0 _)).
-by rewrite -{1}(monicP monic_q) -(monicP monic_p) -!lead_coefZ eq_pq.
-Qed.
-
-Lemma coprimep_addl_mul p q r : coprimep r (p * r + q) = coprimep r q.
-Proof. by rewrite !coprimep_def (eqp_size (gcdp_addl_mul _ _ _)). Qed.
-
-Definition irreducible_poly p :=
-  (size p > 1) * (forall q, size q != 1%N -> q %| p -> q %= p) : Prop.
-
-Lemma irredp_neq0 p : irreducible_poly p -> p != 0.
-Proof. by rewrite -size_poly_eq0 -lt0n => [[/ltnW]]. Qed.
-
-Definition apply_irredp p (irr_p : irreducible_poly p) := irr_p.2.
-Coercion apply_irredp : irreducible_poly >-> Funclass.
-
-Lemma modp_XsubC p c : p %% ('X - c%:P) = p.[c]%:P.
-Proof.
-have: root (p - p.[c]%:P) c by rewrite /root !hornerE subrr.
-case/factor_theorem=> q /(canRL (subrK _))/unit.modpP-> //.
-  by rewrite lead_coefXsubC unitr1.
-by rewrite size_polyC size_XsubC ltnS leq_b1.
-Qed.
-
-Lemma coprimep_XsubC p c : coprimep p ('X - c%:P) = ~~ root p c.
-Proof.
-rewrite -coprimep_modl modp_XsubC /root -scale_poly1.
-have [-> | /coprimep_scalel->] := altP eqP; last exact: coprime1p.
-by rewrite scale0r /coprimep gcd0p size_XsubC.
-Qed.
-
-Lemma coprimepX p : coprimep p 'X =  ~~ root p 0.
-Proof. by rewrite -['X]subr0 coprimep_XsubC. Qed.
-
-Lemma dvdp_mul_XsubC p q c :
-  (p %| ('X - c%:P) * q) = ((if root p c then p %/ ('X - c%:P) else p) %| q).
-Proof.
-case: ifPn => [| not_pc0]; last by rewrite Gauss_dvdpr ?coprimep_XsubC.
-rewrite root_factor_theorem -eqp_div_XsubC mulrC => /eqP{1}->.
-by rewrite dvdp_mul2l ?polyXsubC_eq0.
-Qed.
-
-Lemma dvdp_prod_XsubC I r (F : I -> R) p :
-    p %| \prod_(i <- r) ('X - (F i)%:P) ->
-  {m | p %= \prod_(i <- mask m r) ('X - (F i)%:P)}.
-Proof.
-elim: r => [|i r IHr] in p *.
-  by rewrite big_nil dvdp1; exists nil; rewrite // big_nil -size_poly_eq1.
-rewrite big_cons dvdp_mul_XsubC root_factor_theorem -eqp_div_XsubC.
-case: eqP => [{2}-> | _] /IHr[m Dp]; last by exists (false :: m).
-by exists (true :: m); rewrite /= mulrC big_cons eqp_mul2l ?polyXsubC_eq0.
-Qed.
-
-Lemma irredp_XsubC (x : R) : irreducible_poly ('X - x%:P).
-Proof.
-split=> [|d size_d d_dv_Xx]; first by rewrite size_XsubC.
-have: ~ d %= 1 by apply/negP; rewrite -size_poly_eq1.
-have [|m /=] := @dvdp_prod_XsubC _ [:: x] id d; first by rewrite big_seq1.
-by case: m => [|[] [|_ _] /=]; rewrite (big_nil, big_seq1).
-Qed.
 
 (* begin hide *)
 (* Cyril : I liked this lemma
@@ -3235,43 +3335,17 @@ move=> cpq u dvd_u_pq; rewrite /eqp Gauss_dvdp ?dvdp_gcdl ?andbT; last first.
   by rewrite (coprimep_dvdl (dvdp_gcdr _ _)) ?(coprimep_dvdr (dvdp_gcdr _ _)).
 have [|pq_neq0] := boolP ((p * q) == 0).
   by rewrite mulf_eq0=> /orP[] /eqP->; rewrite gcdp0 (dvdp_mulIr, dvdp_mulIl).
-rewrite -(@dvdp_mul2l _ (p * q %/ u)) ?dvdp_div_eq // ID.divpK //.
+rewrite -(@dvdp_mul2l _ (p * q %/ u)) ?dvdp_div_eq // Idomain.divpK //.
 rewrite dvdp_scalel ?lcn_neq0 ?Gauss_dvdp // mulrA [in X in _ && X]mulrAC.
-rewrite !(eqp_dvdr _ (eqp_mulr _ (mulp_gcdr _ _ _))) ?ID.divpK //.
+rewrite !(eqp_dvdr _ (eqp_mulr _ (mulp_gcdr _ _ _))) ?Idomain.divpK //.
 rewrite !(eqp_dvdr _ (eqp_mulr _ (gcdp_scalel _ _ _))) ?lcn_neq0 // dvdp_mulr.
   by rewrite dvdp_mulr // (eqp_dvdr _ (gcdp_mul2r _ _ _)) dvdp_mull.
 by rewrite mulrC (eqp_dvdr _ (gcdp_mul2r _ _ _)) dvdp_mull.
 Qed. *)
 (* end hide *)
 
-End MoreIntegral.
-
-Section MoreField.
-
-Variable (F : fieldType) (R : idomainType).
-Implicit Types p q : {poly F}.
-
-Lemma modNp p q : (- p) %% q = - (p %% q).
-Proof. by apply/eqP; rewrite -addr_eq0 -modp_add addNr mod0p. Qed.
-
-Lemma egcdp_map (f : {rmorphism F -> R}) p q :
-  egcdp (map_poly f p) (map_poly f q)
-     = (map_poly f (egcdp p q).1, map_poly f (egcdp p q).2).
-Proof.
-wlog le_qp: p q / size q <= size p.
-  move=> IH; have [/IH// | lt_qp] := leqP (size q) (size p).
-  have /IH := ltnW lt_qp; rewrite /egcdp !size_map_poly ltnW // leqNgt lt_qp /=.
-  by case: (egcdp_rec _ _ _) => u v [-> ->].
-rewrite /egcdp !size_map_poly {}le_qp; move: (size q) => n.
-elim: n => /= [|n IHn] in p q *; first by rewrite rmorph1 rmorph0.
-rewrite map_poly_eq0; have [_ | nz_q] := ifPn; first by rewrite rmorph1 rmorph0.
-rewrite -map_modp (IHn q (p %% q)); case: (egcdp_rec _ _ n) => u v /=.
-by rewrite map_polyZ lead_coef_map -rmorphX scalp_map rmorphB rmorphM -map_divp.
-Qed.
-
-End MoreField.
-
 Module closed.
+
 Section closed.
 
 Variable F : closedFieldType.
@@ -3290,4 +3364,5 @@ Proof.
 Qed.
 
 End closed.
+
 End closed.

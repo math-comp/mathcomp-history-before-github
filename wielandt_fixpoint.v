@@ -7,9 +7,8 @@ Require Import finmodule abelian frobenius maximal extremal hall finmodule.
 Require Import matrix mxalgebra mxrepresentation mxabelem BGsection1.
 
 (******************************************************************************)
-(*   This file is a placeholder for the proof of the Wielandt fixpoint order  *)
-(* formula, which is a prerequisite for B & G, Section 3 and Peterfalvi,      *)
-(* Section 9.                                                                 *)
+(*   This file provides the proof of the Wielandt fixpoint order formula,     *)
+(* which is a prerequisite for B & G, Section 3 and Peterfalvi, Section 9.    *)
 (******************************************************************************)
 
 Set Implicit Arguments.

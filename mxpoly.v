@@ -61,7 +61,7 @@ Import Monoid.Theory.
 
 Open Local Scope ring_scope.
 
-Import ID.
+Import Idomain.
 (* Row vector <-> bounded degree polynomial bijection *)
 Section RowPoly.
 

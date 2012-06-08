@@ -19,7 +19,7 @@ Require Import BGsection1 BGsection6.
 (*                            minSimpleOddGroupType (this is a local notation *)
 (*                            that must be reestablished for each such Type). *)
 (*                      'M == the set of all (proper) maximal subgroups of G  *)
-(*                   'M(H) == the set of all elements of 'M that contain U    *)
+(*                   'M(H) == the set of all elements of 'M that contain H    *)
 (*                      'U == the set of all H such that 'M(H) contains a     *)
 (*                            single (unique) maximal subgroup of G.          *)
 (*               'SCN_n[p] == the set of all SCN subgroups of rank at least n *)

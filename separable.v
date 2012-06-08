@@ -40,7 +40,7 @@ Implicit Types (p q d u v : {poly R}).
 Definition separablePolynomial p := coprimep p p^`().
 
 Local Notation sep := separablePolynomial.
-Local Notation lcn_neq0 := (ID.lc_expn_scalp_neq0 _).
+Local Notation lcn_neq0 := (Idomain.lc_expn_scalp_neq0 _).
 
 Lemma separable_neq0 p : separablePolynomial p -> p != 0.
 Proof. by apply: contraL=> /eqP ->; rewrite /sep deriv0 coprime0p eqp01. Qed.
@@ -67,9 +67,9 @@ apply: (iffP idP)=> [sep_p|].
       by rewrite gtNdvdp -?size_poly_eq0 // coprimep_size_gcd.
     pose c := lead_coef u ^+ scalp p u.
     have c_neq0 : c != 0 by rewrite lcn_neq0.
-    rewrite dvdp_gcd dvd_up -(@dvdp_scaler _ c) // -derivZ -ID.divpK //=.
+    rewrite dvdp_gcd dvd_up -(@dvdp_scaler _ c) // -derivZ -Idomain.divpK //=.
     by rewrite derivM u_eq0 mulr0 addr0 dvdp_mull.
-  move=> u v; rewrite ID.dvdp_eq; set c := _ ^+ _.
+  move=> u v; rewrite Idomain.dvdp_eq; set c := _ ^+ _.
   have c_neq0 : c != 0 by rewrite lcn_neq0.
   rewrite mulrA; set r := _ * u => /eqP p_eq; move: sep_p; rewrite /sep.
   rewrite -(coprimep_scalel _ _ c_neq0) -(coprimep_scaler _ _ c_neq0).
@@ -83,9 +83,9 @@ have [|p_gt1|//] := ltngtP.
   rewrite ltnS leqn0 size_poly_eq0 /g gcdp_eq0=> /andP[/eqP p_eq0 _].
   by have := hp2 0 0; rewrite mulr0 p_eq0 dvdp0 coprimep0 eqp01; apply.
 have: g %| (c *: p^`()) by rewrite dvdp_scaler ?dvdp_gcdr.
-rewrite -derivZ -ID.divpK ?dvdp_gcdl // derivM.
+rewrite -derivZ -Idomain.divpK ?dvdp_gcdl // derivM.
 rewrite dvdp_addr; last by rewrite dvdp_mull.
-rewrite Gauss_dvdpr ?hp2 1?mulrC ?ID.divpK ?dvdp_gcdl -/c ?dvdp_scalel //.
+rewrite Gauss_dvdpr ?hp2 1?mulrC ?Idomain.divpK ?dvdp_gcdl -/c ?dvdp_scalel //.
 move=> /dvdp_leq; rewrite leqNgt lt_size_deriv; last first.
   by rewrite -size_poly_gt0 (leq_trans _ p_gt1).
 by apply; rewrite hp1 ?dvdp_gcdl.
@@ -153,10 +153,10 @@ split; last first.
   have [//|[|k]] := ex_minnP (max_dvd_u u _); first by rewrite dvd1p.
   move=> hk /(_ k); rewrite ltnn; apply; apply: contra hk=> hk.
   suff: u ^+ k.+1 %| (p %/ g) * g.
-    by rewrite ID.divpK ?dvdp_gcdl // dvdp_scaler ?lcn_neq0.
+    by rewrite Idomain.divpK ?dvdp_gcdl // dvdp_scaler ?lcn_neq0.
   rewrite exprS dvdp_mul // dvdp_gcd hk //=.
   suff: u ^+ k %| ((p %/ u ^+ k) * u ^+ k)^`().
-    by rewrite ID.divpK ?dvdp_gcdl // derivZ dvdp_scaler ?lcn_neq0.
+    by rewrite Idomain.divpK ?dvdp_gcdl // derivZ dvdp_scaler ?lcn_neq0.
   by rewrite ?dvdp_gcdl // !derivCE u'_eq0 mul0r mul0rn mulr0 addr0 dvdp_mull.
 apply/nosquareP=> u; have [|size_u _|//] := ltngtP.
   rewrite // ltnS leqn0 size_poly_eq0=> /eqP -> _; rewrite exprS mul0r.
@@ -168,11 +168,11 @@ move=> [|[|n hn]]; first by rewrite dvd1p.
   by rewrite (dvdp_trans _ hu) // exprS dvdp_mulr.
 move=> /(_ n.+1); rewrite ltnn; apply; apply: contra hn=> hn.
 suff: u ^+ n.+2 %| (p %/ g) * g.
-  by rewrite ID.divpK ?dvdp_gcdl // dvdp_scaler ?lcn_neq0.
+  by rewrite Idomain.divpK ?dvdp_gcdl // dvdp_scaler ?lcn_neq0.
 rewrite !exprS mulrA dvdp_mul //.
 rewrite dvdp_gcd (dvdp_trans _ hn) ?exprS ?dvdp_mull //=.
 suff: u ^+ n %| ((p %/ u ^+ n.+1) * u ^+ n.+1)^`().
-  by rewrite ID.divpK ?dvdp_gcdl // derivZ dvdp_scaler ?lcn_neq0.
+  by rewrite Idomain.divpK ?dvdp_gcdl // derivZ dvdp_scaler ?lcn_neq0.
 by rewrite !derivCE dvdp_add // -1?mulr_natl ?exprS !dvdp_mull.
 Qed.
 
