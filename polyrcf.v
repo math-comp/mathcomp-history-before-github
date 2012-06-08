@@ -4,7 +4,7 @@ Require Import bigop ssralg poly polydiv ssrnum zmodp polydiv.
 Require Import polyorder path interval ssrint.
 
 Import GRing.Theory Num.Theory Num.Def.
-Import ID.
+Import Idomain.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

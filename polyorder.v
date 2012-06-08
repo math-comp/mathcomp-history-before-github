@@ -5,7 +5,7 @@ Require Import ssralg poly ssrnum zmodp polydiv interval.
 Import GRing.Theory.
 Import Num.Theory.
 
-Import ID.
+Import Idomain.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

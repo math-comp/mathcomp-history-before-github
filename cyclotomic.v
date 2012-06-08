@@ -298,7 +298,7 @@ apply: contraLR co_fg => /coprimepPn[|d]; first exact: monic_neq0.
 rewrite andbC -size_poly_eq1 dvdp_gcd => /and3P[sz_d].
 pose d1 := zprimitive d.
 have d_dv_mon h: d %| h -> h \is monic -> exists h1, h = d1 * h1.
-  case/ID.dvdpP=> [[c h1] /= nz_c Dh] mon_h; exists (zprimitive h1).
+  case/Idomain.dvdpP=> [[c h1] /= nz_c Dh] mon_h; exists (zprimitive h1).
   by rewrite -zprimitiveM mulrC -Dh zprimitiveZ ?zprimitive_monic.
 case/d_dv_mon=> // f1 Df1 /d_dv_mon[|f2 ->].
   rewrite monicE lead_coefE size_comp_poly size_polyXn /=.
