@@ -1788,8 +1788,9 @@ Local Notation sigma := cyclicTIsigma.
 Lemma inv_dprod_Iirr0 : inv_dprod_Iirr W1xW2 0 = (0,0).
 Proof.
 apply:  (can_inj (dprod_IirrK W1xW2)).
-rewrite inv_dprod_IirrK /dprod_Iirr /= /irr_Iirr; case: pickP=> //= x.
-by rewrite /cfDprod !irr0 cfDprodl1 cfDprodr1 mul1r irr_eq1 => /eqP->.
+rewrite inv_dprod_IirrK  /dprod_Iirr /=. 
+rewrite /cfDprod !irr0 cfDprodl1 cfDprodr1 mul1r . 
+by rewrite -irr0 irrK.
 Qed.
 
 (* This is PeterFalvi (3.2). *)

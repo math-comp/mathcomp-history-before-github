@@ -1246,7 +1246,7 @@ have irr_theta f: f \in dom_theta -> 'Ind[HU] (theta f %% H0)%CF \in irr HU.
   move/def_Itheta=> defIthf.
   have /irrP[s Ds]: theta f \in irr (HC / H0)%g by exact: lin_char_irr.
   by rewrite Ds -mod_IirrE // inertia_Ind_irr ?mod_IirrE // -{s}Ds defIthf.
-pose Xtheta := irr_Iirr (fun f => 'Ind[HU] (theta f %% H0)%CF) @: dom_theta.
+(*pose Xtheta := irr_Iirr (fun f => 'Ind[HU] (theta f %% H0)%CF) @: dom_theta.*)
 have theta_kerC f: (C / H0)%g \subset cfker (theta f).
   rewrite cfkerEchar ?lin_charW //; apply/subsetP=> y Cy.
   rewrite inE (subsetP (quotientS H0 (joing_subr _ _))) //=.
@@ -1301,13 +1301,14 @@ have def_thJ f y w : y \in HU -> w \in W1 ->
   rewrite !Dtheta ?memJ_norm ?groupV // ?in_group ?mem_quotient //.
   rewrite ffunE conjg_IirrE cfConjgE // -normCK.
   by rewrite normC_lin_char ?expr1n ?memJ_norm ?groupV.
+pose Xtheta :=  (fun f => cfIirr ('Ind[HU] (theta f %% H0)%CF)) @: dom_theta.
 have oXtheta: (u * #|Xtheta| = p.-1 ^ q)%N.
   transitivity #|dom_theta|; last first.
     rewrite card_pffun_on cardC1 card_Iirr_abelian // oH1.
     rewrite -(card_isog (quotient_isog _ _)) ?oW1 ?(subset_trans sW1M) //.
     by apply/trivgP; rewrite -tiHUW1 setSI ?(subset_trans sH0H).
   symmetry; rewrite mulnC -sum_nat_const -sum1_card.
-  rewrite (partition_big (irr_Iirr (fun f => 'Ind[HU] (theta f %% H0)%CF))
+  rewrite (partition_big (fun f => cfIirr ('Ind[HU] (theta f %% H0)%CF))
                          (mem Xtheta)) /=; last first.
     by move=> f Dth_f; apply/imsetP; exists f.
   apply: eq_bigr => i /imsetP[f Dth_f Di].
@@ -1329,19 +1330,19 @@ have oXtheta: (u * #|Xtheta| = p.-1 ^ q)%N.
     exact: (s2valP' (th' xi)).
   have /irrP[s1 Ds1]: theta f1 \in irr (HC / H0)%g by exact: lin_char_irr.
   rewrite mem_enum; apply/andP/mapP=> [[Dth_f1] | [xi fHUxi]].
-    rewrite -(inj_eq irr_inj) Di !(irr_IirrPE irr_theta) // {1}Ds Ds1.
+    rewrite -(inj_eq irr_inj) Di !cfIirrE ?irr_theta  // {1}Ds Ds1.
     rewrite -!mod_IirrE // => /eqP/cfclass_Ind_irrP/=/(_ nsHC_HU).
     rewrite !mod_IirrE // -Ds -Ds1 => fHUf1; exists (theta f1 %% H0)%CF => //.
     case: (th' _) => f2 /= Dth_f2 /(_ fHUf1).
     by move/(can_inj (cfModK nsH0HC))/inj_theta->.
   case: (th' _) => /= f2 Dth_f1 Dxi Df2; rewrite -Df2 in Dth_f1.
-  split; rewrite // -(inj_eq irr_inj) Di !(irr_IirrPE irr_theta) //.
+  split; rewrite // -(inj_eq irr_inj) Di !cfIirrE ?irr_theta //.
   rewrite Ds Ds1 -!mod_IirrE //; apply/eqP/cfclass_Ind_irrP=> //.
   by rewrite !mod_IirrE // -Ds -Ds1 Df2 Dxi. 
 have sXthXH0C: Xtheta \subset X_ H0C.
   apply/subsetP=> i; rewrite inE => /imsetP[f Dth_f Di].
   have /irrP[s Ds]: theta f \in irr (HC / H0)%g by exact: lin_char_irr.
-  rewrite !inE Di (irr_IirrPE irr_theta) // Ds -mod_IirrE //.
+  rewrite !inE Di cfIirrE ?irr_theta // Ds -mod_IirrE //.
   rewrite !sub_cfker_Ind_irr ?(normal_sub nsHC_HU) //; first 1 last.
   - have [/andP[_ nH0C_M] _ _] := nsH0xx_M; apply: subset_trans nH0C_M.
     exact: gFsub.
@@ -1369,12 +1370,12 @@ have sW1_Ithmu i: W1 \subset 'I_M[theta (mu_f i) %% H0]%CF.
   rewrite -[w]mul1g -def_thJ //; congr ((theta _ %% H0)%CF x).
   apply/ffunP=> w1; apply: irr_inj; rewrite ffunE morph1 conj1g !ffunE.
   by rewrite conjg_IirrE cfConjg1 groupMr // groupV mem_quotient.
-have inj_th_mu: {in predC1 0 &, injective (irr_Iirr mk_mu)}.
+have inj_th_mu: {in predC1 0 &, injective ((@cfIirr _ _) \o mk_mu)}.
   move=> i1 i2 nz_i1 nz_i2 /eqP; rewrite -(inj_eq irr_inj).
-  rewrite !(irr_IirrPE irr_theta) ?Dmu_f //.
+  rewrite !cfIirrE ?irr_theta ?Dmu_f //.
   have /lin_char_irr/irrP[s1 Ds1]:= cfMod_lin_char (lin_theta (mu_f i1)).
   have /lin_char_irr/irrP[s2 Ds2]:= cfMod_lin_char (lin_theta (mu_f i2)).
-  rewrite Ds1 Ds2 => /eqP/cfclass_Ind_irrP/=/(_ nsHC_HU).
+  rewrite /mk_mu Ds1 Ds2 => /eqP/cfclass_Ind_irrP/=/(_ nsHC_HU).
   rewrite -{s1}Ds1 -{s2}Ds2.
   case/cfclassP=> _ /(mem_sdprod defHU)[x [y [Hx Uy -> _]]].
   rewrite (cfConjgM _ nsHC_HU) ?(subsetP sHHU x) ?(subsetP sUHU) //.
@@ -1409,12 +1410,12 @@ have inj_th_mu: {in predC1 0 &, injective (irr_Iirr mk_mu)}.
   have /setId2P[_ _ /eqP->] := subsetP (sW1_Ithmu i2) _ (groupVr W1w).
   rewrite (cfConjgM _ nsHC_M) ?(subsetP sW1M w) // -Dth1.
   by have /setId2P[_ _ /eqP->] := subsetP (sW1_Ithmu i1) w W1w.
-pose Xmu := irr_Iirr mk_mu @: predC1 0.
+pose Xmu := (fun f => (cfIirr (mk_mu f))) @: predC1 0.
 have def_IXmu: {in Xmu, forall s, 'I_M['chi_s] = M}.
   move=> _ /imsetP[i nz_i ->]; apply/eqP; rewrite eqEsubset.
   rewrite {1}['I_M[_]%CF]setIdE subsetIl /=.
   rewrite -{1}defM sdprodE ?(subset_trans sW1M) ?gFnorm // mulG_subG.
-  rewrite (irr_IirrPE (fun j nz_j => irr_theta _ (Dmu_f j nz_j))) //.
+  rewrite (cfIirrPE (fun j nz_j => irr_theta _ (Dmu_f j nz_j))) //.
   rewrite sub_inertia ?gFsub //; apply/subsetP=> w W1w.
   have /setId2P[Mw _ def_mui_w] := subsetP (sW1_Ithmu i) w W1w.
   rewrite inE Mw (subsetP (gFnorm _ _)) //=; apply/eqP/cfun_inP=> x HUx.
@@ -1454,7 +1455,7 @@ have Du: u = #|HU : HC|.
 split=> {Part_a part_a}//.
 - split=> // phi mu_phi; have S_HOC_phi := s_mu_H0C _ mu_phi.
   move: mu_phi; rewrite -Dmu => /imageP[_ /imsetP[i nz_i ->] Dphi].
-  rewrite (irr_IirrPE (fun j nz_j => irr_theta _ (Dmu_f j nz_j))) // in Dphi.
+  rewrite (cfIirrPE (fun j nz_j => irr_theta _ (Dmu_f j nz_j))) // in Dphi.
   split=> //; rewrite Dphi ?cfInd1 ?cfIndInd ?gFsub ?normal_sub //.
     rewrite -(sdprod_index defM) -/q -Du mulrA -natrM.
     by rewrite lin_char1 1?cfMod_lin_char ?mulr1.
@@ -1476,13 +1477,13 @@ split=> {Part_a part_a}//.
       rewrite ResIndXmu // cfdotZl cfdot_irr.
       by case: (s1 =P s) => [<- // | _] /idPn[]; rewrite mulr0 neq0CiG.
     exists t; rewrite -{t}Dt; split.
-    + rewrite Ds (irr_IirrPE irr_theta) //= ?cfInd1 ?gFsub ?normal_sub // -Du.
+    + rewrite Ds cfIirrE ?irr_theta //= ?cfInd1 ?gFsub ?normal_sub // -Du.
       rewrite -(sdprod_index defM) -/q mulrA -natrM.
       by rewrite lin_char1 1?cfMod_lin_char ?mulr1.
     + rewrite mem_seqInd ?gFnormal //; last by have [] := nsH0xx_M.
       exact: (subsetP sXthXH0C).
     exists (theta f %% H0)%CF; first by rewrite cfMod_lin_char.
-    by rewrite Ds (irr_IirrPE irr_theta) //= ?cfIndInd ?gFsub ?normal_sub.
+    by rewrite Ds cfIirrE ?irr_theta //= ?cfIndInd ?gFsub ?normal_sub.
   suffices /(congr1 odd): u = (p.-1 ^ q.-1)%N.
     rewrite odd_exp -(subnKC (prime_gt1 pr_q)) /= -subn1 odd_sub ?prime_gt0 //.
     rewrite Du -card_quotient ?normal_norm // -oH1.
@@ -1557,11 +1558,11 @@ have <-: #|HCH1 / HU'|%g = #|'C_U(H1 | 'Q) : U'|.
   rewrite -divg_normal //= !norm_joinEr ?(subset_trans _ nHU) ?der_sub //=.
   rewrite !TI_cardMg ?divnMl -?divgS //; apply/trivgP; rewrite -tiHU setIS //.
   exact: der_sub.
-pose theta i := irr_Iirr (fun j => theta1 i * lam j).
+pose theta i j := cfIirr (theta1 i * lam j).
 have theta_lin i j: 'chi_(theta i j) \is a linear_char.
-  by rewrite irr_IirrE => [|j1]; rewrite ?lin_char_irr ?rpredM.
+  by rewrite cfIirrE ?lin_char_irr ?rpredM.
 have thetaEl i j x: x \in H -> 'chi_(theta i j) x = 'chi_i (coset _ (inMb x)).
-  move=> Hx; rewrite irr_IirrE => [|j1]; last by rewrite lin_char_irr ?rpredM.
+  move=> Hx; rewrite cfIirrE; last by rewrite lin_char_irr ?rpredM.
   rewrite cfunE mulrC [_ x]cfker1 ?lin_char1 ?mul1r //; last first.
     by rewrite (subsetP (cfker_Mod _ _)) // mem_gen ?inE ?Hx.
   have HCH1x: x \in HCH1 by rewrite mem_gen ?inE ?Hx.
@@ -1569,7 +1570,7 @@ have thetaEl i j x: x \in H -> 'chi_(theta i j) x = 'chi_i (coset _ (inMb x)).
   by rewrite -{1}[coset _ _]mulg1 cfDprodEl ?mem_quotient.
 have thetaEr i j x:
   x \in 'C_U(H1 | 'Q) -> 'chi_(theta i j) x = 'chi_j (coset _ x).
-- move=> CH1x; rewrite irr_IirrE => [|j1]; last by rewrite lin_char_irr ?rpredM.
+- move=> CH1x; rewrite cfIirrE; last by rewrite lin_char_irr ?rpredM.
   have HCH1x: x \in HCH1 by rewrite mem_gen 1?inE ?CH1x ?orbT.
   rewrite cfunE 2?cfModE ?mem_quotient // -{1}[coset _ _]mul1g.
   rewrite [lam j x]cfModE //.
@@ -1619,12 +1620,12 @@ have Itheta r: r \in Ctheta -> 'I_HU['chi_r]%CF = HCH1.
   by rewrite mulVg lin_char1.
 have irr_Xtheta: {in Ctheta, forall r, 'Ind[HU] 'chi_r \in irr HU}.
   by move=> r Cth_r; rewrite /= inertia_Ind_irr ?Itheta.
-pose Xtheta := irr_Iirr (fun r => 'Ind[HU] 'chi_r) @: Ctheta.
+pose Xtheta := (fun r => cfIirr ('Ind[HU] 'chi_r)) @: Ctheta.
 have Da: a = #|HU : HCH1|.
   rewrite /a -!divgS ?subsetIl ?normal_sub //= norm_joinEr 1?subIset ?nHU //=.
   by rewrite -(sdprod_card defHU) TI_cardMg ?divnMl // setIA tiHU setI1g.
 have Xtheta_1: {in Xtheta, forall s, 'chi_s 1%g = a%:R}.
-  move=> _ /imsetP[r Cth_r ->]; rewrite (irr_IirrPE irr_Xtheta) //=.
+  move=> _ /imsetP[r Cth_r ->]; rewrite cfIirrE ?irr_Xtheta //=.
   rewrite cfInd1 ?join_subG ?sHHU 1?subIset ?sUHU //= -Da.
   by have /imset2P[i j _ _ ->] := Cth_r; rewrite lin_char1 ?mulr1.
 have nsH0U'M: H0U' <| M.
@@ -1637,7 +1638,7 @@ have nsH0U'HU: H0U' <| HU.
   by rewrite (subset_trans _ sUHU) ?der_sub.
 have sXthetaXH0U': Xtheta \subset X_ H0U'.
   apply/subsetP=> _ /imsetP[r Cth_r ->]; have [i j nz_i _ Dr] := imset2P Cth_r.
-  rewrite !inE (irr_IirrPE irr_Xtheta) //=.
+  rewrite !inE cfIirrE ?irr_Xtheta //=.
   rewrite !sub_cfker_Ind_irr ?normal_norm ?(normal_sub nsHCH1_HU) //.
   apply/andP; split; last first.
     rewrite join_subG /= cfkerEirr Dr; apply/andP; split.
@@ -1658,14 +1659,14 @@ have nH1cU: (U / H0)%g \subset 'N(H1c).
   by rewrite normJ -sub_conjgV (normsP (quotient_norms H0 nUW1)) ?groupV.
 have ->: #|Ctheta| = (#|Xtheta| * a)%N.
   rewrite -sum1_card -sum_nat_const.
-  rewrite (partition_big_imset (irr_Iirr (fun r => 'Ind[HU] 'chi_r))) /=.
+  rewrite (partition_big_imset (fun r => (cfIirr ('Ind[HU] 'chi_r)))) /=.
   apply: eq_bigr => _ /imsetP[r Cth_r ->].
   transitivity (\sum_(r1 | 'chi_r1 \in ('chi_r ^: HU)%CF) 1)%N; last first.
     rewrite (cfclass_sum _ (fun _ => 1%N)) // (big_nth 0) sum_nat_const_nat.
     by rewrite subn0 muln1 cfclass_size ?Itheta.
   apply: eq_bigl => r1; rewrite -(inj_eq irr_inj).
   have [Cth_r1 | Cth'r1] := boolP (r1 \in Ctheta).
-    rewrite !(irr_IirrPE irr_Xtheta) //.
+    rewrite !cfIirrE ?irr_Xtheta //.
     by rewrite (sameP (cfclass_Ind_irrP _ _ nsHCH1_HU) eqP).
   apply/esym; apply: contraNF Cth'r1 => /cfclassP[z HUz].
   have{z HUz} /(mem_sdprod defHU)[z0 [z [Hz0 Uz -> _]]] := HUz.
@@ -1704,7 +1705,7 @@ have ->: #|Ctheta| = (#|Xtheta| * a)%N.
 rewrite leq_pmul2r ?indexg_gt0 // cardE -(size_map (fun s => 'Ind[M] 'chi_s)).
 have kerH1c s: s \in Xtheta -> restrm nH0H inMb @*^-1 H1c \subset cfker 'chi_s.
   case/imsetP=> r Cth_r Ds; have [i j _ _ Dr] := imset2P Cth_r.
-  rewrite Ds (irr_IirrPE irr_Xtheta) //.
+  rewrite Ds cfIirrE ?irr_Xtheta //.
   rewrite sub_cfker_Ind_irr; last first; first by rewrite normal_sub.
     rewrite morphpre_restrm normsI ?(subset_trans _ (gFnorm _ _)) ?der_sub //.
     rewrite (subset_trans _ (morphpre_norm _ _)) // -sub_quotient_pre //.
@@ -1816,8 +1817,8 @@ have I_XH0_C i: i != 0 -> 'I_HU['chi[Hbar]_i %% H0]%CF = HC.
   - have{nz_i} [h injh Dh] := second_isom nH0C_H.
     have [h' [Dh' _ _ im_h']] := domP (invm_morphism injh) (Dh _ (subxx _)).
     do [set K := H0C; rewrite -tiHOC_H -(im_invm injh) -im_h' Dh //=] in i *.
-    exists (irr_Iirr (fun i => cfMorph 'chi_i) i) => x Hx.
-    rewrite (irr_IirrE (fun i => @cfMorph_irr _ _ _ _ _ i (subxx _))).
+    exists (cfIirr (cfMorph 'chi_i)) => x Hx.
+    rewrite cfIirrE ?cfMorph_irr //.
     rewrite cfMorphE ?mem_quotient //=; congr ('chi_i _).
     rewrite Dh'; apply: (canRL_in (invmE injh)); first exact: mem_quotient.
     apply: set1_inj; rewrite -morphim_set1 ?mem_quotient //.
@@ -1956,8 +1957,8 @@ move/FrobeniusWker in frobHU.
 have ->: (p ^ q).-1 = (#|X_ H0| * u)%N.
   rewrite -oF -cardsT -im_phi card_injm // -sum_nat_const.
   rewrite -(card_Iirr_abelian (abelem_abelian abelHbar)) -(cardC1 0).
-  pose h r := mod_Iirr (irr_Iirr (fun r => 'Ind[HU / H0, Hbar] 'chi_r) r).
-  have hE := irr_IirrPE (irr_induced_Frobenius_ker frobHU).
+  pose h r := mod_Iirr (cfIirr ('Ind[HU / H0, Hbar] 'chi_r)).
+  have hE := cfIirrPE (irr_induced_Frobenius_ker frobHU).
   rewrite -sum1_card (partition_big h (mem (X_ H0))) => [|r nz_r]; last first.
     rewrite !inE mod_IirrE // cfker_Mod // andbT hE //.
     rewrite cfker_Morph ?normal_norm // subsetI sHHU -sub_quotient_pre //.
@@ -1990,9 +1991,10 @@ pose unInd eta : 'CF(HU) := q%:R^-1 *: 'Res[HU, M] eta.
 suffices IndH0_K: {in X_ H0, forall s, unInd ('Ind 'chi_s) = 'chi_s}.
   have unInd_irr: {in S_ H0, forall eta, unInd eta \in irr HU}.
     by move=> _ /seqIndP[s /IndH0_K Ind_s_K ->]; rewrite Ind_s_K mem_tnth.
-  apply/dinjectiveP; apply: can_in_inj (irr_Iirr unInd) _ => s XH0s.
+  apply/dinjectiveP.
+  apply: can_in_inj (fun (x : 'CF(M)) => cfIirr (unInd x)) _ => s XH0s.
   apply/irr_inj.
-  by rewrite (irr_IirrPE unInd_irr) ?IndH0_K ?mem_seqInd ?gFnormal.
+  by rewrite (cfIirrPE unInd_irr) ?IndH0_K ?mem_seqInd ?gFnormal.
 move=> s XH0s; rewrite /= /unInd induced_sum_rcosets //; set T := 'I_M[_]%CF.
 have [sHUT sTM]: HU \subset T /\ T \subset M by rewrite inertia_sub sub_inertia.
 suffices defT: T = M.

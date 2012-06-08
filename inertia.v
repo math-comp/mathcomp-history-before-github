@@ -323,10 +323,10 @@ Proof.
 by rewrite irrEchar cfConjg_char ?irr_char //= cfConjg_iso cfnorm_irr.
 Qed.
  
-Definition conjg_Iirr i y := irr_Iirr (fun i => 'chi[H]_i ^ y)%CF i.
+Definition conjg_Iirr i y := cfIirr ('chi[H]_i ^ y)%CF.
 
 Lemma conjg_IirrE i y : 'chi_(conjg_Iirr i y) = ('chi_i ^ y)%CF.
-Proof. exact: (irr_IirrE (cfConjg_irr y)). Qed.
+Proof. by rewrite cfIirrE ?cfConjg_irr. Qed.
 
 Lemma conjg_Iirr_eq0 i y : (conjg_Iirr i y == 0) = (i == 0).
 Proof.

@@ -630,23 +630,18 @@ Proof. by rewrite eqr_le ltr_geF ?irr1_gt0. Qed.
 Lemma irr_neq0 i : 'chi_i != 0.
 Proof. by apply: contraNneq (irr1_neq0 i) => ->; rewrite cfunE. Qed.
 
-Definition irr_Iirr (B : {set gT}) J (f : J -> 'CF(B)) j : Iirr B :=
-  odflt 0 [pick i | 'chi_i == f j].
+Definition cfIirr (chi : 'CF(G)) : Iirr G := inord (index chi (irr G)).
 
-Lemma irr_IirrPE J (f : J -> 'CF(G)) (P : pred J) :
-    (forall j, P j -> f j \in irr G) ->
-  forall j, P j -> 'chi_(irr_Iirr f j) = f j.
+Lemma cfIirrE chi : chi \in irr G -> 'chi_(cfIirr chi) = chi.
 Proof.
-rewrite /irr_Iirr => irrGf j Pj; case: pickP => [i /eqP //|].
-by have /irrP[i -> /(_ i)/eqP] := irrGf j Pj.
+move=> chi_irr; rewrite (tnth_nth 0) inordK ?nth_index //.
+by rewrite -index_mem size_tuple in chi_irr.
 Qed.
 
-Lemma irr_IirrE J (f : J -> 'CF(G)) :
-  (forall j, f j \in irr G) -> forall j, 'chi_(irr_Iirr f j) = f j.
-Proof. by move=> irrGf j; exact: (@irr_IirrPE _ _ xpredT). Qed.
-
-Lemma irr_IirrEid chi : chi \in irr G -> 'chi_(irr_Iirr id chi) = chi.
-Proof. exact: irr_IirrPE chi. Qed.
+Lemma cfIirrPE J (f : J -> 'CF(G)) (P : pred J) :
+    (forall j, P j -> f j \in irr G) ->
+  forall j, P j -> 'chi_(cfIirr (f j)) = f j.
+Proof. by move=> irr_f j /irr_f; apply: cfIirrE. Qed.
 
 (* This is Isaacs, Corollary (2.7). *)
 Corollary irr_sum_square : \sum_i ('chi[G]_i 1%g) ^+ 2 = #|G|%:R.
@@ -700,6 +695,9 @@ Qed.
 
 Lemma irr_inj : injective (tnth (irr G)).
 Proof. by apply/injectiveP/free_uniq; rewrite map_tnth_enum irr_free. Qed.
+
+Lemma irrK : cancel (tnth (irr G)) cfIirr.
+Proof. by move=> i; apply: irr_inj; rewrite cfIirrE ?mem_irr. Qed.
 
 Lemma irr_eq1 i : ('chi_i == 1) = (i == 0).
 Proof. by rewrite -irr0 (inj_eq irr_inj). Qed.
@@ -1106,10 +1104,10 @@ exists (Representation (morphim_repr rG dG)); first exact/morphim_mx_irr.
 by apply/cfun_inP=> x Gx; rewrite !cfunElock /= dG Gx mem_morphim ?(subsetP dG).
 Qed.
 
-Definition Iirr_morph := irr_Iirr (fun i => cfMorph 'chi[f @* G]_i).
+Definition Iirr_morph i := cfIirr (cfMorph 'chi[f @* G]_i).
 
 Lemma Iirr_morphE i : G \subset D -> 'chi_(Iirr_morph i) = cfMorph 'chi_i.
-Proof. exact: (irr_IirrPE cfMorph_irr). Qed.
+Proof. exact: (cfIirrPE cfMorph_irr). Qed.
 
 End Morphim.
 
@@ -1136,10 +1134,10 @@ have /irrP[j ->]: phi \in irr _ by rewrite /phi im_invm cfRes_id mem_tnth.
 exact: cfMorph_irr.
 Qed.
 
-Definition Iirr_invm := irr_Iirr (fun i => cfIsom isoGR 'chi_i).
+Definition Iirr_isom i := cfIirr (cfIsom isoGR 'chi_i).
 
-Lemma Iirr_invmE i : 'chi_(Iirr_invm i) = cfIsom isoGR 'chi_i.
-Proof. exact: (irr_IirrE cfIsom_irr). Qed.
+Lemma Iirr_isomE i : 'chi_(Iirr_isom i) = cfIsom isoGR 'chi_i.
+Proof. by rewrite cfIirrE ?cfIsom_irr. Qed.
 
 End Isom.
 
@@ -1636,26 +1634,26 @@ Proof. exact: cfAut_irr. Qed.
 Lemma irr_Aut_closed u : cfAut_closed u (irr G).
 Proof. move=> _ /irrP[i ->]; exact: cfAut_irr. Qed.
 
-Definition aut_Iirr u (B : {set gT}) := irr_Iirr (fun i => cfAut u 'chi[B]_i).
+Definition aut_Iirr u i := cfIirr (cfAut u 'chi[G]_i).
 
-Lemma aut_IirrE u i : 'chi[G]_(aut_Iirr u i) = cfAut u 'chi_i.
-Proof. by apply: irr_IirrE; exact: cfAut_irr. Qed.
+Lemma aut_IirrE u i : 'chi_(aut_Iirr u i) = cfAut u 'chi_i.
+Proof. by rewrite cfIirrE ?cfAut_irr. Qed.
 
 Definition conjC_Iirr := aut_Iirr conjC.
 
 Lemma conjC_IirrE i : 'chi[G]_(conjC_Iirr i) = ('chi_i)^*%CF.
 Proof. exact: aut_IirrE. Qed.
 
-Lemma conjC_IirrK : involutive (@conjC_Iirr G).
+Lemma conjC_IirrK : involutive conjC_Iirr.
 Proof. by move=> i; apply: irr_inj; rewrite !conjC_IirrE cfConjCK. Qed.
 
 Lemma aut_Iirr0 u : aut_Iirr u 0 = 0 :> Iirr G.
-Proof.  by apply/irr_inj; rewrite aut_IirrE irr0 cfAut_cfun1. Qed.
+Proof. by apply/irr_inj; rewrite aut_IirrE irr0 cfAut_cfun1. Qed.
 
 Lemma conjC_Iirr0 : conjC_Iirr 0 = 0 :> Iirr G.
 Proof. exact: aut_Iirr0. Qed.
 
-Lemma aut_Iirr_inj u : injective ((aut_Iirr u) G).
+Lemma aut_Iirr_inj u : injective (aut_Iirr u).
 Proof.
 by move=> i j eq_ij; apply/irr_inj/(cfAut_inj u); rewrite -!aut_IirrE eq_ij.
 Qed.
@@ -1723,21 +1721,20 @@ Proof. by rewrite -cfDprod1r -irr0 cfDprod_irr. Qed.
 Lemma cfDprodr_irr j : cfDprodr KxH 'chi[H]_j \in irr G.
 Proof. by rewrite -cfDprod1l -irr0 cfDprod_irr. Qed.
 
-Definition dprodl_Iirr := irr_Iirr (fun i => cfDprodl KxH 'chi_i).
+Definition dprodl_Iirr i := cfIirr (cfDprodl KxH 'chi_i).
 
 Lemma dprodl_IirrE i : 'chi_(dprodl_Iirr i) = cfDprodl KxH 'chi_i.
-Proof. by apply: irr_IirrE; exact: cfDprodl_irr. Qed.
+Proof. by rewrite cfIirrE ?cfDprodl_irr. Qed.
 
-Definition dprodr_Iirr := irr_Iirr (fun j => cfDprodr KxH 'chi_j).
+Definition dprodr_Iirr j := cfIirr (cfDprodr KxH 'chi_j).
 
 Lemma dprodr_IirrE j : 'chi_(dprodr_Iirr j) = cfDprodr KxH 'chi_j.
-Proof. by apply: irr_IirrE; exact: cfDprodr_irr. Qed.
+Proof. by rewrite cfIirrE ?cfDprodr_irr. Qed.
 
-Definition dprod_Iirr ij :=
-  irr_Iirr (fun j => cfDprod KxH 'chi_ij.1 'chi_j) ij.2.
+Definition dprod_Iirr ij := cfIirr (cfDprod KxH 'chi_ij.1 'chi_ij.2).
 
 Lemma dprod_IirrE i j : 'chi_(dprod_Iirr (i, j)) = cfDprod KxH 'chi_i 'chi_j.
-Proof. by apply: irr_IirrE; exact: cfDprod_irr. Qed.
+Proof. by rewrite cfIirrE ?cfDprod_irr. Qed.
 
 Lemma dprod_Iirr_inj : injective dprod_Iirr.
 Proof.
@@ -1930,10 +1927,10 @@ Proof. exact: cfMorph_lin_char. Qed.
 Lemma cfMod_irr G H i : H <| G -> ('chi[G / H]_i %% H)%CF \in irr G.
 Proof. by case/andP=> _; apply: cfMorph_irr. Qed.
 
-Definition mod_Iirr G H := irr_Iirr (fun i => 'chi[G / H]_i %% H)%CF.
+Definition mod_Iirr G H i := cfIirr ( 'chi[G / H]_i %% H)%CF.
 
 Lemma mod_IirrE G H i : H <| G -> 'chi_(mod_Iirr i) = ('chi[G / H]_i %% H)%CF.
-Proof. by move=> nsHG; apply: irr_IirrE => x; exact: cfMod_irr. Qed.
+Proof. by move=> nsHG; rewrite cfIirrE ?cfMod_irr. Qed.
 
 Lemma cfQuo_irr G H i :
   H <| G -> H \subset cfker 'chi[G]_i -> ('chi_i / H)%CF \in irr (G / H).
@@ -1961,11 +1958,11 @@ have: x \in cfker 'chi_j by rewrite Kx // -iModI cfker_Mod.
 by rewrite !cfkerEirr !inE -iModI !cfModE ?morph1.
 Qed.
 
-Definition quo_Iirr G H := irr_Iirr (fun i => 'chi[G]_i / H)%CF.
+Definition quo_Iirr G H i := cfIirr ('chi[G]_i / H)%CF.
 
 Lemma quo_IirrE G H i :
   H <| G -> H \subset cfker 'chi[G]_i -> 'chi_(quo_Iirr H i) = ('chi_i / H)%CF.
-Proof. by move/cfQuo_irr=> irrHq sHK; exact: irr_IirrPE irrHq _ _. Qed.
+Proof. by move/cfQuo_irr=> irrHq sHK; exact: cfIirrPE irrHq _ _. Qed.
 
 Lemma mod_IirrK G H : H <| G -> cancel (@mod_Iirr G H) (@quo_Iirr G H).
 Proof.
