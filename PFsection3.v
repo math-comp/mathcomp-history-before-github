@@ -2344,7 +2344,7 @@ have{memQb} [wx Dwx]: exists wx, sigma w x = QbC wx.
   have /memQb Qbx := dvdnn #[x].
   have [sw1 /Qbx[wx1 Dwx1] [sw2 /Qbx[wx2 Dwx2] ->]] := vcharP _ Zsigw.
   by exists (wx1 - wx2); rewrite rmorphB !cfunE Dwx1 Dwx2.
-suffices: wx \in fixedField 'Aut({:Qb} / 1).
+suffices: wx \in fixedField 'Gal({:Qb} / 1).
   rewrite Dwx (fixedField_aut galQb) ?subvf // => /vlineP[z ->].
   by rewrite -in_algE fmorph_eq_rat fmorph_rat Crat_rat.
 apply/fixedFieldP; split=> [|v_b _]; first exact: memvf.

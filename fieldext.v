@@ -1105,6 +1105,21 @@ move => Hx.
 by apply/eqP; rewrite eq_sym -dimv_leqif_eq ?subv_adjoin // eq_sym.
 Qed.
 
+Lemma minPoly_in_K K x : reflect (minPoly K x = 'X - x%:P) (x \in K).
+Proof.
+apply: (iffP idP); last first.
+  move => HminPoly.
+  have := (minPolyOver K x).
+  rewrite HminPoly.
+  move/polyOverP/(_ 0%N).
+  by rewrite coefB coefX coefC eqxx add0r rpredN.
+rewrite elemDeg1 => /eqP Hx.
+rewrite [minPoly K x](all_roots_prod_XsubC (rs:=[:: x])) //=.
+- by rewrite (monicP (monic_minPoly K x)) scale1r big_seq1.
+- by rewrite size_minPoly Hx.
+- by rewrite root_minPoly.
+Qed.
+
 Lemma poly_for_X K x : x \notin K -> poly_for_Fadjoin K x x = 'X.
 Proof.
 move=> K'z; rewrite -{2}[x]hornerX poly_for_modp ?polyOverX ?modp_small //.

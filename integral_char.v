@@ -40,7 +40,7 @@ Local Notation algCF := [fieldType of algC].
 Lemma group_num_field_exists (gT : finGroupType) (G : {group gT}) :
   {Qn : splittingFieldType rat & galois 1 {:Qn} &
     {QnC : {rmorphism Qn -> algC}
-         & forall nuQn : argumentType (mem ('Aut({:Qn}%VS / 1%VS))),
+         & forall nuQn : argumentType (mem ('Gal({:Qn}%VS / 1%VS))),
               {nu : {rmorphism algC -> algC} |
                  {morph QnC: a / nuQn a >-> nu a}}
          & {w : Qn & #|G|.-primitive_root w /\ <<1; w>>%AS = fullv
@@ -290,7 +290,7 @@ have norm_a_nu nu: `|sval (gQnC nu) alpha| <= 1.
   congr (_ <= _): (char1_ge_norm g (irr_char (aut_Iirr nu i))).
   by rewrite !aut_IirrE !cfunE Dm rmorph_nat divfK.
 pose beta := QnC (galoisNorm 1 {:Qn} a).
-have Dbeta: beta = \prod_(nu in 'Aut({:Qn} / 1)) sval (gQnC nu) alpha.
+have Dbeta: beta = \prod_(nu in 'Gal({:Qn} / 1)) sval (gQnC nu) alpha.
   rewrite /beta rmorph_prod. apply: eq_bigr => nu _.
   by case: (gQnC nu) => f /= ->; rewrite Da.
 have Zbeta: beta \in Cint.
