@@ -1058,7 +1058,7 @@ have nb_redM (K : {group gT}):
       apply: contraR red_phi => /chi_s1[{chi_s1}/= /irrP[s2 Ds2] _].
       by rewrite Dphi Ds2 cfMod_irr.
     exists j; last by rewrite Dphi Ds1 Dade_Ind_chi.
-    apply: contraNneq kers'H => j0; rewrite -(quo_IirrK _ kersK) ?mod_IirrE //.
+    apply: contraNneq kers'H => j0. rewrite -(quo_IirrK _ kersK) // mod_IirrE //.
     by rewrite -/s1 Ds1 j0 Dade_chi0 ?cfMod_cfun1 // cfker_cfun1.
   have red_j: redM (muK j).
     apply: contra (Dade_mu_not_irr cycDDb j) => /= /irrP[s Ds].
