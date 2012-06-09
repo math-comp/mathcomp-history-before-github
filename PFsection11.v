@@ -24,6 +24,7 @@ Local Open Scope ring_scope.
 
 Section Eleven.
 
+(* This is Peterfalvi (11.1). *)
 Lemma lbound_expn_odd_prime p q : 
    odd p -> odd q -> prime p -> prime q -> p != q -> (4 * q ^ 2 + 1 < p ^ q)%N.
 Proof.
@@ -59,6 +60,7 @@ Proof. by case/orP: Mtype34=> /eqP->. Qed.
 Let Mtype24 := compl_of_typeII_IV MtypeP maxM Mtypen5.
 Let Mtypen2 : FTtype M != 2.
 Proof. by case/orP: Mtype34=> /eqP->. Qed.
+
 
 Local Notation "'H'" := (gval M)`_\F (at level 0) : group_scope.
 Local Notation "'H'" := ((gval M)`_\F)%G (at level 0) : Group_scope.
@@ -150,11 +152,11 @@ Qed.
 
 Let S_ K := seqIndD M^`(1) M M^`(1) K.
 
-(* This should be proved in 10.8 *)
+(* This should be proved in Peterfalvi (10.8).*)
 Lemma nco1 : ~ coherent (S_ 1) M^# tau.
 Proof. admit. Qed.
 
-(* This is PF11.3 *)
+(* This is Peterfalvi (11.3). *)
 Lemma ncoH0C : ~ coherent (S_ H0C) M^# tau.
 Proof.
 move=> coH0C; case: nco1.
@@ -191,7 +193,7 @@ Proof.
 by case: (minnormal_solvable minHbar _ solHbar)=> // _ _ /and3P[].
 Qed.
 
-(* This is PF 11.4 *)
+(* This is Peterfalvi (11.4). *)
 Lemma bounded_proper_coherent H1 :
   H1 <| M -> H1 \proper HU -> coherent (S_ H1) M^# tau ->
     (#|HU : H1| <= 2 * q * #|U : C| + 1)%N.
@@ -219,7 +221,7 @@ have [[_ <- _ _][_ _ _ TI_HC]] := (dprodP defH0C, dprodP defHC).
 by rewrite -group_modl // setIC TI_HC mulg1.
 Qed.
 
-(* This is PF 11.5 *)
+(* This is Peterfalvi (11.5). *)
 Lemma derM2_HC : (M^`(2) = HC)%g.
 Proof.
 have [defFM [_ sUCH] _ _] := typeP_context MtypeP.
@@ -283,5 +285,6 @@ rewrite mulnA ltn_pmul2r ?cardG_gt0 ?(@ltn_pmul2r 2 _ 1) // ltnS leqn0 in B_HC.
 apply/eqP; rewrite eqEsubset sderM2_HC -indexg_eq1.
 by rewrite -(prednK (indexg_gt0 _ _)) Dk (eqP B_HC).
 Qed.
+
 
 End Eleven.
