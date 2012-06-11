@@ -570,7 +570,7 @@ apply: seqv_sub_adjoin.
 by apply/imageP; exists (i, Ordinal (leq_trans lt_j_ri (sz_r i))).
 Qed.
 
-Section GaloisTheory.
+Section SplittingFieldTheory.
 
 Variables (F : fieldType) (L : splittingFieldType F).
 
@@ -785,20 +785,48 @@ apply: (fmorph_inj [rmorphism of inLz]).
 by rewrite /= Df1 /= f1id ?rmorph1 ?mem1v.
 Qed.
 
+Lemma kHom_extend_fAutL K E f : f \is a kHom K E ->
+  exists g : 'AEnd(L), {in E, f =1 val g}.
+Proof.
+move/(kHomSl (capvSl K E)) => Hf.
+have [p Hp Hsfp] := splittingPoly.
+move/(polyOverSv (mem1v [aspace of K :&: E])): Hp => Hp.
+have /andP HE := conj (mem1v E) (subvf E).
+move/(splittingFieldForS HE): Hsfp => Hsfp.
+have [g0 Hg Hfg] := kHom_extends (capvSr K E) Hf Hp Hsfp.
+suff Hg_aend : g0 \is ahom_in {:L} by exists (AHom Hg_aend).
+by apply/is_ahomP/fAutL_lrmorph; apply: (kHomSl _ Hg); apply: mem1v.
+Qed.
+
+End SplittingFieldTheory.
+
+(* Hide the finGroup structure on 'AEnd(L) in a module so that we can control
+   when it is exported.  
+   Most people will want to use the finGroup structure on 'Gal(E / K) and will
+   not need this module. *)
+Module fAutL_FinGroup.
+
+Section fAutL_FinGroup.
+
+Variables (F : fieldType) (L : splittingFieldType F).
+
+Implicit Types (U V W : {vspace L}).
+Implicit Types (K M E : {subfield L}).
+
 Lemma index_fAutL_subproof f :
-  index f (sval enum_fAutL) < size (sval enum_fAutL).
+  index f (sval (enum_fAutL L)) < size (sval (enum_fAutL L)).
 Proof.
 rewrite index_mem.
-by apply/(svalP enum_fAutL f).
+by apply/(svalP (enum_fAutL L) f).
 Qed.
 
 Lemma cancel_fAutL_ord_subproof : 
   cancel (fun f => Ordinal (index_fAutL_subproof f))
-    (nth \1%AF (sval enum_fAutL)).
+    (nth \1%AF (sval (enum_fAutL L))).
 Proof.
 move => [f Hf].
 rewrite nth_index //.
-by apply/(svalP enum_fAutL).
+by apply/(svalP (enum_fAutL L)).
 Qed.
 
 Definition fAutL_countMixin :=
@@ -832,19 +860,6 @@ Canonical fAutL_baseFinGroupType := Eval hnf in
    BaseFinGroupType 'AEnd(L) fAutL_baseFinGroupMixin.
 Canonical fAutL_finGroupType := Eval hnf in
    @FinGroupType fAutL_baseFinGroupType comp_fAutLK.
-
-Lemma kHom_extend_fAutL K E f : f \is a kHom K E ->
-  exists g : 'AEnd(L), {in E, f =1 val g}.
-Proof.
-move/(kHomSl (capvSl K E)) => Hf.
-have [p Hp Hsfp] := splittingPoly.
-move/(polyOverSv (mem1v [aspace of K :&: E])): Hp => Hp.
-have /andP HE := conj (mem1v E) (subvf E).
-move/(splittingFieldForS HE): Hsfp => Hsfp.
-have [g0 Hg Hfg] := kHom_extends (capvSr K E) Hf Hp Hsfp.
-suff Hg_aend : g0 \is ahom_in {:L} by exists (AHom Hg_aend).
-by apply/is_ahomP/fAutL_lrmorph; apply: (kHomSl _ Hg); apply: mem1v.
-Qed.
 
 Definition kAAut U V := [set f : 'AEnd(L) | val f \in kAut U V ].
 
@@ -922,6 +937,17 @@ rewrite /= comp_lfunE /= Hfg //.
 by rewrite -comp_lfunE -[(_ \o _)%VF]/(ahval (g * g^-1)%g) mulgV id_lfunE.
 Qed.
 
+End fAutL_FinGroup.
+End fAutL_FinGroup.
+Export fAutL_FinGroup.
+
+Section GaloisTheory.
+
+Variables (F : fieldType) (L : splittingFieldType F).
+
+Implicit Types (U V W : {vspace L}).
+Implicit Types (K M E : {subfield L}).
+
 (* We wrap coset_of (kAAutL V) in a new type in order to create a suitable
    coercion class for f_aut_repr to coerce from. *)
 Section f_aut_Definition.
@@ -988,7 +1014,7 @@ Proof. by rewrite /f_aut_repr repr_coset1 id_lfunE. Qed.
 Lemma aut_mul E (x y : f_aut_type E) :
  {in E, (x * y)%g =1 (y \o x)%VF}.
 Proof.
-apply/(@aut_mem_eqP _ (val (val (x * y)%g)) (val (val (x * y)%g))); last done.
+apply/(aut_mem_eqP (x:=val (val (x * y)%g)) (y:=val (val (x * y)%g))) => //. 
   by rewrite mem_repr_coset.
 rewrite [val _]/=.
 rewrite -[in X in _ \in X](coset_mem (mem_repr_coset (val (val x)))).
