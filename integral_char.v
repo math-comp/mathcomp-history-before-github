@@ -289,20 +289,20 @@ have norm_a_nu nu: `|sval (gQnC nu) alpha| <= 1.
   rewrite normr_nat -Dm -(ler_pmul2r (irr1_gt0 (aut_Iirr nu i))) mul1r.
   congr (_ <= _): (char1_ge_norm g (irr_char (aut_Iirr nu i))).
   by rewrite !aut_IirrE !cfunE Dm rmorph_nat divfK.
-pose beta := QnC (galoisNorm 1 {:Qn} a).
+pose beta := QnC (galNorm 1 {:Qn} a).
 have Dbeta: beta = \prod_(nu in 'Gal({:Qn} / 1)) sval (gQnC nu) alpha.
   rewrite /beta rmorph_prod. apply: eq_bigr => nu _.
   by case: (gQnC nu) => f /= ->; rewrite Da.
 have Zbeta: beta \in Cint.
   apply: Cint_rat_Aint; last by rewrite Dbeta rpred_prod.
-  rewrite /beta; have /vlineP[/= c ->] := mem_galoisNorm galQn (memvf a).
+  rewrite /beta; have /vlineP[/= c ->] := mem_galNorm galQn (memvf a).
   by rewrite alg_num_field fmorph_rat rpred_rat.
 have [|nz_a] := boolP (alpha == 0).
   by rewrite (can2_eq (divfK _) (mulfK _)) // mul0r => /eqP.
 have: beta != 0 by rewrite Dbeta; apply/prodf_neq0 => nu _; rewrite fmorph_eq0.
 move/(norm_Cint_ge1 Zbeta); rewrite ltr_geF //; apply: ler_lt_trans a_lt1.
 rewrite -[`|alpha|]mulr1 Dbeta (bigD1 1%g) ?group1 //= -Da.
-case: (gQnC _) => /= _ <-; rewrite aut_id normrM.
+case: (gQnC _) => /= _ <-; rewrite gal_id normrM.
 rewrite -subr_ge0 -mulrBr mulr_ge0 ?normr_ge0 // Da subr_ge0.
 elim/big_rec: _ => [|nu c _]; first by rewrite normr1 lerr.
 apply: ler_trans; rewrite -subr_ge0 -{1}[`|c|]mul1r normrM -mulrBl.
