@@ -8,8 +8,8 @@ Require Import matrix mxalgebra mxrepresentation mxabelem vector.
 Require Import BGsection1 BGsection3 BGsection7 BGsection15 BGsection16.
 Require Import ssrnum ssrint algC classfun character inertia vcharacter.
 Require Import PFsection1 PFsection2 PFsection3 PFsection4.
-Require Import PFsection5 PFsection6 PFsection9 PFsection8.
-Require Import PFsection9 PFsection11.
+Require Import PFsection5 PFsection6 PFsection8 PFsection9.
+Require Import PFsection11.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -114,9 +114,14 @@ have Dchi_sum : chi = \sum_(i in S_ chi) 'chi_i.
       rewrite -Dchi_irr //= cfIirrE ?mem_irr // inertia_Ind_inv_constt //.
       by rewrite Dchi_irr // constt_Res_constt_inertia.
     by rewrite constt_inertia_Ind_inv // Dchi_irr // constt_Res_constt_inertia.
-  - set k := cfIirr _; case/andP => ht /eqP <-.
-    by rewrite constt_inertia_Ind_inv.
+  - by case/andP => ht /eqP <-;  rewrite constt_inertia_Ind_inv.
 have lichi : constant [seq 'chi_i 1%g | i in  S_ chi].
+  have /= [_ [h_ Ichi1]] := induced_inertia_quo1 nHL abTbar copHIchi.
+  pose c := #|L : T|%:R * 'chi_t 1%g.
+  apply/(@all_pred1_constant _ c)/allP=> _ /mapP[psi Spsi ->] /=.
+  move: Spsi; rewrite mem_enum inE Dchi => psi_irr; move: (psi_irr).
+  rewrite constt_Ind_constt_Res; move/(inertia_Ind_invE nHL)<-; rewrite Ichi1 //. 
+  by rewrite constt_Ind_constt_Res constt_inertia_Ind_inv -?constt_Ind_constt_Res.
 Admitted.
 
 Lemma tau_isometry  :
