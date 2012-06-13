@@ -2198,7 +2198,7 @@ rewrite -comp_lfunE -galM //.
 apply: Ha.
 rewrite -(class_sub_norm (G:=[group of 'Gal(E / K)])) // in Hy.
 apply: (subsetP Hy).
-by rewrite -[X in (X * _ * _)%g]invgK -mulgA -conjgE memJ_class // groupV.
+by rewrite -[in X in (X * _)%g](invgK x') -mulgA -conjgE memJ_class // groupV.
 Qed.
 
 End IntermediateGroup.
