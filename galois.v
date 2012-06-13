@@ -1465,23 +1465,64 @@ exists (mask m r); first by apply/allP => x Hx; apply: Hr; apply: (mem_mask Hx).
 by apply/eqP; rewrite -eqp_monic ?monic_prod_XsubC // monic_minPoly.
 Qed.
 
-Lemma splitting_normalField E K p :
-  p \is a polyOver K -> splittingFieldFor K p E -> normalField K E.
+Lemma splitting_normalField E K :
+  reflect (exists2 p, p \is a polyOver K & splittingFieldFor K p E)
+          ((K <= E)%VS && normalField K E).
 Proof.
-move => HpK [rs Hp HE].
-apply/forallP => x.
-rewrite inE kAutE.
-apply/implyP => /andP [Hx _].
-rewrite -dimv_leqif_eq ?limg_dim_eq //.
-  have /eqP -> := fAutL_lker0 x.
-  by rewrite capv0.
-rewrite -HE aimg_adjoin_seq.
-case/andP: (Hx) => /fixedSpace_subv -> _.
-apply/adjoin_seqSr.
-move => _ /mapP [y Hy ->].
-move: Hy.
-rewrite -!root_prod_XsubC -!(eqp_root Hp).
-by apply: (kHom_rootK _ Hx) => //; rewrite ?subvf ?memvf.
+  apply: (iffP andP); last first.
+  case => p HpK [rs Hp HE]; split; first by rewrite -HE subv_adjoin_seq.
+  apply/forallP => x.
+  rewrite inE kAutE.
+  apply/implyP => /andP [Hx _].
+  rewrite -dimv_leqif_eq ?limg_dim_eq //.
+    have /eqP -> := fAutL_lker0 x.
+    by rewrite capv0.
+  rewrite -HE aimg_adjoin_seq.
+  case/andP: (Hx) => /fixedSpace_subv -> _.
+  apply/adjoin_seqSr.
+  move => _ /mapP [y Hy ->].
+  move: Hy.
+  rewrite -!root_prod_XsubC -!(eqp_root Hp).
+  by apply: (kHom_rootK _ Hx) => //; rewrite ?subvf ?memvf.
+case => HKE /normalFieldP => Hnorm.
+have {Hnorm} Hnorm a : { r : seq L |
+  a \in E -> (all (mem E) r /\ minPoly K a = \prod_(b <- r) ('X - b%:P))}.
+  case: (boolP (a \in E)) => [HaE|_]; last by exists [::].
+  have Hr : exists r : seq L, 
+    (all (mem E) r) && (minPoly K a == \prod_(b <- r) ('X - b%:P)).
+    by have [r Hr Hmin] := Hnorm _ HaE; exists r; rewrite Hr Hmin eqxx.
+  have /andP [HrE /eqP Hmin] := xchooseP Hr.
+  by exists (xchoose Hr).
+exists (\prod_(r <- vbasis E) (minPoly K r)).
+  by apply: rpred_prod => i _; apply: minPolyOver.
+exists (flatten [seq (sval (Hnorm r)) | r <- vbasis E]).
+  have := (basis_mem (vbasisP E)).
+  elim: (vbasis E : seq L) => [|a s IH HE]; first by rewrite !big_nil eqpxx.
+  rewrite big_cons /= big_cat /=.
+  have HaE : a \in E by apply HE; rewrite inE eqxx.
+  have [_ <-] := svalP (Hnorm a) HaE.
+  apply: eqp_mull; apply IH => b Hb.
+  by apply: HE; rewrite inE Hb orbT.
+apply: subv_anti; apply/andP; split; last first.
+  rewrite -[X in (X <= _)%VS]subfield_closed.
+  rewrite -[X in <<X>>%AS](addv_idPr HKE).
+  rewrite -[X in (K + X)%VS](span_basis (vbasisP E)).
+  rewrite adjoin_seqSr // => a Ha.
+  have HaE := (basis_mem (vbasisP E) Ha).
+  elim: (vbasis E : seq L) Ha => [//|b s IH].
+  rewrite inE /= mem_cat.
+  move/orP => [/eqP <-|/IH ->]; last by rewrite orbT.
+  rewrite -root_prod_XsubC.
+  have [_ <-] := svalP (Hnorm a) HaE.
+  by rewrite root_minPoly.
+apply/Fadjoin_seqP; split; first done.
+move: (fun a => basis_mem (x:=a) (vbasisP E)).
+elim: (vbasis E : seq L) => [//|a s IH Has b].
+rewrite /= mem_cat; move/orP => [Hb|]; last first.
+  by apply: IH => c Hc; rewrite Has // inE Hc orbT.
+have HaE : a \in E by apply Has; rewrite inE eqxx.
+have [/allP HE _]:= (svalP (Hnorm a) HaE).
+by apply: HE.
 Qed.
 
 Lemma kHom_gal K M E f : (K <= M <= E)%VS -> normalField K E ->
@@ -1535,8 +1576,7 @@ apply: (iffP idP); last first.
   move => Hfactor.
   apply/normalFieldP => a Ha.
   case: (Hfactor a Ha) => r /subsetP Hr ->.
-  exists [seq x a | x : gal_of E <- r]; last first.
-    by rewrite big_map.
+  exists [seq x a | x : gal_of E <- r]; last by rewrite big_map.
   apply/allP => _ /mapP [b /(Hr _) Hb ->].
   by apply: memv_gal.
 move => Hnorm a Ha.
@@ -1569,24 +1609,6 @@ Lemma galoisS K M E : (K <= M <= E)%VS -> galois K E -> galois M E.
 Proof.
 move => /andP [HKM HME] /and3P [_ Hsep Hnorm].
 by rewrite /galois HME (separableSl HKM) // (normalFieldS HKM).
-Qed.
-
-Lemma splitting_galoisField K E p :
-  p \is a polyOver K -> splittingFieldFor K p E -> separablePolynomial p ->
-  galois K E.
-Proof.
-move => Hp Hsplit Hsep.
-apply/and3P; split.
-- have [? _ <-] := Hsplit.
-  by apply: subv_adjoin_seq.
-- have [rs Hrs <-] := Hsplit.
-  apply: separable_Fadjoin_seq.
-  apply/allP => x Hx.
-  apply/separableElementP.
-  exists p.
-  rewrite Hp Hsep; repeat split => //.
-  by rewrite (eqp_root Hrs) root_prod_XsubC.
-- by apply: splitting_normalField Hp Hsplit.
 Qed.
 
 Lemma galois_dim K E : galois K E -> \dim_K E = #|'Gal(E / K)|.
@@ -1655,6 +1677,41 @@ exists r => //.
 by rewrite Hmin big_map.
 Qed.
 
+Lemma splitting_galoisField K E :
+  reflect (exists p, [/\ p \is a polyOver K,
+                         splittingFieldFor K p E &
+                         separablePolynomial p])
+          (galois K E).
+Proof.
+apply: (iffP and3P).
+  case => HKE /separableSeparableGenerator/(_ HKE) ->.
+  set a:= separableGenerator K E.
+  move/normalFieldP => Hnorm.
+  exists (minPoly K a); split.
+  - by apply: minPolyOver.
+  - have [r /= /allP Hr Har] := (Hnorm _ (memv_adjoin _ _)).
+    exists r; first by rewrite Har eqpxx.
+    apply: subv_anti; apply/andP; split.
+      by apply/Fadjoin_seqP; split => //; apply: subv_adjoin.
+    apply/FadjoinP; split; first apply: subv_adjoin_seq.
+    apply: seqv_sub_adjoin.
+    by rewrite -root_prod_XsubC -Har root_minPoly.
+  - by apply separableGeneratorSep.
+case => p [Hp Hsplit Hsep]; split.
+- have [? _ <-] := Hsplit.
+  by apply: subv_adjoin_seq.
+- have [rs Hrs <-] := Hsplit.
+  apply: separable_Fadjoin_seq.
+  apply/allP => x Hx.
+  apply/separableElementP.
+  exists p.
+  rewrite Hp Hsep; repeat split => //.
+  by rewrite (eqp_root Hrs) root_prod_XsubC.
+- have : (exists2 p, p \is a polyOver K & splittingFieldFor K p E).
+    by exists p.
+  by case/splitting_normalField/andP.
+Qed.
+
 Lemma fixedField_gal K E : galois K E -> fixedField 'Gal(E / K)%g = K.
 Proof.
 case/and3P => HKE /separableP Hsep Hnorm.
@@ -1684,10 +1741,8 @@ apply (iffP idP).
 case => HKE Hfixed.
 apply/galois_factors; split; first done.
 move => a HaE.
-pose roots :=
-  seq_sub [seq x a | x : gal_of E <- enum 'Gal(E / K)].
-have Hroot_aut (b : roots) :
-    exists x, (x \in 'Gal(E / K)) && (x a == val b).
+pose roots := seq_sub [seq x a | x : gal_of E <- enum 'Gal(E / K)].
+have Hroot_aut (b : roots) : exists x, (x \in 'Gal(E / K)) && (x a == val b).
   case/mapP: (valP b) => [x Hx Hxb].
   by exists x; rewrite Hxb eqxx andbT -mem_enum.
 pose root_repr b := xchoose (Hroot_aut b).
@@ -1711,8 +1766,7 @@ apply/andP; split; last first.
 apply minPoly_dvdp; last first.
   rewrite root_prod_XsubC.
   apply/mapP.
-  have Haroot :
-      a \in [seq x a | x : gal_of E <- enum 'Gal(E / K)].
+  have Haroot : a \in [seq x a | x : gal_of E <- enum 'Gal(E / K)].
     apply/mapP; exists 1%g; last by rewrite gal_id.
     by rewrite mem_enum group1.
   exists (root_repr (SeqSub Haroot)); last by rewrite Hroot_repr.

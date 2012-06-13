@@ -62,7 +62,8 @@ have splitXn1: splittingFieldFor 1 ('X^n - 1) {:Qn}.
   by rewrite andbT -root_prod_XsubC -Dr; apply/unity_rootP/prim_expr_order.
 have Qn_ax : SplittingField.axiom Qn by exists ('X^n - 1).
 exists (SplittingFieldType _ _ Qn_ax).
-  apply: (splitting_galoisField (p:='X^n - 1)) => //.
+  apply/splitting_galoisField.
+  exists ('X^n - 1); split => //.
   apply: separable_Xn_sub_1; rewrite -(fmorph_eq0 QnC) rmorph_nat.
   by rewrite pnatr_eq0 -lt0n cardG_gt0.
 exists QnC => [// nuQn|].
