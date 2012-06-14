@@ -1,6 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div.
 Require Import fintype bigop finset prime fingroup ssralg finalg cyclic abelian.
+Require Import tuple finfun choice matrix vector falgebra fieldext separable.
 
 (******************************************************************************)
 (*  A few lemmas about finite fields                                          *)
@@ -115,3 +116,48 @@ by rewrite !inE.
 Qed.
 
 End FinField.
+
+Section FiniteSeparable.
+
+Variable F : finFieldType.
+Variable L : fieldExtType F.
+
+Let pCharL : (char F) \in [char L].
+Proof. by rewrite charLF finField_char. Qed.
+
+Lemma FermatLittleTheorem  (x : L) : x ^+ (#|F| ^ \dim {:L}) = x.
+Proof.
+pose v2rK := @Vector.InternalTheory.v2rK F L.
+pose m1 := CanCountMixin v2rK.
+pose m2 := CanFinMixin (v2rK : @cancel _ (CountType L m1) _ _).
+pose FL := @FinRing.Field.pack L _ _ id (FinType L m2) _ id.
+suff -> : #|F| ^ \dim {:L} = #|FL| by apply: (@expf_card FL).
+pose f (x : FL) := [ffun i => coord (vbasis fullv) i x].
+rewrite -[\dim {:L}]card_ord -card_ffun.
+have/card_in_image <- : {in FL &, injective f}.
+ move => a b Ha Hb /= /ffunP Hab.
+ rewrite (coord_vbasis (memvf a)) (coord_vbasis (memvf b)).
+ by apply: eq_bigr => i _; have:= Hab i; rewrite !ffunE => ->.
+apply: eq_card => g.
+rewrite !inE.
+symmetry; apply/idP.
+apply/mapP.
+exists (\sum_i g i *: (vbasis fullv)`_i); first by rewrite mem_enum.
+by apply/ffunP => i; rewrite ffunE coord_sum_free // (basis_free (vbasisP _)).
+Qed.
+
+Lemma separableFiniteField (K E : {subfield L}) : separable K E.
+Proof.
+apply/separableP => y _.
+rewrite (separableCharp _ _ 0 pCharL) expn1.
+rewrite -{1}[y]FermatLittleTheorem.
+ case: (p_natP (finField_card F)) => [[|n ->]].
+ move/eqP.
+ by rewrite expn0 -{1}(subnK (finField_card_gt1 F)) addnC.
+rewrite -expnM.
+suff -> : (n.+1 * \dim {:L})%N = (n.+1 * \dim {:L}).-1.+1.
+ by rewrite expnS exprM rpredX // memv_adjoin.
+by rewrite prednK // muln_gt0 adim_gt0.
+Qed.
+
+End FiniteSeparable.
