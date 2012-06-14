@@ -43,33 +43,6 @@ Reserved Notation "''Gal' ( A / B )"
 Open Local Scope ring_scope.
 Import GRing.Theory.
 
-(* Move this to vector.v *)
-Lemma eq_in_limg (F:fieldType) (vT wT:vectType F) (V : {vspace vT})
-  (f g : 'Hom(vT, wT)) : {in V, f =1 g} -> (f @: V = g @: V)%VS.
-Proof.
-move => Hfg.
-apply:subv_anti.
-apply/andP; split; apply/subvP => ? /memv_imgP [y Hy ->].
-  by rewrite Hfg // memv_img.
-by rewrite -Hfg // memv_img.
-Qed.
-
-(* Move this to vector.v *)
-Lemma eqlfun_inP (F:fieldType) (vT wT:vectType F) (V : {vspace vT})
-  (f g: 'Hom(vT,wT)) : reflect {in V, f =1 g} (V <= lker (f - g))%VS.
-Proof.
-apply: (iffP idP).
-  rewrite lkerE.
-  move/eqP => Hfg a /(memv_img (f - g)).
-  rewrite Hfg memv0 !lfun_simp /= subr_eq0.
-  by move/eqP.
-move => Hfg.
-apply/subvP => v Hv.
-rewrite memv_ker !lfun_simp subr_eq0.
-apply/eqP.
-by apply: Hfg.
-Qed.
-
 Section SplittingFieldFor.
 
 Variables (F : fieldType) (L : fieldExtType F).
@@ -1478,7 +1451,7 @@ Proof.
     have /eqP -> := fAutL_lker0 x.
     by rewrite capv0.
   rewrite -HE aimg_adjoin_seq.
-  case/andP: (Hx) => /fixedSpace_subv -> _.
+  case/andP: (Hx) => /fixedSpace_limg -> _.
   apply/adjoin_seqSr.
   move => _ /mapP [y Hy ->].
   move: Hy.

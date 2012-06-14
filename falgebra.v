@@ -1054,37 +1054,6 @@ Proof. by rewrite aimg_closure limg_add limg_span. Qed.
 
 End LRMorphism.
 
-(* Move to vector.v *)
-Definition fixedSpace (vT:vectType K) (f:'End(vT)) : {vspace vT} :=
-  lker (f - \1%VF).
-
-Lemma fixedSpaceP (vT:vectType K) (f:'End(vT)) a :
-  reflect (f a = a) (a \in fixedSpace f).
-Proof.
-rewrite memv_ker add_lfunE opp_lfunE id_lfunE subr_eq0.
-by apply: eqP.
-Qed.
-
-Lemma fixedSpace_id (vT:vectType K) : fixedSpace \1 = {:vT}%VS.
-Proof.
-apply: subv_anti; rewrite subvf /=.
-apply/subvP => x _.
-apply/fixedSpaceP.
-by rewrite id_lfunE.
-Qed.
-
-Lemma fixedSpace_subv (vT:vectType K) (f:'End(vT)) U :
-  (U <= fixedSpace f -> f @: U = U)%VS.
-Proof.
-move/subvP => HU.
-apply:subv_anti; apply/andP; split; apply/subvP.
-  move => _ /memv_imgP [x Hx ->].
-  by have /fixedSpaceP -> := (HU _ Hx).
-move => x Hx.
-have /fixedSpaceP <- := (HU _ Hx).
-by apply: memv_img.
-Qed.  
-
 Variable (aT : FalgType K) (f : ahom aT aT).
 
 Lemma fixedAlgebra_is_aspace_subproof : let FF := fixedSpace f in

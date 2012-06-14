@@ -58,6 +58,7 @@ Require Import finfun tuple ssralg matrix mxalgebra zmodp.
 (*       (f @^-1: U)%VS == the pre-image of vs by the linear function f.      *)
 (*               lker f == the kernel of the linear function f.               *)
 (*               limg f == the image of the linear function f.                *)
+(*         fixedSpace f == the fixed space of a linear endomorphism f         *)
 (*         daddv_pi U V == projection onto U along V if U and V are disjoint; *)
 (*                         daddv_pi U V + daddv_pi V U is then a projection   *)
 (*                         onto the direct sum (U + V)%VS.                    *)
@@ -1504,6 +1505,20 @@ Qed.
 Lemma memv_ker f v : (v \in lker f) = (f v == 0).
 Proof. by rewrite -memv0 !memvE subv0 lkerE limg_line. Qed.
 
+Lemma eqlfun_inP V f g : reflect {in V, f =1 g} (V <= lker (f - g))%VS.
+Proof.
+apply: (iffP idP).
+  rewrite lkerE.
+  move/eqP => Hfg a /(memv_img (f - g)).
+  rewrite Hfg memv0 !lfun_simp /= subr_eq0.
+  by move/eqP.
+move => Hfg.
+apply/subvP => v Hv.
+rewrite memv_ker !lfun_simp subr_eq0.
+apply/eqP.
+by apply: Hfg.
+Qed.
+
 Lemma limg_ker_compl f U : (f @: (U :\: lker f) = f @: U)%VS.
 Proof. 
 rewrite -{2}(addv_diff_cap U (lker f)) limg_add; apply/esym/addv_idPl.
@@ -1551,6 +1566,15 @@ Qed.
 Lemma lker0_compVf f : lker f == 0%VS -> (f^-1 \o f = \1)%VF.
 Proof. by move/lker0_lfunK=> fK; apply/lfunP=> u; rewrite !lfunE /= fK. Qed.
 
+Lemma eq_in_limg V f g : {in V, f =1 g} -> (f @: V = g @: V)%VS.
+Proof.
+move => Hfg.
+apply:subv_anti.
+apply/andP; split; apply/subvP => ? /memv_imgP [y Hy ->].
+  by rewrite Hfg // memv_img.
+by rewrite -Hfg // memv_img.
+Qed.
+
 End LinearImage.
 
 Implicit Arguments memv_imgP [K aT rT f U w].
@@ -1585,7 +1609,34 @@ Proof. by rewrite -comp_lfunA lker0_compfV comp_lfun1r. Qed.
 Lemma lker0_compfVK rT h : ((h \o f^-1) \o f)%VF = h :> 'Hom(vT, rT).
 Proof. by rewrite -comp_lfunA lker0_compVf ?comp_lfun1r. Qed.
 
+Definition fixedSpace : {vspace vT} := lker (f - \1%VF).
+
+Lemma fixedSpaceP a : reflect (f a = a) (a \in fixedSpace).
+Proof.
+rewrite memv_ker add_lfunE opp_lfunE id_lfunE subr_eq0.
+by apply: eqP.
+Qed.
+
+Lemma fixedSpace_limg U : (U <= fixedSpace -> f @: U = U)%VS.
+Proof.
+move/subvP => HU.
+apply:subv_anti; apply/andP; split; apply/subvP.
+  move => _ /memv_imgP [x Hx ->].
+  by have /fixedSpaceP -> := (HU _ Hx).
+move => x Hx.
+have /fixedSpaceP <- := (HU _ Hx).
+by apply: memv_img.
+Qed.
+
 End LinAut.
+
+Lemma fixedSpace_id (K : fieldType) (vT:vectType K) : fixedSpace \1 = {:vT}%VS.
+Proof.
+apply: subv_anti; rewrite subvf /=.
+apply/subvP => x _.
+apply/fixedSpaceP.
+by rewrite id_lfunE.
+Qed.
 
 Section LinearImageComp.
 
