@@ -2,6 +2,7 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div.
 Require Import fintype bigop finset prime fingroup ssralg finalg cyclic abelian.
 Require Import tuple finfun choice matrix vector falgebra fieldext separable.
+Require Import morphism mxabelem zmodp.
 
 (******************************************************************************)
 (*  A few lemmas about finite fields                                          *)
@@ -13,6 +14,24 @@ Unset Printing Implicit Defensive.
 
 Open Local Scope ring_scope.
 Import GRing.Theory.
+Import FinRing.Theory.
+
+Section FinRing.
+
+Variable (R : finRingType).
+
+Lemma Zpm_is_rmorph : rmorphism (@Zpm R 1%R).
+Proof.
+have H1 : 1 < #[1%R:R]%g by rewrite order_gt1 oner_neq0.
+repeat split; move => a b /=.
+  by rewrite -zmodMgE -zmodVgE morphM ?morphV // mem_Zp.
+by rewrite -natrM -zmodXgE -expg_mod_order -[X in _ %% X]Zp_cast.
+Qed.
+
+Canonical Zpm_additive := Additive Zpm_is_rmorph.
+Canonical Zpm_rmorph := RMorphism Zpm_is_rmorph.
+
+End FinRing.
 
 Section FinField.
 
@@ -92,7 +111,7 @@ Lemma finField_order (x : F) : x != 0 -> #[x]%g = char.
 Proof.
 move => Hx.
 apply: (nt_prime_order finField_char_prime) => //.
-by rewrite FinRing.zmodXgE -mulr_natl finField_char0 mul0r.
+by rewrite zmodXgE -mulr_natl finField_char0 mul0r.
 Qed.
 
 Lemma finField_exponent : exponent [set: F] = char.
@@ -101,7 +120,13 @@ apply/eqP.
 rewrite eqn_dvd dvdn_exponent ?inE // andbT.
 apply/exponentP.
 move => x Hx.
-by rewrite FinRing.zmodXgE -mulr_natl finField_char0 mul0r.
+by rewrite zmodXgE -mulr_natl finField_char0 mul0r.
+Qed.
+
+Lemma char_abelem_finField : (char.-abelem [set: F])%g.
+Proof.
+rewrite abelemE; last by apply: finField_char_prime.
+by rewrite zmod_abelian finField_exponent dvdnn.
 Qed.
 
 Lemma finField_card : char.-nat #|F|.
@@ -116,6 +141,69 @@ by rewrite !inE.
 Qed.
 
 End FinField.
+
+Module PrimeFieldExt.
+
+Section FinRingTheory.
+Variable (R : finRingType).
+
+Definition primeScale (a : 'Z_#[1%R:R]%g) (x : R) := Zpm a * x.
+
+Lemma primeScaleA a b x : primeScale a (primeScale b x) = primeScale (a * b) x.
+Proof. by rewrite /primeScale rmorphM mulrA. Qed.
+
+Lemma primeScale1 : left_id 1 primeScale.
+Proof. by move => a; rewrite /primeScale mul1r. Qed.
+
+Lemma primeScaleDr : right_distributive primeScale +%R.
+Proof. by move => a x y /=; rewrite /primeScale mulrDr. Qed.
+
+Lemma primeScaleDl v : {morph primeScale^~ v: a b / a + b}.
+Proof. by move => a b /=; rewrite /primeScale rmorphD mulrDl. Qed.
+
+Definition primeScaleLmodMixin :=
+  LmodMixin primeScaleA primeScale1 primeScaleDr primeScaleDl.
+Canonical finRing_ZpmodType := Eval hnf in LmodType _ _ primeScaleLmodMixin.
+
+End FinRingTheory.
+
+Section PrimeFieldExt.
+Variable (F : finFieldType).
+
+Lemma finField_Zp_vectAxiom :
+  Vector.axiom ('dim [set: F]) (finRing_ZpmodType F).
+Proof.
+have nontrivF : [set: F]%G != 1%G.
+  apply/trivgPn.
+  exists 1; first by rewrite inE.
+  by apply: oner_neq0.
+have /isog_isom /= := isog_abelem_rV (char_abelem_finField F) nontrivF.
+rewrite pdiv_id ?finField_char_prime //.
+case => f /isomP [/injmP Hfinj _].
+exists [eta f].
+  move => a x y.
+  rewrite -zmodMgE morphM ?inE // zmodMgE.
+  rewrite -[a *: x]/(a%:R * x) mulr_natl.
+  rewrite -zmodXgE morphX ?inE // zmodXgE.
+  by rewrite -scaler_nat natr_Zp.
+pose g (x : 'I_#|F|) : 'I_#|'rV([set: F]%G)| := enum_rank (f (enum_val x)).
+suff : bijective (enum_val \o g \o enum_rank).
+  by move/eq_bij; apply => x; rewrite /= !enum_rankK.
+apply: bij_comp; last by apply: enum_rank_bij.
+apply: bij_comp; first by apply: enum_val_bij.
+suff : injective g.
+  move: g.
+  rewrite -(pdiv_id (finField_char_prime F)).
+  rewrite (card_abelem_rV (E:=[set: F]%G)) ?char_abelem_finField //.
+  rewrite cardsT.
+  apply: injF_bij.
+apply: inj_comp; first by apply: enum_rank_inj.
+apply: inj_comp; last by apply: enum_val_inj.
+by move => x y; apply Hfinj; rewrite inE.
+Qed.
+
+End PrimeFieldExt.
+End PrimeFieldExt.
 
 Section FiniteSeparable.
 
