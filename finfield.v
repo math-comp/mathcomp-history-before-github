@@ -31,6 +31,9 @@ Qed.
 Canonical Zpm_additive := Additive Zpm_is_rmorph.
 Canonical Zpm_rmorph := RMorphism Zpm_is_rmorph.
 
+Lemma ZpmMn a n : (@Zpm R a n) = a *+ n.
+Proof. by apply: zmodXgE. Qed.
+
 End FinRing.
 
 Section FinField.
@@ -144,13 +147,16 @@ End FinField.
 
 Module PrimeFieldExt.
 
-Section FinRingTheory.
-Variable (R : finRingType).
+Section PrimeFieldExt.
+Variable (F : finFieldType).
 
-Definition primeScale (a : 'Z_#[1%R:R]%g) (x : R) := Zpm a * x.
+Definition primeScale (a : 'F_(char F)) (x : F) := a%:R * x.
 
 Lemma primeScaleA a b x : primeScale a (primeScale b x) = primeScale (a * b) x.
-Proof. by rewrite /primeScale rmorphM mulrA. Qed.
+Proof.
+move: a b; rewrite /primeScale pdiv_id ?finField_char_prime // => a b.
+by rewrite -!ZpmMn rmorphM mulrA.
+Qed.
 
 Lemma primeScale1 : left_id 1 primeScale.
 Proof. by move => a; rewrite /primeScale mul1r. Qed.
@@ -159,27 +165,44 @@ Lemma primeScaleDr : right_distributive primeScale +%R.
 Proof. by move => a x y /=; rewrite /primeScale mulrDr. Qed.
 
 Lemma primeScaleDl v : {morph primeScale^~ v: a b / a + b}.
-Proof. by move => a b /=; rewrite /primeScale rmorphD mulrDl. Qed.
+Proof.
+rewrite /primeScale pdiv_id ?finField_char_prime //= => a b.
+by rewrite -!ZpmMn rmorphD mulrDl.
+Qed.
 
 Definition primeScaleLmodMixin :=
   LmodMixin primeScaleA primeScale1 primeScaleDr primeScaleDl.
-Canonical finRing_ZpmodType := Eval hnf in LmodType _ _ primeScaleLmodMixin.
+Canonical finField_ZpmodType :=
+  Eval hnf in LmodType 'F_(char F) F primeScaleLmodMixin.
+Canonical finField_ZpfinmodType := Eval hnf in [finLmodType 'F_(char F) of F].
 
-End FinRingTheory.
+Lemma primeScaleAl : GRing.Lalgebra.axiom ( *%R : F -> _).
+Proof. by move => a x y; rewrite -[a *: (x * y)]/(a%:R * (x * y)) mulrA. Qed.
+Canonical finField_ZplalgType :=
+  Eval hnf in LalgType 'F_(char F) F primeScaleAl.
+Canonical finField_ZpfinlalgType := Eval hnf in [finLalgType 'F_(char F) of F].
 
-Section PrimeFieldExt.
-Variable (F : finFieldType).
-
-Lemma finField_Zp_vectAxiom :
-  Vector.axiom ('dim [set: F]) (finRing_ZpmodType F).
+Lemma primeScaleAr : GRing.Algebra.axiom finField_ZplalgType.
 Proof.
+move => a x y.
+rewrite -[a *: (x * y)]/(a%:R * (x * y)).
+by rewrite mulrC -mulrA; congr (_ * _); rewrite mulrC.
+Qed.
+Canonical finField_ZpalgType := Eval hnf in AlgType 'F_(char F) F primeScaleAr.
+Canonical finField_ZpfinAlgType := Eval hnf in [finAlgType 'F_(char F) of F].
+Canonical finFeild_ZpunitAlgType := Eval hnf in [unitAlgType 'F_(char F) of F].
+Canonical finField_ZpfinUnitAlgType :=
+  Eval hnf in [finUnitAlgType 'F_(char F) of F].
+
+Fact finField_Zp_vectMixin : Vector.mixin_of finField_ZpmodType.
+Proof.
+exists ('dim [set: F]).
 have nontrivF : [set: F]%G != 1%G.
   apply/trivgPn.
   exists 1; first by rewrite inE.
   by apply: oner_neq0.
-have /isog_isom /= := isog_abelem_rV (char_abelem_finField F) nontrivF.
-rewrite pdiv_id ?finField_char_prime //.
-case => f /isomP [/injmP Hfinj _].
+have /isog_isom /= [f /isomP [/injmP Hfinj _]] :=
+  isog_abelem_rV (char_abelem_finField F) nontrivF.
 exists [eta f].
   move => a x y.
   rewrite -zmodMgE morphM ?inE // zmodMgE.
@@ -194,14 +217,19 @@ apply: bij_comp; first by apply: enum_val_bij.
 suff : injective g.
   move: g.
   rewrite -(pdiv_id (finField_char_prime F)).
-  rewrite (card_abelem_rV (E:=[set: F]%G)) ?char_abelem_finField //.
-  rewrite cardsT.
-  apply: injF_bij.
+  rewrite (card_abelem_rV (E:=[set: F]%G)) ?cardsT //; first by apply: injF_bij.
+  by rewrite pdiv_id ?finField_char_prime ?char_abelem_finField.
 apply: inj_comp; first by apply: enum_rank_inj.
 apply: inj_comp; last by apply: enum_val_inj.
 by move => x y; apply Hfinj; rewrite inE.
 Qed.
-
+Canonical finField_ZpvectType :=
+  Eval hnf in VectType 'F_(char F) F finField_Zp_vectMixin.
+Canonical finField_ZpfalgType := Eval hnf in [FalgType 'F_(char F) of F].
+(* Why doesn't this step work command work?
+Canonical finField_ZpfieldExtType :=
+  Eval hnf in [fieldExtType 'F_(char F) of F].
+*)
 End PrimeFieldExt.
 End PrimeFieldExt.
 
