@@ -183,7 +183,7 @@ Notation "[ 'set' x 'in' A ]" := [set x | x \in A]
   (at level 0, x at level 99, format "[ 'set'  x  'in'  A ]") : set_scope.
 Notation "[ 'set' x : T 'in' A ]" := [set x : T | x \in A]
   (at level 0, x at level 99, only parsing) : set_scope.
-Notation "[ 'set' x : T | P & Q ]" := [set x : T | P && Q ]
+Notation "[ 'set' x : T | P & Q ]" := [set x : T | P && Q]
   (at level 0, x at level 99, only parsing) : set_scope.
 Notation "[ 'set' x | P & Q ]" := [set x | P && Q ]
   (at level 0, x, P at level 99, format "[ 'set'  x  |  P  &  Q ]") : set_scope.

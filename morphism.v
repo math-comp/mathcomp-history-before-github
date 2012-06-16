@@ -1317,10 +1317,10 @@ Section Isomorphisms.
 Variables gT hT kT : finGroupType.
 Variables (G : {group gT}) (H : {group hT}) (K : {group kT}).
 
-Lemma isog_refl : G \isog G.
-Proof.
-by apply/isogP; exists [morphism of idm G]; rewrite /= ?injm_idm ?morphim_idm.
-Qed.
+Lemma idm_isom : isom G G (idm G).
+Proof. exact: sub_isom (im_idm G) (injm_idm G). Qed.
+
+Lemma isog_refl : G \isog G. Proof. exact: isom_isog idm_isom. Qed.
 
 Lemma card_isog : G \isog H -> #|G| = #|H|.
 Proof. case/isogP=> f injf <-; apply: isom_card (f) _; exact/isomP. Qed.

@@ -1580,10 +1580,7 @@ Lemma sum_dprodr R idx (op : Monoid.com_law idx) (F : gT -> R) :
     \big[op/idx]_(h in H) \big[op/idx]_(k in K) F (k * h)%g.
 Proof. by rewrite sum_dprodl exchange_big. Qed.
 
-Lemma idm_isom : isom G G (idm G).
-Proof. exact: sub_isom (im_idm G) (injm_idm G). Qed.
-
-Let midG := cfIsom idm_isom.
+Let midG := cfIsom (idm_isom G).
 
 (* We could generalize this construction to semi-direct products. *)
 Fact cfDprodr_subproof :
