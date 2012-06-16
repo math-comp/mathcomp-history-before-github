@@ -1685,33 +1685,27 @@ case => p [Hp Hsplit Hsep]; split.
   by case/splitting_normalField/andP.
 Qed.
 
-Lemma fixedField_gal K E : galois K E -> fixedField 'Gal(E / K)%g = K.
-Proof.
-case/and3P => HKE /separableP Hsep Hnorm.
-apply:subv_anti.
-rewrite galoisConnection_subv ?andbT => //.
-apply/subvP => a /fixedFieldP [HaE Ha].
-case/normalFieldP/(_ _ HaE): (Hnorm) => rs /allP HrsE Hmin.
-move/(_ _ HaE): Hsep.
-rewrite elemDeg1 -eqSS -size_minPoly Hmin size_prod_XsubC eqSS.
-rewrite /separableElement Hmin separable_prod_XsubC.
-move/(count_uniq_mem a).
-have -> : a \in rs by rewrite -root_prod_XsubC -Hmin root_minPoly.
-move => /= <-; rewrite eq_sym -all_count.
-apply/allP => b Hb.
-have : root (minPoly K a) b by rewrite Hmin root_prod_XsubC.
-case/(normalField_root_minPoly HKE Hnorm HaE) => x Hx <-.
-by rewrite /= Ha.
-Qed.
-
-Lemma galois_fixedField K E : reflect 
- ((K <= E)%VS /\ fixedField 'Gal(E / K)%g = K) (galois K E).
+Lemma galois_fixedField K E :
+  reflect (fixedField 'Gal(E / K)%g = K) (galois K E).
 Proof.
 apply (iffP idP).
-  move => Hgalois.
-  split; last by apply: fixedField_gal.
-  by case/and3P: Hgalois.
-case => HKE Hfixed.
+  case/and3P => HKE /separableP Hsep Hnorm.
+  apply:subv_anti.
+  rewrite galoisConnection_subv ?andbT => //.
+  apply/subvP => a /fixedFieldP [HaE Ha].
+  case/normalFieldP/(_ _ HaE): (Hnorm) => rs /allP HrsE Hmin.
+  move/(_ _ HaE): Hsep.
+  rewrite elemDeg1 -eqSS -size_minPoly Hmin size_prod_XsubC eqSS.
+  rewrite /separableElement Hmin separable_prod_XsubC.
+  move/(count_uniq_mem a).
+  have -> : a \in rs by rewrite -root_prod_XsubC -Hmin root_minPoly.
+  move => /= <-; rewrite eq_sym -all_count.
+  apply/allP => b Hb.
+  have : root (minPoly K a) b by rewrite Hmin root_prod_XsubC.
+  case/(normalField_root_minPoly HKE Hnorm HaE) => x Hx <-.
+  by rewrite /= Ha.
+case => Hfixed.
+have HKE : (K <= E)%VS by rewrite -Hfixed capvSl.
 apply/galois_factors; split; first done.
 move => a HaE.
 pose roots := seq_sub [seq x a | x : gal_of E <- enum 'Gal(E / K)].
@@ -1769,14 +1763,14 @@ Qed.
 
 Lemma mem_galTrace K E a : galois K E -> a \in E -> galTrace K E a \in K.
 Proof.
-case/galois_fixedField => HKE HK.
+move/galois_fixedField => HK.
 rewrite -{2}HK.
 by apply: galTrace_fixedField.
 Qed.
 
 Lemma mem_galNorm K E a : galois K E -> a \in E -> galNorm K E a \in K.
 Proof.
-case/galois_fixedField => HKE HK.
+move/galois_fixedField => HK.
 rewrite -{2}HK.
 by apply: galNorm_fixedField.
 Qed.
@@ -2062,7 +2056,7 @@ symmetry; apply/eqP; rewrite eqEcard; apply/andP; split.
 rewrite [X in _ <= X](_ : _ = \dim_(fixedField g) E); last first.
   by apply: dim_fixedField.
 rewrite galois_dim ?leqnn //.
-apply/galois_fixedField; split; first by apply: capvSl.
+apply/galois_fixedField.
 apply: subv_anti => /=.
 rewrite galoisConnection_subv ?capvSl // fixedFieldS //.
 by apply: galoisConnection_subset.
@@ -2072,7 +2066,7 @@ Lemma fixedField_galois E (s : {set gal_of E}): galois (fixedField s) E.
 Proof.
 apply: (galoisS (K:=[aspace of (fixedField <<s>>%g)])).
   by rewrite capvSl andbT fixedFieldS // subset_gen.
-apply/galois_fixedField => /=; split; first by rewrite capvSl.
+apply/galois_fixedField => /=.
 by rewrite gal_fixedField.
 Qed.
 
