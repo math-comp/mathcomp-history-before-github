@@ -1704,7 +1704,7 @@ apply (iffP idP).
   have : root (minPoly K a) b by rewrite Hmin root_prod_XsubC.
   case/(normalField_root_minPoly HKE Hnorm HaE) => x Hx <-.
   by rewrite /= Ha.
-case => Hfixed.
+move => Hfixed.
 have HKE : (K <= E)%VS by rewrite -Hfixed capvSl.
 apply/galois_factors; split; first done.
 move => a HaE.
