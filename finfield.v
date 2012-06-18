@@ -201,7 +201,7 @@ have nontrivF : [set: F]%G != 1%G.
   apply/trivgPn.
   exists 1; first by rewrite inE.
   by apply: oner_neq0.
-have /isog_isom /= [f /isomP [/injmP Hfinj _]] :=
+have /isog_isom /= [f /isomP [/injmP Hfinj Hfim]] :=
   isog_abelem_rV (char_abelem_finField F) nontrivF.
 exists [eta f].
   move => a x y.
@@ -209,27 +209,31 @@ exists [eta f].
   rewrite -[a *: x]/(a%:R * x) mulr_natl.
   rewrite -zmodXgE morphX ?inE // zmodXgE.
   by rewrite -scaler_nat natr_Zp.
-pose g (x : 'I_#|F|) : 'I_#|'rV([set: F]%G)| := enum_rank (f (enum_val x)).
-suff : bijective (enum_val \o g \o enum_rank).
-  by move/eq_bij; apply => x; rewrite /= !enum_rankK.
-apply: bij_comp; last by apply: enum_rank_bij.
-apply: bij_comp; first by apply: enum_val_bij.
-suff : injective g.
-  move: g.
-  rewrite -(pdiv_id (finField_char_prime F)).
-  rewrite (card_abelem_rV (E:=[set: F]%G)) ?cardsT //; first by apply: injF_bij.
-  by rewrite pdiv_id ?finField_char_prime ?char_abelem_finField.
-apply: inj_comp; first by apply: enum_rank_inj.
-apply: inj_comp; last by apply: enum_val_inj.
-by move => x y; apply Hfinj; rewrite inE.
+suff HrV y : y \in image f [set : F].
+  exists (fun y => iinv (HrV y)) => /= x; last by apply: f_iinv.
+  by apply: in_iinv_f.
+have /= := in_setT y.
+rewrite -Hfim.
+case/morphimP => x _ _ ->.
+by apply: image_f; apply: in_setT.
 Qed.
+
 Canonical finField_ZpvectType :=
   Eval hnf in VectType 'F_(char F) F finField_Zp_vectMixin.
 Canonical finField_ZpfalgType := Eval hnf in [FalgType 'F_(char F) of F].
-(* Why doesn't this step work command work?
+
 Canonical finField_ZpfieldExtType :=
-  Eval hnf in [fieldExtType 'F_(char F) of F].
-*)
+  Eval hnf in @FieldExt.Pack _ (Phant 'F_(char F)) F
+   (let: c := FinRing.Field.class F in
+    let: fMixin := 
+      (let: GRing.Field.Class _ fm as c' := c : GRing.Field.class_of F return GRing.Field.mixin_of (GRing.UnitRing.Pack c' _) in fm) in
+    let: idAxiom :=
+      (let: GRing.IntegralDomain.Class _ ida as c' := c : GRing.IntegralDomain.class_of F return GRing.IntegralDomain.axiom (GRing.Ring.Pack c' _)  in ida) in
+    let: crAxiom :=
+      (let: GRing.ComRing.Class _ cra as c' := c : GRing.ComRing.class_of F return commutative (GRing.Ring.mul c') in cra) in
+    (@FieldExt.Class _ F (Falgebra.class finField_ZpfalgType) crAxiom idAxiom fMixin)
+   ) F.
+
 End PrimeFieldExt.
 End PrimeFieldExt.
 
