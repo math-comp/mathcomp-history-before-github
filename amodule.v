@@ -228,10 +228,10 @@ Definition modv (vs: {vspace M}) (al: {aspace A}) :=
    (vs :* al  <= vs)%VS.
  
 Lemma mod0v : forall al, modv 0 al.
-Proof. by move=> al; rewrite /modv eprod0v subv_refl. Qed.
+Proof. by move=> al; rewrite /modv eprod0v subvv. Qed.
 
 Lemma modv1 : forall vs, modv vs (aspace1 A).
-Proof. by move=> vs; rewrite /modv eprodv1 subv_refl. Qed.
+Proof. by move=> vs; rewrite /modv eprodv1 subvv. Qed.
 
 Lemma modfv : forall al, modv fullv al.
 Proof. by move=> al; exact: subvf. Qed.
@@ -247,8 +247,8 @@ Lemma modvD : forall ms1 ms2 al ,
   modv ms1 al -> modv ms2 al -> modv (ms1 + ms2) al.
 Proof.
 move=> ms1 ms2 al Hm1 Hm2; rewrite /modv eprodv_addl.
-apply: (subv_trans (addvS Hm1 (subv_refl _))).
-exact: (addvS (subv_refl _) Hm2).
+apply: (subv_trans (addvS Hm1 (subvv _))).
+exact: (addvS (subvv _) Hm2).
 Qed.
 
 Lemma modv_cap : forall ms1 ms2 al , 

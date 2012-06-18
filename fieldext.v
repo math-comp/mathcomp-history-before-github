@@ -630,7 +630,7 @@ Proof.
 apply: subv_anti.
 rewrite subv_closure andbT.
 rewrite closureaEl subv_add sub1v closurea_idealr //.
-by rewrite prodv_id subv_refl.
+by rewrite prodv_id subvv.
 Qed.
 
 Fact ahom_img_is_aspace (aT : FalgType F0) (f : 'AHom(L, aT)) K :
@@ -866,13 +866,13 @@ rewrite /power_space big_ord_recr (subv_trans _ (addvSl _ _)) //=.
 apply: ideall_closurea_sub.
   by rewrite big_ord_recl expr0 prodv1 (subv_trans (sub1v K)) // addvSl.
 rewrite prodvDl subv_add.
-rewrite -[X in (K * X)%VS]big_distrr prodvA prodv_id big_distrr subv_refl.
+rewrite -[X in (K * X)%VS]big_distrr prodvA prodv_id big_distrr subvv.
 rewrite prodvC big_distrl /=.
 apply/subv_sumP => [[i Hi] _].
 rewrite -prodvA -expv_line -expvSr expv_line /=.
 rewrite ltnS leq_eqVlt in Hi.
 case/orP: Hi => [/eqP -> | Hi]; last first.
-  by apply:(sumv_sup (lift ord0 (Ordinal Hi))) => //; rewrite lift0 subv_refl.
+  by apply:(sumv_sup (lift ord0 (Ordinal Hi))) => //; rewrite lift0 subvv.
 rewrite -big_distrr /= -[in X in (_ <= X)%VS]prodv_id -prodvA big_distrr /=.
 rewrite -[in X in (_ <= (X * _))%VS]prodv_id -prodvA prodvSr //.
 rewrite -[X in <[X]>%VS](mulKf Hz0); apply: memv_prod => //.

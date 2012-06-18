@@ -450,8 +450,8 @@ apply: (iffP rV_subP) => sU12 u.
 by have:= sU12 (r2v u); rewrite !memvE /subsetv !genmxE r2vK.
 Qed.
 
-Lemma subv_refl U : (U <= U)%VS. Proof. exact/subvP. Qed.
-Hint Resolve subv_refl.
+Lemma subvv U : (U <= U)%VS. Proof. exact/subvP. Qed.
+Hint Resolve subvv.
 
 Lemma subv_trans : transitive subV.
 Proof. by move=> U V W /subvP sUV /subvP sVW; apply/subvP=> u /sUV/sVW. Qed.
@@ -460,7 +460,7 @@ Lemma subv_anti : antisymmetric subV.
 Proof. by move=> U V; apply/vs2mxP. Qed.
 
 Lemma eqEsubv U V : (U == V) = (U <= V <= U)%VS.
-Proof. by apply/eqP/idP=> [-> | /subv_anti//]; rewrite subv_refl. Qed.
+Proof. by apply/eqP/idP=> [-> | /subv_anti//]; rewrite subvv. Qed.
 
 Lemma vspaceP U V : U =i V <-> U = V.
 Proof.
@@ -1054,7 +1054,7 @@ Proof.
 rewrite (cat_free [:: v]) seq1_free directvEgeq /= span_seq1 dim_vline.
 case: eqP => [-> | _] /=; first by rewrite mem0v.
 rewrite andbC ltnNge (geq_leqif (dimv_leqif_sup _)) ?addvSr //.
-by rewrite subv_add subv_refl andbT -memvE.
+by rewrite subv_add subvv andbT -memvE.
 Qed.
 
 Lemma freeE n (X : n.-tuple vT) :
@@ -1198,7 +1198,7 @@ End BigSumBasis.
 
 End VectorTheory.
 
-Hint Resolve subv_refl.
+Hint Resolve subvv.
 Implicit Arguments subvP [K vT U V].
 Implicit Arguments addv_idPl [K vT U V].
 Implicit Arguments addv_idPr [K vT U V].

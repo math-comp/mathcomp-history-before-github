@@ -1038,7 +1038,7 @@ case/andP => HfKE /eqP HfE.
 have [g Hg] := kHom_extend_fAutL HfKE.
 have HgKE : (g : 'End(L)) \is a kAut (K :&: E) E.
   rewrite kAutE -(kHom_eq (capvSr _ _) Hg) (kHomSl (capvSl _ _) HfKE).
-  by rewrite -(eq_in_limg Hg) HfE subv_refl.
+  by rewrite -(eq_in_limg Hg) HfE subvv.
 exists (gal (coset _ g)).
   rewrite mem_morphim // mem_quotient //= genGid inE //.
   by apply: (kAutS (sub1v (K :&: E))).
@@ -1119,7 +1119,7 @@ Qed.
 
 Lemma galS K M E : (K <= M)%VS -> ('Gal(E / M) \subset 'Gal(E / K)).
 Proof.
-move/capvS/(_ (subv_refl E)) => HKM.
+move/capvS/(_ (subvv E)) => HKM.
 apply/subsetP => x.
 rewrite !gal_kAut //.
 by move/(kAutS HKM).
@@ -1240,7 +1240,7 @@ Proof.
 apply/subsetP => x Hxs.
 rewrite gal_kAut (capv_idPl (fixedField_bound _)) kAutE.
 apply/andP; split; last first.
-  by rewrite limg_gal subv_refl.
+  by rewrite limg_gal subvv.
 apply/kHomP; split; last by move => ? ? _ _; rewrite /= rmorphM.
 by move => a /fixedFieldP [_]; apply.
 Qed.
@@ -1375,7 +1375,7 @@ have HyK : (y : 'End(L)) \is a kHom K fullv.
 have HxKL : (y : 'AEnd(L)) \in kAAutL K by rewrite inE -kHomL_kAutL.
 rewrite (kAut_eq _ HMxy) // kAutE.
 have /eqP -> := (implyP (forallP Hnorm y) HxKL).
-rewrite subv_refl andbT.
+rewrite subvv andbT.
 by apply: (kHomSr (subvf _)).
 Qed.
 
@@ -1409,7 +1409,7 @@ rewrite -root_prod_XsubC -Hr => Hroot.
 set y := kHomExtend K \1%VF a b.
 have Hy : y \is a kHom K <<K; a>>%AS.
   apply: kHomExtendkHom.
-  - by apply subv_refl.
+  - by apply subvv.
   - by apply kHom1.
   - by rewrite map_poly_id // => ? ?; rewrite id_lfunE.
 case: (kHom_extend_fAutL Hy) => g Hg.
@@ -1527,7 +1527,7 @@ Proof.
 move => HKE Hnormal Ha Hb.
 pose f := (kHomExtend K \1 a b).
 have HfK : f \is a kHom K <<K; a>>%AS.
-  apply: kHomExtendkHom; rewrite ?kHom1 ?subv_refl // map_poly_id // => ? _.
+  apply: kHomExtendkHom; rewrite ?kHom1 ?subvv // map_poly_id // => ? _.
   by rewrite id_lfunE.
 have HKEa : (K <= <<K; a>>%AS <= E)%VS.
   by rewrite subv_adjoin; apply/FadjoinP; rewrite HKE Ha.
@@ -2134,7 +2134,7 @@ apply/eqP; rewrite eqEsubset; apply/andP; split; apply/subsetP; last first.
   rewrite normalField_cast_eq //; last by apply: (subsetP (galS E HKM)).
   by rewrite gal_id (fixed_gal HME).
 move => x Hx.
-rewrite gal_kAut (capv_idPl HME) kAutE limg_gal subv_refl andbT.
+rewrite gal_kAut (capv_idPl HME) kAutE limg_gal subvv andbT.
 apply/kHomP; split; last by move => ? ? _ _; rewrite /= rmorphM.
 move => a Ha /=.
 rewrite -normalField_cast_eq //; last by apply: (dom_ker Hx).
@@ -2220,7 +2220,7 @@ apply/subvP => _ /memv_imgP [a /fixedFieldP [HaE Ha] ->].
 have HxKE : (x : 'End(L)) \is a kAut K E.
   rewrite kAutE.
   have /eqP -> := (implyP (forallP HnormEK x) Hx).
-  rewrite subv_refl andbT.
+  rewrite subvv andbT.
   apply/kHomP; split; last by move => ? ? _ _; rewrite /= rmorphM.
   move: Hx; rewrite inE kAutE subvf andbT.
   by case/kHomP.
