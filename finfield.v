@@ -2,7 +2,7 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div.
 Require Import fintype bigop finset prime fingroup ssralg finalg cyclic abelian.
 Require Import tuple finfun choice matrix vector falgebra fieldext separable.
-Require Import morphism mxabelem zmodp.
+Require Import poly polydiv galois morphism mxabelem zmodp.
 
 (******************************************************************************)
 (*  A few lemmas about finite fields                                          *)
@@ -25,7 +25,7 @@ Proof.
 have H1 : 1 < #[1%R:R]%g by rewrite order_gt1 oner_neq0.
 repeat split; move => a b /=.
   by rewrite -zmodMgE -zmodVgE morphM ?morphV // mem_Zp.
-by rewrite -natrM -zmodXgE -expg_mod_order -[X in _ %% X]Zp_cast.
+by rewrite -natrM -zmodXgE -expg_mod_order -[X in (_ %% X)%N]Zp_cast.
 Qed.
 
 Canonical Zpm_additive := Additive Zpm_is_rmorph.
@@ -234,6 +234,26 @@ Canonical finField_ZpfieldExtType :=
     (@FieldExt.Class _ F (Falgebra.class finField_ZpfalgType) crAxiom idAxiom fMixin)
    ) F.
 
+Fact finField_Zp_splittingFieldAxiom :
+  SplittingField.axiom finField_ZpfieldExtType.
+Proof.
+exists ('X ^+ #|F| - 'X); first by rewrite rpredB ?rpredX // polyOverX.
+exists (enum F); last first.
+  apply:subv_anti; rewrite subvf /=.
+  apply/subvP => x _.
+  apply: seqv_sub_adjoin.
+  by apply: mem_enum.
+rewrite eqp_sym -dvdp_size_eqp.
+  rewrite size_prod_XsubC -cardT /= size_addl ?size_polyXn //.
+  by rewrite size_opp size_polyX ltnS finField_card_gt1.
+apply: uniq_roots_dvdp; last by rewrite uniq_rootsE enum_uniq.
+apply/allP => x _.
+by rewrite /root !(hornerE, hornerXn) expf_card subrr.
+Qed.
+
+Canonical finField_ZpsplittingFieldType := Eval hnf in
+  SplittingFieldType 'F_(char F) F finField_Zp_splittingFieldAxiom.
+
 End PrimeFieldExt.
 End PrimeFieldExt.
 
@@ -281,3 +301,13 @@ by rewrite prednK // muln_gt0 adim_gt0.
 Qed.
 
 End FiniteSeparable.
+
+Export PrimeFieldExt.
+
+(*
+Lemma galoisFiniteField (F : finFieldType) :
+  galois 1 {: [vectType _ of F]}.
+Proof.
+apply/and3P; split; first by apply: subvf.
+  by apply: separableFiniteField.
+*)
