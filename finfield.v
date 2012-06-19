@@ -304,10 +304,10 @@ End FiniteSeparable.
 
 Export PrimeFieldExt.
 
-(*
 Lemma galoisFiniteField (F : finFieldType) :
   galois 1 {: [vectType _ of F]}.
 Proof.
 apply/and3P; split; first by apply: subvf.
   by apply: separableFiniteField.
-*)
+by apply: normalField1f.
+Qed.
