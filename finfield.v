@@ -332,40 +332,53 @@ apply/and3P; split; first by apply: subvf.
 by apply: normalField1f.
 Qed.
 
-Lemma finField_frobenius_generator (F : finFieldType) :
-  {x | generator 'Gal( {:[vectType _ of F]} / 1) x
-     & x =1 Frobenius_aut (finField_char F)}.
+Lemma finField_frobenius_generator (F : finFieldType)
+  (U : {subfield [splittingFieldType _ of F]}) :
+  {x | generator 'Gal(U / 1) x & 
+       {in U, x =1 Frobenius_aut (finField_char F)}}.
 Proof.
 set vF := [splittingFieldType _ of F].
-set g := 'Gal({:vF} / 1).
+set g := 'Gal(U / 1).
 have frob_lin : linear (Frobenius_aut (finField_char F)).
   move => k a b /=.
   by rewrite rmorphD rmorphM  /= Frobenius_autMn rmorph1.
 pose f : 'End([vectType _ of F]) :=  linfun (Linear frob_lin).
 have Hf : f =1 Frobenius_aut (finField_char F) by apply: lfunE.
-have /kAut_gal [x Hx Hfx] : f \is a kAut 1 {:vF}.
-  rewrite kAutE subvf andbT.
+have /kAut_gal [x Hx Hfx] : f \is a kAut 1 U.
+  rewrite kAutE; apply/andP; split; last first.
+    by apply/subvP => _ /memv_imgP [a Ha ->]; rewrite Hf rpredX //.
   apply/kHomP; split.
     move => _ /vlineP [k ->].
     by rewrite Hf rmorphM /= Frobenius_autMn !rmorph1.
   move => a b _ _ /=.
   by rewrite !Hf rmorphM.
-exists x; last by move => a; rewrite -Hfx ?memvf.
+exists x; last by move => a Ha; rewrite /= -Hfx ?memvf.
 rewrite /generator eq_sym eqEcard cycle_subG Hx.
-rewrite dim_fixedField leq_divLR ?field_dimS ?subvf //=.
+rewrite dim_fixedField leq_divLR ?field_dimS ?fixedField_bound //.
 apply: (@leq_trans (#|<[x]>%g| * (\dim (1%AS : {vspace vF})))); last first.
   by rewrite leq_mul // dimvS // sub1v.
 rewrite dimv1 muln1.
 rewrite -(leq_exp2l (m:=(char F))) ?prime_gt1 ?finField_char_prime //.
 rewrite -finField_dimv_card.
-apply: (leq_trans (max_card _)).
 have HFx0 : (0 < char F ^ #[x]%g).
   by rewrite expn_gt0 prime_gt0 // finField_char_prime.
 have HFx1 : (0 < (char F ^ #[x]%g).-1).
   rewrite -ltnS (prednK HFx0) -(exp1n #[x]%g) ltn_exp2r ?order_gt0 //.
   by rewrite prime_gt1 // (finField_char_prime F).
-have /cyclicP [a Ha] := unit_cyclic F.
-rewrite -(prednK (finField_card_gt0 F)) -(prednK HFx0) ltnS -unit_card Ha.
+have gU : group_set [set x : {unit F} | val x \in U].
+  apply/group_setP; split; first by rewrite inE; apply: rpred1.
+  by move => a b /=; rewrite !inE => Ha Hb /=; apply: rpredM.
+have /cyclicP [a Ha] := cyclicS (subsetT (group gU)) (unit_cyclic F).
+have -> : #|U| = #|group gU|.+1.
+  rewrite -(card_imset _ val_inj) (cardD1 0) mem0v add1n; congr _.+1.
+  apply: eq_card => b; rewrite inE.
+  apply/andP/imsetP.
+    rewrite -unitfE; case => Hb HbU.
+    exists (Sub b Hb); last done.
+    by rewrite inE.
+  case => c; rewrite inE => Hc ->.
+  by have := valP c; rewrite unitfE.
+rewrite -(prednK HFx0) ltnS Ha.
 apply/(dvdn_leq HFx1).
 rewrite order_dvdn.
 apply/eqP/val_inj/(mulrI (valP a)).
@@ -373,5 +386,6 @@ rewrite unit_finField_expg -exprS mulr1 prednK //.
 suff <- : (x ^+ #[x]%g)%g (val a) = (val a) ^+ ((char F) ^ #[x]%g).
   by rewrite expg_order gal_id.
 elim: #[x]%g => [|n IH]; first by rewrite gal_id expn0 expr1.
-by rewrite expgSr galM ?memvf // comp_lfunE IH -Hfx ?memvf // Hf expnSr exprM.
+have HaU : val a \in U by have := cycle_id a; rewrite -Ha inE.
+by rewrite expgSr galM // comp_lfunE IH -Hfx ?rpredX // Hf expnSr exprM.
 Qed.
