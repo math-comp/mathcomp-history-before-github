@@ -194,9 +194,8 @@ Canonical finFeild_ZpunitAlgType := Eval hnf in [unitAlgType 'F_(char F) of F].
 Canonical finField_ZpfinUnitAlgType :=
   Eval hnf in [finUnitAlgType 'F_(char F) of F].
 
-Fact finField_Zp_vectMixin : Vector.mixin_of finField_ZpmodType.
+Lemma finField_Zp_vectAxiom : Vector.axiom ('dim [set: F]) finField_ZpmodType.
 Proof.
-exists ('dim [set: F]).
 have nontrivF : [set: F]%G != 1%G.
   apply/trivgPn.
   exists 1; first by rewrite inE.
@@ -218,9 +217,30 @@ case/morphimP => x _ _ ->.
 by apply: image_f; apply: in_setT.
 Qed.
 
+Fact finField_Zp_vectMixin : Vector.mixin_of finField_ZpmodType.
+Proof. by exists ('dim [set: F]); apply: finField_Zp_vectAxiom. Qed.
 Canonical finField_ZpvectType :=
   Eval hnf in VectType 'F_(char F) F finField_Zp_vectMixin.
 Canonical finField_ZpfalgType := Eval hnf in [FalgType 'F_(char F) of F].
+
+Lemma finField_dimv_card (U : {vspace [vectType _ of F]}) :
+  #|U| = (char F) ^ \dim U.
+Proof.
+rewrite -[\dim _]card_ord -[X in X ^ _]card_Fp ?finField_char_prime //.
+rewrite -card_ffun /=.
+pose g (x : F) := [ffun i => coord (vbasis U) i x].
+have /card_in_imset <- : {in U &, injective g}.
+  move => a b Ha Hb /ffunP Hg.
+  rewrite (coord_vbasis Ha) (coord_vbasis Hb).
+  apply: eq_bigr => i _; congr (_ *: _).
+  by move: (Hg i); rewrite !ffunE.
+apply: eq_card; move => /= f; rewrite inE; apply/idP.
+apply/imsetP; exists (\sum_(i < \dim U) f i *: (vbasis U)`_i).
+  apply: rpred_sum => i _.
+  by rewrite memvZ // vbasis_mem // -tnth_nth mem_tnth.
+apply/ffunP => i.
+by rewrite ffunE coord_sum_free // (basis_free (vbasisP U)).
+Qed.
 
 Canonical finField_ZpfieldExtType :=
   Eval hnf in @FieldExt.Pack _ (Phant 'F_(char F)) F
@@ -305,9 +325,53 @@ End FiniteSeparable.
 Export PrimeFieldExt.
 
 Lemma galoisFiniteField (F : finFieldType) :
-  galois 1 {: [vectType _ of F]}.
+  galois 1 {:[vectType _ of F]}.
 Proof.
 apply/and3P; split; first by apply: subvf.
   by apply: separableFiniteField.
 by apply: normalField1f.
+Qed.
+
+Lemma finField_frobenius_generator (F : finFieldType) :
+  {x | generator 'Gal( {:[vectType _ of F]} / 1) x
+     & x =1 Frobenius_aut (finField_char F)}.
+Proof.
+set vF := [splittingFieldType _ of F].
+set g := 'Gal({:vF} / 1).
+have frob_lin : linear (Frobenius_aut (finField_char F)).
+  move => k a b /=.
+  by rewrite rmorphD rmorphM  /= Frobenius_autMn rmorph1.
+pose f : 'End([vectType _ of F]) :=  linfun (Linear frob_lin).
+have Hf : f =1 Frobenius_aut (finField_char F) by apply: lfunE.
+have /kAut_gal [x Hx Hfx] : f \is a kAut 1 {:vF}.
+  rewrite kAutE subvf andbT.
+  apply/kHomP; split.
+    move => _ /vlineP [k ->].
+    by rewrite Hf rmorphM /= Frobenius_autMn !rmorph1.
+  move => a b _ _ /=.
+  by rewrite !Hf rmorphM.
+exists x; last by move => a; rewrite -Hfx ?memvf.
+rewrite /generator eq_sym eqEcard cycle_subG Hx.
+rewrite dim_fixedField leq_divLR ?field_dimS ?subvf //=.
+apply: (@leq_trans (#|<[x]>%g| * (\dim (1%AS : {vspace vF})))); last first.
+  by rewrite leq_mul // dimvS // sub1v.
+rewrite dimv1 muln1.
+rewrite -(leq_exp2l (m:=(char F))) ?prime_gt1 ?finField_char_prime //.
+rewrite -finField_dimv_card.
+apply: (leq_trans (max_card _)).
+have HFx0 : (0 < char F ^ #[x]%g).
+  by rewrite expn_gt0 prime_gt0 // finField_char_prime.
+have HFx1 : (0 < (char F ^ #[x]%g).-1).
+  rewrite -ltnS (prednK HFx0) -(exp1n #[x]%g) ltn_exp2r ?order_gt0 //.
+  by rewrite prime_gt1 // (finField_char_prime F).
+have /cyclicP [a Ha] := unit_cyclic F.
+rewrite -(prednK (finField_card_gt0 F)) -(prednK HFx0) ltnS -unit_card Ha.
+apply/(dvdn_leq HFx1).
+rewrite order_dvdn.
+apply/eqP/val_inj/(mulrI (valP a)).
+rewrite unit_finField_expg -exprS mulr1 prednK //.
+suff <- : (x ^+ #[x]%g)%g (val a) = (val a) ^+ ((char F) ^ #[x]%g).
+  by rewrite expg_order gal_id.
+elim: #[x]%g => [|n IH]; first by rewrite gal_id expn0 expr1.
+by rewrite expgSr galM ?memvf // comp_lfunE IH -Hfx ?memvf // Hf expnSr exprM.
 Qed.
