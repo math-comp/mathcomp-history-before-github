@@ -144,8 +144,60 @@ suff CF_S : {in S_ chi, forall i : Iirr L, 'chi_i \in 'CF(L, 'A(L) :|: 1%G )} by
 Qed.
 
 Lemma tau_isometry  :
-    {in 'Z[[seq 'chi_i | i in  \bigcup_(chi <- calS) S_ chi], L^#], 
+    {in 'Z[[seq 'chi_i | i in \bigcup_(chi <- calS) S_ chi], L^#], 
       isometry tau, to 'Z[irr G]}.
+Proof.
+apply: (sub_iso_to _ _ (Dade_Zisometry _)); last exact: zcharW.
+have /subsetD1P[_ /setU1K <-] := FTsupp0_sub L.
+move=> phi; rewrite zcharD1E big_tnth FTsupp0_type1 // => /andP[S_phi phi1nz].
+rewrite zcharD1 {}phi1nz andbT setUC.
+apply: zchar_trans_on phi S_phi => ? /imageP[i /bigcupP[j _ Sj_i] ->].
+rewrite zchar_split irr_vchar /=.
+by have [_ _ ->] := PF_12_2a (mem_tnth j (in_tuple calS)).
+Qed.
+
+have notA1: 1%g \notin 'A(L).
+  
+Search _ negb 1%g 'A(_).
+rewrite -(setD1K 'A(L) 1%g).
+
+  case/zchar_tuple_expansion=> c hc /=.
+
+  move=> phi hphi.
+Check seqInd_vcharW.
+Locate seqInd.
+Search _ seqInd.
+Check zchar_sub_irr.
+
+Locate seqInd_vcharW.
+Locate "'Z[".
+Search _ irr subset.
+Locate ir.r
+Locate Zcha.r
+  move=> x; rewrite zcharD1E; case/andP=> hx1 hx2.
+Search _ (_ \in ('Z[_])).
+ rewrite zchar_split; case/andP=> hx1 hx2.
+
+Search _ (irr _).
+ apply: (zchar_onS (subsetT [set: gT]%G^#)).
+
+
+Check subset_trans.
+
+About Dade_Zisometry.
+
+set S := [seq _ |_ in _].
+
+split=> [xi1 xi2 | xi].
+Search _ (FT_Dade0 _ ).
+
+      move => /zchar_on Axi1 /zchar_on Axi2. admit.
+   rewrite zcharD1E.
+
+Locate FT_Dade0.
+Check cfInd1.
+
+
 Admitted.
 
 End Twelve2.
