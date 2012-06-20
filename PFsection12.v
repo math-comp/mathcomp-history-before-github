@@ -66,10 +66,7 @@ Let tau := FT_Dade0 maxL.
 
 Let S_ (chi : 'CF(L)) := [set i in irr_constt chi].
 
-Set Printing Width 35.
-
-(* theorem 5.7 expects the independance statement to be expressed as *)
-(* such *)
+(* This is Peterfalvi (12.2a), first part *)
 Lemma PF_12_2a chi : chi \in calS ->
   [/\ chi = \sum_(i in S_ chi) 'chi_i,
       constant [seq 'chi_i 1%g | i in S_ chi] &
@@ -143,6 +140,7 @@ suff CF_S : {in S_ chi, forall i : Iirr L, 'chi_i \in 'CF(L, 'A(L) :|: 1%G )} by
   by rewrite subGcfker.
 Qed.
 
+(* This is Peterfalvi (12.2a), second part *)
 Lemma tau_isometry  :
     {in 'Z[[seq 'chi_i | i in \bigcup_(chi <- calS) S_ chi], L^#], 
       isometry tau, to 'Z[irr G]}.
@@ -155,6 +153,21 @@ apply: zchar_trans_on phi S_phi => ? /imageP[i /bigcupP[j _ Sj_i] ->].
 rewrite zchar_split irr_vchar /=.
 by have [_ _ ->] := PF_12_2a (mem_tnth j (in_tuple calS)).
 Qed.
+
+(* This is Peterfalvi (12.2b) *)
+Lemma FPtype1_subcoherent : {R : 'CF(L) -> 2.-tuple _ | (subcoherent calS tau R)}.
+Proof.
+have nHL : H <| L by exact: gFnormal.
+have U_S : uniq calS by exact: seqInd_uniq.
+have vcS: {subset calS <= 'Z[irr L]} by exact: seqInd_vcharW.
+have N_S: {subset calS <= character} by exact: seqInd_char.
+have oSS: pairwise_orthogonal calS by exact: seqInd_orthogonal.
+have [U_0S dotSS]:= pairwise_orthogonalP oSS.
+have freeS := orthogonal_free oSS.
+have nrS : ~~ has cfReal calS.
+  by rewrite /calS; apply: seqInd_notReal; rewrite ?mFT_odd.
+have ccS : conjC_closed calS.
+Admitted.
 
 End Twelve2.
 
