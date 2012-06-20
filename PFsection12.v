@@ -73,7 +73,7 @@ Set Printing Width 35.
 Lemma PF_12_2a chi : chi \in calS ->
   [/\ chi = \sum_(i in S_ chi) 'chi_i,
       constant [seq 'chi_i 1%g | i in S_ chi] &
-      {in S_ chi, forall i, 'chi_i \in 'CF(L, 1%g |: 'A(L))}].
+      {in S_ chi, forall i, 'chi_i \in 'CF(L, 'A(L) :|: 1%G)}].
 Proof.
 case/seqIndC1P=> t kert Dchi.
 have nHL : H <| L by exact: gFnormal.
@@ -116,13 +116,32 @@ have Dchi_sum : chi = \sum_(i in S_ chi) 'chi_i.
     by rewrite constt_inertia_Ind_inv // Dchi_irr // constt_Res_constt_inertia.
   - by case/andP => ht /eqP <-;  rewrite constt_inertia_Ind_inv.
 have lichi : constant [seq 'chi_i 1%g | i in  S_ chi].
-  have /= [_ [h_ Ichi1]] := induced_inertia_quo1 nHL abTbar copHIchi.
+  have /= [_ [_ Ichi1]] := induced_inertia_quo1 nHL abTbar copHIchi.
   pose c := #|L : T|%:R * 'chi_t 1%g.
   apply/(@all_pred1_constant _ c)/allP=> _ /mapP[psi Spsi ->] /=.
   move: Spsi; rewrite mem_enum inE Dchi => psi_irr; move: (psi_irr).
   rewrite constt_Ind_constt_Res; move/(inertia_Ind_invE nHL)<-; rewrite Ichi1 //. 
   by rewrite constt_Ind_constt_Res constt_inertia_Ind_inv -?constt_Ind_constt_Res.
-Admitted.
+suff CF_S : {in S_ chi, forall i : Iirr L, 'chi_i \in 'CF(L, 'A(L) :|: 1%G )} by [].
+  move=> j Schi_j /=; apply/cfun_onP => y nA1y.
+  case: (boolP (y \in L)) => [Ly | ?]; last by rewrite cfun0.
+  have CHy1 : 'C_H[y] = 1%g.
+    move: nA1y; rewrite /FTsupport Ltype /= derg0 inE negb_or.
+    rewrite /FTsupport1 /FTcore (eqP Ltype) /= in_set1; case/andP=> hy ny1.
+    apply/trivgP; apply/subsetP=> z hz; rewrite in_set1.
+    apply: contraLR hz => zn1; case: (boolP (z \in H)) => //= Hz; last first.
+      by rewrite inE (negPf Hz).
+    suff : y \notin 'C_L[z]^#.
+      apply: contra; case/subcent1P=> _ cyz; rewrite in_setD1 ny1 /=.
+      by apply/subcent1P; split => //; apply: commute_sym.
+    apply: contra hy => hy; apply/bigcupP; exists z => //; rewrite inE in_set1.
+    by rewrite zn1.
+  suff nHkerS : ~~ (H \subset cfker 'chi_j).
+    by apply: (not_in_ker_char0 _ _ nHkerS).
+  move: Schi_j; rewrite inE Dchi.
+  move/sub_cfker_constt_Ind_irr/(_ (subxx _)) => <- //; last exact: normal_norm.
+  by rewrite subGcfker.
+Qed.
 
 Lemma tau_isometry  :
     {in 'Z[[seq 'chi_i | i in  \bigcup_(chi <- calS) S_ chi], L^#], 
