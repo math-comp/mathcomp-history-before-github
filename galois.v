@@ -1227,7 +1227,7 @@ move => x Hx.
 by rewrite Ha // Hs.
 Qed.
 
-Lemma galoisConnection_subv K E : (K <= E)%VS ->
+Lemma galois_connection_subv K E : (K <= E)%VS ->
   (K <= fixedField ('Gal(E / K)))%VS.
 Proof.
 move => HKE.
@@ -1237,7 +1237,7 @@ move => x Hx.
 by apply: (fixed_gal HKE).
 Qed.
 
-Lemma galoisConnection_subset E (s : {set gal_of E}):
+Lemma galois_connection_subset E (s : {set gal_of E}):
   s \subset 'Gal(E / fixedField s).
 Proof.
 apply/subsetP => x Hxs.
@@ -1248,13 +1248,13 @@ apply/kHomP; split; last by move => ? ? _ _; rewrite /= rmorphM.
 by move => a /fixedFieldP [_]; apply.
 Qed.
 
-Lemma galoisConnection K E (s : {set gal_of E}):
+Lemma galois_connection K E (s : {set gal_of E}):
   (K <= E)%VS -> (s \subset 'Gal(E / K)) = (K <= fixedField s)%VS.
 Proof.
 move => HKE.
 apply/idP/idP.
-  by move/fixedFieldS; apply: subv_trans; apply galoisConnection_subv.
-by move/(galS E); apply: subset_trans; apply: galoisConnection_subset.
+  by move/fixedFieldS; apply: subv_trans; apply galois_connection_subv.
+by move/(galS E); apply: subset_trans; apply: galois_connection_subset.
 Qed.
 
 Definition galTrace U V a := \sum_(x in 'Gal(V / U)) (x a).
@@ -1265,7 +1265,7 @@ Section TraceAndNorm.
 
 Variables (K E : {subfield L}).
 
-Lemma galoisTrace_is_additive : additive (galTrace K E).
+Lemma galTrace_is_additive : additive (galTrace K E).
 Proof.
 move => a b /=.
 rewrite -sumrB.
@@ -1273,7 +1273,7 @@ apply: eq_bigr => i _.
 by rewrite rmorphB.
 Qed.
 
-Canonical galoisTrace_additive := Eval hnf in Additive galoisTrace_is_additive.
+Canonical galTrace_additive := Eval hnf in Additive galTrace_is_additive.
 
 Lemma galTrace_fixedField a : a \in E ->
   galTrace K E a \in fixedField 'Gal(E / K).
@@ -1703,7 +1703,7 @@ Proof.
 apply (iffP idP).
   case/and3P => HKE /separableP Hsep Hnorm.
   apply:subv_anti.
-  rewrite galoisConnection_subv ?andbT => //.
+  rewrite galois_connection_subv ?andbT => //.
   apply/subvP => a /fixedFieldP [HaE Ha].
   case/normalFieldP/(_ _ HaE): (Hnorm) => rs /allP HrsE Hmin.
   move/(_ _ HaE): Hsep.
@@ -1836,7 +1836,7 @@ apply: eq_bigr => i _.
 by rewrite comp_lfunE lfunE.
 Qed.
 
-Lemma HilbertsTheorem90 K E x a :
+Lemma hilbert's_theorem_90 K E x a :
  <[x]>%g = 'Gal(E / K) -> a \in E ->
  reflect (exists2 b, b \in E /\ b != 0 & a = b / (x b))
          (galNorm K E a == 1).
@@ -2064,14 +2064,14 @@ Qed.
 Lemma gal_fixedField E (g : {group gal_of E}): 'Gal(E / fixedField g) = g.
 Proof.
 symmetry; apply/eqP; rewrite eqEcard; apply/andP; split.
-  by apply: galoisConnection_subset.
+  by apply: galois_connection_subset.
 rewrite [X in _ <= X](_ : _ = \dim_(fixedField g) E); last first.
   by apply: dim_fixedField.
 rewrite galois_dim ?leqnn //.
 apply/galois_fixedField.
 apply: subv_anti => /=.
-rewrite galoisConnection_subv ?capvSl // fixedFieldS //.
-by apply: galoisConnection_subset.
+rewrite galois_connection_subv ?capvSl // fixedFieldS //.
+by apply: galois_connection_subset.
 Qed.
 
 Lemma fixedField_galois E (s : {set gal_of E}): galois (fixedField s) E.
@@ -2224,7 +2224,7 @@ Lemma normal_fixedField_galois : galois K (fixedField g).
 Proof.
 case/and3P: Hgalois => HKE Hsep HnormEK.
 rewrite /galois.
-move: (Hg); rewrite (galoisConnection _ HKE) => ->.
+move: (Hg); rewrite (galois_connection _ HKE) => ->.
 rewrite (separableSr _ Hsep) ?capvSl //.
 apply/forallP => x; apply/implyP => Hx.
 rewrite eqEdim limg_dim_eq ?(eqP (fAutL_lker0 _)) ?capv0 // leqnn andbT.
