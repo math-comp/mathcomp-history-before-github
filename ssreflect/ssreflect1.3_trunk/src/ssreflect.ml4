@@ -48,6 +48,17 @@ open Extraargs
 open Ppconstr
 open Printer
 
+open Globnames
+open Misctypes
+open Decl_kinds
+open Evar_kinds
+open Constrexpr
+open Constrexpr_ops
+open Notation_term
+open Notation_ops
+open Locus
+open Locusops
+
 let inVersion = Libobject.declare_object {
   (Libobject.default_object "SSRASTVERSION") with
   Libobject.load_function = (fun _ (_,v) -> 
@@ -373,10 +384,10 @@ let ssr_id_of_string loc s =
     if !ssr_reserved_ids then
       loc_error loc ("The identifier " ^ s ^ " is reserved.")
     else if is_internal_name s then
-      warning ("Conflict between " ^ s ^ " and ssreflect internal names.")
-    else warning (
+      msg_warning (str ("Conflict between " ^ s ^ " and ssreflect internal names."))
+    else msg_warning (str (
      "The name " ^ s ^ " fits the _xxx_ format used for anonymous variables.\n"
-  ^ "Scripts with explicit references to anonymous variables are fragile.")
+  ^ "Scripts with explicit references to anonymous variables are fragile."))
     end; id_of_string s
 
 let ssr_null_entry = Gram.Entry.of_parser "ssr_null" (fun _ -> ())
@@ -492,11 +503,11 @@ let rec constr_name c = match kind_of_term c with
   | _ -> Anonymous
 
 (** Constructors for cast type *)
-let dC t = CastConv(DEFAULTcast, t)
+let dC t = CastConv t
 
 (** Constructors for constr_expr *)
 
-let mkCProp loc = CSort (loc, GProp Null)
+let mkCProp loc = CSort (loc, GProp)
 
 let mkCType loc = CSort (loc, GType None)
 
@@ -544,7 +555,7 @@ let mkRCast rc rt =  GCast (dummy_loc, rc, dC rt)
 
 let mkRType =  GSort (dummy_loc, GType None)
 
-let mkRProp =  GSort (dummy_loc, GProp Null)
+let mkRProp =  GSort (dummy_loc, GProp)
 
 let mkRArrow rt1 rt2 = GProd (dummy_loc, Anonymous, Explicit, rt1, rt2)
 
@@ -612,8 +623,8 @@ let combineCG t1 t2 f g = match t1, t2 with
  | _ -> Errors.anomaly "have: mixed G-C constr"
 
 let loc_ofCG = function
- | (_, (s, None)) -> Glob_term.loc_of_glob_constr s
- | (_, (_, Some s)) -> Topconstr.constr_loc s
+ | (_, (s, None)) -> Glob_ops.loc_of_glob_constr s
+ | (_, (_, Some s)) -> Constrexpr_ops.constr_loc s
 
 (** Open term to lambda-term coercion *)
 
@@ -1067,7 +1078,7 @@ let declare_one_prenex_implicit locality f =
 
 VERNAC COMMAND EXTEND Ssrpreneximplicits
   | [ "Prenex" "Implicits" ne_global_list(fl) ]
-  -> [ let locality = Vernacexpr.use_section_locality () in
+  -> [ let locality = Locality.use_section_locality () in
        List.iter (declare_one_prenex_implicit locality) fl ]
 END
 
@@ -1091,11 +1102,11 @@ let qualify_ref clref =
   | TrueGlobal _ -> clref
   | SynDef kn ->
     let rec head_of = function
-    |  ARef gref ->
+    |  NRef gref ->
           Qualid (loc, Nametab.shortest_qualid_of_global Idset.empty gref)
-    |  AApp (rc, _) -> head_of rc
-    |  ACast (rc, _) -> head_of rc
-    |  ALetIn (_, _, rc) -> head_of rc
+    |  NApp (rc, _) -> head_of rc
+    |  NCast (rc, _) -> head_of rc
+    |  NLetIn (_, _, rc) -> head_of rc
     | rc ->
        Errors.user_err_loc (loc, "qualify_ref",
         str "The definition of " ++ Ppconstr.pr_qualid qid
@@ -1107,7 +1118,7 @@ let class_rawexpr = G_vernac.class_rawexpr in
 GEXTEND Gram
   GLOBAL: class_rawexpr;
   ssrqref: [[ gref = global -> qualify_ref gref ]];
-  class_rawexpr: [[ class_ref = ssrqref -> Vernacexpr.RefClass (Genarg.AN class_ref) ]];
+  class_rawexpr: [[ class_ref = ssrqref -> Vernacexpr.RefClass (Misctypes.AN class_ref) ]];
 END
 
 (** Extend Search to subsume SearchAbout, also adding hidden Type coercions. *)
@@ -1226,7 +1237,7 @@ let interp_search_notation loc tag okey =
     let m_sc =
       if osc <> None then str "In " ++ str sc ++ pr_comma() else mt() in
     let ntn_pat = trim_ntn (mk_pntn pat false) in
-    let rbody = glob_constr_of_aconstr loc body in
+    let rbody = glob_constr_of_notation_constr loc body in
     let m_body = hov 0 (Constrextern.without_symbols prl_glob_constr rbody) in
     let m = m_sc ++ pr_ntn ntn_pat ++ spc () ++ str "denotes " ++ m_body in
     msgnl (hov 0 m) in
@@ -1238,10 +1249,10 @@ let interp_search_notation loc tag okey =
     err (pr_ntn ntn ++ str " is an n-ary notation");
   let nvars = List.filter (fun (_,(_,typ)) -> typ = NtnTypeConstr) nvars in
   let rec sub () = function
-  | AVar x when List.mem_assoc x nvars -> GPatVar (loc, (false, x))
+  | NVar x when List.mem_assoc x nvars -> GPatVar (loc, (false, x))
   | c ->
-    glob_constr_of_aconstr_with_binders loc (fun _ x -> (), x) sub () c in
-  let _, npat = Pattern.pattern_of_glob_constr (sub () body) in
+    glob_constr_of_notation_constr_with_binders loc (fun _ x -> (), x) sub () c in
+  let _, npat = Patternops.pattern_of_glob_constr (sub () body) in
   Search.GlobSearchSubPattern npat
 
 ARGUMENT EXTEND ssr_search_item TYPED AS ssr_searchitem
@@ -1355,7 +1366,7 @@ let interp_modloc mr =
     if rmods = [] then fun _ _ _ -> true else
     Search.filter_by_module_from_list (List.map interp_mod rmods, b) in
   let is_in = interp_bmod false mr_in and is_out = interp_bmod true mr_out in
-  fun gr env -> is_in gr env () && is_out gr env ()
+  fun gr env typ -> is_in gr env typ && is_out gr env typ
 
 (* The unified, extended vernacular "Search" command *)
 
@@ -1367,7 +1378,7 @@ VERNAC COMMAND EXTEND SsrSearchPattern
 | [ "Search" ssr_search_arg(a) ssr_modlocs(mr) ] ->
   [ let hpat, a' = interp_search_arg a in
     let in_mod = interp_modloc mr in
-    let post_filter gr env typ = in_mod gr env && hpat typ in
+    let post_filter gr env typ = in_mod gr env typ && hpat typ in
     Search.raw_search_about post_filter ssrdisplaysearch a' ]
 END
 
@@ -2112,7 +2123,7 @@ let inv_dir = function L2R -> R2L | R2L -> L2R
 
 let rewritetac dir c =
   (* Due to the new optional arg ?tac, application shouldn't be too partial *)
-  Equality.general_rewrite (dir = L2R) all_occurrences true false c
+  Equality.general_rewrite (dir = L2R) AllOccurrences true false c
 
 let wit_ssrdir, globwit_ssrdir, rawwit_ssrdir =
   add_genarg "ssrdir" pr_dir
@@ -2314,7 +2325,7 @@ END
 (* Populating the table *)
 
 let cache_viewhint (_, (i, lvh)) =
-  let mem_raw h = List.exists (Topconstr.eq_glob_constr h) in 
+  let mem_raw h = List.exists (Notation_ops.eq_glob_constr h) in
   let add_hint h hdb = if mem_raw h hdb then hdb else h :: hdb in
   viewtab.(i) <- List.fold_right add_hint lvh viewtab.(i)
 
@@ -3751,12 +3762,12 @@ let interp_pattern ist gl red redty =
   let mkG ?(k=' ') x = k,(x,None) in
   let decode t f g =
     try match (pf_intern_term ist gl t) with
-    | GCast(_,GHole _,CastConv(_,GLambda(_,Name x,_,_,c))) -> f x (' ',(c,None))
+    | GCast(_,GHole _,CastConv(GLambda(_,Name x,_,_,c))) -> f x (' ',(c,None))
     | it -> g t with _ -> g t in
   let decodeG t f g = decode (mkG t) f g in
   let bad_enc id _ = Errors.anomaly ("bad encoding for pattern " ^ id) in
   let red = match red with
-    | T(k,(GCast (_,GHole _,(CastConv(_, GLambda (_,Name id,_,_,t)))),None))
+    | T(k,(GCast (_,GHole _,(CastConv(GLambda (_,Name id,_,_,t)))),None))
         when let id = string_of_id id in let len = String.length id in
         (len > 8 && String.sub id 0 8 = "_ssrpat_") ->
         let id = string_of_id id in let len = String.length id in
@@ -5107,7 +5118,8 @@ let unfoldintac occ rdx t (kt,_) gl =
   let fs sigma x = Reductionops.nf_evar sigma x in
   let sigma0, concl0, env0 = project gl, pf_concl gl, pf_env gl in
   let (sigma, t), const = strip_unfold_term t kt in
-  let body env t c = Tacred.unfoldn [(true, [1]), get_evalref t] env sigma0 c in
+  let body env t c =
+    Tacred.unfoldn [OnlyOccurrences [1], get_evalref t] env sigma0 c in
   let easy = occ = [] && rdx = None in
   let red_flags = if easy then Closure.betaiotazeta else Closure.betaiota in
   let beta env = Reductionops.clos_norm_flags red_flags env sigma0 in
@@ -5505,7 +5517,7 @@ END
 
 let unfoldtac occ ko t kt gl =
   let cl, c = pf_fill_occ_term gl occ (fst (strip_unfold_term t kt)) in
-  let cl' = subst1 (pf_unfoldn [(true, [1]), get_evalref c] gl c) cl in
+  let cl' = subst1 (pf_unfoldn [OnlyOccurrences [1], get_evalref c] gl c) cl in
   let f = if ko = [] then Closure.betaiotazeta else Closure.betaiota in
   convert_concl (pf_reduce (Reductionops.clos_norm_flags f) gl cl') gl
 
@@ -5607,7 +5619,7 @@ let rec format_local_binders h0 bl0 = match h0, bl0 with
   | BFdef false :: h, LocalRawDef ((_, x), v) :: bl ->
     Bdef (x, None, v) :: format_local_binders h bl
   | BFdef true :: h,
-      LocalRawDef ((_, x), CCast (_, v, CastConv (_, t))) :: bl ->
+      LocalRawDef ((_, x), CCast (_, v, CastConv t)) :: bl ->
     Bdef (x, Some t, v) :: format_local_binders h bl
   | _ -> []
   
@@ -5621,10 +5633,10 @@ let rec format_constr_expr h0 c0 = match h0, c0 with
   | BFdef false :: h, CLetIn(_, (_, x), v, c) ->
     let bs, c' = format_constr_expr h c in
     Bdef (x, None, v) :: bs, c'
-  | BFdef true :: h, CLetIn(_, (_, x), CCast (_, v, CastConv (_, t)), c) ->
+  | BFdef true :: h, CLetIn(_, (_, x), CCast (_, v, CastConv t), c) ->
     let bs, c' = format_constr_expr h c in
     Bdef (x, Some t, v) :: bs, c'
-  | [BFcast], CCast (_, c, CastConv (_, t)) ->
+  | [BFcast], CCast (_, c, CastConv t) ->
     [Bcast t], c
   | BFrec (has_str, has_cast) :: h, 
     CFix (_, _, [_, (Some locn, CStructRec), bl, t, c]) ->
@@ -5648,7 +5660,7 @@ let rec format_glob_decl h0 d0 = match h0, d0 with
     end
   | BFdef false :: h, (x, _, Some v, _)  :: d ->
     Bdef (x, None, v) :: format_glob_decl h d
-  | BFdef true:: h, (x, _, Some (GCast (_, v, CastConv (_, t))), _) :: d ->
+  | BFdef true:: h, (x, _, Some (GCast (_, v, CastConv t)), _) :: d ->
     Bdef (x, Some t, v) :: format_glob_decl h d
   | _, (x, _, None, t) :: d ->
     Bdecl ([x], t) :: format_glob_decl [] d
@@ -5671,10 +5683,10 @@ let rec format_glob_constr h0 c0 = match h0, c0 with
   | BFdef false :: h, GLetIn(_, x, v, c) ->
     let bs, c' = format_glob_constr h c in
     Bdef (x, None, v) :: bs, c'
-  | BFdef true :: h, GLetIn(_, x, GCast (_, v, CastConv (_, t)), c) ->
+  | BFdef true :: h, GLetIn(_, x, GCast (_, v, CastConv t), c) ->
     let bs, c' = format_glob_constr h c in
     Bdef (x, Some t, v) :: bs, c'
-  | [BFcast], GCast (_, c, CastConv(_, t)) ->
+  | [BFcast], GCast (_, c, CastConv t) ->
     [Bcast t], c
   | BFrec (has_str, has_cast) :: h, GRec (_, f, _, bl, t, c)
       when Array.length c = 1 ->
@@ -5810,8 +5822,8 @@ let push_binders c2 bs =
   | [] -> c
   | _ -> Errors.anomaly "binder not a lambda nor a let in" in
   match c2 with
-  | CCast (x, ct, CastConv (y, cty)) ->
-      (CCast (x, loop false ct bs, CastConv (y, loop true cty bs)))
+  | CCast (x, ct, CastConv cty) ->
+      (CCast (x, loop false ct bs, CastConv (loop true cty bs)))
   | ct -> loop false ct bs
 
 let rec fix_binders = function
@@ -6019,11 +6031,11 @@ let havetac ((((clr, pats), binders), simpl), ((((fk, _), t), ctx), hint))
  let interp t = pf_abs_ssrterm ist gl t in
  let interp_ty t = let a,b,_ = pf_interp_ty ist gl t in a, b in
  let ct, cty, hole, loc = match t with
-   | _, (_, Some (CCast (loc, ct, CastConv (_, cty)))) ->
+   | _, (_, Some (CCast (loc, ct, CastConv cty))) ->
      mkt ct, mkt cty, mkt (mkCHole dummy_loc), loc
    | _, (_, Some ct) ->
      mkt ct, mkt (mkCHole dummy_loc), mkt (mkCHole dummy_loc), dummy_loc
-   | _, (GCast (loc, ct, CastConv (_, cty)), None) ->
+   | _, (GCast (loc, ct, CastConv cty), None) ->
      mkl ct, mkl cty, mkl mkRHole, loc
    | _, (t, None) -> mkl t, mkl mkRHole, mkl mkRHole, dummy_loc in
  let cut, sol, itac1, itac2 =
@@ -6095,8 +6107,8 @@ let sufftac ((((clr, pats),binders),simpl), (((_, c), ctx), hint)) =
   let ist = get_ltacctx ctx in
   let htac = tclTHEN (introstac ~ist pats) (hinttac ist true hint) in
   let c = match c with
-  | (a, (b, Some (CCast (_, _, CastConv (_, cty))))) -> a, (b, Some cty)
-  | (a, (GCast (_, _, CastConv (_, cty)), None)) -> a, (cty, None)
+  | (a, (b, Some (CCast (_, _, CastConv cty)))) -> a, (b, Some cty)
+  | (a, (GCast (_, _, CastConv cty), None)) -> a, (cty, None)
   | _ -> Errors.anomaly "suff: ssr cast hole deleted by typecheck" in
   let ctac gl = basecuttac "ssr_suff" (pi2 (pf_interp_ty ist gl c)) gl in
   tclTHENS ctac [htac; tclTHEN (cleartac clr) (introstac ~ist (binders@simpl))]
@@ -6152,8 +6164,8 @@ let wlogtac (((clr0, pats),_),_) (gens, ((_, ct), ctx)) hint suff gl =
    | (_, Some (SsrHyp (_, x), _)) -> fun pats -> IpatId x :: pats
    | _ -> fun x -> x in
   let ct = match ct with
-  | (a, (b, Some (CCast (_, _, CastConv (_, cty))))) -> a, (b, Some cty)
-  | (a, (GCast (_, _, CastConv (_, cty)), None)) -> a, (cty, None)
+  | (a, (b, Some (CCast (_, _, CastConv cty)))) -> a, (b, Some cty)
+  | (a, (GCast (_, _, CastConv cty), None)) -> a, (cty, None)
   | _ -> Errors.anomaly "wlog: ssr cast hole deleted by typecheck" in
   let cl0 = mkArrow (pi2 (pf_interp_ty ist gl ct)) (pf_concl gl) in
   let cl0 = if not suff then cl0 else let _,t,_ = destProd cl0 in t in
