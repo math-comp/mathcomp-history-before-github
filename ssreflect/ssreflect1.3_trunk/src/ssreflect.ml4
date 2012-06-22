@@ -18,7 +18,7 @@ let () = Mltop.add_known_plugin (fun () ->
 let frozen_lexer = Lexer.freeze () ;;
 
 (*i camlp4use: "pa_extend.cmo" i*)
-(*i camlp4deps: "parsing/grammar.cma" i*)
+(*i camlp4deps: "grammar/grammar.cma" i*)
 
 open Names
 open Pp
