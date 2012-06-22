@@ -531,7 +531,7 @@ Definition type_of of (phantom (rel _) encD) := equivQuotient.
 
 Lemma canon_id : forall x, (invariant canon canon) x.
 Proof.
-move=> x /=; unlock canon; rewrite (@eq_choose _ _ (eC x)).
+move=> x /=; rewrite /canon (@eq_choose _ _ (eC x)).
   by rewrite (@choose_id _ (eC x) _ x) ?chooseP ?equiv_refl.
 by move=> y; apply: equiv_ltrans; rewrite equiv_sym /= chooseP.
 Qed.

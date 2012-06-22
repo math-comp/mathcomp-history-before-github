@@ -3521,10 +3521,9 @@ let match_upats_HO upats env sigma0 ise c =
 ;;
 
 
-let fixed_upats = function
-| [{up_k = KpatFlex | KpatEvar _ | KpatProj _}] -> false 
-| [{up_t = t}] -> not (occur_existential t)
-| _ -> false
+let fixed_upat = function
+| {up_k = KpatFlex | KpatEvar _ | KpatProj _} -> false 
+| {up_t = t} -> not (occur_existential t)
 
 let do_once r f = match !r with Some _ -> () | None -> r := Some (f ())
 
@@ -3559,16 +3558,16 @@ let mk_pmatcher ?(raise_NoMatch=false) sigma0 occ ?upats_origin (upats, ise) =
     | _ -> unif_EQ env sigma u.up_f in
 (fun env c h ~k -> 
   do_once upat_that_matched (fun () -> 
-    (* XXX Ask Georges: Why sigma0 and not ise! seems just a way to tell
-     * that this path was taken...  *)
-    if fixed_upats upats then sigma0, List.hd upats else try
+    try
       match_upats_FO upats env sigma0 ise c;
       match_upats_HO upats env sigma0 ise c;
       raise NoMatch
     with FoundUnif sigma_u -> sigma_u | NoMatch when (not raise_NoMatch) ->
       let p2t p = mkApp(p.up_f,p.up_a) in 
       errorstrm ((match upats_origin, upats with
-      | None, [p] -> str"partial term " ++ pr_constr_pat (p2t p) ++ spc()
+      | None, [p] -> 
+          (if fixed_upat p then str"term " else str"partial term ") ++ 
+          pr_constr_pat (p2t p) ++ spc()
       | Some (dir,rule), [p] -> str"The " ++ pr_dir_side dir ++ str" of " ++ 
           pr_constr_pat rule ++ fnl() ++ ws 4 ++ pr_constr_pat (p2t p) ++ fnl()
       | Some (dir,rule), _ -> str"The " ++ pr_dir_side dir ++ str" of " ++ 
@@ -5521,14 +5520,16 @@ let unfoldtac occ ko t kt gl =
   let f = if ko = [] then Closure.betaiotazeta else Closure.betaiota in
   convert_concl (pf_reduce (Reductionops.clos_norm_flags f) gl cl') gl
 
-let unlocktac (args, ctx) gl =
+let unlocktac (args, ctx) =
   let ist = get_ltacctx ctx in
-  let utac (occ, gt) =
-    unfoldtac occ occ (interp_term ist gl gt) (fst gt) in
+  let utac (occ, gt) gl =
+    unfoldtac occ occ (interp_term ist gl gt) (fst gt) gl in
   let locked = mkSsrConst "locked" in
   let key = mkSsrConst "master_key" in
-  let ktacs = [unfoldtac [] [] (project gl,locked) '('; simplest_newcase key] in
-  tclTHENLIST (List.map utac args @ ktacs) gl
+  let ktacs = [
+    (fun gl -> unfoldtac [] [] (project gl,locked) '(' gl); 
+    simplest_newcase key ] in
+  tclTHENLIST (List.map utac args @ ktacs)
 
 TACTIC EXTEND ssrunlock
   | [ "unlock" ssrunlockargs(args) ssrclauses(clauses) ] ->

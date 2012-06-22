@@ -1478,7 +1478,7 @@ Proof.
 apply/eqP/andP=> [|[/eqP-> /pred2P[]-> //]]; last by rewrite !scale0r.
 move/(congr1 (cfdotr 'chi__)) => /= eq_ai_bj.
 move: {eq_ai_bj}(eq_ai_bj i) (esym (eq_ai_bj j)); rewrite !cfdotZl !cfdot_irr.
-by rewrite !mulr_natr !mulrb !eqxx eq_sym orbC; case: ifP => _ -> -> /=.
+by rewrite !mulr_natr !mulrb !eqxx eq_sym orbC; case: ifP => _ -> //= ->. 
 Qed.
 
 Lemma eq_signed_irr (s t : bool) i j :

@@ -510,7 +510,7 @@ Qed.
 
 Lemma sgr_numq_div (n d : int) : sgr (numq (n%:Q / d%:Q)) = sgr n * sgr d.
 Proof.
-set x := (n, d); rewrite -/x.1 -/x.2 -fracqE.
+set x := (n, d); rewrite -[n]/x.1 -[d]/x.2 -fracqE.
 case: fracqP => [|k fx k_neq0] /=; first by rewrite mulr0.
 by rewrite !sgrM  mulrACA -expr2 sqr_sg k_neq0 sgr_denq mulr1 mul1r.
 Qed.

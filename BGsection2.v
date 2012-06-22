@@ -908,7 +908,7 @@ have def_x: rG x = B^-1 *m block_mx a 0 0 b *m B.
 have ap1: a ^+ p = 1.
   suff: B^-1 *m block_mx (a ^+ p) 0 0 (b ^+ p) *m B = 1.
     move/(canRL (mulmxK uB))/(canRL (mulKVmx uB)); rewrite mul1mx.
-    by rewrite mulmxV // -[2]/(1 + 1)%N scalar_mx_block; case/eq_block_mx.
+    by rewrite mulmxV // scalar_mx_block; case/eq_block_mx.
   transitivity (rG x ^+ p); last first.
     by rewrite -(repr_mxX (subg_repr rG sQG)) // -oxp expg_order repr_mx1.
   elim: (p) => [|k IHk]; first by rewrite -scalar_mx_block mulmx1 mulVmx.
