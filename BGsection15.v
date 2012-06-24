@@ -266,7 +266,7 @@ have [K1 | ntK] := altP (K :=P: 1).
   have [x|[A0 [_ cA0A0 genA0] frobM]] := FTtypeF_complement maxM hallE.
     case/setD1P; rewrite -order_gt1 -pi_pdiv; set p := pdiv _ => pi_x_p Ux t13x.
     apply: contraNeq (pnatPpi (mem_p_elt sk'U Ux) pi_x_p) => nreg_x.
-    apply/orP; right; unlock kappa; rewrite /= inE /= (pnatPpi t13x) //=.
+    apply/orP; right; rewrite unlock /= inE /= (pnatPpi t13x) //=.
     have sxM: <[x]> \subset M by rewrite cycle_subG (subsetP sUM).
     move: pi_x_p; rewrite -p_rank_gt0 /= -(setIidPr sxM); case/p_rank_geP=> P.
     rewrite pnElemI -setIdE; case/setIdP=> EpP sPx.
@@ -359,8 +359,8 @@ case/orP=> [t13p | t2p].
   have cycS: cyclic S.
     move: t13p; rewrite inE /= -!andb_orr; case/and3P=> _; move/eqP=> rpM _.
     by rewrite abelian_rank1_cyclic // (rank_pgroup pS) -rpM p_rankS.
-  rewrite andbA sSU cycS /=; apply: contraR k'p => nregS1; unlock kappa.
-  rewrite /= inE /= t13p; apply/exists_inP; exists 'Ohm_1(S)%G => //.
+  rewrite andbA sSU cycS /=; apply: contraR k'p => nregS1.
+  rewrite unlock /= inE /= t13p; apply/exists_inP; exists 'Ohm_1(S)%G => //.
   rewrite p1ElemE // 2!inE (subset_trans (Ohm_sub 1 S)) //=.
   by rewrite (Ohm1_cyclic_pgroup_prime cycS pS ntS).
 have sylS_M := subHall_Sylow hallU (pnatPpi sk'U piUp) sylS.
@@ -603,7 +603,7 @@ have{K1 sK1M sK1K coMsK1 coQK1 prK1 defCMsK1 nQK1 solMs} Qi_rec: forall Qi,
   by rewrite -(card_isog (quotient_isog _ _)) ?coprime_TIg // (coprimeSg sQiQ).
 have ltQ0Q: Q0 \proper Q.
   rewrite properEneq subsetIl andbT; apply: contraNneq not_nilMs => defQ0.
-  rewrite -dprodEsdprod // in defQD; last by rewrite centsC -defQ0 subsetIr.
+  rewrite -dprodEsd // in defQD; last by rewrite centsC -defQ0 subsetIr.
   by rewrite (dprod_nil defQD) (pgroup_nil qQ).
 have [nQK coQK] := (subset_trans sKM nQM, pnat_coprime qQ q'K).
 have solQ := pgroup_sol qQ. (* must come late: Coq diverges on solQ <> solMs *)
@@ -990,7 +990,7 @@ have [eqHMs | neqHMs] := eqVneq H M`_\sigma.
   rewrite Fitting_max ?abelian_nil ?cyclic_abelian //.
   rewrite -(normal_Hall_pcore hallX) ?(char_normal_trans (pcore_char _ _)) //.
     by rewrite norm_normalI // eqHMs norms_cent.
-  move: defCH; rewrite -dprodEsdprod; first by case/dprod_normal2.
+  move: defCH; rewrite -dprodEsd; first by case/dprod_normal2.
   by rewrite -eqHMs (centsS (subsetIl _ _)); case/subsetIP: (pHall_sub hallX).
 pose q := #|'C_(M`_\sigma)(K)|; pose Q := 'O_q(M).
 have [D hallD] := Hall_exists q^' (solvableS sMsM (mmax_sol maxM)).
@@ -1650,8 +1650,8 @@ have [_ k'M] := setIdP FmaxM; have k'q := pnatPpi k'M (piSg szM pizq).
 have t1q := pnatPpi t1E1 (piSg szE1 pizq).
 move: pizq; rewrite -p_rank_gt0; case/p_rank_geP=> Z.
 rewrite /= -(setIidPr szM) pnElemI -setIdE; case/setIdP=> EqZ sZz.
-apply: contraNeq k'q => ntCMsx /=; unlock kappa.
-rewrite 3!inE /= t1q; apply/exists_inP; exists Z => //.
+apply: contraNeq k'q => ntCMsx /=.
+rewrite unlock 3!inE /= t1q; apply/exists_inP; exists Z => //.
 by rewrite (subG1_contra _ ntCMsx) ?setIS //= -cent_cycle centS.
 Qed.
 

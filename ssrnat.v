@@ -1509,7 +1509,7 @@ Definition extend_number (nn : number) m := Num (nn * 1000 + bin_of_nat m).
 
 Coercion extend_number : number >-> Funclass.
 
-Canonical number_subType := [newType for bin_of_number by number_rect].
+Canonical number_subType := [newType for bin_of_number].
 Definition number_eqMixin := Eval hnf in [eqMixin of number by <:].
 Canonical number_eqType := Eval hnf in EqType number number_eqMixin.
 

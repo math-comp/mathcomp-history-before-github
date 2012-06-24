@@ -34,10 +34,11 @@ Hypothesis maxL : L \in 'M.
 lemma FTtypeP *)
 Hypothesis Ltype : FTtype L == 1%N.
 
-(* in order to use H both as a group and a set *)
-(* notation can be overloaded this way but not with a simple notation *)
-Local Notation "'H'" := (gval L)`_\F (at level 0) : group_scope.
-Local Notation "'H'" := (gval L)`_\F%G : Group_scope.
+(* Workaround for the absence of overloading for simple Notation: while H     *)
+(* denotes a {group gT}, `H denotes its {set gT} projection.                  *)
+Local Notation "` 'L'" := (gval L) (at level 0, only parsing) : group_scope.
+Local Notation H := `L`_\F%G.
+Local Notation "` 'H'" := `L`_\F (at level 0) : group_scope.
 
 (* Warning : we need gval for the set version, because otherwise,
 because L is a group and when we enter H, if Coq needs to insert the *)
@@ -46,7 +47,8 @@ because L is a group and when we enter H, if Coq needs to insert the *)
 
 (* Prefer the (convertible) derived group version to the commutator expression,
 since it's most often used as such in the proofs *)
-Local Notation H' := H^`(1).
+Local Notation H' := H^`(1)%G.
+Local Notation "` 'H''" := `H^`(1) (at level 0) : group_scope.
 
 (* This is wrong : we define here 
 {\theta \in Irr (L) | H \in ker \theta and 1%g is not included in ker \theta 
@@ -75,8 +77,8 @@ Proof.
 case/seqIndC1P=> t kert Dchi.
 have nHL : H <| L by exact: gFnormal.
 pose T := 'I_L['chi_t]%g.
-have sTL : T \subset L by exact: inertia_sub.
-have sHT : H \subset T by apply: sub_inertia; exact: gFsub.
+have sTL : T \subset L by exact: Inertia_sub.
+have sHT : H \subset T by apply: sub_Inertia; exact: gFsub.
 have sHL : H \subset L by apply: normal_sub.
 have copHIchi : coprime #|H| #|T : H|.
   suff : (\pi(H)).-Hall(T) H by case/pHall_Hall /andP.
@@ -95,23 +97,8 @@ have abTbar : abelian (T / H).
   rewrite /T; have /sdprodP [_ <- _ _] := defT.
   by rewrite quotientMidl quotient_abelian // (abelianS sItU1).
 have Dchi_sum : chi = \sum_(i in S_ chi) 'chi_i.
-  rewrite {1}Dchi.
-  have /= [-> _] := induced_inertia_quo1 nHL abTbar copHIchi.
-  rewrite -/T.
-  have Dchi_irr := cfIirrE (cfInd_constt_inertia_irr nHL _).
-  rewrite (reindex_onto (fun j => cfIirr ('Ind[L] 'chi_j)) 
-     (fun j => inertia_Ind_inv t 'chi_j)) /=; last first.
-    move=> j; rewrite inE Dchi constt_Ind_constt_Res => Sj; apply irr_inj.
-    by rewrite Dchi_irr ?constt_inertia_Ind_inv ?inertia_Ind_invE.
-  apply: eq_big => [j | j Sj]; last by rewrite Dchi_irr -?constt_Ind_constt_Res.
-  rewrite [in X in _ = X]inE Dchi !constt_Ind_constt_Res; apply/idP/idP.
-  - move=> irrj.
-    rewrite {1}Dchi_irr // constt_Res_constt_inertia //=; apply/eqP.
-    apply: single_constt_inertia => //.
-      rewrite -Dchi_irr //= cfIirrE ?mem_irr // inertia_Ind_inv_constt //.
-      by rewrite Dchi_irr // constt_Res_constt_inertia.
-    by rewrite constt_inertia_Ind_inv // Dchi_irr // constt_Res_constt_inertia.
-  - by case/andP => ht /eqP <-;  rewrite constt_inertia_Ind_inv.
+  rewrite {1}Dchi; have /= [-> _ _] := induced_inertia_quo1 nHL abTbar copHIchi.
+  by rewrite Dchi (eq_bigl _ _ (in_set _)) (reindex_constt_inertia _ _ id).
 have lichi : constant [seq 'chi_i 1%g | i in  S_ chi].
   have /= [_ [_ Ichi1]] := induced_inertia_quo1 nHL abTbar copHIchi.
   pose c := #|L : T|%:R * 'chi_t 1%g.

@@ -78,6 +78,15 @@ Definition Sylow A B := p_group B && Hall A B.
 
 End PgroupDefs.
 
+Arguments Scope pgroup [_ nat_scope group_scope].
+Arguments Scope psubgroup [_ nat_scope group_scope group_scope].
+Arguments Scope p_group [_ group_scope].
+Arguments Scope p_elt [_ nat_scope].
+Arguments Scope constt [_ group_scope nat_scope].
+Arguments Scope Hall [_ group_scope group_scope].
+Arguments Scope pHall [_ nat_scope group_scope group_scope].
+Arguments Scope Syl [_ nat_scope group_scope].
+Arguments Scope Sylow [_ group_scope group_scope].
 Prenex Implicits p_group Hall Sylow.
 
 Notation "pi .-group" := (pgroup pi)
@@ -845,6 +854,8 @@ Canonical pcore_group : {group gT} := Eval hnf in [group of pcore].
 
 End PcoreDef.
 
+Arguments Scope pcore [_ nat_scope group_scope].
+Arguments Scope pcore_group [_ nat_scope Group_scope].
 Notation "''O_' pi ( G )" := (pcore pi G)
   (at level 8, pi at level 2, format "''O_' pi ( G )") : group_scope.
 Notation "''O_' pi ( G )" := (pcore_group pi G) : Group_scope.
@@ -866,7 +877,8 @@ Canonical pseries_group : {group gT} := group pseries_group_set.
 
 End PseriesDefs.
 
-Notation Local ConsPred := (@Cons nat_pred) (only parsing).
+Arguments Scope pseries [_ seq_scope group_scope].
+Local Notation ConsPred p := (@Cons nat_pred p%N) (only parsing).
 Notation "''O_{' p1 , .. , pn } ( A )" :=
   (pseries (ConsPred p1 .. (ConsPred pn [::]) ..) A)
   (at level 8, format "''O_{' p1 , .. , pn } ( A )") : group_scope.

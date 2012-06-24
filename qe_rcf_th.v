@@ -74,7 +74,7 @@ Proof. by case: n=> [|n] //=; rewrite eqxx. Qed.
 Lemma lc_expn_rscalp_neq0 (p q : {poly R}): lead_coef q ^+ rscalp p q != 0.
 Proof.
 case: (eqVneq q 0) => [->|nzq]; last by rewrite expf_neq0 ?lead_coef_eq0.
-by rewrite /rscalp redivpE /= eqxx /= expr0 oner_neq0.
+by rewrite /rscalp unlock /= eqxx /= expr0 oner_neq0.
 Qed.
 
 Notation lcn_neq0 := lc_expn_rscalp_neq0.
@@ -1355,7 +1355,7 @@ Qed.
 Lemma size_change_varq a q : a != 0 -> size (change_varq a q) = size q.
 Proof.
 move=> a_neq0; have [->|q_neq0] := eqVneq q 0.
-  by rewrite /change_varq size_poly0; unlock poly; rewrite /= size_poly0.
+  by rewrite /change_varq size_poly0 unlock /= size_poly0.
 rewrite /change_varq size_poly_eq // -lead_coefE.
 by rewrite mulf_eq0 negb_or lead_coef_eq0 q_neq0 andbT expf_neq0.
 Qed.
@@ -1429,7 +1429,7 @@ rewrite mulnC comp_polyE (polySpred nz_p) /= big_ord_recr Monoid.mulmC.
 rewrite size_addl size_scale ?lead_coef_eq0 ?my_size_exp //=.
 rewrite ltnS.
 rewrite (leq_trans (size_sum _ _ _)) //; apply/bigmax_leqP => i _.
-rewrite (leq_trans (size_poly _ _)) // polySpred ?expf_neq0 // size_exp.
+rewrite (leq_trans (size_scale_leq _ _)) // polySpred ?expf_neq0 // size_exp.
 by rewrite -(subnKC nc_q) ltn_pmul2l.
 Qed.
 

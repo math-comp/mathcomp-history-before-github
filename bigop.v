@@ -1141,6 +1141,16 @@ Lemma big_mkcond I r (P : pred I) F :
      \big[*%M/1]_(i <- r) (if P i then F i else 1).
 Proof. by rewrite unlock; elim: r => //= i r ->; case P; rewrite ?mul1m. Qed.
 
+Lemma big_mkcondr I r (P Q : pred I) F :
+  \big[*%M/1]_(i <- r | P i && Q i) F i =
+     \big[*%M/1]_(i <- r | P i) (if Q i then F i else 1).
+Proof. by rewrite -big_filter_cond big_mkcond big_filter. Qed.
+
+Lemma big_mkcondl I r (P Q : pred I) F :
+  \big[*%M/1]_(i <- r | P i && Q i) F i =
+     \big[*%M/1]_(i <- r | Q i) (if P i then F i else 1).
+Proof. by rewrite big_andbC big_mkcondr. Qed.
+
 Lemma big_cat I r1 r2 (P : pred I) F :
   \big[*%M/1]_(i <- r1 ++ r2 | P i) F i =
      \big[*%M/1]_(i <- r1 | P i) F i * \big[*%M/1]_(i <- r2 | P i) F i.

@@ -869,8 +869,8 @@ move: W1 => K maxM; have [[_ sHMs sMsM' _] _] := Fcore_structure maxM.
 move=> [[cycK hallK ntK defM] [nilU sUM' nUK defM'] _ [_ ntKs _ _ _] _].
 have [_ sKM mulM'K _ tiM'K] := sdprod_context defM.
 have{hallK} kK: \kappa(M).-group K.
-  apply: sub_pgroup (pgroup_pi K) => p piKp; unlock kappa.
-  rewrite 4!inE -!andb_orr orNb andbT -andbA.
+  apply: sub_pgroup (pgroup_pi K) => p piKp.
+  rewrite unlock 4!inE -!andb_orr orNb andbT -andbA.
   have [X EpX]: exists X, X \in 'E_p^1(K).
     by apply/p_rank_geP; rewrite p_rank_gt0.
   have [sXK abelX dimX] := pnElemP EpX; have [pX _] := andP abelX.
@@ -1276,7 +1276,8 @@ have defA0: 'A0(M) = Ms^#.
   apply: sub_in_pnat (pnat_pi (order_gt0 z)) => p _ pi_z_p.
   have szM: <[z]> \subset M by rewrite cycle_subG.
   have [piMp [_ k'M]] := (piSg szM pi_z_p, setIdP FmaxM).
-  apply: contraR (pnatPpi k'M piMp) => s'p /=; unlock kappa; apply/andP; split.
+  apply: contraR (pnatPpi k'M piMp) => s'p /=.
+  rewrite unlock; apply/andP; split.
     have:= piMp; rewrite (partition_pi_mmax maxM) (negPf s'p) orbF.
     by rewrite orbCA [p \in _](negPf (pnatPpi t2'M piMp)).
   move: pi_z_p; rewrite -p_rank_gt0 /= -(setIidPr szM).

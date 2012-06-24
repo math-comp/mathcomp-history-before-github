@@ -1,12 +1,11 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigop ssralg div countalg ssrnum ssrint.
-
+Require Import bigop ssralg div ssrnum ssrint.
 
 (******************************************************************************)
 (* This file defines the rational numbers                                     *)
 (*   rat == the type of rational number, with the constructor Rat that takes  *)
-(*          a pair of integers p and a proof of                               *) 
+(*          a pair of integers p and a proof of                               *)
 (*             (0 < p.2) && coprime `|p.1| `|p.2|                             *)
 (*  n%:Q == explicit cast from int to rat                                     *)
 (*                                                                            *)
@@ -36,7 +35,7 @@ Delimit Scope rat_scope with Q.
 Definition ratz (n : int) := @Rat (n, 1) (coprimen1 _).
 (* Coercion ratz (n : int) := @Rat (n, 1) (coprimen1 _). *)
 
-Canonical rat_subType := Eval hnf in [subType for valq by rat_rect].
+Canonical rat_subType := Eval hnf in [subType for valq].
 Definition rat_eqMixin := [eqMixin of rat by <:].
 Canonical rat_eqType := EqType rat rat_eqMixin.
 Definition rat_choiceMixin := [choiceMixin of rat by <:].
@@ -100,30 +99,33 @@ move: Pnd; rewrite /coprime /fracq /=; case/andP=> hd; move/eqP=> hnd.
 by rewrite ltr_gtF ?gtr_eqF //= hnd !divn1 mulz_sign_abs abszE gtr0_norm.
 Qed.
 
-Definition scalq := locked (fun x => sgr x.2 * (gcdn `|x.1| `|x.2|)%:Z).
+Fact scalq_key : unit. Proof. by []. Qed.
+Definition scalq_def x := sgr x.2 * (gcdn `|x.1| `|x.2|)%:Z.
+Definition scalq := locked_with scalq_key scalq_def.
+Canonical scalq_unlockable := [unlockable fun scalq].
 
 Fact scalq_eq0 x : (scalq x == 0) = (x.2 == 0).
 Proof.
-case: x => n d; rewrite /scalq -lock /= mulf_eq0 sgr_eq0 /= eqz_nat.
+case: x => n d; rewrite unlock /= mulf_eq0 sgr_eq0 /= eqz_nat.
 rewrite -[gcdn _ _ == 0%N]negbK -lt0n gcdn_gt0 ?absz_gt0 [X in ~~ X]orbC.
 by case: sgrP.
 Qed.
 
 Lemma sgr_scalq x : sgr (scalq x) = sgr x.2.
 Proof.
-unlock scalq; rewrite sgrM sgr_id -[(gcdn _ _)%:Z]intz sgr_nat.
+rewrite unlock sgrM sgr_id -[(gcdn _ _)%:Z]intz sgr_nat.
 by rewrite -lt0n gcdn_gt0 ?absz_gt0 orbC; case: sgrP; rewrite // mul0r.
 Qed.
 
 Lemma signr_scalq x : (scalq x < 0) = (x.2 < 0).
 Proof. by rewrite -!sgr_cp0 sgr_scalq. Qed.
 
-Lemma scalqE x : x.2 != 0 -> scalq x =
-          (-1) ^+ (x.2 < 0)%R * (gcdn `|x.1| `|x.2|)%:Z.
-Proof. by unlock scalq; case: sgrP. Qed.
+Lemma scalqE x :
+  x.2 != 0 -> scalq x = (-1) ^+ (x.2 < 0)%R * (gcdn `|x.1| `|x.2|)%:Z.
+Proof. by rewrite unlock; case: sgrP. Qed.
 
-Fact valq_frac x : x.2 != 0 ->
- x = (scalq x * numq (fracq x), scalq x * denq (fracq x)).
+Fact valq_frac x :
+  x.2 != 0 -> x = (scalq x * numq (fracq x), scalq x * denq (fracq x)).
 Proof.
 case: x => [n d] /= d_neq0; rewrite /denq /numq scalqE //= (negPf d_neq0).
 rewrite mulr_signM -mulrA -!PoszM addKb.
@@ -143,9 +145,8 @@ Qed.
 Fact fracq0  x : fracq (x, 0) = zeroq. Proof. exact/eqP. Qed.
 
 CoInductive fracq_spec (x : int * int) : int * int -> rat -> Type :=
-| FracqSpecN of x.2 = 0 : fracq_spec x (x.1, 0) zeroq
-| FracqSpecP k fx of k != 0 :
-  fracq_spec x (k * numq fx, k * denq fx) fx.
+  | FracqSpecN of x.2 = 0 : fracq_spec x (x.1, 0) zeroq
+  | FracqSpecP k fx of k != 0 : fracq_spec x (k * numq fx, k * denq fx) fx.
 
 Fact fracqP x : fracq_spec x x (fracq x).
 Proof.
@@ -173,8 +174,7 @@ symmetry; rewrite rat_eqE andbC.
 have [->|] /= := altP (denq _ =P _); first by rewrite (inj_eq (mulIf _)).
 apply: contraNF => /eqP hxy; rewrite -absz_denq -[X in _ == X]absz_denq.
 rewrite eqz_nat /= eqn_dvd.
-rewrite -(@Gauss_dvdr _ `|numq x|) 1?coprime_sym ?coprime_num_den //.
-rewrite andbC.
+rewrite -(@Gauss_dvdr _ `|numq x|) 1?coprime_sym ?coprime_num_den // andbC.
 rewrite -(@Gauss_dvdr _ `|numq y|) 1?coprime_sym ?coprime_num_den //.
 by rewrite -!abszM hxy -{1}hxy !abszM !dvdn_mull ?dvdnn.
 Qed.
@@ -263,7 +263,6 @@ Qed.
 
 Definition rat_ZmodMixin := ZmodMixin addqA addqC add0q addNq.
 Canonical rat_ZmodType := ZmodType rat rat_ZmodMixin.
-Canonical rat_countZmodType := [countZmodType of rat].
 
 Definition mulq_subdef (x y : int * int) := nosimpl (x.1 * y.1, x.2 * y.2).
 Definition mulq (x y : rat) := nosimpl fracq (mulq_subdef (valq x) (valq y)).
@@ -322,9 +321,7 @@ Fact nonzero1q : oneq != zeroq. Proof. by []. Qed.
 Definition rat_comRingMixin :=
   ComRingMixin mulqA mulqC mul1q mulq_addl nonzero1q.
 Canonical rat_Ring := Eval hnf in RingType rat rat_comRingMixin.
-Canonical rat_countRingType := [countRingType of rat].
 Canonical rat_comRing := Eval hnf in ComRingType rat mulqC.
-Canonical rat_countComRingType := [countComRingType of rat].
 
 Fact mulVq x : x != 0 -> mulq (invq x) x = 1.
 Proof.
@@ -338,18 +335,14 @@ Fact invq0 : invq 0 = 0. Proof. by apply/eqP. Qed.
 Definition RatFieldUnitMixin := FieldUnitMixin mulVq invq0.
 Canonical rat_unitRing :=
   Eval hnf in UnitRingType rat RatFieldUnitMixin.
-Canonical rat_countUnitRingType := [countUnitRingType of rat].
 Canonical rat_comUnitRing := Eval hnf in [comUnitRingType of rat].
-Canonical rat_countComUnitRingType := [countComUnitRingType of rat].
 
 Fact rat_field_axiom : GRing.Field.mixin_of rat_unitRing. Proof. exact. Qed.
 
 Definition RatFieldIdomainMixin := (FieldIdomainMixin rat_field_axiom).
 Canonical rat_iDomain :=
   Eval hnf in IdomainType rat (FieldIdomainMixin rat_field_axiom).
-Canonical rat_countIdomainType := [countIdomainType of rat].
 Canonical rat_fieldType := FieldType rat rat_field_axiom.
-Canonical rat_countFieldType := [countFieldType of rat].
 
 Lemma numq_eq0 x : (numq x == 0) = (x == 0).
 Proof.

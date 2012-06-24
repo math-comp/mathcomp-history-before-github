@@ -421,7 +421,7 @@ Local Notation uT := (unit_of phR).
 Implicit Types u v : uT.
 Definition uval u := let: Unit x _ := u in x.
 
-Canonical unit_subType := [subType for uval by @unit_of_rect phR].
+Canonical unit_subType := [subType for uval].
 Definition unit_eqMixin := Eval hnf in [eqMixin of uT by <:].
 Canonical unit_eqType := Eval hnf in EqType uT unit_eqMixin.
 Definition unit_choiceMixin := [choiceMixin of uT by <:].

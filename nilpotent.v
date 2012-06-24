@@ -47,6 +47,9 @@ Definition lower_central_at n := lower_central_at_rec n.-1.
 (* "cooking" destroys it.                                                     *)
 Definition upper_central_at := nosimpl upper_central_at_rec.
 
+Arguments Scope lower_central_at [nat_scope _ group_scope].
+Arguments Scope upper_central_at [nat_scope _ group_scope].
+
 Notation "''L_' n ( G )" := (lower_central_at n G)
   (at level 8, n at level 2, format "''L_' n ( G )") : group_scope.
 
@@ -67,6 +70,9 @@ Definition solvable :=
 
 End PropertiesDefs.
 
+Arguments Scope nilpotent [_ group_scope].
+Arguments Scope nil_class [_ group_scope].
+Arguments Scope solvable [_ group_scope].
 Prenex Implicits nil_class nilpotent solvable.
 
 Section NilpotentProps.
@@ -182,7 +188,7 @@ Qed.
 Lemma lcn_dprod n A B G : A \x B = G -> 'L_n(A) \x 'L_n(B) = 'L_n(G).
 Proof.
 move=> defG; have [[K H defA defB] _ _ tiAB] := dprodP defG.
-rewrite !dprodEcprod // in defG *; first exact: lcn_cprod.
+rewrite !dprodEcp // in defG *; first exact: lcn_cprod.
 by rewrite defA defB; apply/trivgP; rewrite -tiAB defA defB setISS ?lcn_sub.
 Qed.
 
@@ -212,7 +218,7 @@ Lemma der_bigcprod n I r P (F : I -> {set gT}) G :
     \big[cprod/1]_(i <- r | P i) F i = G ->
   \big[cprod/1]_(i <- r | P i) (F i)^`(n) = G^`(n).
 Proof.
-elim/big_rec2: _ G => [_ <- | i A Z _ IH G dG]; first exact/esym/trivgP/gFsub.
+elim/big_rec2: _ G => [_ <- | i A Z _ IH G dG]; first by rewrite gF1.
 by rewrite -(der_cprod n dG); have [[_ H _ dH]] := cprodP dG; rewrite dH (IH H).
 Qed.
 
@@ -220,7 +226,7 @@ Lemma der_bigdprod n I r P (F : I -> {set gT}) G :
     \big[dprod/1]_(i <- r | P i) F i = G ->
   \big[dprod/1]_(i <- r | P i) (F i)^`(n) = G^`(n).
 Proof.
-elim/big_rec2: _ G => [_ <- | i A Z _ IH G dG]; first exact/esym/trivgP/gFsub.
+elim/big_rec2: _ G => [_ <- | i A Z _ IH G dG]; first by rewrite gF1.
 by rewrite -(der_dprod n dG); have [[_ H _ dH]] := dprodP dG; rewrite dH (IH H).
 Qed.
 
@@ -437,7 +443,7 @@ Qed.
 Lemma ucn_dprod n A B G : A \x B = G -> 'Z_n(A) \x 'Z_n(B) = 'Z_n(G).
 Proof.
 move=> defG; have [[K H defA defB] _ _ tiAB] := dprodP defG.
-rewrite !dprodEcprod // in defG *; first exact: ucn_cprod.
+rewrite !dprodEcp // in defG *; first exact: ucn_cprod.
 by rewrite defA defB; apply/trivgP; rewrite -tiAB defA defB setISS ?ucn_sub.
 Qed.
 
@@ -445,7 +451,7 @@ Lemma ucn_bigcprod n I r P (F : I -> {set gT}) G :
     \big[cprod/1]_(i <- r | P i) F i = G ->
   \big[cprod/1]_(i <- r | P i) 'Z_n(F i) = 'Z_n(G).
 Proof.
-elim/big_rec2: _ G => [_ <- | i A Z _ IH G dG]; first exact/esym/trivgP/gFsub.
+elim/big_rec2: _ G => [_ <- | i A Z _ IH G dG]; first by rewrite gF1.
 by rewrite -(ucn_cprod n dG); have [[_ H _ dH]] := cprodP dG; rewrite dH (IH H).
 Qed.
 
@@ -453,7 +459,7 @@ Lemma ucn_bigdprod n I r P (F : I -> {set gT}) G :
     \big[dprod/1]_(i <- r | P i) F i = G ->
   \big[dprod/1]_(i <- r | P i) 'Z_n(F i) = 'Z_n(G).
 Proof.
-elim/big_rec2: _ G => [_ <- | i A Z _ IH G dG]; first exact/esym/trivgP/gFsub.
+elim/big_rec2: _ G => [_ <- | i A Z _ IH G dG]; first by rewrite gF1.
 by rewrite -(ucn_dprod n dG); have [[_ H _ dH]] := dprodP dG; rewrite dH (IH H).
 Qed.
 

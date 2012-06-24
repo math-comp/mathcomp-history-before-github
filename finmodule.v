@@ -85,7 +85,7 @@ Implicit Types (x y z : gT) (u v w : fmodA).
 Let sub2f (s : [subg A]) := Fmod abelA (valP s).
 
 Definition fmval u := val (f2sub u).
-Canonical fmod_subType := [subType for fmval by @fmod_of_rect _ _ _].
+Canonical fmod_subType := [subType for fmval].
 Local Notation valA := (@val _ _ fmod_subType) (only parsing).
 Definition fmod_eqMixin := Eval hnf in [eqMixin of fmodA by <:].
 Canonical fmod_eqType := Eval hnf in EqType fmodA fmod_eqMixin.

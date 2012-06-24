@@ -118,7 +118,7 @@ by rewrite cfDprodE // !cfun1E W1y W2z mulr1.
 Qed.
 
 Lemma cTIirr_split i j : w_ i j = w_ i 0 * w_ 0 j.
-Proof. by rewrite !cTIirrE !dprod_IirrE !irr0 cfDprod1r cfDprod1l. Qed.
+Proof. by rewrite !cTIirrE !dprod_IirrE !irr0 cfDprod_cfun1r cfDprod_cfun1l. Qed.
 
 Lemma cTIirr_linearW i : 'chi[W]_i \is a linear_char.
 Proof. by apply/char_abelianP/cyclic_abelian; case: tiW; case. Qed.
@@ -144,8 +144,7 @@ Local Notation alpha_ := acTIirr.
 
 Lemma acTIirr1 i j : alpha_ i j 1%g = 0.
 Proof.
-rewrite !cfunE /cyclicTIirr cfun1Egen group1 (lin_char1 (cTIirr_linearW _)).
-by rewrite addrN mul0r.
+by rewrite !cfunE /cyclicTIirr cfun11 lin_char1 ?cTIirr_linearW // addrN mul0r.
 Qed.
 
 Lemma acTIirrE i j : alpha_ i j = 1 - w_ i 0 - w_ 0 j + w_ i j.
@@ -161,7 +160,8 @@ Lemma memc_acTIirr i j : alpha_ i j \in 'CF(W, V).
 Proof.
 apply/cfun_onP=> x; rewrite !inE negb_and negbK orbC.
 have [Wx /= | /cfun0->//] := boolP (x \in W).
-rewrite !cfunE cfun1E Wx !cTIirrE !dprod_IirrE !irr0 cfDprod1l cfDprod1r.
+rewrite !cfunE cfun1E Wx !cTIirrE !dprod_IirrE !irr0.
+rewrite cfDprod_cfun1l cfDprod_cfun1r.
 have LW1 := cTIirr_linearW1; have LW2 := cTIirr_linearW2.
 rewrite -{3}[x]mul1g -{4}[x]mulg1; case/orP=> [W1x | W2x]; last first.
   by rewrite cfDprodEl // lin_char1 ?(subrr, mul0r).
@@ -372,9 +372,8 @@ have: (2%:R * dchi u3) 1%g = (beta_ i j - beta_ i j') 1%g.
   by rewrite addrA addrK.
 rewrite /bcTIirr [X in _ - X]addrC opprD opprK addrA subrK.
 rewrite -raddfB /= cfInd1 //; last by case: tiW; case.
-rewrite 4!cfunE acTIirr1 cfunE acTIirr1 subr0 mulr0.
-rewrite cfun1Egen group1 -natrD.
-move/eqP; rewrite mulf_eq0 pnatr_eq0 orFb.
+rewrite 4!cfunE acTIirr1 cfunE acTIirr1 subr0 mulr0 cfun11.
+move/eqP; rewrite mulf_eq0 (pnatr_eq0 _ 2) orFb.
 by rewrite mulr_sign; case: u3.1; rewrite ?oppr_eq0 (negPf (irr1_neq0 u3.2)).
 Qed.
 
@@ -456,9 +455,8 @@ have: (2%:R * dchi u3) 1%g = (beta_ i j - beta_ i' j) 1%g.
   by rewrite addrA addrK.
 rewrite /bcTIirr [X in _ - X]addrC opprD opprK addrA subrK.
 rewrite -raddfB /= cfInd1 //; last by case: tiW; case.
-rewrite 4!cfunE acTIirr1 cfunE acTIirr1 subr0 mulr0.
-rewrite cfun1Egen group1 -natrD.
-move/eqP; rewrite mulf_eq0 pnatr_eq0 orFb.
+rewrite 4!cfunE acTIirr1 cfunE acTIirr1 subr0 mulr0 cfun11.
+move/eqP; rewrite mulf_eq0 (pnatr_eq0 _ 2) orFb.
 by rewrite mulr_sign; case: u3.1; rewrite ?oppr_eq0 (negPf (irr1_neq0 u3.2)).
 Qed.
 
@@ -484,7 +482,7 @@ Variable W'1 W'2 : {group gT}.
 Variable beta : Iirr W'1 -> Iirr W'2 -> 'CF(G).
 
 Local Notation pA i j := (dirr_constt (beta i j)).
-Local Notation nA i j := (dirr_constt (-beta i j)).
+Local Notation nA i j := (dirr_constt (- beta i j)).
 Local Notation dA i j v1 v2 v3 :=  
      [&& i != 0, j !=0 & pA i j == [set v1; v2; v3]].
 
@@ -1771,27 +1769,16 @@ Qed.
 Canonical extIrrf_linear f : {linear 'CF(W) -> 'CF(G)} :=  
   Linear (extIrrf_is_linear f).
 
-Definition cyclicTIsigma := locked
-   (extIrrf_linear
-    (oapp (fun (f : {ffun Iirr W -> dIirr G}) i => dchi (f i))
-          (fun x : Iirr W => 0)
-     [pick f : {ffun Iirr W -> dIirr G} |
-       let g i := dchi (f i) in
-       [&& orthonormal [seq g x | x : Iirr W], (f 0 == dirr1 _)
-        &  all (fun a => 
-                 'Ind[G, W] a == \sum_(i : Iirr W)  ('[a, 'chi_i] *: g i))
-           (cfun_base W (W :\: (W1 :|: W2)))]])).
-
+Fact cyclicTIsigma_key : unit. Proof. by []. Qed.
+Definition cyclicTIsigma_def :=
+   let w_ (f : {ffun Iirr W -> dIirr G}) i := dchi (f i) in
+   let w_spec f :=
+     [&& orthonormal [seq w_ f x | x : Iirr W], (f 0 == dirr1 G)
+       &  all (fun a => 'Ind[G, W] a == \sum_i '[a, 'chi_i] *: w_ f i)
+              (cfun_base W (W :\: (W1 :|: W2)))] in
+   extIrrf_linear (oapp w_ (fun _ => 0) [pick f | w_spec f]).
+Definition cyclicTIsigma := locked_with cyclicTIsigma_key cyclicTIsigma_def.
 Local Notation sigma := cyclicTIsigma.
-
-(* Move to character *)
-Lemma inv_dprod_Iirr0 : inv_dprod_Iirr W1xW2 0 = (0,0).
-Proof.
-apply:  (can_inj (dprod_IirrK W1xW2)).
-rewrite inv_dprod_IirrK  /dprod_Iirr /=. 
-rewrite /cfDprod !irr0 cfDprodl1 cfDprodr1 mul1r . 
-by rewrite -irr0 irrK.
-Qed.
 
 (* This is PeterFalvi (3.2). *)
 Lemma cyclicTIsigma_spec :
@@ -1800,8 +1787,8 @@ Lemma cyclicTIsigma_spec :
          sigma 1 = 1 &
          {in 'CF(W, V), forall a, sigma a = 'Ind[G, W] a}].
 Proof.
-rewrite /sigma; unlock.
-rewrite /extIrrf; case: pickP=> [/= f /and3P [Ho H1 /allP /= HI]|].
+rewrite [sigma]unlock /= /extIrrf.
+case: pickP => [/= f /and3P [Ho H1 /allP /= HI]|].
   split=> [|| a /coord_span ->].
   - split=> [i j Hi Hj /=|i Hi]; last first.
       rewrite /extIrrf; apply: rpred_sum => j _.
@@ -1811,10 +1798,7 @@ rewrite /extIrrf; case: pickP=> [/= f /and3P [Ho H1 /allP /= HI]|].
     rewrite !cfdot_sumr; apply: eq_bigr=> j1 _.
     rewrite cfdotZl [X in _ = X]cfdotZl; congr (_ * _).
     rewrite cfdotZr [X in _ = X]cfdotZr; congr (_ * _).
-    case/orthonormalP: Ho=> Hu Hv; rewrite Hv; last 2 first.
-      by apply/imageP; exists i1.
-      by apply/imageP; exists j1.
-    rewrite cfdot_irr.
+    case/orthonormalP: Ho=> Hu Hv; rewrite Hv ?cfdot_irr; try exact: codom_f.
     case: (boolP (_ == _)); case: (boolP (i1 == j1))=> //; last first.
       by move/eqP->; rewrite eqxx.
     move=> Eqi /eqP Eqch; case/eqP: Eqi.
@@ -2302,7 +2286,7 @@ Proof.
 rewrite [phi]cfun_sum_cfdot !raddf_sum; apply: eq_bigr => ij _.
 rewrite /= !(linearZ, cfAutZ) /= -aut_IirrE; congr (_ *: _) => {phi}.
 apply: cyclicTI_dirr => [|x Vx /=].
-  by have /cyclicTIirrP[i [j ->]] := mem_irr ij; rewrite dirr_cfAut dirr_sigma.
+  by have /cyclicTIirrP[i [j ->]] := mem_irr ij; rewrite dirr_aut dirr_sigma.
 by rewrite cfunE cyclicTIsigma_restrict // aut_IirrE cfunE.
 Qed.
 
@@ -2318,7 +2302,7 @@ Proof. by have [_ -> //] := cyclicTIisometry; apply: irr_vchar. Qed.
 Let lin_w: w \is a linear_char := cTIirr_linearW iw.
 
 (* This is Peterfalvi (3.9)(b). *)
-Lemma cyclicTI_Aut_exists k :
+Lemma cyclicTI_aut_exists k :
     coprime k a ->
   [/\ exists u, sigma (w ^+ k) = cfAut u (sigma w)
     & forall x, coprime #[x] a -> sigma (w ^+ k) x = sigma w x].
@@ -2363,4 +2347,4 @@ End Proofs.
 
 Lemma cyclicTIsigma_sym (gT : finGroupType) (G W W1 W2 : {group gT}) : 
    cyclicTIsigma G W W1 W2  = cyclicTIsigma G W W2 W1.
-Proof. by rewrite /cyclicTIsigma setUC. Qed.
+Proof. by rewrite /cyclicTIsigma /cyclicTIsigma_def setUC. Qed.

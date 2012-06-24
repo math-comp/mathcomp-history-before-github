@@ -41,7 +41,7 @@ Variables (n : nat) (T : Type).
 
 Structure tuple_of : Type := Tuple {tval :> seq T; _ : size tval == n}.
 
-Canonical tuple_subType := Eval hnf in [subType for tval by tuple_of_rect].
+Canonical tuple_subType := Eval hnf in [subType for tval].
 
 Implicit Type t : tuple_of.
 

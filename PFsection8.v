@@ -165,7 +165,7 @@ have actsMcH: [acts M, on classes H | cto].
   have nHx: x \in 'N(H) by rewrite (subsetP (gFnorm _ _)).
   rewrite !inE /= -class_rcoset norm_rlcoset // class_lcoset mem_classes //.
   by rewrite memJ_norm.
-apply/subsetP=> g /setId2P[Ug nHg c_i_g]; have Mg := subsetP sUG g Ug.
+apply/subsetP=> g /setIP[Ug /setIdP[nHg c_i_g]]; have Mg := subsetP sUG g Ug.
 apply: contraR nz_i => notU1g; rewrite (sameP eqP set1P).
 suffices <-: 'Fix_ito[g] = [set 0 : Iirr H].
   by rewrite !inE sub1set inE -(inj_eq (@irr_inj _ _)) conjg_IirrE.

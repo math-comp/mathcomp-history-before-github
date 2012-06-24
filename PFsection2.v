@@ -95,14 +95,17 @@ move=> Aa; apply: sub_pgroup (pgroup_pi _) => p cLa_p.
 by apply/exists_inP; exists a.
 Qed.
 
+Fact Dade_signalizer_key : unit. Proof. by []. Qed.
+Definition Dade_signalizer_def a := 'O_pi^'('C_G[a])%G.
 Definition Dade_signalizer of Dade_hypothesis G L A :=
-  locked (fun a => 'O_pi^'('C_G[a]))%G.
+  locked_with Dade_signalizer_key Dade_signalizer_def.
 
 Hypothesis ddA : Dade_hypothesis G L A.
 Notation H := (Dade_signalizer ddA).
+Canonical Dade_signalizer_unlockable := [unlockable fun H].
 
-Let pi'H a : pi^'.-group (H a). Proof. by unlock H; exact: pcore_pgroup. Qed.
-Let nsHC a : H a <| 'C_G[a]. Proof. by unlock H; exact: pcore_normal. Qed.
+Let pi'H a : pi^'.-group (H a). Proof. by rewrite unlock pcore_pgroup. Qed.
+Let nsHC a : H a <| 'C_G[a]. Proof. by rewrite unlock pcore_normal. Qed.
 
 Lemma Dade_signalizer_sub a : H a \subset G.
 Proof. by have /andP[/subsetIP[]] := nsHC a. Qed.
@@ -132,7 +135,7 @@ Qed.
 
 Lemma def_Dade_signalizer H1 : is_Dade_signalizer G L A H1 -> {in A, H =1 H1}.
 Proof.
-unlock H => defH1 a Aa; apply/val_inj=> /=; have defCa := defH1 a Aa.
+move=> defH1 a Aa; apply/val_inj; rewrite unlock /=; have defCa := defH1 a Aa.
 have /sdprod_context[nsH1Ca _ _ _ _] := defCa.
 by apply/normal_Hall_pcore=> //; exact/(sdprod_normal_pHallP _ (HallCL Aa)).
 Qed.
@@ -157,7 +160,7 @@ Proof. by move=> Aa Hx; rewrite -(conjg1 (x * a)) !mem_imset2 ?set11. Qed.
 (* This is Peterfalvi (2.4)(a) (extended to all a thanks to our choice of H). *)
 Lemma DadeJ a x : x \in L -> H (a ^ x) :=: H a :^ x.
 Proof.
-by unlock H => /(subsetP sLG) Gx; rewrite -pcoreJ conjIg -cent1J conjGid.
+by move/(subsetP sLG)=> Gx; rewrite unlock -pcoreJ conjIg -cent1J conjGid.
 Qed.
 
 Lemma Dade_support1_id a x : x \in L -> dd1 (a ^ x) = dd1 a.
@@ -419,7 +422,7 @@ Variable aa : 'CF(L).
 Hypothesis CFaa : aa \in 'CF(L, A).
 
 Definition Dade_restrm B :=
-  if B \in calP then remgr 'H(B) 'N_L(B) else trivm _ 'M(B).
+  if B \in calP then remgr 'H(B) 'N_L(B) else trivm 'M(B).
 Fact Dade_restrM B : {in 'M(B) &, {morph Dade_restrm B : x y / x * y}%g}.
 Proof.
 rewrite /Dade_restrm; case: ifP => calP_B; last exact: morphM.

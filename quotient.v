@@ -56,8 +56,7 @@ Definition coset_range := [pred B in rcosets H 'N(A)].
 Record coset_of : Type :=
   Coset { set_of_coset :> GroupSet.sort gT; _ : coset_range set_of_coset }.
 
-Canonical coset_subType :=
-  Eval hnf in [subType for set_of_coset by coset_of_rect].
+Canonical coset_subType := Eval hnf in [subType for set_of_coset].
 Definition coset_eqMixin := Eval hnf in [eqMixin of coset_of by <:].
 Canonical coset_eqType := Eval hnf in EqType coset_of coset_eqMixin.
 Definition coset_choiceMixin := [choiceMixin of coset_of by <:].
@@ -195,8 +194,10 @@ Lemma quotientE : quotient = coset @* Q. Proof. by []. Qed.
 
 End Cosets.
 
-Prenex Implicits coset_of coset.
+Arguments Scope coset_of [_ group_scope].
+Arguments Scope coset [_ group_scope group_scope].
 Arguments Scope quotient [_ group_scope group_scope].
+Prenex Implicits coset_of coset.
 
 Bind Scope group_scope with coset_of.
 
@@ -293,6 +294,9 @@ Proof. by rewrite -im_quotient; exact: morphimT. Qed.
 (* Variant of morphimIdom. *)
 Lemma quotientInorm A : 'N_A(H) / H = A / H.
 Proof. by rewrite /quotient setIC morphimIdom. Qed.
+
+Lemma quotient_setIpre A D : (A :&: coset H @*^-1 D) / H = A / H :&: D.
+Proof. exact: morphim_setIpre. Qed.
 
 Lemma mem_quotient x G : x \in G -> coset H x \in G / H.
 Proof. by move=> Gx; rewrite -imset_coset mem_imset. Qed.
@@ -550,6 +554,10 @@ Proof. by apply: morphpre_cents; rewrite ?sub_im_coset. Qed.
 Lemma cosetpre_subcent C A :
   'C_(coset H @*^-1 C)(A) \subset coset H @*^-1 'C_C(A / H).
 Proof. exact: morphpre_subcent. Qed.
+
+Lemma restrm_quotientE G A (nHG : G \subset 'N(H)) :
+  A \subset G -> restrm nHG (coset H) @* A = A / H.
+Proof. exact: restrmEsub. Qed.
 
 Section InverseImage.
 

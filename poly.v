@@ -120,8 +120,7 @@ Variable R : ringType.
 (* Defines a polynomial as a sequence with <> 0 last element *)
 Record polynomial := Polynomial {polyseq :> seq R; _ : last 1 polyseq != 0}.
 
-Canonical polynomial_subType :=
-  Eval hnf in [subType for polyseq by polynomial_rect].
+Canonical polynomial_subType := Eval hnf in [subType for polyseq].
 Definition polynomial_eqMixin := Eval hnf in [eqMixin of polynomial by <:].
 Canonical polynomial_eqType := Eval hnf in EqType polynomial polynomial_eqMixin.
 Definition polynomial_choiceMixin := [choiceMixin of polynomial by <:].
@@ -244,26 +243,28 @@ by elim: s i => [|c s IHs] /= [|i]; rewrite !(coefC, eqxx, coef_cons) /=.
 Qed.
 
 (* Build a polynomial from an infinite sequence of coefficients and a bound. *)
-Definition poly := locked (fun n E => Poly (mkseq E n)).
-
+Definition poly_expanded_def n E := Poly (mkseq E n).
+Fact poly_key : unit. Proof. by []. Qed.
+Definition poly := locked_with poly_key poly_expanded_def.
+Canonical poly_unlockable := [unlockable fun poly].
 Local Notation "\poly_ ( i < n ) E" := (poly n (fun i : nat => E)).
 
 Lemma polyseq_poly n E :
   E n.-1 != 0 -> \poly_(i < n) E i = mkseq [eta E] n :> seq R.
 Proof.
-unlock poly; case: n => [|n] nzEn; first by rewrite polyseqC eqxx.
+rewrite unlock; case: n => [|n] nzEn; first by rewrite polyseqC eqxx.
 by rewrite (@PolyK 0) // -nth_last nth_mkseq size_mkseq.
 Qed.
 
 Lemma size_poly n E : size (\poly_(i < n) E i) <= n.
-Proof. by unlock poly; rewrite (leq_trans (size_Poly _)) ?size_mkseq. Qed.
+Proof. by rewrite unlock (leq_trans (size_Poly _)) ?size_mkseq. Qed.
 
 Lemma size_poly_eq n E : E n.-1 != 0 -> size (\poly_(i < n) E i) = n.
-Proof. by move/polyseq_poly->; exact: size_mkseq. Qed.
+Proof. by move/polyseq_poly->; apply: size_mkseq. Qed.
 
 Lemma coef_poly n E k : (\poly_(i < n) E i)`_k = (if k < n then E k else 0).
 Proof.
-unlock poly; rewrite coef_Poly.
+rewrite unlock coef_Poly.
 have [lt_kn | le_nk] := ltnP k n; first by rewrite nth_mkseq.
 by rewrite nth_default // size_mkseq.
 Qed.
@@ -280,21 +281,26 @@ by apply/polyP=> i; rewrite coef_poly; case: ltnP => // /(nth_default 0)->.
 Qed.
 
 (* Zmodule structure for polynomial *)
-Definition add_poly := locked
-  (fun p q => \poly_(i < maxn (size p) (size q)) (p`_i + q`_i)).
+Definition add_poly_def p q := \poly_(i < maxn (size p) (size q)) (p`_i + q`_i).
+Fact add_poly_key : unit. Proof. by []. Qed.
+Definition add_poly := locked_with add_poly_key add_poly_def.
+Canonical add_poly_unlockable := [unlockable fun add_poly].
 
-Definition opp_poly := locked (fun p => \poly_(i < size p) - p`_i).
+Definition opp_poly_def p := \poly_(i < size p) - p`_i.
+Fact opp_poly_key : unit. Proof. by []. Qed.
+Definition opp_poly := locked_with opp_poly_key opp_poly_def.
+Canonical opp_poly_unlockable := [unlockable fun opp_poly].
 
 Fact coef_add_poly p q i : (add_poly p q)`_i = p`_i + q`_i.
 Proof.
-unlock add_poly; rewrite coef_poly; case: leqP => //.
+rewrite unlock coef_poly; case: leqP => //.
 by rewrite geq_max => /andP[le_p_i le_q_i]; rewrite !nth_default ?add0r.
 Qed.
 
 Fact coef_opp_poly p i : (opp_poly p)`_i = - p`_i.
 Proof.
-unlock opp_poly.
-by rewrite coef_poly /=; case: leqP => // le_p_i; rewrite nth_default ?oppr0.
+rewrite unlock coef_poly /=.
+by case: leqP => // le_p_i; rewrite nth_default ?oppr0.
 Qed.
 
 Fact add_polyA : associative add_poly.
@@ -421,20 +427,18 @@ Proof. exact: raddfMn. Qed.
 
 Lemma size_opp p : size (- p) = size p.
 Proof.
-apply/eqP; rewrite eqn_leq -{3}(opprK p).
-by rewrite -[-%R]/opp_poly; unlock opp_poly; rewrite !size_poly.
+by apply/eqP; rewrite eqn_leq -{3}(opprK p) -[-%R]/opp_poly unlock !size_poly.
 Qed.
 
 Lemma lead_coef_opp p : lead_coef (- p) = - lead_coef p.
 Proof. by rewrite /lead_coef size_opp coefN. Qed.
 
 Lemma size_add p q : size (p + q) <= maxn (size p) (size q).
-Proof. rewrite -[+%R]/add_poly; unlock add_poly; exact: size_poly. Qed.
+Proof. by rewrite -[+%R]/add_poly unlock; apply: size_poly. Qed.
 
 Lemma size_addl p q : size p > size q -> size (p + q) = size p.
 Proof.
-move=> ltqp; rewrite -[+%R]/add_poly; unlock add_poly.
-rewrite size_poly_eq (maxn_idPl _) 1?ltnW //.
+move=> ltqp; rewrite -[+%R]/add_poly unlock size_poly_eq (maxn_idPl (ltnW _))//.
 by rewrite addrC nth_default ?simp ?nth_last //; case: p ltqp => [[]].
 Qed.
 
@@ -453,14 +457,16 @@ Qed.
 
 (* Polynomial ring structure. *)
 
-Definition mul_poly := locked (fun (p q : {poly R}) => 
-  \poly_(i < (size p + size q).-1) (\sum_(j < i.+1) p`_j * q`_(i - j))).
+Definition mul_poly_def p q :=
+  \poly_(i < (size p + size q).-1) (\sum_(j < i.+1) p`_j * q`_(i - j)).
+Fact mul_poly_key : unit. Proof. by []. Qed.
+Definition mul_poly := locked_with mul_poly_key mul_poly_def.
+Canonical mul_poly_unlockable := [unlockable fun mul_poly].
 
 Fact coef_mul_poly p q i :
   (mul_poly p q)`_i = \sum_(j < i.+1) p`_j * q`_(i - j)%N.
 Proof.
-unlock mul_poly.
-rewrite coef_poly -subn1 ltn_subRL add1n; case: leqP => // le_pq_i1.
+rewrite unlock coef_poly -subn1 ltn_subRL add1n; case: leqP => // le_pq_i1.
 rewrite big1 // => j _; have [lq_q_ij | gt_q_ij] := leqP (size q) (i - j).
   by rewrite [q`__]nth_default ?mulr0.
 rewrite nth_default ?mul0r // -(leq_add2r (size q)) (leq_trans le_pq_i1) //.
@@ -543,7 +549,7 @@ Lemma coefMr p q i : (p * q)`_i = \sum_(j < i.+1) p`_(i - j)%N * q`_j.
 Proof. exact: coef_mul_poly_rev. Qed.
 
 Lemma size_mul_leq p q : size (p * q) <= (size p + size q).-1.
-Proof. rewrite -[_ * _]/(mul_poly _ _); unlock mul_poly; exact: size_poly. Qed.
+Proof. by rewrite -[*%R]/mul_poly unlock size_poly. Qed.
 
 Lemma mul_lead_coef p q :
   lead_coef p * lead_coef q = (p * q)`_(size p + size q).-2.
@@ -627,11 +633,14 @@ Qed.
 Canonical coefp0_rmorphism := AddRMorphism coefp0_multiplicative.
 
 (* Algebra structure of polynomials. *)
-Definition scale_poly a (p : {poly R}) := \poly_(i < size p) (a * p`_i).
+Definition scale_poly_def a (p : {poly R}) := \poly_(i < size p) (a * p`_i).
+Fact scale_poly_key : unit. Proof. by []. Qed.
+Definition scale_poly := locked_with scale_poly_key scale_poly_def.
+Canonical scale_poly_unlockable := [unlockable fun scale_poly].
 
 Fact scale_polyE a p : scale_poly a p = a%:P * p.
 Proof.
-apply/polyP=> n; rewrite coef_poly coefCM.
+apply/polyP=> n; rewrite unlock coef_poly coefCM.
 by case: leqP => // le_p_n; rewrite nth_default ?mulr0.
 Qed.
 
@@ -665,25 +674,31 @@ Canonical polynomial_lalgType :=
 Lemma mul_polyC a p : a%:P * p = a *: p.
 Proof. by rewrite -scale_polyE. Qed.
 
-Lemma scale_poly1 a : a *: 1 = a%:P :> {poly R}.
+Lemma alg_polyC a : a%:A = a%:P :> {poly R}.
 Proof. by rewrite -mul_polyC mulr1. Qed.
 
 Lemma coefZ a p i : (a *: p)`_i = a * p`_i.
 Proof.
-by rewrite coef_poly; case: leqP => // le_p_n; rewrite nth_default ?mulr0.
+rewrite -[*:%R]/scale_poly unlock coef_poly.
+by case: leqP => // le_p_n; rewrite nth_default ?mulr0.
 Qed.
+
+Lemma size_scale_leq a p : size (a *: p) <= size p.
+Proof. by rewrite -[*:%R]/scale_poly unlock size_poly. Qed.
 
 Canonical coefp_linear i : {scalar {poly R}} :=
   AddLinear ((fun a => (coefZ a) ^~ i) : scalable_for *%R (coefp i)).
 Canonical coefp0_lrmorphism := [lrmorphism of coefp 0].
 
 (* The indeterminate, at last! *)
-Definition polyX : {poly R} := locked Poly [:: 0; 1].
-
+Definition polyX_def := Poly [:: 0; 1].
+Fact polyX_key : unit. Proof. by []. Qed.
+Definition polyX : {poly R} := locked_with polyX_key polyX_def.
+Canonical polyX_unlockable := [unlockable of polyX].
 Local Notation "'X" := polyX.
 
 Lemma polyseqX : 'X = [:: 0; 1] :> seq R.
-Proof. by unlock polyX; rewrite !polyseq_cons nil_poly eqxx /= polyseq1. Qed.
+Proof. by rewrite unlock !polyseq_cons nil_poly eqxx /= polyseq1. Qed.
 
 Lemma size_polyX : size 'X = 2. Proof. by rewrite polyseqX. Qed.
 
@@ -806,8 +821,8 @@ Proof. by rewrite -commr_polyXn coefMXn. Qed.
 (* Expansion of a polynomial as an indexed sum *)
 Lemma poly_def n E : \poly_(i < n) E i = \sum_(i < n) E i *: 'X^i.
 Proof.
-unlock poly; elim: n => [|n IHn] in E *; first by rewrite big_ord0.
-rewrite big_ord_recl /= cons_poly_def addrC expr0 scale_poly1.
+rewrite unlock; elim: n => [|n IHn] in E *; first by rewrite big_ord0.
+rewrite big_ord_recl /= cons_poly_def addrC expr0 alg_polyC.
 congr (_ + _); rewrite (iota_addl 1 0) -map_comp IHn big_distrl /=.
 by apply: eq_bigr => i _; rewrite -scalerAl exprSr.
 Qed.
@@ -1006,15 +1021,13 @@ Qed.
 
 Lemma hornerN p x : (- p).[x] = - p.[x].
 Proof.
-rewrite -[-%R]/opp_poly; unlock opp_poly.
-rewrite horner_poly horner_coef -sumrN /=.
+rewrite -[-%R]/opp_poly unlock horner_poly horner_coef -sumrN /=.
 by apply: eq_bigr => i _; rewrite mulNr.
 Qed.
 
 Lemma hornerD p q x : (p + q).[x] = p.[x] + q.[x].
 Proof.
-rewrite -[+%R]/add_poly; unlock add_poly.
-rewrite horner_poly; set m := maxn _ _.
+rewrite -[+%R]/add_poly unlock horner_poly; set m := maxn _ _.
 rewrite !(@horner_coef_wide m) ?leq_max ?leqnn ?orbT // -big_split /=.
 by apply: eq_bigr => i _; rewrite -mulrDl.
 Qed.
@@ -1676,7 +1689,7 @@ Definition map_poly (p : {poly aR}) := \poly_(i < size p) f p`_i.
 (* instance of size_poly.                                                   *)
 Lemma map_polyE p : map_poly p = Poly (map f p).
 Proof.
-unlock map_poly poly; congr Poly.
+rewrite /map_poly unlock; congr Poly.
 apply: (@eq_from_nth _ 0); rewrite size_mkseq ?size_map // => i lt_i_p.
 by rewrite (nth_map 0) ?nth_mkseq.
 Qed.
@@ -1970,8 +1983,8 @@ Lemma size_comp_poly_leq p q :
   size (p \Po q) <= ((size p).-1 * (size q).-1).+1.
 Proof.
 rewrite comp_polyE (leq_trans (size_sum _ _ _)) //; apply/bigmax_leqP => i _.
-rewrite (leq_trans (size_poly _ _)) // (leq_trans (size_exp_leq _ _)) // ltnS.
-by rewrite mulnC leq_mul // -{2}(subnKC (valP i)) leq_addr.
+rewrite (leq_trans (size_scale_leq _ _)) // (leq_trans (size_exp_leq _ _)) //.
+by rewrite ltnS mulnC leq_mul // -{2}(subnKC (valP i)) leq_addr.
 Qed.
 
 End PolyCompose.
@@ -2222,8 +2235,8 @@ rewrite mulnC comp_polyE (polySpred nz_p) /= big_ord_recr /= addrC.
 rewrite size_addl size_scale ?lead_coef_eq0 ?size_exp //=.
 rewrite [X in _ < X]polySpred ?expf_neq0 // ltnS size_exp.
 rewrite (leq_trans (size_sum _ _ _)) //; apply/bigmax_leqP => i _.
-rewrite (leq_trans (size_poly _ _)) // polySpred ?expf_neq0 // size_exp.
-by rewrite -(subnKC nc_q) ltn_pmul2l.
+rewrite (leq_trans (size_scale_leq _ _)) // polySpred ?expf_neq0 //.
+by rewrite size_exp -(subnKC nc_q) ltn_pmul2l.
 Qed.
 
 Lemma size_comp_poly2 p q : size q = 2 -> size (p \Po q) = size p.
@@ -2533,7 +2546,7 @@ Lemma closed_field_poly_normal p :
 Proof.
 apply: sig_eqW; elim: {p}_.+1 {-2}p (ltnSn (size p)) => // n IHn p le_p_n.
 have [/size1_polyC-> | p_gt1] := leqP (size p) 1.
-  by exists nil; rewrite big_nil lead_coefC scale_poly1.
+  by exists nil; rewrite big_nil lead_coefC alg_polyC.
 have [|x /factor_theorem[q Dp]] := closed_rootP p _; first by rewrite gtn_eqF.
 have nz_p: p != 0 by rewrite -size_poly_eq0 -(subnKC p_gt1).
 have:= nz_p; rewrite Dp mulf_eq0 lead_coefM => /norP[nz_q nz_Xx].

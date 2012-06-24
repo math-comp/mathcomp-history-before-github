@@ -532,6 +532,9 @@ Qed.
 
 End Zgroups.
 
+Arguments Scope Zgroup [_ group_scope].
+Prenex Implicits Zgroup.
+
 Section NilPGroups.
 
 Variables (p : nat) (gT : finGroupType).

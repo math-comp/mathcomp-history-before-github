@@ -108,8 +108,7 @@ Definition finfun_of_set A := let: FinSet f := A in f.
 Definition set_of of phant T := set_type.
 Identity Coercion type_of_set_of : set_of >-> set_type.
 
-Canonical set_subType :=
-  Eval hnf in [newType for finfun_of_set by set_type_rect].
+Canonical set_subType := Eval hnf in [newType for finfun_of_set].
 Definition set_eqMixin := Eval hnf in [eqMixin of set_type by <:].
 Canonical set_eqType := Eval hnf in EqType set_type set_eqMixin.
 Definition set_choiceMixin := [choiceMixin of set_type by <:].
@@ -1405,13 +1404,13 @@ Lemma big_setU1 a A F : a \notin A ->
   \big[aop/idx]_(i in a |: A) F i = aop (F a) (\big[aop/idx]_(i in A) F i).
 Proof. by move=> notAa; rewrite (@big_setD1 a) ?setU11 //= setU1K. Qed.
 
-Lemma big_imset h A G :
+Lemma big_imset h (A : pred I) G :
      {in A &, injective h} ->
   \big[aop/idx]_(j in h @: A) G j = \big[aop/idx]_(i in A) G (h i).
 Proof.
 move=> injh; pose hA := mem (image h A).
-have [-> | [x0 Ax0]] := set_0Vmem A.
-  by rewrite imset0 !big_pred0 // => x /=; rewrite inE.
+have [x0 Ax0 | A0] := pickP A; last first.
+  by rewrite !big_pred0 // => x; apply/imsetP=> [[i]]; rewrite unfold_in A0.
 rewrite (eq_bigl hA) => [|j]; last by exact/imsetP/imageP.
 pose h' j := if insub j : {? j | hA j} is Some u then iinv (svalP u) else x0.
 rewrite (reindex_onto h h') => [|j hAj]; rewrite {}/h'; last first.
@@ -1423,7 +1422,7 @@ symmetry; rewrite (negbTE nhAhi); apply/idP=> Ai.
 by case/imageP: nhAhi; exists i.
 Qed.
 
-Lemma partition_big_imset h A F :
+Lemma partition_big_imset h (A : pred I) F :
   \big[aop/idx]_(i in A) F i =
      \big[aop/idx]_(j in h @: A) \big[aop/idx]_(i in A | h i == j) F i.
 Proof. by apply: partition_big => i Ai; apply/imsetP; exists i. Qed.
@@ -2161,24 +2160,26 @@ case/ex_minset=> A /minsetP[/andP[PA sAC] minA]; exists A => //; apply/minsetP.
 by split=> // B PB sBA; rewrite (minA B) // PB (subset_trans sBA).
 Qed.
 
-(* The 'locked' allows Coq to find the value of P by unification. *)
-Definition maxset P A := minset (fun B => locked P (~: B)) (~: A).
+(* The 'locked_with' allows Coq to find the value of P by unification. *)
+Fact maxset_key : unit. Proof. by []. Qed.
+Definition maxset P A :=
+  minset (fun B => locked_with maxset_key P (~: B)) (~: A).
 
 Lemma maxset_eq P1 P2 A : P1 =1 P2 -> maxset P1 A = maxset P2 A.
-Proof. by move=> eP12; apply: minset_eq=> x /=; rewrite -!lock eP12. Qed.
+Proof. by move=> eP12; apply: minset_eq => x /=; rewrite !unlock_with eP12. Qed.
 
 Lemma maxminset P A : maxset P A = minset [pred B | P (~: B)] (~: A).
-Proof. by unlock maxset. Qed.
+Proof. by rewrite /maxset unlock. Qed.
 
 Lemma minmaxset P A : minset P A = maxset [pred B | P (~: B)] (~: A).
 Proof.
-by unlock maxset; rewrite setCK; apply: minset_eq => B /=; rewrite setCK.
+by rewrite /maxset unlock setCK; apply: minset_eq => B /=; rewrite setCK.
 Qed.
 
 Lemma maxsetP P A :
   reflect ((P A) /\ (forall B, P B -> A \subset B -> B = A)) (maxset P A).
 Proof.
-apply: (iffP minsetP); rewrite ?setCK -lock => [] [PA minA].
+apply: (iffP minsetP); rewrite ?setCK unlock_with => [] [PA minA].
   by split=> // B PB sAB; rewrite -[B]setCK [~: B]minA (setCK, setCS).
 by split=> // B PB' sBA'; rewrite -(minA _ PB') -1?setCS setCK.
 Qed.
@@ -2193,14 +2194,14 @@ Lemma ex_maxset P : (exists A, P A) -> {A | maxset P A}.
 Proof.
 move=> exP; have{exP}: exists A, P (~: A).
   by case: exP => A PA; exists (~: A); rewrite setCK.
-by case/ex_minset=> A minA; exists (~: A); unlock maxset; rewrite setCK.
+by case/ex_minset=> A minA; exists (~: A); rewrite /maxset unlock setCK.
 Qed.
 
 Lemma maxset_exists P C : P C -> {A : sT | maxset P A & C \subset A}.
 Proof.
 move=> PC; pose P' B := P (~: B); have: P' (~: C) by rewrite /P' setCK.
 case/minset_exists=> B; rewrite -[B]setCK setCS.
-by exists (~: B); unlock maxset.
+by exists (~: B); rewrite // /maxset unlock.
 Qed.
 
 End MaxSetMinSet.

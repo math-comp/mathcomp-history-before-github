@@ -73,8 +73,7 @@ Section Sections.
 Variables (gT : finGroupType).
 Implicit Types (G : {group gT}) (s : section gT).
 
-Canonical section_subType :=
-  Eval hnf in [newType for @pair_of_section gT by @section_rect gT].
+Canonical section_subType := Eval hnf in [newType for @pair_of_section gT].
 Definition section_eqMixin := Eval hnf in [eqMixin of section gT by <:].
 Canonical section_eqType := Eval hnf in EqType (section gT) section_eqMixin.
 Definition section_choiceMixin := [choiceMixin of section gT by <:].
@@ -467,6 +466,11 @@ by rewrite last_cons lasts /= pmN.
 Qed.
 
 End StableCompositionSeries.
+
+Arguments Scope maxainv
+   [_ _ Group_scope Group_scope groupAction_scope group_scope group_scope].
+Arguments Scope asimple
+  [_ _ Group_scope Group_scope groupAction_scope group_scope].
 
 Section StrongJordanHolder.
 

@@ -318,7 +318,7 @@ Canonical Cint_span_keyed s := KeyedPred (Cint_span_key s).
 Lemma Cint_spanP n (s : n.-tuple algC) x :
   reflect (inIntSpan s x) (x \in Cint_span s).
 Proof.
-rewrite unfold_in /Cint_span; case: (dec_Cint_span _ _) => [Zs_x | Zs'x] /=.
+rewrite unfold_in; case: (dec_Cint_span _ _) => [Zs_x | Zs'x] /=.
   left; have{Zs_x} [] := Zs_x; rewrite /= size_map size_tuple => a /rowP/(_ 0).
   rewrite !mxE => ->; exists a; rewrite summxE; apply: eq_bigr => i _.
   by rewrite -scaler_int (nth_map 0) ?size_tuple // !mxE mulrzl.
@@ -468,7 +468,7 @@ by rewrite -(rmorph1 QsC) (nu_inj 0%N) !rmorph1.
 Qed.
 
 (* Extended automorphisms of Q_n. *)
-Lemma Qn_Aut_exists k n :
+Lemma Qn_aut_exists k n :
     coprime k n ->
   {u : {rmorphism algC -> algC} | forall z, z ^+ n = 1 -> u z = z ^+ k}.
 Proof.
@@ -519,7 +519,7 @@ Lemma root_monic_Aint p x :
 Proof.
 have pZtoQtoC pz: pQtoC (pZtoQ pz) = pZtoC pz.
   by rewrite -map_poly_comp; apply: eq_map_poly => b; rewrite /= rmorph_int.
-move=> px0 mon_p /floorCpP[pz Dp]; rewrite unfold_in /Aint.
+move=> px0 mon_p /floorCpP[pz Dp]; rewrite unfold_in.
 move: px0; rewrite Dp -pZtoQtoC; have [q [-> mon_q] ->] := minCpolyP x.
 case/dvdpP_rat_int=> qz [a nz_a Dq] [r].
 move/(congr1 (fun q1 => lead_coef (a *: pZtoQ q1))).
@@ -675,7 +675,7 @@ End AlgIntSubring.
 
 Lemma Aint_aut (nu : {rmorphism algC -> algC}) x :
   (nu x \in Aint) = (x \in Aint).
-Proof. by rewrite !unfold_in /Aint minCpoly_aut. Qed.
+Proof. by rewrite !unfold_in minCpoly_aut. Qed.
 
 Definition dvdA (e : Algebraics.divisor) : pred_class :=
   fun z : algC => if e == 0 then z == 0 else z / e \in Aint.
@@ -688,8 +688,8 @@ Notation "e %| x" := (@in_mem Algebraics.divisor x (mem (dvdA e))) : algC_scope.
 
 Fact dvdA_zmod_closed e : zmod_closed (dvdA e).
 Proof.
-split=> [|x y]; first by rewrite unfold_in /dvdA mul0r eqxx rpred0 ?if_same.
-rewrite ![(e %| _)%A]unfold_in /dvdA.
+split=> [|x y]; first by rewrite unfold_in mul0r eqxx rpred0 ?if_same.
+rewrite ![(e %| _)%A]unfold_in.
 case: ifP => [_ x0 /eqP-> | _]; first by rewrite subr0.
 by rewrite mulrBl; apply: rpredB.
 Qed.
@@ -726,14 +726,14 @@ Lemma eqAmodD e x1 x2 y1 y2 :
 Proof. rewrite -(eqAmodDl e x2 y1) -(eqAmodDr e y1); exact: eqAmod_trans. Qed.
 
 Lemma eqAmodm0 e : (e == 0 %[mod e])%A.
-Proof. by rewrite /eqAmod subr0 unfold_in /dvdA; case: ifPn => // /divff->. Qed.
+Proof. by rewrite /eqAmod subr0 unfold_in; case: ifPn => // /divff->. Qed.
 Hint Resolve eqAmodm0.
 
 Lemma eqAmodMr e :
   {in Aint, forall z x y, x == y %[mod e] -> x * z == y * z %[mod e]}%A.
 Proof.
 move=> z Zz x y.
-rewrite /eqAmod -mulrBl ![(e %| _)%A]unfold_in /dvdA mulf_eq0 mulrAC.
+rewrite /eqAmod -mulrBl ![(e %| _)%A]unfold_in mulf_eq0 mulrAC.
 by case: ifP => [_ -> // | _ Exy]; apply: rpredM.
 Qed.
 
@@ -760,7 +760,7 @@ Qed.
 Lemma eqAmod_rat :
   {in Crat & &, forall e m n, (m == n %[mod e])%A = (m == n %[mod e])%C}.
 Proof.
-move=> e m n Qe Qm Qn; rewrite /eqCmod unfold_in /eqAmod unfold_in /dvdC /dvdA.
+move=> e m n Qe Qm Qn; rewrite /eqCmod unfold_in /eqAmod unfold_in.
 case: ifPn => // nz_e; apply/idP/idP=> [/Cint_rat_Aint | /Aint_Cint] -> //.
 by rewrite rpred_div ?rpredB.
 Qed.

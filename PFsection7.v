@@ -383,7 +383,7 @@ have {a_ def_a defX} defX: X = - nu zeta + a *: sumSnu.
   have Spi := S_Se xi Sxi; rewrite nu_tau ?Dade_isometry ?(zchar_on Spi) //.
   rewrite cfdotC cfdotBl cfdotZl !cfdotBr !oS1H ?(seqInd_ortho _ Sxi) //.
   by rewrite subr0 !add0r cfnorm_irr mulrN1 opprK.
-have Ind1H1: Ind1H 1%g = e by rewrite cfInd1 // cfun1E group1 mulr1.
+have Ind1H1: Ind1H 1%g = e by rewrite cfInd1 // cfun11 mulr1.
 split=> // [ | chi /irrP[t def_chi] o_chiSnu].
   rewrite (canRL (subrK 1) def_beta1) defX addrC 2!addrA.
   exists Gamma; first by rewrite orthogonal_sym; split; last exists a.
@@ -531,7 +531,7 @@ have: orthonormal (nu_chiC _ nu1 chi1) && orthonormal (nu_chiC _ nu2 chi2).
   by rewrite (seqInd_conjC_ortho _ _ _ Schi2).
 move/orthonormal_vchar_diff_ortho=> -> //.
   by split; apply/allP; rewrite /= !(Znu1, Znu2) ?seqInd_zcharW ?cfAut_seqInd.
-rewrite -!raddfB !(nu1tau, nu2tau) ?seqInd_sub_Aut_zchar //.
+rewrite -!raddfB !(nu1tau, nu2tau) ?seqInd_sub_aut_zchar //.
 by rewrite !Dade1 disjoint_Dade_ortho !eqxx.
 Qed.
 
@@ -562,7 +562,7 @@ have Delta_context L H (A := H^#) ddA nu r :
   rewrite rpredD ?{}Znu ?seqInd_zcharW {Zbeta}// /cfReal; do !split=> //.
   rewrite rmorphD /= -subr_eq0 opprD addrAC addrA -addrA addr_eq0 opprD.
   rewrite (cfConjC_Dade_coherent cohS) //; last exact: zcharD1_seqInd.
-  rewrite opprK -Dade_conjC -!raddfB nu_tau ?seqInd_sub_Aut_zchar //=.
+  rewrite opprK -Dade_conjC -!raddfB nu_tau ?seqInd_sub_aut_zchar //=.
   by rewrite rmorphB /= conj_cfInd cfConjC1 opprB addrC addrA subrK.
 have: ~~ (2 %| '[Delta L1 H1 ddA1 nu1 zeta1, Delta L2 H2 ddA2 nu2 zeta2])%C.
   have /Delta_context/(_ Szeta1 zeta1_1)[Delta1_1 ZR_Delta1] := cohS1.

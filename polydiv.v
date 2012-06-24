@@ -6,7 +6,7 @@ Require Import bigop ssralg poly choice.
 (* This file provides a library for the basic theory of Euclidean and pseudo- *)
 (* Euclidean division for polynomials over ring structures.                   *)
 (* The library defines two versions of the pseudo-euclidean division: one for *)
-(* coefficients in a (not even commutative) ring structure, and one for       *)
+(* coefficients in a (not necessarily commutative) ring structure and one for *)
 (* coefficients equipped with a structure of integral domain. From the latter *)
 (* we derive the definition of the usual Euclidean division for coefficients  *)
 (* in a field. Only the definition of the pseudo-division for coefficients in *)
@@ -18,49 +18,50 @@ Require Import bigop ssralg poly choice.
 (* polynomial one divides with.                                               *)
 (*                                                                            *)
 (* The empty name space defines:                                              *)
-(*          edivp p q == pseudo-division of p by q with p q : {poly R} and    *)
-(*                       R : idomainType.                                     *)
+(*          edivp p q == pseudo-division of p by q with p q : {poly R} where  *)
+(*                       R is an idomainType.                                 *)
 (*                       Computes (k, quo, rem) : nat * {poly r} * {poly R},  *)
 (*                       such that size rem < size q and:                     *)
 (*                       + if lead_coef q is not a unit, then:                *)
 (*                         (lead_coef q ^+ k) *: p = q * quo + rem            *)
 (*                       + else if lead_coef q is a unit, then:               *)
 (*                         p = q * quo + rem and k = 0                        *)
-(*             p %/ q == quotient (second component) computed by (redivp p q) *)
-(*             p %% q == remainder (third component) computed by (redivp p q) *)
-(*          scalp p q == exponent (first component) computed by (redivp p q)  *)
+(*             p %/ q == quotient (second component) computed by (edivp p q). *)
+(*             p %% q == remainder (third component) computed by (edivp p q). *)
+(*          scalp p q == exponent (first component) computed by (edivp p q).  *)
 (*             p %| q == tests the nullity of the remainder of the            *)
-(*                       pseudo-division  of p by q                           *)
+(*                       pseudo-division of p by q.                           *)
 (*         rgcdp p q  == Pseudo-greater common divisor obtained by performing *)
 (*                       the Euclidean algorithm on p and q using redivp as   *)
 (*                       Euclidean division.                                  *)
-(*             p %= q == p and q are associate polynomials, i.e. p %| q and   *)
-(*                       q %| p otherwise said, there is a constant c such    *)
-(*                       that p = c *: p                                      *)
+(*             p %= q == p and q are associate polynomials, i.e., p %| q and  *)
+(*                       q %| p, or equivalently, p = c *: q for some nonzero *)
+(*                       constant c.                                          *)
 (*           gcdp p q == Pseudo-greater common divisor obtained by performing *)
 (*                       the Euclidean algorithm on p and q using  edivp as   *)
 (*                       Euclidean division.                                  *)
-(*          egcdp p q == The pair of Bézout coefficients: if e = (egcdp p q), *)
-(*                       the size e.1 <= size q and size e.2 <= size p and    *)
+(*          egcdp p q == The pair of Bezout coefficients: if e := egcdp p q,  *)
+(*                       then size e.1 <= size q, size e.2 <= size p, and     *)
 (*                       gcdp p q %= e.1 * p + e.2 * q                        *)
-(*       coprimep p q == p and q are coprime ie.e (gcdp p q) is a constant    *)
-(*          gdcop q p == greatest Divisor of p which is coprime to q.         *)
-(* irreducible_poly p == p has only trivial (constant) divisors               *)
+(*       coprimep p q == p and q are coprime, i.e., (gcdp p q) is a nonzero   *)
+(*                       constant.                                            *)
+(*          gdcop q p == greatest divisor of p which is coprime to q.         *)
+(* irreducible_poly p <-> p has only trivial (constant) divisors.             *)
 (*                                                                            *)
 (*  Module RPdiv :                                                            *)
-(*   redivp p q == pseudo-division of p by q with p q : {poly R} and          *)
-(*                 R : ringType.                                              *)
+(*   redivp p q == pseudo-division of p by q with p q : {poly R} where R is   *)
+(*                 a ringType.                                                *)
 (*                 Computes (k, quo, rem) : nat * {poly r} * {poly R},        *)
 (*                 such that if rem = 0 then quo * q = p * (lead_coef q ^+ k) *)
 (*                                                                            *)
-(*   rdivp p q  == quotient (second component) computed by (redivp p q)       *)
-(*   rmodp p q  == remainder (third component) computed by (redivp p q)       *)
-(*   rscalp p q == exponent (first component) computed by (redivp p q)        *)
+(*   rdivp p q  == quotient (second component) computed by (redivp p q).      *)
+(*   rmodp p q  == remainder (third component) computed by (redivp p q).      *)
+(*   rscalp p q == exponent (first component) computed by (redivp p q).       *)
 (*   rdvdp p q  == tests the nullity of the remainder of the pseudo-division  *)
-(*                 of p by q                                                  *)
-(*   rgcdp p q  == analogue of gcdp for coefficients in a ringType            *)
-(*   rgdcop p q == analogue of gdcop for coefficients in a ringType           *)
-(*rcoprimep p q == analogue of coprimep p for coefficients in a ringTyp       *)
+(*                 of p by q.                                                 *)
+(*   rgcdp p q  == analogue of gcdp for coefficients in a ringType.           *)
+(*   rgdcop p q == analogue of gdcop for coefficients in a ringType.          *)
+(*rcoprimep p q == analogue of coprimep p q for coefficients in a ringType.   *)
 (*                                                                            *)
 (* Module RPdiv.mon : theory of the operations defined in RPDiv, under the    *)
 (*   assumption that the divisor is monic.                                    *)
@@ -71,11 +72,9 @@ Require Import bigop ssralg poly choice.
 (* Module RPdiv.UnitRing: theory of the operations defined in RPDiv, when the *)
 (*   ring R of coefficients is canonically with units (R : unitRingType).     *)
 (*                                                                            *)
-(*                                                                            *)
 (* Module Idomain: theory available for edivp and the related operation under *)
 (*    the sole assumption that the ring of coefficients is canonically an     *)
 (*    integral domain (R : idomainType).                                      *)
-(*                                                                            *)
 (*                                                                            *)
 (* Module Idomain.mon:  theory available for edivp and the related operation  *)
 (*    under the sole assumption that the ring of coefficients is canonically  *)
@@ -83,8 +82,8 @@ Require Import bigop ssralg poly choice.
 (*                                                                            *)
 (* Module unit: theory available for edivp and the related operation under    *)
 (*    the sole assumption that the ring of coefficients is canonically an     *)
-(*    integral domain (R : idomainType) and the divisor has a unit leading    *)
-(*    coefficient                                                             *)
+(*    integral domain (R : idomainType) and the leading coefficient of the    *)
+(*    divisor is a unit.                                                      *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -116,13 +115,12 @@ Definition redivp_rec (q : {poly R})  :=
     let r1 := r * cq%:P - m * q in
        if n is n1.+1 then loop k.+1 qq1 r1 n1 else (k.+1, qq1, r1).
 
-Notation redivp_notation := (fun p q =>
-   if q == 0 then (0%N, 0, p) else redivp_rec q 0 0 p (size p)) (only parsing).
-
+Definition redivp_expanded_def p q :=
+   if q == 0 then (0%N, 0, p) else redivp_rec q 0 0 p (size p).
+Fact redivp_key : unit. Proof. by []. Qed.
 Definition redivp : {poly R} -> {poly R} -> nat * {poly R} * {poly R} :=
- locked redivp_notation.
-
-Lemma redivpE : redivp = redivp_notation. Proof. exact: esym (lock _). Qed.
+ locked_with redivp_key redivp_expanded_def.
+Canonical redivp_unlockable := [unlockable fun redivp].
 
 Definition rdivp p q := ((redivp p q).1).2.
 Definition rmodp p q := (redivp p q).2.
@@ -134,23 +132,23 @@ Proof. by rewrite /rscalp /rdivp /rmodp; case: (redivp p q) => [[]] /=. Qed.
 
 Lemma rdiv0p p : rdivp 0 p = 0.
 Proof.
-rewrite /rdivp redivpE; case: ifP => // Hp; rewrite /redivp_rec !size_poly0.
+rewrite /rdivp unlock; case: ifP => // Hp; rewrite /redivp_rec !size_poly0.
 by rewrite polySpred ?Hp.
 Qed.
 
 Lemma rdivp0 p : rdivp p 0 = 0.
-Proof. by rewrite /rdivp redivpE eqxx. Qed.
+Proof. by rewrite /rdivp unlock eqxx. Qed.
 
 Lemma rdivp_small p q : size p < size q -> rdivp p q = 0.
 Proof.
-rewrite /rdivp redivpE; case: eqP => Eq; first by rewrite Eq size_poly0.
+rewrite /rdivp unlock; case: eqP => Eq; first by rewrite Eq size_poly0.
 by case sp: (size p) => [| s] hs /=; rewrite sp hs.
 Qed.
 
 Lemma leq_rdivp p q : (size (rdivp p q) <= size p).
 Proof.
 case: (ltnP (size p) (size q)); first by move/rdivp_small->; rewrite size_poly0.
-rewrite /rdivp /rmodp /rscalp redivpE; case q0 : (q == 0) => /=.
+rewrite /rdivp /rmodp /rscalp unlock; case q0 : (q == 0) => /=.
   by rewrite size_poly0.
 have : (size (0 : {poly R})) <= size p by rewrite size_poly0.
 move: (leqnn (size p)); move: {2 3 4 6}(size p)=> A.
@@ -176,41 +174,36 @@ apply: ihn => //.
   rewrite subnBA // addnC -(prednK sq) -(prednK sr) addSn subSS.
   by rewrite -addnBA ?(ltnW hj) // -{1}[_.-1]addn0 ltn_add2l subn_gt0.
 - apply: leq_trans (size_add _ _) _; rewrite geq_max; apply/andP; split.
-  + apply: leq_trans (size_mul_leq _ _) _; rewrite size_polyC lead_coef_eq0 q0 /=.
-    by rewrite addn1.
-  + rewrite size_opp; apply: leq_trans (size_mul_leq _ _) _.
-  have: size ((lead_coef r)%:P * 'X^(size r - size q)) <= (size r - size q).+1.
-      apply: leq_trans (size_mul_leq _ _) _; rewrite size_polyC size_polyXn addnS /=.
-      by rewrite  lead_coef_eq0 -size_poly_gt0 sr add1n.
-    rewrite -(leq_add2r (size q));  set x := size _; rewrite addSn subnK //.
-    have : x + size q > 0 by rewrite addn_gt0 orbC size_poly_gt0 q0.
-      by move/prednK=> {1}<-; rewrite ltnS -mul_polyC => h; apply: leq_trans h _.
-- apply: leq_trans (size_add _ _) _; rewrite geq_max; apply/andP; split.
-  + apply: leq_trans (size_mul_leq _ _) _; rewrite size_polyC lead_coef_eq0 q0 /=.
-    by rewrite addnS addn0.
-  + rewrite -mul_polyC; apply: leq_trans (size_mul_leq _ _) _; rewrite size_polyC.
-    rewrite lead_coef_eq0 -size_poly_gt0 sr addSn add0n /= size_polyXn.
-    by apply: leq_trans hr; rewrite -{2}(subn0 (size r)) ltn_sub2l.
+    apply: leq_trans (size_mul_leq _ _) _.
+    by rewrite size_polyC lead_coef_eq0 q0 /= addn1.
+  rewrite size_opp; apply: leq_trans (size_mul_leq _ _) _.
+  apply: leq_trans hr; rewrite -subn1 leq_subLR -{2}(subnK hqr) addnA leq_add2r.
+  by rewrite add1n -(@size_polyXn R) size_scale_leq.
+apply: leq_trans (size_add _ _) _; rewrite geq_max; apply/andP; split.
+  apply: leq_trans (size_mul_leq _ _) _.
+  by rewrite size_polyC lead_coef_eq0 q0 /= addnS addn0.
+apply: leq_trans (size_scale_leq _ _) _; rewrite size_polyXn.
+by rewrite -subSn // leq_subLR -add1n leq_add.
 Qed.
 
 Lemma rmod0p p : rmodp 0 p = 0.
 Proof.
-rewrite /rmodp redivpE; case: ifP => // Hp; rewrite /redivp_rec !size_poly0.
+rewrite /rmodp unlock; case: ifP => // Hp; rewrite /redivp_rec !size_poly0.
 by rewrite polySpred ?Hp.
 Qed.
 
 Lemma rmodp0 p : rmodp p 0 = p.
-Proof. by rewrite /rmodp redivpE eqxx. Qed.
+Proof. by rewrite /rmodp unlock eqxx. Qed.
 
 Lemma rscalp_small p q : size p < size q -> rscalp p q = 0%N.
 Proof.
-rewrite /rscalp redivpE; case: eqP => Eq // spq.
+rewrite /rscalp unlock; case: eqP => Eq // spq.
 by case sp: (size p) => [| s] /=; rewrite spq.
 Qed.
 
 Lemma ltn_rmodp p q : (size (rmodp p q) < size q) = (q != 0).
 Proof.
-rewrite /rdivp /rmodp /rscalp redivpE; case q0 : (q == 0).
+rewrite /rdivp /rmodp /rscalp unlock; case q0 : (q == 0).
   by rewrite (eqP q0) /= size_poly0 ltn0.
 elim: (size p) 0%N 0 {1 3}p (leqnn (size p)) => [|n ihn] k q1 r.
   rewrite leqn0 size_poly_eq0; move/eqP->; rewrite /= size_poly0 /= lt0n.
@@ -238,7 +231,7 @@ rewrite subnBA // addnC -(prednK sq) -(prednK sr) addSn subSS.
 by rewrite -addnBA ?(ltnW hj) // -{1}[_.-1]addn0 ltn_add2l subn_gt0.
 Qed.
 
-Lemma ltn_rmodpN0 p q : q != 0 ->  (size (rmodp p q) < size q).
+Lemma ltn_rmodpN0 p q : q != 0 -> size (rmodp p q) < size q.
 Proof. by rewrite ltn_rmodp. Qed.
 
 Lemma rmodp1 p : rmodp p 1 = 0.
@@ -250,7 +243,7 @@ Qed.
 
 Lemma rmodp_small p q : size p < size q -> rmodp p q = p.
 Proof.
-rewrite /rmodp redivpE; case: eqP => Eq; first by rewrite Eq size_poly0.
+rewrite /rmodp unlock; case: eqP => Eq; first by rewrite Eq size_poly0.
 by case sp: (size p) => [| s] Hs /=; rewrite sp Hs /=.
 Qed.
 
@@ -278,7 +271,7 @@ Lemma rdvd0pP n : reflect (n = 0) (rdvdp 0 n).
 Proof. by  apply: (iffP idP); rewrite rdvd0p; move/eqP. Qed.
 
 Lemma rdvdpN0 p q : rdvdp p q -> q != 0 -> p != 0.
-Proof. by move=> pq hq; apply: contraL pq=> /eqP ->; rewrite rdvd0p. Qed.
+Proof. by move=> pq hq; apply: contraL pq => /eqP ->; rewrite rdvd0p. Qed.
 
 Lemma rdvdp1 d : (rdvdp d 1) = ((size d) == 1%N).
 Proof.
@@ -286,12 +279,10 @@ rewrite /rdvdp; case d0: (d == 0).
   by rewrite (eqP d0) rmodp0 size_poly0 (negPf (@oner_neq0 _)).
 have:= (size_poly_eq0 d); rewrite d0; move/negbT; rewrite -lt0n.
 rewrite leq_eqVlt; case/orP => hd; last first.
-  rewrite rmodp_small ?size_polyC (negPf (@oner_neq0 _)) //.
-  by apply: sym_eq; apply: negPf; move: hd; rewrite ltn_neqAle eq_sym; case/andP.
-rewrite [_ == 1%N]eq_sym hd; move: hd; rewrite eq_sym; case/size_poly1P=> c cn0 ->.
-rewrite /rmodp redivpE polyC_eq0 (negPf cn0) size_polyC (negPf (@oner_neq0 _)).
-rewrite /= !size_polyC cn0 (negPf (@oner_neq0 _)) ltnn /= !lead_coefC !scale1r.
-by rewrite subnn mul1r subrr size_poly0 /= eqxx.
+  by rewrite rmodp_small ?size_poly1 // oner_eq0 -(subnKC hd).
+rewrite eq_sym in hd; rewrite hd; have [c cn0 ->] := size_poly1P _ hd.
+rewrite /rmodp unlock -size_poly_eq0 size_poly1 /= size_poly1 size_polyC cn0 /=.
+by rewrite polyC_eq0 (negPf cn0) !lead_coefC !scale1r subrr !size_poly0.
 Qed.
 
 Lemma rdvd1p m : rdvdp 1 m.
@@ -309,10 +300,7 @@ Lemma rmodp_eq0 p q : rdvdp q p -> rmodp p q = 0.
 Proof. by move/rmodp_eq0P. Qed.
 
 Lemma rdvdp_leq p q : rdvdp p q -> q != 0 -> size p <= size q.
-move/rmodp_eq0P => rpq nq0; case: (ltnP (size p) (size q)); first by move/ltnW->.
-rewrite leq_eqVlt; case/orP; first by move/eqP->.
-by move/rmodp_small; rewrite rpq => h; move: nq0; rewrite h eqxx.
-Qed.
+Proof. by move=> dvd_pq; rewrite leqNgt; apply: contra => /rmodp_small <-. Qed.
 
 Definition rgcdp p q :=
   let: (p1, q1) := if size p < size q then (q, p) else (p, q) in
@@ -376,19 +364,20 @@ move=> leqp; rewrite ltn_rmodp (negPf nzq) //=.
 have p_gt0: size p > 0 by rewrite size_poly_gt0.
 rewrite -(prednK p_gt0) /=; case: eqP => [->|].
   by case: (size q) => [|[|s]]; rewrite /= rmodp0 (negPf nzq) // rmod0p eqxx.
-move/eqP=> nzpq; rewrite (negPf nzq); apply: Irec => //; last by rewrite ltn_rmodp.
+move/eqP=> nzpq; rewrite (negPf nzq).
+apply: Irec => //; last by rewrite ltn_rmodp.
   by rewrite -ltnS (prednK p_gt0) (leq_trans _ leqp) // ltn_rmodp.
 by rewrite ltnW // ltn_rmodp.
 Qed.
 
-CoInductive comm_redivp_spec (m d : {poly R}) : nat * {poly R} * {poly R} -> Type :=
-  ComEdivnSpec k (q r: {poly R}) of
+CoInductive comm_redivp_spec m d : nat * {poly R} * {poly R} -> Type :=
+  ComEdivnSpec k (q r : {poly R}) of
    (GRing.comm d (lead_coef d)%:P -> m * (lead_coef d ^+ k)%:P = q * d + r) &
    (d != 0 -> size r < size d) : comm_redivp_spec m d (k, q, r).
 
 Lemma comm_redivpP m d : comm_redivp_spec m d (redivp m d).
 Proof.
-rewrite redivpE; case: (altP (d =P 0))=> [->| Hd].
+rewrite unlock; case: (altP (d =P 0))=> [->| Hd].
   by constructor; rewrite !(simp, eqxx).
 have: GRing.comm d (lead_coef d)%:P -> m * (lead_coef d ^+ 0)%:P = 0 * d + m.
   by rewrite !simp.
@@ -430,7 +419,6 @@ Proof. by rewrite /rgdcop size_poly0. Qed.
 
 End RingPseudoDivision.
 
-
 Section ComRegDivisor.
 
 Variable R : ringType.
@@ -440,9 +428,10 @@ Hypothesis Rreg : GRing.rreg (lead_coef d).
 
 Implicit Types p q r : {poly R}.
 
-Lemma redivp_eq q r :  size r < size d ->
-  let k := (redivp (q * d + r) d).1.1 in
-  let c := (lead_coef d ^+ k)%:P in
+Lemma redivp_eq q r :
+    size r < size d ->
+    let k := (redivp (q * d + r) d).1.1 in
+    let c := (lead_coef d ^+ k)%:P in
   redivp (q * d + r) d = (k, q * c, r * c).
 Proof.
 move=> lt_rd; case: comm_redivpP=> k q1 r1; move/(_ Cdl)=> Heq.
@@ -494,9 +483,8 @@ by rewrite addnC subnK ?subrr ?leq_maxr.
 Qed.
 
 CoInductive rdvdp_spec p q : {poly R} -> bool -> Type :=
-  |Rdvdp : forall k q1,
-    p * ((lead_coef q)^+ k)%:P = q1 * q -> rdvdp_spec p q 0 true
-  |RdvdpN : rmodp p q != 0 -> rdvdp_spec p q (rmodp p q) false.
+  | Rdvdp k q1 & p * ((lead_coef q)^+ k)%:P = q1 * q : rdvdp_spec p q 0 true
+  | RdvdpN & rmodp p q != 0 : rdvdp_spec p q (rmodp p q) false.
 
 (* Is that version useable ? *)
 
@@ -761,15 +749,14 @@ Import UnitRing.
 Variable R : idomainType.
 Implicit Type p q r d : {poly R}.
 
-Notation edivp_notation := (fun p q =>
-  let: (k, d, r) := redivp p q in
-    if lead_coef q \in GRing.unit
-      then (0%N, (lead_coef q)^-k *: d, (lead_coef q)^-k *: r) else (k, d, r))
-(only parsing).
-
-Definition edivp := locked edivp_notation.
-
-Lemma edivpE : edivp = edivp_notation. Proof. exact: esym (lock _). Qed.
+Definition edivp_expanded_def p q :=
+  let: (k, d, r) as edvpq := redivp p q in
+  if lead_coef q \in GRing.unit then
+    (0%N, (lead_coef q)^-k *: d, (lead_coef q)^-k *: r)
+  else edvpq.
+Fact edivp_key : unit. Proof. by []. Qed.
+Definition edivp := locked_with edivp_key edivp_expanded_def.
+Canonical edivp_unlockable := [unlockable fun edivp].
 
 Definition divp p q := ((edivp p q).1).2.
 Definition modp p q := (edivp p q).2.
@@ -799,14 +786,14 @@ Proof. by rewrite /scalp /divp /modp; case: (edivp p q) => [[]] /=. Qed.
 
 Lemma edivp_redivp p q : (lead_coef q \in GRing.unit) = false ->
   edivp p q = redivp p q.
-Proof. by move=> hu; rewrite edivpE hu; case: (redivp p q) => [[? ?] ?]. Qed.
+Proof. by move=> hu; rewrite unlock hu; case: (redivp p q) => [[? ?] ?]. Qed.
 
 Lemma divpE p q :
   p %/ q = if lead_coef q \in GRing.unit
     then (lead_coef q)^-(rscalp p q) *: (rdivp p q)
     else rdivp p q.
 Proof.
-by case ulcq: (lead_coef q \in GRing.unit); rewrite /divp edivpE redivp_def ulcq.
+by case ulcq: (lead_coef q \in GRing.unit); rewrite /divp unlock redivp_def ulcq.
 Qed.
 
 Lemma modpE p q :
@@ -814,13 +801,13 @@ Lemma modpE p q :
     then (lead_coef q)^-(rscalp p q) *: (rmodp p q)
     else rmodp p q.
 Proof.
-by case ulcq: (lead_coef q \in GRing.unit); rewrite /modp edivpE redivp_def ulcq.
+by case ulcq: (lead_coef q \in GRing.unit); rewrite /modp unlock redivp_def ulcq.
 Qed.
 
 Lemma scalpE p q :
   scalp p q = if lead_coef q \in GRing.unit then 0%N else rscalp p q.
 Proof.
-by case ulcq: (lead_coef q \in GRing.unit); rewrite /scalp edivpE redivp_def ulcq.
+by case ulcq: (lead_coef q \in GRing.unit); rewrite /scalp unlock redivp_def ulcq.
 Qed.
 
 Lemma dvdpE p q : p %| q = rdvdp p q.
@@ -833,7 +820,7 @@ Qed.
 Lemma lc_expn_scalp_neq0 p q : lead_coef q ^+ scalp p q != 0.
 Proof.
 case: (eqVneq q 0) => [->|nzq]; last by rewrite expf_neq0 ?lead_coef_eq0.
-by rewrite /scalp edivpE redivpE /= eqxx lead_coef0 unitr0 /= oner_neq0.
+by rewrite /scalp 2!unlock /= eqxx lead_coef0 unitr0 /= oner_neq0.
 Qed.
 
 Hint Resolve lc_expn_scalp_neq0.
@@ -854,7 +841,7 @@ case ud: (lead_coef d \in GRing.unit); last first.
   rewrite edivp_redivp // redivp_def; constructor; rewrite ?ltn_rmodp // ?ud //.
   by rewrite rdivp_eq.
 have cdn0: lead_coef d != 0 by apply: contraTneq ud => ->; rewrite unitr0.
-rewrite edivpE ud redivp_def; constructor => //.
+rewrite unlock ud redivp_def; constructor => //.
   rewrite -scalerAl -scalerDr -mul_polyC.
   have hn0 : (lead_coef d ^+ rscalp m d)%:P != 0.
     by rewrite polyC_eq0; apply: expf_neq0.
@@ -868,7 +855,7 @@ Lemma edivp_eq d q r : size r < size d -> lead_coef d \in GRing.unit ->
   edivp (q * d + r) d = (0%N, q, r).
 Proof.
 have hC : GRing.comm d (lead_coef d)%:P by exact: mulrC.
-move=> hsrd hu; rewrite edivpE hu; case et: (redivp _ _) => [[s qq] rr].
+move=> hsrd hu; rewrite unlock hu; case et: (redivp _ _) => [[s qq] rr].
 have cdn0 : lead_coef d != 0.
   by move: hu; case d0: (lead_coef d == 0) => //; rewrite (eqP d0) unitr0.
 move: (et); rewrite redivp_eq //; last by apply/rregP.
@@ -886,7 +873,7 @@ Proof.
 rewrite divpE modpE scalpE.
 case uq: (lead_coef q \in GRing.unit); last by rewrite rdivp_eq.
 rewrite expr0 scale1r; case: (altP (q =P 0)) => [-> | qn0].
-  rewrite mulr0 add0r lead_coef0 rmodp0 /rscalp redivpE eqxx expr0 invr1.
+  rewrite mulr0 add0r lead_coef0 rmodp0 /rscalp unlock eqxx expr0 invr1.
   by rewrite scale1r.
 have hn0 : (lead_coef q ^+ rscalp p q)%:P != 0.
   by rewrite polyC_eq0 expf_neq0 // lead_coef_eq0.
@@ -1023,17 +1010,17 @@ Variable R : idomainType.
 Implicit Type p q r d m n : {poly R}.
 
 Lemma scalp0 p : scalp p 0 = 0%N.
-Proof. by rewrite /scalp edivpE lead_coef0 unitr0 redivpE eqxx. Qed.
+Proof. by rewrite /scalp unlock lead_coef0 unitr0 unlock eqxx. Qed.
 
 Lemma divp_small p q : size p < size q -> p %/ q = 0.
 Proof.
-move=> spq; rewrite /divp edivpE redivp_def /=.
+move=> spq; rewrite /divp unlock redivp_def /=.
 by case: ifP; rewrite rdivp_small // scaler0.
 Qed.
 
 Lemma leq_divp p q : (size (p %/ q) <= size p).
 Proof.
-rewrite /divp edivpE redivp_def /=; case: ifP=> /=; rewrite ?leq_rdivp //.
+rewrite /divp unlock redivp_def /=; case: ifP=> /=; rewrite ?leq_rdivp //.
 move=> ulcq; rewrite size_scale ?leq_rdivp //.
 rewrite -exprVn expf_neq0 // invr_eq0.
 by move: ulcq; case lcq0: (lead_coef q == 0) => //; rewrite (eqP lcq0) unitr0.
@@ -1041,12 +1028,12 @@ Qed.
 
 Lemma div0p p : 0 %/ p = 0.
 Proof.
-by rewrite /divp edivpE redivp_def /=; case: ifP; rewrite rdiv0p // scaler0.
+by rewrite /divp unlock redivp_def /=; case: ifP; rewrite rdiv0p // scaler0.
 Qed.
 
 Lemma divp0 p : p %/ 0 = 0.
 Proof.
-by rewrite /divp edivpE redivp_def /=; case: ifP; rewrite rdivp0 // scaler0.
+by rewrite /divp unlock redivp_def /=; case: ifP; rewrite rdivp0 // scaler0.
 Qed.
 
 Lemma divp1 m : m %/ 1 = m.
@@ -1054,31 +1041,31 @@ Proof. by rewrite divpE lead_coefC unitr1 rdivp1 expr1n invr1 scale1r. Qed.
 
 Lemma mod0p p : 0 %% p = 0.
 Proof.
-by rewrite /modp edivpE redivp_def /=; case: ifP; rewrite rmod0p // scaler0.
+by rewrite /modp unlock redivp_def /=; case: ifP; rewrite rmod0p // scaler0.
 Qed.
 
 Lemma modp0 p : p %% 0 = p.
 Proof.
-rewrite /modp edivpE redivp_def; case: ifP; rewrite rmodp0 //= lead_coef0.
+rewrite /modp unlock redivp_def; case: ifP; rewrite rmodp0 //= lead_coef0.
 by rewrite unitr0.
 Qed.
 
 Lemma modp1 p : p %% 1 = 0.
 Proof.
-by rewrite /modp edivpE redivp_def /=; case: ifP; rewrite rmodp1 // scaler0.
+by rewrite /modp unlock redivp_def /=; case: ifP; rewrite rmodp1 // scaler0.
 Qed.
 
 Hint Resolve divp0 divp1 mod0p modp0 modp1.
 
 Lemma modp_small p q : size p < size q -> p %% q = p.
 Proof.
-move=> spq; rewrite /modp edivpE redivp_def; case: ifP; rewrite rmodp_small //.
+move=> spq; rewrite /modp unlock redivp_def; case: ifP; rewrite rmodp_small //.
 by rewrite /= rscalp_small // expr0 /= invr1 scale1r.
 Qed.
 
 Lemma modpC p c : c != 0 -> p %% c%:P = 0.
 Proof.
-move=> cn0; rewrite /modp edivpE redivp_def /=; case: ifP; rewrite ?rmodpC //.
+move=> cn0; rewrite /modp unlock redivp_def /=; case: ifP; rewrite ?rmodpC //.
 by rewrite scaler0.
 Qed.
 
@@ -1098,7 +1085,7 @@ Proof. by rewrite -{1}(mul1r d) modp_mull. Qed.
 
 Lemma ltn_modp p q : (size (p %% q) < size q) = (q != 0).
 Proof.
-rewrite /modp edivpE redivp_def /=; case: ifP=> /=; rewrite ?ltn_rmodp //.
+rewrite /modp unlock redivp_def /=; case: ifP=> /=; rewrite ?ltn_rmodp //.
 move=> ulcq; rewrite size_scale ?ltn_rmodp //.
 rewrite -exprVn expf_neq0 // invr_eq0.
 by move: ulcq; case lcq0: (lead_coef q == 0) => //; rewrite (eqP lcq0) unitr0.
@@ -1167,7 +1154,7 @@ Qed.
 
 Lemma leq_modp m d : size (m %% d)  <= size m.
 Proof.
-rewrite /modp edivpE redivp_def /=; case: ifP; rewrite ?leq_rmodp //.
+rewrite /modp unlock redivp_def /=; case: ifP; rewrite ?leq_rmodp //.
 move=> ud; rewrite size_scale ?leq_rmodp // invr_eq0 expf_neq0 //.
 by apply: contraTneq ud => ->; rewrite unitr0.
 Qed.
@@ -1513,7 +1500,7 @@ Qed.
 Lemma eqp01 : 0 %= (1 : {poly R}) = false.
 Proof.
 case abs : (0 %= 1) => //; case/eqpP: abs=> [[c1 c2]] /andP [c1n0 c2n0] /=.
-by rewrite scaler0 scale_poly1; move/eqP; rewrite eq_sym polyC_eq0 (negbTE c2n0).
+by rewrite scaler0 alg_polyC; move/eqP; rewrite eq_sym polyC_eq0 (negbTE c2n0).
 Qed.
 
 Lemma eqp_scale p c : c != 0 -> c *: p %= p.
@@ -1533,7 +1520,7 @@ Qed.
 Lemma size_poly_eq1 p : (size p == 1%N) = (p %= 1).
 Proof.
 apply/size_poly1P/idP=> [[c cn0 ep] |].
-  by apply/eqpP; exists (1, c); rewrite ?oner_eq0 // scale_poly1 scale1r.
+  by apply/eqpP; exists (1, c); rewrite ?oner_eq0 // alg_polyC scale1r.
 by move/eqp_size; rewrite size_poly1; move/eqP; move/size_poly1P.
 Qed.
 
@@ -1599,10 +1586,10 @@ Qed.
 Lemma polyC_eqp1 c : (c%:P %= 1) = (c != 0).
 Proof.
 apply/eqpP/idP => [[[x y]] |nc0] /=.
-  case c0: (c == 0); rewrite // scale_poly1 (eqP c0) scaler0.
+  case c0: (c == 0); rewrite // alg_polyC (eqP c0) scaler0.
   by case/andP=> _ /=; move/negbTE<-; move/eqP; rewrite eq_sym polyC_eq0.
 exists (1, c); first by rewrite nc0 /= oner_neq0.
-by rewrite scale_poly1 scale1r.
+by rewrite alg_polyC scale1r.
 Qed.
 
 Lemma dvdUp d p: d %= 1 -> d %| p.
@@ -2491,7 +2478,7 @@ Qed.
 
 Lemma coprimep_XsubC p c : coprimep p ('X - c%:P) = ~~ root p c.
 Proof.
-rewrite -coprimep_modl modp_XsubC /root -scale_poly1.
+rewrite -coprimep_modl modp_XsubC /root -alg_polyC.
 have [-> | /coprimep_scalel->] := altP eqP; last exact: coprime1p.
 by rewrite scale0r /coprimep gcd0p size_XsubC.
 Qed.
@@ -3115,7 +3102,7 @@ Proof. by rewrite !divp_divl // mulrC. Qed.
 
 Lemma edivp_def p q : edivp p q = (0%N, p %/ q, p %% q).
 Proof.
-rewrite edivp_def; congr (_, _, _); rewrite /scalp edivpE redivpE /=.
+rewrite edivp_def; congr (_, _, _); rewrite /scalp 2!unlock /=.
 case (eqVneq q 0) => [-> | qn0]; first by rewrite eqxx lead_coef0 unitr0.
 rewrite (negPf qn0) /= unitfE lead_coef_eq0 qn0 /=.
 by case: (redivp_rec _ _ _ _) => [[]].
@@ -3130,7 +3117,7 @@ Qed.
 Lemma modpE p q : p %% q = (lead_coef q)^-(rscalp p q) *: (rmodp p q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0].
-  by rewrite rmodp0 modp0 /rscalp redivpE eqxx lead_coef0 expr0 invr1 scale1r.
+  by rewrite rmodp0 modp0 /rscalp unlock eqxx lead_coef0 expr0 invr1 scale1r.
 by rewrite modpE unitfE lead_coef_eq0 qn0.
 Qed.
 
@@ -3159,9 +3146,9 @@ move=> srd; apply: edivp_eq ; rewrite // unitfE lead_coef_eq0.
 rewrite -size_poly_gt0; exact: leq_trans srd.
 Qed.
 
-Lemma modp_mul p q m: (p * (q %% m)) %% m = (p * q) %% m.
+Lemma modp_mul p q m : (p * (q %% m)) %% m = (p * q) %% m.
 Proof.
-have -> : q %% m = q - q %/ m * m by rewrite {2}(divp_eq q m) -addrA addrC subrK.
+have ->: q %% m = q - q %/ m * m by rewrite {2}(divp_eq q m) -addrA addrC subrK.
 rewrite mulrDr modp_add // -mulNr mulrA -{2}[_ %% _]addr0; congr (_ + _).
 by apply/eqP; apply: dvdp_mull.
 Qed.
@@ -3219,12 +3206,12 @@ Implicit Type a b : {poly F}.
 Lemma redivp_map a b :
   redivp a^f b^f = (rscalp a b, (rdivp a b)^f, (rmodp a b)^f).
 Proof.
-rewrite /rdivp /rscalp /rmodp !redivpE map_poly_eq0 size_map_poly.
+rewrite /rdivp /rscalp /rmodp !unlock map_poly_eq0 size_map_poly.
 case: eqP; rewrite /= -(rmorph0 (map_poly_rmorphism f)) //; move/eqP=> q_nz.
 move: (size a) => m; elim: m 0%N 0 a => [|m IHm] qq r a /=.
   rewrite  -!mul_polyC  !size_map_poly !lead_coef_map // -(map_polyXn f).
   by rewrite -!(map_polyC f) -!rmorphM -rmorphB -rmorphD; case: (_ < _).
-rewrite  -!mul_polyC !size_map_poly !lead_coef_map // -(map_polyXn f).
+rewrite -!mul_polyC !size_map_poly !lead_coef_map // -(map_polyXn f).
 by rewrite -!(map_polyC f) -!rmorphM -rmorphB -rmorphD /= IHm; case: (_ < _).
 Qed.
 
@@ -3245,7 +3232,7 @@ Proof.
 case: (eqVneq b 0) => [-> | bn0].
   rewrite (rmorph0 (map_poly_rmorphism f)) Idomain.edivp_def !modp0 !divp0.
   by rewrite (rmorph0 (map_poly_rmorphism f)) scalp0.
-rewrite edivpE redivp_map lead_coef_map rmorph_unit; last first.
+rewrite unlock redivp_map lead_coef_map rmorph_unit; last first.
   by rewrite unitfE lead_coef_eq0.
 rewrite modpE divpE !map_polyZ !rmorphV ?rmorphX // unitfE.
 by rewrite expf_neq0 // lead_coef_eq0.

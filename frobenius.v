@@ -95,6 +95,18 @@ CoInductive has_Frobenius_action G H : Prop :=
 
 End Definitions.
 
+Arguments Scope semiregular [_ group_scope group_scope].
+Arguments Scope semiprime [_ group_scope group_scope].
+Arguments Scope normedTI [_ group_scope group_scope group_scope].
+Arguments Scope Frobenius_group_with_complement [_ group_scope group_scope].
+Arguments Scope Frobenius_group [_ group_scope].
+Arguments Scope Frobenius_group_with_kernel [_ group_scope group_scope].
+Arguments Scope Frobenius_group_with_kernel_and_complement
+  [_ group_scope group_scope group_scope].
+Arguments Scope Frobenius_action
+  [_ group_scope group_scope _ group_scope action_scope].
+Arguments Scope has_Frobenius_action [_ group_scope group_scope].
+
 Notation "[ 'Frobenius' G 'with' 'complement' H ]" :=
   (Frobenius_group_with_complement G H)
   (at level 0, G at level 50, H at level 35,

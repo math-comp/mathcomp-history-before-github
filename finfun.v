@@ -43,8 +43,7 @@ Identity Coercion type_of_finfun : finfun_of >-> finfun_type.
 
 Definition fgraph f := let: Finfun t := f in t.
 
-Canonical finfun_subType :=
-  Eval hnf in [newType for fgraph by finfun_type_rect].
+Canonical finfun_subType := Eval hnf in [newType for fgraph].
 
 End Def.
 

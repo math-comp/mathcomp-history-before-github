@@ -1246,11 +1246,11 @@ Lemma in_simpl x p (msp : manifest_simpl_pred p) :
   in_mem x (Mem [eta fun_of_simpl (msp : simpl_pred T)]) = p x.
 Proof. by case: msp => _ /= ->. Qed.
 
-(* This lemma appears (under Coq 8.3) to unfold exactly one level of          *)
-(* a collective predicate. The explicit identity function in the pattern      *)
-(* accomplishes this, apparently in contradiction with any rational analysis  *)
-(* of the unification heuristics used by Coq!                                 *)
-Lemma unfold_in x p : (x \in idfun p) = p x.
+(* Because of the explicit eta expansion in the left-hand side, this lemma    *)
+(* should only be used in a right-to-left direction. The 8.3 hack allowing    *)
+(* partial right-to-left use does not work with the improved expansion        *)
+(* heuristics in 8.4.                                                         *)
+Lemma unfold_in x p : (x \in ([eta p] : pred T)) = p x.
 Proof. by []. Qed.
 
 Lemma simpl_predE p : SimplPred p =1 p.

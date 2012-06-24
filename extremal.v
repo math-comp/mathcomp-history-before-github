@@ -89,13 +89,14 @@ by case: pickP => [op /andP[] | _] //=; rewrite group1.
 Qed.
 
 Definition gact := (base_act \ act_dom)%gact.
-Definition gtype := locked (sdprod_groupType gact).
+Fact gtype_key : unit. Proof. by []. Qed.
+Definition gtype := locked_with gtype_key (sdprod_groupType gact).
 
 Hypotheses (p_gt1 : p > 1) (q_gt1 : q > 1).
 
 Lemma card : #|[set: gtype]| = (p * q)%N.
 Proof.
-unlock gtype; rewrite -(sdprod_card (sdprod_sdpair _)).
+rewrite [gtype]unlock -(sdprod_card (sdprod_sdpair _)).
 rewrite !card_injm ?injm_sdpair1 ?injm_sdpair2 //.
 by rewrite mulnC -!orderE !order_Zp1 !Zp_cast.
 Qed.
@@ -103,7 +104,7 @@ Qed.
 Lemma Grp : (exists s, [/\ s \in Aut B, #[s] %| p & s b = b ^+ e]) ->
   [set: gtype] \isog Grp (x : y : (x ^+ q, y ^+ p, x ^ y = x ^+ e)).
 Proof.
-unlock gtype; case=> s [AutBs dvd_s_p sb].
+rewrite [gtype]unlock => [[s [AutBs dvd_s_p sb]]].
 have memB: _ \in B by move=> c; rewrite -Zp_cycle inE.
 have Aa: a \in <[a]> by rewrite !cycle_id.
 have [oa ob]: #[a] = p /\ #[b] = q by rewrite !order_Zp1 !Zp_cast.
@@ -150,7 +151,8 @@ Definition dihedral_gtype := gtype q 2 q.-1.
 Definition semidihedral_gtype := gtype q 2 (q %/ p).-1.
 Definition quaternion_kernel :=
   <<[set u | u ^+ 2 == 1] :\: [set u ^+ 2 | u in [set: gtype q 4 q.-1]]>>.
-Definition quaternion_gtype := locked (coset_groupType quaternion_kernel).
+Definition quaternion_gtype :=
+  locked_with gtype_key (coset_groupType quaternion_kernel).
 
 End SpecializeExtremals.
 
@@ -738,7 +740,7 @@ have def_q : m %/ pdiv m = q
   by rewrite /m -(ltn_predK n_gt2) pdiv_pfactor // expnS mulKn.
 have r_gt1 : r > 1 by rewrite (ltn_exp2l 0) // -(subnKC n_gt2).
 have def2r : (2 * r)%N = q by rewrite -expnS /q -(subnKC n_gt2).
-unlock GrpQ quaternion_gtype quaternion_kernel; rewrite {}def_q.
+rewrite /GrpQ [@quaternion_gtype _]unlock /quaternion_kernel {}def_q.
 set B := [set: _]; have: B \homg Grp (u : v : (u ^+ q, v ^+ 4, u ^ v = u^-1)).
   by rewrite -Grp_ext_dihedral ?homg_refl.
 have: #|B| = (q * 4)%N by rewrite card_ext_dihedral // mulnC -muln2 -mulnA.

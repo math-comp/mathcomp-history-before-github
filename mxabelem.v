@@ -239,7 +239,7 @@ Lemma dprod_rowg  m1 m2 (A : 'M[F]_(m1, n)) (B : 'M[F]_(m2, n)) :
   mxdirect (A + B) -> rowg A \x rowg B = rowg (A + B)%MS.
 Proof.
 rewrite (sameP mxdirect_addsP eqP) -trivg_rowg rowgI => /eqP tiAB.
-by rewrite -cprod_rowg dprodEcprod.
+by rewrite -cprod_rowg dprodEcp.
 Qed. 
 
 Lemma bigcprod_rowg m I r (P : pred I) (A : I -> 'M[F]_n) (B : 'M[F]_(m, n)) :
@@ -334,6 +334,7 @@ Proof. by move=> sHG; rewrite gacentE // setTI afix_repr. Qed.
 
 End FinFieldRepr.
 
+Arguments Scope rowg_mx [_ _ group_scope].
 Notation "''Zm'" := (scale_action _ _ _) (at level 8) : action_scope.
 Notation "''Zm'" := (scale_groupAction _ _ _) : groupAction_scope.
 
@@ -398,6 +399,7 @@ Open Scope abelem_scope.
 
 Definition abelem_dim' (gT : finGroupType) (E : {set gT}) :=
   (logn (pdiv #|E|) #|E|).-1.
+Arguments Scope abelem_dim' [_ group_scope].
 Notation "''dim' E" := (abelem_dim' E).+1
   (at level 10, E at level 8, format "''dim'  E") : abelem_scope.
 
@@ -724,8 +726,8 @@ Local Notation rH := (abelem_repr nEH).
 
 Lemma eq_abelem_subg_repr : {in H, rHG =1 rH}.
 Proof.
-move=> x Hx; apply/row_matrixP=> i; rewrite !rowK /abelem_mx_fun.
-by rewrite !subgK ?(subsetP sHG).
+move=> x Hx; apply/row_matrixP=> i; rewrite !rowE !mul_rV_lin1 /=.
+by rewrite /abelem_mx_fun !subgK ?(subsetP sHG).
 Qed.
 
 Lemma rsim_abelem_subg : mx_rsim rHG rH.

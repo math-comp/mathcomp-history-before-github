@@ -69,7 +69,7 @@ suffices{IHr} /and3P[p'F sFG nFG]: p^'.-group F && (F <| G).
   have{pGp} tiGpF: 'O_p(G) :&: F = 1 by rewrite coprime_TIg ?(pnat_coprime pGp).
   exists ('O_p(G) <*> F)%G; rewrite dprodEY // (sameP commG1P trivgP) -tiGpF.
   by rewrite subsetI commg_subl commg_subr (subset_trans sFG) // gFnorm.
-move/bigdprodEY: defF => <- {F}; elim: r rp => [_|q r IHr] /=.
+move/bigdprodWY: defF => <- {F}; elim: r rp => [_|q r IHr] /=.
   by rewrite big_nil gen0 pgroup1 normal1.
 rewrite inE eq_sym big_cons -joingE -joing_idr => /norP[qp /IHr {IHr}].
 set F := <<_>> => /andP[p'F nsFG]; rewrite norm_joinEl /= -/F; last first.
@@ -94,6 +94,15 @@ Definition SCN B := [set A : {group gT} | A <| B & 'C_B(A) == A].
 Definition SCN_at n B := [set A in SCN B | n <= 'r(A)].
 
 End Defs.
+
+Arguments Scope charsimple [_ group_scope].
+Arguments Scope Frattini [_ group_scope].
+Arguments Scope Fitting [_ group_scope].
+Arguments Scope critical [_ group_scope group_scope].
+Arguments Scope special [_ group_scope].
+Arguments Scope extraspecial [_ group_scope].
+Arguments Scope SCN [_ group_scope].
+Arguments Scope SCN_at [_ nat_scope group_scope].
 
 Prenex Implicits maximal simple charsimple critical special extraspecial.
 
@@ -373,7 +382,7 @@ Implicit Types (p : nat) (G H : {group gT}).
 
 Lemma Fitting_normal G : 'F(G) <| G.
 Proof.
-rewrite -['F(G)](bigdprodEY (erefl 'F(G))).
+rewrite -['F(G)](bigdprodWY (erefl 'F(G))).
 elim/big_rec: _ => [|p H _ nsHG]; first by rewrite gen0 normal1.
 by rewrite -[<<_>>]joing_idr normalY ?pcore_normal.
 Qed.
@@ -396,7 +405,7 @@ case Gp: (p \in \pi(G)); last first.
   rewrite part_p'nat // (pnat_dvd (cardSg (normal_sub nsHG))) //.
   by rewrite /pnat cardG_gt0 all_predC has_pred1 Gp.
 move/nilpotent_Hall_pcore: SylP => ->{P} //.
-rewrite -(bigdprodEY (erefl 'F(G))) sub_gen //.
+rewrite -(bigdprodWY (erefl 'F(G))) sub_gen //.
 rewrite -(filter_pi_of (ltnSn _)) big_filter big_mkord.
 have le_pG: p < #|G|.+1.
   by rewrite ltnS dvdn_leq //; move: Gp; rewrite mem_primes => /and3P[].
@@ -433,7 +442,7 @@ Lemma FittingEgen G :
   'F(G) = <<\bigcup_(p < #|G|.+1 | (p : nat) \in \pi(G)) 'O_p(G)>>.
 Proof.
 apply/eqP; rewrite eqEsubset gen_subG /=.
-rewrite -{1}(bigdprodEY (erefl 'F(G))) (big_nth 0) big_mkord genS.
+rewrite -{1}(bigdprodWY (erefl 'F(G))) (big_nth 0) big_mkord genS.
   by apply/bigcupsP=> p _; rewrite -p_core_Fitting pcore_sub.
 apply/bigcupsP=> [[i /= lti]] _; set p := nth _ _ i.
 have pi_p: p \in \pi(G) by rewrite mem_nth.
@@ -598,7 +607,7 @@ have [f Af sfHM]: exists2 f, f \in Aut G & ~~ (f @: H \subset M).
   move: not_sGM; rewrite -{1}defG gen_subG; case/subsetPn=> x.
   by case/bigcupP=> f Af fHx Mx; exists f => //; apply/subsetPn; exists x.
 case If: (f \in I).
-  by case/negP: sfHM; rewrite -(bigdprodEY defM) sub_gen // (bigcup_max f).
+  by case/negP: sfHM; rewrite -(bigdprodWY defM) sub_gen // (bigcup_max f).
 case/idP: (If); rewrite -(maxI ([set f] :|: I)) ?subsetUr ?inE ?eqxx //.
 rewrite {maxI}/Iok subUset sub1set Af {}Aut_I; apply/existsP.
 have sfHG: autm Af @* H \subset G by rewrite -{4}(im_autm Af) morphimS.

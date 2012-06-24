@@ -188,7 +188,9 @@ Section Defs.
 
 Variables (m n : nat) (A : 'M_(m, n)).
 
-Let LUr := locked (@Gaussian_elimination) m n A.
+Fact Gaussian_elimination_key : unit. Proof. by []. Qed.
+
+Let LUr := locked_with Gaussian_elimination_key (@Gaussian_elimination) m n A.
 
 Definition col_ebase := LUr.1.1.
 Definition row_ebase := LUr.1.2.
@@ -214,14 +216,12 @@ Local Notation "\rank A" := (mxrank A) : nat_scope.
 Arguments Scope complmx [nat_scope nat_scope matrix_set_scope].
 Local Notation "A ^C" := (complmx A) : matrix_set_scope.
 
-Let mxopE k opty (op : forall m, opty m) n :
-  (let f := let: tt := k in idfun op in f) n = op n.
-Proof. by case: k. Qed.
-
 Definition submx_def := idfun (fun m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) =>
   A *m cokermx B == 0).
 Fact submx_key : unit. Proof. by []. Qed.
-Definition submx := let: tt := submx_key in submx_def.
+Definition submx := locked_with submx_key submx_def.
+Canonical submx_unlockable := [unlockable fun submx].
+
 Arguments Scope submx
   [nat_scope nat_scope nat_scope matrix_set_scope matrix_set_scope].
 Prenex Implicits submx.
@@ -282,7 +282,8 @@ Definition genmx_witness m n (A : 'M_(m, n)) : 'M_n :=
 Definition genmx_def := idfun (fun m n (A : 'M_(m, n)) =>
    choose (equivmx A (row_full A)) (genmx_witness A) : 'M_n).
 Fact genmx_key : unit. Proof. by []. Qed.
-Definition genmx := let: tt := genmx_key in genmx_def.
+Definition genmx := locked_with genmx_key genmx_def.
+Canonical genmx_unlockable := [unlockable fun genmx].
 Local Notation "<< A >>" := (genmx A) : matrix_set_scope.
 
 (* The setwise sum is tweaked so that 0 is a strict identity element for      *)
@@ -293,7 +294,8 @@ Definition addsmx_def := idfun (fun m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) =>
   if A == 0 then addsmx_nop B else if B == 0 then addsmx_nop A else
   <<col_mx A B>>%MS : 'M_n).
 Fact addsmx_key : unit. Proof. by []. Qed.
-Definition addsmx := let: tt := addsmx_key in addsmx_def.
+Definition addsmx := locked_with addsmx_key addsmx_def.
+Canonical addsmx_unlockable := [unlockable fun addsmx].
 Arguments Scope addsmx
   [nat_scope nat_scope nat_scope matrix_set_scope matrix_set_scope].
 Prenex Implicits addsmx.
@@ -328,7 +330,8 @@ Definition capmx_def := idfun (fun m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) =>
   if qidmx B then capmx_nop A else
   if row_full B then capmx_norm A else capmx_norm (capmx_gen A B) : 'M_n).
 Fact capmx_key : unit. Proof. by []. Qed.
-Definition capmx := let: tt := capmx_key in capmx_def.
+Definition capmx := locked_with capmx_key capmx_def.
+Canonical capmx_unlockable := [unlockable fun capmx].
 Arguments Scope capmx
   [nat_scope nat_scope nat_scope matrix_set_scope matrix_set_scope].
 Prenex Implicits capmx.
@@ -339,7 +342,8 @@ Local Notation "\bigcap_ ( i | P ) B" := (\big[capmx/1%:M]_(i | P) B)
 Definition diffmx_def := idfun (fun m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) =>
   <<capmx_gen A (capmx_gen A B)^C>>%MS : 'M_n).
 Fact diffmx_key : unit. Proof. by []. Qed.
-Definition diffmx := let: tt := diffmx_key in diffmx_def.
+Definition diffmx := locked_with diffmx_key diffmx_def.
+Canonical diffmx_unlockable := [unlockable fun diffmx].
 Arguments Scope diffmx
   [nat_scope nat_scope nat_scope matrix_set_scope matrix_set_scope].
 Prenex Implicits diffmx.
@@ -350,7 +354,7 @@ Definition proj_mx n (U V : 'M_n) : 'M_n := pinvmx (col_mx U V) *m col_mx U 0.
 Local Notation GaussE := Gaussian_elimination.
 
 Fact mxrankE m n (A : 'M_(m, n)) : \rank A = (GaussE A).2.
-Proof. by unlock mxrank; case: m n A => [|m] [|n]. Qed.
+Proof. by rewrite /mxrank unlock /=; case: m n A => [|m] [|n]. Qed.
 
 Lemma rank_leq_row m n (A : 'M_(m, n)) : \rank A <= m.
 Proof.
@@ -375,7 +379,7 @@ Proof. by rewrite /row_full eqn_leq rank_leq_col. Qed.
 Let unitmx1F := @unitmx1 F.
 Lemma row_ebase_unit m n (A : 'M_(m, n)) : row_ebase A \in unitmx.
 Proof.
-unlock row_ebase; elim: m n A => [|m IHm] [|n] //= A.
+rewrite /row_ebase unlock; elim: m n A => [|m IHm] [|n] //= A.
 case: pickP => [[i j] /= nzAij | //=]; move: (_ - _) => B.
 case: GaussE (IHm _ B) => [[L U] r] /= uU.
 rewrite unitmxE xcolE det_mulmx (@det_ublock _ 1) det_scalar1 !unitrM.
@@ -384,7 +388,7 @@ Qed.
 
 Lemma col_ebase_unit m n (A : 'M_(m, n)) : col_ebase A \in unitmx.
 Proof.
-unlock col_ebase; elim: m n A => [|m IHm] [|n] //= A.
+rewrite /col_ebase unlock; elim: m n A => [|m IHm] [|n] //= A.
 case: pickP => [[i j] _|] //=; move: (_ - _) => B.
 case: GaussE (IHm _ B) => [[L U] r] /= uL.
 rewrite unitmxE xrowE det_mulmx (@det_lblock _ 1) det1 mul1r unitrM.
@@ -395,7 +399,7 @@ Hint Resolve rank_leq_row rank_leq_col row_ebase_unit col_ebase_unit.
 Lemma mulmx_ebase m n (A : 'M_(m, n)) :
   col_ebase A *m pid_mx (\rank A) *m row_ebase A = A.
 Proof.
-rewrite mxrankE /col_ebase /row_ebase -!lock.
+rewrite mxrankE /col_ebase /row_ebase unlock.
 elim: m n A => [n A | m IHm]; first by rewrite [A]flatmx0 [_ *m _]flatmx0.
 case=> [A | n]; first by rewrite [_ *m _]thinmx0 [A]thinmx0.
 rewrite -(add1n m) -?(add1n n) => A /=.
@@ -486,7 +490,7 @@ Qed.
 
 Lemma submxE m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
   (A <= B)%MS = (A *m cokermx B == 0).
-Proof. by rewrite mxopE. Qed.
+Proof. by rewrite unlock. Qed.
 
 Lemma mulmxKpV m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
   (A <= B)%MS -> A *m pinvmx B *m B = A.
@@ -832,13 +836,13 @@ Qed.
 
 Lemma genmxE m n (A : 'M_(m, n)) : (<<A>> :=: A)%MS.
 Proof.
-by rewrite mxopE; apply/eqmxP; case/andP: (chooseP (genmx_witnessP A)).
+by rewrite unlock; apply/eqmxP; case/andP: (chooseP (genmx_witnessP A)).
 Qed.
 
 Lemma eq_genmx m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
   (A :=: B -> <<A>> = <<B>>)%MS.
 Proof.
-move=> eqAB; rewrite ![@genmx _]mxopE.
+move=> eqAB; rewrite unlock.
 have{eqAB} eqAB: equivmx A (row_full A) =1 equivmx B (row_full B).
   by move=> C; rewrite /row_full /equivmx !eqAB.
 rewrite (eq_choose eqAB) (choose_id _ (genmx_witnessP B)) //.
@@ -858,7 +862,7 @@ Proof. by apply/eqP; rewrite -submx0 genmxE sub0mx. Qed.
 
 Lemma genmx1 n : <<1%:M : 'M_n>>%MS = 1%:M.
 Proof.
-rewrite mxopE; case/andP: (chooseP (@genmx_witnessP n n 1%:M)) => _ /eqP.
+rewrite unlock; case/andP: (chooseP (@genmx_witnessP n n 1%:M)) => _ /eqP.
 by rewrite qidmx_eq1 row_full_unit unitmx1 => /eqP.
 Qed.
 
@@ -934,7 +938,7 @@ Qed.
 Lemma addsmxE : (A + B :=: col_mx A B)%MS.
 Proof.
 have:= submx_refl (col_mx A B); rewrite col_mx_sub; case/andP=> sAS sBS.
-rewrite mxopE; do 2?case: eqP => [AB0 | _]; last exact: genmxE.
+rewrite unlock; do 2?case: eqP => [AB0 | _]; last exact: genmxE.
   by apply/eqmxP; rewrite !eqmx_sum_nop sBS col_mx_sub AB0 sub0mx /=.
 by apply/eqmxP; rewrite !eqmx_sum_nop sAS col_mx_sub AB0 sub0mx andbT /=.
 Qed.
@@ -982,12 +986,12 @@ Lemma addsmxC m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) : (A + B = B + A)%MS.
 Proof.
 have: (A + B == B + A)%MS.
   by apply/andP; rewrite !addsmx_sub andbC -addsmx_sub andbC -addsmx_sub.
-move/genmxP; rewrite ![@addsmx _]mxopE -!submx0 !submx0.
+move/genmxP; rewrite [@addsmx]unlock -!submx0 !submx0.
 by do 2!case: eqP => [// -> | _]; rewrite ?genmx_id ?addsmx_nop0.
 Qed.
 
 Lemma adds0mx_id m1 n (B : 'M_n) : ((0 : 'M_(m1, n)) + B)%MS = B.
-Proof. by rewrite mxopE eqxx addsmx_nop_id. Qed.
+Proof. by rewrite unlock eqxx addsmx_nop_id. Qed.
 
 Lemma addsmx0_id m2 n (A : 'M_n) : (A + (0 : 'M_(m2, n)))%MS = A.
 Proof. by rewrite addsmxC adds0mx_id. Qed.
@@ -997,8 +1001,8 @@ Lemma addsmxA m1 m2 m3 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) (C : 'M_(m3, n)) :
 Proof.
 have: (A + (B + C) :=: A + B + C)%MS.
   by apply/eqmxP/andP; rewrite !addsmx_sub -andbA andbA -!addsmx_sub.
-rewrite {1 3}[@addsmx m1]mxopE [@addsmx n]mxopE !addsmx_nop_id -!submx0.
-rewrite !addsmx_sub ![@addsmx _]mxopE -!submx0; move/eq_genmx.
+rewrite {1 3}[in @addsmx m1]unlock [in @addsmx n]unlock !addsmx_nop_id -!submx0.
+rewrite !addsmx_sub ![@addsmx]unlock -!submx0; move/eq_genmx.
 by do 3!case: (_ <= 0)%MS; rewrite //= !genmx_id.
 Qed.
 
@@ -1046,7 +1050,7 @@ Lemma genmx_adds m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
   (<<(A + B)%MS>> = <<A>> + <<B>>)%MS.
 Proof.
 rewrite -(eq_genmx (adds_eqmx (genmxE A) (genmxE B))).
-by rewrite ![@addsmx _]mxopE !addsmx_nop_id !(fun_if (@genmx _ _)) !genmx_id.
+by rewrite [@addsmx]unlock !addsmx_nop_id !(fun_if (@genmx _ _)) !genmx_id.
 Qed.
 
 Lemma sub_addsmxP m1 m2 m3 n
@@ -1272,7 +1276,7 @@ Qed.
 Let qidmx_cap m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
   qidmx (A :&: B)%MS = qidmx A && qidmx B.
 Proof.
-rewrite mxopE -sub1mx.
+rewrite unlock -sub1mx.
 case idA: (qidmx A); case idB: (qidmx B); try by rewrite capmx_nopP.
 case s1B: (_ <= B)%MS; first by rewrite capmx_normP.
 apply/idP=> /(sub_qidmx 1%:M).
@@ -1282,7 +1286,7 @@ Qed.
 Let capmx_eq_norm m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
   qidmx A = qidmx B -> (A :&: B)%MS = capmx_norm (A :&: B)%MS.
 Proof.
-move=> eqABid; rewrite mxopE -sub1mx {}eqABid.
+move=> eqABid; rewrite unlock -sub1mx {}eqABid.
 have norm_id m (C : 'M_(m, n)) (N := capmx_norm C) : capmx_norm N = N.
   by apply: capmx_norm_eq; rewrite ?capmx_normP ?andbb.
 case idB: (qidmx B); last by case: ifP; rewrite norm_id.
@@ -1295,7 +1299,7 @@ Qed.
 Lemma capmxE m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
   (A :&: B :=: capmx_gen A B)%MS.
 Proof.
-rewrite mxopE -sub1mx; apply/eqmxP.
+rewrite unlock -sub1mx; apply/eqmxP.
 have:= submx_refl (capmx_gen A B); rewrite !sub_capmx_gen => /andP[sIA sIB].
 case idA: (qidmx A); first by rewrite !capmx_nopP submx_refl sub_qidmx.
 case idB: (qidmx B); first by rewrite !capmx_nopP submx_refl sub_qidmx.
@@ -1316,7 +1320,7 @@ have [eqAB|] := eqVneq (qidmx A) (qidmx B).
   rewrite (capmx_eq_norm eqAB) (capmx_eq_norm (esym eqAB)).
   apply: capmx_norm_eq; first by rewrite !qidmx_cap andbC.
   by apply/andP; split; rewrite !sub_capmx andbC -sub_capmx.
-by rewrite negb_eqb !mxopE => /addbP <-; case: (qidmx A).
+by rewrite negb_eqb !unlock => /addbP <-; case: (qidmx A).
 Qed.
 
 Lemma capmxSr m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) : (A :&: B <= B)%MS.
@@ -1370,7 +1374,7 @@ Let capmx_nop_id n (A : 'M_n) : capmx_nop A = A.
 Proof. by rewrite /capmx_nop conform_mx_id. Qed.
 
 Lemma cap1mx n (A : 'M_n) : (1%:M :&: A = A)%MS.
-Proof. by rewrite mxopE qidmx_eq1 eqxx capmx_nop_id. Qed.
+Proof. by rewrite unlock qidmx_eq1 eqxx capmx_nop_id. Qed.
 
 Lemma capmx1 n (A : 'M_n) : (A :&: 1%:M = A)%MS.
 Proof. by rewrite capmxC cap1mx. Qed.
@@ -1380,13 +1384,13 @@ Lemma genmx_cap m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
 Proof.
 rewrite -(eq_genmx (cap_eqmx (genmxE A) (genmxE B))).
 case idAB: (qidmx <<A>> || qidmx <<B>>)%MS.
-  rewrite [@capmx _]mxopE !capmx_nop_id !(fun_if (@genmx _ _)) !genmx_id.
+  rewrite [@capmx]unlock !capmx_nop_id !(fun_if (@genmx _ _)) !genmx_id.
   by case: (qidmx _) idAB => //= ->.
 case idA: (qidmx _) idAB => //= idB; rewrite {2}capmx_eq_norm ?idA //.
 set C := (_ :&: _)%MS; have eq_idC: row_full C = qidmx C.
   rewrite qidmx_cap idA -sub1mx sub_capmx genmxE; apply/andP=> [[s1A]].
   by case/idP: idA; rewrite qidmx_eq1 -genmx1 (sameP eqP genmxP) submx1.
-rewrite [@genmx _]mxopE /capmx_norm eq_idC.
+rewrite unlock /capmx_norm eq_idC.
 by apply: choose_id (capmx_witnessP _); rewrite -eq_idC genmx_witnessP.
 Qed.
 
@@ -1400,11 +1404,11 @@ rewrite (capmxC A B) capmxC; wlog idA: m1 m3 A C / qidmx A.
   rewrite capmx_eq_norm ?qidmx_cap ?idA ?idC ?andbF //.
   apply: capmx_norm_eq; first by rewrite !qidmx_cap andbAC.
   by apply/andP; split; rewrite !sub_capmx andbAC -!sub_capmx.
-rewrite -!(capmxC A) ![@capmx m1]mxopE idA capmx_nop_id.
+rewrite -!(capmxC A) [in @capmx m1]unlock idA capmx_nop_id.
 have [eqBC |] :=eqVneq (qidmx B) (qidmx C).
   rewrite (@capmx_eq_norm n) ?capmx_nopP // capmx_eq_norm //.
   by apply: capmx_norm_eq; rewrite ?qidmx_cap ?capmxS ?capmx_nopP.
-by rewrite !mxopE capmx_nopP capmx_nop_id; do 2?case: (qidmx _) => //.
+by rewrite !unlock capmx_nopP capmx_nop_id; do 2?case: (qidmx _) => //.
 Qed.
 
 Canonical capmx_monoid n :=
@@ -1489,11 +1493,11 @@ Qed.
 
 Lemma diffmxE m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
   (A :\: B :=: A :&: (capmx_gen A B)^C)%MS.
-Proof. by rewrite mxopE; apply/eqmxP; rewrite !genmxE !capmxE andbb. Qed.
+Proof. by rewrite unlock; apply/eqmxP; rewrite !genmxE !capmxE andbb. Qed.
 
 Lemma genmx_diff m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
   (<<A :\: B>> = A :\: B)%MS.
-Proof. by rewrite [@diffmx _]mxopE genmx_id. Qed.
+Proof. by rewrite [@diffmx]unlock genmx_id. Qed.
  
 Lemma diffmxSl m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) : (A :\: B <= A)%MS.
 Proof. by rewrite diffmxE capmxSl. Qed.
@@ -2630,7 +2634,7 @@ Local Notation "A ^f" := (map_mx f A) : ring_scope.
 Lemma Gaussian_elimination_map m n (A : 'M_(m, n)) :
   Gaussian_elimination A^f = ((col_ebase A)^f, (row_ebase A)^f, \rank A).
 Proof.
-rewrite mxrankE /row_ebase /col_ebase -lock.
+rewrite mxrankE /row_ebase /col_ebase unlock.
 elim: m n A => [|m IHm] [|n] A /=; rewrite ?map_mx1 //.
 set pAnz := [pred k | A k.1 k.2 != 0].
 rewrite (@eq_pick _ _ pAnz) => [|k]; last by rewrite /= mxE fmorph_eq0.
@@ -2651,10 +2655,10 @@ Lemma row_full_map m n (A : 'M_(m, n)) : row_full A^f = row_full A.
 Proof. by rewrite /row_full mxrank_map. Qed.
 
 Lemma map_row_ebase m n (A : 'M_(m, n)) : (row_ebase A)^f = row_ebase A^f.
-Proof. by unlock {2}row_ebase; rewrite Gaussian_elimination_map. Qed.
+Proof. by rewrite {2}/row_ebase unlock Gaussian_elimination_map. Qed.
 
 Lemma map_col_ebase m n (A : 'M_(m, n)) : (col_ebase A)^f = col_ebase A^f.
-Proof. by unlock {2}col_ebase; rewrite Gaussian_elimination_map. Qed.
+Proof. by rewrite {2}/col_ebase unlock Gaussian_elimination_map. Qed.
 
 Lemma map_row_base m n (A : 'M_(m, n)) :
   (row_base A)^f = castmx (mxrank_map A, erefl n) (row_base A^f).

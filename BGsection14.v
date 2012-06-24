@@ -89,8 +89,11 @@ Definition sigma_cover M := \bigcup_(x in (M`_\sigma)^#) x *: FT_signalizer x.
 
 Definition tau13 M := [predU \tau1(M) & \tau3(M)].
 
-Definition kappa := locked (fun M =>
-  [pred p in tau13 M | [exists P in 'E_p^1(M), 'C_(M`_\sigma)(P) != 1]]).
+Fact kappa_key : unit. Proof. by []. Qed.
+Definition kappa_def M : nat_pred :=
+  [pred p in tau13 M | [exists P in 'E_p^1(M), 'C_(M`_\sigma)(P) != 1]].
+Definition kappa := locked_with kappa_key kappa_def.
+Canonical kappa_unlockable := [unlockable fun kappa].
 
 Definition sigma_kappa M := [predU \sigma(M) & kappa M].
 
@@ -293,7 +296,7 @@ Qed.
 (* Basic properties of \kappa and the maximal group subclasses. *)
 Lemma kappaJ : forall M x, \kappa(M :^ x) =i \kappa(M).
 Proof.
-move=> M x p; unlock kappa; rewrite 3!{1}inE /= tau1J tau3J.
+move=> M x p; rewrite unlock 3!{1}inE /= tau1J tau3J.
 apply: andb_id2l => _; apply/exists_inP/exists_inP=> [] [P EpP ntCMsP].
   rewrite -(conjsgK x M); exists (P :^ x^-1)%G; first by rewrite pnElemJ.
   by rewrite MsigmaJ centJ -conjIg -subG1 sub_conjg conjs1g subG1.
@@ -303,10 +306,10 @@ Qed.
 
 Lemma kappa_tau13 : forall M p,
   p \in \kappa(M) -> (p \in \tau1(M)) || (p \in \tau3(M)).
-Proof. by unlock kappa => M p; case/andP. Qed.
+Proof. by rewrite unlock => M p /andP[]. Qed.
 
 Lemma kappa_sigma' : forall M, {subset \kappa(M) <= \sigma(M)^'}.
-Proof. by move=> M p; move/kappa_tau13; case/orP; case/andP. Qed.
+Proof. by move=> M p /kappa_tau13/orP[] /andP[]. Qed.
 
 Remark rank_kappa : forall M p, p \in \kappa(M) -> 'r_p(M) = 1%N.
 Proof. by move=> M p; move/kappa_tau13; case/orP; case/and3P=> _; move/eqP. Qed.
@@ -320,7 +323,7 @@ Proof.
 move=> M p P kMp EpP; have rpM := rank_kappa kMp.
 have [sPM abelP oP] := pnElemPcard EpP; have [pP _] := andP abelP.
 have [Q EpQ nregQ]: exists2 Q, Q \in 'E_p^1(M) & 'C_(M`_\sigma)(Q) != 1.
-  by apply/exists_inP; unlock kappa in kMp; case/andP: kMp.
+  by apply/exists_inP; rewrite unlock in kMp; case/andP: kMp.
 have [sQM abelQ oQ] := pnElemPcard EpQ; have [pQ _] := andP abelQ.
 have [S sylS sQS] := Sylow_superset sQM pQ; have [_ pS _] := and3P sylS.
 have [x Mx sPxS] := Sylow_Jsub sylS sPM pP.
@@ -435,7 +438,7 @@ have [p_pr _ _] := pgroup_pdiv pS ntS.
 have oA: #|A| = p by rewrite (Ohm1_cyclic_pgroup_prime cycS pS).
 have sAM: A \subset M := subset_trans (Ohm_sub 1 S) sSM.
 have regA: 'C_Ms(A) = 1.
-  apply: contraNeq kM'p => nregA; unlock kappa; apply/andP; split=> //.
+  apply: contraNeq kM'p => nregA; rewrite unlock; apply/andP; split=> //.
   by apply/exists_inP; exists [group of A]; rewrite ?p1ElemE // !inE sAM oA /=.
 have defMsA: Ms ><| A = Ms <*> A.
   rewrite sdprodEY ?coprime_TIg ?(subset_trans sAM) ?gFnorm // oA.
@@ -495,7 +498,7 @@ have [have_a nK1K ntE1 sE1K]: [/\ part_a, b1_hyp, E1 :!=: 1 & E1 \subset K].
     have sKE1: K \subset E1 by rewrite (sub_pHall hallF1 t1K).
     have prE1 := tau1_primact_Msigma maxM hallE hallE1.
     have st1k: {subset \tau1(M) <= \kappa(M)}.
-      move=> p t1p; rewrite /kappa -lock 3!inE /= t1p /=.
+      move=> p t1p; rewrite unlock 3!inE /= t1p /=.
       have [X]: exists X, X \in 'E_p^1(E1).
         apply/p_rank_geP; rewrite p_rank_gt0 /= (card_Hall hallE1).
         by rewrite pi_of_part // inE /= (partition_pi_sigma_compl maxM) ?t1p.
@@ -545,7 +548,7 @@ have [have_a nK1K ntE1 sE1K]: [/\ part_a, b1_hyp, E1 :!=: 1 & E1 \subset K].
         suffices kq: q \in \kappa(M).
           rewrite (pnatPpi t1K) //= (card_Hall hallK) pi_of_part //.
           by rewrite inE /= kappa_pi.
-        rewrite /kappa -lock 3!inE /= (pnatPpi t3E3 piE3q) orbT /=.
+        rewrite unlock 3!inE /= (pnatPpi t3E3 piE3q) orbT /=.
         by apply/exists_inP; exists X.
       pose q := pdiv #|'C_E2(Y)|; have [sE2E t2E2 _] := and3P hallE2.
       have piCE2Yq: q \in \pi('C_E2(Y)) by rewrite pi_pdiv cardG_gt1.
@@ -588,7 +591,7 @@ have [have_a nK1K ntE1 sE1K]: [/\ part_a, b1_hyp, E1 :!=: 1 & E1 \subset K].
   have defK: E :=: K.
     apply: (sub_pHall hallK _ sKE sEM); apply/pgroupP=> q q_pr q_dv_E.
     have{q_dv_E} piEq: q \in \pi(E) by rewrite mem_primes q_pr cardG_gt0.
-    unlock kappa; apply/andP; split=> /=.
+    rewrite unlock; apply/andP; split=> /=.
       apply: pnatPpi piEq; rewrite -pgroupE; case/sdprodP: defE => _ <- _ _.
       rewrite pgroupM (sub_pgroup _ t3E3) => [|r t3r]; last by apply/orP; right.
       by rewrite (sub_pgroup _ t1E1) // => r t1r; apply/orP; left.
@@ -839,7 +842,7 @@ have t13p: p \in [predU \tau1(M) & \tau3(M)].
 have [X]: exists X, X \in 'E_p^1(<[y]>) by apply/p_rank_geP; rewrite p_rank_gt0.
 rewrite -(setIidPr sYM) pnElemI -setIdE; case/setIdP=> EpX sXy.
 have kp: p \in \kappa(M).
-  unlock kappa; apply/andP; split=> //; apply/exists_inP; exists X => //.
+  rewrite unlock; apply/andP; split=> //; apply/exists_inP; exists X => //.
   apply/trivgPn; exists x; rewrite // inE Ms_x (subsetP (centS sXy)) //.
   by rewrite cent_cycle cent1C.
 have [sXM abelX dimX] := pnElemP EpX; have [pX _] := andP abelX.
@@ -2205,7 +2208,7 @@ have [sKM s'K] := (subset_trans sKE sEM, pgroupS sKE s'E).
 have regQ: 'C_(M`_\sigma)(Q) = 1.
   apply/eqP; apply: contraFT (k'M q) => nregQ.
   have EqQ_M: Q \in 'E_q^1(M) by exact/pnElemP.
-  by unlock kappa; rewrite 3!inE /= t1Mq; apply/exists_inP; exists Q. 
+  by rewrite unlock 3!inE /= t1Mq; apply/exists_inP; exists Q. 
 have nsKM: K <| M.
   have [s'q _] := andP t1Mq.
   have EqQ_NK: Q \in 'E_q^1('N_M(K)) by apply/pnElemP; rewrite subsetI sQM.
@@ -2269,7 +2272,7 @@ have nregQHs: 'C_(H`_\sigma)(Q) != 1.
 have{t12Hq} [/= t1Hq | /= t2Hq] := orP t12Hq.
   have EqQ_H: Q \in 'E_q^1(H) by exact/pnElemP.
   have kHq: q \in \kappa(H).
-    by unlock kappa; rewrite 3!inE /= t1Hq; apply/exists_inP; exists Q.
+    by rewrite unlock 3!inE /= t1Hq; apply/exists_inP; exists Q.
   right; split=> //; apply: contraR b'Hp => notP1maxH.
   have PmaxH: H \in 'M_'P by apply/PtypeP; split=> //; exists q.
   have [L hallL] := Hall_exists \kappa(H) (mmax_sol maxH).
@@ -2366,7 +2369,7 @@ have sK_FD: K \subset 'F(D).
   have [PmaxL _] := setIdP P1maxL.
   case/setUP: (defPmax L PmaxL); case/imsetP=> a _ defL.
     by rewrite (group_inj defL) P1typeJ in P1maxL.
-  move: kLq; rewrite defL kappaJ; unlock kappa; rewrite 3!inE /=.
+  move: kLq; rewrite defL kappaJ unlock 3!inE /=.
   by rewrite -andb_orr inE /= sMst_q.
 have sDMst: D \subset Mst.
   apply: snK_sMst (subnormal_trans _ (normal_subnormal (Fitting_normal D))).
@@ -2445,9 +2448,8 @@ have nregHsK: 'C_(H`_\sigma)(K) != 1.
 have t2Hq: q \in \tau2(H).
   have: q \in \pi(D) := piSg sKD piKq.
   rewrite (partition_pi_sigma_compl maxH hallD) orbCA; case/orP=> // t13Hq.
-  case/FtypeP: FmaxH => _; move/(_ q); case/idP; unlock kappa.
-  rewrite 3!inE /= t13Hq; apply/exists_inP; exists K => //.
-  by rewrite p1ElemE // !inE sKH /=.
+  case/FtypeP: FmaxH => _ /(_ q)/idP[]; rewrite unlock 3!inE /= t13Hq.
+  by apply/exists_inP; exists K => //; rewrite p1ElemE // !inE sKH /=.
 have [A EqA_D EqA] := ex_tau2Elem hallD t2Hq.
 have [_ _ _ -> //] := tau2_context maxH t2Hq EqA.
 rewrite 3!inE -val_eqE /= eq_sym (contra_orbit _ _ notMstGH) maxMst.
@@ -2538,7 +2540,7 @@ have t1Mq: q \in \tau1(M).
 have EqEQ: Q \in 'E_q^1(E) by exact/pnElemP.
 have regMsQ: 'C_(M`_\sigma)(Q) = 1.
   apply: contraTeq FmaxM => nregMsQ; apply/FtypeP=> [[_]]; move/(_ q).
-  by unlock kappa; rewrite 3!inE /= t1Mq; case/exists_inP; exists Q.
+  by rewrite unlock 3!inE /= t1Mq; case/exists_inP; exists Q.
 have [[]] := tau1_act_tau2 maxM hallE t2Mp Ep2A t1Mq EqEQ regMsQ ntA0.
 rewrite -/A0 -/A1 => EpA0 cMsA0 _ notA1GA0 [EpA1 _].
 have [sA0A abelA0 oA0] := pnElemPcard EpA0; have [pA0 _] := andP abelA0.

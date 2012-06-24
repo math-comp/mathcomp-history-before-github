@@ -42,14 +42,7 @@ Variable (F : finFieldType).
 
 Lemma unit_card : #|[set: {unit F}]| = #|F|.-1.
 Proof.
-rewrite -(cardC1 0) -(card_imset _ val_inj).
-apply: eq_card => x.
-rewrite -[_ \in predC1 0]unitfE.
-apply/imsetP/idP.
- by case => [[y Hy]] _ -> /=.
-move => Hx.
-exists (FinRing.unit F Hx); first by rewrite inE.
-by rewrite SubK.
+by rewrite -(cardC1 0) cardsT card_sub; apply: eq_card => x; rewrite unitfE.
 Qed.
 
 Lemma finField_card_gt0 : 0 < #|F|.
@@ -63,21 +56,11 @@ by exists 1%g.
 Qed.
 
 Lemma unit_cyclic : cyclic [set: {unit F}].
-Proof.
-have Hf1 : forall x : {unit F}, FinRing.uval x = 1 <-> x = 1%g.
- move => y; split; last by move ->.
- by move => Hy; apply: val_inj.
-have HfM : {morph (@FinRing.uval F) : u v  / (u * v)%g >-> u * v} by done.
-by apply: field_mul_group_cyclic (fun a b _ _ => HfM a b) (fun a _ => Hf1 a).
-Qed.
+Proof. exact: field_unit_group_cyclic. Qed.
 
 Lemma unit_finField_expg (u : {unit F}) n :
   val (u ^+ n)%g = val u ^+ n.
-Proof.
-elim: n => [//|n IHn].
-rewrite expgS exprS -IHn.
-by case: {IHn} u (u ^+ n)%g.
-Qed.
+Proof. exact: val_unitX. Qed.
 
 Lemma expf_card (x : F) : x ^+ #|F| = x.
 Proof.
@@ -243,16 +226,9 @@ by rewrite ffunE coord_sum_free // (basis_free (vbasisP U)).
 Qed.
 
 Canonical finField_ZpfieldExtType :=
-  Eval hnf in @FieldExt.Pack _ (Phant 'F_(char F)) F
-   (let: c := FinRing.Field.class F in
-    let: fMixin := 
-      (let: GRing.Field.Class _ fm as c' := c : GRing.Field.class_of F return GRing.Field.mixin_of (GRing.UnitRing.Pack c' _) in fm) in
-    let: idAxiom :=
-      (let: GRing.IntegralDomain.Class _ ida as c' := c : GRing.IntegralDomain.class_of F return GRing.IntegralDomain.axiom (GRing.Ring.Pack c' _)  in ida) in
-    let: crAxiom :=
-      (let: GRing.ComRing.Class _ cra as c' := c : GRing.ComRing.class_of F return commutative (GRing.Ring.mul c') in cra) in
-    (@FieldExt.Class _ F (Falgebra.class finField_ZpfalgType) crAxiom idAxiom fMixin)
-   ) F.
+  @FieldExt.Pack _ (Phant 'F_(char F)) F
+    (let cF := GRing.Field.class F in
+     @FieldExt.Class _ F (Falgebra.class finField_ZpfalgType) cF cF cF) F.
 
 Fact finField_Zp_splittingFieldAxiom :
   SplittingField.axiom finField_ZpfieldExtType.

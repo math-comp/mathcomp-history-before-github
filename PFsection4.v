@@ -704,7 +704,7 @@ Definition Dade_chi j : Iirr K :=
 Local Notation chi := Dade_chi.
 
 Let W1isoLqK : W1 \isog (L / K)%g.
-Proof. exact: isog_sdprod_factor. Qed.
+Proof. exact: sdprod_isog. Qed.
 
 Let Dade_delta0_mu20 : (delta 0 == false) && (mu2 0 0 == 0).
 Proof.
@@ -964,21 +964,17 @@ suff IeK: 'I_L['chi_k] = K.
   split=> // i j; apply/eqP => PeJ; case/negP: (irr_neq0 (mu2 i j)).
   rewrite -cfnorm_eq0 -{1}PeJ -Frobenius_reciprocity -Dade_chiE cfdot_irr.
   by case: (k =P _) => // KeJ; case/negP: KniC; apply/imageP; exists j.
-have KsI := sub_inertia 'chi_k KsL.
-apply/eqP; rewrite eqEsubset KsI andbT.
-apply/subsetP=> _ /setId2P[/(mem_sdprod SdP)[k1 [w1 [K1iK W1iW -> _]]] _].
-case: (boolP (w1 == 1%g)) => [/eqP-> |W1no]; first by rewrite mulg1.
-have /setId2P[_ K1iN /eqP ChiE] := subsetP KsI _ K1iK.
-have W1iN: w1 \in 'N(K).
-  by case/andP: KnL=> _ /subsetP; apply; apply: (subsetP W1sL).
-rewrite cfConjgMnorm // ChiE => /eqP ChiW1E.
+rewrite -(sdprodW (sdprod_modl SdP (sub_inertia _))); apply/mulGidPl.
+have KsI := sub_Inertia 'chi_k KsL.
+apply/subsetP=> w1 /setIP[W1iW /setIdP[W1iN /eqP ChiW1E]].
+have [-> // | ntw1] := eqVneq w1 1%g.
 have actIirrK: is_action L (@conjg_Iirr _ K).
   split=> [y j k2 eq_jk2 | j y z Gy Gz].
     by apply/irr_inj/(can_inj (cfConjgK y)); rewrite -!conjg_IirrE eq_jk2.
   by apply: irr_inj; rewrite !conjg_IirrE (cfConjgM _ KnL).
 pose ito := Action actIirrK.
 suff FeC: 'Fix_ito[w1] = [set i in codom chi].
-  suff: k \in 'Fix_ito[w1] by rewrite FeC inE => HH; case/negP: KniC.
+  suff: k \in 'Fix_ito[w1] by rewrite FeC inE => /idPn[].
   rewrite inE; apply/subsetP=> w2; rewrite !inE => /eqP->.
   by apply/eqP; apply: irr_inj; rewrite conjg_IirrE.
 have W1iL := (subsetP W1sL _ W1iW).
@@ -1006,7 +1002,7 @@ have acts_JsL : [acts L, on classes K | ('Js \ (subsetT L))%act].
 rewrite (card_afix_irr_classes W1iL acts_JsL); last first.
   move=> k2 g1 h1 G1iK .
   case/imsetP=> x /imsetP [h2 H2iK ->] ->.
-  by rewrite conjg_IirrE cfConjgEnorm // cfunJ.
+  by rewrite conjg_IirrE cfConjgEJ // cfunJ.
 pose f (C : {set gT}) := odflt 1%g [pick i in C :&: W2].
 set S := 'Fix_(_ | _)[_].
 have SE (C : {set gT}) : C \in S -> (C \in classes K) && (C :^ w1 == C)%g.
@@ -1045,7 +1041,7 @@ have CeOmW : (#|C| = #|orbit 'J <[w1]>%G @: C| * #[w1])%N.
   rewrite inE CiC -(Hcent HiW1) inE cent1C HiC.
   case/repr_classesP: CiS CiC => RiK -> /imsetP [h1 H1iK ->].
   by rewrite groupJ.
-case/negP: W1no; rewrite -order_eq1.
+case/negP: ntw1; rewrite -order_eq1.
 move: W1cK; rewrite -dvdn1 /coprime => /eqP <-.
 rewrite dvdn_gcd cardSg; last first.
   by rewrite gen_subG; apply/subsetP=> h; rewrite inE => /eqP->.

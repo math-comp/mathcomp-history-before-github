@@ -23,7 +23,7 @@ Inductive galg : predArgType := GAlg of {ffun gT -> F}.
 
 Definition galg_val A := let: GAlg f := A in f.
 
-Canonical galg_subType := Eval hnf in [newType for galg_val by galg_rect].
+Canonical galg_subType := Eval hnf in [newType for galg_val].
 Definition galg_eqMixin := Eval hnf in [eqMixin of galg by <:].
 Canonical galg_eqType := Eval hnf in EqType galg galg_eqMixin.
 Definition galg_choiceMixin := [choiceMixin of galg by <:].

@@ -1243,7 +1243,7 @@ Definition group_of of phant gT : predArgType := group_type.
 Notation Local groupT := (group_of (Phant gT)).
 Identity Coercion type_of_group : group_of >-> group_type.
 
-Canonical group_subType := Eval hnf in [subType for gval by group_type_rect].
+Canonical group_subType := Eval hnf in [subType for gval].
 Definition group_eqMixin := Eval hnf in [eqMixin of group_type by <:].
 Canonical group_eqType := Eval hnf in EqType group_type group_eqMixin.
 Definition group_choiceMixin := [choiceMixin of group_type by <:].
@@ -1741,7 +1741,7 @@ Qed.
 
 Inductive subg_of : predArgType := Subg x & x \in G.
 Definition sgval u := let: Subg x _ := u in x.
-Canonical subg_subType := Eval hnf in [subType for sgval by subg_of_rect].
+Canonical subg_subType := Eval hnf in [subType for sgval].
 Definition subg_eqMixin := Eval hnf in [eqMixin of subg_of by <:].
 Canonical subg_eqType := Eval hnf in EqType subg_of subg_eqMixin.
 Definition subg_choiceMixin := [choiceMixin of subg_of by <:].

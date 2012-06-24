@@ -38,6 +38,10 @@ Definition primitive :=
 
 End PrimitiveDef.
 
+Arguments Scope imprimitivity_system
+  [_ _ group_scope group_scope action_scope group_scope].
+Arguments Scope primitive [_ _ group_scope group_scope action_scope].
+
 Notation "[ 'primitive' A , 'on' S | to ]" := (primitive A S to)
   (at level 0, format "[ 'primitive'  A ,  'on'  S  |  to ]") : form_scope.
 
@@ -175,6 +179,9 @@ Qed.
 
 End NTransitive.
 
+Arguments Scope dtuple_on [_ nat_scope group_scope].
+Arguments Scope ntransitive
+  [_ _ nat_scope group_scope group_scope action_scope].
 Implicit Arguments n_act [gT sT n].
 
 Notation "n .-dtuple ( S )" := (dtuple_on n S)

@@ -467,7 +467,7 @@ Lemma eval_Rediv e p q k k' (d := (redivp (eval_poly e p) (eval_poly e q))) :
   (forall c qq r,  qf_eval e (k (c, qq, r)) = k' (c, eval_poly e qq, eval_poly e r)) ->
   qf_eval e (Rediv p q k) = k' d.
 Proof.
-move=> Pk; rewrite eval_Isnull /d redivpE.
+move=> Pk; rewrite eval_Isnull /d unlock.
 have [_|p_neq0] /= := boolP (_ == _); first by rewrite Pk /= mul0r add0r.
 rewrite !eval_Size; set p' := eval_poly e p; set q' := eval_poly e q.
 rewrite (eval_LeadCoef (fun lq =>

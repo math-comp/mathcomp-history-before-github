@@ -1080,10 +1080,10 @@ have{defV} defV : \big[dprod/1]_(Vi in S) Vi = V.
   have [gW sDS] := andP (maxsetp maxD); have{maxD} [_ maxD] := maxsetP maxD.
   have{gW} [W /= defW]: {W : {group gT} | dxp D = W} by exists (Group gW).
   have [eqDS | ltDS] := eqVproper sDS.
-    by rewrite eqDS in defW; rewrite defW -(bigdprodEY defW).
+    by rewrite eqDS in defW; rewrite defW -(bigdprodWY defW).
   have{ltDS} [_ [Vi Si notDi]] := properP ltDS.
   have sWV: W \subset V.
-    rewrite -(bigdprodEY defW) gen_subG.
+    rewrite -(bigdprodWY defW) gen_subG.
     by apply/bigcupsP=> Vj Dj; rewrite sSV ?(subsetP sDS).
   suffices{maxD sWV defV} tiWcKi: 'C_W('C_K(Vi)) = 1.
     have:= notDi; rewrite -(maxD (Vi |: D)) ?setU11 ?subsetUr //= subUset sDS.
@@ -1115,11 +1115,11 @@ have actsPR: [acts P <*> R, on S | 'JG].
 have transPR: [transitive P <*> R, on S | 'JG].
   pose ndxp D (U A B : {group gT}) := dxp (S :&: D) = U -> A * B \subset 'N(U).
   have nV_VK: forall D U, ndxp D U V K.
-    move=> D U; move/bigdprodEY <-; rewrite norms_gen ?norms_bigcup //.
+    move=> D U; move/bigdprodWY <-; rewrite norms_gen ?norms_bigcup //.
     apply/bigcapsP=> Vi; case/setIP=> Si _.
     by rewrite mulG_subG nSK // sub_abelian_norm // sSV.
   have nV_PR: forall D U, [acts P <*> R, on S :&: D | 'JG] -> ndxp D U P R.
-    move=> D U actsU; move/bigdprodEY<-; rewrite -norm_joinEr ?norms_gen //.
+    move=> D U actsU; move/bigdprodWY<-; rewrite -norm_joinEr ?norms_gen //.
     apply/subsetP=> x PRx; rewrite inE sub_conjg; apply/bigcupsP=> Vi Di.
     by rewrite -sub_conjg (bigcup_max (Vi :^ x)%G) //= (acts_act actsU).
   have [S0 | [V1 S1]] := set_0Vmem S.
@@ -1133,11 +1133,11 @@ have transPR: [transitive P <*> R, on S | 'JG].
       by rewrite subsetI (nV_VK _ _ defU) (nV_VK _ _ defW).
     rewrite subsetI (nV_PR _ _ _ defU) ?actsI ?acts_orbit ?subsetT //=.
     by rewrite (nV_PR _ _ _ defW) // actsI ?astabsC ?acts_orbit ?subsetT /=.
-  - case/negP: (ntSV V1 S1); rewrite -subG1 -U1 -(bigdprodEY defU) sub_gen //.
+  - case/negP: (ntSV V1 S1); rewrite -subG1 -U1 -(bigdprodWY defU) sub_gen //.
     by rewrite (bigcup_max V1) // inE S1 orbit_refl.
   apply/eqP; rewrite eqEsubset (acts_sub_orbit _ actsPR) S1 andbT.
   apply/subsetP=> Vi Si; apply: contraR (ntSV Vi Si) => D'i; rewrite -subG1.
-  rewrite -tiUW eqUV subsetI sSV // -(bigdprodEY defW).
+  rewrite -tiUW eqUV subsetI sSV // -(bigdprodWY defW).
   by rewrite (bigD1 Vi) ?joing_subl // inE Si inE.
 have [cSR | not_cSR]:= boolP (R \subset 'C(S | 'JG)).
   have{cSR} sRnSV: R \subset \bigcap_(Vi in S) 'N(Vi).
@@ -1173,7 +1173,7 @@ have ntSRcR: forall Vi, Vi \in S -> ~~ (R \subset 'N(Vi)) ->
     move/eqP; rewrite (big_setD1 1) // actr1 ?fmodK // fmvalA //= fmval_sum.
     do [case/Uuw; rewrite ?dW ?fmodK -?u1 ?group_prod //] => [x R'x | ->] //.
     rewrite (nt_gen_prime _ R'x) ?cycle_subG ?oR // inE in not_nV1R nVR actsR.
-    rewrite fmvalJ ?fmodK // -(bigdprodEY dW) ?mem_gen //; apply/bigcupP.
+    rewrite fmvalJ ?fmodK // -(bigdprodWY dW) ?mem_gen //; apply/bigcupP.
     exists (V1 :^ x)%G; rewrite ?memJ_conjg // (astabs_act _ actsR) S1.
     by apply: contraNneq not_nV1R; move/congr_group->.
   have im_f: Morphism fM @* V1 \subset 'C_V(R).
@@ -1221,10 +1221,10 @@ have nVjR: forall Vj, Vj \in S :\: D -> 'C_K(Vj) = [~: K, R].
   apply/trivgP; rewrite (big_setID D) in defV.
   have{defV} [[W U /= defW defU] _ _ <-] := dprodP defV.
   rewrite defW defU subsetI (subset_trans sCV1) /=; last first.
-    rewrite class_supportEr -(bigdprodEY defW) genS //.
+    rewrite class_supportEr -(bigdprodWY defW) genS //.
     apply/bigcupsP=> x Rx; rewrite (bigcup_max (V1 :^ x)%G) // inE.
     by rewrite (actsP actsR) //= S1 mem_imset.
-  rewrite (subset_trans sCVj) // class_supportEr -(bigdprodEY defU) genS //.
+  rewrite (subset_trans sCVj) // class_supportEr -(bigdprodWY defU) genS //.
   apply/bigcupsP=> x Rx; rewrite (bigcup_max (Vj :^ x)%G) // inE.
   by rewrite (actsP actsR) // Sj andbT (orbit_transr _ (mem_orbit 'JG Vj Rx)).
 have sDS: D \subset S.

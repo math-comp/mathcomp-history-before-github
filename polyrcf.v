@@ -725,8 +725,7 @@ Qed.
 
 (* Coercion pol_of_polN0 i := let: PolN0 p _ := i in p. *)
 
-(* Canonical Structure polN0_subType := *)
-(*   [subType for pol_of_polN0 by polN0_rect]. *)
+(* Canonical Structure polN0_subType := [subType for pol_of_polN0]. *)
 (* Definition polN0_eqMixin := Eval hnf in [eqMixin of polN0 by <:]. *)
 (* Canonical Structure polN0_eqType := *)
 (*   Eval hnf in EqType polN0 polN0_eqMixin. *)

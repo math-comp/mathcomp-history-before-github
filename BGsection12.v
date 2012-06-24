@@ -955,7 +955,7 @@ have [P0 defP nP0E1]: exists2 P0 : {group gT}, A0 \x P0 = P & E1 \subset 'N(P0).
     by move/tau2'1; rewrite inE /= def_t2.
   have defPhiP: 'Phi(P) = 'Phi(Y).
     have [_ _ cA0Y tiA0Y] := dprodP dxCSA.
-    rewrite defCSA dprodEcprod // in dxCSA.
+    rewrite defCSA dprodEcp // in dxCSA.
     have [_ abelA0 _] := pnElemP EpA0; rewrite -trivg_Phi // in abelA0.
     by rewrite -(Phi_cprod pP dxCSA) (eqP abelA0) cprod1g.
   have abelPb := Phi_quotient_abelem pP; have sA0Pb := quotientS 'Phi(P) sA0P.
@@ -1151,7 +1151,7 @@ have [nsKE _ mulKE1 nKE1 _] := sdprod_context defEl; have [sKE _] := andP nsKE.
 have [nsE3K sE2K _ nE32 tiE32] := sdprod_context defK.
 rewrite -sdprodEY // defK.
 have{defK} defK: E3 \x E2 = K.
-  rewrite dprodEsdprod // (sameP commG1P trivgP) -tiE32 subsetI commg_subr nE32.
+  rewrite dprodEsd // (sameP commG1P trivgP) -tiE32 subsetI commg_subr nE32.
   by rewrite commg_subl (subset_trans sE3E) ?normal_norm.
 have cKK: abelian K.
   by have [_ <- cE23 _] := dprodP defK; rewrite abelianM cE2E2 cyclic_abelian.
@@ -1642,7 +1642,7 @@ have{regB} ->: 'C_B(L`_\sigma) = Q0; last move=> defF _.
   apply: contraTeq sCQ0_L => neqQ0B; case: (regB Q0) => //.
   by rewrite 2!inE eq_sym neqQ0B; apply/pnElemP; rewrite (subset_trans sQ0Q).
 have{defF} defQ: Q0 \x (F0 :&: Q) = Q.
-  rewrite dprodEsdprod ?(centSS (subsetIr F0 Q) sQ0Q) //.
+  rewrite dprodEsd ?(centSS (subsetIr F0 Q) sQ0Q) //.
   by rewrite (sdprod_modl defF sQ0Q) (setIidPr sQF).
 have [[eqQ01 _] | [_ eqQ0Q]] := cyclic_pgroup_dprod_trivg qQ cycQ defQ.
   by case/eqP: ntQ0.
@@ -1722,7 +1722,7 @@ have [cSS | not_cSS] := boolP (abelian S); last first.
     case: (tau2_context maxM t2p Ep2A_M); case/(_ P) => //.
     by apply: subHall_Sylow hallE _ sylP; case/andP: t2p.
   have defP: A0 \x (E0 :&: P) = P.
-    rewrite dprodEsdprod ?(sub_abelian_cent2 cPP) ?subsetIr //.
+    rewrite dprodEsd ?(sub_abelian_cent2 cPP) ?subsetIr //.
     by rewrite (sdprod_modl defE) // (setIidPr (pHall_sub sylP)).
   have sylP0: p.-Sylow(E0) (E0 :&: P).
     rewrite pHallE subsetIl /= -(eqn_pmul2l (cardG_gt0 A0)).

@@ -280,19 +280,15 @@ Proof.
 move => c a b; apply/lfunP => d.
 by rewrite !lfunE /= !scale_lfunE !lfunE mulrDl scalerAl.
 Qed.
-Canonical mull_additive := Eval hnf in Additive amull_is_linear.
-Canonical mull_linear := Eval hnf in AddLinear amull_is_linear.
+Canonical amull_additive := Eval hnf in Additive amull_is_linear.
+Canonical amull_linear := Eval hnf in AddLinear amull_is_linear.
 
 (* amull is a converse ring morphism *)
 Lemma amull1 : amull 1 = \1%VF.
 Proof. by apply/lfunP => u; rewrite id_lfunE lfunE [X in X = _]mul1r. Qed.
 
-Lemma amullM x y : (amull (x * y) = (amull y) * (amull x))%VF.
-Proof. 
-apply/lfunP => a.
-(* Why does this take 3 seconds while the next lemma is much faster? *)
-by rewrite comp_lfunE !lfunE /= mulrA.
-Qed.
+Lemma amullM x y : (amull (x * y) = amull y * amull x)%VF.
+Proof. by apply/lfunP => a; rewrite comp_lfunE !lfunE /= mulrA. Qed.
 
 Lemma amulr_is_lrmorphism : lrmorphism amulr.
 Proof.
@@ -306,26 +302,23 @@ repeat split.
 - move => c a /=; apply/lfunP => d.
   by rewrite scale_lfunE !lfunE /= scalerAr.
 Qed.
-Canonical mulr_additive := Eval hnf in Additive amulr_is_lrmorphism.
-Canonical mulr_linear := Eval hnf in AddLinear amulr_is_lrmorphism.
-Canonical mulr_rmorphism := Eval hnf in AddRMorphism amulr_is_lrmorphism.
-Canonical mulr_lrmorphism := Eval hnf in LRMorphism amulr_is_lrmorphism.
+Canonical amulr_additive := Eval hnf in Additive amulr_is_lrmorphism.
+Canonical amulr_linear := Eval hnf in AddLinear amulr_is_lrmorphism.
+Canonical amulr_rmorphism := Eval hnf in AddRMorphism amulr_is_lrmorphism.
+Canonical amulr_lrmorphism := Eval hnf in LRMorphism amulr_is_lrmorphism.
 
 Fact prodv_key : unit. Proof. by []. Qed.
 Definition prodv :=
-   let: tt := prodv_key in
-   fun U V => <<allpairs *%R (vbasis U) (vbasis V)>>%VS.
+  locked_with prodv_key (fun U V => <<allpairs *%R (vbasis U) (vbasis V)>>%VS).
+Canonical prodv_unlockable := [unlockable fun prodv].
 Local Notation "A * B" := (prodv A B) : vspace_scope.
-
-Lemma prodvE U V : (U * V = <<allpairs *%R (vbasis U) (vbasis V)>>)%VS.
-Proof. by rewrite /prodv; case: prodv_key. Qed.
 
 Lemma memv_prod U V : {in U & V, forall u v, u * v \in (U * V)%VS}.
 Proof.
 move=> u v /coord_vbasis-> /coord_vbasis->.
 rewrite mulr_suml; apply: memv_suml => i _.
 rewrite mulr_sumr; apply: memv_suml => j _.
-rewrite -scalerAl -scalerAr !memvZ // prodvE memv_span //.
+rewrite -scalerAl -scalerAr !memvZ // [prodv]unlock memv_span //.
 by apply/allpairsP; exists ((vbasis U)`_i, (vbasis V)`_j); rewrite !memt_nth.
 Qed.
 
@@ -334,7 +327,7 @@ Lemma prodvP {U V W} :
 Proof.
 apply: (iffP idP) => [sUVW u v Uu Vv | sUVW].
   by rewrite (subvP sUVW) ?memv_prod.
-rewrite prodvE; apply/span_subvP=> _ /allpairsP[[u v] /= [Uu Vv ->]].
+rewrite [prodv]unlock; apply/span_subvP=> _ /allpairsP[[u v] /= [Uu Vv ->]].
 by rewrite sUVW ?vbasis_mem.
 Qed.
 
@@ -349,7 +342,7 @@ Lemma dimv1: \dim (1%VS : {vspace aT}) = 1%N.
 Proof. by rewrite dim_vline oner_neq0. Qed.
 
 Lemma dim_prodv U V : \dim (U * V) <= \dim U * \dim V.
-Proof. by rewrite prodvE (leq_trans (dim_span _)) ?size_tuple. Qed.
+Proof. by rewrite unlock (leq_trans (dim_span _)) ?size_tuple. Qed.
 
 Lemma vspace1_neq0 : (1 != 0 :> {vspace aT})%VS.
 Proof. by rewrite -dimv_eq0 dimv1. Qed.
@@ -522,7 +515,7 @@ Structure aspace := ASpace {asval :> {vspace aT}; _ : is_aspace asval}.
 Definition aspace_of of phant aT := aspace.
 Local Notation "{ 'aspace' T }" := (aspace_of (Phant T)) : type_scope.
 
-Canonical aspace_subType := Eval hnf in [subType for asval by aspace_rect].
+Canonical aspace_subType := Eval hnf in [subType for asval].
 Definition aspace_eqMixin := [eqMixin of aspace by <:].
 Canonical aspace_eqType := Eval hnf in EqType aspace aspace_eqMixin.
 Definition aspace_choiceMixin := [choiceMixin of aspace by <:].
@@ -971,7 +964,7 @@ Qed.
 
 Structure ahom := AHom {ahval :> 'Hom(aT, rT); _ : ahval \is ahom_in {:aT}}.
 
-Canonical ahom_subType := Eval hnf in [subType for ahval by ahom_rect].
+Canonical ahom_subType := Eval hnf in [subType for ahval].
 Definition ahom_eqMixin := [eqMixin of ahom by <:].
 Canonical ahom_eqType := Eval hnf in EqType ahom ahom_eqMixin.
 Definition ahom_choiceMixin := [choiceMixin of ahom by <:].
@@ -1016,8 +1009,7 @@ apply: subv_anti; apply/andP; split; last first.
   apply/prodvP => _ _ /memv_imgP [u Hu ->] /memv_imgP [v Hv ->].
   by rewrite -rmorphM memv_img // memv_prod.
 apply/subvP; move => _ /memv_imgP [u Hu ->].
-rewrite prodvE in Hu.
-move/coord_span: Hu ->.
+move: Hu; rewrite unlock => /coord_span->.
 rewrite rmorph_sum; apply: memv_suml => i _ /=.
 rewrite linearZ memvZ // -tnth_nth.
 set s := allpairs_tuple _ _ _.

@@ -79,10 +79,9 @@ galgebra.v
 fieldext.v
 fib.v
 generic_quotient.v
-countalg.v
-finfield.v
 separable.v
 galois.v
+finfield.v
 ssrnum.v
 ssrint.v
 rat.v
@@ -90,6 +89,7 @@ intdiv.v
 interval.v
 closed_field.v
 complex.v
+countalg.v
 algC.v
 classfun.v
 character.v

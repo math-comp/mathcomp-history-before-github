@@ -134,7 +134,7 @@ have CiP_eq : C :&: R = A by rewrite -CRA_A setIC setIA (setIidPl sRG).
 have sylA: p.-Sylow(C) A.
   rewrite -CiP_eq; apply: (Sylow_setI_normal (subcent_normal _ _)).
   by apply: pHall_subl sylR; rewrite ?subsetIl // subsetI sRG normal_norm.
-rewrite dprodEsdprod; last first.
+rewrite dprodEsd; last first.
   by rewrite centsC (subset_trans (pcore_sub _ _)) ?subsetIr.
 by apply: Burnside_normal_complement; rewrite // subIset ?subsetIr.
 Qed.

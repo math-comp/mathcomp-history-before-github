@@ -9,21 +9,37 @@ Set SsrAstVersion.
 (* either Import ssreflect or Import ssreflect.SsrSyntax.                     *)
 (*   Part of the contents of this file is technical and will only interest    *)
 (* advanced developers; in addition the following are defined:                *)
-(*   [the str of v by f] == the Canonical s : str such that f s = v           *)
-(*        [the str of v] == the Canonical s : str that coerces to v           *)
-(*        argumentType c == the T such that c : forall x : T, P x             *)
-(*          returnType c == the R such that c : T -> R                        *)
-(*     {type of c for s} == P s where c : forall x : T, P x                   *)
-(*           phantom T v == singleton type with inhabitant Phantom T v        *)
-(*               phant T == singleton type with inhabitant Phant v            *)
+(*   [the str of v by f] == the Canonical s : str such that f s = v.          *)
+(*        [the str of v] == the Canonical s : str that coerces to v.          *)
+(*        argumentType c == the T such that c : forall x : T, P x.            *)
+(*          returnType c == the R such that c : T -> R.                       *)
+(*     {type of c for s} == P s where c : forall x : T, P x.                  *)
+(*           phantom T v == singleton type with inhabitant Phantom T v.       *)
+(*               phant T == singleton type with inhabitant Phant v.           *)
 (*                 =^~ r == the converse of rewriting rule r (e.g., in a      *)
-(*                          rewrite multirule)                                *)
+(*                          rewrite multirule).                               *)
 (*             unkeyed t == t, but treated as an unkeyed matching pattern by  *)
-(*                          the ssreflect matching algorithm                  *)
-(*             nosimpl f == in a Definition, disables simplification by /=    *)
-(*              locked t == t, but locked t is not convertible to t           *)
-(*            unlockable == interface for storing hidden constant definitions *)
-(*        Unlockable def == the unlockable that registers def : c = v.        *)
+(*                          the ssreflect matching algorithm.                 *)
+(*             nosimpl t == t, but on the right-hand side of Definition C :=  *)
+(*                          nosimpl disables expansion of C by /=.            *)
+(*              locked t == t, but locked t is not convertible to t.          *)
+(*       locked_with k t == t, but not convertible to t or locked_with k' t   *)
+(*                          unless k = k' (with k : unit). Coq type-checking  *)
+(*                          will be much more efficient if locked_with with a *)
+(*                          bespoke k is used for sealed definitions.         *)
+(*          unlockable v == interface for sealed constant definitions of v.   *)
+(*        Unlockable def == the unlockable that registers def : C = v.        *)
+(*     [unlockable of C] == a clone for C of the canonical unlockable for the *)
+(*                          definition of C (e.g., if it uses locked_with).   *)
+(*    [unlockable fun C] == [unlockable of C] with the expansion forced to be *)
+(*                          an explicit lambda expression.                    *)
+(*  -> The usage pattern for ADT operations is:                               *)
+(*       Definition foo_def x1 .. xn := big_foo_expression.                   *)
+(*       Fact foo_key : unit. Proof. by []. Qed.                              *)
+(*       Definition foo := locked_with foo_key foo_def.                       *)
+(*       Canonical foo_unlockable := [unlockable fun foo].                    *)
+(*     This minimizes the comparison overhead for foo, while still allowing   *)
+(*     rewrite unlock to expose big_foo_expression.                           *)
 (* More information about these definitions and their use can be found in the *)
 (* ssreflect manual, and in specific comments below.                          *)
 (******************************************************************************)
@@ -265,50 +281,40 @@ Definition ssr_converse R (r : R) := (Logic.I, r).
 Notation "=^~ r" := (ssr_converse r) (at level 100) : form_scope.
 
 (* Term tagging (user-level).                                                 *)
-(* We provide two strengths of term tagging :                                 *)
-(*  - nosimpl t simplifies to t EXCEPT in a definition; more precisely, given *)
+(* The ssreflect library uses four strengths of term tagging to restrict      *)
+(* convertibility during type checking:                                       *)
+(*  nosimpl t simplifies to t EXCEPT in a definition; more precisely, given   *)
 (*    Definition foo := nosimpl bar, foo (or foo t') will NOT be expanded by  *)
 (*    the /= and //= switches unless it is in a forcing context (e.g., in     *)
 (*    match foo t' with ... end, foo t' will be reduced if this allows the    *)
-(*    match to be reduced. Note that nosimpl bar is simply notation for a     *)
-(*    a term that beta-iota reduces to bar; hence unfold foo will replace foo *)
-(*    by bar, and fold foo will replace bar by foo.                           *)
+(*    match to be reduced). Note that nosimpl bar is simply notation for a    *)
+(*    a term that beta-iota reduces to bar; hence rewrite /foo will replace   *)
+(*    foo by bar, and rewrite -/foo will replace bar by foo.                  *)
 (*    CAVEAT: nosimpl should not be used inside a Section, because the end of *)
 (*    section "cooking" removes the iota redex.                               *)
-(*  - locked t is provably equal to t, but is not convertible to t; 'locked'  *)
-(*    provides support for abstract data types and for selective rewriting.   *)
-(*    The equation t = locked t is provided as a lemma, but it should only    *)
-(*    be used for selective rewriting (see below). For ADTs, the ssreflect    *)
-(*    unlock tactic should be used to remove locking.                         *)
-(* Addendum: it appears that the use of a generic key confuses the term       *)
-(* comparison heuristic of the Coq kernel, which thinks all locked terms have *)
-(* the same "head constant", and therefore immediately jumps to comparing     *)
-(* their LAST argument. Furthermore, Coq still needs to delta expand a locked *)
-(* constant when comparing unequal terms, and given the total lack of caching *)
-(* of comparisons this causes an exponential complexity blowup in comparisons *)
-(* that return false on terms that are built from many combinators.           *)
-(*   As a stopgap, we use the module system to create opaque constants with   *)
-(* an expansion lemma; this is clumsy because design of the module language   *)
-(* does not support such small-scale usage very well. See the definition of   *)
-(* card and subset in fintype for examples of this.                           *)
-(*   Of course the unlock tactic will not support the expansion of this new   *)
-(* kind of opaque constants; to compensate for that we use "unlockable"       *)
-(* canonical instances to store the expansion lemmas, which can then be       *)
-(* retrieved by a generic "unlock" rewrite rule.                              *)
+(*  locked t is provably equal to t, but is not convertible to t; 'locked'    *)
+(*    provides support for selective rewriting, via the lock t : t = locked t *)
+(*    Lemma, and the ssreflect unlock tactic.                                 *)
+(*  locked_with k t is equal but not convertible to t, much like locked t,    *)
+(*    but supports explicit tagging with a value k : unit. This is used to    *)
+(*    mitigate a flaw in the term comparison heuristic of the Coq kernel,     *)
+(*    which treats all terms of the form locked t as equal and conpares their *)
+(*    arguments recursively, leading to an exponential blowup of comparison.  *)
+(*    For this reason locked_with should be used rather than locked when      *)
+(*    defining ADT operations. The unlock tactic does not support locked_with *)
+(*    but the unlock rewrite rule does, via the unlockable interface.         *)
+(*  we also use Module Type ascription to create truly opaque constants,      *)
+(*    because simple expansion of constants to reveal an unreducible term     *)
+(*    doubles the time complexity of a negative comparison. Such opaque       *)
+(*    constants can be expanded generically with the unlock rewrite rule.     *)
+(*    See the definition of card and subset in fintype for examples of this.  *)
 
 Notation nosimpl t := (let: tt := tt in t).
-
-(* To unlock opaque constants. *)
-Structure unlockable T v := Unlockable {unlocked : T; _ : unlocked = v}.
-
-Lemma unlock T (c : T) (u : unlockable c) : unlocked u = c.
-Proof. case: u => u def_u; exact def_u. Qed.
 
 Lemma master_key : unit. Proof. exact tt. Qed.
 Definition locked A := let: tt := master_key in fun x : A => x.
 
-Lemma lock A x : x = locked x :> A.
-Proof. rewrite /locked; case master_key; split. Qed.
+Lemma lock A x : x = locked x :> A. Proof. unlock; reflexivity. Qed.
 
 (* Needed for locked predicates, in particular for eqType's.                  *)
 Lemma not_locked_false_eq_true : locked false <> true.
@@ -321,6 +327,34 @@ Ltac done :=
          | discriminate | contradiction | split]
    | case not_locked_false_eq_true; assumption
    | match goal with H : ~ _ |- _ => solve [case H; trivial] end ].
+
+(* To unlock opaque constants. *)
+Structure unlockable T v := Unlockable {unlocked : T; _ : unlocked = v}.
+Lemma unlock T x C : @unlocked T x C = x. Proof. by case: C. Qed.
+
+Notation "[ 'unlockable' 'of' C ]" := (@Unlockable _ _ C (unlock _))
+  (at level 0, format "[ 'unlockable'  'of'  C ]") : form_scope.
+
+Notation "[ 'unlockable' 'fun' C ]" := (@Unlockable _ (fun _ => _) C (unlock _))
+  (at level 0, format "[ 'unlockable'  'fun'  C ]") : form_scope.
+
+(* Generic keyed constant locking. *)
+
+(* The argument order ensures that k is always compared before T. *)
+Definition locked_with k := let: tt := k in fun T x => x : T.
+
+(* This can be used as a cheap alternative to cloning the unlockable instance *)
+(* below, but with caution as unkeyed matching can be expensive.              *)
+Lemma locked_withE T k x : unkeyed (locked_with k x) = x :> T.
+Proof. by case: k. Qed.
+
+(* Intensionaly, this instance will not apply to locked u. *)
+Canonical locked_with_unlockable T k x :=
+  @Unlockable T x (locked_with k x) (locked_withE k x).
+
+(* More accurate variant of unlock, and safer alternative to locked_withE. *)
+Lemma unlock_with T k x : unlocked (locked_with_unlockable k x) = x :> T.
+Proof. exact: unlock. Qed.
 
 (* The internal lemmas for the have tactics.                                  *)
 

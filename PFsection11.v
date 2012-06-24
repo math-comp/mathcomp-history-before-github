@@ -61,21 +61,25 @@ Let Mtype24 := compl_of_typeII_IV MtypeP maxM Mtypen5.
 Let Mtypen2 : FTtype M != 2.
 Proof. by case/orP: Mtype34=> /eqP->. Qed.
 
-
-Local Notation "'H'" := (gval M)`_\F (at level 0) : group_scope.
-Local Notation "'H'" := ((gval M)`_\F)%G (at level 0) : Group_scope.
-Local Notation "'W2'" := 'C_H(gval W1) (at level 0) : group_scope.
-Local Notation "'W2'" := 'C_H(gval W1)%G (at level 0) : Group_scope.
-Local Notation "'C'" := 'C_(gval U)(H) (at level 0) : group_scope.
-Local Notation "'C'" := ('C_(gval U)(H))%G (at level 0) : Group_scope.
-Local Notation "'HC'" := (H <*> C) (at level 0) : group_scope.
-Local Notation "'HC'" := (H <*> C)%G (at level 0) : Group_scope.
-Local Notation "'HU'" := (gval M)^`(1)%g (at level 0) : group_scope. 
-Local Notation "'HU'" := M^`(1)%G (at level 0) : Group_scope.
- 
 Let H0 := Ptype_Fcore_kernel MtypeP.
-Local Notation "'H0C'" := (gval H0 <*> C) (at level 0) : group_scope.
-Local Notation "'H0C'" := (gval H0 <*> C)%G (at level 0) : group_scope.
+Local Notation "` 'H0'" := (gval H0) (at level 0, only parsing) : group_scope.
+Local Notation "` 'M'" := (gval M) (at level 0, only parsing) : group_scope.
+Local Notation "` 'U'" := (gval U) (at level 0, only parsing) : group_scope.
+Local Notation "` 'W1'" := (gval W1) (at level 0, only parsing) : group_scope.
+Local Notation H := `M`_\F%G.
+Local Notation "` 'H'" := `M`_\F (at level 0) : group_scope.
+Local Notation W2 := 'C_H(`W1)%G.
+Local Notation "` 'W2'" := 'C_`H(`W1) : group_scope.
+Local Notation HU := M^`(1)%G.
+Local Notation "` 'HU'" := `M^`(1) (at level 0) : group_scope.
+Local Notation U' := U^`(1)%G.
+Local Notation "` 'U''" := `U^`(1) (at level 0) : group_scope.
+Local Notation C := 'C_U(`H)%G.
+Local Notation "` 'C'" := 'C_`U(`H) (at level 0) : group_scope.
+Local Notation HC := (`H <*> `C)%G.
+Local Notation "` 'HC'" := (`H <*> `C) (at level 0) : group_scope.
+Local Notation H0C := (`H0 <*> `C)%G.
+Local Notation "` 'H0C'" := (gval H0 <*> `C) (at level 0) : group_scope.
 
 Let p := #|W2|.
 Let q := #|W1|.
@@ -111,16 +115,18 @@ Let sH0M : M \subset 'N(H0).
 Proof. by have/andP[/maxgroupp/andP[]]:= chiefH0. Qed.
 Let nsH0H : H0 <| H.
 Proof. by rewrite /normal sH0H (subset_trans (Fcore_sub _)). Qed.
+Let nsH0M : H0 <| M.
+Proof. by rewrite /normal (subset_trans sH0H) ?gFsub. Qed.
 
 Local Notation defHUW1 := (Ptype_Fcore_sdprod MtypeP).
 
-Let nC_U_W1 : C <| U <*> W1.
+Let nsCM: C <| M.
 Proof.
-have [_ sUW1M _ nHUW1 _] := sdprod_context defHUW1.
-have [_ [_ _ nUW1 _] _ _ _] := MtypeP.
-rewrite /normal subIset ?joing_subl // normsI //.
-  by rewrite join_subG normG; have [_ []] := MtypeP.
-by rewrite norms_cent.
+have [[_ [_ _ nUW1 _] _ _ _] /mulG_sub[_ sW1M]] := (MtypeP, sdprodW defM).
+have [_ sUHU mulHU nHU _] := sdprod_context defHU.
+rewrite -{2}(sdprodW defM) /normal subIset ?(subset_trans sUHU) ?mulG_subl //=.
+rewrite mulG_subG /= -mulHU mulG_subG cents_norm 1?centsC ?subsetIr //.
+by rewrite !normsI ?norms_cent ?normG // ?(subset_trans sW1M) ?gFnorm.
 Qed.
 
 Let defHC : H \x C = HC.
@@ -137,18 +143,8 @@ apply: dprodEY.
 by apply/eqP; rewrite -subG1 -iH_C setSI.
 Qed.
 
-Let nsH0M : H0 <| M.
-Proof. by rewrite /normal (subset_trans sH0H) ?gFsub. Qed.
-
 Let normal_hyps : [/\ 1 <| M, HC <| M & H0C <| M].
-Proof.
-suff nsCM: C <| M by rewrite normal1 !normalY ?gFnormal.
-have [_ _ nHUW1 TI_HUW1] := sdprodP defM.
-have [_ sUHU _ nHU TI_HU] := sdprod_context defHU.
-rewrite /normal subIset ?(subset_trans sUHU) ?gFsub //=.
-rewrite -{1}defM sdprodEY //= -defHU sdprodEY //= -joingA.
-by rewrite join_subG cents_norm ?normal_norm // centsC subsetIr.
-Qed.
+Proof. by rewrite normal1 !normalY ?gFnormal. Qed.
 
 Let S_ K := seqIndD M^`(1) M M^`(1) K.
 
@@ -172,7 +168,7 @@ apply: (bounded_seqIndD_coherent nsHUM sol_HU subc_M normal_hyps)=> //.
 - rewrite quotient_nil //= -defHC.
   have[-> _ _ _]:= typeP_context MtypeP.
   by exact: Fitting_nil.
-rewrite -(sdprod_index defM) -/q.
+rewrite -(index_sdprod defM) -/q.
 rewrite -divgS // -(dprod_card defHC) -(dprod_card defH0C).
 rewrite divnMr ?cardG_gt0 // divg_normal //.
 have[_ _ ->] :=  Ptype_Fcore_factor_facts maxM MtypeP Mtypen5.
@@ -184,13 +180,13 @@ Qed.
 
 Let minHbar : minnormal (H / H0)%g (M / H0)%g.
 Proof. by exact: chief_factor_minnormal. Qed.
-Let ntHbar : (H/H0 != 1)%g.
+Let ntHbar : (H / H0 != 1)%g.
 Proof. by case/mingroupp/andP: minHbar. Qed.
 Let solHbar: solvable (H / H0)%g.
 Proof. by rewrite quotient_sol // nilpotent_sol // Fcore_nil. Qed.
-Let abelHbar: abelian (H /H0)%g.
+Let abelHbar: abelian (H / H0)%g.
 Proof.
-by case: (minnormal_solvable minHbar _ solHbar)=> // _ _ /and3P[].
+by case: (minnormal_solvable minHbar _ solHbar) => // _ _ /and3P[].
 Qed.
 
 (* This is Peterfalvi (11.4). *)
@@ -213,12 +209,7 @@ split=> //; first by apply: genS (setSU _ _).
   by rewrite join_subG sHHU subIset ?sUHU.
 rewrite (center_idP _) //.
 suff/isog_abelian->: (HC / H0C)%g \isog (H / H0)%g by [].
-have [_ /andP[sHCM nHCM] /andP[sH0CM nH0CM]] := normal_hyps.
-have /joing_subP [nH0C_H nH0C_C] := subset_trans sHCM nH0CM.
-rewrite quotientY // (quotientS1 (joing_subr _ _)) joingG1.
-congr (_ \isog H / _)%g : (isog_symr (second_isog nH0C_H)).
-have [[_ <- _ _][_ _ _ TI_HC]] := (dprodP defH0C, dprodP defHC).
-by rewrite -group_modl // setIC TI_HC mulg1.
+by rewrite /= (joingC H0) isog_sym quotient_sdprodr_isog ?(dprodWsdC defHC).
 Qed.
 
 (* This is Peterfalvi (11.5). *)

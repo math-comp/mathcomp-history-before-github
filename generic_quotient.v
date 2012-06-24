@@ -541,7 +541,7 @@ Definition pi := locked (fun x => EquivQuotient (canon_id x)).
 Lemma ereprK : cancel erepr pi.
 Proof.
 unlock pi; case=> x hx; move/eqP:(hx)=> hx'.
-exact: (@val_inj _ _ [subType for erepr by equivQuotient_rect]).
+exact: (@val_inj _ _ [subType for erepr]).
 Qed.
 
 Local Notation encDE := (encModRelE encD).

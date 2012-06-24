@@ -105,6 +105,17 @@ Definition gen_rank A := #|[arg min_(B < A | <<B>> == A) #|B|]|.
 
 End AbelianDefs.
 
+Arguments Scope exponent [_ group_scope].
+Arguments Scope abelem [_ nat_scope group_scope].
+Arguments Scope is_abelem [_ group_scope].
+Arguments Scope pElem [_ nat_scope group_scope].
+Arguments Scope pnElem [_ nat_scope nat_scope group_scope].
+Arguments Scope nElem [_ nat_scope group_scope].
+Arguments Scope pmaxElem [_ nat_scope group_scope].
+Arguments Scope p_rank [_ nat_scope group_scope].
+Arguments Scope rank [_ group_scope].
+Arguments Scope gen_rank [_ group_scope].
+
 Notation "''Ldiv_' n ()" := (Ldiv _ n)
   (at level 8, n at level 2, format "''Ldiv_' n ()") : group_scope.
 
@@ -175,6 +186,10 @@ Qed.
 
 End Functors.
 
+Arguments Scope Ohm [nat_scope _ group_scope].
+Arguments Scope Ohm_group [nat_scope _ group_scope].
+Arguments Scope Mho [nat_scope _ group_scope].
+Arguments Scope Mho_group [nat_scope _ group_scope].
 Implicit Arguments OhmPredP [n gT x].
 
 Notation "''Ohm_' n ( G )" := (Ohm n G)
@@ -454,7 +469,7 @@ Lemma dprod_abelem p A B G :
   A \x B = G -> p.-abelem G = p.-abelem A && p.-abelem B.
 Proof.
 move=> defG; case/dprodP: (defG) => _ _ _ tiHK.
-by apply: cprod_abelem; rewrite -dprodEcprod.
+by apply: cprod_abelem; rewrite -dprodEcp.
 Qed.
 
 Lemma is_abelem_pgroup p G : p.-group G -> is_abelem G = p.-abelem G.
@@ -1281,7 +1296,7 @@ Qed.
 Lemma Mho_dprod A B G : A \x B = G -> 'Mho^n(A) \x 'Mho^n(B) = 'Mho^n(G).
 Proof.
 case/dprodP => [[H K -> ->{A B}]] defG cHK tiHK.
-rewrite dprodEcprod; first by apply: Mho_cprod; rewrite cprodE.
+rewrite dprodEcp; first by apply: Mho_cprod; rewrite cprodE.
 by apply/trivgP; rewrite -tiHK setISS ?Mho_sub.
 Qed.
 
@@ -1798,7 +1813,7 @@ move=> cGG; apply/eqP; rewrite eqn_leq; apply/andP; split.
   rewrite -size_abelian_type //; case/abelian_structure: cGG => b defG <-.
   suffices <-: <<[set x in b]>> = G.
     by rewrite (leq_trans (grank_min _)) // size_map cardsE card_size.
-  rewrite -{G defG}(bigdprodEY defG).
+  rewrite -{G defG}(bigdprodWY defG).
   elim: b => [|x b IHb]; first by rewrite big_nil gen0.
   by rewrite big_cons -joingE -joing_idr -IHb joing_idl joing_idr set_cons.
 have [p p_pr ->] := rank_witness G; pose K := 'Mho^1(G).
@@ -1901,7 +1916,7 @@ move=> abelG; have [_ cGG _] := and3P abelG.
 rewrite /homocyclic cGG (@all_pred1_constant _ p) //.
 case/abelian_structure: cGG (abelian_type_gt1 G) => b defG <- => b_gt1.
 apply/allP=> _ /mapP[x b_x ->] /=; rewrite (abelem_order_p abelG) //.
-  rewrite -cycle_subG -(bigdprodEY defG) ?sub_gen //.
+  rewrite -cycle_subG -(bigdprodWY defG) ?sub_gen //.
   by rewrite bigcup_seq (bigcup_sup x).
 by rewrite -order_gt1 [_ > 1](allP b_gt1) ?map_f.
 Qed.
@@ -1941,7 +1956,7 @@ Lemma max_card_abelian G :
 Proof.
 move=> cGG; have [b defG def_tG] := abelian_structure cGG.
 have Gb: all (mem G) b.
-  apply/allP=> x b_x; rewrite -(bigdprodEY defG); have [b1 b2] := splitPr b_x.
+  apply/allP=> x b_x; rewrite -(bigdprodWY defG); have [b1 b2] := splitPr b_x.
   by rewrite big_cat big_cons /= mem_gen // setUCA inE cycle_id.
 have ->: homocyclic G = all (pred1 (exponent G)) (abelian_type G).
   rewrite /homocyclic cGG /abelian_type; case: #|G| => //= n.
@@ -2002,6 +2017,10 @@ Qed.
 
 End AbelianStructure.
 
+Arguments Scope abelian_type [_ group_scope].
+Arguments Scope homocyclic [_ group_scope].
+Prenex Implicits abelian_type homocyclic.
+
 Section IsogAbelian.
 
 Variables aT rT : finGroupType.
@@ -2035,7 +2054,7 @@ have{cGG} [b defG <- b_sorted] := abelian_structure cGG.
 rewrite size_map => ltib; rewrite (nth_map 1 _ _ ltib); set x := nth 1 b i.
 have Gx: x \in G.
   have: x \in b by rewrite mem_nth.
-  rewrite -(bigdprodEY defG); case/splitPr=> bl br.
+  rewrite -(bigdprodWY defG); case/splitPr=> bl br.
   by rewrite mem_gen // big_cat big_cons !inE cycle_id orbT.
 have lexG: #[x] <= #|G| by rewrite dvdn_leq ?order_dvdG.
 rewrite -[#[x]]partn_pi // (widen_partn _ lexG) big_mkord big_mkcond.

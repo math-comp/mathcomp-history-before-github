@@ -45,7 +45,7 @@ Identity Coercion type_of_perm : perm_of >-> perm_type.
 
 Notation pT := (perm_of (Phant T)).
 
-Canonical perm_subType := Eval hnf in [subType for pval by perm_type_rect].
+Canonical perm_subType := Eval hnf in [subType for pval].
 Definition perm_eqMixin := Eval hnf in [eqMixin of perm_type by <:].
 Canonical perm_eqType := Eval hnf in EqType perm_type perm_eqMixin.
 Definition perm_choiceMixin := [choiceMixin of perm_type by <:].

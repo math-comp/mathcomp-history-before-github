@@ -41,7 +41,7 @@ Inductive ratio := mkRatio { frac :> fractionDomain R; _ : denom frac != 0 }.
 Definition ratio_of of phant R := ratio.
 Local Notation "{ 'ratio' T }" := (ratio_of (Phant T)).
 
-Canonical ratio_subType := Eval hnf in [subType for frac by ratio_rect].
+Canonical ratio_subType := Eval hnf in [subType for frac].
 Canonical ratio_of_subType := Eval hnf in [subType of {ratio R}].
 Definition ratio_EqMixin := [eqMixin of ratio by <:].
 Canonical ratio_eqType := EqType ratio ratio_EqMixin.
@@ -424,7 +424,7 @@ End FracFieldTheory.
 (* Variable R : fieldType. *)
 
 (* Canonical polyfrac_subType := Eval hnf in *)
-(*   [subType for (@polyfrac R) by @polynomialfrac_rect R]. *)
+(*   [subType for (@polyfrac R)]. *)
 (* Canonical poly_frac_of_subType := [subType of {polyfrac R}]. *)
 (* Definition polyfrac_EqMixin := Eval hnf in [eqMixin of polynomialfrac R by <:]. *)
 (* Canonical polyfrac_eqType := EqType (polynomialfrac R) polyfrac_EqMixin. *)

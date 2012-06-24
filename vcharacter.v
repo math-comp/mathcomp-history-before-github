@@ -555,9 +555,9 @@ by rewrite cfAutZ_Cint // scale_zchar // mem_zchar ?SuS ?mem_nth.
 Qed.
 
 Lemma cfAut_vchar A psi : psi \in 'Z[irr G, A] -> psi^u \in 'Z[irr G, A].
-Proof. by apply: cfAut_zchar; exact: irr_Aut_closed. Qed.
+Proof. by apply: cfAut_zchar; exact: irr_aut_closed. Qed.
 
-Lemma sub_Aut_zchar S A psi :
+Lemma sub_aut_zchar S A psi :
    {subset S <= 'Z[irr G]} -> psi \in 'Z[S, A] -> psi^u \in 'Z[S, A] ->
   psi - psi^u \in 'Z[S, A^#].
 Proof.
@@ -571,20 +571,20 @@ case/vcharP=> chi1 Nchi1 [chi2 Nchi2 ->].
 by rewrite !cfunE !rmorphB !conjC_charAut.
 Qed.
 
-Lemma cfdot_cfAut_vchar phi chi :
+Lemma cfdot_aut_vchar phi chi :
   chi \in 'Z[irr G] -> '[phi^u , chi^u] = u '[phi, chi].
 Proof.
 case/vcharP=> chi1 Nchi1 [chi2 Nchi2 ->].
-by rewrite !raddfB /= !cfdot_cfAut_char.
+by rewrite !raddfB /= !cfdot_aut_char.
 Qed.
 
-Lemma vchar_cfAut A chi : (chi^u \in 'Z[irr G, A]) = (chi \in 'Z[irr G, A]).
+Lemma vchar_aut A chi : (chi^u \in 'Z[irr G, A]) = (chi \in 'Z[irr G, A]).
 Proof.
 rewrite !(zchar_split _ A) cfAut_on; congr (_ && _).
 apply/idP/idP=> [Zuchi|]; last exact: cfAut_vchar.
 rewrite [chi]cfun_sum_cfdot rpred_sum // => i _.
 rewrite scale_zchar ?irr_vchar //.
-by rewrite -(Cint_aut u) -cfdot_cfAut_irr -aut_IirrE Cint_cfdot_vchar_irr.
+by rewrite -(Cint_aut u) -cfdot_aut_irr -aut_IirrE Cint_cfdot_vchar_irr.
 Qed.
 
 End AutVchar.
@@ -618,7 +618,7 @@ Qed.
 Lemma sub_conjC_vchar A phi :
   phi \in 'Z[irr G, A] -> phi - (phi^*)%CF \in 'Z[irr G, A^#].
 Proof.
-move=> Zphi; rewrite sub_Aut_zchar ?cfAut_zchar // => _ /irrP[i ->].
+move=> Zphi; rewrite sub_aut_zchar ?cfAut_zchar // => _ /irrP[i ->].
   exact: irr_vchar.
 exact: cfConjC_irr.
 Qed.
@@ -658,7 +658,7 @@ have ochi1: '['chi_i, 1] = 0 by rewrite -irr0 cfdot_irr i0.
 pose a := 'chi_i 1%g; have Za: a \in Cint by rewrite CintE Cnat_irr1.
 pose theta := 'chi_i - a%:A; pose phi := 'Ind[G] theta + a%:A.
 have /cfun_onP theta0: theta \in 'CF(H, H^#).
-  by rewrite cfunD1E !cfunE cfun1E // group1 mulr1 subrr.
+  by rewrite cfunD1E !cfunE cfun11 mulr1 subrr.
 have RItheta: 'Res ('Ind[G] theta) = theta.
   apply/cfun_inP=> x Hx; rewrite cfResE ?cfIndE // (big_setID H) /= addrC.
   apply: canLR (mulKf (neq0CG H)) _; rewrite (setIidPr sHG) mulr_natl.
@@ -739,9 +739,9 @@ Qed.
 Lemma dirr_norm1 phi : phi \in 'Z[irr G] -> '[phi] = 1 -> phi \in dirr G.
 Proof. by rewrite dirrE => -> -> /=. Qed.
 
-Lemma dirr_cfAut u phi : (cfAut u phi \in dirr G) = (phi \in dirr G).
+Lemma dirr_aut u phi : (cfAut u phi \in dirr G) = (phi \in dirr G).
 Proof.
-rewrite !dirrE vchar_cfAut; apply: andb_id2l => /cfdot_cfAut_vchar->.
+rewrite !dirrE vchar_aut; apply: andb_id2l => /cfdot_aut_vchar->.
 exact: fmorph_eq1.
 Qed.
 

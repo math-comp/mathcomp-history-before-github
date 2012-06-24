@@ -2,6 +2,7 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import bigop ssralg finalg zmodp matrix mxalgebra.
 Require Import poly polydiv mxpoly generic_quotient ring_quotient closed_field.
+Require Import ssrint rat.
 
 (*****************************************************************************)
 (* This file clones part of ssralg hierachy for countable types; it does not *)
@@ -840,6 +841,21 @@ Canonical polynomial_countIdomainType (R : countIdomainType) :=
   [countIdomainType of polynomial R].
 Canonical poly_countIdomainType (R : countIdomainType) :=
   [countIdomainType of {poly R}].
+
+Canonical int_countZmodType := [countZmodType of int].
+Canonical int_countRingType := [countRingType of int].
+Canonical int_countComRingType := [countComRingType of int].
+Canonical int_countUnitRingType := [countUnitRingType of int].
+Canonical int_countComUnitRingType := [countComUnitRingType of int].
+Canonical int_countIdomainType := [countIdomainType of int].
+
+Canonical rat_countZmodType := [countZmodType of rat].
+Canonical rat_countRingType := [countRingType of rat].
+Canonical rat_countComRingType := [countComRingType of rat].
+Canonical rat_countUnitRingType := [countUnitRingType of rat].
+Canonical rat_countComUnitRingType := [countComUnitRingType of rat].
+Canonical rat_countIdomainType := [countIdomainType of rat].
+Canonical rat_countFieldType := [countFieldType of rat].
 
 Lemma countable_field_extension (F : countFieldType) (p : {poly F}) :
     size p > 1 ->

@@ -19,25 +19,26 @@ Local Notation eval := horner_eval.
 
 Section swapXY.
 
-Definition swapXY (R : ringType) (p : {poly {poly R}}) : {poly {poly R}} :=
-  ((locked p) ^ (map_poly polyC)).['Y].
+Fact swapXY_key : unit. Proof. by []. Qed.
+Definition swapXY_def (R : ringType) (p : {poly {poly R}}) : {poly {poly R}} :=
+  (p ^ map_poly polyC).['Y].
+Definition swapXY := locked_with swapXY_key swapXY_def.
+Canonical swapXY_unlockable := [unlockable fun swapXY].
 Implicit Arguments swapXY [[R]].
 
 Lemma swapXY_is_additive (R : ringType) : additive (@swapXY R).
-Proof. by move => p q; unlock swapXY; rewrite rmorphB !hornerE. Qed.
+Proof. by move=> p q; rewrite unlock rmorphB !hornerE. Qed.
 Canonical swapXY_addf R := Additive (@swapXY_is_additive R).
 
 Lemma swapXY_is_multiplicative (R : comRingType) : multiplicative (@swapXY R).
-Proof.
-by split=> [p q|]; unlock swapXY; rewrite (rmorph1, rmorphM) !hornerE.
-Qed.
+Proof. by split=> [p q|]; rewrite unlock (rmorph1, rmorphM) !hornerE. Qed.
 Canonical swapXY_rmorph R := AddRMorphism (@swapXY_is_multiplicative R).
 
 Lemma swapXY_X (R : ringType) : swapXY 'X = 'Y :> {poly {poly R}}.
-Proof. by unlock swapXY; rewrite map_polyX hornerX. Qed.
+Proof. by rewrite unlock map_polyX hornerX. Qed.
 
 Lemma swapXY_polyC (R : ringType) (p : {poly R}) : swapXY p%:P = p ^ polyC.
-Proof. by unlock swapXY; rewrite map_polyC /= hornerC. Qed.
+Proof. by rewrite unlock map_polyC /= hornerC. Qed.
 
 Lemma swapXY_Y (R : ringType) : swapXY 'Y = 'X :> {poly {poly R}}.
 Proof. by rewrite swapXY_polyC map_polyX. Qed.
@@ -47,7 +48,7 @@ Proof.
 elim/poly_ind: p => [|p c IHp] in i j *; first by rewrite raddf0 !coef0.
 rewrite raddfD !coefD /= swapXY_polyC coef_map /= !coefC coefMX.
 rewrite !(fun_if (fun q : {poly _} => q`_i)) coef0 -IHp; congr (_ + _).
-by unlock swapXY; rewrite rmorphM /= map_polyX hornerMX coefMC coefMX.
+by rewrite unlock rmorphM /= map_polyX hornerMX coefMC coefMX.
 Qed.
 
 Lemma swapXY_map (R1 R2 : ringType) (nu : {additive R1 -> R2}) p :
@@ -68,7 +69,7 @@ Lemma swapXY_eq0 (R : ringType) (p : {poly {poly R}}) :
 Proof. by rewrite (inv_eq (@swapXYK R)) raddf0. Qed.
 
 Definition sizeY (R : ringType) (p : {poly {poly R}}) : nat :=
-  \max_(i < size p) (size (locked p)`_i).
+  \max_(i < size p) (size p`_i).
 
 (* more general version of sizeY *)
 Lemma sizeYE (R : ringType) (p : {poly {poly R}}) :
@@ -76,7 +77,7 @@ Lemma sizeYE (R : ringType) (p : {poly {poly R}}) :
 Proof.
 have [->|p_neq0] := eqVneq p 0.
   by rewrite swapXY_polyC rmorph0 /sizeY size_poly0 big_ord0.
-unlock swapXY sizeY; rewrite horner_coef /=.
+rewrite unlock /sizeY horner_coef.
 rewrite size_map_poly_id0 ?map_polyC_eq0 ?lead_coef_eq0 //.
 apply/eqP; rewrite eqn_leq (leq_trans (size_sum _ _ _)) ?andbT //; last first.
   apply/bigmax_leqP=> /= i _; rewrite -polyC_exp coef_map /=.
@@ -86,7 +87,7 @@ apply/eqP; rewrite eqn_leq (leq_trans (size_sum _ _ _)) ?andbT //; last first.
     by rewrite ?(lead_coef_eq0, polyC_eq0).
   + by rewrite ?polyC_eq0 ?lead_coef_eq0.
   rewrite size_polyC size_map_polyC monic_neq0 ?monicXn // addn1 /=.
-  by rewrite [(fun i : 'I__ => size p`_i) _ <= _]leq_bigmax.
+  by rewrite (bigmax_sup i).
 apply/bigmax_leqP=> i _; apply/leq_sizeP => j; move/leq_sizeP/(_ j (leqnn _)).
 rewrite coef_sum (_ : \sum__ _ = \sum_(i < size p) p`_i`_j *: 'X^i).
   rewrite -(poly_def _ (fun i0 => p`_i0`_ _)); move/polyP/(_ i).
@@ -97,10 +98,9 @@ Qed.
 Lemma leq_size_evalX (R : ringType) (p : {poly {poly R}}) :
   size p.['X] <= sizeY p + (size p).-1.
 Proof.
-rewrite horner_coef (leq_trans (size_sum _ _ _)) //.
-unlock sizeY; apply/bigmax_leqP=> i _.
+rewrite horner_coef (leq_trans (size_sum _ _ _)) //; apply/bigmax_leqP=> i _.
 rewrite (leq_trans (size_mul_leq _ _)) // size_polyXn addnS leq_add //=.
-  by rewrite [(fun i : 'I__  => size p`_i) i <= _]leq_bigmax.
+  by rewrite (bigmax_sup i).
 by case: size i=> //= [[] //|n i]; rewrite leq_ord.
 Qed.
 
@@ -108,7 +108,7 @@ Lemma leq_size_coef (R : ringType) (p : {poly {poly R}})
   (i : nat) : size p`_i <= sizeY p.
 Proof.
 unlock sizeY; have [lt_in|ge_in] := ltnP i (size p).
-  by rewrite -/((fun i : 'I__ => size p`_i) (Ordinal lt_in)) leq_bigmax.
+  by rewrite (bigmax_sup (Ordinal lt_in)).
 by rewrite (@leq_trans 0%N) // leqn0 size_poly_eq0 (leq_sizeP _ _ ge_in).
 Qed.
 
@@ -156,7 +156,7 @@ have [->|p_neq0] := eqVneq p 0; first by rewrite !(horner0, rmorph0).
 apply/polyP=> i /=; rewrite coef_map /= /eval horner_coef coef_sum -sizeYE.
 rewrite (@horner_coef_wide _ (sizeY p)); last first.
   have [hi|hi] := leqP (size p) i; first by rewrite nth_default ?size_poly0.
-  by unlock sizeY; apply: leq_bigmax (Ordinal hi).
+  exact: leq_bigmax (Ordinal hi).
 by apply: eq_big=> // j _; rewrite -polyC_exp coefMC coef_swapXY.
 Qed.
 
@@ -170,7 +170,8 @@ Proof.
 by apply/polyP=> i; apply/polyP=> j; rewrite !(coef_swapXY, coef_map).
 Qed.
 
-Lemma sizeY_eq0 (R : comRingType) (p : {poly {poly R}}) : (sizeY p == 0%N) = (p == 0)%B.
+Lemma sizeY_eq0 (R : comRingType) (p : {poly {poly R}}) :
+  (sizeY p == 0%N) = (p == 0)%B.
 Proof. by rewrite sizeYE size_poly_eq0 swapXY_eq0. Qed.
 
 Definition poly_XaY (R : ringType) (p : {poly R}) := p ^ polyC \Po ('X + 'Y).

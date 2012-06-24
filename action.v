@@ -144,8 +144,10 @@ End ActionDef.
 (* Need to close the Section here to avoid re-declaring all Argument Scopes *)
 Delimit Scope action_scope with act.
 Bind Scope action_scope with action.
-Arguments Scope
-  act [_ group_scope type_scope action_scope group_scope group_scope].
+Arguments Scope act_morph [_ group_scope _ _ group_scope].
+Arguments Scope is_action [_ group_scope _ _].
+Arguments Scope act
+  [_ group_scope type_scope action_scope group_scope group_scope].
 Arguments Scope clone_action [_ group_scope type_scope action_scope _].
 
 Notation "{ 'action' aT &-> T }" := (action [set: aT] T)
@@ -204,6 +206,17 @@ Definition atrans A S to := S \in orbit to A @: S.
 Definition faithful A S to := A :&: astab S to \subset [1].
 
 End ActionDefs.
+
+Arguments Scope setact [_ group_scope _ action_scope group_scope group_scope].
+Arguments Scope orbit [_ group_scope _ action_scope group_scope group_scope].
+Arguments Scope amove
+  [_ group_scope _ action_scope group_scope group_scope group_scope].
+Arguments Scope afix [_ group_scope _ action_scope group_scope].
+Arguments Scope astab [_ group_scope _ group_scope action_scope].
+Arguments Scope astabs [_ group_scope _ group_scope action_scope].
+Arguments Scope acts_on [_ group_scope _ group_scope group_scope action_scope].
+Arguments Scope atrans [_ group_scope _ group_scope group_scope action_scope].
+Arguments Scope faithful [_ group_scope _ group_scope group_scope action_scope].
 
 Notation "to ^*" := (setact to) (at level 2, format "to ^*") : fun_scope.
 
@@ -860,6 +873,8 @@ Qed.
 
 End PartialAction.
 
+Arguments Scope orbit_transversal
+  [_ group_scope _ action_scope group_scope group_scope].
 Implicit Arguments orbit1P [aT D rT to G x].
 Implicit Arguments contra_orbit [aT D rT x y].
 Prenex Implicits orbit1P.
@@ -1729,6 +1744,8 @@ Qed.
 
 End AutIn.
 
+Arguments Scope Aut_in [_ group_scope group_scope].
+
 Section InjmAutIn.
 
 Variables (gT rT : finGroupType) (D G H : {group gT}) (f : {morphism D >-> rT}).
@@ -1803,6 +1820,9 @@ End GroupAction.
 
 Delimit Scope groupAction_scope with gact.
 Bind Scope groupAction_scope with groupAction.
+
+Arguments Scope is_groupAction [_ _ group_scope group_scope action_scope].
+Arguments Scope groupAction [_ _ group_scope group_scope].
 Arguments Scope gact [_ _ group_scope group_scope groupAction_scope].
 
 Notation "[ 'groupAction' 'of' to ]" :=
@@ -1829,6 +1849,13 @@ Definition acts_irreducibly A S to :=
   [min S of G | G :!=: 1 & [acts A, on G | to]].
 
 End GroupActionDefs.
+
+Arguments Scope gacent
+  [_ _ group_scope group_scope groupAction_scope group_scope].
+Arguments Scope acts_on_group
+  [_ _ group_scope group_scope group_scope group_scope groupAction_scope].
+Arguments Scope acts_irreducibly
+  [_ _ group_scope group_scope group_scope group_scope groupAction_scope].
 
 Notation "''C_' ( | to ) ( A )" := (gacent to A)
   (at level 8, format "''C_' ( | to ) ( A )") : group_scope.
@@ -2684,6 +2711,8 @@ Canonical aut_groupAction := GroupAction autact_is_groupAction.
 
 End AutAct.
 
+Arguments Scope aut_action [_ group_scope].
+Arguments Scope aut_groupAction [_ group_scope].
 Notation "[ 'Aut' G ]" := (aut_action G) : action_scope.
 Notation "[ 'Aut' G ]" := (aut_groupAction G) : groupAction_scope.
 

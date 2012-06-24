@@ -261,6 +261,8 @@ Variable F : GFunctor.iso_map.
 Lemma gFsub gT (G : {group gT}) : F gT G \subset G.
 Proof. by case: F gT G. Qed.
 
+Lemma gF1 gT : F gT 1 = 1. Proof. exact/trivgP/gFsub. Qed.
+
 Lemma gFiso_cont : GFunctor.iso_continuous F.
 Proof. by case F. Qed.
 

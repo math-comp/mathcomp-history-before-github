@@ -1316,7 +1316,7 @@ Definition vspaceOver V := <<vbasis V : seq L_F>>%VS.
 
 Lemma mem_vspaceOver V : vspaceOver V =i (F * V)%VS.
 Proof.
-move=> y; apply/idP/idP; last rewrite prodvE; move/coord_span->.
+move=> y; apply/idP/idP; last rewrite unlock; move=> /coord_span->.
   rewrite (@memv_suml F0 L) // => i _.
   by rewrite memv_prod ?subvsP // vbasis_mem ?memt_nth.
 rewrite memv_suml // => ij _; rewrite -tnth_nth; set x := tnth _ ij.
@@ -1365,7 +1365,7 @@ have idV: (F * V)%VS = V by rewrite prodvA prodv_id.
 suffices defVF: V_F = vspaceOver V.
   by exists V; split=> [||u]; rewrite ?defVF ?mem_vspaceOver ?idV.
 apply/vspaceP=> v; rewrite mem_vspaceOver idV.
-do [apply/idP/idP; last rewrite /V prodvE] => [/coord_vbasis|/coord_span] ->.
+do [apply/idP/idP; last rewrite /V unlock] => [/coord_vbasis|/coord_span] ->.
   by apply: memv_suml => i _; rewrite memv_prod ?subvsP ?memv_span ?memt_nth.
 apply: memv_suml => i _; rewrite -tnth_nth; set xu := tnth _ i.
 have /allpairsP[[x u] /=]: xu \in _ := mem_tnth i _.
@@ -1509,15 +1509,17 @@ by apply/prodvP=> u v; rewrite !mem_baseVspace; exact: memv_mul.
 Qed.
 Canonical baseAspace E := ASpace (baseAspace_suproof E).
 
-Definition refBaseField := locked (baseAspace 1).
+Fact refBaseField_key : unit. Proof. by []. Qed.
+Definition refBaseField := locked_with refBaseField_key (baseAspace 1).
+Canonical refBaseField_unlockable := [unlockable of refBaseField].
 Notation F1 := refBaseField.
 
 Lemma dim_refBaseField : \dim F1 = n.
-Proof. by unlock F1; rewrite dim_baseVspace dimv1 mul1n. Qed.
+Proof. by rewrite [F1]unlock dim_baseVspace dimv1 mul1n. Qed.
 
 Lemma baseVspace_ideal V (V0 := baseVspace V) : (F1 * V0 <= V0)%VS.
 Proof.
-apply/prodvP=> u v; unlock F1; rewrite !mem_baseVspace => /vlineP[x ->] Vv.
+apply/prodvP=> u v; rewrite [F1]unlock !mem_baseVspace => /vlineP[x ->] Vv.
 by rewrite -(@scalerAl F L) mul1r; exact: memvZ.
 Qed.
 
@@ -1540,11 +1542,11 @@ move=> v; rewrite -{1}(field_ideal_eq J0ideal) -(mem_vspaceOver J0) {}/V.
 move: (vspaceOver F1 J0) => J.
 apply/idP/idP=> [/coord_vbasis|/coord_span]->; apply/memv_suml=> i _.
   rewrite /(_ *: _) /= /fieldOver_scale; case: (coord _ i _) => /= x.
-  unlock {1}F1; rewrite mem_baseVspace => /vlineP[{x}x ->].
+  rewrite {1}[F1]unlock mem_baseVspace => /vlineP[{x}x ->].
   by rewrite -(@scalerAl F L) mul1r memvZ ?memv_span ?memt_nth.
 move: (coord _ i _) => x; rewrite -[_`_i]mul1r scalerAl -tnth_nth.
 have F1x: x%:A \in F1.
-  by unlock F1; rewrite mem_baseVspace (@memvZ F L) // mem1v.
+  by rewrite [F1]unlock mem_baseVspace (@memvZ F L) // mem1v.
 by congr (_ \in J): (memvZ (Subvs F1x) (vbasis_mem (mem_tnth i _))).
 Qed.
 
@@ -1601,7 +1603,7 @@ suffices [L dimL [toPF [toL toPF_K toL_K]]]:
   elim/poly_ind: q => [|a q IHq].
     by rewrite map_poly0 horner0 linear0 mod0p.
   rewrite rmorphD rmorphM /= map_polyX map_polyC hornerMXaddC linearD /=.
-  rewrite linearZ /= -(rmorph1 toL) toL_K -modp_scalel scale_poly1 modp_add.
+  rewrite linearZ /= -(rmorph1 toL) toL_K -modp_scalel alg_polyC modp_add.
   congr (_ + _); rewrite -toL_K rmorphM /= -/z; congr (toPF (_ * z)).
   by apply: (can_inj toPF_K); rewrite toL_K. 
 pose toL q : vL := poly_rV (q %% p); pose toPF (x : vL) := rVpoly x.
@@ -1616,8 +1618,7 @@ have mulC: commutative mul by rewrite /mul => x y; rewrite mulrC.
 have mulA: associative mul.
   by move=> x y z; apply: toPinj; rewrite -!(mulC z) !toL_K !modp_mul mulrCA.
 have mul1: left_id L1 mul.
-  move=> x; apply: toPinj.
-  by rewrite mulC !toL_K modp_mul mulr1 -toL_K toPF_K.
+  by move=> x; apply: toPinj; rewrite mulC !toL_K modp_mul mulr1 -toL_K toPF_K.
 have mulD: left_distributive mul +%R.
   move=> x y z; apply: toPinj; rewrite /toPF raddfD /= -!/(toPF _).
   by rewrite !toL_K /toPF raddfD mulrDl modp_add.
@@ -1627,7 +1628,7 @@ pose rL := ComRingType (RingType vL mulM) mulC.
 have mulZl: GRing.Lalgebra.axiom mul.
   move=> a x y; apply: toPinj; rewrite  toL_K /toPF !linearZ /= -!/(toPF _).
   by rewrite toL_K -scalerAl modp_scalel.
-have mulZr: @GRing.Algebra.axiom _ (LalgType F rL mulZl).
+have mulZr: GRing.Algebra.axiom (LalgType F rL mulZl).
   by move=> a x y; rewrite !(mulrC x) scalerAl.
 pose aL := AlgType F _ mulZr; pose urL := FalgUnitRingType aL.
 pose uaL := [unitAlgType F of AlgType F urL mulZr].
@@ -1708,7 +1709,7 @@ have q_z q: rVpoly (map_poly iota q).[z] = q %% p.
   elim/poly_ind: q => [|a q IHq].
     by rewrite map_poly0 horner0 linear0 mod0p.
   rewrite rmorphD rmorphM /= map_polyX map_polyC hornerMXaddC linearD /=.
-  rewrite linearZ /= L1K scale_poly1 modp_add; congr (_ + _); last first.
+  rewrite linearZ /= L1K alg_polyC modp_add; congr (_ + _); last first.
     by rewrite modp_small // size_polyC; case: (~~ _) => //; apply: ltnW.
   by rewrite !toL_K IHq mulrC modp_mul mulrC modp_mul.
 exists z; first by rewrite /root -(can_eq (@rVpolyK _ _)) q_z modpp linear0.

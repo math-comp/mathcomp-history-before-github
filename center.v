@@ -51,6 +51,7 @@ Canonical center_group (G : {group gT}) : {group gT} :=
 
 End Defs.
 
+Arguments Scope center [_ group_scope].
 Notation "''Z' ( A )" := (center A) : group_scope.
 Notation "''Z' ( H )" := (center_group H) : Group_scope.
 
@@ -304,15 +305,18 @@ apply/subsetP=> [[x y]]; rewrite inE => /andP[Zx /eqP->].
 by rewrite inE /= Zx groupV (subsetP sgzZZ) ?mem_morphim.
 Qed.
 
-Definition cprod_by := locked (subFinGroupType [group of setX H K / kerHK]).
+Fact cprod_by_key : unit. Proof. by []. Qed.
+Definition cprod_by_def := subFinGroupType [group of setX H K / kerHK].
+Definition cprod_by := locked_with cprod_by_key cprod_by_def.
 Local Notation C := [set: FinGroup.arg_sort (FinGroup.base cprod_by)].
 
-Definition in_cprod : gTH * gTK -> cprod_by.
-Proof. unlock cprod_by; exact: (subg _ \o coset kerHK). Defined.
+Definition in_cprod : gTH * gTK -> cprod_by :=
+  let: tt as k := cprod_by_key return _ -> locked_with k cprod_by_def in
+  subg _ \o coset kerHK.
 
 Lemma in_cprodM : {in setX H K &, {morph in_cprod : u v / u * v}}.
 Proof.
-unlock in_cprod cprod_by => u v Gu Gv /=.
+rewrite /in_cprod /cprod_by; case: cprod_by_key => /= u v Gu Gv.
 have nkerHKG := normal_norm (sub_center_normal ker_cprod_by_central).
 by rewrite -!morphM ?mem_quotient // (subsetP nkerHKG).
 Qed.
@@ -320,10 +324,10 @@ Canonical in_cprod_morphism := Morphism in_cprodM.
 
 Lemma ker_in_cprod : 'ker in_cprod = kerHK.
 Proof.
-have: 'ker (subg [group of setX H K / kerHK] \o coset kerHK) = kerHK.
-  by rewrite ker_comp ker_subg -kerE ker_coset. 
-apply: etrans; rewrite /ker /morphpre /=; unlock in_cprod cprod_by.
-by rewrite ['N(kerHK) :&: _]quotientGK ?sub_center_normal ?ker_cprod_by_central.
+transitivity ('ker (subg [group of setX H K / kerHK] \o coset kerHK)).
+  rewrite /ker /morphpre /= /in_cprod /cprod_by; case: cprod_by_key => /=.
+  by rewrite ['N(_) :&: _]quotientGK ?sub_center_normal ?ker_cprod_by_central.
+by rewrite ker_comp ker_subg -kerE ker_coset. 
 Qed.
 
 Lemma cpairg1_dom : H \subset 'dom (in_cprod \o @pairg1 gTH gTK).
@@ -366,8 +370,8 @@ Lemma im_cpair : CH * CK = C.
 Proof.
 rewrite /cpairg1 /cpair1g; do 2!case: restrmP => _ [_ _ _ -> //].
 rewrite !morphim_comp -morphimMl morphim_pairg1 ?setXS ?sub1G //.
-rewrite morphim_pair1g setX_prod morphimEdom /=; unlock in_cprod cprod_by.
-by rewrite imset_comp imset_coset -morphimEdom im_subg.
+rewrite morphim_pair1g setX_prod morphimEdom /= /in_cprod /cprod_by.
+by case: cprod_by_key; rewrite /= imset_comp imset_coset -morphimEdom im_subg.
 Qed.
 
 Lemma im_cpair_cprod : CH \* CK = C. Proof. by rewrite cprodE ?im_cpair. Qed.
@@ -594,14 +598,16 @@ Section IterCprod.
 
 Variables (gT : finGroupType) (G : {group gT}).
 
-Definition ncprod := locked (fix loop n : finGroupType :=
-  if n is n'.+1 then xcprod G [set: loop n']
-  else [finGroupType of subg_of 'Z(G)]).
+Fixpoint ncprod_def n : finGroupType :=
+  if n is n'.+1 then xcprod G [set: ncprod_def n']
+  else [finGroupType of subg_of 'Z(G)].
+Fact ncprod_key : unit. Proof. by []. Qed.
+Definition ncprod := locked_with ncprod_key ncprod_def.
 
 Local Notation G_ n := [set: gsort (ncprod n)].
 
 Lemma ncprod0 : G_ 0 \isog 'Z(G).
-Proof. by unlock ncprod; rewrite isog_sym isog_subg. Qed.
+Proof. by rewrite [ncprod]unlock isog_sym isog_subg. Qed.
 
 Lemma center_ncprod0 : 'Z(G_ 0) = G_ 0.
 Proof. by apply: center_idP; rewrite (isog_abelian ncprod0) center_abelian. Qed.
@@ -609,12 +615,14 @@ Proof. by apply: center_idP; rewrite (isog_abelian ncprod0) center_abelian. Qed.
 Lemma center_ncprod n : 'Z(G_ n) \isog 'Z(G).
 Proof.
 elim: n => [|n]; first by rewrite center_ncprod0 ncprod0.
-unlock ncprod => /isog_symr/xcprodP[gz isoZ].
+rewrite [ncprod]unlock=> /isog_symr/xcprodP[gz isoZ] /=.
 by rewrite -cpairg1_center isog_sym sub_isog ?center_sub ?injm_cpairg1.
 Qed.
 
 Lemma ncprodS n : xcprod_spec G [set: ncprod n] (ncprod n.+1).
-Proof. by have:= xcprodP (isog_symr (center_ncprod n)); unlock ncprod. Qed.
+Proof.
+by have:= xcprodP (isog_symr (center_ncprod n)); rewrite [ncprod]unlock.
+Qed.
 
 Lemma ncprod1 : G_ 1 \isog G.
 Proof.

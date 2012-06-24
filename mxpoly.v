@@ -976,7 +976,7 @@ Lemma eval_mxrank e r m n (A : 'M_(m, n)) :
   qf_eval e (mxrank_form r A) = (\rank (eval_mx e A) == r).
 Proof.
 elim: m r n A => [|m IHm] r [|n] A /=; try by case r.
-rewrite GRing.eval_Pick /mxrank -lock /=; set pf := fun _ => _.
+rewrite GRing.eval_Pick /mxrank unlock /=; set pf := fun _ => _.
 rewrite -(@eq_pick _ pf) => [|k]; rewrite {}/pf ?mxE // eq_sym.
 case: pick => [[i j]|] //=; set B := _ - _; have:= mxrankE B.
 case: (Gaussian_elimination B) r => [[_ _] _] [|r] //= <-; rewrite {}IHm eqSS.
@@ -1010,8 +1010,8 @@ Qed.
 Lemma eval_submx e : qf_eval e submx_form = (eval_mx e A <= eval_mx e B)%MS.
 Proof.
 rewrite (morphAnd (qf_eval e)) //= big_andE /=.
-apply/forallP/idP=> [|sAB d]; last first.
-  rewrite !eval_mxrank eval_col_mx -addsmxE; apply/implyP; move/eqP <-.
+apply/forallP/idP=> /= [|sAB d]; last first.
+  rewrite !eval_mxrank eval_col_mx -addsmxE; apply/implyP=> /eqP <-.
   by rewrite mxrank_leqif_sup ?addsmxSr // addsmx_sub sAB /=.
 move/(_ (inord (\rank (eval_mx e (col_mx A B))))).
 rewrite inordK ?ltnS ?rank_leq_col // !eval_mxrank eqxx /= eval_col_mx.

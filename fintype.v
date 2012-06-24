@@ -328,15 +328,17 @@ Notation "F ^~" := (~~ F) (at level 2).
 Section Definitions.
 
 Variable T : finType.
-Implicit Types (B : quantified) (x : T).
+Implicit Types (B : quantified) (x y : T).
 
-Definition quant0b Bp := pred0b [pred x : T | let: F^* := Bp x in F].
-Definition ex B x := B.
-(* GG -- Binding the predicate value rather than projecting it prevents *)
-(* spurrious unfolding of the boolean connectives by unification.       *)
-Definition all B x := let: F^* := B in F^~^*.
-Definition all_in C B x := let: F^* := B in (C ==> F)^~^*.
-Definition ex_in C B x :=  let: F^* := B in (C && F)^*.
+Definition quant0b Bp := pred0b [pred x : T | let: F^* := Bp x x in F].
+(* The first redundant argument protects the notation from  Coq's K-term      *)
+(* display kludge; the second protects it from simpl and /=.                  *)
+Definition ex B x y := B.
+(* Binding the predicate value rather than projecting it prevents spurious    *)
+(* unfolding of the boolean connectives by unification.                       *)
+Definition all B x y := let: F^* := B in F^~^*.
+Definition all_in C B x y := let: F^* := B in (C ==> F)^~^*.
+Definition ex_in C B x y :=  let: F^* := B in (C && F)^*.
 
 End Definitions.
 
@@ -827,29 +829,37 @@ Prenex Implicits pred0P pred0Pn subsetP subsetPn subset_eqP card_uniqP.
 
 Section Quantifiers.
 
-Variables (T : finType) (rT : eqType).
-Implicit Type (D P : pred T) (f : T -> rT).
+Variables (T : finType) (rT : T -> eqType).
+Implicit Type (D P : pred T) (f : forall x, rT x).
 
 Lemma forallP P : reflect (forall x, P x) [forall x, P x].
 Proof. by apply: (iffP pred0P) => /= P_ x; rewrite /= ?P_ ?(negbFE (P_ x)). Qed.
 
-Lemma eqfunP f1 f2 : reflect (f1 =1 f2) [forall x, f1 x == f2 x].
+Lemma eqfunP f1 f2 : reflect (forall x, f1 x = f2 x) [forall x, f1 x == f2 x].
 Proof. by apply: (iffP (forallP _)) => eq_f12 x; apply/eqP/eq_f12. Qed.
 
 Lemma forall_inP D P : reflect (forall x, D x -> P x) [forall (x | D x), P x].
 Proof. by apply: (iffP (forallP _)) => /= P_ x /=; apply/implyP; apply: P_. Qed.
 
 Lemma eqfun_inP D f1 f2 :
-  reflect {in D, f1 =1 f2} [forall (x | x \in D), f1 x == f2 x].
+  reflect {in D, forall x, f1 x = f2 x} [forall (x | x \in D), f1 x == f2 x].
 Proof. by apply: (iffP (forall_inP _ _)) => eq_f12 x Dx; apply/eqP/eq_f12. Qed.
 
 Lemma existsP P : reflect (exists x, P x) [exists x, P x].
-Proof. by apply: (iffP pred0Pn); case=> x; exists x. Qed.
+Proof. by apply: (iffP pred0Pn) => [] [x]; exists x. Qed.
+
+Lemma exists_eqP f1 f2 :
+  reflect (exists x, f1 x = f2 x) [exists x, f1 x == f2 x].
+Proof. by apply: (iffP (existsP _)) => [] [x /eqP]; exists x. Qed.
 
 Lemma exists_inP D P : reflect (exists2 x, D x & P x) [exists (x | D x), P x].
 Proof.
 by apply: (iffP pred0Pn) => [[x /andP[]] | [x]]; exists x => //; apply/andP.
 Qed.
+
+Lemma exists_eq_inP D f1 f2 :
+  reflect (exists2 x, D x & f1 x = f2 x) [exists (x | D x), f1 x == f2 x].
+Proof. by apply: (iffP (exists_inP _ _)) => [] [x Dx /eqP]; exists x. Qed.
 
 Lemma eq_existsb P1 P2 : P1 =1 P2 -> [exists x, P1 x] = [exists x, P2 x].
 Proof. by move=> eqP12; congr (_ != 0); apply: eq_card. Qed.
@@ -1107,6 +1117,15 @@ Proof. by apply: in_iinv_f; first exact: in2W. Qed.
 Lemma image_pre (B : pred T') : image f [preim f of B] =i [predI B & codom f].
 Proof. by move=> y; rewrite /image_mem -filter_map /= mem_filter -enumT. Qed.
 
+Lemma bij_on_codom (x0 : T) : {on [pred y in codom f], bijective f}.
+Proof.
+pose g y := iinv (valP (insigd (codom_f x0) y)).
+by exists g => [x fAfx | y fAy]; first apply: injf; rewrite f_iinv insubdK.
+Qed.
+
+Lemma bij_on_image A (x0 : T) : {on [pred y in image f A], bijective f}.
+Proof. exact: subon_bij (@image_codom A) (bij_on_codom x0). Qed.
+
 End Injective.
 
 Fixpoint preim_seq s :=
@@ -1160,6 +1179,16 @@ rewrite -card_image /=; apply: eq_card => y.
 by rewrite [y \in _]image_pre !inE andbC.
 Qed.
 
+Hypothesis card_range : #|T| = #|T'|.
+
+Lemma inj_card_onto y : y \in codom f.
+Proof. by move: y; apply/subset_cardP; rewrite ?card_codom ?subset_predT. Qed.
+
+Lemma inj_card_bij :  bijective f.
+Proof.
+by exists (fun y => iinv (inj_card_onto y)) => y; rewrite ?iinv_f ?f_iinv.
+Qed.
+
 End CardFunImage.
 
 Implicit Arguments image_injP [T T' f A].
@@ -1172,13 +1201,11 @@ Section Inv.
 
 Hypothesis injf : injective f.
 
-Lemma injF_codom y : y \in codom f.
-Proof. by move: y; apply/subset_cardP; rewrite ?card_codom ?subset_predT. Qed.
-
-Definition invF y := iinv (injF_codom y).
-Lemma invF_f : cancel f invF. Proof. move=> x; exact: iinv_f. Qed.
-Lemma f_invF : cancel invF f. Proof. move=> y; exact: f_iinv. Qed.
-Lemma injF_bij : bijective f. Proof. by move: invF_f f_invF; exists invF. Qed.
+Lemma injF_onto y : y \in codom f. Proof. exact: inj_card_onto. Qed.
+Definition invF y := iinv (injF_onto y).
+Lemma invF_f : cancel f invF. Proof. by move=> x; exact: iinv_f. Qed.
+Lemma f_invF : cancel invF f. Proof. by move=> y; exact: f_iinv. Qed.
+Lemma injF_bij : bijective f. Proof. exact: inj_card_bij. Qed.
 
 End Inv.
 
@@ -1229,7 +1256,7 @@ Variables (T : choiceType) (s : seq T).
 
 Record seq_sub : Type := SeqSub {ssval : T; ssvalP : in_mem ssval (@mem T _ s)}.
 
-Canonical seq_sub_subType := Eval hnf in [subType for ssval by seq_sub_rect].
+Canonical seq_sub_subType := Eval hnf in [subType for ssval].
 Definition seq_sub_eqMixin := Eval hnf in [eqMixin of seq_sub by <:].
 Canonical seq_sub_eqType := Eval hnf in EqType seq_sub seq_sub_eqMixin.
 Definition seq_sub_choiceMixin := [choiceMixin of seq_sub by <:].
@@ -1393,7 +1420,7 @@ Notation "[ 'finMixin' 'of' T 'by' <: ]" :=
 
 (* Regression for the subFinType stack
 Record myb : Type := MyB {myv : bool; _ : ~~ myv}.
-Canonical myb_sub := Eval hnf in [subType for myv by myb_rect].
+Canonical myb_sub := Eval hnf in [subType for myv].
 Definition myb_eqm := Eval hnf in [eqMixin of myb by <:].
 Canonical myb_eq := Eval hnf in EqType myb myb_eqm.
 Definition myb_chm := [choiceMixin of myb by <:].
@@ -1436,7 +1463,7 @@ Inductive ordinal : predArgType := Ordinal m of m < n.
 
 Coercion nat_of_ord i := let: Ordinal m _ := i in m.
 
-Canonical ordinal_subType := [subType for nat_of_ord by ordinal_rect].
+Canonical ordinal_subType := [subType for nat_of_ord].
 Definition ordinal_eqMixin := Eval hnf in [eqMixin of ordinal by <:].
 Canonical ordinal_eqType := Eval hnf in EqType ordinal ordinal_eqMixin.
 Definition ordinal_choiceMixin := [choiceMixin of ordinal by <:].

@@ -159,29 +159,27 @@ Reserved Notation "\matrix_ i E"
   (at level 36, E at level 36, i at level 2,
    format "\matrix_ i  E").
 Reserved Notation "\matrix_ ( i < n ) E"
-  (at level 36, E at level 36, i, n at level 50,
-   format "\matrix_ ( i  <  n ) E").
+  (at level 36, E at level 36, i, n at level 50, only parsing).
 Reserved Notation "\matrix_ ( i , j ) E"
   (at level 36, E at level 36, i, j at level 50,
    format "\matrix_ ( i ,  j )  E").
+Reserved Notation "\matrix[ k ]_ ( i , j ) E"
+  (at level 36, E at level 36, i, j at level 50,
+   format "\matrix[ k ]_ ( i ,  j )  E").
 Reserved Notation "\matrix_ ( i < m , j < n ) E"
-  (at level 36, E at level 36, i, m, j, n at level 50,
-   format "\matrix_ ( i  <  m ,  j  <  n )  E").
+  (at level 36, E at level 36, i, m, j, n at level 50, only parsing).
 Reserved Notation "\matrix_ ( i , j < n ) E"
-  (at level 36, E at level 36, i, j, n at level 50,
-   format "\matrix_ ( i ,  j  <  n )  E").
+  (at level 36, E at level 36, i, j, n at level 50, only parsing).
 Reserved Notation "\row_ j E"
   (at level 36, E at level 36, j at level 2,
    format "\row_ j  E").
 Reserved Notation "\row_ ( j < n ) E"
-  (at level 36, E at level 36, j, n at level 50,
-   format "\row_ ( j  <  n )  E").
+  (at level 36, E at level 36, j, n at level 50, only parsing).
 Reserved Notation "\col_ j E"
   (at level 36, E at level 36, j at level 2,
    format "\col_ j  E").
 Reserved Notation "\col_ ( j < n ) E"
-  (at level 36, E at level 36, j, n at level 50,
-   format "\col_ ( j  <  n )  E").
+  (at level 36, E at level 36, j, n at level 50, only parsing).
 
 Reserved Notation "x %:M"   (at level 8, format "x %:M").
 Reserved Notation "A *m B" (at level 40, left associativity, format "A  *m  B").
@@ -209,20 +207,23 @@ Inductive matrix : predArgType := Matrix of {ffun 'I_m * 'I_n -> R}.
 
 Definition mx_val A := let: Matrix g := A in g.
 
-Canonical matrix_subType := Eval hnf in [newType for mx_val by matrix_rect].
+Canonical matrix_subType := Eval hnf in [newType for mx_val].
 
-Definition matrix_of_fun := locked (fun F => Matrix [ffun ij => F ij.1 ij.2]).
+Fact matrix_key : unit. Proof. by []. Qed.
+Definition matrix_of_fun_def F := Matrix [ffun ij => F ij.1 ij.2].
+Definition matrix_of_fun k := locked_with k matrix_of_fun_def.
+Canonical matrix_unlockable k := [unlockable fun matrix_of_fun k].
 
 Definition fun_of_matrix A (i : 'I_m) (j : 'I_n) := mx_val A (i, j).
 
 Coercion fun_of_matrix : matrix >-> Funclass.
 
-Lemma mxE F : matrix_of_fun F =2 F.
-Proof. by unlock matrix_of_fun fun_of_matrix => i j; rewrite /= ffunE. Qed.
+Lemma mxE k F : matrix_of_fun k F =2 F.
+Proof. by move=> i j; rewrite unlock /fun_of_matrix /= ffunE. Qed.
 
 Lemma matrixP (A B : matrix) : A =2 B <-> A = B.
 Proof.
-unlock fun_of_matrix; split=> [/= eqAB | -> //].
+rewrite /fun_of_matrix; split=> [/= eqAB | -> //].
 by apply/val_inj/ffunP=> [[i j]]; exact: eqAB.
 Qed.
 
@@ -241,28 +242,29 @@ Notation "''cV_' n" := 'M_(n, 1) : type_scope.
 Notation "''M_' n" := 'M_(n, n) : type_scope.
 Notation "''M_' ( n )" := 'M_n (only parsing) : type_scope.
 
-Notation "\matrix_ i E" :=
-  (matrix_of_fun (fun i j => fun_of_matrix E (@GRing.zero (Zp_zmodType 0)) j))
-  : ring_scope.
+Notation "\matrix[ k ]_ ( i , j ) E" := (matrix_of_fun k (fun i j => E))
+  (at level 36, E at level 36, i, j at level 50): ring_scope.
 
 Notation "\matrix_ ( i < m , j < n ) E" :=
-  (@matrix_of_fun _ m n (fun i j => E)) (only parsing) : ring_scope.
-
-Notation "\matrix_ ( i < m ) E" :=
-  (\matrix_(i < m, j < _) E 0 j) (only parsing) : ring_scope.
+  (@matrix_of_fun _ m n matrix_key (fun i j => E)) (only parsing) : ring_scope.
 
 Notation "\matrix_ ( i , j < n ) E" :=
   (\matrix_(i < n, j < n) E) (only parsing) : ring_scope.
 
 Notation "\matrix_ ( i , j ) E" := (\matrix_(i < _, j < _) E) : ring_scope.
 
-Notation "\row_ j E" := (@matrix_of_fun _ 1 _ (fun _ j => E)) : ring_scope.
-Notation "\row_ ( j < n ) E" :=
-  (@matrix_of_fun _ 1 n (fun _ j => E)) (only parsing) : ring_scope.
+Notation "\matrix_ ( i < m ) E" :=
+  (\matrix_(i < m, j < _) @fun_of_matrix _ 1 _ E 0 j)
+  (only parsing) : ring_scope.
+Notation "\matrix_ i E" := (\matrix_(i < _) E) : ring_scope.
 
-Notation "\col_ i E" := (@matrix_of_fun _ _ 1 (fun i _ => E)) : ring_scope.
-Notation "\col_ ( i < n ) E" :=
-  (@matrix_of_fun _ n 1 (fun i _ => E)) (only parsing) : ring_scope.
+Notation "\col_ ( i < n ) E" := (@matrix_of_fun _ n 1 matrix_key (fun i _ => E))
+  (only parsing) : ring_scope.
+Notation "\col_ i E" := (\col_(i < _) E) : ring_scope.
+
+Notation "\row_ ( j < n ) E" := (@matrix_of_fun _ 1 n matrix_key (fun _ j => E))
+  (only parsing) : ring_scope.
+Notation "\row_ j E" := (\row_(j < _) E) : ring_scope.
 
 Definition matrix_eqMixin (R : eqType) m n :=
   Eval hnf in [eqMixin of 'M[R]_(m, n) by <:].
@@ -297,7 +299,8 @@ Section MatrixStructural.
 Variable R : Type.
 
 (* Constant matrix *)
-Definition const_mx m n a : 'M[R]_(m, n) := \matrix_(i, j) a.
+Fact const_mx_key : unit. Proof. by []. Qed.
+Definition const_mx m n a : 'M[R]_(m, n) := \matrix[const_mx_key]_(i, j) a.
 Implicit Arguments const_mx [[m] [n]].
 
 Section FixedDim.
@@ -318,11 +321,14 @@ Definition conform_mx m' n' B A :=
   end.
 
 (* Transpose a matrix *)
-Definition trmx A := \matrix_(i, j) A j i.
+Fact trmx_key : unit. Proof. by []. Qed.
+Definition trmx A := \matrix[trmx_key]_(i, j) A j i.
 
 (* Permute a matrix vertically (rows) or horizontally (columns) *)
-Definition row_perm (s : 'S_m) A := \matrix_(i, j) A (s i) j.
-Definition col_perm (s : 'S_n) A := \matrix_(i, j) A i (s j).
+Fact row_perm_key : unit. Proof. by []. Qed.
+Definition row_perm (s : 'S_m) A := \matrix[row_perm_key]_(i, j) A (s i) j.
+Fact col_perm_key : unit. Proof. by []. Qed.
+Definition col_perm (s : 'S_n) A := \matrix[col_perm_key]_(i, j) A i (s j).
 
 (* Exchange two rows/columns of a matrix *)
 Definition xrow i1 i2 := row_perm (tperm i1 i2).
@@ -517,23 +523,35 @@ Variables m m1 m2 n n1 n2 : nat.
 
 (* Concatenating two matrices, in either direction. *)
 
+Fact row_mx_key : unit. Proof. by []. Qed.
 Definition row_mx (A1 : 'M_(m, n1)) (A2 : 'M_(m, n2)) : 'M[R]_(m, n1 + n2) :=
-  \matrix_(i, j) match split j with inl j1 => A1 i j1 | inr j2 => A2 i j2 end.
+  \matrix[row_mx_key]_(i, j)
+     match split j with inl j1 => A1 i j1 | inr j2 => A2 i j2 end.
 
+Fact col_mx_key : unit. Proof. by []. Qed.
 Definition col_mx (A1 : 'M_(m1, n)) (A2 : 'M_(m2, n)) : 'M[R]_(m1 + m2, n) :=
-  \matrix_(i, j) match split i with inl i1 => A1 i1 j | inr i2 => A2 i2 j end.
+  \matrix[col_mx_key]_(i, j)
+     match split i with inl i1 => A1 i1 j | inr i2 => A2 i2 j end.
 
 (* Left/Right | Up/Down submatrices of a rows | columns matrix.   *)
 (* The shape of the (dependent) width parameters of the type of A *)
 (* determines which submatrix is selected.                        *)
 
-Definition lsubmx (A : 'M[R]_(m, n1 + n2)) := \matrix_(i, j) A i (lshift n2 j).
+Fact lsubmx_key : unit. Proof. by []. Qed.
+Definition lsubmx (A : 'M[R]_(m, n1 + n2)) :=
+  \matrix[lsubmx_key]_(i, j) A i (lshift n2 j).
 
-Definition rsubmx (A : 'M[R]_(m, n1 + n2)) := \matrix_(i, j) A i (rshift n1 j).
+Fact rsubmx_key : unit. Proof. by []. Qed.
+Definition rsubmx (A : 'M[R]_(m, n1 + n2)) :=
+  \matrix[rsubmx_key]_(i, j) A i (rshift n1 j).
 
-Definition usubmx (A : 'M[R]_(m1 + m2, n)) := \matrix_(i, j) A (lshift m2 i) j.
+Fact usubmx_key : unit. Proof. by []. Qed.
+Definition usubmx (A : 'M[R]_(m1 + m2, n)) :=
+  \matrix[usubmx_key]_(i, j) A (lshift m2 i) j.
 
-Definition dsubmx (A : 'M[R]_(m1 + m2, n)) := \matrix_(i, j) A (rshift m1 i) j.
+Fact dsubmx_key : unit. Proof. by []. Qed.
+Definition dsubmx (A : 'M[R]_(m1 + m2, n)) :=
+  \matrix[dsubmx_key]_(i, j) A (rshift m1 i) j.
 
 Lemma row_mxEl A1 A2 i j : row_mx A1 A2 i (lshift n2 j) = A1 i j.
 Proof. by rewrite mxE (unsplitK (inl _ _)). Qed.
@@ -862,7 +880,9 @@ Coercion pair_of_mxvec_index k (i_k : is_mxvec_index k) :=
 Definition mxvec (A : 'M[R]_(m, n)) :=
   castmx (erefl _, mxvec_cast) (\row_k A (enum_val k).1 (enum_val k).2).
 
-Definition vec_mx (u : 'rV[R]_(m * n)) := \matrix_(i, j) u 0 (mxvec_index i j).
+Fact vec_mx_key : unit. Proof. by []. Qed.
+Definition vec_mx (u : 'rV[R]_(m * n)) :=
+  \matrix[vec_mx_key]_(i, j) u 0 (mxvec_index i j).
 
 Lemma mxvecE A i j : mxvec A 0 (mxvec_index i j) = A i j.
 Proof. by rewrite castmxE mxE cast_ordK enum_rankK. Qed.
@@ -903,7 +923,8 @@ Section MapMatrix.
 
 Variables (aT rT : Type) (f : aT -> rT).
 
-Definition map_mx m n (A : 'M_(m, n)) := \matrix_(i, j) f (A i j).
+Fact map_mx_key : unit. Proof. by []. Qed.
+Definition map_mx m n (A : 'M_(m, n)) := \matrix[map_mx_key]_(i, j) f (A i j).
 
 Notation "A ^f" := (map_mx A) : ring_scope.
 
@@ -1019,8 +1040,10 @@ Section FixedDim.
 Variables m n : nat.
 Implicit Types A B : 'M[V]_(m, n).
 
-Definition oppmx A := \matrix_(i, j) (- A i j).
-Definition addmx A B := \matrix_(i, j) (A i j + B i j).
+Fact oppmx_key : unit. Proof. by []. Qed.
+Fact addmx_key : unit. Proof. by []. Qed.
+Definition oppmx A := \matrix[oppmx_key]_(i, j) (- A i j).
+Definition addmx A B := \matrix[addmx_key]_(i, j) (A i j + B i j).
 (* In principle, diag_mx and scalar_mx could be defined here, but since they *)
 (* only make sense with the graded ring operations, we defer them to the     *)
 (* next section.                                                             *)
@@ -1058,15 +1081,16 @@ Section Additive.
 
 Variables (m n p q : nat) (f : 'I_p -> 'I_q -> 'I_m) (g : 'I_p -> 'I_q -> 'I_n).
 
-Definition swizzle_mx (A : 'M[V]_(m, n)) := \matrix_(i, j) A (f i j) (g i j).
+Definition swizzle_mx k (A : 'M[V]_(m, n)) :=
+  \matrix[k]_(i, j) A (f i j) (g i j).
 
-Lemma swizzle_mx_is_additive : additive swizzle_mx.
+Lemma swizzle_mx_is_additive k : additive (swizzle_mx k).
 Proof. by move=> A B; apply/matrixP=> i j; rewrite !mxE. Qed.
-Canonical swizzle_mx_additive := Additive swizzle_mx_is_additive.
+Canonical swizzle_mx_additive k := Additive (swizzle_mx_is_additive k).
 
 End Additive.
 
-Local Notation SwizzleAdd op := [additive of op as swizzle_mx _ _].
+Local Notation SwizzleAdd op := [additive of op as swizzle_mx _ _ _].
 
 Canonical trmx_additive m n := SwizzleAdd (@trmx V m n).
 Canonical row_additive m n i := SwizzleAdd (@row V m n i).
@@ -1205,11 +1229,13 @@ Section RingModule.
 Variables m n : nat.
 Implicit Types A B : 'M[R]_(m, n).
 
-Definition scalemx x A := \matrix_(i < m, j < n) (x * A i j).
+Fact scalemx_key : unit. Proof. by []. Qed.
+Definition scalemx x A := \matrix[scalemx_key]_(i, j) (x * A i j).
 
 (* Basis *)
+Fact delta_mx_key : unit. Proof. by []. Qed.
 Definition delta_mx i0 j0 : 'M[R]_(m, n) :=
-  \matrix_(i < m, j < n) ((i == i0) && (j == j0))%:R.
+  \matrix[delta_mx_key]_(i, j) ((i == i0) && (j == j0))%:R.
 
 Local Notation "x *m: A" := (scalemx x A) (at level 40) : ring_scope.
 
@@ -1248,13 +1274,13 @@ End RingModule.
 
 Section StructuralLinear.
 
-Lemma swizzle_mx_is_scalable m n p q f g :
-  scalable (@swizzle_mx R m n p q f g).
+Lemma swizzle_mx_is_scalable m n p q f g k :
+  scalable (@swizzle_mx R m n p q f g k).
 Proof. by move=> a A; apply/matrixP=> i j; rewrite !mxE. Qed.
-Canonical swizzle_mx_scalable m n p q f g :=
-  AddLinear (@swizzle_mx_is_scalable m n p q f g).
+Canonical swizzle_mx_scalable m n p q f g k :=
+  AddLinear (@swizzle_mx_is_scalable m n p q f g k).
 
-Local Notation SwizzleLin op := [linear of op as swizzle_mx _ _].
+Local Notation SwizzleLin op := [linear of op as swizzle_mx _ _ _].
 
 Canonical trmx_linear m n := SwizzleLin (@trmx R m n).
 Canonical row_linear m n i := SwizzleLin (@row R m n i).
@@ -1337,7 +1363,9 @@ Proof. by rewrite scale_col_mx !scale_row_mx. Qed.
 
 (* Diagonal matrices *)
 
-Definition diag_mx n (d : 'rV[R]_n) := \matrix_(i, j) (d 0 i *+ (i == j)).
+Fact diag_mx_key : unit. Proof. by []. Qed.
+Definition diag_mx n (d : 'rV[R]_n) :=
+  \matrix[diag_mx_key]_(i, j) (d 0 i *+ (i == j)).
 
 Lemma tr_diag_mx n (d : 'rV_n) : (diag_mx d)^T = diag_mx d.
 Proof. by apply/matrixP=> i j; rewrite !mxE eq_sym; case: eqP => // ->. Qed.
@@ -1362,7 +1390,9 @@ Section ScalarMx.
 
 Variable n : nat.
 
-Definition scalar_mx x : 'M[R]_n := \matrix_(i , j) (x *+ (i == j)).
+Fact scalar_mx_key : unit. Proof. by []. Qed.
+Definition scalar_mx x : 'M[R]_n :=
+  \matrix[scalar_mx_key]_(i , j) (x *+ (i == j)).
 Notation "x %:M" := (scalar_mx x) : ring_scope.
 
 Lemma diag_const_mx a : diag_mx (const_mx a) = a%:M :> 'M_n.
@@ -1426,8 +1456,9 @@ by do 2![case: splitP => ? ->; rewrite !mxE];
 Qed.
 
 (* Matrix multiplication using bigops. *)
+Fact mulmx_key : unit. Proof. by []. Qed.
 Definition mulmx {m n p} (A : 'M_(m, n)) (B : 'M_(n, p)) : 'M[R]_(m, p) :=
-  \matrix_(i, k) \sum_j (A i j * B j k).
+  \matrix[mulmx_key]_(i, k) \sum_j (A i j * B j k).
 
 Local Notation "A *m B" := (mulmx A B) : ring_scope.
 
@@ -1658,8 +1689,9 @@ Qed.
 
 (* Partial identity matrix (used in rank decomposition). *)
 
+Fact pid_mx_key : unit. Proof. by []. Qed.
 Definition pid_mx {m n} r : 'M[R]_(m, n) :=
-  \matrix_(i, j) ((i == j :> nat) && (i < r))%:R.
+  \matrix[pid_mx_key]_(i, j) ((i == j :> nat) && (i < r))%:R.
 
 Lemma pid_mx_0 m n : pid_mx 0 = 0 :> 'M_(m, n).
 Proof. by apply/matrixP=> i j; rewrite !mxE andbF. Qed.
@@ -1786,8 +1818,9 @@ Section LinRowVector.
 
 Variables m n : nat.
 
+Fact lin1_mx_key : unit. Proof. by []. Qed.
 Definition lin1_mx (f : 'rV[R]_m -> 'rV[R]_n) :=
-  \matrix_(i, j) f (delta_mx 0 i) 0 j.
+  \matrix[lin1_mx_key]_(i, j) f (delta_mx 0 i) 0 j.
 
 Variable f : {linear 'rV[R]_m -> 'rV[R]_n}.
 
@@ -1883,7 +1916,7 @@ Proof. by apply: eq_bigr => j _; rewrite mxE eqxx. Qed.
 Lemma mxtrace_scalar a : \tr a%:M = a *+ n.
 Proof.
 rewrite -diag_const_mx mxtrace_diag.
-by rewrite (eq_bigr _ (fun j _ => mxE _ 0 j)) sumr_const card_ord.
+by rewrite (eq_bigr _ (fun j _ => mxE _ _ 0 j)) sumr_const card_ord.
 Qed.
 
 Lemma mxtrace1 : \tr 1%:M = n%:R. Proof. exact: mxtrace_scalar. Qed.
@@ -1981,7 +2014,8 @@ Definition cofactor n A (i j : 'I_n) : R :=
   (-1) ^+ (i + j) * determinant (row' i (col' j A)).
 
 (* The adjugate matrix : defined as the transpose of the matrix of cofactors *)
-Definition adjugate n (A : 'M_n) := \matrix_(i, j) cofactor A j i.
+Fact adjugate_key : unit. Proof. by []. Qed.
+Definition adjugate n (A : 'M_n) := \matrix[adjugate_key]_(i, j) cofactor A j i.
 
 End MatrixAlgebra.
 
@@ -2609,7 +2643,7 @@ Section GL_unit.
 
 Variables (n : nat) (R : finComUnitRingType).
 
-Canonical GL_subType := [subType for @GLval n _ (Phant R)].
+Canonical GL_subType := [subType of {'GL_n[R]} for GLval].
 Definition GL_eqMixin := Eval hnf in [eqMixin of {'GL_n[R]} by <:].
 Canonical GL_eqType := Eval hnf in EqType {'GL_n[R]} GL_eqMixin.
 Canonical GL_choiceType := Eval hnf in [choiceType of {'GL_n[R]}].

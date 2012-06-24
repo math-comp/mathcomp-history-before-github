@@ -935,8 +935,7 @@ Inductive gal_of := Gal of [subg <<kAAut 1 V>>/kAAutL V].
 Definition gal x := Gal (subg _ x). 
 Definition gal_val A := let: Gal x := A in x.
 
-Canonical gal_subType :=
-  Eval hnf in [newType for gal_val by gal_of_rect].
+Canonical gal_subType := Eval hnf in [newType for gal_val].
 Definition gal_eqMixin := Eval hnf in [eqMixin of gal_of by <:].
 Canonical gal_eqType := Eval hnf in EqType gal_of gal_eqMixin.
 Definition gal_choiceMixin := [choiceMixin of gal_of by <:].

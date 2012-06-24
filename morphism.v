@@ -140,6 +140,9 @@ Definition ker mph := morphpre mph 1.
 
 End MorphismOps1.
 
+Arguments Scope morphim [_ _ group_scope _ _].
+Arguments Scope morphpre [_ _ group_scope _ _].
+
 Notation "''dom' f" := (dom (MorPhantom f))
   (at level 10, f at level 8, format "''dom'  f") : group_scope.
 
@@ -899,6 +902,7 @@ Proof. exact: morphim_idm. Qed.
 
 End IdentityMorphism.
 
+Arguments Scope idm [_ group_scope group_scope].
 Prenex Implicits idm.
 
 Section RestrictedMorphism.
@@ -922,8 +926,11 @@ Canonical restrm_morphism :=
 Lemma morphim_restrm B : fA @* B = f @* (A :&: B).
 Proof. by rewrite {2}/morphim setIA (setIidPr sAD). Qed.
 
+Lemma restrmEsub B : B \subset A -> fA @* B = f @* B.
+Proof. by rewrite morphim_restrm => /setIidPr->. Qed.
+
 Lemma im_restrm : fA @* A = f @* A.
-Proof. by rewrite morphim_restrm setIid. Qed.
+Proof. exact: restrmEsub. Qed.
 
 Lemma morphpre_restrm R : fA @*^-1 R = A :&: f @*^-1 R.
 Proof. by rewrite setIA (setIidPl sAD). Qed.
@@ -954,6 +961,7 @@ Proof. by move <-; exists f. Qed.
 
 End RestrictedMorphism.
 
+Arguments Scope restrm [_ _ group_scope group_scope _ group_scope].
 Prenex Implicits restrm.
 Implicit Arguments restrmP [aT rT D A].
 Implicit Arguments domP [aT rT D A].
@@ -980,7 +988,8 @@ Proof. by apply/setIidPl/subsetP=> x _; rewrite !inE /=. Qed.
 
 End TrivMorphism.
 
-Prenex Implicits trivm.
+Arguments Scope trivm [_ _ group_scope group_scope].
+Implicit Arguments trivm [[aT] [rT]].
 
 (* The composition of two morphisms is a Canonical morphism instance. *)
 Section MorphismComposition.
@@ -1242,38 +1251,48 @@ Qed.
 
 End Defs.
 
-Implicit Arguments isom_isog [A B D].
-
+Arguments Scope isom [_ _ group_scope group_scope _].
+Arguments Scope morphic [_ _ group_scope _].
+Arguments Scope misom [_ _ group_scope group_scope _].
+Arguments Scope isog [_ _ group_scope group_scope].
 Infix "\isog" := isog.
+
+Implicit Arguments isom_isog [A B D].
 
 (* The real reflection properties only hold for true groups and morphisms. *)
 
 Section Main.
 
 Variables (G : {group aT}) (H : {group rT}).
-Notation fMT := {morphism G >-> rT}.
 
-Lemma isomP (f : fMT) : reflect ('injm f /\ f @* G = H) (isom G H f).
+Lemma isomP (f : {morphism G >-> rT}) :
+  reflect ('injm f /\ f @* G = H) (isom G H f).
 Proof.
 apply: (iffP eqP) => [eqfGH | [injf <-]]; last first.
-  by rewrite setDE -morphimEsub ?subsetIl // -setDE morphimDG // morphim1.
+  by rewrite -injmD1 // morphimEsub ?subsetDl.
 split.
-  apply/subsetP=> x; rewrite !inE /=; case/andP=> Gx fx1; apply/idPn=> nx1.
-  by move/setP/(_ (f x)): eqfGH; rewrite mem_imset ?inE (nx1, fx1).
+  apply/subsetP=> x /morphpreP[Gx fx1]; have: f x \notin H^# by rewrite inE fx1.
+  by apply: contraR => ntx; rewrite -eqfGH mem_imset // inE ntx.
 rewrite morphimEdom -{2}(setD1K (group1 G)) imsetU eqfGH.
 by rewrite imset_set1 morph1 setD1K.
 Qed.
 
-Lemma isom_card (f : fMT) : isom G H f -> #|G| = #|H|.
+Lemma isogP :
+  reflect (exists2 f : {morphism G >-> rT}, 'injm f & f @* G = H) (G \isog H).
 Proof.
-by case/isomP=> /injmP=> injf <-; rewrite morphimEdom card_in_imset.
+apply: (iffP idP) => [/isog_isom[f /isomP[]] | [f injf fG]]; first by exists f.
+by apply: (isom_isog f) => //; apply/isomP.
 Qed.
 
-Lemma isogP : reflect (exists2 f : fMT, 'injm f & f @* G = H) (G \isog H).
-Proof.
-apply: (iffP idP) => [| [f *]]; last by apply: (isom_isog f); last exact/isomP.
-by case/isog_isom=> f /isomP[]; exists f.
-Qed.
+Variable f : {morphism G >-> rT}.
+Hypothesis isoGH : isom G H f.
+
+Lemma isom_inj : 'injm f. Proof. by have /isomP[] := isoGH. Qed.
+Lemma isom_im : f @* G = H. Proof. by have /isomP[] := isoGH. Qed.
+Lemma isom_card : #|G| = #|H|.
+Proof. by rewrite -isom_im card_injm ?isom_inj. Qed.
+Lemma isom_sub_im : H \subset f @* G. Proof. by rewrite isom_im. Qed.
+Definition isom_inv := restrm isom_sub_im (invm isom_inj).
 
 End Main.
 
@@ -1338,11 +1357,15 @@ Qed.
 Lemma isog_eq1 : G \isog H -> (G :==: 1) = (H :==: 1).
 Proof. by move=> isoGH; rewrite !trivg_card1 card_isog. Qed.
 
-Lemma isog_symr : G \isog H -> H \isog G.
+Lemma isom_sym (f : {morphism G >-> hT}) (isoGH : isom G H f) :
+  isom H G (isom_inv isoGH).
 Proof.
-case/isogP=> f injf <-; apply/isogP.
-by exists [morphism of invm injf]; rewrite /= ?injm_invm // im_invm.
+rewrite sub_isom ?injm_restrm ?injm_invm // im_restrm.
+by rewrite -(isom_im isoGH) im_invm.
 Qed.
+
+Lemma isog_symr : G \isog H -> H \isog G.
+Proof. by case/isog_isom=> f /isom_sym/isom_isog->. Qed.
 
 Lemma isog_trans : G \isog H -> H \isog K -> G \isog K.
 Proof.
@@ -1450,6 +1473,7 @@ Qed.
 
 End Homg.
 
+Arguments Scope homg [_ _ group_scope group_scope].
 Notation "G \homg H" := (homg G H)
   (at level 70, no associativity) : group_scope.
 

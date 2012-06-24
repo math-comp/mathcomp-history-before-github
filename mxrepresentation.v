@@ -154,8 +154,8 @@ Require Import commutator cyclic center pgroup matrix mxalgebra mxpoly.
 (*                 in the enveloping algebra of another representation rG.    *)
 (*   gring_op rG A == the image of a matrix of the free group ring of G,      *)
 (*                 in the enveloping algebra of rG.                           *)
-(*   gset_mx F G A == the group sum of A in the free group ring of G -- the   *)
-(*                 sum of the images of all the x \in A in group_ring F G.    *)
+(*   gset_mx F G C == the group sum of C in the free group ring of G -- the   *)
+(*                 sum of the images of all the x \in C in group_ring F G.    *)
 (* classg_base F G == a #|classes G| x #|G|^2 matrix whose rows encode the    *)
 (*                 group sums of the conjugacy classes of G -- this is a      *)
 (*                 basis of 'Z(group_ring F G)%MS.                            *)
@@ -807,6 +807,11 @@ End GringOp.
 End Regular.
 
 End RingRepr.
+
+Arguments Scope mx_representation [_ _ group_scope nat_scope].
+Arguments Scope mx_repr [_ _ group_scope nat_scope _].
+Arguments Scope group_ring [_ _ group_scope].
+Arguments Scope regular_repr [_ _ group_scope].
 
 Implicit Arguments centgmxP [R gT G n rG f].
 Implicit Arguments rkerP [R gT G n rG x].
@@ -1911,10 +1916,10 @@ Qed.
 Section Components.
 
 Fact component_mx_key : unit. Proof. by []. Qed.
-Local Notation component_mx_expr U :=
+Definition component_mx_expr (U : 'M[F]_n) :=
   (\sum_i cyclic_mx (row i (row_hom_mx (nz_row U))))%MS.
-Definition component_mx :=
-  let: tt := component_mx_key in fun U : 'M[F]_n => component_mx_expr U.
+Definition component_mx := locked_with component_mx_key component_mx_expr.
+Canonical component_mx_unfoldable := [unlockable fun component_mx].
 
 Variable U : 'M[F]_n.
 Hypothesis simU : mxsimple U.
@@ -1926,17 +1931,14 @@ Let Uu : (u <= U)%MS := nz_row_sub U.
 Let defU : (U :=: cyclic_mx u)%MS := mxsimple_cyclic simU nz_u Uu.
 Local Notation compU := (component_mx U).
 
-Lemma component_mxE : compU = component_mx_expr U.
-Proof. by rewrite /component_mx; case component_mx_key. Qed.
-
 Lemma component_mx_module : mxmodule compU.
 Proof.
-by rewrite component_mxE sumsmx_module // => i; rewrite cyclic_mx_module.
+by rewrite unlock sumsmx_module // => i; rewrite cyclic_mx_module.
 Qed.
 
 Lemma genmx_component : <<compU>>%MS = compU.
 Proof.
-by rewrite component_mxE genmx_sums; apply: eq_bigr => i; rewrite genmx_id.
+by rewrite [in compU]unlock genmx_sums; apply: eq_bigr => i; rewrite genmx_id.
 Qed.
 
 Lemma component_mx_def : {I : finType & {W : I -> 'M_n |
@@ -1951,7 +1953,7 @@ exists [finType of I]; exists (fun i => cyclic_mx (r (sval i))) => [i|].
   have [f hom_u_f <-] := @row_hom_mxP u (r (sval i)) (row_sub _ _).
   by rewrite defU -hom_cyclic_mx ?mxrankM_maxl.
 rewrite -(eq_bigr _ (fun _ _ => genmx_id _)) -genmx_sums -genmx_component.
-rewrite component_mxE; apply/genmxP/andP; split; last first.
+rewrite [in compU]unlock; apply/genmxP/andP; split; last first.
   by apply/sumsmx_subP => i _; rewrite (sumsmx_sup (sval i)).
 apply/sumsmx_subP => i _.
 case i0: (r_nz i); first by rewrite (sumsmx_sup (Sub i i0)).
@@ -1976,7 +1978,7 @@ have ->: (V :=: cyclic_mx (u *m f))%MS.
 have iso_uf: (u *m f <= iso_u)%MS by apply/row_hom_mxP; exists f.
 rewrite genmxE; apply/row_subP=> j; rewrite row_mul mul_rV_lin1 /=.
 set a := vec_mx _; apply: submx_trans (submxMr _ iso_uf) _.
-apply/row_subP=> i; rewrite row_mul component_mxE (sumsmx_sup i) //.
+apply/row_subP=> i; rewrite row_mul [in compU]unlock (sumsmx_sup i) //.
 by apply/cyclic_mxP; exists a; rewrite // vec_mxK row_sub.
 Qed.
 
@@ -4047,13 +4049,15 @@ rewrite gring_opG ?gring_projE // eqxx big1 ?addr0 ?oner_eq0 // => x.
 by case/andP=> Gx nt_x; rewrite gring_opG // gring_projE // eq_sym (negPf nt_x).
 Qed.
 
-Definition principal_comp :=
-  locked (PackSocle (component_socle sG principal_comp_subproof)).
+Fact principal_comp_key : unit. Proof. by []. Qed.
+Definition principal_comp_def :=
+  PackSocle (component_socle sG principal_comp_subproof).
+Definition principal_comp := locked_with principal_comp_key principal_comp_def.
 Local Notation "1" := principal_comp : irrType_scope.
 
 Lemma irr1_rfix : (1%irr :=: rfix_mx aG G)%MS.
 Proof.
-unlock principal_comp; rewrite PackSocleK; apply/eqmxP.
+rewrite [1%irr]unlock PackSocleK; apply/eqmxP.
 rewrite (component_mx_id principal_comp_subproof) andbT.
 have [I [W isoW ->]] := component_mx_def principal_comp_subproof.
 apply/sumsmx_subP=> i _; have [f _ hom_f <-]:= isoW i.
@@ -4643,6 +4647,11 @@ End LinearIrr.
 
 End FieldRepr.
 
+Arguments Scope rfix_mx [_ _ group_scope nat_scope _ group_scope].
+Arguments Scope gset_mx [_ _ group_scope group_scope].
+Arguments Scope classg_base [_ _ group_scope group_scope].
+Arguments Scope irrType [_ _ group_scope group_scope].
+
 Implicit Arguments mxmoduleP [F gT G n rG m U].
 Implicit Arguments envelop_mxP [F gT G n rG A].
 Implicit Arguments hom_mxP [F gT G n rG m f W].
@@ -5012,8 +5021,7 @@ Hypotheses (irrG : irr rG) (cGA : centgmx rG A).
 Notation FA := (gen_of irrG cGA).
 Let inFA := Gen irrG cGA.
 
-Canonical gen_subType :=
-  Eval hnf in [newType for rVval by @gen_of_rect irrG cGA].
+Canonical gen_subType := Eval hnf in [newType for @rVval irrG cGA].
 Definition gen_eqMixin := Eval hnf in [eqMixin of FA by <:].
 Canonical gen_eqType := Eval hnf in EqType FA gen_eqMixin.
 Definition gen_choiceMixin := [choiceMixin of FA by <:].

@@ -91,7 +91,7 @@ have p'Xu: p^'.-group (X / U) := quotient_pgroup _ p'X.
 have nXAu: X / U \subset 'N(A / U) := quotient_norms _ nAX.
 have{Au_lt_m p'Xu nXAu} [S defAu simS] := IHm _ _ _ Au_lt_m cAuAu pAu p'Xu nXAu.
 have sSAu: forall Ku, Ku \in S -> Ku \subset A / U.
-  by move=> Ku S_Ku; rewrite -(bigdprodEY defAu) sub_gen // (bigcup_max Ku).
+  by move=> Ku S_Ku; rewrite -(bigdprodWY defAu) sub_gen // (bigcup_max Ku).
 have{B ntB sBAn tiBU} [Ku S_Ku eKu]: exists2 Ku, Ku \in S & exponent Ku == (p ^ n.+1)%N.
   apply/exists_inP; apply: contraR ntB; rewrite negb_exists_in -subG1 -tiBU.
   move/forall_inP=> expSpn; apply/subsetP=> x Ux; rewrite inE Ux coset_idr //.
@@ -100,7 +100,7 @@ have{B ntB sBAn tiBU} [Ku S_Ku eKu]: exists2 Ku, Ku \in S & exponent Ku == (p ^ 
     by apply/imsetP; rewrite -MhoEabelian ?(subsetP sBAn).
   rewrite morphX ?(subsetP nUA) // (exponentP _ _ (mem_quotient _ Ay)) //.
   rewrite -sub_Ldiv -OhmEabelian ?(abelianS (Ohm_sub n _)) //=.
-  rewrite (OhmE n pAu) /= -(bigdprodEY defAu) genS // subsetI sub_gen //=. 
+  rewrite (OhmE n pAu) /= -(bigdprodWY defAu) genS // subsetI sub_gen //=. 
   apply/bigcupsP=> Ku S_Ku; rewrite sub_LdivT.
   have: exponent Ku %| p ^ n.+1.
     by rewrite (dvdn_trans (exponentS (sSAu _ S_Ku))) // -eA exponent_quotient.
@@ -122,7 +122,7 @@ have [_ sPuA] := mulG_sub mulKPu.
 have [P defPu sUP sPA] := inv_quotientS nsUA sPuA.
 have{simS defK'u} nPX: X \subset 'N(P).
   rewrite -(quotientSGK nUX) ?normsG // quotient_normG ?(normalS sUP sPA) //.
-  rewrite -defPu -(bigdprodEY defK'u) norms_gen ?norms_bigcup //.
+  rewrite -defPu -(bigdprodWY defK'u) norms_gen ?norms_bigcup //.
   by apply/bigcapsP=> Bu; case/setD1P=> _; case/simS.
 have abelKb: p.-abelem (K / K1).
   by rewrite -[K1](Phi_Mho pK) ?Phi_quotient_abelem.
@@ -180,7 +180,7 @@ have [cPP pP] := (abelianS sPA cAA, pgroupS sPA pA).
 have{S defAu K'u defAu_K} [S defP simS] := IHm _ _ _ ltPm cPP pP p'X nPX.
 exists (D |: S) => [ | {defP}B].
   rewrite big_setU1 ?defP //=; apply: contra ntD => S_D.
-  by rewrite -subG1 -tiDP subsetIidl -(bigdprodEY defP) sub_gen ?(bigcup_max D).
+  by rewrite -subG1 -tiDP subsetIidl -(bigdprodWY defP) sub_gen ?(bigcup_max D).
 case/setU1P=> [-> {B S simS} | ]; last exact: simS.
 have [[pD cDD] nUD] := (pgroupS sDA pA, abelianS sDA cAA, subset_trans sDA nUA).
 have isoD: D \isog Ku by rewrite defKu -mulUD quotientMidl quotient_isog.
@@ -293,7 +293,7 @@ pose gMx U := rowg_mx (Morphism gM @* U).
 have simS: forall U, U \in S -> mxsimple aG (gMx U).
   move=> U S_U; have [_ nUX irrU] := im_S U S_U.
   have{irrU} [modU irrU] := mingroupP irrU; have{modU} [ntU _] := andP modU.
-  have sUL: U \subset L by rewrite -(bigdprodEY defL) sub_gen // (bigcup_max U).
+  have sUL: U \subset L by rewrite -(bigdprodWY defL) sub_gen // (bigcup_max U).
   split=> [||U2 modU2].
   - rewrite (eqmx_module _ (genmxE _)); apply/mxmoduleP=> x Gx.
     apply/row_subP=> i; rewrite row_mul rowK.
@@ -345,7 +345,7 @@ have sumS: (\sum_(U in S) gMx U :=: 1%:M)%MS.
   case/morphimP=> u Lu _ ->{v}.
   rewrite -mem_rowg -sub1set -morphim_set1 // sub_morphim_pre ?sub1set //.
   have [c [Uc -> _]] := mem_bigdprod defL Lu; rewrite group_prod //= => U S_U.
-  have sUL: U \subset L by rewrite -(bigdprodEY defL) sub_gen // (bigcup_max U).
+  have sUL: U \subset L by rewrite -(bigdprodWY defL) sub_gen // (bigcup_max U).
   rewrite inE (subsetP sUL) ?Uc // inE mem_rowg (sumsmx_sup U) // -mem_rowg.
   by rewrite (subsetP (sub_rowg_mx _)) // mem_morphim ?(subsetP sUL) ?Uc.
 have Fp'G: [char 'F_p]^'.-group G.

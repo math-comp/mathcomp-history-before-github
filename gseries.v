@@ -66,6 +66,16 @@ Definition simple A := minnormal A A.
 Definition chief_factor A V U := maxnormal V U A && (U <| A).
 End GroupDefs.
 
+Arguments Scope subnormal [_ group_scope group_scope].
+Arguments Scope invariant_factor [_ group_scope group_scope group_scope].
+Arguments Scope stable_factor [_ group_scope group_scope group_scope].
+Arguments Scope central_factor [_ group_scope group_scope group_scope].
+Arguments Scope maximal [_ group_scope group_scope].
+Arguments Scope maximal_eq [_ group_scope group_scope].
+Arguments Scope maxnormal [_ group_scope group_scope group_scope].
+Arguments Scope minnormal [_ group_scope group_scope].
+Arguments Scope simple [_ group_scope].
+Arguments Scope chief_factor [_ group_scope group_scope group_scope].
 Prenex Implicits subnormal maximal simple.
 
 Notation "H <|<| G" := (subnormal H G)

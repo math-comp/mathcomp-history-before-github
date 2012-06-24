@@ -73,7 +73,8 @@ by rewrite !permE /= mulrDr -addrA (addrCA i2) (addrA i1).
 Qed.
 Definition groupAction := GroupAction gactP.
 
-Definition gtype := locked (sdprod_groupType groupAction).
+Fact gtype_key : unit. Proof. by []. Qed.
+Definition gtype := locked_with gtype_key (sdprod_groupType groupAction).
 
 Definition ngtype := ncprod [set: gtype].
 
@@ -111,7 +112,7 @@ Local Notation actp := (Pextraspecial.groupAction p).
 
 Lemma card_pX1p2 : #|p^{1+2}| = (p ^ 3)%N.
 Proof.
-unlock gtype; rewrite -(sdprod_card (sdprod_sdpair _)).
+rewrite [@gtype _]unlock -(sdprod_card (sdprod_sdpair _)).
 rewrite !card_injm ?injm_sdpair1 ?injm_sdpair2 // !cardsT card_prod card_ord.
 by rewrite -mulnA Zp_cast.
 Qed.
@@ -119,7 +120,7 @@ Qed.
 Lemma Grp_pX1p2 :
   p^{1+2} \isog Grp (x : y : (x ^+ p, y ^+ p, [~ x, y, x], [~ x, y, y])).
 Proof.
-unlock gtype; apply: intro_isoGrp => [|rT H].
+rewrite [@gtype _]unlock ; apply: intro_isoGrp => [|rT H].
   apply/existsP; pose x := sdpair1 actp (0, 1)%R; pose y := sdpair2 actp 1%R.
   exists (x, y); rewrite /= !xpair_eqE; set z := [~ x, y]; set G := _ <*> _.
   have def_z: z = sdpair1 actp (1, 0)%R.

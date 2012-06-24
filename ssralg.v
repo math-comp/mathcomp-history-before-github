@@ -1775,12 +1775,15 @@ Section AdditiveTheory.
 
 Section Properties.
 
-Variables (U V : zmodType) (f : {additive U -> V}).
+Variables (U V : zmodType) (k : unit) (f : {additive U -> V}).
 
 Lemma raddfB : {morph f : x y / x - y}. Proof. exact: Additive.class. Qed.
 
 Lemma raddf0 : f 0 = 0.
 Proof. by rewrite -[0]subr0 raddfB subrr. Qed.
+
+Lemma raddf_eq0 x : injective f -> (f x == 0) = (x == 0).
+Proof. by move=> /inj_eq <-; rewrite raddf0. Qed.
 
 Lemma raddfN : {morph f : x / - x}.
 Proof. by move=> x /=; rewrite -sub0r raddfB raddf0 sub0r. Qed.
@@ -1804,6 +1807,10 @@ Proof. by move=> fK f'K x y /=; apply: (canLR fK); rewrite raddfB !f'K. Qed.
 Lemma bij_additive :
   bijective f -> exists2 f' : {additive V -> U}, cancel f f' & cancel f' f.
 Proof. by case=> f' fK f'K; exists (Additive (can2_additive fK f'K)). Qed.
+
+Fact locked_is_additive : additive (locked_with k (f : U -> V)).
+Proof. by case: k f => [] []. Qed.
+Canonical locked_additive := Additive locked_is_additive.
 
 End Properties.
 
@@ -1942,7 +1949,7 @@ Section RmorphismTheory.
 
 Section Properties.
 
-Variables (R S : ringType) (f : {rmorphism R -> S}).
+Variables (R S : ringType) (k : unit) (f : {rmorphism R -> S}).
 
 Lemma rmorph0 : f 0 = 0. Proof. exact: raddf0. Qed.
 Lemma rmorphN : {morph f : x / - x}. Proof. exact: raddfN. Qed.
@@ -1977,6 +1984,12 @@ Proof. by rewrite rmorphX rmorphN1. Qed.
 Lemma rmorph_char p : p \in [char R] -> p \in [char S].
 Proof. by rewrite !inE -rmorph_nat => /andP[-> /= /eqP->]; rewrite rmorph0. Qed.
 
+Lemma rmorph_eq_nat x n : injective f -> (f x == n%:R) = (x == n%:R).
+Proof. by move/inj_eq <-; rewrite rmorph_nat. Qed.
+
+Lemma rmorph_eq1 x : injective f -> (f x == 1) = (x == 1).
+Proof. exact: rmorph_eq_nat 1%N. Qed.
+
 Lemma can2_rmorphism f' : cancel f f' -> cancel f' f -> rmorphism f'.
 Proof.
 move=> fK f'K; split; first exact: can2_additive fK f'K.
@@ -1986,6 +1999,10 @@ Qed.
 Lemma bij_rmorphism :
   bijective f -> exists2 f' : {rmorphism S -> R}, cancel f f' & cancel f' f.
 Proof. by case=> f' fK f'K; exists (RMorphism (can2_rmorphism fK f'K)). Qed.
+
+Fact locked_is_multiplicative : multiplicative (locked_with k (f : R -> S)).
+Proof. by case: k f => [] [? []]. Qed.
+Canonical locked_rmorphism := AddRMorphism locked_is_multiplicative.
 
 End Properties.
 
@@ -2156,7 +2173,7 @@ Variable R : ringType.
 
 Section GenericProperties.
 
-Variables (U : lmodType R) (V : zmodType) (s : R -> V -> V).
+Variables (U : lmodType R) (V : zmodType) (s : R -> V -> V) (k : unit).
 Variable f : {linear U -> V | s}.
 
 Lemma linear0 : f 0 = 0. Proof. exact: raddf0. Qed.
@@ -2172,6 +2189,10 @@ Proof. exact: raddf_sum. Qed.
 Lemma linearZ_LR : scalable_for s f. Proof. by case: f => ? []. Qed.
 Lemma linearP a : {morph f : u v / a *: u + v >-> s a u + v}.
 Proof. by move=> u v /=; rewrite linearD linearZ_LR. Qed.
+
+Fact locked_is_scalable : scalable_for s (locked_with k (f : U -> V)).
+Proof. by case: k f => [] [? []]. Qed.
+Canonical locked_linear := AddLinear locked_is_scalable.
 
 End GenericProperties.
 
@@ -2351,10 +2372,11 @@ Include LRMorphism.Exports.
 Section LRMorphismTheory.
 
 Variables (R : ringType) (A B : lalgType R) (C : ringType) (s : R -> C -> C).
-Variables (f : {lrmorphism A -> B}) (g : {lrmorphism B -> C | s}).
+Variables (k : unit) (f : {lrmorphism A -> B}) (g : {lrmorphism B -> C | s}).
 
 Definition idfun_lrmorphism := [lrmorphism of @idfun A].
 Definition comp_lrmorphism := [lrmorphism of g \o f].
+Definition locked_lrmorphism := [lrmorphism of locked_with k (f : A -> B)].
 
 Lemma rmorph_alg a : f a%:A = a%:A.
 Proof. by rewrite linearZ rmorph1. Qed.
@@ -2384,7 +2406,7 @@ Definition RingMixin R one mul mulA mulC mul1x mul_addl :=
 Section ClassDef.
 
 Record class_of R :=
-  Class {base : Ring.class_of R; _ : commutative (Ring.mul base)}.
+  Class {base : Ring.class_of R; mixin : commutative (Ring.mul base)}.
 Local Coercion base : class_of >-> Ring.class_of.
 
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
@@ -2408,6 +2430,8 @@ End ClassDef.
 
 Module Exports.
 Coercion base : class_of >-> Ring.class_of.
+Implicit Arguments mixin [R].
+Coercion mixin : class_of >-> commutative.
 Coercion sort : type >-> Sortclass.
 Bind Scope ring_scope with sort.
 Coercion eqType : type >-> Equality.type.
@@ -4232,7 +4256,7 @@ Definition axiom (R : ringType) :=
 Section ClassDef.
 
 Record class_of (R : Type) : Type :=
-  Class {base : ComUnitRing.class_of R; _: axiom (Ring.Pack base R)}.
+  Class {base : ComUnitRing.class_of R; mixin : axiom (Ring.Pack base R)}.
 Local Coercion base : class_of >-> ComUnitRing.class_of.
 
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
@@ -4259,6 +4283,8 @@ End ClassDef.
 
 Module Exports.
 Coercion base : class_of >-> ComUnitRing.class_of.
+Implicit Arguments mixin [R x y].
+Coercion mixin : class_of >-> axiom.
 Coercion sort : type >-> Sortclass.
 Bind Scope ring_scope with sort.
 Coercion eqType : type >-> Equality.type.
@@ -4416,7 +4442,7 @@ Section ClassDef.
 
 Record class_of (F : Type) : Type := Class {
   base : IntegralDomain.class_of F;
-  _ : mixin_of (UnitRing.Pack base F)
+  mixin : mixin_of (UnitRing.Pack base F)
 }.
 Local Coercion base : class_of >-> IntegralDomain.class_of.
 
@@ -4445,6 +4471,8 @@ End ClassDef.
 
 Module Exports.
 Coercion base : class_of >-> IntegralDomain.class_of.
+Implicit Arguments mixin [F x].
+Coercion mixin : class_of >-> mixin_of.
 Coercion sort : type >-> Sortclass.
 Bind Scope ring_scope with sort.
 Coercion eqType : type >-> Equality.type.
@@ -5487,6 +5515,7 @@ Definition eq_sol := eq_sol.
 Definition size_sol := size_sol.
 Definition solve_monicpoly := solve_monicpoly.
 Definition raddf0 := raddf0.
+Definition raddf_eq0 := raddf_eq0.
 Definition raddfN := raddfN.
 Definition raddfD := raddfD.
 Definition raddfB := raddfB.
@@ -5507,9 +5536,11 @@ Definition rmorphMNn := rmorphMNn.
 Definition rmorphismP := rmorphismP.
 Definition rmorphismMP := rmorphismMP.
 Definition rmorph1 := rmorph1.
+Definition rmorph_eq1 := rmorph_eq1.
 Definition rmorphM := rmorphM.
 Definition rmorphMsign := rmorphMsign.
 Definition rmorph_nat := rmorph_nat.
+Definition rmorph_eq_nat := rmorph_eq_nat.
 Definition rmorph_prod := rmorph_prod.
 Definition rmorphX := rmorphX.
 Definition rmorphN1 := rmorphN1.
@@ -5699,6 +5730,10 @@ Canonical mul_comoid.
 Canonical muloid.
 Canonical addoid.
 
+Canonical locked_additive.
+Canonical locked_rmorphism.
+Canonical locked_linear.
+Canonical locked_lrmorphism.
 Canonical idfun_additive.
 Canonical idfun_rmorphism.
 Canonical idfun_linear.
@@ -6056,7 +6091,7 @@ Variables (T : choiceType) (S : predPredType T).
 Inductive B := mkB x & x \in S.
 Definition vB u := let: mkB x _ := u in x.
 
-Canonical B_subType := [subType for vB by B_rect].
+Canonical B_subType := [subType for vB].
 Definition B_eqMixin := [eqMixin of B by <:].
 Canonical B_eqType := EqType B B_eqMixin.
 Definition B_choiceMixin := [choiceMixin of B by <:].
