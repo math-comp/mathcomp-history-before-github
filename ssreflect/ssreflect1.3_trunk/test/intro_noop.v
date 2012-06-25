@@ -12,10 +12,10 @@ Proof.
 move=> ---a--- - -/=- -//- -/=- -//=- b [|-].
 move: {-}a => /v/v-H; have _ := H I I.
 Fail move: {-}a {H} => /v-/v-H.
-have - -> : a = a by [].
-have --> : a = a by [].
-have - - _ : a = a by [].
-have -{1}-> : a = a by [].
+have - -> : a = (id a) by [].
+have --> : a = (id a) by [].
+have - - _ : a = (id a) by [].
+have -{1}-> : a = (id a) by [].
   by admit.
 move: a.
 case: b => -[] //.
