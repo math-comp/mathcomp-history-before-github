@@ -1360,7 +1360,7 @@ Proof. by move=> isoGH; rewrite !trivg_card1 card_isog. Qed.
 Lemma isom_sym (f : {morphism G >-> hT}) (isoGH : isom G H f) :
   isom H G (isom_inv isoGH).
 Proof.
-rewrite sub_isom ?injm_restrm ?injm_invm // im_restrm.
+rewrite sub_isom 1?injm_restrm ?injm_invm // im_restrm.
 by rewrite -(isom_im isoGH) im_invm.
 Qed.
 

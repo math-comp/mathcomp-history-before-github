@@ -3228,6 +3228,7 @@ let pr_cargs a =
   str "[" ++ pr_list pr_spc pr_constr (Array.to_list a) ++ str "]"
 
 exception NoMatch
+exception NoProgress
 
 let unif_HO env ise p c = Evarconv.the_conv_x env p c ise
 
@@ -3277,7 +3278,7 @@ let unif_end env sigma0 ise0 pt ok =
   let s, t = nf_open_term sigma0 ise pt in
   let ise1 = create_evar_defs s in
   let ise2 = Typeclasses.resolve_typeclasses ~fail:true env ise1 in
-  if not (ok ise) then raise NoMatch else (* RW progress check *)
+  if not (ok ise) then raise NoProgress else
   if ise2 == ise1 then (s, t) else nf_open_term sigma0 ise2 t
 
 let pf_unif_HO gl sigma pt p c =
@@ -3481,7 +3482,10 @@ let match_upats_FO upats env sigma0 ise c =
   prof_FO.profile (match_upats_FO upats env sigma0) ise c
 ;;
 
-let rec match_upats_HO upats env sigma0 ise c =
+
+let match_upats_HO upats env sigma0 ise c =
+ let it_did_match = ref false in
+ let rec aux upats env sigma0 ise c =
   let f, a = splay_app ise c in let i0 = ref (-1) in
   let fpats = List.fold_right (filter_upat i0 f (Array.length a)) upats [] in
   while !i0 >= 0 do
@@ -3509,11 +3513,16 @@ let rec match_upats_HO upats env sigma0 ise c =
         let lhs = mkSubApp f i a in
         let pt' = unif_end env sigma0 ise'' u.up_t (u.up_ok lhs) in
         raise (FoundUnif (ungen_upat lhs pt' u))
-      with FoundUnif _ as sigma_u -> raise sigma_u | _ -> () in
+      with FoundUnif _ as sigma_u -> raise sigma_u 
+      | NoProgress -> it_did_match := true
+      | _ -> () in
     List.iter one_match fpats
   done;
-  iter_constr_LR (match_upats_HO upats env sigma0 ise) f;
-  Array.iter (match_upats_HO upats env sigma0 ise) a
+  iter_constr_LR (aux upats env sigma0 ise) f;
+  Array.iter (aux upats env sigma0 ise) a
+ in
+ aux upats env sigma0 ise c;
+ if !it_did_match then raise NoProgress
 
 let prof_HO = mk_profiler "match_upats_HO";;
 let match_upats_HO upats env sigma0 ise c =
@@ -3556,24 +3565,31 @@ let mk_pmatcher ?(raise_NoMatch=false) sigma0 occ ?upats_origin (upats, ise) =
     | KpatFixed -> (=) u.up_f
     | KpatConst -> eq_constr u.up_f
     | _ -> unif_EQ env sigma u.up_f in
+let p2t p = mkApp(p.up_f,p.up_a) in 
+let source () = match upats_origin, upats with
+  | None, [p] -> 
+      (if fixed_upat p then str"term " else str"partial term ") ++ 
+      pr_constr_pat (p2t p) ++ spc()
+  | Some (dir,rule), [p] -> str"The " ++ pr_dir_side dir ++ str" of " ++ 
+      pr_constr_pat rule ++ fnl() ++ ws 4 ++ pr_constr_pat (p2t p) ++ fnl()
+  | Some (dir,rule), _ -> str"The " ++ pr_dir_side dir ++ str" of " ++ 
+      pr_constr_pat rule ++ spc()
+  | _, [] | None, _::_::_ -> Errors.anomaly "mk_pmatcher with no upats_origin" in
 (fun env c h ~k -> 
   do_once upat_that_matched (fun () -> 
     try
       match_upats_FO upats env sigma0 ise c;
       match_upats_HO upats env sigma0 ise c;
       raise NoMatch
-    with FoundUnif sigma_u -> sigma_u | NoMatch when (not raise_NoMatch) ->
-      let p2t p = mkApp(p.up_f,p.up_a) in 
-      errorstrm ((match upats_origin, upats with
-      | None, [p] -> 
-          (if fixed_upat p then str"term " else str"partial term ") ++ 
-          pr_constr_pat (p2t p) ++ spc()
-      | Some (dir,rule), [p] -> str"The " ++ pr_dir_side dir ++ str" of " ++ 
-          pr_constr_pat rule ++ fnl() ++ ws 4 ++ pr_constr_pat (p2t p) ++ fnl()
-      | Some (dir,rule), _ -> str"The " ++ pr_dir_side dir ++ str" of " ++ 
-          pr_constr_pat rule ++ spc()
-      | _, [] | None, _::_::_ -> Errors.anomaly "mk_pmatcher with no upats_origin")
-      ++ str "does not match any subterm of the goal"));
+    with FoundUnif sigma_u -> sigma_
+    | NoMatch when (not raise_NoMatch) ->
+      errorstrm (source () ++ str "does not match any subterm of the goal")
+    | NoProgress when (not raise_NoMatch) ->
+        let dir = match upats_origin with Some (d,_) -> d | _ ->
+          anomaly "mk_pmatcher with no upats_origin" in      
+        errorstrm (str"all matches of "++source()++
+          str"are equal to the " ++ pr_dir_side (inv_dir dir))
+    | NoProgress -> raise NoMatch);
   let sigma, ({up_f = pf; up_a = pa} as u) = assert_done upat_that_matched in
   if !skip_occ then (ignore(k env u.up_t u.up_t 0); c) else
   let match_EQ = match_EQ env sigma u in
@@ -4521,7 +4537,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
         let gl = try pf_unify_HO gl inf_t c with _ -> error gl c inf_t in
         cl, gl, post
       with 
-      | NoMatch ->
+      | NoMatch | NoProgress ->
           let e = redex_of_pattern p in
           let n, e =  pf_abs_evars gl (fst p, e) in
           let e, _, _, gl = pf_saturate ~beta:true gl e n in 
@@ -5126,8 +5142,8 @@ let unfoldintac occ rdx t (kt,_) gl =
     let find_T, end_T = mk_pmatcher ~raise_NoMatch:true sigma0 occ ([u],ise) in
     (fun env c h -> 
       try find_T env c h (fun env _ c _ -> body env t c)
-      with NoMatch when easy -> c | NoMatch ->
-	errorstrm (str"No occurrence of "
+      with NoMatch when easy -> c
+      | NoMatch | NoProgress -> errorstrm (str"No occurrence of "
         ++ pr_constr_pat t ++ spc() ++ str "in " ++ pr_constr c)),
     (fun () -> try end_T () with 
       | NoMatch when easy -> fake_pmatcher_end () 
