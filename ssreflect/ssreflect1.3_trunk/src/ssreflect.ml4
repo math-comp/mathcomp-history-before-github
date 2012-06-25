@@ -4472,8 +4472,8 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   (* Patterns for the inductive types indexes to be bound in pred are computed
    * looking at the ones provided by the user and the inferred ones looking at
    * the type of the elimination principle *)
-  let pp_pat (_,p,_,_,_) = pp_pattern p in
-  let pp_inf_pat gl (_,_,t,_,_) = pr_constr_pat (fire_subst gl t) in
+  let pp_pat (_,p,_,_) = pp_pattern p in
+  let pp_inf_pat gl (_,_,t,_) = pr_constr_pat (fire_subst gl t) in
   let patterns, clr, gl =
     let rec loop patterns clr i = function
       | [],[] -> patterns, clr, gl
@@ -4483,13 +4483,12 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
           let clr_t = interp_clr (oclr, (k, redex_of_pattern p)) in
           (* if we are the index for the equation we do not clear *)
           let clr_t = if deps = [] && eqid <> None then [] else clr_t in
-          let p, must = 
-            if is_undef_pat p then mkTpat gl inf_t, false else p, true in
-          loop (patterns @ [i, p, inf_t, must, occ]) 
+          let p = if is_undef_pat p then mkTpat gl inf_t else p in
+          loop (patterns @ [i, p, inf_t, occ]) 
             (clr_t @ clr) (i+1) (deps, inf_deps)
       | [], c :: inf_deps -> 
           pp(lazy(str"adding inferred pattern " ++ pr_constr_pat c));
-          loop (patterns @ [i, mkTpat gl c, c, false, [noindex]]) 
+          loop (patterns @ [i, mkTpat gl c, c, [noindex]]) 
             clr (i+1) ([], inf_deps)
       | _::_, [] -> errorstrm (str "Too many dependent abstractions") in
     let deps, head_p, inf_deps_r = match what, elim_is_dep, cty with
@@ -4499,7 +4498,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
     | _, true, Some (c, _, pc) ->
          let occ = if occ = [] then [noindex] else occ in
          let inf_p, inf_deps_r = List.hd inf_deps_r, List.tl inf_deps_r in
-         deps, [1, pc, inf_p, false, occ], inf_deps_r in
+         deps, [1, pc, inf_p, occ], inf_deps_r in
     let patterns, clr, gl = 
       loop [] orig_clr (List.length head_p+1) (List.rev deps, inf_deps_r) in
     head_p @ patterns, Util.list_uniquize clr, gl
@@ -4512,24 +4511,22 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
     let error gl t inf_t = errorstrm (str"The given pattern matches the term"++
       spc()++pp_term gl t++spc()++str"while the inferred pattern"++
       spc()++pr_constr_pat (fire_subst gl inf_t)++spc()++ str"doesn't") in
-    let match_or_postpone (cl, gl, post) (h, p, inf_t, must, occ) =
+    let match_or_postpone (cl, gl, post) (h, p, inf_t, occ) =
       let p = unif_redex gl p inf_t in
       if is_undef_pat p then
         let () = pp(lazy(str"postponing " ++ pp_pattern p)) in
-        cl, gl, post @ [h, p, inf_t, must, occ]
+        cl, gl, post @ [h, p, inf_t, occ]
       else try
         let c, cl =  match_pat env p occ h cl in
         let gl = try pf_unify_HO gl inf_t c with _ -> error gl c inf_t in
         cl, gl, post
       with 
-      | NoMatch when not must ->
+      | NoMatch ->
           let e = redex_of_pattern p in
           let n, e =  pf_abs_evars gl (fst p, e) in
           let e, _, _, gl = pf_saturate ~beta:true gl e n in 
           let gl = try pf_unify_HO gl inf_t e with _ -> error gl e inf_t in
           cl, gl, post
-      | NoMatch -> 
-          errorstrm (str "pattern "++pp_pattern p++spc()++str"didn't match")
     in        
     let rec match_all concl gl patterns =
       let concl, gl, postponed = 
@@ -4571,7 +4568,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   (* check that the patterns do not contain non instantiated dependent metas *)
   let () = 
     let evars_of_term = Evarutil.evars_of_term in
-    let patterns = List.map (fun (_,_,t,_,_) -> fire_subst gl t) patterns in
+    let patterns = List.map (fun (_,_,t,_) -> fire_subst gl t) patterns in
     let patterns_ev = List.map evars_of_term patterns in 
     let ev = List.fold_left Intset.union Intset.empty patterns_ev in
     let ty_ev = Intset.fold (fun i e ->
