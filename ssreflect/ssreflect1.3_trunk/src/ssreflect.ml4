@@ -59,6 +59,9 @@ open Notation_ops
 open Locus
 open Locusops
 
+type loc = Loc.t
+let dummy_loc = Loc.ghost
+
 let inVersion = Libobject.declare_object {
   (Libobject.default_object "SSRASTVERSION") with
   Libobject.load_function = (fun _ (_,v) -> 
@@ -3581,12 +3584,12 @@ let source () = match upats_origin, upats with
       match_upats_FO upats env sigma0 ise c;
       match_upats_HO upats env sigma0 ise c;
       raise NoMatch
-    with FoundUnif sigma_u -> sigma_
+    with FoundUnif sigma_u -> sigma_u
     | NoMatch when (not raise_NoMatch) ->
       errorstrm (source () ++ str "does not match any subterm of the goal")
     | NoProgress when (not raise_NoMatch) ->
         let dir = match upats_origin with Some (d,_) -> d | _ ->
-          anomaly "mk_pmatcher with no upats_origin" in      
+          Errors.anomaly "mk_pmatcher with no upats_origin" in      
         errorstrm (str"all matches of "++source()++
           str"are equal to the " ++ pr_dir_side (inv_dir dir))
     | NoProgress -> raise NoMatch);
@@ -5804,7 +5807,7 @@ ARGUMENT EXTEND ssrbinder TYPED AS ssrfwdfmt * constr PRINTED BY pr_ssrbinder
      (FwdPose, [BFdecl n]),
      CLambdaN (loc, [xs, Default Explicit, t], CHole (loc, None)) ]
  | [ "(" ssrbvar(id) ":" lconstr(t) ":=" lconstr(v) ")" ] ->
-   [ let loc' = join_loc (constr_loc t) (constr_loc v) in
+   [ let loc' = Loc.join_loc (constr_loc t) (constr_loc v) in
      let v' = CCast (loc', v, dC t) in
      (FwdPose,[BFdef true]), CLetIn (loc,bvar_lname id, v',CHole (loc,None)) ]
  | [ "(" ssrbvar(id) ":=" lconstr(v) ")" ] ->
@@ -5825,7 +5828,7 @@ let rec binders_fmts = function
   | _ -> []
 
 let push_binders c2 bs =
-  let loc2 = constr_loc c2 in let mkloc loc1 = join_loc loc1 loc2 in
+  let loc2 = constr_loc c2 in let mkloc loc1 = Loc.join_loc loc1 loc2 in
   let rec loop ty c = function
   | (_, CLambdaN (loc1, b, _)) :: bs when ty ->
       CProdN (mkloc loc1, b, loop ty c bs)
