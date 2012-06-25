@@ -298,7 +298,7 @@ Qed.
 
 End FiniteSeparable.
 
-Export PrimeFieldExt.
+Import PrimeFieldExt.
 
 Lemma galoisFiniteField (F : finFieldType) :
   galois 1 {:[vectType _ of F]}.

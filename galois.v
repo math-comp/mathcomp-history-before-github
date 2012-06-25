@@ -1320,6 +1320,17 @@ apply: eq_bigr => i _.
 by rewrite fmorphV //.
 Qed.
 
+Lemma galNormX a n : galNorm K E (a ^+ n) = (galNorm K E a) ^+ n.
+Proof.
+elim: n => [|n IHn]; first by apply: galNorm1.
+by rewrite !exprS galNormM IHn.
+Qed.
+
+Lemma galNorm_prod (I : Type) (r : seq I) (P : pred I) (B : I -> L) :
+  galNorm K E (\prod_(i <- r | P i) B i) =
+  \prod_(i <- r | P i) galNorm K E (B i).
+Proof. exact: (big_morph _ galNormM galNorm1). Qed.
+
 Lemma galNorm0 : galNorm K E 0 = 0.
 Proof. by rewrite /galNorm (bigD1 1%g) ?group1 // rmorph0 /= mul0r. Qed.
 
@@ -1846,53 +1857,48 @@ apply: (iffP eqP); last first.
   case => b [HbE Hb0] ->.
   by rewrite galNormM galNormV galNorm_gal // mulfV // galNorm_eq0.
 move => Hnorm.
-have Hlog y : {i : 'I_#[x] | y \in <[x]> -> x ^+ i = y}%g.
-  case: (boolP (y \in <[x]>%g)).
-    by case/cyclePmin => [i Hix Hi]; exists (Ordinal Hix).
-  by rewrite -(prednK (order_gt0 x)); exists ord0.
-pose log y := sval (Hlog y).
-have Hlog_small m : m < #[x]%g -> log (x ^+ m)%g = m :> nat.
-  move => Hm.
-  move: (svalP (Hlog (x ^+ m)%g) (groupX m (cycle_id _))).
-  by move => /eqP; rewrite eq_expg_mod_order !modn_small //; move/eqP.
-have Hlog1 : log 1%g = 0%N :> nat by rewrite -(expg0 x) Hlog_small.
-pose d_ n := \prod_(i < n) (x ^+ i)%g a.
-pose c_ y := d_ (log y).
-have Hc0 : c_ 1%g != 0 by rewrite /c_ /d_ Hlog1 big_ord0 oner_neq0.
+case: eqP (order_gt1 x).
+  move => Hx1 _.
+  exists 1; first by rewrite mem1v oner_neq0.
+  move: Hnorm.
+  by rewrite /galNorm -Hx Hx1 cycle1 big_set1 !gal_id divr1.
+move => _ /= /idP Horder.
+pose c_ y := \prod_(i < invm (injm_Zpm x) y) (x ^+ i)%g a.
+have Hc0 : c_ 1%g != 0.
+  rewrite /c_.
+  have <- : Zpm (a:=x) 1%g = 1%g by rewrite morph1.
+  by rewrite invmE ?group1 // big_ord0 oner_neq0.
 have : [pred i in 'Gal(E / K)] 1%g by apply: group1.
 case/(gal_independent_contra)/(_ Hc0) => d HdE /=.
 set b := \sum_(i in _) _ => Hb0.
 exists b; first split => //.
   apply: rpred_sum => i Hi.
   apply: rpredM; last by apply: memv_gal.
-  apply: rpred_prod => j _. by apply: memv_gal.
+  by apply: rpred_prod => j _; apply: memv_gal.
 apply: (canRL (mulfK _)); first by rewrite fmorph_eq0.
-have Hlog_bij : {on [pred i in 'Gal(E / K)],
-                    bijective (fun i : 'I_#[x]%g => (x ^+ i)%g)}.
-  exists (fun x => sval (Hlog x)) => j Hj.
-    by apply: ord_inj; apply: Hlog_small; apply: ltn_ord.
-  apply: (svalP (Hlog j)).
-  by rewrite inE -Hx in Hj.
-move: Hnorm; rewrite /b /galNorm !(reindex _ Hlog_bij) /=.
-have Hxj: [pred j : 'I_#[x]%g | (x ^+ j)%g \in 'Gal(E / K)] =1 [pred j | true].
-  by move => j; rewrite !inE groupX.
-rewrite !(eq_bigl _ _ Hxj) /= => Hnorm.
-rewrite rmorph_sum mulr_sumr /=.
-have Had i : a * x (d_ i) = d_ i.+1.
-  rewrite /d_ rmorph_prod /=.
-  rewrite big_ord_recl expg0 gal_id; congr (_ * _).
-  by apply: eq_bigr => j _; rewrite expgSr galM // comp_lfunE.
-rewrite -(prednK (order_gt0 x)) big_ord_recr /= big_ord_recl.
-rewrite addrC expg0 gal_id; congr (_ + _).
-  rewrite rmorphM /= mulrA Had /c_ Hlog1 /d_ big_ord0.
-  rewrite -comp_lfunE -galM // -expgSr (prednK (order_gt0 x)).
-  rewrite expg_order gal_id.
-  by rewrite Hlog_small (prednK (order_gt0 x)) // Hnorm.
-apply: eq_bigr => i _.
-rewrite rmorphM /= -comp_lfunE -galM // -expgSr mulrA.
-rewrite /c_ Had !Hlog_small //.
-  by move: (ltn_ord i); rewrite -ltnS (prednK (order_gt0 x)).
-by move/ltnW: (ltn_ord i); rewrite -ltnS (prednK (order_gt0 x)).
+rewrite /b rmorph_sum mulr_sumr; symmetry.
+rewrite (reindex_inj (can_inj (mulgK x))) /=.
+apply: eq_big => i /=; first by rewrite groupMr.
+rewrite groupMr // -[i \in _]/(i \in 'Gal(E / K)) -Hx -im_Zpm => Hi.
+rewrite galM // comp_lfunE rmorphM mulrA /=; congr (_ * _).
+case/morphimP: Hi => z Hz _ ->.
+have Hx1 : Zpm (a:=x) Zp1%R = x by rewrite -[x]expg1.
+rewrite /c_ -[X in (_ * X)%g]Hx1.
+rewrite -morphM ?mem_Zp // !invmE ?groupM //; last by apply: mem_Zp.
+transitivity (\prod_(j < z.+1) (x ^+ j)%g a); last first.
+  rewrite big_ord_recl expg0 gal_id rmorph_prod; congr (_ * _).
+  apply: eq_bigr => j _.
+  by rewrite expgSr galM // comp_lfunE.
+rewrite /= [(1 %% _.+2)%N]modn_small //= ![X in (_ %% X)%N]Zp_cast // addn1.
+case: (leqP #[x]%g z.+1) => Hzx; last by rewrite modn_small.
+have -> : z.+1 = #[x]%g.
+  apply: anti_leq; rewrite Hzx andbT.
+  by have := (ltn_ord z); rewrite [X in _ < X]Zp_cast.
+rewrite modnn big_ord0 -[X in X = _]Hnorm /galNorm -Hx -im_Zpm.
+rewrite /morphim setIid big_imset /=; last by apply/injmP; apply: injm_Zpm.
+rewrite (eq_bigl xpredT _); last by move => j; rewrite /= mem_Zp.
+rewrite -!(@big_mkord _ _ _ _ xpredT (fun i => (x ^+ i)%g a)).
+by rewrite Zp_cast.
 Qed.
 
 Section Matrix.
