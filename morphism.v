@@ -1251,10 +1251,6 @@ Qed.
 
 End Defs.
 
-Arguments Scope isom [_ _ group_scope group_scope _].
-Arguments Scope morphic [_ _ group_scope _].
-Arguments Scope misom [_ _ group_scope group_scope _].
-Arguments Scope isog [_ _ group_scope group_scope].
 Infix "\isog" := isog.
 
 Implicit Arguments isom_isog [A B D].
@@ -1322,6 +1318,11 @@ Lemma restr_isom (A : {group aT}) (R : {group rT}) (sAG : A \subset G) :
 Proof. exact: restr_isom_to. Qed.
 
 End ReflectProp.
+
+Arguments Scope isom [_ _ group_scope group_scope _].
+Arguments Scope morphic [_ _ group_scope _].
+Arguments Scope misom [_ _ group_scope group_scope _].
+Arguments Scope isog [_ _ group_scope group_scope].
 
 Implicit Arguments morphicP [aT rT A f].
 Implicit Arguments misomP [aT rT A B f].

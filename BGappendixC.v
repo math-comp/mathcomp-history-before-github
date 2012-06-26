@@ -76,7 +76,7 @@ Proof.
 (*Replace this once we decide we need to assume q_prime *)
 (*by rewrite -lt0n prime_gt0. *)
 move/eqP: Fcard.
-apply/contraL => /eqP ->.
+apply: contraTneq => ->.
 by rewrite expn0 neq_ltn finField_card_gt1 orbT.
 Qed.
 

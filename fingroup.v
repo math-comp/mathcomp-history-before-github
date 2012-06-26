@@ -786,21 +786,25 @@ Definition centralised A := forall x, centralises x A.
 
 End GroupSetMulDef.
 
-Arguments Scope conjugate [_ group_scope group_scope].
-Arguments Scope class [_ group_scope group_scope].
-Arguments Scope conjugates [_ group_scope group_scope].
-Arguments Scope rcosets [_ group_scope group_scope].
-Arguments Scope rcoset [_ group_scope group_scope].
-Arguments Scope lcosets [_ group_scope group_scope].
 Arguments Scope lcoset [_ group_scope group_scope].
+Arguments Scope rcoset [_ group_scope group_scope].
+Arguments Scope rcosets [_ group_scope group_scope].
+Arguments Scope lcosets [_ group_scope group_scope].
+Arguments Scope indexg [_ group_scope group_scope].
+Arguments Scope conjugate [_ group_scope group_scope].
+Arguments Scope conjugates [_ group_scope group_scope].
+Arguments Scope class [_ group_scope group_scope].
+Arguments Scope classes [_ group_scope].
 Arguments Scope class_support [_ group_scope group_scope].
-Arguments Scope normalised [_ group_scope].
+Arguments Scope commg_set [_ group_scope group_scope].
 Arguments Scope normaliser [_ group_scope].
+Arguments Scope centraliser [_ group_scope].
+Arguments Scope abelian [_ group_scope].
 Arguments Scope normal [_ group_scope group_scope].
 Arguments Scope centralised [_ group_scope].
-Arguments Scope centraliser [_ group_scope].
+Arguments Scope normalised [_ group_scope].
 Arguments Scope centralises [_ group_scope group_scope].
-Arguments Scope abelian [_ group_scope].
+Arguments Scope centralised [_ group_scope].
 
 Notation "[ 1 gT ]" := (1 : {set gT}) : group_scope.
 Notation "[ 1 ]" := [1 FinGroup.sort _] : group_scope.

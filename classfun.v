@@ -1835,7 +1835,10 @@ Fact cfBigdprodi_subproof i :
   (if P i then A i else 1%G) \x <<\bigcup_(j | P j && (j != i)) A j>> = G.
 Proof.
 have:= defG; rewrite fun_if big_mkcond (bigD1 i) // -big_mkcondl /= => defGi.
-by have [[_ Gi' _ defGi']] := dprodP defGi; rewrite (bigdprodWY defGi') -defGi'.
+have [[_ Gi' _ defGi']] := dprodP defGi; rewrite (bigdprodWY defGi') -defGi'.
+Show.
+move=> _ _ _.
+exact: defGi.
 Qed.
 Definition cfBigdprodi i := cfDprodl (cfBigdprodi_subproof i) \o 'Res[_, A i].
 

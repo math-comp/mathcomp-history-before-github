@@ -118,7 +118,7 @@ Section InternalProd.
 
 Variable gT : finGroupType.
 Implicit Types A B C : {set gT}.
-Implicit Types G H K M : {group gT}.
+Implicit Types G H K L M : {group gT}.
 
 Local Notation pprod := (partial_product gT).
 Local Notation sdprod := (semidirect_product gT) (only parsing).
@@ -377,16 +377,37 @@ rewrite -!divgS //=; last by rewrite -genM_join gen_subG -mulKH mulgS.
 by rewrite -(sdprod_card defG) -(sdprod_card (sdprod_subr defG sMH)) divnMl.
 Qed.
 
+Lemma quotient_sdprodr_isom G A B M :
+    A ><| B = G -> M <| B ->
+  {f : {morphism B / M >-> coset_of (A <*> M)} |
+    isom (B / M) (G / (A <*> M)) f
+  & forall L, L \subset B -> f @* (L / M) = A <*> L / (A <*> M)}.
+Proof.
+move=> defG nsMH; have [defA defB]: A = <<A>>%G /\ B = <<B>>%G.
+  by have [[K1 H1 -> ->] _ _ _] := sdprodP defG; rewrite /= !genGid.
+do [rewrite {}defA {}defB; move: {A}<<A>>%G {B}<<B>>%G => K H] in defG nsMH *.
+have [[nKH /isomP[injKH imKH]] sMH] := (sdprod_isom defG, normal_sub nsMH).
+have [[nsKG sHG mulKH _ _] nKM] := (sdprod_context defG, subset_trans sMH nKH).
+have nsKMG: K <*> M <| G.
+  by rewrite -quotientYK // -mulKH -quotientK ?cosetpre_normal ?quotient_normal.
+have [/= f inj_f im_f] := third_isom (joing_subl K M) nsKG nsKMG.
+rewrite quotientYidl //= -imKH -(restrm_quotientE nKH sMH) in f inj_f im_f.
+have /domP[h [_ ker_h _ im_h]]: 'dom (f \o quotm _ nsMH) = H / M.
+  by rewrite ['dom _]morphpre_quotm injmK.
+have{im_h} im_h L: L \subset H -> h @* (L / M) = K <*> L / (K <*> M).
+  move=> sLH; have [sLG sKKM] := (subset_trans sLH sHG, joing_subl K M).
+  rewrite im_h morphim_comp morphim_quotm [_ @* L]restrm_quotientE ?im_f //.
+  rewrite quotientY ?(normsG sKKM) ?(subset_trans sLG) ?normal_norm //.
+  by rewrite (quotientS1 sKKM) joing1G.
+exists h => //; apply/isomP; split; last by rewrite im_h //= (sdprodWY defG).
+by rewrite ker_h injm_comp ?injm_quotm.
+Qed.
+
 Lemma quotient_sdprodr_isog G A B M :
   A ><| B = G -> M <| B -> B / M \isog G / (A <*> M).
 Proof.
-move=> defG; case/sdprodP: defG (defG) => [[K H -> ->] mulKH _ _] defG nsMH.
-have [[nKH /isomP[injKH imKH]] sMH] := (sdprod_isom defG, normal_sub nsMH).
-have [[nsHG _ _ _ _] nKM] := (sdprod_context defG, subset_trans sMH nKH).
-apply: isog_trans (third_isog (joing_subl K M) nsHG _) => /=; last first.
-  by rewrite -quotientYK // -mulKH -quotientK ?cosetpre_normal ?quotient_normal.
-rewrite quotientYidl //= -imKH -(restrm_quotientE nKH sMH) -morphim_quotm.
-by rewrite sub_isog ?injm_quotm.
+move=> defG; case/sdprodP: defG (defG) => [[K H -> ->] _ _ _] => defG nsMH.
+by have [h /isom_isog->] := quotient_sdprodr_isom defG nsMH.
 Qed.
 
 Lemma sdprod_modl A B G H :

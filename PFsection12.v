@@ -100,7 +100,7 @@ have Dchi_sum : chi = \sum_(i in S_ chi) 'chi_i.
   rewrite {1}Dchi; have /= [-> _ _] := induced_inertia_quo1 nHL abTbar copHIchi.
   by rewrite Dchi (eq_bigl _ _ (in_set _)) (reindex_constt_inertia _ _ id).
 have lichi : constant [seq 'chi_i 1%g | i in  S_ chi].
-  have /= [_ [_ Ichi1]] := induced_inertia_quo1 nHL abTbar copHIchi.
+  have /= [_ _ Ichi1] := induced_inertia_quo1 nHL abTbar copHIchi.
   pose c := #|L : T|%:R * 'chi_t 1%g.
   apply/(@all_pred1_constant _ c)/allP=> _ /mapP[psi Spsi ->] /=.
   move: Spsi; rewrite mem_enum inE Dchi => psi_irr; move: (psi_irr).
