@@ -1832,13 +1832,10 @@ Let sAG i : P i -> A i \subset G.
 Proof. by move=> Pi; rewrite -(bigdprodWY defG) (bigD1 i) ?joing_subl. Qed.
 
 Fact cfBigdprodi_subproof i :
-  (if P i then A i else 1%G) \x <<\bigcup_(j | P j && (j != i)) A j>> = G.
+  gval (if P i then A i else 1%G) \x <<\bigcup_(j | P j && (j != i)) A j>> = G.
 Proof.
 have:= defG; rewrite fun_if big_mkcond (bigD1 i) // -big_mkcondl /= => defGi.
-have [[_ Gi' _ defGi']] := dprodP defGi; rewrite (bigdprodWY defGi') -defGi'.
-Show.
-move=> _ _ _.
-exact: defGi.
+by have [[_ Gi' _ defGi']] := dprodP defGi; rewrite (bigdprodWY defGi') -defGi'.
 Qed.
 Definition cfBigdprodi i := cfDprodl (cfBigdprodi_subproof i) \o 'Res[_, A i].
 
