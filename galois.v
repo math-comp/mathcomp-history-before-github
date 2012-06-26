@@ -1439,10 +1439,10 @@ move/implyP/(_ HgK)/eqP: (Hnorm g) <-.
 by apply: memv_img.
 Qed.
 
-Lemma normalField1f : normalField 1 {:L}.
+Lemma normalFieldf K : normalField K {:L}.
 Proof.
 apply/normalFieldP => a _.
-case: (splitting_field_normal 1 a) => r /eqP ->.
+case: (splitting_field_normal K a) => r /eqP ->.
 exists r => //.
 apply/allP => x _ /=.
 by rewrite memvf.

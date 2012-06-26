@@ -80,16 +80,16 @@ apply: contraTneq => ->.
 by rewrite expn0 neq_ltn finField_card_gt1 orbT.
 Qed.
 
-Let Fchar : char F = p.
+Let Fchar : finChar F = p.
 Proof.
-have := finField_card F.
-rewrite Fcard pnat_exp -[_ == _]negbK q_neq0 orbF pnatE // inE.
-by move/eqP.
+rewrite /finChar Fcard.
+move: q_neq0; rewrite -lt0n; move/prednK <-.
+by rewrite pdiv_pfactor.
 Qed.
 
 Let Fdim : \dim {:sfF} = q.
 Proof.
-have /expnI : 1 < char F by rewrite prime_gt1 // finField_char_prime.
+have /expnI : 1 < finChar F by rewrite prime_gt1 // finChar_prime.
 apply.
 rewrite -finField_dimv_card [X in (X ^ _)%N]Fchar -Fcard.
 by apply: eq_card => ?; rewrite memvf.
@@ -146,7 +146,7 @@ have HszZ : size Z = q.+1.
   set S := (\sum_(i in Gal) _)%N.
   have -> : S = (\sum_(i in Gal) 2)%N by apply: eq_bigr => i _; apply: Hfactor.
   rewrite sum_nat_const -add1n mulnC !addnA addn0 addnK add1n.
-  have /galois_dim <- := galoisFiniteField F.
+  have /galois_dim <- := galoisFiniteField (sub1v {:sfF}).
   by rewrite dimv1 divn1 Fdim.
 have HszZ1 : size (Z - 1) = q.+1.
   by rewrite size_addl // size_opp size_poly1 HszZ ltnS lt0n.
