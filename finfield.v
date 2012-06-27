@@ -37,26 +37,26 @@ Canonical Zpm_rmorph := RMorphism Zpm_is_rmorph.
 Lemma ZpmMn a n : (@Zpm R a n) = a *+ n.
 Proof. by apply: zmodXgE. Qed.
 
-End FinRing.
-
-Section FinField.
-
-Variable (F : finFieldType).
-
-Lemma finField_nontriv : [set: F]%G != 1%G.
+Lemma finRing_nontriv : [set: R]%G != 1%G.
 Proof.
 apply/trivgPn.
 exists 1; first by rewrite inE.
 by apply: oner_neq0.
 Qed.
 
-Lemma finField_card_gt1 : 1 < #|F|.
-Proof. by rewrite -cardsT (cardG_gt1 [set: F]) finField_nontriv. Qed.
+Lemma finRing_card_gt1 : 1 < #|R|.
+Proof. by rewrite -cardsT (cardG_gt1 [set: R]) finRing_nontriv. Qed.
+
+End FinRing.
+
+Section FinField.
+
+Variable (F : finFieldType).
 
 Definition finChar : nat := pdiv #|F|.
 
 Lemma finChar_prime : prime finChar.
-Proof. by apply: pdiv_prime; apply finField_card_gt1. Qed.
+Proof. by apply: pdiv_prime; apply finRing_card_gt1. Qed.
 
 Lemma finField_abelem : (finChar.-abelem [set: F])%g.
 Proof.
@@ -68,19 +68,19 @@ have HpF : p.-abelem [set: F].
   apply/abelemP; first done.
   split => [|x _]; first by apply: zmod_abelian.
   by rewrite zmodXgE mulrn_char.
-rewrite /finChar -cardsT -(card_abelem_rV HpF finField_nontriv) card_matrix.
+rewrite /finChar -cardsT -(card_abelem_rV HpF (finRing_nontriv F)) card_matrix.
 by rewrite card_Fp // pdiv_pfactor.
 Qed.
 
-Lemma unit_card : #|[set: {unit F}]| = #|F|.-1.
+Lemma finField_unit_card : #|[set: {unit F}]| = #|F|.-1.
 Proof.
 by rewrite -(cardC1 0) cardsT card_sub; apply: eq_card => x; rewrite unitfE.
 Qed.
 
 (* fermat's little theorem *)
-Lemma expf_card (x : F) : x ^+ #|F| = x.
+Lemma finField_expf_card (x : F) : x ^+ #|F| = x.
 Proof.
-rewrite -cardsT -(prednK (cardG_gt0 [set: F])) cardsT -unit_card.
+rewrite -cardsT -(prednK (cardG_gt0 [set: F])) cardsT -finField_unit_card.
 apply/eqP.
 rewrite exprS -subr_eq0 -[X in - X]mulr1 -mulrBr mulf_eq0.
 case: (boolP (x == 0)) => [//|].
@@ -104,7 +104,7 @@ Proof. by apply: abelem_pgroup; apply: finField_abelem. Qed.
 
 Lemma finField_card : #|F| = (finChar ^ 'dim [set: F])%N.
 Proof.
-rewrite (dim_abelemE finField_abelem) ?finField_nontriv // -cardsT.
+rewrite (dim_abelemE finField_abelem) ?finRing_nontriv // -cardsT.
 by apply: (card_pgroup finField_pgroup).
 Qed.
 
@@ -163,7 +163,7 @@ Canonical ZpfinUnitAlgType := Eval hnf in [finUnitAlgType 'F_(finChar F) of F].
 Lemma Zp_vectAxiom : Vector.axiom ('dim [set: F]) ZpmodType.
 Proof.
 have /isog_isom /= [f /isomP [/injmP Hfinj Hfim]] :=
-  isog_abelem_rV (finField_abelem F) (finField_nontriv F).
+  isog_abelem_rV (finField_abelem F) (finRing_nontriv F).
 exists [eta f].
   move => a x y.
   rewrite -zmodMgE morphM ?inE // zmodMgE.
@@ -198,10 +198,10 @@ exists (enum F); last first.
   by apply: mem_enum.
 rewrite eqp_sym -dvdp_size_eqp.
   rewrite size_prod_XsubC -cardT /= size_addl ?size_polyXn //.
-  by rewrite size_opp size_polyX ltnS finField_card_gt1.
+  by rewrite size_opp size_polyX ltnS finRing_card_gt1.
 apply: uniq_roots_dvdp; last by rewrite uniq_rootsE enum_uniq.
 apply/allP => x _.
-by rewrite rootE !(hornerE, hornerXn) expf_card subrr.
+by rewrite rootE !(hornerE, hornerXn) finField_expf_card subrr.
 Qed.
 
 Canonical ZpsplittingFieldType :=
@@ -360,7 +360,7 @@ have Hwlog (M : {subfield [FalgType _ of F]}) : galois M fullv.
   apply/and3P; split => //; first by rewrite subvf.
   apply/separableP => y _.
   rewrite (separableCharp _ _ 0 (finCharP _)) expn1.
-  rewrite -{1}[y]expf_card finField_card.
+  rewrite -{1}[y]finField_expf_card finField_card.
   by rewrite expnS exprM rpredX // memv_adjoin.
 move => HKE.
 move/galois_fixedField: (Hwlog E) <-.
@@ -368,7 +368,6 @@ apply: normal_fixedField_galois; first done.
   by apply: galS.
 have [x] := finField_frobenius_generator {: [FalgType _ of F]}.
 rewrite /generator => /eqP Hx _.
-change ('Gal(fullv / K) \subset 'N('Gal(fullv / E))).
 apply: sub_abelian_norm; last by apply: galS.
 apply: (abelianS (galS _ (sub1v _))).
 rewrite Hx.

@@ -43,6 +43,7 @@ Unset Printing Implicit Defensive.
 Reserved Notation "''Gal' ( A / B )"
   (at level 8, A at level 2, format "''Gal' ( A  /  B )").
 
+Open Local Scope group_scope.
 Open Local Scope ring_scope.
 Import GRing.Theory.
 
@@ -1023,10 +1024,11 @@ rewrite -[in X in _ \in X](limg_gal x).
 by apply: memv_img.
 Qed.
 
-Definition galoisG U V := ((@gal V) @* (<<kAAut (U :&: V) V>> / kAAutL V))%g.
-
 (* Standard mathematical notation for 'Gal(E / K) puts the larger field first.*)
-Notation "''Gal' ( V / U )" := (galoisG U V).
+Definition galoisG V U := ((@gal V) @* (<<kAAut (U :&: V) V>> / kAAutL V))%g.
+Notation "''Gal' ( V / U )" := (galoisG V U) : group_scope.
+Canonical galoisG_group E U := Eval hnf in [group of (galoisG E U)].
+Notation "''Gal' ( V / U )" := (galoisG_group V U) : Group_scope.
 
 Section Automorphism.
 
@@ -1034,7 +1036,7 @@ Lemma gal_cap U V : 'Gal(V / U) = 'Gal(V / U :&: V).
 Proof. by rewrite /galoisG -capvA capvv. Qed.
 
 Lemma kAut_gal K E f : f \is a kAut K E ->
-  {x | x \in 'Gal(E / K) & {in E, f =1 x}}.
+  {x : gal_of E | x \in 'Gal(E / K) & {in E, f =1 x}}.
 Proof.
 case/andP => HfKE /eqP HfE.
 have [g Hg] := kHom_extend_fAutL HfKE.
@@ -1127,7 +1129,7 @@ rewrite !gal_kAut //.
 by move/(kAutS HKM).
 Qed.
 
-Lemma gal_conjg K E x : ('Gal(E / K) :^ x)%g = 'Gal(E / (x @: K)%VS).
+Lemma gal_conjg K E x : ('Gal(E / K) :^ x) = 'Gal(E / (x @: K)%VS).
 Proof.
 wlog: K / (K <= E)%VS => [HAut_conjg|HKE].
   do 2 (rewrite gal_cap; symmetry).
@@ -1146,7 +1148,7 @@ have HxKE : (x @: K <= E)%VS.
   apply: memv_gal.
   by move/subvP: HKE; apply.
 wlog suff Hsuff : x K HKE HxKE /
-  (('Gal(E / K) :^ x)%g \subset ('Gal(E / (x @: K)%VS))).
+  (('Gal(E / K) :^ x) \subset ('Gal(E / (x @: K)%VS))).
   rewrite eqEsubset Hsuff // -sub_conjgV -[X in _ \subset ('Gal(E / X))]lim1g.
   rewrite -(lker0_compVf (fAutL_lker0 x)) limg_comp.
   have -> : (x^-1 @: (x @: K) = x^-1%g @: (x @: K))%VS.
@@ -1161,7 +1163,7 @@ wlog suff Hsuff : x K HKE HxKE /
   by apply: (subvP HKE).
 apply/subsetP => y.
 rewrite mem_conjg !gal_kAut //= (capv_idPl HKE) (capv_idPl HxKE).
-have /(kAut_eq HKE) -> : {in E, (y ^ (x^-1))%g =1 (x^-1%g \o y \o x)%AF}.
+have /(kAut_eq HKE) -> : {in E, (y ^ (x^-1)) =1 (x^-1%g \o y \o x)%AF}.
   rewrite conjgE invgK => z Hz.
   have Hxz : x z \in E by apply: memv_gal.
   by rewrite !(galM,comp_lfunE) //.
@@ -1175,7 +1177,7 @@ apply/kHomP; split; last by move => ? ? _ _; rewrite /= rmorphM.
 move => _ /memv_imgP [a Ha ->].
 case/kHomP: HyKE => /(_ _ Ha) HyVa _.
 rewrite -[in X in _ = X]HyVa !comp_lfunE /= -[X in _ = X]comp_lfunE.
-rewrite -(galM (x^-1)%g x) ?mulVg ?gal_id ?id_lfunE //.
+rewrite -(galM x^-1%g x) ?mulVg ?gal_id ?id_lfunE //.
 move/subvP: HyE; apply.
 rewrite memv_img // memv_gal //.
 by move/subvP: HKE; apply.
@@ -1286,7 +1288,7 @@ split.
   by rewrite -[in X in _ \in X]HE memv_img.
 move => x Hx.
 rewrite rmorph_sum /galTrace -{2}['Gal(E / K)](rcoset_id Hx).
-rewrite (reindex_inj (mulIg (x^-1)%g)).
+rewrite (reindex_inj (mulIg x^-1%g)).
 symmetry.
 apply: eq_big => i; first by rewrite /= mem_rcoset.
 by rewrite /= -comp_lfunE -galM // mulgKV.
@@ -1297,7 +1299,7 @@ Lemma galTrace_gal a x : a \in E -> x \in 'Gal(E / K) ->
 Proof.
 move => Ha Hx.
 rewrite /galTrace -{2}['Gal(E / K)](lcoset_id Hx).
-rewrite (reindex_inj (mulgI (x^-1)%g)).
+rewrite (reindex_inj (mulgI x^-1%g)).
 apply: eq_big => i;first by rewrite /= mem_lcoset.
 by rewrite -comp_lfunE -galM // mulKVg.
 Qed.
@@ -1354,7 +1356,7 @@ split.
   by rewrite -[in X in _ \in X]HE memv_img.
 move => x Hx.
 rewrite rmorph_prod /galNorm -{2}['Gal(E / K)](rcoset_id Hx).
-rewrite (reindex_inj (mulIg (x^-1)%g)).
+rewrite (reindex_inj (mulIg x^-1%g)).
 symmetry.
 apply: eq_big => i; first by rewrite /= mem_rcoset.
 by rewrite /= -comp_lfunE -(galM (i * x^-1)%g) // mulgKV.
@@ -1365,7 +1367,7 @@ Lemma galNorm_gal a x : a \in E -> x \in 'Gal(E / K) ->
 Proof.
 move => Ha Hx.
 rewrite /galNorm -{2}['Gal(E / K)](lcoset_id Hx).
-rewrite (reindex_inj (mulgI (x^-1)%g)).
+rewrite (reindex_inj (mulgI x^-1%g)).
 apply: eq_big => i;first by rewrite /= mem_lcoset.
 by rewrite -comp_lfunE -galM // mulKVg.
 Qed.
@@ -1649,7 +1651,7 @@ Qed.
 Lemma galois_factors K E : 
  reflect ((K <= E)%VS /\ (forall a, a \in E -> 
    exists r : seq (gal_of E), [/\
-     r \subset 'Gal(E / K)%g,
+     r \subset 'Gal(E / K),
      uniq [seq x a | x : gal_of E <- r] &
      minPoly K a = \prod_(b <- [seq x a | x : gal_of E <- r])
                          ('X - b%:P)]))
@@ -1708,7 +1710,7 @@ case => p [Hp Hsplit Hsep]; split.
 Qed.
 
 Lemma galois_fixedField K E :
-  reflect (fixedField 'Gal(E / K)%g = K) (galois K E).
+  reflect (fixedField 'Gal(E / K) = K) (galois K E).
 Proof.
 apply (iffP idP).
   case/and3P => HKE /separableP Hsep Hnorm.
@@ -1847,12 +1849,12 @@ by rewrite comp_lfunE lfunE.
 Qed.
 
 Lemma hilbert's_theorem_90 K E x a :
- <[x]>%g = 'Gal(E / K) -> a \in E ->
+ <[x]> = 'Gal(E / K) -> a \in E ->
  reflect (exists2 b, b \in E /\ b != 0 & a = b / (x b))
          (galNorm K E a == 1).
 Proof.
 move => Hx HaE.
-have HxEK : x \in 'Gal(E / K)%g by rewrite -Hx cycle_id.
+have HxEK : x \in 'Gal(E / K) by rewrite -Hx cycle_id.
 apply: (iffP eqP); last first.
   case => b [HbE Hb0] ->.
   by rewrite galNormM galNormV galNorm_gal // mulfV // galNorm_eq0.
@@ -1890,8 +1892,8 @@ transitivity (\prod_(j < z.+1) (x ^+ j)%g a); last first.
   apply: eq_bigr => j _.
   by rewrite expgSr galM // comp_lfunE.
 rewrite /= [(1 %% _.+2)%N]modn_small //= ![X in (_ %% X)%N]Zp_cast // addn1.
-case: (leqP #[x]%g z.+1) => Hzx; last by rewrite modn_small.
-have -> : z.+1 = #[x]%g.
+case: (leqP #[x] z.+1) => Hzx; last by rewrite modn_small.
+have -> : z.+1 = #[x].
   apply: anti_leq; rewrite Hzx andbT.
   by have := (ltn_ord z); rewrite [X in _ < X]Zp_cast.
 rewrite modnn big_ord0 -[X in X = _]Hnorm /galNorm -Hx -im_Zpm.
@@ -2081,7 +2083,7 @@ Qed.
 
 Lemma fixedField_galois E (s : {set gal_of E}): galois (fixedField s) E.
 Proof.
-apply: (galoisS (K:=[aspace of (fixedField <<s>>%g)])).
+apply: (galoisS (K:=[aspace of (fixedField <<s>>)])).
   by rewrite capvSl andbT fixedFieldS // subset_gen.
 apply/galois_fixedField => /=.
 by rewrite gal_fixedField.
@@ -2141,7 +2143,7 @@ by rewrite normalField_cast_eq // -HxM memv_img.
 Qed.
 Canonical normalField_cast_morphism := Morphism normalField_castM.
 
-Lemma normalField_ker : ('ker normalField_cast)%g = 'Gal(E / M).
+Lemma normalField_ker : 'ker normalField_cast = 'Gal(E / M).
 Proof.
 case/andP: HKME => HKM HME.
 apply/eqP; rewrite eqEsubset; apply/andP; split; apply/subsetP; last first.
@@ -2158,13 +2160,13 @@ rewrite -normalField_cast_eq //; last by apply: (dom_ker Hx).
 by rewrite (mker Hx) gal_id.
 Qed.
 
-Lemma normalField_normal : ('Gal(E / M) <| 'Gal(E / K))%g.
+Lemma normalField_normal : 'Gal(E / M) <| 'Gal(E / K).
 Proof.
 rewrite -normalField_ker.
 apply: ker_normal.
 Qed.
 
-Lemma normalField_img : (normalField_cast @* 'Gal(E / K))%g = 'Gal(M / K).
+Lemma normalField_img : normalField_cast @* 'Gal(E / K) = 'Gal(M / K).
 Proof.
 case/andP: HKME => HKM HME.
 apply/eqP; rewrite eqEsubset; apply/andP; split; apply/subsetP.
@@ -2211,7 +2213,7 @@ apply: subsetP x Hx.
 by case/andP: normalField_normal.
 Qed.
 
-Lemma normalField_isog : ('Gal(E / K) / 'Gal(E / M) \isog 'Gal(M / K))%g.
+Lemma normalField_isog : ('Gal(E / K) / 'Gal(E / M))%g \isog 'Gal(M / K).
 Proof.
 rewrite -normalField_ker -normalField_img.
 apply: first_isog.
@@ -2222,8 +2224,8 @@ End IntermediateField.
 Section IntermediateGroup.
 
 Variable g : {group gal_of E}.
-Hypothesis Hg : g \subset 'Gal(E / K)%g.
-Hypothesis Hnorm : 'Gal(E / K)%g \subset 'N(g)%g.
+Hypothesis Hg : g \subset 'Gal(E / K).
+Hypothesis Hnorm : 'Gal(E / K) \subset 'N(g).
 
 Lemma normal_fixedField_galois : galois K (fixedField g).
 Proof.
@@ -2262,4 +2264,5 @@ End FundamentalTheoremOfGaloisTheory.
 
 End GaloisTheory.
 
-Notation "''Gal' ( V / U )" := (galoisG U V).
+Notation "''Gal' ( V / U )" := (galoisG V U) : group_scope.
+Notation "''Gal' ( V / U )" := (galoisG_group V U) : Group_scope.
