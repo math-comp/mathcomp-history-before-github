@@ -2038,6 +2038,20 @@ move/negPf=> not_sHG; apply/cfunP=> x; rewrite cfunE cfuniE ?normal1 // inE.
 by rewrite mulr_natr cfunElock !genGid not_sHG.
 Qed.
 
+Lemma cfIndEsdprod (phi : 'CF(K)) x :
+  K ><| H = G -> 'Ind[G] phi x = \sum_(w in H) phi (x ^ w)%g.
+Proof.
+move=> defG; have [/andP[sKG _] _ mulKH nKH _] := sdprod_context defG.
+rewrite cfIndE //; apply: canLR (mulKf (neq0CG _)) _; rewrite -mulKH mulr_sumr.
+rewrite (set_partition_big _ (rcosets_partition_mul H K)) ?big_imset /=.
+  apply: eq_bigr => y Hy; rewrite rcosetE norm_rlcoset ?(subsetP nKH) //.
+  rewrite -lcosetE mulr_natl big_imset /=; last exact: in2W (mulgI _).
+  by rewrite -sumr_const; apply: eq_bigr => z Kz; rewrite conjgM cfunJ.
+have [{nKH}nKH /isomP[injf _]] := sdprod_isom defG.
+apply: can_in_inj (fun Ky => invm injf (coset K (repr Ky))) _ => y Hy.
+by rewrite rcosetE -val_coset ?(subsetP nKH) // coset_reprK invmE.
+Qed.
+
 Lemma cfInd_on A phi :
   H \subset G -> phi \in 'CF(H, A) -> 'Ind[G] phi \in 'CF(G, class_support A G).
 Proof.
