@@ -2525,6 +2525,7 @@ End CommonIdomain.
 Module Idomain.
 
 Include IdomainDefs.
+Export IdomainDefs.
 Include WeakIdomain.
 Include CommonIdomain.
 
@@ -2885,6 +2886,7 @@ Module Field.
 
 Import Ring ComRing UnitRing.
 Include IdomainDefs.
+Export IdomainDefs.
 Include CommonIdomain.
 
 Section FieldDivision.
