@@ -90,6 +90,23 @@ rewrite -val_unitX -val_unit1 (inj_eq (val_inj)).
 by rewrite -order_dvdn order_dvdG ?inE.
 Qed.
 
+Lemma finField_genPoly : 'X ^+ #|F| - 'X = \prod_x ('X - x%:P) :> {poly F}.
+Proof.
+apply/eqP.
+rewrite -eqp_monic; last first.
+- by apply: monic_prod => i _; apply: monicXsubC.
+- rewrite monicE lead_coefDl -?monicE ?monicXn //.
+  by rewrite size_opp size_polyXn size_polyX ltnS finRing_card_gt1.
+- rewrite eqp_sym -dvdp_size_eqp.
+    rewrite size_prod_XsubC /index_enum -enumT -cardT /=.
+    rewrite size_addl ?size_polyXn //.
+    by rewrite size_opp size_polyX ltnS finRing_card_gt1.
+  apply: uniq_roots_dvdp; last first.
+    by rewrite uniq_rootsE /index_enum -enumT enum_uniq.
+  apply/allP => x _.
+  by rewrite rootE !(hornerE, hornerXn) finField_expf_card subrr.
+Qed.
+
 Lemma finField_order (x : F) : x != 0 -> #[x]%g = finChar.
 Proof. by apply: (abelem_order_p finField_abelem); rewrite inE. Qed.
 
@@ -191,17 +208,12 @@ Canonical ZpfieldExtType :=
 Fact Zp_splittingFieldAxiom : SplittingField.axiom ZpfieldExtType.
 Proof.
 exists ('X ^+ #|F| - 'X); first by rewrite rpredB ?rpredX // polyOverX.
-exists (enum F); last first.
-  apply:subv_anti; rewrite subvf /=.
-  apply/subvP => x _.
-  apply: seqv_sub_adjoin.
-  by apply: mem_enum.
-rewrite eqp_sym -dvdp_size_eqp.
-  rewrite size_prod_XsubC -cardT /= size_addl ?size_polyXn //.
-  by rewrite size_opp size_polyX ltnS finRing_card_gt1.
-apply: uniq_roots_dvdp; last by rewrite uniq_rootsE enum_uniq.
-apply/allP => x _.
-by rewrite rootE !(hornerE, hornerXn) finField_expf_card subrr.
+exists (index_enum F); first by rewrite finField_genPoly eqpxx.
+apply:subv_anti; rewrite subvf /=.
+apply/subvP => x _.
+apply: seqv_sub_adjoin.
+rewrite /index_enum -enumT.
+by apply: mem_enum.
 Qed.
 
 Canonical ZpsplittingFieldType :=
@@ -225,7 +237,6 @@ Canonical ZpsplittingFieldType.
 End Exports.
 End PrimeFieldExt.
 
-(*
 Section FiniteSeparable.
 
 Variable F : finFieldType.
@@ -240,7 +251,7 @@ pose v2rK := @Vector.InternalTheory.v2rK F L.
 pose m1 := CanCountMixin v2rK.
 pose m2 := CanFinMixin (v2rK : @cancel _ (CountType L m1) _ _).
 pose FL := @FinRing.Field.pack L _ _ id (FinType L m2) _ id.
-suff -> : (#|F| ^ \dim {:L})%N = #|FL| by apply: (@expf_card FL).
+suff -> : (#|F| ^ \dim {:L})%N = #|FL| by apply: (@finField_expf_card FL).
 pose f (x : FL) := [ffun i => coord (vbasis {:L}) i x].
 rewrite -[\dim {:L}]card_ord -card_ffun.
 have/card_in_image <- : {in FL &, injective f}.
@@ -254,7 +265,7 @@ apply/mapP.
 exists (\sum_i g i *: (vbasis fullv)`_i); first by rewrite mem_enum.
 by apply/ffunP => i; rewrite ffunE coord_sum_free // (basis_free (vbasisP _)).
 Qed.
-
+(*
 Lemma separableFiniteField (K E : {subfield L}) : separable K E.
 Proof.
 apply/separableP => y _.
@@ -265,9 +276,8 @@ have /prednK <- : 0 < n.
   by rewrite muln_gt0 adim_gt0.
 by rewrite expnS exprM rpredX // memv_adjoin.
 Qed.
-
-End FiniteSeparable.
 *)
+End FiniteSeparable.
 
 Import PrimeFieldExt.Exports.
 Section PrimeFieldExtTheory.
