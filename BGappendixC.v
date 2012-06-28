@@ -190,6 +190,8 @@ Qed.
 Lemma BG_appendix_C2b : q = 3 -> 1 < #|E|.
 Proof.
 move => Hq3.
+rewrite (cardsD1 1) E_nontriv add1n ltnS card_gt0.
+apply/set0Pn => /=.
 pose f c : {poly F} := 'X * ('X - 2%:R%:P) * ('X - c%:A%:P) + ('X - 1).
 have /= Hf0 c : ~~ root (f c) 0 by rewrite /root !hornerE oppr_eq0 oner_eq0.
 have /= Hf2 c : ~~ root (f c) 2%:R.
@@ -228,66 +230,89 @@ have fc_monic : f c \is monic.
 have fc_over1 : f c \is a polyOver 1%AS.
   by rewrite !(rpredD, rpredM) ?rpredN ?polyOverX //
              ?polyOverC ?rpredZ ?rpredMn ?memv_line.
-have fc_factor_sz1 r : r \is a polyOver 1%AS -> r %| f c -> size r != 2%N.
-  move => /polyOverP r_over1 Hrfc.
-  case/vlineP: (r_over1 1%N) => r1 Hr1.
-  case/vlineP: (r_over1 0%N) => r0 Hr0.
-  apply: contra (Hc (-(r0/r1))) => /eqP Hszr.
-  rewrite -dvdp_XsubCl.
-  apply: (dvdp_trans _ Hrfc).
-  rewrite dvdp_XsubCl.
-  rewrite /root horner_coef Hszr.
-  rewrite !big_ord_recl big_ord0.
-  rewrite expr0 expr1 mulr1 addr0.
-  rewrite -in_algE.
-  rewrite rmorphN rmorphM rmorphV.
-  rewrite [_ r0]in_algE [_ r1]in_algE.
-  rewrite 
-  rewrite scaleNr.
-  rewrite scaleMr.
-  rewrite mulr.
-
-  have fc_irr r: r \is a polyOver 1%AS -> size r != 1%N -> r %| f c -> r %= f c.
-  wlog: r / size r < 2.
-    case: (leqP 2 (size r)) => Hszr; last by apply.
-    move => Hwlog r_over size_r Hrfc.
-    move/eqP: (size_fc).
-    move: (Hrfc); rewrite dvdp_eq => /eqP Hfc.
-    rewrite {1}Hfc size_mul.
-    suff /eqp_size -> : (f c %/ r) %= f c.
-      by rewrite size_fc !eqSS (negbTE size_r).
-    apply: (Hwlog (f c %/ r)).
-      simpl.
-    move/(_ (f c %/ r)).
-  
-  move =>  Hr1 size_r Hrfc.
-  have := dvdp_leq _ Hrfc.
-  rewrite -size_poly_eq0 size_fc => /(_ isT).
-  do ! rewrite leq_eqVlt ltnS; rewrite leqn0 -dvdp_size_eqp // size_fc.
-  move: Hrfc; rewrite dvdp_eq; set s := (_ %/ _) => /eqP Hrfc.
-  case/orP => [//|].
-  case/orP => [/eqP Hszr|].
-    have : root (f c) (s`_0 / s`_1).
-        
-    rewrite -dvdp_size_eqp.
-  rewrite dvdp_eq => Hr1 size_r /eqP Hrfc.
-    
-    
-have fc_irr p: p \is a polyOver 1 -> root p a -> p != 0 -> size f c <= size p.
+have fc_irr r : r \is a polyOver 1%AS -> size r != 1%N -> r %| f c -> r %= f c.
+  (* Genrealize this lemma? *)
+  move => Hr1 r_size Hrf.
+  move/dvdp_size_eqp: (Hrf) <-.
+  rewrite eqn_leq dvdp_leq ?monic_neq0 //=.
+  rewrite leqNgt.
+  have {r_size} r_size : (1 < size r).
+    suff : size r != 0%N by case: (size r) r_size => //; case.
+    rewrite size_poly_eq0.
+    apply: contraTneq Hrf => ->.
+    by rewrite dvd0p monic_neq0.
+  apply/negP => /(conj r_size)/andP => {r_size} r_size.
+  have {size_fc} size_fc : size (f c) <= 4 by rewrite size_fc.
+  have [a] := cubic_polyOver_root fc_over1 Hr1 size_fc Hrf r_size.
+  case/vlineP => k ->.
+  by apply/negP.
 suff [a Ha] : exists a, root (f c) a.
   have /eqP fc_min : minPoly 1 a == f c.
     rewrite -eqp_monic ?monic_minPoly //.
-    rewrite -dvdp_size_eqp ?minPoly_dvdp //.
-    rewrite size_minPoly size_fc eqSS.
-    have := (minPoly_dvdp fc_over1 Ha).
-    rewrite dvdp_eq.
-    rewrite size_minPoly.      
+    by apply: fc_irr; rewrite ?minPolyOver ?size_minPoly ?minPoly_dvdp //.
+  have Hgalois := galoisFiniteField (sub1v {:sfF}).
+  have card_gal : #|'Gal({:sfF} / 1)| = 3.
+    by rewrite -(galois_dim Hgalois) dimv1 divn1 Fdim.
+  have fc_factor : f c = \prod_(x in 'Gal({:sfF} / 1)) ('X - (x a)%:P).
+    rewrite -fc_min.
+    have : size (minPoly 1 a) = (\dim_(1%AS : {vspace sfF}) {:sfF}).+1.
+      by rewrite fc_min size_fc dimv1 divn1 Fdim Hq3.
+    have /galois_factors [_] := Hgalois.
+    case/(_ _ (memvf a)) => r [Hr /map_uniq Hr_uniq ->].
+    rewrite big_map size_prod_XsubC big_uniq //=.
+    case => size_r.
+    move/card_uniqP: Hr_uniq; rewrite size_r (galois_dim Hgalois) => card_r.
+    apply: eq_bigl.
+    by apply/(subset_cardP card_r).
+  exists a; rewrite !inE; apply/and3P; split.
+  - apply: contraTneq Ha => ->.
+    by rewrite -[1]scale1r; apply Hc.
+  - rewrite -eqr_opp; apply/eqP.
+    have -> : -1 = (f c).[0] by rewrite !hornerE.
+    rewrite -mulN1r.
+    have -> : -1 = (-1) ^+ #|'Gal({:sfF} / 1)| :> F.
+      by rewrite card_gal -signr_odd expr1.
+    rewrite -prodrN fc_factor horner_prod.
+    by apply: eq_bigr => i _; rewrite !hornerE.
+  - apply/eqP.
+    transitivity (f c).[2%:R]; last first.
+      by rewrite !hornerE /= subrr mulr0 mul0r add0r addrK.
+    rewrite fc_factor horner_prod.
+    by apply: eq_bigr => i _; rewrite rmorphB rmorphMn rmorph1 !hornerE.
+apply/existsP.
+rewrite -[[exists x, _]]negbK negb_exists.
+apply/negP => /forallP => HnoRoot.
+have : irreducible_poly (f c).
+  (* Generalize this lemma? *)
+  split => [|r r_size Hrf]; first by rewrite size_fc.
+  move/dvdp_size_eqp: (Hrf) <-.
+  rewrite eqn_leq dvdp_leq ?monic_neq0 //=.
+  rewrite leqNgt.
+  have {r_size} r_size : (1 < size r).
+    suff : size r != 0%N by case: (size r) r_size => //; case.
+    rewrite size_poly_eq0.
+    apply: contraTneq Hrf => ->.
+    by rewrite dvd0p monic_neq0.
+  apply/negP => /(conj r_size)/andP => {r_size} r_size.
+  have {size_fc} size_fc : size (f c) <= 4 by rewrite size_fc.
+  have fc_over : f c \is a polyOver {:sfF}%AS.
+    by apply/polyOverP => i; rewrite memvf.
+  have r_over : r \is a polyOver {:sfF}%AS.
+    by apply/polyOverP => i; rewrite memvf.
+  have [a _] := cubic_polyOver_root fc_over r_over size_fc Hrf r_size.
+  by apply/negP.
+case/(@irredp_FAdjoin sfF) => L.
+rewrite size_fc /= => Hdim [z Hz H1z].
+pose Fz := <<1%AS; (z : baseField_vectType L)>>%AS.
+have := (dim_baseVspace {:L}).
+rewrite Hdim.
+rewrite Fdim.
+rewrite Hq3 => Hdim9.
+have := size_minPoly (1%AS : {subfield baseField_vectType L}) z.
+rewrite elementDegreeE.
+rewrite dimv1 divn1.
+rewrite 
 
-  apply: (@leq_trans #|[set 1; a]|).
-    by rewrite cards2; case: eqP Ha (Hc 1) => [<-|//]; rewrite scale1r => ->.
-  apply: subset_leq_card.
-  apply/subsetP => _ /set2P [->|->]; first by rewrite E_nontriv.
-  rewrite inE -eqr_opp.
 *)
 
 (* Lemma BG_appendix_C : p <= q. *)
