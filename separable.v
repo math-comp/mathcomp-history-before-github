@@ -32,6 +32,7 @@ Open Local Scope ring_scope.
 
 Import GRing.Theory ssrint.IntDist.
 
+
 Section SeparablePoly.
 
 Variable (R: idomainType).
@@ -40,7 +41,7 @@ Implicit Types (p q d u v : {poly R}).
 Definition separablePolynomial p := coprimep p p^`().
 
 Local Notation sep := separablePolynomial.
-Local Notation lcn_neq0 := (Idomain.lc_expn_scalp_neq0 _).
+Local Notation lcn_neq0 := (Pdiv.Idomain.lc_expn_scalp_neq0 _).
 
 Lemma separable_neq0 p : separablePolynomial p -> p != 0.
 Proof. by apply: contraL=> /eqP ->; rewrite /sep deriv0 coprime0p eqp01. Qed.
@@ -66,10 +67,10 @@ apply: (iffP idP)=> [sep_p|].
     suff: u %| gcdp p p^`().
       by rewrite gtNdvdp -?size_poly_eq0 // coprimep_size_gcd.
     pose c := lead_coef u ^+ scalp p u.
-    have c_neq0 : c != 0 by rewrite lcn_neq0.
-    rewrite dvdp_gcd dvd_up -(@dvdp_scaler _ c) // -derivZ -Idomain.divpK //=.
-    by rewrite derivM u_eq0 mulr0 addr0 dvdp_mull.
-  move=> u v; rewrite Idomain.dvdp_eq; set c := _ ^+ _.
+    have c_neq0 : c != 0 by rewrite lcn_neq0. 
+    rewrite dvdp_gcd dvd_up -(@dvdp_scaler _ c) // -derivZ -Pdiv.Idomain.divpK //=.
+    by rewrite derivM u_eq0 mulr0 addr0 dvdp_mull // dvdpp.
+  move=> u v; rewrite Pdiv.Idomain.dvdp_eq; set c := _ ^+ _.
   have c_neq0 : c != 0 by rewrite lcn_neq0.
   rewrite mulrA; set r := _ * u => /eqP p_eq; move: sep_p; rewrite /sep.
   rewrite -(coprimep_scalel _ _ c_neq0) -(coprimep_scaler _ _ c_neq0).
@@ -83,15 +84,16 @@ have [|p_gt1|//] := ltngtP.
   rewrite ltnS leqn0 size_poly_eq0 /g gcdp_eq0=> /andP[/eqP p_eq0 _].
   by have := hp2 0 0; rewrite mulr0 p_eq0 dvdp0 coprimep0 eqp01; apply.
 have: g %| (c *: p^`()) by rewrite dvdp_scaler ?dvdp_gcdr.
-rewrite -derivZ -Idomain.divpK ?dvdp_gcdl // derivM.
-rewrite dvdp_addr; last by rewrite dvdp_mull.
-rewrite Gauss_dvdpr ?hp2 1?mulrC ?Idomain.divpK ?dvdp_gcdl -/c ?dvdp_scalel //.
+rewrite -derivZ -Pdiv.Idomain.divpK ?dvdp_gcdl // derivM.
+rewrite dvdp_addr; last by rewrite dvdp_mull ?dvdpp.
+rewrite Gauss_dvdpr ?hp2 1?mulrC ?Pdiv.Idomain.divpK ?dvdp_gcdl -/c ?dvdp_scalel ?dvdpp //.
 move=> /dvdp_leq; rewrite leqNgt lt_size_deriv; last first.
   by rewrite -size_poly_gt0 (leq_trans _ p_gt1).
-by apply; rewrite hp1 ?dvdp_gcdl.
+by apply; rewrite hp1 ?Pdiv.Idomain.dvdp_gcdl.
 Qed.
 
 Lemma separable_coprime p : sep p -> forall u v, u * v %| p -> coprimep u v.
+
 Proof. by move=> /separablePolynomialP[]. Qed.
 
 Lemma separable_nosquare p : sep p ->
@@ -99,7 +101,7 @@ Lemma separable_nosquare p : sep p ->
 Proof.
 move=> /separablePolynomialP[/nosquareP hp _] u [|[|]] // k _ hu su.
 have [|//] := boolP (_ %| _) => /(dvdp_trans _) => /(_ (u ^+ 2)).
-by rewrite (negPf (hp _ _)) // => -> //; rewrite expr2 !exprS mulrA dvdp_mulr.
+by rewrite (negPf (hp _ _)) // => -> //; rewrite expr2 !exprS mulrA dvdp_mulr ?dvdpp.
 Qed.
 
 Lemma separable_deriv_eq0 p : sep p ->
@@ -153,10 +155,10 @@ split; last first.
   have [//|[|k]] := ex_minnP (max_dvd_u u _); first by rewrite dvd1p.
   move=> hk /(_ k); rewrite ltnn; apply; apply: contra hk=> hk.
   suff: u ^+ k.+1 %| (p %/ g) * g.
-    by rewrite Idomain.divpK ?dvdp_gcdl // dvdp_scaler ?lcn_neq0.
+    by rewrite Pdiv.Idomain.divpK ?dvdp_gcdl // dvdp_scaler ?lcn_neq0.
   rewrite exprS dvdp_mul // dvdp_gcd hk //=.
   suff: u ^+ k %| ((p %/ u ^+ k) * u ^+ k)^`().
-    by rewrite Idomain.divpK ?dvdp_gcdl // derivZ dvdp_scaler ?lcn_neq0.
+    by rewrite Pdiv.Idomain.divpK ?dvdp_gcdl // derivZ dvdp_scaler ?lcn_neq0.
   by rewrite ?dvdp_gcdl // !derivCE u'_eq0 mul0r mul0rn mulr0 addr0 dvdp_mull.
 apply/nosquareP=> u; have [|size_u _|//] := ltngtP.
   rewrite // ltnS leqn0 size_poly_eq0=> /eqP -> _; rewrite exprS mul0r.
@@ -168,11 +170,11 @@ move=> [|[|n hn]]; first by rewrite dvd1p.
   by rewrite (dvdp_trans _ hu) // exprS dvdp_mulr.
 move=> /(_ n.+1); rewrite ltnn; apply; apply: contra hn=> hn.
 suff: u ^+ n.+2 %| (p %/ g) * g.
-  by rewrite Idomain.divpK ?dvdp_gcdl // dvdp_scaler ?lcn_neq0.
+  by rewrite Pdiv.Idomain.divpK ?dvdp_gcdl // dvdp_scaler ?lcn_neq0.
 rewrite !exprS mulrA dvdp_mul //.
 rewrite dvdp_gcd (dvdp_trans _ hn) ?exprS ?dvdp_mull //=.
 suff: u ^+ n %| ((p %/ u ^+ n.+1) * u ^+ n.+1)^`().
-  by rewrite Idomain.divpK ?dvdp_gcdl // derivZ dvdp_scaler ?lcn_neq0.
+  by rewrite Pdiv.Idomain.divpK ?dvdp_gcdl // derivZ dvdp_scaler ?lcn_neq0.
 by rewrite !derivCE dvdp_add // -1?mulr_natl ?exprS !dvdp_mull.
 Qed.
 
@@ -352,7 +354,7 @@ Lemma PET_char0 : forall q : {poly F},
   (exists q0, (q0 ^ iota).[y *+ n - x] = y).
 Proof.
 move => q qne0 Hqy; move/charf0P => Hchar.
-case/dvdpP: (dvdp_gcdl q q^`()) => [qq Hq].
+case/Pdiv.Field.dvdpP: (dvdp_gcdl q q^`()) => [qq Hq].
 have Hqqy : root (qq ^ iota) y.
   have [[|n] [r Hry Hqr]] := multiplicity_XsubC (q ^ iota) y.
     by move: Hqy Hry; rewrite map_poly_eq0 qne0 Hqr mulr1 => ->.
@@ -385,7 +387,7 @@ have Hqqy : root (qq ^ iota) y.
 have Hsep: separablePolynomial qq.
  move: (make_separable qne0).
  rewrite {1}Hq mulpK; last by rewrite gcdp_eq0 negb_and qne0.
- by move/dvdp_separable; apply.
+ by move/dvdp_separable; apply. 
 case: (PET_Infinite_Case Hqqy Hsep) => f [Hf0 Hf].
 pose s := mkseq (fun x => iota (x%:R : F)) (size f).
 have Hs : uniq_roots s.

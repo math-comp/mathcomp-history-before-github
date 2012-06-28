@@ -5,7 +5,7 @@ Require Import ssralg poly ssrnum zmodp polydiv interval.
 Import GRing.Theory.
 Import Num.Theory.
 
-Import Idomain.
+Import Pdiv.Idomain.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -207,7 +207,7 @@ move=> hn.
 case p0: (p == 0); first by rewrite (eqP p0) div0p mu0 sub0n.
 case: (@mu_spec p x); rewrite ?p0 // => q hq hp.
 rewrite {1}hp -{1}(subnK hn) exprD mulrA.
-rewrite mon.mulpK; last by apply: monic_exp; exact: monicXsubC.
+rewrite Pdiv.IdomainMonic.mulpK; last by apply: monic_exp; exact: monicXsubC.
 rewrite mu_mul ?mulf_eq0 ?expf_eq0 ?polyXsubC_eq0 ?andbF ?orbF; last first.
   by apply: contra hq; move/eqP->; rewrite root0.
 by rewrite mu_exp muNroot // add0n mu_XsubC mul1n.

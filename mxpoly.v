@@ -61,7 +61,7 @@ Import Monoid.Theory.
 
 Open Local Scope ring_scope.
 
-Import Idomain.
+Import Pdiv.Idomain.
 (* Row vector <-> bounded degree polynomial bijection *)
 Section RowPoly.
 
@@ -531,7 +531,7 @@ Qed.
 
 Lemma horner_mxK p : mx_inv_horner (horner_mx A p) = p %% p_A.
 Proof.
-rewrite {1}(mon.divp_eq mxminpoly_monic p) rmorphD rmorphM /=.
+rewrite {1}(Pdiv.IdomainMonic.divp_eq mxminpoly_monic p) rmorphD rmorphM /=.
 rewrite mx_root_minpoly mulr0 add0r.
 by rewrite -(poly_rV_K (size_mod_mxminpoly _)) horner_rVpolyK.
 Qed.

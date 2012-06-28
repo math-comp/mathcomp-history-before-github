@@ -6,7 +6,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import GRing.Theory Num.Theory Num.Def RPdiv ComRing.
+Import GRing.Theory Num.Theory Num.Def Pdiv.Ring Pdiv.ComRing.
 
 Local Open Scope nat_scope.
 Local Open Scope ring_scope.

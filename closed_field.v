@@ -9,7 +9,8 @@ Unset Printing Implicit Defensive.
 Import GRing.
 Open Local Scope ring_scope.
 
-Import RPdiv PreClosedField.
+Import Pdiv.Ring.
+Import PreClosedField.
 
 (*
 Section TermEqType.
@@ -387,6 +388,7 @@ Definition redivpT (p : polyF) (k : nat * polyF * polyF -> fF) (q : polyF) : fF 
         ) p
       ) q
   ) q.
+
 
 Lemma redivp_rec_loopP : forall q c qq r n, redivp_rec q c qq r n 
     (* = redivp_rec_loop q (size q) (lead_coef q) n c qq r. *)

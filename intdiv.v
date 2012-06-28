@@ -824,7 +824,7 @@ Qed.
 
 Lemma dvdpP_int p q : p %| q -> {r | q = zprimitive p * r}.
 Proof.
-case/Idomain.dvdpP/sig2_eqW=> [[c r] /= nz_c Dpr].
+case/Pdiv.Idomain.dvdpP/sig2_eqW=> [[c r] /= nz_c Dpr].
 exists (zcontents q *: zprimitive r); rewrite -scalerAr.
 by rewrite -zprimitiveM mulrC -Dpr zprimitiveZ // -zpolyEprim.
 Qed.
@@ -848,7 +848,7 @@ Qed.
 
 Lemma dvdp_rat_int p q : (pZtoQ p %| pZtoQ q) = (p %| q).
 Proof.
-apply/dvdpP/Idomain.dvdpP=> [[/= r1 Dq] | [[/= a r] nz_a Dq]]; last first.
+apply/dvdpP/Pdiv.Idomain.dvdpP=> [[/= r1 Dq] | [[/= a r] nz_a Dq]]; last first.
   exists (a%:~R^-1 *: pZtoQ r); rewrite -scalerAl -rmorphM -Dq.
   by rewrite -{2}[a]intz scaler_int rmorphMz -scaler_int scalerK ?intr_eq0.
 have [r [a nz_a Dr1]] := rat_poly_scale r1; exists (a, r) => //=.

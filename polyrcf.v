@@ -1,10 +1,10 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigop ssralg poly polydiv ssrnum zmodp polydiv.
+Require Import bigop ssralg poly polydiv ssrnum zmodp.
 Require Import polyorder path interval ssrint.
 
 Import GRing.Theory Num.Theory Num.Def.
-Import Idomain.
+Import Pdiv.Idomain.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -103,7 +103,7 @@ move: {-2}p (leqnn (size p)); elim: (size p)=> {p} [|n ihn] p spn.
   move: spn; rewrite leqn0 size_poly_eq0; move/eqP->; rewrite -polyC0.
   exact: Pk.
 case: (leqP (size p) 1)=> sp1; first by rewrite [p]size1_polyC ?sp1//.
-rewrite (mon.divp_eq (monicXsubC a) p) [_ %% _]size1_polyC; last first.
+rewrite (Pdiv.IdomainMonic.divp_eq (monicXsubC a) p) [_ %% _]size1_polyC; last first.
   rewrite -ltnS.
   by rewrite (@leq_trans (size ('X - a%:P))) // ?ltn_modp ?polyXsubC_eq0 ?size_XsubC.
 have [n' [q hqa hp]] := multiplicity_XsubC (p %/ ('X - a%:P)) a.

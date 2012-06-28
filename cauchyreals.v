@@ -1325,29 +1325,6 @@ Qed.
 Lemma horner_creal_cst (p : {poly F}) (x : F) : p.[x%:CR] == p.[x]%:CR.
 Proof. by apply: eq_crealP; exists m0=> *; rewrite /= subrr normr0. Qed.
 
-(* (* Todo : add to polydiv *) *)
-(* Lemma coprimep_pexpl k (p q : {poly F}) : (0 < k)%N -> *)
-(*   coprimep (p ^+ k) q = coprimep p q. *)
-(* Proof. *)
-(* case: k=> // n _; elim: n=> [|n ihn]; first by rewrite expr1. *)
-(* by rewrite exprSr coprimep_mull ihn andbb. *)
-(* Qed. *)
-
-(* (* Todo : add to polydiv *) *)
-(* Lemma coprimep_pexpr k (p q : {poly F}) : (0 < k)%N -> *)
-(*   coprimep p (q ^+ k) = coprimep p q. *)
-(* Proof. by rewrite ?[_ p _]coprimep_sym=> /coprimep_pexpl ->. Qed. *)
-
-(* (* Todo : add to polydiv *) *)
-(* Lemma coprimep_expl k (p q : {poly F}) : coprimep p q -> coprimep (p ^+ k) q. *)
-(* Proof. *)
-(* move=> cpq; case: k=> [|k]; first by rewrite expr0 coprime1p. *)
-(* by rewrite coprimep_pexpl. *)
-(* Qed. *)
-
-(* (* Todo : add to polydiv *) *)
-(* Lemma coprimep_expr k (p q : {poly F}) : coprimep p q -> coprimep p (q ^+ k). *)
-(* Proof. by rewrite ?[_ p _]coprimep_sym=> /coprimep_expl ->. Qed. *)
 
 Lemma poly_mul_creal_eq0 p q x :
   p.[x] * q.[x] == 0 -> {p.[x] == 0} + {q.[x] == 0}.

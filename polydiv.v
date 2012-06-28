@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
-Require Import bigop ssralg poly choice.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
+Require Import bigop ssralg poly.
 
 (******************************************************************************)
 (* This file provides a library for the basic theory of Euclidean and pseudo- *)
@@ -17,7 +17,7 @@ Require Import bigop ssralg poly choice.
 (* hypotheses made on the structure of coefficients and the properties of the *)
 (* polynomial one divides with.                                               *)
 (*                                                                            *)
-(* The empty name space defines:                                              *)
+(* Pdiv.Field (exported by the present library):                              *)
 (*          edivp p q == pseudo-division of p by q with p q : {poly R} where  *)
 (*                       R is an idomainType.                                 *)
 (*                       Computes (k, quo, rem) : nat * {poly r} * {poly R},  *)
@@ -48,7 +48,24 @@ Require Import bigop ssralg poly choice.
 (*          gdcop q p == greatest divisor of p which is coprime to q.         *)
 (* irreducible_poly p <-> p has only trivial (constant) divisors.             *)
 (*                                                                            *)
-(*  Module RPdiv :                                                            *)
+(* Pdiv.Idomain: theory available for edivp and the related operation under   *)
+(*    the sole assumption that the ring of coefficients is canonically an     *)
+(*    integral domain (R : idomainType).                                      *)
+(*                                                                            *)
+(* Pdiv.IdomainMonic:  theory available for edivp and the related operations  *)
+(*    under the assumption that the ring of coefficients is canonically       *)
+(*    and integral domain (R : idomainType) an the divisor is monic.          *)
+(*                                                                            *)
+(* Pdiv.IdomainUnit: theory available for edivp and the related operations    *)
+(*    under the assumption that the ring of coefficients is canonically an    *)
+(*    integral domain (R : idomainType) and the leading coefficient of the    *)
+(*    divisor is a unit.                                                      *)
+(*                                                                            *)
+(* Pdiv.ClosedField: theory available for edivp and the related operation     *)
+(*    under the sole assumption that the ring of coefficients is canonically  *)
+(*    an algebraically closed field (R : closedField).                        *)
+(*                                                                            *)
+(*  Pdiv.Ring :                                                               *)
 (*   redivp p q == pseudo-division of p by q with p q : {poly R} where R is   *)
 (*                 a ringType.                                                *)
 (*                 Computes (k, quo, rem) : nat * {poly r} * {poly R},        *)
@@ -63,27 +80,17 @@ Require Import bigop ssralg poly choice.
 (*   rgdcop p q == analogue of gdcop for coefficients in a ringType.          *)
 (*rcoprimep p q == analogue of coprimep p q for coefficients in a ringType.   *)
 (*                                                                            *)
-(* Module RPdiv.mon : theory of the operations defined in RPDiv, under the    *)
+(* Pdiv.RingComRreg : theory of the operations defined in Pdiv.Ring, when the *)
+(*   ring of coefficients is canonically commutative (R : comRingType) and    *)
+(*   the leading coefficient of the divisor is both right regular and         *)
+(*   commutes as a constant polynomial with the divisor itself                *)
+(*                                                                            *)
+(* Pdiv.RingMonic : theory of the operations defined in Pdiv.Ring, under the  *)
 (*   assumption that the divisor is monic.                                    *)
 (*                                                                            *)
-(* Module RPdiv.ComRing : theory of the operations defined in RPDiv, when the *)
-(*   ring of coefficients is canonically commutative (R : comRingType).       *)
-(*                                                                            *)
-(* Module RPdiv.UnitRing: theory of the operations defined in RPDiv, when the *)
+(* Pdiv.UnitRing: theory of the operations defined in Pdiv.Ring, when the     *)
 (*   ring R of coefficients is canonically with units (R : unitRingType).     *)
 (*                                                                            *)
-(* Module Idomain: theory available for edivp and the related operation under *)
-(*    the sole assumption that the ring of coefficients is canonically an     *)
-(*    integral domain (R : idomainType).                                      *)
-(*                                                                            *)
-(* Module Idomain.mon:  theory available for edivp and the related operation  *)
-(*    under the sole assumption that the ring of coefficients is canonically  *)
-(*    and integral domain (R : idomainType) an the divisor is monic.          *)
-(*                                                                            *)
-(* Module unit: theory available for edivp and the related operation under    *)
-(*    the sole assumption that the ring of coefficients is canonically an     *)
-(*    integral domain (R : idomainType) and the leading coefficient of the    *)
-(*    divisor is a unit.                                                      *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -97,7 +104,9 @@ Reserved Notation "p %= q" (at level 70, no associativity).
 
 Local Notation simp := Monoid.simpm.
 
-Module RPdiv.
+Module Pdiv.
+
+Module CommonRing.
 
 Section RingPseudoDivision.
 
@@ -334,13 +343,13 @@ pose rgcdp_rec := fix rgcdp_rec (n : nat) (pp qq : {poly R}) {struct n} :=
    if n is n1.+1 then rgcdp_rec n1 qq rr else rr.
 have Irec: forall m n p q, size q <= m -> size q <= n
       -> size q < size p -> rgcdp_rec m p q = rgcdp_rec n p q.
-+ elim=> [|m Hrec] [|n] //= p1 q1.
-  - rewrite leqn0 size_poly_eq0; move/eqP=> -> _.
-    rewrite size_poly0 size_poly_gt0 rmodp0 => nzp.
-    by rewrite (negPf nzp); case: n => [|n] /=; rewrite rmod0p eqxx.
-  - rewrite leqn0 size_poly_eq0 => _; move/eqP=> ->.
-    rewrite size_poly0 size_poly_gt0 rmodp0 => nzp.
-    by rewrite (negPf nzp); case: m {Hrec} => [|m] /=; rewrite rmod0p eqxx.
+  + elim=> [|m Hrec] [|n] //= p1 q1.
+    - rewrite leqn0 size_poly_eq0; move/eqP=> -> _.
+      rewrite size_poly0 size_poly_gt0 rmodp0 => nzp.
+      by rewrite (negPf nzp); case: n => [|n] /=; rewrite rmod0p eqxx.
+    - rewrite leqn0 size_poly_eq0 => _; move/eqP=> ->.
+      rewrite size_poly0 size_poly_gt0 rmodp0 => nzp.
+      by rewrite (negPf nzp); case: m {Hrec} => [|m] /=; rewrite rmod0p eqxx.
   case: ifP => Epq Sm Sn Sq //; rewrite ?Epq //.
   case: (eqVneq q1 0) => [->|nzq].
     by case: n m {Sm Sn Hrec} => [|m] [|n] //=; rewrite rmod0p eqxx.
@@ -404,6 +413,14 @@ rewrite {2}/lead_coef Hqq polySpred // subSS ltnNge leq_subr /=.
 by rewrite subKn ?addrN // -subn1 leq_subLR add1n -Hqq.
 Qed.
 
+Lemma rmodpp p : GRing.comm p (lead_coef p)%:P -> rmodp p p = 0.
+Proof.
+move=> hC; rewrite /rmodp unlock; case: ifP => hp /=; first by rewrite (eqP hp).
+move: (hp); rewrite -size_poly_eq0 /redivp_rec; case sp: (size p)=> [|n] // _.
+rewrite mul0r sp ltnn add0r subnn expr0 hC alg_polyC subrr.
+by case: n sp => [|n] sp; rewrite size_polyC /= eqxx.
+Qed.
+
 Definition rcoprimep (p q : {poly R}) := size (rgcdp p q) == 1%N.
 
 Fixpoint rgdcop_rec q p n :=
@@ -418,6 +435,12 @@ Lemma rgdcop0 q : rgdcop q 0 = (q == 0)%:R.
 Proof. by rewrite /rgdcop size_poly0. Qed.
 
 End RingPseudoDivision.
+
+End CommonRing.
+
+Module RingComRreg.
+
+Import CommonRing.
 
 Section ComRegDivisor.
 
@@ -522,8 +545,13 @@ Proof. by rewrite rdivp_eq /rdvdp; move/eqP->; rewrite addr0. Qed.
 
 End ComRegDivisor.
 
+End RingComRreg.
 
-Module mon.
+Module RingMonic.
+
+Import CommonRing.
+
+Import RingComRreg.
 
 Section MonicDivisor.
 
@@ -645,26 +673,29 @@ Lemma rdivpK p : rdvdp d p -> (rdivp p d) * d = p * (lead_coef d ^+ rscalp p d)%
 Proof. move=> dvddp; rewrite rdivpK // (eqP mond); exact: commr1. Qed.
 
 End MonicDivisor.
+End RingMonic.
 
+Module Ring.
 
-End mon.
+Include CommonRing.
+Import RingMonic.
 
-Section ExtraMonicRingPseudoDivision.
+Section ExtraMonicDivisor.
 
 Variable R : ringType.
 
 Implicit Types d p q r : {poly R}.
 
 Lemma rdivp1 p : rdivp p 1 = p.
-Proof. by rewrite -{1}(mulr1 p) mon.rdivp_mull // monic1. Qed.
+Proof. by rewrite -{1}(mulr1 p) rdivp_mull // monic1. Qed.
 
 Lemma rdvdp_XsubCl p x : rdvdp ('X - x%:P) p = root p x.
 Proof.
 have [HcX Hr] := (monic_comreg (monicXsubC x)).
 apply/rmodp_eq0P/factor_theorem; last first.
-  case=> p1 ->; apply: mon.rmodp_mull; exact: monicXsubC.
+  case=> p1 ->; apply: rmodp_mull; exact: monicXsubC.
 move=> e0; exists (rdivp p ('X - x%:P)).
-by rewrite {1}(mon.rdivp_eq (monicXsubC x) p) e0 addr0.
+by rewrite {1}(rdivp_eq (monicXsubC x) p) e0 addr0.
 Qed.
 
 Lemma polyXsubCP p x : reflect (p.[x] = 0) (rdvdp ('X - x%:P) p).
@@ -674,9 +705,15 @@ Proof. by apply: (iffP idP); rewrite rdvdp_XsubCl; move/rootP. Qed.
 Lemma root_factor_theorem p x : root p x = (rdvdp ('X - x%:P) p).
 Proof. by rewrite rdvdp_XsubCl. Qed.
 
-End ExtraMonicRingPseudoDivision.
+End ExtraMonicDivisor.
+
+End Ring.
 
 Module ComRing.
+
+Import Ring.
+
+Import RingComRreg.
 
 Section CommutativeRingPseudoDivision.
 
@@ -721,6 +758,8 @@ End ComRing.
 
 Module UnitRing.
 
+Import Ring.
+
 Section UnitRingPseudoDivision.
 
 Variable R : unitRingType.
@@ -730,7 +769,7 @@ Lemma uniq_roots_rdvdp p rs :
   all (root p) rs -> uniq_roots rs ->
   rdvdp (\prod_(z <- rs) ('X - z%:P)) p.
 Proof.
-move=> rrs; case/(uniq_roots_prod_XsubC rrs)=> q ->; apply: mon.rdvdp_mull.
+move=> rrs; case/(uniq_roots_prod_XsubC rrs)=> q ->; apply: RingMonic.rdvdp_mull.
 exact: monic_prod_XsubC.
 Qed.
 
@@ -738,13 +777,11 @@ End UnitRingPseudoDivision.
 
 End UnitRing.
 
-End RPdiv.
+Module IdomainDefs.
+
+Import Ring.
 
 Section IDomainPseudoDivisionDefs.
-
-Import RPdiv.
-Import ComRing.
-Import UnitRing.
 
 Variable R : idomainType.
 Implicit Type p q r d : {poly R}.
@@ -762,20 +799,22 @@ Definition divp p q := ((edivp p q).1).2.
 Definition modp p q := (edivp p q).2.
 Definition scalp p q := ((edivp p q).1).1.
 Definition dvdp p q := modp q p == 0.
+Definition eqp p q :=  (dvdp p q) && (dvdp q p).
+
 
 End IDomainPseudoDivisionDefs.
 
 Notation "m %/ d" := (divp m d) : ring_scope.
 Notation "m %% d" := (modp m d) : ring_scope.
 Notation "p %| q" := (dvdp p q) : ring_scope.
+Notation "p %= q" := (eqp p q) : ring_scope.
+End IdomainDefs.
 
-Module Idomain.
+Module WeakIdomain.
+
+Import Ring ComRing UnitRing IdomainDefs.
 
 Section WeakTheoryForIDomainPseudoDivision.
-
-Import RPdiv.
-Import ComRing.
-Import UnitRing.
 
 Variable R : idomainType.
 Implicit Type p q r d : {poly R}.
@@ -858,7 +897,7 @@ have hC : GRing.comm d (lead_coef d)%:P by exact: mulrC.
 move=> hsrd hu; rewrite unlock hu; case et: (redivp _ _) => [[s qq] rr].
 have cdn0 : lead_coef d != 0.
   by move: hu; case d0: (lead_coef d == 0) => //; rewrite (eqP d0) unitr0.
-move: (et); rewrite redivp_eq //; last by apply/rregP.
+move: (et); rewrite RingComRreg.redivp_eq //; last by apply/rregP.
 rewrite et /=; case => e1 e2; rewrite -!mul_polyC -!exprVn !polyC_exp.
 suff h x y: x * (lead_coef d ^+ s)%:P = y -> ((lead_coef d)^-1)%:P ^+ s * y = x.
   by congr (_, _, _); apply: h.
@@ -882,17 +921,6 @@ rewrite -scalerAl -scalerDr !mul_polyC scalerA mulrV ?unitrX //.
 by rewrite scale1r rdivp_eq.
 Qed.
 
-(* We inline here a proof we redo later to be able to overload this lemma later
-in the case of fields *)
-Lemma divpp p : p != 0 -> p %/ p = (lead_coef p ^+ scalp p p)%:P.
-Proof.
-move=> np0; have := (divp_eq p p).
-suff -> : p %% p = 0.
-  by rewrite addr0; move/eqP; rewrite -mul_polyC (inj_eq (mulIf np0)); move/eqP.
-rewrite modpE -{5 7}(mul1r p) rmodp_mull ?scaler0 ?if_same //.
-  by red; rewrite mulrC.
-by apply/rregP; rewrite lead_coef_eq0.
-Qed.
 
 Lemma dvdp_eq q p :
   (q %| p) = ((lead_coef q) ^+ (scalp p q) *: p == (p %/ q) * q).
@@ -933,7 +961,7 @@ Lemma mulpK p q : q != 0 ->
 Proof.
 move=> qn0; move/rregP: (qn0); apply; rewrite -scalerAl divp_eq.
 suff -> : (p * q) %% q = 0 by rewrite addr0.
-rewrite modpE rmodp_mull ?scaler0 ?if_same //; first by red; rewrite mulrC.
+rewrite modpE RingComRreg.rmodp_mull ?scaler0 ?if_same //; first by red; rewrite mulrC.
 by apply/rregP; rewrite lead_coef_eq0.
 Qed.
 
@@ -941,70 +969,26 @@ Lemma mulKp p q :  q != 0 ->
   q * p %/ q = lead_coef q ^+ scalp (p * q) q *: p.
 Proof. move=> ?; rewrite mulrC; exact: mulpK. Qed.
 
+Lemma divpp p : p != 0 -> p %/ p = (lead_coef p ^+ scalp p p)%:P.
+Proof.
+move=> np0; have := (divp_eq p p).
+suff -> : p %% p = 0.
+  by rewrite addr0; move/eqP; rewrite -mul_polyC (inj_eq (mulIf np0)); move/eqP.
+rewrite modpE Ring.rmodpp; last by red; rewrite mulrC.
+by rewrite scaler0 if_same.
+Qed.
+
 End  WeakTheoryForIDomainPseudoDivision.
 
 Hint Resolve lc_expn_scalp_neq0.
 
-Module mon.
+End WeakIdomain.
 
-Section MonicDivisor.
+Module CommonIdomain.
 
-Import RPdiv.
-Import ComRing.
-Import UnitRing.
-
-Variable R : idomainType.
-Variable q : {poly R}.
-Hypothesis monq : q \is monic.
-
-Implicit Type p d r : {poly R}.
-
-Lemma divpE p : p %/ q = rdivp p q.
-Proof. by rewrite divpE (eqP monq) unitr1 expr1n invr1 scale1r. Qed.
-
-Lemma modpE p : p %% q = rmodp p q.
-Proof. by rewrite modpE (eqP monq) unitr1 expr1n invr1 scale1r. Qed.
-
-Lemma scalpE p : scalp p q = 0%N.
-Proof. by rewrite scalpE (eqP monq) unitr1. Qed.
-
-Lemma divp_eq  p : p = (p %/ q) * q + (p %% q).
-Proof. by rewrite -divp_eq (eqP monq) expr1n scale1r. Qed.
-
-Lemma divpp p : q %/ q = 1.
-Proof. by rewrite divpp ?monic_neq0 // (eqP monq) expr1n. Qed.
-
-Lemma dvdp_eq p : (q %| p) = (p == (p %/ q) * q).
-Proof. by rewrite dvdp_eq (eqP monq) expr1n scale1r. Qed.
-
-Lemma dvdpP p : reflect (exists qq, p = qq * q) (q %| p).
-Proof.
-apply: (iffP idP); first by rewrite dvdp_eq; move/eqP=> e; exists (p %/ q).
-by case=> qq ->; rewrite dvdpE rdvdp_mull //; case: (monic_comreg monq).
-Qed.
-
-Lemma mulpK p : p * q %/ q = p.
-Proof. by rewrite mulpK ?monic_neq0 // (eqP monq) expr1n scale1r. Qed.
-
-Lemma mulKp p : q * p %/ q = p.
-Proof. by rewrite mulrC; exact: mulpK. Qed.
-
-End MonicDivisor.
-
-End mon.
-
-End Idomain.
-
-Notation "m %/ d" := (@divp _ m d) : ring_scope.
-Notation "m %% d" := (@modp _ m d) : ring_scope.
-Notation "p %| q" := (@dvdp _ p q) : ring_scope.
+Import Ring ComRing UnitRing IdomainDefs WeakIdomain.
 
 Section IDomainPseudoDivision.
-
-Import RPdiv.
-Import ComRing.
-Import UnitRing.
-Import Idomain.
 
 Variable R : idomainType.
 Implicit Type p q r d m n : {poly R}.
@@ -1037,17 +1021,20 @@ by rewrite /divp unlock redivp_def /=; case: ifP; rewrite rdivp0 // scaler0.
 Qed.
 
 Lemma divp1 m : m %/ 1 = m.
-Proof. by rewrite divpE lead_coefC unitr1 rdivp1 expr1n invr1 scale1r. Qed.
-
-Lemma mod0p p : 0 %% p = 0.
 Proof.
-by rewrite /modp unlock redivp_def /=; case: ifP; rewrite rmod0p // scaler0.
+by rewrite divpE lead_coefC unitr1 Ring.rdivp1 expr1n invr1 scale1r. 
 Qed.
+
 
 Lemma modp0 p : p %% 0 = p.
 Proof.
 rewrite /modp unlock redivp_def; case: ifP; rewrite rmodp0 //= lead_coef0.
 by rewrite unitr0.
+Qed.
+
+Lemma mod0p p : 0 %% p = 0.
+Proof.
+by rewrite /modp unlock redivp_def /=; case: ifP; rewrite rmod0p // scaler0.
 Qed.
 
 Lemma modp1 p : p %% 1 = 0.
@@ -1074,7 +1061,7 @@ Proof.
 case: (altP (q =P 0)) => [-> | nq0]; first by rewrite modp0 mulr0.
 have rlcq :  (GRing.rreg (lead_coef q)) by apply/rregP; rewrite lead_coef_eq0.
 have hC :  GRing.comm q (lead_coef q)%:P by red; rewrite mulrC.
-by rewrite modpE; case: ifP => ulcq; rewrite rmodp_mull // scaler0.
+by rewrite modpE; case: ifP => ulcq; rewrite RingComRreg.rmodp_mull // scaler0.
 Qed.
 
 Lemma modp_mulr d p : (d * p) %% d = 0.
@@ -1095,7 +1082,7 @@ Lemma ltn_divpl d q p : d != 0 ->
    (size (q %/ d) < size p) = (size q < size (p * d)).
 Proof.
 move=> dn0; have sd : size d > 0 by rewrite size_poly_gt0 dn0.
-have: (lead_coef d) ^+ (scalp q d) != 0 by [].
+have: (lead_coef d) ^+ (scalp q d) != 0 by exact: lc_expn_scalp_neq0.
 move/size_scale; move/(_ q)<-; rewrite divp_eq; case quo0 : (q %/ d == 0).
   rewrite (eqP quo0) mul0r add0r size_poly0.
   case p0 : (p == 0); first by rewrite (eqP p0) mul0r size_poly0 ltnn ltn0.
@@ -1288,23 +1275,23 @@ apply/idP/idP; rewrite dvdp_eq; set c2 := _ ^+ _; set q2 := _ %/ _; move/eqP=> E
 by  rewrite mulrDl -!scalerAl -Eq1 -Eq2 !scalerA mulrC addrC scalerDr.
 Qed.
 
-Lemma dvdp_addl : forall n d m : {poly R}, d %| n -> (d %| m + n) = (d %| m).
-Proof. by move=> n d m; rewrite addrC; exact: dvdp_addr. Qed.
+Lemma dvdp_addl n d m : d %| n -> (d %| m + n) = (d %| m).
+Proof. by rewrite addrC; exact: dvdp_addr. Qed.
 
-Lemma dvdp_add : forall d m n : {poly R}, d %| m -> d %| n -> d %| m + n.
-Proof. by move=> n d m; move/dvdp_addr->. Qed.
+Lemma dvdp_add d m n : d %| m -> d %| n -> d %| m + n.
+Proof. by move/dvdp_addr->. Qed.
 
-Lemma dvdp_add_eq : forall d m n : {poly R}, d %| m + n -> (d %| m) = (d %| n).
-Proof. by move=> *; apply/idP/idP; [move/dvdp_addr <-| move/dvdp_addl <-]. Qed.
+Lemma dvdp_add_eq  d m n : d %| m + n -> (d %| m) = (d %| n).
+Proof. by move=> ?; apply/idP/idP; [move/dvdp_addr <-| move/dvdp_addl <-]. Qed.
 
-Lemma dvdp_subr : forall d m n : {poly R}, d %| m -> (d %| m - n) = (d %| n).
-Proof. by move=> *; apply dvdp_add_eq; rewrite -addrA addNr simp. Qed.
+Lemma dvdp_subr d m n : d %| m -> (d %| m - n) = (d %| n).
+Proof. by move=> ?; apply dvdp_add_eq; rewrite -addrA addNr simp. Qed.
 
-Lemma dvdp_subl : forall d m n : {poly R}, d %| n -> (d %| m - n) = (d %| m).
-Proof. by move=> d m n Hn; rewrite -(dvdp_addl _ Hn) subrK. Qed.
+Lemma dvdp_subl  d m n : d %| n -> (d %| m - n) = (d %| m).
+Proof. by move/dvdp_addl<-; rewrite subrK. Qed.
 
-Lemma dvdp_sub : forall d m n : {poly R}, d %| m -> d %| n -> d %| m - n.
-Proof.  by move=> d n m Dm Dn; rewrite dvdp_subl. Qed.
+Lemma dvdp_sub  d m n : d %| m -> d %| n -> d %| m - n.
+Proof.  by move=> *; rewrite dvdp_subl. Qed.
 
 Lemma dvdp_mod d n m : d %| n -> (d %| m) = (d %| m %% n).
 Proof.
@@ -1401,10 +1388,10 @@ by rewrite exprS mulf_neq0.
 Qed.
 
 Lemma dvdp_XsubCl p x : ('X - x%:P) %| p = root p x.
-Proof. rewrite dvdpE; exact: rdvdp_XsubCl. Qed.
+Proof. rewrite dvdpE; exact: Ring.rdvdp_XsubCl. Qed.
 
 Lemma polyXsubCP p x : reflect (p.[x] = 0) (('X - x%:P) %| p).
-Proof. rewrite dvdpE; exact: polyXsubCP. Qed.
+Proof. rewrite dvdpE; exact: Ring.polyXsubCP. Qed.
 
 Lemma eqp_div_XsubC p c :
   (p == (p %/ ('X - c%:P)) * ('X - c%:P)) = ('X - c%:P %| p).
@@ -1427,9 +1414,6 @@ Proof.
 move=> x; elim; first by rewrite big_nil root1.
 by move=> p ps ihp; rewrite big_cons /= rootM negb_or ihp.
 Qed.
-
-Definition eqp p q :=  (p %| q) && (q %| p).
-Notation "p %= q" := (eqp p q) : ring_scope.
 
 Lemma eqpP m n :
   reflect (exists2 c12, (c12.1 != 0) && (c12.2 != 0) & c12.1 *: m = c12.2 *: n)
@@ -1468,27 +1452,27 @@ rewrite !mul_polyC scalerA -eqC mulrC -scalerA eq.
 by rewrite !scalerA mulrC.
 Qed.
 
-Lemma eqpxx : reflexive eqp.
+Lemma eqpxx : reflexive (@eqp R).
 Proof. by move=> p; rewrite /eqp dvdpp. Qed.
 
 Hint Resolve eqpxx.
 
-Lemma eqp_sym : symmetric eqp.
+Lemma eqp_sym : symmetric (@eqp R).
 Proof. by move=> p q; rewrite /eqp andbC. Qed.
 
-Lemma eqp_trans : transitive eqp.
+Lemma eqp_trans : transitive (@eqp R).
 Proof.
 move=> p q r; case/andP=> Dp pD; case/andP=> Dq qD.
 by rewrite /eqp (dvdp_trans Dp) // (dvdp_trans qD).
 Qed.
 
-Lemma eqp_ltrans : left_transitive eqp.
+Lemma eqp_ltrans : left_transitive (@eqp R).
 Proof.
 move=> p q r pq.
 by apply/idP/idP=> e; apply: eqp_trans e; rewrite // eqp_sym.
 Qed.
 
-Lemma eqp_rtrans : right_transitive eqp.
+Lemma eqp_rtrans : right_transitive (@eqp R).
 Proof. by move=> x y xy z; rewrite eqp_sym (eqp_ltrans xy) eqp_sym. Qed.
 
 Lemma eqp0 : forall p, (p %= 0) = (p == 0).
@@ -1524,12 +1508,12 @@ apply/size_poly1P/idP=> [[c cn0 ep] |].
 by move/eqp_size; rewrite size_poly1; move/eqP; move/size_poly1P.
 Qed.
 
-Lemma polyXsubC_eqp1 x : ('X - x%:P %= 1) = false.
+Lemma polyXsubC_eqp1 (x : R) : ('X - x%:P %= 1) = false.
 Proof. by rewrite -size_poly_eq1 size_XsubC. Qed.
 
-Lemma dvdp_eqp1 : forall p q, p %| q -> q %= 1 -> p %= 1.
+Lemma dvdp_eqp1 p q : p %| q -> q %= 1 -> p %= 1.
 Proof.
-move=> p q dpq hq.
+move=> dpq hq.
 have sizeq : size q == 1%N by rewrite size_poly_eq1.
 have n0q : q != 0.
   by case abs: (q == 0) => //; move: hq; rewrite (eqP abs) eqp01.
@@ -1583,7 +1567,7 @@ move=> pq; elim: k=> [|k ihk]; first by rewrite !expr0 eqpxx.
 by rewrite !exprS (@eqp_trans (q * p ^+ k)) // (eqp_mulr, eqp_mull).
 Qed.
 
-Lemma polyC_eqp1 c : (c%:P %= 1) = (c != 0).
+Lemma polyC_eqp1 (c : R) : (c%:P %= 1) = (c != 0).
 Proof.
 apply/eqpP/idP => [[[x y]] |nc0] /=.
   case c0: (c == 0); rewrite // alg_polyC (eqP c0) scaler0.
@@ -2363,7 +2347,7 @@ case: (eqVneq q 0) => [-> | q0].
     rewrite eqxx; split; rewrite ?dvd1p ?coprimep0 ?eqpxx //=.
     by move=> d _; rewrite coprimep0 dvdp1 size_poly_eq1.
   move=> n; rewrite coprimep0 polyC_eqp1 //; rewrite lc_expn_scalp_neq0.
-  split; first by rewrite (@eqp_dvdl 1) ?dvd1p ?polyC_eqp1.
+  split; first by rewrite (@eqp_dvdl 1) ?dvd1p // polyC_eqp1 lc_expn_scalp_neq0.
     by rewrite coprimep0 polyC_eqp1 // ?lc_expn_scalp_neq0.
   by move=> d _; rewrite coprimep0; move/eqp_dvdl->; rewrite dvd1p.
 move: (dvdp_gcdl p q); rewrite dvdp_eq; move/eqP=> e.
@@ -2420,6 +2404,7 @@ move: (dvdp_leq dn0 xd); rewrite leq_eqVlt sd; case/orP; last first.
 by rewrite -sd dvdp_size_eqp //; move/(eqp_dvdl q); rewrite xq (negPf dq).
 Qed.
 
+
 Lemma dvdp_gdco p q : (gdcop p q) %| q.
 Proof. by case: gdcopP. Qed.
 
@@ -2472,7 +2457,7 @@ Proof.
 have: root (p - p.[c]%:P) c by rewrite /root !hornerE subrr.
 case/factor_theorem=> q /(canRL (subrK _)) Dp; rewrite modpE /= lead_coefXsubC.
 rewrite  GRing.unitr1 expr1n invr1 scale1r {1}Dp.
-rewrite mon.rmodp_addl_mul_small // ?monicXsubC // size_XsubC size_polyC.
+rewrite RingMonic.rmodp_addl_mul_small // ?monicXsubC // size_XsubC size_polyC.
 by case: (p.[c] == 0).
 Qed.
 
@@ -2523,19 +2508,77 @@ have [|m /=] := @dvdp_prod_XsubC _ [:: x] id d; first by rewrite big_seq1.
 by case: m => [|[] [|_ _] /=]; rewrite (big_nil, big_seq1).
 Qed.
 
+Lemma irredp_XsubCP d p :
+  irreducible_poly p -> d %| p -> {d %= 1} + {d %= p}.
+Proof.
+move=> irred_p dvd_dp; have [] := boolP (_ %= 1); first by left.
+by rewrite -size_poly_eq1=> /irred_p /(_ dvd_dp); right.
+Qed.
+
 End IDomainPseudoDivision.
 
 Hint Resolve eqpxx divp0 divp1 mod0p modp0 modp1 dvdp_mull dvdp_mulr dvdpp.
 Hint Resolve dvdp0.
 
-Notation "p %= q" := (eqp p q) : ring_scope.
+End CommonIdomain.
 
-Module unit.
+Module Idomain.
 
-Import RPdiv.
-Import ComRing.
-Import UnitRing.
-Import Idomain.
+Include IdomainDefs.
+Include WeakIdomain.
+Include CommonIdomain.
+
+End Idomain.
+
+Module IdomainMonic.
+
+Import Ring ComRing UnitRing IdomainDefs Idomain.
+
+Section MonicDivisor.
+
+Variable R : idomainType.
+Variable q : {poly R}.
+Hypothesis monq : q \is monic.
+
+Implicit Type p d r : {poly R}.
+
+Lemma divpE p : p %/ q = rdivp p q.
+Proof. by rewrite divpE (eqP monq) unitr1 expr1n invr1 scale1r. Qed.
+
+Lemma modpE p : p %% q = rmodp p q.
+Proof. by rewrite modpE (eqP monq) unitr1 expr1n invr1 scale1r. Qed.
+
+Lemma scalpE p : scalp p q = 0%N.
+Proof. by rewrite scalpE (eqP monq) unitr1. Qed.
+
+Lemma divp_eq  p : p = (p %/ q) * q + (p %% q).
+Proof. by rewrite -divp_eq (eqP monq) expr1n scale1r. Qed.
+
+Lemma divpp p : q %/ q = 1.
+Proof. by rewrite divpp ?monic_neq0 // (eqP monq) expr1n. Qed.
+
+Lemma dvdp_eq p : (q %| p) = (p == (p %/ q) * q).
+Proof. by rewrite dvdp_eq (eqP monq) expr1n scale1r. Qed.
+
+Lemma dvdpP p : reflect (exists qq, p = qq * q) (q %| p).
+Proof.
+apply: (iffP idP); first by rewrite dvdp_eq; move/eqP=> e; exists (p %/ q).
+by case=> qq ->; rewrite dvdp_mull // dvdpp.
+Qed.
+
+Lemma mulpK p : p * q %/ q = p.
+Proof. by rewrite mulpK ?monic_neq0 // (eqP monq) expr1n scale1r. Qed.
+
+Lemma mulKp p : q * p %/ q = p.
+Proof. by rewrite mulrC; exact: mulpK. Qed.
+
+End MonicDivisor.
+
+End IdomainMonic.
+
+Module IdomainUnit.
+
+Import Ring ComRing UnitRing IdomainDefs Idomain.
 
 Section UnitDivisor.
 
@@ -2693,7 +2736,7 @@ Lemma divp_addl_mul q r : (q * d + r) %/ d = q + r %/ d.
 Proof. by rewrite divp_add mulpK. Qed.
 
 Lemma divpp : d %/ d = 1.
-rewrite divpE ulcd rdivpp; [| by red; rewrite 1?mulrC | exact: mulIr].
+rewrite divpE ulcd RingComRreg.rdivpp; [| by red; rewrite 1?mulrC | exact: mulIr].
 rewrite -mul_polyC -polyC_mul mulVr //; exact: unitrX.
 Qed.
 
@@ -2733,7 +2776,7 @@ Lemma divp_mulA p q : d %| q -> p * (q %/ d) = p * q %/ d.
 Proof.
 move=> hdm; apply/eqP; rewrite eq_sym -dvdp_eq_mul.
   by rewrite -mulrA divpK.
-by move/divpK: hdm<-; rewrite mulrA dvdp_mull.
+by move/divpK: hdm<-; rewrite mulrA dvdp_mull // dvdpp.
 Qed.
 
 Lemma divp_mulAC m n : d %| m -> m %/ d * n = m * n %/ d.
@@ -2746,7 +2789,7 @@ Lemma modp_mul p q : (p * (q %% d)) %% d = (p * q) %% d.
 Proof.
 have -> : q %% d = q - q %/ d * d by rewrite {2}(divp_eq q) -addrA addrC subrK.
 rewrite mulrDr modp_add // -mulNr mulrA -{2}[_ %% _]addr0; congr (_ + _).
-by apply/eqP; apply: dvdp_mull.
+by apply/eqP; apply: dvdp_mull; exact: dvdpp.
 Qed.
 
 End UnitDivisor.
@@ -2836,11 +2879,16 @@ Qed.
 
 End MoreUnitDivisor.
 
-End unit.
+End IdomainUnit.
+
+Module Field.
+
+Import Ring ComRing UnitRing.
+Include IdomainDefs.
+Include CommonIdomain.
 
 Section FieldDivision.
 
-Import RPdiv ComRing UnitRing Idomain unit.
 
 Variable F : fieldType.
 
@@ -2849,13 +2897,13 @@ Implicit Type p q r d : {poly F}.
 Lemma divp_eq p q : p = (p %/ q) * q + (p %% q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite modp0 mulr0 add0r.
-by apply: divp_eq; rewrite unitfE lead_coef_eq0.
+by apply: IdomainUnit.divp_eq; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma divp_modpP p q d r : p = q * d + r -> size r < size d ->
   q = (p %/ d) /\ r = p %% d.
 Proof.
-move=> he hs; apply: edivpP => //; rewrite unitfE lead_coef_eq0.
+move=> he hs; apply: IdomainUnit.edivpP => //; rewrite unitfE lead_coef_eq0.
 by rewrite -size_poly_gt0; apply: leq_trans hs.
 Qed.
 
@@ -2870,14 +2918,14 @@ Lemma eqpfP p q : p %= q -> p = (lead_coef p / lead_coef q) *: q.
 Proof.
 have [->|nz_q] := altP (q =P 0).
   by rewrite eqp0 => /eqP ->; rewrite scaler0.
-move/ucl_eqp_eq; apply; rewrite unitfE.
+move/IdomainUnit.ucl_eqp_eq; apply; rewrite unitfE.
 by move: nz_q; rewrite -lead_coef_eq0 => nz_qT.
 Qed.
 
 Lemma dvdp_eq q p : (q %| p) = (p == p %/ q * q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite dvd0p mulr0 eq_sym.
-by apply: dvdp_eq; rewrite unitfE lead_coef_eq0.
+by apply: IdomainUnit.dvdp_eq; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma eqpf_eq p q : reflect (exists2 c, c != 0 & p = c *: q) (p %= q).
@@ -2887,18 +2935,18 @@ apply: (iffP idP); last first.
   by exists (1, c); rewrite ?scale1r ?oner_eq0.
 have [->|nz_q] := altP (q =P 0).
   by rewrite eqp0=> /eqP ->; exists 1; rewrite ?scale1r ?oner_eq0.
-case/unit.ulc_eqpP; first by rewrite unitfE lead_coef_eq0.
+case/IdomainUnit.ulc_eqpP; first by rewrite unitfE lead_coef_eq0.
 by move=> c nz_c ->; exists c.
 Qed.
 
 Lemma modp_scalel c p q : (c *: p) %% q = c *: (p %% q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite !modp0.
-by apply: modp_scalel; rewrite unitfE lead_coef_eq0.
+by apply: IdomainUnit.modp_scalel; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma mulpK p q : q != 0 -> p * q %/ q = p.
-Proof. by move=> qn0; rewrite mulpK // unitfE lead_coef_eq0. Qed.
+Proof. by move=> qn0; rewrite IdomainUnit.mulpK // unitfE lead_coef_eq0. Qed.
 
 Lemma mulKp p q : q != 0 -> q * p %/ q = p.
 Proof. by rewrite mulrC; exact: mulpK. Qed.
@@ -2906,7 +2954,7 @@ Proof. by rewrite mulrC; exact: mulpK. Qed.
 Lemma divp_scalel c p q : (c *: p) %/ q = c *: (p %/ q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite !divp0 scaler0.
-by apply: divp_scalel; rewrite unitfE lead_coef_eq0.
+by apply: IdomainUnit.divp_scalel; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma modp_scaler c p d : c != 0 -> p %% (c *: d) = (p %% d).
@@ -3002,21 +3050,20 @@ Qed.
 Lemma modp_opp p q : (- p) %% q = - (p %% q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite !modp0.
-by apply: modp_opp; rewrite unitfE lead_coef_eq0.
+by apply: IdomainUnit.modp_opp; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma divp_opp p q : (- p) %/ q = - (p %/ q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite !divp0 oppr0.
-by apply: divp_opp; rewrite unitfE lead_coef_eq0.
+by apply: IdomainUnit.divp_opp; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma modp_add d p q : (p + q) %% d = p %% d + q %% d.
 Proof.
 case: (eqVneq d 0) => [-> | dn0]; first by rewrite !modp0.
-by apply: modp_add; rewrite unitfE lead_coef_eq0.
+by apply: IdomainUnit.modp_add; rewrite unitfE lead_coef_eq0.
 Qed.
-
 
 Lemma modNp p q : (- p) %% q = - (p %% q).
 Proof. by apply/eqP; rewrite -addr_eq0 -modp_add addNr mod0p. Qed.
@@ -3024,7 +3071,7 @@ Proof. by apply/eqP; rewrite -addr_eq0 -modp_add addNr mod0p. Qed.
 Lemma divp_add d p q : (p + q) %/ d = p %/ d + q %/ d.
 Proof.
 case: (eqVneq d 0) => [-> | dn0]; first by rewrite !divp0 addr0.
-by apply: divp_add; rewrite unitfE lead_coef_eq0.
+by apply: IdomainUnit.divp_add; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma divp_addl_mul_small d q r :
@@ -3042,18 +3089,18 @@ Lemma divp_addl_mul d q r : d != 0 -> (q * d + r) %/ d = q + r %/ d.
 Proof. by move=> dn0; rewrite divp_add mulpK. Qed.
 
 Lemma divpp d : d != 0 -> d %/ d = 1.
-Proof. by move=> dn0; apply: divpp; rewrite unitfE lead_coef_eq0. Qed.
+Proof. by move=> dn0; apply: IdomainUnit.divpp; rewrite unitfE lead_coef_eq0. Qed.
 
 Lemma leq_trunc_divp d m : size (m %/ d * d) <= size m.
 Proof.
 case: (eqVneq d 0) => [-> | dn0]; first by rewrite mulr0 size_poly0.
-by apply: leq_trunc_divp; rewrite unitfE lead_coef_eq0.
+by apply: IdomainUnit.leq_trunc_divp; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma divpK d p : d %| p -> p %/ d * d = p.
 Proof.
 case: (eqVneq d 0) => [-> | dn0]; first by move/dvd0pP->; rewrite mulr0.
-by apply: divpK; rewrite unitfE lead_coef_eq0.
+by apply: IdomainUnit.divpK; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma divpKC d p : d %| p -> d * (p %/ d) = p.
@@ -3061,7 +3108,7 @@ Proof. by move=> ?; rewrite mulrC divpK. Qed.
 
 Lemma dvdp_eq_div d p q :  d != 0 -> d %| p -> (q == p %/ d) = (q * d == p).
 Proof.
-by move=> dn0; apply: dvdp_eq_div; rewrite unitfE lead_coef_eq0.
+by move=> dn0; apply: IdomainUnit.dvdp_eq_div; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma dvdp_eq_mul d p q : d != 0 -> d %| p -> (p == q * d) = (p %/ d == q).
@@ -3070,7 +3117,7 @@ Proof. by move=> dn0 dv_d_p; rewrite eq_sym -dvdp_eq_div // eq_sym. Qed.
 Lemma divp_mulA d p q : d %| q -> p * (q %/ d) = p * q %/ d.
 Proof.
 case: (eqVneq d 0) => [-> | dn0]; first by move/dvd0pP->; rewrite !divp0 mulr0.
-by apply: divp_mulA; rewrite unitfE lead_coef_eq0.
+by apply: IdomainUnit.divp_mulA; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma divp_mulAC d m n : d %| m -> m %/ d * n = m * n %/ d.
@@ -3084,7 +3131,7 @@ Proof. by move=> dn0 /subnK=> {2}<-; rewrite exprD mulpK // expf_neq0. Qed.
 
 Lemma divp_pmul2l d q p : d != 0 -> q != 0 -> d * p %/ (d * q) = p %/ q.
 Proof.
-by move=> dn0 qn0; apply: divp_pmul2l; rewrite unitfE lead_coef_eq0.
+by move=> dn0 qn0; apply: IdomainUnit.divp_pmul2l; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma divp_pmul2r d p q : d != 0 -> p != 0 ->  q * d %/ (p * d) = q %/ p.
@@ -3094,7 +3141,7 @@ Lemma divp_divl r p q :  q %/ p %/ r = q %/ (p * r).
 Proof.
 case: (eqVneq r 0) => [-> | rn0]; first by rewrite mulr0 !divp0.
 case: (eqVneq p 0) => [-> | pn0]; first by rewrite mul0r !divp0 div0p.
-by apply: divp_divl; rewrite unitfE lead_coef_eq0.
+by apply: IdomainUnit.divp_divl; rewrite unitfE lead_coef_eq0.
 Qed.
 
 Lemma divpAC d p q : q %/ d %/ p =  q %/ p %/ d.
@@ -3102,7 +3149,7 @@ Proof. by rewrite !divp_divl // mulrC. Qed.
 
 Lemma edivp_def p q : edivp p q = (0%N, p %/ q, p %% q).
 Proof.
-rewrite edivp_def; congr (_, _, _); rewrite /scalp 2!unlock /=.
+rewrite Idomain.edivp_def; congr (_, _, _); rewrite /scalp 2!unlock /=.
 case (eqVneq q 0) => [-> | qn0]; first by rewrite eqxx lead_coef0 unitr0.
 rewrite (negPf qn0) /= unitfE lead_coef_eq0 qn0 /=.
 by case: (redivp_rec _ _ _ _) => [[]].
@@ -3111,24 +3158,24 @@ Qed.
 Lemma divpE p q : p %/ q = (lead_coef q)^-(rscalp p q) *: (rdivp p q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite rdivp0 divp0 scaler0.
-by rewrite divpE unitfE lead_coef_eq0 qn0.
+by rewrite Idomain.divpE unitfE lead_coef_eq0 qn0.
 Qed.
 
 Lemma modpE p q : p %% q = (lead_coef q)^-(rscalp p q) *: (rmodp p q).
 Proof.
 case: (eqVneq q 0) => [-> | qn0].
   by rewrite rmodp0 modp0 /rscalp unlock eqxx lead_coef0 expr0 invr1 scale1r.
-by rewrite modpE unitfE lead_coef_eq0 qn0.
+by rewrite Idomain.modpE unitfE lead_coef_eq0 qn0.
 Qed.
 
 Lemma scalpE p q : scalp p q = 0%N.
 Proof.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite scalp0.
-by rewrite scalpE unitfE lead_coef_eq0 qn0.
+by rewrite Idomain.scalpE unitfE lead_coef_eq0 qn0.
 Qed.
 
 (* Just to have it without importing the weak theory *)
-Lemma dvdpE p q : p %| q = rdvdp p q. Proof. exact: dvdpE. Qed.
+Lemma dvdpE p q : p %| q = rdvdp p q. Proof. exact: Idomain.dvdpE. Qed.
 
 CoInductive edivp_spec m d : nat * {poly F} * {poly F} -> Type :=
   EdivpSpec n q r of
@@ -3142,7 +3189,7 @@ Qed.
 
 Lemma edivp_eq d q r : size r < size d -> edivp (q * d + r) d = (0%N, q, r).
 Proof.
-move=> srd; apply: edivp_eq ; rewrite // unitfE lead_coef_eq0.
+move=> srd; apply: Idomain.edivp_eq ; rewrite // unitfE lead_coef_eq0.
 rewrite -size_poly_gt0; exact: leq_trans srd.
 Qed.
 
@@ -3150,13 +3197,13 @@ Lemma modp_mul p q m : (p * (q %% m)) %% m = (p * q) %% m.
 Proof.
 have ->: q %% m = q - q %/ m * m by rewrite {2}(divp_eq q m) -addrA addrC subrK.
 rewrite mulrDr modp_add // -mulNr mulrA -{2}[_ %% _]addr0; congr (_ + _).
-by apply/eqP; apply: dvdp_mull.
+by apply/eqP; apply: dvdp_mull; exact: dvdpp.
 Qed.
 
 Lemma dvdpP p q : reflect (exists qq, p = qq * q) (q %| p).
 Proof.
 case: (eqVneq q 0)=> [-> | qn0]; last first.
-  by apply: dvdpP; rewrite unitfE lead_coef_eq0.
+  by apply: IdomainUnit.dvdpP; rewrite unitfE lead_coef_eq0.
 rewrite dvd0p.
 by apply: (iffP idP) => [/eqP->| [? ->]]; [exists 1|]; rewrite mulr0.
 Qed.
@@ -3230,7 +3277,7 @@ Lemma edivp_map a b :
   edivp a^f b^f = (0%N, (a %/ b)^f, (a %% b)^f).
 Proof.
 case: (eqVneq b 0) => [-> | bn0].
-  rewrite (rmorph0 (map_poly_rmorphism f)) Idomain.edivp_def !modp0 !divp0.
+  rewrite (rmorph0 (map_poly_rmorphism f)) WeakIdomain.edivp_def !modp0 !divp0.
   by rewrite (rmorph0 (map_poly_rmorphism f)) scalp0.
 rewrite unlock redivp_map lead_coef_map rmorph_unit; last first.
   by rewrite unitfE lead_coef_eq0.
@@ -3302,36 +3349,11 @@ End FieldMap.
 
 End FieldDivision.
 
+End Field.
 
-(* begin hide *)
-(* Cyril : I liked this lemma
-Lemma irredp_XsubCP d p :
-  irreducible_poly p -> d %| p -> {d %= 1} + {d %= p}.
-Proof.
-move=> irred_p dvd_dp; have [] := boolP (_ %= 1); first by left.
-by rewrite -size_poly_eq1=> /irred_p /(_ dvd_dp); right.
-Qed. *)
-(* end hide *)
+Module ClosedField.
 
-(* begin hide *)
-(* Cyril : Could it be useful ?
-Lemma decompose_dvdp p q : coprimep p q ->
-  forall u, u %| p * q -> u %= gcdp u p * gcdp u q.
-Proof.
-move=> cpq u dvd_u_pq; rewrite /eqp Gauss_dvdp ?dvdp_gcdl ?andbT; last first.
-  by rewrite (coprimep_dvdl (dvdp_gcdr _ _)) ?(coprimep_dvdr (dvdp_gcdr _ _)).
-have [|pq_neq0] := boolP ((p * q) == 0).
-  by rewrite mulf_eq0=> /orP[] /eqP->; rewrite gcdp0 (dvdp_mulIr, dvdp_mulIl).
-rewrite -(@dvdp_mul2l _ (p * q %/ u)) ?dvdp_div_eq // Idomain.divpK //.
-rewrite dvdp_scalel ?lcn_neq0 ?Gauss_dvdp // mulrA [in X in _ && X]mulrAC.
-rewrite !(eqp_dvdr _ (eqp_mulr _ (mulp_gcdr _ _ _))) ?Idomain.divpK //.
-rewrite !(eqp_dvdr _ (eqp_mulr _ (gcdp_scalel _ _ _))) ?lcn_neq0 // dvdp_mulr.
-  by rewrite dvdp_mulr // (eqp_dvdr _ (gcdp_mul2r _ _ _)) dvdp_mull.
-by rewrite mulrC (eqp_dvdr _ (gcdp_mul2r _ _ _)) dvdp_mull.
-Qed. *)
-(* end hide *)
-
-Module closed.
+Import Field.
 
 Section closed.
 
@@ -3352,4 +3374,8 @@ Qed.
 
 End closed.
 
-End closed.
+End ClosedField.
+
+End Pdiv.
+
+Export Pdiv.Field.

@@ -165,7 +165,7 @@ Qed.
 
 End evaluation.
 
-Import RPdiv.
+Import Pdiv.Ring.
 
 Section proj_qe_rcf.
 

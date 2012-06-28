@@ -417,8 +417,8 @@ Definition annul_div (R : ringType) (p q : {poly R}) :=
 Lemma factor_poly (R : ringType) (p : {poly R}) (x : R) : p != 0 ->
   root p x -> {d : {poly R} | 0 < size d < size p & p = d * ('X - x%:P)}.
 Proof.
-move=> p_neq0 rpx; apply: sig2_eqW; move: rpx; rewrite -RPdiv.rdvdp_XsubCl.
-case/RPdiv.mon.rdvdpP=> [|d hp]; first by rewrite monicXsubC.
+move=> p_neq0 rpx; apply: sig2_eqW; move: rpx; rewrite -Pdiv.Ring.rdvdp_XsubCl.
+case/Pdiv.RingMonic.rdvdpP=> [|d hp]; first by rewrite monicXsubC.
 exists d=> //; move: p_neq0; rewrite hp=> {p hp} hp.
 move: hp; have [->|d_neq0 hp] := eqVneq d 0; first by rewrite mul0r eqxx.
 rewrite size_proper_mul; last by rewrite lead_coefXsubC mulr1 lead_coef_eq0.

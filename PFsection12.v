@@ -141,20 +141,36 @@ rewrite zchar_split irr_vchar /=.
 by have [_ _ ->] := PF_12_2a (mem_tnth j (in_tuple calS)).
 Qed.
 
+(*Lemma calSUP i : reflect (i \in \bigcup_(chi <- calS) S_ chi).*)
+
 (* This is Peterfalvi (12.2b) *)
-Lemma FPtype1_subcoherent : {R : 'CF(L) -> 2.-tuple _ | (subcoherent calS tau R)}.
-Proof.
-have nHL : H <| L by exact: gFnormal.
-have U_S : uniq calS by exact: seqInd_uniq.
-have vcS: {subset calS <= 'Z[irr L]} by exact: seqInd_vcharW.
-have N_S: {subset calS <= character} by exact: seqInd_char.
-have oSS: pairwise_orthogonal calS by exact: seqInd_orthogonal.
-have [U_0S dotSS]:= pairwise_orthogonalP oSS.
-have freeS := orthogonal_free oSS.
-have nrS : ~~ has cfReal calS.
-  by rewrite /calS; apply: seqInd_notReal; rewrite ?mFT_odd.
-have ccS : conjC_closed calS.
-Admitted.
+(* Lemma FPtype1_subcoherent :  *)
+(*   {R : 'CF(L) -> seq _ |  *)
+(*     (subcoherent calS tau R) /\  *)
+(*     exists R1 : 'CF(L) -> 2.-tuple _, forall i (phi := 'chi_i), *)
+(*       i \in \bigcup_(chi <- calS) S_ chi -> *)
+(*       [/\ (orthonormal (R1 phi)), *)
+(*           (tau (phi - phi^%CF = (\sum_(mu <- R1 phi) mu)%CF) & *)
+(*           forall psi, psi \in calS -> R psi = *)
+(*             [seq i | phi <- S_ psi, i <- R1 phi] *)
+(* ] *)
+(* }. *)
+(* Proof. *)
+(* have nHL : H <| L by exact: gFnormal. *)
+(* have U_S : uniq calS by exact: seqInd_uniq. *)
+(* have vcS: {subset calS <= 'Z[irr L]} by exact: seqInd_vcharW. *)
+(* have N_S: {subset calS <= character} by exact: seqInd_char. *)
+(* have oSS: pairwise_orthogonal calS by exact: seqInd_orthogonal. *)
+(* have [U_0S dotSS]:= pairwise_orthogonalP oSS. *)
+(* have freeS := orthogonal_free oSS. *)
+(* have nrS : ~~ has cfReal calS by apply: seqInd_notReal; rewrite ?mFT_odd. *)
+(* have ccS : conjC_closed calS by exact:cfAut_seqInd. *)
+(* have exR1 (i : {i | i \in \bigcup_(chi <- calS) S_ chi}) (phi := 'chi_(sval i)) : *)
+(*   exists R1 : 2.-tuple _,  *)
+(*   (orthonormal R1) && (tau (phi - phi^%CF == (\sum_(mu <- R1) mu)%CF). *)
+(*   admit. *)
+(* have sigR1 (i : {i | i \in \bigcup_(chi <- calS) S_ chi}) := sigW (exR1 i). *)
+
 
 End Twelve2.
 
