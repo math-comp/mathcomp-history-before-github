@@ -1,7 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype choice ssrnat div prime seq.
-Require Import fintype finfun ssralg finalg finset fingroup morphism bigop.
-Require Import abelian frobenius zmodp finfield poly vector falgebra galois.
-Require Import polydiv fieldext cyclic.
+Require Import tuple fintype finfun ssralg finalg finset bigop.
+Require Import fingroup cyclic morphism abelian frobenius zmodp.
+Require Import polydiv poly vector vector falgebra fieldext galois finfield.
 
 (******************************************************************************)
 
@@ -13,6 +13,53 @@ Open Local Scope group_scope.
 Open Local Scope ring_scope.
 Import GRing.Theory.
 Import PrimeFieldExt.
+
+Lemma linear_root (F : fieldType) (p : {poly F}) : size p = 2 -> {r | root p r}.
+Proof.
+move => size_p.
+have := lead_coefE p.
+rewrite size_p [_.-1]/= => Hlead.
+exists ((- p`_0) / lead_coef p).
+rewrite rootE horner_coef size_p.
+rewrite !big_ord_recl big_ord0 expr0 mulr1 expr1.
+rewrite mulrC.
+rewrite Hlead mulfVK ?addr0 ?subrr //.
+by rewrite -Hlead lead_coef_eq0 -size_poly_eq0 size_p.
+Qed.
+
+Lemma cubic_root (F : fieldType) (p q : {poly F}) :
+  size p <= 4 -> 1 < size q < size p -> q %| p -> {r | root p r}.
+Proof.
+move => size_p /andP [size_q size_qp] Hqp.
+case: (@eqP _ (size q) 2) => [/linear_root [r Hr]|size_q_neq_2].
+  by exists r; rewrite -dvdp_XsubCl (dvdp_trans _ Hqp) // dvdp_XsubCl.
+pose qq := p %/ q.
+have Hqqp : qq %| p by rewrite -(divpK Hqp) dvdp_mulIl.
+suff/linear_root : size qq = 2 => [[r Hr]|].
+  by exists r; rewrite -dvdp_XsubCl (dvdp_trans _ Hqqp) // dvdp_XsubCl.
+rewrite size_divp; last by rewrite -size_poly_eq0 -(ltn_predK size_q).
+move: (size q) (size p) size_p size_q size_qp size_q_neq_2.
+by do 3 case => //; move => szq; do 5 case => //; case: szq.
+Qed.
+
+Lemma cubicNroot (F : fieldType) (p : {poly F}) r :
+  2 < size p <= 4 -> irreducible_poly p -> ~~ root p r.
+Proof.
+case/andP => size_p2 size_p4 Hp.
+move: size_p2.
+apply: contraL.
+rewrite root_factor_theorem => Hroot.
+have Hlin : size ('X - r%:P) != 1%N by rewrite size_XsubC.
+have /eqp_size <- := apply_irredp Hp Hlin Hroot.
+by rewrite size_XsubC.
+Qed.
+
+Lemma coprimep_map (F : fieldType) (rR : idomainType) (f : {rmorphism F -> rR})
+    (p q : {poly F}) : coprimep (map_poly f p) (map_poly f q) = coprimep p q.
+Proof.
+rewrite -gcdp_eqp1 -gcdp_map -(rmorph1 [rmorphism of map_poly f]).
+by rewrite eqp_map gcdp_eqp1.
+Qed.
 
 Section AppendixC.
 
@@ -234,31 +281,35 @@ have size_fc : size (f' c) = 4.
 have fc_monic : f' c \is monic.
   rewrite monicE lead_coefDl ?size_XsubC ?size_fcr //.
   by rewrite -monicE !monicMl ?monicXsubC ?monicX.
-have fc_over1 : f c \is a polyOver 1%AS.
-  rewrite /f ![map_poly _ _]rmorphD !rmorphM !rmorphB /=.
-  rewrite !map_polyX !map_polyC /=.
-  by rewrite !(rpredD, rpredM) ?rpredN ?polyOverX //
-             ?polyOverC ?rpredZ ?rpredMn ?memv_line.
-have fc_irr r : r \is a polyOver 1%AS -> size r != 1%N -> r %| f c -> r %= f c.
-  (* Genrealize this lemma? *)
-  move => Hr1 r_size Hrf.
+have {size_fcr} fc_irr : irreducible_poly (f' c).
+  split => [|r r_size Hrf]; first by rewrite size_fc.
   move/dvdp_size_eqp: (Hrf) <-.
-  rewrite eqn_leq dvdp_leq ?monic_neq0 ?monic_map //=.
-  rewrite leqNgt.
+  rewrite eqn_leq dvdp_leq ?monic_neq0 //= leqNgt.
   have {r_size} r_size : (1 < size r).
     suff : size r != 0%N by case: (size r) r_size => //; case.
     rewrite size_poly_eq0.
     apply: contraTneq Hrf => ->.
-    by rewrite dvd0p monic_neq0 ?monic_map.
+    by rewrite dvd0p monic_neq0.
   apply/negP => /(conj r_size)/andP => {r_size} r_size.
-  have {size_fc} size_fc : size (f c) <= 4 by rewrite size_map_poly size_fc.
-  have [a] := cubic_polyOver_root fc_over1 Hr1 size_fc Hrf r_size.
-  case/vlineP => k ->.
-  by rewrite fmorph_root; apply/negP.
-suff [a Ha] : exists a, root (f c) a.
+  have [|a] := cubic_root _ r_size Hrf; first by rewrite size_fc.
+  by apply/negP.
+suff /existsP [a Ha] : [exists a, root (f c) a].
+  have fc_over1 : f c \is a polyOver 1%AS.
+    by apply/polyOverP => i; rewrite coef_map /= memvZ // mem1v.
   have /eqP fc_min : minPoly 1 a == f c.
     rewrite -eqp_monic ?monic_minPoly ?monic_map //.
-    by apply: fc_irr; rewrite ?minPolyOver ?size_minPoly ?minPoly_dvdp //.
+    have := minPoly_dvdp fc_over1 Ha.
+    have := size_minPoly 1 a.
+    suff [r <-] : {r | map_poly (in_alg sfF) r = minPoly 1 a}.
+      rewrite size_map_poly dvdp_map eqp_map => Hsize.
+      by apply: fc_irr; rewrite Hsize.
+    move: (minPoly 1 a) (minPolyOver 1 a) => r /polyOverP Hr.
+    exists (\poly_(i < size r) coord [tuple 1] 0 r`_i).
+    apply/polyP => i; rewrite coef_map coef_poly.
+    case: leqP => [/leq_sizeP/(_ _ (leqnn i)) ->|]; first by rewrite /= scale0r.
+    move => _; symmetry.
+    have : r`_i \in <<[tuple 1%R]>>%VS by rewrite span_seq1.
+    by move/coord_span; rewrite big_ord1.
   have Hgalois := galoisFiniteField (sub1v {:sfF}).
   have card_gal : #|'Gal({:sfF} / 1)| = 3.
     by rewrite -(galois_dim Hgalois) dimv1 divn1 Fdim.
@@ -266,7 +317,7 @@ suff [a Ha] : exists a, root (f c) a.
     rewrite -fc_min.
     have : size (minPoly 1 a) = (\dim_(1%AS : {vspace sfF}) {:sfF}).+1.
       by rewrite fc_min size_map_poly size_fc dimv1 divn1 Fdim Hq3.
-    have /galois_factors [_] := Hgalois.
+    have/galois_factors [_] := Hgalois.
     case/(_ _ (memvf a)) => r [Hr /map_uniq Hr_uniq ->].
     rewrite big_map size_prod_XsubC big_uniq //=.
     case => size_r.
@@ -289,71 +340,29 @@ suff [a Ha] : exists a, root (f c) a.
       by rewrite horner_map !hornerE /= subrr mulr0 mul0r add0r addrK scale1r.
     rewrite fc_factor horner_prod.
     by apply: eq_bigr => i _; rewrite rmorphB !rmorphMn !rmorph1 !hornerE.
-apply/existsP.
-
-suff : ~~ coprimep (f' c) ('X ^+ #|sfF| - 'X).
-  rewrite -gcdp_eqp1.
-  rewrite -(eqp_map [rmorphism of (in_alg sfF)]).
-  rewrite gcdp_map.
-  rewrite rmorphB rmorph1.
-  rewrite /= map_polyXn map_polyX.
-  rewrite finField_genPoly.
-  apply: contraR.
-  rewrite negb_exists => /forallP Hroot.
+suff : ~~ coprimep (f' c) ('X ^+ #|F| - 'X).
+  apply: contraR; rewrite negb_exists => /forallP Hroot.
+  rewrite -(coprimep_map [rmorphism of (in_alg sfF)]) -gcdp_eqp1.
+  rewrite rmorphB /= map_polyXn map_polyX finField_genPoly.
   have /dvdp_prod_XsubC [m Hm] := dvdp_gcdr (f c) (\prod_x ('X - x%:P)).
   apply: (eqp_trans Hm).
   rewrite /eqp dvd1p andbT.
   apply uniq_roots_dvdp; last first.
     by rewrite uniq_rootsE mask_uniq // /index_enum /= -enumT enum_uniq.
   apply/allP => x.
-  rewrite -root_prod_XsubC.
-  rewrite -(eqp_root Hm).
-  rewrite root_gcd.
-  rewrite -[root (f c) x]negbK.
-  rewrite Hroot.
-  done.
-have /irredp_FAdjoin [L dimL [z Hz H1z]] : irreducible_poly (f' c).
-  split; first by rewrite size_fc.
-  (* Genrealize this lemma? *)
-  move => r r_size Hrf.
-  move/dvdp_size_eqp: (Hrf) <-.
-  rewrite eqn_leq dvdp_leq ?monic_neq0 //=.
-  rewrite leqNgt.
-  have {r_size} r_size : (1 < size r).
-    suff : size r != 0%N by case: (size r) r_size => //; case.
-    rewrite size_poly_eq0.
-    apply: contraTneq Hrf => ->.
-    by rewrite dvd0p monic_neq0.
-  apply/negP => /(conj r_size)/andP => {r_size} r_size.
-  have {size_fc} size_fc : size (f' c) <= 4 by rewrite size_fc.
-  pose sfFp : splittingFieldType _ :=
-    [splittingFieldType _ of [finFieldType of 'F_(finChar F)]] .
-  have fc_over_T : f' c \is a polyOver {:sfFp}%AS.
-    by apply/polyOverP => i; rewrite memvf.
-  have r_over_T : r \is a polyOver {:sfFp}%AS.
-    by apply/polyOverP => i; rewrite memvf.
-  have [a _] := cubic_polyOver_root fc_over_T r_over_T size_fc Hrf r_size.
-  by apply/negP.
+  rewrite -root_prod_XsubC -(eqp_root Hm) root_gcd.
+  by rewrite -[root (f c) x]negbK Hroot.
+case/irredp_FAdjoin: fc_irr => L dimL [z Hz H1z].
 rewrite size_fc /= in dimL.
-rewrite -gcdp_eqp1.
-rewrite -(eqp_map [rmorphism of (in_alg L)]).
-rewrite gcdp_map.
-rewrite rmorphB rmorph1.
-rewrite /= map_polyXn map_polyX.
-rewrite gcdp_eqp1.
+rewrite -(coprimep_map [rmorphism of (in_alg L)]).
+rewrite rmorphB /= map_polyXn map_polyX.
 move: (map_poly _ _) Hz => r root_r.
 suff: ('X^#|F| - 'X).[z] == 0.
   apply: contraL => Hcoprime.
   by apply: (coprimep_root Hcoprime).
-rewrite !(hornerE, hornerXn).
-rewrite subr_eq0.
-rewrite finField_card.
-move: Fdim.
-rewrite dimvf /Vector.dim /= => ->.
-rewrite Hq3.
-rewrite -dimL.
-rewrite -[X in (X ^ _)%N]card_Fp ?finChar_prime //.
-by rewrite (FermatLittleTheorem z).
+move: Fdim; rewrite finField_card dimvf /Vector.dim /= => ->.
+rewrite !(hornerE, hornerXn) subr_eq0 Hq3 -dimL.
+by rewrite -[X in (X ^ _)%N]card_Fp ?finChar_prime // (FermatLittleTheorem z).
 Qed.
 
 (* Lemma BG_appendix_C : p <= q. *)

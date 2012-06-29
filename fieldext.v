@@ -745,54 +745,11 @@ move=> _ _ /polyOver_subvs[p ->] /polyOver_subvs[q ->].
 by apply/polyOver_subvs; exists (p %% q); rewrite map_modp.
 Qed.
 
-Lemma scalp_polyOver K :
-  {in polyOver K &, forall p q, lead_coef p ^+ scalp p q \in K}.
-Proof.
-move=> _ _ /polyOver_subvs[p ->] /polyOver_subvs[q ->].
-by rewrite scalp_map // rpredX // lead_coef_map // subvsP.
-Qed.
-
 Lemma gcdp_polyOver K :
   {in polyOver K &, forall p q, gcdp p q \is a polyOver K}.
 Proof.
 move=> _ _ /polyOver_subvs[p ->] /polyOver_subvs[q ->].
 by apply/polyOver_subvs; exists (gcdp p q); rewrite gcdp_map.
-Qed.
-
-Lemma linear_polyOver_root K p : p \is a polyOver K -> size p = 2 ->
-  {r | r \in K & root p r }.
-Proof.
-move /polyOverP => HpK size_p.
-have := lead_coefE p.
-rewrite size_p [_.-1]/= => Hlead.
-exists ((- p`_0) / lead_coef p).
-  apply: rpredM; first by rewrite rpredN.
-  by rewrite rpredV Hlead.
-rewrite rootE horner_coef size_p.
-rewrite !big_ord_recl big_ord0 expr0 mulr1 expr1.
-rewrite mulrC.
-rewrite Hlead mulfVK ?addr0 ?subrr //.
-by rewrite -Hlead lead_coef_eq0 -size_poly_eq0 size_p.
-Qed.
-
-Lemma cubic_polyOver_root K p q : p \is a polyOver K -> q \is a polyOver K ->
-  size p <= 4 -> q %| p -> 1 < size q < size p ->
-  {r | r \in K & root p r }.
-Proof.
-move => Hp Hq size_p Hqp /andP [size_q size_qp].
-case: (@eqP _ (size q) 2) => [/(linear_polyOver_root Hq) [r HrK Hr]|size_q_neq_2].
-  exists r; first done.
-  by rewrite -dvdp_XsubCl (dvdp_trans _ Hqp) // dvdp_XsubCl.
-pose qq := p %/ q.
-have Hqq : qq \is a polyOver K by apply: divp_polyOver.
-have Hqqp : qq %| p by rewrite -(divpK Hqp) dvdp_mulIl.
-suff/(linear_polyOver_root Hqq): size (p %/ q) = 2 => [[r HrK Hr]|].
-  exists r; first done.
-  by rewrite -dvdp_XsubCl (dvdp_trans _ Hqqp) // dvdp_XsubCl.
-rewrite size_divp; last by rewrite -size_poly_eq0 -(ltn_predK size_q).
-move: size_p size_q size_qp size_q_neq_2.
-move: (size q) (size p).
-by do 3 case => //; move => szq; do 5 case => //; case: szq.
 Qed.
 
 Fact prodv_is_aspace E F : is_aspace (E * F).
