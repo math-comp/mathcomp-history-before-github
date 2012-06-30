@@ -42,16 +42,24 @@ move: (size q) (size p) size_p size_q size_qp size_q_neq_2.
 by do 3 case => //; move => szq; do 5 case => //; case: szq.
 Qed.
 
-Lemma cubicNroot (F : fieldType) (p : {poly F}) r :
-  2 < size p <= 4 -> irreducible_poly p -> ~~ root p r.
+Lemma cubicNroot (F : fieldType) (p : {poly F}) :
+  1 < size p <= 4 -> (forall r, ~~ root p r) -> irreducible_poly p.
 Proof.
-case/andP => size_p2 size_p4 Hp.
-move: size_p2.
-apply: contraL.
-rewrite root_factor_theorem => Hroot.
-have Hlin : size ('X - r%:P) != 1%N by rewrite size_XsubC.
-have /eqp_size <- := apply_irredp Hp Hlin Hroot.
-by rewrite size_XsubC.
+move/andP => [size_p1 size_p4] Hp.
+split => [|q size_q Hqp]; first done.
+rewrite -(dvdp_size_eqp Hqp).
+have Hp0 : p != 0 by rewrite -size_poly_eq0 -lt0n -ltnS leqW.
+have := (dvdp_leq Hp0 Hqp).
+rewrite leq_eqVlt.
+case/orP => [//|Hqp_size].
+have size_q1: 1 < size q.
+  case: (size q) size_q Hqp (size_poly_eq0 q) Hp0 => [_|[//|//]].
+  rewrite eqxx.
+  case: eqP => [->|//].
+  by rewrite dvd0p => ->.
+have /andP/(cubic_root size_p4)/(_ Hqp) [r Hr] := (conj size_q1 Hqp_size).
+have := Hp r.
+by rewrite Hr.
 Qed.
 
 Lemma coprimep_map (F : fieldType) (rR : idomainType) (f : {rmorphism F -> rR})
@@ -282,17 +290,7 @@ have fc_monic : f' c \is monic.
   rewrite monicE lead_coefDl ?size_XsubC ?size_fcr //.
   by rewrite -monicE !monicMl ?monicXsubC ?monicX.
 have {size_fcr} fc_irr : irreducible_poly (f' c).
-  split => [|r r_size Hrf]; first by rewrite size_fc.
-  move/dvdp_size_eqp: (Hrf) <-.
-  rewrite eqn_leq dvdp_leq ?monic_neq0 //= leqNgt.
-  have {r_size} r_size : (1 < size r).
-    suff : size r != 0%N by case: (size r) r_size => //; case.
-    rewrite size_poly_eq0.
-    apply: contraTneq Hrf => ->.
-    by rewrite dvd0p monic_neq0.
-  apply/negP => /(conj r_size)/andP => {r_size} r_size.
-  have [|a] := cubic_root _ r_size Hrf; first by rewrite size_fc.
-  by apply/negP.
+  by apply: cubicNroot; first rewrite size_fc.
 suff /existsP [a Ha] : [exists a, root (f c) a].
   have fc_over1 : f c \is a polyOver 1%AS.
     by apply/polyOverP => i; rewrite coef_map /= memvZ // mem1v.
