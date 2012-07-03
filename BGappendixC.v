@@ -1,9 +1,8 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved.        *)
 Require Import ssreflect ssrbool ssrfun eqtype choice ssrnat div prime seq.
 Require Import tuple fintype finfun ssralg finalg finset bigop.
 Require Import fingroup cyclic morphism abelian frobenius zmodp.
 Require Import polydiv poly vector vector falgebra fieldext galois finfield.
-
-(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.

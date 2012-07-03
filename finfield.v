@@ -5,9 +5,14 @@ Require Import tuple finfun choice matrix vector falgebra fieldext separable.
 Require Import pgroup poly polydiv galois morphism mxabelem zmodp.
 
 (******************************************************************************)
-(*  A few lemmas about finite fields                                          *)
+(*  A few lemmas about finite fields.                                         *)
 (*                                                                            *)
 (*              finChar F == the characteristic of a finFieldType F           *)
+(*     finFieldExtMixin L == a Finite.mixin_of L when L is a fieldExtType     *)
+(*                           over a finField.                                 *)
+(*      finFieldExtType L == L, but with a finFieldType structure.            *)
+(*    primeFieldExtType F == F, but with an fieldExtType structure, over      *)
+(*                           'F_(finChar F)                                   *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -76,8 +81,6 @@ Lemma finField_unit_card : #|[set: {unit F}]| = #|F|.-1.
 Proof.
 by rewrite -(cardC1 0) cardsT card_sub; apply: eq_card => x; rewrite unitfE.
 Qed.
-
-(* fermat's little theorem *)
 
 Lemma finField_expf_card (x : F) : x ^+ #|F| = x.
 Proof.
