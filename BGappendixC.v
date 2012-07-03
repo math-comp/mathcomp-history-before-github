@@ -12,7 +12,6 @@ Unset Printing Implicit Defensive.
 Open Local Scope group_scope.
 Open Local Scope ring_scope.
 Import GRing.Theory.
-Import PrimeFieldExt.
 
 Lemma linear_root (F : fieldType) (p : {poly F}) : size p = 2 -> {r | root p r}.
 Proof.
@@ -117,11 +116,11 @@ Let Fp := <[(1%R : F)]>.
 
 Hypothesis HW2Fp : sigma @: W2 = Fp.
 
-Let sfF : splittingFieldType _ := [splittingFieldType _ of F] .
+Let sfF : splittingFieldType _ := [splittingFieldType _ of primeFieldExtType F].
 
 Local Notation "`| x |" := (galNorm 1 {:sfF} x).
 
-Let E := [set x | `| x | == 1 & `| 2%:R - x | == 1].
+Let E := [set x : sfF | `| x | == 1 & `| 2%:R - x | == 1].
 
 Let Fcard : #|F| = (p ^ q)%N.
 Proof. by rewrite -Pcard (isom_card Hsigma) cardsT. Qed.
@@ -144,10 +143,10 @@ Qed.
 
 Let Fdim : \dim {:sfF} = q.
 Proof.
+rewrite primeFieldExt_dimf.
 have /expnI : 1 < finChar F by rewrite prime_gt1 // finChar_prime.
 apply.
-rewrite -finField_dimv_card [X in (X ^ _)%N]Fchar -Fcard.
-by apply: eq_card => ?; rewrite memvf.
+by rewrite -finField_card [X in (X ^ _)%N]Fchar -Fcard.
 Qed.
 
 Lemma E_nontriv : 1 \in E.
@@ -190,10 +189,10 @@ have Htauk k : tauk k a \in E.
   by rewrite [X in X + _]addrC.
 pose Gal := 'Gal({:sfF} / 1).
 pose galPoly := \prod_(x in Gal) (x (1 - a) *: 'X + 1).
-have galPoly_roots : all (root (galPoly - 1)) (enum (1%VS : {vspace sfF})).
-  apply/allP => b; rewrite mem_enum.
-  move/vlineP => {b} [k ->].
-  rewrite rootE !hornerE horner_prod subr_eq0.
+have galPoly_roots :
+  all (root (galPoly - 1)) [seq in_alg sfF x | x <- (enum 'F_(finChar F))].
+  apply/allP => _ /mapP [k _ ->].
+  rewrite rootE !hornerE horner_prod subr_eq0 /=.
   rewrite -[X in X%:A]valZpK -Zp_nat -scalerMnl scale1r.
   apply/eqP.
   pose prod_tau_inv := \prod_(i < k)
@@ -214,7 +213,7 @@ have galPoly_roots : all (root (galPoly - 1)) (enum (1%VS : {vspace sfF})).
     move: (Htauk (bump 0 i).+1) (oner_neq0 F).
     rewrite inE; case/andP.
     rewrite galNormM => /eqP Hgal _.
-    rewrite -[X in X != _]Hgal mulf_eq0 galNorm_eq0 negb_or.  
+    rewrite -[X in X != _]Hgal mulf_eq0 negb_or (@galNorm_eq0 _ sfF).
     by case/andP.
   have -> : (k%:R + 1) - k%:R * a = (1 - a) * k%:R + 1.
     by rewrite addrC addrA [X in X + _]addrC mulrC mulrBl mul1r.
@@ -226,19 +225,23 @@ have size_galPoly : size galPoly = q.+1.
   have Hfactor (x : {rmorphism F -> F}) : size (x (1 - a) *: 'X + 1) = 2.
     rewrite -mul_polyC size_MXaddC (negbTE (oner_neq0 _)) andbF.
     by rewrite size_polyC fmorph_eq0 subr_eq0 eq_sym (negbTE Ha1).
-  rewrite size_prod; last by move => i _; rewrite -size_poly_eq0 Hfactor.
+  rewrite size_prod; last first.
+    by move => i _; rewrite -size_poly_eq0 (Hfactor [rmorphism of i]).
   set S := (\sum_(i in Gal) _)%N.
-  have -> : S = (\sum_(i in Gal) 2)%N by apply: eq_bigr => i _; apply: Hfactor.
+  have -> : S = (\sum_(i in Gal) 2)%N.
+    by apply: eq_bigr => i _; apply: (Hfactor [rmorphism of i]).
   rewrite sum_nat_const -add1n mulnC !addnA addn0 addnK add1n.
-  have /galois_dim <- := galoisFiniteField (sub1v {:sfF}).
+  have /galois_dim <- := finField_galois (sub1v {:sfF}).
   by rewrite dimv1 divn1 Fdim.
 have size_galPoly1 : size (galPoly - 1) = q.+1.
   by rewrite size_addl // size_opp size_poly1 size_galPoly ltnS lt0n.
 rewrite -size_galPoly1.
 have galPoly1_neq0 : galPoly - 1 != 0.
   by rewrite -size_poly_eq0 size_galPoly1.
-rewrite -[p]expn1 -(@dimv1 _ sfF) -Fchar -finField_dimv_card cardE.
-by apply: max_poly_roots => //; apply: enum_uniq.
+rewrite -[p]card_Fp // -Fchar cardE -(size_map (in_alg sfF)).
+apply: max_poly_roots => //.
+rewrite map_inj_uniq ?enum_uniq //.
+by apply: fmorph_inj.
 Qed.
 
 Lemma BG_appendix_C2b : q = 3 -> 1 < #|E|.
@@ -308,7 +311,7 @@ suff /existsP [a Ha] : [exists a, root (f c) a].
     move => _; symmetry.
     have : r`_i \in <<[tuple 1%R]>>%VS by rewrite span_seq1.
     by move/coord_span; rewrite big_ord1.
-  have Hgalois := galoisFiniteField (sub1v {:sfF}).
+  have Hgalois := finField_galois (sub1v {:sfF}).
   have card_gal : #|'Gal({:sfF} / 1)| = 3.
     by rewrite -(galois_dim Hgalois) dimv1 divn1 Fdim.
   have fc_factor : f c = \prod_(x in 'Gal({:sfF} / 1)) ('X - (x a)%:P).
@@ -360,7 +363,8 @@ suff: ('X^#|F| - 'X).[z] == 0.
   by apply: (coprimep_root Hcoprime).
 move: Fdim; rewrite finField_card dimvf /Vector.dim /= => ->.
 rewrite !(hornerE, hornerXn) subr_eq0 Hq3 -dimL.
-by rewrite -[X in (X ^ _)%N]card_Fp ?finChar_prime // (FermatLittleTheorem z).
+rewrite -[X in (X ^ _)%N]card_Fp ?finChar_prime //.
+by rewrite -fermat's_little_theorem memvf.
 Qed.
 
 (* Lemma BG_appendix_C : p <= q. *)

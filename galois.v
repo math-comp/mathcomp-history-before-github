@@ -2081,6 +2081,13 @@ rewrite galois_connection_subv ?capvSl // fixedFieldS //.
 by apply: galois_connection_subset.
 Qed.
 
+Lemma gal_generated E (s : {set gal_of E}) : 'Gal(E / fixedField s) = <<s>>.
+Proof.
+apply/eqP; rewrite eqEsubset; apply/andP; split.
+  by rewrite -[<<s>>]gal_fixedField galS // fixedFieldS // subset_gen.
+by rewrite gen_subG galois_connection_subset.
+Qed.
+
 Lemma fixedField_galois E (s : {set gal_of E}): galois (fixedField s) E.
 Proof.
 apply: (galoisS (K:=[aspace of (fixedField <<s>>)])).
