@@ -8,7 +8,7 @@ Require Import matrix mxalgebra mxrepresentation mxabelem vector.
 Require Import BGsection1 BGsection3 BGsection7 BGsection15 BGsection16.
 Require Import ssrnum ssrint algC classfun character inertia vcharacter.
 Require Import PFsection1 PFsection2 PFsection3 PFsection4.
-Require Import PFsection5 PFsection6 PFsection8 PFsection9.
+Require Import PFsection5 PFsection6 PFsection8 PFsection9 PFsection10.
 
 (******************************************************************************)
 (* This file covers Peterfalvi, Section 11: Maximal subgroups of Types        *)
@@ -54,12 +54,14 @@ Implicit Types H K L N P Q R S T U V W : {group gT}.
 
 Variables M U W1 : {group gT}.
 Hypotheses (maxM : M \in 'M) (MtypeP: of_typeP M U W1).
-Hypothesis Mtype34 : FTtype M \in pred2 3 4.
-Let Mtypen5 : FTtype M != 5.
-Proof. by case/orP: Mtype34=> /eqP->. Qed.
-Let Mtype24 := compl_of_typeII_IV MtypeP maxM Mtypen5.
-Let Mtypen2 : FTtype M != 2.
-Proof. by case/orP: Mtype34=> /eqP->. Qed.
+Hypothesis Mtypen2 : FTtype M != 2.
+
+Let Mtypen5 : FTtype M != 5. Proof. exact: FTtype5_exclusion. Qed.
+Let Mtypen1 : FTtype M != 1%N. Proof. exact: FTtypeP_neq1 MtypeP. Qed.
+Let Mtype_gt2 : (FTtype M > 2)%N.
+Proof. by move: (FTtype M) Mtypen1 Mtypen2 (FTtype_range M); do 3?case. Qed.
+Let Mtype34 : FTtype M \in pred2 3 4.
+Proof. by move: (FTtype M) Mtype_gt2 Mtypen5 (FTtype_range M); do 6?case. Qed.
 
 Let H0 := Ptype_Fcore_kernel MtypeP.
 Local Notation "` 'H0'" := (gval H0) (at level 0, only parsing) : group_scope.
@@ -81,15 +83,13 @@ Local Notation "` 'HC'" := (`H <*> `C) (at level 0) : group_scope.
 Local Notation H0C := (`H0 <*> `C)%G.
 Local Notation "` 'H0C'" := (gval H0 <*> `C) (at level 0) : group_scope.
 
+Let Mtype24 := compl_of_typeII_IV MtypeP maxM Mtypen5.
+ 
 Let p := #|W2|.
 Let q := #|W1|.
 
-Let pr_p : prime p.
-Proof.
-have:= typeII_IV_core maxM MtypeP Mtypen5.
-by rewrite (negPf Mtypen2); case.
-Qed.
-Let pr_q : prime q. Proof. by case: Mtype24. Qed.
+Let pr_p : prime p. Proof. by have [] := FTtypeP_primes maxM MtypeP. Qed.
+Let pr_q : prime q. Proof. by have [] := FTtypeP_primes maxM MtypeP. Qed.
   
 Let sol_M : solvable M := of_typeP_sol MtypeP.
 Let sol_HU: solvable HU := solvableS (der_subS 0 _) sol_M.
@@ -150,7 +150,7 @@ Let S_ K := seqIndD M^`(1) M M^`(1) K.
 
 (* This should be proved in Peterfalvi (10.8).*)
 Lemma nco1 : ~ coherent (S_ 1) M^# tau.
-Proof. admit. Qed.
+Proof. exact: FTtype345_noncoherence. Qed.
 
 (* This is Peterfalvi (11.3). *)
 Lemma ncoH0C : ~ coherent (S_ H0C) M^# tau.
