@@ -1849,12 +1849,12 @@ by rewrite comp_lfunE lfunE.
 Qed.
 
 Lemma hilbert's_theorem_90 K E x a :
- <[x]> = 'Gal(E / K) -> a \in E ->
+ generator 'Gal(E / K) x -> a \in E ->
  reflect (exists2 b, b \in E /\ b != 0 & a = b / (x b))
          (galNorm K E a == 1).
 Proof.
-move => Hx HaE.
-have HxEK : x \in 'Gal(E / K) by rewrite -Hx cycle_id.
+rewrite /generator => /eqP Hx HaE.
+have HxEK : x \in 'Gal(E / K) by rewrite Hx cycle_id.
 apply: (iffP eqP); last first.
   case => b [HbE Hb0] ->.
   by rewrite galNormM galNormV galNorm_gal // mulfV // galNorm_eq0.
@@ -1863,7 +1863,7 @@ case: eqP (order_gt1 x).
   move => Hx1 _.
   exists 1; first by rewrite mem1v oner_neq0.
   move: Hnorm.
-  by rewrite /galNorm -Hx Hx1 cycle1 big_set1 !gal_id divr1.
+  by rewrite /galNorm Hx Hx1 cycle1 big_set1 !gal_id divr1.
 move => _ /= /idP Horder.
 pose c_ y := \prod_(i < invm (injm_Zpm x) y) (x ^+ i)%g a.
 have Hc0 : c_ 1%g != 0.
@@ -1881,7 +1881,7 @@ apply: (canRL (mulfK _)); first by rewrite fmorph_eq0.
 rewrite /b rmorph_sum mulr_sumr; symmetry.
 rewrite (reindex_inj (can_inj (mulgK x))) /=.
 apply: eq_big => i /=; first by rewrite groupMr.
-rewrite groupMr // -[i \in _]/(i \in 'Gal(E / K)) -Hx -im_Zpm => Hi.
+rewrite groupMr // -[i \in _]/(i \in 'Gal(E / K)) Hx -im_Zpm => Hi.
 rewrite galM // comp_lfunE rmorphM mulrA /=; congr (_ * _).
 case/morphimP: Hi => z Hz _ ->.
 have Hx1 : Zpm (a:=x) Zp1%R = x by rewrite -[x]expg1.
@@ -1896,7 +1896,7 @@ case: (leqP #[x] z.+1) => Hzx; last by rewrite modn_small.
 have -> : z.+1 = #[x].
   apply: anti_leq; rewrite Hzx andbT.
   by have := (ltn_ord z); rewrite [X in _ < X]Zp_cast.
-rewrite modnn big_ord0 -[X in X = _]Hnorm /galNorm -Hx -im_Zpm.
+rewrite modnn big_ord0 -[X in X = _]Hnorm /galNorm Hx -im_Zpm.
 rewrite /morphim setIid big_imset /=; last by apply/injmP; apply: injm_Zpm.
 rewrite (eq_bigl xpredT _); last by move => j; rewrite /= mem_Zp.
 rewrite -!(@big_mkord _ _ _ _ xpredT (fun i => (x ^+ i)%g a)).
