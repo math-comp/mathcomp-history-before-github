@@ -459,6 +459,9 @@ rewrite map_inj_uniq ?enum_uniq //.
 by apply: fmorph_inj.
 Qed.
 
+Hypothesis BG_appendix_C2a : 4 < q -> 1 < #|E|.
+(* TODO *)
+
 Lemma BG_appendix_C2b : q = 3 -> 1 < #|E|.
 Proof.
 move => Hq3.
@@ -598,6 +601,38 @@ case: (eqVneq s' 1) => Hs1.
   exists u'; exists 1; exists 1.
   by split => //; rewrite !mulg1 Hs1 mul1g.
 *)
-(* Lemma BG_appendix_C : p <= q. *)
+
+Hypothesis BG_appendix_C3 : odd p -> E = [set (x^-1)%R | x in E].
+(* TODO *)
+
+Require Import commutator pgroup.
+
+Theorem BG_appendix_C : p <= q.
+Proof.
+have q_prime : prime q.
+  have [] := pgroup_pdiv (abelem_pgroup HQ) _; last done.
+  apply: contraNneq s_neq_1 => HQ1.
+  suff /subsetP/(_ _ s_P0) : P0 \subset 1%G by rewrite inE.
+  rewrite /= -(Frobenius_trivg_cent HfrobHPU).
+  rewrite subsetI HP0P.
+  apply/commG1P/trivgP.
+  case/Frobenius_context: HfrobHPU => HPUH _ _ _ _.
+  case/sdprod_context: HPUH => _ _ _ U_norm <-.
+  rewrite subsetI (subset_trans (commSg _ HP0P)) ?commg_subl //=.
+  rewrite commg_subr.
+  rewrite -[X in 'N(X)]conjsg1.
+  have := HyQ.
+  rewrite HQ1.
+  by move/set1P <-.
+have [p2 | p_odd] := even_prime p_prime.
+  by rewrite p2 prime_gt1.
+have [q2 | q_odd] := even_prime q_prime.
+  move: Hpq.
+  by rewrite q2 dvdn2 -subn1 odd_sub ?p_odd ?prime_gt0.
+apply: BG_appendix_C1; first by apply BG_appendix_C3.
+case: (eqVneq q 3) => Hq3; first by apply: BG_appendix_C2b.
+apply: BG_appendix_C2a.
+by case: q q_odd q_prime Hq3 => [|[|[|[|[|]]]]].
+Qed.
 
 End AppendixC.
