@@ -198,6 +198,7 @@ Proof. by rewrite !inE opprB addrA [2%:R + x]addrC addrK andbC. Qed.
 Let psiE : {in U, forall u, psi u = sigma (s ^ u)}.
 Proof. by move => u Hu; have -> := Hpsi s_P Hu; rewrite sigma_s mulr1. Qed.
 
+(*
 Lemma psiU_galois_norm_1_subproof : psi @: U = [set x : sfF | `| x | == 1].
 Proof.
 pose psi' x0 := odflt (1%g : {unit F}) (insub (psi x0)).
@@ -369,7 +370,7 @@ rewrite -Fchar.
 rewrite -[X in _ ^+ X]card_Fp ?finChar_prime //.
 by rewrite finField_expf_card.
 Qed.
-
+*)
 Lemma BG_appendix_C1 : E = [set x^-1 | x in E] -> 1 < #|E| -> p <= q.
 Proof.
 move => HEinv.
