@@ -1136,7 +1136,7 @@ rewrite (big_imset _ inertia_Ind_Iirr_inj).
 by apply: eq_bigr => j /inertia_Ind_IirrE->.
 Qed.
 
-End InertiaBijection.
+End InertiaBijection. 
 
 (* Isaacs 6.28 preliminary *)
 Section S628.
@@ -1252,6 +1252,55 @@ have mulV: left_inverse one inv mul.
 pose linB := BaseFinGroupType linT (FinGroup.Mixin mulA mul1 mulV).
 by exists (@FinGroupType linB mulV), cF; split=> // xi /inT[k <-]; exists k.
 Qed.
+
+Section S616. 
+
+Variable (N : {group gT}).
+
+Variable t f: Iirr N.
+
+Let T := 'I_G['chi_t]%G.
+Let F := 'I_G['chi_f]%G.
+
+Hypothesis NnG : N <| G.
+
+Let sNG : N \subset G. Proof. exact: normal_sub. Qed.
+
+Let FsG : F \subset G. Proof. exact: subsetIl. Qed.
+
+Let NsF : N \subset F. Proof. exact: sub_Inertia. Qed.
+
+Let NnF : N <| F. Proof. exact: normal_Inertia. Qed.
+
+Fact ResIndchiE: 'Res[N]  ('Ind[G] 'chi_f) = #|G : N|%:R *: 'chi_f.
+rewrite (cfun_sum_constt ('Ind[G] 'chi_f) ).
+rewrite linear_sum /=.
+rewrite (eq_bigr (fun i => (('['Ind[G] 'chi_f, 'chi_i])^+2) *: 'chi_f)) /=; last first.
+move=> i i_constt; rewrite linearZ /=.
+have -> : 'Res[N] 'chi_i = '['Ind[G] 'chi_f, 'chi_i]  *: 'chi_f.
+(* He *)admit.
+by rewrite scalerA //.
+rewrite -scaler_suml.
+
+congr (_ *: _).
+
+admit.
+Qed.
+
+
+Hypothesis tinvariant : T = G.
+Hypothesis finvariant : F = G.
+
+Hypothesis ft_irr : 'chi_f * 'chi_t \in irr N.
+Hypothesis indt_irr  : 'Ind[G] 'chi_t \in irr G.
+
+Variable b : Iirr G.
+
+Hypothesis Hb : b \in irr_constt ('Ind[G] 'chi_f).
+
+
+
+End S616.
 
 End S628.
 
