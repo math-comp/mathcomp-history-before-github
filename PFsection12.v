@@ -88,7 +88,7 @@ have [[_ _ sdHU] [U1 inertU1] _] := Utype.
 have defT: H ><| 'I_U['chi_t] = T.
   have := sdprod_modl sdHU sHT.
   rewrite {1}(setIidPr sTL).
-    (* should be a lemme in inertia: *)
+    (* should be a lemma in inertia: *)
   have /sdprod_context [_ sUL _ _ _]:= sdHU.
   by rewrite /= !['I__[_]]setIdE setIA (setIidPl sUL).
 have abTbar : abelian (T / H).
@@ -130,9 +130,9 @@ Qed.
 (* This is Peterfalvi (12.2a), second part *)
 Lemma tau_isometry  :
     {in 'Z[[seq 'chi_i | i in \bigcup_(chi <- calS) S_ chi], L^#], 
-      isometry tau, to 'Z[irr G]}.
+      isometry tau, to 'Z[irr G, G^#]}.
 Proof.
-apply: (sub_iso_to _ _ (Dade_Zisometry _)); last exact: zcharW.
+apply: (sub_iso_to _ _ (Dade_Zisometry _)) => //.
 have /subsetD1P[_ /setU1K <-] := FTsupp0_sub L.
 move=> phi; rewrite zcharD1E big_tnth FTsupp0_type1 // => /andP[S_phi phi1nz].
 rewrite zcharD1 {}phi1nz andbT setUC.
@@ -141,35 +141,38 @@ rewrite zchar_split irr_vchar /=.
 by have [_ _ ->] := PF_12_2a (mem_tnth j (in_tuple calS)).
 Qed.
 
-(*Lemma calSUP i : reflect (i \in \bigcup_(chi <- calS) S_ chi).*)
+Lemma unionSP psi : reflect 
+  (exists phi, exists j, [/\ phi \in calS, j \in irr_constt phi & psi = 'chi_j])
+  (psi \in [seq 'chi_i | i in \bigcup_(chi <- calS) S_ chi]).
+Proof.
+apply: (iffP idP).
+  case/mapP=> j; rewrite mem_enum => hj -> {psi}.
+  move: hj; rewrite big_seq big_tnth; case/bigcupP=> k kcalS. 
+  by rewrite inE => jinS; exists (tnth (in_tuple calS) k); exists j; split.
+case=> phi [j [/seq_tnthP [k ->] irrj ->]]; apply/mapP; exists j => //; rewrite mem_enum.
+by rewrite big_tnth; apply/bigcupP; exists k => //; rewrite inE.
+Qed.
 
-(* This is Peterfalvi (12.2b) *)
-(* Lemma FPtype1_subcoherent :  *)
-(*   {R : 'CF(L) -> seq _ |  *)
-(*     (subcoherent calS tau R) /\  *)
-(*     exists R1 : 'CF(L) -> 2.-tuple _, forall i (phi := 'chi_i), *)
-(*       i \in \bigcup_(chi <- calS) S_ chi -> *)
-(*       [/\ (orthonormal (R1 phi)), *)
-(*           (tau (phi - phi^%CF = (\sum_(mu <- R1 phi) mu)%CF) & *)
-(*           forall psi, psi \in calS -> R psi = *)
-(*             [seq i | phi <- S_ psi, i <- R1 phi] *)
-(* ] *)
-(* }. *)
-(* Proof. *)
-(* have nHL : H <| L by exact: gFnormal. *)
-(* have U_S : uniq calS by exact: seqInd_uniq. *)
-(* have vcS: {subset calS <= 'Z[irr L]} by exact: seqInd_vcharW. *)
-(* have N_S: {subset calS <= character} by exact: seqInd_char. *)
-(* have oSS: pairwise_orthogonal calS by exact: seqInd_orthogonal. *)
-(* have [U_0S dotSS]:= pairwise_orthogonalP oSS. *)
-(* have freeS := orthogonal_free oSS. *)
-(* have nrS : ~~ has cfReal calS by apply: seqInd_notReal; rewrite ?mFT_odd. *)
-(* have ccS : conjC_closed calS by exact:cfAut_seqInd. *)
-(* have exR1 (i : {i | i \in \bigcup_(chi <- calS) S_ chi}) (phi := 'chi_(sval i)) : *)
-(*   exists R1 : 2.-tuple _,  *)
-(*   (orthonormal R1) && (tau (phi - phi^%CF == (\sum_(mu <- R1) mu)%CF). *)
-(*   admit. *)
-(* have sigR1 (i : {i | i \in \bigcup_(chi <- calS) S_ chi}) := sigW (exR1 i). *)
+Lemma FPtype1_unionS_subcoherent : 
+ {R : 'CF(L) -> seq _ | 
+   subcoherent [seq 'chi_i | i in \bigcup_(chi <- calS) S_ chi] tau R}.
+Proof.
+apply: irr_subcoherent; last by exact: tau_isometry.
+split.
+- rewrite map_inj_in_uniq ?enum_uniq // => x y hx hy /=; exact: irr_inj.
+- move=> phi /mapP [] ? _ ->; exact: mem_irr.
+- apply/hasPn=> psi; case/unionSP=> phi [j [calSphi irrj ->]] {psi}.
+  rewrite /cfReal odd_eq_conj_irr1 ?mFT_odd // irr_eq1.
+  case/seqIndC1P: (calSphi)=> k kn0 phiE; apply: contra kn0 => /eqP j0.
+  move: irrj; rewrite j0 phiE constt_Ind_constt_Res irr0 cfRes_cfun1.
+  by rewrite -irr0 constt_irr inE.
+- move=> phi /unionSP [psi [j [calSphi irrj ->]]] {phi}; apply/mapP.
+  rewrite -conjC_IirrE; exists (conjC_Iirr j) => //; rewrite mem_enum.
+  rewrite big_seq big_tnth; apply/bigcupP.
+  have calSpsiC: (psi^*)%CF \in calS by apply: cfAut_seqInd.
+  case/seq_tnthP: (calSpsiC) => k hk; exists k; first by rewrite -hk.
+  by rewrite inE irr_consttE -hk conjC_IirrE cfdot_conjC conjC_eq0 -irr_consttE.
+Qed.
 
 
 End Twelve2.
