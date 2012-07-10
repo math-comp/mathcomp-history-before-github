@@ -346,6 +346,8 @@ rewrite groupV => /andP[Gz /eqP <-].
 by rewrite conjg_IirrE cfConjgE ?(subsetP nHG).
 Qed.
 
+ 
+
 (* This is Peterfalvi (1.5b), main formula. *)
 Lemma induced_prod_index t :
   H <| G -> '['Ind[G] 'chi[H]_t] = #|'I_G['chi_t] : H|%:R.
@@ -670,6 +672,24 @@ apply:(@mulfI _ (theta 1%g)); rewrite ?irr1_neq0 // !(mulrC (theta 1%g)).
 by apply: (@mulfI _ e1); rewrite -?irr_consttE.
 Qed.
 
+Section S616.
+
+Let TsG : T \subset G. Proof. exact: subsetIl. Qed.
+
+Let HsT : H \subset T. Proof. exact: sub_Inertia. Qed.
+
+Let HnT : H <| T. Proof. exact: normal_Inertia. Qed.
+
+Hypothesis tinv : 'I_G['chi_t]%G = G.
+
+Fact ResIndchiE: 'Res[H]  ('Ind[G] 'chi_t) = #|G : H|%:R *: 'chi_t.
+Proof.
+rewrite induced_sum_rcosets //; congr (_ *: _); first by rewrite -{2}tinv.
+by rewrite -tinv cfclass_inertia  big_seq1.
+Qed.
+
+End S616.
+
 (* This is Peterfalvi (1.7c). *)
 Lemma induced_inertia_quo1:
      coprime #|H| #|T : H| -> 
@@ -696,6 +716,20 @@ rewrite big1 ?addr0 ?mulr1 // => j /andP[Hj Hji].
 have /irrT/irrP[k Hk] := Hj; rewrite Hk cfdot_irr.
 rewrite (negPf (contraNneq _ Hji)) // => Hie.
 by apply/eqP/injT=> //; rewrite Hk Hl Hie.
+Qed.
+
+Let S_ (chi : 'CF(G)) := [set i in irr_constt chi].
+
+Lemma induced_inertia_chi1: coprime #|H| #|T:H| ->  
+       constant [seq 'chi_i 1%g | i in S_ chi].
+Proof.
+move=> copHIchi.
+have /= [_ [h_ Ichi1]] := induced_inertia_quo1 copHIchi.
+pose c := #|G : T|%:R * 'chi_t 1%g.
+apply/(@all_pred1_constant _ c)/allP=> _ /mapP[psi1 Spsi1 ->] /=. 
+move: Spsi1; rewrite mem_enum inE  => psi_irr; move: (psi_irr).
+rewrite constt_Ind_constt_Res; move/(inertia_Ind_invE HnG)<-; rewrite Ichi1 //. 
+by rewrite constt_Ind_constt_Res constt_inertia_Ind_inv -?constt_Ind_constt_Res.
 Qed.
 
 End InducedFromInertia.

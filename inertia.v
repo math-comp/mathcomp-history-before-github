@@ -1272,33 +1272,38 @@ Let NsF : N \subset F. Proof. exact: sub_Inertia. Qed.
 
 Let NnF : N <| F. Proof. exact: normal_Inertia. Qed.
 
+Hypothesis finv : 'I_G['chi_f] = G.
+
 Fact ResIndchiE: 'Res[N]  ('Ind[G] 'chi_f) = #|G : N|%:R *: 'chi_f.
-rewrite (cfun_sum_constt ('Ind[G] 'chi_f) ).
-rewrite linear_sum /=.
-rewrite (eq_bigr (fun i => (('['Ind[G] 'chi_f, 'chi_i])^+2) *: 'chi_f)) /=; last first.
-move=> i i_constt; rewrite linearZ /=.
-have -> : 'Res[N] 'chi_i = '['Ind[G] 'chi_f, 'chi_i]  *: 'chi_f.
-(* He *)admit.
-by rewrite scalerA //.
-rewrite -scaler_suml.
-
-congr (_ *: _).
-
-admit.
+Proof.
+have [_ nNG] := andP NnG.
+have chif_inv: \sum_(xi <- ('chi_f ^: G)%CF) xi = 'chi_f.
+  by rewrite -finv cfclass_inertia  big_seq1.
+rewrite -{2}chif_inv.
+apply/cfun_inP=> h Hh; rewrite cfResE ?cfIndE // cfunE sum_cfunE.
+apply: (canLR (mulKf (neq0CG N))).
+rewrite mulrA -natrM Lagrange ?sub_Inertia //= -cfclass_sum //=.
+rewrite mulr_sumr [s in _ = s]big_mkcond /= (reindex_inj invg_inj) /=.
+rewrite  (partition_big (conjg_Iirr f) xpredT) //=; apply: eq_bigr => i _.
+have [[y Gy chi_i] | not_i_f] := cfclassP _ _ _; last first.
+  apply: big1 => z; rewrite groupV => /andP[Gz /eqP def_i].
+  by case: not_i_f; exists z; rewrite // -def_i conjg_IirrE.
+rewrite  -(card_rcoset _ y) mulr_natl -sumr_const; apply: eq_big => z.
+  rewrite -(inj_eq irr_inj) conjg_IirrE chi_i mem_rcoset  groupMr ?groupV //.
+  rewrite -{2}(andbb (z \in G)).
+  apply: andb_id2l => Gz; rewrite eq_sym (cfConjg_eqE _ NnG) //.
+  by rewrite mem_rcoset  finv   groupM ?groupV  //.
+rewrite groupV => /andP[Gz /eqP <-].
+by rewrite conjg_IirrE cfConjgE ?(subsetP nNG) //.
 Qed.
 
-
 Hypothesis tinvariant : T = G.
-Hypothesis finvariant : F = G.
-
 Hypothesis ft_irr : 'chi_f * 'chi_t \in irr N.
 Hypothesis indt_irr  : 'Ind[G] 'chi_t \in irr G.
 
 Variable b : Iirr G.
 
 Hypothesis Hb : b \in irr_constt ('Ind[G] 'chi_f).
-
-
 
 End S616.
 
