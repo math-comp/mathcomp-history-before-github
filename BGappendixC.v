@@ -162,6 +162,16 @@ apply.
 by rewrite -finField_card [X in (X ^ _)%N]Fchar -Fcard.
 Qed.
 
+Let Fpis1 : Fp =i (1%VS : {vspace sfF}).
+Proof.
+move => x.
+apply/cycleP/vlineP.
+  case => i ->; exists (i%:R).
+  by rewrite zmodXgE scaler_nat.
+case => k ->; exists k.
+by rewrite zmodXgE -(rmorph_nat [rmorphism of in_alg sfF]) natr_Zp.
+Qed.
+
 Let s := isom_inv Hsigma 1%R.
 
 Let sigma_s : sigma s = 1.
@@ -231,7 +241,7 @@ Qed.
 
 Canonical psi_morph := Morphism psi_morphM.
 
-Lemma psi_injective_subproof : 'injm psi.
+Lemma psi_injm_subproof : 'injm psi.
 Proof.
 apply/injmP => u v Hu Hv Huv.
 case/isomP: Hsigma => /injmP => sigma_inj _.
@@ -260,14 +270,31 @@ Qed.
 
 Canonical prime_unit_morph := Morphism prime_unit_morphM.
 
-Let prime_unit_injective : 'injm prime_unit.
+Let prime_unit_injm : 'injm prime_unit.
 Proof.
 apply/injmP => a b _ _ /(f_equal val) /= Hab.
 apply/val_inj.
 by apply/(fmorph_inj [rmorphism of in_alg sfF]).
 Qed.
 
-Lemma psiU_galois_norm_1_subproof :
+Lemma BG_appendix_C_q_prime_subproof : prime q.
+Proof.
+have [] := pgroup_pdiv (abelem_pgroup HQ) _; last done.
+apply: contraNneq s_neq_1 => HQ1.
+suff /subsetP/(_ _ s_P0) : P0 \subset 1%G by rewrite inE.
+rewrite /= -(Frobenius_trivg_cent HfrobHPU).
+rewrite subsetI HP0P.
+apply/commG1P/trivgP.
+case/Frobenius_context: HfrobHPU => HPUH _ _ _ _.
+case/sdprod_context: HPUH => _ _ _ U_norm <-.
+rewrite subsetI (subset_trans (commSg _ HP0P)) ?commg_subl //=.
+rewrite commg_subr -[X in 'N(X)]conjsg1.
+have := HyQ.
+rewrite HQ1.
+by move/set1P <-.
+Qed.
+
+Lemma BG_appendix_C_remark_VII :
   (val : {unit F} -> sfF) @: (psi @* U) = [set x : sfF | `| x | == 1].
 Proof.
 pose f0 (x : {unit F}) := (x * x ^- p)%g.
@@ -294,7 +321,7 @@ do 3! apply/f_equal; apply/eqP.
 rewrite (eq_subG_cyclic (G:=[set: {unit F}]%G)) ?subsetT
         ?field_unit_group_cyclic //=.
 apply/eqP.
-have := psi_injective_subproof.
+have := psi_injm_subproof.
 rewrite -card_im_injm /= => /eqP ->.
 rewrite card_morphim setIid -divgS ?subsetT // finField_unit_card Fcard.
 rewrite -(card_imset _ val_inj) /=.
@@ -325,6 +352,39 @@ have Hk0 : k \is a GRing.unit.
   apply: (valP a).
 exists (FinRing.Unit _ Hk0); last done.
 by rewrite inE.
+Qed.
+
+Lemma BG_appendix_C_remark_VIII :
+  psi @* U \x prime_unit @* [set: {unit 'F_(finChar F)}] = [set : {unit F}].
+Proof.
+rewrite 2!morphimEdom.
+have card_psiU : #|psi @: U| = ((p ^ q).-1 %/ p.-1)%N.
+  by rewrite (card_in_imset (injmP _ psi_injm_subproof)) Ucard.
+have card_Fp : #|prime_unit @: [set: {unit 'F_(finChar F)}]| = p.-1.
+  rewrite (card_in_imset (injmP _ prime_unit_injm)).
+  by rewrite finField_unit_card card_Fp ?finChar_prime // Fchar.
+have Hcoprime :
+    coprime #|psi @: U| #|prime_unit @: [set: {unit 'F_(finChar F)}]|.
+  rewrite card_psiU card_Fp -coprime_modl.
+  suff -> : ((p ^ q).-1 %/ p.-1) = q %[mod p.-1].
+    by rewrite coprime_modl prime_coprime // BG_appendix_C_q_prime_subproof.
+  case (leqP p.-1 1%N) => [|H2p].
+    by case: p p_prime => [|[|[|]]] //; rewrite !modn1.
+  rewrite predn_exp mulKn; last by rewrite ltnW.
+  rewrite -modn_summ -[q in X in _ = X]card_ord -sum1_card.
+  apply: f_equal2 => //; apply: eq_bigr => i _.
+  rewrite -modnXm -{1}[p]prednK ?prime_gt0 //.
+  by rewrite -addn1 modnDl [X in (X ^ _)%N]modn_small // exp1n modn_small.
+rewrite dprodE /=; last by apply: coprime_TIg.
+  apply/eqP.
+  rewrite eqEcard subsetT coprime_cardMg //.
+  rewrite card_psiU card_Fp finField_unit_card Fcard.
+  rewrite predn_exp mulKn; first by rewrite mulnC leqnn.
+  by rewrite -ltnS prednK ?prime_gt0 // prime_gt1.
+apply: subset_trans (centS (subsetT _)).
+apply: (subset_trans (subsetT _)).
+apply: cyclic_abelian.
+by apply: field_unit_group_cyclic.
 Qed.
 
 Lemma BG_appendix_C1 : E = [set x^-1 | x in E] -> 1 < #|E| -> p <= q.
@@ -548,23 +608,6 @@ Let P1 := P0 :^ y.
 
 Local Open Scope group_scope.
 
-Lemma BG_appendix_C_q_prime_subproof : prime q.
-Proof.
-have [] := pgroup_pdiv (abelem_pgroup HQ) _; last done.
-apply: contraNneq s_neq_1 => HQ1.
-suff /subsetP/(_ _ s_P0) : P0 \subset 1%G by rewrite inE.
-rewrite /= -(Frobenius_trivg_cent HfrobHPU).
-rewrite subsetI HP0P.
-apply/commG1P/trivgP.
-case/Frobenius_context: HfrobHPU => HPUH _ _ _ _.
-case/sdprod_context: HPUH => _ _ _ U_norm <-.
-rewrite subsetI (subset_trans (commSg _ HP0P)) ?commg_subl //=.
-rewrite commg_subr -[X in 'N(X)]conjsg1.
-have := HyQ.
-rewrite HQ1.
-by move/set1P <-.
-Qed.
-
 Lemma BG_appendix_C3_1 x : x \in H ->
   exists u, exists v, exists s1, 
   [/\ u \in U, v \in U, s1 \in P0 & x = u * s1 * v].
@@ -574,54 +617,78 @@ case/(mem_sdprod HPUH) => s' [u' [Hs' Hu' -> Hs'u']].
 case: (eqVneq s' 1) => [Hs1|Hs_neq1].
   exists u'; exists 1; exists 1.
   by split => //; rewrite !mulg1 Hs1 mul1g.
-have card_psi_U : #|psi @* U| = ((p ^ q).-1 %/ p.-1)%N.
-  have := psi_injective_subproof.
-  by rewrite -card_im_injm => /eqP ->.
-have card_prime_unit : #|prime_unit @* setT| = p.-1.
-  have := prime_unit_injective.
-  rewrite -card_im_injm => /eqP ->.
-  by rewrite finField_unit_card card_Fp ?finChar_prime // Fchar.
 have Hsigma_s' : sigma s' \is a GRing.unit.
   rewrite unitfE -[0](morph1 sigma) (inj_in_eq (injmP _ (isom_inj Hsigma))) //.
   by rewrite group1.
 have := in_setT (FinRing.Unit _ Hsigma_s').
-have <- : (psi @* U) * (prime_unit @* setT) = setT.
-  apply/eqP.
-  rewrite eqEcard subsetT coprime_cardMg card_psi_U card_prime_unit.
-    rewrite finField_unit_card Fcard.
-    rewrite predn_exp mulKn; first by rewrite mulnC leqnn.
-    by rewrite -ltnS prednK ?prime_gt0 ?prime_gt1.
-  rewrite -coprime_modl.
-  suff -> : ((p ^ q).-1 %/ p.-1) = q %[mod p.-1].
-    by rewrite coprime_modl prime_coprime // BG_appendix_C_q_prime_subproof.
-  case (leqP p.-1 1%N) => [|H2p].
-    by case: p p_prime => [|[|[|]]] //; rewrite !modn1.
-  rewrite predn_exp mulKn; last by rewrite ltnW.
-  rewrite -modn_summ -[q in X in _ = X]card_ord -sum1_card.
-  apply: f_equal2 => //; apply: eq_bigr => i _.
-  rewrite -modnXm -{1}[p]prednK ?prime_gt0 //.
-  by rewrite -addn1 modnDl [X in (X ^ _)%N]modn_small // exp1n modn_small.
+rewrite -(dprodW BG_appendix_C_remark_VIII).
 case/mulsgP => _ s1 /morphimP [u Hu _ ->] Hs1 /(f_equal val) /= Hsvs1.
 have Hinvs1 : isom_inv Hsigma (val s1) \in P0.
   rewrite -(morphim_invm (isom_inj Hsigma) HP0P).
   apply: mem_morphim; first by rewrite /= (isom_im Hsigma) in_setT.
   rewrite morphimEsub // HP0Fp.
-  case/morphimP: Hs1 => /= k _ _ ->.
-  rewrite /Fp.
-  simpl.
-  rewrite -[FinRing.uval _]valZpK.
-  rewrite -Zp_nat.
-  rewrite scaler_nat.
-  rewrite -zmodXgE.
-  apply: mem_cycle.
+  case/morphimP: Hs1 => /= k _ _ -> /=.
+  by rewrite Fpis1; apply: memvZ; apply: mem1v.
 have Hinvs1P : isom_inv Hsigma (val s1) \in P by apply: (subsetP HP0P).
 exists (u^-1); exists (u * u'); exists (isom_inv Hsigma (val s1)).
 rewrite groupV; split => [//||//|]; first by rewrite groupM.
-rewrite mulgA; congr (_ * _)%g.
-rewrite -mulgA -conjgE.
+rewrite mulgA; congr (_ * _)%g; rewrite -mulgA -conjgE.
 apply: (injmP _ (isom_inj Hsigma)); first done.
   by apply: Pconj.
 by rewrite Hsvs1 Hpsi // invmK // (isom_im Hsigma) in_setT.
+Qed.
+
+Lemma BG_appendix_C3_2 s1 s2 u :
+  s1 \in P0 -> s2 \in P0 -> u \in U -> s1 * u * s2 \in U ->
+  (s1 == 1) && (s2 == 1) || (u == 1) && (s1 * s2 == 1).
+Proof.
+case/Frobenius_context: HfrobHPU => /sdprodP [_ _ _ HPUI] _ _ _ _ Hs1 Hs2 Hu.
+have Hs1P := subsetP HP0P _ Hs1.
+have Hs2P := subsetP HP0P _ Hs2.
+case: (boolP (s1 == 1)) => [/eqP ->|Hs1_neq1].
+  by rewrite mul1g groupMl // -in_set1 -[[set 1]]HPUI inE Hs2P => ->.
+case: (boolP (s2 == 1)) => [/eqP ->|Hs2_neq1].
+  rewrite mulg1 groupMr // => Hs1U.
+  move: Hs1_neq1.
+  by rewrite -in_set1 -[[set 1]]HPUI inE Hs1U Hs1P.
+move => Hs1us2.
+suff /eqP Hu1 : u == 1.
+  rewrite Hu1 eqxx /= -in_set1 -[[set 1]]HPUI inE groupM //=.
+  move: Hu1 Hs1us2 ->.
+  by rewrite mulg1.
+rewrite -(inj_in_eq (injmP _ psi_injm_subproof)) ?group1 //.
+rewrite morph1 -in_set1 //.
+case: (dprodP BG_appendix_C_remark_VIII) => _ _ _ HUFp1.
+rewrite -[[set 1]]HUFp1 {HUFp1} inE mem_morphim //=.
+have : s1 ^ u * s2 == 1.
+  rewrite -in_set1 -[[set 1]]HPUI inE.
+  rewrite groupM ?PU_conj ?groupV //.
+  move: Hs1us2.
+  by rewrite [s1 * u]conjgC -mulgA groupMl.
+rewrite -(inj_in_eq (injmP _ (isom_inj Hsigma)))
+        ?group1 1?groupM ?PU_conj ?groupV //.
+rewrite morphM ?PU_conj ?groupV // morph1 Hpsi ?groupV // addr_eq0.
+have : sigma s1 != 0.
+  by rewrite -[0](morph1 sigma) (inj_in_eq (injmP _ (isom_inj Hsigma))) ?group1.
+have : sigma s2 != 0.
+  by rewrite -[0](morph1 sigma) (inj_in_eq (injmP _ (isom_inj Hsigma))) ?group1.
+have := mem_imset sigma Hs1.
+have := mem_imset sigma Hs2.
+rewrite HP0Fp !Fpis1.
+move => /vlineP [k2 ->] /vlineP [k1 ->].
+rewrite 2!(fmorph_eq0 [rmorphism of in_alg sfF]).
+move => Hk20 Hk10.
+rewrite -[- (k2 *: (1%:R:sfF))](rmorphN [rmorphism of in_alg sfF]).
+rewrite (canF_eq (mulfK _)) ?(fmorph_eq0 [rmorphism of in_alg sfF]) //.
+rewrite -(fmorphV [rmorphism of in_alg sfF]) -rmorphM.
+move /eqP => Hpsiu.
+rewrite morphimEdom.
+apply/imsetP => /=.
+have Hk2k1 : (- k2 / k1)%R \is a GRing.unit.
+  by rewrite unitfE mulf_eq0 oppr_eq0 invr_eq0 negb_or Hk20 Hk10.
+exists (FinRing.Unit _ Hk2k1); first by rewrite inE.
+apply:val_inj.
+by rewrite Hpsiu /=.
 Qed.
 
 Hypothesis BG_appendix_C3 : odd p -> E = [set (x^-1)%R | x in E].
