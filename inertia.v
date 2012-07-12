@@ -435,6 +435,16 @@ rewrite mem_filter andb_idr // => /imageP[Tx _ ->].
 by rewrite cfConjg_irr ?mem_irr.
 Qed.
 
+Lemma ResIndchiE j:
+  H <| G -> 'Res[H] ('Ind[G] 'chi_j) = #|H|%:R^-1 *: (\sum_(y in G) 'chi_j ^ y)%CF.
+Proof.
+case/andP=> [sHG /subsetP nHG].
+rewrite (reindex_inj invg_inj); apply/cfun_inP=> x Hx.
+rewrite  cfResE // cfIndE // ?cfunE ?sum_cfunE; congr (_ * _).
+by apply: eq_big => [y | y Gy]; rewrite ?cfConjgE ?groupV ?invgK ?nHG.
+Qed.
+
+
 (* This is Isaacs, Theorem (6.2) *)
 Lemma Clifford_Res_sum_cfclass i j :
      H <| G -> j \in irr_constt ('Res[H, G] 'chi_i) ->
@@ -451,10 +461,7 @@ have{chiHk chiHj}: '['Res[H] ('Ind[G] 'chi_j), 'chi_k] != 0.
   apply: contraNneq chiHk; rewrite cfdot_sum_irr => /psumr_eq0P/(_ i isT)/eqP.
   rewrite -cfdotC cfdotC mulf_eq0 conjC_eq0 (negbTE chiHj) /= => -> // i1.
   by rewrite -cfdotC Cnat_ge0 // rpredM ?Cnat_cfdot_char ?cfInd_char ?irr_char.
-have ->: 'Res ('Ind[G] 'chi_j) = #|H|%:R^-1 *: (\sum_(y in G) 'chi_j ^ y)%CF.
-  rewrite (reindex_inj invg_inj); apply/cfun_inP=> x Hx.
-  rewrite cfResE // cfIndE // cfunE sum_cfunE; congr (_ * _).
-  by apply: eq_big => [y | y Gy]; rewrite ?cfConjgE ?groupV ?invgK ?nHG.
+rewrite ResIndchiE //.
 rewrite cfdotZl mulf_eq0 cfdot_suml => /norP[_]; apply: contraR => not_chjGk.
 rewrite big1 // => x Gx; apply: contraNeq not_chjGk.
 rewrite -conjg_IirrE cfdot_irr pnatr_eq0; case: (_ =P k) => // <- _.
@@ -1274,29 +1281,26 @@ Let NnF : N <| F. Proof. exact: normal_Inertia. Qed.
 
 Hypothesis finv : 'I_G['chi_f] = G.
 
-Fact ResIndchiE: 'Res[N]  ('Ind[G] 'chi_f) = #|G : N|%:R *: 'chi_f.
+Fact ResIndchiquo: 'Res[N]  ('Ind[G] 'chi_f) = #|G : N|%:R *: 'chi_f.
 Proof.
 have [_ nNG] := andP NnG.
-have chif_inv: \sum_(xi <- ('chi_f ^: G)%CF) xi = 'chi_f.
+have sum_finv: \sum_(xi <- ('chi_f ^: G)%CF) xi = 'chi_f.
   by rewrite -finv cfclass_inertia  big_seq1.
-rewrite -{2}chif_inv.
-apply/cfun_inP=> h Hh; rewrite cfResE ?cfIndE // cfunE sum_cfunE.
-apply: (canLR (mulKf (neq0CG N))).
-rewrite mulrA -natrM Lagrange ?sub_Inertia //= -cfclass_sum //=.
-rewrite mulr_sumr [s in _ = s]big_mkcond /= (reindex_inj invg_inj) /=.
-rewrite  (partition_big (conjg_Iirr f) xpredT) //=; apply: eq_bigr => i _.
-have [[y Gy chi_i] | not_i_f] := cfclassP _ _ _; last first.
-  apply: big1 => z; rewrite groupV => /andP[Gz /eqP def_i].
-  by case: not_i_f; exists z; rewrite // -def_i conjg_IirrE.
-rewrite  -(card_rcoset _ y) mulr_natl -sumr_const; apply: eq_big => z.
-  rewrite -(inj_eq irr_inj) conjg_IirrE chi_i mem_rcoset  groupMr ?groupV //.
-  rewrite -{2}(andbb (z \in G)).
-  apply: andb_id2l => Gz; rewrite eq_sym (cfConjg_eqE _ NnG) //.
-  by rewrite mem_rcoset  finv   groupM ?groupV  //.
-rewrite groupV => /andP[Gz /eqP <-].
-by rewrite conjg_IirrE cfConjgE ?(subsetP nNG) //.
+have ResIndmulchi: 'Res[N]  ('Ind[G] 'chi_f) \in <['chi_f]> %VS. 
+  rewrite (cfun_sum_constt ('Ind[G] 'chi_f)) linear_sum /= memv_suml // => i Hi.
+  rewrite constt_Ind_constt_Res in Hi.
+  rewrite linearZ /= (Clifford_Res_sum_cfclass NnG Hi) scalerA.
+  by rewrite sum_finv  memvZ ?memv_line.
+rewrite ResIndchiE //.
+suff -> :  (\sum_(y in G) ('chi_f ^ y)%CF) = #|G|%:R *: 'chi_f.
+  rewrite scalerA; congr (_ *: _);  apply :(mulfI (neq0CG N)).
+  by rewrite mulrA  -natrM Lagrange // mulfV ?mul1r //  (neq0CG N).
+apply/cfunP=> y; rewrite sum_cfunE !cfunE.
+rewrite (eq_bigr (fun i => 'chi_f y)); first by rewrite sumr_const  mulr_natl.
+move => i ; rewrite -finv inE => /andP [inG iner].
+by rewrite inertiaJ.
 Qed.
-
+ 
 Hypothesis tinvariant : T = G.
 Hypothesis ft_irr : 'chi_f * 'chi_t \in irr N.
 Hypothesis indt_irr  : 'Ind[G] 'chi_t \in irr G.
