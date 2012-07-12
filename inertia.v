@@ -1280,18 +1280,10 @@ Let NsF : N \subset F. Proof. exact: sub_Inertia. Qed.
 Let NnF : N <| F. Proof. exact: normal_Inertia. Qed.
 
 Hypothesis finv : 'I_G['chi_f] = G.
-
+ 
 Fact ResIndchiquo: 'Res[N]  ('Ind[G] 'chi_f) = #|G : N|%:R *: 'chi_f.
 Proof.
-have [_ nNG] := andP NnG.
-have sum_finv: \sum_(xi <- ('chi_f ^: G)%CF) xi = 'chi_f.
-  by rewrite -finv cfclass_inertia  big_seq1.
-have ResIndmulchi: 'Res[N]  ('Ind[G] 'chi_f) \in <['chi_f]> %VS. 
-  rewrite (cfun_sum_constt ('Ind[G] 'chi_f)) linear_sum /= memv_suml // => i Hi.
-  rewrite constt_Ind_constt_Res in Hi.
-  rewrite linearZ /= (Clifford_Res_sum_cfclass NnG Hi) scalerA.
-  by rewrite sum_finv  memvZ ?memv_line.
-rewrite ResIndchiE //.
+rewrite ResIndchiE //. 
 suff -> :  (\sum_(y in G) ('chi_f ^ y)%CF) = #|G|%:R *: 'chi_f.
   rewrite scalerA; congr (_ *: _);  apply :(mulfI (neq0CG N)).
   by rewrite mulrA  -natrM Lagrange // mulfV ?mul1r //  (neq0CG N).
