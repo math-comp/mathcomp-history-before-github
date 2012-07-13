@@ -717,20 +717,20 @@ have /irrT/irrP[k Hk] := Hj; rewrite Hk cfdot_irr.
 rewrite (negPf (contraNneq _ Hji)) // => Hie.
 by apply/eqP/injT=> //; rewrite Hk Hl Hie.
 Qed.
-(* PB with 8.4 need to test  
+
 Let S_ (chi : 'CF(G)) := [set i in irr_constt chi].
 
 Lemma induced_inertia_chi1: coprime #|H| #|T:H| ->  
        constant [seq 'chi_i 1%g | i in S_ chi].
 Proof.
 move=> copHIchi.
-have /= [_ [h_ Ichi1]] := induced_inertia_quo1 copHIchi.
+have /= [_ h_ Ichi1] := induced_inertia_quo1 copHIchi.
 pose c := #|G : T|%:R * 'chi_t 1%g.
 apply/(@all_pred1_constant _ c)/allP=> _ /mapP[psi1 Spsi1 ->] /=. 
 move: Spsi1; rewrite mem_enum inE  => psi_irr; move: (psi_irr).
 rewrite constt_Ind_constt_Res; move/(inertia_Ind_invE HnG)<-; rewrite Ichi1 //. 
 by rewrite constt_Ind_constt_Res constt_inertia_Ind_inv -?constt_Ind_constt_Res.
-Qed.*)
+Qed.
 
 End InducedFromInertia.
 
