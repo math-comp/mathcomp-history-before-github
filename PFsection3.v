@@ -2035,6 +2035,37 @@ Lemma cyclicTI_NC_sub (phi psi : 'CF(G)) :
   (NC (phi - psi)%R <= NC phi + NC psi)%N.
 Proof. by move: (cyclicTI_NC_add phi (-psi)); rewrite cyclicTI_NC_opp. Qed.
 
+Lemma cTI_NC_0 : NC 0 = 0%N.
+Proof. by apply: eq_card0 => ij; rewrite !inE cfdot0l eqxx. Qed.
+
+Let cTI_NC_iso := cyclicTI_NC_sigma.
+
+Let cTI_NC_dirr := cyclicTI_NC_dirr.
+
+Lemma cTI_NC_add n1 n2 phi1 phi2 :
+  (NC phi1 <= n1 -> NC phi2 <= n2 -> NC (phi1 + phi2)%R <= n1 + n2)%N.
+Proof.
+by move=> ub1 ub2; apply: leq_trans (leq_add ub1 ub2); apply: cyclicTI_NC_add.
+Qed.
+
+Lemma cTI_NC_sub n1 n2 phi1 phi2 :
+  (NC phi1 <= n1 -> NC phi2 <= n2 -> NC (phi1 - phi2)%R <= n1 + n2)%N.
+Proof. by move=> ub1 ub2; rewrite cTI_NC_add ?cyclicTI_NC_opp. Qed.
+
+Lemma cTI_NC_dchi di : (NC (dchi di) <= 1)%N.
+Proof. by rewrite cTI_NC_dirr ?dirr_dchi. Qed.
+
+Lemma cTI_NC_scale_nz a phi : a != 0 -> NC (a *: phi) = NC phi.
+Proof.
+move=> nz_a; apply: eq_card => ij.
+by rewrite !inE cfdotZl mulf_eq0 negb_or nz_a.
+Qed.
+
+Lemma cTI_NC_scale a phi : (NC (a *: phi) <= NC phi)%N.
+Proof.
+by have [-> | /cTI_NC_scale_nz-> //] := eqVneq a 0; rewrite scale0r cTI_NC_0.
+Qed.
+
 (* This is PeterFalvi (3.8). *)
 Lemma cyclicTI_NC_split (phi : 'CF(G)) i j : 
   {in V, forall x, phi x = 0} -> (NC phi < 2 * minn w1 w2)%N ->
@@ -2224,18 +2255,92 @@ pose C :=  [set (i, j1) | i : Iirr W1].
 have cC : #|C| = w1.
   by rewrite card_imset ?(card_ord, NirrE) // => i j [].
 case/(cyclicTI_NC_split ZphiV NN): (NZs) => HH.
-- suff: C \subset S.
+  suffices: C \subset S.
     case/subset_leqif_cards; rewrite cC => LC _.
     by apply: leq_trans LC; rewrite geq_minl.
   apply/subsetP=> [[i2 j2]]; rewrite !inE /a.
   case/imsetP=> j3 J3Irr [] -> -> /=.
   by rewrite HH eqxx mul1r NZs.
-suff: L \subset S.
+suffices: L \subset S.
   case/subset_leqif_cards; rewrite cL => LL _.
   by apply: leq_trans LL; rewrite geq_minr.
 apply/subsetP=> [[i2 j2]]; rewrite !inE /a.
 case/imsetP=> j3 J3Irr [] -> -> /=.
 by rewrite HH eqxx mul1r NZs.
+Qed.
+
+Local Notation w_sig i j := (cyclicTIsigma (w_ i j)).
+(* Another consequence of (3.8), used in (4.8), (10.5), (10.10) and (11.8). *)
+Lemma eq_signed_sub_cTIiso phi e i j1 j2 :
+  let rho := (-1) ^+ e *: (w_sig i j1 - w_sig i j2) in
+    phi \in 'Z[irr G] -> '[phi] = 2%:R -> j1 != j2 ->
+  {in V, phi =1 rho} -> phi = rho.
+Proof.
+set rho := _ - _; move: phi => phi0 /= Zphi0 n2phi0 neq_j12 eq_phi_rho.
+pose phi := (-1) ^+ e *: phi0; pose psi := phi - rho.
+have{eq_phi_rho} psiV0 z: z \in V -> psi z = 0.
+  by move=> Vz; rewrite !cfunE eq_phi_rho // !cfunE signrMK subrr.
+have{Zphi0} Zphi: phi \in 'Z[irr G] by rewrite rpredZsign.
+have{n2phi0} n2phi: '[phi] = 2%:R by rewrite cfnorm_sign.
+have Zrho: rho \in 'Z[irr G].
+  by have [_ Zsig] := cyclicTIisometry; rewrite rpredB ?Zsig ?irr_vchar.
+have n2rho: '[rho] = 2%:R.
+  by rewrite cfnormBd !cfdot_sigma ?eqxx ?(negPf neq_j12) ?andbF.
+have [oIphi _ Dphi] := dirr_small_norm Zphi n2phi isT.
+have{Zrho} [oIrho _ Drho] := dirr_small_norm Zrho n2rho isT.
+set Iphi := dirr_constt _ in oIphi Dphi.
+set Irho := dirr_constt _ in oIrho Drho.
+suffices /eqP eqIrho: Irho == Iphi by rewrite Drho eqIrho -Dphi signrZK.
+have psi_phi'_lt0 di: di \in Irho :\: Iphi -> '[psi, dchi di] < 0.
+  case/setDP=> rho_di phi'di; rewrite cfdotBl subr_lt0.
+  move: rho_di; rewrite dirr_consttE; apply: ler_lt_trans.
+  rewrite real_lerNgt -?dirr_consttE ?real0 ?Creal_Cint //.
+  by rewrite Cint_cfdot_vchar ?dchi_vchar.
+have NCpsi: (NC psi < 2 * minn #|W1| #|W2|)%N.
+  suffices NCpsi4: (NC psi <= 2 + (1 + 1))%N.
+    by rewrite (leq_ltn_trans NCpsi4) // !addnn mul2n ltn_double leq_min tLW1.
+  rewrite !cTI_NC_sub ?cTI_NC_iso // Dphi -oIphi -sum1_card.
+  elim/big_rec2: _ => [|di mu n _ IHn]; first by rewrite cTI_NC_0.
+  by rewrite cTI_NC_add ?cTI_NC_dchi.
+pose rhoId := dirr_dIirr (fun sk => (-1) ^+ (sk.1 : bool) *: w_sig i sk.2).
+have rhoIdE s k: dchi (rhoId (s, k)) = (-1) ^+ s *: w_sig i k.
+  by apply: dirr_dIirrE => sk; rewrite rpredZsign dirr_sigma.
+rewrite eqEcard oIrho oIphi andbT -setD_eq0; apply/set0Pn=> [[dk1 phi'dk1]].
+have [[rho_dk1 _] psi_k1_lt0] := (setDP phi'dk1, psi_phi'_lt0 _ phi'dk1).
+have dot_dk1: '[rho, dchi dk1] = 1.
+  rewrite Drho cfdot_suml (big_setD1 dk1) //= cfnorm_dchi big1 ?addr0 //.
+  move=> dk2 /setD1P[/negPf dk1'2 /dirr_constt_oppl]; rewrite cfdot_dchi dk1'2.
+  by case: eqP => [-> /negP[] | _ _]; rewrite ?subrr ?ndirrK.
+have dot_dk2: 0 < '[rho, rho - dchi dk1].
+  by rewrite cfdotBr dot_dk1 n2rho addrK ltr01.
+have{dot_dk1 dot_dk2} [s [k1 [k2 Dk1 rho_k2]]]:
+  exists s, exists k1, exists2 k2,
+  rhoId (s, k1) = dk1 & rhoId (~~ s, k2) \in Irho.
+- move/cfdot_add_dirr_eq1: dot_dk1.
+  rewrite dirr_dchi rpredN !dirr_sigma //.
+  case=> // Dk1; [exists false, j1, j2 | exists true, j2, j1];
+    try apply: dirr_inj; rewrite ?dirr_consttE rhoIdE scaler_sign //=.
+  + by rewrite addrC Dk1 addKr in dot_dk2.
+  by rewrite Dk1 addrK in dot_dk2.
+rewrite -Dk1 rhoIdE cfdotZr rmorph_sign in psi_k1_lt0.
+have psi_k1_neq0: '[psi, w_sig i k1] != 0.
+  by rewrite -(can_eq (signrMK s)) mulr0 ltr_eqF.
+set dk2 := rhoId _ in rho_k2.
+have NCk2'_le1 (dI : {set _}):
+  dk2 \in dI -> #|dI| = 2%N -> (NC (\sum_(dk in dI :\ dk2) dchi dk)%R <= 1)%N.
+- rewrite (cardsD1 dk2) => -> /eqP/cards1P[dk ->].
+  by rewrite big_set1 cTI_NC_dirr ?dirr_dchi.
+suffices /psi_phi'_lt0/ltr_geF/idP[]: dk2 \in Irho :\: Iphi.
+  rewrite rhoIdE cfdotZr signrN rmorphN mulNr oppr_ge0 rmorph_sign.  
+  have := cyclicTI_NC_split psiV0 NCpsi psi_k1_neq0.
+  by case=> // ->; rewrite mulrCA nmulr_lle0 ?ler0n.
+have: (1 + 1 < NC psi)%N.
+  apply (@leq_trans (minn #|W1| #|W2|)); first by rewrite leq_min tLW1.
+  apply: cyclicTI_NC_minn => //; rewrite NCpsi /cyclicTI_NC.
+  by rewrite (cardsD1 (i, k1)) inE /= psi_k1_neq0.
+rewrite inE rho_k2 andbT ltnNge; apply: contra => phi_k2.
+rewrite /psi Drho (big_setD1 dk2) //= Dphi (big_setD1 dk2) //=.
+by rewrite addrAC opprD addNKr addrC cTI_NC_sub ?NCk2'_le1.
 Qed.
 
 (* This is PeterFalvi (3.9a). *)

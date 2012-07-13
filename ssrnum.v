@@ -1861,6 +1861,22 @@ Proof.
 by move=> x_le0 y z leyz; rewrite -![_ * x]mulrNN ler_wpmul2r ?lter_oppE.
 Qed.
 
+(* Binary forms, for backchaining. *)
+
+Lemma ler_pmul x1 y1 x2 y2 :
+  0 <= x1 -> 0 <= x2 -> x1 <= y1 -> x2 <= y2 -> x1 * x2 <= y1 * y2.
+Proof.
+move=> x1ge0 x2ge0 le_xy1 le_xy2; have y1ge0 := ler_trans x1ge0 le_xy1.
+exact: ler_trans (ler_wpmul2r x2ge0 le_xy1) (ler_wpmul2l y1ge0 le_xy2).
+Qed.
+
+Lemma ltr_pmul x1 y1 x2 y2 :
+  0 <= x1 -> 0 <= x2 -> x1 < y1 -> x2 < y2 -> x1 * x2 < y1 * y2.
+Proof.
+move=> x1ge0 x2ge0 lt_xy1 lt_xy2; have y1gt0 := ler_lt_trans x1ge0 lt_xy1.
+by rewrite (ler_lt_trans (ler_wpmul2r x2ge0 (ltrW lt_xy1))) ?ltr_pmul2l.
+Qed.
+
 (* complement for x *+ n and <= or < *)
 
 Lemma ler_pmuln2r n : (0 < n)%N -> {mono (@GRing.natmul R)^~ n : x y / x <= y}.
@@ -1869,13 +1885,18 @@ by case: n => // n _ x y /=; rewrite -mulr_natl -[y *+ _]mulr_natl ler_pmul2l.
 Qed.
 
 Lemma ltr_pmuln2r n : (0 < n)%N -> {mono (@GRing.natmul R)^~ n : x y / x < y}.
-Proof. by move=> n_gt0; apply: lerW_mono (ler_pmuln2r _). Qed.
+Proof. by move/ler_pmuln2r/lerW_mono. Qed.
+
+Lemma pmulrnI n : (0 < n)%N -> injective ((@GRing.natmul R)^~ n).
+Proof. by move/ler_pmuln2r/mono_inj. Qed.
+
+Lemma eqr_pmuln2r n : (0 < n)%N -> {mono (@GRing.natmul R)^~ n : x y / x == y}.
+Proof. by move/pmulrnI/inj_eq. Qed.
 
 Lemma pmulrn_lgt0 x n : (0 < n)%N -> (0 < x *+ n) = (0 < x).
 Proof. by move=> n_gt0; rewrite -(mul0rn _ n) ltr_pmuln2r // mul0rn. Qed.
 
-Lemma pmulrn_llt0 x n : 
-(0 < n)%N -> (x *+ n < 0) = (x < 0).
+Lemma pmulrn_llt0 x n : (0 < n)%N -> (x *+ n < 0) = (x < 0).
 Proof. by move=> n_gt0; rewrite -(mul0rn _ n) ltr_pmuln2r // mul0rn. Qed.
 
 Lemma pmulrn_lge0 x n : (0 < n)%N -> (0 <= x *+ n) = (0 <= x).
@@ -1900,10 +1921,13 @@ Lemma mulrn_wle0 x n : x <= 0 -> x *+ n <= 0.
 Proof. by move=> /(ler_wmuln2r n); rewrite mul0rn. Qed.
 
 Lemma ler_muln2r n x y : (x *+ n <= y *+ n) = ((n == 0%N) || (x <= y)).
-Proof. by case: n=> [|n]; rewrite ?lerr ?eqxx // ler_pmuln2r. Qed.
+Proof. by case: n => [|n]; rewrite ?lerr ?eqxx // ler_pmuln2r. Qed.
 
 Lemma ltr_muln2r n x y : (x *+ n < y *+ n) = ((0 < n)%N && (x < y)).
-Proof. by case: n=> [|n]; rewrite ?lerr ?eqxx // ltr_pmuln2r. Qed.
+Proof. by case: n => [|n]; rewrite ?lerr ?eqxx // ltr_pmuln2r. Qed.
+
+Lemma eqr_muln2r n x y : (x *+ n == y *+ n) = (n == 0)%N || (x == y).
+Proof. by rewrite !eqr_le !ler_muln2r -orb_andr. Qed.
 
 (* More characteristic zero properties. *)
 
@@ -2072,6 +2096,25 @@ Proof. by move=> x_le0 y_le0; rewrite -(mulr0 x) ler_wnmul2l. Qed.
 
 Lemma mulr_gt0 x y : 0 < x -> 0 < y -> 0 < x * y.
 Proof. by move=> x_gt0 y_gt0; rewrite pmulr_rgt0. Qed.
+
+(* Iterated products *)
+
+Lemma prodr_ge0 I r (P : pred I) (E : I -> R) :
+  (forall i, P i -> 0 <= E i) -> 0 <= \prod_(i <- r | P i) E i.
+Proof. by move=> Ege0; rewrite -nnegrE rpred_prod. Qed.
+
+Lemma prodr_gt0 I r (P : pred I) (E : I -> R) :
+  (forall i, P i -> 0 < E i) -> 0 < \prod_(i <- r | P i) E i.
+Proof. by move=> Ege0; rewrite -posrE rpred_prod. Qed.
+
+Lemma ler_prod I r (P : pred I) (E1 E2 : I -> R) :
+    (forall i, P i -> 0 <= E1 i <= E2 i) ->
+  \prod_(i <- r | P i) E1 i <= \prod_(i <- r | P i) E2 i.
+Proof.
+move=> leE12; elim/(big_load (fun x => 0 <= x)): _.
+elim/big_rec2: _ => // i x2 x1 /leE12/andP[le0Ei leEi12] [x1ge0 le_x12].
+by rewrite mulr_ge0 // ler_pmul.
+Qed.
 
 (* real of mul *)
 
@@ -2429,6 +2472,12 @@ Proof. by move/pexpr_eq1->. Qed.
 Lemma sqrn_eq1 x : x <= 0 -> (x ^+ 2 == 1) = (x == -1).
 Proof. by rewrite -sqrrN -oppr_ge0 -eqr_oppLR => /sqrp_eq1. Qed.
 
+Lemma ler_sqr : {in nneg &, {mono (fun x => x ^+ 2) : x y / x <= y}}.
+Proof. exact: ler_pexpn2r. Qed.
+
+Lemma ltr_sqr : {in nneg &, {mono (fun x => x ^+ 2) : x y / x < y}}.
+Proof. exact: ltr_pexpn2r. Qed.
+
 Lemma ler_pinv :
   {in [pred x in GRing.unit | 0 < x] &, {mono (@GRing.inv R) : x y /~ x <= y}}.
 Proof.
@@ -2713,11 +2762,9 @@ Definition sgrE := (sgr0, sgr1, sgrN1).
 Lemma sqr_sg x : sg x ^+ 2 = (x != 0)%:R.
 Proof. by rewrite sgr_def exprMn_n sqrr_sign -mulnn mulnb andbb. Qed.
 
-(* GG: holds with an arbitrary value in place of sg y. *)
-Lemma mulr_sg_eq1 x y : (sg x * sg y == 1) = (x != 0) && (sg x == sg y).
+Lemma mulr_sg_eq1 x y : (sg x * y == 1) = (x != 0) && (sg x == y).
 Proof.
-move/sg: y => y; rewrite /sg eq_sym.
-case: ifP => _; first by rewrite mul0r oner_eq0.
+rewrite /sg eq_sym; case: ifP => _; first by rewrite mul0r oner_eq0.
 by case: ifP => _; rewrite ?mul1r // mulN1r eqr_oppLR.
 Qed.
 
@@ -2857,7 +2904,7 @@ Lemma lerif_sum (I : finType) (P C : pred I) (E1 E2 : I -> R) :
   \sum_(i | P i) E1 i <= \sum_(i | P i) E2 i ?= iff [forall (i | P i), C i].
 Proof.
 move=> leE12; rewrite -big_andE.
-elim/big_rec3: _ => [|i Ci m1 m2 /leE12]; first by rewrite /lerif lerr eqxx.
+elim/big_rec3: _ => [|i Ci m2 m1 /leE12]; first by rewrite /lerif lerr eqxx.
 exact: lerif_add.
 Qed.
 
@@ -2871,8 +2918,117 @@ Proof.
 by move=> xR; rewrite ger0_def eq_sym; apply: lerif_eq; rewrite real_ler_norm.
 Qed.
 
+Lemma lerif_pmul x1 x2 y1 y2 C1 C2 :
+    0 <= x1 -> 0 <= x2 -> x1 <= y1 ?= iff C1 -> x2 <= y2 ?= iff C2 -> 
+  x1 * x2 <= y1 * y2 ?= iff (y1 * y2 == 0) || C1 && C2.
+Proof.
+move=> x1_ge0 x2_ge0 le_xy1 le_xy2; have [y_0 | ] := altP (_ =P 0).
+  apply/lerifP; rewrite y_0 /= mulf_eq0 !eqr_le x1_ge0 x2_ge0 !andbT.
+  move/eqP: y_0; rewrite mulf_eq0.
+  by case/pred2P=> <-; rewrite (le_xy1, le_xy2) ?orbT.
+rewrite /= mulf_eq0 => /norP[y1nz y2nz].
+have y1_gt0: 0 < y1 by rewrite ltr_def y1nz (ler_trans _ le_xy1).
+have [x2_0 | x2nz] := eqVneq x2 0.
+  apply/lerifP; rewrite -le_xy2 x2_0 eq_sym (negPf y2nz) andbF mulr0.
+  by rewrite mulr_gt0 // ltr_def y2nz -x2_0 le_xy2.
+have:= le_xy2; rewrite -(mono_lerif _ (ler_pmul2l y1_gt0)).
+by apply: lerif_trans; rewrite (mono_lerif _ (ler_pmul2r _)) // ltr_def x2nz.
+Qed.
+
+Lemma lerif_nmul x1 x2 y1 y2 C1 C2 :
+    y1 <= 0 -> y2 <= 0 -> x1 <= y1 ?= iff C1 -> x2 <= y2 ?= iff C2 -> 
+  y1 * y2 <= x1 * x2 ?= iff (x1 * x2 == 0) || C1 && C2.
+Proof.
+rewrite -!oppr_ge0 -mulrNN -[x1 * x2]mulrNN => y1le0 y2le0 le_xy1 le_xy2.
+by apply: lerif_pmul => //; rewrite (nmono_lerif _ ler_opp2).
+Qed.
+
+Lemma lerif_pprod (I : finType) (P C : pred I) (E1 E2 : I -> R) :
+    (forall i, P i -> 0 <= E1 i) ->
+    (forall i, P i -> E1 i <= E2 i ?= iff C i) ->
+  let pi E := \prod_(i | P i) E i in
+  pi E1 <= pi E2 ?= iff (pi E2 == 0) || [forall (i | P i), C i].
+Proof.
+move=> E1_ge0 leE12 /=; rewrite -big_andE; elim/(big_load (fun x => 0 <= x)): _.
+elim/big_rec3: _ => [|i Ci m2 m1 Pi [m1ge0 le_m12]].
+  by split=> //; apply/lerifP; rewrite orbT.
+have Ei_ge0 := E1_ge0 i Pi; split; first by rewrite mulr_ge0.
+congr (lerif _ _ _): (lerif_pmul Ei_ge0 m1ge0 (leE12 i Pi) le_m12).
+by rewrite mulf_eq0 -!orbA; congr (_ || _); rewrite !orb_andr orbA orbb.
+Qed.
+
+(* Mean inequalities. *)
+
+Lemma real_lerif_mean_square_scaled x y :
+  x \is real -> y \is real -> x * y *+ 2 <= x ^+ 2 + y ^+ 2 ?= iff (x == y).
+Proof.
+move=> Rx Ry; rewrite -[_ *+ 2]add0r -lerif_subRL addrAC -sqrrB -subr_eq0.
+by rewrite -sqrf_eq0 eq_sym; apply: lerif_eq; rewrite -realEsqr rpredB.
+Qed.
+
+Lemma real_lerif_AGM2_scaled x y :
+  x \is real -> y \is real -> x * y *+ 4 <= (x + y) ^+ 2 ?= iff (x == y).
+Proof.
+move=> Rx Ry; rewrite sqrrD addrAC (mulrnDr _ 2) -lerif_subLR addrK.
+exact: real_lerif_mean_square_scaled.
+Qed.
+
+Lemma lerif_AGM_scaled (I : finType) (A : pred I) (E : I -> R) :
+    let n := #|A| in {in A, forall i, 0 <= E i *+ n} ->
+  \prod_(i in A) (E i *+ n) <= (\sum_(i in A) E i) ^+ n
+                            ?= iff [forall i in A, forall j in A, E i == E j].
+Proof.
+elim: {A}_.+1 {-2}A (ltnSn #|A|) => // m IHm A leAm in E * => n Ege0.
+apply/lerifP; case: ifPn => [/forall_inP Econstant | Enonconstant].
+  have [i /= Ai | A0] := pickP (mem A); last first.
+    by rewrite /n eq_card0 // big_pred0.
+  have /eqfun_inP E_i := Econstant i Ai; rewrite -(eq_bigr _ E_i) sumr_const.
+  by rewrite exprMn_n prodrMn -(eq_bigr _ E_i) prodr_const.
+set mu := \sum_(i in A) _.
+pose En i := E i *+ n; pose cmp_mu s := [pred i | s * mu < s * En i].
+have{Enonconstant} has_cmp_mu e (s := (-1) ^+ e): {i | i \in A & cmp_mu s i}.
+  apply/sig2W/exists_inP; apply: contraR Enonconstant.
+  rewrite negb_exists_in => /forall_inP mu_s_A.
+  have n_gt0 i: i \in A -> (0 < n)%N by rewrite /n (cardD1 i) => ->.
+  have{mu_s_A} mu_s_A i: i \in A -> s * En i <= s * mu.
+    move=> Ai; rewrite real_lerNgt ?mu_s_A ?rpredMsign ?ger0_real ?Ege0 //.
+    by rewrite -(pmulrn_lge0 _ (n_gt0 i Ai)) -sumrMnl sumr_ge0.
+  have [_ /esym/eqfun_inP] := lerif_sum (fun i Ai => lerif_eq (mu_s_A i Ai)).
+  rewrite sumr_const -/n -mulr_sumr sumrMnl -/mu mulrnAr eqxx => A_mu.
+  apply/forall_inP=> i Ai; apply/eqfun_inP=> j Aj.
+  by apply: (pmulrnI (n_gt0 i Ai)); apply: (can_inj (signrMK e)); rewrite !A_mu.
+have [[i Ai Ei_lt_mu] [j Aj Ej_gt_mu]] := (has_cmp_mu true, has_cmp_mu false).
+rewrite {cmp_mu has_cmp_mu}/= !mul1r !mulN1r ltr_opp2 in Ei_lt_mu Ej_gt_mu.
+pose A' := [predD1 A & i]; pose n' := #|A'|.
+have [Dn n_gt0]: n = n'.+1 /\ (n > 0)%N  by rewrite /n (cardD1 i) Ai.
+have i'j: j != i by apply: contraTneq Ej_gt_mu => ->; rewrite ltr_gtF.
+have{i'j} A'j: j \in A' by rewrite !inE Aj i'j.
+have mu_gt0: 0 < mu := ler_lt_trans (Ege0 i Ai) Ei_lt_mu.
+rewrite (bigD1 i) // big_andbC (bigD1 j) //= mulrA; set pi := \prod_(k | _) _.
+have [-> | nz_pi] := eqVneq pi 0; first by rewrite !mulr0 exprn_gt0.
+have{nz_pi} pi_gt0: 0 < pi.
+  by rewrite ltr_def nz_pi prodr_ge0 // => k /andP[/andP[_ /Ege0]].
+rewrite -/(En i) -/(En j); pose E' := [eta En with j |-> En i + En j - mu].
+have E'ge0 k: k \in A' -> E' k *+ n' >= 0.
+  case/andP=> /= _ Ak; apply: mulrn_wge0; case: ifP => _; last exact: Ege0.
+  by rewrite subr_ge0 ler_paddl ?Ege0 // ltrW.
+rewrite -/n Dn in leAm; have{leAm IHm E'ge0}: _ <= _ := IHm _ leAm _ E'ge0.
+have ->: \sum_(k in A') E' k = mu *+ n'.
+  apply: (addrI mu); rewrite -mulrS -Dn -sumrMnl (bigD1 i Ai) big_andbC /=.
+  rewrite !(bigD1 j A'j) /= addrCA eqxx !addrA subrK; congr (_ + _).
+  by apply: eq_bigr => k /andP[_ /negPf->].
+rewrite prodrMn exprMn_n -/n' ler_pmuln2r ?expn_gt0; last by case: (n').
+have ->: \prod_(k in A') E' k = E' j * pi.
+  by rewrite (bigD1 j) //=; congr *%R; apply: eq_bigr => k /andP[_ /negPf->].
+rewrite -(ler_pmul2l mu_gt0) -exprS -Dn mulrA; apply: ltr_le_trans.
+rewrite ltr_pmul2r //= eqxx -addrA mulrDr mulrC -subr_gt0 addrAC -mulrBl.
+by rewrite -opprB mulNr addrC mulrC -mulrBr mulr_gt0 ?subr_gt0.
+Qed.
+
 End NumDomainOperationTheory.
 Hint Resolve ler_opp2 ltr_opp2 real0 real1 normr_real.
+Implicit Arguments ler_sqr [[R] x y].
+Implicit Arguments ltr_sqr [[R] x y].
 Implicit Arguments signr_inj [[R] x1 x2].
 Implicit Arguments real_ler_normlP [R x y].
 Implicit Arguments real_ltr_normlP [R x y].
@@ -3071,6 +3227,8 @@ Proof. by rewrite !(fun_if GRing.inv) !(invr0, invrN, invr1). Qed.
 Lemma sgrV x : sgr x^-1 = sgr x.
 Proof. by rewrite /sgr invr_eq0 invr_lt0. Qed.
 
+(* Interval midpoint. *)
+
 Local Notation mid x y := ((x + y) / 2%:R).
 
 Lemma midf_le x y : x <= y -> (x <= mid x y) * (mid x y  <= y).
@@ -3087,7 +3245,40 @@ Qed.
 
 Definition midf_lte := (midf_le, midf_lt).
 
+(* The AGM, unscaled but without the nth root. *)
+
+Lemma real_lerif_mean_square x y :
+  x \is real -> y \is real -> x * y <= mid (x ^+ 2) (y ^+ 2) ?= iff (x == y).
+Proof.
+move=> Rx Ry; rewrite -(mono_lerif (ler_pmul2r (ltr_nat F 0 2))).
+by rewrite divfK ?pnatr_eq0 // mulr_natr; apply: real_lerif_mean_square_scaled.
+Qed.
+
+Lemma real_lerif_AGM2 x y :
+  x \is real -> y \is real -> x * y <= mid x y ^+ 2 ?= iff (x == y).
+Proof.
+move=> Rx Ry; rewrite -(mono_lerif (ler_pmul2r (ltr_nat F 0 4))).
+rewrite mulr_natr (natrX F 2 2) -exprMn divfK ?pnatr_eq0 //.
+exact: real_lerif_AGM2_scaled.
+Qed.
+
+Lemma lerif_AGM (I : finType) (A : pred I) (E : I -> F) :
+    let n := #|A| in let mu := (\sum_(i in A) E i) / n%:R in
+    {in A, forall i, 0 <= E i} ->
+  \prod_(i in A) E i <= mu ^+ n
+                     ?= iff [forall i in A, forall j in A, E i == E j].
+Proof.
+move=> n mu Ege0; have [n0 | n_gt0] := posnP n.
+  by rewrite n0 -big_andE !(big_pred0 _ _ _ _ (card0_eq n0)); apply/lerifP.
+pose E' i := E i / n%:R.
+have defE' i: E' i *+ n = E i by rewrite -mulr_natr divfK ?pnatr_eq0 -?lt0n.
+have /lerif_AGM_scaled (i): i \in A -> 0 <= E' i *+ n by rewrite defE' => /Ege0.
+rewrite -/n -mulr_suml (eq_bigr _ (in1W defE')); congr (_ <= _ ?= iff _).
+by do 2![apply: eq_forallb_in => ? _]; rewrite -(eqr_pmuln2r n_gt0) !defE'.
+Qed.
+
 Import GroupScope.
+
 
 Lemma natf_indexg (gT : finGroupType) (G H : {group gT}) :
   H \subset G -> #|G : H|%:R = (#|G|%:R / #|H|%:R)%R :> F.
@@ -3370,6 +3561,13 @@ Lemma sqr_ge0 x : 0 <= x ^+ 2. Proof. by rewrite exprn_even_ge0. Qed.
 Lemma sqr_norm_eq1 x : (x ^+ 2 == 1) = (`|x| == 1).
 Proof. by rewrite sqrf_eq1 eqr_norml ler01 andbT. Qed.
 
+Lemma lerif_mean_square_scaled x y :
+  x * y *+ 2 <= x ^+ 2 + y ^+ 2 ?= iff (x == y).
+Proof. exact: real_lerif_mean_square_scaled. Qed.
+
+Lemma lerif_AGM2_scaled x y : x * y *+ 4 <= (x + y) ^+ 2 ?= iff (x == y).
+Proof. exact: real_lerif_AGM2_scaled. Qed.
+
 Section MinMax.
 
 (* GG: Many of the first lemmas hold unconditionally, and others hold for    *)
@@ -3621,6 +3819,18 @@ Proof. by rewrite -[minr _ _]opprK oppr_min opprK maxrN. Qed.
 End MinMax.
 
 End RealDomainOperations.
+
+Section RealField.
+
+Variables (F : realFieldType) (x y : F).
+
+Lemma lerif_mean_square : x * y <= (x ^+ 2 + y ^+ 2) / 2%:R ?= iff (x == y).
+Proof. by apply: real_lerif_mean_square; apply: num_real. Qed.
+
+Lemma lerif_AGM2 : x * y <= ((x + y) / 2%:R)^+ 2 ?= iff (x == y).
+Proof. by apply: real_lerif_AGM2; apply: num_real. Qed.
+
+End RealField.
 
 Section ArchimedeanFieldTheory.
 

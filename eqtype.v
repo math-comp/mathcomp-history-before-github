@@ -181,13 +181,13 @@ Variable T : eqType.
 Implicit Types (A : pred T) (b : bool) (x : T).
 
 Lemma contraTeq b x y : (x != y -> ~~ b) -> b -> x = y.
-Proof. by move=> imp hyp; apply/eqP; exact: contraTT hyp. Qed.
+Proof. by move=> imp hyp; apply/eqP; apply: contraTT hyp. Qed.
 
 Lemma contraNeq b x y : (x != y -> b) -> ~~ b -> x = y.
-Proof. by move=> imp hyp; apply/eqP; exact: contraNT hyp. Qed.
+Proof. by move=> imp hyp; apply/eqP; apply: contraNT hyp. Qed.
 
 Lemma contraFeq b x y : (x != y -> b) -> b = false -> x = y.
-Proof. by move=> imp /negbT; exact: contraNeq. Qed.
+Proof. by move=> imp /negbT; apply: contraNeq. Qed.
 
 Lemma contraTneq b x y : (x = y -> ~~ b) -> b -> x != y.
 Proof. by move=> imp; apply: contraTN => /eqP. Qed.
@@ -196,13 +196,34 @@ Lemma contraNneq b x y : (x = y -> b) -> ~~ b -> x != y.
 Proof. by move=> imp; apply: contraNN => /eqP. Qed.
 
 Lemma contraFneq b x y : (x = y -> b) -> b = false -> x != y.
-Proof. by move=> imp /negbT; exact: contraNneq. Qed.
+Proof. by move=> imp /negbT; apply: contraNneq. Qed.
+
+Lemma contra_eqN b x y : (b -> x != y) -> x = y -> ~~ b.
+Proof. by move=> imp /eqP; apply: contraL. Qed.
+
+Lemma contra_eqF b x y : (b -> x != y) -> x = y -> b = false.
+Proof. by move=> imp /eqP; apply: contraTF. Qed.
+
+Lemma contra_eqT b x y : (~~ b -> x != y) -> x = y -> b.
+Proof. by move=> imp /eqP; apply: contraLR. Qed.
+
+Lemma contra_eq x1 y1 x2 y2 : (x2 != y2 -> x1 != y1) -> x1 = y1 -> x2 = y2.
+Proof. by move=> imp /eqP; apply: contraTeq. Qed.
+
+Lemma contra_neq x1 y1 x2 y2 : (x2 = y2 -> x1 = y1) -> x1 != y1 -> x2 != y2.
+Proof. by move=> imp; apply: contraNneq => /imp->. Qed.
 
 Lemma memPn A x : reflect {in A, forall y, y != x} (x \notin A).
 Proof.
 apply: (iffP idP) => [notDx y | notDx]; first by apply: contraTneq => ->.
-by apply/negP=> /notDx/eqP[].
+exact: contraL (notDx x) _.
 Qed.
+
+Lemma ifN_eq R x y vT vF : x != y -> (if x == y then vT else vF) = vF :> R.
+Proof. exact: ifN. Qed.
+
+Lemma ifN_eqC R x y vT vF : x != y -> (if y == x then vT else vF) = vF :> R.
+Proof. by rewrite eq_sym; apply: ifN. Qed.
 
 End Contrapositives.
 

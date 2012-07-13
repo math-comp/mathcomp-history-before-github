@@ -1178,9 +1178,16 @@ Proof. by rewrite (big_morph _ (exprD _) (erefl _)). Qed.
 Lemma prodrN (I : finType) (A : pred I) (F : I -> R) :
   \prod_(i in A) - F i = (- 1) ^+ #|A| * \prod_(i in A) F i.
 Proof.
-rewrite -sum1_card /= -!(big_filter _ A) !unlock.
+rewrite -sum1_card  -!(big_filter _ A) !unlock.
 elim: {A}(filter _ _) => /= [|i r ->]; first by rewrite mul1r.
 by rewrite mulrA -mulN1r (commrX _ (commrN1 _)) exprSr !mulrA.
+Qed.
+
+Lemma prodrMn n (I : finType) (A : pred I) (F : I -> R) :
+  \prod_(i in A) (F i *+ n) = \prod_(i in A) F i *+ n ^ #|A|.
+Proof.
+rewrite -sum1_card /= -!(big_filter _ A) !unlock.
+elim: {A}(filter _ _) => //= i r ->; by rewrite mulrnAr mulrnAl expnS mulrnA.
 Qed.
 
 Lemma exprDn_comm x y n (cxy : comm x y) :
@@ -5381,6 +5388,7 @@ Definition exprMn := exprMn.
 Definition prodrXl := prodrXl.
 Definition prodrXr := prodrXr.
 Definition prodrN := prodrN.
+Definition prodrMn := prodrMn.
 Definition exprDn := exprDn.
 Definition exprBn := exprBn.
 Definition subrXX := subrXX.

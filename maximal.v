@@ -1081,8 +1081,7 @@ have [n oG] := p_natP pG.
 have n_gt1: n > 1.
    by rewrite ltnW // -(@leq_exp2l p) // -oG min_card_extraspecial.
 have oR: #|R| = (p ^ n.-2)%N.
-  apply/eqP; rewrite -(setIidPr sRCx) -divg_index iRCx /=.
-  rewrite -(setIidPr sCxG) -divg_index iCxG /= oG.
+  apply/eqP; rewrite -(divg_indexS sRCx) iRCx /= -(divg_indexS sCxG) iCxG /= oG.
   by rewrite -{1}(subnKC n_gt1) subn2 !expnS !mulKn.
 have oE: #|E| = (p ^ 3)%N.
   apply/eqP; rewrite -(@eqn_pmul2r #|R|) ?cardG_gt0 // mul_cardG defG ziER.
@@ -1296,7 +1295,7 @@ have notZy: y \notin 'Z(E).
 pose K := 'C_E[y]; have maxK: maximal K E by exact: cent1_extraspecial_maximal.
 have nsKE: K <| E := p_maximal_normal pE maxK; have [sKE nKE] := andP nsKE.
 have oK: #|K| = (p ^ 2)%N.
-  by rewrite -(setIidPr sKE) -divg_index oE (p_maximal_index pE) ?mulKn.
+  by rewrite -(divg_indexS sKE) oE (p_maximal_index pE) ?mulKn.
 have cKK: abelian K := card_p2group_abelian p_pr oK.
 have sZK: 'Z(E) \subset K by rewrite setIS // -cent_set1 centS ?sub1set.
 have defE: K ><| <[x]> = E.

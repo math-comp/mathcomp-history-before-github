@@ -69,12 +69,11 @@ Fact RatK x P : @Rat (numq x, denq x) P = x.
 Proof. by move:x P => [[a b] P'] P; apply: val_inj. Qed.
 
 Fact fracq_subproof : forall x : int * int,
-  let n := if x.2 == 0 then 0 else
-    (-1) ^ ((x.2 < 0) (+) (x.1 < 0)) 
-         * (`|x.1| %/ gcdn `|x.1| `|x.2|)%:Z in
-    let d := if x.2 == 0 then 1 else
-      (`|x.2| %/ gcdn `|x.1| `|x.2|)%:Z in
-        (0 < d) && (coprime `|n| `|d|).
+  let n :=
+    if x.2 == 0 then 0 else
+    (-1) ^ ((x.2 < 0) (+) (x.1 < 0)) * (`|x.1| %/ gcdn `|x.1| `|x.2|)%:Z in
+  let d := if x.2 == 0 then 1 else (`|x.2| %/ gcdn `|x.1| `|x.2|)%:Z in
+  (0 < d) && (coprime `|n| `|d|).
 Proof.
 move=> [m n] /=; case: (altP (n =P 0))=> [//|n0].
 rewrite ltz_nat divn_gt0 ?gcdn_gt0 ?absz_gt0 ?n0 ?orbT //.
@@ -150,7 +149,7 @@ CoInductive fracq_spec (x : int * int) : int * int -> rat -> Type :=
 
 Fact fracqP x : fracq_spec x x (fracq x).
 Proof.
-case: x => n d /=; have [d_eq0|d_neq0] := eqVneq d 0.
+case: x => n d /=; have [d_eq0 | d_neq0] := eqVneq d 0.
   by rewrite d_eq0 fracq0; constructor.
 by rewrite {2}[(_, _)]valq_frac //; constructor; rewrite scalq_eq0.
 Qed.
@@ -270,7 +269,7 @@ Definition mulq (x y : rat) := nosimpl fracq (mulq_subdef (valq x) (valq y)).
 Fact mulq_subdefC : commutative mulq_subdef.
 Proof. by move=> x y; rewrite /mulq_subdef mulrC [_ * x.2]mulrC. Qed.
 
-Fact mulA : associative mulq_subdef.
+Fact mul_subdefA : associative mulq_subdef.
 Proof. by move=> x y z; rewrite /mulq_subdef !mulrA. Qed.
 
 Definition invq_subdef (x : int * int) := nosimpl (x.2, x.1).
@@ -288,8 +287,8 @@ Qed.
 Fact ratzM : {morph ratz : x y / x * y >-> mulq x y}.
 Proof. by move=> x y /=; rewrite !ratz_frac mulq_frac // /= !mulr1. Qed.
 
-Fact invq_frac x : x.1 != 0 -> x.2 != 0 ->
-  invq (fracq x) = fracq (invq_subdef x).
+Fact invq_frac x :
+  x.1 != 0 -> x.2 != 0 -> invq (fracq x) = fracq (invq_subdef x).
 Proof.
 by rewrite /invq_subdef; case: fracqP => // k {x} x k0; rewrite fracqMM.
 Qed.
@@ -299,7 +298,7 @@ Proof. by move=> x y; rewrite /mulq mulq_subdefC. Qed.
 
 Fact mulqA : associative mulq.
 Proof.
-by move=> x y z; rewrite -[x]valqK -[y]valqK -[z]valqK !mulq_frac mulA.
+by move=> x y z; rewrite -[x]valqK -[y]valqK -[z]valqK !mulq_frac mul_subdefA.
 Qed.
 
 Fact mul1q : left_id oneq mulq.
@@ -423,8 +422,8 @@ set x := (n, d); rewrite -[n]/x.1 -[d]/x.2 -fracqE.
 by case: fracqP => [_|k fx k_neq0] /=; constructor. 
 Qed.
 
-Lemma divq_eq (nx dx ny dy : rat) : dx != 0 -> dy != 0 ->
-  (nx / dx == ny / dy) = (nx * dy == ny * dx).
+Lemma divq_eq (nx dx ny dy : rat) :
+  dx != 0 -> dy != 0 -> (nx / dx == ny / dy) = (nx * dy == ny * dx).
 Proof.
 move=> dx_neq0 dy_neq0; rewrite -(inj_eq (@mulIf _ (dx * dy) _)) ?mulf_neq0 //.
 by rewrite mulrA divfK // mulrCA divfK // [dx * _ ]mulrC.
@@ -588,8 +587,8 @@ Proof. by rewrite normrEsign denq_mulr_sign. Qed.
 Fact rat_archimedean : Num.archimedean_axiom [numDomainType of rat].
 Proof.
 move=> x; exists `|numq x|.+1; rewrite mulrS ltr_spaddl //.
-rewrite pmulrn abszE -normr_int numqE normrM ler_pemulr ?norm_ge0 //.
-by rewrite normr_int ler1n absz_gt0 denq_eq0.
+rewrite pmulrn abszE intr_norm numqE normrM ler_pemulr ?norm_ge0 //.
+by rewrite -intr_norm ler1n absz_gt0 denq_eq0.
 Qed.
 
 Canonical archiType := ArchiFieldType rat rat_archimedean.
@@ -693,7 +692,6 @@ End Fmorph.
 
 Section InPrealField.
 
-Import ssrnum.
 Variable F : numFieldType.
 
 Fact ratr_is_rmorphism : rmorphism (@ratr F).
@@ -737,6 +735,15 @@ Proof. by rewrite (_ : 0 = ratr F 0) ?ltr_rat ?rmorph0. Qed.
 
 Lemma ltrq0 x : (ratr F x < 0) = (x < 0).
 Proof. by rewrite (_ : 0 = ratr F 0) ?ltr_rat ?rmorph0. Qed.
+
+Lemma ratr_sg x : ratr F (sgr x) = sgr (ratr F x).
+Proof. by rewrite !sgr_def fmorph_eq0 ltrq0 rmorphMn rmorph_sign. Qed.
+
+Lemma ratr_norm x : ratr F `|x| = `|ratr F x|.
+Proof.
+rewrite {2}[x]numEsign rmorphMsign normrMsign [`|ratr F _|]ger0_norm //.
+by rewrite ler0q ?normr_ge0.
+Qed.
 
 End InPrealField.
 

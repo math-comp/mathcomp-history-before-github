@@ -158,6 +158,9 @@ Proof. by rewrite -order_dvdn; exact: dvdn_leq. Qed.
 Lemma order_dvdG G a : a \in G -> #[a] %| #|G|.
 Proof. by move=> Ga; apply: cardSg; rewrite cycle_subG. Qed.
 
+Lemma expg_cardG G a : a \in G -> a ^+ #|G| = 1.
+Proof. by move=> Ga; apply/eqP; rewrite -order_dvdn order_dvdG. Qed.
+
 Lemma expg_znat G x k : x \in G -> x ^+ (k%:R : 'Z_(#|G|))%R = x ^+ k.
 Proof.
 case: (eqsVneq G 1) => [-> /set1P-> | ntG Gx]; first by rewrite !expg1n.

@@ -313,6 +313,12 @@ case/norP=> notFmaxM; rewrite inE andbC inE maxM notFmaxM negbK => P1maxM.
 by rewrite Msigma_eq_der1.
 Qed.
 
+Lemma FTcore_sub_der1 : M`_\s \subset M^`(1)%g.
+Proof. by rewrite def_FTcore Msigma_der1. Qed.
+
+Lemma Fcore_sub_FTcore : M`_\F \subset M`_\s.
+Proof. by rewrite def_FTcore Fcore_sub_Msigma. Qed.
+
 (* This is B & G, Lemma 16.1(f). *)
 Lemma Fcore_eq_FTcore : reflect (M`_\F = M`_\s) (FTtype M \in pred3 1%N 2 5).
 Proof.
@@ -368,7 +374,7 @@ Qed.
 
 (* Inclusion/normality of class function supports. *)
 
-Lemma FTsupp_sub M : 'A(M) \subset 'A0(M).
+Lemma FTsupp_sub0 M : 'A(M) \subset 'A0(M).
 Proof. exact: subsetUl. Qed.
 
 Lemma FTsupp0_sub M : 'A0(M) \subset M^#.
@@ -376,6 +382,9 @@ Proof.
 rewrite subUset andbC subsetD1 setIdE subsetIl !inE p_elt1 andbF /=.
 by apply/bigcupsP=> x _; rewrite setSD ?subIset ?der_sub.
 Qed.
+
+Lemma FTsupp_sub M : 'A(M) \subset M^#.
+Proof. exact: subset_trans (FTsupp_sub0 M) (FTsupp0_sub M). Qed.
 
 Lemma FTsupp1_norm M : M \subset 'N('A1(M)).
 Proof. by rewrite normD1 (normal_norm (FTcore_normal M)). Qed.
@@ -694,7 +703,7 @@ by rewrite /= -def_FTcore.
 Qed.
 
 Lemma FTsupp1_sub0 M : M \in 'M -> 'A1(M) \subset 'A0(M).
-Proof. move=> maxM; exact: subset_trans (FTsupp1_sub maxM) (FTsupp_sub M). Qed.
+Proof. move=> maxM; exact: subset_trans (FTsupp1_sub maxM) (FTsupp_sub0 M). Qed.
 
 Theorem BGsummaryD M : M \in 'M ->
  [/\ (*1*) {in M`_\sigma &, forall x y, y \in x ^: G -> y \in x ^: M},
@@ -1190,7 +1199,7 @@ Theorem BGsummaryII M (X : {set gT}) :
 Proof.
 move=> maxM defX.
 have sA0M: 'A0(M) \subset M := subset_trans (FTsupp0_sub M) (subsetDl M 1).
-have sAA0: 'A(M) \subset 'A0(M) := FTsupp_sub M.
+have sAA0: 'A(M) \subset 'A0(M) := FTsupp_sub0 M.
 have sAM: 'A(M) \subset M := subset_trans sAA0 sA0M.
 without loss {defX} ->: X / X = 'A0(M).
   case/pred2P: defX => ->; move/(_ _ (erefl _))=> //.

@@ -157,21 +157,17 @@ Lemma FPtype1_unionS_subcoherent :
  {R : 'CF(L) -> seq _ | 
    subcoherent [seq 'chi_i | i in \bigcup_(chi <- calS) S_ chi] tau R}.
 Proof.
-apply: irr_subcoherent; last by exact: tau_isometry.
-split.
-- rewrite map_inj_in_uniq ?enum_uniq // => x y hx hy /=; exact: irr_inj.
-- move=> phi /mapP [] ? _ ->; exact: mem_irr.
-- apply/hasPn=> psi; case/unionSP=> phi [j [calSphi irrj ->]] {psi}.
+apply: irr_subcoherent; last exact: tau_isometry; last first.
+  apply/hasPn=> psi; case/unionSP=> phi [j [calSphi irrj ->]] {psi}.
   rewrite /cfReal odd_eq_conj_irr1 ?mFT_odd // irr_eq1.
   case/seqIndC1P: (calSphi)=> k kn0 phiE; apply: contra kn0 => /eqP j0.
   move: irrj; rewrite j0 phiE constt_Ind_constt_Res irr0 cfRes_cfun1.
   by rewrite -irr0 constt_irr inE.
-- move=> phi /unionSP [psi [j [calSphi irrj ->]]] {phi}; apply/mapP.
-  rewrite -conjC_IirrE; exists (conjC_Iirr j) => //; rewrite mem_enum.
-  rewrite big_seq big_tnth; apply/bigcupP.
-  have calSpsiC: (psi^*)%CF \in calS by apply: cfAut_seqInd.
-  case/seq_tnthP: (calSpsiC) => k hk; exists k; first by rewrite -hk.
-  by rewrite inE irr_consttE -hk conjC_IirrE cfdot_conjC conjC_eq0 -irr_consttE.
+split; first by apply/dinjectiveP; apply: in2W irr_inj.
+  by move=> _ /imageP[i _ ->]; exact: mem_irr.
+move=> phi /unionSP[psi [j [calSphi irrj ->]]] {phi}; apply/unionSP.
+exists (psi^*)%CF, (conjC_Iirr j); rewrite cfAut_seqInd //.
+by rewrite irr_consttE conjC_IirrE cfdot_conjC conjC_eq0 -irr_consttE.
 Qed.
 
 

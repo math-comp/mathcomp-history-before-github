@@ -28,7 +28,7 @@ Variable gT : finGroupType.
 Lemma odd_eq_conj_irr1 (G : {group gT}) t :
   odd #|G| -> (('chi[G]_t)^*%CF == 'chi_t) = ('chi_t == 1).
 Proof.
-move=> OG; apply/eqP/eqP=> [Ht | ->]; last exact: cfConjC1.
+move=> OG; apply/eqP/eqP=> [Ht | ->]; last exact: cfConjC_cfun1.
 pose a := (@Zp1 1).
 have Aito:
     is_action <[a]> (fun (t : Iirr G) v => if v == a then conjC_Iirr t else t).
@@ -345,8 +345,6 @@ rewrite  -(card_rcoset _ y) mulr_natl -sumr_const; apply: eq_big => z.
 rewrite groupV => /andP[Gz /eqP <-].
 by rewrite conjg_IirrE cfConjgE ?(subsetP nHG).
 Qed.
-
- 
 
 (* This is Peterfalvi (1.5b), main formula. *)
 Lemma induced_prod_index t :

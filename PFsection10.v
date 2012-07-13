@@ -21,689 +21,6 @@ Unset Printing Implicit Defensive.
 
 Import GroupScope GRing.Theory Num.Theory.
 
-Section MoreStuff.
-
-Lemma odd_gt2 p : odd p -> p > 1 -> p > 2.
-Proof. by move: p; do 3?case=> //. Qed.
-
-Lemma odd_prime_gt2 p : odd p -> prime p -> p > 2.
-Proof. by move=> odd_p /prime_gt1; apply: odd_gt2. Qed.
-
-Local Open Scope ring_scope.
-
-Section Num.
-Context {R : numDomainType}.
-
-Lemma ler_sqr : {in Num.nneg &, {mono (fun x : R => x ^+ 2) : x y / x <= y}}.
-Proof. exact: ler_pexpn2r. Qed.
-Lemma ltr_sqr : {in Num.nneg &, {mono (fun x : R => x ^+ 2) : x y / x < y}}.
-Proof. exact: ltr_pexpn2r. Qed.
-End Num.
-
-Section Vector.
-
-Variables (F : fieldType) (vT : vectType F).
-Import Vector.InternalTheory.
-
-Lemma coord0 i (v : vT) : coord [tuple 0] i v = 0.
-Proof.
-rewrite unlock /pinvmx rank_rV; case: negP => [[] | _].
-  by apply/eqP/rowP=> j; rewrite !mxE (tnth_nth 0) /= linear0 mxE.
-by rewrite pid_mx_0 !(mulmx0, mul0mx) mxE.
-Qed.
-
-End Vector.
-
-Section AlgC.
-
-Lemma norm_Cnat x : x \in Cnat -> `|x| = x.
-Proof. by move/Cnat_ge0/ger0_norm. Qed.
-Lemma normCKC x : `|x| ^+ 2 = x^* * x. Proof. by rewrite normCK mulrC. Qed.
-
-Lemma sqrtC_gt0 x : (sqrtC x > 0) = (x > 0).
-Proof. by rewrite !ltr_def sqrtC_eq0 sqrtC_ge0. Qed.
-Lemma ler_sqrtC : {in Num.nneg &, {mono sqrtC : x y / x <= y}}.
-Proof. by move=> x y ? ?; rewrite /= -ler_sqr ?sqrtCK ?qualifE ?sqrtC_ge0. Qed.
-Lemma ltr_sqrtC : {in Num.nneg &, {mono sqrtC : x y / x < y}}.
-Proof. by move=> x y ? ?; rewrite /= -ltr_sqr ?sqrtCK ?qualifE ?sqrtC_ge0. Qed.
-Lemma sqrtCM : {in Num.nneg &, {morph sqrtC : x y / x * y}}.
-Proof.
-move=> x y x_ge0 y_ge0; rewrite /= -{1}[x]sqrtCK -{1}[y]sqrtCK -exprMn.
-by rewrite sqrCK ?mulr_ge0 ?sqrtC_ge0.
-Qed.
-
-Lemma algIm_eq0 z : ('Im z == 0) = (z \is Creal).
-Proof.
-rewrite mulf_eq0 invr_eq0 orbC mulrn_eq0 (negPf algCi_neq0) /=.
-by rewrite /= subr_eq0 eq_sym -CrealE.
-Qed.
-Lemma algRe_idP z : reflect ('Re z = z) (z \in Creal).
-Proof.
-rewrite -algIm_eq0 -(inj_eq (mulfI algCi_neq0)) -(inj_eq (addrI ('Re z))).
-by rewrite -algCrect eq_sym mulr0 addr0; apply: eqP.
-Qed.
-Lemma conjC_rect : {in Creal &, forall x y, (x + 'i * y)^* = x - 'i * y}.
-Proof.
-by move=> x y Rx Ry; rewrite /= rmorphD rmorphM conjCi mulNr !conj_Creal.
-Qed.
-Lemma addC_rect x1 y1 x2 y2 :
-  (x1 + 'i * y1) + (x2 + 'i * y2) = x1 + x2 + 'i * (y1 + y2).
-Proof. by rewrite addrACA -mulrDr. Qed.
-Lemma oppC_rect x y : - (x + 'i * y)  = - x + 'i * (- y).
-Proof. by rewrite mulrN -opprD. Qed.
-Lemma subC_rect x1 y1 x2 y2 :
-  (x1 + 'i * y1) - (x2 + 'i * y2) = x1 - x2 + 'i * (y1 - y2).
-Proof. by rewrite oppC_rect addC_rect. Qed.
-Lemma mulC_rect x1 y1 x2 y2 :
-  (x1 + 'i * y1) * (x2 + 'i * y2)
-      = x1 * x2 - y1 * y2 + 'i * (x1 * y2 + x2 * y1).
-Proof.
-rewrite mulrDl 2!mulrDr mulrCA -!addrA mulrAC -mulrA; congr (_ + _).
-by rewrite addrA -mulrDr addrC mulrACA -expr2 sqr_algCi mulN1r.
-Qed.
-Lemma invC_rect :
-  {in Creal &, forall x y, (x + 'i * y)^-1  = (x - 'i * y) / (x ^+ 2 + y ^+ 2)}.
-Proof.
-move=> x y Rx Ry; rewrite /= invC_norm conjC_rect // mulrC.
-by rewrite normC_rect // sqrtCK.
-Qed.
-
-Lemma normC_Re_Im z : `|z| = sqrtC ('Re z ^+ 2 + 'Im z ^+ 2).
-Proof. by rewrite -normC_rect ?Creal_Re ?Creal_Im -?algCrect. Qed.
-
-Lemma lerif_normC_Re_Creal z : `|'Re z| <= `|z| ?= iff (z \is Creal).
-Proof.
-rewrite -(mono_in_lerif ler_sqr); try by rewrite qualifE normr_ge0.
-rewrite normCK conj_Creal ?Creal_Re // normC_Re_Im sqrtCK -expr2.
-rewrite addrC -lerif_subLR subrr -algIm_eq0 -sqrf_eq0 eq_sym.
-by apply: lerif_eq; rewrite -realEsqr Creal_Im.
-Qed.
-
-Lemma lerif_Re_Creal z : 'Re z <= `|z| ?= iff (0 <= z).
-Proof.
-have ubRe: 'Re z <= `|'Re z| ?= iff (0 <= 'Re z).
-  by rewrite ger0_def eq_sym; apply/lerif_eq/real_ler_norm/Creal_Re.
-congr (_ <= _ ?= iff _): (lerif_trans ubRe (lerif_normC_Re_Creal z)).
-apply/andP/idP=> [[xRge0 /algRe_idP <- //] | x_ge0].
-by have Rx := ger0_real x_ge0; rewrite (algRe_idP _ _).
-Qed.
-
-End AlgC.
-
-Section Cfun.
-
-Variables (gT : finGroupType) (G : {group gT}).
-Implicit Types (K H : {group gT}) (phi : 'CF(G)) (S : seq 'CF(G)).
-
-Definition cfConjC_subset S1 S2 :=
-  [/\ uniq S1, {subset S1 <= S2} & conjC_closed S1].
-
-Lemma cfdot_conjCl phi psi : '[phi^*, psi] = '[phi, psi^*]^*.
-Proof. by rewrite -cfdot_conjC cfConjCK. Qed.
-Lemma cfdot_conjCr phi psi : '[phi, psi^*] = '[phi^*, psi]^*.
-Proof. by rewrite -cfdot_conjC cfConjCK. Qed.
-
-Lemma cfnorm_gt0 phi : ('[phi] > 0) = (phi != 0).
-Proof. by rewrite ltr_def cfnorm_ge0 cfnorm_eq0 andbT. Qed.
-
-Lemma sqrt_cfnorm_ge0 phi : 0 <= sqrtC '[phi].
-Proof. by rewrite sqrtC_ge0 cfnorm_ge0. Qed.
-Lemma sqrt_cfnorm_eq0 phi : (sqrtC '[phi] == 0) = (phi == 0).
-Proof. by rewrite sqrtC_eq0 cfnorm_eq0. Qed.
-Lemma sqrt_cfnorm_gt0 phi : (sqrtC '[phi] > 0) = (phi != 0).
-Proof. by rewrite sqrtC_gt0 cfnorm_gt0. Qed.
-
-Lemma cfCauchySchwarz phi psi :
-  `|'[phi, psi]| ^+ 2 <= '[phi] * '[psi] ?= iff ~~ free (phi :: psi).
-Proof.
-rewrite free_cons span_seq1 seq1_free -negb_or negbK orbC.
-have [-> | nz_psi] /= := altP (psi =P 0).
-  by apply/lerifP; rewrite !cfdot0r normCK mul0r mulr0.
-without loss ophi: phi / '[phi, psi] = 0.
-  move=> IHo; pose a := '[phi, psi] / '[psi]; pose phi1 := phi - a *: psi.
-  have ophi: '[phi1, psi] = 0.
-    by rewrite cfdotBl cfdotZl divfK ?cfnorm_eq0 ?subrr.
-  rewrite (canRL (subrK _) (erefl phi1)) rpredDr ?rpredZ ?memv_line //.
-  rewrite cfdotDl ophi add0r cfdotZl normrM (ger0_norm (cfnorm_ge0 _)).
-  rewrite exprMn mulrA -cfnormZ cfnormDd; last by rewrite cfdotZr ophi mulr0.
-  by have:= IHo _ ophi; rewrite mulrDl -lerif_subLR subrr ophi normCK mul0r.
-rewrite ophi normCK mul0r; split; first by rewrite mulr_ge0 ?cfnorm_ge0.
-rewrite eq_sym mulf_eq0 orbC cfnorm_eq0 (negPf nz_psi) /=.
-apply/idP/idP=> [|/vlineP[a {2}->]]; last by rewrite cfdotZr ophi mulr0.
-by rewrite cfnorm_eq0 => /eqP->; apply: rpred0.
-Qed.
-
-Lemma cfCauchySchwarz_sqrt phi psi :
-  `|'[phi, psi]| <= sqrtC '[phi] * sqrtC '[psi] ?= iff ~~ free (phi :: psi).
-Proof.
-rewrite -(sqrCK (normr_ge0 _)) -sqrtCM ?qualifE ?cfnorm_ge0 //.
-rewrite (mono_in_lerif ler_sqrtC) 1?rpredM ?qualifE ?normr_ge0 ?cfnorm_ge0 //.
-exact: cfCauchySchwarz.
-Qed.
-
-Lemma cf_triangle_lerif phi psi :
-  sqrtC '[phi + psi] <= sqrtC '[phi] + sqrtC '[psi]
-           ?= iff ~~ free (phi :: psi) && (0 <= coord [tuple psi] 0 phi).
-Proof.
-rewrite -(mono_in_lerif ler_sqr) ?rpredD ?qualifE ?sqrtC_ge0 ?cfnorm_ge0 //.
-rewrite andbC sqrrD !sqrtCK addrAC cfnormD (mono_lerif (ler_add2l _)).
-rewrite -mulr_natr -[_ + _](divfK (negbT (eqC_nat 2 0))) -/('Re _).
-rewrite (mono_lerif (ler_pmul2r _)) ?ltr0n //.
-have:= lerif_trans (lerif_Re_Creal '[phi, psi]) (cfCauchySchwarz_sqrt phi psi).
-congr (_ <= _ ?= iff _); apply: andb_id2r.
-rewrite free_cons span_seq1 seq1_free -negb_or negbK orbC.
-have [-> | nz_psi] := altP (psi =P 0); first by rewrite cfdot0r coord0.
-case/vlineP=> [x ->]; rewrite cfdotZl linearZ pmulr_lge0 ?cfnorm_gt0 //=.
-by rewrite (coord_free 0) ?seq1_free // eqxx mulr1.
-Qed.
-
-Lemma cfAut1 u : cfAut u 1 = 1 :> 'CF(G). Proof. exact: rmorph1. Qed.
-Lemma cfAut_eq1 u phi : (cfAut u phi == 1) = (phi == 1).
-Proof. by rewrite rmorph_eq1 //; apply: cfAut_inj. Qed.
-Lemma cfConjC1 : 1^*%CF = 1 :> 'CF(G). Proof. exact: rmorph1. Qed.
-Lemma cfconjC_eq1 phi : (phi^*%CF == 1) = (phi == 1).
-Proof. exact: cfAut_eq1. Qed.
-
-Lemma cfDprodC K H (KxH : K \x H = G) (HxK : H \x K = G) chi psi :
-  cfDprod KxH chi psi = cfDprod HxK psi chi.
-Proof.
-rewrite /cfDprod mulrC.
-by congr (_ * _); congr (cfSdprod _ _); apply: eq_irrelevance.
-Qed.
-
-(* These are for character.v *)
-Lemma aut_Iirr_eq0 u i : (aut_Iirr u i == 0 :> Iirr G) = (i == 0).
-Proof. by rewrite -!irr_eq1 aut_IirrE cfAut_eq1. Qed.
-Lemma conjC_Iirr_eq0 i : (conjC_Iirr i == 0 :> Iirr G) = (i == 0).
-Proof. exact: aut_Iirr_eq0. Qed.
-Lemma card_Iirr_cyclic : cyclic G -> #|Iirr G| = #|G|.
-Proof. by move/cyclic_abelian/card_Iirr_abelian. Qed.
-
-Lemma dprod_IirrC K H (KxH : K \x H = G) (HxK : H \x K = G) i j :
-  dprod_Iirr KxH (i, j) = dprod_Iirr HxK (j, i).
-Proof. by apply: irr_inj; rewrite !dprod_IirrE; apply: cfDprodC. Qed.
-
-End Cfun.
-
-Section Three.
-
-Variables (gT : finGroupType) (G W W1 W2 : {group gT}).
-Hypothesis tiW : cyclicTIhypothesis G W W1 W2.
-Let w1 := #|W1|.
-Let w2 := #|W2|.
-Let V := cyclicTIset tiW.
-
-Local Notation W1xW2 := (cyclicTIhyp_W1xW2 tiW).
-Let sW1W : W1 \subset W. Proof. by have /mulG_sub[] := dprodW W1xW2. Qed.
-Let sW2W : W2 \subset W. Proof. by have /mulG_sub[] := dprodW W1xW2. Qed.
-
-Let cyclicW : cyclic W. Proof. by have [[]] := tiW. Qed.
-Let cyclicW1 : cyclic W1. Proof. exact: cyclicS cyclicW. Qed.
-Let cyclicW2 : cyclic W2. Proof. exact: cyclicS cyclicW. Qed.
-
-Let oddW : odd #|W|. Proof. by have [[]] := tiW. Qed.
-Let oddW1 : odd w1. Proof. exact: oddSg oddW. Qed.
-Let oddW2 : odd w2. Proof. exact: oddSg oddW. Qed.
-
-Let ntW1 : W1 :!=: 1%g. Proof. by have [_ []] := tiW. Qed.
-Let ntW2 : W2 :!=: 1%g. Proof. by have [_ []] := tiW. Qed.
-
-Let tLW1 : (2 < w1)%N. Proof. by rewrite odd_gt2 ?cardG_gt1. Qed.
-Let tLW2 : (2 < w2)%N. Proof. by rewrite odd_gt2 ?cardG_gt1. Qed.
-
-Local Notation w_ i j := (@cyclicTIirr _ W W1 W2 i j).
-Local Notation w_sig i j := (cyclicTIsigma G W W1 W2 (w_ i j)).
-Local Notation NC phi := (@cyclicTI_NC _ G W W1 W2 phi).
-
-Lemma cTI_NC_0 : NC 0 = 0%N.
-Proof. by apply: eq_card0 => ij; rewrite !inE cfdot0l eqxx. Qed.
-Let cTI_NC_iso := cyclicTI_NC_sigma tiW.
-Let cTI_NC_dirr := cyclicTI_NC_dirr tiW.
-Let cTI_NC_add n1 n2 phi1 phi2 :
-  (NC phi1 <= n1 -> NC phi2 <= n2 -> NC (phi1 + phi2)%R <= n1 + n2)%N.
-Proof.
-by move=> ub1 ub2; apply: leq_trans (leq_add ub1 ub2); apply: cyclicTI_NC_add.
-Qed.
-Let cTI_NC_sub n1 n2 phi1 phi2 :
-  (NC phi1 <= n1 -> NC phi2 <= n2 -> NC (phi1 - phi2)%R <= n1 + n2)%N.
-Proof. by move=> ub1 ub2; rewrite cTI_NC_add ?cyclicTI_NC_opp. Qed.
-Let cTI_NC_dchi di : (NC (dchi di) <= 1)%N.
-Proof. by rewrite cTI_NC_dirr ?dirr_dchi. Qed.
-
-Lemma cTI_NC_scale_nz a phi : a != 0 -> NC (a *: phi) = NC phi.
-Proof.
-move=> nz_a; apply: eq_card => ij.
-by rewrite !inE cfdotZl mulf_eq0 negb_or nz_a.
-Qed.
-
-Lemma cTI_NC_scale a phi : (NC (a *: phi) <= NC phi)%N.
-Proof.
-by have [-> | /cTI_NC_scale_nz-> //] := eqVneq a 0; rewrite scale0r cTI_NC_0.
-Qed.
-
-Lemma eq_signed_sub_cTIiso phi e i j1 j2 :
-  let rho := (-1) ^+ e *: (w_sig i j1 - w_sig i j2) in
-    phi \in 'Z[irr G] -> '[phi] = 2%:R -> j1 != j2 ->
-  {in V, phi =1 rho} -> phi = rho.
-Proof.
-set rho := _ - _; move: phi => phi0 /= Zphi0 n2phi0 neq_j12 eq_phi_rho.
-pose phi := (-1) ^+ e *: phi0; pose psi := phi - rho.
-have{eq_phi_rho} psiV0 z: z \in V -> psi z = 0.
-  by move=> Vz; rewrite !cfunE eq_phi_rho // !cfunE signrMK subrr.
-have{Zphi0} Zphi: phi \in 'Z[irr G] by rewrite rpredZsign.
-have{n2phi0} n2phi: '[phi] = 2%:R by rewrite cfnorm_sign.
-have Zrho: rho \in 'Z[irr G].
-  by have [_ Zsig] := cyclicTIisometry tiW; rewrite rpredB ?Zsig ?irr_vchar.
-have n2rho: '[rho] = 2%:R.
-  by rewrite cfnormBd !(cfdot_sigma tiW) ?eqxx ?(negPf neq_j12) ?andbF.
-have [oIphi _ Dphi] := dirr_small_norm Zphi n2phi isT.
-have{Zrho} [oIrho _ Drho] := dirr_small_norm Zrho n2rho isT.
-set Iphi := dirr_constt _ in oIphi Dphi.
-set Irho := dirr_constt _ in oIrho Drho.
-suffices /eqP eqIrho: Irho == Iphi by rewrite Drho eqIrho -Dphi signrZK.
-have psi_phi'_lt0 di: di \in Irho :\: Iphi -> '[psi, dchi di] < 0.
-  case/setDP=> rho_di phi'di; rewrite cfdotBl subr_lt0.
-  move: rho_di; rewrite dirr_consttE; apply: ler_lt_trans.
-  rewrite real_lerNgt -?dirr_consttE ?real0 ?Creal_Cint //.
-  by rewrite Cint_cfdot_vchar ?dchi_vchar.
-have NCpsi: (NC psi < 2 * minn #|W1| #|W2|)%N.
-  suffices NCpsi4: (NC psi <= 2 + (1 + 1))%N.
-    by rewrite (leq_ltn_trans NCpsi4) // !addnn mul2n ltn_double leq_min tLW1.
-  rewrite !cTI_NC_sub ?cTI_NC_iso // Dphi -oIphi -sum1_card.
-  elim/big_rec2: _ => [|di mu n _ IHn]; first by rewrite cTI_NC_0.
-  by rewrite cTI_NC_add ?cTI_NC_dchi.
-pose rhoId := dirr_dIirr (fun sk => (-1) ^+ (sk.1 : bool) *: w_sig i sk.2).
-have rhoIdE s k: dchi (rhoId (s, k)) = (-1) ^+ s *: w_sig i k.
-  by apply: dirr_dIirrE => sk; rewrite rpredZsign (dirr_sigma tiW).
-rewrite eqEcard oIrho oIphi andbT -setD_eq0; apply/set0Pn=> [[dk1 phi'dk1]].
-have [[rho_dk1 _] psi_k1_lt0] := (setDP phi'dk1, psi_phi'_lt0 _ phi'dk1).
-have dot_dk1: '[rho, dchi dk1] = 1.
-  rewrite Drho cfdot_suml (big_setD1 dk1) //= cfnorm_dchi big1 ?addr0 //.
-  move=> dk2 /setD1P[/negPf dk1'2 /dirr_constt_oppl]; rewrite cfdot_dchi dk1'2.
-  by case: eqP => [-> /negP[] | _ _]; rewrite ?subrr ?ndirrK.
-have dot_dk2: 0 < '[rho, rho - dchi dk1].
-  by rewrite cfdotBr dot_dk1 n2rho addrK ltr01.
-have{dot_dk1 dot_dk2} [s [k1 [k2 Dk1 rho_k2]]]:
-  exists s, exists k1, exists2 k2,
-  rhoId (s, k1) = dk1 & rhoId (~~ s, k2) \in Irho.
-- move/cfdot_add_dirr_eq1: dot_dk1.
-  rewrite dirr_dchi rpredN !(dirr_sigma tiW) //.
-  case=> // Dk1; [exists false, j1, j2 | exists true, j2, j1];
-    try apply: dirr_inj; rewrite ?dirr_consttE rhoIdE scaler_sign //=.
-  + by rewrite addrC Dk1 addKr in dot_dk2.
-  by rewrite Dk1 addrK in dot_dk2.
-rewrite -Dk1 rhoIdE cfdotZr rmorph_sign in psi_k1_lt0.
-have psi_k1_neq0: '[psi, w_sig i k1] != 0.
-  by rewrite -(can_eq (signrMK s)) mulr0 ltr_eqF.
-set dk2 := rhoId _ in rho_k2.
-have NCk2'_le1 (dI : {set _}):
-  dk2 \in dI -> #|dI| = 2%N -> (NC (\sum_(dk in dI :\ dk2) dchi dk)%R <= 1)%N.
-- rewrite (cardsD1 dk2) => -> /eqP/cards1P[dk ->].
-  by rewrite big_set1 cTI_NC_dirr ?dirr_dchi.
-suffices /psi_phi'_lt0/ltr_geF/idP[]: dk2 \in Irho :\: Iphi.
-  rewrite rhoIdE cfdotZr signrN rmorphN mulNr oppr_ge0 rmorph_sign.  
-  have := cyclicTI_NC_split psiV0 NCpsi psi_k1_neq0.
-  by case=> // ->; rewrite mulrCA nmulr_lle0 ?ler0n.
-have: (1 + 1 < NC psi)%N.
-  apply (@leq_trans (minn #|W1| #|W2|)); first by rewrite leq_min tLW1.
-  apply: cyclicTI_NC_minn => //; rewrite NCpsi /cyclicTI_NC.
-  by rewrite (cardsD1 (i, k1)) inE /= psi_k1_neq0.
-rewrite inE rho_k2 andbT ltnNge; apply: contra => phi_k2.
-rewrite /psi Drho (big_setD1 dk2) //= Dphi (big_setD1 dk2) //=.
-by rewrite addrAC opprD addNKr addrC cTI_NC_sub ?NCk2'_le1.
-Qed.
-
-End Three.
-
-Section Four.
-
-Variables (gT : finGroupType) (L K W W1 W2 : {group gT}).
-Hypothesis cddL : cyclicDade_hypothesis L K W W1 W2.
-
-Let Imu2_ i j := (@Dade_mu2 _ L W W1 W2 i j).
-Let mu2_ i j := 'chi_(Imu2_ i j).
-Let mu_ j := (@Dade_mu _ L W W1 W2 j).
-
-Lemma cfdot_Dade_mu2 i1 j1 i2 j2 :
-  '[mu2_ i1 j1, mu2_ i2 j2] = ((i1 == i2) && (j1 == j2))%:R.
-Proof.
-rewrite cfdot_irr; congr (_ : bool)%:R.
-by apply/eqP/andP=> [/(Dade_mu2_inj cddL)[-> ->] | [/eqP-> /eqP->]].
-Qed.
-
-Lemma cfdot_Dade_mu2_mu i j k : '[mu2_ i j, mu_ k] = (j == k)%:R.
-Proof.
-rewrite cfdot_sumr (bigD1 i) // cfdot_Dade_mu2 eqxx /=.
-rewrite big1 ?addr0 // => i1 neq_i1i.
-by rewrite cfdot_Dade_mu2 eq_sym (negPf neq_i1i).
-Qed.
-
-Lemma Dade_mu2_degree i j : mu2_ i j 1%g = mu2_ 0 j 1%g.
-Proof. by rewrite -!(@cfRes1 _ K L) Dade_chi_eq. Qed.
-
-Lemma Dade_mu2_degree0 i : mu2_ i 0 1%g = 1.
-Proof.
-by rewrite Dade_mu2_degree /mu2_ /Imu2_ (Dade_mu20 cddL) irr0 cfun11.
-Qed.
-
-Lemma Dade_mu_degree j : mu_ j 1%g = #|W1|%:R * mu2_ 0 j 1%g.
-Proof.
-have [[defL _ _ _] _ _] := cddL; have /mulG_sub[sKL _] := sdprodW defL.
-rewrite -[mu_ j](Dade_Ind_chi cddL) cfInd1 // (index_sdprod defL).
-by rewrite (Dade_chiE cddL 0) cfRes1.
-Qed.
-
-Lemma Dade_mu20_linear i : mu2_ i 0 \is a linear_char.
-Proof. by rewrite qualifE irr_char /= Dade_mu2_degree0. Qed.
-
-Lemma cfnorm_Dade_mu j : '[mu_ j] = #|W1|%:R.
-Proof. by rewrite (cfdot_mu cddL) eqxx mul1n. Qed.
-
-End Four.
-
-Section Five.
-
-Variables (gT : finGroupType) (L G : {group gT}) (S : seq 'CF(L)).
-Variables (R : 'CF(L) -> seq 'CF(G)) (tau : {linear 'CF(L) -> 'CF(G)}).
-Implicit Type S : seq 'CF(L).
-Hypothesis scohS : subcoherent S tau R.
-
-Lemma seqInd_conjC_subset1 (K H H1 M : {group gT}) :
-  H1 \subset H -> cfConjC_subset (seqIndD K L H1 M) (seqIndD K L H 1).
-Proof.
-move=> sH1H; split; [exact: seqInd_uniq | apply: seqIndS | exact: cfAut_seqInd].
-by rewrite Iirr_kerDS ?sub1G.
-Qed.
-
-Lemma subset_coherent_with S1 S2 A (tau1 : {additive 'CF(L) -> 'CF(G)}) :
-    {subset S1 <= S2} -> coherent_with S2 A tau tau1 ->
-  coherent_with S1 A tau tau1.
-Proof.
-move=> /zchar_subset sS12 [Itau1 Dtau1].
-by split=> [|xi /sS12/Dtau1//]; exact: sub_iso_to Itau1.
-Qed.
-
-Lemma mem_coherent_sum_subseq S1 chi (tau1 : {additive 'CF(L) -> 'CF(G)}) :
-    cfConjC_subset S1 S -> coherent_with S1 L^# tau tau1 -> chi \in S1 ->
-  exists2 E, subseq E (R chi) & tau1 chi = \sum_(a <- E) a.
-Proof.
-move=> uccS1 [Itau1 Dtau1] S1chi; have [uS1 sS1S ccS1] := uccS1.
-have S1chi_s: chi^*%CF \in S1 by exact: ccS1.
-apply: (coherent_sum_subseq scohS); first exact: sS1S.
-  by apply: sub_iso_to Itau1 => //; apply: zchar_subset; apply/allP/and3P.
-apply: Dtau1; rewrite sub_aut_zchar ?zchar_onG ?mem_zchar // => phi /sS1S.
-by have [[charS _ _] _ _ _ _] := scohS => /charS/char_vchar.
-Qed.
-
-Lemma subset_ortho_subcoherent S1 chi :
-  {subset S1 <= S} -> chi \in S -> chi \notin S1 -> orthogonal S1 chi.
-Proof.
-move=> sS1S Schi S1'chi; apply/orthoPr=> phi S1phi; have Sphi := sS1S _ S1phi.
-have [_ _ /pairwise_orthogonalP[_ -> //]] := scohS.
-by apply: contraNneq S1'chi => <-.
-Qed.
-
-Lemma coherent_ortho_supp S1 chi (tau1 : {additive 'CF(L) -> 'CF(G)}) :
-    cfConjC_subset S1 S -> coherent_with S1 L^# tau tau1 ->
-    chi \in S -> chi \notin S1 -> 
-  orthogonal (map tau1 S1) (R chi).
-Proof.
-move=> uccS1 cohS1 Schi S1'chi; have [uS1 sS1S ccS1] := uccS1.
-apply/orthogonalP=> _ mu /mapP[phi S1phi ->] Rmu; have Sphi := sS1S _ S1phi.
-have [e /mem_subseq Re ->] := mem_coherent_sum_subseq uccS1 cohS1 S1phi.
-rewrite cfdot_suml big1_seq // => xi {e Re}/Re Rxi.
-apply: orthogonalP xi mu Rxi Rmu; have [_ _ _ _ -> //] := scohS.
-rewrite /orthogonal /= !andbT cfdot_conjCr fmorph_eq0.
-by rewrite !(orthoPr (subset_ortho_subcoherent sS1S _ _)) ?ccS1 ?eqxx.
-Qed.
-
-Lemma coherent_ortho S1 S2 (tau1 tau2 : {additive 'CF(L) -> 'CF(G)}) :
-    cfConjC_subset S1 S -> coherent_with S1 L^# tau tau1 ->
-    cfConjC_subset S2 S -> coherent_with S2 L^# tau tau2 ->
-    {subset S2 <= [predC S1]} ->
-  orthogonal (map tau1 S1) (map tau2 S2).
-Proof.
-move=> uccS1 cohS1 uccS2 cohS2 S1'2; have [_ sS2S _] := uccS2.
-apply/orthogonalP=> mu _ S1mu /mapP[phi S2phi ->].
-have [e /mem_subseq Re ->] := mem_coherent_sum_subseq uccS2 cohS2 S2phi.
-rewrite cfdot_sumr big1_seq // => xi {e Re}/Re; apply: orthogonalP mu xi S1mu.
-by apply: coherent_ortho_supp; rewrite ?sS2S //; apply: S1'2.
-Qed.
-
-Lemma bridge_coherent S1 S2 (tau1 tau2 : {additive 'CF(L) -> 'CF(G)}) chi phi :
-    cfConjC_subset S1 S -> coherent_with S1 L^# tau tau1 ->
-    cfConjC_subset S2 S -> coherent_with S2 L^# tau tau2 ->
-    {subset S2 <= [predC S1]} ->
-    chi \in 'Z[S1] -> phi \in 'Z[S2] -> chi 1%g != 0 -> chi 1%g = phi 1%g ->
-    tau (chi - phi) = tau1 chi - tau2 phi ->
-  coherent (S1 ++ S2) L^# tau.
-Proof.
-move=> uccS1 cohS1 uccS2 cohS2 S1'2 S1chi s2phi nz_chi1 chi1_phi tau_chi_phi.
-have [[uS1 sS1S _] [uS2 sS2S _]] := (uccS1, uccS2).
-have [[[Itau1 Ztau1] Dtau1] [[Itau2 Ztau2] Dtau2]] := (cohS1, cohS2).
-have [_ _ oS11 _ _] := subset_subcoherent scohS uccS1.
-have [_ _ oS22 _ _] := subset_subcoherent scohS uccS2.
-have oS12: orthogonal S1 S2.
-  apply/orthogonalP=> xi1 xi2 Sxi1 Sxi2; apply: orthoPr xi1 Sxi1.
-  by rewrite subset_ortho_subcoherent ?sS2S //; apply: S1'2.
-pose S3 := S1 ++ S2; pose Y := map tau1 S1 ++ map tau2 S2.
-have oS33: pairwise_orthogonal S3 by rewrite pairwise_orthogonal_cat oS11 oS22.
-have oYY: pairwise_orthogonal Y.
-  by rewrite pairwise_orthogonal_cat !map_pairwise_orthogonal ?coherent_ortho.
-have Z_Y: {subset Y <= 'Z[irr G]}.
-  move=> xi_tau; rewrite mem_cat => /orP[] /mapP[xi Sxi ->] {xi_tau}.
-    by rewrite Ztau1 ?mem_zchar.
-  by rewrite Ztau2 ?mem_zchar.
-have nY: map cfnorm Y = map cfnorm (S1 ++ S2).
-  rewrite !map_cat -!map_comp; congr (_ ++ _).
-    by apply: eq_in_map => xi S1xi; rewrite /= Itau1 ?mem_zchar.
-  by apply: eq_in_map => xi S2xi; rewrite /= Itau2 ?mem_zchar.
-have [tau3 defY ZItau3] := Zisometry_of_cfnorm oS33 oYY nY Z_Y.
-exists tau3; split=> {ZItau3}// xi; rewrite zcharD1E /= => /andP[S3xi].
-have [defY1 defY2]: map tau3 S1 == map tau1 S1 /\ map tau3 S2 == map tau2 S2.
-  by apply/andP; rewrite -eqseq_cat ?size_map // -map_cat defY.
-have{defY S3xi} [xi1 [xi2 [Sxi1 Sxi2 ->] {xi}]]:
-  exists xi1, exists xi2, [/\ xi1 \in 'Z[S1], xi2 \in 'Z[S2] & xi = xi1 + xi2].
-- have uS3 := free_uniq (orthogonal_free oS33).
-  have [z Zz ->] := zchar_expansion uS3 S3xi; rewrite big_cat.
-  pose Y_ S4 := \sum_(mu <- S4) z mu *: mu.
-  suffices ZS_Y S4: Y_ S4 \in 'Z[S4] by exists (Y_ S1), (Y_ S2).
-  by rewrite /Y_ big_seq rpred_sum // => psi /mem_zchar/rpredZ_Cint->.
-rewrite cfunE addrC addr_eq0 linearD => /eqP xi2_1.
-transitivity (tau1 xi1 + tau2 xi2).
-  have [z1 Zz1 ->] := zchar_nth_expansion Sxi1.
-  have [z2 Zz2 ->] := zchar_nth_expansion Sxi2.
-  rewrite !raddf_sum; congr(_ + _); apply: eq_bigr => i _.
-    by rewrite !raddfZ_Cint -?(nth_map _ 0 tau1) // -(nth_map _ 0) ?(eqP defY1).
-  by rewrite !raddfZ_Cint -?(nth_map _ 0 tau2) // -(nth_map _ 0) ?(eqP defY2).
-have Z_S1_1 zeta: zeta \in 'Z[S1] -> zeta 1%g \in Cint.
-  move=> Szeta;   rewrite Cint_vchar1 // (zchar_sub_irr _ Szeta) {zeta Szeta}//.
-  by move=> zeta /sS1S Szeta; apply: char_vchar; have [[->]] := scohS.
-have [Zchi1 Zxi1] := (Z_S1_1 _ S1chi, Z_S1_1 _ Sxi1).
-apply: (scalerI nz_chi1); rewrite scalerDr -!raddfZ_Cint // scalerDr.
-rewrite -[_ *: _](subrK (xi1 1%g *: chi)) raddfD -[_ + _]addrA.
-rewrite -[rhs in _ = tau rhs]addrA linearD Dtau1; last first.
-  by rewrite zcharD1E rpredB ?rpredZ_Cint ?Z_S1_1 //= !cfunE mulrC subrr.
-congr (_ + _); rewrite -[_ *: xi2](addKr (xi1 1%g *: phi)) (raddfD tau2).
-rewrite [_ + _]addrA [rhs in tau rhs]addrA linearD; congr (_ + _); last first.
-  rewrite Dtau2 // zcharD1E rpredD ?rpredZ_Cint ?Z_S1_1 //= !cfunE mulrC.
-  by rewrite xi2_1 chi1_phi mulrN subrr.
-rewrite raddfN (raddfZ_Cint tau1) // (raddfZ_Cint tau2) // -!scalerBr linearZ.
-by congr (_ *: _).
-Qed.
-
-End Five.
-
-Section Eight.
-
-Variable gT : minSimpleOddGroupType.
-Local Notation G := (TheMinSimpleOddGroup gT).
-Implicit Types (p q : nat) (x y z : gT).
-Implicit Types H K L N P Q R S T U W : {group gT}.
-
-Section Dade.
-
-Variable M : {group gT}.
-Hypothesis maxM : M \in 'M.
-
-Lemma FT_Dade0_supportE : Dade_support (FT_Dade0_hyp maxM) = 'A0~(M).
-Proof. by apply/eq_bigr=> x A0x; rewrite /Dade_support1 def_FTsignalizer. Qed.
-
-Lemma FT_DadeE phi :
-  phi \in 'CF(M, 'A(M)) -> FT_Dade maxM phi = FT_Dade0 maxM phi.
-Proof. exact: restr_DadeE. Qed.
-
-Definition FT_Dade1 := Dade (FT_Dade1_hyp maxM).
-
-Lemma FT_Dade1E phi :
-  phi \in 'CF(M, 'A1(M)) -> FT_Dade1 phi = FT_Dade0 maxM phi.
-Proof. exact: restr_DadeE. Qed.
-
-Lemma FTcore_sub_der1 : M`_\s \subset M^`(1)%g.
-Proof. by rewrite def_FTcore // BGsection10.Msigma_der1. Qed.
-
-Lemma Fcore_sub_FTcore : M`_\F \subset M`_\s.
-Proof. by rewrite def_FTcore // Fcore_sub_Msigma. Qed.
-
-Lemma FTsupp_sub0 : 'A(M) \subset 'A0(M). Proof. exact: FTsupp_sub. Qed.
-Lemma FTsupp_sub : 'A(M) \subset M^#.
-Proof. exact: subset_trans FTsupp_sub0 (FTsupp0_sub M). Qed.
-
-End Dade.
-
-Section Ptype.
-
-Variables M U W1 : {group gT}.
-Hypotheses (maxM : M \in 'M) (MtypeP : of_typeP M U W1).
-
-Local Notation "` 'M'" := (gval M) (at level 0, only parsing) : group_scope.
-Local Notation M' := M^`(1)%G.
-Local Notation "` 'M''" := `M^`(1) (at level 0) : group_scope.
-Local Notation "` 'W1'" := (gval W1) (at level 0, only parsing) : group_scope.
-Local Notation W2 := 'C_(`M`_\F)(`W1)%G.
-Local Notation "` 'W2'" := 'C_(`M`_\F)(`W1) : group_scope.
-Local Notation W := (`W1 <*> `W2)%G.
-Local Notation "` 'W'" := (`W1 <*> `W2) : group_scope.
-
-Let cddM := FTs_cDade_hyp maxM MtypeP.
-Let sigma := (@cyclicTIsigma _ [set: _] W W1 W2).
-Let w_sig i j := sigma (@cyclicTIirr _ W W1 W2 i j).
-Let mu := @Dade_mu gT M W W1 W2.
-
-Let calS0 := seqIndD M' M M`_\s 1.
-Let tau := FT_Dade0 maxM.
-Let rmR := FTtypeP_coh_base maxM MtypeP.
-Let scohS0 : subcoherent calS0 tau rmR := FTtypeP_subcoherent maxM MtypeP.
-
-Lemma coherent_ortho_cTIiso calS (tau1 : {additive 'CF(M) -> 'CF(G)}) :
-    cfConjC_subset calS calS0 -> coherent_with calS M^# tau tau1 ->
-  forall chi i j, chi \in calS -> chi \in irr M -> '[tau1 chi, w_sig i j] = 0.
-Proof.
-move=> uccS cohS chi i j Schi chi_irr; have [_ sSS0 _] := uccS.
-have [e /mem_subseq Re ->] := mem_coherent_sum_subseq scohS0 uccS cohS Schi.
-rewrite cfdot_suml big1_seq // => xi /Re; apply: orthoPr.
-by apply: FTtypeP_base_ortho (mem_irr _); rewrite !inE sSS0.
-Qed.
-
-Lemma FTtypeP_coherent_mu calS (tau1 : {additive 'CF(M) -> 'CF(G)}) t j :
-    cfConjC_subset calS calS0 -> coherent_with calS M^# tau tau1 ->
-    'chi_t \in calS -> mu j \in calS ->
-    let d := Dade_delta M W W1 j in let k := conjC_Iirr j in
-  {dk : bool * Iirr W2 | tau1 (mu j) = (-1) ^+ dk.1 *: (\sum_i w_sig i dk.2)
-    &   dk.1 = d /\ dk.2 = j
-    \/  [/\ dk.1 = ~~ d, dk.2 = k
-        & forall l, mu l \in calS -> mu l 1%g = mu j 1%g -> pred2 j k l]}.
-Proof.
-move=> uccS cohS irrS Smu_j d k.
-have nRuccS: [/\ uniq calS, {subset calS <= calS0}, ~~ has cfReal calS
-                & conjC_closed calS].
-- have [[[_ nRS0 _] _ _ _ _] [-> sSS0 ccS]] := (scohS0, uccS); split=> //.
-  by apply/hasPn=> chi /sSS0/(hasPn nRS0).
-have irr_mu_S: has (mem (irr M)) calS /\ mu j \in calS.
-  by split=> //; apply/hasP; exists 'chi_t => //; apply: mem_irr.
-have Dmu := def_Ptype_coherent_mu nRuccS irr_mu_S; rewrite -/mu -/d in Dmu.
-move/Dmu: cddM => {Dmu}Dmu; move/Dmu: cohS => {Dmu}Dmu.
-pose mu_sum d1 k1 := (-1) ^+ d1 *: (\sum_i w_sig i k1).
-have mu_sumK (d1 d2 : bool) k1 k2:
-  ('[mu_sum d1 k1, (-1) ^+ d2 *: w_sig 0 k2] > 0) = (d1 == d2) && (k1 == k2).
-- rewrite cfdotZl cfdotZr rmorph_sign mulrA -signr_addb cfdot_suml.
-  rewrite (bigD1 0) //= (cfdot_sigma cddM) !eqxx big1 => [|i nz_i]; last first.
-    by rewrite (cfdot_sigma cddM) (negPf nz_i).
-  rewrite addr0 /= andbC; case: (k1 == k2); rewrite ?mulr0 ?ltrr //=.
-  by rewrite mulr1 signr_gt0 negb_add.
-have [dk tau1mu_j]: {dk : bool * Iirr W2 | tau1 (mu j) = mu_sum dk.1 dk.2}.
-  apply: sig_eqW; case: Dmu => [-> | [-> _]]; first by exists (d, j).
-  by exists (~~ d, k); rewrite -signrN.
-exists dk => //; have:= mu_sumK dk.1 dk.1 dk.2 dk.2; rewrite !eqxx -tau1mu_j.
-case: Dmu => [-> | [-> all_jk]];
-  rewrite -?signrN mu_sumK => /andP[/eqP <- /eqP <-]; [by left | right].
-by split=> // l Sl /(all_jk l Sl)/pred2P.
-Qed.
-
-Lemma FT_typeP_associate : exists2 S : {group gT},
-    [/\ S \in 'M, FTtype S != 1%N & S^`(1) ><| W2 = S]
-  & [/\ S :&: M = W, 'C_(S`_\F)(W2) = W1, FTtype M != 2 -> FTtype S == 2
-    & forall L, L \in 'M -> FTtype L != 1%N ->
-      exists x, L :=: S :^ x \/ L :=: M :^ x].
-Proof.
-have typeMnot1 := FTtypeP_neq1 maxM MtypeP.
-case: ifP (FT_FPstructure gT) => [/forall_inP/(_ M maxM)/idPn[] // | _].
-case=> sW sW1 sW2 S T strST.
-without loss [x defMx]: sW sW1 sW2 S T strST / exists x, M :=: T :^ x.
-  have [_ _ _ _ /(_ M)[]// x [] defMx IH_ST] := strST.
-    by apply: IH_ST (FT_Pstructure_sym strST) _; exists x.
-  by apply: IH_ST strST _; exists x.
-have typeT_M: FTtype T = FTtype M by rewrite defMx FTtypeJ.
-have [[DsW maxS maxT] [defS defT tiST] /orP Stype2 [typeS _] allST] := strST.
-have{typeS} notStype1: FTtype S != 1%N by apply: contraTneq typeS => ->.
-do [rewrite orbC -implyNb /=; move/implyP] in Stype2.
-have [[_ _ _ defM] _ _ _ _] := MtypeP.
-move: defM; rewrite /= {}defMx derJ -(conjsgKV x W1) -sdprodJ.
-move/act_inj=> defTx; rewrite FcoreJ centJ -conjIg /=.
-have{typeT_M} notTtype1: FTtype T != 1%N by rewrite typeT_M.
-have{defT} [Us PtypeTs] := compl_of_typeP defT maxT notTtype1.
-have{defTx maxT notTtype1} [Ux PtypeTx] := compl_of_typeP defTx maxT notTtype1.
-have{Us PtypeTs Ux PtypeTx} [y [Ty _ ->]] := of_typeP_conj PtypeTx PtypeTs.
-rewrite -{Ty}(conjGid Ty) FcoreJ centJ -conjIg -!conjsgM -conjYg joingC centJ.
-move: {y x}(y * x)%g => x; rewrite (def_cycTIcompl (FT_Pstructure_sym strST)).
-have{DsW}[[/dprodWY-> _ _ _] _ _] := DsW.
-exists (S :^ x)%G; first by rewrite mmaxJ FTtypeJ derJ -sdprodJ defS.
-rewrite FcoreJ !FTtypeJ -!conjIg tiST (def_cycTIcompl strST).
-split=> // L maxL /allST[] // z.
-by do [case=> ->; exists (x^-1 * z)%g]; [left | right]; rewrite conjsgM conjsgK.
-Qed.
-
-(* This is a temporary kludge, because the proof in PFsection9 accidentally   *)
-(* picked up the notMtype5 assumption via a prime_cyclic on line -2.          *)
-(* It might be more convenient to use the cfConjC_subset predicate here with  *)
-(* calS0 -- check for this when refactoring section 9.                        *)
-Lemma size_red_subseq_seqInd_typeP (calX : {set Iirr M'}) calS :
-    uniq calS -> {subset calS <= seqInd M calX} ->
-    {subset calS <= [predC irr M]} ->
-  size calS = #|[set i : Iirr M' | 'Ind 'chi_i \in calS]|.
-Proof.
-move=> uS sSS0 redS; pose h s := 'Ind[M, M'] 'chi_s.
-apply/eqP; rewrite cardE -(size_map h) -uniq_size_uniq // => [|xi]; last first.
-  apply/imageP/idP=> [[i] | Sxi]; first by rewrite inE => ? ->.
-  by have /seqIndP[s _ Dxi] := sSS0 _ Sxi; exists s; rewrite ?inE -?Dxi.
-apply/dinjectiveP; pose h1 xi := cfIirr (#|W1|%:R^-1 *: 'Res[M', M] xi).
-apply: can_in_inj (h1) _ => s; rewrite inE => /redS red_s.
-have [_ cycDD /= _ _] := FT_cDade_hyp maxM MtypeP.
-have [[_ _ _ /cyclic_abelian cW1W1] _ _] := cycDD.
-have:= (Dade_Ind_chi'_irr cycDD) s; set im_chi := codom _ => chi_s.
-have{im_chi chi_s} /imageP[j _ ->]: s \in im_chi.
-  by apply: contraR red_s => /chi_s/=[/irrP[s2 ->] _]; apply: mem_irr.
-apply: irr_inj; rewrite /h Dade_Ind_chi // /h1 raddf_sum /=.
-rewrite -(eq_bigr _ (fun _ _ => Dade_chiE cycDD _ _)) sumr_const.
-by rewrite card_Iirr_abelian // -scaler_nat scalerK ?neq0CG ?irrK.
-Qed.
-
-End Ptype.
- 
-End Eight.
-
-End MoreStuff.
-
 Section Ten.
 
 Variable gT : minSimpleOddGroupType.
@@ -861,31 +178,15 @@ Lemma FTtype345_invariants :
       (d > 1)%N
     & n \in Cnat].
 Proof.
-have [lW2 [cF [inj_cF lin_cF onto_cF]] [cF_M cF_1 _]] := lin_char_group W2.
-have cF_X m: {morph cF : xi / (xi ^+ m)%g >-> xi ^+ m}.
-  by move=> xi; elim: m => // m IHm; rewrite expgS exprS cF_M IHm.
-have o_cF xi: #[xi]%g = #[cF xi]%CF.
-  apply/eqP; rewrite eqn_dvd; apply/andP; split.
-    by rewrite order_dvdn -(inj_eq inj_cF) cF_1 cF_X exp_cforder.
-  by rewrite dvdn_cforder; rewrite -cF_X expg_order cF_1.
-have cforder_irr_eq1 k: (#['chi[W2]_k]%CF == 1%N) = (k == 0).
-  by rewrite -dvdn1 dvdn_cforder irr_eq1.
-have cforder_lin_dvdG xi: xi \is a linear_char -> #[xi : 'CF(W2)]%CF %| #|W2|.
-  move=> Lxi; rewrite dvdn_cforder; apply/eqP/cfun_inP=> x Gx.
-  rewrite cfun1E Gx exp_cfunE // -lin_charX // -(lin_char1 Lxi).
-  by congr (xi _); apply/eqP; rewrite -order_dvdn order_dvdG.
-have abW2 := cyclic_abelian cycW2.
-have /fin_all_exists[cF' cF'K] (k) := onto_cF _ (char_abelianP _ abW2 k).
-have o_cF' k: k != 0 -> #[cF' k] = w2.
-  rewrite -cforder_irr_eq1 cF'K -o_cF => nt_cF'k.
-  by apply/prime_nt_dvdP=> //; rewrite o_cF cforder_lin_dvdG.
-have o_lW2: #|[set: lW2]| = w2.
-  rewrite -[w2]card_Iirr_abelian // cardsT -!sum1_card (reindex cF') //.
-  exists (cfIirr \o cF) => [k | xi] _ /=; first by rewrite -cF'K irrK.
-  by apply/inj_cF; rewrite -cF'K cfIirrE ?lin_char_irr.
-have gen_lW2 k: k != 0 -> generator [set: lW2] (cF' k).
-  move=> /o_cF' o_cF'k; rewrite /generator eq_sym eqEcard subsetT /=.
-  by rewrite o_lW2 -o_cF'k.
+have [LW2 [c [injc oLW2 Lc c_ontoL]] [c1 cM cX _ o_c]] := lin_char_group W2.
+have abW2 := cyclic_abelian cycW2; rewrite (derG1P abW2) indexg1 -/w2 in oLW2.
+have /fin_all_exists[c' c'K] := c_ontoL _ (char_abelianP _ abW2 _).
+have o_c' k: k != 0 -> #[c' k] = w2.
+  rewrite -cforder_irr_eq1 c'K -o_c => nt_c'k.
+  by apply/prime_nt_dvdP=> //; rewrite cforder_lin_dvdG.
+have{oLW2} genLW2 k: k != 0 -> generator [set: LW2] (c' k).
+  move=> /o_c' o_c'k; rewrite /generator eq_sym eqEcard subsetT /=.
+  by rewrite cardsT oLW2 -o_c'k.
 have w_Er k: w_ 0 k = cfDprodr defW 'chi_k.
   by rewrite [w_ 0 k](cTIirrE cTI_M) dprod_IirrE irr0 cfDprod_cfun1l.
 pose j1 : Iirr W2 := inord 1.
@@ -897,11 +198,11 @@ have oi0j1: #[w_ 0 j1]%CF = #['chi_j1]%CF.
   apply/dvdn_cforderP=> y W2y; rewrite -(cfDprodEr defW _ (group1 W1)) //.
   by apply/dvdn_cforderP; rewrite //= -(dprodW defW) mem_mulg.
 have invj j: j != 0 -> mu2_ 0 j 1%g = d%:R /\ delta_ j = delta.
-  move/gen_lW2=> gen_j; have gen_j1 := (_ =P <[_]>) (gen_lW2 _ nz_j1).
+  move/genLW2=> gen_j; have gen_j1 := (_ =P <[_]>) (genLW2 _ nz_j1).
   rewrite gen_j1 in gen_j; have /cycleP[m Dj] := cycle_generator gen_j.
-  rewrite Dj generator_coprime o_cF -cF'K -oi0j1 coprime_sym in gen_j.
+  rewrite Dj generator_coprime -o_c -c'K -oi0j1 coprime_sym in gen_j.
   have [[u]] := cyclicTI_aut_exists cTImu gen_j; rewrite -!['chi__]/(w_ _ _).
-  rewrite {1}w_Er -rmorphX cF'K -cF_X -Dj -cF'K /= -w_Er => Dj1u _.
+  rewrite {1}w_Er -rmorphX c'K -cX -Dj -c'K /= -w_Er => Dj1u _.
   rewrite truncCK ?Cnat_irr1 // -/j1.
   have: delta_ j *: mu2_ 0 j == cfAut u (delta_ j1 *: mu2_ 0 j1).
     by rewrite -!(Dade_mu2_sigma cddM) -/cTImu -Dj1u.
@@ -923,9 +224,6 @@ rewrite /eqCmod unfold_in -/n (negPf (neq0CG W1)) CnatEint => ->.
 rewrite divr_ge0 ?ler0n // [delta]signrE opprB addrA -natrD subr_ge0 ler1n.
 by rewrite -(subnKC d_gt1).
 Qed.
-
-(* We need to prove (10.5) - (10.7) for an arbitrary choice of zeta, to allow *)
-(* part of the proof of (10.5) to be reused in that of (11.8).                *)
 
 Let o_mu2_irr zeta i j :
   zeta \in calS -> zeta \in irr M -> '[mu2_ i j, zeta] = 0.
@@ -953,6 +251,8 @@ rewrite !cfunE zeta1w1 cfuniE // group1 mulr1 subrr rpredB ?M'zeta //=.
 by rewrite rpredZ ?cfuni_on.
 Qed.
 
+(* We need to prove (10.5) - (10.7) for an arbitrary choice of zeta, to allow *)
+(* part of the proof of (10.5) to be reused in that of (11.8).                *)
 Variable i_zeta : Iirr M.
 Local Notation zeta := 'chi_i_zeta.
 Hypotheses (Szeta : zeta \in calS) (zeta1w1 : zeta 1%g = w1%:R).
@@ -1043,8 +343,7 @@ have Z_X: X \in 'Z[irr G].
   by rewrite rpredD ?rpredZ_Cnat ?Zalpha_tau ?Ztau1 ?mem_zchar.
 apply: eq_signed_sub_cTIiso => // y Vy.
 rewrite /= !cfunE !(@cyclicTIsigma_restrict _ _ _ _ _ cddM) // -/delta.
-rewrite Dade_id ?defA0 //; last first.
-  by rewrite setUC inE (subsetP (sub_class_support _ _)).
+rewrite Dade_id ?defA0 //; last by rewrite setUC inE mem_class_support.
 have notM'y: y \notin M'.
   by have:= subsetP (Ptype_TIset_disjoint cddM) y Vy; rewrite inE.
 have Wy: y \in W :\: W2 by move: Vy; rewrite !inE => /andP[/norP[_ ->]].
@@ -1272,27 +571,11 @@ have{T0C'lam} Tlam: lambda \in calT.
   by apply: seqIndS T0C'lam; rewrite Iirr_kerDS ?sub1G.
 have{lam_1} [r [nz_r Tnu_r nu_r_1]]:
   exists r, [/\ r != 0, nu r \in calT & nu r 1%g = lambda 1%g].
-- pose H0 := Ptype_Fcore_kernel StypeP; pose p := pdiv #|H / H0|%g.
-  pose nuT := filter [predC irr S] (seqIndD S^`(1) S H H0).
-  pose all_val1 v := forall nu_r, nu_r \in nuT -> nu_r 1%g = v.
-  have [sz_nuT nuT_1]: size nuT = p.-1 /\ all_val1 (lambda 1%g).
-    rewrite {}lam_1; have [|Gal'S] := boolP (typeP_Galois StypeP).
-      case/typeP_Galois_characters=> // _ _ [-> HC_nuT] _.
-      by split=> [|nu_r /HC_nuT[<- _ _]].
-    have [_ [-> HC_nuT] _ _] := typeP_nonGalois_characters maxS notStype5 Gal'S.
-    by split=> [|nu_r /HC_nuT[<- _ _]].
-  have /hasP[nu_r nuT_r _]: has predT nuT.
-    rewrite has_predT sz_nuT -subn1 subn_gt0 prime_gt1 ?pdiv_prime // cardG_gt1.
-    have [] := Ptype_Fcore_kernel_exists maxS StypeP notStype5.
-    by case/chief_factor_minnormal/mingroupp/andP.
-  rewrite -(nuT_1 nu_r) //; move: nuT_r; rewrite mem_filter => /andP[red_r Tr].
-  have [s /setDP[_ ker'Hs] Dnu_r] := seqIndP Tr; rewrite inE in ker'Hs.
-  pose chi := @Dade_chi _ S S^`(1) (W2 <*> 'C_H(W2)) W2 'C_H(W2).
-  have /imageP[r _ Ds]: s \in codom chi.
-    by apply: contraR red_r => /(Dade_Ind_chi'_irr cddS)[]; rewrite -Dnu_r.
-  exists r; rewrite -[nu r](Dade_Ind_chi cddS) -/chi -Ds -Dnu_r.
-  rewrite (seqIndS _ Tr) ?Iirr_kerDS ?sub1G //; split=> //.
-  by apply: contraNneq ker'Hs => r0; rewrite Ds r0 (Dade_chi0 cddS) cfker_cfun1.
+- have [_] := typeP_reducible_core_Ind maxS StypeP notStype5.
+  set H0 := Ptype_Fcore_kernel _; set nuT := filter _ _; rewrite -/nu.
+  case/hasP=> nu_r nuTr _ /(_ _ nuTr)/imageP[r nz_r Dr] /(_ _ nuTr)[nu_r1 _ _].
+  have{nuTr} Tnu_r := mem_subseq (filter_subseq _ _) nuTr.
+  by exists r; rewrite -Dr nu_r1 (seqIndS _ Tnu_r) // Iirr_kerDS ?sub1G.
 pose T2 := [:: lambda; lambda^*; nu r; (nu r)^*]%CF.
 have [rmRS scohT]: exists rmRS, subcoherent calT tauS rmRS.
   move: (FTtypeP_coh_base _ _) (FTtypeP_subcoherent maxS StypeP) => RS scohT.
@@ -1449,11 +732,11 @@ have sG1_HVG: G1 \subset class_support H^# G :|: class_support V G.
     apply/pred0Pn; exists ay; rewrite /= mem_conjg.
     by rewrite conjgE invgK mulgA (cent1P caxy) mulgK andbb !inE ntay.
   have [HUxy | notHUxy] := boolP (xy \in HU).
-    rewrite mem_class_support ?inE ?ntxy //=.
+    rewrite memJ_class_support ?inE ?ntxy //=.
     have [_ _ _ regHUH] := Frobenius_kerP frobHU.
     by rewrite (subsetP (regHUH ay _)) // inE ?HUxy // inE ntay.
   suffices /imset2P[xyz z Vxzy _ ->]: xy \in class_support V S.
-    by rewrite -conjgM orbC mem_class_support.
+    by rewrite -conjgM orbC memJ_class_support.
   rewrite joingC setUC /= -{2 4}defW1 -(FTsupp0_typeP maxS StypeP) !inE Sxy.
   rewrite andb_orr andNb (contra (subsetP _ _) notHUxy) /=; last first.
     by apply/bigcupsP=> z _; rewrite notStype1 setDE -setIA subsetIl.
@@ -1541,10 +824,10 @@ have n2psiG: '[psi^\tau] = w1.+1%:R.
   by rewrite (cfnorm_Dade_mu cddM) -/w1 mulrSr.
 have psiG_V0 x: x \in V -> psi^\tau x = 0.
   move=> Vx; rewrite Dade_id ?defA0; last first.
-    by rewrite inE orbC -[x]conjg1 mem_class_support.
+    by rewrite inE orbC mem_class_support.
   rewrite (cfun_on0 (zchar_on M'psi)) // -defA.
   suffices /setDP[]: x \in 'A0(M) :\: 'A(M) by [].
-  by rewrite (FTsupp0_typeP maxM MtypeP) // -[x]conjg1 mem_class_support.
+  by rewrite (FTsupp0_typeP maxM MtypeP) // mem_class_support.
 have ZpsiG: psi^\tau \in 'Z[irr G].
   by rewrite Dade_vchar // zchar_split (zcharW M'psi).
 have n2psiGsum: '[psi^\tau] = \sum_i \sum_j `|a_ (w_sig i j)| ^+ 2 + '[chi].
@@ -1845,14 +1128,12 @@ case=> _ _ ccS2 _ _ [tau2 Dtau2 cohS2].
 have{cohS2} cohS2: coherent_with S2 M^# tau tau2 by apply: cohS2.
 have sS20: cfConjC_subset S2 calS0.
   by split=> // xi /sS2S Sxi; have [_ ->] := sSS0.
-rewrite perm_eq_sym in defS; apply: perm_eq_coherent defS _.
+rewrite perm_eq_sym perm_catC in defS; apply: perm_eq_coherent defS _.
 suffices: (mu_ j - d%:R *: zeta)^\tau = tau2 (mu_ j) - tau1 (d%:R *: zeta).
-  rewrite -opprB linearN /= => /(canRL (@opprK _)); rewrite opprB.
-  apply: (bridge_coherent scohS0 sS10 cohS1 sS20 cohS2 S1'2).
-  - by rewrite rpredZnat ?mem_zchar.
-  - exact/mem_zchar/image_f.
-  - by rewrite cfunE zeta1w1 Dd -def_w2 mulf_neq0 ?neq0CG.
-  by rewrite cfunE zeta1w1 (Dade_mu_degree cddM) mulrC Dmu2_1.
+  apply: (bridge_coherent scohS0 sS20 cohS2 sS10 cohS1) => [phi|].
+    by apply: contraL => /S1'2.
+  rewrite cfunD1E !cfunE zeta1w1 (Dade_mu_degree cddM) mulrC Dmu2_1 // subrr.
+  by rewrite image_f // rpredZnat ?mem_zchar.
 have sumA: \sum_i alpha_ i j = mu_ j - delta *: mu_ 0 - (d%:R - delta) *: zeta.
   rewrite !sumrB sumr_const /= -scaler_sumr; congr (_ - _ - _).
   rewrite card_Iirr_abelian ?cyclic_abelian // -/w1 -scaler_nat.
@@ -1903,7 +1184,7 @@ by have [] := compl_of_typeII_IV StypeP maxS (FTtype5_exclusion maxS).
 Qed.
 
 (* This is the truer form of the first assertion of Peterfalvi (10.11). *)
-Lemma FT_Pstrucure_primes W W1 W2 S T :
+Lemma FT_Pstructure_primes W W1 W2 S T :
   FT_Pstructure W W1 W2 S T -> prime #|W1| /\ prime #|W2|.
 Proof.
 move=> Pstruct; rewrite -(def_cycTIcompl Pstruct).

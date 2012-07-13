@@ -437,6 +437,10 @@ Proof. by case def_b: b; constructor. Qed.
 Lemma ifPn : if_spec (~~ b) b (if b then vT else vF).
 Proof. by case def_b: b; constructor; rewrite ?def_b. Qed.
 
+Lemma ifT : b -> (if b then vT else vF) = vT. Proof. by move->. Qed.
+Lemma ifF : b = false -> (if b then vT else vF) = vF. Proof. by move->. Qed.
+Lemma ifN : ~~ b -> (if b then vT else vF) = vF. Proof. by move/negbTE->. Qed.
+
 Lemma if_same : (if b then vT else vT) = vT.
 Proof. by case b. Qed.
 
@@ -677,6 +681,8 @@ Lemma all_and5 (hP : forall x, [/\ P1 x, P2 x, P3 x, P4 x & P5 x]) :
 Proof. by split=> x; case: (hP x). Qed.
 
 End AllAnd.
+
+Lemma pair_andP P Q : P /\ Q <-> P * Q. Proof. by split; case. Qed.
 
 Section ReflectConnectives.
 

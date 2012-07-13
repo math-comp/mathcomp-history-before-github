@@ -2029,15 +2029,16 @@ Proof. by move=> eq_f12; elim=> //= x s ->; rewrite eq_f12. Qed.
 End MapComp.
 
 Lemma eq_in_map (T1 : eqType) T2 (f1 f2 : T1 -> T2) (s : seq T1) :
-  {in s, f1 =1 f2} -> map f1 s = map f2 s.
+  {in s, f1 =1 f2} <-> map f1 s = map f2 s.
 Proof.
-elim: s => //= x s IHs eqf12.
-rewrite eqf12 ?inE /= (eqxx, IHs) // => y sy.
-by rewrite eqf12 ?inE //= predU1r.
+elim: s => //= x s IHs; split=> [eqf12 | [f12x /IHs eqf12]]; last first.
+  by move=> y /predU1P[-> | /eqf12].
+rewrite eqf12 ?mem_head //; congr (_ :: _).
+by apply/IHs=> y s_y; rewrite eqf12 // mem_behead.
 Qed.
 
 Lemma map_id_in (T : eqType) f (s : seq T) : {in s, f =1 id} -> map f s = s.
-Proof. by move/eq_in_map->; exact: map_id. Qed.
+Proof. by move/eq_in_map->; apply: map_id. Qed.
 
 (* Map a partial function *)
 
@@ -2052,7 +2053,7 @@ Lemma map_pK : pcancel g f -> cancel (map g) pmap.
 Proof. by move=> gK; elim=> //= x s ->; rewrite gK. Qed.
 
 Lemma size_pmap s : size (pmap s) = count [eta f] s.
-Proof. by elim: s => //= x s <-; case f. Qed.
+Proof. by elim: s => //= x s <-; case: (f _). Qed.
 
 Lemma pmapS_filter s : map some (pmap s) = map f (filter [eta f] s).
 Proof. by elim: s => //= x s; case fx: (f x) => //= [u] <-; congr (_ :: _). Qed.
@@ -2060,7 +2061,7 @@ Proof. by elim: s => //= x s; case fx: (f x) => //= [u] <-; congr (_ :: _). Qed.
 Hypothesis fK : ocancel f g.
 
 Lemma pmap_filter s : map g (pmap s) = filter [eta f] s.
-Proof. by elim: s => //= x s <-; rewrite -{3}(fK x); case f. Qed.
+Proof. by elim: s => //= x s <-; rewrite -{3}(fK x); case: (f _). Qed.
 
 End Pmap.
 
@@ -2068,12 +2069,11 @@ Section EqPmap.
 
 Variables (aT rT : eqType) (f : aT -> option rT) (g : rT -> aT).
 
-Lemma eq_pmap (f1 f2 : aT -> option rT) :
- f1 =1 f2 -> pmap f1 =1 pmap f2.
+Lemma eq_pmap (f1 f2 : aT -> option rT) : f1 =1 f2 -> pmap f1 =1 pmap f2.
 Proof. by move=> Ef; elim=> //= x s ->; rewrite Ef. Qed.
 
 Lemma mem_pmap s u : (u \in pmap f s) = (Some u \in map f s).
-Proof. by elim: s => //= x s IHs; rewrite in_cons -IHs; case (f x). Qed.
+Proof. by elim: s => //= x s IHs; rewrite in_cons -IHs; case: (f x). Qed.
 
 Hypothesis fK : ocancel f g.
 

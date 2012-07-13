@@ -1175,7 +1175,7 @@ Qed.
 Lemma mem_classes x A : x \in A -> x ^: A \in classes A.
 Proof. exact: mem_imset. Qed.
 
-Lemma mem_class_support A B x y :
+Lemma memJ_class_support A B x y :
    x \in A -> y \in B -> x ^ y \in class_support A B.
 Proof. by move=> Ax By; apply: mem_imset2. Qed.
 
@@ -1709,6 +1709,9 @@ apply/set0Pn/trivgPn=> [[xG /setD1P[nt_xG]] | [x Gx ntx]].
 by exists (x ^: G); rewrite !inE classG_eq1 ntx; exact: mem_imset.
 Qed.
 
+Lemma mem_class_support A x : x \in A -> x \in class_support A G.
+Proof. by move=> Ax; rewrite -[x]conjg1 memJ_class_support. Qed.
+
 Lemma class_supportGidl A x :
   x \in G -> class_support (A :^ x) G = class_support A G.
 Proof.
@@ -1993,6 +1996,9 @@ Qed.
 Lemma divgS G H : H \subset G -> #|G| %/ #|H| = #|G : H|.
 Proof. by move/Lagrange <-; rewrite mulKn. Qed.
 
+Lemma divg_indexS G H : H \subset G -> #|G| %/ #|G : H| = #|H|.
+Proof. by move/Lagrange <-; rewrite mulnK. Qed.
+
 Lemma coprimeSg G H p : H \subset G -> coprime #|G| p -> coprime #|H| p.
 Proof. by move=> sHG; exact: coprime_dvdl (cardSg sHG). Qed.
 
@@ -2248,7 +2254,7 @@ Notation joinGT := (@joinG gT) (only parsing).
 
 Lemma joingE A B : A <*> B = <<A :|: B>>. Proof. by []. Qed.
 
-Lemma joinGE G H : (G <*> H)%G :=: G <*> H. Proof. by []. Qed.
+Lemma joinGE G H : (G * H)%G = (G <*> H)%G. Proof. by []. Qed.
 
 Lemma joingC : commutative joingT.
 Proof. by move=> A B; rewrite /joing setUC. Qed.

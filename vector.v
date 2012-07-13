@@ -986,6 +986,13 @@ rewrite memvK span_b2mx genmxE => Xv.
 by rewrite unlock_with mul_b2mx mulmxKpV ?v2rK.
 Qed.
 
+Lemma coord0 i v : coord [tuple 0] i v = 0.
+Proof.
+rewrite unlock /pinvmx rank_rV; case: negP => [[] | _].
+  by apply/eqP/rowP=> j; rewrite !mxE (tnth_nth 0) /= linear0 mxE.
+by rewrite pid_mx_0 !(mulmx0, mul0mx) mxE.
+Qed.
+
 (* Free generator sequences. *)
 
 Lemma nil_free : free (Nil vT).

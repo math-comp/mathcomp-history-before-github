@@ -1100,6 +1100,12 @@ Lemma sub1b (b : bool) : 1 - b = ~~ b. Proof. by case: b. Qed.
 Lemma mulnb (b1 b2 : bool) : b1 * b2 = b1 && b2.
 Proof. by case: b1; case: b2. Qed.
 
+Lemma mulnbl (b : bool) n : b * n = (if b then n else 0).
+Proof. by case: b; rewrite ?mul1n. Qed.
+
+Lemma mulnbr (b : bool) n : n * b = (if b then n else 0).
+Proof. by rewrite mulnC mulnbl. Qed.
+
 Fixpoint odd n := if n is n'.+1 then ~~ odd n' else false.
 
 Lemma oddb (b : bool) : odd b = b. Proof. by case: b. Qed.
@@ -1214,6 +1220,20 @@ Proof. by move/subnK <-; rewrite halfD addnA leq_addl. Qed.
 
 Lemma half_gt0 n : (0 < n./2) = (1 < n).
 Proof. by case: n => [|[]]. Qed.
+
+Lemma odd_geq m n : odd n -> (m <= n) = (m./2.*2 <= n).
+Proof.
+move=> odd_n; rewrite -{1}[m]odd_double_half -[n]odd_double_half odd_n.
+by case: (odd m); rewrite // leq_Sdouble ltnS leq_double.
+Qed.
+
+Lemma odd_ltn m n : odd n -> (n < m) = (n < m./2.*2).
+Proof. by move=> odd_n; rewrite !ltnNge odd_geq. Qed.
+
+Lemma odd_gt0 n : odd n -> n > 0. Proof. by case: n. Qed.
+
+Lemma odd_gt2 n : odd n -> n > 1 -> n > 2.
+Proof. by move=> odd_n n_gt1; rewrite odd_geq. Qed.
 
 (* Squares and square identities. *)
 

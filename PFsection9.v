@@ -758,29 +758,6 @@ Local Open Scope ring_scope.
 Let redM := [predC irr M].
 Let mu_ := filter redM (S_ H0).
 
-(* The reducible conterpart of size_irr_subseq_seqInd, valid for all maximal  *)
-(* groups of type P; this does NOT depend on the notMtype5 hypothesis.        *)
-Lemma size_red_subseq_seqInd_typeP (cX : {set Iirr HU}) cS :
-    subseq cS (seqInd M cX) -> {subset cS <= redM} ->
-  (size cS = #|[set i | 'Ind 'chi[HU]_i \in cS]|)%N.
-Proof.
-move=> sSX redS; pose h s := 'Ind[M, HU] 'chi_s.
-apply/eqP; rewrite cardE -(size_map h).
-rewrite -uniq_size_uniq ?(subseq_uniq sSX) ?seqInd_uniq // => [|xi]; last first.
-  apply/imageP/idP=> [[i] | Sxi]; first by rewrite inE => ? ->.
-  by have /seqIndP[s _ Dxi] := mem_subseq sSX Sxi; exists s; rewrite ?inE -?Dxi.
-apply/dinjectiveP; pose h1 xi := cfIirr (q%:R^-1 *: 'Res[HU, M] xi).
-apply: can_in_inj (h1) _ => s; rewrite inE => /redS red_s.
-have [_ cycDD /= _ _] := FT_cDade_hyp maxM MtypeP.
-have:= (Dade_Ind_chi'_irr cycDD) s; set im_chi := codom _ => chi_s.
-have{im_chi chi_s} /imageP[j _ ->]: s \in im_chi.
-  by apply: contraR red_s => /chi_s/=[/irrP[s2 ->] _]; apply: mem_irr.
-apply: irr_inj; rewrite /h Dade_Ind_chi // /h1 raddf_sum /=.
-rewrite -(eq_bigr _ (fun _ _ => Dade_chiE cycDD _ _)) sumr_const.
-rewrite card_Iirr_abelian ?cyclic_abelian ?prime_cyclic //.
-by rewrite -scaler_nat scalerK ?neq0CG ?irrK.
-Qed.
-
 (* This subproof is shared between (9.8)(b) and (9.9)(b). *)
 Let nb_redM_H0 : size mu_ = p.-1 /\ {subset mu_ <= S_ H0C}.
 Proof.
@@ -791,41 +768,23 @@ have nb_redM K:
   K <| M -> K \subset HU -> K :&: H = H0 -> count redM (S_ K) = p.-1.
 - move=> nsKM sKHU tiKHbar; have [sKM nKM] := andP nsKM; pose b L := (L / K)%G.
   have [_ /= cycDD _ _] := centDD; rewrite -(erefl (gval W)) in cycDD.
-  have[[_ ntW1 hallW1 cycW1] [_ sW2HU cycW2 prW1HU] [defW oddW]] := cycDD.
-  have coHU_W1: coprime #|HU| #|W1|.
-    by rewrite (coprime_sdprod_Hall defM) (sdprod_Hall defM).
-  have [nKHU nKW1] := (subset_trans sHUM nKM, subset_trans sW1M nKM).
-  have [nKW2 coKW1] := (subset_trans sW2HU nKHU, coprimeSg sKHU coHU_W1).
+  have [nsKHU [_ [_ sW2HU cycW2 _] _]] := (normalS sKHU sHUM nsKM, cycDD).
+  have nKW2 := subset_trans sW2HU (normal_norm nsKHU).
   have oW2b: #|b W2| = p.
     have [_ <- _] := Ptype_Fcore_factor_facts; rewrite defW2bar.
     rewrite !card_quotient ?(subset_trans (subset_trans sW2HU sHUM)) //.
     by rewrite -tiKHbar -indexgI /= -setIA setIIr (setIC K) indexgI /=.
   have{cycW2} cycW2b: cyclic (b W2) by exact: quotient_cyclic.
   have cycDDb: cyclicDade_hypothesis (b M) (b HU) (b W) (b W1) (b W2).
-    split; last 1 first.
-    + have nKW: W \subset 'N(K) by rewrite join_subG nKW1.
-      rewrite (morphim_coprime_dprod _ nKW) ?morphim_odd //.
-      by rewrite coprime_sym (coprimeSg sW2HU).
-    + have isoW1: W1 \isog b W1 by rewrite quotient_isog ?coprime_TIg.
-      rewrite -(isog_eq1 isoW1) morphim_cyclic ?morphim_Hall //.
-      by rewrite (morphim_coprime_sdprod _ nKM).
-    rewrite -cardG_gt1 oW2b ?prime_gt1 ?morphimS //=.
-    split=> // Kx /setD1P[ntKx /morphimP[x nKx W1x Dx]] /=.
-    have solHU := solvableS sHUM (mmax_sol maxM).
-    rewrite -cent_cycle -cycle_eq1 Dx -quotient_cycle // in ntKx *.
-    rewrite -?coprime_quotient_cent ?(coprimegS _ coHU_W1) ?cycle_subG //.
-    rewrite cent_cycle prW1HU // !inE W1x andbT -cycle_eq1.
-    rewrite -(isog_eq1 (quotient_isog _ _)) ?cycle_subG // in ntKx.
-    by rewrite coprime_TIg ?(coprimegS _ coKW1) ?cycle_subG.
+    by apply: cyclicDade_quotient; rewrite // -cardG_gt1 oW2b prime_gt1.
   pose muK (j : Iirr (b W2)) := (Dade_mu (b M) (b W) (b W1) j %% K)%CF.
   have inj_muK: injective muK.
     by move=> j1 j2 /(can_inj (cfModK nsKM))/(Dade_mu_inj cycDDb).
   transitivity (size (image muK (predC1 0))); last first.
-    by rewrite size_map -cardE cardC1 card_Iirr_abelian ?oW2b ?cyclic_abelian.
+    by rewrite size_map -cardE cardC1 card_Iirr_cyclic ?oW2b.
   rewrite count_filter; apply: perm_eq_size.
   apply: uniq_perm_eq => [||phi]; first by rewrite filter_uniq ?seqInd_uniq.
     by apply/dinjectiveP=> j1 j2 _ _ /inj_muK.
-  have nsKHU: K <| HU := normalS sKHU sHUM nsKM.
   rewrite mem_filter; apply/andP/imageP=> [[red_phi] | [j nz_j ->]].
     case/seqIndP=> s /setDP[]; rewrite !inE /= => kersK kers'H Dphi.
     pose s1 := quo_Iirr K s.
@@ -858,7 +817,7 @@ have nb_redM K:
   rewrite -(inj_eq (Dade_irr_inj cycDD)) -(inj_eq irr_inj) Dade_chi0 //.
   rewrite irr_eq1 -subGcfker -(sub_cfker_Ind_irr _ sHUM) ?gFnorm //.
   rewrite Dade_Ind_chi // -{j1}Dj1 cfker_morph // subsetI sHUM /=.
-  rewrite -sub_quotient_pre // -(Dade_Ind_chi cycDDb).
+  rewrite -sub_quotient_pre ?normal_norm // -(Dade_Ind_chi cycDDb).
   rewrite sub_cfker_Ind_irr ?quotientS ?quotient_norms ?gFnorm // subGcfker.
   apply: contra nz_j; rewrite -(inj_eq (Dade_irr_inj cycDDb)) => /eqP->.
   by rewrite eq_sym -irr_eq1 Dade_chi0.
@@ -1454,11 +1413,31 @@ have ->: (p ^ q).-1 = (#|X_ H0| * u)%N.
     by rewrite !inE -subGcfker quo_IirrE // cfker_quo ?quotientSGK.
   by rewrite quo_IirrE // cfIndQuo // -Ds -quo_IirrE // irrK quo_IirrK.
 suffices ->: #|X_ H0| = p.-1 by rewrite -(subnKC (prime_gt1 p_pr)) mulKn.
-rewrite -nb_mu (size_red_subseq_seqInd_typeP (filter_subseq _ _)); last first.
-  by move=> xi; rewrite mem_filter => /andP[].
+rewrite -nb_mu (size_red_subseq_seqInd_typeP _ MtypeP _ H0C_mu) //; last first.
+- exact/allP/filter_all.
+- by rewrite filter_uniq ?seqInd_uniq.
 apply/esym/eq_card => i; rewrite inE mem_filter mem_seqInd ?gFnormal //.
 rewrite andb_idl // => Xi; rewrite (allP red_H0C') //.
 by rewrite mem_seqInd ?gFnormal //= C1 (trivgP (der_sub 1 _)) joingG1.
+Qed.
+
+(* This combination of (9.8)(b) and (9.9)(b) covers most uses of these lemmas *)
+(* in sections 10-14.                                                         *)
+Lemma typeP_reducible_core_Ind (W := (W1 <*> W2)%G)(mu := (Dade_mu M W W1) W2) :
+  [/\ size mu_ = p.-1, has predT mu_,
+      {subset mu_ <= [seq mu j | j in predC1 0]}
+    & {in mu_, forall mu_j, isIndHC mu_j}].
+Proof.
+have [centDD [sz_mu _]] := (FT_cDade_hyp maxM MtypeP, nb_redM_H0).
+rewrite has_predT sz_mu -subn1 subn_gt0 prime_gt1 //; split=> // [mu_j|].
+  rewrite mem_filter => /andP[red_chi /seqIndP[s /setDP[_ kerH's] Dchi]].
+  have /imageP[j _ Ds]: s \in codom ((Dade_chi M HU W W1) W2).
+    by apply: contraR red_chi => /(Dade_Ind_chi'_irr centDD)[]; rewrite Dchi.
+  rewrite Dchi Ds (Dade_Ind_chi centDD) image_f ?inE //=.
+  apply: contraNneq kerH's => j0; rewrite Ds j0 inE (Dade_chi0 centDD).
+  by rewrite cfker_cfun1 -(sdprodW defHU) mulG_subl.
+have[/typeP_Galois_characters[_ _ []] // | Gal'M] := boolP typeP_Galois.
+by have [_ []] := typeP_nonGalois_characters Gal'M.
 Qed.
 
 (* This is Peterfalvi (9.10), formulated as a constructive alternative. *)
@@ -1499,6 +1478,14 @@ Qed.
 Import ssrint binomial.
 
 (* This is Peterfalvi (9.11) *)
+(* We had to cover a small gap in step (9.11.4) of the proof, which starts by *)
+(* proving that U1 \subset {1} u A(M), then asserts this obviously implies    *)
+(* HU1 \subset {1} u A(M). It is not, as while {1} u A(M) does contain H, it  *)
+(* is not (necessarily) a subgroup. We had to use the solvability of HU1 in a *)
+(* significant way (using Philip Hall's theorems) to bridge the gap; it's     *)
+(* also possible to exploit lemma (2.1) (partition_cent_rcoset in PFsection1) *)
+(* in a slightly different argument, but the inference is nontrivial in       *)
+(* either case.                                                               *)
 Lemma Ptype_core_coherence : coherent (S_ H0C') M^# tau.
 Proof.
 have [nsHUM sW1M /mulG_sub[sHUM _] nHUW1 tiHUW1] := sdprod_context defM.
@@ -1519,14 +1506,14 @@ have{tiHCbar} defHC'bar: (HC / H0)^`(1)%g = (C^`(1) / H0)%g.
 have sU'U := der_sub 1 U; have nH0U' := subset_trans sU'U nH0U.
 have sU'C: U' \subset C by rewrite subsetI sub_astabQ sU'U nH0U' quotient_cents.
 have uS0: uniq (S_ H0C') by exact: seqInd_uniq.
-have [rmR scohM]: exists R : 'CF(M) -> seq 'CF(G), subcoherent (S_ H0C') tau R.
+have [rmR scohS0]: exists R : 'CF(M) -> seq 'CF(G), subcoherent (S_ H0C') tau R.
   move: (FTtypeP_coh_base _ _) (FTtypeP_subcoherent maxM MtypeP) => R scohR.
   exists R; apply: (subset_subcoherent scohR); split=> //; last first.
     exact: cfAut_seqInd.
   by apply: seqIndS; rewrite Iirr_kerDS ?sub1G //= /M`_\s; case: ifP.
 have [GalM | Gal'M] := boolP typeP_Galois.
   have [_ XOC'u _ _] := typeP_Galois_characters GalM.
-  apply: uniform_degree_coherence scohM _.
+  apply: uniform_degree_coherence scohS0 _.
   apply: all_pred1_constant (#|M : HU| * u)%:R _ _; rewrite all_map.
   by apply/allP=> _ /seqIndP[s /XOC'u[s1u _] ->] /=; rewrite natrM cfInd1 ?s1u.
 have:= typeP_nonGalois_characters Gal'M.
@@ -1557,27 +1544,28 @@ have ntS1: (0 < size S1)%N.
   rewrite count_filter uniq_leq_size ?filter_uniq ?seqInd_uniq // => chi.
   rewrite !mem_filter -andbA /= => /and3P[_ ->].
   by apply: seqIndS; rewrite Iirr_kerDS // genS ?setUS ?dergS ?subsetIl.
-have uccS1: [/\ uniq S1, {subset S1 <= S_ H0C'} & conjC_closed S1].
+have sS10: cfConjC_subset S1 (S_ H0C').
   split=> [||chi]; first by rewrite filter_uniq.
     by apply: mem_subseq; apply: filter_subseq.
   rewrite !mem_filter !inE cfunE => /andP[/eqP <- S0chi].
   by rewrite cfAut_seqInd // andbT conj_Cnat ?(Cnat_seqInd1 S0chi).
 have cohS1: coherent S1 M^# tau.
-  apply: uniform_degree_coherence (subset_subcoherent scohM uccS1) _.
+  apply: uniform_degree_coherence (subset_subcoherent scohS0 sS10) _.
   by apply: all_pred1_constant (q * a)%:R _ _; rewrite all_map filter_all.
 pose S3 := filter [predC S1] (S_ H0C'); move: {2}_.+1 (ltnSn (size S3)) => nS. 
-move: @S3 (uccS1) (cohS1); have: {subset S1 <= S1} by [].
-elim: nS {-1}S1 => // nS IHnS S2 => sS12 S3 uccS2 cohS2; rewrite ltnS => leS3nS.
+move: @S3 (sS10) (cohS1); have: {subset S1 <= S1} by [].
+elim: nS {-1}S1 => // nS IHnS S2 => sS12 S3 sS20 cohS2; rewrite ltnS => leS3nS.
 have [ntS3|] := boolP (size S3 > 0)%N; last first.
   rewrite -count_filter -has_count has_predC negbK => /allP sS02.
   exact: subset_coherent sS02 cohS2.
 (* Ultimateley we'll contradict the maximality of S2 in (9.11.1) & (9.11.8). *)
-suff [chi]: exists2 chi, chi \in S3 & coherent (chi :: chi^* ::S2)%CF M^# tau.
-  rewrite mem_filter => /andP[/= S2'chi S0chi]; have[uS2 sS20 ccS2] := uccS2.
+suff [chi]: exists2 chi, chi \in S3 & coherent (chi :: chi^* :: S2)%CF M^# tau.
+  rewrite mem_filter => /andP[/= S2'chi S0chi]; have [uS2 sS2S0 ccS2] := sS20.
   move/IHnS; apply=> [psi /sS12 S1psi||]; first by rewrite 2?mem_behead.
-    rewrite /= !inE negb_or S2'chi (contra (ccS2 _)) ?cfConjCK // eq_sym.
-    split; first by rewrite (seqInd_conjC_neq _ _ _ S0chi) ?mFT_odd.
-     by apply/allP; rewrite /= S0chi cfAut_seqInd //=; apply/allP.
+    split.
+    - rewrite /= !inE negb_or S2'chi (contra (ccS2 _)) ?cfConjCK // eq_sym.
+      by rewrite (seqInd_conjC_neq _ _ _ S0chi) ?mFT_odd.
+    - by apply/allP; rewrite /= S0chi cfAut_seqInd //=; apply/allP.
     apply/allP; rewrite /= !inE cfConjCK !eqxx orbT /=.
     by apply/allP=> psi /ccS2; rewrite !inE orbA orbC => ->.
   apply: leq_trans leS3nS; rewrite ltnNge; apply: contra S2'chi.
@@ -1585,12 +1573,12 @@ suff [chi]: exists2 chi, chi \in S3 & coherent (chi :: chi^* ::S2)%CF M^# tau.
     by rewrite !mem_filter !inE orbA negb_or -andbA => /andP[].
   by rewrite !mem_filter !inE eqxx S0chi !andbT => /esym/negbFE.
 (* This is step (9.11.1). *) clear nS IHnS leS3nS.
-without loss [[eqS12 irrS1 H0C_S1] [Da_p defC] [S3qa ne_qa_qu] [oS1 oS1ua]]:
+without loss [[eqS12 irrS1 H0C_S1] [Da_p defC] [S3qu ne_qa_qu] [oS1 oS1ua]]:
   / [/\ [/\ S1 =i S2, {subset S1 <= irr M} & {subset S1 <= S_ H0C}],
         a = p.-1./2 /\ C :=: U',
         (forall chi, chi \in S3 -> chi 1%g == (q * u)%:R) /\ (q * u != q * a)%N
       & size S1 = (p.-1 * u %/ a ^ 2)%N /\ size S1 = (2 * u %/ a)%N].
-- move=> IHwlog; have [[uS2 sS20 ccS2] [uS1 _ _]] := (uccS2, uccS1).
+- move=> IHwlog; have{sS20} [[uS2 sS20 ccS2] [uS1 _ _]] := (sS20, sS10).
   pose is_qu := [pred chi : 'CF(M) | chi 1%g == (q * u)%:R].
   pose isn't_qu := [pred chi | is_qu chi ==> all is_qu S3].
   have /hasP[chi S3chi qu'chi]: has isn't_qu S3.
@@ -1670,7 +1658,7 @@ without loss [[eqS12 irrS1 H0C_S1] [Da_p defC] [S3qa ne_qa_qu] [oS1 oS1ua]]:
     exists chi => //; have /hasP[xi S1xi _]: has predT S1 by rewrite has_predT.
     have xi1: xi 1%g = (q * a)%:R.
       by rewrite mem_filter in S1xi; have [/eqP] := andP S1xi.
-    apply: ((extend_coherent scohM) _ xi) => //; first by rewrite S0chi sS12.
+    apply: ((extend_coherent scohS0) _ xi) => //; first by rewrite S0chi sS12.
     split=> //; last by rewrite mulrAC xi1 -natrM mulnA.
     rewrite xi1 Dchi1 irr1_degree -natrM dvdC_nat dvdn_pmul2l ?cardG_gt0 //.
     rewrite -dvdC_nat /= !nCdivE -irr1_degree a_dv_XH0 //.
@@ -1692,7 +1680,7 @@ without loss [[eqS12 irrS1 H0C_S1] [Da_p defC] [S3qa ne_qa_qu] [oS1 oS1ua]]:
   by split=> //; rewrite -mulnn {1}Dp addn1 -Da_p mulnAC divnMr.
 have nCW1: W1 \subset 'N(C).
   by rewrite (subset_trans (joing_subr U W1)) ?normal_norm.
-(* This is step (9.11.2). *) clear uccS2 cohS2 sS12 has_irrHC lb_Sqa sU'C.
+(* This is step (9.11.2). *) clear sS20 cohS2 sS12 has_irrHC lb_Sqa sU'C.
 have [tiU1 le_u_a2]: {in W1^#, forall w, U1 :&: U1 :^ w = C} /\ (u <= a ^ 2)%N.
   have tiU1 w: w \in W1^# -> U1 :&: U1 :^ w = C; last split => //.
     case/setD1P=> ntw W1w; have nH0w := subsetP (subset_trans sW1M nH0M) w W1w.
@@ -1701,8 +1689,10 @@ have [tiU1 le_u_a2]: {in W1^#, forall w, U1 :&: U1 :^ w = C} /\ (u <= a ^ 2)%N.
       rewrite -in_set1 -set1gE -tiHUW1 inE (subsetP sHHU) // (subsetP sH0H) //.
       by rewrite H0w.
     have ntH1 w1: H1 :^ w1 :!=: 1%g by rewrite -cardG_gt1 cardJg oH1 prime_gt1.
-    pose t_ w1 := if pred2 1%g wb w1 then sval (has_nonprincipal_irr (ntH1 w1)) else 0.
-    pose theta := cfDprodl defHCbar (cfBigdprod defHbar (fun w1 => 'chi_(t_ w1))).
+    pose t_ w1 :=
+      if pred2 1%g wb w1 then sval (has_nonprincipal_irr (ntH1 w1)) else 0.
+    pose theta :=
+      cfDprodl defHCbar (cfBigdprod defHbar (fun w1 => 'chi_(t_ w1))).
     have lin_theta : theta \is a linear_char.
       rewrite cfDprodl_lin_char ?cfBigdprod_lin_char // => w1 _.
       by rewrite irr_prime_lin ?cardJg ?oH1.
@@ -1710,11 +1700,13 @@ have [tiU1 le_u_a2]: {in W1^#, forall w, U1 :&: U1 :^ w = C} /\ (u <= a ^ 2)%N.
       by rewrite /normal join_subG nH0H sub_gen ?subsetU ?sH0H.
     move defK: H0C => K. (* to avoid divergence in Coq kernel *)
     have kerK: K \subset cfker (theta %% H0).
-      by rewrite -defK sub_cfker_mod ?join_subG ?normG ?quotientYidl // cfker_sdprod.
+      rewrite -defK sub_cfker_mod ?join_subG ?normG ?quotientYidl //.
+      exact: cfker_sdprod.
     have sKHC: K \subset HC by rewrite -defK genS ?setSU.
     have nsKHC: K <| HC by rewrite (normalS sKHC (normal_sub nsHC_M)) -?defK.
     have sH0K: H0 \subset K by rewrite -defK joing_subl.
-    have nsKHU: K <| HU by rewrite (normalS (subset_trans sKHC sHCHU) sHUM) -?defK.
+    have nsKHU: K <| HU.
+      by rewrite (normalS (subset_trans sKHC sHCHU) sHUM) -?defK.
     have [t2 Dt2]: {t2 : Iirr (HC / K) | 'chi_t2 %% K = theta %% H0}%CF.
       exists (cfIirr ((theta %% H0) / K)).
       by rewrite cfIirrE ?cfQuoK ?cfQuo_irr ?cfMod_irr ?lin_char_irr.
@@ -1723,8 +1715,9 @@ have [tiU1 le_u_a2]: {in W1^#, forall w, U1 :&: U1 :^ w = C} /\ (u <= a ^ 2)%N.
     pose That := 'I_(HU / K)['chi_t2]%G.
     have sThatHU: That \subset (HU / K)%G := Inertia_sub _ _.
     have abThatHC: abelian (That / (HC / K)).
-      rewrite (abelianS (quotientS _ sThatHU)) // (isog_abelian (third_isog _ _ _)) //.
-      rewrite defC -(isog_abelian (quotient_sdprodr_isog defHU _)) ?gFnormal //.
+      rewrite (abelianS (quotientS _ sThatHU)) //.
+      rewrite (isog_abelian (third_isog _ _ _)) // defC.
+      rewrite -(isog_abelian (quotient_sdprodr_isog defHU _)) ?gFnormal //.
       by rewrite sub_der1_abelian.
     have hallHChat: coprime #|(HC / K)%G| #|That : (HC / K)%G|.
       rewrite -(card_isog (third_isog sH0K nsH0HC nsKHC)) /= -[in #|_|]defK.
@@ -1738,9 +1731,8 @@ have [tiU1 le_u_a2]: {in W1^#, forall w, U1 :&: U1 :^ w = C} /\ (u <= a ^ 2)%N.
     have s_1: ('chi_s %% K)%CF 1%g = #|U : U1 :&: U1 :^ w|%:R.
       rewrite -Ind_Iirr_constt_inertia // in t2HUs.
       have{t2HUs} /imsetP[s2 t2Ts2 ->] := t2HUs.
-      rewrite cfMod1 inertia_Ind_IirrE //.
-      have [_ _ /(_ _ t2Ts2)->] :=
-        induced_inertia_quo1 nsHChatHU abThatHC hallHChat.
+      have [_ _ IndHUhat] := induced_inertia_quo1 nsHChatHU abThatHC hallHChat.
+      rewrite cfMod1 inertia_Ind_IirrE // {}IndHUhat {t2Ts2}//.
       rewrite -cfMod1 Dt2 cfMod1 lin_char1 //= mulr1 -inertia_mod_quo // Dt2.
       rewrite index_quotient_eq ?normal_norm ?Inertia_sub ?setIS //; last first.
         by rewrite (subset_trans sKHC) ?sub_inertia.
@@ -1790,7 +1782,7 @@ have [tiU1 le_u_a2]: {in W1^#, forall w, U1 :&: U1 :^ w = C} /\ (u <= a ^ 2)%N.
         move/eq_cfker_Res; rewrite cfDprodlK => kerHbar.
         have:= sH1H; rewrite -{1}(conjsg1 H1) -kerHbar => /eq_cfker_Res.
         by rewrite cfBigdprodKabelian ?group1 // /t_ /= eqxx -subGcfker => ->.
-      have [/S3qa | ] := boolP (phi \in S3).
+      have [/S3qu | ] := boolP (phi \in S3).
         rewrite cfInd1 // natrM -(index_sdprod defM).
         by rewrite (inj_eq (mulfI (neq0CG _))) => ->.
       rewrite mem_filter Sphi andbT negbK /= -eqS12 mem_filter Sphi andbT /=.
@@ -1820,6 +1812,7 @@ have [tiU1 le_u_a2]: {in W1^#, forall w, U1 :&: U1 :^ w = C} /\ (u <= a ^ 2)%N.
     by rewrite -(normsP nUW1 w W1w) conjSg subsetIl.
   by rewrite -quotientGI // tiU1 ?trivg_quotient // !inE ntw.
 pose S4 := filter [predD S_ H0C & redM] S3.
+have sS43: {subset S4 <= S3} by apply: mem_subseq; apply: filter_subseq.
 (* This is step (9.11.3). *)
 have nsHM: H <| M by exact: gFnormal.
 have oS4: (q * u * size S4 + p.-1 * (q + u))%N = (p ^ q).-1.
@@ -1839,12 +1832,14 @@ have oS4: (q * u * size S4 + p.-1 * (q + u))%N = (p ^ q).-1.
       by case/andP=> /eqP/(mulfI (neq0CG _))->.
     rewrite (eq_bigr (fun _ => u%:R ^+ 2)) => [|s]; last first.
       rewrite 2!inE eqS12 => /andP[S2's H0Cs]; congr (_ ^+ 2).
-      have /S3qa/eqP: 'Ind 'chi_s \in S3.
+      have /S3qu/eqP: 'Ind 'chi_s \in S3.
         by rewrite mem_filter /= S2's sH0CC' ?mem_seqInd.
       by rewrite natrM cfInd1 // -(index_sdprod defM) => /(mulfI (neq0CG _)).
     rewrite sumr_const -mulr_natl natrM natrX -nb_mu; congr (_%:R * _).
-    rewrite (size_red_subseq_seqInd_typeP (filter_subseq _ _)); last first.
-      by move=> xi; rewrite mem_filter => /andP[].
+    have [_ s_mu_H0C] := nb_redM_H0.
+    rewrite (size_red_subseq_seqInd_typeP maxM MtypeP _ s_mu_H0C); last first.
+    - by apply/allP; apply: filter_all.
+    - by rewrite filter_uniq ?seqInd_uniq.
     rewrite -/mu_ -[#|_|](cardsID Xn) (setIidPr _); last first.
       apply/subsetP=> s; rewrite inE in_setD mem_filter /= -!andbA -eqS12.
       rewrite mem_seqInd ?gFnormal // => /and4P[_ -> S1'xi _].
@@ -1876,36 +1871,34 @@ pose gamma := 'Ind[M, H <*> U1] 1; pose alpha := gamma - psi1.
 (* This is step (9.11.4). *)
 pose nm_alpha : algC := a%:R + 1 + (q.-1 * a ^ 2)%:R / u%:R.
 have [Aalpha Nalpha]: alpha \in 'CF(M, 'A(M)) /\ '[alpha] = nm_alpha.
-  have sHU1_A1: H <*> U1 \subset 1%g |: 'A(M).
-    rewrite norm_joinEr 1?subIset ?nHU //= -/U1.
-    rewrite -(cover_partition (rcosets_partition_mul _ H)) /= -/U1.
-    rewrite cover_imset; apply/bigcupsP=> y /setIP[Uy cH1y]; rewrite rcosetE.
-    have coHy: coprime #|H| #[y] by rewrite (coprimegS _ coHU) ?cycle_subG.
-    have nHy := subsetP nHU y Uy.
-    have [/cover_partition <- _]:= partition_cent_rcoset nHy coHy.
-    rewrite cover_imset; apply/bigcupsP=> x Hx.
-    rewrite sub_conjg {x Hx}(normsP _ _ (groupVr Hx)); last first.
-      by rewrite normsU ?norms1 // (subset_trans (gFsub _ _)) ?FTsupp_norm.
-    have ntCHy: 'C_H[y] != 1%g.
-      apply: contraTneq (prime_gt1 p_pr) => regHy; rewrite -oH1 cardG_gt1 negbK.
-      move: cH1y; rewrite -cycle_subG sub_astabQ centsC => /andP[nHY cH1Y].
-      rewrite -(setIidPl cH1Y) -(setIidPl sH1H) -setIA.
-      by rewrite -coprime_quotient_cent // cent_cycle regHy quotient1 setIg1.
-    have /trivgPn[x /setIP[/setIP[Hx cxy] cCyx] ntx]: 'Z('C_H[y]) != 1%g.
-      rewrite -(setIidPr (center_sub _)) meet_center_nil //.
-      by rewrite (nilpotentS (subsetIl _ _)) ?Fcore_nil.
-    rewrite -subDset; apply/subsetP=> z /setD1P[ntz CHyy_z].
-    apply/bigcupP; exists x.
-      by rewrite 2!inE ntx /M`_\s; case: ifP; rewrite ?(subsetP sHHU).
-    rewrite 2!inE ntz notMtype1 /= -(mulgKV y z) groupM //.
-      rewrite mem_rcoset in CHyy_z; have [Hzy _] := setIP CHyy_z.
-      by rewrite inE (subsetP sHHU) // (subsetP _ _ CHyy_z) // sub_cent1.
-    by rewrite inE (subsetP sUHU) // cent1C.
-  have sHU1_HU: H <*> U1 \subset HU by rewrite join_subG sHHU subIset ?sUHU.
+  have sHU1_HU: H <*> U1 \subset HU by rewrite -(sdprodWY defHU) genS ?setUS.
   have sHU1_M := subset_trans sHU1_HU sHUM.
+  have sHU1_A1: H <*> U1 \subset 1%g |: 'A(M).
+    pose pi := \pi(H); rewrite -subDset; apply/subsetP=> y /setD1P[nty HU1y].
+    apply/bigcupP; rewrite notMtype1 /=; have sHMs := Fcore_sub_FTcore maxM.
+    have defHU1: H ><| U1 = H <*> U1 := sdprod_subr defHU sU1U.
+    have nsH_HU1: H <| H <*> U1 by have [] := sdprod_context defHU1.
+    have [HUy [_ nH_HU1]] := (subsetP sHU1_HU y HU1y, normalP nsH_HU1).
+    have hallH: pi.-Hall(H <*> U1) H.
+      by rewrite Hall_pi // -(coprime_sdprod_Hall defHU1) (coprimegS sU1U).
+    have hallU1: pi^'.-Hall(H <*> U1) U1.
+      by rewrite -(compl_pHall _ hallH) sdprod_compl.
+    have [pi'y | pi_y] := boolP (pi^'.-elt y); last first.
+      exists y.`_pi; last by rewrite 3!inE nty HUy cent1C groupX ?cent1id.
+      rewrite !inE (sameP eqP constt1P) pi_y (subsetP sHMs) //.
+      by rewrite (mem_normal_Hall hallH) ?groupX ?p_elt_constt.
+    have solHU1: solvable (H <*> U1) by rewrite (solvableS sHU1_M) ?mmax_sol.
+    have [||z HU1z U1yz] := Hall_Jsub _ hallU1 _ pi'y; rewrite ?cycle_subG //.
+    have /trivgPn[x /setIP[Hx cxyz] ntx]: 'C_H[y ^ z] != 1%g.
+      apply: contraTneq (prime_gt1 p_pr) => regHy; rewrite -oH1 cardG_gt1 negbK.
+      move: U1yz; rewrite -cycleJ subsetI sub_astabQ => /and3P[sYU nHY cH1Y].
+      rewrite centsC in cH1Y; rewrite -(setIidPl cH1Y) -(setIidPl sH1H) -setIA.
+      rewrite -coprime_quotient_cent ?(coprimegS sYU) // cent_cycle regHy.
+      by rewrite quotient1 setIg1.
+    exists (x ^ z^-1)%g; last by rewrite 3!inE nty HUy cent1J mem_conjgV cent1C.
+    by rewrite 2!inE conjg_eq1 ntx (subsetP sHMs) // -mem_conjg nH_HU1.
   have{sHU1_A1} Aalpha: alpha \in 'CF(M, 'A(M)).
-    have A'1: 1%g \notin 'A(M).
-      by have /subsetD1P[] := subset_trans (FTsupp_sub M) (FTsupp0_sub M).
+    have A'1: 1%g \notin 'A(M) by have /subsetD1P[] := FTsupp_sub M.
     rewrite -['A(M)](setU1K A'1) cfun_onD1 !cfunE subr_eq0 cfInd1 // cfun11.
     rewrite mulr1 -(Lagrange_index sHUM) // -(index_sdprod defM) -/q.
     rewrite -(index_sdprodr defHU) ?subsetIl // -/a eq_sym andbC.
@@ -1989,24 +1982,24 @@ have [gtS4alpha s4gt0]: (size S4)%:R > '[alpha] /\ (size S4 > 0)%N.
   rewrite Dp -Da_p mul2n (addnC a.*2) expnDn -(subnKC q_gt2) !addSn add0n.
   rewrite 3!big_ord_recl big_ord_recr /= !exp1n /= bin1 binn !mul1n /bump /=.
   by do 2!rewrite addnC leq_add2l; apply: leq_addl.
-have [tau1 [IZtau1 Dtau1]] := cohS1; have [Itau1 Ztau1] := IZtau1.
-have scohS3: subcoherent S3 tau rmR.
-  apply: (subset_subcoherent scohM); rewrite filter_uniq ?seqInd_uniq //.
-  split=> // chi; first by rewrite mem_filter => /andP[].
+have{cohS1} [tau1 cohS1] := cohS1; have [[Itau1 Ztau1] Dtau1] := cohS1.
+have sS30: cfConjC_subset S3 (S_ H0C').
+  split=> [|chi|chi]; first by rewrite filter_uniq ?seqInd_uniq.
+    by rewrite mem_filter => /andP[].
   rewrite !mem_filter /= -!eqS12 => /andP[S1'chi S_chi].
   rewrite cfAut_seqInd // (contra _ S1'chi) //.
-  by have [_ _ ccS1] := uccS1; move/ccS1; rewrite cfConjCK.
-have [tau3 [IZtau3 Dtau3]]: coherent S3 M^# tau.
+  by have [_ _ ccS1] := sS10; move/ccS1; rewrite cfConjCK.
+have scohS3: subcoherent S3 tau rmR := subset_subcoherent scohS0 sS30.
+have [tau3 cohS3]: coherent S3 M^# tau.
   apply: uniform_degree_coherence scohS3 _.
   apply: all_pred1_constant (q * u)%:R _ _.
-  by rewrite all_map; apply/allP=> chi /S3qa.
-have [Itau3 Ztau3] := IZtau3.
-have notA1: 1%g \notin 'A(M).
-  by have /subsetD1P[] := subset_trans (FTsupp_sub M) (FTsupp0_sub M).
-have sS_1A: {subset S_ H0C' <= 'CF(M, 1%g |: 'A(M))}.
+  by rewrite all_map; apply/allP=> chi /S3qu.
+have [IZtau3 Dtau3] := cohS3; have [Itau3 Ztau3] := IZtau3.
+have notA1: 1%g \notin 'A(M) by have /subsetD1P[] := FTsupp_sub M.
+have sS0_1A: {subset S_ H0C' <= 'CF(M, 1%g |: 'A(M))}.
   move=> _ /seqIndP[s /setDP[_ ker'H] ->]; rewrite inE in ker'H.
   by rewrite setUC (cDade_cfker_cfun_on_ind (FT_cDade_hyp maxM MtypeP)).
-have sS_A: {subset 'Z[S_ H0C', M^#] <= 'Z[irr M, 'A(M)]}.
+have sS0A: {subset 'Z[S_ H0C', M^#] <= 'Z[irr M, 'A(M)]}.
   move=> chi; rewrite (zcharD1_seqInd_Dade _ notA1) //.
   by apply: zchar_sub_irr; apply: seqInd_vcharW.
 have Zalpha: alpha \in 'Z[irr M].
@@ -2015,7 +2008,7 @@ have Zalpha: alpha \in 'Z[irr M].
 have ZAalpha: alpha \in 'Z[irr M, 'A(M)] by rewrite zchar_split Zalpha.
 have [Itau Ztau]: {in 'Z[irr M, 'A(M)], isometry tau, to 'Z[irr G]}.
   apply: sub_iso_to (Dade_Zisometry _); last exact: zcharW.
-  by apply: zchar_onS; apply: FTsupp_sub.
+  by apply: zchar_onS; apply: FTsupp_sub0.
 have oSgamma: {in S_ H0C', forall lam, '[gamma, lam] = 0}.
   move=> _ /seqIndP[s /setDP[_ ker'H ] ->].
   rewrite ['Ind _]cfun_sum_constt cfdot_sumr big1 // => t sMt.
@@ -2059,9 +2052,9 @@ have o_alpha_S3: orthogonal alpha^\tau (map tau3 S3).
   rewrite mem_filter in S4lam; have{S4lam} [_ S3lam] := andP S4lam.
   have Zdlam: lam0 - lam \in 'Z[S3, M^#].
     rewrite zcharD1E rpredB ?mem_zchar //= !cfunE subr_eq0.
-    by have [/eqP->] := (S3qa _ S3lam, S3qa _ S3lam0).
+    by have [/eqP->] := (S3qu _ S3lam, S3qu _ S3lam0).
   rewrite -subr_eq0 -cfdotBr -raddfB Dtau3 //.
-  rewrite Itau // ?sS_A //; last exact: zchar_filter Zdlam.
+  rewrite Itau // ?sS0A //; last exact: zchar_filter Zdlam.
   suffices{lam S3lam Zdlam} oS3a: {in S3, forall lam, '[alpha, lam] = 0}.
     by rewrite cfdotBr subr_eq0 !oS3a.
   move=> lam; rewrite mem_filter /= -eqS12 => /andP[S1'lam H0C'lam].
@@ -2076,13 +2069,13 @@ have ZS3dlam1: lam1 - lam1^*%CF \in 'Z[S3, M^#].
   rewrite zcharD1E rpredB ?mem_zchar //.
   by have:= seqInd_sub_aut_zchar nsHUM conjC Slam1; rewrite zcharD1 => /andP[].
 have ZAdlam1: lam1 - lam1^*%CF \in 'Z[irr M, 'A(M)].
-  rewrite sS_A // zchar_split rpredB ?mem_zchar ?cfAut_seqInd //.
+  rewrite sS0A // zchar_split rpredB ?mem_zchar ?cfAut_seqInd //.
   by rewrite (zchar_on ZS3dlam1).
 pose beta := lam1 - (u %/ a)%:R *: psi1.
 have ZAbeta: beta \in 'Z[irr M, 'A(M)].
-  apply: sS_A; rewrite zcharD1E rpredB ?scaler_nat ?rpredMn ?mem_zchar //=.
-  by rewrite !cfunE subr_eq0 psi1qa -natrM mulnCA divnK // S3qa.
-have [_ _ poSS _ _] := scohM; have [_ oSS] := pairwise_orthogonalP poSS.
+  apply: sS0A; rewrite zcharD1E rpredB ?scaler_nat ?rpredMn ?mem_zchar //=.
+  by rewrite !cfunE subr_eq0 psi1qa -natrM mulnCA divnK // S3qu.
+have [_ _ poSS _ _] := scohS0; have [_ oSS] := pairwise_orthogonalP poSS.
 have o1S1: orthonormal S1.
   rewrite orthonormalE filter_pairwise_orthogonal // andbT.
   by apply/allP=> _ /irrS1/irrP[t ->]; rewrite /= cfnorm_irr.
@@ -2092,37 +2085,17 @@ have o1S4: orthonormal S4.
   by case/andP=> /irrP[t ->]; rewrite cfnorm_irr.
 have n1psi1: '[psi1] = 1 by have [_ -> //] := orthonormalP o1S1; rewrite eqxx.
 have n1lam1: '[lam1] = 1 by have [_ -> //] := orthonormalP o1S4; rewrite eqxx.
+have oS14tau: orthogonal (map tau1 S1) (map tau3 S4).
+  apply/orthogonalP=> psi _ S1psi /mapP[lam /sS43 S3lam ->].
+  apply: {psi lam S3lam}orthogonalP S1psi (map_f tau3 S3lam).
+  apply: (coherent_ortho scohS0 sS10 cohS1 sS30 cohS3) => psi /=.
+  by rewrite mem_filter !inE eqS12 => /andP[-> _].
 have [Gamma [S4_Gamma normGamma [b Dbeta]]]:
   exists Gamma, [/\ Gamma \in 'Z[map tau3 S4], '[Gamma] = 1
     & exists b : bool, beta^\tau
         = Gamma - (u %/ a)%:R *: tau1 psi1 + b%:R *: \sum_(psi <- S1) tau1 psi].
-- have oS14tau: orthogonal (map tau1 S1) (map tau3 S4).
-    apply/orthogonalP=> _ _ /mapP[psi S1psi ->] /mapP[lam S4lam ->].
-    have Spsi: psi \in S_ H0C' by move: S1psi; rewrite mem_filter => /andP[].
-    have{S4lam} S3lam: lam \in S3 by move: S4lam; rewrite mem_filter => /andP[].
-    have [S1'lam Slam]: lam \notin S1 /\ lam \in S_ H0C'.
-      by move: S3lam; rewrite mem_filter eqS12 => /andP[].
-    have [[_ _ ccS1] [[_ _ ccS3] _ _ _ _]] := (uccS1, scohS3).
-    have [||e1 /mem_subseq Re1 ->] := (coherent_sum_subseq scohM) _ tau1 Spsi.
-    - apply: sub_iso_to IZtau1 => //; apply: zchar_subset; apply/allP=> /=.
-      by rewrite S1psi ccS1.
-    - rewrite Dtau1 // zcharD1E rpredB ?mem_zchar ?ccS1 //=.
-      have:= seqInd_sub_aut_zchar nsHUM conjC Spsi.
-      by rewrite zcharD1 => /andP[].
-    have [||e3 /mem_subseq Re3 ->] := (coherent_sum_subseq scohM) _ tau3 Slam.
-    - apply: sub_iso_to IZtau3 => //; apply: zchar_subset; apply/allP=> /=.
-      by rewrite S3lam ccS3.
-    - rewrite Dtau3 // zcharD1E rpredB ?mem_zchar ?ccS3 //=.
-      have:= seqInd_sub_aut_zchar nsHUM conjC Slam.
-      by rewrite zcharD1 => /andP[].
-    rewrite !big_seq cfdot_suml big1 // => nu1 /Re1 Rnu1.
-    rewrite cfdotC cfdot_suml big1 ?rmorph0 // => nu3 /Re3 Rnu3.
-    have [[_ _ ccS] _ _ _ oRR] := scohM.
-    rewrite (orthogonalP (oRR _ _ Spsi Slam _)) /orthogonal //=.
-    by rewrite !oSS ?eqxx ?ccS ?(eq_sym lam) ?(memPn S1'lam) ?ccS1.
-  have [G [G' [Dbeta S4G oG'4]]] := orthogonal_split (map tau3 S4) beta^\tau.
+- have [G [G' [Dbeta S4G oG'4]]] := orthogonal_split (map tau3 S4) beta^\tau.
   have [B [Delta [dG' S1B oD1]]] := orthogonal_split (map tau1 S1) G'.
-  have sS43: {subset S4 <= S3} by apply: mem_subseq; apply: filter_subseq.
   have sZS43: {subset 'Z[S4] <= 'Z[S3]} := zchar_subset sS43.
   have [Itau34 Ztau34] := sub_iso_to sZS43 sub_refl IZtau3.
   have Z_G: G \in 'Z[map tau3 S4].
@@ -2153,7 +2126,7 @@ have [Gamma [S4_Gamma normGamma [b Dbeta]]]:
     have Z1dpsi: psi1 - psi \in 'Z[S1, M^#].
       by rewrite zcharD1E rpredB ?mem_zchar //= !cfunE psi1qa psi_qa subrr.
     rewrite -raddfB Dtau1 // Itau //; last first.
-      by rewrite sS_A // zchar_split rpredB ?mem_zchar ?(zchar_on Z1dpsi).
+      by rewrite sS0A // zchar_split rpredB ?mem_zchar ?(zchar_on Z1dpsi).
     rewrite cfdotC cfdotBr cfdotZr !cfdotBl 2?oSS ?(memPn S1'lam1) // subrr.
     by rewrite add0r n1psi1 oSS // subr0 mulr1 rmorphN conjCK subrr scale0r.
   have Gge1: 1 <= '[G] ?= iff ('[G] == 1).
@@ -2167,7 +2140,7 @@ have [Gamma [S4_Gamma normGamma [b Dbeta]]]:
       rewrite (seqInd_conjC_ortho _ _ _ Slam1) ?mFT_odd // subr0.
       rewrite !oSS ?cfAut_seqInd -?(inv_eq (@cfConjCK _ _)) ?(memPn S1'lam1) //.
         by rewrite !(subr0, mulr0) oner_eq0.
-      by have [_ _ ->] := uccS1.
+      by have [_ _ ->] := sS10.
     rewrite Dbeta -Dtau3 //; apply: contraNneq => ->.
     rewrite add0r raddfB cfdotBr !(orthoPl oG'4) ?map_f ?subr0 //.
     rewrite mem_filter /= negbK /= S3lam1s irr_aut.
@@ -2227,7 +2200,7 @@ have{alphaS1_X S1X} defX: X = x *: (\sum_(psi <- S1) tau1 psi) - tau1 psi1.
   have Z1dpsi: psi1 - psi \in 'Z[S1, M^#].
     by rewrite zcharD1E rpredB ?mem_zchar //= !cfunE psi1qa psi_qa subrr.
   rewrite -raddfB Dtau1 // Itau //; last first.
-    by rewrite sS_A // zchar_split rpredB ?mem_zchar ?(zchar_on Z1dpsi).
+    by rewrite sS0A // zchar_split rpredB ?mem_zchar ?(zchar_on Z1dpsi).
   rewrite cfdotBr !cfdotBl !oSgamma // n1psi1 cfdotC oSS // rmorph0.
   by rewrite !subr0 add0r subrr scale0r.
 have{x Zx X defX Delta Dalpha oD1} b_mod_ua: (b == 0 %[mod u %/ a])%C.
@@ -2251,23 +2224,21 @@ have{b_mod_ua alpha_beta} b0: b = 0%N :> nat.
   have:= b_mod_ua; rewrite /eqCmod subr0 dvdC_nat => /eqnP.
   rewrite modn_small // (leq_ltn_trans (leq_b1 b)) // ltn_divRL // mul1n.
   by rewrite ltn_neqAle -(eqn_pmul2l q_gt0) eq_sym ne_qa_qu dvdn_leq.
+exists lam1 => //; suffices: coherent (lam1 :: lam1^* :: S1)%CF M^# tau.
+  by apply: subset_coherent => phi; rewrite !inE eqS12.
+suffices Rlam1Gamma: Gamma \in 'Z[rmR lam1].
+  move: Dbeta; rewrite b0 scale0r addr0.
+  apply: (extend_coherent_with scohS0 sS10 cohS1); first by [].
+  by rewrite rpred_nat psi1qa -natrM mulnCA (eqP (S3qu _ S3lam1)) divnK.
 have Z_Gamma: Gamma \in 'Z[irr G].
   apply: zchar_sub_irr S4_Gamma => _ /mapP[xi S4xi ->].
   by rewrite Ztau3 ?mem_zchar ?(mem_subseq _ S4xi) ?filter_subseq.
-have [X [Y [defGamma R_X oYR]]] := subcoherent_split scohM Slam1 Z_Gamma.
+have [X [Y [defGamma R_X oYR]]] := subcoherent_split scohS0 Slam1 Z_Gamma.
 set Y1 := _ *: tau1 psi1 in Dbeta.
-have [[_ _ ccS1] [[_ _ ccS] _ _ _ oRR]] := (uccS1, scohM).
-have [||e1 /mem_subseq Re1 Dpsi1] := (coherent_sum_subseq scohM) _ tau1 Spsi1.
-- apply: sub_iso_to IZtau1 => //; apply: zchar_subset; apply/allP=> /=.
-  by rewrite S1psi1 ccS1.
-- rewrite Dtau1 // zcharD1E rpredB ?mem_zchar ?ccS1 //=.
-  have:= seqInd_sub_aut_zchar nsHUM conjC Spsi1.
-  by rewrite zcharD1 => /andP[].
+have [[_ _ ccS1] [[_ _ ccS0] _ _ _ _]] := (sS10, scohS0).
 have oY1R: orthogonal Y1 (rmR lam1).
-  apply/orthoPl=> mu Rmu; rewrite cfdotZl cfdotC Dpsi1 cfdot_sumr.
-  rewrite big_seq big1 ?rmorph0 ?mulr0 // => nu1 /Re1 Rnu1.
-  rewrite (orthogonalP (oRR _ _ Spsi1 Slam1 _)) /orthogonal //=.
-  by rewrite !oSS ?eqxx ?ccS ?(eq_sym lam1) ?(memPn S1'lam1) ?ccS1.
+  have oS1R := coherent_ortho_supp scohS0 sS10 cohS1 Slam1 S1'lam1.
+  by apply/orthoPl=> xi Rxi; rewrite cfdotZl (orthogonalP oS1R) ?map_f ?mulr0.
 have defXY: [/\ beta^\tau = X - (Y + Y1), X \in 'Z[rmR lam1]
               & orthogonal (Y + Y1) (rmR lam1)].
 - split=> //; first by rewrite Dbeta b0 scale0r addr0 defGamma -addrA -opprD.
@@ -2279,109 +2250,17 @@ have [lbYY1 /esym/eqP Y0]: '[(u %/ a)%:R *: psi1] <= '[Y + Y1] ?= iff (Y == 0).
     by apply: lerif_eq; rewrite cfnorm_ge0.
   rewrite -(subrK X Y) -opprB -defGamma addrC cfdotBl.
   rewrite cfdotC (span_orthogonal oY1R) ?(zchar_span R_X) ?memv_span ?inE //.
-  rewrite rmorph0 cfdotZr Dpsi1 cfdot_sumr big_seq big1 ?mulr0 ?subrr //.
-  move=> nu1 /Re1/memv_span; apply: span_orthogonal (zchar_span S4_Gamma).
-  apply/orthogonalP=> {nu1} _ nu1 /mapP[lam S4lam ->] Rnu1.
-  have{S4lam} S3lam: lam \in S3 by move: S4lam; rewrite mem_filter => /andP[].
-  have [S1'lam Slam]: lam \notin S1 /\ lam \in S_ H0C'.
-    by move: S3lam; rewrite eqS12 mem_filter => /andP[].
-  have [[_ _ ccS3] _ _ _ _] := scohS3.
-  have [||e4 /mem_subseq Re4 ->] := (coherent_sum_subseq scohM) _ tau3 Slam.
-  + apply: sub_iso_to IZtau3 => //; apply: zchar_subset; apply/allP=> /=.
-    by rewrite S3lam ccS3.
-  + rewrite Dtau3 // zcharD1E rpredB ?mem_zchar ?ccS3 //=.
-    have:= seqInd_sub_aut_zchar nsHUM conjC Slam.
-    by rewrite zcharD1 => /andP[].
-  rewrite cfdot_suml big_seq big1 // => nu4 /Re4 Rnu4.
-  rewrite (orthogonalP (oRR psi1 lam _ _ _)) /orthogonal //=.
-  by rewrite !oSS ?eqxx ?ccS ?(eq_sym lam) ?(memPn S1'lam) ?ccS1.
-have [|| _ [//|nX YY1 [e Re dX]]] := subcoherent_norm scohM _ _ (erefl _) defXY.
+  rewrite cfdotC (span_orthogonal oS14tau) ?subrr ?(zchar_span S4_Gamma) //.
+  by rewrite rpredZ ?memv_span ?map_f.
+have [||_ [//|nX YY1 [e Re dX]]] := subcoherent_norm scohS0 _ _ (erefl _) defXY.
 - rewrite /orthogonal /= !cfdotZr Slam1.
   rewrite rpredZnat ?char_vchar ?(seqInd_char Spsi1) //.
-  rewrite andbCA !(cfdotC _ psi1) -cfdot_conjC cfConjCK.
-  by rewrite !oSS ?rmorph0 ?mulr0 ?eqxx ?ccS ?(memPn S1'lam1) ?ccS1.
+  rewrite !(cfdotC _ psi1) cfdot_conjCr.
+  by rewrite !oSS ?rmorph0 ?mulr0 ?eqxx ?ccS0 ?(memPn S1'lam1) ?ccS1.
 - have: {in 'Z[irr M, 'A(M)], isometry tau, to 'Z[irr G]} by [].
   apply: sub_iso_to => //; apply: zchar_trans_on; apply/allP=> /=.
   by rewrite ZAbeta ZAdlam1.
-rewrite {lbYY1}YY1 eqxx in Y0; rewrite {Y oYR defXY}Y0 subr0 in defGamma.
-have [_ _ _ /(_ _ Slam1)[Z_Rlam oRlam Ddlam] _] := scohM.
-have{R_X e dX Re} R_X: X \in rmR lam1.
-  have /eqP := nX; rewrite dX cfnorm_orthonormal; last first.
-    apply: sub_orthonormal (oRlam); first exact: (mem_subseq Re).
-    by rewrite (subseq_uniq Re) ?free_uniq ?orthonormal_free.
-  rewrite n1lam1 pnatr_eq1 => /eqP sz_e.
-  by rewrite -[e](mkseq_nth X) sz_e big_seq1 (mem_subseq Re) ?mem_nth ?sz_e.
-have{Ddlam} [Xc /andP[/= X'Xc R_Xc] Ddlam]:
-  exists2 Xc, Xc \in [predD1 rmR lam1 & X] & (lam1 - (lam1^*)%CF)^\tau = X + Xc.
-- have szR: size (rmR lam1) = 2%N.
-    apply/eqP; rewrite -eqC_nat -cfnorm_orthonormal // -Ddlam.
-    rewrite Itau // cfnormBd ?cfnorm_conjC ?n1lam1 //.
-    by rewrite (seqInd_conjC_ortho _ _ _ Slam1) ?mFT_odd.
-  rewrite Ddlam (big_rem _ R_X) -[rem _ _](mkseq_nth X) size_rem //= szR.
-  rewrite big_seq1; set Xc := nth X _ 0; exists Xc => //.
-  rewrite -mem_rem_uniq ?free_uniq ?orthonormal_free ?mem_nth //.
-  by rewrite size_rem ?szR.
-pose X5 := [tuple of X :: - Xc :: map tau1 (in_tuple S1)].
-pose S5 := [tuple of lam1 :: lam1^*%CF :: in_tuple S1].
-suffices cohS5: coherent S5 M^# tau.
-  exists lam1 => //; apply: subset_coherent cohS5; apply/allP.
-  rewrite /= !inE !eqxx !orbT /=.
-  by apply/allP=> nu; rewrite !inE orbA orbC -eqS12 => ->.
-have oX5: pairwise_orthogonal X5.
-  rewrite (pairwise_orthogonal_cat [:: _; _]) orthogonal_cons.
-  have [_ oR] := orthonormalP oRlam.
-  rewrite {1}/pairwise_orthogonal /= !inE !(eq_sym 0) cfdotNr !oppr_eq0.
-  rewrite -!cfnorm_eq0 !oR // !eqxx oner_eq0 (eq_sym X) (negPf X'Xc) eqxx /=.
-  rewrite map_pairwise_orthogonal ?orthonormal_orthogonal //=.
-  suffices oRtau1 nu: nu \in rmR lam1 -> orthogonal nu (map tau1 S1).
-    rewrite oRtau1 // orthogonal_sym (orthogonal_opp _ [:: _]).
-    by rewrite orthogonal_sym oRtau1.
-  move=> Rnu; apply/orthoPl=> _ /mapP[psi S1psi ->].
-  have Spsi: psi \in S_ H0C' by have [_ ->] := uccS1.
-  have [||e /mem_subseq Re ->] := (coherent_sum_subseq scohM) _ tau1 Spsi.
-  - apply: sub_iso_to IZtau1 => //; apply: zchar_subset; apply/allP=> /=.
-    by rewrite S1psi ccS1.
-  - rewrite Dtau1 // zcharD1E rpredB ?mem_zchar ?ccS1 //=.
-    have:= seqInd_sub_aut_zchar nsHUM conjC Spsi.
-    by rewrite zcharD1 => /andP[].
-  rewrite cfdot_sumr big1_seq //= => mu /Re Rmu.
-  rewrite (orthogonalP (oRR psi lam1 _ _ _)) /orthogonal //=.
-  by rewrite !oSS ?eqxx ?ccS ?(eq_sym lam1) ?(memPn S1'lam1) ?ccS1.
-have sS5S: {subset S5 <= S_ H0C'}.
-  by apply/allP; rewrite /= Slam1 ccS //=; apply/allP; case: uccS1.
-have uniqS5: uniq S5.
-  rewrite /= inE (negPf S1'lam1) orbF eq_sym (contra (ccS1 _)) ?cfConjCK //=.
-  by have [[-> _ _] [[_ /hasPn->]]] := (uccS1, scohM).
-have oS5: pairwise_orthogonal S5 by apply: sub_pairwise_orthogonal poSS.
-have nX5: map cfnorm X5 = map cfnorm S5.
-  have [_ oR] := orthonormalP oRlam.
-  rewrite /= cfnorm_conjC n1lam1 cfnormN !oR ?eqxx //; congr [:: _, _ & _].
-  by rewrite -map_comp; apply: eq_in_map => xi Sxi; rewrite /= Itau1 ?mem_zchar.
-have Z_X5: {subset X5 <= 'Z[irr G]}.
-  apply/allP; rewrite /= rpredN !Z_Rlam //=.
-  by apply/allP=> _ /mapP[xi S1xi ->]; rewrite Ztau1 ?mem_zchar.
-have [tau5 defX5 ZItau5] := Zisometry_of_cfnorm oS5 oX5 nX5 Z_X5.
-have [tau5lam tau5lams tau5_S1] := defX5; rewrite -/(map tau5 _) in tau5_S1.
-exists tau5; split=> // psi; rewrite zchar_split cfunD1E => /andP[].
-case/zchar_expansion=> [//|z Zz ->]; rewrite !big_cons.
-set z1 := z _; set z1s := z _; rewrite 2!raddfD !raddfZ_Cint ?Zz //=.
-rewrite tau5lam tau5lams -(subrK lam1 lam1^*%CF) -(addrC lam1) scalerDr !addrA.
-rewrite -scalerDl -{1 4}(subrK ((u %/ a)%:R *: psi1) lam1) scalerDr -/beta.
-rewrite addrAC addrC -!addrA -opprB 3!cfunE.
-rewrite (cfun_on0 (zchar_on ZS3dlam1)) ?inE ?eqxx // oppr0 mulr0 add0r.
-rewrite 2!cfunE (cfun_on0 (zchar_on ZAbeta)) // mulr0 !add0r => ph10.
-rewrite [_^\tau]linearD linearZ /= [(- _)^\tau]linearN /= Ddlam.
-rewrite [_^\tau]linearD /= [_^\tau]linearZ /= Dbeta b0 scale0r addr0 defGamma.
-rewrite [X + Xc]addrC opprD scalerDr -addrA addrCA; congr (_ + _).
-rewrite scalerBr scalerDl -!addrA addrCA scalerN addKr; congr (_ + _). 
-rewrite -Dtau1; last first.
-  rewrite zcharD1E {1}scalerDl /z1 /z1s ph10.
-  rewrite !rpredD // ?rpredZ_Cint ?rpred_nat //; try exact: mem_zchar.
-  by rewrite big_seq rpred_sum // => xi S1xi; rewrite rpredZ_Cint ?mem_zchar.
-rewrite (raddfD tau1) !(raddfZ_Cint tau1) ?rpredD ?rpred_nat ?Zz // addKr.
-rewrite !raddf_sum 2!big_tnth; apply: eq_bigr => i _.
-rewrite !raddfZ_Cint //= -(tnth_map tau5) -(tnth_map tau1); congr (_ *: _).
-by rewrite !(tnth_nth 0) /= tau5_S1.
+by rewrite {lbYY1}YY1 eqxx in Y0; rewrite defGamma Y0 subr0.
 Qed.
 
 End Nine.

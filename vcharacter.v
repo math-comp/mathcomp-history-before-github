@@ -526,6 +526,27 @@ rewrite big_seq linear_sum rpred_sum // => xi Sxi.
 by rewrite linearZ scale_zchar ?Z_T // -defT map_f ?mem_nth.
 Qed.
 
+Lemma Zisometry_of_iso f :
+    pairwise_orthogonal S -> {in S, isometry f, to 'Z[irr G]} ->
+  {tau : {linear 'CF(L) -> 'CF(G)} | {in S, tau =1 f}
+       & {in 'Z[S], isometry tau, to 'Z[irr G]}}.
+Proof.
+move=> oS [If Zf]; have [/=/andP[S'0 uS] oSS] := pairwise_orthogonalP oS.
+have injf: {in S &, injective f}.
+  move=> xi1 xi2 Sxi1 Sxi2 /=/(congr1 (cfdot (f xi1)))/eqP; rewrite !If //.
+  by apply: contraTeq => /oSS-> //; rewrite cfnorm_eq0 (memPn S'0).
+have{injf} oSf: pairwise_orthogonal (map f S).
+  apply/pairwise_orthogonalP; split=> /=.
+    rewrite map_inj_in_uniq // uS (contra _ S'0) // => /mapP[chi Schi /eqP].
+    by rewrite eq_sym -cfnorm_eq0 If // cfnorm_eq0 => /eqP <-.
+  move=> _ _ /mapP[xi1 Xxi1 ->] /mapP[xi2 Xxi2 ->].
+  by rewrite If ?(inj_in_eq injf) // => /oSS->.
+have{If} nSf: map cfnorm (map f S) = map cfnorm S.
+  by rewrite -map_comp; apply/eq_in_map=> xi Sxi; rewrite /= If.
+have{Zf} ZSf: {subset map f S <= 'Z[irr G]} by move=> _ /mapP[xi /Zf Zfxi ->].
+by have [tau /eq_in_map] := Zisometry_of_cfnorm oS oSf nSf ZSf; exists tau.
+Qed.
+
 Lemma Zisometry_inj A nu :
   {in 'Z[S, A] &, isometry nu} -> {in 'Z[S, A] &, injective nu}.
 Proof. by move/isometry_raddf_inj; apply; apply: rpredB. Qed.

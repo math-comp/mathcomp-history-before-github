@@ -25,11 +25,6 @@ Local Open Scope ring_scope.
 (* conjg_Iirr i y == the index j : Iirr G such that ('chi_i ^ y)%CF = 'chi_j. *)
 (* cfclass_Iirr G i == the image of G under conjg_Iirr i, i.e., the set of j  *)
 (*                   such that 'chi_j \in ('chi_i ^: G)%CF.                   *)
-(*     detRepr rG == the linear character afforded by the determinant of rG.  *)
-(*      cfDet phi == the linear character afforded by the determinant of a    *)
-(*                   representation affording phi.                            *)
-(*        'o(phi) == the "determinential order" of phi (the multiplicative    *)
-(*                   order of cfDet phi.                                      *)
 (******************************************************************************)
 
 Reserved Notation "''I[' phi ]"
@@ -1150,116 +1145,6 @@ Section S628.
 
 Variables (gT : finGroupType) (G : {group gT}).
 
-Section DetRepr.
-
-Variables (n : nat) (rG : mx_representation [fieldType of algC] G n).
-
-Definition det_repr_mx x : 'M_1 := (\det (rG x))%:M.
-
-Fact det_is_repr : mx_repr G det_repr_mx. 
-Proof.
-split=> [|g h Gg Gh]; first by rewrite /det_repr_mx repr_mx1 det1.
-by rewrite /det_repr_mx repr_mxM // det_mulmx !mulmxE scalar_mxM.
-Qed.
-
-Canonical det_repr := MxRepresentation det_is_repr.
-Definition detRepr := cfRepr det_repr.
-
-Lemma detRepr_lin_char : detRepr \is a linear_char.
-Proof.
-by rewrite qualifE cfRepr_char cfunE group1 repr_mx1 mxtrace1 mulr1n /=.
-Qed.
-
-End DetRepr.
-
-Definition cfDet phi := \prod_i detRepr 'Chi_i ^+ truncC '[phi, 'chi[G]_i].
-
-Lemma cfDet_lin_char phi : cfDet phi \is a linear_char.
-Proof. by apply: rpred_prod => i _; apply: rpredX; apply: detRepr_lin_char. Qed.
-
-Lemma cfDetD :
-  {in character &, {morph cfDet : phi psi / phi + psi >-> phi * psi}}.
-Proof.
-move=> phi psi Nphi Npsi; rewrite /= -big_split; apply: eq_bigr => i _ /=.
-by rewrite -exprD cfdotDl truncCD ?nnegrE ?Cnat_ge0 // Cnat_cfdot_char_irr.
-Qed.
-
-Lemma cfDet0 : cfDet 0 = 1.
-Proof. by rewrite /cfDet big1 // => i _; rewrite cfdot0l truncC0. Qed.
-
-Lemma cfDetMn k :
-  {in character, {morph cfDet : phi / phi *+ k >-> phi ^+ k}}.
-Proof.
-move=> phi Nphi; elim: k => [|k IHk]; rewrite ?cfDet0 // mulrS exprS -{}IHk.
-by rewrite cfDetD ?rpredMn.
-Qed.
-
-Lemma cfDetRepr n rG : cfDet (cfRepr rG) = @detRepr n rG.
-Proof.
-transitivity (\prod_W detRepr (socle_repr W) ^+ standard_irr_coef rG W).
-  rewrite (reindex _ (socle_of_Iirr_bij _)) /cfDet /=.
-  apply: eq_bigr => i _; congr (_ ^+ _).
-  rewrite (cfRepr_sim (mx_rsim_standard rG)) cfRepr_standard.
-  rewrite cfdot_suml (bigD1 i) ?big1 //= => [|j i'j]; last first.
-    by rewrite cfdotZl cfdot_irr (negPf i'j) mulr0.
-  by rewrite cfdotZl cfnorm_irr mulr1 addr0 natCK.
-apply/cfun_inP=> x Gx; rewrite prod_cfunE //.
-transitivity (detRepr (standard_grepr rG) x); last first.
-  rewrite !cfunE Gx !trace_mx11 !mxE eqxx !mulrb.
-  case: (standard_grepr rG) (mx_rsim_standard rG) => /= n1 rG1 [B Dn1].
-  rewrite -{n1}Dn1 in rG1 B *; rewrite row_free_unit => uB rG_B.
-  by rewrite -[rG x](mulmxK uB) rG_B // !det_mulmx mulrC -!det_mulmx mulKmx.
-rewrite /standard_grepr; elim/big_rec2: _ => [|W y _ _ ->].
-  by rewrite cfunE trace_mx11 mxE Gx det1.
-rewrite !cfunE Gx /= !{1}trace_mx11 !{1}mxE det_ublock; congr (_ * _).
-rewrite exp_cfunE //; elim: (standard_irr_coef rG W) => /= [|k IHk].
-  by rewrite /muln_grepr big_ord0 det1.
-rewrite exprS /muln_grepr big_ord_recl det_ublock -IHk; congr (_ * _).
-by rewrite cfunE trace_mx11 mxE Gx.
-Qed.
-
-Lemma cfDet_id xi : xi \is a linear_char -> cfDet xi = xi.
-Proof.
-move=> lin_xi; have /irrP[i Dxi] := lin_char_irr lin_xi.
-apply/cfun_inP=> x Gx; rewrite Dxi -irrRepr cfDetRepr !cfunE trace_mx11 mxE.
-move: lin_xi (_ x) => /andP[_]; rewrite Dxi irr1_degree pnatr_eq1 => /eqP-> X.
-by rewrite {1}[X]mx11_scalar det_scalar1 trace_mx11.
-Qed.
-
-Definition cfDet_order phi := #[cfDet phi]%CF.
-
-Definition cfDet_order_lin xi :
-  xi \is a linear_char -> cfDet_order xi = #[xi]%CF.
-Proof. by rewrite /cfDet_order => /cfDet_id->. Qed.
-
-Lemma lin_char_group:
-     {linG : finGroupType & {cF : linG -> 'CF(G) | 
-         [/\ injective cF, forall l, cF l \is a linear_char
-          & forall phi, phi \is a linear_char -> exists l, phi = cF l]
-       & [/\ {morph cF : k l / (k * l)%g >-> (k * l)%R},
-              cF 1%g = 1%R &
-             {morph cF: l / l^-1%g >-> l^-1%CF} ]}}. 
-Proof.
-pose linT := {i : Iirr G | 'chi_i \is a linear_char}.
-pose cF (k : linT) := 'chi_(sval k).
-have cFlin k: cF k \is a linear_char := svalP k.
-have cFinj: injective cF := inj_comp irr_inj val_inj.
-have inT xi : xi \is a linear_char -> {k | cF k = xi}.
-  move=> lin_xi; have /irrP/sig_eqW[i Dxi] := lin_char_irr lin_xi.
-  by apply: (exist _ (Sub i _)) => //; rewrite -Dxi.
-have [one cFone] := inT 1 (rpred1 _).
-pose inv k := sval (inT _ (rpredVr (cFlin k))).
-pose mul k l := sval (inT _ (rpredM (cFlin k) (cFlin l))).
-have cFmul k l: cF (mul k l) = cF k * cF l := svalP (inT _ _).
-have cFinv k: cF (inv k) = (cF k)^-1 := svalP (inT _ _).
-have mulA: associative mul by move=> k l m; apply: cFinj; rewrite !cFmul mulrA.
-have mul1: left_id one mul by move=> k; apply: cFinj; rewrite cFmul cFone mul1r.
-have mulV: left_inverse one inv mul.
-  by move=> k; apply: cFinj; rewrite cFmul cFinv cFone mulVr ?lin_char_unitr.
-pose linB := BaseFinGroupType linT (FinGroup.Mixin mulA mul1 mulV).
-by exists (@FinGroupType linB mulV), cF; split=> // xi /inT[k <-]; exists k.
-Qed.
-
 Section S616. 
 
 Variable (N : {group gT}).
@@ -1280,7 +1165,20 @@ Let NsF : N \subset F. Proof. exact: sub_Inertia. Qed.
 Let NnF : N <| F. Proof. exact: normal_Inertia. Qed.
 
 Hypothesis finv : 'I_G['chi_f] = G.
- 
+
+(* This is the proof corresponding to the indications in Isaacs 6.16 -- GG
+set phi := 'Res _; suffices /vlineP[a Dphi]: phi \in <['chi_f]>%VS.
+  have: phi 1%g = a * 'chi_f 1%g by rewrite Dphi cfunE.
+  by rewrite cfRes1 cfInd1 // => /(mulIf (irr1_neq0 f))->.
+rewrite /phi ['Ind _]cfun_sum_constt linear_sum rpred_sum // => k.
+rewrite linearZ /= constt_Ind_constt_Res => /Clifford_Res_sum_cfclass-> //.
+by rewrite !rpredZ // -finv cfclass_inertia big_seq1 memv_line.
+*)
+(* This is the shortest proof I could come up with -- GG.
+apply/cfun_inP=> x Nx; rewrite cfResE ?cfIndE ?(subsetP sNG) //.
+rewrite natf_indexg // cfunE -mulrA mulrCA mulr_natl //; congr (_ * _).
+by rewrite -finv -sumr_const; apply: eq_bigr => z /setIP[_ /inertia_valJ->].
+*)
 Fact ResIndchiquo: 'Res[N]  ('Ind[G] 'chi_f) = #|G : N|%:R *: 'chi_f.
 Proof.
 rewrite ResIndchiE //. 
@@ -1304,9 +1202,6 @@ Hypothesis Hb : b \in irr_constt ('Ind[G] 'chi_f).
 End S616.
 
 End S628.
-
-Notation "''o' ( phi )" := (cfDet_order phi)
-  (at level 8, format "''o' ( phi )") : cfun_scope.
 
 Section Frobenius.
 

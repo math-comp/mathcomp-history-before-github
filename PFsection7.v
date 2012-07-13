@@ -96,7 +96,7 @@ Proof.
 move=> Aalpha; apply/cfunP=> a; rewrite cfunElock mulrb.
 case: ifPn => [Aa | /cfun_on0-> //]; apply: canLR (mulKf (neq0CG _)) _.
 rewrite mulr_natl -sumr_const; apply: eq_bigr => x Hx.
-by rewrite (DadeE _ Aa) ?(subsetP (sub_class_support _ _)) // mem_mulg ?set11.
+by rewrite (DadeE _ Aa) ?mem_class_support // mem_mulg ?set11.
 Qed.
 
 (* This is Peterfalvi (7.2)(b); note that by (7.2)(a) chi is in the image of  *)
@@ -121,7 +121,7 @@ Proof.
 have nsAtauG: Atau <| G := Dade_support_normal ddA.
 pose chi1 := chi * '1_Atau; set RHS := _ * _.
 have inA1 a x: a \in A -> x \in H a -> (x * a)%g \in Dade_support1 ddA a.
-  by move=> Aa Hx; rewrite (subsetP (sub_class_support _ _)) ?mem_mulg ?set11.
+  by move=> Aa Hx; rewrite mem_class_support ?mem_mulg ?set11.
 have chi1E a x: a \in A -> x \in H a -> chi1 (x * a)%g = chi (x * a)%g.
   move=> Aa Hx; rewrite cfunE cfuniE // mulr_natr mulrb.
   by case: bigcupP => // [[]]; exists a; rewrite ?inA1.
@@ -485,7 +485,7 @@ rewrite /a2 (reindex_inj (inv_inj (@conjC_IirrK _ _))) /=.
 apply: eq_big => [t | t _]; last first.
   by rewrite !conjC_IirrE !cfdot_real_conjC ?aut_Cint ?Cint_cfdot_vchar_irr.
 rewrite (inv_eq (@conjC_IirrK _ _)) conjC_IirrK -leqNgt ltn_neqAle val_eqE.
-rewrite -!(inj_eq irr_inj) !conjC_IirrE irr0 cfConjC1 odd_eq_conj_irr1 //.
+rewrite -!(inj_eq irr_inj) !conjC_IirrE irr0 cfConjC_cfun1 odd_eq_conj_irr1 //.
 by rewrite andbA andbb.
 Qed.
 
@@ -563,7 +563,7 @@ have Delta_context L H (A := H^#) ddA nu r :
   rewrite rmorphD /= -subr_eq0 opprD addrAC addrA -addrA addr_eq0 opprD.
   rewrite (cfConjC_Dade_coherent cohS) //; last exact: zcharD1_seqInd.
   rewrite opprK -Dade_conjC -!raddfB nu_tau ?seqInd_sub_aut_zchar //=.
-  by rewrite rmorphB /= conj_cfInd cfConjC1 opprB addrC addrA subrK.
+  by rewrite rmorphB /= conj_cfInd cfConjC_cfun1 opprB addrC addrA subrK.
 have: ~~ (2 %| '[Delta L1 H1 ddA1 nu1 zeta1, Delta L2 H2 ddA2 nu2 zeta2])%C.
   have /Delta_context/(_ Szeta1 zeta1_1)[Delta1_1 ZR_Delta1] := cohS1.
   have /Delta_context/(_ Szeta2 zeta2_1)[Delta2_1 ZR_Delta2] := cohS2.

@@ -373,6 +373,9 @@ Proof.
 by move=> p_pr; apply: (iffP idP) => [|-> //]; case/even_prime: p_pr => ->.
 Qed.
 
+Lemma odd_prime_gt2 p : odd p -> prime p -> p > 2.
+Proof. by move=> odd_p /prime_gt1; apply: odd_gt2. Qed.
+
 Lemma mem_prime_decomp n p e :
   (p, e) \in prime_decomp n -> [/\ prime p, e > 0 & p ^ e %| n].
 Proof.

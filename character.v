@@ -30,6 +30,11 @@ Local Open Scope ring_scope.
 (*     cfRepr rG == the character afforded by the representation rG of G.     *)
 (*       cfReg G == the regular character, afforded by the regular            *)
 (*                  representation of G.                                      *)
+(*     detRepr rG == the linear character afforded by the determinant of rG.  *)
+(*      cfDet phi == the linear character afforded by the determinant of a    *)
+(*                   representation affording phi.                            *)
+(*        'o(phi) == the "determinential order" of phi (the multiplicative    *)
+(*                   order of cfDet phi.                                      *)
 (* phi \is a character <=> phi : 'CF(G) is a character of G or 0.             *)
 (* i \in irr_constt phi <=> 'chi_i is an irreducible constituent of phi: phi  *)
 (*                  has a non-zero coordinate on 'chi_i over the basis irr G. *)
@@ -711,6 +716,9 @@ Proof. by move=> i; apply: irr_inj; rewrite cfIirrE ?mem_irr. Qed.
 Lemma irr_eq1 i : ('chi_i == 1) = (i == 0).
 Proof. by rewrite -irr0 (inj_eq irr_inj). Qed.
 
+Lemma cforder_irr_eq1 i : (#['chi_i]%CF == 1%N) = (i == 0).
+Proof. by rewrite -dvdn1 dvdn_cforder irr_eq1. Qed.
+
 Lemma irr_basis : basis_of 'CF(G)%VS (irr G).
 Proof.
 rewrite /basis_of irr_free andbT -dimv_leqif_eq ?subvf //.
@@ -1008,10 +1016,20 @@ have [Gz | G'z] := boolP (z \in G); last by rewrite !cfun0 ?groupMl ?groupV.
 by rewrite -mulgA lin_charM ?xi_xy -?lin_charM ?groupM ?groupV // mulKVg.
 Qed.
 
+Lemma cforder_lin_dvdG : #[xi]%CF %| #|G|.
+Proof.
+rewrite dvdn_cforder; apply/eqP/cfun_inP=> x Gx.
+rewrite cfun1E Gx exp_cfunE // -lin_charX // -lin_char1.
+by congr (xi _); apply/eqP; rewrite -order_dvdn order_dvdG.
+Qed.
+
 End OneChar.
 
 Lemma card_Iirr_abelian : abelian G -> #|Iirr G| = #|G|.
 Proof. by rewrite card_ord NirrE card_classes_abelian => /eqP. Qed.
+
+Lemma card_Iirr_cyclic : cyclic G -> #|Iirr G| = #|G|.
+Proof. by move/cyclic_abelian/card_Iirr_abelian. Qed.
 
 Lemma char_abelianP :
   reflect (forall i : Iirr G, 'chi_i \is a linear_char) (abelian G).
@@ -1744,6 +1762,11 @@ Proof. by apply/(canLR dprod_IirrK); rewrite dprod_Iirr0. Qed.
 
 End DProd.
 
+Lemma dprod_IirrC (gT : finGroupType) (G K H : {group gT})
+                  (KxH : K \x H = G) (HxK : H \x K = G) i j :
+  dprod_Iirr KxH (i, j) = dprod_Iirr HxK (j, i).
+Proof. by apply: irr_inj; rewrite !dprod_IirrE; apply: cfDprodC. Qed.
+
 Section BigDprod.
 
 Variables (gT : finGroupType) (I : finType) (P : pred I).
@@ -1885,6 +1908,12 @@ Proof. by apply/irr_inj; rewrite aut_IirrE irr0 cfAut_cfun1. Qed.
 
 Lemma conjC_Iirr0 : conjC_Iirr 0 = 0 :> Iirr G.
 Proof. exact: aut_Iirr0. Qed.
+
+Lemma aut_Iirr_eq0 u i : (aut_Iirr u i == 0) = (i == 0).
+Proof. by rewrite -!irr_eq1 aut_IirrE cfAut_eq1. Qed.
+
+Lemma conjC_Iirr_eq0 i : (conjC_Iirr i == 0 :> Iirr G) = (i == 0).
+Proof. exact: aut_Iirr_eq0. Qed.
 
 Lemma aut_Iirr_inj u : injective (aut_Iirr u).
 Proof.
@@ -2342,6 +2371,51 @@ rewrite (contra (@subset_leq_card _ _ _)) // -ltnNge card1 card_lin_irr.
 by rewrite indexg_gt1 proper_subn // (sol_der1_proper solG).
 Qed.
 
+(* A combinatorial group isommorphic to the linear characters. *)
+Lemma lin_char_group G :
+     {linG : finGroupType & {cF : linG -> 'CF(G) | 
+         [/\ injective cF, #|linG| = #|G : G^`(1)|,
+             forall u, cF u \is a linear_char
+           & forall phi, phi \is a linear_char -> exists u, phi = cF u]
+       & [/\ cF 1%g = 1%R,
+             {morph cF : u v / (u * v)%g >-> (u * v)%R},
+             forall k, {morph cF : u / (u^+ k)%g >-> u ^+ k},
+             {morph cF: u / u^-1%g >-> u^-1%CF}
+           & {mono cF: u / #[u]%g >-> #[u]%CF} ]}}. 
+Proof.
+pose linT := {i : Iirr G | 'chi_i \is a linear_char}.
+pose cF (u : linT) := 'chi_(sval u).
+have cFlin u: cF u \is a linear_char := svalP u.
+have cFinj: injective cF := inj_comp irr_inj val_inj.
+have inT xi : xi \is a linear_char -> {u | cF u = xi}.
+  move=> lin_xi; have /irrP/sig_eqW[i Dxi] := lin_char_irr lin_xi.
+  by apply: (exist _ (Sub i _)) => //; rewrite -Dxi.
+have [one cFone] := inT 1 (rpred1 _).
+pose inv u := sval (inT _ (rpredVr (cFlin u))).
+pose mul u v := sval (inT _ (rpredM (cFlin u) (cFlin v))).
+have cFmul u v: cF (mul u v) = cF u * cF v := svalP (inT _ _).
+have cFinv u: cF (inv u) = (cF u)^-1 := svalP (inT _ _).
+have mulA: associative mul by move=> u v w; apply: cFinj; rewrite !cFmul mulrA.
+have mul1: left_id one mul by move=> u; apply: cFinj; rewrite cFmul cFone mul1r.
+have mulV: left_inverse one inv mul.
+  by move=> u; apply: cFinj; rewrite cFmul cFinv cFone mulVr ?lin_char_unitr.
+pose linGm := FinGroup.Mixin mulA mul1 mulV.
+pose linG := @FinGroupType (BaseFinGroupType linT linGm) mulV.
+have cFexp k: {morph cF : u / ((u : linG) ^+ k)%g >-> u ^+ k}.
+  by move=> u; elim: k => // k IHk; rewrite expgS exprS cFmul IHk.
+do [exists linG, cF; split=> //] => [|xi /inT[u <-]|u]; first 2 [by exists u].
+  have inj_cFI: injective (cfIirr \o cF).
+    apply: can_inj (insubd one) _ => u; apply: val_inj.
+    by rewrite insubdK /= ?irrK //; apply: cFlin.
+  rewrite -(card_image inj_cFI) -card_lin_irr.
+  apply/eq_card=> i; rewrite inE; apply/imageP/idP=> [[u _ ->] | /inT[u Du]].
+    by rewrite /= irrK; apply: cFlin.
+  by exists u => //; apply: irr_inj; rewrite /= irrK.
+apply/eqP; rewrite eqn_dvd; apply/andP; split.
+  by rewrite dvdn_cforder; rewrite -cFexp expg_order cFone.
+by rewrite order_dvdn -(inj_eq cFinj) cFone cFexp exp_cforder.
+Qed.
+
 (* This is Isaacs (2.24). *)
 Lemma card_subcent1_coset G H x : 
   x \in G -> H <| G -> (#|'C_(G / H)[coset H x]| <= #|'C_G[x]|)%N.
@@ -2359,6 +2433,98 @@ Qed.
 End Derive.
 
 Implicit Arguments irr_prime_injP [gT G i].
+
+(* Determinant characters and determinential order. *)
+Section DetOrder.
+
+Variables (gT : finGroupType) (G : {group gT}).
+
+Section DetRepr.
+
+Variables (n : nat) (rG : mx_representation [fieldType of algC] G n).
+
+Definition det_repr_mx x : 'M_1 := (\det (rG x))%:M.
+
+Fact det_is_repr : mx_repr G det_repr_mx. 
+Proof.
+split=> [|g h Gg Gh]; first by rewrite /det_repr_mx repr_mx1 det1.
+by rewrite /det_repr_mx repr_mxM // det_mulmx !mulmxE scalar_mxM.
+Qed.
+
+Canonical det_repr := MxRepresentation det_is_repr.
+Definition detRepr := cfRepr det_repr.
+
+Lemma detRepr_lin_char : detRepr \is a linear_char.
+Proof.
+by rewrite qualifE cfRepr_char cfunE group1 repr_mx1 mxtrace1 mulr1n /=.
+Qed.
+
+End DetRepr.
+
+Definition cfDet phi := \prod_i detRepr 'Chi_i ^+ truncC '[phi, 'chi[G]_i].
+
+Lemma cfDet_lin_char phi : cfDet phi \is a linear_char.
+Proof. by apply: rpred_prod => i _; apply: rpredX; apply: detRepr_lin_char. Qed.
+
+Lemma cfDetD :
+  {in character &, {morph cfDet : phi psi / phi + psi >-> phi * psi}}.
+Proof.
+move=> phi psi Nphi Npsi; rewrite /= -big_split; apply: eq_bigr => i _ /=.
+by rewrite -exprD cfdotDl truncCD ?nnegrE ?Cnat_ge0 // Cnat_cfdot_char_irr.
+Qed.
+
+Lemma cfDet0 : cfDet 0 = 1.
+Proof. by rewrite /cfDet big1 // => i _; rewrite cfdot0l truncC0. Qed.
+
+Lemma cfDetMn k :
+  {in character, {morph cfDet : phi / phi *+ k >-> phi ^+ k}}.
+Proof.
+move=> phi Nphi; elim: k => [|k IHk]; rewrite ?cfDet0 // mulrS exprS -{}IHk.
+by rewrite cfDetD ?rpredMn.
+Qed.
+
+Lemma cfDetRepr n rG : cfDet (cfRepr rG) = @detRepr n rG.
+Proof.
+transitivity (\prod_W detRepr (socle_repr W) ^+ standard_irr_coef rG W).
+  rewrite (reindex _ (socle_of_Iirr_bij _)) /cfDet /=.
+  apply: eq_bigr => i _; congr (_ ^+ _).
+  rewrite (cfRepr_sim (mx_rsim_standard rG)) cfRepr_standard.
+  rewrite cfdot_suml (bigD1 i) ?big1 //= => [|j i'j]; last first.
+    by rewrite cfdotZl cfdot_irr (negPf i'j) mulr0.
+  by rewrite cfdotZl cfnorm_irr mulr1 addr0 natCK.
+apply/cfun_inP=> x Gx; rewrite prod_cfunE //.
+transitivity (detRepr (standard_grepr rG) x); last first.
+  rewrite !cfunE Gx !trace_mx11 !mxE eqxx !mulrb.
+  case: (standard_grepr rG) (mx_rsim_standard rG) => /= n1 rG1 [B Dn1].
+  rewrite -{n1}Dn1 in rG1 B *; rewrite row_free_unit => uB rG_B.
+  by rewrite -[rG x](mulmxK uB) rG_B // !det_mulmx mulrC -!det_mulmx mulKmx.
+rewrite /standard_grepr; elim/big_rec2: _ => [|W y _ _ ->].
+  by rewrite cfunE trace_mx11 mxE Gx det1.
+rewrite !cfunE Gx /= !{1}trace_mx11 !{1}mxE det_ublock; congr (_ * _).
+rewrite exp_cfunE //; elim: (standard_irr_coef rG W) => /= [|k IHk].
+  by rewrite /muln_grepr big_ord0 det1.
+rewrite exprS /muln_grepr big_ord_recl det_ublock -IHk; congr (_ * _).
+by rewrite cfunE trace_mx11 mxE Gx.
+Qed.
+
+Lemma cfDet_id xi : xi \is a linear_char -> cfDet xi = xi.
+Proof.
+move=> lin_xi; have /irrP[i Dxi] := lin_char_irr lin_xi.
+apply/cfun_inP=> x Gx; rewrite Dxi -irrRepr cfDetRepr !cfunE trace_mx11 mxE.
+move: lin_xi (_ x) => /andP[_]; rewrite Dxi irr1_degree pnatr_eq1 => /eqP-> X.
+by rewrite {1}[X]mx11_scalar det_scalar1 trace_mx11.
+Qed.
+
+Definition cfDet_order phi := #[cfDet phi]%CF.
+
+Definition cfDet_order_lin xi :
+  xi \is a linear_char -> cfDet_order xi = #[xi]%CF.
+Proof. by rewrite /cfDet_order => /cfDet_id->. Qed.
+
+End DetOrder.
+
+Notation "''o' ( phi )" := (cfDet_order phi)
+  (at level 8, format "''o' ( phi )") : cfun_scope.
 
 Definition cfcenter (gT : finGroupType) (G : {set gT}) (phi : 'CF(G)) := 
   if phi \is a character then [set g in G | `|phi g| == phi 1%g] else cfker phi.

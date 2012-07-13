@@ -864,8 +864,20 @@ Proof. by apply: (iffP (exists_inP _ _)) => [] [x Dx /eqP]; exists x. Qed.
 Lemma eq_existsb P1 P2 : P1 =1 P2 -> [exists x, P1 x] = [exists x, P2 x].
 Proof. by move=> eqP12; congr (_ != 0); apply: eq_card. Qed.
 
+Lemma eq_existsb_in D P1 P2 :
+    (forall x, D x -> P1 x = P2 x) ->
+  [exists (x | D x), P1 x] = [exists (x | D x), P2 x].
+Proof. by move=> eqP12; apply: eq_existsb => x; apply: andb_id2l => /eqP12. Qed.
+
 Lemma eq_forallb P1 P2 : P1 =1 P2 -> [forall x, P1 x] = [forall x, P2 x].
 Proof. by move=> eqP12; apply/negb_inj/eq_existsb=> /= x; rewrite eqP12. Qed.
+
+Lemma eq_forallb_in D P1 P2 :
+    (forall x, D x -> P1 x = P2 x) ->
+  [forall (x | D x), P1 x] = [forall (x | D x), P2 x].
+Proof.
+by move=> eqP12; apply: eq_forallb => i; case Di: (D i); rewrite // eqP12.
+Qed.
 
 Lemma negb_forall P : ~~ [forall x, P x] = [exists x, ~~ P x].
 Proof. by []. Qed.

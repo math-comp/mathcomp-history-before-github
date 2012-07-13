@@ -1699,7 +1699,7 @@ pose q := (p ^ n.-1)%N; pose r := (p ^ n.-2)%N.
 have q_gt1: q > 1 by rewrite (ltn_exp2l 0) // -(subnKC n_gt2).
 have r_gt0: r > 0 by rewrite expn_gt0 p_gt0.
 have def_pr: (p * r)%N = q by rewrite /q /r -def_n.
-have oX: #|X| = q by rewrite -(setIidPr sXG) -divg_index oG iXG /q -def_n mulKn.
+have oX: #|X| = q by rewrite -(divg_indexS sXG) oG iXG /q -def_n mulKn.
 have ntX: X :!=: 1 by rewrite -cardG_gt1 oX.
 have maxX: maximal X G by rewrite p_index_maximal ?iXG.
 have nsXG: X <| G := p_maximal_normal pG maxX; have [_ nXG] := andP nsXG.
@@ -1882,7 +1882,7 @@ have modM1 (M : {group gT}):
   have ->: 'Mho^1(U) = 'Z(M).
     apply/eqP; rewrite eqEcard oZ defZ -(defMho 1%N) ?MhoS //= defU1 -orderE.
     suff ou: #[u] = (p * p ^ n.-2)%N by rewrite orderXdiv ou ?dvdn_mulr ?mulKn.
-    by rewrite orderE -defU -(setIidPr sUM) -divg_index iUM oM def_n mulKn.
+    by rewrite orderE -defU -(divg_indexS sUM) iUM oM def_n mulKn.
   case: eqP => [[p2 n3] | _ defOhm]; first by rewrite p2 n3 in n_gt23.
   have{defOhm} [|defM1 oM1] := defOhm 1%N; first by rewrite def_n.
   split; rewrite ?(setIidPl _) //; first by rewrite centsC subsetIr.
@@ -2271,7 +2271,7 @@ have [sUM sMR]: U \subset M /\ M \subset R.
   by rewrite defM subsetI sUR subsetIl centsC (subset_trans (Mho_sub _ _)).
 have oU1: #|'Mho^1(U)| = (p ^ n.-2)%N.
   have oU: #|U| = (p ^ n.-1)%N.
-    by rewrite -(setIidPr sUM) -divg_index iUM oM -subn1 expnB.
+    by rewrite -(divg_indexS sUM) iUM oM -subn1 expnB.
   case/cyclicP: cycU pU oU => u -> p_u ou.
   by rewrite (Mho_p_cycle 1 p_u) -orderE (orderXexp 1 ou) subn1.
 have sZU1: Z \subset 'Mho^1(U).

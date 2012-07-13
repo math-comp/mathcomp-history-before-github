@@ -1112,11 +1112,15 @@ Proof.
 by case: n => *; rewrite ?NegzE -?exprz_inv ?unitrX_pos ?unitrV ?lt0n.
 Qed.
 
-Lemma intrV (n : int) : n \in [:: 0; 1; -1] ->
-                                             n%:~R ^-1 = n%:~R :> R.
+Lemma intrV (n : int) :
+  n \in [:: 0; 1; -1] -> n%:~R ^-1 = n%:~R :> R.
 Proof.
 by case: (intP n)=> // [|[]|[]] //; rewrite ?rmorphN ?invrN (invr0, invr1).
 Qed.
+
+Lemma rmorphXz (R' : unitRingType) (f : {rmorphism R -> R'}) n :
+  {in GRing.unit, {morph f : x / x ^ n}}.
+Proof. by case: n => n x Ux; rewrite ?rmorphV ?rpredX ?rmorphX. Qed.
 
 End Exprz_Zint_UnitRing.
 
@@ -1166,6 +1170,10 @@ case: (boolP ((x * y) == 0)); rewrite ?mulf_eq0.
   by case/orP=> /eqP->; rewrite ?(mul0r, mulr0, exp0rz, n0).
 by case/norP=> x0 y0; rewrite exprzMl ?unitfE.
 Qed.
+
+Lemma fmorphXz (R : unitRingType) (f : {rmorphism F -> R}) n :
+  {morph f : x / x ^ n}.
+Proof. by case: n => n x; rewrite ?fmorphV rmorphX. Qed.
 
 End ExprzField.
 
@@ -1387,8 +1395,8 @@ Proof. by rewrite /sgz intr_eq0 ltrz0. Qed.
 
 Lemma sgrz (n : int) : sgr n = sgz n. Proof. by rewrite sgrEz intz. Qed.
 
-Lemma sgr_int m : sgr (m%:~R : R) = (sgr m)%:~R.
-Proof. by rewrite sgrEz sgz_int sgrz. Qed.
+Lemma intr_sg m : (sgr m)%:~R = sgr (m%:~R) :> R.
+Proof. by rewrite sgrz -sgz_int -sgrEz. Qed.
 
 Lemma sgz_id (x : R) : sgz (sgz x) = sgz x.
 Proof. by rewrite !(fun_if (@sgz _)). Qed.
@@ -1485,7 +1493,7 @@ Lemma sgz_smul x y : sgz (y *~ (sgz x)) = (sgz x) * (sgz y).
 Proof. by rewrite -mulrzl sgzM -sgrEz sgz_sgr. Qed.
 
 Lemma sgrMz m x : sgr (x *~ m) = sgr x *~ sgr m.
-Proof. by rewrite -mulrzr sgrM sgr_int mulrzr. Qed.
+Proof. by rewrite -mulrzr sgrM -intr_sg mulrzr. Qed.
 
 End SgzReal.
 
@@ -1660,11 +1668,11 @@ Section NormInt.
 
 Variable R : numDomainType.
 
-Lemma normr_int m : `|m%:~R| = `|m|%:~R :> R.
-Proof. by rewrite {1}[m]intEsign rmorphMsign normrMsign abszE normr_nat. Qed.
+Lemma intr_norm m : `|m|%:~R = `|m%:~R| :> R.
+Proof. by rewrite {2}[m]intEsign rmorphMsign normrMsign abszE normr_nat. Qed.
 
 Lemma normrMz m (x : R) : `|x *~ m| = `|x| *~ `|m|.
-Proof. by rewrite -mulrzl normrM normr_int mulrzl. Qed.
+Proof. by rewrite -mulrzl normrM -intr_norm mulrzl. Qed.
 
 End NormInt.
 
@@ -1739,7 +1747,7 @@ Lemma rpredZint (R : ringType) (M : lmodType R) S
   {in kS, forall u, m%:~R *: u \in kS}.
 Proof. by move=> u Su; rewrite /= scaler_int rpredMz. Qed.
 
-Lemma rpredXint R S (divS : @divrPred R S) (kS : keyed_pred divS) m :
+Lemma rpredXz R S (divS : @divrPred R S) (kS : keyed_pred divS) m :
   {in kS, forall x, x ^ m \in kS}.
 Proof. by case: m => n x Sx; rewrite ?rpredV rpredX. Qed.
 

@@ -1,14 +1,15 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset center.
-Require Import fingroup morphism perm automorphism quotient action zmodp.
+Require Import fingroup morphism perm automorphism quotient action finalg zmodp.
 Require Import gfunctor gproduct cyclic commutator nilpotent pgroup.
 Require Import sylow hall abelian maximal frobenius.
 Require Import matrix mxalgebra mxrepresentation vector.
 Require Import BGsection1 BGsection3 BGsection7 BGsection10.
 Require Import BGsection14 BGsection15 BGsection16.
+Require ssrnum.
 Require Import algC classfun character inertia vcharacter.
-Require Import PFsection1 PFsection2 PFsection3 PFsection5.
+Require Import PFsection1 PFsection2 PFsection3 PFsection4 PFsection5.
 
 (******************************************************************************)
 (* This file covers Peterfalvi, Section 8: Structure of a Minimal Simple      *)
@@ -33,7 +34,7 @@ Require Import PFsection1 PFsection2 PFsection3 PFsection5.
 (*                    isometry on M (when M is maximal).                      *)
 (*          'A~(M) == the support of the image of the Dade isometry on M.     *)
 (*         'A0~(M) == the support of the image of the extended Dade isometry  *)
-(*                    on M (this definition is not used).                     *)
+(*                    on M.                                                   *)
 (*  FTsupports M L <-> L supports M in the sense of (8.14) and (8.18). This   *)
 (*                    definition is not used outside this file.               *)
 (******************************************************************************)
@@ -591,7 +592,7 @@ Lemma norm_FTsupp1 : 'N('A1(M)) = M.
 Proof. exact: norm_FTsuppX (FTsupp1_norm M) _ (FTsupp1_sub0 maxM). Qed.
 
 Lemma norm_FTsupp : 'N('A(M)) = M.
-Proof. exact: norm_FTsuppX (FTsupp_norm M) (FTsupp1_sub _) (FTsupp_sub M). Qed.
+Proof. exact: norm_FTsuppX (FTsupp_norm M) (FTsupp1_sub _) (FTsupp_sub0 M). Qed.
 
 Lemma norm_FTsupp0 : 'N('A0(M)) = M.
 Proof. exact: norm_FTsuppX (FTsupp0_norm M) (FTsupp1_sub0 _) _. Qed.
@@ -625,10 +626,23 @@ Lemma def_FTsignalizer : {in 'A0(M), Dade_signalizer FT_Dade0_hyp =1 'R_M}.
 Proof. exact: def_Dade_signalizer. Qed.
 
 Definition FT_Dade_hyp :=
-  restr_Dade_hyp FT_Dade0_hyp (FTsupp_sub M) (FTsupp_norm M).
+  restr_Dade_hyp FT_Dade0_hyp (FTsupp_sub0 M) (FTsupp_norm M).
 
 Definition FT_Dade1_hyp :=
   restr_Dade_hyp FT_Dade0_hyp (FTsupp1_sub0 maxM) (FTsupp1_norm M).
+
+Local Notation tau := (Dade FT_Dade0_hyp).
+Local Notation FT_Dade := (Dade FT_Dade_hyp).
+Local Notation FT_Dade1 := (Dade FT_Dade1_hyp).
+
+Lemma FT_DadeE : {in 'CF(M, 'A(M)), FT_Dade =1 tau}.
+Proof. exact: restr_DadeE. Qed.
+
+Lemma FT_Dade1E : {in 'CF(M, 'A1(M)), FT_Dade1 =1 tau}.
+Proof. exact: restr_DadeE. Qed.
+
+Lemma FT_Dade0_supportE : Dade_support FT_Dade0_hyp = 'A0~(M).
+Proof. by apply/eq_bigr=> x A0x; rewrite /Dade_support1 def_FTsignalizer. Qed.
 
 Lemma FT_Dade1_supportE : Dade_support FT_Dade1_hyp = 'A1~(M).
 Proof.
@@ -642,25 +656,30 @@ rewrite restr_Dade_support; apply: eq_bigr => x Ax.
 by rewrite /Dade_support1 def_FTsignalizer // inE Ax.
 Qed.
 
+Lemma FT_Dade0_supportJ x : 'A0~(M :^ x) = 'A0~(M).
+Proof.
+rewrite /'A0~(_) FTsupp0J big_imset /=; last exact: in2W (conjg_inj x).
+apply: eq_bigr => y _; rewrite FTsignalizerJ -conjg_set1 -conjsMg.
+by rewrite class_supportGidl ?inE.
+Qed.
+
 Lemma FT_Dade1_supportJ x : 'A1~(M :^ x) = 'A1~(M).
 Proof.
 rewrite /'A1~(_) FTsupp1J big_imset /=; last exact: in2W (conjg_inj x).
 apply: eq_bigr => y _; rewrite FTsignalizerJ -conjg_set1 -conjsMg.
-rewrite !class_supportEl big_imset /=; last exact: in2W (conjg_inj x).
-by apply: eq_bigr => z _; rewrite -class_lcoset lcoset_id ?inE.
+by rewrite class_supportGidl ?inE.
 Qed.
 
 Lemma FT_Dade_supportJ x : 'A~(M :^ x) = 'A~(M).
 Proof.
 rewrite /'A~(_) FTsuppJ big_imset /=; last exact: in2W (conjg_inj x).
 apply: eq_bigr => y _; rewrite FTsignalizerJ -conjg_set1 -conjsMg.
-rewrite !class_supportEl big_imset /=; last exact: in2W (conjg_inj x).
-by apply: eq_bigr => z _; rewrite -class_lcoset lcoset_id ?inE.
+by rewrite class_supportGidl ?inE.
 Qed.
 
 Section PtypeMax.
 
-(* Subcoherence and cyclicTI properties of type II+ subgroups. *)
+(* Subcoherence and cyclicTI properties of type II-V subgroups. *)
 
 Variables U W1 : {group gT}.
 Hypothesis MtypeP : of_typeP M U W1.
@@ -671,7 +690,45 @@ Let W := (W1 <*> W2)%G.
 Let cycTI_M : cyclicTIhypothesis G W W1 W2 := FT_cycTI_hyp MtypeP.
 Let K := M^`(1)%G.
 
-Require Import PFsection4 PFsection5.
+Lemma FTtypeP_neq1 : FTtype M != 1%N.
+Proof.
+apply/FTtypeP=> // [[V [MtypeF _]]].
+exact: FTtypePF_exclusion (conj MtypeF MtypeP).
+Qed.
+
+Lemma FT_typeP_associate : exists2 S : {group gT},
+    [/\ S \in 'M, FTtype S != 1%N & S^`(1) ><| W2 = S]
+  & [/\ S :&: M = W, 'C_(S`_\F)(W2) = W1, FTtype M != 2 -> FTtype S == 2
+    & forall L, L \in 'M -> FTtype L != 1%N ->
+      exists x, L :=: S :^ x \/ L :=: M :^ x].
+Proof.
+have typeMnot1 := FTtypeP_neq1.
+case: ifP FT_FPstructure => [/forall_inP/(_ M maxM)/idPn[] // | _].
+case=> sW sW1 sW2 S T strST.
+without loss [x defMx]: sW sW1 sW2 S T strST / exists x, M :=: T :^ x.
+  have [_ _ _ _ /(_ M)[]// x [] defMx IH_ST] := strST.
+    by apply: IH_ST (FT_Pstructure_sym strST) _; exists x.
+  by apply: IH_ST strST _; exists x.
+have typeT_M: FTtype T = FTtype M by rewrite defMx FTtypeJ.
+have [[DsW maxS maxT] [defS defT tiST] /orP Stype2 [typeS _] allST] := strST.
+have{typeS} notStype1: FTtype S != 1%N by apply: contraTneq typeS => ->.
+do [rewrite orbC -implyNb /=; move/implyP] in Stype2.
+have [[_ _ _ defM] _ _ _ _] := MtypeP.
+move: defM; rewrite /= {}defMx derJ -(conjsgKV x W1) -sdprodJ.
+move/act_inj=> defTx; rewrite FcoreJ centJ -conjIg /=.
+have{typeT_M} notTtype1: FTtype T != 1%N by rewrite typeT_M.
+have{defT} [Us PtypeTs] := compl_of_typeP defT maxT notTtype1.
+have{defTx maxT notTtype1} [Ux PtypeTx] := compl_of_typeP defTx maxT notTtype1.
+have{Us PtypeTs Ux PtypeTx} [y [Ty _ ->]] := of_typeP_conj PtypeTx PtypeTs.
+rewrite -{Ty}(conjGid Ty) FcoreJ centJ -conjIg -!conjsgM -conjYg joingC centJ.
+move: {y x}(y * x)%g => x; rewrite (def_cycTIcompl (FT_Pstructure_sym strST)).
+have{DsW}[[/dprodWY-> _ _ _] _ _] := DsW.
+exists (S :^ x)%G; first by rewrite mmaxJ FTtypeJ derJ -sdprodJ defS.
+rewrite FcoreJ !FTtypeJ -!conjIg tiST (def_cycTIcompl strST).
+split=> // L maxL /allST[] // z.
+by do [case=> ->; exists (x^-1 * z)%g]; [left | right]; rewrite conjsgM conjsgK.
+Qed.
+
 Lemma FT_cycDade_hyp : cyclicDade_hypothesis M K W W1 W2.
 Proof.
 split; [by have [[]] := MtypeP | | by have [[]] := cycTI_M].
@@ -679,17 +736,11 @@ have [_ _ _ [cycW2 ntW2 _ sW2M'' prW1] _] := MtypeP; split => //.
 by rewrite (subset_trans sW2M'') ?der_subS.
 Qed.
 
-Fact FTtypeP_supp0_def :
+Lemma FTtypeP_supp0_def :
   'A0(M) = 'A(M) :|: class_support (cyclicTIset cycTI_M) M.
 Proof.
 rewrite -(setID 'A0(M) 'A(M)) (FTsupp0_typeP maxM MtypeP) (setIidPr _) //.
-exact: FTsupp_sub.
-Qed.
-
-Lemma FTtypeP_neq1 : FTtype M != 1%N.
-Proof.
-apply/FTtypeP=> // [[V [MtypeF _]]].
-exact: FTtypePF_exclusion (conj MtypeF MtypeP).
+exact: FTsupp_sub0.
 Qed.
 
 Fact FTtypeP_centralDade_properties :
@@ -725,40 +776,104 @@ Definition FTs_cDade_hyp :
 
 Let calS := seqIndD K M M`_\s 1.
 
-Fact FTtypeP_cohererence_base_subproof :
-  [/\ uniq calS, {subset calS <= calS}, ~~ has cfReal calS & conjC_closed calS].
-Proof.
-have [/= _ CDhyp _ [[_ _ sMsK] _ _]] := FTs_cDade_hyp.
-have [[/sdprod_context[nsKM _ _ _ _] _ _ _] _ _] := CDhyp.
-rewrite seqInd_uniq seqInd_notReal ?mFT_odd //; split=> //.
-exact: cfAut_seqInd.
-Qed.
+Fact FTtypeP_cohererence_base_subproof : cfConjC_subset calS calS.
+Proof. exact: seqInd_conjC_subset1. Qed.
+
+Fact FTtypeP_cohererence_nonreal_subproof : ~~ has cfReal calS.
+Proof. by rewrite seqInd_notReal ?mFT_odd ?FTcore_sub_der1 ?der_normal. Qed.
 
 Definition FTtypeP_coh_base_sig :=
-  PtypeDade_subcoherent FTs_cDade_hyp FTtypeP_cohererence_base_subproof.
+  PtypeDade_subcoherent FTs_cDade_hyp
+    FTtypeP_cohererence_base_subproof FTtypeP_cohererence_nonreal_subproof.
 
 Definition FTtypeP_coh_base := sval FTtypeP_coh_base_sig.
 
 Local Notation R := FTtypeP_coh_base.
-Let tau := Dade FT_cDade_hyp.
 
 Lemma FTtypeP_subcoherent : subcoherent calS tau R.
 Proof. by rewrite /R; case: FTtypeP_coh_base_sig => R1 []. Qed.
 
+Let w_ := @cyclicTIirr _ W W1 W2.
 Let sigma := cyclicTIsigma [set: gT] W W1 W2.
+Let w_sig i j := sigma (w_ i j).
+Let mu := @Dade_mu gT M W W1 W2.
 
 Lemma FTtypeP_base_ortho :
-  {in [predI calS & irr M] & irr W,
-      forall phi w, orthogonal (R phi) (sigma w)}.
+  {in [predI calS & irr M] & irr W, forall phi w, orthogonal (R phi) (sigma w)}.
 Proof. by rewrite /R; case: FTtypeP_coh_base_sig => R1 []. Qed.
 
 Lemma FTtypeP_base_mu :
-  let mu := @Dade_mu _ M W W1 W2 in let w_ := @cyclicTIirr _ W W1 W2 in
   let delta := fun j => (-1)^+ @Dade_delta _ M W W1 W2 j in
-  let dsw j k := [seq delta j *: sigma (w_ i k) | i : Iirr W1] in
+  let dsw j k := [seq delta j *: w_sig i k | i : Iirr W1] in
   let Rmu j := dsw j j ++ map -%R (dsw j (conjC_Iirr j)) in
   forall j, R (mu j) = Rmu j.
 Proof. by rewrite /R; case: FTtypeP_coh_base_sig => R1 []. Qed.
+
+Let scohS := FTtypeP_subcoherent.
+
+Lemma coherent_ortho_cTIiso calS1 (tau1 : {additive 'CF(M) -> 'CF(G)}) :
+    cfConjC_subset calS1 calS -> coherent_with calS1 M^# tau tau1 ->
+  forall chi i j, chi \in calS1 -> chi \in irr M -> '[tau1 chi, w_sig i j] = 0.
+Proof.
+move=> ccsS1S cohS1 chi i j S1chi chi_irr; have [_ sS1S _] := ccsS1S.
+have [e /mem_subseq Re ->] := mem_coherent_sum_subseq scohS ccsS1S cohS1 S1chi.
+rewrite cfdot_suml big1_seq // => xi /Re; apply: orthoPr.
+by apply: FTtypeP_base_ortho (mem_irr _); rewrite !inE sS1S.
+Qed.
+
+Import ssrnum Num.Theory.
+
+Lemma FTtypeP_coherent_mu calS1 (tau1 : {additive 'CF(M) -> 'CF(G)}) t j :
+    cfConjC_subset calS1 calS -> coherent_with calS1 M^# tau tau1 ->
+    'chi_t \in calS1 -> mu j \in calS1 ->
+    let d := Dade_delta M W W1 j in let k := conjC_Iirr j in
+  {dk : bool * Iirr W2 | tau1 (mu j) = (-1) ^+ dk.1 *: (\sum_i w_sig i dk.2)
+    &   dk.1 = d /\ dk.2 = j
+    \/  [/\ dk.1 = ~~ d, dk.2 = k
+        & forall j1, mu j1 \in calS1 -> mu j1 1%g = mu j 1%g -> pred2 j k j1]}.
+Proof.
+move=> ccsS1S cohS1 S1chi_t S1mu_j d k.
+have irrS1: [/\ ~~ has cfReal calS1, has (mem (irr M)) calS1 & mu j \in calS1].
+  have [[_ -> _] _ _ _ _] := subset_subcoherent scohS ccsS1S.
+  by split=> //; apply/hasP; exists 'chi_t => //; apply: mem_irr.
+have Dmu := def_Ptype_coherent_mu FTs_cDade_hyp ccsS1S irrS1 cohS1.
+rewrite -/mu -/d in Dmu; pose mu_sum d1 k1 := (-1) ^+ d1 *: (\sum_i w_sig i k1).
+have mu_sumK (d1 d2 : bool) k1 k2:
+  ('[mu_sum d1 k1, (-1) ^+ d2 *: w_sig 0 k2] > 0) = (d1 == d2) && (k1 == k2).
+- rewrite cfdotZl cfdotZr rmorph_sign mulrA -signr_addb cfdot_suml.
+  rewrite (bigD1 0) //= (cfdot_sigma cycTI_M) !eqxx.
+  rewrite big1 => [|i nz_i]; last first.
+    by rewrite (cfdot_sigma cycTI_M) (negPf nz_i).
+  rewrite addr0 /= andbC; case: (k1 == k2); rewrite ?mulr0 ?ltrr //=.
+  by rewrite mulr1 signr_gt0 negb_add.
+have [dk tau1mu_j]: {dk : bool * Iirr W2 | tau1 (mu j) = mu_sum dk.1 dk.2}.
+  apply: sig_eqW; case: Dmu => [-> | [-> _]]; first by exists (d, j).
+  by exists (~~ d, k); rewrite -signrN.
+exists dk => //; have:= mu_sumK dk.1 dk.1 dk.2 dk.2; rewrite !eqxx -tau1mu_j.
+case: Dmu => [-> | [-> all_jk]];
+  rewrite -?signrN mu_sumK => /andP[/eqP <- /eqP <-]; [by left | right].
+by split=> // j1 S1j1 /(all_jk j1 S1j1)/pred2P.
+Qed.
+
+Lemma size_red_subseq_seqInd_typeP (calX : {set Iirr K}) calS1 :
+    uniq calS1 -> {subset calS1 <= seqInd M calX} ->
+    {subset calS1 <= [predC irr M]} ->
+  size calS1 = #|[set i : Iirr K | 'Ind 'chi_i \in calS1]|.
+Proof.
+move=> uS1 sS1S redS1; pose h s := 'Ind[M, K] 'chi_s.
+apply/eqP; rewrite cardE -(size_map h) -uniq_size_uniq // => [|xi]; last first.
+  apply/imageP/idP=> [[i] | S1xi]; first by rewrite inE => ? ->.
+  by have /seqIndP[s _ Dxi] := sS1S _ S1xi; exists s; rewrite ?inE -?Dxi.
+apply/dinjectiveP; pose h1 xi := cfIirr (#|W1|%:R^-1 *: 'Res[K, M] xi).
+apply: can_in_inj (h1) _ => s; rewrite inE => /redS1 red_s.
+have [_ cycDD /= _ _] := FT_cDade_hyp; have [[_ _ _ cycW1] _ _] := cycDD.
+have:= (Dade_Ind_chi'_irr cycDD) s; set im_chi := codom _ => chi_s.
+have{im_chi chi_s} /imageP[j _ ->]: s \in im_chi.
+  by apply: contraR red_s => /chi_s/=[].
+apply: irr_inj; rewrite /h Dade_Ind_chi // /h1 raddf_sum /=.
+rewrite -(eq_bigr _ (fun _ _ => Dade_chiE cycDD _ _)) sumr_const.
+by rewrite card_Iirr_cyclic // -scaler_nat scalerK ?neq0CG ?irrK.
+Qed.
 
 End PtypeMax.
 
@@ -767,7 +882,7 @@ Lemma FTtypeII_ker_TI :
    FTtype M == 2 ->
  [/\ normedTI 'A0(M) G M, normedTI 'A(M) G M & normedTI 'A1(M) G M].
 Proof.
-move=> typeM; have [sA1A sAA0] := (FTsupp1_sub maxM, FTsupp_sub M).
+move=> typeM; have [sA1A sAA0] := (FTsupp1_sub maxM, FTsupp_sub0 M).
 have [sA10 sA0M] := (subset_trans sA1A sAA0, FTsupp0_sub M).
 have nzA1: 'A1(M) != set0 by rewrite setD_eq0 def_FTcore ?subG1 ?Msigma_neq1.
 have [nzA nzA0] := (subset_neq0 sA1A nzA1, subset_neq0 sA10 nzA1).
@@ -931,7 +1046,7 @@ have part_b S T (maxS : S \in 'M) (maxT : T \in 'M) (ncST : NC S T) :
     rewrite FTsuppJ mem_conjg in ATyx; exists (y ^ x^-1); apply/andP; split.
       by apply/bigcupP; exists y => //; rewrite mem_imset2 ?rcoset_refl ?inE.
     apply/bigcupP; exists (y ^ x^-1) => //.
-    by rewrite (subsetP (sub_class_support _ _)) ?rcoset_refl.
+    by rewrite mem_class_support ?rcoset_refl.
   have{AGTy} [x2 ATx2 x2R_yG] := bigcupP AGTy.
   have [sCx2T | not_sCx2T] := boolP ('C[x2] \subset T); last first.
     have [_ _ _ [injA1G pGI pGP]] := FT_Dade_support_partition.
@@ -990,4 +1105,6 @@ End Eight.
 
 Notation FT_Dade0 maxM := (Dade (FT_Dade0_hyp maxM)).
 Notation FT_Dade maxM := (Dade (FT_Dade_hyp maxM)).
+Notation FT_Dade1 maxM := (Dade (FT_Dade1_hyp maxM)).
+
 

@@ -103,7 +103,7 @@ apply/idP/imsetP=> [|[a _ ->{u}]]; last first.
 case/(atransP2 tr_m dt)=> /= a _ ->{u}.
 case odd_a: (odd_perm a); last by exists a => //; rewrite !inE /= odd_a.
 exists (tperm x y * a); first by rewrite !inE /= odd_permM odd_tperm nxy odd_a.
-apply: val_inj; apply: eq_in_map => z tz; rewrite actM /= /aperm; congr (a _).
+apply/val_inj/eq_in_map => z tz; rewrite actM /= /aperm; congr (a _).
 by case: tpermP ntx nty => // <-; rewrite tz.
 Qed.
 
