@@ -935,7 +935,7 @@ have [[[Itau1 Ztau1] Dtau1] [[Itau2 Ztau2] Dtau2]] := (cohS1, cohS2).
 have [[N_S1 _ _] _ oS11 _ _] := subset_subcoherent uccS1.
 have [_ _ oS22 _ _] := subset_subcoherent uccS2.
 have{N_S1} nz_chi1: chi 1%g != 0; last move/mem_zchar in S1chi.
-  by rewrite char1_eq0 ?N_S1 //; have [/andP[/memPn->]] := oS11.
+  by rewrite char1_eq0 ?N_S1 //; have [/memPn->] := andP oS11.
 have oS12: orthogonal S1 S2.
   apply/orthogonalP=> xi1 xi2 Sxi1 Sxi2; apply: orthoPr xi1 Sxi1.
   by rewrite subset_ortho_subcoherent ?sS2S //; apply: S1'2.
