@@ -986,35 +986,50 @@ by congr (_ *: _).
 Qed.
 
 (* This is essentially Peterfalvi (5.6.3), which gets reused in (9.11.8). *)
+(* The use in (9.11.8) requires weakening the assumption X \in 'Z[R chi] of   *)
+(* (5.4) to '[a *: tau phi, X] = 0; we could have done this in (5.4) itself,  *)
+(* but this would not have been convenient for the other uses of (5.4).       *)
 Lemma extend_coherent_with S1 (tau1 : {additive 'CF(L) -> 'CF(G)}) chi phi a X :
     cfConjC_subset S1 S -> coherent_with S1 L^# tau tau1 ->
     [/\ phi \in S1, chi \in S & chi \notin S1] ->
-    [/\ a \in Cint, chi 1%g = a * phi 1%g & X \in 'Z[R chi]]->
+    [/\ a \in Cint, chi 1%g = a * phi 1%g & '[a *: tau1 phi, X] = 0] ->
     tau (chi - a *: phi) = X - a *: tau1 phi ->
   coherent (chi :: chi^*%CF :: S1) L^# tau.
 Proof.
-set beta := _ - _ => sS10 cohS1 [S1phi Schi S1'chi] [Za chi_phi1 R_X] tau_beta.
-have [[uS1 sS1S ccS1] [[Itau1 _] _]] := (sS10, cohS1).
-have [[N_S nrS ccS] ZItau _ R_P _] := cohS; have [Itau _] := ZItau.
+set beta := _ - _ => sS10 cohS1 [S1phi Schi S1'chi] [Za chi1 o_aphi_X] tau_beta.
+have [[uS1 sS1S ccS1] [[Itau1 Ztau1] _]] := (sS10, cohS1).
+have [[N_S nrS ccS] ZItau _ R_P _] := cohS; have [Itau Ztau] := ZItau.
 have [Sphi [ZR o1R sumR]] := (sS1S _ S1phi, R_P _ Schi).
-have Zbeta: chi - a *: phi \in 'Z[S, L^#].
-  by rewrite zcharD1E !cfunE -chi_phi1 subrr rpredB ?scale_zchar ?mem_zchar /=.
+have Zbeta: beta \in 'Z[S, L^#].
+  by rewrite zcharD1E !cfunE -chi1 subrr rpredB ?scale_zchar ?mem_zchar /=.
 have o_aphi_R: orthogonal (a *: tau1 phi) (R chi).
   have /orthogonalP oS1R := coherent_ortho_supp sS10 cohS1 Schi S1'chi.
   by apply/orthoPl=> xi Rxi; rewrite cfdotZl oS1R ?map_f ?mulr0.
-have o_aphi_X: '[a *: tau1 phi, X] = 0.
-  by rewrite (span_orthogonal o_aphi_R) ?memv_span1 ?(zchar_span R_X).
+have Z_X: X \in 'Z[irr G].
+  rewrite -(canLR (subrK _) tau_beta) rpredD ?(zcharW (Ztau _ _)) //. 
+  by rewrite rpredZ_Cint ?Ztau1 ?mem_zchar.
+have{Z_X} [X1 [Y1 [defX1 R_X1 oY1R]]] := subcoherent_split Schi Z_X.
+do [rewrite defX1 -addrA -opprD; set Y := Y1 + _] in tau_beta.
+have{oY1R} oYR: orthogonal Y (R chi).
+  by apply/orthoPl=> xi Rxi; rewrite cfdotDl !(orthoPl _ _ Rxi) // add0r.
+have{o_aphi_X} nY: '[a *: phi] <= '[Y] ?= iff (Y1 == 0).
+  rewrite -cfnorm_eq0 eq_sym cfnormDd //.
+    rewrite !cfnormZ Itau1 ?mem_zchar // -lerif_subLR subrr.
+    by apply: lerif_eq; apply: cfnorm_ge0.
+  rewrite -[Y1](subrK X1) -opprB -defX1 addrC cfdotC cfdotBr o_aphi_X subr0.
+  by rewrite (span_orthogonal o_aphi_R) ?conjC0 ?memv_span1 ?(zchar_span R_X1).
 have /orthoPl o_chi_S1: orthogonal chi S1.
   by rewrite orthogonal_sym subset_ortho_subcoherent.
 have Zdchi: chi - chi^*%CF \in 'Z[S, L^#].
   by rewrite sub_aut_zchar ?zchar_onG ?mem_zchar ?ccS // => xi /N_S/char_vchar.
-have [] // := subcoherent_norm _ _ (erefl _) (And3 tau_beta _ _).
+have{oYR R_X1} [||_] := subcoherent_norm _ _ (erefl _) (And3 tau_beta R_X1 oYR).
 - rewrite Schi rpredZ_Cint ?char_vchar ?N_S /orthogonal //= !cfdotZr.
   by rewrite cfdot_conjCl !o_chi_S1 ?ccS1 // conjC0 !mulr0 !eqxx.
 - apply: sub_iso_to ZItau; [apply: zchar_trans_on; apply/allP | exact: zcharW].
-  rewrite /= andbT zcharD1E rpredB ?rpredZ_Cint ?mem_zchar //=.
-  by rewrite !cfunE chi_phi1 subrr eqxx /=.
-rewrite !cfnormZ Itau1 ?mem_zchar // => _ [] // nX _ [e Re defX].
+  by rewrite /= Zbeta Zdchi.
+case=> [|nX /esym/eqP]; rewrite {}nY // => /eqP Y1_0 [e Re defX].
+rewrite {}/Y {Y1}Y1_0 add0r subr0 in defX1 tau_beta.
+rewrite -{X1}defX1 in defX tau_beta nX.
 have uR: uniq (R chi) by have [] := orthonormalP o1R.
 have{uR} De: e = filter (mem e) (R chi) by apply/subseq_uniqP.
 pose ec := filter [predC e] (R chi); pose Xc := - \sum_(xi <- ec) xi.
@@ -1175,7 +1190,8 @@ have{defY leXchi lam Z Zlam oZS1 ub_chi1} defY: Y = a *: tau1 xi1.
   rewrite (ltr_le_trans b_lt1) //; have:= lam_gt0.
   have /CnatP[n ->]: lam \in Cnat by rewrite CnatEint Zlam ltrW.
   by rewrite ltr0n ler1n.
-by move: eqXY; rewrite defY; apply: extend_coherent_with.
+move: eqXY; rewrite defY; apply: extend_coherent_with => //; split=> //.
+by rewrite -defY (span_orthogonal oYRchi) ?memv_span1 ?(zchar_span ZX).
 Qed.
 
 (* This is Peterfalvi (5.7). *)

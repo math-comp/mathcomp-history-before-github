@@ -2226,41 +2226,11 @@ have{b_mod_ua alpha_beta} b0: b = 0%N :> nat.
   by rewrite ltn_neqAle -(eqn_pmul2l q_gt0) eq_sym ne_qa_qu dvdn_leq.
 exists lam1 => //; suffices: coherent (lam1 :: lam1^* :: S1)%CF M^# tau.
   by apply: subset_coherent => phi; rewrite !inE eqS12.
-suffices Rlam1Gamma: Gamma \in 'Z[rmR lam1].
-  move: Dbeta; rewrite b0 scale0r addr0.
-  apply: (extend_coherent_with scohS0 sS10 cohS1); first by [].
-  by rewrite rpred_nat psi1qa -natrM mulnCA (eqP (S3qu _ S3lam1)) divnK.
-have Z_Gamma: Gamma \in 'Z[irr G].
-  apply: zchar_sub_irr S4_Gamma => _ /mapP[xi S4xi ->].
-  by rewrite Ztau3 ?mem_zchar ?(mem_subseq _ S4xi) ?filter_subseq.
-have [X [Y [defGamma R_X oYR]]] := subcoherent_split scohS0 Slam1 Z_Gamma.
-set Y1 := _ *: tau1 psi1 in Dbeta.
-have [[_ _ ccS1] [[_ _ ccS0] _ _ _ _]] := (sS10, scohS0).
-have oY1R: orthogonal Y1 (rmR lam1).
-  have oS1R := coherent_ortho_supp scohS0 sS10 cohS1 Slam1 S1'lam1.
-  by apply/orthoPl=> xi Rxi; rewrite cfdotZl (orthogonalP oS1R) ?map_f ?mulr0.
-have defXY: [/\ beta^\tau = X - (Y + Y1), X \in 'Z[rmR lam1]
-              & orthogonal (Y + Y1) (rmR lam1)].
-- split=> //; first by rewrite Dbeta b0 scale0r addr0 defGamma -addrA -opprD.
-  apply/orthoPl=> mu Rmu.
-  by rewrite cfdotDl (orthoPl oYR) // add0r (orthoPl oY1R).
-have [lbYY1 /esym/eqP Y0]: '[(u %/ a)%:R *: psi1] <= '[Y + Y1] ?= iff (Y == 0).
-  rewrite cfnormDd.
-    rewrite !cfnormZ Itau1 ?mem_zchar // -lerif_subLR subrr -cfnorm_eq0 eq_sym.
-    by apply: lerif_eq; rewrite cfnorm_ge0.
-  rewrite -(subrK X Y) -opprB -defGamma addrC cfdotBl.
-  rewrite cfdotC (span_orthogonal oY1R) ?(zchar_span R_X) ?memv_span ?inE //.
-  rewrite cfdotC (span_orthogonal oS14tau) ?subrr ?(zchar_span S4_Gamma) //.
-  by rewrite rpredZ ?memv_span ?map_f.
-have [||_ [//|nX YY1 [e Re dX]]] := subcoherent_norm scohS0 _ _ (erefl _) defXY.
-- rewrite /orthogonal /= !cfdotZr Slam1.
-  rewrite rpredZnat ?char_vchar ?(seqInd_char Spsi1) //.
-  rewrite !(cfdotC _ psi1) cfdot_conjCr.
-  by rewrite !oSS ?rmorph0 ?mulr0 ?eqxx ?ccS0 ?(memPn S1'lam1) ?ccS1.
-- have: {in 'Z[irr M, 'A(M)], isometry tau, to 'Z[irr G]} by [].
-  apply: sub_iso_to => //; apply: zchar_trans_on; apply/allP=> /=.
-  by rewrite ZAbeta ZAdlam1.
-by rewrite {lbYY1}YY1 eqxx in Y0; rewrite defGamma Y0 subr0.
+move: Dbeta; rewrite b0 scale0r addr0.
+apply: (extend_coherent_with scohS0 sS10 cohS1); first by [].
+rewrite rpred_nat psi1qa -natrM mulnCA (eqP (S3qu _ S3lam1)) divnK //.
+rewrite (span_orthogonal oS14tau) ?(zchar_span S4_Gamma) ?rpredZ //.
+by rewrite memv_span ?map_f.
 Qed.
 
 End Nine.
