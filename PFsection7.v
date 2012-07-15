@@ -361,7 +361,7 @@ have dot_beta_1: '[beta, 1] = 1.
   rewrite invDade_reciprocity // invDade_cfun1 (eq_cfdotr _ (eq_cfuni nsAL)) //.
   by rewrite cfdotBl -Frobenius_reciprocity cfRes_cfun1 ?cfnorm1 ?oS1 ?subr0.
 have o_beta1: '[beta - 1, 1] = 0 by rewrite cfdotBl dot_beta_1 cfnorm1 subrr.
-have [X [Gamma [def_beta1 SnuX oSnuG]]] := orthogonal_split calSnu (beta - 1).
+have [X SnuX [Gamma [def_beta1 _  oSnuG]]]:= orthogonal_split calSnu (beta - 1).
 have oG1: '[Gamma, 1] = 0.
   rewrite -(addKr X Gamma) -def_beta1 addrC cfdotBl o_beta1.
   by rewrite (span_orthogonal oSnu1) ?subr0 // memv_span ?mem_head.

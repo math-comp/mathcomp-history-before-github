@@ -795,7 +795,7 @@ Lemma FTtype345_Dade_bridge0 :
            & forall i j, '[chi, w_sig i j] = 0]}.
 Proof.
 move=> w1_lt_w2; set psi := mu_ 0 - zeta; pose Wsig := map sigma (irr W).
-have [X [chi [DpsiG wsigX o_chiW]]] := orthogonal_split Wsig psi^\tau.
+have [X wsigX [chi [DpsiG _ o_chiW]]] := orthogonal_split Wsig psi^\tau.
 exists (- chi); rewrite opprK rpredN cfnormN.
 have o_chi_w i j: '[chi, w_sig i j] = 0.
   by rewrite (orthoPl o_chiW) ?map_f ?mem_irr.
@@ -1038,7 +1038,7 @@ have S1zeta: zeta \in S1.
 (* valid we do not need to reprove alpha_on.                                  *)
 have Dalpha i (al_ij := alpha_ i j) :
   al_ij^\tau = delta *: (w_sig i j - w_sig i 0) - n *: tau1 zeta.
-- have [Y [X [Dal_ij S1_Y oXY]]] := orthogonal_split (map tau1 S1) al_ij^\tau.
+- have [Y S1_Y [X [Dal_ij _ oXY]]] := orthogonal_split (map tau1 S1) al_ij^\tau.
   have [a_ Da_ defY] := orthonormal_span o1S1tau S1_Y.
   have oXS1 lam : lam \in S1 -> '[X, tau1 lam] = 0.
     by move=> S1lam; rewrite (orthoPl oXY) ?map_f.

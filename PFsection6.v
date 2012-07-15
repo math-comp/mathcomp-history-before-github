@@ -818,7 +818,7 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
   have Zpsi1: psi1 \in 'Z[S, L^#].
     rewrite zcharD1E !cfunE (uniY _ Yeta1) -Dxi11 subrr eqxx.
     by rewrite rpredB ?scale_zchar ?mem_zchar ?(sXS _ Xxi1) // sYS.    
-  have [Y1 [X1 [dX1 dY1 oX1tauY]]] := orthogonal_split (map tau1 Y) (tau psi1).
+  have [Y1 dY1 [X1 [dX1 _ oX1tauY]]] := orthogonal_split (map tau1 Y)(tau psi1).
   have oY: orthonormal Y by exact: sub_orthonormal (irr_orthonormal L).
   have oYtau: orthonormal (map tau1 Y) by exact: map_orthonormal.
   have{dX1 Y1 dY1} [b Zb Dpsi1]: {b | b \in Cint &
@@ -843,7 +843,7 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
     have [_ oYY] := orthonormalP oY; rewrite !oYY // eqxx.
     by rewrite eq_sym (negPf eta1'eta) add0r mulrN mulr1 opprK.
   pose psi := 'Res[L] (tau1 eta1).
-  have [X2 [xi' [dxi' dX2 oxi'X]]] := orthogonal_split X psi.
+  have [X2 dX2 [xi' [dxi' _ oxi'X]]] := orthogonal_split X psi.
   have oX: orthonormal X by exact: sub_orthonormal (irr_orthonormal L).
   have Zpsi: psi \in 'Z[irr L] by rewrite cfRes_vchar ?Ztau1 ?seqInd_zcharW.
   pose sumXd := \sum_(xi <- X) d xi *: xi.
@@ -970,9 +970,9 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
     have memYtau1c: {subset map (tau1 \o cfAut conjC) Y <= map tau1 Y}.
       by move=> _ /mapP[eta Yeta ->]; rewrite /= map_f ?ccY.     
     apply: (IH _ (dual_coherence scohY cohY szY2)).
-    - rewrite (map_comp -%R) orthogonal_opp.
+    - rewrite (map_comp -%R) orthogonal_oppr.
       by apply/orthogonalP=> phi psi ? /memYtau1c; exact: (orthogonalP o_tauXY).
-    - rewrite (map_comp -%R) orthogonal_opp.
+    - rewrite (map_comp -%R) orthogonal_oppr.
       by apply/orthoPl=> psi /memYtau1c; exact: (orthoPl oX1tauY).
     rewrite Dpsi1 (eq_big_perm _ defY) Db q1 /= mul1r big_cons big_seq1.
     by rewrite scalerDr addrA subrK -scalerN opprK.
@@ -1022,7 +1022,7 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
       by apply/idP/idP; [rewrite !inE => /pred2P[]-> | exact: sX_xi12].
     have szX2: (size X <= 2)%N by rewrite (perm_eq_size defX).
     apply: (IH _ (dual_coherence scohX cohX szX2)) def_X1.
-    rewrite (map_comp -%R) orthogonal_sym orthogonal_opp -orthogonal_sym.
+    rewrite (map_comp -%R) orthogonal_oppl.
     apply/orthogonalP=> _ eta /mapP[xi Xxi ->].
     by apply: (orthogonalP o_tauXY); rewrite map_f ?ccX.
   move: Dpsi1; rewrite -raddfZ_Cnat // defX1.
@@ -1140,7 +1140,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
         rewrite !cfdotZl cfnorm_irr lin_i addr0 !mulr1.
         rewrite -irr0 cfdot_irr eq_sym (negPf nzi) mulr0 addr0.
         by rewrite aut_Cint // Dx0 rpredM ?rpred_nat.
-      have [Y2 [X1 [dX1 dY2 oX1Yt]]] :=
+      have [Y2 dY2 [X1 [dX1 _ oX1Yt]]] :=
         orthogonal_split (map tau1 Y) (tau (alpha i)).
       exists X1 => //; rewrite dX1 addrC scalerN opprK scaler_sumr.
       congr (_ + _); have [_ -> ->] := orthonormal_span oYtau dY2.
@@ -1327,9 +1327,9 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
       [/\ tau (alpha i) = X1 - b *: Y1 + Z1,
           i \in rp -> X1 \in 'Z[R (chi i)], i \in rp -> b \is Creal,
           '[Z1, Y1] = 0 & i \in rp -> orthogonal Z1 (R (chi i))].
-    - have [X1 [YZ1 [dXYZ dX1 oYZ1R]]] :=
+    - have [X1 dX1 [YZ1 [dXYZ _ oYZ1R]]] :=
         orthogonal_split (R (chi i)) (tau (alpha i)).
-      have [Y1b [Z1 [dYZ1 dY1b oZY1]]] := orthogonal_split Y1 YZ1.
+      have [Y1b dY1b [Z1 [dYZ1 _ oZY1]]] := orthogonal_split Y1 YZ1.
       have{dY1b} [|b Db dY1b] := orthogonal_span _ dY1b.
         by rewrite /pairwise_orthogonal /= inE eq_sym -cfnorm_eq0 n1Y1 oner_eq0.
       exists (X1, - b Y1, Z1); split.
@@ -1388,7 +1388,10 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
           by rewrite sub_aut_zchar ?zchar_onG ?seqInd_zcharW ?cfAut_seqInd;
             rewrite ?sXS ?Xchi //; exact: seqInd_vcharW.
         by rewrite -Da_ // irr1_degree rpred_nat.
-      rewrite R_X1 //= opprD opprK addrA -defXbZ; split=> //.
+      suffices oYZ_R: orthogonal (b i *: Y1 - Z1 i) (R (chi i)).
+        rewrite opprD opprK addrA -defXbZ cfdotC.
+        rewrite (span_orthogonal oYZ_R) ?memv_span1 ?conjC0 //.
+        exact: (zchar_span (R_X1 i rp_i)).
       apply/orthoPl=> aa Raa.
       rewrite cfdotBl cfdotZl (orthoPl (oZ1R i _)) //.
       by rewrite subr0 cfdotC; have [-> | [_ ->]] := defY1;

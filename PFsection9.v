@@ -2094,8 +2094,8 @@ have [Gamma [S4_Gamma normGamma [b Dbeta]]]:
   exists Gamma, [/\ Gamma \in 'Z[map tau3 S4], '[Gamma] = 1
     & exists b : bool, beta^\tau
         = Gamma - (u %/ a)%:R *: tau1 psi1 + b%:R *: \sum_(psi <- S1) tau1 psi].
-- have [G [G' [Dbeta S4G oG'4]]] := orthogonal_split (map tau3 S4) beta^\tau.
-  have [B [Delta [dG' S1B oD1]]] := orthogonal_split (map tau1 S1) G'.
+- have [G S4G [G' [Dbeta _ oG'4]]] := orthogonal_split (map tau3 S4) beta^\tau.
+  have [B S1B [Delta [dG' _ oD1]]] := orthogonal_split (map tau1 S1) G'.
   have sZS43: {subset 'Z[S4] <= 'Z[S3]} := zchar_subset sS43.
   have [Itau34 Ztau34] := sub_iso_to sZS43 sub_refl IZtau3.
   have Z_G: G \in 'Z[map tau3 S4].
@@ -2182,7 +2182,7 @@ have [Gamma [S4_Gamma normGamma [b Dbeta]]]:
 have alpha_beta: '[alpha^\tau, beta^\tau] = (u %/ a)%:R.
   rewrite Itau // cfdotBr cfdotZr rmorph_nat !cfdotBl !oSgamma // !sub0r.
   by rewrite n1psi1 mulrN opprK mulr1 addrC oSS ?subr0 // (memPn S1'lam1).
-have [X [Delta [Dalpha S1X oD1]]] := orthogonal_split (map tau1 S1) alpha^\tau.
+have [X S1X [Delta [Dalpha _ oD1]]]:= orthogonal_split (map tau1 S1) alpha^\tau.
 pose x := 1 + '[X, tau1 psi1].
 have alphaS1_X: {in S1, forall psi, '[alpha^\tau, tau1 psi] = '[X, tau1 psi]}.
   by move=> psi S1psi; rewrite Dalpha cfdotDl (orthoPl oD1) ?map_f // addr0.
@@ -2229,8 +2229,8 @@ exists lam1 => //; suffices: coherent (lam1 :: lam1^* :: S1)%CF M^# tau.
 move: Dbeta; rewrite b0 scale0r addr0.
 apply: (extend_coherent_with scohS0 sS10 cohS1); first by [].
 rewrite rpred_nat psi1qa -natrM mulnCA (eqP (S3qu _ S3lam1)) divnK //.
-rewrite (span_orthogonal oS14tau) ?(zchar_span S4_Gamma) ?rpredZ //.
-by rewrite memv_span ?map_f.
+rewrite cfdotC (span_orthogonal oS14tau) ?(zchar_span S4_Gamma) ?conjC0 //.
+by rewrite rpredZ ?memv_span ?map_f.
 Qed.
 
 End Nine.

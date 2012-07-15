@@ -1021,14 +1021,20 @@ by rewrite cfdotZl cfdotZr oS12 ?mem_nth ?mulr0.
 Qed.
 
 Lemma orthogonal_split S beta :
-  {X : 'CF(G) & {Y | [/\ beta = X + Y, X \in <<S>>%VS & orthogonal Y S]}}.
+  {X : 'CF(G) & X \in <<S>>%VS &
+      {Y | [/\ beta = X + Y, '[X, Y] = 0 & orthogonal Y S]}}.
 Proof.
-elim: S beta => [|phi S IHS] beta; first by exists 0, beta; rewrite add0r mem0v.
-have [[U [V [-> S_U oVS]]] [X [Y [-> S_X oYS]]]] := (IHS phi, IHS beta).
-pose Z := '[Y, V] / '[V] *: V; exists (X + Z), (Y - Z).
-split; first by rewrite addrCA !addrA addrK addrC.
-  rewrite /Z -{4}(addKr U V) scalerDr scalerN addrA addrC span_cons.
+suffices [X S_X [Y -> oYS]]:
+  {X : _ & X \in <<S>>%VS & {Y | beta = X + Y & orthogonal Y S}}.
+- exists X => //; exists Y.
+  by rewrite cfdotC (span_orthogonal oYS) ?memv_span1 ?conjC0.
+elim: S beta => [|phi S IHS] beta.
+  by exists 0; last exists beta; rewrite ?mem0v ?add0r.
+have [[U S_U [V -> oVS]] [X S_X [Y -> oYS]]] := (IHS phi, IHS beta).
+pose Z := '[Y, V] / '[V] *: V; exists (X + Z).
+  rewrite /Z -[V in _ *: V](addKr U) scalerDr scalerN addrA addrC span_cons.
   by rewrite memv_add ?memvB ?memvZ ?memv_line.
+exists (Y - Z); first by rewrite addrCA !addrA addrK addrC.
 apply/orthoPl=> psi; rewrite !inE => /predU1P[-> | Spsi]; last first.
   by rewrite cfdotBl cfdotZl (orthoPl oVS _ Spsi) mulr0 subr0 (orthoPl oYS).
 rewrite cfdotBl !cfdotDr (span_orthogonal oYS) // ?memv_span ?mem_head //.
@@ -1046,13 +1052,16 @@ apply: eq_in_all => phi Sphi; rewrite /= all_map.
 by apply: eq_in_all => psi Rpsi; rewrite /= Inu ?(sSA phi) ?(sRA psi).
 Qed.
 
-Lemma orthogonal_opp S R : orthogonal S (map -%R R) = orthogonal S R.
+Lemma orthogonal_oppr S R : orthogonal S (map -%R R) = orthogonal S R.
 Proof.
 wlog suffices IH: S R / orthogonal S R -> orthogonal S (map -%R R).
   apply/idP/idP=> /IH; rewrite ?mapK //; exact: opprK.
 move/orthogonalP=> oSR; apply/orthogonalP=> xi1 _ Sxi1 /mapP[xi2 Rxi2 ->].
 by rewrite cfdotNr oSR ?oppr0.
 Qed.
+
+Lemma orthogonal_oppl S R : orthogonal (map -%R S) R = orthogonal S R.
+Proof. by rewrite -!(orthogonal_sym R) orthogonal_oppr. Qed.
 
 Lemma pairwise_orthogonalP S :
   reflect (uniq (0 :: S)
