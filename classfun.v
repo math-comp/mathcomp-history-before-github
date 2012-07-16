@@ -2212,6 +2212,15 @@ Definition cfdot_Res_r := Frobenius_reciprocity.
 Lemma cfdot_Res_l psi phi : '['Res[H] psi, phi] = '[psi, 'Ind[G] phi].
 Proof. by rewrite cfdotC cfdot_Res_r -cfdotC. Qed.
 
+Lemma cfIndM phi psi:  H \subset G -> 
+     'Ind[G] (phi * ('Res[H] psi)) = 'Ind[G] phi * psi.
+Proof.
+move=> HsG; apply/cfun_inP=> x Gx; rewrite !cfIndE // !cfunE !cfIndE // -mulrA.
+congr (_ * _); rewrite mulr_suml; apply: eq_bigr=> i iG; rewrite !cfunE.
+case:(boolP (x^i \in H))=> xJi; last by rewrite cfun0gen ?mul0r ?genGid.
+by rewrite !cfResE //; congr (_*_); rewrite cfunJgen ?genGid.
+Qed.
+
 End Induced.
 
 Arguments Scope cfInd [_ group_scope group_scope cfun_scope].
