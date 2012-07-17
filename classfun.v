@@ -1032,7 +1032,7 @@ elim: S beta => [|phi S IHS] beta.
   by exists 0; last exists beta; rewrite ?mem0v ?add0r.
 have [[U S_U [V -> oVS]] [X S_X [Y -> oYS]]] := (IHS phi, IHS beta).
 pose Z := '[Y, V] / '[V] *: V; exists (X + Z).
-  rewrite /Z -[V in _ *: V](addKr U) scalerDr scalerN addrA addrC span_cons.
+  rewrite /Z -{4}(addKr U V) scalerDr scalerN addrA addrC span_cons.
   by rewrite memv_add ?memvB ?memvZ ?memv_line.
 exists (Y - Z); first by rewrite addrCA !addrA addrK addrC.
 apply/orthoPl=> psi; rewrite !inE => /predU1P[-> | Spsi]; last first.
