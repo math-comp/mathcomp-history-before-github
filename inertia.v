@@ -1165,6 +1165,7 @@ Let NsF : N \subset F. Proof. exact: sub_Inertia. Qed.
 Let NnF : N <| F. Proof. exact: normal_Inertia. Qed.
 
 Hypothesis finv : 'I_G['chi_f] = G.
+Hypothesis tinv : 'I_G['chi_t] = G.
 
 (* This is the proof corresponding to the indications in Isaacs 6.16 -- GG
 set phi := 'Res _; suffices /vlineP[a Dphi]: phi \in <['chi_f]>%VS.
@@ -1174,26 +1175,86 @@ rewrite /phi ['Ind _]cfun_sum_constt linear_sum rpred_sum // => k.
 rewrite linearZ /= constt_Ind_constt_Res => /Clifford_Res_sum_cfclass-> //.
 by rewrite !rpredZ // -finv cfclass_inertia big_seq1 memv_line.
 *)
-(* This is the shortest proof I could come up with -- GG.
+
+
+(* This is the shortest proof proposed by  GG.*)
+Fact ResIndchiquo: 
+  forall psi, 'I_G[psi] = G -> 'Res[N]  ('Ind[G] psi) = #|G : N|%:R *: psi.
+Proof.
+move=> p pinv.
 apply/cfun_inP=> x Nx; rewrite cfResE ?cfIndE ?(subsetP sNG) //.
 rewrite natf_indexg // cfunE -mulrA mulrCA mulr_natl //; congr (_ * _).
-by rewrite -finv -sumr_const; apply: eq_bigr => z /setIP[_ /inertia_valJ->].
-*)
-Fact ResIndchiquo: 'Res[N]  ('Ind[G] 'chi_f) = #|G : N|%:R *: 'chi_f.
+by rewrite -pinv -sumr_const; apply: eq_bigr => z /setIP[_ /inertia_valJ->].
+Qed.
+
+Fact normIndchi (p: Iirr N):  
+ 'I_G['chi_p] = G ->'['Ind[G] 'chi_p, 'Ind[G] 'chi_p] =  #|G : N|%:R.
 Proof.
-rewrite ResIndchiE //. 
-suff -> :  (\sum_(y in G) ('chi_f ^ y)%CF) = #|G|%:R *: 'chi_f.
-  rewrite scalerA; congr (_ *: _);  apply :(mulfI (neq0CG N)).
-  by rewrite mulrA  -natrM Lagrange // mulfV ?mul1r //  (neq0CG N).
-apply/cfunP=> y; rewrite sum_cfunE !cfunE.
-rewrite (eq_bigr (fun i => 'chi_f y)); first by rewrite sumr_const  mulr_natl.
-move => i ; rewrite -finv inE => /andP [inG iner].
-by rewrite inertiaJ.
+move=> pinv.
+by rewrite -cfdot_Res_l  (ResIndchiquo pinv)  cfdotZl cfnorm_irr mulr1.
+Qed. 
+
+Lemma inv_inertia_mul:  forall (p s : Iirr N), 
+   'I_G['chi_p] = G -> 'I_G['chi_s] = G -> 'I_G['chi_p*'chi_s] = G.
+Proof.
+move=> p s IGp IGs; apply/eqP; rewrite eqEsubset Inertia_sub /=.
+by move/(setIS G):(inertia_mul 'chi_p 'chi_s);rewrite setIA  IGp IGs.
+Qed.
+
+Hypothesis ft_irr : 'chi_f * 'chi_t \in irr N.
+
+Let normft: '['Ind[G] ('chi_f * 'chi_t)] =  #|G : N|%:R.
+case/irrP : ft_irr => ft ftE.
+by rewrite ftE normIndchi // -ftE inv_inertia_mul.
 Qed.
  
-Hypothesis tinvariant : T = G.
-Hypothesis ft_irr : 'chi_f * 'chi_t \in irr N.
-Hypothesis indt_irr  : 'Ind[G] 'chi_t \in irr G.
+Let norm_fG : \sum_(i in irr_constt ('Ind[G] 'chi_f))
+         '['Ind[G] 'chi_f, 'chi_i] ^+2= #|G : N|%:R.
+Proof.
+move: (normIndchi finv); set phi := 'Ind _; rewrite cfdot_char_r; first last.
+  by rewrite cfInd_char // irr_char.
+rewrite (bigID [pred i | '[phi, 'chi_i] == 0]) /= big1 ?add0r //.
+by move => i /eqP->; rewrite mulr0.
+Qed.
+
+
+Variable c : Iirr G.
+
+Hypothesis extt_irr  : 'Res[N] 'chi_c = 'chi_t.
+
+Let norm_ftG: \sum_(i in irr_constt ('Ind[G] 'chi_f))
+   \sum_(j in irr_constt ('Ind[G] 'chi_f))
+      '['['Ind[G] 'chi_f, 'chi_i] *: 'chi_i * 'chi_c,
+        '['Ind[G] 'chi_f, 'chi_j] *: 'chi_j * 'chi_c] = #|G : N|%:R.
+Proof.
+move: normft; rewrite -extt_irr cfIndM //.
+rewrite {1}(cfun_sum_constt ('Ind[G] 'chi_f)) mulr_suml cfdot_suml.
+rewrite (eq_bigr 
+          (fun i =>  \sum_(j in irr_constt ('Ind[G] 'chi_f)) 
+          '['['Ind[G] 'chi_f, 'chi_i] *: 'chi_i * 'chi_c,
+          '['Ind[G] 'chi_f, 'chi_j] *: 'chi_j * 'chi_c])) //.
+move=> i Hi;  rewrite {2}(cfun_sum_constt ('Ind[G] 'chi_f)). 
+by rewrite mulr_suml cfdot_sumr.
+Qed.
+
+Let e := fun i =>  '['Ind[G] 'chi_f, 'chi_i].
+Let He: \sum_(i in irr_constt ('Ind[G] 'chi_f))
+         '['Ind[G] 'chi_f, 'chi_i] ^+2 = \sum_(i in irr_constt ('Ind[G] 'chi_f))
+   \sum_(j in irr_constt ('Ind[G] 'chi_f))
+      '['['Ind[G] 'chi_f, 'chi_i] *: 'chi_i * 'chi_c,
+        '['Ind[G] 'chi_f, 'chi_j] *: 'chi_j * 'chi_c].
+by rewrite norm_ftG norm_fG.
+Qed.
+
+Let Hf: \sum_(i in irr_constt ('Ind[G] 'chi_f))
+         (e i) ^+2 = \sum_(i in irr_constt ('Ind[G] 'chi_f))
+   \sum_(j in irr_constt ('Ind[G] 'chi_f))
+      (e i) * (e j) * '['chi_i * 'chi_c,'chi_j * 'chi_c].
+rewrite He; apply: eq_bigr=> i Hi; apply: eq_bigr=> j Hj.
+rewrite -scalerAl cfdotZl /e -mulrA; congr (_ * _).
+rewrite -scalerAl cfdotZr; congr (_ * _).
+by rewrite conj_Cnat ?Cnat_cfdot_char_irr ?cfInd_char ?irr_char.
+Qed.
 
 Variable b : Iirr G.
 
