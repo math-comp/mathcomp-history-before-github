@@ -279,7 +279,7 @@ Qed.
 
 (* This is  Peterfalvi (11.6). *)
 Lemma Mtype34_facts :
-  [/\ p.-group H, U \subset 'C(H0), H0 :=: (H^`(1))%g & C = (U^`(1))%G]. 
+  ([/\ p.-group H, U \subset 'C(H0), H0 :=: H^`(1) & `C = U^`(1)])%g. 
 Proof.
 have nH := Fcore_nil M.
 have CHsH := subsetIl H 'C(U).
@@ -401,7 +401,7 @@ split=> //.
   case/dprodP: defHU1 => _ _ _ /trivgP/(subset_trans _)->//.
   by rewrite setIS // der_sub.
 (* C = U' *)
-apply/val_eqP; rewrite /= eqEsubset andbC.
+apply/eqP; rewrite eqEsubset andbC.
 rewrite subsetI der_sub; have[_ [->/= _] _ _]:= typeP_context MtypeP.
 have/subset_trans->//: C \subset (M^`(2) :&: U)%g.
   rewrite derM2_HC -(dprodW defHC) setIC -group_modr ?subsetIl // setIC.
