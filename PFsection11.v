@@ -350,7 +350,7 @@ split=> //.
   - by rewrite norm_joinEr // mulgA eRO.
   - rewrite join_subG OsCR centsC.
     by case/pHallP: S_CR1; rewrite subsetI=> /andP[].
-  rewrite norm_joinEr //; case/setIidPl: R1sH=><-.
+  rewrite norm_joinEr //; case/setIidPl: R1sH => <-.
   rewrite -setIA [_ :&: (_ * _)%g]setIC -group_modl ?pcore_sub //.
   by rewrite [U :&: _]setIC tHiU mulg1 tRiO.
 (* H0 = (H^`(1))%g *)
