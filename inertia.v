@@ -1228,32 +1228,84 @@ Let norm_ftG: \sum_(i in irr_constt ('Ind[G] 'chi_f))
         '['Ind[G] 'chi_f, 'chi_j] *: 'chi_j * 'chi_c] = #|G : N|%:R.
 Proof.
 move: normft; rewrite -extt_irr cfIndM //.
-rewrite {1}(cfun_sum_constt ('Ind[G] 'chi_f)) mulr_suml cfdot_suml.
-rewrite (eq_bigr 
-          (fun i =>  \sum_(j in irr_constt ('Ind[G] 'chi_f)) 
-          '['['Ind[G] 'chi_f, 'chi_i] *: 'chi_i * 'chi_c,
-          '['Ind[G] 'chi_f, 'chi_j] *: 'chi_j * 'chi_c])) //.
-move=> i Hi;  rewrite {2}(cfun_sum_constt ('Ind[G] 'chi_f)). 
+rewrite {1}(cfun_sum_constt ('Ind[G] 'chi_f)) mulr_suml cfdot_suml=> <-.
+apply: eq_bigr=> i Hi; rewrite {5}(cfun_sum_constt ('Ind[G] 'chi_f)). 
 by rewrite mulr_suml cfdot_sumr.
 Qed.
 
 Let e := fun i =>  '['Ind[G] 'chi_f, 'chi_i].
+
 Let He: \sum_(i in irr_constt ('Ind[G] 'chi_f))
          '['Ind[G] 'chi_f, 'chi_i] ^+2 = \sum_(i in irr_constt ('Ind[G] 'chi_f))
    \sum_(j in irr_constt ('Ind[G] 'chi_f))
       '['['Ind[G] 'chi_f, 'chi_i] *: 'chi_i * 'chi_c,
         '['Ind[G] 'chi_f, 'chi_j] *: 'chi_j * 'chi_c].
-by rewrite norm_ftG norm_fG.
-Qed.
+Proof. by rewrite norm_ftG norm_fG. Qed.
 
 Let Hf: \sum_(i in irr_constt ('Ind[G] 'chi_f))
          (e i) ^+2 = \sum_(i in irr_constt ('Ind[G] 'chi_f))
    \sum_(j in irr_constt ('Ind[G] 'chi_f))
       (e i) * (e j) * '['chi_i * 'chi_c,'chi_j * 'chi_c].
+Proof.
 rewrite He; apply: eq_bigr=> i Hi; apply: eq_bigr=> j Hj.
 rewrite -scalerAl cfdotZl /e -mulrA; congr (_ * _).
 rewrite -scalerAl cfdotZr; congr (_ * _).
 by rewrite conj_Cnat ?Cnat_cfdot_char_irr ?cfInd_char ?irr_char.
+Qed.
+
+Let Hg : forall i j , '['chi_i * 'chi_c,'chi_j * 'chi_c] \in Cnat.
+Proof.
+by move=> i j; apply: Cnat_cfdot_char; rewrite rpredM // irr_char.
+Qed.
+
+Let cfdot_ij_ge0 : forall i j , 0 <= '['chi_i * 'chi_c,'chi_j * 'chi_c].
+Proof.
+by move=> i j; apply Cnat_ge0.
+Qed.
+
+Let normbc_ge1 b :1 <= '['chi_b * 'chi_c].
+Proof.
+have bc1_n0: 'chi_b 1%g * 'chi_c 1%g != 0 by rewrite  mulf_neq0 ?irr1_neq0.
+move:(cfnorm_ge0 ('chi_b * 'chi_c)); rewrite ler_eqVlt=> /orP [Hp|]; last first.
+  have /CnatP[n ->]:= (Hg b b).
+  by rewrite (ltC_nat 0) (leC_nat 1).
+move: Hp bc1_n0; rewrite eq_sym cfnorm_eq0; move/eqP/cfunP/(_ 1%g).
+by rewrite !cfunE => ->; rewrite eqxx.
+Qed.
+
+Lemma ortho_chib_chig : forall b g, b \in irr_constt('Ind[G] 'chi_f) ->
+                         g \in irr_constt('Ind[G] 'chi_f) ->
+                     '['chi_b * 'chi_c, 'chi_g * 'chi_c] = ( b == g)%:R.
+Proof.
+move=> b g birr_cst girr_cst; move/eqP: Hf; rewrite eq_sym -subr_eq0.
+rewrite -sumrB; move/eqP => Hf0.
+have eiej i j:0 <= e i * e j.
+  by apply: mulr_ge0; rewrite ?(Cnat_ge0,Cnat_cfdot_char,cfInd_char,irr_char).
+have: forall i, (i \in irr_constt ('Ind[G] 'chi_f))->
+     (\sum_(j in irr_constt ('Ind[G] 'chi_f))
+       e i * e j * '['chi_i * 'chi_c, 'chi_j * 'chi_c] - e i ^+ 2) = 0.
+  apply: psumr_eq0P => //  i i_irrcst.
+  rewrite (bigD1 i) //= addrC !addrA -mulrN1 expr2 -mulrDr addr_ge0 //.
+    by rewrite  mulr_ge0 // addrC subr_ge0.
+  by apply: sumr_ge0=> j /andP[j_irrcst jdi]; rewrite mulr_ge0. 
+move/(_ b birr_cst).
+rewrite (bigD1 b) //= addrC !addrA -mulrN1 expr2 -mulrDr -expr2.
+move/eqP; rewrite paddr_eq0 ?expr2 //;last first.
+    by apply: sumr_ge0=> i j; apply: mulr_ge0.
+  by rewrite  mulr_ge0 // addrC subr_ge0. 
+case/andP; rewrite mulf_eq0 // mulf_eq0 //.
+move:(birr_cst); rewrite irr_consttE; move/negbTE -> => /=.
+rewrite addrC subr_eq0=> /eqP irr_bc.
+move/eqP; case:(boolP (b == g)); first by move/eqP <-; rewrite irr_bc.
+move => bdg sum0.
+suff: e b * e g * '['chi_b * 'chi_c, 'chi_g * 'chi_c] == 0.
+  move:birr_cst girr_cst; rewrite mulf_eq0 // mulf_eq0 // /e.
+  by rewrite !irr_consttE; move/negbTE ->; move/negbTE -> => /eqP/=.
+apply/eqP.
+have Hj: forall j, ((j \in irr_constt ('Ind[G] 'chi_f)) && (j != b))-> 
+      0 <= e b * e j * '['chi_b * 'chi_c, 'chi_j * 'chi_c].
+  by move=> j _; apply: mulr_ge0.
+by apply: (psumr_eq0P Hj sum0); rewrite girr_cst eq_sym.
 Qed.
 
 Variable b : Iirr G.
