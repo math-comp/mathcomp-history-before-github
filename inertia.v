@@ -1308,9 +1308,55 @@ have Hj: forall j, ((j \in irr_constt ('Ind[G] 'chi_f)) && (j != b))->
 by apply: (psumr_eq0P Hj sum0); rewrite girr_cst eq_sym.
 Qed.
 
-Variable b : Iirr G.
+Let theta := 'chi_t.
+Let phi := 'chi_f.
+Let calS := irr_constt ('Ind[G] phi).
+Let calT := irr_constt ('Ind[G] (phi*theta)).
 
-Hypothesis Hb : b \in irr_constt ('Ind[G] 'chi_f).
+Let irr_cb b : b \in irr_constt('Ind[G] 'chi_f) -> 
+                ('chi_b * 'chi_c ) \in (irr G).
+Proof.
+by move=> b_irrcst; rewrite irrEchar ?rpredM ?irr_char ?ortho_chib_chig ?eqxx.
+Qed.
+
+Lemma irr_csttM b : b \in irr_constt ('Ind[G] 'chi_f)->
+      (cfIirr ('chi_b * 'chi_c)) \in irr_constt ('Ind[G] ('chi_f * 'chi_t)).
+Proof.
+move=> irrcstb.
+rewrite -extt_irr  cfIndM // irr_consttE.
+rewrite (cfun_sum_constt ('Ind[G] 'chi_f)) mulr_suml cfdot_suml.
+rewrite (bigD1 b) //=; rewrite cfIirrE //;last first.
+  by rewrite irrEchar // rpredM /= ?irr_char ?ortho_chib_chig // eqxx. 
+rewrite -scalerAl  cfdotZl ortho_chib_chig // (eqxx b) mulr1.
+suff : 0 < '['Ind[G] 'chi_f, 'chi_b] +
+   \sum_(i in irr_constt ('Ind[G] 'chi_f) | i != b)
+      '['['Ind[G] 'chi_f, 'chi_i] *: 'chi_i * 'chi_c, 'chi_b * 'chi_c].
+by rewrite lt0r; case/andP.
+rewrite -{1}(addr0 0); apply: ltr_le_add.
+  rewrite lt0r; move:irrcstb;rewrite irr_consttE =>  -> /=.
+  by apply: Cnat_ge0 => //; rewrite Cnat_cfdot_char // ?cfInd_char ?irr_char.
+apply: sumr_ge0=> j /andP[j_irrcst jdi]. 
+rewrite -scalerAl  cfdotZl mulr_ge0 //.
+by apply: Cnat_ge0 => //; rewrite Cnat_cfdot_char // ?cfInd_char ?irr_char.
+Qed.
+
+Definition mul_chi:= fun (b: Iirr G)=> cfIirr('chi_b * 'chi_c).
+
+Lemma mulchi_inj : {in calS &, injective mul_chi}.
+Proof.
+move=> p1 p2 tTp1 tTp2 /eqP; rewrite -(inj_eq irr_inj).
+rewrite !cfIirrE ?irr_cb //; move/eqP=> p1p2E; apply/eqP.
+move:(ortho_chib_chig tTp1  tTp2); rewrite p1p2E (ortho_chib_chig tTp2) //=.
+by rewrite (eqxx p2);move/eqP; rewrite eqC_nat eq_sym eqb1.
+Qed.
+
+Lemma mul_Iirr_constt_inertia : mul_chi @: calS =i calT.
+Proof.
+move=> p; apply/imsetP/idP=> [[b tTp ->] | cGt].
+  by rewrite irr_csttM.
+(* surjection part *)
+admit.
+Qed.
 
 End S616.
 
