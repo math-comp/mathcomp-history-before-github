@@ -141,6 +141,26 @@ rewrite zchar_split irr_vchar /=.
 by have [_ _ ->] := PF_12_2a (mem_tnth j (in_tuple calS)).
 Qed.
 
+(* Shall we use this characterization in the statements below ?*)
+Lemma unionSkerP (i : Iirr L) : 
+  (i \in \bigcup_(chi <- calS) S_ chi) =  ~~ (H \subset cfker 'chi_i).
+Proof.
+have nHL : H <| L by exact: gFnormal.
+have sHL : H \subset L by apply: normal_sub.
+apply/idP/idP.
+  rewrite big_seq big_tnth; case/bigcupP=> k kcalS; rewrite inE.
+  case/seqIndC1P: (kcalS) => t kert Dchi; rewrite Dchi.
+  move/sub_cfker_constt_Ind_irr/(_ (subxx _)) => <- //; last exact: normal_norm.
+  by rewrite subGcfker.
+move=> hker; rewrite big_seq big_tnth; apply/bigcupP.
+case: (constt_cfRes_irr H i) => t.
+rewrite -constt_Ind_constt_Res => hit.
+suff /seq_tnthP[k kD] : 'Ind[L]'chi_t \in calS.
+  by exists k; rewrite ?mem_tnth // -kD inE.
+apply/seqIndC1P; exists t => //.
+by rewrite -(subGcfker t) (sub_cfker_constt_Ind_irr hit) // normal_norm.
+Qed.
+
 Lemma unionSP psi : reflect 
   (exists phi, exists j, [/\ phi \in calS, j \in irr_constt phi & psi = 'chi_j])
   (psi \in [seq 'chi_i | i in \bigcup_(chi <- calS) S_ chi]).
@@ -149,27 +169,54 @@ apply: (iffP idP).
   case/mapP=> j; rewrite mem_enum => hj -> {psi}.
   move: hj; rewrite big_seq big_tnth; case/bigcupP=> k kcalS. 
   by rewrite inE => jinS; exists (tnth (in_tuple calS) k); exists j; split.
-case=> phi [j [/seq_tnthP [k ->] irrj ->]]; apply/mapP; exists j => //; rewrite mem_enum.
-by rewrite big_tnth; apply/bigcupP; exists k => //; rewrite inE.
+case=> phi [j [/seq_tnthP [k ->] irrj ->]]; apply/mapP. 
+exists j => //; rewrite mem_enum big_tnth; apply/bigcupP; exists k => //.
+by rewrite inE.
 Qed.
 
 Lemma FPtype1_unionS_subcoherent : 
  {R : 'CF(L) -> seq _ | 
    subcoherent [seq 'chi_i | i in \bigcup_(chi <- calS) S_ chi] tau R}.
 Proof.
-apply: irr_subcoherent; last exact: tau_isometry; last first.
-  apply/hasPn=> psi; case/unionSP=> phi [j [calSphi irrj ->]] {psi}.
+apply: irr_subcoherent; last exact: tau_isometry.
+split. 
+- by apply/dinjectiveP; apply: in2W irr_inj.
+- move=> _ /imageP[i _ ->]; exact: mem_irr.
+- apply/hasPn=> psi; case/unionSP=> phi [j [calSphi irrj ->]] {psi}.
   rewrite /cfReal odd_eq_conj_irr1 ?mFT_odd // irr_eq1.
   case/seqIndC1P: (calSphi)=> k kn0 phiE; apply: contra kn0 => /eqP j0.
   move: irrj; rewrite j0 phiE constt_Ind_constt_Res irr0 cfRes_cfun1.
   by rewrite -irr0 constt_irr inE.
-split; first by apply/dinjectiveP; apply: in2W irr_inj.
-  by move=> _ /imageP[i _ ->]; exact: mem_irr.
-move=> phi /unionSP[psi [j [calSphi irrj ->]]] {phi}; apply/unionSP.
-exists (psi^*)%CF, (conjC_Iirr j); rewrite cfAut_seqInd //.
-by rewrite irr_consttE conjC_IirrE cfdot_conjC conjC_eq0 -irr_consttE.
+- move=> phi /unionSP[psi [j [calSphi irrj ->]]] {phi}; apply/unionSP.
+  exists (psi^*)%CF, (conjC_Iirr j); rewrite cfAut_seqInd //.
+  by rewrite irr_consttE conjC_IirrE cfdot_conjC conjC_eq0 -irr_consttE.
 Qed.
 
+
+(* Lemma FPtype1_calS_subcoherent :  *)
+(*   {R : 'CF(L) -> seq _ | let R1 := sval FPtype1_unionS_subcoherent in *)
+(*     [/\ subcoherent calS tau R, *)
+(*       forall i (phi := 'chi_i), *)
+(*       i \in \bigcup_(chi <- calS) S_ chi -> *)
+(*       [/\ (orthonormal (R1 phi)), *)
+(*           size (R1 phi) = 2 & *)
+(*           (tau (phi - phi^*%CF) = (\sum_(mu <- R1 phi) mu)%CF)] &  *)
+(*       forall chi, chi \in calS ->  *)
+(*         R chi = flatten [seq (R1 'chi_i) | i in S_ chi]] *)
+(* }. *)
+(* Proof. *)
+(* case: FPtype1_unionS_subcoherent => R1 subcoh1/=. *)
+(* pose R chi := flatten [seq R1 'chi_i | i in S_ chi]; exists R. *)
+(* have nHL : H <| L by exact: gFnormal. *)
+(* have U_S : uniq calS by exact: seqInd_uniq. *)
+(* have vcS: {subset calS <= 'Z[irr L]} by exact: seqInd_vcharW. *)
+(* have N_S: {subset calS <= character} by exact: seqInd_char. *)
+(* have oSS: pairwise_orthogonal calS by exact: seqInd_orthogonal. *)
+(* have [U_0S dotSS]:= pairwise_orthogonalP oSS. *)
+(* have freeS := orthogonal_free oSS. *)
+(* have nrS : ~~ has cfReal calS by apply: seqInd_notReal; rewrite ?mFT_odd. *)
+(* have ccS : conjC_closed calS by exact:cfAut_seqInd. *)
+(* Print subcoherent. *)
 
 End Twelve2.
 
