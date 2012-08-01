@@ -537,14 +537,14 @@ rewrite big_cons (ihsp _ (fun r => k' (rgcdp (eval_poly e p) r))) //.
 by move=> r; apply: eval_Rgcd.
 Qed.
 
-Fixpoint Vari (s : seq tF) : cps nat := fun k =>
+Fixpoint Changes (s : seq tF) : cps nat := fun k =>
   if s is a :: q then
-    bind v <- Vari q;
+    bind v <- Changes q;
     If (Lt (a * head 0 q) 0)%qfT Then k (1 + v)%N Else k v
     else k 0%N.
 
-Lemma eval_Var e s k : qf_eval e (Vari s k)
-  = qf_eval e (k (var (map (eval e) s))).
+Lemma eval_Changes e s k : qf_eval e (Changes s k)
+  = qf_eval e (k (changes (map (eval e) s))).
 Proof.
 elim: s k=> //= a q ihq k; rewrite ihq eval_If /= -nth0.
 by case: q {ihq}=> /= [|b q]; [rewrite /= mulr0 ltrr add0n | case: ltrP].
@@ -599,20 +599,20 @@ Qed.
 Implicit Arguments eval_SeqMInfty [e ps k].
 Prenex Implicits eval_SeqMInfty.
 
-Definition VarR ps : cps int := fun k =>
+Definition ChangesPoly ps : cps int := fun k =>
   bind mps <- SeqMInfty ps;
   bind pps <- SeqPInfty ps;
-  bind vm <- Vari mps; bind vp <- Vari pps; k (vm%:Z - vp%:Z).
+  bind vm <- Changes mps; bind vp <- Changes pps; k (vm%:Z - vp%:Z).
 
-Lemma eval_VarR e ps k : qf_eval e (VarR ps k) =
-  qf_eval e (k (varR (map (eval_poly e) ps))).
+Lemma eval_ChangesPoly e ps k : qf_eval e (ChangesPoly ps k) =
+  qf_eval e (k (changes_poly (map (eval_poly e) ps))).
 Proof.
 rewrite (eval_SeqMInfty (fun mps =>
-  qf_eval e (k ((var mps)%:Z -
-     (var_pinfty  [seq eval_poly e i | i <- ps])%:Z)))) => // mps.
+  qf_eval e (k ((changes mps)%:Z -
+     (changes_pinfty  [seq eval_poly e i | i <- ps])%:Z)))) => // mps.
 rewrite (eval_SeqPInfty (fun pps =>
-  qf_eval e (k ((var (map (eval e) mps))%:Z - (var pps)%:Z)))) => // pps.
-by rewrite !eval_Var.
+  qf_eval e (k ((changes (map (eval e) mps))%:Z - (changes pps)%:Z)))) => // pps.
+by rewrite !eval_Changes.
 Qed.
 
 Definition NextMod (p q : polyF) : cps polyF := fun k =>
@@ -638,60 +638,60 @@ Qed.
 Implicit Arguments eval_NextMod [e p q k].
 Prenex Implicits eval_NextMod.
 
-Fixpoint sremps_aux (p q : {poly F}) (n : nat) : seq {poly F} :=
+Fixpoint mods_aux (p q : {poly F}) (n : nat) : seq {poly F} :=
     if n is m.+1
       then if p == 0 then [::]
-           else p :: (sremps_aux q (next_mod p q) m)
+           else p :: (mods_aux q (next_mod p q) m)
       else [::].
 
-Fixpoint SrempsAux (p q : polyF) n : cps (seq polyF) := fun k =>
+Fixpoint ModsAux (p q : polyF) n : cps (seq polyF) := fun k =>
     if n is m.+1
       then
         bind p_eq0 <- Isnull p;
         if p_eq0 then k [::]
         else
           bind npq <- NextMod p q;
-          bind ps <- SrempsAux q npq m;
+          bind ps <- ModsAux q npq m;
           k (p :: ps)
       else k [::].
 
-Lemma eval_SrempsAux e p q n k k' :
+Lemma eval_ModsAux e p q n k k' :
   (forall sp, qf_eval e (k sp) = k' (map (eval_poly e) sp)) ->
-  qf_eval e (SrempsAux p q n k) =
-  k' (sremps_aux (eval_poly e p) (eval_poly e q) n).
+  qf_eval e (ModsAux p q n k) =
+  k' (mods_aux (eval_poly e p) (eval_poly e q) n).
 Proof.
 elim: n p q k k'=> [|n ihn] p q k k' Pk; first by rewrite /= Pk.
 rewrite /= eval_Isnull; have [|ep_neq0] := altP (_ =P _); first by rewrite Pk.
 set q' := eval_poly e q; set p' := eval_poly e p.
-rewrite (eval_NextMod (fun npq => k' (p' :: sremps_aux q' npq n))) => // npq.
+rewrite (eval_NextMod (fun npq => k' (p' :: mods_aux q' npq n))) => // npq.
 by rewrite (ihn _ _ _ (fun ps => k' (p' :: ps))) => // ps; rewrite Pk.
 Qed.
 
-Implicit Arguments eval_SrempsAux [e p q n k].
-Prenex Implicits eval_SrempsAux.
+Implicit Arguments eval_ModsAux [e p q n k].
+Prenex Implicits eval_ModsAux.
 
-Definition Sremps (p q : polyF) : cps (seq polyF) := fun k =>
+Definition Mods (p q : polyF) : cps (seq polyF) := fun k =>
   bind sp <- Size p; bind sq <- Size q;
-  SrempsAux p q (maxn sp sq.+1) k.
+  ModsAux p q (maxn sp sq.+1) k.
 
-Lemma eval_Sremps e p q k k' :
+Lemma eval_Mods e p q k k' :
   (forall sp, qf_eval e (k sp) = k' (map (eval_poly e) sp)) ->
-  qf_eval e (Sremps p q k) = k' (sremps (eval_poly e p) (eval_poly e q)).
-Proof. by move=> Pk; rewrite !eval_Size; apply: eval_SrempsAux. Qed.
+  qf_eval e (Mods p q k) = k' (mods (eval_poly e p) (eval_poly e q)).
+Proof. by move=> Pk; rewrite !eval_Size; apply: eval_ModsAux. Qed.
 
-Implicit Arguments eval_Sremps [e p q k].
-Prenex Implicits eval_Sremps.
+Implicit Arguments eval_Mods [e p q k].
+Prenex Implicits eval_Mods.
 
 Definition TaqR (p : polyF) (q : polyF) : cps int := fun k =>
-  bind r <- Sremps p (Deriv p ** q)%qfT; VarR r k.
+  bind r <- Mods p (Deriv p ** q)%qfT; ChangesPoly r k.
 
 Lemma eval_TaqR e p q k :
   qf_eval e (TaqR p q k) =
   qf_eval e (k (taqR (eval_poly e p) (eval_poly e q))).
 Proof.
-rewrite (eval_Sremps (fun r => qf_eval e (k (varR r)))).
+rewrite (eval_Mods (fun r => qf_eval e (k (changes_poly r)))).
   by rewrite !eval_OpPoly.
-by move=> sp; rewrite !eval_VarR.
+by move=> sp; rewrite !eval_ChangesPoly.
 Qed.
 
 Definition PolyComb (sq : seq polyF) (sc : seq int) :=

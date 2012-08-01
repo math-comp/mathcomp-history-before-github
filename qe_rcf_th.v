@@ -709,10 +709,10 @@ Definition jump q p x: int :=
   let sign := (sgp_right (q * p) x < 0)%R in
     (-1) ^+ sign *+ non_null.
 
-Definition cind (a b : R) (q p : {poly R}) : int :=
+Definition cindex (a b : R) (q p : {poly R}) : int :=
   \sum_(x <- roots p a b) jump q p x.
 
-Definition cindR q p := \sum_(x <- rootsR p) jump q p x.
+Definition cindexR q p := \sum_(x <- rootsR p) jump q p x.
 
 Definition sjump p x : int :=
   ((-1) ^+ (sgp_right p x < 0)%R) *+ odd (\mu_x p).
@@ -725,15 +725,15 @@ Definition crossR p := variation (sgp_minfty p) (sgp_pinfty p).
 
 Definition sum_var (s : seq R) := \sum_(n <- pairmap variation 0 s) n.
 
-Lemma cindEba a b : b <= a -> forall p q, cind a b p q = 0.
-Proof. by move=> le_ba p q; rewrite /cind rootsEba ?big_nil. Qed.
+Lemma cindexEba a b : b <= a -> forall p q, cindex a b p q = 0.
+Proof. by move=> le_ba p q; rewrite /cindex rootsEba ?big_nil. Qed.
 
 Lemma jump0p q x : jump 0 q x = 0. Proof. by rewrite /jump eqxx mulr0n. Qed.
 
-Lemma taq_cind a b p q : taq (roots p a b) q = cind a b (p^`() * q) p.
+Lemma taq_cindex a b p q : taq (roots p a b) q = cindex a b (p^`() * q) p.
 Proof.
-have [lt_ab|?] := ltrP a b; last by rewrite rootsEba ?cindEba /taq ?big_nil.
-rewrite /taq /cind !big_seq; apply: eq_bigr => x.
+have [lt_ab|?] := ltrP a b; last by rewrite rootsEba ?cindexEba /taq ?big_nil.
+rewrite /taq /cindex !big_seq; apply: eq_bigr => x.
 have [->|p_neq0 /root_roots rpx] := eqVneq p 0; first by rewrite roots0 in_nil.
 have [->|q_neq0] := eqVneq q 0; first by rewrite mulr0 jump0p horner0 sgz0.
 have [p'0|p'_neq0] := eqVneq p^`() 0.
@@ -867,36 +867,36 @@ rewrite !sgp_right_mul sgp_right_mod ?muxp // /r -rdivp_eq.
 by rewrite -mul_polyC sgp_right_mul sgp_rightc sgrX.
 Qed.
 
-Lemma cindRP q p a b :
+Lemma cindexRP q p a b :
   {in `]-oo, a], noroot p} -> {in `[b , +oo[, noroot p} ->
-  cind a b q p = cindR q p.
-Proof. by rewrite /cind => rpa rpb; rewrite rootsRP. Qed.
+  cindex a b q p = cindexR q p.
+Proof. by rewrite /cindex => rpa rpb; rewrite rootsRP. Qed.
 
-Lemma cind0p a b q : cind a b 0 q = 0.
+Lemma cindex0p a b q : cindex a b 0 q = 0.
 Proof.
-have [lt_ab|le_ba] := ltrP a b; last by rewrite cindEba.
+have [lt_ab|le_ba] := ltrP a b; last by rewrite cindexEba.
 by apply: big1_seq=> x; rewrite /jump eqxx mulr0n.
 Qed.
 
-Lemma cindR0p p : cindR 0 p = 0.
-Proof. by rewrite /cindR big1 // => q _; rewrite jump0p. Qed.
+Lemma cindexR0p p : cindexR 0 p = 0.
+Proof. by rewrite /cindexR big1 // => q _; rewrite jump0p. Qed.
 
-Lemma cindpC a b p c : cind a b p (c%:P) = 0.
+Lemma cindexpC a b p c : cindex a b p (c%:P) = 0.
 Proof.
-have [lt_ab|le_ba] := ltrP a b; last by rewrite cindEba.
-by rewrite /cind /jump rootsC big_nil.
+have [lt_ab|le_ba] := ltrP a b; last by rewrite cindexEba.
+by rewrite /cindex /jump rootsC big_nil.
 Qed.
 
-Lemma cindRpC q c : cindR q c%:P = 0.
-Proof. by rewrite /cindR rootsRC big_nil. Qed.
+Lemma cindexRpC q c : cindexR q c%:P = 0.
+Proof. by rewrite /cindexR rootsRC big_nil. Qed.
 
-Lemma cind_mul2r a b p q r : r != 0 ->
-  cind a b (p * r) (q * r) = cind a b p q.
+Lemma cindex_mul2r a b p q r : r != 0 ->
+  cindex a b (p * r) (q * r) = cindex a b p q.
 Proof.
-have [lt_ab r0|le_ba] := ltrP a b; last by rewrite !cindEba.
-have [->|p0] := eqVneq p 0; first by rewrite mul0r !cind0p.
-have [->|q0] := eqVneq q 0; first by rewrite mul0r !cindpC.
-rewrite /cind (eq_big_perm _ (roots_mul _ _ _))//= big_cat/=.
+have [lt_ab r0|le_ba] := ltrP a b; last by rewrite !cindexEba.
+have [->|p0] := eqVneq p 0; first by rewrite mul0r !cindex0p.
+have [->|q0] := eqVneq q 0; first by rewrite mul0r !cindexpC.
+rewrite /cindex (eq_big_perm _ (roots_mul _ _ _))//= big_cat/=.
 rewrite -[\sum_(x <- _) jump p _ _]addr0; congr (_+_).
   by rewrite !big_seq; apply: congr_big => // x hx; rewrite jump_mul2r.
 rewrite big1_seq//= => x hx; rewrite jump_mul2r // /jump.
@@ -909,30 +909,32 @@ move/coprimepP:cgq rqx rgx=> cgq; rewrite -!dvdpE=> /cgq hgq /hgq.
 by rewrite -size_poly_eq1 size_XsubC.
 Qed.
 
-Lemma cind_mulCp a b p q c : cind a b (c *: p) q = (sgz c) * cind a b p q.
+Lemma cindex_mulCp a b p q c :
+  cindex a b (c *: p) q = (sgz c) * cindex a b p q.
 Proof.
-have [lt_ab|le_ba] := ltrP a b; last by rewrite !cindEba ?mulr0.
-have [->|p0] := eqVneq p 0; first by rewrite !(cind0p, scaler0, mulr0).
-have [->|q0] := eqVneq q 0; first by rewrite !(cindpC, scaler0, mulr0).
-by rewrite /cind big_distrr; apply: congr_big => //= x; rewrite jump_mulCp.
+have [lt_ab|le_ba] := ltrP a b; last by rewrite !cindexEba ?mulr0.
+have [->|p0] := eqVneq p 0; first by rewrite !(cindex0p, scaler0, mulr0).
+have [->|q0] := eqVneq q 0; first by rewrite !(cindexpC, scaler0, mulr0).
+by rewrite /cindex big_distrr; apply: congr_big => //= x; rewrite jump_mulCp.
 Qed.
 
-Lemma cind_pmulC a b p q c : cind a b p (c *: q) = (sgz c) * cind a b p q.
+Lemma cindex_pmulC a b p q c :
+  cindex a b p (c *: q) = (sgz c) * cindex a b p q.
 Proof.
-have [lt_ab|le_ba] := ltrP a b; last by rewrite !cindEba ?mulr0.
-have [->|p0] := eqVneq p 0; first by rewrite !(cind0p, scaler0, mulr0).
-have [->|q0] := eqVneq q 0; first by rewrite !(cindpC, scaler0, mulr0).
-have [->|c0] := eqVneq c 0; first by rewrite scale0r sgz0 mul0r cindpC.
-rewrite /cind big_distrr rootsZ //.
+have [lt_ab|le_ba] := ltrP a b; last by rewrite !cindexEba ?mulr0.
+have [->|p0] := eqVneq p 0; first by rewrite !(cindex0p, scaler0, mulr0).
+have [->|q0] := eqVneq q 0; first by rewrite !(cindexpC, scaler0, mulr0).
+have [->|c0] := eqVneq c 0; first by rewrite scale0r sgz0 mul0r cindexpC.
+rewrite /cindex big_distrr rootsZ //.
 by apply: congr_big => // x _; rewrite jump_pmulC.
 Qed.
 
-Lemma cind_mod a b p q :
-  cind a b p q =
-  (sgz (lead_coef q) ^+ rscalp p q) * cind a b (rmodp p q) q.
+Lemma cindex_mod a b p q :
+  cindex a b p q =
+  (sgz (lead_coef q) ^+ rscalp p q) * cindex a b (rmodp p q) q.
 Proof.
-have [lt_ab|le_ba] := ltrP a b; last by rewrite !cindEba ?mulr0.
-by rewrite /cind big_distrr; apply: congr_big => // x; rewrite jump_mod.
+have [lt_ab|le_ba] := ltrP a b; last by rewrite !cindexEba ?mulr0.
+by rewrite /cindex big_distrr; apply: congr_big => // x; rewrite jump_mod.
 Qed.
 
 Lemma variation0r b : variation 0 b = 0.
@@ -987,12 +989,12 @@ Proof.
 by rewrite /crossR /sgp_minfty /sgp_pinfty lead_coef0 mulr0 sgr0 variationr0.
 Qed.
 
-Lemma cind_seq_mids a b : a < b ->
+Lemma cindex_seq_mids a b : a < b ->
   forall p q, p != 0 -> q != 0 -> coprimep p q ->
-  cind a b q p + cind a b p q =
+  cindex a b q p + cindex a b p q =
   sum_var (map (horner (p * q)) (seq_mids a (roots (p * q) a b) b)).
 Proof.
-move=> hab p q p0 q0 cpq; rewrite /cind /sum_var 2!big_seq.
+move=> hab p q p0 q0 cpq; rewrite /cindex /sum_var 2!big_seq.
 have pq_neq0 : p * q != 0 by rewrite mulf_neq0.
 have pq_eq0 := negPf pq_neq0.
 have jumpP : forall (p q : {poly R}), p != 0 -> coprimep p q  ->
@@ -1020,9 +1022,9 @@ move: @y @xy {hs}; rewrite /cross.
 by case: s => /= [|y l]; rewrite ?(big_cons, big_nil, variation0r, add0r).
 Qed.
 
-Lemma cind_inv a b : a < b -> forall p q,
+Lemma cindex_inv a b : a < b -> forall p q,
   ~~ root (p * q) a -> ~~ root (p * q) b ->
-  cind a b q p + cind a b p q = cross (p * q) a b.
+  cindex a b q p + cindex a b p q = cross (p * q) a b.
 Proof.
 move=> hab p q hpqa hpqb.
 have hlab: a <= b by apply: ltrW.
@@ -1030,7 +1032,7 @@ wlog cpq: p q hpqa hpqb / coprimep p q => [hwlog|].
   have p0: p != 0 by apply: contraNneq hpqa => ->; rewrite mul0r rootC.
   have q0: q != 0 by apply: contraNneq hpqa => ->; rewrite mulr0 rootC.
   set p' := p; rewrite -(divpK (dvdp_gcdr p q)) -[p'](divpK (dvdp_gcdl p q)).
-  rewrite !cind_mul2r ?gcdp_eq0 ?(negPf p0) //.
+  rewrite !cindex_mul2r ?gcdp_eq0 ?(negPf p0) //.
   have ga0 : (gcdp p q).[a] != 0.
      apply: contra hpqa; rewrite -rootE -!dvdp_XsubCl => /dvdp_trans -> //.
      by rewrite dvdp_mulr ?dvdp_gcdl.
@@ -1048,7 +1050,7 @@ wlog cpq: p q hpqa hpqb / coprimep p q => [hwlog|].
 have p0: p != 0 by apply: contraNneq hpqa => ->; rewrite mul0r rootC.
 have q0: q != 0 by apply: contraNneq hpqa => ->; rewrite mulr0 rootC.
 have pq0 : p * q != 0 by rewrite mulf_neq0.
-rewrite cind_seq_mids // sum_varP /cross.
+rewrite cindex_seq_mids // sum_varP /cross.
   apply: congr_variation; apply: (mulrIz (oner_neq0 R)); rewrite -!sgrEz.
     case hr: roots => [|c s] /=; apply: (@sgr_neighprN _ _ a b) => //;
     rewrite /neighpr /next_root ?(negPf pq0) maxr_l // hr mid_in_itv //=.
@@ -1072,46 +1074,48 @@ Definition next_mod p q := - (lead_coef q ^+ rscalp p q) *: rmodp p q.
 Lemma next_mod0p q : next_mod 0 q = 0.
 Proof. by rewrite /next_mod rmod0p scaler0. Qed.
 
-Lemma cind_rec a b : a < b -> forall p q,
+Lemma cindex_rec a b : a < b -> forall p q,
   ~~ root (p * q) a -> ~~ root (p * q) b ->
-  cind a b q p = cross (p * q) a b + cind a b (next_mod p q) q.
+  cindex a b q p = cross (p * q) a b + cindex a b (next_mod p q) q.
 Proof.
 move=> lt_ab p q rpqa rpqb; have [->|p0] := eqVneq p 0.
-  by rewrite cindpC next_mod0p cind0p mul0r cross0 add0r.
-have [->|q0] := eqVneq q 0; first by rewrite cind0p cindpC mulr0 cross0 add0r.
-have /(canRL (addrK _)) -> := cind_inv lt_ab rpqa rpqb.
-by rewrite cind_mulCp cind_mod sgzN mulNr sgzX.
+  by rewrite cindexpC next_mod0p cindex0p mul0r cross0 add0r.
+have [->|q0] := eqVneq q 0.
+   by rewrite cindex0p cindexpC mulr0 cross0 add0r.
+have /(canRL (addrK _)) -> := cindex_inv lt_ab rpqa rpqb.
+by rewrite cindex_mulCp cindex_mod sgzN mulNr sgzX.
 Qed.
 
-Lemma cindR_rec p q :
-  cindR q p = crossR (p * q) + cindR (next_mod p q) q.
+Lemma cindexR_rec p q :
+  cindexR q p = crossR (p * q) + cindexR (next_mod p q) q.
 Proof.
 have [->|p_neq0] := eqVneq p 0.
-  by rewrite cindRpC mul0r next_mod0p cindR0p crossR0.
-have [->|q_neq0] := eqVneq q 0; first by rewrite cindR0p mulr0 crossR0 cindRpC.
+  by rewrite cindexRpC mul0r next_mod0p cindexR0p crossR0.
+have [->|q_neq0] := eqVneq q 0.
+  by rewrite cindexR0p mulr0 crossR0 cindexRpC.
 have pq_neq0 : p * q != 0 by rewrite mulf_neq0.
 pose b := cauchy_bound (p * q).
 have [lecb gecb] := pair (le_cauchy_bound pq_neq0) (ge_cauchy_bound pq_neq0).
-rewrite -?(@cindRP _ _ (-b) b); do ?
+rewrite -?(@cindexRP _ _ (-b) b); do ?
   by [move=> x Hx /=; have: ~~ root (p * q) x by [apply: lecb|apply: gecb];
       rewrite rootM => /norP []].
-rewrite -(@crossRP _ (-b) b)  1?cind_rec ?gt0_cp ?cauchy_bound_gt0 //.
+rewrite -(@crossRP _ (-b) b)  1?cindex_rec ?gt0_cp ?cauchy_bound_gt0 //.
   by rewrite lecb // boundr_in_itv.
 by rewrite gecb // boundl_in_itv.
 Qed.
 
-(* Computation of cind through var_sremps *)
+(* Computation of cindex through changes_mods *)
 
-Definition sremps p q :=
+Definition mods p q :=
   let fix aux p q n :=
     if n is m.+1
       then if p == 0 then [::] else p :: (aux q (next_mod p q) m)
       else [::] in aux p q (maxn (size p) (size q).+1).
 
-Lemma sremps_rec p q : sremps p q =
-  if p == 0 then [::] else p :: (sremps q (next_mod p q)).
+Lemma mods_rec p q : mods p q =
+  if p == 0 then [::] else p :: (mods q (next_mod p q)).
 Proof.
-rewrite /sremps; set aux := fix aux _ _ n := if n is _.+1 then _ else _.
+rewrite /mods; set aux := fix aux _ _ n := if n is _.+1 then _ else _.
 have aux0 u n : aux 0 u n = [::] by case: n => [//|n] /=; rewrite eqxx.
 pose m p q := maxn (size p) (size q).+1; rewrite -!/(m _ _).
 suff {p q} Hnext p q : q != 0 -> (m q (next_mod p q) < m p q)%N; last first.
@@ -1131,49 +1135,50 @@ have [->|q_neq0] := altP (q =P 0); first by rewrite !aux0.
 by apply: IHn; rewrite -ltnS (leq_trans _ Hn, leq_trans _ Hn') ?Hnext.
 Qed.
 
-Lemma sremps_eq0 p q : (sremps p q == [::]) = (p == 0).
-Proof. by rewrite sremps_rec; have [] := altP (p =P 0). Qed.
+Lemma mods_eq0 p q : (mods p q == [::]) = (p == 0).
+Proof. by rewrite mods_rec; have [] := altP (p =P 0). Qed.
 
-Lemma neq0_sremps_rec p q : p != 0 -> sremps p q = p :: sremps q (next_mod p q).
-Proof. by rewrite sremps_rec => /negPf ->. Qed.
+Lemma neq0_mods_rec p q : p != 0 -> mods p q = p :: mods q (next_mod p q).
+Proof. by rewrite mods_rec => /negPf ->. Qed.
 
-Lemma sremps0p q : sremps 0 q = [::].
-Proof. by apply/eqP; rewrite sremps_eq0. Qed.
+Lemma mods0p q : mods 0 q = [::].
+Proof. by apply/eqP; rewrite mods_eq0. Qed.
 
-Lemma srempsp0 p : sremps p 0 = if p == 0 then [::] else [::p].
-Proof. by rewrite sremps_rec sremps0p. Qed.
+Lemma modsp0 p : mods p 0 = if p == 0 then [::] else [::p].
+Proof. by rewrite mods_rec mods0p. Qed.
 
-Fixpoint var (s : seq R) :=
+Fixpoint changes (s : seq R) :=
   match s with
     | [::]  => 0%N
-    | a :: q => ((a * (head 0 q) < 0)%R + (var q))%N
+    | a :: q => ((a * (head 0 q) < 0)%R + (changes q))%N
   end.
 
-Definition var_pinfty (p : seq {poly R}) := var (map lead_coef p).
-Definition var_minfty (p : seq {poly R}) :=
-  var (map (fun p : {poly _} => (-1) ^+ (~~ odd (size p)) * lead_coef p) p).
+Definition changes_pinfty (p : seq {poly R}) := changes (map lead_coef p).
+Definition changes_minfty (p : seq {poly R}) :=
+  changes (map (fun p : {poly _} => (-1) ^+ (~~ odd (size p)) * lead_coef p) p).
 
-Definition varR (p : seq {poly R}) := (var_minfty p)%:Z - (var_pinfty p)%:Z.
-Definition var_sremps p q :=  varR (sremps p q).
+Definition changes_poly (p : seq {poly R}) :=
+  (changes_minfty p)%:Z - (changes_pinfty p)%:Z.
+Definition changes_mods p q :=  changes_poly (mods p q).
 
-Lemma var_sremps0p q : var_sremps 0 q = 0.
-Proof. by rewrite /var_sremps /varR sremps0p. Qed.
+Lemma changes_mods0p q : changes_mods 0 q = 0.
+Proof. by rewrite /changes_mods /changes_poly mods0p. Qed.
 
-Lemma var_srempsp0 p : var_sremps p 0 = 0.
+Lemma changes_modsp0 p : changes_mods p 0 = 0.
 Proof.
-rewrite /var_sremps /varR srempsp0; have [//|p_neq0] := altP eqP.
-by rewrite /var_minfty /var_pinfty /= !mulr0 ltrr.
+rewrite /changes_mods /changes_poly modsp0; have [//|p_neq0] := altP eqP.
+by rewrite /changes_minfty /changes_pinfty /= !mulr0 ltrr.
 Qed.
 
-Lemma var_sremps_rec p q :
-  var_sremps p q = crossR (p * q) + var_sremps q (next_mod p q).
+Lemma changes_mods_rec p q :
+  changes_mods p q = crossR (p * q) + changes_mods q (next_mod p q).
 Proof.
 have [->|p0] := eqVneq p 0.
-  by rewrite var_sremps0p mul0r crossR0 next_mod0p var_srempsp0.
+  by rewrite changes_mods0p mul0r crossR0 next_mod0p changes_modsp0.
 have [->|q0] := eqVneq q 0.
-  by rewrite var_srempsp0 mulr0 crossR0 var_sremps0p.
-rewrite /var_sremps /varR neq0_sremps_rec //=.
-rewrite !PoszD opprD addrACA; congr (_ + _); rewrite neq0_sremps_rec //=.
+  by rewrite changes_modsp0 mulr0 crossR0 changes_mods0p.
+rewrite /changes_mods /changes_poly neq0_mods_rec //=.
+rewrite !PoszD opprD addrACA; congr (_ + _); rewrite neq0_mods_rec //=.
 rewrite /crossR /variation /sgp_pinfty /sgp_minfty.
 rewrite mulr_signM size_mul // !lead_coefM.
 rewrite polySpred // addSn [size q]polySpred // addnS /= !negbK.
@@ -1184,81 +1189,86 @@ move: p0 q0; rewrite -!lead_coef_eq0.
 by do 3!case: sgzP=> _.
 Qed.
 
-Lemma var_sremps_cind p q :var_sremps p q = cindR q p.
+Lemma changes_mods_cindex p q : changes_mods p q = cindexR q p.
 Proof.
-elim: sremps {-2}p {-2}q (erefl (sremps p q)) => [|r s IHs] {p q} p q hrpq.
-  move/eqP: hrpq; rewrite sremps_eq0 => /eqP ->.
-  by rewrite var_sremps0p cindRpC.
-rewrite var_sremps_rec cindR_rec IHs //.
-by move: hrpq IHs; rewrite sremps_rec; case: (p == 0) => // [] [].
+elim: mods {-2}p {-2}q (erefl (mods p q)) => [|r s IHs] {p q} p q hrpq.
+  move/eqP: hrpq; rewrite mods_eq0 => /eqP ->.
+  by rewrite changes_mods0p cindexRpC.
+rewrite changes_mods_rec cindexR_rec IHs //.
+by move: hrpq IHs; rewrite mods_rec; case: (p == 0) => // [] [].
 Qed.
 
-Definition taqR p q := var_sremps p (p^`() * q).
+Definition taqR p q := changes_mods p (p^`() * q).
 
 Lemma taq_taqR p q : taq (rootsR p) q = taqR p q.
-Proof. by rewrite /taqR var_sremps_cind taq_cind. Qed.
+Proof. by rewrite /taqR changes_mods_cindex taq_cindex. Qed.
 
-Section VarISremps_USELESS.
-(* NOT USEFUL ANYMORE, but the content of this  section is *)
-(* used in the LMCS 2012 paper and in Cyril's thesis       *)
+Section ChangesItvMod_USELESS.
+(* Not used anymore, but the content of this  section is *)
+(* used in the LMCS 2012 paper and in Cyril's thesis     *)
 
-Definition varp (p : seq {poly R}) x := var (map (fun p => p.[x]) p).
-Definition varI a b (p : seq {poly R}) := (varp p a)%:Z - (varp p b)%:Z.
+Definition changes_horner (p : seq {poly R}) x :=
+  changes (map (fun p => p.[x]) p).
+Definition changes_itv_poly a b (p : seq {poly R}) :=
+  (changes_horner p a)%:Z - (changes_horner p b)%:Z.
 
-Definition varI_sremps a b p q :=  varI a b (sremps p q).
+Definition changes_itv_mods a b p q :=  changes_itv_poly a b (mods p q).
 
-Lemma varI_sremps0p a b q : varI_sremps a b 0 q = 0.
-Proof. by rewrite /varI_sremps /varI sremps0p /varp /= subrr. Qed.
-
-Lemma varI_srempsp0 a b p : varI_sremps a b p 0 = 0.
+Lemma changes_itv_mods0p a b q : changes_itv_mods a b 0 q = 0.
 Proof.
-rewrite /varI_sremps /varI srempsp0 /varp /=.
+by rewrite /changes_itv_mods /changes_itv_poly mods0p /changes_horner /= subrr.
+Qed.
+
+Lemma changes_itv_modsp0 a b p : changes_itv_mods a b p 0 = 0.
+Proof.
+rewrite /changes_itv_mods /changes_itv_poly modsp0 /changes_horner /=.
 by have [//|p_neq0 /=] := altP eqP; rewrite !mulr0 ltrr.
 Qed.
 
-Lemma varI_sremps_rec a b : a < b -> forall p q,
+Lemma changes_itv_mods_rec a b : a < b -> forall p q,
   ~~ root (p * q) a -> ~~ root (p * q) b ->
-  varI_sremps a b p q = cross (p * q) a b + varI_sremps a b q (next_mod p q).
+  changes_itv_mods a b p q = cross (p * q) a b 
+                          + changes_itv_mods a b q (next_mod p q).
 Proof.
 move=> lt_ab p q rpqa rpqb.
 have [->|p0] := eqVneq p 0.
-  by rewrite varI_sremps0p mul0r next_mod0p varI_srempsp0 cross0.
+  by rewrite changes_itv_mods0p mul0r next_mod0p changes_itv_modsp0 cross0.
 have [->|q0] := eqVneq q 0.
-  by rewrite varI_srempsp0 mulr0 cross0 varI_sremps0p.
-rewrite /varI_sremps /varI /varp neq0_sremps_rec //=.
-rewrite !PoszD opprD addrACA; congr (_ + _); rewrite neq0_sremps_rec //=.
+  by rewrite changes_itv_modsp0 mulr0 cross0 changes_itv_mods0p.
+rewrite /changes_itv_mods /changes_itv_poly /changes_horner neq0_mods_rec //=.
+rewrite !PoszD opprD addrACA; congr (_ + _); rewrite neq0_mods_rec //=.
 move: rpqa rpqb; rewrite -!hornerM !rootE; move: (p * q) => r {p q p0 q0}.
 by rewrite /cross /variation -![_ < _]sgz_cp0 sgzM; do 2!case: sgzP => _.
 Qed.
 
-Lemma varI_sremps_cind a b : a < b -> forall p q,
-  all (fun p => ~~ root p a) (sremps p q) ->
-  all (fun p => ~~ root p b) (sremps p q) ->
-  varI_sremps a b p q = cind a b q p.
+Lemma changes_itv_mods_cindex a b : a < b -> forall p q,
+  all (fun p => ~~ root p a) (mods p q) ->
+  all (fun p => ~~ root p b) (mods p q) ->
+  changes_itv_mods a b p q = cindex a b q p.
 Proof.
 move=> hab p q.
-elim: sremps {-2}p {-2}q (erefl (sremps p q)) => [|r s IHs] {p q} p q hrpq.
-  move/eqP: hrpq; rewrite sremps_eq0 => /eqP ->.
-  by rewrite varI_sremps0p cindpC.
-have p_neq0 : p != 0 by rewrite -(sremps_eq0 p q) hrpq.
-move: hrpq IHs; rewrite neq0_sremps_rec //.
+elim: mods {-2}p {-2}q (erefl (mods p q)) => [|r s IHs] {p q} p q hrpq.
+  move/eqP: hrpq; rewrite mods_eq0 => /eqP ->.
+  by rewrite changes_itv_mods0p cindexpC.
+have p_neq0 : p != 0 by rewrite -(mods_eq0 p q) hrpq.
+move: hrpq IHs; rewrite neq0_mods_rec //.
 move=> [_ <-] IHs /= /andP[rpa Ha] /andP[rpb Hb].
 move=> /(_ _ _ (erefl _) Ha Hb) in IHs.
-have [->|q_neq0] := eqVneq q 0; first by rewrite varI_srempsp0 cind0p.
-move: Ha Hb; rewrite neq0_sremps_rec //= => /andP[rqa _] /andP[rqb _].
-rewrite cind_rec 1?varI_sremps_rec ?rootM ?negb_or ?rpa ?rpb ?rqa ?rqb //.
-by rewrite IHs.
+have [->|q_neq0] := eqVneq q 0; first by rewrite changes_itv_modsp0 cindex0p.
+move: Ha Hb; rewrite neq0_mods_rec //= => /andP[rqa _] /andP[rqb _].
+rewrite cindex_rec 1?changes_itv_mods_rec;
+by rewrite ?rootM ?negb_or ?rpa ?rpb ?rqa ?rqb // IHs.
 Qed.
 
-Definition taqI a b p q := varI_sremps a b p (p^`() * q).
+Definition taq_itv a b p q := changes_itv_mods a b p (p^`() * q).
 
-Lemma taq_taqI a b :  a < b -> forall p q,
-  all (fun p => p.[a] != 0) (sremps p (p^`() * q)) ->
-  all (fun p => p.[b] != 0) (sremps p (p^`() * q)) ->
-  taq (roots p a b) q = taqI a b p q.
-Proof. by move=> *; rewrite /taqI varI_sremps_cind // taq_cind. Qed.
+Lemma taq_taq_itv a b :  a < b -> forall p q,
+  all (fun p => p.[a] != 0) (mods p (p^`() * q)) ->
+  all (fun p => p.[b] != 0) (mods p (p^`() * q)) ->
+  taq (roots p a b) q = taq_itv a b p q.
+Proof. by move=> *; rewrite /taq_itv changes_itv_mods_cindex // taq_cindex. Qed.
 
-End VarISremps_USELESS.
+End ChangesItvMod_USELESS.
 
 Definition tvecR p sq := let sg_tab := sg_tab (size sq) in
   \row_(i < 3^size sq) (taqR p (map (poly_comb sq) sg_tab)`_i).
