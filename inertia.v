@@ -1313,7 +1313,7 @@ Let phi := 'chi_f.
 Let calS := irr_constt ('Ind[G] phi).
 Let calT := irr_constt ('Ind[G] (phi*theta)).
 
-Let irr_cb b : b \in irr_constt('Ind[G] 'chi_f) -> 
+Lemma irr_cbM b : b \in irr_constt('Ind[G] 'chi_f) -> 
                 ('chi_b * 'chi_c ) \in (irr G).
 Proof.
 by move=> b_irrcst; rewrite irrEchar ?rpredM ?irr_char ?ortho_chib_chig ?eqxx.
@@ -1345,20 +1345,66 @@ Definition mul_chi:= fun (b: Iirr G)=> cfIirr('chi_b * 'chi_c).
 Lemma mulchi_inj : {in calS &, injective mul_chi}.
 Proof.
 move=> p1 p2 tTp1 tTp2 /eqP; rewrite -(inj_eq irr_inj).
-rewrite !cfIirrE ?irr_cb //; move/eqP=> p1p2E; apply/eqP.
+rewrite !cfIirrE ?irr_cbM //; move/eqP=> p1p2E; apply/eqP.
 move:(ortho_chib_chig tTp1  tTp2); rewrite p1p2E (ortho_chib_chig tTp2) //=.
 by rewrite (eqxx p2);move/eqP; rewrite eqC_nat eq_sym eqb1.
 Qed.
 
+(* This is Isaacs, Theorem 6.16 *)
 Lemma mul_Iirr_constt_inertia : mul_chi @: calS =i calT.
 Proof.
-move=> p; apply/imsetP/idP=> [[b tTp ->] | cGt].
-  by rewrite irr_csttM.
-(* surjection part *)
-admit.
+move=> p; apply/imsetP/idP=> [[b tTp ->] |]; first by rewrite irr_csttM.
+rewrite irr_consttE /theta -extt_irr cfIndM //.
+rewrite (cfun_sum_constt ('Ind[G] 'chi_f)) mulr_suml cfdot_suml.
+rewrite psumr_eq0 /mul_chi; last first.
+  move=> i irr_cst; rewrite -scalerAl  cfdotZl.
+  by rewrite mulr_ge0 ?Cnat_ge0 ?Cnat_cfdot_char ?rpredM ?cfInd_char ?irr_char.
+move/allPn=> [ x Hx]; rewrite negb_imply; case/andP=> xirr_cst.
+rewrite -scalerAl  cfdotZl mulf_eq0  negb_or -irr_consttE xirr_cst /=.
+move/irrP: (irr_cbM xirr_cst)=> [i iE];rewrite iE -irr_consttE constt_irr inE.
+by move => /eqP ->; exists x; rewrite ?iE ?irrK.
 Qed.
 
 End S616.
+
+Section S617.
+
+Variable (N : {group gT}).
+Hypothesis NnG : N <| G.
+
+Let sNG : N \subset G. Proof. exact: normal_sub. Qed.
+
+Variable t : Iirr N.
+Variable c : Iirr G.
+
+(*LR: I need this hypothesis in my proof, to check...*)
+Hypothesis tinv : 'I_G['chi_t] = G.
+
+Hypothesis extt_irr  : 'Res[N] 'chi_c = 'chi_t.
+
+Lemma Gallagher : forall b, b \in Iirr (G / N)-> 
+      'chi_(mod_Iirr b) * 'chi_c \in irr G.
+Proof.
+move=> b irrb; apply:(@irr_cbM _ t 0 NnG); rewrite ?irr0 ?mul1r ?mem_irr //.
+  rewrite inertia_cfun1; apply/eqP.
+  rewrite eqEsubset subsetI normal_norm // andbT subsetIl /=.
+  by apply/subsetP.
+rewrite irr_consttE cfInd_cfun1 // cfdotZl mulf_neq0 ?neq0CiG //.
+rewrite cfdotE mulf_eq0 invr_eq0 negb_or natrG_neq0 /=.
+rewrite (bigID (fun x => x \in N)) /=.
+set s1 := \sum_(i0 in G | i0 \in N) _.
+rewrite big1;last first.
+  by move=> j /andP [ jG jN]; rewrite cfuniE // (negbTE jN) mul0r.
+rewrite addr0 /s1 psumr_eq0.
+  apply/allPn; exists 1%g; first by rewrite mem_index_enum.
+  rewrite !group1  cfuniE //=.
+  by rewrite group1 mul1r conjC_eq0 irr1_neq0.
+move=> j  /andP [ Gj Nj]; rewrite mod_IirrE ?cfModE  ?cfuniE //.
+case:(boolP (j \in N)); last by rewrite mul0r ?ler0n.
+by rewrite mul1r coset_id ?Cnat_ge0 // conj_Cnat Cnat_irr1.
+Qed.
+
+End S617.
 
 End S628.
 
