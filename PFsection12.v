@@ -182,16 +182,15 @@ apply: irr_subcoherent; last exact: tau_isometry.
 split. 
 - by apply/dinjectiveP; apply: in2W irr_inj.
 - move=> _ /imageP[i _ ->]; exact: mem_irr.
+- move=> phi /unionSP[psi [j [calSphi irrj ->]]] {phi}; apply/unionSP.
+  exists (psi^*)%CF, (conjC_Iirr j); rewrite cfAut_seqInd //.
+  by rewrite irr_consttE conjC_IirrE cfdot_conjC conjC_eq0 -irr_consttE.
 - apply/hasPn=> psi; case/unionSP=> phi [j [calSphi irrj ->]] {psi}.
   rewrite /cfReal odd_eq_conj_irr1 ?mFT_odd // irr_eq1.
   case/seqIndC1P: (calSphi)=> k kn0 phiE; apply: contra kn0 => /eqP j0.
   move: irrj; rewrite j0 phiE constt_Ind_constt_Res irr0 cfRes_cfun1.
   by rewrite -irr0 constt_irr inE.
-- move=> phi /unionSP[psi [j [calSphi irrj ->]]] {phi}; apply/unionSP.
-  exists (psi^*)%CF, (conjC_Iirr j); rewrite cfAut_seqInd //.
-  by rewrite irr_consttE conjC_IirrE cfdot_conjC conjC_eq0 -irr_consttE.
 Qed.
-
 
 (* Lemma FPtype1_calS_subcoherent :  *)
 (*   {R : 'CF(L) -> seq _ | let R1 := sval FPtype1_unionS_subcoherent in *)
