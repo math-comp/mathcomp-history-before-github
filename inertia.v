@@ -1387,8 +1387,7 @@ Lemma Gallagher : forall b, b \in Iirr (G / N)->
 Proof.
 move=> b irrb; apply:(@irr_cbM _ t 0 NnG); rewrite ?irr0 ?mul1r ?mem_irr //.
   rewrite inertia_cfun1; apply/eqP.
-  rewrite eqEsubset subsetI normal_norm // andbT subsetIl /=.
-  by apply/subsetP.
+  rewrite eqEsubset subsetI normal_norm // andbT subsetIl //=.
 rewrite irr_consttE cfInd_cfun1 // cfdotZl mulf_neq0 ?neq0CiG //.
 rewrite cfdotE mulf_eq0 invr_eq0 negb_or natrG_neq0 /=.
 rewrite (bigID (fun x => x \in N)) /=.
@@ -1404,6 +1403,30 @@ case:(boolP (j \in N)); last by rewrite mul0r ?ler0n.
 by rewrite mul1r coset_id ?Cnat_ge0 // conj_Cnat Cnat_irr1.
 Qed.
 
+Remark Gallagher_consttv: forall b, b \in Iirr (G / N)->  
+#|G|%:R * '[('Ind[G](cfun_indicator G N)), 'chi_(mod_Iirr b)] = 'chi_b 1%g * #|N|%:R.
+Proof.
+move=> b irrb;rewrite -Frobenius_reciprocity cfdotE.
+rewrite mulrA mulfV ?mul1r ?neq0CG //.
+rewrite (bigID (fun x => x \in N)) /=.
+set s1 := \sum_(i0 in G | i0 \in N) _.
+rewrite big1;last first.
+  by move=> j /andP [ jG jN]; rewrite cfResE // cfuniE // (negbTE jN) mul0r.
+rewrite addr0 /s1 (eq_bigr (fun j => 'chi_b 1%g)).
+  rewrite (eq_bigl (fun i => (i \in N))); first by rewrite sumr_const mulr_natr.
+  move=> j /=.
+  case: (boolP (j \in N)); rewrite ?andbF ?andbT //.
+  by move/subsetP: sNG; move/(_ j).
+move=>i /andP [iG iN]; rewrite cfuniE // cfResE // iN mul1r.
+by rewrite mod_IirrE // cfModE // coset_id // conj_Cnat // Cnat_irr1.
+Qed.
+
+Remark Gallagher_constt_val: forall b, b \in Iirr (G / N)->  
+#|G:N|%:R * '[('Ind[G](cfun_indicator G N)), 'chi_(mod_Iirr b)] = 'chi_b 1%g.
+move=> b bIirr; rewrite mulrC; apply: (mulIf (neq0CG N)).
+rewrite -Gallagher_consttv // -mulrA mulrC; congr (_ *_).
+by rewrite -natrM ; move:(Lagrange sNG); rewrite mulnC => ->.
+Qed.
 End S617.
 
 End S628.
