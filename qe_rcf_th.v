@@ -794,7 +794,7 @@ Lemma jump_neigh a b p q x : q * p != 0 ->
 Proof.
 move=> pqn0 yl yr hyl hyr; rewrite -(sjump_neigh pqn0 hyl hyr).
 rewrite /jump /sjump -mulrnA mulnb andbCA.
-have [muqp|/eqP ->] := ltnP; rewrite (andbF, andbT) //.
+have [muqp|/eqnP ->] := ltnP; rewrite (andbF, andbT) //.
 by rewrite mu_mul // odd_add addbC odd_sub // ltnW.
 Qed.
 
@@ -1495,7 +1495,7 @@ have [|bq_neq0] := boolP (bounding_poly sq == 0).
   move: ssq_le1; rewrite leq_eqVlt ltnS leqn0 orbC.
   have [|_ /=] := boolP (_ == _).
     rewrite size_poly_eq0 => /eqP sq_eq0; move/eqP: (sq_eq0).
-    rewrite prodf_seq_eq0 => /hasP /sig2W [q q_sq] /eqP q_eq0.
+    rewrite prodf_seq_eq0 => /hasP /sig2W [q /= q_sq] /eqP q_eq0.
     move: q_sq; rewrite q_eq0 => sq0 _ {q q_eq0}.
     set f := _ || _; suff -> : f = false; move: @f => /=.
       constructor => [] [x]; rewrite big_all.
