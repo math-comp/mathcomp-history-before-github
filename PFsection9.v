@@ -12,16 +12,18 @@ Require Import PFsection5 PFsection6 PFsection8.
 
 (******************************************************************************)
 (* This file covers Peterfalvi, Section 9: On the maximal subgroups of Types  *)
-(* II, III and IV. Defined here:                                              *)
-(*   Ptype_Fcore_kernel MtypeP ==                                             *)
-(*      a maximal normal subgroup of M contained in H = M`_\F and contained   *)
-(*      in 'C_H(U), where MtypeP : of_typeP M U W1 (and provided M is not of  *)
-(*      type V).                                                              *)
-(*   typeP_Galois MtypeP ==                                                   *)
-(*      U acts irreducibly on H / H0 where H0 = Ptype_Fcore_kernel MtypeP     *)
-(*      with MtypeP : of_typeP M U W1 as above (this implies the structure of *)
-(*      M / H0 is that of a Galois group acting on the multiplicative and     *)
-(*      additive groups of a finite field).                                   *)
+(* II, III and IV. For defW : W1 \x W2 = W, MtypeP : of_typeP M U defW, and   *)
+(* H := M`_\F we define :                                                     *)
+(*  Ptype_Fcore_kernel MtypeP == a maximal normal subgroup of M contained     *)
+(*               (locally) H0    in H and containing 'C_H(U), provided M is   *)
+(*                               a maximal subgroup not of type V.            *)
+(*  Ptype_Fcore_kernel MtypeP == the stabiliser of Hbar := H / H0 in U; this  *)
+(*   (locally to this file) C    is locked for performance reasons.           *)
+(*        typeP_Galois MtypeP <=> U acts irreducibly on Hbar; this implies    *)
+(*                               that M / H0C is isomorphic to a Galois group *)
+(*                               acting on the additive and a subgroup of the *)
+(*                               multiplicative group of a finite field).     *)
+(* --> This predicate reflects alternative (b) in Peterfalvi (9.7).           *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -41,8 +43,8 @@ Implicit Types H K L N P Q R S T U V W : {group gT}.
 
 (* These assumptions correspond to Peterfalvi, Hypothesis (9.2). *)
 
-Variables M U W1 : {group gT}.
-Hypotheses (maxM : M \in 'M) (MtypeP: of_typeP M U W1).
+Variables M U W W1 W2 : {group gT}.
+Hypotheses (maxM : M \in 'M) (defW : W1 \x W2 = W) (MtypeP: of_typeP M U defW).
 Hypothesis notMtype5 : FTtype M != 5.
 
 Local Notation "` 'M'" := (gval M) (at level 0, only parsing) : group_scope.
@@ -50,8 +52,7 @@ Local Notation "` 'U'" := (gval U) (at level 0, only parsing) : group_scope.
 Local Notation "` 'W1'" := (gval W1) (at level 0, only parsing) : group_scope.
 Local Notation H := `M`_\F%G.
 Local Notation "` 'H'" := `M`_\F (at level 0) : group_scope.
-Local Notation W2 := 'C_H(`W1)%G.
-Local Notation "` 'W2'" := 'C_`H(`W1) : group_scope.
+Local Notation "` 'W2'" := (gval W2) (at level 0, only parsing) : group_scope.
 Local Notation HU := M^`(1)%G.
 Local Notation "` 'HU'" := `M^`(1) (at level 0) : group_scope.
 Local Notation U' := U^`(1)%G.
@@ -64,16 +65,14 @@ Let defHU : H ><| U = HU. Proof. by have [_ []] := MtypeP. Qed.
 Let nUW1 : W1 \subset 'N(U). Proof. by have [_ []] := MtypeP. Qed.
 Let cHU' : U' \subset 'C(H). Proof. by have [_ []] := typeP_context MtypeP. Qed.
 
-Let notMtype1 : FTtype M != 1%N.
-Proof.
-have notPF := FTtypePF_exclusion (conj _ MtypeP).
-by apply/FTtypeP=> // [[U0 [/notPF]]].
-Qed.
+Let notMtype1 : FTtype M != 1%N. Proof. exact: FTtypeP_neq1 MtypeP. Qed.
 
-Let Mtype24 := compl_of_typeII_IV MtypeP maxM notMtype5.
+Local Notation Mtype24 := (compl_of_typeII_IV maxM MtypeP notMtype5).
 Let ntU : U :!=: 1. Proof. by have [] := Mtype24. Qed.
 Let pr_q : prime q. Proof. by have [] := Mtype24. Qed.
 Let ntW2 : W2 :!=: 1. Proof. by have [_ _ _ []] := MtypeP. Qed.
+Let sW2H : W2 \subset H. Proof. by have [_ _ _ []] := MtypeP. Qed.
+Let defW2 : 'C_H(W1) = W2. Proof. exact: typeP_cent_core_compl MtypeP. Qed.
 
 Lemma Ptype_Fcore_sdprod : H ><| (U <*> W1) = M.
 Proof.
@@ -88,7 +87,7 @@ Local Notation defHUW1 := Ptype_Fcore_sdprod.
 
 Lemma Ptype_Fcore_coprime : coprime #|H| #|U <*> W1|.
 Proof.
-by rewrite (coprime_sdprod_Hall defHUW1) ?(pHall_Hall (Fcore_Hall M)).
+by rewrite (coprime_sdprod_Hall_l defHUW1) ?(pHall_Hall (Fcore_Hall M)).
 Qed.
 Let coH_UW1 := Ptype_Fcore_coprime.
 Let coHU : coprime #|H| #|U|.
@@ -99,12 +98,11 @@ Proof. by have [_ [_ ->]] := typeP_context MtypeP. Qed.
 
 Lemma Ptype_compl_Frobenius : [Frobenius U <*> W1 = U ><| W1].
 Proof.
-have [[_ _ ntW1 _] _ _ [_ _ sW2H _ prHU_W1] _] := MtypeP.
+have [[_ _ ntW1 _] _ _ [_ _ _ _ prHU_W1] _] := MtypeP.
 have [[_ _ _ tiHUW1] [_ sUHU _ _ tiHU]] := (sdprodP defM, sdprod_context defHU).
 apply/Frobenius_semiregularP=> // [|x /prHU_W1 defCx].
   by rewrite sdprodEY //; apply/trivgP; rewrite -tiHUW1 setSI.
-apply/trivgP; rewrite -tiHU /= -{1}(setIidPl sUHU) -setIA defCx.
-by rewrite setICA setIA subsetIl.
+by apply/trivgP; rewrite -tiHU /= -{1}(setIidPr sUHU) setIAC defCx setSI.
 Qed.
 Local Notation frobUW1 := Ptype_compl_Frobenius.
 
@@ -119,35 +117,26 @@ Proof.
 have [_ _ nHUW1 _] := sdprodP defHUW1.
 have /= [oH _ oH1] := Frobenius_Wielandt_fixpoint frobUW1 nHUW1 coH_UW1 solH.
 have [Mtype2 {oH}| notMtype2 {oH1}] := ifPn.
-  suffices: 'C_H(U) = 1 by split=> //; exact: oH1.
-  have [_ _ _ HUtypeF defHUF] := compl_of_typeII MtypeP maxM Mtype2.
+  suffices regHU: 'C_H(U) = 1 by rewrite -defW2 oH1.
+  have [_ _ _ HUtypeF defHUF] := compl_of_typeII maxM MtypeP Mtype2.
   have [_ _ [U0 [sU0U _]]] := HUtypeF; rewrite {}defHUF => frobHU0.
   have /set0Pn[x U0x]: U0^# != set0.
     by rewrite setD_eq0 subG1; case/Frobenius_context: frobHU0.
   apply/trivgP; rewrite -(Frobenius_reg_ker frobHU0 U0x) setIS // -cent_cycle.
   by rewrite centS // cycle_subG (subsetP sU0U) //; case/setD1P: U0x.
 have p_pr: prime p.
-  case: ifP (FT_FPstructure gT) notMtype1 => [_ -> //| _ [W W1x W2x S T stG] _].
-  have [_ _ _ _ /(_ M maxM notMtype1)[x defST]] := stG.
-  without loss{defST} defSx: S T W1x W2x stG / M :=: S :^ x.
-    by move=> IH; (case: defST; move: stG) => [|/FT_Pstructure_sym] /IH.
-  have [[_ _ maxT] [defS defT _] [/idPn[]|Ttype2 _ _]] := stG.
-    by rewrite -(FTtypeJ S x) -defSx.
-  have defMx: M^`(1) ><| W1x :^ x = M by rewrite defSx derJ -sdprodJ defS.
-  have /imsetP[y My defW1] := of_typeP_compl_conj defMx MtypeP.
-  rewrite -[p](cardJg _ y) conjIg -centJ -FcoreJ conjGid //.
-  rewrite defSx -defW1 FcoreJ centJ -conjIg cardJg (def_cycTIcompl stG).
-  have [|V TtypeP] := compl_of_typeP defT maxT; first by rewrite (eqP Ttype2).
-  by have [[]] := compl_of_typeII TtypeP maxT Ttype2.
-rewrite -/H -/q -/p centY setICA -/W2 setIC in oH *.
-suffices regUW2: 'C_W2(U) = 1 by rewrite -oH regUW2 cards1 exp1n mul1n.
+  have [S pairMS [defW21 [U_S StypeP]]] := FTtypeP_pair_witness maxM MtypeP.
+  have [[_ _ maxS] _] := pairMS; rewrite {1}(negPf notMtype2) /= => Stype2 _ _.
+  by have [[]] := compl_of_typeII maxS StypeP Stype2.
+rewrite -/q -/p centY setICA defW2 setIC in oH *.
+suffices regW2U: 'C_W2(U) = 1 by rewrite -oH regW2U cards1 exp1n mul1n.
 apply: prime_TIg => //=; apply: contra not_cHU => /setIidPl cUW2.
 rewrite centsC (sameP setIidPl eqP) eqEcard subsetIl.
 by rewrite -(@leq_pmul2l (p ^ q)) -?oH ?cUW2 //= expn_gt0 cardG_gt0.
 Qed.
 
 (* Existential witnesses for Peterfalvi (9.4). *)
-Definition Ptype_Fcore_kernel of of_typeP M U W1 :=
+Definition Ptype_Fcore_kernel of of_typeP M U defW :=
   odflt 1%G [pick H0 : {group gT} | chief_factor M H0 H & 'C_H(U) \subset H0].
 Let H0 := (Ptype_Fcore_kernel MtypeP).
 Local Notation "` 'H0'" := (gval H0) (at level 0, only parsing) : group_scope.
@@ -190,8 +179,11 @@ Let p_pr : prime p. Proof. by have [/pgroup_pdiv[]] := and3P abelHbar. Qed.
 Let abHbar : abelian Hbar. Proof. exact: abelem_abelian abelHbar. Qed.
 
 (* This is Peterfalvi, Hypothesis (9.5). *)
-Local Notation C := 'C_U(`Hbar | 'Q)%G.
-Local Notation "` 'C'" := 'C_`U(`Hbar | 'Q) (at level 0) : group_scope.
+Fact Ptype_Fcompl_kernel_key : unit. Proof. by []. Qed.
+Definition Ptype_Fcompl_kernel :=
+  locked_with Ptype_Fcompl_kernel_key 'C_U(Hbar | 'Q)%G.
+Local Notation C := Ptype_Fcompl_kernel.
+Local Notation "` 'C'" := (gval C) (at level 0, only parsing) : group_scope.
 Local Notation Ubar := (U / `C)%G.
 Local Notation "` 'Ubar'" := (`U / `C)%g (at level 0) : group_scope.
 Local Notation W1bar := (W1 / `H0)%G.
@@ -220,15 +212,17 @@ Local Notation "` 'H0C''" := (`H0 <*> `C^`(1)) (at level 0) : group_scope.
 
 Let defW2bar : W2bar :=: W2 / H0.
 Proof.
-rewrite coprime_quotient_cent ?(subset_trans _ nH0M) //.
+rewrite -defW2 coprime_quotient_cent ?(subset_trans _ nH0M) //.
   by have [_ /mulG_sub[]] := sdprodP defM.
 exact: coprimegS (joing_subr _ _) coH_UW1.
 Qed.
 
+Let sCU : C \subset U. Proof. by rewrite [C]unlock subsetIl. Qed.
+
 Let nsCUW1 : C <| U <*> W1.
 Proof.
 have [_ sUW1M _ nHUW1 _] := sdprod_context defHUW1.
-rewrite /normal subIset ?joing_subl // normsI //.
+rewrite /normal [C]unlock subIset ?joing_subl // normsI //.
   by rewrite join_subG normG.
 rewrite /= astabQ norm_quotient_pre ?norms_cent ?quotient_norms //.
 exact: subset_trans sUW1M nH0M.
@@ -240,14 +234,14 @@ Proof.
 have [nsHUM sW1M /mulG_sub[sHUM _] nHUW1 tiHUW1] := sdprod_context defM.
 have [nsHHU sUHU /mulG_sub[sHHU _] nHU tiHU] := sdprod_context defHU.
 have [sHM sUM] := (subset_trans sHHU sHUM, subset_trans sUHU sHUM).
-have sCM: C \subset M by rewrite subIset ?sUM.
+have sCM: C \subset M := subset_trans sCU sUM.
 have sH0C_M: H0C \subset M by rewrite /normal join_subG (subset_trans sH0H).
 have [nH0C nH0_H0C] := (subset_trans sCM nH0M, subset_trans sH0C_M nH0M).
 have nsH0C: H0C <| M.
   rewrite /normal sH0C_M -{1}defM sdprodEY //= -defHU sdprodEY //= -joingA.
   rewrite join_subG andbC normsY ?(normal_norm nsCUW1) //=; last first.
     by rewrite (subset_trans _ nH0M) // join_subG sUM.
-  rewrite -quotientYK // -{1}(quotientGK nsH0H) morphpre_norms //=.
+  rewrite -quotientYK // -{1}(quotientGK nsH0H) morphpre_norms //= [C]unlock.
   by rewrite cents_norm // centsC -quotient_astabQ quotientS ?subsetIr.
 split=> //; first by rewrite /= -{1}(joing_idPl sH0H) -joingA normalY ?gFnormal.
   rewrite normalY // /normal (subset_trans (der_sub 1 U)) //=.
@@ -256,14 +250,14 @@ split=> //; first by rewrite /= -{1}(joing_idPl sH0H) -joingA normalY ?gFnormal.
   by rewrite (char_norm_trans (der_char _ _)).
 suffices ->: H0C' :=: H0 <*> H0C^`(1).
   by rewrite normalY ?(char_normal_trans (der_char _ _)).
-rewrite /= -2?quotientYK ?quotient_der ?(subset_trans (der_sub _ _)) //=.
-by rewrite quotientYidl.
+rewrite /= -?quotientYK ?(subset_trans (der_sub _ _)) ?subsetIl //=.
+by rewrite !quotient_der ?cosetpreK ?subsetIl.
 Qed.
 Local Notation nsH0xx_M := Ptype_Fcore_extensions_normal.
 
 Let Du: u = #|HU : HC|.
 Proof.
-have /andP[sCU nCU]: C <| U := normalS (subsetIl _ _) (joing_subl U _) nsCUW1.
+have nCU := subset_trans (joing_subl U W1) (normal_norm nsCUW1).
 by rewrite -(index_sdprodr defHU) -?card_quotient.
 Qed.
 
@@ -280,7 +274,7 @@ have regUHb: 'C_Hbar(U / H0) = 1.
   by rewrite -coprime_quotient_cent ?(nilpotent_sol nilH) ?quotientS1.
 have ->: C != U.
   apply: contraNneq ntHbar => defU; rewrite -subG1 -regUHb subsetIidl centsC.
-  by rewrite -defU -quotient_astabQ quotientS ?subsetIr.
+  by rewrite -defU [C]unlock -quotient_astabQ quotientS ?subsetIr.
 have frobUW1b: [Frobenius U <*> W1 / H0 = (U / H0) ><| W1bar].
   have tiH0UW1 := coprime_TIg (coprimeSg sH0H coH_UW1).
   have /isomP[inj_f im_f] := quotient_isom nH0UW1 tiH0UW1.
@@ -317,7 +311,7 @@ Let frobUW1c : [Frobenius U <*> W1 / C = Ubar ><| W1 / C].
 Proof.
 apply: Frobenius_quotient frobUW1 _ nsCUW1 _.
   by apply: nilpotent_sol; have [_ []] := MtypeP.
-by have [] := Ptype_Fcore_factor_facts; rewrite eqEsubset subsetIl.
+by have [] := Ptype_Fcore_factor_facts; rewrite eqEsubset sCU.
 Qed.  
 
 Definition typeP_Galois := acts_irreducibly U Hbar 'Q.
@@ -394,7 +388,7 @@ have [oH1 defHbar]: #|H1| = p /\ \big[dprod/1]_(w in W1bar) H1 :^ w = Hbar.
 split=> //; set a := #|_ : _|; pose q1 := #|(W1 / H0)^#|.
 have a_gt1: a > 1.
   rewrite indexg_gt1 subsetIidl /= astabQ -sub_quotient_pre //. 
-  apply: contra neqCU => cH1U; rewrite (sameP eqP setIidPl) /= astabQ.
+  apply: contra neqCU => cH1U; rewrite [C]unlock (sameP eqP setIidPl) /= astabQ.
   rewrite -sub_quotient_pre // -(bigdprodWY defHbar) cent_gen centsC.
   by apply/bigcupsP=> w Ww; rewrite centsC centJ -(normsP nUW1b w) ?conjSg.
 have Wb1: 1 \in W1bar := group1 _.
@@ -450,7 +444,7 @@ have psiM: {in U &, {morph psi: x y / x * y}}.
 suffices Kpsi: 'ker (Morphism psiM) = C.
   by exists [group of Morphism psiM @* U]; rewrite /Ubar -Kpsi first_isog.
 apply/esym/eqP; rewrite eqEsubset; apply/andP; split.
-  apply/subsetP=> x /setIP[Ux cHx]; rewrite -(bigdprodWY defHbar) in cHx.
+  rewrite [C]unlock -(bigdprodWY defHbar); apply/subsetP=> x /setIP[Ux cHx].
   suffices phi0x1 w: w \in W1bar -> phi0 w x = 1.
     rewrite !inE Ux; apply/eqP/rowP=> i; have /setD1P[_ Ww] := enum_valP i.
     by rewrite !mxE !phi0x1 ?mulgV.
@@ -461,7 +455,7 @@ apply/esym/eqP; rewrite eqEsubset; apply/andP; split.
 have sKU: 'ker (Morphism psiM) \subset U by exact: subsetIl.
 rewrite -quotient_sub1 -?(Frobenius_trivg_cent frobUW1c); last first.
   by apply: subset_trans (normal_norm nsCUW1); rewrite subIset ?joing_subl.
-rewrite subsetI quotientS //= quotient_cents2r // subsetI.
+rewrite subsetI quotientS //= quotient_cents2r // [C]unlock subsetI.
 rewrite (subset_trans (commSg W1 sKU)) ?commg_subl //= astabQ gen_subG /=.
 apply/subsetP=> _ /imset2P[x w1 Kx Ww1 ->].
 have:= Kx; rewrite -groupV 2!inE groupV => /andP[Ux /set1P/rowP psi_x'0].
@@ -497,7 +491,7 @@ Qed.
 (*   In order to avoid the use of the Wedderburn theorem on finite division   *)
 (* rings we build the field F from the enveloping algebra of the              *)
 (* representation of U rather than its endomorphism ring: then the fact that  *)
-(* Ubar is abelian yield commutativity directly.                              *)
+(* Ubar is abelian yields commutativity directly.                              *)
 Lemma typeP_Galois_P :
     typeP_Galois ->
   {F : finFieldType & {phi : {morphism Hbar >-> F}
@@ -613,7 +607,7 @@ have phiJ: {in Hbar & U, forall h x, phi (h ^ inMb x) = phi h * val (psi x)}%R.
   apply: inj_phi'; rewrite phiK ?memJ_norm ?(subsetP nHbU) // /phi' rmorphM.
   by rewrite psiK // mulmxA [inHb _]rVabelemJ // -/inHb [inHb _]phiK.
 have Kpsi: 'ker psi = C.
-  apply/setP=> x; rewrite 2!in_setI /= astabQ; apply: andb_id2l => Ux.
+  apply/setP=> x; rewrite [C]unlock 2!in_setI /= astabQ; apply: andb_id2l => Ux.
   have Ubx := mem_quotient H0 Ux; rewrite 3!inE (subsetP nH0U) //= inE.
   apply/eqP/centP=> [psi_x1 h Hh | cHx]; last first.
     by apply/val_inj; rewrite -[val _]mul1r -phi_s -phiJ // conjgE -cHx ?mulKg.
@@ -706,7 +700,7 @@ exists F.
     have charF: p \in [char F]%R by rewrite !inE p_pr -order_dvdn -o_nF /=.
     by rewrite -(dvdn_charf charF) (dvdn_charf (char_Fp p_pr)) natr_Zp.
   have{Pr0 nP} fPr0 f: autF f -> root P (f r).
-    move=> fRM; suff <-: map_poly (RMorphism fRM) P = P by exact: rmorph_root.
+    move=> fRM; suff <-: map_poly (RMorphism fRM) P = P by apply: rmorph_root.
     apply/polyP=> i; rewrite coef_map.
     have [/(nth_default _)-> | lt_i_P] := leqP (size P) i; first exact: rmorph0.
     by have /cycleP[n ->] := all_nthP 0%R nP i lt_i_P; exact: rmorph_nat.
@@ -761,66 +755,46 @@ Let mu_ := filter redM (S_ H0).
 (* This subproof is shared between (9.8)(b) and (9.9)(b). *)
 Let nb_redM_H0 : size mu_ = p.-1 /\ {subset mu_ <= S_ H0C}.
 Proof.
-have centDD := FT_cDade_hyp maxM MtypeP; pose W := (W1 <*> W2)%G.
+have pddM := FT_prDade_hypF maxM MtypeP; pose ptiWM := prDade_prTI pddM.
 have [nsHUM sW1M /mulG_sub[sHUM _] nHUW1 tiHUW1] := sdprod_context defM.
 have [nsHHU sUHU /mulG_sub[sHHU _] nHU tiHU] := sdprod_context defHU.
 have nb_redM K:
   K <| M -> K \subset HU -> K :&: H = H0 -> count redM (S_ K) = p.-1.
 - move=> nsKM sKHU tiKHbar; have [sKM nKM] := andP nsKM; pose b L := (L / K)%G.
-  have [_ /= cycDD _ _] := centDD; rewrite -(erefl (gval W)) in cycDD.
-  have [nsKHU [_ [_ sW2HU cycW2 _] _]] := (normalS sKHU sHUM nsKM, cycDD).
+  have [nsKHU [_ [_ sW2HU cycW2 _] _]] := (normalS sKHU sHUM nsKM, ptiWM).
   have nKW2 := subset_trans sW2HU (normal_norm nsKHU).
   have oW2b: #|b W2| = p.
     have [_ <- _] := Ptype_Fcore_factor_facts; rewrite defW2bar.
     rewrite !card_quotient ?(subset_trans (subset_trans sW2HU sHUM)) //.
-    by rewrite -tiKHbar -indexgI /= -setIA setIIr (setIC K) indexgI /=.
+    by rewrite -indexgI -{2}(setIidPl sW2H) setIAC -setIA tiKHbar indexgI.
   have{cycW2} cycW2b: cyclic (b W2) by exact: quotient_cyclic.
-  have cycDDb: cyclicDade_hypothesis (b M) (b HU) (b W) (b W1) (b W2).
-    by apply: cyclicDade_quotient; rewrite // -cardG_gt1 oW2b prime_gt1.
-  pose muK (j : Iirr (b W2)) := (Dade_mu (b M) (b W) (b W1) j %% K)%CF.
-  have inj_muK: injective muK.
-    by move=> j1 j2 /(can_inj (cfModK nsKM))/(Dade_mu_inj cycDDb).
-  transitivity (size (image muK (predC1 0))); last first.
+  have ntW2b: (W2 / K != 1)%g by rewrite -cardG_gt1 oW2b prime_gt1.
+  have{ntW2b} [defWb ptiWMb]:= primeTIhyp_quotient ptiWM ntW2b sKHU nsKM.
+  pose muK j := (primeTIred ptiWMb j %% K)%CF.
+  apply/eqP; have <-: size (image muK (predC1 0)) = p.-1.
     by rewrite size_map -cardE cardC1 card_Iirr_cyclic ?oW2b.
-  rewrite count_filter; apply: perm_eq_size.
-  apply: uniq_perm_eq => [||phi]; first by rewrite filter_uniq ?seqInd_uniq.
-    by apply/dinjectiveP=> j1 j2 _ _ /inj_muK.
-  rewrite mem_filter; apply/andP/imageP=> [[red_phi] | [j nz_j ->]].
-    case/seqIndP=> s /setDP[]; rewrite !inE /= => kersK kers'H Dphi.
-    pose s1 := quo_Iirr K s.
-    have{Dphi} Dphi: phi = ('Ind 'chi_s1 %% K)%CF.
-      rewrite quo_IirrE // cfIndQuo ?gFnormal // cfQuoK ?Dphi //.
-      by rewrite sub_cfker_Ind_irr.
-    have:= (Dade_Ind_chi'_irr cycDDb) s1; set im_chi := codom _ => chi_s1.
-    have{chi_s1 im_chi} /imageP[j _ Ds1]: s1 \in im_chi.
-      apply: contraR red_phi => /chi_s1[{chi_s1}/= /irrP[s2 Ds2] _].
-      by rewrite Dphi Ds2 cfMod_irr ?mem_irr.
-    exists j; last by rewrite Dphi Ds1 Dade_Ind_chi.
-    apply: contraNneq kers'H; rewrite -(quo_IirrK _ kersK) // -/s1 Ds1 => ->.
-    by rewrite mod_IirrE // Dade_chi0 ?cfMod_cfun1 // cfker_cfun1.
+  rewrite count_filter -uniq_size_uniq ?filter_uniq ?seqInd_uniq // => [|phi].
+    by apply/dinjectiveP=> j1 j2 _ _ /(can_inj (cfModK nsKM))/prTIred_inj.
+  rewrite mem_filter; apply/imageP/andP=> [[j nz_j ->] | [red_phi]]; last first.
+    case/seqIndP=> s /setDP[kerK ker'H] Dphi; rewrite !inE in kerK ker'H.
+    pose s1 := quo_Iirr K s; have Ds: s = mod_Iirr s1 by rewrite quo_IirrK.
+    rewrite {phi}Dphi Ds mod_IirrE ?cfIndMod // in kerK ker'H red_phi *.
+    have [[j Ds1] | [/idPn[]]] := prTIres_irr_cases ptiWMb s1.
+      rewrite Ds1 cfInd_prTIres -/(muK j) in ker'H *; exists j => //.
+      by apply: contraNneq ker'H => ->; rewrite prTIres0 rmorph1 cfker_cfun1.
+    by apply: contra red_phi => /cfMod_irr/= ->.
   have red_j: redM (muK j).
-    apply: contra (Dade_mu_not_irr cycDDb j) => /= /irrP[s Ds].
-    rewrite -[_ j](cfModK nsKM) -/(muK _) Ds cfQuo_irr ?mem_irr //.
-    by rewrite -Ds cfker_mod.
-  have [s Ds]: exists s, muK j = 'Ind[M, HU] 'chi_s.
-    rewrite /muK -(Dade_Ind_chi cycDDb) -cfIndMod // -mod_IirrE //.
-    by set s := mod_Iirr _; exists s.
+    apply: contra (prTIred_not_irr ptiWMb j) => /(cfQuo_irr nsKM).
+    by rewrite cfker_mod ?cfModK // => ->.
+  have [s DmuKj]: exists s, muK j = 'Ind[M, HU] 'chi_s.
+    exists (mod_Iirr (primeTI_Ires ptiWMb j)).
+    by rewrite mod_IirrE // cfIndMod // cfInd_prTIres.
   split=> //; apply/seqIndP; exists s; rewrite // !inE andbC.
-  rewrite -!(@sub_cfker_Ind_irr _ M) ?gFnorm // -Ds cfker_mod //=.
-  have{s Ds}[j1 Dj1]: exists j1 : Iirr W2, muK j = Dade_mu M [group of W] W1 j1.
-    have:= (Dade_Ind_chi'_irr cycDD) s; set im_chi := codom _ => chi_s.
-    suffices /imageP[j1 _ Dj1]: s \in im_chi.
-      by exists j1; rewrite Ds Dj1 Dade_Ind_chi.
-    by apply: contraR red_j => /chi_s[] /=; rewrite Ds.
-  rewrite Dj1 -(Dade_Ind_chi cycDD) sub_cfker_Ind_irr ?gFnorm //.
-  rewrite (not_cDade_core_sub_cfker_chi centDD) //.
-  rewrite -(inj_eq (Dade_irr_inj cycDD)) -(inj_eq irr_inj) Dade_chi0 //.
-  rewrite irr_eq1 -subGcfker -(sub_cfker_Ind_irr _ sHUM) ?gFnorm //.
-  rewrite Dade_Ind_chi // -{j1}Dj1 cfker_morph // subsetI sHUM /=.
-  rewrite -sub_quotient_pre ?normal_norm // -(Dade_Ind_chi cycDDb).
-  rewrite sub_cfker_Ind_irr ?quotientS ?quotient_norms ?gFnorm // subGcfker.
-  apply: contra nz_j; rewrite -(inj_eq (Dade_irr_inj cycDDb)) => /eqP->.
-  by rewrite eq_sym -irr_eq1 Dade_chi0.
+  rewrite -(@sub_cfker_Ind_irr _ M) ?gFnorm // -DmuKj cfker_mod //=.
+  have [[j1 Ds] | [/idPn]] := prTIres_irr_cases ptiWM s; last by rewrite -DmuKj.
+  rewrite Ds cfker_prTIres //; apply: contraNneq nz_j => j1_0.
+  apply/eqP/(prTIred_inj ptiWMb)/(can_inj (cfModK nsKM)); rewrite -{1}/(muK j).
+  by rewrite DmuKj Ds j1_0 -cfInd_prTIres !prTIres0 -cfIndMod ?rmorph1.
 have [sH0HU sH0M] := (subset_trans sH0H sHHU, subset_trans sH0H (gFsub _ _)).
 have sz_mu: size mu_ = p.-1.
   by rewrite -count_filter nb_redM ?(setIidPl sH0H) // /normal sH0M.
@@ -831,10 +805,10 @@ have UmuC: uniq (filter redM (S_ H0C)) by rewrite filter_uniq ?seqInd_uniq.
 have [|Dmu _] := leq_size_perm UmuC s_muC_mu; last first.
   by split=> // phi; rewrite -Dmu mem_filter => /andP[].
 have [nsH0C_M _ _ _] := nsH0xx_M.
-have sHOC_HU: H0C \subset HU by rewrite join_subG sH0HU subIset ?sUHU.
-rewrite sz_mu -count_filter nb_redM //.
-rewrite /= norm_joinEr /=; last by rewrite astabQ setICA subsetIl.
-by rewrite -group_modl //= setIC setIA tiHU setI1g mulg1.
+have sCHU := subset_trans sCU sUHU; have sCM := subset_trans sCHU sHUM.
+have sHOC_HU: H0C \subset HU by exact/joing_subP.
+rewrite sz_mu -count_filter nb_redM //= norm_joinEr ?(subset_trans sCM) //.
+by rewrite -group_modl //= setIC [C]unlock setIA tiHU setI1g mulg1.
 Qed.
 
 Let isIndHC (zeta : 'CF(M)) :=
@@ -857,15 +831,15 @@ set part_a := ({in _, _}); pose HCbar := (HC / H0)%G.
 have [_ /mulG_sub[sHUM sW1M] nHUW1 tiHUW1] := sdprodP defM.
 have [nsHHU _ /mulG_sub[sHHU sUHU] nHU tiHU] := sdprod_context defHU.
 have [nH0H nHHU] := (normal_norm nsH0H, normal_norm nsHHU).
-have [sHHC sCU]: H \subset HC /\ C \subset U by rewrite joing_subl subsetIl.
+have sHHC: H \subset HC by rewrite joing_subl.
 have [nH0HU sCHU] := (subset_trans sHUM nH0M, subset_trans sCU sUHU).
 have nsH0_HU: H0 <| HU by rewrite /normal (subset_trans sH0H).
 have nH0C := subset_trans sCHU nH0HU.
 have [nsH0C_M nsHC_M nsH0U'_M _] := nsH0xx_M; have [sHC_M _] := andP nsHC_M.
 have nsH0HC: H0 <| HC := normalS (subset_trans sH0H sHHC) sHC_M nsH0M.
 have defHCbar: Hbar \x (C / H0) = HCbar.
-  rewrite dprodEY -?quotientY //= astabQ quotient_setIpre ?subsetIr //.
-  by rewrite setIA -quotientGI // tiHU quotient1 setI1g.
+  rewrite /= quotientY // [C]unlock /= astabQ quotient_setIpre.
+  by rewrite dprodEY ?subsetIr // setIA -quotientGI // tiHU quotient1 setI1g.
 have sHC_HU: HC \subset HU by rewrite join_subG sHHU.
 have nsHC_HU: HC <| HU := normalS sHC_HU sHUM nsHC_M.
 have defHb1 := defHbar; rewrite (big_setD1 1%g) ?group1 ?conjsg1 //= in defHb1.
@@ -938,8 +912,8 @@ have def_Itheta f: f \in Ftheta -> 'I_HU[theta f %% H0]%CF = HC.
   rewrite inertia_mod_pre //= -{1}(sdprodW defHU) -group_modl; last first.
     rewrite (subset_trans sHHC) // -sub_quotient_pre ?normal_norm //.
     by rewrite sub_Inertia ?quotientS.
-  rewrite -gen_subG genM_join genS ?setUS ?setIS //= sub_astabQ subsetIl.
-  rewrite cosetpreK centsC -{1}(bigdprodWY defHbar) gen_subG.
+  rewrite -gen_subG genM_join genS ?setUS //= {2}[C]unlock setIS //= astabQ.
+  rewrite morphpreS // centsC -{1}(bigdprodWY defHbar) gen_subG.
   apply/bigcupsP=> w W1w; rewrite centsC.
   apply: subset_trans (sub_inertia_Res _ (quotient_norms _ nHHU)) _.
   rewrite cfDprodlK inertia_bigdprod_irr // subIset // orbC (bigcap_min w) //.
@@ -1030,7 +1004,7 @@ have inj_mu: {in predC1 0 &, injective (fun i => cfIirr (mk_mu i))}.
   rewrite inE mem_quotient //=; apply/cent1P/commgP.
   rewrite Dw -morphR //= coset_id //.
   suffices: [~ y, w] \in U :&: HC.
-    rewrite /= norm_joinEr 1?subIset ?nHU // -group_modr ?subsetIl //=.
+    rewrite /= norm_joinEr ?(subset_trans sCU) // -group_modr ?subsetIl //=.
     by rewrite setIC tiHU mul1g.
   have Uyw: [~ y, w] \in U; last rewrite inE Uyw.
     by rewrite {1}commgEl groupMl ?groupV // memJ_norm ?(subsetP nUW1) // Uy.
@@ -1274,7 +1248,7 @@ have [nsHHU sUHU /mulG_sub[sHHU _] nHU tiHU] := sdprod_context defHU.
 have [nsH0C_M nsHC_M _ nsH0C'_M] := nsH0xx_M; have nH0H := normal_norm nsH0H.
 have nsH0HU: H0 <| HU := normalS (subset_trans sH0H sHHU) sHUM nsH0M.
 have nH0U: U \subset 'N(H0) := subset_trans sUHU (normal_norm nsH0HU).
-have sCU: C \subset U := subsetIl U _; have nH0C := subset_trans sCU nH0U.
+have nH0C := subset_trans sCU nH0U.
 have sH0C_HU: H0C \subset HU by rewrite -(sdprodWY defHU) genS ?setUSS.
 have nsH0C_HU: H0C <| HU := normalS sH0C_HU sHUM nsH0C_M.
 have nH0C_HU := normal_norm nsH0C_HU.
@@ -1305,7 +1279,7 @@ have frobHU: [Frobenius HU / H0C = (H / H0C) ><| (U / H0C)].
   by rewrite andbC groupM ?groupV ?memJ_norm ?(subsetP nHU) //= H0Cxy ?groupR.
 have{coHC} tiHbC: (Hbar :&: C / H0 = 1)%g by rewrite coprime_TIg ?coprime_morph.
 have{tiHbC} defHCbar: Hbar \x (C / H0) = (HC / H0)%g.
-  by rewrite dprodEY ?quotientY // -quotient_astabQ quotientS ?subsetIr.
+  by rewrite dprodEY ?quotientY // [C]unlock/= astabQ quotient_setIpre subsetIr.
 have sHCHU: HC \subset HU by rewrite -(sdprodWY defHU) genS ?setUS.
 have nsHCHU: HC <| HU := normalS sHCHU sHUM nsHC_M.
 have sH0HC: H0 \subset HC := subset_trans sH0H (joing_subl H C).
@@ -1330,7 +1304,7 @@ have{I_XH0_C} irr_IndHC r: r \in Iirr_kerD HC H H0 -> 'Ind 'chi_r \in irr HU.
   rewrite !inE => /andP[ker'H kerH0]; apply: inertia_Ind_irr => //.
   apply: subset_trans (sub_inertia_Res _ (normal_norm nsHHU)) _.
   rewrite -{kerH0}(quo_IirrK _ kerH0) // mod_IirrE // in ker'H *.
-  have /imageP[[i j] _ Dr] := dprod_Iirr_onto defHCbar (quo_Iirr H0 r).
+  have /codomP[[i j] Dr] := dprod_Iirr_onto defHCbar (quo_Iirr H0 r).
   rewrite {r}Dr dprod_IirrE cfResMod ?joing_subl ?sub_cfker_mod //= in ker'H *.
   rewrite cfDprod_Resl linearZ inertia_scale_nz ?irr1_neq0 ?I_XH0_C //.
   by apply: contraNneq ker'H => ->; rewrite irr0 cfDprod_cfun1l cfker_sdprod.
@@ -1413,7 +1387,7 @@ have ->: (p ^ q).-1 = (#|X_ H0| * u)%N.
     by rewrite !inE -subGcfker quo_IirrE // cfker_quo ?quotientSGK.
   by rewrite quo_IirrE // cfIndQuo // -Ds -quo_IirrE // irrK quo_IirrK.
 suffices ->: #|X_ H0| = p.-1 by rewrite -(subnKC (prime_gt1 p_pr)) mulKn.
-rewrite -nb_mu (size_red_subseq_seqInd_typeP _ MtypeP _ H0C_mu) //; last first.
+rewrite -nb_mu (size_red_subseq_seqInd_typeP MtypeP _ H0C_mu) //; last first.
 - exact/allP/filter_all.
 - by rewrite filter_uniq ?seqInd_uniq.
 apply/esym/eq_card => i; rewrite inE mem_filter mem_seqInd ?gFnormal //.
@@ -1423,19 +1397,17 @@ Qed.
 
 (* This combination of (9.8)(b) and (9.9)(b) covers most uses of these lemmas *)
 (* in sections 10-14.                                                         *)
-Lemma typeP_reducible_core_Ind (W := (W1 <*> W2)%G)(mu := (Dade_mu M W W1) W2) :
+Lemma typeP_reducible_core_Ind (ptiWM := FT_primeTI_hyp MtypeP) :
   [/\ size mu_ = p.-1, has predT mu_,
-      {subset mu_ <= [seq mu j | j in predC1 0]}
+      {subset mu_ <= [seq primeTIred ptiWM j | j in predC1 0]}
     & {in mu_, forall mu_j, isIndHC mu_j}].
 Proof.
-have [centDD [sz_mu _]] := (FT_cDade_hyp maxM MtypeP, nb_redM_H0).
+have [[sz_mu _] /mulG_sub[sHHU _]] := (nb_redM_H0, sdprodW defHU).
 rewrite has_predT sz_mu -subn1 subn_gt0 prime_gt1 //; split=> // [mu_j|].
   rewrite mem_filter => /andP[red_chi /seqIndP[s /setDP[_ kerH's] Dchi]].
-  have /imageP[j _ Ds]: s \in codom ((Dade_chi M HU W W1) W2).
-    by apply: contraR red_chi => /(Dade_Ind_chi'_irr centDD)[]; rewrite Dchi.
-  rewrite Dchi Ds (Dade_Ind_chi centDD) image_f ?inE //=.
-  apply: contraNneq kerH's => j0; rewrite Ds j0 inE (Dade_chi0 centDD).
-  by rewrite cfker_cfun1 -(sdprodW defHU) mulG_subl.
+  have [[j Ds] | [/idPn[]]] := prTIres_irr_cases ptiWM s; last by rewrite -Dchi.
+  rewrite Dchi Ds cfInd_prTIres image_f ?inE //=.
+  by apply: contraNneq kerH's => j0; rewrite inE Ds j0 prTIres0 cfker_cfun1.
 have[/typeP_Galois_characters[_ _ []] // | Gal'M] := boolP typeP_Galois.
 by have [_ []] := typeP_nonGalois_characters Gal'M.
 Qed.
@@ -1470,7 +1442,7 @@ have cycU: cyclic U.
   rewrite (isog_cyclic (quotient1_isog _)) -C1.
   by have [_ _ []] := typeP_Galois_P GalM.
 right; split=> //; first by rewrite /u /Ubar C1 -(card_isog (quotient1_isog _)).
-case/(compl_of_typeII MtypeP) => //= _ _ _ UtypeF <-.
+case/(compl_of_typeII maxM MtypeP) => /= _ _ _ UtypeF <-.
 have [_ -> _] := typeF_context UtypeF.
 by apply/forall_inP=> S /and3P[_ /cyclicS->].
 Qed.
@@ -1490,8 +1462,8 @@ Lemma Ptype_core_coherence : coherent (S_ H0C') M^# tau.
 Proof.
 have [nsHUM sW1M /mulG_sub[sHUM _] nHUW1 tiHUW1] := sdprod_context defM.
 have [nsHHU sUHU /mulG_sub[sHHU _] nHU tiHU] := sdprod_context defHU.
-have nsCU: C <| U := normalS (subsetIl _ _) (joing_subl _ _) nsCUW1.
-have [sCU nCU] := andP nsCU; have sC'C: C^`(1)%g \subset C := der_sub 1 _.
+have nsCU: C <| U := normalS sCU (joing_subl _ _) nsCUW1.
+have [_ nCU] := andP nsCU; have sC'C: C^`(1)%g \subset C := der_sub 1 _.
 have coHC := coprimegS sCU coHU; have coH0C := coprimeSg sH0H coHC.
 have [nsH0C_M nsHC_M nsH0U'_M nsH0C'_M] := nsH0xx_M; have [_ nH0H]:= andP nsH0H.
 have nH0HU := subset_trans sHUM nH0M; have nH0U := subset_trans sUHU nH0HU.
@@ -1500,11 +1472,12 @@ have sHCHU: HC \subset HU by rewrite join_subG sHHU (subset_trans sCU).
 have [nsHCHU nHC] := (normalS sHCHU sHUM nsHC_M, subset_trans sCU nHU).
 have tiHCbar: Hbar :&: (C / H0)%g = 1%g by rewrite coprime_TIg ?coprime_morph.
 have defHCbar: Hbar \x (C / H0) = (HC / H0)%g.
-  by rewrite dprodEY ?quotientY // -quotient_astabQ quotientS ?subsetIr.
+  by rewrite dprodEY ?quotientY // [C]unlock/= astabQ quotient_setIpre subsetIr.
 have{tiHCbar} defHC'bar: (HC / H0)^`(1)%g = (C^`(1) / H0)%g.
   by rewrite -(der_dprod 1 defHCbar) (derG1P abHbar) dprod1g quotient_der.
 have sU'U := der_sub 1 U; have nH0U' := subset_trans sU'U nH0U.
-have sU'C: U' \subset C by rewrite subsetI sub_astabQ sU'U nH0U' quotient_cents.
+have sU'C: U' \subset C.
+  by rewrite [C]unlock subsetI sub_astabQ sU'U nH0U' quotient_cents.
 have uS0: uniq (S_ H0C') by exact: seqInd_uniq.
 have [rmR scohS0]: exists R : 'CF(M) -> seq 'CF(G), subcoherent (S_ H0C') tau R.
   move: (FTtypeP_coh_base _ _) (FTtypeP_subcoherent maxM MtypeP) => R scohR.
@@ -1529,7 +1502,8 @@ have nsU1U: U1 <| U; last have [sU1U nU1U] := andP nsU1U.
 have Da: a = #|HU : H <*> U1|.
   rewrite /a -!divgS /= ?join_subG ?sHHU ?norm_joinEr ?(subset_trans sU1U) //=.
   by rewrite -(sdprod_card defHU) coprime_cardMg ?(coprimegS sU1U) ?divnMl.
-have a_dv_u: a %| u by rewrite Da Du indexgS // genS ?setUS // setIS ?astabS.
+have sCU1: C \subset U1 by rewrite [C]unlock setIS ?astabS.
+have a_dv_u: a %| u by rewrite Da Du indexgS ?genS ?setUS.
 have [a_gt0 q_gt0 u_gt0 p1_gt0]: [/\ 0 < a, 0 < q, 0 < u & 0 < p.-1]%N.
   rewrite !cardG_gt0 ltnW // -subn1 subn_gt0 prime_gt1 //.
 have [odd_p odd_q odd_a]: [/\ odd p, odd q & odd a].
@@ -1762,9 +1736,8 @@ have [tiU1 le_u_a2]: {in W1^#, forall w, U1 :&: U1 :^ w = C} /\ (u <= a ^ 2)%N.
       rewrite -(index_sdprodr defHU) ?subsetIl // conjIg (normsP nUW1) //.
       by rewrite -setIIr.
     apply/esym/eqP; rewrite eqEcard subsetI -sub_conjgV.
-    rewrite (normsP _ _ (groupVr W1w)) ?andbA ?andbb /=; last first.
+    rewrite (normsP _ _ (groupVr W1w)) ?sCU1 /=; last first.
       by rewrite (subset_trans (joing_subr U W1)) ?normal_norm.
-    rewrite setIS ?astabS //=.
     have{s_1} : pred2 u a #|U : U1 :&: U1 :^ w|.
       rewrite /= -!eqC_nat -{}s_1 -mod_IirrE //.
       pose phi := 'Ind[M] 'chi_(mod_Iirr s).
@@ -1773,9 +1746,9 @@ have [tiU1 le_u_a2]: {in W1^#, forall w, U1 :&: U1 :^ w = C} /\ (u <= a ^ 2)%N.
         rewrite andbC (subset_trans _ (cfker_mod _ _)) //=; last first.
           by rewrite -defK genS ?setUS ?der_sub.
         rewrite sub_cfker_mod ?(subset_trans sHHU) ?normal_norm //.
-        rewrite -(sub_cfker_constt_Ind_irr t2HUs) ?quotientS //; first 1 last.
-        - by rewrite joing_subl.
-        - by rewrite quotient_norms ?normal_norm.
+        have sHHC: H \subset HC by rewrite joing_subl.
+        rewrite -(sub_cfker_constt_Ind_irr t2HUs) ?quotientS //; last first.
+          by rewrite quotient_norms ?normal_norm.
         rewrite -sub_cfker_mod ?(subset_trans sHHU (normal_norm nsKHU)) //.
         rewrite Dt2 sub_cfker_mod //.
         apply: contra (valP (has_nonprincipal_irr (ntH1 1%g))).
@@ -1791,7 +1764,7 @@ have [tiU1 le_u_a2]: {in W1^#, forall w, U1 :&: U1 :^ w = C} /\ (u <= a ^ 2)%N.
     case/pred2P=> [iUCu | iUCa].
       rewrite -(leq_pmul2r u_gt0) -{1}iUCu /u card_quotient ?Lagrange //.
       by rewrite /= -setIA subsetIl.
-    rewrite subset_leq_card // subIset // subsetI subsetIl sub_astabQ.
+    rewrite subset_leq_card // subIset // [C]unlock subsetI subsetIl sub_astabQ.
     rewrite subIset ?nH0U //= centsC -(bigdprodWY defHbar) gen_subG.
     apply/orP; left; apply/bigcupsP=> w1 Ww1; rewrite centsC centJ -sub_conjgV.
     rewrite (normsP _ _ (groupVr Ww1)) ?quotient_norms //.
@@ -1801,8 +1774,7 @@ have [tiU1 le_u_a2]: {in W1^#, forall w, U1 :&: U1 :^ w = C} /\ (u <= a ^ 2)%N.
     by rewrite -(leq_pmul2r a_gt0) -{2}iUCa !Lagrange //= -setIA subsetIl.
   have /trivgPn[w W1w ntw]: W1 :!=: 1%g by rewrite -cardG_gt1 prime_gt1.
   rewrite -(leq_pmul2l u_gt0) mulnn.
-  have /andP[sCU1 nCU1]: C <| U1.
-    by rewrite /normal setIS ?astabS // subIset // normal_norm.
+  have nCU1 := subset_trans sU1U nCU.
   have {1}->: u = (#|(U1 / C)%g| * a)%N.
     by rewrite mulnC /u !card_quotient // Lagrange_index.
   rewrite expnMn leq_pmul2r ?expn_gt0 ?orbF // -mulnn.
@@ -1837,7 +1809,7 @@ have oS4: (q * u * size S4 + p.-1 * (q + u))%N = (p ^ q).-1.
       by rewrite natrM cfInd1 // -(index_sdprod defM) => /(mulfI (neq0CG _)).
     rewrite sumr_const -mulr_natl natrM natrX -nb_mu; congr (_%:R * _).
     have [_ s_mu_H0C] := nb_redM_H0.
-    rewrite (size_red_subseq_seqInd_typeP maxM MtypeP _ s_mu_H0C); last first.
+    rewrite (size_red_subseq_seqInd_typeP MtypeP _ s_mu_H0C); last first.
     - by apply/allP; apply: filter_all.
     - by rewrite filter_uniq ?seqInd_uniq.
     rewrite -/mu_ -[#|_|](cardsID Xn) (setIidPr _); last first.
@@ -1856,8 +1828,7 @@ have oS4: (q * u * size S4 + p.-1 * (q + u))%N = (p ^ q).-1.
   rewrite oS1 -mulnA divnK ?dvdn_mul // !mulnA -mulnDl mulnC natrM {}/sumH0C.
   rewrite /X_ -Iirr_kerDY joingC joingA (joing_idPl sH0H) /=.
   rewrite sum_Iirr_kerD_square ?genS ?setSU //; last first.
-    apply: normalS nsH0C_M; rewrite // join_subG (subset_trans sH0H) //.
-    by rewrite subIset ?sUHU.
+    by apply: normalS nsH0C_M; rewrite // -(sdprodWY defHU) genS ?setUSS.
   rewrite -Du (inj_eq (mulfI (neq0CG _))) -(prednK (indexg_gt0 _ _)).
   rewrite mulrSr addrK eqC_nat addnC mulnDl addnAC (mulnC q) -addnA -mulnDr.
   move/eqP <-; congr _.-1.
@@ -1880,7 +1851,7 @@ have [Aalpha Nalpha]: alpha \in 'CF(M, 'A(M)) /\ '[alpha] = nm_alpha.
     have nsH_HU1: H <| H <*> U1 by have [] := sdprod_context defHU1.
     have [HUy [_ nH_HU1]] := (subsetP sHU1_HU y HU1y, normalP nsH_HU1).
     have hallH: pi.-Hall(H <*> U1) H.
-      by rewrite Hall_pi // -(coprime_sdprod_Hall defHU1) (coprimegS sU1U).
+      by rewrite Hall_pi // -(coprime_sdprod_Hall_l defHU1) (coprimegS sU1U).
     have hallU1: pi^'.-Hall(H <*> U1) U1.
       by rewrite -(compl_pHall _ hallH) sdprod_compl.
     have [pi'y | pi_y] := boolP (pi^'.-elt y); last first.
@@ -1908,7 +1879,7 @@ have [Aalpha Nalpha]: alpha \in 'CF(M, 'A(M)) /\ '[alpha] = nm_alpha.
       rewrite class_supportEr; apply/bigcupsP=> w Mw.
       by rewrite sub_conjg conjUg conjs1g (normsP (FTsupp_norm M)) ?groupV.
     have /seqIndP[s /setDP[_ ker'H ] ->] := H0C_S1 _ S1psi1.
-    rewrite setUC (cDade_cfker_cfun_on_ind (FT_cDade_hyp maxM MtypeP)) //.
+    rewrite (prDade_Ind_irr_on (FT_prDade_hypF maxM MtypeP)) //.
     by rewrite inE in ker'H.
   have ->: '[alpha] = '[gamma] + 1.
     have /irrP[t Dt] := irrS1 _ S1psi1.
@@ -1998,7 +1969,7 @@ have [IZtau3 Dtau3] := cohS3; have [Itau3 Ztau3] := IZtau3.
 have notA1: 1%g \notin 'A(M) by have /subsetD1P[] := FTsupp_sub M.
 have sS0_1A: {subset S_ H0C' <= 'CF(M, 1%g |: 'A(M))}.
   move=> _ /seqIndP[s /setDP[_ ker'H] ->]; rewrite inE in ker'H.
-  by rewrite setUC (cDade_cfker_cfun_on_ind (FT_cDade_hyp maxM MtypeP)).
+  by rewrite (prDade_Ind_irr_on (FT_prDade_hypF maxM MtypeP)).
 have sS0A: {subset 'Z[S_ H0C', M^#] <= 'Z[irr M, 'A(M)]}.
   move=> chi; rewrite (zcharD1_seqInd_Dade _ notA1) //.
   by apply: zchar_sub_irr; apply: seqInd_vcharW.

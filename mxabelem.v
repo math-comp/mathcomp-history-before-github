@@ -220,7 +220,7 @@ have injA: injective (mulmxr (row_base A)).
   have /row_freeP[A' A'K] := row_base_free A.
   by move=> ?; apply: can_inj (mulmxr A') _ => u; rewrite /= -mulmxA A'K mulmx1.
 rewrite -(card_image (injA _)); apply: eq_card => v.
-by rewrite inE -(eq_row_base A); apply/submxP/imageP=> [] [u]; exists u.
+by rewrite inE -(eq_row_base A) (sameP submxP codomP).
 Qed.
 
 Lemma rowgD m1 m2 (A : 'M_(m1, n)) (B : 'M_(m2, n)) :
@@ -968,7 +968,7 @@ have inj_iphi: injective iphi.
 have deg_phi i: irr_degree (iphi i) = irr_degree i0.
   by case: (rsim_irr_comp sS F'S (rphi_irr i)).
 have im_iphi: codom iphi =i ~: linS.
-  apply/subset_cardP; last apply/subsetP=> _ /imageP[i _ ->].
+  apply/subset_cardP; last apply/subsetP=> _ /codomP[i ->].
     by rewrite card_image // card_ord cardsCs setCK nb_irr nb_lin addKn.
   by rewrite !inE /= (deg_phi i) in nlin_i0 *.
 split=> //; exists iphi; rewrite -/phi_.
@@ -987,7 +987,7 @@ rewrite (eq_bigr (fun _ => 1%N)) => [|i]; last by rewrite !inE; move/eqP->.
 rewrite sum1_card nb_lin.
 rewrite (eq_bigl (mem (codom iphi))) // => [|i]; last first.
   by rewrite -in_setC -im_iphi.
-rewrite (eq_bigr (fun _ => d ^ 2))%N => [|_ /imageP[i _ ->]]; last first.
+rewrite (eq_bigr (fun _ => d ^ 2))%N => [|_ /codomP[i ->]]; last first.
   by rewrite deg_phi.
 rewrite sum_nat_const card_image // card_ord oSpn (expnS p) -{3}[p]prednK //.
 rewrite mulSn eqn_add2l eqn_pmul2l; last by rewrite -ltnS prednK.

@@ -593,10 +593,12 @@ Variable (gT : finGroupType) (G : {group gT}).
 Implicit Types (i : Iirr G) (B : {set gT}).
 Open Scope group_ring_scope.
 
+Lemma congr_irr i1 i2 : i1 = i2 -> 'chi_i1 = 'chi_i2. Proof. by move->. Qed.
+
 Lemma has_nonprincipal_irr : G :!=: 1%g -> {i : Iirr G | i != 0}.
 Proof. by rewrite -classes_gt1 -NirrE => ntG; exists (Ordinal ntG). Qed.
 
-Lemma irrRepr i : cfRepr 'Chi_i = 'chi[G]_i.
+Lemma irrRepr i : cfRepr 'Chi_i = 'chi_i.
 Proof.
 rewrite [irr]unlock (tnth_nth 0) nth_mkseq // -[<<G>>]/(gval _) genGidG.
 by rewrite cfRes_id inord_val.
@@ -863,6 +865,9 @@ rewrite paddr_eq0 ?sumr_ge0  => // [||j _]; rewrite 1?ltrW ?irr1_gt0 //.
 by rewrite (negbTE (irr1_neq0 i)).
 Qed.
 
+Lemma char1_gt0 chi : chi \is a character -> (0 < chi 1%g) = (chi != 0).
+Proof. by move=> Nchi; rewrite -char1_eq0 // Cnat_gt0 ?Cnat_char1. Qed.
+
 Lemma char_reprP phi :
   reflect (exists rG : representation algCF G, phi = cfRepr rG)
           (phi \is a character).
@@ -1062,8 +1067,11 @@ Qed.
 Canonical lin_char_mulrPred := MulrPred linear_char_divr.
 Canonical lin_char_divrPred := DivrPred linear_char_divr.
 
+Lemma irr_cyclic_lin i : cyclic G -> 'chi[G]_i \is a linear_char.
+Proof. by move/cyclic_abelian/char_abelianP. Qed.
+
 Lemma irr_prime_lin i : prime #|G| -> 'chi[G]_i \is a linear_char.
-Proof. by move/prime_cyclic/cyclic_abelian/char_abelianP->. Qed.
+Proof. by move/prime_cyclic/irr_cyclic_lin. Qed.
 
 End Linear.
 
@@ -1732,8 +1740,23 @@ Qed.
 Lemma dprod_Iirr0 : dprod_Iirr (0, 0) = 0.
 Proof. by apply/irr_inj; rewrite dprod_IirrE !irr0 cfDprod_cfun1. Qed.
 
+Lemma dprod_Iirr0l j : dprod_Iirr (0, j) = dprodr_Iirr j.
+Proof.
+by apply/irr_inj; rewrite dprod_IirrE irr0 dprodr_IirrE cfDprod_cfun1l.
+Qed.
+
+Lemma dprod_Iirr0r i : dprod_Iirr (i, 0) = dprodl_Iirr i.
+Proof.
+by apply/irr_inj; rewrite dprod_IirrE irr0 dprodl_IirrE cfDprod_cfun1r.
+Qed.
+
 Lemma dprod_Iirr_eq0 i j : (dprod_Iirr (i, j) == 0) = (i == 0) && (j == 0).
 Proof. by rewrite -xpair_eqE -(inj_eq dprod_Iirr_inj) dprod_Iirr0. Qed.
+
+Lemma cfdot_dprod_irr i1 i2 j1 j2 :
+  '['chi_(dprod_Iirr (i1, j1)), 'chi_(dprod_Iirr (i2, j2))]
+     = ((i1 == i2) && (j1 == j2))%:R.
+Proof. by rewrite cfdot_irr (inj_eq dprod_Iirr_inj). Qed.
 
 Lemma dprod_Iirr_onto k : k \in codom dprod_Iirr.
 Proof.
@@ -1761,6 +1784,8 @@ Lemma inv_dprod_Iirr0 : inv_dprod_Iirr 0 = (0, 0).
 Proof. by apply/(canLR dprod_IirrK); rewrite dprod_Iirr0. Qed.
 
 End DProd.
+
+Implicit Arguments dprod_Iirr_inj [gT G K H x1 x2].
 
 Lemma dprod_IirrC (gT : finGroupType) (G K H : {group gT})
                   (KxH : K \x H = G) (HxK : H \x K = G) i j :
@@ -1870,9 +1895,7 @@ Proof. exact: conjC_charAut (irr_char i). Qed.
 
 Lemma cfdot_aut_char u (phi chi : 'CF(G)) : 
   chi \is a character -> '[cfAut u phi, cfAut u chi] = u '[phi, chi].
-Proof.
-by move/conjC_charAut=> Nchi; apply: cfdot_cfAut => _ /imageP[x _ ->].
-Qed.
+Proof. by move/conjC_charAut=> Nchi; apply: cfdot_cfAut => _ /mapP[x _ ->]. Qed.
 
 Lemma cfdot_aut_irr u phi i :
   '[cfAut u phi, cfAut u 'chi[G]_i] = u '[phi, 'chi_i].
@@ -2408,9 +2431,9 @@ do [exists linG, cF; split=> //] => [|xi /inT[u <-]|u]; first 2 [by exists u].
     apply: can_inj (insubd one) _ => u; apply: val_inj.
     by rewrite insubdK /= ?irrK //; apply: cFlin.
   rewrite -(card_image inj_cFI) -card_lin_irr.
-  apply/eq_card=> i; rewrite inE; apply/imageP/idP=> [[u _ ->] | /inT[u Du]].
+  apply/eq_card=> i; rewrite inE; apply/codomP/idP=> [[u ->] | /inT[u Du]].
     by rewrite /= irrK; apply: cFlin.
-  by exists u => //; apply: irr_inj; rewrite /= irrK.
+  by exists u; apply: irr_inj; rewrite /= irrK.
 apply/eqP; rewrite eqn_dvd; apply/andP; split.
   by rewrite dvdn_cforder; rewrite -cFexp expg_order cFone.
 by rewrite order_dvdn -(inj_eq cFinj) cFone cFexp exp_cforder.

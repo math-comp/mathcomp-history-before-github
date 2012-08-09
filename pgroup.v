@@ -323,10 +323,15 @@ case/sdprod_context=> /andP[sKG _] sHG defG _ tiKH.
 by rewrite /Hall sKG sHG -!divgS // -defG TI_cardMg // coprime_sym mulKn ?mulnK.
 Qed.
 
-Lemma coprime_sdprod_Hall G K H : K ><| H = G -> coprime #|K| #|H| = Hall G K.
+Lemma coprime_sdprod_Hall_l G K H : K ><| H = G -> coprime #|K| #|H| = Hall G K.
 Proof.
 case/sdprod_context=> /andP[sKG _] _ defG _ tiKH.
 by rewrite /Hall sKG -divgS // -defG TI_cardMg ?mulKn.
+Qed.
+
+Lemma coprime_sdprod_Hall_r G K H : K ><| H = G -> coprime #|K| #|H| = Hall G H.
+Proof.
+by move=> defG; rewrite (coprime_sdprod_Hall_l defG) (sdprod_Hall defG).
 Qed.
 
 Lemma compl_pHall pi K H G :

@@ -454,14 +454,9 @@ Canonical unit_finGroupType := Eval hnf in FinGroupType unit_mulVu.
 
 Lemma val_unit1 : val (1%g : uT) = 1. Proof. by []. Qed.
 Lemma val_unitM x y : val (x * y : uT)%g = val x * val y. Proof. by []. Qed.
+Lemma val_unitV x : val (x^-1 : uT)%g = (val x)^-1. Proof. by []. Qed.
 Lemma val_unitX n x : val (x ^+ n : uT)%g = val x ^+ n.
 Proof. by case: n; last by elim=> //= n ->. Qed.
-Lemma val_unitV x : val (x^-1 : uT)%g = (val x)^-1.
-Proof.
-rewrite -div1r.
-apply: (canRL (mulrK _)); first by apply: valP.
-by rewrite -val_unitM mulVg val_unit1.
-Qed.
 
 Definition unit_act x u := x * val u.
 Lemma unit_actE x u : unit_act x u = x * val u. Proof. by []. Qed.

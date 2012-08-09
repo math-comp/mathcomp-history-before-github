@@ -85,6 +85,9 @@ Require Import finfun bigop prime binomial.
 (*                 x ^+ n == x to the nth power with n in nat (non-negative), *)
 (*                           i.e., x * (x * .. (x * x)..) (n factors); x ^+ 1 *)
 (*                           is thus convertible to x, and x ^+ 2 to x * x.   *)
+(*         GRing.sign R b := (-1) ^+ b in R : ringType, with b : bool.        *)
+(*                           This is a parsing-only helper notation, to be    *)
+(*                           used for defining more specific instances.       *)
 (*         GRing.comm x y <-> x and y commute, i.e., x * y = y * x.           *)
 (*           GRing.lreg x <-> x if left-regular, i.e., *%R x is injective.    *)
 (*           GRing.rreg x <-> x if right-regular, i.e., *%R x is injective.   *)
@@ -903,6 +906,7 @@ Import Ring.Exports.
 Definition one (R : ringType) : R := Ring.one (Ring.class R).
 Definition mul (R : ringType) : R -> R -> R := Ring.mul (Ring.class R).
 Definition exp R x n := nosimpl iterop _ n (@mul R) x (one R).
+Notation sign R b := (exp (- one R) (nat_of_bool b)) (only parsing).
 Definition comm R x y := @mul R x y = mul y x.
 Definition lreg R x := injective (@mul R x).
 Definition rreg R x := injective ((@mul R)^~ x).

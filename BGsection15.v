@@ -1024,7 +1024,7 @@ have solM': solvable M^`(1) := solvableS (der_sub 1 M) (mmax_sol maxM).
 have sMsM' := Msigma_der1 maxM.
 have{defM} sKsM'': Ks \subset M^`(2).
   have coM'K: coprime #|M^`(1)| #|K|.
-    by rewrite (coprime_sdprod_Hall defM) (sdprod_Hall defM) (pHall_Hall hallK).
+    by rewrite (coprime_sdprod_Hall_r defM) (pHall_Hall hallK).
   have [_] := coprime_der1_sdprod defM coM'K solM' (subxx _).
   exact: subset_trans (setSI _ sMsM').
 have [eqMFs | neqMFs] := eqVneq M`_\F M`_\sigma.

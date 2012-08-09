@@ -597,17 +597,16 @@ Theorem Sibley_coherence (L H W1 : {group gT}) :
   (*b*) let calS := seqIndD H L H 1 in let tau := 'Ind[G, L] in
   (*c*) [\/ (*c1*) [Frobenius L = H ><| W1]
          |  (*c2*) exists2 W2 : {group gT}, prime #|W2| /\ W2 \subset H^`(1)%G
-               & let W := (W1 <*> W2)%G in let V := W :\: (W1 :|: W2) in
-                 let A := H^# in let A0 := A :|: class_support V L in
-                 centralDade_hypothesis A A0 G H L H W W1 W2] ->
+               & exists A0, exists W : {group gT}, exists defW : W1 \x W2 = W,
+                 prime_Dade_hypothesis G L H H H^# A0 defW] ->
   coherent calS L^# tau.
 Proof.
 set A := H^# => [][oddL nilH tiA] S tau structL.
 set case_c1 := [Frobenius L = H ><| W1] in structL.
 have sLG: L \subset G by have [_ /eqP <-] := andP tiA; exact: subsetIl.
 have [defL ntH ntW1]: [/\ H ><| W1 = L, H :!=: 1 & W1 :!=: 1]%g.
-  have [/Frobenius_context[]// | [W2 _ [? [[-> -> _ _] [ntW2]]]]] := structL.
-  by move/subG1_contra->.
+  have [/Frobenius_context[]// | [W2 _ [A0 [W [defW []]]]]] := structL.
+  by move=> _ [[-> -> _ _] [ntW2 /subG1_contra->]].
 have [nsHL _ /mulG_sub[sHL sW1L] _ _] := sdprod_context defL.
 have [uccS nrS]: cfConjC_subset S S /\ ~~ has cfReal S.
   by do 2?split; rewrite ?seqInd_uniq ?seqInd_notReal //; apply: cfAut_seqInd.
@@ -616,18 +615,29 @@ have c1_irr: case_c1 -> {subset S <= irr L}.
   move/FrobeniusWker=> frobL _ /seqIndC1P[i nz_i ->].
   exact: irr_induced_Frobenius_ker.
 move defW2: 'C_H(W1)%G => W2; move defW: (W1 <*> W2)%G => W.
-pose V := W :\: (W1 :|: W2); pose A0 := A :|: class_support V L.
-pose c2hyp := centralDade_hypothesis A A0 G H L H W W1 W2.
+have{defW} defW: W1 \x W2 = W.
+  rewrite -defW dprodEY // -defW2 ?subsetIr // setICA setIA.
+  by have [_ _ _ ->] := sdprodP defL; rewrite setI1g.
+pose V := cyclicTIset defW; pose A0 := A :|: class_support V L.
+pose c2hyp := prime_Dade_hypothesis G L H H A A0 defW.
 have c1W2: case_c1 -> W2 = 1%G by move/Frobenius_trivg_cent/group_inj <-.
 have{structL} c2W2: ~~ case_c1 -> [/\ prime #|W2|, W2 \subset H^`(1)%G & c2hyp].
-  case: structL => [-> // | [W3 [prW3 sW3] W3hyp] _].
-  rewrite /c2hyp /A0 /V -defW; suffices /group_inj->: W2 :=: W3 by [].
-  have [/= _ [[_ _ _ cycW1] [_ _ _ prW13] _ _ _]] := W3hyp.
-  have [x defW1] := cyclicP cycW1; rewrite -defW2 /= defW1 cent_cycle prW13 //.
+  case: structL => [-> // | [W20 [prW20 sW20H'] W20hyp] _].
+  have{W20hyp} [A00 [W0 [defW0 W20hyp]]] := W20hyp.
+  suffices /group_inj defW20: W2 :=: W20.
+    have eqW0: W0 = W by apply: group_inj; rewrite -defW0 -defW20.
+    rewrite -defW20 eqW0 in prW20 sW20H' defW0 W20hyp; split=> //.
+    rewrite /c2hyp (eq_irrelevance defW defW0) /A0.
+    by have [_ _ <-] := prDade_def W20hyp.
+  have [[_ _ _ cycW1] [_ _ _ prW120] _] := prDade_prTI W20hyp.
+  have [x defW1] := cyclicP cycW1; rewrite -defW2 /= defW1 cent_cycle prW120 //.
   by rewrite !inE defW1 cycle_id -cycle_eq1 -defW1 ntW1.
-pose sigma := @cyclicTIsigma _ G W W1 W2.
-have [R scohS oRW]: exists2 R, subcoherent S tau R & ~~ case_c1 ->
-  {in [predI S & irr L] & irr W, forall phi w, orthogonal (R phi) (sigma w)}.
+have{c2W2} [prW2 sW2H' c2W2] := all_and3 c2W2.
+have{sW2H'} sW2H': W2 \subset H^`(1)%G.
+  by have [/c1W2-> | /sW2H'//] := boolP case_c1; apply: sub1G.
+pose sigma := cyclicTIiso (c2W2 _).
+have [R scohS oRW]: exists2 R, subcoherent S tau R & forall c2 : ~~ case_c1,
+  {in [predI S & irr L] & irr W, forall phi w, orthogonal (R phi) (sigma c2 w)}.
 - have sAG: A \subset G^# by rewrite setSD // (subset_trans (normal_sub nsHL)).
   have Itau: {in 'Z[S, L^#], isometry tau, to 'Z[irr G, G^#]}.
     split=> [xi1 xi2 | xi].
@@ -636,11 +646,11 @@ have [R scohS oRW]: exists2 R, subcoherent S tau R & ~~ case_c1 ->
     rewrite !zcharD1E => /andP[Zxi /eqP xi1_0].
     rewrite cfInd1 // xi1_0 mulr0 eqxx cfInd_vchar //.
     by apply: zchar_trans_on Zxi; exact: seqInd_vcharW.
-  have [Hc1 | Hc2] := boolP case_c1.
-    suffices [R]: {R | subcoherent S tau R} by exists R.
+  have [/= Hc1 | Hc2] := boolP (idfun case_c1).
+    suffices [R]: {R | subcoherent S tau R} by exists R => // /negP[].
     by apply: irr_subcoherent => //; first by case: uccS (c1_irr Hc1).
-  have [_ _ ddA0] := c2W2 Hc2.
-  have [R [subcohR oRW _]] := PtypeDade_subcoherent ddA0 uccS nrS.
+  have ddA0 := c2W2 Hc2.
+  have [R [subcohR oRW _]] := prDade_subcoherent ddA0 uccS nrS.
   exists R => //; set tau0 := Dade _ in subcohR.
   have Dtau: {in 'CF(L, A), tau =1 tau0}.
     have nAL: L \subset 'N(A) by rewrite normD1 normal_norm.
@@ -654,13 +664,13 @@ have [nsH'H nsH'L] := (der_normal 1 H, char_normal_trans (der_char 1 H) nsHL).
 have [nH'L solH] := (normal_norm nsH'L, nilpotent_sol nilH).
 have ltH'H: H^`(1)%g \proper H by rewrite ?(nil_comm_properl nilH) ?subsetIidl.
 have coHW1: coprime #|H| #|W1|.
-  have [/Frobenius_coprime// | /c2W2[_ _]] := boolP case_c1.
-  by rewrite (coprime_sdprod_Hall defL) (sdprod_Hall defL) => [] [? [[]]].
+  have [/Frobenius_coprime// | /c2W2[_ [[_ _]]]] := boolP case_c1.
+  by rewrite (coprime_sdprod_Hall_r defL).
 have oW1: #|W1| = #|L : H| by rewrite -divgS // -(sdprod_card defL) mulKn.
 have frobL1: [Frobenius L / H^`(1) = (H / H^`(1)) ><| (W1 / H^`(1))]%g.
   apply: (Frobenius_coprime_quotient defL nsH'L) => //; split=> // x W1x.
   have [/Frobenius_reg_ker-> //|] := boolP case_c1; first exact: sub1G.
-  by case/c2W2=> _ sW2H' [/= ? [_ [_ _ _ -> //]]].
+  by case/c2W2=> _ [_ [_ _ _ ->]].
 have odd_frobL1: odd_Frobenius_quotient H L 1.
   have ? := FrobeniusWker frobL1.
   by split=> //=; rewrite ?joingG1 // normal1 sub1G quotient_nil.
@@ -680,7 +690,7 @@ have sylH: p.-Sylow(G) H. (* required for (6.7) *)
 pose caseA := 'Z(H) :&: W2 == [1].
 have caseB_P: ~~ caseA -> [/\ ~~ case_c1, W2 :!=: [1] & W2 \subset 'Z(H)].
   rewrite /caseA; have [-> |] := eqsVneq W2 [1]; first by rewrite setIg1 eqxx.
-  have [/c1W2-> | /c2W2[prW2 _ _] ->] := boolP case_c1; first by rewrite eqxx.
+  have [/c1W2->/eqP[]// | /prW2 pW2 ->] := boolP case_c1.
   by rewrite setIC => /prime_meetG->.
 pose Z := if caseA then ('Z(H) :&: H^`(1))%G else W2.
 have /subsetIP[sZZ sZH']: Z \subset 'Z(H) :&: H^`(1)%g.
@@ -706,7 +716,7 @@ have regZL: {in Z^# &, forall x y, #|'C_L[x]| = #|'C_L[y]| }.
   have [_ <- _ _] := sdprodP defL; rewrite -group_modl ?sub_cent1 //=.
   suffices ->: 'C_W1[x] = 1%g by rewrite mulg1.
   have [/Frobenius_reg_compl-> // | in_c2] := boolP case_c1; first exact/setD1P.
-  have [_ _ [/= ? [_ [_ _ _ regW1] _] _ _]] := c2W2 in_c2.
+  have [_ [_ [_ _ _ regW1] _] _ _] := c2W2 in_c2.
   apply: contraNeq ntx => /trivgPn[y /setIP[W1y cxy] nty].
   rewrite -in_set1 -set1gE -((_ =P [1]) inA) -(regW1 y) 2!inE ?nty //.
   by rewrite inE cent1C cHx Hx.
@@ -749,35 +759,34 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
   move=> haveA.
   have scohX: subcoherent X tau R by apply: subset_subcoherent ccsXS.
   have irrX: {subset X <= irr L}.
-    have [/c1_irr irrS | /c2W2[]] := boolP case_c1.
+    have [/c1_irr irrS | in_c2] := boolP case_c1.
       move=> phi Xphi; apply: irrS; apply: seqIndS phi Xphi.
       by rewrite Iirr_kerDS // (subset_trans sZH') ?der_sub.
-    move=> prW2 sW2H' [/= _ PtypeL _ _].
-    have [[_ _ _ cycW1] [ntW2 sW2H cycW2 prW1H] [W1xW2 oddW]] := PtypeL.
+    move/(_ in_c2) in prW2; have [_ ptiL _ _] := c2W2 in_c2.
+    have [[_ _ _ cycW1] [ntW2 sW2H cycW2 prW1H] oddW] := ptiL.
     have nZL := normal_norm nsZL; have nZW1 := subset_trans sW1L nZL.
     have isoW2: (W2 / Z)%g \isog W2.
       apply/isog_symr/quotient_isog; first exact: subset_trans sW2H nZH.
       by rewrite -(setIidPr sZZ) setIAC ((_ =P [1]) haveA) setI1g.
-    have: cyclicDade_hypothesis (L / Z) (H / Z) (W / Z) (W1 / Z) (W2 / Z).
-      by apply: cyclicDade_quotient => //; rewrite (isog_eq1 isoW2).
-    move=> prTI_LZ; pose Ichi := @Dade_chi _ L H W W1 W2.
-    pose IchiZ := @Dade_chi _ (L / Z) (H / Z) (W / Z) (W1 / Z) (W2 / Z).
+    have [|defWb ptiLZ] := primeTIhyp_quotient ptiL _ sZH nsZL.
+      by rewrite (isog_eq1 isoW2).
+    pose Ichi := primeTI_Ires ptiL; pose IchiZ := primeTI_Ires ptiLZ.
     have eq_Ichi: codom (fun j1 => mod_Iirr (IchiZ j1)) =i codom Ichi.
       apply/subset_cardP.
-        rewrite !card_codom; last first; try exact: Dade_irr_inj.
-          apply: inj_comp (Dade_irr_inj prTI_LZ).
+        rewrite !card_codom; last first; try exact: prTIres_inj.
+        apply: inj_comp (prTIres_inj ptiLZ).
           exact: can_inj (mod_IirrK (sub_center_normal sZZ)).
         by rewrite !card_ord !NirrE (nclasses_isog isoW2).
-      apply/subsetP=> _ /imageP[/= j1 _ ->].
-      apply: contraR (Dade_mu_not_irr prTI_LZ j1).
-      case/(Dade_Ind_chi'_irr PtypeL)=> /irrP[ell Dell] _.
-      rewrite -(Dade_Ind_chi prTI_LZ) -/IchiZ -['chi__]cfModK //.
-      rewrite -mod_IirrE ?cfIndQuo ?Dell 1?mod_IirrE ?cfker_mod //.
-      rewrite -quo_IirrE ?mem_irr // -Dell sub_cfker_Ind_irr //.
-      by rewrite mod_IirrE ?cfker_mod.
+      apply/subsetP=> _ /codomP[/= j1 ->].
+      have [[j2 /irr_inj->] | ] := prTIres_irr_cases ptiL (mod_Iirr (IchiZ j1)).
+        exact: codom_f.
+      case=> /idPn[]; rewrite mod_IirrE // cfIndMod // cfInd_prTIres.
+      apply: contra (prTIred_not_irr ptiLZ j1) => /irrP[ell Dell].
+      by rewrite -[_ j1]cfModK // Dell -quo_IirrE ?mem_irr // -Dell cfker_mod.
     move=> _ /seqIndP[k /setDP[_ kZ'k] ->].
-    case: ((Dade_Ind_chi'_irr PtypeL) k) => //; rewrite -eq_Ichi.
-    by apply: contra kZ'k => /imageP[j1 _ ->]; rewrite inE mod_IirrE ?cfker_mod.
+    have [[j /irr_inj Dk] | [] //] := prTIres_irr_cases ptiL k.
+    case/negP: kZ'k; have: k \in codom Ichi by rewrite Dk codom_f.
+    by rewrite -eq_Ichi => /codomP[j1 ->]; rewrite !inE mod_IirrE ?cfker_mod.
   have [//|] := seqIndD_irr_coherence nsHL solH scohS odd_frobL1 _ irrX.
   rewrite -/X => defX [tau2 cohX]; have [[Itau2 Ztau2] Dtau2] := cohX.
   have [xi1 Xxi1 Nd]:
@@ -1031,8 +1040,9 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
 have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
   have [/caseA_coh12// | caseB] := boolP caseA.
   have defZ: Z = W2 by rewrite /Z (negPf caseB).
-  have{caseB} [case_c2 _ _] := caseB_P caseB; move/(_ case_c2) in oRW.
-  have{case_c2} [pr_w2 _ PtypeL] := c2W2 case_c2; set w2 := #|W2| in pr_w2.
+  have{caseB} [case_c2 _ _] := caseB_P caseB.
+  move/(_ case_c2) in oRW; pose PtypeL := c2W2 case_c2.
+  have{prW2} pr_w2 := prW2 case_c2; set w2 := #|W2| in pr_w2.
   have /cyclicP[z0 cycZ]: cyclic Z by rewrite defZ prime_cyclic.
   have idYZ: {in Y & Z^#, forall (eta : 'CF(L)) x, tau1 eta x = tau1 eta z0}.
     move=> eta x Yeta; rewrite !inE andbC cycZ => /andP[/cyclePmin[k]].
@@ -1600,7 +1610,7 @@ have [in_caseA | in_caseB] := boolP caseA.
     have [in_c1 | in_c2] := boolP case_c1.
       move=> x /(Frobenius_reg_ker in_c1) regHx; apply/trivgP.
       by rewrite -regHx setSI.
-    have [_ _ [/= _ [_ [_ _ _ prW1H] _] _ _]] := c2W2 in_c2.
+    have [/= _ [_ [_ _ _ prW1H] _] _ _] := c2W2 in_c2.
     move=> x /prW1H prHx; apply/trivgP; rewrite -((_ =P [1]) in_caseA) -prHx.
     by rewrite subsetI subIset ?sZZ // setSI.
   rewrite -(mul1n (4 * _)%N) leq_mul // -(expnMn 2 _ 2) leq_exp2r //.
@@ -1636,7 +1646,7 @@ suffices: [Frobenius (L / Z) = (H / Z) ><| (W1 / Z)]%g.
   by rewrite quotient_norms ?(subset_trans sW1L).
 apply: (Frobenius_coprime_quotient defL nsZL) => //; split=> [|x W1x].
   exact: sub_proper_trans sZH' ltH'H.
-have /caseB_P[/c2W2[_ _ [/= _ [_ [_ _ _ -> //] _] _ _]] _ _] := in_caseB.
+have /caseB_P[/c2W2[_ [_ [_ _ _ -> //] _] _ _] _ _] := in_caseB.
 by rewrite /Z (negPf in_caseB).
 Qed.
 

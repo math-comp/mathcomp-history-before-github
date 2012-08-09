@@ -20,12 +20,14 @@ Local Open Scope ring_scope.
 
 Section PFTwelve.
 
-(* Hypothesis 12.1 *)
 Variable gT : minSimpleOddGroupType.
 Local Notation G := (TheMinSimpleOddGroup gT).
+Implicit Types (p q : nat) (x y z : gT).
+Implicit Types H K L M N P Q R S T U V W : {group gT}.
 
 Section Twelve2.
 
+(* Hypothesis 12.1 *)
 Variable L : {group gT}.
 
 Hypothesis maxL : L \in 'M.
@@ -218,6 +220,36 @@ Qed.
 (* Print subcoherent. *)
 
 End Twelve2.
+
+Section Twelve_4_to_6.
+
+Variable L : {group gT}.
+
+Hypotheses (maxL : L \in 'M) (Ltype1 : FTtype L == 1%N).
+
+Local Notation "` 'L'" := (gval L) (at level 0, only parsing) : group_scope.
+Local Notation H := `L`_\F%G.
+Local Notation "` 'H'" := `L`_\F (at level 0) : group_scope.
+
+Let calS := seqIndD H L H 1%G.
+Let tau := FT_Dade0 maxL.
+
+(* This will be (12.6). *)
+Lemma FT_seqInd_Frobenius_coherence :
+    [Frobenius L with kernel H] ->
+  {subset calS <= irr L} /\ coherent calS L^# tau.
+Admitted.
+
+End Twelve_4_to_6.
+
+(* This will be (12.7). *)
+Theorem FTtype1_Frobenius M :
+  M \in 'M -> FTtype M == 1%N -> [Frobenius M with kernel M`_\F].
+Admitted. (* A cinch! *)
+
+(* This will be (12.17). *)
+Theorem not_all_FTtype1 : ~~ all_FTtype1 gT.
+Admitted.
 
 End PFTwelve.
 

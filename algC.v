@@ -9,6 +9,7 @@ Require Import generic_quotient countalg ssrnum ssrint rat intdiv.
 (* filed with an automorphism of order 2; this amounts to the purely          *)
 (* algebraic contents of the Fundamenta Theorem of Algebra.                   *)
 (*       algC == the closed, countable field of algebraic numbers.            *)
+(*  algCeq, algCring, ..., algCnumField == structures for algC.               *)
 (*        z^* == the complex conjugate of z (:= conjC z).                     *)
 (*    sqrtC z == a nonnegative square root of z, i.e., 0 <= sqrt x if 0 <= x. *)
 (*  n.-root z == more generally, for n > 0, an nth root of z, chosen with a   *)
@@ -688,6 +689,14 @@ Canonical fieldType.
 Canonical numFieldType.
 Canonical decFieldType.
 Canonical closedFieldType.
+
+Notation algCeq := eqType.
+Notation algCzmod := zmodType.
+Notation algCring := ringType.
+Notation algCuring := unitRingType.
+Notation algCnum := numDomainType.
+Notation algCfield := fieldType.
+Notation algCnumField := numFieldType.
 
 Definition rootC n x := let: RootCspec y _ _ := rootC_subproof n x in y.
 Notation "n .-root" := (rootC n) (at level 2, format "n .-root") : C_core_scope.
@@ -1540,6 +1549,9 @@ Canonical Cnat_semiringPred := SemiringPred Cnat_semiring.
 
 Lemma Cnat_ge0 x : x \in Cnat -> 0 <= x.
 Proof. by case/CnatP=> n ->; apply: ler0n. Qed.
+
+Lemma Cnat_gt0 x : x \in Cnat -> (0 < x) = (x != 0).
+Proof. by case/CnatP=> n ->; rewrite pnatr_eq0 ltr0n lt0n. Qed.
 
 Lemma conj_Cnat x : x \in Cnat -> x^* = x.
 Proof. by case/CnatP=> n ->; apply: rmorph_nat. Qed.

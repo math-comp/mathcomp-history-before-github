@@ -784,7 +784,7 @@ Proof.
 move=> pn0 yl yr yln yrn; rewrite /cross /variation.
 rewrite -sgr_cp0 sgrM /sjump (sgr_neighpl yln) -!(sgr_neighpr yrn).
 rewrite -mulrA -expr2 sqr_sg (rootPf (neighpr_root yrn)) mulr1.
-rewrite sgrEz ltrz0 -[in RHS]intr_sign -[X in _ == X]mulrN1z eqr_int.
+rewrite sgrEz ltrz0 -[in rhs in _ = rhs]intr_sign -[X in _ == X]mulrN1z eqr_int.
 by have /rootPf := neighpr_root yrn; case: sgzP; case: odd.
 Qed.
 
@@ -1061,7 +1061,7 @@ rewrite cindex_seq_mids // sum_varP /cross.
   by rewrite mid_in_itv //= last_roots_le.
 elim: roots {-2 6}a (erefl (roots (p * q) a b))
   {hpqa hpqb} hab hlab => {a} [|c s IHs] a Hs hab hlab /=.
-  rewrite in_cons orbF eq_sym; set x := (X in _.[X]).
+  rewrite in_cons orbF eq_sym. (* ; set x := (X in _.[X]). *)
   by rewrite -rootE (@roots_nil _ _ a b) // mid_in_itv.
 move/eqP: Hs; rewrite roots_cons => /and5P [_ cab /eqP rac rc /eqP rcb].
 rewrite in_cons eq_sym -rootE negb_or (roots_nil _ rac) //=; last first.

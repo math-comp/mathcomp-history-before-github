@@ -18,10 +18,10 @@ Require Import PFsection1 PFsection2 PFsection3 PFsection4 PFsection5.
 (* proof, as the B & G text has been adapted to fit the usage in Section 8.   *)
 (* Most of the definitions of Peterfalvi Section 8 are covered in BGsection7, *)
 (* BGsection15 and BGsection16; we only give here:                            *)
-(*   FT_Pstructure W W1 W2 S T <-> the groups W, W1, W2, S, and T satisfy the *)
-(*                    conclusion of Theorem (8.8)(b), in particular,          *)
-(*                    W = W1 \x W2, S = S^(1) ><| W1, T = T^`(1) ><| W2, and  *)
-(*                    both S and T are of type P.                             *)
+(*   FT_Pstructure S T defW <-> the groups W, W1, W2, S, and T satisfy the    *)
+(*                    conclusion of Theorem (8.8)(b), in particular, S and T  *)
+(*                    are of type P, S = S^(1) ><| W1, and T = T^`(1) ><| W2. *)
+(*                    The assumption defW : W1 \x W2 = W is a parameter.      *)
 (*           'R[x] == the "signalizer" group of x \in 'A1(M) for the Dade     *)
 (*                    hypothesis of M (note: this is only extensionally equal *)
 (*                    to the 'R[x] defined in BGsection14).                   *)
@@ -181,7 +181,7 @@ have{caHg} /imsetP[x Hgx cax]: a \in a ^: (H :* g).
   by rewrite class_rcoset caHg class_refl.
 have coHg: coprime #|H| #[g].
   apply: (coprime_dvdr (order_dvdG Ug)).
-  by rewrite (coprime_sdprod_Hall defM) (pHall_Hall (Fcore_Hall M)).
+  by rewrite (coprime_sdprod_Hall_l defM) (pHall_Hall (Fcore_Hall M)).
 have /imset2P[z y cHgg_z Hy defx]: x \in class_support ('C_H[g] :* g) H.
   have [/and3P[/eqP defUcHgg _ _] _] := partition_cent_rcoset nHg coHg.
   by rewrite class_supportEr -cover_imset defUcHgg.
@@ -199,308 +199,320 @@ Qed.
 (* Peterfalvi, Definition (8.3) is covered by BGsection16.of_typeI. *)
 (* Peterfalvi, Definition (8.4) is covered by BGsection16.of_typeP. *)
 
+Section TypeP_Remarks.
 (* These correspond to the remarks following Definition (8.4). *)
-Remark of_typeP_sol M U W1 : of_typeP M U W1 -> solvable M.
+
+Variables (M U W W1 W2 : {group gT}) (defW : W1 \x W2 = W).
+Let H := M`_\F.
+Let M' := M^`(1)%g.
+
+Hypothesis MtypeP : of_typeP M U defW.
+
+Remark of_typeP_sol : solvable M.
 Proof.
-case=> _ [nilU _ _ defM'] _ _ _.
+have [_ [nilU _ _ defM'] _ _ _] := MtypeP.
 have [nsHM' _ mulHU _ _] := sdprod_context defM'.
 rewrite (series_sol (der_normal 1 M)) (abelian_sol (der_abelian 0 M)) andbT.
 rewrite (series_sol nsHM') (nilpotent_sol (Fcore_nil M)).
 by rewrite -mulHU quotientMidl quotient_sol ?(nilpotent_sol nilU).
 Qed.
 
-Remark of_typeP_compl_conj M W1 V K (M' := M^`(1)%g) :
-  M' ><| W1 = M -> of_typeP M V K -> gval W1 \in K :^: M.
+Remark typeP_cent_compl : 'C_M'(W1) = W2.
 Proof.
-move=> defM typeM_P; have solM := of_typeP_sol typeM_P.
-have [[_ /Hall_pi hallK _ defM_K] _ _ _ _] := typeM_P.
-apply/imsetP; apply: Hall_trans solM _ (hallK).
-rewrite pHallE; have [_ -> _ _ _] := sdprod_context defM.
-rewrite /= -(card_Hall hallK) -(@eqn_pmul2l #|M'|) ?cardG_gt0 //.
-by rewrite (sdprod_card defM) (sdprod_card defM_K).
+have [[/cyclicP[x ->] _ ntW1 _] _ _ [_ _ _ _ prM'W1] _] := MtypeP.
+by rewrite cent_cycle prM'W1 // !inE cycle_id -cycle_eq1 ntW1.
 Qed.
 
-Lemma FTtypePF_exclusion M U1 U W1 : ~ (of_typeF M U1 /\ of_typeP M U W1).
+Remark typeP_cent_core_compl : 'C_H(W1) = W2.
 Proof.
-move=> [[[ntH ntU1 defM1] _ [U0 [sU01 expU0] frobU0]] typeP_M].
-have [[cycW1 hallW1 ntW1 defM] [_ _ _ defM'] _ [_]] := typeP_M; case/negP.
-pose p := pdiv #|W1|; set H := M`_\F in defM' frobU0 *.
+have [sW2H sHM']: W2 \subset H /\ H \subset M'.
+  by have [_ [_ _ _ /sdprodW/mulG_sub[-> _]] _ []] := MtypeP.
+by apply/eqP; rewrite eqEsubset subsetI sW2H -typeP_cent_compl ?subsetIr ?setSI.
+Qed.
+
+Lemma typePF_exclusion K : ~ of_typeF M K.
+Proof.
+move=> [[ntH ntU1 defM_K] _ [U0 [sU01 expU0] frobU0]].
+have [[cycW1 hallW1 ntW1 defM] [_ _ _ defM'] _ [_]] := MtypeP; case/negP.
+pose p := pdiv #|W1|; rewrite -/M' -/H in defM defM' frobU0 *.
 have piW1p: p \in \pi(W1) by rewrite pi_pdiv cardG_gt1.
 have piU0p: p \in \pi(U0).
   rewrite -pi_of_exponent expU0 pi_of_exponent (pi_of_dvd _ _ piW1p) //=.
-  rewrite -(@dvdn_pmul2l #|H|) ?cardG_gt0 // (sdprod_card defM1).
+  rewrite -(@dvdn_pmul2l #|H|) ?cardG_gt0 // (sdprod_card defM_K).
   rewrite -(sdprod_card defM) dvdn_pmul2r ?cardSg //.
   by case/sdprodP: defM' => _ <- _ _; exact: mulG_subl.
 have [|X EpX]:= @p_rank_geP _ p 1 U0 _; first by rewrite p_rank_gt0.
 have [ntX [sXU0 abelX _]] := (nt_pnElem EpX isT, pnElemP EpX).
 have piW1_X: \pi(W1).-group X by apply: pi_pgroup piW1p; case/andP: abelX.
 have sXM: X \subset M.
-  apply: subset_trans (subset_trans sXU0 sU01) _.
-  by case/sdprodP: defM1 => _ <- _ _; exact: mulG_subr.
+  by rewrite -(sdprodWY defM_K) joingC sub_gen ?subsetU // (subset_trans sXU0).
 have nHM: M \subset 'N(H) by exact: gFnorm.
-have [regU0 solM] := (Frobenius_reg_ker frobU0, of_typeP_sol typeP_M).
+have [regU0 solM] := (Frobenius_reg_ker frobU0, of_typeP_sol).
 have [a Ma sXaW1] := Hall_Jsub solM (Hall_pi hallW1) sXM piW1_X.
 rewrite -subG1 -(conjs1g a) -(cent_semiregular regU0 sXU0 ntX) conjIg -centJ.
-by rewrite (normsP nHM) ?setIS ?centS.
+by rewrite (normsP nHM) // -typeP_cent_core_compl ?setIS ?centS.
 Qed.
 
-Remark typeP_witness M :
-    M \in 'M -> FTtype M != 1%N ->
-  exists U : {group gT}, exists W1 : {group gT}, of_typeP M U W1.
+Remark of_typeP_compl_conj W1x : M' ><| W1x = M -> W1x \in W1 :^: M.
 Proof.
-move=> maxM /negbTE typeMnot1.
-have:= FTtype_range M; rewrite -mem_iota !inE typeMnot1 /=.
-case/or4P; case/FTtypeP=> //; try by move=> U [W1 [[?]]]; exists U, W1.
-by move=> W1 [? _]; exists 1%G, W1.
+case/sdprodP=> [[{W1x}_ W1x _ ->] mulM'W1x _ tiM'W1x].
+have [[_ /Hall_pi hallW1 _ defM] _ _ _ _] := MtypeP.
+apply/imsetP; apply: Hall_trans of_typeP_sol _ (hallW1).
+rewrite pHallE -(card_Hall hallW1) -(@eqn_pmul2l #|M'|) ?cardG_gt0 //.
+by rewrite (sdprod_card defM) -mulM'W1x mulG_subr /= TI_cardMg.
 Qed.
 
-Remark compl_of_typeP M W1 (M' :=  M^`(1)%g) (H := M`_\F) :
-    M' ><| W1 = M -> M \in 'M -> FTtype M != 1%N ->
-  exists U : {group gT}, of_typeP M U W1.
+Remark conj_of_typeP x :
+  x \in M -> {defWx : W1 :^ x \x W2 :^ x = W :^ x | of_typeP M (U :^ x) defWx}.
 Proof.
-move=> defM maxM /typeP_witness[// | U [K typeM_P]].
-have /imsetP[x Mx ->] := of_typeP_compl_conj defM typeM_P.
-have [nM'x nHx] : x \in 'N(M') /\ x \in 'N(H).
+move=> Mx; have [nM'x nHx] : x \in 'N(M') /\ x \in 'N(H).
   by rewrite !(subsetP _ x Mx) ?gFnorm.
-have [PMa PMb PMc PMd PMe] := typeM_P; exists (U :^ x)%G; split=> //.
+have defWx: W1 :^ x \x W2 :^ x = W :^ x by rewrite -dprodJ defW.
+have [PMa PMb PMc PMd PMe] := MtypeP; exists defWx; split=> //.
 - rewrite cyclicJ HallJ //= conjsg_eq1 -/M' -(normP nM'x) -sdprodJ.
   by have [-> -> -> ->] := PMa; rewrite conjGid.
 - rewrite /= -/M' -/H -(normP nM'x) -(normP nHx) -sdprodJ normJ !conjSg.
   rewrite -{1}(setTI U) -morphim_conj injm_nil ?subsetT ?injm_conj //.
   by have [-> -> -> ->] := PMb.
 - rewrite /= -/H -/M' -(normP nHx) -(normP nM'x) -(normsP (der_norm 2 M) x Mx).
-  rewrite centJ -conjD1g -conjIg cyclicJ conjsg_eq1 !conjSg.
-  have [-> -> -> -> prKM'] := PMd; split=> // _ /imsetP[y Ky ->].
-  by rewrite cent1J -conjIg prKM'.
-rewrite /= -/H -(normP nHx) centJ -conjIg -conjYg -conjUg -conjDg => X.
-rewrite -(can_eq (conjsgKV x)) conj0g -sub_conjgV => ? /PMe <- //.
-by rewrite normJ conjsgKV.
-Qed.
-
-(* A much weaker version of this, conjugating only U, might suffice. *)
-Remark of_typeP_conj M U W1 V K :
-    of_typeP M U W1 -> of_typeP M V K ->
-  exists x, [/\ x \in M, U :=: V :^ x & W1 :=: K :^ x].
-Proof.
-case=> [[_ _ _ defM] [_ _ nUW1 defM'] _ _ _] typeM_P; set H := M`_\F in defM'.
-set M' := M^`(1)%g in defM defM'.
-have{defM} /imsetP[y My defW1] := of_typeP_compl_conj defM typeM_P.
-have /andP[sM'M nM'M]: M' <| M by exact: der_normal.
-have solM': solvable M' := solvableS sM'M (of_typeP_sol typeM_P).
-have [[_ hallK _ defM] [_ _ nVK defM'_V] _ _ _] := typeM_P.
-have [_ /mulG_sub[sHM' sUM'] _ _] := sdprodP defM'.
-have hallV: \pi(V).-Hall(M') V.
-  rewrite Hall_pi // -(sdprod_Hall defM'_V).
-  exact: pHall_Hall (pHall_subl _ _ (Fcore_Hall M)).
-have hallU: \pi(V).-Hall(M') (U :^ y^-1%g).
-  rewrite pHallE sub_conjgV (normsP nM'M) ?sUM' //= cardJg. 
-  rewrite -(card_Hall hallV) -(@eqn_pmul2l #|H|) ?cardG_gt0 //.
-  by rewrite (sdprod_card defM'_V) (sdprod_card defM').
-have coM'K: coprime #|M'| #|K|.
-  by rewrite (coprime_sdprod_Hall defM) (sdprod_Hall defM).
-have [_ _ nM'K _] := sdprodP defM.
-have [|z] := coprime_Hall_trans nM'K coM'K solM' hallU _ hallV nVK.
-  by rewrite normJ -sub_conjg -defW1.
-case/setIP=> /(subsetP sM'M) Mz cKz defVz; exists (z * y)%g.
-by rewrite groupM // !conjsgM -defVz conjsgKV (normsP (cent_sub K) z cKz).
+  rewrite cyclicJ conjsg_eq1 !conjSg -conjD1g.
+  have [-> -> -> -> prW1M'] := PMd; split=> // _ /imsetP[y W1y ->].
+  by rewrite cent1J -conjIg prW1M'.
+rewrite -conjUg -conjDg => Vx X; rewrite -sub_conjgV -subset0 => sXxV.
+by rewrite -(conjsgKV x X) sub_conjg conj0g subset0 normJ => /PMe->.
 Qed.
 
 (* This is Peterfalvi (8.5), with an extra clause in anticipation of (8.15). *)
-Lemma typeP_context M U W1 (H := M`_\F) (W2 := 'C_H(W1)) (W := W1 <*> W2) :
-    of_typeP M U W1 ->
+Lemma typeP_context :
   [/\ (*a*) H \x 'C_U(H) = 'F(M),
       (*b*) U^`(1)%g \subset 'C(H) /\ (U :!=: 1%g -> ~~ (U \subset 'C(H))),
-      (*c*) normedTI (W :\: (W1 :|: W2)) G W
-    & cyclicTIhypothesis G W W1 W2].
+      (*c*) normedTI (cyclicTIset defW) G W
+    & cyclicTI_hypothesis G defW].
 Proof.
-case; rewrite /= -/H -/W2 -/W => [] [cycW1 hallW1 ntW1 defM] [nilU _ _ defM'].
-set V := W :\: _ => [] [_ sM''F defF sFM'] [cycW2 ntW2 _ _ _] TI_V.
+have defW2 := typeP_cent_core_compl.
+case: MtypeP; rewrite /= -/H => [] [cycW1 hallW1 ntW1 defM] [nilU _ _ defM'].
+set V := W :\: _ => [] [_ sM''F defF sFM'] [cycW2 ntW2 sW2H _ _] TI_V.
 have [/andP[sHM' nHM'] sUM' mulHU _ tiHU] := sdprod_context defM'.
-have sM'M : M^`(1)%g \subset M by exact: der_sub.
-have hallH_M' := pHall_subl sHM' sM'M (Fcore_Hall M).
+have sM'M : M' \subset M by exact: der_sub.
+have hallM': \pi(M').-Hall(M) M' by rewrite Hall_pi // (sdprod_Hall defM).
+have hallH_M': \pi(H).-Hall(M') H := pHall_subl sHM' sM'M (Fcore_Hall M).
 have{defF} defF: (H * 'C_U(H))%g = 'F(M).
   rewrite -(setIidPl sFM') -defF -group_modl //= -/H.
   rewrite setIAC (setIidPr (der_sub 1 M)).
   rewrite -(coprime_mulG_setI_norm mulHU) ?norms_cent //; last first.
-    by rewrite (coprime_sdprod_Hall defM') (pHall_Hall hallH_M').
+    by rewrite (coprime_sdprod_Hall_l defM') (pHall_Hall hallH_M').
   by rewrite mulgA (mulGSid (subsetIl _ _)).
 have coW12: coprime #|W1| #|W2|.
-  rewrite coprime_sym (coprimeSg (subset_trans (subsetIl H _) sHM')) //.
-  by rewrite (coprime_sdprod_Hall defM) (sdprod_Hall defM).
-have defW: (W1 * W2 = W)%g by rewrite -cent_joinEr ?subsetIr.
-have oV: #|V| = (#|W1|.-1 * #|W2|.-1)%N.
-  rewrite -!subn1 mulnBr muln1 mulnBl mul1n -coprime_cardMg // defW.
-  rewrite -subnDA addnBA // addnC -cardsUI coprime_TIg // cards1 addnK.
-  by rewrite cardsD (setIidPr _) // subUset -join_subG.
-have cycW: cyclic W by rewrite cyclicY ?subsetIr.
+  rewrite coprime_sym (coprimeSg (subset_trans sW2H sHM')) //.
+  by rewrite (coprime_sdprod_Hall_r defM).
+have oV: #|V| = (#|W1|.-1 * #|W2|.-1)%N := card_cycTIset defW.
+have cycW: cyclic W by rewrite (cyclic_dprod defW).
+have neqV0: V != set0.
+  by rewrite -card_gt0 oV -!subn1 muln_gt0 !subn_gt0 !cardG_gt1 ntW1.
 have tiVW: normedTI V G W.
   have cWW: abelian W := cyclic_abelian cycW.
   have cWV: V \subset 'C(W) by rewrite (centSS _ _ cWW) ?subsetDl.
-  have neqV0: V != set0.
-    by rewrite -cards_eq0 -lt0n oV -!subn1 muln_gt0 !subn_gt0 !cardG_gt1 ntW1.
   apply/normedTI_P; rewrite // setTI cents_norm 1?centsC //.
   split=> // g _ /pred0Pn[v /andP[/= Vv Vgv]]; rewrite -/W.
   have nWg: g \in 'N(W).
-    rewrite inE -{2}(TI_V [set v]) ?sub1set //.
-      by rewrite sub_cent1 centJ (subsetP _ v Vgv) // conjSg.
-    by apply: contraTneq (set11 v) => ->; rewrite inE.
+    rewrite inE -{2}(TI_V [set v]) ?sub1set -?card_gt0 ?cards1 //.
+    by rewrite sub_cent1 centJ (subsetP _ v Vgv) // conjSg.
   have [chW1 chW2]: W1 \char W /\ W2 \char W.
-    by apply/andP; rewrite !sub_cyclic_char -?join_subG.
+    by apply/andP; rewrite !sub_cyclic_char // -join_subG (dprodWY defW).
   by rewrite -(TI_V V) ?(subsetP _ g nWg) ?normsD // normsU ?char_norms.
+have ctiW: cyclicTI_hypothesis G defW by split; rewrite ?mFT_odd.
 split=> //; first by rewrite dprodE ?subsetIr //= setIA tiHU setI1g.
-  split.
-    apply: subset_trans (_ : U :&: 'F(M) \subset _).
-      by rewrite subsetI der_sub (subset_trans (dergS 1 sUM')).
-    by rewrite -defF -group_modr ?subsetIl // setIC tiHU mul1g subsetIr.
-  apply: contra => cHU; rewrite -subG1 -tiHU subsetIidr (subset_trans sUM') //.
-  have hallM': \pi(M^`(1)%g).-Hall(M) M^`(1)%g.
-    by rewrite Hall_pi // (sdprod_Hall defM).
-  by rewrite (Fcore_max hallM') ?der_normal // -mulHU mulg_nil ?Fcore_nil.
-by split; rewrite // mFT_odd subsetT dprodE ?subsetIr ?coprime_TIg.
+split.
+  apply: subset_trans (_ : U :&: 'F(M) \subset _).
+    by rewrite subsetI der_sub (subset_trans (dergS 1 sUM')).
+  by rewrite -defF -group_modr ?subsetIl // setIC tiHU mul1g subsetIr.
+apply: contra => cHU; rewrite -subG1 -tiHU subsetIidr (subset_trans sUM') //.
+by rewrite (Fcore_max hallM') ?der_normal // -mulHU mulg_nil ?Fcore_nil.
+Qed.
+
+End TypeP_Remarks.
+
+Remark FTtypeP_witness M :
+  M \in 'M -> FTtype M != 1%N -> exists_typeP (of_typeP M).
+Proof.
+move=> maxM /negbTE typeMnot1.
+have:= FTtype_range M; rewrite -mem_iota !inE typeMnot1 /=.
+by case/or4P=> /FTtypeP[//|U W W1 W2 defW [[]]]; exists U W W1 W2 defW.
 Qed.
 
 (* Peterfalvi, Definition (8.6) is covered by BGsection16.of_typeII_IV et al. *)
-
-Remark compl_of_typeII_IV M U W1 :
-  of_typeP M U W1 -> M \in 'M -> FTtype M != 5 -> of_typeII_IV M U W1.
-Proof.
-move=> typeM_P naxM typeMnot5.
-have [V [K typeVK]]: exists V, exists K, of_typeII_IV M (gval V) (gval K).
-  have:= FTtype_range M; rewrite -mem_iota !inE (negbTE typeMnot5) orbF.
-  case/or4P; case/FTtypeP=> //; try by move=> V [K []]; exists V, K.
-  by move=> K [typeM_F _]; case: (@FTtypePF_exclusion M K U W1).
-have [typeM_P_VK ntV prK tiF] := typeVK.
-have [x [Mx defU defW1]] := of_typeP_conj typeM_P typeM_P_VK.
-by split; rewrite // (defW1, defU) (cardJg, conjsg_eq1).
-Qed.
-
-Remark compl_of_typeII M U W1 (H := M`_\F) (M' := M^`(1)%g) :
-  of_typeP M U W1 -> M \in 'M -> FTtype M == 2 -> of_typeII M U W1.
-Proof.
-move=> typeM_P maxM typeM.
-have [V [K [[typeVK _ _ _]]]] := FTtypeP 2 maxM typeM.
-have [x [Mx -> _]] := of_typeP_conj typeVK typeM_P; rewrite -/M' -/H.
-rewrite abelianJ normJ -{1}(conjGid Mx) conjSg => cUU not_s_nUM typeM' defH.
-split=> //; first by apply: compl_of_typeII_IV; rewrite // (eqP typeM).
-by apply: compl_of_typeF typeM'; rewrite defH; have [_ []] := typeM_P.
-Qed.
-
-Remark compl_of_typeIII M U W1 (H := M`_\F) (M' := M^`(1)%g) :
-  of_typeP M U W1 -> M \in 'M -> FTtype M == 3 -> of_typeIII M U W1.
-Proof.
-move=> typeM_P maxM typeM.
-have [V [K [[typeVK _ _ _]]]] := FTtypeP 3 maxM typeM.
-have [x [Mx -> _]] := of_typeP_conj typeVK typeM_P; rewrite -/M' -/H.
-rewrite abelianJ normJ -{1}(conjGid Mx) conjSg.
-by split=> //; apply: compl_of_typeII_IV; rewrite // (eqP typeM).
-Qed.
-
-Remark compl_of_typeIV M U W1 (H := M`_\F) (M' := M^`(1)%g) :
-  of_typeP M U W1 -> M \in 'M -> FTtype M == 4 -> of_typeIV M U W1.
-Proof.
-move=> typeM_P maxM typeM.
-have [V [K [[typeVK _ _ _]]]] := FTtypeP 4 maxM typeM.
-have [x [Mx -> _]] := of_typeP_conj typeVK typeM_P; rewrite -/M' -/H.
-rewrite abelianJ normJ -{1}(conjGid Mx) conjSg.
-by split=> //; apply: compl_of_typeII_IV; rewrite // (eqP typeM).
-Qed.
-
 (* Peterfalvi, Definition (8.7) is covered by BGsection16.of_typeV. *)
 
-Remark compl_of_typeV M U W1 (H := M`_\F) (M' := M^`(1)%g) :
-  of_typeP M U W1 -> M \in 'M -> FTtype M == 5 -> U = 1%G /\ of_typeV M W1.
+Section FTypeP_Remarks.
+(* The remarks for Definition (8.4) also apply to (8.6) and (8.7). *)
+
+Variables (M U W W1 W2 : {group gT}) (defW : W1 \x W2 = W).
+Let H := M`_\F.
+Let M' := M^`(1)%g.
+
+Hypotheses (maxM : M \in 'M) (MtypeP : of_typeP M U defW).
+
+Remark of_typeP_conj (Ux W1x W2x Wx : {group gT}) (defWx : W1x \x W2x = Wx) :
+    of_typeP M Ux defWx ->
+  exists x,
+     [/\ x \in M, U :^ x = Ux, W1 :^ x = W1x, W2 :^ x = W2x & W :^ x = Wx].
 Proof.
-move=> typeM_P maxM typeM; have [K [type1K]] := FTtypeP 5 maxM typeM.
-have [x [Mx defU ->]] := of_typeP_conj type1K typeM_P; rewrite cardJg.
-have U1: U = 1%G.
-  by apply: (act_inj 'JG x); apply: val_inj; rewrite /= -defU conjs1g.
-by do 2?split=> //; rewrite -(congr_group U1).
+move=> MtypePx; have [[_ _ _ defMx] [_ _ nUW1x defM'x] _ _ _] := MtypePx.
+have [[_ hallW1 _ defM] [_ _ nUW1 defM'] _ _ _] := MtypeP.
+have [/mulG_sub[/= sHM' sUM'] [_ _ nM'W1 _]] := (sdprodW defM', sdprodP defM).
+rewrite -/M' -/H in defMx defM'x defM defM' sHM' sUM' nM'W1.
+have /imsetP[x2 Mx2 defW1x2] := of_typeP_compl_conj MtypeP defMx.
+have /andP[sM'M nM'M]: M' <| M by exact: der_normal.
+have solM': solvable M' := solvableS sM'M (of_typeP_sol MtypeP).
+have [hallU hallUx]: \pi(H)^'.-Hall(M') U /\ \pi(H)^'.-Hall(M') (Ux :^ x2^-1).
+  have hallH: \pi(H).-Hall(M') H by exact: pHall_subl (Fcore_Hall M).
+  rewrite pHallJnorm ?(subsetP nM'M) ?groupV // -!(compl_pHall _ hallH).
+  by rewrite (sdprod_compl defM') (sdprod_compl defM'x).
+have coM'W1: coprime #|M'| #|W1| by rewrite (coprime_sdprod_Hall_r defM).
+have nUxW1: W1 \subset 'N(Ux :^ x2^-1) by rewrite normJ -sub_conjg -defW1x2.
+have [x1] := coprime_Hall_trans nM'W1 coM'W1 solM' hallUx nUxW1 hallU nUW1.
+case/setIP=> /(subsetP sM'M) My /(normsP (cent_sub _)) nW1x1 defUx1.
+pose x := (x1 * x2)%g; have Mx: x \in M by rewrite groupM.
+have defW1x: W1 :^ x = W1x by rewrite conjsgM nW1x1.
+have defW2x: W2 :^ x = W2x.
+  rewrite -(typeP_cent_compl MtypeP) -(typeP_cent_compl MtypePx).
+  by rewrite conjIg -centJ defW1x (normsP nM'M).
+by exists x; rewrite -defW dprodJ defW1x defW2x conjsgM -defUx1 conjsgKV.
 Qed.
 
-Definition all_typeI := [forall M : {group gT} in 'M, FTtype M == 1%N].
+Lemma FTtypeP_neq1 : FTtype M != 1%N.
+Proof. by apply/FTtypeP=> // [[V [/(typePF_exclusion MtypeP)]]]. Qed.
+
+Remark compl_of_typeII_IV : FTtype M != 5 -> of_typeII_IV M U defW.
+Proof.
+move=> Mtype'5.
+have [Ux Wx W1x W2x defWx Mtype24]: exists_typeP (of_typeII_IV M).
+  have:= FTtype_range M; rewrite leq_eqVlt eq_sym (leq_eqVlt _ 5).
+  rewrite (negPf FTtypeP_neq1) (negPf Mtype'5) /= -mem_iota !inE.
+  by case/or3P=> /FTtypeP[]// Ux Wx W1x W2x dWx []; exists Ux Wx W1x W2x dWx.
+have [MtypePx ntUx prW1x tiFM] := Mtype24.
+have [x [Mx defUx defW1x _ _]] := of_typeP_conj MtypePx.
+by rewrite -defUx -defW1x cardJg conjsg_eq1 in ntUx prW1x.
+Qed.
+
+Remark compl_of_typeII : FTtype M == 2 -> of_typeII M U defW.
+Proof.
+move=> Mtype2.
+have [Ux Wx W1x W2x defWx [[MtypePx _ _ _]]] := FTtypeP 2 maxM Mtype2.
+have [x [Mx <- _ _ _]] := of_typeP_conj MtypePx; rewrite -/M' -/H.
+rewrite abelianJ normJ -{1}(conjGid Mx) conjSg => cUU not_sNUM M'typeF defH.
+split=> //; first by apply: compl_of_typeII_IV; rewrite // (eqP Mtype2).
+by apply: compl_of_typeF M'typeF; rewrite defH; have [_ []] := MtypeP.
+Qed.
+
+Remark compl_of_typeIII : FTtype M == 3 -> of_typeIII M U defW.
+Proof.
+move=> Mtype3.
+have [Ux Wx W1x W2x defWx [[MtypePx _ _ _]]] := FTtypeP 3 maxM Mtype3.
+have [x [Mx <- _ _ _]] := of_typeP_conj MtypePx; rewrite -/M' -/H.
+rewrite abelianJ normJ -{1}(conjGid Mx) conjSg.
+by split=> //; apply: compl_of_typeII_IV; rewrite // (eqP Mtype3).
+Qed.
+
+Remark compl_of_typeIV : FTtype M == 4 -> of_typeIV M U defW.
+Proof.
+move=> Mtype4.
+have [Ux Wx W1x W2x defWx [[MtypePx _ _ _]]] := FTtypeP 4 maxM Mtype4.
+have [x [Mx <- _ _ _]] := of_typeP_conj MtypePx; rewrite -/M' -/H.
+rewrite abelianJ normJ -{1}(conjGid Mx) conjSg.
+by split=> //; apply: compl_of_typeII_IV; rewrite // (eqP Mtype4).
+Qed.
+
+Remark compl_of_typeV : FTtype M == 5 -> of_typeV M U defW.
+Proof.
+move=> Mtype5.
+have [Ux Wx W1x W2x defWx [[MtypePx /eqP]]] := FTtypeP 5 maxM Mtype5.
+have [x [Mx <- <- _ _]] := of_typeP_conj MtypePx; rewrite -/M' -/H.
+by rewrite cardJg conjsg_eq1 => /eqP.
+Qed.
+
+End FTypeP_Remarks.
+
+(* This is the statement of Peterfalvi, Theorem (8.8)(a). *)
+Definition all_FTtype1 := [forall M : {group gT} in 'M, FTtype M == 1%N].
 
 (* This is the statement of Peterfalvi, Theorem (8.8)(b). *)
-Definition FT_Pstructure W W1 W2 S T :=
- [/\       [/\ cyclicTIhypothesis G W W1 W2, S \in 'M & T \in 'M],
-    (*b1*) [/\ S^`(1) ><| W1 = S, T^`(1) ><| W2 = T & S :&: T = W]%g,
-    (*b2*) FTtype S == 2 \/ FTtype T == 2,
-    (*b3*) (1 < FTtype S <= 5 /\ 1 < FTtype T <= 5)%N
-  & (*b4*) {in 'M, forall M,
-             FTtype M != 1%N -> exists x, M :=: S :^ x \/ M :=: T :^ x}].
+Definition typeP_pair S T (W W1 W2 : {set gT}) (defW : W1 \x W2 = W) :=
+ [/\      [/\ cyclicTI_hypothesis G defW, S \in 'M & T \in 'M],
+   (*b1*) [/\ S^`(1) ><| W1 = S, T^`(1) ><| W2 = T & S :&: T = W]%g,
+   (*b2*) (FTtype S == 2) || (FTtype T == 2),
+   (*b3*) (1 < FTtype S <= 5 /\ 1 < FTtype T <= 5)%N
+ & (*b4*) {in 'M, forall M, FTtype M != 1%N -> gval M \in S :^: G :|: T :^: G}].
 
-Lemma FT_Pstructure_sym W W1 W2 S T :
-  FT_Pstructure W W1 W2 S T -> FT_Pstructure W W2 W1 T S.
+Lemma typeP_pair_sym S T W W1 W2 (defW : W1 \x W2 = W) (defW21 : W2 \x W1 = W) :
+  typeP_pair S T defW -> typeP_pair T S defW21.
 Proof.
-case=> [] [/cyclicTIhyp_sym ? ? ?] [? ?]; rewrite setIC => ? b3 [? ?] b5.
-split=> //; first by case: b3; [right | left].
-by move=> _ _ /=/b5[// | x [] ->]; exists x; [right | left].
+by case=> [[/cyclicTIhyp_sym ? ? ?] [? ?]]; rewrite setIC setUC orbC => ? ? [].
 Qed.
 
-Inductive some_FT_Pstructure : Prop :=
-   Some_FT_Pstructure W W1 W2 S T of FT_Pstructure W W1 W2 S T.
-
 (* This is Peterfalvi, Theorem (8.8). *)
-Lemma FT_FPstructure : 
-  if all_typeI then (*a*) {in 'M, forall M, FTtype M == 1%N}
-               else (*b*) some_FT_Pstructure.
+Lemma FTtypeP_pair_cases : 
+     (*a*) {in 'M, forall M, FTtype M == 1%N}
+  \/ (*b*) exists S, exists T, exists_typeP (fun _ => typeP_pair S T).
 Proof.
-case: all_typeI / forall_inP => // not_allF.
-have [_ [// | [[S T] [[maxS maxT] [[W1 W2] /=]]]]] := BGsummaryI gT.
-set W := W1 <*> W2; set V := W :\: _ => [[[cycW tiV nVW _ [ntW1 ntW2]]]].
-move=> b1 b4 b2 b3; exists [group of W] W1 W2 S T; split => //; last first.
-  by move=> _ _ /=/b4 [// | x [] <-]; exists x; [left | right].
-have{b1 b3 b4} [defS defT _] := b1; split=> //.
-have coW12: coprime #|W1| #|W2|.
-  have{ntW1 ntW2 nVW tiV} ntV: V != set0.
-    apply: contraTneq (cyclic_abelian cycW); rewrite -nVW => ->.
-    by rewrite -(setDv 1%g) normD1 norm1 mFT_nonAbelian.
-  rewrite {}/V {}/W in cycW ntV.
-  without loss{b2 defT maxT} typeS: S T W1 W2 maxS defS cycW ntV / FTtype S = 2.
-    move=> IH; case: b2 cycW ntV => /eqP/IH; first exact.
-    by rewrite coprime_sym joingC setUC; exact.
-  have{maxS typeS defS} prW1: prime #|W1|.
-    have [|U typeS_P] := compl_of_typeP defS maxS; first by rewrite typeS.
-    by have [|//] := compl_of_typeII_IV typeS_P maxS; rewrite typeS.
-  rewrite prime_coprime // (cardSg_cyclic cycW) ?joing_subl ?joing_subr //.
-  by apply: contra ntV => sW12; rewrite (joing_idPr sW12) (setUidPr sW12) setDv.
-split=> //; last by rewrite /normedTI tiV nVW setTI /=.
-rewrite mFT_odd subsetT dprodEY ?coprime_TIg //.
-by rewrite (sub_abelian_cent2 (cyclic_abelian cycW)) ?joing_subl ?joing_subr.
+have [_ [| [[S T] [[maxS maxT] [[W1 W2] /=]]]]] := BGsummaryI gT; first by left.
+set W := W1 <*> W2; set V := W :\: (W1 :|: W2).
+case=> [[cycW tiV nVW _ _] [defS defT tiST]] b4 /orP b2 b3.
+have [cWW /joing_sub[sW1W sW2W]] := (cyclic_abelian cycW, erefl W).
+have ntV: V != set0.
+  have norm0: 'N(set0) = G by rewrite -(setDv 1%g) normD1 norm1.
+  by apply: contraTneq cWW; rewrite -nVW => ->; rewrite norm0 mFT_nonAbelian.
+suffices{tiST tiV nVW cWW sW1W sW2W b3 b4} tiW12: W1 :&: W2 = 1%g.
+  have defW: W1 \x W2 = W by rewrite dprodEY ?(centSS _ _ cWW).
+  right; exists S, T; exists S _ _ _ defW; split=> // [|M _ /b4[] // x].
+    by do 2?split; rewrite ?mFT_odd // /normedTI tiV nVW setTI /=.
+  by case=> <-; rewrite inE mem_orbit ?orbT.
+wlog {b2 T defT maxT} Stype2: S W1 W2 @W @V maxS defS cycW ntV / FTtype S == 2.
+  move=> IH; case/orP: b2 cycW ntV => /IH; first exact.
+  by rewrite setIC /V /W /= joingC setUC; exact.
+have{maxS Stype2 defS} prW1: prime #|W1|.
+  have [U ? W1x ? ? [[StypeP _ prW1x _] _ _ _ _]] := FTtypeP 2 maxS Stype2.
+  by have /imsetP[x _ ->] := of_typeP_compl_conj StypeP defS; rewrite cardJg.
+rewrite prime_TIg //; apply: contra ntV => sW12.
+by rewrite setD_eq0 (setUidPr sW12) join_subG sW12 /=.
 Qed.
 
 (* This is Peterfalvi (8.9). *)
-Lemma def_cycTIcompl W W1 W2 S T :
-  FT_Pstructure W W1 W2 S T -> 'C_(S`_\F)(W1) = W2.
+(* We state the lemma using the of_typeP predicate, as it is the Skolemised  *)
+(* form of Peterfalvi, Definition (8.4).                                     *)
+Lemma typeP_pairW S T W W1 W2 (defW : W1 \x W2 = W) :
+  typeP_pair S T defW -> exists U : {group gT}, of_typeP S U defW.
 Proof.
-case=> [[cycW maxS _] [defS _ defST] _ [typeS _] _].
-have coW12 := (cyclicTI_coprime cycW).
-have{cycW} [[/dprodP[_ defW cW12 _] _ _ _] [ntW1 _ ] /andP[_ nVW]] := cycW.
-have{typeS}: FTtype S != 1%N by apply: contraTneq typeS => ->.
-case/(compl_of_typeP defS maxS)=> U []; set S' := S^`(1)%g; set K := 'C_(_)(W1).
-case=> cycW1 /Hall_pi hallW1 _ /sdprodP[_ _ _ tiS'W1] _ _ [cycK _ _ _ defK] _.
-have [x defW1] := cyclicP cycW1.
-have{defK ntW1} defK: K = 'C_S'[x].
-  by rewrite defK // !inE -cycle_subG -cycle_eq1 -defW1 subxx ntW1.
-have sW2S': W2 \subset S'.
-  have nsS'S: S' <| S := der_normal 1 S.
+case=> [[[cycW _ _ /andP[_ /eqP nVW]] maxS _] [defS _ defST] _ [Stype25 _] _].
+set S' := S^`(1)%g in defS; have [nsS'S _ _ _ tiS'W1] := sdprod_context defS.
+have{Stype25} Stype'1: FTtype S != 1%N by apply: contraTneq Stype25 => ->.
+have [/mulG_sub[sW1W sW2W] [_ mulW12 cW12 _]] := (dprodW defW, dprodP defW).
+have [cycW1 cycW2] := (cyclicS sW1W cycW, cyclicS sW2W cycW).
+have{cycW1 cycW2} coW12: coprime #|W1| #|W2| by rewrite -(cyclic_dprod defW).
+have{maxS Stype'1} [Ux Wx W1x W2x defWx StypeP] := FTtypeP_witness maxS Stype'1.
+have /imsetP[y Sy defW1] := of_typeP_compl_conj StypeP defS.
+suffices defW2: W2 :=: W2x :^ y.
+  have [] := conj_of_typeP StypeP Sy; rewrite -defWx dprodJ -defW1 -defW2.
+  by rewrite {-1}defW; exists (Ux :^ y)%G.
+have [[_ hallW1x _ defSx] _ _ [/cyclic_abelian abW2x _ _ _ _] _] := StypeP.
+have{Sy} nS'y: y \in 'N(S') by rewrite (subsetP (normal_norm nsS'S)).
+have{nS'y} defW2xy: W2x :^ y = 'C_S'(W1).
+  by rewrite -(typeP_cent_compl StypeP) conjIg -centJ -defW1 (normP nS'y).
+have{nsS'S} sW2S': W2 \subset S'.
+  have sW2S: W2 \subset S by rewrite (subset_trans sW2W) // -defST subsetIl.
+  have{hallW1x} hallW1: \pi(W1).-Hall(S) W1x by rewrite defW1 /= cardJg Hall_pi.
   have hallS': \pi(W1)^'.-Hall(S) S' by exact/(sdprod_normal_pHallP _ hallW1).
-  rewrite (sub_normal_Hall hallS' nsS'S); first by rewrite coprime_pi' in coW12.
-  by apply: subset_trans (subsetIl S T); rewrite defST -defW mulG_subr.
-have sW2K: W2 \subset K by rewrite defK -cent_cycle -defW1 subsetI sW2S' cW12.
-have defW2: W2 :=: S' :&: W by rewrite -defW -group_modr // tiS'W1 mul1g.
-apply/eqP; rewrite eqEsubset sW2K defW2 subsetI {1}defK subsetIl -(eqP nVW) /=.
-have abW1K: abelian (W1 <*> K) by rewrite abelianY ?cyclic_abelian ?subsetIr.
-rewrite setTI cents_norm // (sub_abelian_cent2 abW1K) ?joing_subr //.
-by rewrite subDset setUC subsetU // -defW -genM_join sub_gen ?mulgS.
+  by rewrite coprime_pi' // (sub_normal_Hall hallS') in coW12 *.
+have sW2xy: W2 \subset W2x :^ y by rewrite defW2xy subsetI sW2S'.
+have defW2: W2 :=: S' :&: W by rewrite -mulW12 -group_modr ?tiS'W1 ?mul1g.
+apply/eqP; rewrite eqEsubset sW2xy defW2 subsetI {1}defW2xy subsetIl /=.
+rewrite -nVW /= setTI cents_norm // (centsS (subsetDl _ _)) // -mulW12.
+by rewrite centM subsetI {1}defW2xy subsetIr sub_abelian_cent // abelianJ.
 Qed.
-
-Lemma FT_cycTI_hyp M U W1 (W2 := 'C_(M`_\F)(W1)%G) (W := (W1 <*> W2)%G) :
-   of_typeP M U W1 -> cyclicTIhypothesis [set: gT] W W1 W2.
-Proof. by case/typeP_context. Qed.
 
 Section OneMaximal.
 
-Variable M : {group gT}.
+Variable M U W W1 W2 : {group gT}. (* W, W1 and W2 are only used later. *)
 Hypothesis maxM : M \in 'M.
 
 (* Peterfalvi, Definition (8.10) is covered in BGsection16. *)
@@ -524,7 +536,7 @@ Qed.
 
 (* This is Peterfalvi (8.12). *)
 (* (b) could be stated for subgroups of U wlog -- usage should be checked.   *)
-Lemma FTtypeI_II_facts n U (H := M`_\F) :
+Lemma FTtypeI_II_facts n (H := M`_\F) :
     FTtype M == n -> H ><| U = M ^`(n.-1)%g ->
   if 0 < n <= 2 then
   [/\ (*a*) forall p S, p.-Sylow(U) S -> abelian S /\ ('r(S) <= 2)%N,
@@ -573,7 +585,7 @@ have{part_a} part_a: {in X &, forall x, {subset x ^: G <= x ^: M}}.
   by apply/imsetP/part_a; rewrite -?def_y.
 do [split=> //; first split=> //] => x /part_c[_ ] //.
 rewrite -(mem_iota 1) !inE => -> [-> ? -> -> L2_frob].
-by do 2![split=> //] => /L2_frob[U /FrobeniusWker].
+by do 2![split=> //] => /L2_frob[E /FrobeniusWker].
 Qed.
 
 (* A generic proof of the first assertion of Peterfalvi (8.15). *)
@@ -677,102 +689,83 @@ apply: eq_bigr => y _; rewrite FTsignalizerJ -conjg_set1 -conjsMg.
 by rewrite class_supportGidl ?inE.
 Qed.
 
-Section PtypeMax.
-
 (* Subcoherence and cyclicTI properties of type II-V subgroups. *)
-
-Variables U W1 : {group gT}.
-Hypothesis MtypeP : of_typeP M U W1.
-
+Hypotheses (defW : W1 \x W2 = W) (MtypeP : of_typeP M U defW).
 Let H := M`_\F%G.
-Let W2 := 'C_H(W1)%G.
-Let W := (W1 <*> W2)%G.
-Let cycTI_M : cyclicTIhypothesis G W W1 W2 := FT_cycTI_hyp MtypeP.
 Let K := M^`(1)%G.
 
-Lemma FTtypeP_neq1 : FTtype M != 1%N.
+Lemma FT_cyclicTI_hyp : cyclicTI_hypothesis G defW.
+Proof. by case/typeP_context: MtypeP. Qed.
+Let ctiW := FT_cyclicTI_hyp.
+
+(* This useful combination of Peterfalvi (8.8) and (8.9). *)
+Lemma FTtypeP_pair_witness :
+  exists2 T, typeP_pair M T defW
+     & exists defW21 : W2 \x W1 = W, exists V : {group gT}, of_typeP T V defW21.
 Proof.
-apply/FTtypeP=> // [[V [MtypeF _]]].
-exact: FTtypePF_exclusion (conj MtypeF MtypeP).
+have Mtype'1 := FTtypeP_neq1 maxM MtypeP.
+case: FTtypeP_pair_cases => [/(_ M maxM)/idPn[] // | [S [T]]].
+case=> _ Wx W1x W2x defWx pairST.
+without loss /imsetP[y2 _ defSy]: S T W1x W2x defWx pairST / gval M \in S :^: G.
+  have [_ _ _ _ coverST] := pairST => IH.
+  have /setUP[] := coverST M maxM Mtype'1; first exact: IH pairST.
+  by apply: IH (typeP_pair_sym _ pairST); rewrite dprodC.
+have [U_S StypeP] := typeP_pairW pairST.
+have [[_ maxS maxT] [defS defT defST] b2 b3 b4] := pairST.
+have [[[_ _ _ defM] _ _ _ _] defW2] := (MtypeP, typeP_cent_compl MtypeP).
+have /imsetP[y1 Sy1 /(canRL (conjsgKV _)) defW1]: W1 :^ y2^-1 \in W1x :^: S.
+  apply: (of_typeP_compl_conj StypeP).
+  by rewrite -(conjsgK y2 S) -defSy derJ -sdprodJ defM.
+pose y := (y1 * y2)%g; rewrite -conjsgM -/y in defW1.
+have{defSy} defSy: S :^ y = M by rewrite conjsgM (conjGid Sy1).
+have{defW2} defW2: W2 :=: W2x :^ y.
+  by rewrite -(typeP_cent_compl StypeP) conjIg -derJ -centJ defSy -defW1.
+suffices pairMTy: typeP_pair M (T :^ y) defW.
+  exists (T :^ y)%G => //; have defW21: W2 \x W1 = W by rewrite dprodC.
+  by exists defW21; apply: typeP_pairW (typeP_pair_sym defW21 pairMTy).
+do [split; rewrite ?defM -?defSy ?mmaxJ ?FTtypeJ //] => [|L maxL /(b4 L maxL)].
+  by rewrite -defW defW1 defW2 derJ -sdprodJ -dprodJ -conjIg defT defST defWx.
+by rewrite !conjugates_conj lcoset_id // inE.
 Qed.
 
-Lemma FT_typeP_associate : exists2 S : {group gT},
-    [/\ S \in 'M, FTtype S != 1%N & S^`(1) ><| W2 = S]
-  & [/\ S :&: M = W, 'C_(S`_\F)(W2) = W1, FTtype M != 2 -> FTtype S == 2
-    & forall L, L \in 'M -> FTtype L != 1%N ->
-      exists x, L :=: S :^ x \/ L :=: M :^ x].
+Lemma FT_primeTI_hyp : primeTI_hypothesis M K defW.
 Proof.
-have typeMnot1 := FTtypeP_neq1.
-case: ifP FT_FPstructure => [/forall_inP/(_ M maxM)/idPn[] // | _].
-case=> sW sW1 sW2 S T strST.
-without loss [x defMx]: sW sW1 sW2 S T strST / exists x, M :=: T :^ x.
-  have [_ _ _ _ /(_ M)[]// x [] defMx IH_ST] := strST.
-    by apply: IH_ST (FT_Pstructure_sym strST) _; exists x.
-  by apply: IH_ST strST _; exists x.
-have typeT_M: FTtype T = FTtype M by rewrite defMx FTtypeJ.
-have [[DsW maxS maxT] [defS defT tiST] /orP Stype2 [typeS _] allST] := strST.
-have{typeS} notStype1: FTtype S != 1%N by apply: contraTneq typeS => ->.
-do [rewrite orbC -implyNb /=; move/implyP] in Stype2.
-have [[_ _ _ defM] _ _ _ _] := MtypeP.
-move: defM; rewrite /= {}defMx derJ -(conjsgKV x W1) -sdprodJ.
-move/act_inj=> defTx; rewrite FcoreJ centJ -conjIg /=.
-have{typeT_M} notTtype1: FTtype T != 1%N by rewrite typeT_M.
-have{defT} [Us PtypeTs] := compl_of_typeP defT maxT notTtype1.
-have{defTx maxT notTtype1} [Ux PtypeTx] := compl_of_typeP defTx maxT notTtype1.
-have{Us PtypeTs Ux PtypeTx} [y [Ty _ ->]] := of_typeP_conj PtypeTx PtypeTs.
-rewrite -{Ty}(conjGid Ty) FcoreJ centJ -conjIg -!conjsgM -conjYg joingC centJ.
-move: {y x}(y * x)%g => x; rewrite (def_cycTIcompl (FT_Pstructure_sym strST)).
-have{DsW}[[/dprodWY-> _ _ _] _ _] := DsW.
-exists (S :^ x)%G; first by rewrite mmaxJ FTtypeJ derJ -sdprodJ defS.
-rewrite FcoreJ !FTtypeJ -!conjIg tiST (def_cycTIcompl strST).
-split=> // L maxL /allST[] // z.
-by do [case=> ->; exists (x^-1 * z)%g]; [left | right]; rewrite conjsgM conjsgK.
+have [[cycW1 ntW1 hallW1 defM] _ _ [cycW2 ntW2 _ sW2M'' prM'W1] _] := MtypeP.
+by split; rewrite ?mFT_odd // (subset_trans sW2M'') ?der_subS.
 Qed.
-
-Lemma FT_cycDade_hyp : cyclicDade_hypothesis M K W W1 W2.
-Proof.
-split; [by have [[]] := MtypeP | | by have [[]] := cycTI_M].
-have [_ _ _ [cycW2 ntW2 _ sW2M'' prW1] _] := MtypeP; split => //.
-by rewrite (subset_trans sW2M'') ?der_subS.
-Qed.
+Let ptiWM := FT_primeTI_hyp.
 
 Lemma FTtypeP_supp0_def :
-  'A0(M) = 'A(M) :|: class_support (cyclicTIset cycTI_M) M.
+  'A0(M) = 'A(M) :|: class_support (cyclicTIset defW) M.
 Proof.
 rewrite -(setID 'A0(M) 'A(M)) (FTsupp0_typeP maxM MtypeP) (setIidPr _) //.
 exact: FTsupp_sub0.
 Qed.
 
-Fact FTtypeP_centralDade_properties :
-  centralDade_properties 'A(M) 'A0(M) H M K W W1 W2.
+Fact FT_Fcore_prime_Dade_def : prime_Dade_definition M K H 'A(M) 'A0(M) defW.
 Proof.
-have sHK: H \subset K by have [_ [_ _ _ /sdprod_context[/andP[]]]] := MtypeP.
-split; last exact: FTtypeP_supp0_def; first by rewrite gFnormal subsetIl.
-rewrite /normal FTsupp_norm andbT /'A(M) FTtypeP_neq1 -(erefl (gval K)).
+have [_ [_ _ _ /sdprodW/mulG_sub[sHK _]] _ [_ _ sW2H _ _] _] := MtypeP.
+split; rewrite ?gFnormal //; last exact: FTtypeP_supp0_def.
+rewrite /normal FTsupp_norm andbT /'A(M) (FTtypeP_neq1 maxM MtypeP) /=.
 do ?split=> //; apply/bigcupsP=> x A1x; last by rewrite setSD ?subsetIl.
   by rewrite setDE -setIA subIset // gFsub.
-by rewrite (bigcup_max x) // (subsetP _ x A1x) // setSD // /M`_\s; case: ifP.
+by rewrite (bigcup_max x) // (subsetP _ x A1x) // setSD ?Fcore_sub_FTcore.
 Qed.
 
-Definition FT_cDade_hyp : centralDade_hypothesis 'A(M)'A0(M) _ H M K W W1 W2 :=
-  CentralDadeHypothesis cycTI_M FT_cycDade_hyp FT_Dade0_hyp
-                        FTtypeP_centralDade_properties.
+Definition FT_prDade_hypF : prime_Dade_hypothesis _ M K H 'A(M) 'A0(M) defW :=
+  PrimeDadeHypothesis ctiW ptiWM FT_Dade0_hyp FT_Fcore_prime_Dade_def.
 
-Fact FTtypePs_centralDade_properties :
-  centralDade_properties 'A(M) 'A0(M) M`_\s M K W W1 W2.
+Fact FT_core_prime_Dade_def : prime_Dade_definition M K M`_\s 'A(M) 'A0(M) defW.
 Proof.
-have [[_ sW2H sHK] [nsAM sCA sAK] defA0] := FTtypeP_centralDade_properties.
-split=> //.
-  rewrite FTcore_normal /= /M`_\s; case: ifP => _ //.
-  by have [_ []] := FT_cycDade_hyp.
-rewrite nsAM /= /'A(M) /M`_\s FTtypeP_neq1; split=> //.
+have [[_ sW2H sHK] [nsAM sCA sAK] defA0] := FT_Fcore_prime_Dade_def.
+have [_ [_ sW2K _ _] _] := ptiWM.
+split=> //=; first by rewrite FTcore_normal /M`_\s; case: ifP.
+rewrite nsAM /= /'A(M) /M`_\s (FTtypeP_neq1 maxM MtypeP); split=> //=.
 by apply/bigcupsP=> x _; rewrite setSD ?subsetIl.
 Qed.
 
-Definition FTs_cDade_hyp :
-    centralDade_hypothesis 'A(M) 'A0(M) _ M`_\s M K W W1 W2 :=
-  CentralDadeHypothesis cycTI_M FT_cycDade_hyp FT_Dade0_hyp
-                        FTtypePs_centralDade_properties.
+Definition FT_prDade_hyp : prime_Dade_hypothesis _ M K M`_\s 'A(M) 'A0(M) defW
+  := PrimeDadeHypothesis ctiW ptiWM FT_Dade0_hyp FT_core_prime_Dade_def.
 
 Let calS := seqIndD K M M`_\s 1.
 
@@ -783,7 +776,7 @@ Fact FTtypeP_cohererence_nonreal_subproof : ~~ has cfReal calS.
 Proof. by rewrite seqInd_notReal ?mFT_odd ?FTcore_sub_der1 ?der_normal. Qed.
 
 Definition FTtypeP_coh_base_sig :=
-  PtypeDade_subcoherent FTs_cDade_hyp
+  prDade_subcoherent FT_prDade_hyp
     FTtypeP_cohererence_base_subproof FTtypeP_cohererence_nonreal_subproof.
 
 Definition FTtypeP_coh_base := sval FTtypeP_coh_base_sig.
@@ -792,28 +785,27 @@ Local Notation R := FTtypeP_coh_base.
 
 Lemma FTtypeP_subcoherent : subcoherent calS tau R.
 Proof. by rewrite /R; case: FTtypeP_coh_base_sig => R1 []. Qed.
+Let scohS := FTtypeP_subcoherent.
 
-Let w_ := @cyclicTIirr _ W W1 W2.
-Let sigma := cyclicTIsigma [set: gT] W W1 W2.
-Let w_sig i j := sigma (w_ i j).
-Let mu := @Dade_mu gT M W W1 W2.
+Let w_ i j := cyclicTIirr defW i j.
+Let sigma := cyclicTIiso ctiW.
+Let eta_ i j := sigma (w_ i j).
+Let mu_ := primeTIred ptiWM.
+Let delta_ := fun j => primeTIsign ptiWM j.
 
 Lemma FTtypeP_base_ortho :
   {in [predI calS & irr M] & irr W, forall phi w, orthogonal (R phi) (sigma w)}.
 Proof. by rewrite /R; case: FTtypeP_coh_base_sig => R1 []. Qed.
 
-Lemma FTtypeP_base_mu :
-  let delta := fun j => (-1)^+ @Dade_delta _ M W W1 W2 j in
-  let dsw j k := [seq delta j *: w_sig i k | i : Iirr W1] in
+Lemma FTtypeP_base_TIred :
+  let dsw j k := [seq delta_ j *: eta_ i k | i : Iirr W1] in
   let Rmu j := dsw j j ++ map -%R (dsw j (conjC_Iirr j)) in
-  forall j, R (mu j) = Rmu j.
+  forall j, R (mu_ j) = Rmu j.
 Proof. by rewrite /R; case: FTtypeP_coh_base_sig => R1 []. Qed.
 
-Let scohS := FTtypeP_subcoherent.
-
-Lemma coherent_ortho_cTIiso calS1 (tau1 : {additive 'CF(M) -> 'CF(G)}) :
+Lemma coherent_ortho_cycTIiso calS1 (tau1 : {additive 'CF(M) -> 'CF(G)}) :
     cfConjC_subset calS1 calS -> coherent_with calS1 M^# tau tau1 ->
-  forall chi i j, chi \in calS1 -> chi \in irr M -> '[tau1 chi, w_sig i j] = 0.
+  forall chi i j, chi \in calS1 -> chi \in irr M -> '[tau1 chi, eta_ i j] = 0.
 Proof.
 move=> ccsS1S cohS1 chi i j S1chi chi_irr; have [_ sS1S _] := ccsS1S.
 have [e /mem_subseq Re ->] := mem_coherent_sum_subseq scohS ccsS1S cohS1 S1chi.
@@ -823,30 +815,29 @@ Qed.
 
 Import ssrnum Num.Theory.
 
-Lemma FTtypeP_coherent_mu calS1 (tau1 : {additive 'CF(M) -> 'CF(G)}) t j :
+Lemma FTtypeP_coherent_TIred calS1 (tau1 : {additive 'CF(M) -> 'CF(G)}) t j :
     cfConjC_subset calS1 calS -> coherent_with calS1 M^# tau tau1 ->
-    'chi_t \in calS1 -> mu j \in calS1 ->
-    let d := Dade_delta M W W1 j in let k := conjC_Iirr j in
-  {dk : bool * Iirr W2 | tau1 (mu j) = (-1) ^+ dk.1 *: (\sum_i w_sig i dk.2)
+    'chi_t \in calS1 -> mu_ j \in calS1 ->
+    let d := primeTI_Isign ptiWM j in let k := conjC_Iirr j in
+  {dk : bool * Iirr W2 | tau1 (mu_ j) = (-1) ^+ dk.1 *: (\sum_i eta_ i dk.2)
     &   dk.1 = d /\ dk.2 = j
     \/  [/\ dk.1 = ~~ d, dk.2 = k
-        & forall j1, mu j1 \in calS1 -> mu j1 1%g = mu j 1%g -> pred2 j k j1]}.
+        & forall l, mu_ l \in calS1 -> mu_ l 1%g = mu_ j 1%g -> pred2 j k l]}.
 Proof.
 move=> ccsS1S cohS1 S1chi_t S1mu_j d k.
-have irrS1: [/\ ~~ has cfReal calS1, has (mem (irr M)) calS1 & mu j \in calS1].
+have irrS1: [/\ ~~ has cfReal calS1, has (mem (irr M)) calS1 & mu_ j \in calS1].
   have [[_ -> _] _ _ _ _] := subset_subcoherent scohS ccsS1S.
   by split=> //; apply/hasP; exists 'chi_t => //; apply: mem_irr.
-have Dmu := def_Ptype_coherent_mu FTs_cDade_hyp ccsS1S irrS1 cohS1.
-rewrite -/mu -/d in Dmu; pose mu_sum d1 k1 := (-1) ^+ d1 *: (\sum_i w_sig i k1).
+have Dmu := coherent_prDade_TIred FT_prDade_hyp ccsS1S irrS1 cohS1.
+rewrite -/mu_ -/d in Dmu; pose mu_sum d1 k1 := (-1) ^+ d1 *: (\sum_i eta_ i k1).
 have mu_sumK (d1 d2 : bool) k1 k2:
-  ('[mu_sum d1 k1, (-1) ^+ d2 *: w_sig 0 k2] > 0) = (d1 == d2) && (k1 == k2).
+  ('[mu_sum d1 k1, (-1) ^+ d2 *: eta_ 0 k2] > 0) = (d1 == d2) && (k1 == k2).
 - rewrite cfdotZl cfdotZr rmorph_sign mulrA -signr_addb cfdot_suml.
-  rewrite (bigD1 0) //= (cfdot_sigma cycTI_M) !eqxx.
-  rewrite big1 => [|i nz_i]; last first.
-    by rewrite (cfdot_sigma cycTI_M) (negPf nz_i).
+  rewrite (bigD1 0) //= cfdot_cycTIiso !eqxx big1 => [|i nz_i]; last first.
+    by rewrite cfdot_cycTIiso (negPf nz_i).
   rewrite addr0 /= andbC; case: (k1 == k2); rewrite ?mulr0 ?ltrr //=.
   by rewrite mulr1 signr_gt0 negb_add.
-have [dk tau1mu_j]: {dk : bool * Iirr W2 | tau1 (mu j) = mu_sum dk.1 dk.2}.
+have [dk tau1mu_j]: {dk : bool * Iirr W2 | tau1 (mu_ j) = mu_sum dk.1 dk.2}.
   apply: sig_eqW; case: Dmu => [-> | [-> _]]; first by exists (d, j).
   by exists (~~ d, k); rewrite -signrN.
 exists dk => //; have:= mu_sumK dk.1 dk.1 dk.2 dk.2; rewrite !eqxx -tau1mu_j.
@@ -866,46 +857,40 @@ apply/eqP; rewrite cardE -(size_map h) -uniq_size_uniq // => [|xi]; last first.
   by have /seqIndP[s _ Dxi] := sS1S _ S1xi; exists s; rewrite ?inE -?Dxi.
 apply/dinjectiveP; pose h1 xi := cfIirr (#|W1|%:R^-1 *: 'Res[K, M] xi).
 apply: can_in_inj (h1) _ => s; rewrite inE => /redS1 red_s.
-have [_ cycDD /= _ _] := FT_cDade_hyp; have [[_ _ _ cycW1] _ _] := cycDD.
-have:= (Dade_Ind_chi'_irr cycDD) s; set im_chi := codom _ => chi_s.
-have{im_chi chi_s} /imageP[j _ ->]: s \in im_chi.
-  by apply: contraR red_s => /chi_s/=[].
-apply: irr_inj; rewrite /h Dade_Ind_chi // /h1 raddf_sum /=.
-rewrite -(eq_bigr _ (fun _ _ => Dade_chiE cycDD _ _)) sumr_const.
-by rewrite card_Iirr_cyclic // -scaler_nat scalerK ?neq0CG ?irrK.
+have cycW1: cyclic W1 by have [[]] := MtypeP.
+have [[j /irr_inj->] | [/idPn[]//]] := prTIres_irr_cases ptiWM s.
+by rewrite /h cfInd_prTIres /h1 cfRes_prTIred scalerK ?neq0CG ?irrK.
 Qed.
 
-End PtypeMax.
+End OneMaximal.
 
 (* This is Peterfalvi (8.16). *)
-Lemma FTtypeII_ker_TI :
-   FTtype M == 2 ->
+Lemma FTtypeII_ker_TI M :
+   M \in 'M -> FTtype M == 2 ->
  [/\ normedTI 'A0(M) G M, normedTI 'A(M) G M & normedTI 'A1(M) G M].
 Proof.
-move=> typeM; have [sA1A sAA0] := (FTsupp1_sub maxM, FTsupp_sub0 M).
+move=> maxM typeM; have [sA1A sAA0] := (FTsupp1_sub maxM, FTsupp_sub0 M).
 have [sA10 sA0M] := (subset_trans sA1A sAA0, FTsupp0_sub M).
 have nzA1: 'A1(M) != set0 by rewrite setD_eq0 def_FTcore ?subG1 ?Msigma_neq1.
 have [nzA nzA0] := (subset_neq0 sA1A nzA1, subset_neq0 sA10 nzA1).
 suffices nTI_A0: normedTI 'A0(M) G M.
   by rewrite nTI_A0 !(normedTI_S _ _ _ nTI_A0) // ?FTsupp_norm ?FTsupp1_norm.
 have sA0G1: 'A0(M) \subset G^# by exact: subset_trans (setSD _ (subsetT M)).  
-have [U [W1 [[typeM_P _ _ tiFM] _ _ _ _]]] := FTtypeP 2 maxM typeM.
-apply/Dade_normedTI_P=> //; exists FT_Dade0_hyp => x A0x.
+have [U W W1 W2 defW [[MtypeP _ _ tiFM] _ _ _ _]] := FTtypeP 2 maxM typeM.
+apply/Dade_normedTI_P=> //; exists (FT_Dade0_hyp maxM) => x A0x.
 rewrite /= def_FTsignalizer /'R_M //=; have [// | not_sCxM] := ifPn.
 have [y cxy /negP[]] := subsetPn not_sCxM.
 have /setD1P[ntx Ms_x]: x \in 'A1(M).
-  by have [_ [/subsetP-> // ]] := FTsupport_facts; exact/setIdP.
+  by have [_ [/subsetP-> // ]] := FTsupport_facts maxM; apply/setIdP.
 have Fx: x \in 'F(M)^#.
   rewrite !inE ntx (subsetP (Fcore_sub_Fitting M)) //.
   by rewrite (Fcore_eq_FTcore _ _) ?(eqP typeM).
 rewrite -(mmax_normal maxM (Fitting_normal M)) //; last first.
   by rewrite -subG1 -setD_eq0; apply/set0Pn; exists x.
 rewrite -normD1 (sameP normP eqP); apply: wlog_neg => /(trivIsetP tiFM).
-rewrite  mem_orbit ?orbit_refl // => /(_ isT isT) /pred0Pn[].
+rewrite mem_orbit ?orbit_refl // => /(_ isT isT) /pred0Pn[].
 by exists x; rewrite /= mem_conjg /conjg mulgA invgK (cent1P cxy) mulgK Fx.
 Qed.
-
-End OneMaximal.
 
 (* This is Peterfalvi, Theorem (8.17). *)
 Theorem FT_Dade_support_partition :
@@ -916,10 +901,10 @@ Theorem FT_Dade_support_partition :
       (*b*) {in 'M, forall M, #|'A1~(M)| = (#|M`_\s|.-1 * #|G : M|)%N}
     & (*c*) let PG := [set 'A1~(Mi) | Mi : {group gT} in 'M^G] in
        [/\ {in 'M^G &, injective (fun M => 'A1~(M))},
-           all_typeI -> partition PG G^#
-         & forall W W1 W2 S T (VG := class_support (W :\: (W1 :|: W2)) G),
-             FT_Pstructure W W1 W2 S T ->
-           partition (VG |: PG) G^# /\ VG \notin PG]].
+           all_FTtype1 -> partition PG G^#
+         & forall S T W W1 W2 (defW : W1 \x W2 = W),
+             let VG := class_support (cyclicTIset defW) G in
+           typeP_pair S T defW -> partition (VG |: PG) G^# /\ VG \notin PG]].
 Proof.
 have defDsup M: M \in 'M -> class_support M^~~ G = 'A1~(M).
   move=> maxM; rewrite class_supportEr /'A1~(M) /'A1(M) def_FTcore //.
@@ -947,7 +932,7 @@ have{PG} ->: PG = [set class_support M^~~ G | M : {group gT} in 'M].
   have [x MG_Mx] := sM_MG M maxM.
   by exists (M :^ x)%G; rewrite // defDsup ?mmaxJ ?FT_Dade1_supportJ.
 have [c1 c2] := mFT_partition gT.
-split=> [M H maxM maxH eq_MH | strG_F | W W1 W2 S T VG strG_P].
+split=> [M H maxM maxH eq_MH | Gtype1 | S T W W1 W2 defW VG pairST].
 - apply: injMG => //; move/sMG_M in maxM; move/sMG_M in maxH.
   apply/orbit_transl/idPn => not_HG_M.
   have /negP[]: ~~ [disjoint 'A1~(M) & 'A1~(H)].
@@ -959,25 +944,24 @@ split=> [M H maxM maxH eq_MH | strG_F | W W1 W2 S T VG strG_P].
   rewrite subset0 setI_eq0 -sigma_supportJ sigma_support_disjoint ?mmaxJ //.
   by rewrite (orbit_transr _ (mem_orbit _ _ _)) ?in_setT // orbit_sym.
 - rewrite c1 // setD_eq0; apply/subsetP=> M maxM.
-  by rewrite FTtype_Fmax ?(forall_inP strG_F).
-have [[cycW maxS _] [defS _ _] _ [/andP[typeS _] _] _] := strG_P.
-rewrite ltn_neqAle eq_sym in typeS; case/andP: typeS => typeS _.
+  by rewrite FTtype_Fmax ?(forall_inP Gtype1).
+have [[[cycW maxS _] _ _ _ _] [U_S StypeP]] := (pairST, typeP_pairW pairST).
+have Stype'1 := FTtypeP_neq1 maxS StypeP.
 have maxP_S: S \in TypeP_maxgroups _ by rewrite FTtype_Pmax.
-have [U typeP_S] := compl_of_typeP defS maxS typeS.
 have hallW1: \kappa(S).-Hall(S) W1.
   have [[U1 K] /= complU1] := kappa_witness maxS.
   have ntK: K :!=: 1%g by rewrite -(trivgPmax maxS complU1).
   have [[defS_K _ _] [//|defS' _] _ _ _] := kappa_structure maxS complU1.
   rewrite {}defS' in defS_K.
-  have /imsetP[x Sx defK] := of_typeP_compl_conj defS_K typeP_S.
+  have /imsetP[x Sx defK] := of_typeP_compl_conj StypeP defS_K.
   by have [_ hallK _] := complU1; rewrite defK pHallJ in hallK.
-have{cycW} [[/dprodP[_ defW cW12 _] cycW _ _] [ntW1 ntW2 ] _] := cycW.
-have defW2: 'C_(S`_\sigma)(W1) = W2.
-  have [U1 complU1] := ex_kappa_compl maxS hallW1.
-  have [[_ [_ _ sW2'F] _] _ _ _] := BGsummaryC maxS complU1 ntW1.
-  rewrite -(setIidPr sW2'F) setIA (setIidPl (Fcore_sub_Msigma maxS)).
-  exact: def_cycTIcompl strG_P.
-by have [] := c2 _ _ maxP_S hallW1; rewrite defW2 /= cent_joinEr // defW -/VG.
+have{cycW} [[ntW1 ntW2] [cycW _ _ _]] := (cycTI_nontrivial cycW, cycW).
+suffices defW2: 'C_(S`_\sigma)(W1) = W2.
+  by have [] := c2 _ _ maxP_S hallW1; rewrite defW2 /= (dprodWY defW).
+have [U1 complU1] := ex_kappa_compl maxS hallW1.
+have [[_ [_ _ sW2'F] _] _ _ _] := BGsummaryC maxS complU1 ntW1.
+rewrite -(setIidPr sW2'F) setIA (setIidPl (Fcore_sub_Msigma maxS)).
+exact: typeP_cent_core_compl StypeP.
 Qed.
 
 (* This is Peterfalvi (8.18). Note that only part (c) is actually used later. *)
@@ -1051,8 +1035,8 @@ have part_b S T (maxS : S \in 'M) (maxT : T \in 'M) (ncST : NC S T) :
   have [sCx2T | not_sCx2T] := boolP ('C[x2] \subset T); last first.
     have [_ _ _ [injA1G pGI pGP]] := FT_Dade_support_partition.
     have{pGI pGP} tiA1g: trivIset [set 'A1~(M) | M : {group gT} in 'M^G].
-      case: ifP FT_FPstructure => [/pGI/and3P[] // | _ [W W1 W2 S' T' /pGP[]]].
-      by case/and3P=> _ /(trivIsetS (subsetUr _ _)).
+      case: FTtypeP_pair_cases => [/forall_inP/pGI/and3P[] // | [M [L]]].
+      by case=> _ W W1 W2 defW1 /pGP[]/and3P[_ /(trivIsetS (subsetUr _ _))].
     have [_ _ injMG sM_MG] := mmax_transversalP gT.
     have [_ [sDA1T _] _] := FTsupport_facts maxT.
     have [[z1 maxSz] [z2 maxTz]] := (sM_MG S maxS, sM_MG T maxT).

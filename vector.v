@@ -1,6 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype bigop.
 Require Import finfun tuple ssralg matrix mxalgebra zmodp.
+
 (******************************************************************************)
 (*  * Finite dimensional vector spaces                                        *)
 (*           vectType R == interface structure for finite dimensional (more   *)
@@ -1158,6 +1159,12 @@ apply/andP/idP=> [[defU /eqnP <-]| ]; first by rewrite -eqEdim eq_sym.
 case/andP=> sUX leXU; have leXX := dim_span X.
 rewrite /free eq_sym eqEdim sUX eqn_leq !(leq_trans leXX) //.
 by rewrite (leq_trans leXU) ?dimvS.
+Qed.
+
+Lemma basisEfree X U :
+  basis_of U X = [&& free X, (<<X>> <= U)%VS & \dim U <= size X].
+Proof.
+by rewrite andbC; apply: andb_id2r => freeX; rewrite eqEdim (eqnP freeX).
 Qed.
 
 Lemma perm_basis X Y U : perm_eq X Y -> basis_of U X = basis_of U Y.

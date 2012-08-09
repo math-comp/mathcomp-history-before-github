@@ -1819,6 +1819,8 @@ Lemma cfDprod_cfun1l psi : cfDprod 1 psi = cfDprodr psi.
 Proof. by rewrite /cfDprod rmorph1 mul1r. Qed.
 Lemma cfDprod_cfun1 : cfDprod 1 1 = 1.
 Proof. by rewrite cfDprod_cfun1l rmorph1. Qed.
+Lemma cfDprod_split phi psi : cfDprod phi psi = cfDprod phi 1 * cfDprod 1 psi.
+Proof. by rewrite cfDprod_cfun1l cfDprod_cfun1r. Qed.
 
 Let nsKG : K <| G. Proof. by have [] := dprod_normal2 KxH. Qed.
 Let nsHG : H <| G. Proof. by have [] := dprod_normal2 KxH. Qed.

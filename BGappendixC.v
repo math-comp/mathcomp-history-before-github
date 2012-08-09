@@ -837,9 +837,9 @@ clear C6.
 pose w1 := v2 ^ t^-1 * u3.
 pose w2 := v3 * u1 ^ t ^- 2.
 pose w3 := v1 * u2 ^ t.
-wlog suff C7_gen : a b u1 s1 v1 u2 s2 v2 u3 s3 v3 
+wlog suff{s1neq1 s3neq1 goal} C7_gen : a b u1 s1 v1 u2 s2 v2 u3 s3 v3 
   Husv1 Husv2 Husv3 Hab Ha Hb Hu1 Hs1 Hv1 Hu2 Hs2 Hv2 Hu3 Hs3 Hv3
-  @w1 @w2 @w3 {s1neq1 (*s2neq1*) s3neq1 goal} /
+  @w1 @w2 @w3  /
   t^-1 * s2 * t^-1 = ((w1 * s3 * w2) * (t ^+ 2 * s1 * w3))^-1; last first.
 - apply/eqP; rewrite invMg -(canF_eq (mulgK _)) eq_sym eq_invg_mul; apply/eqP.
   move: Hab; rewrite eq_sym -subr_eq0 addrC.

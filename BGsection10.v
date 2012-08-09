@@ -690,7 +690,7 @@ Proof.
 move=> V defV; have sPN' := mFT_Sylow_der1.
 have sylP := pHall_subl (normG P) (subsetT 'N(P)) sylP_G.
 have [|//] := coprime_der1_sdprod defV _ (pgroup_sol pP) sPN'.
-by rewrite (coprime_sdprod_Hall defV) // (pHall_Hall sylP).
+by rewrite (coprime_sdprod_Hall_l defV) // (pHall_Hall sylP).
 Qed.
 
 (* This is B & G, Corollary 10.7(b). *)

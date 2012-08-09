@@ -114,7 +114,7 @@ have hallG': Hall G G'.
   by rewrite (p'nat_coprime (pcore_pgroup _ _)) ?pnat_id.
 split=> // H defG; have [_ mulG'H nG'H tiG'H] := sdprodP defG.
 rewrite -mulG'H commMG ?commg_normr // -derg1 (derG1P _) ?mulg1 //.
-  by case/coprime_der1_sdprod: (defG); rewrite ?(coprime_sdprod_Hall defG).
+  by case/coprime_der1_sdprod: (defG); rewrite ?(coprime_sdprod_Hall_l defG).
 rewrite (isog_abelian (quotient_isog nG'H tiG'H)) /= -/G'.
 by rewrite -quotientMidl mulG'H der_abelian.
 Qed.

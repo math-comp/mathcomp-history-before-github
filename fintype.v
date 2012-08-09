@@ -1073,6 +1073,9 @@ Proof.
 by apply: (iffP mapP) => [] [x Ax y_fx]; exists x; rewrite // mem_enum in Ax *.
 Qed.
 
+Lemma codomP y : reflect (exists x, y = f x) (y \in codom f).
+Proof. by apply: (iffP (imageP _ y)) => [][x]; exists x. Qed.
+
 Remark iinv_proof A y : y \in image f A -> {x | x \in A & f x = y}.
 Proof.
 move=> fy; pose b x := A x && (f x == y).
@@ -1156,6 +1159,7 @@ End Image.
 
 Prenex Implicits codom iinv.
 Implicit Arguments imageP [T T' f A y].
+Implicit Arguments codomP [T T' f y].
 
 Section CardFunImage.
 

@@ -217,7 +217,7 @@ without loss{m IHm leGm} [ffulG cycZ]: / rker rG = 1 /\ cyclic 'Z(G).
   have nNR := subset_trans sRG nNG.
   have sNK: N \subset K.
     have [pi hallK]: exists pi, pi.-Hall(G) K.
-      by apply: HallP; rewrite -(coprime_sdprod_Hall defG).
+      by apply: HallP; rewrite -(coprime_sdprod_Hall_l defG).
     rewrite (sub_normal_Hall hallK) //=.
     apply: pnat_dvd (pHall_pgroup hallK).
     rewrite -(dvdn_pmul2r (prime_gt0 p_pr)) -!TI_cardMg // 1?setIC // defKR.

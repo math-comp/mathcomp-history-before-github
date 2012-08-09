@@ -34,9 +34,6 @@ Unset Printing Implicit Defensive.
 Import GroupScope GRing.Theory Num.Theory.
 Local Open Scope ring_scope.
 
-Local Notation algCF := [fieldType of algC].
-
-
 Lemma group_num_field_exists (gT : finGroupType) (G : {group gT}) :
   {Qn : splittingFieldType rat & galois 1 {:Qn} &
     {QnC : {rmorphism Qn -> algC}
@@ -175,11 +172,11 @@ Qed.
 Lemma Aint_irr i x : 'chi[G]_i x \in Aint.
 Proof. by apply: Aint_char; exact: irr_char. Qed.
 
-Local Notation R_G := (group_ring algCF G).
+Local Notation R_G := (group_ring algCfield G).
 Local Notation a := gring_classM_coef.
 
 (* This is Isaacs (2.25). *)
-Lemma mx_irr_gring_op_center_scalar n (rG : mx_representation algCF G n) A :
+Lemma mx_irr_gring_op_center_scalar n (rG : mx_representation algCfield G n) A :
   mx_irreducible rG -> (A \in 'Z(R_G))%MS -> is_scalar_mx (gring_op rG A).
 Proof.
 move/groupC=> irrG /center_mxP[R_A cGA].
@@ -192,10 +189,10 @@ Section GringIrrMode.
 Variable i : Iirr G.
 
 Let n := irr_degree (socle_of_Iirr i).
-Let mxZn_inj: injective (@scalar_mx algCF n).
+Let mxZn_inj: injective (@scalar_mx algCfield n).
 Proof. by rewrite -[n]prednK ?irr_degree_gt0 //; apply: fmorph_inj. Qed.
 
-Lemma cfRepr_gring_center n1 (rG : mx_representation algCF G n1) A :
+Lemma cfRepr_gring_center n1 (rG : mx_representation algCfield G n1) A :
   cfRepr rG = 'chi_i -> (A \in 'Z(R_G))%MS -> gring_op rG A = 'omega_i[A]%:M.
 Proof.
 move=> def_rG Z_A; rewrite unlock xcfunZl -{2}def_rG xcfun_repr.
@@ -238,7 +235,7 @@ have memX k: 'omega_i['K_k] \in X by apply: map_f; exact: mem_enum.
 have S_P := Cint_spanP X; set S := Cint_span X in S_P.
 have S_X: {subset X <= S} by exact: mem_Cint_span.
 have S_1: 1 \in S.
-  apply: S_X; apply/imageP; exists (enum_rank_in (classes1 G) 1%g) => //.
+  apply: S_X; apply/codomP; exists (enum_rank_in (classes1 G) 1%g).
   rewrite (@gring_mode_class_sum_eq _ 1%g) ?enum_rankK_in ?classes1 //.
   by rewrite mulfK ?irr1_neq0 // class1G cards1.
 suffices Smul: mulr_closed S.
@@ -508,7 +505,7 @@ have [j ->]: exists j, 'chi_i = 'Res 'chi[G]_j.
   rewrite -sum_nat_const -card_Iirr_abelian // -sum1_card.
   rewrite (partition_big rH (mem (codom rH))) /=; last exact: image_f.
   have nsHG: H <| G by rewrite -sub_abelian_normal.
-  apply: eq_bigr => _ /imageP[i _ ->]; rewrite -card_quotient ?normal_norm //.
+  apply: eq_bigr => _ /codomP[i ->]; rewrite -card_quotient ?normal_norm //.
   rewrite -card_Iirr_abelian ?quotient_abelian //.
   have Mlin j1 j2: exists k, 'chi_j1 * 'chi_j2 = 'chi[G]_k.
     exact/irrP/lin_char_irr/rpredM.
@@ -568,6 +565,112 @@ rewrite partn_dvd //= -dvdC_nat -[pa in (_ %| pa)%C]Dchi1C -card_quotient //=.
 rewrite -(card_Hall (quotient_pHall nZP sylP)) card_quotient // -indexgI.
 rewrite -(cfResE _ sPG) // index_support_dvd_degree ?subsetIl ?cPP ?orbT //.
 by rewrite cfRes_char ?irr_char.
+Qed.
+
+(* This is Isaacs, Lemma (3.14). *)
+(* Note that the assumption that G be cyclic is unnecessary, as S will be     *)
+(* empty if this is not the case.                                             *)
+Lemma sum_norm2_char_generators gT (G : {group gT}) (chi : 'CF(G)) :
+    let S := [pred s | generator G s] in
+    chi \is a character -> {in S, forall s, chi s != 0} ->
+  \sum_(s in S) `|chi s| ^+ 2 >= #|S|%:R.
+Proof.
+move=> S Nchi nz_chi_S; pose n := #|G|.
+have [g Sg | S_0] := pickP (generator G); last first.
+  by rewrite eq_card0 // big_pred0 ?lerr.
+have defG: <[g]> = G by apply/esym/eqP.
+have [cycG Gg]: cyclic G /\ g \in G by rewrite -defG cycle_cyclic cycle_id.
+pose I := {k : 'I_n | coprime n k}; pose ItoS (k : I) := (g ^+ sval k)%g.
+have imItoS: codom ItoS =i S.
+  move=> s; rewrite inE /= /ItoS /I /n /S -defG -orderE.
+  apply/codomP/idP=> [[[i cogi] ->] | Ss]; first by rewrite generator_coprime.
+  have [m ltmg Ds] := cyclePmin (cycle_generator Ss).
+  by rewrite Ds generator_coprime in Ss; apply: ex_intro (Sub (Sub m _) _) _.
+have /injectiveP injItoS: injective ItoS.
+  move=> k1 k2 /eqP; apply: contraTeq.
+  by rewrite eq_expg_mod_order orderE defG -/n !modn_small.
+have [Qn galQn [QnC gQnC [eps [pr_eps defQn] QnG]]] := group_num_field_exists G.
+have{QnG} QnGg := QnG _ G _ _ g (order_dvdG Gg).
+pose calG := 'Gal({:Qn} / 1).
+have /fin_all_exists[ItoQ /all_and2[inItoQ defItoQ]] (k : I):
+  exists nu, nu \in calG /\ nu eps = eps ^+ val k.
+- case: k => [[m _] /=]; rewrite coprime_sym => /Qn_aut_exists[nuC DnuC].
+  have [nuQ DnuQ] := restrict_aut_to_normal_num_field QnC nuC.
+  have hom_nu: linfun nuQ \is a kHom 1 {:Qn}.
+    apply/fAutL_lrmorph; split=> [|z u]; last by rewrite linearZ.
+    split=> [u v | ]; first by rewrite linearB.
+    by split=> [u v | ]; rewrite !lfunE ?rmorphM ?rmorph1.
+  have [|nu cGnu Dnu] := kHom_gal _ (normalFieldf 1) hom_nu.
+    by rewrite !subvf.
+  exists nu; split=> //; apply: (fmorph_inj QnC).
+  rewrite -Dnu ?memvf // lfunE DnuQ rmorphX DnuC //.
+  by rewrite prim_expr_order // fmorph_primitive_root.
+have{defQn} imItoQ: calG = ItoQ @: {:I}.
+  apply/setP=> nu; apply/idP/imsetP=> [cGnu | [k _ ->] //].
+  have pr_nu_e: n.-primitive_root (nu eps) by rewrite fmorph_primitive_root.
+  have [i Dnue] := prim_rootP pr_eps (prim_expr_order pr_nu_e).
+  rewrite Dnue prim_root_exp_coprime // coprime_sym in pr_nu_e.
+  apply: ex_intro2 (Sub i _) _ _ => //; apply/eqP.
+  rewrite /calG /= -defQn in ItoQ inItoQ defItoQ nu cGnu Dnue *.
+  by rewrite gal_eq_Fadjoin // defItoQ -Dnue.
+have injItoQ: {in {:I} &, injective ItoQ}.
+  move=> k1 k2 _ _ /(congr1 (fun nu : gal_of _ => nu eps))/eqP.
+  by apply: contraTeq; rewrite !defItoQ (eq_prim_root_expr pr_eps) !modn_small.
+pose pi1 := \prod_(s in S) chi s; pose pi2 := \prod_(s in S) `|chi s| ^+ 2. 
+have Qpi1: pi1 \in Crat.
+  have [a Da] := QnGg _ Nchi; suffices ->: pi1 = QnC (galNorm 1 {:Qn} a).
+    have /vlineP[q ->] := mem_galNorm galQn (memvf a).
+    by rewrite rmorphZ_num rmorph1 mulr1 Crat_rat.
+  rewrite /galNorm rmorph_prod -/calG imItoQ big_imset //=.
+  rewrite /pi1 -(eq_bigl _ _ imItoS) -big_uniq // big_map big_filter /=.
+  apply: eq_bigr => k _;  have [nuC DnuC] := gQnC (ItoQ k); rewrite DnuC Da.
+  have [r ->] := char_sum_irr Nchi; rewrite !sum_cfunE rmorph_sum.
+  apply: eq_bigr => i _; have /QnGg[b Db] := irr_char i.
+  have Lchi_i: 'chi_i \is a linear_char by rewrite irr_cyclic_lin.
+  have /(prim_rootP pr_eps)[m Dem]: b ^+ n = 1.
+    apply/eqP; rewrite -(fmorph_eq1 QnC) rmorphX Db -lin_charX //.
+    by rewrite -expg_mod_order orderE defG modnn lin_char1.
+  rewrite -Db -DnuC Dem rmorphX /= defItoQ exprAC -{m}Dem rmorphX {b}Db.
+  by rewrite lin_charX.
+clear I ItoS imItoS injItoS ItoQ inItoQ defItoQ imItoQ injItoQ.
+clear Qn galQn QnC gQnC eps pr_eps QnGg calG.
+have{Qpi1} Zpi1: pi1 \in Cint.
+  by rewrite Cint_rat_Aint // rpred_prod // => s _; apply: Aint_char.
+have{pi1 Zpi1} pi2_ge1: 1 <= pi2.
+  have ->: pi2 = `|pi1| ^+ 2.
+    by rewrite (big_morph Num.norm (@normrM _) (@normr1 _)) -prodrXl.
+  by rewrite Cint_normK // sqr_Cint_ge1 //; exact/prodf_neq0.
+have Sgt0: (#|S| > 0)%N by rewrite (cardD1 g) [g \in S]Sg.
+rewrite -mulr_natr -ler_pdivl_mulr ?ltr0n //.
+have n2chi_ge0 s: s \in S -> 0 <= `|chi s| ^+ 2 by rewrite exprn_ge0 ?normr_ge0.
+rewrite -(expr_ge1 Sgt0); last by rewrite divr_ge0 ?ler0n ?sumr_ge0.
+by rewrite (ler_trans pi2_ge1) // lerif_AGM.
+Qed.
+
+(* This is Burnside's vanishing theorem (Isaacs, Theorem (3.15)). *)
+Theorem nonlinear_irr_vanish gT (G : {group gT}) i :
+  'chi[G]_i 1%g > 1 -> exists2 x, x \in G & 'chi_i x = 0.
+Proof.
+move=> chi1gt1; apply/exists_eq_inP; apply: contraFT (ltr_geF chi1gt1).
+rewrite negb_exists_in => /forall_inP nz_chi.
+rewrite -(norm_Cnat (Cnat_irr1 i)) -(@expr_le1 _ 2) ?normr_ge0 //.
+rewrite -(ler_add2r (#|G|%:R * '['chi_i])) {1}cfnorm_irr mulr1.
+rewrite (cfnormE (cfun_onG _)) mulVKf ?neq0CG // (big_setD1 1%g) //=.
+rewrite addrCA ler_add2l (cardsD1 1%g) group1 mulrS ler_add2l.
+rewrite -sumr_const !(partition_big_imset (fun s => <[s]>)) /=.
+apply: ler_sum => _ /imsetP[g /setD1P[ntg Gg] ->].
+have sgG: <[g]> \subset G by rewrite cycle_subG.
+pose S := [pred s | generator <[g]> s]; pose chi := 'Res[<[g]>] 'chi_i.
+have defS: [pred s in G^# | <[s]> == <[g]>] =i S.
+  move=> s; rewrite inE /= eq_sym andb_idl // !inE -cycle_eq1 -cycle_subG.
+  by move/eqP <-; rewrite cycle_eq1 ntg.
+have resS: {in S, 'chi_i =1 chi}.
+  by move=> s /cycle_generator=> g_s; rewrite cfResE ?cycle_subG.
+rewrite !(eq_bigl _ _ defS) sumr_const.
+rewrite (eq_bigr (fun s => `|chi s| ^+ 2)) => [|s /resS-> //].
+apply: sum_norm2_char_generators => [|s Ss].
+  by rewrite cfRes_char ?irr_char.
+by rewrite -resS // nz_chi ?(subsetP sgG) ?cycle_generator.
 Qed.
 
 End MoreIntegralChar.

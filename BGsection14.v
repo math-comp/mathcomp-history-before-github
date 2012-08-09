@@ -575,8 +575,7 @@ have [have_a nK1K ntE1 sE1K]: [/\ part_a, b1_hyp, E1 :!=: 1 & E1 \subset K].
     apply: abelianS (der_mmax_compl_abelian maxM hallE).
     rewrite -(coprime_cent_prod nUE1) ?(solvableS sUE) //.
       by rewrite {2}defK (cent_semiregular regUK) // mulg1 commgSS.
-    rewrite (coprime_sdprod_Hall defE) (sdprod_Hall defE).
-    exact: pHall_Hall hallE1.
+    by rewrite (coprime_sdprod_Hall_r defE); apply: pHall_Hall hallE1.
   move: not_t1K; rewrite negb_and cardG_gt0 -has_predC; case/hasP=> p piKp t1'p.
   have kp := pnatPpi kK piKp; have t3p := kappa_tau13 kp.
   rewrite [p \in _](negPf t1'p) /= in t3p.
@@ -728,7 +727,7 @@ have prK: prime #|K|.
   have [solF [_ _ nMsF _]] := (sigma_compl_sol hallF, sdprodP defM).
   have solMs: solvable Ms := solvableS (pcore_sub _ _) (mmax_sol maxM).
   have coMsF: coprime #|Ms| #|F|.
-    by rewrite (coprime_sdprod_Hall defM) (pHall_Hall hallMs).
+    by rewrite (coprime_sdprod_Hall_r defM) (pHall_Hall hallF).
   by have [] := Frobenius_primact frF solF nMsF solMs ntMs coMsF prMsK.
 have eq_sb: \sigma(M) =i \beta(M).
   suffices bMs: \beta(M).-group Ms.

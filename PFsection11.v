@@ -52,8 +52,8 @@ Local Notation G := (TheMinSimpleOddGroup gT).
 Implicit Types (p q : nat) (x y z : gT).
 Implicit Types H K L N P Q R S T U V W : {group gT}.
 
-Variables M U W1 : {group gT}.
-Hypotheses (maxM : M \in 'M) (MtypeP: of_typeP M U W1).
+Variables M U W W1 W2 : {group gT}.
+Hypotheses (maxM : M \in 'M) (defW : W1 \x W2 = W) (MtypeP: of_typeP M U defW).
 Hypothesis Mtypen2 : FTtype M != 2.
 
 Let Mtypen5 : FTtype M != 5. Proof. exact: FTtype5_exclusion. Qed.
@@ -67,11 +67,11 @@ Local Notation H0 := (Ptype_Fcore_kernel MtypeP).
 Local Notation "` 'H0'" := (gval H0) (at level 0, only parsing) : group_scope.
 Local Notation "` 'M'" := (gval M) (at level 0, only parsing) : group_scope.
 Local Notation "` 'U'" := (gval U) (at level 0, only parsing) : group_scope.
+Local Notation "` 'W'" := (gval W) (at level 0, only parsing) : group_scope.
 Local Notation "` 'W1'" := (gval W1) (at level 0, only parsing) : group_scope.
+Local Notation "` 'W2'" := (gval W2) (at level 0, only parsing) : group_scope.
 Local Notation H := `M`_\F%G.
 Local Notation "` 'H'" := `M`_\F (at level 0) : group_scope.
-Local Notation W2 := 'C_H(`W1)%G.
-Local Notation "` 'W2'" := 'C_`H(`W1) : group_scope.
 Local Notation HU := M^`(1)%G.
 Local Notation "` 'HU'" := `M^`(1) (at level 0) : group_scope.
 Local Notation U' := U^`(1)%G.
@@ -83,13 +83,16 @@ Local Notation "` 'HC'" := (`H <*> `C) (at level 0) : group_scope.
 Local Notation H0C := (`H0 <*> `C)%G.
 Local Notation "` 'H0C'" := (gval H0 <*> `C) (at level 0) : group_scope.
 
-Let Mtype24 := compl_of_typeII_IV MtypeP maxM Mtypen5.
+Let Mtype24 := compl_of_typeII_IV maxM MtypeP Mtypen5.
  
 Let p := #|W2|.
 Let q := #|W1|.
 
 Let pr_p : prime p. Proof. by have [] := FTtypeP_primes maxM MtypeP. Qed.
 Let pr_q : prime q. Proof. by have [] := FTtypeP_primes maxM MtypeP. Qed.
+
+Let sW2H : W2 \subset H. Proof. by have [_ _ _ []] := MtypeP. Qed.
+Let defW2 : 'C_H(W1) = W2. Proof. exact: typeP_cent_core_compl MtypeP. Qed.
   
 Let sol_M : solvable M := of_typeP_sol MtypeP.
 Let sol_HU: solvable HU := solvableS (der_subS 0 _) sol_M.
@@ -101,12 +104,18 @@ Let defHU : H ><| U = HU. Proof. by have [_ []] := MtypeP. Qed.
 Let chiefH0 : chief_factor M H0 H.
 Proof. by have [] := Ptype_Fcore_kernel_exists maxM MtypeP Mtypen5. Qed.
 
-Let subc_M : subcoherent (seqIndD HU M HU 1) tau R.
+Let coHUq : coprime #|HU| q.
+Proof. by rewrite (coprime_sdprod_Hall_r defM); have [[]] := MtypeP. Qed.
+
+Let q'p : p != q.
 Proof.
-suff{2}->: (HU = M`_\s)%G by apply: FTtypeP_subcoherent.
-apply/val_eqP; rewrite /= /FTcore.
-by case/orP: Mtype34=> /eqP->.
+apply: contraTneq coHUq => <-; rewrite coprime_sym prime_coprime ?cardSg //.
+by rewrite -(typeP_cent_compl MtypeP) subsetIl.
 Qed.
+
+Let defMs : M`_\s = HU. Proof. by rewrite /FTcore andbC leqNgt Mtype_gt2. Qed.
+Let subc_M : subcoherent (seqIndD HU M HU 1) tau R.
+Proof. by rewrite -{2}(group_inj defMs); apply: FTtypeP_subcoherent. Qed.
 
 Let ltH0H : H0 \proper H.
 Proof. by have/andP[/maxgroupp/andP[]]:= chiefH0. Qed.
@@ -173,9 +182,7 @@ rewrite -divgS // -(dprod_card defHC) -(dprod_card defH0C).
 rewrite divnMr ?cardG_gt0 // divg_normal //.
 have[_ _ ->] :=  Ptype_Fcore_factor_facts maxM MtypeP Mtypen5.
 rewrite typeIII_IV_core_prime // -/q.
-apply: lbound_expn_odd_prime=> //; try by apply: mFT_odd.
-apply: contraTneq (cyclicTI_coprime (FT_cycTI_hyp MtypeP))=> ->.
-by rewrite prime_coprime // dvdnn.
+by apply: lbound_expn_odd_prime=> //; apply: mFT_odd.
 Qed.
 
 Let minHbar : minnormal (H / H0)%g (M / H0)%g.
@@ -249,9 +256,7 @@ have regHC_W1: semiregular (HC / M^`(2))%g (W1 / M^`(2))%g.
   rewrite -cent_cycle Dg -quotient_cycle //.
   rewrite -coprime_quotient_cent ?cycle_subG //; last first.
   - exact: solvableS sHC_HU _.
-  - rewrite (coprimeSg sHC_HU) // (coprime_dvdr (order_dvdG W1w)) //.
-    rewrite (coprime_sdprod_Hall defM) (sdprod_Hall defM).
-    by have [[]] := MtypeP.
+  - by rewrite (coprimeSg sHC_HU) // (coprime_dvdr (order_dvdG W1w)).
   apply: quotientS1=> /=.
   have [_ _ _ [_ _ _ sW2M'' prW1HU] _] := MtypeP.
   rewrite (subset_trans _ sW2M'') // cent_cycle -(prW1HU w) ?setSI //.
@@ -303,8 +308,8 @@ have UsCHO : U \subset 'C(H0).
   have/coprime_subcent_quotient_pgroup<-//: q.-group W1.
   - apply/pgroupP=> p2 Pp2 /prime_nt_dvdP->; rewrite ?inE //.
     by case: p2 Pp2=> // [[]].
-  - have[] := Ptype_Fcore_factor_facts maxM MtypeP Mtypen5.
-    by rewrite (def_Ptype_factor_prime maxM MtypeP Mtypen5) // => [_ ->].
+  - have [_] := Ptype_Fcore_factor_facts maxM MtypeP Mtypen5.
+    by rewrite /= defW2 (def_Ptype_factor_prime maxM MtypeP) // => ->.
   - case/andP: chiefH0 => /maxgroupp/andP[_ /(subset_trans _)-> //].
     by case/sdprod_context: defM.
   apply: (coprimeSg (normal_sub nsH0H) (coprimegS (joing_subr U W1) _)).
@@ -420,5 +425,35 @@ rewrite [[~: U, _]]commGC mulgA !mul_subG //;
 by exact: joing_subr.
 Qed.
 
+(* This will be (11.7). *)
+Lemma FTtype34_Fcore_kernel_trivial :
+  [/\ p.-abelem H, #|H| = (p ^ q)%N & `H0 = 1%g].
+Admitted.
+
+Let pddM := FT_prDade_hyp maxM MtypeP.
+Let ptiWM : primeTI_hypothesis M HU defW := FT_primeTI_hyp MtypeP.
+Let ctiWG : cyclicTI_hypothesis G defW := pddM.
+Let ctiWM : cyclicTI_hypothesis M defW := prime_cycTIhyp ptiWM.
+
+Local Notation sigma := (cyclicTIiso ctiWG).
+Local Notation w_ i j := (cyclicTIirr defW i j).
+Local Notation eta_ i j := (sigma (w_ i j)).
+Local Notation mu_ := (primeTIred ptiWM).
+
+Let codom_sigma := map sigma (irr W).
+
+(* This will be (11.8). *)
+Lemma FTtype34_not_ortho_cycTIiso zeta :
+    zeta \in S_ HC ->
+  ~~ orthogonal (tau (mu_ 0 - zeta) - \sum_i eta_ i 0) codom_sigma.
+Admitted.
+
+(* This will be (11.9). *)
+Lemma FTtype34_structure :
+  [/\ (*a*) {in S_ HC, forall zeta,
+             orthogonal (tau (mu_ 0 - zeta) - \sum_j eta_ 0 j) codom_sigma},
+      (*b*) (p < q)%N
+    & (*c*) FTtype M == 3 /\ typeP_Galois MtypeP].
+Admitted.
 
 End Eleven.

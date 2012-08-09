@@ -137,6 +137,9 @@ Qed.
 Canonical cfConjg_rmorphism y := AddRMorphism (cfConjg_is_multiplicative y).
 Canonical cfConjg_lrmorphism y := [lrmorphism of cfConjg y].
 
+Lemma cfConjg_eq1 phi y : ((phi ^ y)%CF == 1) = (phi == 1).
+Proof. by apply: rmorph_eq1; apply: can_inj (cfConjgK y). Qed.
+
 Lemma cfAutConjg phi u y : cfAut u (phi ^ y) = (cfAut u phi ^ y)%CF.
 Proof. by apply/cfunP=> x; rewrite !cfunElock. Qed.
 
@@ -340,11 +343,17 @@ Definition conjg_Iirr i y := cfIirr ('chi[H]_i ^ y)%CF.
 Lemma conjg_IirrE i y : 'chi_(conjg_Iirr i y) = ('chi_i ^ y)%CF.
 Proof. by rewrite cfIirrE ?cfConjg_irr ?mem_irr. Qed.
 
+Lemma conjg_IirrK y : cancel (conjg_Iirr^~ y) (conjg_Iirr^~ y^-1%g).
+Proof. by move=> i; apply/irr_inj; rewrite !conjg_IirrE cfConjgK. Qed.
+
+Lemma conjg_IirrKV y : cancel (conjg_Iirr^~ y^-1%g) (conjg_Iirr^~ y).
+Proof. by rewrite -{2}[y]invgK; apply: conjg_IirrK. Qed.
+
+Lemma conjg_Iirr_inj y : injective (conjg_Iirr^~ y).
+Proof. exact: can_inj (conjg_IirrK y). Qed.
+
 Lemma conjg_Iirr_eq0 i y : (conjg_Iirr i y == 0) = (i == 0).
-Proof.
-rewrite -(inj_eq irr_inj) conjg_IirrE irr0.
-by rewrite (can2_eq (cfConjgK y) (cfConjgKV y)) rmorph1 irr_eq1.
-Qed.
+Proof. by rewrite -!irr_eq1 conjg_IirrE cfConjg_eq1. Qed.
 
 Lemma conjg_Iirr0 x : conjg_Iirr 0 x = 0.
 Proof. by apply/eqP; rewrite conjg_Iirr_eq0. Qed.
@@ -426,12 +435,13 @@ Proof.
 move/cfclass_uniq=> chiGuniq; rewrite -big_map -big_filter; apply: eq_big_perm.
 rewrite -[index_enum _]enumT map_tnth_enum uniq_perm_eq // => [|chi].
   by rewrite filter_uniq // free_uniq // irr_free.
-rewrite mem_filter andb_idr // => /imageP[Tx _ ->].
+rewrite mem_filter andb_idr // => /mapP[Tx _ ->].
 by rewrite cfConjg_irr ?mem_irr.
 Qed.
 
 Lemma ResIndchiE j:
-  H <| G -> 'Res[H] ('Ind[G] 'chi_j) = #|H|%:R^-1 *: (\sum_(y in G) 'chi_j ^ y)%CF.
+    H <| G -> 
+ 'Res[H] ('Ind[G] 'chi_j) = #|H|%:R^-1 *: (\sum_(y in G) 'chi_j ^ y)%CF.
 Proof.
 case/andP=> [sHG /subsetP nHG].
 rewrite (reindex_inj invg_inj); apply/cfun_inP=> x Hx.
@@ -535,6 +545,8 @@ End Inertia.
 
 Arguments Scope inertia [_ group_scope cfun_scope].
 Arguments Scope cfclass [_ group_scope cfun_scope group_scope].
+Implicit Arguments conjg_Iirr_inj [gT H x1 x2].
+
 Notation "''I[' phi ] " := (inertia phi) : group_scope.
 Notation "''I[' phi ] " := (inertia_group phi) : Group_scope.
 Notation "''I_' G [ phi ] " := (G%g :&: 'I[phi]) : group_scope.
