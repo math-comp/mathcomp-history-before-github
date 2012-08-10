@@ -743,12 +743,12 @@ Let sW2H : W2 \subset H. Proof. by have [[]] := ddA0def. Qed.
 Let ntW1 : W1 :!=: 1%g. Proof. by have [[]] := ptiWL. Qed.
 Let ntW2 : W2 :!=: 1%g. Proof. by have [_ []] := ptiWL. Qed.
 
-Let oddW : odd #|W|. Proof. by have [[]] := ctiWL. Qed.
+Let oddW : odd #|W|. Proof. by have [] := ctiWL. Qed.
 Let sW1W : W1 \subset W. Proof. by have /mulG_sub[] := dprodW defW. Qed.
 Let sW2W : W2 \subset W. Proof. by have /mulG_sub[] := dprodW defW. Qed.
 Let tiW12 : W1 :&: W2 = 1%g. Proof. by have [] := dprodP defW. Qed.
 
-Let cycW : cyclic W. Proof. by have [[]] := ctiWG. Qed.
+Let cycW : cyclic W. Proof. by have [] := ctiWG. Qed.
 Let cycW1 : cyclic W1. Proof. by have [[]] := ptiWL. Qed.
 Let cycW2 : cyclic W2. Proof. by have [_ []] := ptiWL. Qed.
 Let sLG : L \subset G. Proof. by case: ddA0. Qed.
