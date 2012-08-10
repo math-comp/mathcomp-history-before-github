@@ -428,7 +428,7 @@ Qed.
 (* This will be (11.7). *)
 Lemma FTtype34_Fcore_kernel_trivial :
   [/\ p.-abelem H, #|H| = (p ^ q)%N & `H0 = 1%g].
-Admitted.
+Proof. move: derM2_HC; admit. Qed.
 
 Let pddM := FT_prDade_hyp maxM MtypeP.
 Let ptiWM : primeTI_hypothesis M HU defW := FT_primeTI_hyp MtypeP.
@@ -446,7 +446,7 @@ Let codom_sigma := map sigma (irr W).
 Lemma FTtype34_not_ortho_cycTIiso zeta :
     zeta \in S_ HC ->
   ~~ orthogonal (tau (mu_ 0 - zeta) - \sum_i eta_ i 0) codom_sigma.
-Admitted.
+Proof. move: derM2_HC; admit. Qed.
 
 (* This will be (11.9). *)
 Lemma FTtype34_structure :
@@ -454,6 +454,6 @@ Lemma FTtype34_structure :
              orthogonal (tau (mu_ 0 - zeta) - \sum_j eta_ 0 j) codom_sigma},
       (*b*) (p < q)%N
     & (*c*) FTtype M == 3 /\ typeP_Galois MtypeP].
-Admitted.
+Proof. move: derM2_HC; admit. Qed.
 
 End Eleven.

@@ -225,7 +225,7 @@ Section Twelve_4_to_6.
 
 Variable L : {group gT}.
 
-Hypotheses (maxL : L \in 'M) (Ltype1 : FTtype L == 1%N).
+Hypotheses (maxL : L \in 'M) .
 
 Local Notation "` 'L'" := (gval L) (at level 0, only parsing) : group_scope.
 Local Notation H := `L`_\F%G.
@@ -234,11 +234,17 @@ Local Notation "` 'H'" := `L`_\F (at level 0) : group_scope.
 Let calS := seqIndD H L H 1%G.
 Let tau := FT_Dade0 maxL.
 
+Section Twelve_4_5.
+
+Hypothesis Ltype1 : FTtype L == 1%N.
+
+End Twelve_4_5.
+
 (* This will be (12.6). *)
 Lemma FT_seqInd_Frobenius_coherence :
     [Frobenius L with kernel H] ->
   {subset calS <= irr L} /\ coherent calS L^# tau.
-Admitted.
+Proof. move: maxL. admit. Qed.
 
 End Twelve_4_to_6.
 
