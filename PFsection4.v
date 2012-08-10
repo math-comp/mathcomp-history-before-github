@@ -928,7 +928,9 @@ move=> nzk; split.
 pose f0 j := delta_ k *: (\sum_i eta_ i j); have in_mu := codom_f mu_.
 pose f1 psi := f0 (iinv (valP (insigd (in_mu k) psi))).
 have f1mu j: f1 (mu_ j) = f0 j.
-  by rewrite /f1 /insigd /insubd /= insubT iinv_f //; apply: prTIred_inj.
+  have in_muj := in_mu j.
+  rewrite /f1 /insigd /insubd /= insubT /=; [idtac].
+  by rewrite iinv_f //; apply: prTIred_inj.
 have iso_f1: {in codom mu_, isometry f1, to 'Z[irr G]}.
   split=> [_ _ /codomP[j1 ->] /codomP[j2 ->] | _ /codomP[j ->]]; last first.
     by rewrite f1mu rpredZsign rpred_sum // => i _; apply: cycTIiso_vchar.
