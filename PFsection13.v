@@ -5,8 +5,10 @@ Require Import fingroup morphism perm automorphism quotient action finalg zmodp.
 Require Import gfunctor gproduct cyclic commutator gseries nilpotent pgroup.
 Require Import sylow hall abelian maximal frobenius.
 Require Import matrix mxalgebra mxrepresentation mxabelem vector.
-Require Import BGsection1 BGsection3 BGsection7 BGsection15 BGsection16.
-Require Import ssrnum algC classfun character integral_char inertia vcharacter.
+Require Import BGsection1 BGsection3 BGsection7.
+Require Import BGsection14 BGsection15 BGsection16.
+Require Import ssrnum algC cyclotomic algnum.
+Require Import classfun character integral_char inertia vcharacter.
 Require Import PFsection1 PFsection2 PFsection3 PFsection4.
 Require Import PFsection5 PFsection6 PFsection7 PFsection8 PFsection9.
 Require Import PFsection10 PFsection11 PFsection12.
@@ -28,12 +30,13 @@ Local Notation G := (TheMinSimpleOddGroup gT).
 Implicit Types (p q : nat) (x y z : gT).
 Implicit Types H K L N P Q R S T U W : {group gT}.
 
-Section Thirteen_2_3_5_8.
+Section Thirteen_2_3_5_7_8.
 
-(* These assumptions correspond to the part of Peterfalvi, Hypothesis (13.1)  *)
-(* used to prove (13.2), (13.3), (13.5) and (13.8). Due to the limitations of *)
-(* Coq's Section mechanism they will need to be repeated twice down this file *)
-(* as we exploit the symmetry between S and T.                                *)
+(* These assumptions correspond to Peterfalvi, Hypothesis (13.1); many of     *)
+(* them are repeated from above in used to prove (13.2), (13.3), (13.5),      *)
+(* (13.7), and (13.8). Due to the limitations of Coq's Section mechanism we   *)
+(* will need to be repeat these assumptions twice down this file to exploit   *)
+(* the symmetry between S and T.                                              *)
 
 Variables S U W W1 W2 : {group gT}.
 Hypotheses (maxS : S \in 'M) (defW : W1 \x W2 = W).
@@ -154,8 +157,6 @@ apply: contraNneq (proper_subn (mmax_proper maxM)) => A0_0.
 by rewrite -(norm_FTsupp0 maxM) A0_0 -(setDv [1]) normD1 norms1.
 Qed.
 
-Import BGsection14.
-
 (* This is Peterfalvi (13.2). *)
 Lemma FTtypeP_facts :
   [/\ (*a*) [/\ pred2 2 3 (FTtype S), q < p -> FTtype S == 2,
@@ -196,7 +197,7 @@ have tiA0: normedTI 'A0(S) G S.
     have /imsetP[y Sy Dxy]: x ^ g \in x ^: S by rewrite wccA0 // mem_orbit.
     apply/subsetPn; exists (g * y^-1)%g; last by rewrite groupMr ?groupV.
     by rewrite !inE conjg_set1 conjgM Dxy conjgK.
-  have [_ [_ /(_ x Dx) defL] /(_ x Dx)[_ _ []]] := FTsupport_facts maxS.
+  have [_ [_ /(_ x Dx) defL] /(_ x Dx)[_ _]] := FTsupport_facts maxS.
   have{defL} [maxL _] := mem_uniq_mmax defL; set L := 'N[x] in maxL *.
   rewrite -mem_iota !inE => ALx [/orP[Ltype1 _ | Ltype2]]; last first.
     by case/(_ _)/existsP=> // ? /Frobenius_of_typeF/(typePF_exclusion StypeP).
@@ -343,6 +344,267 @@ by apply: (mulfI (neq0CG W1)); rewrite 2!prTIirr_1 -!prTIred_1 !Dmu1.
 *)
 Qed.
 
-End Thirteen_2_3_5_8.
+Lemma FTprTIsign j : delta_ j = 1. Proof. by case: FTtypeP_char_facts. Qed.
+
+Lemma FTprTIred1 j : j != 0 -> mu_ j 1%g = (u * q)%:R.
+Proof. by have [indPCmu _ _ _] := FTtypeP_char_facts; case/indPCmu/PCindP. Qed.
+
+(* We skip over (13.4), which requires the use of (13.2) and (13.3) on both   *)
+(* groups of a typeP pair.                                                    *)
+
+Local Notation H := PC.
+Local Notation "` 'H'" := `PC (at level 0) : group_scope.
+
+Let calS1 := seqIndD H S P 1.
+
+(* This is Peterfalvi (13.5). *)
+Lemma FTtypeP_seqInd_Fcore_split zeta0 zeta1 chi :
+   [/\ zeta0 \in calS1, zeta1 \in calS1, chi \in 'Z[irr G] & zeta1 != zeta0] -> 
+   {in calS1, forall zeta, zeta != zeta1 -> '[(zeta - zeta0)^\tau, chi] = 0} -> 
+  let a := '[(zeta1 - zeta0)^\tau, chi] in
+  exists2 alpha,
+     alpha \in 'Z[irr H] /\ {subset irr_constt alpha <= Iirr_ker H P} &
+  [/\ (*a*) {in H^#, forall x, chi x = a / '[zeta1] * zeta1 x + alpha x}, 
+      (*b*)
+         \sum_(x in H^#) `|chi x| ^+ 2 =
+             a ^+ 2 / '[zeta1] * (#|S|%:R - zeta1 1%g ^+ 2 / '[zeta1])
+             - 2%:R * a * (zeta1 1%g * alpha 1%g / '[zeta1])
+             + (\sum_(x in H^#) `|alpha x| ^+ 2)              
+    & (*c*)
+         \sum_(x in H^#) `|alpha x| ^+ 2 >= #|P|.-1%:R * alpha 1%g ^+ 2].
+Proof.
+case=> S1zeta0 S1zeta1 Zchi zeta0'1 o_Dzeta_chi a.
+have sW2P: W2 \subset P by have [_ _ _ []] := StypeP.
+have /mulG_sub[sPH _] := dprodW defPC.
+have ntH: H :!=: 1%g by apply: subG1_contra ntW2; apply: subset_trans sPH.
+have tiH: normedTI H^# G S.
+  apply/andP; split; first by have [] := compl_of_typeII_IV maxS StypeP.
+  rewrite setTI normD1 (mmax_norm maxS) ?gFnorm //.
+  by apply: sub_proper_trans (mmax_proper maxS); apply: gFsub.
+have ntH1: H^# != set0 by rewrite setD_eq0 subG1.
+have sH1S: H^# \subset G^# by rewrite setSD ?subsetT.
+have [ddH ddH_1] := Dade_normedTI_P _ sH1S ntH1 tiH; pose tauH := Dade ddH.
+have DtauH: {in 'CF(S, H^#), tauH =1 'Ind} := Dade_Ind ddH_1.
+pose calT := seqIndT H S.
+have sS1T: {subset calS1 <= calT} by exact: seqInd_subT.
+have Tzeta0 := sS1T _ S1zeta0.
+have calTuq zeta: zeta \in calT -> zeta 1%g = (u * q)%:R.
+  case/seqIndP=> r _ ->; rewrite cfInd1 -?divgS ?gFsub //.
+  rewrite -(sdprod_card defS) -(sdprod_card defPU) -(dprod_card defPC) -/q.
+  rewrite oU -!mulnA divnMl // mulnCA mulKn ?cardG_gt0 //.
+  by rewrite lin_char1 ?mulr1 //; apply/char_abelianP.
+have H1dzeta zeta: zeta \in calT -> zeta - zeta0 \in 'CF(S, H^#).
+  move=> Tzeta; rewrite cfun_onD1 !cfunE !calTuq // subrr eqxx andbT.
+  by rewrite rpredB ?(seqInd_on _ Tzeta) ?(seqInd_on _ S1zeta0) ?gFnormal.
+have Dtau_zeta zeta: zeta \in calT -> (zeta - zeta0)^\tau = 'Ind (zeta - zeta0).
+  move=> Tzeta; have [_ _ _ _ [_ ->//]] := FTtypeP_facts.
+  apply: cfun_onS (H1dzeta _ Tzeta); apply: subset_trans (FTsupp_sub0 S).
+  have /trivgPn[y Py nty] := subG1_contra sW2P ntW2.
+  apply/subsetP=> x H1x; apply/bigcupP; exists y.
+    by rewrite !inE nty (subsetP (Fcore_sub_FTcore maxS)).
+  rewrite notStype1 (subsetP _ x H1x) ?setSD //= subsetI sub_cent1.
+  rewrite (subsetP FTtypeP_Fitting_abelian) -(dprodW defPC).
+    by rewrite -(sdprodW defPU) mulgS ?subsetIl.
+  by rewrite (subsetP _ y Py) ?mulG_subl.
+pose calT1 := rem zeta1 (rem zeta0 (filter [mem calS1] calT)).
+pose calT2 := filter [predC calS1] calT.
+have DcalT: perm_eq calT (zeta0 :: zeta1 :: calT1 ++ calT2).
+  rewrite -(perm_filterC [mem calS1]) -!cat_cons perm_cat2r.
+  rewrite (perm_eqlP (@perm_to_rem _ zeta0 _ _)) ?mem_filter /= ?S1zeta0 //.
+  rewrite perm_cons perm_to_rem // mem_rem_uniq ?filter_uniq ?seqInd_uniq //.
+  by rewrite !inE mem_filter /= zeta0'1 S1zeta1 sS1T.
+have{DcalT} [a_ _ Dchi _] := invDade_seqInd_sum ddH chi DcalT.
+have Da_ zeta: zeta \in calT -> a_ zeta = '['Ind (zeta - zeta0), chi].
+  move=> Tzeta; rewrite /a_ !calTuq // divff ?scale1r; last first.
+    by rewrite pnatr_eq0 -lt0n muln_gt0 indexg_gt0 cardG_gt0.
+  by rewrite [Dade _ _]DtauH ?H1dzeta.
+have Za_ zeta: zeta \in calT -> a_ zeta \in Cint.
+  move=> Tzeta; rewrite Da_ ?Cint_cfdot_vchar ?cfInd_vchar //.
+  by rewrite rpredB ?char_vchar ?(seqInd_char Tzeta) ?(seqInd_char Tzeta0).
+pose alpha := 'Res[H] (\sum_(zeta <- calT2) (a_ zeta)^* / '[zeta] *: zeta).
+have{Dchi} Dchi: {in H^#, forall x, chi x = a / '[zeta1] * zeta1 x + alpha x}.
+- move=> x H1x; have [_ Hx] := setD1P H1x.
+  transitivity (invDade ddH chi x).
+    by rewrite cfunElock ddH_1 // big_set1 H1x mul1g cards1 invr1 mul1r.
+  rewrite cfResE ?gFsub ?Dchi // big_cons conj_Cint ?Za_ ?Da_ ?sS1T //=.
+  rewrite big_cat -Dtau_zeta ?sS1T //= -/a big1_seq ?add0r //= => [|zeta].
+    by congr (_ + _); rewrite sum_cfunE; apply: eq_bigr => zeta; rewrite cfunE.
+  rewrite ?(mem_rem_uniq, inE) ?rem_uniq ?filter_uniq ?seqInd_uniq //=.
+  rewrite mem_filter => /and4P[/= zeta1'z _ S1zeta Tzeta].
+  by rewrite Da_ // -Dtau_zeta // o_Dzeta_chi // conjC0 !mul0r.
+have[nsHS nsPS ns1S]: [/\ H <| S, P <| S & 1 <| S] by rewrite !gFnormal normal1.
+have [[sHS nHS] [sPS nPS]] := (andP nsHS, andP nsPS).
+have kerHalpha: {subset irr_constt alpha <= Iirr_ker H P}.
+  move=> s; apply: contraR => kerP's; rewrite [alpha]rmorph_sum cfdot_suml.
+  rewrite big1_seq // => psi; rewrite mem_filter /= andbC => /andP[].
+  case/seqIndP=> r _ ->; rewrite mem_seqInd // !inE sub1G andbT negbK => kerPr.
+  rewrite cfdot_Res_l cfdotZl mulrC cfdot_sum_irr big1 ?mul0r // => t _.
+  apply: contraNeq kerP's; rewrite mulf_eq0 fmorph_eq0 inE => /norP[rSt sSt].
+  by rewrite (sub_cfker_constt_Ind_irr sSt) -?(sub_cfker_constt_Ind_irr rSt).
+have Zalpha: alpha \in 'Z[irr H].
+  rewrite [alpha]rmorph_sum big_seq rpred_sum // => zeta; rewrite mem_filter /=.
+  case/andP=> S1'zeta Tzeta; rewrite linearZ /= -scalerA.
+  rewrite rpredZ_Cint ?conj_Cint ?Za_ //; have [s _ ->] := seqIndP Tzeta.
+  rewrite induced_sum_rcosets -?cfclass_sum -?induced_prod_index //=.
+  rewrite scalerK ?cfnorm_eq0 ?cfInd_eq0 ?irr_neq0 ?irr_char ?gFsub //.
+  by apply: rpred_sum => i _; apply: irr_vchar. 
+exists alpha => //; split=> //.
+  set a1 := a / _ in Dchi; pose phi := a1 *: 'Res zeta1 + alpha.
+  transitivity (#|H|%:R * '[phi] - `|phi 1%g| ^+ 2).
+    rewrite (cfnormE (cfun_onG phi)) mulVKf ?neq0CG // addrC.
+    rewrite (big_setD1 _ (group1 H)) addKr; apply: eq_bigr => x H1x.
+    by have [_ Hx] := setD1P H1x; rewrite !cfunE cfResE // Dchi.
+  have Qa1: a1 \in Creal.
+    apply: rpred_div.
+      by rewrite /a rpred_Cint ?Dtau_zeta -?Da_ ?Za_ ?sS1T.
+    by rewrite rpred_Cnat // Cnat_cfdot_char ?(seqInd_char S1zeta1).
+  rewrite cfnormDd; last first.
+    rewrite [alpha]cfun_sum_constt cfdotZl cfdot_sumr big1 ?mulr0 // => s.
+    move/kerHalpha; rewrite inE cfdotZr mulrC cfdot_Res_l => kerPs.
+    have [r kerP'r ->] := seqIndP S1zeta1; rewrite cfdot_sum_irr big1 ?mul0r //.
+    move=> t _; apply: contraTeq kerP'r; rewrite !inE sub1G andbT negbK.
+    rewrite mulf_eq0 fmorph_eq0 => /norP[]; rewrite -!irr_consttE.
+    by move=> /sub_cfker_constt_Ind_irr-> // /sub_cfker_constt_Ind_irr <-.
+  rewrite cfnormZ 2!cfunE cfRes1 2?real_normK //; last first.
+    rewrite rpredD 1?rpredM // Creal_Cint ?Cint_vchar1 // ?char_vchar //.
+    by rewrite (seqInd_char S1zeta1).
+  rewrite mulrDr mulrCA sqrrD opprD addrACA; congr (_ + _); last first.
+    rewrite (cfnormE (cfun_onG _)) mulVKf ?neq0CG //.
+    by rewrite (big_setD1 1%g) // Cint_normK ?Cint_vchar1 // addrC addKr.
+  rewrite opprD addrA; congr (_ - _); last first.
+    rewrite -[_ * a * _]mulrA -mulr_natl; congr (_ * _).
+    by rewrite -[a1 * _]mulrA -(mulrA a); congr (_ * _); rewrite -mulrA mulrC.
+  rewrite mulrBr; congr (_ - _); last first.
+    by rewrite mulrACA -expr2 -!exprMn mulrAC.
+  rewrite -mulrA exprMn -mulrA; congr (_ * _); rewrite expr2 -mulrA.
+  congr (_ * _); apply: canLR (mulKf (cfnorm_seqInd_neq0 nsHS S1zeta1)) _.
+  rewrite (cfnormE (cfun_onG _)) mulVKf ?neq0CG // mulrC.
+  rewrite (cfnormE (seqInd_on nsHS S1zeta1)) mulVKf ?neq0CG //.
+  by apply: eq_bigr => x Hx; rewrite cfResE.
+rewrite -subn1 natrB // -Cint_normK ?Cint_vchar1 // mulrBl mul1r ler_subl_addl.
+apply: ler_trans (_ : \sum_(x in H) `|alpha x| ^+ 2 <= _); last first.
+  by rewrite (big_setD1 1%g).
+rewrite (big_setID P) /= (setIidPr sPH) ler_paddr ?sumr_ge0 // => [x _|].
+  by rewrite mulr_ge0 ?normr_ge0.
+rewrite mulr_natl -sumr_const ler_sum // => y Py.
+suffices ->: alpha y = alpha 1%g by apply: lerr.
+rewrite [alpha]cfun_sum_constt !sum_cfunE; apply: eq_bigr => i.
+by rewrite !cfunE => /kerHalpha; rewrite inE => /subsetP/(_ y Py)/cfker1->.
+Qed.
+
+(* We skip (13.6), to the last two lemmas that need to be applied to T. *)
+
+(* Add this to character.v. *)
+Lemma Iirr1_neq0 (gT1 : finGroupType) (G1 : {group gT1}) :
+  G1 :!=: 1%g -> inord 1 != 0 :> Iirr G1.
+Proof. by rewrite -classes_gt1 -NirrE -val_eqE /= => /inordK->. Qed.
+
+Local Notation eta10 := (eta_ (inord 1) 0).
+
+Let S1mu j : j != 0 -> mu_ j \in calS1.
+Proof.
+move=> nz_j; have [indHmu _ _ _] := FTtypeP_char_facts.
+have /exists_eqP[s Ds] := indHmu j nz_j.
+rewrite Ds mem_seqInd ?gFnormal ?normal1 // !inE sub1G andbT.
+rewrite -(sub_cfker_Ind_irr s (gFsub _ _) (gFnorm _ _)) -Ds /=.
+rewrite -[mu_ j](cfInd_prTIres (FT_prDade_hypF maxS StypeP)).
+by rewrite sub_cfker_Ind_irr ?cfker_prTIres ?gFsub ?gFnorm.
+Qed.
+
+Let sS1S : {subset calS1 <= 'Z[calS]}.
+Proof.
+move=> _ /seqIndP[s /setDP[_ kerP's] ->]; rewrite inE in kerP's.
+have /mulG_sub[sPH _] := dprodW defPC.
+have [/andP[sPPU nPPU] sUPU _ _ _] := sdprod_context defPU.
+have sHPU: H \subset PU by rewrite /= -(dprodWC defPC) mulG_subG subIset ?sUPU.
+rewrite -(cfIndInd _ (gFsub _ _) sHPU) /= ['Ind[PU] _]cfun_sum_constt.
+rewrite linear_sum rpred_sum //= => r sPUs.
+rewrite linearZ rpredZ_Cnat ?Cnat_cfdot_char ?cfInd_char ?irr_char //=.
+rewrite mem_zchar // mem_seqInd ?gFnormal ?normal1 // !inE sub1G andbT.
+by rewrite -(sub_cfker_constt_Ind_irr sPUs).
+Qed.
+
+(* This is Peterfalvi (13.7). *)
+Lemma FTtypeP_sum_cycTIiso10_lb : \sum_(x in H^#) `|eta10 x| ^+ 2 >= #|H^#|%:R.
+Proof.
+pose mu1 := mu_ (inord 1); pose mu2 := mu_ (inord 2).
+have Shyps: [/\ mu1 \in calS1, mu2 \in calS1, eta10 \in 'Z[irr G] & mu2 != mu1].
+  have [Nw2gt1 Nw2gt2]: (Nirr W2 > 1 /\ Nirr W2 > 2)%N by rewrite NirrW2 ltnW.
+  by rewrite cycTIiso_vchar (inj_eq (prTIred_inj _)) !S1mu -val_eqE /= !inordK.
+have [S1mu1 S1mu2 Zeta10 _] := Shyps.
+have o_eta10_S1 zeta: zeta \in calS1 -> '[(zeta - mu1)^\tau, eta10] = 0.
+  move=> S1zeta; have{S1zeta} Sdzeta: zeta - mu1 \in 'Z[calS, S^#].
+    rewrite zcharD1E (zchar_trans sS1S) ?rpredB ?mem_zchar //= !cfunE subr_eq0.
+    suff S1_1 nu: nu \in calS1 -> nu 1%g = (u * q)%:R by rewrite !S1_1.
+    move=> S1nu; suffices: is_Ind_Fitting nu by case/PCindP.
+    by apply/exists_eqP; case/seqIndP: S1nu => s; exists s.
+  have [_ _ _ [tau1 cohS Dtau1]] := FTtypeP_char_facts; have [_ <- //] := cohS.
+  have{zeta Sdzeta} [z Zz ->] := zchar_expansion (seqInd_uniq _ _) Sdzeta.
+  rewrite raddf_sum cfdot_suml big1_seq //= => phi Sphi; apply/eqP.
+  rewrite raddfZ_Cint {Zz}//= cfdotZl mulf_eq0; apply/orP; right => {z}.
+  have [irr_phi | red_phi] := boolP (phi \in irr S).
+    by rewrite (coherent_ortho_cycTIiso StypeP sSS0).
+  have [_ _ /(_ phi)] := typeP_reducible_core_Ind maxS StypeP notStype5.
+  rewrite mem_filter /= red_phi (group_inj H0_1).
+  case/(_ Sphi)/imageP => j; rewrite inE /= => nz_j -> _.
+  case: Dtau1 => [|[_]]-> //; rewrite ?cfdotNl cfdot_suml big1 ?oppr0 // => i _.
+    by rewrite cfdot_cycTIiso (negPf nz_j) andbF.
+  by rewrite cfdot_cycTIiso oppr_eq0 (negPf nz_j) andbF.
+have{Shyps} [_ /o_eta10_S1 // | alpha] := FTtypeP_seqInd_Fcore_split Shyps.
+rewrite {}o_eta10_S1 {S1mu2}// expr0n mulr0 !mul0r subrr add0r.
+case=> Zalpha kerPalpha [Deta10 -> ub_alpha].
+have{Deta10} Deta10: {in H^#, eta10 =1 alpha}.
+  by move=> x /Deta10; rewrite !mul0r add0r.
+set a1_2 := alpha 1%g ^+ 2 in ub_alpha.
+have Dsum_alpha: \sum_(x in H^#) `|alpha x| ^+ 2 = #|H|%:R * '[alpha] - a1_2.
+  rewrite (cfnormE (cfun_onG _)) mulVKf ?neq0CG // (big_setD1 _ (group1 H)) /=.
+  by rewrite addrC Cint_normK ?addKr ?Cint_vchar1.
+have [/mulG_sub[sPH _] [_ _ _ [_ _ sW2P _ _] _]] := (dprodW defPC, StypeP).
+have nz_alpha: alpha != 0.
+  have [[x W2x ntx] [y W1y nty]] := (trivgPn _ ntW2, trivgPn _ ntW1).
+  have [eps pr_eps] := C_prim_root_exists (prime_gt0 pr_q).
+  have [_ mulW12 cW12 tiW12] := dprodP defW.
+  have [sW1W sW2W] := mulG_sub mulW12.
+  have [o_y cxy]: #[y] = q /\ x \in 'C[y].
+    split; last by apply/cent1P; red; rewrite (centsP cW12).
+    by apply: nt_prime_order => //; apply/eqP; rewrite -order_dvdn order_dvdG.
+  have eta10x: (eta10 x == eta10 (y * x)%g %[mod 1 - eps])%A.
+    by rewrite eqAmod_sym (vchar_ker_mod_prim pr_eps) ?in_setT.
+  have eta10xy: (eta10 (y * x)%g == 1 %[mod 1 - eps])%A.
+    rewrite cycTIiso_restrict; last first.
+      rewrite !inE -mulW12 mem_mulg // andbT groupMl ?groupMr // -[_ || _]andTb.
+      by rewrite andb_orr -{1}W2x -W1y andbC -!in_setI tiW12 !inE (negPf ntx).
+    have {2}<-: w_ (inord 1) 0 x = 1.
+      rewrite -[x]mul1g /w_ dprod_IirrE cfDprodE // irr0 cfun1E W2x mulr1.
+      by rewrite lin_char1 ?irr_cyclic_lin.
+    rewrite (vchar_ker_mod_prim pr_eps) ?(subsetP sW1W y) ?(subsetP sW2W) //.
+    by rewrite irr_vchar.
+  have: (alpha x == 1 %[mod 1 - eps])%A.
+    rewrite -Deta10; last by rewrite !inE ntx (subsetP sPH) ?(subsetP sW2P).
+    exact: eqAmod_trans eta10x eta10xy.
+  apply: contraTneq => ->; rewrite cfunE eqAmod_sym.
+  apply/negP=> /(int_eqAmod_prime_prim pr_eps pr_q (rpred1 _))/idPn[].
+  by rewrite (dvdC_nat q 1) -(subnKC qgt2).
+apply: wlog_neg => suma_lt_H.
+suffices{ub_alpha} lb_a1_2: a1_2 >= #|H^#|%:R.
+  have Pgt2: (2 < #|P|)%N by apply: leq_trans (subset_leq_card sW2P).
+  apply: ler_trans (ler_trans lb_a1_2 _) ub_alpha.
+  rewrite ler_pmull ?(ltr_le_trans _ lb_a1_2) ?ler1n ?ltr0n //.
+    by rewrite -(subnKC Pgt2).
+  have:= leq_trans (ltnW Pgt2) (subset_leq_card sPH).
+  by rewrite (cardsD1 1%g) group1.
+have /CnatP[n Dn]: '[alpha] \in Cnat by rewrite Cnat_cfnorm_vchar.
+have /CnatP[m Dm]: a1_2 \in Cnat by rewrite Cnat_exp_even ?Cint_vchar1.
+rewrite Dm leC_nat leqNgt; apply: contra suma_lt_H => a1_2_lt_H.
+rewrite {1}Dsum_alpha Dn Dm -natrM ler_subr_addl (cardsD1 1%g H) group1 /=.
+case Dn1: n => [|[|n1]]; first by rewrite -cfnorm_eq0 Dn Dn1 eqxx in nz_alpha.
+  have /dirrP[b [i Dalpha]]: alpha \in dirr H by rewrite dirrE Zalpha Dn Dn1 /=.
+  rewrite -Dm /a1_2 Dalpha cfunE exprMn sqrr_sign mul1r muln1 mulrS ler_add2r.
+  by rewrite lin_char1 ?expr1n //; apply/char_abelianP.
+rewrite -natrD leC_nat -add2n mulnDr (addnC 1%N) mulnDl -addnA.
+by apply: leq_trans (leq_addr _ _); rewrite muln2 -addnn leq_add2r ltnW.
+Qed.
+
+End Thirteen_2_3_5_7_8.
 
 End Thirteen.
