@@ -902,7 +902,7 @@ let add_genarg tag pr =
 (* exhibit run-time scope errors if used inside Ltac functions or   *)
 (* pattern-matching constructs.                                     *)
 (*   We use the following workaround:                               *)
-(*  - We use the (unparsable) " (**)"  token for tacticals that      *)
+(*  - We use the (unparsable) "Qed"  token for tacticals that      *)
 (*    don't start with a token, then redefine the grammar and       *)
 (*    printer using GEXTEND and set_pr_ssrtac, respectively.        *)
 (*  - We use a global stack and side effects to pass the lexical    *)
@@ -1504,7 +1504,7 @@ let tclBY tac = tclTHEN tac donetac
 (* Force use of the tactic_expr parsing entry, to rule out tick marks. *)
 let pr_ssrtacarg _ _ prt = prt tacltop
 ARGUMENT EXTEND ssrtacarg TYPED AS tactic PRINTED BY pr_ssrtacarg
-| [ " (**)" ] -> [ Util.anomaly "Grammar placeholder match" ]
+| [ "Qed" ] -> [ Util.anomaly "Grammar placeholder match" ]
 END
 GEXTEND Gram
   GLOBAL: ssrtacarg;
@@ -1579,17 +1579,17 @@ let hinttac ist is_by (is_or, atacs) =
 (* tactics that generate more than two subgoals).                     *)
 
 TACTIC EXTEND ssrtclplus
-| [ " (**)" "+" ssrtclarg(arg) ] -> [ eval_tclarg arg ]
+| [ "Qed" "+" ssrtclarg(arg) ] -> [ eval_tclarg arg ]
 END
 set_pr_ssrtac "tclplus" 5 [ArgSep "+ "; ArgSsr "tclarg"]
 
 TACTIC EXTEND ssrtclminus
-| [ " (**)" "-" ssrtclarg(arg) ] -> [ eval_tclarg arg ]
+| [ "Qed" "-" ssrtclarg(arg) ] -> [ eval_tclarg arg ]
 END
 set_pr_ssrtac "tclminus" 5 [ArgSep "- "; ArgSsr "tclarg"]
 
 TACTIC EXTEND ssrtclstar
-| [ " (**)" "*" ssrtclarg(arg) ] -> [ eval_tclarg arg ]
+| [ "Qed" "*" ssrtclarg(arg) ] -> [ eval_tclarg arg ]
 END
 set_pr_ssrtac "tclstar" 5 [ArgSep "- "; ArgSsr "tclarg"]
 
@@ -1620,7 +1620,7 @@ ARGUMENT EXTEND ssrhint TYPED AS ssrhintarg PRINTED BY pr_ssrhint
 END
 
 TACTIC EXTEND ssrtclby
-| [ " (**)" ssrhint(tac) ssrltacctx(ctx)] ->
+| [ "Qed" ssrhint(tac) ssrltacctx(ctx)] ->
   [ hinttac (get_ltacctx ctx) true tac ]
 END
 set_pr_ssrtac "tclby" 0 [ArgSsr "hint"; ArgSsr "ltacctx"]
@@ -1783,7 +1783,7 @@ ARGUMENT EXTEND ssrterm
      GLOBALIZED BY glob_ssrterm SUBSTITUTED BY subst_ssrterm
      RAW_TYPED AS ssrtermrep RAW_PRINTED BY pr_ssrterm
      GLOB_TYPED AS ssrtermrep GLOB_PRINTED BY pr_ssrterm
-| [ " (**)" constr(c) ] -> [ mk_lterm c ]
+| [ "Qed" constr(c) ] -> [ mk_lterm c ]
 END
 
 GEXTEND Gram
@@ -1835,7 +1835,7 @@ ARGUMENT EXTEND ssrpattern
      GLOBALIZED BY glob_ssrpattern SUBSTITUTED BY subst_ssrterm
      RAW_TYPED AS ssrtermrep RAW_PRINTED BY pr_ssrterm
      GLOB_TYPED AS ssrtermrep GLOB_PRINTED BY pr_ssrterm
-| [ " (**)" constr(c) ] -> [ mk_lterm c ]
+| [ "Qed" constr(c) ] -> [ mk_lterm c ]
 END
 
 GEXTEND Gram
@@ -1851,7 +1851,7 @@ ARGUMENT EXTEND ssrlpattern
      GLOBALIZED BY glob_ssrpattern SUBSTITUTED BY subst_ssrterm
      RAW_TYPED AS ssrtermrep RAW_PRINTED BY pr_ssrterm
      GLOB_TYPED AS ssrtermrep GLOB_PRINTED BY pr_ssrterm
-| [ " (**)" lconstr(c) ] -> [ mk_lterm c ]
+| [ "Qed" lconstr(c) ] -> [ mk_lterm c ]
 END
 
 GEXTEND Gram
@@ -2848,11 +2848,11 @@ let pr_ssrintrosarg _ _ prt (tac, ipats) =
 
 ARGUMENT EXTEND ssrintrosarg TYPED AS tactic * ssrintros
    PRINTED BY pr_ssrintrosarg
-| [ " (**)" ssrtacarg(arg) ssrintros_ne(ipats) ] -> [ arg, ipats ]
+| [ "Qed" ssrtacarg(arg) ssrintros_ne(ipats) ] -> [ arg, ipats ]
 END
 
 TACTIC EXTEND ssrtclintros
-| [ " (**)" ssrintrosarg(arg) ] ->
+| [ "Qed" ssrintrosarg(arg) ] ->
   [ let tac, intros = arg in
     tclINTROS (fun ist -> ssrevaltac ist tac) intros ]
 END
@@ -2928,7 +2928,7 @@ let pr_ssrdoarg prc _ prt (((n, m), (tac, _)), clauses) =
 ARGUMENT EXTEND ssrdoarg
   TYPED AS ((ssrindex * ssrmmod) * (ssrhintarg * ssrltacctx)) * ssrclauses
   PRINTED BY pr_ssrdoarg
-| [ " (**)" ] -> [ anomaly "Grammar placeholder match" ]
+| [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 let ssrdotac (((n, m), (tac, ctx)), clauses) =
@@ -2936,7 +2936,7 @@ let ssrdotac (((n, m), (tac, ctx)), clauses) =
   tclCLAUSES (tclMULT mul (hinttac (get_ltacctx ctx) false tac)) clauses
 
 TACTIC EXTEND ssrtcldo
-| [ " (**)" "do" ssrdoarg(arg) ] -> [ ssrdotac arg ]
+| [ "Qed" "do" ssrdoarg(arg) ] -> [ ssrdotac arg ]
 END
 set_pr_ssrtac "tcldo" 3 [ArgSep "do "; ArgSsr "doarg"]
 
@@ -2979,7 +2979,7 @@ let pr_ssrseqarg _ _ prt = function
 (* an unindexed tactic.                                            *)
 ARGUMENT EXTEND ssrseqarg TYPED AS ssrindex * (ssrhintarg * tactic option)
                           PRINTED BY pr_ssrseqarg
-| [ " (**)" ] -> [ anomaly "Grammar placeholder match" ]
+| [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 let sq_brace_tacnames =
@@ -3095,11 +3095,11 @@ let pr_ssrseqdir _ _ _ = function
   | R2L -> str ";" ++ spc () ++ str "last "
 
 ARGUMENT EXTEND ssrseqdir TYPED AS ssrdir PRINTED BY pr_ssrseqdir
-| [ " (**)" ] -> [ anomaly "Grammar placeholder match" ]
+| [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 TACTIC EXTEND ssrtclseq
-| [ " (**)" ssrtclarg(tac) ssrseqdir(dir) ssrseqarg(arg) ] ->
+| [ "Qed" ssrtclarg(tac) ssrseqdir(dir) ssrseqarg(arg) ] ->
   [ tclSEQAT tac dir arg ]
 END
 set_pr_ssrtac "tclseq" 5 [ArgSsr "tclarg"; ArgSsr "seqdir"; ArgSsr "seqarg"]
@@ -4115,7 +4115,7 @@ let pr_ssreqid _ _ _ = pr_eqid
 (* We must use primitive parsing here to avoid conflicts with the  *)
 (* basic move, case, and elim tactics.                             *)
 ARGUMENT EXTEND ssreqid TYPED AS ssripatrep option PRINTED BY pr_ssreqid
-| [ " (**)" ] -> [ Util.anomaly "Grammar placeholder match" ]
+| [ "Qed" ] -> [ Util.anomaly "Grammar placeholder match" ]
 END
 
 let accept_ssreqid strm =
@@ -5492,7 +5492,7 @@ let pr_ssrrwargs _ _ _ (rwargs, _) = pr_list spc pr_rwarg rwargs
 
 ARGUMENT EXTEND ssrrwargs TYPED AS ssrrwarg list * ssrltacctx
                           PRINTED BY pr_ssrrwargs
-  | [ " (**)" ] -> [ anomaly "Grammar placeholder match" ]
+  | [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 let ssr_rw_syntax = ref true
@@ -5581,7 +5581,7 @@ let pr_ssrfwdid _ _ _ id = pr_spc () ++ pr_id id
 (* We use a primitive parser for the head identifier of forward *)
 (* tactis to avoid syntactic conflicts with basic Coq tactics. *)
 ARGUMENT EXTEND ssrfwdid TYPED AS ident PRINTED BY pr_ssrfwdid
-  | [ " (**)" ] -> [ Util.anomaly "Grammar placeholder match" ]
+  | [ "Qed" ] -> [ Util.anomaly "Grammar placeholder match" ]
 END
 
 let accept_ssrfwdid strm =
