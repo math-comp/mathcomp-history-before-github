@@ -595,8 +595,11 @@ Open Scope group_ring_scope.
 
 Lemma congr_irr i1 i2 : i1 = i2 -> 'chi_i1 = 'chi_i2. Proof. by move->. Qed.
 
+Lemma Iirr1_neq0 : G :!=: 1%g -> inord 1 != 0 :> Iirr G.
+Proof. by rewrite -classes_gt1 -NirrE -val_eqE /= => /inordK->. Qed.
+
 Lemma has_nonprincipal_irr : G :!=: 1%g -> {i : Iirr G | i != 0}.
-Proof. by rewrite -classes_gt1 -NirrE => ntG; exists (Ordinal ntG). Qed.
+Proof. by move/Iirr1_neq0; exists (inord 1). Qed.
 
 Lemma irrRepr i : cfRepr 'Chi_i = 'chi_i.
 Proof.
@@ -1730,6 +1733,12 @@ Definition dprod_Iirr ij := cfIirr (cfDprod KxH 'chi_ij.1 'chi_ij.2).
 Lemma dprod_IirrE i j : 'chi_(dprod_Iirr (i, j)) = cfDprod KxH 'chi_i 'chi_j.
 Proof. by rewrite cfIirrE ?cfDprod_irr. Qed.
 
+Lemma dprod_IirrEl i : 'chi_(dprod_Iirr (i, 0)) = cfDprodl KxH 'chi_i.
+Proof. by rewrite dprod_IirrE /cfDprod irr0 rmorph1 mulr1. Qed.
+
+Lemma dprod_IirrEr j : 'chi_(dprod_Iirr (0, j)) = cfDprodr KxH 'chi_j.
+Proof. by rewrite dprod_IirrE /cfDprod irr0 rmorph1 mul1r. Qed.
+
 Lemma dprod_Iirr_inj : injective dprod_Iirr.
 Proof.
 move=> [i1 j1] [i2 j2] /eqP; rewrite -[_ == _]oddb -(natCK (_ == _)).
@@ -2437,6 +2446,25 @@ do [exists linG, cF; split=> //] => [|xi /inT[u <-]|u]; first 2 [by exists u].
 apply/eqP; rewrite eqn_dvd; apply/andP; split.
   by rewrite dvdn_cforder; rewrite -cFexp expg_order cFone.
 by rewrite order_dvdn -(inj_eq cFinj) cFone cFexp exp_cforder.
+Qed.
+
+Lemma cfExp_prime_transitive G (i j : Iirr G) :
+    prime #|G| -> i != 0 -> j != 0 ->
+  exists2 k, coprime k #['chi_i]%CF & 'chi_j = 'chi_i ^+ k.
+Proof.
+set p := #|G| => pr_p nz_i nz_j; have cycG := prime_cyclic pr_p.
+have [L [h [injh oL Lh h_ontoL]] [h1 hM hX _ o_h]] := lin_char_group G.
+rewrite (derG1P (cyclic_abelian cycG)) indexg1 -/p in oL.
+have /fin_all_exists[h' h'K] := h_ontoL _ (irr_cyclic_lin _ cycG).
+have o_h' k: k != 0 -> #[h' k] = p.
+  rewrite -cforder_irr_eq1 h'K -o_h => nt_h'k.
+  by apply/prime_nt_dvdP=> //; rewrite cforder_lin_dvdG.
+have{oL} genL k: k != 0 -> generator [set: L] (h' k).
+  move=> /o_h' o_h'k; rewrite /generator eq_sym eqEcard subsetT /=.
+  by rewrite cardsT oL -o_h'k.
+have [/(_ =P <[_]>)-> gen_j] := (genL i nz_i, genL j nz_j).
+have /cycleP[k Dj] := cycle_generator gen_j.
+by rewrite !h'K Dj o_h hX generator_coprime coprime_sym in gen_j *; exists k.
 Qed.
 
 (* This is Isaacs (2.24). *)

@@ -333,11 +333,31 @@ case/norP=> notFmaxM; rewrite inE andbC inE maxM notFmaxM negbK => P1maxM.
 by rewrite Msigma_eq_der1.
 Qed.
 
+(* Other relations between the 'core' groups. *)
+
 Lemma FTcore_sub_der1 : M`_\s \subset M^`(1)%g.
 Proof. by rewrite def_FTcore Msigma_der1. Qed.
 
 Lemma Fcore_sub_FTcore : M`_\F \subset M`_\s.
 Proof. by rewrite def_FTcore Fcore_sub_Msigma. Qed.
+
+Lemma mmax_Fcore_neq1 : M`_\F != 1.
+Proof. by have [[]] := Fcore_structure maxM. Qed.
+
+Lemma mmax_Fitting_neq1 : 'F(M) != 1.
+Proof. exact: subG1_contra (Fcore_sub_Fitting M) mmax_Fcore_neq1. Qed.
+
+Lemma FTcore_neq1 : M`_\s != 1.
+Proof. exact: subG1_contra Fcore_sub_FTcore mmax_Fcore_neq1. Qed.
+
+Lemma norm_mmax_Fcore : 'N(M`_\F) = M.
+Proof. exact: mmax_normal (gFnormal _ _) mmax_Fcore_neq1. Qed.
+
+Lemma norm_FTcore : 'N(M`_\s) = M.
+Proof. exact: mmax_normal (FTcore_normal _) FTcore_neq1. Qed.
+
+Lemma norm_mmax_Fitting : 'N('F(M)) = M.
+Proof. exact: mmax_normal (gFnormal _ _) mmax_Fitting_neq1. Qed.
 
 (* This is B & G, Lemma 16.1(f). *)
 Lemma Fcore_eq_FTcore : reflect (M`_\F = M`_\s) (FTtype M \in pred3 1%N 2 5).
@@ -713,17 +733,70 @@ Qed.
 
 End SingleGroupSummaries.
 
-Lemma FTsupp1_sub M : M \in 'M -> 'A1(M) \subset 'A(M).
+Section MmaxFTsupp.
+(* Support inclusions that depend on the maximality of M. *)
+
+Variable M : {group gT}.
+Hypothesis maxM : M \in 'M.
+
+Lemma FTsupp1_sub : 'A1(M) \subset 'A(M).
 Proof.
-move=> maxM; apply/subsetP=> x A1x; apply/bigcupP; exists x => //.
+apply/subsetP=> x A1x; apply/bigcupP; exists x => //.
 have [ntx Ms_x] := setD1P A1x; rewrite 3!inE ntx cent1id.
 have [[U K] /= complU] := kappa_witness maxM.
 have /sdprod_context[/andP[/subsetP-> //]] := sdprod_FTder maxM complU.
 by rewrite /= -def_FTcore.
 Qed.
 
-Lemma FTsupp1_sub0 M : M \in 'M -> 'A1(M) \subset 'A0(M).
-Proof. move=> maxM; exact: subset_trans (FTsupp1_sub maxM) (FTsupp_sub0 M). Qed.
+Lemma FTsupp1_sub0 : 'A1(M) \subset 'A0(M).
+Proof. exact: subset_trans FTsupp1_sub (FTsupp_sub0 M). Qed.
+
+Lemma FTsupp1_neq0 : 'A1(M) != set0.
+Proof. by rewrite setD_eq0 subG1 FTcore_neq1. Qed.
+
+Lemma FTsupp_neq0 : 'A(M) != set0.
+Proof.
+by apply: contraNneq FTsupp1_neq0 => AM_0; rewrite -subset0 -AM_0 FTsupp1_sub.
+Qed.
+
+Lemma FTsupp0_neq0 : 'A0(M) != set0.
+Proof.
+by apply: contraNneq FTsupp_neq0 => A0M_0; rewrite -subset0 -A0M_0 FTsupp_sub0.
+Qed.
+
+Lemma Fcore_sub_FTsupp1 : M`_\F^# \subset 'A1(M).
+Proof. exact: setSD (Fcore_sub_FTcore maxM). Qed.
+
+Lemma Fcore_sub_FTsupp : M`_\F^# \subset 'A(M).
+Proof. exact: subset_trans Fcore_sub_FTsupp1 FTsupp1_sub. Qed.
+
+Lemma Fcore_sub_FTsupp0 : M`_\F^# \subset 'A0(M).
+Proof. exact: subset_trans Fcore_sub_FTsupp1 FTsupp1_sub0. Qed.
+
+Lemma Fitting_sub_FTsupp : 'F(M)^# \subset 'A(M).
+Proof.
+pose pi := \pi(M`_\F); have nilF := Fitting_nil M.
+have [U defF]: {U : {group gT} | M`_\F \x U = 'F(M)}.
+  have hallH := pHall_subl (Fcore_sub_Fitting M) (gFsub _ _) (Fcore_Hall M).
+  exists 'O_pi^'('F(M))%G; rewrite (nilpotent_Hall_pcore nilF hallH).
+  exact: nilpotent_pcoreC.
+apply/subsetP=> xy /setD1P[ntxy Fxy]; apply/bigcupP.
+have [x [y [Hx Vy Dxy _]]] := mem_dprod defF Fxy.
+have [z [ntz Hz czxy]]: exists z, [/\ z != 1%g, z \in M`_\F & x \in 'C[z]].
+  have [-> | ntx] := eqVneq x 1%g; last by exists x; rewrite ?cent1id.
+  by have /trivgPn[z ntz] := mmax_Fcore_neq1 maxM; exists z; rewrite ?group1.
+exists z; first by rewrite !inE ntz (subsetP (Fcore_sub_FTcore maxM)).
+rewrite 3!inE ntxy {2}Dxy groupMl //= andbC (subsetP _ y Vy) //=; last first.
+  by rewrite sub_cent1 (subsetP _ _ Hz) // centsC; have [] := dprodP defF.
+rewrite -FTtype_Pmax // (subsetP _ xy Fxy) //.
+case MtypeP: (M \in _); last exact: gFsub.
+by have [_ _ _ ->] := Fitting_structure maxM.
+Qed.
+
+Lemma Fitting_sub_FTsupp0 : 'F(M)^# \subset 'A0(M).
+Proof. exact: subset_trans Fitting_sub_FTsupp (FTsupp_sub0 M). Qed.
+
+End MmaxFTsupp.
 
 Theorem BGsummaryD M : M \in 'M ->
  [/\ (*1*) {in M`_\sigma &, forall x y, y \in x ^: G -> y \in x ^: M},

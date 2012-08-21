@@ -264,10 +264,16 @@ Definition seqIndT := seqInd setT.
 Lemma seqInd_subT calX : {subset seqInd calX <= seqIndT}.
 Proof. exact: seqIndS (subsetT calX). Qed.
 
-Lemma seqIndT_Ind1 : 'Ind[L, K] 1 \in seqIndT.
-Proof. by apply/seqIndP; exists 0; rewrite ?irr0 ?inE. Qed.
+Lemma mem_seqIndT i : 'Ind[L, K] 'chi_i \in seqIndT.
+Proof. by apply/seqIndP; exists i; rewrite ?inE. Qed.
 
-Implicit Arguments seqIndP [calX phi].
+Lemma seqIndT_Ind1 : 'Ind[L, K] 1 \in seqIndT.
+Proof. by rewrite -irr0 mem_seqIndT. Qed.
+
+Lemma cfAut_seqIndT u : cfAut_closed u seqIndT.
+Proof.
+by move=> _ /seqIndP[i _ ->]; rewrite cfAutInd -aut_IirrE mem_seqIndT.
+Qed.
 
 Definition seqIndD H M := seqInd (Iirr_kerD H M).
 

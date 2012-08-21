@@ -708,9 +708,20 @@ Hint Resolve eqAmod_refl.
 Lemma eqAmod_sym e x y : ((x == y %[mod e]) = (y == x %[mod e]))%A.
 Proof. by rewrite /eqAmod -opprB rpredN. Qed.
 
-Lemma eqAmod_trans e x y z :
+Lemma eqAmod_trans e y x z :
   (x == y %[mod e] -> y == z %[mod e] -> x == z %[mod e])%A.
 Proof. by move=> Exy Eyz; rewrite /eqAmod -[x](subrK y) -addrA rpredD. Qed.
+
+Lemma eqAmod_transl e x y z :
+  (x == y %[mod e])%A -> (x == z %[mod e])%A = (y == z %[mod e])%A.
+Proof. by move/(sym_left_transitive (eqAmod_sym e) (@eqAmod_trans e)). Qed.
+
+Lemma eqAmod_transr e x y z :
+  (x == y %[mod e])%A -> (z == x %[mod e])%A = (z == y %[mod e])%A.
+Proof. by move/(sym_right_transitive (eqAmod_sym e) (@eqAmod_trans e)). Qed.
+
+Lemma eqAmod0 e x : (x == 0 %[mod e])%A = (e %| x)%A.
+Proof. by rewrite /eqAmod subr0. Qed.
 
 Lemma eqAmodN e x y : (- x == y %[mod e])%A = (x == - y %[mod e])%A.
 Proof. by rewrite eqAmod_sym /eqAmod !opprK addrC. Qed.
@@ -767,6 +778,12 @@ Qed.
 
 Lemma eqAmod0_rat : {in Crat &, forall e n, (n == 0 %[mod e])%A = (e %| n)%C}.
 Proof. by move=> e n Qe Qn; rewrite /= eqAmod_rat /eqCmod ?subr0 ?Crat0. Qed.
+
+Lemma eqAmod_nat (e m n : nat) : (m == n %[mod e])%A = (m == n %[mod e])%N.
+Proof. by rewrite eqAmod_rat ?rpred_nat // eqCmod_nat. Qed.
+
+Lemma eqAmod0_nat (e m : nat) : (m == 0 %[mod e])%A = (e %| m)%N.
+Proof. by rewrite eqAmod0_rat ?rpred_nat // dvdC_nat. Qed.
 
 (* Multiplicative order. *)
 

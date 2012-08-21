@@ -1637,6 +1637,13 @@ Proof.
 by move=> Zx nz_x; rewrite -Cint_normK // expr_ge1 ?normr_ge0 ?norm_Cint_ge1.
 Qed.
 
+Lemma Cint_ler_sqr x : x \in Cint -> x <= x ^+ 2.
+Proof.
+move=> Zx; have [-> | nz_x] := eqVneq x 0; first by rewrite expr0n.
+apply: ler_trans (_ : `|x| <= _); first by rewrite real_ler_norm ?Creal_Cint.
+by rewrite -Cint_normK // ler_eexpr // norm_Cint_ge1.
+Qed.
+
 (* Integer divisibility. *)
 
 Lemma dvdCP x y : reflect (exists2 z, z \in Cint & y = z * x) (x %| y)%C.
@@ -1720,12 +1727,23 @@ Proof. by rewrite /eqCmod subrr rpred0. Qed.
 Lemma eqCmodm0 e : (e == 0 %[mod e])%C. Proof. by rewrite /eqCmod subr0. Qed.
 Hint Resolve eqCmod_refl eqCmodm0.
 
+Lemma eqCmod0 e x : (x == 0 %[mod e])%C = (e %| x)%C.
+Proof. by rewrite /eqCmod subr0. Qed.
+
 Lemma eqCmod_sym e x y : ((x == y %[mod e]) = (y == x %[mod e]))%C.
 Proof. by rewrite /eqCmod -opprB rpredN. Qed.
 
-Lemma eqCmod_trans e x y z :
+Lemma eqCmod_trans e y x z :
   (x == y %[mod e] -> y == z %[mod e] -> x == z %[mod e])%C.
 Proof. by move=> Exy Eyz; rewrite /eqCmod -[x](subrK y) -addrA rpredD. Qed.
+
+Lemma eqCmod_transl e x y z :
+  (x == y %[mod e])%C -> (x == z %[mod e])%C = (y == z %[mod e])%C.
+Proof. by move/(sym_left_transitive (eqCmod_sym e) (@eqCmod_trans e)). Qed.
+
+Lemma eqCmod_transr e x y z :
+  (x == y %[mod e])%C -> (z == x %[mod e])%C = (z == y %[mod e])%C.
+Proof. by move/(sym_right_transitive (eqCmod_sym e) (@eqCmod_trans e)). Qed.
 
 Lemma eqCmodN e x y : (- x == y %[mod e])%C = (x == - y %[mod e])%C.
 Proof. by rewrite eqCmod_sym /eqCmod !opprK addrC. Qed.
@@ -1739,6 +1757,16 @@ Proof. by rewrite !(addrC x) eqCmodDr. Qed.
 Lemma eqCmodD e x1 x2 y1 y2 :
   (x1 == x2 %[mod e] -> y1 == y2 %[mod e] -> x1 + y1 == x2 + y2 %[mod e])%C.
 Proof. rewrite -(eqCmodDl e x2 y1) -(eqCmodDr e y1); exact: eqCmod_trans. Qed.
+
+Lemma eqCmod_nat (e m n : nat) : (m == n %[mod e])%C = (m == n %[mod e]).
+Proof.
+without loss lenm: m n / (n <= m)%N.
+  by move=> IH; case/orP: (leq_total m n) => /IH //; rewrite eqCmod_sym eq_sym.
+by rewrite /eqCmod -natrB // dvdC_nat eqn_mod_dvd.
+Qed.
+
+Lemma eqCmod0_nat (e m : nat) : (m == 0 %[mod e])%C = (e %| m)%N.
+Proof. by rewrite eqCmod0 dvdC_nat. Qed.
 
 Lemma eqCmodMr e :
   {in Cint, forall z x y, x == y %[mod e] -> x * z == y * z %[mod e]}%C.

@@ -45,6 +45,8 @@ Local Notation G := (TheMinSimpleOddGroup gT).
 Implicit Types (p q : nat) (x y z : gT).
 Implicit Types H K L N P Q R S T U W : {group gT}.
 
+Local Notation "#1" := (inord 1) (at level 0).
+
 Section OneMaximal.
 
 (* These assumptions correspond to Peterfalvi, Hypothesis (10.1).             *)
@@ -177,56 +179,35 @@ by have [[]] := compl_of_typeII maxS StypeP Stype2.
 Qed.
 Let w2_pr := FTtype345_core_prime.
 
-Definition FTtype345_TIirr_degree := truncC (mu2_ 0 (inord 1) 1%g).
-Definition FTtype345_TIsign := delta_ (inord 1).
+Definition FTtype345_TIirr_degree := truncC (mu2_ 0 #1 1%g).
+Definition FTtype345_TIsign := delta_ #1.
 Local Notation d := FTtype345_TIirr_degree.
 Local Notation delta := FTtype345_TIsign.
 Definition FTtype345_ratio := (d%:R - delta) / w1%:R.
 Local Notation n := FTtype345_ratio.
 
 (* This is the remainder of Peterfalvi (10.3). *)
-(* Refactoring note: the material at the beginning of the proof should move   *)
-(* to inertia.                                                                *)
 Lemma FTtype345_constants :
   [/\ forall i j, j != 0 -> mu2_ i j 1%g = d%:R,
       forall j, j != 0 -> delta_ j = delta,
       (d > 1)%N
     & n \in Cnat].
 Proof.
-have [LW2 [c [injc oLW2 Lc c_ontoL]] [c1 cM cX _ o_c]] := lin_char_group W2.
-have abW2 := cyclic_abelian cycW2; rewrite (derG1P abW2) indexg1 -/w2 in oLW2.
-have /fin_all_exists[c' c'K] := c_ontoL _ (char_abelianP _ abW2 _).
-have o_c' k: k != 0 -> #[c' k] = w2.
-  rewrite -cforder_irr_eq1 c'K -o_c => nt_c'k.
-  by apply/prime_nt_dvdP=> //; rewrite cforder_lin_dvdG.
-have{oLW2} genLW2 k: k != 0 -> generator [set: LW2] (c' k).
-  move=> /o_c' o_c'k; rewrite /generator eq_sym eqEcard subsetT /=.
-  by rewrite cardsT oLW2 -o_c'k.
-have w_Er k: w_ 0 k = cfDprodr defW 'chi_k.
-  by rewrite /w_ dprod_Iirr0l dprodr_IirrE.
-pose j1 : Iirr W2 := inord 1.
-have nz_j1 : j1 != 0 by rewrite /eq_op /= inordK // NirrW2 ltnW.
-have oi0j1: #[w_ 0 j1]%CF = #['chi_j1]%CF.
-  apply/eqP; rewrite w_Er eqn_dvd; apply/andP; split.
-    apply/dvdn_cforderP=> _ /(mem_dprod defW)[x [y [W1x W2y -> _]]].
-    by rewrite cfDprodEr //; apply/dvdn_cforderP.
-  apply/dvdn_cforderP=> y W2y; rewrite -(cfDprodEr defW _ (group1 W1)) //.
-  by apply/dvdn_cforderP; rewrite //= -(dprodW defW) mem_mulg.
+have nz_j1 : #1 != 0 :> Iirr W2 by rewrite Iirr1_neq0.
 have invj j: j != 0 -> mu2_ 0 j 1%g = d%:R /\ delta_ j = delta.
-  move/genLW2=> gen_j; have gen_j1 := (_ =P <[_]>) (genLW2 _ nz_j1).
-  rewrite gen_j1 in gen_j; have /cycleP[m Dj] := cycle_generator gen_j.
-  rewrite Dj generator_coprime -o_c -c'K -oi0j1 coprime_sym in gen_j.
-  have [[u]] := cycTIiso_aut_exists ctiWM gen_j; rewrite -!['chi__]/(w_ _ _).
-  rewrite {1}w_Er -rmorphX c'K -cX -Dj -c'K /= -w_Er => Dj1u _.
-  rewrite truncCK ?Cnat_irr1 // -/j1.
-  have: delta_ j *: mu2_ 0 j == cfAut u (delta_ j1 *: mu2_ 0 j1).
+  move=> nz_j; have [k co_k_j1 Dj] := cfExp_prime_transitive w2_pr nz_j1 nz_j.
+  rewrite -(cforder_dprodr defW) -dprod_IirrEr in co_k_j1.
+  have{co_k_j1} [[u Dj1u] _] := cycTIiso_aut_exists ctiWM co_k_j1.
+  rewrite dprod_IirrEr -rmorphX -Dj /= -!dprod_IirrEr -!/(w_ _ _) in Dj1u.
+  rewrite truncCK ?Cnat_irr1 //.
+  have: delta_ j *: mu2_ 0 j == cfAut u (delta_ #1 *: mu2_ 0 #1).
     by rewrite -!(cycTIiso_prTIirr pddM) -/ctiWM -Dj1u.
   rewrite raddfZsign /= -prTIirr_aut eq_scaled_irr signr_eq0 /= /mu2_.
   by case/andP=> /eqP-> /eqP->; rewrite prTIirr_aut cfunE aut_Cnat ?Cnat_irr1.
 have d_gt1: (d > 1)%N.
-  rewrite ltn_neqAle andbC -eqC_nat -ltC_nat truncCK ?Cnat_irr1 // -/j1.
+  rewrite ltn_neqAle andbC -eqC_nat -ltC_nat truncCK ?Cnat_irr1 //.
   rewrite irr1_gt0 /= eq_sym; apply: contraNneq nz_j1 => mu2_lin.
-  have: mu2_ 0 j1 \is a linear_char by rewrite qualifE irr_char /= mu2_lin.
+  have: mu2_ 0 #1 \is a linear_char by rewrite qualifE irr_char /= mu2_lin.
   by rewrite lin_irr_der1 => /(prTIirr0P ptiWM)[i /irr_inj/prTIirr_inj[_ ->]].
 split=> // [i j /invj[<- _] | _ /invj[//] | ]; first by rewrite prTIirr_1.
 have: (d%:R == delta %[mod w1])%C by rewrite truncCK ?Cnat_irr1 ?prTIirr1_mod.

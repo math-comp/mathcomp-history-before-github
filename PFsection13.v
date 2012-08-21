@@ -15,7 +15,16 @@ Require Import PFsection10 PFsection11 PFsection12.
 
 (******************************************************************************)
 (* This file covers Peterfalvi, Section 13: The Subgroups S and T.            *)
-(* The following definitions are used locally across sections:                *)
+(* The following definitions will be used in PFsection14:                     *)
+(*  FTtypeP_bridge StypeP j == a virtual character of S that mixes characters *)
+(* (locally) beta_ j, betaS    that do and do not contain P = S`_\F in their  *)
+(*                             kernels, for StypeP : of_typeP S U defW.       *)
+(*                          := 'Ind[S, P <*> W1] 1 - mu2_ 0 j.                *)
+(*  FTtypeP_bridge_gap StypeP == the difference between the image of beta_ j  *)
+(*  (locally) Gamma, GammaS   under the Dade isometry for S, and its natural  *)
+(*                            value, 1 - eta_ 0 j (this does not actually     *)
+(*                            depend on j != 0).                              *)
+(* The following definitions are only used locally across sections:           *)
 (*   irrIndFittinq S chi <=>  chi is an irreducible character of S induced    *)
 (*                            from an irreducible character of 'F(S) (which   *)
 (*                            will be linear here, as 'F(S) is abelian).      *)
@@ -33,149 +42,6 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Import GroupScope GRing.Theory FinRing.Theory Num.Theory.
-
-Section MoreChar.
-
-Open Scope ring_scope.
-
-Variable gT : finGroupType.
-Implicit Types G H K L : {group gT}.
-
-(* Add this to algC.v, check for prior use. *)
-Lemma Cint_ler_sqr b : b \in Cint -> b <= b ^+ 2.
-Proof.
-move=> Zb; have [-> | nz_b] := eqVneq b 0; first by rewrite expr0n.
-apply: ler_trans (_ : `|b| <= _); first by rewrite real_ler_norm ?Creal_Cint.
-by rewrite -Cint_normK // ler_eexpr // norm_Cint_ge1.
-Qed.
-
-(* Add this to character.v. *)
-Lemma Iirr1_neq0 G : G :!=: 1%g -> inord 1 != 0 :> Iirr G.
-Proof. by rewrite -classes_gt1 -NirrE -val_eqE /= => /inordK->. Qed.
-
-Section MorphOrder.
-
-Variables (aT rT : finGroupType) (G : {group aT}) (R : {group rT}).
-Variable f : {rmorphism 'CF(G) -> 'CF(R)}.
-
-Lemma cforder_rmorph phi : #[f phi]%CF %| #[phi]%CF.
-Proof. by rewrite dvdn_cforder -rmorphX exp_cforder rmorph1. Qed.
-
-Lemma cforder_inj_rmorph phi : injective f -> #[f phi]%CF = #[phi]%CF.
-Proof.
-move=> inj_f; apply/eqP; rewrite eqn_dvd cforder_rmorph dvdn_cforder /=.
-by rewrite -(rmorph_eq1 _ inj_f) rmorphX exp_cforder.
-Qed.
-
-End MorphOrder.
-
-Lemma cforder_sdprod G K H (defG : K ><| H = G) phi :
-  #[cfSdprod defG phi]%CF = #[phi]%CF.
-Proof. by apply: cforder_inj_rmorph; apply: cfSdprod_inj. Qed.
-
-Lemma cforder_mod G H (phi : 'CF(G / H)):
-  H <| G -> #[phi %% H]%CF = #[phi]%CF.
-Proof. by move/cfModK/can_inj/cforder_inj_rmorph->. Qed.
-
-Lemma dprod_IirrEl G K H (defG : K \x H = G) i :
-  'chi_(dprod_Iirr defG (i, 0)) = cfDprodl defG 'chi_i.
-Proof. by rewrite dprod_IirrE /cfDprod irr0 rmorph1 mulr1. Qed.
-
-Lemma dprod_IirrEr G K H (defG : K \x H = G) j :
-  'chi_(dprod_Iirr defG (0, j)) = cfDprodr defG 'chi_j.
-Proof. by rewrite dprod_IirrE /cfDprod irr0 rmorph1 mul1r. Qed.
-
-(* Add this to character.v, use it in PFsection10. *)
-Lemma cfExp_prime_transitive G (i j : Iirr G) :
-    prime #|G| -> i != 0 -> j != 0 ->
-  exists2 k, coprime k #['chi_i]%CF & 'chi_j = 'chi_i ^+ k.
-Proof.
-set p := #|G| => pr_p nz_i nz_j; have cycG := prime_cyclic pr_p.
-have [L [h [injh oL Lh h_ontoL]] [h1 hM hX _ o_h]] := lin_char_group G.
-rewrite (derG1P (cyclic_abelian cycG)) indexg1 -/p in oL.
-have /fin_all_exists[h' h'K] := h_ontoL _ (irr_cyclic_lin _ cycG).
-have o_h' k: k != 0 -> #[h' k] = p.
-  rewrite -cforder_irr_eq1 h'K -o_h => nt_h'k.
-  by apply/prime_nt_dvdP=> //; rewrite cforder_lin_dvdG.
-have{oL} genL k: k != 0 -> generator [set: L] (h' k).
-  move=> /o_h' o_h'k; rewrite /generator eq_sym eqEcard subsetT /=.
-  by rewrite cardsT oL -o_h'k.
-have [/(_ =P <[_]>)-> gen_j] := (genL i nz_i, genL j nz_j).
-have /cycleP[k Dj] := cycle_generator gen_j.
-by rewrite !h'K Dj o_h hX generator_coprime coprime_sym in gen_j *; exists k.
-Qed.
-
-(* Add this to PFsection5.v. *)
-Lemma mem_seqIndT K L i : 'Ind[L, K] 'chi_i \in seqIndT K L.
-Proof. by apply/seqIndP; exists i; rewrite ?inE. Qed.
-
-Lemma cfAut_seqIndT K L u : cfAut_closed u (seqIndT K L).
-Proof.
-by move=> _ /seqIndP[i _ ->]; rewrite cfAutInd -aut_IirrE mem_seqIndT.
-Qed.
-
-End MoreChar.
-
-Section MoreBGsection16.
-
-Variable gT : minSimpleOddGroupType.
-Local Notation G := (TheMinSimpleOddGroup gT).
-
-Variable M : {group gT}.
-Hypothesis maxM : M \in 'M.
-
-Lemma mmax_Fcore_neq1 : M`_\F != 1.
-Proof. by have [[]] := Fcore_structure maxM. Qed.
-
-Lemma mmax_Fitting_neq1 : 'F(M) != 1.
-Proof. exact: subG1_contra (Fcore_sub_Fitting M) mmax_Fcore_neq1. Qed.
-
-Lemma FTcore_neq1 : M`_\s != 1.
-Proof. exact: subG1_contra (Fcore_sub_FTcore maxM) mmax_Fcore_neq1. Qed.
-
-Lemma norm_mmax_Fcore : 'N(M`_\F) = M.
-Proof. exact: mmax_normal (gFnormal _ _) mmax_Fcore_neq1. Qed.
-
-Lemma norm_mmax_Fitting : 'N('F(M)) = M.
-Proof. exact: mmax_normal (gFnormal _ _) mmax_Fitting_neq1. Qed.
-
-Lemma FTsupp1_neq0 : 'A1(M) != set0.
-Proof. by rewrite setD_eq0 subG1 FTcore_neq1. Qed.
-
-Lemma FTsupp_neq0 : 'A(M) != set0.
-Proof.
-by apply: contraNneq FTsupp1_neq0 => AM_0; rewrite -subset0 -AM_0 FTsupp1_sub.
-Qed.
-
-Lemma FTsupp0_neq0 : 'A0(M) != set0.
-Proof.
-by apply: contraNneq FTsupp_neq0 => A0M_0; rewrite -subset0 -A0M_0 FTsupp_sub0.
-Qed.
-
-Lemma Fitting_sub_FTsupp : 'F(M)^# \subset 'A(M).
-Proof.
-pose pi := \pi(M`_\F); have nilF := Fitting_nil M.
-have [U defF]: {U : {group gT} | M`_\F \x U = 'F(M)}.
-  have hallH := pHall_subl (Fcore_sub_Fitting M) (gFsub _ _) (Fcore_Hall M).
-  exists 'O_pi^'('F(M))%G; rewrite (nilpotent_Hall_pcore nilF hallH).
-  exact: nilpotent_pcoreC.
-apply/subsetP=> xy /setD1P[ntxy Fxy]; apply/bigcupP.
-have [x [y [Hx Vy Dxy _]]] := mem_dprod defF Fxy.
-have [z [ntz Hz czxy]]: exists z, [/\ z != 1%g, z \in M`_\F & x \in 'C[z]].
-  have [-> | ntx] := eqVneq x 1%g; last by exists x; rewrite ?cent1id.
-  by have /trivgPn[z ntz H1z] := mmax_Fcore_neq1; exists z; rewrite ?group1.
-exists z; first by rewrite !inE ntz (subsetP (Fcore_sub_FTcore maxM)).
-rewrite 3!inE ntxy {2}Dxy groupMl //= andbC (subsetP _ y Vy) //=; last first.
-  by rewrite sub_cent1 (subsetP _ _ Hz) // centsC; have [] := dprodP defF.
-rewrite -FTtype_Pmax // (subsetP _ xy Fxy) //.
-case MtypeP: (M \in _); last exact: gFsub.
-by have [_ _ _ ->] := Fitting_structure maxM.
-Qed.
-
-Lemma Fitting_sub_FTsupp0 : 'F(M)^# \subset 'A0(M).
-Proof. exact: subset_trans Fitting_sub_FTsupp (FTsupp_sub0 M). Qed.
-
-End MoreBGsection16.
 
 Section Thirteen.
 

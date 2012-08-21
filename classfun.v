@@ -1235,6 +1235,24 @@ Proof. by apply/eqP; rewrite -dvdn_cforder. Qed.
 
 End CfunOrder.
 
+Implicit Arguments dvdn_cforderP [gT G phi n].
+
+Section MorphOrder.
+
+Variables (aT rT : finGroupType) (G : {group aT}) (R : {group rT}).
+Variable f : {rmorphism 'CF(G) -> 'CF(R)}.
+
+Lemma cforder_rmorph phi : #[f phi]%CF %| #[phi]%CF.
+Proof. by rewrite dvdn_cforder -rmorphX exp_cforder rmorph1. Qed.
+
+Lemma cforder_inj_rmorph phi : injective f -> #[f phi]%CF = #[phi]%CF.
+Proof.
+move=> inj_f; apply/eqP; rewrite eqn_dvd cforder_rmorph dvdn_cforder /=.
+by rewrite -(rmorph_eq1 _ inj_f) rmorphX exp_cforder.
+Qed.
+
+End MorphOrder.
+
 Section BuildIsometries.
 
 Variable (gT : finGroupType) (L G : {group gT}).
@@ -1361,6 +1379,9 @@ Qed.
 Lemma eq_cfker_Res phi : H \subset cfker phi -> cfker ('Res[H, G] phi) = H.
 Proof. by move=> kH; apply/eqP; rewrite eqEsubset cfker_sub sub_cfker_Res. Qed.
 
+Lemma cforder_Res phi : #['Res[H] phi]%CF %| #[phi]%CF.
+Proof. exact: cforder_rmorph. Qed.
+
 End MoreRestrict.
 
 Section Morphim.
@@ -1452,6 +1473,9 @@ Lemma sub_morphim_cfker phi (A : {set aT}) :
   A \subset G -> (f @* A \subset cfker phi) = (A \subset cfker (cfMorph phi)).
 Proof. by move=> sAG; rewrite sub_cfker_morph ?sAG. Qed.
 
+Lemma cforder_morph phi : #[cfMorph phi]%CF = #[phi]%CF.
+Proof. by apply: cforder_inj_rmorph; apply: cfMorph_inj. Qed.
+
 End Main.
 
 Lemma cfResMorph (G H : {group aT}) (phi : 'CF(f @* G)) :
@@ -1532,6 +1556,9 @@ Lemma cfIsom_inj : injective (cfIsom isoGR). Proof. exact: can_inj cfIsomK. Qed.
 
 Lemma cfIsom_eq1 phi : (cfIsom isoGR phi == 1) = (phi == 1).
 Proof. by apply: rmorph_eq1; apply: cfIsom_inj. Qed.
+
+Lemma cforder_isom phi : #[cfIsom isoGR phi]%CF = #[phi]%CF.
+Proof. exact: cforder_inj_rmorph cfIsom_inj. Qed.
 
 End InvMorphism.
 
@@ -1698,6 +1725,13 @@ move=> kerK; rewrite -cfResQuo ?subsetIl ?quotientInorm ?cfRes_id //.
 by rewrite subsetI normG (subset_trans kerK) ?cfker_sub.
 Qed.
 
+Lemma cforder_mod H (psi : 'CF(G / H)) : H <| G -> #[psi %% H]%CF = #[psi]%CF.
+Proof. by move/cfModK/can_inj/cforder_inj_rmorph->. Qed.
+
+Lemma cforder_quo H phi :
+  H <| G -> H \subset cfker phi -> #[phi / H]%CF = #[phi]%CF.
+Proof. by move=> nsHG kerHphi; rewrite -cforder_mod ?cfQuoK. Qed.
+
 End MoreCoset.
 
 Section Product.
@@ -1773,6 +1807,9 @@ rewrite unlock cfker_morph ?normal_norm // cfker_isom restrmEsub //=.
 rewrite -(sdprod_modl defG) ?sub_cosetpre //=; congr (_ ><| _).
 by rewrite quotientK ?(subset_trans skerH) // -group_modr //= setIC tiKH mul1g.
 Qed.
+
+Lemma cforder_sdprod phi : #[cfSdprod phi]%CF = #[phi]%CF.
+Proof. by apply: cforder_inj_rmorph cfSdprod_inj. Qed.
 
 End SDproduct.
 
@@ -1898,6 +1935,12 @@ Lemma cfDprodr_iso : isometry cfDprodr.
 Proof.
 by move=> psi1 psi2; rewrite -!cfDprod_cfun1l cfdot_dprod cfnorm1 mul1r.
 Qed.
+
+Lemma cforder_dprodl phi : #[cfDprodl phi]%CF = #[phi]%CF.
+Proof. exact: cforder_sdprod. Qed.
+
+Lemma cforder_dprodr psi : #[cfDprodr psi]%CF = #[psi]%CF.
+Proof. exact: cforder_sdprod. Qed.
 
 End DProduct.
 
@@ -2329,6 +2372,9 @@ Qed.
 
 Lemma cfAut_cfuni A : ('1_A)^u = '1_A :> 'CF(G).
 Proof. by apply/cfunP=> x; rewrite !cfunElock rmorph_nat. Qed.
+
+Lemma cforder_aut phi : #[phi^u]%CF = #[phi]%CF.
+Proof. exact: cforder_inj_rmorph cfAut_inj. Qed.
 
 Lemma cfAutRes phi : ('Res[H] phi)^u = 'Res phi^u.
 Proof. by apply/cfunP=> x; rewrite !cfunElock rmorphMn. Qed.
