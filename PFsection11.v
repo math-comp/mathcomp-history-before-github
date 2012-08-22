@@ -441,12 +441,161 @@ Local Notation eta_ i j := (sigma (w_ i j)).
 Local Notation mu_ := (primeTIred ptiWM).
 
 Let codom_sigma := map sigma (irr W).
+Let ntW1 : (W1 :!=: 1)%g. Proof. by have [[]] := MtypeP. Qed.
+Let ntW2 : (W2 :!=: 1)%g. Proof. by have [_ _ _ []] := MtypeP. Qed.
+
+
+Let sHHU : H \subset HU.
+Proof. by have [_ _ /mulG_sub[]] := sdprod_context defHU. Qed.
+Let sUHU : U \subset HU.
+Proof. by have [_ _ /mulG_sub[]] := sdprod_context defHU. Qed.
+Let sHC_HU: (HC \subset HU)%g.
+Proof.  by rewrite join_subG sHHU subIset // sUHU. Qed.
+Let sHUM : HU \subset M.
+Proof. by have [_ _ /mulG_sub[]] := sdprod_context defM. Qed.
+Let nsHCHU: HC <| HU.
+Proof.
+have [_ nsHC_M _] := normal_hyps.
+by exact: normalS sHC_HU sHUM nsHC_M.
+Qed.
+Let nsCU : C <| U.
+Proof.  by apply: normalS (subsetIl _ _) (subset_trans _ sHUM) nsCM. Qed.
+
+Let frobMbar : [Frobenius M / HC = (HU / HC) ><| (W1 / HC)].
+Proof.
+have [[_ hallW1 _ _] _ _ [_ _ _ sW2M'' regM'W1 ] _] := MtypeP.
+apply: Frobenius_coprime_quotient => //.
+  by have[] := normal_hyps.
+split=> [|w /regM'W1-> //]; rewrite -derM2_HC //.
+apply: (sol_der1_proper (mmax_sol maxM)) => //.
+by apply: subG1_contra ntW2; apply: subset_trans sW2M'' (der_sub 1 HU).
+
+Qed.
+
+
+Local Notation Idelta := (primeTI_Isign ptiWM).
+Local Notation delta_ j := (primeTIsign ptiWM j).
+Local Notation d := (FTtype345_TIirr_degree MtypeP).
+Local Notation n := (FTtype345_ratio MtypeP).
+Local Notation delta := (FTtype345_TIsign MtypeP).
+
+Let mu2_ i j := primeTIirr ptiWM i j.
+
+Let  NirrW1 : Nirr W1 = q.
+Proof.
+have [[cW1 _ _ _] _ _ _ _] := MtypeP.
+by rewrite /q -card_Iirr_cyclic // card_ord.
+Qed.
+
+Let  NirrW2 : Nirr W2 = p.
+Proof.
+have cW2: cyclic W2 by have [_ _ _ []] := MtypeP.
+by rewrite /p -card_Iirr_cyclic // card_ord.
+Qed.
+
+Lemma Ptype_Fcompl_kernel_cent : Ptype_Fcompl_kernel MtypeP :=: C.
+Proof.
+have [_ _ H0_1] := FTtype34_Fcore_kernel_trivial.
+rewrite [Ptype_Fcompl_kernel MtypeP]unlock /= (group_inj H0_1).
+by rewrite astabQ -morphpreIim -injm_cent ?injmK ?ker_coset ?norms1.
+Qed.
 
 (* This will be (11.8). *)
 Lemma FTtype34_not_ortho_cycTIiso zeta :
     zeta \in S_ HC ->
   ~~ orthogonal (tau (mu_ 0 - zeta) - \sum_i eta_ i 0) codom_sigma.
-Proof. move: derM2_HC; admit. Qed.
+Proof.
+move=>ZiSHC.
+pose S1 := S_ HC.
+pose u := #|(U/C)%g|.
+have Pu : (u > 0)%N by exact: cardG_gt0.
+have qgt2 : (q > 2)%N by rewrite odd_gt2 ?mFT_odd ?cardG_gt1.
+have FUW1 : [Frobenius U <*> W1 = U ><| W1].
+  by exact: Ptype_compl_Frobenius MtypeP _.
+have AUC : abelian (U / C).
+  by apply: sub_der1_abelian; have[_ _ _ <-] := Mtype34_facts.
+have S1w1: {in S1, forall xi : 'CF(M), xi 1%g = q%:R}.
+  move=> _ /seqIndP[s /setDP[kerH' _] ->]; rewrite !inE in kerH'.
+  rewrite cfInd1 // -(index_sdprod defM) lin_char1 ?mulr1 // lin_irr_der1.
+  rewrite (subset_trans _ kerH') // der1_min //; first by case/andP: nsHCHU.
+  suff/isog_abelian->: (HU / HC)%g \isog (U / C)%g by [].
+  by rewrite isog_sym quotient_sdprodr_isog.
+have SS1: (size S1 * q = u - 1)%N.
+  pose X_ (S0 : seq 'CF(M)) := [set s | 'Ind[M, HU] 'chi_s \in S0].
+  pose sumX_ cS0 := \sum_(s in X_ cS0) 'chi_s 1%g ^+ 2.
+  have defX1: X_ S1 = Iirr_kerD HU HU HC.
+    have [_ nsHC_M _] := normal_hyps.
+    by apply/setP=> s; rewrite !inE mem_seqInd // !inE.
+  have defX: X_ (S_ 1) = Iirr_kerD HU HU 1%g.
+    by apply/setP=> s; rewrite !inE mem_seqInd ?normal1 //= !inE.
+  have sumX1: sumX_ S1 = u%:R - 1.
+    rewrite /sumX_ defX1 sum_Iirr_kerD_square // indexgg mul1r.
+    by rewrite /u -!divgS // ?subsetIl // -(sdprod_card defHU) 
+               -(dprod_card defHC) divnMl // divg_normal.
+  have irrS1: {subset S1 <= irr M}.
+    have [_ nsHC_M _] := normal_hyps.
+    move=> _ /seqIndP[s /setDP[kerHC kerHU] ->]; rewrite !inE in kerHC kerHU.
+    rewrite -(quo_IirrK _ kerHC) // mod_IirrE // cfIndMod // cfMod_irr //.
+    rewrite (irr_induced_Frobenius_ker (FrobeniusWker frobMbar)) //.
+    by rewrite quo_Iirr_eq0 // -subGcfker.
+  apply/eqP; rewrite -eqC_nat mulnC [q](index_sdprod defM).
+  rewrite (size_irr_subseq_seqInd _ (subseq_refl S1)) //.
+  rewrite natrB ?cardG_gt0 // -sumr_const -sumX1.
+  apply/eqP/esym/eq_bigr => s.
+  rewrite defX1 !inE -derM2_HC -lin_irr_der1 => /and3P[_ _ /eqP->].
+  by rewrite expr1n.
+pose j : Iirr W2 := inord 1.
+have nZj : j != 0.
+  apply/eqP=>  /val_eqP /=.
+  by rewrite inordK // NirrW2; case: (p) pr_p=> [|[]].
+ (* First part of 11.8.1 *)
+have Edu : d = u.
+  apply/eqP.
+  have/eqP: mu_ j 1%g = (q * u)%:R.
+    have Imuj : mu_ j \in filter [predC irr M] (seqIndD HU M H H0).
+      rewrite mem_filter /= prTIred_not_irr /=. 
+      rewrite -[mu_ j]cfInd_prTIres mem_seqInd ?gFnormal ?normal1 //=.
+      have [_ _ ->] := FTtype34_Fcore_kernel_trivial.
+      by rewrite !inE sub1G (cfker_prTIres (FT_prDade_hypF maxM MtypeP)).
+   case: (boolP (typeP_Galois MtypeP))=> TG.
+     have [_ _ [_ /(_ _ Imuj)[]]] := typeP_Galois_characters maxM Mtypen5 TG.
+     by rewrite Ptype_Fcompl_kernel_cent.
+   have [_ [_ /(_ _ Imuj)[]]] := typeP_nonGalois_characters maxM Mtypen5 TG.
+   by rewrite /u -Ptype_Fcompl_kernel_cent.
+  rewrite /primeTIred  sum_cfunE (eq_bigr (fun i => d%:R))=> [|i _]; last first.
+    by have [->] := FTtype345_constants maxM MtypeP Mtypen2.
+  rewrite sumr_const card_ord NirrW1 -mulr_natl -natrM eqC_nat eqn_pmul2l //.
+  by exact: prime_gt0.
+ (* Second part of 11.8.1 *)
+have Ed1 : delta = 1.
+  suffices: (1 == delta %[mod q])%C.
+    rewrite [delta]signrE /eqCmod addrC opprB subrK dvdC_nat.
+    by case: (Idelta j); rewrite ?subr0 // gtnNdvd.
+  apply: eqCmod_trans (prTIirr1_mod ptiWM 0 j); rewrite -/(mu2_ 0 j) -/q.
+  have [-> // _ _ _] := FTtype345_constants maxM MtypeP Mtypen2.
+  rewrite Edu eqCmod_sym /eqCmod -(@natrB _ u 1) ?indexg_gt0 // subn1 dvdC_nat.
+  have nC_UW1: U <*> W1 \subset 'N(C).
+    have /sdprodP[_ _ nPUW1 _] := Ptype_Fcore_sdprod MtypeP.
+    by rewrite normsI ?norms_cent // join_subG normG; have [_ []] := MtypeP.
+  have coUq: coprime #|U| q.
+    by have /sdprod_context[_ /coprimeSg->] := defHU.
+  have /Frobenius_dvd_ker1: [Frobenius U <*> W1 / C = (U / C) ><| (W1 / C)].
+    have [_ _ _ defC] := Mtype34_facts.
+    have [defUW1 _ _ _ _] := Frobenius_context FUW1.
+    rewrite Frobenius_coprime_quotient // /normal ?subIset ?joing_subl //.
+    split=> [|x /(Frobenius_reg_ker FUW1)->]; last exact: sub1G.
+    have /Frobenius_context[ _ UnT _ _ _] := FUW1.
+    rewrite /= defC (sol_der1_proper sol_M) //.
+    have /sdprodP [_ <- _ _] := defM; have /sdprodP [_ <- _ _] := defHU.
+    by exact: subset_trans (mulG_subr _ _) (mulG_subl _ _).
+  have [nCU nCW1] := joing_subP nC_UW1; rewrite !card_quotient // -/u.
+  by rewrite -indexgI setIC setIAC (coprime_TIg coUq) setI1g indexg1 -card_quotient.
+ (* Third part of 11.8.1 *)
+have En : n = (size S1)%:R.
+  rewrite /FTtype345_ratio Edu Ed1 -/q -(@natrB _  _ 1 %N) // -SS1.
+  by rewrite natrM mulfK // (eqC_nat _ 0); case: q pr_q.
+admit.
+Qed.
 
 (* This will be (11.9). *)
 Lemma FTtype34_structure :
