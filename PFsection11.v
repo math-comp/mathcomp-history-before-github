@@ -520,6 +520,12 @@ have S1w1: {in S1, forall xi : 'CF(M), xi 1%g = q%:R}.
   rewrite (subset_trans _ kerH') // der1_min //; first by case/andP: nsHCHU.
   suff/isog_abelian->: (HU / HC)%g \isog (U / C)%g by [].
   by rewrite isog_sym quotient_sdprodr_isog.
+have irrS1: {subset S1 <= irr M}.
+  have [_ nsHC_M _] := normal_hyps.
+  move=> _ /seqIndP[s /setDP[kerHC kerHU] ->]; rewrite !inE in kerHC kerHU.
+  rewrite -(quo_IirrK _ kerHC) // mod_IirrE // cfIndMod // cfMod_irr //.
+  rewrite (irr_induced_Frobenius_ker (FrobeniusWker frobMbar)) //.
+  by rewrite quo_Iirr_eq0 // -subGcfker.
 have SS1: (size S1 * q = u - 1)%N.
   pose X_ (S0 : seq 'CF(M)) := [set s | 'Ind[M, HU] 'chi_s \in S0].
   pose sumX_ cS0 := \sum_(s in X_ cS0) 'chi_s 1%g ^+ 2.
@@ -532,29 +538,23 @@ have SS1: (size S1 * q = u - 1)%N.
     rewrite /sumX_ defX1 sum_Iirr_kerD_square // indexgg mul1r.
     by rewrite /u -!divgS // ?subsetIl // -(sdprod_card defHU) 
                -(dprod_card defHC) divnMl // divg_normal.
-  have irrS1: {subset S1 <= irr M}.
-    have [_ nsHC_M _] := normal_hyps.
-    move=> _ /seqIndP[s /setDP[kerHC kerHU] ->]; rewrite !inE in kerHC kerHU.
-    rewrite -(quo_IirrK _ kerHC) // mod_IirrE // cfIndMod // cfMod_irr //.
-    rewrite (irr_induced_Frobenius_ker (FrobeniusWker frobMbar)) //.
-    by rewrite quo_Iirr_eq0 // -subGcfker.
   apply/eqP; rewrite -eqC_nat mulnC [q](index_sdprod defM).
   rewrite (size_irr_subseq_seqInd _ (subseq_refl S1)) //.
   rewrite natrB ?cardG_gt0 // -sumr_const -sumX1.
   apply/eqP/esym/eq_bigr => s.
   rewrite defX1 !inE -derM2_HC -lin_irr_der1 => /and3P[_ _ /eqP->].
   by rewrite expr1n.
-pose j : Iirr W2 := inord 1.
-have nZj : j != 0.
+pose j1 : Iirr W2 := inord 1.
+have nZj1 : j1 != 0.
   apply/eqP=>  /val_eqP /=.
   by rewrite inordK // NirrW2; case: (p) pr_p=> [|[]].
  (* First part of 11.8.1 *)
 have Edu : d = u.
   apply/eqP.
-  have/eqP: mu_ j 1%g = (q * u)%:R.
-    have Imuj : mu_ j \in filter [predC irr M] (seqIndD HU M H H0).
+  have/eqP: mu_ j1 1%g = (q * u)%:R.
+    have Imuj : mu_ j1 \in filter [predC irr M] (seqIndD HU M H H0).
       rewrite mem_filter /= prTIred_not_irr /=. 
-      rewrite -[mu_ j]cfInd_prTIres mem_seqInd ?gFnormal ?normal1 //=.
+      rewrite -[mu_ _]cfInd_prTIres mem_seqInd ?gFnormal ?normal1 //=.
       have [_ _ ->] := FTtype34_Fcore_kernel_trivial.
       by rewrite !inE sub1G (cfker_prTIres (FT_prDade_hypF maxM MtypeP)).
    case: (boolP (typeP_Galois MtypeP))=> TG.
@@ -570,8 +570,8 @@ have Edu : d = u.
 have Ed1 : delta = 1.
   suffices: (1 == delta %[mod q])%C.
     rewrite [delta]signrE /eqCmod addrC opprB subrK dvdC_nat.
-    by case: (Idelta j); rewrite ?subr0 // gtnNdvd.
-  apply: eqCmod_trans (prTIirr1_mod ptiWM 0 j); rewrite -/(mu2_ 0 j) -/q.
+    by case: (Idelta j1); rewrite ?subr0 // gtnNdvd.
+  apply: eqCmod_trans (prTIirr1_mod ptiWM 0 j1); rewrite -/(mu2_ 0 j1) -/q.
   have [-> // _ _ _] := FTtype345_constants maxM MtypeP Mtypen2.
   rewrite Edu eqCmod_sym /eqCmod -(@natrB _ u 1) ?indexg_gt0 // subn1 dvdC_nat.
   have nC_UW1: U <*> W1 \subset 'N(C).
@@ -594,7 +594,27 @@ have Ed1 : delta = 1.
 have En : n = (size S1)%:R.
   rewrite /FTtype345_ratio Edu Ed1 -/q -(@natrB _  _ 1 %N) // -SS1.
   by rewrite natrM mulfK // (eqC_nat _ 0); case: q pr_q.
+have /irrP[izeta izetaE] := irrS1 _ ZiSHC.
+pose alpha_ := FTtype345_bridge MtypeP izeta .
+have alphaE i j :  alpha_ i j = mu2_ i j - delta *: mu2_ i 0 - n *: zeta.
+  by rewrite izetaE.
+have Omu2 i j (z : 'CF(M)) (ZiS1 : z \in S1) :  '[mu2_ i j, z] = 0.
+  case/seqIndP: ZiS1 (irrS1 _ ZiS1)  => s _ -> Iind.
+  rewrite -cfdot_Res_l cfRes_prTIirr  cfdot_irr.
+  rewrite (negPf (contraNneq _ (prTIred_not_irr ptiWM j))) // => Ds.
+  by rewrite -cfInd_prTIres Ds.
+have Oalpha i j (z : 'CF(M)) (ZiS1 : z \in S1) :  
+  '[alpha_ i j, z] = (z == zeta)%:R * -n.
+  rewrite izetaE !cfdotBl !cfdotZl !Omu2 // mulr0 !(sub0r,oppr0).
+  have/irrP[iz ->] := irrS1 _ ZiS1.
+  rewrite mulrN mulrC cfdot_irr; congr (- (_ * _)).
+  case: (_ =P _)=> [->|/eqP izDizeta]; first by rewrite eqxx.
+  case: (_ =P _)=> // /irr_inj /eqP Dchi; case/negP: izDizeta.
+  by rewrite eq_sym.
 admit.
+Qed.
+
+Let ZmuBzeta zeta j :admit.
 Qed.
 
 (* This will be (11.9). *)
