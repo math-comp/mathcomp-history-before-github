@@ -614,9 +614,6 @@ have Oalpha i j (z : 'CF(M)) (ZiS1 : z \in S1) :
 admit.
 Qed.
 
-Let ZmuBzeta zeta j :admit.
-Qed.
-
 (* This will be (11.9). *)
 Lemma FTtype34_structure :
   [/\ (*a*) {in S_ HC, forall zeta,
