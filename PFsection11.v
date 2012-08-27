@@ -701,7 +701,6 @@ have nY i j  (NZj : j != 0) : '[Y_ i j] = (n * a_ i j * (a_ i j - 2%:R)) + n ^+ 
   (* ring would be handy! *)
   rewrite (natrD _ 1 1) mulrBr [_ * (1 + 1)]mulrDr opprD !mulr1 !addrA -expr2.
   rewrite [a_ _ _ * n]mulrC [a_ _ _ * (n * _)]mulrC.
-  set A := _ ^+ 2; set B := n * _; set C := _ * _.
   rewrite [X in X = _]addrC -!addrA; congr (_ + _).
   by rewrite [X in X = _]addrC !addrA.
   (* This is the second part of 11.8.2 *)
@@ -772,10 +771,10 @@ have betaE i j  (NZj : j != 0) :
       by rewrite CintE opprK Cnat1 orbT.
     congr (tau _).
     have->: delta_ j1 = delta by [].
-    rewrite !(scalerBr, scalerDr, scalerA).
+    rewrite !scalerDr !scalerN !scalerA.
     rewrite -signr_addb addbb !scale1r -!addrA; congr (_ + _); rewrite !addrA.
     by rewrite addrC -!addrA.
-  rewrite !(scalerBr, scalerDr).
+  rewrite !scalerDr !scalerN.
   rewrite !addrA subrK !opprB [X in _ = X]addrC !addrA subrK.
   by rewrite addrC; congr (_ + _); rewrite [X in _ = X - _]addrC addrK.
 admit.
