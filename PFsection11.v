@@ -527,7 +527,7 @@ Lemma FTtype34_not_ortho_cycTIiso zeta :
     zeta \in S_ HC ->
   ~~ orthogonal (tau (mu_ 0 - zeta) - \sum_i eta_ i 0) codom_sigma.
 Proof.
-move=>ZiSHC.
+move=>ZiSHC; apply/negP=> OtauS.
 pose u := #|(U/C)%g|.
 have Pu : (u > 0)%N by exact: cardG_gt0.
 have qgt2 : (q > 2)%N by rewrite odd_gt2 ?mFT_odd ?cardG_gt1.
@@ -735,6 +735,49 @@ have Xd i j  (NZj : j != 0) (Ca : (a_ i j == 0) || (a_ i j == 2%:R)) :
   rewrite nY //;  have /orP[/eqP->|/eqP->] := Ca.
     by rewrite mulr0 mul0r add0r.
   by rewrite subrr mulr0 add0r.
+pose beta := tau (alpha_ 0 j1) - delta *: (eta_ 0 j1 - eta_ 0 0) 
+               + n *: tau1 zeta.
+  (* First part of 11.8.3 *)
+have betaE i j  (NZj : j != 0) :
+    beta = tau (alpha_ i j) - delta *: (eta_ i j - eta_ i 0) 
+               + n *: tau1 zeta.
+  congr (_ + _).
+  have->: tau (alpha_ i j) = tau (alpha_ i j - alpha_ i j1) + tau (alpha_ i j1).
+    by rewrite -raddfD subrK.
+  rewrite [alpha_ i j]alphaE {1}[alpha_ i j1]alphaE.
+  have subXX m1 m2 m3 : (m1 - m2) - (m3 - m2) = m1 - m3.
+    by rewrite -addrA; congr (_ + _); rewrite opprB addrA addNr sub0r.
+  rewrite !subXX.
+  pose pddS := FT_prDade_hypF maxM MtypeP.
+  have->: tau (mu2_ i j - mu2_ i j1) = delta_ j *: (eta_ i j - eta_ i j1).
+    apply: (@prDade_sub_TIirr _ _ _ _ _ _ _ _ _ _ _ pddS)=> //.
+    by have [Hmu _ _] := FTtype345_constants maxM MtypeP Mtypen2; rewrite !Hmu.
+  have->: delta_ j = delta.
+    have [_ UU _ _] := FTtype345_constants maxM MtypeP Mtypen2.
+    by rewrite -(UU _ NZj).
+  have->: tau (alpha_ i j1) = tau (alpha_ i j1 - alpha_ 0 j1) + tau (alpha_ 0 j1).
+    by rewrite -raddfD subrK.
+  rewrite [alpha_ i j1]alphaE {2}[alpha_ 0 j1]alphaE.
+  rewrite subXX !addrA [_ + tau _]addrC -!addrA; congr (_ + _); rewrite !addrA.
+  rewrite opprB addrA.
+  have->: 
+     tau (mu2_ i j1 - delta *: mu2_ i 0 + delta *: mu2_ 0 0 - mu2_ 0 j1) =
+          delta *: (eta_ i j1 - eta_ 0 j1 - eta_ i 0 + eta_ 0 0).
+    have<-: 
+     tau (delta_ j1 *: mu2_ i j1 - delta_ j1 *: mu2_ 0 j1 - mu2_ i 0 + mu2_ 0 0)
+             = eta_ i j1 - eta_ 0 j1 - eta_ i 0 + eta_ 0 0.
+       by apply: (prDade_sub2_TIirr pddS).
+    rewrite-[_*: tau _]raddfZ_Cint; last first.
+      rewrite /delta -signr_odd; case: odd=> //.
+      by rewrite CintE opprK Cnat1 orbT.
+    congr (tau _).
+    have->: delta_ j1 = delta by [].
+    rewrite !(scalerBr, scalerDr, scalerA).
+    rewrite -signr_addb addbb !scale1r -!addrA; congr (_ + _); rewrite !addrA.
+    by rewrite addrC -!addrA.
+  rewrite !(scalerBr, scalerDr).
+  rewrite !addrA subrK !opprB [X in _ = X]addrC !addrA subrK.
+  by rewrite addrC; congr (_ + _); rewrite [X in _ = X - _]addrC addrK.
 admit.
 Qed.
 
