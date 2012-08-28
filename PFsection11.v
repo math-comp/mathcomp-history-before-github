@@ -777,6 +777,46 @@ have betaE i j  (NZj : j != 0) :
   rewrite !scalerDr !scalerN.
   rewrite !addrA subrK !opprB [X in _ = X]addrC !addrA subrK.
   by rewrite addrC; congr (_ + _); rewrite [X in _ = X - _]addrC addrK.
+  (* This is the last part of 11.8.3 *)
+have Rbeta : cfReal beta.
+  have nCn : n \in Cnat by rewrite En.
+  rewrite /cfReal rmorphD rmorphB /=.
+  rewrite raddfZsign /= -/delta rmorphB [(n *: _)^*%CF]raddfZ_Cnat //=.
+  rewrite ![(eta_ _ _)^*%CF]cfAut_cycTIiso -![(w_ _ _)^*%CF]cycTIirr_aut.
+  rewrite !aut_Iirr0 /tau -Dade_aut -/tau izetaE.
+  have ZS1i : 'Z[S1, M^#] =i 'Z[S1, 'A0(M)].
+    move=> u1; apply/idP/idP; last first.
+      by apply: (zchar_onS (FTsupp0_sub _)).
+    rewrite zchar_split=> /andP[IZ CZ]; rewrite zchar_split IZ /=.
+    have/cfun_onS->//:  HU^# \subset 'A0(M).
+      suff-> : 'A0(M) = HU^# :|: class_support  (cyclicTIset defW) M.
+        by exact: subsetUl.
+      have defA1: 'A1(M) = HU^# by rewrite /= -FTcore_eq_der1.
+      have defA : 'A(M) = HU^# by rewrite FTsupp_eq1 ?defA1.
+      by rewrite -defA (FTtypeP_supp0_def _ MtypeP).
+    move: CZ; rewrite !cfun_onD1=> /andP[_ ->]; rewrite andbT.
+    have /(zchar_expansion (seqInd_uniq _ _))[s Hs ->] := IZ.
+    rewrite big_seq_cond; apply: rpred_sum=> x; rewrite andbT=> xIS1.
+    by apply/rpredZ/(seqInd_on (der_normal 1 _) xIS1).
+  have co_A0 : coherent_with S1 'A0(M) tau tau1.
+    by split=> // v Hv; apply: Ctau1; rewrite ZS1i.
+  move: (ZiSHC); rewrite izetaE=> iZiSHC.
+  rewrite (cfAut_Dade_coherent co_A0)=> //; last first.
+    rewrite (seqInd_nontrivial_irr _ _ _ iZiSHC) ?mFT_odd //.
+    rewrite seqInd_free //; split=> //=.
+    by apply: cfAut_seqInd.
+  have->: (alpha_ 0 j1)^*%CF = 
+            alpha_ 0 (aut_Iirr conjC j1) + n *: (zeta - zeta^*%CF).
+    admit.
+  rewrite [tau _]raddfD /= -/tau [tau (_ *: _)]raddfZ_Cnat //= -/tau.
+  rewrite -[tau (_ - _)]Ctau1; last first.
+    rewrite  zcharD1 !cfunE !S1w1 // conj_Cnat // addrN ?eqxx andbT.
+    by rewrite zchar_onG rpredB ?mem_zchar // cfAut_seqInd.
+  rewrite  [tau1 _]raddfB.
+  have F1 :  (aut_Iirr conjC j1 != 0) by rewrite aut_Iirr_eq0 //.
+  rewrite (betaE 0 _ F1) -!addrA; apply/eqP; congr (_ + _).
+  rewrite addrC -!addrA; congr (_ + _).
+  by rewrite addrC scalerBr izetaE subrK.
 admit.
 Qed.
 
