@@ -781,7 +781,7 @@ have betaE i j  (NZj : j != 0) :
 have Rbeta : cfReal beta.
   have nCn : n \in Cnat by rewrite En.
   rewrite /cfReal rmorphD rmorphB /=.
-  rewrite raddfZsign /= -/delta rmorphB [(n *: _)^*%CF]raddfZ_Cnat //=.
+  rewrite Ed1 scale1r /= rmorphB raddfZ_Cnat //=.
   rewrite ![(eta_ _ _)^*%CF]cfAut_cycTIiso -![(w_ _ _)^*%CF]cycTIirr_aut.
   rewrite !aut_Iirr0 /tau -Dade_aut -/tau izetaE.
   have ZS1i : 'Z[S1, M^#] =i 'Z[S1, 'A0(M)].
@@ -807,14 +807,15 @@ have Rbeta : cfReal beta.
     by apply: cfAut_seqInd.
   have->: (alpha_ 0 j1)^*%CF = 
             alpha_ 0 (aut_Iirr conjC j1) + n *: (zeta - zeta^*%CF).
-    admit.
+    rewrite !alphaE scalerBr addrA subrK Ed1 scale1r.
+    by rewrite 2!rmorphB /=  raddfZ_Cnat // -!prTIirr_aut !aut_Iirr0.
   rewrite [tau _]raddfD /= -/tau [tau (_ *: _)]raddfZ_Cnat //= -/tau.
   rewrite -[tau (_ - _)]Ctau1; last first.
     rewrite  zcharD1 !cfunE !S1w1 // conj_Cnat // addrN ?eqxx andbT.
     by rewrite zchar_onG rpredB ?mem_zchar // cfAut_seqInd.
   rewrite  [tau1 _]raddfB.
   have F1 :  (aut_Iirr conjC j1 != 0) by rewrite aut_Iirr_eq0 //.
-  rewrite (betaE 0 _ F1) -!addrA; apply/eqP; congr (_ + _).
+  rewrite (betaE 0 _ F1) Ed1 scale1r -!addrA; apply/eqP; congr (_ + _).
   rewrite addrC -!addrA; congr (_ + _).
   by rewrite addrC scalerBr izetaE subrK.
 admit.
