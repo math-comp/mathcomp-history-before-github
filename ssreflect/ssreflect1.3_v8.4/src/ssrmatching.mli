@@ -237,7 +237,7 @@ val pf_unify_HO : goal Tacmach.sigma -> constr -> constr -> goal Tacmach.sigma
 (** Some more low level functions needed to implement the full SSR language
     on top of the former APIs *)
 val tag_of_cpattern : cpattern -> char
-val loc_of_cpattern : cpattern -> Loc.t
+val loc_of_cpattern : cpattern -> Util.loc
 val id_of_cpattern : cpattern -> Names.variable option
 val is_wildcard : cpattern -> bool
 val cpattern_of_id : Names.variable -> cpattern

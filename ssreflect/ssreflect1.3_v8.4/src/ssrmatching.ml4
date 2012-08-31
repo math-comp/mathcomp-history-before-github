@@ -35,21 +35,9 @@ open Extraargs
 open Ppconstr
 open Printer
 
-open Globnames
-open Misctypes
-open Decl_kinds
-open Evar_kinds
-open Constrexpr
-open Constrexpr_ops
-open Notation_term
-open Notation_ops
-open Locus
-open Locusops
-
-type loc = Loc.t
-let dummy_loc = Loc.ghost
-let errorstrm = Errors.errorlabstrm "ssreflect"
-let loc_error loc msg = Errors.user_err_loc (loc, msg, str msg)
+type loc = Util.loc
+let errorstrm = errorlabstrm "ssreflect"
+let loc_error loc msg = user_err_loc (loc, msg, str msg)
 
 (* 0 cost pp function. Active only if env variable SSRDEBUG is set *)
 (* or if SsrDebug is Set                                                  *)
@@ -73,7 +61,7 @@ let env_size env = List.length (Environ.named_context env)
 let safeDestApp c =
   match kind_of_term c with App (f, a) -> f, a | _ -> c, [| |]
 let get_index = function ArgArg i -> i | _ ->
-  Errors.anomaly "Uninterpreted index"
+  anomaly "Uninterpreted index"
 (* Toplevel constr must be globalized twice ! *)
 let glob_constr ist gsigma genv = function
   | _, Some ce ->
@@ -126,11 +114,11 @@ let add_genarg tag pr =
   wits
 
 (** Constructors for cast type *)
-let dC t = CastConv t
+let dC t = CastConv (DEFAULTcast, t)
 (** Constructors for constr_expr *)
 let isCVar = function CRef (Ident _) -> true | _ -> false
 let destCVar = function CRef (Ident (_, id)) -> id | _ ->
-  Errors.anomaly "not a CRef"
+  anomaly "not a CRef"
 let mkCHole loc = CHole (loc, None)
 let mkCLambda loc name ty t = 
    CLambdaN (loc, [[loc, name], Default Explicit, ty], t)
@@ -147,11 +135,11 @@ let mkRLambda n s t = GLambda (dummy_loc, n, Explicit, s, t)
 let combineCG t1 t2 f g = match t1, t2 with
  | (x, (t1, None)), (_, (t2, None)) -> x, (g t1 t2, None)
  | (x, (_, Some t1)), (_, (_, Some t2)) -> x, (mkRHole, Some (f t1 t2))
- | _, (_, (_, None)) -> Errors.anomaly "have: mixed C-G constr"
- | _ -> Errors.anomaly "have: mixed G-C constr"
+ | _, (_, (_, None)) -> anomaly "have: mixed C-G constr"
+ | _ -> anomaly "have: mixed G-C constr"
 let loc_ofCG = function
- | (_, (s, None)) -> Glob_ops.loc_of_glob_constr s
- | (_, (_, Some s)) -> Constrexpr_ops.constr_loc s
+ | (_, (s, None)) -> loc_of_glob_constr s
+ | (_, (_, Some s)) -> constr_loc s
 
 let mk_term k c = k, (mkRHole, Some c)
 let mk_lterm = mk_term ' '
@@ -449,7 +437,7 @@ let mk_tpattern ?p_origin ?(hack=false) env sigma0 (ise, t) ok dir p =
     | Evar (k, _) ->
       if Evd.mem sigma0 k then KpatEvar k, f, a else
       if a <> [] then KpatFlex, f, a else 
-      (match p_origin with None -> Errors.error "indeterminate pattern"
+      (match p_origin with None -> error "indeterminate pattern"
       | Some (dir, rule) ->
 	errorstrm (str "indeterminate " ++ pr_dir_side dir
           ++ str " in " ++ pr_constr_pat rule))
@@ -579,12 +567,12 @@ let match_upats_FO upats env sigma0 ise =
            let pt' = unif_end env sigma0 ise' u.up_t (u.up_ok lhs) in
            raise (FoundUnif (ungen_upat lhs pt' u))
        with FoundUnif _ as sigma_u -> raise sigma_u 
-       | Not_found -> Errors.anomaly "incomplete ise in match_upats_FO"
+       | Not_found -> anomaly "incomplete ise in match_upats_FO"
        | _ -> () in
     List.iter one_match fpats
   done;
   iter_constr_LR loop f; Array.iter loop a in
-  fun c -> try loop c with Invalid_argument _ -> Errors.anomaly "IN FO"
+  fun c -> try loop c with Invalid_argument _ -> anomaly "IN FO"
 
 let prof_FO = mk_profiler "match_upats_FO";;
 let match_upats_FO upats env sigma0 ise c =
@@ -646,7 +634,7 @@ let fixed_upat = function
 let do_once r f = match !r with Some _ -> () | None -> r := Some (f ())
 
 let assert_done r = 
-  match !r with Some x -> x | None -> Errors.anomaly "do_once never called"
+  match !r with Some x -> x | None -> anomaly "do_once never called"
 
 type subst = Environ.env -> Term.constr -> int -> Term.constr
 type find_P = 
@@ -694,7 +682,7 @@ let source () = match upats_origin, upats with
   | Some (dir,rule), _ -> str"The " ++ pr_dir_side dir ++ str" of " ++ 
       pr_constr_pat rule ++ spc()
   | _, [] | None, _::_::_ ->
-      Errors.anomaly "mk_tpattern_matcher with no upats_origin" in
+      anomaly "mk_tpattern_matcher with no upats_origin" in
 ((fun env c h ~k -> 
   do_once upat_that_matched (fun () -> 
     try
@@ -706,7 +694,7 @@ let source () = match upats_origin, upats with
       errorstrm (source () ++ str "does not match any subterm of the goal")
     | NoProgress when (not raise_NoMatch) ->
         let dir = match upats_origin with Some (d,_) -> d | _ ->
-          Errors.anomaly "mk_tpattern_matcher with no upats_origin" in      
+          anomaly "mk_tpattern_matcher with no upats_origin" in      
         errorstrm (str"all matches of "++source()++
           str"are equal to the " ++ pr_dir_side (inv_dir dir))
     | NoProgress -> raise NoMatch);
@@ -732,7 +720,7 @@ let source () = match upats_origin, upats with
   let sigma, ({up_f = pf; up_a = pa} as u) =
     match !upat_that_matched with
     | Some x -> x | None when raise_NoMatch -> raise NoMatch
-    | None -> Errors.anomaly "companion function never called" in
+    | None -> anomaly "companion function never called" in
   let p' = mkApp (pf, pa) in
   if max_occ <= !nocc then p', u.up_dir, (sigma, u.up_t)
   else errorstrm (str"Only " ++ int !nocc ++ str" < " ++ int max_occ ++
@@ -875,7 +863,7 @@ let glob_cpattern gs p =
          | (r1, Some _), (r2, Some _) when isCVar t1 ->
              encode k "In" [r1; r2; bind_in t1 t2]
          | (r1, Some _), (r2, Some _) -> encode k "In" [r1; r2]
-         | _ -> Errors.anomaly "where are we?"
+         | _ -> anomaly "where are we?"
          with _ when isCVar t1 -> encode k "In" [bind_in t1 t2])
      | CNotation(_, "( _ in _ in _ )", ([t1; t2; t3], [], [])) ->
          check_var t2; encode k "In" [fst (glob t1); bind_in t2 t3]
@@ -928,12 +916,12 @@ let interp_pattern ist gl red redty =
   let mkG ?(k=' ') x = k,(x,None) in
   let decode t f g =
     try match (pf_intern_term ist gl t) with
-    | GCast(_,GHole _,CastConv(GLambda(_,Name x,_,_,c))) -> f x (' ',(c,None))
+    | GCast(_,GHole _,CastConv(_,GLambda(_,Name x,_,_,c))) -> f x (' ',(c,None))
     | it -> g t with _ -> g t in
   let decodeG t f g = decode (mkG t) f g in
-  let bad_enc id _ = Errors.anomaly ("bad encoding for pattern " ^ id) in
+  let bad_enc id _ = anomaly ("bad encoding for pattern " ^ id) in
   let red = match red with
-    | T(k,(GCast (_,GHole _,(CastConv(GLambda (_,Name id,_,_,t)))),None))
+    | T(k,(GCast (_,GHole _,(CastConv(_,GLambda (_,Name id,_,_,t)))),None))
         when let id = string_of_id id in let len = String.length id in
         (len > 8 && String.sub id 0 8 = "_ssrpat_") ->
         let id = string_of_id id in let len = String.length id in
@@ -1078,7 +1066,7 @@ let eval_pattern ?raise_NoMatch env0 sigma0 concl0 pattern occ do_subst =
 ;;
 
 let redex_of_pattern (sigma, p) = let e = match p with
-  | In_T _ | In_X_In_T _ -> Errors.anomaly "pattern without redex"
+  | In_T _ | In_X_In_T _ -> anomaly "pattern without redex"
   | T e | X_In_T (e, _) | E_As_X_In_T (e, _, _) | E_In_X_In_T (e, _, _) -> e in
   Reductionops.nf_evar sigma e
 
@@ -1108,7 +1096,7 @@ let pf_fill_occ env concl occ sigma0 p (sigma, t) ok h =
 let fill_occ_term env cl occ sigma0 (sigma, t) =
   try
     let sigma',t',cl,_ = pf_fill_occ env cl occ sigma0 t (sigma, t) all_ok 1 in
-    if sigma' != sigma0 then Errors.error "matching impacts evars" else cl, (sigma',t') with NoMatch -> try
+    if sigma' != sigma0 then error "matching impacts evars" else cl, (sigma',t') with NoMatch -> try
     let sigma', t' =
       unif_end env sigma0 (create_evar_defs sigma) t (fun _ -> true) in
     if sigma' != sigma0 then raise NoMatch else cl, (sigma', t')
@@ -1149,9 +1137,9 @@ ARGUMENT EXTEND ltacctx TYPED AS int PRINTED BY pr_ltacctx
 END
 
 let get_ltacctx i = match !ltacctxs with
-| _ when i = noltacctx -> Errors.anomaly "Missing Ltac context"
+| _ when i = noltacctx -> anomaly "Missing Ltac context"
 | n, (i', ist) :: s when i' = i -> ltacctxs := (n, s); ist
-| _ -> Errors.anomaly "Bad scope in SSR tactical"
+| _ -> anomaly "Bad scope in SSR tactical"
 
 (* "ssrpattern" *)
 let pr_ssrpatternarg _ _ _ cpat = pr_rpattern cpat

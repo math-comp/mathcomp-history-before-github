@@ -1932,6 +1932,8 @@ let pr_index = function
 let pr_ssrindex _ _ _ = pr_index
 
 let noindex = ArgArg 0
+let allocc = Some(false,[])
+
 let check_index loc i =
   if i > 0 then i else loc_error loc "Index not positive"
 let mk_index loc = function ArgArg i -> ArgArg (check_index loc i) | iv -> iv
@@ -1961,8 +1963,7 @@ END
 (** Occurrence switch *)
 
 (* The standard syntax of complemented occurrence lists involves a single *)
-(* initial "-", e.g., {-1 3 5} (the get_occ_indices function handles the  *)
-(* conversion to the bool + list form used by the Coq API). An initial    *)
+(* initial "-", e.g., {-1 3 5}. An initial                                *)
 (* "+" may be used to indicate positive occurrences (the default). The    *)
 (* "+" is optional, except if the list of occurrences starts with a       *)
 (* variable or is empty (to avoid confusion with a clear switch). The     *)
@@ -1971,25 +1972,21 @@ END
 (* default, but "{-}" prevents the implicit clear, and can be used to     *)
 (* force dependent elimination -- see ndefectelimtac below.               *)
 
-type ssrocc = ssrindex list
+type ssrocc = occ
 
 let pr_occ = function
-  | ArgArg -1 :: occ -> str "{-" ++ pr_list pr_spc pr_index occ ++ str "}"
-  | ArgArg 0 :: occ -> str "{+" ++ pr_list pr_spc pr_index occ ++ str "}"
-  | occ -> str "{" ++ pr_list pr_spc pr_index occ ++ str "}"
+  | Some (true, occ) -> str "{-" ++ pr_list pr_spc int occ ++ str "}"
+  | Some (false, occ) -> str "{+" ++ pr_list pr_spc int occ ++ str "}"
+  | None -> str "{}"
 
 let pr_ssrocc _ _ _ = pr_occ
 
-ARGUMENT EXTEND ssrocc TYPED AS ssrindex list PRINTED BY pr_ssrocc
-| [ natural(n) ssrindex_list(occ) ] -> [ ArgArg (check_index loc n) :: occ  ]
-| [ "-" ssrindex_list(occ) ]     -> [ ArgArg (-1) :: occ ]
-| [ "+" ssrindex_list(occ) ]     -> [ ArgArg 0 :: occ ]
+ARGUMENT EXTEND ssrocc TYPED AS (bool * int list) option PRINTED BY pr_ssrocc
+| [ natural(n) natural_list(occ) ] -> [
+     Some (false, List.map (check_index loc) (n::occ)) ]
+| [ "-" natural_list(occ) ]     -> [ Some (true, occ) ]
+| [ "+" natural_list(occ) ]     -> [ Some (false, occ) ]
 END
-
-let get_occ_indices = function
-  | ArgArg -1 :: occ -> occ = [], List.map get_index occ
-  | ArgArg 0 :: occ  -> occ != [], List.map get_index occ
-  | occ              -> occ != [], List.map get_index occ
 
 let pf_mkprod gl c ?(name=constr_name c) cl =
   let t = pf_type_of gl c in
@@ -2000,11 +1997,11 @@ let pf_abs_prod name gl c cl = pf_mkprod gl c ~name (subst_term c cl)
 
 (** Discharge occ switch (combined occurrence / clear switch *)
 
-type ssrdocc = ssrclear option * ssrocc
+type ssrdocc = ssrclear option * ssrocc option
 
 let mkocc occ = None, occ
-let noclr = mkocc []
-let mkclr clr  = Some clr, []
+let noclr = mkocc None
+let mkclr clr  = Some clr, None
 let nodocc = mkclr []
 
 let pr_docc = function
@@ -2229,7 +2226,7 @@ let rec ipat_of_intro_pattern = function
       (List.map (List.map ipat_of_intro_pattern) 
 	 (List.map (List.map remove_loc) iorpat))
   | IntroAnonymous -> IpatAnon
-  | IntroRewrite b -> IpatRw ([noindex], if b then L2R else R2L)
+  | IntroRewrite b -> IpatRw (allocc, if b then L2R else R2L)
   | IntroFresh id -> IpatAnon
   | IntroForthcoming _ -> (* Unable to determine which kind of ipat interp_introid could return [HH] *)
       assert false
@@ -2299,7 +2296,7 @@ let rec interp_ipat ist gl =
 let interp_ipats ist gl l = project gl, List.map (interp_ipat ist gl) l
 
 let pushIpatRw = function
-  | pats :: orpat -> (IpatRw ([noindex], L2R) :: pats) :: orpat
+  | pats :: orpat -> (IpatRw (allocc, L2R) :: pats) :: orpat
   | [] -> []
 
 let pushIpatNoop = function
@@ -2316,15 +2313,15 @@ ARGUMENT EXTEND ssripat TYPED AS ssripatrep list PRINTED BY pr_ssripats
   | [ ssrsimpl_ne(sim) ] -> [ [IpatSimpl ([], sim)] ]
   | [ ssrdocc(occ) "->" ] -> [ match occ with
       | None, occ -> [IpatRw (occ, L2R)]
-      | Some clr, _ -> [IpatSimpl (clr, Nop); IpatRw ([noindex], L2R)]]
+      | Some clr, _ -> [IpatSimpl (clr, Nop); IpatRw (allocc, L2R)]]
   | [ ssrdocc(occ) "<-" ] -> [ match occ with
       | None, occ ->  [IpatRw (occ, R2L)]
-      | Some clr, _ -> [IpatSimpl (clr, Nop); IpatRw ([noindex], R2L)]]
+      | Some clr, _ -> [IpatSimpl (clr, Nop); IpatRw (allocc, R2L)]]
   | [ ssrdocc(occ) ] -> [ match occ with
       | Some cl, _ -> check_hyps_uniq [] cl; [IpatSimpl (cl, Nop)]
       | _ -> loc_error loc "Only identifiers are allowed here"]
-  | [ "->" ] -> [ [IpatRw ([noindex], L2R)] ]
-  | [ "<-" ] -> [ [IpatRw ([noindex], R2L)] ]
+  | [ "->" ] -> [ [IpatRw (allocc, L2R)] ]
+  | [ "<-" ] -> [ [IpatRw (allocc, R2L)] ]
   | [ "-" ] -> [ [IpatNoop] ]
   | [ "-/" "=" ] -> [ [IpatNoop;IpatSimpl([],Simpl)] ]
   | [ "-/=" ] -> [ [IpatNoop;IpatSimpl([],Simpl)] ]
@@ -2415,8 +2412,8 @@ TYPED AS ((ssrclear * ssripat) * ssripat) * ssripat PRINTED BY pr_ssrhpats
 END
 
 ARGUMENT EXTEND ssrrpat TYPED AS ssripatrep PRINTED BY pr_ssripat
-  | [ "->" ] -> [ IpatRw ([noindex], L2R) ]
-  | [ "<-" ] -> [ IpatRw ([noindex], R2L) ]
+  | [ "->" ] -> [ IpatRw (allocc, L2R) ]
+  | [ "<-" ] -> [ IpatRw (allocc, R2L) ]
 END
 
 type ssrintros = ssripats * ltacctx
@@ -3031,7 +3028,7 @@ ARGUMENT EXTEND ssrgen TYPED AS ssrdocc * cpattern PRINTED BY pr_ssrgen
 | [ cpattern(dt) ] -> [ nodocc, dt ]
 END
 
-let has_occ ((_, occ), _) = occ <> []
+let has_occ ((_, occ), _) = occ <> None
 let hyp_of_var v =  SsrHyp (dummy_loc, destVar v)
 
 let interp_clr = function
@@ -3056,7 +3053,7 @@ let pf_interp_gen_aux ist gl to_ind ((oclr, occ), t) =
       | _, None, _ -> errorstrm (str "@ can be used with let-ins only")
       | name, Some bo, ty -> true, pat, mkLetIn (Name name, bo, ty, cl), c, clr
     else false, pat, pf_mkprod gl c cl, c, clr
-  else if to_ind && occ = [] then
+  else if to_ind && occ = None then
     let nv, p = pf_abs_evars gl (fst pat, c) in
     if nv = 0 then anomaly "occur_existential but no evars" else
     false, pat, mkProd (constr_name c, pf_type_of gl p, pf_concl gl), p, clr
@@ -3194,8 +3191,8 @@ GEXTEND Gram
     | occ = ssrdocc; "<-" -> (match occ with
       | None, occ ->  IpatRw (occ, R2L)
       | _ -> loc_error loc "Only occurrences are allowed here")
-    | "->" -> IpatRw ([noindex], L2R)
-    | "<-" -> IpatRw ([noindex], R2L)
+    | "->" -> IpatRw (allocc, L2R)
+    | "<-" -> IpatRw (allocc, R2L)
     ]];
   ssreqid: [
     [ test_ssreqid; pat = ssreqpat -> Some pat
@@ -3580,7 +3577,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
             (clr_t @ clr) (i+1) (deps, inf_deps)
       | [], c :: inf_deps -> 
           pp(lazy(str"adding inferred pattern " ++ pr_constr_pat c));
-          loop (patterns @ [i, mkTpat gl c, c, [noindex]]) 
+          loop (patterns @ [i, mkTpat gl c, c, allocc]) 
             clr (i+1) ([], inf_deps)
       | _::_, [] -> errorstrm (str "Too many dependent abstractions") in
     let deps, head_p, inf_deps_r = match what, elim_is_dep, cty with
@@ -3588,7 +3585,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
     | _, false, _ -> deps, [], inf_deps_r
     | `EGen gen, true, None -> deps @ [gen], [], inf_deps_r
     | _, true, Some (c, _, pc) ->
-         let occ = if occ = [] then [noindex] else occ in
+         let occ = if occ = None then allocc else occ in
          let inf_p, inf_deps_r = List.hd inf_deps_r, List.tl inf_deps_r in
          deps, [1, pc, inf_p, occ], inf_deps_r in
     let patterns, clr, gl = 
@@ -3727,8 +3724,8 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   tclTHENLIST [gen_eq_tac; elim_intro_tac] orig_gl
 ;;
 
-let simplest_newelim x = ssrelim ~is_case:false [] (`EConstr ([],[],x)) None []
-let simplest_newcase x = ssrelim ~is_case:true [] (`EConstr ([],[],x)) None []
+let simplest_newelim x= ssrelim ~is_case:false [] (`EConstr ([],None,x)) None []
+let simplest_newcase x= ssrelim ~is_case:true [] (`EConstr ([],None,x)) None []
 let _ = simplest_newcase_ref := simplest_newcase
 
 let check_casearg = function
@@ -3743,7 +3740,7 @@ END
 let ssrcasetac (view, (eqid, (dgens, (ipats, ctx)))) =
   let ist = get_ltacctx ctx in
   let ndefectcasetac view eqid ipats deps ((_, occ), _ as gen) ist gl =
-    let simple = (eqid = None && deps = [] && occ = []) in
+    let simple = (eqid = None && deps = [] && occ = None) in
     let cl, c, clr = pf_interp_gen ist gl true gen in
     let vc =
       if view = [] then c else snd(pf_with_view ist gl (false, view) cl c) in
@@ -3752,7 +3749,7 @@ let ssrcasetac (view, (eqid, (dgens, (ipats, ctx)))) =
     else 
       (* macro for "case/v E: x" ---> "case E: x / (v x)" *)
       let deps, clr, occ = 
-        if view <> [] && eqid <> None && deps = [] then [gen], [], []
+        if view <> [] && eqid <> None && deps = [] then [gen], [], None
         else deps, clr, occ in
       ssrelim ~is_case:true ~ist deps (`EConstr (clr,occ, vc)) eqid ipats gl
   in
@@ -4075,7 +4072,7 @@ END
 (** Rewrite clear/occ switches *)
 
 let pr_rwocc = function
-  | None, [] -> mt ()
+  | None, None -> mt ()
   | None, occ -> pr_occ occ
   | Some clr,  _ ->  pr_clear_ne clr
 
@@ -4134,14 +4131,14 @@ let pr_ssrrwarg _ _ _ = pr_rwarg
 
 let mk_rwarg (d, (n, _ as m)) ((clr, occ as docc), rx) (rt, _ as r) =   
  if rt <> RWeq then begin
-   if rt = RWred Nop && not (m = nomult && occ = [] && rx = None)
+   if rt = RWred Nop && not (m = nomult && occ = None && rx = None)
                      && (clr = None || clr = Some []) then
      anomaly "Improper rewrite clear switch";
    if d = R2L && rt <> RWdef then
      error "Right-to-left switch on simplification";
    if n <> 1 && rt = RWred Cut then
      error "Bad or useless multiplier";
-   if occ <> [] && rx = None && rt <> RWdef then
+   if occ <> None && rx = None && rt <> RWdef then
      error "Missing redex for simplification occurrence"
  end; (d, m), ((docc, rx), r)
 
@@ -4221,7 +4218,7 @@ let unfoldintac occ rdx t (kt,_) gl =
   let sigma0, concl0, env0 = project gl, pf_concl gl, pf_env gl in
   let (sigma, t), const = strip_unfold_term t kt in
   let body env t c = Tacred.unfoldn [(true, [1]), get_evalref t] env sigma0 c in
-  let easy = occ = [] && rdx = None in
+  let easy = occ = None && rdx = None in
   let red_flags = if easy then Closure.betaiotazeta else Closure.betaiota in
   let beta env = Reductionops.clos_norm_flags red_flags env sigma0 in
   let unfold, conclude = match rdx with
@@ -4608,7 +4605,7 @@ let pr_ssrunlockarg _ _ _ = pr_unlockarg
 ARGUMENT EXTEND ssrunlockarg TYPED AS ssrocc * ssrterm
   PRINTED BY pr_ssrunlockarg
   | [  "{" ssrocc(occ) "}" ssrterm(t) ] -> [ occ, t ]
-  | [  ssrterm(t) ] -> [ [], t ]
+  | [  ssrterm(t) ] -> [ None, t ]
 END
 
 let pr_ssrunlockargs _ _ _ (args, _) = pr_list spc pr_unlockarg args
@@ -4621,7 +4618,7 @@ END
 let unfoldtac occ ko t kt gl =
   let cl, c = pf_fill_occ_term gl occ (fst (strip_unfold_term t kt)) in
   let cl' = subst1 (pf_unfoldn [(true, [1]), get_evalref c] gl c) cl in
-  let f = if ko = [] then Closure.betaiotazeta else Closure.betaiota in
+  let f = if ko = None then Closure.betaiotazeta else Closure.betaiota in
   convert_concl (pf_reduce (Reductionops.clos_norm_flags f) gl cl') gl
 
 let unlocktac (args, ctx) =
@@ -4631,7 +4628,7 @@ let unlocktac (args, ctx) =
   let locked = mkSsrConst "locked" in
   let key = mkSsrConst "master_key" in
   let ktacs = [
-    (fun gl -> unfoldtac [] [] (project gl,locked) '(' gl); 
+    (fun gl -> unfoldtac None None (project gl,locked) '(' gl); 
     simplest_newcase key ] in
   tclTHENLIST (List.map utac args @ ktacs)
 
