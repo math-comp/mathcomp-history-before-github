@@ -42,7 +42,7 @@ dist:
 	rm ssreflect-$(VERSION)/description 
 	rm ssreflect-$(VERSION)/src/Makefile
 	rm ssreflect-$(VERSION)/NOTICE
-	rm ssreflect-$(VERSION)/doc/
+	rm -rf ssreflect-$(VERSION)/doc/
 	# checking for spurious or out of sync .v
 	for X in ssreflect-$(VERSION)/theories/*.v; do\
 	  if ! grep -q `basename $$X` ssreflect-$(VERSION)/Make; then\
@@ -55,7 +55,7 @@ dist:
 	  fi;\
 	done
 	# handling of NOTICE: All rights reserved -> released under XYZ
-	for X in `find ssreflect-$(VERSION)/ -name \*.v -o -name \*.ml*`; do\
+	for X in `find ssreflect-$(VERSION)/ -name \*.v -o -name \*.mli -o -name \*.ml4`; do\
 		( head -1 $$X | grep -q 'All rights reserved' ) || \
 			echo "warning: `basename $$X` with no reserved"\
 		       		"copyrights";\

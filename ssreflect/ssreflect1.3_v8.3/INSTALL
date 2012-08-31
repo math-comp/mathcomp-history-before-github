@@ -36,7 +36,7 @@ coq_makefile,...) accessible (by default they are put in
    to the address of your Coq libraries directory. Remember to include
    a trailing / in these paths.
   + Set an environment variable COQBIN to the address of the directory
-    containing your Coq v8.3 binaries. Remember to include
+    containing your Coq v8.4 binaries. Remember to include
    a trailing / in this path.
   + If you are a Windows user, you may also add these variables
     as Windows environment variables and update your Windows path. 
