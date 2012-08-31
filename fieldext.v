@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice fintype.
 Require Import tuple finfun bigop ssralg finalg zmodp matrix vector falgebra.
 Require Import poly polydiv mxpoly generic_quotient.
