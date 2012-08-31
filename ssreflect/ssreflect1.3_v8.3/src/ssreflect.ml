@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 
 (* This line is read by the Makefile's dist target: do not remove. *)
-let ssrversion = "1.3pl1";;
+let ssrversion = "1.4";;
 let ssrAstVersion = 1;;
 let () = Mltop.add_known_module "ssreflect";;
 let () = 
@@ -12,7 +12,7 @@ let () =
            (Array.to_list Sys.argv))
   then begin
   Printf.printf "\nSmall Scale Reflection version %s loaded.\n" ssrversion;
-  Printf.printf "Copyright 2005-2011 Microsoft Corporation and INRIA.\n";
+  Printf.printf "Copyright 2005-2012 Microsoft Corporation and INRIA.\n";
   Printf.printf "Distributed under the terms of the CeCILL-B license.\n\n"
   end
 ;;
@@ -2829,8 +2829,8 @@ let tclDO n tac =
     try tac gl
     with 
     | UserError (l, s) -> raise (UserError (l, prefix i ++ s))
-    | Stdpp.Exc_located(loc, UserError (l, s))  -> 
-        raise (Stdpp.Exc_located(loc, UserError (l, prefix i ++ s))) in
+    | Compat.Exc_located(loc, UserError (l, s))  -> 
+        raise (Compat.Exc_located(loc, UserError (l, prefix i ++ s))) in
   let rec loop i gl =
     if i = n then tac_err_at i gl else
     (tclTHEN (tac_err_at i) (loop (i + 1))) gl in

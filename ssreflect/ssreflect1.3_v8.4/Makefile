@@ -36,11 +36,13 @@ clean:
 dist:
 	# VERSION is computed reading src/ssreflect.ml, line let ssrversion
 	rm -rf ssreflect-$(VERSION)
-	svn export . ssreflect-$(VERSION)
+	svn export . ssreflect-$(VERSION) || \
+		git archive --format tar HEAD . --prefix ssreflect-$(VERSION)/ | tar -x
 	# files in the svn, but not meant to be part of the release
 	rm ssreflect-$(VERSION)/description 
 	rm ssreflect-$(VERSION)/src/Makefile
 	rm ssreflect-$(VERSION)/NOTICE
+	rm ssreflect-$(VERSION)/doc/
 	# checking for spurious or out of sync .v
 	for X in ssreflect-$(VERSION)/theories/*.v; do\
 	  if ! grep -q `basename $$X` ssreflect-$(VERSION)/Make; then\
@@ -53,7 +55,7 @@ dist:
 	  fi;\
 	done
 	# handling of NOTICE: All rights reserved -> released under XYZ
-	for X in `find ssreflect-$(VERSION)/ -name \*.v -o -name \*.ml`; do\
+	for X in `find ssreflect-$(VERSION)/ -name \*.v -o -name \*.ml*`; do\
 		( head -1 $$X | grep -q 'All rights reserved' ) || \
 			echo "warning: `basename $$X` with no reserved"\
 		       		"copyrights";\

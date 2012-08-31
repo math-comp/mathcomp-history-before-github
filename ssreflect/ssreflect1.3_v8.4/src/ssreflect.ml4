@@ -2453,14 +2453,24 @@ let revtoptac n0 gl =
   let f = compose_lam dc' (mkEtaApp (mkRel (n + 1)) (-n) 1) in
   refine (mkApp (f, [|Evarutil.mk_new_meta ()|])) gl
 
-let injectidl2rtac id gl =
-  tclTHEN (Equality.inj [] true id) (revtoptac (pf_nb_prod gl)) gl
+let equality_inj l b id c gl =
+  let msg = ref "" in
+  try Equality.inj l b c gl
+  with Compat.Loc.Exc_located(_,UserError (_,s)) | UserError (_,s)
+  when msg := Pp.string_of_ppcmds s;
+       !msg = "Not a projectable equality but a discriminable one." ||
+       !msg = "Nothing to inject." ->
+    msg_warning (str !msg);
+    discharge_hyp (id, (id, "")) gl
+
+let injectidl2rtac id c gl =
+  tclTHEN (equality_inj [] true id c) (revtoptac (pf_nb_prod gl)) gl
 
 let injectl2rtac c = match kind_of_term c with
-| Var id -> injectidl2rtac (mkVar id, NoBindings)
+| Var id -> injectidl2rtac id (mkVar id, NoBindings)
 | _ ->
   let id = injecteq_id in
-  tclTHENLIST [havetac id c; injectidl2rtac (mkVar id, NoBindings); clear [id]]
+  tclTHENLIST [havetac id c; injectidl2rtac id (mkVar id, NoBindings); clear [id]]
 
 let is_injection_case c gl =
   let mind, _ = pf_reduce_to_quantified_ind gl (pf_type_of gl c) in
@@ -2476,7 +2486,7 @@ let perform_injection c gl =
   let cl1 = mkLambda (Anonymous, mkArrow eqt cl, mkApp (mkRel 1, [|c_eq|])) in
   let id = injecteq_id in
   let id_with_ebind = (mkVar id, NoBindings) in
-  let injtac = tclTHEN (introid id) (injectidl2rtac id_with_ebind) in 
+  let injtac = tclTHEN (introid id) (injectidl2rtac id id_with_ebind) in 
   tclTHENLAST (apply (compose_lam dc cl1)) injtac gl  
 
 let simplest_newcase_ref = ref (fun t gl -> assert false)
