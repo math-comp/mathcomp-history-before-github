@@ -70,13 +70,32 @@ Let tau := FT_Dade0 maxL.
 
 Let S_ (chi : 'CF(L)) := [set i in irr_constt chi].
 
+Let calI := [seq 'chi_i | i in Iirr_kerD L H 1%G].
+
+Lemma S_calSP i : 
+  reflect (exists2 chi, chi \in calS & i \in S_ chi) (i \in Iirr_kerD L H 1%G).
+Proof.
+have nHL : H <| L by exact: gFnormal.
+have sHL : H \subset L by apply: normal_sub.
+apply: (iffP idP) => [| hiU].
+  case: (constt_cfRes_irr H i) => t; rewrite -constt_Ind_constt_Res => hi hker.
+  suff ? : 'Ind[L]'chi_t \in calS by exists ('Ind[L] 'chi_t); rewrite // inE.
+  apply/seqIndC1P; exists t => //.
+  rewrite -(subGcfker t) (sub_cfker_constt_Ind_irr hi) ?normal_norm //.
+  by move: hker; rewrite !inE; case/andP.
+rewrite /Iirr_kerD;  rewrite !inE sub1G andbT; move: hiU.
+case=> k kcalS; rewrite inE; case/seqIndC1P: (kcalS) => t kert ->.
+move/sub_cfker_constt_Ind_irr/(_ (subxx _)) => <- //; last exact: normal_norm.
+by rewrite subGcfker.
+Qed.
+
 (* This is Peterfalvi (12.2a), first part *)
 Lemma PF_12_2a chi : chi \in calS ->
   [/\ chi = \sum_(i in S_ chi) 'chi_i,
       constant [seq 'chi_i 1%g | i in S_ chi] &
       {in S_ chi, forall i, 'chi_i \in 'CF(L, 'A(L) :|: 1%G)}].
 Proof.
-case/seqIndC1P=> t kert Dchi.
+move=> calS_chi; case/seqIndC1P: (calS_chi) => t kert Dchi.
 have nHL : H <| L by exact: gFnormal.
 pose T := 'I_L['chi_t]%g.
 have sTL : T \subset L by exact: Inertia_sub.
@@ -122,102 +141,78 @@ suff CF_S : {in S_ chi, forall i : Iirr L, 'chi_i \in 'CF(L, 'A(L) :|: 1%G )} by
       by apply/subcent1P; split => //; apply: commute_sym.
     apply: contra hy => hy; apply/bigcupP; exists z => //; rewrite inE in_set1.
     by rewrite zn1.
-  suff nHkerS : ~~ (H \subset cfker 'chi_j).
-    by apply: (not_in_ker_char0 _ _ nHkerS).
-  move: Schi_j; rewrite inE Dchi.
-  move/sub_cfker_constt_Ind_irr/(_ (subxx _)) => <- //; last exact: normal_norm.
-  by rewrite subGcfker.
+  suff : ~~ (H \subset cfker 'chi_j) by move/(not_in_ker_char0 _ _); apply.
+  suff : j \in Iirr_kerD L H 1%G by rewrite /Iirr_kerD !inE sub1G andbT.
+  by apply/S_calSP; exists chi.
 Qed.
 
 (* This is Peterfalvi (12.2a), second part *)
-Lemma tau_isometry  :
-    {in 'Z[[seq 'chi_i | i in \bigcup_(chi <- calS) S_ chi], L^#], 
-      isometry tau, to 'Z[irr G, G^#]}.
+Lemma tau_isometry  : {in 'Z[calI, L^#], isometry tau, to 'Z[irr G, G^#]}.
 Proof.
 apply: (sub_iso_to _ _ (Dade_Zisometry _)) => //.
 have /subsetD1P[_ /setU1K <-] := FTsupp0_sub L.
-move=> phi; rewrite zcharD1E big_tnth FTsupp0_type1 // => /andP[S_phi phi1nz].
+move=> phi; rewrite zcharD1E FTsupp0_type1 // => /andP[S_phi phi1nz].
 rewrite zcharD1 {}phi1nz andbT setUC.
-apply: zchar_trans_on phi S_phi => ? /imageP[i /bigcupP[j _ Sj_i] ->].
+apply: zchar_trans_on phi S_phi => ? /imageP[i /S_calSP[j calSj Sj_i] ->].
 rewrite zchar_split irr_vchar /=.
-by have [_ _ ->] := PF_12_2a (mem_tnth j (in_tuple calS)).
+by have [_ _ ->] := PF_12_2a calSj.
 Qed.
 
-(* Shall we use this characterization in the statements below ?*)
-Lemma unionSkerP (i : Iirr L) : 
-  (i \in \bigcup_(chi <- calS) S_ chi) =  ~~ (H \subset cfker 'chi_i).
-Proof.
-have nHL : H <| L by exact: gFnormal.
-have sHL : H \subset L by apply: normal_sub.
-apply/idP/idP.
-  rewrite big_seq big_tnth; case/bigcupP=> k kcalS; rewrite inE.
-  case/seqIndC1P: (kcalS) => t kert Dchi; rewrite Dchi.
-  move/sub_cfker_constt_Ind_irr/(_ (subxx _)) => <- //; last exact: normal_norm.
-  by rewrite subGcfker.
-move=> hker; rewrite big_seq big_tnth; apply/bigcupP.
-case: (constt_cfRes_irr H i) => t.
-rewrite -constt_Ind_constt_Res => hit.
-suff /seq_tnthP[k kD] : 'Ind[L]'chi_t \in calS.
-  by exists k; rewrite ?mem_tnth // -kD inE.
-apply/seqIndC1P; exists t => //.
-by rewrite -(subGcfker t) (sub_cfker_constt_Ind_irr hit) // normal_norm.
-Qed.
 
-Lemma unionSP psi : reflect 
-  (exists phi, exists j, [/\ phi \in calS, j \in irr_constt phi & psi = 'chi_j])
-  (psi \in [seq 'chi_i | i in \bigcup_(chi <- calS) S_ chi]).
-Proof.
-apply: (iffP idP).
-  case/mapP=> j; rewrite mem_enum => hj -> {psi}.
-  move: hj; rewrite big_seq big_tnth; case/bigcupP=> k kcalS. 
-  by rewrite inE => jinS; exists (tnth (in_tuple calS) k); exists j; split.
-case=> phi [j [/seq_tnthP [k ->] irrj ->]]; apply/mapP. 
-exists j => //; rewrite mem_enum big_tnth; apply/bigcupP; exists k => //.
-by rewrite inE.
-Qed.
-
-Lemma FPtype1_unionS_subcoherent : 
- {R : 'CF(L) -> seq _ | 
-   subcoherent [seq 'chi_i | i in \bigcup_(chi <- calS) S_ chi] tau R}.
+Lemma FPtype1_Iirr_kerD_subcoherent : 
+ {R : 'CF(L) -> seq _ |  subcoherent calI tau R}.
 Proof.
 apply: irr_subcoherent; last exact: tau_isometry.
 split. 
 - by apply/dinjectiveP; apply: in2W irr_inj.
 - move=> _ /imageP[i _ ->]; exact: mem_irr.
-- move=> phi /unionSP[psi [j [calSphi irrj ->]]] {phi}; apply/unionSP.
-  exists (psi^*)%CF, (conjC_Iirr j); rewrite cfAut_seqInd //.
-  by rewrite irr_consttE conjC_IirrE cfdot_conjC conjC_eq0 -irr_consttE.
-- apply/hasPn=> psi; case/unionSP=> phi [j [calSphi irrj ->]] {psi}.
-  rewrite /cfReal odd_eq_conj_irr1 ?mFT_odd // irr_eq1.
-  case/seqIndC1P: (calSphi)=> k kn0 phiE; apply: contra kn0 => /eqP j0.
-  move: irrj; rewrite j0 phiE constt_Ind_constt_Res irr0 cfRes_cfun1.
-  by rewrite -irr0 constt_irr inE.
+- move=> psi /imageP[i /S_calSP[phi calSphi]]; rewrite inE => irri -> {psi}.
+  apply/imageP; exists (conjC_Iirr i); last by rewrite conjC_IirrE.
+  apply/S_calSP; exists (phi^*)%CF; first by rewrite ?cfAut_seqInd.
+  by rewrite inE irr_consttE conjC_IirrE cfdot_conjC conjC_eq0 -irr_consttE.
+- apply/hasPn=> psi; case/imageP => i /S_calSP[phi calSphi].
+  rewrite inE => irri -> {psi}; rewrite /cfReal odd_eq_conj_irr1 ?mFT_odd //.
+  rewrite  irr_eq1; case/seqIndC1P: (calSphi)=> k kn0 phiE. 
+  apply: contra kn0 => /eqP j0;  move: irri; rewrite j0 phiE.
+  by rewrite constt_Ind_constt_Res irr0 cfRes_cfun1 -irr0 constt_irr inE.
 Qed.
 
-(* Lemma FPtype1_calS_subcoherent :  *)
-(*   {R : 'CF(L) -> seq _ | let R1 := sval FPtype1_unionS_subcoherent in *)
-(*     [/\ subcoherent calS tau R, *)
-(*       forall i (phi := 'chi_i), *)
-(*       i \in \bigcup_(chi <- calS) S_ chi -> *)
-(*       [/\ (orthonormal (R1 phi)), *)
-(*           size (R1 phi) = 2 & *)
-(*           (tau (phi - phi^*%CF) = (\sum_(mu <- R1 phi) mu)%CF)] &  *)
-(*       forall chi, chi \in calS ->  *)
-(*         R chi = flatten [seq (R1 'chi_i) | i in S_ chi]] *)
-(* }. *)
-(* Proof. *)
-(* case: FPtype1_unionS_subcoherent => R1 subcoh1/=. *)
-(* pose R chi := flatten [seq R1 'chi_i | i in S_ chi]; exists R. *)
-(* have nHL : H <| L by exact: gFnormal. *)
-(* have U_S : uniq calS by exact: seqInd_uniq. *)
-(* have vcS: {subset calS <= 'Z[irr L]} by exact: seqInd_vcharW. *)
-(* have N_S: {subset calS <= character} by exact: seqInd_char. *)
-(* have oSS: pairwise_orthogonal calS by exact: seqInd_orthogonal. *)
-(* have [U_0S dotSS]:= pairwise_orthogonalP oSS. *)
-(* have freeS := orthogonal_free oSS. *)
-(* have nrS : ~~ has cfReal calS by apply: seqInd_notReal; rewrite ?mFT_odd. *)
-(* have ccS : conjC_closed calS by exact:cfAut_seqInd. *)
-(* Print subcoherent. *)
+(* This is Peterfalvi (12.2)(b) *)
+Lemma FPtype1_calS_subcoherent :
+  {R : 'CF(L) -> seq _ | let R1 := sval FPtype1_Iirr_kerD_subcoherent in
+    [/\ subcoherent calS tau R,
+      forall i (phi := 'chi_i),
+      i \in Iirr_kerD L H 1%G -> 
+      [/\ (orthonormal (R1 phi)),
+          size (R1 phi) = 2 &
+          (tau (phi - phi^*%CF) = (\sum_(mu <- R1 phi) mu)%CF)] &
+      forall chi, chi \in calS ->
+        R chi = flatten [seq (R1 'chi_i) | i in S_ chi]]
+}.
+Proof.
+have nHL : H <| L by exact: gFnormal.
+have nrS : ~~ has cfReal calS by apply: seqInd_notReal; rewrite ?mFT_odd.
+have U_S : uniq calS by exact: seqInd_uniq.
+have ccS : conjC_closed calS by exact:cfAut_seqInd.
+have conjCS : cfConjC_subset calS (seqIndD H L H 1) by split.
+case: FPtype1_Iirr_kerD_subcoherent => /= R1 [[chi_char nrI ccI] tau_iso oI h1 h2].
+pose R chi := flatten [seq R1 'chi_i | i in S_ chi].
+exists R; split => //; last first.
+  move=> i Ii.
+  have mem_i : 'chi_i \in calI by apply/imageP; exists i.
+  move/h1 : (mem_i) => [Zirr oR1 tau_im]; split=> // {h1}.
+  move/(f_equal (fun x : 'CF([set: gT]%G)=>  ('[ x ]))): tau_im.
+  rewrite cfnorm_orthonormal //.
+  have hsubchi : 
+    'chi_i - (('chi_i)^*)%CF \in 'Z[calI, L^#].
+    have hchi : 'chi_i \in 'Z[calI, L] by rewrite mem_zchar_on // cfun_onG.
+    rewrite sub_aut_zchar ?cfAut_zchar // => ? /imageP[j _ ->]; exact: irr_vchar.
+  case: tau_iso => h1 _; rewrite {}h1 // {hsubchi}.
+  rewrite cfnormBd => [/eqP|]; last first.
+    case/pairwise_orthogonalP: oI => _ -> //; rewrite ?ccI //.
+    by move/hasPn: nrI => /(_ _ mem_i); rewrite eq_sym.
+  by rewrite cfnorm_conjC cfnorm_irr -[1]/(1%:R) -natrD eqC_nat; move/eqP<-.
+Admitted.
 
 End Twelve2.
 
