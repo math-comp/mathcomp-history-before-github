@@ -6,15 +6,17 @@ let ssrAstVersion = 1;;
 let () = Mltop.add_known_plugin (fun () ->
   if Flags.is_verbose () && not !Flags.batch_mode then begin
     Printf.printf "\nSmall Scale Reflection version %s loaded.\n" ssrversion;
-    Printf.printf "Copyright 2005-2011 Microsoft Corporation and INRIA.\n";
+    Printf.printf "Copyright 2005-2012 Microsoft Corporation and INRIA.\n";
     Printf.printf "Distributed under the terms of the CeCILL-B license.\n\n"
   end;
   (* Disable any semantics associated with bullets *)
-  Goptions.set_string_option_value_gen (Some false) ["Bullet";"Behavior"] "None")
+  Goptions.set_string_option_value_gen
+    (Some false) ["Bullet";"Behavior"] "None")
   "ssreflect"
 ;;
 
-(* Defining grammar rules with "xx" in it automatically declares keywords too *)
+(* Defining grammar rules with "xx" in it automatically declares keywords too,
+ * we thus save the lexer to restore it at the end of the file *)
 let frozen_lexer = Lexer.freeze () ;;
 
 (*i camlp4use: "pa_extend.cmo" i*)
@@ -59,34 +61,49 @@ open Notation_ops
 open Locus
 open Locusops
 
+open Ssrmatching
+
 type loc = Loc.t
 let dummy_loc = Loc.ghost
+let errorstrm = Errors.errorlabstrm "ssreflect"
+let loc_error loc msg = Errors.user_err_loc (loc, msg, str msg)
 
-let inVersion = Libobject.declare_object {
-  (Libobject.default_object "SSRASTVERSION") with
-  Libobject.load_function = (fun _ (_,v) -> 
-    if v <> ssrAstVersion then Errors.error "Please recompile your .vo files");
-  Libobject.classify_function = (fun v -> Libobject.Keep v);
-}
+(** look up a name in the ssreflect internals module *)
+let ssrdirpath = make_dirpath [id_of_string "ssreflect"]
+let ssrqid name = make_qualid ssrdirpath (id_of_string name) 
+let ssrtopqid name = make_short_qualid (id_of_string name) 
+let locate_reference qid =
+  Smartlocate.global_of_extended_global (Nametab.locate_extended qid)
+let mkSsrRef name =
+  try locate_reference (ssrqid name) with Not_found ->
+  try locate_reference (ssrtopqid name) with Not_found ->
+  Errors.error "Small scale reflection library not loaded"
+let mkSsrRRef name = GRef (dummy_loc, mkSsrRef name)
+let mkSsrConst name = constr_of_reference (mkSsrRef name)
 
-let _ =
-  Goptions.declare_bool_option
-    { Goptions.optsync  = false;
-      Goptions.optname  = "ssreflect version";
-      Goptions.optkey   = ["SsrAstVersion"];
-      Goptions.optread  = (fun _ -> true);
-      Goptions.optdepr  = false;
-      Goptions.optwrite = (fun _ -> 
-        Lib.add_anonymous_leaf (inVersion ssrAstVersion)) }
+(** Ssreflect load check. *)
 
-let tactic_expr = Tactic.tactic_expr
-let gallina_ext = Vernac_.gallina_ext 
-let sprintf = Printf.sprintf
-let tactic_mode = G_vernac.tactic_mode
+(* To allow ssrcoq to be fully compatible with the "plain" Coq, we only *)
+(* turn on its incompatible features (the new rewrite syntax, and the   *)
+(* reserved identifiers) when the theory library (ssreflect.v) has      *)
+(* has actually been required, or is being defined. Because this check  *)
+(* needs to be done often (for each identifier lookup), we implement    *)
+(* some caching, repeating the test only when the environment changes.  *)
+(*   We check for protect_term because it is the first constant loaded; *)
+(* ssr_have would ultimately be a better choice.                        *)
+let ssr_loaded =
+  let cache = ref (Global.safe_env (), false) in
+  fun () ->
+    Lexer.is_keyword "is" &&
+    let new_lbl = Global.safe_env () in
+    match !cache with
+    | lbl, loaded when lbl == new_lbl -> loaded
+    | _ ->
+       let loaded =
+         (try ignore (mkSsrRef "protect_term"); true with _ -> false) in
+       cache := new_lbl, loaded; loaded
 
-(** 1. Utilities *)
-
-(* TASSI: 0 cost pp function. Active only if env variable SSRDEBUG is set *)
+(* 0 cost pp function. Active only if env variable SSRDEBUG is set *)
 (* or if SsrDebug is Set                                                  *)
 let pp_ref = ref (fun _ -> ())
 let ssr_pp s = pperrnl (str"SSR: "++Lazy.force s)
@@ -99,9 +116,146 @@ let _ =
       Goptions.optdepr  = false;
       Goptions.optread  = (fun _ -> !pp_ref == ssr_pp);
       Goptions.optwrite = (fun b -> 
+        Ssrmatching.debug b;
         if b then pp_ref := ssr_pp else pp_ref := fun _ -> ()) }
 let pp s = !pp_ref s
 
+(** Utils {{{ *****************************************************************)
+let env_size env = List.length (Environ.named_context env)
+let safeDestApp c =
+  match kind_of_term c with App (f, a) -> f, a | _ -> c, [| |]
+let get_index = function ArgArg i -> i | _ ->
+  Errors.anomaly "Uninterpreted index"
+(* Toplevel constr must be globalized twice ! *)
+let glob_constr ist gsigma genv = function
+  | _, Some ce ->
+    let ltacvars = List.map fst ist.lfun, [] in
+    Constrintern.intern_gen false ~ltacvars:ltacvars gsigma genv ce
+  | rc, None -> rc
+
+(* Term printing utilities functions for deciding bracketing.  *)
+let pr_paren prx x = hov 1 (str "(" ++ prx x ++ str ")")
+(* String lexing utilities *)
+let skip_wschars s =
+  let rec loop i = match s.[i] with '\n'..' ' -> loop (i + 1) | _ -> i in loop
+let skip_numchars s =
+  let rec loop i = match s.[i] with '0'..'9' -> loop (i + 1) | _ -> i in loop
+(* We also guard characters that might interfere with the ssreflect   *)
+(* tactic syntax.                                                     *)
+let guard_term ch1 s i = match s.[i] with
+  | '(' -> false
+  | '{' | '/' | '=' -> true
+  | _ -> ch1 = '('
+(* The call 'guard s i' should return true if the contents of s *)
+(* starting at i need bracketing to avoid ambiguities.          *)
+let pr_guarded guard prc c =
+  msg_with Format.str_formatter (prc c);
+  let s = Format.flush_str_formatter () ^ "$" in
+  if guard s (skip_wschars s 0) then pr_paren prc c else prc c
+(* More sensible names for constr printers *)
+let prl_constr = pr_lconstr
+let pr_constr = pr_constr
+let prl_glob_constr c = pr_lglob_constr_env (Global.env ()) c
+let pr_glob_constr c = pr_glob_constr_env (Global.env ()) c
+let prl_constr_expr = pr_lconstr_expr
+let pr_constr_expr = pr_constr_expr
+let prl_glob_constr_and_expr = function
+  | _, Some c -> prl_constr_expr c
+  | c, None -> prl_glob_constr c
+let pr_glob_constr_and_expr = function
+  | _, Some c -> pr_constr_expr c
+  | c, None -> pr_glob_constr c
+let pr_term (k, c) = pr_guarded (guard_term k) pr_glob_constr_and_expr c
+let prl_term (k, c) = pr_guarded (guard_term k) prl_glob_constr_and_expr c
+
+(** Adding a new uninterpreted generic argument type *)
+let add_genarg tag pr =
+  let wit, globwit, rawwit as wits = create_arg None tag in
+  let glob _ rarg = in_gen globwit (out_gen rawwit rarg) in
+  let interp _ gl garg = Tacmach.project gl,in_gen wit (out_gen globwit garg) in
+  let subst _ garg = garg in
+  add_interp_genarg tag (glob, interp, subst);
+  let gen_pr _ _ _ = pr in
+  Pptactic.declare_extra_genarg_pprule
+    (rawwit, gen_pr) (globwit, gen_pr) (wit, gen_pr);
+  wits
+
+(** Constructors for cast type *)
+let dC t = CastConv t
+
+(** Constructors for constr_expr *)
+let mkCProp loc = CSort (loc, GProp)
+let mkCType loc = CSort (loc, GType None)
+let mkCVar loc id = CRef (Ident (loc, id))
+let isCVar = function CRef (Ident _) -> true | _ -> false
+let destCVar = function CRef (Ident (_, id)) -> id | _ ->
+  Errors.anomaly "not a CRef"
+let rec mkCHoles loc n =
+  if n <= 0 then [] else CHole (loc, None) :: mkCHoles loc (n - 1)
+let mkCHole loc = CHole (loc, None)
+let rec isCHoles = function CHole _ :: cl -> isCHoles cl | cl -> cl = []
+let mkCExplVar loc id n =
+   CAppExpl (loc, (None, Ident (loc, id)), mkCHoles loc n)
+let mkCLambda loc name ty t = 
+   CLambdaN (loc, [[loc, name], Default Explicit, ty], t)
+let mkCLetIn loc name bo t = 
+   CLetIn (loc, (loc, name), bo, t)
+let mkCArrow loc ty t =
+   CProdN (loc, [[dummy_loc,Anonymous], Default Explicit, ty], t)
+let mkCCast loc t ty = CCast (loc,t, dC ty)
+(** Constructors for rawconstr *)
+let mkRHole = GHole (dummy_loc, InternalHole)
+let rec mkRHoles n = if n > 0 then mkRHole :: mkRHoles (n - 1) else []
+let rec isRHoles = function GHole _ :: cl -> isRHoles cl | cl -> cl = []
+let mkRApp f args = if args = [] then f else GApp (dummy_loc, f, args)
+let mkRVar id = GRef (dummy_loc, VarRef id)
+let mkRltacVar id = GVar (dummy_loc, id)
+let mkRCast rc rt =  GCast (dummy_loc, rc, dC rt)
+let mkRType =  GSort (dummy_loc, GType None)
+let mkRProp =  GSort (dummy_loc, GProp)
+let mkRArrow rt1 rt2 = GProd (dummy_loc, Anonymous, Explicit, rt1, rt2)
+let mkRConstruct c = GRef (dummy_loc, ConstructRef c)
+let mkRInd mind = GRef (dummy_loc, IndRef mind)
+let mkRLambda n s t = GLambda (dummy_loc, n, Explicit, s, t)
+
+(** Constructors for constr *)
+
+let mkAppRed f c = match kind_of_term f with
+| Lambda (_, _, b) -> subst1 c b
+| _ -> mkApp (f, [|c|])
+let mkProt t c = mkApp (mkSsrConst "protect_term", [|t; c|])
+let mkRefl t c = mkApp ((build_coq_eq_data()).refl, [|t; c|])
+(* Application to a sequence of n rels (for building eta-expansions). *)
+(* The rel indices decrease down to imin (inclusive), unless n < 0,   *)
+(* in which case they're incresing (from imin).                       *)
+let mkEtaApp c n imin =
+  if n = 0 then c else
+  let nargs, mkarg =
+    if n < 0 then -n, (fun i -> mkRel (imin + i)) else
+    let imax = imin + n - 1 in n, (fun i -> mkRel (imax - i)) in
+  mkApp (c, Array.init nargs mkarg)
+(* Same, but optimizing head beta redexes *)
+let rec whdEtaApp c n =
+  if n = 0 then c else match kind_of_term c with
+  | Lambda (_, _, c') -> whdEtaApp c' (n - 1)
+  | _ -> mkEtaApp (lift n c) n 1
+
+(* ssrterm conbinators *)
+let combineCG t1 t2 f g = match t1, t2 with
+ | (x, (t1, None)), (_, (t2, None)) -> x, (g t1 t2, None)
+ | (x, (_, Some t1)), (_, (_, Some t2)) -> x, (mkRHole, Some (f t1 t2))
+ | _, (_, (_, None)) -> Errors.anomaly "have: mixed C-G constr"
+ | _ -> Errors.anomaly "have: mixed G-C constr"
+let loc_ofCG = function
+ | (_, (s, None)) -> Glob_ops.loc_of_glob_constr s
+ | (_, (_, Some s)) -> Constrexpr_ops.constr_loc s
+
+let mk_term k c = k, (mkRHole, Some c)
+let mk_lterm = mk_term ' '
+
+(* }}} *)
+
+(** Profiling {{{ *************************************************************)
 type profiler = { 
   profile : 'a 'b. ('a -> 'b) -> 'a -> 'b;
   reset : unit -> unit;
@@ -118,6 +272,7 @@ let _ =
       Goptions.optread  = (fun _ -> !profile_now);
       Goptions.optdepr  = false;
       Goptions.optwrite = (fun b -> 
+        Ssrmatching.profile b;
         profile_now := b;
         if b then List.iter (fun f -> f.reset ()) !profilers;
         if not b then List.iter (fun f -> f.print ()) !profilers) }
@@ -174,6 +329,32 @@ let mk_profiler s =
   add_profiler prof;
   prof
 ;;
+(* }}} *)
+
+let inVersion = Libobject.declare_object {
+  (Libobject.default_object "SSRASTVERSION") with
+  Libobject.load_function = (fun _ (_,v) -> 
+    if v <> ssrAstVersion then Errors.error "Please recompile your .vo files");
+  Libobject.classify_function = (fun v -> Libobject.Keep v);
+}
+
+let _ =
+  Goptions.declare_bool_option
+    { Goptions.optsync  = false;
+      Goptions.optname  = "ssreflect version";
+      Goptions.optkey   = ["SsrAstVersion"];
+      Goptions.optread  = (fun _ -> true);
+      Goptions.optdepr  = false;
+      Goptions.optwrite = (fun _ -> 
+        Lib.add_anonymous_leaf (inVersion ssrAstVersion)) }
+
+let tactic_expr = Tactic.tactic_expr
+let gallina_ext = Vernac_.gallina_ext 
+let sprintf = Printf.sprintf
+let tactic_mode = G_vernac.tactic_mode
+
+(** 1. Utilities *)
+
 
 let ssroldreworder = ref true
 let _ =
@@ -215,49 +396,7 @@ let pr_list = prlist_with_sep
 
 let tacltop = (5,Ppextend.E)
 
-(* More sensible names for constr printers *)
-
-let prl_constr = pr_lconstr
-let pr_constr = pr_constr
-
-let prl_glob_constr c = pr_lglob_constr_env (Global.env ()) c
-let pr_glob_constr c = pr_glob_constr_env (Global.env ()) c
-
-let prl_constr_expr = pr_lconstr_expr
-let pr_constr_expr = pr_constr_expr
-
-let prl_glob_constr_and_expr = function
-  | _, Some c -> prl_constr_expr c
-  | c, None -> prl_glob_constr c
-
-let pr_glob_constr_and_expr = function
-  | _, Some c -> pr_constr_expr c
-  | c, None -> pr_glob_constr c
-
-(* Term printing utilities functions for deciding bracketing.  *)
-
-let pr_paren prx x = hov 1 (str "(" ++ prx x ++ str ")")
-
-(* String lexing utilities *)
-let skip_wschars s =
-  let rec loop i = match s.[i] with '\n'..' ' -> loop (i + 1) | _ -> i in loop
-
-let skip_numchars s =
-  let rec loop i = match s.[i] with '0'..'9' -> loop (i + 1) | _ -> i in loop
-
-(* The call 'guard s i' should return true if the contents of s *)
-(* starting at i need bracketing to avoid ambiguities.          *)
-
-let pr_guarded guard prc c =
-  msg_with Format.str_formatter (prc c);
-  let s = Format.flush_str_formatter () ^ "$" in
-  if guard s (skip_wschars s 0) then pr_paren prc c else prc c
-
 (** Tactic-level diagnosis *)
-
-let loc_error loc msg = Errors.user_err_loc (loc, msg, str msg)
-
-let errorstrm = Errors.errorlabstrm "ssreflect"
 
 let pf_pr_constr gl = pr_constr_env (pf_env gl)
 
@@ -311,48 +450,8 @@ let introid name = tclTHEN (fun gl ->
   (intro_mustbe_force name)
 ;;
 
-(** look up a name in the ssreflect internals module *)
 
-let ssrdirpath = make_dirpath [id_of_string "ssreflect"]
-let ssrqid name = make_qualid ssrdirpath (id_of_string name) 
-let ssrtopqid name = make_short_qualid (id_of_string name) 
-
-let locate_reference qid =
-  Smartlocate.global_of_extended_global (Nametab.locate_extended qid)
-
-let mkSsrRef name =
-  try locate_reference (ssrqid name) with Not_found ->
-  try locate_reference (ssrtopqid name) with Not_found ->
-  Errors.error "Small scale reflection library not loaded"
-
-let mkSsrRRef name = GRef (dummy_loc, mkSsrRef name)
-
-let mkSsrConst name = constr_of_reference (mkSsrRef name)
-
-(** Ssreflect load check. *)
-
-(* To allow ssrcoq to be fully compatible with the "plain" Coq, we only *)
-(* turn on its incompatible features (the new rewrite syntax, and the   *)
-(* reserved identifiers) when the theory library (ssreflect.v) has      *)
-(* has actually been required, or is being defined. Because this check  *)
-(* needs to be done often (for each identifier lookup), we implement    *)
-(* some caching, repeating the test only when the environment changes.  *)
-(*   We check for protect_term because it is the first constant loaded; *)
-(* ssr_have would ultimately be a better choice.                        *)
-
-let ssr_loaded =
-  let cache = ref (Global.safe_env (), false) in
-  fun () ->
-    Lexer.is_keyword "is" &&
-    let new_lbl = Global.safe_env () in
-    match !cache with
-    | lbl, loaded when lbl == new_lbl -> loaded
-    | _ ->
-       let loaded =
-         (try ignore (mkSsrRef "protect_term"); true with _ -> false) in
-       cache := new_lbl, loaded; loaded
-
-(** Name generation *)
+(** Name generation {{{ *******************************************************)
 
 (* Since Coq now does repeated internal checks of its external lexical *)
 (* rules, we now need to carve ssreflect reserved identifiers out of   *)
@@ -505,131 +604,9 @@ let rec constr_name c = match kind_of_term c with
   | App (c', _) -> constr_name c'
   | _ -> Anonymous
 
-(** Constructors for cast type *)
-let dC t = CastConv t
+(* }}} *)
 
-(** Constructors for constr_expr *)
-
-let mkCProp loc = CSort (loc, GProp)
-
-let mkCType loc = CSort (loc, GType None)
-
-let mkCVar loc id = CRef (Ident (loc, id))
-let isCVar = function CRef (Ident _) -> true | _ -> false
-let destCVar = function CRef (Ident (_, id)) -> id | _ ->
-  Errors.anomaly "not a CRef"
-
-let rec mkCHoles loc n =
-  if n <= 0 then [] else CHole (loc, None) :: mkCHoles loc (n - 1)
-
-let mkCHole loc = CHole (loc, None)
-
-let rec isCHoles = function CHole _ :: cl -> isCHoles cl | cl -> cl = []
-
-let mkCExplVar loc id n =
-   CAppExpl (loc, (None, Ident (loc, id)), mkCHoles loc n)
-
-let mkCLambda loc name ty t = 
-   CLambdaN (loc, [[loc, name], Default Explicit, ty], t)
-
-let mkCLetIn loc name bo t = 
-   CLetIn (loc, (loc, name), bo, t)
-
-let mkCArrow loc ty t = CProdN (loc, [[dummy_loc,Anonymous], Default Explicit,
-ty], t)
-
-let mkCCast loc t ty = CCast (loc,t, dC ty)
-
-(** Constructors for rawconstr *)
-
-let mkRHole = GHole (dummy_loc, InternalHole)
-
-let rec mkRHoles n = if n > 0 then mkRHole :: mkRHoles (n - 1) else []
-
-let rec isRHoles = function GHole _ :: cl -> isRHoles cl | cl -> cl = []
-
-let mkRApp f args = if args = [] then f else GApp (dummy_loc, f, args)
-
-let mkRVar id = GRef (dummy_loc, VarRef id)
-
-let mkRltacVar id = GVar (dummy_loc, id)
-
-let mkRCast rc rt =  GCast (dummy_loc, rc, dC rt)
-
-let mkRType =  GSort (dummy_loc, GType None)
-
-let mkRProp =  GSort (dummy_loc, GProp)
-
-let mkRArrow rt1 rt2 = GProd (dummy_loc, Anonymous, Explicit, rt1, rt2)
-
-let mkRConstruct c = GRef (dummy_loc, ConstructRef c)
-
-let mkRInd mind = GRef (dummy_loc, IndRef mind)
-
-let mkRLambda n s t = GLambda (dummy_loc, n, Explicit, s, t)
-
-(** Constructors for constr *)
-
-let mkAppRed f c = match kind_of_term f with
-| Lambda (_, _, b) -> subst1 c b
-| _ -> mkApp (f, [|c|])
-
-let mkProt t c = mkApp (mkSsrConst "protect_term", [|t; c|])
-
-let mkRefl t c = mkApp ((build_coq_eq_data()).refl, [|t; c|])
-
-(* Application to a sequence of n rels (for building eta-expansions). *)
-(* The rel indices decrease down to imin (inclusive), unless n < 0,   *)
-(* in which case they're incresing (from imin).                       *)
-let mkEtaApp c n imin =
-  if n = 0 then c else
-  let nargs, mkarg =
-    if n < 0 then -n, (fun i -> mkRel (imin + i)) else
-    let imax = imin + n - 1 in n, (fun i -> mkRel (imax - i)) in
-  mkApp (c, Array.init nargs mkarg)
-
-(* Same, but optimizing head beta redexes *)
-let rec whdEtaApp c n =
-  if n = 0 then c else match kind_of_term c with
-  | Lambda (_, _, c') -> whdEtaApp c' (n - 1)
-  | _ -> mkEtaApp (lift n c) n 1
-
-let isEvar_k k f =
-  match kind_of_term f with Evar (k', _) -> k = k' | _ -> false
-
-let mkSubArg i a = if i = Array.length a then a else Array.sub a 0 i
-let mkSubApp f i a = if i = 0 then f else mkApp (f, mkSubArg i a)
-
-let safeDestApp c =
-  match kind_of_term c with App (f, a) -> f, a | _ -> c, [| |]
-let nb_args c =
-  match kind_of_term c with App (_, a) -> Array.length a | _ -> 0
-
-let splay_app ise =
-  let rec loop c a = match kind_of_term c with
-  | App (f, a') -> loop f (Array.append a' a)
-  | Cast (c', _, _) -> loop c' a
-  | Evar ex ->
-    (try loop (existential_value ise ex) a with _ -> c, a)
-  | _ -> c, a in
-  fun c -> match kind_of_term c with
-  | App (f, a) -> loop f a
-  | Cast _ | Evar _ -> loop c [| |]
-  | _ -> c, [| |]
-
-(* ssrterm conbinators *)
-
-let combineCG t1 t2 f g = match t1, t2 with
- | (x, (t1, None)), (_, (t2, None)) -> x, (g t1 t2, None)
- | (x, (_, Some t1)), (_, (_, Some t2)) -> x, (mkRHole, Some (f t1 t2))
- | _, (_, (_, None)) -> Errors.anomaly "have: mixed C-G constr"
- | _ -> Errors.anomaly "have: mixed G-C constr"
-
-let loc_ofCG = function
- | (_, (s, None)) -> Glob_ops.loc_of_glob_constr s
- | (_, (_, Some s)) -> Constrexpr_ops.constr_loc s
-
-(** Open term to lambda-term coercion *)
+(** Open term to lambda-term coercion  {{{ ************************************)
 
 (* This operation takes a goal gl and an open term (sigma, t), and   *)
 (* returns a term t' where all the new evars in sigma are abstracted *)
@@ -653,8 +630,6 @@ let loc_ofCG = function
 (* i.e., it will rewrite some subterm .. + (3 + ..) to .. + 3 + ...  *)
 (* The convention is also used for the argument of the congr tactic, *)
 (* e.g., congr (x + _ * 1).                                          *)
-
-let env_size env = List.length (Environ.named_context env)
 
 (* Replace new evars with lambda variables, retaining local dependencies *)
 (* but stripping global ones. We use the variable names to encode the    *)
@@ -790,31 +765,6 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
   pp(lazy(str"res= " ++ pr_constr res)); 
   List.length evlist, res
 
-(* A simplified version of the code above, to turn (new) evars into metas *)
-let evars_for_FO ~hack env sigma0 (ise0:evar_map) c0 =
-  let ise = ref ise0 in
-  let sigma = ref ise0 in
-  let nenv = env_size env + if hack then 1 else 0 in
-  let rec put c = match kind_of_term c with
-  | Evar (k, a as ex) ->
-    begin try put (existential_value !sigma ex)
-    with NotInstantiatedEvar ->
-    if Evd.mem sigma0 k then map_constr put c else
-    let evi = Evd.find !sigma k in
-    let dc = list_firstn (max 0 (Array.length a - nenv)) (evar_filtered_context evi) in
-    let abs_dc (d, c) = function
-    | x, Some b, t -> d, mkNamedLetIn x (put b) (put t) c
-    | x, None, t -> mkVar x :: d, mkNamedProd x (put t) c in
-    let a, t =
-      Sign.fold_named_context_reverse abs_dc ~init:([], (put evi.evar_concl)) dc in
-    let m = Evarutil.new_meta () in
-    ise := meta_declare m t !ise;
-    sigma := Evd.define k (applist (mkMeta m, a)) !sigma;
-    put (existential_value !sigma ex)
-    end
-  | _ -> map_constr put c in
-  let c1 = put c0 in !ise, c1
-
 (* Strip all non-essential dependencies from an abstracted term, generating *)
 (* standard names for the abstracted holes.                                 *)
 
@@ -895,20 +845,9 @@ let pf_unabs_evars gl ise n c0 =
   | _ -> unabs !nev c in
   unabs_evars c0
 
-(** Adding a new uninterpreted generic argument type *)
+(* }}} *)
 
-let add_genarg tag pr =
-  let wit, globwit, rawwit as wits = create_arg None tag in
-  let glob _ rarg = in_gen globwit (out_gen rawwit rarg) in
-  let interp _ gl garg = Tacmach.project gl,in_gen wit (out_gen globwit garg) in
-  let subst _ garg = garg in
-  add_interp_genarg tag (glob, interp, subst);
-  let gen_pr _ _ _ = pr in
-  Pptactic.declare_extra_genarg_pprule
-    (rawwit, gen_pr) (globwit, gen_pr) (wit, gen_pr);
-  wits
-
-(** Tactical extensions. *)
+(** Tactical extensions. {{{ **************************************************)
 
 (* The TACTIC EXTEND facility can't be used for defining new user   *)
 (* tacticals, because:                                              *)
@@ -924,7 +863,7 @@ let add_genarg tag pr =
 (*    printer using GEXTEND and set_pr_ssrtac, respectively.        *)
 (*  - We use a global stack and side effects to pass the lexical    *)
 (*    Ltac evaluation context to the extended tactical. The context *)
-(*    is grabbed by interpreting an (empty) ssrltacctx argument,    *)
+(*    is grabbed by interpreting an (empty) ltacctx argument,    *)
 (*    which should appear last in the grammar rules; the            *)
 (*    get_ltacctx function pops the stack and returns the context.  *)
 (*      For additional safety, the push returns an integer key that *)
@@ -949,31 +888,6 @@ let set_pr_ssrtac name prec afmt =
 let ssrtac_atom loc name args = TacExtend (loc, "ssr" ^ name, args)
 let ssrtac_expr loc name args = TacAtom (loc, ssrtac_atom loc name args)
 
-type ssrltacctx = int
-
-let pr_ssrltacctx _ _ _ _ = mt ()
-
-let ssrltacctxs = ref (1, [])
-
-let interp_ltacctx ist gl n0 =
-  Tacmach.project gl,
-  if n0 = 0 then 0 else
-  let n, s = !ssrltacctxs in
-  let n' = if n >= max_int then 1 else n + 1 in
-  ssrltacctxs := (n', (n, ist) :: s); n
-
-let noltacctx = 0
-let rawltacctx = 1
-
-ARGUMENT EXTEND ssrltacctx TYPED AS int PRINTED BY pr_ssrltacctx
-  INTERPRETED BY interp_ltacctx
-| [ ] -> [ rawltacctx ]
-END
-
-let get_ltacctx i = match !ssrltacctxs with
-| _ when i = noltacctx -> Errors.anomaly "Missing Ltac context"
-| n, (i', ist) :: s when i' = i -> ssrltacctxs := (n, s); ist
-| _ -> Errors.anomaly "Bad scope in SSR tactical"
 
 let ssrevaltac ist gtac =
   interp_tac_gen ist.lfun [] ist.debug (globTacticIn (fun _ -> gtac))
@@ -983,12 +897,6 @@ let ssrevaltac ist gtac =
 
 (** Generic argument-based globbing/typing utilities *)
 
-(* Toplevel constr must be globalized twice ! *)
-let glob_constr ist gsigma genv = function
-  | _, Some ce ->
-    let ltacvars = List.map fst ist.lfun, [] in
-    Constrintern.intern_gen false ~ltacvars:ltacvars gsigma genv ce
-  | rc, None -> rc
 
 let interp_wit globwit wit ist gl x = 
   let globarg = in_gen globwit x in
@@ -1043,8 +951,9 @@ let interp_view_nbimps ist gl rc =
     if isAppInd gl c then List.length pl else ~-(List.length pl)
   with _ -> 0
 
+(* }}} *)
 
-(** 2. Vernacular commands: Prenex Implicits and Search *)
+(** Vernacular commands: Prenex Implicits and Search {{{ **********************)
 
 (* This should really be implemented as an extension to the implicit   *)
 (* arguments feature, but unfortuately that API is sealed. The current *)
@@ -1385,7 +1294,9 @@ VERNAC COMMAND EXTEND SsrSearchPattern
     Search.raw_search_about post_filter ssrdisplaysearch a' ]
 END
 
-(** 3. Alternative notations for "match" (let or if with pattern). *)
+(* }}} *)
+
+(** Alternative notations for "match" and anonymous arguments. {{{ ************)
 
 (* Syntax:                                                        *)
 (*  if <term> is <pattern> then ... else ...                      *)
@@ -1452,9 +1363,6 @@ GEXTEND Gram
   ] ];
 END
 
-
-(** Alternative syntax for anonymous arguments (for ML-style constructors) *)
-
 GEXTEND Gram
   GLOBAL: closed_binder;
   closed_binder: [
@@ -1462,8 +1370,9 @@ GEXTEND Gram
       [LocalRawAssum ([loc, Anonymous], Default Explicit, c)]
   ] ];
 END
+(* }}} *)
 
-(** 4. Tacticals (+, -, *, done, by, do, =>, first, and last). *)
+(** Tacticals (+, -, *, done, by, do, =>, first, and last). {{{ ***************)
 
 (** Bracketing tactical *)
 
@@ -1530,7 +1439,7 @@ END
 
 (* Lexically closed tactic for tacticals. *)
 let pr_ssrtclarg _ _ prt (tac, _) = prt tacltop tac
-ARGUMENT EXTEND ssrtclarg TYPED AS ssrtacarg * ssrltacctx
+ARGUMENT EXTEND ssrtclarg TYPED AS ssrtacarg * ltacctx
     PRINTED BY pr_ssrtclarg
 | [ ssrtacarg(tac) ] -> [ tac, rawltacctx ]
 END
@@ -1637,7 +1546,7 @@ ARGUMENT EXTEND ssrhint TYPED AS ssrhintarg PRINTED BY pr_ssrhint
 END
 
 TACTIC EXTEND ssrtclby
-| [ "Qed" ssrhint(tac) ssrltacctx(ctx)] ->
+| [ "Qed" ssrhint(tac) ltacctx(ctx)] ->
   [ hinttac (get_ltacctx ctx) true tac ]
 END
 set_pr_ssrtac "tclby" 0 [ArgSsr "hint"; ArgSsr "ltacctx"]
@@ -1651,10 +1560,11 @@ GEXTEND Gram
   simple_tactic: [
   [ "by"; arg = ssrhintarg ->
     let garg = in_gen rawwit_ssrhint arg in
-    let gctx = in_gen rawwit_ssrltacctx rawltacctx in
+    let gctx = in_gen rawwit_ltacctx rawltacctx in
     ssrtac_atom loc "tclby" [garg; gctx]
   ] ];
 END
+(* }}} *)
 
 (** Bound assumption argument *)
 
@@ -1717,7 +1627,7 @@ ARGUMENT EXTEND ssrhyps TYPED AS ssrhyp list PRINTED BY pr_ssrhyps
   | [ ssrhyp_list(hyps) ] -> [ check_hyps_uniq [] hyps; hyps ]
 END
 
-(** Term references *)
+(** Terms parsing. {{{ ********************************************************)
 
 (* Because we allow wildcards in term references, we need to stage the *)
 (* interpretation of terms so that it occurs at the right time during  *)
@@ -1732,74 +1642,38 @@ END
 type ssrtermkind = char (* print flag *)
 
 let input_ssrtermkind strm = match Stream.npeek 1 strm with
-(*FIXME
-  | ["", "("] -> '('
-  | ["", "@"] -> '@'
-  | _ -> ' '
-*)
   | [Tok.KEYWORD "("] -> '('
   | [Tok.KEYWORD "@"] -> '@'
   | _ -> ' '
 
 let ssrtermkind = Gram.Entry.of_parser "ssrtermkind" input_ssrtermkind
 
-let id_of_Cterm = function
-  | _,(_,Some (CRef (Ident (_, x)))) -> x
-  | _,(_,Some (CAppExpl (_, (_, Ident (_, x)), []))) -> x
-  | _,(_,Some x) -> loc_error (constr_loc x) "Only identifiers are allowed here"
-  | _,(GRef (_, VarRef x) ,None) -> x
-  | _ -> Errors.anomaly "not a cterm nor a GRef(VarRef _)"
-
+let id_of_Cterm t = match id_of_cpattern t with
+  | Some x -> x
+  | None -> loc_error (loc_of_cpattern t) "Only identifiers are allowed here"
 let ssrhyp_of_ssrterm = function
-  | k, (_, Some c) as o -> SsrHyp (constr_loc c, id_of_Cterm o), String.make 1 k
+  | k, (_, Some c) as o ->
+     SsrHyp (constr_loc c, id_of_Cterm (cpattern_of_term o)), String.make 1 k
   | _, (_, None) -> assert false
 
 (* terms *)
-
-type ssrtermrep = char * glob_constr_and_expr
-
-(* We also guard characters that might interfere with the ssreflect   *)
-(* tactic syntax.                                                     *)
-let guard_term ch1 s i = match s.[i] with
-  | '(' -> false
-  | '{' | '/' | '=' -> true
-  | _ -> ch1 = '('
-
-let mk_term k c = k, (mkRHole, Some c)
-let mk_lterm = mk_term ' '
-
-let hole_var = mkVar (id_of_string "_")
-let pr_constr_pat c0 =
-  let rec wipe_evar c =
-    if isEvar c then hole_var else map_constr wipe_evar c in
-  pr_constr (wipe_evar c0)
-
-let pr_term (k, c) = pr_guarded (guard_term k) pr_glob_constr_and_expr c
-let prl_term (k, c) = pr_guarded (guard_term k) prl_glob_constr_and_expr c
-
 let pr_ssrterm _ _ _ = pr_term
-
 let pf_intern_term ist gl (_, c) = glob_constr ist (project gl) (pf_env gl) c
 let intern_term ist sigma env (_, c) = glob_constr ist sigma env c
-
 let interp_term ist gl (_, c) = snd (interp_open_constr ist gl c)
-
 let force_term ist gl (_, c) = interp_constr ist gl c
-
 let glob_ssrterm gs = function
   | k, (_, Some c) -> k, Tacinterp.intern_constr gs c
   | ct -> ct
-
 let subst_ssrterm s (k, c) = k, Tacinterp.subst_glob_constr_and_expr s c
-
 let interp_ssrterm _ gl t = Tacmach.project gl, t
 
 ARGUMENT EXTEND ssrterm
      PRINTED BY pr_ssrterm
      INTERPRETED BY interp_ssrterm
      GLOBALIZED BY glob_ssrterm SUBSTITUTED BY subst_ssrterm
-     RAW_TYPED AS ssrtermrep RAW_PRINTED BY pr_ssrterm
-     GLOB_TYPED AS ssrtermrep GLOB_PRINTED BY pr_ssrterm
+     RAW_TYPED AS cpattern RAW_PRINTED BY pr_ssrterm
+     GLOB_TYPED AS cpattern GLOB_PRINTED BY pr_ssrterm
 | [ "Qed" constr(c) ] -> [ mk_lterm c ]
 END
 
@@ -1807,78 +1681,9 @@ GEXTEND Gram
   GLOBAL: ssrterm;
   ssrterm: [[ k = ssrtermkind; c = constr -> mk_term k c ]];
 END
+(* }}} *)
 
-(* This piece of code asserts the following notations are reserved *)
-(* Reserved Notation "( a 'in' b )"        (at level 0).           *)
-(* Reserved Notation "( a 'as' b )"        (at level 0).           *)
-(* Reserved Notation "( a 'in' b 'in' c )" (at level 0).           *)
-(* Reserved Notation "( a 'as' b 'in' c )" (at level 0).           *)
-let glob_ssrpattern gs p =
-  pp(lazy(str"globbing pattern: " ++ pr_term p));
-  let glob x = snd (glob_ssrterm gs (mk_lterm x)) in
-  let encode k s l =
-    let name = Name (id_of_string ("_ssrpat_" ^ s)) in
-    k, (mkRCast mkRHole (mkRLambda name mkRHole (mkRApp mkRHole l)), None) in
-  let bind_in t1 t2 =
-    let d = dummy_loc in let n = Name (destCVar t1) in
-    fst (glob (mkCCast d (mkCHole d) (mkCLambda d n (mkCHole d) t2))) in
-  let check_var t2 = if not (isCVar t2) then
-    loc_error (constr_loc t2) "Only identifiers are allowed here" in
-  match p with
-  | _, (_, None) as x -> x
-  | k, (v, Some t) as orig ->
-     if k = 'x' then glob_ssrterm gs ('(', (v, Some t)) else
-     match t with
-     | CNotation(_, "( _ in _ )", ([t1; t2], [], [])) ->
-         (try match glob t1, glob t2 with
-         | (r1, None), (r2, None) -> encode k "In" [r1;r2]
-         | (r1, Some _), (r2, Some _) when isCVar t1 ->
-             encode k "In" [r1; r2; bind_in t1 t2]
-         | (r1, Some _), (r2, Some _) -> encode k "In" [r1; r2]
-         | _ -> Errors.anomaly "where are we?"
-         with _ when isCVar t1 -> encode k "In" [bind_in t1 t2])
-     | CNotation(_, "( _ in _ in _ )", ([t1; t2; t3], [], [])) ->
-         check_var t2; encode k "In" [fst (glob t1); bind_in t2 t3]
-     | CNotation(_, "( _ as _ )", ([t1; t2], [], [])) ->
-         encode k "As" [fst (glob t1); fst (glob t2)]
-     | CNotation(_, "( _ as _ in _ )", ([t1; t2; t3], [], [])) ->
-         check_var t2; encode k "As" [fst (glob t1); bind_in t2 t3]
-     | _ -> glob_ssrterm gs orig
-;;
-
-ARGUMENT EXTEND ssrpattern
-     PRINTED BY pr_ssrterm
-     INTERPRETED BY interp_ssrterm
-     GLOBALIZED BY glob_ssrpattern SUBSTITUTED BY subst_ssrterm
-     RAW_TYPED AS ssrtermrep RAW_PRINTED BY pr_ssrterm
-     GLOB_TYPED AS ssrtermrep GLOB_PRINTED BY pr_ssrterm
-| [ "Qed" constr(c) ] -> [ mk_lterm c ]
-END
-
-GEXTEND Gram
-  GLOBAL: ssrpattern;
-  ssrpattern: [[ k = ssrtermkind; c = constr ->
-    let pattern = mk_term k c in
-    if loc_ofCG pattern <> loc && k = '(' then mk_term 'x' c else pattern ]];
-END
-
-ARGUMENT EXTEND ssrlpattern
-     PRINTED BY pr_ssrterm
-     INTERPRETED BY interp_ssrterm
-     GLOBALIZED BY glob_ssrpattern SUBSTITUTED BY subst_ssrterm
-     RAW_TYPED AS ssrtermrep RAW_PRINTED BY pr_ssrterm
-     GLOB_TYPED AS ssrtermrep GLOB_PRINTED BY pr_ssrterm
-| [ "Qed" lconstr(c) ] -> [ mk_lterm c ]
-END
-
-GEXTEND Gram
-  GLOBAL: ssrlpattern;
-  ssrlpattern: [[ k = ssrtermkind; c = lconstr ->
-    let pattern = mk_term k c in
-    if loc_ofCG pattern <> loc && k = '(' then mk_term 'x' c else pattern ]];
-END
-
-(** The "in" pseudo-tactical *)
+(** The "in" pseudo-tactical {{{ **********************************************)
 
 (* We can't make "in" into a general tactical because this would create a  *)
 (* crippling conflict with the ltac let .. in construct. Hence, we add     *)
@@ -2047,6 +1852,7 @@ let tclCLAUSES tac (clahyps, clseq) gl =
     List.map discharge_hyp (List.rev id_map) @ [clear (fst cl_ids)] in
   let endtac = endclausestac id_map clseq gl_id cl0 in
   tclTHENLIST (hidetacs clseq gl_id cl0 @ dtacs @ [tac; endtac]) gl
+(* }}} *)
 
 (** Clear switch *)
 
@@ -2114,15 +1920,8 @@ let simpltac = function
 
 (** Rewriting direction *)
 
-type ssrdir = L2R | R2L
-
 let pr_dir = function L2R -> str "->" | R2L -> str "<-"
-
 let pr_rwdir = function L2R -> mt() | R2L -> str "-"
-
-let pr_dir_side = function L2R -> str "LHS" | R2L -> str "RHS"
-
-let inv_dir = function L2R -> R2L | R2L -> L2R
 
 let rewritetac dir c =
   (* Due to the new optional arg ?tac, application shouldn't be too partial *)
@@ -2153,8 +1952,6 @@ let noindex = ArgArg 0
 let check_index loc i =
   if i > 0 then i else loc_error loc "Index not positive"
 let mk_index loc = function ArgArg i -> ArgArg (check_index loc i) | iv -> iv
-let get_index = function ArgArg i -> i | _ ->
-  Errors.anomaly "Uninterpreted index"
 
 let interp_index ist gl idx =
   Tacmach.project gl, 
@@ -2238,7 +2035,7 @@ ARGUMENT EXTEND ssrdocc TYPED AS ssrclear option * ssrocc PRINTED BY pr_ssrdocc
 | [ "{" ssrocc(occ) "}" ] -> [ mkocc occ ]
 END
 
-(** View hint database. *)
+(** View hint database and View application. {{{ ******************************)
 
 (* There are three databases of lemmas used to mediate the application  *)
 (* of reflection lemmas: one for forward chaining, one for backward     *)
@@ -2422,9 +2219,11 @@ let with_view ist si env gl0 c name cl prune =
 let pf_with_view ist gl (prune, view) cl c =
   let env, sigma, si = pf_env gl, project gl, sig_it gl in
   with_view ist si env gl c (constr_name c) cl prune (sigma, c) view
+(* }}} *)
+ 
+(** Extended intro patterns {{{ ***********************************************)
 
-(** Extended intro patterns *)
-
+type ssrtermrep = char * glob_constr_and_expr
 type ssripat =
   | IpatSimpl of ssrclear * ssrsimpl
   | IpatId of identifier
@@ -2637,13 +2436,13 @@ ARGUMENT EXTEND ssrrpat TYPED AS ssripatrep PRINTED BY pr_ssripat
   | [ "<-" ] -> [ IpatRw ([noindex], R2L) ]
 END
 
-type ssrintros = ssripats * ssrltacctx
+type ssrintros = ssripats * ltacctx
 
 let pr_intros sep (intrs, _) =
   if intrs = [] then mt() else sep () ++ str "=> " ++ pr_ipats intrs
 let pr_ssrintros _ _ _ = pr_intros mt
 
-ARGUMENT EXTEND ssrintros_ne TYPED AS ssripat * ssrltacctx
+ARGUMENT EXTEND ssrintros_ne TYPED AS ssripat * ltacctx
  PRINTED BY pr_ssrintros
   | [ "=>" ssripats_ne(pats) ] -> [ pats, rawltacctx ]
 END
@@ -2744,7 +2543,6 @@ let tclTHENS_nonstrict tac tacl taclname gl =
     pr_only n1 n2 ++ int n1 ++ str (" " ^ plural n1 name) in
   errorstrm (pr_nb n_tac n_gls taclname ++ spc ()
              ++ str "for " ++ pr_nb n_gls n_tac "subgoal")
-
 
 (* Forward reference to extended rewrite *)
 let ipat_rewritetac = ref (fun _ -> rewritetac)
@@ -2887,8 +2685,9 @@ GEXTEND Gram
     [ tac = tactic_expr; intros = ssrintros_ne -> tclintros_expr loc tac intros
     ] ];
 END
+(* }}} *)
 
-(** Multipliers *)
+(** Multipliers {{{ ***********************************************************)
 
 (* modality *)
 
@@ -2935,17 +2734,17 @@ let tclMULT = function
   | n, Must when n > 1 -> tclDO n
   | _       -> tclID
 
-(** The "do" tactical. *)
+(** The "do" tactical. ********************************************************)
 
 (*
-type ssrdoarg = ((ssrindex * ssrmmod) * (ssrhint * ssrltacctx)) * ssrclauses
+type ssrdoarg = ((ssrindex * ssrmmod) * (ssrhint * ltacctx)) * ssrclauses
 *)
 
 let pr_ssrdoarg prc _ prt (((n, m), (tac, _)), clauses) =
   pr_index n ++ pr_mmod m ++ pr_hintarg prt tac ++ pr_clauses clauses
 
 ARGUMENT EXTEND ssrdoarg
-  TYPED AS ((ssrindex * ssrmmod) * (ssrhintarg * ssrltacctx)) * ssrclauses
+  TYPED AS ((ssrindex * ssrmmod) * (ssrhintarg * ltacctx)) * ssrclauses
   PRINTED BY pr_ssrdoarg
 | [ "Qed" ] -> [ Errors.anomaly "Grammar placeholder match" ]
 END
@@ -2979,8 +2778,9 @@ GEXTEND Gram
       ssrdotac_expr loc (mk_index loc n) m tac clauses
     ] ];
 END
+(* }}} *)
 
-(** The "first" and "last" tacticals. *)
+(** The "first" and "last" tacticals. {{{ *************************************)
 
 (* type ssrseqarg = ssrindex * (ssrtacarg * ssrtac option) *)
 
@@ -3147,10 +2947,12 @@ GEXTEND Gram
       tclseq_expr loc tac R2L arg
     ] ];
 END
+(* }}} *)
 
 (** 5. Bookkeeping tactics (clear, move, case, elim) *)
 
 (* post-interpretation of terms *)
+let all_ok _ _ = true
 
 let pf_abs_ssrterm ist gl t =
   let n, c = pf_abs_evars gl (interp_term ist gl t) in pf_abs_cterm gl n c
@@ -3188,479 +2990,15 @@ let pf_interp_ty ist gl ty =
 
 let whd_app f args = Reductionops.whd_betaiota Evd.empty (mkApp (f, args))
 
-(** Unification procedures.                                *)
-
-(* To enforce the rigidity of the rooted match we always split  *)
-(* top applications, so the unification procedures operate on   *)
-(* arrays of patterns and terms.                                *)
-(* We perform three kinds of unification:                       *)
-(*  EQ: exact conversion check                                  *)
-(*  FO: first-order unification of evars, without conversion    *)
-(*  HO: higher-order unification with conversion                *)
-(* The subterm unification strategy is to find the first FO     *)
-(* match, if possible, and the first HO match otherwise, then   *)
-(* compute all the occurrences that are EQ matches for the      *)
-(* relevant subterm.                                            *)
-(*   Additional twists:                                         *)
-(*    - If FO/HO fails then we attempt to fill evars using      *)
-(*      typeclasses before raising an outright error. We also   *)
-(*      fill typeclasses even after a successful match, since   *)
-(*      beta-reduction and canonical instances may leave        *)
-(*      undefined evars.                                        *)
-(*    - We do postchecks to rule out matches that are not       *)
-(*      closed or that assign to a global evar; these can be    *)
-(*      disabled for rewrite or dependent family matches.       *)
-(*    - We do a full FO scan before turning to HO, as the FO    *)
-(*      comparison can be much faster than the HO one.          *)
-
-let unif_EQ env sigma p c =
-  let evars = existential_opt_value sigma in 
-  try let _ = Reduction.conv env p ~evars c in true with _ -> false
-
-let unif_EQ_args env sigma pa a =
-  let n = Array.length pa in
-  let rec loop i = (i = n) || unif_EQ env sigma pa.(i) a.(i) && loop (i + 1) in
-  loop 0
-
-let prof_unif_eq_args = mk_profiler "unif_EQ_args";;
-let unif_EQ_args env sigma pa a =
-  prof_unif_eq_args.profile (unif_EQ_args env sigma pa) a 
-;;
-
 let pr_cargs a =
   str "[" ++ pr_list pr_spc pr_constr (Array.to_list a) ++ str "]"
-
-exception NoMatch
-exception NoProgress
-
-let unif_HO env ise p c = Evarconv.the_conv_x env p c ise
-
-let unif_HOtype env ise p c = Evarconv.the_conv_x_leq env p c ise
-
-let unif_HO_args env ise0 pa i ca =
-  let n = Array.length pa in
-  let rec loop ise j =
-    if j = n then ise else loop (unif_HO env ise pa.(j) ca.(i + j)) (j + 1) in
-  loop ise0 0
-
-(* FO unification should boil down to calling w_unify with no_delta, but  *)
-(* alas things are not so simple: w_unify does partial type-checking,     *)
-(* which breaks down when the no-delta flag is on (as the Coq type system *)
-(* requires full convertibility. The workaround here is to convert all    *)
-(* evars into metas, since 8.2 does not TC metas. This means some lossage *)
-(* for HO evars, though hopefully Miller patterns can pick up some of     *)
-(* those cases, and HO matching will mop up the rest.                     *)
-let flags_FO = {Unification.default_no_delta_unify_flags with 
-                Unification.modulo_conv_on_closed_terms = None;
-                Unification.modulo_delta_types = full_transparent_state;
-                Unification.allow_K_in_toplevel_higher_order_unification=false} 
-let unif_FO env ise p c =
-  Unification.w_unify env ise Reduction.CONV ~flags:flags_FO p c
-
-(* Perform evar substitution in main term and prune substitution. *)
-let nf_open_term sigma0 ise c =
-  let s = ise and s' = ref sigma0 in
-  let rec nf c' = match kind_of_term c' with
-  | Evar ex ->
-    begin try nf (existential_value s ex) with _ ->
-    let k, a = ex in let a' = Array.map nf a in
-    if not (Evd.mem !s' k) then
-      s' := Evd.add !s' k (Evarutil.nf_evar_info s (Evd.find s k));
-    mkEvar (k, a')
-    end
-  | _ -> map_constr nf c' in
-  let copy_def k evi () =
-    if evar_body evi != Evd.Evar_empty then () else
-    match Evd.evar_body (Evd.find s k) with
-    | Evar_defined c' -> s' := Evd.define k (nf c') !s'
-    | _ -> () in
-  let c' = nf c in let _ = Evd.fold copy_def sigma0 () in !s', c'
-
-let unif_end env sigma0 ise0 pt ok =
-  let ise = Evarconv.consider_remaining_unif_problems env ise0 in
-  let s, t = nf_open_term sigma0 ise pt in
-  let ise1 = create_evar_defs s in
-  let ise2 = Typeclasses.resolve_typeclasses ~fail:true env ise1 in
-  if not (ok ise) then raise NoProgress else
-  if ise2 == ise1 then (s, t) else nf_open_term sigma0 ise2 t
-
-let pf_unif_HO gl sigma pt p c =
-  let env = pf_env gl in
-  let ise = unif_HO env (create_evar_defs sigma) p c in
-  unif_end env (project gl) ise pt (fun _ -> true)
-
-(* This is what the definition of iter_constr should be... *)
-let iter_constr_LR f c = match kind_of_term c with
-  | Evar (k, a) -> Array.iter f a
-  | Cast (cc, _, t) -> f cc; f t  
-  | Prod (_, t, b) | Lambda (_, t, b)  -> f t; f b
-  | LetIn (_, v, t, b) -> f v; f t; f b
-  | App (cf, a) -> f cf; Array.iter f a
-  | Case (_, p, v, b) -> f v; f p; Array.iter f b
-  | Fix (_, (_, t, b)) | CoFix (_, (_, t, b)) ->
-    for i = 0 to Array.length t - 1 do f t.(i); f b.(i) done
-  | _ -> ()
 
 let pp_term gl t =
   let t = Reductionops.nf_evar (project gl) t in pr_constr t
 let pp_concat hd ?(sep=str", ") = function [] -> hd | x :: xs ->
   hd ++ List.fold_left (fun acc x -> acc ++ sep ++ x) x xs
 
-(* The comparison used to determine which subterms matches is KEYED        *)
-(* CONVERSION. This looks for convertible terms that either have the same  *)
-(* same head constant as pat if pat is an application (after beta-iota),   *)
-(* or start with the same constr constructor (esp. for LetIn); this is     *)
-(* disregarded if the head term is let x := ... in x, and casts are always *)
-(* ignored and removed).                                                   *)
-(* Record projections get special treatment: in addition to the projection *)
-(* constant itself, ssreflect also recognizes head constants of canonical  *)
-(* projections.                                                            *)
-
-type pattern_class =
-  | KpatFixed
-  | KpatConst
-  | KpatEvar of existential_key
-  | KpatLet
-  | KpatRigid
-  | KpatFlex
-  | KpatProj of constant
-
-type upattern = {
-  up_k : pattern_class;
-  up_FO : constr;
-  up_f : constr;
-  up_a : constr array;
-  up_t : constr;                      (* equation proof term or matched term *)
-  up_dir : ssrdir;                    (* direction of the rule *)
-  up_ok : constr -> evar_map -> bool; (* progess test for rewrite *)
-  }
-
-let all_ok _ _ = true
-
-let proj_nparams c =
-  try 1 + Recordops.find_projection_nparams (ConstRef c) with _ -> 0
-
-let isFixed c = match kind_of_term c with
-  | Var _ | Ind _ | Construct _ | Const _ -> true
-  | _ -> false
-
-let isRigid c = match kind_of_term c with
-  | Prod _ | Sort _ | Lambda _ | Case _ | Fix _ | CoFix _ -> true
-  | _ -> false
-
-exception UndefPat
-
-(* Compile a match pattern from a term; t is the term to fill. *)
-(* p_origin can be passed to obtain a better error message     *)
-let mk_upat ?(hack=false) env sigma0 ise t ok ?p_origin dir p =
-  let k, f, a =
-    let f, a = Reductionops.whd_betaiota_stack ise p in
-    match kind_of_term f with
-    | Const p ->
-      let np = proj_nparams p in
-      if np = 0 || np > List.length a then KpatConst, f, a else
-      let a1, a2 = list_chop np a in KpatProj p, applist(f, a1), a2
-    | Var _ | Ind _ | Construct _ -> KpatFixed, f, a
-    | Evar (k, _) ->
-      if Evd.mem sigma0 k then KpatEvar k, f, a else
-      if a <> [] then KpatFlex, f, a else 
-      (match p_origin with None -> Errors.error "indeterminate pattern"
-      | Some (dir, rule) ->
-	errorstrm (str "indeterminate " ++ pr_dir_side dir
-          ++ str " in " ++ pr_constr_pat rule))
-    | LetIn (_, v, _, b) ->
-      if b <> mkRel 1 then KpatLet, f, a else KpatFlex, v, a
-    | _ -> KpatRigid, f, a in
-  let aa = Array.of_list a in
-  let ise', p' = evars_for_FO ~hack env sigma0 ise (mkApp (f, aa)) in
-  { up_k = k; up_FO = p'; up_f = f; 
-    up_a = aa; up_ok = ok; up_dir = dir; up_t = t}, 
-  ise'
-
-(* Specialize a pattern after a successful match: assign a precise head *)
-(* kind and arity for Proj and Flex patterns.                           *)
-let ungen_upat lhs (sigma, t) u =
-  let f, a = safeDestApp lhs in
-  let k = match kind_of_term f with
-  | Var _ | Ind _ | Construct _ -> KpatFixed
-  | Const _ -> KpatConst
-  | Evar (k, _) -> if is_defined sigma k then raise NoMatch else KpatEvar k
-  | LetIn _ -> KpatLet
-  | _ -> KpatRigid in
-  sigma, {u with up_k = k; up_FO = lhs; up_f = f; up_a = a; up_t = t}
-
-let nb_cs_proj_args pc f u =
-  let na k =
-    List.length (lookup_canonical_conversion (ConstRef pc, k)).o_TCOMPS in
-  try match kind_of_term f with
-  | Prod _ -> na Prod_cs
-  | Sort s -> na (Sort_cs (family_of_sort s))
-  | Const c' when c' = pc -> Array.length (snd (destApp u.up_f))
-  | Var _ | Ind _ | Construct _ | Const _ -> na (Const_cs (global_of_constr f))
-  | _ -> -1
-  with Not_found -> -1
-
-let filter_upat i0 f n u fpats =
-  let na = Array.length u.up_a in
-  if n < na then fpats else
-  let np = match u.up_k with
-  | KpatConst when eq_constr u.up_f f -> na
-  | KpatFixed when u.up_f = f -> na 
-  | KpatEvar k when isEvar_k k f -> na
-  | KpatLet when isLetIn f -> na
-  | KpatRigid when isRigid f -> na
-  | KpatFlex -> na
-  | KpatProj pc ->
-    let np = na + nb_cs_proj_args pc f u in if n < np then -1 else np
-  | _ -> -1 in
-  if np < na then fpats else
-  let () = if !i0 < np then i0 := n in (u, np) :: fpats
-
-let filter_upat_FO i0 f n u fpats =
-  let np = nb_args u.up_FO in
-  if n < np then fpats else
-  let ok = match u.up_k with
-  | KpatConst -> eq_constr u.up_f f 
-  | KpatFixed -> u.up_f = f 
-  | KpatEvar k -> isEvar_k k f
-  | KpatLet -> isLetIn f
-  | KpatRigid -> isRigid f
-  | KpatProj pc -> f = mkConst pc
-  | KpatFlex -> i0 := n; true in
-  if ok then begin if !i0 < np then i0 := np; (u, np) :: fpats end else fpats
-
-exception FoundUnif of (evar_map * upattern)
-(* Note: we don't update env as we descend into the term, as the primitive *)
-(* unification procedure always rejects subterms with bound variables.     *)
-
-(* We are forced to duplicate code between the FO/HO matching because we    *)
-(* have to work around several kludges in unify.ml:                         *)
-(*  - w_unify drops into second-order unification when the pattern is an    *)
-(*    application whose head is a meta.                                     *)
-(*  - w_unify tries to unify types without subsumption when the pattern     *)
-(*    head is an evar or meta (e.g., it fails on ?1 = nat when ?1 : Type).  *)
-(*  - w_unify expands let-in (zeta conversion) eagerly, whereas we want to  *)
-(*    match a head let rigidly.                                             *)
-let match_upats_FO upats env sigma0 ise =
-  let rec loop c =
-    let f, a = splay_app ise c in let i0 = ref (-1) in
-    let fpats =
-      List.fold_right (filter_upat_FO i0 f (Array.length a)) upats [] in
-    while !i0 >= 0 do
-      let i = !i0 in i0 := -1;
-      let c' = mkSubApp f i a in
-      let one_match (u, np) =
-         let skip =
-           if i <= np then i < np else
-           if u.up_k == KpatFlex then begin i0 := i - 1; false end else
-           begin if !i0 < np then i0 := np; true end in
-         if skip || not (closed0 c') then () else try
-           let _ = match u.up_k with
-           | KpatFlex ->
-             let kludge v = mkLambda (Anonymous, mkProp, v) in
-             unif_FO env ise (kludge u.up_FO) (kludge c')
-           | KpatLet ->
-             let kludge vla =
-               let vl, a = safeDestApp vla in
-               let x, v, t, b = destLetIn vl in
-               mkApp (mkLambda (x, t, b), array_cons v a) in
-             unif_FO env ise (kludge u.up_FO) (kludge c')
-           | _ -> unif_FO env ise u.up_FO c' in
-           let ise' = (* Unify again using HO to assign evars *)
-             let p = mkApp (u.up_f, u.up_a) in
-             try unif_HO env ise p c' with _ -> raise NoMatch in
-           let lhs = mkSubApp f i a in
-           let pt' = unif_end env sigma0 ise' u.up_t (u.up_ok lhs) in
-           raise (FoundUnif (ungen_upat lhs pt' u))
-       with FoundUnif _ as sigma_u -> raise sigma_u 
-       | Not_found -> Errors.anomaly "incomplete ise in match_upats_FO"
-       | _ -> () in
-    List.iter one_match fpats
-  done;
-  iter_constr_LR loop f; Array.iter loop a in
-  fun c -> try loop c with Invalid_argument _ -> Errors.anomaly "IN FO"
-
-let prof_FO = mk_profiler "match_upats_FO";;
-let match_upats_FO upats env sigma0 ise c =
-  prof_FO.profile (match_upats_FO upats env sigma0) ise c
-;;
-
-
-let match_upats_HO upats env sigma0 ise c =
- let it_did_match = ref false in
- let rec aux upats env sigma0 ise c =
-  let f, a = splay_app ise c in let i0 = ref (-1) in
-  let fpats = List.fold_right (filter_upat i0 f (Array.length a)) upats [] in
-  while !i0 >= 0 do
-    let i = !i0 in i0 := -1;
-    let one_match (u, np) =
-      let skip =
-        if i <= np then i < np else
-        if u.up_k == KpatFlex then begin i0 := i - 1; false end else
-        begin if !i0 < np then i0 := np; true end in
-      if skip then () else try
-        let ise' = match u.up_k with
-        | KpatFixed | KpatConst -> ise
-        | KpatEvar _ ->
-          let _, pka = destEvar u.up_f and _, ka = destEvar f in
-          unif_HO_args env ise pka 0 ka
-        | KpatLet ->
-          let x, v, t, b = destLetIn f in
-          let _, pv, _, pb = destLetIn u.up_f in
-          let ise' = unif_HO env ise pv v in
-          unif_HO (Environ.push_rel (x, None, t) env) ise' pb b
-        | KpatFlex | KpatProj _ ->
-          unif_HO env ise u.up_f (mkSubApp f (i - Array.length u.up_a) a)
-        | _ -> unif_HO env ise u.up_f f in
-        let ise'' = unif_HO_args env ise' u.up_a (i - Array.length u.up_a) a in
-        let lhs = mkSubApp f i a in
-        let pt' = unif_end env sigma0 ise'' u.up_t (u.up_ok lhs) in
-        raise (FoundUnif (ungen_upat lhs pt' u))
-      with FoundUnif _ as sigma_u -> raise sigma_u 
-      | NoProgress -> it_did_match := true
-      | _ -> () in
-    List.iter one_match fpats
-  done;
-  iter_constr_LR (aux upats env sigma0 ise) f;
-  Array.iter (aux upats env sigma0 ise) a
- in
- aux upats env sigma0 ise c;
- if !it_did_match then raise NoProgress
-
-let prof_HO = mk_profiler "match_upats_HO";;
-let match_upats_HO upats env sigma0 ise c =
-  prof_HO.profile (match_upats_HO upats env sigma0) ise c
-;;
-
-
-let fixed_upat = function
-| {up_k = KpatFlex | KpatEvar _ | KpatProj _} -> false 
-| {up_t = t} -> not (occur_existential t)
-
-let do_once r f = match !r with Some _ -> () | None -> r := Some (f ())
-
-let assert_done r = 
-  match !r with Some x -> x | None -> Errors.anomaly "do_once never called"
-
-(* upats_origin makes a better error message only            *)
-let mk_pmatcher ?(raise_NoMatch=false) sigma0 occ ?upats_origin (upats, ise) =
-  let nocc = ref 0 and skip_occ = ref false in
-  let use_occ, occ_list = match List.map get_index occ with
-  | -1 :: ol -> ol = [], ol
-  | 0 :: ol | ol -> ol <> [], ol in
-  let max_occ = List.fold_right max occ_list 0 in
-  let subst_occ =
-    let occ_set = Array.make max_occ (not use_occ) in
-    let _ = List.iter (fun i -> occ_set.(i - 1) <- use_occ) occ_list in
-    let _ = if max_occ = 0 then skip_occ := use_occ in
-    fun () -> incr nocc;
-    if !nocc = max_occ then skip_occ := use_occ;
-    if !nocc <= max_occ then occ_set.(!nocc - 1) else not use_occ in
-  let upat_that_matched = ref None in
-  let match_EQ env sigma u = 
-    match u.up_k with
-    | KpatLet ->
-      let x, pv, t, pb = destLetIn u.up_f in
-      let env' = Environ.push_rel (x, None, t) env in
-      let match_let f = match kind_of_term f with
-      | LetIn (_, v, _, b) -> unif_EQ env sigma pv v && unif_EQ env' sigma pb b
-      | _ -> false in match_let
-    | KpatFixed -> (=) u.up_f
-    | KpatConst -> eq_constr u.up_f
-    | _ -> unif_EQ env sigma u.up_f in
-let p2t p = mkApp(p.up_f,p.up_a) in 
-let source () = match upats_origin, upats with
-  | None, [p] -> 
-      (if fixed_upat p then str"term " else str"partial term ") ++ 
-      pr_constr_pat (p2t p) ++ spc()
-  | Some (dir,rule), [p] -> str"The " ++ pr_dir_side dir ++ str" of " ++ 
-      pr_constr_pat rule ++ fnl() ++ ws 4 ++ pr_constr_pat (p2t p) ++ fnl()
-  | Some (dir,rule), _ -> str"The " ++ pr_dir_side dir ++ str" of " ++ 
-      pr_constr_pat rule ++ spc()
-  | _, [] | None, _::_::_ -> Errors.anomaly "mk_pmatcher with no upats_origin" in
-(fun env c h ~k -> 
-  do_once upat_that_matched (fun () -> 
-    try
-      match_upats_FO upats env sigma0 ise c;
-      match_upats_HO upats env sigma0 ise c;
-      raise NoMatch
-    with FoundUnif sigma_u -> sigma_u
-    | NoMatch when (not raise_NoMatch) ->
-      errorstrm (source () ++ str "does not match any subterm of the goal")
-    | NoProgress when (not raise_NoMatch) ->
-        let dir = match upats_origin with Some (d,_) -> d | _ ->
-          Errors.anomaly "mk_pmatcher with no upats_origin" in      
-        errorstrm (str"all matches of "++source()++
-          str"are equal to the " ++ pr_dir_side (inv_dir dir))
-    | NoProgress -> raise NoMatch);
-  let sigma, ({up_f = pf; up_a = pa} as u) = assert_done upat_that_matched in
-  if !skip_occ then (ignore(k env u.up_t u.up_t 0); c) else
-  let match_EQ = match_EQ env sigma u in
-  let pn = Array.length pa in
-  let rec subst_loop (env,h as acc) c' = 
-    if !skip_occ then c' else
-    let f, a = splay_app sigma c' in
-    if Array.length a >= pn && match_EQ f && unif_EQ_args env sigma pa a then
-      let a1, a2 = array_chop (Array.length pa) a in
-      let fa1 = mkApp (f, a1) in
-      let f' = if subst_occ () then k env fa1 u.up_t h else fa1 in
-      mkApp (f', array_map_left (subst_loop acc) a2)
-    else
-      (* TASSI: clear letin values to avoid unfolding *)
-      let inc_h (n,_,ty) (env,h') = Environ.push_rel (n,None,ty) env, h' + 1 in
-      let f' = map_constr_with_binders_left_to_right inc_h subst_loop acc f in
-      mkApp (f', array_map_left (subst_loop acc) a) in
-  subst_loop (env,h) c),
-(fun () ->
-  let sigma, ({up_f = pf; up_a = pa} as u) =
-    match !upat_that_matched with
-    | Some x -> x | None when raise_NoMatch -> raise NoMatch
-    | None -> Errors.anomaly "companion function never called" in
-  let p' = mkApp (pf, pa) in
-  if max_occ <= !nocc then p', u.up_dir, (sigma, u.up_t)
-  else errorstrm (str"Only " ++ int !nocc ++ str" < " ++ int max_occ ++
-        str(plural !nocc " occurence") ++ match upats_origin with
-        | None -> str" of" ++ spc() ++ pr_constr_pat p'
-        | Some (dir,rule) -> str" of the " ++ pr_dir_side dir ++ fnl() ++
-            ws 4 ++ pr_constr_pat p' ++ fnl () ++ 
-            str"of " ++ pr_constr_pat rule))
-
 let fake_pmatcher_end () = mkProp, L2R, (Evd.empty, mkProp)
-
-let pf_fill_occ env concl occ sigma0 p (sigma, t) ok h =
- let ise = create_evar_defs sigma in
- let u, ise = mk_upat env sigma0 ise t ok L2R p in
- let find_U, end_U = mk_pmatcher ~raise_NoMatch:true sigma0 occ ([u], ise) in
- let concl = find_U env concl h (fun _ _ _ -> mkRel) in
- let rdx, _, (sigma, p) = end_U () in
- sigma, p, concl, rdx
-
-let fill_occ_term env cl occ sigma0 (sigma, t) =
-  try
-    let sigma',t',cl,_ = pf_fill_occ env cl occ sigma0 t (sigma, t) all_ok 1 in
-    if sigma' != sigma0 then Errors.error "matching impacts evars" else cl, (sigma',t') with NoMatch -> try
-    let sigma', t' =
-      unif_end env sigma0 (create_evar_defs sigma) t (fun _ -> true) in
-    if sigma' != sigma0 then raise NoMatch else cl, (sigma', t')
-  with _ ->
-    errorstrm (str "partial term " ++ pr_constr_pat t
-            ++ str " does not match any subterm of the goal")
-
-let pf_fill_occ_term gl occ t =
-  let sigma0 = project gl and env = pf_env gl and concl = pf_concl gl in
-  let cl,(_,t) = fill_occ_term env concl occ sigma0 t in
-  cl, t
-
-(* TASSI: sound HO unification *)
-let unify_HO env sigma0 t1 t2 =
-  let sigma = unif_HO env sigma0 t1 t2 in
-  let sigma, _ = unif_end env sigma0 sigma t2 (fun _ -> true) in
-  sigma
-
-let pf_unify_HO gl t1 t2 =
-  let env, sigma0, si = pf_env gl, project gl, sig_it gl in
-  let sigma = unify_HO env sigma0 t1 t2 in
-  re_sig si sigma
 
 (* TASSI: given (c : ty), generates (c ??? : ty[???/...]) with m evars *)
 exception NotEnoughProducts
@@ -3696,246 +3034,19 @@ let pf_saturate ?beta gl c ?ty m =
 
 (** Rewrite redex switch *)
 
-type ('ident, 'term) a_ssrpattern = 
-  | T of 'term
-  | In_T of 'term
-  | X_In_T of 'ident * 'term     
-  | In_X_In_T of 'ident * 'term     
-  | E_In_X_In_T of 'term * 'ident * 'term     
-  | E_As_X_In_T of 'term * 'ident * 'term     
-        
-let pr_pattern = function
-  | T t -> prl_term t
-  | In_T t -> str "in " ++ prl_term t
-  | X_In_T (x,t) -> prl_term x ++ str " in " ++ prl_term t
-  | In_X_In_T (x,t) -> str "in " ++ prl_term x ++ str " in " ++ prl_term t
-  | E_In_X_In_T (e,x,t) ->
-      prl_term e ++ str " in " ++ prl_term x ++ str " in " ++ prl_term t
-  | E_As_X_In_T (e,x,t) ->
-      prl_term e ++ str " as " ++ prl_term x ++ str " in " ++ prl_term t
-
-let pr_pattern_w_ids = function
-  | T t -> prl_term t
-  | In_T t -> str "in " ++ prl_term t
-  | X_In_T (x,t) -> pr_id x ++ str " in " ++ prl_term t
-  | In_X_In_T (x,t) -> str "in " ++ pr_id x ++ str " in " ++ prl_term t
-  | E_In_X_In_T (e,x,t) ->
-      prl_term e ++ str " in " ++ pr_id x ++ str " in " ++ prl_term t
-  | E_As_X_In_T (e,x,t) ->
-      prl_term e ++ str " as " ++ pr_id x ++ str " in " ++ prl_term t
-
-let pr_pattern_aux pr_constr = function
-  | T t -> pr_constr t
-  | In_T t -> str "in " ++ pr_constr t
-  | X_In_T (x,t) -> pr_constr x ++ str " in " ++ pr_constr t
-  | In_X_In_T (x,t) -> str "in " ++ pr_constr x ++ str " in " ++ pr_constr t
-  | E_In_X_In_T (e,x,t) ->
-      pr_constr e ++ str " in " ++ pr_constr x ++ str " in " ++ pr_constr t
-  | E_As_X_In_T (e,x,t) ->
-      pr_constr e ++ str " as " ++ pr_constr x ++ str " in " ++ pr_constr t
-let pp_pattern (sigma, p) =
-  pr_pattern_aux (fun t -> pr_constr (snd (nf_open_term sigma sigma t))) p
-
-let pr_option f = function None -> mt() | Some x -> f x
-let pr_ssrpattern _ _ _ = pr_option pr_pattern
-let pr_pattern_squarep = pr_option (fun r -> str "[" ++ pr_pattern r ++ str "]")
-let pr_ssrpattern_squarep _ _ _ = pr_pattern_squarep
-let pr_pattern_roundp = pr_option (fun r -> str "(" ++ pr_pattern r ++ str ")")
-let pr_ssrpattern_roundp  _ _ _ = pr_pattern_roundp
-
-(* type ssrpattern = (ssrtermrep, ssrtermrep) a_ssrpattern *)
-
-let wit_ssrctxpattern, globwit_ssrctxpattern, rawwit_ssrctxpattern =
-  add_genarg "ssrctxpattern" pr_pattern
-
-ARGUMENT EXTEND ssrpattern_ne TYPED AS ssrctxpattern option PRINTED BY pr_ssrpattern
-  | [ lconstr(c) ] -> [ Some (T (mk_lterm c)) ]
-  | [ "in" lconstr(c) ] -> [ Some (In_T (mk_lterm c)) ]
-  | [ lconstr(x) "in" lconstr(c) ] -> 
-    [ Some (X_In_T (mk_lterm x, mk_lterm c)) ]
-  | [ "in" lconstr(x) "in" lconstr(c) ] -> 
-    [ Some (In_X_In_T (mk_lterm x, mk_lterm c)) ]
-  | [ lconstr(e) "in" lconstr(x) "in" lconstr(c) ] -> 
-    [ Some (E_In_X_In_T (mk_lterm e, mk_lterm x, mk_lterm c)) ]
-  | [ lconstr(e) "as" lconstr(x) "in" lconstr(c) ] -> 
-    [ Some (E_As_X_In_T (mk_lterm e, mk_lterm x, mk_lterm c)) ]
-END
-
-ARGUMENT EXTEND ssrpattern_squarep
-TYPED AS ssrpattern_ne PRINTED BY pr_ssrpattern_squarep
-  | [ "[" ssrpattern_ne(rdx) "]" ] -> [ rdx ]
-  | [ ] -> [ None ]
-END
-
-ARGUMENT EXTEND ssrpattern_ne_squarep
-TYPED AS ssrpattern_ne PRINTED BY pr_ssrpattern_squarep
-  | [ "[" ssrpattern_ne(rdx) "]" ] -> [ rdx ]
-END
-
-let interp_pattern ist gl red redty =
-  pp(lazy(str"interpreting: " ++ pr_pattern red));
-  let xInT x y = X_In_T(x,y) and inXInT x y = In_X_In_T(x,y) in
-  let inT x = In_T x and eInXInT e x t = E_In_X_In_T(e,x,t) in
-  let eAsXInT e x t = E_As_X_In_T(e,x,t) in
-  let mkG ?(k=' ') x = k,(x,None) in
-  let decode t f g =
-    try match (pf_intern_term ist gl t) with
-    | GCast(_,GHole _,CastConv(GLambda(_,Name x,_,_,c))) -> f x (' ',(c,None))
-    | it -> g t with _ -> g t in
-  let decodeG t f g = decode (mkG t) f g in
-  let bad_enc id _ = Errors.anomaly ("bad encoding for pattern " ^ id) in
-  let red = match red with
-    | T(k,(GCast (_,GHole _,(CastConv(GLambda (_,Name id,_,_,t)))),None))
-        when let id = string_of_id id in let len = String.length id in
-        (len > 8 && String.sub id 0 8 = "_ssrpat_") ->
-        let id = string_of_id id in let len = String.length id in
-        (match String.sub id 8 (len - 8), t with
-        | "In", GApp(_, _, [t]) -> decodeG t xInT (fun x -> T x)
-        | "In", GApp(_, _, [e; t]) -> decodeG t (eInXInT (mkG e)) (bad_enc id)
-        | "In", GApp(_, _, [e; t; e_in_t]) ->
-            decodeG t (eInXInT (mkG e))
-              (fun _ -> decodeG e_in_t xInT (fun _ -> assert false))
-        | "As", GApp(_, _, [e; t]) -> decodeG t (eAsXInT (mkG e)) (bad_enc id)
-        | _ -> bad_enc id ())
-    | T t -> decode t xInT (fun x -> T x)
-    | In_T t -> decode t inXInT inT
-    | X_In_T (e,t) -> decode t (eInXInT e) (fun x -> xInT (id_of_Cterm e) x)
-    | In_X_In_T (e,t) -> inXInT (id_of_Cterm e) t
-    | E_In_X_In_T (e,x,rp) -> eInXInT e (id_of_Cterm x) rp
-    | E_As_X_In_T (e,x,rp) -> eAsXInT e (id_of_Cterm x) rp in
-  pp(lazy(str"decoded as: " ++ pr_pattern_w_ids red));
-  let red = match redty with None -> red | Some ty -> match red with
-  | T t -> T (combineCG t ty (mkCCast (loc_ofCG t)) mkRCast)
-  | X_In_T (x,t) ->
-      let ty = pf_intern_term ist gl ty in
-      E_As_X_In_T (mkG (mkRCast mkRHole ty), x, t)
-  | E_In_X_In_T (e,x,t) ->
-      let ty = mkG (pf_intern_term ist gl ty) in
-      E_In_X_In_T (combineCG e ty (mkCCast (loc_ofCG t)) mkRCast, x, t)
-  | E_As_X_In_T (e,x,t) ->
-      let ty = mkG (pf_intern_term ist gl ty) in
-      E_As_X_In_T (combineCG e ty (mkCCast (loc_ofCG t)) mkRCast, x, t)
-  | red -> red in
-  pp(lazy(str"typed as: " ++ pr_pattern_w_ids red));
-  let mkXLetIn loc x (a,(g,c)) = match c with
-  | Some b -> a,(g,Some (mkCLetIn loc x (CHole(loc,None)) b))
-  | None -> a,(GLetIn (loc,x,(GHole (loc, BinderType x)), g), None) in
-  match red with
-  | T t -> let sigma, t = interp_term ist gl t in sigma, T t
-  | In_T t -> let sigma, t = interp_term ist gl t in sigma, In_T t
-  | X_In_T (x, rp) | In_X_In_T (x, rp) ->
-    let mk x p = match red with X_In_T _ -> X_In_T(x,p) | _ -> In_X_In_T(x,p) in
-    let rp = mkXLetIn dummy_loc (Name x) rp in
-    let sigma, rp = interp_term ist gl rp in
-    let _, h, _, rp = destLetIn rp in
-    let rp = subst1 h rp in
-    sigma, mk h rp
-  | E_In_X_In_T(e, x, rp) | E_As_X_In_T (e, x, rp) ->
-    let mk e x p =
-      match red with E_In_X_In_T _ ->E_In_X_In_T(e,x,p)|_->E_As_X_In_T(e,x,p) in
-    let rp = mkXLetIn dummy_loc (Name x) rp in
-    let sigma, rp = interp_term ist gl rp in
-    let _, h, _, rp = destLetIn rp in
-    let rp = subst1 h rp in
-    let sigma, e = interp_term ist (re_sig (sig_it gl) sigma) e in
-    sigma, mk e h rp
-;;
-
-(* calls do_subst on every sub-term identified by (pattern,occ) *)
-let eval_pattern ?raise_NoMatch env0 sigma0 concl0 pattern occ do_subst =
-  let fs sigma x = Reductionops.nf_evar sigma x in
-  let pop_evar sigma e p =
-    let { Evd.evar_body = e_body } as e_def = Evd.find sigma e in
-    let e_body = match e_body with Evar_defined c -> c
-    | _ -> errorstrm (str "Matching the pattern " ++ pr_constr p ++
-          str " did not instantiate ?" ++ int e ++ spc () ++
-          str "Does the variable bound by the \"in\" construct occur "++
-          str "in the pattern?") in
-    let sigma = 
-      Evd.add (Evd.remove sigma e) e {e_def with Evd.evar_body = Evar_empty} in
-    sigma, e_body in
-  let ex_value hole =
-    match kind_of_term hole with Evar (e,_) -> e | _ -> assert false in
-  let mk_upat_for ?hack env sigma0 (sigma, t) ?(p=t) ok =
-    let pat, sigma = mk_upat ?hack env sigma0 sigma p ok L2R (fs sigma t) in
-    [pat], sigma in
-  match pattern with
-  | None -> do_subst env0 concl0 1
-  | Some (sigma, (T rp | In_T rp)) -> 
-    let rp = fs sigma rp in
-    let ise = create_evar_defs sigma in
-    let occ = match pattern with Some (_, T _) -> occ | _ -> [noindex] in
-    let rp = mk_upat_for env0 sigma0 (ise, rp) all_ok in
-    let find_T, end_T = mk_pmatcher ?raise_NoMatch sigma0 occ rp in
-    let concl = find_T env0 concl0 1 (fun env _ -> do_subst env) in
-    let _ = end_T () in
-    concl
-  | Some (sigma, (X_In_T (hole, p) | In_X_In_T (hole, p))) ->
-    let p = fs sigma p in
-    let occ = match pattern with Some (_, X_In_T _) -> occ | _ -> [noindex] in
-    let ex = ex_value hole in
-    let rp = mk_upat_for ~hack:true env0 sigma0 (sigma, p) all_ok in
-    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
-    (* we start from sigma, so hole is considered a rigid head *)
-    let holep = mk_upat_for env0 sigma (sigma, hole) all_ok in
-    let find_X, end_X = mk_pmatcher ?raise_NoMatch sigma occ holep in
-    let concl = find_T env0 concl0 1 (fun env _ c h ->
-      let p_sigma = unify_HO env (create_evar_defs sigma) c p in
-      let sigma, e_body = pop_evar p_sigma ex p in
-      fs p_sigma (find_X env (fs sigma p) h 
-        (fun env _ _ -> do_subst env e_body))) in
-    let _ = end_X () in let _ = end_T () in 
-    concl
-  | Some (sigma, E_In_X_In_T (e, hole, p)) ->
-    let p, e = fs sigma p, fs sigma e in
-    let ex = ex_value hole in
-    let rp = mk_upat_for ~hack:true env0 sigma0 (sigma, p) all_ok in
-    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
-    let holep = mk_upat_for env0 sigma (sigma, hole) all_ok in
-    let find_X, end_X = mk_pmatcher sigma [noindex] holep in
-    let re = mk_upat_for env0 sigma0 (sigma, e) all_ok in
-    let find_E, end_E = mk_pmatcher ?raise_NoMatch sigma0 occ re in
-    let concl = find_T env0 concl0 1 (fun env _ c h ->
-      let p_sigma = unify_HO env (create_evar_defs sigma) c p in
-      let sigma, e_body = pop_evar p_sigma ex p in
-      fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
-        find_E env e_body h (fun env _ -> do_subst env)))) in
-    let _ = end_E () in let _ = end_X () in let _ = end_T () in
-    concl
-  | Some (sigma, E_As_X_In_T (e, hole, p)) ->
-    let p, e = fs sigma p, fs sigma e in
-    let ex = ex_value hole in
-    let rp = 
-      let e_sigma = unify_HO env0 sigma hole e in
-      e_sigma, fs e_sigma p in
-    let rp = mk_upat_for ~hack:true env0 sigma0 rp all_ok in
-    let find_TE, end_TE = mk_pmatcher sigma0 [noindex] rp in
-    let holep = mk_upat_for env0 sigma (sigma, hole) all_ok in
-    let find_X, end_X = mk_pmatcher sigma occ holep in
-    let concl = find_TE env0 concl0 1 (fun env _ c h ->
-      let p_sigma = unify_HO env (create_evar_defs sigma) c p in
-      let sigma, e_body = pop_evar p_sigma ex p in
-      fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
-        let e_sigma = unify_HO env sigma e_body e in
-        let e_body = fs e_sigma e in
-        do_subst env e_body h))) in
-    let _ = end_X () in let _ = end_TE () in
-    concl
-;;
-
 (** Generalization (discharge) item *)
 
 (* An item is a switch + term pair.                                     *)
 
 (* type ssrgen = ssrdocc * ssrterm *)
 
-let pr_gen (docc, dt) = pr_docc docc ++ pr_term dt
+let pr_gen (docc, dt) = pr_docc docc ++ pr_cpattern dt
 
 let pr_ssrgen _ _ _ = pr_gen
 
-ARGUMENT EXTEND ssrgen TYPED AS ssrdocc * ssrpattern PRINTED BY pr_ssrgen
-| [ ssrdocc(docc) ssrpattern(dt) ] -> [ docc, dt ]
-| [ ssrpattern(dt) ] -> [ nodocc, dt ]
+ARGUMENT EXTEND ssrgen TYPED AS ssrdocc * cpattern PRINTED BY pr_ssrgen
+| [ ssrdocc(docc) cpattern(dt) ] -> [ docc, dt ]
+| [ cpattern(dt) ] -> [ nodocc, dt ]
 END
 
 let has_occ ((_, occ), _) = occ <> []
@@ -3947,31 +3058,17 @@ let interp_clr = function
 | Some clr, _ -> clr
 | None, _ -> []
 
-let redex_of_pattern (sigma, p) = let e = match p with
-  | In_T _ | In_X_In_T _ -> Errors.anomaly "pattern without redex"
-  | T e | X_In_T (e, _) | E_As_X_In_T (e, _, _) | E_In_X_In_T (e, _, _) -> e in
-  Reductionops.nf_evar sigma e
-
-let fill_occ_pattern ?raise_NoMatch env sigma pat occ h cl =
-  let find_R, conclude = let r = ref None in
-    (fun env c h' -> do_once r (fun () -> c); mkRel (h'+h-1)),
-    (fun _ -> if !r = None then redex_of_pattern pat else assert_done r) in
-  let cl = eval_pattern ?raise_NoMatch env sigma cl (Some pat) occ find_R in
-  let e = conclude cl in
-  e, cl
-;;
-
 (* XXX the k of the redex should percolate out *)
 let pf_interp_gen_aux ist gl to_ind ((oclr, occ), t) =
-  let pat = interp_pattern ist gl (T t) None in (* UGLY API *)
+  let pat = interp_cpattern ist gl t None in (* UGLY API *)
   let c = redex_of_pattern pat in
   let cl, env, sigma = pf_concl gl, pf_env gl, project gl in
   let c, cl = 
-    try fill_occ_pattern ~raise_NoMatch:true env sigma pat occ 1 cl
+    try fill_occ_pattern ~raise_NoMatch:true env sigma cl pat occ 1
     with NoMatch -> c, cl in
-  let clr = interp_clr (oclr, (fst t, c)) in
+  let clr = interp_clr (oclr, (tag_of_cpattern t, c)) in
   if not(occur_existential c) then
-    if fst t = '@' then 
+    if tag_of_cpattern t = '@' then 
       if not (isVar c) then
 	errorstrm (str "@ can be used with variables only")
       else match pf_get_hyp gl (destVar c) with
@@ -3982,7 +3079,7 @@ let pf_interp_gen_aux ist gl to_ind ((oclr, occ), t) =
     let nv, p = pf_abs_evars gl (fst pat, c) in
     if nv = 0 then Errors.anomaly "occur_existential but no evars" else
     false, pat, mkProd (constr_name c, pf_type_of gl p, pf_concl gl), p, clr
-  else loc_error (loc_ofCG t) "generalized term didn't match"
+  else loc_error (loc_of_cpattern t) "generalized term didn't match"
 
 let genclrtac cl cs clr = tclTHEN (apply_type cl cs) (cleartac clr)
 
@@ -4029,15 +3126,15 @@ let cons_dep (gensl, clr) =
 
 ARGUMENT EXTEND ssrdgens_tl TYPED AS ssrgen list list * ssrclear
                             PRINTED BY pr_ssrdgens
-| [ "{" ne_ssrhyp_list(clr) "}" ssrpattern(dt) ssrdgens_tl(dgens) ] ->
+| [ "{" ne_ssrhyp_list(clr) "}" cpattern(dt) ssrdgens_tl(dgens) ] ->
   [ cons_gen (mkclr clr, dt) dgens ]
 | [ "{" ne_ssrhyp_list(clr) "}" ] ->
   [ [[]], clr ]
-| [ "{" ssrocc(occ) "}" ssrpattern(dt) ssrdgens_tl(dgens) ] ->
+| [ "{" ssrocc(occ) "}" cpattern(dt) ssrdgens_tl(dgens) ] ->
   [ cons_gen (mkocc occ, dt) dgens ]
 | [ "/" ssrdgens_tl(dgens) ] ->
   [ cons_dep dgens ]
-| [ ssrpattern(dt) ssrdgens_tl(dgens) ] ->
+| [ cpattern(dt) ssrdgens_tl(dgens) ] ->
   [ cons_gen (nodocc, dt) dgens ]
 | [ ] ->
   [ [[]], [] ]
@@ -4058,7 +3155,7 @@ let with_defective maintac deps clr ist gl =
     | ProdType (Name id, _, _)
       when has_discharged_tag (string_of_id id) -> id
     | _ -> top_id in
-  let top_gen = mkclr clr, (' ', (mkRVar top_id, None)) in
+  let top_gen = mkclr clr, cpattern_of_id top_id in
   tclTHEN (introid top_id) (maintac deps top_gen ist) gl
 
 let with_dgens (gensl, clr) maintac ist = match gensl with
@@ -4186,7 +3283,7 @@ END
 let poptac ?ist n = introstac ?ist (list_tabulate (fun _ -> IpatWild) n)
 
 TACTIC EXTEND ssrclear
-  | [ "clear" natural(n) ssrltacctx(ctx) ] -> [poptac ~ist:(get_ltacctx ctx) n]
+  | [ "clear" natural(n) ltacctx(ctx) ] -> [poptac ~ist:(get_ltacctx ctx) n]
 END
 
 (** The "move" tactic *)
@@ -4215,9 +3312,7 @@ let viewmovetac_aux clear name_ref (_, vl as v) _ gen ist gl =
   let cl, c, clr = pf_interp_gen ist gl false gen in
   let cl, c = if vl = [] then cl, c else pf_with_view ist gl v cl c in
   let clr = if clear then clr else [] in
-  name_ref := (match gen with
-   | _, (_, (GRef (_, VarRef id), None)) -> id
-   | _ -> top_id);
+  name_ref := (match id_of_cpattern (snd gen) with Some id -> id | _ -> top_id);
   genclrtac cl [c] clr gl
 
 let () = move_top_with_view := 
@@ -4254,7 +3349,7 @@ TACTIC EXTEND ssrmove
     tclTHEN (ssrmovetac ist arg) (introstac ~ist [pat]) ]
 | [ "move" ssrmovearg(arg) ssrclauses(clauses) ] ->
   [ let ist = ist_of_arg arg in tclCLAUSES (ssrmovetac ist arg) clauses ]
-| [ "move" ssrrpat(pat) ssrltacctx(ctx) ] ->
+| [ "move" ssrrpat(pat) ltacctx(ctx) ] ->
   [ introstac ~ist:(get_ltacctx ctx) [pat] ]
 | [ "move" ] -> [ movehnftac ]
 END
@@ -4380,11 +3475,11 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
     Errors.anomaly "elim called on a constr evar"
   | `EGen _ when ist = None ->
     Errors.anomaly "no ist and non simple elimination"
-  | `EGen (_,(_,(_,Some (CHole _)))) when elim = None ->
+  | `EGen (_, g) when elim = None && is_wildcard g ->
        errorstrm(str"Indeterminate pattern and no eliminator")
-  | `EGen ((Some clr,occ),(_,(_,Some (CHole _)|GHole _,None))) -> 
+  | `EGen ((Some clr,occ), g) when is_wildcard g ->
        None, clr, occ, None
-  | `EGen ((None, occ),(_,(_,Some (CHole _)|GHole _,None))) -> None,[],occ,None
+  | `EGen ((None, occ), g) when is_wildcard g -> None,[],occ,None
   | `EGen ((_, occ), p as gen) ->
        let _, c, clr = pf_interp_gen (Option.get ist) gl true gen in
        Some c, clr, occ, Some p
@@ -4404,7 +3499,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   let match_pat env p occ h cl = 
     let sigma0 = project orig_gl in
     pp(lazy(str"matching: " ++ pp_pattern p));
-    let c, cl = fill_occ_pattern ~raise_NoMatch:true env sigma0 p occ h cl in
+    let c, cl = fill_occ_pattern ~raise_NoMatch:true env sigma0 cl p occ h in
     pp(lazy(str"     got: " ++ pr_constr c));
     c, cl in
   let mkTpat gl t = (* takes a term, refreshes it and makes a T pattern *)
@@ -4446,7 +3541,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
         pf_saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
       let pred = List.assoc pred_id elim_args in
       let pc = match n_c_args, c_gen with
-        | 0, Some p -> interp_pattern (Option.get ist) orig_gl (T p) None 
+        | 0, Some p -> interp_cpattern (Option.get ist) orig_gl p None 
         | _ -> mkTpat gl c in
       let cty = Some (c, c_ty, pc) in
       let elimty = Reductionops.whd_betadeltaiota env (project gl) elimty in
@@ -4496,10 +3591,10 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   let patterns, clr, gl =
     let rec loop patterns clr i = function
       | [],[] -> patterns, clr, gl
-      | ((oclr, occ), (k ,_ as t)):: deps, inf_t :: inf_deps ->
+      | ((oclr, occ), t):: deps, inf_t :: inf_deps ->
           let ist = match ist with Some x -> x | None -> assert false in
-          let p = interp_pattern ist orig_gl (T t) None in
-          let clr_t = interp_clr (oclr, (k, redex_of_pattern p)) in
+          let p = interp_cpattern ist orig_gl t None in
+          let clr_t = interp_clr (oclr,(tag_of_cpattern t,redex_of_pattern p))in
           (* if we are the index for the equation we do not clear *)
           let clr_t = if deps = [] && eqid <> None then [] else clr_t in
           let p = if is_undef_pat p then mkTpat gl inf_t else p in
@@ -4821,8 +3916,9 @@ let inner_ssrapplytac gviews ggenl gclr ist gl =
  let _, clr = interp_hyps ist gl gclr in
  let vtac gv i gl' = refine_interp_apply_view i ist gl' gv in
  let ggenl, tclGENTAC =
-   if gviews <> [] && ggenl <> [] then 
-     [], tclTHEN (genstac (List.hd ggenl,[]) ist)
+   if gviews <> [] && ggenl <> [] then
+     let ggenl= List.map (fun (x,g) -> x, cpattern_of_term g) (List.hd ggenl) in
+     [], tclTHEN (genstac (ggenl,[]) ist)
    else ggenl, tclTHEN tclIDTAC in
  tclGENTAC (fun gl ->
   match gviews, ggenl with
@@ -4876,7 +3972,7 @@ let pr_ssrcongrarg _ _ _ (_, ((n, f), dgens)) =
   (if n <= 0 then mt () else str " " ++ int n) ++
   str " " ++ pr_term f ++ pr_dgens pr_gen dgens
 
-ARGUMENT EXTEND ssrcongrarg TYPED AS ssrltacctx * ((int * ssrterm) * ssrdgens)
+ARGUMENT EXTEND ssrcongrarg TYPED AS ltacctx * ((int * ssrterm) * ssrdgens)
   PRINTED BY pr_ssrcongrarg
 | [ natural(n) constr(c) ssrdgens(dgens) ] ->
   [ rawltacctx, ((n, mk_term ' ' c), dgens) ]
@@ -5051,6 +4147,9 @@ END
 
 (* type ssrrwarg = (ssrdir * ssrmult) * ((ssrdocc * ssrpattern) * ssrrule) *)
 
+let pr_option f = function None -> mt() | Some x -> f x
+let pr_pattern_squarep= pr_option (fun r -> str "[" ++ pr_rpattern r ++ str "]")
+let pr_ssrpattern_squarep _ _ _ = pr_pattern_squarep
 let pr_rwarg ((d, m), ((docc, rx), r)) =
   pr_rwdir d ++ pr_mult m ++ pr_rwocc docc ++ pr_pattern_squarep rx ++ pr_rule r
 
@@ -5081,9 +4180,20 @@ pattern_ident:
 END
 *)
 
+ARGUMENT EXTEND ssrpattern_squarep
+TYPED AS rpattern option PRINTED BY pr_ssrpattern_squarep
+  | [ "[" rpattern(rdx) "]" ] -> [ Some rdx ]
+  | [ ] -> [ None ]
+END
+
+ARGUMENT EXTEND ssrpattern_ne_squarep
+TYPED AS rpattern option PRINTED BY pr_ssrpattern_squarep
+  | [ "[" rpattern(rdx) "]" ] -> [ Some rdx ]
+END
+
 
 ARGUMENT EXTEND ssrrwarg
-  TYPED AS (ssrdir * ssrmult) * ((ssrdocc * ssrctxpattern option) * ssrrule)
+  TYPED AS (ssrdir * ssrmult) * ((ssrdocc * rpattern option) * ssrrule)
   PRINTED BY pr_ssrrwarg
   | [ "-" ssrmult(m) ssrrwocc(docc) ssrpattern_squarep(rx) ssrrule_ne(r) ] ->
     [ mk_rwarg (R2L, m) (docc, rx) r ]
@@ -5141,10 +4251,11 @@ let unfoldintac occ rdx t (kt,_) gl =
   let unfold, conclude = match rdx with
   | Some (_, (In_T _ | In_X_In_T _)) | None ->
     let ise = create_evar_defs sigma in
-    let u, ise = mk_upat env0 sigma0 ise t all_ok L2R t in
-    let find_T, end_T = mk_pmatcher ~raise_NoMatch:true sigma0 occ ([u],ise) in
+    let ise, u = mk_tpattern env0 sigma0 (ise,t) all_ok L2R t in
+    let find_T, end_T =
+      mk_tpattern_matcher ~raise_NoMatch:true sigma0 occ (ise,[u]) in
     (fun env c h -> 
-      try find_T env c h (fun env _ c _ -> body env t c)
+      try find_T env c h (fun env c _ -> body env t c)
       with NoMatch when easy -> c
       | NoMatch | NoProgress -> errorstrm (str"No occurrence of "
         ++ pr_constr_pat t ++ spc() ++ str "in " ++ pr_constr c)),
@@ -5187,9 +4298,10 @@ let foldtac occ rdx ft gl =
   | Some (_, (In_T _ | In_X_In_T _)) | None ->
     let ise = create_evar_defs sigma in
     let ut = try Tacred.red_product env0 sigma t with _ -> t in
-    let ut, ise = mk_upat env0 sigma0 ise t all_ok L2R ut in
-    let find_T,end_T= mk_pmatcher ~raise_NoMatch:true sigma0 occ ([ut],ise) in
-    (fun env c h -> try find_T env c h (fun env _ t _ -> t) with NoMatch -> c),
+    let ise, ut = mk_tpattern env0 sigma0 (ise,t) all_ok L2R ut in
+    let find_T, end_T =
+      mk_tpattern_matcher ~raise_NoMatch:true sigma0 occ (ise,[ut]) in
+    (fun env c h -> try find_T env c h (fun env t _ -> t) with NoMatch -> c),
     (fun () -> try end_T () with NoMatch -> fake_pmatcher_end ())
   | _ -> 
     (fun env c h -> try let sigma = unify_HO env sigma c t in fs sigma t
@@ -5412,9 +4524,9 @@ let rwrxtac occ rdx_pat dir rule gl =
                    str " of " ++ pr_constr_pat (snd rule))
       | (d, r, lhs, rhs) :: rs ->
         try
-          let ise = unif_HO env (create_evar_defs r_sigma) lhs rdx in
-          let sr' = unif_end env (project gl) ise r (rw_progress rhs rdx) in
-          d, sr'
+          let ise = unify_HO env (create_evar_defs r_sigma) lhs rdx in
+          if not (rw_progress rhs rdx ise) then raise NoMatch else
+          d, (ise, Reductionops.nf_evar ise r)
         with _ -> rwtac rs in
      rwtac rules in
   let find_rule rdx = prof_rwxrtac_find_rule.profile find_rule rdx in
@@ -5422,12 +4534,13 @@ let rwrxtac occ rdx_pat dir rule gl =
   let find_R, conclude = match rdx_pat with
   | Some (_, (In_T _ | In_X_In_T _)) | None ->
       let upats_origin = dir, snd rule in
-      let rpat env sigma0 (pats, sigma) (d, r, lhs, rhs) =
-        let pat, sigma = mk_upat env sigma0 sigma r (rw_progress rhs) d lhs in
-        pats @ [pat], sigma in
-      let rpats = List.fold_left (rpat env0 sigma0) ([], r_sigma) rules in
-      let find_R, end_R = mk_pmatcher sigma0 occ ~upats_origin rpats in
-      find_R ~k:(fun _ _ _ h -> mkRel h), 
+      let rpat env sigma0 (sigma, pats) (d, r, lhs, rhs) =
+        let sigma, pat =
+          mk_tpattern env sigma0 (sigma,r) (rw_progress rhs) d lhs in
+        sigma, pats @ [pat] in
+      let rpats = List.fold_left (rpat env0 sigma0) (r_sigma,[]) rules in
+      let find_R, end_R = mk_tpattern_matcher sigma0 occ ~upats_origin rpats in
+      find_R ~k:(fun _ _ h -> mkRel h), 
       fun cl -> let rdx,d,r = end_R () in closed0_check cl rdx gl; (d,r),rdx
   | Some(_, (T e | X_In_T (_,e) | E_As_X_In_T (e,_,_) | E_In_X_In_T (e,_,_))) ->
       let r = ref None in
@@ -5450,14 +4563,14 @@ let _ =
 
 let rwargtac ist ((dir, mult), (((oclr, occ), grx), (kind, gt))) gl =
   let fail = ref false in
-  let interp_pattern ist gl gc =
-    try interp_pattern ist gl gc None
+  let interp_rpattern ist gl gc =
+    try interp_rpattern ist gl gc
     with _ when snd mult = May -> fail := true; project gl, T mkProp in
   let interp gc gl =
     try interp_term ist gl gc
     with _ when snd mult = May -> fail := true; (project gl, mkProp) in
   let rwtac gl = 
-    let rx = Option.map (interp_pattern ist gl) grx in
+    let rx = Option.map (interp_rpattern ist gl) grx in
     let t = interp gt gl in
     (match kind with
     | RWred sim -> simplintac occ rx sim
@@ -5468,11 +4581,11 @@ let rwargtac ist ((dir, mult), (((oclr, occ), grx), (kind, gt))) gl =
 
 (** Rewrite argument sequence *)
 
-(* type ssrrwargs = ssrrwarg list * ssrltacctx *)
+(* type ssrrwargs = ssrrwarg list * ltacctx *)
 
 let pr_ssrrwargs _ _ _ (rwargs, _) = pr_list spc pr_rwarg rwargs
 
-ARGUMENT EXTEND ssrrwargs TYPED AS ssrrwarg list * ssrltacctx
+ARGUMENT EXTEND ssrrwargs TYPED AS ssrrwarg list * ltacctx
                           PRINTED BY pr_ssrrwargs
   | [ "Qed" ] -> [ Errors.anomaly "Grammar placeholder match" ]
 END
@@ -5525,7 +4638,7 @@ END
 
 let pr_ssrunlockargs _ _ _ (args, _) = pr_list spc pr_unlockarg args
 
-ARGUMENT EXTEND ssrunlockargs TYPED AS ssrunlockarg list * ssrltacctx
+ARGUMENT EXTEND ssrunlockargs TYPED AS ssrunlockarg list * ltacctx
   PRINTED BY pr_ssrunlockargs
   | [  ssrunlockarg_list(args) ] -> [ args, rawltacctx ]
 END
@@ -5764,7 +4877,7 @@ let pr_unguarded prc prlc = prlc
 let pr_fwd = pr_fwd_guarded pr_unguarded pr_unguarded
 let pr_ssrfwd _ _ _ = pr_fwd
  
-ARGUMENT EXTEND ssrfwd TYPED AS (ssrfwdfmt * ssrterm) * ssrltacctx
+ARGUMENT EXTEND ssrfwd TYPED AS (ssrfwdfmt * ssrterm) * ltacctx
                        PRINTED BY pr_ssrfwd
   | [ ":=" lconstr(c) ] -> [ mkFwdVal FwdPose c ]
   | [ ":" lconstr (t) ":=" lconstr(c) ] -> [ mkFwdCast FwdPose loc t c ]
@@ -5943,30 +5056,35 @@ let guard_setrhs s i = s.[i] = '{'
 let pr_setrhs occ prc prlc c =
   if occ = nodocc then pr_guarded guard_setrhs prlc c else pr_docc occ ++ prc c
 
-let pr_ssrsetfwd _ _ _ (((fmt,(t,ty)),ctx), docc) =
-  let fwd = match ty with
-  | Some ty -> (fmt, combineCG t ty (mkCCast dummy_loc) mkRCast), ctx
-  | None -> (fmt, t), ctx in
-  pr_fwd_guarded (pr_setrhs docc) (pr_setrhs docc) fwd
+let pr_fwd_guarded prval prval' = function
+| ((fk, h), (_, (_, Some c))), _ ->
+  pr_gen_fwd prval pr_constr_expr prl_constr_expr fk (format_constr_expr h c)
+| ((fk, h), (_, (c, None))), _ ->
+  pr_gen_fwd prval' pr_glob_constr prl_glob_constr fk (format_glob_constr h c)
+
+(* This does not print the type, it should be fixed... *)
+let pr_ssrsetfwd _ _ _ ((((fk,_),(t,_)),ctx), docc) =
+  pr_gen_fwd (fun _ _ -> pr_cpattern)
+    (fun _ -> mt()) (fun _ -> mt()) fk ([Bcast ()],t)
 
 ARGUMENT EXTEND ssrsetfwd
-TYPED AS ((ssrfwdfmt * (ssrpattern * ssrterm option)) * ssrltacctx) * ssrdocc
+TYPED AS ((ssrfwdfmt * (lcpattern * ssrterm option)) * ltacctx) * ssrdocc
 PRINTED BY pr_ssrsetfwd
-| [ ":" lconstr(t) ":=" "{" ssrocc(occ) "}" ssrpattern(c) ] ->
+| [ ":" lconstr(t) ":=" "{" ssrocc(occ) "}" cpattern(c) ] ->
   [ mkssrFwdCast FwdPose loc (mk_lterm t) c, mkocc occ ]
-| [ ":" lconstr(t) ":=" ssrlpattern(c) ] ->
+| [ ":" lconstr(t) ":=" lcpattern(c) ] ->
   [ mkssrFwdCast FwdPose loc (mk_lterm t) c, nodocc ]
-| [ ":=" "{" ssrocc(occ) "}" ssrpattern(c) ] ->
+| [ ":=" "{" ssrocc(occ) "}" cpattern(c) ] ->
   [ mkssrFwdVal FwdPose c, mkocc occ ]
-| [ ":=" ssrlpattern(c) ] -> [ mkssrFwdVal FwdPose c, nodocc ]
+| [ ":=" lcpattern(c) ] -> [ mkssrFwdVal FwdPose c, nodocc ]
 END
 
 let ssrsettac id (((_, (pat, pty)), ctx), (_, occ)) gl =
   let ist = get_ltacctx ctx in
-  let pat = interp_pattern ist gl (T pat) pty in
+  let pat = interp_cpattern ist gl pat (Option.map snd pty) in
   let cl, sigma, env = pf_concl gl, project gl, pf_env gl in
   let c, cl = 
-    try fill_occ_pattern ~raise_NoMatch:true env sigma pat occ 1 cl
+    try fill_occ_pattern ~raise_NoMatch:true env sigma cl pat occ 1
     with NoMatch -> redex_of_pattern pat, cl in
   if occur_existential c then errorstrm(str"The pattern"++spc()++
     pr_constr_pat c++spc()++str"did not match and has holes."++spc()++
@@ -6366,4 +5484,4 @@ END
 (* consequence the extended ssreflect grammar.                             *)
 let () = Lexer.unfreeze frozen_lexer ;;
 
-(* vim: set filetype=ocaml: *)
+(* vim: set filetype=ocaml foldmethod=marker: *)

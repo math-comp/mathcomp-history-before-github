@@ -13,7 +13,11 @@
 
 ## What follows should be left untouched by the final user of ssreflect
 -R theories Ssreflect
--R src Ssreflect
+-I src
 CAMLP4OPTIONS = "-loc loc"
+src/ssrmatching.mli
+src/ssrmatching.ml4
 src/ssreflect.ml4
+theories/ssreflect.mllib
+theories/ssrmatching.v
 theories/ssreflect.v
