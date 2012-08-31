@@ -1194,11 +1194,17 @@ let coerce_search_pattern_to_sort hpat =
   let np = List.length dc in
   if np < na then error "too many arguments in head search pattern" else
   let hpat' = if np = na then hpat else mkPApp hpat (np - na) [||] in
-  if isSort ht then hpat' else
-  let coe_path =
+  let warn () =
+    msg_warning (str "Listing only lemmas with conclusion matching " ++ 
+      pr_constr_pattern hpat') in
+  if isSort ht then begin warn (); true, hpat' end else
+  let filter_head, coe_path =
     try 
-       Classops.lookup_path_to_sort_from (push_rels_assum dc env) sigma ht
-    with _ -> error "head search pattern is not a type, even up to coercion" in
+      let _, cp =
+        Classops.lookup_path_to_sort_from (push_rels_assum dc env) sigma ht in
+      warn ();
+      true, cp
+    with _ -> false, [] in
   let coerce hp coe_index =
     let coe = Classops.get_coercion_value coe_index in
     try
@@ -1208,23 +1214,25 @@ let coerce_search_pattern_to_sort hpat =
     with _ ->
     errorstrm (str "need explicit coercion " ++ pr_constr coe ++ spc ()
             ++ str "to interpret head search pattern as type") in
-  List.fold_left coerce hpat' (snd coe_path)
+  filter_head, List.fold_left coerce hpat' coe_path
 
 let rec interp_head_pat hpat =
-  let p = coerce_search_pattern_to_sort hpat in
+  let filter_head, p = coerce_search_pattern_to_sort hpat in
   let rec loop c = match kind_of_term c with
   | Cast (c', _, _) -> loop c'
   | Prod (_, _, c') -> loop c'
   | LetIn (_, _, _, c') -> loop c'
   | _ -> Matching.is_matching p c in
-  loop
+  filter_head, loop
 
 let all_true _ = true
 
 let interp_search_arg a =
   let hpat, a1 = match a with
   | (_, Search.GlobSearchSubPattern (Pattern.PMeta _)) :: a' -> all_true, a'
-  | (true, Search.GlobSearchSubPattern p) :: a' -> interp_head_pat p, a'
+  | (true, Search.GlobSearchSubPattern p) :: a' ->
+     let filter_head, p = interp_head_pat p in
+     if filter_head then p, a' else all_true, a
   | _ -> all_true, a in
   let is_string =
     function (_, Search.GlobSearchString _) -> true | _ -> false in
