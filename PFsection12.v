@@ -225,7 +225,7 @@ split.
 - exact: seqInd_orthogonal.
 - move=> phi calS_phi; case/PF_12_2a: (calS_phi)=> -> _ _.
 - admit.
-- move=> phi psi calS_phi calS_psi /= /orthogonalP ophi_psi_cpsi.
+- move=> phi psi calS_phi calS_psi /= /orthogonalP ophi_psiC.
   apply/orthogonalP => Rpsi Rphi; rewrite /R => Rpsi_in Rphi_in.
   (* this could be a more general lemma on seqs *)
   have memR (F : finType)(T : eqType)(f : F -> seq T) (P : pred F) (x : T) :
@@ -239,17 +239,15 @@ split.
     by rewrite /calI; apply: map_f; rewrite mem_enum; apply/S_calSP; exists phi.
   have calS_ipsi : 'chi_ipsi \in calI.
     by rewrite /calI; apply: map_f; rewrite mem_enum; apply/S_calSP; exists psi.
-  have ochi : orthogonal 'chi_ipsi ('chi_iphi :: (('chi_iphi)^*)%CF).
-    rewrite orthogonal_sym orthogonal_cons.
-    case/pairwise_orthogonalP: oI => _ oI; apply/andP.
-    have ophipsi: '[phi, psi] = 0.
-      rewrite cfdotC; apply/eqP; rewrite conjC_eq0; apply/eqP.
-      by apply: ophi_psi_cpsi => //; rewrite ?mem_seq1 ?in_cons eqxx. (**)
-    have aux phi1 phi2 : phi1 \is a character -> phi2 \is a character ->
-     phi1 = 'chi_ipsi + phi2 -> '[psi, phi1] != 0.
-      move=> char1 char2 ->.    
-      have /(constt_charP ipsi) psiP : 
-       psi \is a character by move: calS_psi; exact: seqInd_char.
+  suff ochi : orthogonal 'chi_ipsi ('chi_iphi :: (('chi_iphi)^*)%CF).
+    by have /orthogonalP -> := (hortho _ _ calS_iphi calS_ipsi ochi).
+  rewrite orthogonal_sym orthogonal_cons.
+  case/pairwise_orthogonalP: oI => _ oI; apply/andP.
+  have aux phi1 phi2 : phi1 \is a character -> phi2 \is a character ->
+      phi1 = 'chi_ipsi + phi2 -> '[psi, phi1] != 0.
+    move=> char1 char2 ->.    
+    have /(constt_charP ipsi) psiP : 
+      psi \is a character by move: calS_psi; exact: seqInd_char.
     move: Scpsi; rewrite inE; case/psiP => psi' char_psi' -> {psiP}.
     rewrite cfdotDl cfdotDr cfnorm_irr.
     have /truncCK <- : '['chi_ipsi, phi2] \in Cnat.
@@ -257,18 +255,17 @@ split.
     have /truncCK <- : '[psi', 'chi_ipsi + phi2] \in Cnat.
       by rewrite Cnat_cfdot_char // rpredD ?irr_char.
     by rewrite -[1]/(1%:R) -!natrD; move/charf0P: Cchar->.
-    have phi_char : phi \is a character by move: calS_phi; exact: seqInd_char.
-    move/(constt_charP iphi): (phi_char) => phiP.
-    move: Scphi; rewrite inE; case/phiP => phi' char_phi' phiD {phiP}.
-    split; apply/orthoP; rewrite oI ?ccI //.
+  have phi_char : phi \is a character by move: calS_phi; exact: seqInd_char.
+  move/(constt_charP iphi): (phi_char) => phiP.
+  move: Scphi; rewrite inE; case/phiP => phi' char_phi' phiD {phiP}.
+  split; apply/orthoP; rewrite oI ?ccI //.
   + have : '[psi, phi] == 0.
-      by apply/eqP; apply: ophi_psi_cpsi => //; rewrite ?mem_seq1 ?in_cons eqxx.
+      by apply/eqP; apply: ophi_psiC => //; rewrite ?mem_seq1 ?in_cons eqxx.
     by apply: contraL => /eqP abs; apply: (aux _ phi') => //; rewrite -abs.
   + have : '[psi, phi^*] == 0.
-      by apply/eqP; apply: ophi_psi_cpsi; rewrite ?mem_seq1 ?in_cons eqxx // orbT.
+      by apply/eqP; apply: ophi_psiC; rewrite ?mem_seq1 ?in_cons eqxx // orbT.
     apply: contraL => /eqP abs. 
     by apply: (aux _ (phi'^*)%CF); rewrite ?cfConjC_char // phiD rmorphD /= abs.
-  by have /orthogonalP -> := (hortho _ _ calS_iphi calS_ipsi ochi).
 Qed.
 
 End Twelve2.
