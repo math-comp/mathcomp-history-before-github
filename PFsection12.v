@@ -195,7 +195,7 @@ have nrS : ~~ has cfReal calS by apply: seqInd_notReal; rewrite ?mFT_odd.
 have U_S : uniq calS by exact: seqInd_uniq.
 have ccS : conjC_closed calS by exact:cfAut_seqInd.
 have conjCS : cfConjC_subset calS (seqIndD H L H 1) by split.
-case: FPtype1_Iirr_kerD_subcoherent => /= R1 [[chi_char nrI ccI] tau_iso oI h1 h2].
+case: FPtype1_Iirr_kerD_subcoherent => /= R1 [[chi_char nrI ccI] tau_iso oI h1 hortho].
 pose R chi := flatten [seq R1 'chi_i | i in S_ chi].
 exists R; split => //; last first.
   move=> i Ii.
@@ -212,15 +212,73 @@ exists R; split => //; last first.
     case/pairwise_orthogonalP: oI => _ -> //; rewrite ?ccI //.
     by move/hasPn: nrI => /(_ _ mem_i); rewrite eq_sym.
   by rewrite cfnorm_conjC cfnorm_irr -[1]/(1%:R) -natrD eqC_nat; move/eqP<-.
-Admitted.
+split.
+- by split => // ?; apply: seqInd_char.
+- apply: (sub_iso_to _ _ (Dade_Zisometry _)) => // phi.
+  have /subsetD1P[_ /setU1K <-] := FTsupp0_sub L.
+  rewrite zcharD1E FTsupp0_type1 // => /andP[S_phi phi1nz].
+  rewrite zcharD1 {}phi1nz andbT setUC.
+  apply: zchar_trans_on phi S_phi => psi calS_psi.
+  rewrite zchar_split (seqInd_vcharW calS_psi) /=.
+  have [{3}-> _ hCF] := PF_12_2a calS_psi.
+  by rewrite rpred_sum.
+- exact: seqInd_orthogonal.
+- move=> phi calS_phi; case/PF_12_2a: (calS_phi)=> -> _ _.
+- admit.
+- move=> phi psi calS_phi calS_psi /= /orthogonalP ophi_psi_cpsi.
+  apply/orthogonalP => Rpsi Rphi; rewrite /R => Rpsi_in Rphi_in.
+  (* this could be a more general lemma on seqs *)
+  have memR (F : finType)(T : eqType)(f : F -> seq T) (P : pred F) (x : T) :
+    x \in flatten [seq f x | x in P] -> exists2 i, i \in P & x \in f i.
+  - have: all P (enum P) by apply/allP=> x1; rewrite mem_enum.
+    rewrite /(image _ _); elim: (enum P) => //= a l ih /andP[Pa hall]. 
+    by rewrite mem_cat; case/orP=> hx; [exists a | apply: ih].
+  case: (memR _ _ _ _ _ Rphi_in) => iphi Scphi {Rphi_in} Rphi_in.
+  case: (memR _ _ _ _ _ Rpsi_in) => ipsi Scpsi {Rpsi_in} Rpsi_in {memR}.
+  have calS_iphi : 'chi_iphi \in calI.
+    by rewrite /calI; apply: map_f; rewrite mem_enum; apply/S_calSP; exists phi.
+  have calS_ipsi : 'chi_ipsi \in calI.
+    by rewrite /calI; apply: map_f; rewrite mem_enum; apply/S_calSP; exists psi.
+  have ochi : orthogonal 'chi_ipsi ('chi_iphi :: (('chi_iphi)^*)%CF).
+    rewrite orthogonal_sym orthogonal_cons.
+    case/pairwise_orthogonalP: oI => _ oI; apply/andP.
+    have ophipsi: '[phi, psi] = 0.
+      rewrite cfdotC; apply/eqP; rewrite conjC_eq0; apply/eqP.
+      by apply: ophi_psi_cpsi => //; rewrite ?mem_seq1 ?in_cons eqxx. (**)
+    have aux phi1 phi2 : phi1 \is a character -> phi2 \is a character ->
+     phi1 = 'chi_ipsi + phi2 -> '[psi, phi1] != 0.
+      move=> char1 char2 ->.    
+      have /(constt_charP ipsi) psiP : 
+       psi \is a character by move: calS_psi; exact: seqInd_char.
+    move: Scpsi; rewrite inE; case/psiP => psi' char_psi' -> {psiP}.
+    rewrite cfdotDl cfdotDr cfnorm_irr.
+    have /truncCK <- : '['chi_ipsi, phi2] \in Cnat.
+      by rewrite cfdotC Cnat_aut Cnat_cfdot_char_irr.
+    have /truncCK <- : '[psi', 'chi_ipsi + phi2] \in Cnat.
+      by rewrite Cnat_cfdot_char // rpredD ?irr_char.
+    by rewrite -[1]/(1%:R) -!natrD; move/charf0P: Cchar->.
+    have phi_char : phi \is a character by move: calS_phi; exact: seqInd_char.
+    move/(constt_charP iphi): (phi_char) => phiP.
+    move: Scphi; rewrite inE; case/phiP => phi' char_phi' phiD {phiP}.
+    split; apply/orthoP; rewrite oI ?ccI //.
+  + have : '[psi, phi] == 0.
+      by apply/eqP; apply: ophi_psi_cpsi => //; rewrite ?mem_seq1 ?in_cons eqxx.
+    by apply: contraL => /eqP abs; apply: (aux _ phi') => //; rewrite -abs.
+  + have : '[psi, phi^*] == 0.
+      by apply/eqP; apply: ophi_psi_cpsi; rewrite ?mem_seq1 ?in_cons eqxx // orbT.
+    apply: contraL => /eqP abs. 
+    by apply: (aux _ (phi'^*)%CF); rewrite ?cfConjC_char // phiD rmorphD /= abs.
+  by have /orthogonalP -> := (hortho _ _ calS_iphi calS_ipsi ochi).
+Qed.
 
 End Twelve2.
 
 Section Twelve_4_to_6.
-
-Variable L : {group gT}.
+V
+ariable L : {group gT}.
 
 Hypotheses (maxL : L \in 'M) .
+
 
 Local Notation "` 'L'" := (gval L) (at level 0, only parsing) : group_scope.
 Local Notation H := `L`_\F%G.
@@ -228,6 +286,7 @@ Local Notation "` 'H'" := `L`_\F (at level 0) : group_scope.
 
 Let calS := seqIndD H L H 1%G.
 Let tau := FT_Dade0 maxL.
+
 
 Section Twelve_4_5.
 
