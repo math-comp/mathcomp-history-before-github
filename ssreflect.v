@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import Bool. (* For bool_scope delimiter 'bool'. *)
-Declare ML Module "ssreflect".
+Require Import ssrmatching.
 Set SsrAstVersion.
 
 (******************************************************************************)
@@ -58,23 +58,9 @@ Module SsrSyntax.
 Reserved Notation "(* x 'is' y 'of' z 'isn't' // /= //= *)" (at level 8).
 Reserved Notation "(* 69 *)" (at level 69).
 
-(* Reserve the notation for rewrite patterns so that the user is not allowed  *)
-(* to declare it at a different level.                                        *)
-Reserved Notation "( a 'in' b )"        (at level 0).
-Reserved Notation "( a 'as' b )"        (at level 0).
-Reserved Notation "( a 'in' b 'in' c )" (at level 0).
-Reserved Notation "( a 'as' b 'in' c )" (at level 0).
-
-(* Notation to define shortcuts for the "X in t" part of a pattern.           *)
-Notation "( X 'in' t )" := (_ : fun X => t) : ssrpatternscope.
-Delimit Scope ssrpatternscope with pattern.
-
-(* Some shortcuts for recurrent "X in t" parts.                               *)
-Notation RHS := (X in _ = X)%pattern.
-Notation LHS := (X in X = _)%pattern.
-
 End SsrSyntax.
 
+Export SsrMatchingSyntax.
 Export SsrSyntax.
 
 (* Make the general "if" into a notation, so that we can override it below.   *)
