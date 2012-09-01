@@ -67,7 +67,6 @@ theories/primitive_action.v
 theories/alt.v
 theories/frobenius.v
 theories/mxabelem.v
-theories/wielandt_fixpoint.v
 theories/polydiv.v
 theories/vector.v
 theories/falgebra.v
@@ -76,3 +75,4 @@ theories/ssrnum.v
 theories/ssrint.v
 theories/rat.v
 theories/intdiv.v
+theories/generic_quotient.v
