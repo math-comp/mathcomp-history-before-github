@@ -17,12 +17,11 @@ BUILDING SSREFLECT
 - We suppose that the Coq system has been compiled from sources and installed
   on your system using a standard installation process.
 
-- Your PATH variable value must make Coq binaries (coqtop, coq_makefile,...)
-  accessible.
+- Your PATH environment variable value must make Coq binaries (coqtop,
+  coq_makefile,...) accessible.
 
-- Make sure that you do not have any environment variable named
-  COQTOP, COQLIB or COQBIN set, or make sure they are set consistently with
-  the Coq installation your PATH makes available.
+- Your COQBIN environment variable must be point to directory where Coq's
+  binaries are.
 
 - Download and unpack the archive of the ssreflect distribution in a directory
   whose name does not contain spaces (like " Documents and Settings" ...).
