@@ -271,8 +271,7 @@ Qed.
 End Twelve2.
 
 Section Twelve_4_to_6.
-V
-ariable L : {group gT}.
+Variable L : {group gT}.
 
 Hypotheses (maxL : L \in 'M) .
 
