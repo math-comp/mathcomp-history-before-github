@@ -38,7 +38,7 @@ dist:
 	rm ssreflect-$(VERSION)/description 
 	rm ssreflect-$(VERSION)/src/Makefile
 	rm ssreflect-$(VERSION)/NOTICE
-	rm -rf ssreflect-$(VERSION)/doc/
+	rm -rf ssreflect-$(VERSION)/doc/ ssreflect-$(VERSION)/test/
 	# checking for spurious or out of sync .v
 	for X in ssreflect-$(VERSION)/theories/*.v; do\
 	  if ! grep -q `basename $$X` ssreflect-$(VERSION)/Make; then\
