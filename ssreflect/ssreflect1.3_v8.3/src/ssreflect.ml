@@ -5161,7 +5161,7 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
   with _ -> 
     (* we generate a msg like: "Unable to find an instance for the variable" *)
     let c = Reductionops.nf_evar sigma c in
-    let miss = match kind_of_term c with
+    let hd_ty, miss = match kind_of_term c with
     | App (hd, args) -> 
         let hd_ty = Retyping.get_type_of env sigma hd in
         let names = let rec aux t = function 0 -> [] | n ->
@@ -5169,13 +5169,17 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
           match kind_of_type t with
           | ProdType (name, _, t) -> name :: aux t (n-1)
           | _ -> assert false in aux hd_ty (Array.length args) in
-        Util.list_map_filter (fun (t, name) -> match kind_of_term t with 
-          | Evar (k, _) when InProp <> Retyping.get_sort_family_of
-            env sigma (Evd.evar_concl (Evd.find sigma k)) -> Some name 
-          | _ -> None) 
+        hd_ty, Util.list_map_filter (fun (t, name) ->
+          let evs = Util.Intset.elements (Evarutil.evars_of_term t) in
+          let open_evs = List.filter (fun k ->
+            InProp <> Retyping.get_sort_family_of
+              env sigma (Evd.evar_concl (Evd.find sigma k)))
+            evs in
+          if open_evs <> [] then Some name else None)
           (List.combine (Array.to_list args) names)
     | _ -> anomaly "rewrite rule not an application" in
-    errorstrm (Himsg.explain_refiner_error (Logic.UnresolvedBindings miss))
+    errorstrm (Himsg.explain_refiner_error (Logic.UnresolvedBindings miss) ++
+      (Pp.fnl()++str"Rule's type:" ++ spc() ++ pr_constr hd_ty))
 ;;
 
 let rwcltac cl rdx dir sr gl =
