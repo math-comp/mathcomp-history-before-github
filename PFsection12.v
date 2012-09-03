@@ -72,6 +72,9 @@ Let S_ (chi : 'CF(L)) := [set i in irr_constt chi].
 
 Let calI := [seq 'chi_i | i in Iirr_kerD L H 1%G].
 
+Lemma chi_calI i : i \in Iirr_kerD L H 1%g -> 'chi_i \in calI.
+Proof. by move=> i_Iirr; apply/imageP; exists i. Qed.
+
 Lemma S_calSP i : 
   reflect (exists2 chi, chi \in calS & i \in S_ chi) (i \in Iirr_kerD L H 1%G).
 Proof.
@@ -158,6 +161,19 @@ rewrite zchar_split irr_vchar /=.
 by have [_ _ ->] := PF_12_2a calSj.
 Qed.
 
+Lemma mem_flatten_im_in (F : finType)(T : eqType)(f : F -> seq T) (P : pred F) (x : T) :
+    x \in flatten [seq f x | x in P] -> exists2 i, i \in P & x \in f i.
+have: all P (enum P) by apply/allP=> x1; rewrite mem_enum.
+rewrite /(image _ _); elim: (enum P) => //= a l ih /andP[Pa hall]. 
+by rewrite mem_cat; case/orP=> hx; [exists a | apply: ih].
+Qed.
+
+Lemma mem_flatten_im (F : finType)(T : eqType)(f : F -> seq T) l (x : T) :
+    x \in flatten [seq f x | x <- l] -> exists2 i, i \in l & x \in f i.
+rewrite /(image _ _); elim: l => //= a l ih.
+rewrite mem_cat; case/orP=> hx; first by exists a; rewrite // mem_head.
+case: (ih hx) => b lb xfb; exists b => //; exact: mem_behead.
+Qed.
 
 Lemma FPtype1_Iirr_kerD_subcoherent : 
  {R : 'CF(L) -> seq _ |  subcoherent calI tau R}.
@@ -167,8 +183,8 @@ split.
 - by apply/dinjectiveP; apply: in2W irr_inj.
 - move=> _ /imageP[i _ ->]; exact: mem_irr.
 - move=> psi /imageP[i /S_calSP[phi calSphi]]; rewrite inE => irri -> {psi}.
-  apply/imageP; exists (conjC_Iirr i); last by rewrite conjC_IirrE.
-  apply/S_calSP; exists (phi^*)%CF; first by rewrite ?cfAut_seqInd.
+  rewrite -conjC_IirrE; apply: chi_calI; apply/S_calSP.
+  exists (phi^*)%CF; first by rewrite ?cfAut_seqInd.
   by rewrite inE irr_consttE conjC_IirrE cfdot_conjC conjC_eq0 -irr_consttE.
 - apply/hasPn=> psi; case/imageP => i /S_calSP[phi calSphi].
   rewrite inE => irri -> {psi}; rewrite /cfReal odd_eq_conj_irr1 ?mFT_odd //.
@@ -177,13 +193,30 @@ split.
   by rewrite constt_Ind_constt_Res irr0 cfRes_cfun1 -irr0 constt_irr inE.
 Qed.
 
+Lemma irr_constt_ortho (gT' : finGroupType) (A : {group gT'}) (phi psi : 'CF(A)) i j : 
+  phi \is a character -> psi \is a character -> orthogonal phi psi -> 
+  i \in irr_constt phi -> j \in irr_constt psi -> orthogonal 'chi_i 'chi_j.
+Proof.
+move=> char_phi char_psi /orthoP /eqP ophi_psi irr_i irr_j; apply/orthoP.
+rewrite cfdot_irr; apply/eqP; move/charf0P: Cchar->; rewrite eqb0; move: ophi_psi.
+apply: contraL => /eqP ijD.
+case/(constt_charP _ char_phi) : irr_i => phi1 phi1_char ->.
+case/(constt_charP _ char_psi) : irr_j => psi1 psi1_char ->.
+rewrite cfdotDl cfdotDr ijD cfnorm_irr.
+have /truncCK <- : '['chi_j, psi1] \in Cnat.
+  by rewrite cfdotC Cnat_aut Cnat_cfdot_char_irr.
+have /truncCK <- : '[phi1, 'chi_j + psi1] \in Cnat.
+  by rewrite Cnat_cfdot_char // rpredD ?irr_char.
+by rewrite -[1]/(1%:R) -!natrD; move/charf0P: Cchar->.
+Qed.
+
 (* This is Peterfalvi (12.2)(b) *)
 Lemma FPtype1_calS_subcoherent :
   {R : 'CF(L) -> seq _ | let R1 := sval FPtype1_Iirr_kerD_subcoherent in
     [/\ subcoherent calS tau R,
       forall i (phi := 'chi_i),
       i \in Iirr_kerD L H 1%G -> 
-      [/\ (orthonormal (R1 phi)),
+      [/\ orthonormal (R1 phi),
           size (R1 phi) = 2 &
           (tau (phi - phi^*%CF) = (\sum_(mu <- R1 phi) mu)%CF)] &
       forall chi, chi \in calS ->
@@ -195,77 +228,108 @@ have nrS : ~~ has cfReal calS by apply: seqInd_notReal; rewrite ?mFT_odd.
 have U_S : uniq calS by exact: seqInd_uniq.
 have ccS : conjC_closed calS by exact:cfAut_seqInd.
 have conjCS : cfConjC_subset calS (seqIndD H L H 1) by split.
-case: FPtype1_Iirr_kerD_subcoherent => /= R1 [[chi_char nrI ccI] tau_iso oI h1 hortho].
+case: FPtype1_Iirr_kerD_subcoherent => R1 subc1. 
+case: (subc1) => [[chi_char nrI ccI] tau_iso oI h1 hortho].
 pose R chi := flatten [seq R1 'chi_i | i in S_ chi].
-exists R; split => //; last first.
-  move=> i Ii.
-  have mem_i : 'chi_i \in calI by apply/imageP; exists i.
-  move/h1 : (mem_i) => [Zirr oR1 tau_im]; split=> // {h1}.
-  move/(f_equal (fun x : 'CF([set: gT]%G)=>  ('[ x ]))): tau_im.
+have aux phi psi iphi ipsi Rphi Rpsi : phi \in calS -> psi \in calS ->
+  iphi \in S_ phi -> ipsi \in S_ psi -> 
+  Rphi \in R1 'chi_ iphi -> Rpsi \in R1 'chi_ipsi -> 
+   orthogonal 'chi_iphi ('chi_ipsi :: (('chi_ipsi)^*)%CF) -> '[Rphi, Rpsi] = 0.
+  move=> calS_phi calS_psi; rewrite ![_ \in S_ _]inE =>  Scphi Scpsi.
+  move=> Rphi_in Rpsi_in /= ochi.
+  have calI_iphi : 'chi_iphi \in calI.
+    rewrite /calI; apply: map_f; rewrite mem_enum; apply/S_calSP; exists phi => //.
+    by rewrite inE.
+  have calI_ipsi : 'chi_ipsi \in calI.
+    rewrite /calI; apply: map_f; rewrite mem_enum; apply/S_calSP; exists psi => //.
+    by rewrite inE.
+    by have /orthogonalP -> := (hortho _ _ calI_ipsi calI_iphi ochi).
+exists R; split => //= => [| i Ii]; last first.
+  have mem_i := (chi_calI Ii); have [Zirr oR1 tau_im] := (h1  _ mem_i).
+  split=> // {h1}; move/(f_equal (fun x : 'CF([set: gT]%G) => '[ x ])): tau_im.
   rewrite cfnorm_orthonormal //.
-  have hsubchi : 
-    'chi_i - (('chi_i)^*)%CF \in 'Z[calI, L^#].
-    have hchi : 'chi_i \in 'Z[calI, L] by rewrite mem_zchar_on // cfun_onG.
+  have hsubchi : 'chi_i - (('chi_i)^*)%CF \in 'Z[calI, L^#].
+    - have hchi : 'chi_i \in 'Z[calI, L] by rewrite mem_zchar_on // cfun_onG.
     rewrite sub_aut_zchar ?cfAut_zchar // => ? /imageP[j _ ->]; exact: irr_vchar.
-  case: tau_iso => h1 _; rewrite {}h1 // {hsubchi}.
-  rewrite cfnormBd => [/eqP|]; last first.
+  case: tau_iso => h1 _; rewrite {}h1 // {hsubchi} cfnormBd => [/eqP|]; last first.
     case/pairwise_orthogonalP: oI => _ -> //; rewrite ?ccI //.
     by move/hasPn: nrI => /(_ _ mem_i); rewrite eq_sym.
   by rewrite cfnorm_conjC cfnorm_irr -[1]/(1%:R) -natrD eqC_nat; move/eqP<-.
-split.
-- by split => // ?; apply: seqInd_char.
+have calS_portho : pairwise_orthogonal calS by exact: seqInd_orthogonal.
+have calS_char : {subset calS <= character} by apply: seqInd_char.
+have calS_chi_ortho : {in calS &, forall (phi psi : 'CF(_)) i j, 
+  orthogonal phi psi -> 
+  i \in irr_constt phi -> j \in irr_constt psi -> orthogonal 'chi_i 'chi_j}.
+  by move=> ? ? ? ? /= ? ?; apply: irr_constt_ortho; apply/calS_char.
+split => //.
 - apply: (sub_iso_to _ _ (Dade_Zisometry _)) => // phi.
   have /subsetD1P[_ /setU1K <-] := FTsupp0_sub L.
   rewrite zcharD1E FTsupp0_type1 // => /andP[S_phi phi1nz].
   rewrite zcharD1 {}phi1nz andbT setUC.
   apply: zchar_trans_on phi S_phi => psi calS_psi.
   rewrite zchar_split (seqInd_vcharW calS_psi) /=.
-  have [{3}-> _ hCF] := PF_12_2a calS_psi.
-  by rewrite rpred_sum.
-- exact: seqInd_orthogonal.
-- move=> phi calS_phi; case/PF_12_2a: (calS_phi)=> -> _ _.
-- admit.
-- move=> phi psi calS_phi calS_psi /= /orthogonalP ophi_psiC.
+  by have [{3}-> _ hCF] := PF_12_2a calS_psi; rewrite rpred_sum. 
+- move=> phi calS_phi; case/PF_12_2a: (calS_phi)=> {1}-> _ _.
+  have tau_Rphi: {subset R phi <= 'Z[irr [set: gT]%G]}.
+    move=> psi /mem_flatten_im_in [iphi Scphi Rpsi_in].
+    suff calI_iphi : 'chi_iphi \in calI.
+    - by case: (h1 _ calI_iphi) => subZ _ _; apply: subZ.
+    by apply/chi_calI/S_calSP; exists phi => //; case: (PF_12_2a calS_phi)=> ->.
+  suff h : orthonormal (R phi) /\
+           tau (phi - (phi^*)%CF) = \sum_(alpha <- R phi) alpha.
+    by split; case: h.
+  have [phiD hdeg _] := PF_12_2a calS_phi.
+  have {phiD} phiD :  phi = \sum_(i <- enum (S_ phi)) 'chi_i.
+    rewrite {1}phiD.
+    by rewrite big_uniq /= ?enum_uniq //; apply: eq_bigl => x; rewrite mem_enum.
+  rewrite {}[in X in X = _]phiD.
+  have : uniq (enum (S_ phi)) by exact: enum_uniq.
+  have : forall i, i \in (enum (S_ phi)) -> (i \in S_ phi).
+    by move=> ?; rewrite mem_enum.
+  rewrite /R /(image _ _); elim: (enum (S_ phi)) => [| a l ihl] l_irr /= U_l.
+    rewrite /orthonormal /= !big_nil rmorph0 subr0; split => //.
+    apply/eqP; rewrite -cfnorm_eq0.
+    by case: tau_iso => ->; rewrite ?cfun0_zchar // cfnorm_eq0 eqxx.
+  have S_phia : a \in S_ phi by apply: l_irr; rewrite mem_head.
+  case/andP: U_l => nal U_l.
+  have {ihl} [| ofl taul] := (ihl _ U_l). 
+    by move=> i li; apply: l_irr; rewrite in_cons li orbT.
+  have /(h1 _) [_ oa atau] : 'chi_a \in calI.
+    by apply: chi_calI; apply/S_calSP; exists phi.
+  rewrite orthonormal_cat oa ofl /=; split => [{atau taul}|].
+  + apply/orthogonalP=> psi1 psi2 R1psi1; case/mem_flatten_im=> b lb R1psi2.
+    have {l_irr} S_phib : b \in S_ phi by apply: l_irr; rewrite mem_behead.
+    suff : orthogonal 'chi_a ('chi_b :: (('chi_b)^*)%CF) by exact: (aux phi phi).
+    apply/andP; rewrite /=  - conjC_IirrE cfdot_irr.
+    have /negPf -> : a != b by move: nal; apply: contra; move/eqP->.
+    rewrite eqxx /= andbT; split=> //; apply/eqP; apply/orthoP.
+    have irr_a : a \in irr_constt phi by move: S_phia; rewrite inE.
+    have irr_bC : conjC_Iirr b \in irr_constt  (phi^*)%CF.
+    rewrite inE conjC_IirrE cfdot_conjC; move: S_phib; rewrite inE conjC_eq0.
+      by rewrite inE.
+    apply: (calS_chi_ortho phi (phi^*)%CF _ (ccS _ _) a (conjC_Iirr b)) => //.
+    apply/orthoP; case/pairwise_orthogonalP: calS_portho=> _ -> //; rewrite ?ccS //.
+    by move/hasPn: nrS => /(_ _ calS_phi); rewrite eq_sym.
+  + rewrite big_cons addrAC rmorphD /= opprD addrA -addrA [- _ + _]addrC.
+    rewrite big_cat /= -atau -taul. admit.
+- move=> phi psi calS_phi calS_psi /andP [] /and3P /= [/eqP opsi_phi /eqP opsi_phiC _] _.
   apply/orthogonalP => Rpsi Rphi; rewrite /R => Rpsi_in Rphi_in.
-  (* this could be a more general lemma on seqs *)
-  have memR (F : finType)(T : eqType)(f : F -> seq T) (P : pred F) (x : T) :
-    x \in flatten [seq f x | x in P] -> exists2 i, i \in P & x \in f i.
-  - have: all P (enum P) by apply/allP=> x1; rewrite mem_enum.
-    rewrite /(image _ _); elim: (enum P) => //= a l ih /andP[Pa hall]. 
-    by rewrite mem_cat; case/orP=> hx; [exists a | apply: ih].
-  case: (memR _ _ _ _ _ Rphi_in) => iphi Scphi {Rphi_in} Rphi_in.
-  case: (memR _ _ _ _ _ Rpsi_in) => ipsi Scpsi {Rpsi_in} Rpsi_in {memR}.
-  have calS_iphi : 'chi_iphi \in calI.
-    by rewrite /calI; apply: map_f; rewrite mem_enum; apply/S_calSP; exists phi.
-  have calS_ipsi : 'chi_ipsi \in calI.
-    by rewrite /calI; apply: map_f; rewrite mem_enum; apply/S_calSP; exists psi.
+  case: (mem_flatten_im Rphi_in) => iphi Scphi {Rphi_in} Rphi_in.
+  case: (mem_flatten_im Rpsi_in) => ipsi Scpsi {Rpsi_in} Rpsi_in.
+  move: Scphi Scpsi; rewrite !mem_enum => Scphi Scpsi.
   suff ochi : orthogonal 'chi_ipsi ('chi_iphi :: (('chi_iphi)^*)%CF).
-    by have /orthogonalP -> := (hortho _ _ calS_iphi calS_ipsi ochi).
+    exact: (aux psi phi ipsi iphi).
   rewrite orthogonal_sym orthogonal_cons.
-  case/pairwise_orthogonalP: oI => _ oI; apply/andP.
-  have aux phi1 phi2 : phi1 \is a character -> phi2 \is a character ->
-      phi1 = 'chi_ipsi + phi2 -> '[psi, phi1] != 0.
-    move=> char1 char2 ->.    
-    have /(constt_charP ipsi) psiP : 
-      psi \is a character by move: calS_psi; exact: seqInd_char.
-    move: Scpsi; rewrite inE; case/psiP => psi' char_psi' -> {psiP}.
-    rewrite cfdotDl cfdotDr cfnorm_irr.
-    have /truncCK <- : '['chi_ipsi, phi2] \in Cnat.
-      by rewrite cfdotC Cnat_aut Cnat_cfdot_char_irr.
-    have /truncCK <- : '[psi', 'chi_ipsi + phi2] \in Cnat.
-      by rewrite Cnat_cfdot_char // rpredD ?irr_char.
-    by rewrite -[1]/(1%:R) -!natrD; move/charf0P: Cchar->.
-  have phi_char : phi \is a character by move: calS_phi; exact: seqInd_char.
-  move/(constt_charP iphi): (phi_char) => phiP.
-  move: Scphi; rewrite inE; case/phiP => phi' char_phi' phiD {phiP}.
-  split; apply/orthoP; rewrite oI ?ccI //.
-  + have : '[psi, phi] == 0.
-      by apply/eqP; apply: ophi_psiC => //; rewrite ?mem_seq1 ?in_cons eqxx.
-    by apply: contraL => /eqP abs; apply: (aux _ phi') => //; rewrite -abs.
-  + have : '[psi, phi^*] == 0.
-      by apply/eqP; apply: ophi_psiC; rewrite ?mem_seq1 ?in_cons eqxx // orbT.
-    apply: contraL => /eqP abs. 
-    by apply: (aux _ (phi'^*)%CF); rewrite ?cfConjC_char // phiD rmorphD /= abs.
+  case/pairwise_orthogonalP: oI => _ oI.
+  have Scphi' :  iphi \in irr_constt phi by move: Scphi; rewrite inE.
+  have Scpsi' :  ipsi \in irr_constt psi by move: Scpsi; rewrite inE.
+  have phi_char := (calS_char _ calS_phi); have psi_char := (calS_char _ calS_psi).
+  rewrite (irr_constt_ortho phi_char psi_char) //=; last first.
+    by rewrite orthogonal_sym; apply/orthoP.
+  rewrite orthogonal_sym -conjC_IirrE.
+  rewrite (irr_constt_ortho psi_char (cfConjC_char phi_char)) //.
+    by apply/orthoP.
+  by rewrite inE conjC_IirrE cfdot_conjC fmorph_eq0.
 Qed.
 
 End Twelve2.
