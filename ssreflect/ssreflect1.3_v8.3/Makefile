@@ -4,7 +4,7 @@ MAKEFLAGS := -r #-j2
 
 .SUFFIXES:
 
-.PHONY: clean all tags install test
+.PHONY: clean all tags install
 
 VERSION := $(shell grep 'let ssrversion' src/ssreflect.ml | cut -d \" -f 2)
 COQMAKEFILE := Makefile.coq
@@ -13,9 +13,6 @@ COQMAKE := +$(MAKE) -f $(COQMAKEFILE)
 all: $(COQMAKEFILE)
 	mkdir -p bin
 	$(COQMAKE) all
-
-test:
-	$(MAKE) -C test/ all
 
 $(COQMAKEFILE): Make
 	$(COQBIN)coq_makefile -f Make  > $(COQMAKEFILE)
@@ -27,7 +24,6 @@ install:
 	$(COQMAKE) install
 
 clean:
-	$(MAKE) -C test/ clean
 	-$(COQMAKE) clean
 	rm -f $(COQMAKEFILE)
 	rm -rf ssreflect-$(VERSION) ssreflect-$(VERSION).tar.gz
