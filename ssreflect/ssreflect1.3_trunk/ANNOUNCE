@@ -52,12 +52,6 @@ Some features of the library:
 The Ssreflect 1.4 distribution is available at [2].  It is distributed
 under the CeCILL-B licence (the French equivalent of the BSD license).
     
-The tactic language has been extended with few new features.  However we
-have kept the core of the language unchanged; the new library compiles with
-Ssreflect 1.3pl4.
-
-The new library adds XXX FILL HERE XXX
-
 Comments and bug reports are of course most welcome, and can be
 directed at ssreflect(at-sign)msr-inria.inria.fr. 
 To subscribe, either send an email to sympa@msr-inria.inria.fr, whose title
