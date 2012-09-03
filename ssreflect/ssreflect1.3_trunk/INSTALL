@@ -37,8 +37,7 @@ BUILDING SSREFLECT
   it may be caused by an old version of OCaml that does not support
   dynamic loding of plugins on you platform. Edit the Make file and uncomment
   the lines marked for static linking. In this way a statically linked
-  binary bin/ssrcoq will be produced. It is up to you to copy it inside
-  a directory listed by your PATH variable.
+  binary bin/ssrcoq will be produced. It is up to you to copy it inside $COQBIN.
 
 
 CUSTOMIZATION OF THE PROOF GENERAL EMACS INTERFACE
