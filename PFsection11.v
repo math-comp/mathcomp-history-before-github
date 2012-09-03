@@ -59,9 +59,11 @@ Hypothesis Mtypen2 : FTtype M != 2.
 Let Mtypen5 : FTtype M != 5. Proof. exact: FTtype5_exclusion. Qed.
 Let Mtypen1 : FTtype M != 1%N. Proof. exact: FTtypeP_neq1 MtypeP. Qed.
 Let Mtype_gt2 : (FTtype M > 2)%N.
-Proof. by move: (FTtype M) Mtypen1 Mtypen2 (FTtype_range M); do 3?case. Qed.
+Proof. by move: (FTtype M) Mtypen1 Mtypen2 (FTtype_range M)=> [|[|[]]]. Qed.
 Let Mtype34 : FTtype M \in pred2 3 4.
-Proof. by move: (FTtype M) Mtype_gt2 Mtypen5 (FTtype_range M); do 6?case. Qed.
+Proof.
+by move: (FTtype M) Mtype_gt2 Mtypen5 (FTtype_range M)=> [|[|[|[|[|[|[]]]]]]].
+Qed.
 
 Local Notation H0 := (Ptype_Fcore_kernel MtypeP).
 Local Notation "` 'H0'" := (gval H0) (at level 0, only parsing) : group_scope.

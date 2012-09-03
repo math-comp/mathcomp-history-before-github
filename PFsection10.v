@@ -75,7 +75,7 @@ Let nsM''M : M'' <| M. Proof. exact: der_normal 2 M. Qed.
 
 Let notMtype1 : FTtype M != 1%N. Proof. exact: FTtypeP_neq1 MtypeP. Qed.
 Let typeMgt2 : FTtype M > 2.
-Proof. by move: (FTtype M) (FTtype_range M) notMtype1 notMtype2; do 3?case. Qed.
+Proof. by move: (FTtype M) (FTtype_range M) notMtype1 notMtype2=> [|[|[]]]. Qed.
 
 Let defA1 : 'A1(M) = M'^#. Proof. by rewrite /= -FTcore_eq_der1. Qed.
 Let defA : 'A(M) = M'^#. Proof. by rewrite FTsupp_eq1 ?defA1. Qed.
