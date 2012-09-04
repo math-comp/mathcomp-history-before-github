@@ -234,7 +234,7 @@ pose R chi := flatten [seq R1 'chi_i | i in S_ chi].
 have aux phi psi iphi ipsi Rphi Rpsi : phi \in calS -> psi \in calS ->
   iphi \in S_ phi -> ipsi \in S_ psi -> 
   Rphi \in R1 'chi_ iphi -> Rpsi \in R1 'chi_ipsi -> 
-   orthogonal 'chi_iphi ('chi_ipsi :: (('chi_ipsi)^*)%CF) -> '[Rphi, Rpsi] = 0.
+  orthogonal 'chi_iphi ('chi_ipsi :: ('chi_ipsi)^*%CF) -> '[Rphi, Rpsi] = 0.
   move=> calS_phi calS_psi; rewrite ![_ \in S_ _]inE =>  Scphi Scpsi.
   move=> Rphi_in Rpsi_in /= ochi.
   have calI_iphi : 'chi_iphi \in calI.
@@ -311,7 +311,7 @@ split => //.
     apply/orthoP; case/pairwise_orthogonalP: calS_portho=> _ -> //; rewrite ?ccS //.
     by move/hasPn: nrS => /(_ _ calS_phi); rewrite eq_sym.
   + rewrite big_cons addrAC rmorphD /= opprD addrA -addrA [- _ + _]addrC.
-    rewrite big_cat /= -atau -taul. admit.
+    by rewrite big_cat /= -atau -taul -linearD.
 - move=> phi psi calS_phi calS_psi /andP [] /and3P /= [/eqP opsi_phi /eqP opsi_phiC _] _.
   apply/orthogonalP => Rpsi Rphi; rewrite /R => Rpsi_in Rphi_in.
   case: (mem_flatten_im Rphi_in) => iphi Scphi {Rphi_in} Rphi_in.
