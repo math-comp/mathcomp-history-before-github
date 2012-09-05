@@ -49,8 +49,8 @@ because L is a group and when we enter H, if Coq needs to insert the *)
 
 (* Prefer the (convertible) derived group version to the commutator expression,
 since it's most often used as such in the proofs *)
-Local Notation H' := H^`(1)%G.
-Local Notation "` 'H''" := `H^`(1) (at level 0) : group_scope.
+(* Local Notation H' := H^`(1)%G. *)
+(* Local Notation "` 'H''" := `H^`(1) (at level 0) : group_scope. *)
 
 (* This is wrong : we define here 
 {\theta \in Irr (L) | H \in ker \theta and 1%g is not included in ker \theta 
@@ -334,7 +334,79 @@ Qed.
 
 End Twelve2.
 
+Section Twelve3.
+
+Lemma PF_12_3 L1 L2 (L1type : FTtype L1 == 1%N)(L2type : FTtype L2 == 1%N)
+  (maxL1 : L1 \in 'M)(maxL2 : L2 \in 'M)
+  (H1 := (gval L1)`_\F%G) (H2 := (gval L1)`_\F%G) 
+  (calS1 := seqIndD H1 L1 H1 1%G)(calS2 := seqIndD H2 L2 H2 1%G) 
+  (R1 := sval (FPtype1_calS_subcoherent maxL1 L1type))
+  (R2 := sval (FPtype1_calS_subcoherent maxL2 L2type)) : 
+  (gval L2) \notin L1 :^: G ->
+  {in calS1 & calS2, forall chi1 chi2, orthogonal (R1 chi1) (R2 chi2)}.
+Proof.
+rewrite /R1 /R2 /calS1 /calS2.
+wlog dA1A : L1 L2 H1 H2 maxL1 maxL2 L1type L2type {calS1 calS2 R1 R2} / 
+  [disjoint 'A1~(L2) & 'A~(L1)].
+  move=> hwlog L12_non_conj.
+  have [_ _] := (FT_Dade_support_disjoint maxL1 maxL2 L12_non_conj).
+  case=> dA1A; last by move: L12_non_conj; apply: hwlog.
+  suff L21_non_conj : (gval L1) \notin L2 :^: G.
+    move=> chi1 chi2 calS1_chi1 calS2_chi2 /=; rewrite orthogonal_sym.
+    exact: (hwlog L2 L1 H2 H1).
+  apply: contra L12_non_conj; case/imsetP=> g Gg ->; rewrite conjugates_conj.
+  by rewrite lcoset_id //=; apply/imsetP; exists 1%g => //; rewrite conjsg1.
+move=> L12_non_conj chi1 chi2 calS1_chi1 calS2_chi2.
+case: (FPtype1_calS_subcoherent maxL1 L1type) => R1 /=; set R1' := sval _.
+case=> subcoh1 hR1' defR1'; case: (FPtype1_calS_subcoherent maxL2 L2type) => R2 /=.
+set R2' := sval _; case=> subcoh2 hR2' defR2'; apply/orthogonalP=> a b R1a R2b.
+pose tau1 := FT_Dade0 maxL1; pose tau2 := FT_Dade0 maxL2.
+suff aux : '[a, tau2 (chi2 - chi2^*%CF)] = 0.
+Admitted.
+
+(* Hypothesis 12.1 *)
+(* Variables (L1 L2 : {group gT}). *)
+
+(* Hypothesis maxL1 : L1 \in 'M. *)
+(* Hypothesis maxL2 : L2 \in 'M. *)
+
+(* Hypothesis L1type : FTtype L1 == 1%N. *)
+(* Hypothesis L2type : FTtype L2 == 1%N. *)
+
+(* Local Notation "` 'L1'" := (gval L1) (at level 0, only parsing) : group_scope. *)
+(* Local Notation "` 'L2'" := (gval L2) (at level 0, only parsing) : group_scope. *)
+(* Local Notation H1 := `L1`_\F%G. *)
+(* Local Notation H2 := `L2`_\F%G. *)
+(* Local Notation "` 'H1'" := `L1`_\F (at level 0) : group_scope. *)
+(* Local Notation "` 'H2'" := `L2`_\F (at level 0) : group_scope. *)
+
+(* Local Notation H1' := H1^`(1)%G. *)
+(* Local Notation "` 'H1''" := `H1^`(1) (at level 0) : group_scope. *)
+
+(* Local Notation H2' := H2^`(1)%G. *)
+(* Local Notation "` 'H2''" := `H2^`(1) (at level 0) : group_scope. *)
+
+(* Hypothesis L12_non_conj : `L2 \notin L1 :^: G. *)
+
+(* Let calS1 := seqIndD H1 L1 H1 1%G. *)
+(* Let calS2 := seqIndD H2 L2 H2 1%G. *)
+
+(* Let tau1 := FT_Dade0 maxL1. *)
+(* Let tau2 := FT_Dade0 maxL2. *)
+
+(* Let R1 := sval (FPtype1_calS_subcoherent maxL1 L1type). *)
+(* Let R2 := sval (FPtype1_calS_subcoherent maxL2 L2type). *)
+
+
+(* Lemma PF_12_3 : {in calS1 & calS2,  *)
+(*   forall chi1 chi2, orthogonal (R1 chi1) (R2 chi2)}. *)
+(* Proof. *)
+(* Admitted. *)
+
+End Twelve3.
+
 Section Twelve_4_to_6.
+
 Variable L : {group gT}.
 
 Hypotheses (maxL : L \in 'M) .
@@ -362,6 +434,93 @@ Proof. move: maxL. admit. Qed.
 
 End Twelve_4_to_6.
 
+Section Twelve_8_to_16.
+
+Variable p : nat.
+
+(* Equivalent reformultaion of hypothesis 12.8 avoiding quotients *)
+Hypothesis IHp : forall q M, (q < p)%N -> M \in 'M -> FTtype M == 1%N ->  
+  ('r_p(M) > 1)%N -> p \in \pi(M`_\F).
+
+Variables M P0 : {group gT}.
+
+Let K := M`_\F%G.
+Let K' := M^`(1)%G.
+
+Hypothesis maxM : M \in 'M.
+Hypothesis Mtype1 : FTtype M == 1%N.
+Hypothesis prankM : ('r_p (M) > 1)%N.
+Hypothesis p'K : p^'.-group K.
+
+Hypothesis Sylow_P0 :  p.-Sylow(M) P0.
+
+Lemma PF12_9 :
+  [/\ abelian P0, 'r_p(P0) = 2
+    & exists2 L, L \in 'M /\ P0 \subset L`_\s
+    & exists2 x, x \in 'Ohm_1(P0)^#
+    & [/\ ~~ ('C_K[x] \subset K'), 'N(<[x]>) \subset M & ~~ ('C[x] \subset L)]].
+Admitted.
+
+Variables (L : {group gT}) (x : gT).
+Hypotheses (abP0 : abelian P0) (prankP0 : 'r_p(P0) = 2).
+Hypotheses (maxL : L \in 'M) (sP0_Ls : P0 \subset L`_\s).
+Hypotheses (P0_1s_x : x \in 'Ohm_1(P0)^#) (sNxM : 'N(<[x]>) \subset M).
+Hypotheses (not_sCxK' : ~~ ('C_K[x] \subset K')) (not_sCxL : ~~ ('C[x] \subset L)).
+
+Let H := L`_\F%G.
+
+Let frobL : [Frobenius L with kernel H].
+Admitted.
+
+Let defM : K ><| (M :&: L) = M.
+Admitted.
+
+Let sML_H : M :&: L \subset H.
+Admitted.
+
+Let E := sval (sigW (existsP frobL)).
+Let e := #|E|.
+
+Let defL: H ><| E = L.
+Proof. by rewrite /E; case: (sigW _) => E0 /=/Frobenius_context[]. Qed.
+
+Let PF12_12 : cyclic E /\ (e %| p.-1) || (e %| p.+1).
+Admitted.
+
+Import PFsection7.
+
+Let calS := seqIndD H L H 1.
+Notation tauL := (FT_Dade0 maxL).
+Notation rhoL := (invDade (FT_Dade0_hyp maxL)).
+
+Section Twelve_13_to_16.
+
+Variables (tau1 : {additive 'CF(L) -> 'CF(G)}) (chi : 'CF(L)).
+Hypothesis cohS : coherent_with calS L^# tauL tau1.
+Hypotheses (Schi : chi \in calS) (chi1 : chi 1%g = e%:R).
+Let psi := tau1 chi.
+
+Let PF12_14 : {in K, forall g, psi (x * g)%g = chi x} /\ rhoL psi x = chi x.
+Admitted.
+
+Let rhoM := (invDade (FT_Dade1_hyp maxL)).
+
+Let PF12_15 :
+  [/\ {in K^#, forall g, rhoM psi g = psi g},
+      {in K :\: K' &, forall g1 g2, psi g1 = psi g2}
+    & {in K :\: K', forall g, psi g \in Cint}].
+Admitted.
+
+Lemma PF12_16_inner : False.
+move: cohS Schi. admit. Qed.
+
+End Twelve_13_to_16.
+
+(* Lemma PF12_16 : False. *)
+(* Proof. Qed. *)
+
+End Twelve_8_to_16.
+
 (* This will be (12.7). *)
 Theorem FTtype1_Frobenius M :
   M \in 'M -> FTtype M == 1%N -> [Frobenius M with kernel M`_\F].
@@ -370,6 +529,7 @@ Admitted. (* A cinch! *)
 (* This will be (12.17). *)
 Theorem not_all_FTtype1 : ~~ all_FTtype1 gT.
 Admitted.
+
 
 End PFTwelve.
 
