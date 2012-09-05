@@ -336,30 +336,27 @@ End Twelve2.
 
 Section Twelve3.
 
-Lemma PF_12_3 L1 L2 (L1type : FTtype L1 == 1%N)(L2type : FTtype L2 == 1%N)
+Lemma PF_12_3 L1 L2 (L1type : FTtype L1 == 1%N) (L2type : FTtype L2 == 1%N)
   (maxL1 : L1 \in 'M)(maxL2 : L2 \in 'M)
-  (H1 := (gval L1)`_\F%G) (H2 := (gval L1)`_\F%G) 
-  (calS1 := seqIndD H1 L1 H1 1%G)(calS2 := seqIndD H2 L2 H2 1%G) 
+  (H1 := L1`_\F%G) (H2 := L2`_\F%G) 
+  (calS1 := seqIndD H1 L1 H1 1)(calS2 := seqIndD H2 L2 H2 1) 
   (R1 := sval (FPtype1_calS_subcoherent maxL1 L1type))
   (R2 := sval (FPtype1_calS_subcoherent maxL2 L2type)) : 
   (gval L2) \notin L1 :^: G ->
   {in calS1 & calS2, forall chi1 chi2, orthogonal (R1 chi1) (R2 chi2)}.
 Proof.
-rewrite /R1 /R2 /calS1 /calS2.
-wlog dA1A : L1 L2 H1 H2 maxL1 maxL2 L1type L2type {calS1 calS2 R1 R2} / 
+wlog dA1A : L1 L2 maxL1 maxL2 @H1 @H2 L1type L2type @calS1 @calS2 @R1 @R2 / 
   [disjoint 'A1~(L2) & 'A~(L1)].
-  move=> hwlog L12_non_conj.
+- move=> hwlog L12_non_conj.
   have [_ _] := (FT_Dade_support_disjoint maxL1 maxL2 L12_non_conj).
-  case=> dA1A; last by move: L12_non_conj; apply: hwlog.
-  suff L21_non_conj : (gval L1) \notin L2 :^: G.
-    move=> chi1 chi2 calS1_chi1 calS2_chi2 /=; rewrite orthogonal_sym.
-    exact: (hwlog L2 L1 H2 H1).
-  apply: contra L12_non_conj; case/imsetP=> g Gg ->; rewrite conjugates_conj.
-  by rewrite lcoset_id //=; apply/imsetP; exists 1%g => //; rewrite conjsg1.
-move=> L12_non_conj chi1 chi2 calS1_chi1 calS2_chi2.
-case: (FPtype1_calS_subcoherent maxL1 L1type) => R1 /=; set R1' := sval _.
-case=> subcoh1 hR1' defR1'; case: (FPtype1_calS_subcoherent maxL2 L2type) => R2 /=.
-set R2' := sval _; case=> subcoh2 hR2' defR2'; apply/orthogonalP=> a b R1a R2b.
+  case=> /hwlog => [dA1A chi1 chi2 Schi1 Schi2 |]; last exact.
+  by rewrite orthogonal_sym dA1A // orbit_sym.
+move=> L12_non_conj chi1 chi2 calS1_chi1 calS2_chi2; rewrite {}/R1 {}/R2.
+case: (FPtype1_calS_subcoherent maxL1 L1type) => R1 /=.
+set R1' := sval _ => [[subcoh1 hR1' defR1']].
+case: (FPtype1_calS_subcoherent maxL2 L2type) => R2 /=.
+set R2' := sval _ => [[subcoh2 hR2' defR2']].
+apply/orthogonalP=> a b R1a R2b.
 pose tau1 := FT_Dade0 maxL1; pose tau2 := FT_Dade0 maxL2.
 suff aux : '[a, tau2 (chi2 - chi2^*%CF)] = 0.
 Admitted.

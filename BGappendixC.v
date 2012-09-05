@@ -256,8 +256,8 @@ have galPoly_roots: all (root (Pa - 1)) (enum Fp).
     apply: contraTneq IHk => ->; rewrite invr0 mulr0.
     by rewrite inE galNorm0 eq_sym oner_eq0.
   congr (_ \in E): (Etau _ IHk); apply: canLR (@invrK _) _; rewrite invfM invrK.
-  apply: canRL (mulKf nz_hk1) _; rewrite mulrC mulrBl divfK // mulr_natl.
-  by rewrite opprD mulrnDl addrACA addrK mulr2n {2}mulrS addrA -mulrSr addrK.
+  apply: canRL (mulKf nz_hk1) _; rewrite mulrC mulrBl divfK // mulrDl mul1r.
+  by rewrite {2}/h mulrS -2!addrA addrK addrAC -mulrSr.
 have sizePa: size Pa = q.+1.
   have sizePaX (beta : {rmorphism F -> F}) : size (beta (1 - a) *: 'X + 1) = 2.
     rewrite -mul_polyC size_MXaddC oner_eq0 andbF size_polyC fmorph_eq0.
@@ -276,18 +276,19 @@ Qed.
 Let E_gt1 : (1 < #|E|)%N.
 Proof.
 have [q_gt4 | q_le4] := ltnP 4 q.
-  pose k1 := enum_rank_in (classes1 H) (s ^: H).
-  pose k2 := enum_rank_in (classes1 H) ((s ^+ 2) ^: H).
-  pose e := gring_classM_coef k1 k1 k2.
+  pose inK x := enum_rank_in (classes1 H) (x ^: H).
+  have inK_E x: x \in H -> enum_val (inK x) = x ^: H.
+    by move=> Hx; rewrite enum_rankK_in ?mem_classes. 
+  pose j := inK s; pose k := inK (s ^+ 2)%g; pose e := gring_classM_coef j j k.
   have cPP: abelian P by rewrite -(injm_abelian inj_sigma) ?zmod_abelian.
-  have Hs: s \in H by have /mulG_sub[/subsetP->] := sdprodW defH.
+  have Hs: s \in H by rewrite -(sdprodW defH) -[s]mulg1 mem_mulg.
   have DsH n: (s ^+ n) ^: H = (s ^+ n) ^: U.
     rewrite -(sdprodW defH) classM (abelian_classP _ cPP) ?groupX //.
     by rewrite class_support_set1l.
   have injJU: {in U &, injective (conjg s)}.
     by move=> u v Uu Uv eq_s_uv; apply/inj_psi; rewrite ?psiE ?eq_s_uv.
   have ->: #|E| = e.
-    rewrite /e /gring_classM_coef !enum_rankK_in ?mem_classes ?groupX //.
+    rewrite /e /gring_classM_coef !inK_E ?groupX //.
     transitivity #|[set u in U | s^-1 ^ u * s ^+ 2 \in s ^: U]%g|.
       rewrite -(card_in_imset (sub_in2 _ inj_psi)) => [|u /setIdP[] //].
       apply: eq_card => x; rewrite inE -!im_psi.
@@ -310,187 +311,137 @@ have [q_gt4 | q_le4] := ltnP 4 q.
       by rewrite /f /= conjMg -conjgM mulgKV conjVg -Dx2.
     rewrite inE !in_PU // Uw -(memJ_conjg _ w) -class_rcoset rcoset_id //.
     by rewrite conjMg -conjgM mulgKV conjVg -Dx2.
-  rewrite -ltC_nat; pose chi_s2 i := 'chi[H]_i s ^+ 2 * ('chi_i (s ^+ 2)%g)^*.
-  have De: e%:R = #|U|%:R / #|P|%:R * (\sum_i chi_s2 i / 'chi_i 1%g).
-    have [k1s k2s2]: s \in enum_val k1 /\ (s ^+ 2)%g \in enum_val k2.
-      by rewrite !enum_rankK_in ?class_refl ?mem_classes ?groupX.
-    rewrite (gring_classM_coef_sum_eq k1s k1s k2s2); congr (_ * _).
-    have ->: #|enum_val k1| = #|U|.
-      case/imsetP: (enum_valP k1) k1s => _ _ -> /class_transr <-.
-      by rewrite (DsH 1%N) (card_in_imset injJU).
+  pose chi_s2 i := 'chi[H]_i s ^+ 2 * ('chi_i (s ^+ 2)%g)^* / 'chi_i 1%g.
+  have De: e%:R = #|U|%:R / #|P|%:R * (\sum_i chi_s2 i).
+    have Ks: s \in enum_val j by rewrite inK_E ?class_refl.
+    have Ks2: (s ^+ 2)%g \in enum_val k by rewrite inK_E ?groupX ?class_refl.
+    rewrite (gring_classM_coef_sum_eq Ks Ks Ks2) inK_E //; congr (_ * _).
+    have ->: #|s ^: H| = #|U| by rewrite (DsH 1%N) (card_in_imset injJU).
     by rewrite -(sdprod_card defH) mulnC !natrM invfM mulrA mulfK ?neq0CG.
   pose linH := [pred i | P \subset cfker 'chi[H]_i].
   have nsPH: P <| H by have [] := sdprod_context defH.
-  have sum_linH (FF : Iirr H -> algC):
-      (forall i, 'chi_i \is a linear_char -> FF i = 1) ->
-    \sum_(i in linH) FF i = #|U|%:R.
-  - move=> FF_1; have isoU: U \isog H / P := sdprod_isog defH.
-    have:= cUU; rewrite (card_isog isoU) (isog_abelian isoU) => abHbar.
-    rewrite -(card_Iirr_abelian abHbar) (reindex _ (mod_Iirr_bij nsPH)).
-    rewrite -sumr_const; apply: eq_big => [i | i _].
-      by rewrite mod_IirrE ?cfker_mod.
-    by rewrite FF_1 ?mod_IirrE //; apply/cfMod_lin_char/char_abelianP.
+  have sum_linH: \sum_(i in linH) chi_s2 i = #|U|%:R.
+    have isoU: U \isog H / P := sdprod_isog defH.
+    have abHbar: abelian (H / P) by rewrite -(isog_abelian isoU).
+    rewrite (card_isog isoU) -(card_Iirr_abelian abHbar) -sumr_const.
+    rewrite (reindex _ (mod_Iirr_bij nsPH)) /chi_s2 /=.
+    apply: eq_big => [i | i _]; rewrite ?mod_IirrE ?cfker_mod //.
+    have lin_i: ('chi_i %% P)%CF \is a linear_char.
+      exact/cfMod_lin_char/char_abelianP.
+    rewrite lin_char1 // divr1 -lin_charX // -normCK.
+    by rewrite normC_lin_char ?groupX ?expr1n.
   have degU i: i \notin linH -> 'chi_i 1%g = #|U|%:R.
     case/(Frobenius_Ind_irrP (FrobeniusWker frobH)) => {i}i _ ->.
     rewrite cfInd1 ?normal_sub // -(index_sdprod defH) lin_char1 ?mulr1 //.
     exact/char_abelianP.
-  have ub_linH' j:
-    coprime j p -> \sum_(i in predC linH) `|'chi_i (s ^+ j)%g| ^+ 2 <= #|P|%:R.
-  - move=> co_j_p; have{co_j_p} P1sj: (s ^+ j)%g \in P^#.
+  have ub_linH' m (s_m := (s ^+ m)%g):
+    (0 < m < 5)%N -> \sum_(i in predC linH) `|'chi_i s_m| ^+ 2 <= #|P|%:R.
+  - case/andP=> m_gt0 m_lt5; have{m_gt0 m_lt5} P1sm: s_m \in P^#.
       rewrite !inE groupX // -order_dvdn -(order_injm inj_sigma) // sigmaE.
-      by rewrite andbT order_primeChar ?oner_neq0 -?prime_coprime 1?coprime_sym.
-    have ->: #|P|%:R = #|P|%:R *+ (s ^+ j \in s ^+ j ^: H)%g :> algC.
-      by rewrite class_refl.
-    have{P1sj} /eqP <-: 'C_H[s ^+ j] == P.
+      by rewrite andbT order_primeChar ?oner_neq0 ?gtnNdvd ?(leq_trans m_lt5).
+    have ->: #|P| = (#|P| * (s_m \in s_m ^: H))%N by rewrite class_refl ?muln1.
+    have{P1sm} /eqP <-: 'C_H[s ^+ m] == P.
       rewrite eqEsubset (Frobenius_cent1_ker frobH) // subsetI normal_sub //=.
       by rewrite sub_cent1 groupX // (subsetP cPP).
-    rewrite -second_orthogonality_relation ?groupX // big_mkcond.
-    apply: ler_sum => i _; rewrite -normCK; case: ifP => // _.
-    by rewrite exprn_ge0 ?normr_ge0.
-  have ub_Pe: `|(#|P| * e)%:R - #|U|%:R ^+ 2| <= #|P|%:R * sqrtC #|P|%:R.
-    rewrite natrM De mulrCA mulrA divfK ?neq0CG //.
-    rewrite (bigID linH) /= sum_linH => [|i Lchi]; last first.
-      rewrite lin_char1 // divr1 /chi_s2 lin_charX // rmorphX -exprMn.
-      by rewrite -normCK normC_lin_char ?expr1n.
-    rewrite mulrDr addrC addKr mulrC mulr_suml.
-    apply: ler_trans (ler_norm_sum _ _ _) _.
-    have:= ub_linH' _ (coprime1n p).
-    rewrite -(@ler_pmul2r _ (sqrtC #|P|%:R)) ?sqrtC_gt0 ?gt0CG //.
-    apply: ler_trans; rewrite mulr_suml ler_sum // => i linH'i.
-    rewrite degU // divfK ?neq0CG // normrM -normrX ler_wpmul2l ?normr_ge0 //.
-    rewrite -ler_sqr ?qualifE ?sqrtC_ge0 ?normr_ge0 ?ler0n // sqrtCK.
-    apply: ler_trans (ub_linH' 2 _); last by rewrite coprime2n.
-    rewrite norm_conjC (bigD1 i) //= ler_paddr //.
-    by apply: sumr_ge0 => j _; rewrite exprn_ge0 ?normr_ge0.
-  rewrite -(ltr_pmul2l (gt0CG P)) mulr1 -natrM.
-  move: ub_Pe; rewrite distrC => /(ler_trans (ler_sub_dist _ _)).
-  rewrite normrX !normr_nat ler_subl_addr -ler_subl_addl; apply: ltr_le_trans.
-  rewrite ltr_subr_addl.
-  apply: ler_lt_trans (_ : (p ^ q.-1)%:R ^+ 2 < _); last first.
+    rewrite mulrnA -second_orthogonality_relation ?groupX // big_mkcond.
+    by apply: ler_sum => i _; rewrite normCK; case: ifP; rewrite ?mul_conjC_ge0.
+  have sqrtP_gt0: 0 < sqrtC #|P|%:R by rewrite sqrtC_gt0 ?gt0CG.
+  have{De ub_linH'}: `|(#|P| * e)%:R - #|U|%:R ^+ 2| <= #|P|%:R * sqrtC #|P|%:R.
+    rewrite natrM De mulrCA mulrA divfK ?neq0CG // (bigID linH) /= sum_linH.
+    rewrite mulrDr addrC addKr mulrC mulr_suml /chi_s2.
+    rewrite (ler_trans (ler_norm_sum _ _ _)) // -ler_pdivr_mulr // mulr_suml.
+    apply: ler_trans (ub_linH' 1%N isT); apply: ler_sum => i linH'i.
+    rewrite ler_pdivr_mulr // degU ?divfK ?neq0CG //.
+    rewrite normrM -normrX norm_conjC ler_wpmul2l ?normr_ge0 //.
+    rewrite -ler_sqr ?qualifE ?normr_ge0 ?(@ltrW _ 0) // sqrtCK. 
+    apply: ler_trans (ub_linH' 2 isT); rewrite (bigD1 i) ?ler_paddr //=.
+    by apply: sumr_ge0 => i1 _; rewrite exprn_ge0 ?normr_ge0.
+  rewrite natrM real_ler_distl ?rpredB ?rpredM ?rpred_nat // => /andP[lb_Pe _]. 
+  rewrite -ltC_nat -(ltr_pmul2l (gt0CG P)) {lb_Pe}(ltr_le_trans _ lb_Pe) //.
+  rewrite ltr_subr_addl (@ler_lt_trans _ ((p ^ q.-1)%:R ^+ 2)) //; last first.
     rewrite  -!natrX ltC_nat ltn_sqr oU ltn_divRL ?dvdn_pred_predX //.
-    rewrite mulnC -subn1 mulnBl mul1n -expnS prednK ?prime_gt0 //.
-    by rewrite -!subn1 -(subnKC q_gt4) ltn_sub2l ?(ltn_exp2l 0) // prime_gt1.
-  rewrite -natrX -expnM muln2 -subn1 doubleB -addnn -addnBA ?prime_gt1 // subn2.
-  rewrite addrC -{1}[_%:R]mulr1 -mulrDr expnD natrM -oP ler_wpmul2l ?ler0n //.
-  apply: ler_trans (_ : 3%:R / 2%:R * sqrtC #|P|%:R <= _).
-    rewrite mulrAC ler_pdivl_mulr ?ltr0n // [_ * _]mulrC mulrDr !mulr_natl.
-    rewrite ler_add2r -ler_sqr ?qualifE ?sqrtC_ge0 ?ler0n // sqrtCK oP -natrX.
-    by rewrite leC_nat (@leq_trans (p ^ 2)) ?leq_exp2l ?leq_exp2r ?prime_gt1.
-  rewrite -ler_sqr ?rpredM ?rpredV ?qualifE ?sqrtC_ge0 ?ler0n // exprMn sqrtCK.
-  apply: ler_trans (_ : (3 * #|P|)%:R <= _).
-    by rewrite natrM ler_wpmul2r ?ler0n // -!CratrE; compute.
-  rewrite -natrX leC_nat oP -expnM -subn2 muln2 doubleB -addnn.
-  rewrite -{2}(subnKC q_gt4) -addnA expnS.
-  apply: leq_mul; first by rewrite odd_geq ?prime_gt1.
-  by rewrite leq_exp2l ?prime_gt1 ?leq_addl.
+    rewrite -(subnKC qgt1) /= -!subn1 mulnBr muln1 -expnSr.
+    by rewrite ltn_sub2l ?(ltn_exp2l 0) // prime_gt1.
+  rewrite -mulrDr -natrX -expnM muln2 -subn1 doubleB -addnn -addnBA // subn2.
+  rewrite expnD natrM -oP ler_wpmul2l ?ler0n //.
+  apply: ler_trans (_ : 2%:R * sqrtC #|P|%:R <= _).
+    rewrite mulrDl mul1r ler_add2l -(@expr_ge1 _ 2) ?(ltrW sqrtP_gt0) // sqrtCK.
+    by rewrite oP natrX expr_ge1 ?ler0n ?ler1n.
+  rewrite -ler_sqr ?rpredM ?rpred_nat ?qualifE ?(ltrW sqrtP_gt0) //.
+  rewrite exprMn sqrtCK -!natrX -natrM leC_nat -expnM muln2 oP.
+  rewrite -(subnKC q_gt4) doubleS (expnS p _.*2.+1) -(subnKC pgt4) leq_mul //.
+  by rewrite ?leq_exp2l // !doubleS !ltnS -addnn leq_addl.
 have q3: q = 3 by apply/eqP; rewrite eqn_leq qgt2 andbT -ltnS -(odd_ltn 5).
 rewrite (cardsD1 1) E_1 ltnS card_gt0; apply/set0Pn => /=.
-pose f' (c : 'F_p) := 'X * ('X - 2%:R%:P) * ('X - c%:P) + ('X - 1).
-pose f c := map_poly (in_alg F) (f' c).
-have /= Hf0 c : ~~ root (f' c) 0 by rewrite /root !hornerE oppr_eq0 oner_eq0.
-have /= Hf2 c : ~~ root (f' c) 2%:R.
-  by rewrite /root !{1}(hornerE, subrr) /= addrK oner_neq0.
-have /= Hf_root a b d : root (f a) d -> root (f b) d -> a = b.
-  move => Hfa Hfb.
-  have Hd_neq0 : d != 0.
-    apply: contraNneq (Hf0 a).
-    by rewrite -(fmorph_root [rmorphism of in_alg F]) rmorph0 => <-.
-  have Hd_neq2: d - 2%:R != 0.
-    apply: contra (Hf2 a).
-    rewrite subr_eq0 -(fmorph_root [rmorphism of in_alg F]).
-    by rewrite rmorphMn rmorph1 => /eqP <-.
-  move: Hfb Hfa; rewrite /root => /eqP <-.
-  rewrite /f !{1}[map_poly _ _]rmorphD !{1}rmorphM !{1}rmorphB /=.
-  rewrite map_polyX !map_polyC /= -in_algE rmorphMn rmorph1 !hornerE /=.
-  rewrite 2!(can_eq (addrK _)) -!mulrA.
-  rewrite (can_eq (mulKf Hd_neq0)) (can_eq (mulKf Hd_neq2)).
-  rewrite (can_eq (addKr _)) eqr_opp -!in_algE (inj_eq (fmorph_inj _)).
-  by apply/eqP.
-case: (boolP [forall c, exists d, root (f' c) d]).
-  move/forallP=> /(_ _)/existsP/=/fin_all_exists[ch f'ch0].
-  suffices /injF_bij[chinv _ chinvK] : injective ch.
-    by have /idPn[] := f'ch0 (chinv 0); rewrite chinvK Hf0.
-  move=> a b Hab; apply: (Hf_root _ _ (ch a)%:A).
-    by rewrite fmorph_root f'ch0.
-  by rewrite Hab fmorph_root f'ch0.
-rewrite negb_forall => /existsP/=[c]; rewrite negb_exists => /forallP/=Hc.
-have size_fcr : size ('X * ('X - 2%:R%:P) * ('X - c%:P)) = 4.
-  rewrite -mulrA mulrC size_mulX ?mulf_eq0 ?polyXsubC_eq0 //.
-  by rewrite size_mul ?polyXsubC_eq0 // !size_XsubC.
-have size_fc : size (f' c) = 4.
-  by rewrite size_addl ?size_XsubC size_fcr.
-have fc_monic : f' c \is monic.
-  rewrite monicE lead_coefDl ?size_XsubC ?size_fcr //.
-  by rewrite -monicE !monicMl ?monicXsubC ?monicX.
-have {size_fcr} fc_irr : irreducible_poly (f' c).
-  by apply: cubic_irreducible; first rewrite size_fc.
-suff /existsP [a Ha] : [exists a, root (f c) a].
-  have fc_over1 : f c \is a polyOver 1%AS.
-    by apply/polyOverP => i; rewrite coef_map /= memvZ // mem1v.
-  have /eqP fc_min : minPoly 1 a == f c.
-    rewrite -eqp_monic ?monic_minPoly ?monic_map //.
-    have := minPoly_dvdp fc_over1 Ha.
-    have := size_minPoly 1 a.
-    suff [r <-] : {r | map_poly (in_alg F) r = minPoly 1 a}.
-      rewrite size_map_poly dvdp_map eqp_map => Hsize.
-      by apply: fc_irr; rewrite Hsize.
-    set p_a := minPoly 1 a; rewrite -[p_a]coefK.
-    have rP i: {b | p_a`_i = b%:A}.
-      exact/sig_eqW/vlineP/(polyOverP (minPolyOver 1 a)).
-    exists (\poly_(i < size p_a) sval (rP i)); apply/polyP=> i.
-    by rewrite coef_map !coef_poly; case: (rP i); case: ifP; rewrite ?raddf0.
-  have Hgalois := finField_galois (sub1v {:galF}).
-  have card_gal : #|'Gal({:galF} / 1)| = 3.
-    by rewrite -(galois_dim Hgalois) dimv1 divn1 dimFpq.
-  have fc_factor : f c = \prod_(x in 'Gal({:galF} / 1)) ('X - (x a)%:P).
-    rewrite -fc_min.
-    have : size (minPoly 1 a) = (\dim_(1%AS : {vspace F}) {:galF}).+1.
-      by rewrite fc_min size_map_poly size_fc dimv1 divn1 dimFpq q3.
-    have/galois_factors [_] := Hgalois.
-    case/(_ _ (memvf a)) => r [Hr /map_uniq Hr_uniq ->].
-    rewrite big_map size_prod_XsubC big_uniq //=.
-    case => size_r.
-    move/card_uniqP: Hr_uniq; rewrite size_r (galois_dim Hgalois) => card_r.
-    apply: eq_bigl.
-    by apply/(subset_cardP card_r).
-  exists a; rewrite !inE; apply/and3P; split.
-  - apply: contraTneq Ha => ->.
-    by rewrite -[1]scale1r fmorph_root; apply Hc.
-  - rewrite -eqr_opp; apply/eqP.
-    have -> : -1 = (f c).[in_alg _ 0].
-      by rewrite horner_map !hornerE rmorphN rmorph1.
-    rewrite rmorph0 -mulN1r.
-    have -> : -1 = (-1) ^+ #|'Gal({:galF} / 1)| :> F.
-      by rewrite card_gal -signr_odd expr1.
-    rewrite -prodrN fc_factor horner_prod.
-    by apply: eq_bigr => i _; rewrite !hornerE.
-  - apply/eqP.
-    transitivity (f c).[in_alg _ 2%:R]; last first.
-      by rewrite horner_map !hornerE /= subrr mulr0 mul0r add0r addrK scale1r.
-    rewrite fc_factor horner_prod.
-    by apply: eq_bigr => i _; rewrite rmorphB !rmorphMn !rmorph1 !hornerE.
-suff : ~~ coprimep (f' c) ('X ^+ #|{:F}| - 'X).
-  apply: contraR; rewrite negb_exists => /forallP Hroot.
-  rewrite -(coprimep_map [rmorphism of (in_alg F)]) -gcdp_eqp1 -/(f c).
-  rewrite rmorphB /= map_polyXn map_polyX (finField_genPoly fT).
-  have /dvdp_prod_XsubC [m Hm] := dvdp_gcdr (f c) (\prod_x ('X - x%:P)).
-  rewrite (eqp_trans Hm) // /eqp dvd1p andbT uniq_roots_dvdp //; last first.
-    by rewrite uniq_rootsE mask_uniq // /index_enum /= -enumT enum_uniq.
-  apply/allP => x.
-  rewrite -root_prod_XsubC -(eqp_root Hm) root_gcd.
-  by rewrite -[root (f c) x]negbK Hroot.
-case/irredp_FAdjoin: fc_irr => L dimL [z Hz H1z].
-rewrite -(coprimep_map [rmorphism of in_alg L]).
-rewrite rmorphB /= map_polyXn map_polyX.
-move: (map_poly _ _) Hz => r root_r.
-suffices: ('X^#|{:F}| - 'X).[z] == 0 by apply: contraL => /coprimep_root->.
-rewrite oF q3 !(hornerE, hornerXn) subr_eq0.
-pose fL := FinSplittingFieldType 'F_p (FinFieldExtType L).
-have <-: #|{: fL}%VS| = (p ^ 3)%N by rewrite card_vspace oF_p dimL size_fc.
-by rewrite card_vspacef (expf_card (z : fL)).
+pose f (c : 'F_p) : {poly 'F_p} := 'X * ('X - 2%:R%:P) * ('X - c%:P) + ('X - 1).
+have fc0 c: (f c).[0] = -1 by rewrite !hornerE.
+have fc2 c: (f c).[2%:R] = 1 by rewrite !(subrr, hornerE) /= addrK.
+have /existsP[c nz_fc]: [exists c, ~~ [exists d, root (f c) d]].
+  have nz_f_0 c: ~~ root (f c) 0 by rewrite /root fc0 oppr_eq0.
+  rewrite -negb_forall; apply/negP=> /forallP/(_ _)/existsP.
+  case/fin_all_exists=> /= rf rfP; suffices inj_rf: injective rf.
+    by have /negP[] := nz_f_0 (invF inj_rf 0); rewrite -{2}[0](f_invF inj_rf).
+  move=> a b eq_rf_ab; apply/oppr_inj/(addrI (rf a)).
+  have: (f a).[rf a] = (f b).[rf a] by rewrite {2}eq_rf_ab !(rootP _).
+  rewrite !(hornerXsubC, hornerD, hornerM) hornerX => /addIr/mulfI-> //.
+  rewrite mulf_neq0 ?subr_eq0 1?(contraTneq _ (rfP a)) // => -> //.
+  by rewrite /root fc2.
+have{nz_fc} /= nz_fc: ~~ root (f c) _ by apply/forallP; rewrite -negb_exists.
+have sz_fc_lhs: size ('X * ('X - 2%:R%:P) * ('X - c%:P)) = 4.
+  by rewrite !(size_mul, =^~ size_poly_eq0) ?size_polyX ?size_XsubC.
+have sz_fc: size (f c) = 4 by rewrite size_addl ?size_XsubC sz_fc_lhs.
+have irr_fc: irreducible_poly (f c) by apply: cubic_irreducible; rewrite ?sz_fc.
+have fc_monic : f c \is monic.
+  rewrite monicE lead_coefDl ?size_XsubC ?sz_fc_lhs // -monicE.
+  by rewrite !monicMl ?monicXsubC ?monicX.
+pose inF := [rmorphism of in_alg F]; pose fcF := map_poly inF (f c).
+have /existsP[a fcFa_0]: [exists a : F, root fcF a].
+  suffices: ~~ coprimep (f c) ('X ^+ #|F| - 'X).
+    apply: contraR; rewrite -(coprimep_map inF) negb_exists => /forallP nz_fcF.
+    rewrite -/fcF rmorphB rmorphX /= map_polyX finField_genPoly.
+    elim/big_rec: _ => [|x gF _ co_fcFg]; first exact: coprimep1.
+    by rewrite coprimep_mulr coprimep_XsubC nz_fcF.
+  have /irredp_FAdjoin[L dimL [z /coprimep_root fcz0 _]] := irr_fc.
+  pose finL := [vectType 'F_p of FinFieldExtType L].
+  set fcL := map_poly _ _ in fcz0; pose inL := [rmorphism of in_alg L].
+  rewrite -(coprimep_map inL) -/fcL rmorphB rmorphX /= map_polyX.
+  apply: contraL (fcz0 _) _; rewrite hornerD hornerN hornerXn hornerX subr_eq0.
+  have ->: #|F| = #|{: finL}%VS| by rewrite oF card_vspace dimL sz_fc oF_p q3.
+  by rewrite card_vspacef (expf_card (z : finL)).
+have Fp_fcF: fcF \is a polyOver Fp.
+  by apply/polyOverP => i; rewrite coef_map /= memvZ ?memv_line.
+pose G := 'Gal(Fpq / Fp).
+have galG: galois Fp Fpq by rewrite finField_galois ?subvf.
+have oG: #|G| = 3 by rewrite -galois_dim // dimv1 dimFpq q3.
+have Fp'a: a \notin Fp.
+  by apply: contraL fcFa_0 => /vlineP[d ->]; rewrite fmorph_root.
+have DfcF: fcF = \prod_(beta in G) ('X - (beta a)%:P).
+  pose Pa : {poly F} := minPoly Fp a.
+  have /eqP szPa: size Pa == 4.
+    rewrite size_minPoly eqSS (sameP eqP (prime_nt_dvdP _ _)) -?elemDeg1 //.
+    by rewrite elementDegreeE dimv1 divn1 -q3 -dimFpq field_dimS ?subvf.
+  have dvd_Pa_fcF: Pa %| fcF by apply: minPoly_dvdp fcFa_0.
+  have{dvd_Pa_fcF} /eqP <-: Pa == fcF.
+    rewrite -eqp_monic ?monic_minPoly ?monic_map // -dvdp_size_eqp //.
+    by rewrite szPa size_map_poly sz_fc.
+  have /galois_factors[_ /(_ a (memvf a))[r [srG /map_uniq Ur defPa]]] := galG.
+  rewrite -/Pa big_map in defPa; rewrite defPa big_uniq //=.
+  apply/eq_bigl/subset_cardP=> //; apply/eqP.
+  by rewrite -eqSS (card_uniqP Ur) oG -szPa defPa size_prod_XsubC.
+exists a; rewrite !inE; apply/and3P; split.
+- by apply: contraNneq Fp'a => ->; apply: mem1v.
+- apply/eqP; transitivity ((- 1) ^+ #|G| * fcF.[inF 0]).
+    rewrite DfcF horner_prod -prodrN; apply: eq_bigr => beta _.
+    by rewrite rmorph0 hornerXsubC add0r opprK.
+  by rewrite -signr_odd mulr_sign oG horner_map fc0 rmorphN1 opprK.
+apply/eqP; transitivity fcF.[inF 2%:R]; last by rewrite horner_map fc2 rmorph1.
+rewrite DfcF horner_prod; apply: eq_bigr => beta _.
+by rewrite hornerXsubC rmorphB !rmorph_nat.
 Qed.
 
-Section AppedixC_C3.
+Section AppendixC3.
+
+Import GroupScope.
 
 Variables y : gT.
 Hypotheses (QP0y : y \in [~: Q, P0]) (nUP0y : P0 :^ y \subset 'N(U)).
@@ -499,56 +450,49 @@ Let Qy : y \in Q. Proof. by rewrite (subsetP sQP0Q). Qed.
 Let t := s ^ y.
 Let P1 := P0 :^ y.
 
-Import GroupScope.
-
-Let BG_appendix_C3_1 x : x \in H ->
-  exists u, exists v, exists s1, 
-  [/\ u \in U, v \in U, s1 \in P0 & x = u * s1 * v].
+(* This is B & G, Appendix C, Lemma C.3, Step 1. *)
+Let splitH x :
+     x \in H ->
+  exists2 u, u \in U & exists2 v, v \in U & exists2 s1, s1 \in P0
+  & x = u * s1 * v.
 Proof.
-case/(mem_sdprod defH) => s' [u' [Hs' Hu' -> _]].
-case: (eqVneq s' 1) => [Hs1|Hs_neq1].
-  exists u', 1, 1.
-  by split => //; rewrite !mulg1 Hs1 mul1g.
-have Hsigma_s' : sigma s' \is a GRing.unit.
-  by rewrite unitfE (morph_injm_eq1 inj_sigma).
-have /(mem_dprod defFU)[]: FinRing.unit F Hsigma_s' \in setT := in_setT _.
-move=> _ [w [/morphimP[u Uu _ ->] Fp_w /(congr1 val)/= Ds' _]].
-have{Fp_w Ds'} [n Ds']: exists n, sigma s' = sigma ((s ^+ n) ^ u).
-  move: Fp_w; rewrite {}Ds' inE => /vlineP[n ->]; exists n.
+case/(mem_sdprod defH) => z [v [Pz Uv -> _]].
+have [-> | nt_z] := eqVneq z 1.
+  by exists 1 => //; exists v => //; exists 1; rewrite ?mulg1.
+have nz_z: sigma z != 0 by rewrite (morph_injm_eq1 inj_sigma).
+have /(mem_dprod defFU)[]: finField_unit nz_z \in setT := in_setT _.
+move=> _ [w [/morphimP[u Uu _ ->] Fp_w /(congr1 val)/= Dz _]].
+have{Fp_w Dz} [n Dz]: exists n, sigma z = sigma ((s ^+ n) ^ u).
+  move: Fp_w; rewrite {}Dz inE => /vlineP[n ->]; exists n.
   by rewrite -{1}(natr_Zp n) scaler_nat mulr_natr conjXg !sigmaE ?in_PU.
-exists u^-1, (u * u'), (s ^+ n); rewrite ?in_group // mulgA -[_ * u]mulgA.
-by split=> //; congr (_ * _); apply: (injmP _ inj_sigma); rewrite ?in_PU.
+exists u^-1; last exists (u * v); rewrite ?groupV ?groupM //.
+exists (s ^+ n); rewrite ?groupX // mulgA; congr (_ * _).
+by apply: (injmP _ inj_sigma); rewrite -?mulgA ?in_PU.
 Qed.
 
-Let BG_appendix_C3_2 s1 s2 u :
+(* This is B & G, Appendix C, Lemma C.3, Step 2. *)
+Let not_splitU s1 s2 u :
   s1 \in P0 -> s2 \in P0 -> u \in U -> s1 * u * s2 \in U ->
   (s1 == 1) && (s2 == 1) || (u == 1) && (s1 * s2 == 1).
 Proof.
-move=> Hs1 Hs2 Hu; have [_ _ _ HPUI] := sdprodP defH.
-have Hs1P := subsetP sP0P _ Hs1.
-have Hs2P := subsetP sP0P _ Hs2.
-case: (boolP (s1 == 1)) => [/eqP ->|Hs1_neq1].
-  by rewrite mul1g groupMl // -in_set1 -[[set 1]]HPUI inE Hs2P => ->.
-case: (boolP (s2 == 1)) => [/eqP ->|Hs2_neq1].
-  rewrite mulg1 groupMr // => Hs1U.
-  move: Hs1_neq1.
-  by rewrite -in_set1 -[[set 1]]HPUI inE Hs1U Hs1P.
-move => Hs1us2.
-suff /eqP Hu1 : u == 1.
-  rewrite Hu1 eqxx /= -in_set1 -[[set 1]]HPUI inE groupM //=.
-  move: Hu1 Hs1us2 ->.
-  by rewrite mulg1.
+move=> P0s1 P0s2 Uu; have [_ _ _ tiPU] := sdprodP defH.
+have [Ps1 Ps2]: s1 \in P /\ s2 \in P by rewrite !(subsetP sP0P).
+have [-> | nt_s1 /=] := altP (s1 =P 1).
+  by rewrite mul1g groupMl // -in_set1 -set1gE -tiPU inE Ps2 => ->.
+have [-> | nt_u /=] := altP (u =P 1).
+  by rewrite mulg1 -in_set1 -set1gE -tiPU inE (groupM Ps1).
+rewrite (conjgC _ u) -mulgA groupMl // => Us12; case/negP: nt_u.
 rewrite -(morph_injm_eq1 inj_sigmaU) // -in_set1 -set1gE.
 have [_ _ _ <-] := dprodP defFU; rewrite !inE mem_morphim //= -/(psi u).
-have : s1 ^ u * s2 == 1.
-  rewrite -in_set1 -[[set 1]]HPUI inE // groupMr // in_PU //=.
-  by rewrite -mulgA groupMl ?groupV.
-rewrite -(morph_injm_eq1 inj_sigma) ?(in_PU, sigmaE) // addr_eq0 => /eqP.
-move/(canRL (mulKf _))->; last by rewrite morph_injm_eq1.
-by rewrite mulrC rpred_div ?rpredN //= -/Fp -sigmaP0 mem_morphim.
+have{Us12}: s1 ^ u * s2 == 1.
+  by rewrite -in_set1 -set1gE -tiPU inE Us12 andbT !in_PU.
+rewrite -(morph_injm_eq1 inj_sigma) ?(in_PU, sigmaE) // addr_eq0.
+move/eqP/(canRL (mulKf _))->; rewrite ?morph_injm_eq1 //.
+by rewrite mulrC rpred_div ?rpredN //= -sigmaP0 mem_morphim.
 Qed.
 
-Let BG_appendix_C3_3 t1 : t1 \in P1^# -> H :&: H :^ t1 = U.
+(* This is B & G, Appendix C, Lemma C.3, Step 3. *)
+Let tiH_P1 t1 : t1 \in P1^# -> H :&: H :^ t1 = U.
 Proof.
 case/setD1P=>[nt_t1 P1t1]; set X := H :&: _.
 have [nsPH sUH _ _ tiPU] := sdprod_context defH.
@@ -602,7 +546,8 @@ apply/commG1P/trivgP; rewrite -tiPU commg_subI // subsetI ?subxx //.
 by rewrite sP0P -eqP10.
 Qed.
   
-Lemma BG_appendix_C3_4 : E = [set (x^-1)%R | x in E].
+(* This is B & G, Appendix C, Lemma C.3, Step 4. *)
+Fact BGappendixC3_Ediv : E = [set (x^-1)%R | x in E].
 Proof.
 have HtP1 : t \in P1 by rewrite memJ_conjg.
 have HUconj r : r \in P1 -> U :^ r = U by move/(subsetP nUP0y)/normP.
@@ -644,14 +589,14 @@ have C5inH m n r u : u \in U -> s ^+ m * u ^ t ^+ r * s ^- n \in H.
   - by apply: (subsetP (mulG_subl U P)).
   - by apply: (subsetP (mulG_subr P U)); apply: HutnU.
   - by apply: (subsetP (mulG_subl U P)).
-case: (@BG_appendix_C3_1 (s ^+ k.-2 * a^-1 ^ t ^+ k * s ^- k.-1))
-    => [|u1 [v1 [s1 [Hu1 Hv1 Hs1 Husv1]]]].
+have [|u1 Hu1 [v1 Hv1 [s1 Hs1 Husv1]]] :=
+         @splitH (s ^+ k.-2 * a^-1 ^ t ^+ k * s ^- k.-1).
   by apply: C5inH; rewrite groupV.
-case: (@BG_appendix_C3_1 (s ^+ k * (a * b^-1) ^ t ^+ k.-1 * s ^- k.-2))
-    => [|u2 [v2 [s2 [Hu2 Hv2 Hs2 Husv2]]]].
-  by apply: C5inH; rewrite groupM ?groupV //.
-case: (@BG_appendix_C3_1 (s ^+ k.-1 * b ^ t ^+ k.-2 * s ^- k))
-  => [|u3 [v3 [s3 [Hu3 Hv3 Hs3 Husv3]]] {C5inH}].
+have [|u2 Hu2 [v2 Hv2 [s2 Hs2 Husv2]]] :=
+         @splitH (s ^+ k * (a * b^-1) ^ t ^+ k.-1 * s ^- k.-2).
+  by apply: C5inH; rewrite groupM ?groupV.
+have [|{C5inH} u3 Hu3 [v3 Hv3 [s3 Hs3 Husv3]]] :=
+         @splitH (s ^+ k.-1 * b ^ t ^+ k.-2 * s ^- k).
   by apply: C5inH.
 exists v1; first done.
 have C6 m n r u ui vi si : s ^+ m * u ^ t ^+ r * s ^- n = ui * si * vi ->
@@ -663,15 +608,12 @@ have C6 m n r u ui vi si : s ^+ m * u ^ t ^+ r * s ^- n = ui * si * vi ->
   have Hsn : s ^- n \in P0 by rewrite groupV; apply: groupX.
   have Hut : u ^ t ^+ r \in U by apply: HutnU.
   have := groupM Hui Hvi; rewrite -Huv.
-  case/(BG_appendix_C3_2 Hsm Hsn Hut)/orP.
+  case/(not_splitU Hsm Hsn Hut)/orP.
     by move: HmVn; rewrite -negb_and; case: (_ && _).
   by rewrite -eq_mulgV1 andbC; case: (s ^+ _ == _) Hmn.
 have ss_neq_1 : s ^+ 2 != 1.
-  rewrite -order_dvdn.
-  apply/prime_nt_dvdP => //; first by rewrite order_eq1.
-  apply/eqP.
-  case: (eqVneq #[s] 2) (order_dvdG Ps) => [->|//].
-  by rewrite oP dvdn2 odd_exp odd_p orbT.
+  rewrite -order_dvdn gtnNdvd // odd_gt2 ?order_gt1 // orderE defP0.
+  by rewrite (oddSg sP0P) // oP odd_exp odd_p orbT.
 have s1neq1 : s1 != 1.
   move/C6: Husv1 => -> //; rewrite ?groupV //.
     by rewrite eq_mulVg1 !(expg1, expgS) mulKg.
@@ -773,13 +715,13 @@ have Hw1 : w1 \in U by rewrite groupM // -[t]expg1 HutNnU.
 have Hw2 : w2 \in U by rewrite groupM // HutNnU.
 have Hw3 : w3 \in U by by rewrite groupM // -[t]expg1 HutnU.
 have : (s1 == 1) && (s1^-1 == 1) || (w3 ^+ p * w3^-1 == 1) && (s1 * s1^-1 == 1).
-  apply: BG_appendix_C3_2; rewrite ?groupV //.
+  apply: not_splitU; rewrite ?groupV //.
   - by rewrite groupM ?groupV ?groupX. 
   have Ht2 : t ^+ 2 \in P1^#.
     by rewrite 2!inE groupX // andbT -conjXg conjg_eq1.
   rewrite [X in X \in _](_ : _ =  s1 * w3 ^+ p * (s1 * w3)^-1);
     last by rewrite !invMg !mulgA.
-  rewrite -(BG_appendix_C3_3 Ht2) inE -{2}Hw {Hw}.
+  rewrite -(tiH_P1 Ht2) inE -{2}Hw {Hw}.
   have /subsetP HUH : U \subset H by rewrite -HPU; apply: mulG_subr.
   move: w1 w2 w3 {C7 Hw1 Hw2 Hw3} (HUH _ Hw1) (HUH _ Hw2) (HUH _ Hw3).
   move => w1 w2 w3 Hw1 Hw2 Hw3.
@@ -795,10 +737,7 @@ move/eqP: Hw.
 rewrite w3_eq1 expg1n mulg1 mulgV conjg_eq1 -eq_mulVg1.
 rewrite -(canF_eq (mulKVg _)) invMg !mulgA (canF_eq (mulgK _)) => /eqP Hw.
 have : (s3^-1 == 1) && (s3 == 1) || (w1^-1 * w1 ^+ p == 1) && (s3^-1 * s3 == 1).
-  apply: BG_appendix_C3_2; rewrite ?groupV //.
-  - by rewrite groupM ?groupV ?groupX.
-  rewrite !mulgA Hw.
-  by rewrite groupM ?groupV ?groupX.
+  by apply: not_splitU; rewrite ?groupV // ?mulgA ?Hw groupM ?groupV ?groupX.
 rewrite eq_invg1 andbb (negbTE s3neq1) /=.
 rewrite -[p]prednK ?prime_gt0 // expgS mulKg.
 case/andP => /(Hwp1 _ Hw1) w1_eq1 _.
@@ -900,14 +839,14 @@ case: (eqVneq (t * t1)^-1 1) => [|Ht1t]; last first.
     rewrite -mem_conjg HUconj; last by apply: groupM => //; apply: mem_imset.
     rewrite conjgE mulgA => Hus1U.
     have : (s1^-1 == 1) && (s1 == 1) || (u == 1) && (s1^-1 * s1 == 1).
-      by apply: BG_appendix_C3_2; rewrite ?groupV.
+      by apply: not_splitU; rewrite ?groupV.
     rewrite (negbTE s1neq1) andbF /=.
     by case/andP => /eqP.
   have Hs1H : s1 \in H.
     by rewrite -HPU (subsetP (mulG_subl _ _)) // (subsetP sP0P).
   have Hs3H : s3 \in H.
     by rewrite -HPU (subsetP (mulG_subl _ _)) // (subsetP sP0P).
-  rewrite -(BG_appendix_C3_3 Ht1tP1) inE; apply/andP; split; last first.
+  rewrite -(tiH_P1 Ht1tP1) inE; apply/andP; split; last first.
     apply: mem_imset.
     by rewrite !groupM ?groupV // -HPU (subsetP (mulG_subr _ _)).
   rewrite -conjgM -Hs1s3 conjgM.
@@ -927,17 +866,18 @@ rewrite mulgA; congr (_ * _); rewrite -!mulgA; congr (_ * (_ * _)).
 by rewrite -Hu1v1 mulKg.
 Qed.
 
-End AppedixC_C3.
+End AppendixC3.
 
-Lemma BG_appendix_C_inner : (p <= q)%N.
+Fact BGappendixC_inner_subproof : (p <= q)%N.
 Proof.
 have [y QP0y nUP0y] := nU_P0QP0.
-by apply: Einv_gt1_le_pq E_gt1; apply: BG_appendix_C3_4 nUP0y.
+by apply: Einv_gt1_le_pq E_gt1; apply: BGappendixC3_Ediv nUP0y.
 Qed.
 
 End ExpandHypotheses.
 
-Theorem BG_appendix_C : (p <= q)%N.
+(* This is B & G, Appendix C, Theorem C. *)
+Theorem prime_dim_normed_finField : (p <= q)%N.
 Proof.
 apply: wlog_neg; rewrite -ltnNge => ltqp.
 have [F sigma /isomP[inj_sigma im_sigma] defP0] := fieldH.
@@ -949,7 +889,7 @@ pose s := invm inj_sigma 1%R.
 have sigma_s: sigma s = 1%R by rewrite invmK ?im_sigma ?inE.
 have{defP0} defP0: <[s]> = P0.
   by rewrite -morphim_cycle /= ?im_sigma ?inE // morphim_invmE.
-exact: BG_appendix_C_inner defP0 sigmaJ.
+exact: BGappendixC_inner_subproof defP0 sigmaJ.
 Qed.
 
 End AppendixC.
