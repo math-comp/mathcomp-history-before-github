@@ -116,7 +116,13 @@ Definition pack :=
                (b : Falgebra.class_of R T) =>
   fun mT Cm IDm Fm & phant_id (Field.class mT) (@Field.Class T
         (@IntegralDomain.Class T (@ComUnitRing.Class T (@ComRing.Class T b
-          Cm) b) IDm) Fm) => Pack (Phant R) (@Class T b Cm IDm Fm) T.
+          Cm) b) IDm) Fm) => Pack phR (@Class T b Cm IDm Fm) T.
+
+Definition pack_eta K :=
+  let cK := Field.class K in let Cm := ComRing.mixin cK in
+  let IDm := IntegralDomain.mixin cK in let Fm := Field.mixin cK in
+  fun (bT : Falgebra.type phR) b & phant_id (Falgebra.class bT) b =>
+  fun cT_ & phant_id (@Class T b) cT_ => @Pack phR T (cT_ Cm IDm Fm) T.
 
 Definition eqType := @Equality.Pack cT xclass xT.
 Definition choiceType := @Choice.Pack cT xclass xT.
@@ -232,8 +238,12 @@ Notation fieldExtType R := (type (Phant R)).
 Notation "[ 'fieldExtType' F 'of' L ]" :=
   (@pack _ (Phant F) L _ _ id _ _ _ _ id)
   (at level 0, format "[ 'fieldExtType'  F  'of'  L ]") : form_scope.
-Notation "[ 'fieldExtType' F 'of' L 'for' K ]" :=
+(*Notation "[ 'fieldExtType' F 'of' L 'for' K ]" :=
   (@FieldExt.pack _ (Phant F) L _ _ id K _ _ _ idfun)
+  (at level 0, format "[ 'fieldExtType'  F  'of'  L  'for'  K ]") : form_scope.
+*)
+Notation "[ 'fieldExtType' F 'of' L 'for' K ]" :=
+  (@pack_eta _ (Phant F) L K _ _ id _ id)
   (at level 0, format "[ 'fieldExtType'  F  'of'  L  'for'  K ]") : form_scope.
 
 Notation "{ 'subfield' L }" := (@aspace_of _ (FalgType _) (Phant L))
@@ -1650,7 +1660,7 @@ by apply: toPinj; rewrite !toL_K modp_mul -!(mulrC r) modp_mul.
 Qed.
 
 (*Coq 8.3 processes this shorter proof correctly, but then crashes on Qed.
-Lemma Xirredp_FAdjoin (F : fieldType) (p : {poly F}) :
+Lemma Xirredp_FAdjoin' (F : fieldType) (p : {poly F}) :
     irreducible_poly p ->
   {L : fieldExtType F & Vector.dim L = (size p).-1 &
     {z | root (map_poly (in_alg L) p) z & <<1; z>>%AS = fullv}}.

@@ -26,411 +26,400 @@ Import FinRing.Theory.
 
 Section FinRing.
 
-Variable (R : finRingType).
+Variable R : finRingType.
 
-Lemma Zpm_is_rmorph : rmorphism (@Zpm R 1%R).
-Proof.
-have H1 : 1 < #[1%R:R]%g by rewrite order_gt1 oner_neq0.
-repeat split; move => a b /=.
-  by rewrite -zmodMgE -zmodVgE morphM ?morphV // mem_Zp.
-by rewrite -natrM -zmodXgE -expg_mod_order -[X in (_ %% X)%N]Zp_cast.
-Qed.
+(* GG: Coq v8.3 fails to unify FinGroup.arg_sort _ with FinRing.sort R here   *)
+(* because it expands the latter rather than FinGroup.arg_sort, which would   *)
+(* expose the FinGroup.sort projection thereby enabling canonical structure   *)
+(* expansion. We should check whether the improved heuristics in Coq 8.4 have *)
+(* resolved this issue.                                                       *)
+Lemma finRing_nontrivial : [set: R] != 1%g.
+Proof. by apply/(@trivgPn R); exists 1; rewrite ?inE ?oner_neq0. Qed.
 
-Canonical Zpm_additive := Additive Zpm_is_rmorph.
-Canonical Zpm_rmorph := RMorphism Zpm_is_rmorph.
-
-Lemma ZpmMn a n : (@Zpm R a n) = a *+ n.
-Proof. by apply: zmodXgE. Qed.
-
-Lemma finRing_nontriv : [set: R]%G != 1%G.
-Proof.
-apply/trivgPn.
-exists 1; first by rewrite inE.
-by apply: oner_neq0.
-Qed.
-
-Lemma finRing_card_gt1 : 1 < #|R|.
-Proof. by rewrite -cardsT (cardG_gt1 [set: R]) finRing_nontriv. Qed.
+(* GG: same issue here. *)
+Lemma finRing_gt1 : 1 < #|R|.
+Proof. by rewrite -cardsT (@cardG_gt1 R) finRing_nontrivial. Qed.
 
 End FinRing.
 
 Section FinField.
 
-Variable (F : finFieldType).
+Variable F : finFieldType.
 
-Definition finChar : nat := pdiv #|F|.
-
-Lemma finChar_prime : prime finChar.
-Proof. by apply: pdiv_prime; apply finRing_card_gt1. Qed.
-
-Lemma finField_abelem : (finChar.-abelem [set: F])%g.
-Proof.
-have : (exponent [set: F])%:R == (0 : F).
-  by rewrite -zmodXgE expg_exponent // inE.
-case/(natf0_char (exponent_gt0 _)) => p Hp.
-have p_prime := charf_prime Hp.
-have HpF : p.-abelem [set: F].
-  apply/abelemP; first done.
-  split => [|x _]; first by apply: zmod_abelian.
-  by rewrite zmodXgE mulrn_char.
-rewrite /finChar -cardsT -(card_abelem_rV HpF (finRing_nontriv F)) card_matrix.
-by rewrite card_Fp // pdiv_pfactor.
-Qed.
-
-Lemma finField_unit_card : #|[set: {unit F}]| = #|F|.-1.
+Lemma card_finField_unit : #|[set: {unit F}]| = #|F|.-1.
 Proof.
 by rewrite -(cardC1 0) cardsT card_sub; apply: eq_card => x; rewrite unitfE.
 Qed.
 
-Lemma finField_expf_card (x : F) : x ^+ #|F| = x.
+Fact finField_unit_subproof x : x != 0 :> F -> x \is a GRing.unit.
+Proof. by rewrite unitfE. Qed.
+
+Definition finField_unit x nz_x :=
+  FinRing.unit F (@finField_unit_subproof x nz_x).
+
+Lemma expf_card x : x ^+ #|F| = x :> F.
 Proof.
-rewrite -cardsT -(prednK (cardG_gt0 [set: F])) cardsT -finField_unit_card.
-apply/eqP.
-rewrite exprS -subr_eq0 -[X in - X]mulr1 -mulrBr mulf_eq0.
-case: (boolP (x == 0)) => [//|].
-rewrite /= subr_eq0 -unitfE => Hx.
-rewrite -[x](SubK [subType of {unit F}] Hx).
-rewrite -val_unitX -val_unit1 (inj_eq (val_inj)).
-by rewrite -order_dvdn order_dvdG ?inE.
+apply/eqP; rewrite -{2}[x]mulr1 -[#|F|]prednK; last by rewrite (cardD1 x).
+rewrite exprS -subr_eq0 -mulrBr mulf_eq0 -implyNb -unitfE subr_eq0.
+apply/implyP=> Ux; rewrite -(val_unitX _ (FinRing.unit F Ux)) -val_unit1.
+by rewrite val_eqE -order_dvdn -card_finField_unit order_dvdG ?inE.
 Qed.
 
-Lemma finField_genPoly : 'X ^+ #|F| - 'X = \prod_x ('X - x%:P) :> {poly F}.
+Lemma finField_genPoly : 'X^#|F| - 'X = \prod_x ('X - x%:P) :> {poly F}.
 Proof.
-apply/eqP.
-rewrite -eqp_monic; last first.
-- by apply: monic_prod => i _; apply: monicXsubC.
-- rewrite monicE lead_coefDl -?monicE ?monicXn //.
-  by rewrite size_opp size_polyXn size_polyX ltnS finRing_card_gt1.
-- rewrite eqp_sym -dvdp_size_eqp.
-    rewrite size_prod_XsubC /index_enum -enumT -cardT /=.
-    rewrite size_addl ?size_polyXn //.
-    by rewrite size_opp size_polyX ltnS finRing_card_gt1.
-  apply: uniq_roots_dvdp; last first.
-    by rewrite uniq_rootsE /index_enum -enumT enum_uniq.
-  apply/allP => x _.
-  by rewrite rootE !(hornerE, hornerXn) finField_expf_card subrr.
+set n := #|F|; set Xn := 'X^n; set NX := - 'X; set pF := Xn + NX.
+have lnNXn: size NX <= n by rewrite size_opp size_polyX finRing_gt1.
+have UeF: uniq_roots (enum F) by rewrite uniq_rootsE enum_uniq.
+rewrite [pF](all_roots_prod_XsubC _ _ UeF) ?size_addl ?size_polyXn -?cardE //.
+  by rewrite enumT lead_coefDl ?size_polyXn // (monicP (monicXn _ _)) scale1r.
+by apply/allP=> x _; rewrite rootE !hornerE hornerXn expf_card subrr.
 Qed.
 
-Lemma finField_order (x : F) : x != 0 -> #[x]%g = finChar.
-Proof. by apply: (abelem_order_p finField_abelem); rewrite inE. Qed.
-
-Lemma finCharP : finChar \in [char F].
+Lemma finCharP : {p | prime p & p \in [char F]}.
 Proof.
-rewrite inE finChar_prime.
-by rewrite -zmodXgE -order_dvdn finField_order ?dvdnn ?oner_neq0.
+pose e := exponent [set: F]; have e_gt0: e > 0 := exponent_gt0 _.
+have: e%:R == 0 :> F by rewrite -zmodXgE expg_exponent // inE.
+by case/natf0_char/sigW=> // p charFp; exists p; rewrite ?(charf_prime charFp).
 Qed.
 
-Lemma finField_pgroup : finChar.-group [set: F].
-Proof. by apply: abelem_pgroup; apply: finField_abelem. Qed.
-
-Lemma finField_card : #|F| = (finChar ^ 'dim [set: F])%N.
+Lemma finField_is_abelem : is_abelem [set: F].
 Proof.
-rewrite (dim_abelemE finField_abelem) ?finRing_nontriv // -cardsT.
-by apply: (card_pgroup finField_pgroup).
+have [p pr_p charFp] := finCharP.
+apply/is_abelemP; exists p; rewrite ?abelemE ?zmod_abelian //=.
+by apply/exponentP=> x _; rewrite zmodXgE mulrn_char.
 Qed.
+
+Lemma card_finCharP p n : #|F| = (p ^ n)%N -> prime p -> p \in [char F].
+Proof.
+move=> oF pr_p; rewrite inE pr_p -order_dvdn.
+rewrite (abelem_order_p finField_is_abelem) ?inE ?oner_neq0 //=.
+have n_gt0: n > 0 by rewrite -(ltn_exp2l _ _ (prime_gt1 pr_p)) -oF finRing_gt1.
+by rewrite cardsT oF -(prednK n_gt0) pdiv_pfactor.
+Qed. 
 
 End FinField.
 
-Section FinFieldExt.
+Section CardVspace.
 
-Variable (F : finFieldType).
-Variable (L : fieldExtType F).
+Variables (F : finFieldType) (T : finType).
 
-Definition finFieldExtMixin : Finite.mixin_of L :=
-  let v2rK := @Vector.InternalTheory.v2rK F L in
-  CanFinMixin (v2rK : @cancel _ (CountType L (CanCountMixin v2rK)) _ _).
+Section Vector.
 
-Definition finFieldExtType : finFieldType := FinRing.Field.Pack
-   (@FinRing.Field.Class L (GRing.Field.class L) finFieldExtMixin) L.
+Variable cvT : Vector.class_of F T.
+Let vT := Vector.Pack (Phant F) cvT T.
 
-Lemma finField_splittingField_axiom : SplittingField.axiom L.
+Lemma card_vspace (V : {vspace vT}) : #|V| = (#|F| ^ \dim V)%N.
 Proof.
-exists ('X ^+ #|finFieldExtType| - 'X).
-  by rewrite rpredB ?rpredX // polyOverX.
-exists (index_enum finFieldExtType).
-  by rewrite (finField_genPoly finFieldExtType) eqpxx.
-apply:subv_anti; rewrite subvf /=.
-apply/subvP => x _.
-apply: seqv_sub_adjoin.
-rewrite /index_enum -enumT.
-apply: (mem_enum finFieldExtType).
+set n := \dim V; pose V2rV v := \row_i coord (vbasis V) i v.
+pose rV2V (rv : 'rV_n) := \sum_i rv 0 i *: (vbasis V)`_i.
+have rV2V_K: cancel rV2V V2rV.
+  have freeV: free (vbasis V) := basis_free (vbasisP V).
+  by move=> rv; apply/rowP=> i; rewrite mxE coord_sum_free.
+rewrite -[n]mul1n -card_matrix -(card_imset _ (can_inj rV2V_K)).
+apply: eq_card => v; apply/idP/imsetP=> [/coord_vbasis-> | [rv _ ->]].
+  by exists (V2rV v) => //; apply: eq_bigr => i _; rewrite mxE.
+by apply: (@rpred_sum vT) => i _; rewrite rpredZ ?vbasis_mem ?memt_nth.
 Qed.
 
-End FinFieldExt.
+Lemma card_vspacef : #|{: vT}%VS| = #|T|.
+Proof. by apply: eq_card => v; rewrite (@memvf _ vT). Qed.
 
-Section PrimeFieldExt.
+End Vector.
 
-Variable (F : finFieldType).
+Variable caT : Falgebra.class_of F T.
+Let aT := Falgebra.Pack (Phant F) caT T.
 
-Definition primeFieldExt_type of phant F : Type := F.
-Notation F0 := (primeFieldExt_type (Phant (GRing.Field.sort F))).
+Lemma card_vspace1 : #|(1%VS : {vspace aT})| = #|F|.
+Proof. by rewrite card_vspace (dimv1 aT). Qed.
 
-Canonical primeFieldExt_eqType := [eqType of F0].
-Canonical primeFieldExt_choiceType := [choiceType of F0].
-Canonical primeFieldExt_finType := [finType of F0].
-Canonical primeFieldExt_zmodType := [zmodType of F0].
-Canonical primeFieldExt_finZmodType := [finZmodType of F0].
-Canonical primeFieldExt_ringType := [ringType of F0].
-Canonical primeFieldExt_finRingType := [finRingType of F0].
-Canonical primeFieldExt_unitRingType := [unitRingType of F0].
-Canonical primeFieldExt_finUnitRingType := [finUnitRingType of F0].
-Canonical primeFieldExt_comRingType := [comRingType of F0].
-Canonical primeFieldExt_finComRingType := [finComRingType of F0].
-Canonical primeFieldExt_comUnitRingType := [comUnitRingType of F0].
-Canonical primeFieldExt_finComUnitRingType := [finComUnitRingType of F0].
-Canonical primeFieldExt_idomainType := [idomainType of F0].
-Canonical primeFieldExt_finIdomainType := [finIdomainType of F0].
-Canonical primeFieldExt_fieldType := [fieldType of F0].
-Canonical primeFieldExt_finFieldType := [finFieldType of F0].
+End CardVspace.
 
-Definition primeFieldExt_scale (a : 'F_(finChar F)) (x : F0) := a%:R * x.
-Local Infix "*Fp:" := primeFieldExt_scale (at level 40).
-
-Lemma primeFieldExt_scaleA a b x : a *Fp: (b *Fp: x) = (a * b) *Fp: x.
+Lemma VectFinMixin (R : finRingType) (vT : vectType R) : Finite.mixin_of vT.
 Proof.
-move: a b.
-rewrite /primeFieldExt_scale pdiv_id ?finChar_prime //.
-rewrite -(finField_order (oner_neq0 _)).
-move => a b.
-by rewrite -!ZpmMn rmorphM mulrA.
+have v2rK := @Vector.InternalTheory.v2rK R vT.
+exact: CanFinMixin (v2rK : @cancel _ (CountType vT (CanCountMixin v2rK)) _ _).
 Qed.
 
-Lemma primeFieldExt_scale1 : left_id 1 primeFieldExt_scale.
-Proof. by move => a; rewrite /primeFieldExt_scale mul1r. Qed.
+(* These instacnces are not exported by default because they conflict with    *)
+(* existing finType instances such as matrix_finType or primeChar_finType.    *)
+Module FinVector.
+Section Interfaces.
 
-Lemma primeFieldExt_scaleDr : right_distributive primeFieldExt_scale +%R.
-Proof. by move => a x y /=; rewrite /primeFieldExt_scale mulrDr. Qed.
+Variable F : finFieldType.
+Implicit Types (vT : vectType F) (aT : FalgType F) (fT : fieldExtType F).
 
-Lemma primeFieldExt_scaleDl v : {morph primeFieldExt_scale^~ v: a b / a + b}.
+Canonical vect_finType vT := FinType vT (VectFinMixin vT).
+Canonical Falg_finType aT := FinType aT (VectFinMixin aT).
+Canonical fieldExt_finType fT := FinType fT (VectFinMixin fT).
+
+Canonical Falg_finRingType aT := [finRingType of aT].
+Canonical fieldExt_finRingType fT := [finRingType of fT].
+Canonical fieldExt_finFieldType fT := [finFieldType of fT].
+
+Lemma finField_splittingField_axiom fT : SplittingField.axiom fT.
 Proof.
-rewrite /primeFieldExt_scale pdiv_id ?finChar_prime //=.
-rewrite -(finField_order (oner_neq0 _)).
-move => a b /=.
-by rewrite -!ZpmMn -mulrDl -rmorphD.
+exists ('X^#|fT| - 'X); first by rewrite rpredB 1?rpredX ?polyOverX.
+exists (enum fT); first by rewrite enumT finField_genPoly eqpxx.
+by apply/vspaceP=> x; rewrite memvf seqv_sub_adjoin ?mem_enum.
 Qed.
 
-Definition primeFieldExt_lmodMixin :=
-  LmodMixin primeFieldExt_scaleA primeFieldExt_scale1
-            primeFieldExt_scaleDr primeFieldExt_scaleDl.
-Canonical primeFieldExt_lmodType :=
-  LmodType 'F_(finChar F) F0 primeFieldExt_lmodMixin.
-Canonical primeFieldExt_finLmodType := [finLmodType 'F_(finChar F) of F0].
+End Interfaces.
+End FinVector.
 
-Lemma primeFieldExt_scaleAl : GRing.Lalgebra.axiom ( *%R : F0 -> _).
-Proof. by move => a x y; rewrite -[a *: (x * y)]/(a%:R * (x * y)) mulrA. Qed.
-Canonical primeFieldExt_LalgType :=
-  LalgType 'F_(finChar F) F0 primeFieldExt_scaleAl.
-Canonical primeFieldExt_finLalgType := [finLalgType 'F_(finChar F) of F0].
+Notation FinFieldExtType := FinVector.fieldExt_finFieldType.
+Notation FinSplittingFieldAxiom := (FinVector.finField_splittingField_axiom _).
+Notation FinSplittingFieldType F L :=
+  (SplittingFieldType F L FinSplittingFieldAxiom).
 
-Lemma primeFieldExt_scaleAr : GRing.Algebra.axiom primeFieldExt_LalgType.
+Section PrimeChar.
+
+Variable p : nat.
+
+Section PrimeCharRing.
+
+Variable R0 : ringType.
+
+Definition PrimeCharType of p \in [char R0] : predArgType := R0.
+
+Hypothesis charRp : p \in [char R0].
+Local Notation R := (PrimeCharType charRp).
+Implicit Types (a b : 'F_p) (x y : R).
+
+Canonical primeChar_eqType := [eqType of R].
+Canonical primeChar_choiceType := [choiceType of R].
+Canonical primeChar_zmodType := [zmodType of R].
+Canonical primeChar_ringType := [ringType of R].
+
+Definition primeChar_scale a x := a%:R * x.
+Local Infix "*p:" := primeChar_scale (at level 40).
+
+Let natrFp n : (inZp n : 'F_p)%:R = n%:R :> R.
 Proof.
-move => a x y.
-rewrite -[a *: (x * y)]/(a%:R * (x * y)).
-by rewrite mulrC -mulrA; congr (_ * _); rewrite mulrC.
-Qed.
-Canonical primeFieldExt_algType := 
-  AlgType 'F_(finChar F) F0 primeFieldExt_scaleAr.
-Canonical primeFieldExt_finAlgType := [finAlgType 'F_(finChar F) of F0].
-Canonical primeFieldExt_unitAlgType := [unitAlgType 'F_(finChar F) of F0].
-Canonical primeFieldExt_finUnitAlgType := [finUnitAlgType 'F_(finChar F) of F0].
-
-Lemma primeFieldExt_vectAxiom :
-  Vector.axiom ('dim [set: F]) primeFieldExt_lmodType.
-Proof.
-have /isog_isom /= [f /isomP [/injmP Hfinj Hfim]] :=
-  isog_abelem_rV (finField_abelem F) (finRing_nontriv F).
-exists [eta f].
-  move => a x y.
-  rewrite -zmodMgE morphM ?inE // zmodMgE.
-  rewrite -[a *: x]/(a%:R * x) mulr_natl.
-  rewrite -zmodXgE morphX ?inE // zmodXgE.
-  by rewrite -scaler_nat natr_Zp.
-suff HrV y : y \in image f [set : F].
-  exists (fun y => iinv (HrV y)) => /= x; last by apply: f_iinv.
-  by apply: in_iinv_f.
-have /= := in_setT y.
-rewrite -Hfim.
-case/morphimP => x _ _ ->.
-by apply: image_f; apply: in_setT.
+rewrite {2}(divn_eq n p) natrD mulrnA (mulrn_char charRp) add0r.
+by rewrite /= (Fp_cast (charf_prime charRp)).
 Qed.
 
-Definition primeFieldExt_vectMixin : Vector.mixin_of primeFieldExt_lmodType :=
-  Vector.Mixin primeFieldExt_vectAxiom.
-Canonical primeFieldExt_vectType :=
-  VectType 'F_(finChar F) F0 primeFieldExt_vectMixin.
-Canonical primeFieldExt_falgType := [FalgType 'F_(finChar F) of F0].
-Canonical primeFieldExt_fieldExtType :=
-  @FieldExt.Pack _ (Phant 'F_(finChar F)) F0
-    (let cF := GRing.Field.class F in
-     @FieldExt.Class _ F0 (Falgebra.class primeFieldExt_falgType) cF cF cF) F0.
+Lemma primeChar_scaleA a b x : a *p: (b *p: x) = (a * b) *p: x.
+Proof. by rewrite /primeChar_scale mulrA -natrM natrFp. Qed.
 
-Canonical primeFieldExt_splittingFieldType :=
-  SplittingFieldType 'F_(finChar F) F0 (finField_splittingField_axiom _).
+Lemma primeChar_scale1 : left_id 1 primeChar_scale.
+Proof. by move=> x; rewrite /primeChar_scale mul1r. Qed.
 
-Lemma primeFieldExt_dimf : \dim {:[vectType _ of F0]} = 'dim [set: F].
+Lemma primeChar_scaleDr : right_distributive primeChar_scale +%R.
+Proof. by move=> a x y /=; rewrite /primeChar_scale mulrDr. Qed.
+
+Lemma primeChar_scaleDl x : {morph primeChar_scale^~ x: a b / a + b}.
+Proof. by move=> a b; rewrite /primeChar_scale natrFp natrD mulrDl. Qed.
+
+Definition primeChar_lmodMixin :=
+  LmodMixin primeChar_scaleA primeChar_scale1
+            primeChar_scaleDr primeChar_scaleDl.
+Canonical primeChar_lmodType := LmodType 'F_p R primeChar_lmodMixin.
+
+Lemma primeChar_scaleAl : GRing.Lalgebra.axiom ( *%R : R -> R -> R).
+Proof. by move=> a x y; apply: mulrA. Qed.
+Canonical primeChar_LalgType := LalgType 'F_p R primeChar_scaleAl.
+
+Lemma primeChar_scaleAr : GRing.Algebra.axiom primeChar_LalgType.
+Proof. by move=> a x y; rewrite ![a *: _]mulr_natl mulrnAr. Qed.
+Canonical primeChar_algType := AlgType 'F_p R primeChar_scaleAr.
+
+End PrimeCharRing.
+
+Local Notation type := @PrimeCharType.
+
+Canonical primeChar_unitRingType (R : unitRingType) charRp :=
+  [unitRingType of type R charRp].
+Canonical primeChar_unitAlgType (R : unitRingType) charRp :=
+  [unitAlgType 'F_p of type R charRp].
+Canonical primeChar_comRingType (R : comRingType) charRp :=
+  [comRingType of type R charRp].
+Canonical primeChar_comUnitRingType (R : comUnitRingType) charRp :=
+  [comUnitRingType of type R charRp].
+Canonical primeChar_idomainType (R : idomainType) charRp :=
+  [idomainType of type R charRp].
+Canonical primeChar_fieldType (F : fieldType) charFp :=
+  [fieldType of type F charFp].
+
+Section FinRing.
+
+Variables (R0 : finRingType) (charRp : p \in [char R0]).
+Local Notation R := (type _ charRp).
+
+Canonical primeChar_finType := [finType of R].
+Canonical primeChar_finZmodType := [finZmodType of R].
+Canonical primeChar_baseGroupType := [baseFinGroupType of R for +%R].
+Canonical primeChar_groupType := [finGroupType of R for +%R].
+Canonical primeChar_finRingType := [finRingType of R].
+
+Let pr_p : prime p. Proof. exact: charf_prime charRp. Qed.
+
+Lemma primeChar_abelem : p.-abelem [set: R].
+Proof.
+rewrite abelemE ?zmod_abelian //=.
+by apply/exponentP=> x _; rewrite zmodXgE mulrn_char.
+Qed.
+
+Lemma primeChar_pgroup : p.-group [set: R].
+Proof. by case/and3P: primeChar_abelem. Qed.
+
+Lemma order_primeChar x : x != 0 :> R -> #[x]%g = p.
+Proof. by apply: (abelem_order_p primeChar_abelem); rewrite inE. Qed.
+
+Let n := logn p #|R|.
+
+Lemma card_primeChar : #|R| = (p ^ n)%N.
+Proof. by rewrite /n -cardsT {1}(card_pgroup primeChar_pgroup). Qed.
+
+Lemma primeChar_vectAxiom : Vector.axiom n (primeChar_lmodType charRp).
+Proof.
+have /isog_isom/=[f /isomP[injf im_f]]: [set: R] \isog [set: 'rV['F_p]_n].
+  have [abelR ntR] := (primeChar_abelem, finRing_nontrivial R0).
+  by rewrite /n -cardsT -(dim_abelemE abelR) ?isog_abelem_rV.
+exists f; last by exists (invm injf) => x; rewrite ?invmE ?invmK ?im_f ?inE.
+move=> a x y; rewrite [a *: _]mulr_natl morphM ?morphX ?inE // zmodXgE.
+by congr (_ + _); rewrite -scaler_nat natr_Zp.
+Qed.
+
+Definition primeChar_vectMixin := Vector.Mixin primeChar_vectAxiom.
+Canonical primeChar_vectType := VectType 'F_p R primeChar_vectMixin.
+
+Lemma primeChar_dimf : \dim {:primeChar_vectType} = n.
 Proof. by rewrite dimvf. Qed.
 
-End PrimeFieldExt.
+End FinRing.
 
-Notation primeFieldExtType F := (primeFieldExt_type (Phant F)).
+Canonical primeChar_finUnitRingType (R : finUnitRingType) charRp :=
+  [finUnitRingType of type R charRp].
+Canonical primeChar_finUnitAlgType (R : finUnitRingType) charRp :=
+  [finUnitAlgType 'F_p of type R charRp].
+Canonical primeChar_FalgType (R : finUnitRingType) charRp :=
+  [FalgType 'F_p of type R charRp].
+Canonical primeChar_finComRingType (R : finComRingType) charRp :=
+  [finComRingType of type R charRp].
+Canonical primeChar_finComUnitRingType (R : finComUnitRingType) charRp :=
+  [finComUnitRingType of type R charRp].
+Canonical primeChar_finIdomainType (R : finIdomainType) charRp :=
+  [finIdomainType of type R charRp].
+
+Section FinField.
+
+Variables (F0 : finFieldType) (charFp : p \in [char F0]).
+Local Notation F := (type _ charFp).
+
+Canonical primeChar_finFieldType := [finFieldType of F].
+(* We need to use the eta-long version of the constructor here as projections *)
+(* of the Canonical fieldType of F cannot be computed syntactically.          *)
+Canonical primeChar_fieldExtType := [fieldExtType 'F_p of F for F0].
+Canonical primeChar_splittingFieldType := FinSplittingFieldType 'F_p F.
+
+End FinField.
+
+End PrimeChar.
 
 Section FinSplittingField.
 
-Variable (F : finFieldType).
-Variable (L : splittingFieldType F).
-Implicit Types (K E : {subfield L}).
+Variable F : finFieldType.
+Import FinVector.
 
-Lemma finField_memv1_subproof (a : L) : (a \in 1%VS) = (a ^+ #|F| == a).
+Section FinGalois.
+
+Variable L : splittingFieldType F.
+Implicit Types (a b : F) (x y : L) (K E : {subfield L}).
+
+Let galL K : galois K {:L}.
 Proof.
-apply/vlineP/eqP.
-  move => [k ->].
-  by rewrite -[k%:A]/(in_alg L k) -rmorphX finField_expf_card.
-move => Ha.
-have : root (map_poly (in_alg L) ('X ^+ #|F| - 'X)) a.
-  rewrite rmorphB /= map_polyXn map_polyX.
-  by rewrite rootE !(hornerE, hornerXn) Ha subrr.
-have -> : map_poly (in_alg L) ('X ^+ #|F| - 'X) =
-          \prod_(c <- [seq b%:A | b <- index_enum F]) ('X - c%:P).
-  rewrite finField_genPoly rmorph_prod big_map.
-  apply: eq_bigr => b _.
-  by rewrite rmorphB /= map_polyX map_polyC.
-rewrite root_prod_XsubC.
-case/mapP => k _ Hk.
-by exists k.
+without loss {K} ->: K / K = 1%AS.
+  by move=> IH; apply: galoisS (IH _ (erefl _)); rewrite sub1v subvf.
+apply/splitting_galoisField; pose finL := FinFieldExtType L.
+exists ('X^#|finL| - 'X); split; first by rewrite rpredB 1?rpredX ?polyOverX.
+  exists (enum finL); first by rewrite enumT (finField_genPoly finL) eqpxx.
+  by apply/vspaceP=> x; rewrite memvf seqv_sub_adjoin ?(mem_enum finL).
+rewrite (finField_genPoly finL) -big_filter.
+by rewrite separable_prod_XsubC ?(enum_uniq finL).
 Qed.
 
-Lemma finField_galois_subproof K : galois K {:L}.
+Fact galLgen K :
+  {alpha | generator 'Gal({:L} / K) alpha & forall x, alpha x = x ^+ #|K| }.
 Proof.
-wlog: K / K = 1%AS.
-  move/(_ _ (refl_equal 1%AS)) => Hgal.
-  apply: (galoisS _ Hgal).
-  by rewrite sub1v subvf.
-move => {K} ->.
-apply/splitting_galoisField.
-exists ('X ^+ #|finFieldExtType L| - 'X); split.
-- by rewrite rpredB ?rpredX // polyOverX.
-exists (index_enum (finFieldExtType L)).
-  by rewrite (finField_genPoly (finFieldExtType L)) eqpxx.
-apply: subv_anti; rewrite subvf.
-apply/subvP => a _.
-apply: seqv_sub_adjoin.
-rewrite /index_enum -enumT.
-apply: (@mem_enum (finFieldExtType L)).
-rewrite (finField_genPoly (finFieldExtType L)).
-rewrite separable_prod_XsubC /index_enum -enumT.
-apply: (@enum_uniq (finFieldExtType L)).
-Qed.
-
-Lemma finField_galois_generator_subproof K :
-  {x | generator 'Gal({:L} / K) x & 
-       forall a, x a = a ^+ (#|F| ^ \dim K)}.
-Proof.
-wlog: K / K = 1%AS.
-  case/(_ _ (refl_equal 1%AS)) => x.
-  rewrite /generator => /eqP HKEx.
-  rewrite dimv1 expn1 => Hx.
-  exists (x ^+ \dim K)%g; last first.
-    move => a.
-    elim: (\dim K) => [|n IH]; first by rewrite expg0 gal_id expn0 expr1.
-    by rewrite expgSr galM ?memvf // comp_lfunE IH Hx ?rpredX // expnSr exprM.
-  rewrite (eq_subG_cyclic (cycle_cyclic x)) ?cycleX //=; last first.
-    by rewrite -HKEx galS // sub1v.
-  rewrite [X in _ == X]orderXgcd /order -HKEx.
-  rewrite -{1}(galois_dim (finField_galois_subproof _)).
-  rewrite -{1 2}(galois_dim (finField_galois_subproof _)).
-  by rewrite !dimv1 !divn1 (gcdn_idPr _) // field_dimS // subvf.
-move ->; rewrite dimv1 expn1.
-pose f (a : L) := a ^+ #|F|.
-have HfZ k : f (k%:A) = k%:A.
-  by apply/eqP; rewrite -finField_memv1_subproof memvZ // memv_line.
-have Hf_rmorph : rmorphism f.
-  have := finCharP F.
-  rewrite -(charLF L) => Hchar.
-  rewrite /f finField_card.
-  elim: ('dim _) => [|n IH]; first by rewrite expn0.
-  rewrite expnSr.
-  repeat split; last by rewrite expr1n.
-    move => a b /=.
-    rewrite !exprM [(_ - _) ^+ _](rmorphB (RMorphism IH)).
-    by rewrite [(_ - _) ^+ _](rmorphB [rmorphism of Frobenius_aut Hchar]).
-  move => a b /=.
-  by rewrite exprMn.
-have Hf_linear : linear f.
-  move => k a b; rewrite -mulr_algl.
-  rewrite [f _](rmorphD (RMorphism Hf_rmorph)) (rmorphM (RMorphism Hf_rmorph)).
-  by rewrite /= HfZ mulr_algl.
-have /kAut_gal [x Hx Hfx] : linfun (Linear Hf_linear) \is a kAut 1 {:L}.
-  rewrite kAutE; apply/andP; split; last first.
-    by apply/subvP => _ /memv_imgP [a Ha ->]; rewrite lfunE rpredX //.
-  apply/kHomP; split.
-    move => _ /vlineP [k ->].
-    by rewrite lfunE /= HfZ.
-  move => a b _ _ /=.
-  rewrite !(lfunE (Linear Hf_linear)) /=.
-  by rewrite [f _](rmorphM (RMorphism Hf_rmorph)).
-exists x; last by move => a; rewrite -Hfx ?memvf // lfunE.
-apply/eqP.
-suff <- : fixedField [set x] = 1%AS by rewrite -[<[x]>]gal_generated.
-apply/vspaceP => a.
-apply/fixedFieldP/idP.
-  case => HaE /(_ _ (set11 x)).
-  by rewrite -Hfx // lfunE finField_memv1_subproof /= /f => ->.
-case/vlineP => k ->; split => [|_ /set1P ->]; first by rewrite memvZ // mem1v.
-by rewrite -Hfx ?memvZ ?mem1v // lfunE /= HfZ.
+without loss{K} ->: K / K = 1%AS; last rewrite card_vspace dimv1 expn1.
+  rewrite /generator => /(_ _ (erefl _))[alpha /eqP defGalL].
+  rewrite !card_vspace dimv1 expn1 => Dalpha.
+  exists (alpha ^+ \dim K)%g => [|x]; last first.
+    elim: (\dim K) => [|n IHn]; first by rewrite gal_id.
+    by rewrite expgSr galM ?memvf // comp_lfunE IHn Dalpha expnSr exprM.
+  rewrite (eq_subG_cyclic (cycle_cyclic alpha)) ?cycleX //=; last first.
+    by rewrite -defGalL galS ?sub1v.
+  rewrite eq_sym -orderE orderXdiv orderE -defGalL -{1}(galois_dim (galL 1)).
+    by rewrite dimv1 divn1 galois_dim.
+  by rewrite dimv1 divn1 field_dimS // subvf.
+pose f x := x ^+ #|F|.
+have idfP x: reflect (f x = x) (x \in 1%VS).
+  rewrite /f; apply: (iffP (vlineP _ _)) => [[a ->] | xFx].
+    by rewrite -in_algE -rmorphX expf_card.
+  pose q := map_poly (in_alg L) ('X^#|F| - 'X).
+  have: root q x.
+    rewrite /q rmorphB /= map_polyXn map_polyX.
+    by rewrite rootE !(hornerE, hornerXn) xFx subrr.
+  have{q} ->: q = \prod_(z <- [seq b%:A | b : F]) ('X - z%:P).
+    rewrite /q finField_genPoly rmorph_prod big_map enumT.
+    by apply: eq_bigr => b _; rewrite rmorphB /= map_polyX map_polyC.
+  by rewrite root_prod_XsubC => /mapP[a]; exists a.
+have fM: rmorphism f.
+  rewrite /f; do 2?split=> [x y|]; rewrite ?exprMn ?expr1n //.
+  have [p _ charFp] := finCharP F; rewrite (card_primeChar charFp).
+  elim: (logn _ _) => // n IHn; rewrite expnSr !exprM {}IHn.
+  by rewrite -(charLF L) in charFp; rewrite -Frobenius_autE rmorphB.
+have fZ: linear f.
+  move=> a x y; rewrite -mulr_algl [f _](rmorphD (RMorphism fM)) rmorphM /=.
+  by rewrite (idfP _ _) ?mulr_algl ?memvZ // memv_line.
+have /kAut_gal[alpha galLalpha Dalpha] : linfun (Linear fZ) \is a kAut 1 {:L}.
+  rewrite kAutE andbC {1}subvf; apply/kHomP.
+  split=> [x /idfP fxx | x y _ _]; rewrite !lfunE //=.
+  by rewrite [f _](rmorphM (RMorphism fM)).
+exists alpha => [|a]; last by rewrite -Dalpha ?memvf ?lfunE.
+suffices <-: fixedField [set alpha] = 1%AS by rewrite gal_generated /generator.
+apply/vspaceP => x; apply/fixedFieldP/idfP=> [[Lx alpha_x] | fx_x].
+  by rewrite -{2}(alpha_x alpha) ?in_set1 // -Dalpha ?lfunE.
+by split=> [|_ /set1P->]; rewrite -?Dalpha ?memvf ?lfunE.
 Qed.
 
 Lemma finField_galois K E : (K <= E)%VS -> galois K E.
 Proof.
-move => HKE.
-move/galois_fixedField: (finField_galois_subproof E) <-.
-apply: normal_fixedField_galois; first by apply: finField_galois_subproof.
-  by apply: galS.
-have [x] := finField_galois_generator_subproof 1.
-rewrite /generator => /eqP Hx _.
-apply: sub_abelian_norm; last by apply: galS.
-apply: (abelianS (galS _ (sub1v _))).
-rewrite Hx.
-apply cycle_abelian.
+move=> sKE; have /galois_fixedField <- := galL E.
+apply: normal_fixedField_galois => //; first exact: galS.
+apply: sub_abelian_norm; [apply: (abelianS (galS _ (sub1v _))) | exact: galS].
+by have [alpha /('Gal(_ / _) =P _)-> _] := galLgen 1; apply: cycle_abelian.
 Qed.
 
-Lemma finField_galois_generator K E : (K <= E)%VS ->
-  {x | generator 'Gal(E / K) x & 
-       {in E, forall a, x a = a ^+ (#|F| ^ \dim K)}}.
+Lemma finField_galois_generator K E :
+   (K <= E)%VS ->
+ {alpha | generator 'Gal(E / K) alpha & {in E, forall x, alpha x = x ^+ #|K| }}.
 Proof.
-move => HKE.
-have [x Hx Hxa] := finField_galois_generator_subproof K.
-have HKEL : (K <= E <= fullv)%VS by rewrite HKE subvf.
-have Hnorm : normalField K E.
-  by case/and3P: (finField_galois HKE).
-have Hx_gal : x \in 'Gal({:L} / K).
-  by move: Hx; rewrite /generator => /eqP ->; apply: cycle_id.
-exists (normalField_cast _ x); last first.
-  by move => a HaE /=; rewrite (normalField_cast_eq HKEL).
-move: Hx.
-rewrite /generator -(morphim_cycle (normalField_cast_morphism HKEL Hnorm)) //.
-move/eqP <-.
-rewrite normalField_img //.
-by apply: finField_galois; apply: subvf.
+move=> sKE; have [alpha defGalLK Dalpha] := galLgen K.
+have inKL_E: (K <= E <= {:L})%VS by rewrite sKE subvf.
+have nKE: normalField K E by have/and3P[] := finField_galois sKE.
+have galLKalpha: alpha \in 'Gal({:L} / K).
+  by rewrite (('Gal(_ / _) =P _) defGalLK) cycle_id.
+exists (normalField_cast _ alpha) => [|x Ex]; last first.
+  by rewrite (normalField_cast_eq inKL_E).
+rewrite /generator -(morphim_cycle (normalField_cast_morphism inKL_E nKE)) //.
+by rewrite -((_ =P <[alpha]>) defGalLK) normalField_img.
+Qed.
+
+End FinGalois.
+
+Lemma Fermat's_little_theorem (L : fieldExtType F) (K : {subfield L}) a :
+  (a \in K) = (a ^+ #|K| == a).
+Proof.
+move: K a; wlog [{L}L -> K a]: L / exists galL : splittingFieldType F, L = galL.
+  by pose galL := (FinSplittingFieldType F L) => /(_ galL); apply; exists galL.
+have /galois_fixedField fixLK := finField_galois (subvf K).
+have [alpha defGalLK Dalpha] := finField_galois_generator (subvf K).
+rewrite -Dalpha ?memvf // -{1}fixLK (('Gal(_ / _) =P _) defGalLK).
+rewrite /cycle -gal_generated (galois_fixedField _ _ _) ?fixedField_galois //.
+apply/fixedFieldP/eqP=> [[_ ->] | alpha_x]; rewrite ?set11 //.
+by rewrite memvf; split => // _ /set1P->.
 Qed.
 
 End FinSplittingField.
-
-Lemma fermat's_little_theorem (F : finFieldType) (L : fieldExtType F) 
-  (K : {subfield L}) a : (a \in K) = (a ^+ (#|F| ^ \dim K) == a).
-Proof.
-suff : forall (L : splittingFieldType F) (K : {subfield L}) a,
-  (a \in K) = (a ^+ (#|F| ^ \dim K) == a).
-  pose L0 := SplittingFieldType F _ (finField_splittingField_axiom L).
-  by move/(_ L0 K); apply.
-move => {L K a} L K a.
-have /galois_fixedField Hgalois := finField_galois (subvf K).
-have [x Hx Hxa] := finField_galois_generator (subvf K).
-rewrite -Hxa ?memvf // -{1}Hgalois.
-move: Hx; rewrite /generator; move /eqP ->.
-rewrite /cycle -gal_generated.
-have /galois_fixedField -> := fixedField_galois [set x].
-apply/fixedFieldP/eqP.
-  by case => _; apply; rewrite set11.
-move => Hx; split => [|_ /set1P ->]; last done.
-by rewrite memvf.
-Qed.

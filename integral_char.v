@@ -478,7 +478,40 @@ rewrite (inj_in_eq inj_lambda) // => /eqP eq_z12; rewrite eq_z12 in eq12 *.
 by rewrite (mulIg _ _ _ eq12).
 Qed.
 
-(* This is Isaacs, exercise (2.16). *)
+(* This is Isaacs, Problem (3.7). *)
+Lemma gring_classM_coef_sum_eq gT (G : {group gT}) j1 j2 k g1 g2 g :
+   let a := @gring_classM_coef gT G j1 j2 in let a_k := a k in
+   g1 \in enum_val j1 -> g2 \in enum_val j2 -> g \in enum_val k ->
+   let sum12g := \sum_i 'chi[G]_i g1 * 'chi_i g2 * ('chi_i g)^* / 'chi_i 1%g in
+  a_k%:R = (#|enum_val j1| * #|enum_val j2|)%:R / #|G|%:R * sum12g.
+Proof.
+move=> a /= Kg1 Kg2 Kg; rewrite mulrAC; apply: canRL (mulfK (neq0CG G)) _.
+transitivity (\sum_j (#|G| * a j)%:R *+ (j == k) : algC).
+  by rewrite (bigD1 k) //= eqxx -natrM mulnC big1 ?addr0 // => j /negPf->.
+have defK (j : 'I_#|classes G|) x: x \in enum_val j -> enum_val j = x ^: G.
+  by have /imsetP[y Gy ->] := enum_valP j => /class_transr.
+have Gg: g \in G.
+  by case/imsetP: (enum_valP k) Kg => x Gx -> /imsetP[y Gy ->]; apply: groupJ.
+transitivity (\sum_j \sum_i 'omega_i['K_j] * 'chi_i 1%g * ('chi_i g)^* *+ a j).
+  apply: eq_bigr => j _; have /imsetP[z Gz Dj] := enum_valP j.
+  have Kz: z \in enum_val j by rewrite Dj class_refl.
+  rewrite -(Lagrange (subsetIl G 'C[z])) index_cent1 -mulnA natrM -mulrnAl.
+  have ->: (j == k) = (z \in enum_val k).
+    by rewrite -(inj_eq enum_val_inj); apply/eqP/idP=> [<-|/defK->].
+  rewrite (defK _ g) // -second_orthogonality_relation // mulr_suml.
+  apply: eq_bigr=> i _; rewrite natrM mulrA mulr_natr mulrC mulrA.
+  by rewrite (gring_mode_class_sum_eq i Kz) divfK ?irr1_neq0.
+rewrite exchange_big /= mulr_sumr; apply: eq_bigr => i _.
+transitivity ('omega_i['K_j1 *m 'K_j2] * 'chi_i 1%g * ('chi_i g)^*).
+  rewrite gring_classM_expansion -/a raddf_sum !mulr_suml /=.
+  by apply: eq_bigr => j _; rewrite xcfunZr -!mulrA mulr_natl.
+rewrite !mulrA 2![_ / _]mulrAC (defK _ _ Kg1) (defK _ _ Kg2); congr (_ * _).
+rewrite gring_irr_modeM ?gring_class_sum_central // mulnC natrM.
+rewrite (gring_mode_class_sum_eq i Kg2) !mulrA divfK ?irr1_neq0 //.
+by congr (_ * _); rewrite [_ * _]mulrC (gring_mode_class_sum_eq i Kg1) !mulrA.
+Qed.
+
+(* This is Isaacs, Problem (2.16). *)
 Lemma index_support_dvd_degree gT (G H : {group gT}) chi :
     H \subset G -> chi \is a character -> chi \in 'CF(G, H) ->
     (H :==: 1%g) || abelian G ->

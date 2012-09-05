@@ -317,6 +317,15 @@ symmetry; rewrite (reindex_inj rev_ord_inj); apply: eq_bigr => i _ /=.
 by rewrite -subn1 -subnDA exp1n muln1.
 Qed.
 
+Lemma dvdn_pred_predX n e : (n.-1 %| (n ^ e).-1)%N.
+Proof. by rewrite predn_exp dvdn_mulr. Qed.
+
+Lemma modn_summ I r (P : pred I) F d :
+  \sum_(i <- r | P i) F i %% d = \sum_(i <- r | P i) F i %[mod d].
+Proof.
+by apply/eqP; elim/big_rec2: _ => // i m n _; rewrite modnDml eqn_modDl.
+Qed.
+
 (* Combinatorial characterizations. *)
 
 Section Combinations.

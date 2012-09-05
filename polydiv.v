@@ -297,7 +297,8 @@ Qed.
 Lemma rdvd1p m : rdvdp 1 m.
 Proof. by rewrite /rdvdp rmodp1. Qed.
 
-Lemma Nrdvdp_small (n d : {poly R}) : n != 0 -> size n < size d -> (rdvdp d n) = false.
+Lemma Nrdvdp_small (n d : {poly R}) :
+  n != 0 -> size n < size d -> (rdvdp d n) = false.
 Proof.
 by move=> nn0 hs; rewrite /rdvdp; rewrite (rmodp_small hs); apply: negPf.
 Qed.
@@ -392,7 +393,7 @@ have: GRing.comm d (lead_coef d)%:P -> m * (lead_coef d ^+ 0)%:P = 0 * d + m.
   by rewrite !simp.
 elim: (size m) 0%N 0 {1 4 6}m (leqnn (size m))=>
    [|n IHn] k q r Hr /=.
-  have {Hr} -> : r = 0 by apply/eqP; rewrite -size_poly_eq0; move: Hr; case: size.
+  have{Hr} ->: r = 0 by apply/eqP; rewrite -size_poly_eq0; move: Hr; case: size.
   suff hsd: size (0: {poly R}) < size d by rewrite hsd => /= ?; constructor.
   by rewrite size_polyC eqxx (polySpred Hd).
 case: ltP=> Hlt Heq; first by constructor=> // _; apply/ltP.
@@ -669,7 +670,8 @@ case: (monic_comreg mond)=> Hc Hr; apply: (iffP idP).
 by case=> [qq]; move/eq_rdvdp.
 Qed.
 
-Lemma rdivpK p : rdvdp d p -> (rdivp p d) * d = p * (lead_coef d ^+ rscalp p d)%:P.
+Lemma rdivpK p :
+  rdvdp d p -> (rdivp p d) * d = p * (lead_coef d ^+ rscalp p d)%:P.
 Proof. move=> dvddp; rewrite rdivpK // (eqP mond); exact: commr1. Qed.
 
 End MonicDivisor.
@@ -978,7 +980,7 @@ rewrite modpE Ring.rmodpp; last by red; rewrite mulrC.
 by rewrite scaler0 if_same.
 Qed.
 
-End  WeakTheoryForIDomainPseudoDivision.
+End WeakTheoryForIDomainPseudoDivision.
 
 Hint Resolve lc_expn_scalp_neq0.
 
@@ -1024,7 +1026,6 @@ Lemma divp1 m : m %/ 1 = m.
 Proof.
 by rewrite divpE lead_coefC unitr1 Ring.rdivp1 expr1n invr1 scale1r. 
 Qed.
-
 
 Lemma modp0 p : p %% 0 = p.
 Proof.
@@ -1323,9 +1324,11 @@ have sn0 : c1 * c2 != 0 by rewrite mulf_neq0 // expf_neq0 // lead_coef_eq0.
 by apply: (@eq_dvdp _ (q2 * q1) _ _ sn0); rewrite -scalerA Hq2 scalerAr Hq1 mulrA.
 Qed.
 
-Lemma dvdp_mulIl p q : p %| p * q. Proof. by apply: dvdp_mulr; exact: dvdpp. Qed.
+Lemma dvdp_mulIl p q : p %| p * q.
+Proof. by apply: dvdp_mulr; exact: dvdpp. Qed.
 
-Lemma dvdp_mulIr p q : q %| p * q. Proof. by apply: dvdp_mull; exact: dvdpp. Qed.
+Lemma dvdp_mulIr p q : q %| p * q.
+Proof. by apply: dvdp_mull; exact: dvdpp. Qed.
 
 Lemma dvdp_mul2r r p q : r != 0 -> (p * r %| q * r) = (p %| q).
 Proof.
@@ -1377,7 +1380,8 @@ Lemma dvdp_exp_sub p q k l: p != 0 ->
 Proof.
 move=> pn0; case: (leqP k l)=> hkl.
   move:(hkl); rewrite -subn_eq0; move/eqP->; rewrite expr0 dvd1p.
-  apply: dvdp_mull; case: (ltnP 1%N (size p)) => sp; first by rewrite dvdp_Pexp2l.
+  apply: dvdp_mull; case: (ltnP 1%N (size p)) => sp.
+    by rewrite dvdp_Pexp2l.
   move: sp; case esp: (size p) => [|sp].
     by move/eqP: esp; rewrite size_poly_eq0 (negPf pn0).
   rewrite ltnS leqn0; move/eqP=> sp0; move/eqP: esp; rewrite sp0.
@@ -1609,7 +1613,8 @@ Qed.
 
 Lemma eqp_rmod_mod p q : rmodp p q %= modp p q.
 Proof.
-rewrite modpE eqp_sym; case: ifP=> ulcq //; apply: eqp_scale; rewrite invr_eq0 //.
+rewrite modpE eqp_sym; case: ifP => ulcq //.
+apply: eqp_scale; rewrite invr_eq0 //.
 by apply: expf_neq0; apply: contraTneq ulcq => ->; rewrite unitr0.
 Qed.
 
@@ -1895,7 +1900,8 @@ Qed.
 
 Lemma gcdp_modl m n : gcdp (m %% n) n %= gcdp m n.
 Proof.
-apply: eqp_trans (gcdpC _ _) _; apply: eqp_trans (gcdp_modr _ _) _; exact: gcdpC.
+apply: eqp_trans (gcdpC _ _) _; apply: eqp_trans (gcdp_modr _ _) _.
+exact: gcdpC.
 Qed.
 
 Lemma gcdp_def d m n :
@@ -1935,12 +1941,12 @@ Qed.
 
 Lemma coprime1p p : coprimep 1 p.
 Proof.
-rewrite /coprimep -[1%N](size_poly1 R); apply/eqP; apply: eqp_size; exact: gcd1p.
+rewrite /coprimep -[1%N](size_poly1 R); apply/eqP; apply: eqp_size.
+exact: gcd1p.
 Qed.
 
 Lemma coprimep1 p : coprimep p 1.
 Proof. by rewrite coprimep_sym; apply: coprime1p. Qed.
-
 
 Lemma coprimep0 p : coprimep p 0 = (p %= 1).
 Proof. by rewrite /coprimep gcdp0 size_poly_eq1. Qed.
@@ -1956,11 +1962,12 @@ apply: (iffP idP)=> [|h].
   rewrite /coprimep; move/eqP=> hs d dvddp dvddq.
   have dvddg: d %| gcdp p q by rewrite dvdp_gcd dvddp dvddq.
   by apply: (dvdp_eqp1 dvddg); rewrite -size_poly_eq1; apply/eqP.
-by case/andP: (dvdp_gcdlr p q)=> h1 h2; rewrite /coprimep size_poly_eq1; apply: h.
+case/andP: (dvdp_gcdlr p q)=> h1 h2.
+by rewrite /coprimep size_poly_eq1; apply: h.
 Qed.
 
 Lemma coprimepPn p q : p != 0 ->
-  reflect (exists d, (d %| gcdp p q) && ~~(d %= 1))  (~~ coprimep p q).
+  reflect (exists d, (d %| gcdp p q) && ~~ (d %= 1)) (~~ coprimep p q).
 Proof.
 move=> p0; apply: (iffP idP).
   by rewrite -gcdp_eqp1=> ng1; exists (gcdp p q); rewrite dvdpp /=.
@@ -1989,8 +1996,7 @@ case: (ltnP (size p) (size q))=> hpq; first by rewrite modp_small.
 by rewrite gcdpE ltnNge hpq.
 Qed.
 
-Lemma coprimep_modr q p :
-  coprimep q (p %% q) = coprimep q p.
+Lemma coprimep_modr q p : coprimep q (p %% q) = coprimep q p.
 Proof. by rewrite ![coprimep q _]coprimep_sym coprimep_modl. Qed.
 
 Lemma rcoprimep_coprimep  q p : rcoprimep q p = coprimep q p.
@@ -2016,7 +2022,7 @@ Fixpoint egcdp_rec p q k {struct k} : {poly R} * {poly R} :=
 
 Definition egcdp p q :=
   if size q <= size p then egcdp_rec p q (size q)
-    else let e :=  egcdp_rec q p (size p) in (e.2, e.1).
+    else let e := egcdp_rec q p (size p) in (e.2, e.1).
 
 (* No provable egcd0p *)
 Lemma egcdp0 p : egcdp p 0 = (1, 0).
@@ -2072,11 +2078,11 @@ move/ltnW: hp => hp; case: (egcdp_recP pn0 (leqnn (size p)) hp) => h1 h2 h3.
 by split => //; rewrite (eqp_ltrans (gcdpC _ _)) addrC.
 Qed.
 
-Lemma egcdpE p q: forall (e := egcdp p q), (gcdp p q %= e.1 * p + e.2 * q : Prop).
+Lemma egcdpE p q (e := egcdp p q) : gcdp p q %= e.1 * p + e.2 * q.
 Proof.
-case: (eqVneq q 0)=> [-> | qn0] /=.
-   by rewrite gcdp0 egcdp0 mul1r mulr0 addr0.
-case: (eqVneq p 0)=> [p0 | pn0] /=; last by case: (egcdpP pn0 qn0).
+rewrite {}/e; have [-> /= | qn0] := eqVneq q 0.
+  by rewrite gcdp0 egcdp0 mul1r mulr0 addr0.
+have [p0 | pn0] := eqVneq p 0; last by case: (egcdpP pn0 qn0).
 rewrite p0 gcd0p mulr0 add0r /egcdp size_poly0 leqn0 size_poly_eq0 (negPf qn0).
 by rewrite /= mul1r.
 Qed.
@@ -2104,7 +2110,8 @@ Lemma coprimep_root p q x : coprimep p q -> root p x -> q.[x] != 0.
 Proof.
 case/Bezout_coprimepP=> [[u v] euv] px0.
 move/eqpP: euv => [[c1 c2]] /andP /= [c1n0 c2n0 e].
-suff: c1 * (v.[x] * q.[x]) != 0 by rewrite !mulf_eq0 !negb_or c1n0 /=; case/andP.
+suffices: c1 * (v.[x] * q.[x]) != 0.
+  by rewrite !mulf_eq0 !negb_or c1n0 /=; case/andP.
 move/(f_equal (fun t => horner t x)): e; rewrite /= !hornerZ hornerD.
 by rewrite !hornerM (eqP px0) mulr0 add0r hornerC mulr1; move->.
 Qed.
@@ -2128,8 +2135,9 @@ case: (eqVneq m 0) => [-> | mn0].
 case: (eqVneq n 0) => [-> | nn0].
   by rewrite coprimep0; move/eqp_dvdl->; rewrite !mulr0 dvd1p.
 move=> hc; apply/idP/idP.
-  move/Gauss_dvdpl: hc<-;  move=> h; move/(dvdp_mull m): (h); rewrite dvdp_mul2l //.
-  move->; move/(dvdp_mulr n): (h); rewrite dvdp_mul2r // andbT; exact: dvdp_mulr.
+  move/Gauss_dvdpl: hc => <- h; move/(dvdp_mull m): (h); rewrite dvdp_mul2l //.
+  move->; move/(dvdp_mulr n): (h); rewrite dvdp_mul2r // andbT.
+  exact: dvdp_mulr.
 case/andP => dmp dnp; move: (dnp); rewrite dvdp_eq.
 set c2 := _ ^+ _; set q2 := _ %/ _; move/eqP=> e2.
 have := (sym_eq (Gauss_dvdpl q2 hc)); rewrite -e2.
@@ -2143,7 +2151,8 @@ Qed.
 Lemma Gauss_gcdpr p m n : coprimep p m -> gcdp p (m * n) %= gcdp p n.
 Proof.
 move=> co_pm; apply/eqP; rewrite /eqp !dvdp_gcd !dvdp_gcdl /= andbC.
-rewrite dvdp_mull ?dvdp_gcdr // -(@Gauss_dvdpl _ m); first by rewrite mulrC dvdp_gcdr.
+rewrite dvdp_mull ?dvdp_gcdr // -(@Gauss_dvdpl _ m).
+  by rewrite mulrC dvdp_gcdr.
 apply/coprimepP=> d; rewrite dvdp_gcd; case/andP=> hdp _ hdm.
 by move/coprimepP: co_pm; apply.
 Qed.
@@ -2230,7 +2239,7 @@ case: (eqVneq p 0) => [->|pn0]; first by rewrite eqxx.
 case: (eqVneq q 0) => [-> | qn0]; first by rewrite eqxx orbT.
 move: (divp_eq p q); rewrite d0 mul0r add0r.
 move/(f_equal (fun x : {poly R} => size x)).
-by rewrite size_scale ?lc_expn_scalp_neq0 //; move->; rewrite ltn_modp qn0 !orbT.
+by rewrite size_scale ?lc_expn_scalp_neq0 // => ->; rewrite ltn_modp qn0 !orbT.
 Qed.
 
 Lemma dvdp_div_eq0 p q : q %| p -> (p %/ q == 0) = (p == 0).
@@ -2288,9 +2297,9 @@ have: coprimep (m' ^+ k) (n' ^+ k).
   by rewrite nn0 orbT.
 move/coprimepP=> hc hd.
 have /size_poly1P [c cn0 em'] : size m' == 1%N.
-  case: (eqVneq m' 0)=> [m'0 |m'_n0].
-    move: def_m; rewrite m'0 mul0r; move/eqP; rewrite scale_poly_eq0 (negPf mn0).
-    by rewrite (negPf c2n0).
+  case: (eqVneq m' 0) => [m'0 |m'_n0].
+    move/eqP: def_m; rewrite m'0 mul0r scale_poly_eq0.
+    by rewrite (negPf mn0) (negPf c2n0).
   have := (hc _ (dvdpp _) hd); rewrite -size_poly_eq1.
   rewrite polySpred; last by rewrite expf_eq0 negb_and m'_n0 orbT.
   rewrite size_exp eqSS muln_eq0;  move: k_gt0; rewrite lt0n; move/negPf->.
@@ -2404,13 +2413,13 @@ move: (dvdp_leq dn0 xd); rewrite leq_eqVlt sd; case/orP; last first.
 by rewrite -sd dvdp_size_eqp //; move/(eqp_dvdl q); rewrite xq (negPf dq).
 Qed.
 
-
 Lemma dvdp_gdco p q : (gdcop p q) %| q.
 Proof. by case: gdcopP. Qed.
 
 Lemma root_gdco p q x : p != 0 -> root (gdcop q p) x = root p x && ~~(root q x).
 Proof.
-move=> p0 /=; rewrite !root_factor_theorem; apply: size2_dvdp_gdco; rewrite ?p0 //.
+move=> p0 /=; rewrite !root_factor_theorem.
+apply: size2_dvdp_gdco; rewrite ?p0 //.
 by rewrite size_addl size_polyX // size_opp size_polyC ltnS; case: (x != 0).
 Qed.
 
@@ -2891,7 +2900,6 @@ Include CommonIdomain.
 
 Section FieldDivision.
 
-
 Variable F : fieldType.
 
 Implicit Type p q r d : {poly F}.
@@ -3091,7 +3099,9 @@ Lemma divp_addl_mul d q r : d != 0 -> (q * d + r) %/ d = q + r %/ d.
 Proof. by move=> dn0; rewrite divp_add mulpK. Qed.
 
 Lemma divpp d : d != 0 -> d %/ d = 1.
-Proof. by move=> dn0; apply: IdomainUnit.divpp; rewrite unitfE lead_coef_eq0. Qed.
+Proof.
+by move=> dn0; apply: IdomainUnit.divpp; rewrite unitfE lead_coef_eq0.
+Qed.
 
 Lemma leq_trunc_divp d m : size (m %/ d * d) <= size m.
 Proof.
@@ -3243,6 +3253,31 @@ rewrite dvdp_mul ?ihn //; first by rewrite -ltnS (leq_trans sd).
 by rewrite exprS dvdp_mulr // dvdp_gcdr.
 Qed.
 
+Lemma reducible_cubic_root p q :
+  size p <= 4 -> 1 < size q < size p -> q %| p -> {r | root p r}.
+Proof.
+move=> p_le4 /andP[]; rewrite leq_eqVlt eq_sym.
+have [/poly2_root[x qx0] _ _ | _ /= q_gt2 p_gt_q] := size q =P 2.
+  by exists x; rewrite -!dvdp_XsubCl in qx0 *; apply: (dvdp_trans qx0).
+case/dvdpP/sig_eqW=> r def_p; rewrite def_p.
+suffices /poly2_root[x rx0]: size r = 2 by exists x; rewrite rootM rx0.
+have /norP[nz_r nz_q]: ~~ [|| r == 0 | q == 0].
+  by rewrite -mulf_eq0 -def_p -size_poly_gt0 (leq_ltn_trans _ p_gt_q).
+rewrite def_p size_mul // -subn1 leq_subLR ltn_subRL in p_gt_q p_le4.
+by apply/eqP; rewrite -(eqn_add2r (size q)) eqn_leq (leq_trans p_le4).
+Qed.
+
+Lemma cubic_irreducible p :
+  1 < size p <= 4 -> (forall x, ~~ root p x) -> irreducible_poly p.
+Proof.
+move=> /andP[p_gt1 p_le4] root'p; split=> // q sz_q_neq1 q_dv_p.
+have nz_p: p != 0 by rewrite -size_poly_gt0 ltnW.
+have nz_q: q != 0 by apply: contraTneq q_dv_p => ->; rewrite dvd0p.
+have q_gt1: size q > 1 by rewrite ltn_neqAle eq_sym sz_q_neq1 size_poly_gt0.
+rewrite -dvdp_size_eqp // eqn_leq dvdp_leq //= leqNgt; apply/negP=> p_gt_q.
+by have [|x /idPn//] := reducible_cubic_root p_le4 _ q_dv_p; rewrite q_gt1.
+Qed.
+
 Section FieldRingMap.
 
 Variable rR : ringType.
@@ -3287,12 +3322,6 @@ rewrite modpE divpE !map_polyZ !rmorphV ?rmorphX // unitfE.
 by rewrite expf_neq0 // lead_coef_eq0.
 Qed.
 
-Lemma size_map_poly p : size p^f = size p.
-Proof.
-have [-> | nz_p] := eqVneq p 0; first by rewrite rmorph0 !size_poly0.
-by rewrite size_poly_eq // fmorph_eq0 // lead_coef_eq0.
-Qed.
-
 Lemma scalp_map p q : scalp p^f q^f = scalp p q.
 Proof. by rewrite /scalp edivp_map edivp_def. Qed.
 
@@ -3335,6 +3364,9 @@ rewrite gcdpE (gcdpE p^f) !size_map_poly lt_p_q -map_modp.
 case: (eqVneq p 0) => [-> | q_nz]; first by rewrite rmorph0 !gcdp0.
 by rewrite IHm ?(leq_trans lt_p_q) ?ltn_modp.
 Qed.
+
+Lemma coprimep_map p q : coprimep p^f q^f = coprimep p q.
+Proof. by rewrite -!gcdp_eqp1 -eqp_map rmorph1 gcdp_map. Qed.
 
 Lemma gdcop_rec_map p q n : (gdcop_rec p q n)^f = (gdcop_rec p^f q^f n).
 Proof.

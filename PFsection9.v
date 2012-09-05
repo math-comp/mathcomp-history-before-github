@@ -1,9 +1,9 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
-Require Import fintype tuple finfun bigop prime ssralg poly finset center.
+Require Import fintype tuple finfun bigop prime binomial ssralg poly finset.
 Require Import fingroup morphism perm automorphism quotient action finalg zmodp.
-Require Import gfunctor gproduct cyclic commutator gseries nilpotent pgroup.
-Require Import sylow hall abelian maximal frobenius.
+Require Import gfunctor gproduct cyclic commutator center gseries nilpotent.
+Require Import pgroup sylow hall abelian maximal frobenius.
 Require Import matrix mxalgebra mxrepresentation mxabelem vector.
 Require Import BGsection1 BGsection3 BGsection7 BGsection15 BGsection16.
 Require Import algC classfun character inertia vcharacter.
@@ -1225,9 +1225,6 @@ rewrite (subsetP sXthetaXH0U') // !andbT inertia_Ind_irr ?gFnormal //.
 by apply/subsetP=> y /setIP[My /inertiaJ/esym/injXtheta->].
 Qed.
 
-Lemma dvdn_pred_predX n e : n.-1 %| (n ^ e).-1.
-Proof. by rewrite binomial.predn_exp dvdn_mulr. Qed.
-
 Import ssrnum Num.Theory.
 
 (* This is Peterfalvi (9.9); we have exported the fact that HU / H0 is a      *)
@@ -1447,7 +1444,7 @@ have [_ -> _] := typeF_context UtypeF.
 by apply/forall_inP=> S /and3P[_ /cyclicS->].
 Qed.
 
-Import ssrint binomial.
+Import ssrint.
 
 (* This is Peterfalvi (9.11) *)
 (* We had to cover a small gap in step (9.11.4) of the proof, which starts by *)
