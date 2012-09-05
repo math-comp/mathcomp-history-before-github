@@ -320,7 +320,10 @@ End PrimeChar.
 Section FinSplittingField.
 
 Variable F : finFieldType.
-Import FinVector.
+
+(* By card_vspace order K = #|K| for any finType structure on L; however we   *)
+(* do not want to impose the FinVector instance here.                         *)
+Let order (L : vectType F) (K : {vspace L}) := (#|F| ^ \dim K)%N.
 
 Section FinGalois.
 
@@ -340,11 +343,11 @@ by rewrite separable_prod_XsubC ?(enum_uniq finL).
 Qed.
 
 Fact galLgen K :
-  {alpha | generator 'Gal({:L} / K) alpha & forall x, alpha x = x ^+ #|K| }.
+  {alpha | generator 'Gal({:L} / K) alpha & forall x, alpha x = x ^+ order K}.
 Proof.
-without loss{K} ->: K / K = 1%AS; last rewrite card_vspace dimv1 expn1.
+without loss{K} ->: K / K = 1%AS; last rewrite /order dimv1 expn1.
   rewrite /generator => /(_ _ (erefl _))[alpha /eqP defGalL].
-  rewrite !card_vspace dimv1 expn1 => Dalpha.
+  rewrite /order dimv1 expn1 => Dalpha.
   exists (alpha ^+ \dim K)%g => [|x]; last first.
     elim: (\dim K) => [|n IHn]; first by rewrite gal_id.
     by rewrite expgSr galM ?memvf // comp_lfunE IHn Dalpha expnSr exprM.
@@ -394,7 +397,8 @@ Qed.
 
 Lemma finField_galois_generator K E :
    (K <= E)%VS ->
- {alpha | generator 'Gal(E / K) alpha & {in E, forall x, alpha x = x ^+ #|K| }}.
+ {alpha | generator 'Gal(E / K) alpha
+        & {in E, forall x, alpha x = x ^+ order K}}.
 Proof.
 move=> sKE; have [alpha defGalLK Dalpha] := galLgen K.
 have inKL_E: (K <= E <= {:L})%VS by rewrite sKE subvf.
@@ -410,7 +414,7 @@ Qed.
 End FinGalois.
 
 Lemma Fermat's_little_theorem (L : fieldExtType F) (K : {subfield L}) a :
-  (a \in K) = (a ^+ #|K| == a).
+  (a \in K) = (a ^+ order K == a).
 Proof.
 move: K a; wlog [{L}L -> K a]: L / exists galL : splittingFieldType F, L = galL.
   by pose galL := (FinSplittingFieldType F L) => /(_ galL); apply; exists galL.
