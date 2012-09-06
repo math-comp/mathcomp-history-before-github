@@ -26,7 +26,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(** Euclidian division *)
+(** Euclidean division *)
 
 Definition edivn_rec d :=
   fix loop m q := if m - d is m'.+1 then loop m' q.+1 else (q, m).
@@ -402,6 +402,18 @@ Implicit Arguments dvdn_pmul2l [p m d].
 Lemma dvdn_pmul2r p d m : 0 < p -> (d * p %| m * p) = (d %| m).
 Proof. by move=> p_gt0; rewrite -!(mulnC p) dvdn_pmul2l. Qed.
 Implicit Arguments dvdn_pmul2r [p m d].
+
+Lemma dvdn_divLR p d m : 0 < p -> p %| d -> (d %/ p %| m) = (d %| m * p).
+Proof. by move=> /(@dvdn_pmul2r p _ m) <- /divnK->. Qed.
+
+Lemma dvdn_divRL p d m : p %| m -> (d %| m %/ p) = (d * p %| m).
+Proof.
+have [-> | /(@dvdn_pmul2r p d) <- /divnK-> //] := posnP p.
+by rewrite divn0 muln0 dvdn0.
+Qed.
+
+Lemma dvdn_div d m : d %| m -> m %/ d %| m.
+Proof. by move/divnK=> {2}<-; apply: dvdn_mulr. Qed.
 
 Lemma dvdn_exp2l p m n : m <= n -> p ^ m %| p ^ n.
 Proof. by move/subnK <-; rewrite expnD dvdn_mull. Qed.

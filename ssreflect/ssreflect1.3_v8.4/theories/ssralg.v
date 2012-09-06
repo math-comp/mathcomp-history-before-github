@@ -1261,6 +1261,9 @@ Hint Resolve charf_prime.
 
 Lemma mulrn_char x : x *+ p = 0. Proof. by rewrite -mulr_natl charf0 mul0r. Qed.
 
+Lemma natr_mod_char n : (n %% p)%:R = n%:R :> R.
+Proof. by rewrite {2}(divn_eq n p) natrD mulrnA mulrn_char add0r. Qed.
+
 Lemma dvdn_charf n : (p %| n)%N = (n%:R == 0 :> R).
 Proof.
 apply/idP/eqP=> [/dvdnP[n' ->]|n0]; first by rewrite natrM charf0 mulr0.
@@ -2897,6 +2900,9 @@ case Ux: (x \is a unit); first by rewrite exprSr exprS IHn -invrM // unitrX.
 by rewrite !invr_out ?unitrX_pos ?Ux.
 Qed.
 
+Lemma exprB m n x : n <= m -> x \is a unit -> x ^+ (m - n) = x ^+ m / x ^+ n.
+Proof. by move/subnK=> {2}<- Ux; rewrite exprD mulrK ?unitrX. Qed.
+
 Lemma invr_neq0 x : x != 0 -> x^-1 != 0.
 Proof.
 move=> nx0; case Ux: (x \is a unit); last by rewrite invr_out ?Ux.
@@ -3081,7 +3087,7 @@ Notation xclass := (class : class_of xT).
 
 Definition pack :=
   fun bT b & phant_id (@Algebra.class R phR bT) (b : Algebra.class_of R T) =>
-  fun mT m & phant_id (UnitRing.class mT) (@UnitRing.Class T b m) =>
+  fun mT m & phant_id (UnitRing.mixin (UnitRing.class mT)) m =>
   Pack (Phant R) (@Class T b m) T.
 
 Definition eqType := @Equality.Pack cT xclass xT.
@@ -4547,6 +4553,16 @@ move=> x y; case: (eqVneq x 0) => [-> |nzx]; first by rewrite !(mul0r, invr0).
 case: (eqVneq y 0) => [-> |nzy]; first by rewrite !(mulr0, invr0).
 by rewrite mulrC invrM ?unitfE.
 Qed.
+
+Lemma expfB_cond m n x : (x == 0) + n <= m -> x ^+ (m - n) = x ^+ m / x ^+ n.
+Proof.
+move/subnK=> <-; rewrite addnA addnK !exprD.
+have [-> | nz_x] := altP eqP; first by rewrite !mulr0 !mul0r.
+by rewrite mulfK ?expf_neq0.
+Qed.
+
+Lemma expfB m n x : n < m -> x ^+ (m - n) = x ^+ m / x ^+ n.
+Proof. by move=> lt_n_m; apply: expfB_cond; case: eqP => // _; apply: ltnW. Qed.
 
 Lemma prodf_inv I r (P : pred I) (E : I -> F) :
   \prod_(i <- r | P i) (E i)^-1 = (\prod_(i <- r | P i) E i)^-1.
