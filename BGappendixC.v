@@ -576,7 +576,7 @@ rewrite 2!inE => Ha /andP[_ Hb].
 have Hainvt3 : a^-1 ^ t ^+ 3 \in U by rewrite HutnU ?groupV.
 pose goal v1 := s ^+ 2 = s ^ v1 * s ^ a^-1 ^ t ^+ 3.
 suffices [v1 Hv1U /(congr1 sigma)]: exists2 v1, v1 \in U & goal v1.
-  rewrite 8?{1}sigmaE ?memJ_P // mul1r => /(canLR (addrK _))->.
+  rewrite sigmaX // sigma_s sigmaM ?memJ_P -?psiE // => /(canLR (addrK _))->.
   by rewrite -!im_psi !mem_imset.
 have{Hb} /imsetP[b Hb]: 2%:R - psi a \in psi @: U by rewrite im_psi.
 move/(canRL (subrK _))/esym; rewrite addrC => Hab.
