@@ -92,11 +92,12 @@ move/sub_cfker_constt_Ind_irr/(_ (subxx _)) => <- //; last exact: normal_norm.
 by rewrite subGcfker.
 Qed.
 
+
 (* This is Peterfalvi (12.2a), first part *)
 Lemma PF_12_2a chi : chi \in calS ->
   [/\ chi = \sum_(i in S_ chi) 'chi_i,
       constant [seq 'chi_i 1%g | i in S_ chi] &
-      {in S_ chi, forall i, 'chi_i \in 'CF(L, 'A(L) :|: 1%G)}].
+      {in S_ chi, forall i, 'chi_i \in 'CF(L, 1%g |: 'A(L))}].
 Proof.
 move=> calS_chi; case/seqIndC1P: (calS_chi) => t kert Dchi.
 have nHL : H <| L by exact: gFnormal.
@@ -130,12 +131,12 @@ have lichi : constant [seq 'chi_i 1%g | i in  S_ chi].
   move: Spsi; rewrite mem_enum inE Dchi => psi_irr; move: (psi_irr).
   rewrite constt_Ind_constt_Res; move/(inertia_Ind_invE nHL)<-; rewrite Ichi1 //. 
   by rewrite constt_Ind_constt_Res constt_inertia_Ind_inv -?constt_Ind_constt_Res.
-suff CF_S : {in S_ chi, forall i : Iirr L, 'chi_i \in 'CF(L, 'A(L) :|: 1%G )} by [].
+suff CF_S : {in S_ chi, forall i : Iirr L, 'chi_i \in 'CF(L, 1%g |: 'A(L))} by [].
   move=> j Schi_j /=; apply/cfun_onP => y nA1y.
   case: (boolP (y \in L)) => [Ly | ?]; last by rewrite cfun0.
   have CHy1 : 'C_H[y] = 1%g.
     move: nA1y; rewrite /FTsupport Ltype /= derg0 inE negb_or.
-    rewrite /FTsupport1 /FTcore (eqP Ltype) /= in_set1; case/andP=> hy ny1.
+    rewrite /FTsupport1 /FTcore (eqP Ltype) /= in_set1; case/andP=> ny1 hy.
     apply/trivgP; apply/subsetP=> z hz; rewrite in_set1.
     apply: contraLR hz => zn1; case: (boolP (z \in H)) => //= Hz; last first.
       by rewrite inE (negPf Hz).
@@ -154,11 +155,10 @@ Lemma tau_isometry  : {in 'Z[calI, L^#], isometry tau, to 'Z[irr G, G^#]}.
 Proof.
 apply: (sub_iso_to _ _ (Dade_Zisometry _)) => //.
 have /subsetD1P[_ /setU1K <-] := FTsupp0_sub L.
-move=> phi; rewrite zcharD1E FTsupp0_type1 // => /andP[S_phi phi1nz].
+move=> phi; rewrite FTsupp0_type1 // zcharD1E => /andP[S_phi /= phi1nz].
 rewrite zcharD1 {}phi1nz andbT setUC.
 apply: zchar_trans_on phi S_phi => ? /imageP[i /S_calSP[j calSj Sj_i] ->].
-rewrite zchar_split irr_vchar /=.
-by have [_ _ ->] := PF_12_2a calSj.
+by rewrite zchar_split irr_vchar /= setUC; have [_ _ ->] := PF_12_2a calSj.
 Qed.
 
 Lemma mem_flatten_im_in (F : finType)(T : eqType)(f : F -> seq T) (P : pred F) (x : T) :
@@ -267,7 +267,7 @@ split => //.
   rewrite zcharD1E FTsupp0_type1 // => /andP[S_phi phi1nz].
   rewrite zcharD1 {}phi1nz andbT setUC.
   apply: zchar_trans_on phi S_phi => psi calS_psi.
-  rewrite zchar_split (seqInd_vcharW calS_psi) /=.
+  rewrite zchar_split (seqInd_vcharW calS_psi) /= setUC.
   by have [{3}-> _ hCF] := PF_12_2a calS_psi; rewrite rpred_sum. 
 - move=> phi calS_phi; case/PF_12_2a: (calS_phi)=> {1}-> _ _.
   have tau_Rphi: {subset R phi <= 'Z[irr [set: gT]%G]}.
@@ -357,63 +357,69 @@ case: (X in sval X) @R1 => /= R1; set R1' := sval _ => [[subcoh1 hR1' defR1']].
 case: (X in sval X) @R2 => /= R2; set R2' := sval _ => [[subcoh2 hR2' defR2']].
 *)
 Local Notation scohS_ := FPtype1_calS_subcoherent.
-case: (scohS_ _ _) @R1 => /= R1; set R1' := sval _ => [[subcoh1 hR1' defR1']].
-case: (scohS_ _ _) @R2 => /= R2; set R2' := sval _ => [[subcoh2 hR2' defR2']].
+case: (scohS_ _ _) @R1 => /= R1; set R1' := sval _ => [[subcoh1 hR1' defR1]].
+case: (scohS_ _ _) @R2 => /= R2; set R2' := sval _ => [[subcoh2 hR2' defR2]].
 move=> L12_non_conj chi1 chi2 calS1_chi1 calS2_chi2. 
 apply/orthogonalP=> a b R1a R2b. 
 pose tau1 := FT_Dade0 maxL1; pose tau2 := FT_Dade0 maxL2.
+have [_ _ _ /(_ chi1 calS1_chi1)[Z_R1 /orthonormalP[R1_U oR1] dtau1_chi1] _] := subcoh1.
+have Z1a: a \in dirr G by rewrite dirrE Z_R1 //= oR1 ?eqxx.
 suffices{b R2b}: '[a, tau2 (chi2 - chi2^*%CF)] = 0.
   apply: contra_eq => nz_ab; rewrite /tau2.
   have [_ _ _ /(_ chi2 calS2_chi2)[Z_R2 o1R2 ->] _] := subcoh2.
   suffices [e ->]: {e | a = if e then - b else b}.
     rewrite -scaler_sign cfdotC cfdotZr -cfdotZl scaler_sumr.
     by rewrite cfproj_sum_orthonormal // conjCK signr_eq0.
-  have [_ _ _ /(_ chi1 calS1_chi1)[Z_R1 /orthonormalP[_ oR1] _] _] := subcoh1.
   have [_ oR2] := orthonormalP o1R2.
-  have Z1a: a \in dirr G by rewrite dirrE Z_R1 //= oR1 ?eqxx.
   have Z1b: b \in dirr G by rewrite dirrE Z_R2 //= oR2 ?eqxx.
   move/eqP: nz_ab; rewrite cfdot_dirr //.
   by do 2?[case: eqP => [-> | _]]; [exists true | exists false | ].
+  case: (PF_12_2a maxL1 L1type calS1_chi1) =>  chi1D _ chi1_sup.
+pose S_chi1 := [set i0 in irr_constt chi1].
+have sub_conjC : {in S_chi1, forall i, exists k : Iirr G, 
+  tau1 ('chi_i - ('chi_i)^*%CF) = 'chi_k - ('chi_k)^*%CF}.
+  move=> i => /chi1_sup; rewrite -FTsupp0_type1 // /tau1.
+  by case /(Dade_irr_sub_conjC (FT_Dade0_hyp maxL1)) => k ->; exists k.
+have {sub_conjC}[t S_ch1t et]: 
+  exists2 t, t \in S_chi1 & tau1 ('chi_t - ('chi_t)^*%CF) = a - a^*%CF.
+  suff /exists_inP[i iS_chi1 dota]: [exists (i | i \in S_chi1), 
+    '[tau1 ('chi_i - (('chi_i)^*)%CF), a] > 0].
+    have [k k_Schi1] := sub_conjC _ iS_chi1.
+    suff /orP : (a == 'chi_k) || (a == - ('chi_k)^*%CF).
+      by case=> /eqP ->; last (rewrite rmorphN /= opprK addrC cfConjCK); exists i.
+    move: dota; rewrite {}k_Schi1 -conjC_IirrE cfdotBl.
+    do 2! (rewrite cfdot_dirr // ?mem_dirr //).
+    case: ifP=> h1; (case: ifP=> h2; first by rewrite (eqP h2) (opprK a) eqxx orbT).
+    - case: ('chi_(conjC_Iirr k) == a); last first.
+        by rewrite subr0 oppr_gt0 ltr10.
+      rewrite -opprD real_ltrNge //; last by rewrite rpredN rpredD.
+      by rewrite oppr_le0 addr_ge0 // ?ler01.
+    - rewrite eq_sym; case: (a == 'chi_k) => //=.
+      case: ('chi_(conjC_Iirr k) == a); last by rewrite subr0 ltrr.
+      by rewrite sub0r oppr_gt0 ltr10.
+  have : '[tau1 (chi1 - chi1^*%CF), a] == 1.
+    rewrite /tau1 dtau1_chi1 (big_rem _ R1a) /= cfdotDl cfdot_suml oR1 // eqxx.
+    rewrite big_seq_cond big1 ?addr0 // => i; rewrite andbT => hi.
+    rewrite oR1 ?(mem_rem hi) //; move: hi; rewrite mem_rem_uniq // inE eq_sym. 
+    by case/andP=> /negPf ->.
+  apply: contraLR; rewrite negb_exists => /forallP abs.
+  suff :  '[tau1 (chi1 - (chi1^*)%CF), a] <= 0.
+    by apply: contraL => /eqP->; rewrite ler10.
+  rewrite chi1D rmorph_sum /= -sumrB [tau1 _]linear_sum /= cfdot_suml.
+  rewrite -oppr_ge0 -sumrN sumr_ge0 // => i Si; rewrite oppr_ge0 -/tau1.
+  have := (abs i); rewrite Si /=; case/sub_conjC: Si=> k ->.
+  rewrite -conjC_IirrE cfdotBl; do 2! (rewrite cfdot_dirr // ?mem_dirr //).
+  case: ifP=> h1; case: ifP=> h2; first by move=> _; rewrite addrN lerr.
+  - case: ('chi_(conjC_Iirr k) == a) => _; last by rewrite subr0 oppr_le0 ler01.
+    by rewrite -opprB opprK oppr_le0 addr_ge0 ?ler01.
+  - case eka : ('chi_k == a) => /=; last by rewrite opprK add0r ltr01.
+  - by rewrite opprK addr_gt0 ?ltr01 //.
+  - case: ('chi_k == a) => //=; case: ('chi_(conjC_Iirr k) == a) => //=.
+    + by rewrite addrN lerr.
+    + by rewrite subr0 ltr01.
+    + by rewrite sub0r oppr_le0 ler01.
+    + by rewrite subr0 lerr.
 Admitted.
-
-(* Hypothesis 12.1 *)
-(* Variables (L1 L2 : {group gT}). *)
-
-(* Hypothesis maxL1 : L1 \in 'M. *)
-(* Hypothesis maxL2 : L2 \in 'M. *)
-
-(* Hypothesis L1type : FTtype L1 == 1%N. *)
-(* Hypothesis L2type : FTtype L2 == 1%N. *)
-
-(* Local Notation "` 'L1'" := (gval L1) (at level 0, only parsing) : group_scope. *)
-(* Local Notation "` 'L2'" := (gval L2) (at level 0, only parsing) : group_scope. *)
-(* Local Notation H1 := `L1`_\F%G. *)
-(* Local Notation H2 := `L2`_\F%G. *)
-(* Local Notation "` 'H1'" := `L1`_\F (at level 0) : group_scope. *)
-(* Local Notation "` 'H2'" := `L2`_\F (at level 0) : group_scope. *)
-
-(* Local Notation H1' := H1^`(1)%G. *)
-(* Local Notation "` 'H1''" := `H1^`(1) (at level 0) : group_scope. *)
-
-(* Local Notation H2' := H2^`(1)%G. *)
-(* Local Notation "` 'H2''" := `H2^`(1) (at level 0) : group_scope. *)
-
-(* Hypothesis L12_non_conj : `L2 \notin L1 :^: G. *)
-
-(* Let calS1 := seqIndD H1 L1 H1 1%G. *)
-(* Let calS2 := seqIndD H2 L2 H2 1%G. *)
-
-(* Let tau1 := FT_Dade0 maxL1. *)
-(* Let tau2 := FT_Dade0 maxL2. *)
-
-(* Let R1 := sval (FPtype1_calS_subcoherent maxL1 L1type). *)
-(* Let R2 := sval (FPtype1_calS_subcoherent maxL2 L2type). *)
-
-
-(* Lemma PF_12_3 : {in calS1 & calS2,  *)
-(*   forall chi1 chi2, orthogonal (R1 chi1) (R2 chi2)}. *)
-(* Proof. *)
-(* Admitted. *)
 
 End Twelve3.
 
