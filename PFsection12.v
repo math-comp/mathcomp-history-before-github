@@ -351,8 +351,14 @@ wlog dA1A : L1 L2 maxL1 maxL2 @H1 @H2 L1type L2type @calS1 @calS2 @R1 @R2 /
   have [_ _] := (FT_Dade_support_disjoint maxL1 maxL2 L12_non_conj).
   case=> /hwlog => [dA1A chi1 chi2 Schi1 Schi2 |]; last exact.
   by rewrite orthogonal_sym dA1A // orbit_sym.
+(* GG -- sorry, I don't plan switching ssreflect versions before the proof
+   is over; please refrain from using 1.4-only features, for now
 case: (X in sval X) @R1 => /= R1; set R1' := sval _ => [[subcoh1 hR1' defR1']].
 case: (X in sval X) @R2 => /= R2; set R2' := sval _ => [[subcoh2 hR2' defR2']].
+*)
+Local Notation scohS_ := FPtype1_calS_subcoherent.
+case: (scohS_ _ _) @R1 => /= R1; set R1' := sval _ => [[subcoh1 hR1' defR1']].
+case: (scohS_ _ _) @R2 => /= R2; set R2' := sval _ => [[subcoh2 hR2' defR2']].
 move=> L12_non_conj chi1 chi2 calS1_chi1 calS2_chi2. 
 apply/orthogonalP=> a b R1a R2b. 
 pose tau1 := FT_Dade0 maxL1; pose tau2 := FT_Dade0 maxL2.
