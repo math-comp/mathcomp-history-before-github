@@ -364,11 +364,11 @@ apply/orthogonalP=> a b R1a R2b.
 pose tau1 := FT_Dade0 maxL1; pose tau2 := FT_Dade0 maxL2.
 suffices{b R2b}: '[a, tau2 (chi2 - chi2^*%CF)] = 0.
   apply: contra_eq => nz_ab; rewrite /tau2.
-  have [_ _ _ /(_ chi2)[//|Z_R2 o1R2 ->] _] :=  subcoh2.
+  have [_ _ _ /(_ chi2 calS2_chi2)[Z_R2 o1R2 ->] _] := subcoh2.
   suffices [e ->]: {e | a = if e then - b else b}.
-    rewrite -scaler_sign cfdotZl cfdotC -(eq_bigr _ (fun _ _ => scale1r _)).
-    by rewrite cfproj_sum_orthonormal // conjC1 mulr1 signr_eq0.
-  have [_ _ _ /(_ chi1)[//|Z_R1 /orthonormalP[_ oR1] _] _] := subcoh1.
+    rewrite -scaler_sign cfdotC cfdotZr -cfdotZl scaler_sumr.
+    by rewrite cfproj_sum_orthonormal // conjCK signr_eq0.
+  have [_ _ _ /(_ chi1 calS1_chi1)[Z_R1 /orthonormalP[_ oR1] _] _] := subcoh1.
   have [_ oR2] := orthonormalP o1R2.
   have Z1a: a \in dirr G by rewrite dirrE Z_R1 //= oR1 ?eqxx.
   have Z1b: b \in dirr G by rewrite dirrE Z_R2 //= oR2 ?eqxx.
