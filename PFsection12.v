@@ -362,7 +362,18 @@ case: (scohS_ _ _) @R2 => /= R2; set R2' := sval _ => [[subcoh2 hR2' defR2']].
 move=> L12_non_conj chi1 chi2 calS1_chi1 calS2_chi2. 
 apply/orthogonalP=> a b R1a R2b. 
 pose tau1 := FT_Dade0 maxL1; pose tau2 := FT_Dade0 maxL2.
-suff aux : '[a, tau2 (chi2 - chi2^*%CF)] = 0.
+suffices{b R2b}: '[a, tau2 (chi2 - chi2^*%CF)] = 0.
+  apply: contra_eq => nz_ab; rewrite /tau2.
+  have [_ _ _ /(_ chi2)[//|Z_R2 o1R2 ->] _] :=  subcoh2.
+  suffices [e ->]: {e | a = if e then - b else b}.
+    rewrite -scaler_sign cfdotZl cfdotC -(eq_bigr _ (fun _ _ => scale1r _)).
+    by rewrite cfproj_sum_orthonormal // conjC1 mulr1 signr_eq0.
+  have [_ _ _ /(_ chi1)[//|Z_R1 /orthonormalP[_ oR1] _] _] := subcoh1.
+  have [_ oR2] := orthonormalP o1R2.
+  have Z1a: a \in dirr G by rewrite dirrE Z_R1 //= oR1 ?eqxx.
+  have Z1b: b \in dirr G by rewrite dirrE Z_R2 //= oR2 ?eqxx.
+  move/eqP: nz_ab; rewrite cfdot_dirr //.
+  by do 2?[case: eqP => [-> | _]]; [exists true | exists false | ].
 Admitted.
 
 (* Hypothesis 12.1 *)
