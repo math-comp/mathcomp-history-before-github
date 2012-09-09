@@ -540,7 +540,9 @@ Canonical alg_of_choiceType := [choiceType of {alg F}].
 Canonical alg_of_quotType := [quotType of {alg F}].
 Canonical alg_of_eqQuotType := [eqQuotType eq_algcreal of {alg F}].
 
-Definition to_alg : F -> {alg F} := lift_embed {alg F} cst_algcreal.
+Definition to_alg_def (phF : phant F) : F -> {alg F} :=
+  lift_embed {alg F} cst_algcreal.
+Notation to_alg := (@to_alg_def (Phant F)).
 Notation "x %:RA" := (to_alg x)
   (at level 2, left associativity, format "x %:RA").
 
@@ -1166,9 +1168,9 @@ Qed.
 
 End RealAlg.
 
-Implicit Arguments to_alg [F].
-
-Notation "x %:RA" := (to_alg x) (at level 2, left associativity, format "x %:RA").
+Notation to_alg F := (@to_alg_def _ (Phant F)).
+Notation "x %:RA" := (to_alg _ x)
+  (at level 2, left associativity, format "x %:RA").
 
 Lemma upper_nthrootVP (F : archiFieldType) (x : F) (i : nat) :
    0 < x -> (Num.bound (x ^-1) <= i)%N -> 2%:R ^- i < x.
@@ -1176,8 +1178,6 @@ Proof.
 move=> x_gt0 hx; rewrite -ltf_pinv -?topredE //= ?gtr0E //.
 by rewrite invrK upper_nthrootP.
 Qed.
-
-Implicit Arguments to_alg [[F]].
 
 Notation "{ 'alg'  F }" := (alg_of (Phant F)).
 
@@ -1219,7 +1219,7 @@ Qed.
 
 Definition from_alg_creal := locked (fun x => CReal (from_alg_crealP x)).
 
-Lemma to_alg_crealP (x : creal F) :  creal_axiom (fun i => to_alg (x i)).
+Lemma to_alg_crealP (x : creal F) :  creal_axiom (fun i => to_alg F (x i)).
 Proof.
 exists_big_modulus m (alg F).
   move=> e i j e_gt0 hi hj.
@@ -1230,7 +1230,7 @@ Qed.
 Definition to_alg_creal x := CReal (to_alg_crealP x).
 
 Lemma horner_to_alg_creal p x :
-  ((p ^ to_alg).[to_alg_creal x] == to_alg_creal p.[x])%CR.
+  ((p ^ to_alg F).[to_alg_creal x] == to_alg_creal p.[x])%CR.
 Proof.
 by apply: eq_crealP; exists m0=> * /=; rewrite horner_map subrr normr0.
 Qed.
@@ -1321,17 +1321,17 @@ do 2!apply: eq_to_alg_creal.
 rewrite -!horner_to_alg_creal from_alg_crealK !to_alg_creal0.
 rewrite horner_creal_cst; apply/eq_creal_cst; rewrite -rootE.
 rewrite /annul_from_alg; have [/size_poly1P [c c_neq0 hc]|sp_neq1] := boolP (_ == _).
-  set p := _ ^ _; suff ->: p = (annul_alg x) ^ to_alg by apply: root_annul_alg.
+  set p := _ ^ _; suff ->: p = (annul_alg x) ^ to_alg _ by apply: root_annul_alg.
   congr (_ ^ _); rewrite -{2}[annul_alg x]poly_groundK /=.
   by rewrite !hc lead_coefC map_polyC /= hornerC.
 have [||[u v] /= [hu hv] hpq] := @resultant_in_ideal _
   (poly_ground (annul_alg x)) (annul_pet_alg (annul_alg x) ^ polyC).
 + rewrite ltn_neqAle eq_sym sp_neq1 //= lt0n size_poly_eq0.
   by rewrite poly_ground_eq0 annul_alg_neq0.
-+ rewrite size_map_polyC -(size_map_poly [rmorphism of to_alg]) /=.
++ rewrite size_map_polyC -(size_map_poly [rmorphism of to_alg _]) /=.
   rewrite (root_size_gt1 _ (root_annul_pet_alg _)) //.
   by rewrite map_poly_eq0 annul_pet_alg_neq0 ?annul_alg_neq0.
-move: hpq=> /(f_equal (map_poly (map_poly to_alg))).
+move: hpq=> /(f_equal (map_poly (map_poly (to_alg _)))).
 rewrite map_polyC /= => /(f_equal (eval (pet_alg (annul_alg x))%:P)).
 rewrite {1}/eval hornerC !rmorphD !{1}rmorphM /= /eval /= => ->.
 rewrite -map_poly_comp /=.
@@ -1351,7 +1351,7 @@ Definition from_alg_algcreal x :=
 Definition from_alg : {alg {alg F}} -> {alg F} :=
   locked (\pi%qT \o from_alg_algcreal).
 
-Lemma from_algK : cancel from_alg to_alg.
+Lemma from_algK : cancel from_alg (to_alg _).
 Proof.
 move=> x; unlock from_alg; rewrite -{2}[x]reprK piE -equiv_alg /= cst_pi.
 by apply: eq_to_alg_creal; rewrite from_alg_crealK to_alg_creal_repr.
@@ -1371,8 +1371,12 @@ Canonical alg_of_rcfType := [rcfType of {alg F}].
 End AlgAlgAlg.
 End RealAlg.
 
-Notation "{ 'realalg'  F }" := (RealAlg.alg_of (Phant F)).
-Definition realalg := {realalg rat}.
+Notation "{ 'realclosure'  F }" := (RealAlg.alg_of (Phant F)).
+
+Notation annul_realalg := RealAlg.annul_alg.
+Notation realalg_of F := (@RealAlg.to_alg_def _ (Phant F)).
+Notation "x %:RA" := (realalg_of x)
+  (at level 2, left associativity, format "x %:RA").
 
 Canonical RealAlg.alg_eqType.
 Canonical RealAlg.alg_choiceType.
@@ -1405,3 +1409,67 @@ Canonical RealAlg.alg_of_realDomainType.
 Canonical RealAlg.alg_of_realFieldType.
 Canonical RealAlg.alg_of_archiFieldType.
 Canonical RealAlg.alg_of_rcfType.
+
+Canonical RealAlg.to_alg_is_rmorphism.
+Canonical RealAlg.to_alg_is_additive.
+
+Section RealClosureTheory.
+
+Variable F : archiFieldType.
+Notation R := {realclosure F}.
+
+Local Notation "p ^ f" := (map_poly f p) : ring_scope.
+
+Lemma root_annul_realalg (x : R) : root ((annul_realalg x) ^ realalg_of _) x.
+Proof. exact: RealAlg.root_annul_alg. Qed.
+Hint Resolve root_annul_realalg.
+
+Lemma monic_annul_realalg (x : R) : annul_realalg x \is monic.
+Proof. exact: RealAlg.monic_annul_alg. Qed.
+Hint Resolve monic_annul_realalg.
+
+Lemma annul_realalg_neq0 (x : R) : annul_realalg x != 0%R.
+Proof. exact: RealAlg.annul_alg_neq0. Qed.
+Hint Resolve annul_realalg_neq0.
+
+Lemma realalg_algebraic : integralRange (realalg_of F).
+Proof. by move=> x; exists (annul_realalg x). Qed.
+
+End RealClosureTheory.
+
+Definition realalg := {realclosure rat}.
+Canonical realalg_eqType := [eqType of realalg].
+Canonical realalg_choiceType := [choiceType of realalg].
+Canonical realalg_zmodType := [zmodType of realalg].
+Canonical realalg_ringType := [ringType of realalg].
+Canonical realalg_comRingType := [comRingType of realalg].
+Canonical realalg_unitRingType := [unitRingType of realalg].
+Canonical realalg_comUnitRingType := [comUnitRingType of realalg].
+Canonical realalg_idomainType := [idomainType of realalg].
+Canonical realalg_fieldTypeType := [fieldType of realalg].
+Canonical realalg_numDomainType := [numDomainType of realalg].
+Canonical realalg_numFieldType := [numFieldType of realalg].
+Canonical realalg_realDomainType := [realDomainType of realalg].
+Canonical realalg_realFieldType := [realFieldType of realalg].
+Canonical realalg_archiFieldType := [archiFieldType of realalg].
+Canonical realalg_rcfType := [rcfType of realalg].
+
+Module RatRealAlg.
+Canonical RealAlg.algdom_choiceType.
+Definition realalgdom_CountMixin :=
+   PcanCountMixin (@RealAlg.encode_algdomK [archiFieldType of rat]).
+Canonical realalgdom_countType :=
+   CountType (RealAlg.algdom [archiFieldType of rat]) realalgdom_CountMixin.
+Definition realalg_countType := [countType of realalg].
+End RatRealAlg.
+
+Canonical RatRealAlg.realalg_countType.
+
+(* Require Import countalg. *)
+(* Canonical realalg_countZmodType := [countZmodType of realalg]. *)
+(* Canonical realalg_countRingType := [countRingType of realalg]. *)
+(* Canonical realalg_countComRingType := [countComRingType of realalg]. *)
+(* Canonical realalg_countUnitRingType := [countUnitRingType of realalg]. *)
+(* Canonical realalg_countComUnitRingType := [countComUnitRingType of realalg]. *)
+(* Canonical realalg_countIdomainType := [countIdomainType of realalg]. *)
+(* Canonical realalg_countFieldTypeType := [countFieldType of realalg]. *)

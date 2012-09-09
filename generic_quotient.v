@@ -373,6 +373,9 @@ End SubTypeMixin.
 Definition choiceMixin (T : choiceType) (qT : quotType T) :=
   Eval hnf in [choiceMixin of qT by <:].
 
+Definition countMixin (T : countType) (qT : quotType T) :=
+  Eval hnf in [countMixin of qT by <:].
+
 End QuotSubType.
 
 Notation "[ 'subType' 'of' Q 'by' %/ ]" :=
@@ -384,8 +387,12 @@ Notation "[ 'eqMixin' 'of' Q 'by' <:%/ ]" :=
   (at level 0, format "[ 'eqMixin'  'of'  Q  'by'  <:%/ ]") : form_scope.
 
 Notation "[ 'choiceMixin' 'of' Q 'by' <:%/ ]" := 
-  (@QuotSubType.choiceMixin _ _: Choice.mixin_of (seq (seq Q)))
+  (@QuotSubType.choiceMixin _ _: Choice.mixin_of Q)
   (at level 0, format "[ 'choiceMixin'  'of'  Q  'by'  <:%/ ]") : form_scope.
+
+Notation "[ 'countMixin' 'of' Q 'by' <:%/ ]" := 
+  (@QuotSubType.countMixin _ _: Countable.mixin_of Q)
+  (at level 0, format "[ 'countMixin'  'of'  Q  'by'  <:%/ ]") : form_scope.
 
 (****************************************************)
 (* Definition of a (decidable) equivalence relation *)
@@ -648,6 +655,19 @@ Definition defaultEncModRelClass :=
 Canonical defaultEncModRel := EncModRelPack defaultEncModRelClass.
 
 End DefaultEncodingModuloRel.
+
+
+Section CountEncodingModuloRel.
+
+Variables (D : Type) (C : countType) (CD : C -> D) (DC : D -> C).
+Variables (eD : equiv_rel D) (encD : encModRel CD DC eD).
+Notation eC := (encoded_equiv encD).
+
+Fact eq_quot_countMixin : Countable.mixin_of {eq_quot encD}.
+Proof. exact: CanCountMixin (@EquivQuot.ereprK _ _ _ _ _ _). Qed.
+Canonical eq_quot_countType := CountType {eq_quot encD} eq_quot_countMixin.
+
+End CountEncodingModuloRel.
 
 (* (* begin hide *) *)
 (* Module Error. *)

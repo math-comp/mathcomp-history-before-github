@@ -2,6 +2,7 @@
 Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq choice div fintype.
 Require Import path bigop finset prime ssralg poly polydiv mxpoly.
 Require Import generic_quotient countalg ssrnum ssrint rat intdiv.
+Require complex.
 
 (******************************************************************************)
 (* This file provides an axiomatic construction of the algebraic numbers.     *)
@@ -184,10 +185,22 @@ have normD x y : le (norm (x + y)) (norm x + norm y).
 by exists (Num.Mixin normD sposD norm_eq0 pos_linear normM (rrefl _) (rrefl _)).
 Qed.
 
-(* A "purely algebraic" statement of th Fundamental Theorem of Algebra. *)
-Axiom complex_closed_field_exists :
+(* A "purely algebraic" statement of the Fundamental Theorem of Algebra. *)
+
+Module UseComplex.
+Import realalg complex.
+
+Theorem complex_closed_field_exists :
   {L : closedFieldType &
      {conj : {rmorphism L -> L} | involutive conj & ~ conj =1 id}}.
+Proof.
+exists [closedFieldType of complexalg].
+exists [rmorphism of (@conjc [ringType of realalg])]; first exact: conjcK.
+move=> /(_ 'i) /= [] /eqP; rewrite eq_sym -subr_eq0 opprK.
+by rewrite paddr_eq0 ?ler01 // oner_eq0.
+Qed.
+End UseComplex.
+Definition complex_closed_field_exists := UseComplex.complex_closed_field_exists.
 
 Module Algebraics.
 
