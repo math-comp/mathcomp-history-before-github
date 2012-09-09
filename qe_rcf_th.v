@@ -384,12 +384,86 @@ Qed.
 
 End extra.
 
+Section ctmat.
+
+Variable R : numFieldType.
+
+Definition ctmat1 := \matrix_(i < 3, j < 3)
+  (nth [::] [:: [:: 1%:Z ; 1 ; 1 ]
+              ; [:: -1   ; 1 ; 1 ]
+              ; [::  0   ; 0 ; 1 ] ] i)`_j.
+
+Lemma det_ctmat1 : \det ctmat1 = 2.
+Proof.
+(* Developpement direct ? *)
+by do ?[rewrite (expand_det_row _ ord0) //=;
+  rewrite ?(big_ord_recl,big_ord0) //= ?mxE //=;
+    rewrite /cofactor /= ?(addn0, add0n, expr0, exprS);
+      rewrite ?(mul1r,mulr1,mulN1r,mul0r,mul1r,addr0) /=;
+        do ?rewrite [row' _ _]mx11_scalar det_scalar1 !mxE /=].
+Qed.
+
+Notation zmxR := ((map_mx ((intmul 1) : int -> R)) _ _).
+
+Lemma ctmat1_unit : zmxR ctmat1 \in unitmx.
+Proof.
+rewrite /mem /in_mem /= /unitmx det_map_mx //.
+by rewrite det_ctmat1 unitfE intr_eq0.
+Qed.
+
+Definition ctmat n := (ctmat1 ^t n).
+
+Lemma ctmat_unit : forall n, zmxR (ctmat n) \in unitmx.
+Proof.
+case=> [|n] /=; first by rewrite map_mx1 ?unitmx1//; apply: zinjR_morph.
+elim:n=> [|n ihn] /=; first by  apply: ctmat1_unit.
+rewrite map_mxT //.
+apply: tensmx_unit=> //; last exact: ctmat1_unit.
+by elim: n {ihn}=> // n ihn; rewrite muln_eq0.
+Qed.
+
+Lemma ctmat1_blocks : ctmat1 = (block_mx
+         1           (row_mx 1 1)
+  (col_mx (-1) 0) (block_mx 1 1 0 1 : 'M_(1+1)%N)).
+Proof.
+apply/matrixP=> i j; rewrite !mxE.
+by do 4?[case: splitP => ?; rewrite !mxE ?ord1=> ->].
+Qed.
+
+Lemma tvec_sub n : (3 * (3 ^ n).-1.+1 = 3 ^ (n.+1) )%N.
+Proof. by rewrite -exp3n expnS. Qed.
+
+Lemma tens_ctmat1_mx n (M : 'M_n) :
+  ctmat1 *t M =  castmx (esym (mul3n _ ), esym (mul3n _ ))
+         (block_mx         M         (row_mx M M)
+                   (col_mx (-M) 0) (block_mx M M
+                                             0 M : 'M_(n+n)%N)).
+Proof.
+rewrite ctmat1_blocks !tens_block_mx !tens_row_mx !tens_col_mx.
+rewrite [-1]mx11_scalar !mxE /= !tens_scalar_mx !tens0mx scaleNr !scale1r.
+apply/eqP; rewrite -(can2_eq (castmxKV _ _) (castmxK _ _)); apply/eqP.
+rewrite !castmx_comp !esymK /=.
+rewrite !(castmx_block (mul1n _) (mul1n _) (mul2n _) (mul2n _)).
+rewrite !castmx_comp !castmx_id /=.
+rewrite !(castmx_row (mul1n _) (mul1n _)).
+rewrite !(castmx_block (mul1n _) (mul1n _) (mul1n _) (mul1n _)) /=.
+rewrite !(castmx_col (mul1n _) (mul1n _)) !castmx_comp !castmx_id /=.
+by rewrite !castmx_const.
+Qed.
+
+Definition coefs n i :=
+  [seq (castmx (erefl _, exp3n _) (invmx (zmxR (ctmat n)))) i ord0
+     | i <- enum 'I__]`_i.
+
+End ctmat.
+
 Section QeRcfTh.
 
 Variable R : rcfType.
 Implicit Types a b  : R.
 Implicit Types p q : {poly R}.
 
+Notation zmxR := ((map_mx ((intmul 1) : int -> R)) _ _).
 Notation midf a b := ((a + b) / 2%:~R).
 
 (* Constraints and Tarski queries *)
@@ -462,28 +536,6 @@ Definition cvec z sq := let sg_tab := sg_tab (size sq) in
 Definition tvec z sq := let sg_tab := sg_tab (size sq) in
   \row_(i < 3 ^ size sq) (taq z (map (poly_comb sq) sg_tab)`_i).
 
-Definition ctmat1 := \matrix_(i < 3, j < 3)
-  (nth [::] [:: [:: 1%:Z ; 1 ; 1 ]
-              ; [:: -1   ; 1 ; 1 ]
-              ; [::  0   ; 0 ; 1 ] ] i)`_j.
-
-Lemma det_ctmat1 : \det ctmat1 = 2.
-Proof.
-(* Developpement direct ? *)
-by do ?[rewrite (expand_det_row _ ord0) //=;
-  rewrite ?(big_ord_recl,big_ord0) //= ?mxE //=;
-    rewrite /cofactor /= ?(addn0, add0n, expr0, exprS);
-      rewrite ?(mul1r,mulr1,mulN1r,mul0r,mul1r,addr0) /=;
-        do ?rewrite [row' _ _]mx11_scalar det_scalar1 !mxE /=].
-Qed.
-
-Notation zmxR := ((map_mx ((intmul 1) : int -> R)) _ _).
-
-Lemma ctmat1_unit : zmxR ctmat1 \in unitmx.
-Proof.
-rewrite /mem /in_mem /= /unitmx det_map_mx //.
-by rewrite det_ctmat1 unitfE intr_eq0.
-Qed.
 
 Lemma tvec_cvec1 z q : tvec z [::q] = (cvec z [::q]) *m ctmat1.
 Proof.
@@ -536,45 +588,6 @@ rewrite big_ord_recl /= sgr_cp0 sgz_cp0.
 by case: (_ == _); first by rewrite mul1n.
 Qed.
 
-Definition ctmat n := (ctmat1 ^t n).
-
-Lemma ctmat_unit : forall n, zmxR (ctmat n) \in unitmx.
-Proof.
-case=> [|n] /=; first by rewrite map_mx1 ?unitmx1//; apply: zinjR_morph.
-elim:n=> [|n ihn] /=; first by  apply: ctmat1_unit.
-rewrite map_mxT //.
-apply: tensmx_unit=> //; last exact: ctmat1_unit.
-by elim: n {ihn}=> // n ihn; rewrite muln_eq0.
-Qed.
-
-Lemma ctmat1_blocks : ctmat1 = (block_mx
-         1           (row_mx 1 1)
-  (col_mx (-1) 0) (block_mx 1 1 0 1 : 'M_(1+1)%N)).
-Proof.
-apply/matrixP=> i j; rewrite !mxE.
-by do 4?[case: splitP => ?; rewrite !mxE ?ord1=> ->].
-Qed.
-
-Lemma tvec_sub n : (3 * (3 ^ n).-1.+1 = 3 ^ (n.+1) )%N.
-Proof. by rewrite -exp3n expnS. Qed.
-
-Lemma tens_ctmat1_mx n (M : 'M_n) :
-  ctmat1 *t M =  castmx (esym (mul3n _ ), esym (mul3n _ ))
-         (block_mx         M         (row_mx M M)
-                   (col_mx (-M) 0) (block_mx M M
-                                             0 M : 'M_(n+n)%N)).
-Proof.
-rewrite ctmat1_blocks !tens_block_mx !tens_row_mx !tens_col_mx.
-rewrite [-1]mx11_scalar !mxE /= !tens_scalar_mx !tens0mx scaleNr !scale1r.
-apply/eqP; rewrite -(can2_eq (castmxKV _ _) (castmxK _ _)); apply/eqP.
-rewrite !castmx_comp !esymK /=.
-rewrite !(castmx_block (mul1n _) (mul1n _) (mul2n _) (mul2n _)).
-rewrite !castmx_comp !castmx_id /=.
-rewrite !(castmx_row (mul1n _) (mul1n _)).
-rewrite !(castmx_block (mul1n _) (mul1n _) (mul1n _) (mul1n _)) /=.
-rewrite !(castmx_col (mul1n _) (mul1n _)) !castmx_comp !castmx_id /=.
-by rewrite !castmx_const.
-Qed.
 
 Lemma poly_comb_cons q sq s ss :
   poly_comb (q :: sq) (s :: ss) = (q ^ (comb_exp s)) * poly_comb sq ss.
@@ -1147,11 +1160,8 @@ Proof. by apply/eqP; rewrite mods_eq0. Qed.
 Lemma modsp0 p : mods p 0 = if p == 0 then [::] else [::p].
 Proof. by rewrite mods_rec mods0p. Qed.
 
-Fixpoint changes (s : seq R) :=
-  match s with
-    | [::]  => 0%N
-    | a :: q => ((a * (head 0 q) < 0)%R + (changes q))%N
-  end.
+Fixpoint changes (s : seq R) : nat :=
+  (if s is a :: q then (a * (head 0 q) < 0)%R + changes q else 0)%N.
 
 Definition changes_pinfty (p : seq {poly R}) := changes (map lead_coef p).
 Definition changes_minfty (p : seq {poly R}) :=
@@ -1185,8 +1195,7 @@ rewrite polySpred // addSn [size q]polySpred // addnS /= !negbK.
 rewrite -odd_add signr_odd; set s := _ ^+ _.
 rewrite -!sgz_cp0 !(sgz_sgr, sgzM).
 have: s != 0 by rewrite signr_eq0.
-move: p0 q0; rewrite -!lead_coef_eq0.
-by do 3!case: sgzP=> _.
+by move: p0 q0; rewrite -!lead_coef_eq0; do 3!case: sgzP=> _.
 Qed.
 
 Lemma changes_mods_cindex p q : changes_mods p q = cindexR q p.
@@ -1293,13 +1302,9 @@ Qed.
 Definition taqsR p sq i : R :=
   (taqR p (map (poly_comb sq) (sg_tab (size sq)))`_i)%:~R.
 
-Definition coefs n i :=
-  [seq (castmx (erefl _, exp3n _) (invmx (zmxR (ctmat n)))) i ord0
-     | i <- enum 'I__]`_i.
-
 Definition ccount_weak p sq : R :=
   let fix aux s (i : nat) := if i is i'.+1
-    then aux (taqsR p sq i' * coefs (size sq) i' + s) i'
+    then aux (taqsR p sq i' * coefs R (size sq) i' + s) i'
     else s in aux 0 (3 ^ size sq)%N.
 
 Lemma constraints1P (p : {poly R}) (sq : seq {poly R}) :
@@ -1308,7 +1313,7 @@ Lemma constraints1P (p : {poly R}) (sq : seq {poly R}) :
 Proof.
 rewrite constraints1_tvec; symmetry.
 rewrite castmxE mxE /= /ccount_weak.
-transitivity (\sum_(0 <= i < 3 ^ size sq) taqsR p sq i * coefs (size sq) i).
+transitivity (\sum_(0 <= i < 3 ^ size sq) taqsR p sq i * coefs R (size sq) i).
   rewrite unlock /reducebig /= -foldr_map /= /index_iota subn0 foldr_map.
   elim: (3 ^ size sq)%N 0%R => [|n ihn] u //.
   by rewrite -[X in iota _ X]addn1 iota_add add0n /= foldr_cat ihn.
