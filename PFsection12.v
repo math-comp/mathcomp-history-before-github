@@ -334,8 +334,8 @@ Qed.
 
 End Twelve2.
 
-Section Twelve3.
 
+(* This is Peterfalvi (12.3) *)
 Lemma PF_12_3 L1 L2 (L1type : FTtype L1 == 1%N) (L2type : FTtype L2 == 1%N)
   (maxL1 : L1 \in 'M)(maxL2 : L2 \in 'M)
   (H1 := L1`_\F%G) (H2 := L2`_\F%G) 
@@ -365,7 +365,7 @@ pose tau1 := FT_Dade0 maxL1; pose tau2 := FT_Dade0 maxL2.
 have [_ _ _ /(_ chi1 calS1_chi1)[Z_R1 /orthonormalP[R1_U oR1] dtau1_chi1] _] := subcoh1.
 have Z1a: a \in dirr G by rewrite dirrE Z_R1 //= oR1 ?eqxx.
 suffices{b R2b}: '[a, tau2 (chi2 - chi2^*%CF)] = 0.
-  apply: contra_eq => nz_ab; rewrite /tau2.
+  apply: contra_eq => nz_ab; rewrite /tau2. 
   have [_ _ _ /(_ chi2 calS2_chi2)[Z_R2 o1R2 ->] _] := subcoh2.
   suffices [e ->]: {e | a = if e then - b else b}.
     rewrite -scaler_sign cfdotC cfdotZr -cfdotZl scaler_sumr.
@@ -376,11 +376,11 @@ suffices{b R2b}: '[a, tau2 (chi2 - chi2^*%CF)] = 0.
   by do 2?[case: eqP => [-> | _]]; [exists true | exists false | ].
   case: (PF_12_2a maxL1 L1type calS1_chi1) =>  chi1D _ chi1_sup.
 pose S_chi1 := [set i0 in irr_constt chi1].
-have sub_conjC : {in S_chi1, forall i, exists k : Iirr G, 
+have {chi1_sup} sub_conjC : {in S_chi1, forall i, exists k : Iirr G, 
   tau1 ('chi_i - ('chi_i)^*%CF) = 'chi_k - ('chi_k)^*%CF}.
   move=> i => /chi1_sup; rewrite -FTsupp0_type1 // /tau1.
   by case /(Dade_irr_sub_conjC (FT_Dade0_hyp maxL1)) => k ->; exists k.
-have {sub_conjC}[t S_ch1t et]: 
+have {sub_conjC dtau1_chi1 R1_U R1a defR1}[t S_ch1t et]: 
   exists2 t, t \in S_chi1 & tau1 ('chi_t - ('chi_t)^*%CF) = a - a^*%CF.
   suff /exists_inP[i iS_chi1 dota]: [exists (i | i \in S_chi1), 
     '[tau1 ('chi_i - (('chi_i)^*)%CF), a] > 0].
@@ -419,15 +419,39 @@ have {sub_conjC}[t S_ch1t et]:
     + by rewrite subr0 ltr01.
     + by rewrite sub0r oppr_le0 ler01.
     + by rewrite subr0 lerr.
-Admitted.
+suff :  '[a, tau2 (chi2 - (chi2^*)%CF)] = - '[a, tau2 (chi2 - (chi2^*)%CF)].
+  by move/eqP; rewrite -addr_eq0 -mulr2n mulrn_eq0 /=; move/eqP.
+have {t S_ch1t et} : '[a - (a^*)%CF, tau2 (chi2 - (chi2^*)%CF)] == 0.
+  apply/eqP; rewrite -et /tau1 /tau2; rewrite -(FT_Dade1E maxL2); last first. 
+    have nH2L2 : H2 <| L2 by exact: gFnormal.
+    have := (Fcore_sub_FTsupp1 maxL2); move/(cfun_onS); apply.
+    by have /zchar_on := (seqInd_sub_aut_zchar nH2L2 conjC calS2_chi2).
+  apply: cfdot_complement (Dade_cfunS _ _) _.
+  rewrite FT_Dade0_supportE setTD (cfun_onS _ (Dade_cfunS _ _)) //.
+  by rewrite FT_Dade1_supportE -disjoints_subset FTsupp0_type1.
+rewrite cfdotBl subr_eq0; move/eqP=> {1}->.
+suff -> : '[a^*, tau2 (chi2 - (chi2^*)%CF)] = '[a, tau2 ((chi2^*)%CF - chi2)].
+  by rewrite -opprB [tau2 _]linearN /= cfdotNr.
+have -> : chi2 - (chi2^*)%CF = ((chi2^*)%CF - chi2)^*%CF.
+  by rewrite rmorphB /= cfConjCK.
+rewrite [tau2 _]Dade_conjC cfdot_conjC.
+apply/eqP; rewrite -CrealE; apply: Creal_Cint.
+apply: Cint_cfdot_vchar; first by move: Z1a; rewrite dirrE; case/andP.
+rewrite -opprB linearN rpredN /=.
+have [_ _ _ /(_ chi2 calS2_chi2)[Z_R2 /orthonormalP[_ oR2] ->] _] := subcoh2.
+rewrite big_seq_cond rpred_sum // => i; rewrite andbT => irri.
+have: i \in dirr G by rewrite dirrE Z_R2 //= oR2 ?eqxx.
+by rewrite dirrE; case/andP.
+Qed.
 
-End Twelve3.
 
 Section Twelve_4_to_6.
+
 
 Variable L : {group gT}.
 
 Hypotheses (maxL : L \in 'M) .
+
 
 
 Local Notation "` 'L'" := (gval L) (at level 0, only parsing) : group_scope.
