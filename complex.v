@@ -829,12 +829,11 @@ congr (_ * 'X + c%:P * _).
 move=> {IHp Hsp p_neq0 p_monic}; rewrite add0n; set s := _ ^+ _;
 apply: (@mulfI _ s); first by rewrite signr_eq0.
 rewrite mulrA -expr2 sqrr_sign mulr1 mul1r /s.
-set M := (X in \det X).
 pose fix D n : 'M[{poly K}]_n.+1 :=
      if n is n'.+1  then block_mx (-1 :'M_1)   ('X *: pid_mx 1)
                                   0            (D n')           else -1.
 pose D' n : 'M[{poly K}]_n.+1 := \matrix_(i, j) ('X *+ (i.+1 == j) - (i == j)%:R).
-have -> : M = D' sp.
+set M := (_ - _); have -> : M = D' sp.
   apply/matrixP => k l; rewrite !simp.
   case: splitP => k' /=; rewrite ?ord1 !simp // /bump leq0n add1n; case.
   case: splitP => l' /=; rewrite /bump ltnNge leq_ord add0n; last first.
@@ -941,8 +940,8 @@ Lemma Eigen1VecP (K : fieldType) (d : nat) :
 Proof.
 split=> [Hd m V HV f|Hd m V HV [] // f [] // _ /(_ _ (mem_head _ _))] f_stabV.
   have [] := Hd _ _ HV [::f] (erefl _).
-    by move=> ?; rewrite in_cons orbF => /eqP ->.
-    by move=> ? ?; rewrite /= !in_cons !orbF => /eqP -> /eqP ->.
+  + by move=> ?; rewrite in_cons orbF => /eqP ->.
+  + by move=> ? ?; rewrite /= !in_cons !orbF => /eqP -> /eqP ->.
   move=> v v_neq0 /(_ f (mem_head _ _)) [a /eigenspaceP].
   by exists a; apply/eigenvalueP; exists v.
 have [a /eigenvalueP [v /eigenspaceP v_eigen v_neq0]] := Hd _ _ HV _ f_stabV.
@@ -958,8 +957,8 @@ elim: n m => [|n IHn] m V.
 move=> le_rV_Sn HrV [] // f sf /= [] ssf f_sf_stabV f_sf_comm.
 have [->|f_neq0] := altP (f =P 0).
   have [||v v_neq0 Hsf] := (IHr _ _ HrV _ ssf).
-    by move=> g f_sf /=; rewrite f_sf_stabV // in_cons f_sf orbT.
-    move=> g h g_sf h_sf /=.
+  + by move=> g f_sf /=; rewrite f_sf_stabV // in_cons f_sf orbT.
+  + move=> g h g_sf h_sf /=.
     by apply: f_sf_comm; rewrite !in_cons ?g_sf ?h_sf ?orbT.
   exists v => // g; rewrite in_cons => /orP [/eqP->|]; last exact: Hsf.
   by exists 0; apply/eigenspaceP; rewrite mulmx0 scale0r.
@@ -1006,10 +1005,10 @@ have ltZV : (\rank Z < \rank V)%N.
   move: a_eigen_f' => /eigenvalueP [v /eigenspaceP] sub_vW v_neq0.
   by rewrite (ltmx_sub_trans _ sub_vW) // lt0mx.
 have [] // := IHn _ (if d %| \rank Z then W else Z) _ _ [:: f' & sf'].
-  by rewrite -ltnS (@leq_trans (\rank V)) //; case: ifP.
-  by apply: contra HrV; case: ifP => [*|-> //]; rewrite -rWZ dvdn_add.
-  by rewrite /= size_map ssf.
-  move=> g; rewrite in_cons => /= /orP [/eqP -> {g}|g_sf']; case: ifP => _ //;
++ by rewrite -ltnS (@leq_trans (\rank V)) //; case: ifP.
++ by apply: contra HrV; case: ifP => [*|-> //]; rewrite -rWZ dvdn_add.
++ by rewrite /= size_map ssf.
++ move=> g; rewrite in_cons => /= /orP [/eqP -> {g}|g_sf']; case: ifP => _ //;
   by rewrite (sf'_stabW, sf'_stabZ).
 move=> v v_neq0 Hv; exists (v *m row_base V).
   by rewrite mul_mx_rowfree_eq0 ?row_base_free.
@@ -1053,9 +1052,9 @@ pose L2fun : 'M[R]_(\rank V) -> _ :=
            \+ ((mulmx (u^T) \o trmx)               \+ (mulmx (v^T)))).
 pose L2 := lin_mx [linear of L2fun].
 have [] := @Lemma4 _ _ 1%:M _ [::L1; L2] (erefl _).
-  by move: HrV; rewrite mxrank1 !dvdn2 ?negbK odd_mul andbb.
-  by move=> ? _ /=; rewrite submx1.
-  suff commL1L2: L1 *m L2 = L2 *m L1.
++ by move: HrV; rewrite mxrank1 !dvdn2 ?negbK odd_mul andbb.
++ by move=> ? _ /=; rewrite submx1.
++ suff commL1L2: L1 *m L2 = L2 *m L1.
     move=> La Lb; rewrite !in_cons !in_nil !orbF.
     by move=> /orP [] /eqP -> /orP [] /eqP -> //; symmetry.
   apply/eqP/mulmxP => x; rewrite [X in X = _]mulmxA [X in _ = X]mulmxA.
@@ -1139,19 +1138,19 @@ have L2_lin : linear (fun g : 'M_n.+1 => f'^T *m g *m f').
   by move=> a u v; rewrite mulmxDr mulmxDl -!(scalemxAl, scalemxAr).
 pose L2 := lin_mx (Linear L2_lin).
 have [] /= := IHk _ (leqnn _) _  _ (skew C n.+1) _ [::L1; L2] (erefl _).
-  rewrite rank_skew; apply: contra Hn.
++ rewrite rank_skew; apply: contra Hn.
   rewrite -(@dvdn_pmul2r 2) //= -expnSr muln2 -[_.*2]add0n.
   have n_odd : odd n by rewrite dvdn2 /= ?negbK in dvd2n *.
   have {2}<- : odd (n.+1 * n) = 0%N :> nat by rewrite odd_mul /= andNb.
   by rewrite odd_double_half Gauss_dvdl // coprime_pexpl // coprime2n.
-  move=> L; rewrite 2!in_cons in_nil orbF => /orP [] /eqP ->;
++ move=> L; rewrite 2!in_cons in_nil orbF => /orP [] /eqP ->;
   apply/rV_subP => v /submxP [s -> {v}]; rewrite mulmxA; apply/skewP;
   set u := _ *m skew _ _;
   do [have /skewP : (u <= skew C n.+1)%MS by rewrite submxMl];
   rewrite mul_rV_lin /= !mxvecK => skew_u.
     by rewrite opprD linearD /= !trmx_mul skew_u mulmxN mulNmx addrC trmxK.
   by rewrite !trmx_mul trmxK skew_u mulNmx mulmxN mulmxA.
-  suff commL1L2: L1 *m L2 = L2 *m L1.
++ suff commL1L2: L1 *m L2 = L2 *m L1.
     move=> La Lb; rewrite !in_cons !in_nil !orbF.
     by move=> /orP [] /eqP -> /orP [] /eqP -> //; symmetry.
   apply/eqP/mulmxP => u; rewrite !mulmxA !mul_rV_lin ?mxvecK /=.
@@ -1168,8 +1167,7 @@ have : vec_mx v *m (horner_mx f' p) = 0.
   rewrite horner_mx_X horner_mx_C !mulmxDr mul_mx_scalar -Hv.
   rewrite addrAC addrA mulmxA addrN add0r.
   by rewrite -scalemxAl -scalemxAr scaleNr addrN.
-rewrite [p]monic_canonical_form.
-move: (X in 'X - X%:P) (X in _ * ('X - X%:P)) => r1 r2.
+rewrite [p]monic_canonical_form; move: (_ / 2%:R) (_ / 2%:R) => r2 r1.
 move=> {Hv p a b L1 L2 L1_lin L2_lin Hn}.
 rewrite rmorphM !rmorphB /= horner_mx_X !horner_mx_C mulmxA => Hv.
 have: exists2 w : 'M_n.+1, w != 0 & exists a, (w <= eigenspace f' a)%MS.
@@ -1196,8 +1194,8 @@ Corollary Theorem7' (m : nat) (f : 'M[C]_m) : (0 < m)%N -> exists a, eigenvalue 
 Proof.
 case: m f => // m f _; have /Eigen1VecP := @Lemma6 m 0.
 move=> /(_ m.+1 1 _ f) []; last by move=> a; exists a.
-  by rewrite mxrank1 (contra (dvdn_leq _)) // -ltnNge ltn_expl.
-  by rewrite submx1.
++ by rewrite mxrank1 (contra (dvdn_leq _)) // -ltnNge ltn_expl.
++ by rewrite submx1.
 Qed.
                   
 Lemma C_acf_axiom : GRing.ClosedField.axiom [ringType of C].
