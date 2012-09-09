@@ -1,8 +1,8 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import bigop ssralg ssrnum ssrint rat poly polydiv polyorder.
-Require Import perm matrix mxpoly polyXY binomial.
+Require Import perm matrix mxpoly polyXY binomial bigenough.
 
-Import GRing.Theory Num.Theory Num.Def.
+Import GRing.Theory Num.Theory Num.Def BigEnough.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -440,59 +440,6 @@ Qed.
 
 End monotony.
 
-Module EpsilonReasonning.
-
-Definition leq_maxE := (orTb, orbT, leqnn, leq_max).
-
-Fixpoint max_seq s := if s is a :: r then maxn a (max_seq r) else 0%N.
-
-Definition closed T (i : T) := {j : T | j = i}.
-Ltac close :=  match goal with
-                 | |- context [closed ?i] =>
-                   instantiate (1 := [::]) in (Value of i); exists i
-               end.
-
-Ltac pose_big_enough i :=
-  evar (i : nat); suff : closed i; first do
-    [move=> _; instantiate (1 := max_seq _) in (Value of i)].
-
-Ltac pose_big_modulus m F :=
-  evar (m : F -> nat); suff : closed m; first do
-    [move=> _; instantiate (1 := (fun e => max_seq _)) in (Value of m)].
-
-Ltac exists_big_modulus m F := pose_big_modulus m F; first exists m.
-
-Definition selected := locked.
-Lemma select T (x : T) : x = selected x. Proof. exact: lock. Qed.
-
-Lemma instantiate_max_seq (P : bool -> Type) i s :
-  P true -> P ((i <= selected max_seq (i :: s))%N).
-Proof. by rewrite -select ?leq_maxE. Qed.
-
-Ltac big_selected i :=
-  rewrite ?[in X in selected X]/i;
-  rewrite ?[in X in selected X]leq_max -/max_seq;
-  rewrite [max_seq in X in selected X]select;
-  apply instantiate_max_seq;
-  rewrite ?[in X in selected X]orbA;
-  rewrite 1?[in X in selected X]orbT;
-  rewrite -?select.
-
-Ltac big1 :=
-  match goal with
-    | |- context [(?x <= ?i)%N] => rewrite [(x <= i)%N]select; big_selected i
-  end.
-
-Ltac big :=
-  match goal with
-    | leq_mi : is_true (?m <= ?i)%N |- context [(?x <= ?i)%N] =>
-      rewrite [(x <= i)%N](leq_trans _ leq_mi) /=; last by big1
-    | _ => big1
-  end.
-
-End EpsilonReasonning.
-Import EpsilonReasonning.
-
 Section CauchyReals.
 
 Local Open Scope nat_scope.
@@ -594,19 +541,19 @@ Proof.
 by move=> *; rewrite (ler_lt_trans (ler_dist_add z _ _)) ?splitD // 1?distrC.
 Qed.
 
-Definition creal_axiom (x : nat -> F) :=  {asympt e : i j / `| x i - x j | < e}.
+Definition creal_axiom (x : nat -> F) :=  {asympt e : i j / `|x i - x j| < e}.
 
 CoInductive creal := CReal {cauchyseq :> nat -> F; _ : creal_axiom cauchyseq}.
 Bind Scope creal_scope with creal.
 
-Lemma crealP (x : creal) : {asympt e : i j / `| x i - x j | < e}.
+Lemma crealP (x : creal) : {asympt e : i j / `|x i - x j| < e}.
 Proof. by case: x. Qed.
 
 Definition cauchymod :=
   nosimpl (fun (x : creal) => let: CReal _ m := x in projT1 m).
 
 Lemma cauchymodP (x : creal) eps i j : 0 < eps ->
-  (cauchymod x eps <= i)%N -> (cauchymod x eps <= j)%N -> `| x i - x j | < eps.
+  (cauchymod x eps <= i)%N -> (cauchymod x eps <= j)%N -> `|x i - x j| < eps.
 Proof. by case: x=> [x [m mP] //] /mP; apply. Qed.
 
 Definition neq_creal (x y : creal) : Prop :=
@@ -909,29 +856,32 @@ Notation "+%CR" := add_creal : creal_scope.
 Notation "x + y" := (add_creal x y) : creal_scope.
 Notation "x - y" := (x + - y)%CR : creal_scope.
 
-Definition ubound (x : creal) : F :=
-  let i := cauchymod x 1 in foldl maxr (`| x i | + 1)
-    (map (fun i => `| x i |) (iota 0 (cauchymod x 1))).
 
-Lemma uboundP (x : creal) i : `| x i | <= ubound x.
+Lemma ubound_subproof (x : creal) : {b : F | b > 0 & forall i, `|x i| <= b}.
 Proof.
-rewrite /ubound /=; case: (ltnP i (cauchymod x 1))=> [|hi].
-  elim: cauchymod (_ + 1)=> [|n ihn] m //.
-  rewrite ltnS -addn1 iota_add add0n map_cat foldl_cat /= ler_maxr leq_eqVlt.
-  by case/orP=> [/eqP->|/ihn->] //; rewrite lerr orbT.
-rewrite (@ler_trans _ (`|x (cauchymod x 1)| + 1)) //; last first.
-  set a := {1}(_ + _); set b:= (_ + _); have: a <= b by apply: lerr.
-  by elim: iota a b=> // u l ihl a b hab /=; rewrite ihl // ler_maxr hab.
-have := (cauchymodP ltr01 hi (@leqnn _))=> /(ler_lt_trans (ler_dist_dist _ _)).
-by rewrite ltr_distl=> /andP [_ /ltrW].
+pose_big_enough i; first set b := 1 + `|x i|.
+  exists (foldl maxr b [seq `|x n| | n <- iota 0 i]) => [|n].
+    have : 0 < b by rewrite ltr_spaddl.
+    by elim: iota b => //= a l IHl b b_gt0; rewrite IHl ?ltr_maxr ?b_gt0.
+  have [|le_in] := (ltnP n i).
+    elim: i b => [|i IHi] b //.
+    rewrite ltnS -addn1 iota_add add0n map_cat foldl_cat /= ler_maxr leq_eqVlt.
+    by case/orP=> [/eqP->|/IHi->] //; rewrite lerr orbT.
+  set xn := `|x n|; suff : xn <= b.
+    by elim: iota xn b => //= a l IHl xn b Hxb; rewrite IHl ?ler_maxr ?Hxb.
+  rewrite -ler_subl_addr (ler_trans (ler_norm _)) //.
+  by rewrite (ler_trans (ler_dist_dist _ _)) ?ltrW ?cauchymodP //; big.
+by close.
 Qed.
+
+Definition ubound (x : creal) := 
+  nosimpl (let: exist2 b _ _ := ubound_subproof x in b).
+
+Lemma uboundP (x : creal) i : `|x i| <= ubound x.
+Proof. by rewrite /ubound; case: ubound_subproof. Qed.
 
 Lemma ubound_gt0 x : 0 < ubound x.
-Proof.
-rewrite /ubound; elim: {2}(cauchymod x 1)=> [|n ihn].
-  by rewrite ltr_paddl ?ltr01 ?normr_ge0.
-by rewrite -addn1 iota_add add0n /= map_cat foldl_cat /= ltr_maxr ihn.
-Qed.
+Proof. by rewrite /ubound; case: ubound_subproof. Qed.
 
 Definition ubound_ge0 x := (ltrW (ubound_gt0 x)).
 
