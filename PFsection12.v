@@ -451,8 +451,7 @@ Section Twelve_4_to_6.
 Variable L : {group gT}.
 
 Hypotheses (maxL : L \in 'M) .
-
-
+Hypothesis Ltype : FTtype L == 1%N.
 
 Local Notation "` 'L'" := (gval L) (at level 0, only parsing) : group_scope.
 Local Notation H := `L`_\F%G.
@@ -461,6 +460,14 @@ Local Notation "` 'H'" := `L`_\F (at level 0) : group_scope.
 Let calS := seqIndD H L H 1%G.
 Let tau := FT_Dade0 maxL.
 
+Let R := sval (FPtype1_calS_subcoherent maxL Ltype).
+
+Lemma PF_12_4 (psi : 'CF(G)) x : 
+  (forall phi, phi \in calS -> orthogonal psi (R phi)) -> x \in L :\: H ->
+  constant [seq (psi y) | y in (x *: H)%g].
+Proof. 
+move=> hphi xLDH.
+Admitted.
 
 Section Twelve_4_5.
 
