@@ -501,7 +501,7 @@ Lemma PF12_9 :
     & exists2 L, L \in 'M /\ P0 \subset L`_\s
     & exists2 x, x \in 'Ohm_1(P0)^#
     & [/\ ~~ ('C_K[x] \subset K'), 'N(<[x]>) \subset M & ~~ ('C[x] \subset L)]].
-Admitted.
+Proof. move: IHp maxM Mtype1 prankM p'K Sylow_P0; admit. Qed.
 
 Variables (L : {group gT}) (x : gT).
 Hypotheses (abP0 : abelian P0) (prankP0 : 'r_p(P0) = 2).
@@ -512,13 +512,15 @@ Hypotheses (not_sCxK' : ~~ ('C_K[x] \subset K')) (not_sCxL : ~~ ('C[x] \subset L
 Let H := L`_\F%G.
 
 Let frobL : [Frobenius L with kernel H].
-Admitted.
+Proof.
+move: PF12_9 abP0 prankP0 maxL sP0_Ls P0_1s_x sNxM not_sCxK' not_sCxL; admit.
+Qed.
 
 Let defM : K ><| (M :&: L) = M.
-Admitted.
+Proof. move: frobL. admit. Qed.
 
 Let sML_H : M :&: L \subset H.
-Admitted.
+Proof. move: frobL. admit. Qed.
 
 Let E := sval (sigW (existsP frobL)).
 Let e := #|E|.
@@ -527,7 +529,7 @@ Let defL: H ><| E = L.
 Proof. by rewrite /E; case: (sigW _) => E0 /=/Frobenius_context[]. Qed.
 
 Let PF12_12 : cyclic E /\ (e %| p.-1) || (e %| p.+1).
-Admitted.
+Proof. move: frobL. admit. Qed.
 
 Import PFsection7.
 
@@ -543,7 +545,7 @@ Hypotheses (Schi : chi \in calS) (chi1 : chi 1%g = e%:R).
 Let psi := tau1 chi.
 
 Let PF12_14 : {in K, forall g, psi (x * g)%g = chi x} /\ rhoL psi x = chi x.
-Admitted.
+Proof. move: frobL cohS Schi chi1; admit. Qed.
 
 Let rhoM := (invDade (FT_Dade1_hyp maxL)).
 
@@ -551,10 +553,10 @@ Let PF12_15 :
   [/\ {in K^#, forall g, rhoM psi g = psi g},
       {in K :\: K' &, forall g1 g2, psi g1 = psi g2}
     & {in K :\: K', forall g, psi g \in Cint}].
-Admitted.
+Proof. move: PF12_14; admit. Qed.
 
 Lemma PF12_16_inner : False.
-move: cohS Schi. admit. Qed.
+Proof. move: PF12_14; admit. Qed.
 
 End Twelve_13_to_16.
 
