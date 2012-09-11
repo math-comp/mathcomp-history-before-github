@@ -701,7 +701,7 @@ have nY i j  (NZj : j != 0) : '[Y_ i j] = (n * a_ i j * (a_ i j - 2%:R)) + n ^+ 
       by  rewrite IH /= -add1n natrD addrA.
     by apply: seqInd_orthogonal=> //; exact: der_normal.
   (* ring would be handy! *)
-  rewrite (natrD _ 1 1) mulrBr [_ * (1 + 1)]mulrDr opprD !mulr1 !addrA -expr2.
+  rewrite mulrBr [_ * (1 + 1)]mulrDr opprD !mulr1 !addrA -expr2.
   rewrite [a_ _ _ * n]mulrC [a_ _ _ * (n * _)]mulrC.
   rewrite [X in X = _]addrC -!addrA; congr (_ + _).
   by rewrite [X in X = _]addrC !addrA.
@@ -819,15 +819,20 @@ have Rbeta : cfReal beta.
   rewrite addrC -!addrA; congr (_ + _).
   by rewrite addrC scalerBr izetaE subrK.
 pose S2 := filter [predC (S_ HC)] (S_ C).
-pose xi : 'CF(G) := tau (mu_ 0 - zeta) - \sum_i eta_ i 0.
-have xiE: tau (mu_ 0 - zeta) = \sum_i eta_ i 0 + xi.
+pose chi : 'CF(G) := tau (mu_ 0 - zeta) - \sum_i eta_ i 0.
+have chiE: tau (mu_ 0 - zeta) = \sum_i eta_ i 0 + chi.
   by rewrite [X in _ = X]addrC subrK.
 have muCF: mu_ 0 - zeta \in 'CF(M, 'A0(M)).
   apply: (cfun_onS (subsetUl _ _)).
   rewrite [mu_ 0]prTIred0 defA cfun_onD1 !cfunE {2}izetaE bridgeC2.
   rewrite cfuniE // group1 mulr1 subrr rpredB ?rpredZ ?cfuni_on //=.
   by have /seqInd_on-> := ZiSHC.
-have normxi: '[xi] = 1.
+have dirrChi : chi \in dirr G.
+  apply: dirr_norm1.
+    rewrite rpredB ?Dade_vchar ?rpred_sum // => [| i _]; last first.
+      by apply: cycTIiso_vchar.
+    rewrite zchar_split muCF andbT rpredB ?char_vchar ?prTIred_char //.
+    by rewrite izetaE irr_char.
   have: '[tau (mu_ 0 - zeta)] = q%:R + 1.
     rewrite Dade_isometry // cfnormDd.
       by rewrite cfnormN izetaE cfnorm_irr cfnorm_prTIred.
@@ -835,7 +840,7 @@ have normxi: '[xi] = 1.
   pose etaW := map sigma (irr W).
   have o1eta: orthonormal etaW := cycTIiso_orthonormal _.
   have /orthonormalP[_ cfeta] := o1eta.
-  rewrite xiE cfnormDd ?cfdot_suml.
+  rewrite chiE cfnormDd ?cfdot_suml.
     rewrite (eq_bigr (fun i => 1%:R))=> [|i _].
       by rewrite sumr_const  nirrW1 -mulr_natl mulr1 // => /addrI.
     rewrite (bigD1 i) //= cfdotDr cfdot_sumr big1 ?addr0 // => [|i1 Dii1].
