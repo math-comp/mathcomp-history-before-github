@@ -7,8 +7,8 @@ Require Import sylow hall abelian maximal frobenius.
 Require Import matrix mxalgebra mxrepresentation mxabelem vector.
 Require Import BGsection1 BGsection3 BGsection7 BGsection15 BGsection16.
 Require Import ssrnum ssrint algC classfun character inertia vcharacter.
-Require Import PFsection1 PFsection2 PFsection3 PFsection4.
-Require Import PFsection5 PFsection6 PFsection8 PFsection9.
+Require Import PFsection1 PFsection2 PFsection3 PFsection4 PFsection5.
+Require Import PFsection6 PFsection7 PFsection8 PFsection9.
 Require Import PFsection11.
 
 Set Implicit Arguments.
@@ -461,12 +461,31 @@ Let calS := seqIndD H L H 1%G.
 Let tau := FT_Dade0 maxL.
 
 Let R := sval (FPtype1_calS_subcoherent maxL Ltype).
+Let S_ (chi : 'CF(L)) := [set i in irr_constt chi].
 
+(* This will be Peterfalvi (12.4) *)
 Lemma PF_12_4 (psi : 'CF(G)) x : 
   (forall phi, phi \in calS -> orthogonal psi (R phi)) -> x \in L :\: H ->
   constant [seq (psi y) | y in (x *: H)%g].
 Proof. 
 move=> hphi xLDH.
+have nHL : H <| L by exact: gFnormal.
+have [U [Utype _]] := FTtypeP _ maxL Ltype.
+have [[_ _ sdHU] [U1 inertU1] _] := Utype.
+have /= [_ _ [hT1 Nsub]]:= FTtypeI_II_facts maxL Ltype sdHU.
+have A0def := FTsupp0_type1 Ltype.
+have Dade_hyp := FT_Dade0_hyp maxL.
+have dot_irr chi i : chi \in calS -> i \in S_ chi -> '['chi_i, chi] = 1.
+  move=> chi_calS Si.
+  have -> : chi = \sum_(i <- enum (S_ chi)) 'chi_i.
+    case/(PF_12_2a maxL Ltype): chi_calS => {3}-> _ _. 
+    by rewrite big_uniq /= ?enum_uniq //; apply: eq_bigl => ?; rewrite mem_enum.
+  have : i \in  enum (S_ chi) by move: Si; rewrite mem_enum.
+  move/(bigD1_seq _)=> -> /=; rewrite ?enum_uniq // cfdotDr cfdot_sumr cfnorm_irr.
+  by rewrite big1 ?addr0 // => j; rewrite cfdot_irr eq_sym; move/negPf->.
+have oResB chi i1 i2 : chi \in calS -> i1 \in S_ chi -> i2 \in S_ chi ->
+  '['Res[L] psi, 'chi_i1 - 'chi_i2] = 0.
+  move=> chi_calS Si1 Si2; apply/eqP; rewrite -(conjCK ('[_,_])) -cfdotC.
 Admitted.
 
 Section Twelve_4_5.
@@ -474,6 +493,7 @@ Section Twelve_4_5.
 Hypothesis Ltype1 : FTtype L == 1%N.
 
 End Twelve_4_5.
+
 
 (* This will be (12.6). *)
 Lemma FT_seqInd_Frobenius_coherence :
@@ -484,6 +504,7 @@ Proof. move: maxL. admit. Qed.
 End Twelve_4_to_6.
 
 Section Twelve_8_to_16.
+
 
 Variable p : nat.
 
