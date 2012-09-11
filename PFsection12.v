@@ -483,9 +483,28 @@ have dot_irr chi i : chi \in calS -> i \in S_ chi -> '['chi_i, chi] = 1.
   have : i \in  enum (S_ chi) by move: Si; rewrite mem_enum.
   move/(bigD1_seq _)=> -> /=; rewrite ?enum_uniq // cfdotDr cfdot_sumr cfnorm_irr.
   by rewrite big1 ?addr0 // => j; rewrite cfdot_irr eq_sym; move/negPf->.
-have oResB chi i1 i2 : chi \in calS -> i1 \in S_ chi -> i2 \in S_ chi ->
-  '['Res[L] psi, 'chi_i1 - 'chi_i2] = 0.
-  move=> chi_calS Si1 Si2; apply/eqP; rewrite -(conjCK ('[_,_])) -cfdotC.
+have supp12B y chi i1 i2 : chi \in calS -> i1 \in S_ chi -> i2 \in S_ chi ->
+  y \notin ('A(L) :\: H^#) -> ('chi_i1 - 'chi_i2) y = 0.
+  move=> calS_chi Si1 Si2 yADHn.
+  have [chiD chi1 sup_chi]:= (PF_12_2a maxL Ltype calS_chi).
+  case: (boolP (y \in 1%g |: 'A(L))) => hy; rewrite !cfunE; last first.
+  - move/cfun_onP: (sup_chi _ Si1)=> -> //.
+    by move/cfun_onP: (sup_chi _ Si2)=> -> //; rewrite subrr.
+  case/seqIndC1P: (calS_chi) => s sn0 chiIndD.
+  suff h i : i \in S_ chi -> 'chi_i y = \sum_(chi0 <- ('chi_s ^: L)%CF) chi0 y.
+    by rewrite ?h // subrr.
+  move=> Si.
+  have Hy : y \in H.
+    move: yADHn; rewrite inE /= negb_and negbK; case/orP=>[| /negPf nyAL]. 
+    - by rewrite in_setD1; case/andP.
+    by move: hy; rewrite in_setU1 nyAL orbF; move/eqP->.
+  have /(cfResE 'chi_i) <- // : H \subset L by rewrite normal_sub.
+  have Resdot: '['Res[H] 'chi_i, 'chi_s] = '['chi_i, chi].
+    by rewrite cfdot_Res_l -chiIndD.
+  have /(Clifford_Res_sum_cfclass nHL) -> :  s \in irr_constt ('Res[H] 'chi_i).
+    rewrite irr_consttE Resdot cfdotC (inv_eq conjCK) conjC0 -irr_consttE.
+    by move: Si; rewrite inE.
+  by rewrite {}Resdot dot_irr // scale1r sum_cfunE.
 Admitted.
 
 Section Twelve_4_5.
