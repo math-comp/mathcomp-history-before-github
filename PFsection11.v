@@ -483,17 +483,13 @@ Local Notation delta := (FTtype345_TIsign MtypeP).
 
 Let mu2_ i j := primeTIirr ptiWM i j.
 
-Let  NirrW1 : Nirr W1 = q.
-Proof.
-have [[cW1 _ _ _] _ _ _ _] := MtypeP.
-by rewrite /q -card_Iirr_cyclic // card_ord.
-Qed.
+Let cW1 : cyclic W1. Proof. by have [[]] := MtypeP. Qed.
+Let nirrW1 : #|Iirr W1| = q. Proof. by rewrite card_Iirr_cyclic. Qed.
+Let  NirrW1 : Nirr W1 = q. Proof. by rewrite -nirrW1 card_ord. Qed.
 
-Let  NirrW2 : Nirr W2 = p.
-Proof.
-have cW2: cyclic W2 by have [_ _ _ []] := MtypeP.
-by rewrite /p -card_Iirr_cyclic // card_ord.
-Qed.
+Let cW2 : cyclic W2. Proof. by have [_ _  _ []] := MtypeP. Qed.
+Let nirrW2 : #|Iirr W2| = p. Proof. by rewrite card_Iirr_cyclic. Qed.
+Let  NirrW2 : Nirr W2 = p. Proof. by rewrite -nirrW2 card_ord. Qed.
 
 Lemma Ptype_Fcompl_kernel_cent : Ptype_Fcompl_kernel MtypeP :=: C.
 Proof.
@@ -523,6 +519,10 @@ have/uniform_degree_coherence: subcoherent S1 tau R.
 apply; apply/(@all_pred1_constant _ q%:R)/allP=> c /mapP[c1 c1IS1 ->].
 by rewrite /= S1w1.
 Qed.
+
+Let defA1: 'A1(M) = HU^#. Proof. by rewrite /= -FTcore_eq_der1. Qed.
+Let defA : 'A(M) = HU^#. Proof. by rewrite FTsupp_eq1 ?defA1. Qed.
+
 
 (* This will be (11.8). *)
 Lemma FTtype34_not_ortho_cycTIiso zeta :
@@ -793,8 +793,6 @@ have Rbeta : cfReal beta.
     have/cfun_onS->//:  HU^# \subset 'A0(M).
       suff-> : 'A0(M) = HU^# :|: class_support  (cyclicTIset defW) M.
         by exact: subsetUl.
-      have defA1: 'A1(M) = HU^# by rewrite /= -FTcore_eq_der1.
-      have defA : 'A(M) = HU^# by rewrite FTsupp_eq1 ?defA1.
       by rewrite -defA (FTtypeP_supp0_def _ MtypeP).
     move: CZ; rewrite !cfun_onD1=> /andP[_ ->]; rewrite andbT.
     have /(zchar_expansion (seqInd_uniq _ _))[s Hs ->] := IZ.
@@ -820,6 +818,32 @@ have Rbeta : cfReal beta.
   rewrite (betaE 0 _ F1) Ed1 scale1r -!addrA; apply/eqP; congr (_ + _).
   rewrite addrC -!addrA; congr (_ + _).
   by rewrite addrC scalerBr izetaE subrK.
+pose S2 := filter [predC (S_ HC)] (S_ C).
+pose xi : 'CF(G) := tau (mu_ 0 - zeta) - \sum_i eta_ i 0.
+have xiE: tau (mu_ 0 - zeta) = \sum_i eta_ i 0 + xi.
+  by rewrite [X in _ = X]addrC subrK.
+have muCF: mu_ 0 - zeta \in 'CF(M, 'A0(M)).
+  apply: (cfun_onS (subsetUl _ _)).
+  rewrite [mu_ 0]prTIred0 defA cfun_onD1 !cfunE {2}izetaE bridgeC2.
+  rewrite cfuniE // group1 mulr1 subrr rpredB ?rpredZ ?cfuni_on //=.
+  by have /seqInd_on-> := ZiSHC.
+have normxi: '[xi] = 1.
+  have: '[tau (mu_ 0 - zeta)] = q%:R + 1.
+    rewrite Dade_isometry // cfnormDd.
+      by rewrite cfnormN izetaE cfnorm_irr cfnorm_prTIred.
+    by rewrite cfdotNr cfdot_suml big1 ?oppr0 // => i _; rewrite Omu2.
+  pose etaW := map sigma (irr W).
+  have o1eta: orthonormal etaW := cycTIiso_orthonormal _.
+  have /orthonormalP[_ cfeta] := o1eta.
+  rewrite xiE cfnormDd ?cfdot_suml.
+    rewrite (eq_bigr (fun i => 1%:R))=> [|i _].
+      by rewrite sumr_const  nirrW1 -mulr_natl mulr1 // => /addrI.
+    rewrite (bigD1 i) //= cfdotDr cfdot_sumr big1 ?addr0 // => [|i1 Dii1].
+      by rewrite cfeta ?eqxx ?map_f ?mem_irr.
+    by rewrite cfeta ?map_f ?mem_irr // cycTIiso_eqE eq_sym (negPf Dii1).
+  rewrite big1 // => i _; rewrite cfdotC.
+  have /orthogonalP->// := OtauS; rewrite ?conjC0 ?inE //.
+  by apply: map_f (mem_irr _).
 admit.
 Qed.
 
