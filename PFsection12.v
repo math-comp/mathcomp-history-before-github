@@ -175,6 +175,13 @@ rewrite mem_cat; case/orP=> hx; first by exists a; rewrite // mem_head.
 case: (ih hx) => b lb xfb; exists b => //; exact: mem_behead.
 Qed.
 
+Lemma cc_calI : conjC_closed calI.
+Proof.
+move=> psi /imageP[i /S_calSP[phi calSphi]]; rewrite inE => irri -> {psi}.
+rewrite -conjC_IirrE; apply: chi_calI; apply/S_calSP.
+exists (phi^*)%CF; first by rewrite ?cfAut_seqInd.
+by rewrite inE irr_consttE conjC_IirrE cfdot_conjC conjC_eq0 -irr_consttE.
+Qed.
 Lemma FPtype1_Iirr_kerD_subcoherent : 
  {R : 'CF(L) -> seq _ |  subcoherent calI tau R}.
 Proof.
@@ -182,10 +189,7 @@ apply: irr_subcoherent; last exact: tau_isometry.
 split. 
 - by apply/dinjectiveP; apply: in2W irr_inj.
 - move=> _ /imageP[i _ ->]; exact: mem_irr.
-- move=> psi /imageP[i /S_calSP[phi calSphi]]; rewrite inE => irri -> {psi}.
-  rewrite -conjC_IirrE; apply: chi_calI; apply/S_calSP.
-  exists (phi^*)%CF; first by rewrite ?cfAut_seqInd.
-  by rewrite inE irr_consttE conjC_IirrE cfdot_conjC conjC_eq0 -irr_consttE.
+- exact: cc_calI.
 - apply/hasPn=> psi; case/imageP => i /S_calSP[phi calSphi].
   rewrite inE => irri -> {psi}; rewrite /cfReal odd_eq_conj_irr1 ?mFT_odd //.
   rewrite  irr_eq1; case/seqIndC1P: (calSphi)=> k kn0 phiE. 
@@ -505,6 +509,31 @@ have supp12B y chi i1 i2 : chi \in calS -> i1 \in S_ chi -> i2 \in S_ chi ->
     rewrite irr_consttE Resdot cfdotC (inv_eq conjCK) conjC0 -irr_consttE.
     by move: Si; rewrite inE.
   by rewrite {}Resdot dot_irr // scale1r sum_cfunE.
+have coh12 chi i1 i2 
+  (calS12 := undup ('chi_i1 :: ('chi_i1)^*%CF :: 'chi_i2 :: ('chi_i2)^*%CF)) :
+  chi \in calS -> i1 \in S_ chi -> i2 \in S_ chi -> coherent calS12 L^# tau.
+  move=> calS_chi Si1 Si2; have [_ cst1 _]:= (PF_12_2a maxL Ltype calS_chi).
+  case: (FPtype1_Iirr_kerD_subcoherent maxL Ltype)=> R1 subcoh1.
+  have calS12S : {subset calS12 <= [seq 'chi_i | i in Iirr_kerD L H 1%G]}.
+    move=> xi; rewrite mem_undup.
+    by case/or4P; rewrite ?orbF /= => /eqP ->; 
+       rewrite ?cc_calI // map_f // mem_enum; apply/S_calSP; exists chi.
+  have subcoh12 : subcoherent calS12 tau R1.
+    apply: (subset_subcoherent subcoh1); rewrite /cfConjC_subset; split=> //.
+    - by rewrite /calS12 undup_uniq.
+    - rewrite /conjC_closed => phi; rewrite mem_undup /= /calS12.
+      by case/or4P;  
+        rewrite ?orbF => /eqP ->; rewrite ?cfConjCK mem_undup !inE eqxx ?orbT.
+    have conjC_deg (i : Iirr L) : ('chi_i)^*%CF 1%g = 'chi_i 1%g.
+      by rewrite cfunE irr1_degree /=; apply: conj_Creal => //; apply: Creal_Cnat.
+    apply: (uniform_degree_coherence subcoh12).
+    (* no shortcut for subseq of a constant is constant? *)
+    case/(constantP 0): cst1 => c /all_pred1P /allP => nseqD.
+    apply: (@all_pred1_constant _ c); apply/allP=> u /mapP [xi calSxi -> {u}]. 
+    apply: nseqD; apply/imageP; move: calSxi; rewrite mem_undup.
+    by case/or4P; rewrite ?orbF /= => /eqP hxi; rewrite -?conjC_deg;
+      [exists i1=> //| exists i1 => // | exists i2 => //| exists i2 => //];
+      rewrite ?hxi //.
 Admitted.
 
 Section Twelve_4_5.
