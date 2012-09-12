@@ -533,6 +533,11 @@ Proof.
 move: PF12_9 abP0 prankP0 maxL sP0_Ls P0_1s_x sNxM not_sCxK' not_sCxL; admit.
 Qed.
 
+Let Ltype1 : FTtype L == 1%N. Proof. exact: FT_Frobenius_type1 frobL. Qed.
+
+Let sP0H : P0 \subset H.
+Proof. by have:= sP0_Ls; rewrite /L`_\s (eqP Ltype1). Qed.
+
 Let defM : K ><| (M :&: L) = M.
 Proof. move: frobL. admit. Qed.
 
@@ -542,11 +547,52 @@ Proof. move: frobL. admit. Qed.
 Let E := sval (sigW (existsP frobL)).
 Let e := #|E|.
 
-Let defL: H ><| E = L.
+Let defL : H ><| E = L.
 Proof. by rewrite /E; case: (sigW _) => E0 /=/Frobenius_context[]. Qed.
 
 Let PF12_12 : cyclic E /\ (e %| p.-1) || (e %| p.+1).
-Proof. move: frobL. admit. Qed.
+Proof.
+pose P := 'O_p(H)%G; pose T := 'Ohm_1('Z(P))%G.
+have sylP: p.-Sylow(H) P := nilpotent_pcore_Hall p (Fcore_nil L).
+have [[sPH pP _] [sP0M pP0 _]] := (and3P sylP, and3P Sylow_P0). 
+have sP0P: P0 \subset P by rewrite (sub_normal_Hall sylP) ?pcore_normal.
+have defP0: P :&: M = P0.
+  rewrite [P :&: M](sub_pHall Sylow_P0 (pgroupS _ pP)) ?subsetIl ?subsetIr //.
+  by rewrite subsetI sP0P.
+have [ntx P01x] := setD1P P0_1s_x; have P0x := subsetP (Ohm_sub 1 P0) x P01x.
+have sZP0: 'Z(P) \subset P0.
+  apply: subset_trans (_ : 'C_P[x] \subset P0).
+    by rewrite -cent_set1 setIS ?centS // sub1set (subsetP sP0P).
+  by rewrite -defP0 setIS // (subset_trans _ sNxM) // cents_norm ?cent_cycle.
+have ntT: T :!=: 1%g.
+  rewrite Ohm1_eq1 center_nil_eq1 ?(pgroup_nil pP) // (subG1_contra sP0P) //.
+  by apply/trivgPn; exists x.
+have [_ sEL _ nHE _] := sdprod_context defL.
+have charTP: T \char P := char_trans (Ohm_char 1 _) (center_char P).
+have{ntT} [V minV sVT]: {V : {group gT} | minnormal V E & V \subset T}.
+  apply: mingroup_exists; rewrite ntT (char_norm_trans charTP) //.
+  exact: char_norm_trans (pcore_char p H) nHE.
+have abelT: p.-abelem T by rewrite Ohm1_abelem ?center_abelian ?(pgroupS sZP0).
+have sTP := subset_trans (Ohm_sub 1 _) sZP0.
+have rankT: ('r_p(T) <= 2)%N by rewrite -prankP0 p_rankS.
+have [abelV /andP[ntV nVE]] := (abelemS sVT abelT, mingroupp minV).
+have pV := abelem_pgroup abelV; have [pr_p _ [n oV]] := pgroup_pdiv pV ntV.
+have frobHE: [Frobenius L = H ><| E] by rewrite /E; case: (sigW _).
+have: ('r_p(V) <= 2)%N by rewrite (leq_trans (p_rankS p sVT)).
+rewrite (p_rank_abelem abelV) // oV pfactorK // ltnS leq_eqVlt ltnS leqn0 orbC.
+case/pred2P=> dimV; rewrite dimV in oV.
+  pose f := [morphism of restrm nVE (conj_aut V)].
+  have injf: 'injm f.
+    rewrite ker_restrm ker_conj_aut.
+    rewrite (cent_semiregular (Frobenius_reg_compl frobHE)) //.
+    by rewrite (subset_trans sVT) ?(subset_trans (char_sub charTP)).
+  rewrite /e -(injm_cyclic injf) // -(card_injm injf) //.
+  have Aut_fE: f @* E \subset Aut V by rewrite im_restrm Aut_conj_aut.
+  rewrite (cyclicS Aut_fE) ?Aut_prime_cyclic ?oV //.
+  rewrite (dvdn_trans (cardSg Aut_fE)) // card_Aut_cyclic ?prime_cyclic ?oV //.
+  by rewrite totient_pfactor ?muln1.
+admit.
+Qed.
 
 Import PFsection7.
 
