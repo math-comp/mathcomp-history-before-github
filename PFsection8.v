@@ -634,14 +634,20 @@ rewrite (coprimeSg (subsetIl _ _)) //=.
 by have [| _ -> //] := parts_bc x; exact/setIdP.
 Qed.
 
-Lemma def_FTsignalizer : {in 'A0(M), Dade_signalizer FT_Dade0_hyp =1 'R_M}.
-Proof. exact: def_Dade_signalizer. Qed.
-
 Definition FT_Dade_hyp :=
   restr_Dade_hyp FT_Dade0_hyp (FTsupp_sub0 M) (FTsupp_norm M).
 
 Definition FT_Dade1_hyp :=
   restr_Dade_hyp FT_Dade0_hyp (FTsupp1_sub0 maxM) (FTsupp1_norm M).
+
+Lemma def_FTsignalizer0 : {in 'A0(M), Dade_signalizer FT_Dade0_hyp =1 'R_M}.
+Proof. exact: def_Dade_signalizer. Qed.
+
+Lemma def_FTsignalizer : {in 'A(M), Dade_signalizer FT_Dade_hyp =1 'R_M}.
+Proof. exact: restr_Dade_signalizer def_FTsignalizer0. Qed.
+
+Lemma def_FTsignalizer1 : {in 'A1(M), Dade_signalizer FT_Dade1_hyp =1 'R_M}.
+Proof. exact: restr_Dade_signalizer def_FTsignalizer0. Qed.
 
 Local Notation tau := (Dade FT_Dade0_hyp).
 Local Notation FT_Dade := (Dade FT_Dade_hyp).
@@ -654,18 +660,18 @@ Lemma FT_Dade1E : {in 'CF(M, 'A1(M)), FT_Dade1 =1 tau}.
 Proof. exact: restr_DadeE. Qed.
 
 Lemma FT_Dade0_supportE : Dade_support FT_Dade0_hyp = 'A0~(M).
-Proof. by apply/eq_bigr=> x A0x; rewrite /Dade_support1 def_FTsignalizer. Qed.
+Proof. by apply/eq_bigr=> x A0x; rewrite /Dade_support1 def_FTsignalizer0. Qed.
 
 Lemma FT_Dade1_supportE : Dade_support FT_Dade1_hyp = 'A1~(M).
 Proof.
 rewrite restr_Dade_support; apply: eq_bigr => x A1x.
-by rewrite /Dade_support1 def_FTsignalizer // (subsetP (FTsupp1_sub0 maxM)).
+by rewrite /Dade_support1 def_FTsignalizer0 // (subsetP (FTsupp1_sub0 maxM)).
 Qed.
 
 Lemma FT_Dade_supportE : Dade_support FT_Dade_hyp = 'A~(M).
 Proof.
 rewrite restr_Dade_support; apply: eq_bigr => x Ax.
-by rewrite /Dade_support1 def_FTsignalizer // inE Ax.
+by rewrite /Dade_support1 def_FTsignalizer0 // inE Ax.
 Qed.
 
 Lemma FT_Dade0_supportJ x : 'A0~(M :^ x) = 'A0~(M).
@@ -878,7 +884,7 @@ suffices nTI_A0: normedTI 'A0(M) G M.
 have sA0G1: 'A0(M) \subset G^# by exact: subset_trans (setSD _ (subsetT M)).  
 have [U W W1 W2 defW [[MtypeP _ _ tiFM] _ _ _ _]] := FTtypeP 2 maxM typeM.
 apply/Dade_normedTI_P=> //; exists (FT_Dade0_hyp maxM) => x A0x.
-rewrite /= def_FTsignalizer /'R_M //=; have [// | not_sCxM] := ifPn.
+rewrite /= def_FTsignalizer0 /'R_M //=; have [// | not_sCxM] := ifPn.
 have [y cxy /negP[]] := subsetPn not_sCxM.
 have /setD1P[ntx Ms_x]: x \in 'A1(M).
   by have [_ [/subsetP-> // ]] := FTsupport_facts maxM; apply/setIdP.
@@ -1056,7 +1062,7 @@ have part_b S T (maxS : S \in 'M) (maxT : T \in 'M) (ncST : NC S T) :
   pose ddS := FT_Dade1_hyp maxS; have [/andP[sA1S _] _ notA1_1 _ _] := ddS.
   have [ntx1 Sx1] := (memPn notA1_1 _ A1Sx1, subsetP sA1S _ A1Sx1).
   have [coHS defCx1] := (Dade_coprime ddS A1Sx1 A1Sx1, Dade_sdprod ddS A1Sx1).
-  rewrite (restr_Dade_signalizer _ _ (def_FTsignalizer maxS)) // in coHS defCx1.
+  rewrite def_FTsignalizer1 // in coHS defCx1.
   have[u Ts_u /setD1P[_ cT'ux2]] := bigcupP ATx2.
   exists u => {Ts_u}//; rewrite 2!inE -(conj1g z) (can_eq (conjgK z)) ntx1.
   suffices{u cT'ux2} ->: x1 = (y * x1).`_(\pi('R_S x1)^').

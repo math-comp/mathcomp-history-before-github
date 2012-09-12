@@ -515,7 +515,7 @@ have mu0_zeta_g: (mu_ 0 - zeta)^\tau g = 0.
     by apply: cfun_on0; apply: Dade_cfunS.
   case/bigcupP=> x A0x xRg; rewrite (DadeE _ A0x) // (cfun_on0 Amu0zeta) //.
   apply: contra notAg => Ax; apply/bigcupP; exists x => //.
-  by rewrite -def_FTsignalizer.
+  by rewrite -def_FTsignalizer0.
 have{mu0_zeta_g} zeta_g: zeta^\tau1 g = \sum_i eta_ i 0 g.
   by apply/esym/eqP; rewrite -subr_eq0 -{2}mu0_zeta_g tau1mu0 !cfunE sum_cfunE.
 have Zwg i: eta_ i 0 g \in Cint.

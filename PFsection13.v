@@ -2001,14 +2001,14 @@ Local Notation H := `L`_\F%G.
 Local Notation "` 'H'" := `L`_\F (at level 0) : group_scope.
 
 Let e :=  #|L : H|.
-Let tauL := FT_Dade0 maxL.
+Let tauL := FT_Dade maxL.
 Let calL := seqIndD H L H 1.
 
 Let frobL : [Frobenius L with kernel H]. Proof. exact: FTtype1_Frobenius. Qed.
 
 (* The coherence part of the preamble of (13.19). *)
 Lemma FTtype1_coherence : coherent calL L^# tauL.
-Proof. by have [] := FT_seqInd_Frobenius_coherence maxL. Qed.
+Proof. by have [] := FT_Frobenius_coherence maxL. Qed.
 
 Lemma FTtype1_bridge_witness : exists2 phi, phi \in calL & phi 1%g = e%:R.
 Proof.
@@ -2038,7 +2038,7 @@ Lemma FTtypeI_bridge_facts :
       \/ (*c2*) ('[tauL betaL, eta01] == 1 %[mod 2])%C /\ (p <= e)%N].
 Proof.
 have nsHL: H <| L := gFnormal _ L; have [sHL nHL] := andP nsHL.
-have irrL: {subset calL <= irr L} by case: (FT_seqInd_Frobenius_coherence maxL).
+have irrL: {subset calL <= irr L} by case: (FT_Frobenius_coherence maxL).
 have coHr T r: T \in 'M -> FTtype T != 1%N -> r.-abelem T`_\F -> coprime #|H| r.
   move=> maxT notTtype1 /andP[rR _].
   have [_ _ [n oR]] := pgroup_pdiv rR (mmax_Fcore_neq1 maxT).
@@ -2051,7 +2051,6 @@ have{coHr} coHq: coprime #|H| q.
   have [T pairST [defW21 [V TtypeP]]] := FTtypeP_pair_witness maxS StypeP.
   have [[_ _ maxT] _ _ _ _] := pairST; have Ttype'1 := FTtypeP_neq1 maxT TtypeP.
   by rewrite (coHr T) ?Ttype'1 //; have [_ []] := FTtypeP_facts maxT TtypeP.
-have defA0: 'A0(L) = 'A(L) by rewrite FTsupp0_type1.
 have defA: 'A(L) = H^#.
   apply/eqP; rewrite eqEsubset andbC.
   rewrite (subset_trans _ (Fitting_sub_FTsupp _)) ?setSD ?Fcore_sub_Fitting //.
@@ -2059,11 +2058,11 @@ have defA: 'A(L) = H^#.
   by apply: setSD; have /Frobenius_kerP[_ _ _ ->] := frobL.
 set PWG := class_support P G :|: class_support W G.
 have tiA_PWG: 'A~(L) :&: PWG = set0.
-  apply/setP=> x; rewrite -defA0 !inE; apply/andP=> [[A0x PWGx]].
-  suffices{A0x}: \pi(H)^'.-elt x.
-    have [y A0y /imset2P[_ t /rcosetP[z Rz ->] _ ->]] := bigcupP A0x => H'zyt.
-    do [rewrite -def_FTsignalizer //; set ddL := FT_Dade0_hyp maxL] in Rz.
-    have /setD1P[nty Hy]: y \in H^# by rewrite -defA -defA0.
+  apply/setP=> x; rewrite !inE; apply/andP=> [[Ax PWGx]].
+  suffices{Ax}: \pi(H)^'.-elt x.
+    have [y Ay /imset2P[_ t /rcosetP[z Rz ->] _ ->]] := bigcupP Ax => H'zyt.
+    do [rewrite -def_FTsignalizer //; set ddL := FT_Dade_hyp maxL] in Rz.
+    have /setD1P[nty Hy]: y \in H^# by rewrite -defA.
     have /idPn[]: (z * y).`_\pi('C_H[y]) == 1%g.
       rewrite (constt1P _) // -(p_eltJ _ _ t); apply: sub_in_pnat H'zyt => r _.
       by apply: contra; apply: piSg; apply: subsetIl.
@@ -2071,7 +2070,7 @@ have tiA_PWG: 'A~(L) :&: PWG = set0.
       exact: cent1P (subsetP (Dade_signalizer_cent _ y) z Rz).
     rewrite (constt1P (mem_p_elt _ Rz)) ?mul1g; last first.
       rewrite /pgroup -coprime_pi' ?cardG_gt0 // coprime_sym.
-      by rewrite (coprimegS _ (Dade_coprime _ _ A0y)) ?setSI.
+      by rewrite (coprimegS _ (Dade_coprime _ Ay Ay)) ?setSI.
     by rewrite (constt_p_elt (mem_p_elt (pgroup_pi _) _)) // inE Hy cent1id.
   suffices /pnat_dvd: #[x] %| #|P| * #|W|.
     have [_ [_ ->] _ _ _] := Sfacts; rewrite -(dprod_card defW) -/p -/q.
@@ -2091,7 +2090,7 @@ have otau1eta: orthogonal (map tau1 calL) (map sigma (irr W)).
   have Z1dpsi := ZsubL _ Lpsi; have Zdpsi := zcharW Z1dpsi.
   have{Dtau1} PsiV0: {in V, Psi =1 \0}.
     move=> x /setDP[Wx _]; rewrite /Psi Dtau1 ?(cfun_on0 (Dade_cfunS _ _)) //.
-    rewrite FT_Dade0_supportE defA0; apply: contra_eqN tiA_PWG => Ax.
+    rewrite FT_Dade_supportE; apply: contra_eqN tiA_PWG => Ax.
     by apply/set0Pn; exists x; rewrite !inE Ax orbC mem_class_support.
   have opsi: '[psi, psi^*] = 0 by apply: seqInd_conjC_ortho (mFT_odd _) _ Lpsi.
   have n2Psi: '[Psi] = 2%:R.
@@ -2120,7 +2119,7 @@ have o_tauL_S zeta j: j != 0 -> '[tauL zeta, tau (beta_ j)] = 0.
     case/setUP: PVSx => [/setD1P[_ Px] | /imset2P[y z /setDP[Wy _] _ ->]].
       by rewrite inE memJ_class_support ?inE.
     by rewrite -conjgM inE orbC memJ_class_support ?inE.
-  rewrite (cfdotElr (Dade_cfunS _ _) PWGbeta) FT_Dade0_supportE {1}defA0.
+  rewrite (cfdotElr (Dade_cfunS _ _) PWGbeta) FT_Dade_supportE.
   by rewrite tiA_PWG big_set0 mulr0.
 have betaLeta j: j != 0 -> '[tauL betaL, eta_ 0 j] = '[tauL betaL, eta01].
   move=> nzj; apply/eqP; rewrite -subr_eq0 -cfdotBr.
@@ -2129,9 +2128,8 @@ have betaLeta j: j != 0 -> '[tauL betaL, eta_ 0 j] = '[tauL betaL, eta01].
 split=> //; have [[Itau1 Ztau1] Dtau1] := cohL.
 pose GammaL := tauL betaL - (1 - tau1 phi).
 have DbetaL: tauL betaL = 1 - tau1 phi + GammaL by rewrite addrC subrK.
-have [sH1A0 nH1L]: H^# \subset 'A0(L) /\ L \subset 'N(H^#).
-  by rewrite defA0 defA normD1.
-pose tauH := restr_Dade (FT_Dade0_hyp maxL) sH1A0 nH1L.
+have [sH1A nH1L]: H^# \subset 'A(L) /\ L \subset 'N(H^#) by rewrite defA normD1.
+pose tauH := restr_Dade (FT_Dade_hyp maxL) sH1A nH1L.
 have eqL_H: 'Z[calL, L^#] =i 'Z[calL, H^#] by apply: zcharD1_seqInd.
 have cohH: coherent_with calL H^# tauH tau1.
   split=> // psi Zpsi; rewrite /tauH restr_DadeE ?(zchar_on Zpsi) //.
