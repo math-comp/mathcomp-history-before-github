@@ -551,7 +551,7 @@ Let e := #|E|.
 Let defL : H ><| E = L.
 Proof. by rewrite /E; case: (sigW _) => E0 /=/Frobenius_context[]. Qed.
 
-Let PF12_12 : cyclic E /\ (e %| p.-1) || (e %| p.+1).
+Let Ecyclic_le_p : cyclic E /\ (e %| p.-1) || (e %| p.+1).
 Proof.
 pose P := 'O_p(H)%G; pose T := 'Ohm_1('Z(P))%G.
 have sylP: p.-Sylow(H) P := nilpotent_pcore_Hall p (Fcore_nil L).
