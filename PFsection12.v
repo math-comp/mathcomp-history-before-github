@@ -4,12 +4,13 @@ Require Import fintype tuple finfun bigop prime ssralg finset center.
 Require Import fingroup morphism perm automorphism quotient action finalg zmodp.
 Require Import gfunctor gproduct cyclic commutator gseries nilpotent pgroup.
 Require Import sylow hall abelian maximal frobenius.
-Require Import matrix mxalgebra mxrepresentation mxabelem vector.
-Require Import BGsection1 BGsection3 BGsection7 BGsection15 BGsection16.
+Require Import matrix mxalgebra mxpoly mxrepresentation mxabelem vector.
+Require Import falgebra fieldext finfield.
+Require Import BGsection1 BGsection2 BGsection3 BGsection7.
+Require Import BGsection15 BGsection16.
 Require Import ssrnum ssrint algC classfun character inertia vcharacter.
 Require Import PFsection1 PFsection2 PFsection3 PFsection4 PFsection5.
-Require Import PFsection6 PFsection7 PFsection8 PFsection9.
-Require Import PFsection11.
+Require Import PFsection6 PFsection7 PFsection8 PFsection9 PFsection11.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -567,7 +568,7 @@ have sZP0: 'Z(P) \subset P0.
 have ntT: T :!=: 1%g.
   rewrite Ohm1_eq1 center_nil_eq1 ?(pgroup_nil pP) // (subG1_contra sP0P) //.
   by apply/trivgPn; exists x.
-have [_ sEL _ nHE _] := sdprod_context defL.
+have [_ sEL _ nHE tiHE] := sdprod_context defL.
 have charTP: T \char P := char_trans (Ohm_char 1 _) (center_char P).
 have{ntT} [V minV sVT]: {V : {group gT} | minnormal V E & V \subset T}.
   apply: mingroup_exists; rewrite ntT (char_norm_trans charTP) //.
@@ -580,21 +581,91 @@ have pV := abelem_pgroup abelV; have [pr_p _ [n oV]] := pgroup_pdiv pV ntV.
 have frobHE: [Frobenius L = H ><| E] by rewrite /E; case: (sigW _).
 have: ('r_p(V) <= 2)%N by rewrite (leq_trans (p_rankS p sVT)).
 rewrite (p_rank_abelem abelV) // oV pfactorK // ltnS leq_eqVlt ltnS leqn0 orbC.
-case/pred2P=> dimV; rewrite dimV in oV.
+have sVH := subset_trans sVT (subset_trans (char_sub charTP) sPH).
+have regVE: 'C_E(V) = 1%g.
+  exact: cent_semiregular (Frobenius_reg_compl frobHE) sVH ntV.
+case/pred2P=> dimV; rewrite {n}dimV in oV.
   pose f := [morphism of restrm nVE (conj_aut V)].
-  have injf: 'injm f.
-    rewrite ker_restrm ker_conj_aut.
-    rewrite (cent_semiregular (Frobenius_reg_compl frobHE)) //.
-    by rewrite (subset_trans sVT) ?(subset_trans (char_sub charTP)).
+  have injf: 'injm f by rewrite ker_restrm ker_conj_aut regVE.
   rewrite /e -(injm_cyclic injf) // -(card_injm injf) //.
-  have Aut_fE: f @* E \subset Aut V by rewrite im_restrm Aut_conj_aut.
-  rewrite (cyclicS Aut_fE) ?Aut_prime_cyclic ?oV //.
-  rewrite (dvdn_trans (cardSg Aut_fE)) // card_Aut_cyclic ?prime_cyclic ?oV //.
-  by rewrite totient_pfactor ?muln1.
-admit.
+  have AutE: f @* E \subset Aut V by rewrite im_restrm Aut_conj_aut.
+  rewrite (cyclicS AutE) ?Aut_prime_cyclic ?oV // (dvdn_trans (cardSg AutE)) //.
+  by rewrite card_Aut_cyclic ?prime_cyclic ?oV // totient_pfactor ?muln1.
+have defV: V :=: 'Ohm_1(P0).
+  apply/eqP; rewrite eqEcard (subset_trans sVT) ?OhmS //= oV -prankP0.
+  by rewrite p_rank_abelian // -card_pgroup ?(pgroupS (Ohm_sub 1 _)).
+pose rE := abelem_repr abelV ntV nVE.
+have ffulE: mx_faithful rE by apply: abelem_mx_faithful.
+have p'E: [char 'F_p]^'.-group E.
+  rewrite (eq_p'group _ (charf_eq (char_Fp pr_p))) (coprime_p'group _ pV) //.
+  by rewrite coprime_sym (coprimeSg sVH) ?(Frobenius_coprime frobHE).
+have dimV: 'dim V = 2 by rewrite (dim_abelemE abelV) // oV pfactorK. 
+have cEE: abelian E.
+  by rewrite dimV in (rE) ffulE; apply: charf'_GL2_abelian (mFT_odd E) ffulE _.
+have Enonscalar y: y \in E -> y != 1%g -> ~~ is_scalar_mx (rE y).
+  move=> Ey; apply: contra => /is_scalar_mxP[a rEy]; simpl in a.
+  have nXy: y \in 'N(<[x]>).
+    rewrite !inE -cycleJ cycle_subG; apply/cycleP; exists a.
+    have [Vx nVy]: x \in V /\ y \in 'N(V) by rewrite (subsetP nVE) ?defV.
+    apply: (@abelem_rV_inj p _ V); rewrite ?groupX ?memJ_norm ?morphX //=.
+    by rewrite zmodXgE -scaler_nat natr_Zp -mul_mx_scalar -rEy -abelem_rV_J.
+  rewrite -in_set1 -set1gE -tiHE inE (subsetP sML_H) //.
+  by rewrite inE (subsetP sEL) // (subsetP sNxM).
+have /trivgPn[y nty Ey]: E != 1%G by have [] := Frobenius_context frobHE.
+have cErEy: centgmx rE (rE y).
+  by apply/centgmxP=> z Ez; rewrite -!repr_mxM // (centsP cEE).
+have irrE: mx_irreducible rE by apply/abelem_mx_irrP.
+have charFp2: p \in [char MatrixGenField.gen_finFieldType irrE cErEy].
+  apply: (rmorph_char (MatrixGenField.gen_rmorphism irrE cErEy)).
+  exact: char_Fp.
+pose Fp2 := primeChar_finFieldType charFp2.
+pose n1 := MatrixGenField.gen_dim (rE y).
+pose rEp2 : mx_representation Fp2 E n1 := MatrixGenField.gen_repr irrE cErEy.
+have n1_gt0: (0 < n1)%N := MatrixGenField.gen_dim_gt0 irrE cErEy.
+have n1_eq1: n1 = 1%N.
+  pose d := degree_mxminpoly (rE y).
+  have dgt0: (0 < d)%N := mxminpoly_nonconstant _.
+  apply/eqP; rewrite eqn_leq n1_gt0 andbT -(leq_pmul2r dgt0).
+  rewrite (MatrixGenField.gen_dim_factor irrE cErEy) mul1n dimV.
+  by rewrite ltnNge mxminpoly_linear_is_scalar Enonscalar.
+have oFp2: #|Fp2| = (p ^ 2)%N.
+  rewrite card_sub card_matrix card_Fp // -{1}n1_eq1.
+  by rewrite (MatrixGenField.gen_dim_factor irrE cErEy) dimV.
+have [f rfK fK]: bijective (@scalar_mx Fp2 n1).
+  rewrite n1_eq1.
+  by exists (fun A : 'M_1 => A 0 0) => ?; rewrite ?mxE -?mx11_scalar.
+pose g z : {unit Fp2} := insubd (1%g : {unit Fp2}) (f (rEp2 z)).
+have val_g z : z \in E -> (val (g z))%:M = rEp2 z.
+  move=> Ez; rewrite insubdK ?fK //; have:= repr_mx_unit rEp2 Ez.
+  by rewrite -{1}[rEp2 z]fK unitmxE det_scalar !unitfE expf_eq0 n1_gt0.
+have ffulEp2: mx_faithful rEp2 by rewrite MatrixGenField.gen_mx_faithful.
+have gM: {in E &, {morph g: z1 z2 / z1 * z2}}%g.
+  move=> z1 z2 Ez1 Ez2 /=; apply/val_inj/(can_inj rfK).
+  rewrite {1}(val_g _ (groupM Ez1 Ez2)) scalar_mxM.
+  by rewrite {1}(val_g _ Ez1) (val_g _ Ez2) repr_mxM.
+have inj_g: 'injm (Morphism gM).
+  apply/injmP=> z1 z2 Ez1 Ez2 /(congr1 (@scalar_mx _ n1 \o val)).
+  by rewrite /= {1}(val_g _ Ez1) (val_g _ Ez2); apply: mx_faithful_inj.
+split; first by rewrite -(injm_cyclic inj_g) ?field_unit_group_cyclic.
+have: e %| #|[set: {unit Fp2}]|.
+  by rewrite /e -(card_injm inj_g) ?cardSg ?subsetT.
+rewrite card_finField_unit oFp2 -!subn1 (subn_sqr p 1) addn1.
+rewrite orbC Gauss_dvdr; first by move->.
+rewrite coprime_sym coprime_has_primes ?subn_gt0 ?prime_gt1 ?cardG_gt0 //.
+apply/hasPn=> r; rewrite /= !mem_primes subn_gt0 prime_gt1 ?cardG_gt0 //=.
+case/andP=> pr_r /Cauchy[//|z Ez oz]; rewrite pr_r /= subn1.
+apply: contra (Enonscalar z Ez _); last by rewrite -order_gt1 oz prime_gt1.
+rewrite -oz -(order_injm inj_g) // order_dvdn -val_eqE => /eqP gz_p1_eq1.
+have /vlineP[a Dgz]: val (g z) \in 1%VS.
+  rewrite Fermat's_little_theorem dimv1 card_Fp //=.
+  by rewrite -[(p ^ 1)%N]prednK ?prime_gt0 // exprS -val_unitX gz_p1_eq1 mulr1.
+apply/is_scalar_mxP; exists a; apply/row_matrixP=> i.
+apply: (can_inj ((MatrixGenField.in_genK irrE cErEy) _)).
+rewrite !rowE mul_mx_scalar MatrixGenField.in_genZ MatrixGenField.in_genJ //.
+rewrite -val_g // Dgz mul_mx_scalar; congr (_ *: _).
+rewrite -(natr_Zp a) scaler_nat.
+by rewrite -(rmorph_nat (MatrixGenField.gen_rmorphism irrE cErEy)).
 Qed.
-
-Import PFsection7.
 
 Let calS := seqIndD H L H 1.
 Notation tauL := (FT_Dade maxL).
