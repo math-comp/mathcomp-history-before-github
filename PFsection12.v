@@ -678,8 +678,143 @@ Hypothesis cohS : coherent_with calS L^# tauL tau1.
 Hypotheses (Schi : chi \in calS) (chi1 : chi 1%g = e%:R).
 Let psi := tau1 chi.
 
-Let PF12_14 : {in K, forall g, psi (x * g)%g = chi x} /\ rhoL psi x = chi x.
-Proof. move: frobL cohS Schi chi1; admit. Qed.
+Let rhoL_psi : {in K, forall g, psi (x * g)%g = chi x} /\ rhoL psi x = chi x.
+Proof.
+have nsHL: H <| L by rewrite gFnormal.
+have nH1L: L \subset 'N(H^#) by rewrite normD1 gFnorm.
+pose ddLH := restr_Dade_hyp (FT_Dade_hyp maxL) (Fcore_sub_FTsupp maxL) nH1L.
+have defA: 'A(L) = H^#.
+  apply/eqP; rewrite eqEsubset Fcore_sub_FTsupp // andbT.
+  apply/bigcupsP=> y; rewrite /'A1(L) /L`_\s (eqP Ltype1) /= => H1y.
+  by rewrite setSD //; have [_ _ _ ->] := Frobenius_kerP frobL.
+pose tauL_H := Dade ddLH; pose rhoL_H := invDade ddLH.
+have ->: rhoL psi = rhoL_H psi.
+  by apply/cfunP=> y; rewrite !cfunElock /Dade_signalizer defA.
+have not_LGM: gval M \notin L :^: G.
+  apply: contraL p'K => /= /imsetP[z _ ->]; rewrite FcoreJ pgroupJ.
+  by rewrite p'groupEpi (piSg sP0H) // -p_rank_gt0 prankP0.
+pose rmR := sval (Rgen maxL Ltype1).
+have Zpsi: psi \in 'Z[rmR chi].
+  case: (Rgen _ _) @rmR => /= rmR []; rewrite -/calS => scohS _ _.
+  have sSS: cfConjC_subset calS calS by apply: seqInd_conjC_subset1.
+  have [B /mem_subseq sBR Dpsi] := mem_coherent_sum_subseq scohS sSS cohS Schi.
+  by rewrite [psi]Dpsi big_seq rpred_sum // => xi /sBR/mem_zchar->.
+have [ntx /(subsetP (Ohm_sub 1 P0))P0x] := setD1P P0_1s_x.
+have Mx: x \in M by rewrite (subsetP sNxM) // -cycle_subG normG.
+have psi_xK: {in K, forall g, psi (x * g)%g = psi x}.
+  move=> g Kg; have{Kg}: (x * g \in x *: K)%g by rewrite mem_lcoset mulKg.
+  apply: FTtype1_ortho_constant => [phi calMphi|].
+    apply/orthoPl=> nu /memv_span; apply: {nu}span_orthogonal (zchar_span Zpsi).
+    exact: PF_12_3.
+  rewrite inE -/K (contra _ ntx) // => Kx.
+  rewrite -(consttC p x) !(constt1P _) ?mulg1 ?(mem_p_elt p'K) //.
+  by rewrite p_eltNK (mem_p_elt (pHall_pgroup Sylow_P0)).
+have H1x: x \in H^# by rewrite !inE ntx (subsetP sP0H).
+have rhoL_psi_x: rhoL_H psi x = psi x.
+  rewrite cfunElock (restr_Dade_signalizer _ _ (def_FTsignalizer _)) // H1x.
+  apply: canLR (mulKf (neq0CG _)) _; rewrite mulr_natl -sumr_const.
+  apply: eq_bigr => g; rewrite /'R_L (negPf not_sCxL) /= setIC => /setIP[cxz].
+  have Dx: x \in [set y in 'A0(L) | ~~ ('C[y] \subset L)].
+    by rewrite inE (subsetP (Fcore_sub_FTsupp0 _)).
+  have [_ [_ /(_ x Dx)defNx] _] := FTsupport_facts maxL.
+  rewrite (cent1P cxz) -(eq_uniq_mmax defNx maxM) => [/psi_xK//|].
+  by rewrite /= -cent_cycle (subset_trans (cent_sub _)).
+suffices <-: (rhoL_H psi) x = chi x by split=> // g /psi_xK->.
+have cohS_H: coherent_with calS H^# tauL_H tau1.
+  have [IZtau Dtau] := cohS; split=> // xi Hxi.
+  by rewrite [tauL_H _]restr_DadeE ?(zchar_on Hxi) ?Dtau ?zcharD1_seqInd.
+have irrS: {subset calS <= irr L} by have [] := FT_Frobenius_coherence maxL.
+have /irrP[t Dchi] := irrS _ Schi; have St: 'chi_t \in calS by rewrite -Dchi.
+have Sgt1: (1 < size calS)%N by apply: seqInd_nontrivial St; rewrite ?mFT_odd.
+have De: #|L : H| = e by rewrite -(index_sdprod defL).
+have:= Dade_Ind1_sub_lin cohS_H Sgt1 St; rewrite -Dchi -/tauL_H -/calS -/psi /=.
+set alpha := 'Ind 1 - chi; rewrite De => [[]] // [[o_tau_1 tau_alpha_1 _]].
+case=> Gamma [o_tau1_Ga _ [a Za tau_alpha] _] _.
+have [[Itau1 _] Dtau1] := cohS_H.
+have o1calS: orthonormal calS.
+  by rewrite (sub_orthonormal irrS) ?seqInd_uniq ?irr_orthonormal.
+have norm_alpha: '[tauL_H alpha] = e%:R + 1.
+  rewrite Dade_isometry ?(cfInd1_sub_lin_on _ Schi) ?De //.
+  rewrite cfnormBd; last by rewrite cfdotC (seqInd_ortho_Ind1 _ _ Schi) ?conjC0.
+  by rewrite cfnorm_Ind_cfun1 // De Dchi cfnorm_irr.
+pose h := #|H|; have ub_a: a ^+ 2 * ((h%:R - 1) / e%:R) - 2%:R * a <= e%:R - 1.
+  rewrite -[h%:R - 1](mulKf (neq0CiG L H)) -sum_seqIndC1_square // De -/calS.
+  rewrite -[lhs in lhs - 1](addrK 1) -norm_alpha -[tauL_H _](subrK 1).
+  rewrite cfnormDd; last by rewrite cfdotBl tau_alpha_1 cfnorm1 subrr.
+  rewrite cfnorm1 addrK [in '[_]]addrC {}tau_alpha -!addrA addKr addrCA addrA.
+  rewrite ler_subr_addr cfnormDd ?ler_paddr ?cfnorm_ge0 //; last first.
+    rewrite cfdotBl cfdotZl cfdot_suml (orthoPr o_tau1_Ga) ?map_f // subr0.
+    rewrite big1_seq ?mulr0 // => xi Sxi; rewrite cfdotZl.
+    by rewrite (orthoPr o_tau1_Ga) ?map_f ?mulr0.
+  rewrite cfnormB cfnormZ Cint_normK // cfdotZl cfproj_sum_orthonormal //.
+  rewrite cfnorm_sum_orthonormal // Itau1 ?mem_zchar // irrWnorm ?irrS // divr1.
+  rewrite chi1 divff ?neq0CG // mulr1 conj_Cint // addrAC mulr_natl.
+  rewrite !ler_add2r !(mulr_suml, mulr_sumr) !big_seq ler_sum // => xi Sxi.
+  rewrite irrWnorm ?irrS // !divr1 (mulrAC _^-1) -expr2 -!exprMn (mulrC _^-1).
+  by rewrite normf_div normr_nat norm_Cnat // (Cnat_seqInd1 Sxi).
+have [pr_p p_dv_M]: prime p /\ p %| #|M|.
+  have: p \in \pi(M) by rewrite -p_rank_gt0 ltnW.
+  by rewrite mem_primes => /and3P[].
+have odd_p: odd p by rewrite (dvdn_odd p_dv_M) ?mFT_odd.
+have pgt2: (2 < p)%N := odd_prime_gt2 odd_p pr_p.
+have ub_e: e%:R <= (p%:R + 1) / 2%:R :> algC.
+  rewrite ler_pdivl_mulr ?ltr0n // -natrM -mulrSr leC_nat.
+  have [b e_dv_pb]: exists b : bool, e %| (b.*2 + p).-1.
+    by have [_ /orP[]] := Ecyclic_le_p; [exists false | exists true].
+  apply: (@leq_trans (b.*2 + p).-1); last first.
+    by case: {e_dv_pb}b => //=; rewrite -subn1 leq_subLR !leqW.
+  apply: dvdn_leq; first by rewrite -(subnKC pgt2) !addnS.
+  rewrite Gauss_dvd ?coprimen2 ?mFT_odd // e_dv_pb dvdn2 -subn1.
+  by rewrite -addnBA ?odd_add ?odd_sub ?prime_gt0 // odd_double odd_p.
+have lb_h: p%:R ^+ 2 <= h%:R :> algC.
+  rewrite -natrX leC_nat dvdn_leq ?pfactor_dvdn ?cardG_gt0 //.
+  by rewrite -prankP0 (leq_trans (p_rankS p sP0H)) ?p_rank_le_logn.
+have{ub_a ub_e} ub_a: p.-1.*2%:R * a ^+ 2 - 2%:R * a <= p.-1%:R / 2%:R :> algC.
+  apply: ler_trans (ler_trans ub_a _); last first.
+    rewrite -subn1 -subSS natrB ?ltnS ?prime_gt0 // mulrSr mulrBl.
+    by rewrite divff ?pnatr_eq0 ?ler_add2r.
+  rewrite ler_add2r mulrC -Cint_normK // -!mulrA !ler_wpmul2l ?normr_ge0 //.
+  rewrite ler_pdivl_mulr ?gt0CG // ler_subr_addr (ler_trans _ lb_h) //.
+  rewrite -muln2 natrM -mulrA -ler_subr_addr subr_sqr_1.
+  rewrite -(natrB _ (prime_gt0 pr_p)) subn1 ler_wpmul2l ?ler0n //.
+  by rewrite mulrC -ler_pdivl_mulr ?ltr0n.
+have a0: a = 0.
+  apply: contraTeq ub_a => nz_a; rewrite ltr_geF // ltr_pdivr_mulr ?ltr0n //.
+  rewrite mulrC -{1}mulr_natl -muln2 natrM -mulrA mulrBr mulrCA ltr_subr_addl.
+  rewrite -ltr_subr_addr -mulrBr mulr_natl mulrA -expr2 -exprMn.
+  apply: ltr_le_trans (_ : 2%:R * ((a *+ 2) ^+ 2 - 1) <= _); last first.
+    rewrite (mulr_natl a 2) ler_wpmul2r // ?subr_ge0.
+      by rewrite sqr_Cint_ge1 ?rpredMn // mulrn_eq0.
+    by rewrite leC_nat -subn1 ltn_subRL.
+  rewrite -(@ltr_pmul2l _ 2%:R) ?ltr0n // !mulrA -expr2 mulrBr -exprMn mulr1.
+  rewrite -natrX 2!mulrnAr -[in rhs in _ < rhs]mulrnAl -mulrnA.
+  rewrite ltr_subr_addl -ltr_subr_addr -(ltr_add2r 1) -mulrSr -sqrrB1.
+  rewrite -Cint_normK ?rpredB ?rpredM ?rpred_nat ?rpred1 //.
+  rewrite (@ltr_le_trans _ (3 ^ 2)%:R) ?ltC_nat // natrX.
+  rewrite ler_sqr ?qualifE ?ler0n ?normr_ge0 //.
+  rewrite (ler_trans _ (ler_sub_dist _ _)) // normr1 normrM normr_nat.
+  by rewrite ler_subr_addl -mulrS mulr_natl ler_pmuln2r ?norm_Cint_ge1.
+pose chi0 := 'Ind[L, H] 1.
+have defS1: perm_eq (seqIndT H L) (chi0 :: calS).
+  by rewrite [calS]seqIndC1_rem // perm_to_rem ?seqIndT_Ind1.
+have [c _ -> // _] := invDade_seqInd_sum ddLH psi defS1.
+have psi_alpha_1: '[psi, tauL_H alpha] = -1.
+  rewrite tau_alpha a0 scale0r addr0 addrC addrA cfdotBr cfdotDr.
+  rewrite (orthoPr o_tau_1) ?(orthoPr o_tau1_Ga) ?map_f // !add0r.
+  by rewrite Itau1 ?mem_zchar ?map_f // irrWnorm ?irrS.
+rewrite (bigD1_seq chi) ?seqInd_uniq //= big1_seq => [|xi /andP[chi'xi Sxi]].
+  rewrite addr0 -cfdotC chi1 cfInd1 ?gFsub // cfun11 mulr1 De divff ?neq0CG //.
+  rewrite scale1r -opprB linearN cfdotNr psi_alpha_1 opprK.
+  by rewrite irrWnorm ?irrS // divr1 mul1r.
+rewrite -cfdotC cfInd1 ?gFsub // cfun11 mulr1.
+rewrite /chi0 -(canLR (subrK _) (erefl alpha)) scalerDr opprD addrCA -scaleNr.
+rewrite linearD linearZ /= cfdotDr cfdotZr psi_alpha_1 mulrN1 rmorphN opprK.
+rewrite -/tauL_H -Dtau1 ?(seqInd_sub_lin_vchar _ Schi) ?De //.
+have [_ ooS] := orthonormalP o1calS.
+rewrite raddfB cfdotBr Itau1 ?mem_zchar // ooS // mulrb ifN_eqC // add0r.
+rewrite -De raddfZ_Cnat ?(dvd_index_seqInd1 _ Sxi) // De cfdotZr.
+by rewrite Itau1 ?mem_zchar ?ooS // eqxx mulr1 subrr !mul0r.
+Qed.
 
 Let rhoM := (invDade (FT_Dade1_hyp maxL)).
 
@@ -687,10 +822,10 @@ Let PF12_15 :
   [/\ {in K^#, forall g, rhoM psi g = psi g},
       {in K :\: K' &, forall g1 g2, psi g1 = psi g2}
     & {in K :\: K', forall g, psi g \in Cint}].
-Proof. move: PF12_14; admit. Qed.
+Proof. move: rhoL_psi; admit. Qed.
 
 Lemma PF12_16_inner : False.
-Proof. move: PF12_14; admit. Qed.
+Proof. move: rhoL_psi; admit. Qed.
 
 End Twelve_13_to_16.
 
