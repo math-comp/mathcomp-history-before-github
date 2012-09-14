@@ -1141,7 +1141,30 @@ have a_is_zero  i j (NZj : j != 0) : a_ i j = 0.
   rewrite cfdotZr cfdot_sumr  big_seq_cond big1 ?mulr0 // => i2.
   rewrite andbT => i2IS1.
   by rewrite cfdotC Otau1eta // conjC0.
-pose S2 := filter [predC (S_ HC)] (S_ C).
+  (* This is 11.8.6 *)
+pose S2 := seqIndD HU M HC C.
+have [j NZj] := has_nonprincipal_irr ntW2.
+have mujE : mu_ j - d%:R *: zeta  = mu_ 0 - zeta + \sum_i alpha_ i j.
+  rewrite !sumrB -scaler_sumr Ed1 scale1r [X in _ = X]addrC -!addrA -/(mu_ 0).
+  congr (_ + _); rewrite [X in _ = _ + X]addrC !addrA addNr add0r -opprD.
+  congr (- _); rewrite sumr_const -izetaE nirrW1 -scaler_nat scalerA mulrC.
+  by rewrite divfK ?neq0CG // Ed1 addrC  scalerBl scale1r subrK.
+have tmujE :
+    tau(mu_ j - d%:R *: zeta) = \sum_i eta_ i j - d%:R *: tau1 zeta.
+  pose f i := eta_ i j - eta_ i 0 - n *: tau1 zeta.
+  have taE i : tau (alpha_ i j) = f i.
+    by rewrite /f AE Xd /Y_ ?a_is_zero ?scale0r ?addr0 ?eqxx // Ed1 scale1r.
+  rewrite mujE [tau _]raddfD raddf_sum /= -/tau (eq_bigr f) // {taE}/f.
+  rewrite Etau !sumrB  [X in X = _]addrC -!addrA; congr (_ + _).
+  rewrite -opprB -opprD -opprB; congr (- _).
+  rewrite !addrA opprK subrK.
+  rewrite sumr_const nirrW1 -scaler_nat scalerA mulrC.
+  by rewrite divfK ?neq0CG // Ed1  scalerBl scale1r subrK.
+case: ncoH0C.
+have [_ _ ->] := FTtype34_Fcore_kernel_trivial .
+rewrite /= (group_inj (joing1G _)).
+have: perm_eq (S_ C) (S2 ++ S1).
+  admit.
 admit.
 Qed.
 
