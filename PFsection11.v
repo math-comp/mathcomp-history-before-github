@@ -1143,6 +1143,10 @@ have a_is_zero  i j (NZj : j != 0) : a_ i j = 0.
   by rewrite cfdotC Otau1eta // conjC0.
   (* This is 11.8.6 *)
 pose S2 := seqIndD HU M HC C.
+have S2DS1: {subset S1 <= [predC S2]}.
+  have [_ nsHCM _] := normal_hyps.
+  move=> s /seqIndP[] i; rewrite inE => /andP[_ iIk] ->.
+  by rewrite inE /= mem_seqInd // inE negb_and negbK iIk.
 have [j NZj] := has_nonprincipal_irr ntW2.
 have mujE : mu_ j - d%:R *: zeta  = mu_ 0 - zeta + \sum_i alpha_ i j.
   rewrite !sumrB -scaler_sumr Ed1 scale1r [X in _ = X]addrC -!addrA -/(mu_ 0).
@@ -1163,7 +1167,22 @@ have tmujE :
 case: ncoH0C.
 have [_ _ ->] := FTtype34_Fcore_kernel_trivial .
 rewrite /= (group_inj (joing1G _)).
-have: perm_eq (S_ C) (S2 ++ S1).
+have: perm_eq (S2 ++ S1) (S_ C).
+  admit.
+move/perm_eq_coherent; apply.
+suff[tau2 coWS2 Etau2] : 
+    exists2 tau2, 
+      coherent_with S2 M^# tau tau2 & tau2 (mu_ j) = \sum_i eta_ i j.
+  rewrite -Etau2 -raddfZnat in tmujE.
+  pose bc := bridge_coherent subc_M.
+  apply: bc tmujE => //; try by apply: seqInd_conjC_subset1.
+  split; last 2 first.
+  - by apply: scale_zchar; [apply: Cint_Cnat | apply: mem_zchar].
+  - rewrite mujE cfunD1E !cfunE (S1w1 ZiSHC).
+    rewrite prTIred0 !cfunE cfuniE // group1 mulr1 subrr add0r.
+    rewrite sum_cfunE big1 // => i _.
+    apply/eqP; rewrite -cfunD1E.
+    by apply: cfun_onS (FTsupp0_sub _) (alphaICF _ _ _).
   admit.
 admit.
 Qed.
