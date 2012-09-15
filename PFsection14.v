@@ -22,48 +22,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Section MoreFrobenius.
-Import GroupScope.
-Variables (gT : finGroupType) (G K H : {group gT}).
-
-Lemma set_Frobenius_compl :
-  K ><| H = G -> [Frobenius G with kernel K] -> [Frobenius G = K ><| H].
-Proof.
-move=> defG /Frobenius_kerP[ntK ltKG _ regKG].
-apply/Frobenius_semiregularP=> //.
-  by apply: contraTneq ltKG => H_1; rewrite -defG H_1 sdprodg1 properxx.
-apply: semiregular_sym => y /regKG sCyK.
-have [_ sHG _ _ tiKH] := sdprod_context defG.
-by apply/trivgP; rewrite /= -(setIidPr sHG) setIAC -tiKH setSI.
-Qed.
-
-Lemma semiregularS (K1 K2 : {group gT}) (A1 A2 : {set gT}) :
-  K1 \subset K2 -> A1 \subset A2 -> semiregular K2 A2 -> semiregular K1 A1.
-Proof.
-move=> sK12 sA12 regKA2 x /setD1P[ntx /(subsetP sA12)A2x].
-by apply/trivgP; rewrite -(regKA2 x) ?inE ?ntx ?setSI.
-Qed.
-
-Lemma semiprimeS (K1 K2 : {group gT}) (A1 A2 : {set gT}) :
-  K1 \subset K2 -> A1 \subset A2 -> semiprime K2 A2 -> semiprime K1 A1.
-Proof.
-move=> sK12 sA12 prKA2 x /setD1P[ntx A1x].
-apply/eqP; rewrite eqEsubset andbC -{1}cent_set1 setIS ?centS ?sub1set //=.
-rewrite -(setIidPl sK12) -!setIA prKA2 ?setIS ?centS //.
-by rewrite !inE ntx (subsetP sA12).
-Qed.
-
-Lemma Frobenius_kerS (G1 : {group gT}) :
-    G1 \subset G -> K \proper G1 ->
-  [Frobenius G with kernel K] -> [Frobenius G1 with kernel K].
-Proof.
-move=> sG1G ltKG1 /Frobenius_kerP[ntK _ /andP[_ nKG] regKG].
-apply/Frobenius_kerP; rewrite /normal proper_sub // (subset_trans sG1G) //.
-by split=> // x /regKG; apply: subset_trans; rewrite setSI.
-Qed.
-
-End MoreFrobenius.
-
 Import GroupScope GRing.Theory FinRing.Theory Num.Theory.
 
 Section Fourteen.
