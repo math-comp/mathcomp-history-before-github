@@ -600,8 +600,96 @@ Let H := L`_\F%G.
 
 Let frobL : [Frobenius L with kernel H].
 Proof.
-move: non_Frobenius_FTtype1_witness IHp.
-move: abP0 prankP0 maxL sP0_Ls P0_1s_x sNxM not_sCxK' not_sCxL; admit.
+have [sP0M pP0 _] := and3P sylP0.
+have [ntx /(subsetP (Ohm_sub 1 _))P0x] := setD1P P0_1s_x.
+have [Ltype1 | notLtype1] := boolP (FTtype L == 1)%N; last first.
+  have [U W W1 W2 defW LtypeP] := FTtypeP_witness maxL notLtype1.
+  suffices [Hx notLtype5]: x \in H /\ FTtype L != 5.
+    have [_ _ _ tiFL] := compl_of_typeII_IV maxL LtypeP notLtype5.
+    have Fx: x \in 'F(L)^# by rewrite !inE ntx (subsetP (Fcore_sub_Fitting L)).
+    have /subsetP[y /cent1P cxy] := not_sCxL.
+    have nzF: 'F(L)^# != set0 by apply/set0Pn; exists x.
+    have{tiFL} /normedTI_memJ_P[//|tiFL _]: normedTI 'F(L)^# G L.
+      apply/andP; rewrite normD1 setTI (mmax_normal maxL) ?gFnormal //.
+      by rewrite trivg_Fitting ?mmax_sol ?mmax_neq1.
+    by rewrite -(tiFL x) ?in_setT // /conjg -cxy mulKg.
+  have [Ltype2 | notLtype2] := eqVneq (FTtype L) 2.
+    by have:= sP0_Ls; rewrite /L`_\s Ltype2 => /subsetP->.
+  have [_ _ [Ltype3 galL]] := FTtype34_structure maxL LtypeP notLtype2.
+  have cycU: cyclic U.
+    suffices regHU: Ptype_Fcompl_kernel LtypeP :=: 1%g.
+      rewrite (isog_cyclic (quotient1_isog U)) -regHU.
+      by have [|_ _ [//]] := typeP_Galois_P maxL _ galL; rewrite (eqP Ltype3).
+    rewrite /Ptype_Fcompl_kernel unlock /= astabQ /=.
+    have [_ _ ->] := FTtype34_Fcore_kernel_trivial maxL LtypeP notLtype2.
+    rewrite -morphpreIim -injm_cent ?injmK ?ker_coset ?norms1 //.
+    have [_ _ _ ->] := Mtype34_facts maxL LtypeP notLtype2.
+    by apply/derG1P; have [] := compl_of_typeIII maxL LtypeP Ltype3.
+  suffices sP0H: P0 \subset H by rewrite (eqP Ltype3) (subsetP sP0H).
+  have sP0L': P0 \subset L^`(1) := subset_trans sP0_Ls (FTcore_sub_der1 maxL).
+  have [_ [_ _ _ defL'] _ _ _] := LtypeP.
+  have [nsHL' _ /mulG_sub[sHL' _] _ _] := sdprod_context defL'.
+  have hallH := pHall_subl sHL' (der_sub 1 L) (Fcore_Hall L).
+  have hallU: \pi(H)^'.-Hall(L^`(1)) U.
+    by rewrite -(compl_pHall U hallH) sdprod_compl.
+  rewrite (sub_normal_Hall hallH) // (pi_pgroup pP0) //.
+  have: ~~ cyclic P0 by rewrite abelian_rank1_cyclic // (rank_pgroup pP0) prankP0.
+  apply: contraR => piK'p.
+  by have [y _ /cyclicS->] := Hall_psubJ hallU piK'p sP0L' pP0; rewrite ?cyclicJ.
+have sP0H: P0 \subset H by have:= sP0_Ls; rewrite /L`_\s (eqP Ltype1).
+have [U [LtypeF /= LtypeI]] := FTtypeP 1 maxL Ltype1.
+have [[_ _ defL] _ _] := LtypeF; have [nsHL sUL _ nHU _] := sdprod_context defL.
+have not_tiH: ~ trivIset (H^# :^: G).
+  have H1x: x \in H^# by rewrite !inE ntx (subsetP sP0H).
+  have nzH: H^# != set0 by apply/set0Pn; exists x.
+  move=> tiH; have{tiH} /normedTI_memJ_P[//|tiH _]: normedTI H^# G L.
+    by apply/andP; rewrite normD1 setTI (mmax_normal maxL) // -subG1 -setD_eq0.
+  have /subsetP[y /cent1P cxy] := not_sCxL.
+  by rewrite -(tiH x) ?in_setT // /conjg -cxy mulKg.
+apply/existsP; exists U; have [_ -> _] := typeF_context LtypeF.
+apply/forall_inP=> Q /SylowP[q pr_q sylQ]; have [sQU qQ _] := and3P sylQ.
+rewrite (odd_pgroup_rank1_cyclic qQ) ?mFT_odd //.
+apply: wlog_neg; rewrite -ltnNge => /ltnW; rewrite p_rank_gt0 => piQq.
+have hallU: \pi(H)^'.-Hall(L) U.
+  by rewrite -(compl_pHall U (Fcore_Hall L)) sdprod_compl.
+have H'q := pnatPpi (pHall_pgroup hallU) (piSg sQU piQq).
+rewrite leqNgt; apply: contra (H'q) => qrankQ; apply: IHp => //; last first.
+  by rewrite (leq_trans qrankQ) ?p_rankS ?(subset_trans sQU).
+have piHp: p \in \pi(H) by rewrite (piSg sP0H) // -p_rank_gt0 prankP0.
+have pr_p: prime p by have:= piHp; rewrite mem_primes => /andP[].
+have piUq: q \in \pi(exponent U) by rewrite pi_of_exponent (piSg sQU).
+have [odd_p odd_q]: odd p /\ odd q.
+  rewrite !odd_2'nat !pnatE //.
+  by rewrite (pnatPpi _ piHp) ?(pnatPpi _ piQq) -?odd_2'nat ?mFT_odd.
+have pgt2 := odd_prime_gt2 odd_p pr_p.
+suffices [b dv_q_bp]: exists b : bool, q %| (b.*2 + p).-1.
+  rewrite -ltn_double (@leq_ltn_trans (p + b.*2).-1) //; last first.
+    by rewrite -!addnn -(subnKC pgt2) prednK // leq_add2l; case: (b).
+  rewrite -(subnKC pgt2) dvdn_leq // -mul2n Gauss_dvd ?coprime2n //.
+  by rewrite -{1}subn1 dvdn2 odd_sub // subnKC // odd_add odd_p odd_double addnC.
+have [// | [cHH rankH] | [/(_ p piHp)Udvp1 _]] := LtypeI; last first.
+  exists false; apply: dvdn_trans Udvp1.
+  by have:= piUq; rewrite mem_primes => /and3P[].
+suffices: q %| p ^ 2 - 1 ^ 2.
+  rewrite subn_sqr addn1 subn1 Euclid_dvdM //.
+  by case/orP; [exists false | exists true].
+pose P := 'O_p(H); pose P1 := 'Ohm_1(P).
+have chP1H: P1 \char H := char_trans (Ohm_char 1 _) (pcore_char p H).
+have sylP: p.-Sylow(H) P := nilpotent_pcore_Hall p (Fcore_nil L).
+have [sPH pP _] := and3P sylP.
+have abelP1: p.-abelem P1 by rewrite Ohm1_abelem ?(abelianS sPH).
+have [pP1 _] := andP abelP1.
+have prankP1: 'r_p(P1) = 2.
+  apply/eqP; rewrite p_rank_Ohm1 eqn_leq -{1}rank_pgroup // -{1}rankH rankS //=.
+  by rewrite -prankP0 (p_rank_Sylow sylP) p_rankS //.
+have ntP1: P1 != 1%g by rewrite -rank_gt0 (rank_pgroup pP1) prankP1.
+have [_ _ [U0 [sU0U expU0 frobHU0]]] := LtypeF.
+have nP1U0: U0 \subset 'N(P1).
+  by rewrite (char_norm_trans chP1H) ?(subset_trans sU0U).
+rewrite subn1 -prankP1 p_rank_abelem // -card_pgroup //.
+have frobP1U0 := Frobenius_subl ntP1 (char_sub chP1H) nP1U0 frobHU0.
+apply: dvdn_trans (Frobenius_dvd_ker1 frobP1U0).
+by have:= piUq; rewrite -expU0 pi_of_exponent mem_primes => /and3P[].
 Qed.
 
 Let Ltype1 : FTtype L == 1%N. Proof. exact: FT_Frobenius_type1 frobL. Qed.
