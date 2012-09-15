@@ -1178,12 +1178,29 @@ have: perm_eq (S2 ++ S1) (S_ C).
   case/seqIndP => i HI->; rewrite !mem_seqInd // inE [X in _ || X]inE.
   by move: HI; rewrite inE => /andP[-> ->]; case: (_ \in _).
 move/perm_eq_coherent; apply.
+pose S3 := [seq mu_ j | j in predC1 0].
+pose S4 := filter [predC irr M] (seqIndD HU M H H0).
+have [szS4 _ S4sS3 pS4]:= typeP_reducible_core_Ind maxM MtypeP Mtypen5.
+have szS3: size S3 = p.-1.
+  by rewrite size_map -cardE cardC1 card_Iirr_abelian ?cyclic_abelian.
+have uS3: uniq S3 by apply/dinjectiveP; apply: in2W (prTIred_inj pddM).
+have redS3: {subset S3 <= [predC irr M]}.
+  by move=> _ /imageP[k _ ->]; apply: (prTIred_not_irr pddM).
+have uS4: uniq S4 by apply: filter_uniq (seqInd_uniq _ _).
+have S4pS3 : perm_eq S4 S3.
+  apply: uniq_perm_eq=> //.
+  have []// := leq_size_perm uS4 S4sS3.
+  have [_ cH H0_1] := FTtype34_Fcore_kernel_trivial.
+  rewrite szS4 szS3 H0_1 -(card_isog (quotient1_isog _)) cH.
+  by case: q pr_q => // q1 _; rewrite pdiv_pfactor.
 suff[tau2 coWS2 Etau2] : 
     exists2 tau2, 
       coherent_with S2 M^# tau tau2 & tau2 (mu_ j) = \sum_i eta_ i j.
   rewrite -Etau2 -raddfZnat in tmujE.
   pose bc := bridge_coherent subc_M.
   apply: bc tmujE => //; try by apply: seqInd_conjC_subset1.
+  have muIS4: mu_ j \in S4.
+   by rewrite (perm_eq_mem S4pS3) (mem_map (prTIred_inj _)) mem_enum.
   split; last 2 first.
   - by apply: scale_zchar; [apply: Cint_Cnat | apply: mem_zchar].
   - rewrite mujE cfunD1E !cfunE (S1w1 ZiSHC).
@@ -1191,23 +1208,14 @@ suff[tau2 coWS2 Etau2] :
     rewrite sum_cfunE big1 // => i _.
     apply/eqP; rewrite -cfunD1E.
     by apply: cfun_onS (FTsupp0_sub _) (alphaICF _ _ _).
-  have muI : mu_ j \in filter [predC irr M] (seqIndD HU M H H0).
-    rewrite mem_filter /= prTIred_not_irr.
-    rewrite -[mu_ j]cfInd_prTIres mem_seqInd ?Fcore_normal //.
-    have [_ _ ->] := FTtype34_Fcore_kernel_trivial .
-    rewrite !inE sub1G ?andbT //=.
-    admit.
-  have ->: S2 = seqIndD HU M H (H0 <*> Ptype_Fcompl_kernel MtypeP).
-    rewrite /S2 -(_ : (C <*> H)%G = HC) ?seqIndDY //=; last first.
-      by apply/group_inj/dprodWY; rewrite -defHC dprodC.
-    have [_ _ ->] := FTtype34_Fcore_kernel_trivial .
-    rewrite (group_inj (joing1G _)).
-    by rewrite (group_inj Ptype_Fcompl_kernel_cent).
-  have[Gal|NGal] := boolP (typeP_Galois MtypeP). 
-    by have [_ _ [_ /(_ _ muI)[]]] := 
-           typeP_Galois_characters maxM Mtypen5 Gal.
-  by have [_ [_ /(_ _ muI)[_ Hmu]]] := 
-         typeP_nonGalois_characters maxM Mtypen5 NGal.
+  have [] := (pS4 _ muIS4).
+  rewrite /S2 -(_ : (C <*> H)%G = HC) ?seqIndDY //=; last first.
+    by apply/group_inj/dprodWY; rewrite -defHC dprodC.
+  have [_ _ ->] := FTtype34_Fcore_kernel_trivial .
+  rewrite (group_inj (joing1G _)).
+  by rewrite (group_inj Ptype_Fcompl_kernel_cent).
+have [/all_filterP Ef|/allPn] := boolP (all [predC irr M] S2).
+  admit.
 admit.
 Qed.
 
