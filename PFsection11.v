@@ -1215,7 +1215,27 @@ suff[tau2 coWS2 Etau2] :
   rewrite (group_inj (joing1G _)).
   by rewrite (group_inj Ptype_Fcompl_kernel_cent).
 have [/all_filterP Ef|/allPn] := boolP (all [predC irr M] S2).
-  admit.
+  have [_ [tau2 Dtau2 [Ztau2 Ctau2]]] := uniform_prTIred_coherent pddM NZj.
+  have S2sU: {subset S2 <= uniform_prTIred_seq pddM j}.
+    move=> mu_k; rewrite -Ef mem_filter !inE => /andP[kNirr kIS2].
+    have: mu_ j \in S3.
+      by apply: map_f; rewrite mem_enum; exact: NZj.
+    rewrite -(perm_eq_mem S4pS3) => /(pS4 _) [Hmuj _ _].
+    have kIS4: mu_k \in S4.
+      rewrite mem_filter !inE kNirr.
+      move: kIS2.
+      rewrite /S2 -(_ : (C <*> H)%G = HC) ?seqIndDY //=; last first.
+        by apply/group_inj/dprodWY; rewrite -defHC dprodC.
+      have [_ _ /group_inj->] := FTtype34_Fcore_kernel_trivial .
+      by apply: seqIndS=> //; exact: (Iirr_kerDS _ (sub1G _)).
+    move: kIS4 (pS4 _ kIS4). 
+    rewrite (perm_eq_mem S4pS3); case/imageP=> k NZk -> [Hmuk _ _]. 
+    by apply: image_f; rewrite inE [_ != 0]NZk Hmuj Hmuk eqxx.
+  exists tau2.
+    split=> [|k /(zchar_subset S2sU)/Ctau2 //].
+    by apply:  sub_iso_to (zchar_subset _) _ Ztau2.
+  have [_ /(_ _ NZj) Ez _ _] := FTtype345_constants maxM MtypeP Mtypen2.
+  by rewrite -[X in _ = X]scale1r -Ed1 -Ez -Dtau2.
 admit.
 Qed.
 
