@@ -514,8 +514,7 @@ have {supp12B} oResD xi i1 i2 : xi \in calS -> i1 \in S_ xi -> i2 \in S_ xi ->
   have sH1S: 'A(L) :\: H^# \subset G^#.
     have LG1 : L^# \subset G^# by apply: setSD; apply: subsetT.
     apply: subset_trans LG1; apply: subset_trans (FTsupp_sub L); exact: subsetDl.
-  have tiH: normedTI ('A(L) :\: H^#) G L.
-     apply/andP; split; first by rewrite -A1Hdef. admit.
+  have tiH: normedTI ('A(L) :\: H^#) G L. admit.
   have {supp12B} supp12B : 'chi_i1 - 'chi_i2 \in 'CF(L, 'A(L) :\: H^#). 
     by apply/cfun_onP; exact: supp12B.
   have  sADA1A :  'A(L) :\: H^# \subset 'A(L) by rewrite -A1Hdef subDset subsetUr.
@@ -565,6 +564,22 @@ have {supp12B} oResD xi i1 i2 : xi \in calS -> i1 \in S_ xi -> i2 \in S_ xi ->
       rewrite andbT => /(mem_subseq sl1) {sl1} hphi //.
       apply: mem_zchar; rewrite defR1; apply/flatten_imageP; exists j => //.
     rewrite [tau2 _]raddfB rpredB //; exact: inZR1.
+suff ResL : {in (x *: `H)%g, forall y, Rpsi y = Rpsi x}.
+  move=> w hw; have := ResL _ hw; case/lcosetP: hw=> [h Hh -> {w}].
+  rewrite !cfResE ?subsetT // groupM //; exact: (subsetP sHL).
+move=> w xHw /=; rewrite (cfun_sum_cfdot Rpsi) !sum_cfunE.
+rewrite (bigID [pred i | (i \in (Iirr_kerD L H 1%g))]) /=; symmetry.
+rewrite (bigID [pred i | (i \in (Iirr_kerD L H 1%g))]) /=. 
+congr (_ + _); last first.
+  apply: congr_big => // => i; rewrite /Iirr_kerD in_setD negb_and negbK.
+  have -> /= : i \in Iirr_ker L 1%g.
+    by rewrite inE sub1set inE group1; apply/forallP=> y; rewrite mul1g.
+  rewrite !cfunE orbF inE => Hker; case/lcosetP: xHw => h Hh -> {w}.
+  rewrite cfkerMr //; exact: (subsetP Hker).
+have part := FTtype1_irr_partition L. 
+rewrite (set_partition_big _ part) /=; symmetry. 
+rewrite (set_partition_big _ part) /=.
+apply: eq_bigr => A; rewrite inE; case/mapP=> xi calS_xi defA.
 Admitted.
 
 
