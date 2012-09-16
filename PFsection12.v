@@ -532,43 +532,41 @@ have {supp12B} oResD xi i1 i2 : xi \in calS -> i1 \in S_ xi -> i2 \in S_ xi ->
   suff Ztau12 : Dade Dade_hyp ('chi_i1 - 'chi_i2) \in 'Z[R xi].
     rewrite (@span_orthogonal _ _ psi (R xi)) //; first exact: hpsi.
     - by rewrite memv_span1.
-    by apply: (@zchar_span _ _ _ setT). 
-  suff [tau2 htau2] : coherent calS2 L^# tau.
-    have cc_calS2 : cfConjC_subset calS2 (seqIndD H L H 1). admit.
-    case: (Rgen _ _) @R => /= R1; set R11 := sval _ => [[subcoh1 hR11' defR11]].
-    have to_sum := (mem_coherent_sum_subseq subcoh1 cc_calS2 htau2).
-    have S2_1 : 'chi_i1 \in calS2 by rewrite mem_undup inE eqxx.
-    have S2_2 : 'chi_i2 \in calS2 by rewrite mem_undup !inE (eqxx 'chi_i2) !orbT.
-    case: (htau2) => _ htau; rewrite -[(Dade_linear Dade_hyp) _]htau; last first.
-      rewrite zchar_split rpredB ?mem_zchar //=. apply: cfun_onS supp12B.
-      apply: subset_trans (subsetDl _ _) _; exact: (FTsupp_sub L).
-    have inZR1 j : j \in S_ xi -> 'chi_j \in calS2 -> tau2 'chi_j \in 'Z[R1 xi].
-      move=> Sj /to_sum[l1 sl1 ->]; rewrite big_seq_cond rpred_sum // => phi.
-      rewrite andbT => /(mem_subseq sl1) {sl1} hphi.
-      have {hphi} hphi : phi \in R11 'chi_j.
-        move: hphi; rewrite defR11 => /flatten_imageP[k]; rewrite inE constt_irr.
-        by rewrite inE => /eqP ->.
-      by apply: mem_zchar; rewrite defR11; apply/flatten_imageP; exists j.
-    rewrite [tau2 _]raddfB rpredB //; exact: inZR1.
-  case: (R1gen maxL Ltype) => R1 subcoh1.
-  have calS12S : {subset calS2 <= [seq 'chi_i | i in Iirr_kerD L H 1%G]}.
+    by apply: (@zchar_span _ _ _ setT).
+  case: (Rgen _ _) @R => /= S; set R1 := sval _ => [[subcoh1 hR1 defR1]].
+  have calS2S : {subset calS2 <= [seq 'chi_i | i in Iirr_kerD L H 1%G]}.
     have [_ [[_ _ ccI] _ _ _ _]] := R1gen maxL Ltype.
     move=> phi /=; rewrite mem_undup; move: phi; apply/allP=> /=.
     by rewrite !ccI !image_f //; apply/FTtype1_irrP; exists xi.
-  have subcoh12: subcoherent calS2 tau R1.
-    apply: (subset_subcoherent subcoh1); rewrite /cfConjC_subset; split=> //.
+  have {calS2S} ccS2 : cfConjC_subset calS2 [seq 'chi_i | i in Iirr_kerD L H 1%g].
+    rewrite /cfConjC_subset; split=> //.
     - by rewrite /calS2 undup_uniq.
     - rewrite /conjC_closed => phi; rewrite !mem_undup /=; move: phi.
       by apply/allP; rewrite /= !cfConjCK !inE !eqxx !orbT.
-  have conjC_deg j: ('chi[L]_j)^*%CF 1%g = 'chi_j 1%g.
-    by rewrite cfunE -irr_inv invg1.
-  apply: (uniform_degree_coherence subcoh12).
+  case: (R1gen _ _) @R1 hR1 defR1 => R1 /= subcoh hR1 defR1.
+  have subcoh12: subcoherent calS2 tau R1 by exact: (subset_subcoherent subcoh).
+  have [tau2 htau2] : coherent calS2 L^# tau.
+    have conjC_deg j: ('chi[L]_j)^*%CF 1%g = 'chi_j 1%g.
+      by rewrite cfunE -irr_inv invg1.
+    apply: (uniform_degree_coherence subcoh12).
   (* no shortcut for subseq of a constant is constant? *)
-  case/(constantP 0): cst1 => c /all_pred1P /allP => nseqD.
-  apply: (@all_pred1_constant _ c); apply/allP=> _ /mapP[phi calSphi ->].
-  apply/nseqD/imageP; move: calSphi; rewrite mem_undup !inE.
-  by case/or4P=> /eqP->; by [exists i1 | exists i2].
+    case/(constantP 0): cst1 => c /all_pred1P /allP => nseqD.
+    apply: (@all_pred1_constant _ c); apply/allP=> _ /mapP[phi calSphi ->].
+    apply/nseqD/imageP; move: calSphi; rewrite mem_undup !inE.
+    by case/or4P=> /eqP->; by [exists i1 | exists i2].
+    have to_sum := (mem_coherent_sum_subseq subcoh ccS2 htau2).
+    have S2_1 : 'chi_i1 \in calS2 by rewrite mem_undup inE eqxx.
+    have S2_2 : 'chi_i2 \in calS2 by rewrite mem_undup !inE (eqxx 'chi_i2) !orbT.
+    case: (htau2) => _ htau; rewrite -[(Dade_linear Dade_hyp) _]htau; last first.
+      rewrite zchar_split rpredB ?mem_zchar //=; apply: cfun_onS supp12B.
+      apply: subset_trans (subsetDl _ _) _; exact: (FTsupp_sub L).
+    have inZR1 j : j \in S_ xi -> 'chi_j \in calS2 -> tau2 'chi_j \in 'Z[S xi].
+      move=> Sj /to_sum[l1 sl1 ->]; rewrite big_seq_cond rpred_sum // => phi.
+      rewrite andbT => /(mem_subseq sl1) {sl1} hphi //.
+      apply: mem_zchar; rewrite defR1; apply/flatten_imageP; exists j => //.
+    rewrite [tau2 _]raddfB rpredB //; exact: inZR1.
 Admitted.
+
 
 (* This will be Peterfalvi (12.5) *)
 Let rho := invDade (FT_Dade_hyp maxL).
