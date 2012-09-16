@@ -175,6 +175,25 @@ move/sub_cfker_constt_Ind_irr/(_ (subxx _)) => <- //; last exact: normal_norm.
 by rewrite subGcfker.
 Qed.
 
+Lemma FTtype1_irr_partition : partition [set Si in [seq S_ chi | chi <- calS]] calX.
+Proof.
+have nsHL : H <| L by exact: gFnormal.
+apply/and3P; split; last 1 first.
+- rewrite inE; apply/mapP=> [[chi Schi /esym/setP S_0]].
+  have /eqP[] := seqInd_neq0 nsHL Schi.
+  rewrite [chi]cfun_sum_constt big1 // => i chi_i.
+  by have:= S_0 i; rewrite inE chi_i inE.
+- apply/eqP/setP=> i; apply/bigcupP/FTtype1_irrP=> [[S_chi] | [chi Schi Si]].
+    by rewrite inE => /mapP[chi Schi ->]; exists chi.
+  by exists (S_ chi); rewrite // inE map_f.
+apply/trivIsetP=> S_chi1 S_chi2.
+rewrite !inE => /mapP[chi1 Schi1 ->] /mapP[chi2 Schi2 ->] {S_chi1 S_chi2} chi2'1.
+apply/pred0P=> i; rewrite /= !inE; apply/andP=> [[chi1_i chi2_i]].
+suffices: '['chi_i] == 0 by rewrite cfnorm_irr oner_eq0.
+rewrite (irr_constt_ortho (seqInd_char Schi1) (seqInd_char Schi2)) //.
+by rewrite (seqInd_ortho _ Schi1 Schi2) // (contraNneq _ chi2'1) // => ->.
+Qed.
+
 (* This is Peterfalvi (12.2)(a), first part *)
 Lemma FTtype1_seqInd_facts chi :
     chi \in calS ->
