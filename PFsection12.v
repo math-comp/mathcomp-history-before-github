@@ -175,7 +175,8 @@ move/sub_cfker_constt_Ind_irr/(_ (subxx _)) => <- //; last exact: normal_norm.
 by rewrite subGcfker.
 Qed.
 
-Lemma FTtype1_irr_partition : partition [set Si in [seq S_ chi | chi <- calS]] calX.
+Lemma FTtype1_irr_partition :
+  partition [set Si in [seq S_ chi | chi <- calS]] calX.
 Proof.
 have nsHL : H <| L by exact: gFnormal.
 apply/and3P; split; last 1 first.
@@ -187,7 +188,7 @@ apply/and3P; split; last 1 first.
     by rewrite inE => /mapP[chi Schi ->]; exists chi.
   by exists (S_ chi); rewrite // inE map_f.
 apply/trivIsetP=> S_chi1 S_chi2.
-rewrite !inE => /mapP[chi1 Schi1 ->] /mapP[chi2 Schi2 ->] {S_chi1 S_chi2} chi2'1.
+rewrite !inE => /mapP[chi1 Schi1 ->] /mapP[chi2 Schi2 ->] {S_chi1 S_chi2}chi2'1.
 apply/pred0P=> i; rewrite /= !inE; apply/andP=> [[chi1_i chi2_i]].
 suffices: '['chi_i] == 0 by rewrite cfnorm_irr oner_eq0.
 rewrite (irr_constt_ortho (seqInd_char Schi1) (seqInd_char Schi2)) //.
@@ -541,6 +542,7 @@ Hypothesis p'K : p^'.-group K.
 
 Hypothesis sylP0 : p.-Sylow(M) P0.
 
+(* This is Peterfalvi (12.9). *)
 Lemma non_Frobenius_FTtype1_witness :
   [/\ abelian P0, 'r_p(P0) = 2
     & exists2 L, L \in 'M /\ P0 \subset L`_\s
@@ -617,6 +619,7 @@ Hypotheses (sNxM : 'N(<[x]>) \subset M) (not_sCxL : ~~ ('C[x] \subset L)).
 
 Let H := L`_\F%G.
 
+(* This is Peterfalvi (12.10). *)
 Let frobL : [Frobenius L with kernel H].
 Proof.
 have [sP0M pP0 _] := and3P sylP0.
@@ -716,11 +719,90 @@ Let Ltype1 : FTtype L == 1%N. Proof. exact: FT_Frobenius_type1 frobL. Qed.
 Let sP0H : P0 \subset H.
 Proof. by have:= sP0_Ls; rewrite /L`_\s (eqP Ltype1). Qed.
 
+(* This is the first part of Peterfalvi (12.11). *)
 Let defM : K ><| (M :&: L) = M.
-Proof. move: frobL. admit. Qed.
+Proof.
+have [ntx /(subsetP (Ohm_sub 1 _))P0x] := setD1P P0_1s_x.
+have Dx: x \in [set y in 'A0(L) | ~~ ('C[y] \subset L)].
+  by rewrite inE (subsetP (Fcore_sub_FTsupp0 maxL)) // !inE ntx (subsetP sP0H).
+have [_ [_ /(_ x Dx)uCx] /(_ x Dx)[[defM _] _ _ _]] := FTsupport_facts maxL.
+rewrite /K /= setIC (eq_uniq_mmax uCx maxM) //= -cent_cycle.
+exact: subset_trans (cent_sub <[x]>) sNxM.
+Qed.
 
+(* This is the second part of Peterfalvi (12.11). *)
 Let sML_H : M :&: L \subset H.
-Proof. move: frobL. admit. Qed.
+Proof.
+have [nsKM nsHL]: K <| M /\ H <| L by rewrite !gFnormal.
+have [sP0M pP0 _] := and3P sylP0.
+rewrite (sub_normal_Hall (Fcore_Hall L)) ?subsetIr //.
+apply/pgroupP=> q pr_q /Cauchy[]// z /setIP[Mz Lz] oz; pose A := <[z]>%G.
+have z_gt1: (#[z] > 1)%N by rewrite oz prime_gt1.
+have sylP0_HM: p.-Sylow(H :&: M) P0.
+  by rewrite (pHall_subl _ _ sylP0) ?subsetIr // subsetI sP0H.
+have nP0A: A \subset 'N(P0).
+  have sylHp: p.-Sylow(H) 'O_p(H) := nilpotent_pcore_Hall p (Fcore_nil L).
+  have sP0Hp: P0 \subset 'O_p(H) by rewrite sub_Hall_pcore.
+  have <-: 'O_p(H) :&: M = P0.
+    rewrite [_ :&: _](sub_pHall sylP0_HM) ?setSI ?pcore_sub //.
+      by rewrite (pgroupS (subsetIl _ _)) ?pcore_pgroup.
+    by rewrite subsetI sP0Hp.
+  have chHpL: 'O_p(H) \char L := char_trans (pcore_char p H) (Fcore_char L).
+  by rewrite normsI ?(char_norm_trans chHpL) ?normsG // cycle_subG.
+apply: wlog_neg => piH'q.
+have coHQ: coprime #|H| #|A| by rewrite -orderE coprime_pi' // oz pnatE.
+have frobP0A: [Frobenius P0 <*> A = P0 ><| A].
+  have defHA: H ><| A = H <*> A.
+    by rewrite sdprodEY ?coprime_TIg // cycle_subG (subsetP (gFnorm _ _)).
+  have ltH_HA: H \proper H <*> A.
+    by rewrite /proper joing_subl -indexg_gt1 -(index_sdprod defHA).
+  have: [Frobenius H <*> A = H ><| A].
+    apply: set_Frobenius_compl defHA _.
+    by apply: Frobenius_kerS frobL; rewrite // join_subG gFsub cycle_subG.
+  by apply: Frobenius_subl => //; rewrite -rank_gt0 (rank_pgroup pP0) prankP0.
+have sP0A_M: P0 <*> A \subset M by rewrite join_subG sP0M cycle_subG.
+have nKP0a: P0 <*> A \subset 'N(K) := subset_trans sP0A_M (gFnorm _ _).
+have solK: solvable K := nilpotent_sol (Fcore_nil M).
+have [_ [/(compl_of_typeF defM) MtypeF _]] := FTtypeP 1 maxM Mtype1.
+have nreg_KA: 'C_K(A) != 1%g.
+  have [Kq | K'q] := boolP (q \in \pi(K)).
+    apply/trivgPn; exists z; rewrite -?order_gt1 //= cent_cycle inE cent1id.
+    by rewrite andbT (mem_normal_Hall (Fcore_Hall M)) // /p_elt oz pnatE.
+  have [defP0A ntP0 _ _ _] := Frobenius_context frobP0A.
+  have coK_P0A: coprime #|K| #|P0 <*> A|.
+    rewrite -(sdprod_card defP0A) coprime_mulr (p'nat_coprime p'K) //=.
+    by rewrite -orderE coprime_pi' // oz pnatE.
+  have: ~~ (P0 \subset 'C(K)); last apply: contraNneq.
+    have [[ntK _ _] _ [U0 [sU0ML expU0 frobKU0]]] := MtypeF.
+    have [P1 /pnElemP[sP1U0 abelP1 dimP1]] := p_rank_witness p U0.
+    have ntP1: P1 :!=: 1%g.
+      rewrite -rank_gt0 (rank_abelem abelP1) dimP1 p_rank_gt0 -pi_of_exponent.
+      rewrite expU0 pi_of_exponent (piSg (setIS M (Fcore_sub L))) //=.
+      by rewrite setIC -p_rank_gt0 -(p_rank_Sylow sylP0_HM) prankP0.
+    have frobKP1: [Frobenius K <*> P1 = K ><| P1].
+      exact: Frobenius_subr ntP1 sP1U0 frobKU0.
+    have sP1M: P1 \subset M.
+      by rewrite (subset_trans (subset_trans sP1U0 sU0ML)) ?subsetIl.
+    have [y My sP1yP0] := Sylow_Jsub sylP0 sP1M (abelem_pgroup abelP1).
+    apply: contra ntK => cP0K; rewrite -(Frobenius_trivg_cent frobKP1).
+    rewrite (setIidPl _) // -(conjSg _ _ y) (normsP _ y My) ?gFnorm //.
+    by rewrite -centJ centsC (subset_trans sP1yP0).
+  by have [] := Frobenius_Wielandt_fixpoint frobP0A nKP0a coK_P0A solK.
+have [_ [U1 [_ abU1 sCK_U1]] _] := MtypeF.
+have [ntx /(subsetP (Ohm_sub 1 _))P0x] := setD1P P0_1s_x.
+have cAx: A \subset 'C[x].
+  rewrite -cent_set1 (sub_abelian_cent2 abU1) //.
+    have [y /setIP[Ky cAy] nty] := trivgPn _ nreg_KA.
+    apply: subset_trans (sCK_U1 y _); last by rewrite !inE nty.
+    by rewrite subsetI sub_cent1 cAy cycle_subG !inE Mz Lz.
+  have [y /setIP[Ky cxy] notK'y] := subsetPn not_sCxK'.
+  apply: subset_trans (sCK_U1 y _); last by rewrite !inE (group1_contra notK'y).
+  rewrite sub1set inE cent1C cxy (subsetP _ x P0x) //.
+  by rewrite subsetI sP0M (subset_trans sP0H) ?gFsub.
+have [_ _ _ regHL] := Frobenius_kerP frobL.
+rewrite (piSg (regHL x _)) //; first by rewrite !inE ntx (subsetP sP0H).
+by rewrite mem_primes pr_q cardG_gt0 -oz cardSg // subsetI cycle_subG Lz.
+Qed.
 
 Let E := sval (sigW (existsP frobL)).
 Let e := #|E|.
