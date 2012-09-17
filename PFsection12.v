@@ -613,6 +613,7 @@ Qed.
 
 (* This will be Peterfalvi (12.5) *)
 Let rho := invDade (FT_Dade_hyp maxL).
+
 Lemma FtypeI_invDade_ortho_constant (psi : 'CF(G)) : 
     {in calS, forall phi, orthogonal psi (R phi)} ->
   {in H :\: H' &, forall x y, rho psi x = rho psi y}.
@@ -624,7 +625,7 @@ have [[_ _ sdHU] [U1 inertU1] _] := Utype.
 have /= [_ _ [hT1 Nsub]]:= FTtypeI_II_facts maxL Ltype sdHU.
 have ccS : conjC_closed calS by exact: cfAut_seqInd.
 case: (Rgen _ _) @R opsi => /= S; set S1 := sval _ => [[coh_calS hS1 defS1]] opsi.
-have orhopsi xi1 xi2 : xi1 \in calS -> xi2 \in calS ->  xi1 1%g = xi2 1%g ->
+have orthopsi xi1 xi2 : xi1 \in calS -> xi2 \in calS ->  xi1 1%g = xi2 1%g ->
   '[rho psi, xi1 - xi2] = 0.
   move=> calS_xi1 calS_xi2 deg12.
   pose calS2 := undup (xi1 :: (xi1)^*%CF :: xi2 :: (xi2)^*%CF).
@@ -667,6 +668,57 @@ have orhopsi xi1 xi2 : xi1 \in calS -> xi2 \in calS ->  xi1 1%g = xi2 1%g ->
   rewrite -[(FT_Dade _) _]tau2_tau //=.
   - by rewrite raddfB -cfdotC cfdotBr !opsitau2 // subrr.
   by rewrite zchar_split cfunD1E !cfunE deg12 subrr rpredB //= mem_zchar.
+pose calX := Iirr_kerD L `H 1%g.
+have sHL : H \subset L by apply: normal_sub.
+have {orthopsi} orthopsi t1 t2 (xi1 := 'Ind[L] 'chi_t1)(xi2 := 'Ind[L] 'chi_t2) :
+  xi1 \in calS -> xi2 \in calS -> 'chi_t1 1%g = 'chi_t2 1%g ->
+  '['Res[H] (rho psi), 'chi_t1 - 'chi_t2] = 0.
+  move=> calS1 calS2 deg12.
+  rewrite cfdotC Frobenius_reciprocity -cfdotC linearB /=; apply: orthopsi=> //.
+  by rewrite !cfInd1 // deg12.
+have xH : x \in H by move: xHH'; rewrite in_setD; case/andP.
+have yH : y \in H by move: yHH'; rewrite in_setD; case/andP.
+suff: 'Res[H] (rho psi) x = 'Res[H] (rho psi) y by rewrite !cfResE.
+set rpsi := 'Res[H] (rho psi).
+have hdev z : z \in H -> rpsi z = 
+  \sum_(i < Nirr H) '[rpsi, 'chi_i] * (('Res[H] 'chi_i) z).
+  move=> Hz.
+  have -> : rpsi z = ('Res[H] rpsi) z by rewrite cfResE.
+  rewrite [in LHS](cfun_sum_cfdot rpsi) linear_sum /= sum_cfunE.
+  by apply: eq_bigr => i _; rewrite linearZ !cfunE.
+have {hdev} hsum_set z : z \in H -> rpsi z = 
+  \sum_(i in [set: (Iirr H)]) '[rpsi, 'chi_i] * (('Res[H] 'chi_i) z).
+  move=> Hz; rewrite hdev // big_uniq /=; last first.
+  - by rewrite /= /index_enum -enumT enum_uniq.
+  by apply: eq_bigl => k; rewrite in_setT /index_enum -enumT mem_enum.
+have part :
+  partition [set Si in 
+    [seq [set i in irr_constt ('Ind[H] 'chi_t)] | t <- enum (Iirr H')]] 
+  [set: (Iirr H)].
+  admit.
+rewrite [rpsi _](hsum_set x xH) (set_partition_big _ part) /=; symmetry. 
+rewrite [rpsi _](hsum_set y yH) (set_partition_big _ part) /= {hsum_set part}.
+apply: eq_bigr => A; rewrite inE; case/mapP=> xi calS_xi defA.
+suff sumA1 : \sum_(x0 in A :\ 0%g) '[rpsi, 'chi_x0] * 'Res[`H] 'chi_x0 y =
+  \sum_(x0 in A :\ 0%g) '[rpsi, 'chi_x0] * 'Res[`H] 'chi_x0 x.
+  case: (boolP (0%g \in A)) => h1A.
+  - by rewrite !(big_setD1 0%g h1A) /= irr0 cfRes_cfun1 !cfun1E yH xH sumA1.
+  - suff -> : A = A :\ 0%g by [].
+    apply/setP=> z; rewrite in_setD1; case Az: (z \in A); rewrite ?andbF //=.
+    by symmetry; rewrite andbT; apply: contra h1A => /eqP <-.
+set A' := A :\ 0%g; case: (altP (A' =P set0))=> [-> | A'n0]. 
+- by rewrite !big_pred0 // => ?; rewrite in_set0.
+case/set0Pn: A'n0 => j A'j.
+have jn0 : j != 0 by move: A'j; rewrite in_setD1; case/andP.
+have Indj_calS: 'Ind[L] 'chi_j \in calS by apply/seqIndC1P; exists j => //.
+have nH'H : H' <| H by rewrite der_normal.
+have hsum (z : gT) :  \sum_(x0 in A') ('[rpsi, 'chi_x0] *: 'chi_x0) z =
+   \sum_(x0 in A') '[rpsi, 'chi_j] * 'chi_x0 z.
+  apply: eq_bigr => i A'i. 
+  rewrite !cfunE; apply/eqP; rewrite -subr_eq0 // -mulrBl -cfdotBr.
+  have Indi_calS : 'Ind[L] 'chi_i \in calS.
+    by apply/seqIndC1P; exists i => //; move: A'i; rewrite in_setD1; case/andP.
+  rewrite orthopsi ?mul0r //. admit.
 Admitted.
 
 End Twelve_4_5.
