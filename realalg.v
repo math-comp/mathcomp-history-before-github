@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import bigop ssralg ssrnum ssrint rat poly polydiv polyorder.
 Require Import perm matrix mxpoly polyXY binomial generic_quotient.

@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import finfun path matrix.
 Require Import bigop ssralg poly polydiv ssrnum zmodp div ssrint.
@@ -438,21 +439,21 @@ Definition CcountGt0 (sp sq : seq polyF) : fF :=
         )) \/ Lt 0 cw))%qfT.
 
 
-Fixpoint normtrX (i : nat) (t : tF) : polyF :=
+Fixpoint abstrX (i : nat) (t : tF) : polyF :=
   (match t with
     | 'X_n => if n == i then [::0; 1] else [::t]
-    | - x => -- normtrX i x
-    | x + y => normtrX i x ++ normtrX i y
-    | x * y => normtrX i x ** normtrX i y
-    | x *+ n => n +** normtrX i x
-    | x ^+ n => normtrX i x ^^+ n
+    | - x => -- abstrX i x
+    | x + y => abstrX i x ++ abstrX i y
+    | x * y => abstrX i x ** abstrX i y
+    | x *+ n => n +** abstrX i x
+    | x ^+ n => abstrX i x ^^+ n
     | _ => [::t]
   end)%qfT.
 
 Definition wproj (n : nat) (s : seq (GRing.term F) * seq (GRing.term F)) :
   formula F :=
-  let sp := map (normtrX n \o to_rterm) s.1%PAIR in
-  let sq := map (normtrX n \o to_rterm) s.2%PAIR in
+  let sp := map (abstrX n \o to_rterm) s.1%PAIR in
+  let sq := map (abstrX n \o to_rterm) s.2%PAIR in
     CcountGt0 sp sq.
 
 Definition rcf_sat := proj_sat wproj.
@@ -931,8 +932,8 @@ by move=> i _; rewrite eval_Size (eval_LeadCoef (fun lq =>
   (0 < (-1) ^+ (size (eval_poly e i)).-1 * lq))).
 Qed.
 
-Lemma normtrXP e i t x :
-  (eval_poly e (normtrX i t)).[x] = eval (set_nth 0 e i x) t.
+Lemma abstrXP e i t x :
+  (eval_poly e (abstrX i t)).[x] = eval (set_nth 0 e i x) t.
 Proof.
 elim: t.
 - move=> n /=; case ni: (_ == _);
@@ -966,9 +967,9 @@ suff: forall x, P1 x <-> P2 x.
   by move=> hP; split=> [] [x Px]; exists x; rewrite (hP, =^~ hP).
 move=> x; rewrite /P1 /P2 {P1 P2} !big_map !(big_seq_cond xpredT) /=.
 rewrite (eq_bigr (fun t => GRing.eval (set_nth 0 e i x) t == 0)); last first.
-  by move=> t /andP[t_in_sp _]; rewrite normtrXP evalE to_rtermE ?(allP rsp).
+  by move=> t /andP[t_in_sp _]; rewrite abstrXP evalE to_rtermE ?(allP rsp).
 rewrite [X in _ && X](eq_bigr (fun t => 0 < GRing.eval (set_nth 0 e i x) t));
-  last by move=> t /andP[tsq _]; rewrite normtrXP evalE to_rtermE ?(allP rsq).
+  last by move=> t /andP[tsq _]; rewrite abstrXP evalE to_rtermE ?(allP rsq).
 rewrite -!big_seq_cond !(rwP (qf_evalP _ _)); first last.
 + elim: sp rsp => //= p sp ihsp /andP[rp rsp]; first by rewrite ihsp.
 + elim: sq rsq => //= q sq ihsq /andP[rq rsq]; first by rewrite ihsq.

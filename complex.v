@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import bigop ssralg ssrint div ssrnum rat poly closed_field polyrcf.
 Require Import matrix mxalgebra tuple mxpoly zmodp binomial realalg.
@@ -17,10 +18,6 @@ Local Notation sgr := Num.sg.
 Local Notation sqrtr := Num.sqrt.
 
 CoInductive complex (R : Type) : Type := Complex { Re : R; Im : R }.
-
-(* Definition complex_of(R : realFieldType) of (phant R) := complex R. *)
-(* Identity Coercion type_complex_of : complex_of >-> complex. *)
-(* Notation "{ 'complex'  R }" := (complex_of (Phant R)). *)
 
 Definition real_complex_def (F : ringType) (phF : phant F) (x : F) := Complex x 0.
 Notation real_complex F := (@real_complex_def _ (Phant F)).

@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice path fintype.
 Require Import div bigop ssralg poly polydiv ssrnum perm zmodp ssrint.
 Require Import polyorder polyrcf interval matrix mxtens.
