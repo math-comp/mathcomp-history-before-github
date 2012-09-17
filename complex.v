@@ -1040,15 +1040,12 @@ have f'E : f' = MtoC u + 'i *: MtoC v.
   rewrite /u /v [f']lock; apply/matrixP => i j; rewrite !mxE /=.
   by case: (locked f' i j) => a b; simpc.
 move: u v => u v in f'E *.
-have mxmul_lin w : linear (mulmx^~ w : 'M[R]_(\rank V) -> 'M[R]_(\rank V)).
-  by move=> a r s /=; rewrite mulmxDl -scalemxAl.
-pose mxmul w := Linear (mxmul_lin w).
 pose L1fun : 'M[R]_(\rank V) -> _ :=
-  2%:R^-1 \*: (mxmul u       \+ (mxmul v \o trmx) 
+  2%:R^-1 \*: (mulmxr u       \+ (mulmxr v \o trmx) 
            \+ ((mulmx (u^T)) \- (mulmx (v^T) \o trmx))).
 pose L1 := lin_mx [linear of L1fun].
 pose L2fun : 'M[R]_(\rank V) -> _ :=
-  2%:R^-1 \*: (((@GRing.opp _) \o (mxmul u \o trmx) \+ mxmul v) 
+  2%:R^-1 \*: (((@GRing.opp _) \o (mulmxr u \o trmx) \+ mulmxr v) 
            \+ ((mulmx (u^T) \o trmx)               \+ (mulmx (v^T)))).
 pose L2 := lin_mx [linear of L2fun].
 have [] := @Lemma4 _ _ 1%:M _ [::L1; L2] (erefl _).
@@ -1059,7 +1056,7 @@ have [] := @Lemma4 _ _ 1%:M _ [::L1; L2] (erefl _).
     by move=> /orP [] /eqP -> /orP [] /eqP -> //; symmetry.
   apply/eqP/mulmxP => x; rewrite [X in X = _]mulmxA [X in _ = X]mulmxA.
   rewrite 4!mul_rV_lin !mxvecK /= /L1fun /L2fun /=; congr (mxvec (_ *: _)).
-  move=> {L1 L2 L1fun L2fun mxmul mxmul_lin f'E f' f_stabV f}.
+  move=> {L1 L2 L1fun L2fun f'E f' f_stabV f}.
   case: (\rank V) (vec_mx x) => [//|n] {V m x} x in HrV u v *.
   do ?[rewrite -(scalemxAl, scalemxAr, scalerN, scalerDr)
       |rewrite (mulmxN, mulNmx, trmxK, trmx_mul)
