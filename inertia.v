@@ -884,9 +884,7 @@ Variable (gT : finGroupType).
 
 Section S611A.
 
-Variable (H G : {group gT}).
-
-Variable t : Iirr H.
+Variables (H G : {group gT}) (t : Iirr H).
 
 Let T := 'I_G['chi_t]%G.
 
@@ -1152,294 +1150,130 @@ Qed.
 
 End InertiaBijection. 
 
-(* Isaacs 6.28 preliminary *)
 Section S628.
 
 Variables (gT : finGroupType) (G : {group gT}).
 
-Section S616. 
+Section S6_16_17. 
 
-Variable (N : {group gT}).
-
-Variable t f: Iirr N.
-
-Let T := 'I_G['chi_t]%G.
-Let F := 'I_G['chi_f]%G.
-
-Hypothesis NnG : N <| G.
-
-Let sNG : N \subset G. Proof. exact: normal_sub. Qed.
-
-Let FsG : F \subset G. Proof. exact: subsetIl. Qed.
-
-Let NsF : N \subset F. Proof. exact: sub_Inertia. Qed.
-
-Let NnF : N <| F. Proof. exact: normal_Inertia. Qed.
-
-Hypothesis finv : 'I_G['chi_f] = G.
-Hypothesis tinv : 'I_G['chi_t] = G.
-
-(* This is the proof corresponding to the indications in Isaacs 6.16 -- GG
-set phi := 'Res _; suffices /vlineP[a Dphi]: phi \in <['chi_f]>%VS.
-  have: phi 1%g = a * 'chi_f 1%g by rewrite Dphi cfunE.
-  by rewrite cfRes1 cfInd1 // => /(mulIf (irr1_neq0 f))->.
-rewrite /phi ['Ind _]cfun_sum_constt linear_sum rpred_sum // => k.
-rewrite linearZ /= constt_Ind_constt_Res => /Clifford_Res_sum_cfclass-> //.
-by rewrite !rpredZ // -finv cfclass_inertia big_seq1 memv_line.
-*)
-
-
-(* This is the shortest proof proposed by  GG.*)
-Fact ResIndchiquo: 
-  forall psi, 'I_G[psi] = G -> 'Res[N]  ('Ind[G] psi) = #|G : N|%:R *: psi.
-Proof.
-move=> p pinv.
-apply/cfun_inP=> x Nx; rewrite cfResE ?cfIndE ?(subsetP sNG) //.
-rewrite natf_indexg // cfunE -mulrA mulrCA mulr_natl //; congr (_ * _).
-by rewrite -pinv -sumr_const; apply: eq_bigr => z /setIP[_ /inertia_valJ->].
-Qed.
-
-Fact normIndchi (p: Iirr N):  
- 'I_G['chi_p] = G ->'['Ind[G] 'chi_p, 'Ind[G] 'chi_p] =  #|G : N|%:R.
-Proof.
-move=> pinv.
-by rewrite -cfdot_Res_l  (ResIndchiquo pinv)  cfdotZl cfnorm_irr mulr1.
-Qed. 
-
-Lemma inv_inertia_mul:  forall (p s : Iirr N), 
-   'I_G['chi_p] = G -> 'I_G['chi_s] = G -> 'I_G['chi_p*'chi_s] = G.
-Proof.
-move=> p s IGp IGs; apply/eqP; rewrite eqEsubset Inertia_sub /=.
-by move/(setIS G):(inertia_mul 'chi_p 'chi_s);rewrite setIA  IGp IGs.
-Qed.
-
-Hypothesis ft_irr : 'chi_f * 'chi_t \in irr N.
-
-Let normft: '['Ind[G] ('chi_f * 'chi_t)] =  #|G : N|%:R.
-case/irrP : ft_irr => ft ftE.
-by rewrite ftE normIndchi // -ftE inv_inertia_mul.
-Qed.
- 
-Let norm_fG : \sum_(i in irr_constt ('Ind[G] 'chi_f))
-         '['Ind[G] 'chi_f, 'chi_i] ^+2= #|G : N|%:R.
-Proof.
-move: (normIndchi finv); set phi := 'Ind _; rewrite cfdot_char_r; first last.
-  by rewrite cfInd_char // irr_char.
-rewrite (bigID [pred i | '[phi, 'chi_i] == 0]) /= big1 ?add0r //.
-by move => i /eqP->; rewrite mulr0.
-Qed.
-
-
-Variable c : Iirr G.
-
-Hypothesis extt_irr  : 'Res[N] 'chi_c = 'chi_t.
-
-Let norm_ftG: \sum_(i in irr_constt ('Ind[G] 'chi_f))
-   \sum_(j in irr_constt ('Ind[G] 'chi_f))
-      '['['Ind[G] 'chi_f, 'chi_i] *: 'chi_i * 'chi_c,
-        '['Ind[G] 'chi_f, 'chi_j] *: 'chi_j * 'chi_c] = #|G : N|%:R.
-Proof.
-move: normft; rewrite -extt_irr cfIndM //.
-rewrite {1}(cfun_sum_constt ('Ind[G] 'chi_f)) mulr_suml cfdot_suml=> <-.
-apply: eq_bigr=> i Hi; rewrite {5}(cfun_sum_constt ('Ind[G] 'chi_f)). 
-by rewrite mulr_suml cfdot_sumr.
-Qed.
-
-Let e := fun i =>  '['Ind[G] 'chi_f, 'chi_i].
-
-Let He: \sum_(i in irr_constt ('Ind[G] 'chi_f))
-         '['Ind[G] 'chi_f, 'chi_i] ^+2 = \sum_(i in irr_constt ('Ind[G] 'chi_f))
-   \sum_(j in irr_constt ('Ind[G] 'chi_f))
-      '['['Ind[G] 'chi_f, 'chi_i] *: 'chi_i * 'chi_c,
-        '['Ind[G] 'chi_f, 'chi_j] *: 'chi_j * 'chi_c].
-Proof. by rewrite norm_ftG norm_fG. Qed.
-
-Let Hf: \sum_(i in irr_constt ('Ind[G] 'chi_f))
-         (e i) ^+2 = \sum_(i in irr_constt ('Ind[G] 'chi_f))
-   \sum_(j in irr_constt ('Ind[G] 'chi_f))
-      (e i) * (e j) * '['chi_i * 'chi_c,'chi_j * 'chi_c].
-Proof.
-rewrite He; apply: eq_bigr=> i Hi; apply: eq_bigr=> j Hj.
-rewrite -scalerAl cfdotZl /e -mulrA; congr (_ * _).
-rewrite -scalerAl cfdotZr; congr (_ * _).
-by rewrite conj_Cnat ?Cnat_cfdot_char_irr ?cfInd_char ?irr_char.
-Qed.
-
-Let Hg : forall i j , '['chi_i * 'chi_c,'chi_j * 'chi_c] \in Cnat.
-Proof.
-by move=> i j; apply: Cnat_cfdot_char; rewrite rpredM // irr_char.
-Qed.
-
-Let cfdot_ij_ge0 : forall i j , 0 <= '['chi_i * 'chi_c,'chi_j * 'chi_c].
-Proof.
-by move=> i j; apply Cnat_ge0.
-Qed.
-
-Let normbc_ge1 b :1 <= '['chi_b * 'chi_c].
-Proof.
-have bc1_n0: 'chi_b 1%g * 'chi_c 1%g != 0 by rewrite  mulf_neq0 ?irr1_neq0.
-move:(cfnorm_ge0 ('chi_b * 'chi_c)); rewrite ler_eqVlt=> /orP [Hp|]; last first.
-  have /CnatP[n ->]:= (Hg b b).
-  by rewrite (ltC_nat 0) (leC_nat 1).
-move: Hp bc1_n0; rewrite eq_sym cfnorm_eq0; move/eqP/cfunP/(_ 1%g).
-by rewrite !cfunE => ->; rewrite eqxx.
-Qed.
-
-Lemma ortho_chib_chig : forall b g, b \in irr_constt('Ind[G] 'chi_f) ->
-                         g \in irr_constt('Ind[G] 'chi_f) ->
-                     '['chi_b * 'chi_c, 'chi_g * 'chi_c] = ( b == g)%:R.
-Proof.
-move=> b g birr_cst girr_cst; move/eqP: Hf; rewrite eq_sym -subr_eq0.
-rewrite -sumrB; move/eqP => Hf0.
-have eiej i j:0 <= e i * e j.
-  by apply: mulr_ge0; rewrite ?(Cnat_ge0,Cnat_cfdot_char,cfInd_char,irr_char).
-have: forall i, (i \in irr_constt ('Ind[G] 'chi_f))->
-     (\sum_(j in irr_constt ('Ind[G] 'chi_f))
-       e i * e j * '['chi_i * 'chi_c, 'chi_j * 'chi_c] - e i ^+ 2) = 0.
-  apply: psumr_eq0P => //  i i_irrcst.
-  rewrite (bigD1 i) //= addrC !addrA -mulrN1 expr2 -mulrDr addr_ge0 //.
-    by rewrite  mulr_ge0 // addrC subr_ge0.
-  by apply: sumr_ge0=> j /andP[j_irrcst jdi]; rewrite mulr_ge0. 
-move/(_ b birr_cst).
-rewrite (bigD1 b) //= addrC !addrA -mulrN1 expr2 -mulrDr -expr2.
-move/eqP; rewrite paddr_eq0 ?expr2 //;last first.
-    by apply: sumr_ge0=> i j; apply: mulr_ge0.
-  by rewrite  mulr_ge0 // addrC subr_ge0. 
-case/andP; rewrite mulf_eq0 // mulf_eq0 //.
-move:(birr_cst); rewrite irr_consttE; move/negbTE -> => /=.
-rewrite addrC subr_eq0=> /eqP irr_bc.
-move/eqP; case:(boolP (b == g)); first by move/eqP <-; rewrite irr_bc.
-move => bdg sum0.
-suff: e b * e g * '['chi_b * 'chi_c, 'chi_g * 'chi_c] == 0.
-  move:birr_cst girr_cst; rewrite mulf_eq0 // mulf_eq0 // /e.
-  by rewrite !irr_consttE; move/negbTE ->; move/negbTE -> => /eqP/=.
-apply/eqP.
-have Hj: forall j, ((j \in irr_constt ('Ind[G] 'chi_f)) && (j != b))-> 
-      0 <= e b * e j * '['chi_b * 'chi_c, 'chi_j * 'chi_c].
-  by move=> j _; apply: mulr_ge0.
-by apply: (psumr_eq0P Hj sum0); rewrite girr_cst eq_sym.
-Qed.
-
+Variables (N : {group gT}) (t : Iirr N) (c : Iirr G).
 Let theta := 'chi_t.
-Let phi := 'chi_f.
-Let calS := irr_constt ('Ind[G] phi).
-Let calT := irr_constt ('Ind[G] (phi*theta)).
+Let chi := 'chi_c.
 
-Lemma irr_cbM b : b \in irr_constt('Ind[G] 'chi_f) -> 
-                ('chi_b * 'chi_c ) \in (irr G).
-Proof.
-by move=> b_irrcst; rewrite irrEchar ?rpredM ?irr_char ?ortho_chib_chig ?eqxx.
-Qed.
+Definition mul_Iirr b := cfIirr ('chi_b * chi).
 
-Lemma irr_csttM b : b \in irr_constt ('Ind[G] 'chi_f)->
-      (cfIirr ('chi_b * 'chi_c)) \in irr_constt ('Ind[G] ('chi_f * 'chi_t)).
-Proof.
-move=> irrcstb.
-rewrite -extt_irr  cfIndM // irr_consttE.
-rewrite (cfun_sum_constt ('Ind[G] 'chi_f)) mulr_suml cfdot_suml.
-rewrite (bigD1 b) //=; rewrite cfIirrE //;last first.
-  by rewrite irrEchar // rpredM /= ?irr_char ?ortho_chib_chig // eqxx. 
-rewrite -scalerAl  cfdotZl ortho_chib_chig // (eqxx b) mulr1.
-suff : 0 < '['Ind[G] 'chi_f, 'chi_b] +
-   \sum_(i in irr_constt ('Ind[G] 'chi_f) | i != b)
-      '['['Ind[G] 'chi_f, 'chi_i] *: 'chi_i * 'chi_c, 'chi_b * 'chi_c].
-by rewrite lt0r; case/andP.
-rewrite -{1}(addr0 0); apply: ltr_le_add.
-  rewrite lt0r; move:irrcstb;rewrite irr_consttE =>  -> /=.
-  by apply: Cnat_ge0 => //; rewrite Cnat_cfdot_char // ?cfInd_char ?irr_char.
-apply: sumr_ge0=> j /andP[j_irrcst jdi]. 
-rewrite -scalerAl  cfdotZl mulr_ge0 //.
-by apply: Cnat_ge0 => //; rewrite Cnat_cfdot_char // ?cfInd_char ?irr_char.
-Qed.
-
-Definition mul_chi:= fun (b: Iirr G)=> cfIirr('chi_b * 'chi_c).
-
-Lemma mulchi_inj : {in calS &, injective mul_chi}.
-Proof.
-move=> p1 p2 tTp1 tTp2 /eqP; rewrite -(inj_eq irr_inj).
-rewrite !cfIirrE ?irr_cbM //; move/eqP=> p1p2E; apply/eqP.
-move:(ortho_chib_chig tTp1  tTp2); rewrite p1p2E (ortho_chib_chig tTp2) //=.
-by rewrite (eqxx p2);move/eqP; rewrite eqC_nat eq_sym eqb1.
-Qed.
-
-(* This is Isaacs, Theorem 6.16 *)
-Lemma mul_Iirr_constt_inertia : mul_chi @: calS =i calT.
-Proof.
-move=> p; apply/imsetP/idP=> [[b tTp ->] |]; first by rewrite irr_csttM.
-rewrite irr_consttE /theta -extt_irr cfIndM //.
-rewrite (cfun_sum_constt ('Ind[G] 'chi_f)) mulr_suml cfdot_suml.
-rewrite psumr_eq0 /mul_chi; last first.
-  move=> i irr_cst; rewrite -scalerAl  cfdotZl.
-  by rewrite mulr_ge0 ?Cnat_ge0 ?Cnat_cfdot_char ?rpredM ?cfInd_char ?irr_char.
-move/allPn=> [ x Hx]; rewrite negb_imply; case/andP=> xirr_cst.
-rewrite -scalerAl  cfdotZl mulf_eq0  negb_or -irr_consttE xirr_cst /=.
-move/irrP: (irr_cbM xirr_cst)=> [i iE];rewrite iE -irr_consttE constt_irr inE.
-by move => /eqP ->; exists x; rewrite ?iE ?irrK.
-Qed.
-
-End S616.
-
-Section S617.
-
-Variable (N : {group gT}).
-Hypothesis NnG : N <| G.
-
+Hypotheses (nsNG : N <| G) (cNt : 'Res[N] chi = theta).
 Let sNG : N \subset G. Proof. exact: normal_sub. Qed.
+Let nNG : G \subset 'N(N). Proof. exact: normal_norm. Qed.
 
-Variable t : Iirr N.
-Variable c : Iirr G.
-
-(*LR: I need this hypothesis in my proof, to check...*)
-Hypothesis tinv : 'I_G['chi_t] = G.
-
-Hypothesis extt_irr  : 'Res[N] 'chi_c = 'chi_t.
-
-Lemma Gallagher : forall b, b \in Iirr (G / N)-> 
-      'chi_(mod_Iirr b) * 'chi_c \in irr G.
+Lemma extensible_irr_invariant : 'I_G[theta] = G.
 Proof.
-move=> b irrb; apply:(@irr_cbM _ t 0 NnG); rewrite ?irr0 ?mul1r ?mem_irr //.
-  rewrite inertia_cfun1; apply/eqP.
-  rewrite eqEsubset subsetI normal_norm // andbT subsetIl //=.
-rewrite irr_consttE cfInd_cfun1 // cfdotZl mulf_neq0 ?neq0CiG //.
-rewrite cfdotE mulf_eq0 invr_eq0 negb_or natrG_neq0 /=.
-rewrite (bigID (fun x => x \in N)) /=.
-set s1 := \sum_(i0 in G | i0 \in N) _.
-rewrite big1;last first.
-  by move=> j /andP [ jG jN]; rewrite cfuniE // (negbTE jN) mul0r.
-rewrite addr0 /s1 psumr_eq0.
-  apply/allPn; exists 1%g; first by rewrite mem_index_enum.
-  rewrite !group1  cfuniE //=.
-  by rewrite group1 mul1r conjC_eq0 irr1_neq0.
-move=> j  /andP [ Gj Nj]; rewrite mod_IirrE ?cfModE  ?cfuniE //.
-case:(boolP (j \in N)); last by rewrite mul0r ?ler0n.
-by rewrite mul1r coset_id ?Cnat_ge0 // conj_Cnat Cnat_irr1.
+apply/setIidPl/subsetP=> y Gy; have nNy := subsetP nNG y Gy.
+rewrite inE nNy; apply/eqP/cfun_inP=> x Nx; rewrite cfConjgE // -cNt.
+by rewrite !cfResE ?memJ_norm ?cfunJ ?groupV.
 Qed.
+Let IGtheta := extensible_irr_invariant.
 
-Remark Gallagher_consttv: forall b, b \in Iirr (G / N)->  
-#|G|%:R * '[('Ind[G](cfun_indicator G N)), 'chi_(mod_Iirr b)] = 'chi_b 1%g * #|N|%:R.
+Lemma cfRes_Ind_invariant (psi : 'CF(N)) :
+  'I_G[psi] = G -> 'Res ('Ind[G] psi) = #|G : N|%:R *: psi.
 Proof.
-move=> b irrb;rewrite -Frobenius_reciprocity cfdotE.
-rewrite mulrA mulfV ?mul1r ?neq0CG //.
-rewrite (bigID (fun x => x \in N)) /=.
-set s1 := \sum_(i0 in G | i0 \in N) _.
-rewrite big1;last first.
-  by move=> j /andP [ jG jN]; rewrite cfResE // cfuniE // (negbTE jN) mul0r.
-rewrite addr0 /s1 (eq_bigr (fun j => 'chi_b 1%g)).
-  rewrite (eq_bigl (fun i => (i \in N))); first by rewrite sumr_const mulr_natr.
-  move=> j /=.
-  case: (boolP (j \in N)); rewrite ?andbF ?andbT //.
-  by move/subsetP: sNG; move/(_ j).
-move=>i /andP [iG iN]; rewrite cfuniE // cfResE // iN mul1r.
-by rewrite mod_IirrE // cfModE // coset_id // conj_Cnat // Cnat_irr1.
+move=> IGpsi; apply/cfun_inP=> x Nx; rewrite cfResE ?cfIndE ?(subsetP sNG) //.
+rewrite natf_indexg // cfunE -mulrA mulrCA mulr_natl //; congr (_ * _).
+by rewrite -IGpsi -sumr_const; apply: eq_bigr => z /setIP[_ /inertia_valJ->].
 Qed.
 
-Remark Gallagher_constt_val: forall b, b \in Iirr (G / N)->  
-#|G:N|%:R * '[('Ind[G](cfun_indicator G N)), 'chi_(mod_Iirr b)] = 'chi_b 1%g.
-move=> b bIirr; rewrite mulrC; apply: (mulIf (neq0CG N)).
-rewrite -Gallagher_consttv // -mulrA mulrC; congr (_ *_).
-by rewrite -natrM ; move:(Lagrange sNG); rewrite mulnC => ->.
+(* This is Isaacs (6.16) *)
+Lemma constt_Ind_mul_ext f (phi := 'chi_f) (psi := phi * theta) :
+  'I_G[phi] = G -> psi \in irr N ->
+  let calS := irr_constt ('Ind phi) in
+  [/\ {in calS, forall b, 'chi_b * chi \in irr G},
+      {in calS &, injective mul_Iirr},
+      irr_constt ('Ind psi) =i [seq mul_Iirr b | b in calS]
+    & 'Ind psi = \sum_(b in calS) '['Ind phi, 'chi_b] *: 'chi_(mul_Iirr b)].
+Proof.
+move=> IGphi irr_psi calS.
+have /eqP IGpsi: 'I_G[psi] == G.
+  by rewrite eqEsubset subsetIl -{1}IGtheta -{1}IGphi -setIA setIS ?inertia_mul.
+pose e b := '['Ind[G] phi, 'chi_b]; pose d b g := '['chi_b * chi, 'chi_g * chi].
+have Ne b: e b \in Cnat by rewrite Cnat_cfdot_char ?cfInd_char ?irr_char.
+have egt0 b: b \in calS -> e b > 0 by rewrite Cnat_gt0.
+have DphiG: 'Ind phi = \sum_(b in calS) e b *: 'chi_b := cfun_sum_constt _.
+have DpsiG: 'Ind psi = \sum_(b in calS) e b *: 'chi_b * chi.
+  by rewrite /psi -cNt cfIndM // DphiG mulr_suml.
+pose d_delta := [forall b in calS, forall g in calS, d b g == (b == g)%:R].
+have charMchi b: 'chi_b * chi \is a character by rewrite rpredM ?irr_char.
+have [_]: '['Ind[G] phi] <= '['Ind[G] psi] ?= iff d_delta.
+  pose sum_delta := \sum_(b in calS) e b * \sum_(g in calS) e g * (b == g)%:R.
+  pose sum_d := \sum_(b in calS) e b * \sum_(g in calS) e g * d b g.
+  have ->: '['Ind[G] phi] = sum_delta.
+    rewrite DphiG cfdot_suml; apply: eq_bigr => b _; rewrite cfdotZl cfdot_sumr.
+    by congr (_ * _); apply: eq_bigr => g; rewrite cfdotZr cfdot_irr conj_Cnat.
+  have ->: '['Ind[G] psi] = sum_d.
+    rewrite DpsiG cfdot_suml; apply: eq_bigr => b _.
+    rewrite -scalerAl cfdotZl cfdot_sumr; congr (_ * _).
+    by apply: eq_bigr => g _; rewrite -scalerAl cfdotZr conj_Cnat.
+  have eMmono := mono_lerif (ler_pmul2l (egt0 _ _)).
+  apply: lerif_sum => b /eMmono->; apply: lerif_sum => g /eMmono->.
+  split; last exact: eq_sym.
+  have /CnatP[n Dd]: d b g \in Cnat by rewrite Cnat_cfdot_char.
+  have [Db | _] := eqP; rewrite Dd leC_nat // -ltC_nat -Dd Db cfnorm_gt0.
+  by rewrite -char1_eq0 // cfunE mulf_neq0 ?irr1_neq0.
+rewrite -!cfdot_Res_l ?cfRes_Ind_invariant // !cfdotZl cfnorm_irr irrWnorm //.
+rewrite eqxx => /esym/forall_inP/(_ _ _)/eqfun_inP; rewrite /d /= => Dd.
+have irrMchi: {in calS, forall b, 'chi_b * chi \in irr G}.
+  by move=> b Sb; rewrite /= irrEchar charMchi Dd ?eqxx.
+have injMchi: {in calS &, injective mul_Iirr}.
+  move=> b g Sb Sg /(congr1 (fun s => '['chi_s, 'chi_(mul_Iirr g)]))/eqP.
+  by rewrite cfnorm_irr !cfIirrE ?irrMchi ?Dd // pnatr_eq1; case: (b =P g).
+have{DpsiG} ->: 'Ind psi = \sum_(b in calS) e b *: 'chi_(mul_Iirr b).
+  by rewrite DpsiG; apply: eq_bigr => b Sb; rewrite -scalerAl cfIirrE ?irrMchi.
+split=> // i; rewrite irr_consttE cfdot_suml;
+apply/idP/idP=> [|/imageP[b Sb ->]].
+  apply: contraR => N'i; rewrite big1 // => b Sb.
+  rewrite cfdotZl cfdot_irr mulrb ifN_eqC ?mulr0 //.
+  by apply: contraNneq N'i => ->; apply: image_f.
+rewrite gtr_eqF // (bigD1 b) //= cfdotZl cfnorm_irr mulr1 ltr_paddr ?egt0 //.
+apply: sumr_ge0 => g /andP[Sg _]; rewrite cfdotZl cfdot_irr.
+by rewrite mulr_ge0 ?ler0n ?Cnat_ge0.
 Qed.
-End S617.
+  
+Definition mul_mod_Iirr (b : Iirr (G / N)) := mul_Iirr (mod_Iirr b).
+
+Lemma cfRes_sub_ker phi : N \subset cfker phi -> 'Res[N, G] phi = (phi 1%g)%:A.
+Proof.
+move=> kerNphi; apply/cfun_inP=> x Nx.
+by rewrite cfResE // cfunE cfun1E Nx mulr1 cfker1 ?(subsetP kerNphi).
+Qed.
+
+(* This is Isaacs (6.17) (due to Gallagher). *)
+Lemma constt_Ind_ext :
+  [/\ forall b : Iirr (G / N), 'chi_(mod_Iirr b) * chi \in irr G,
+      injective mul_mod_Iirr,
+      irr_constt ('Ind theta) =i codom mul_mod_Iirr
+    & 'Ind theta = \sum_b 'chi_b 1%g *: 'chi_(mul_mod_Iirr b)].
+Proof.
+have IHchi0: 'I_G['chi[N]_0] = G by rewrite irr0 inertia_cfun1 (setIidPl nNG).
+have [] := constt_Ind_mul_ext IHchi0; rewrite irr0 ?mul1r ?mem_irr //.
+set psiG := 'Ind 1 => irrMchi injMchi constt_theta {2}->.
+have dot_psiG b: '[psiG, 'chi_(mod_Iirr b)] = 'chi[G / N]_b 1%g.
+  rewrite mod_IirrE // -cfdot_Res_r cfRes_sub_ker ?cfker_mod //.
+  by rewrite cfdotZr cfnorm1 mulr1 conj_Cnat ?cfMod1 ?Cnat_irr1.
+have mem_psiG (b : Iirr (G / N)): mod_Iirr b \in irr_constt psiG.
+  by rewrite irr_consttE dot_psiG irr1_neq0.
+have constt_psiG b: (b \in irr_constt psiG) = (N \subset cfker 'chi_b).
+  apply/idP/idP=> [psiGb | /quo_IirrK <- //].
+  by rewrite constt0_Res_cfker // -constt_Ind_constt_Res irr0.
+split=> [b | b g /injMchi/(can_inj (mod_IirrK nsNG))-> // | b0 | ].
+- exact: irrMchi.
+- rewrite constt_theta.
+  apply/imageP/imageP=> [][b psiGb ->]; last by exists (mod_Iirr b).
+  by exists (quo_Iirr N b) => //; rewrite /mul_mod_Iirr quo_IirrK -?constt_psiG.
+rewrite (reindex_onto _ _ (in1W (mod_IirrK nsNG))) /=.
+apply/esym/eq_big => b; first by rewrite constt_psiG quo_IirrKeq.
+by rewrite -dot_psiG /mul_mod_Iirr => /eqP->.
+Qed.
+
+End S6_16_17.
 
 End S628.
 

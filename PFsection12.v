@@ -456,7 +456,6 @@ move/cfun_onP => phi_cf; apply/cfun_onP=> x nAx; apply/eqP.
 by rewrite cfunE (inv_eq conjCK) conjC0; apply/eqP; exact: phi_cf.
 Qed.
 
-
 (* This is Peterfalvi (12.4). *)
 Lemma FTtype1_ortho_constant (psi : 'CF(G)) x : 
     {in calS, forall phi, orthogonal psi (R phi)} -> x \in L :\: H ->
@@ -541,19 +540,16 @@ have {supp12B} oResD xi i1 i2 : xi \in calS -> i1 \in S_ xi -> i2 \in S_ xi ->
   rewrite -tauInd // [tau1 _]restr_DadeE //.
   pose calS2 := undup ('chi_i1 :: ('chi_i1)^*%CF :: 'chi_i2 :: ('chi_i2)^*%CF).
   suff Ztau12 : Dade Dade_hyp ('chi_i1 - 'chi_i2) \in 'Z[R xi].
-    rewrite (@span_orthogonal _ _ psi (R xi)) //; first exact: hpsi.
-    - by rewrite memv_span1.
-    by apply: (@zchar_span _ _ _ setT).
+    by rewrite (span_orthogonal (hpsi xi _)) ?memv_span1 ?(zchar_span Ztau12).
   case: (Rgen _ _) @R => /= S; set R1 := sval _ => [[subcoh1 hR1 defR1]].
   have calS2S : {subset calS2 <= [seq 'chi_i | i in Iirr_kerD L H 1%G]}.
     have [_ [[_ _ ccI] _ _ _ _]] := R1gen maxL Ltype.
     move=> phi /=; rewrite mem_undup; move: phi; apply/allP=> /=.
     by rewrite !ccI !image_f //; apply/FTtype1_irrP; exists xi.
   have {calS2S} ccS2: cfConjC_subset calS2 [seq 'chi_i | i in Iirr_kerD L H 1%g].
-    rewrite /cfConjC_subset; split=> //.
-    - by rewrite /calS2 undup_uniq.
-    - rewrite /conjC_closed => phi; rewrite !mem_undup /=; move: phi.
-      by apply/allP; rewrite /= !cfConjCK !inE !eqxx !orbT.
+    rewrite /cfConjC_subset; split=> //; first by rewrite /calS2 undup_uniq.
+    rewrite /conjC_closed => phi; rewrite !mem_undup /=; move: phi.
+    by apply/allP; rewrite /= !cfConjCK !inE !eqxx !orbT.
   case: (R1gen _ _) @R1 hR1 defR1 => R1 /= subcoh hR1 defR1.
   have subcoh12: subcoherent calS2 tau R1 by exact: (subset_subcoherent subcoh).
   have [tau2 htau2] : coherent calS2 L^# tau.
@@ -684,7 +680,7 @@ have hdev z : z \in H -> rpsi z =
   \sum_(i < Nirr H) '[rpsi, 'chi_i] * (('Res[H] 'chi_i) z).
   move=> Hz.
   have -> : rpsi z = ('Res[H] rpsi) z by rewrite cfResE.
-  rewrite [in LHS](cfun_sum_cfdot rpsi) linear_sum /= sum_cfunE.
+  rewrite [in lhs in lhs = _](cfun_sum_cfdot rpsi) linear_sum /= sum_cfunE.
   by apply: eq_bigr => i _; rewrite linearZ !cfunE.
 have {hdev} hsum_set z : z \in H -> rpsi z = 
   \sum_(i in [set: (Iirr H)]) '[rpsi, 'chi_i] * (('Res[H] 'chi_i) z).
@@ -719,7 +715,8 @@ have hsum (z : gT) :  \sum_(x0 in A') ('[rpsi, 'chi_x0] *: 'chi_x0) z =
   have Indi_calS : 'Ind[L] 'chi_i \in calS.
     by apply/seqIndC1P; exists i => //; move: A'i; rewrite in_setD1; case/andP.
   rewrite orthopsi ?mul0r //. admit.
-Admitted.
+admit.
+Qed.
 
 End Twelve_4_5.
 
@@ -730,10 +727,49 @@ Proof.
 have [E /Frobenius_of_typeF LtypeF] := existsP frobL.
 by apply/idPn=> /FTtypeP_witness[]// _ _ _ _ _ /typePF_exclusion/(_ E).
 Qed.
+Let Ltype1 := FT_Frobenius_type1.
 
 (* This will be (12.6). *)
 Lemma FT_Frobenius_coherence : {subset calS <= irr L} /\ coherent calS L^# tau.
-Proof. move: maxL frobL. admit. Qed.
+Proof.
+have irrS: {subset calS <= irr L}.
+  by move=> _ /seqIndC1P[s nz_s ->]; apply: irr_induced_Frobenius_ker.
+split=> //; have [U [MtypeF MtypeI]] := FTtypeP 1 maxL Ltype1.
+have [[ntH ntU defL] _ _] := MtypeF; have nsHL: H <| L := gFnormal _ L.
+have nilH: nilpotent H := Fcore_nil L; have solH := nilpotent_sol nilH.
+have frobHU: [Frobenius L = H ><| U] := set_Frobenius_compl defL frobL.
+pose R := sval (Rgen maxL Ltype1).
+have scohS: subcoherent calS tau R by case: (svalP (Rgen maxL Ltype1)).
+have defA: 'A(L) = H^#.
+  apply/eqP; rewrite eqEsubset Fcore_sub_FTsupp // andbT.
+  apply/bigcupsP=> y; rewrite /'A1(L) /L`_\s (eqP Ltype1) /= => H1y.
+  by rewrite setSD //; have [_ _ _ ->] := Frobenius_kerP frobL.
+have [tiH | [cHH _] | [expUdvH1 _]] := MtypeI.
+- have{tiH} niltiH: [/\ odd #|L|, nilpotent H & normedTI H^# G L].
+    by rewrite mFT_odd /normedTI tiH normD1 setTI /= (mmax_normal maxL).
+  have /(_ U)[|tau1 [IZtau1 Dtau1]] := Sibley_coherence niltiH; first by left. 
+  exists tau1; split=> // chi Schi; rewrite Dtau1 /tau ?Dade_Ind //; last first.
+    by do [rewrite zcharD1_seqInd // -defA; move/zchar_on] in Schi.
+  have [_ _ tiH] := niltiH; rewrite -subG1 -setD_eq0 in ntH.
+  have [ddH1 ddH1_1] := Dade_normedTI_P _ (setSD _ (subsetT H)) ntH tiH.
+  rewrite -defA in ddH1 ddH1_1.
+  move=> xi Axi; rewrite /= (def_Dade_signalizer _ (Dade_sdprod ddH1)) //.
+  exact: ddH1_1.
+- apply/(uniform_degree_coherence scohS)/(@all_pred1_constant _ #|L : H|%:R).
+  apply/allP=> _ /mapP[_ /seqIndP[s _ ->] ->] /=.
+  by rewrite cfInd1 ?gFsub // lin_char1 ?mulr1 //; apply/char_abelianP.
+have isoHbar := quotient1_isog H.
+have /(_ 1%G)[|//|[_ [p [pH _] /negP[]]]] := non_coherent_chief nsHL solH scohS.
+  split; rewrite ?mFT_odd ?normal1 ?sub1G -?(isog_nil isoHbar) //= joingG1.
+  apply/existsP; exists (U / H')%G.
+  rewrite Frobenius_proper_quotient ?(sol_der1_proper solH) //.
+  exact: char_normal_trans (der_char 1 H) nsHL.
+rewrite -(isog_pgroup p isoHbar) in pH.
+have [pr_p p_dv_H _] := pgroup_pdiv pH ntH.
+rewrite subn1 -(index_sdprod defL).
+have [->] := typeF_context MtypeF; last by split; rewrite ?(sdprodWY defL).
+by rewrite expUdvH1 // mem_primes pr_p cardG_gt0.
+Qed.
 
 End Twelve_4_to_6.
 
@@ -871,9 +907,9 @@ have [Ltype1 | notLtype1] := boolP (FTtype L == 1)%N; last first.
   have hallU: \pi(H)^'.-Hall(L^`(1)) U.
     by rewrite -(compl_pHall U hallH) sdprod_compl.
   rewrite (sub_normal_Hall hallH) // (pi_pgroup pP0) //.
-  have: ~~ cyclic P0 by rewrite abelian_rank1_cyclic // (rank_pgroup pP0) prankP0.
-  apply: contraR => piK'p.
-  by have [y _ /cyclicS->] := Hall_psubJ hallU piK'p sP0L' pP0; rewrite ?cyclicJ.
+  have: ~~ cyclic P0; last apply: contraR => piK'p.
+    by rewrite abelian_rank1_cyclic // (rank_pgroup pP0) prankP0.
+  by have [|y _ /cyclicS->] := Hall_psubJ hallU piK'p _ pP0; rewrite ?cyclicJ.
 have sP0H: P0 \subset H by have:= sP0_Ls; rewrite /L`_\s (eqP Ltype1).
 have [U [LtypeF /= LtypeI]] := FTtypeP 1 maxL Ltype1.
 have [[_ _ defL] _ _] := LtypeF; have [nsHL sUL _ nHU _] := sdprod_context defL.
@@ -1586,7 +1622,67 @@ Qed.
 
 (* This will be (12.17). *)
 Theorem not_all_FTtype1 : ~~ all_FTtype1 gT.
-Admitted.
+Proof.
+apply/negP=> allT1; pose k := #|'M^G|.
+have [partGpi coA1 _ [injA1 /(_ allT1)partG _]] := FT_Dade_support_partition gT.
+move/forall_inP in allT1.
+have [/subsetP maxMG _ injMG exMG] := mmax_transversalP gT.
+have{partGpi exMG} kge2: (k >= 2)%N.
+  have [L MG_L]: exists L, L \in 'M^G.
+    by have [L maxL] := any_mmax gT; have [x] := exMG L maxL; exists (L :^ x)%G.
+  have maxL := maxMG L MG_L; have Ltype1 := allT1 L maxL.
+  have /Frobenius_kerP[_ ltHL nsHL _] := FTtype1_Frobenius maxL Ltype1.
+  rewrite ltnNge; apply: contra (proper_subn ltHL) => leK1.
+  rewrite (sub_normal_Hall (Fcore_Hall L)) // (pgroupS (subsetT L)) //=.
+  apply: sub_pgroup (pgroup_pi _) => p; rewrite partGpi => /exists_inP[M maxM].
+  have /eqP defMG: [set L] == 'M^G by rewrite eqEcard sub1set MG_L cards1.
+  have [x] := exMG M maxM; rewrite -defMG => /set1P/(canRL (actK 'JG _))-> /=.
+  by rewrite FTcoreJ cardJg /L`_\s (eqP Ltype1).
+pose L (i : 'I_k) : {group gT} := enum_val i; pose H i := (L i)`_\F%G.
+have MG_L i: L i \in 'M^G by apply: enum_valP.
+have maxL i: L i \in 'M by apply: maxMG.
+have defH i: (L i)`_\s = H i by rewrite /_`_\s (eqP (allT1 _ _)).
+pose frobL_P i E := [Frobenius L i = H i ><| gval E].
+have /fin_all_exists[E frobHE] i: exists E, frobL_P i E.
+  by apply/existsP/FTtype1_Frobenius; rewrite ?allT1.
+have frobL i: [/\ L i \subset G, solvable (L i) & frobL_P i (E i)].
+  by rewrite subsetT mmax_sol.
+have{coA1} coH_ i j: i != j -> coprime #|H i| #|H j|.
+  move=> j'i; rewrite -!defH coA1 //; apply: contra j'i => /imsetP[x Gx defLj].
+  apply/eqP/enum_val_inj; rewrite -/(L i) -/(L j); apply: injMG => //.
+  by rewrite defLj; apply/esym/orbit_act.
+have tiH i: normedTI (H i)^# G (L i).
+  have ntA: (H i)^# != set0 by rewrite setD_eq0 subG1 mmax_Fcore_neq1.
+  apply/normedTI_memJ_P=> //=; rewrite subsetT; split=> // x z H1x Gz.
+  apply/idP/idP=> [H1xz | Lz]; last first.
+    by rewrite memJ_norm // (subsetP _ z Lz) // normD1 gFnorm.
+  have /subsetP sH1A0: (H i)^# \subset 'A0(L i) by apply: Fcore_sub_FTsupp0.
+  have [/(sub_in2 sH1A0)wccH1 [_ maxN] Nfacts] := FTsupport_facts (maxL i).
+  suffices{z Gz H1xz wccH1} sCxLi: 'C[x] \subset L i.
+    have /imsetP[y Ly defxz] := wccH1 _ _ H1x H1xz (mem_imset _ Gz).
+    rewrite -[z](mulgKV y) groupMr // (subsetP sCxLi) // !inE conjg_set1.
+    by rewrite conjgM defxz conjgK.
+  apply/idPn=> not_sCxM; pose D := [set y in 'A0(L i) | ~~ ('C[y] \subset L i)].
+  have Dx: x \in D by rewrite inE sH1A0.
+  have{maxN} /mem_uniq_mmax[maxN sCxN] := maxN x Dx.
+  have Ntype1 := allT1 _ maxN.
+  have [_ _ /setDP[/bigcupP[y NFy /setD1P[ntx cxy]] /negP[]]] := Nfacts x Dx.
+  rewrite /'A1(_) /_`_\s (eqP Ntype1) /= in NFy cxy *.
+  have /Frobenius_kerP[_ _ _ regFN] := FTtype1_Frobenius maxN Ntype1.
+  by rewrite 2!inE ntx (subsetP (regFN y NFy)).
+have /negP[] := no_coherent_Frobenius_partition (mFT_odd _) kge2 frobL tiH coH_.
+rewrite eqEsubset sub1set !inE andbT; apply/andP; split; last first.
+  apply/bigcupP=> [[i _ /imset2P[x y /setD1P[ntx _] _ Dxy]]].
+  by rewrite -(conjg_eq1 x y) -Dxy eqxx in ntx.
+rewrite subDset setUC -subDset -(cover_partition partG).
+apply/bigcupsP=> _ /imsetP[Li MG_Li ->]; pose i := enum_rank_in MG_Li Li.
+rewrite (bigcup_max i) //=; have ->: Li = L i by rewrite /L enum_rankK_in.
+rewrite -FT_Dade1_supportE //; apply/bigcupsP=> x A1x; apply: imset2S => //.
+have [|ddH1 ddH1_1] := Dade_normedTI_P _ (setSD _ (subsetT _)) _ (tiH i).
+  by rewrite setD_eq0 subG1 mmax_Fcore_neq1.
+rewrite -(erefl (gval (H i))); rewrite -defH // in ddH1 ddH1_1 *.
+by rewrite (def_Dade_signalizer _ (Dade_sdprod ddH1)) ?ddH1_1 // mul1g sub1set.
+Qed.
 
 
 End PFTwelve.
