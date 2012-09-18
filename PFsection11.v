@@ -1350,24 +1350,24 @@ split=> [zeta zISHC||].
       rewrite cfdot_suml big1 // => i2 _.
       by rewrite cfdotZl cfdot_cycTIiso (negPf Di1i) mulr0.
     by rewrite cfdotZl cfdot_cycTIiso (negPf Dj1j) andbF mulr0.
+  have NZ1i : #1 != 0 :> Iirr W1 by rewrite Iirr1_neq0.
+  have NZ1j : #1 != 0 :> Iirr W2 by rewrite Iirr1_neq0.
   have aiE i (NZi : i != 0) : a_ (eta_ i 0) = a_ (eta_ #1 0).
-    have NZi1 : #1 != 0 :> Iirr W1 by rewrite Iirr1_neq0.
-    have [k co_k_i1 Di] := cfExp_prime_transitive (pr_q) NZi1 NZi.
+    have [k co_k_i1 Di] := cfExp_prime_transitive (pr_q) NZ1i NZi.
     rewrite -(cforder_dprodl defW) -dprod_IirrEl in co_k_i1.
     have{co_k_i1} [[r Di1r] _] := cycTIiso_aut_exists ctiWG co_k_i1.
     rewrite dprod_IirrEl -rmorphX -Di /= -!dprod_IirrEl -!/(w_ _ _) in Di1r.
     rewrite aijE Di1r -(eSumAE r) (bigD1 #1) // cfdotDl (bigD1 0) //=.
     rewrite cfdotDl cfdotZl !cfdot_suml !big1 ?addr0 //=.
     - by rewrite -Di1r cfnorm_cycTIiso mulr1.
-    - move=> i2 NZi2; rewrite cfdot_suml big1 // => j1 _.
+    - move=> i1 NZi1; rewrite cfdot_suml big1 // => j1 _.
       rewrite cfdotZl !cfAut_cycTIiso -!cycTIirr_aut cfdot_cycTIiso.
-      by rewrite (inj_eq (aut_Iirr_inj r)) (negPf NZi2) mulr0.
-    move=> i2 Di21; rewrite cfdotZl !cfAut_cycTIiso -!cycTIirr_aut.
-    rewrite cfdot_cycTIiso !(inj_eq (aut_Iirr_inj r)) (negPf Di21).
+      by rewrite (inj_eq (aut_Iirr_inj r)) (negPf NZi1) mulr0.
+    move=> i1 NZi1; rewrite cfdotZl !cfAut_cycTIiso -!cycTIirr_aut.
+    rewrite cfdot_cycTIiso !(inj_eq (aut_Iirr_inj r)) (negPf NZi1).
     by rewrite andbF mulr0.
   have ajE j (NZj : j != 0) : a_ (eta_ 0 j) = a_ (eta_ 0 #1).
-    have NZj1 : #1 != 0 :> Iirr W2 by rewrite Iirr1_neq0.
-    have [k co_k_j1 Dj] := cfExp_prime_transitive (pr_p) NZj1 NZj.
+    have [k co_k_j1 Dj] := cfExp_prime_transitive (pr_p) NZ1j NZj.
     rewrite -(cforder_dprodr defW) -dprod_IirrEr in co_k_j1.
     have{co_k_j1} [[r Dj1r] _] := cycTIiso_aut_exists ctiWG co_k_j1.
     rewrite dprod_IirrEr -rmorphX -Dj /= -!dprod_IirrEr -!/(w_ _ _) in Dj1r.
@@ -1377,8 +1377,8 @@ split=> [zeta zISHC||].
     - move=> i NZi; rewrite cfdot_suml big1 // => j1 _.
       rewrite cfdotZl !cfAut_cycTIiso -!cycTIirr_aut cfdot_cycTIiso.
       by rewrite (inj_eq (aut_Iirr_inj r)) (negPf NZi) mulr0.
-    move=> i Di1; rewrite cfdotZl !cfAut_cycTIiso -!cycTIirr_aut.
-    rewrite cfdot_cycTIiso !(inj_eq (aut_Iirr_inj r)) (negPf Di1).
+    move=> i NZi1; rewrite cfdotZl !cfAut_cycTIiso -!cycTIirr_aut.
+    rewrite cfdot_cycTIiso !(inj_eq (aut_Iirr_inj r)) (negPf NZi1).
     by rewrite andbF mulr0.
   have aijNZE i j (NZi : i != 0) (NZj : j != 0) :
       a_ (eta_ i j) = a_ (eta_ i 0) + a_ (eta_ 0 j) - a_ (eta_ 0 0).
@@ -1390,6 +1390,47 @@ split=> [zeta zISHC||].
     rewrite (cfun_on0 (zchar_on psiIZ)) // -defA.
     suffices /setDP[]: x \in 'A0(M) :\: 'A(M) by [].
     by rewrite (FTsupp0_typeP maxM MtypeP) // mem_class_support.
+  have aijCint i j : a_ (eta_ i j) \in Cint.
+    rewrite Da Cint_cfdot_vchar ?cycTIiso_vchar ?Dade_vchar //.
+    have defA0 : 'A0(M) = HU^# :|: class_support (cyclicTIset defW) M.
+      by rewrite -defA (FTtypeP_supp0_def _ MtypeP).
+    by apply: zchar_onS psiIZ; rewrite defA0 subsetUl.
+  have normX : '[X] = 1 + q.-1%:R * a_(eta_ #1 0) ^+ 2 
+                        + p.-1%:R * a_(eta_ 0 #1) ^+ 2
+                        + p.-1%:R * q.-1%:R * a_ (eta_ #1 #1) ^+ 2.
+    have->: '[X] = \sum_i \sum_j a_(eta_ i j)^+2.
+      rewrite defX cfnorm_sum_orthonormal //.
+      rewrite pair_bigA big_map (big_nth 0) size_tuple big_mkord /=.
+      rewrite (reindex (dprod_Iirr defW)) /=.
+        apply: eq_bigr => [[i j] /= _]; rewrite -tnth_nth.
+        by rewrite Cint_normK // aijCint.
+      exists (inv_dprod_Iirr defW) => ij; first by rewrite dprod_IirrK.
+      by rewrite inv_dprod_IirrK.
+    have pm1E : p.-1 = #|[predD1 Iirr W2 & 0]|.
+      by rewrite -nirrW2 (cardD1 0) inE.
+    have qm1E : q.-1 = #|[predD1 Iirr W1 & 0]|.
+      by rewrite -nirrW1 (cardD1 0) inE.
+    rewrite (bigD1 0) //= (bigD1 0) //=.
+    rewrite (eq_bigr (fun i => a_ (eta_ 0 #1) ^+ 2)); last first.
+      by move=> j NZj; rewrite ajE.
+    rewrite sumr_const (@eq_card _ _ [predD1 Iirr W2 & 0]); last first.
+      by move=> i /=; rewrite !inE andbT /in_mem /=; case: (_ == _).
+    rewrite -pm1E mulr_natl.
+    pose f (i : Iirr W1) := 
+         a_ (eta_ #1 0) ^+ 2 + p.-1%:R * a_ (eta_ #1 #1) ^+ 2.
+    rewrite (eq_bigr f)=> [|i NZi]; last first.
+      rewrite (bigD1 0) ?aiE //=; congr (_ + _).
+      rewrite (eq_bigr (fun i => a_ (eta_ #1 #1) ^+ 2)); last first.
+        move=> j NZj; rewrite (aijNZE _ _ NZi NZj) (aijNZE _ _ NZ1i NZ1j) //.
+        by rewrite aiE // ajE.
+      rewrite sumr_const (@eq_card _ _ [predD1 Iirr W2 & 0]); last first.
+        by move=> i1 /=; rewrite !inE andbT /in_mem /=; case: (_ == _).
+      by rewrite -pm1E mulr_natl.
+    rewrite /f /= sumr_const (@eq_card _ _ [predD1 Iirr W1 & 0]); last first.
+      by move=> i /=; rewrite !inE andbT /in_mem /=; case: (_ == _).
+    rewrite -qm1E !mulr_natl mulrnDl !addrA; congr (_ + _).
+      by rewrite addrAC a_00 expr1n.
+    by rewrite -!mulrnA mulnC mulr_natl.
   admit.
 - admit.
 admit.
