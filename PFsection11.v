@@ -1332,7 +1332,7 @@ split=> [zeta zISHC||].
     have-> : 'A0(M) = HU^# :|: class_support  (cyclicTIset defW) M.
       by rewrite -defA (FTtypeP_supp0_def _ MtypeP).
     by apply: cfun_onS (zchar_on psiIZ); rewrite subsetUl.
-  have a_00: a_ (eta_ 0 0) = 1.
+  have Oa00: a_ (eta_ 0 0) = 1.
     rewrite Da [w_ 0 0](cycTIirr00 defW) [sigma 1]cycTIiso1.
     rewrite Dade_reciprocity // => [|x _ y _]; last by rewrite !cfun1E !inE.
     rewrite rmorph1 /= -(prTIirr00 ptiWM) -/(mu2_ 0 0) cfdotC.
@@ -1439,7 +1439,7 @@ split=> [zeta zISHC||].
     rewrite /f /= sumr_const (@eq_card _ _ [predD1 Iirr W1 & 0]); last first.
       by move=> i /=; rewrite !inE andbT /in_mem /=; case: (_ == _).
     rewrite -qm1E !mulr_natl mulrnDl !addrA; congr (_ + _).
-      by rewrite addrAC a_00 expr1n.
+      by rewrite addrAC Oa00 expr1n.
     by rewrite -!mulrnA mulnC mulr_natl.
   have normXlq: '[X] <= q%:R.
     rewrite -(ler_add2r '[chi]).
@@ -1490,7 +1490,8 @@ split=> [zeta zISHC||].
   have Pa i j : 0 <= a_ (eta_ i j) ^+ 2.
      have /CnatP[na->] := Cnat_exp_even (is_true_true : ~~odd 2) (aijCint i j).
      by apply: ler0n.
-  have [Za11|NZa11] := boolP (a_ (eta_ #1 #1) == 0); last first.
+  have even2 : ~~ odd 2 by [].
+  have [/eqP Za11|NZa11] := boolP (a_ (eta_ #1 #1) == 0); last first.
     suff /ler_trans/(_ normXlq): '[X] >= (2 * q.-1)%:R.
       rewrite ler_nat leqNgt=> /negP[].
       case: q pr_q (mFT_odd W1 : odd q)=>  [|[|[|q1]]] // _ _.
@@ -1499,11 +1500,58 @@ split=> [zeta zISHC||].
       by apply: (ler0n _ 1%N).
     have: a_ (eta_ #1 #1) ^+ 2 != 0.
       by apply: contra NZa11; rewrite mulf_eq0 => [/orP[]].
-    have/CnatP[na->] := (Cnat_exp_even (is_true_true : ~~odd 2) (aijCint #1 #1)).
+    have/CnatP[na->] := Cnat_exp_even even2 (aijCint #1 #1).
     rewrite -!natrM ler_nat (eqr_nat _ _ 0%N); case: na=> // na _.
     rewrite -[(2 * _)%N]muln1 !leq_mul //.
     by case: p pr_p (mFT_odd W2 : odd p)=> [|[|[|]]] //= _.
-  admit.
+  rewrite Za11 expr0n /= mulr0 addr0 in normX.
+  have [/eqP Za10|NZa10] := boolP (a_ (eta_ #1 0) == 0); last first.
+    have /ler_trans/(_ normXlq): 
+          '[X] >= q%:R + (p.-1)%:R  * a_ (eta_ 0 #1) ^+ 2.
+      rewrite normX ler_add2r.
+      have: a_ (eta_ #1 0) ^+ 2 != 0.
+        by apply: contra NZa10; rewrite mulf_eq0 => [/orP[]].
+      have/CnatP[na->] := Cnat_exp_even even2 (aijCint #1 0).
+      rewrite -!natrM -(natrD _ 1%N) ler_nat (eqr_nat _ _ 0%N).
+      case: na=> // na _.
+      rewrite mulnS addnA add1n; case: q pr_q => // q1 _.
+      by apply: leq_addr.
+    rewrite ger_addl pmulr_rle0; last first.
+      by rewrite (ltr_nat _ 0); case: p pr_p => [|[|]].
+    move=> HH; have Za012: a_ (eta_ 0 #1) ^+ 2 == 0.
+      move: HH; have/CnatP[na->] := Cnat_exp_even even2 (aijCint 0 #1).
+      by rewrite (ler_nat _ _ 0); case: na.
+    have Za01:  a_ (eta_ 0 #1) = 0.
+     by move: Za012; rewrite mulf_eq0 => [/orP[]/eqP].
+    have Oa10 : a_ (eta_ #1 0) = 1.
+      have := aijNZE _ _ NZ1i NZ1j.
+      rewrite  Za11 Za01 Oa00 addr0.
+      by move/eqP; rewrite eq_sym subr_eq add0r => /eqP.
+    have e1X : X = \sum_i eta_ i 0.
+      rewrite eX; apply: eq_bigr=> i _.
+      have[/eqP->|NZi] := boolP (i == 0).
+        rewrite (bigD1 0) //= big1 ?addr0 ?Oa00 ?scale1r // => j NZj.
+        by rewrite ajE // Za01 scale0r.
+      rewrite (bigD1 0) //= big1 => [|j NZ].
+        by rewrite addr0 aiE // Oa10 scale1r.
+      rewrite aijNZE // aiE // ajE // Za01 Oa10 Oa00.
+      by rewrite addr0 subrr scale0r.
+    have /negP[] := FTtype34_not_ortho_cycTIiso zISHC.
+    by rewrite -/psi -e1X eTau [X + _]addrC addrK.
+  have Oa01 : a_ (eta_ 0 #1) = 1.
+    have := aijNZE _ _ NZ1i NZ1j.
+    rewrite  Za11 Za10 Oa00 add0r.
+    by move/eqP; rewrite eq_sym subr_eq add0r => /eqP.
+  have <- : X = \sum_j eta_ 0 j.
+    rewrite eX (bigD1 0) //=  [X in _ + X = _]big1 => [|i NZi].
+      rewrite addr0; apply: eq_bigr => i _.
+      by have [/eqP->|NZi] := boolP (i == 0);
+        rewrite ?Oa00 ?ajE // ?Oa01 scale1r.
+    apply: big1 => j _; have [/eqP->|NZj] := boolP (j == 0).
+      by rewrite aiE // Za10 scale0r.
+    rewrite aijNZE // aiE // ajE // -(aijNZE _ _ NZ1i NZ1j).
+    by rewrite Za11 scale0r.
+  by rewrite eTau [X + _]addrC addrK.
 - admit.
 admit.
 Qed.
