@@ -1303,7 +1303,7 @@ Lemma FTtype34_structure :
              orthogonal (tau (mu_ 0 - zeta) - \sum_j eta_ 0 j) codom_sigma},
       (*b*) (p < q)%N
     & (*c*) FTtype M == 3 /\ typeP_Galois MtypeP].
-Proof. 
+Proof.
 split=> [zeta zISHC||].
 - move: (zISHC); have /irrP[izeta ->] := irrS1 zISHC => {zeta zISHC}zISHC.
   pose zeta := 'chi_izeta; set psi := mu_ 0 - zeta.
@@ -1369,7 +1369,7 @@ split=> [zeta zISHC||].
       have<- : '[ cfAut r (tau psi), cfAut r (eta_ i j)] =  a_ (eta_ i j).
         have /dirrP[i1 [b i1E]] := cycTIiso_dirr ctiWG i j.
         rewrite {1}i1E linearZ cfdotZr cfdot_aut_irr.
-        have->: (r ((-1) ^+ i1))^* = r (((-1) ^+ i1)^*).
+        have->: (r ((-1) ^+ i1))^* = r (((-1) ^+ i1)^* ).
           by rewrite !rmorph_sign.
         rewrite -rmorphM -cfdotZr -i1E -Da.
         by have /CintP[m->] := aijCint i j; rewrite rmorph_int.
@@ -1487,10 +1487,10 @@ split=> [zeta zISHC||].
       by apply seqInd_conjC_subset1=> //=; rewrite ?defMs.
     rewrite  zcharD1 2!cfunE !S1w1 ?cfAut_seqInd ?subrr ?eqxx //.
     by rewrite zchar_onG rpredB // mem_zchar // cfAut_seqInd.
-  have Pa i j : 0 <= a_ (eta_ i j) ^+ 2.
-     have /CnatP[na->] := Cnat_exp_even (is_true_true : ~~odd 2) (aijCint i j).
-     by apply: ler0n.
   have even2 : ~~ odd 2 by [].
+  have Pa i j : 0 <= a_ (eta_ i j) ^+ 2.
+     have /CnatP[na->] := Cnat_exp_even even2 (aijCint i j).
+     by apply: ler0n.
   have [/eqP Za11|NZa11] := boolP (a_ (eta_ #1 #1) == 0); last first.
     suff /ler_trans/(_ normXlq): '[X] >= (2 * q.-1)%:R.
       rewrite ler_nat leqNgt=> /negP[].
@@ -1552,7 +1552,23 @@ split=> [zeta zISHC||].
     rewrite aijNZE // aiE // ajE // -(aijNZE _ _ NZ1i NZ1j).
     by rewrite Za11 scale0r.
   by rewrite eTau [X + _]addrC addrK.
-- admit.
+- have[zeta zISHC]: exists zeta, zeta \in S_ HC.
+    by admit.
+  move: (zISHC); have /irrP[izeta ->] := irrS1 zISHC => {zeta zISHC}zISHC.
+  pose zeta := 'chi_izeta.
+  have zIS : zeta \in  seqIndD HU M HU 1.
+    by apply: (seqIndS (Iirr_kerDS _ (sub1G _) _) zISHC).
+  have [//|qLp|pEq] :=  ltngtP p q; last first.
+    have [ciW _ _ _] := ctiWM.
+    have: coprime q p by rewrite -(cyclic_dprod defW).
+    by rewrite pEq /coprime gcdnn; case: q pr_q => [|[|]].
+  have /negP[] := FTtype34_not_ortho_cycTIiso zISHC.
+  have [chi [chiE _ _ Ochi]] :=   
+       FTtype345_Dade_bridge0 maxM MtypeP Mtypen2 zIS (S1w1 zISHC) qLp.
+  rewrite /(mu_ _) /tau /ptiWM /= chiE addrAC subrr sub0r.
+  apply/orthogonalP=> i ochi.
+  rewrite inE => /eqP-> /mapP[x /(cycTIirrP defW)[i1 [j1 ->]]->].
+  by rewrite cfdotNl Ochi oppr0.
 admit.
 Qed.
 
