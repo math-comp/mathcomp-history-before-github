@@ -1303,7 +1303,7 @@ Lemma FTtype34_structure :
              orthogonal (tau (mu_ 0 - zeta) - \sum_j eta_ 0 j) codom_sigma},
       (*b*) (p < q)%N
     & (*c*) FTtype M == 3 /\ typeP_Galois MtypeP].
-Proof.
+Proof. 
 split=> [zeta zISHC||].
 - move: (zISHC); have /irrP[izeta ->] := irrS1 zISHC => {zeta zISHC}zISHC.
   pose zeta := 'chi_izeta; set psi := mu_ 0 - zeta.
@@ -1441,6 +1441,52 @@ split=> [zeta zISHC||].
     rewrite -qm1E !mulr_natl mulrnDl !addrA; congr (_ + _).
       by rewrite addrAC a_00 expr1n.
     by rewrite -!mulrnA mulnC mulr_natl.
+  have normXlq: '[X] <= q%:R.
+    rewrite -(ler_add2r '[chi]).
+     have En: '[tau psi] = '[X] + '[chi] by rewrite eTau cfnormDd.
+     have Eq: '[tau psi] = q%:R + 1.
+       rewrite Dade_isometry ?muCF // cfnormDd.
+         by rewrite cfnorm_prTIred cfnormN OS1 // eqxx.
+       by rewrite cfdotNr Omu ?oppr0.
+     rewrite -En Eq ler_add2l.
+     suff: '[chi] != 0.
+       suff/CnatP[nc->]: '[chi] \in Cnat.
+         by rewrite (ler_nat _ 1%N) (eqr_nat _ _ 0%N); case: nc.
+       rewrite CnatEint cfnorm_ge0 andbT.
+       have->: '[chi] = '[tau psi] - '[X] .
+         by rewrite En ['[X] + _]addrC addrK.
+       rewrite rpredB ?Eq ?rpredD  ?Cint_Cnat //.
+       rewrite defX cfdot_sum_orthonormal //.
+       rewrite big_seq_cond rpred_sum // => i.
+       rewrite andbT => /mapP[x /(cycTIirrP defW)[i1 [j1 ->]]->].
+       rewrite conj_Cint ?aijCint //.
+       by apply: (@Cnat_exp_even (a_ _) 2%N).
+    rewrite cfnorm_eq0.
+    have: '[tau psi, tau (zeta - zeta^*%CF)] != 0.
+      rewrite Dade_isometry=> //.
+         rewrite !cfdotBl !cfdotBr ?Omu ?cfAut_seqInd //.
+         rewrite cfnorm_irr -conjC_IirrE cfdot_irr.
+         rewrite [izeta == _]eq_sym -(inj_eq irr_inj) conjC_IirrE.
+         rewrite (negPf (seqInd_conjC_neq _ _ _ zISHC)) ?mFT_odd //.
+         by rewrite !subr0 sub0r oppr_eq0 oner_neq0.
+      have ZsHU : {subset S1 <= 'CF(M, HU)}.
+        by move=> u2 HU; apply: (seqInd_on (der_normal 1 _) HU).
+      rewrite /'A0(M) (cfun_onS (subsetUl _ _)) //.
+      have->: 'A(M) = HU^# by rewrite FTsupp_eq1 // /'A1(M) FTcore_eq_der1.
+      rewrite  cfun_onD1 rpredB ?ZsHU ?cfAut_seqInd ?mem_zchar //.
+      by rewrite !cfunE irr1_degree ?rmorph_nat subrr eqxx.
+    rewrite eTau; apply: contra=> /eqP->; rewrite addr0.
+    have[tau1 cohWS1] := coS1; have [[Ztau1 Ptau1] Ctau1] := cohWS1.
+    rewrite -Ctau1 ?raddfB /=.
+      suff Otau1X : {in S1, forall z : 'CF(M), '[X, tau1 z] = 0}.
+        by rewrite !Otau1X ?cfAut_seqInd // subrr.
+      move=> z ZiS1; rewrite /= cfdotC defX cfdot_sumr big_seq_cond.
+      rewrite big1 ?conjC0 // => i.
+      rewrite andbT => /mapP[x /(cycTIirrP defW)[i1 [j1 ->]]->].
+      rewrite cfdotZr /= (coherent_ortho_cycTIiso _ _ cohWS1) ?irrS1 ?mulr0 //.
+      by apply seqInd_conjC_subset1=> //=; rewrite ?defMs.
+    rewrite  zcharD1 2!cfunE !S1w1 ?cfAut_seqInd ?subrr ?eqxx //.
+    by rewrite zchar_onG rpredB // mem_zchar // cfAut_seqInd.
   admit.
 - admit.
 admit.
