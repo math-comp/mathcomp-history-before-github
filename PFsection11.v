@@ -1487,6 +1487,22 @@ split=> [zeta zISHC||].
       by apply seqInd_conjC_subset1=> //=; rewrite ?defMs.
     rewrite  zcharD1 2!cfunE !S1w1 ?cfAut_seqInd ?subrr ?eqxx //.
     by rewrite zchar_onG rpredB // mem_zchar // cfAut_seqInd.
+  have Pa i j : 0 <= a_ (eta_ i j) ^+ 2.
+     have /CnatP[na->] := Cnat_exp_even (is_true_true : ~~odd 2) (aijCint i j).
+     by apply: ler0n.
+  have [Za11|NZa11] := boolP (a_ (eta_ #1 #1) == 0); last first.
+    suff /ler_trans/(_ normXlq): '[X] >= (2 * q.-1)%:R.
+      rewrite ler_nat leqNgt=> /negP[].
+      case: q pr_q (mFT_odd W1 : odd q)=>  [|[|[|q1]]] // _ _.
+      by rewrite mulSn mul1n addnS -addSn -addn1 leq_add2l.
+    rewrite normX ler_paddl ?addr_ge0 ?[0 <= _%:R * _]mulr_ge0 ?ler0n ?Pa //.
+      by apply: (ler0n _ 1%N).
+    have: a_ (eta_ #1 #1) ^+ 2 != 0.
+      by apply: contra NZa11; rewrite mulf_eq0 => [/orP[]].
+    have/CnatP[na->] := (Cnat_exp_even (is_true_true : ~~odd 2) (aijCint #1 #1)).
+    rewrite -!natrM ler_nat (eqr_nat _ _ 0%N); case: na=> // na _.
+    rewrite -[(2 * _)%N]muln1 !leq_mul //.
+    by case: p pr_p (mFT_odd W2 : odd p)=> [|[|[|]]] //= _.
   admit.
 - admit.
 admit.
