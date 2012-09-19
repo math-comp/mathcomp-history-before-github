@@ -1340,16 +1340,47 @@ split=> [zeta zISHC||].
   have aPsi r : cfAut r (tau psi) = tau psi + tau (zeta - cfAut r zeta).
     rewrite -Dade_aut !rmorphB !raddfB ![tau _]raddfB /= !addrA subrK.
     by rewrite -prTIred_aut aut_Iirr0.
-  have eSumAE r : \sum_i \sum_j a_ (eta_ i j) *: cfAut r (eta_ i j) = 
-                  \sum_ i \sum_j a_ (eta_ i j) *: eta_ i j.
-    admit.
-  have aijE i j :
-       a_ (eta_ i j) = '[\sum_i \sum_j a_ (eta_ i j) *: eta_ i j, eta_ i j].
-    rewrite (bigD1 i) // cfdotDl (bigD1 j) // cfdotDl !cfdot_suml !cfdotZl.
-    rewrite  cfnorm_cycTIiso mulr1 !big1 ?addr0 // => [i1 Di1i|j1 Dj1j].
-      rewrite cfdot_suml big1 // => i2 _.
-      by rewrite cfdotZl cfdot_cycTIiso (negPf Di1i) mulr0.
-    by rewrite cfdotZl cfdot_cycTIiso (negPf Dj1j) andbF mulr0.
+  have aijCint i j : a_ (eta_ i j) \in Cint.
+    rewrite Da Cint_cfdot_vchar ?cycTIiso_vchar ?Dade_vchar //.
+    have defA0 : 'A0(M) = HU^# :|: class_support (cyclicTIset defW) M.
+      by rewrite -defA (FTtypeP_supp0_def _ MtypeP).
+    by apply: zchar_onS psiIZ; rewrite defA0 subsetUl.
+  have aijE i j : a_ (eta_ i j) = '[X, eta_ i j].
+    by rewrite Da eTau cfdotDl oChiEta addr0.
+  have cf_a r i j : a_ (cfAut r (eta_ i j)) = a_ (eta_ i j).
+    pose zetaS := undup [:: zeta; zeta^*%CF; cfAut r zeta; (cfAut r zeta)^*%CF].
+    have cfC_zetaS :  cfConjC_subset zetaS (seqIndD HU M HU 1).
+      rewrite /cfConjC_subset; split=> //; first by rewrite /zetaS undup_uniq.
+         move=> phi /=; rewrite mem_undup; move: phi; apply/allP=> /=.
+         have zIS : zeta \in  seqIndD HU M HU 1.
+           by apply: (seqIndS (Iirr_kerDS _ (sub1G _) _) zISHC).
+         by rewrite  zIS !cfAut_seqInd ?zIS.
+      rewrite /conjC_closed => phi; rewrite !mem_undup /=; move: phi.
+      by apply/allP; rewrite /= !cfConjCK !inE !eqxx !orbT.
+    have subCzS := subset_subcoherent subc_M cfC_zetaS.
+    have [tau2 Etau2]: coherent zetaS M^# tau.
+      apply: (uniform_degree_coherence subCzS).
+      apply: (@all_pred1_constant _ (zeta 1%g)).
+      apply/allP=> _ /mapP[phi calSphi ->].
+      move: calSphi; rewrite mem_undup !inE.
+      by case/or4P=> /eqP->; rewrite // !cfunE irr1_degree ?rmorph_nat.
+    rewrite -{2}(group_inj defMs) in cfC_zetaS.
+    have otau2 := coherent_ortho_cycTIiso MtypeP cfC_zetaS Etau2.
+      have<- : '[ cfAut r (tau psi), cfAut r (eta_ i j)] =  a_ (eta_ i j).
+        have /dirrP[i1 [b i1E]] := cycTIiso_dirr ctiWG i j.
+        rewrite {1}i1E linearZ cfdotZr cfdot_aut_irr.
+        have->: (r ((-1) ^+ i1))^* = r (((-1) ^+ i1)^*).
+          by rewrite !rmorph_sign.
+        rewrite -rmorphM -cfdotZr -i1E -Da.
+        by have /CintP[m->] := aijCint i j; rewrite rmorph_int.
+      rewrite aPsi cfdotDl cfAut_cycTIiso -cycTIirr_aut.
+      rewrite eTau cfdotDl oChiEta addr0 -aijE.
+     have->: tau (zeta - cfAut r zeta) = tau2 zeta - tau2 (cfAut r zeta).
+       have[_ <-] := Etau2; first by rewrite raddfB.
+       rewrite zcharD1 ?rpredB ?zchar_onG ?mem_zchar ?mem_undup ?inE ?eqxx ?orbT //.
+       by rewrite !cfunE irr1_degree ?rmorph_nat subrr eqxx.
+     by rewrite cfdotBl !otau2 ?subrr ?addr0 ?cfAut_irr ?mem_irr // 
+                mem_undup !inE eqxx ?orbT.
   have NZ1i : #1 != 0 :> Iirr W1 by rewrite Iirr1_neq0.
   have NZ1j : #1 != 0 :> Iirr W2 by rewrite Iirr1_neq0.
   have aiE i (NZi : i != 0) : a_ (eta_ i 0) = a_ (eta_ #1 0).
@@ -1357,29 +1388,13 @@ split=> [zeta zISHC||].
     rewrite -(cforder_dprodl defW) -dprod_IirrEl in co_k_i1.
     have{co_k_i1} [[r Di1r] _] := cycTIiso_aut_exists ctiWG co_k_i1.
     rewrite dprod_IirrEl -rmorphX -Di /= -!dprod_IirrEl -!/(w_ _ _) in Di1r.
-    rewrite aijE Di1r -(eSumAE r) (bigD1 #1) // cfdotDl (bigD1 0) //=.
-    rewrite cfdotDl cfdotZl !cfdot_suml !big1 ?addr0 //=.
-    - by rewrite -Di1r cfnorm_cycTIiso mulr1.
-    - move=> i1 NZi1; rewrite cfdot_suml big1 // => j1 _.
-      rewrite cfdotZl !cfAut_cycTIiso -!cycTIirr_aut cfdot_cycTIiso.
-      by rewrite (inj_eq (aut_Iirr_inj r)) (negPf NZi1) mulr0.
-    move=> i1 NZi1; rewrite cfdotZl !cfAut_cycTIiso -!cycTIirr_aut.
-    rewrite cfdot_cycTIiso !(inj_eq (aut_Iirr_inj r)) (negPf NZi1).
-    by rewrite andbF mulr0.
+    by rewrite Di1r  cf_a.
   have ajE j (NZj : j != 0) : a_ (eta_ 0 j) = a_ (eta_ 0 #1).
     have [k co_k_j1 Dj] := cfExp_prime_transitive (pr_p) NZ1j NZj.
     rewrite -(cforder_dprodr defW) -dprod_IirrEr in co_k_j1.
     have{co_k_j1} [[r Dj1r] _] := cycTIiso_aut_exists ctiWG co_k_j1.
     rewrite dprod_IirrEr -rmorphX -Dj /= -!dprod_IirrEr -!/(w_ _ _) in Dj1r.
-    rewrite aijE Dj1r -(eSumAE r) (bigD1 0) // cfdotDl (bigD1 #1) //=.
-    rewrite cfdotDl cfdotZl !cfdot_suml !big1 ?addr0 //=.
-    - by rewrite -Dj1r cfnorm_cycTIiso mulr1.
-    - move=> i NZi; rewrite cfdot_suml big1 // => j1 _.
-      rewrite cfdotZl !cfAut_cycTIiso -!cycTIirr_aut cfdot_cycTIiso.
-      by rewrite (inj_eq (aut_Iirr_inj r)) (negPf NZi) mulr0.
-    move=> i NZi1; rewrite cfdotZl !cfAut_cycTIiso -!cycTIirr_aut.
-    rewrite cfdot_cycTIiso !(inj_eq (aut_Iirr_inj r)) (negPf NZi1).
-    by rewrite andbF mulr0.
+    by rewrite Dj1r  cf_a.
   have aijNZE i j (NZi : i != 0) (NZj : j != 0) :
       a_ (eta_ i j) = a_ (eta_ i 0) + a_ (eta_ 0 j) - a_ (eta_ 0 0).
     apply: (addIr (a_ (eta_ 0 0))); rewrite subrK !Da.
@@ -1390,11 +1405,6 @@ split=> [zeta zISHC||].
     rewrite (cfun_on0 (zchar_on psiIZ)) // -defA.
     suffices /setDP[]: x \in 'A0(M) :\: 'A(M) by [].
     by rewrite (FTsupp0_typeP maxM MtypeP) // mem_class_support.
-  have aijCint i j : a_ (eta_ i j) \in Cint.
-    rewrite Da Cint_cfdot_vchar ?cycTIiso_vchar ?Dade_vchar //.
-    have defA0 : 'A0(M) = HU^# :|: class_support (cyclicTIset defW) M.
-      by rewrite -defA (FTtypeP_supp0_def _ MtypeP).
-    by apply: zchar_onS psiIZ; rewrite defA0 subsetUl.
   have normX : '[X] = 1 + q.-1%:R * a_(eta_ #1 0) ^+ 2 
                         + p.-1%:R * a_(eta_ 0 #1) ^+ 2
                         + p.-1%:R * q.-1%:R * a_ (eta_ #1 #1) ^+ 2.
