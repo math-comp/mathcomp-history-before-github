@@ -1677,7 +1677,11 @@ have: '[tau (mu_ 0 - zeta), tau psi] = 0.
   case: (_ =P _)=> [Ezb|_]; rewrite ?mulr0 ?subr0.
     by move: (S2DS1 zISHC); rewrite !inE Ezb => /negP[].
   rewrite ['[zeta, _]]cfdotC  ['[_, zeta]]Omu // ?conjC0 subr0.
-  have->: '[mu_ 0, lamb] = 0 by admit.
+  have->: '[mu_ 0, lamb] = 0.
+    have Tmu0: mu_ 0 \in seqIndT HU M.
+      by rewrite -[mu_ 0]cfInd_prTIres mem_seqIndT.
+    rewrite (seqInd_ortho _ Tmu0 (seqInd_subT lambIS2)) // /lamb.
+    apply: contraTneq (mem_irr ib) => <-; apply: prTIred_not_irr.
 (*
 rewrite prTIred0 cfdotZl.
   case/seqIndP: lambIS2=> i iIkerD ->.
@@ -1708,6 +1712,7 @@ have ltqu: (q < u)%N.
 have ltap: (a < p)%N.
   rewrite -(prednK (prime_gt0 pr_p)) ltnS dvdn_leq //.
   by rewrite -(subnKC (prime_gt1 pr_p)).
+pose chi := tau (mu_ 0 -  
 admit.
 Qed.
 
