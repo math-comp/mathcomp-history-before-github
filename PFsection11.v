@@ -1319,7 +1319,10 @@ Lemma FTtype34_structure :
 Proof.
 have pLq : (p < q)%N.
   have[zeta zISHC]: exists zeta, zeta \in S_ HC.
-    by admit.
+    have ntHU: HU :!=: 1%g by rewrite -defMs FTcore_neq1.
+    have [i lin_i nzi] := solvable_has_lin_char ntHU sol_HU.
+    exists ('Ind 'chi_i); rewrite mem_seqInd -?derM2_HC ?gFnormal // !inE.
+    by rewrite subGcfker -irr_eq1 nzi lin_char_der1.
   move: (zISHC); have /irrP[izeta ->] := irrS1 zISHC => {zeta zISHC}zISHC.
   pose zeta := 'chi_izeta.
   have zIS : zeta \in  seqIndD HU M HU 1.
