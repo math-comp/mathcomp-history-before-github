@@ -1623,6 +1623,13 @@ rewrite -S4iS3 => /Hb .
 rewrite  trivH0 (group_inj (joing1G _)).
 rewrite Ptype_Fcompl_kernel_cent /= -/q -/u.
 rewrite (group_inj Ptype_Fcompl_kernel_cent)=> [[muj1 mujISC exMuj]].
+have [tau2 CoWtau2]: coherent S2 M^# tau.
+  rewrite /S2 -(_ : (C <*> H)%G = HC) ?seqIndDY //=; last first.
+    by apply/group_inj/dprodWY; rewrite -defHC dprodC.
+  apply: subset_coherent (Ptype_core_coherence maxM MtypeP Mtypen5).
+  apply: seqIndS (Iirr_kerDS _ _ _)=> //.
+  have [_ _ /group_inj->] := FTtype34_Fcore_kernel_trivial .
+  by rewrite (group_inj (joing1G _)) (group_inj Ptype_Fcompl_kernel_cent) der_sub.
 admit.
 Qed.
 
