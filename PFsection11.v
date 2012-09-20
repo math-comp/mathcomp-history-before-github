@@ -1618,6 +1618,11 @@ rewrite -has_count => /hasP[xj xjIS] .
 rewrite inE -/q => /andP[/irrP[ib ->] lamb1].
 set lamb := 'chi_ib in lamb1.
 have [j NZj] := has_nonprincipal_irr ntW2.
+have: mu_ j \in S3 by apply: map_f; rewrite mem_enum.
+rewrite -S4iS3 => /Hb .
+rewrite  trivH0 (group_inj (joing1G _)).
+rewrite Ptype_Fcompl_kernel_cent /= -/q -/u.
+rewrite (group_inj Ptype_Fcompl_kernel_cent)=> [[muj1 mujISC exMuj]].
 admit.
 Qed.
 
