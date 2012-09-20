@@ -1317,28 +1317,9 @@ Lemma FTtype34_structure :
       (*b*) (p < q)%N
     & (*c*) FTtype M == 3 /\ typeP_Galois MtypeP].
 Proof.
-have pLq : (p < q)%N.
-  have[zeta zISHC]: exists zeta, zeta \in S_ HC.
-    have ntHU: HU :!=: 1%g by rewrite -defMs FTcore_neq1.
-    have [i lin_i nzi] := solvable_has_lin_char ntHU sol_HU.
-    exists ('Ind 'chi_i); rewrite mem_seqInd -?derM2_HC ?gFnormal // !inE.
-    by rewrite subGcfker -irr_eq1 nzi lin_char_der1.
-  move: (zISHC); have /irrP[izeta ->] := irrS1 zISHC => {zeta zISHC}zISHC.
-  pose zeta := 'chi_izeta.
-  have zIS : zeta \in  seqIndD HU M HU 1.
-    by apply: (seqIndS (Iirr_kerDS _ (sub1G _) _) zISHC).
-  have [//|qLp|pEq] :=  ltngtP p q; last first.
-    have [ciW _ _ _] := ctiWM.
-    have: coprime q p by rewrite -(cyclic_dprod defW).
-    by rewrite pEq /coprime gcdnn; case: q pr_q => [|[|]].
-  have /negP[] := FTtype34_not_ortho_cycTIiso zISHC.
-  have [chi [chiE _ _ Ochi]] :=   
-       FTtype345_Dade_bridge0 maxM MtypeP Mtypen2 zIS (S1w1 zISHC) qLp.
-  rewrite /(mu_ _) /tau /ptiWM /= chiE addrAC subrr sub0r.
-  apply/orthogonalP=> i ochi.
-  rewrite inE => /eqP-> /mapP[x /(cycTIirrP defW)[i1 [j1 ->]]->].
-  by rewrite cfdotNl Ochi oppr0.
-split=> [zeta zISHC||] //.
+have oTau1 : {in S_ HC, forall zeta,
+             orthogonal (tau (mu_ 0 - zeta) - \sum_j eta_ 0 j) codom_sigma}.
+  move=> zeta zISHC.
   move: (zISHC); have /irrP[izeta ->] := irrS1 zISHC => {zeta zISHC}zISHC.
   pose zeta := 'chi_izeta; set psi := mu_ 0 - zeta.
   pose Wsig := map sigma (irr W).
@@ -1586,6 +1567,27 @@ split=> [zeta zISHC||] //.
     rewrite aijNZE // aiE // ajE // -(aijNZE _ _ NZ1i NZ1j).
     by rewrite Za11 scale0r.
   by rewrite eTau [X + _]addrC addrK.
+have[zeta zISHC]: exists zeta, zeta \in S_ HC.
+  have ntHU: HU :!=: 1%g by rewrite -defMs FTcore_neq1.
+  have [i lin_i nzi] := solvable_has_lin_char ntHU sol_HU.
+  exists ('Ind 'chi_i); rewrite mem_seqInd -?derM2_HC ?gFnormal // !inE.
+  by rewrite subGcfker -irr_eq1 nzi lin_char_der1.
+move: (zISHC); have /irrP[izeta ->] := irrS1 zISHC => {zeta zISHC}zISHC.
+pose zeta := 'chi_izeta.
+have pLq : (p < q)%N.
+  have zIS : zeta \in  seqIndD HU M HU 1.
+    by apply: (seqIndS (Iirr_kerDS _ (sub1G _) _) zISHC).
+  have [//|qLp|pEq] :=  ltngtP p q; last first.
+    have [ciW _ _ _] := ctiWM.
+    have: coprime q p by rewrite -(cyclic_dprod defW).
+    by rewrite pEq /coprime gcdnn; case: q pr_q => [|[|]].
+  have /negP[] := FTtype34_not_ortho_cycTIiso zISHC.
+  have [chi [chiE _ _ Ochi]] :=   
+       FTtype345_Dade_bridge0 maxM MtypeP Mtypen2 zIS (S1w1 zISHC) qLp.
+  rewrite /(mu_ _) /tau /ptiWM /= chiE addrAC subrr sub0r.
+  apply/orthogonalP=> i ochi.
+  rewrite inE => /eqP-> /mapP[x /(cycTIirrP defW)[i1 [j1 ->]]->].
+  by rewrite cfdotNl Ochi oppr0.
 have [Gal|NGal] := boolP (typeP_Galois MtypeP).
   have [F [phi _ _ [cyUbar _ _]]] := typeP_Galois_P maxM Mtypen5 Gal.
   have [_ _ _ CeU'] := Mtype34_facts.
@@ -1594,6 +1596,28 @@ have [Gal|NGal] := boolP (typeP_Galois MtypeP).
   move: Mtype34; rewrite inE => /orP[->|] // /(compl_of_typeIV maxM MtypeP).
   case=> _ /negP[]; apply: cyclic_abelian.
   by apply: nilpotent_pgroup_quo_der1_cyclic.
+split=> //.
+have [_ _ _ U'eC] := Mtype34_facts.
+have [pAbH cardH trivH0] := FTtype34_Fcore_kernel_trivial.
+have [_ [sSHH0 Hb] _] := typeP_nonGalois_characters maxM Mtypen5 NGal.
+case: (_ NGal)=> H1 /= [divH1 NH1 actH1 sumH1 [aPos aDiv cyclU [V1 isoV1]]].
+have cHH0: pdiv #|(`H / H0)%g| = p.
+  rewrite trivH0 -(card_isog (quotient1_isog _)) cardH.
+  by case: q pr_q => // q1 _; rewrite pdiv_pfactor.
+rewrite {}cHH0 in divH1 *.
+set U1 := 'C_U(H1 | 'Q) in aPos aDiv *.
+set a := #|U : U1| in aPos aDiv *.
+set irr_qa := [pred _ | _].
+set lb_n := (_.-1 * #|_|)%N.
+set lb_d := (_ * _)%N.
+case=> dLbdLbn countIrr_qa.
+have/leq_trans/(_ countIrr_qa): (0 < lb_n %/ lb_d)%N.
+  by rewrite divn_gt0 dvdn_leq // !muln_gt0 ?cardG_gt0 
+             ?(ltn_trans (ltn0Sn _) aPos) //; case: p pr_p => [|[|]] //.
+rewrite -has_count => /hasP[xj xjIS] .
+rewrite inE -/q => /andP[/irrP[ib ->] lamb1].
+set lamb := 'chi_ib in lamb1.
+have [j NZj] := has_nonprincipal_irr ntW2.
 admit.
 Qed.
 
