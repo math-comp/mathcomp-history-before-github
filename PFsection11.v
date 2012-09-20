@@ -1317,8 +1317,26 @@ Lemma FTtype34_structure :
       (*b*) (p < q)%N
     & (*c*) FTtype M == 3 /\ typeP_Galois MtypeP].
 Proof.
-split=> [zeta zISHC||].
-- move: (zISHC); have /irrP[izeta ->] := irrS1 zISHC => {zeta zISHC}zISHC.
+have pLq : (p < q)%N.
+  have[zeta zISHC]: exists zeta, zeta \in S_ HC.
+    by admit.
+  move: (zISHC); have /irrP[izeta ->] := irrS1 zISHC => {zeta zISHC}zISHC.
+  pose zeta := 'chi_izeta.
+  have zIS : zeta \in  seqIndD HU M HU 1.
+    by apply: (seqIndS (Iirr_kerDS _ (sub1G _) _) zISHC).
+  have [//|qLp|pEq] :=  ltngtP p q; last first.
+    have [ciW _ _ _] := ctiWM.
+    have: coprime q p by rewrite -(cyclic_dprod defW).
+    by rewrite pEq /coprime gcdnn; case: q pr_q => [|[|]].
+  have /negP[] := FTtype34_not_ortho_cycTIiso zISHC.
+  have [chi [chiE _ _ Ochi]] :=   
+       FTtype345_Dade_bridge0 maxM MtypeP Mtypen2 zIS (S1w1 zISHC) qLp.
+  rewrite /(mu_ _) /tau /ptiWM /= chiE addrAC subrr sub0r.
+  apply/orthogonalP=> i ochi.
+  rewrite inE => /eqP-> /mapP[x /(cycTIirrP defW)[i1 [j1 ->]]->].
+  by rewrite cfdotNl Ochi oppr0.
+split=> [zeta zISHC||] //.
+  move: (zISHC); have /irrP[izeta ->] := irrS1 zISHC => {zeta zISHC}zISHC.
   pose zeta := 'chi_izeta; set psi := mu_ 0 - zeta.
   pose Wsig := map sigma (irr W).
   have [X wsigX [chi [eTau oXChi oX]]] := orthogonal_split Wsig (tau psi).
@@ -1565,23 +1583,6 @@ split=> [zeta zISHC||].
     rewrite aijNZE // aiE // ajE // -(aijNZE _ _ NZ1i NZ1j).
     by rewrite Za11 scale0r.
   by rewrite eTau [X + _]addrC addrK.
-- have[zeta zISHC]: exists zeta, zeta \in S_ HC.
-    by admit.
-  move: (zISHC); have /irrP[izeta ->] := irrS1 zISHC => {zeta zISHC}zISHC.
-  pose zeta := 'chi_izeta.
-  have zIS : zeta \in  seqIndD HU M HU 1.
-    by apply: (seqIndS (Iirr_kerDS _ (sub1G _) _) zISHC).
-  have [//|qLp|pEq] :=  ltngtP p q; last first.
-    have [ciW _ _ _] := ctiWM.
-    have: coprime q p by rewrite -(cyclic_dprod defW).
-    by rewrite pEq /coprime gcdnn; case: q pr_q => [|[|]].
-  have /negP[] := FTtype34_not_ortho_cycTIiso zISHC.
-  have [chi [chiE _ _ Ochi]] :=   
-       FTtype345_Dade_bridge0 maxM MtypeP Mtypen2 zIS (S1w1 zISHC) qLp.
-  rewrite /(mu_ _) /tau /ptiWM /= chiE addrAC subrr sub0r.
-  apply/orthogonalP=> i ochi.
-  rewrite inE => /eqP-> /mapP[x /(cycTIirrP defW)[i1 [j1 ->]]->].
-  by rewrite cfdotNl Ochi oppr0.
 have [Gal|NGal] := boolP (typeP_Galois MtypeP).
   have [F [phi _ _ [cyUbar _ _]]] := typeP_Galois_P maxM Mtypen5 Gal.
   have [_ _ _ CeU'] := Mtype34_facts.
