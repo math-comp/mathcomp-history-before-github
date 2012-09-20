@@ -1599,14 +1599,15 @@ have [Gal|NGal] := boolP (typeP_Galois MtypeP).
 split=> //.
 have [_ _ _ U'eC] := Mtype34_facts.
 have [pAbH cardH trivH0] := FTtype34_Fcore_kernel_trivial.
-have [_ [sSHH0 Hb] _] := typeP_nonGalois_characters maxM Mtypen5 NGal.
-case: (_ NGal)=> H1 /= [divH1 NH1 actH1 sumH1 [aPos aDiv cyclU [V1 isoV1]]].
+have [Ha [sSHH0 Hb] _] := typeP_nonGalois_characters maxM Mtypen5 NGal.
+case: (_ NGal) Ha => 
+    H1 /= [divH1 NH1 actH1 sumH1 [aPos aDiv cyclU [V1 isoV1]]] Ha.
 have cHH0: pdiv #|(`H / H0)%g| = p.
   rewrite trivH0 -(card_isog (quotient1_isog _)) cardH.
   by case: q pr_q => // q1 _; rewrite pdiv_pfactor.
-rewrite {}cHH0 in divH1 *.
-set U1 := 'C_U(H1 | 'Q) in aPos aDiv *.
-set a := #|U : U1| in aPos aDiv *.
+rewrite {}cHH0 in divH1 aDiv Ha *.
+set U1 := 'C_U(H1 | 'Q) in aPos aDiv Ha *.
+set a := #|U : U1| in aPos aDiv Ha *.
 set irr_qa := [pred _ | _].
 set lb_n := (_.-1 * #|_|)%N.
 set lb_d := (_ * _)%N.
@@ -1642,6 +1643,20 @@ have cfConCS2 : cfConjC_subset S2 (seqIndD HU M M`_\s 1).
   by apply: seqInd_conjC_subset1; rewrite (group_inj defMs).
 have [[b k] /=] := FTtypeP_coherent_TIred  cfConCS2 CoWtau2 lambIS2 mujIS2.
 rewrite -[primeTIred _ _]/(mu_ j) => Etau2muj Cbk.
+pose psi := mu_ j - (u %/ a)%:R *: lamb.
+have aDu : a %| u.
+  case/seqIndP: mujISC muj1=> i iIkerD ->.
+  have/eqP := Lagrange sHUM.
+  rewrite cfInd1 // -(sdprod_card defM) eqn_mul2l.
+  rewrite (negPf (lt0n_neq0 (cardG_gt0 HU))) /= => /eqP-> /eqP.
+  have: (a %| 'chi_i 1%g)%C.
+    apply/Ha/(subsetP (Iirr_kerDS _ _ _) _ iIkerD)=> //.
+    by rewrite trivH0 sub1G.
+  have CPosa : 0 <= a%:R :> algC by rewrite (ler_nat _ 0%N a).
+  case/(dvdCP_nat CPosa (char1_ge0 (irr_char i)))=> nc ->.
+  rewrite -!natrM eqr_nat eqn_mul2l.
+  rewrite (negPf (lt0n_neq0 (cardG_gt0 W1)))=> /= /eqP<-.
+  by rewrite dvdn_mull // divnn.
 admit.
 Qed.
 
