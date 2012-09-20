@@ -1152,11 +1152,12 @@ End InertiaBijection.
 
 Section S628.
 
-Variables (gT : finGroupType) (G : {group gT}).
+Variable gT : finGroupType.
+Implicit Types G H K L M N : {group gT}.
 
 Section S6_16_17. 
 
-Variables (N : {group gT}) (t : Iirr N) (c : Iirr G).
+Variables (G N : {group gT}) (t : Iirr N) (c : Iirr G).
 Let theta := 'chi_t.
 Let chi := 'chi_c.
 
@@ -1166,13 +1167,13 @@ Hypotheses (nsNG : N <| G) (cNt : 'Res[N] chi = theta).
 Let sNG : N \subset G. Proof. exact: normal_sub. Qed.
 Let nNG : G \subset 'N(N). Proof. exact: normal_norm. Qed.
 
-Lemma extensible_irr_invariant : 'I_G[theta] = G.
+Lemma extendible_irr_invariant : 'I_G[theta] = G.
 Proof.
 apply/setIidPl/subsetP=> y Gy; have nNy := subsetP nNG y Gy.
 rewrite inE nNy; apply/eqP/cfun_inP=> x Nx; rewrite cfConjgE // -cNt.
 by rewrite !cfResE ?memJ_norm ?cfunJ ?groupV.
 Qed.
-Let IGtheta := extensible_irr_invariant.
+Let IGtheta := extendible_irr_invariant.
 
 Lemma cfRes_Ind_invariant (psi : 'CF(N)) :
   'I_G[psi] = G -> 'Res ('Ind[G] psi) = #|G : N|%:R *: psi.
@@ -1182,8 +1183,8 @@ rewrite natf_indexg // cfunE -mulrA mulrCA mulr_natl //; congr (_ * _).
 by rewrite -IGpsi -sumr_const; apply: eq_bigr => z /setIP[_ /inertia_valJ->].
 Qed.
 
-(* This is Isaacs (6.16) *)
-Lemma constt_Ind_mul_ext f (phi := 'chi_f) (psi := phi * theta) :
+(* This is Isaacs, Theorem (6.16) *)
+Theorem constt_Ind_mul_ext f (phi := 'chi_f) (psi := phi * theta) :
   'I_G[phi] = G -> psi \in irr N ->
   let calS := irr_constt ('Ind phi) in
   [/\ {in calS, forall b, 'chi_b * chi \in irr G},
@@ -1245,8 +1246,8 @@ move=> kerNphi; apply/cfun_inP=> x Nx.
 by rewrite cfResE // cfunE cfun1E Nx mulr1 cfker1 ?(subsetP kerNphi).
 Qed.
 
-(* This is Isaacs (6.17) (due to Gallagher). *)
-Lemma constt_Ind_ext :
+(* This is Isaacs, Corollary (6.17) (due to Gallagher). *)
+Corollary constt_Ind_ext :
   [/\ forall b : Iirr (G / N), 'chi_(mod_Iirr b) * chi \in irr G,
       injective mul_mod_Iirr,
       irr_constt ('Ind theta) =i codom mul_mod_Iirr
@@ -1274,6 +1275,535 @@ by rewrite -dot_psiG /mul_mod_Iirr => /eqP->.
 Qed.
 
 End S6_16_17.
+
+Import commutator gseries.
+
+(* This belongs in character. *)
+Lemma mul_lin_irr G lambda phi :
+  lambda \is a linear_char -> phi \in irr G -> lambda * phi \in irr G.
+Proof.
+move=> Llam; rewrite !irrEchar => /andP[Nphi /eqP <-].
+rewrite rpredM // ?lin_charW //=; apply/eqP; congr (_ * _).
+apply: eq_bigr => x Gx; rewrite !cfunE rmorphM mulrACA.
+rewrite -(lin_charV_conj Llam) // -lin_charM ?groupV // mulgV.
+by rewrite lin_char1 ?mul1r.
+Qed.
+
+(* This is Isaacs, Theorem (6.19). *)
+Theorem invariant_chief_irr_cases G K L s (theta := 'chi[K]_s) :
+    chief_factor G L K -> abelian (K / L) -> 'I_G[theta] = G ->
+  let t := #|K : L| in
+  [\/ 'Res[L] theta \in irr L,
+      exists2 e, exists p, 'Res[L] theta = e%:R *: 'chi_p & (e ^ 2)%N = t
+   |  exists2 p, injective p & 'Res[L] theta = \sum_(i < t) 'chi_(p i)].
+Proof.
+case/andP=> /maxgroupP[/andP[ltLK nLG] maxL] nsKG abKbar IGtheta t.
+have [sKG nKG] := andP nsKG; have sLG := subset_trans (proper_sub ltLK) sKG.
+have nsLG: L <| G by apply/andP.
+have nsLK := normalS (proper_sub ltLK) sKG nsLG; have [sLK nLK] := andP nsLK.
+have [p0 sLp0] := constt_cfRes_irr L s; rewrite -/theta in sLp0.
+pose phi := 'chi_p0; pose T := 'I_G[phi].
+have sTG: T \subset G := subsetIl G _.
+have /eqP mulKT: (K * T)%g == G.
+  rewrite eqEcard mulG_subG sKG sTG -LagrangeMr -indexgI -(Lagrange sTG) /= -/T.
+  rewrite mulnC leq_mul // setIA (setIidPl sKG) -!size_cfclass // -/phi.
+  rewrite uniq_leq_size ?cfclass_uniq // => _ /cfclassP[x Gx ->].
+  have: conjg_Iirr p0 x \in irr_constt ('Res theta).
+    have /setIP[_ /inertiaJ <-]: x \in 'I_G[theta] by rewrite IGtheta.
+    by rewrite -(cfConjgRes _ nsKG) // irr_consttE conjg_IirrE // cfConjg_iso.
+  apply: contraR; rewrite -conjg_IirrE // => not_sLp0x.
+  rewrite (Clifford_Res_sum_cfclass nsLK sLp0) cfdotZl cfdot_suml.
+  rewrite big1_seq ?mulr0 // => _ /cfclassP[y Ky ->]; rewrite -conjg_IirrE //.
+  rewrite cfdot_irr mulrb ifN_eq ?(contraNneq _ not_sLp0x) // => <-.
+  by rewrite conjg_IirrE //; apply/cfclassP; exists y.
+have nsKT_G: K :&: T <| G.
+  rewrite /normal subIset ?sKG // -mulKT setIA (setIidPl sKG) mulG_subG.
+  rewrite normsIG // sub_der1_norm ?subsetIl //.
+  exact: subset_trans (der1_min nLK abKbar) (sub_Inertia _ sLK).
+have [e DthL]: exists e, 'Res theta = e%:R *: \sum_(xi <- (phi ^: K)%CF) xi.
+  rewrite (Clifford_Res_sum_cfclass nsLK sLp0) -/phi; set e := '[_, _].
+  by exists (truncC e); rewrite truncCK ?Cnat_cfdot_char ?cfRes_char ?irr_char.
+have [defKT | ltKT_K] := eqVneq (K :&: T) K; last first.
+  have defKT: K :&: T = L.
+    apply: maxL; last by rewrite subsetI sLK sub_Inertia.
+    by rewrite normal_norm // properEneq ltKT_K subsetIl.
+  have t_cast: size (phi ^: K)%CF = t.
+    by rewrite size_cfclass //= -{2}(setIidPl sKG) -setIA defKT.
+  pose phiKt := Tuple (introT eqP t_cast); pose p i := cfIirr (tnth phiKt i).
+  have pK i: 'chi_(p i) = (phi ^: K)%CF`_i.
+    rewrite cfIirrE; first by rewrite (tnth_nth 0).
+    by have /cfclassP[y _ ->] := mem_tnth i phiKt; rewrite cfConjg_irr ?mem_irr.
+  constructor 3; exists p => [i j /(congr1 (tnth (irr L)))/eqP| ].
+    by apply: contraTeq; rewrite !pK !nth_uniq ?t_cast ?cfclass_uniq.
+  have{DthL} DthL: 'Res theta = e%:R *: \sum_(i < t) (phi ^: K)%CF`_i.
+    by rewrite DthL (big_nth 0) big_mkord t_cast.
+  suffices /eqP e1: e == 1%N by rewrite DthL e1 scale1r; apply: eq_bigr.
+  have Dth1: theta 1%g = e%:R * t%:R * phi 1%g.
+    rewrite -[t]card_ord -mulrA -(cfRes1 L) DthL cfunE; congr (_ * _).
+    rewrite mulr_natl -sumr_const sum_cfunE -t_cast; apply: eq_bigr => i _.
+    by have /cfclassP[y _ ->] := mem_nth 0 (valP i); rewrite cfConjg1.
+  rewrite eqn_leq lt0n (contraNneq _ (irr1_neq0 s)); last first.
+    by rewrite Dth1 => ->; rewrite !mul0r.
+  rewrite -leC_nat -(ler_pmul2r (gt0CiG K L)) -/t -(ler_pmul2r (irr1_gt0 p0)).
+  rewrite mul1r -Dth1 -cfInd1 //.
+  by rewrite char1_ge_constt ?cfInd_char ?irr_char ?constt_Ind_constt_Res.
+have IKphi: 'I_K[phi] = K by rewrite -{1}(setIidPl sKG) -setIA.
+have{DthL} DthL: 'Res[L] theta = e%:R *: phi.
+  by rewrite DthL -[rhs in (_ ^: rhs)%CF]IKphi cfclass_inertia big_seq1.
+pose mmLth := @mul_mod_Iirr K L s.
+have linKbar := char_abelianP _ abKbar.
+have LmodL i: ('chi_i %% L)%CF \is a linear_char := cfMod_lin_char (linKbar i).
+have mmLthE i: 'chi_(mmLth i) = ('chi_i %% L)%CF * theta.
+  by rewrite cfIirrE ?mod_IirrE // mul_lin_irr ?mem_irr.
+have mmLthL i: 'Res[L] 'chi_(mmLth i) = 'Res[L] theta.
+  rewrite mmLthE rmorphM /= cfRes_sub_ker ?cfker_mod ?lin_char1 //.
+  by rewrite scale1r mul1r.
+have [inj_Mphi | /injectivePn[i [j i'j eq_mm_ij]]] := boolP (injectiveb mmLth).
+  suffices /eqP e1: e == 1%N by constructor 1; rewrite DthL e1 scale1r mem_irr.
+  rewrite eqn_leq lt0n (contraNneq _ (irr1_neq0 s)); last first.
+    by rewrite -(cfRes1 L) DthL cfunE => ->; rewrite !mul0r.
+  rewrite -leq_sqr -leC_nat natrX -(ler_pmul2r (irr1_gt0 p0)) -mulrA mul1r.
+  have ->: e%:R * 'chi_p0 1%g = 'Res[L] theta 1%g by rewrite DthL cfunE. 
+  rewrite cfRes1 -(ler_pmul2l (gt0CiG K L)) -cfInd1 // -/phi.
+  rewrite -card_quotient // -card_Iirr_abelian // mulr_natl.
+  rewrite ['Ind phi]cfun_sum_cfdot sum_cfunE (bigID (mem (codom mmLth))) /=.
+  rewrite ler_paddr ?sumr_ge0 // => [i _|].
+    by rewrite char1_ge0 ?rpredZ_Cnat ?Cnat_cfdot_char ?cfInd_char ?irr_char.
+  rewrite -big_uniq //= big_map big_filter -sumr_const ler_sum // => i _.
+  rewrite cfunE -[in rhs in _ <= rhs](cfRes1 L) -cfdot_Res_r mmLthL cfRes1.
+  by rewrite DthL cfdotZr rmorph_nat cfnorm_irr mulr1.
+constructor 2; exists e; first by exists p0.
+pose mu := (('chi_i / 'chi_j)%R %% L)%CF; pose U := cfker mu.
+have lin_mu: mu \is a linear_char by rewrite cfMod_lin_char ?rpred_div.
+have Uj := lin_char_unitr (linKbar j).
+have ltUK: U \proper K.
+  rewrite /proper cfker_sub /U; have /irrP[k Dmu] := lin_char_irr lin_mu.
+  rewrite Dmu subGcfker -irr_eq1 -Dmu cfMod_eq1 //.
+  by rewrite (can2_eq (divrK Uj) (mulrK Uj)) mul1r (inj_eq irr_inj).
+suffices: theta \in 'CF(K, L).
+  rewrite -cfnorm_Res_lerif // DthL cfnormZ !cfnorm_irr !mulr1 normr_nat.
+  by rewrite -natrX eqC_nat => /eqP.
+have <-: gcore U G = L.
+  apply: maxL; last by rewrite sub_gcore ?cfker_mod.
+  by rewrite gcore_norm (sub_proper_trans (gcore_sub _ _)).
+apply/cfun_onP=> x; apply: contraNeq => nz_th_x.
+apply/bigcapP=> y; rewrite -IGtheta mem_conjg => /setIP[Gy /inertiaJ th_y].
+apply: contraR nz_th_x; rewrite -{}th_y cfConjgE ?(subsetP nKG) {Gy}//.
+move: {x y}(x ^ _) => x U'x; have [Kx | /cfun0-> //] := boolP (x \in K).
+have /eqP := congr1 (fun k => (('chi_j %% L)%CF^-1 * 'chi_k) x) eq_mm_ij.
+rewrite -rmorphV // !mmLthE !mulrA -!rmorphM mulVr //= rmorph1 !cfunE.
+rewrite (mulrC _^-1) -/mu -subr_eq0 -mulrBl cfun1E Kx mulf_eq0 => /orP[]//.
+rewrite mulrb subr_eq0 -(lin_char1 lin_mu) [_ == _](contraNF _ U'x) //.
+by rewrite /U cfkerEchar ?lin_charW // inE Kx.
+Qed.
+
+(* This is Isaacs, Corollary (6.19). *)
+Corollary cfRes_prime_irr_cases G N s p (chi := 'chi[G]_s) :
+    N <| G -> #|G : N| = p -> prime p ->
+  [\/ 'Res[N] chi \in irr N
+   |  exists2 c, injective c & 'Res[N] chi = \sum_(i < p) 'chi_(c i)].
+Proof.
+move=> /andP[sNG nNG] iGN pr_p.
+have chiefGN: chief_factor G N G.
+  apply/andP; split=> //; apply/maxgroupP.
+  split=> [|M /andP[/andP[sMG ltMG] _] sNM].
+    by rewrite /proper sNG -indexg_gt1 iGN prime_gt1.
+  apply/esym/eqP; rewrite eqEsubset sNM -indexg_eq1 /= eq_sym.
+  rewrite -(eqn_pmul2l (indexg_gt0 G M)) muln1 Lagrange_index // iGN.
+  by apply/eqP/prime_nt_dvdP; rewrite ?indexg_eq1 // -iGN indexgS.
+have abGbar: abelian (G / N).
+  by rewrite cyclic_abelian ?prime_cyclic ?card_quotient ?iGN.
+have IGchi: 'I_G[chi] = G by apply/setIidPl/sub_inertia.
+have [] := invariant_chief_irr_cases chiefGN abGbar IGchi; first by left.
+  case=> e _ /(congr1 (fun m => odd (logn p m)))/eqP/idPn[].
+  by rewrite lognX mul2n odd_double iGN logn_prime // eqxx.
+by rewrite iGN; right.
+Qed.
+
+(* This is Isaacs, Corollary (6.20). *)
+Corollary prime_invariant_irr_extendible G N s p :
+    N <| G -> #|G : N| = p -> prime p -> 'I_G['chi_s] = G ->
+  {t | 'Res[N, G] 'chi_t = 'chi_s}.
+Proof.
+move=> nsNG iGN pr_p IGchi.
+have [t sGt] := constt_cfInd_irr s (normal_sub nsNG); exists t.
+have [e DtN]: exists e, 'Res 'chi_t = e%:R *: 'chi_s.
+  rewrite constt_Ind_constt_Res in sGt.
+  rewrite (Clifford_Res_sum_cfclass nsNG sGt); set e := '[_, _].
+  rewrite -IGchi cfclass_inertia big_seq1.
+  by exists (truncC e); rewrite truncCK ?Cnat_cfdot_char ?cfRes_char ?irr_char.
+have [/irrWnorm/eqP | [c injc DtNc]] := cfRes_prime_irr_cases t nsNG iGN pr_p.
+  rewrite DtN cfnormZ cfnorm_irr normr_nat mulr1 -natrX pnatr_eq1.
+  by rewrite muln_eq1 andbb => /eqP->; rewrite scale1r.
+have nz_e: e != 0%N.
+  have: 'Res[N] 'chi_t != 0 by rewrite cfRes_eq0 // ?irr_char ?irr_neq0.
+  by rewrite DtN; apply: contraNneq => ->; rewrite scale0r.
+have [i s'ci]: exists i, c i != s.
+  pose i0 := Ordinal (prime_gt0 pr_p); pose i1 := Ordinal (prime_gt1 pr_p).
+  have [<- | ] := eqVneq (c i0) s; last by exists i0.
+  by exists i1; rewrite (inj_eq injc).
+have /esym/eqP/idPn[] := congr1 (cfdotr 'chi_(c i)) DtNc; rewrite {1}DtN /=.
+rewrite cfdot_suml cfdotZl cfdot_irr mulrb ifN_eqC // mulr0.
+rewrite (bigD1 i) //= cfnorm_irr big1 ?addr0 ?oner_eq0 // => j i'j.
+by rewrite cfdot_irr mulrb ifN_eq ?(inj_eq injc).
+Qed.
+
+(* Missing properties of determinants. *)
+Lemma cfResDet G H phi :
+  phi \is a character -> 'Res[H, G] (cfDet phi) = cfDet ('Res phi).
+Proof.
+have [sGH | not_sHG] := boolP (H \subset G); last first.
+  move=> Nphi; rewrite !cfResEout // lin_char1 ?cfDet_lin_char // scale1r.
+  have /CnatP[n ->] := Cnat_char1 Nphi.
+  by rewrite scaler_nat cfDetMn ?cfDet_id ?rpred1 // expr1n.
+case/char_reprP=> rG ->; rewrite !(=^~ cfRepr_sub, cfDetRepr) //.
+apply: cfRepr_sim; exists 1%:M; rewrite ?row_free_unit ?unitmx1 // => x Hx.
+by rewrite mulmx1 mul1mx.
+Qed.
+
+Lemma mul_cfRepr G n1 n2
+    (rG1 : mx_representation _ G n1) (rG2 : mx_representation _ G n2) :
+  cfRepr rG1 * cfRepr rG2 = cfRepr (prod_repr rG1 rG2).
+Proof. by apply/cfun_inP=> x Gx; rewrite !cfunE /= Gx mxtrace_prod. Qed.
+
+Lemma prod_repr_lin G n2
+    (rG1 : mx_representation algCfield G 1) (rG2 : mx_representation _ G n2) :
+  {in G, forall x, let cast_n2 := esym (mul1n n2) in
+      prod_repr rG1 rG2 x = castmx (cast_n2, cast_n2) (rG1 x 0 0 *: rG2 x)}.
+Proof.
+move=> x Gx cast_n2; rewrite /prod_repr /= !mxE !lshift0.
+apply/matrixP=> i j; rewrite castmxE /=.
+rewrite mxE; case: splitP => [i1 Di | []//].
+rewrite mxE; case: splitP => [j1 Dj | []//].
+by congr ((_ *: rG2 x) _ _); apply: val_inj.
+Qed.
+
+Lemma cfDet_mul_lin G (lambda phi : 'CF(G)) :
+    lambda \is a linear_char -> phi \is a character ->
+  cfDet (lambda * phi) = lambda ^+ truncC (phi 1%g) * cfDet phi.
+Proof.
+case/andP=> /char_reprP[[n1 rG1] ->] /= n1_1 /char_reprP[[n2 rG2] ->] /=.
+do [rewrite !cfRepr1 pnatr_eq1 natCK; move/eqP] in n1_1 *.
+rewrite {n1}n1_1 in rG1 *; rewrite mul_cfRepr cfDetRepr.
+apply/cfun_inP=> x Gx; rewrite !cfunE cfDetRepr cfunE Gx !mulrb !trace_mx11.
+rewrite !mxE prod_repr_lin ?mulrb //=; case: _ / (esym _); rewrite detZ.
+congr (_ * _); case: {rG2}n2 => [|n2]; first by rewrite cfun1E Gx.
+by rewrite expS_cfunE //= cfunE Gx trace_mx11.
+Qed.
+
+(* This is Isaacs, Lemma (6.24). *)
+Lemma extend_to_cfdet G N s c0 u :
+    let theta := 'chi_s in let lambda := cfDet theta in let mu := 'chi_u in
+    N <| G -> coprime #|G : N| (truncC (theta 1%g)) ->
+    'Res[N, G] 'chi_c0 = theta -> 'Res[N, G] mu = lambda ->
+  exists2 c, 'Res 'chi_c = theta /\ cfDet 'chi_c = mu
+          & forall c1, 'Res 'chi_c1 = theta -> cfDet 'chi_c1 = mu -> c1 = c.
+Proof.
+move=> theta lambda mu nsNG; set e := #|G : N|; set f := truncC _.
+set eta := 'chi_c0 => co_e_f etaNth muNlam; have [sNG nNG] := andP nsNG.
+have fE: f%:R = theta 1%g by rewrite truncCK ?Cnat_irr1.
+pose nu := cfDet eta; have lin_nu: nu \is a linear_char := cfDet_lin_char _.
+have nuNlam: 'Res nu = lambda by rewrite cfResDet ?irr_char ?etaNth.
+have lin_lam: lambda \is a linear_char := cfDet_lin_char _.
+have lin_mu: mu \is a linear_char.
+  by have:= lin_lam; rewrite -muNlam; apply: cfRes_lin_lin; apply: irr_char.
+have [Unu Ulam] := (lin_char_unitr lin_nu, lin_char_unitr lin_lam).
+pose alpha := mu / nu.
+have alphaN_1: 'Res[N] alpha = 1 by rewrite rmorph_div //= muNlam nuNlam divrr.
+have lin_alpha: alpha \is a linear_char by apply: rpred_div.
+have alpha_e: alpha ^+ e = 1.
+  have kerNalpha: N \subset cfker alpha.
+    by rewrite -subsetIidl -cfker_Res ?lin_charW // alphaN_1 cfker_cfun1.
+  apply/eqP; rewrite -(cfQuoK nsNG kerNalpha) -rmorphX cfMod_eq1 //.
+  rewrite -dvdn_cforder /e -card_quotient //.
+  by rewrite cforder_lin_char_dvdG ?cfQuo_lin_char.
+have det_alphaXeta b: cfDet (alpha ^+ b * eta) = alpha ^+ (b * f) * nu.
+  by rewrite cfDet_mul_lin ?rpredX ?irr_char // -exprM -(cfRes1 N) etaNth.
+have [b bf_mod_e]: exists b, b * f = 1 %[mod e].
+  rewrite -(chinese_modl co_e_f 1 0) /chinese !mul0n addn0 !mul1n mulnC.
+  by exists (egcdn f e).1.
+have alpha_bf: alpha ^+ (b * f) = alpha.
+  by rewrite -(expr_mod _ alpha_e) bf_mod_e expr_mod.
+have /irrP[c Dc]: alpha ^+ b * eta \in irr G.
+  by rewrite mul_lin_irr ?rpredX ?mem_irr.
+have chiN: 'Res 'chi_c = theta.
+  by rewrite -Dc rmorphM rmorphX /= alphaN_1 expr1n mul1r.
+have det_chi: cfDet 'chi_c = mu by rewrite -Dc det_alphaXeta alpha_bf divrK.
+exists c => // c2 c2Nth det_c2_mu; apply: irr_inj.
+have [irrMc _ imMc _] := constt_Ind_ext nsNG chiN.
+have /codomP[s2 Dc2]: c2 \in codom (@mul_mod_Iirr G N c).
+  by rewrite -imMc constt_Ind_constt_Res c2Nth constt_irr ?inE.
+have{Dc2} Dc2: 'chi_c2 = ('chi_s2 %% N)%CF * 'chi_c.
+  by rewrite Dc2 cfIirrE // mod_IirrE.
+have s2_lin: 'chi_s2 \is a linear_char.
+  rewrite qualifE irr_char; apply/eqP/(mulIf (irr1_neq0 c)).
+  rewrite mul1r -[in rhs in _ = rhs](cfRes1 N) chiN -c2Nth cfRes1.
+  by rewrite Dc2 cfunE cfMod1.
+have s2Xf_1: 'chi_s2 ^+ f = 1.
+  apply/(can_inj (cfModK nsNG))/(mulIr (lin_char_unitr lin_mu))/esym.
+  rewrite rmorph1 rmorphX /= mul1r -[in lhs in lhs = _]det_c2_mu Dc2 -det_chi.
+  by rewrite cfDet_mul_lin ?cfMod_lin_char ?irr_char // -(cfRes1 N) chiN.
+suffices /eqP s2_1: 'chi_s2 == 1 by rewrite Dc2 s2_1 rmorph1 mul1r.
+rewrite -['chi_s2]expr1 -dvdn_cforder -(eqnP co_e_f) dvdn_gcd.
+by rewrite /e -card_quotient ?cforder_lin_char_dvdG //= dvdn_cforder s2Xf_1.
+Qed.
+
+Import nilpotent.
+
+Lemma cfConjgDet G (phi : 'CF(G)) y : (cfDet phi ^ y = cfDet (phi ^ y))%CF.
+Proof.
+have [nGy | nG'y] := boolP (y \in 'N(G)); last by rewrite !cfConjgEout.
+rewrite rmorph_prod (reindex_inj (conjg_Iirr_inj y^-1)) /=.
+apply: eq_bigr => /= i _; rewrite conjg_IirrE -(cfConjg_iso y) cfConjgKV.
+rewrite rmorphX /=; congr (_ ^+ _); apply/cfun_inP=> x Gx.
+rewrite cfConjgE // !cfunE memJ_norm ?groupV // Gx; congr (\tr _%:M).
+have:= cfConjgEin 'chi_i (groupVr nGy).
+rewrite [in cfIsom _]unlock -conjg_IirrE -!irrRepr [_ = _]/=.
+rewrite -cfRepr_sub => [|sFG_G defChi_y].
+  rewrite /= im_restrm morphim_invmE -(injmSK (injm_conj G y^-1)) ?subsetIl //.
+  by rewrite morphpreK morphim_conj -sub_conjg setIid (normP nGy).
+have{defChi_y}:
+  cfRepr 'Chi_(conjg_Iirr i y^-1)
+    == cfRepr (morphim_repr (subg_repr 'Chi_i sFG_G) (subxx _)).
+- apply/eqP/cfun_inP=> z Gz; rewrite defChi_y cfunElock subxx !cfunE Gz.
+  by rewrite mem_morphim //=.
+case/cfRepr_rsimP=> [B eq_deg /row_freeP[B' BK] defChi_y].
+rewrite -[Mx in \det Mx]mulmx1 -BK mulmxA {}defChi_y ?memJ_norm ?groupV //.
+transitivity (\det (B *m 'Chi_i x *m B')); last first.
+  rewrite eq_deg in B B' BK *.
+  by rewrite !det_mulmx mulrAC -!det_mulmx BK mul1mx.
+by rewrite /= [restrm _ _ _]invmE.
+Qed.
+
+Import maximal.
+
+(* This is Isaacs, Theorem (6.25). *)
+Theorem solvable_irr_extendible_from_det G N s (theta := 'chi[N]_s) :
+    N <| G -> solvable (G / N) ->
+    'I_G[theta] = G -> coprime #|G : N| (truncC (theta 1%g)) -> 
+  [exists c, 'Res 'chi[G]_c == theta]
+    = [exists u, 'Res 'chi[G]_u == cfDet theta].
+Proof.
+set e := #|G : N|; set f := truncC _ => nsNG solG IGtheta co_e_f.
+apply/exists_eqP/exists_eqP=> [[c cNth] | [u uNdth]].
+  have /lin_char_irr/irrP[u Du] := cfDet_lin_char 'chi_c.
+  by exists u; rewrite -Du cfResDet ?irr_char ?cNth.
+move: {2}e.+1 (ltnSn e) => m.
+elim: m => // m IHm in G u e nsNG solG IGtheta co_e_f uNdth *.
+rewrite ltnS => le_e; have [sNG nNG] := andP nsNG.
+have [<- | ltNG] := eqsVneq N G; first by exists s; rewrite cfRes_id.
+have [G0 maxG0 sNG0]: {G0 | maxnormal (gval G0) G G & N \subset G0}.
+  by apply: maxgroup_exists; rewrite properEneq ltNG sNG.
+have [/andP[ltG0G nG0G] maxG0_P] := maxgroupP maxG0.
+set mu := 'chi_u in uNdth; have lin_mu: mu \is a linear_char.
+  by rewrite qualifE irr_char -(cfRes1 N) uNdth /= lin_char1 ?cfDet_lin_char.
+have sG0G := proper_sub ltG0G; have nsNG0 := normalS sNG0 sG0G nsNG.
+have nsG0G: G0 <| G by apply/andP.
+have /lin_char_irr/irrP[u0 Du0] := cfRes_lin_char G0 lin_mu.
+have u0Ndth: 'Res 'chi_u0 = cfDet theta by rewrite -Du0 cfResRes.
+have IG0theta: G0 \subset 'I[theta].
+  by rewrite (subset_trans sG0G) // -IGtheta subsetIr.
+have coG0f: coprime #|G0 : N| f by rewrite (coprime_dvdl _ co_e_f) ?indexSg.
+have{m IHm le_e} [c0 c0Ns]: exists c0, 'Res 'chi[G0]_c0 = theta.
+  have solG0: solvable (G0 / N) := solvableS (quotientS N sG0G) solG.
+  apply: IHm nsNG0 solG0 (setIidPl IG0theta) coG0f u0Ndth (leq_trans _ le_e).
+  by rewrite -(ltn_pmul2l (cardG_gt0 N)) !Lagrange ?proper_card.
+have{c0 c0Ns} [c0 [c0Ns dc0_u0] Uc0] := extend_to_cfdet nsNG0 coG0f c0Ns u0Ndth.
+have IGc0: 'I_G['chi_c0] = G.
+  apply/setIidPl/subsetP=> x Gx; rewrite inE (subsetP nG0G) //= -conjg_IirrE.
+  apply/eqP; congr 'chi__; apply: Uc0; rewrite conjg_IirrE.
+    rewrite -(cfConjgRes _ nsG0G nsNG) // c0Ns.
+    by rewrite inertiaJ ?(subsetP (introT setIidPl IGtheta)).
+  by rewrite -cfConjgDet dc0_u0 -Du0 (cfConjgRes _ _ nsG0G) // cfConjg_id.
+have prG0G: prime #|G : G0|.
+  have [h injh im_h] := third_isom sNG0 nsNG nsG0G.
+  rewrite -card_quotient // -im_h // card_injm //.
+  rewrite simple_sol_prime 1?quotient_sol //.
+  by rewrite /simple -(injm_minnormal injh) // im_h // maxnormal_minnormal.
+have [t tG0c0] := prime_invariant_irr_extendible nsG0G (erefl _) prG0G IGc0.
+by exists t; rewrite /theta -c0Ns -tG0c0 cfResRes.
+Qed.
+
+Import pgroup sylow.
+(* This is Isaacs, Theorem (6.26). *)
+Theorem extend_linear_char_from_Sylow G N (lambda : 'CF(N)) :
+    N <| G -> lambda \is a linear_char -> 'I_G[lambda] = G ->
+    (forall p, p \in \pi('o(lambda)%CF) ->
+       exists2 Hp : {group gT},
+         [/\ N \subset Hp, Hp \subset G & p.-Sylow(G / N) (Hp / N)%g]
+       & exists u, 'Res 'chi[Hp]_u = lambda) ->
+  exists u, 'Res[N, G] 'chi_u = lambda.
+Proof.
+set m := 'o(lambda)%CF => nsNG lam_lin IGlam p_ext_lam.
+have [sNG nNG] := andP nsNG; have linN := @cfRes_lin_lin _ _ N.
+wlog [p p_lam]: lambda @m lam_lin IGlam p_ext_lam /
+  exists p : nat, \pi(m) =i (p : nat_pred).
+- move=> IHp; have [linG [cf [inj_cf _ lin_cf onto_cf]]] := lin_char_group N.
+  case=> cf1 cfM cfX _ cf_order; have [lam cf_lam] := onto_cf _ lam_lin.
+  pose mu p := cf lam.`_p; pose pi_m p := p \in \pi(m).
+  have Dm: m = #[lam] by rewrite /m cfDet_order_lin // cf_lam cf_order.
+  have Dlambda: lambda = \prod_(p < m.+1 | pi_m p) mu p.
+    rewrite -(big_morph cf cfM cf1) big_mkcond cf_lam /pi_m Dm; congr (cf _).
+    rewrite -{1}[lam]prod_constt big_mkord; apply: eq_bigr => p _.
+    by case: ifPn => // p'lam; apply/constt1P; rewrite /p_elt p'natEpi.
+  have lin_mu p: mu p \is a linear_char by rewrite /mu cfX -cf_lam rpredX.
+  suffices /fin_all_exists [u uNlam] (p : 'I_m.+1):
+    exists u, pi_m p -> 'Res[N, G] 'chi_u = mu p.
+  - pose nu := \prod_(p < m.+1 | pi_m p) 'chi_(u p).
+    have lin_nu: nu \is a linear_char.
+      by apply: rpred_prod => p m_p; rewrite linN ?irr_char ?uNlam.
+    have /irrP[u1 Dnu] := lin_char_irr lin_nu.
+    by exists u1; rewrite Dlambda -Dnu rmorph_prod; apply: eq_bigr.
+  have [m_p | _] := boolP (pi_m p); last by exists 0.
+  have o_mu: \pi('o(mu p)%CF) =i (p : nat_pred).
+    rewrite cfDet_order_lin // cf_order orderE /=.
+    have [|pr_p _ [k ->]] := pgroup_pdiv (p_elt_constt p lam).
+      by rewrite cycle_eq1 (sameP eqP constt1P) /p_elt p'natEpi // negbK -Dm.
+    by move=> q; rewrite pi_of_exp // pi_of_prime.
+  have IGmu: 'I_G[mu p] = G.
+    apply/setIidPl; rewrite -IGlam /mu cfX -cf_lam.
+    elim: (chinese _ _ _ _) => [|k IHk].
+      by rewrite inertia_cfun1 subIset ?nNG.
+    by rewrite exprS (subset_trans _ (inertia_mul _ _)) // subsetI subsetIr.
+  have [q||u] := IHp _ (lin_mu p) IGmu; [ | by exists p | by exists u].
+  rewrite o_mu => /eqnP-> {q}.
+  have [Hp sylHp [u uNlam]] := p_ext_lam p m_p; exists Hp => //.
+  rewrite /mu cfX -cf_lam -uNlam -rmorphX /=; set nu := _ ^+ _.
+  have /lin_char_irr/irrP[v ->]: nu \is a linear_char; last by exists v.
+  by rewrite rpredX // linN ?irr_char ?uNlam.
+have pi_m_p: p \in \pi(m) by rewrite p_lam !inE.
+have [pr_p mgt0]: prime p /\ (m > 0)%N.
+  by have:= pi_m_p; rewrite mem_primes => /and3P[].
+have p_m: p.-nat m by rewrite -(eq_pnat _ p_lam) pnat_pi.
+have{p_ext_lam} [H [sNH sHG sylHbar] [v vNlam]] := p_ext_lam p pi_m_p.
+have co_p_GH: coprime p #|G : H|.
+  rewrite -(index_quotient_eq _ sHG nNG) ?subIset ?sNH ?orbT //.
+  by rewrite (pnat_coprime (pnat_id pr_p)) //; have [] := and3P sylHbar.
+have lin_v: 'chi_v \is a linear_char by rewrite linN ?irr_char ?vNlam.
+pose nuG := 'Ind[G] 'chi_v.
+have [c vGc co_p_f]: exists2 c, c \in irr_constt nuG & ~~ (p %| 'chi_c 1%g)%C.
+  apply/exists_inP; rewrite -negb_forall_in.
+  apply: contraL co_p_GH => /forall_inP p_dv_v1.
+  rewrite prime_coprime // negbK -dvdC_nat -[rhs in (_ %| rhs)%C]mulr1.
+  rewrite -(lin_char1 lin_v) -cfInd1 // ['Ind _]cfun_sum_constt /=.
+  rewrite sum_cfunE rpred_sum // => i /p_dv_v1 p_dv_chi1i.
+  rewrite cfunE dvdC_mull // rpred_Cnat //.
+  by rewrite Cnat_cfdot_char ?cfInd_char ?irr_char.
+pose f := truncC ('chi_c 1%g); pose b := (egcdn f m).1.
+have fK: f%:R = 'chi_c 1%g by rewrite truncCK ?Cnat_irr1.
+have fb_mod_m: f * b = 1 %[mod m].
+  have co_m_f: coprime m f.
+    by rewrite (pnat_coprime p_m) ?p'natE // -dvdC_nat CdivE fK.
+  by rewrite -(chinese_modl co_m_f 1 0) /chinese !mul0n addn0 mul1n.
+have /irrP[s Dlam] := lin_char_irr lam_lin.
+have cHv: v \in irr_constt ('Res[H] 'chi_c) by rewrite -constt_Ind_constt_Res.
+have{cHv} cNs: s \in irr_constt ('Res[N] 'chi_c).
+  rewrite -(cfResRes _ sNH) ?(constt_Res_trans _ cHv) ?cfRes_char ?irr_char //.
+  by rewrite vNlam Dlam constt_irr !inE.
+have DcN: 'Res[N] 'chi_c = lambda *+ f.
+  have:= Clifford_Res_sum_cfclass nsNG cNs.
+  rewrite -[rhs in (_ ^: rhs)%CF]IGlam Dlam cfclass_inertia big_seq1 => DcN.
+  have:= cfRes1 N 'chi_c; rewrite DcN cfunE -Dlam lin_char1 // mulr1 => ->.
+  by rewrite -scaler_nat fK.
+have /lin_char_irr/irrP[d Dd]: cfDet 'chi_c ^+ b \is a linear_char.
+  by rewrite rpredX // cfDet_lin_char.
+exists d; rewrite -{}Dd rmorphX /= cfResDet ?irr_char // DcN.
+rewrite cfDetMn ?lin_charW // -exprM cfDet_id //.
+rewrite -(expr_mod _ (exp_cforder _)) -cfDet_order_lin // -/m.
+by rewrite fb_mod_m /m cfDet_order_lin // expr_mod ?exp_cforder.
+Qed.
+
+(* This is Isaacs, Corollary (6.27). *)
+Corollary extend_coprime_linear_char G N (lambda : 'CF(N)) :
+    N <| G -> lambda \is a linear_char -> 'I_G[lambda] = G ->
+    coprime #|G : N| 'o(lambda)%CF ->
+  exists u, [/\ 'Res 'chi[G]_u = lambda, 'o('chi_u)%CF = 'o(lambda)%CF
+              & forall v,
+                  'Res 'chi_v = lambda -> coprime #|G : N| 'o('chi_v)%CF ->
+                v = u].
+Proof.
+set e := #|G : N| => nsNG lam_lin IGlam co_e_lam; have [sNG nNG] := andP nsNG.
+have [p lam_p | v vNlam] := extend_linear_char_from_Sylow nsNG lam_lin IGlam.
+  exists N; last first.
+    by have /irrP[u ->] := lin_char_irr lam_lin; exists u; rewrite cfRes_id.
+  split=> //; rewrite trivg_quotient /pHall sub1G pgroup1 indexg1.
+  rewrite card_quotient //= -/e (pi'_p'nat _ lam_p) //.
+  rewrite -coprime_pi' ?indexg_gt0 1?coprime_sym //.
+  by have:= lam_p; rewrite mem_primes => /and3P[].
+set nu := 'chi_v in vNlam.
+have lin_nu: nu \is a linear_char.
+  by rewrite (@cfRes_lin_lin _ _ N) ?vNlam ?irr_char.
+have [b be_mod_lam]: exists b, b * e = 1 %[mod 'o(lambda)%CF].
+  rewrite -(chinese_modr co_e_lam 0 1) /chinese !mul0n !mul1n mulnC.
+  by set b := _.1; exists b.
+have /irrP[u Du]: nu ^+ (b * e) \in irr G by rewrite lin_char_irr ?rpredX.
+exists u; set mu := 'chi_u in Du *.
+have uNlam: 'Res mu = lambda.
+  rewrite cfDet_order_lin // in be_mod_lam.
+  rewrite -Du rmorphX /= vNlam -(expr_mod _ (exp_cforder _)) //.
+  by rewrite be_mod_lam expr_mod ?exp_cforder.
+have lin_mu: mu \is a linear_char by rewrite -Du rpredX.
+have o_mu: ('o(mu) = 'o(lambda))%CF.
+  have dv_o_lam_mu: 'o(lambda)%CF %| 'o(mu)%CF.
+    by rewrite !cfDet_order_lin // -uNlam cforder_Res.
+  have kerNnu_olam: N \subset cfker (nu ^+ 'o(lambda)%CF).
+    rewrite -subsetIidl -cfker_Res ?rpredX ?irr_char //.
+    by rewrite rmorphX /= vNlam cfDet_order_lin // exp_cforder cfker_cfun1.
+  apply/eqP; rewrite eqn_dvd dv_o_lam_mu andbT cfDet_order_lin //.
+  rewrite dvdn_cforder -Du exprAC -dvdn_cforder dvdn_mull //.
+  rewrite -(cfQuoK nsNG kerNnu_olam) cforder_mod // /e -card_quotient //.
+  by rewrite cforder_lin_char_dvdG ?cfQuo_lin_char ?rpredX.
+split=> // t tNlam co_e_t.
+have lin_t: 'chi_t \is a linear_char.
+  by rewrite (@cfRes_lin_lin _ _ N) ?tNlam ?irr_char.
+have Ut := lin_char_unitr lin_t.
+have kerN_mu_t: N \subset cfker (mu / 'chi_t)%R.
+  rewrite -subsetIidl -cfker_Res ?lin_charW ?rpred_div ?rmorph_div //.
+  by rewrite /= uNlam tNlam divrr ?lin_char_unitr ?cfker_cfun1.
+have co_e_mu_t: coprime e #[(mu / 'chi_t)%R]%CF.
+  suffices dv_o_mu_t: #[(mu / 'chi_t)%R]%CF %| 'o(mu)%CF * 'o('chi_t)%CF. 
+    by rewrite (coprime_dvdr dv_o_mu_t) // coprime_mulr o_mu co_e_lam.
+  rewrite !cfDet_order_lin //; apply/dvdn_cforderP=> x Gx.
+  rewrite invr_lin_char // !cfunE exprMn -rmorphX {2}mulnC.
+  by rewrite !(dvdn_cforderP _) ?conjC1 ?mulr1 // dvdn_mulr.
+have /eqP mu_t_1: mu / 'chi_t == 1.
+  rewrite -(dvdn_cforder (_ / _)%R 1) -(eqnP co_e_mu_t) dvdn_gcd dvdnn andbT.
+  rewrite -(cfQuoK nsNG kerN_mu_t) cforder_mod // /e -card_quotient //.
+  by rewrite cforder_lin_char_dvdG ?cfQuo_lin_char ?rpred_div.
+by apply: irr_inj; rewrite -['chi_t]mul1r -mu_t_1 divrK.
+Qed.
+
+(* This is Isaacs, Corollary (6.28). *)
+Corollary extend_solvable_coprime_irr G N t (theta := 'chi[N]_t) :
+    N <| G -> solvable (G / N) -> 'I_G[theta] = G ->
+    coprime #|G : N| ('o(theta)%CF * truncC (theta 1%g)) ->
+  exists c, [/\ 'Res 'chi[G]_c = theta, 'o('chi_c)%CF = 'o(theta)%CF
+              & forall d,
+                  'Res 'chi_d = theta -> coprime #|G : N| 'o('chi_d)%CF ->
+                d = c].
+Proof.
+set e := #|G : N|; set f := truncC _ => nsNG solG IGtheta.
+rewrite coprime_mulr => /andP[co_e_th co_e_f].
+have [sNG nNG] := andP nsNG; pose lambda := cfDet theta.
+have lin_lam: lambda \is a linear_char := cfDet_lin_char theta.
+have IGlam: 'I_G[lambda] = G.
+  apply/setIidPl/subsetP=> y; rewrite -IGtheta => /setIP[Gy IGy].
+  by rewrite inE (subsetP nNG) //= cfConjgDet (inertiaJ IGy).
+have co_e_lam: coprime e 'o(lambda)%CF by rewrite cfDet_order_lin.
+have [//|u [uNlam o_u Uu]] := extend_coprime_linear_char nsNG lin_lam IGlam.
+have /exists_eqP[c cNth]: [exists c, 'Res 'chi[G]_c == theta].
+  rewrite solvable_irr_extendible_from_det //.
+  by apply/exists_eqP; exists u.
+have{c cNth} [c [cNth det_c] Uc] := extend_to_cfdet nsNG co_e_f cNth uNlam.
+have lin_u: 'chi_u \is a linear_char by rewrite -det_c cfDet_lin_char.
+exists c; split=> // [|c0 c0Nth co_e_c0].
+  by rewrite !cfDet_order_lin // -det_c in o_u.
+have lin_u0: cfDet 'chi_c0 \is a linear_char := cfDet_lin_char 'chi_c0.
+have /irrP[u0 Du0] := lin_char_irr lin_u0.
+have co_e_u0: coprime e 'o('chi_u0)%CF by rewrite -Du0 cfDet_order_lin.
+have eq_u0u: u0 = u by apply: Uu; rewrite // -Du0 cfResDet ?irr_char ?c0Nth.
+by apply: Uc; rewrite // Du0 eq_u0u.
+Qed.
 
 End S628.
 

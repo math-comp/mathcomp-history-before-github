@@ -688,8 +688,10 @@ Qed.
 
 End S616.
 
+Import nilpotent.
+
 (* This is Peterfalvi (1.7c). *)
-Lemma induced_inertia_quo1:
+Lemma induced_inertia_quo1 :
      coprime #|H| #|T : H| -> 
   [/\ chi = \sum_(i in calA) ('Ind[G] 'chi_i), #|calA| = #|T : H| 
     & {in calA, forall i, 'Ind[G] 'chi_i 1%g = #|G : T|%:R * theta 1%g}].
@@ -697,9 +699,13 @@ Proof.
 move=> hallHT; case: induced_inertia_quo => // e1 H1.
 have:= H1; suff ->: e1 = 1; first rewrite /= scale1r expr1n !mulr1.
   by case=> -> /eqP He Hi; split=> //; apply/eqP; rewrite -eqC_nat.
-(* from Isaacs 6.28*)
 have [i Hi]: exists i : Iirr T, 'Res[H] 'chi_i = theta.
-  admit.
+  have ITth: 'I_T[theta] = T by apply/setIidPl/subsetIr.
+  have solT: solvable (T / H) := abelian_sol QTHa.
+  have [|i[]] := extend_solvable_coprime_irr nsHT solT ITth; last by exists i.
+  rewrite coprime_sym coprime_mull !(coprime_dvdl _ hallHT) //.
+    by rewrite -dvdC_nat !CdivE truncCK ?Cnat_irr1 // dvd_irr1_cardG.
+  by rewrite cforder_lin_char_dvdG ?cfDet_lin_char.
 have [Hin1 Hi1] : i \in calA /\ '[chi, 'Ind[G]'chi_i] = 1.
   split.
     by rewrite irr_consttE -Frobenius_reciprocity Hi cfnorm_irr oner_neq0.
