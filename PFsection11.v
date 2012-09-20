@@ -1569,6 +1569,12 @@ split=> [zeta zISHC||].
   apply/orthogonalP=> i ochi.
   rewrite inE => /eqP-> /mapP[x /(cycTIirrP defW)[i1 [j1 ->]]->].
   by rewrite cfdotNl Ochi oppr0.
+have [Gal|NGal] := boolP (typeP_Galois MtypeP).
+  have [F [phi _ _ [cyUbar _ _]]] := typeP_Galois_P maxM Mtypen5 Gal.
+  have [_ _ _ CeU'] := Mtype34_facts.
+  rewrite Ptype_Fcompl_kernel_cent (group_inj CeU') in cyUbar.
+  have [_ [nilU _ _ _] _ _ _] := MtypeP.
+  admit.
 admit.
 Qed.
 
