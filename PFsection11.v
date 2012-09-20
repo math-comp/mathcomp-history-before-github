@@ -1657,6 +1657,39 @@ have aDu : a %| u.
   rewrite -!natrM eqr_nat eqn_mul2l.
   rewrite (negPf (lt0n_neq0 (cardG_gt0 W1)))=> /= /eqP<-.
   by rewrite dvdn_mull // divnn.
+have: '[tau (mu_ 0 - zeta), tau psi] = 0.
+  rewrite Dade_isometry ?muCF //; last first.
+    have psiIZ: psi \in 'Z[irr M, HU^#]. 
+      rewrite zchar_split // rpredB.
+      - rewrite cfun_onD1 ?rpredB  ?cfunE ?muj1 ?(eqP lamb1).
+        -  rewrite subr_eq0 /= -natrM eqr_nat  [(_ * a)%N]mulnC.
+           by rewrite mulnA divnK // [(q * _)%N]mulnC.
+        - by apply:   seqInd_on mujISC.
+        by apply/rpredZ/(seqInd_on _ lambIS2).
+      by rewrite rpred_sum // => i _; apply: irr_vchar.
+  by rewrite scale_zchar ?mem_zchar ?Cint_Cnat // mem_irr.
+    have-> : 'A0(M) = HU^# :|: class_support  (cyclicTIset defW) M.
+      by rewrite -defA (FTtypeP_supp0_def _ MtypeP).
+    by apply: cfun_onS (zchar_on psiIZ); rewrite subsetUl.
+  rewrite cfdotBl !cfdotBr !cfdotZr.
+  rewrite cfdot_prTIred [0 == _]eq_sym (negPf NZj) sub0r.
+  rewrite cfdot_irr.
+  case: (_ =P _)=> [Ezb|_]; rewrite ?mulr0 ?subr0.
+    by move: (S2DS1 zISHC); rewrite !inE Ezb => /negP[].
+  rewrite ['[zeta, _]]cfdotC  ['[_, zeta]]Omu // ?conjC0 subr0.
+  have->: '[mu_ 0, lamb] = 0 by admit.
+(*
+rewrite prTIred0 cfdotZl.
+  case/seqIndP: lambIS2=> i iIkerD ->.
+rewrite -cfdot_Res_l.
+set v := 'Res[_] _; have->: v = 1.
+  apply/cfunP=> g; rewrite /=.
+  rewrite /v.
+ rewrite cfResE.
+ rewrite cfuniE.
+rewrite /GRing.one /=.
+*)
+  by rewrite mulr0 oppr0.
 admit.
 Qed.
 
