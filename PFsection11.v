@@ -1690,6 +1690,24 @@ set v := 'Res[_] _; have->: v = 1.
 rewrite /GRing.one /=.
 *)
   by rewrite mulr0 oppr0.
+have ltqu: (q < u)%N.
+  have [solU [_ _ _ defC]] := (solvableS sUHU sol_HU, Mtype34_facts).
+  have frobUW1 := Ptype_compl_Frobenius maxM MtypeP Mtypen5.
+  have [defUW1 ntU _ _ _] := Frobenius_context frobUW1.
+  have ltCU: C \proper U by rewrite /= defC (sol_der1_proper solU).
+  have [/mulG_sub[_ sW1M] [sCU nCU]] := (sdprodW defM, andP nsCU).
+  have [nsUUW1 _ _ _ tiUW1] := sdprod_context defUW1.
+  have nCUW1: `C <| U <*> W1 by rewrite defC (char_normal_trans (der_char 1 U)).
+  have nCW1: W1 \subset 'N(C) by have [_ /joing_subP[]] := andP nCUW1.
+  have tiCW1: C :&: W1 = 1%g by apply/trivgP; rewrite -tiUW1 setSI.
+  have{frobUW1} frobUW1: [Frobenius (U <*> W1) / C = (U / C) ><| (W1 / C)].
+    exact: Frobenius_proper_quotient.
+  have ugt1: (1 < u)%N by rewrite cardG_gt1; case/Frobenius_context: frobUW1.
+  rewrite -(subnKC ugt1) addSn ltnS dvdn_leq // addnBA // subSS subn1 /q.
+  by rewrite (card_isog (quotient_isog nCW1 _)) ?(Frobenius_dvd_ker1 frobUW1).
+have ltap: (a < p)%N.
+  rewrite -(prednK (prime_gt0 pr_p)) ltnS dvdn_leq //.
+  by rewrite -(subnKC (prime_gt1 pr_p)).
 admit.
 Qed.
 
