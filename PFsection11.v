@@ -1662,14 +1662,14 @@ have psi1 : psi 1%g == 0.
   rewrite subr_eq0 /= -natrM eqr_nat  [(_ * a)%N]mulnC.
   by rewrite mulnA divnK // [(q * _)%N]mulnC.
 have: '[tau (mu_ 0 - zeta), tau psi] = 0.
+  have psiIZ: psi \in 'Z[irr M, HU^#]. 
+    rewrite zchar_split // rpredB.
+    - rewrite cfun_onD1 psi1 rpredB //.
+        by apply:   seqInd_on mujISC.
+      by apply/rpredZ/(seqInd_on _ lambIS2).
+    - by rewrite rpred_sum // => i _; apply: irr_vchar.
+    by rewrite scale_zchar ?mem_zchar ?Cint_Cnat // mem_irr.
   rewrite Dade_isometry ?muCF //; last first.
-    have psiIZ: psi \in 'Z[irr M, HU^#]. 
-      rewrite zchar_split // rpredB.
-      - rewrite cfun_onD1 psi1 rpredB //.
-        - by apply:   seqInd_on mujISC.
-        by apply/rpredZ/(seqInd_on _ lambIS2).
-      by rewrite rpred_sum // => i _; apply: irr_vchar.
-  by rewrite scale_zchar ?mem_zchar ?Cint_Cnat // mem_irr.
     have-> : 'A0(M) = HU^# :|: class_support  (cyclicTIset defW) M.
       by rewrite -defA (FTtypeP_supp0_def _ MtypeP).
     by apply: cfun_onS (zchar_on psiIZ); rewrite subsetUl.
@@ -1683,7 +1683,7 @@ have: '[tau (mu_ 0 - zeta), tau psi] = 0.
     have Tmu0: mu_ 0 \in seqIndT HU M.
       by rewrite -[mu_ 0]cfInd_prTIres mem_seqIndT.
     rewrite (seqInd_ortho _ Tmu0 (seqInd_subT lambIS2)) // /lamb.
-    apply: contraTneq (mem_irr ib) => <-; apply: prTIred_not_irr.
+    by apply: contraTneq (mem_irr ib) => <-; apply: prTIred_not_irr.
   by rewrite mulr0 oppr0.
 pose chi : 'CF(G) := tau (mu_ 0 - zeta) - \sum_j eta_ 0 j.
 have chiE: tau (mu_ 0 - zeta) = \sum_j eta_ 0 j + chi.
@@ -1700,15 +1700,22 @@ rewrite cfdot_cycTIiso !eqxx /=.
 rewrite big1 ?addr0=> [|i NZi]; last first.
   by rewrite cfdot_cycTIiso [0 == _]eq_sym (negPf NZi).
 rewrite big1 ?addr0=> [|i NZi]; last first.
-rewrite cfdot_sumr big1 // => ì1 NZi1.
+rewrite cfdot_sumr big1 // => i1 NZi1.
   by rewrite cfdot_cycTIiso  (negPf NZi) andbF.
 rewrite cfdotC cfdot_sumr big1 ?mulr0 ?subr0=> [|i _]; last first.
   apply: (coherent_ortho_cycTIiso _ _ CoWtau2); rewrite ?mem_irr //.
 rewrite conjC0 mulr0 subr0 mulr1.
 rewrite cfdot_sumr big1 ?mulr0 ?addr0 => [|i _]; last first.
   by rewrite (orthoPl oChi) ?map_f ?mem_irr.
-rewrite sub0r conjC_nat rmorph_sign.
-move/eqP; rewrite subr_eq0=> cfdot_chi_tau.
+rewrite sub0r conjC_nat rmorph_sign => /(canRL (subrK _))/(congr1 Num.norm).
+case/esym/eqP/idPn; rewrite add0r normrM normr_sign normr_nat.
+rewrite Cnat_mul_eq1 ?rpred_nat ?Cnat_norm_Cint //; last first.
+  rewrite Cint_cfdot_vchar //.
+    rewrite rpredB ?rpred_sum // => [|j1 _]; last exact: cycTIiso_vchar.
+    rewrite Dade_vchar // zchar_split muCF // rpredB ?irr_vchar //.
+    by rewrite char_vchar // prTIred_char.
+  by have [[_ ->//]] := CoWtau2; apply: mem_zchar.
+rewrite pnatr_eq1 -eqn_mul ?indexg_gt0 // mul1n gtn_eqF //.
 have ltqu: (q < u)%N.
   have [solU [_ _ _ defC]] := (solvableS sUHU sol_HU, Mtype34_facts).
   have frobUW1 := Ptype_compl_Frobenius maxM MtypeP Mtypen5.
@@ -1727,7 +1734,7 @@ have ltqu: (q < u)%N.
 have ltap: (a < p)%N.
   rewrite -(prednK (prime_gt0 pr_p)) ltnS dvdn_leq //.
   by rewrite -(subnKC (prime_gt1 pr_p)).
-admit.
+exact: ltn_trans ltap (ltn_trans pLq ltqu).
 Qed.
 
 End Eleven.
