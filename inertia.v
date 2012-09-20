@@ -1541,7 +1541,7 @@ have s2_lin: 'chi_s2 \is a linear_char.
   by rewrite Dc2 cfunE cfMod1.
 have s2Xf_1: 'chi_s2 ^+ f = 1.
   apply/(can_inj (cfModK nsNG))/(mulIr (lin_char_unitr lin_mu))/esym.
-  rewrite rmorph1 rmorphX /= mul1r -[in lhs in lhs = _]det_c2_mu Dc2 -det_chi.
+  rewrite rmorph1 rmorphX /= mul1r -{1}det_c2_mu Dc2 -det_chi.
   by rewrite cfDet_mul_lin ?cfMod_lin_char ?irr_char // -(cfRes1 N) chiN.
 suffices /eqP s2_1: 'chi_s2 == 1 by rewrite Dc2 s2_1 rmorph1 mul1r.
 rewrite -['chi_s2]expr1 -dvdn_cforder -(eqnP co_e_f) dvdn_gcd.
