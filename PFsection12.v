@@ -684,7 +684,7 @@ have hpartIH : partition partIH [set: Iirr H].
   apply/and3P; split; last 1 first.
   - apply/imsetP=>[[i irr_i]] /setP; case: (constt_cfInd_irr i sH'H) => /= j hj.
     by move/(_ j); rewrite 2!inE hj.
-  - apply/eqP/setP=> i; apply/bigcupP/idP => [ | [_]]; first by rewrite inE.
+  - apply/eqP/setP=> i; apply/bigcupP/idP; first by rewrite inE.
     case: (constt_cfRes_irr H' i)=> j; rewrite -constt_Ind_constt_Res => hj.
     exists [set k in irr_constt ('Ind[H] 'chi_j)]; last by rewrite inE.
     by apply/imsetP; exists j.
@@ -1308,7 +1308,8 @@ have /irrP[t Dchi] := irrS _ Schi; have St: 'chi_t \in calS by rewrite -Dchi.
 have Sgt1: (1 < size calS)%N by apply: seqInd_nontrivial St; rewrite ?mFT_odd.
 have De: #|L : H| = e by rewrite -(index_sdprod defL).
 have:= Dade_Ind1_sub_lin cohS_H Sgt1 St; rewrite -Dchi -/tauL_H -/calS -/psi /=.
-set alpha := 'Ind 1 - chi; rewrite De => [[]] // [[o_tau_1 tau_alpha_1 _]].
+set alpha := 'Ind 1 - chi; rewrite De => [] //.
+case=>  // [[o_tau_1 tau_alpha_1 _]].
 case=> Gamma [o_tau1_Ga _ [a Za tau_alpha] _] _.
 have [[Itau1 _] Dtau1] := cohS_H.
 have o1calS: orthonormal calS.
