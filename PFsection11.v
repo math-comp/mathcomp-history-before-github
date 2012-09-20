@@ -1615,7 +1615,8 @@ have/leq_trans/(_ countIrr_qa): (0 < lb_n %/ lb_d)%N.
   by rewrite divn_gt0 dvdn_leq // !muln_gt0 ?cardG_gt0 
              ?(ltn_trans (ltn0Sn _) aPos) //; case: p pr_p => [|[|]] //.
 rewrite -has_count => /hasP[xj xjIS] .
-rewrite inE -/q => /andP[/irrP[ib ->] lamb1].
+rewrite inE -/q => /andP[/irrP[ib def_ib] lamb1].
+rewrite {xj}def_ib in xjIS lamb1.
 set lamb := 'chi_ib in lamb1.
 have [j NZj] := has_nonprincipal_irr ntW2.
 have: mu_ j \in S3 by apply: map_f; rewrite mem_enum.
@@ -1630,6 +1631,17 @@ have [tau2 CoWtau2]: coherent S2 M^# tau.
   apply: seqIndS (Iirr_kerDS _ _ _)=> //.
   have [_ _ /group_inj->] := FTtype34_Fcore_kernel_trivial .
   by rewrite (group_inj (joing1G _)) (group_inj Ptype_Fcompl_kernel_cent) der_sub.
+have lambIS2 : lamb \in S2.
+  rewrite /S2 -(_ : (C <*> H)%G = HC) ?seqIndDY //.
+    by move: xjIS; rewrite  trivH0 (group_inj (joing1G _)) (group_inj U'eC).
+  by apply/group_inj/dprodWY; rewrite -defHC dprodC.
+have mujIS2 : mu_ j \in S2.
+  rewrite /S2 -(_ : (C <*> H)%G = HC) ?seqIndDY //.
+  by apply/group_inj/dprodWY; rewrite -defHC dprodC.
+have cfConCS2 : cfConjC_subset S2 (seqIndD HU M M`_\s 1).
+  by apply: seqInd_conjC_subset1; rewrite (group_inj defMs).
+have [[b k] /=] := FTtypeP_coherent_TIred  cfConCS2 CoWtau2 lambIS2 mujIS2.
+rewrite -[primeTIred _ _]/(mu_ j) => Etau2muj Cbk.
 admit.
 Qed.
 
