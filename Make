@@ -117,6 +117,7 @@ PFsection11.v
 PFsection12.v
 PFsection13.v
 PFsection14.v
+stripped_odd_order_theorem.v
 fraction.v
 bigenough.v
 cauchyreals.v
