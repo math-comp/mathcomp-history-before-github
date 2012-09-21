@@ -421,7 +421,7 @@ let evars_for_FO ~hack env sigma0 (ise0:evar_map) c0 =
     with NotInstantiatedEvar ->
     if Evd.mem sigma0 k then map_constr put c else
     let evi = Evd.find !sigma k in
-    let dc = list_firstn (max 0 (Array.length a - nenv)) (evar_filtered_context evi) in
+    let dc = List.firstn (max 0 (Array.length a - nenv)) (evar_filtered_context evi) in
     let abs_dc (d, c) = function
     | x, Some b, t -> d, mkNamedLetIn x (put b) (put t) c
     | x, None, t -> mkVar x :: d, mkNamedProd x (put t) c in
@@ -444,7 +444,7 @@ let mk_tpattern ?p_origin ?(hack=false) env sigma0 (ise, t) ok dir p =
     | Const p ->
       let np = proj_nparams p in
       if np = 0 || np > List.length a then KpatConst, f, a else
-      let a1, a2 = list_chop np a in KpatProj p, applist(f, a1), a2
+      let a1, a2 = List.chop np a in KpatProj p, applist(f, a1), a2
     | Var _ | Ind _ | Construct _ -> KpatFixed, f, a
     | Evar (k, _) ->
       if Evd.mem sigma0 k then KpatEvar k, f, a else
