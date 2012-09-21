@@ -63,6 +63,26 @@ open Locusops
 
 open Ssrmatching
 
+
+(* Tentative patch from util.ml *)
+
+let array_fold_right_from n f v a =
+  let rec fold n =
+    if n >= Array.length v then a else f v.(n) (fold (succ n))
+  in
+  fold n
+
+let array_app_tl v l =
+  if Array.length v = 0 then invalid_arg "array_app_tl";
+  array_fold_right_from 1 (fun e l -> e::l) v l
+
+let array_list_of_tl v =
+  if Array.length v = 0 then invalid_arg "array_list_of_tl";
+  array_fold_right_from 1 (fun e l -> e::l) v []
+
+(* end patch *)
+
+
 type loc = Loc.t
 let dummy_loc = Loc.ghost
 let errorstrm = Errors.errorlabstrm "ssreflect"
@@ -4516,7 +4536,7 @@ let rwrxtac occ rdx_pat dir rule gl =
           (d, r', lhs, rhs)
 *)
         | _ ->
-          let lhs = substl (Array.list_of_tl (Array.sub a 0 np)) lhs0 in
+          let lhs = substl (array_list_of_tl (Array.sub a 0 np)) lhs0 in
           let lhs, rhs = if d = R2L then lhs, rhs else rhs, lhs in
           let d' = if Array.length a = 1 then d else converse_dir d in
           d', r, lhs, rhs in
