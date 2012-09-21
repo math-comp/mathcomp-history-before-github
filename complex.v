@@ -1031,41 +1031,39 @@ Notation MtoC := (map_mx toC).
 Lemma Lemma5 : Eigen1Vec C 2.
 Proof.
 move=> m V HrV f f_stabV.
-pose f' := restrict V f.
-pose u := map_mx (@Re R) f'; pose v := map_mx (@Im R) f'.
-have f'E : f' = MtoC u + 'i *: MtoC v.
-  rewrite /u /v [f']lock; apply/matrixP => i j; rewrite !mxE /=.
-  by case: (locked f' i j) => a b; simpc.
-move: u v => u v in f'E *.
-pose L1fun : 'M[R]_(\rank V) -> _ :=
+suff: exists a, eigenvalue (restrict V f) a.
+  by move=> [a /eigenvalue_restrict Hf]; exists a; apply: Hf.
+move: (\rank V) (restrict V f) => {f f_stabV V m} n f in HrV *.
+pose u := map_mx (@Re R) f; pose v := map_mx (@Im R) f.
+have fE : f = MtoC u + 'i *: MtoC v.
+  rewrite /u /v [f]lock; apply/matrixP => i j; rewrite !mxE /=.
+  by case: (locked f i j) => a b; simpc.
+move: u v => u v in fE *.
+pose L1fun : 'M[R]_n -> _ :=
   2%:R^-1 \*: (mulmxr u       \+ (mulmxr v \o trmx) 
            \+ ((mulmx (u^T)) \- (mulmx (v^T) \o trmx))).
 pose L1 := lin_mx [linear of L1fun].
-pose L2fun : 'M[R]_(\rank V) -> _ :=
+pose L2fun : 'M[R]_n -> _ :=
   2%:R^-1 \*: (((@GRing.opp _) \o (mulmxr u \o trmx) \+ mulmxr v) 
            \+ ((mulmx (u^T) \o trmx)               \+ (mulmx (v^T)))).
 pose L2 := lin_mx [linear of L2fun].
 have [] := @Lemma4 _ _ 1%:M _ [::L1; L2] (erefl _).
 + by move: HrV; rewrite mxrank1 !dvdn2 ?negbK odd_mul andbb.
 + by move=> ? _ /=; rewrite submx1.
-+ suff commL1L2: L1 *m L2 = L2 *m L1.
-    move=> La Lb; rewrite !in_cons !in_nil !orbF.
++ suff {f fE}: L1 *m L2 = L2 *m L1.
+    move: L1 L2 => L1 L2 commL1L2 La Lb.
+    rewrite !{1}in_cons !{1}in_nil !{1}orbF.
     by move=> /orP [] /eqP -> /orP [] /eqP -> //; symmetry.
   apply/eqP/mulmxP => x; rewrite [X in X = _]mulmxA [X in _ = X]mulmxA.
   rewrite 4!mul_rV_lin !mxvecK /= /L1fun /L2fun /=; congr (mxvec (_ *: _)).
-  move=> {L1 L2 L1fun L2fun f'E f' f_stabV f}.
-  case: (\rank V) (vec_mx x) => [//|n] {V m x} x in HrV u v *.
+  move=> {L1 L2 L1fun L2fun}.
+  case: n {x} (vec_mx x) => [//|n] x in HrV u v *.
   do ?[rewrite -(scalemxAl, scalemxAr, scalerN, scalerDr)
       |rewrite (mulmxN, mulNmx, trmxK, trmx_mul)
       |rewrite  ?[(_ *: _)^T]linearZ ?[(_ + _)^T]linearD ?[(- _)^T]linearN /=].
   congr (_ *: _).
   rewrite !(mulmxDr, mulmxDl, mulNmx, mulmxN, mulmxA, opprD, opprK).
-  set t1 := (_ *m _ *m _); set t2 := (_ *m _ *m _).
-  set t3 := (_ *m _ *m _); set t4 := (_ *m _ *m _).
-  set t5 := (_ *m _ *m _); set t6 := (_ *m _ *m _).
-  set t7 := (_ *m _ *m _); set t8 := (_ *m _ *m _).
-  set t9 := (_ *m _ *m _); set t10 := (_ *m _ *m _).
-  set t11 := (_ *m _ *m _); set t12 := (_ *m _ *m _).
+  do ![move: (_ *m _ *m _)] => t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12.
   rewrite [X in X + _ + _]addrC [X in X + _ = _]addrACA.
   rewrite [X in _ = (_ + _ + X) + _]addrC [X in _ = X + _]addrACA.
   rewrite [X in _ + (_ + _ + X)]addrC [X in _ + X = _]addrACA.
@@ -1078,21 +1076,20 @@ move=> [//|a /eigenspaceP g_eigenL1] [//|b /eigenspaceP g_eigenL2].
 rewrite !mul_rV_lin /= /L1fun /L2fun /= in g_eigenL1 g_eigenL2.
 do [move=> /(congr1 vec_mx); rewrite mxvecK linearZ /=] in g_eigenL1.
 do [move=> /(congr1 vec_mx); rewrite mxvecK linearZ /=] in g_eigenL2.
+move=> {L1 L2 L1fun L2fun Hg HrV}.
 set vg := vec_mx g in g_eigenL1 g_eigenL2.
 exists (a +i* b); apply/eigenvalueP.
 pose w := (MtoC vg - 'i *: MtoC vg^T).
-exists (nz_row w *m row_base V); last first.
-  rewrite mul_mx_rowfree_eq0 ?row_base_free ?nz_row_eq0 // subr_eq0.
-  apply: contraNneq g_neq0 => Hvg.
+exists (nz_row w); last first.
+  rewrite nz_row_eq0 subr_eq0; apply: contraNneq g_neq0 => Hvg.
   rewrite -vec_mx_eq0; apply/eqP/matrixP => i j; rewrite !mxE /=.
   move: Hvg => /matrixP /(_ i j); rewrite !mxE /=; case.
   by rewrite !(mul0r, mulr0, add0r, mul1r, oppr0) => ->.
-apply/eigenspaceP; rewrite -eigenspace_restrict -/f' //.
-move=> {L1 L2 L1fun L2fun Hg}.
-case: (\rank V) f' => [|n] f' in u v g g_neq0 vg w f'E g_eigenL1 g_eigenL2 *.
+apply/eigenspaceP.
+case: n f => [|n] f in u v g g_neq0 vg w fE g_eigenL1 g_eigenL2 *.
   by rewrite thinmx0 eqxx in g_neq0.
 rewrite (submx_trans (nz_row_sub _)) //; apply/eigenspaceP.
-rewrite f'E [a +i* b]complexE.
+rewrite fE [a +i* b]complexE /=.
 rewrite !(mulmxDr, mulmxBl, =^~scalemxAr, =^~scalemxAl) -!map_mxM.
 rewrite !(scalerDl, scalerDr, scalerN, =^~scalemxAr, =^~scalemxAl).
 rewrite !scalerA /= mulrAC ['i * _]sqr_i ?mulN1r scaleN1r scaleNr !opprK.
@@ -1114,23 +1111,16 @@ Lemma Lemma6 k r : CommonEigenVec C (2^k.+1) r.+1.
 Proof.
 elim: k {-2}k (leqnn k) r => [|k IHk] l.
   by rewrite leqn0 => /eqP ->; apply: Lemma3; apply: Lemma5.
-rewrite leq_eqVlt ltnS => /orP [/eqP ->|/IHk //] r.
-apply: Lemma3 => m V HrV f f_stabV.
+rewrite leq_eqVlt ltnS => /orP [/eqP ->|/IHk //] r {l}.
+apply: Lemma3 => m V Hn f f_stabV {r}.
 have [dvd2n|Ndvd2n] := boolP (2 %| \rank V); last first.
   exact: @Lemma5 _ _ Ndvd2n _ f_stabV.
-move: HrV dvd2n; set rV := \rank V.
-have [->|rV_gt0] := posnP rV; first by rewrite dvdn0.
-have [] : {f' | forall (p : (\rank V = rV) * (\rank V = rV))
-                   , castmx p (restrict V f) = f'}.
-  by eexists => p; rewrite castmx_id.
-rewrite -[rV]prednK; set n := rV.-1 => // f' Hf' Hn dvd2n.
-have L1_lin : linear (fun g : 'M_n.+1 => g *m f' + f'^T *m g).
-  move=> a u v; rewrite mulmxDl mulmxDr addrACA.
-  by rewrite scalerDr -!(scalemxAl, scalemxAr).
-pose L1 := lin_mx (Linear L1_lin).
-have L2_lin : linear (fun g : 'M_n.+1 => f'^T *m g *m f').
-  by move=> a u v; rewrite mulmxDr mulmxDl -!(scalemxAl, scalemxAr).
-pose L2 := lin_mx (Linear L2_lin).
+suff: exists a, eigenvalue (restrict V f) a.
+  by move=> [a /eigenvalue_restrict Hf]; exists a; apply: Hf.
+case: (\rank V) (restrict V f) => {f f_stabV V m} [|n] f in Hn dvd2n *.
+  by rewrite dvdn0 in Hn.
+pose L1 := lin_mx [linear of mulmxr f \+ (mulmx f^T)].
+pose L2 := lin_mx [linear of mulmxr f \o mulmx f^T].
 have [] /= := IHk _ (leqnn _) _  _ (skew C n.+1) _ [::L1; L2] (erefl _).
 + rewrite rank_skew; apply: contra Hn.
   rewrite -(@dvdn_pmul2r 2) //= -expnSr muln2 -[_.*2]add0n.
@@ -1156,15 +1146,15 @@ move: vL2 => /(congr1 vec_mx); rewrite linearZ mul_rV_lin /= mxvecK.
 move: vL1 => /(congr1 vec_mx); rewrite linearZ mul_rV_lin /= mxvecK.
 move=> /(canRL (addKr _)) ->; rewrite mulmxDl mulNmx => Hv.
 pose p := 'X^2 + (- a) *: 'X + b%:P.
-have : vec_mx v *m (horner_mx f' p) = 0.
+have : vec_mx v *m (horner_mx f p) = 0.
   rewrite !(rmorphN, rmorphB, rmorphD, rmorphM) /= linearZ /=.
   rewrite horner_mx_X horner_mx_C !mulmxDr mul_mx_scalar -Hv.
   rewrite addrAC addrA mulmxA addrN add0r.
   by rewrite -scalemxAl -scalemxAr scaleNr addrN.
-rewrite [p]monic_canonical_form; move: (_ / 2%:R) (_ / 2%:R) => r2 r1.
-move=> {Hv p a b L1 L2 L1_lin L2_lin Hn}.
+rewrite [p]monic_canonical_form; move: (_ / 2%:R) (_ / 2%:R).
+move=> r2 r1 {Hv p a b L1 L2 Hn}.
 rewrite rmorphM !rmorphB /= horner_mx_X !horner_mx_C mulmxA => Hv.
-have: exists2 w : 'M_n.+1, w != 0 & exists a, (w <= eigenspace f' a)%MS.
+have: exists2 w : 'M_n.+1, w != 0 & exists a, (w <= eigenspace f a)%MS.
   move: Hv; set w := vec_mx _ *m _.
   have [w_eq0 _|w_neq0 r2_eigen] := altP (w =P 0).
     exists (vec_mx v); rewrite ?vec_mx_eq0 //; exists r1.
@@ -1172,15 +1162,8 @@ have: exists2 w : 'M_n.+1, w != 0 & exists a, (w <= eigenspace f' a)%MS.
     by rewrite -mul_mx_scalar -subr_eq0 -mulmxBr -/w w_eq0.
   exists w => //; exists r2; apply/eigenspaceP/eqP.
   by rewrite -mul_mx_scalar -subr_eq0 -mulmxBr r2_eigen.
-move=> {r1 r2 Hv v v_neq0} [w w_neq0 [a w_eigen]].
-exists a; apply/eigenvalueP.
-have: exists2 z : 'rV_n.+1, z != 0 & (z <= eigenspace f' a)%MS.
-  exists (nz_row w); first by rewrite nz_row_eq0.
-  exact: (submx_trans (nz_row_sub _)).
-move=> {w w_neq0 w_eigen}; rewrite -Hf' prednK => //= eqrV; rewrite castmx_id.
-move=> [z z_eq0]; rewrite eigenspace_restrict => // z_eigen.
-exists (z *m row_base V); first exact/eigenspaceP.
-by rewrite mul_mx_rowfree_eq0 ?row_base_free.
+move=> [w w_neq0 [a /(submx_trans (nz_row_sub _)) /eigenspaceP Hw]].
+by exists a; apply/eigenvalueP; exists (nz_row w); rewrite ?nz_row_eq0.
 Qed.
 
 (* We enunciate a corollary of Theorem 7 *)
