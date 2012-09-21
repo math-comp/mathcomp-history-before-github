@@ -569,7 +569,7 @@ let match_upats_FO upats env sigma0 ise =
              let kludge vla =
                let vl, a = safeDestApp vla in
                let x, v, t, b = destLetIn vl in
-               mkApp (mkLambda (x, t, b), array_cons v a) in
+               mkApp (mkLambda (x, t, b), CArray.cons v a) in
              unif_FO env ise (kludge u.up_FO) (kludge c')
            | _ -> unif_FO env ise u.up_FO c' in
            let ise' = (* Unify again using HO to assign evars *)
@@ -718,15 +718,15 @@ let source () = match upats_origin, upats with
     if !skip_occ then c' else
     let f, a = splay_app sigma c' in
     if Array.length a >= pn && match_EQ f && unif_EQ_args env sigma pa a then
-      let a1, a2 = array_chop (Array.length pa) a in
+      let a1, a2 = CArray.chop (Array.length pa) a in
       let fa1 = mkApp (f, a1) in
       let f' = if subst_occ () then k env u.up_t h else fa1 in
-      mkApp (f', array_map_left (subst_loop acc) a2)
+      mkApp (f', CArray.map_left (subst_loop acc) a2)
     else
       (* TASSI: clear letin values to avoid unfolding *)
       let inc_h (n,_,ty) (env,h') = Environ.push_rel (n,None,ty) env, h' + 1 in
       let f' = map_constr_with_binders_left_to_right inc_h subst_loop acc f in
-      mkApp (f', array_map_left (subst_loop acc) a) in
+      mkApp (f', CArray.map_left (subst_loop acc) a) in
   subst_loop (env,h) c) : find_P),
 ((fun () ->
   let sigma, ({up_f = pf; up_a = pa} as u) =
