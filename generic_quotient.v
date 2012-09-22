@@ -632,7 +632,8 @@ Implicit Arguments eqmodE [D C DC CD eD encD].
 Implicit Arguments eqmodP [D C CD DC eD encD x y].
 Prenex Implicits eqmodE eqmodP.
 
-(* (* begin hide *) *)
+(* begin hide *)
+
 (* Module OK. *)
 (* Section OK. *)
 
@@ -643,7 +644,8 @@ Prenex Implicits eqmodE eqmodP.
 (* (* OK *) *)
 (* End OK. *)
 (* End OK. *)
-(* (* end hide *) *)
+
+(* end hide *) 
 
 Section DefaultEncodingModuloRel.
 

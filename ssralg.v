@@ -6110,6 +6110,7 @@ Canonical pair_unitAlgType (R : comUnitRingType) (A1 A2 : unitAlgType R) :=
   Eval hnf in [unitAlgType R of A1 * A2].
 
 (* begin hide *)
+
 (* Testing subtype hierarchy
 Section Test0.
 
@@ -6171,4 +6172,5 @@ Canonical B_fieldType := FieldType (B kS) B_fieldMixin.
 End Test3.
 
 *)
+
 (* end hide *)

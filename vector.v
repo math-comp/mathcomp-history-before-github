@@ -371,7 +371,9 @@ Local Notation subV := (@subsetv K vT) (only parsing).
 Local Notation addV := (@addv K vT) (only parsing).
 Local Notation capV := (@capv K vT) (only parsing).
 
-(* begin hide *) (* Internal theory facts *)
+(* begin hide *)
+
+(* Internal theory facts *)
 Let vs2mxP U V : reflect (U = V) (vs2mx U == vs2mx V)%MS.
 Proof. by rewrite (sameP genmxP eqP) !gen_vs2mx; apply: eqP. Qed.
 

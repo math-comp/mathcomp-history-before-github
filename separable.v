@@ -1032,6 +1032,7 @@ by move/eqP <-.
 Qed.
 
 (* begin hide *)
+
 (*
 Lemma purelyInseparableElementP : forall x, reflect 
  (forall n, [char L].-nat n -> separableElement K (x ^+ n) -> x ^+ n \in K)
@@ -1053,6 +1054,7 @@ rewrite -(@leq_exp2l p); last by apply/prime_gt1/(charf_prime Hp).
 by rewrite -!p_part !part_pnat_id // -(eq_pnat _ (charf_eq Hp)).
 Qed.
 *)
+
 (* end hide *)
 
 Lemma separableInseparableElement: forall x, 

@@ -569,6 +569,7 @@ Notation "c %:M" := (cstm c) (at level 2, format "c %:M").
 Notation "n %:X" := (varm n) (at level 2, format "n %:X").
 
 (* begin hide *)
+
 (* Section MultinomialComRing. *)
 
 (* Variable R : comRingType. *)
@@ -764,6 +765,7 @@ Notation "n %:X" := (varm n) (at level 2, format "n %:X").
 
 (* Canonical multinom_iDomain :=  *)
 (*   Eval hnf in IdomainType [comUnitRingType of multinom] idomain_axiomm. *)
+
 (* end hide *)
 
 End Multinomial.
