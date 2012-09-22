@@ -671,7 +671,8 @@ Canonical eq_quot_countType := CountType {eq_quot encD} eq_quot_countMixin.
 
 End CountEncodingModuloRel.
 
-(* (* begin hide *) *)
+(* begin hide *)
+
 (* Module Error. *)
 (* Section Error. *)
 
@@ -682,4 +683,5 @@ End CountEncodingModuloRel.
 (* (* Error : Why ?? *) *)
 (* End Error. *)
 (* End Error. *)
-(* (* end hide *) *)
+
+(* end hide *)
