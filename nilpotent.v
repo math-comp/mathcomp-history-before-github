@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path fintype div.
 Require Import bigop prime finset fingroup morphism automorphism quotient.
-Require Import commutator gproduct gfunctor center gseries.
+Require Import commutator gproduct gfunctor center gseries cyclic.
 
 (******************************************************************************)
 (*   This file defines nilpotent and solvable groups, and give some of their  *)
@@ -642,6 +642,18 @@ Lemma center_nil_eq1 G : nilpotent G -> ('Z(G) == 1) = (G :==: 1).
 Proof.
 move=> nilG; apply/eqP/eqP=> [Z1 | ->]; last exact: center1.
 by rewrite (TI_center_nil nilG) // (setIidPr (center_sub G)).
+Qed.
+
+Lemma cyclic_nilpotent_quo_der1_cyclic G :
+  nilpotent G -> cyclic (G / G^`(1)) -> cyclic G.
+Proof.
+move=> nG; rewrite (isog_cyclic (quotient1_isog G)).
+have [-> // | ntG' cGG'] := (eqVneq G^`(1) 1)%g.
+suffices: 'L_2(G) == 1%g by move/eqP <-.
+apply: (implyP (forallP nG _)).
+rewrite subsetI lcn_sub -lcnSn /= -quotient_cents2 ?lcn_norm //.
+apply: cyclic_factor_abelian (lcn_central 2 G) _.
+by rewrite (isog_cyclic (third_isog _ _ _)) ?lcn_normal // lcn_subS.
 Qed.
 
 End QuotientNil.

@@ -105,8 +105,9 @@ have{nilG'} pGb: p.-group (G / 'O_p^'(G')).
   rewrite pnat_mul // -card_quotient // pnat_id //= -pnatNK.
   by case/and3P: (nilpotent_pcore_Hall p^' nilG').
 have{pGb} cycGb: cyclic (G / 'O_p^'(G')).
-  apply: (cyclic_pgroup_quo_der1_cyclic pGb); rewrite -quotient_der //.
-  by rewrite (isog_cyclic (third_isog _ _ _)) ?pcore_sub //= prime_cyclic.
+  apply: (cyclic_nilpotent_quo_der1_cyclic (pgroup_nil pGb)).
+  rewrite -quotient_der // (isog_cyclic (third_isog _ _ _)) ?pcore_sub //.
+  by apply: prime_cyclic.
 have defG': G' = 'O_p^'(G').
   by apply/eqP; rewrite eqEsubset pcore_sub der1_min ?cyclic_abelian.
 have hallG': Hall G G'.
