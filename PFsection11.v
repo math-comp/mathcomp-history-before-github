@@ -1397,7 +1397,8 @@ have oXeta : {in S_ HC, forall z,
     rewrite (eq_bigr (f _))=> [|i nz_i]; last first.
       rewrite (bigD1 0) ?aiE //=; congr (_ + _).
       rewrite (eq_bigr (fun _ => a_ (eta_ #1 #1) ^+ 2))=> [|j nz_j]; last first.
-        rewrite (aijnz_E _ _ nz_i nz_j) (aijnz_E _ _ nz_1i nz_1j) //.
+        rewrite (aijnz_E _ _ nz_i nz_j).
+        rewrite [in X in _ = X](aijnz_E _ _ nz_1i nz_1j).
         by rewrite aiE // ajE.
       rewrite sumr_const (@eq_card _ _ [predD1 Iirr W2 & 0]); last first.
         by move=> i1 /=; rewrite !inE andbT /in_mem /=; case: (_ == _).
