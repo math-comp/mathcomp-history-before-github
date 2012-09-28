@@ -11,36 +11,42 @@ Require PFsection14.
 (* evidence for the skeptics.                                                 *)
 (******************************************************************************)
 
-(* Equality *)
+(* Equivalence and equality *)
+
+Inductive equivalent P Q := Equivalent (P_to_Q : P -> Q) (Q_to_P : Q -> P).
 
 Inductive equal T (x : T) : T -> Type := Equal : equal T x x.
 
 (* Arithmetic *)
 
-Inductive natural : Type := Zero | Succ (n : natural).
+Inductive natural : Type := Zero | Add_1_to (n : natural).
 
 Fixpoint add (m n : natural) : natural :=
-  match m with Zero => n | Succ m_minus_1 => add m_minus_1 (Succ n) end.
+  match m with Zero => n | Add_1_to m_minus_1 => add m_minus_1 (Add_1_to n) end.
 
 Definition double (n : natural) : natural := add n n.
 
 Inductive odd (n : natural) : Type :=
   Odd (half : natural)
-    (n_odd : equal natural n (Succ (double half))).
+    (n_odd : equal natural n (Add_1_to (double half))).
 
 Inductive less_than (m n : natural) : Type :=
   LessThan (diff : natural)
-    (m_lt_n : equal natural n (Succ (add m diff))).
+    (m_lt_n : equal natural n (Add_1_to (add m diff))).
 
 (* Finite subsets *)
 
-Inductive finite_of_order T (S : T -> Type) (n : natural) :=
-  FiniteOfOrder (rank : T -> natural) (val : T -> natural -> T)
-    (rank_lt_n : forall x, S x -> less_than (rank x) n)
-    (val_in_G : forall x0 i, less_than i n -> S (val x0 i))
-    (rank_val : forall x0 i, less_than i n -> equal natural (rank (val x0 i)) i)
-    (val_rank : forall x0 x, S x -> equal T (val x0 (rank x)) x).
-    
+Definition injective_in T R (D : T -> Type) (f : T -> R) :=
+  forall x y, D x -> D y -> equal R (f x) (f y) -> equal T x y.
+
+Inductive in_image T R (D : T -> Type) (f : T -> R) (a : R) :=
+  InImage (x : T) (x_in_D : D x) (a_is_fx : equal R a (f x)).
+
+Inductive finite_of_order T (D : T -> Type) (n : natural) :=
+  FiniteOfOrder (rank : T -> natural)
+    (rank_injective : injective_in T natural D rank)
+    (rank_onto :
+       forall i, equivalent (less_than i n) (in_image T natural D rank i)).
 
 (* Elementary group theory *)
 
@@ -54,7 +60,7 @@ Inductive group T mul one inv (G : T -> Type) :=
   Group
     (G_closed_under_mul : forall x y, G x -> G y -> G (mul x y))
     (one_in_G           : G one)
-    (G_closed_under_inv : forall x : T, G x -> G (inv x)).
+    (G_closed_under_inv : forall x, G x -> G (inv x)).
 
 Inductive subgroup T mul one inv (H G : T -> Type) :=
   Subgroup
@@ -79,8 +85,7 @@ Inductive abelian_factor T mul one inv (G H : T -> Type) :=
 
 Inductive solvable_group T mul one inv (G : T -> Type) :=
 | TrivialGroupSolvable
-   (G_group   : group T mul one inv G)
-   (G_trivial : forall x, G x -> equal T x one)
+   (G_trivial : forall x, equivalent (G x) (equal T x one))
 | AbelianExtensionSolvable (H : T -> Type)
    (H_solvable     : solvable_group T mul one inv H)
    (G_on_H_abelian : abelian_factor T mul one inv G H).
@@ -108,8 +113,8 @@ Lemma main T mul one inv G nn :
     finite_of_order T G nn -> Aodd nn ->
   Asol T mul one inv G.
 Proof.
-pose fix natN n := if n is n1.+1 then Succ (natN n1) else Zero.
-pose fix Nnat mm := if mm is Succ mm1 then (Nnat mm1).+1 else 0.
+pose fix natN n := if n is n1.+1 then Add_1_to (natN n1) else Zero.
+pose fix Nnat mm := if mm is Add_1_to mm1 then (Nnat mm1).+1 else 0.
 have natN_K: cancel natN Nnat by elim=> //= n ->.
 have NnatK: cancel Nnat natN by elim=> //= mm ->.
 have AaddE nn1 nn2: Nnat (Aadd nn1 nn2) = Nnat nn1 + Nnat nn2.
@@ -118,27 +123,30 @@ have AltE m n: Alt (natN m) (natN n) -> m < n.
   by rewrite -{2}[n]natN_K => [[dd ->]]; rewrite /= ltnS AaddE natN_K leq_addr.
 have AltI m n: m < n -> Alt (natN m) (natN n).
   move/subnKC <-; exists (natN (n - m.+1)).
-  by rewrite -[Succ _]NnatK /= AaddE !natN_K.
+  by rewrite -[Add_1_to _]NnatK /= AaddE !natN_K.
 have AoddE n: Aodd (natN n) -> odd n.
   by rewrite -{2}[n]natN_K => [[hh ->]]; rewrite /= AaddE addnn odd_double.
-case=> mulA mul1T mulVT [mulG oneG invG] [rG vG ub_rG GvG vG_K rG_K] odd_nn.
+case=> mulA mul1T mulVT [mulG oneG invG] [rG inj_rG im_rG] odd_nn.
 pose n := Nnat nn; have{odd_nn} odd_n: odd n by rewrite AoddE ?NnatK.
-have [gT o_gT [f [g Gf [fK gK]] [fM f1 fV]]]:
+have{rG inj_rG im_rG} [gT o_gT [f [g Gf [fK gK]] [fM f1 fV]]]:
   {gT : finGroupType & #|gT| = n & {f : gT -> T
     & {g : _ & forall a, G (f a) & cancel f g /\ forall x, G x -> f (g x) = x}
       & [/\ {morph f : a b / a * b >-> mul a b}, f 1 = one
           & {morph f : a / a^-1 >-> inv a}]}}.
-- pose gT := 'I_n.-1.+1; pose f (a : gT) := vG one (natN a).
-  pose g x : gT := inord (Nnat (rG x)).
-  have{ub_rG} ub_rG x: G x -> Nnat (rG x) < n.
-    by move=> Gx; rewrite AltE ?NnatK //; apply: ub_rG. 
-  have n_gt0: 0 < n by apply: leq_trans (ub_rG _ oneG).
-  have Dnn: nn = natN (n.-1.+1) by rewrite prednK ?NnatK.
-  have Gf a: G (f a) by apply: GvG; rewrite Dnn; apply: AltI.
-  have fK: cancel f g.
-    by move=> a; rewrite /g vG_K ?natN_K ?inord_val ?Dnn //; apply: AltI.
-  have gK x: G x -> f (g x) = x.
-    by move=> Gx; rewrite /f inordK ?prednK ?ub_rG // NnatK rG_K.
+- pose gT := 'I_n.-1.+1; pose g x : gT := inord (Nnat (rG x)).
+  have ub_rG x: G x -> Nnat (rG x) < n.
+    move=> Gx; rewrite AltE ?NnatK //.
+    by have [_] := im_rG (rG x); apply; exists x.
+  have Dn: n.-1.+1 = n := ltn_predK (ub_rG one oneG).
+  have fP a: {x : T & G x * (g x = a)}%type.
+    have a_lt_n: Alt (natN a) nn by rewrite -(canLR NnatK Dn); apply: AltI.
+    have [/(_ a_lt_n)[x Gx rGx] _] := im_rG (natN a).
+    by exists x; split; rewrite // /g -rGx natN_K inord_val.
+  pose f a := tag (fP a); have Gf a: G (f a) by rewrite /f; case: (fP) => x [].
+  have fK: cancel f g by rewrite /f => a; case: (fP a) => x [].
+  have Ng x & G x: natN (g x) = rG x by rewrite inordK ?Dn ?ub_rG ?NnatK.
+  have{Ng} gK x: G x -> f (g x) = x.
+    by move=> Gx; rewrite (inj_rG (f (g x)) x) // -!Ng ?fK.
   pose m a b := g (mul (f a) (f b)).
   pose o := g one; pose v a := g (inv (f a)).
   have fM: {morph f: a b / m a b >-> mul a b} by move=> a b; apply/gK/mulG.
@@ -149,7 +157,7 @@ have [gT o_gT [f [g Gf [fK gK]] [fM f1 fV]]]:
   have mV: left_inverse o v m.
     by move=> a; apply: canLR fK _; rewrite fV f1 mulVT.
   pose bT := BaseFinGroupType _ (FinGroup.Mixin mA m1 mV).
-  exists (@FinGroupType bT mV); first by rewrite card_ord prednK.
+  exists (@FinGroupType bT mV); first by rewrite card_ord Dn.
   by exists f; first exists g.
 pose im (H : {group gT}) x := (G x * (g x \in H))%type.
 have imG H : Agroup T mul one inv (im H).
@@ -169,7 +177,9 @@ suffices solH: Asol T mul one inv (im G0).
 have solG0: solvable G0 by rewrite PFsection14.Feit_Thompson ?cardsT ?o_gT.
 elim: _.+1 {-2}G0 (ltnSn #|G0|) => // m IHm H; rewrite ltnS => leHm.
 have [-> | ntH] := eqVneq H 1%G.
-  by left=> // x [Gx /set1P]; rewrite -f1 => <-; rewrite gK.
+  left=> // x; split=> [[Gx /set1P] | ->].
+    by rewrite -f1 => <-; rewrite gK.
+  by split; rewrite // -f1 fK.
 have ltH'H: H^`(1) \proper H := sol_der1_proper solG0 (subsetT H) ntH.
 right with (im H^`(1)%G); first exact: IHm (leq_trans (proper_card _) leHm).
 have /andP[/subsetP sH'H /subsetP nH'H]: H^`(1) <| H := der_normal 1 H.
