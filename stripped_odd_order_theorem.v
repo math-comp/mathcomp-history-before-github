@@ -8,7 +8,7 @@ Require PFsection14.
 (* Order theorem, using only the bare Coq logic, and avoiding any use of      *)
 (* extra-logical features such as notation, coercion or implicit arguments.   *)
 (* This stripped theorem would hardly be usable, however; it just provides    *)
-(* evidence for the skeptics.                                                 *)
+(* evidence for the sceptics.                                                 *)
 (******************************************************************************)
 
 (* Equivalence and equality *)
