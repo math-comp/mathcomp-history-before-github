@@ -415,8 +415,8 @@ by exact: joing_subr.
 Qed.
 
 (* This is Peterfalvi (11.7). *)
-(* We revert to the proof of the original Odd Order paper, using    *)
-(* the fact that H / Q is extra special in the typeP_Galois case.   *)
+(* We revert to the proof of the original Odd Order paper, using the fact     *)
+(* that H / Q is extra special in the typeP_Galois case.                      *)
 Lemma FTtype34_Fcore_kernel_trivial :
   [/\ p.-abelem H, #|H| = (p ^ q)%N & `H0 = 1%g].
 Proof.
@@ -1318,39 +1318,23 @@ have oXeta : {in S_ HC, forall z,
   have aijE i j : a_ (eta_ i j) = '[X, eta_ i j].
     by rewrite Da tau_XDchi cfdotDl ochi_eta addr0.
   have cfAut_a r i j : a_ (cfAut r (eta_ i j)) = a_ (eta_ i j).
-    pose Sz := undup [:: z; z^*%CF; cfAut r z; (cfAut r z)^*%CF].
-    have cfC_Sz :  cfConjC_subset Sz (S_ 1).
-      rewrite /cfConjC_subset; split=> //; first by rewrite undup_uniq.
-         move=> phi /=; rewrite mem_undup; move: phi; apply/allP=> /=.
-         have S1z : z \in S_ 1.
-           by apply: (seqIndS (Iirr_kerDS _ (sub1G _) _) SHCz).
-         by rewrite  S1z !cfAut_seqInd ?S1z.
-      rewrite /conjC_closed => phi; rewrite !mem_undup /=; move: phi.
-      by apply/allP; rewrite /= !cfConjCK !inE !eqxx !orbT.
-    have sub_co_CSz := subset_subcoherent subc_M cfC_Sz.
-    have [tau2 Etau2] : coherent Sz M^# tau.
-      apply: uniform_degree_coherence sub_co_CSz _.
-      apply: (@all_pred1_constant _ (z 1%g)).
-      apply/allP=> _ /mapP[phi calSphi ->].
-      move: calSphi; rewrite mem_undup !inE.
-      by case/or4P=> /eqP->; rewrite // !cfunE irr1_degree ?rmorph_nat.
-    rewrite -{2}(group_inj defMs) in cfC_Sz.
-    have otau2 := coherent_ortho_cycTIiso MtypeP cfC_Sz Etau2.
-      have <- : '[cfAut r (tau psi), cfAut r (eta_ i j)] =  a_ (eta_ i j).
-        have /dirrP[i1 [b i1E]] := cycTIiso_dirr ctiWG i j.
-        rewrite i1E linearZ cfdotZr cfdot_aut_irr.
-        have -> : (r ((-1) ^+ i1))^* = r ((-1) ^+ i1)^* by rewrite !rmorph_sign.
-        rewrite -rmorphM -cfdotZr -i1E -Da.
-        by have /CintP[m->] := aijCint i j; rewrite rmorph_int.
-      rewrite aPsi cfdotDl cfAut_cycTIiso -cycTIirr_aut.
-      rewrite tau_XDchi cfdotDl ochi_eta addr0 -aijE.
-     have -> : tau (z - cfAut r z) = tau2 z - tau2 (cfAut r z).
-       have[_ <-] := Etau2; first by rewrite raddfB.
-       rewrite zcharD1 ?rpredB ?zchar_onG ?mem_zchar ?mem_undup ?inE ?eqxx //.
-         by rewrite !cfunE irr1_degree ?rmorph_nat subrr eqxx.
-       by rewrite !orbT.
-     by rewrite cfdotBl !otau2 ?subrr ?addr0 ?cfAut_irr ?mem_irr // 
-                mem_undup !inE eqxx ?orbT.
+    have S1z: z \in S_ 1 by rewrite (seqIndS _ SHCz) ?Iirr_kerDS ?sub1G.
+    have S1rz: cfAut r z \in S_ 1 by rewrite cfAut_seqInd.
+    have rz1: z 1%g == cfAut r z 1%g by rewrite cfAut_char1 ?(seqInd_char S1z).
+    have [S2 [S2z S2rz sS21] []] := pair_degree_coherence subc_M S1z S1rz rz1.
+    move=> tau2 cohS2; have [_ Dtau2] := cohS2.
+    rewrite -{2}(group_inj defMs) in sS21.
+    have otau2 := coherent_ortho_cycTIiso MtypeP sS21 cohS2.
+    transitivity '[cfAut r (tau psi), cfAut r (eta_ i j)]; last first.
+      rewrite -(aut_Cint r (aijCint i j)) Da.
+      have /dirrP[i1 [b ->]] := cycTIiso_dirr ctiWG i j.
+      by rewrite linearZ !cfdotZr rmorphM !rmorph_sign cfdot_aut_irr.
+    rewrite aPsi cfdotDl cfAut_cycTIiso -cycTIirr_aut.
+    rewrite tau_XDchi cfdotDl ochi_eta addr0 -aijE.
+    have ->: tau (z - cfAut r z) = tau2 z - tau2 (cfAut r z).
+      rewrite -Dtau2 ?raddfB // zcharD1E 2!cfunE subr_eq0 rz1 andbT.
+      by rewrite rpredB ?mem_zchar.
+    by rewrite cfdotBl !otau2 ?subrr ?addr0 // ?cfAut_irr ?mem_irr.
   have nz_1i : #1 != 0 :> Iirr W1 by rewrite Iirr1_neq0.
   have nz_1j : #1 != 0 :> Iirr W2 by rewrite Iirr1_neq0.
   have aiE i (nz_i : i != 0) : a_ (eta_ i 0) = a_ (eta_ #1 0).

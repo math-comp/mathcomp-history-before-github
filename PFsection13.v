@@ -413,7 +413,7 @@ have [/eqfunP mu'zeta|] := boolP [forall j, '['Ind 'chi_t, chi_ j] == 0].
   rewrite mem_zchar // mem_filter irr_zeta mem_seqInd ?gFnormal ?normal1 //=.
   by rewrite !inE sub1G andbT -(sub_cfker_constt_Ind_irr tPUs).
 rewrite negb_forall => /existsP/sigW[j].
-rewrite -irr_consttE constt_Ind_constt_Res => jHt.
+rewrite -irr_consttE constt_Ind_Res => jHt.
 have nz_j: j != 0; last do [left; exists j => //].
   apply: contraTneq jHt => ->; rewrite prTIres0 rmorph1 -irr0 constt_irr.
   by apply: contraNneq kerP't => ->; rewrite irr0 cfker_cfun1.
@@ -521,7 +521,7 @@ have Zalpha: alpha \in 'Z[irr H].
   rewrite [alpha]rmorph_sum big_seq rpred_sum // => zeta; rewrite mem_filter /=.
   case/andP=> S1'zeta Tzeta; rewrite linearZ /= -scalerA.
   rewrite rpredZ_Cint ?conj_Cint ?Za_ //; have [s _ ->] := seqIndP Tzeta.
-  rewrite induced_sum_rcosets -?cfclass_sum -?induced_prod_index //=.
+  rewrite cfResInd_sum_cfclass ?reindex_cfclass -?cfnorm_Ind_irr //=.
   rewrite scalerK ?cfnorm_eq0 ?cfInd_eq0 ?irr_neq0 ?irr_char ?gFsub //.
   by apply: rpred_sum => i _; apply: irr_vchar.
 have{Da_ Za_} Za: a \in Cint by rewrite -[a]Da_ ?Za_ ?sS1H. 

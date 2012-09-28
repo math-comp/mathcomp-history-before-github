@@ -631,6 +631,18 @@ Proof. by apply/vspaceP=> phi; rewrite cfun_onG memvf. Qed.
 Lemma cfun_onS A B phi : B \subset A -> phi \in 'CF(G, B) -> phi \in 'CF(G, A).
 Proof. by rewrite !cfun_onE => sBA /subset_trans->. Qed.
 
+Lemma cfun_complement A :
+  A <| G -> ('CF(G, A) + 'CF(G, G :\: A)%SET = 'CF(G))%VS.
+Proof.
+case/andP=> sAG nAG; rewrite -cfunGid [rhs in _ = rhs]cfun_on_sum.
+rewrite (bigID (fun B => B \subset A)) /=.
+congr (_ + _)%VS; rewrite cfun_on_sum; apply: eq_bigl => /= xG.
+  rewrite andbAC; apply/esym/andb_idr=> /andP[/imsetP[x Gx ->] _].
+  by rewrite class_subG.
+rewrite -andbA; apply: andb_id2l => /imsetP[x Gx ->].
+by rewrite !class_sub_norm ?normsD ?normG // inE andbC.
+Qed.
+
 Lemma cfConjCE phi x : (phi^*)%CF x = (phi x)^*.
 Proof. by rewrite cfunE. Qed.
 
@@ -771,6 +783,13 @@ Lemma cfdotEr A phi psi :
      psi \in 'CF(G, A) ->
   '[phi, psi] = #|G|%:R^-1 * \sum_(x in A) phi x * (psi x)^*.
 Proof. by move=> Apsi; rewrite (cfdotElr (cfun_onT phi) Apsi) setTI. Qed.
+
+Lemma cfdot_complement A phi psi :
+  phi \in 'CF(G, A) -> psi \in 'CF(G, G :\: A) -> '[phi, psi] = 0.
+Proof.
+move=> Aphi A'psi; rewrite (cfdotElr Aphi A'psi).
+by rewrite setDE setICA setICr setI0 big_set0 mulr0.
+Qed.
 
 Lemma cfnormE A phi :
   phi \in 'CF(G, A) -> '[phi] = #|G|%:R^-1 * (\sum_(x in A) `|phi x| ^+ 2).
@@ -1378,6 +1397,13 @@ Qed.
 
 Lemma eq_cfker_Res phi : H \subset cfker phi -> cfker ('Res[H, G] phi) = H.
 Proof. by move=> kH; apply/eqP; rewrite eqEsubset cfker_sub sub_cfker_Res. Qed.
+
+Lemma cfRes_sub_ker phi : H \subset cfker phi -> 'Res[H, G] phi = (phi 1%g)%:A.
+Proof.
+move=> kerHphi; have sHG := subset_trans kerHphi (cfker_sub phi).
+apply/cfun_inP=> x Hx; have ker_x := subsetP kerHphi x Hx.
+by rewrite cfResE // cfunE cfun1E Hx mulr1 cfker1.
+Qed.
 
 Lemma cforder_Res phi : #['Res[H] phi]%CF %| #[phi]%CF.
 Proof. exact: cforder_rmorph. Qed.

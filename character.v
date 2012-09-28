@@ -243,9 +243,10 @@ End Tensor.
 Section StandardRepresentation.
 
 Variables (R : fieldType) (gT : finGroupType) (G : {group gT}).
+Local Notation reprG := (mx_representation R G).
 
 Record representation :=
-  Representation {rdegree; mx_repr_of_repr :> mx_representation R G rdegree}.
+  Representation {rdegree; mx_repr_of_repr :> reprG rdegree}.
 
 Lemma mx_repr0 : mx_repr G (fun _ : gT => 1%:M : 'M[R]_0).
 Proof. by split=> // g h Hg Hx; rewrite mulmx1. Qed.
@@ -264,7 +265,7 @@ Definition dadd_grepr rG1 rG2 :=
 
 Section DsumRepr.
 
-Variables (n : nat) (rG : mx_representation R G n).
+Variables (n : nat) (rG : reprG n).
 
 Lemma mx_rsim_dadd  (U V W : 'M_n) (rU rV : representation)
     (modU : mxmodule rG U) (modV : mxmodule rG V) (modW : mxmodule rG W) :
@@ -357,8 +358,7 @@ End DsumRepr.
 
 Section ProdRepr.
 
-Variable (m n : nat) (rG1 : mx_representation R G m)
-                     (rG2 : mx_representation R G n).
+Variables (n1 n2 : nat) (rG1 : reprG n1) (rG2 : reprG n2).
 
 Lemma prod_mx_repr : mx_repr G (fun g => tprod (rG1 g) (rG2 g)).
 Proof.
@@ -369,6 +369,16 @@ Qed.
 Definition prod_repr := MxRepresentation prod_mx_repr.
 
 End ProdRepr.
+
+Lemma prod_repr_lin n2 (rG1 : reprG 1) (rG2 : reprG n2) :
+  {in G, forall x, let cast_n2 := esym (mul1n n2) in
+      prod_repr rG1 rG2 x = castmx (cast_n2, cast_n2) (rG1 x 0 0 *: rG2 x)}.
+Proof.
+move=> x Gx cast_n2; rewrite /prod_repr /= !mxE !lshift0.
+apply/matrixP=> i j; rewrite castmxE /=.
+do 2![rewrite mxE; case: splitP => [? ? | []//]].
+by congr ((_ *: rG2 x) _ _); apply: val_inj.
+Qed.
 
 End StandardRepresentation.
 
@@ -883,18 +893,23 @@ rewrite cfRepr_dsum; apply: eq_bigr => i _.
 by rewrite cfRepr_muln irrRepr scaler_nat.
 Qed.
 
-Lemma cfRepr_char n (rG : mx_representation algCF G n) :
-  cfRepr rG \is a character.
+Local Notation reprG := (mx_representation algCF G).
+
+Lemma cfRepr_char n (rG : reprG n) : cfRepr rG \is a character.
 Proof. by apply/char_reprP; exists (Representation rG). Qed.
 
 Lemma cfReg_char : cfReg G \is a character.
 Proof. by rewrite -cfReprReg cfRepr_char. Qed.
 
+Lemma cfRepr_prod n1 n2 (rG1 : reprG n1) (rG2 : reprG n2) :
+  cfRepr rG1 * cfRepr rG2 = cfRepr (prod_repr rG1 rG2).
+Proof. by apply/cfun_inP=> x Gx; rewrite !cfunE /= Gx mxtrace_prod. Qed.
+
 Lemma mul_char : mulr_closed (@character G).
 Proof.
 split=> [|_ _ /char_reprP[rG1 ->] /char_reprP[rG2 ->]]; first exact: cfun1_char.
 apply/char_reprP; exists (Representation (prod_repr rG1 rG2)).
-by apply/cfun_inP=> x Gx; rewrite !cfunE /= Gx mxtrace_prod.
+by rewrite cfRepr_prod.
 Qed.
 Canonical char_mulrPred := MulrPred mul_char.
 Canonical char_semiringPred := SemiringPred mul_char.
@@ -908,17 +923,34 @@ Section AutChar.
 Variables (gT : finGroupType) (G : {group gT}).
 Implicit Type u : {rmorphism algC -> algC}.
 
+Lemma cfRepr_map u n (rG : mx_representation algCF G n) :
+  cfRepr (map_repr u rG) = cfAut u (cfRepr rG).
+Proof. by apply/cfun_inP=> x Gx; rewrite !cfunE Gx map_reprE trace_map_mx. Qed.
+
 Lemma cfAut_char u (chi : 'CF(G)) :
   chi \is a character -> cfAut u chi \is a character.
 Proof.
 case/char_reprP=> rG ->; apply/char_reprP.
-exists (Representation (map_repr u rG)).
-by apply/cfun_inP=> x Gx; rewrite !cfunE Gx map_reprE trace_map_mx.
+by exists (Representation (map_repr u rG)); rewrite cfRepr_map.
 Qed.
 
 Lemma cfConjC_char (chi : 'CF(G)) :
   chi \is a character -> chi^*%CF \is a character.
 Proof. exact: cfAut_char. Qed.
+
+Lemma cfAut_char1 u (chi : 'CF(G)) :
+  chi \is a character -> cfAut u chi 1%g = chi 1%g.
+Proof. by move/Cnat_char1=> Nchi1; rewrite cfunE aut_Cnat. Qed.
+
+Lemma cfAut_irr1 u i : (cfAut u 'chi[G]_i) 1%g = 'chi_i 1%g.
+Proof. exact: cfAut_char1 (irr_char i). Qed.
+
+Lemma cfConjC_char1 (chi : 'CF(G)) :
+  chi \is a character -> chi^*%CF 1%g = chi 1%g.
+Proof. exact: cfAut_char1. Qed.
+
+Lemma cfConjC_irr1 u i : ('chi[G]_i)^*%CF 1%g = 'chi_i 1%g.
+Proof. exact: cfAut_irr1. Qed.
 
 End AutChar.
 
@@ -1022,13 +1054,6 @@ move=> fful_phi x y Gx Gy xi_xy; apply/eqP; rewrite eq_mulgV1 -in_set1.
 rewrite (subsetP fful_phi) // inE groupM ?groupV //=; apply/forallP=> z.
 have [Gz | G'z] := boolP (z \in G); last by rewrite !cfun0 ?groupMl ?groupV.
 by rewrite -mulgA lin_charM ?xi_xy -?lin_charM ?groupM ?groupV // mulKVg.
-Qed.
-
-Lemma cforder_lin_dvdG : #[xi]%CF %| #|G|.
-Proof.
-rewrite dvdn_cforder; apply/eqP/cfun_inP=> x Gx.
-rewrite cfun1E Gx exp_cfunE // -lin_charX // -lin_char1.
-by congr (xi _); apply/eqP; rewrite -order_dvdn order_dvdG.
 Qed.
 
 End OneChar.
@@ -1145,13 +1170,19 @@ Section Morphim.
 Variables (aT rT : finGroupType) (G D : {group aT}) (f : {morphism D >-> rT}).
 Implicit Type chi : 'CF(f @* G).
 
+Lemma cfRepr_morphim n (rfG : mx_representation algCF (f @* G) n) sGD :
+  cfRepr (morphim_repr rfG sGD) = cfMorph (cfRepr rfG).
+Proof.
+apply/cfun_inP=> x Gx; have Dx: x \in D := subsetP sGD x Gx.
+by rewrite cfMorphE // !cfunE ?mem_morphim ?Gx.
+Qed.
+
 Lemma cfMorph_char chi : chi \is a character -> cfMorph chi \is a character.
 Proof.
-have [dG /char_reprP[rG ->] | not_dG Nchi] := boolP (G \subset D); last first.
+have [sGD /char_reprP[rG ->] | outGD Nchi] := boolP (G \subset D); last first.
   by rewrite cfMorphEout // rpredZ_Cnat ?rpred1 ?Cnat_char1.
-apply/char_reprP; exists (Representation (morphim_repr rG dG)).
-apply/cfun_inP=> x Gx; have Dx: x \in D := subsetP dG x Gx.
-by rewrite cfMorphE // !cfunE ?mem_morphim ?Gx //.
+apply/char_reprP; exists (Representation (morphim_repr rG sGD)).
+by rewrite cfRepr_morphim.
 Qed.
 
 Lemma cfMorph_lin_char chi :
@@ -1540,6 +1571,15 @@ Proof. by rewrite irrEchar => /andP[]. Qed.
 
 Lemma irrWnorm chi : chi \in irr G -> '[chi] = 1.
 Proof. by rewrite irrEchar => /andP[_ /eqP]. Qed.
+
+Lemma mul_lin_irr xi chi :
+  xi \is a linear_char -> chi \in irr G -> xi * chi \in irr G.
+Proof.
+move=> Lxi; rewrite !irrEchar => /andP[Nphi /eqP <-].
+rewrite rpredM // ?lin_charW //=; apply/eqP; congr (_ * _).
+apply: eq_bigr => x Gx; rewrite !cfunE rmorphM mulrACA -(lin_charV_conj Lxi) //.
+by rewrite -lin_charM ?groupV // mulgV lin_char1 ?mul1r.
+Qed.
 
 Lemma eq_scaled_irr a b i j :
   (a *: 'chi[G]_i == b *: 'chi_j) = (a == b) && ((a == 0) || (i == j)).
@@ -2049,6 +2089,17 @@ move=> {chi} _ /constt_charP[// | chi Nchi ->].
 by rewrite cfunE addrC -subr_ge0 addrK char1_ge0.
 Qed.
 
+Lemma constt_ortho_char (phi psi : 'CF(G)) i j : 
+     phi \is a character -> psi \is a character ->
+     i \in irr_constt phi -> j \in irr_constt psi ->
+  '[phi, psi] = 0 -> '['chi_i, 'chi_j] = 0.
+Proof.
+move=> _ _ /constt_charP[//|phi1 Nphi1 ->] /constt_charP[//|psi1 Npsi1 ->].
+rewrite cfdot_irr; case: eqP => // -> /eqP/idPn[].
+rewrite cfdotDl !cfdotDr cfnorm_irr -addrA gtr_eqF ?ltr_paddr ?ltr01 //.
+by rewrite Cnat_ge0 ?rpredD ?Cnat_cfdot_char ?irr_char.
+Qed.
+
 End IrrConstt.
 
 Arguments Scope irr_constt [_ group_scope cfun_scope].
@@ -2058,7 +2109,7 @@ Section MoreConstt.
 
 Variables (gT : finGroupType) (G H : {group gT}).
 
-Lemma constt_Ind_constt_Res i j :
+Lemma constt_Ind_Res i j :
   i \in irr_constt ('Ind[G] 'chi_j) =  (j \in irr_constt ('Res[H] 'chi_i)).
 Proof. by rewrite !irr_consttE cfdotC conjC_eq0 -cfdot_Res_l. Qed.
 
@@ -2458,7 +2509,7 @@ rewrite (derG1P (cyclic_abelian cycG)) indexg1 -/p in oL.
 have /fin_all_exists[h' h'K] := h_ontoL _ (irr_cyclic_lin _ cycG).
 have o_h' k: k != 0 -> #[h' k] = p.
   rewrite -cforder_irr_eq1 h'K -o_h => nt_h'k.
-  by apply/prime_nt_dvdP=> //; rewrite cforder_lin_dvdG.
+  by apply/prime_nt_dvdP=> //; rewrite cforder_lin_char_dvdG.
 have{oL} genL k: k != 0 -> generator [set: L] (h' k).
   move=> /o_h' o_h'k; rewrite /generator eq_sym eqEcard subsetT /=.
   by rewrite cardsT oL -o_h'k.
@@ -2572,10 +2623,67 @@ Definition cfDet_order_lin xi :
   xi \is a linear_char -> cfDet_order xi = #[xi]%CF.
 Proof. by rewrite /cfDet_order => /cfDet_id->. Qed.
 
+Definition cfDet_order_dvdG phi : cfDet_order phi %| #|G|.
+Proof. by rewrite cforder_lin_char_dvdG ?cfDet_lin_char. Qed.
+
 End DetOrder.
 
 Notation "''o' ( phi )" := (cfDet_order phi)
   (at level 8, format "''o' ( phi )") : cfun_scope.
+
+Section CfDetOps.
+
+Implicit Types gT aT rT : finGroupType.
+
+Lemma cfDetRes gT (G H : {group gT}) phi :
+  phi \is a character -> cfDet ('Res[H, G] phi) = 'Res (cfDet phi).
+Proof.
+move=> Nphi; have [sGH | not_sHG] := boolP (H \subset G); last first.
+  have /CnatP[n Dphi1] := Cnat_char1 Nphi.
+  rewrite !cfResEout // Dphi1 lin_char1 ?cfDet_lin_char // scale1r.
+  by rewrite scaler_nat cfDetMn ?cfDet_id ?rpred1 // expr1n.
+have [rG ->] := char_reprP Nphi; rewrite !(=^~ cfRepr_sub, cfDetRepr) //.
+apply: cfRepr_sim; exists 1%:M; rewrite ?row_free_unit ?unitmx1 // => x Hx.
+by rewrite mulmx1 mul1mx.
+Qed.
+
+Lemma cfDetMorph aT rT (D G : {group aT}) (f : {morphism D >-> rT})
+                (phi : 'CF(f @* G)) :
+  phi \is a character -> cfDet (cfMorph phi) = cfMorph (cfDet phi).
+Proof.
+move=> Nphi; have [sGD | not_sGD] := boolP (G \subset D); last first.
+  have /CnatP[n Dphi1] := Cnat_char1 Nphi.
+  rewrite !cfMorphEout // Dphi1 lin_char1 ?cfDet_lin_char // scale1r.
+  by rewrite scaler_nat cfDetMn ?cfDet_id ?rpred1 // expr1n.
+have [rG ->] := char_reprP Nphi; rewrite !(=^~ cfRepr_morphim, cfDetRepr) //.
+apply: cfRepr_sim; exists 1%:M; rewrite ?row_free_unit ?unitmx1 // => x Hx.
+by rewrite mulmx1 mul1mx.
+Qed.
+
+Lemma cfDetIsom aT rT (G : {group aT}) (R : {group rT})
+                (f : {morphism G >-> rT}) (isoGR : isom G R f) phi :
+  cfDet (cfIsom isoGR phi) = cfIsom isoGR (cfDet phi).
+Proof.
+rewrite rmorph_prod /cfDet (reindex (isom_Iirr isoGR)); last first.
+  by exists (isom_Iirr (isom_sym isoGR)) => i; rewrite ?isom_IirrK ?isom_IirrKV.
+apply: eq_bigr => i; rewrite -!cfDetRepr !irrRepr isom_IirrE rmorphX cfIsom_iso.
+by rewrite /= ![in cfIsom _]unlock cfDetMorph ?cfRes_char ?cfDetRes ?irr_char.
+Qed.
+
+Lemma cfDet_mul_lin gT (G : {group gT}) (lambda phi : 'CF(G)) :
+    lambda \is a linear_char -> phi \is a character ->
+  cfDet (lambda * phi) = lambda ^+ truncC (phi 1%g) * cfDet phi.
+Proof.
+case/andP=> /char_reprP[[n1 rG1] ->] /= n1_1 /char_reprP[[n2 rG2] ->] /=.
+do [rewrite !cfRepr1 pnatr_eq1 natCK; move/eqP] in n1_1 *.
+rewrite {n1}n1_1 in rG1 *; rewrite cfRepr_prod cfDetRepr.
+apply/cfun_inP=> x Gx; rewrite !cfunE cfDetRepr cfunE Gx !mulrb !trace_mx11.
+rewrite !mxE prod_repr_lin ?mulrb //=; case: _ / (esym _); rewrite detZ.
+congr (_ * _); case: {rG2}n2 => [|n2]; first by rewrite cfun1E Gx.
+by rewrite expS_cfunE //= cfunE Gx trace_mx11.
+Qed.
+
+End CfDetOps.
 
 Definition cfcenter (gT : finGroupType) (G : {set gT}) (phi : 'CF(G)) := 
   if phi \is a character then [set g in G | `|phi g| == phi 1%g] else cfker phi.

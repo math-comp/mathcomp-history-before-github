@@ -2,10 +2,14 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg finset fingroup morphism.
 Require Import perm automorphism quotient action zmodp center commutator.
-Require Import poly cyclic matrix mxalgebra mxrepresentation.
+Require Import poly cyclic pgroup nilpotent matrix mxalgebra mxrepresentation.
 Require Import vector falgebra fieldext ssrnum algC rat algnum galois.
 Require Import classfun character inertia integral_char vcharacter.
 Require ssrint.
+
+(******************************************************************************)
+(* This file covers Peterfalvi, Section 1: Preliminary results.               *)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -13,10 +17,6 @@ Unset Printing Implicit Defensive.
 
 Import GroupScope GRing.Theory Num.Theory.
 Local Open Scope ring_scope.
-
-(**************************************************************************)
-(* This file contains the proof of Section1 of Peterfalvi's book          *)
-(**************************************************************************)
 
 Local Notation algCF := [fieldType of algC].
 
@@ -134,26 +134,7 @@ apply/eqP; have: `|'chi_t g| ^+ 2 == 0.
 by rewrite mulf_eq0 orbb normr_eq0.
 Qed.
 
-Lemma cfdot_complement (A : {set gT}) u v :
-  u \in 'CF(H, A) -> v \in 'CF(H, H :\: A) -> '[u, v] = 0.
-Proof.
-move=> CFu CFv; rewrite (cfdotElr CFu CFv).
-by rewrite setDE setICA setICr setI0 big_set0 mulr0.
-Qed.
-
-Lemma memc_class_compl A :
-  A <| H -> ('CF(H, A) + 'CF(H, H :\: A)%SET = 'CF(H))%VS.
-Proof.
-case/andP=> AsH nAH; rewrite -cfunGid [X in _ = X]cfun_on_sum.
-rewrite (bigID (fun xG : {set gT} => xG \subset A)) /=.
-congr (_ + _)%VS; rewrite cfun_on_sum; apply: eq_bigl => /= xG.
-  rewrite andbAC; apply/esym/andb_idr=> /andP[/imsetP[x Gx ->] _].
-  by rewrite class_subG.
-rewrite -andbA; apply: andb_id2l => /imsetP[x Gx ->].
-by rewrite !class_sub_norm ?normsD ?normG // inE andbC.
-Qed.
-
-(* This is Peterfalvi (1.3a). *)
+(* This is Peterfalvi (1.3)(a). *)
 Lemma equiv_restrict_compl A m (Phi : m.-tuple 'CF(H)) (mu : 'CF(G)) d :
     H \subset G -> A <| H -> basis_of 'CF(H, A) Phi ->
   ({in A, mu =1 \sum_i d i *: 'chi_i} <-> 
@@ -181,7 +162,7 @@ split=> [HH j | HH].
 have{F0} F1 (j : 'I_m) : '[Phi`_j, D]_H = 0.
   by have/eqP := HH j; rewrite F0 => /eqP.
 have: (D \in 'CF(H))%VS by rewrite memvf.
-rewrite -(memc_class_compl nsAH) => /memv_addP[f Cf [g Cg defD]].
+rewrite -(cfun_complement nsAH) => /memv_addP[f Cf [g Cg defD]].
 have: '[f, f + g] = 0.
   rewrite -defD (coord_basis BPhi Cf) cfdot_suml.
   by rewrite big1 // => i _; rewrite cfdotZl F1 mulr0.
@@ -189,7 +170,7 @@ rewrite raddfD /= {1}(cfdot_complement Cf Cg) addr0 => /eqP.
 by rewrite cfnorm_eq0 defD => /eqP->; rewrite add0r.
 Qed.
 
-(* This is Peterfalvi (1.3b). *)
+(* This is Peterfalvi (1.3)(b). *)
 Lemma equiv_restrict_compl_ortho A m  (Phi : m.-tuple 'CF(H)) mu_ :
     H \subset G -> A <| H -> basis_of 'CF(H, A) Phi -> 
      (forall i j, '[mu_ i, mu_ j] = (i == j)%:R) ->
@@ -324,15 +305,15 @@ rewrite -(tnth_nth 0 _ 0) tnth_map tnth_ord_tuple.
 by case: (muP 0) => /= k /(k =P k0).
 Qed.
 
-(* This is Peterfalvi (1.5a). *)
-Lemma induced_sum_rcosets t : H <| G ->
+(* This is Peterfalvi (1.5)(a). *)
+Lemma cfResInd_sum_cfclass t : H <| G ->
   'Res[H] ('Ind[G] 'chi_t)
      = #|'I_G['chi_t] : H|%:R *: \sum_(xi <- ('chi_t ^: G)%CF) xi.
 Proof.
 set T := 'I_G['chi_t] => nsHG; have [sHG nHG] := andP nsHG.
 apply/cfun_inP=> h Hh; rewrite cfResE ?cfIndE // cfunE sum_cfunE.
 apply: (canLR (mulKf (neq0CG H))).
-rewrite mulrA -natrM Lagrange ?sub_Inertia //= -/T -cfclass_sum //=.
+rewrite mulrA -natrM Lagrange ?sub_Inertia //= -/T reindex_cfclass //=.
 rewrite mulr_sumr [s in _ = s]big_mkcond /= (reindex_inj invg_inj).
 rewrite (partition_big (conjg_Iirr t) xpredT) //=; apply: eq_bigr => i _.
 have [[y Gy chi_i] | not_i_t] := cfclassP _ _ _; last first.
@@ -346,50 +327,50 @@ rewrite groupV => /andP[Gz /eqP <-].
 by rewrite conjg_IirrE cfConjgE ?(subsetP nHG).
 Qed.
 
-(* This is Peterfalvi (1.5b), main formula. *)
-Lemma induced_prod_index t :
+(* This is Peterfalvi (1.5)(b), main formula. *)
+Lemma cfnorm_Ind_irr t :
   H <| G -> '['Ind[G] 'chi[H]_t] = #|'I_G['chi_t] : H|%:R.
 Proof.
 set r := _%:R => HnG; have HsG := normal_sub HnG.
-rewrite -Frobenius_reciprocity induced_sum_rcosets //= cfdotZr rmorph_nat -/r.
-rewrite -cfclass_sum // cfdot_sumr (bigD1 t) ?cfclass_refl //= cfdot_irr eqxx.
+rewrite -Frobenius_reciprocity cfResInd_sum_cfclass //= cfdotZr rmorph_nat -/r.
+rewrite reindex_cfclass // cfdot_sumr (bigD1 t) ?cfclass_refl //= cfnorm_irr.
 rewrite big1 ?addr0 ?mulr1 // => j /andP[_ /negbTE].
 by rewrite eq_sym cfdot_irr => ->.
 Qed.
 
-(* This is Peterfalvi (1.5b), irreducibility remark. *)
+(* This is Peterfalvi (1.5)(b), irreducibility remark. *)
 Lemma inertia_Ind_irr t :
   H <| G -> 'I_G['chi[H]_t] \subset H -> 'Ind[G] 'chi_t \in irr G.
 Proof.
 rewrite -indexg_eq1 => nsHG /eqP r1.
-by rewrite irrEchar cfInd_char ?irr_char //= induced_prod_index ?r1.
+by rewrite irrEchar cfInd_char ?irr_char //= cfnorm_Ind_irr ?r1.
 Qed.
 
-(* This is Peterfalvi (1.5c). *)
-Lemma cfclass_irr_induced t1 t2 : H <| G ->
+(* This is Peterfalvi (1.5)(c). *)
+Lemma cfclass_Ind_cases t1 t2 : H <| G ->
    if 'chi_t2 \in ('chi[H]_t1 ^: G)%CF
    then 'Ind[G] 'chi_t1 = 'Ind[G] 'chi_t2 
    else '['Ind[G] 'chi_t1, 'Ind[G] 'chi_t2] = 0.
 Proof.
 move=> nsHG; have [/cfclass_Ind-> // | not_ch1Gt2] := ifPn.
-rewrite -Frobenius_reciprocity induced_sum_rcosets // cfdotZr rmorph_nat.
-rewrite cfdot_sumr -cfclass_sum // big1 ?mulr0 // => j; rewrite cfdot_irr.
+rewrite -Frobenius_reciprocity cfResInd_sum_cfclass // cfdotZr rmorph_nat.
+rewrite cfdot_sumr reindex_cfclass // big1 ?mulr0 // => j; rewrite cfdot_irr.
 case: eqP => // <- /idPn[]; apply: contra not_ch1Gt2 => /cfclassP[y Gy ->].
 by apply/cfclassP; exists y^-1%g; rewrite ?groupV ?cfConjgK.
 Qed.
 
-(* Useful consequences of (1.5c) *)
+(* Useful consequences of (1.5)(c) *)
 Lemma not_cfclass_Ind_ortho i j :
     H <| G -> ('chi_i \notin 'chi_j ^: G)%CF ->
   '['Ind[G, H] 'chi_i, 'Ind[G, H] 'chi_j] = 0. 
-Proof. by move/(cfclass_irr_induced i j); rewrite cfclass_sym; case: ifP. Qed.
+Proof. by move/(cfclass_Ind_cases i j); rewrite cfclass_sym; case: ifP. Qed.
 
 Lemma cfclass_Ind_irrP i j :
     H <| G ->
   reflect ('Ind[G, H] 'chi_i = 'Ind[G, H] 'chi_j) ('chi_i \in 'chi_j ^: G)%CF.
 Proof.
 move=> nsHG; have [sHG _] := andP nsHG.
-case: ifP (cfclass_irr_induced j i nsHG) => [|_ Oji]; first by left.
+case: ifP (cfclass_Ind_cases j i nsHG) => [|_ Oji]; first by left.
 right=> eq_chijG; have /negP[]: 'Ind[G] 'chi_i != 0 by exact: Ind_irr_neq0.
 by rewrite -cfnorm_eq0 {1}eq_chijG Oji.
 Qed.
@@ -402,7 +383,7 @@ Proof.
 move=> nsHG irrIndX sXGX; have [sHG _] := andP nsHG; set f := fun i => cfIirr _.
 rewrite -sum1_card (partition_big_imset f) /= mulnC -sum_nat_const.
 apply: eq_bigr => _ /imsetP[i Xi ->]; transitivity (size (cfclass 'chi_i G)).
-  rewrite -sum1_size -cfclass_sum //; apply: eq_bigl => j.
+  rewrite -sum1_size reindex_cfclass //; apply: eq_bigl => j.
   case Xj: (j \in calX).
     rewrite -(inj_eq irr_inj) !(cfIirrPE irrIndX) //.
     exact/eqP/cfclass_Ind_irrP.
@@ -410,29 +391,29 @@ apply: eq_bigr => _ /imsetP[i Xi ->]; transitivity (size (cfclass 'chi_i G)).
   by rewrite -conjg_IirrE in Dj; rewrite (irr_inj Dj) sXGX.
 rewrite -(Lagrange_index (Inertia_sub G 'chi_i)) ?sub_Inertia //.
 rewrite -size_cfclass ((#|_ : _| =P 1)%N _) ?muln1 // -eqC_nat.
-by rewrite -induced_prod_index // -(cfIirrPE irrIndX) ?cfnorm_irr.
+by rewrite -cfnorm_Ind_irr // -(cfIirrPE irrIndX) ?cfnorm_irr.
 Qed.
 
-(* This is Peterfalvi (1.5d). *)
-Lemma induced_sum_rcosets1 t : H <| G ->
+(* This is Peterfalvi (1.5)(d). *)
+Lemma scaled_cfResInd_sum_cfclass t : H <| G ->
   let chiG := 'Ind[G] 'chi_t in
   (chiG 1%g / '[chiG]) *: 'Res[H] chiG
      = #|G : H|%:R *: (\sum_(xi <- ('chi_t ^: G)%CF) xi 1%g *: xi).
 Proof.
 move=> nsHG chiG; have [sHG _] := andP nsHG.
-rewrite induced_sum_rcosets // induced_prod_index // scalerA cfInd1 //.
-rewrite divfK ?pnatr_eq0 -?lt0n // -scalerA linear_sum -!cfclass_sum //=.
+rewrite cfResInd_sum_cfclass // cfnorm_Ind_irr // scalerA cfInd1 //.
+rewrite divfK ?pnatr_eq0 -?lt0n // -scalerA linear_sum !reindex_cfclass //=.
 congr (_ *: _); apply: eq_bigr => _ /cfclassP[y _ ->].
 by rewrite cfConjg1.
 Qed.
 
-(* This is Peterfalvi (1.5e). *)
+(* This is Peterfalvi (1.5)(e). *)
 Lemma odd_induced_orthogonal t :
      H <| G -> odd #|G| -> t != 0 ->
   '['Ind[G, H] 'chi_t, ('Ind[G] 'chi_t)^*] = 0. 
 Proof.
 move=> nsHG oddG nz_t; have [sHG _] := andP nsHG.
-have:= cfclass_irr_induced t (conjC_Iirr t) nsHG.
+have:= cfclass_Ind_cases t (conjC_Iirr t) nsHG.
 rewrite conjC_IirrE conj_cfInd; case: cfclassP => // [[g Gg id_cht]].
 have oddH: odd #|H| := pgroup.oddSg sHG oddG.
 case/eqP: nz_t; apply: irr_inj; rewrite irr0.
@@ -447,7 +428,7 @@ rewrite eq_mulVg1 expgS -expgM mul2n -mulgA mulKg -expgS -order_dvdn.
 by rewrite -add1n -[1%N](congr1 nat_of_bool oddG) odd_double_half order_dvdG.
 Qed.
 
-(* This is Peterfalvi (1.6a). *)
+(* This is Peterfalvi (1.6)(a). *)
 Lemma sub_cfker_Ind_irr A i :
     H \subset G -> G \subset 'N(A) ->
   (A \subset cfker ('Ind[G, H] 'chi_i)) = (A \subset cfker 'chi_i).
@@ -477,7 +458,7 @@ Lemma sub_cfker_constt_Res_irr (A : {set gT}) i j :
   (A \subset cfker 'chi_j) = (A \subset cfker 'chi_i).
 Proof.
 move=> iHj sAH sHG nAG; apply/idP/idP=> kerA.
-  have jGi: i \in irr_constt ('Ind 'chi_j) by rewrite constt_Ind_constt_Res.
+  have jGi: i \in irr_constt ('Ind 'chi_j) by rewrite constt_Ind_Res.
   rewrite (subset_trans _ (cfker_constt _ jGi)) ?cfInd_char ?irr_char //=.
   by rewrite sub_cfker_Ind_irr.
 rewrite (subset_trans _ (cfker_constt _ iHj)) ?cfRes_char ?irr_char //=.
@@ -488,7 +469,7 @@ Lemma sub_cfker_constt_Ind_irr (A : {set gT}) i j :
     i \in irr_constt ('Ind[G, H] 'chi_j) ->
     A \subset H -> H \subset G -> G \subset 'N(A) ->
   (A \subset cfker 'chi_j) = (A \subset cfker 'chi_i).
-Proof. by rewrite constt_Ind_constt_Res; apply: sub_cfker_constt_Res_irr. Qed.
+Proof. by rewrite constt_Ind_Res; apply: sub_cfker_constt_Res_irr. Qed.
 
 (* This is a stronger version of Peterfalvi (1.6)(b). *)
 Lemma cfIndMod (K : {group gT}) (phi : 'CF(H / K)) :
@@ -505,238 +486,114 @@ have nsKH := normalS sKH sHG nsKG.
 by apply: canRL (cfModK nsKG) _; rewrite -cfIndMod // cfQuoK.
 Qed.
 
-Section InducedFromInertia.
+Section IndSumInertia.
 
-Variable t : Iirr H.
+Variable s : Iirr H.
 
-Let theta := 'chi_t.
-Let T := 'I_G[theta]%G.
-Let psi := 'Ind[T] theta.
-Let chi := 'Ind[G] theta.
-Let calA := irr_constt psi.
+Let theta := 'chi_s.
+Let T := 'I_G[theta].
+Let calA := irr_constt ('Ind[T] theta).
+Let calB := irr_constt ('Ind[G] theta).
+Let AtoB (t : Iirr T) := Ind_Iirr G t.
+Let e_ t := '['Ind theta, 'chi[T]_t].
 
-Hypothesis HnG: H <| G.
+Hypothesis nsHG: H <| G.
+(* begin hide *)
 Let sHG : H \subset G. Proof. exact: normal_sub. Qed.
 Let nHG : G \subset 'N(H). Proof. exact: normal_norm. Qed.
 Let nsHT : H <| T. Proof. exact: normal_Inertia. Qed.
 Let sHT : H \subset T. Proof. exact: normal_sub. Qed.
 Let nHT : T \subset 'N(H). Proof. exact: normal_norm. Qed.
+Let sTG : T \subset G. Proof. exact: subsetIl. Qed.
+(* end hide *)
 
-Let Dchi: chi = 'Ind[G] psi.
-Proof. by rewrite cfIndInd ?Inertia_sub ?sub_Inertia. Qed.
-
-(* This is Peterfalvi (1.7a). *)
-Lemma induced_inertia_irr :
-  [/\ {in calA, forall i, 'Ind[G] 'chi_i \in irr G},
-      {in calA &, injective (fun i => 'Ind[G] 'chi_i)}
-    & chi = \sum_(i in calA) '[psi, 'chi_i] *: 'Ind 'chi_i].
+(* This is Peterfalvi (1.7)(a). *)
+Lemma cfInd_sum_Inertia :
+  [/\ {in calA, forall t, 'Ind 'chi_t \in irr G},
+      {in calA, forall t, 'chi_(AtoB t) = 'Ind 'chi_t},
+      {in calA &, injective AtoB},
+      AtoB @: calA =i calB
+    & 'Ind[G] theta = \sum_(t in calA) e_ t *: 'Ind 'chi_t].
 Proof.
-split=> [i Hi | i j Hi Hj |].
-- by apply: cfInd_constt_inertia_irr; rewrite -?constt_Ind_constt_Res.
-- by move/constt_inertia_inj->; rewrite // inE -constt_Ind_constt_Res.
-rewrite Dchi // {1}(cfun_sum_constt psi) !linear_sum.
+have [AtoBirr AtoBinj defB _ _] := constt_Inertia_bijection s nsHG.
+split=> // [i Ai|]; first exact/cfIirrE/AtoBirr.
+rewrite -(cfIndInd _ sTG sHT) {1}['Ind theta]cfun_sum_constt linear_sum.
 by apply: eq_bigr => i _; rewrite linearZ.
 Qed.
 
-Hypothesis QTHa : abelian (T / H)%G.
+Hypothesis abTbar : abelian (T / H).
 
-Lemma inertia_quo_cfReg:
-  cfMod (cfReg (T / H)%G) = \sum_(i | H \subset cfker 'chi_i) 'chi_i.
+(* This is Peterfalvi (1.7)(b). *)
+Lemma cfInd_central_Inertia :
+   exists2 e, [/\ e \in Cnat, e != 0 & {in calA, forall t, e_ t = e}]
+           & [/\ 'Ind[G] theta = e *: \sum_(j in calB) 'chi_j,
+                 #|calB|%:R = #|T : H|%:R / e ^+ 2
+               & {in calB, forall i, 'chi_i 1%g = #|G : T|%:R * e * theta 1%g}].
 Proof.
-rewrite cfReg_sum linear_sum (eq_bigr (fun  i => (cfMod 'chi_i)));first last.
-  move => i _ ; rewrite linearZ; move/char_abelianP: QTHa; move/(_ i).
-  by move/lin_char1 ->; rewrite /= scale1r.
-rewrite (reindex _ (mod_Iirr_bij nsHT)) /=.
-by apply/eq_big=> [i | i _]; rewrite mod_IirrE ?cfker_mod.
+have [t1 At1] := constt_cfInd_irr s sHT; pose psi1 := 'chi_t1.
+pose e := '['Ind theta, psi1].
+have NthT: 'Ind[T] theta \is a character by rewrite cfInd_char ?irr_char.
+have Ne: e \in Cnat by rewrite Cnat_cfdot_char_irr.
+have Dpsi1H: 'Res[H] psi1 = e *: theta.
+  have psi1Hs: s \in irr_constt ('Res psi1) by rewrite -constt_Ind_Res.
+  rewrite (Clifford_Res_sum_cfclass nsHT psi1Hs) cfclass_invariant ?subsetIr //.
+  by rewrite big_seq1 cfdot_Res_l cfdotC conj_Cnat.
+have linL j: 'chi[T / H]_j \is a linear_char by apply/char_abelianP.
+have linLH j: ('chi_j %% H)%CF \is a linear_char := cfMod_lin_char (linL j).
+pose LtoT (j : Iirr (T / H)) := mul_mod_Iirr t1 j.
+have LtoTE j: 'chi_(LtoT j) = ('chi_j %% H)%CF * psi1.
+  by rewrite !(mod_IirrE, cfIirrE) // mul_lin_irr ?mem_irr ?cfMod_lin_char.
+have psiHG: 'Ind ('Res[H] psi1) = \sum_j 'chi_(LtoT j).
+  transitivity ((cfReg (T / H) %% H)%CF * psi1); last first.
+    rewrite cfReg_sum linear_sum /= mulr_suml; apply: eq_bigr => i _.
+    by rewrite LtoTE // lin_char1 ?scale1r.
+  apply/cfun_inP=> x Tx; rewrite cfunE cfModE // cfRegE mulrnAl mulrb.
+  rewrite (sameP eqP (kerP _ (subsetP nHT x Tx))) ker_coset.
+  case: ifPn => [Hx | H'x]; last by rewrite (cfun_on0 (cfInd_normal _  _)).
+  rewrite card_quotient // -!(cfResE _ sHT) // cfRes_Ind_invariant ?cfunE //.
+  by rewrite -subsetIidl (subset_trans _ (sub_inertia_Res _ _)) ?sub_Inertia.
+have imLtoT: {subset calA <= codom LtoT}.
+  move=> t At; apply/codomP/exists_eqP.
+  have{At}: t \in irr_constt ('Ind ('Res[H] 'chi_t1)).
+    by rewrite Dpsi1H linearZ irr_consttE cfdotZl mulf_neq0.
+  apply: contraR; rewrite negb_exists => /forallP imL't.
+  by rewrite psiHG cfdot_suml big1 // => j _; rewrite cfdot_irr mulrb ifN_eqC.
+have De_ t: t \in calA -> e_ t = e.
+  case/imLtoT/codomP=> j ->; rewrite /e_ LtoTE /e -!cfdot_Res_r rmorphM /=.
+  by rewrite cfRes_sub_ker ?cfker_mod // mulr_algl lin_char1 ?scale1r.
+have{imLtoT} A_1 t: t \in calA -> 'chi_t 1%g = e * theta 1%g.
+  case/imLtoT/codomP=> j ->; rewrite LtoTE //= cfunE.
+  by rewrite (lin_char1 (linLH j)) mul1r -(cfRes1 H) Dpsi1H cfunE.
+exists e => //; have [_ defAtoB injAtoB imAtoB ->] := cfInd_sum_Inertia.
+rewrite -(eq_bigl _ _ imAtoB) -(eq_card imAtoB) big_imset //= scaler_sumr.
+split=> [||i]; first by apply: eq_bigr => t2 At2; rewrite De_ ?defAtoB.
+  apply: (mulIf (irr1_neq0 s)); rewrite mulrAC -cfInd1 // mulr_natl mulrC invfM.
+  rewrite ['Ind _]cfun_sum_constt sum_cfunE mulr_sumr card_in_imset //.
+  rewrite -sumr_const; apply: eq_bigr => t At.
+  by rewrite -mulrA -/(e_ t) De_ // cfunE A_1 ?mulKf.
+by rewrite -imAtoB => /imsetP[t At ->]; rewrite defAtoB ?cfInd1 ?A_1 ?mulrA.
 Qed.
 
-Lemma inertia_ker_1 (l : Iirr T) x :
-  H \subset cfker 'chi_l -> x \in H -> 'chi_l x = 1.
+(* This is Peterfalvi (1.7)(c). *)
+Lemma cfInd_Hall_central_Inertia :
+     Hall T H ->
+  [/\ 'Ind[G] theta = \sum_(i in calB) 'chi_i, #|calB| = #|T : H| 
+    & {in calB, forall i, 'chi_i 1%g = #|G : T|%:R * theta 1%g}].
 Proof.
-move=> kerH Hx; rewrite cfker1 ?(subsetP kerH) ?lin_char1 //.
-by rewrite lin_irr_der1 (subset_trans _ kerH) ?der1_min.
+case/andP=> _ hallH; have [e [_ _ De]] := cfInd_central_Inertia.
+suffices ->: e = 1.
+  by case=> -> /eqP; rewrite scale1r expr1n divr1 mulr1 eqC_nat => /eqP.
+suffices{De} [t Dtheta]: exists i, 'Res[H, T] 'chi_i = theta.
+  have e_t_1: e_ t = 1 by rewrite /e_ -cfdot_Res_r Dtheta cfnorm_irr.
+  by rewrite -(De t) // irr_consttE -/(e_ t) e_t_1 oner_eq0.
+have ITtheta: T \subset 'I[theta] := subsetIr _ _.
+have solT: solvable (T / H) := abelian_sol abTbar.
+have [|t []] := extend_solvable_coprime_irr nsHT solT ITtheta; last by exists t.
+rewrite coprime_sym coprime_mull !(coprime_dvdl _ hallH) ?cfDet_order_dvdG //.
+by rewrite -dvdC_nat !CdivE truncCK ?Cnat_irr1 // dvd_irr1_cardG.
 Qed.
-
-Lemma inertia_ker_sum x i1 :
-    i1 \in calA ->
-  \sum_(l | H \subset cfker 'chi_l) ('chi_l * 'chi_i1) x
-     = #|T : H|%:R  * (x \in H)%:R * 'chi_i1 x.
-Proof.
-move=> Hi1; rewrite (eq_bigr (fun l => 'chi_l x * 'chi_i1 x)); first last.
-  by move=> l _; rewrite cfunE.
-rewrite -mulr_suml -sum_cfunE.
-have [HxT | notHxT] := boolP (x \in T); last by rewrite !cfun0 ?mulr0.
-rewrite -inertia_quo_cfReg //; congr ( _ * _); rewrite cfModE // ?cfRegE.
-rewrite card_quotient // -mulr_natr.
-by rewrite (sameP eqP (kerP _ (subsetP nHT x HxT))) ker_coset.
-Qed.
-
-Lemma  I_K_sum_IndRes i1 : 
-    i1 \in calA -> 
-  'Ind[T] ('Res[H] 'chi_i1)
-     = \sum_(l | H \subset cfker 'chi_l) 'chi_l * 'chi_i1.
-Proof.
-move=> Hi1; apply/cfunP=> x; rewrite sum_cfunE inertia_ker_sum //.
-have [HxH | notHxH] := boolP (x \in H); last first.
-  suff ->: 'Ind[T] ('Res[H] 'chi_i1) x = 0 by rewrite mulr0 mul0r.
-  rewrite  cfIndE //  big1 ?mulr0 // => y Ty.
-  by rewrite cfun0 ?memJ_norm ?(subsetP nHT).
-rewrite mulr1 cfIndE // (eq_bigr (fun _ => 'chi_i1 x)).
-  rewrite sumr_const -(mulr_natl _ #|T|) mulrA  -(Lagrange sHT).
-  by congr (_ *_); rewrite natrM mulrA mulVf ?mul1r ?neq0CG.
-by move=> y Ty; rewrite cfResE ?cfunJ // memJ_norm ?(subsetP nHT).
-Qed.
-
-Lemma I_K_lpsi i1 i:
-    i1 \in calA -> i \in calA ->  
-  exists2 l, H \subset cfker 'chi_l & 'chi_l * 'chi_i1 = 'chi_i.
-Proof.
-move=> Hi1 Hi.
-have cRes j: 'Res[H, T] 'chi_j \is a character by rewrite cfRes_char ?irr_char.
-have t_comp j: j \in calA -> '['Res 'chi_j, theta] != 0.
-  by move=> Hj; rewrite -irr_consttE -constt_Ind_constt_Res. 
-have irr_lpsi l j: H \subset cfker 'chi_l -> 'chi_l * 'chi_j \in irr T.
-  set psii := 'chi_j => Hl; rewrite irrEchar rpredM ?irr_char //=.
-  apply/eqP; rewrite -(cfnorm_irr j) -/psii; congr (_ * _).
-  apply/eq_bigr=> x Hx; rewrite !cfunE rmorphM mulrACA /= -!normCK.
-  rewrite [`|_|]normC_lin_char ?expr1n ?mul1r //.
-  by rewrite qualifE irr_char inertia_ker_1 /=.
-have H1: i \in irr_constt ('Ind[T] ('Res[H] 'chi_i1)).
-  have /constt_charP[//|x Hx He] := t_comp i1 Hi1.
-  have: 'Ind[T] ('Res[H] 'chi_i1) = psi + 'Ind[T] x.
-    by rewrite He linearD.
-  have /constt_charP[|u Hu -> H1] := Hi; first by rewrite cfInd_char ?irr_char.
-  apply/constt_charP; first exact: cfInd_char.
-  by exists (u + 'Ind[T] x); rewrite ?rpredD ?cfInd_char // H1 addrA.
-have: [exists (l | H \subset cfker 'chi_l), '['chi_l * 'chi_i1, 'chi_i] != 0].
-  rewrite -negb_forall_in; apply: contraL H1 => /forall_inP HH1.
-  rewrite irr_consttE negbK I_K_sum_IndRes // cfdot_suml.
-  by rewrite big1 // => i0 /HH1/eqP.
-case/exists_inP=> l Hl1 Hl2; exists l => //; apply: contraNeq Hl2.
-have /irrP[i2 ->] := irr_lpsi l i1 Hl1.
-by rewrite cfdot_irr (inj_eq irr_inj) => /negPf->.
-Qed.
-
-Lemma Ind_inertia_dot :
-  {in calA &, forall i j, '[psi, 'chi_i] = '[psi, 'chi_j]}.
-Proof.
-move=> i j Ai Aj; pose e := '[theta, 'Res[H] 'chi_i].
-have [li Hli <-] := I_K_lpsi Ai Ai; have{Ai Aj} [lj Hlj <-] := I_K_lpsi Ai Aj.
-suffices lpsi_dot l: H \subset cfker 'chi_l -> '[psi, 'chi_l * 'chi_i] = e.
-  by rewrite !lpsi_dot.
-move=> kerH; rewrite /e -cfdot_Res_r; congr (_ * _); apply/eq_bigr=> x Hx.
-by congr (_ * _^*); rewrite !cfResE ?sub_Inertia // cfunE inertia_ker_1 ?mul1r.
-Qed.
-
-(* This is Peterfalvi (1.7b). *)
- Lemma induced_inertia_quo:
-   exists e1, 
-   [/\ chi = e1 *: \sum_(i in calA) 'Ind[G] 'chi_i,
-       #|calA|%:R * (e1 ^+ 2) = #|T : H|%:R
-    & {in calA, forall i, 'Ind[G] 'chi_i 1%g = #|G : T|%:R * e1 * theta 1%g}].
-Proof.
-have eiN i: '[psi, 'chi_i] \in Cnat.
-  by rewrite Cnat_cfdot_char_irr ?cfInd_char ?irr_char.
-case: (neq0_has_constt (Ind_irr_neq0 t sHT)) => i1 Hi1.
-pose psi1 := 'chi_i1; pose e1 := '[psi, psi1].
-exists e1 => /=; rewrite Dchi.
-have Hdot i: i \in calA -> '[psi, 'chi_i] = e1.
-  by move=> Hi; rewrite (Ind_inertia_dot Hi Hi1).
-have He: psi = e1 *: \sum_(i in calA) 'chi_i.
-  rewrite {1}(cfun_sum_constt (psi)) scaler_sumr.
-  by apply : eq_bigr =>  i Hi; congr (_ *: _); rewrite Hdot.
-have HIGT: 'Ind[G] (psi) = e1 *: (\sum_(i in calA) 'Ind[G] 'chi_i).
-  by rewrite /= {1}He linearZ linear_sum.
-have Res_psi1: 'Res[H] psi1 = e1 *:theta.
-  rewrite constt_Ind_constt_Res in Hi1.
-  rewrite (Clifford_Res_sum_cfclass nsHT Hi1) cfclass_inertia.
-  congr (_ *: _); last by rewrite big_cons big_nil addr0. 
-  by rewrite /e1 cfdot_Res_l cfdotC aut_Cnat.
-have Hpsi_1 i: i \in calA -> 'chi_i 1%g = e1 * theta 1%g.
-  move=> Hi; case: (I_K_lpsi Hi1 Hi) => l Hl <-.
-  rewrite cfunE inertia_ker_1 // mul1r.
-  by rewrite -(cfResE psi1 sHT (group1 H)) Res_psi1 cfunE.
-have He1: psi 1%g = #|calA|%:R * e1 ^+ 2 * theta 1%g. 
-- rewrite {1}He cfunE sum_cfunE (eq_bigr (fun _ => e1 * (theta 1%g))) //.
-  rewrite sumr_const expr2 (mulrC _ (e1 * e1)) -!(mulrA e1); congr (_ * _).
-  by rewrite -mulr_natr -mulrA;congr (_ * _); rewrite mulrC.
-have: 'Ind[T] ('Res[H] psi1) = \sum_(l | H \subset cfker 'chi_l) 'chi_l * psi1.
-  by rewrite I_K_sum_IndRes.
-move/cfunP/(_ 1%g); rewrite sum_cfunE (inertia_ker_sum 1%g) //.
-rewrite Res_psi1 linearZ cfunE He1 group1 mulr1  Hpsi_1 //.
-rewrite (mulrA  #|T : H|%:R e1) (mulrC _ e1) -(mulrA e1  #|T : H|%:R) => H2.
-split=> // [|i Hi]; last by rewrite cfInd1 ?Inertia_sub ?Hpsi_1 ?mulrA.
-apply:(@mulfI _ (theta 1%g)); rewrite ?irr1_neq0 // !(mulrC (theta 1%g)).
-by apply: (@mulfI _ e1); rewrite -?irr_consttE.
-Qed.
-
-Section S616.
-
-Let TsG : T \subset G. Proof. exact: subsetIl. Qed.
-
-Let HsT : H \subset T. Proof. exact: sub_Inertia. Qed.
-
-Let HnT : H <| T. Proof. exact: normal_Inertia. Qed.
-
-Hypothesis tinv : 'I_G['chi_t]%G = G.
-
-Fact ResIndchiE: 'Res[H]  ('Ind[G] 'chi_t) = #|G : H|%:R *: 'chi_t.
-Proof.
-rewrite induced_sum_rcosets //; congr (_ *: _); first by rewrite -{2}tinv.
-by rewrite -tinv cfclass_inertia  big_seq1.
-Qed.
-
-End S616.
-
-Import nilpotent.
-
-(* This is Peterfalvi (1.7c). *)
-Lemma induced_inertia_quo1 :
-     coprime #|H| #|T : H| -> 
-  [/\ chi = \sum_(i in calA) ('Ind[G] 'chi_i), #|calA| = #|T : H| 
-    & {in calA, forall i, 'Ind[G] 'chi_i 1%g = #|G : T|%:R * theta 1%g}].
-Proof.
-move=> hallHT; case: induced_inertia_quo => // e1 H1.
-have:= H1; suff ->: e1 = 1; first rewrite /= scale1r expr1n !mulr1.
-  by case=> -> /eqP He Hi; split=> //; apply/eqP; rewrite -eqC_nat.
-have [i Hi]: exists i : Iirr T, 'Res[H] 'chi_i = theta.
-  have ITth: 'I_T[theta] = T by apply/setIidPl/subsetIr.
-  have solT: solvable (T / H) := abelian_sol QTHa.
-  have [|i[]] := extend_solvable_coprime_irr nsHT solT ITth; last by exists i.
-  rewrite coprime_sym coprime_mull !(coprime_dvdl _ hallHT) //.
-    by rewrite -dvdC_nat !CdivE truncCK ?Cnat_irr1 // dvd_irr1_cardG.
-  by rewrite cforder_lin_char_dvdG ?cfDet_lin_char.
-have [Hin1 Hi1] : i \in calA /\ '[chi, 'Ind[G]'chi_i] = 1.
-  split.
-    by rewrite irr_consttE -Frobenius_reciprocity Hi cfnorm_irr oner_neq0.
-  rewrite -Frobenius_reciprocity cfdotC -cfdot_constt_inertia //.
-    by rewrite Hi cfnorm_irr  conjC1.
-  by rewrite Hi irr_consttE cfnorm_irr oner_neq0.
-rewrite -Hi1; have{H1} [-> _ _] := H1.
-have [irrT injT _] := induced_inertia_irr.
-have /irrT/irrP[l Hl] := Hin1.
-rewrite cfdotZl cfdot_suml (bigD1 i) //= Hl cfnorm_irr.
-rewrite big1 ?addr0 ?mulr1 // => j /andP[Hj Hji].
-have /irrT/irrP[k Hk] := Hj; rewrite Hk cfdot_irr.
-rewrite (negPf (contraNneq _ Hji)) // => Hie.
-by apply/eqP/injT=> //; rewrite Hk Hl Hie.
-Qed.
-
-Let S_ (chi : 'CF(G)) := [set i in irr_constt chi].
-
-Lemma induced_inertia_chi1: coprime #|H| #|T:H| ->  
-       constant [seq 'chi_i 1%g | i in S_ chi].
-Proof.
-move=> copHIchi.
-have /= [_ h_ Ichi1] := induced_inertia_quo1 copHIchi.
-pose c := #|G : T|%:R * 'chi_t 1%g.
-apply/(@all_pred1_constant _ c)/allP=> _ /mapP[psi1 Spsi1 ->] /=. 
-move: Spsi1; rewrite mem_enum inE  => psi_irr; move: (psi_irr).
-rewrite constt_Ind_constt_Res; move/(inertia_Ind_invE HnG)<-; rewrite Ichi1 //. 
-by rewrite constt_Ind_constt_Res constt_inertia_Ind_inv -?constt_Ind_constt_Res.
-Qed.
-
-End InducedFromInertia.
+  
+End IndSumInertia.
 
 (* This is Peterfalvi (1.8). *)
 Lemma irr1_bound_quo (B C D : {group gT}) i :

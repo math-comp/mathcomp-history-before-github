@@ -70,9 +70,9 @@ Structure minSimpleOddGroupType := MinSimpleOddGroupType {
 
 Hypothesis IH_FT : minSimpleOddGroupType -> False.
 
-Lemma minSimpleOdd_ind : forall gT (G : {group gT}), odd #|G| -> solvable G.
+Lemma minSimpleOdd_ind gT (G : {group gT}) : odd #|G| -> solvable G.
 Proof.
-move=> gT G; move: {2}_.+1 (ltnSn #|G|) => n.
+move: {2}_.+1 (ltnSn #|G|) => n.
 elim: n => // n IHn in gT G *; rewrite ltnS => leGn oddG.
 have oG: #|[subg G]| = #|G| by rewrite (card_isog (isog_subg G)).
 apply/idPn=> nsolG; case: IH_FT; exists [finGroupType of subg_of G].
@@ -87,19 +87,9 @@ rewrite properEcard oG; case/andP=> sMG ltMG.
 by apply: IHn (leq_trans ltMG leGn) (oddSg sMG _); rewrite oG.
 Qed.
 
-Lemma minSimpleOdd_prime : forall gT (G : {group gT}),
+Lemma minSimpleOdd_prime gT (G : {group gT}) :
   odd #|G| -> simple G -> prime #|G|.
-Proof.
-move=> gT G oddG simpG.
-have solG := minSimpleOdd_ind oddG.
-have chsimG: charsimple G := minnormal_charsimple simpG.
-have: is_abelem G := charsimple_solvable chsimG solG.
-case/is_abelemP=> p p_pr; case/and3P=> pG cGG _.
-case/simpleP: simpG => ntG simpG; have{pG ntG} [_ pG _] := pgroup_pdiv pG ntG.
-case/Cauchy: pG => // x Gx oxp; move: p_pr; rewrite -{}oxp /order.
-suffices: <[x]> <| G by case/simpG=> -> //; rewrite cards1.
-by rewrite /normal andbC (sub_abelian_norm cGG) // cycle_subG.
-Qed.
+Proof. by move/minSimpleOdd_ind; apply: simple_sol_prime. Qed.
 
 End InitialReduction.
 
@@ -116,8 +106,8 @@ Implicit Types H K D M P U V X : {group gT}.
 Local Notation sT := {set gT}.
 Implicit Type p : nat.
 
-Lemma mFT_odd : forall H, odd #|H|.
-Proof. by move=> H; apply: (oddSg (subsetT H)); case: gT => ? []. Qed.
+Lemma mFT_odd H : odd #|H|.
+Proof. by apply: (oddSg (subsetT H)); case: gT => ? []. Qed.
 
 Lemma mFT_simple : simple G.
 Proof. by case: gT => ? []. Qed.
@@ -125,8 +115,8 @@ Proof. by case: gT => ? []. Qed.
 Lemma mFT_nonSolvable : ~~ solvable G.
 Proof. by case: gT => ? []. Qed.
 
-Lemma mFT_sol : forall M, M \proper G -> solvable M.
-Proof. by case: gT => ? []. Qed.
+Lemma mFT_sol M : M \proper G -> solvable M.
+Proof. by case: gT M => ? []. Qed.
 
 Lemma mFT_nonAbelian : ~~ abelian G.
 Proof. apply: contra mFT_nonSolvable; exact: abelian_sol. Qed.
@@ -136,21 +126,21 @@ Proof. by apply: contraNneq mFT_nonAbelian => ->; exact: abelian1. Qed.
 
 Lemma mFT_gt1 : [1] \proper G. Proof. by rewrite proper1G mFT_neq1. Qed.
 
-Lemma mFT_quo_odd : forall M H, odd #|M / H|.
-Proof. by move=> M H; rewrite quotient_odd ?mFT_odd. Qed.
+Lemma mFT_quo_odd M H : odd #|M / H|.
+Proof. by rewrite quotient_odd ?mFT_odd. Qed.
 
-Lemma mFT_sol_proper : forall M, (M \proper G) = solvable M.
+Lemma mFT_sol_proper M : (M \proper G) = solvable M.
 Proof.
-move=> M; apply/idP/idP; first exact: mFT_sol.
+apply/idP/idP; first exact: mFT_sol.
 by rewrite properT; apply: contraL; move/eqP->; exact: mFT_nonSolvable.
 Qed.
 
-Lemma mFT_pgroup_proper : forall p P, p.-group P -> P \proper G.
-Proof. by move=> p P; move/pgroup_sol; rewrite mFT_sol_proper. Qed.
+Lemma mFT_pgroup_proper p P : p.-group P -> P \proper G.
+Proof. by move/pgroup_sol; rewrite mFT_sol_proper. Qed.
 
-Lemma mFT_norm_proper : forall H, H :!=: 1 -> H \proper G -> 'N(H) \proper G.
+Lemma mFT_norm_proper H : H :!=: 1 -> H \proper G -> 'N(H) \proper G.
 Proof.
-move=> H ntH; rewrite !properT; apply: contra; move/eqP=> nHG; apply/eqP.
+move=> ntH; rewrite !properT; apply: contra; move/eqP=> nHG; apply/eqP.
 move/eqP: ntH; case/simpleP: mFT_simple => _; case/(_ H) => //=.
 by rewrite -nHG normalG.
 Qed.
@@ -163,20 +153,20 @@ have:= mFT_norm_proper ntC prC.
 by rewrite /proper subsetT norms_cent ?normG.
 Qed.
 
-Lemma mFT_cent_proper : forall H, H :!=: 1 -> 'C(H) \proper G.
+Lemma mFT_cent_proper H : H :!=: 1 -> 'C(H) \proper G.
 Proof.
-move=> H; case: (eqsVneq H G) => [-> | ].
+case: (eqsVneq H G) => [-> | ].
   by rewrite cent_mFT_trivial properT eq_sym.
 rewrite -properT => prH ntH; apply: sub_proper_trans (cent_sub H) _.
 exact: mFT_norm_proper.
 Qed.
 
-Lemma mFT_cent1_proper : forall x, x != 1 -> 'C[x] \proper G.
-Proof. by move=> x; rewrite -cycle_eq1 -cent_cycle; exact: mFT_cent_proper. Qed.
+Lemma mFT_cent1_proper x : x != 1 -> 'C[x] \proper G.
+Proof. by rewrite -cycle_eq1 -cent_cycle; exact: mFT_cent_proper. Qed.
 
-Lemma mFT_quo_sol : forall M H, H :!=: 1 -> solvable (M / H).
+Lemma mFT_quo_sol M H : H :!=: 1 -> solvable (M / H).
 Proof.
-move=> M H ntH; case: (eqsVneq H G) => [-> |].
+move=> ntH; case: (eqsVneq H G) => [-> |].
   rewrite [_ / _](trivgP _) ?abelian_sol ?abelian1 //.
   by rewrite quotient_sub1 ?normsG ?subsetT.
 rewrite -properT => prH; rewrite -quotientInorm morphim_sol //.
@@ -196,115 +186,115 @@ Local Notation "'U" := minSimple_uniq_max_groups : group_scope.
 
 Definition minSimple_SCN_at n p := \bigcup_(P in 'Syl_p(G)) 'SCN_n(P).
 
-Lemma mmax_exists : forall H, H \proper G -> {M | M \in 'M(H)}.
+Lemma mmax_exists H : H \proper G -> {M | M \in 'M(H)}.
 Proof.
-move=> H; case/(@maxgroup_exists _ (fun M => M \proper G)) => M maxM sHM.
+case/(@maxgroup_exists _ (fun M => M \proper G)) => M maxM sHM.
 by exists M; rewrite !inE sHM andbT.
 Qed.
 
 Lemma any_mmax : {M : {group gT} | M \in 'M}.
 Proof. by have [M] := mmax_exists mFT_gt1; case/setIdP; exists M. Qed.
 
-Lemma mmax_proper : forall M, M \in 'M -> M \proper G.
-Proof. by move=> M; rewrite inE; exact: maxgroupp. Qed.
+Lemma mmax_proper M : M \in 'M -> M \proper G.
+Proof. by rewrite inE; apply: maxgroupp. Qed.
 
-Lemma mmax_sol : forall M, M \in 'M -> solvable M.
-Proof. by move=> M; move/mmax_proper; exact: mFT_sol. Qed.
+Lemma mmax_sol M : M \in 'M -> solvable M.
+Proof. by move/mmax_proper/mFT_sol. Qed.
 
-Lemma mmax_max : forall M H,
-   M \in 'M -> H \proper G -> M \subset H -> H :=: M.
-Proof. by move=> M H; rewrite inE; case/maxgroupP=> _; exact. Qed.
+Lemma mmax_max M H : M \in 'M -> H \proper G -> M \subset H -> H :=: M.
+Proof. by rewrite inE; case/maxgroupP=> _; apply. Qed.
 
 Lemma eq_mmax : {in 'M &, forall M H, M \subset H -> M :=: H}.
 Proof. by move=> M H Mmax; move/mmax_proper=> prH; move/mmax_max->. Qed.
 
-Lemma sub_mmax_proper : forall M H, M \in 'M -> H \subset M -> H \proper G.
-Proof. by move=> M H maxM sHM; exact: sub_proper_trans (mmax_proper maxM). Qed.
+Lemma sub_mmax_proper M H : M \in 'M -> H \subset M -> H \proper G.
+Proof. by move=> maxM sHM; apply: sub_proper_trans (mmax_proper maxM). Qed.
 
-Lemma mmax_norm : forall X M,
+Lemma mmax_norm X M :
   M \in 'M -> X :!=: 1 -> X \proper G -> M \subset 'N(X) -> 'N(X) = M.
-Proof. by move=> X M maxM ntX prX; exact: mmax_max (mFT_norm_proper _ _). Qed.
+Proof. by move=> maxM ntX prX; exact: mmax_max (mFT_norm_proper _ _). Qed.
 
-Lemma mmax_normal : forall M H, M \in 'M -> H <| M -> H :!=: 1 -> 'N(H) = M.
+Lemma mmax_normal_subset A M :
+  M \in 'M -> A <| M -> ~~ (A \subset [1]) -> 'N(A) = M.
 Proof.
-move=> M H maxM; case/andP=> sHM nHM ntH.
-exact: mmax_norm (sub_mmax_proper maxM sHM) nHM.
+rewrite -gen_subG subG1 => maxM /andP[sAM nAM] ntGA.
+rewrite (mmax_max maxM) // (sub_proper_trans (norm_gen _)) ?mFT_norm_proper //.
+by rewrite (sub_mmax_proper maxM) // gen_subG.
 Qed.
 
-Lemma mmax_sigma_Sylow : forall p P M,
+Lemma mmax_normal M H : M \in 'M -> H <| M -> H :!=: 1 -> 'N(H) = M.
+Proof. by rewrite -subG1; apply: mmax_normal_subset. Qed.
+
+Lemma mmax_sigma_Sylow p P M :
   M \in 'M -> p.-Sylow(M) P -> 'N(P) \subset M -> p.-Sylow(G) P.
 Proof.
-move=> p P M maxM sylP sNM; rewrite -Sylow_subnorm setTI.
-exact: pHall_subl (normG P) sNM sylP.
+by move=> maxM sylP sNM; rewrite -Sylow_subnorm setTI (pHall_subl _ sNM) ?normG.
 Qed.
 
-Lemma mmax_neq1 : forall M, M \in 'M -> M :!=: 1.
+Lemma mmax_neq1 M : M \in 'M -> M :!=: 1.
 Proof.
-move=> M maxM; apply: contra mFT_nonAbelian; move/eqP=> M1.
+move=> maxM; apply: contra mFT_nonAbelian; move/eqP=> M1.
 case: (eqVneq G 1) => [-> | ]; first exact: abelian1.
 case/trivgPn=> x; rewrite -cycle_subG -cycle_eq1 subEproper /=.
 case/predU1P=> [<- | ]; first by rewrite cycle_abelian.
 by move/(mmax_max maxM)=> ->; rewrite M1 ?sub1G ?eqxx.
 Qed.
 
-Lemma norm_mmax : forall M, M \in 'M -> 'N(M) = M.
+Lemma norm_mmax M : M \in 'M -> 'N(M) = M.
 Proof.
-move=> M maxM; apply: mmax_max (normG M) => //.
+move=> maxM; apply: mmax_max (normG M) => //.
 exact: (mFT_norm_proper (mmax_neq1 maxM) (mmax_proper maxM)).
 Qed.
 
-Lemma mmaxJ : forall M x, (M :^ x \in 'M)%G = (M \in 'M).
-Proof.
-by move=> M x; rewrite !inE /= -{1}[G](@conjGid _ _ x) ?maximalJ ?inE.
-Qed.
+Lemma mmaxJ M x : (M :^ x \in 'M)%G = (M \in 'M).
+Proof. by rewrite !inE /= -{1}[G](@conjGid _ _ x) ?maximalJ ?inE. Qed.
 
-Lemma mmax_ofS : forall H K, H \subset K -> 'M(K) \subset 'M(H).
+Lemma mmax_ofS H K : H \subset K -> 'M(K) \subset 'M(H).
 Proof.
-move=> H K sHK; apply/subsetP=> M; rewrite !inE; case/andP=> ->.
+move=> sHK; apply/subsetP=> M; rewrite !inE => /andP[->].
 exact: subset_trans.
 Qed.
 
-Lemma mmax_ofJ : forall K x M, ((M :^ x)%G \in 'M(K :^ x)) = (M \in 'M(K)).
-Proof. by move=> K x M; rewrite inE mmaxJ conjSg !inE. Qed.
+Lemma mmax_ofJ K x M : ((M :^ x)%G \in 'M(K :^ x)) = (M \in 'M(K)).
+Proof. by rewrite inE mmaxJ conjSg !inE. Qed.
 
-Lemma uniq_mmaxP : forall U, reflect (exists M, 'M(U) = [set M]) (U \in 'U).
-Proof. by move=> U; rewrite inE; exact: cards1P. Qed.
+Lemma uniq_mmaxP U : reflect (exists M, 'M(U) = [set M]) (U \in 'U).
+Proof. by rewrite inE; apply: cards1P. Qed.
 Implicit Arguments uniq_mmaxP [U].
 
-Lemma mem_uniq_mmax : forall U M, 'M(U) = [set M] -> M \in 'M /\ U \subset M.
-Proof. by move=> U M; move/setP; move/(_ M); rewrite set11; move/setIdP. Qed.
+Lemma mem_uniq_mmax U M : 'M(U) = [set M] -> M \in 'M /\ U \subset M.
+Proof. by move/setP/(_ M); rewrite set11 => /setIdP. Qed.
 
-Lemma eq_uniq_mmax : forall U M H,
+Lemma eq_uniq_mmax U M H :
   'M(U) = [set M] -> H \in 'M -> U \subset H -> H :=: M.
 Proof.
-move=> U M H uU_M maxH sUH; apply: congr_group.
-by apply/set1P; rewrite -uU_M inE maxH.
+by move=> uU_M maxH sUH; apply/congr_group/set1P; rewrite -uU_M inE maxH.
 Qed.
 
-Lemma def_uniq_mmax : forall U M,
+Lemma def_uniq_mmax U M :
   U \in 'U -> M \in 'M -> U \subset M -> 'M(U) = [set M].
 Proof.
-move=> U M; case/uniq_mmaxP=> D uU_D maxM sUM.
+case/uniq_mmaxP=> D uU_D maxM sUM.
 by rewrite (group_inj (eq_uniq_mmax uU_D maxM sUM)).
 Qed.
 
-Lemma uniq_mmax_subset1 : forall U M,
+Lemma uniq_mmax_subset1 U M :
   M \in 'M -> U \subset M -> (U \in 'U) = ('M(U) \subset [set M]).
 Proof.
-move=> U M maxM sUM; apply/idP/idP=> uU; first by rewrite -(def_uniq_mmax uU).
+move=> maxM sUM; apply/idP/idP=> uU; first by rewrite -(def_uniq_mmax uU).
 by apply/uniq_mmaxP; exists M; apply/eqP; rewrite eqEsubset uU sub1set inE maxM.
 Qed.
 
-Lemma sub_uniq_mmax : forall U M H, 
+Lemma sub_uniq_mmax U M H :
   'M(U) = [set M] -> U \subset H -> H \proper G -> H \subset M.
 Proof.
-move=> U M H uU_M sUH; case/mmax_exists=> D; case/setIdP=> maxD sHD.
+move=> uU_M sUH; case/mmax_exists=> D; case/setIdP=> maxD sHD.
 by rewrite -(eq_uniq_mmax uU_M maxD) ?(subset_trans sUH).
 Qed.
 
-Lemma mmax_sup_id : forall M, M \in 'M -> 'M(M) = [set M].
+Lemma mmax_sup_id M : M \in 'M -> 'M(M) = [set M].
 Proof.
-move=> M maxM; apply/eqP; rewrite eqEsubset sub1set inE maxM subxx !andbT.
+move=> maxM; apply/eqP; rewrite eqEsubset sub1set inE maxM subxx !andbT.
 apply/subsetP=> H; case/setIdP=> maxH; rewrite inE -val_eqE /=.
 by move/eq_mmax=> ->.
 Qed.
@@ -312,48 +302,46 @@ Qed.
 Lemma mmax_uniq_id : {subset 'M <= 'U}.
 Proof. by move=> M maxM; apply/uniq_mmaxP; exists M; exact: mmax_sup_id. Qed.
 
-Lemma def_uniq_mmaxJ : forall M K x,
-  'M(K) = [set M] -> 'M(K :^ x) = [set M :^ x]%G.
+Lemma def_uniq_mmaxJ M K x : 'M(K) = [set M] -> 'M(K :^ x) = [set M :^ x]%G.
 Proof.
-move=> M K x uK_M; apply/setP=> L; rewrite -(actKV 'JG x L) mmax_ofJ uK_M.
+move=> uK_M; apply/setP=> L; rewrite -(actKV 'JG x L) mmax_ofJ uK_M.
 by rewrite !inE (inj_eq (act_inj 'JG x)).
 Qed.
 
-Lemma uniq_mmaxJ : forall K x, ((K :^ x)%G \in 'U) = (K \in 'U).
+Lemma uniq_mmaxJ K x :((K :^ x)%G \in 'U) = (K \in 'U).
 Proof.
-move=> K x; apply/uniq_mmaxP/uniq_mmaxP=> [] [M uK_M].
+apply/uniq_mmaxP/uniq_mmaxP=> [] [M uK_M].
   exists (M :^ x^-1)%G; rewrite -(conjsgK x K); exact: def_uniq_mmaxJ.
 by exists (M :^ x)%G; exact: def_uniq_mmaxJ.
 Qed.
 
-Lemma uniq_mmax_norm_sub : forall M U : {group gT},
+Lemma uniq_mmax_norm_sub (M U : {group gT}) :
   'M(U) = [set M] -> 'N(U) \subset M.
 Proof.
-move=> M U uU_M; have [maxM _] := mem_uniq_mmax uU_M.
+move=> uU_M; have [maxM _] := mem_uniq_mmax uU_M.
 apply/subsetP=> x nUx; rewrite -(norm_mmax maxM) inE.
 have:= set11 M; rewrite -uU_M -(mmax_ofJ _ x) (normP nUx) uU_M.
-by move/set1P; move/congr_group->.
+by move/set1P/congr_group->.
 Qed.
 
-Lemma uniq_mmax_neq1 : forall U : {group gT}, U \in 'U -> U :!=: 1.
+Lemma uniq_mmax_neq1 (U : {group gT}) : U \in 'U -> U :!=: 1.
 Proof.
-move=> U; case/uniq_mmaxP=> M uU_M; have [maxM _] := mem_uniq_mmax uU_M.
+case/uniq_mmaxP=> M uU_M; have [maxM _] := mem_uniq_mmax uU_M.
 apply: contraL (uniq_mmax_norm_sub uU_M); move/eqP->.
 by rewrite norm1 subTset -properT mmax_proper.
 Qed.
 
-Lemma def_uniq_mmaxS : forall M U V,
+Lemma def_uniq_mmaxS M U V :
   U \subset V -> V \proper G -> 'M(U) = [set M] -> 'M(V) = [set M].
 Proof.
-move=> M U V sUV prV uU_M; apply/eqP; rewrite eqEsubset sub1set -uU_M.
+move=> sUV prV uU_M; apply/eqP; rewrite eqEsubset sub1set -uU_M.
 rewrite mmax_ofS //= inE (sub_uniq_mmax uU_M) //.
 by case/mem_uniq_mmax: uU_M => ->.
 Qed.
 
-Lemma uniq_mmaxS : forall U V,
-  U \subset V -> V \proper G -> U \in 'U -> V \in 'U.
+Lemma uniq_mmaxS U V : U \subset V -> V \proper G -> U \in 'U -> V \in 'U.
 Proof.
-move=> U V sUV prV; case/uniq_mmaxP=> M uU_M; apply/uniq_mmaxP; exists M.
+move=> sUV prV /uniq_mmaxP[M uU_M]; apply/uniq_mmaxP; exists M.
 exact: def_uniq_mmaxS uU_M.
 Qed.
 
@@ -389,38 +377,37 @@ Inductive normed_constrained (A : {set gT}) :=
 
 Variable pi : nat_pred.
 
-Lemma max_normed_exists : forall A X,
+Lemma max_normed_exists A X :
   pi.-group X -> A \subset 'N(X) -> {Y | Y \in |/|*(A; pi) & X \subset Y}.
 Proof.
-move=> A X piX nXA; pose piAn Y := pi.-group(Y) && (A \subset 'N(Y)).
+move=> piX nXA; pose piAn Y := pi.-group(Y) && (A \subset 'N(Y)).
 have [|Y] := @maxgroup_exists _ piAn X; first by rewrite /piAn piX.
 by exists Y; rewrite // inE.
 Qed.
 
-Lemma mem_max_normed : forall A X,
-  X \in |/|*(A; pi) -> pi.-group X /\ A \subset 'N(X).
-Proof. by move=> A X; rewrite inE; move/maxgroupp; move/andP. Qed.
+Lemma mem_max_normed A X : X \in |/|*(A; pi) -> pi.-group X /\ A \subset 'N(X).
+Proof. by rewrite inE; move/maxgroupp; move/andP. Qed.
 
-Lemma norm_acts_max_norm : forall P, [acts 'N(P), on |/|*(P; pi) | 'JG].
+Lemma norm_acts_max_norm P : [acts 'N(P), on |/|*(P; pi) | 'JG].
 Proof.
-move=> P; apply/subsetP=> z Nz; rewrite !inE; apply/subsetP=> Q; rewrite !inE.
+apply/subsetP=> z Nz; rewrite !inE; apply/subsetP=> Q; rewrite !inE.
 case/maxgroupP=> qQ maxQ; apply/maxgroupP; rewrite pgroupJ norm_conj_norm //.
 split=> // Y; rewrite sub_conjg /= => qY; move/maxQ=> <-; rewrite ?conjsgKV //.
 by rewrite pgroupJ norm_conj_norm ?groupV.
 Qed.
 
-Lemma trivg_max_norm : forall P, 1%G \in |/|*(P; pi) -> |/|*(P; pi) = [set 1%G].
+Lemma trivg_max_norm P : 1%G \in |/|*(P; pi) -> |/|*(P; pi) = [set 1%G].
 Proof.
-move=> P max1; apply/eqP; rewrite eqEsubset sub1set max1 andbT.
+move=> max1; apply/eqP; rewrite eqEsubset sub1set max1 andbT.
 apply/subsetP=> Q; rewrite !inE -val_eqE /= in max1 *.
 by case/maxgroupP: max1 => _ max1; move/maxgroupp; move/max1->; rewrite ?sub1G.
 Qed.
 
-Lemma max_normed_uniq : forall A P Q,
+Lemma max_normed_uniq A P Q :
     |/|*(A; pi) = [set Q] -> A \subset P -> P \subset 'N(Q) ->
   |/|*(P; pi) = [set Q].
 Proof.
-move=> A P Q defAmax sAP nQP; have: Q \in |/|*(A; pi) by rewrite defAmax set11.
+move=> defAmax sAP nQP; have: Q \in |/|*(A; pi) by rewrite defAmax set11.
 rewrite inE; case/maxgroupP; case/andP=> piQ _ maxQ.
 apply/setP=> X; rewrite !inE -val_eqE /=; apply/maxgroupP/eqP=> [[]|->{X}].
   case/andP=> piX nXP maxX; have nXA := subset_trans sAP nXP.
@@ -458,9 +445,9 @@ Let actsKmax := actsP cent_core_acts_max_norm.
 
 Hypotheses (cstrA : normed_constrained A) (pi'q : q \notin pi).
 
-Let hyp71 : forall H R,
+Let hyp71 H R :
   A \subset H -> H \proper G -> R \in |/|_H(A; pi^') -> R \subset 'O_pi^'(H).
-Proof. by case: cstrA. Qed.
+Proof. by case: cstrA H R. Qed.
 
 (* This is the observation between B & G, Hypothesis 7.1 and Lemma 7.1. *)
 Remark normed_constrained_Hall : pi^'.-Hall('C(A)) K.
@@ -496,17 +483,17 @@ Qed.
 Let hallK := normed_constrained_Hall.
 
 (* This is B & G, Lemma 7.1. *)
-Lemma normed_constrained_meet_trans : forall Q1 Q2 H,
+Lemma normed_constrained_meet_trans Q1 Q2 H :
     A \subset H -> H \proper G -> Q1 \in |/|*(A; q) -> Q2 \in |/|*(A; q) ->
     Q1 :&: H != 1 -> Q2 :&: H != 1 ->
   exists2 k, k \in K & Q2 :=: Q1 :^ k.
 Proof.
-move=> Q1 Q2 H; move: {2}_.+1 (ltnSn (#|G| - #|Q1 :&: Q2|)) => m.
+move: {2}_.+1 (ltnSn (#|G| - #|Q1 :&: Q2|)) => m.
 elim: m => // m IHm in H Q1 Q2 * => geQ12m sAH prHG maxQ1 maxQ2 ntHQ1 ntHQ2.
-have:= maxQ1; rewrite inE; case/maxgroupP; case/andP=> qQ1 nQ1A maxQ1P.
-have:= maxQ2; rewrite inE; case/maxgroupP; case/andP=> qQ2 nQ2A maxQ2P.
+have:= maxQ1; rewrite inE => /maxgroupP[/andP[qQ1 nQ1A] maxQ1P].
+have:= maxQ2; rewrite inE => /maxgroupP[/andP[qQ2 nQ2A] maxQ2P].
 have prQ12: Q1 :&: Q2 \proper G.
-  rewrite properT; apply: contra (mFT_nonSolvable gT); move/eqP <-.
+  rewrite properT; apply: contraNneq (mFT_nonSolvable gT) => <-.
   by apply: pgroup_sol (pgroupS _ qQ1); rewrite subsetIl.
 wlog defH: H prHG sAH ntHQ1 ntHQ2 / Q1 :&: Q2 != 1 -> H :=: 'N(Q1 :&: Q2).
   case: (eqVneq (Q1 :&: Q2) 1) => [-> | ntQ12] IH.
@@ -519,9 +506,9 @@ have [nLA coLA solL]: [/\ A \subset 'N(L), coprime #|L| #|A| & solvable L].
 - rewrite (char_norm_trans (pcore_char _ _)) ?normsG //.
   rewrite coprime_sym coprime_pi' ?cardG_gt0 ?[pnat _ _]pcore_pgroup //.
   by rewrite (solvableS sLH) ?mFT_sol.
-have Qsyl: forall Q, Q \in |/|*(A; q) -> Q :&: H != 1 ->
+have Qsyl Q: Q \in |/|*(A; q) -> Q :&: H != 1 ->
   exists R : {group _}, [/\ q.-Sylow(L) R, A \subset 'N(R) & Q :&: H \subset R].
-- move=> Q; case/mem_max_normed=> qQ nQA ntQH.
+- case/mem_max_normed=> qQ nQA ntQH.
   have qQH: q.-group (Q :&: H) by rewrite (pgroupS _ qQ) ?subsetIl.
   have nQHA: A \subset 'N(Q :&: H) by rewrite normsI // normsG.
   apply: coprime_Hall_subset => //; apply: (hyp71) => //.
@@ -569,7 +556,7 @@ Qed.
 Theorem normed_constrained_rank3_trans :
   'r('Z(A)) >= 3 -> [transitive K, on |/|*(A; q) | 'JG].
 Proof.
-case/rank_geP=> B; case/nElemP=> p; rewrite !inE subsetI -2!andbA.
+case/rank_geP=> B /nElemP[p]; rewrite !inE subsetI -2!andbA.
 case/and4P=> sBA cAB abelB mB3; have [_ cBB _] := and3P abelB.
 have q'B: forall Q, q.-group Q -> coprime #|Q| #|B|.
   move=> Q qQ; rewrite coprime_sym (coprimeSg sBA) ?coprime_pi' //.
@@ -648,7 +635,7 @@ exists k => //; exact: val_inj.
 Qed.
 
 (* This is B & G, Theorem 7.4. *)
-Theorem normed_trans_superset : forall P,
+Theorem normed_trans_superset P :
     A <|<| P -> pi.-group P -> [transitive K, on |/|*(A; q) | 'JG] ->
  [/\ 'C_K(P) = 'O_pi^'('C(P)),
      [transitive 'O_pi^'('C(P)), on |/|*(P; q) | 'JG],
@@ -656,7 +643,7 @@ Theorem normed_trans_superset : forall P,
    & {in |/|*(P; q), forall Q, P :&: 'N(P)^`(1) \subset 'N(Q)^`(1)
                             /\ 'N(P) = 'C_K(P) * 'N_('N(P))(Q)}].
 Proof.
-move=> P snAP piP trnK; set KP := 'O_pi^'('C(P)).
+move=> snAP piP trnK; set KP := 'O_pi^'('C(P)).
 have defK: forall B, A \subset B -> 'C_K(B) = 'O_pi^'('C(B)).
   move=> B sAB; apply/eqP; rewrite eqEsubset {1}setIC pcoreS ?centS //.
   rewrite subsetI pcore_sub (sub_Hall_pcore hallK) ?pcore_pgroup //.
@@ -779,11 +766,11 @@ End NormedConstrained.
 (* This is B & G, Proposition 7.5(a). As this is only used in Proposition    *)
 (* 10.10, under the assumption A \in E*_p(G), we avoid the in_pmaxElemE      *)
 (* detour A = [set x in 'C_G(A) | x ^+ p == 1], and just use A \in E*_p(G).  *)
-Proposition plength_1_normed_constrained : forall p A,
+Proposition plength_1_normed_constrained p A :
     A :!=: 1 -> A \in 'E*_p(G) -> (forall M, M \proper G -> p.-length_1 M) ->
   normed_constrained A.
 Proof. 
-move=> p A ntA EpA pl1subG.
+move=> ntA EpA pl1subG.
 case/pmaxElemP: (EpA); case/pElemP=> sAG; case/and3P=> pA cAA _ _. 
 have prA: A \proper G := sub_proper_trans cAA (mFT_cent_proper ntA).
 split=> // X Y sAX prX; case/setIdP; case/andP=> sYX p'Y nYA.
@@ -798,11 +785,11 @@ by rewrite (subsetP (pmaxElemS p (subsetT _))) // setIC 2!inE sAX.
 Qed.
 
 (* This is B & G, Proposition 7.5(b). *)
-Proposition SCN_normed_constrained : forall p P A,
+Proposition SCN_normed_constrained p P A :
   p.-Sylow(G) P -> A \in 'SCN_2(P) -> normed_constrained A.
 Proof.
-move=> p P A sylP; rewrite 2!inE -andbA; case/and3P=> nsAP.
-have [sAP nAP]:= andP nsAP; move/eqP=> defCA lt1mA.
+move=> sylP; rewrite 2!inE -andbA => /and3P[nsAP /eqP defCA lt1mA].
+have [sAP nAP]:= andP nsAP.
 have pP := pHall_pgroup sylP; have pA := pgroupS sAP pP.
 have abA: abelian A by rewrite /abelian -{1}defCA subsetIr.
 have prP: P \proper G := mFT_pgroup_proper pP.
@@ -850,16 +837,15 @@ rewrite inE defK -andbA (eq_pgroup _ def_pi'); case/and3P=> sYX p'Y nYA.
 move: E2_B; rewrite 2!inE -andbA; case/and3P=> sBA abelB dimB2.
 have [pB cBB _] := and3P abelB.
 have ntB: B :!=: 1 by case: (eqsVneq B 1) dimB2 => // ->; rewrite cards1 logn1.
-have cBA: forall b, b \in B -> A \subset 'C[b].
-  move=> b Bb; rewrite -cent_set1 centsC sub1set.
-  by rewrite (subsetP abA) ?(subsetP sBA).
-have solCB: forall b : gT, b != 1 -> solvable 'C[b].
-  by move=> b ntb; rewrite mFT_sol //= -cent_cycle mFT_cent_proper ?cycle_eq1.
+have cBA b: b \in B -> A \subset 'C[b].
+  by move=> Bb; rewrite -cent_set1 centsC sub1set (subsetP abA) ?(subsetP sBA).
+have solCB (b : gT): b != 1 -> solvable 'C[b].
+  by move=> ntb; rewrite mFT_sol ?mFT_cent1_proper.
 wlog{sAX prX} [b B'b defX]: X Y p'Y nYA sYX / exists2 b, b \in B^# & 'C[b] = X.
   move=> IH; have nYB := subset_trans sBA nYA.
   rewrite -(coprime_abelian_gen_cent1 cBB _ nYB); last first.
   - by rewrite coprime_sym (pnat_coprime pB).
-  - apply: contraL dimB2; case/cyclicP=> x defB.
+  - apply: contraL dimB2 => /cyclicP[x defB].
     have Bx: x \in B by rewrite defB cycle_id.
     rewrite defB -orderE (abelem_order_p abelB Bx) ?(pfactorK 1) //.
     by rewrite -cycle_eq1 -defB.
@@ -971,13 +957,13 @@ by rewrite subsetI quotientS.
 Qed.
 
 (* This is B & G, Theorem 7.6 (the Thompson Transitivity Theorem). *)
-Theorem Thompson_transitivity : forall p q A,
+Theorem Thompson_transitivity p q A :
     A \in 'SCN_3[p] -> q \in p^' ->
   [transitive 'O_p^'('C(A)), on |/|*(A; q) | 'JG].
 Proof.
-move=> p q A; case/bigcupP=> P; rewrite 2!inE => sylP; case/andP=> SCN_A mA3.
+case/bigcupP=> P; rewrite 2!inE => sylP /andP[SCN_A mA3].
 have [defZ def_pi']: 'Z(A) = A /\ \pi(A)^' =i p^'.
-  rewrite inE -andbA in SCN_A; case/and3P: SCN_A => sAP _; move/eqP=> defCA.
+  rewrite inE -andbA in SCN_A; case/and3P: SCN_A => sAP _ /eqP defCA.
   case: (eqsVneq A 1) mA3 => /= [-> | ntA _].
     rewrite /rank big1_seq // => p1 _; rewrite /p_rank big1 // => E.
     by rewrite inE; case/andP; move/trivgP->; rewrite cards1 logn1.

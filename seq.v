@@ -2393,6 +2393,33 @@ Qed.
 
 End Flatten.
 
+Prenex Implicits flatten shape reshape.
+
+Section EqFlatten.
+
+Variables S T : eqType.
+
+Lemma flattenP (A : seq (seq T)) x :
+  reflect (exists2 s, s \in A & x \in s) (x \in flatten A).
+Proof.
+elim: A => /= [|s A /iffP IH_A]; [by right; case | rewrite mem_cat].
+have [s_x|s'x] := @idP (x \in s); first by left; exists s; rewrite ?mem_head.
+by apply: IH_A => [[t] | [t /predU1P[->|]]]; exists t; rewrite // mem_behead.
+Qed.
+Implicit Arguments flattenP [A x].
+
+Lemma flatten_mapP (A : S -> seq T) s y :
+  reflect (exists2 x, x \in s & y \in A x) (y \in flatten (map A s)).
+Proof.
+apply: (iffP flattenP) => [[_ /mapP[x sx ->]] | [x sx]] Axy; first by exists x.
+by exists (A x); rewrite ?map_f.
+Qed.
+
+End EqFlatten.
+
+Implicit Arguments flattenP [T A x].
+Implicit Arguments flatten_mapP [S T A s y].
+
 Section AllPairs.
 
 Variables (S T R : Type) (f : S -> T -> R).
@@ -2409,7 +2436,7 @@ Proof. by elim: s1 => //= x s1 ->; rewrite catA. Qed.
 
 End AllPairs.
 
-Prenex Implicits flatten shape reshape allpairs.
+Prenex Implicits allpairs.
 
 Notation "[ 'seq' E | i <- s , j <- t ]" := (allpairs (fun i j => E) s t)
   (at level 0, E at level 99, i ident, j ident,

@@ -1172,7 +1172,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
       rewrite natrD Itau // cfnormBd; last first.
         rewrite (span_orthogonal oXY) ?(zchar_span Xchi) //.
         by rewrite memvZ ?memv_span.
-      rewrite induced_prod_index //; congr (#|_ : _|%:R + _).
+      rewrite cfnorm_Ind_irr //; congr (#|_ : _|%:R + _).
         apply/setIidPl; apply: subset_trans (cent_sub_inertia _).
         rewrite -(sdprodW defL) mulG_subG (centsS sZZ) centsC ?subsetIr //=.
         by rewrite defZ -defW2 subsetIr.

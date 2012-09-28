@@ -792,7 +792,7 @@ have lbG0 g: g \in G0 -> 1 <= `|tau1M psi g| ^+ 2.
     rewrite -[g](conjgK h) mem_imset2 ?inE //= conjg_eq1 ntg /=.
     by rewrite (subsetP sCaO) // inE cagh Dgh y1 mulg1 OUx.
   have{co_p_g} Zeta_g ij: sigma 'chi_ij g \in Cint.
-    apply: Cint_cycTIiso_coprime; apply: coprime_dvdr (cforder_lin_dvdG _) _.
+    apply/Cint_cycTIiso_coprime/(coprime_dvdr (cforder_lin_char_dvdG _)).
       by apply: irr_cyclic_lin; have [] := ctiWG.
     rewrite -(dprod_card defW) coprime_mulr.
     by apply/andP; split; [apply: co_p_g galT _ | apply: co_p_g galS _].

@@ -148,7 +148,7 @@ Proof. by move/seqInd_neq0; rewrite cfnorm_eq0. Qed.
 Lemma seqInd_ortho : {in S &, forall phi psi, phi != psi -> '[phi, psi] = 0}.
 Proof.
 move=> _ _ /seqIndP[i _ ->] /seqIndP[j _ ->].
-by case: ifP (cfclass_irr_induced i j nsKL) => // _ -> /eqP.
+by case: ifP (cfclass_Ind_cases i j nsKL) => // _ -> /eqP.
 Qed.
 
 Lemma seqInd_orthogonal : pairwise_orthogonal S.
@@ -365,9 +365,9 @@ rewrite (partition_big h (ltn^~ (size S))) => /= [|i Xi]; last first.
 rewrite big_distrr big_ord_narrow //= big_index_uniq ?seqInd_uniq //=.
 apply: eq_big_seq => phi Sphi; rewrite /eq_op insubT ?index_mem //= => _.
 have /seqIndP[i kHMi def_phi] := Sphi.
-have/cfunP/(_ 1%g) := induced_sum_rcosets1 i nsKL.
+have/cfunP/(_ 1%g) := scaled_cfResInd_sum_cfclass i nsKL.
 rewrite !cfunE sum_cfunE -def_phi cfResE // mulrAC => ->; congr (_ * _).
-rewrite -cfclass_sum //=; apply/esym/eq_big => j; last by rewrite !cfunE.
+rewrite reindex_cfclass //=; apply/esym/eq_big => j; last by rewrite !cfunE.
 rewrite (sameP (cfclass_Ind_irrP _ _ nsKL) eqP) -def_phi -mem_seqInd //.
 by apply/andP/eqP=> [[/(nth_index 0){2}<- /eqP->] | -> //]; exact: nth_index.
 Qed.
@@ -1316,6 +1316,28 @@ by rewrite X_chi opprD addNKr opprK.
 Qed.
 
 End SubCoherentProperties.
+
+(* A corollary of Peterfalvi (5.7) used (sometimes implicitly!) in the proof  *)
+(* of lemmas (11.9), (12.4) and (12.5).                                       *)
+Lemma pair_degree_coherence L G S (tau : {linear _ -> 'CF(gval G)}) R :
+    subcoherent S tau R ->
+  {in S &, forall phi1 phi2 : 'CF(gval L), phi1 1%g == phi2 1%g ->
+   exists S1 : seq 'CF(L),
+     [/\ phi1 \in S1, phi2 \in S1, cfConjC_subset S1 S & coherent S1 L^# tau]}.
+Proof.
+move=> scohS phi1 phi2 Sphi1 Sphi2 /= eq_phi12_1.
+have [[N_S _ ccS] _ _ _ _] := scohS.
+pose S1 := undup (phi1 :: phi1^* :: phi2 :: phi2^*)%CF.
+have sS1S: cfConjC_subset S1 S.
+  split=> [|chi|chi]; rewrite ?undup_uniq //= !mem_undup; move: chi; apply/allP.
+    by rewrite /= !ccS ?Sphi1 ?Sphi2.
+  by rewrite /= !inE !cfConjCK !eqxx !orbT. 
+exists S1; rewrite !mem_undup !inE !eqxx !orbT; split=> //.
+apply: uniform_degree_coherence (subset_subcoherent scohS sS1S) _.
+apply/(@all_pred1_constant _ (phi2 1%g))/allP=> _ /mapP[chi S1chi ->] /=.
+rewrite mem_undup in S1chi; move: chi S1chi; apply/allP.
+by rewrite /= !cfAut_char1 ?N_S // eqxx eq_phi12_1.
+Qed.
 
 (* This is Peterfalvi (5.8). *)
 Lemma coherent_prDade_TIred (G H L K W W1 W2 : {group gT}) A A0 S

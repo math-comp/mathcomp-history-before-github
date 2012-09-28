@@ -145,6 +145,13 @@ rewrite -subG1 -setD_eq0 setDE setIAC -setDE (sameP eqP set1gP).
 by case/set0Pn=> y /setIP[Hy cxy]; rewrite -(regH y Hy) inE Kx cent1C.
 Qed.
 
+Lemma semiregularS K1 K2 A1 A2 :
+  K1 \subset K2 -> A1 \subset A2 -> semiregular K2 A2 -> semiregular K1 A1.
+Proof.
+move=> sK12 sA12 regKA2 x /setD1P[ntx /(subsetP sA12)A2x].
+by apply/trivgP; rewrite -(regKA2 x) ?inE ?ntx ?setSI.
+Qed.
+
 Lemma semiregular_prime H K : semiregular K H -> semiprime K H.
 Proof.
 move=> regH x Hx; apply/eqP; rewrite eqEsubset {1}regH // sub1G.
@@ -153,6 +160,15 @@ Qed.
 
 Lemma semiprime_regular H K : semiprime K H -> 'C_K(H) = 1 -> semiregular K H.
 Proof. by move=> prKH tiKcH x Hx; rewrite prKH. Qed.
+
+Lemma semiprimeS K1 K2 A1 A2 :
+  K1 \subset K2 -> A1 \subset A2 -> semiprime K2 A2 -> semiprime K1 A1.
+Proof.
+move=> sK12 sA12 prKA2 x /setD1P[ntx A1x].
+apply/eqP; rewrite eqEsubset andbC -{1}cent_set1 setIS ?centS ?sub1set //=.
+rewrite -(setIidPl sK12) -!setIA prKA2 ?setIS ?centS //.
+by rewrite !inE ntx (subsetP sA12).
+Qed.
 
 Lemma cent_semiprime H K X :
    semiprime K H -> X \subset H -> X :!=: 1 -> 'C_K(X) = 'C_K(H).
@@ -571,6 +587,26 @@ exists H; apply/Frobenius_semiregularP; rewrite ?sdprodE //.
   by apply: contraNneq (proper_subn ltKG) => H1; rewrite -defG H1 mulg1.
 apply: semiregular_sym => x Kx; apply/trivgP; rewrite -tiKH.
 by rewrite subsetI subsetIl (subset_trans _ (regK x _)) ?setSI.
+Qed.
+
+Lemma set_Frobenius_compl G K H :
+  K ><| H = G -> [Frobenius G with kernel K] -> [Frobenius G = K ><| H].
+Proof.
+move=> defG /Frobenius_kerP[ntK ltKG _ regKG].
+apply/Frobenius_semiregularP=> //.
+  by apply: contraTneq ltKG => H_1; rewrite -defG H_1 sdprodg1 properxx.
+apply: semiregular_sym => y /regKG sCyK.
+have [_ sHG _ _ tiKH] := sdprod_context defG.
+by apply/trivgP; rewrite /= -(setIidPr sHG) setIAC -tiKH setSI.
+Qed.
+
+Lemma Frobenius_kerS G K G1 :
+    G1 \subset G -> K \proper G1 ->
+  [Frobenius G with kernel K] -> [Frobenius G1 with kernel K].
+Proof.
+move=> sG1G ltKG1 /Frobenius_kerP[ntK _ /andP[_ nKG] regKG].
+apply/Frobenius_kerP; rewrite /normal proper_sub // (subset_trans sG1G) //.
+by split=> // x /regKG; apply: subset_trans; rewrite setSI.
 Qed.
 
 Lemma Frobenius_action_kernel_def G H K sT S to :

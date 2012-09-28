@@ -569,7 +569,7 @@ pose psi := 'Ind 'chi_k - mu_ j; have Npsi: psi \is a character.
   have [[i /eqP Dl] | ] := altP (@existsP _ (fun i => 'chi_l == mu2_ i j)).
     have [n Da] := CnatP a Na; rewrite Da cfdotC Dl cfdot_prTIirr_red.
     rewrite rmorph_nat -natrB ?Cnat_nat // eqxx lt0n -eqC_nat -Da.
-    by rewrite -irr_consttE constt_Ind_constt_Res Dl cfRes_prTIirr_eq0.
+    by rewrite -irr_consttE constt_Ind_Res Dl cfRes_prTIirr_eq0.
   rewrite negb_exists => /forallP muj'l.
   rewrite cfdot_suml big1 ?subr0 // => i _.
   rewrite cfdot_irr -(inj_eq irr_inj) mulrb ifN_eqC ?muj'l //.
@@ -619,7 +619,7 @@ suffices{phi} theta_inv: 'I_L[theta] = K.
   have irr_phi: phi \in irr L by apply: inertia_Ind_irr; rewrite ?theta_inv.
   right; split=> // i j; apply: contraNneq imIchi'k => Dphi; apply/imsetP.
   exists j => //; apply/eqP; rewrite -[k == _]constt_irr -(cfRes_prTIirr i).
-  by rewrite -constt_Ind_constt_Res -/phi Dphi irr_consttE cfnorm_irr oner_eq0.
+  by rewrite -constt_Ind_Res -/phi Dphi irr_consttE cfnorm_irr oner_eq0.
 rewrite -(sdprodW (sdprod_modl defL (sub_inertia _))); apply/mulGidPl.
 apply/subsetP=> z /setIP[W1z Itheta_z]; apply: contraR imIchi'k => K'z.
 have{K'z} [Lz ntz] := (subsetP sW1L z W1z, group1_contra K'z : z != 1%g).
@@ -665,7 +665,7 @@ Theorem prTIind_irr_cases ell (phi := 'chi_ell) :
    {i : _ & {j | phi = mu2_ i j}}
      + {k | k \notin codom Ichi & phi = 'Ind 'chi_k}.
 Proof.
-have [k] := constt_cfRes_irr K ell; rewrite -constt_Ind_constt_Res => kLell.
+have [k] := constt_cfRes_irr K ell; rewrite -constt_Ind_Res => kLell.
 have [[j Dk] | [/irrP/sig_eqW[l1 DkL] chi'k]] := prTIres_irr_cases k.
   have [i /=/eqP <- | mu2j'l] := pickP (fun i => mu2_ i j == phi).
     by left; exists i, j.

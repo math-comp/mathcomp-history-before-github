@@ -1161,6 +1161,13 @@ Prenex Implicits codom iinv.
 Implicit Arguments imageP [T T' f A y].
 Implicit Arguments codomP [T T' f y].
 
+Lemma flatten_imageP (aT : finType) (rT : eqType) A (P : pred aT) (y : rT) :
+  reflect (exists2 x, x \in P & y \in A x) (y \in flatten [seq A x | x in P]).
+Proof.
+by apply: (iffP flatten_mapP) => [][x Px]; exists x; rewrite ?mem_enum in Px *.
+Qed.
+Implicit Arguments flatten_imageP [aT rT A P y].
+
 Section CardFunImage.
 
 Variables (T T' : finType) (f : T -> T').
