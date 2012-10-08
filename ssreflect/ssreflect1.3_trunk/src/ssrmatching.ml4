@@ -897,11 +897,13 @@ ARGUMENT EXTEND cpattern
 | [ "Qed" constr(c) ] -> [ mk_lterm c ]
 END
 
+let (!@) = Compat.to_coqloc
+
 GEXTEND Gram
   GLOBAL: cpattern;
   cpattern: [[ k = ssrtermkind; c = constr ->
     let pattern = mk_term k c in
-    if loc_ofCG pattern <> loc && k = '(' then mk_term 'x' c else pattern ]];
+    if loc_ofCG pattern <> !@loc && k = '(' then mk_term 'x' c else pattern ]];
 END
 
 ARGUMENT EXTEND lcpattern
@@ -917,7 +919,7 @@ GEXTEND Gram
   GLOBAL: lcpattern;
   lcpattern: [[ k = ssrtermkind; c = lconstr ->
     let pattern = mk_term k c in
-    if loc_ofCG pattern <> loc && k = '(' then mk_term 'x' c else pattern ]];
+    if loc_ofCG pattern <> !@loc && k = '(' then mk_term 'x' c else pattern ]];
 END
 
 let interp_pattern ist gl red redty =
