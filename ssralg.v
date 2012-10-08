@@ -4388,6 +4388,33 @@ case/mem_prime_decomp=> p_pr _ _; rewrite pnat_mul pnat_exp eqn0Ngt orbC => <-.
 by rewrite natrM natrX mulf_eq0 expf_eq0 negb_or negb_and pnatE ?inE p_pr.
 Qed.
 
+Lemma natf0_char n : n > 0 -> n%:R == 0 :> R -> exists p, p \in [char R].
+Proof.
+elim: {n}_.+1 {-2}n (ltnSn n) => // m IHm n; rewrite ltnS => le_n_m.
+rewrite leq_eqVlt -pi_pdiv mem_primes; move: (pdiv n) => p.
+case/predU1P=> [<-|/and3P[p_pr n_gt0 /dvdnP[n']]]; first by rewrite oner_eq0.
+move=> def_n; rewrite def_n muln_gt0 andbC prime_gt0 // in n_gt0 *.
+rewrite natrM mulf_eq0 orbC; case/orP; first by exists p; exact/andP.
+by apply: IHm (leq_trans _ le_n_m) _; rewrite // def_n ltn_Pmulr // prime_gt1.
+Qed.
+
+Lemma charf'_nat n : [char R]^'.-nat n = (n%:R != 0 :> R).
+Proof.
+have [-> | n_gt0] := posnP n; first by rewrite eqxx.
+apply/idP/idP => [|nz_n]; last first.
+  by apply/pnatP=> // p p_pr p_dvd_n; apply: contra nz_n => /dvdn_charf <-.
+apply: contraL => n0; have [// | p charRp] := natf0_char _ n0.
+have [p_pr _] := andP charRp; rewrite (eq_pnat _ (eq_negn (charf_eq charRp))).
+by rewrite p'natE // (dvdn_charf charRp) n0.
+Qed.
+
+Lemma charf0P : [char R] =i pred0 <-> (forall n, (n%:R == 0 :> R) = (n == 0)%N).
+Proof.
+split=> charF0 n; last by rewrite !inE charF0 andbC; case: eqP => // ->.
+have [-> | n_gt0] := posnP; first exact: eqxx.
+by apply/negP; case/natf0_char=> // p; rewrite charF0.
+Qed.
+
 Lemma eqf_sqr x y : (x ^+ 2 == y ^+ 2) = (x == y) || (x == - y).
 Proof. by rewrite -subr_eq0 subr_sqr mulf_eq0 subr_eq0 addr_eq0. Qed.
 
@@ -4574,33 +4601,6 @@ Proof. by move=> nzy1 nzy2; rewrite invfM mulrDl !mulrA mulrAC !mulfK. Qed.
 
 Lemma mulf_div x1 y1 x2 y2 : (x1 / y1) * (x2 / y2) = (x1 * x2) / (y1 * y2).
 Proof. by rewrite mulrACA -invfM. Qed.
-
-Lemma natf0_char n : n > 0 -> n%:R == 0 :> F -> exists p, p \in [char F].
-Proof.
-elim: {n}_.+1 {-2}n (ltnSn n) => // m IHm n; rewrite ltnS => le_n_m.
-rewrite leq_eqVlt -pi_pdiv mem_primes; move: (pdiv n) => p.
-case/predU1P=> [<-|/and3P[p_pr n_gt0 /dvdnP[n']]]; first by rewrite oner_eq0.
-move=> def_n; rewrite def_n muln_gt0 andbC prime_gt0 // in n_gt0 *.
-rewrite natrM mulf_eq0 orbC; case/orP; first by exists p; exact/andP.
-by apply: IHm (leq_trans _ le_n_m) _; rewrite // def_n ltn_Pmulr // prime_gt1.
-Qed.
-
-Lemma charf'_nat n : [char F]^'.-nat n = (n%:R != 0 :> F).
-Proof.
-have [-> | n_gt0] := posnP n; first by rewrite eqxx.
-apply/idP/idP => [|nz_n]; last first.
-  by apply/pnatP=> // p p_pr p_dvd_n; apply: contra nz_n => /dvdn_charf <-.
-apply: contraL => n0; have [// | p charFp] := natf0_char _ n0.
-have [p_pr _] := andP charFp; rewrite (eq_pnat _ (eq_negn (charf_eq charFp))).
-by rewrite p'natE // (dvdn_charf charFp) n0.
-Qed.
-
-Lemma charf0P : [char F] =i pred0 <-> (forall n, (n%:R == 0 :> F) = (n == 0)%N).
-Proof.
-split=> charF0 n; last by rewrite !inE charF0 andbC; case: eqP => // ->.
-have [-> | n_gt0] := posnP; first exact: eqxx.
-by apply/negP; case/natf0_char=> // p; rewrite charF0.
-Qed.
 
 Lemma char0_natf_div :
   [char F] =i pred0 -> forall m d, d %| m -> (m %/ d)%:R = m%:R / d%:R :> F.
@@ -5510,6 +5510,9 @@ Definition expf_eq0 := expf_eq0.
 Definition sqrf_eq0 := sqrf_eq0.
 Definition expf_neq0 := expf_neq0.
 Definition natf_neq0 := natf_neq0.
+Definition natf0_char := natf0_char.
+Definition charf'_nat := charf'_nat.
+Definition charf0P := charf0P.
 Definition eqf_sqr := eqf_sqr.
 Definition mulfI := mulfI.
 Definition mulIf := mulIf.
@@ -5530,9 +5533,6 @@ Definition expfB := expfB.
 Definition prodf_inv := prodf_inv.
 Definition addf_div := addf_div.
 Definition mulf_div := mulf_div.
-Definition natf0_char := natf0_char.
-Definition charf'_nat := charf'_nat.
-Definition charf0P := charf0P.
 Definition char0_natf_div := char0_natf_div.
 Definition fpredMr := fpredMr.
 Definition fpredMl := fpredMl.
