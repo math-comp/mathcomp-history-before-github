@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype finfun.
 Require Import bigop finset ssralg fingroup zmodp matrix vector falgebra.
 

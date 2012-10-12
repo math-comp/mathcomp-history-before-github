@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool choice eqtype ssrnat seq div fintype.
 Require Import tuple finfun bigop fingroup perm ssralg zmodp matrix mxalgebra.
 Require Import poly polydiv mxpoly binomial.

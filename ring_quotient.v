@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import eqtype choice ssreflect ssrbool ssrnat ssrfun seq.
 Require Import ssralg generic_quotient.
 

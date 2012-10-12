@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div choice fintype.
 Require Import tuple finfun bigop prime binomial ssralg poly polydiv.
 Require ssrint.

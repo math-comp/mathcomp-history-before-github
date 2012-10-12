@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div choice fintype.
 Require Import tuple finfun bigop ssralg poly polydiv.
 Require Import finset fingroup zmodp morphism perm quotient cyclic.
