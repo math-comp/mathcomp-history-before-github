@@ -1,0 +1,13 @@
+Feit Thompson Theorem 
+---------------------
+It is our great pleasure to announce that the proof of the Odd Order Theorem
+(due to Walter Feit and John G. Thompson) has now been completely
+machine-checked using the Coq proof assistant.
+This concludes a 6 year effort by the Mathematical Components team lead by
+Georges Gonthier (MSR Cambridge) at the Inria Microsoft Research Joint Centre.
+
+For more information, see:
+
+http://www.msr-inria.inria.fr/Projects/math-components/feit-thompson
+
+The Mathematical Components Team
