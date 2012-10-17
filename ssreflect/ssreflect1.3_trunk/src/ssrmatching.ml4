@@ -117,9 +117,11 @@ let prl_term (k, c) = pr_guarded (guard_term k) prl_glob_constr_and_expr c
 let add_genarg tag pr =
   let wit, globwit, rawwit as wits = create_arg None tag in
   let glob _ rarg = in_gen globwit (out_gen rawwit rarg) in
+  Tacintern.add_intern_genarg tag glob;
   let interp _ gl garg = Tacmach.project gl,in_gen wit (out_gen globwit garg) in
+  Tacinterp.add_interp_genarg tag interp;
   let subst _ garg = garg in
-  add_interp_genarg tag (glob, interp, subst);
+  Tacsubst.add_genarg_subst tag subst;
   let gen_pr _ _ _ = pr in
   Pptactic.declare_extra_genarg_pprule
     (rawwit, gen_pr) (globwit, gen_pr) (wit, gen_pr);
@@ -838,9 +840,9 @@ let interp_open_constr ist gl gc =
 let pf_intern_term ist gl (_, c) = glob_constr ist (project gl) (pf_env gl) c
 let interp_term ist gl (_, c) = snd (interp_open_constr ist gl c)
 let glob_ssrterm gs = function
-  | k, (_, Some c) -> k, Tacinterp.intern_constr gs c
+  | k, (_, Some c) -> k, Tacintern.intern_constr gs c
   | ct -> ct
-let subst_ssrterm s (k, c) = k, Tacinterp.subst_glob_constr_and_expr s c
+let subst_ssrterm s (k, c) = k, Tacsubst.subst_glob_constr_and_expr s c
 let pr_ssrterm _ _ _ = pr_term
 let input_ssrtermkind strm = match Stream.npeek 1 strm with
   | [Tok.KEYWORD "("] -> '('

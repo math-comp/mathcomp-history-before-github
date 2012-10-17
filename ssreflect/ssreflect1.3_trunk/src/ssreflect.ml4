@@ -192,9 +192,11 @@ let prl_term (k, c) = pr_guarded (guard_term k) prl_glob_constr_and_expr c
 let add_genarg tag pr =
   let wit, globwit, rawwit as wits = create_arg None tag in
   let glob _ rarg = in_gen globwit (out_gen rawwit rarg) in
+  Tacintern.add_intern_genarg tag glob;
   let interp _ gl garg = Tacmach.project gl,in_gen wit (out_gen globwit garg) in
+  Tacinterp.add_interp_genarg tag interp;
   let subst _ garg = garg in
-  add_interp_genarg tag (glob, interp, subst);
+  Tacsubst.add_genarg_subst tag subst;
   let gen_pr _ _ _ = pr in
   Pptactic.declare_extra_genarg_pprule
     (rawwit, gen_pr) (globwit, gen_pr) (wit, gen_pr);
@@ -1619,7 +1621,7 @@ let hyp_err loc msg id =
   Errors.user_err_loc (loc, "ssrhyp", str msg ++ pr_id id)
 
 let intern_hyp ist (SsrHyp (loc, id) as hyp) =
-  let _ = intern_genarg ist (in_gen rawwit_var (loc, id)) in
+  let _ = Tacintern.intern_genarg ist (in_gen rawwit_var (loc, id)) in
   if not_section_id id then hyp else
   hyp_err loc "Can't clear section hypothesis " id
 
@@ -1695,9 +1697,9 @@ let intern_term ist sigma env (_, c) = glob_constr ist sigma env c
 let interp_term ist gl (_, c) = snd (interp_open_constr ist gl c)
 let force_term ist gl (_, c) = interp_constr ist gl c
 let glob_ssrterm gs = function
-  | k, (_, Some c) -> k, Tacinterp.intern_constr gs c
+  | k, (_, Some c) -> k, Tacintern.intern_constr gs c
   | ct -> ct
-let subst_ssrterm s (k, c) = k, Tacinterp.subst_glob_constr_and_expr s c
+let subst_ssrterm s (k, c) = k, Tacsubst.subst_glob_constr_and_expr s c
 let interp_ssrterm _ gl t = Tacmach.project gl, t
 
 ARGUMENT EXTEND ssrterm
