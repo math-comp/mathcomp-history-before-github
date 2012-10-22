@@ -18,7 +18,7 @@ BUILDING SSREFLECT
   on your system using a standard installation process.
 
 - Your COQBIN environment variable must be point to directory where Coq's
-  binaries are (rememebr to add a final / to the path).
+  binaries are.
 
 - Your PATH environment variable value must make Coq binaries (coqtop,
   coq_makefile,...) accessible. E.g. export PATH="$COQBIN:$PATH"

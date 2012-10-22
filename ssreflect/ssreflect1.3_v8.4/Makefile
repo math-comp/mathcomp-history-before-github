@@ -9,6 +9,9 @@ MAKEFLAGS := -r #-j2
 VERSION := $(shell grep 'let ssrversion' src/ssreflect.ml4 | cut -d \" -f 2)
 COQMAKEFILE := Makefile.coq
 COQMAKE := +$(MAKE) -f $(COQMAKEFILE)
+ifneq "$(COQBIN)" ""
+	COQBIN := $(COQBIN)/
+endif
 
 all: $(COQMAKEFILE)
 	mkdir -p bin
