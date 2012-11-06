@@ -43,14 +43,10 @@ Require Import PFsection1 PFsection2.
 (*                           tha Peterfalv text.                              *)
 (*   cyclicTI_NC ctiW phi == the number of eta_ i j constituents of phi.      *)
 (*       (locally) NC phi := #|[set ij | '[phi, eta_ ij .1 ij.2] != 0]|.      *)
-(* The construction of sigma involves other technical definitions, which are  *)
-(* only mentioned in techincal lemmas and should not be used outside this     *)
-(* file:                                                                      *)
-(*      dcTIirr ctiW i j  == the index of a normal virtual character of G,    *)
-(*                           such that for all i, j != 0 we have              *)
-(*                           beta_ i j = - x_ i 0 - x_ 0 j + x_ i j, where    *)
-(*    (locally) beta_ i j := 'Ind[G] (alpha_ i j) - 1.                        *)
-(*      (locally) x_ i j  := dchi (dcTIirr ctiW i j).                         *)
+(* The construction of sigma involves a large combinatorial proof, for which  *)
+(* it is worthwhile to use reflection techniques to automate mundane and      *)
+(* repetitive arguments. We isolate the necessary boilerplate in a separate   *)
+(* CyclicTIisoReflexion module.                                               *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -75,7 +71,779 @@ End Definitions.
 (* that can be folded easily. *)
 Notation cyclicTIirr defW i j := 'chi_(dprod_Iirr defW (i, j)).
 
-Section Proofs.
+Module CyclicTIisoReflexion.
+
+(******************************************************************************)
+(*   Support for carrying out the combinatorial parts of the proof of Theorem *)
+(* (3.5) by reflection. Specifically, we need to show that in a rectangular   *)
+(* array of virtual characters of norm 3, of even dimensions, and such that   *)
+(* the dot product of two entries is 1 if they are on the same row or column, *)
+(* the entries of each column contain a "pivot" normal virtual character      *)
+(* orthogonal to all other columns. The proof never needs to consider more    *)
+(* than a 4 x 2 rectangle, but frequently renumbers lines, columns and        *)
+(* orthonormal components in order to do so.                                  *)
+(*   We want to use reflection to automate this renumbering; we also want to  *)
+(* automate the evaluation of the dot product constaints for partially        *)
+(* described entries of the matrix.                                           *)
+(*   To do so we define a "theory" data structure to store a reifed form of   *)
+(* such partial descriptions: a set of "clauses", each consisting in an index *)
+(* (i, j) into the array, and a collection of "literals" (k, v) representing  *)
+(* constraints '[b_(i, j), x`_k] = v%:~R, with v = 0, 1 or -1. A clause with  *)
+(* exactly three nonzero literals defines b_(i, j) exactly.                   *)
+(*   We define special notation for the concrete instances that appear in     *)
+(* reflected proofs; for example                                              *)
+(*    |= & b11 = -x1 + x2 + x3 & x1, ~x2 in b12 & ? in b31                    *)
+(* denotes the "theory" of arrays whose two left entries decomposes into      *)
+(* x1 + x2 + x3 for some orthonormal x1, x2, and x3, such that the second top *)
+(* entry has x1 is a signed component but is orthogonal to x2, and which have *)
+(* an (unconstrained) first entry in the third column. (The concrete encoding *)
+(* shifts indices to start at 0.)                                             *)
+(*  The "models" in which such theories are interpreted supply the dimensions *)
+(* of the array, which must be even, nonequal and at least 2, the function    *)
+(* mapping indices to array entries, which must be virtual characters with    *)
+(* the requisite norms and dot products, and an orthonormal sequence of       *)
+(* virtual characters that will be used to interpret the xij; a model coerces *)
+(* to any of these three components.                                          *)
+(*   We are primarily interested in two predicates:                           *)
+(*    sat m th <=> the interpretation of th in m is well-defined (no out of   *)
+(*                 bound indices) and valid (all constraints true).           *)
+(*    unsat th <-> forall m, ~ sat m th                                       *)
+(* While the main theorem of this section, column_pivot, can be seen as an    *)
+(* instance of "sat", all the principal combinatorial lemmas use "unsat",     *)
+(* whose universal quantifier allows symmetry reductions. We present the set  *)
+(* of lemmas implementing reflection-assisted proofs of "unsat th" as a small *)
+(* domain-specific proof language consisting of the following tactics:        *)
+(*       consider bij ::= add a clause for bij, which must not appear in th,  *)
+(*                        changing the goal to unsat th & ? in bij.           *)
+(*                        bij must be within a 4 x 2 bounding box, and th     *)
+(*                        must be symmetric if bij "breaks" the 2 x 2 box.    *)
+(*           fill bij ::= add an x(k.+1) literal to the bij clause in th,     *)
+(*                        where x1, ..., xk are all the normal characters     *)
+(*                        appearing in th, and the clause for bij exists and  *)
+(*                        contains assumptions for all of x1, ..., xk, at     *)
+(*                        two of which are nonzero.                           *)
+(* uwlog Dcl: cl [by tac] ::= add the clause cl to th, replacing an existing  *)
+(*                        clause for the same matrix entry. This produces a   *)
+(*                        side goal of unsat th, but with an additional       *)
+(*                        assumption Dcl : unsat th+cl, which can be resolved *)
+(*                        with the optional "by tac".                         *)
+(* uhave lit in bij as T(ij, kl) ::= adds the literal lit (one of xk, -xk, or *)
+(*                        ~xk) to an existing clause for bij in th, using the *)
+(*                        reflection lemma T(ij, kl) to rule out the other    *)
+(*                        possibilities for xk. Here T can be either O        *)
+(*                        (general dot product evaluation) or L (specific     *)
+(*                        line/column constraints following from (3.5.2)).    *)
+(* uhave lit, lit' in bij as T(ij, kl) ::= adds both lit and lit'.            *)
+(* uhave lit | lit' in bij as T(ij, kl) ::= produces two subgoals, where lit  *)
+(*                        (resp. lit') is added to the ... in bij clause in   *)
+(*                        th, using T(ij, kl) to eliminate the third literal. *)
+(*                        (lit and lit' must constrain the same component).   *)
+(* uhave lit | lit' | lit'' in bij ::= produces three subgoals, where lit     *)
+(*                        (resp. lit', lit'') is added to the bij clause in   *)
+(*                        th; lit, lit', lit'' should be a permutation of xk, *)
+(*                        -xk, and ~xk for some k.                            *)
+(* uwlog Ebij: lit | lit' in bij as T(ij, kl) ::= adds lit to the bij clause  *)
+(*                        in th, but produces a side goal where lit' has been *)
+(*                        added instead, with an additional assumption        *)
+(*                        Ebij: th + (lit in bij); T(ij, kl) is used to rule  *)
+(*                        out the third value.                                *)
+(* counter to T(ij, kl) ::= use T(ij, kl) to conclude that unsat th.          *)
+(*          uexact Hth' ::= use Hth' : unsat th', where th' is a subset of th *)
+(*                       (with the same order of literals) to conclude.       *)
+(*    symmetric to Hth' ::= use Hth' : unsat th', where th' is a permutation  *)
+(*                       of a subset of th (preserving columns, and with at   *)
+(*                       most one row exchange) to conclude.                              *)
+(******************************************************************************)
+
+Import ssrint.
+
+(* Clause left-hand side, a reference to a value of beta; in the reference    *)
+(* model m, (i, j) stands for beta_ (inord i.+1) (inord j.+1).                *)
+Definition ref := (nat * nat)%type.
+Implicit Type ij : ref.
+Definition Ref b_ij : ref := edivn (b_ij - 11) 10. (* Ref 21 = (1, 0). *)
+Notation "''b' ij" := (Ref ij) (at level 0, ij at level 0, format "''b' ij").
+Notation b11 := 'b11. Notation b12 := 'b12.
+Notation b21 := 'b21. Notation b22 := 'b22.
+Notation b31 := 'b31. Notation b32 := 'b32.
+Notation b41 := 'b41. Notation b42 := 'b42.
+
+Definition bbox := (nat * nat)%type. (* bounding box for refs. *)
+Implicit Type bb : bbox.
+Identity Coercion pair_of_bbox : bbox >-> prod.
+
+Definition sub_bbox bb1 bb2 := (bb1.1 <= bb2.1)%N && (bb1.2 <= bb2.2)%N.
+Definition wf_ref bb := [pred ij : ref | (ij.1 < bb.1)%N && (ij.2 < bb.2)%N].
+Definition dot_ref ij1 ij2 := ((ij1.1 == ij2.1).+1 * (ij1.2 == ij2.2).+1 - 1)%N.
+
+Lemma bbox_refl bb : sub_bbox bb bb. Proof. exact/andP. Qed.
+
+(* Clause right-hand side litteral, denoting the projection of the left-hand  *)
+(* side on an irreducible character of G: in a valid model m, (k, v) stands   *)
+(* for the component m`_k *~ v = (model_xi m)`_k, and for the projection      *)
+(* constraint '[m i j, m`_k] == v%:~R.                                        *)
+Definition lit := (nat * int)%type. (* +x1 = (0,1) ~x2 = (1,0) -x3 = (2, -1)  *)
+Implicit Types (kv : lit) (kvs : seq lit).
+Definition Lit k1 v : lit := if (0 + k1)%N is k.+1 then (k, v) else (k1, v).
+Notation "+x k" := (Lit k 1) (at level 0, k at level 0, format "+x k").
+Notation "-x k" := (Lit k (-1)) (at level 0, k at level 0, format "-x k").
+Notation "~x k" := (Lit k 0) (at level 0, k at level 0, format "~x k").
+Notation x1 := +x1. Notation x2 := +x2.
+Notation x3 := +x3. Notation x4 := +x4.
+Notation x5 := +x5. Notation x6 := +x6.
+Notation x7 := +x7. Notation x8 := +x8.
+
+Definition AndLit kvs kv := kv :: kvs.
+Definition AddLit := AndLit.
+Notation "(*dummy*)" := (Prop Prop) (at level 0) : defclause_scope.
+Arguments Scope AddLit [defclause_scope _].
+Infix "+" := AddLit : defclause_scope.
+Definition SubLit kvs kv := AddLit kvs (kv.1, - kv.2).
+Arguments Scope SubLit [defclause_scope _].
+Infix "-" := SubLit : defclause_scope.
+Coercion LastLit kv := [:: kv].
+
+Fixpoint norm_cl kvs : nat :=
+  (if kvs is (_, v) :: kvs1 then `|v| ^ 2 + norm_cl kvs1 else 0)%N.
+
+Definition clause := (ref * seq lit)%type.
+Implicit Type cl : clause.
+Definition Clause ij kvs : clause := (ij, kvs).
+Notation "& kv1 , .. , kvn 'in' ij" :=
+  (Clause ij (AndLit .. (AndLit nil kv1) .. kvn))
+  (at level 200, ij, kv1, kvn at level 0,
+   format "&  kv1 ,  .. ,  kvn  'in'  ij").
+Notation "& ? 'in' ij" := (Clause ij nil)
+  (at level 200, ij at level 0, format "&  ?  'in'  ij").
+Definition DefClause := Clause.
+Arguments Scope DefClause [_ defclause_scope].
+Notation "& ij = kvs" := (DefClause ij kvs)
+  (at level 200, ij at level 0, format "&  ij  =  kvs").
+
+Definition theory := seq clause.
+Implicit Type th : theory.
+Definition AddClause th cl : theory := cl :: th.
+Notation "|= cl1 .. cln" := (AddClause .. (AddClause nil cl1) .. cln)
+  (at level 8, cl1, cln at level 200,
+   format "|=  '[hv' cl1 '/'  .. '/'  cln ']'").
+
+(* Transpose (W1 / W2 symmetry). *)
+
+Definition tr (ij : nat * nat) : ref := (ij.2, ij.1).
+Definition tr_th th : theory := [seq (tr cl.1, cl.2) | cl <- th].
+
+Lemma trK : involutive tr. Proof. by case. Qed.
+Lemma tr_thK : involutive tr_th. Proof. by apply: mapK => [[[i j] kvs]]. Qed.
+
+(* Index range of a theory. *)
+
+Fixpoint th_bbox th : bbox :=
+  if th is (i, j, _) :: th1 then
+    let: (ri, rj) := th_bbox th1 in (maxn i.+1 ri, maxn j.+1 rj)
+  else (0, 0)%N.
+
+Lemma th_bboxP th bb :
+  reflect {in th, forall cl, cl.1 \in wf_ref bb} (sub_bbox (th_bbox th) bb).
+Proof.
+pose in_bb := [pred cl : clause | cl.1 \in wf_ref bb].
+suffices ->: sub_bbox (th_bbox th) bb = all in_bb th by apply: allP.
+elim: th => [|[[i j] _] th] //=; case: (th_bbox th) => ri rj /=.
+by rewrite /sub_bbox /= !geq_max andbACA => ->.
+Qed.
+Implicit Arguments th_bboxP [th bb].
+
+Fixpoint th_dim th : nat :=
+  if th is (_, kvs) :: th1 then
+    foldr (fun kv => maxn kv.1.+1) (th_dim th1) kvs
+  else 0%N.
+
+Lemma th_dimP th bk :
+  reflect {in th, forall cl, {in cl.2, forall kv, kv.1 < bk}}%N
+          (th_dim th <= bk)%N.
+Proof.
+pose in_bk := [pred cl : clause | all (fun kv => kv.1 < bk)%N cl.2].
+suffices ->: (th_dim th <= bk)%N = all in_bk th.
+  by apply: (iffP allP) => bk_th cl /bk_th/allP.
+elim: th => // [[_ kvs] th /= <-]; elim: kvs => //= kv kvs.
+by rewrite -andbA geq_max => ->.
+Qed.
+Implicit Arguments th_dimP [th bk].
+
+(* Theory and clause lookup. *)
+
+CoInductive get_spec T (P : T -> Prop) (Q : Prop) : option T -> Prop :=
+  | GetSome x of P x : get_spec P Q (Some x)
+  | GetNone of Q     : get_spec P Q None.
+
+Fixpoint get_cl ij (th : theory) : option clause :=
+  if th is cl :: th1 then if cl.1 == ij then Some cl else get_cl ij th1
+  else None.
+
+Lemma get_clP ij (th : theory) :
+  get_spec (fun cl : clause => cl \in th /\ cl.1 = ij) True (get_cl ij th).
+Proof.
+elim: th => /= [|cl th IHth]; first by right.
+case: eqP => [Dij | _]; first by left; rewrite ?mem_head.
+by case: IHth => [cl1 [th_cl1 Dij]|]; constructor; rewrite // mem_behead.
+Qed.
+
+Fixpoint get_lit (k0 : nat) kvs : option int :=
+  if kvs is (k, v) :: kvs1 then if k == k0 then Some v else get_lit k0 kvs1
+  else None.
+
+Lemma get_litP k0 kvs :
+  get_spec (fun v => (k0, v) \in kvs) (k0 \notin unzip1 kvs) (get_lit k0 kvs).
+Proof.
+elim: kvs => [|[k v] kvs IHkvs /=]; [by right | rewrite inE eq_sym].
+have [-> | k'0] := altP eqP; first by left; rewrite ?mem_head.
+by have [v0 kvs_k0v | kvs'k0] := IHkvs; constructor; rewrite // mem_behead.
+Qed.
+
+(* Theory extension. *)
+
+Fixpoint set_cl cl2 th : wrapped theory :=
+  if th is cl :: th1 then
+    let: Wrap th2 := set_cl cl2 th1 in
+    if cl.1 == cl2.1 then Wrap (AddClause th2 cl2) else Wrap (AddClause th2 cl)
+  else Wrap nil.
+
+Definition ext_cl th cl k v :=
+  let: (ij, kvs) := cl in set_cl (Clause ij (AndLit kvs (Lit k.+1 v))) th.
+
+Definition wf_ext_cl cl k rk := (k \notin unzip1 cl.2) && (k < rk)%N.
+
+Definition wf_fill k kvs := (size kvs == k) && (norm_cl kvs < 3)%N.
+
+Lemma ext_clP cl1 th k v (cl1k := (cl1.1, (k, v) :: cl1.2)) :
+    cl1 \in th ->
+  exists2 th1, ext_cl th cl1 k v = Wrap th1
+        & cl1k \in th1 
+        /\ th1 =i [pred cl | if cl.1 == cl1.1 then cl == cl1k else cl \in th].
+Proof.
+case: cl1 => ij kvs /= in cl1k * => th_cl1; set th1p := [pred cl | _].
+pose th1 := [seq if cl.1 == ij then cl1k else cl | cl <- th].
+exists th1; first by elim: (th) @th1 => //= cl th' ->; rewrite -2!fun_if.
+suffices Dth1: th1 =i th1p by rewrite Dth1 !inE !eqxx.
+move=> cl; rewrite inE; apply/mapP/idP=> [[{cl}cl th_cl ->] | ].
+  by case cl_ij: (cl.1 == ij); rewrite ?eqxx ?cl_ij.
+case: ifP => [_ /eqP-> | cl'ij th_cl]; last by exists cl; rewrite ?cl'ij.
+by exists (ij, kvs); rewrite ?eqxx.
+Qed.
+
+(* Satisfiability tests. *)
+
+Definition sat_test (rO : rel clause) ij12 th :=
+  if get_cl (Ref ij12.1) th is Some cl1 then
+    oapp (rO cl1) true (get_cl (Ref ij12.2) th)
+  else true.
+
+(* This reflects the application of (3.5.1) for an arbitrary pair of entries. *)
+Definition Otest cl1 cl2 :=
+  let: (ij1, kvs1) := cl1 in let: (ij2, kvs2) := cl2 in
+  let fix loop s1 s2 kvs2 :=
+    if kvs2 is (k, v2) :: kvs2 then
+      if get_lit k kvs1 is Some v1 then loop (v1 * v2 + s1) s2 kvs2 else
+      loop s1 s2.+1 kvs2
+    else (s1, if norm_cl kvs1 == 3 then 0%N else s2) in
+  let: (s1, s2) := loop 0 0%N kvs2 in
+  (norm_cl kvs2 == 3) ==> (`|s1 - dot_ref ij1 ij2| <= s2)%N.
+
+(* Matching up to a permutation of the rows, columns, and base vectors. *)
+
+Definition sub_match th1 th2 :=
+  let match_cl cl1 cl2 :=
+    if cl2.1 == cl1.1 then subseq cl1.2 cl2.2 else false in
+  all [pred cl1 | has (match_cl cl1) th2] th1.
+
+Definition wf_consider ij th (ri := (th_bbox th).1) :=
+  (ij.1 < 2 + ((2 < ri) || sub_match th (tr_th th)).*2)%N && (ij.2 < 2)%N.
+
+CoInductive sym := Sym (si : seq nat) (sj : seq nat) (sk : seq nat).
+
+Definition sym_match s th1 th2 :=
+  let: Sym si sj sk := s in let: (ri, rj, rk) := (th_bbox th1, th_dim th1) in
+  let is_sym r s := uniq s && all (gtn r) s in
+  let match_cl cl2 :=
+    let: (i2, j2, kvs2) := cl2 in let ij := (nth ri si i2, nth rj sj j2) in
+    let match_lit kvs1 kv := (nth rk sk kv.1, kv.2) \in kvs1 in
+    let match_cl1 cl1 :=
+      let: (ij1, kvs1) := cl1 in (ij1 == ij) && all (match_lit kvs1) kvs2 in
+    uniq (unzip1 kvs2) && has match_cl1 th1 in
+  [&& is_sym ri si, is_sym rj sj, is_sym rk sk & all match_cl th2].
+
+(* Try to compute the base vector permutation for a given row and column      *)
+(* permutation. We assume each base vector is determined by the entries of    *)
+(* which it is a proper constituent, and that there are at most two columns.  *)
+Definition find_sym_k th1 th2 (si sj : seq nat) :=
+  let store_lit c kv ksig :=
+    let: (k, v) := kv in if v == 0 then ksig else let cv := (c, v) in
+    let fix insert_in cvs :=
+      if cvs is cv' :: cvs' then
+        if (c < cv'.1)%N then cv :: cvs else cv' :: insert_in cvs'
+      else [:: cv] in
+    set_nth nil ksig k (insert_in (nth nil ksig k)) in
+  let fix read_lit ksig1 ksig2 :=
+    if ksig1 is cvs :: ksig1' then
+      let k := index cvs ksig2 in
+      k :: read_lit ksig1' (set_nth nil ksig2 k nil)
+    else nil in
+  let fix store2 ksig1 ksig2 cls1 :=
+    if cls1 is (i1, j1, kvs1) :: cls1' then
+      if get_cl (nth 0 si i1, nth 0 sj j1)%N th2 is Some (_, kvs2) then
+        let st_kvs := foldr (store_lit (i1.*2 + j1)%N) in (* assume j1 <= 1 *)
+        store2 (st_kvs ksig1 kvs1) (st_kvs ksig2 kvs2) cls1'
+      else None
+    else
+      let sk := read_lit ksig1 ksig2 in
+      if all (gtn (size ksig2)) sk then Some (Sym si sj sk) else None in
+  store2 nil nil th1.
+
+(* Try to find a symmetry that maps th1 to th2, assuming the same number of   *)
+(* rows and columns, and considering at most one row exchange.                *)
+Definition find_sym th1 th2 :=
+  let: (ri, rj) := th_bbox th2 in let si := iota 0 ri in let sj := iota 0 rj in
+  if find_sym_k th1 th2 si sj is Some _ as s then s else
+  let fix loop m :=
+    if m is i.+1 then
+      let fix inner_loop m' :=
+        if m' is i'.+1 then
+          let si' := (set_nth 0 (set_nth 0 si i i') i' i)%N in
+          if find_sym_k th1 th2 si' sj is Some _ as s then s else inner_loop i'
+        else None in
+      if inner_loop i is Some _ as s then s else loop i
+    else None in
+  loop ri.
+
+Section Interpretation.
+
+Variables (gT : finGroupType) (G : {group gT}).
+
+Definition is_Lmodel bb b :=
+  [/\ [/\ odd bb.1.+1, odd bb.2.+1, bb.1 > 1, bb.2 > 1 & bb.1 != bb.2]%N,
+      forall ij, b ij \in 'Z[irr G]
+    & {in wf_ref bb &, forall ij1 ij2, '[b ij1, b ij2] = (dot_ref ij1 ij2)%:R}].
+
+Definition is_Rmodel X := orthonormal X /\ {subset X <= 'Z[irr G]}.
+
+Inductive model := Model bb f X of is_Lmodel bb f & is_Rmodel X.
+
+Coercion model_bbox m := let: Model d _ _ _ _ := m in d.
+Definition model_entry m := let: Model _ f _ _ _ := m in f.
+Coercion model_entry : model >-> Funclass.
+Coercion model_basis m := let: Model _ _ X _ _ := m in X.
+Lemma LmodelP (m : model) : is_Lmodel m m. Proof. by case: m. Qed.
+Lemma RmodelP (m : model) : is_Rmodel m. Proof. by case: m. Qed.
+
+Fact nil_RmodelP : is_Rmodel nil. Proof. by []. Qed.
+
+Definition eval_cl (m : model) kvs := \sum_(kv <- kvs) m`_kv.1 *~ kv.2.
+
+Definition sat_lit (m : model) ij kv := '[m ij, m`_kv.1] == kv.2%:~R.
+Definition sat_cl m cl := uniq (unzip1 cl.2) && all (sat_lit m cl.1) cl.2.
+
+Definition sat (m : model) th :=
+  [&& sub_bbox (th_bbox th) m, th_dim th <= size m & all (sat_cl m) th]%N.
+Definition unsat th := forall m, ~ sat m th.
+
+Lemma satP (m : model) th :
+  reflect {in th, forall cl,
+              [/\ cl.1 \in wf_ref m, uniq (unzip1 cl.2)
+                & {in cl.2, forall kv, kv.1 < size m /\ sat_lit m cl.1 kv}%N]}
+          (sat m th).
+Proof.
+apply: (iffP and3P) => [[/th_bboxP thbP /th_dimP thdP /allP thP] cl th_cl |thP].
+  have /andP[-> clP] := thP _ th_cl; split=> // [|kv cl_kv]; first exact: thbP.
+  by rewrite (thdP _ th_cl) ?(allP clP).
+split; first by apply/th_bboxP=> cl /thP[].
+  by apply/th_dimP=> cl /thP[_ _ clP] kv /clP[].
+by apply/allP=> cl /thP[_ Ucl clP]; rewrite /sat_cl Ucl; apply/allP=> kv /clP[].
+Qed.
+Implicit Arguments satP [m th].
+
+(* Reflexion of the dot product. *)
+
+Lemma norm_clP m th cl :
+    sat m th -> cl \in th ->
+  let norm := norm_cl cl.2 in let beta := m cl.1 in 
+  [/\ (norm <= 3)%N, norm == 3 -> beta = eval_cl m cl.2
+    & (norm < 3)%N -> size cl.2 == size m -> 
+      exists2 dk, dk \in dirr_constt beta & orthogonal (dchi dk) m].
+Proof.
+case: cl => ij kvs /satP thP /thP[wf_ij Uks clP] norm beta.
+have [[_ ZmL Dm] [o1m ZmR]] := (LmodelP m, RmodelP m).
+set ks := unzip1 kvs in Uks; pose Aij := [seq m`_k | k <- ks].
+have lt_ks k: k \in ks -> (k < size m)%N by case/mapP=> kv /clP[ltk _] ->.
+have sAm: {subset Aij <= (m : seq _)}
+  by move=> _ /mapP[k /lt_ks ltk ->]; rewrite mem_nth.
+have o1Aij: orthonormal Aij.
+  have [Um _] := orthonormalP o1m; apply: sub_orthonormal o1m => //.
+  rewrite map_inj_in_uniq // => k1 k2 /lt_ks ltk1 /lt_ks ltk2 /eqP.
+  by apply: contraTeq; rewrite nth_uniq.
+have [X AijX [Y [defXY oXY oYij]]] := orthogonal_split Aij beta.
+have{AijX} defX: X = \sum_(xi <- Aij) '[beta, xi] *: xi.
+  have [_ -> ->] := orthonormal_span o1Aij AijX; apply: eq_big_seq => xi CFxi.
+  by rewrite defXY cfdotDl (orthoPl oYij) ?addr0.
+have ->: eval_cl m kvs = X.
+  rewrite {}defX !big_map; apply: eq_big_seq => kv /clP[_ /eqP->].
+  by rewrite scaler_int.
+rewrite -leC_nat -ltC_nat -eqC_nat /=.
+have <-: '[beta] = 3%:R by rewrite Dm // /dot_ref !eqxx.
+have <-: '[X] = norm%:R.
+  rewrite {}defX {}/norm cfnorm_sum_orthonormal // {o1Aij oYij sAm}/Aij.
+  transitivity (\sum_(kv <- kvs) `|kv.2%:~R| ^+ 2 : algC).
+    by rewrite !big_map; apply: eq_big_seq => kv /clP[_ /eqP->].
+  rewrite unlock /=; elim: (kvs) => //= [[k v] kvs' ->].
+  by rewrite -intr_norm -natrX -natrD.
+rewrite defXY cfnormDd //; split; first by rewrite ler_paddr ?cfnorm_ge0.
+  by rewrite eq_sym addrC -subr_eq0 addrK cfnorm_eq0 => /eqP->; rewrite addr0.
+have{ZmL} Zbeta: beta \in 'Z[irr G] by apply: ZmL.
+have Z_X: X \in 'Z[irr G].
+  rewrite defX big_seq rpred_sum // => xi /sAm/ZmR Zxi.
+  by rewrite rpredZ_Cint ?Cint_cfdot_vchar.
+rewrite -ltr_subl_addl subrr cnorm_dconstt; last first.
+  by rewrite -[Y](addKr X) -defXY addrC rpredB.
+have [-> | [dk Ydk] _ /eqP sz_kvs] := set_0Vmem (dirr_constt Y).
+  by rewrite big_set0 ltrr.
+have Dks: ks =i iota 0 (size m).
+  have: {subset ks <= iota 0 (size m)} by move=> k /lt_ks; rewrite mem_iota.
+  by case/leq_size_perm=> //; rewrite size_iota size_map sz_kvs.
+suffices o_dk_m: orthogonal (dchi dk) m.
+  exists dk; rewrite // dirr_consttE defX cfdotDl cfdot_suml.
+  rewrite big1_seq ?add0r -?dirr_consttE // => xi /sAm CFxi.
+  by rewrite cfdotC cfdotZr (orthoPl o_dk_m) // mulr0 conjC0.
+apply/orthoPl=> _ /(nthP 0)[k ltk <-]; have [Um o_m] := orthonormalP o1m.
+have Z1k: m`_k \in dirr G by rewrite dirrE ZmR ?o_m ?eqxx ?mem_nth.
+apply: contraTeq Ydk => /eqP; rewrite dirr_consttE cfdot_dirr ?dirr_dchi //.
+have oYm: '[Y, m`_k] = 0 by rewrite (orthoPl oYij) ?map_f // Dks mem_iota.
+by do 2?case: eqP => [-> | _]; rewrite // ?cfdotNr oYm ?oppr0 ltrr.
+Qed.
+
+Lemma norm_cl_eq3 m th cl :
+  sat m th -> cl \in th -> norm_cl cl.2 == 3 -> m cl.1 = eval_cl m cl.2.
+Proof. by move=> m_th /(norm_clP m_th)[]. Qed.
+
+Lemma norm_lit m th cl kv :
+  sat m th -> cl \in th -> kv \in cl.2 -> (`|kv.2| <= 1)%N.
+Proof.
+move=> m_th /(norm_clP m_th)[cl_le3 _ _].
+elim: cl.2 => //= [[k v] kvs IHkvs] in cl_le3 * => /predU1P[-> | /IHkvs->//].
+  by apply: contraLR cl_le3; rewrite -ltnNge -leq_sqr => /subnKC <-.
+exact: leq_trans (leq_addl _ _) cl_le3.
+Qed.
+
+(* Decision procedure framework (in which we will define O and L). *)
+
+Definition is_sat_test (tO : pred theory) := forall m th, sat m th -> tO th.
+
+Lemma sat_testP (rO : rel clause) ij12 :
+    (forall m th cl1 cl2, sat m th -> cl1 \in th -> cl2 \in th -> rO cl1 cl2) ->
+  is_sat_test (sat_test rO ij12).
+Proof.
+rewrite /sat_test => O m th /O O_th; case: get_clP => // cl1 [th_cl1 _].
+by case: get_clP => // cl2 [th_cl2 _]; apply: O_th.
+Qed.
+
+(* Case analysis on the value of a specific projection. *)
+
+Definition lit_vals : seq int := [:: 0; 1; -1].
+
+Lemma sat_cases (m : model) th k cl :
+    sat m th -> cl \in th -> wf_ext_cl cl k (size m) ->
+  exists2 v, v \in lit_vals & sat m (unwrap (ext_cl th cl k v)).
+Proof.
+case: cl => ij kvs /satP thP th_cl /andP[cl'k ltkm].
+have [[_ ZmL _] [o1m ZmR]] := (LmodelP m, RmodelP m).
+have [m_ij Uij clP] := thP _ th_cl.
+have /CintP[v Dv]: '[m ij, m`_k] \in Cint.
+  by rewrite Cint_cfdot_vchar ?ZmL ?ZmR ?mem_nth.
+have [/= th1 Dthx [th1_cl Dth1]] := ext_clP k v th_cl.
+suffices{Dthx} m_th1: sat m th1.
+  exists v; last by rewrite /ext_cl Dthx.
+  by case: (v) (norm_lit m_th1 th1_cl (mem_head _ _)); do 2?case.
+apply/satP=> cl1; rewrite Dth1 inE; case: ifP => [_ /eqP-> | _ /thP] //=.
+by rewrite cl'k; split=> // kv /predU1P[-> | /clP//]; rewrite /sat_lit Dv.
+Qed.
+Implicit Arguments sat_cases [m th cl].
+
+Definition unsat_cases_hyp th0 kvs tO cl :=
+  let: (k, _) := head (2, 0) kvs in let thk_ := ext_cl th0 cl k in
+  let th's := [seq unwrap (thk_ v) | v <- lit_vals & v \notin unzip2 kvs] in
+  let add hyp kv :=
+    let: (_, v) := kv in let: Wrap th := thk_ v in hyp /\ unsat th in
+  foldl add (wf_ext_cl cl k (th_dim th0) && all (predC tO) th's) kvs.
+
+Lemma unsat_cases th ij kvs tO :
+    is_sat_test tO -> oapp (unsat_cases_hyp th kvs tO) False (get_cl ij th) ->
+  unsat th.
+Proof.
+case: get_clP => //= cl [th_cl _] O; rewrite /unsat_cases_hyp.
+case: head => k _; set thk_ := ext_cl th cl k; set add := fun _ _ => _.
+set wf_kvs := _ && _; rewrite -[kvs]revK foldl_rev => Ukvs m m_th.
+have{Ukvs}: all (fun kv => ~~ sat m (unwrap (thk_ kv.2))) (rev kvs) && wf_kvs.
+  elim: rev Ukvs => // [[_ v] /= kvs' IH]; case Dthk: (thk_ v) => [thv] [/IH].
+  by rewrite -andbA => -> Uthk; rewrite andbT; apply/negP; apply: Uthk.
+case/and3P=> /allP Uthkvs /andP[cl'k ltkr] /allP Uthkv's.
+have [|{cl'k ltkr} v lit_v m_thv] := sat_cases k m_th th_cl.
+  by rewrite /wf_ext_cl cl'k (leq_trans ltkr) //; have [] := and3P m_th.
+have /idPn[] := O _ _ m_thv; apply: Uthkv's; apply: map_f.
+rewrite mem_filter lit_v andbT -mem_rev -map_rev.
+by apply: contraL m_thv => /mapP[kv /Uthkvs m'thkv ->].
+Qed.
+
+(* Dot product reflection. *)
+
+Lemma O ij12 : is_sat_test (sat_test Otest ij12).
+Proof.
+apply: sat_testP => m th [ij1 kvs1] [ij2 kvs2] /= m_th th_cl1 th_cl2.
+set cl1eq := _ == 3; set cl2eq := _ == 3; have [_ _ Dm] := LmodelP m.
+pose goal s1 s2 := cl2eq ==> (`|s1 - (dot_ref ij1 ij2)%:~R| <= s2%:R :> algC).
+set kvs := kvs2; set s1 := 0; set s2 := {2}0%N; have thP := satP m_th.
+have{thP} [[wf_cl1 _ cl1P] [wf_cl2 _ cl2P]] := (thP _ th_cl1, thP _ th_cl2).
+have: goal (s1%:~R + '[m ij1, eval_cl m kvs]) (if cl1eq then 0%N else s2).
+  apply/implyP=> /(norm_cl_eq3 m_th th_cl2) <-.
+  by rewrite if_same Dm // addrK normr0.
+have /allP: {subset kvs <= kvs2} by [].
+rewrite cfdot_sumr unlock; elim: kvs s1 s2 => [|[k v2] kvs IHkvs] s1 s2 /=.
+  by rewrite addr0 /goal -rmorphB pmulrn -!CintrE.
+case/andP=> kvs2_v /IHkvs{IHkvs}IHkvs; have{cl2P} [ltk _] := cl2P _ kvs2_v.
+have [v1 /cl1P[_ /eqP/=Dv1] | kvs1'k] := get_litP.
+  rewrite addrA => gl12; apply: IHkvs; congr (goal (_ + _) _): gl12.
+  by rewrite raddfMz addrC /= Dv1 -mulrzA -rmorphD.
+move=> gl12; apply: IHkvs; case: ifP gl12 => [/(norm_cl_eq3 m_th th_cl1)->|_].
+  rewrite cfdot_suml big1_seq ?add0r //= => kv1 kvs1_kv1.
+  have [[ltk1 _] [/orthonormalP[Um oom] _]] := (cl1P _ kvs1_kv1, RmodelP m).
+  rewrite -!scaler_int cfdotZl cfdotZr oom ?mem_nth ?nth_uniq // mulrb.
+  by rewrite ifN ?mulr0 //; apply: contraNneq kvs1'k => <-; apply: map_f.
+rewrite /goal -(ler_add2r 1) -mulrSr; case: (cl2eq) => //; apply: ler_trans.
+set s := '[_, _]; rewrite -[_ + _](addrK s) (ler_trans (ler_norm_sub _ _)) //.
+rewrite 2![_ + s]addrAC addrA ler_add2l {}/s -scaler_int cfdotZr rmorph_int.
+have [|v1 _] := sat_cases k m_th th_cl1; first exact/andP.
+have [th1 -> /= [th1_cl1 _] m_th1] := ext_clP k v1 th_cl1.
+have [_ _ /(_ _ (mem_head _ _))[_ /eqP->]] := satP m_th1 _ th1_cl1.
+have ubv1: (`|v1| <= 1)%N := norm_lit m_th1 th1_cl1 (mem_head _ _).
+have ubv2: (`|v2| <= 1)%N := norm_lit m_th th_cl2 kvs2_v.
+by rewrite -rmorphM -intr_norm lern1 abszM /= (leq_mul ubv2 ubv1).
+Qed.
+
+(* "Without loss" cut rules. *)
+
+Lemma unsat_wlog cl th :
+   (let: Wrap th1 := set_cl cl th in (unsat th1 -> unsat th) /\ unsat th1) ->  
+  unsat th.
+Proof. by case: set_cl => th1 [Uth /Uth]. Qed.
+
+Lemma unsat_wlog_cases (P : Prop) th1 th2 :
+  P -> (unsat th1 -> unsat th2) -> unsat th1 -> (P /\ unsat th1) /\ unsat th2.
+Proof. by split; auto. Qed.
+
+(* Extend the orthonormal basis *)
+
+Lemma sat_fill m th cl (k := th_dim th) :
+    sat m th -> cl \in th -> wf_fill k cl.2 ->
+  exists mr : {CFk | is_Rmodel CFk},
+    sat (Model (LmodelP m) (svalP mr)) (unwrap (ext_cl th cl k 1)).
+Proof.
+move=> m_th th_cl /andP[/eqP sz_kvs n3cl].
+wlog sz_m: m m_th / size m = k.
+  have lekm: (k <= size m)%N by have [] := and3P m_th.
+  have mrP: is_Rmodel (take k m).
+    have [] := RmodelP m; rewrite -{1 2}(cat_take_drop k m) orthonormal_cat /=.
+    by case/andP=> o1mr _ /allP; rewrite all_cat => /andP[/allP].
+  move/(_ (Model (LmodelP m) mrP)); apply; rewrite ?size_takel //.
+  congr (_ && _): m_th; rewrite lekm size_takel ?leqnn //=.
+  apply: eq_in_all => cl1 /th_dimP lt_cl1; congr (_ && _).
+  by apply: eq_in_all => kv1 /lt_cl1 lt_kv1; rewrite /sat_lit nth_take ?lt_kv1.
+have [_ _ [//||dk cl_dk o_dk_m]] := norm_clP m_th th_cl.
+  by rewrite sz_kvs sz_m.
+have CFkP: is_Rmodel (rcons m (dchi dk)).
+  have [o1m /allP Zm] := RmodelP m.
+  split; last by apply/allP; rewrite all_rcons /= dchi_vchar.
+  rewrite -cats1 orthonormal_cat o1m orthogonal_sym o_dk_m.
+  by rewrite /orthonormal /= cfnorm_dchi eqxx.
+exists (exist _ _ CFkP); set mk := Model _ _.
+have{m_th} mk_th: sat mk th.
+  congr (_ && _): m_th; rewrite size_rcons sz_m leqnn ltnW //=.
+  apply: eq_in_all => cl1 /th_dimP lt_cl1; congr (_ && _).
+  apply: eq_in_all => kv1 /lt_cl1 lt_kv1; congr ('[_, _] == _).
+  by rewrite nth_rcons sz_m lt_kv1.
+have [|{mk_th}v ub_v m_th] := sat_cases k mk_th th_cl.
+  rewrite /wf_ext_cl size_rcons sz_m (contraFN _ (ltnn k)) //=.
+  by case/mapP=> kv kv_cl {1}->; rewrite (th_dimP _ _ th_cl).
+suffices: 0 < v by case/or4P: ub_v m_th => // /eqP->.
+case: (ext_clP k v th_cl) m_th => th1 -> [th1_cl1 _] /and3P[_ _].
+case/allP/(_ _ th1_cl1)/and3P=> _ /eqP/=.
+by rewrite nth_rcons sz_m ltnn eqxx CintrE => <- _; rewrite -dirr_consttE.
+Qed.
+
+Lemma unsat_fill ij th :
+  let fill_cl cl :=
+    if (th_dim th).+1 %/ 1 is k.+1 then
+      let: Wrap thk := ext_cl th cl k 1 in wf_fill k cl.2 /\ unsat thk
+      else True in
+  oapp fill_cl False (get_cl ij th) -> unsat th.
+Proof.
+rewrite divn1; case: get_clP => //= cl [th_cl _].
+case Dthk: ext_cl => [th1] [wf_thk Uth1] m m_th.
+by have [mk] := sat_fill m_th th_cl wf_thk; rewrite Dthk => /Uth1.
+Qed.
+
+(* Matching an assumption exactly. *)
+
+Lemma sat_exact m th1 th2 : sub_match th1 th2 -> sat m th2 -> sat m th1.
+Proof.
+move/allP=> s_th12 /satP th2P; apply/satP => cl1 /s_th12/hasP[cl2 th_cl2].
+case: eqP => // <- s_cl12; have [wf_ij2 Ucl2 cl2P] := th2P _ th_cl2.
+split=> // [|kv /(mem_subseq s_cl12)/cl2P//].
+by rewrite (subseq_uniq _  Ucl2) ?map_subseq.
+Qed.
+
+Lemma unsat_exact th1 th2 : sub_match th1 th2 -> unsat th1 -> unsat th2.
+Proof. by move=> sth21 Uth1 m /(sat_exact sth21)/Uth1. Qed.
+
+(* Transpose (W1 / W2 symmetry). *)
+
+Fact tr_Lmodel_subproof (m : model) : is_Lmodel (tr m) (fun ij => m (tr ij)).
+Proof.
+case: m => /= d f _ [[odd_d1 odd_d2 d1gt1 d2gt1 neq_d12] Zf fP] _.
+split=> // [|[j1 i1] [j2 i2]]; first by rewrite eq_sym. 
+by rewrite ![_ \in _]andbC /= => wf_ij1 wf_ij2; rewrite fP // /dot_ref mulnC.
+Qed.
+
+Definition tr_model m := Model (tr_Lmodel_subproof m) (RmodelP m).
+
+Lemma sat_tr m th : sat m th -> sat (tr_model m) (tr_th th).
+Proof.
+move/satP=> thP; apply/satP=> _ /mapP[[[i j] kvs] /thP[m_ij Uks kvsP] ->].
+by rewrite inE /= andbC.
+Qed.
+
+(* Extend the theory (add a new empty clause). *)
+
+Lemma unsat_consider ij th :
+  wf_consider ij th -> unsat (AddClause th (& ? in ij)) -> unsat th.
+Proof.
+case: ij => i j; case/andP; set sym_t := sub_match _ _ => lti ltj Uthij m m_th.
+wlog le_m21: m m_th / sym_t -> (m.2 <= m.1)%N.
+  move=> IH; apply: (IH m m_th) => sym_th.
+  rewrite leqNgt; apply/negP=> /leqW le_m1_m2.
+  by have /(sat_exact sym_th)/IH[] := sat_tr m_th.
+apply: (Uthij m); congr (_ && _): (m_th) => /=; case: (th_bbox th) => ri rj /=.
+have [[odd_m1 _ m1gt1 m2gt1 neq_m12] _ _] := LmodelP m.
+rewrite /sub_bbox !geq_max (leq_trans ltj) ?(leq_trans lti) //; case: orP => //.
+rewrite -(ltnS 4) (odd_geq _ odd_m1) ltnS.
+case=> [/leq_trans-> // | /le_m21]; first by have [/andP[]] := and3P m_th.
+by rewrite leq_eqVlt eq_sym (negPf neq_m12); apply: leq_trans.
+Qed.
+
+(* Matching up to a permutation of the rows, columns, and base vectors. *)
+
+Lemma unsat_match s th1 th2 : sym_match s th1 th2 -> unsat th2 -> unsat th1.
+Proof.
+pose I_ si mi := si ++ filter [predC si] (iota 0 mi).
+have SsP mi si ri (Ii := I_ si mi):
+    uniq si && all (gtn ri) si -> (ri <= mi)%N ->
+  [/\ {in Ii, forall i, i < mi}%N, uniq Ii & size Ii = mi].
+- case/andP=> Usi /allP/=ltsi le_ri_mi; have uIm := iota_uniq 0 mi.
+  have uIi: uniq Ii by rewrite cat_uniq Usi -all_predC filter_all filter_uniq.
+  have defIi: Ii =i iota 0 mi.
+    move=> i; rewrite mem_cat mem_filter orb_andr orbN mem_iota.
+    by apply: orb_idl => /ltsi/leq_trans->.
+  split=> // [i|]; first by rewrite defIi mem_iota.
+  by rewrite (perm_eq_size (uniq_perm_eq _ _ defIi)) ?size_iota.
+have lt_nth ri si i: (nth ri si i < ri)%N -> (i < size si)%N.
+  by rewrite !ltnNge; apply: contra => le_si; rewrite nth_default.
+case: s => [si sj sk] /= sym12 Uth2 m m_th1; case/and3P: (m_th1) sym12.
+case: th_bbox (th_bboxP (bbox_refl (th_bbox th1))) => ri rj rijP.
+case/andP=> /= leri lerj lerk _ /and4P[Ssi Ssj /andP[Usk /allP/=lesrk] sym12].
+have{Ssi} /SsP/(_ leri)[ltIi uIi szIi] := Ssi.
+have{Ssj SsP} /SsP/(_ lerj)[ltIj uIj szIj] := Ssj.
+pose smL ij := m (nth ri (I_ si m.1) ij.1, nth rj (I_ sj m.2) ij.2)%N.
+pose smR := [seq m`_k | k <- sk].
+have [[lb_m ZmL Dm] [o1m ZmR]] := (LmodelP m, RmodelP m).
+have{lb_m} smLP: is_Lmodel m smL.
+  split=> // [ij | ij1 ij2 /andP[lti1 ltj1] /andP[lti2 ltj2]]; first exact: ZmL.
+  by rewrite Dm ?inE /dot_ref/= ?nth_uniq ?ltIi ?ltIj ?mem_nth ?szIi ?szIj.
+have{lesrk} ubk k: k \in sk -> (k < size m)%N by move=> /lesrk/leq_trans->.
+have smRP: is_Rmodel smR.
+  have ssmR: {subset smR <= (m : seq _)}.
+    by move=> _ /mapP[k s_k ->]; rewrite mem_nth ?ubk.
+  split=> [|xi /ssmR/ZmR//]; have [Um _] := orthonormalP o1m.
+  apply: sub_orthonormal o1m; rewrite ?map_inj_in_uniq //.
+  by apply: can_in_inj (index^~ m) _ => k s_k; rewrite /= index_uniq ?ubk.
+apply: (Uth2 (Model smLP smRP)); apply/satP=> [][[i2 j2] kvs2] /(allP sym12).
+case/andP=> -> /hasP[[[i1 j1] kvs1] th1_cl1 /andP[/eqP[Di1 Dj1] /allP s_kv12]].
+have:= rijP _ th1_cl1; rewrite Di1 Dj1 => /andP[/lt_nth lti1 /lt_nth ltj1].
+rewrite !inE -szIi -szIj !size_cat !(leq_trans _ (leq_addr _ _)) //.
+split=> // kv /s_kv12 kvs1_kv1; rewrite size_map /sat_lit /=.
+have /lt_nth ltk := th_dimP (leqnn _) _ th1_cl1 _ kvs1_kv1; split=> //.
+rewrite (nth_map (th_dim th1)) // /smL !nth_cat lti1 ltj1 -Di1 -Dj1.
+by have [_ _ /(_ _ kvs1_kv1)[]] := satP m_th1 _ th1_cl1.
+Qed.
+
+Lemma unsat_sym th1 th2 :
+  (if find_sym th1 th2 is Some s then sym_match s th2 th1 else false) ->
+  unsat th1 -> unsat th2.
+Proof. by case: find_sym => // s; apply: unsat_match. Qed.
+
+End Interpretation.
+
+Implicit Arguments satP [gT G m th].
+Implicit Arguments unsat [gT G].
+Implicit Arguments sat_cases [gT G m th cl].
+Implicit Arguments unsat_cases [gT G th tO].
+Implicit Arguments unsat_wlog [gT G].
+Implicit Arguments unsat_fill [gT G].
+Implicit Arguments unsat_consider [gT G].
+Implicit Arguments unsat_match [gT G th1 th2].
+
+(* The domain-specific tactic language. *)
+
+Tactic Notation "consider" constr(ij) :=
+  apply: (unsat_consider ij); first exact isT.
+
+Tactic Notation "fill" constr(ij) :=
+  apply: (unsat_fill ij); split; first exact isT.
+
+Tactic Notation "uwlog" simple_intropattern(IH) ":" constr(cl) :=
+  apply: (unsat_wlog cl); split=> [IH | ].
+
+Tactic Notation "uwlog" simple_intropattern(IH) ":" constr(cl)
+                   "by" tactic4(tac) :=
+  apply: (unsat_wlog cl); split=> [IH | ]; first by [tac].
+
+Tactic Notation "uhave" constr(kv) "in" constr(ij)
+                   "as" constr(T) constr(ij12) :=
+  apply: (unsat_cases ij [:: kv] (T ij12)); split; first exact isT.
+
+Tactic Notation "uhave" constr(kv1) "," constr(kv2) "in" constr(ij)
+                   "as" constr(T) constr(ij12) :=
+  uhave kv1 in ij as T ij12; uhave kv2 in ij as T ij12.
+
+Tactic Notation "uhave" constr(kv1) "|" constr(kv2) "in" constr(ij)
+                   "as" constr(T) constr(ij12) :=
+  apply: (unsat_cases ij [:: kv1; kv2] (T ij12));
+  split; first (split; first exact isT).
+
+Tactic Notation "uhave" constr(kv1) "|" constr(kv2) "|" constr(kv3)
+                   "in" constr(ij) :=
+  apply: (unsat_cases ij [:: kv1; kv2; kv3] (fun _ _ _ => isT));
+  split; first (split; first (split; first by exact isT)).
+
+Tactic Notation "uwlog" simple_intropattern(IH) ":"
+                        constr(kv1) "|" constr(kv2) "in" constr(ij)
+                   "as" constr(T) constr(ij12) :=
+  apply: (unsat_cases ij [:: kv1; kv2] (T ij12));
+  apply: unsat_wlog_cases; [exact isT | move=> IH | ].
+
+Tactic Notation "counter" "to" constr(T) constr(ij12) := by move=> ? /(T ij12).
+
+Tactic Notation "uexact" constr(IH) := apply: unsat_exact IH; exact isT.
+
+Tactic Notation "symmetric" "to" constr(IH) := apply: unsat_sym (IH); exact isT.
+
+End CyclicTIisoReflexion.
+
+Section Three.
 
 Variables (gT : finGroupType) (G W W1 W2 : {group gT}).
 Hypothesis defW : W1 \x W2 = W.
@@ -245,1349 +1013,352 @@ by apply/span_subvP=> _ /imageP[[i j] _ ->]; apply: cfCycTI_on.
 Qed.
 Local Notation cfWVbasis := cfCycTIbase_basis.
 
-(* We need to prove (3.5) first in order to define sigma and prove (3.2). *)
+Section CyclicTIisoBasis.
 
-Let beta_ i j : 'CF(G) := 'Ind[G] (alpha_ i j) - 1.
+Import CyclicTIisoReflexion ssrint.
 
-Let beta1 i j : beta_ i j 1%g = -1.
-Proof. by rewrite !cfunE cfun11 cfInd1 // alpha1 mulr0 add0r. Qed.
+Local Notation unsat := (@unsat gT G).
+Local Notation O := (@O gT G).
+Local Notation "#1" := (inord 1).
 
-Let beta_vchar i j : beta_ i j \in 'Z[irr G].
-Proof. by rewrite rpredB ?rpred1 ?cfInd_vchar ?cfCycTI_vchar. Qed.
-
-Let cfdot_Ind_alpha_1 i j :
-  i != 0 -> j != 0 -> '['Ind[G] (alpha_ i j), 1] = 1.
-Proof. by move=> nz_i nz_j; rewrite -cfdot_Res_r rmorph1 cfdot_alpha_1. Qed.
-
-(* This is the first equation of Peterfalvi (3.5.1). *)
-Let cfdot_beta_1 i j : i != 0 -> j != 0 -> '[beta_ i j, 1] = 0.
+(* This is the combinatorial core of Peterfalvi (3.5.2). *)
+(* Peterfalvi uses evaluation at 1%g to conclude after the second step; since *)
+(* this is not covered by our model, we have used the dot product constraints *)
+(* between b12 and b11, b21 instead.                                          *)
+Let unsat_J : unsat |= & x1 in b11 & -x1 in b21.
 Proof.
-by move=> nzi nzj; rewrite cfdotBl cfdot_Ind_alpha_1 // cfnorm1 subrr.
+uwlog b11x1: (& b11 = x1 + x2 + x3) by do 2!fill b11.
+uwlog b21x1: (& b21 = -x1 + x2 + x3) by uhave x2, x3 in b21 as O(21, 11).
+consider b12; uhave -x2 | x2 | ~x2 in b12.
+- by uhave x1 in b12 as O(12, 11); counter to O(12, 21).
+- uhave x1 | ~x1 in b12 as O(12, 21).
+    by uhave ~x3 in b12 as O(12, 21); counter to O(12, 11).
+  by uhave ~x3 in b12 as O(12, 11); counter to O(12, 21).
+uhave x3 | ~x3 in b12 as O(12, 11).
+  by uhave x1 in b12 as O(12, 21); counter to O(12, 11).
+by uhave x1 in b12 as O(12, 11); counter to O(12, 21).
 Qed.
 
-(* These are the other equations of Peterfalvi (3.5.1). *)
-Let cfdot_beta i1 j1 i2 j2 :
-    i1 != 0 -> j1 != 0 -> i2 != 0 -> j2 != 0 -> 
-  '[beta_ i1 j1, beta_ i2 j2] = ((i1 == i2).+1 * (j1 == j2).+1).-1%:R.
+Let unsat_II: unsat |= & x1, x2 in b11 & x1, x2 in b21.
+Proof. by fill b11; uhave -x3 in b21 as O(21, 11); symmetric to unsat_J. Qed.
+
+(* This reflects the application of (3.5.2), but only to rule out nonzero     *)
+(* components of the first entry that conflict positive components of the     *)
+(* second entry, as Otest covers all the other uses of (3.5.2) in the proof.  *)
+Let Ltest (cl1 cl2 : clause) :=
+  let: (i1, j1, kvs1) := cl1 in let: (i2, j2, kvs2) := cl2 in
+  let fix loop mm kvs2' :=
+    if kvs2' is (k, v2) :: kvs2'' then
+      let v1 := odflt 0 (get_lit k kvs1) in
+      if (v2 != 1) || (v1 == 0) then loop mm kvs2'' else
+      if (v1 != 1) || mm then false else loop true kvs2''
+    else true in
+  (i1 == i2) (+) (j1 == j2) ==> loop false kvs2.
+
+Let L ij12 : is_sat_test G (sat_test Ltest ij12).
 Proof.
-move=> nzi1 nzj1 nzi2 nzj2; rewrite mulSnr addnS mulnSr /=.
-rewrite cfdotBr cfdot_beta_1 // subr0 cfdotBl (cfdotC 1) cfdot_Ind_alpha_1 //.
-rewrite (normedTI_isometry _ tiV) ?cfCycTI_on // rmorph1 addrC.
-rewrite (alphaE i2) cfdotDr !cfdotBr cfdot_alpha_1 // -!addrA addKr addrA addrC.
-rewrite cfdot_alpha_w // -addnA !natrD mulnb; congr (_ + _).
-rewrite alphaE -w_00 !(cfdotBl, cfdotDl) !cfdot_w !eqxx !(eq_sym 0).
-rewrite (negPf nzi1) (negPf nzj1) (negPf nzi2) (negPf nzj2) /= !andbF !andbT /=.
-by rewrite !(addr0, opprB, oppr0) add0r.
+apply: sat_testP => m th [[i1 j1] kvs1] [[i2 j2] kvs2] m_th th_cl1 th_cl2.
+wlog eq_j: m th i1 i2 j1 j2 m_th th_cl1 th_cl2 / j1 == j2.
+  move=> IH; case eq_j: (j1 == j2); first exact: IH m_th th_cl1 th_cl2 eq_j.
+  case eq_i: (i1 == i2); last by rewrite /= eq_i eq_j.
+  have /(_ (_, _, _)) mem_trt: _ \in tr_th th := map_f _ _.
+  by rewrite /= addbC; apply: IH (sat_tr m_th) _ _ eq_i; rewrite ?mem_trt.
+apply/implyP; rewrite eq_j addbT => neq_i.
+rewrite -[f in f _ kvs2]/(idfun _); set f := idfun _; rewrite /= in f *.
+have [/= _ Ukvs2 kvsP] := satP m_th _ th_cl2.
+move: Ukvs2; set kvs2' := kvs2; set mm := false.
+have /allP: {subset kvs2' <= kvs2} by [].
+pose lit12 k := (k, 1) \in kvs1 /\ (k, 1) \in kvs2. 
+have: mm -> {k | lit12 k & k \notin unzip1 kvs2'} by [].
+elim: kvs2' mm => [|[k v2] kvs2' IH] //= mm mmP /andP[kvs2k /IH{IH}IHkvs].
+case/andP=> kvs2'k /IHkvs{IHkvs}IHkvs; case: ifP => [_ | /norP[]].
+  by apply/IHkvs=> /mmP[kv kvs12kv /norP[]]; exists kv.
+have [v1 /= kvs1k | //] := get_litP; case: eqP => // -> in kvs2k * => _ nz_v1.
+case Dbb: (th_bbox th) (th_bboxP (bbox_refl (th_bbox th))) => [ri rj] rijP.
+have [/andP[/=lti1r ltj1r] /andP[/=lti2r _]] := (rijP _ th_cl1, rijP _ th_cl2).
+have rkP := th_dimP (leqnn _) _ th_cl1;  have /= ltkr := rkP _ kvs1k.
+have symP := unsat_match (Sym [:: i2; i1] [:: j1] _) _ _ m m_th.
+rewrite /= Dbb lti1r lti2r ltj1r inE eq_sym neq_i /= in symP.
+have [Dv1 | v1_neq1] /= := altP eqP; first rewrite Dv1 in kvs1k.
+  case: ifP => [/mmP[k0 [kvs1k0 kvs2k0]] | _]; last by apply: IHkvs; exists k.
+  case/norP=> k'k0; have [/=] := symP [:: k0; k] _ _ unsat_II.
+  rewrite inE k'k0 ltkr (rkP _ kvs1k0) /= andbT; apply/andP; split; apply/hasP.
+    by exists (i1, j1, kvs1) => //=; rewrite eqxx kvs1k kvs1k0.
+  by exists (i2, j2, kvs2) => //=; rewrite (eqP eq_j) eqxx kvs2k kvs2k0.
+have{nz_v1 v1_neq1} Dv1: v1 = -1; last rewrite Dv1 in kvs1k.
+  by case: (v1) nz_v1 v1_neq1 (norm_lit m_th th_cl1 kvs1k) => [[|[]] | []].
+have[] := symP [:: k] _ _ unsat_J; rewrite /= ltkr !andbT /=; apply/andP; split.
+  by apply/hasP; exists (i1, j1, kvs1); rewrite //= eqxx kvs1k.
+by apply/hasP; exists (i2, j2, kvs2); rewrite //= (eqP eq_j) eqxx kvs2k.
 Qed.
 
-Let cfnorm_beta i j : i != 0 -> j != 0 -> '[beta_ i j] = 3%:R.
-Proof. by move=> nzi nzj; rewrite cfdot_beta // !eqxx. Qed.
-
-Local Notation A_ i j := (dirr_constt (beta_ i j)).
-Local Notation nA_ i j := (dirr_constt (- beta_ i j)).
-Local Notation specA nzi nzj :=
-  (dirr_small_norm (beta_vchar _ _) (cfnorm_beta nzi nzj) isT).
-
-Let card_dirr_const_beta_diff i1 j1 i2 j2 :
-    i1 != 0 -> j1 != 0 -> i2 != 0 -> j2 != 0 -> i1 != i2 -> j1 != j2 -> 
-  #|A_ i1 j1 :&: A_ i2 j2| = #|A_ i1 j1 :&: nA_ i2 j2|.
+(* This is the combinatorial core of Peterfalvi (3.5.4). *)
+(* We have made a few simplifications to the combinatorial analysis in the    *)
+(* text: we omit the (unused) step (3.5.4.4) entirely, which lets us inline   *)
+(* step (3.5.4.1) in the proof of (3.5.4.2); we clear the assumptions on b31  *)
+(* and b32 before the final step (3.5.4.5), exposing a hidden symmetry.       *)
+Let unsat_Ii : unsat |= & x1 in b11 & x1 in b21 & ~x1 in b31.
 Proof.
-move=> nzi1 nzj1 nzi2 nzj2 i2'1 j2'1.
-apply/eqP; rewrite -eqC_nat -subr_eq0 -cfdot_sum_dchi.
-have [[_ _ <-] [_ _ <-]] := (specA nzi1 nzj1, specA nzi2 nzj2).
-by rewrite cfdot_beta // (negPf i2'1) (negPf j2'1).
+uwlog Db11: (& b11 = x1 + x2 + x3) by do 2!fill b11.
+uwlog Db21: (& b21 = x1 + x4 + x5).
+  by uhave ~x2, ~x3 in b21 as L(21, 11); do 2!fill b21; uexact Db21.
+uwlog Db31: (& b31 = x2 + x4 + x6).
+  uwlog b31x2: x2 | ~x2 in b31 as L(31, 11).
+    by uhave x3 in b31 as O(31, 11); symmetric to b31x2.
+  uwlog b31x4: x4 | ~x4 in b31 as L(31, 21).
+    by uhave x5 in b31 as O(31, 21); symmetric to b31x4.
+  uhave ~x3 in b31 as O(31, 11); uhave ~x5 in b31 as L(31, 21).
+  by fill b31; uexact Db31.
+consider b41; uwlog b41x1: x1 | ~x1 in b41 as L(41, 11).
+  uwlog Db41: (& b41 = x3 + x5 + x6) => [|{b41x1}].
+    uhave ~x2 | x2 in b41 as L(41, 11); last symmetric to b41x1.
+    uhave ~x4 | x4 in b41 as L(41, 21); last symmetric to b41x1.
+    uhave x3 in b41 as O(41, 11); uhave x5 in b41 as O(41, 21).
+    by uhave x6 in b41 as O(41, 31); uexact Db41.
+  consider b12; uwlog b12x1: x1 | ~x1 in b12 as L(12, 11).
+    uhave ~x2 | x2 in b12 as L(12, 11); last symmetric to b12x1.
+    by uhave x3 in b12 as O(12, 11); symmetric to b12x1.
+  uwlog b12x4: -x4 | ~x4 in b12 as O(12, 21).
+    by uhave -x5 in b12 as O(12, 21); symmetric to b12x4.
+  uhave ~x2, ~x3 in b12 as L(12, 11); uhave ~x5 in b12 as O(12, 21).
+  by uhave x6 in b12 as O(12, 31); counter to O(12, 41).
+uwlog Db41: (& b41 = x1 + x6 + x7).
+  uhave ~x2, ~x3 in b41 as L(41, 11); uhave ~x4, ~x5 in b41 as L(41, 21).
+  by uhave x6 in b41 as O(41, 31); fill b41; uexact Db41.
+consider b32; uwlog Db32: (& b32 = x6 - x7 + x8).
+  uwlog b32x6: x6 | ~x6 in b32 as L(32, 31).
+    uhave ~x2 | x2 in b32 as L(32, 31); last symmetric to b32x6.
+    by uhave x4 in b32 as O(32, 31); symmetric to b32x6.
+  uhave ~x2, ~x4 in b32 as L(32, 31).
+  uhave -x7 | ~x7 in b32 as O(32, 41).
+    uhave ~x1 in b32 as O(32, 41); uhave ~x3 in b32 as O(32, 11).
+    by uhave ~x5 in b32 as O(32, 21); fill b32; uexact Db32.
+  uhave -x1 in b32 as O(32, 41).
+  by uhave x3 in b32 as O(32, 11); counter to O(32, 21).
+consider b42; uwlog Db42: (& b42 = x6 - x4 + x5).
+  uhave ~x6 | x6 in b42 as L(42, 41).
+    uhave ~x7 | x7 in b42 as L(42, 41); last counter to O(42, 32).
+    uhave x1 in b42 as O(42, 41); uhave x8 in b42 as O(42, 32).
+    uhave ~x2 | -x2 in b42 as O(42, 11); last counter to O(42, 21).
+    by uhave -x3 in b42 as O(42, 11); counter to O(42, 21).
+  uwlog b42x4: -x4 | ~x4 in b42 as O(42, 31).
+    by uhave -x2 in b42 as O(42, 31); symmetric to b42x4.
+  by uhave ~x1 in b42 as L(42, 41); uhave x5 in b42 as O(42, 21); uexact Db42.
+uwlog Db32: (& ? in b32); first uexact Db32. 
+uwlog Db41: (& ? in b41); first uexact Db41. 
+consider b12; uwlog b12x5: x5 | ~x5 in b12 as L(12, 42).
+  uhave ~x6 | x6 in b12 as L(12, 42); last by consider b22; symmetric to b12x5.
+  uhave -x4 in b12 as O(12, 42); uhave x1 in b12 as O(12, 21).
+  by uhave ~x2 in b12 as L(12, 11); counter to O(12, 31).
+uhave ~x6 in b12 as L(12, 42); uhave ~x4 in b12 as O(12, 42).
+uhave ~x2 in b12 as O(12, 31).
+by uhave -x1 in b12 as O(12, 21); counter to L(12, 11).
 Qed.
 
-(* This is the symmetrical part of (3.5.2). *)
-Let card_dirr_const_beta_difflr i1 i2 j1 j2 :
-    i1 != 0 -> i2 != 0 -> j1 != 0 -> j2 != 0 ->
-    '[beta_ i1 j1, beta_ i2 j2] = 1 ->
-  #|A_ i1 j1 :&: A_ i2 j2| = 1%N /\ #|A_ i1 j1 :&: nA_ i2 j2| = 0%N.
+Let unsat_C : unsat |= & x1 in b11 & x1 in b21 & x1 in b12.
 Proof.
-move=> nzi1 nzi2 nzj1 nzj2 /eqP.
-have [[oA _ sA] [oB _ sB]] := (specA nzi1 nzj1, specA nzi2 nzj2).
-do [set A := A_ i1 j1; set B := A_ i2 j2; set C := nA_ i2 j2] in oA oB sA sB *.
-rewrite sA sB cfdot_sum_dchi -/A -/B -/C subr_eq -mulrS eqr_nat => /eqP.
-have [-> | /=[u /setIP[Au Bu]]] := set_0Vmem (A :&: B); first by rewrite cards0.
-have [-> | /=[v /setIP[Av Cv]]] := set_0Vmem (A :&: C); first by rewrite cards0.
-rewrite (cardsD1 u) [#|A :&: C|](cardsD1 v) !in_setI Au Bu Av Cv !add1n; case.
-suffices ->: A :&: B :\ u = set0 by rewrite cards0.
-apply/eqP/set0Pn=> [[w /setD1P[u'w /setIP[Aw Bw]]]].
-have Bnv: ndirr v \in B by rewrite -dirr_constt_oppr.
-have{sA} Db1: beta_ i1 j1 = dchi w + dchi u + dchi v.
-  have B'v: v \notin B by rewrite -[v]ndirrK dirr_constt_oppl.
-  have [v'u v'w] := (memPn B'v u Bu, memPn B'v w Bw).
-  have Uwuv: uniq [:: w; u; v] by rewrite /= !inE negb_or u'w v'u v'w.
-  rewrite sA; transitivity (\sum_(x in [:: w; u; v]) dchi x); last first.
-    by rewrite -big_uniq //= 2!big_cons big_seq1 addrA.
-  apply/esym/eq_bigl/subset_cardP; first by rewrite oA (card_uniqP Uwuv).
-  by apply/subsetP/allP; rewrite /= Au Av Aw.
-have{sB} Db2: beta_ i2 j2 = dchi w + dchi u - dchi v.
-  have A'nv: ndirr v \notin A by rewrite dirr_constt_oppl.
-  have [nv'u nv'w] := (memPn A'nv u Au, memPn A'nv w Aw).
-  have Uwunv: uniq [:: w; u; ndirr v] by rewrite /= !inE negb_or u'w nv'u nv'w.
-  rewrite sB; transitivity (\sum_(x in [:: w; u; ndirr v]) dchi x); last first.
-    by rewrite -big_uniq //= 2!big_cons big_seq1 dchi_ndirrE addrA.
-  apply/esym/eq_bigl/subset_cardP; first by rewrite oB (card_uniqP Uwunv).
-  by apply/subsetP/allP; rewrite /= Bu Bnv Bw.
-have /eqP/idPn[]: (2%:R *: dchi v) 1%g = (beta_ i1 j1 - beta_ i2 j2) 1%g.
-  by rewrite Db2 opprB addrC -addrA Db1 addKr scaler_nat.
-by rewrite !(beta1, cfunE) subrr !mulf_eq0 pnatr_eq0 signr_eq0 irr1_neq0.
+consider b31; uwlog Db21: (& b21 = x1 + x2 + x3) by do 2!fill b21.
+uwlog Db12: (& b12 = x1 - x2 + x4).
+  uwlog b21x2: -x2 | ~x2 in b12 as O(12, 21).
+    by uhave -x3 in b12 as O(12, 21); symmetric to b21x2.
+  by uhave ~x3 in b12 as O(12, 21); fill b12; uexact Db12.
+uwlog Db31: (& b31 = x1 - x4 + x5).
+  uhave x1 | ~x1 in b31 as L(31, 21); last uexact unsat_Ii.
+  uhave ~x2, ~x3 in b31 as L(31, 21).
+  by uhave -x4 in b31 as O(31, 12); fill b31; uexact Db31.
+consider b41; uhave x1 | ~x1 in b41 as L(41, 21); last symmetric to unsat_Ii.
+uhave ~x5 in b41 as L(41, 31); uhave ~x4 in b41 as O(41, 31).
+by uhave ~x2 in b41 as L(41, 21); counter to O(41, 12).
 Qed.
 
-(* This is the vertical instance of step (3.5.2). *)
-Let card_dirr_const_beta_diffr i j1 j2 :
-    i != 0 -> j1 != 0 -> j2 != 0 -> j1 != j2 -> 
-  #|A_ i j1 :&: A_ i j2| = 1%N /\ #|A_ i j1 :&: nA_ i j2| = 0%N.
+(* This refinement of Peterfalvi (3.5.4) is the essential part of (3.5.5). *)
+Let column_pivot (m : model G) (j0 : 'I_m.2.+1) :
+  exists dk, forall (i : 'I_m.1.+1) (j : 'I_m.2.+1),
+    j0 != 0 -> i != 0 -> j != 0 -> '[m (i.-1, j.-1), dchi dk] = (j == j0)%:R.
 Proof.
-move=> nzi nzj1 nzj2 j2'1; apply: card_dirr_const_beta_difflr => //.
-by rewrite cfdot_beta // !eqxx (negPf j2'1).
+pose t_i (i0 i1 : nat) := [eta id with i0 |-> i1, i1 |-> i0].
+pose t_ij i0 i1 ij : ref := (t_i i0 i1 ij.1, ij.2).
+have t_iK i0 i1: involutive (t_i i0 i1).
+  move=> i /=; have [-> | i0'i] := altP (i =P i0).
+    by rewrite eqxx; case: eqP.
+  by have [-> | /negPf->] := altP (i =P i1); rewrite ?eqxx // ifN.
+have lt_t_i i0 i1 ri i: (i0 <= i1 < ri)%N -> (t_i i0 i1 i < ri)%N = (i < ri)%N.
+  case/andP=> le_i01 lti1 /=.
+  by do 2?case: eqP => [-> | _] //; rewrite ?(leq_trans _ lti1).
+have t_mP i0 i1 (m0 : model G):
+  (i0 <= i1 < m0.1)%N -> is_Lmodel m0 (m0 \o t_ij i0 i1).
+- have [lbm0 Zm0 Dm0] := LmodelP m0; split=> //= ij1 ij2 wf_ij1 wf_ij2.
+  by rewrite Dm0 /dot_ref ?(can_eq (t_iK _ _)) // !inE ?lt_t_i.
+pose t_m i0 i1 m0 lti01 := Model (t_mP i0 i1 m0 lti01) (RmodelP m0).
+without loss suffices{j0 lt_t_i} IHm: m /
+  exists dk, {in wf_ref m, forall ij, '[m ij, dchi dk] = (ij.2 == 0%N)%:R}.
+- have [_ | nzj0] := altP eqP; first by exists (dirr1 G).
+  have ltj0: (j0.-1 < m.2)%N by rewrite prednK ?lt0n ?leq_ord.
+  have{IHm} [dk Ddk] := IHm (tr_model (t_m 0%N j0.-1 (tr_model m) ltj0)).
+  exists dk => i j _ nzi nzj; rewrite -[j.-1](t_iK 0%N j0.-1).
+  rewrite (Ddk (_, _)) ?inE ?lt_t_i // ?prednK ?lt0n ?leq_ord //.
+  by rewrite (inv_eq (t_iK _ _)) -eqSS !prednK ?lt0n.
+pose cl11 := & b11 = x1 + x2 + x3.
+without loss m_th: m / sat m |= cl11 & ? in b21.
+  move=> IHm; suffices{IHm}: sat m |= & ? in b11 & ? in b21.
+    have fill_b11 := sat_fill _ (mem_nth cl11 (_ : 1 < _))%N.
+    by do 3![case/fill_b11=> // ?]; apply: IHm.
+  have [[_ _ m1gt2 /ltnW m2gt0 _] _ _] := LmodelP m.
+  by rewrite /sat /= -!andbA /= m2gt0 -(subnKC m1gt2).
+without loss{m_th} m_th: m / sat m |= & x1 in b11 & x1 in b21.
+  pose sat123P := @allP _ (fun k => sat_lit m _ (k, _)) (rev (iota 0 3)).
+  have [m123 | ] := altP (sat123P b21 0).
+    suffices: sat m |= cl11 & ~x1, ~x2, ~x3 in b21 by move/(O(21, 11)).
+    by rewrite /sat /= {1}/sat_cl /= !m123.
+  case/allPn=> k k012 /negP nz_m21 IHm; rewrite -[sat_lit _ _ _]andbT in nz_m21.
+  have ltk3: (k < 3)%N by rewrite mem_rev mem_iota in k012.
+  have [[/andP[/allP/=n1m _] Zm] [_ /= m_gt2 _]] := (RmodelP m, and3P m_th).
+  have ltk := leq_trans ltk3 m_gt2.
+  have{n1m Zm} mkP: is_Rmodel [:: m`_k].
+    by split=> [|_ /predU1P[->|//]]; rewrite /orthonormal /= ?n1m ?Zm ?mem_nth.
+  pose mk := Model (LmodelP m) mkP; apply: {IHm}(IHm mk).
+  have{m_th} [v lit_v m_th] := sat_cases k m_th (mem_head _ _) ltk.
+  suffices: sat mk |= & x1 in b11 & (Lit 1 v) in b21.
+    by case/or4P: lit_v m_th => // /eqP-> => [/and4P[] | | _ /(L(21,11))].
+  have [m_bb _ m_b21 /sat123P m_b11 _] := and5P m_th.
+  by apply/and5P; split; rewrite // /sat_cl /= [sat_lit _ _ _]m_b11.
+have /dIrrP[dk Ddk]: m`_0 \in dirr G.
+  have [[/andP[/allP n1m _] Zm] [_ m_gt0 _]] := (RmodelP m, and3P m_th).
+  by rewrite dirrE Zm ?[_ == 1]n1m ?mem_nth.
+exists dk => [][i j] /andP[/= lti ltj]; apply/eqP.
+suffices{dk Ddk}: sat_cl m (& (Lit 1 (j == 0))%N in (i, j)).
+  by rewrite /sat_cl /= andbT /sat_lit Ddk.
+without loss{i lti} ->: m i ltj m_th / i = 0%N.
+  have [bb21_m m_gt0 m11_x1 m21_x1 _] := and5P m_th.
+  move=> IHi; suffices{IHi} m_i1_x1: sat_lit m (i, 0)%N x1 && true.
+    apply: (IHi (t_m 0%N i m lti) 0%N); rewrite /sat /sat_cl //= bb21_m m_gt0.
+    by rewrite /= m_i1_x1 /sat_lit /= andbT /t_ij /=; case: ifP.
+  case i_gt1: (1 < i)%N; last by case: (i) i_gt1 => [|[|[]]].
+  have itv_i: (1 < i < m.1)%N by [apply/andP]; pose m2 := t_m 2 i m itv_i.
+  have m2_th: sat m2 |= & x1 in b11 & x1 in b21 & ? in b31.
+    rewrite /sat m_gt0 -andbA (leq_trans _ lti) ?(leq_trans _ ltj) /sat_cl //=.
+    by rewrite /sat_lit /= -(subnKC i_gt1); have [_ _] := and3P m_th.
+  have [v] := sat_cases _ m2_th (mem_head _ _) m_gt0; rewrite !inE.
+  by case/or3P=> /eqP-> => [/unsat_Ii | /and4P[] | /(L(31,11))].
+have [-> | nzj] := posnP j; first by case/and5P: m_th.
+without loss{ltj nzj} ->: m j m_th / j = 1%N.
+  have itv_j: (0 < j < m.2)%N by rewrite nzj.
+  move/(_ (tr_model (t_m _ j (tr_model m) itv_j)) _ _ (erefl _)) => /=.
+  by rewrite /sat /sat_cl /sat_lit /= -(prednK nzj) => ->.
+have{m_th}[/= _ m_gt0 m_x1] := and3P m_th.
+have{m_x1} m_th: sat m |= & x1 in b11 & x1 in b21 & ? in b12.
+  by rewrite /sat m_gt0 /sub_bbox; have [[_ _ -> ->]] := LmodelP m.
+have [v] := sat_cases 0%N m_th (mem_head _ _) m_gt0; rewrite !inE.
+by case/or3P=> /eqP-> => [/and4P[] | /unsat_C | /(L(12,11))].
 Qed.
 
-(* This is the horizontal instance of step (3.5.2). *)
-Let card_dirr_const_beta_diffl i1 i2 j :
-    i1 != 0 -> i2 != 0 -> j != 0 -> i1 != i2 -> 
-  #|A_ i1 j :&: A_ i2 j| = 1%N /\ #|A_ i1 j :&: nA_ i2 j| = 0%N.
+(* This is Peterfalvi (3.5). *)
+(* We have inlined part of the proof of (3.5.5) in this main proof, replacing *)
+(* some combinatorial arguments with direct computation of the dot product,   *)
+(* this avoids the duplicate case analysis required to exploit (3.5.5) as it  *)
+(* is stated in the text.                                                     *)
+Lemma cyclicTIiso_basis_exists :
+ exists xi_ : Iirr W1 -> Iirr W2 -> 'CF(G),
+   [/\ xi_ 0 0 = 1, forall i j, xi_ i j \in 'Z[irr G],
+       forall i j, i != 0 -> j != 0 -> 
+         'Ind (alpha_ i j) = 1 - xi_ i 0 - xi_ 0 j + xi_ i j
+     & forall i1 j1 i2 j2, '[xi_ i1 j1, xi_ i2 j2] = ((i1, j1) == (i2, j2))%:R].
 Proof.
-move=> nzi1 nzi2 nzj i2'1; apply: card_dirr_const_beta_difflr => //.
-by rewrite cfdot_beta // !eqxx (negPf i2'1).
+(* Instantiate the abstract theory vertically and horizontally. *)
+pose beta i j : 'CF(G) := 'Ind[G] (alpha_ i j) - 1.
+have Zbeta i j: beta i j \in 'Z[irr G].
+  by rewrite rpredB ?rpred1 ?cfInd_vchar ?cfCycTI_vchar.
+have o_alphaG_1 i j: i != 0 -> j != 0 -> '['Ind[G] (alpha_ i j), 1] = 1.
+  by move=> nz_i nz_j; rewrite -cfdot_Res_r rmorph1 cfdot_alpha_1.
+have o_beta_1 i j: i != 0 -> j != 0 -> '[beta i j, 1] = 0.
+  by move=> nzi nzj; rewrite cfdotBl o_alphaG_1 // cfnorm1 subrr.
+have o_beta i1 j1 i2 j2 : i1 != 0 -> j1 != 0 -> i2 != 0 -> j2 != 0 ->
+  '[beta i1 j1, beta i2 j2] = ((i1 == i2).+1 * (j1 == j2).+1 - 1)%:R.
+- move=> nzi1 nzj1 nzi2 nzj2; rewrite mulSnr addnS mulnSr /=.
+  rewrite cfdotBr o_beta_1 // subr0 cfdotBl (cfdotC 1) o_alphaG_1 //.
+  rewrite (normedTI_isometry _ tiV) ?cfCycTI_on // rmorph1 addrC.
+  rewrite (alphaE i2) cfdotDr !cfdotBr cfdot_alpha_1 // -!addrA addKr addrA.
+  rewrite addrC cfdot_alpha_w // subn1 -addnA !natrD mulnb; congr (_ + _).
+  rewrite alphaE -w_00 !(cfdotBl, cfdotDl) !cfdot_w !eqxx !(eq_sym 0).
+  rewrite (negPf nzi1) (negPf nzj1) (negPf nzi2) (negPf nzj2) /= !andbF !andbT.
+  by rewrite !addr0 !subr0 !opprB !subr0.
+pose beta_fun := [fun ij => beta (inord ij.1.+1) (inord ij.2.+1)].
+have beta_modelP: is_Lmodel ((Nirr W1).-1, (Nirr W2).-1) beta_fun.
+  split=> [ | //= | ij1 ij2 /=/andP[lti1 ltj1] /andP[lti2 ltj2]].
+    by rewrite -!(ltnS 2) -eqSS NirrW1 NirrW2.
+  by rewrite o_beta -?val_eqE /= ?inordK.
+pose beta_model := Model beta_modelP (nil_RmodelP G).
+have betaE i j: i != 0 -> j != 0 -> beta i j = beta_fun (i.-1, j.-1).
+  by move=> nzi nzj /=; rewrite !prednK ?lt0n ?inord_val.
+have /fin_all_exists [dXi0 betaXi0] i0: exists dX, i0 != 0 ->
+  forall i j, i != 0 -> j != 0 -> '[beta i j, dchi dX] = (i == i0)%:R.
+- have [/= dX DdX] := @column_pivot (tr_model beta_model) i0.
+  by exists dX => nzi0 i j nzi nzj; rewrite betaE ?DdX.
+have /fin_all_exists [dX0j betaX0j] j0: exists dX, j0 != 0 ->
+  forall i j, i != 0 -> j != 0 -> '[beta i j, dchi dX] = (j == j0)%:R.
+- have [dX DdX] := @column_pivot beta_model j0.
+  by exists dX => nzj0 i j nzi nzj; rewrite betaE ?DdX.
+pose Xi0 j := dchi (dXi0 j); pose X0j i := dchi (dX0j i).
+(* Construct the orthonormal family xi_ i j. *)
+pose xi_ i j := if i == 0 then if j == 0 then 1 else - X0j j else
+                if j == 0 then - Xi0 i else beta i j - Xi0 i - X0j j.
+exists xi_; split=> [| i j | i j nzi nzj | i1 j1 i2 j2].
+- by rewrite /xi_ !eqxx.
+- rewrite /xi_; do 2!case: ifP => _; rewrite ?rpred1 ?rpredN ?dchi_vchar //.
+  by rewrite 2?rpredB ?dchi_vchar.
+- by rewrite /xi_ /= !ifN // addrCA subrK addrACA subrK addrA addrK.
+have o_dchi i j dk1 dk2 (phi := beta i j):
+  '[phi, dchi dk1] = 1 -> '[phi, dchi dk2] = 0 -> '[dchi dk1, dchi dk2] = 0.
+- move=> phi1 phi0; have /eqP: 1 != 0 :> algC := oner_neq0 _.
+  rewrite -phi1 cfdot_dchi; do 2!case: eqP => [->|_]; rewrite ?subrr //.
+  by rewrite dchi_ndirrE cfdotNr phi0 oppr0.
+have [nzi01 nzj01] := (Iirr1_neq0 ntW1, Iirr1_neq0 ntW2).
+have X0j_1 j: j != 0 -> '[X0j j, 1] = 0.
+  by move=> nzj; rewrite -dchi1 (o_dchi #1 j) ?betaX0j ?eqxx ?dchi1 ?o_beta_1.
+have Xi0_1 i: i != 0 -> '[Xi0 i, 1] = 0.
+  by move=> nzi; rewrite -dchi1 (o_dchi i #1) ?betaXi0 ?eqxx ?dchi1 ?o_beta_1.
+have Xi0_X0j i j: i != 0 -> j != 0 -> '[Xi0 i, X0j j] = 0.
+  move=> nzi nzj; pose j' := conjC_Iirr j.
+  apply: (o_dchi i j'); rewrite (betaX0j, betaXi0) ?conjC_Iirr_eq0 ?eqxx //.
+  by rewrite -(inj_eq irr_inj) conjC_IirrE mulrb ifN ?odd_eq_conj_irr1 ?irr_eq1.
+have X0j_X0j j j0: j != 0 -> j0 != 0 -> '[X0j j, X0j j0] = (j == j0)%:R.
+  move=> nzj nzj0; case: (altP eqP) => [-> | j0'j]; first exact: cfnorm_dchi.
+  by apply: (o_dchi #1 j); rewrite ?betaX0j ?eqxx ?(negPf j0'j).
+have Xi0_Xi0 i i0: i != 0 -> i0 != 0 -> '[Xi0 i, Xi0 i0] = (i == i0)%:R.
+  move=> nzi nzi0; case: (altP eqP) => [-> | i0'i]; first exact: cfnorm_dchi.
+  by apply: (o_dchi i #1); rewrite ?betaXi0 ?eqxx ?(negPf i0'i).
+have oxi_00 i j: '[xi_ i j, xi_ 0 0] = ((i == 0) && (j == 0))%:R.
+  rewrite /xi_; case: ifPn => [_ | nzi].
+    by case: ifPn => [_ | nzj]; rewrite ?cfnorm1 // cfdotNl X0j_1 ?oppr0.
+  case: ifPn => [_ | nzj]; first by rewrite cfdotNl Xi0_1 ?oppr0.
+  by rewrite 2!cfdotBl o_beta_1 ?X0j_1 ?Xi0_1 ?subr0.
+have oxi_0j i j j0: '[xi_ i j, xi_ 0 j0] = ((i == 0) && (j == j0))%:R.
+  rewrite /xi_; have [-> | nzj0] := altP (j0 =P 0); first exact: oxi_00.
+  rewrite cfdotNr; case: ifPn => [_ | nzi].
+    have [-> | nzj] := altP eqP; last by rewrite cfdotNl opprK X0j_X0j.
+    by rewrite cfdotC X0j_1 // conjC0 oppr0 mulrb ifN_eqC.
+  have [_ | nzj] := ifPn; first by rewrite cfdotNl Xi0_X0j ?oppr0.
+  by rewrite 2!cfdotBl Xi0_X0j // subr0 betaX0j ?X0j_X0j // subrr oppr0.
+have{oxi_00} oxi_i0 i j i0: '[xi_ i j, xi_ i0 0] = ((i == i0) && (j == 0))%:R.
+  rewrite /xi_; have [-> | nzi0] := altP (i0 =P 0); first exact: oxi_00.
+  rewrite cfdotNr andbC; have [_ | nzj] := boolP (j == 0).
+    have [-> | nzi] := altP eqP; last by rewrite cfdotNl opprK Xi0_Xi0.
+    by rewrite cfdotC Xi0_1 // conjC0 oppr0 mulrb ifN_eqC.
+  have [_ | nzi] := ifPn; first by rewrite cfdotNl opprK cfdotC Xi0_X0j ?conjC0.
+  rewrite 2!cfdotBl betaXi0 ?Xi0_Xi0 // subrr add0r opprK.
+  by rewrite cfdotC Xi0_X0j // conjC0.
+have [-> | nzi2] := altP (i2 =P 0); first exact: oxi_0j.
+have [-> | nzj2] := altP (j2 =P 0); first exact: oxi_i0.
+rewrite cfdotC eq_sym; apply: canLR conjCK _; rewrite rmorph_nat.
+have [-> | nzi1] := altP (i1 =P 0); first exact: oxi_0j.
+have [-> | nzj1] := altP (j1 =P 0); first exact: oxi_i0.
+have ->: xi_ i1 j1 = beta i1 j1 + xi_ i1 0 + xi_ 0 j1 by rewrite /xi_ !ifN.
+rewrite 2!cfdotDr oxi_i0 oxi_0j andbC /xi_ (negPf nzi2) (negPf nzj2) !addr0.
+rewrite eq_sym xpair_eqE cfdotC 2!cfdotBr o_beta // betaXi0 ?betaX0j //.
+by rewrite -!CintrE /= rmorph_int; do 2!case: (_ == _).
 Qed.
 
-Lemma dirr_const_beta_inv i j v1 v2 v3 :
-     i != 0 -> j != 0 -> beta_ i j = dchi v1 + dchi v2 + dchi v3 ->
-   A_ i j = [set v1; v2; v3].
-Proof.
-move=> nzi nzj Db; apply/eqP; have [oA _ sumA] := specA nzi nzj.
-rewrite eqEcard {}oA !cardsU !cards1 !(leq_subLR, addn1, addnS, ltnS) andbT.
-apply/subsetP=> v; rewrite !inE Db !cfdotDl !cfdot_dchi !(eq_sym v).
-by do 3![case: (_ =P v) => // _]; rewrite !sub0r -!opprD -!natrD oppr_gt0 ltrn0.
-Qed.
-
-Section BetaDecomposition.
-
-Section SymmetricalDecomposition.
-
-Variables W'1 W'2 : {group gT}.
-Variable beta : Iirr W'1 -> Iirr W'2 -> 'CF(G).
-
-Local Notation pA i j := (dirr_constt (beta i j)).
-Local Notation nA i j := (dirr_constt (- beta i j)).
-Local Notation dA i j v1 v2 v3 :=  
-     [&& i != 0, j != 0 & pA i j == [set v1; v2; v3]].
-
-Definition beta_hyp3_5 :=
-  [/\ odd (Nirr W'1), (2 < Nirr W'1)%N, (2 < Nirr W'2)%N
-    & forall i j i' j', i != 0 -> j != 0 -> i' != 0 -> j' != 0 -> 
-        [/\ #| pA i j | = 3, pA i j :&: nA i j = set0,
-             i != i' -> j != j' ->  
-             #|pA i j :&: pA i' j'| = #|pA i j :&: nA i' j'|,
-             i != i' -> 
-               #|pA i j :&: pA i' j| = 1%N /\ #|pA i j :&: nA i' j| = 0%N &
-             j != j' -> 
-               #|pA i j :&: pA i j'| = 1%N /\ #|pA i j :&: nA i j'| = 0%N]].
-
-Hypothesis beta_hyp : beta_hyp3_5.
-
-Let Oddw'1 : odd (Nirr W'1). Proof. by case: beta_hyp. Qed.
-Let H2Lw'1 : (2 < Nirr W'1)%N. Proof. by case: beta_hyp. Qed.
-Let H2Lw'2 : (2 < Nirr W'2)%N. Proof. by case: beta_hyp. Qed.
-Let beta_diff := let: And4 _ _ _ beta_diff := beta_hyp in beta_diff.
-
-Local Notation "v1 '<> v2" := ((v1 != v2) && (v1 != ndirr v2)) (at level 10).
-
-Fact dAsl i j v1 v2 v3 : dA i j v1 v2 v3 -> dA i j v2 v1 v3.
-Proof. by congr [&& _, _ & _ == _]; rewrite [[set v1; v2]]setUC. Qed.
-
-Fact dAsr i j v1 v2 v3 : dA i j v1 v2 v3 -> dA i j v1 v3 v2.
-Proof. by congr [&& _, _ & _ == _]; rewrite setUAC. Qed.
-
-Fact dAr i j v1 v2 v3 : dA i j v1 v2 v3 -> dA i j v3 v1 v2.
-Proof. by move/dAsr/dAsl. Qed.
-
-Fact dAE i j : i != 0 -> j != 0 -> {v | dA i j v.1.1 v.1.2 v.2}.
-Proof.
-move=> NZi NZj.
-pose v := odflt (dirr1 _, dirr1 _, dirr1 _) [pick v | dA i j v.1.1 v.1.2 v.2].
-exists v; rewrite /v; case: pickP => //=.
-rewrite NZi NZj /=.
-case: (beta_diff NZi NZj NZi NZj)=> HH _ _ _ _.
-move/eqP: HH.
-case: (set_0Vmem (pA i j))=> [-> //| [u1 U1iPa]]; first by rewrite cards0.
-rewrite (cardsD1 u1) U1iPa.
-set A1 := _  :\: _; case: (set_0Vmem A1)=> [-> //| [u2 U2iA1]].
-  by rewrite cards0.
-rewrite (cardsD1 u2) U2iA1.
-set A2 := _  :\: _; case: (set_0Vmem A2)=> [-> //| [u3 U3iA2]].
-  by rewrite cards0.
-rewrite (cardsD1 u3) U3iA2.
-set A3 := _  :\: _; case: (set_0Vmem A3)=> [A3i0 _ |[u4 U4iA3]]; last first.
-  by rewrite (cardsD1 u4) U4iA3.
-move=> /(_ (u1,u2,u3)) /idP [] /=.
-rewrite -(setD1K U1iPa) -/A1 -(setD1K U2iA1) -/A2 -(setD1K U3iA2) -/A3 A3i0.
-by rewrite setU0 setUA.
-Qed.
-
-Fact dA_in i j v1 v2 v3 : dA i j v1 v2 v3 -> v1 \in pA i j.
-Proof. by case/and3P=> _ _ /eqP->; rewrite !inE eqxx. Qed.
-
-Fact dA_diff i j v1 v2 v3 : dA i j v1 v2 v3 -> v1 '<> v2.
-Proof.
-case/and3P=> NZi NZj /eqP pAE.
-case: (beta_diff NZi NZj NZi NZj)=> ACard Adiff _ _ _.
-apply/andP; split; apply/eqP=> HH; last first.
-  move/setP: Adiff=> /(_ v2).
-  by rewrite inE dirr_constt_oppr -HH pAE !inE !eqxx ?orbT.
-move/eqP: ACard; rewrite pAE HH (cardsD1 v2) 3!inE eqxx /=.
-rewrite (cardsD1 v3) 6!inE eqxx orbT.
-set A1 := _  :\: _; case: (set_0Vmem A1)=> [-> |[u1]].
-  by rewrite cards0; case: (v3 == _).
-by rewrite !inE => /and3P [/negPf-> /negPf->].
-Qed.
-
-Fact dA_diffs i j v1 v2 v3 : 
-  dA i j v1 v2 v3 -> [&& v1 '<> v2, v2 '<> v3 & v1 '<> v3].
-Proof.
-move=> HB; have HB1 := dAsr HB; have HB2 := dAsr (dAsl HB).
-by rewrite !(dA_diff HB, dA_diff HB1, dA_diff HB2).
-Qed.
- 
-Fact dA_in_split i j v1 v2 v3 v : 
-  dA i j v1 v2 v3 -> v \in pA i j -> [|| v == v1, v == v2 | v == v3].
-Proof. by case/and3P=> _ _ /eqP->; rewrite !inE -!orbA. Qed.
-
-Fact dAEI i j k : i != 0 -> j != 0 -> k \in pA i j -> {v | dA i j k v.1 v.2}.
-Proof.
-move=> NZi NZj; case: (dAE NZi NZj)=> [[[v1 v2] v3]] /and3P [_ _ /eqP DAE].
-rewrite {1}DAE !inE -orbA; case: (boolP (_ == _))=> [/eqP-> _|_].
-  by exists (v2,v3); rewrite DAE NZi NZj /=.
-case: (boolP (_ == _))=> [/eqP-> _|_].
-  by exists (v1,v3); rewrite dAsl // DAE NZi NZj /=.
-case: (boolP (_ == _))=> [/eqP-> _|//].
-by exists (v1,v2); rewrite dAr // DAE NZi NZj /=.
-Qed.
-
-Fact dA2r_diff i j k v1 v2 v3 v4 v5 : 
-  j != k -> dA i j v1 v2 v3 -> dA i k v1 v4 v5 -> v2 '<> v4.
-Proof.
-move=> JdK dA1 dA2; case/andP: (dA_diff dA1)=> V1dV2 V1dNV2.
-case/and3P: dA1 => NZi NZj /eqP pAijE; case/and3P: dA2 => _ NZk /eqP pAikE.
-case: (beta_diff NZi NZj NZi NZk)=> Card IA _ _ /(_ JdK) [].
-rewrite pAijE pAikE => C1 C2. 
-apply/andP;split; apply/eqP => HH.
-  move: C1; rewrite -HH (cardsD1 v1) !inE eqxx /= (cardsD1 v2) !inE eqxx ?orbT.
-  by rewrite eq_sym V1dV2.
-move: C2; rewrite (cardsD1 v2) 5!inE eqxx dirr_constt_oppr HH ndirrK !orbT.
-by rewrite /= (cardsD1 v4) {1}pAikE !inE eqxx orbT.
-Qed.
-
-Fact dA2l_diff i j k v1 v2 v3 v4 v5 :
-  j != k ->  dA j i v1 v2 v3 -> dA k i v1 v4 v5 -> v2 '<> v4.
-Proof.
-move=> JdK dA1 dA2; case/andP: (dA_diff dA1)=> V1dV2 V1dNV2.
-case/and3P: dA1 => NZj NZi /eqP pAijE; case/and3P: dA2 => NZk _ /eqP pAikE.
-case: (beta_diff NZj NZi NZk NZi)=> Card IA _ /(_ JdK) [].
-rewrite pAijE pAikE => C1 C2 _. 
-apply/andP;split; apply/eqP => HH.
-  move: C1; rewrite -HH (cardsD1 v1) !inE eqxx /= (cardsD1 v2) !inE eqxx ?orbT.
-  by rewrite eq_sym V1dV2.
-move: C2; rewrite (cardsD1 v2) 5!inE eqxx dirr_constt_oppr HH ndirrK !orbT.
-by rewrite /= (cardsD1 v4) {1}pAikE !inE eqxx orbT.
-Qed.
-
-Fact dA2l_notin i1 i2 j v1 v2 v3 v4 v5 : 
-  i1 != i2 -> dA i1 j v1 v2 v3 -> dA i2 j v1 v4 v5 -> v2 \notin pA i2 j.
-Proof.
-move=> I1dI2 Ai1j Ai2j; apply/negP.
-move/(dA_in_split Ai2j)=> /or3P [] /eqP HH; 
-    try (rewrite HH in Ai1j) ; try (rewrite HH in Ai2j).
-- by move: (dA_diff Ai1j); rewrite eqxx.
-- by move: (dA2l_diff I1dI2 Ai1j Ai2j); rewrite eqxx.
-by move: (dA2l_diff I1dI2 Ai1j (dAsr Ai2j)); rewrite eqxx.
-Qed.
-
-Fact dA2r_diffs  i j k v1 v2 v3 v4 v5 :
-    j != k -> dA i j v1 v2 v3 -> dA i k v1 v4 v5 ->
-  [&& v2 '<> v4, v2 '<> v5, v3 '<> v4 & v3 '<> v5].
-Proof.
-move=> JdK HB HB'; have HB1 := dAsr HB; have HB1' := dAsr HB'.
-by rewrite !(dA2r_diff _ HB HB', dA2r_diff _ HB HB1', dA2r_diff _ HB1 HB', 
-             dA2r_diff _ HB1 HB1').
-Qed.
-
-Fact dA2l_diffs  i j k v1 v2 v3 v4 v5 :
-    j != k -> dA j i v1 v2 v3 -> dA k i v1 v4 v5 ->
-  [&& v2 '<> v4, v2 '<> v5, v3 '<> v4 &  v3 '<> v5].
-Proof.
-move=> JdK HB HB'; have HB1 := dAsr HB; have HB1' := dAsr HB'.
-by rewrite !(dA2l_diff _ HB HB', dA2l_diff _ HB HB1', dA2l_diff _ HB1 HB', 
-             dA2l_diff _ HB1 HB1').
-Qed.
-
-Fact dAr_split i j k v1 v2 v3 :  k != 0 -> 
-  dA i j v1 v2 v3 -> [|| v1 \in pA i k, v2 \in pA i k | v3 \in pA i k].
-Proof.
-move=> NZk dAij; case/and3P: (dAij) => NZi NZj /eqP pAijE.
-case: (boolP (j == k))=> [/eqP<- | JdK].
-  by rewrite pAijE !inE eqxx.
-case: (beta_diff NZi NZj NZi NZk)=> Card IA _ _ /(_ JdK) [].
-set A := _ :&: _; case: (set_0Vmem A)=> [-> //| [u]]; first by rewrite cards0.
-by rewrite inE => 
-     /andP [] /(dA_in_split dAij) /or3P [] /eqP-> ->; rewrite ?orbT.
-Qed.
-
-Fact dAl_split i j k v1 v2 v3 :  k != 0 -> 
-  dA j i v1 v2 v3 -> [|| v1 \in pA k i, v2 \in pA k i | v3 \in pA k i].
-Proof.
-move=> NZk dAij; case/and3P: (dAij) => NZj NZi /eqP pAijE.
-case: (boolP (j == k))=> [/eqP<- | JdK].
-  by rewrite pAijE !inE eqxx.
-case: (beta_diff NZj NZi NZk NZi)=> Card IA _ /(_ JdK) [].
-set A := _ :&: _; case: (set_0Vmem A)=> [-> //| [u]]; first by rewrite cards0.
-by rewrite inE =>
-     /andP [] /(dA_in_split dAij) /or3P [] /eqP-> ->; rewrite ?orbT.
-Qed.
-
-Fact dA2_split i1 j1 i2 j2 v1 v2 v3 v4 v5 : i1 != i2 -> j1 != j2 -> 
-    dA i1 j1 v1 v2 v3 -> dA i2 j2 v1 v4 v5 -> 
-  [|| (v4 == ndirr v2) && v5 '<> v3, (v4 == ndirr v3) && v5 '<> v2,
-      (v5 == ndirr v2) && v4 '<> v3 | (v5 == ndirr v3) && v4 '<> v2].
-Proof.
-move=> I1dI2 J1dJ2.
-wlog: v2 v3 v4 v5 / v4 = ndirr v2.
-  move=> IW dAi1j1 dAi2j2.
-  case/and3P: (dAi1j1) => NZi1 NZj1 /eqP pAi1j1E.
-  case/and3P: (dAi2j2) => NZi2 NZj2 /eqP pAi2j2E.
-  case: (beta_diff NZi1 NZj1 NZi2 NZj2)=> Card IA /(_ I1dI2 J1dJ2) HH _ _.
-  case: (beta_diff NZi2 NZj2 NZi2 NZj2)=> Card' IA' _ _ _.
-  move: HH; set A := _ :&: nA _ _; case: (set_0Vmem A)=> [-> /eqP | [u]].
-    by rewrite cards0 pAi1j1E pAi2j2E (cardsD1 v1) 9!{1}inE !eqxx.
-  rewrite inE pAi1j1E dirr_constt_oppr pAi2j2E !inE -!orbA.
-  case/andP=> /or3P [] /eqP->.
-  - by rewrite (negPf (ndirr_diff _)) /= => /orP [] /eqP HH;
-       move/setP: IA'=> /(_ v1); rewrite inE dirr_constt_oppr HH pAi2j2E;
-       rewrite !inE !eqxx ?orbT.
-  - case/or3P => /eqP HH.
-    - move/setP: IA=> /(_ v2); rewrite inE dirr_constt_oppr HH pAi1j1E.
-      by rewrite !inE !eqxx ?orbT.
-    - by move=> _; apply: IW => //.
-    by case/or4P: (IW v2 v3 v5 v4 (sym_equal HH) dAi1j1 (dAsr dAi2j2)) 
-           => // ->; rewrite ?orbT //.
-  case/or3P => /eqP HH.
-    - move/setP: IA=> /(_ v3); rewrite inE dirr_constt_oppr HH pAi1j1E.
-      by rewrite !inE !eqxx ?orbT.
-    - by case/or4P: (IW v3 v2 v4 v5 (sym_equal HH) (dAsr dAi1j1) dAi2j2) 
-           => // ->; rewrite ?orbT //.
-  by case/or4P: (IW v3 v2 v5 v4 (sym_equal HH) (dAsr dAi1j1) (dAsr dAi2j2)) 
-         => // ->; rewrite ?orbT //.
-move=> -> dAi1j1 dAi2j2; rewrite eqxx.
-case/and3P: (dAi1j1) => NZi1 NZj1 /eqP pAi1j1E.
-case/and3P: (dAi2j2) => NZi2 NZj2 /eqP pAi2j2E.
-case: (beta_diff NZi1 NZj1 NZi2 NZj2)=> Card IA /(_ I1dI2 J1dJ2) HH _ _.
-move/eqP: HH; rewrite pAi1j1E pAi2j2E.
-rewrite (cardsD1 v1) !inE eqxx /=.
-set A1 := _ :&: nA _ _.
-rewrite [#|A1|](cardsD1 v2) inE dirr_constt_oppr pAi2j2E.
-rewrite !inE !eqxx ?orbT /=.
-case: (boolP (v5 == _))=> [/eqP V5eV3| V5dV3]; last first.
-  case: (boolP (v5 == _))=> [/eqP V5eNV3 | //].
-  rewrite V5eNV3.
-  set A2 := _ :\ v1; case: (set_0Vmem A2) => [->|[u]].
-    rewrite cards0 addn0.
-    rewrite (cardsD1 v3) 3!inE dirr_constt_oppr pAi2j2E.
-    rewrite !inE V5eNV3 !eqxx ?orbT /=.
-    by case/andP: (dA_diff (dAr (dAr dAi1j1))); rewrite eq_sym => ->.
-  rewrite !inE => /and3P [/negPf->] /= /orP [] /eqP->.
-    rewrite eq_sym (negPf (ndirr_diff _)).
-    by case/andP: (dA_diff (dAr (dAr dAi1j1))) => _ /negPf->.
-  rewrite [v3 == _ v3]eq_sym (negPf (ndirr_diff _)).
-  case/andP: (dA_diff (dAr (dAr dAi1j1))).
-  by case: (boolP (v3 == _))=> // /eqP ->; rewrite ndirrK eqxx.
-rewrite V5eV3 (cardsD1 v3) !inE eqxx ?orbT /=.
-case/andP: (dA_diff (dAsr dAi1j1)); rewrite eq_sym => -> _ /=.
-set A2 := _ :\  v2; case: (set_0Vmem A2) => [->|[u]].
-  by rewrite cards0 addn0.
-rewrite 4!inE dirr_constt_oppr pAi2j2E !inE V5eV3.
-case/and3P=> HH; case: (boolP (ndirr _ == ndirr _))=> [/eqP|_].
-  by move/ndirr_inj=> HH1; case/eqP: HH.
-rewrite {HH}(negPf HH) !orbF /= => /orP [] /eqP->.
-  rewrite (negPf (ndirr_diff _)) eq_sym.
-  by case/andP: (dA_diff (dAr dAi1j1)) => _ /negPf->.
-rewrite (negPf (ndirr_diff _)) eq_sym.
-by case/andP: (dA_diff (dAsr dAi1j1)) => _ /negPf->.
-Qed.
-
-Fact dA2_n_split i1 j1 i2 j2 v1 v2 v3 v4 v5 : i1 != i2 -> j1 != j2 -> 
- dA i1 j1 v1 v2 v3 -> dA i2 j2 (ndirr v1) v4 v5 -> 
- [|| (v4 == v2) && v5 '<> v3, (v4 == v3) && v5 '<> v2,
-     (v5 == v2) && v4 '<> v3 | (v5 == v3) && v4 '<> v2].
-Proof.
-move=> I1dI2 J1dJ2.
-wlog: v2 v3 v4 v5 / v4 = v2.
-  move=> IW dAi1j1 dAi2j2.
-  case/and3P: (dAi1j1) => NZi1 NZj1 /eqP pAi1j1E.
-  case/and3P: (dAi2j2) => NZi2 NZj2 /eqP pAi2j2E.
-  case: (beta_diff NZi1 NZj1 NZi2 NZj2)=> Card IA /(_ I1dI2 J1dJ2) HH _ _.
-  case: (beta_diff NZi2 NZj2 NZi2 NZj2)=> Card' IA' _ _ _.
-  move: HH.
-  set A := _ :&: nA _ _; rewrite [#|A|](cardsD1 v1) inE dirr_constt_oppr.
-  rewrite pAi1j1E pAi2j2E !inE !eqxx /=.
-  set A1 := _ :&: _; case: (set_0Vmem A1)=> [-> /eqP | [u]].
-    by rewrite cards0.
-  rewrite !inE -!orbA.
-  case/andP=> /or3P [] /eqP->.
-  - rewrite eq_sym (negPf (ndirr_diff _)) /= => /orP [] /eqP HH.
-      by case/andP: (dA_diff dAi2j2); rewrite eq_sym HH eqxx.
-    by case/andP: (dA_diff (dAsr dAi2j2)); rewrite eq_sym HH eqxx.
-  - case/or3P => /eqP HH.
-    - by case/andP: (dA_diff dAi1j1); rewrite HH ndirrK eqxx.
-    - by case/or4P: (IW v2 v3 v4 v5 (sym_equal HH) dAi1j1 dAi2j2)
-           => // ->; rewrite ?orbT.
-    by case/or4P: (IW v2 v3 v5 v4 (sym_equal HH) dAi1j1 (dAsr dAi2j2))
-           => // ->; rewrite ?orbT.
-  case/andP: (dA_diff (dAr dAi1j1))=> _ /negPf -> /= /orP [] /eqP HH.
-    by case/or4P: (IW v3 v2 v4 v5 (sym_equal HH) (dAsr dAi1j1) dAi2j2) 
-        => // ->; rewrite ?orbT.
-  by case/or4P: (IW v3 v2 v5 v4 (sym_equal HH) (dAsr dAi1j1) (dAsr dAi2j2)) 
-      => // ->; rewrite ?orbT.
-move=> -> dAi1j1 dAi2j2; rewrite eqxx.
-case/and3P: (dAi1j1) => NZi1 NZj1 /eqP pAi1j1E.
-case/and3P: (dAi2j2) => NZi2 NZj2 /eqP pAi2j2E.
-case: (beta_diff NZi1 NZj1 NZi2 NZj2)=> Card IA /(_ I1dI2 J1dJ2) HH _ _.
-move/eqP: HH; rewrite pAi1j1E pAi2j2E.
-rewrite (cardsD1 v2) !inE eqxx ?orbT /=.
-set A1 := _ :&: nA _ _.
-rewrite [#|A1|](cardsD1 v1) inE dirr_constt_oppr pAi2j2E.
-rewrite !inE !eqxx /=.
-case: (boolP (v5 == _))=> [/eqP V5eV3| V5dV3]; last first.
-  case: (boolP (v5 == _))=> [/eqP V5eNV3 | //].
-  rewrite V5eNV3.
-  rewrite [#|_ :\ v1|](cardsD1 v3) 3!inE dirr_constt_oppr pAi2j2E.
-  rewrite !inE V5eNV3 !eqxx ?orbT /=.
-  case/andP: (dA_diff (dAr dAi1j1)) => -> _ /=.
-  set A2 := _ :\ _; case: (set_0Vmem A2) => [->|[u]].
-    by rewrite cards0 addn0.
-  rewrite !inE => /and3P [/negPf->]; rewrite ?orbF => /= /orP [] /eqP->.
-    rewrite eq_sym (negPf (ndirr_diff _)) /=.
-    by case/andP: (dA_diff (dAsr dAi1j1)) => _ /negPf->.
-  rewrite [v3 == _ v3]eq_sym (negPf (ndirr_diff _)).
-  by case/andP: (dA_diff (dAr dAi1j1)) => _ /negPf->.
-rewrite V5eV3 (cardsD1 v3) !inE eqxx ?orbT /=.
-case/andP: (dA_diff (dAr (dAsl dAi1j1))) => -> /= _.
-set A2 := _ :\  v1; case: (set_0Vmem A2) => [->|[u]].
-  by rewrite cards0 addn0.
-rewrite 4!inE dirr_constt_oppr pAi2j2E !inE V5eV3.
-case/and3P=> HH; case: (boolP (ndirr _ == ndirr _))=> [/eqP|_].
-  by move/ndirr_inj=> HH1; case/eqP: HH.
-rewrite {HH}(negPf HH) !orbF /= => /orP [] /eqP->.
-  rewrite (negPf (ndirr_diff _)) eq_sym.
-  by case/andP: (dA_diff (dAr (dAsl dAi1j1))) => _ /negPf->.
-rewrite (negPf (ndirr_diff _)) eq_sym.
-by case/andP: (dA_diff (dAr (dAr dAi1j1))) => _ /negPf->.
-Qed.
-
-Fact dAr_n_notin i j k v1 v2 v3 : j != 0 -> 
-  dA i k v1 v2 v3 -> ndirr v1 \notin pA i j.
-Proof.
-move=> NZj dAikE.
-case: (boolP (k == j))=> [/eqP<- | JdK].
-  by apply: dirr_constt_oppl; apply: dA_in dAikE.
-case/and3P: dAikE=> NZi NZk pAikE; apply/negP=> V1iP.
-case: (beta_diff NZi NZk NZi NZj)=> _ _ _ _ /(_ JdK) [_].
-rewrite (cardsD1 v1) (eqP pAikE) inE dirr_constt_oppr V1iP.
-by rewrite !inE eqxx.
-Qed.
-
-Fact dAl_n_notin i j k v1 v2 v3 : j != 0 ->
-  dA k i v1 v2 v3 -> ndirr v1 \notin pA j i.
-Proof.
-move=> NZj dAikE.
-case: (boolP (k == j))=> [/eqP<- | JdK].
-  by apply: dirr_constt_oppl; apply: dA_in dAikE.
-case/and3P: dAikE=> NZk NZi pAikE; apply/negP=> V1iP.
-case: (beta_diff NZk NZi NZj NZi)=> _ _ _ /(_ JdK) [_].
-rewrite (cardsD1 v1) (eqP pAikE) inE dirr_constt_oppr V1iP.
-by rewrite !inE eqxx.
-Qed.
-
-Fact dAr_n_notins i j k v1 v2 v3 : j != 0 -> dA i k v1 v2 v3 ->
- [&& ndirr v1 \notin pA i j, ndirr v2 \notin pA i j & ndirr v3 \notin pA i j].
-Proof.
-move=> NZj HB.
-by rewrite !(dAr_n_notin _ HB, dAr_n_notin _ (dAsl HB), dAr_n_notin _ (dAr HB)).
-Qed.
-
-Fact dAl_n_notins i j k v1 v2 v3 :  j != 0 -> dA k i v1 v2 v3 ->
- [&& ndirr v1 \notin pA j i, ndirr v2 \notin pA j i & ndirr v3 \notin pA j i].
-Proof.
-move=> NZj HB.
-by rewrite !(dAl_n_notin _ HB, dAl_n_notin _ (dAsl HB), dAl_n_notin _ (dAr HB)).
-Qed.
-
-(* Technical lemma *)
-Let main_aux i1 i2 i3 i4 j j' x1 x2 x3 x4 x5 x6 x7 :
-    i1 != 0 -> j' != 0 -> j' != j ->
-    i4 != i3 -> i4 != i2 -> i4 != i1 -> i3 != i2 -> i3 != i1 -> i2 != i1 -> 
-    dA i1 j x1 x2 x3 -> dA i2 j x1 x4 x5 ->
-    dA i3 j x2 x4 x6 -> dA i4 j x1 x6 x7 ->
-  x1 \in pA i1 j' -> dA i1 j' x1 (ndirr x5) (ndirr x7).
-Proof.
-move=> NZi1 NZj' J'dJ I4dI3 I4dI2 I4dI1 I3dI2 I3dI1 I2dI1 Ai1j Ai2j Ai3j Ai4j.
-case/(dAEI NZi1 NZj')=> [[x x'] /= Ai1j'].
-have JdJ' : j != j' by rewrite eq_sym.
-wlog: x x' x1 x4 x5  Ai1j Ai2j Ai3j Ai4j Ai1j' 
-  / x == ndirr x4 \/ x == ndirr x5 => [WL|].
-  case/or4P: (dA2_split I2dI1 JdJ' Ai2j Ai1j')=> /andP [] x'E d'E.
-  - by apply: WL Ai1j Ai2j Ai3j Ai4j Ai1j' _; left.
-  - by apply: WL Ai1j Ai2j Ai3j Ai4j Ai1j' _; right.
-  - by apply: WL Ai1j Ai2j Ai3j Ai4j (dAsr Ai1j') _; left.
-  by apply: WL Ai1j Ai2j Ai3j Ai4j (dAsr Ai1j') _; right.
-case=> xE; rewrite {x xE}(eqP xE) in Ai1j'.
-  case/or4P: (dA2_n_split I3dI1 JdJ' (dAsl Ai3j) (dAsl Ai1j'))
-          => /andP [] xE dE.
-  - by case/and3P: (dA_diffs Ai1j); rewrite (eqP xE) eqxx.
-  - by case/and3P: (dA_diffs Ai4j); rewrite (eqP xE) eqxx.
-  - rewrite (eqP xE) in Ai1j'.
-    by case/and4P: (dA2r_diffs  JdJ' Ai1j Ai1j'); rewrite eqxx.
-  rewrite (eqP xE) in Ai1j'.
-  case/or4P: (dA2_split I4dI1 JdJ' Ai4j Ai1j')=> /andP [] x''E d''E.
-  - case/and3P: (dA_diffs (dAr Ai1j')); move/eqP: x''E => /ndirr_inj ->.
-    by rewrite ndirrK eqxx andbF.
-  - by case/andP: d''E; rewrite eqxx.
-  - by case/negP: (ndirr_diff x6); rewrite eq_sym.
-  by case/and3P: (dA_diffs Ai4j); rewrite (eqP x''E) eqxx andbF.
-case/or4P: (dA2_split I4dI1 JdJ' Ai4j Ai1j')=> /andP [] xE dE.
-- case/and4P: (dA2l_diffs  I3dI2 (dAsl Ai3j) (dAsl Ai2j)).
-  by move/eqP: xE => /ndirr_inj ->; rewrite eqxx.
-- case/and4P: (dA2l_diffs  I4dI2 Ai4j Ai2j).
-  by move/eqP: xE => /ndirr_inj ->; rewrite eqxx.
-- rewrite (eqP xE) in Ai1j'.
-  case/or4P: (dA2_n_split I3dI1 JdJ' (dAr Ai3j) (dAr Ai1j'))
-        => /andP [] x'E d'E.
-  - by case/and3P: (dA_diffs Ai1j); rewrite (eqP x'E) eqxx.
-  - by case/and3P: (dA_diffs Ai2j); rewrite (eqP x'E) eqxx.
-  - case/and3P: (dAl_n_notins NZi1 Ai2j).
-    by rewrite (eqP x'E) (dA_in (dAsl Ai1j)).
-  by case/and3P: (dA_diffs Ai2j); rewrite -(eqP x'E) eqxx andbF.
-by rewrite (eqP xE) in Ai1j'.
-Qed.
-
-(* This is almost PeterFalvi (3.5.4). *)
-Fact cfCycTIiso_basis_line j : 
-  {xi | if j == 0 then xi = dirr1 G else forall i, i != 0 -> xi \in pA i j}.
-Proof.
-have [_ | NZj] := altP eqP; first by exists (dirr1 G).
-pose i1 : Iirr W'1 := inZp 1.
-pose i2 : Iirr W'1 := inZp 2.
-have NZi1 : i1 != 0.
-  apply/eqP; move/val_eqP=> /=.
-  by rewrite modn_small // (leq_trans _ H2Lw'1).
-have NZi2 : i2 != 0.
-  apply/eqP; move/val_eqP=> /=.
-  by rewrite modn_small //.
-have I2dI1 : i2 != i1.
-  apply/eqP; move/val_eqP=> /=.
-  by rewrite !modn_small // (leq_trans _ H2Lw'1).
-move: H2Lw'1; rewrite leq_eqVlt; case: (boolP (_ == _))=> [/eqP H3Em _ | _ /=].
-  have F P : P i1 -> P i2 -> forall i, i != 0 -> P i.
-    move=> HP1 HP2 i NZi.
-    have: (i < 3)%N by rewrite -(modZp i) -{2}H3Em /= ltn_mod.
-    rewrite ltnS leq_eqVlt; case: (boolP (_ == _))=> [/eqP HH _| _ /=].
-      suff->: i = i2 by done.
-      by apply/val_eqP=> /=; rewrite -{2}H3Em HH.
-    rewrite ltnS leq_eqVlt; case: (boolP (_ == _))=> [/eqP HH _| _ /=].
-      suff->: i = i1 by done.
-      by apply/val_eqP=> /=; rewrite -{2}H3Em HH.
-    rewrite ltnS leq_eqVlt; case: (boolP (_ == _))=> [/eqP HH _| _ /=].
-      case/eqP: NZi; suff->: i = 0 by done.
-      by apply/val_eqP; rewrite /= HH.
-    by rewrite ltn0.
-  case: (dAE NZi1 NZj)=> [[[v1 v2] v3] /=  Ai1j].
-  move: (dAl_split NZi2 Ai1j).
-  case: (boolP (_ \in _))=> [HH _ | _].
-    by exists v1; apply: F (dA_in Ai1j) _.
-  case: (boolP (_ \in _))=> [HH _ | _ /= HH].
-    by exists v2; apply: F (dA_in (dAsl Ai1j)) _.
-  by exists v3; apply: F (dA_in (dAr Ai1j)) _.
-rewrite leq_eqVlt; case: (boolP (_ == _))=> [/eqP HH|_ /= H4Lm].
-  by move: Oddw'1; rewrite -{1}HH.
-case: (dAE NZi1 NZj)=> [] [[x1 x2] x3 /= Ai1j].
-wlog:  x1 x2 x3 Ai1j / x1 \in pA i2 j => [WL | X1iAi2].
-  move: (dAl_split NZi2 Ai1j).
-  case: (boolP (_ \in _))=> [X1iAi2 _ | _]; first by apply: WL Ai1j X1iAi2.
-  case: (boolP (_ \in _))=> [X2iAi2 _ | /= _ X3iAi2].
-    by apply: WL (dAsl Ai1j) X2iAi2.
-  by apply: WL (dAr Ai1j) X3iAi2.
-case: (dAEI NZi2 NZj X1iAi2)=> {X1iAi2}[] [x4 x5] /= Ai2j.
-case: (boolP [forall (i : 'I__| i != 0), x1 \in pA i j]) => [/forall_inP HH|].
-  by exists x1 => // i /HH.
-rewrite negb_forall; move/existsP=> HH; suff: false by [].
-case: HH=> i3; rewrite negb_imply; case/andP=> NZi3 X3niAi3.
-have I3dI1: i3 != i1.
-  by apply: contra X3niAi3; move/eqP->; move: (dA_in Ai1j).
-have I3dI2: i3 != i2.
-  by apply: contra X3niAi3; move/eqP->; move: (dA_in Ai2j).
-wlog:  x2 x3 Ai1j / x2 \in pA i3 j => [WL | X2iAi3].
-  case/or3P: (dAl_split NZi3 Ai1j)=> XiAi3; first by case/negP: X3niAi3.
-    by apply: WL Ai1j XiAi3.
-  by apply: WL (dAsr Ai1j) XiAi3.
-case: (dAEI NZi3 NZj X2iAi3)=> {X2iAi3}[] [x' x6] /= Ai3j.
-wlog: x' x4 x5 x6 Ai2j Ai3j / (x4 == x')=> WL.
-  case/or3P: (dAl_split NZi3 Ai2j)=> X4iAi3; first by case/negP: X3niAi3.
-    case/or3P: (dA_in_split Ai3j X4iAi3)=> x4E.
-    - by case/and4P: (dA2l_diffs  I2dI1 Ai2j Ai1j); rewrite (eqP x4E) eqxx.
-    - by apply: WL Ai2j Ai3j x4E.
-    by apply: WL Ai2j (dAsr Ai3j) x4E.
-  case/or3P: (dA_in_split Ai3j X4iAi3)=> x5E.
-  - case/and4P: (dA2l_diffs  I2dI1 (dAsr Ai2j) Ai1j).
-    by rewrite (eqP x5E) eqxx=> /negP [].
-  - by apply: WL (dAsr Ai2j) Ai3j x5E.
-  by apply: WL (dAsr Ai2j) (dAsr Ai3j) x5E.
-rewrite -(eqP WL) {x' WL} in Ai3j.
-move: H4Lm; rewrite -[Nirr _]card_ord.
-rewrite (cardD1 (0: 'I__)) (cardD1 i1) (cardD1 i2) (cardD1 i3) !inE ?eqxx.
-rewrite NZi1 NZi2 I2dI1 NZi3 I3dI1 I3dI2 !add1n !ltnS.
-case/card_gt0P=> i4; rewrite !inE=> /and5P [] I4dI3 I4dI2 I4dI1 NZi4 _.
-case: (dAE NZi4 NZj)=> [] [[x x'] x7] /= Ai4j.
-wlog: x x' x1 x2 x3 x4 x5 x6 x7 i1 i2 i3 i4
-      NZi1 NZi2 NZi3 {X3niAi3}NZi4 I4dI3 I4dI2 I4dI1 I3dI2 I3dI1 I2dI1 
-      Ai1j Ai2j Ai3j Ai4j /
-   ((x1 == x /\ x6 == x') \/ 
-    [/\ x == x3, x' == x5 & x7 == x6])=> [WL |].
- case: (boolP (x3 \in pA i4 j))=> [X3iAi4 | X3niAi4].
-    wlog: x x' x7 Ai4j / x = x3 => [WL1|x3E].
-      case/or3P: (dA_in_split Ai4j X3iAi4)=> 
-          /eqP x3E; first by apply: WL1 Ai4j _.
-        by apply: WL1 (dAsl Ai4j) _.
-      by apply: WL1 (dAr Ai4j) _.
-    have X1niAi4: x1 \notin pA i4 j.
-      apply/negP=> X1iAi4; rewrite x3E in Ai4j.
-      case/or3P: (dA_in_split Ai4j X1iAi4)=> x4E.
-      - by case/and3P: (dA_diffs Ai1j)=> _ _ /andP [] /negP.
-      - case/and4P: (dA2l_diffs  I4dI1 Ai4j (dAr Ai1j)).
-        by rewrite (eqP x4E) eqxx.
-      case/and4P: (dA2l_diffs  I4dI1 Ai4j (dAr Ai1j)).
-      by rewrite (eqP x4E) eqxx.
-    case: (boolP (x4 \in pA i4 j))=> [X4iAi4 | X4niAi4].
-      wlog: x' x7 Ai4j / x' = x4 => [WL1 | x'E].
-        case/or3P: (dA_in_split Ai4j X4iAi4)=> /eqP x4E.
-        - case/and4P: (dA2l_diffs  I2dI1 Ai2j Ai1j)=> //.
-          by rewrite -x3E x4E eqxx.
-        - by apply: WL1 Ai4j _.
-        by apply: WL1 (dAsr Ai4j) _.
-      move: {Ai1j}(dAsl Ai1j)=> Ai1j.
-      move: {Ai3j}(dAsl Ai3j)=> Ai3j.
-      move: {Ai4j}(dAsl Ai4j)=> Ai4j.
-      have x4Ni1: x4 \notin pA i1 j.
-        have Di1i2 : i1 != i2 by rewrite eq_sym.
-        case/and4P: (dA2l_diffs  I2dI1 Ai2j (dAsl Ai1j))=> 
-           /andP [] Hv1 _ /andP [] Hv2 _ _ _.
-        apply/negP=> X4iAi1.
-        case/or3P: (dA_in_split (dAsl Ai1j) X4iAi1)=> x4E; 
-            [| case/negP: Hv1 | case/negP: Hv2]=> //.
-        case/and3P: (dA_diffs Ai1j)=> /andP [] /negP []; rewrite eq_sym. 
-        by case/negP: X1niAi4; rewrite -(eqP x4E).
-      apply: WL Ai3j (dAsl Ai2j) Ai1j Ai4j _; rewrite // eq_sym //.
-      by left; split; apply /eqP.
-    wlog: x' x7 Ai4j / x' = x5=> [WL1|].
-      case/or3P: (dAl_split NZi4 Ai2j)=> XiAi4; first by case/negP: X1niAi4.
-        by case/negP: X4niAi4.
-      case/or3P: (dA_in_split Ai4j XiAi4)=> /eqP xE.
-      - have I1dI2 : i1 != i2 by rewrite eq_sym.
-        case/and4P: (dA2l_diffs  I1dI2 Ai1j Ai2j)=> _ _ _.
-        by rewrite xE -x3E eqxx.
-      - by apply: WL1 Ai4j _.
-      by apply: WL1 (dAsr Ai4j) _.
-    move=> x'E.
-    apply: WL (Ai1j) (Ai2j) (Ai3j) (Ai4j) _ => //; 
-       right; split; apply/eqP => //.
-    rewrite x3E x'E in Ai4j.  
-    case/or3P: (dAl_split NZi4 Ai3j)=> XiAi4.
-    - case/and4P: (dA2l_diffs  I4dI1 Ai4j (dAr Ai1j)).
-      by case/or3P: (dA_in_split Ai4j XiAi4)=> /eqP xE;
-         first case/and3P: (dA_diffs (dAr Ai1j))=> _ _ /andP [];
-         rewrite xE eqxx.
-    - by case/negP: X4niAi4.
-    case/or3P: (dA_in_split Ai4j XiAi4)=> /eqP xE //.
-      case/and4P: (dA2l_diffs  I3dI1 Ai3j (dAsl Ai1j)) => _ _ _.
-      by rewrite xE -x3E eqxx.
-    case/and4P: (dA2l_diffs  I3dI2 (dAsl Ai3j) (dAsl Ai2j))=> _ _ _.
-    by rewrite xE eqxx.
-  wlog: x x' x7 x1 x2 x3 x4 x5 x6 i1 i2 i3 
-        NZi1 NZi2 NZi3 I4dI3 I4dI2 I4dI1 I3dI2 I3dI1 I2dI1
-       {X3niAi4 X3niAi3}Ai1j Ai2j Ai3j Ai4j
-       / x == x1 => [WL1|].
-    case/or3P: (dAl_split NZi4 Ai1j)=> XiAi4; last by case/negP: X3niAi4.
-      case/or3P: (dA_in_split Ai4j XiAi4)=> /eqP xE //.
-      - by apply: WL1 Ai1j Ai2j Ai3j Ai4j _ => //; rewrite xE eqxx.
-      - by apply: WL1 Ai1j Ai2j Ai3j (dAsl Ai4j) _ 
-               => //; rewrite xE eqxx.
-      by apply: WL1 Ai1j Ai2j Ai3j (dAr Ai4j) _ 
-               => //; rewrite xE eqxx.
-    case/or3P: (dA_in_split Ai4j XiAi4)=> /eqP xE //.
-    - by apply: WL1 (dAsl Ai1j) Ai3j Ai2j Ai4j _; 
-         rewrite // eq_sym // xE.
-    - by apply: WL1 (dAsl Ai1j) Ai3j Ai2j (dAsl Ai4j) _; 
-         rewrite // eq_sym // xE.
-    by apply: WL1 (dAsl Ai1j) Ai3j Ai2j (dAr Ai4j) _; 
-         rewrite // eq_sym // xE.
-  move/eqP=> xE.
-  wlog: x' x7 Ai4j / x' == x6 => [WL1 | x'E].
-    case/or3P: (dAl_split NZi4 Ai3j)=> XiAi4.
-    - rewrite xE in Ai4j; have I1dI4 : i1 != i4 by rewrite eq_sym.
-      by case/negP: (dA2l_notin I1dI4 Ai1j Ai4j).
-    - rewrite xE in Ai4j; have Di2i4 : i2 != i4 by rewrite eq_sym.
-      by case/negP: (dA2l_notin  Di2i4 Ai2j Ai4j).
-    case/or3P: (dA_in_split Ai4j XiAi4)=> /eqP x6E //.
-    - rewrite x6E xE in Ai3j.
-      case/and4P: (dA2l_diffs I3dI1 (dAr Ai3j) Ai1j).
-      by rewrite eqxx.
-    - by apply: WL1 Ai4j _; rewrite x6E eqxx.
-    by apply: WL1 (dAsr Ai4j) _; rewrite x6E eqxx.
-  by apply: WL Ai1j Ai2j Ai3j Ai4j _ => //; left; split;
-    rewrite ?xE ?(eqP x'E) eqxx.
-have [j'[NZj' J'dJ]]: exists j', j' != 0 /\ j'!= j.
-  pose j1 : Iirr W'2 := inZp 1.
-  pose j2 : Iirr W'2 := inZp 2.
-  have NZj1 : j1 != 0.
-    apply/eqP; move/val_eqP=> /=.
-    by rewrite modn_small // (leq_trans _ H2Lw'2).
-  have NZj2 : j2 != 0.
-    apply/eqP; move/val_eqP=> /=.
-    by rewrite modn_small //.
-  have J2dJ1 : j2 != j1.
-    apply/eqP; move/val_eqP=> /=.
-    by rewrite !modn_small // (leq_trans _ H2Lw'2).
-  exists (if j == j1 then j2 else j1).
-  by case: (boolP (j == j1))=> [/eqP -> |]; split=> //; rewrite eq_sym. 
-case=> [[xE x'E] | [xE x'E x7E]]; last first.
-  (* This is step (3.5.4.6). *)
-  rewrite (eqP xE) (eqP x'E) {xE x'E x7E}(eqP x7E) in Ai4j.
-  wlog: i1 i2 i3 i4 x1 x2 x3 x4 x5 x6
-        NZi4 NZi3 NZi2 NZi1 I4dI3 I4dI2 I4dI1 I3dI2 I3dI1 I2dI1 
-        Ai1j Ai2j Ai3j Ai4j / x1 \in pA i1 j' => [WL | X1iAi1].
-    case/or3P: (dAr_split NZj' Ai1j)=> XiAi1.
-    - by apply: WL Ai1j Ai2j Ai3j Ai4j _.
-    - by apply: WL (dAsl Ai1j) Ai3j Ai2j (dAsr Ai4j) _;
-         rewrite // eq_sym.
-    by apply: WL (dAr Ai1j) Ai4j (dAsr Ai2j) (dAsr Ai3j) _;
-       rewrite // eq_sym.
-  case: (dAEI NZi1 NZj' X1iAi1)=> {x x' X1iAi1}[] [x x'] /= Ai1j'.
-  wlog: i1 i2 i3 i4 x x' x1 x2 x3 x4 x5 x6 
-        NZi4 NZi3 NZi2 NZi1 I4dI3 I4dI2 I4dI1 I3dI2 I3dI1 I2dI1 
-        Ai1j Ai2j Ai3j Ai4j Ai1j' / x == ndirr x4 => [WL | x'E].
-    have JdJ' : j != j' by rewrite eq_sym.
-    case/or4P: (dA2_split I2dI1 JdJ' Ai2j Ai1j')=> /andP [] xE dE. 
-    - by apply: WL Ai1j Ai2j Ai3j Ai4j Ai1j' _.
-    - by apply: WL (dAsr Ai1j) (dAsr Ai2j) Ai4j Ai3j Ai1j' _;
-         rewrite // eq_sym.
-    - by apply: WL Ai1j Ai2j Ai3j Ai4j (dAsr Ai1j') _.
-    by apply: WL (dAsr Ai1j) (dAsr Ai2j) Ai4j Ai3j 
-                 (dAsr Ai1j')_; rewrite // eq_sym.
-  rewrite {x'E}(eqP x'E) in Ai1j'.
-  move: {Ai1j'}(dAsl Ai1j')=> Ai1j'.
-  move: {Ai3j}(dAsl Ai3j)=> Ai3j.
-  have JdJ' : j != j' by rewrite eq_sym.
-  case/or4P: (dA2_n_split I3dI1 JdJ' Ai3j Ai1j')=> /andP [] xE dE.
-  - by case/and3P: (dA_diffs Ai1j); rewrite (eqP xE) eqxx.
-  - rewrite (eqP xE) in Ai1j.
-    by case/and4P: (dA2l_diffs  I3dI1 (dAr Ai3j) Ai1j); rewrite eqxx.
-  - rewrite (eqP xE) in Ai1j'.
-    by case/and4P: (dA2r_diffs  JdJ' Ai1j (dAsl Ai1j')); rewrite eqxx.
-  rewrite (eqP xE) in Ai1j'.
-  move: {Ai1j'}(dAr Ai1j')=> Ai1j'.
-  move: {Ai4j}(dAr Ai4j)=> Ai4j.
-  case/or4P: (dA2_split I4dI1 JdJ' Ai4j Ai1j')=> /andP [] x'E d'E.
-  - case/and4P: (dA2l_diffs  I2dI1 Ai2j Ai1j).
-    by move/eqP: x'E => /ndirr_inj->; rewrite eqxx.
-  - case/and3P: (dA_diffs Ai2j).
-    by move/eqP: x'E => /ndirr_inj->; rewrite eqxx.
-  - by case/and3P: (dA_diffs Ai1j); rewrite -(eqP x'E) eqxx andbF.
-  by case/and3P: (dA_diffs Ai2j); rewrite -(eqP x'E) eqxx andbF.
-rewrite -(eqP xE) -{x x' xE x'E}(eqP x'E) in Ai4j.
- (* This is step (3.5.4.1). *)
-have F1: x1 \in pA i1 j' -> dA i1 j' x1 (ndirr x5) (ndirr x7).
-  by apply: main_aux Ai1j Ai2j Ai3j Ai4j.
-have F2: x1 \in pA i2 j' -> dA i2 j' x1 (ndirr x3) (ndirr x7).
-  by rewrite eq_sym in I2dI1; apply: main_aux Ai2j Ai1j (dAsl Ai3j) Ai4j.
-have F3: x1 \in pA i4 j' -> dA i4 j' x1 (ndirr x3) (ndirr x5).
-  by apply: main_aux Ai4j Ai1j (dAr Ai3j) Ai2j; rewrite // eq_sym.
- (* This is step (3.5.4.2). *)
-wlog: i1 i2 i4 x2 x3 x4 x5 x6 x7
-      NZi4 NZi2 NZi1 I4dI3 I4dI2 I4dI1 I3dI2 I3dI1 I2dI1 F1 F2 F3
-      Ai1j Ai2j Ai3j Ai4j / x2 \in pA i3 j' => [WL|].
-  case/or3P: (dAr_split NZj' Ai3j).
-  - by apply: WL Ai1j Ai2j Ai3j Ai4j.
-  - apply: WL Ai2j Ai1j (dAsl Ai3j) Ai4j=> //; first by rewrite eq_sym. 
-    by move=> // HH; apply: dAsr; apply: F3.
-  apply: WL Ai4j Ai2j (dAsr (dAr Ai3j)) Ai1j => //; try by rewrite eq_sym. 
-  - by move=> HH; apply: dAsr; apply: F3.
-  - by move=> HH; apply: dAsr; apply: F2.
-  by move=> HH; apply: dAsr; apply: F1.
-case/(dAEI NZi3 NZj')=> [] [x x8] /= Ai3j'.
-move: {Ai1j} (dAsl Ai1j)=> Ai1j.
-wlog: x x8 x1 x2 x3 F1 F2 F3 Ai1j Ai2j Ai3j Ai4j Ai3j' 
-          / x == ndirr x1 \/ x == ndirr x3 => [WL|].
-  case/or4P: (dA2_split I3dI1 J'dJ Ai3j' Ai1j)=> /andP [] x'E d'E.
-  - apply: WL Ai1j Ai2j Ai3j Ai4j Ai3j' _=> //.
-    by rewrite (eqP x'E) ndirrK eqxx; left.
-  - apply: WL Ai1j Ai2j Ai3j Ai4j (dAsr Ai3j') _=> //. 
-    by rewrite (eqP x'E) ndirrK eqxx; left.
-  - apply: WL Ai1j Ai2j Ai3j Ai4j Ai3j' _ => //.
-    by rewrite (eqP x'E) ndirrK eqxx; right.
-  apply: WL Ai1j Ai2j Ai3j Ai4j (dAsr Ai3j')  _ => //.
-  by rewrite // (eqP x'E) ndirrK eqxx; right.
-move: {Ai1j} (dAsl Ai1j)=> Ai1j.
-case=> /eqP HH; rewrite {x}HH in Ai3j'.
-  move: {Ai3j'} (dAsl Ai3j')=> Ai3j'.
-  have Di2i3 : i2 != i3 by rewrite eq_sym.
-  have JdJ' : j != j' by rewrite eq_sym.
-  case/or4P: (dA2_n_split Di2i3 JdJ' Ai2j Ai3j')=> 
-    /andP [] x'E d'E.
-  - by case/and3P: (dA_diffs Ai3j); rewrite (eqP x'E) eqxx.
-  - case/and4P: (dA2l_diffs  I3dI2 (dAsl Ai3j) (dAsl Ai2j)).
-    by rewrite (eqP x'E) eqxx.
-  - rewrite (eqP x'E) in Ai3j'.
-    case/or4P: (dA2_n_split I4dI3 JdJ' Ai4j Ai3j')=> /andP [] x''E d''E.
-    - by case/and3P: (dA_diffs Ai3j); rewrite (eqP x''E) eqxx.
-    - by case/and4P: (dA2l_diffs  I4dI1 Ai4j Ai1j); rewrite (eqP x''E) eqxx.
-    - by case/and3P: (dA_diffs Ai3j); rewrite (eqP x''E) eqxx.
-    by case/and4P: (dA2l_diffs  I4dI2 Ai4j Ai2j); rewrite (eqP x''E) eqxx.
-  rewrite (eqP x'E) in Ai3j'.
-  case/or4P: (dA2_n_split I4dI3 JdJ' Ai4j Ai3j')=> /andP [] x''E d''E.
-  - by case/and3P: (dA_diffs Ai3j); rewrite (eqP x''E) eq_refl.
-  - by case/and4P: (dA2l_diffs  I4dI1 Ai4j Ai1j); rewrite (eqP x''E) eqxx.
-  - by case/and4P: (dA2l_diffs  I4dI2 Ai4j Ai2j); rewrite (eqP x''E) eqxx.
-  by case/and4P: (dA2l_diffs  I4dI2 Ai4j Ai2j); rewrite (eqP x''E) eqxx.
- (* This is step (3.5.4.3). *)
-case/or3P: (dAr_split NZj' Ai1j); first 2 last.
-- case/(dAEI NZi1 NZj')=> [] [x x'] /= Ai1j'.
-  by case/and3P: (dAl_n_notins NZi1 Ai3j'); rewrite ndirrK (dA_in Ai1j').
-- move/F1=> Ai1j'.
-  case/or3P: (dAl_split NZi3 Ai1j').
-  - move/(dA_in_split Ai3j')=> /or3P [] xE.
-    - by case/and3P: (dA_diffs Ai1j); rewrite (eqP xE) eqxx.
-    - by case/and3P: (dA_diffs Ai1j); rewrite (eqP xE) eqxx andbF.
-   rewrite -(eqP xE) in Ai3j'.
-   case/or4P: (dA2_split I3dI1 J'dJ (dAr Ai3j') Ai1j)=> /andP [] x'E d'E.
-   - by case/andP: d'E; rewrite ndirrK eqxx.
-   - by case/andP: d'E; rewrite (eqP x'E) ndirrK eqxx.
-   - by case/andP: d'E; rewrite (eqP x'E) ndirrK eqxx.
-   by case/andP: d'E; rewrite eqxx.
-  - move/(dA_in_split Ai3j')=> /or3P [] xE.
-    - rewrite -(eqP xE) in Ai3j; move: (dAl_n_notins NZi3 (dAsl Ai2j)).
-      by rewrite (dA_in Ai3j) !andbF.
-    - case/and4P: (dA2l_diffs  I2dI1 Ai2j Ai1j).
-      by move/eqP: xE => /ndirr_inj ->; rewrite eqxx.
-    rewrite -(eqP xE) in Ai3j'.
-    have JdJ' : j != j' by rewrite eq_sym.
-    have Di2i3 : i2 != i3 by rewrite eq_sym.
-    case/or4P: (dA2_n_split Di2i3 JdJ' (dAr Ai2j) (dAr Ai3j'))
-          => /andP [] x'E d'E.
-    - by case/and3P: (dA_diffs Ai1j); rewrite (eqP x'E) eqxx.
-    - by case/and3P: (dA_diffs Ai3j); rewrite (eqP x'E) eqxx.
-    - by case/and3P: (dA_diffs Ai1j); rewrite -(eqP x'E) eqxx andbF.
-    move: (dAl_n_notins NZi2 Ai1j).
-    by rewrite (eqP x'E) (dA_in (dAsl Ai2j)) !andbF.
-  move/(dA_in_split Ai3j')=> /or3P [] xE.
-  - rewrite -(eqP xE) in Ai3j; case/and3P: (dAl_n_notins NZi4 (dAr Ai3j)).
-    by rewrite ndirrK (dA_in (dAr Ai4j)).
-  - case/and4P: (dA2l_diffs  I4dI1 Ai4j Ai1j).
-    by move/eqP: xE => /ndirr_inj ->; rewrite eqxx.
-  rewrite -(eqP xE) in Ai3j'; have JdJ' : j != j' by rewrite eq_sym.
-  case/or4P: (dA2_n_split I4dI3 JdJ' (dAr Ai4j) (dAr Ai3j'))
-       => /andP [] x'E d'E.
-  - by case/and3P: (dA_diffs Ai1j); rewrite (eqP x'E) eqxx.
-  - by case/and3P: (dA_diffs Ai3j); rewrite (eqP x'E) eqxx.
-  - by case/and3P: (dA_diffs Ai1j); rewrite -(eqP x'E) eqxx andbF.
-  rewrite -(eqP x'E) in Ai3j.
-  case/and3P: (dAl_n_notins NZi3 (dAsl Ai1j)).
-  by rewrite (dA_in (dAr Ai3j)).
-case/(dAEI NZi1 NZj')=> [] [x x'] /= Ai1j'.
-wlog: x x' x1 x2 x3 x4 x5 x6 x7 x8 i1 i2 i3 i4
-      NZi1 NZi2 NZi3 NZi4 I4dI3 I4dI2 I4dI1 I3dI2 I3dI1 I2dI1  
-      F1 F2 F3      
-      Ai1j Ai2j Ai3j Ai4j Ai1j' Ai3j' / x == ndirr x4 => [WL | xE].
-  have JdJ' : j != j' by rewrite eq_sym.
-  case/or4P: (dA2_split I3dI1 JdJ' Ai3j Ai1j')=> /andP [] xE dE.
-  - by apply: WL Ai1j Ai2j Ai3j Ai4j Ai1j' Ai3j' xE.
-  - apply: WL Ai1j Ai4j (dAsr Ai3j) Ai2j Ai1j' Ai3j' xE => //;
-         try by rewrite eq_sym.
-    by move=> HH; apply: dAsr; apply: F1.
-  - by apply: WL Ai1j Ai2j Ai3j Ai4j (dAsr Ai1j') Ai3j' xE => //;
-       rewrite eq_sym.
-  apply: WL Ai1j Ai4j (dAsr Ai3j) Ai2j (dAsr Ai1j') Ai3j' xE=> //;
-       try by rewrite eq_sym.
-  by move=> HH; apply: dAsr; apply: F1.
-rewrite {x xE}(eqP xE) in Ai1j'.
-move: {Ai1j'} (dAsl Ai1j')=> Ai1j'.
-move: {Ai2j} (dAsl Ai2j)=> Ai2j.
-have JdJ' : j != j' by rewrite eq_sym.
-case/or4P: (dA2_n_split I2dI1 JdJ' Ai2j Ai1j')=> /andP [] x'E d'E.
-- by case/and3P: (dA_diffs Ai1j); rewrite (eqP x'E) eqxx.
-- case/and4P: (dA2l_diffs  I3dI2 (dAsl Ai3j) Ai2j).
-  by rewrite (eqP x'E) eqxx.
-- rewrite (eqP x'E) in Ai1j'.
-  case/and4P: (dA2r_diffs  J'dJ (dAr Ai1j') Ai1j).
-  by rewrite eqxx.
-rewrite {x' x'E d'E}(eqP x'E) in Ai1j'.
-move: {Ai1j'} (dAsl Ai1j')=> Ai1j'.
-move: {Ai2j} (dAsl Ai2j)=> Ai2j.
- (* This is step (3.5.4.4). *)
-case/or3P: (dAr_split NZj' Ai2j).
-- move/F2=> Ai2j'.
-  case/or3P: (dAl_split NZi1 Ai2j'); move/(dA_in_split Ai1j'); 
-         case/or3P=> /eqP xE //.
-  - by case/and3P: (dA_diffs Ai1j); rewrite xE eqxx.
-  - by case/and3P: (dA_diffs Ai2j); rewrite -xE eqxx andbF.
-  - by case/and3P: (dA_diffs Ai2j); rewrite  xE eqxx.
-  - by case/and3P: (dA_diffs Ai1j); rewrite -xE eqxx andbF.
-  - case/and4P: (dA2l_diffs  I3dI1 Ai3j' Ai1j').
-    by rewrite xE eqxx.
-  - case/and4P: (dA2l_diffs  I3dI1 Ai3j' Ai1j').
-    by rewrite xE eqxx.
-  - case/and4P: (dA2l_diffs  I3dI2 (dAsl Ai3j') (dAsl Ai2j')).
-    by rewrite -xE eqxx.
-  - case/and4P: (dA2r_diffs  J'dJ Ai2j' Ai2j)=> _ _.
-    by rewrite xE eqxx andbF.
-  case/and4P: (dA2r_diffs  J'dJ Ai2j' Ai2j)=> _ _.
-  by rewrite xE eqxx.
-- move=> X4iAi2; case/and3P: (dAl_n_notins NZi2 Ai1j').
-  by rewrite ndirrK => _ /negP [].
-case/(dAEI NZi2 NZj')=> [[x x9] /= Ai2j'].
-wlog: x x9 Ai2j' / x = x8 => [WL | xE].
-  case/or3P: (dAl_split NZi2 Ai3j').
-  - move=> x2Ii2; move: {Ai1j'}(dAr Ai1j') => Ai1j'.
-    case/or3P: (dA_in_split Ai2j' x2Ii2)=> x2E.
-    - by case/and3P: (dA_diffs Ai1j'); rewrite (eqP x2E) eqxx.  
-    - case/and4P: (dA2l_diffs  I2dI1 Ai2j' Ai1j').
-      by rewrite (eqP x2E) eqxx.
-    case/and4P: (dA2l_diffs  I2dI1 Ai2j' Ai1j').
-    by rewrite (eqP x2E) eqxx.
-  - move=> X3iAi2.
-    case/or3P: (dA_in_split Ai2j' X3iAi2)=> x3E.
-    - case/and4P: (dA2l_diffs  I3dI1 Ai3j' Ai1j').
-      by rewrite (eqP x3E) eqxx.
-    - rewrite -(eqP x3E) in Ai2j'.
-      have I1dI2 : i1 != i2 by rewrite eq_sym.
-      case/or4P: (dA2_n_split I1dI2 JdJ' (dAr Ai1j) (dAsl Ai2j'))
-           => /andP [] xE dE.
-      - by case/and3P: (dA_diffs Ai2j); rewrite (eqP xE) eqxx.
-      - by case/and3P: (dA_diffs Ai1j'); rewrite (eqP xE) eqxx.
-      - case/and4P: (dA2r_diffs  J'dJ Ai2j' (dAr Ai2j)).
-        by rewrite (eqP xE) eqxx.
-      case/and4P: (dA2l_diffs  I2dI1 Ai2j' (dAr Ai1j')).
-      by rewrite (eqP xE) eqxx.
-    rewrite -(eqP x3E) in Ai2j'.
-    have I1dI2 : i1 != i2 by rewrite eq_sym.
-    case/or4P: (dA2_n_split I1dI2 JdJ' (dAr Ai1j) (dAr Ai2j'))
-        => /andP [] xE dE.
-    - by case/and3P: (dA_diffs Ai2j); rewrite (eqP xE) eqxx.
-    - by case/and3P: (dA_diffs Ai1j'); rewrite (eqP xE) eqxx.
-    - rewrite (eqP xE) in Ai2j'.
-      by case/and4P: (dA2r_diffs  J'dJ (dAsl Ai2j') Ai2j); rewrite  eqxx.
-    rewrite (eqP xE) in Ai2j'.
-    by case/and4P: (dA2l_diffs  I2dI1 (dAsl Ai2j') Ai1j'); rewrite eqxx.
-   move/(dA_in_split Ai2j')=> /or3P [] x3E.
-   - case/and4P: (dA2l_diffs  I3dI1 Ai3j' Ai1j').
-     by rewrite (eqP x3E) eqxx.
-   - by apply: WL Ai2j' _; rewrite (eqP x3E).
-   by apply: WL (dAsr Ai2j') _; rewrite (eqP x3E).
-rewrite {x}xE in Ai2j'.
- (* This is step (3.5.4.5). *)
-pose II x := x \in pA i4 j'.
-have X1niAj4 : ~~ II x1.
-  apply/negP=> /F3 Ai4j'.
-  case/and3P: (dAl_n_notins NZi4 Ai1j').
-  by rewrite(dA_in (dAr Ai4j')).
-have mX1niAj4 : ~~ II (ndirr x1).
- by case/and3P: (dAr_n_notins NZj' Ai4j).
-have [NIx2 NIx3] : ~II x2 /\ ~II (ndirr x3).
-  have NII: ~ (II x2 /\ II (ndirr x3)).
-    case; case/(dAEI NZi4 NZj')=> [[x x'] /= Ai4j' X3iAi4].
-     wlog: x x' Ai4j' / x = ndirr x3=> [WL|HH]; last rewrite {}HH in Ai4j'.
-       case/or3P: (dA_in_split Ai4j' X3iAi4)=> xE.
-       - case/and3P: (dA_diffs Ai1j).
-         by rewrite -(eqP xE) eqxx andbF.
-       - by apply: WL Ai4j' _; rewrite (eqP xE).
-       by apply: WL (dAsr Ai4j') _; rewrite (eqP xE).
-     case/and4P: (dA2l_diffs  I4dI3 Ai4j' Ai3j').
-     by rewrite eqxx.
-  split.
-    case/(dAEI NZi4 NZj')=> [[x x'] /= Ai4j'].
-    case/or4P: (dA2_split I4dI1 J'dJ Ai4j' (dAsl Ai1j))=> /andP [] xE dE.
-    - case/and3P: (dAr_n_notins NZj' Ai4j); rewrite (eqP xE) ndirrK.
-      by rewrite (dA_in (dAsl Ai4j')).
-    - case/and3P: (dAr_n_notins NZj' Ai4j); rewrite (eqP xE) ndirrK.
-      by rewrite (dA_in (dAr Ai4j')).
-    - case: NII; rewrite /II (dA_in Ai4j') (eqP xE) ndirrK.
-      by rewrite (dA_in (dAsl Ai4j')).
-    case: NII; rewrite /II (dA_in Ai4j') (eqP xE) ndirrK.
-    by rewrite (dA_in (dAr Ai4j')).
-  case/(dAEI NZi4 NZj')=> [[x x'] /= Ai4j'].
-  have I1dI4 : i1 != i4 by rewrite eq_sym.
-  case/or4P: (dA2_n_split I1dI4 JdJ' (dAr Ai1j) Ai4j')=> /andP [] xE dE.
-  - by case/negP: X1niAj4; rewrite -(eqP xE); apply: dA_in (dAsl Ai4j').
-  - case: NII; rewrite /II (dA_in Ai4j') -(eqP xE).
-    by rewrite (dA_in (dAsl Ai4j')).
-  - by case/negP: X1niAj4; rewrite -(eqP xE); apply: dA_in (dAr Ai4j').
-  case: NII; rewrite /II (dA_in Ai4j') -(eqP xE).
-  by rewrite (dA_in (dAr Ai4j')).
-case/or3P: (dAl_split NZi4 Ai3j')=> //.
-case/(dAEI NZi4 NZj')=> [[x x'] /= Ai4j'].
-have NIx5: ~ II x5.
-  move=> x5Ii4; wlog: x x' Ai4j' / x == x5=> [WL| /eqP HH].
-    case/or3P: (dA_in_split Ai4j' x5Ii4)=> xE.
-    - by case/and3P: (dA_diffs (dAsl Ai2j')); rewrite (eqP xE) eqxx.
-    - by apply: WL Ai4j' _; rewrite (eqP xE).
-    by apply: WL (dAsr Ai4j') _; rewrite (eqP xE).
-  rewrite {}HH in Ai4j'.
-  by case/and4P: (dA2l_diffs  I4dI2 (dAsl Ai4j') Ai2j'); rewrite eqxx.
-wlog: x x' Ai4j' / x == ndirr x4 => [WL|HH].
-  case/or3P: (dAl_split NZi4 Ai1j')=> //.
-  move/(dA_in_split Ai4j')=> /or3P [] xE.
-  - rewrite -(eqP xE) in Ai3j'.
-    case/and4P: (dA2r_diffs  J'dJ Ai3j' Ai3j).
-    by rewrite eqxx andbF.
-  - by apply: WL Ai4j' _; rewrite (eqP xE).
-  by apply: WL (dAsr Ai4j') _; rewrite (eqP xE).
-rewrite {HH}(eqP HH) in Ai4j'.
-have I2dI4 : i2 != i4 by rewrite eq_sym.
-case/or4P: (dA2_n_split I2dI4 JdJ' (dAsl Ai2j) (dAsl Ai4j'))
-       => /andP [] xE dE.
-- by case/negP: X1niAj4; rewrite -(eqP xE) /II (dA_in Ai4j').
-- by case: NIx5; rewrite -(eqP xE) /II (dA_in Ai4j').
-- by case/negP: X1niAj4; rewrite -(eqP xE) /II (dA_in (dAr Ai4j')).
-by case: NIx5; rewrite -(eqP xE) /II (dA_in (dAr Ai4j')).
-Qed.
-
-(* This is the common component of a column; we do not state its uniqueness   *)
-(* formally, as it is a direct consequence of (3.5.2).                        *)
-Definition ccTIirr (i : Iirr W'2) := sval (cfCycTIiso_basis_line i).
-
-Local Notation gamma_ := ccTIirr.
-
-Fact ccTIirrE i j : i != 0 -> j != 0 -> gamma_ j \in pA i j.
-Proof.
-move=> NZi NZj; rewrite /gamma_; case: (cfCycTIiso_basis_line j) => x /=.
-by rewrite (negPf NZj) => ->.
-Qed.
-
-Fact ccTIirr_inN i j j' : 
-  i != 0 -> j != 0 -> j' != 0 -> j != j' -> ndirr (gamma_ j') \notin pA i j.
-Proof.
-move=> NZi NZj NZj' JdJ'; apply/negP=> INg.
-case: (dAEI NZi NZj' (ccTIirrE NZi NZj'))=> [[v1 v2 /=] Hv].
-by case/andP: (dAr_n_notins NZj Hv)=> /negP.
-Qed.
-
-Fact ccTIirr_inP i j j' : (4 < Nirr W'1)%N ->
-  i != 0 -> j != 0 -> j' != 0 -> j != j' -> gamma_ j' \notin pA i j.
-Proof.
-move=> H4Lm NZi NZj NZj' JdJ'; apply/negP=> INg.
-case: (dAEI NZi NZj INg)=> [[v1 v2 /=] Aij].
-have [i1 [NZi1 IdI1 [i2 [NZi2 IdI2 I1dI2 [i3 [NZi3 IdI3 I1dI3 Di2i3]]]]]] :
-   exists i1,
-    [/\ i1 != 0, i != i1 &
-     exists i2, 
-       [/\ i2 != 0, i != i2, i1 != i2 &
-       exists i3,
-         [/\ i3 !=0, i != i3, i1 != i3 & i2 != i3]]].
-  have: (4 < #|Iirr W'1|)%N by rewrite card_ord.
-  rewrite (cardD1 (0: 'I__)) (cardD1 i) !inE NZi !ltnS=> HH.
-  case/card_gt0P: (ltn_trans (is_true_true : 0 < 2)%N HH)=> i1.
-  rewrite !inE=> Hi1; exists i1.
-  case/and3P: (Hi1); rewrite 1![i1 == _]eq_sym=> -> -> _; split=> //.
-  move: HH; rewrite (cardD1 i1) !inE Hi1 ltnS=> HH.
-  case/card_gt0P: (ltn_trans (is_true_true : 0 < 1)%N HH)=> i2.
-  rewrite !inE=> Hi2; exists i2.
-  case/and4P: (Hi2); rewrite 2![i2 == _]eq_sym=> -> -> -> _; split=> //.
-  move: HH; rewrite (cardD1 i2) !inE Hi2 ltnS=> /card_gt0P=> [[i3]].
-  rewrite !inE=> Hi3; exists i3.
-  by case/and5P: (Hi3); rewrite 3![i3 == _]eq_sym=> -> -> -> ->.
-case: (dAEI NZi1 NZj' (ccTIirrE NZi1 NZj'))=> [[v v3 /=] Ai1j'].
-wlog: v1 v2 v v3 Aij Ai1j' / (v == ndirr v1) && v3 '<> v2=> [WL|].
-  case/or4P: (dA2_split IdI1 JdJ' Aij Ai1j'); first by apply: WL Aij Ai1j'.
-  - by apply: WL (dAsr Aij) Ai1j'.
-  - by apply: WL Aij (dAsr Ai1j').
-  apply: WL (dAsr Aij) (dAsr Ai1j').
-case/andP=> /eqP HH Dv3v2; rewrite {v}HH in Ai1j'.
-case: (dAEI NZi2 NZj' (ccTIirrE NZi2 NZj'))=> [[v v4 /=] Ai2j'].
-wlog: v1 v2 v v4 Dv3v2 Aij Ai1j' Ai2j' / (v == ndirr v2) && v4 '<> v1=> [WL|].
-  case/or4P: (dA2_split IdI2 JdJ' Aij Ai2j').
-  - case/andP=> /eqP HH DD; rewrite HH in Ai2j'.
-    by case/and3P: (dA2l_diffs  I1dI2 Ai1j' Ai2j'); rewrite eqxx.
-  - by apply: WL Aij Ai1j' Ai2j'.
-  - case/andP=> /eqP HH DD; rewrite HH in Ai2j'.
-    by case/and3P: (dA2l_diffs  I1dI2 Ai1j' Ai2j'); rewrite eqxx.
-  by apply: WL Aij Ai1j' (dAsr Ai2j').
-case/andP=> /eqP HH Dv3v1; rewrite {v}HH in Ai2j'.
-case: (dAEI NZi3 NZj' (ccTIirrE NZi3 NZj'))=> [[v5 v6 /=] Ai3j'].
-case/or4P: (dA2_split IdI3 JdJ' Aij Ai3j'); case/andP=> /eqP HH DD; 
-        rewrite HH in Ai3j'.
-- by case/and3P: (dA2l_diffs  I1dI3 Ai1j' Ai3j'); rewrite eqxx.
-- by case/and3P: (dA2l_diffs  Di2i3 Ai2j' Ai3j'); rewrite eqxx.
-- by case/and3P: (dA2l_diffs  I1dI3 Ai1j' Ai3j'); rewrite eqxx.
-by case/and3P: (dA2l_diffs  Di2i3 Ai2j' Ai3j'); rewrite eqxx.
-Qed.
-    
-End SymmetricalDecomposition.
-
-(* Horizontal instanciation *)
-Let h_beta_hyp : beta_hyp3_5 beta_.
-Proof.
-split; rewrite 2?(nirrW1, nirrW2, =^~ (card_ord (Nirr _))) //=.
-move=> i j i' j' NZi NZj NZi' NZj'.
-have [HH HH1 _] := specA NZi NZj.
-split=> //; first exact: card_dirr_const_beta_diff.
-  exact: card_dirr_const_beta_diffl.
-exact: card_dirr_const_beta_diffr.
-Qed.
-
-(* Vertical instanciation *)
-Let v_beta_hyp : beta_hyp3_5 (fun i => beta_^~ i).
-Proof.
-split; rewrite 2?(nirrW1, nirrW2, =^~ (card_ord (Nirr _))) //=.
-move=> j i j' i' NZj NZi NZj' NZi'.
-have [HH HH1 _] := specA NZi NZj.
-split=> // *; first exact: card_dirr_const_beta_diff.
-  exact: card_dirr_const_beta_diffr.
-exact: card_dirr_const_beta_diffl.
-Qed.
-
-Local Notation hcTIirr := (ccTIirr h_beta_hyp).
-Local Notation vcTIirr := (ccTIirr v_beta_hyp).
-Let hcTIirrE := ccTIirrE h_beta_hyp.
-Let vcTIirrE := ccTIirrE v_beta_hyp.
-Let hcTIirr_inP := ccTIirr_inP h_beta_hyp.
-Let hcTIirr_inN := ccTIirr_inN h_beta_hyp.
-Let vcTIirr_inP := ccTIirr_inP v_beta_hyp.
-Let vcTIirr_inN := ccTIirr_inN v_beta_hyp.
-
-Let hcTIirr_diff_vcTIrr i j : i != 0 -> j != 0 -> vcTIirr i != hcTIirr j.
-Proof.
-move=> NZi NZj; apply/eqP=> HH.
-move: w1gt2 w2gt2 coW12 oddW1 oddW2.
-rewrite leq_eqVlt; case/orP=> [/eqP {1}<- |].
-  rewrite leq_eqVlt; case/orP=> [/eqP {1}<- //|].
-  rewrite leq_eqVlt; case/orP=> [/eqP {2}<- //|].
-  rewrite -{1}nirrW2 card_ord => HW2 _ _ _.
-  have [i' NZi' I'dI]: exists2 i', i' != 0 & i' != i.
-    move: w1gt2; rewrite -nirrW1.
-    rewrite (cardD1 (0: 'I__)) (cardD1 i) !inE NZi !ltnS=> /card_gt0P=> [[i1]].
-    by rewrite !inE=> /and3P [] H1 H2 H3; exists i1.
-  case/negP: (vcTIirr_inP HW2 NZj NZi' NZi I'dI).
-  by rewrite HH hcTIirrE.
-rewrite leq_eqVlt; case/orP=> [/eqP {2}<- //|].
-rewrite -{1}nirrW1 card_ord => HW1 _ _ _.
-have [j' NZj' J'dJ]: exists2 j', j' != 0 & j' != j.
-  move: w2gt2; rewrite -nirrW2.
-  rewrite (cardD1 (0: 'I__)) (cardD1 j) !inE NZj !ltnS => /card_gt0P=> [[j']].
-  by rewrite !inE => /and3P[] H1 H2 H3; exists j'.
-case/negP: (hcTIirr_inP HW1 NZi NZj' NZj J'dJ).
-by rewrite -HH vcTIirrE.
-Qed.
-
-(* This is the witness for (3.5). *)
-Definition dcTIirr (i : Iirr W1) (j : Iirr W2) : dIirr G := 
-  let v i := ndirr (vcTIirr i) in
-  let h j := ndirr (hcTIirr j) in
-  if (i == 0) then 
-    if (j == 0) then dirr1 G else h j
-  else
-    if (j == 0) then v i else
-      dirr_dIirr (fun i => beta_ i j + dchi (h j) + dchi (v i)) i.
-
-Local Notation xi_ i j := (dchi (dcTIirr i j)).
-
-Lemma dcTIrrE i j :
-  i != 0 -> j != 0 -> beta_ i j = - xi_ i 0 - xi_ 0 j + xi_ i j.
-Proof.
-move=> NZi NZj.
-rewrite /dcTIirr !eqxx (negPf NZi) (negPf NZj).
-pose TT := @dirr_dIirrPE _ _ _ _ (fun j => j != 0).
-rewrite TT //; first by rewrite addrC !addrA !addrK.
-move=> i1 NZi1.
-case: (dirr_small_norm (beta_vchar i1 j) (cfnorm_beta NZi1 NZj)) => //.
-move=> Acar _ ->; move/eqP: Acar; rewrite !dchi_ndirrE.
-set h := hcTIirr j; set v := vcTIirr i1; rewrite addrAC addrC addrA addrC.
-rewrite (cardsD1 h) (big_setD1 h) hcTIirrE // addKr eqSS.
-have A'u_v: v \in A_ i1 j :\ h by rewrite 2!inE hcTIirr_diff_vcTIrr ?vcTIirrE.
-rewrite (cardsD1 v) (big_setD1 v) A'u_v ?addKr // => /cards1P[w ->].
-by rewrite big_set1 dirr_dchi.
-Qed.
-
-Lemma dcTIrrDE i j : i != 0 -> j != 0 -> 
-  A_ i j = [set ndirr (dcTIirr i 0); ndirr (dcTIirr 0 j); dcTIirr i j].
-Proof.
-by move=> NZi NZj; apply: dirr_const_beta_inv; rewrite // !dchi_ndirrE -dcTIrrE.
-Qed.
-
-Lemma beta'1 i j : i != 0 -> j != 0 -> dirr1 G \notin dirr_constt (beta_ i j).
-Proof. by move=> NZi NZj; rewrite inE dchi1 cfdot_beta_1 ?ltrr. Qed.
-
-Lemma beta'N1 i j : i != 0 -> j != 0 -> 
-  ndirr (dirr1 G) \notin dirr_constt (beta_ i j).
-Proof.
-move=> NZi NZj; rewrite inE dchi_ndirrE dchi1 cfdotNr cfdot_beta_1 //.
-by rewrite oppr0 ltrr.
-Qed.
-
-Lemma dcTIirr_vchar i j : xi_ i j \in 'Z[irr G].
-Proof. by apply: dchi_vchar. Qed.
-
-(* This is first part of Peterfalvi (3.5). *)
-Lemma cfdot_dcTIirr i j i' j' : 
-  '[xi_ i j, xi_ i' j'] = ((i == i') && (j == j'))%:R.
-Proof.
-move: i j i' j'.
-pose i1 : Iirr W1 := inZp 1.
-pose j1 : Iirr W2 := inZp 1.
-have NZi1 : i1 != 0 by rewrite -val_eqE /= NirrW1 -(subnKC w1gt2).
-have NZj1 : j1 != 0 by rewrite -val_eqE /= NirrW2 -(subnKC w2gt2).
-have P0 : xi_ 0 0 = 1 by rewrite {1}/dcTIirr !eqxx dchi1 .
-have Pnorm i j : '[xi_ i j] == 1 by rewrite cfnorm_dchi.
-have Pvchar := dcTIirr_vchar.
-have PC i j i' j' : '[xi_ i j, xi_ i' j'] = '[xi_ i' j', xi_ i j].
-  do 2 rewrite cfdot_dchi //; rewrite ![dcTIirr i' j' == _]eq_sym.
-  congr (_ - _); rewrite -{1}[_ i j]ndirrK.
-  case: (_ =P _)=> [/ndirr_inj ->|HH]; first by rewrite eqxx.
-  by case: (_ =P _)=> // HH1; case: HH; rewrite HH1.
-have ndirrEK (G1 : {group gT}) (i j : dIirr G1)  : 
-   (ndirr i == ndirr j) = (i == j).
-  by apply/eqP/eqP=> [/ndirr_inj|->].
-have ndirrSK (G1 : {group gT}) (i j : dIirr G1)  : 
-   (ndirr i == j) = (i == ndirr j).
-  by rewrite -{2}[i]ndirrK ndirrEK.
-have P1 i j : '[1, xi_ i j] == ((i == 0) && (j == 0))%:R.
-  rewrite -dchi1 cfdot_dchi.
-  case: (boolP (i == 0))=> [/eqP-> | NZi];
-       case: (boolP (j == 0))=> [/eqP-> | NZj].
-  - by rewrite /dcTIirr !eqxx [dirr1 _ == _]eq_sym (negPf (ndirr_diff _)) subr0.
-  - move: (beta'N1 NZi1 NZj) (beta'1 NZi1 NZj). 
-    rewrite (dcTIrrDE NZi1 NZj) !{1}inE !negb_or !ndirrEK -!andbA. 
-    by case/and3P => _ /negPf-> _ /and3P [_ /negPf-> _]; rewrite subrr.
-  - move: (beta'N1 NZi NZj1) (beta'1 NZi NZj1). 
-    rewrite (dcTIrrDE NZi NZj1) !{1}inE !negb_or !ndirrEK -!andbA. 
-    case/and3P => /negPf HH1 _ _ /and3P [/negPf HH2 _ _].
-    by rewrite HH1 HH2 subrr.
-  move: (beta'N1 NZi NZj) (beta'1 NZi NZj). 
-  rewrite (dcTIrrDE NZi NZj) !{1}inE !negb_or !ndirrEK -!andbA. 
-  case/and3P => _ _ /negPf HH1 /and3P [_ _ /negPf HH2].
-  by rewrite -{2}[dirr1 G]ndirrK ndirrEK HH1 HH2 subrr.
-have TT i2 j2 (NZi2 : i2 != 0) (NZj2 : j2 != 0) :
-   [&& i2 != 0 , j2 != 0 &  
-       dirr_constt (beta_ i2 j2) ==
-       [set ndirr (dcTIirr i2 0); ndirr (dcTIirr 0 j2); dcTIirr i2 j2]].
-  by rewrite NZi2 NZj2 /=; apply/eqP; apply: dcTIrrDE.
-have Pjj' j j' : '[xi_ 0 j, xi_ 0 j'] == (j == j')%:R.
-  case: (boolP (j == j')) => [/eqP->|]; first by rewrite Pnorm.
-  case: (boolP (j == 0)) => [/eqP->| NZj] JdJ'.
-    by rewrite P0 (eqP (P1 _ _)) [j' == _]eq_sym (negPf JdJ') eqxx.
-  case: (boolP (j' == 0)) => [/eqP->| NZj'].
-    by rewrite PC P0 (eqP (P1 _ _)) (negPf NZj) eqxx.
-  move: (dA2r_diff h_beta_hyp JdJ' (TT _ _ NZi1 NZj) (TT _ _ NZi1 NZj')).
-  by rewrite cfdot_dchi !ndirrEK => /andP [/negPf-> /negPf->]; rewrite subrr.
-have Pii' i i' : '[xi_ i 0, xi_ i' 0] == (i == i')%:R.
-  case: (boolP (i == i')) => [/eqP->|]; first by rewrite Pnorm.
-  case: (boolP (i == 0)) => [/eqP->| NZi] IdI'.
-    by rewrite P0 (eqP (P1 _ _)) [i' == _]eq_sym (negPf IdI') eqxx.
-  case: (boolP (i' == 0)) => [/eqP->| NZi'].
-    by rewrite PC P0 (eqP (P1 _ _)) (negPf NZi) eqxx.
-  move: (dA2l_diff h_beta_hyp IdI' (dAsl (TT _ _ NZi NZj1))
-             (dAsl (TT _ _ NZi' NZj1))).
-  by rewrite cfdot_dchi !ndirrEK => /andP [/negPf-> /negPf->]; rewrite subrr.
-have Pij i j : '[xi_ i 0, xi_ 0 j] == ((i == 0) && (j == 0))%:R.
-  case: (boolP (i == 0))=> [/eqP-> | NZi]; first by rewrite P0 (eqP (P1 _ _)).
-  case: (boolP (j == 0))=> [/eqP-> | NZj].
-    by rewrite PC P0 (eqP (P1 _ _)) (negPf NZi) eqxx.
-  case/andP: (dA_diff h_beta_hyp (TT _ _ NZi NZj)).
-  by rewrite cfdot_dchi !ndirrEK => /negPf-> /negPf->; rewrite subrr.
-have Pii'j i i' j : '[xi_ i 0, xi_ i' j] == ((i == i') && (j == 0))%:R.
-  case: (boolP (i == 0))=> [/eqP-> // | NZi].
-    by rewrite P0 (eqP (P1 _ _)) ![0 == _]eq_sym.
-  case: (boolP (i' == 0))=> [/eqP-> // | NZi'].
-  case: (boolP (j == 0))=> [/eqP-> // | NZj]; first by rewrite andbT Pii'.
-  rewrite andbF.
-  case: (boolP (i == i'))=> [/eqP<- | IdI'].
-    case/andP: (dA_diff h_beta_hyp (dAsr (TT _ _ NZi NZj))).
-    by rewrite cfdot_dchi !ndirrSK ndirrK => /negPf-> /negPf->; rewrite subrr.
-  case/andP: (dA2l_diff h_beta_hyp IdI' (dAsl (TT _ _ NZi NZj))
-                (dAsr (dAsl (TT _ _ NZi' NZj)))).
-  by rewrite cfdot_dchi !ndirrSK ndirrK => /negPf-> /negPf->; rewrite subrr.
-have Pijj' i j j' : '[xi_ 0 j, xi_ i j'] == ((i == 0) && (j == j'))%:R.
-  case: (boolP (j == 0))=> [/eqP-> // | NZj].
-    by rewrite P0 (eqP (P1 _ _)) ![0 == _]eq_sym.
-  case: (boolP (i == 0))=> [/eqP-> // | NZi].
-    by rewrite (eqP (Pjj' _ _)).
-  case: (boolP (j' == 0))=> [/eqP-> // | NZj'].
-    by rewrite PC // (eqP (Pij _ _)) (negPf NZi).
-  case: (boolP (j == j'))=> [/eqP<- | JdJ'].
-    case/andP: (dA_diff h_beta_hyp (dAsr (dAsl (TT _ _ NZi NZj)))).
-    by rewrite cfdot_dchi !ndirrSK ndirrK => /negPf-> /negPf->; rewrite subrr.
-  case/andP: (dA2r_diff h_beta_hyp JdJ' (TT _ _ NZi NZj)
-                (dAsr (TT _ _ NZi NZj'))).
-  by rewrite cfdot_dchi !ndirrSK ndirrK => /negPf-> /negPf->; rewrite subrr.
-move=> i j i' j'; apply/eqP.
-case: (boolP (i == 0))=> [/eqP-> // | NZi].
-  by rewrite [0 == _]eq_sym; apply: Pijj'.
-case: (boolP (i' == 0))=> [/eqP-> // | NZi'].
-  by rewrite PC [j == _]eq_sym; apply: Pijj'.
-case: (boolP (j == 0))=> [/eqP-> | NZj].
-  by rewrite (eqP (Pii'j _ _ _)) [0 == _]eq_sym.
-case: (boolP (j' == 0))=> [/eqP-> | NZj'].
-  by rewrite PC (eqP (Pii'j _ _ _)) [i == _]eq_sym.
-case: (boolP (i == _))=> [/eqP<- | IdI'].
-  case: (boolP (j == _))=> [/eqP<- // | JdJ'].
-  case/andP: (dA2r_diff h_beta_hyp JdJ' (dAsr (TT _ _ NZi NZj))
-                (dAsr (TT _ _ NZi NZj'))).
-  by rewrite cfdot_dchi => /negPf-> /negPf->; rewrite subrr.
-case: (boolP (j == _))=> [/eqP<- // | JdJ'].
-  case/andP: (dA2l_diff h_beta_hyp IdI' (dAsr (dAsl (TT _ _ NZi NZj)))
-                (dAsr (dAsl (TT _ _ NZi' NZj)))).
-  by rewrite cfdot_dchi => /negPf-> /negPf->; rewrite subrr.
-rewrite cfdot_dchi.
-case: (boolP (_ j == _))=> [/eqP H1|_].
-  have F1 := dAr (TT _ _ NZi NZj).
-  have := dAr (TT _ _ NZi' NZj'); rewrite -H1 => F2.
-  case/or4P: (dA2_split h_beta_hyp IdI' JdJ' F1 F2)=> /and3P [];
-      rewrite ndirrK subr_eq0 => [/eqP H2 _ _].
-  - move: (Pii' i i'); rewrite cfdot_dchi -H2 eqxx.
-    by rewrite (negPf (ndirr_diff _)) (negPf IdI') subr_eq0 eq_sym oner_eq0.
-  - move: (Pij i' j); rewrite cfdot_dchi -H2 ndirrK eqxx.
-    rewrite [_ 0 == _]eq_sym (negPf (ndirr_diff _)) (negPf NZi') (negPf NZj).
-    by rewrite  subr_eq0 eq_sym oner_eq0.
-  - move: (Pij i j'); rewrite cfdot_dchi -H2 eqxx ndirrSK.
-    rewrite [_ j' == _]eq_sym (negPf (ndirr_diff _)) (negPf NZi) (negPf NZj').
-    by rewrite  subr_eq0 eq_sym oner_eq0.
-  move: (Pjj' j j'); rewrite cfdot_dchi -H2 eqxx.
-  by rewrite (negPf (ndirr_diff _)) (negPf JdJ') subr_eq0 eq_sym oner_eq0.
-case: (boolP (_ j == _))=> [/eqP H1|_]; last by rewrite subrr.
-have F1 := dAr (TT _ _ NZi NZj).
-have := dAr (TT _ _ NZi' NZj'); rewrite -[dcTIirr i' j']ndirrK -{1}H1 => F2.
-case/or4P: (dA2_n_split h_beta_hyp IdI' JdJ' F1 F2)=> /and3P [];
-      rewrite ?(ndirrEK, ndirrK) subr_eq0 => [/eqP H2 _ _].
-- move: (Pii' i i'); rewrite cfdot_dchi -H2 eqxx.
-  rewrite [_ 0 == _]eq_sym (negPf (ndirr_diff _)) (negPf IdI').
-  by rewrite subr0 eqr_nat.
-- move: (Pij i' j); rewrite cfdot_dchi -H2 eqxx.
-  rewrite [_ 0 == _]eq_sym (negPf (ndirr_diff _)) (negPf NZi') (negPf NZj).
-  by rewrite  subr0 eqr_nat.
-- move: (Pij i j'); rewrite cfdot_dchi -H2 eqxx.
-  rewrite [_ j' == _]eq_sym (negPf (ndirr_diff _)) (negPf NZi) (negPf NZj').
-  by rewrite  subr0 eqr_nat.
-move: (Pjj' j j'); rewrite cfdot_dchi -H2 eqxx.
-rewrite [_ j' == _]eq_sym (negPf (ndirr_diff _)) (negPf JdJ').
-by rewrite subr0 eqr_nat.
-Qed.
-
-(* This is second_part of PeterFalvi (3.5). *)
-Lemma dcTIirrE i j : i != 0 -> j != 0 ->
-  'Ind[G] (alpha_ i j) = 1 - xi_ i 0 - xi_ 0 j + xi_ i j.
-Proof. by move=> NZi NZj; rewrite -!addrA addrC addrA -dcTIrrE // subrK. Qed.
-
-End BetaDecomposition.
-
-Local Notation xi_ i j := (dchi (dcTIirr i j)).
+End CyclicTIisoBasis.
 
 Fact cyclicTIiso_key : unit. Proof. by []. Qed.
 Definition cyclicTIiso_def of cyclicTI_hypothesis G defW :=
@@ -1604,8 +1375,8 @@ Local Notation sigma := cyclicTIiso.
 Let im_sigma := map sigma (irr W).
 Let eta_ i j := sigma (w_ i j).
 
-(* This is PeterFalvi (3.2) (a, b, c). *)
-Lemma cyclicTIiso_spec :
+(* This is PeterFalvi, Theorem (3.2) (a, b, c). *)
+Theorem cyclicTIiso_spec :
   [/\ {in 'Z[irr W], isometry sigma, to 'Z[irr G]},
       sigma 1 = 1 &
       {in 'CF(W, V), forall phi : 'CF(W), sigma phi = 'Ind[G] phi}].
@@ -1622,21 +1393,22 @@ rewrite [sigma]unlock /cyclicTIiso_def; case: pickP => [/= f /and3P[]|].
     by rewrite dot_sigma ?map_f ?mem_irr // cfdot_irr (inj_eq inj_sigma).
   rewrite linear_sum rpred_sum // => k _; rewrite linearZ rpredZ_Cint //=.
   by rewrite -tnth_nth [sigma _]Dsigma ?mem_enum ?dchi_vchar.
-pose f := [ffun k => prod_curry dcTIirr (inv_dprod_Iirr defW k)] => /(_ f).
-case: (linear_of_free _ _) => /= sigma Dsigma /and3P[].
+have [xi_ [xi00 Zxi Dxi o1xi]] := cyclicTIiso_basis_exists.
+pose f := [ffun k => dirr_dIirr (prod_curry xi_) (inv_dprod_Iirr defW k)].
+move/(_ f); case: (linear_of_free _ _) => /= sigma Dsigma /and3P[].
 have{Dsigma} Deta i j: sigma (w_ i j) = xi_ i j.
   rewrite /w_ -tnth_map /= (tnth_nth 0) /=.
   rewrite Dsigma ?irr_free //; last by rewrite !size_tuple card_ord.
-  by rewrite nth_mktuple ffunE dprod_IirrK.
-have sigma1: sigma 1 = 1 by rewrite -w_00 Deta /dcTIirr !eqxx dchi1.
+  rewrite nth_mktuple ffunE dprod_IirrK dirr_dIirrE // => {i j} [[i j]] /=.
+  by rewrite dirrE Zxi o1xi !eqxx.
+have sigma1: sigma 1 = 1 by rewrite -w_00 Deta.
 split; last 2 [by rewrite sigma1].
   rewrite map_orthonormal ?irr_orthonormal //; apply: isometry_in_zchar.
   move=> _ _ /cycTIirrP[i1 [j1 ->]] /cycTIirrP[i2 [j2 ->]] /=.
-  by rewrite !Deta cfdot_dcTIirr cfdot_w.
-rewrite -(span_basis cfWVbasis).
-apply/span_subvP=> _ /imageP[[i j] /setXP[/= nzi nzj] ->].
-rewrite memv_ker !lfun_simp /= subr_eq0 {1}alphaE linearD !linearB sigma1 !Deta.
-by rewrite dcTIirrE //; rewrite !inE in nzi nzj.
+  by rewrite !Deta o1xi cfdot_w.
+rewrite -(span_basis cfWVbasis); apply/span_subvP=> _ /imageP[[i j] /= nzij ->].
+rewrite memv_ker !lfun_simp !inE /= in nzij *; have /andP[nzi nzj] := nzij.
+by rewrite Dxi // alphaE linearD !linearB sigma1 !Deta subrr.
 Qed.
 
 Lemma cycTI_Zisometry : {in 'Z[irr W], isometry sigma, to 'Z[irr G]}.
@@ -1706,12 +1478,12 @@ split=> [phi v Vv | psi /orthoPl o_psi_sigma].
 by apply: sigma'V => k; rewrite o_psi_sigma ?map_f ?mem_irr.
 Qed.
 
-(* This is Peterfalvi (3.2)(d). *)
-Lemma cycTIiso_restrict phi : {in V, sigma phi =1 phi}.
+(* This is Peterfalvi, Theorem (3.2)(d). *)
+Theorem cycTIiso_restrict phi : {in V, sigma phi =1 phi}.
 Proof. by case: sigma_Res_V. Qed.
 
-(* This is Peterfalvi (3.2)(e). *)
-Lemma ortho_cycTIiso_vanish (psi : 'CF(G)) : 
+(* This is Peterfalvi, Theorem (3.2)(e). *)
+Theorem ortho_cycTIiso_vanish (psi : 'CF(G)) : 
   orthogonal psi im_sigma -> {in V, forall x, psi x = 0}.
 Proof. by case: sigma_Res_V psi. Qed.
 
@@ -2038,7 +1810,7 @@ move/(cycTI_NC_minn ZpsiV); rewrite leqNgt; case/negP.
 by apply: leq_ltn_trans SLt _; rewrite leq_min w1gt2.
 Qed.
 
-(* This is the second part of Peterfalvi (3.9a). *)
+(* This is the second part of Peterfalvi (3.9)(a). *)
 Lemma cfAut_cycTIiso u phi : cfAut u (sigma phi) = sigma (cfAut u phi).
 Proof.
 rewrite [phi]cfun_sum_cfdot !raddf_sum; apply: eq_bigr => ij _.
@@ -2100,7 +1872,7 @@ Qed.
 
 End AutCyclicTI.
 
-End Proofs.
+End Three.
 
 Implicit Arguments ortho_cycTIiso_vanish [gT G W W1 W2 defW psi].
 
