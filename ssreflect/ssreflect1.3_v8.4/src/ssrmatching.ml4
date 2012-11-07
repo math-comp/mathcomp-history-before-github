@@ -920,6 +920,38 @@ let interp_pattern ist gl red redty =
     | it -> g t with _ -> g t in
   let decodeG t f g = decode (mkG t) f g in
   let bad_enc id _ = anomaly ("bad encoding for pattern " ^ id) in
+  let cleanup_XinE h x rp sigma =
+    let h_k = match kind_of_term h with Evar (k,_) -> k | _ -> assert false in
+    let to_clean, update = (* handle rename if x is already used *)
+      let ctx = pf_hyps gl in
+      let len = Sign.named_context_length ctx in
+      let name = ref None in
+      try ignore(Sign.lookup_named x ctx); (name, fun k ->
+        if !name = None then
+        let nctx = Evd.evar_context (Evd.find sigma k) in
+        let nlen = Sign.named_context_length nctx in
+        if nlen > len then begin
+          name := Some (pi1 (List.nth nctx (nlen - len - 1)))
+        end)
+      with Not_found -> ref (Some x), fun _ -> () in
+    let sigma0 = project gl in
+    let new_evars =
+      let rec aux acc t = match kind_of_term t with
+      | Evar (k,_) ->
+          if k = h_k || List.mem k acc || Evd.mem sigma0 k then acc else
+          (update k; k::acc)
+      | _ -> fold_constr aux acc t in 
+      aux [] (Evarutil.nf_evar sigma rp) in
+    let sigma = 
+      List.fold_left (fun sigma e ->
+        if Evd.is_defined sigma e then sigma else (* clear may be recursiv *)
+        let name = Option.get !to_clean in
+        let g = Goal.build e in
+        pp(lazy(pr_id name));
+        try snd(Logic.prim_refiner (Proof_type.Thin [name]) sigma g)
+        with Evarutil.ClearDependencyError _ -> sigma)
+      sigma new_evars in
+    sigma in
   let red = match red with
     | T(k,(GCast (_,GHole _,(CastConv(_,GLambda (_,Name id,_,_,t)))),None))
         when let id = string_of_id id in let len = String.length id in
@@ -965,7 +997,8 @@ let interp_pattern ist gl red redty =
     let rp = mkXLetIn dummy_loc (Name x) rp in
     let sigma, rp = interp_term ist gl rp in
     let _, h, _, rp = destLetIn rp in
-    let rp = subst1 h rp in
+    let sigma = cleanup_XinE h x rp sigma in
+    let rp = subst1 h (Evarutil.nf_evar sigma rp) in
     sigma, mk h rp
   | E_In_X_In_T(e, x, rp) | E_As_X_In_T (e, x, rp) ->
     let mk e x p =
@@ -973,7 +1006,8 @@ let interp_pattern ist gl red redty =
     let rp = mkXLetIn dummy_loc (Name x) rp in
     let sigma, rp = interp_term ist gl rp in
     let _, h, _, rp = destLetIn rp in
-    let rp = subst1 h rp in
+    let sigma = cleanup_XinE h x rp sigma in
+    let rp = subst1 h (Evarutil.nf_evar sigma rp) in
     let sigma, e = interp_term ist (re_sig (sig_it gl) sigma) e in
     sigma, mk e h rp
 ;;
