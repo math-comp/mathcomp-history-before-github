@@ -651,7 +651,9 @@ have [R scohS oRW]: exists2 R, subcoherent S tau R & forall c2 : ~~ case_c1,
     by apply: irr_subcoherent => //; first by case: uccS (c1_irr Hc1).
   have ddA0 := c2W2 Hc2.
   have [R [subcohR oRW _]] := prDade_subcoherent ddA0 uccS nrS.
-  exists R => //; set tau0 := Dade _ in subcohR.
+  exists R => [|not_c1 phi w irrSphi irr_w]; last first.
+    by rewrite /sigma -(cycTIiso_irrel ddA0) oRW.
+  set tau0 := Dade _ in subcohR.
   have Dtau: {in 'CF(L, A), tau =1 tau0}.
     have nAL: L \subset 'N(A) by rewrite normD1 normal_norm.
     move=> phi Aphi; rewrite /tau0 -(restr_DadeE ddA0 (subsetUl _ _) nAL) //.

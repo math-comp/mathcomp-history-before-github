@@ -514,7 +514,7 @@ have U_Jv : {in Ubar & W1, forall u w, Jv_ u w \in Ubar}%g.
   move=> u w Uu W1w; rewrite /= memJ_norm // groupV.
   by rewrite (subsetP (quotient_norms H0 nUW1)) ?mem_quotient.
 pose x_ w := (xbar ^ coset H0 w)%g; pose phi_ w u := phi (Jv_ u w).
-have Dphi_ w u : w \in W1 -> u \in Ubar -> (x_ w ^ u = x_ w ^+ val (phi_ w u))%g.
+have Dphi_ w u: w \in W1 -> u \in Ubar -> (x_ w ^ u = x_ w ^+ val (phi_ w u))%g.
   by move=> Ww Uu; rewrite -conjgM conjgCV conjgM Dphi ?U_Jv // conjXg.
 pose Qr y z := coset Q [~ y, z]; apply: contraR not_cUHbar => Qr12_neq1.
 have phi12_id u : u \in Ubar -> (phi_ w1 u * phi_ w2 u = 1)%g.
@@ -555,7 +555,7 @@ have{phi12_id} phi_w : {in Ubar, forall u, phi (u ^ w) = (phi u)^-1}%g.
   rewrite -{1}[u](conjgK (coset H0 w1)) phi12_id //.
   by rewrite -[w1]invgK morphV ?nH0W1 ?U_Jv ?groupV.
 have{w phi_w Ww} phiV : {in Ubar, forall u, phi u = (phi u)^-1}%g.
-  have coW12 : coprime #|W1 / H0|%g 2 by rewrite coprimen2 quotient_odd ?mFT_odd.
+  have coW12: coprime #|W1 / H0|%g 2 by rewrite coprimen2 quotient_odd ?mFT_odd.
   move=> u Uu; rewrite /= -phi_w // -(expgK coW12 Ww) -expgM mul2n.
   elim: (expg_invn _ _) => [|n IHn]; rewrite ?conjg1 //.
   have nUw := subsetP (quotient_norms _ nUW1) w Ww.

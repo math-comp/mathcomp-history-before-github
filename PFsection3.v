@@ -152,7 +152,7 @@ Module CyclicTIisoReflexion.
 (*                       (with the same order of literals) to conclude.       *)
 (*    symmetric to Hth' ::= use Hth' : unsat th', where th' is a permutation  *)
 (*                       of a subset of th (preserving columns, and with at   *)
-(*                       most one row exchange) to conclude.                              *)
+(*                       most one row exchange) to conclude.                  *)
 (******************************************************************************)
 
 Import ssrint.
@@ -632,9 +632,9 @@ Lemma unsat_wlog cl th :
   unsat th.
 Proof. by case: set_cl => th1 [Uth /Uth]. Qed.
 
-Lemma unsat_wlog_cases (P : Prop) th1 th2 :
-  P -> (unsat th1 -> unsat th2) -> unsat th1 -> (P /\ unsat th1) /\ unsat th2.
-Proof. by split; auto. Qed.
+Lemma unsat_wlog_cases th1 th2 :
+  (unsat th1 -> unsat th2) -> unsat th1 -> (true /\ unsat th1) /\ unsat th2.
+Proof. by move=> Uth2 Uth1; split; last exact: Uth2. Qed.
 
 (* Extend the orthonormal basis *)
 
@@ -801,8 +801,10 @@ Implicit Arguments unsat_match [gT G th1 th2].
 Tactic Notation "consider" constr(ij) :=
   apply: (unsat_consider ij); first exact isT.
 
+(* Note that "split" here would be significantly less efficient, because it   *)
+(* would evaluate the reflected assumption four times.                        *)
 Tactic Notation "fill" constr(ij) :=
-  apply: (unsat_fill ij); split; first exact isT.
+  apply: (unsat_fill ij); apply: (conj isT _).
 
 Tactic Notation "uwlog" simple_intropattern(IH) ":" constr(cl) :=
   apply: (unsat_wlog cl); split=> [IH | ].
@@ -813,7 +815,7 @@ Tactic Notation "uwlog" simple_intropattern(IH) ":" constr(cl)
 
 Tactic Notation "uhave" constr(kv) "in" constr(ij)
                    "as" constr(T) constr(ij12) :=
-  apply: (unsat_cases ij [:: kv] (T ij12)); split; first exact isT.
+  apply: (unsat_cases ij [:: kv] (T ij12)); apply: (conj isT _).
 
 Tactic Notation "uhave" constr(kv1) "," constr(kv2) "in" constr(ij)
                    "as" constr(T) constr(ij12) :=
@@ -821,19 +823,18 @@ Tactic Notation "uhave" constr(kv1) "," constr(kv2) "in" constr(ij)
 
 Tactic Notation "uhave" constr(kv1) "|" constr(kv2) "in" constr(ij)
                    "as" constr(T) constr(ij12) :=
-  apply: (unsat_cases ij [:: kv1; kv2] (T ij12));
-  split; first (split; first exact isT).
+  apply: (unsat_cases ij [:: kv1; kv2] (T ij12)); apply: (conj (conj isT _) _).
 
 Tactic Notation "uhave" constr(kv1) "|" constr(kv2) "|" constr(kv3)
                    "in" constr(ij) :=
   apply: (unsat_cases ij [:: kv1; kv2; kv3] (fun _ _ _ => isT));
-  split; first (split; first (split; first by exact isT)).
+  apply: (conj (conj (conj isT _) _) _).
 
 Tactic Notation "uwlog" simple_intropattern(IH) ":"
                         constr(kv1) "|" constr(kv2) "in" constr(ij)
                    "as" constr(T) constr(ij12) :=
   apply: (unsat_cases ij [:: kv1; kv2] (T ij12));
-  apply: unsat_wlog_cases; [exact isT | move=> IH | ].
+  apply: unsat_wlog_cases => [IH | ].
 
 Tactic Notation "counter" "to" constr(T) constr(ij12) := by move=> ? /(T ij12).
 
@@ -1144,7 +1145,7 @@ consider b42; uwlog Db42: (& b42 = x6 - x4 + x5).
   uwlog b42x4: -x4 | ~x4 in b42 as O(42, 31).
     by uhave -x2 in b42 as O(42, 31); symmetric to b42x4.
   by uhave ~x1 in b42 as L(42, 41); uhave x5 in b42 as O(42, 21); uexact Db42.
-uwlog Db32: (& ? in b32); first uexact Db32. 
+uwlog Db32: (& ? in b32); first uexact Db32.
 uwlog Db41: (& ? in b41); first uexact Db41. 
 consider b12; uwlog b12x5: x5 | ~x5 in b12 as L(12, 42).
   uhave ~x6 | x6 in b12 as L(12, 42); last by consider b22; symmetric to b12x5.
@@ -1360,30 +1361,19 @@ Qed.
 
 End CyclicTIisoBasis.
 
-Fact cyclicTIiso_key : unit. Proof. by []. Qed.
-Definition cyclicTIiso_def of cyclicTI_hypothesis G defW :=
-   let sigma (f : {ffun Iirr W -> dIirr G}) :=
-     sval (linear_of_free (irr W) [seq dchi (f k) | k : Iirr W]) in
-   let sigma_spec f :=
-     [&& orthonormal (map (sigma f) (irr W)), sigma f 1 == 1
-       & ('CF(W, V) <= lker (linfun (sigma f) - linfun 'Ind[G]))%VS] in
-   oapp sigma [linear of \0] [pick f | sigma_spec f].
-Definition cyclicTIiso : {linear 'CF(W) -> 'CF(G)} :=
-  locked_with cyclicTIiso_key (cyclicTIiso_def ctiW).
-
-Local Notation sigma := cyclicTIiso.
-Let im_sigma := map sigma (irr W).
-Let eta_ i j := sigma (w_ i j).
-
-(* This is PeterFalvi, Theorem (3.2) (a, b, c). *)
-Theorem cyclicTIiso_spec :
-  [/\ {in 'Z[irr W], isometry sigma, to 'Z[irr G]},
-      sigma 1 = 1 &
-      {in 'CF(W, V), forall phi : 'CF(W), sigma phi = 'Ind[G] phi}].
+(* This is PeterFalvi, Theorem (3.2)(a, b, c). *)
+Theorem cyclicTIiso_exists :
+  {sigma : {linear 'CF(W) -> 'CF(G)} |
+    [/\ {in 'Z[irr W], isometry sigma, to 'Z[irr G]}, sigma 1 = 1
+      & {in 'CF(W, V), forall phi : 'CF(W), sigma phi = 'Ind[G] phi}]}.
 Proof.
-rewrite [sigma]unlock /cyclicTIiso_def; case: pickP => [/= f /and3P[]|].
-  case: linear_of_free => /= sigma Dsigma o1sigma /eqP-> /eqlfun_inP sigmaV.
-  split=> // [| phi /sigmaV]; last by rewrite !lfunE.
+pose sigmaVP f := ('CF(W, V) <= lker (linfun f - linfun 'Ind[G]))%VS.
+pose sigmaP f := [&& orthonormal (map f (irr W)), f 1 == 1 & sigmaVP f].
+pose sigma_base f := [seq (dchi (f k) : 'CF(G)) | k : Iirr W].
+pose sigma_spec f := sigmaP (sval (linear_of_free (irr W) (sigma_base f))).
+suffices /sigW[f /and3P[]]: exists f : {ffun _}, sigma_spec f.
+  case: linear_of_free => /=sigma Dsigma o1sigma /eqP sigma1 /eqlfun_inP sigmaV.
+  exists sigma; split=> // [| phi /sigmaV]; last by rewrite !lfunE.
   do [rewrite size_map !size_tuple => /(_ (irr_free W) (card_ord _))] in Dsigma.
   have [inj_sigma dot_sigma] := orthonormalP o1sigma.
   rewrite -(map_tnth_enum (irr W)) -map_comp in Dsigma inj_sigma.
@@ -1395,24 +1385,29 @@ rewrite [sigma]unlock /cyclicTIiso_def; case: pickP => [/= f /and3P[]|].
   by rewrite -tnth_nth [sigma _]Dsigma ?mem_enum ?dchi_vchar.
 have [xi_ [xi00 Zxi Dxi o1xi]] := cyclicTIiso_basis_exists.
 pose f := [ffun k => dirr_dIirr (prod_curry xi_) (inv_dprod_Iirr defW k)].
-move/(_ f); case: (linear_of_free _ _) => /= sigma Dsigma /and3P[].
-have{Dsigma} Deta i j: sigma (w_ i j) = xi_ i j.
+exists f; apply/and3P; case: linear_of_free => /= sigma Dsigma.
+have{f Dsigma} Deta i j: sigma (w_ i j) = xi_ i j.
   rewrite /w_ -tnth_map /= (tnth_nth 0) /=.
   rewrite Dsigma ?irr_free //; last by rewrite !size_tuple card_ord.
   rewrite nth_mktuple ffunE dprod_IirrK dirr_dIirrE // => {i j} [[i j]] /=.
   by rewrite dirrE Zxi o1xi !eqxx.
 have sigma1: sigma 1 = 1 by rewrite -w_00 Deta.
-split; last 2 [by rewrite sigma1].
+rewrite sigma1 /sigmaVP -(span_basis cfWVbasis); split=> //.
   rewrite map_orthonormal ?irr_orthonormal //; apply: isometry_in_zchar.
   move=> _ _ /cycTIirrP[i1 [j1 ->]] /cycTIirrP[i2 [j2 ->]] /=.
   by rewrite !Deta o1xi cfdot_w.
-rewrite -(span_basis cfWVbasis); apply/span_subvP=> _ /imageP[[i j] /= nzij ->].
-rewrite memv_ker !lfun_simp !inE /= in nzij *; have /andP[nzi nzj] := nzij.
-by rewrite Dxi // alphaE linearD !linearB sigma1 !Deta subrr.
+apply/span_subvP=> _ /imageP[[i j] /setXP[nzi nzj] ->]; rewrite !inE in nzi nzj.
+rewrite memv_ker !lfun_simp /= subr_eq0 Dxi //.
+by rewrite alphaE linearD !linearB sigma1 !Deta.
 Qed.
 
+Definition cyclicTIiso := sval cyclicTIiso_exists.
+Local Notation sigma := cyclicTIiso.
+Let im_sigma := map sigma (irr W).
+Let eta_ i j := sigma (w_ i j).
+
 Lemma cycTI_Zisometry : {in 'Z[irr W], isometry sigma, to 'Z[irr G]}.
-Proof. by case: cyclicTIiso_spec. Qed.
+Proof. by rewrite /sigma; case: cyclicTIiso_exists => ? []. Qed.
 
 Let Isigma : {in 'Z[irr W] &, isometry sigma}.
 Proof. by case: cycTI_Zisometry. Qed.
@@ -1457,10 +1452,10 @@ by rewrite cfdot0r cfdotDr !cfdot_cycTIiso !eqxx -mulrS pnatr_eq0.
 Qed.
 
 Lemma cycTIiso1 : sigma 1 = 1.
-Proof. by case: cyclicTIiso_spec. Qed.
+Proof. by rewrite /sigma; case: cyclicTIiso_exists => ? []. Qed.
 
 Lemma cycTIiso_Ind : {in 'CF(W, V), forall phi, sigma phi = 'Ind[G, W] phi}.
-Proof. by case: cyclicTIiso_spec. Qed.
+Proof. by rewrite /sigma; case: cyclicTIiso_exists => ? []. Qed.
 
 Let sigma_Res_V :
   [/\ forall phi, {in V, sigma phi =1 phi}
@@ -1581,137 +1576,85 @@ by rewrite gtr_eqF -?dirr_consttE.
 Qed.
 
 (* This is PeterFalvi (3.8). *)
-Lemma small_cycTI_NC (phi : 'CF(G)) i j : 
-  {in V, forall x, phi x = 0} -> (NC phi < 2 * minn w1 w2)%N ->
-  '[phi, sigma (w_ i j)] != 0 ->    
-   {(forall i1 j1,
-      '[phi, sigma (w_ i1 j1)] = (j == j1)%:R * '[phi, sigma (w_ i j)])}
-   +
-   {(forall i1 j1 ,
-      '[phi, sigma (w_ i1 j1)] = (i == i1)%:R * '[phi, sigma (w_ i j)])}.
+Lemma small_cycTI_NC phi i0 j0 (a0 := '[phi, eta_ i0 j0]) : 
+    {in V, forall x, phi x = 0} -> (NC phi < 2 * minn w1 w2)%N -> a0 != 0 ->    
+     (forall i j, '[phi, eta_ i j] = (j == j0)%:R * a0)
+  \/ (forall i j, '[phi, eta_ i j] = (i == i0)%:R * a0).
 Proof.
-move=> phiV_0 NC_M NZaij.
-pose a i j := '[phi, sigma (w_ i j)].
-have CDS i2 j2 i1 j1 : a i1 j1 = a i1 j2 + a i2 j1 - a i2 j2.
+pose a i j := '[phi, eta_ i j]; pose A := [set ij | a ij.1 ij.2 != 0].
+rewrite -[NC phi]/#|A| ltnNge => phiV_0 ubA nz_a0.
+have{phiV_0} Da i2 j2 i1 j1 : a i1 j1 = a i1 j2 + a i2 j1 - a i2 j2.
   by rewrite cycTIiso_cfdot_exchange ?addrK.
-pose S := [set ij | a ij.1 ij.2 != 0].
-pose L j := [set ij | ij.2 == j] :&: S.
-pose C i := [set ij | ij.1 == i] :&: S.
-have LsS j1 : C j1 \subset S by apply: subsetIr.
-have CsS i1 : L i1 \subset S by apply: subsetIr.
-have LI i1 i2 : L i1 :&: L i2 = if i1 == i2 then L i1 else set0.
-  apply/setP=> [[i3 j3]]; have [-> | i2'1] := altP eqP; first by rewrite setIid.
-  by rewrite -setIIl !inE /= -andbA; apply/and3P=> [[/eqP-> /idPn[]]].
-have CI i1 i2 : C i1 :&: C i2 = if i1 == i2 then C i1 else set0.
-  apply/setP=> [[i3 j3]]; have [-> | i2'1] := altP eqP; first by rewrite setIid.
-  by rewrite -setIIl !inE /= -andbA; apply/and3P=> [[/eqP-> /idPn[]]].
-have LCI i1 j1 : (L j1 :&: C i1) \subset [set (i1,j1)].
-  apply/subsetP=> [[i2 j2]]; rewrite !inE /=.
-  by case/andP=> /andP [/eqP-> _] /andP [/eqP-> _].
-have FC i1: (forall j, a i1 j != 0) -> #|C i1| = w2.
-  move=> FF; transitivity #|[seq (i1, j) | j : Iirr W2]|; last first.
-    by rewrite card_in_image // => i3 i4 _ _ /= [].
-  apply: eq_card=> [[i3 j3]]; rewrite !inE /=.
-  by apply/andP/codomP=> [[/eqP-> _] | [j4 [-> ->]] //]; exists j3.
-have ub_minW12: (2 * minn w1 w2 <= w1 + w2 - 2)%N.
-  rewrite -(leq_add2r 2) subnK; last by rewrite -(subnKC w1gt2).
-  rewrite addn2 mul2n -ltnS odd_geq /= ?odd_add ?oddW1 ?oddW2 // uphalf_double.
-  rewrite -addn_min_max -addnn leq_add2l gtn_min !leq_max !ltnn orbF //=.
-  by rewrite -neq_ltn.
-  (* This is step 3.8.1. *)
-have EqI i1 i2 j1 j2 : a i1 j2 == 0 -> a i2 j1 == 0 -> a i1 j1 == 0.
-  have [-> // | i2'1] := eqVneq i1 i2.
-  have [-> // | j2'1] := eqVneq j1 j2 => /eqP a12_0 /eqP a21_0.
-  apply: contraLR NC_M => nz_a11; rewrite -leqNgt.
-  pose LS := [set (i3, if a i3 j1 == 0 then j2 else j1) | i3 : Iirr W1].
-  have LSsS: LS \subset S.
-    apply/subsetP=> _ /imsetP[i3 _ ->]; rewrite inE /=.
-    case: ifPn => // /eqP a31_0; apply: contraNneq nz_a11 => a32_0.
-    by rewrite (CDS i3 j2) a32_0 a31_0 addrK a12_0.
-  have cardLS: #|LS| = w1 by rewrite card_imset // => i3 i4 [].
-  pose CS := [set (if a i1 j3 == 0 then i2 else i1, j3) | j3 : Iirr W2].
-  have CSsS : CS \subset S.
-    apply/subsetP=> _ /imsetP[j3 _ ->]; rewrite inE /=.
-    case: ifPn => // /eqP a13_0; apply: contraNneq nz_a11 => a23_0.
-    by rewrite (CDS i2 j3) a23_0 a13_0 a21_0 addrK.
-  have cardCS: #|CS| = w2 by rewrite card_imset // => j3 j4 [].
-  have /subset_leq_card lbS: LS :|: CS \subset S by apply/subUsetP.
-  apply: leq_trans ub_minW12 (leq_trans _ lbS); rewrite cardsU cardLS cardCS.
-  have <-: #|[set (i1, j1); (i2, j2)]| = 2.
-    by rewrite cards2 xpair_eqE (negPf i2'1).
-  apply/leq_sub2l/subset_leq_card/subsetP.
-  move=> _ /setIP[/imsetP[i3 _ ->] /imsetP[j3 _] []].
-  by case: ifP => _ -> _; rewrite !inE ?a21_0 ?eqxx ?orbT // ifN ?eqxx.
-have cardLE i1 j1 j2 : a i1 j1 != 0 -> a i1 j2 == 0 -> #|L j1| = w1.
-  move=> nz_a11 a12_0; transitivity #|[set (i2, j1) | i2 : Iirr W1]|.
-    apply: eq_card => [[i3 j3]]; rewrite !inE /=.
-    apply/andP/imsetP=> [[/eqP-> _] | [i2 _ [-> ->]]]; first by exists i3.
-    by rewrite (contra _ nz_a11) //; apply: EqI a12_0.
-  by rewrite card_imset // => i2 i3 [].
-  have cardCE i1 i2 j1 : a i1 j1 != 0 -> a i2 j1 == 0 -> #|C i1| = w2.
-  move=> nz_a11 a21_0; transitivity #|[set (i1, j2) | j2 : Iirr W2]|.
-    apply: eq_card => [[i3 j3]]; rewrite !inE /=.
-    apply/andP/imsetP=> [[/eqP-> _] | [j2 _ [-> ->]]]; first by exists j3.
-    by rewrite (contra _ nz_a11) // => /EqI/(_ a21_0).
-  by rewrite card_imset // => j2 j3 [].
-have BLe i1 j1: (2 * minn w1 w2 <= w1 + w2 - #|L j1 :&: C i1|)%N.
-  apply: leq_trans ub_minW12 (leq_sub2l _ _); apply: leqW.
-  rewrite -(cards1 (i1, j1)) -setIIl subset_leq_card //.
-  by apply/subsetP=> [[i2 j2] /setIP[]]; rewrite !inE andbC.
-have [Ci_0 | nz_Ci] := boolP [exists j1, a i j1 == 0]; [left | right].
-  (* This is step 3.8.2. *)
-  have{Ci_0} [j1 ai_j1_0] := existsP Ci_0.
-  have j'j1 : j1 != j by apply: contraNneq NZaij => <-.
-  have defCi: C i = [set (i, j)].
-    apply/setP=> [[i2 j2]]; rewrite !inE; apply: andb_id2l => /eqP-> /=.
-    apply/idP/eqP=> [nz_ai_j2 | -> //]; apply: contraTeq NC_M => j'j2.
-    have /subset_leq_card: L j :|: L j2 \subset S by apply/subUsetP.
-    rewrite -leqNgt cardsU LI ifN_eqC // cards0 subn0; apply: leq_trans.
-    by rewrite !(cardLE i _ j1) // addnn mul2n leq_double geq_minl.
-  suffices HL i2 j2: j != j2 -> a i2 j2 = 0.
-    move=> i2 j2; rewrite -!/(a _ _) mulr_natl mulrb.
-    case: ifPn => [/eqP <- | /HL//]; have [-> // | i'i2] := eqVneq i2 i.
-    by rewrite (CDS i j1) (eqP ai_j1_0) subr0 HL ?add0r // eq_sym.
-  move=> j2'j; apply: contraTeq NC_M => nz_a22; rewrite -leqNgt.
-  have cardC: #|C i2| = w2.
-    have: (i, j2) \notin C i by rewrite defCi !inE eq_sym xpair_eqE eqxx.
-    by rewrite !inE eqxx negbK => /cardCE->.
-  have cardL: #|L j| = w1  by apply: (cardLE _ _ j1 NZaij).
-  have /subset_leq_card: L j :|: C i2 \subset S by apply/subUsetP.
-  by apply: leq_trans; rewrite cardsU cardC cardL.
- (* This is step 3.8.3. *)
-do [rewrite negb_exists => /forallP/=] in nz_Ci.
-suff HL i1 j1: i != i1 -> a i1 j1 = 0.
-  move=> i1 j1; rewrite -!/(a _ _) mulr_natl mulrb.
-  case: ifPn => [/eqP <- | /HL//]; have [-> // | j'j1] := eqVneq j1 j.
-  have: (2 < #|Iirr W1|)%N by rewrite nirrW1. 
-  rewrite (cardD1 i) !inE !ltnS => /leqW/card_gt0P[i2 /andP[/= i'i2 _]].
-  by rewrite (CDS i2 j) !(HL i2) ?addrK // eq_sym.
-move=> i1'i; apply: contraTeq NC_M => nz_a11; rewrite -leqNgt.
-have [/existsP[j2 a12_0] | ] := boolP [exists j2, a i1 j2 == 0].
-  have /subset_leq_card: L j1 :|: C i \subset S by apply/subUsetP.
-  by apply: leq_trans; rewrite cardsU FC // !(cardLE _ _ _ _ a12_0).
-rewrite negb_exists => /forallP nz_Ci1.
-have /subset_leq_card: C i :|: C i1 \subset S by apply/subUsetP.
-apply: leq_trans; rewrite cardsU !FC // CI ifN // cards0 subn0.
-by rewrite mul2n addnn leq_double geq_minr.
+have ubA2: ~~ (w2 + w1 <= #|A| + 2)%N.
+  rewrite addnC addn2 -ltnS (contra _ ubA) //; apply: (@leq_trans _ _.+3).
+  rewrite odd_geq /= ?odd_add ?oddW1 ?oddW2 // mul2n -addn_min_max -addnn.
+  by rewrite uphalf_double leq_add2l gtn_min !leq_max !ltnn orbF -neq_ltn.
+(* This is step (3.8.1). *)
+have Za i1 i2 j1 j2 : a i1 j2 == 0 -> a i2 j1 == 0 -> a i1 j1 == 0.
+  have [-> // | /negPf i2'1 /eqP Za12 /eqP Za21] := eqVneq i1 i2.
+  apply: contraR ubA2 => nz_a11.
+  pose L := [set (if a i1 j == 0 then i2 else i1, j) | j : Iirr W2].
+  pose C := [set (i, if a i j1 == 0 then j2 else j1) | i : Iirr W1].
+  have [<- <-]: #|L| = w2 /\ #|C| = w1 by rewrite !card_imset // => ? ? [].
+  have <-: #|[set (i1, j1); (i2, j2)]| = 2 by rewrite cards2 xpair_eqE i2'1.
+  rewrite -cardsUI leq_add ?subset_leq_card //; last first.
+    apply/subsetP=> _ /setIP[/imsetP[j _ ->] /imsetP[i _ []]].
+    by case: ifP => _ <- ->; rewrite !inE ?Za21 ?(negPf nz_a11) !eqxx ?orbT.
+  apply/subsetP=> ij /setUP[] /imsetP[] => [j | i] _ {ij}->; rewrite inE.
+    by case: ifPn => // /eqP Za1j; rewrite (Da i1 j1) Za21 Za1j !add0r oppr_eq0.
+  by case: ifPn => // /eqP Zai1; rewrite (Da i1 j1) Za12 Zai1 !add0r oppr_eq0.
+pose L i := [set ij | ij.1 == i] :&: A; pose C j := [set ij | ij.2 == j] :&: A.
+have{ubA2} ubLC i j: (#|L i| + #|C j| != w2 + w1)%N.
+  apply: contraNneq ubA2 => <-; rewrite addnS leqW // -cardsUI -setIUl -setIIl.
+  rewrite -(card1 (i, j)) leq_add ?subset_leq_card ?subsetIr //.
+  by apply/subsetP=> ij /setIP[]; rewrite !inE.
+have lbA L1 L2: L1 :&: L2 =i set0 -> (#|L1 :&: A| + #|L2 :&: A| <= #|A|)%N.
+  rewrite -cardsUI -setIUl -setIIl => /setP->.
+  by rewrite set0I cards0 addn0 subset_leq_card ?subsetIr.
+have oL i1: ~~ [exists j, a i1 j == 0] -> #|L i1| = w2.
+  rewrite negb_exists => /forallP nz_a1.
+  transitivity #|predX (pred1 i1) (Iirr W2)|; last by rewrite cardX card1 mul1n.
+  by apply/eq_card=> ij; rewrite !inE andbT andb_idr // => /eqP->.
+have oC i1 j1 j2 : a i1 j1 != 0 -> a i1 j2 == 0 -> #|C j1| = w1.
+  move=> nz_a11 /(Za i1)/contra/(_ nz_a11) nz_a1.
+  transitivity #|predX (Iirr W1) (pred1 j1)|; last by rewrite cardX card1 muln1.
+  by apply/eq_card=> ij; rewrite !inE andb_idr // => /eqP->.
+(* This is step (3.8.2). *)
+have [/existsP[j1 Za01] | /oL oL0] := boolP [exists j, a i0 j == 0].
+  have j0'1 : j1 != j0 by apply: contraTneq Za01 => ->.
+  have oC0: #|C j0| = w1 by apply: oC nz_a0 Za01.
+  suffices Za0 i j: j != j0 -> a i j = 0.
+    left=> i j; rewrite -/(a i j) mulr_natl mulrb; have [->|/Za0//] := altP eqP.
+    by rewrite (Da i0 j1) !(Za0 _ j1) // subr0 add0r.
+  move=> j0'j; apply: contraNeq (ubLC i j0) => nz_aij; rewrite oC0 oL //.
+  apply: contra ubA => /existsP[_ /Za/contra/(_ nz_aij) nz_a_j].
+  rewrite minn_mulr geq_min mul2n -addnn -{2}oC0 -(oC i0 j j1) ?lbA // => ij.
+  by rewrite !inE; apply/andP=> [[/eqP-> /idPn]].
+(* This is step (3.8.3). *)
+suffices Za0 i j: i != i0 -> a i j = 0.
+  right=> i j; rewrite -/(a i j) mulr_natl mulrb; have [->|/Za0//] := altP eqP.
+  have /card_gt0P[i1 i0'i]: (0 < #|predC1 i0|)%N.
+    by rewrite cardC1 nirrW1 -(subnKC w1gt2).
+  by rewrite (Da i1 j0) !(Za0 i1) // subr0 addr0.
+move=> i0'i; suffices /existsP[j1 Zai1]: [exists j, a i j == 0].
+  by apply: contraNeq (ubLC i0 j) => /oC/(_ Zai1)->; rewrite oL0.
+apply: contraR ubA; rewrite minn_mulr geq_min orbC mul2n -addnn => /oL{1}<-.
+by rewrite -oL0 lbA // => ij; rewrite !inE; apply/andP=> [[/eqP-> /idPn]].
 Qed.
 
-(* a weaker version of PeterFalvi (3.8). *)
+(* A weaker version of PeterFalvi (3.8). *)
 Lemma cycTI_NC_minn (phi : 'CF(G)) : 
     {in V, forall x, phi x = 0} -> (0 < NC phi < 2 * minn w1 w2)%N ->
   (minn w1 w2 <= NC phi)%N.
 Proof.
-rewrite card_gt0 => ZphiV /andP[/set0Pn[[i1 j1]]]; rewrite inE /= => NZs NN.
-pose a i j := '[phi, sigma (w_ i j)]; pose S := [set ij | a ij.1 ij.2 != 0].
-pose L := [set (i1, j) | j : Iirr W2]; pose C := [set (i, j1) | i : Iirr W1].
-have cL : #|L| = w2 by rewrite card_imset // => i j [].
-have cC : #|C| = w1 by rewrite card_imset // => i j [].
-have [Da | Da] := small_cycTI_NC ZphiV NN NZs.
-  suff /subset_leq_card: C \subset S by apply: leq_trans; rewrite cC geq_minl.
-  by apply/subsetP=> _ /imsetP[i2 _ ->]; rewrite !inE /= /a Da eqxx mul1r.
-suff /subset_leq_card: L \subset S by apply: leq_trans; rewrite cL geq_minr.
-by apply/subsetP=> _ /imsetP[j2 _ ->]; rewrite !inE /= /a Da eqxx mul1r.
+move=> phiV_0 /andP[/card_gt0P[[i0 j0]]]; rewrite inE /= => nz_a0 ubNC.
+pose L := [seq (i0, j) | j : Iirr W2]; pose C := [seq (i, j0) | i : Iirr W1]. 
+have [oL oC]: #|L| = w2 /\ #|C| = w1 by rewrite !card_image // => i j [].
+have [Da | Da] := small_cycTI_NC phiV_0 ubNC nz_a0.
+  rewrite geq_min -oC subset_leq_card //.
+  by apply/subsetP=> _ /codomP[i ->]; rewrite !inE /= Da eqxx mul1r.
+rewrite geq_min orbC -oL subset_leq_card //.
+by apply/subsetP=> _ /codomP[j ->]; rewrite !inE /= Da eqxx mul1r.
 Qed.
 
 (* Another consequence of (3.8), used in (4.8), (10.5), (10.10) and (11.8). *)
@@ -1883,6 +1826,18 @@ Lemma cycTIisoC (gT : finGroupType) (G W W1 W2 : {group gT})
    cyclicTIiso ctiW12 (cyclicTIirr defW12 i j)
      = cyclicTIiso ctiW21 (cyclicTIirr defW21 j i).
 Proof.
-rewrite (cyclicTIirrC  _ defW21); move: (cyclicTIirr _ i j) => w.
-by rewrite /cyclicTIiso !unlock_with /cyclicTIiso_def /cyclicTIset setUC.
+apply: eq_in_cycTIiso; first exact: cycTIiso_dirr.
+by rewrite /cyclicTIset setUC dprod_IirrC; apply: cycTIiso_restrict.
+Qed.
+
+Lemma cycTIiso_irrel (gT : finGroupType) (G W W1 W2 : {group gT})  
+                (defW : W1 \x W2 = W) (ctiW : cyclicTI_hypothesis G defW)
+                (defW' : W1 \x W2 = W) (ctiW' : cyclicTI_hypothesis G defW') :
+   cyclicTIiso ctiW =1 cyclicTIiso ctiW'.
+Proof.
+move=> phi; have [a {phi}->] := cfun_irr_sum phi.
+rewrite !linear_sum; apply: eq_bigr => ij _; rewrite !linearZ; congr (_ *: _).
+have /codomP[[i j] -> {ij}] := dprod_Iirr_onto defW ij.
+apply: eq_in_cycTIiso; first exact: cycTIiso_dirr.
+by rewrite /cyclicTIset; apply: cycTIiso_restrict.
 Qed.
