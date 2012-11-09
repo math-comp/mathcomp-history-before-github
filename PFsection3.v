@@ -377,7 +377,7 @@ Definition sym_match s th1 th2 :=
 Definition find_sym_k th1 th2 (si sj : seq nat) :=
   let store_lit c kv ksig :=
     let: (k, v) := kv in if v == 0 then ksig else let cv := (c, v) in
-    let fix insert_in cvs :=
+    let fix insert_in (cvs : seq (nat * int)) :=
       if cvs is cv' :: cvs' then
         if (c < cv'.1)%N then cv :: cvs else cv' :: insert_in cvs'
       else [:: cv] in
