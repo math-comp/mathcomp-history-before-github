@@ -150,7 +150,7 @@ let get_index = function ArgArg i -> i | _ ->
 let glob_constr ist gsigma genv = function
   | _, Some ce ->
     let ltacvars = List.map fst ist.lfun, [] in
-    Constrintern.intern_gen false ~ltacvars:ltacvars gsigma genv ce
+    Constrintern.intern_gen (OfType None) ~ltacvars:ltacvars gsigma genv ce
   | rc, None -> rc
 
 (* Term printing utilities functions for deciding bracketing.  *)
@@ -569,7 +569,7 @@ let is_discharged_id id = has_discharged_tag (string_of_id id)
 let wildcard_tag = "_the_"
 let wildcard_post = "_wildcard_"
 let mk_wildcard_id i =
-  id_of_string (sprintf "%s%s%s" wildcard_tag (ordinal i) wildcard_post)
+  id_of_string (sprintf "%s%s%s" wildcard_tag (String.ordinal i) wildcard_post)
 let has_wildcard_tag s = 
   let n = String.length s in let m = String.length wildcard_tag in
   let m' = String.length wildcard_post in
@@ -1140,7 +1140,7 @@ let interp_search_notation loc tag okey =
   | "Lonely notation" -> last_sc := ""; last := ""
   | "\"" ->
       let pntn, m = mk_pntn s true in
-      if string_string_contains pntn ptag then begin
+      if String.string_contains pntn ptag then begin
         let ntn = trim_ntn (pntn, m) in
         match !ntns with
         | [] -> ntns := [ntn]; scs := [!last_sc]
@@ -1184,7 +1184,7 @@ let interp_search_notation loc tag okey =
     let scs' = List.remove sc !scs in
     let w = pr_ntn ntn ++ str " is also defined " ++ pr_scs scs' in
     msg_warning (hov 4 w)
-  else if string_string_contains ntn " .. " then
+  else if String.string_contains ntn " .. " then
     err (pr_ntn ntn ++ str " is an n-ary notation");
   let nvars = List.filter (fun (_,(_,typ)) -> typ = NtnTypeConstr) nvars in
   let rec sub () = function
@@ -2584,7 +2584,7 @@ let tclTHENS_nonstrict tac tacl taclname gl =
   if n_gls = 0 then tacres else
   let pr_only n1 n2 = if n1 < n2 then str "only " else mt () in
   let pr_nb n1 n2 name =
-    pr_only n1 n2 ++ int n1 ++ str (" " ^ plural n1 name) in
+    pr_only n1 n2 ++ int n1 ++ str (" " ^ String.plural n1 name) in
   errorstrm (pr_nb n_tac n_gls taclname ++ spc ()
              ++ str "for " ++ pr_nb n_gls n_tac "subgoal")
 
