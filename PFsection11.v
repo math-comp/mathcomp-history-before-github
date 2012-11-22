@@ -1512,8 +1512,7 @@ pose z := 'chi_iz.
 have pLq : (p < q)%N.
   have S1z : z \in  S_ 1 by apply: (seqIndS (Iirr_kerDS _ (sub1G _) _) SHCz).
   have [//|qLp|pEq] :=  ltngtP p q; last first.
-    have [ciW _ _ _] := ctiWM.
-    have: coprime q p by rewrite -(cyclic_dprod defW).
+    have: coprime q p by rewrite -(cyclic_dprod defW); have [] := ctiWM.
     by rewrite pEq /coprime gcdnn; case: q pr_q => [|[|]].
   have /negP[] := FTtype34_not_ortho_cycTIiso SHCz.
   have [chi [chiE _ _ ochi_eta]] :=   

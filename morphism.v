@@ -262,6 +262,9 @@ Qed.
 Lemma morphim0 : f @* set0 = set0.
 Proof. by rewrite morphimE setI0 imset0. Qed.
 
+Lemma morphim_eq0 A : A \subset D -> (f @* A == set0) = (A == set0).
+Proof. by rewrite imset_eq0 => /setIidPr->. Qed.
+
 Lemma morphim_set1 x : x \in D -> f @* [set x] = [set f x].
 Proof. by rewrite /morphim -sub1set => /setIidPr->; exact: imset_set1. Qed.
 
@@ -768,12 +771,6 @@ Proof. by move=> Dx; move/(kerP Dx); rewrite ker_injm; move/set1P. Qed.
 Lemma morph_injm_eq1 x : x \in D -> (f x == 1) = (x == 1).
 Proof. by move=> Dx; rewrite -morph1 (inj_in_eq (injmP injf)) ?group1. Qed.
 
-Lemma morphim_injm_eq1 A : A \subset D -> (f @* A == 1) = (A == 1).
-Proof.
-move=> sAD; rewrite -morphim1.
-by apply/eqP/eqP=> [|-> //]; apply: injm_morphim_inj; last exact: sub1G.
-Qed.
-
 Lemma injmSK A B :
   A \subset D -> (f @* A \subset f @* B) = (A \subset B).
 Proof. by move=> sAD; rewrite morphimSK // ker_injm mul1g. Qed.
@@ -783,12 +780,16 @@ Lemma sub_morphpre_injm R A :
   (f @*^-1 R \subset A) = (R \subset f @* A).
 Proof. by move=> sAD sRfD; rewrite -morphpreSK ?injmK. Qed.
 
+Lemma injm_eq A B : A \subset D -> B \subset D -> (f @* A == f @* B) = (A == B).
+Proof. by move=> sAD sBD; rewrite !eqEsubset !injmSK. Qed.
+
+Lemma morphim_injm_eq1 A : A \subset D -> (f @* A == 1) = (A == 1).
+Proof. by move=> sAD; rewrite -morphim1 injm_eq ?sub1G. Qed.
+
 Lemma injmI A B : f @* (A :&: B) = f @* A :&: f @* B.
 Proof.
-have sfI: f @* A :&: f @* B \subset f @* D.
-  by apply/setIidPr; rewrite setIA morphimIim.
-rewrite -(morphpreK sfI) morphpreI -(morphimIdom A) -(morphimIdom B).
-by rewrite !injmK ?subsetIl // setICA -setIA !morphimIdom.
+rewrite -morphimIdom setIIr -4!(injmK (subsetIl D _), =^~ morphimIdom).
+by rewrite -morphpreI morphpreK // subIset ?morphim_sub.
 Qed.
 
 Lemma injmD1 A : f @* A^# = (f @* A)^#.
@@ -842,8 +843,7 @@ Proof. by move=> sBD; rewrite injmI injm_cent // setICA setIA morphimIim. Qed.
 
 Lemma injm_abelian A : A \subset D -> abelian (f @* A) = abelian A.
 Proof.
-move=> sAD; rewrite /abelian !(sameP setIidPl eqP) -injm_subcent //.
-by rewrite !eqEsubset !injmSK // subIset ?sAD.
+by move=> sAD; rewrite /abelian -subsetIidl -injm_subcent // injmSK ?subsetIidl.
 Qed.
 
 End Injective.
@@ -868,6 +868,8 @@ Notation "''ker_' G f" := (G :&: 'ker f)%G : Group_scope.
 Notation "f @* G" := (morphim_group (MorPhantom f) G) : Group_scope.
 Notation "f @*^-1 M" := (morphpre_group (MorPhantom f) M) : Group_scope.
 Notation "f @: D" := (morph_dom_group f D) : Group_scope.
+
+Implicit Arguments injmP [aT rT D f].
 
 Section IdentityMorphism.
 

@@ -159,7 +159,7 @@ Qed.
 
 Lemma injm_fmod : 'injm fmod.
 Proof. 
-apply/injmP=> x y Ax Ay []; move/val_inj; exact: (injmP _ (injm_subg A)).
+apply/injmP=> x y Ax Ay []; move/val_inj; exact: (injmP (injm_subg A)).
 Qed.
 
 Notation "u ^@ x" := (actr u x) : ring_scope.

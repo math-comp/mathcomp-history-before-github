@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div fintype.
 Require Import bigop prime binomial finset fingroup morphism perm automorphism.
 Require Import quotient action gproduct gfunctor commutator.
 Require Import ssralg finalg zmodp cyclic center pgroup finmodule gseries.
-Require Import nilpotent sylow abelian maximal hall.
+Require Import nilpotent sylow abelian maximal hall extremal.
 Require Import matrix mxalgebra mxrepresentation mxabelem.
 
 (******************************************************************************)
@@ -933,6 +933,52 @@ rewrite inE /= mem_primes p_pr indexg_gt0 -?p'natE // -partn_eq1 //.
 have sylPq: p.-Sylow(G / G') (P / G') by rewrite morphim_pHall ?normsG.
 rewrite -card_quotient ?gFnorm // -(card_Hall sylPq) -trivg_card1.
 by rewrite /= -quotientMidr mulSGid ?trivg_quotient.
+Qed.
+
+(* This is Aschbacher (39.2). *)
+Lemma cyclic_pdiv_normal_complement gT (S G : {group gT}) :
+  (pdiv #|G|).-Sylow(G) S -> cyclic S -> exists H : {group gT}, H ><| S = G.
+Proof.
+set p := pdiv _ => sylS cycS; have cSS := cyclic_abelian cycS.
+exists 'O_p^'(G)%G; apply: Burnside_normal_complement => //.
+have [-> | ntS] := eqsVneq S 1; first exact: cents1.
+have [sSG pS p'iSG] := and3P sylS; have [pr_p _ _] := pgroup_pdiv pS ntS.
+rewrite -['C(S)]mulg1 -ker_conj_aut -morphimSK ?subsetIr // setIC morphimIdom.
+set A_G := _ @* _; pose A := Aut S.
+have [_ [_ [cAA _ oAp' _]] _] := cyclic_pgroup_Aut_structure pS cycS ntS.
+have{cAA cSS p'iSG} /setIidPl <-: A_G \subset 'O_p^'(A).
+  rewrite pcore_max -?sub_abelian_normal ?Aut_conj_aut //=.
+  apply: pnat_dvd p'iSG; rewrite card_morphim ker_conj_aut /= setIC.
+  have sSN: S \subset 'N_G(S) by rewrite subsetI sSG normG.
+  by apply: dvdn_trans (indexSg sSN (subsetIl G 'N(S))); apply: indexgS.
+rewrite coprime_TIg ?sub1G // coprime_morphl // coprime_sym coprime_pi' //.
+apply/pgroupP=> q pr_q q_dv_G; rewrite !inE mem_primes gtnNdvd ?andbF // oAp'.
+by rewrite prednK ?prime_gt0 ?pdiv_min_dvd ?prime_gt1.
+Qed.
+
+(* This is Aschbacher (39.3). *)
+Lemma Zgroup_metacyclic gT (G : {group gT}) : Zgroup G -> metacyclic G.
+Proof.
+elim: {G}_.+1 {-2}G (ltnSn #|G|) => // n IHn G; rewrite ltnS => leGn ZgG.
+have{n IHn leGn} solG: solvable G.
+  have [-> | ntG] := eqsVneq G 1; first exact: solvable1.
+  have [S sylS] := Sylow_exists (pdiv #|G|) G.
+  have cycS: cyclic S := forall_inP ZgG S (p_Sylow sylS).
+  have [H defG] := cyclic_pdiv_normal_complement sylS cycS.
+  have [nsHG _ _ _ _] := sdprod_context defG; rewrite (series_sol nsHG) andbC.
+  rewrite -(isog_sol (sdprod_isog defG)) (abelian_sol (cyclic_abelian cycS)).
+  rewrite metacyclic_sol ?IHn ?(ZgroupS _ ZgG) ?normal_sub //.
+  rewrite (leq_trans _ leGn) // -(sdprod_card defG) ltn_Pmulr // cardG_gt1.
+  by rewrite -rank_gt0 (rank_Sylow sylS) p_rank_gt0 pi_pdiv cardG_gt1.
+pose K := 'F(G)%G; apply/metacyclicP; exists K.
+have nsKG: K <| G := Fitting_normal G; have [sKG nKG] := andP nsKG.
+have cycK: cyclic K by rewrite nil_Zgroup_cyclic ?Fitting_nil ?(ZgroupS sKG).
+have cKK: abelian K := cyclic_abelian cycK.
+have{solG cKK} defK: 'C_G(K) = K.
+  by apply/setP/subset_eqP; rewrite cent_sub_Fitting // subsetI sKG.
+rewrite cycK nil_Zgroup_cyclic ?morphim_Zgroup ?abelian_nil //.
+rewrite -defK -ker_conj_aut (isog_abelian (first_isog_loc _ _)) //.
+exact: abelianS (Aut_conj_aut K G) (Aut_cyclic_abelian cycK).
 Qed.
 
 (* This is B & G, Theorem 1.20 (Maschke's Theorem) for internal action on     *)

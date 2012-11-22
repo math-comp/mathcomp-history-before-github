@@ -39,24 +39,22 @@ Import MatrixGenField.
 (* which we prove p-stability are inherited by sections (morphic image in our *)
 (* framework), and restrict to the case where P is normal in G. (Clearly the  *)
 (* 'O_p^'(G) * P <| G premise plays no part in the proof.)                    *)
-(* Theorems A.1-A.3 are essentially inlined in this proof                     *)
+(* Theorems A.1-A.3 are essentially inlined in this proof.                    *)
 
-Theorem odd_p_stable : forall gT p (G : {group gT}), odd #|G| -> p.-stable G.
+Theorem odd_p_stable gT p (G : {group gT}) : odd #|G| -> p.-stable G.
 Proof.
-move=> gT p; move: gT.
+move: gT G.
 pose p_xp gT (E : {group gT}) x := p.-elt x && (x \in 'C([~: E, [set x]])).
-suffices: forall gT (E : {group gT}) x y, let G := <<[set x; y]>> in
-  [&& odd #|G|, p.-group E & G \subset 'N(E)] ->
-  p_xp gT E x && p_xp gT E y -> p.-group (G / 'C(E)).
-- move=> IH gT G oddG P A pP; case/andP; rewrite mulG_subG; case/andP=> _ sPG _.
-  case/andP=> sANG pA cRA; apply/subsetP=> Cx; case/morphimP=> x Nx Ax ->{Cx}.
-  have NGx := subsetP sANG x Ax.
-  apply: Baer_Suzuki => [|Cy]; first exact: mem_quotient.
-  case/morphimP=> y Ny NGy ->{Cy}; rewrite -morphJ // -!morphim_set1 ?groupJ //.
-  rewrite -morphimU -morphim_gen ?subUset ?sub1set ?Nx ?groupJ //= -quotientE.
-  set G1 := <<_>>; rewrite /pgroup -(card_isog (second_isog _)); last first.
+suffices IH gT (E : {group gT}) x y (G := <<[set x; y]>>) :
+    [&& odd #|G|, p.-group E & G \subset 'N(E)] -> p_xp gT E x && p_xp gT E y ->
+  p.-group (G / 'C(E)).
+- move=> gT G oddG P A pP /andP[/mulGsubP[_ sPG] _] /andP[sANG pA] cRA.
+  apply/subsetP=> _ /morphimP[x Nx Ax ->]; have NGx := subsetP sANG x Ax.
+  apply: Baer_Suzuki => [|_ /morphimP[y Ny NGy ->]]; first exact: mem_quotient.
+  rewrite -morphJ // -!morphim_set1 -?[<<_>>]morphimY ?sub1set ?groupJ //.
+  set G1 := _ <*> _; rewrite /pgroup -(card_isog (second_isog _)); last first.
     by rewrite join_subG !sub1set Nx groupJ.
-  case/setIP: NGx => Gx {Nx}Nx; case/setIP: NGy => Gy {Ny}Ny.
+  have{Nx NGx Ny NGy} [[Gx Nx] [Gy Ny]] := (setIP NGx, setIP NGy).
   have sG1G: G1 \subset G by rewrite join_subG !sub1set groupJ ?andbT.
   have nPG1: G1 \subset 'N(P) by rewrite join_subG !sub1set groupJ ?andbT.
   rewrite -setIA setICA (setIidPr sG1G).
@@ -65,15 +63,13 @@ suffices: forall gT (E : {group gT}) x y, let G := <<[set x; y]>> in
   rewrite /p_xp -{2}(normP Ny) -conjg_set1 -conjsRg centJ memJ_conjg.
   rewrite p_eltJ andbb (mem_p_elt pA) // -sub1set centsC (sameP commG1P trivgP).
   by rewrite -cRA !commgSS ?sub1set.
-move=> gT E; move: {2}_.+1 (ltnSn #|E|) => n; elim: n => // n IHn in gT E *.
-rewrite ltnS => leEn x y G; case/and3P=> oddG pE nEG.
-case/and3P; case/andP => p_x cRx p_y cRy.
-have [Gx Gy]: x \in G /\ y \in G.
-  by apply/andP; rewrite -!sub1set -subUset subset_gen.
-apply/idPn=> p'Gc; case/pgroupP: (p'Gc) => q q_pr qGc; apply/idPn => p'q.
+move: {2}_.+1 (ltnSn #|E|) => n; elim: n => // n IHn in gT E x y G *.
+rewrite ltnS => leEn /and3P[oddG pE nEG] /and3P[/andP[p_x cRx] p_y cRy].
+have [Gx Gy]: x \in G /\ y \in G by apply/andP; rewrite -!sub1set -join_subG. 
+apply: wlog_neg => p'Gc; apply/pgroupP=> q q_pr qGc; apply/idPn => p'q.
 have [Q sylQ] := Sylow_exists q [group of G].
 have [sQG qQ]: Q \subset G /\ q.-group Q by case/and3P: sylQ.
-have{qQ p'q} p'Q: p^'.-group Q by apply: sub_in_pnat qQ => q' _; move/eqnP->.
+have{qQ p'q} p'Q: p^'.-group Q by apply: sub_in_pnat qQ => q' _ /eqnP->.
 have{q q_pr sylQ qGc} ncEQ: ~~ (Q \subset 'C(E)).
   apply: contraL qGc => cEQ; rewrite -p'natE // -partn_eq1 //.
   have nCQ: Q \subset 'N('C(E)) by exact: subset_trans (normG _).
@@ -89,7 +85,7 @@ have{Q ncEQ p'Q sQG} minE_EG: minnormal E (E <*> G).
   have cDQ: Q \subset 'C(D).
     rewrite -quotient_sub1 ?norms_cent // ?[_ / _]card1_trivg //.
     apply: pnat_1 (morphim_pgroup _ p'Q); apply: pgroupS (quotientS _ sQG) _.
-    apply: (IHn _ D (leq_trans ltDE leEn)); first by rewrite oddG (pgroupS sDE).
+    apply: IHn (leq_trans ltDE leEn) _ _; first by rewrite oddG (pgroupS sDE).
     rewrite /p_xp p_x p_y /=; apply/andP.
     by split; [move: cRx | move: cRy]; apply: subsetP; rewrite centS ?commSg.
   apply: (stable_factor_cent cDQ) solE; rewrite ?(pnat_coprime pE) //.
@@ -179,7 +175,7 @@ have: dA <= 2.
     rewrite -mxrank_eq0 genmxE mxrank_eq0; apply/eqP.
     move/(canRL ((in_genK _ _) _)); rewrite val_gen0; apply/eqP.
     by rewrite -submx0 -addsmxE addsmx_sub submx0 negb_and nzv.
-  case/mx_irrP: irrAG => _; move/(_ UA Umod nzU); move/eqnP <-.
+  case/mx_irrP: irrAG => _ /(_ UA Umod nzU)/eqnP <-.
   by rewrite genmxE rank_leq_row.
 rewrite leq_eqVlt ltnS leq_eqVlt ltnNge dA_gt0 orbF orbC; case/pred2P=> def_dA.
   rewrite [_^`(1)](commG1P _) ?pgroup1 // quotient_cents2r // gen_subG.
@@ -213,9 +209,9 @@ Let nCX := subset_trans sXG nCG.
 (* This is B & G, Theorem A.5.1; it does not depend on the solG assumption. *)
 Theorem odd_abelian_gen_stable : X / C \subset 'O_p(G / C).
 Proof.
-case/existsP: genX => gX; move/eqP=> defX.
-rewrite -defN sub_quotient_pre // -defX gen_subG; apply/bigcupsP=> A gX_A.
-have [_ pA nAP cAA] := and4P gX_A.
+case/existsP: genX => gX /eqP defX.
+rewrite -defN sub_quotient_pre // -defX gen_subG.
+apply/bigcupsP=> A gX_A; have [_ pA nAP cAA] := and4P gX_A.
 have{gX_A} sAX: A \subset X by rewrite -defX sub_gen ?bigcup_sup.
 rewrite -sub_quotient_pre ?(subset_trans sAX nCX) //=.
 rewrite odd_p_stable ?normalM ?pcore_normal //.
@@ -262,140 +258,130 @@ Implicit Types G H A : {group gT}.
 Implicit Types D E : {set gT}.
 Implicit Type p : nat.
 
-Lemma Puig_char : forall G, 'L(G) \char G.
-Proof. by move=> G; exact: gFchar. Qed.
+Lemma Puig_char G : 'L(G) \char G.
+Proof. exact: gFchar. Qed.
 
-Lemma center_Puig_char : forall G, 'Z('L(G)) \char G.
-Proof. by move=> G; apply: char_trans (center_char _) (Puig_char _). Qed.
+Lemma center_Puig_char G : 'Z('L(G)) \char G.
+Proof. exact: char_trans (center_char _) (Puig_char _). Qed.
 
 (* This is B & G, Lemma B.1(a). *)
-Lemma Puig_succS : forall G D E, D \subset E -> 'L_[G](E) \subset 'L_[G](D).
+Lemma Puig_succS G D E : D \subset E -> 'L_[G](E) \subset 'L_[G](D).
 Proof.
-move=> G D E sDE; apply: Puig_max (Puig_succ_sub _ _).
+move=> sDE; apply: Puig_max (Puig_succ_sub _ _).
 exact: norm_abgenS sDE (Puig_gen _ _).
 Qed.
 
 (* This is part of B & G, Lemma B.1(b) (see also BGsection1.Puig1). *)
-Lemma Puig_sub_even : forall m n G,
-  m <= n -> 'L_{m.*2}(G) \subset 'L_{n.*2}(G).
+Lemma Puig_sub_even m n G : m <= n -> 'L_{m.*2}(G) \subset 'L_{n.*2}(G).
 Proof.
-move=> m n G; move/subnKC <-; move: {n}(n - m)%N => n.
+move/subnKC <-; move: {n}(n - m)%N => n.
 by elim: m => [|m IHm] /=; rewrite ?sub1G ?Puig_succS.
 Qed.
 
 (* This is part of B & G, Lemma B.1(b). *)
-Lemma Puig_sub_odd : forall m n G,
-  m <= n -> 'L_{n.*2.+1}(G) \subset 'L_{m.*2.+1}(G).
-Proof. by move=> m n G le_mn; rewrite Puig_succS ?Puig_sub_even. Qed.
+Lemma Puig_sub_odd m n G : m <= n -> 'L_{n.*2.+1}(G) \subset 'L_{m.*2.+1}(G).
+Proof. by move=> le_mn; rewrite Puig_succS ?Puig_sub_even. Qed.
 
 (* This is part of B & G, Lemma B.1(b). *)
-Lemma Puig_sub_even_odd : forall m n G, 'L_{m.*2}(G) \subset 'L_{n.*2.+1}(G).
+Lemma Puig_sub_even_odd m n G : 'L_{m.*2}(G) \subset 'L_{n.*2.+1}(G).
 Proof.
-move=> m n G; elim: n m => [|n IHn] m; first by rewrite Puig1 Puig_at_sub.
+elim: n m => [|n IHn] m; first by rewrite Puig1 Puig_at_sub.
 by case: m => [|m]; rewrite ?sub1G ?Puig_succS ?IHn.
 Qed.
 
 (* This is B & G, Lemma B.1(c). *)
-Lemma Puig_limit : forall G,
+Lemma Puig_limit G :
   exists m, forall k, m <= k ->
     'L_{k.*2}(G) = 'L_*(G) /\ 'L_{k.*2.+1}(G) = 'L(G).
 Proof.
-move=> G; pose L2G m := 'L_{m.*2}(G); pose n := #|G|.
+pose L2G m := 'L_{m.*2}(G); pose n := #|G|.
 have []: #|L2G n| <= n /\ n <= n by rewrite subset_leq_card ?Puig_at_sub.
-elim: {1 2 3}n => [|m IHm leLm1]; first by rewrite leqNgt cardG_gt0.
-move/ltnW; case: (eqVneq (L2G m.+1) (L2G m)) => [eqLm le_mn|]; last first.
+elim: {1 2 3}n => [| m IHm leLm1 /ltnW]; first by rewrite leqNgt cardG_gt0.
+have [eqLm le_mn|] := eqVneq (L2G m.+1) (L2G m); last first.
   rewrite eq_sym eqEcard Puig_sub_even ?leqnSn // -ltnNge => lt_m1_m.
   exact: IHm (leq_trans lt_m1_m leLm1).
-have{eqLm} eqLm: forall k, m <= k -> 'L_{k.*2}(G) = L2G m.
-  move=> k; rewrite leq_eqVlt; case/predU1P=> [-> // |].
-  elim: k => // k IHk; rewrite leq_eqVlt; case/predU1P=> [<- //| ltmk].
-  by rewrite -eqLm !PuigS IHk.
-by exists m => k le_mk; rewrite Puig_def PuigS /Puig_inf /= !eqLm //.
+have{eqLm} eqLm k: m <= k -> 'L_{k.*2}(G) = L2G m.
+  rewrite leq_eqVlt => /predU1P[-> // |]; elim: k => // k IHk.
+  by rewrite leq_eqVlt => /predU1P[<- //| ltmk]; rewrite -eqLm !PuigS IHk.
+by exists m => k le_mk; rewrite Puig_def PuigS /Puig_inf /= !eqLm.
 Qed.
 
 (* This is B & G, Lemma B.1(d), second part; the first part is covered by     *)
 (* BGsection1.Puig_inf_sub.                                                   *)
-Lemma Puig_inf_sub_Puig : forall G, 'L_*(G) \subset 'L(G).
-Proof. move=> G; exact: Puig_sub_even_odd. Qed.
+Lemma Puig_inf_sub_Puig G : 'L_*(G) \subset 'L(G).
+Proof. exact: Puig_sub_even_odd. Qed.
 
 (* This is B & G, Lemma B.1(e). *)
-Lemma abelian_norm_Puig : forall n G A,
-   n > 0 -> abelian A -> A <| G -> A \subset 'L_{n}(G).
+Lemma abelian_norm_Puig n G A :
+  n > 0 -> abelian A -> A <| G -> A \subset 'L_{n}(G).
 Proof.
-case=> // n G A _ cAA; case/andP=> sAG nAG.
+case: n => // n _ cAA /andP[sAG nAG].
 rewrite PuigS sub_gen // bigcup_sup // inE sAG /norm_abelian cAA andbT.
 exact: subset_trans (Puig_at_sub n G) nAG.
 Qed.
 
 (* This is B & G, Lemma B.1(f), first inclusion. *)
-Lemma sub_cent_Puig_at : forall n p G,
+Lemma sub_cent_Puig_at n p G :
   n > 0 -> p.-group G -> 'C_G('L_{n}(G)) \subset 'L_{n}(G).
 Proof.
-move=> n p G n_gt0 pG.
-have: exists M : {group gT}, (M <| G) && abelian M.
+move=> n_gt0 pG.
+have /ex_maxgroup[M /(max_SCN pG)SCN_M]: exists M, (gval M <| G) && abelian M.
   by exists 1%G; rewrite normal1 abelian1.
-case/ex_maxgroup => M; move/(max_SCN pG) => SCN_M.
-have cMM := SCN_abelian SCN_M; case/SCN_P: SCN_M => nsMG defCM.
-have sML: M \subset 'L_{n}(G) by exact: abelian_norm_Puig.
+have{SCN_M} [cMM [nsMG defCM]] := (SCN_abelian SCN_M, SCN_P SCN_M).
+have sML: M \subset 'L_{n}(G) by apply: abelian_norm_Puig.
 by apply: subset_trans (sML); rewrite -defCM setIS // centS.
 Qed.
 
 (* This is B & G, Lemma B.1(f), second inclusion. *)
-Lemma sub_center_cent_Puig_at : forall n G, 'Z(G) \subset 'C_G('L_{n}(G)).
-Proof. by move=> n G; rewrite setIS ?centS ?Puig_at_sub. Qed.
+Lemma sub_center_cent_Puig_at n G : 'Z(G) \subset 'C_G('L_{n}(G)).
+Proof. by rewrite setIS ?centS ?Puig_at_sub. Qed.
 
 (* This is B & G, Lemma B.1(f), third inclusion (the fourth is trivial). *)
-Lemma sub_cent_Puig_inf : forall p G,
-  p.-group G -> 'C_G('L_*(G)) \subset 'L_*(G).
-Proof. by move=> p G; apply: sub_cent_Puig_at; rewrite double_gt0. Qed.
+Lemma sub_cent_Puig_inf p G : p.-group G -> 'C_G('L_*(G)) \subset 'L_*(G).
+Proof. by apply: sub_cent_Puig_at; rewrite double_gt0. Qed.
 
 (* This is B & G, Lemma B.1(f), fifth inclusion (the sixth is trivial). *)
-Lemma sub_cent_Puig : forall p G, p.-group G -> 'C_G('L(G)) \subset 'L(G).
-Proof. by move=> p G; exact: sub_cent_Puig_at. Qed.
+Lemma sub_cent_Puig p G : p.-group G -> 'C_G('L(G)) \subset 'L(G).
+Proof. exact: sub_cent_Puig_at. Qed.
 
 (* This is B & G, Lemma B.1(f), final remark (we prove the contrapositive). *)
-Lemma trivg_center_Puig_pgroup : forall p G,
-  p.-group G -> 'Z('L(G)) = 1 -> G :=: 1.
+Lemma trivg_center_Puig_pgroup p G : p.-group G -> 'Z('L(G)) = 1 -> G :=: 1.
 Proof.
-move=> p G pG LG1; apply: (trivg_center_pgroup pG); apply/trivgP.
+move=> pG LG1; apply/(trivg_center_pgroup pG)/trivgP.
 rewrite -(trivg_center_pgroup (pgroupS (Puig_sub _) pG) LG1).
-by apply: subset_trans (sub_cent_Puig pG); exact: sub_center_cent_Puig_at.
+by apply: subset_trans (sub_cent_Puig pG); apply: sub_center_cent_Puig_at.
 Qed.
 
 (* This is B & G, Lemma B.1(g), second part; the first part is simply the     *)
 (* definition of 'L(G) in terms of 'L_*(G).                                   *)
-Lemma Puig_inf_def : forall G, 'L_*(G) = 'L_[G]('L(G)).
+Lemma Puig_inf_def G : 'L_*(G) = 'L_[G]('L(G)).
 Proof.
-move=> G; have [k defL] := Puig_limit G.
-by case: (defL k) => // _ <-; case: (defL k.+1) => [|<- //]; exact: leqnSn.
+have [k defL] := Puig_limit G.
+by case: (defL k) => // _ <-; case: (defL k.+1) => [|<- //]; apply: leqnSn.
 Qed.
 
 (* This is B & G, Lemma B.2. *)
-Lemma sub_Puig_eq : forall G H, H \subset G -> 'L(G) \subset H -> 'L(H) = 'L(G).
+Lemma sub_Puig_eq G H : H \subset G -> 'L(G) \subset H -> 'L(H) = 'L(G).
 Proof.
-move=> G H sHG sLG_H.
-have [kG defLG] := Puig_limit G; have [kH defLH] := Puig_limit H.
-move: {2}(maxn _ _) (leqnn (maxn kH kG)) => k; rewrite geq_max; case/andP.
-case/defLH=> _ <-; case/defLG=> _ {defLH defLG}defL.
+move=> sHG sLG_H; apply/setP/subset_eqP/andP.
 have sLH_G := subset_trans (Puig_succ_sub _ _) sHG.
 have gPuig := norm_abgenS _ (Puig_gen _ _).
-apply/eqP; rewrite eqEsubset; apply/andP; split.
-  rewrite -{}defL; elim: k => [|k IHk /=]; first by rewrite !Puig1.
+have [[kG defLG] [kH defLH]] := (Puig_limit G, Puig_limit H).
+have [/defLG[_ {1}<-] /defLH[_ <-]] := (leq_maxl kG kH, leq_maxr kG kH).
+split; do [elim: (maxn _ _) => [|k IHk /=]; first by rewrite !Puig1].
   rewrite doubleS !(PuigS _.+1) Puig_max ?gPuig // Puig_max ?gPuig //.
   exact: subset_trans (Puig_sub_even_odd _.+1 _ _) sLG_H.
-elim: k {defL} => [|k IHk /=]; first by rewrite Puig1.
 rewrite doubleS Puig_max // -!PuigS Puig_def gPuig //.
 by rewrite Puig_inf_def Puig_max ?gPuig ?sLH_G.
 Qed.
 
-Lemma norm_abgen_pgroup : forall p X G,
+Lemma norm_abgen_pgroup p X G :
   p.-group G -> X --> G -> generated_by (p_norm_abelian p X) G.
 Proof.
-move=> p X G pG; case/existsP=> gG; move/eqP=> defG.
-have:= subxx G; rewrite -{1 3}defG gen_subG /=; move/bigcupsP=> sGG.
+move=> pG /existsP[gG /eqP defG].
+have:= subxx G; rewrite -{1 3}defG gen_subG /= => /bigcupsP sGG.
 apply/existsP; exists gG; apply/eqP; congr <<_>>; apply: eq_bigl => A.
-rewrite andbCA andbC; case gGA: ((A \in _) && _) => //.
-exact: pgroupS (sGG A gGA) pG.
+by rewrite andbA andbAC andb_idr // => /sGG/pgroupS->.
 Qed.
 
 Variables (p : nat) (G S : {group gT}).
@@ -411,11 +397,10 @@ Let sSG := pHall_sub sylS.
 (* This is B & G, Lemma B.3. *)
 Lemma pcore_Sylow_Puig_sub : 'L_*(S) \subset 'L_*(T) /\ 'L(T) \subset 'L(S).
 Proof.
-have [kS defLS] := Puig_limit S; have [kT defLT] := Puig_limit [group of T].
-move: {2}(maxn _ _) (leqnn (maxn kS kT)) => k; rewrite geq_max; case/andP.
-case/defLS=> <- <-; case/defLT=> <- <- {defLS defLT}/=.
+have [[kS defLS] [kT defLT]] := (Puig_limit S, Puig_limit [group of T]).
+have [/defLS[<- <-] /defLT[<- <-]] := (leq_maxl kS kT, leq_maxr kS kT).
 have sL_ := subset_trans (Puig_succ_sub _ _).
-elim: k => [|k [_ sL1]]; first by rewrite !Puig1 pcore_sub_Hall.
+elim: (maxn kS kT) => [|k [_ sL1]]; first by rewrite !Puig1 pcore_sub_Hall.
 have{sL1} gL: 'L_{k.*2.+1}(T) --> 'L_{k.*2.+2}(S).
   exact: norm_abgenS sL1 (Puig_gen _ _).
 have sCT_L: 'C_T('L_{k.*2.+1}(T)) \subset 'L_{k.*2.+1}(T).
@@ -423,11 +408,11 @@ have sCT_L: 'C_T('L_{k.*2.+1}(T)) \subset 'L_{k.*2.+1}(T).
 have{sCT_L} sLT: 'L_{k.*2.+2}(S) \subset T.
   apply: odd_abelian_gen_constrained sCT_L => //.
   - exact: pgroupS (Puig_at_sub _ _) pT.
-  - by apply: char_normal_trans nsTG; exact: gFchar.
+  - by apply: char_normal_trans nsTG; apply: gFchar.
   - exact: sL_ sSG.
   by rewrite norm_abgen_pgroup // (pgroupS _ pS) ?Puig_at_sub.
-have sL2: 'L_{k.*2.+2}(S) \subset 'L_{k.*2.+2}(T) by exact: Puig_max.
-split; [exact sL2 | rewrite doubleS; apply: subset_trans (Puig_succS _ sL2) _].
+have sL2: 'L_{k.*2.+2}(S) \subset 'L_{k.*2.+2}(T) by apply: Puig_max.
+split; [exact: sL2 | rewrite doubleS; apply: subset_trans (Puig_succS _ sL2) _].
 by rewrite Puig_max -?PuigS ?Puig_gen // sL_ // pcore_sub_Hall.
 Qed.
 
@@ -441,7 +426,7 @@ have [sLiST sLTS] := pcore_Sylow_Puig_sub.
 have sLiLT: 'L_*(T) \subset 'L(T) by exact: Puig_sub_even_odd.
 have sZY: 'Z(L) \subset Y.
   rewrite subsetI andbC subIset ?centS ?orbT //=.
-  suff: 'C_S('L_*(S)) \subset 'L(T).
+  suffices: 'C_S('L_*(S)) \subset 'L(T).
     by apply: subset_trans; rewrite setISS ?Puig_sub ?centS ?Puig_sub_even_odd.
   apply: subset_trans (subset_trans sLiST sLiLT).
   by apply: sub_cent_Puig_at pS; rewrite double_gt0.

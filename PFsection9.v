@@ -282,7 +282,7 @@ have frobUW1b: [Frobenius U <*> W1 / H0 = (U / H0) ><| W1bar].
   by rewrite im_f !morphim_restrm !(setIidPr _) ?joing_subl ?joing_subr.
 have{frobUW1b} oHbar: #|Hbar| = (#|W2bar| ^ q)%N.
   have nHbUW1 : U <*> W1 / H0 \subset 'N(Hbar) := quotient_norms H0 nHUW1.
-  have coHbUW1 : coprime #|Hbar| #|U <*> W1 / H0| by exact: coprime_morph.
+  have coHbUW1 : coprime #|Hbar| #|U <*> W1 / H0| by apply: coprime_morph.
   have [//|_ _ -> //] := Frobenius_Wielandt_fixpoint frobUW1b nHbUW1 coHbUW1 _.
   by rewrite -(card_isog (quotient_isog _ _)) // coprime_TIg ?(coprimeSg sH0H).
 have abelW2bar: p.-abelem W2bar := abelemS (subsetIl _ _) abelHbar.
@@ -338,12 +338,12 @@ have [/andP[ntH1 nH1U] _] := mingroupP minH1.
 have actsUH1: [acts U, on H1 | 'Q].
   by rewrite -(cosetpreK H1) actsQ ?norm_quotient_pre.
 have [nH0H [neqCU _ oHbar]] := (normal_norm nsH0H, Ptype_Fcore_factor_facts).
-have nUW1b: W1bar \subset 'N(U / H0) by exact: quotient_norms.
+have nUW1b: W1bar \subset 'N(U / H0) by apply: quotient_norms.
 have oW1b: #|W1bar| = q.
   rewrite -(card_isog (quotient_isog _ _)) // coprime_TIg //.
   by rewrite (coprimeSg sH0H) // (coprimegS (joing_subr U W1)).
 have [oH1 defHbar]: #|H1| = p /\ \big[dprod/1]_(w in W1bar) H1 :^ w = Hbar.
-  have nHbUW1: U <*> W1 / H0 \subset 'N(Hbar) by exact: quotient_norms.
+  have nHbUW1: U <*> W1 / H0 \subset 'N(Hbar) by apply: quotient_norms.
   pose rUW1 := abelem_repr abelHbar ntHbar nHbUW1.
   have irrUW1: mx_irreducible rUW1.
     apply/abelem_mx_irrP/mingroupP; split=> [|H2]; first by rewrite ntHbar.
@@ -352,7 +352,7 @@ have [oH1 defHbar]: #|H1| = p /\ \big[dprod/1]_(w in W1bar) H1 :^ w = Hbar.
   have nsUUW1: U / H0 <| U <*> W1 / H0 by rewrite quotient_normal // normalYl.
   pose rU := subg_repr rUW1 (normal_sub nsUUW1).
   pose V1 := rowg_mx (abelem_rV abelHbar ntHbar @* H1).
-  have simV1: mxsimple rU V1 by exact/mxsimple_abelem_subg/mxsimple_abelemGP.
+  have simV1: mxsimple rU V1 by apply/mxsimple_abelem_subg/mxsimple_abelemGP.
   have [W0 /subsetP sW01 [sumW0 dxW0]] := Clifford_basis irrUW1 simV1.
   have def_q: q = (#|W0| * \rank V1)%N.
     transitivity (\rank (\sum_(w in W0) V1 *m rUW1 w))%R.
@@ -452,7 +452,7 @@ apply/esym/eqP; rewrite eqEsubset; apply/andP; split.
   suffices /eqP->: phi1 w x == 1 by rewrite morph1.
   rewrite -2!val_eqE [val _]val_phi1 -(o_hw w) [phi _ _]mker // Kphi.
   by apply: subsetP (astabS _ _) _ cHx; rewrite sub_gen // (bigcup_sup w).
-have sKU: 'ker (Morphism psiM) \subset U by exact: subsetIl.
+have sKU: 'ker (Morphism psiM) \subset U by apply: subsetIl.
 rewrite -quotient_sub1 -?(Frobenius_trivg_cent frobUW1c); last first.
   by apply: subset_trans (normal_norm nsCUW1); rewrite subIset ?joing_subl.
 rewrite subsetI quotientS //= quotient_cents2r // [C]unlock subsetI.
@@ -469,7 +469,7 @@ have conj_x'b w: w \in W1bar -> (h ^ w) ^ x'b = (h ^ w) ^+ val (phi 1 x^-1).
   have:= Ww; rewrite -(setD1K Wb1) autE ?cycle_id // => /setU1P[-> // | W'w].
   have /eqP := psi_x'0 (enum_rank_in W'w w); rewrite 2!mxE enum_rankK_in //.
   rewrite -eq_mulgV1 -val_eqE /phi0; case: (a) / (o_z); rewrite /= val_eqE.
-  rewrite (inj_in_eq (injmP _ (injm_invm _))) /= ?im_Zpm ?mem_phi1 //.
+  rewrite (inj_in_eq (injmP (injm_invm _))) /= ?im_Zpm ?mem_phi1 //.
   by rewrite -2!val_eqE /= !val_phi1 // => /eqP->.
 rewrite -sub_cent1 -(bigdprodWY defHbar) gen_subG; apply/bigcupsP=> w2 Ww2.
 rewrite defH1 -cycleJ cycle_subG cent1C inE conjg_set1 !conjgM // conj_x'b //.
@@ -526,7 +526,7 @@ have{cEE} [F [outF [inF outFK inFK] E_F]]:
    & {inF : {additive _} | cancel outF inF & {in E_U, cancel inF outF}}
    & forall a, outF a \in E_U}}%R.
 - pose B := row_base (enveloping_algebra_mx rU).
-  have freeB: row_free B by exact: row_base_free.
+  have freeB: row_free B by apply: row_base_free.
   pose outF := [additive of vec_mx \o mulmxr B].
   pose inF := [additive of mulmxr (pinvmx B) \o mxvec].
   have E_F a: outF a \in E_U by rewrite !inE vec_mxK mulmx_sub ?eq_row_base.
@@ -537,7 +537,7 @@ have{cEE} [F [outF [inF outFK inFK] E_F]]:
   pose one := inF 1%R; pose mul a b := inF (outF a * outF b)%R.
   have outM: {morph outF: a b / mul a b >-> a * b}%R.
     by move=> a b; rewrite inK //; apply: envelop_mxM; exact: E_F.
-  have out0: outF 0%R = 0%R by exact: raddf0.
+  have out0: outF 0%R = 0%R by apply: raddf0.
   have out1: outF one = 1%R by rewrite inK //; exact: envelop_mx1.
   have nzFone: one != 0%R by rewrite -(inj_eq outI) out1 out0 oner_eq0.
   have mulA: associative mul by move=> *; apply: outI; rewrite !{1}outM mulrA.
@@ -581,7 +581,7 @@ have /trivgPn/sig2W[s W2s nts]: W2bar != 1%G.
 pose sb := outHb s; have [Hs cW1s] := setIP W2s.
 have nz_sb: sb != 0%R by rewrite morph_injm_eq1 ?abelem_rV_injm.
 pose phi' a : coset_of H0 := inHb (sb *m outF a)%R.
-have Hphi' a: phi' a \in Hbar by exact: mem_rVabelem.
+have Hphi' a: phi' a \in Hbar by apply: mem_rVabelem.
 have phi'D: {in setT &, {morph phi' : a b / a * b}}.
   by move=> a b _ _; rewrite /phi' !raddfD [inHb _]morphM ?mem_im_abelem_rV.
 have inj_phi': injective phi'.
@@ -616,7 +616,7 @@ have Kpsi: 'ker psi = C.
 have etaP (w : subg_of W1): injective (fun a => phi (phi' a ^ inMb (val w))).
   case: w => w /=/(mem_quotient H0)/(subsetP nHbW1) => nHw a b eq_ab.
   apply/inj_phi'/(conjg_inj (inMb w)).
-  by apply: (injmP _ inj_phi) eq_ab; rewrite memJ_norm ?mem_rVabelem.
+  by apply: (injmP inj_phi) eq_ab; rewrite memJ_norm ?mem_rVabelem.
 pose eta w : {perm F} := perm (etaP (subg W1 w)).
 have etaK: {in Hbar & W1, forall h w, eta w (phi h) = phi (h ^ inMb w)}.
   by move=> h w Hh Ww; rewrite /= permE subgK ?phiK.
@@ -661,7 +661,7 @@ exists F.
     have /properP[_ [h Hh notW2h]]: W2bar \proper Hbar.
       by rewrite properEcard subsetIl oW2b oHb (ltn_exp2l 1) prime_gt1.
     apply/subsetP=> w /morphpreP[Ww /set1P/permP/(_ (phi h))].
-    rewrite etaK // permE => /(injmP _ inj_phi) => chw.
+    rewrite etaK // permE => /(injmP inj_phi) => chw.
     rewrite -(@prime_TIg _ W1 <[w]>) //; first by rewrite inE Ww cycle_id.
     rewrite proper_subn // properEneq cycle_subG Ww andbT.
     apply: contraNneq notW2h => defW1; rewrite inE Hh /= -defW1.
@@ -684,7 +684,7 @@ exists F.
       rewrite kermx_eq0 neq_ltn ltnS (leq_trans (rank_leq_col Mr)) //.
       by rewrite (dim_abelemE abelHbar) // oHb pfactorK.
     pose P : {poly F} := (\poly_(i < q.+1) (v 0 (inord i))%:R)%R.
-    have szP: size P <= q.+1 by exact: size_poly.
+    have szP: size P <= q.+1 by apply: size_poly.
     exists P; apply/and3P; split.
     + apply/eqP/inj_phi'; congr (inHb _); rewrite rmorph0 mulmx0 -vMr0.
       rewrite horner_poly !raddf_sum mulmx_sum_row; apply: eq_bigr => i _.
@@ -711,7 +711,7 @@ exists F.
   apply/eqP; rewrite eqEcard; apply/andP; split.
     by apply/subsetP=> _ /imsetP[w Ww ->]; rewrite inE fPr0 //; exact: etaRM.
   rewrite (@cardsE F) card_in_imset // => w1 w2 Ww1 Ww2 /= /prim_r eq_w12.
-  by apply: (injmP _ inj_eta) => //; apply: eq_w12; exact: etaRM.
+  by apply: (injmP inj_eta) => //; apply: eq_w12; exact: etaRM.
 have isoUb: isog Ubar (psi @* U) by rewrite /Ubar -Kpsi first_isog.
 pose unF := [set in_uF a | a in nF^#].
 have unF_E: {in nF^#, cancel in_uF val} by move=> a /setD1P[/in_uF_E].
@@ -767,7 +767,7 @@ have nb_redM K:
     have [_ <- _] := Ptype_Fcore_factor_facts; rewrite defW2bar.
     rewrite !card_quotient ?(subset_trans (subset_trans sW2HU sHUM)) //.
     by rewrite -indexgI -{2}(setIidPl sW2H) setIAC -setIA tiKHbar indexgI.
-  have{cycW2} cycW2b: cyclic (b W2) by exact: quotient_cyclic.
+  have{cycW2} cycW2b: cyclic (b W2) by apply: quotient_cyclic.
   have ntW2b: (W2 / K != 1)%g by rewrite -cardG_gt1 oW2b prime_gt1.
   have{ntW2b} [defWb ptiWMb]:= primeTIhyp_quotient ptiWM ntW2b sKHU nsKM.
   pose muK j := (primeTIred ptiWMb j %% K)%CF.
@@ -806,7 +806,7 @@ have [|Dmu _] := leq_size_perm UmuC s_muC_mu; last first.
   by split=> // phi; rewrite -Dmu mem_filter => /andP[].
 have [nsH0C_M _ _ _] := nsH0xx_M.
 have sCHU := subset_trans sCU sUHU; have sCM := subset_trans sCHU sHUM.
-have sHOC_HU: H0C \subset HU by exact/joing_subP.
+have sHOC_HU: H0C \subset HU by apply/joing_subP.
 rewrite sz_mu -count_filter nb_redM //= norm_joinEr ?(subset_trans sCM) //.
 by rewrite -group_modl //= setIC [C]unlock setIA tiHU setI1g mulg1.
 Qed.
@@ -900,7 +900,7 @@ have Dtheta f: {in W1bar & H1, forall w xb, theta f (xb ^ w) = 'chi_(f w) xb}.
   transitivity ('Res[H1 :^ w] ('Res[Hbar] (theta f)) (xb ^ w)); last first.
     by rewrite cfDprodlK cfBigdprodKabelian // isom_IirrE cfIsomE.
   by rewrite cfResRes ?sH1wH // cfResE ?memJ_conjg ?(subset_trans (sH1wH w _)).
-have lin_theta f: theta f \is a linear_char by exact: cfDprodl_lin_char.
+have lin_theta f: theta f \is a linear_char by apply: cfDprodl_lin_char.
 pose Ftheta := pffun_on (0 : Iirr H1) W1bar (predC1 0).
 have inj_theta: {in Ftheta &, injective theta}.
   move=> f1 f2 /pffun_onP[/supportP W1f1 _] /pffun_onP[/supportP W1f2 _] eq_f12.
@@ -936,7 +936,7 @@ have oXtheta: (u * #|Xtheta| = p.-1 ^ q)%N.
     by move/(can_inj (cfModK nsH0HC)); apply: inj_theta.
   - by move=> _ /imsetP[f Df ->]; rewrite cfIirrE ?irrXtheta.
   move=> _ y /imsetP[f /familyP Ff ->] HUy; apply/imsetP.
-  pose yb := inMb y; have HUyb: yb \in (HU / H0)%g by exact: mem_quotient.
+  pose yb := inMb y; have HUyb: yb \in (HU / H0)%g by apply: mem_quotient.
   have nHb_y: inMb y \in 'N(Hbar) by rewrite (subsetP (quotient_norms _ nHHU)).
   have nH1b_y := subsetP (nH1wHUb _ _) yb HUyb.
   exists [ffun w => conjg_Iirr (f w) (inMb y ^ w^-1)].
@@ -1477,7 +1477,7 @@ have{tiHCbar} defHC'bar: (HC / H0)^`(1)%g = (C^`(1) / H0)%g.
 have sU'U := der_sub 1 U; have nH0U' := subset_trans sU'U nH0U.
 have sU'C: U' \subset C.
   by rewrite [C]unlock subsetI sub_astabQ sU'U nH0U' quotient_cents.
-have uS0: uniq (S_ H0C') by exact: seqInd_uniq.
+have uS0: uniq (S_ H0C') by apply: seqInd_uniq.
 have [rmR scohS0]: exists R : 'CF(M) -> seq 'CF(G), subcoherent (S_ H0C') tau R.
   move: (FTtypeP_coh_base _ _) (FTtypeP_subcoherent maxM MtypeP) => R scohR.
   exists R; apply: (subset_subcoherent scohR); split=> //; last first.
@@ -1783,7 +1783,7 @@ have [tiU1 le_u_a2]: {in W1^#, forall w, U1 :&: U1 :^ w = C} /\ (u <= a ^ 2)%N.
 pose S4 := filter [predD S_ H0C & redM] S3.
 have sS43: {subset S4 <= S3} by apply: mem_subseq; apply: filter_subseq.
 (* This is step (9.11.3). *)
-have nsHM: H <| M by exact: gFnormal.
+have nsHM: H <| M by apply: gFnormal.
 have oS4: (q * u * size S4 + p.-1 * (q + u))%N = (p ^ q).-1.
   rewrite mulnAC {1}[q](index_sdprod defM) -[S4]filter_predI.
   rewrite (size_irr_subseq_seqInd _ (filter_subseq _ _)) //; last first.

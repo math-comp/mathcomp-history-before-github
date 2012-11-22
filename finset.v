@@ -671,6 +671,12 @@ Proof. by rewrite !setDE setCU setIIr. Qed.
 Lemma setDIl A B C : (A :&: B) :\: C = (A :\: C) :&: (B :\: C).
 Proof. by rewrite !setDE setIIl. Qed.
 
+Lemma setIDA A B C : A :&: (B :\: C) = (A :&: B) :\: C.
+Proof. by rewrite !setDE setIA. Qed.
+
+Lemma setIDAC A B C : (A :\: B) :&: C = (A :&: C) :\: B.
+Proof. by rewrite !setDE setIAC. Qed.
+
 Lemma setDIr A B C : A :\: (B :&: C) = (A :\: B) :|: (A :\: C).
 Proof. by rewrite !setDE setCI setIUr. Qed.
 

@@ -29,10 +29,10 @@ Implicit Types G H K S U : {group gT}.
 
 (* This is B & G, Theorem A.4(b) and 6.1, or Gorenstein 6.5.2, the main Hall- *)
 (* Higman style p-stability result used in the proof of the Odd Order Theorem *)
-Theorem odd_p_abelian_constrained : forall p G,
+Theorem odd_p_abelian_constrained p G :
   odd #|G| -> solvable G -> p.-abelian_constrained G.
 Proof.
-move=> p G; move/odd_p_stable=> stabG; move/solvable_p_constrained=> constrG.
+move/odd_p_stable=> stabG /solvable_p_constrained constrG.
 exact: p_stable_abelian_constrained.
 Qed.
 
@@ -41,32 +41,32 @@ Definition center_Puig_char := BGappendixAB.center_Puig_char.
 Definition trivg_center_Puig_pgroup := BGappendixAB.trivg_center_Puig_pgroup.
 
 (* The two parts of B & G, Theorem 6.2 are established in BGappendixAB. *)
-Theorem Puig_factorisation : forall p G S,
+Theorem Puig_factorisation p G S :
   odd #|G| -> solvable G -> p.-Sylow(G) S -> 'O_p^'(G) * 'N_G('Z('L(S))) = G.
 Proof. exact: BGappendixAB.Puig_factorization. Qed.
 
 (* This is the main statement of B & G, Theorem 6.2. It is not used in the    *)
 (* actual proof.                                                              *)
-Theorem Puig_center_p'core_normal : forall p G S,
+Theorem Puig_center_p'core_normal p G S :
   odd #|G| -> solvable G -> p.-Sylow(G) S -> 'O_p^'(G) * 'Z('L(S)) <| G.
 Proof.
-move=> p G S oddG solG sylS; rewrite -{2}(Puig_factorisation _ _ sylS) //.
+move=> oddG solG sylS; rewrite -{2}(Puig_factorisation _ _ sylS) //.
 have sZL_G := subset_trans (char_sub (center_Puig_char S)) (pHall_sub sylS).
 rewrite -!quotientK ?(subset_trans _ (gFnorm _ _)) ?subsetIl //.
 by rewrite cosetpre_normal quotient_normal // normalSG.
 Qed.
 
 (* This is the second part (special case) of B & G, Theorem 6.2.              *)
-Theorem Puig_center_normal : forall p G S,
+Theorem Puig_center_normal p G S :
   odd #|G| -> solvable G -> p.-Sylow(G) S -> 'O_p^'(G) = 1 -> 'Z('L(S)) <| G.
 Proof. exact: BGappendixAB.Puig_center_normal. Qed.
 
 (* This is B & G, Lemma 6.3(a). *)
-Lemma coprime_der1_sdprod : forall K H G,
+Lemma coprime_der1_sdprod K H G :
     K ><| H = G -> coprime #|K| #|H| -> solvable K -> K \subset G^`(1) -> 
   [~: K, H] = K /\ 'C_K(H) \subset K^`(1).
 Proof.
-move=> K H G; case/sdprodP=> _ defG nKH tiKH coKH solK sKG'.
+case/sdprodP=> _ defG nKH tiKH coKH solK sKG'.
 set K' := K^`(1); have [sK'K nK'K] := andP (der_normal 1 K : K' <| K).
 have nK'H: H \subset 'N(K') := char_norm_trans (der_char 1 K) nKH.
 set R := [~: K, H]; have sRK: R \subset K by rewrite commg_subl.
@@ -92,11 +92,11 @@ by rewrite quotientR // coprime_abel_cent_TI ?quotient_norms ?coprime_morph.
 Qed.
 
 (* This is B & G, Lemma 6.3(b). It is apparently not used later. *)
-Lemma prime_nil_der1_factor : forall G,
+Lemma prime_nil_der1_factor G :
     nilpotent G^`(1) -> prime #|G / G^`(1)| -> 
   Hall G G^`(1) /\ (forall H, G^`(1) ><| H = G -> G^`(1) = [~: G, H]).
 Proof.
-move=> G nilG' /=; set G' := G^`(1); set p := #|G / G'| => p_pr.
+move=> nilG' /=; set G' := G^`(1); set p := #|G / G'| => p_pr.
 have nsG'G: G' <| G := der_normal 1 G; have [sG'G nG'G] := andP nsG'G.
 have nsG'p'G: 'O_p^'(G') <| G := char_normal_trans (pcore_char _ _) nsG'G.
 have nG'p'G := normal_norm nsG'p'G; have solG' := nilpotent_sol nilG'.
@@ -152,11 +152,11 @@ Qed.
 Hypothesis solG : solvable G.
 
 (* This is B & G, Lemma 6.5(c). *)
-Lemma pprod_trans_coprime : forall g, 
+Lemma pprod_trans_coprime g :
     g \in G -> H :^ g \subset U ->
   exists2 c, c \in 'C_K(H) & exists2 u, u \in U & g = c * u.
 Proof.
-rewrite -{1}defG => g; case/mulsgP=> k u Kk Uu defg sHgU.
+rewrite -{1}defG => /mulsgP[k u Kk Uu defg] sHgU.
 have [sK_KH sH_KH] := joing_sub (erefl (K <*> H)).
 have hallH: \pi(H).-Hall(K <*> H :&: U) H.
   rewrite (pHall_subl _ (subsetIl _ _)) ?subsetI ?sH_KH //.
@@ -180,7 +180,7 @@ Qed.
 Lemma pprod_norm_coprime_prod : 'C_K(H) * 'N_U(H) = 'N_G(H).
 Proof.
 apply/eqP; rewrite eqEsubset mul_subG ?setISS ?cent_sub //=.
-apply/subsetP=> g; case/setIP=> Gg; move/normP=> nHg.
+apply/subsetP=> g /setIP[Gg /normP nHg].
 have [|c Cc [u Uu defg]] := pprod_trans_coprime Gg; first by rewrite nHg.
 rewrite defg mem_mulg // !inE Uu -{2}nHg defg conjsgM conjSg (normP _) //=.
 by case/setIP: Cc => _; exact: (subsetP (cent_sub H)).
@@ -234,11 +234,11 @@ Qed.
 Hypothesis solG : solvable G.
 
 (* This is B & G, Lemma 6.6(c). *)
-Lemma plength1_Sylow_trans : forall (Y : {set gT}) g,
+Lemma plength1_Sylow_trans (Y : {set gT}) g :
     Y \subset S -> g \in G -> Y :^ g \subset S -> 
   exists2 c, c \in 'C_G(Y) & exists2 u, u \in 'N_G(S) & g = c * u.
 Proof.
-move=> Y g; rewrite -gen_subG -(gen_subG (Y :^ g)) genJ => sYS Gg sYgS.
+rewrite -gen_subG -(gen_subG (Y :^ g)) genJ => sYS Gg sYgS.
 have coKY := coprimegS sYS coKS.
 have [sYN sYgN] := (subset_trans sYS sSN, subset_trans sYgS sSN).
 have [c Cc defg] := pprod_trans_coprime defG nsKG sYN coKY solG Gg sYgN.
@@ -246,11 +246,11 @@ by exists c => //; apply: subsetP Cc; rewrite cent_gen setSI.
 Qed.
 
 (* This is B & G, Lemma 6.6(d). *)
-Lemma plength1_Sylow_Jsub : forall Q : {group gT}, 
+Lemma plength1_Sylow_Jsub (Q : {group gT}) : 
     Q \subset G -> p.-group Q ->
   exists2 x, x \in 'C_G(Q :&: S) & Q :^ x \subset S. 
 Proof.
-move=> Q sQG pQ; have sQ_Gp'p: Q \subset 'O_{p^',p}(G).
+move=> sQG pQ; have sQ_Gp'p: Q \subset 'O_{p^',p}(G).
   rewrite -sub_quotient_pre /= pcore_mod1 ?(subset_trans sQG) //.
   by rewrite (sub_Hall_pcore sylGbp) ?quotientS ?quotient_pgroup.
 have [xy /= KSxy sQxyS] := Sylow_Jsub sylS_Gp'p sQ_Gp'p pQ.
@@ -268,12 +268,12 @@ End Plength1Prod.
 End OneType.
 
 (* This is B & G, Theorem 6.7 *)
-Theorem plength1_norm_pmaxElem : forall gT p (G E L : {group gT}),
+Theorem plength1_norm_pmaxElem gT p (G E L : {group gT}) :
     E \in 'E*_p(G) -> odd p -> solvable G -> p.-length_1 G ->
     L \subset G -> E \subset 'N(L) -> p^'.-group L -> 
   L \subset 'O_p^'(G). 
 Proof.
-move=> gT p G E L maxE p_odd solG pl1G sLG nEL p'L.
+move=> maxE p_odd solG pl1G sLG nEL p'L.
 case p_pr: (prime p); last first.
   by rewrite pcore_pgroup_id // p'groupEpi mem_primes p_pr.
 wlog Gp'1: gT G E L maxE solG pl1G sLG nEL p'L / 'O_p^'(G) = 1.
@@ -307,7 +307,7 @@ have nSL: L \subset 'N(S) by rewrite (subset_trans sLG) // defS gFnorm.
 have cLE: L \subset 'C(E).
   by rewrite (sameP commG1P trivgP) -tiSL setIC commg_subI ?(introT subsetIP).
 have maxES: E \in 'E*_p(S) by rewrite (subsetP (pmaxElemS p sSG)) ?(maxE, inE).
-have EpE: E \in 'E_p(S) by exact/setIdP.
+have EpE: E \in 'E_p(S) by apply/setIdP.
 by rewrite (coprime_odd_faithful_cent_abelem EpE) ?(pmaxElem_LdivP p_pr maxES).
 Qed.
 

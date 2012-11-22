@@ -60,7 +60,7 @@ Hypotheses (sP0P : P0 \subset P) (sigma_s : sigma s = 1) (defP0 : <[s]> = P0).
 
 Let psi u : F := val (sigmaU u).
 Let inj_psi : {in U &, injective psi}.
-Proof. by move=> u v Uu Uv /val_inj/(injmP _ inj_sigmaU)->. Qed.
+Proof. by move=> u v Uu Uv /val_inj/(injmP inj_sigmaU)->. Qed.
 
 Hypothesis sigmaJ : {in P & U, forall x u, sigma (x ^ u) = sigma x * psi u}.
 
@@ -294,7 +294,7 @@ have [q_gt4 | q_le4] := ltnP 4 q.
       apply: eq_card => x; rewrite inE -!im_psi.
       apply/andP/imsetP=> [[/imsetP[u Uu ->] /imsetP[v Uv Dv]]{x} | ].
         exists u; rewrite // inE Uu /=; apply/imsetP; exists v => //.
-        by apply: (injmP _ inj_sigma); rewrite ?(sigmaE, in_PU) // mulN1r addrC.
+        by apply: (injmP inj_sigma); rewrite ?(sigmaE, in_PU) // mulN1r addrC.
       case=> u /setIdP[Uu /imsetP[v Uv /(congr1 sigma)]].
       rewrite ?(sigmaE, in_PU) // mulN1r addrC => Dv ->.
       by rewrite Dv !mem_imset.
@@ -467,7 +467,7 @@ have{Fp_w Dz} [n Dz]: exists n, sigma z = sigma ((s ^+ n) ^ u).
   by rewrite -{1}(natr_Zp n) scaler_nat mulr_natr conjXg !sigmaE ?in_PU.
 exists u^-1; last exists (u * v); rewrite ?groupV ?groupM //.
 exists (s ^+ n); rewrite ?groupX // mulgA; congr (_ * _).
-by apply: (injmP _ inj_sigma); rewrite -?mulgA ?in_PU.
+by apply: (injmP inj_sigma); rewrite -?mulgA ?in_PU.
 Qed.
 
 (* This is B & G, Appendix C, Lemma C.3, Step 2. *)
@@ -514,7 +514,7 @@ have irrPU: acts_irreducibly U P 'J.
   case/(mem_dprod defFU)=> _ [s1 [/morphimP[u Uu _ ->]]].
   rewrite inE => /vlineP[n Ds1] /(congr1 val)/= Dx _.
   suffices ->: x = (z ^ u) ^+ n by rewrite groupX ?memJ_norm ?(subsetP nVU).
-  apply: (injmP _ inj_sigma); rewrite ?(in_PU, sigmaE) //.
+  apply: (injmP inj_sigma); rewrite ?(in_PU, sigmaE) //.
   by rewrite -mulr_natr -scaler_nat natr_Zp -Ds1 -mulrA -Dx mulrC divfK.
 have{ntPX defX irrPU} defX: X :=: H.
   rewrite -(sdprodW defH) -defX; congr (_ * _).
@@ -697,7 +697,7 @@ have: t^-1 * s2 * t^-1 = (w1 ^+ p * s3 * w2 ^+ p * (t ^+ 2 * s1 * w3 ^+ p))^-1.
   rewrite [_ \in _]Fermat's_little_theorem dimv1 oF_p => /eqP->.
   rewrite -!psiX ?groupV // !mulr_natl !psiE ?groupX ?groupV //.
   rewrite -!sigmaE.1.2 ?in_PU //.
-  rewrite (inj_in_eq (injmP _ inj_sigma)) ?in_PU // ?(subsetP sP0P) //.
+  rewrite (inj_in_eq (injmP inj_sigma)) ?in_PU // ?(subsetP sP0P) //.
   rewrite -!conjXg -conjVg expgVn => /eqP->; rewrite mulgA -conjgC.
   rewrite -3!mulgA -conjgCV; congr (_ * _); rewrite mulgA; congr (_ * _).
   by rewrite -expgMn ?Huivi -?conjXg //; apply: (centsP cUU).

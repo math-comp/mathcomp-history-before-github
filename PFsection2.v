@@ -60,8 +60,8 @@ have id_pi: {in Cg, forall u, u.`_ pi = g}.
   move=> _ /rcosetP[u /setIP[Hu cgu] ->]; rewrite consttM; last exact/cent1P.
   rewrite (constt_p_elt (pgroup_pi _)) (constt1P _) ?mul1g //.
   by rewrite (mem_p_elt _ Hu) // /pgroup -coprime_pi' // coprime_sym.
-have{id_pi} /andP[tiCg /eqP defC]: normedTI Cg H C.
-  apply/normedTI_P; rewrite // subsetI subsetIl normsM ?normG ?subsetIr //.
+have{id_pi} /and3P[_ tiCg /eqP defC]: normedTI Cg H C.
+  apply/normedTI_P; rewrite subsetI subsetIl normsM ?normG ?subsetIr //.
   split=> // x Hx /pred0Pn[u /andP[/= Cu Cxu]]; rewrite !inE Hx /= conjg_set1.
   by rewrite -{2}(id_pi _ Cu) -(conjgKV x u) consttJ id_pi -?mem_conjg.
 have{tiCg} partCg := partition_class_support notCg0 tiCg.
@@ -137,7 +137,7 @@ Lemma def_Dade_signalizer H1 : is_Dade_signalizer G L A H1 -> {in A, H =1 H1}.
 Proof.
 move=> defH1 a Aa; apply/val_inj; rewrite unlock /=; have defCa := defH1 a Aa.
 have /sdprod_context[nsH1Ca _ _ _ _] := defCa.
-by apply/normal_Hall_pcore=> //; exact/(sdprod_normal_pHallP _ (HallCL Aa)).
+by apply/normal_Hall_pcore=> //; apply/(sdprod_normal_pHallP _ (HallCL Aa)).
 Qed.
 
 Lemma Dade_sdprod : is_Dade_signalizer G L A H.
@@ -148,7 +148,7 @@ Qed.
 Let defCA := Dade_sdprod.
 
 Lemma Dade_coprime : {in A &, forall a b, coprime #|H a| #|'C_L[b]| }.
-Proof. by move=> a b _ Ab; exact: p'nat_coprime (pi'H a) (piCL Ab). Qed.
+Proof. by move=> a b _ Ab; apply: p'nat_coprime (pi'H a) (piCL Ab). Qed.
 Let coHL := Dade_coprime.
 
 Definition Dade_support1 a := class_support (H a :* a) G.
@@ -156,6 +156,24 @@ Local Notation dd1 := Dade_support1.
 
 Lemma mem_Dade_support1 a x : a \in A -> x \in H a -> (x * a)%g \in dd1 a.
 Proof. by move=> Aa Hx; rewrite -(conjg1 (x * a)) !mem_imset2 ?set11. Qed.
+
+(* This is Peterfalvi (2.3), except for the existence part, which is covered  *)
+(* below in the NormedTI section.                                             *)
+Lemma Dade_normedTI_P :
+  reflect (A != set0 /\ {in A, forall a, H a = 1%G}) (normedTI A G L).
+Proof.
+apply: (iffP idP) => [tiAG | [nzA trivH]].
+  split=> [|a Aa]; first by have [] := andP tiAG.
+  apply/trivGP; rewrite -(coprime_TIg (coHL Aa Aa)) subsetIidl subsetI cHA.
+  by rewrite (subset_trans (normal_sub (nsHC a))) ?(cent1_normedTI tiAG).
+apply/normedTI_memJ_P; split=> // a g Aa Gg.
+apply/idP/idP=> [Aag | Lg]; last by rewrite memJ_norm ?(subsetP nAL).
+have /imsetP[k Lk def_ag] := conjAG Aa Aag (mem_imset _ Gg).
+suffices: (g * k^-1)%g \in 'C_G[a].
+  by rewrite -Dade_sdprod ?trivH // sdprod1g inE groupMr ?groupV // => /andP[].
+rewrite !inE groupM ?groupV // ?(subsetP sLG) //=.
+by rewrite conjg_set1 conjgM def_ag conjgK.
+Qed.
 
 (* This is Peterfalvi (2.4)(a) (extended to all a thanks to our choice of H). *)
 Lemma DadeJ a x : x \in L -> H (a ^ x) :=: H a :^ x.
@@ -169,9 +187,10 @@ move=> Lx; rewrite {1}/dd1 DadeJ // -conjg_set1 -conjsMg.
 by rewrite class_supportGidl ?(subsetP sLG).
 Qed.
 
+
 Let piHA a u : a \in A -> u \in H a :* a -> u.`_pi = a.
 Proof.
-move=> Aa /rcosetP[{u}u Hu ->]; have pi'u: pi^'.-elt u by exact: mem_p_elt Hu.
+move=> Aa /rcosetP[{u}u Hu ->]; have pi'u: pi^'.-elt u by apply: mem_p_elt Hu.
 rewrite (consttM _ (cent1P (subsetP (cHA a) u Hu))).
 suffices pi_a: pi.-elt a by rewrite (constt1P pi'u) (constt_p_elt _) ?mul1g.
 by rewrite (mem_p_elt (piCL Aa)) // inE cent1id (subsetP sAL).
@@ -190,7 +209,7 @@ Qed.
 (* This is an essential strengthening of Peterfalvi (2.4)(c). *)
 Lemma Dade_cover_TI : {in A, forall a, normedTI (H a :* a) G 'C_G[a]}.
 Proof.
-move=> a Aa; apply/normedTI_P=> //; split=> [g Gg|]; last first.
+move=> a Aa; apply/normedTI_P; split=> // [|g Gg].
   by rewrite subsetI subsetIl normsM ?subsetIr ?normal_norm ?nsHC.
 rewrite disjoint_sym => /pred0Pn[_ /andP[/imsetP[u Ha_u ->] Ha_ug]].
 by rewrite !inE Gg /= conjg_set1 -{1}(piHA Aa Ha_u) -consttJ (piHA Aa).
@@ -198,7 +217,7 @@ Qed.
 
 (* This is Peterfalvi (2.4)(c). *)
 Lemma norm_Dade_cover : {in A, forall a, 'N_G(H a :* a) = 'C_G[a]}.
-Proof. by move=> a /Dade_cover_TI /andP[_ /eqP]. Qed.
+Proof. by move=> a /Dade_cover_TI /and3P[_ _ /eqP]. Qed.
 
 Definition Dade_support := \bigcup_(a in A) dd1 a.
 Local Notation Atau := Dade_support.
@@ -311,14 +330,14 @@ Proof.
 move=> CFalpha psiA; rewrite (cfdotEl _ (Dade_cfunS _)).
 pose T := [set repr (a ^: L) | a in A].
 have sTA: {subset T <= A}.
-  move=> ax; case/imsetP=> a Aa ->; have [x Lx ->{ax}] := repr_class L a.
+  move=> _ /imsetP[a Aa ->]; have [x Lx ->] := repr_class L a.
   by rewrite memJ_norm ?(subsetP nAL).
 pose P_G := [set dd1 x | x in T].
 have dd1_id: {in A, forall a, dd1 (repr (a ^: L)) = dd1 a}.
-  by move=> a Aa /=; have [x Lx ->] := repr_class L a; exact: Dade_support1_id.
+  by move=> a Aa /=; have [x Lx ->] := repr_class L a; apply: Dade_support1_id.
 have ->: Atau = cover P_G.
   apply/setP=> u; apply/bigcupP/bigcupP=> [[a Aa Fa_u] | [Fa]]; last first.
-    by case/imsetP=> a; move/sTA=> Aa -> Fa_u; exists a. 
+    by case/imsetP=> a /sTA Aa -> Fa_u; exists a. 
   by exists (dd1 a) => //; rewrite -dd1_id //; do 2!apply: mem_imset.
 have [tiP_G inj_dd1]: trivIset P_G /\ {in T &, injective dd1}.
   apply: trivIimset => [_ _ /imsetP[a Aa ->] /imsetP[b Ab ->] |]; last first.
@@ -353,7 +372,7 @@ rewrite -big_distrr /= -rmorph_sum; congr (_ * _).
 rewrite mulrC mulrA -natrM mulnC -(Lagrange (subsetIl G 'C[a])).
 rewrite -mulnA mulnCA -(sdprod_card def_Ca) -mulnA Lagrange ?subsetIl //.
 rewrite mulnA natrM mulfK ?neq0CG // -conjC_nat -rmorphM; congr (_ ^*).
-have /andP[tiHa _] := Dade_cover_TI Aa.
+have /and3P[_ tiHa _] := Dade_cover_TI Aa.
 rewrite (set_partition_big _ (partition_class_support _ _)) //=.
 rewrite (eq_bigr (fun _ => \sum_(x in H a) phi (x * a)%g)); last first.
   move=> _ /imsetP[x Gx ->]; rewrite -rcosetE.
@@ -385,11 +404,12 @@ by rewrite cfResE ?(subsetP sAL) // Dade_id.
 Qed.
 
 (* Supplement to Peterfalvi (2.3)/(2.6)(a); implies Isaacs Lemma 7.7. *)
-Lemma Dade_Ind : {in A, forall a, H a = 1}%G -> {in 'CF(L, A), Dade =1 'Ind}.
+Lemma Dade_Ind : normedTI A G L -> {in 'CF(L, A), Dade =1 'Ind}.
 Proof.
-move=> trivH aa CFaaA; rewrite [aa^\tau]cfun_sum_cfdot ['Ind _]cfun_sum_cfdot.
-apply: eq_bigr => i _; rewrite -Frobenius_reciprocity -Dade_reciprocity //.
-by move=> a Aa /= u; rewrite trivH // => /set1P ->; rewrite mul1g.
+case/Dade_normedTI_P=> _ trivH alpha Aalpha.
+rewrite [alpha^\tau]cfun_sum_cfdot ['Ind _]cfun_sum_cfdot.
+apply: eq_bigr => i _; rewrite -cfdot_Res_r -Dade_reciprocity // => a Aa /= u.
+by rewrite trivH // => /set1P->; rewrite mul1g.
 Qed.
 
 Definition Dade_set_signalizer (B : {set gT}) := \bigcap_(a in B) H a.
@@ -633,8 +653,7 @@ have ->: aa2 [set a] a = #|'C_G[a]|%:R.
   rewrite -(card_lcoset _ x^-1); congr _%:R; apply: eq_card => y.
   rewrite ['H(_)]big_set1 mem_lcoset invgK inE def_g -conjgM.
   rewrite -(groupMl y Gx) inE; apply: andb_id2l => Gxy.
-  have [-> // _] := normedTI_memJ_P (notHa0 a) (Dade_cover_TI Aa).
-  by rewrite inE Gxy.
+  by have [_ _ -> //] := normedTI_memJ_P (Dade_cover_TI Aa); rewrite inE Gxy.
 rewrite mulN1r mulrC mulrA -natrM -(sdprod_card (defCA Aa)).
 rewrite -mulnA card_orbit astab1J Lagrange ?subsetIl // mulnC natrM.
 rewrite mulrAC mulfK ?neq0CG // mulrC divfK ?neq0CG // opprK.
@@ -768,66 +787,37 @@ End RestrDade.
 Section NormedTI.
 
 Variables (gT : finGroupType) (G L : {group gT}) (A : {set gT}).
-Hypothesis sAG1 : A \subset G^#.
-Local Notation H := (@Dade_signalizer _ G L A).
+Hypotheses (tiAG : normedTI A G L) (sAG1 : A \subset G^#).
 
-(* This is Peterfalvi (2.3). *)
-Lemma Dade_normedTI_P :
-    A != set0 ->
-  reflect (exists ddA, {in A, forall a, H ddA a = 1%G}) (normedTI A G L).
+(* This is the existence part of Peterfalvi (2.3). *)
+Lemma normedTI_Dade : Dade_hypothesis G L A.
 Proof.
-move=> notA0; have /subsetD1P[sAG notA1] := sAG1.
-apply: (iffP idP) => [tiAG | [ddA trivH]].
-  have [[tiAG_L sLG] [_ /eqP defL]] := (normedTI_memJ_P notA0 tiAG, andP tiAG).
-  have dd1: is_Dade_signalizer G L A (fun _ => 1)%G.
-    move=> a Aa; apply/eqP; rewrite sdprod1g eqEsubset setSI //.
-    apply/subsetP=> g /setIP[Gg cag]; rewrite inE cag -(tiAG_L a g) //.
-    by rewrite conjgE -(cent1P cag) mulKg Aa.
-  suffices ddA: Dade_hypothesis G L A by exists ddA; exact: def_Dade_signalizer.
-  split=> // [|a b Aa Ab /imsetP[x Gx def_b]|].
-  - rewrite /normal -{2}defL subsetIr andbT; apply/subsetP=> a Aa.
-    by rewrite -(tiAG_L a) ?(subsetP sAG) // conjgE mulKg.
-  - by rewrite def_b mem_imset // -(tiAG_L a) -?def_b.
-  by exists (fun _ => 1%G) => // a b _ _; rewrite cards1 coprime1n.
-have [/andP[_ nAL] sLG _ conjAG _] := ddA.
-apply/normedTI_memJ_P=> //; split=> // a g Aa Gg.
-apply/idP/idP=> [Aag | Lg]; last by rewrite memJ_norm ?(subsetP nAL).
-have /imsetP[k Lk def_ag] := conjAG a _ Aa Aag (mem_imset _ Gg).
-suffices: (g * k^-1)%g \in 'C_G[a].
-  rewrite -(Dade_sdprod ddA) ?trivH // sdprod1g inE groupMr ?groupV //.
-  by case/andP.
-rewrite !inE groupM ?groupV // ?(subsetP sLG) //=.
-by rewrite conjg_set1 conjgM def_ag conjgK.
+have [[sAG notA1] [_ _ /eqP defL]] := (subsetD1P sAG1, and3P tiAG).
+have [_ sLG tiAG_L] := normedTI_memJ_P tiAG.
+split=> // [|a b Aa Ab /imsetP[x Gx def_b]|].
+- rewrite /(A <| L) -{2}defL subsetIr andbT; apply/subsetP=> a Aa.
+  by rewrite -(tiAG_L a) ?(subsetP sAG) // conjgE mulKg.
+- by rewrite def_b mem_imset // -(tiAG_L a) -?def_b.
+exists (fun _ => 1%G) => [a Aa | a b _ _]; last by rewrite cards1 coprime1n.
+by rewrite sdprod1g -(setIidPl sLG) -setIA (setIidPr (cent1_normedTI tiAG Aa)).
 Qed.
 
-Hypothesis tiAG : normedTI A G L.
+Let def_ddA := Dade_Ind normedTI_Dade tiAG.
 
 (* This is the identity part of Isaacs, Lemma 7.7. *)
 Lemma normedTI_Ind_id1 :
   {in 'CF(L, A) & 1%g |: A, forall alpha, 'Ind[G] alpha =1 alpha}.
-Proof.
-move=> aa a CFaa A1a; have [A0 | notA0] := eqVneq A set0.
-  have ->: aa = 0 by apply/cfunP=> y; rewrite (cfun_on0 CFaa) ?cfunE // A0 inE.
-  by rewrite linear0 !cfunE.
-have [ddA def_ddA] := Dade_normedTI_P notA0 tiAG.
-by rewrite -(Dade_Ind def_ddA) // Dade_id1.
-Qed.
+Proof. by move=> aa a CFaa A1a; rewrite /= -def_ddA // Dade_id1. Qed.
 
 (* A more restricted, but more useful form. *)
 Lemma normedTI_Ind_id :
   {in 'CF(L, A) & A, forall alpha, 'Ind[G] alpha =1 alpha}.
-Proof. by apply: sub_in11 normedTI_Ind_id1 => //; exact/subsetP/subsetUr. Qed.
+Proof. by apply: sub_in11 normedTI_Ind_id1 => //; apply/subsetP/subsetUr. Qed.
 
 (* This is the isometry part of Isaacs, Lemma 7.7. *)
 (* The statement in Isaacs is slightly more general in that it allows for     *)
 (* beta \in 'CF(L, 1%g |: A); this appears to be more cumbersome than useful. *)
 Lemma normedTI_isometry : {in 'CF(L, A) &, isometry 'Ind[G]}.
-Proof.
-move=> aa bb CFaa CFbb; have [A0 | notA0] := eqVneq A set0.
-  have ->: aa = 0 by apply/cfunP=> x; rewrite (cfun_on0 CFaa) ?cfunE // A0 inE.
-  by rewrite linear0 !cfdot0l.
-have [ddA def_ddA] := Dade_normedTI_P notA0 tiAG.
-by rewrite -!(Dade_Ind def_ddA) // Dade_isometry.
-Qed.
+Proof. by move=> aa bb CFaa CFbb; rewrite /= -!def_ddA // Dade_isometry. Qed.
 
 End NormedTI.

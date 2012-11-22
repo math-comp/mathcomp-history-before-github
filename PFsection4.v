@@ -221,8 +221,9 @@ have piW1_W: {in W1 & W2, forall x y, (x * y).`_\pi(W1) = x}.
   move=> x y W1x W2y /=; rewrite consttM /commute ?(centsP cW12 y) //.
   rewrite constt_p_elt ?(mem_p_elt _ W1x) ?pgroup_pi // (constt1P _) ?mulg1 //.
   by rewrite /p_elt -coprime_pi' // (coprimegS _ coW12) ?cycle_subG.
-apply/normedTI_memJ_P; first by apply: contraNneq ntV; rewrite -subset0 => <-.
-split=> // xy g V2xy Lg; apply/idP/idP=> [| /(subsetP nV2W)/memJ_norm->//].
+have nzV2W: W :\: W2 != set0 by apply: contraNneq ntV; rewrite -subset0 => <-.
+apply/normedTI_memJ_P; split=> // xy g V2xy Lg.
+apply/idP/idP=> [| /(subsetP nV2W)/memJ_norm->//].
 have{xy V2xy} [/(mem_dprod defW)[x [y [W1x W2y -> _]]] W2'xy] := setDP V2xy.
 have{W2'xy} ntx: x != 1%g by have:= W2'xy; rewrite groupMr // => /group1_contra.
 have{g Lg} [k [w [Kk /(subsetP sW1W)Ww -> _]]] := mem_sdprod defL Lg.
@@ -284,7 +285,7 @@ Theorem primeTIirr_spec :
      (*c*) forall i j, {in W :\: W2, mu2_ i j =1 delta_ j *: w_ i j}
          & forall k, k \notin codom Imu2 -> {in W :\: W2, 'chi_k =1 \0}].
 Proof.
-have isoV2 := normedTI_isometry (setDSS sWL (sub1G W2)) normedTI_prTIset.
+have isoV2 := normedTI_isometry normedTI_prTIset (setDSS sWL (sub1G W2)).
 have /fin_all_exists[dmu /all_and2[injl_mu Ddmu]] j:
   exists dmu : bool * {ffun Iirr W1 -> Iirr L}, injective dmu.2 /\
     (forall i, 'Ind (ew_ i j) = dchi (dmu.1, dmu.2 i) - dchi (dmu.1, dmu.2 0)).
@@ -960,22 +961,19 @@ Proof.
 pose V0 := class_support V L; have sVV0: V \subset V0 := sub_class_support L V.
 have sV0A0: V0 \subset A0 by rewrite defA0 subsetUr.
 have nV0L: L \subset 'N(V0) := class_support_norm V L.
-have [[_ _ ntV tiV] [/andP[sA0L _] _ A0'1 _ _]] := (ctiWG, ddA0).
+have [_ _ /normedTI_memJ_P[ntV _ tiV]] := ctiWG.
+have [/andP[sA0L _] _ A0'1 _ _] := ddA0.
 have{sA0L A0'1} sV0G: V0 \subset G^#.
   by rewrite (subset_trans sV0A0) // subsetD1 A0'1 (subset_trans sA0L).
 have{sVV0} ntV0: V0 != set0 by apply: contraNneq ntV; rewrite -subset0 => <-.
 have{ntV} tiV0: normedTI V0 G L.
-  apply/normedTI_memJ_P=> //; split=> // _ z /imset2P[u y Vu Ly ->] Gz.
+  apply/normedTI_memJ_P; split=> // _ z /imset2P[u y Vu Ly ->] Gz.
   apply/idP/idP=> [/imset2P[u1 y1 Vu1 Ly1 Duyz] | Lz]; last first.
     by rewrite -conjgM mem_imset2 ?groupM.
   rewrite -[z](mulgKV y1) groupMr // -(groupMl _ Ly) (subsetP sWL) //.
-  have{tiV} [tiV _] := normedTI_memJ_P ntV tiV.
   by rewrite -(tiV u) ?groupM ?groupV // ?(subsetP sLG) // !conjgM Duyz conjgK.
 have{ntV0 sV0A0 nV0L tiV0} DtauV0: {in 'CF(L, V0), tau =1 'Ind}.
-  have [ddV0 triv_ddV0] := Dade_normedTI_P _ sV0G ntV0 tiV0.
-  move=> beta V0beta; rewrite /= -(restr_DadeE ddA0 sV0A0 nV0L V0beta).
-  apply: Dade_Ind beta V0beta => x V0x; rewrite -(triv_ddV0 x V0x).
-  by apply: def_Dade_signalizer V0x; apply: Dade_sdprod.
+  by move=> beta V0beta; rewrite /= -(restr_DadeE _ sV0A0) //; apply: Dade_Ind.
 pose alpha := cfCyclicTIset defW i j; set beta := _ *: mu2_ i j - _ - _ + _.
 have Valpha: alpha \in 'CF(W, V) := cfCycTI_on ctiWL i j.
 have Dalpha: alpha = w_ i j - w_ 0 j - w_ i 0 + w_ 0 0.

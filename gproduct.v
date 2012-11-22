@@ -701,9 +701,8 @@ Proof. by move/dprodWcp/cprod_normal2. Qed.
 
 Lemma dprodYP K H : reflect (K \x H = K <*> H) (H \subset 'C(K) :\: K^#).
 Proof.
-rewrite subsetD -setI_eq0 setDE setIA -setDE setD_eq0 setIC.
-apply: (iffP andP) => [[cKH tiKH] | /dprodP[_ _ -> ->] //].
-by rewrite dprodEY // (trivgP tiKH).
+rewrite subsetD -setI_eq0 setIDA setD_eq0 setIC subG1 /=.
+by apply: (iffP andP) => [[cKH /eqP/dprodEY->] | /dprodP[_ _ -> ->]].
 Qed.
 
 Lemma dprodC : commutative dprod.
@@ -1274,7 +1273,7 @@ apply/setP=> x; apply/idP/idP.
   apply/centP=> _ /morphimP[a Da Aa ->]; red.
   by rewrite conjgC -sdpair_act // cDAx // inE Da.
 case/morphpreP=> Rx cAx; rewrite inE Rx; apply/afixP=> a /setIP[Da Aa].
-apply: (injmP _ injm_sdpair1); rewrite ?gact_stable /= ?sdpair_act //=.
+apply: (injmP injm_sdpair1); rewrite ?gact_stable /= ?sdpair_act //=.
 by rewrite /conjg (centP cAx) ?mulKg ?mem_morphim.
 Qed.
 
@@ -1287,7 +1286,7 @@ have ssGR := subsetP sGR; apply/setP=> a; apply/idP/idP=> [cGa|].
   apply/centP=> _ /morphimP[x Rx Gx ->]; symmetry.
   by rewrite conjgC -sdpair_act ?(astab_act cGa)  ?(astab_dom cGa).
 case/morphpreP=> Da cGa; rewrite !inE Da; apply/subsetP=> x Gx; rewrite inE.
-apply/eqP; apply: (injmP _ injm_sdpair1); rewrite ?gact_stable ?ssGR //=.
+apply/eqP; apply: (injmP injm_sdpair1); rewrite ?gact_stable ?ssGR //=.
 by rewrite sdpair_act ?ssGR // /conjg -(centP cGa) ?mulKg ?mem_morphim ?ssGR.
 Qed.
 
@@ -1401,15 +1400,15 @@ apply/idP/and3P=> [injf | [injfH injfK]].
   rewrite eq_sym -{1}morphimIdom -(morphim_pprodml (subsetIl _ _)) injmI //.
   rewrite morphim_pprodml // morphim_pprodmr //=; split=> //.
     apply/injmP=> x y Hx Hy /=; rewrite -!pprodmEl //.
-    by apply: (injmP _ injf); rewrite ?mem_gen ?inE ?Hx ?Hy.
+    by apply: (injmP injf); rewrite ?mem_gen ?inE ?Hx ?Hy.
   apply/injmP=> a b Ka Kb /=; rewrite -!pprodmEr //.
-  by apply: (injmP _ injf); rewrite ?mem_gen //; apply/setUP; right.
+  by apply: (injmP injf); rewrite ?mem_gen //; apply/setUP; right.
 move/eqP=> fHK; rewrite ker_pprodm; apply/subsetP=> y.
 case/imset2P=> x a Hx /setIdP[Ka /eqP fxa] ->.
 have: fH x \in fH @* K by rewrite -fHK inE {2}fxa !mem_morphim.
-case/morphimP=> z Hz Kz /(injmP _ injfH) def_x.
+case/morphimP=> z Hz Kz /(injmP injfH) def_x.
 rewrite def_x // eqfHK ?inE ?Hz // in fxa.
-by rewrite def_x // (injmP _ injfK _ _ Kz Ka fxa) mulgV set11.
+by rewrite def_x // (injmP injfK _ _ Kz Ka fxa) mulgV set11.
 Qed.
 
 End Props.

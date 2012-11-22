@@ -246,7 +246,7 @@ have [ntX [sXU0 abelX _]] := (nt_pnElem EpX isT, pnElemP EpX).
 have piW1_X: \pi(W1).-group X by apply: pi_pgroup piW1p; case/andP: abelX.
 have sXM: X \subset M.
   by rewrite -(sdprodWY defM_K) joingC sub_gen ?subsetU // (subset_trans sXU0).
-have nHM: M \subset 'N(H) by exact: gFnorm.
+have nHM: M \subset 'N(H) by apply: gFnorm.
 have [regU0 solM] := (Frobenius_reg_ker frobU0, of_typeP_sol).
 have [a Ma sXaW1] := Hall_Jsub solM (Hall_pi hallW1) sXM piW1_X.
 rewrite -subG1 -(conjs1g a) -(cent_semiregular regU0 sXU0 ntX) conjIg -centJ.
@@ -278,8 +278,7 @@ have [PMa PMb PMc PMd PMe] := MtypeP; exists defWx; split=> //.
   rewrite cyclicJ conjsg_eq1 !conjSg -conjD1g.
   have [-> -> -> -> prW1M'] := PMd; split=> // _ /imsetP[y W1y ->].
   by rewrite cent1J -conjIg prW1M'.
-rewrite -conjUg -conjDg => Vx X; rewrite -sub_conjgV -subset0 => sXxV.
-by rewrite -(conjsgKV x X) sub_conjg conj0g subset0 normJ => /PMe->.
+by rewrite -conjUg -conjDg -(conjGid (in_setT x)) normedTI_J.
 Qed.
 
 (* This is Peterfalvi (8.5), with an extra clause in anticipation of (8.15). *)
@@ -293,7 +292,7 @@ have defW2 := typeP_cent_core_compl.
 case: MtypeP; rewrite /= -/H => [] [cycW1 hallW1 ntW1 defM] [nilU _ _ defM'].
 set V := W :\: _ => [] [_ sM''F defF sFM'] [cycW2 ntW2 sW2H _ _] TI_V.
 have [/andP[sHM' nHM'] sUM' mulHU _ tiHU] := sdprod_context defM'.
-have sM'M : M' \subset M by exact: der_sub.
+have sM'M : M' \subset M by apply: der_sub.
 have hallM': \pi(M').-Hall(M) M' by rewrite Hall_pi // (sdprod_Hall defM).
 have hallH_M': \pi(H).-Hall(M') H := pHall_subl sHM' sM'M (Fcore_Hall M).
 have{defF} defF: (H * 'C_U(H))%g = 'F(M).
@@ -305,21 +304,7 @@ have{defF} defF: (H * 'C_U(H))%g = 'F(M).
 have coW12: coprime #|W1| #|W2|.
   rewrite coprime_sym (coprimeSg (subset_trans sW2H sHM')) //.
   by rewrite (coprime_sdprod_Hall_r defM).
-have oV: #|V| = (#|W1|.-1 * #|W2|.-1)%N := card_cycTIset defW.
 have cycW: cyclic W by rewrite (cyclic_dprod defW).
-have neqV0: V != set0.
-  by rewrite -card_gt0 oV -!subn1 muln_gt0 !subn_gt0 !cardG_gt1 ntW1.
-have tiVW: normedTI V G W.
-  have cWW: abelian W := cyclic_abelian cycW.
-  have cWV: V \subset 'C(W) by rewrite (centSS _ _ cWW) ?subsetDl.
-  apply/normedTI_P; rewrite // setTI cents_norm 1?centsC //.
-  split=> // g _ /pred0Pn[v /andP[/= Vv Vgv]]; rewrite -/W.
-  have nWg: g \in 'N(W).
-    rewrite inE -{2}(TI_V [set v]) ?sub1set -?card_gt0 ?cards1 //.
-    by rewrite sub_cent1 centJ (subsetP _ v Vgv) // conjSg.
-  have [chW1 chW2]: W1 \char W /\ W2 \char W.
-    by apply/andP; rewrite !sub_cyclic_char // -join_subG (dprodWY defW).
-  by rewrite -(TI_V V) ?(subsetP _ g nWg) ?normsD // normsU ?char_norms.
 have ctiW: cyclicTI_hypothesis G defW by split; rewrite ?mFT_odd.
 split=> //; first by rewrite dprodE ?subsetIr //= setIA tiHU setI1g.
 split.
@@ -362,10 +347,10 @@ have [[_ hallW1 _ defM] [_ _ nUW1 defM'] _ _ _] := MtypeP.
 have [/mulG_sub[/= sHM' sUM'] [_ _ nM'W1 _]] := (sdprodW defM', sdprodP defM).
 rewrite -/M' -/H in defMx defM'x defM defM' sHM' sUM' nM'W1.
 have /imsetP[x2 Mx2 defW1x2] := of_typeP_compl_conj MtypeP defMx.
-have /andP[sM'M nM'M]: M' <| M by exact: der_normal.
+have /andP[sM'M nM'M]: M' <| M by apply: der_normal.
 have solM': solvable M' := solvableS sM'M (of_typeP_sol MtypeP).
 have [hallU hallUx]: \pi(H)^'.-Hall(M') U /\ \pi(H)^'.-Hall(M') (Ux :^ x2^-1).
-  have hallH: \pi(H).-Hall(M') H by exact: pHall_subl (Fcore_Hall M).
+  have hallH: \pi(H).-Hall(M') H by apply: pHall_subl (Fcore_Hall M).
   rewrite pHallJnorm ?(subsetP nM'M) ?groupV // -!(compl_pHall _ hallH).
   by rewrite (sdprod_compl defM') (sdprod_compl defM'x).
 have coM'W1: coprime #|M'| #|W1| by rewrite (coprime_sdprod_Hall_r defM).
@@ -457,19 +442,17 @@ Lemma FTtypeP_pair_cases :
 Proof.
 have [_ [| [[S T] [[maxS maxT] [[W1 W2] /=]]]]] := BGsummaryI gT; first by left.
 set W := W1 <*> W2; set V := W :\: (W1 :|: W2).
-case=> [[cycW tiV nVW _ _] [defS defT tiST]] b4 /orP b2 b3.
+case=> [[cycW tiV _] [defS defT tiST]] b4 /orP b2 b3.
 have [cWW /joing_sub[sW1W sW2W]] := (cyclic_abelian cycW, erefl W).
-have ntV: V != set0.
-  have norm0: 'N(set0) = G by rewrite -(setDv 1%g) normD1 norm1.
-  by apply: contraTneq cWW; rewrite -nVW => ->; rewrite norm0 mFT_nonAbelian.
-suffices{tiST tiV nVW cWW sW1W sW2W b3 b4} tiW12: W1 :&: W2 = 1%g.
+have ntV: V != set0 by have [] := andP tiV.
+suffices{tiST tiV cWW sW1W sW2W b3 b4} tiW12: W1 :&: W2 = 1%g.
   have defW: W1 \x W2 = W by rewrite dprodEY ?(centSS _ _ cWW).
   right; exists S, T; exists S _ _ _ defW; split=> // [|M _ /b4[] // x].
     by do 2?split; rewrite ?mFT_odd // /normedTI tiV nVW setTI /=.
   by case=> <-; rewrite inE mem_orbit ?orbT.
 wlog {b2 T defT maxT} Stype2: S W1 W2 @W @V maxS defS cycW ntV / FTtype S == 2.
   move=> IH; case/orP: b2 cycW ntV => /IH; first exact.
-  by rewrite setIC /V /W /= joingC setUC; exact.
+  by rewrite setIC /V /W /= joingC setUC; apply.
 have{maxS Stype2 defS} prW1: prime #|W1|.
   have [U ? W1x ? ? [[StypeP _ prW1x _] _ _ _ _]] := FTtypeP 2 maxS Stype2.
   by have /imsetP[x _ ->] := of_typeP_compl_conj StypeP defS; rewrite cardJg.
@@ -483,7 +466,7 @@ Qed.
 Lemma typeP_pairW S T W W1 W2 (defW : W1 \x W2 = W) :
   typeP_pair S T defW -> exists U : {group gT}, of_typeP S U defW.
 Proof.
-case=> [[[cycW _ _ /andP[_ /eqP nVW]] maxS _] [defS _ defST] _ [Stype25 _] _].
+case=> [[[cycW _ /and3P[_ _ /eqP nVW]] maxS _] [defS _ defST] _ [Stype25 _] _].
 set S' := S^`(1)%g in defS; have [nsS'S _ _ _ tiS'W1] := sdprod_context defS.
 have{Stype25} Stype'1: FTtype S != 1%N by apply: contraTneq Stype25 => ->.
 have [/mulG_sub[sW1W sW2W] [_ mulW12 cW12 _]] := (dprodW defW, dprodP defW).
@@ -501,7 +484,7 @@ have{nS'y} defW2xy: W2x :^ y = 'C_S'(W1).
 have{nsS'S} sW2S': W2 \subset S'.
   have sW2S: W2 \subset S by rewrite (subset_trans sW2W) // -defST subsetIl.
   have{hallW1x} hallW1: \pi(W1).-Hall(S) W1x by rewrite defW1 /= cardJg Hall_pi.
-  have hallS': \pi(W1)^'.-Hall(S) S' by exact/(sdprod_normal_pHallP _ hallW1).
+  have hallS': \pi(W1)^'.-Hall(S) S' by apply/(sdprod_normal_pHallP _ hallW1).
   by rewrite coprime_pi' // (sub_normal_Hall hallS') in coW12 *.
 have sW2xy: W2 \subset W2x :^ y by rewrite defW2xy subsetI sW2S'.
 have defW2: W2 :=: S' :&: W by rewrite -mulW12 -group_modr ?tiS'W1 ?mul1g.
@@ -542,7 +525,7 @@ Lemma FTtypeI_II_facts n (H := M`_\F) :
   [/\ (*a*) forall p S, p.-Sylow(U) S -> abelian S /\ ('r(S) <= 2)%N,
       (*b*) forall X, X != set0 -> X \subset U^# -> 'C_H(X) != 1%g ->
             'M('C(X)) = [set M]
-    & (*c*) let A := 'A(M) :\: 'A1(M) in trivIset (A :^: G) /\ M \subset 'N(A)
+    & (*c*) let B := 'A(M) :\: 'A1(M) in B != set0 -> normedTI B G M
   ] else True.
 Proof.
 move=> typeM defMn; have [n12 | //] := ifP; rewrite -mem_iota !inE in n12.
@@ -560,6 +543,7 @@ have [K complU]: exists K : {group gT}, kappa_complement M U K.
   exists (K :^ x)%G; split; rewrite ?pHallJ // defU -conjsMg.
   by rewrite -(gen_set_id gVK) groupP.
 have [part_a _ _ [part_b part_c]] := BGsummaryB maxM complU.
+rewrite eqEsubset FTsupp1_sub // andbT -setD_eq0 in part_c.
 split=> // X notX0 /subsetD1P[sXU notX1]; rewrite -cent_gen defH.
 apply: part_b; rewrite -?subG1 ?gen_subG //.
 by rewrite  -setD_eq0 setDE (setIidPl _) // subsetC sub1set inE.
@@ -881,21 +865,15 @@ have nzA1: 'A1(M) != set0 by rewrite setD_eq0 def_FTcore ?subG1 ?Msigma_neq1.
 have [nzA nzA0] := (subset_neq0 sA1A nzA1, subset_neq0 sA10 nzA1).
 suffices nTI_A0: normedTI 'A0(M) G M.
   by rewrite nTI_A0 !(normedTI_S _ _ _ nTI_A0) // ?FTsupp_norm ?FTsupp1_norm.
-have sA0G1: 'A0(M) \subset G^# by exact: subset_trans (setSD _ (subsetT M)).  
 have [U W W1 W2 defW [[MtypeP _ _ tiFM] _ _ _ _]] := FTtypeP 2 maxM typeM.
-apply/Dade_normedTI_P=> //; exists (FT_Dade0_hyp maxM) => x A0x.
+apply/(Dade_normedTI_P (FT_Dade0_hyp maxM)); split=> // x A0x.
 rewrite /= def_FTsignalizer0 /'R_M //=; have [// | not_sCxM] := ifPn.
 have [y cxy /negP[]] := subsetPn not_sCxM.
+apply: subsetP cxy; rewrite -['C[x]]setTI (cent1_normedTI tiFM) //.
 have /setD1P[ntx Ms_x]: x \in 'A1(M).
   by have [_ [/subsetP-> // ]] := FTsupport_facts maxM; apply/setIdP.
-have Fx: x \in 'F(M)^#.
-  rewrite !inE ntx (subsetP (Fcore_sub_Fitting M)) //.
-  by rewrite (Fcore_eq_FTcore _ _) ?(eqP typeM).
-rewrite -(mmax_normal maxM (Fitting_normal M)) //; last first.
-  by rewrite -subG1 -setD_eq0; apply/set0Pn; exists x.
-rewrite -normD1 (sameP normP eqP); apply: wlog_neg => /(trivIsetP tiFM).
-rewrite mem_orbit ?orbit_refl // => /(_ isT isT) /pred0Pn[].
-by exists x; rewrite /= mem_conjg /conjg mulgA invgK (cent1P cxy) mulgK Fx.
+rewrite !inE ntx (subsetP (Fcore_sub_Fitting M)) //.
+by rewrite (Fcore_eq_FTcore _ _) ?(eqP typeM).
 Qed.
 
 (* This is Peterfalvi, Theorem (8.17). *)
@@ -961,7 +939,7 @@ have hallW1: \kappa(S).-Hall(S) W1.
   rewrite {}defS' in defS_K.
   have /imsetP[x Sx defK] := of_typeP_compl_conj StypeP defS_K.
   by have [_ hallK _] := complU1; rewrite defK pHallJ in hallK.
-have{cycW} [[ntW1 ntW2] [cycW _ _ _]] := (cycTI_nontrivial cycW, cycW).
+have{cycW} [[ntW1 ntW2] [cycW _ _]] := (cycTI_nontrivial cycW, cycW).
 suffices defW2: 'C_(S`_\sigma)(W1) = W2.
   by have [] := c2 _ _ maxP_S hallW1; rewrite defW2 /= (dprodWY defW).
 have [U1 complU1] := ex_kappa_compl maxS hallW1.

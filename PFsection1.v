@@ -171,7 +171,7 @@ by rewrite cfnorm_eq0 defD => /eqP->; rewrite add0r.
 Qed.
 
 (* This is Peterfalvi (1.3)(b). *)
-Lemma equiv_restrict_compl_ortho A m  (Phi : m.-tuple 'CF(H)) mu_ :
+Lemma equiv_restrict_compl_ortho A m (Phi : m.-tuple 'CF(H)) mu_ :
     H \subset G -> A <| H -> basis_of 'CF(H, A) Phi -> 
      (forall i j, '[mu_ i, mu_ j] = (i == j)%:R) ->
      (forall j : 'I_m, 'Ind[G] Phi`_j = \sum_i '[Phi`_j, 'chi_i] *: mu_ i) ->

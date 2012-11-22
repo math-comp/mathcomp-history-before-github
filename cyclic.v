@@ -95,7 +95,7 @@ Lemma eq_expg_mod_order m n : (a ^+ m == a ^+ n) = (m == n %[mod #[a]]).
 Proof.
 have [->|] := eqVneq a 1; first by rewrite order1 !modn1 !expg1n eqxx.
 rewrite -order_gt1 => lt1a; have ZpT: Zp #[a] = setT by rewrite /Zp lt1a.
-have: injective Zpm by move=> i j; apply (injmP _ injm_Zpm); rewrite /= ZpT inE.
+have: injective Zpm by move=> i j; apply (injmP injm_Zpm); rewrite /= ZpT inE.
 move/inj_eq=> eqZ; symmetry; rewrite -(Zp_cast lt1a).
 by rewrite -[_ == _](eqZ (inZp m) (inZp n)) /Zpm /= Zp_cast ?expg_mod_order.
 Qed.
@@ -541,12 +541,12 @@ case/cyclicP=> x ->; apply/existsP; exists (<[x]>)%G.
 by rewrite normal_refl cycle_cyclic trivg_quotient cyclic1.
 Qed.
 
-Lemma metacyclicN G H : metacyclic G -> H <| G -> metacyclic H.
-Proof. 
-case/metacyclicP=> K [cycK /andP[sKG nKG] cycGK] /andP[sHG nHG].
-apply/existsP; exists (H :&: K)%G; have nKH := (subset_trans sHG nKG).
-rewrite (cyclicS (subsetIr _ _)) // /normal subsetIl normsI ?normG //=.
-by rewrite setIC (isog_cyclic (second_isog nKH)) /= (cyclicS (quotientS K sHG)).
+Lemma metacyclicS G H : H \subset G -> metacyclic G -> metacyclic H.
+Proof.
+move=> sHG /metacyclicP[K [cycK nsKG cycGq]]; apply/metacyclicP.
+exists (H :&: K)%G; rewrite (cyclicS (subsetIr H K)) ?(normalGI sHG) //=.
+rewrite setIC (isog_cyclic (second_isog _)) ?(cyclicS _ cycGq) ?quotientS //.
+by rewrite (subset_trans sHG) ?normal_norm.
 Qed.
 
 End Metacyclic.

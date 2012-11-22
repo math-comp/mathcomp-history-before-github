@@ -316,7 +316,7 @@ by rewrite morphpre_maximal ?morphim_invm.
 Qed.
 
 Lemma injm_maximal_eq : maximal_eq (f @* M) (f @* G) = maximal_eq M G.
-Proof. by rewrite /maximal_eq injm_maximal // !eqEsubset !injmSK. Qed.
+Proof. by rewrite /maximal_eq injm_maximal // injm_eq. Qed.
 
 Lemma injm_maxnormal : maxnormal (f @* M) (f @* G) (f @* L) = maxnormal M G L.
 Proof.

@@ -289,7 +289,7 @@ Qed.
 Lemma pi_of_exponent G : \pi(exponent G) = \pi(G).
 Proof. by rewrite /pi_of primes_exponent. Qed.
 
-Lemma partnXonentS pi H G :
+Lemma partn_exponentS pi H G :
   H \subset G -> #|G|`_pi %| #|H| -> (exponent H)`_pi = (exponent G)`_pi.
 Proof.
 move=> sHG Gpi_dvd_H; apply/eqP; rewrite eqn_dvd.
@@ -313,7 +313,7 @@ Qed.
 Lemma exponent_Hall pi G H : pi.-Hall(G) H -> exponent H = (exponent G)`_pi.
 Proof.
 move=> hallH; have [sHG piH _] := and3P hallH.
-rewrite -(partnXonentS sHG) -?(card_Hall hallH) ?part_pnat_id //.
+rewrite -(partn_exponentS sHG) -?(card_Hall hallH) ?part_pnat_id //.
 by apply: pnat_dvd piH; exact: exponent_dvdn.
 Qed.
 

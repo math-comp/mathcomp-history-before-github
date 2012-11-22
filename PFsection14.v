@@ -246,10 +246,7 @@ have{x ntx R0x ntCPx} sZR_R0: 'Z(R) \subset R0.
     apply/setUP; left; apply/bigcupP; exists z.
       by rewrite !inE ntz (subsetP (Fcore_sub_FTcore maxS)).
     by rewrite (eqP Stype2) 3!inE ntx cent1C (subsetP sUPU) ?(subsetP sR0U).
-  have sCxS: 'C[x] \subset S.
-    have [memJ_A0 _] := normedTI_memJ_P (FTsupp0_neq0 maxS) tiA0.
-    apply/subsetP=> y /cent1P cxy; rewrite -(memJ_A0 x) ?in_setT //.
-    by rewrite conjgE -cxy mulKg.
+  have sCxS: 'C[x] \subset S by rewrite -['C[x]]setTI (cent1_normedTI tiA0).
   suffices <-: 'C_R[x] = R0.
     by rewrite -cent_set1 setIS ?centS // sub1set (subsetP sR0R).
   have /Hall_pi hallU: Hall PU U by rewrite -(coprime_sdprod_Hall_r defPU).
@@ -774,9 +771,8 @@ have lbG0 g: g \in G0 -> 1 <= `|tau1M psi g| ^+ 2.
       by apply: contraNneq r_g => /constt1P/p'nat_coprime-> //; apply: pnat_id.
     have /(mem_sdprod defR)[x [y [OUx W3y Dgh _]]]: g ^ h \in R.
       have A0a: a \in 'A0(R) := subsetP (Fcore_sub_FTsupp0 maxR) a O1a.
-      have ntA0 := FTsupp0_neq0 maxR.
-      have [_ _ _ _ [/normedTI_memJ_P[//|tiA0 _] _]] := FTtypeP_facts _ RtypeP.
-      by rewrite -(tiA0 a) ?in_setT // conjgE -(cent1P cagh) mulKg.
+      have [_ _ _ _ [tiA0 _]] := FTtypeP_facts _ RtypeP.
+      by rewrite (subsetP (cent1_normedTI tiA0 A0a)) // 2!inE.
     have y1: y = 1%g.
       apply: contraNeq W'g => nty; have nOUy := subsetP nOUW3 y W3y.
       have{x OUx Dgh}: g ^ h \in cover ((W4 :* y) :^: OU).
@@ -854,7 +850,7 @@ have{rho sumG0 sumG0_diff ub_rho lb_rho} []:
     rewrite ler_pmul2r ?invr_gt0 ?gt0CiG // ler_pdivr_mulr ?gt0CG //.
     by rewrite mul1r leC_nat leq_pred.
   have occG R A: normedTI A G R -> nG^-1 * #|ccG A|%:R = #|A|%:R / #|R|%:R.
-    case/andP=> /eqnP oAG /eqP <-; apply: canLR (mulKf (neq0CG _)) _.
+    case/and3P=> _ /eqnP oAG /eqP <-; apply: canLR (mulKf (neq0CG _)) _.
     rewrite mulrCA -natf_indexg ?subsetIl //= -astab1Js -card_orbit mulr_natr.
     rewrite /ccG class_supportEr -cover_imset -oAG natr_sum -sumr_const.
     by apply: eq_bigr => _ /imsetP[x _ ->]; rewrite cardJg.
@@ -869,7 +865,7 @@ have{rho sumG0 sumG0_diff ub_rho lb_rho} []:
   rewrite [1 + _ + _]addrA addrAC !natrD !mulrDr !ler_add //; first 1 last.
   + exact: occFT2 Stype2 StypeP.
   + exact: occFT2 Ttype2 TtypeP.
-  have [_ _ _ /occG->] := ctiWG; rewrite ler_pdivr_mulr ?gt0CG // mulrBl.
+  have [_ _ /occG->] := ctiWG; rewrite ler_pdivr_mulr ?gt0CG // mulrBl.
   rewrite !mulrDl /pq (dprod_card defW21) -mulrA mulVf ?neq0CG //= mul1r.
   rewrite -(dprod_card defW21) -/p -/q natrM mulrA mulrCA !mulVf ?neq0CG //=.
   rewrite opprD addrACA -!mulrBl -[1 - _]opprB mulNr -mulrBr.
@@ -1334,7 +1330,7 @@ have pairTS := typeP_pair_sym defW21 pairST.
 pose p := #|W2|; pose q := #|W1|.
 have p'q: q != p.
   have [[[ctiW _ _] _ _ _ _] /mulG_sub[sW1W sW2W]] := (pairST, dprodW defW).
-  have [cycW _ _ _] := ctiW; apply: contraTneq (cycW) => eq_pq.
+  have [cycW _ _] := ctiW; apply: contraTneq (cycW) => eq_pq.
   rewrite (cyclic_dprod defW) ?(cyclicS _ cycW) // -/q eq_pq.
   by rewrite /coprime gcdnn -trivg_card1; have [] := cycTI_nontrivial ctiW.
 without loss{p'q} ltqp: S T W1 W2 defW defW21 pairST pairTS @p @q / q < p.

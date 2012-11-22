@@ -169,7 +169,7 @@ Hypothesis Gf : f @* G = G.
 Lemma aut_closed : f @: G \subset G.
 Proof. by rewrite -morphimEdom; exact/morphim_fixP. Qed.
 
-Definition aut := perm_in (injmP _ injf) aut_closed.
+Definition aut := perm_in (injmP injf) aut_closed.
 
 Lemma autE : {in G, aut =1 f}.
 Proof. exact: perm_inE. Qed.
@@ -240,7 +240,7 @@ Canonical Aut_isom_morphism := Morphism Aut_isomM.
 Lemma injm_Aut_isom : 'injm Aut_isom.
 Proof.
 apply/injmP=> a b AutGa AutGb eq_ab'; apply: (eq_Aut AutGa AutGb) => x Gx.
-by apply: (injmP _ injf); rewrite ?domG ?Aut_closed // -!Aut_isomE //= eq_ab'.
+by apply: (injmP injf); rewrite ?domG ?Aut_closed // -!Aut_isomE //= eq_ab'.
 Qed.
 
 End AutIsom.

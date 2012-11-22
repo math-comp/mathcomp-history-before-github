@@ -101,16 +101,16 @@ Qed.
 Let EpmA := exceptional_pmaxElem.
 
 (* This is B & G, Lemma 11.1. *)
-Lemma exceptional_TIsigmaJ : forall g q Q1 Q2,
+Lemma exceptional_TIsigmaJ g q Q1 Q2 :
     g \notin M -> A \subset M :^ g ->
     q.-Sylow(M`_\sigma) Q1 ->  A \subset 'N(Q1) ->
     q.-Sylow(M`_\sigma :^ g) Q2 -> A \subset 'N(Q2) ->
      (*a*) Q1 :&: Q2 = 1
   /\ (*b*) (forall X, X \in 'E_p^1(A) -> 'C_Q1(X) = 1 \/ 'C_Q2(X) = 1).
 Proof.
-move=> g q Q1 Q2 notMg sAMg sylQ1 nQ1A sylQ2 nQ2A.
+move=> notMg sAMg sylQ1 nQ1A sylQ2 nQ2A.
 have [-> | ntQ1] := eqsVneq Q1 1.
-  by split=> [|? _]; last left; exact: (setIidPl (sub1G _)).
+  by split=> [|? _]; last left; apply: (setIidPl (sub1G _)).
 have [sQ1Ms qQ1 _] := and3P sylQ1.
 have{qQ1} [q_pr q_dv_Q1 _] := pgroup_pdiv qQ1 ntQ1.
 have{sQ1Ms q_dv_Q1} sMq: q \in \sigma(M).
@@ -128,8 +128,8 @@ suffices not_Q1_CA_Q2: gval Q2 \notin Q1 :^: 'O_\pi(A)^'('C(A)).
     exact: plength_1_normed_constrained ntA EpmA (mFT_proper_plength1 _).
   have q'A: q \notin \pi(A).
     by apply: contraL sMq; move/(pnatPpi pA); move/eqnP->.
-  have maxnAq: forall Q, q.-Sylow(G) Q -> A \subset 'N(Q) -> Q \in |/|*(A; q).
-    move=> Q sylQ; case/(max_normed_exists (pHall_pgroup sylQ)) => R maxR sQR.
+  have maxnAq Q: q.-Sylow(G) Q -> A \subset 'N(Q) -> Q \in |/|*(A; q).
+    move=> sylQ; case/(max_normed_exists (pHall_pgroup sylQ)) => R maxR sQR.
     have [qR _] := mem_max_normed maxR.
     by rewrite -(group_inj (sub_pHall sylQ qR sQR (subsetT R))).
   have maxQ1 := maxnAq Q1 (sigma_Sylow_G maxM sMq sylQ1) nQ1A.
@@ -152,12 +152,12 @@ by rewrite (sigma_Sylow_trans _ sylQ2g') // actKV.
 Qed.
 
 (* This is B & G, Corollary 11.2. *)
-Corollary exceptional_TI_MsigmaJ : forall g,
+Corollary exceptional_TI_MsigmaJ g :
   g \notin M -> A \subset M :^ g ->
     (*a*) M`_\sigma :&: M :^ g = 1
  /\ (*b*) M`_\sigma :&: 'C(A0 :^ g) = 1.
 Proof.
-move=> g notMg sAMg; set Ms := M`_\sigma; set H := [group of Ms :&: M :^ g].
+move=> notMg sAMg; set Ms := M`_\sigma; set H := [group of Ms :&: M :^ g].
 have [H1 | ntH] := eqsVneq H 1.
   by split=> //; apply/trivgP; rewrite -H1 setIS //= centJ conjSg.
 pose q := pdiv #|H|.
@@ -205,12 +205,12 @@ by rewrite (solvableS _ (mmax_sol maxM)) // join_subG pcore_sub.
 Qed.
 
 (* This is B & G, Corollary 11.4. *)
-Corollary exceptional_sigma_uniq : forall H,
+Corollary exceptional_sigma_uniq H :
   H \in 'M(A) -> H`_\sigma :&: M `_\sigma != 1 -> H :=: M.
 Proof.
-move=> H; rewrite setIC; case/setIdP=> maxH sAH ntMsHs.
+rewrite setIC => /setIdP[maxH sAH] ntMsHs.
 have [g _ defH]: exists2 g, g \in G & H :=: M :^ g.
-  apply/imsetP; apply: contraR ntMsHs; case/sigma_disjoint=> // _ _.
+  apply/imsetP; apply: contraR ntMsHs => /sigma_disjoint[] // _ _.
   by case/(_ exceptional_sigma_nil)=> ->.
 rewrite defH conjGid //; apply: contraR ntMsHs => notMg.
 have [|tiMsMg _] := exceptional_TI_MsigmaJ notMg; first by rewrite -defH.
@@ -218,19 +218,19 @@ by rewrite -subG1 -tiMsMg -defH setIS ?pcore_sub.
 Qed.
 
 (* This is B & G, Theorem 11.5. *)
-Theorem exceptional_Sylow_abelian : forall P1, p.-Sylow(M) P1 -> abelian P1.
+Theorem exceptional_Sylow_abelian P1 : p.-Sylow(M) P1 -> abelian P1.
 Proof.
-have nregA: forall Q, gval Q != 1 -> A \subset 'N(Q) -> coprime #|Q| #|A| ->
+have nregA Q: gval Q != 1 -> A \subset 'N(Q) -> coprime #|Q| #|A| ->
   exists2 X, X \in 'E_p^1(A) & 'C_Q(X) != 1.
-- move=> Q ntQ nQA coQA; apply/exists_inP; apply: contraR ntQ.
+- move=> ntQ nQA coQA; apply/exists_inP; apply: contraR ntQ.
   rewrite negb_exists_in -subG1; move/forall_inP=> regA.
   have ncycA: ~~ cyclic A by rewrite (abelem_cyclic abelA) oA pfactorK.
   rewrite -(coprime_abelian_gen_cent1 _ _ nQA) // gen_subG.
-  apply/bigcupsP=> x; case/setD1P=> ntx Ax.
+  apply/bigcupsP=> x /setD1P[ntx Ax].
   apply/negPn; rewrite /= -cent_cycle subG1 regA // p1ElemE // !inE.
   by rewrite cycle_subG Ax /= -orderE (abelem_order_p abelA).
-suffices cPP: abelian P.
-  by move=> P1 sylP1; have [m _ ->] := Sylow_trans sylP sylP1; rewrite abelianJ.
+suffices{P1} cPP: abelian P.
+  by move=> sylP1; have [m _ ->] := Sylow_trans sylP sylP1; rewrite abelianJ.
 have [g nPg notMg] := subsetPn not_sNP_M.
 pose Ms := M`_\sigma; pose q := pdiv #|Ms|; have pP := pHall_pgroup sylP.
 have nMsP: P \subset 'N(Ms) by rewrite (subset_trans sPM) ?gFnorm.
@@ -273,14 +273,13 @@ by rewrite centJ -(normsP nQ1P y Py) -conjIg regX21 conjs1g.
 Qed.
 
 (* This is B & G, Corollary 11.6. *)
-Corollary exceptional_structure :
-  let Ms := M`_\sigma in
+Corollary exceptional_structure (Ms := M`_\sigma) :
   [/\ (*a*) A :=: 'Ohm_1(P),
       (*b*) 'C_Ms(A) = 1
     & (*c*) exists2 A1, A1 \in 'E_p^1(A) & exists2 A2, A2 \in 'E_p^1(A) &
             [/\ A1 :!=: A2, 'C_Ms(A1) = 1 & 'C_Ms(A2) = 1]].
 Proof.
-move=> Ms; pose iMNA := #|'N(A) : M|.
+pose iMNA := #|'N(A) : M|.
 have defA: A :=: 'Ohm_1(P).
   apply/eqP; rewrite eqEcard -{1}(Ohm1_id abelA) OhmS //= oA -rM.
   rewrite -(p_rank_Sylow sylP) p_rank_abelian ?exceptional_Sylow_abelian //.
@@ -297,10 +296,10 @@ rewrite [iMNA](cardD1 (gval M)) orbit_refl !ltnS lt0n in iMNAgt1 iMNAgt2.
 have{iMNAgt1} [Mg1 /= NM_Mg1] := pred0Pn iMNAgt1.
 rewrite (cardD1 Mg1) inE /= NM_Mg1 ltnS lt0n in iMNAgt2.
 have{iMNAgt2} [Mg2 /= NM_Mg2] := pred0Pn iMNAgt2.
-case/andP: NM_Mg1 => neM_Mg1; case/rcosetsP=> g1 nAg1 defMg1.
+case/andP: NM_Mg1 => neM_Mg1 /rcosetsP[g1 nAg1 defMg1].
 have{neM_Mg1} notMg1: g1 \notin M.
   by apply: contra neM_Mg1 => M_g1; rewrite defMg1 rcoset_id.
-case/and3P: NM_Mg2 => neMg12 neM_Mg2; case/rcosetsP=> g2 nAg2 defMg2.
+case/and3P: NM_Mg2 => neMg12 neM_Mg2 /rcosetsP[g2 nAg2 defMg2].
 have{neM_Mg2} notMg2: g2 \notin M.
   by apply: contra neM_Mg2 => M_g2; rewrite defMg2 rcoset_id.
 pose A1 := (A0 :^ g1)%G; pose A2 := (A0 :^ g2)%G.
@@ -416,7 +415,7 @@ have defQ0: [~: A, Q0] = Q0.
     by rewrite setIAC regQ (setIidPl (sub1G _)) dprodg1 commGC.
   by rewrite (coprimeSg (subset_trans (center_sub Q) sQK)).
 have [_ _ [A1 EpA1 [A2 EpA2 [neqA12 regA1 regA2]]]] := exceptional_structure.
-have defA: A1 \x A2 = A by exact/(p2Elem_dprodP Ep2A EpA1 EpA2).
+have defA: A1 \x A2 = A by apply/(p2Elem_dprodP Ep2A EpA1 EpA2).
 have{defQ0} defQ0: [~: A1, Q0] * [~: A2, Q0] = Q0.
   have{defA} [[_ defA cA12 _] [sA2A _ _]] := (dprodP defA, pnElemP EpA2).
   by rewrite -commMG ?defA // normsR ?(cents_norm cA12) // (subset_trans sA2A).

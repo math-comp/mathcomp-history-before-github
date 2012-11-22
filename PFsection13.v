@@ -213,26 +213,22 @@ split.
 - have:= Ptype_core_coherence maxS StypeP notStype5; rewrite H0_1 CHbar_C.
   by rewrite (derG1P (abelianS _ cUU)) ?subsetIl ?(group_inj (joing1G _)).
 have ntA0: 'A0(S) != set0 := FTsupp0_neq0 maxS.
-have tiA0: normedTI 'A0(S) G S.
-  apply/normedTI_memJ_P=> //; rewrite subsetT; split=> // x g A0x Gg.
-  apply/idP/idP=> [A0xg | /(subsetP (FTsupp0_norm S))/memJ_norm->//].
-  apply/idPn=> S'g; have Dx: x \in [set y in 'A0(S) | ~~ ('C[y] \subset S)].
-    rewrite inE A0x; have [_ _ [_ _ _ wccA0 _] _] := pddS.
-    have /imsetP[y Sy Dxy]: x ^ g \in x ^: S by rewrite wccA0 // mem_orbit.
-    apply/subsetPn; exists (g * y^-1)%g; last by rewrite groupMr ?groupV.
-    by rewrite !inE conjg_set1 conjgM Dxy conjgK.
-  have [_ [_ /(_ x Dx) defL] /(_ x Dx)[_ _]] := FTsupport_facts maxS.
-  have{defL} [maxL _] := mem_uniq_mmax defL; set L := 'N[x] in maxL *.
-  rewrite -mem_iota !inE => ALx [/orP[Ltype1 _ | Ltype2]]; last first.
-    by case/(_ _)/existsP=> // ? /Frobenius_of_typeF/(typePF_exclusion StypeP).
-  have /Frobenius_kerP[_ _ _ regLF_L] := FTtype1_Frobenius maxL Ltype1.
-  case/andP: ALx => A1'x /bigcupP[z A1z /setD1P[ntx cLz_z]]; case/negP: A1'x.
-  rewrite ntx /'A1(L) -(Fcore_eq_FTcore _ _) ?(eqP Ltype1) //= in cLz_z A1z *.
-  exact: subsetP (regLF_L z A1z) _ cLz_z.
-have [|ddS1 tauS1_1] := Dade_normedTI_P _ _ ntA0 tiA0.
-  by rewrite (subset_trans (FTsupp0_sub S)) ?setSD ?subsetT.
-split=> //; apply: Dade_Ind => x A0x.
-by rewrite (def_Dade_signalizer _ (Dade_sdprod ddS1)) ?tauS1_1.
+suffices tiA0: normedTI 'A0(S) G S by split=> //; apply: Dade_Ind.
+apply/normedTI_memJ_P=> //; rewrite subsetT; split=> // x g A0x Gg.
+apply/idP/idP=> [A0xg | /(subsetP (FTsupp0_norm S))/memJ_norm->//].
+apply/idPn=> S'g; have Dx: x \in [set y in 'A0(S) | ~~ ('C[y] \subset S)].
+  rewrite inE A0x; have [_ _ [_ _ _ wccA0 _] _] := pddS.
+  have /imsetP[y Sy Dxy]: x ^ g \in x ^: S by rewrite wccA0 // mem_orbit.
+  apply/subsetPn; exists (g * y^-1)%g; last by rewrite groupMr ?groupV.
+  by rewrite !inE conjg_set1 conjgM Dxy conjgK.
+have [_ [_ /(_ x Dx) defL] /(_ x Dx)[_ _]] := FTsupport_facts maxS.
+have{defL} [maxL _] := mem_uniq_mmax defL; set L := 'N[x] in maxL *.
+rewrite -mem_iota !inE => ALx [/orP[Ltype1 _ | Ltype2]]; last first.
+  by case/(_ _)/existsP=> // ? /Frobenius_of_typeF/(typePF_exclusion StypeP).
+have /Frobenius_kerP[_ _ _ regLF_L] := FTtype1_Frobenius maxL Ltype1.
+case/andP: ALx => A1'x /bigcupP[z A1z /setD1P[ntx cLz_z]]; case/negP: A1'x.
+rewrite ntx /'A1(L) -(Fcore_eq_FTcore _ _) ?(eqP Ltype1) //= in cLz_z A1z *.
+exact: subsetP (regLF_L z A1z) _ cLz_z.
 Qed.
 
 (* This should perhaps move to PFsection9. *)
@@ -458,16 +454,14 @@ case=> _ Dtau1 S1zeta1 Zchi o_tau1S_chi a.
 have sW2P: W2 \subset P by have [_ _ _ []] := StypeP.
 have /mulG_sub[sPH _] := dprodW defH.
 have ntH: H :!=: 1%g by apply: subG1_contra ntW2; apply: subset_trans sPH.
-have ntH1: H^# != set0 by rewrite setD_eq0 subG1.
 have sH1S: H^# \subset G^# by rewrite setSD ?subsetT.
 have[nsHS nsPS ns1S]: [/\ H <| S, P <| S & 1 <| S] by rewrite !gFnormal normal1.
 have [[sHS nHS] [sPS nPS]] := (andP nsHS, andP nsPS).
-have tiH: normedTI H^# G S.
-  apply/andP; split; first by have [] := compl_of_typeII_IV maxS StypeP.
-  by rewrite setTI normD1 (mmax_normal maxS).
-have [ddH ddH_1] := Dade_normedTI_P _ sH1S ntH1 tiH; pose tauH := Dade ddH.
-have DtauH: {in 'CF(S, H^#), tauH =1 'Ind} := Dade_Ind ddH_1.
-have sS1H: {subset calS1 <= calH} by exact: seqInd_subT.
+have tiH: normedTI H^# G S by have [] := compl_of_typeII_IV maxS StypeP.
+have ddH := normedTI_Dade tiH sH1S; have [_ ddH_1] := Dade_normedTI_P ddH tiH.
+pose tauH := Dade ddH.
+have DtauH: {in 'CF(S, H^#), tauH =1 'Ind} := Dade_Ind ddH tiH.
+have sS1H: {subset calS1 <= calH} by apply: seqInd_subT.
 pose zeta0 := zeta1^*%CF.
 have S1zeta0: zeta0 \in calS1 by rewrite cfAut_seqInd.
 have zeta1'0: zeta0 != zeta1.
@@ -998,10 +992,8 @@ have{Kgx} cxQg: Q :^ g \subset 'C[x].
 have{cxQg} sQgS: Q :^ g \subset S.
   have sH1A0 := subset_trans (Fitting_sub_FTsupp maxS) (FTsupp_sub0 S).
   have{sH1A0} A0x: x \in 'A0(S) := subsetP sH1A0 x H1x.
-  have [[_ _ _ _ [tiA0 _]] ntA0] := (Sfacts, FTsupp0_neq0 maxS).
-  apply/subsetP=> y /(subsetP cxQg)/cent1P cxy.
-  have{tiA0 ntA0} [tiA0 _] := normedTI_memJ_P ntA0 tiA0.
-  by rewrite -(tiA0 x) ?in_setT // /conjg -cxy mulKg.
+  have [_ _ _ _ [tiA0 _]] := Sfacts.
+  by have:= cent1_normedTI tiA0 A0x; rewrite setTI; apply: subset_trans.
 have /pHallP[_ eq_Sq_q]: q.-Hall(S) W1.
   have qW1: q.-group W1 by rewrite /pgroup pnat_id.
   have [|//] := coprime_mulGp_Hall (sdprodW defS) _ qW1.
@@ -1100,20 +1092,18 @@ have nm2_dirr chi: chi \in dirr G -> g^-1 <= nm2 chi 1%g / g.
   by rewrite irr1_degree normr_nat ler1n irr_degree_gt0.
 pose mean (F M : {set gT}) (f : gT -> algC) := (\sum_(x in F) f x) / #|M|%:R.
 have meanTI M (F := 'F(gval M)^#) (FG := class_support F G) f:
-  M \in 'M -> trivIset (F :^: G) -> invJ f -> mean FG G f = mean F M f.
-- move=> maxM tiF fJ; rewrite [FG]class_supportEr -cover_imset.
-  rewrite {1}/mean big_trivIset //=; apply: canLR (mulfK (neq0CG _)) _.
+  M \in 'M -> normedTI F G M -> invJ f -> mean FG G f = mean F M f.
+- move=> maxM /and3P[ntF tiF /eqP defN] fJ; apply: canLR (mulfK (neq0CG _)) _.
+  rewrite (set_partition_big _ (partition_class_support ntF tiF)) /=.
   rewrite mulrAC -mulrA -natf_indexg ?subsetT //=.
-  have ->: #|G : M| = #|F :^: G|.
-    rewrite card_conjugates setTI normD1 (mmax_normal maxM) ?gFnormal //.
-    by rewrite trivg_Fitting ?mmax_sol ?mmax_neq1.
+  have ->: #|G : M| = #|F :^: G| by rewrite card_conjugates defN.
   rewrite mulr_natr -sumr_const; apply: eq_bigr => _ /imsetP[y _ ->].
   by rewrite (big_imset _ (in2W (conjg_inj _))) (eq_bigr _ (in1W (fJ y))).
 have{meanTI} meanG f :
   invJ f -> mean G G f = f 1%g / g + mean H^# S f + mean K^# T f + mean G0 G f.
 - have type24 maxM := compl_of_typeII_IV maxM _ (FTtype5_exclusion maxM).
-  have tiH: trivIset (H^# :^: G) by have/type24[] := StypeP.
-  have{type24} tiK: trivIset (K^# :^: G) by have/type24[] := TtypeP.
+  have tiH: normedTI H^# G S by have/type24[] := StypeP.
+  have{type24} tiK: normedTI K^# G T by have/type24[] := TtypeP.
   move=> fJ; rewrite -!meanTI // {1}/mean (big_setD1 1%g) // (big_setID H1G) /=.
   rewrite [in rhs in _ + (_ + rhs)](big_setID K1G) /= -/g -!mulrDl !addrA.
   congr ((_ + _ + _ + _) / g); rewrite ?(setIidPr _) // /H1G /K1G. 
@@ -1536,15 +1526,12 @@ suffices sNPW2: 'N(W2) \subset P <*> W1.
   rewrite sdprodEY ?coprime_TIg ?(coprimeSg sPPU) //.
   split; apply/eqP; rewrite eqEsubset ?(subset_trans cW2PW1) ?cent_sub //.
   by rewrite (subset_trans (cent_sub _)).
-have ntP: P :!=: 1%g by rewrite (subG1_contra sW2P).
-have ntP1: P^# != set0 by rewrite setD_eq0 subG1.
 have tiP: normedTI P^# G S.
-  apply/andP; rewrite setTI normD1 (mmax_normal maxS) ?gFnormal //.
   have [_ _ _] := compl_of_typeII_IV maxS StypeP notStype5.
   by rewrite -defH FTtypeP_reg_Fcore dprodg1.
 have ->: 'N(W2) = 'N_S(W2).
   apply/esym/setIidPr/subsetP=> y nW2y; have [x W2x ntx] := trivgPn _ ntW2.
-  have [tiP_J _] := normedTI_memJ_P ntP1 tiP.
+  have [_ _ tiP_J] := normedTI_memJ_P tiP.
   by rewrite -(tiP_J x) ?inE ?conjg_eq1 // ntx (subsetP sW2P) ?memJ_norm.
 rewrite -{1}(sdprodW defS) setIC -group_modr ?cents_norm 1?centsC //=.
 rewrite mulG_subG joing_subr /= -(sdprodW defPU) setIC.
@@ -1742,8 +1729,8 @@ have [E sW1E frobHE]: exists2 E, W1 \subset gval E & [Frobenius L = H ><| E].
     by rewrite -(compl_pHall E (Fcore_Hall L)) sdprod_compl.
   have [|x Lx sW1Ex] := Hall_subJ (mmax_sol maxL) hallE sW1L.
     by rewrite /pgroup -coprime_pi' ?cardG_gt0.
-  exists (E :^ x)%G => //; have:= FrobeniusJ frobHE x.
-  by rewrite conjGid // (normsP (gFnorm _ _)).
+  rewrite -(FrobeniusJ x) conjGid // (normsP (gFnorm _ _)) // in frobHE.
+  by exists (E :^ x)%G.
 have [defL ntH ntE _ _] := Frobenius_context frobHE.
 have [_ sEL _ nHE _] := sdprod_context defL.
 have solE := solvableS sEL (mmax_sol maxL).
@@ -1753,42 +1740,8 @@ have cycEr (r : nat) R: r.-group R -> R \subset E -> cyclic R.
   move=> rR sRE; have nHR := subset_trans sRE nHE.
   apply: odd_regular_pgroup_cyclic rR (mFT_odd _) ntH nHR _.
   by move=> y /setD1P[nty Ry]; rewrite regHE // !inE nty (subsetP sRE).
-have /char_norm nW1E: W1 \char E.
-  have cycO (r : nat): cyclic 'O_r(E) by rewrite (cycEr r) ?pcore_pgroup ?gFsub.
-  suffices cFW1: W1 \subset 'C('F(E)).
-    have nilF: nilpotent 'F(E) := Fitting_nil E.
-    have hallEr: q.-Hall('F(E)) 'O_q('F(E)) := nilpotent_pcore_Hall q nilF.
-    apply: char_trans (pcore_char q E); rewrite sub_cyclic_char //=.
-    rewrite -p_core_Fitting (sub_normal_Hall hallEr) ?gFnormal //.
-    by apply: subset_trans (cent_sub_Fitting solE); rewrite subsetI sW1E.
-  rewrite centsC -(bigdprodWY (erefl 'F(E))) gen_subG big_tnth.
-  apply/bigcupsP=> i _; move: {i}(tnth _ i) => r.
-  have [-> | ntEr] := eqVneq 'O_r(E) 1%g; first exact: sub1G.
-  have /andP[sErE rEr]: r.-subgroup(E) 'O_r(E) by apply: pcore_psubgroup.
-  have [pr_r _ [n oEr]] := pgroup_pdiv rEr ntEr.
-  have [<- | r'q] := eqVneq q r.
-    have [Eq sylEq sW1Eq] := Sylow_superset sW1E qW1.
-    have [qEq sEqE _] := and3P sylEq.
-    apply: subset_trans (pcore_sub_Hall sylEq) _.
-    by rewrite sub_abelian_cent // cyclic_abelian ?(cycEr q).
-  have nErW1: W1 \subset 'N('O_r(E)) by rewrite (subset_trans sW1E) ?gFnorm.
-  rewrite centsC (coprime_odd_faithful_Ohm1 rEr) ?mFT_odd //.
-    by rewrite (pnat_coprime rEr) ?pnatE.
-  set X := 'Ohm_1(_); have sXE: X \subset E := subset_trans (gFsub _ _) sErE.
-  have oX: #|X| = r by apply: Ohm1_cyclic_pgroup_prime => /=.
-  have ntX: X != 1%g by rewrite -cardG_gt1 oX prime_gt1.
-  rewrite centsC prime_meetG ?oX //; apply: contraNneq (ntX) => /= regXW1.
-  rewrite -subG1 -(cent_semiregular regEH _ ntH) //= -/X subsetI sXE /=.
-  pose XW1 := X <*> W1; have sXW1E: XW1 \subset E by apply/joing_subP.
-  have frobXW1: [Frobenius XW1 = X ><| W1].
-    apply/prime_FrobeniusP; rewrite ?sdprodEY //; last first.
-      by apply/trivgP; rewrite -regXW1 setIS //; apply: cyclic_abelian.
-    exact: char_norm_trans (Ohm_char 1 _) nErW1.
-  have coHXW1: coprime #|H| #|XW1|.
-    by rewrite (coprimegS sXW1E) // (Frobenius_coprime frobHE).
-  have nHXW1 := subset_trans sXW1E nHE.
-  have [_ -> //] := Frobenius_Wielandt_fixpoint frobXW1 nHXW1 coHXW1 solH.
-  exact: (cent_semiregular regHE).
+have /normal_norm nW1E: W1 <| E.
+  exact: prime_odd_regular_normal (mFT_odd E) _ _ _ (Frobenius_reg_ker frobHE).
 have defNW1: Q ><| W2 = 'N(W1).
   by have [] := FTtypeP_norm_cent_compl maxT TtypeP.
 have [nsQN sW2N _ _ _] := sdprod_context defNW1.
@@ -1866,15 +1819,13 @@ have [hU hW1]: h @* U = Ubar /\ h @* W1 = W1bar.
   by rewrite !morphim_restrm /= !(setIidPr _).
 have{hS} frobSbar: [Frobenius Sbar = Ubar ><| W1bar].
   by rewrite -[Sbar]hS -hU -hW1 injm_Frobenius.
-have [ntW1bar tiW1bar]: W1bar^# != set0 /\ normedTI W1bar^# Sbar W1bar.
-  rewrite setD_eq0 subG1 /normedTI normD1.
-  by have [[_ _ ->] []] := (and3P frobSbar, Frobenius_context frobSbar).
-have{ntW1bar} gammaW1 xbar: xbar \in W1bar^# -> gamma xbar = 1.
+have tiW1bar: normedTI W1bar^# Sbar W1bar by have /and3P[] := frobSbar.
+have gammaW1 xbar: xbar \in W1bar^# -> gamma xbar = 1.
   move=> W1xbar; have [ntxbar _] := setD1P W1xbar.
   rewrite cfIndE ?quotientS //; apply: canLR (mulKf (neq0CG _)) _.
   have ->: #|W1bar| = #|Sbar :&: W1bar| by rewrite (setIidPr _) ?quotientS.
   rewrite mulr1 cardsE -sumr_const big_mkcondr; apply: eq_bigr => zbar Szbar.
-  have [W1bar_xJ _] := normedTI_memJ_P ntW1bar tiW1bar.
+  have [_ _ W1bar_xJ] := normedTI_memJ_P tiW1bar.
   by rewrite -mulrb -(W1bar_xJ xbar) // !inE conjg_eq1 ntxbar cfun1E.
 have PVSbeta j: j != 0 -> beta_ j \in 'CF(S, P^# :|: V_S).
   move=> nzj; apply/cfun_onP=> z; rewrite !inE => /norP[P'z VS'z].
@@ -1927,7 +1878,7 @@ have norm_beta j: j != 0 -> '[beta_ j] = (u.-1 %/ q + 2)%:R.
   rewrite (cfnormE (cfInd_on _ (cfun_onG _))) ?quotientS // -/gamma.
   rewrite card_quotient ?gFnorm // -(index_sdprod defS_P) -(sdprod_card defUW1).
   rewrite -/u -/q (big_setD1 1%g) ?mem_class_support ?group1 //=.
-  have{tiW1bar} [tiW1bar /eqP defNW1bar] := andP tiW1bar.
+  have{tiW1bar} [_ tiW1bar /eqP defNW1bar] := and3P tiW1bar.
   rewrite gamma1 normr_nat class_supportD1 big_trivIset //=.
   rewrite (eq_bigr (fun xbar => #|W1bar|.-1%:R)) ?sumr_const; last first.
     rewrite (cardsD1 1%g) group1 /= => _ /imsetP[tbar Stbar ->].

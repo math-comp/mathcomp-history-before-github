@@ -62,8 +62,8 @@ Variables (gT : finGroupType) (G W W1 W2 : {set gT}).
 
 Definition cyclicTIset of W1 \x W2 = W := W :\: (W1 :|: W2).
 
-Definition cyclicTI_hypothesis (defW : W1 \x W2 = W) (V := cyclicTIset defW) :=
-  [/\ cyclic W, odd #|W|, V != set0 & normedTI V G W].
+Definition cyclicTI_hypothesis (defW : W1 \x W2 = W) :=
+  [/\ cyclic W, odd #|W| & normedTI (cyclicTIset defW) G W].
 
 End Definitions.
 
@@ -949,8 +949,8 @@ Hypothesis ctiW : cyclicTI_hypothesis G defW.
 
 Let cycW : cyclic W. Proof. by case: ctiW. Qed.
 Let oddW : odd #|W|. Proof. by case: ctiW. Qed.
-Let ntV : V != set0. Proof. by case: ctiW. Qed.
 Let tiV : normedTI V G W. Proof. by case: ctiW. Qed.
+Let ntV : V != set0. Proof. by case/andP: tiV. Qed.
 
 Lemma cyclicTIhyp_sym (defW21 : W2 \x W1 = W) : cyclicTI_hypothesis G defW21.
 Proof. by split; rewrite // /cyclicTIset setUC. Qed.
@@ -989,7 +989,7 @@ Qed.
 
 Let cWW : abelian W. Proof. exact: cyclic_abelian. Qed.
 Let nsVW : V <| W. Proof. by rewrite -sub_abelian_normal ?subsetDl. Qed.
-Let sWG : W \subset G. Proof. by have [|_ /subsetIP[]] := normedTI_P _ tiV. Qed.
+Let sWG : W \subset G. Proof. by have [_ /subsetIP[]] := normedTI_P tiV. Qed.
 Let sVG : V \subset G^#. Proof. by rewrite setDSS ?subsetU ?sub1G. Qed.
 
 Let alpha1 i j : alpha_ i j 1%g = 0.
@@ -1044,8 +1044,8 @@ Let unsat_II: unsat |= & x1, x2 in b11 & x1, x2 in b21.
 Proof. by fill b11; uhave -x3 in b21 as O(21, 11); symmetric to unsat_J. Qed.
 
 (* This reflects the application of (3.5.2), but only to rule out nonzero     *)
-(* components of the first entry that conflict positive components of the     *)
-(* second entry, as Otest covers all the other uses of (3.5.2) in the proof.  *)
+(* components of the first entry that conflict with positive components of    *)
+(* the second entry; Otest covers all the other uses of (3.5.2) in the proof. *)
 Let Ltest (cl1 cl2 : clause) :=
   let: (i1, j1, kvs1) := cl1 in let: (i2, j2, kvs2) := cl2 in
   let fix loop mm kvs2' :=
@@ -1277,7 +1277,7 @@ have o_beta i1 j1 i2 j2 : i1 != 0 -> j1 != 0 -> i2 != 0 -> j2 != 0 ->
   '[beta i1 j1, beta i2 j2] = ((i1 == i2).+1 * (j1 == j2).+1 - 1)%:R.
 - move=> nzi1 nzj1 nzi2 nzj2; rewrite mulSnr addnS mulnSr /=.
   rewrite cfdotBr o_beta_1 // subr0 cfdotBl (cfdotC 1) o_alphaG_1 //.
-  rewrite (normedTI_isometry _ tiV) ?cfCycTI_on // rmorph1 addrC.
+  rewrite (normedTI_isometry tiV) ?cfCycTI_on // rmorph1 addrC.
   rewrite (alphaE i2) cfdotDr !cfdotBr cfdot_alpha_1 // -!addrA addKr addrA.
   rewrite addrC cfdot_alpha_w // subn1 -addnA !natrD mulnb; congr (_ + _).
   rewrite alphaE -w_00 !(cfdotBl, cfdotDl) !cfdot_w !eqxx !(eq_sym 0).
@@ -1401,13 +1401,15 @@ rewrite memv_ker !lfun_simp /= subr_eq0 Dxi //.
 by rewrite alphaE linearD !linearB sigma1 !Deta.
 Qed.
 
-Definition cyclicTIiso := sval cyclicTIiso_exists.
+Fact cyclicTIiso_key : unit. Proof. by []. Qed.
+Definition cyclicTIiso :=
+  locked_with cyclicTIiso_key (sval cyclicTIiso_exists).
 Local Notation sigma := cyclicTIiso.
 Let im_sigma := map sigma (irr W).
 Let eta_ i j := sigma (w_ i j).
 
 Lemma cycTI_Zisometry : {in 'Z[irr W], isometry sigma, to 'Z[irr G]}.
-Proof. by rewrite /sigma; case: cyclicTIiso_exists => ? []. Qed.
+Proof. by rewrite [sigma]unlock; case: cyclicTIiso_exists => ? []. Qed.
 
 Let Isigma : {in 'Z[irr W] &, isometry sigma}.
 Proof. by case: cycTI_Zisometry. Qed.
@@ -1452,10 +1454,10 @@ by rewrite cfdot0r cfdotDr !cfdot_cycTIiso !eqxx -mulrS pnatr_eq0.
 Qed.
 
 Lemma cycTIiso1 : sigma 1 = 1.
-Proof. by rewrite /sigma; case: cyclicTIiso_exists => ? []. Qed.
+Proof. by rewrite [sigma]unlock; case: cyclicTIiso_exists => ? []. Qed.
 
 Lemma cycTIiso_Ind : {in 'CF(W, V), forall phi, sigma phi = 'Ind[G, W] phi}.
-Proof. by rewrite /sigma; case: cyclicTIiso_exists => ? []. Qed.
+Proof. by rewrite [sigma]unlock; case: cyclicTIiso_exists => ? []. Qed.
 
 Let sigma_Res_V :
   [/\ forall phi, {in V, sigma phi =1 phi}
@@ -1833,11 +1835,8 @@ Qed.
 Lemma cycTIiso_irrel (gT : finGroupType) (G W W1 W2 : {group gT})  
                 (defW : W1 \x W2 = W) (ctiW : cyclicTI_hypothesis G defW)
                 (defW' : W1 \x W2 = W) (ctiW' : cyclicTI_hypothesis G defW') :
-   cyclicTIiso ctiW =1 cyclicTIiso ctiW'.
+   cyclicTIiso ctiW = cyclicTIiso ctiW'.
 Proof.
-move=> phi; have [a {phi}->] := cfun_irr_sum phi.
-rewrite !linear_sum; apply: eq_bigr => ij _; rewrite !linearZ; congr (_ *: _).
-have /codomP[[i j] -> {ij}] := dprod_Iirr_onto defW ij.
-apply: eq_in_cycTIiso; first exact: cycTIiso_dirr.
-by rewrite /cyclicTIset; apply: cycTIiso_restrict.
+case: ctiW'; rewrite (eq_irrelevance defW' defW).
+by case: ctiW => *; congr (cyclicTIiso (And3 _ _ _)); apply: eq_irrelevance.
 Qed.

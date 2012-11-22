@@ -749,4 +749,10 @@ rewrite -quotient_sub1 // subG1 (implyP (forallP solGH _)) //.
 by rewrite subsetI -morphimR ?morphimS.
 Qed.
 
+Lemma metacyclic_sol G : metacyclic G -> solvable G.
+Proof.
+case/metacyclicP=> K [cycK nsKG cycGq].
+by rewrite (series_sol nsKG) !abelian_sol ?cyclic_abelian.
+Qed.
+
 End QuotientSol.

@@ -647,23 +647,20 @@ Qed.
 Lemma Frobenius_kernel_exists :
   [Frobenius G with complement H] -> {K : {group gT} | [Frobenius G = K ><| H]}.
 Proof.
-move=> frobG; have [/andP[sHG ltHG] ntiHG] := andP frobG.
-have [tiHG /eqP defNH] := andP ntiHG; rewrite -defNH subsetIidl in ltHG.
-suffices /sigW[K defG]: exists K, gval K ><| H == G by exists K; exact/andP.
-have{ltHG} ntH: H :!=: 1%g by apply: contraNneq ltHG => ->; exact: norms1.
+move=> frobG; have [_ ntiHG] := andP frobG.
+have [[_ sHG regGH][_ tiHG /eqP defNH]] := (normedTI_memJ_P ntiHG, and3P ntiHG).
+suffices /sigW[K defG]: exists K, gval K ><| H == G by exists K; apply/andP.
 pose K1 := G :\: cover (H^# :^: G).
-have oK1:  #|K1| = #|G : H|.
+have oK1: #|K1| = #|G : H|.
   rewrite cardsD (setIidPr _); last first.
     rewrite cover_imset; apply/bigcupsP=> x Gx.
     by rewrite sub_conjg conjGid ?groupV // (subset_trans (subsetDl _ _)).
-  rewrite -(eqnP tiHG) (eq_bigr (fun _ => #|H|.-1)); last first.
-    by move=> _ /imsetP[x _ ->]; rewrite cardJg (cardsD1 1%g H) group1.
-  rewrite sum_nat_const card_orbit astab1Js normD1 defNH.
-  by rewrite -subn1 mulnBr mulnC Lagrange // muln1 subKn ?leq_imset_card.
+  rewrite (cover_partition (partition_normedTI ntiHG)) -(Lagrange sHG).
+  by rewrite (card_support_normedTI ntiHG) (cardsD1 1%g) group1 mulSn addnK.
 suffices extG i: {j | {in H, 'chi[G]_j =1 'chi[H]_i} & K1 \subset cfker 'chi_j}.
   pose K := [group of \bigcap_i cfker 'chi_(s2val (extG i))].
   have nKH: H \subset 'N(K).
-    by apply/norms_bigcap/bigcapsP=> i _; exact: subset_trans (cfker_norm _).
+    by apply/norms_bigcap/bigcapsP=> i _; apply: subset_trans (cfker_norm _).
   have tiKH: K :&: H = 1%g.
     apply/trivgP; rewrite -(TI_cfker_irr H) /= setIC; apply/bigcapsP=> i _.
     apply/subsetP=> x /setIP[Hx /bigcapP/(_ i isT)/=]; rewrite !cfkerEirr !inE.
@@ -683,8 +680,9 @@ have /cfun_onP theta0: theta \in 'CF(H, H^#).
 have RItheta: 'Res ('Ind[G] theta) = theta.
   apply/cfun_inP=> x Hx; rewrite cfResE ?cfIndE // (big_setID H) /= addrC.
   apply: canLR (mulKf (neq0CG H)) _; rewrite (setIidPr sHG) mulr_natl.
-  rewrite big1 ?add0r => [|y /(TIconj_SN_P ntH sHG ntiHG) tiHy]; last first.
-    by rewrite theta0 // inE -set1gE -tiHy inE memJ_conjg Hx andbT andNb.
+  rewrite big1 ?add0r => [|y /setDP[/regGH tiHy H'y]]; last first.
+    have [-> | ntx] := eqVneq x 1%g; first by rewrite conj1g theta0 ?inE ?eqxx.
+    by rewrite theta0 ?tiHy // !inE ntx.
   by rewrite -sumr_const; apply: eq_bigr => y Hy; rewrite cfunJ.
 have ophi1: '[phi, 1] = 0.
   rewrite cfdotDl -cfdot_Res_r cfRes_cfun1 // cfdotBl !cfdotZl !cfnorm1.

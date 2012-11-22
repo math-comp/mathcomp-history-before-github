@@ -267,7 +267,7 @@ have W1a0 x: x \in W1 -> alpha_ i j x = 0.
   move=> W1x; rewrite !cfunE; have [-> | ntx] := eqVneq x 1%g.
     by rewrite Dd // prTIirr0_1 mulr1 zeta1w1 divfK ?neq0CG ?subrr.
   have notM'x: x \notin M'.
-    apply: contra ntx => M'x; have: x \in M' :&: W1 by exact/setIP.
+    apply: contra ntx => M'x; have: x \in M' :&: W1 by apply/setIP.
     by rewrite coprime_TIg ?inE.
   have /sdprod_context[_ sW1W _ _ tiW21] := dprodWsdC defW.
   have abW2: abelian W2 := cyclic_abelian cycW2.
@@ -550,7 +550,7 @@ have [[_ _ maxS] _] := pairMS; rewrite {1}(negPf notMtype2) /= => Stype2 _.
 move/(_ L maxL)/implyP; rewrite Ltype2 /= => /setUP[] /imsetP[x0 _ defL].
    by case/eqP/idPn: Ltype2; rewrite defL FTtypeJ.
 suffices{L Ltype2 maxL x0 defL}: [Frobenius S^`(1) = S`_\F ><| U].
-  by move/FrobeniusJ/(_ x0)/FrobeniusWker; rewrite /= -FcoreJ -derJ -defL.
+  by rewrite -(FrobeniusJ x0) -FcoreJ -derJ -defL => /FrobeniusWker.
 pose H := (S`_\F)%G; pose HU := (S^`(1))%G.
 have sHHU: H \subset HU by have [_ [_ _ _ /sdprodW/mulG_sub[]]] := StypeP.
 pose calT := seqIndD HU S H 1; pose tauS := FT_Dade0 maxS.
@@ -721,10 +721,10 @@ have{lb_rho ub_rho}: 1 - #|G1|%:R/ #|G|%:R - w1%:R^-1 < w1%:R / #|M'|%:R :> rat.
   rewrite addrC ltr_add2l ltr_pdivr_mulr ?gt0CG // -(sdprod_card defM).
   rewrite mulrC natrM mulfK ?neq0CG // defA ltC_nat.
   by rewrite (cardsD1 1%g M') ?group1.
-have frobHU: [Frobenius HU with kernel H] by exact: Frob_der1_type2.
-have [TI_H ntH1]: normedTI H^# G S /\ H^# != set0.
-  have [[ntH _ _ _] []] := (Frobenius_kerP frobHU, FTtypeII_ker_TI maxS Stype2).
-  by rewrite setD_eq0 subG1 /'A1(S) /S`_\s (eqP Stype2).
+have frobHU: [Frobenius HU with kernel H] by apply: Frob_der1_type2.
+have tiH: normedTI H^# G S.
+  have [_ _] := FTtypeII_ker_TI maxS Stype2.
+  by rewrite /'A1(S) /S`_\s (eqP Stype2).
 have sG1_HVG: G1 \subset class_support H^# G :|: class_support V G.
   apply/subsetP=> x; rewrite !inE coprime_has_primes ?cardG_gt0 // negbK.
   case/andP=> /hasP[p W1p]; rewrite /= mem_primes => /and3P[p_pr _ p_dv_x] _.
@@ -741,9 +741,8 @@ have sG1_HVG: G1 \subset class_support H^# G :|: class_support V G.
   have caxy: xy \in 'C[ay] by rewrite cent1J memJ_conjg cent1C.
   have [ntxy ntay]: xy != 1%g /\ ay != 1%g by rewrite !conjg_eq1.
   have Sxy: xy \in S.
-    have [-> //] := normedTI_P ntH1 TI_H; first by rewrite inE.
-    apply/pred0Pn; exists ay; rewrite /= mem_conjg.
-    by rewrite conjgE invgK mulgA (cent1P caxy) mulgK andbb !inE ntay.
+    have H1ay: ay \in H^# by apply/setD1P.
+    by rewrite (subsetP (cent1_normedTI tiH H1ay)) ?setTI.
   have [HUxy | notHUxy] := boolP (xy \in HU).
     rewrite memJ_class_support ?inE ?ntxy //=.
     have [_ _ _ regHUH] := Frobenius_kerP frobHU.
@@ -766,7 +765,8 @@ have ub_G1: #|G1|%:R / #|G|%:R <= #|H|%:R / #|S|%:R + #|V|%:R / #|W|%:R :> rat.
   have unifJG B C: C \in B :^: G -> #|C| = #|B|.
     by case/imsetP=> z _ ->; rewrite cardJg.
   have oTI := card_uniform_partition (unifJG _) (partition_class_support _ _).
-  have [[tiH /eqP defNH] [_ _ ntV /andP[tiV /eqP defNV]]] := (andP TI_H, ctiWG).
+  have{tiH} [ntH tiH /eqP defNH] := and3P tiH.
+  have [_ _ /and3P[ntV tiV /eqP defNV]] := ctiWG.
   rewrite !oTI // !card_conjugates defNH defNV /= leq_add2r ?leq_mul //.
   by rewrite subset_leq_card ?subsetDl.
 rewrite ler_gtF // addrAC ler_subr_addl -ler_subr_addr (ler_trans ub_G1) //.
@@ -910,13 +910,10 @@ have def_w2: w2 = p by apply/eqP; have:= pgroupS sW2H pH; rewrite pgroupE pnatE.
 have [p_pr _ [e oH]] := pgroup_pdiv pH ntH.
 rewrite -/w1 /= defMF oH pi_of_exp {e oH}// /pi_of primes_prime // in MtypeV.
 have [tiHG | [_ /predU1P[->[]|]]// | [_ /predU1P[->|//] [oH w1p1 _]]] := MtypeV.
-  have{tiHG} tiHG: normedTI H^# G M.
-    by rewrite /normedTI tiHG /= normD1 setTI (mmax_normal maxM).
   suffices [tau1 [Itau1 Dtau1]]: coherent (seqIndD H M H 1) M^# 'Ind[G].
     exists tau1; split=> // phi Sphi; rewrite {}Dtau1 //.
     rewrite zcharD1_seqInd // -subG1 -setD_eq0 -defA in Sphi tiHG ntH.
-    have Aphi := zchar_on Sphi; rewrite -FT_DadeE //; apply/esym/Dade_Ind=> //.
-    by case/Dade_normedTI_P: tiHG; rewrite // defA setSD ?subsetT.
+    by have Aphi := zchar_on Sphi; rewrite -FT_DadeE // Dade_Ind.
   apply: (@Sibley_coherence _ [set:_] M H W1); first by rewrite mFT_odd.
   right; exists W2 => //; exists 'A0(M), W, defW.
   by rewrite -defA -{2}(group_inj defMs).

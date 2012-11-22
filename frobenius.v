@@ -15,8 +15,8 @@ Require Import cyclic center pgroup nilpotent sylow hall abelian.
 (*       centralises a nontrivial element of H must actually centralise all   *)
 (*       of H.                                                                *)
 (*    normedTI A G L <=>                                                      *)
-(*       A is strictly disjoint from its conjugates in G, and has normaliser  *)
-(*       L in G.                                                              *)
+(*       A is nonempty, strictly disjoint from its conjugates in G, and has   *)
+(*       normaliser L in G.                                                   *)
 (*    [Frobenius G = K ><| H] <=>                                             *)
 (*       G is (isomorphic to) a Frobenius group with kernel K and complement  *)
 (*       H. This is an effective predicate (in bool), which tests the         *)
@@ -62,10 +62,9 @@ Definition semiregular K H := {in H^#, forall x, 'C_K[x] = 1}.
 (* Corresponds to "H acts on K in a prime manner" in B & G. *)
 Definition semiprime K H := {in H^#, forall x, 'C_K[x] = 'C_K(H)}.
 
-Definition normedTI A G L := trivIset (A :^: G) && ('N_G(A) == L).
+Definition normedTI A G L := [&& A != set0, trivIset (A :^: G) & 'N_G(A) == L].
 
-Definition Frobenius_group_with_complement G H :=
-  [&& H \proper G, trivIset (H^# :^: G) & 'N_G(H) == H].
+Definition Frobenius_group_with_complement G H := (H != G) && normedTI H^# G H.
 
 Definition Frobenius_group G :=
   [exists H : {group gT}, Frobenius_group_with_complement G H].
@@ -141,8 +140,8 @@ Proof. by move=> x; rewrite setDv inE. Qed.
 Lemma semiregular_sym H K : semiregular K H -> semiregular H K.
 Proof.
 move=> regH x /setD1P[ntx Kx]; apply: contraNeq ntx.
-rewrite -subG1 -setD_eq0 setDE setIAC -setDE (sameP eqP set1gP).
-by case/set0Pn=> y /setIP[Hy cxy]; rewrite -(regH y Hy) inE Kx cent1C.
+rewrite -subG1 -setD_eq0 -setIDAC => /set0Pn[y /setIP[Hy cxy]].
+by rewrite (sameP eqP set1gP) -(regH y Hy) inE Kx cent1C.
 Qed.
 
 Lemma semiregularS K1 K2 A1 A2 :
@@ -226,117 +225,92 @@ move=> prH yx; rewrite -conjD1g => /imsetP[y Hy ->].
 by rewrite cent1J centJ -!conjIg prH.
 Qed.
 
-Lemma TIconjP G H :
-  reflect {in G &, forall x y, x * y^-1 \in 'N_G(H) \/ H :^ x :&: H :^ y = 1}
-          (trivIset (H^# :^: G)).
-Proof.
-have defH := setD1K (group1 H).
-apply: (iffP trivIsetP) => [tiHG x y Gx Gy | tiHG].
-  rewrite inE groupMl // groupVr // -normD1 (sameP normP eqP) actM.
-  rewrite (canF_eq (actKV _ _)); case: (altP eqP) => neqHxy; [by left | right].
-  by apply/trivgP; rewrite -setD_eq0 setDIl -!conjD1g setI_eq0 tiHG ?mem_imset.
-move=> _ _ /imsetP[x Gx ->] /imsetP[y Gy ->].
-rewrite -(canF_eq (actKV _ _)) -actM (sameP eqP normP) normD1.
-rewrite -setI_eq0 !conjD1g -setDIl setD_eq0.
-by have [/setIP[_ ->] | ->] := tiHG x y Gx Gy.
-Qed.
-Implicit Arguments TIconjP [G H].
-
-Lemma TIconj_SN_P G H :
-    H :!=: 1 -> H \subset G ->
-  reflect {in G :\: H, forall x, H :&: H :^ x = 1}
-          (trivIset (H^# :^: G) && ('N_G(H) == H)).
-Proof.
-move=> ntH sHG; apply: (iffP idP) => [|sntiHG].
-  case/andP=> /TIconjP tiHG /eqP snHG x /setDP[Gx notHx].
-  have [//||] := tiHG 1 x _ Gx; rewrite ?conjsg1 //.
-  by rewrite  mul1g snHG groupV (negPf notHx).
-apply/andP; split.
-  apply/TIconjP=> x y Gx Gy.
-  have Gxy: x * y^-1 \in G by rewrite groupM ?groupV.
-  case Hxy: (x * y^-1 \in H); [left | right].
-    by rewrite inE Gxy (subsetP (normG H)).
-  by rewrite -(mulgKV y x) actM -conjIg setIC sntiHG ?conjs1g ?inE ?Hxy.
-rewrite eqEsubset subsetI sHG normG !andbT -setD_eq0 setDE setIAC -setDE.
-apply: contraR ntH; case/set0Pn=> x /setIP[Gx nHx].
-by rewrite -(sntiHG x Gx) (normP nHx) setIid.
-Qed.
-
-Section NormedTI.
-
-Variables (A : {set gT}) (G L : {group gT}).
-Hypothesis notA0 : A != set0.
-
-Lemma normedTI_P : 
-  reflect [/\ {in G, forall g, ~~ [disjoint A & A :^ g] -> g \in L}
-            & L \subset 'N_G(A)]
+Lemma normedTI_P A G L : 
+  reflect [/\ A != set0, L \subset 'N_G(A)
+           & {in G, forall g, ~~ [disjoint A & A :^ g] -> g \in L}]
           (normedTI A G L).
 Proof.
-apply: (iffP andP) => [[/trivIsetP tiAG /eqP <-] | [tiAG sLN]].
+apply: (iffP and3P) => [[nzA /trivIsetP tiAG /eqP <-] | [nzA sLN tiAG]].
   split=> // g Gg; rewrite inE Gg (sameP normP eqP) /= eq_sym; apply: contraR.
   by apply: tiAG; rewrite ?mem_orbit ?orbit_refl.
-have [/set0Pn[a Aa] /subsetIP[_ nAL]] := (notA0, sLN); split; last first.
+have [/set0Pn[a Aa] /subsetIP[_ nAL]] := (nzA, sLN); split=> //; last first.
   rewrite eqEsubset sLN andbT; apply/subsetP=> x /setIP[Gx nAx].
   by apply/tiAG/pred0Pn=> //; exists a; rewrite /= (normP nAx) Aa.
 apply/trivIsetP=> _ _ /imsetP[x Gx ->] /imsetP[y Gy ->]; apply: contraR.
 rewrite -setI_eq0 -(mulgKV x y) conjsgM; set g := (y * x^-1)%g.
+have Gg: g \in G by rewrite groupMl ?groupV.
 rewrite -conjIg (inj_eq (act_inj 'Js x)) (eq_sym A) (sameP eqP normP).
-rewrite -cards_eq0 cardJg cards_eq0 setI_eq0 => /tiAG => /implyP.
-by rewrite groupMl ?groupVr // => /(subsetP nAL).
+by rewrite -cards_eq0 cardJg cards_eq0 setI_eq0 => /tiAG/(subsetP nAL)->.
 Qed.
+Implicit Arguments normedTI_P [A G L].
 
-Lemma normedTI_memJ_P :
-  reflect ({in A & G, forall a g, (a ^ g \in A) = (g \in L)} /\ L \subset G)
+Lemma normedTI_memJ_P A G L :
+  reflect [/\ A != set0, L \subset G
+            & {in A & G, forall a g, (a ^ g \in A) = (g \in L)}]
           (normedTI A G L).
 Proof.
-apply: (iffP normedTI_P) => [[tiAG /subsetIP[sLG nAL]] | [tiAG sLG]].
+apply: (iffP normedTI_P) => [[-> /subsetIP[sLG nAL] tiAG] | [-> sLG tiAG]].
   split=> // a g Aa Gg; apply/idP/idP=> [Aag | Lg]; last first.
     by rewrite memJ_norm ?(subsetP nAL).
   by apply/tiAG/pred0Pn=> //; exists (a ^ g)%g; rewrite /= Aag memJ_conjg.
-split=> [g Gg /pred0Pn[ag /=] | ].
+split=> // [ | g Gg /pred0Pn[ag /=]]; last first.
   by rewrite andbC => /andP[/imsetP[a Aa ->]]; rewrite tiAG.
 apply/subsetP=> g Lg; have Gg := subsetP sLG g Lg.
 by rewrite !inE Gg; apply/subsetP=> _ /imsetP[a Aa ->]; rewrite tiAG.
 Qed.
 
-Lemma partition_class_support :
-  trivIset (A :^: G) -> partition (A :^: G) (class_support A G).
+Lemma partition_class_support A G :
+  A != set0 -> trivIset (A :^: G) -> partition (A :^: G) (class_support A G).
 Proof.
-move=> tiAG; apply/and3P; split=> {tiAG}//.
-  by rewrite cover_imset -class_supportEr.
-by apply: contra notA0 => /imsetP[x _ /eqP]; rewrite eq_sym -!cards_eq0 cardJg.
+rewrite /partition cover_imset -class_supportEr eqxx => nzA ->.
+by apply: contra nzA => /imsetP[x _ /eqP]; rewrite eq_sym -!cards_eq0 cardJg.
 Qed.
 
-End NormedTI.
+Lemma partition_normedTI A G L :
+  normedTI A G L -> partition (A :^: G) (class_support A G).
+Proof. by case/and3P=> ntA tiAG _; apply: partition_class_support. Qed.
+
+Lemma card_support_normedTI A G L :
+  normedTI A G L -> #|class_support A G| = (#|A| * #|G : L|)%N.
+Proof.
+case/and3P=> ntA tiAG /eqP <-; rewrite -card_conjugates mulnC.
+apply: card_uniform_partition (partition_class_support ntA tiAG).
+by move=> _ /imsetP[y _ ->]; rewrite cardJg.
+Qed.
 
 Lemma normedTI_S A B G L : 
     A != set0 -> L \subset 'N(A) -> A \subset B -> normedTI B G L ->
   normedTI A G L.
 Proof.
-move=> nzA nAL sAB; have nzB := subset_neq0 sAB nzA.
-case/normedTI_P=> // tiB /subsetIP[sLG _]; apply/normedTI_P=> //.
-split=> [x Gx meetAAx|]; [apply: tiB => //; move: meetAAx | exact/subsetIP].
-by rewrite -!setI_eq0; apply: subset_neq0; rewrite setISS ?conjSg.
+move=> nzA /subsetP nAL /subsetP sAB /normedTI_memJ_P[nzB sLG tiB].
+apply/normedTI_memJ_P; split=> // a x Aa Gx.
+by apply/idP/idP => [Aax | /nAL/memJ_norm-> //]; rewrite -(tiB a) ?sAB.
+Qed.
+
+Lemma cent1_normedTI A G L :
+  normedTI A G L -> {in A, forall x, 'C_G[x] \subset L}.
+Proof.
+case/normedTI_memJ_P=> [_ _ tiAG] x Ax; apply/subsetP=> y /setIP[Gy cxy].
+by rewrite -(tiAG x) // /(x ^ y) -(cent1P cxy) mulKg.
 Qed.
 
 Lemma Frobenius_actionP G H :
   reflect (has_Frobenius_action G H) [Frobenius G with complement H].
 Proof.
-apply: (iffP andP) => [[] | [sT S to [ffulG transG regG ntH [u Su defH]]]].
-  rewrite properEneq => /andP[neqHG sHG] /andP[tiHG /eqP snHG].
+apply: (iffP andP) => [[neqHG] | [sT S to [ffulG transG regG ntH [u Su defH]]]].
+  case/normedTI_P=> nzH /subsetIP[sHG _] tiHG.
   suffices: Frobenius_action G H (rcosets H G) 'Rs by exact: HasFrobeniusAction.
   pose Hfix x := 'Fix_(rcosets H G | 'Rs)[x].
   have regG: {in G^#, forall x, #|Hfix x| <= 1}.
-    move=> x /setD1P[nt_x Gx]; apply: wlog_neg; rewrite -ltnNge ltn_neqAle lt0n.
-    rewrite cards_eq0 => /andP[_ /set0Pn[Hy]].
+    move=> x /setD1P[ntx Gx].
+    apply: wlog_neg; rewrite -ltnNge => /ltnW/card_gt0P/=[Hy].
     rewrite -(cards1 Hy) => /setIP[/imsetP[y Gy ->{Hy}] cHyx].
     apply/subset_leq_card/subsetP=> _ /setIP[/imsetP[z Gz ->] cHzx].
     rewrite -!sub_astab1 !astab1_act !sub1set astab1Rs in cHyx cHzx *.
-    rewrite !inE (canF_eq (actK _ _)) -actM /= rcosetE rcoset_id // -snHG.
-    have [//| tiHyz] := TIconjP tiHG y z Gy Gz.
-    by case/negP: nt_x; rewrite -in_set1 -set1gE -tiHyz inE cHyx.
-  have ntH: H :!=: 1.
-    by apply: contraNneq neqHG => H1; rewrite -snHG H1 norm1 setIT.
+    rewrite !rcosetE; apply/set1P/rcoset_transl; rewrite mem_rcoset.
+    apply: tiHG; [by rewrite !in_group | apply/pred0Pn; exists (x ^ y^-1)].
+    by rewrite conjD1g !inE conjg_eq1 ntx -mem_conjg cHyx conjsgM memJ_conjg.
+  have ntH: H :!=: 1 by rewrite -subG1 -setD_eq0.
   split=> //; first 1 last; first exact: transRs_rcosets.
     by exists (H : {set gT}); rewrite ?orbit_refl // astab1Rs (setIidPr sHG).
   apply/subsetP=> y /setIP[Gy cHy]; apply: contraR neqHG => nt_y.
@@ -344,18 +318,18 @@ apply: (iffP andP) => [[] | [sT S to [ffulG transG regG ntH [u Su defH]]]].
   apply: leq_trans (regG y _); last by rewrite setDE 2!inE Gy nt_y /=.
   by rewrite /Hfix (setIidPl _) -1?astabC ?sub1set.
 have sHG: H \subset G by rewrite defH subsetIl.
-rewrite properEneq sHG andbT; split.
+split.
   apply: contraNneq ntH => /= defG.
   suffices defS: S = [set u] by rewrite -(trivgP ffulG) /= defS defH.
   apply/eqP; rewrite eq_sym eqEcard sub1set Su.
   by rewrite -(atransP transG u Su) card_orbit -defH defG indexgg cards1.
-apply/(TIconj_SN_P ntH sHG)=> x /setDP[Gx notHx].
-apply/trivgP/subsetP=> y; rewrite /= -sub1set defH conjIg -astab1_act.
-rewrite !(sub_astab1, subsetI) sub1set -andbA => /and4P[Gy cuy _ cuxy].
-move/implyP: (regG y); rewrite in_setD Gy; apply: contraLR => -> /=.
-rewrite (cardD1 u) (cardD1 (to u x)) inE Su cuy inE /= inE cuxy.
-rewrite (actsP (atrans_acts transG)) // Su; case: eqP => // /astab1P cux.
-by case/negP: notHx; rewrite defH inE Gx.
+apply/normedTI_P; rewrite setD_eq0 subG1 normD1 subsetI sHG normG.
+split=> // x Gx; rewrite -setI_eq0 conjD1g defH inE Gx conjIg conjGid //.
+rewrite -setDIl -setIIr -astab1_act setDIl => /set0Pn[y /setIP[Gy /setD1P[_]]].
+case/setIP; rewrite 2!(sameP astab1P afix1P) => cuy cuxy; apply/astab1P.
+apply: contraTeq (regG y Gy) => cu'x.
+rewrite (cardD1 u) (cardD1 (to u x)) inE Su cuy inE /= inE cu'x cuxy.
+by rewrite (actsP (atrans_acts transG)) ?Su.
 Qed.
 
 Section FrobeniusProperties.
@@ -375,73 +349,53 @@ Proof. by apply/existsP; exists H; exact: FrobeniusWcompl. Qed.
 Lemma Frobenius_context :
   [/\ K ><| H = G, K :!=: 1, H :!=: 1, K \proper G & H \proper G].
 Proof.
-have [/eqP defG frobGH] := andP frobG; have [ltHG _] := andP frobGH.
-have [_ _ _ [_ _ _ ntH _]] := Frobenius_actionP _ _ frobGH.
-have: K :!=: 1.
-  by apply: contraTneq ltHG => K1; rewrite -defG K1 sdprod1g properxx.
-split=> //; have [_ <- _ tiHK] := sdprodP defG.
-by rewrite properEcard mulG_subl TI_cardMg // ltn_Pmulr ?cardG_gt1.
+have [/eqP defG neqHG ntH _] := and4P frobG; rewrite setD_eq0 subG1 in ntH.
+have ntK: K :!=: 1 by apply: contraNneq neqHG => K1; rewrite -defG K1 sdprod1g.
+rewrite properEcard properEneq neqHG; have /mulG_sub[-> ->] := sdprodW defG.
+by rewrite -(sdprod_card defG) ltn_Pmulr ?cardG_gt1.
 Qed.
 
 Lemma Frobenius_partition : partition (gval K |: (H^# :^: K)) G.
 Proof.
-have [/sdprodP[_ mulKH nKH tiKH] _ ntH ltKG ltHG] := Frobenius_context.
-have [sKG sHG] := (proper_sub ltKG, proper_sub ltHG).
-have [_ _ tiHG /eqP snHG] := and4P frobG.
+have [/eqP defG _ tiHG] := and3P frobG; have [_ tiH1G /eqP defN] := and3P tiHG.
+have [[_ /mulG_sub[sKG sHG] nKH tiKH] mulHK] := (sdprodP defG, sdprodWC defG).
 set HG := H^# :^: K; set KHG := _ |: _.
 have defHG: HG = H^# :^: G.
-  apply: atransP (orbit_refl _ _ _).
-  apply/(subgroup_transitiveP (orbit_refl _ _ _) sKG (atrans_orbit _ _ _)).
-  by rewrite astab1Js normD1 snHG (normC nKH).
-have tiKHG Hx: Hx \in HG -> [disjoint K & Hx].
-  case/imsetP=> x Kx ->{Hx}; rewrite -setI_eq0.
-  by rewrite conjD1g -(conjGid Kx) setDE setIA -conjIg tiKH conjs1g setICr.
-have{tiKHG} tiKHG: trivIset KHG.
-  case/trivIsetU1: tiKHG => //; first by rewrite defHG.
-  apply/imsetP=> [[x _ /eqP/idPn[]]]; rewrite eq_sym -cards_eq0 cardJg {x}.
-  by rewrite cards_eq0 setD_eq0 subG1.
-apply/and3P; split=> //; last first.
-  rewrite !inE eqEcard cards0 leqNgt cardG_gt0 andbF /=.
-  apply/imsetP=> [[x _ /eqP]]; apply/negP.
-  by rewrite eq_sym conjD1g setD_eq0 sub_conjg conjs1g subG1.
+  have: 'C_G[H^# | 'Js] * K = G by rewrite astab1Js defN mulHK.
+  move/subgroup_transitiveP/atransP.
+  by apply; rewrite ?atrans_orbit ?orbit_refl.
+have /and3P[defHK _ nzHG] := partition_normedTI tiHG.
+rewrite -defHG in defHK nzHG tiH1G.
+have [tiKHG HG'K]: trivIset KHG /\ gval K \notin HG.
+  apply: trivIsetU1 => // _ /imsetP[x Kx ->]; rewrite -setI_eq0.
+  by rewrite -(conjGid Kx) -conjIg setIDA tiKH setDv conj0g.
+rewrite /partition andbC tiKHG !inE negb_or nzHG eq_sym -card_gt0 cardG_gt0 /=.
 rewrite eqEcard; apply/andP; split.
-  apply/bigcupsP=> _ /setU1P[-> // | /imsetP[x Kx ->]].
-  by rewrite conj_subG ?(subsetP sKG) // subDset subsetU ?sHG ?orbT.
-rewrite -(eqnP tiKHG) big_setU1 /=; last first.
-  by apply/imsetP=> [[x _ /setP/(_ 1)]]; rewrite conjD1g group1 !inE eqxx.
-rewrite (eq_bigr (fun _ => #|H|.-1)) => [|Hx]; last first.
-  by case/imsetP=> x _ ->; rewrite cardJg (cardsD1 1 H) group1.
-rewrite sum_nat_const card_conjugates normD1 -{3}(setIidPl sKG) -setIA snHG.
-by rewrite tiKH indexg1 -mulnS prednK // -mulKH TI_cardMg.
+  rewrite /cover big_setU1 //= subUset sKG -/(cover HG) (eqP defHK).
+  by rewrite class_support_subG // (subset_trans _ sHG) ?subD1set.
+rewrite -(eqnP tiKHG) big_setU1 //= (eqnP tiH1G) (eqP defHK).
+rewrite (card_support_normedTI tiHG) -(Lagrange sHG) (cardsD1 1) group1 mulSn.
+by rewrite leq_add2r -mulHK indexMg -indexgI tiKH indexg1.
 Qed.
 
 Lemma Frobenius_cent1_ker : {in K^#, forall x, 'C_G[x] \subset K}.
 Proof.
-move=> x /setD1P[nt_x Kx].
-rewrite -setD_eq0 setDE -setIA setI_eq0 disjoint_sym.
-have [partG _ _] := and3P Frobenius_partition.
-rewrite -(eqP partG) bigcup_disjoint // => _ /setU1P[|/imsetP[y Ky]] ->.
-  by rewrite -setI_eq0 setIAC -setIA setICr setI0.
-rewrite -setI_eq0 setIAC -subset0 subIset //; apply/orP; left.
-rewrite conjD1g setDE setIA -setDE subDset setU0 -set1gE.
-rewrite -[x](conjgKV y) -conjg_set1 normJ -conjIg sub_conjg conjs1g.
-apply/subsetP=> z /setIP[cxz Hz]; have [_ _ sntiHG]:= and3P frobG.
-have [defG _ ntH /andP[sKG _] /andP[sHG _]] := Frobenius_context.
-have [_ _ _ tiKH] := sdprodP defG.
-rewrite -(TIconj_SN_P ntH sHG sntiHG (x ^ y^-1)).
-  by rewrite inE Hz mem_conjg conjgE invgK mulgA -(cent1P cxz) mulgK.
-have Kxy: x ^ y^-1 \in K by rewrite groupJ ?groupV.
-rewrite inE (subsetP sKG) // andbT; apply: contra nt_x => Hxy.
-by rewrite -in_set1 -(memJ_conjg _ y^-1) conjs1g -tiKH inE Kxy.
+have [/eqP defG _ /normedTI_memJ_P[_ _ tiHG]] := and3P frobG.
+move=> x /setD1P[ntx Kx]; have [_ /mulG_sub[sKG _] _ tiKH] := sdprodP defG.
+have [/eqP <- _ _] := and3P Frobenius_partition; rewrite big_distrl /=.
+apply/bigcupsP=> _ /setU1P[|/imsetP[y Ky]] ->; first exact: subsetIl.
+apply: contraR ntx => /subsetPn[z]; rewrite inE mem_conjg => /andP[Hzy cxz] _.
+rewrite -(conjg_eq1 x y^-1) -in_set1 -set1gE -tiKH inE andbC.
+rewrite -(tiHG _ _ Hzy) ?(subsetP sKG) ?in_group // Ky andbT -conjJg.
+by rewrite /(z ^ x) (cent1P cxz) mulKg.
 Qed.
 
 Lemma Frobenius_reg_ker : semiregular K H.
 Proof.
-move=> x /setD1P[nt_x Hx].
-apply/trivgP/subsetP=> y /setIP[Ky cxy]; apply: contraR nt_x => nty.
+move=> x /setD1P[ntx Hx].
+apply/trivgP/subsetP=> y /setIP[Ky cxy]; apply: contraR ntx => nty.
 have K1y: y \in K^# by rewrite inE nty.
-have [sHG tiKH]: H \subset G /\ K :&: H = 1.
-  by have [/sdprod_context[]] := Frobenius_context.
+have [/eqP/sdprod_context[_ sHG _ _ tiKH] _] := andP frobG.
 suffices: x \in K :&: H by rewrite tiKH inE.
 by rewrite inE (subsetP (Frobenius_cent1_ker K1y)) // inE cent1C (subsetP sHG).
 Qed.
@@ -484,18 +438,41 @@ have [defG _ _ _ _] := Frobenius_context.
 by rewrite -(sdprod_Hall defG) Frobenius_ker_Hall.
 Qed.
 
-Lemma FrobeniusJ x : [Frobenius G :^ x = K :^ x ><| H :^ x].
+End FrobeniusProperties.
+
+Lemma normedTI_J x A G L : normedTI (A :^ x) (G :^ x) (L :^ x) = normedTI A G L.
 Proof.
-have [defG _ ntH _ ltHG] := Frobenius_context.
-have sHG := proper_sub ltHG.
-have [_ _ /(TIconj_SN_P ntH sHG) tiHG] := and3P frobG.
-apply/and3P; rewrite -sdprodJ defG properJ; split=> //.
-apply/TIconj_SN_P; rewrite ?conjsg_eq1 ?conjSg // -conjDg => y.
-rewrite mem_conjg -conjsgM conjgCV conjsgM -conjIg => /tiHG->.
-by rewrite conjs1g.
+rewrite {1}/normedTI normJ -conjIg -(conj0g x) !(can_eq (conjsgK x)).
+congr [&&  _, _ == _ & _]; rewrite /cover (reindex_inj (@conjsg_inj _ x)).
+  by apply: eq_big => Hy; rewrite ?orbit_conjsg ?cardJg.
+by rewrite bigcupJ cardJg (eq_bigl _ _ (orbit_conjsg _ _ _ _)).
 Qed.
 
-End FrobeniusProperties.
+Lemma FrobeniusJcompl x G H :
+  [Frobenius G :^ x with complement H :^ x] = [Frobenius G with complement H].
+Proof.
+by congr (_ && _); rewrite ?(can_eq (conjsgK x)) // -conjD1g normedTI_J.
+Qed.
+
+Lemma FrobeniusJ x G K H :
+  [Frobenius G :^ x = K :^ x ><| H :^ x] = [Frobenius G = K ><| H].
+Proof.
+by congr (_ && _); rewrite ?FrobeniusJcompl // -sdprodJ (can_eq (conjsgK x)).
+Qed.
+
+Lemma FrobeniusJker x G K :
+  [Frobenius G :^ x with kernel K :^ x] = [Frobenius G with kernel K].
+Proof.
+apply/existsP/existsP=> [] [H]; last by exists (H :^ x)%G; rewrite FrobeniusJ.
+by rewrite -(conjsgKV x H) FrobeniusJ; exists (H :^ x^-1)%G.
+Qed.
+
+Lemma FrobeniusJgroup x G : [Frobenius G :^ x] = [Frobenius G].
+Proof.
+apply/existsP/existsP=> [] [H].
+  by rewrite -(conjsgKV x H) FrobeniusJcompl; exists (H :^ x^-1)%G.
+by exists (H :^ x)%G; rewrite FrobeniusJcompl.
+Qed.
 
 Lemma Frobenius_ker_dvd_ker1 G K :
   [Frobenius G with kernel K] -> #|G : K| %| #|K|.-1.
@@ -510,19 +487,18 @@ Lemma Frobenius_semiregularP G K H :
   reflect (semiregular K H) [Frobenius G = K ><| H].
 Proof.
 move=> defG ntK ntH.
-apply: (iffP idP)=> [|regG]; first exact: Frobenius_reg_ker.
+apply: (iffP idP) => [|regG]; first exact: Frobenius_reg_ker.
 have [nsKG sHG defKH nKH tiKH]:= sdprod_context defG; have [sKG _]:= andP nsKG.
 apply/and3P; split; first by rewrite defG.
-  by rewrite properEcard sHG -(sdprod_card defG) ltn_Pmull ?cardG_gt1.
-apply/(TIconj_SN_P ntH sHG) => x; case/setDP=> Gx notHx.
-apply/trivgP; apply: contraR notHx; case/subsetPn=> y; case/setIP=> Hy.
-move: Gx; rewrite -defKH -(normC nKH); case/imset2P=> xh xk Hxh Kxk ->{x}.
-rewrite groupMl //= conjsgM {xh Hxh}(conjGid Hxh).
-case/imsetP=> z Hxz def_y nt_y; rewrite (subsetP (sub1G H)) //.
-rewrite -(regG y); last by rewrite !(nt_y, inE).
-rewrite inE Kxk -groupV cent1C (sameP cent1P commgP) -in_set1 -[[set 1]]tiKH.
-rewrite inE {1}commgEr invgK groupM ?memJ_norm ?groupV ?(subsetP nKH) //=.
-by rewrite commgEl {2}def_y actK groupM ?groupV.
+  by rewrite eqEcard sHG -(sdprod_card defG) -ltnNge ltn_Pmull ?cardG_gt1.
+apply/normedTI_memJ_P; rewrite setD_eq0 subG1 sHG -defKH -(normC nKH).
+split=> // z _ /setD1P[ntz Hz] /mulsgP[y x Hy Kx ->]; rewrite groupMl // !inE.
+rewrite conjg_eq1 ntz; apply/idP/idP=> [Hzxy | Hx]; last by rewrite !in_group.
+apply: (subsetP (sub1G H)); have Hzy: z ^ y \in H by apply: groupJ.
+rewrite -(regG (z ^ y)); last by apply/setD1P; rewrite conjg_eq1.
+rewrite inE Kx cent1C (sameP cent1P commgP) -in_set1 -[[set 1]]tiKH inE /=.
+rewrite andbC groupM ?groupV -?conjgM //= commgEr groupMr //.
+by rewrite memJ_norm ?(subsetP nKH) ?groupV.
 Qed.
 
 Lemma prime_FrobeniusP G K H :
@@ -535,10 +511,8 @@ have [defG | not_sdG] := eqVneq (K ><| H) G; last first.
 apply: (iffP (Frobenius_semiregularP defG ntK ntH)) => [regH | [_ regH x]].
   split=> //; have [x defH] := cyclicP (prime_cyclic H_pr).
   by rewrite defH cent_cycle regH // !inE defH cycle_id andbT -cycle_eq1 -defH.
-case/setD1P=> nt_x Hx; apply/trivgP.
-rewrite /= -cent_cycle -regH setIS ?centS //.
-apply: contraR nt_x; rewrite -cycle_eq1; move/(prime_TIg H_pr) <-.
-by rewrite (setIidPr _) ?cycle_subG.
+case/setD1P=> nt_x Hx; apply/trivgP; rewrite -regH setIS //= -cent_cycle.
+by rewrite centS // prime_meetG // (setIidPr _) ?cycle_eq1 ?cycle_subG.
 Qed.
 
 Lemma Frobenius_subl G K K1 H :
@@ -618,13 +592,11 @@ have partG: partition (gval K |: (H^# :^: K)) G.
   apply: Frobenius_partition; apply/andP; rewrite defG; split=> //.
   by apply/Frobenius_actionP; exact: HasFrobeniusAction FrobG.
 have{FrobG} [ffulG transG regG ntH [u Su defH]]:= FrobG.
-apply/setP=> x; rewrite !inE.
-have [-> | ntx]:= eqVneq x 1; first by rewrite group1 eqxx.
-have [coverG _]:= andP partG.
+apply/setP=> x; rewrite !inE; have [-> | ntx] := altP eqP; first exact: group1. 
+rewrite /= -(cover_partition partG) /cover.
 have neKHy y: gval K <> H^# :^ y.
   by move/setP/(_ 1); rewrite group1 conjD1g setD11.
-rewrite (negPf ntx) -(eqP coverG) /cover.
-rewrite big_setU1 /= ?inE; last by apply/imsetP=> [[y _]]; exact: neKHy.
+rewrite big_setU1 /= ?inE; last by apply/imsetP=> [[y _ /neKHy]].
 have [nsKG sHG _ _ tiKH] := sdprod_context defG; have [sKG nKG]:= andP nsKG.
 symmetry; case Kx: (x \in K) => /=.
   apply/set0Pn=> [[v /setIP[Sv]]]; have [y Gy ->] := atransP2 transG Su Sv.
@@ -639,7 +611,6 @@ Qed.
 
 End FrobeniusBasics.
 
-Implicit Arguments TIconjP [gT G H].
 Implicit Arguments normedTI_P [gT A G L].
 Implicit Arguments normedTI_memJ_P [gT A G L].
 Implicit Arguments Frobenius_kerP [gT G K].
@@ -673,12 +644,13 @@ Implicit Types (H K : {group gT}) (sGD : G \subset D) (injf : 'injm f).
 Lemma injm_Frobenius_compl H sGD injf : 
   [Frobenius G with complement H] -> [Frobenius f @* G with complement f @* H].
 Proof.
-case/and3P=> ltHG tiHG defNH; have sHD := subset_trans (proper_sub ltHG) sGD.
-apply/and3P; rewrite injm_proper // -injm_subnorm // (eqP defNH); split=> //.
-apply/TIconjP=> _ _ /morphimP[x Dx Gx ->] /morphimP[y Dy Gy ->].
-rewrite -morphV -?morphM ?groupV // -injm_subnorm // -!morphimJ -?injmI //.
-have [Nxy | ->] := TIconjP tiHG x y Gx Gy; last by right; rewrite morphim1.
-by left; rewrite mem_morphim // groupM ?groupV.
+case/andP=> neqGH /normedTI_P[nzH /subsetIP[sHG _] tiHG].
+have sHD := subset_trans sHG sGD; have sH1D := subset_trans (subD1set H 1) sHD.
+apply/andP; rewrite (can_in_eq (injmK injf)) //; split=> //.
+apply/normedTI_P; rewrite normD1 -injmD1 // -!cards_eq0 card_injm // in nzH *.
+rewrite subsetI normG morphimS //; split=> // _ /morphimP[x Dx Gx ->] ti'fHx.
+rewrite mem_morphim ?tiHG //; apply: contra ti'fHx; rewrite -!setI_eq0 => tiHx.
+by rewrite -morphimJ // -injmI ?conj_subG // (eqP tiHx) morphim0.
 Qed.
 
 Lemma injm_Frobenius H K sGD injf : 
@@ -721,8 +693,8 @@ have: n %| #|'Ldiv_(p * n)(G)|.
   by rewrite oG divnMr.
 rewrite -(cardsID 'Ldiv_n()) dvdn_addl.
   rewrite -setIA ['Ldiv_n(_)](setIidPr _) //.
-  apply/subsetP=> x; rewrite !inE -!order_dvdn; exact: dvdn_mull.
-rewrite setDE -setIA -setDE; set A := _ :\: _.
+  by apply/subsetP=> x; rewrite !inE -!order_dvdn; apply: dvdn_mull.
+rewrite -setIDA; set A := _ :\: _.
 have pA x: x \in A -> #[x]`_p = (n`_p * p)%N.
   rewrite !inE -!order_dvdn => /andP[xn xnp].
   rewrite !p_part // -expnSr; congr (p ^ _)%N; apply/eqP.
@@ -769,13 +741,13 @@ pose h' := [fun Z : coset_of <[y]> => (y * (repr Z).`_p^') ^ a].
 rewrite -sum1_card (reindex_onto h h') /= => [|Z]; last first.
   rewrite conjgK coset_kerl ?cycle_id ?morph_constt ?repr_coset_norm //.
   rewrite /= coset_reprK 2!inE -order_dvdn dvdn_gcd => /and3P[_ _ p'Z].
-  apply: constt_p_elt (pnat_dvd p'Z _); exact: part_pnat.
+  by apply: constt_p_elt (pnat_dvd p'Z _); apply: part_pnat.
 apply: eq_bigl => z; apply/andP/andP=> [[]|[]].
   rewrite inE -andbA => /and3P[Gz Az _] /eqP zp_ya.
   have czy: z ^ a^-1 \in 'C[y].
     rewrite -mem_conjg -normJ conjg_set1 -zp_ya.
-    by apply/cent1P; exact: commuteX.
-  have Nz:  z ^ a^-1 \in 'N(<[y]>) by apply: subsetP czy; exact: norm_gen.
+    by apply/cent1P; apply: commuteX.
+  have Nz:  z ^ a^-1 \in 'N(<[y]>) by apply: subsetP czy; apply: norm_gen.
   have G'z: h z \in G' by rewrite mem_morphim //= inE groupJ // groupV.
   rewrite inE G'z inE -order_dvdn dvdn_gcd order_dvdG //=.
   rewrite /order -morphim_cycle // -quotientE card_quotient ?cycle_subG //.
@@ -785,7 +757,7 @@ apply: eq_bigl => z; apply/andP/andP=> [[]|[]].
     by rewrite !inE -!order_dvdn mulnC in Az; case/andP: Az.
   set Z := coset _ _; have NZ := repr_coset_norm Z; have:= coset_reprK Z.
   case/kercoset_rcoset=> {NZ}// _ /cycleP[i ->] ->{Z}.
-  rewrite consttM; last by apply commute_sym; apply: commuteX; apply/cent1P.
+  rewrite consttM; last exact/commute_sym/commuteX/cent1P.
   rewrite (constt1P _) ?p_eltNK 1?p_eltX ?p_elt_constt // mul1g.
   by rewrite conjMg consttJ conjgKV -zp_ya consttC.
 rewrite 2!inE -order_dvdn; set Z := coset _ _ => /andP[Cz n'Z] /eqP def_z.
@@ -794,13 +766,13 @@ have Nz: z ^ a^-1 \in 'N(<[y]>).
   by rewrite groupX ?repr_coset_norm.
 have{Cz} /setIP[Gz Cz]: z ^ a^-1 \in 'C_G[y].
   case/morphimP: Cz => u Nu Cu /kercoset_rcoset[] // _ /cycleP[i ->] ->.
-  by rewrite groupMr // groupX // inE groupX //; exact/cent1P.
+  by rewrite groupMr // groupX // inE groupX //; apply/cent1P.
 have{def_z} zp_ya: z.`_p = y ^ a.
   rewrite -def_z consttJ consttM.
     rewrite constt_p_elt ?p_elt_constt //.
     by rewrite (constt1P _) ?p_eltNK ?p_elt_constt ?mulg1.
   apply: commute_sym; apply/cent1P.
-  rewrite -def_z conjgK groupMl // in Cz; exact/cent1P.
+  by rewrite -def_z conjgK groupMl // in Cz; apply/cent1P.
 have ozp: #[z ^ a^-1]`_p = #[y] by rewrite -order_constt consttJ zp_ya conjgK.
 split; rewrite zp_ya // -class_lcoset lcoset_id // eqxx andbT.
 rewrite -(conjgKV a z) !inE groupJ //= -!order_dvdn orderJ; apply/andP; split.

@@ -1979,8 +1979,8 @@ Qed.
 
 Lemma gacentD1 A : 'C_(|to)(A^#) = 'C_(|to)(A).
 Proof.
-rewrite -gacentIdom -gacent_gen ?subsetIl // setDE setIA -setDE.
-by rewrite genD1 ?group1 // gacent_gen ?subsetIl // gacentIdom.
+rewrite -gacentIdom -gacent_gen ?subsetIl // setIDA genD1 ?group1 //.
+by rewrite gacent_gen ?subsetIl // gacentIdom.
 Qed.
 
 Lemma gacent_cycle a : a \in D -> 'C_(|to)(<[a]>) = 'C_(|to)[a].
@@ -2362,7 +2362,7 @@ Lemma morph_gastabs S : S \subset R1 -> f @* 'N(S | to1) = 'N(h @* S | to2).
 Proof.
 have [[_ defD2] [injh _]] := (isomP iso_f, isomP iso_h).
 move=> sSR1; rewrite (morphimEsub _ sSR1).
-apply: (morph_astabs (gact_stable to1) (injmP _ injh)) => // u x.
+apply: (morph_astabs (gact_stable to1) (injmP injh)) => // u x.
 by move/(subsetP sSR1); exact: hfJ.
 Qed.
 
@@ -2370,7 +2370,7 @@ Lemma morph_gastab S : S \subset R1 -> f @* 'C(S | to1) = 'C(h @* S | to2).
 Proof.
 have [[_ defD2] [injh _]] := (isomP iso_f, isomP iso_h).
 move=> sSR1; rewrite (morphimEsub _ sSR1).
-apply: (morph_astab (gact_stable to1) (injmP _ injh)) => // u x.
+apply: (morph_astab (gact_stable to1) (injmP injh)) => // u x.
 by move/(subsetP sSR1); exact: hfJ.
 Qed.
 
@@ -2379,7 +2379,7 @@ Proof.
 have [[_ defD2] [injh defR2]] := (isomP iso_f, isomP iso_h).
 move=> sAD1; rewrite !gacentE //; last by rewrite -defD2 morphimS.
 rewrite morphimEsub ?subsetIl // -{1}defR2 morphimEdom.
-exact: (morph_afix (gact_stable to1) (injmP _ injh)).
+exact: (morph_afix (gact_stable to1) (injmP injh)).
 Qed.
 
 Lemma morph_gact_irr A M :

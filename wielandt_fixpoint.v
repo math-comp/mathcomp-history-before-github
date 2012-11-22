@@ -612,7 +612,7 @@ have /mkMx[/= Pr defPr]: setT \subset 'dom fPr.
   by rewrite -!sub_morphim_pre ?subsetT ?im_fW.
 exists Pl, Pr, Pu, Pd; split.
 - apply/row_matrixP=> j; rewrite rowE -row1 mul_row_col mulmxDr !mulmxA.
-  apply: (injmP _ injfW); rewrite ?in_setT // morphM ?in_setT //.
+  apply: (injmP injfW); rewrite ?in_setT // morphM ?in_setT //.
   rewrite defPl defPr defPu defPd -/hW [hW]lock /= -lock.
   have /(mem_dprod defW)[jR [jC [RjR CjC -> _]]]:= WfW (row j 1).
   rewrite [hW _]dprodmE // DfUl' DfUr' /= mulg1 mul1g !invmE // -DfW'.
@@ -632,7 +632,7 @@ have /subsetP nRA1: Ai1 \subset 'N([~: W, Ai1]) by rewrite commg_normr.
 transitivity (\sum_(a1 in Ai1) hR (jR ^ a1)).
   rewrite {1}[Ai1 in rhs in _ = rhs]morphimEsub /= ?im_restrm ?imfG1 //.
   rewrite big_imset /=; last first.
-    apply: sub_in2 (injmP _ (injm_invm injfG)); apply/subsetP.
+    apply: sub_in2 (injmP (injm_invm injfG)); apply/subsetP.
     by rewrite /= im_restrm imfG1.
   apply: eq_bigr => a /AfG' A1a.
   have RjRa: jR ^ fG' a \in [~: W, Ai1] by rewrite memJ_norm ?nRA1.
