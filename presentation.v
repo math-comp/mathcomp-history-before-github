@@ -15,7 +15,7 @@ Require Import fingroup morphism.
 (*        even the non-triviality of a generated group is undecidable.        *)
 (* Syntax details:                                                            *)
 (*  - Grp is a litteral constant.                                             *)
-(*  - There must be at one generator and one relation.                        *)
+(*  - There must be at least one generator and one relation.                  *)
 (*  - A relation s_j = 1 can be abbreviated as simply s_j (a.k.a. a relator). *)
 (*  - Two consecutive relations s_j = t, s_j+1 = t can be abbreviated         *)
 (*    s_j = s_j+1 = t.                                                        *)
