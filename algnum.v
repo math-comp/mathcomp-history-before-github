@@ -76,7 +76,7 @@ suffices /sig_eqW[[n [|px [|pz []]]]// [Dpx Dpz]]:
 have [rx nz_rx rx0] := r_exists x.
 have [rz nz_rz rz0] := r_exists (- z).
 have char0_Q: [char rat] =i pred0 by exact: char_num.
-have [n [[pz Dpz] [px Dpx]]] := PET_char0 nz_rz rz0 nz_rx rx0 char0_Q.
+have [n [[pz Dpz] [px Dpx]]] := char0_PET nz_rz rz0 nz_rx rx0 char0_Q.
 by exists (n, [:: px; - pz]); rewrite /= !raddfN hornerN -[z]opprK Dpz Dpx.
 Qed.
 
@@ -85,7 +85,7 @@ Canonical subfx_unitAlgType (F L : fieldType) iota (z : L) p :=
 
 Lemma num_field_exists (s : seq algC) :
   {Qs : fieldExtType rat & {QsC : {rmorphism Qs -> algC}
-   & {s1 : seq Qs | map QsC s1 = s & <<1 & s1>>%AS = fullv}}}.
+   & {s1 : seq Qs | map QsC s1 = s & <<1 & s1>>%VS = fullv}}}.
 Proof.
 have [z /sig_eqW[a Dz] /sig_eqW[ps Ds]] := algC_PET s.
 suffices [Qs [QsC [z1 z1C z1gen]]]:
@@ -408,23 +408,22 @@ have ext1 mu0 x: {mu1 | exists y, x = Sinj mu1 y
   have Df y: f (in01 y) = in01 (Saut mu0 y).
     transitivity (f (lin01 y)); first by rewrite !lfunE.
     by do 4!rewrite lfunE /=; rewrite lker0_lfunK.
-  have hom_f: f \is a kHom 1 (ASpace algK).
-    apply/kHomP; split=> [_ /vlineP[a ->] | _ _ /memK[y1 ->] /memK[y2 ->]].
-      by rewrite -(rmorph1 in01) -linearZ /= Df {1}linearZ /= rmorph1.
-    by rewrite -rmorphM !Df !rmorphM.
+  have hom_f: kHom 1 (ASpace algK) f.
+    apply/kHomP; split=> [_ _ /memK[y1 ->] /memK[y2 ->] |_ /vlineP[a ->]].
+      by rewrite -rmorphM !Df !rmorphM.
+    by rewrite -(rmorph1 in01) -linearZ /= Df {1}linearZ /= rmorph1.
   pose pr := map_poly (in_alg Qr) p.
   have Qpr: pr \is a polyOver 1%VS.
     by apply/polyOverP=> i; rewrite coef_map memvZ ?memv_line.
   have splitQr: splittingFieldFor K pr fullv.
-    have midK : (1 <= ASpace algK <= {:Qr})%VS by rewrite sub1v subvf.
-    apply: splittingFieldForS midK _; exists rr => //.
+    apply: splittingFieldForS (sub1v (Sub K algK)) (subvf _) _; exists rr => //.
     congr (_ %= _): (eqpxx pr); apply: (@map_poly_inj _ _ QrC).
     rewrite Sinj_poly Dr -Drr big_map rmorph_prod; apply: eq_bigr => zz _.
     by rewrite rmorphB /= map_polyX map_polyC.
   have [f1 aut_f1 Df1]:= kHom_extends (sub1v (ASpace algK)) hom_f Qpr splitQr.
-  pose nu := LRMorphism (fAutL_lrmorph _ aut_f1).
-  exists (SubAut Qr QrC nu) => //; exists in01 => //= y; rewrite -Df -Df1 //.
-  by apply/memK; exists y.
+  pose nu := LRMorphism (kHom_lrmorphism aut_f1).
+  exists (SubAut Qr QrC nu) => //; exists in01 => //= y.
+  by rewrite -Df -Df1 //; apply/memK; exists y.
 have phiZ: scalable phi.
   move=> a y; do 2!rewrite -mulr_algl -in_algE.
   by rewrite -[a]divq_num_den !(fmorph_div, rmorphM, rmorph_int).
@@ -476,8 +475,8 @@ have [-> /eqnP | n_gt0 co_k_n] := posnP n.
   by rewrite gcdn0 => ->; exists [rmorphism of idfun].
 have [z prim_z] := C_prim_root_exists n_gt0.
 have [Qn [QnC [[|zn []] // [Dz]]] genQn] := num_field_exists [:: z].
-pose phi := kHomExtend 1 \1%VF zn (zn ^+ k).
-have homQn1: (\1%VF : 'End(Qn)) \is a kHom 1 1 by rewrite kHom1.
+pose phi := kHomExtend 1 \1 zn (zn ^+ k).
+have homQn1: kHom 1 1 (\1%VF : 'End(Qn)) by rewrite kHom1.
 have pzn_zk0: root (map_poly \1%VF (minPoly 1 zn)) (zn ^+ k).
   rewrite -(fmorph_root QnC) rmorphX Dz -map_poly_comp.
   rewrite (@eq_map_poly _ _ _ QnC) => [|a]; last by rewrite /= id_lfunE.
@@ -498,7 +497,7 @@ have pzn_zk0: root (map_poly \1%VF (minPoly 1 zn)) (zn ^+ k).
   rewrite (bigD1 (Ordinal (ltn_pmod k n_gt0))) ?coprime_modl //=.
   by rewrite rootM root_XsubC prim_expr_mod ?eqxx.
 have phiM: lrmorphism phi.
-  by apply/fAutL_lrmorph; rewrite -genQn span_seq1 /= kHomExtendkHom.
+  by apply/kHom_lrmorphism; rewrite -genQn span_seq1 /= kHomExtendP.
 have [nu Dnu] := extend_algC_subfield_aut QnC (RMorphism phiM).
 exists nu => _ /(prim_rootP prim_z)[i ->].
 rewrite rmorphX exprAC -Dz -Dnu /= -{1}[zn]hornerX /phi.

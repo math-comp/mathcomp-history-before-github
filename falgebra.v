@@ -1,18 +1,20 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype bigop.
-Require Import finfun ssralg matrix zmodp tuple vector.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq path choice fintype.
+Require Import tuple finfun bigop ssralg finalg zmodp matrix vector poly.
 
 (******************************************************************************)
 (* Finite dimensional free algebras, usually known as F-algebras.             *)
 (*       FalgType K   == the interface type for F-algebras over K; it simply  *)
-(*                       combines the algType K and vectType K interfaces.    *)
+(*                       joins the unitAlgType K and vectType K interfaces.   *)
 (* [FalgType K of aT] == an FalgType K structure for a type aT that has both  *)
-(*                       algType K and vectType K canonical structures.       *)
-(* [FalgType K of aT for vT] == an FalgType K structure for a type aT that    *)
-(*                       an algType K canonical structure, given a structure  *)
+(*                       unitAlgType K and vectType K canonical structures.   *)
+(* [FalgType K of aT for vT] == an FalgType K structure for a type aT with a  *)
+(*                       unitAlgType K canonical structure, given a structure *)
 (*                       vT : vectType K whose lmodType K projection matches  *)
 (*                       the canonical lmodType for aT.                       *)
-(*   Any aT with an FalgType structure inherints all the Vector, Ring and     *)
+(* FalgUnitRingType T == a default unitRingType structure for a type T with   *)
+(*                       both algType and vectType structures.                *)
+(*   Any aT with an FalgType structure inherits all the Vector, Ring and      *)
 (* Algebra operations, and supports the following additional operations:      *)
 (*            amull u == the linear function v |-> u * v, for u, v : aT.      *)
 (*            amulr u == the linear function v |-> v * u, for u, v : aT.      *)
@@ -27,13 +29,13 @@ Require Import finfun ssralg matrix zmodp tuple vector.
 (*         (U * V)%VS == the smallest subspace of aT that contains all        *)
 (*                       products u * v for u in U, v in V.                   *)
 (*        (U ^+ n)%VS == (U * U * ... * U), n-times.  U ^+ 0 = 1%VS           *)
-(*           <<U>>%AS == smallest subalgebra containing U ^+ n for all n.     *)
-(*        <<U; v>>%AS == <<(U + <[v]>)%VS>>%AS (U adjoin v)                   *)
-(*      <<U & vs>>%AS == <<(U + <<vs>>)%VS>>%AS (U adjoin vs)                 *)
+(*            agenv U == the smallest subalgebra containing U ^+ n for all n. *)
+(*        <<U; v>>%VS == agenv (U + <[v]>) (adjoin v to U).                   *)
+(*      <<U & vs>>%VS == agenv (U + <<vs>>) (adjoin vs to U).                 *)
 (*        {aspace aT} == a subType of {vspace aT} consisting of sub-algebras  *)
 (*                       of aT (see below); for A : {aspace aT}, subvs_of A   *)
 (*                       has a canonical FalgType K structure.                *)
-(*        is_aspace U == the characteristic predicate of {aspace aT}, stating *)
+(*        is_aspace U <=> the characteristic predicate of {aspace aT} stating *)
 (*                       that U is closed under product and contains an       *)
 (*                       identity element, := has_algid U && (U * U <= U)%VS. *)
 (*            algid A == the identity element of A : {aspace aT}, which need  *)
@@ -41,16 +43,24 @@ Require Import finfun ssralg matrix zmodp tuple vector.
 (*                       decomposition it is not even a unit in aT).          *)
 (*       is_algid U e <-> e : aT is an identity element for the subspace U:   *)
 (*                       e in U, e != 0 & e * u = u * e = u for all u in U.   *)
-(*        has_algid U == there is an e such that is_algid U e.                *)
-(*               1%AS == the canonial sub-algebra 1%VS.                       *)
-(*           {:aT}%AS == the canonial full algebra.                           *)
+(*        has_algid U <=> there is an e such that is_algid U e.               *)
 (*      [aspace of U] == a clone of an existing {aspace aT} structure on      *)
 (*                       U : {vspace aT} (more instances of {aspace aT} will  *)
 (*                       be defined in extFieldType).                         *)
 (* [aspace of U for A] == a clone of A : {aspace aT} for U : {vspace aT}.     *)
+(*               1%AS == the canonical sub-algebra 1%VS.                      *)
+(*           {:aT}%AS == the canonical full algebra.                          *)
+(*           <<U>>%AS == the canonical algebra for agenv U; note that this is *)
+(*                       unrelated to <<vs>>%VS, the subspace spanned by vs.  *)
+(*        <<U; v>>%AS == the canonical algebra for <<U; v>>%VS.               *)
+(*      <<U & vs>>%AS == the canonical algebra for <<U & vs>>%VS.             *)
+(*        ahom_in U f <=> f : 'Hom(aT, rT) is a multiplicative homomorphism   *)
+(*                       inside U, and in addition f 1 = 1 (even if U doesn't *)
+(*                       contain 1). Note that f @: U need not be a           *)
+(*                       subalgebra when U is, as f could annilate U.         *)
 (*      'AHom(aT, rT) == the type of algebra homomorphisms from aT to rT,     *)
 (*                       where aT and rT ARE FalgType structures. Elements of *)
-(*                       'AHom(aT, rT) coerce to Coq functions.               *)
+(*                       'AHom(aT, rT) coerce to 'End(aT, rT) and aT -> rT.   *)
 (* --> Caveat: aT and rT must denote actual FalgType structures, not their    *)
 (*     projections on Type.                                                   *)
 (*          'AEnd(aT) == algebra endomorphisms of aT (:= 'AHom(aT, aT)).      *)
@@ -62,6 +72,8 @@ Unset Printing Implicit Defensive.
 Open Local Scope ring_scope.
 
 Reserved Notation "{ 'aspace' T }" (at level 0, format "{ 'aspace'  T }").
+Reserved Notation "<< U & vs >>" (at level 0, format "<< U  &  vs >>").
+Reserved Notation "<< U ; x >>" (at level 0, format "<< U ;  x >>").
 Reserved Notation "''AHom' ( T , rT )"
   (at level 8, format "''AHom' ( T ,  rT )").
 Reserved Notation "''AEnd' ( T )" (at level 8, format "''AEnd' ( T )").
@@ -270,42 +282,40 @@ Definition amull u : 'End(aT) := linfun (u \*o @idfun aT).
 Definition amulr u : 'End(aT) := linfun (u \o* @idfun aT).
 
 Lemma amull_inj : injective amull.
-Proof. by move => x y /lfunP/(_ 1); rewrite !lfunE /= !mulr1. Qed.
+Proof. by move=> x y /lfunP/(_ 1); rewrite !lfunE /= !mulr1. Qed.
 
 Lemma amulr_inj : injective amulr.
-Proof. by move => x y /lfunP/(_ 1); rewrite !lfunE /= !mul1r. Qed.
+Proof. by move=> x y /lfunP/(_ 1); rewrite !lfunE /= !mul1r. Qed.
 
 Fact amull_is_linear : linear amull.
 Proof.
-move => c a b; apply/lfunP => d.
-by rewrite !lfunE /= !scale_lfunE !lfunE mulrDl scalerAl.
+move=> a x y; apply/lfunP => z.
+by rewrite !lfunE /= scale_lfunE !lfunE /= mulrDl scalerAl.
 Qed.
 Canonical amull_additive := Eval hnf in Additive amull_is_linear.
 Canonical amull_linear := Eval hnf in AddLinear amull_is_linear.
 
 (* amull is a converse ring morphism *)
 Lemma amull1 : amull 1 = \1%VF.
-Proof. by apply/lfunP => u; rewrite id_lfunE lfunE [X in X = _]mul1r. Qed.
+Proof. by apply/lfunP => z; rewrite id_lfunE lfunE /= mul1r. Qed.
 
 Lemma amullM x y : (amull (x * y) = amull y * amull x)%VF.
-Proof. by apply/lfunP => a; rewrite comp_lfunE !lfunE /= mulrA. Qed.
+Proof. by apply/lfunP => z; rewrite comp_lfunE !lfunE /= mulrA. Qed.
 
 Lemma amulr_is_lrmorphism : lrmorphism amulr.
 Proof.
-repeat split.
-- move => a b /=; apply/lfunP => d.
-  by rewrite add_lfunE opp_lfunE !lfunE /= mulrBr.
-- move => a b /=; apply/lfunP => d.
-  by rewrite comp_lfunE !lfunE /= mulrA.
-- apply/lfunP => u.
-  by rewrite id_lfunE !lfunE /= mulr1.
-- move => c a /=; apply/lfunP => d.
-  by rewrite scale_lfunE !lfunE /= scalerAr.
+split=> [|a x]; last by apply/lfunP=> z; rewrite scale_lfunE !lfunE /= scalerAr.
+split=> [x y|]; first by apply/lfunP => z; do 3!rewrite !lfunE /= ?mulrBr.
+split=> [x y|]; last by apply/lfunP=> z; rewrite id_lfunE !lfunE /= mulr1.
+by apply/lfunP=> z; rewrite comp_lfunE !lfunE /= mulrA.
 Qed.
 Canonical amulr_additive := Eval hnf in Additive amulr_is_lrmorphism.
 Canonical amulr_linear := Eval hnf in AddLinear amulr_is_lrmorphism.
 Canonical amulr_rmorphism := Eval hnf in AddRMorphism amulr_is_lrmorphism.
 Canonical amulr_lrmorphism := Eval hnf in LRMorphism amulr_is_lrmorphism.
+
+Lemma lfun1_poly (p : {poly aT}) : map_poly \1%VF p = p.
+Proof. by apply: map_poly_id => u _; apply: id_lfunE. Qed.
 
 Fact prodv_key : unit. Proof. by []. Qed.
 Definition prodv :=
@@ -424,43 +434,34 @@ Qed.
 
 Canonical prodv_monoid := Monoid.Law prodvA prod1v prodv1.
 
-Definition expv U n := nosimpl iterop _ n prodv U 1%VS.
+Definition expv U n := iterop n.+1.-1 prodv U 1%VS.
 Local Notation "A ^+ n" := (expv A n) : vspace_scope.
 
-Lemma expv0 U : (U ^+ 0 = 1)%VS.
-Proof. done. Qed.
-
-Lemma expv1 U : (U ^+ 1 = U)%VS.
-Proof. done. Qed.
-
-Lemma expv2 U : (U ^+ 2 = U * U)%VS.
-Proof. done. Qed.
+Lemma expv0 U : (U ^+ 0 = 1)%VS. Proof. by []. Qed.
+Lemma expv1 U : (U ^+ 1 = U)%VS. Proof. by []. Qed.
+Lemma expv2 U : (U ^+ 2 = U * U)%VS. Proof. by []. Qed.
 
 Lemma expvSl U n : (U ^+ n.+1 = U * U ^+ n)%VS.
 Proof. by case: n => //; rewrite prodv1. Qed.
 
-Lemma expv0n n : (0 ^+ n = if n is n'.+1 then 0 else 1)%VS.
-Proof. by case: n => [//|n]; rewrite expvSl prod0v. Qed.
+Lemma expv0n n : (0 ^+ n = if n is _.+1 then 0 else 1)%VS.
+Proof. by case: n => // n; rewrite expvSl prod0v. Qed.
 
 Lemma expv1n n : (1 ^+ n = 1)%VS.
-Proof. by elim: n => [//|n IH]; rewrite expvSl IH prodv1. Qed.
+Proof. by elim: n => // n IHn; rewrite expvSl IHn prodv1. Qed.
 
 Lemma expvD U m n : (U ^+ (m + n) = U ^+ m * U ^+ n)%VS.
-Proof. by elim: m => [//|m IH]; rewrite ?prod1v // !expvSl IH prodvA. Qed.
+Proof. by elim: m => [|m IHm]; rewrite ?prod1v // !expvSl IHm prodvA. Qed.
 
 Lemma expvSr U n : (U ^+ n.+1 = U ^+ n * U)%VS.
 Proof. by rewrite -addn1 expvD. Qed.
 
-(* TODO
 Lemma expvM U m n : (U ^+ (m * n) = U ^+ m ^+ n)%VS.
-Proof.
-elim: m => [|m IH]; first by rewrite expv0 expv1n.
-rewrite mulSn expvD IH expvS.
-*)
+Proof. by elim: n => [|n IHn]; rewrite ?muln0 // mulnS expvD IHn expvSl. Qed.
 
 Lemma expvS U V n : (U <= V -> U ^+ n <= V ^+ n)%VS.
-move => HUV.
-elim: n => [|n IH]; first by rewrite !expv0 subvv.
+Proof.
+move=> sUV; elim: n => [|n IHn]; first by rewrite !expv0 subvv.
 by rewrite !expvSl prodvS.
 Qed.
 
@@ -554,207 +555,8 @@ Notation "[ 'aspace' 'of' U ]" := (@clone_aspace _ _ U _ _ id)
 Notation "[ 'aspace' 'of' U 'for' A ]" := (@clone_aspace _ _ U A _ idfun)
   (at level 0, format "[ 'aspace'  'of'  U  'for'  A ]") : form_scope.
 
-Section Closure.
-
-Variables (K : fieldType) (aT : FalgType K).
-Implicit Types (u v : aT) (U V W : {vspace aT}).
-
-(* Subspaces of an F-algebra form a Kleene algebra *)
-Definition closurea U := nosimpl (\sum_(i < \dim {:aT}) U ^+ i)%VS.
-Local Notation "<< A >>" := (closurea A) : aspace_scope.
-Local Notation "<< A & s >>" := <<(A + <<s>>)%VS>>%AS 
-  (at level 0, format "<< A  &  s >>") : aspace_scope.
-Local Notation "<< A ; a >>" := <<(A + <[a]>)%VS>>%AS 
-  (at level 0, format "<< A ;  a >>") : aspace_scope.
-
-Lemma closureaEl U : (<<U>> = (1 + U * <<U>>%AS)%VS)%AS.
-Proof.
-transitivity (\sum_(i < (\dim {:aT}).+1) U ^+ i)%VS; last first.
-  rewrite big_ord_recl expv0 big_distrr.
-  congr (_ + _)%VS.
-  apply: eq_bigr => i _.
-  by rewrite expvSl.
-rewrite big_ord_recr /=.
-symmetry.
-apply/addv_idPl.
-pose sumUn n := (\sum_(i < n) U ^+ i)%VS.
-rewrite -/(sumUn (\dim fullv)).
-have [n Hn]: exists n : 'I_(\dim {:aT}).+1, (U ^+ n <= sumUn n)%VS.
-  apply/existsP.
-  move/dimvS:(subvf (sumUn (\dim {:aT}).+1)).
-  apply: contraLR; rewrite negb_exists -ltnNge /<<U>>%AS; move/forallP => HU.
-  move: (leqnn (\dim {:aT})); rewrite -ltnS; elim: {-2}(\dim _) => [_|n IH Hn].
-    by rewrite /sumUn big_ord1 expv0 dim_vline oner_neq0.
-  move: (IH (ltnW Hn)); rewrite -ltnS; move/(leq_trans); apply.
-  rewrite ltnNge.
-  apply: contra (HU (Ordinal Hn)).
-  rewrite /sumUn big_ord_recr /= => Hdim.
-  apply/addv_idPl/eqP.
-  by rewrite eq_sym -dimv_leqif_eq ?addvSl //= eqn_leq Hdim dimvS // addvSl.
-move:(ltn_ord n); rewrite ltnS; move/subnK <-.
-elim: (\dim {:aT} - n)%N => // m IH.
-rewrite addSn [sumUn _]big_ord_recl expvSl.
-have -> : (\sum_(i < m + n) U ^+ bump 0 i = U * \sum_(i < m + n) U ^+ i)%VS.
-  rewrite big_distrr.
-  apply: eq_bigr => i _.
-  by rewrite expvSl.
-apply/(subv_trans _ (addvSr _ _)).
-by apply: prodvSr IH.
-Qed.
-
-Lemma closureaEr U : (<<U>>%AS = 1 + <<U>>%AS * U)%VS.
-Proof.
-rewrite [X in X = _]closureaEl; congr (_ + _)%VS.
-rewrite big_distrr big_distrl.
-apply: eq_bigr => i _ /=.
-by rewrite -expvSr -expvSl.
-Qed.
-
-Lemma closurea_ideall U V : (U * V <= V -> <<U>>%AS * V <= V)%VS.
-Proof.
-move => HUV.
-have HUnV : forall n, (U ^+ n * V <= V)%VS.
-  elim => [|n IH]; first by rewrite expv0 prod1v subvv.
-  rewrite expvSr -prodvA.
-  by apply: (subv_trans (prodvSr _ HUV)).
-rewrite big_distrl /=.
-by apply/subv_sumP => i _.
-Qed.
-
-Lemma closurea_idealr U V : (V * U <= V -> V * <<U>>%AS <= V)%VS.
-move => HUV.
-have HUnV : forall n, (V * U ^+ n <= V)%VS.
-  elim => [|n IH]; first by rewrite expv0 prodv1 subvv.
-  rewrite expvSl prodvA.
-  by apply: (subv_trans (prodvSl _ HUV)).
-rewrite big_distrr /=.
-by apply/subv_sumP => i _.
-Qed.
-
-(* Theorems of Kleene Algebras *)
-Lemma closureaM U : (<<U>>%AS * <<U>>%AS = <<U>>%AS)%VS.
-Proof.
-apply:subv_anti.
-rewrite [X in (<<U>>%AS <= X * _)%VS]closureaEl prodvDl prod1v addvSl.
-by rewrite closurea_ideall // [X in (_ <= X)%VS]closureaEl addvSr.
-Qed.
-
-Lemma closureaX n U : (<<U>>%AS ^+ n.+1 = <<U>>%AS)%VS.
-Proof. by elim: n => [//|n IH]; rewrite expvSl IH closureaM. Qed.
-
-Lemma sub1_closure U : (1 <= <<U>>%AS)%VS.
-Proof. by rewrite closureaEl addvSl. Qed.
-
-Fact aspace_closure_subproof U : is_aspace <<U>>%AS.
-Proof. 
-by rewrite /is_aspace closureaM subvv has_algid1 // [_ \in _]sub1_closure.
-Qed.
-Canonical aspace_closure U : {aspace aT} := ASpace (aspace_closure_subproof U).
-
-Lemma subv_closure U : (U <= <<U>>%AS)%VS.
-Proof. by rewrite 2!closureaEl addvC prodvDr prodv1 -addvA addvSl. Qed.
-
-Lemma subvX_closure U n : (U ^+ n <= <<U>>%AS)%VS.
-Proof.
-case: n => [|n]; first by rewrite sub1_closure.
-by rewrite -(closureaX n) expvS // subv_closure.
-Qed.
-
-Lemma closurea_closed U : (<< <<U>>%AS >> = <<U>>)%AS.
-Proof.
-apply:subv_anti.
-rewrite subv_closure andbT.
-rewrite closureaEl subv_add sub1_closure.
-by rewrite closurea_idealr // closureaM subvv.
-Qed.
-
-Lemma ideall_closurea_sub U V : (1 <= V -> U * V <= V -> <<U>>%AS <= V)%VS.
-Proof.
-move => H1V HUV.
-apply: subv_trans (closurea_ideall HUV).
-by rewrite -[X in (X <= _)%VS]prodv1 prodvSr.
-Qed.
-
-Lemma idealr_closurea_sub U V : (1 <= V -> V * U <= V -> <<U>>%AS <= V)%VS.
-Proof.
-move => H1V HUV.
-apply: subv_trans (closurea_idealr HUV).
-by rewrite -[X in (X <= _)%VS]prod1v prodvSl.
-Qed.
-
-Lemma closureaS U V : (U <= V -> <<U>>%AS <= <<V>>%AS)%VS.
-Proof.
-move => HUV.
-rewrite ideall_closurea_sub ?sub1_closure //.
-rewrite -[X in (_ <= X)%VS]closureaM prodvSl //.
-apply: (subv_trans HUV).
-by rewrite subv_closure.
-Qed.
-
-Lemma closurea_add_closure U V : (<< <<U>>%AS + V>>%AS = <<U + V>>%AS)%VS.
-Proof.
-apply: subv_anti; rewrite [X in _ && X]closureaS ?andbT; last first.
-  by rewrite addvS ?subvv ?subv_closure.
-apply: ideall_closurea_sub; first by apply: sub1_closure.
-rewrite -[X in (_ <= X)%VS]closureaM prodvSl // subv_add.
-rewrite closureaS ?addvSl //=.
-apply: subv_trans (subv_closure _).
-by rewrite addvSr.
-Qed.
-
-Lemma subv_adjoin U x : (U <= <<U; x>>%AS)%VS.
-Proof.
-by rewrite (subv_trans (subv_closure _)) // closureaS // addvSl.
-Qed.
-
-Lemma subv_adjoin_seq U xs : (U <= <<U & xs>>%AS)%VS.
-Proof.
-by rewrite (subv_trans (subv_closure _)) // closureaS // addvSl.
-Qed.
-
-Lemma memv_adjoin U x : x \in <<U; x>>%AS.
-Proof.
-apply: (subv_trans (subv_closure _)).
-by rewrite closureaS // addvSr.
-Qed.
-
-Lemma seqv_sub_adjoin U xs : {subset xs <= <<U & xs>>%AS}.
-Proof.
-apply/span_subvP.
-by rewrite (subv_trans (subv_closure _)) // closureaS // addvSr.
-Qed.
-
-Lemma memv_mem_adjoin U x v : v \in U -> v \in <<U; x>>%AS.
-Proof. by move => Hx; apply/(subv_trans Hx); apply subv_adjoin. Qed.
-
-Lemma adjoin_nil V : <<V & [::]>>%AS = <<V>>%AS.
-Proof. by rewrite span_nil addv0. Qed.
-
-Lemma adjoin_cons V z rs : <<V & z :: rs>>%AS = << <<V; z>> & rs>>%AS.
-Proof. by rewrite span_cons addvA closurea_add_closure. Qed.
-
-Lemma adjoin_rcons V rs z : <<V & (rcons rs z)>>%AS = << <<V & rs>>%AS; z>>%AS.
-Proof. by rewrite -cats1 span_cat addvA span_seq1 closurea_add_closure. Qed.
-
-Lemma adjoinSl U V x : (U <= V -> <<U; x>>%AS <= <<V; x>>%AS)%VS.
-Proof. by move => HUV; rewrite closureaS // addvS ?subvv. Qed.
-
-Lemma adjoin_seqSl U V rs : (U <= V -> <<U & rs>>%AS <= <<V & rs>>%AS)%VS.
-Proof. by move => HUV; rewrite closureaS // addvS ?subvv. Qed.
-
-Lemma adjoin_seqSr U rs1 rs2 :
-  {subset rs1 <= rs2} -> (<<U & rs1>>%AS <= <<U & rs2>>%AS)%VS.
-Proof.
-by move/sub_span => s_rs12; rewrite closureaS // addvS ?subvv.
-Qed.
-
-End Closure.
-
-Notation "<< A >>" := (closurea A) : aspace_scope.
-Notation "<< A & s >>" := <<(A + <<s>>)%VS>>%AS 
-  (at level 0, format "<< A  &  s >>") : aspace_scope.
-Notation "<< A ; a >>" := <<(A + <[a]>)%VS>>%AS 
-  (at level 0, format "<< A ;  a >>") : aspace_scope.
+Implicit Arguments prodvP [K aT U V W].
+Implicit Arguments has_algidP [K aT U].
 
 Section AspaceTheory.
 
@@ -762,28 +564,31 @@ Variables (K : fieldType) (aT : FalgType K).
 Implicit Types (u v e : aT) (U V : {vspace aT}) (A B : {aspace aT}).
 Import FalgLfun.
 
-Lemma algid_subproof A :
-  {e : aT | e \in A & A <= lker (amull e - 1) :&: lker (amulr e - 1)}%VS.
+Lemma algid_subproof U :
+  {e | e \in U
+     & has_algid U ==> (U <= lker (amull e - 1) :&: lker (amulr e - 1))%VS}.
 Proof.
-apply: sig2W; have /has_algidP[e]: has_algid A by have /andP[] := valP A.
+apply: sig2W; case: has_algidP => [[e]|]; last by exists 0; rewrite ?mem0v.
 case=> Ae _ idAe; exists e => //; apply/subvP=> u /idAe[eu_u ue_u].
 by rewrite memv_cap !memv_ker !lfun_simp /= eu_u ue_u subrr eqxx.
 Qed.
 
-Definition algid A := s2val (algid_subproof A).
+Definition algid U := s2val (algid_subproof U).
 
-Lemma memv_algid A : algid A \in A.
+Lemma memv_algid U : algid U \in U.
 Proof. by rewrite /algid; case: algid_subproof. Qed.
 
 Lemma algidl A : {in A, left_id (algid A) *%R}.
 Proof.
-rewrite /algid; case: algid_subproof => e _ /= /subvP idAe u /idAe/memv_capP[].
+rewrite /algid; case: algid_subproof => e _ /=; have /andP[-> _] := valP A.
+move/subvP=> idAe u /idAe/memv_capP[].
 by rewrite memv_ker !lfun_simp /= subr_eq0 => /eqP.
 Qed.
 
 Lemma algidr A : {in A, right_id (algid A) *%R}.
 Proof.
-rewrite /algid; case: algid_subproof => e _ /= /subvP idAe u /idAe/memv_capP[_].
+rewrite /algid; case: algid_subproof => e _ /=; have /andP[-> _] := valP A.
+move/subvP=> idAe u /idAe/memv_capP[_].
 by rewrite memv_ker !lfun_simp /= subr_eq0 => /eqP.
 Qed.
 
@@ -805,7 +610,7 @@ Proof. by rewrite -(dim_algid A) dimvS // -memvE ?memv_algid. Qed.
 Lemma not_asubv0 A : ~~ (A <= 0)%VS.
 Proof. by rewrite subv0 -dimv_eq0 -lt0n adim_gt0. Qed.
 
-Lemma adim1P A : reflect (A = <[algid A]>%VS :> {vspace aT}) (\dim A == 1%N).
+Lemma adim1P {A} : reflect (A = <[algid A]>%VS :> {vspace aT}) (\dim A == 1%N).
 Proof.
 rewrite eqn_leq adim_gt0 -(memv_algid A) andbC -(dim_algid A) -eqEdim eq_sym.
 exact: eqP.
@@ -823,13 +628,19 @@ apply/eqP; rewrite eqEsubv asubv; apply/subvP=> u Au.
 by rewrite -(algidl Au) memv_prod // memv_algid.
 Qed.
 
+Lemma prodv_sub U V A : (U <= A -> V <= A -> U * V <= A)%VS.
+Proof. by move=> sUA sVA; rewrite -prodv_id prodvS. Qed.
+
+Lemma expv_id A n : (A ^+ n.+1)%VS = A.
+Proof. by elim: n => // n IHn; rewrite !expvSl prodvA prodv_id -expvSl. Qed.
+
 Lemma limg_amulr U v : (amulr v @: U = U * <[v]>)%VS.
 Proof.
 rewrite -(span_basis (vbasisP U)) limg_span !span_def big_distrl /= big_map.
 by apply: eq_bigr => u; rewrite prodv_line lfunE.
 Qed.
  
-Lemma memv_cosetP U v w :
+Lemma memv_cosetP {U v w} :
   reflect (exists2 u, u\in U & w = u * v) (w \in U * <[v]>)%VS.
 Proof.
 rewrite -limg_amulr.
@@ -849,6 +660,162 @@ Definition aspace_cap A B eq_eAB := ASpace (@aspace_cap_subproof A B eq_eAB).
 
 End AspaceTheory.
 
+Implicit Arguments adim1P [K aT A].
+Implicit Arguments memv_cosetP [K aT U v w].
+
+Section Closure.
+
+Variables (K : fieldType) (aT : FalgType K).
+Implicit Types (u v : aT) (U V W : {vspace aT}).
+
+(* Subspaces of an F-algebra form a Kleene algebra *)
+Definition agenv U := (\sum_(i < \dim {:aT}) U ^+ i)%VS.
+Local Notation "<< U & vs >>" := (agenv (U + <<vs>>)) : vspace_scope.
+Local Notation "<< U ; x >>" := (agenv (U + <[x]>)) : vspace_scope.
+
+Lemma agenvEl U : agenv U = (1 + U * agenv U)%VS.
+Proof.
+pose f V := (1 + U * V)%VS; rewrite -/(f _); pose n := \dim {:aT}.
+have ->: agenv U = iter n f 0%VS.
+  rewrite /agenv -/n; elim: n => [|n IHn]; first by rewrite big_ord0.
+  rewrite big_ord_recl /= -{}IHn; congr (1 + _)%VS; rewrite big_distrr /=.
+  by apply: eq_bigr => i; rewrite expvSl.
+have fS i j: i <= j -> (iter i f 0 <= iter j f 0)%VS.
+  by elim: i j => [|i IHi] [|j] leij; rewrite ?sub0v //= addvS ?prodvSr ?IHi.
+suffices /(@trajectP _ f _ n.+1)[i le_i_n Dfi]: looping f 0%VS n.+1.
+  by apply/eqP; rewrite eqEsubv -iterS fS // Dfi fS.
+apply: contraLR (dimvS (subvf (iter n.+1 f 0%VS))); rewrite -/n -ltnNge.
+rewrite -looping_uniq; elim: n.+1 => // i IHi; rewrite trajectSr rcons_uniq.
+rewrite {1}trajectSr mem_rcons inE negb_or eq_sym eqEdim fS ?leqW // -ltnNge.
+by rewrite -andbA => /and3P[lt_fi _ /IHi/leq_ltn_trans->].
+Qed.
+
+Lemma agenvEr U : agenv U = (1 + agenv U * U)%VS.
+Proof.
+rewrite [lhs in lhs = _]agenvEl big_distrr big_distrl /=; congr (_ + _)%VS.
+by apply: eq_bigr => i _ /=; rewrite -expvSr -expvSl.
+Qed.
+
+Lemma agenv_ideall U V : (U * V <= V -> agenv U * V <= V)%VS.
+Proof.
+rewrite big_distrl /= => idlU_V; apply/subv_sumP=> [[i _] /= _].
+elim: i => [|i]; first by rewrite expv0 prod1v.
+by apply: subv_trans; rewrite expvSr -prodvA prodvSr.
+Qed.
+
+Lemma agenv_idealr U V : (V * U <= V -> V * agenv U <= V)%VS.
+Proof.
+rewrite big_distrr /= => idrU_V; apply/subv_sumP=> [[i _] /= _].
+elim: i => [|i]; first by rewrite expv0 prodv1.
+by apply: subv_trans; rewrite expvSl prodvA prodvSl.
+Qed.
+
+Fact agenv_is_aspace U : is_aspace (agenv U).
+Proof.
+rewrite /is_aspace has_algid1; last by rewrite memvE agenvEl addvSl.
+by rewrite agenv_ideall // [V in (_ <= V)%VS]agenvEl addvSr.
+Qed.
+Canonical agenv_aspace U : {aspace aT} := ASpace (agenv_is_aspace U).
+
+Lemma agenvE U : agenv U = agenv_aspace U. Proof. by []. Qed.
+
+(* Kleene algebra properties *)
+
+Lemma agenvM U : (agenv U * agenv U)%VS = agenv U. Proof. exact: prodv_id. Qed.
+Lemma agenvX n U : (agenv U ^+ n.+1)%VS = agenv U. Proof. exact: expv_id. Qed.
+
+Lemma sub1_agenv U : (1 <= agenv U)%VS. Proof. by rewrite agenvEl addvSl. Qed.
+
+Lemma sub_agenv U : (U <= agenv U)%VS.
+Proof. by rewrite 2!agenvEl addvC prodvDr prodv1 -addvA addvSl. Qed.
+
+Lemma subX_agenv U n : (U ^+ n <= agenv U)%VS.
+Proof.
+by case: n => [|n]; rewrite ?sub1_agenv // -(agenvX n) expvS // sub_agenv.
+Qed.
+
+Lemma agenv_sub_ideall U V : (1 <= V -> U * V <= V -> agenv U <= V)%VS.
+Proof.
+move=> s1V /agenv_ideall; apply: subv_trans.
+by rewrite -[Us in (Us <= _)%VS]prodv1 prodvSr.
+Qed.
+
+Lemma agenv_sub_idealr U V : (1 <= V -> V * U <= V -> agenv U <= V)%VS.
+Proof.
+move=> s1V /agenv_idealr; apply: subv_trans.
+by rewrite -[Us in (Us <= _)%VS]prod1v prodvSl.
+Qed.
+
+Lemma agenv_id U : agenv (agenv U) = agenv U.
+Proof.
+apply/eqP; rewrite eqEsubv sub_agenv andbT.
+by rewrite agenv_sub_ideall ?sub1_agenv ?agenvM.
+Qed.
+
+Lemma agenvS U V : (U <= V -> agenv U <= agenv V)%VS.
+Proof.
+move=> sUV; rewrite agenv_sub_ideall ?sub1_agenv //.
+by rewrite -[Vs in (_ <= Vs)%VS]agenvM prodvSl ?(subv_trans sUV) ?sub_agenv.
+Qed.
+
+Lemma agenv_add_id U V : agenv (agenv U + V) = agenv (U + V).
+Proof.
+apply/eqP; rewrite eqEsubv andbC agenvS ?addvS ?sub_agenv //=.
+rewrite agenv_sub_ideall ?sub1_agenv //.
+rewrite -[rhs in (_ <= rhs)%VS]agenvM prodvSl // subv_add agenvS ?addvSl //=.
+exact: subv_trans (addvSr U V) (sub_agenv _).
+Qed.
+
+Lemma subv_adjoin U x : (U <= <<U; x>>)%VS.
+Proof. by rewrite (subv_trans (sub_agenv _)) ?agenvS ?addvSl. Qed.
+
+Lemma subv_adjoin_seq U xs : (U <= <<U & xs>>)%VS.
+Proof. by rewrite (subv_trans (sub_agenv _)) // ?agenvS ?addvSl. Qed.
+
+Lemma memv_adjoin U x : x \in <<U; x>>%VS.
+Proof. by rewrite memvE (subv_trans (sub_agenv _)) ?agenvS ?addvSr. Qed.
+
+Lemma seqv_sub_adjoin U xs : {subset xs <= <<U & xs>>%VS}.
+Proof.
+by apply/span_subvP; rewrite (subv_trans (sub_agenv _)) ?agenvS ?addvSr.
+Qed.
+
+Lemma subvP_adjoin U x y : y \in U -> y \in <<U; x>>%VS.
+Proof. exact/subvP/subv_adjoin. Qed.
+
+Lemma adjoin_nil V : <<V & [::]>>%VS = agenv V.
+Proof. by rewrite span_nil addv0. Qed.
+
+Lemma adjoin_cons V x rs : <<V & x :: rs>>%VS = << <<V; x>> & rs>>%VS.
+Proof. by rewrite span_cons addvA agenv_add_id. Qed.
+
+Lemma adjoin_rcons V rs x : <<V & rcons rs x>>%VS = << <<V & rs>>%VS; x>>%VS.
+Proof. by rewrite -cats1 span_cat addvA span_seq1 agenv_add_id. Qed.
+
+Lemma adjoin_seq1 V x : <<V & [:: x]>>%VS = <<V; x>>%VS.
+Proof. by rewrite adjoin_cons adjoin_nil agenv_id. Qed.
+
+Lemma adjoinC V x y : << <<V; x>>; y>>%VS = << <<V; y>>; x>>%VS.
+Proof. by rewrite !agenv_add_id -!addvA (addvC <[x]>%VS). Qed.
+
+Lemma adjoinSl U V x : (U <= V -> <<U; x>> <= <<V; x>>)%VS.
+Proof. by move=> sUV; rewrite agenvS ?addvS. Qed.
+
+Lemma adjoin_seqSl U V rs : (U <= V -> <<U & rs>> <= <<V & rs>>)%VS.
+Proof. by move=> sUV; rewrite agenvS ?addvS. Qed.
+
+Lemma adjoin_seqSr U rs1 rs2 :
+  {subset rs1 <= rs2} -> (<<U & rs1>> <= <<U & rs2>>)%VS.
+Proof. by move/sub_span=> s_rs12; rewrite agenvS ?addvS. Qed.
+
+End Closure.
+
+Notation "<< U >>" := (agenv_aspace U) : aspace_scope.
+Notation "<< U & vs >>" := (agenv (U + <<vs>>)) : vspace_scope.
+Notation "<< U ; x >>" := (agenv (U + <[x]>)) : vspace_scope.
+Notation "<< U & vs >>" := << U + <<vs>> >>%AS : aspace_scope.
+Notation "<< U ; x >>" := << U + <[x]> >>%AS : aspace_scope. 
+
 Section SubFalgType.
 
 (* The FalgType structure of subvs_of A for A : {aspace aT}.                  *)
@@ -860,15 +827,15 @@ Definition subvs_mul (u v : subvs_of A) :=
   Subvs (subv_trans (memv_prod (subvsP u) (subvsP v)) (asubv _)).
 
 Fact subvs_mulA : associative subvs_mul.
-Proof. by move=> u v w; apply/val_inj/mulrA. Qed.
+Proof. by move=> x y z; apply/val_inj/mulrA. Qed.
 Fact subvs_mu1l : left_id subvs_one subvs_mul.
-Proof. by move=> u; apply/val_inj/algidl/(valP u). Qed.
+Proof. by move=> x; apply/val_inj/algidl/(valP x). Qed.
 Fact subvs_mul1 : right_id subvs_one subvs_mul.
-Proof. by move=> u; apply/val_inj/algidr/(valP u). Qed.
+Proof. by move=> x; apply/val_inj/algidr/(valP x). Qed.
 Fact subvs_mulDl : left_distributive subvs_mul +%R.
-Proof. move=> u v w; apply/val_inj/mulrDl. Qed.
+Proof. move=> x y z; apply/val_inj/mulrDl. Qed.
 Fact subvs_mulDr : right_distributive subvs_mul +%R.
-Proof. move=> u v w; apply/val_inj/mulrDr. Qed.
+Proof. move=> x y z; apply/val_inj/mulrDr. Qed.
 
 Definition subvs_ringMixin :=
   RingMixin subvs_mulA subvs_mu1l subvs_mul1 subvs_mulDl subvs_mulDr
@@ -915,87 +882,72 @@ Variable K : fieldType.
 
 Section Class_Def.
 
-Variables (aT rT : FalgType K).
+Variables aT rT : FalgType K.
 
-Definition ahom_in (A : {vspace aT}) := 
-  [qualify f : 'Hom(aT,rT) |
-    (all (fun v1 =>
-      all (fun v2 => f (v1 * v2) == f v1 * f v2) (vbasis A)) (vbasis A))
-        && (f 1 == 1)].
-(*
-Fact ahom_in_key A : pred_key (ahom_in A). Proof. by []. Qed.
-Canonical ahom_in_keyed A := KeyedQualifier (ahom_in_key A).
-*)
+Definition ahom_in (U : {vspace aT}) (f : 'Hom(aT, rT)) :=
+  let fM_at x y := f (x * y) == f x * f y in
+  all (fun x => all (fM_at x) (vbasis U)) (vbasis U) && (f 1 == 1).
 
-Lemma is_ahom_inP (f : 'Hom(aT,rT)) (A : {vspace aT}) :
-  reflect ({in A &, {morph f : x y / x * y >-> x * y}}*(f 1 = 1))
-    (f \is ahom_in A).
+Lemma ahom_inP {f : 'Hom(aT, rT)} {U : {vspace aT}} :
+  reflect ({in U &, {morph f : x y / x * y >-> x * y}} * (f 1 = 1))
+          (ahom_in U f).
 Proof.
-apply: (iffP andP); last first.
-  move => [Hf Hf1].
-  split; last by apply/eqP.
-  do 2 apply/allP => ? ?.
-  by rewrite Hf //; apply: vbasis_mem.
-move => [/allP Hf Hf1].
-split; last by apply/eqP.
-move => v w /coord_vbasis -> /coord_vbasis ->.
-rewrite !mulr_suml ![f _]linear_sum mulr_suml.
-apply: eq_bigr => i _ /=.
-rewrite !mulr_sumr linear_sum.
-apply: eq_bigr => j _ /=.
+apply: (iffP andP) => [[/allP fM /eqP f1] | [fM f1]]; last first.
+  rewrite f1; split=> //; apply/allP=> x Ax; apply/allP=> y Ay.
+  by rewrite fM // vbasis_mem.
+split=> // x y  /coord_vbasis -> /coord_vbasis ->.
+rewrite !mulr_suml ![f _]linear_sum mulr_suml; apply: eq_bigr => i _ /=.
+rewrite !mulr_sumr linear_sum; apply: eq_bigr => j _ /=.
 rewrite !linearZ -!scalerAr -!scalerAl 2!linearZ /=; congr (_ *: (_ *: _)).
-apply/eqP/(all_nthP 0 (Hf _ _)); last by rewrite size_tuple.
-by apply memt_nth.
+by apply/eqP/(allP (fM _ _)); apply: memt_nth.
 Qed.
 
-Lemma is_ahomP (f : 'Hom(aT,rT)) : reflect (lrmorphism f) (f \is ahom_in {:aT}).
+Lemma ahomP {f : 'Hom(aT, rT)} : reflect (lrmorphism f) (ahom_in {:aT} f).
 Proof.
-apply: (iffP (is_ahom_inP _ _)); last first.
-  move => Hf.
-  split; last by rewrite [f 1](rmorph1 (LRMorphism Hf)).
-  move => x y _ _ /=.
-  by rewrite [f _](rmorphM (LRMorphism Hf)).
-case => Hf Hf1.
-repeat split => //.
-- by apply: linearB.
-- by move => x y; apply: Hf; rewrite memvf.
-- by apply: linearZZ.
+apply: (iffP ahom_inP) => [[fM f1] | fRM_P]; last first.
+  pose fRM := LRMorphism fRM_P.
+  by split; [apply: in2W (rmorphM fRM) | apply: (rmorph1 fRM)].
+split; last exact: linearZZ; split; first exact: linearB.
+by split=> // x y; rewrite fM ?memvf.
 Qed.
 
-Structure ahom := AHom {ahval :> 'Hom(aT, rT); _ : ahval \is ahom_in {:aT}}.
+Structure ahom := AHom {ahval :> 'Hom(aT, rT); _ : ahom_in {:aT} ahval}.
 
 Canonical ahom_subType := Eval hnf in [subType for ahval].
 Definition ahom_eqMixin := [eqMixin of ahom by <:].
 Canonical ahom_eqType := Eval hnf in EqType ahom ahom_eqMixin.
+
 Definition ahom_choiceMixin := [choiceMixin of ahom by <:].
 Canonical ahom_choiceType := Eval hnf in ChoiceType ahom ahom_choiceMixin.
 
 End Class_Def.
 
 Implicit Arguments ahom_in [aT rT].
+Implicit Arguments ahom_inP [aT rT f U].
+Implicit Arguments ahomP [aT rT f].
 
 Section LRMorphism.
 
-Variables (aT rT sT : FalgType K).
-Fact ahom_is_lrmorphism (f : ahom aT rT) : lrmorphism f.
-Proof. apply/is_ahomP. by case: f. Qed.
+Variables aT rT sT : FalgType K.
 
+Fact ahom_is_lrmorphism (f : ahom aT rT) : lrmorphism f.
+Proof. by apply/ahomP; case: f. Qed.
 Canonical ahom_rmorphism f := Eval hnf in AddRMorphism (ahom_is_lrmorphism f).
 Canonical ahom_lrmorphism f := Eval hnf in AddLRMorphism (ahom_is_lrmorphism f).
 
-Lemma id_is_ahom (V : {vspace aT}) : \1%VF \is ahom_in V.
+Lemma ahomWin (f : ahom aT rT) U : ahom_in U f.
 Proof.
-apply/is_ahom_inP.
-split; first move => x y /=; by rewrite !id_lfunE.
+by apply/ahom_inP; split; [apply: in2W (rmorphM _) | apply: rmorph1].
 Qed.
 
-Lemma comp_is_ahom (A : {aspace aT}) (f : 'Hom(rT,sT)) (g : 'Hom(aT,rT)) :
-  f \is ahom_in fullv -> g \is ahom_in A -> (f \o g)%VF \is ahom_in A .
+Lemma id_is_ahom (V : {vspace aT}) : ahom_in V \1.
+Proof. by apply/ahom_inP; split=> [x y|] /=; rewrite !id_lfunE. Qed.
+
+Lemma comp_is_ahom (V : {vspace aT}) (f : 'Hom(rT, sT)) (g : 'Hom(aT, rT)) :
+  ahom_in {:rT} f -> ahom_in V g -> ahom_in V (f \o g).
 Proof.
-move => /is_ahom_inP Hf /is_ahom_inP Hg.
-apply/is_ahom_inP; split; last by rewrite comp_lfunE Hg Hf.
-move => x y Hx Hy /=.
-by rewrite !comp_lfunE Hg // Hf ?memvf.
+move=> /ahom_inP fM /ahom_inP gM; apply/ahom_inP.
+by split=> [x y Vx Vy|] /=; rewrite !comp_lfunE gM // fM ?memvf.
 Qed.
 
 Canonical id_ahom := AHom (id_is_ahom (aspacef aT)).
@@ -1005,16 +957,11 @@ Canonical comp_ahom (f : ahom rT sT) (g : ahom aT rT) :=
 
 Lemma aimgM (f : ahom aT rT) U V : (f @: (U * V) = f @: U * f @: V)%VS.
 Proof.
-apply: subv_anti; apply/andP; split; last first.
-  apply/prodvP => _ _ /memv_imgP [u Hu ->] /memv_imgP [v Hv ->].
+apply/eqP; rewrite eqEsubv; apply/andP; split; last first.
+  apply/prodvP=> _ _ /memv_imgP[u Hu ->] /memv_imgP[v Hv ->].
   by rewrite -rmorphM memv_img // memv_prod.
-apply/subvP; move => _ /memv_imgP [u Hu ->].
-move: Hu; rewrite unlock => /coord_span->.
-rewrite rmorph_sum; apply: memv_suml => i _ /=.
-rewrite linearZ memvZ // -tnth_nth.
-set s := allpairs_tuple _ _ _.
-have /allpairsP [[x y] [/vbasis_mem Hx /vbasis_mem Hy ->]] := mem_tnth i s.
-by rewrite rmorphM memv_prod // memv_img.
+apply/subvP=> _ /memv_imgP[w UVw ->]; rewrite memv_preim (subvP _ w UVw) //.
+by apply/prodvP=> u v Uu Vv; rewrite -memv_preim rmorphM memv_prod // memv_img.
 Qed.
 
 Lemma aimg1 (f : ahom aT rT) : (f @: 1 = 1)%VS.
@@ -1026,41 +973,32 @@ elim: n => [|n IH]; first by rewrite !expv0 aimg1.
 by rewrite !expvSl aimgM IH.
 Qed.
 
-Lemma aimg_closure (f : ahom aT rT) U : (f @: <<U>>%AS = <<f @: U>>%AS)%VS.
+Lemma aimg_agen (f : ahom aT rT) U : (f @: agenv U)%VS = agenv (f @: U).
 Proof.
-apply: subv_anti.
-rewrite ideall_closurea_sub.
-- rewrite andbT limg_sum; apply/subv_sumP => i _.
-  by rewrite aimgX subvX_closure.
-- by rewrite -(aimg1 f) limgS // sub1_closure.
-- by rewrite -aimgM limgS // [X in (_ <= X)%VS]closureaEl addvSr.
+apply/eqP; rewrite eqEsubv; apply/andP; split.
+  by rewrite limg_sum; apply/subv_sumP => i _; rewrite aimgX subX_agenv.
+apply: agenv_sub_ideall; first by rewrite -(aimg1 f) limgS // sub1_agenv.
+by rewrite -aimgM limgS // [rhs in (_ <= rhs)%VS]agenvEl addvSr.
 Qed.
 
-Lemma aimg_adjoin (f : ahom aT rT) U x :
-  (f @: <<U; x>>%AS = <<f @: U; f x>>%AS)%VS.
-Proof. by rewrite aimg_closure limg_add limg_line. Qed.
+Lemma aimg_adjoin (f : ahom aT rT) U x : (f @: <<U; x>> = <<f @: U; f x>>)%VS.
+Proof. by rewrite aimg_agen limg_add limg_line. Qed.
 
 Lemma aimg_adjoin_seq (f : ahom aT rT) U xs :
-  (f @: <<U & xs>>%AS = <<f @: U & map f xs>>%AS)%VS.
-Proof. by rewrite aimg_closure limg_add limg_span. Qed.
+  (f @: <<U & xs>> = <<f @: U & map f xs>>)%VS.
+Proof. by rewrite aimg_agen limg_add limg_span. Qed.
 
 End LRMorphism.
 
 Variable (aT : FalgType K) (f : ahom aT aT).
 
-Lemma fixedAlgebra_is_aspace_subproof : let FF := fixedSpace f in
-  (has_algid FF  && (FF * FF <= FF)%VS).
+Fact fixedSpace_is_aspace : is_aspace (fixedSpace f).
 Proof.
-apply/andP; split.
-  rewrite has_algid1 //.
-  by apply/fixedSpaceP/rmorph1.
-apply/prodvP => a b /fixedSpaceP Ha /fixedSpaceP Hb.
-apply/fixedSpaceP.
-by rewrite rmorphM /= Ha Hb.
+apply/andP; split; first exact/has_algid1/fixedSpaceP/rmorph1.
+apply/prodvP => a b /fixedSpaceP fa_a /fixedSpaceP fb_b.
+by apply/fixedSpaceP; rewrite rmorphM /= fa_a fb_b.
 Qed.
-
-Canonical fixedAlgebra_aspace : {aspace aT} :=
-  ASpace fixedAlgebra_is_aspace_subproof.
+Canonical fixedSpace_aspace : {aspace aT} := ASpace fixedSpace_is_aspace.
 
 End AHom.
 

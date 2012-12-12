@@ -40,7 +40,7 @@ Lemma group_num_field_exists (gT : finGroupType) (G : {group gT}) :
          & forall nuQn : argumentType (mem ('Gal({:Qn}%VS / 1%VS))),
               {nu : {rmorphism algC -> algC} |
                  {morph QnC: a / nuQn a >-> nu a}}
-         & {w : Qn & #|G|.-primitive_root w /\ <<1; w>>%AS = fullv
+         & {w : Qn & #|G|.-primitive_root w /\ <<1; w>>%VS = fullv
               & forall (hT : finGroupType) (H : {group hT}) (phi : 'CF(H)),
                        phi \is a character ->
                        forall x, (#[x] %| #|G|)%N -> {a | QnC a = phi x}}}}.
@@ -625,17 +625,16 @@ have /injectiveP injItoS: injective ItoS.
 have [Qn galQn [QnC gQnC [eps [pr_eps defQn] QnG]]] := group_num_field_exists G.
 have{QnG} QnGg := QnG _ G _ _ g (order_dvdG Gg).
 pose calG := 'Gal({:Qn} / 1).
-have /fin_all_exists[ItoQ /all_and2[inItoQ defItoQ]] (k : I):
-  exists nu, nu \in calG /\ nu eps = eps ^+ val k.
+have /fin_all_exists2[ItoQ inItoQ defItoQ] (k : I):
+  exists2 nu, nu \in calG & nu eps = eps ^+ val k.
 - case: k => [[m _] /=]; rewrite coprime_sym => /Qn_aut_exists[nuC DnuC].
   have [nuQ DnuQ] := restrict_aut_to_normal_num_field QnC nuC.
-  have hom_nu: linfun nuQ \is a kHom 1 {:Qn}.
-    apply/fAutL_lrmorph; split=> [|z u]; last by rewrite linearZ.
-    split=> [u v | ]; first by rewrite linearB.
+  have hom_nu: kHom 1 {:Qn} (linfun nuQ).
+    rewrite k1HomE; apply/ahom_inP.
     by split=> [u v | ]; rewrite !lfunE ?rmorphM ?rmorph1.
-  have [|nu cGnu Dnu] := kHom_gal _ (normalFieldf 1) hom_nu.
+  have [|nu cGnu Dnu] := kHom_to_gal _ (normalFieldf 1) hom_nu.
     by rewrite !subvf.
-  exists nu; split=> //; apply: (fmorph_inj QnC).
+  exists nu => //; apply: (fmorph_inj QnC).
   rewrite -Dnu ?memvf // lfunE DnuQ rmorphX DnuC //.
   by rewrite prim_expr_order // fmorph_primitive_root.
 have{defQn} imItoQ: calG = ItoQ @: {:I}.
@@ -645,7 +644,7 @@ have{defQn} imItoQ: calG = ItoQ @: {:I}.
   rewrite Dnue prim_root_exp_coprime // coprime_sym in pr_nu_e.
   apply: ex_intro2 (Sub i _) _ _ => //; apply/eqP.
   rewrite /calG /= -defQn in ItoQ inItoQ defItoQ nu cGnu Dnue *.
-  by rewrite gal_eq_Fadjoin // defItoQ -Dnue.
+  by rewrite gal_adjoin_eq // defItoQ -Dnue.
 have injItoQ: {in {:I} &, injective ItoQ}.
   move=> k1 k2 _ _ /(congr1 (fun nu : gal_of _ => nu eps))/eqP.
   by apply: contraTeq; rewrite !defItoQ (eq_prim_root_expr pr_eps) !modn_small.

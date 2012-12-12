@@ -5,14 +5,32 @@ Require Import tuple finfun choice matrix vector falgebra fieldext separable.
 Require Import pgroup poly polydiv galois morphism mxabelem zmodp.
 
 (******************************************************************************)
-(*  A few lemmas about finite fields.                                         *)
+(*  Additional constructions and results on finite fields.                    *)
 (*                                                                            *)
-(*              finChar F == the characteristic of a finFieldType F           *)
-(*     finFieldExtMixin L == a Finite.mixin_of L when L is a fieldExtType     *)
-(*                           over a finField.                                 *)
-(*      finFieldExtType L == L, but with a finFieldType structure.            *)
-(*    primeFieldExtType F == F, but with an fieldExtType structure, over      *)
-(*                           'F_(finChar F)                                   *)
+(*         FinFieldExtType L == a FinFieldType structure on the carrier of L, *)
+(*                              where L IS a fieldExtType F structure for an  *)
+(*                              F that has a finFieldType structure. This     *)
+(*                              does not take any existing finType structure  *)
+(*                              on L; this should not be made canonical.      *)
+(* FinSplittingFieldType F L == a SplittingFieldType F structure on the       *)
+(*                              carrier of L, where L IS a fieldExtType F for *)
+(*                              an F with a finFieldType structure; this      *)
+(*                              should not be made canonical.                 *)
+(*          Import FinVector :: declares canonical default finType, finRing,  *)
+(*                              etc structures (including FinFieldExtType     *)
+(*                              above) for abstract vectType, FalgType and    *)
+(*                              fieldExtType over a finFieldType. This should *)
+(*                              be used with caution (e.g., local to a proof) *)
+(*                              as the finType so obtained may clash with the *)
+(*                              canonical one for standard types like matrix. *)
+(*      PrimeCharType charRp == the carrier of a ringType R such that         *)
+(*                              charRp : p \in [char R] holds. This type has  *)
+(*                              canonical ringType, ..., fieldType structures *)
+(*                              compatible with those of R, as well as        *)
+(*                              canonical lmodType 'F_p, ..., algType 'F_p    *)
+(*                              structures, plus an FalgType structure if R   *)
+(*                              is a finUnitRingType and a splittingFieldType *)
+(*                              struture if R is a finFieldType.              *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -30,7 +48,7 @@ Variable R : finRingType.
 
 (* GG: Coq v8.3 fails to unify FinGroup.arg_sort _ with FinRing.sort R here   *)
 (* because it expands the latter rather than FinGroup.arg_sort, which would   *)
-(* expose the FinGroup.sort projection thereby enabling canonical structure   *)
+(* expose the FinGroup.sort projection, thereby enabling canonical structure  *)
 (* expansion. We should check whether the improved heuristics in Coq 8.4 have *)
 (* resolved this issue.                                                       *)
 Lemma finRing_nontrivial : [set: R] != 1%g.
@@ -336,10 +354,10 @@ without loss {K} ->: K / K = 1%AS.
   by move=> IH; apply: galoisS (IH _ (erefl _)); rewrite sub1v subvf.
 apply/splitting_galoisField; pose finL := FinFieldExtType L.
 exists ('X^#|finL| - 'X); split; first by rewrite rpredB 1?rpredX ?polyOverX.
-  exists (enum finL); first by rewrite enumT (finField_genPoly finL) eqpxx.
-  by apply/vspaceP=> x; rewrite memvf seqv_sub_adjoin ?(mem_enum finL).
-rewrite (finField_genPoly finL) -big_filter.
-by rewrite separable_prod_XsubC ?(enum_uniq finL).
+  rewrite (finField_genPoly finL) -big_filter.
+  by rewrite separable_prod_XsubC ?(enum_uniq finL).
+exists (enum finL); first by rewrite enumT (finField_genPoly finL) eqpxx.
+by apply/vspaceP=> x; rewrite memvf seqv_sub_adjoin ?(mem_enum finL).
 Qed.
 
 Fact galLgen K :
@@ -350,7 +368,7 @@ without loss{K} ->: K / K = 1%AS; last rewrite /order dimv1 expn1.
   rewrite /order dimv1 expn1 => Dalpha.
   exists (alpha ^+ \dim K)%g => [|x]; last first.
     elim: (\dim K) => [|n IHn]; first by rewrite gal_id.
-    by rewrite expgSr galM ?memvf // comp_lfunE IHn Dalpha expnSr exprM.
+    by rewrite expgSr galM ?memvf // IHn Dalpha expnSr exprM.
   rewrite (eq_subG_cyclic (cycle_cyclic alpha)) ?cycleX //=; last first.
     by rewrite -defGalL galS ?sub1v.
   rewrite eq_sym -orderE orderXdiv orderE -defGalL -{1}(galois_dim (galL 1)).
@@ -372,26 +390,25 @@ have fM: rmorphism f.
   rewrite /f; do 2?split=> [x y|]; rewrite ?exprMn ?expr1n //.
   have [p _ charFp] := finCharP F; rewrite (card_primeChar charFp).
   elim: (logn _ _) => // n IHn; rewrite expnSr !exprM {}IHn.
-  by rewrite -(charLF L) in charFp; rewrite -Frobenius_autE rmorphB.
+  by rewrite -(charf_ext L) in charFp; rewrite -Frobenius_autE rmorphB.
 have fZ: linear f.
   move=> a x y; rewrite -mulr_algl [f _](rmorphD (RMorphism fM)) rmorphM /=.
   by rewrite (idfP _ _) ?mulr_algl ?memvZ // memv_line.
-have /kAut_gal[alpha galLalpha Dalpha] : linfun (Linear fZ) \is a kAut 1 {:L}.
-  rewrite kAutE andbC {1}subvf; apply/kHomP.
-  split=> [x /idfP fxx | x y _ _]; rewrite !lfunE //=.
-  by rewrite [f _](rmorphM (RMorphism fM)).
+have /kAut_to_gal[alpha galLalpha Dalpha]: kAut 1 {:L} (linfun (Linear fZ)).
+  rewrite kAutfE; apply/kHomP; split=> [x y _ _ | x /idfP]; rewrite !lfunE //=.
+  exact: (rmorphM (RMorphism fM)).
 exists alpha => [|a]; last by rewrite -Dalpha ?memvf ?lfunE.
 suffices <-: fixedField [set alpha] = 1%AS by rewrite gal_generated /generator.
-apply/vspaceP => x; apply/fixedFieldP/idfP=> [[Lx alpha_x] | fx_x].
-  by rewrite -{2}(alpha_x alpha) ?in_set1 // -Dalpha ?lfunE.
-by split=> [|_ /set1P->]; rewrite -?Dalpha ?memvf ?lfunE.
+apply/vspaceP => x; apply/fixedFieldP/idfP; rewrite ?memvf // => id_x.
+  by rewrite -{2}(id_x _ (set11 _)) -Dalpha ?lfunE ?memvf.
+by move=> _ /set1P->; rewrite -Dalpha ?memvf ?lfunE.
 Qed.
 
 Lemma finField_galois K E : (K <= E)%VS -> galois K E.
 Proof.
 move=> sKE; have /galois_fixedField <- := galL E.
-apply: normal_fixedField_galois => //; first exact: galS.
-apply: sub_abelian_norm; [apply: (abelianS (galS _ (sub1v _))) | exact: galS].
+rewrite normal_fixedField_galois // -sub_abelian_normal ?galS //.
+apply: abelianS (galS _ (sub1v _)) _.
 by have [alpha /('Gal(_ / _) =P _)-> _] := galLgen 1; apply: cycle_abelian.
 Qed.
 
@@ -421,9 +438,8 @@ move: K a; wlog [{L}L -> K a]: L / exists galL : splittingFieldType F, L = galL.
 have /galois_fixedField fixLK := finField_galois (subvf K).
 have [alpha defGalLK Dalpha] := finField_galois_generator (subvf K).
 rewrite -Dalpha ?memvf // -{1}fixLK (('Gal(_ / _) =P _) defGalLK).
-rewrite /cycle -gal_generated (galois_fixedField _ _ _) ?fixedField_galois //.
-apply/fixedFieldP/eqP=> [[_ ->] | alpha_x]; rewrite ?set11 //.
-by rewrite memvf; split => // _ /set1P->.
+rewrite /cycle -gal_generated (galois_fixedField _) ?fixedField_galois //.
+by apply/fixedFieldP/eqP=> [|-> | alpha_x _ /set1P->]; rewrite ?memvf ?set11.
 Qed.
 
 End FinSplittingField.

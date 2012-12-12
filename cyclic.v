@@ -288,7 +288,7 @@ Arguments Scope cyclic [_ group_scope].
 Arguments Scope generator [_ group_scope group_scope].
 Arguments Scope expg_invn [_ group_scope nat_scope].
 Implicit Arguments cyclicP [gT A].
-Prenex Implicits cyclic generator expg_invn.
+Prenex Implicits cyclic Zpm generator expg_invn.
 
 (* Euler's theorem *)
 Theorem Euler_exp_totient a n : coprime a n -> a ^ totient n  = 1 %[mod n].

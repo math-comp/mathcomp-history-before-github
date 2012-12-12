@@ -1689,6 +1689,14 @@ rewrite /Q ltnS leq_eqVlt (val_eqE _ i); case: eqP => [def_i _ | _ /w //].
 by rewrite -def_i enum_rankK in u Pu; exists u.
 Qed.
 
+Lemma fin_all_exists2 U (P Q : forall x : T, U x -> Prop) :
+    (forall x, exists2 u, P x u & Q x u) ->
+  (exists2 u, forall x, P x (u x) & forall x, Q x (u x)).
+Proof.
+move=> ex_u; have (x): exists u, P x u /\ Q x u by have [u] := ex_u x; exists u.
+by case/fin_all_exists=> u /all_and2[]; exists u.
+Qed.
+
 End EnumRank.
 
 Implicit Arguments enum_val_inj [[T] [A] x1 x2].

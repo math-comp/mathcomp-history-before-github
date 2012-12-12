@@ -177,9 +177,7 @@ have{Ss u} ->: Ss = Ss_ dS.
 elim: {-2}dS (leqnn dS) (dS_gt0) => // dj IHj dj_lt_dS _.
 pose j1 := Ordinal dj_lt_dS; pose rj0T (A : 'M[{poly R}]_dS) := row j0 A^T.
 have: rj0T (Ss_ dj.+1) = 'X^dj *: rj0T (S_ j1) + 1 *: rj0T (Ss_ dj).
-
   apply/rowP=> i; apply/polyP=> k; rewrite scale1r !(Sylvester_mxE, mxE) eqxx.
-
   rewrite coefD coefXnM coefC !coef_poly ltnS subn_eq0 ltn_neqAle andbC.
   case: (leqP k dj) => [k_le_dj | k_gt_dj] /=; last by rewrite addr0.
   rewrite Sylvester_mxE insubdK; last exact: leq_ltn_trans (dj_lt_dS).
@@ -212,25 +210,25 @@ apply/det0P/idP=> [[uv nz_uv] | r_nonC].
   do [rewrite -[uv]hsubmxK -{1}row_mx0 mul_row_col !mul_rV_lin1 /=] in nz_uv *.
   set u := rVpoly _; set v := rVpoly _; pose m := gcdp (v * p) (v * q).
   have lt_vp: size v < size p by rewrite (polySpred p_nz) ltnS size_poly.
-  move/(congr1 rVpoly); rewrite linearD linear0 /=; move/(canRL (addKr _)).
-  rewrite !poly_rV_K ?(leq_trans (size_mul_leq _ _)) // => [vq_up||]; first 1 last.
-  - by rewrite -subn1 leq_subLR addnCA leq_add ?leqSpred ?size_poly.
-  - by rewrite -subn1 leq_subLR addnC addnA leq_add ?leqSpred ?size_poly.
+  move/(congr1 rVpoly)/eqP; rewrite -linearD linear0 poly_rV_K; last first.
+    rewrite (leq_trans (size_add _ _)) // geq_max.
+    rewrite !(leq_trans (size_mul_leq _ _)) // -subn1 leq_subLR.
+      by rewrite addnC addnA leq_add ?leqSpred ?size_poly.
+    by rewrite addnCA leq_add ?leqSpred ?size_poly.
+  rewrite addrC addr_eq0 => /eqP vq_up.
   have nz_v: v != 0.
     apply: contraNneq nz_uv => v0; apply/eqP.
     congr row_mx; apply: (can_inj (@rVpolyK _ _)); rewrite linear0 // -/u.
-    move/eqP: vq_up; apply: contraTeq => nz_u.
-    by rewrite v0 mul0r addr0 eq_sym oppr_eq0 mulf_neq0.
+    by apply: contra_eq vq_up; rewrite v0 mul0r -addr_eq0 add0r => /mulf_neq0->.
   have r_nz: r != 0 := dvdpN0 r_p p_nz.
   have /dvdpP [[c w] /= nz_c wv]: v %| m by rewrite dvdp_gcd !dvdp_mulr.
   have m_wd d: m %| v * d -> w %| d.
-    case/dvdpP=> [[k f]] /= nz_k; move/(congr1 ( *:%R c)).
-    rewrite mulrC scalerA scalerAl scalerAr wv mulrA.
-    move/(mulIf nz_v)=> def_fw; apply/dvdpP.
-    by exists (c * k, f); rewrite //= mulf_neq0.
+    case/dvdpP=> [[k f]] /= nz_k /(congr1 ( *:%R c)).
+    rewrite mulrC scalerA scalerAl scalerAr wv mulrA => /(mulIf nz_v)def_fw.
+    by apply/dvdpP; exists (c * k, f); rewrite //= mulf_neq0.
   have w_r: w %| r by rewrite dvdp_gcd !m_wd ?dvdp_gcdl ?dvdp_gcdr.
   have w_nz: w != 0 := dvdpN0 w_r r_nz.
-  have p_m: p %| m by rewrite dvdp_gcd vq_up addr0 -mulNr !dvdp_mull.
+  have p_m: p %| m  by rewrite dvdp_gcd vq_up -mulNr !dvdp_mull.
   rewrite (leq_trans _ (dvdp_leq r_nz w_r)) // -(ltn_add2l (size v)).
   rewrite addnC -ltn_subRL subn1 -size_mul // mulrC -wv size_scale //.
   rewrite (leq_trans lt_vp) // dvdp_leq // -size_poly_eq0.
@@ -877,11 +875,40 @@ exists (mk_mon p); first by rewrite monicE lead_coefZ mulVf ?lead_coef_eq0.
 by rewrite linearZ rootE hornerZ (rootP pu0) mulr0.
 Qed.
 
-Lemma integral_inv u : integralOver FtoE u -> integralOver FtoE u^-1.
+Lemma algebraic_id a : algebraicOver FtoE (FtoE a).
+Proof. exact/integral_algebraic/integral_id. Qed.
+
+Lemma algebraic0 : algebraicOver FtoE 0.
+Proof. exact/integral_algebraic/integral0. Qed.
+
+Lemma algebraic1 : algebraicOver FtoE 1.
+Proof. exact/integral_algebraic/integral1. Qed.
+
+Lemma algebraic_opp x : algebraicOver FtoE x -> algebraicOver FtoE (- x).
+Proof. by move/integral_algebraic/integral_opp/integral_algebraic. Qed.
+
+Lemma algebraic_add x y :
+  algebraicOver FtoE x -> algebraicOver FtoE y -> algebraicOver FtoE (x + y).
+Proof.
+move/integral_algebraic=> intFx /integral_algebraic intFy.
+exact/integral_algebraic/integral_add.
+Qed.
+
+Lemma algebraic_sub x y :
+  algebraicOver FtoE x -> algebraicOver FtoE y -> algebraicOver FtoE (x - y).
+Proof. by move=> algFx /algebraic_opp; apply: algebraic_add. Qed.
+
+Lemma algebraic_mul x y :
+  algebraicOver FtoE x -> algebraicOver FtoE y -> algebraicOver FtoE (x * y).
+Proof.
+move/integral_algebraic=> intFx /integral_algebraic intFy.
+exact/integral_algebraic/integral_mul.
+Qed.
+
+Lemma algebraic_inv u : algebraicOver FtoE u -> algebraicOver FtoE u^-1.
 Proof.
 have [-> | /expf_neq0 nz_u_n] := eqVneq u 0; first by rewrite invr0.
-case/integral_algebraic=> p nz_p pu0; apply/integral_algebraic.
-exists (Poly (rev p)).
+case=> p nz_p pu0; exists (Poly (rev p)).
   apply/eqP=> /polyP/(_ 0%N); rewrite coef_Poly coef0 nth_rev ?size_poly_gt0 //.
   by apply/eqP; rewrite subn1 lead_coef_eq0.
 apply/eqP/(mulfI (nz_u_n (size p).-1)); rewrite mulr0 -(rootP pu0).
@@ -893,9 +920,16 @@ apply: eq_bigr => i _; rewrite !coef_map coef_Poly nth_rev // mulrCA.
 by congr (_ * _); rewrite -{1}(subnKC (valP i)) addSn addnC exprD exprVn ?mulfK.
 Qed.
 
-Lemma integral_div u v :
-  integralOver FtoE u -> integralOver FtoE v -> integralOver FtoE (u / v).
-Proof. by move=> algFu /integral_inv; apply: integral_mul. Qed.
+Lemma algebraic_div x y :
+  algebraicOver FtoE x -> algebraicOver FtoE y -> algebraicOver FtoE (x / y).
+Proof. by move=> algFx /algebraic_inv; apply: algebraic_mul. Qed.
+
+Lemma integral_inv x : integralOver FtoE x -> integralOver FtoE x^-1.
+Proof. by move/integral_algebraic/algebraic_inv/integral_algebraic. Qed.
+
+Lemma integral_div x y :
+  integralOver FtoE x -> integralOver FtoE y -> integralOver FtoE (x / y).
+Proof. by move=> algFx /integral_inv; apply: integral_mul. Qed.
 
 Lemma integral_root p u :
     p != 0 -> root p u -> {in p : seq E, integralRange FtoE} ->

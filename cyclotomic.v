@@ -46,9 +46,9 @@ Qed.
 End Ring.
 
 Lemma separable_Xn_sub_1 (R : idomainType) n :
-  n%:R != 0 :> R -> @separablePolynomial R ('X^n - 1).
+  n%:R != 0 :> R -> @separable_poly R ('X^n - 1).
 Proof.
-case: n => [/eqP// | n nz_n]; rewrite /separablePolynomial linearB /=.
+case: n => [/eqP// | n nz_n]; rewrite /separable_poly linearB /=.
 rewrite derivC subr0 derivXn -scaler_nat coprimep_scaler //= exprS -scaleN1r.
 rewrite coprimep_sym coprimep_addl_mul coprimep_scaler ?coprimep1 //.
 by rewrite (signr_eq0 _ 1).
@@ -255,7 +255,7 @@ have [k cokn Dzk]: exists2 k, coprime k n & zk = z ^+ k.
   rewrite -[pz]big_filter -(big_map _ xpredT (fun a => 'X - a%:P)).
   by rewrite root_prod_XsubC => /imageP[k]; exists k.
 have co_fg (R : idomainType): n%:R != 0 :> R -> @coprimep R (intrp f) (intrp g).
-  move=> nz_n; have: separablePolynomial (intrp ('X^n - 1) : {poly R}).
+  move=> nz_n; have: separable_poly (intrp ('X^n - 1) : {poly R}).
     by rewrite rmorphB rmorph1 /= map_polyXn separable_Xn_sub_1.
   rewrite -prod_Cyclotomic // (big_rem n) -?dvdn_divisors //= -Dfg.
   by rewrite !rmorphM /= !separable_mul => /and3P[] /and3P[].

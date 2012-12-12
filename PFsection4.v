@@ -286,9 +286,9 @@ Theorem primeTIirr_spec :
          & forall k, k \notin codom Imu2 -> {in W :\: W2, 'chi_k =1 \0}].
 Proof.
 have isoV2 := normedTI_isometry normedTI_prTIset (setDSS sWL (sub1G W2)).
-have /fin_all_exists[dmu /all_and2[injl_mu Ddmu]] j:
-  exists dmu : bool * {ffun Iirr W1 -> Iirr L}, injective dmu.2 /\
-    (forall i, 'Ind (ew_ i j) = dchi (dmu.1, dmu.2 i) - dchi (dmu.1, dmu.2 0)).
+have /fin_all_exists2[dmu injl_mu Ddmu] j:
+  exists2 dmu : bool * {ffun Iirr W1 -> Iirr L}, injective dmu.2
+    & forall i, 'Ind (ew_ i j) = dchi (dmu.1, dmu.2 i) - dchi (dmu.1, dmu.2 0).
 - pose Sj := [tuple w_ i j | i < Nirr W1].
   have Sj0: Sj`_0 = w_ 0 j by rewrite (nth_mktuple _ 0 0).
   have irrSj: {subset Sj <= irr W} by move=> ? /mapP[i _ ->]; apply: mem_irr.
@@ -301,7 +301,7 @@ have /fin_all_exists[dmu /all_and2[injl_mu Ddmu]] j:
     by apply/injectiveP=> i1 i2 /irr_inj/dprod_Iirr_inj[].
   + by move=> _ /mapP[i _ ->]; rewrite Sj0 !lin_char1.
   + by rewrite nth_mktuple Sj0 V2ew.
-  exists (d, [ffun i => tnth mu i]); split=> [|i].
+  exists (d, [ffun i => tnth mu i]) => [|i].
     apply/injectiveP; congr (uniq _): Umu.
     by rewrite (eq_map (ffunE _)) map_tnth_enum.
   by rewrite -scalerBr /= !ffunE !(tnth_nth 0 mu) -Ddmu nth_mktuple Sj0.

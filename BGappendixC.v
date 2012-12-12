@@ -159,7 +159,7 @@ have [/= alpha alpha_gen Dalpha] := finField_galois_generator (subvf Fp).
 have{Dalpha} Dalpha x1: x1 != 0 -> x1 / alpha x1 = x1^-1 ^+ p.-1.
   move=> nz_x1; rewrite -[_ ^+ _](mulVKf nz_x1) -exprS Dalpha ?memvf // exprVn.
   by rewrite dimv1 oF_p prednK ?prime_gt0.
-apply/idP/(hilbert's_theorem_90 alpha_gen (memvf _)) => [|[u [_ nz_u] ->]].
+apply/idP/(Hilbert's_theorem_90 alpha_gen (memvf _)) => [|[u [_ nz_u] ->]].
   case/imsetP=> /= _ /cycleP[n ->] ->; rewrite expgAC; set u := (u0 ^+ n)%g.
   have nz_u: (val u)^-1 != 0 by rewrite -unitfE unitrV (valP u).
   by exists (val u)^-1; rewrite ?memvf ?Dalpha //= invrK val_unitX.
@@ -418,13 +418,14 @@ have Fp'a: a \notin Fp.
 have DfcF: fcF = \prod_(beta in G) ('X - (beta a)%:P).
   pose Pa : {poly F} := minPoly Fp a.
   have /eqP szPa: size Pa == 4.
-    rewrite size_minPoly eqSS (sameP eqP (prime_nt_dvdP _ _)) -?elemDeg1 //.
-    by rewrite elementDegreeE dimv1 divn1 -q3 -dimFpq field_dimS ?subvf.
+    rewrite size_minPoly eqSS.
+    rewrite (sameP eqP (prime_nt_dvdP _ _)) ?adjoin_deg_eq1 //.
+    by rewrite adjoin_degreeE dimv1 divn1 -q3 -dimFpq field_dimS ?subvf.
   have dvd_Pa_fcF: Pa %| fcF by apply: minPoly_dvdp fcFa_0.
   have{dvd_Pa_fcF} /eqP <-: Pa == fcF.
     rewrite -eqp_monic ?monic_minPoly ?monic_map // -dvdp_size_eqp //.
     by rewrite szPa size_map_poly sz_fc.
-  have /galois_factors[_ /(_ a (memvf a))[r [srG /map_uniq Ur defPa]]] := galG.
+  have [r [srG /map_uniq Ur defPa]]:= galois_factors (subvf _) galG a (memvf a).
   rewrite -/Pa big_map in defPa; rewrite defPa big_uniq //=.
   apply/eq_bigl/subset_cardP=> //; apply/eqP.
   by rewrite -eqSS (card_uniqP Ur) oG -szPa defPa size_prod_XsubC.

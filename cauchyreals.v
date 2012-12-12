@@ -1471,7 +1471,7 @@ rewrite /poly_bound.
 pose f q (k : nat) :=  `|q^`N(j.+1)`_k| * (`|a| + `|r|) ^+ k.
 rewrite ler_add //=.
 rewrite (big_ord_widen (sizeY q) (f q.[(z i)%:P])); last first.
-  rewrite size_nderivn leq_subLR (leq_trans (leq_size_evalC _ _)) //.
+  rewrite size_nderivn leq_subLR (leq_trans (max_size_evalC _ _)) //.
   by rewrite leq_addl.
 rewrite big_mkcond /= ler_sum // /f => k _.
 case: ifP=> _; last by rewrite mulr_ge0 ?exprn_ge0 ?addr_ge0 ?normr_ge0.
@@ -1513,12 +1513,12 @@ rewrite (@ler_trans _ (u * vi)) //.
   rewrite /ui /u; case: maxrP; first by rewrite !expr1n.
   move=> r2_gt1; rewrite ler_eexpn2l //.
   rewrite -subn1 leq_subLR add1n (leq_trans _ (leqSpred _)) //.
-  by rewrite leq_size_evalC.
+  by rewrite max_size_evalC.
 rewrite ler_wpmul2l ?exprn_ge0 ?ler_maxr ?ler01 // ler_add //.
 pose f j :=  poly_bound q.[(z i)%:P]^`N(j.+1) a r.
 rewrite (big_ord_widen (sizeY q).-1 f); last first.
   rewrite -subn1 leq_subLR add1n (leq_trans _ (leqSpred _)) //.
-  by rewrite leq_size_evalC.
+  by rewrite max_size_evalC.
 rewrite big_mkcond /= ler_sum // /f => k _.
 by case: ifP=> _; rewrite ?bound_poly_bound_ge0 ?bound_poly_boundP.
 Qed.
@@ -1565,12 +1565,12 @@ Lemma root_monic_from_neq0 (p : {poly F}) (x : creal) :
   p.[x] == 0 -> ((lead_coef p) ^-1 *: p).[x] == 0.
 Proof. by rewrite -mul_polyC horner_crealM; move->; rewrite mul_creal0. Qed.
 
-Lemma root_annul_sub_creal (x y : creal) (p q : {poly F}) :
+Lemma root_sub_annihilant_creal (x y : creal) (p q : {poly F}) :
   (p != 0)%B -> (q != 0)%B -> p.[x] == 0 -> q.[y] == 0 ->
-  (annul_sub p q).[x - y] == 0.
+  (sub_annihilant p q).[x - y] == 0.
 Proof.
 move=> p_neq0 q_neq0 px_eq0 qy_eq0.
-have [||[u v] /= [hu hv] hpq] := @annul_sub_in_ideal _ p q.
+have [||[u v] /= [hu hv] hpq] := @sub_annihilant_in_ideal _ p q.
 + by rewrite (@has_root_creal_size_gt1 x).
 + by rewrite (@has_root_creal_size_gt1 y).
 apply: eq_crealP; exists_big_modulus m F.
@@ -1589,12 +1589,12 @@ apply: eq_crealP; exists_big_modulus m F.
 by close.
 Qed.
 
-Lemma root_annul_div_creal (x y : creal) (p q : {poly F}) (y_neq0 : y != 0) :
+Lemma root_div_annihilant_creal (x y : creal) (p q : {poly F}) (y_neq0 : y != 0) :
   (p != 0)%B -> (q != 0)%B -> p.[x] == 0 -> q.[y] == 0 ->
-  (annul_div p q).[(x / y_neq0)%CR] == 0.
+  (div_annihilant p q).[(x / y_neq0)%CR] == 0.
 Proof.
 move=> p_neq0 q_neq0 px_eq0 qy_eq0.
-have [||[u v] /= [hu hv] hpq] := @annul_div_in_ideal _ p q.
+have [||[u v] /= [hu hv] hpq] := @div_annihilant_in_ideal _ p q.
 + by rewrite (@has_root_creal_size_gt1 x).
 + by rewrite (@has_root_creal_size_gt1 y).
 apply: eq_crealP; exists_big_modulus m F.

@@ -63,9 +63,10 @@ Require Import bigop ssralg binomial.
 (*                       import selectively the part of the theory of roots   *)
 (*                       of unity that doesn't mention polynomials explicitly *)
 (*       map_poly f p == the image of the polynomial by the function f (which *)
-(*                       should be a ring morphism).                          *)
-(*     comm_ringM f u == u commutes with the image of f (i.e., with all f x)  *)
-(*   horner_morph cfu == given cfu : comm_ringM f u, the function mapping p   *)
+(*     (locally, p^f)    is usually a ring morphism).                         *)
+(*               p^:P == p lifted to {poly {poly R}} (:= map_poly polyC p).   *)
+(*   commr_rmorph f u == u commutes with the image of f (i.e., with all f x). *)
+(*   horner_morph cfu == given cfu : commr_rmorph f u, the function mapping p *)
 (*                       to the value of map_poly f p at u; this is a ring    *)
 (*                       morphism from {poly R} to the codomain of f when f   *)
 (*                       is a ring morphism.                                  *)
@@ -100,13 +101,14 @@ Open Local Scope ring_scope.
 
 Reserved Notation "{ 'poly' T }" (at level 0, format "{ 'poly'  T }").
 Reserved Notation "c %:P" (at level 2, format "c %:P").
+Reserved Notation "p ^:P" (at level 2, format "p ^:P").
 Reserved Notation "'X" (at level 0).
 Reserved Notation "''X^' n" (at level 3, n at level 2, format "''X^' n").
 Reserved Notation "\poly_ ( i < n ) E"
   (at level 36, E at level 36, i, n at level 50,
    format "\poly_ ( i  <  n )  E").
 Reserved Notation "p \Po q" (at level 50).
-Reserved Notation "a ^`N ( n )" (at level 8, format "a ^`N ( n )").
+Reserved Notation "p ^`N ( n )" (at level 8, format "p ^`N ( n )").
 Reserved Notation "n .-unity_root" (at level 2, format "n .-unity_root").
 Reserved Notation "n .-primitive_root"
   (at level 2, format "n .-primitive_root").
@@ -1903,20 +1905,25 @@ Qed.
 
 End MorphPoly.
 
+Notation "p ^:P" := (map_poly polyC p) : ring_scope.
+
 Section PolyCompose.
 
 Variable R : ringType.
 Implicit Types p q : {poly R}.
 
-Definition comp_poly q p := (map_poly polyC p).[q].
+Definition comp_poly q p := p^:P.[q].
 
 Local Notation "p \Po q" := (comp_poly q p) : ring_scope.
 
-Lemma size_map_polyC p : size (map_poly polyC p) = size p.
+Lemma size_map_polyC p : size p^:P = size p.
 Proof. exact: size_map_inj_poly (@polyC_inj R) _ _. Qed.
 
-Lemma map_polyC_eq0 p : (map_poly polyC p == 0) = (p == 0).
+Lemma map_polyC_eq0 p : (p^:P == 0) = (p == 0).
 Proof. by rewrite -!size_poly_eq0 size_map_polyC. Qed.
+
+Lemma root_polyC p x : root p^:P x%:P = root p x.
+Proof. by rewrite rootE horner_map polyC_eq0. Qed.
 
 Lemma comp_polyE p q : p \Po q = \sum_(i < size p) p`_i *: q^+i.
 Proof.
@@ -2250,6 +2257,19 @@ Qed.
 
 Lemma comp_poly2_eq0 p q : size q = 2 -> (p \Po q == 0) = (p == 0).
 Proof. by rewrite -!size_poly_eq0 => /size_comp_poly2->. Qed.
+
+Lemma lead_coef_comp p q :
+  size q > 1 -> lead_coef (p \Po q) = lead_coef p * lead_coef q ^+ (size p).-1.
+Proof.
+move=> q_gt1; have nz_q: q != 0 by rewrite -size_poly_gt0 ltnW.
+have [-> | nz_p] := eqVneq p 0; first by rewrite comp_poly0 !lead_coef0 mul0r.
+rewrite comp_polyE polySpred //= big_ord_recr /= addrC -lead_coefE.
+rewrite lead_coefDl; first by rewrite lead_coefZ lead_coef_exp.
+rewrite size_scale ?lead_coef_eq0 // (polySpred (expf_neq0 _ nz_q)) ltnS.
+apply/leq_sizeP=> i le_qp_i; rewrite coef_sum big1 // => j _.
+rewrite coefZ (nth_default 0 (leq_trans _ le_qp_i)) ?mulr0 //=.
+by rewrite polySpred ?expf_neq0 // !size_exp -(subnKC q_gt1) ltn_pmul2l.
+Qed.
 
 End PolynomialIdomain.
 
