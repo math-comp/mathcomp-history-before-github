@@ -82,6 +82,7 @@ let array_list_of_tl v =
 
 (* end patch *)
 
+module Intset = Int.Set
 
 type loc = Loc.t
 let dummy_loc = Loc.ghost
