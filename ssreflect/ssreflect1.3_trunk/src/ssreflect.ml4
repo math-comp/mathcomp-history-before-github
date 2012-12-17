@@ -4417,7 +4417,7 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
           | ProdType (name, _, t) -> name :: aux t (n-1)
           | _ -> assert false in aux hd_ty (Array.length args) in
         hd_ty, Util.List.map_filter (fun (t, name) ->
-          let evs = Util.Intset.elements (Evarutil.evars_of_term t) in
+          let evs = Intset.elements (Evarutil.evars_of_term t) in
           let open_evs = List.filter (fun k ->
             InProp <> Retyping.get_sort_family_of
               env sigma (Evd.evar_concl (Evd.find sigma k)))
