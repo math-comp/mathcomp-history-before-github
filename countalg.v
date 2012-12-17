@@ -977,7 +977,7 @@ have toEtrans j i k leij lejk leik z:
     by rewrite -Dk in leiSk lejSk *; rewrite toEeq.
   by have leik := leq_trans leij lejk; rewrite !toEleS -IHk.
 have [leMl leMr] := (leq_maxl, leq_maxr); pose le_max := (leq_max, leqnn, orbT).
-pose pairK (x y : Krep) (m := _) :=
+pose pairK (x y : Krep) (m := maxn _ _) :=
   (toE _ m (leMl _ _) (tagged x), toE _ m (leMr _ _) (tagged y)).
 pose eqKrep x y := prod_curry (@eq_op _) (pairK x y).
 have eqKrefl : reflexive eqKrep by move=> z; apply/eqP; apply: toEirr.
