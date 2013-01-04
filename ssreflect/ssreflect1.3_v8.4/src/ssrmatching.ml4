@@ -284,6 +284,7 @@ let unif_HO_args env ise0 pa i ca =
 let flags_FO = {Unification.default_no_delta_unify_flags with 
                 Unification.modulo_conv_on_closed_terms = None;
                 Unification.modulo_delta_types = full_transparent_state;
+                Unification.modulo_eta = false;
                 Unification.allow_K_in_toplevel_higher_order_unification=false} 
 let unif_FO env ise p c =
   Unification.w_unify env ise Reduction.CONV ~flags:flags_FO p c
@@ -671,7 +672,18 @@ let mk_tpattern_matcher
       | _ -> false in match_let
     | KpatFixed -> (=) u.up_f
     | KpatConst -> eq_constr u.up_f
-    | _ -> unif_EQ env sigma u.up_f in
+    | _ -> fun c ->
+       (* to avoid matching the eta expansion *)
+       match kind_of_term c with
+       | Lambda (n,ty,bo) ->
+           (match kind_of_term bo with
+           | App (f,a) when eq_constr (mkRel 1) a.(Array.length a - 1) ->
+               let env' = Environ.push_rel (n,None,ty) env in
+               let fa' = mkApp (f,fst (array_chop (Array.length a - 1) a)) in
+               if unif_EQ env' sigma u.up_f fa' then false
+               else unif_EQ env sigma u.up_f c
+           | _ -> unif_EQ env sigma u.up_f c)
+       | _ -> unif_EQ env sigma u.up_f c in
 let p2t p = mkApp(p.up_f,p.up_a) in 
 let source () = match upats_origin, upats with
   | None, [p] -> 
@@ -702,7 +714,7 @@ let source () = match upats_origin, upats with
   if !skip_occ then (ignore(k env u.up_t 0); c) else
   let match_EQ = match_EQ env sigma u in
   let pn = Array.length pa in
-  let rec subst_loop (env,h as acc) c' = 
+  let rec subst_loop (env,h as acc) c' =
     if !skip_occ then c' else
     let f, a = splay_app sigma c' in
     if Array.length a >= pn && match_EQ f && unif_EQ_args env sigma pa a then
