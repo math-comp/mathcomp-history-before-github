@@ -693,7 +693,7 @@ let mk_tpattern_matcher
            (match kind_of_term bo with
            | App (f,a) when eq_constr (mkRel 1) a.(Array.length a - 1) ->
                let env' = Environ.push_rel (n,None,ty) env in
-               let fa' = mkApp (f,fst (array_chop (Array.length a - 1) a)) in
+               let fa' = mkApp (f,fst (Array.chop (Array.length a - 1) a)) in
                if unif_EQ env' sigma u.up_f fa' then false
                else unif_EQ env sigma u.up_f c
            | _ -> unif_EQ env sigma u.up_f c)
