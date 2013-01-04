@@ -284,7 +284,6 @@ let unif_HO_args env ise0 pa i ca =
 let flags_FO = {Unification.default_no_delta_unify_flags with 
                 Unification.modulo_conv_on_closed_terms = None;
                 Unification.modulo_delta_types = full_transparent_state;
-                Unification.modulo_eta = false;
                 Unification.allow_K_in_toplevel_higher_order_unification=false} 
 let unif_FO env ise p c =
   Unification.w_unify env ise Reduction.CONV ~flags:flags_FO p c
