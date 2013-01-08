@@ -363,6 +363,7 @@ type pattern_class =
   | KpatConst
   | KpatEvar of existential_key
   | KpatLet
+  | KpatLam
   | KpatRigid
   | KpatFlex
   | KpatProj of constant
@@ -443,6 +444,7 @@ let mk_tpattern ?p_origin ?(hack=false) env sigma0 (ise, t) ok dir p =
           ++ str " in " ++ pr_constr_pat rule))
     | LetIn (_, v, _, b) ->
       if b <> mkRel 1 then KpatLet, f, a else KpatFlex, v, a
+    | Lambda _ -> KpatLam, f, a
     | _ -> KpatRigid, f, a in
   let aa = Array.of_list a in
   let ise', p' = evars_for_FO ~hack env sigma0 ise (mkApp (f, aa)) in
@@ -459,6 +461,7 @@ let ungen_upat lhs (sigma, t) u =
   | Const _ -> KpatConst
   | Evar (k, _) -> if is_defined sigma k then raise NoMatch else KpatEvar k
   | LetIn _ -> KpatLet
+  | Lambda _ -> KpatLam
   | _ -> KpatRigid in
   sigma, {u with up_k = k; up_FO = lhs; up_f = f; up_a = a; up_t = t}
 
@@ -502,6 +505,7 @@ let filter_upat i0 f n u fpats =
   | KpatFixed when u.up_f = f -> na 
   | KpatEvar k when isEvar_k k f -> na
   | KpatLet when isLetIn f -> na
+  | KpatLam when isLambda f -> na
   | KpatRigid when isRigid f -> na
   | KpatFlex -> na
   | KpatProj pc ->
@@ -518,6 +522,7 @@ let filter_upat_FO i0 f n u fpats =
   | KpatFixed -> u.up_f = f 
   | KpatEvar k -> isEvar_k k f
   | KpatLet -> isLetIn f
+  | KpatLam -> isLambda f
   | KpatRigid -> isRigid f
   | KpatProj pc -> f = mkConst pc
   | KpatFlex -> i0 := n; true in
@@ -671,18 +676,11 @@ let mk_tpattern_matcher
       | _ -> false in match_let
     | KpatFixed -> (=) u.up_f
     | KpatConst -> eq_constr u.up_f
-    | _ -> fun c ->
-       (* to avoid matching the eta expansion *)
-       match kind_of_term c with
-       | Lambda (n,ty,bo) ->
-           (match kind_of_term bo with
-           | App (f,a) when eq_constr (mkRel 1) a.(Array.length a - 1) ->
-               let env' = Environ.push_rel (n,None,ty) env in
-               let fa' = mkApp (f,fst (array_chop (Array.length a - 1) a)) in
-               if unif_EQ env' sigma u.up_f fa' then false
-               else unif_EQ env sigma u.up_f c
-           | _ -> unif_EQ env sigma u.up_f c)
-       | _ -> unif_EQ env sigma u.up_f c in
+    | KpatLam -> fun c ->
+       (match kind_of_term c with
+       | Lambda _ -> unif_EQ env sigma u.up_f c
+       | _ -> false)
+    | _ -> unif_EQ env sigma u.up_f in
 let p2t p = mkApp(p.up_f,p.up_a) in 
 let source () = match upats_origin, upats with
   | None, [p] -> 
