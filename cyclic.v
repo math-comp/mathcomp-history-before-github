@@ -705,7 +705,7 @@ Proof.
 case: n => [|[|n']]; try by rewrite big_mkcond !big_ord_recl big_ord0.
 set n := n'.+2; pose x1 : 'Z_n := 1%R.
 have ox1 : #[x1] = n by rewrite /order -Zp_cycle card_Zp.
-rewrite -{8}ox1 -[#[_]]sum_ncycle_totient [#|_|]ox1 big_mkcond.
+rewrite -[RHS]ox1 -[#[_]]sum_ncycle_totient [#|_|]ox1 big_mkcond /=.
 apply: eq_bigr => d _; rewrite -{2}ox1; case: ifP => [|ndv_dG]; last first.
   rewrite eq_card0 // => C; apply/imsetP=> [[x /setIdP[Gx oxd] _{C}]].
   by rewrite -(eqP oxd) order_dvdG in ndv_dG.

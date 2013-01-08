@@ -96,9 +96,6 @@ Reserved Notation "\big [ op / idx ]_ i F"
   (at level 36, F at level 36, op, idx at level 10, i at level 0,
      right associativity,
            format "'[' \big [ op / idx ]_ i '/  '  F ']'").
-Reserved Notation "\big [ op / idx ]_ ( <- r | P ) F"
-  (at level 36, F at level 36, op, idx at level 10, r at level 50,
-           format "'[' \big [ op / idx ]_ ( <-  r  |  P ) '/  '  F ']'").
 Reserved Notation "\big [ op / idx ]_ ( i <- r | P ) F"
   (at level 36, F at level 36, op, idx at level 10, i, r at level 50,
            format "'[' \big [ op / idx ]_ ( i  <-  r  |  P ) '/  '  F ']'").
@@ -137,9 +134,6 @@ Reserved Notation "\sum_ i F"
   (at level 41, F at level 41, i at level 0,
            right associativity,
            format "'[' \sum_ i '/  '  F ']'").
-Reserved Notation "\sum_ ( <- r | P ) F"
-  (at level 41, F at level 41, r at level 50,
-           format "'[' \sum_ ( <-  r  |  P ) '/  '  F ']'").
 Reserved Notation "\sum_ ( i <- r | P ) F"
   (at level 41, F at level 41, i, r at level 50,
            format "'[' \sum_ ( i  <-  r  |  P ) '/  '  F ']'").
@@ -177,9 +171,6 @@ Reserved Notation "\sum_ ( i 'in' A ) F"
 Reserved Notation "\max_ i F"
   (at level 41, F at level 41, i at level 0,
            format "'[' \max_ i '/  '  F ']'").
-Reserved Notation "\max_ ( <- r | P ) F"
-  (at level 41, F at level 41, r at level 50,
-           format "'[' \max_ ( <-  r  |  P ) '/  '  F ']'").
 Reserved Notation "\max_ ( i <- r | P ) F"
   (at level 41, F at level 41, i, r at level 50,
            format "'[' \max_ ( i  <-  r  |  P ) '/  '  F ']'").
@@ -217,9 +208,6 @@ Reserved Notation "\max_ ( i 'in' A ) F"
 Reserved Notation "\prod_ i F"
   (at level 36, F at level 36, i at level 0,
            format "'[' \prod_ i '/  '  F ']'").
-Reserved Notation "\prod_ ( <- r | P ) F"
-  (at level 36, F at level 36, r at level 50,
-           format "'[' \prod_ ( <-  r  |  P ) '/  '  F ']'").
 Reserved Notation "\prod_ ( i <- r | P ) F"
   (at level 36, F at level 36, i, r at level 50,
            format "'[' \prod_ ( i  <-  r  |  P ) '/  '  F ']'").
@@ -257,9 +245,6 @@ Reserved Notation "\prod_ ( i 'in' A ) F"
 Reserved Notation "\bigcup_ i F"
   (at level 41, F at level 41, i at level 0,
            format "'[' \bigcup_ i '/  '  F ']'").
-Reserved Notation "\bigcup_ ( <- r | P ) F"
-  (at level 41, F at level 41, r at level 50,
-           format "'[' \bigcup_ ( <-  r  |  P ) '/  '  F ']'").
 Reserved Notation "\bigcup_ ( i <- r | P ) F"
   (at level 41, F at level 41, i, r at level 50,
            format "'[' \bigcup_ ( i  <-  r  |  P ) '/  '  F ']'").
@@ -297,9 +282,6 @@ Reserved Notation "\bigcup_ ( i 'in' A ) F"
 Reserved Notation "\bigcap_ i F"
   (at level 41, F at level 41, i at level 0,
            format "'[' \bigcap_ i '/  '  F ']'").
-Reserved Notation "\bigcap_ ( <- r | P ) F"
-  (at level 41, F at level 41, r at level 50,
-           format "'[' \bigcap_ ( <-  r  |  P ) '/  '  F ']'").
 Reserved Notation "\bigcap_ ( i <- r | P ) F"
   (at level 41, F at level 41, i, r at level 50,
            format "'[' \bigcap_ ( i  <-  r  |  P )  F ']'").
@@ -526,12 +508,22 @@ Print Canonical Projections.
 Delimit Scope big_scope with BIG.
 Open Scope big_scope.
 
-Definition reducebig R I idx op r (P : pred I) (F : I -> R) : R :=
-  foldr (fun i x => if P i then op (F i) x else x) idx r.
+(* The first argument is dummy but is given by notations as the op.
+   In this way, when type inference processes the third argument the
+   expected type R is known and coercions can be inserted. We can't pass
+   idx, that has a simpler type, because sometimes idx has an incomplete
+   type, like (1%g : sort _). Moreover an extra idx is likely to interfere
+   with occurrence numbers, while op is unlikely. *)
+Structure bigbody R : Type := BigBody
+  { _ : R -> R -> R; bigP : bool; bigF : R }. 
+
+Definition reducebig R I idx op r (body : I -> bigbody R) : R :=
+  foldr (fun i x => let: BigBody _ b v := body i in
+                    if b then op v x else x) idx r.
 
 Module Type BigOpSig.
 Parameter bigop : forall R I,
-   R -> (R -> R -> R) -> seq I -> pred I -> (I -> R) -> R.
+   R -> (R -> R -> R) -> seq I -> (I -> bigbody R) -> R.
 Axiom bigopE : bigop = reducebig.
 End BigOpSig.
 
@@ -542,6 +534,9 @@ End BigOp.
 
 Notation bigop := BigOp.bigop (only parsing).
 Canonical bigop_unlock := Unlockable BigOp.bigopE.
+
+Notation BIG_F := (F in bigop _ _ _ (fun i => BigBody _ _ (F i)))%pattern.
+Notation BIG_P := (P in bigop _ _ _ (fun i => BigBody _ (P i) _))%pattern.
 
 Definition index_iota m n := iota m (n - m).
 
@@ -560,27 +555,25 @@ Hint Resolve mem_index_enum.
 Lemma filter_index_enum T P : filter P (index_enum T) = enum P.
 Proof. by []. Qed.
 
-Notation "\big [ op / idx ]_ ( <- r | P ) F" :=
-  (bigop idx op r P F) : big_scope.
 Notation "\big [ op / idx ]_ ( i <- r | P ) F" :=
-  (bigop idx op r (fun i => P%B) (fun i => F)) : big_scope.
+  (bigop idx op r (fun i => BigBody op P%B F)) : big_scope.
 Notation "\big [ op / idx ]_ ( i <- r ) F" :=
-  (bigop idx op r (fun _ => true) (fun  i => F)) : big_scope.
+  (bigop idx op r (fun i => BigBody op true F)) : big_scope.
 Notation "\big [ op / idx ]_ ( m <= i < n | P ) F" :=
-  (bigop idx op (index_iota m n) (fun i : nat => P%B) (fun i : nat => F))
+  (bigop idx op (index_iota m n) (fun i : nat => BigBody op P%B F))
      : big_scope.
 Notation "\big [ op / idx ]_ ( m <= i < n ) F" :=
-  (bigop idx op (index_iota m n) (fun _ => true) (fun i : nat => F))
+  (bigop idx op (index_iota m n) (fun i : nat => BigBody op true F))
      : big_scope.
 Notation "\big [ op / idx ]_ ( i | P ) F" :=
-  (bigop idx op (index_enum _) (fun i => P%B) (fun i => F)) : big_scope.
+  (bigop idx op (index_enum _) (fun i => BigBody op P%B F)) : big_scope.
 Notation "\big [ op / idx ]_ i F" :=
-  (bigop idx op (index_enum _) (fun _ => true) (fun i => F)) : big_scope.
+  (bigop idx op (index_enum _) (fun i => BigBody op true F)) : big_scope.
 Notation "\big [ op / idx ]_ ( i : t | P ) F" :=
-  (bigop idx op (index_enum _) (fun i : t => P%B) (fun i : t => F))
+  (bigop idx op (index_enum _) (fun i : t => BigBody op P%B F))
      (only parsing) : big_scope.
 Notation "\big [ op / idx ]_ ( i : t ) F" :=
-  (bigop idx op (index_enum _) (fun _ => true) (fun i : t => F))
+  (bigop idx op (index_enum _) (fun i : t => BigBody op true F))
      (only parsing) : big_scope.
 Notation "\big [ op / idx ]_ ( i < n | P ) F" :=
   (\big[op/idx]_(i : ordinal n | P%B) F) : big_scope.
@@ -592,8 +585,6 @@ Notation "\big [ op / idx ]_ ( i 'in' A ) F" :=
   (\big[op/idx]_(i | i \in A) F) : big_scope.
 
 Notation Local "+%N" := addn (at level 0, only parsing).
-Notation "\sum_ ( <- r | P ) F" :=
-  (\big[+%N/0%N]_(<- r | P%B) F%N) : nat_scope.
 Notation "\sum_ ( i <- r | P ) F" :=
   (\big[+%N/0%N]_(i <- r | P%B) F%N) : nat_scope.
 Notation "\sum_ ( i <- r ) F" :=
@@ -620,8 +611,6 @@ Notation "\sum_ ( i 'in' A ) F" :=
   (\big[+%N/0%N]_(i in A) F%N) : nat_scope.
 
 Notation Local "*%N" := muln (at level 0, only parsing).
-Notation "\prod_ ( <- r | P ) F" :=
-  (\big[*%N/1%N]_(<- r | P%B) F%N) : nat_scope.
 Notation "\prod_ ( i <- r | P ) F" :=
   (\big[*%N/1%N]_(i <- r | P%B) F%N) : nat_scope.
 Notation "\prod_ ( i <- r ) F" :=
@@ -647,8 +636,6 @@ Notation "\prod_ ( i 'in' A | P ) F" :=
 Notation "\prod_ ( i 'in' A ) F" :=
   (\big[*%N/1%N]_(i in A) F%N) : nat_scope.
 
-Notation "\max_ ( <- r | P ) F" :=
-  (\big[maxn/0%N]_(<- r | P%B) F%N) : nat_scope.
 Notation "\max_ ( i <- r | P ) F" :=
   (\big[maxn/0%N]_(i <- r | P%B) F%N) : nat_scope.
 Notation "\max_ ( i <- r ) F" :=
@@ -673,24 +660,6 @@ Notation "\max_ ( i 'in' A | P ) F" :=
  (\big[maxn/0%N]_(i in A | P%B) F%N) : nat_scope.
 Notation "\max_ ( i 'in' A ) F" :=
  (\big[maxn/0%N]_(i in A) F%N) : nat_scope.
-
-(* Redundant, unparseable notation to print some constant sums and products. *)
-Notation "\su 'm_' ( i | P ) e" :=
-  (\sum_(<- index_enum _ | (fun i => P)) (fun _ => e%N))
-  (at level 41, e at level 41, format "\su 'm_' ( i  |  P )  e") : nat_scope.
-
-Notation "\su 'm_' ( i 'in' A ) e" :=
-  (\sum_(<- index_enum _ | (fun i => i \in A)) (fun _ => e%N))
-  (at level 41, e at level 41, format "\su 'm_' ( i  'in'  A )  e") : nat_scope.
-
-Notation "\su 'm_' ( i 'in' A | P ) e" :=
-  (\sum_(<- index_enum _ | (fun i => (i \in A) && P)) (fun _ => e%N))
-  (at level 41, e at level 41, format "\su 'm_' ( i  'in'  A  |  P )  e")
-    : nat_scope.
-
-Notation "\pro 'd_' ( i | P ) e" :=
-  (\prod_(<- index_enum _ | (fun i => P)) (fun _ => e%N))
-  (at level 36, e at level 36, format "\pro 'd_' ( i  |  P )  e") : nat_scope.
 
 (* Induction loading *)
 Lemma big_load R (K K' : R -> Type) idx op I r (P : pred I) F :

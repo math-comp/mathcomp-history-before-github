@@ -308,8 +308,6 @@ Notation "U ^C" := (complv U) (at level 8, format "U ^C") : vspace_scope.
 Notation "U :\: V" := (diffv U V) : vspace_scope.
 Notation "{ : vT }" := (@fullv _ vT) (only parsing) : vspace_scope.
 
-Notation "\sum_ ( <- r | P ) U" :=
-  (\big[addv/0%VS]_(<- r | P%B) U%VS) : vspace_scope.
 Notation "\sum_ ( i <- r | P ) U" :=
   (\big[addv/0%VS]_(i <- r | P%B) U%VS) : vspace_scope.
 Notation "\sum_ ( i <- r ) U" :=
@@ -335,8 +333,6 @@ Notation "\sum_ ( i 'in' A | P ) U" :=
 Notation "\sum_ ( i 'in' A ) U" :=
   (\big[addv/0%VS]_(i in A) U%VS) : vspace_scope.
 
-Notation "\bigcap_ ( <- r | P ) U" :=
-  (\big[capv/fullv]_(<- r | P%B) U%VS) : vspace_scope.
 Notation "\bigcap_ ( i <- r | P ) U" :=
   (\big[capv/fullv]_(i <- r | P%B) U%VS) : vspace_scope.
 Notation "\bigcap_ ( i <- r ) U" :=
@@ -590,7 +586,7 @@ Lemma memv_sumP {P} {Us : I -> {vspace vT}} {v} :
 Proof.
 apply: (iffP idP) => [|[vs Uv ->]]; last exact: memv_sumr.
 rewrite memvK vs2mx_sum => /sub_sumsmxP[r /(canRL v2rK)->].
-rewrite linear_sum /=; set f := fun i => r2v _; exists f => //= i _.
+rewrite linear_sum /=; set f := BIG_F; exists f => //= i _.
 by rewrite mem_r2v submxMl.
 Qed.
 

@@ -1549,8 +1549,6 @@ Qed.
 
 End FunImageComp.
 
-Notation "\bigcup_ ( <- r | P ) F" :=
-  (\big[@setU _/set0]_(<- r | P%B) F%SET) : set_scope.
 Notation "\bigcup_ ( i <- r | P ) F" :=
   (\big[@setU _/set0]_(i <- r | P) F%SET) : set_scope.
 Notation "\bigcup_ ( i <- r ) F" :=
@@ -1576,8 +1574,6 @@ Notation "\bigcup_ ( i 'in' A | P ) F" :=
 Notation "\bigcup_ ( i 'in' A ) F" :=
   (\big[@setU _/set0]_(i in A) F%SET) : set_scope.
 
-Notation "\bigcap_ ( <- r | P ) F" :=
-  (\big[@setI _/setT]_(<- r | P%B) F%SET) : set_scope.
 Notation "\bigcap_ ( i <- r | P ) F" :=
   (\big[@setI _/setT]_(i <- r | P%B) F%SET) : set_scope.
 Notation "\bigcap_ ( i <- r ) F" :=

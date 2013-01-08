@@ -2032,8 +2032,6 @@ Notation "A :&: B" := (capmx A B) : matrix_set_scope.
 Notation "A :\: B" := (diffmx A B) : matrix_set_scope.
 Notation mxdirect S := (mxdirect_def (Phantom 'M_(_,_) S%MS)).
 
-Notation "\sum_ ( <- r | P ) B" :=
-  (\big[addsmx/0%R]_(<- r | P%B) B%MS) : matrix_set_scope.
 Notation "\sum_ ( i <- r | P ) B" :=
   (\big[addsmx/0%R]_(i <- r | P%B) B%MS) : matrix_set_scope.
 Notation "\sum_ ( i <- r ) B" :=
@@ -2059,8 +2057,6 @@ Notation "\sum_ ( i 'in' A | P ) B" :=
 Notation "\sum_ ( i 'in' A ) B" :=
   (\big[addsmx/0%R]_(i in A) B%MS) : matrix_set_scope.
 
-Notation "\bigcap_ ( <- r | P ) B" :=
-  (\big[capmx/1%:M]_(<- r | P%B) B%MS) : matrix_set_scope.
 Notation "\bigcap_ ( i <- r | P ) B" :=
   (\big[capmx/1%:M]_(i <- r | P%B) B%MS) : matrix_set_scope.
 Notation "\bigcap_ ( i <- r ) B" :=

@@ -388,8 +388,8 @@ Definition Mods (p q : polyF) : cps (seq polyF) := fun k =>
   ModsAux p q (maxn sp sq.+1) k.
 
 Definition PolyComb (sq : seq polyF) (sc : seq int) :=
-  reducebig [::1%qfT] MulPoly (iota 0 (size sq)) xpredT
-  (fun i => (nth [::] sq i ^^+ comb_exp sc`_i)%qfT).
+  reducebig [::1%qfT] MulPoly (iota 0 (size sq))
+  (fun i => BigBody MulPoly true (nth [::] sq i ^^+ comb_exp sc`_i)%qfT).
 
 Definition Pcq sq i := (nth [::] (map (PolyComb sq) (sg_tab (size sq))) i).
 
@@ -407,7 +407,7 @@ Fixpoint ProdPoly T (s : seq T) (f : T -> cps polyF) : cps polyF := fun k =>
   else k [::1%qfT].
 
 Definition BoundingPoly (sq : seq polyF) : polyF :=
-  Deriv (reducebig [::1%qfT] MulPoly sq xpredT id).
+  Deriv (reducebig [::1%qfT] MulPoly sq (fun i => BigBody MulPoly true i)).
 
 Definition Coefs (n i : nat) : tF :=
   Const (match n with
@@ -431,12 +431,14 @@ Definition CcountGt0 (sp sq : seq polyF) : fF :=
   else
     let bq := BoundingPoly sq in
       bind cw <- CcountWeak bq sq;
-      ((reducebig True And sq xpredT (fun q => LeadCoef q (fun lq => Lt 0 lq)))
-        \/ ((reducebig True And sq xpredT (fun q =>
-          bind sq <- Size q;
+      ((reducebig True And sq (fun q =>
+          BigBody And true (LeadCoef q (fun lq => Lt 0 lq))))
+        \/ ((reducebig True And sq (fun q =>
+         BigBody And true
+          (bind sq <- Size q;
           bind lq <- LeadCoef q;
           Lt 0 ((Opp 1) ^+ (sq).-1 * lq)
-        )) \/ Lt 0 cw))%qfT.
+        ))) \/ Lt 0 cw))%qfT.
 
 
 Fixpoint abstrX (i : nat) (t : tF) : polyF :=
@@ -899,7 +901,7 @@ Lemma eval_BoundingPoly e sq :
   eval_poly e (BoundingPoly sq) = bounding_poly (map (eval_poly e) sq).
 Proof.
 rewrite /BoundingPoly -BigOp.bigopE.
-rewrite eval_Deriv /bounding_poly big_map (@big_morph _ _ _ 1 *%R) //=.
+rewrite eval_Deriv /bounding_poly big_map [in LHS](@big_morph _ _ _ 1 *%R) //=.
   by move=> p q /=; rewrite eval_MulPoly.
 by rewrite mul0r add0r.
 Qed.

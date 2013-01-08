@@ -374,8 +374,6 @@ Notation "[ ~ x1 , x2 , .. , xn ]" := (commg .. (commg x1 x2) .. xn)
 
 Prenex Implicits mulg invg expgn conjg commg.
 
-Notation "\prod_ ( <- r | P ) F" :=
-  (\big[mulg/1]_(<- r | P%B) F%g) : group_scope.
 Notation "\prod_ ( i <- r | P ) F" :=
   (\big[mulg/1]_(i <- r | P%B) F%g) : group_scope.
 Notation "\prod_ ( i <- r ) F" :=
@@ -1928,8 +1926,6 @@ Notation "A <*> B" := (joing_group A B) : Group_scope.
 Notation "G * H" := (joinG G H) : Group_scope.
 Prenex Implicits joinG.
 
-Notation "\prod_ ( <- r | P ) F" :=
-  (\big[joinG/1%G]_(<- r | P%B) F%G) : Group_scope.
 Notation "\prod_ ( i <- r | P ) F" :=
   (\big[joinG/1%G]_(i <- r | P%B) F%G) : Group_scope.
 Notation "\prod_ ( i <- r ) F" :=

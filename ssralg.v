@@ -5699,8 +5699,6 @@ Notation "a \*: f" := (scale_fun_head tt a f) : ring_scope.
 Notation "x \*o f" := (mull_fun_head tt x f) : ring_scope.
 Notation "x \o* f" := (mulr_fun_head tt x f) : ring_scope.
 
-Notation "\sum_ ( <- r | P ) F" :=
-  (\big[+%R/0%R]_(<- r | P%B) F%R) : ring_scope.
 Notation "\sum_ ( i <- r | P ) F" :=
   (\big[+%R/0%R]_(i <- r | P%B) F%R) : ring_scope.
 Notation "\sum_ ( i <- r ) F" :=
@@ -5726,8 +5724,6 @@ Notation "\sum_ ( i 'in' A | P ) F" :=
 Notation "\sum_ ( i 'in' A ) F" :=
   (\big[+%R/0%R]_(i in A) F%R) : ring_scope.
 
-Notation "\prod_ ( <- r | P ) F" :=
-  (\big[*%R/1%R]_(<- r | P%B) F%R) : ring_scope.
 Notation "\prod_ ( i <- r | P ) F" :=
   (\big[*%R/1%R]_(i <- r | P%B) F%R) : ring_scope.
 Notation "\prod_ ( i <- r ) F" :=
