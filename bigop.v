@@ -514,8 +514,7 @@ Open Scope big_scope.
    idx, that has a simpler type, because sometimes idx has an incomplete
    type, like (1%g : sort _). Moreover an extra idx is likely to interfere
    with occurrence numbers, while op is unlikely. *)
-Structure bigbody R : Type := BigBody
-  { _ : R -> R -> R; bigP : bool; bigF : R }. 
+CoInductive bigbody R : Type := BigBody of (R -> R -> R) & bool & R.
 
 Definition reducebig R I idx op r (body : I -> bigbody R) : R :=
   foldr (fun i x => let: BigBody _ b v := body i in
