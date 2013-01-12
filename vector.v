@@ -586,8 +586,8 @@ Lemma memv_sumP {P} {Us : I -> {vspace vT}} {v} :
 Proof.
 apply: (iffP idP) => [|[vs Uv ->]]; last exact: memv_sumr.
 rewrite memvK vs2mx_sum => /sub_sumsmxP[r /(canRL v2rK)->].
-rewrite linear_sum /=; set f := BIG_F; exists f => //= i _.
-by rewrite mem_r2v submxMl.
+pose f i := r2v (r i *m vs2mx (Us i)); rewrite linear_sum /=.
+by exists f => //= i _; rewrite mem_r2v submxMl.
 Qed.
 
 End BigSum.

@@ -900,10 +900,8 @@ Prenex Implicits eval_ProdPoly.
 Lemma eval_BoundingPoly e sq :
   eval_poly e (BoundingPoly sq) = bounding_poly (map (eval_poly e) sq).
 Proof.
-rewrite /BoundingPoly -BigOp.bigopE.
-rewrite eval_Deriv /bounding_poly big_map [in LHS](@big_morph _ _ _ 1 *%R) //=.
-  by move=> p q /=; rewrite eval_MulPoly.
-by rewrite mul0r add0r.
+rewrite eval_Deriv -BigOp.bigopE; congr _^`(); rewrite big_map.
+by apply: big_morph => [p q | ]/=; rewrite ?eval_MulPoly // mul0r add0r.
 Qed.
 
 Lemma eval_CcountGt0 e sp sq : qf_eval e (CcountGt0 sp sq) =

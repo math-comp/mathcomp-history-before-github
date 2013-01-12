@@ -1347,7 +1347,7 @@ Proof.
 have [i /andP[Pi nzFi] | F0] := pickP [pred i | P i & F i != 0]; last first.
   exists 1 => [|i Pi]; first by rewrite normr1.
   by case/nandP: (F0 i) => [/negP[]// | /negbNE/eqP->]; rewrite normr0 mul0r.
-rewrite !(bigD1 i Pi) /=; set Q := BIG_P; move => norm_sumF.
+rewrite !(bigD1 i Pi) /= => norm_sumF; pose Q j := P j && (j != i).
 rewrite -normr_eq0 in nzFi; set c := F i / `|F i|; exists c => [|j Pj].
   by rewrite normrM normfV normr_id divff.
 have [Qj | /nandP[/negP[]// | /negbNE/eqP->]] := boolP (Q j); last first.

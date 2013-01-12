@@ -305,8 +305,8 @@ Lemma subn_exp m n k :
 Proof.
 case: k => [|k]; first by rewrite big_ord0.
 rewrite mulnBl !big_distrr big_ord_recl big_ord_recr /= subn0 muln1.
-rewrite subnn mul1n -!expnS subnDA; congr (_ - _).
-set F := (fun i => n * _ as BIG_F); rewrite (eq_bigr F) ?addnK {}/F // => i _.
+rewrite subnn mul1n -!expnS subnDA; congr (_ - _); apply: canRL (addnK _) _.
+congr (_ + _); apply: eq_bigr => i _.
 by rewrite (mulnCA n) -expnS mulnA -expnS subnSK.
 Qed.
 
