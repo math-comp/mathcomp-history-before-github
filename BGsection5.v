@@ -8,7 +8,7 @@ Require Import BGsection1 BGsection4.
 (******************************************************************************)
 (*   This file covers Section 5 of B & G, except for some technical results   *)
 (* that are not actually used in the proof of the Odd Order Theorem, namely   *)
-(* patr (c) of Theorem 5.5, parts (b), (d) and (e) of Theorem 5.5, and all of *)
+(* part (c) of Theorem 5.5, parts (b), (d) and (e) of Theorem 5.5, and all of *)
 (* Theorem 5.7. We also make the following change: in B & G, narrow p-groups  *)
 (* of rank at least 3 are defined by the structure of the centralisers of     *)
 (* their prime subgroups, then characterized by their rank 2 elementary       *)

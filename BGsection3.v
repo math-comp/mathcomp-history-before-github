@@ -13,7 +13,7 @@ Require Import BGsection1 BGsection2.
 (* of Section 3, and in all likelyhood the whole of B & G, does NOT depend on *)
 (* the general proof of existence of Frobenius kernels, because results on    *)
 (* Frobenius groups are only used when the semidirect product decomposition   *)
-(* is already known, and (see file forbenius.v) in this case the kernel is    *)
+(* is already known, and (see file frobenius.v) in this case the kernel is    *)
 (* equal to the normal complement of the Frobenius complement.                *)
 (******************************************************************************)
 
