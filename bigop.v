@@ -514,15 +514,17 @@ Open Scope big_scope.
    idx, that has a simpler type, because sometimes idx has an incomplete
    type, like (1%g : sort _). Moreover an extra idx is likely to interfere
    with occurrence numbers, while op is unlikely. *)
-CoInductive bigbody R : Type := BigBody of (R -> R -> R) & bool & R.
+CoInductive bigbody R I : Type := BigBody of I & (R -> R -> R) & bool & R.
 
-Definition reducebig R I idx op r (body : I -> bigbody R) : R :=
-  foldr (fun i x => let: BigBody _ b v := body i in
-                    if b then op v x else x) idx r.
+Definition applybig {R I} (body : bigbody R I) x : R :=
+  let: BigBody _ op b v := body in
+  if b then op v x else x.
+
+Definition reducebig R I idx r (body : I -> bigbody R I) : R :=
+  foldr (applybig \o body) idx r.
 
 Module Type BigOpSig.
-Parameter bigop : forall R I,
-   R -> (R -> R -> R) -> seq I -> (I -> bigbody R) -> R.
+Parameter bigop : forall R I, R -> seq I -> (I -> bigbody R I) -> R.
 Axiom bigopE : bigop = reducebig.
 End BigOpSig.
 
@@ -534,8 +536,8 @@ End BigOp.
 Notation bigop := BigOp.bigop (only parsing).
 Canonical bigop_unlock := Unlockable BigOp.bigopE.
 
-Notation BIG_F := (F in bigop _ _ _ (fun i => BigBody _ _ (F i)))%pattern.
-Notation BIG_P := (P in bigop _ _ _ (fun i => BigBody _ (P i) _))%pattern.
+Notation BIG_F := (F in bigop _ _ (fun i => BigBody i _ _ (F i)))%pattern.
+Notation BIG_P := (P in bigop _ _ (fun i => BigBody i _ (P i) _))%pattern.
 
 Definition index_iota m n := iota m (n - m).
 
@@ -555,24 +557,24 @@ Lemma filter_index_enum T P : filter P (index_enum T) = enum P.
 Proof. by []. Qed.
 
 Notation "\big [ op / idx ]_ ( i <- r | P ) F" :=
-  (bigop idx op r (fun i => BigBody op P%B F)) : big_scope.
+  (bigop idx r (fun i => BigBody i op P%B F)) : big_scope.
 Notation "\big [ op / idx ]_ ( i <- r ) F" :=
-  (bigop idx op r (fun i => BigBody op true F)) : big_scope.
+  (bigop idx r (fun i => BigBody i op true F)) : big_scope.
 Notation "\big [ op / idx ]_ ( m <= i < n | P ) F" :=
-  (bigop idx op (index_iota m n) (fun i : nat => BigBody op P%B F))
+  (bigop idx (index_iota m n) (fun i : nat => BigBody i op P%B F))
      : big_scope.
 Notation "\big [ op / idx ]_ ( m <= i < n ) F" :=
-  (bigop idx op (index_iota m n) (fun i : nat => BigBody op true F))
+  (bigop idx (index_iota m n) (fun i : nat => BigBody i op true F))
      : big_scope.
 Notation "\big [ op / idx ]_ ( i | P ) F" :=
-  (bigop idx op (index_enum _) (fun i => BigBody op P%B F)) : big_scope.
+  (bigop idx (index_enum _) (fun i => BigBody i op P%B F)) : big_scope.
 Notation "\big [ op / idx ]_ i F" :=
-  (bigop idx op (index_enum _) (fun i => BigBody op true F)) : big_scope.
+  (bigop idx (index_enum _) (fun i => BigBody i op true F)) : big_scope.
 Notation "\big [ op / idx ]_ ( i : t | P ) F" :=
-  (bigop idx op (index_enum _) (fun i : t => BigBody op P%B F))
+  (bigop idx (index_enum _) (fun i : t => BigBody i op P%B F))
      (only parsing) : big_scope.
 Notation "\big [ op / idx ]_ ( i : t ) F" :=
-  (bigop idx op (index_enum _) (fun i : t => BigBody op true F))
+  (bigop idx (index_enum _) (fun i : t => BigBody i op true F))
      (only parsing) : big_scope.
 Notation "\big [ op / idx ]_ ( i < n | P ) F" :=
   (\big[op/idx]_(i : ordinal n | P%B) F) : big_scope.
