@@ -343,7 +343,7 @@ Require Import finfun bigop prime binomial.
 (*                           property, provided S's key is a divringPred;     *)
 (*                           divalg_closed coerces to all the prerequisites.  *)
 (*                                                                            *)
-(*   In addition to this strcture hierarchy, we also develop a separate,      *)
+(*   In addition to this structure hierarchy, we also develop a separate,     *)
 (* parallel hierarchy for morphisms linking these structures:                 *)
 (*                                                                            *)
 (* * Additive (additive functions):                                           *)
