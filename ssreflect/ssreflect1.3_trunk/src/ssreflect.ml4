@@ -88,6 +88,7 @@ type loc = Loc.t
 let dummy_loc = Loc.ghost
 let errorstrm = Errors.errorlabstrm "ssreflect"
 let loc_error loc msg = Errors.user_err_loc (loc, msg, str msg)
+let anomaly s = Errors.anomaly (str s)
 
 (** look up a name in the ssreflect internals module *)
 let ssrdirpath = make_dirpath [id_of_string "ssreflect"]
@@ -146,7 +147,7 @@ let env_size env = List.length (Environ.named_context env)
 let safeDestApp c =
   match kind_of_term c with App (f, a) -> f, a | _ -> c, [| |]
 let get_index = function ArgArg i -> i | _ ->
-  Errors.anomaly "Uninterpreted index"
+  anomaly "Uninterpreted index"
 (* Toplevel constr must be globalized twice ! *)
 let glob_constr ist gsigma genv = function
   | _, Some ce ->
@@ -212,7 +213,7 @@ let mkCType loc = CSort (loc, GType None)
 let mkCVar loc id = CRef (Ident (loc, id))
 let isCVar = function CRef (Ident _) -> true | _ -> false
 let destCVar = function CRef (Ident (_, id)) -> id | _ ->
-  Errors.anomaly "not a CRef"
+  anomaly "not a CRef"
 let rec mkCHoles loc n =
   if n <= 0 then [] else CHole (loc, None) :: mkCHoles loc (n - 1)
 let mkCHole loc = CHole (loc, None)
@@ -267,8 +268,8 @@ let rec whdEtaApp c n =
 let combineCG t1 t2 f g = match t1, t2 with
  | (x, (t1, None)), (_, (t2, None)) -> x, (g t1 t2, None)
  | (x, (_, Some t1)), (_, (_, Some t2)) -> x, (mkRHole, Some (f t1 t2))
- | _, (_, (_, None)) -> Errors.anomaly "have: mixed C-G constr"
- | _ -> Errors.anomaly "have: mixed G-C constr"
+ | _, (_, (_, None)) -> anomaly "have: mixed C-G constr"
+ | _ -> anomaly "have: mixed G-C constr"
 let loc_ofCG = function
  | (_, (s, None)) -> Glob_ops.loc_of_glob_constr s
  | (_, (_, Some s)) -> Constrexpr_ops.constr_loc s
@@ -1465,7 +1466,7 @@ let tclBY tac = tclTHEN tac donetac
 (* Force use of the tactic_expr parsing entry, to rule out tick marks. *)
 let pr_ssrtacarg _ _ prt = prt tacltop
 ARGUMENT EXTEND ssrtacarg TYPED AS tactic PRINTED BY pr_ssrtacarg
-| [ "Qed" ] -> [ Errors.anomaly "Grammar placeholder match" ]
+| [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
 END
 GEXTEND Gram
   GLOBAL: ssrtacarg;
@@ -1755,7 +1756,7 @@ let pr_ahyp (SsrHyp (_, id), mode) = match mode with
   | "(" -> str "(" ++ pr_id id ++ str ")"
   | "@" -> str "@" ++ pr_id id
   | " " -> pr_id id
-  | _ -> Errors.anomaly "pr_ahyp: wrong annotation for ssrhyp"
+  | _ -> anomaly "pr_ahyp: wrong annotation for ssrhyp"
 let pr_ahyps (a,b) = pr_list pr_spc pr_ahyp (List.combine a b)
 let pr_ssrahyps _ _ _ = pr_ahyps
 
@@ -2644,7 +2645,7 @@ let introstac, tclEQINTROS =
     | IpatAnon -> k, intro_anon
     | IpatNoop -> k, tclIDTAC
     | IpatView v -> match ist with
-        | None -> Errors.anomaly "ipattac with no ist but view"
+        | None -> anomaly "ipattac with no ist but view"
         | Some ist -> match rest with
             | (IpatCase _ | IpatRw _)::_ -> 
               let to_clr = ref [] in let top_id = ref top_id in
@@ -2793,7 +2794,7 @@ let pr_ssrdoarg prc _ prt (((n, m), (tac, _)), clauses) =
 ARGUMENT EXTEND ssrdoarg
   TYPED AS ((ssrindex * ssrmmod) * (ssrhintarg * ltacctx)) * ssrclauses
   PRINTED BY pr_ssrdoarg
-| [ "Qed" ] -> [ Errors.anomaly "Grammar placeholder match" ]
+| [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 let ssrdotac (((n, m), (tac, ctx)), clauses) =
@@ -2845,7 +2846,7 @@ let pr_ssrseqarg _ _ prt = function
 (* an unindexed tactic.                                            *)
 ARGUMENT EXTEND ssrseqarg TYPED AS ssrindex * (ssrhintarg * tactic option)
                           PRINTED BY pr_ssrseqarg
-| [ "Qed" ] -> [ Errors.anomaly "Grammar placeholder match" ]
+| [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 let sq_brace_tacnames =
@@ -2961,7 +2962,7 @@ let pr_ssrseqdir _ _ _ = function
   | R2L -> str ";" ++ spc () ++ str "last "
 
 ARGUMENT EXTEND ssrseqdir TYPED AS ssrdir PRINTED BY pr_ssrseqdir
-| [ "Qed" ] -> [ Errors.anomaly "Grammar placeholder match" ]
+| [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 TACTIC EXTEND ssrtclseq
@@ -3026,7 +3027,7 @@ let pf_interp_ty ist gl ty =
      | CastType (t, ty) when !n_binders = 0 && isSort ty -> t
      | ProdType(n,s,t) -> decr n_binders; mkProd (n, s, aux t)
      | LetInType(n,v,ty,t) -> decr n_binders; mkLetIn (n, v, ty, aux t)
-     | _ -> Errors.anomaly "pf_interp_ty: ssr Type cast deleted by typecheck" in
+     | _ -> anomaly "pf_interp_ty: ssr Type cast deleted by typecheck" in
      sigma, aux t in
    let ty = strip_cast (interp_term ist gl ty) in
    let n, c = pf_abs_evars gl ty in
@@ -3070,7 +3071,7 @@ let saturate ?(beta=false) env sigma c ?(ty=Retyping.get_type_of env sigma c) m
         (Reductionops.whd_betadeltaiota env sigma) ty in
       match kind_of_type ty with
       | ProdType _ -> loop ty args sigma n
-      | _ -> Errors.anomaly "saturate did not find enough products"
+      | _ -> anomaly "saturate did not find enough products"
   in
    loop ty [] sigma m
 
@@ -3124,7 +3125,7 @@ let pf_interp_gen_aux ist gl to_ind ((oclr, occ), t) =
     else false, pat, pf_mkprod gl c cl, c, clr
   else if to_ind && occ = None then
     let nv, p = pf_abs_evars gl (fst pat, c) in
-    if nv = 0 then Errors.anomaly "occur_existential but no evars" else
+    if nv = 0 then anomaly "occur_existential but no evars" else
     false, pat, mkProd (constr_name c, pf_type_of gl p, pf_concl gl), p, clr
   else loc_error (loc_of_cpattern t) "generalized term didn't match"
 
@@ -3165,7 +3166,7 @@ let pr_ssrdgens _ _ _ = pr_dgens pr_gen
 
 let cons_gen gen = function
   | gens :: gensl, clr -> (gen :: gens) :: gensl, clr
-  | _ -> Errors.anomaly "missing gen list"
+  | _ -> anomaly "missing gen list"
 
 let cons_dep (gensl, clr) =
   if List.length gensl = 1 then ([] :: gensl, clr) else
@@ -3235,7 +3236,7 @@ let pr_ssreqid _ _ _ = pr_eqid
 (* We must use primitive parsing here to avoid conflicts with the  *)
 (* basic move, case, and elim tactics.                             *)
 ARGUMENT EXTEND ssreqid TYPED AS ssripatrep option PRINTED BY pr_ssreqid
-| [ "Qed" ] -> [ Errors.anomaly "Grammar placeholder match" ]
+| [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 let accept_ssreqid strm =
@@ -3519,9 +3520,9 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   (* some sanity checks *)
   let oc, orig_clr, occ, c_gen = match what with
   | `EConstr(_,_,t) when isEvar t ->
-    Errors.anomaly "elim called on a constr evar"
+    anomaly "elim called on a constr evar"
   | `EGen _ when ist = None ->
-    Errors.anomaly "no ist and non simple elimination"
+    anomaly "no ist and non simple elimination"
   | `EGen (_, g) when elim = None && is_wildcard g ->
        errorstrm(str"Indeterminate pattern and no eliminator")
   | `EGen ((Some clr,occ), g) when is_wildcard g ->
@@ -3653,7 +3654,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
             clr (i+1) ([], inf_deps)
       | _::_, [] -> errorstrm (str "Too many dependent abstractions") in
     let deps, head_p, inf_deps_r = match what, elim_is_dep, cty with
-    | `EConstr _, _, None -> Errors.anomaly "Simple welim with no term"
+    | `EConstr _, _, None -> anomaly "Simple welim with no term"
     | _, false, _ -> deps, [], inf_deps_r
     | `EGen gen, true, None -> deps @ [gen], [], inf_deps_r
     | _, true, Some (c, _, pc) ->
@@ -3929,7 +3930,7 @@ let apply_rconstr ?ist t gl =
   let n = match ist, t with
     | None, (GVar (_, id) | GRef (_, VarRef id)) -> pf_nbargs gl (mkVar id)
     | Some ist, _ -> interp_nbargs ist gl t
-    | _ -> Errors.anomaly "apply_rconstr without ist and not RVar" in
+    | _ -> anomaly "apply_rconstr without ist and not RVar" in
   let mkRlemma i = mkRApp t (mkRHoles i) in
   let cl = pf_concl gl in
   let rec loop i =
@@ -4206,7 +4207,7 @@ let mk_rwarg (d, (n, _ as m)) ((clr, occ as docc), rx) (rt, _ as r) =
  if rt <> RWeq then begin
    if rt = RWred Nop && not (m = nomult && occ = None && rx = None)
                      && (clr = None || clr = Some []) then
-     Errors.anomaly "Improper rewrite clear switch";
+     anomaly "Improper rewrite clear switch";
    if d = R2L && rt <> RWdef then
      Errors.error "Right-to-left switch on simplification";
    if n <> 1 && rt = RWred Cut then
@@ -4308,7 +4309,7 @@ let unfoldintac occ rdx t (kt,_) gl =
         ++ pr_constr_pat t ++ spc() ++ str "in " ++ pr_constr c)),
     (fun () -> try end_T () with 
       | NoMatch when easy -> fake_pmatcher_end () 
-      | NoMatch -> Errors.anomaly "unfoldintac")
+      | NoMatch -> anomaly "unfoldintac")
   | _ -> 
     (fun env (c as orig_c) h ->
       if const then
@@ -4424,7 +4425,7 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
             evs in
           if open_evs <> [] then Some name else None)
           (List.combine (Array.to_list args) names)
-    | _ -> Errors.anomaly "rewrite rule not an application" in
+    | _ -> anomaly "rewrite rule not an application" in
     errorstrm (Himsg.explain_refiner_error (Logic.UnresolvedBindings miss)++
       (Pp.fnl()++str"Rule's type:" ++ spc() ++ pr_constr hd_ty))
 ;;
@@ -4466,7 +4467,7 @@ let rwcltac cl rdx dir sr gl =
       else errorstrm (str "Dependent type error in rewrite of "
         ++ pf_pr_constr gl (mkNamedLambda pattern_id rdxt cl))
     | Errors.UserError _ as e -> raise e
-    | e -> Errors.anomaly ("cvtac's exception: " ^ Printexc.to_string e);
+    | e -> anomaly ("cvtac's exception: " ^ Printexc.to_string e);
   in
   tclTHEN cvtac' rwtac gl
 
@@ -4638,7 +4639,7 @@ let pr_ssrrwargs _ _ _ (rwargs, _) = pr_list spc pr_rwarg rwargs
 
 ARGUMENT EXTEND ssrrwargs TYPED AS ssrrwarg list * ltacctx
                           PRINTED BY pr_ssrrwargs
-  | [ "Qed" ] -> [ Errors.anomaly "Grammar placeholder match" ]
+  | [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 let ssr_rw_syntax = ref true
@@ -4727,7 +4728,7 @@ let pr_ssrfwdid _ _ _ id = pr_spc () ++ pr_id id
 (* We use a primitive parser for the head identifier of forward *)
 (* tactis to avoid syntactic conflicts with basic Coq tactics. *)
 ARGUMENT EXTEND ssrfwdid TYPED AS ident PRINTED BY pr_ssrfwdid
-  | [ "Qed" ] -> [ Errors.anomaly "Grammar placeholder match" ]
+  | [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 let accept_ssrfwdid strm =
@@ -5002,7 +5003,7 @@ let push_binders c2 bs =
   | (_, CLetIn (loc1, x, v, _)) :: bs ->
       CLetIn (mkloc loc1, x, v, loop ty c bs)
   | [] -> c
-  | _ -> Errors.anomaly "binder not a lambda nor a let in" in
+  | _ -> anomaly "binder not a lambda nor a let in" in
   match c2 with
   | CCast (x, ct, CastConv cty) ->
       (CCast (x, loop false ct bs, CastConv (loop true cty bs)))
@@ -5170,7 +5171,7 @@ let intro_id_to_binder = List.map (function
       (FwdPose, [BFvar]),
         CLambdaN (dummy_loc, [[x], Default Explicit, CHole (xloc, None)],
           CHole (dummy_loc, None))
-  | _ -> Errors.anomaly "non-id accepted as binder")
+  | _ -> anomaly "non-id accepted as binder")
 
 let binder_to_intro_id = List.map (function
   | (FwdPose, [BFvar]), CLambdaN (_,[ids,_,_],_)
@@ -5178,7 +5179,7 @@ let binder_to_intro_id = List.map (function
       List.map (function (_, Name id) -> IpatId id | _ -> IpatAnon) ids
   | (FwdPose, [BFdef _]), CLetIn (_,(_,Name id),_,_) -> [IpatId id]
   | (FwdPose, [BFdef _]), CLetIn (_,(_,Anonymous),_,_) -> [IpatAnon]
-  | _ -> Errors.anomaly "ssrbinder is not a binder")
+  | _ -> anomaly "ssrbinder is not a binder")
 
 let pr_ssrhavefwdwbinders _ _ prt (hpats, (fwd, hint)) =
   pr_hpats hpats ++ pr_fwd fwd ++ pr_hint prt hint
@@ -5296,7 +5297,7 @@ let sufftac ((((clr, pats),binders),simpl), (((_, c), ctx), hint)) =
   let c = match c with
   | (a, (b, Some (CCast (_, _, CastConv cty)))) -> a, (b, Some cty)
   | (a, (GCast (_, _, CastConv cty), None)) -> a, (cty, None)
-  | _ -> Errors.anomaly "suff: ssr cast hole deleted by typecheck" in
+  | _ -> anomaly "suff: ssr cast hole deleted by typecheck" in
   let ctac gl = basecuttac "ssr_suff" (pi2 (pf_interp_ty ist gl c)) gl in
   tclTHENS ctac [htac; tclTHEN (cleartac clr) (introstac ~ist (binders@simpl))]
 
@@ -5353,7 +5354,7 @@ let wlogtac (((clr0, pats),_),_) (gens, ((_, ct), ctx)) hint suff gl =
   let ct = match ct with
   | (a, (b, Some (CCast (_, _, CastConv cty)))) -> a, (b, Some cty)
   | (a, (GCast (_, _, CastConv cty), None)) -> a, (cty, None)
-  | _ -> Errors.anomaly "wlog: ssr cast hole deleted by typecheck" in
+  | _ -> anomaly "wlog: ssr cast hole deleted by typecheck" in
   let cl0 = mkArrow (pi2 (pf_interp_ty ist gl ct)) (pf_concl gl) in
   let cl0 = if not suff then cl0 else let _,t,_ = destProd cl0 in t in
   let c = List.fold_right mkabs gens cl0 in
