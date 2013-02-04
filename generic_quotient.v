@@ -87,6 +87,9 @@ Unset Printing Implicit Defensive.
 
 Reserved Notation "\pi_ Q" (at level 0, format "\pi_ Q").
 Reserved Notation "\pi" (at level 0, format "\pi").
+Reserved Notation "{pi_ Q a }"
+         (at level 0, Q at next level, format "{pi_ Q  a }").
+Reserved Notation "{pi a }" (at level 0, format "{pi  a }").
 Reserved Notation "x == y %[mod_eq e ]" (at level 70, y at next level,
   no associativity,   format "'[hv ' x '/'  ==  y '/'  %[mod_eq  e ] ']'").
 Reserved Notation "x = y %[mod_eq e ]" (at level 70, y at next level,
@@ -122,12 +125,12 @@ Record quotType := QuotTypePack {
 Definition QuotType_pack qT m := @QuotTypePack qT m qT.
 
 Variable qT : quotType.
-Definition pi_of of phant qT := quot_pi (quot_class qT).
-Local Notation "\pi" := (pi_of (Phant qT)).
+Definition pi_phant of phant qT := quot_pi (quot_class qT).
+Local Notation "\pi" := (pi_phant (Phant qT)).
 Definition repr_of := quot_repr (quot_class qT).
 
 Lemma repr_ofK : cancel repr_of \pi.
-Proof. by rewrite /pi_of /repr_of /=; case:qT=> [? []]. Qed.
+Proof. by rewrite /pi_phant /repr_of /=; case:qT=> [? []]. Qed.
 
 Definition QuotType_clone (Q : Type) qT cT 
   of phant_id (quot_class qT) cT := @QuotTypePack Q cT Q.
@@ -136,16 +139,16 @@ End QuotientDef.
 
 Module Type PiSig.
 Parameter f : forall (T : Type) (qT : quotType T), phant qT -> T -> qT.
-Axiom E : f = pi_of.
+Axiom E : f = pi_phant.
 End PiSig.
 
 Module Pi : PiSig.
-Definition f := pi_of.
+Definition f := pi_phant.
 Definition E := erefl f.
 End Pi.
 
 Module MPi : PiSig.
-Definition f := pi_of.
+Definition f := pi_phant.
 Definition E := erefl f.
 End MPi.
 
@@ -204,14 +207,21 @@ End QuotTypeTheory.
 (* About morphisms *)
 (*******************)
 
-Structure pi_morph T (x : T) := PiMorph {pi_op : T; _ : x = pi_op}.
-Lemma piE (T : Type) (x : T) (m : pi_morph x) : pi_op m = x. Proof. by case: m. Qed.
+(* This was pi_morph T (x : T) := PiMorph { pi_op : T; _ : x = pi_op }. *)
+Structure equal_to T (x : T) := EqualTo {
+   equal_val : T;
+   _         : x = equal_val
+}.
+Lemma equal_toE (T : Type) (x : T) (m : equal_to x) : equal_val m = x.
+Proof. by case: m. Qed.
 
-Canonical pi_morph_pi T (qT : quotType T) (x : T) :=
-  @PiMorph _ (\pi_qT x) (\pi x) (erefl _).
+Notation piE := (@equal_toE _ _).
 
-Implicit Arguments PiMorph [T x pi_op].
-Prenex Implicits PiMorph.
+Canonical equal_to_pi T (qT : quotType T) (x : T) :=
+  @EqualTo _ (\pi_qT x) (\pi x) (erefl _).
+
+Implicit Arguments EqualTo [T x equal_val].
+Prenex Implicits EqualTo.
 
 Section Morphism.
 
@@ -227,14 +237,14 @@ Hypothesis pi_g : {morph \pi : x y / g x y >-> gq x y}.
 Hypothesis pi_p : {mono \pi : x / p x >-> pq x}.
 Hypothesis pi_r : {mono \pi : x y / r x y >-> rq x y}.
 Hypothesis pi_h : forall (x : T), \pi_qU (h x) = hq (\pi_qT x).
-Variables (a b : T) (x : pi_morph (\pi_qT a)) (y : pi_morph (\pi_qT b)).
+Variables (a b : T) (x : equal_to (\pi_qT a)) (y : equal_to (\pi_qT b)).
 
 (* Internal Lemmmas : do not use directly *)
-Lemma pi_morph1 : \pi (f a) = fq (pi_op x). Proof. by rewrite !piE. Qed.
-Lemma pi_morph2 : \pi (g a b) = gq (pi_op x) (pi_op y). Proof. by rewrite !piE. Qed.
-Lemma pi_mono1 : p a = pq (pi_op x). Proof. by rewrite !piE. Qed.
-Lemma pi_mono2 : r a b = rq (pi_op x) (pi_op y). Proof. by rewrite !piE. Qed.
-Lemma pi_morph11 : \pi (h a) = hq (pi_op x). Proof. by rewrite !piE. Qed.
+Lemma pi_morph1 : \pi (f a) = fq (equal_val x). Proof. by rewrite !piE. Qed.
+Lemma pi_morph2 : \pi (g a b) = gq (equal_val x) (equal_val y). Proof. by rewrite !piE. Qed.
+Lemma pi_mono1 : p a = pq (equal_val x). Proof. by rewrite !piE. Qed.
+Lemma pi_mono2 : r a b = rq (equal_val x) (equal_val y). Proof. by rewrite !piE. Qed.
+Lemma pi_morph11 : \pi (h a) = hq (equal_val x). Proof. by rewrite !piE. Qed.
 
 End Morphism.
 
@@ -245,31 +255,33 @@ Implicit Arguments pi_mono2 [T U qT r rq].
 Implicit Arguments pi_morph11 [T U qT qU h hq].
 Prenex Implicits pi_morph1 pi_morph2 pi_mono1 pi_mono2 pi_morph11.
 
+Notation "{pi_ Q a }" := (equal_to (\pi_Q a)) : quotient_scope.
+Notation "{pi a }" := (equal_to (\pi a)) : quotient_scope.
+
 (* Declaration of morphisms *)
+Notation PiMorph pi_x := (EqualTo pi_x).
 Notation PiMorph1 pi_f :=
-  (fun a (x : pi_morph (\pi a)) => PiMorph (pi_morph1 pi_f a x)).
+  (fun a (x : {pi a}) => EqualTo (pi_morph1 pi_f a x)).
 Notation PiMorph2 pi_g :=
-  (fun a b (x : pi_morph (\pi a)) (y : pi_morph (\pi b))
-    => PiMorph (pi_morph2 pi_g a b x y)).
+  (fun a b (x : {pi a}) (y : {pi b}) => EqualTo (pi_morph2 pi_g a b x y)).
 Notation PiMono1 pi_p :=
-  (fun a (x : pi_morph (\pi a)) => PiMorph (pi_mono1 pi_p a x)).
+  (fun a (x : {pi a}) => EqualTo (pi_mono1 pi_p a x)).
 Notation PiMono2 pi_r :=
-  (fun a b (x : pi_morph (\pi a)) (y : pi_morph (\pi b))
-    => PiMorph (pi_mono2 pi_r a b x y)).
+  (fun a b (x : {pi a}) (y : {pi b}) => EqualTo (pi_mono2 pi_r a b x y)).
 Notation PiMorph11 pi_f :=
-  (fun a (x : pi_morph (\pi a)) => PiMorph (pi_morph11 pi_f a x)).
+  (fun a (x : {pi a}) => EqualTo (pi_morph11 pi_f a x)).
 
 (* lifiting helpers *)
-Notation lift_op1 qT f := (locked (fun x : qT => \pi_qT (f (repr x)) : qT)).
-Notation lift_op2 qT g := 
-  (locked (fun x y : qT => \pi_qT (g (repr x) (repr y)) : qT)).
-Notation lift_fun1 qT f := (locked (fun x : qT => f (repr x))).
-Notation lift_fun2 qT g := (locked (fun x y : qT => g (repr x) (repr y))).
-Notation lift_op11 qT qU f := (locked (fun x : qT => \pi_qU (f (repr x)) : qU)).
+Notation lift_op1 Q f := (locked (fun x : Q => \pi_Q (f (repr x)) : Q)).
+Notation lift_op2 Q g := 
+  (locked (fun x y : Q => \pi_Q (g (repr x) (repr y)) : Q)).
+Notation lift_fun1 Q f := (locked (fun x : Q => f (repr x))).
+Notation lift_fun2 Q g := (locked (fun x y : Q => g (repr x) (repr y))).
+Notation lift_op11 Q Q' f := (locked (fun x : Q => \pi_Q' (f (repr x)) : Q')).
 
 (* constant declaration *)
-Notation lift_cst qT x := (locked (\pi_qT x : qT)).
-Notation PiConst a := (@PiMorph _ _ a (lock _)).
+Notation lift_cst Q x := (locked (\pi_Q x : Q)).
+Notation PiConst a := (@EqualTo _ _ a (lock _)).
 
 (* embedding declaration, please don't redefine \pi *)
 Notation lift_embed qT e := (locked (fun x => \pi_qT (e x) : qT)).
@@ -279,7 +291,7 @@ Proof. by rewrite -lock. Qed.
 Prenex Implicits eq_lock.
 
 Notation PiEmbed e := 
-  (fun x => @PiMorph _ _ (e x) (eq_lock (fun _ => \pi _) _)).
+  (fun x => @EqualTo _ _ (e x) (eq_lock (fun _ => \pi _) _)).
 
 (********************)
 (* About eqQuotType *)
