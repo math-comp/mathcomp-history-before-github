@@ -16,28 +16,10 @@ Reserved Notation "{ 'ratio' T }" (at level 0, format "{ 'ratio'  T }").
 Reserved Notation "{ 'fraction' T }" (at level 0, format "{ 'fraction'  T }").
 Reserved Notation "x %:F" (at level 2, format "x %:F").
 
-CoInductive fractionDomain (T : Type) := FractionDomain { numer : T; denom : T}.
-
-Section FractionDomainTheory.
-
-Variable R : zmodType.
-
-Definition fractionDomain_encode f : seq R := [:: numer f; denom f].
-Definition fractionDomain_decode s : fractionDomain R := FractionDomain s`_0 s`_1.
-Lemma fractionDomain_codeK : cancel fractionDomain_encode fractionDomain_decode.
-Proof. by case. Qed.
-
-Definition FractionDomain_EqMixin := CanEqMixin fractionDomain_codeK.
-Canonical fractionDomain_EqType := EqType (fractionDomain R) FractionDomain_EqMixin.
-Definition FractionDomain_ChoiceMixin := CanChoiceMixin fractionDomain_codeK.
-Canonical fractionDomain_ChoiceType := ChoiceType (fractionDomain R) FractionDomain_ChoiceMixin.
-
-End FractionDomainTheory.
-
 Section FracDomain.
 Variable R : ringType.
 
-Inductive ratio := mkRatio { frac :> fractionDomain R; _ : denom frac != 0 }.
+Inductive ratio := mkRatio { frac :> R * R; _ : frac.2 != 0 }.
 Definition ratio_of of phant R := ratio.
 Local Notation "{ 'ratio' T }" := (ratio_of (Phant T)).
 
@@ -50,15 +32,15 @@ Definition ratio_ChoiceMixin := [choiceMixin of ratio by <:].
 Canonical ratio_choiceType := ChoiceType ratio ratio_ChoiceMixin.
 Canonical ratio_of_choiceType := Eval hnf in [choiceType of {ratio R}].
 
-Lemma denom_ratioP : forall f : ratio, denom f != 0. Proof. by case. Qed.
+Lemma denom_ratioP : forall f : ratio, f.2 != 0. Proof. by case. Qed.
 
-Definition ratio0 := (@mkRatio (FractionDomain 0 1) (oner_neq0 _)).
-Definition Ratio x y : {ratio R} := insubd ratio0 (FractionDomain x y).
+Definition ratio0 := (@mkRatio (0, 1) (oner_neq0 _)).
+Definition Ratio x y : {ratio R} := insubd ratio0 (x, y).
 
-Lemma numer_Ratio x y : y != 0 -> numer (Ratio x y) = x.
+Lemma numer_Ratio x y : y != 0 -> (Ratio x y).1 = x.
 Proof. by move=> ny0; rewrite /Ratio /insubd insubT. Qed.
 
-Lemma denom_Ratio x y : y != 0 -> denom (Ratio x y) = y.
+Lemma denom_Ratio x y : y != 0 -> (Ratio x y).2 = y.
 Proof. by move=> ny0; rewrite /Ratio /insubd insubT. Qed.
 
 Definition numden_Ratio := (numer_Ratio, denom_Ratio).
@@ -66,12 +48,12 @@ Definition numden_Ratio := (numer_Ratio, denom_Ratio).
 CoInductive Ratio_spec (n d : R) : {ratio R} -> R -> R -> Type :=
   | RatioNull of d = 0 : Ratio_spec n d ratio0 n 0
   | RatioNonNull (d_neq0 : d != 0) : 
-    Ratio_spec n d (@mkRatio (FractionDomain n d) d_neq0) n d.
+    Ratio_spec n d (@mkRatio (n, d) d_neq0) n d.
 
 Lemma RatioP n d : Ratio_spec n d (Ratio n d) n d.
 Proof.
 rewrite /Ratio /insubd; case: insubP=> /= [x /= d_neq0 hx|].
-  have ->: x = @mkRatio (FractionDomain n d) d_neq0 by apply: val_inj.
+  have ->: x = @mkRatio (n, d) d_neq0 by apply: val_inj.
   by constructor.
 by rewrite negbK=> /eqP hx; rewrite {2}hx; constructor.
 Qed.
@@ -84,9 +66,9 @@ End FracDomain.
 Notation "{ 'ratio' T }" := (ratio_of (Phant T)).
 Identity Coercion type_fracdomain_of : ratio_of >-> ratio.
 
-Notation "'\n_' x"  := (numer x)
+Notation "'\n_' x"  := (frac x).1
   (at level 8, x at level 2, format "'\n_' x").
-Notation "'\d_' x"  := (denom x)
+Notation "'\d_' x"  := (frac x).2
   (at level 8, x at level 2, format "'\d_' x").
 
 Module FracField.
@@ -94,15 +76,16 @@ Section FracField.
 
 Variable R : idomainType.
 
-Local Notation frac := (fractionDomain R).
+Local Notation frac := (R * R).
 Local Notation dom := (ratio R).
 Local Notation domP := denom_ratioP.
 
 Implicit Types x y z : dom.
 
-Definition equivf x y := \n_x * \d_y == \d_x * \n_y.
+Local Notation equivf_def x y := (\n_x * \d_y == \d_x * \n_y).
+Definition equivf x y := equivf_def x y.
 
-Lemma equivfE x y : equivf x y = (\n_x * \d_y == \d_x * \n_y).
+Lemma equivfE x y : equivf x y = equivf_def x y.
 Proof. by []. Qed.
 
 Lemma equivf_refl : reflexive equivf.
