@@ -82,10 +82,10 @@ Local Notation domP := denom_ratioP.
 
 Implicit Types x y z : dom.
 
-Local Notation equivf_def x y := (\n_x * \d_y == \d_x * \n_y).
-Definition equivf x y := equivf_def x y.
+Local Notation equivf_notation x y := (\n_x * \d_y == \d_x * \n_y).
+Definition equivf x y := equivf_notation x y.
 
-Lemma equivfE x y : equivf x y = equivf_def x y.
+Lemma equivfE x y : equivf x y = equivf_notation x y.
 Proof. by []. Qed.
 
 Lemma equivf_refl : reflexive equivf.
