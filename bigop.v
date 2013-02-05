@@ -538,9 +538,6 @@ End BigOp.
 Notation bigop := BigOp.bigop (only parsing).
 Canonical bigop_unlock := Unlockable BigOp.bigopE.
 
-Notation BIG_F := (F in \bigop[_/_]_(i <- _ | _) F i)%pattern.
-Notation BIG_P := (P in \bigop[_/_]_(i <- _ | P i) _)%pattern.
-
 Definition index_iota m n := iota m (n - m).
 
 Definition index_enum (T : finType) := Finite.enum T.
@@ -587,7 +584,15 @@ Notation "\big [ op / idx ]_ ( i 'in' A | P ) F" :=
 Notation "\big [ op / idx ]_ ( i 'in' A ) F" :=
   (\big[op/idx]_(i | i \in A) F) : big_scope.
 
-Notation Local "+%N" := addn (at level 0, only parsing).
+(* GG - why do we need to inline the \bigop notation below?
+Notation BIG_F := (F in \bigop[_/_]_(i <- _ | _) F i)%pattern.
+Notation BIG_P := (P in \bigop[_/_]_(i <- _ | P i) _)%pattern.
+*)
+
+Notation BIG_F := (F in bigop _ _ (fun i => BigBody i _ _ (F i)))%pattern.
+Notation BIG_P := (P in bigop _ _ (fun i => BigBody i _ (P i) _))%pattern.
+
+Local Notation "+%N" := addn (at level 0, only parsing).
 Notation "\sum_ ( i <- r | P ) F" :=
   (\big[+%N/0%N]_(i <- r | P%B) F%N) : nat_scope.
 Notation "\sum_ ( i <- r ) F" :=
@@ -613,7 +618,7 @@ Notation "\sum_ ( i 'in' A | P ) F" :=
 Notation "\sum_ ( i 'in' A ) F" :=
   (\big[+%N/0%N]_(i in A) F%N) : nat_scope.
 
-Notation Local "*%N" := muln (at level 0, only parsing).
+Local Notation "*%N" := muln (at level 0, only parsing).
 Notation "\prod_ ( i <- r | P ) F" :=
   (\big[*%N/1%N]_(i <- r | P%B) F%N) : nat_scope.
 Notation "\prod_ ( i <- r ) F" :=
