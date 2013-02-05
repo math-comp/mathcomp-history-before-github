@@ -29,8 +29,8 @@ Require Import finfun path.
 (* Notations:                                                                 *)
 (* The general form for iterated operators is                                 *)
 (*         <bigop>_<range> <general_term>                                     *)
-(* - <bigop> is one of \big[op/idx], \sum, \prod, or \max (see below)         *)
-(* - <general_term> can be any expression                                     *)
+(* - <bigop> is one of \big[op/idx], \sum, \prod, or \max (see below).        *)
+(* - <general_term> can be any expression.                                    *)
 (* - <range> binds an index variable in <general_term>; <range> is one of     *)
 (*    (i <- s)     i ranges over the sequence s                               *)
 (*    (m <= i < n) i ranges over the nat interval m, m.+1, ..., n.-1          *)
@@ -39,19 +39,22 @@ Require Import finfun path.
 (*    i or (i)     i ranges over its (inferred) finite type                   *)
 (*    (i in A)     i ranges over the elements that satisfy the collective     *)
 (*                 predicate A (the domain of A must be a finite type)        *)
-(*    (i <- s | C) limits the range to those i for which C holds (i is thus   *)
-(*                 bound in C); works with all six kinds of ranges above.     *)
-(* - the fall-back notation <bigop>_(<- s | predicate) function is used if    *)
-(*   the Coq display algorithm fails to recognize any of the above (such as   *)
-(*   when <general_term> does not depend on i);                               *)
-(* - one can use the "\big[op/idx]" notations for any operator;               *)
-(* - the "\sum", "\prod" and "\max" notations in the %N scope are used for    *)
+(*    (i <- s | <condition>) limits the range to the i for which <condition>  *)
+(*                 holds. <condition> can be any expression that coerces to   *)
+(*                 bool, and may mention the bound index i. All six kinds of  *)
+(*                 ranges above can have a <condition> part.                  *)
+(* - One can use the "\big[op/idx]" notations for any operator.               *)
+(* - BIG_F and BIG_P are pattern abbreviations for the <general_term> and     *)
+(*   <condition> part of a \big ... expression; for (i in A) and (i in A | C) *)
+(*   ranges the term matched by BIG_P will include the i \in A condition.     *)
+(* - The (locked) head constant of a \big notation is bigop.                  *)
+(* - The "\sum", "\prod" and "\max" notations in the %N scope are used for    *)
 (*   natural numbers with addition, multiplication and maximum (and their     *)
-(*   corresponding neutral elements), respectively;                           *)
-(* - the "\sum" and "\prod" reserved notations are overloaded in ssralg in    *)
-(*   the %R scope, in mxalgebra and vector in the %MS and %VS scopes; "\prod" *)
-(*   is also overloaded in fingroup, the %g and %G scopes.                    *)
-(* - we reserve "\bigcup" and "\bigcap" notations for iterated union and      *)
+(*   corresponding neutral elements), respectively.                           *)
+(* - The "\sum" and "\prod" reserved notations are overloaded in ssralg in    *)
+(*   the %R scope, in mxalgebra, vector & falgebra in the %MS and %VS scopes; *)
+(*   "\prod" is also overloaded in fingroup, the %g and %G scopes.            *)
+(* - We reserve "\bigcup" and "\bigcap" notations for iterated union and      *)
 (*   intersection (of sets, groups, vector spaces, etc).                      *)
 (******************************************************************************)
 (* Tips for using lemmas in this file:                                        *)
@@ -508,19 +511,18 @@ Print Canonical Projections.
 Delimit Scope big_scope with BIG.
 Open Scope big_scope.
 
-(* The first argument is dummy but is given by notations as the op.
-   In this way, when type inference processes the third argument the
-   expected type R is known and coercions can be inserted. We can't pass
-   idx, that has a simpler type, because sometimes idx has an incomplete
-   type, like (1%g : sort _). Moreover an extra idx is likely to interfere
-   with occurrence numbers, while op is unlikely. *)
-CoInductive bigbody R I : Type := BigBody of I & (R -> R -> R) & bool & R.
+(* The bigbody wrapper is a workaround for a quirk of the Coq pretty-printer, *)
+(* which would fail to redisplay the \big notation when the <general_term> or *)
+(* <condition> do not depend on the bound index. The BigBody constructor      *)
+(* packages both in in a term in which i occurs; it also depends on the       *)
+(* iterated <op>, as this can give more information on the expected type of   *)
+(* the <general_term>, thus allowing for the insertion of coercions.          *)
+CoInductive bigbody R I := BigBody of I & (R -> R -> R) & bool & R.
 
-Definition applybig {R I} (body : bigbody R I) x : R :=
-  let: BigBody _ op b v := body in
-  if b then op v x else x.
+Definition applybig {R I} (body : bigbody R I) x :=
+  let: BigBody _ op b v := body in if b then op v x else x.
 
-Definition reducebig R I idx r (body : I -> bigbody R I) : R :=
+Definition reducebig R I idx r (body : I -> bigbody R I) :=
   foldr (applybig \o body) idx r.
 
 Module Type BigOpSig.
@@ -536,8 +538,8 @@ End BigOp.
 Notation bigop := BigOp.bigop (only parsing).
 Canonical bigop_unlock := Unlockable BigOp.bigopE.
 
-Notation BIG_F := (F in bigop _ _ (fun i => BigBody i _ _ (F i)))%pattern.
-Notation BIG_P := (P in bigop _ _ (fun i => BigBody i _ (P i) _))%pattern.
+Notation BIG_F := (F in \bigop[_/_]_(i <- _ | _) F i)%pattern.
+Notation BIG_P := (P in \bigop[_/_]_(i <- _ | P i) _)%pattern.
 
 Definition index_iota m n := iota m (n - m).
 
