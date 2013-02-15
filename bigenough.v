@@ -7,9 +7,60 @@ Unset Printing Implicit Defensive.
 
 Module BigEnough.
 
-Definition leq_maxE := (orTb, orbT, leqnn, leq_max).
+Record big_rel_class_of T (leq : rel T) := 
+  BigRelClass {
+      leq_big_internal_op : rel T; 
+      bigger_than_op : seq T -> T;
+      _ : leq_big_internal_op = leq;
+      _ : forall i s, leq_big_internal_op i (bigger_than_op (i :: s));
+      _ : forall i j s, leq_big_internal_op i (bigger_than_op s) -> 
+                        leq_big_internal_op i (bigger_than_op (j :: s))
+}.
 
-Fixpoint bigger_than s := if s is a :: r then maxn a (bigger_than r) else 0%N.
+Record big_rel_of T := BigRelOf {
+  leq_big :> rel T;
+  big_rel_class : big_rel_class_of leq_big
+}.
+
+Definition bigger_than_of T (b : big_rel_of T)
+           (phb : phantom (rel T) b) :=
+  bigger_than_op (big_rel_class b).
+Notation bigger_than leq := (@bigger_than_of _ _ (Phantom (rel _) leq)).
+
+Definition leq_big_internal_of T (b : big_rel_of T)
+           (phb : phantom (rel T) b) :=
+  leq_big_internal_op (big_rel_class b).
+Notation leq_big_internal leq := (@leq_big_internal_of _ _ (Phantom (rel _) leq)).
+
+Lemma next_bigger_than T (b : big_rel_of T) i j s :
+  leq_big_internal b i (bigger_than b s) -> 
+  leq_big_internal b i (bigger_than b (j :: s)).
+Proof. by case: b i j s => [? []]. Qed.
+
+Lemma instantiate_bigger_than T (b : big_rel_of T) i s :
+  leq_big_internal b i (bigger_than b (i :: s)).
+Proof. by case: b i s => [? []]. Qed.
+
+Lemma leq_big_internalE T (b : big_rel_of T) : leq_big_internal b = leq_big b.
+Proof. by case: b => [? []]. Qed.
+
+(* Lemma big_enough  T (b : big_rel_of T) i s : *)
+(*   leq_big_internal b i (bigger_than b s) -> *)
+(*   leq_big b i (bigger_than b s). *)
+(* Proof. by rewrite leq_big_internalE. Qed. *)
+
+Lemma context_big_enough P T (b : big_rel_of T) i s :
+  leq_big_internal b i (bigger_than b s) ->
+  P true ->
+  P (leq_big b i (bigger_than b s)).
+Proof. by rewrite leq_big_internalE => ->. Qed.
+
+Definition big_rel_leq_class : big_rel_class_of leq.
+Proof.
+exists leq (foldr maxn 0%N) => [|i s|i j s /leq_trans->] //;
+by rewrite (leq_maxl, leq_maxr).
+Qed.
+Canonical big_enough_nat := BigRelOf big_rel_leq_class.
 
 Definition closed T (i : T) := {j : T | j = i}.
 Ltac close :=  match goal with
@@ -19,59 +70,33 @@ Ltac close :=  match goal with
 
 Ltac pose_big_enough i :=
   evar (i : nat); suff : closed i; first do
-    [move=> _; instantiate (1 := bigger_than _) in (Value of i)].
+    [move=> _; instantiate (1 := bigger_than leq _) in (Value of i)].
 
 Ltac pose_big_modulus m F :=
   evar (m : F -> nat); suff : closed m; first do
-    [move=> _; instantiate (1 := (fun e => bigger_than _)) in (Value of m)].
+    [move=> _; instantiate (1 := (fun e => bigger_than leq _)) in (Value of m)].
 
 Ltac exists_big_modulus m F := pose_big_modulus m F; first exists m.
 
-Definition selected := locked.
-Lemma select T (x : T) : x = selected x. Proof. exact: lock. Qed.
+Ltac olddone :=
+   trivial; hnf; intros; solve
+   [ do ![solve [trivial | apply: sym_equal; trivial]
+         | discriminate | contradiction | split]
+   | case not_locked_false_eq_true; assumption
+   | match goal with H : ~ _ |- _ => solve [case H; trivial] end].
 
-Lemma instantiate_bigger_than (P : bool -> Type) i s :
-  P true -> P ((i <= selected bigger_than (i :: s))%N).
-Proof. by rewrite -select ?leq_maxE. Qed.
+Ltac big_enough :=
+  do ?[ apply context_big_enough;
+        first do [do ?[ now apply instantiate_bigger_than
+                      | apply next_bigger_than]]].
 
-Ltac big_selected i :=
-  rewrite ?[in X in selected X]/i;
-  rewrite ?[in X in selected X]leq_max -/bigger_than;
-  rewrite [bigger_than in X in selected X]select;
-  apply instantiate_bigger_than;
-  rewrite ?[in X in selected X]orbA;
-  rewrite 1?[in X in selected X]orbT;
-  rewrite -?select.
-
-Ltac big1 :=
+Ltac big_enough_trans :=
   match goal with
-    | |- context [(?x <= ?i)%N] => rewrite [(x <= i)%N]select; big_selected i
+    | [leq_nm : is_true (?n <= ?m)%N |- is_true (?x <= ?m)] =>
+        apply: leq_trans leq_nm; big_enough; olddone
+    | _ => big_enough; olddone
   end.
 
-Ltac big :=
-  match goal with
-        | leq_mi : is_true (?m <= ?i)%N |- context [(?x <= ?i)%N] =>
-            rewrite [(x <= i)%N](leq_trans _ leq_mi) /=; last by big1
-        | _ => big1
-  end.
+Ltac done := do [olddone|big_enough_trans].
 
 End BigEnough.
-
-(*
-If I do: 
-
-Ltac big :=
-  do [ match goal with
-         | leq_mi : is_true (?m <= ?i)%N |- context [(?x <= ?i)%N] =>
-              rewrite [(x <= i)%N](leq_trans _ leq_mi) /=; last by big1
-         | _ => big1
-       end
-     | fail "The big tactic failed (because of circular dependency ?)"].
-
-When big is invoked, I get:
-
- Toplevel input, characters 30-33:
-Anomaly: File "tactics/tacinterp.ml", line 1782, characters 35-41: Assertion failed.
-Please report.
-
-*)

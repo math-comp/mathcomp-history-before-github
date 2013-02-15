@@ -1,10 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import tuple finfun bigop ssralg poly.
-
-(* Require Import multi. *)
-
-Require Import generic_quotient.
+Require Import tuple finfun bigop ssralg poly generic_quotient bigenough.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -12,8 +8,8 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
 Local Open Scope quotient_scope.
-Import GRing.Theory.
 
+Import GRing.Theory BigEnough.
 
 Module Multinomial.
 
@@ -28,190 +24,37 @@ Variable R : ringType.
 Inductive multi_term :=
 | Coef of R
 | Var of X
-| Sum   of multi_term & multi_term
-| Prod  of multi_term & multi_term.
+| Oper of bool & multi_term & multi_term.
 
-Fixpoint eqm m m':=
-  match m with
-    | Coef x => if m' is Coef y then x == y else false
-    | Var n => if m' is Var n' then n == n' else false
-    | Sum p q => if m' is Sum p' q' then (eqm p p') && (eqm q q') else false
-    | Prod p q => if m' is Prod p' q' then (eqm p p') && (eqm q q') else false
-  end.
+Notation Sum := (Oper false).
+Notation Prod := (Oper true).
 
-Lemma eqm_eq : Equality.axiom eqm.
-Proof.
-move=> m m'.
-apply:(@iffP (eqm m m')); first exact: idP.
-move:m'; elim:m.
-  - by move=> s [] //= s'; move/eqP->.
-  - by move=> s [] //= s'; move/eqP->.
-  - move=> p Hp q Hq [] //= p' q'.
-    case/andP=> epp' eqq'. 
-    by rewrite (Hp p') // (Hq q').
-  move=> p Hp q Hq [] //= p' q'.
-  case/andP=> epp' eqq'. 
-  by rewrite (Hp p') // (Hq q').
-move->; elim:m'=>/=.
-- by move=> s.
-- by move=> n.
-- by move=> p -> q ->.
-by move=> p -> q ->.
-Qed.
-
-Definition multi_term_eqMixin := EqMixin eqm_eq.
-Canonical multi_term_eqType := 
-  Eval hnf in EqType multi_term multi_term_eqMixin.
-
-Inductive multi_skel :=
-| CoefS of nat
-| VarS of nat
-| SumS   of multi_skel & multi_skel
-| ProdS  of multi_skel & multi_skel.
-
-Fixpoint encode_multi_skel m :=
-  match m with
-    | CoefS i => [::0%N; i]
-    | VarS n => [::1%N; n]
-    | SumS p q => 2%N::(encode_multi_skel p)++(encode_multi_skel q)
-    | ProdS p q => 3%N::(encode_multi_skel p)++(encode_multi_skel q)
-  end.
-
-Fixpoint decode_multi_skel_rec s :=
-  match s with
-    | 0%N::i::r => (CoefS i)::(decode_multi_skel_rec r)
-    | 1%N::n::r => (VarS n)::(decode_multi_skel_rec r)
-    | 2%N::r => match (decode_multi_skel_rec r) with
-                  | p::q::r' => (SumS p q)::r'
-                  | _ => [::]
-                end
-    | 3%N::r => match (decode_multi_skel_rec r) with
-                  | p::q::r' => (ProdS p q)::r'
-                  | _ => [::]
-                end
-    | _ => [::]
-  end.
-
-Definition decode_multi_skel s :=
-  if (decode_multi_skel_rec s) is [::m] then Some m else None.
-
-Lemma code_multi_skel_recK :
-forall s m, decode_multi_skel_rec ((encode_multi_skel m) ++ s) 
-  = m::(decode_multi_skel_rec s).
-Proof.
-by move=> s m; elim:m s=> //=; move=> p Hp q Hq s; rewrite -catA Hp Hq.
-Qed. 
-
-Lemma code_multi_skelK : pcancel encode_multi_skel decode_multi_skel.
-Proof.
-rewrite /decode_multi_skel=> m.
-by have := (code_multi_skel_recK [::] m); rewrite cats0 => ->.
-Qed.
-
-Definition multi_skel_countMixin := PcanCountMixin code_multi_skelK. 
-
-Definition multi_skel_choiceMixin := 
-  CountChoiceMixin multi_skel_countMixin.
-Definition multi_skel_eqMixin := 
-  Countable.EqMixin multi_skel_countMixin.
-
-Canonical multi_skel_eqType := 
-  EqType multi_skel multi_skel_eqMixin.
-Canonical multi_skel_choiceType := 
-  ChoiceType multi_skel multi_skel_choiceMixin.
-Canonical multi_skel_countType := 
-  CountType multi_skel multi_skel_countMixin.
-
-Fixpoint encode_multi_term_rec (s:seq R) (m:multi_term):=
-  match m with
-    | Coef x => ((CoefS (size s)), (rcons s x))
-    | Var x => ((VarS (pickle x)), s)
-    | Sum p q => 
-      let: (p',s') := encode_multi_term_rec s p in
-      let: (q',s'') := encode_multi_term_rec s' q in
-        ((SumS p' q'), s'')
-    | Prod p q => 
-      let: (p',s') := encode_multi_term_rec s p in
-      let: (q',s'') := encode_multi_term_rec s' q in
-        ((ProdS p' q'), s'')
+Fixpoint to_tree m : GenTree.tree (X + R) :=
+match m with
+| Coef x => GenTree.Node 0 [:: GenTree.Leaf (inr _ x)]
+| Var x => GenTree.Node 0 [:: GenTree.Leaf (inl _ x)]
+| Oper b m1 m2 => GenTree.Node (b.+1)  [:: to_tree m1; to_tree m2]
 end.
 
-Definition encode_multi_term (m:multi_term) : multi_skel * (seq R):=
-  encode_multi_term_rec [::] m.
+Fixpoint from_tree t :=
+match t with
+| GenTree.Node 0 [:: GenTree.Leaf (inr x)] => Some (Coef x)
+| GenTree.Node 0 [:: GenTree.Leaf (inl x)] => Some (Var x)
+| GenTree.Node n.+1 [:: t1; t2] => 
+  if (from_tree t1, from_tree t2) is (Some m1, Some m2)
+  then Some (Oper (n == 1)%N m1 m2) else None
+| _ => None
+end.
 
-Definition mkVar n : multi_term := odflt (Coef 0) (omap Var (pickle_inv _ n)).
+Lemma to_treeK : pcancel to_tree from_tree.
+Proof. by elim=> //=; case=> ? -> ? ->. Qed.
 
-Fixpoint decode_multi_term_rec (s:seq R) (m : multi_skel) :=
-    match m with
-    | CoefS i => Coef (nth (0:R) s i)
-    | VarS n => mkVar n
-    | SumS p q =>  
-      Sum (decode_multi_term_rec s  p) (decode_multi_term_rec s  q)
-    | ProdS p q =>  
-      Prod (decode_multi_term_rec s  p) (decode_multi_term_rec s  q)
-  end.
+Definition multi_term_eqMixin := PcanEqMixin to_treeK.
+Canonical multi_term_eqType := EqType multi_term multi_term_eqMixin.
+Definition multi_term_choiceMixin := PcanChoiceMixin to_treeK.
+Canonical multi_term_choiceType := ChoiceType multi_term multi_term_choiceMixin.
 
-Definition decode_multi_term (ms : multi_skel * (seq R)) :=
-  decode_multi_term_rec ms.2 ms.1.
-
-Lemma encode_multi_term_ds : forall s m,
-   s ++ (snd (encode_multi_term m)) = (snd (encode_multi_term_rec s m)).
-Proof.
-move=> s m; elim:m s=> //=.
-- by move=> x s; rewrite cats1.
-- by move=> x s; rewrite cats0.
-- rewrite /encode_multi_term /=; move=> p Hp q Hq s.
-  case:(encode_multi_term_rec [::] p) (Hp s)=> /= p0 sp0.
-  case:(encode_multi_term_rec sp0 q) (Hq sp0) => /= qs0 sqsp0.
-  case:(encode_multi_term_rec s p)=> /= ps sps.
-  case:(encode_multi_term_rec sps q) (Hq sps)=> /= qss sqsps.
-  case:(encode_multi_term_rec [::] q)=> /= q0 sq0.
-  by move=> <- <-; rewrite catA; move->.
-- rewrite /encode_multi_term /=; move=> p Hp q Hq s.
-  case:(encode_multi_term_rec [::] p) (Hp s)=> /= p0 sp0.
-  case:(encode_multi_term_rec sp0 q) (Hq sp0) => /= qs0 sqsp0.
-  case:(encode_multi_term_rec s p)=> /= ps sps.
-  case:(encode_multi_term_rec sps q) (Hq sps)=> /= qss sqsps.
-  case:(encode_multi_term_rec [::] q)=> /= q0 sq0.
-  by move=> <- <-; rewrite catA; move->.
-Qed.
-
-Lemma code_multi_term_recK : forall s ds m,
-   decode_multi_term_rec 
-   ((encode_multi_term_rec s m).2 ++ ds)
-   (encode_multi_term_rec s m).1 = m.
-Proof.
-move=>s ds m; rewrite /decode_multi_term; elim:m s ds=> //=.
-- by move=> x s ds; rewrite nth_cat size_rcons leqnn nth_rcons ltnn eqxx.
-- by move=> x _ _; rewrite /mkVar pickleK_inv.
-- move=> p Hp q Hq s ds.
-  move:(Hp s ((snd (encode_multi_term q)++ds))).
-  rewrite catA encode_multi_term_ds.
-  case: (encode_multi_term_rec _ p)=> /= p' s'.
-  move:(Hq s' ds).
-  case: (encode_multi_term_rec _ q)=> /= q' s''.
-  by move=> -> ->.
-- move=> p Hp q Hq s ds.
-  move:(Hp s ((snd (encode_multi_term q)++ds))).
-  rewrite catA encode_multi_term_ds.
-  case: (encode_multi_term_rec _ p)=> /= p' s'.
-  move:(Hq s' ds).
-  case: (encode_multi_term_rec _ q)=> /= q' s''.
-  by move=> -> ->.
-Qed.
-
-Lemma code_multi_termK : cancel encode_multi_term decode_multi_term.
-Proof.
-rewrite /encode_multi_term /decode_multi_term=> m.
-by have := (code_multi_term_recK [::] [::] m); rewrite cats0.
-Qed.
-
-Definition multi_term_choiceMixin := 
-  @CanChoiceMixin _ multi_term _ _ code_multi_termK.
-Canonical multi_term_choiceType :=
-  ChoiceType multi_term multi_term_choiceMixin.
-
-Fixpoint nbvar_term t := 
+Fixpoint nbvar_term t :=
   match t with
     | Coef _ => 0%N
     | Var x => (pickle x).+1
@@ -219,7 +62,44 @@ Fixpoint nbvar_term t :=
     | Prod u v => maxn (nbvar_term u) (nbvar_term v)
   end.
 
-Fixpoint multi n := if n is n'.+1 then [ringType of {poly multi n'}] else R.
+Fixpoint multi n := if n is n.+1 then [ringType of {poly multi n}] else R.
+
+(* Definition multi n : Type := multi_rec n. *)
+
+(* Definition multi_eqMixin n := [eqMixin of multi n]. *)
+(* Canonical multi_eqType n := EqType (multi n) (multi_eqMixin n). *)
+
+(* Definition multi_choiceMixin n : *)
+(*   Choice.mixin_of (multi_rec n) := *)
+(*   Choice.mixin (Choice.class [choiceType of multi_rec n]). *)
+(* Canonical multi_choiceType n := *)
+(*   ChoiceType (multi n) (multi_choiceMixin n). *)
+
+(* Definition multi_zmodMixin n : GRing.Zmodule.mixin_of (multi n) := *)
+(*    GRing.Zmodule.class [zmodType of multi_rec n]. *)
+(* Canonical multi_zmodType n := ZmodType (multi n) (multi_zmodMixin n). *)
+(* Lemma multi_zmodTypeP n : multi_rec n = multi_zmodType n :> zmodType. *)
+(* Proof. *)
+(* rewrite /multi_zmodType /multi_zmodMixin /multi /=. *)
+(* rewrite /multi_choiceType /multi_choiceMixin /multi /=. *)
+(* rewrite /multi_eqType /multi_eqMixin /multi. *)
+(* by case: (multi_rec n) => [sort [[] []]] //. *)
+(* Qed. *)
+
+(* Definition multi_ringMixin n : GRing.Ring.mixin_of (multi_zmodType n). *)
+(* Proof. by case:  _ / multi_zmodTypeP; apply: GRing.Ring.class. Defined. *)
+(* Canonical multi_ringType n := RingType (multi n) (multi_ringMixin n). *)
+
+(* Lemma multi_ringTypeP n : multi_rec n = multi_ringType n. *)
+(* Proof. *)
+(* rewrite /multi_ringType /multi_ringMixin /multi /=. *)
+(* rewrite /multi_zmodType /multi_zmodMixin /multi /=. *)
+(* rewrite /multi_choiceType /multi_choiceMixin /multi /=. *)
+(* rewrite /multi_eqType /multi_eqMixin /multi. *)
+(* (* case: {99}_ / multi_zmodTypeP (multi_rec n). *) *)
+(* (* case: (multi_rec n) => [sort [[] []]] //. *) *)
+(* (* Qed. *) *)
+(* Admitted. *)
 
 Fixpoint inject n m (p : multi n) {struct m} : multi (m + n) :=
   if m is m'.+1 return multi (m + n) then (inject m' p)%:P else p.
@@ -249,27 +129,57 @@ elim=> // m ihm n /=; have ->: inject m = RMorphism (ihm n) by [].
 by rewrite -/(_ \o _); apply: rmorphismP.
 Qed.
 Canonical inject_rmorphism m n := RMorphism (inject_is_rmorphism m n).
+Canonical inject_additive m n := Additive (inject_is_rmorphism m n).
 
 Lemma cast_multi_is_rmorphism i m n Enm : rmorphism (@cast_multi i m n Enm).
 Proof. by case: n / Enm; apply: rmorphismP. Qed.
 Canonical cast_multi_rmorphism i m n e := 
   RMorphism (@cast_multi_is_rmorphism i m n e).
+Canonical cast_multi_additive i m n e := 
+  Additive (@cast_multi_is_rmorphism i m n e).
 
 Definition multiC n : R -> multi n := cast_multi (addn0 n).
 Lemma multiC_is_rmorphism n : rmorphism (multiC n).
 Proof. by rewrite /multiC -[R]/(multi 0); apply: rmorphismP. Qed.
 Canonical multiC_rmorphism n := RMorphism (multiC_is_rmorphism n).
+Canonical multiC_additive n := Additive (multiC_is_rmorphism n).
 
-Fixpoint interp n m : multi n :=
-  match m with
-    | Coef x => multiC n x
-    | Var x => let i := pickle x in
-      (if i < n as b return (i < n) = b -> multi n
-        then fun iltn => cast_multi (subnK iltn) 'X_(Ordinal (leqnn i.+1))
-        else fun _ => 0)   (refl_equal (i < n))
-    | Sum p q => interp n p + interp n q
-    | Prod p q => interp n p * interp n q
-  end.
+(* Fixpoint uses_vars (sx : predPredType X) m := *)
+(*   match m with *)
+(*     | Var x => x \in sx *)
+(*     | Oper b m1 m2 => uses_vars sx m1 && uses_vars sx m2 *)
+(*     | _ => true *)
+(*   end. *)
+
+(* Lemma eq_uses_var sx1 sx2 : sx1 =i sx2 -> uses_vars sx1 =1 uses_vars sx2. *)
+(* Proof. by move=> sx12; elim => //= _ ? -> ? ->. Qed. *)
+
+(* Lemma sub_uses_var sx1 sx2 : {subset sx1 <= sx2} -> *)
+(*                                subpred (uses_vars sx1) (uses_vars sx2). *)
+(* Proof. by move=> sx12; elim=> //= _ m1 IHm1 m2 IHm2 /andP [/IHm1 ->]. Qed. *)
+
+(* Definition multi_in sm := {sx : seq X | uniq sx & all (uses_vars (topred sx)) sm}. *)
+
+(* Lemma multi_inP sm : multi_in sm. *)
+(* Proof. *)
+(* suff H2 m sm' : multi_in [:: m] -> multi_in sm' -> multi_in (m :: sm'). *)
+(*   elim: sm => [|m sm /H2]; first by exists [::]. *)
+(*   apply; elim: m => /= [a|x|b m1 IHm1 m2 IHm2]; first by exists [::]. *)
+(*     by exists [::x]; rewrite //= mem_head. *)
+(*   by have [||sx ?] //= := H2 m1 [::m2]; rewrite andbA; exists sx. *)
+(* move=> [sx1 sx1_uniq /= Hsx1] [sx2 sx2_uniq Hsx2]. *)
+(* exists (undup (sx1 ++ sx2)); first by rewrite undup_uniq. *)
+(* rewrite (eq_all (eq_uses_var (mem_undup _))) /=; rewrite andbT in Hsx1. *)
+(* rewrite (sub_uses_var _ Hsx1) /=; last by move=> x; rewrite mem_cat => ->. *)
+(* by apply: sub_all Hsx2; apply: sub_uses_var => x; rewrite mem_cat orbC => ->. *)
+(* Qed. *)
+
+(* Lemma multi_inP2 m1 m2 : {sx : seq X | uniq sx & uses_vars (topred sx) m1 *)
+(*                                            && uses_vars (topred sx) m2}. *)
+(* Proof. *)
+(* have [sx sx_uniq /and3P[H1 H2 _]] := multi_inP [::m1; m2]. *)
+(* by exists sx; rewrite // H1 H2. *)
+(* Qed. *)
 
 Lemma cast_multi_inj n i i' n' (m1 m2 : multi n)
   (p1: (i + n)%N=n') (p2: (i' + n)%N=n') :
@@ -294,29 +204,18 @@ Proof. by move<-; rewrite addnA. Qed.
 Lemma cast_multi_id n (e : (0 + n)%N = n) m : cast_multi e m = m.
 Proof. by rewrite (_ : e = erefl _) //; apply: nat_irrelevance. Qed.
 
-Lemma cast_multiS 
-  n i n' (m: multi n) (p: (i+n)%N = n') (pS: ((i.+1)+n)%N = n'.+1) :
+Lemma cast_multiS n i n' (m : multi n)
+  (p: (i + n)%N = n') (pS: ((i.+1) + n)%N = n'.+1) :
   (cast_multi pS m) = (cast_multi p m)%:P.
-Proof.
-move:(p) (pS); rewrite -p => pr pSr.
-have ->: (pr = erefl (i + n)%N); first exact: nat_irrelevance.
-by have ->: (pSr = erefl (i.+1 + n)%N); first exact: nat_irrelevance.
-Qed.
+Proof. by case: _ / p  in pS *; rewrite [pS](nat_irrelevance _ (erefl _)). Qed.
 
 Lemma injectnm_cast_multi i m n p : 
   inject (n + m)%N p = 
   ((@cast_multi (m + i)%N n ((n + m) + i)%N (addnA _ _ _)) \o (inject m)) p.
 Proof.
-elim: n => /=.
-  move: (addnA 0%N m i); rewrite [(0+m)%N]add0n=> Hm.
-  by have ->: (Hm = erefl (m + i)%N); first exact: nat_irrelevance.
-move=> n ->; set inj := inject _ _ .
-move:(addnA n m i) (addnA n.+1 m i).
-change (n.+1 + m + i)%N with ((n + m + i).+1)%N.
-change (addn_rec (addn_rec n m) i) with (n+m+i)%N.
-rewrite -[(n+m+i)%N]addnA => pr pSr.
-have ->: (pr = erefl (n + (m + i))%N); first exact: nat_irrelevance.
-by have ->: (pSr = erefl (n.+1 + (m + i))%N); first exact: nat_irrelevance.
+elim: n => [|n /= -> /=].
+  by rewrite [addnA 0%N m i](nat_irrelevance _ (erefl _)).
+by rewrite cast_multiS; congr (cast_multi _ _)%:P; apply: nat_irrelevance.
 Qed.
 
 Lemma cast_multi_add i j k m n Emj Enk p :
@@ -333,29 +232,43 @@ by apply/eqP; rewrite cast_multi_inj.
 Qed.
 
 
+(* Fixpoint interp s m : multi (size s).+1 := *)
+(*   match m with *)
+(*     | Coef x => multiC _ x *)
+(*     | Var x =>  'X_(insubd ord_max (index x s))  *)
+(*     | Sum p q => interp _ p + interp _ q *)
+(*     | Prod p q => interp _ p * interp _ q *)
+(*   end. *)
+
+Fixpoint interp n m : multi n :=
+  match m with
+    | Coef x => multiC n x
+    | Var x => let i := pickle x in
+      (if i < n as b return (i < n) = b -> multi n
+        then fun iltn => cast_multi (subnK iltn) 'X_(Ordinal (leqnn i.+1))
+        else fun _ => 0)   (refl_equal (i < n))
+    | Sum p q => interp n p + interp n q
+    | Prod p q => interp n p * interp n q
+end.
+
 Lemma interp_cast_multi n n' m (nltn' : n <= n') :
   nbvar_term m <= n -> interp n' m = cast_multi (subnK nltn') (interp n m).
 Proof.
 move=> dmltn; have dmltn' := (leq_trans dmltn nltn').
 elim: m nltn' dmltn dmltn'.
-- move=> a /= nltn' dmltn dmltn'. 
++ move=> a /= nltn' dmltn dmltn'. 
   apply/eqP; rewrite /multiC. 
   by rewrite cast_multi_add /= cast_multi_inj.
-- move=> N /= nltn' dmltn dmltn'.
++  move=> N /= nltn' dmltn dmltn'.
   move: (refl_equal (_ N < n')) (refl_equal (_ N < n)).
   rewrite {2 3}[_ N < n]dmltn {2 3}[_ N < n']dmltn' => Nn' Nn.
   by apply/eqP; rewrite cast_multi_add cast_multi_inj.
-- move=> m1 Hm1 m2 Hm2 nltn' /=; rewrite !geq_max.
-  move/andP=>[dm1n dm1n']; move/andP=>[dm2n dm2n'].
-  rewrite (Hm1 nltn') // (Hm2 nltn') //.
-  by rewrite rmorphD.
-- move=> m1 Hm1 m2 Hm2 nltn' /=; rewrite !geq_max.
-  move/andP=>[dm1n dm1n']; move/andP=>[dm2n dm2n'].
-  rewrite (Hm1 nltn') // (Hm2 nltn') //.
-  by rewrite rmorphM.
+move=> [] m1 Hm1 m2 Hm2 nltn' /=;
+rewrite !geq_max => /andP [dm1n dm1n'] /andP [dm2n dm2n'];
+by rewrite (Hm1 nltn') // (Hm2 nltn') // (rmorphM, rmorphD).
 Qed.
 
-(* Fixpoint reify n (m : multi n) :=  *)
+(* Fixpoint reify n (m : multi n) := *)
 (*   match n return multi n -> multi_term with *)
 (*     | 0%N => fun m => Coef m *)
 (*     | n'.+1 => fun m => *)
@@ -390,10 +303,10 @@ Qed.
 (* rewrite Hn. *)
 (* move: (refl_equal (n < n.+1)). *)
 (* rewrite /mkVar. *)
-(* case:  *)
+(* case: *)
 (* rewrite {2}[n < n.+1]ltnSn=> e. *)
 (* rewrite /multi_var. *)
-(* move:(subnK _) (subnK _).  *)
+(* move:(subnK _) (subnK _). *)
 (* rewrite [val _]/= subnn=> subnK subnK'. *)
 (* have ->: subnK = erefl (n.+1); first exact: nat_irrelevance. *)
 (* have ->: subnK' = erefl (n.+1); first exact: nat_irrelevance. *)
@@ -433,12 +346,9 @@ Proof. by move=> x y; rewrite /equivm eq_sym maxnC. Qed.
 
 Lemma equivm_trans : transitive equivm.
 Proof.
-move=> x y z.
-rewrite !(@interp_gtn (maxn (maxn (nbvar_term x) (nbvar_term y)) (nbvar_term z))).
-- by move/eqP->; move/eqP->.
-- by rewrite -maxnA leq_max leqnn orbT.
-- by rewrite maxnAC leq_max leqnn.
-- by rewrite maxnC leq_max leqnn.
+move=> x y z; pose_big_enough n.
+  by rewrite !(@interp_gtn n) => // /eqP-> /eqP->.
+by close.
 Qed.
 
 Canonical equivm_equivRel := EquivRel equivm
@@ -473,11 +383,11 @@ Canonical pi_varm_morph := PiEmbed varm.
 Definition addm := lift_op2 {multinom R} Sum.
 Lemma pi_addm : {morph \pi : x y / Sum x y >-> addm x y}.
 Proof.
-move=> x y /=; unlock addm; apply/eqP; set x' := repr _; set y' := repr _.
-rewrite -(@eqm_interp (nbvar_term (Sum (Sum x y) (Sum x' y')))) /=.
-  apply/eqP; congr (_ + _); apply/eqP;
-  by rewrite eqm_interp ?reprK // !(geq_max, leq_max, leqnn, orbT).
-by rewrite maxnC.
+move=> x y /=; unlock addm; apply/eqmodP => /=.
+pose_big_enough n.
+  rewrite (@interp_gtn n) //=; apply/eqP; congr (_ + _);
+  by apply/eqP; rewrite eqm_interp // reprK.
+by close.
 Qed.
 Canonical pi_addm_morph := PiMorph2 pi_addm.
 
@@ -568,65 +478,69 @@ Notation "{ 'multinom' R }" := (@multinom_of _ (Phant X) (Phant R))
 Notation "c %:M" := (cstm c) (at level 2, format "c %:M").
 Notation "n %:X" := (varm n) (at level 2, format "n %:X").
 
+Section MultinomialComRing.
+
+Variable R : comRingType.
+
+Lemma mul_multiC n : commutative (@GRing.mul (multi R n)).
+Proof.
+suff [M IH_CR] : {CR : comRingType | [ringType of CR] = multi R n}.
+  by case: _ / IH_CR => x y; rewrite mulrC.
+elim: n => [|n [CR IH_CR]] //=; first by exists R.
+by exists [comRingType of {poly CR}]; rewrite -IH_CR.
+Qed.
+
+Lemma mulmC : commutative (@mulm R).
+Proof.
+elim/quotW=> x; elim/quotW=> y; apply/eqP.
+by rewrite piE /equivm /= mul_multiC.
+Qed.
+
+Canonical multinom_comRing := Eval hnf in ComRingType (@multinom R) mulmC.
+Canonical multinom_of_comRing := Eval hnf in ComRingType {multinom R} mulmC.
+
+End MultinomialComRing.
+
+Section MultinomialIdomain.
+
+Variable R : idomainType.
+
+Lemma multi_idomain n : GRing.IntegralDomain.axiom (multi R n).
+Proof.
+suff [D IH_D] : {D : idomainType | [ringType of D] = multi R n}.
+  by case: _ / IH_D => x y /eqP; rewrite mulf_eq0.
+elim: n => [|n [D IH_D]] //=; first by exists R.
+by exists [idomainType of {poly D}]; rewrite -IH_D.
+Qed.
+
+Lemma multi_unitMixin n : GRing.UnitRing.mixin_of (multi R n).
+Proof.
+suff [D IH_D] : {D : idomainType | [ringType of D] = multi R n}.
+  by case: _ / IH_D; case: D => [sort [[]]].
+elim: n => [|n [D IH_D]] //=; first by exists R.
+by exists [idomainType of {poly D}]; case: _ / IH_D.
+Qed.
+
+Lemma multinom_idomain : GRing.IntegralDomain.axiom [ringType of multinom R].
+Proof.
+elim/quotW=> x; elim/quotW=> y /eqP; rewrite -[_ * _]pi_mulm !piE.
+pose_big_enough n.
+  by rewrite !(@interp_gtn _ n) //= !rmorph0 => /eqP /multi_idomain.
+by close.
+Qed.
+
+End MultinomialIdomain.
+
+(* Lemma multinom_unitmixin : GRing.UnitRing.mixin_of [ringType of multinom R]. *)
+(* Proof. *)
+(* apply: (UnitRingMixin ). *)
+
+(* Canonical multinom_unitRing := *)
+(*   Eval hnf in UnitRingType (@multinom R) multinom_idomain. *)
+(* Canonical multinom_of_comRing := Eval hnf in ComRingType {multinom R} mulmC. *)
+
+
 (* begin hide *)
-
-(* Section MultinomialComRing. *)
-
-(* Variable R : comRingType. *)
-
-(* Section rec. *)
-
-(* Variable n : nat. *)
-(* Definition MultiRn : Type := multi R n. *)
-(* Canonical MultiRn_ringType := Eval hnf in [ringType of MultiRn]. *)
-(* Canonical MultiRn_zmodType := Eval hnf in [zmodType of MultiRn]. *)
-(* Hypothesis mulMC : forall (x y : MultiRn), x * y = y * x. *)
-(* Canonical MultiRn_comRingType := ComRingType MultiRn mulMC. *)
-
-(* Lemma mulMSC : forall (x y : {poly MultiRn}), x * y = y * x. *)
-(* Proof. exact: mulrC. Qed. *)
-
-(* End rec. *)
-
-(* Lemma mul_multiC n (x y : multi R n) : x * y = y * x. *)
-(* Proof. *)
-(* elim: n x y => //=. *)
-(*   by move=> x y; rewrite mulrC. *)
-(* move=> n; rewrite -[multi R n : Type]/(MultiRn n). *)
-(* move=> ihn x y. *)
-(* exact: ihn. *)
-(* Set Printing All. *)
-(* have := (mulMSC ihn x y).  *)
-(* rewrite /MultiRn /=. *)
-(* apply. *)
-
-
-(* apply: mulMSC. *)
-(* pose mR := ComRingType (multi R n) ihn. *)
-(* have -> : {poly multi R n} = poly_comRingType mR. *)
-(* rewrite -[{poly multi R n} : Type]/(poly_comRingType mR : Type). *)
-
-(* rewrite -[multi R n]/mR. *)
-(* rewrite mulrC. *)
-
-(* Lemma mulmC : commutative (@mulm R). *)
-(* Proof. *)
-(* elim/quotW=> x; elim/quotW=> y; apply/eqP. *)
-(* rewrite !piE /= eqmodE /= /equivm /= mulrC. *)
-(* rewrite !!piE; apply/eqmodP; rewrite /= /equivm /=. *)
-(* rewrite mulrC. *)
-(* elim/quotW=> x; elim/quotW=> y. *)
-(* rewrite !qTE; apply/eqP; rewrite -eqmodP equivmP. *)
-(* by rewrite /equivm /= mulrC. *)
-(* Qed. *)
-
-
-(* Definition multinom_comRingMixin :=  *)
-(*   ComRingMixin mulmA mulmC mul1m mulm_addl nonzero1m. *)
-(* Canonical  multinom_Ring :=  *)
-(*   Eval hnf in RingType multinom multinom_comRingMixin. *)
-(* Canonical multinom_comRing := Eval hnf in ComRingType multinom mulmC. *)
-
 (* Lemma unit_interp : forall n m, (nbvar_term m) <= n -> *)
 (*   GRing.unit (interp (nbvar_term m) m) = GRing.unit (interp n m). *)
 (* Proof. *)
@@ -637,136 +551,135 @@ Notation "n %:X" := (varm n) (at level 2, format "n %:X").
 (* move=> n Hn dmSn uiSn. *)
 (* case:(ltngtP (nbvar_term m) n.+1); last by move->. *)
 (*   rewrite ltnS=> i; apply:Hn=> {dmSn} //. *)
-(*   move:uiSn.  *)
+(*   move:uiSn. *)
 (*   have nltSn: n <= 1 + n; first by rewrite leqnSn. *)
 (*   rewrite (interp_cast_multi nltSn i). *)
 (*   move: (subnK nltSn); rewrite -[n.+1]/(1+n)%N. *)
-(*   rewrite {2 3 5}(_ : (1 + n = 1 + n - n + n)%N) ?subnK // => EN.  *)
+(*   rewrite {2 3 5}(_ : (1 + n = 1 + n - n + n)%N) ?subnK // => EN. *)
 (*   have ->: EN = (erefl (1 + n - n + n)%N); first exact: nat_irrelevance. *)
 (*   rewrite /= [(n.+1-n)%N]subSnn -[GRing.unit _]/(poly_unit _). *)
 (*   by case/andP; rewrite coefC. *)
 (* by move/(leq_ltn_trans dmSn); rewrite ltnn. *)
 (* Qed. *)
 
-(* Lemma unitm_compat : \compat1_multinom _ *)
-(*   (fun m => GRing.unit (interp (nbvar_term m) m)). *)
-(* Proof. *)
-(* apply:compat1E=> x y. *)
-(* rewrite equivmP (@interp_gtn (maxn (nbvar_term x) (nbvar_term y))); last first. *)
-(*   by rewrite leqnn. *)
-(* move/eqP=> ixy. *)
-(* have xltxy : (nbvar_term x) <= (maxn (nbvar_term x) (nbvar_term y)). *)
-(*    by rewrite leq_max leqnn. *)
-(* have yltxy : (nbvar_term y) <= (maxn (nbvar_term x) (nbvar_term y)). *)
-(*    by rewrite leq_max leqnn orbT. *)
-(* by apply/idP/idP; rewrite (unit_interp xltxy) (unit_interp yltxy) ixy. *)
-(* Qed. *)
-(* Local Notation unitm := [pred m : multinom | qT_op1 unitm_compat m ]. *)
+(* (* Lemma unitm_compat : \compat1_multinom _ *) *)
+(* (*   (fun m => GRing.unit (interp (nbvar_term m) m)). *) *)
+(* (* Proof. *) *)
+(* (* apply:compat1E=> x y. *) *)
+(* (* rewrite equivmP (@interp_gtn (maxn (nbvar_term x) (nbvar_term y))); last first. *) *)
+(* (*   by rewrite leqnn. *) *)
+(* (* move/eqP=> ixy. *) *)
+(* (* have xltxy : (nbvar_term x) <= (maxn (nbvar_term x) (nbvar_term y)). *) *)
+(* (*    by rewrite leq_max leqnn. *) *)
+(* (* have yltxy : (nbvar_term y) <= (maxn (nbvar_term x) (nbvar_term y)). *) *)
+(* (*    by rewrite leq_max leqnn orbT. *) *)
+(* (* by apply/idP/idP; rewrite (unit_interp xltxy) (unit_interp yltxy) ixy. *) *)
+(* (* Qed. *) *)
+(* (* Local Notation unitm := [pred m : multinom | qT_op1 unitm_compat m ]. *) *)
 
-(* Lemma invm_compat : \compat1_multinom _ *)
-(*   (fun m => \pi_multinom (reify ((interp (nbvar_term m) m)^-1))). *)
-(* Proof. *)
-(* apply:compat1Epi=> x y; rewrite !equivmP. *)
-(* set ix := reify _; set iy := reify _. *)
-(* rewrite {1}/equivm /=. *)
-(* have ixyleqxy : maxn (nbvar_term ix) (nbvar_term iy)  *)
-(*   <= maxn (nbvar_term x) (nbvar_term y). *)
-(*   by rewrite geq_max !leq_max !nbvar_term_reify orbT. *)
-(* rewrite (interp_gtn ixyleqxy). *)
-(* have xleqxy : nbvar_term x <= maxn (nbvar_term x) (nbvar_term y). *)
-(*   by rewrite leq_max leqnn. *)
-(* have yleqxy : nbvar_term y <= maxn (nbvar_term x) (nbvar_term y). *)
-(*   by rewrite leq_max leqnn orbT. *)
-(* rewrite (interp_reify_cast_multi xleqxy).  *)
-(* rewrite (interp_reify_cast_multi yleqxy). *)
-(* move/eqP=> exy. *)
-(* case ux: (GRing.unit (interp (nbvar_term x) x)); *)
-(*     move:(ux); rewrite (unit_interp xleqxy) exy -(unit_interp yleqxy) => uy. *)
-(*   rewrite !(ringM_inv (cast_multiM _ _)) //.  *)
-(*   by rewrite -!interp_cast_multi // exy. *)
-(* by rewrite !invr_out ?ux ?uy // -!interp_cast_multi // exy. *)
-(* Qed. *)
-(* Local Notation invm := (qT_op1 invm_compat). *)
+(* (* Lemma invm_compat : \compat1_multinom _ *) *)
+(* (*   (fun m => \pi_multinom (reify ((interp (nbvar_term m) m)^-1))). *) *)
+(* (* Proof. *) *)
+(* (* apply:compat1Epi=> x y; rewrite !equivmP. *) *)
+(* (* set ix := reify _; set iy := reify _. *) *)
+(* (* rewrite {1}/equivm /=. *) *)
+(* (* have ixyleqxy : maxn (nbvar_term ix) (nbvar_term iy)  *) *)
+(* (*   <= maxn (nbvar_term x) (nbvar_term y). *) *)
+(* (*   by rewrite geq_max !leq_max !nbvar_term_reify orbT. *) *)
+(* (* rewrite (interp_gtn ixyleqxy). *) *)
+(* (* have xleqxy : nbvar_term x <= maxn (nbvar_term x) (nbvar_term y). *) *)
+(* (*   by rewrite leq_max leqnn. *) *)
+(* (* have yleqxy : nbvar_term y <= maxn (nbvar_term x) (nbvar_term y). *) *)
+(* (*   by rewrite leq_max leqnn orbT. *) *)
+(* (* rewrite (interp_reify_cast_multi xleqxy).  *) *)
+(* (* rewrite (interp_reify_cast_multi yleqxy). *) *)
+(* (* move/eqP=> exy. *) *)
+(* (* case ux: (GRing.unit (interp (nbvar_term x) x)); *) *)
+(* (*     move:(ux); rewrite (unit_interp xleqxy) exy -(unit_interp yleqxy) => uy. *) *)
+(* (*   rewrite !(ringM_inv (cast_multiM _ _)) //.  *) *)
+(* (*   by rewrite -!interp_cast_multi // exy. *) *)
+(* (* by rewrite !invr_out ?ux ?uy // -!interp_cast_multi // exy. *) *)
+(* (* Qed. *) *)
+(* (* Local Notation invm := (qT_op1 invm_compat). *) *)
 
-(* Definition interpretable n := [pred m : multi_term | nbvar_term m <= n ]. *)
+(* (* Definition interpretable n := [pred m : multi_term | nbvar_term m <= n ]. *) *)
 
-(* Lemma mulVm : {in unitm, left_inverse onem invm mulm}. *)
-(* Proof. *)
-(* elim/quotW=> m; rewrite !inE. *)
-(* rewrite !qTE=> um; apply/eqP; rewrite -eqmodP equivmP. *)
-(* set im :=  reify _. *)
-(* rewrite /equivm /= maxn0. *)
-(* have mlimm : nbvar_term m <= maxn (nbvar_term im) (nbvar_term m). *)
-(*   by rewrite leq_max leqnn orbT. *)
-(* rewrite (interp_reify_cast_multi mlimm). *)
-(* rewrite (ringM_inv (cast_multiM _ _)) ?um //. *)
-(* rewrite -interp_cast_multi //. *)
-(* rewrite (ringM_1 (multiC_morph _ _)). *)
-(* rewrite mulVr //. *)
-(* by rewrite -(unit_interp mlimm). *)
-(* Qed. *)
-
-
-(* Lemma unitmPl : forall x y, mulm y x = onem -> unitm x. *)
-(* Proof. *)
-(* elim/quotW=> x; elim/quotW=> y; rewrite inE !qTE. *)
-(* move/eqP; rewrite -!eqmodP !equivmP /=. *)
-(* rewrite /equivm /= maxn0. *)
-(* rewrite (ringM_1 (multiC_morph _ _)). *)
-(* move/eqP=> ixiy1. *)
-(* rewrite (unit_interp (_ : nbvar_term x <= maxn (nbvar_term y) (nbvar_term x))). *)
-(*   apply/unitrP. *)
-(*   exists (interp (maxn (nbvar_term y) (nbvar_term x)) y). *)
-(*   by rewrite ixiy1 mulrC ixiy1. *)
-(* by rewrite leq_max leqnn orbT. *)
-(* Qed. *)
+(* (* Lemma mulVm : {in unitm, left_inverse onem invm mulm}. *) *)
+(* (* Proof. *) *)
+(* (* elim/quotW=> m; rewrite !inE. *) *)
+(* (* rewrite !qTE=> um; apply/eqP; rewrite -eqmodP equivmP. *) *)
+(* (* set im :=  reify _. *) *)
+(* (* rewrite /equivm /= maxn0. *) *)
+(* (* have mlimm : nbvar_term m <= maxn (nbvar_term im) (nbvar_term m). *) *)
+(* (*   by rewrite leq_max leqnn orbT. *) *)
+(* (* rewrite (interp_reify_cast_multi mlimm). *) *)
+(* (* rewrite (ringM_inv (cast_multiM _ _)) ?um //. *) *)
+(* (* rewrite -interp_cast_multi //. *) *)
+(* (* rewrite (ringM_1 (multiC_morph _ _)). *) *)
+(* (* rewrite mulVr //. *) *)
+(* (* by rewrite -(unit_interp mlimm). *) *)
+(* (* Qed. *) *)
 
 
-(* Lemma  invm_out : {in predC unitm, invm =1 id}. *)
-(* Proof. *)
-(* elim/quotW=> x; rewrite !inE !qTE=> nux. *)
-(* rewrite invr_out //. *)
-(* apply/eqP; rewrite -eqmodP equivmP /equivm /=. *)
-(* set rx := reify _. *)
-(* have xltrxx: nbvar_term x <= (maxn (nbvar_term rx) (nbvar_term x)). *)
-(*   by rewrite leq_max leqnn orbT. *)
-(* rewrite (interp_reify_cast_multi xltrxx). *)
-(* by rewrite -interp_cast_multi. *)
-(* Qed. *)
-
-(* Definition multinom_comUnitRingMixin :=  ComUnitRingMixin mulVm unitmPl invm_out. *)
-(* Canonical multinom_unitRing :=  *)
-(*   Eval hnf in UnitRingType multinom multinom_comUnitRingMixin. *)
+(* (* Lemma unitmPl : forall x y, mulm y x = onem -> unitm x. *) *)
+(* (* Proof. *) *)
+(* (* elim/quotW=> x; elim/quotW=> y; rewrite inE !qTE. *) *)
+(* (* move/eqP; rewrite -!eqmodP !equivmP /=. *) *)
+(* (* rewrite /equivm /= maxn0. *) *)
+(* (* rewrite (ringM_1 (multiC_morph _ _)). *) *)
+(* (* move/eqP=> ixiy1. *) *)
+(* (* rewrite (unit_interp (_ : nbvar_term x <= maxn (nbvar_term y) (nbvar_term x))). *) *)
+(* (*   apply/unitrP. *) *)
+(* (*   exists (interp (maxn (nbvar_term y) (nbvar_term x)) y). *) *)
+(* (*   by rewrite ixiy1 mulrC ixiy1. *) *)
+(* (* by rewrite leq_max leqnn orbT. *) *)
+(* (* Qed. *) *)
 
 
-(* Lemma idomain_axiomm : forall x y, *)
-(*   (mulm x y = zerom -> (x == zerom) || (y == zerom)). *)
-(* Proof. *)
-(* elim/quotW=> x; elim/quotW=> y; rewrite !qTE. *)
-(* move/eqP; rewrite -!eqmodP equivmP /equivm {1}[_ == _]/=. *)
-(* rewrite maxn0 (ringM_0 (multiC_morph _ _)). *)
-(* rewrite mulf_eq0. *)
-(* case/orP. *)
-(*   rewrite -!eqmodP equivmP. *)
-(*   rewrite (@interp_gtn (maxn (nbvar_term x) (nbvar_term y))). *)
-(*     by move/eqP->=> /=; rewrite (ringM_0 (multiC_morph _ _)) eqxx. *)
-(*   by rewrite maxn0 leq_max leqnn. *)
-(* move/eqP=> y0. *)
-(* apply/orP; right. *)
-(* rewrite -!eqmodP equivmP. *)
-(* rewrite (@interp_gtn (maxn (nbvar_term x) (nbvar_term y))). *)
-(*   by rewrite y0 /= (ringM_0 (multiC_morph _ _)) eqxx. *)
-(* by rewrite maxn0 leq_max leqnn orbT. *)
-(* Qed. *)
+(* (* Lemma  invm_out : {in predC unitm, invm =1 id}. *) *)
+(* (* Proof. *) *)
+(* (* elim/quotW=> x; rewrite !inE !qTE=> nux. *) *)
+(* (* rewrite invr_out //. *) *)
+(* (* apply/eqP; rewrite -eqmodP equivmP /equivm /=. *) *)
+(* (* set rx := reify _. *) *)
+(* (* have xltrxx: nbvar_term x <= (maxn (nbvar_term rx) (nbvar_term x)). *) *)
+(* (*   by rewrite leq_max leqnn orbT. *) *)
+(* (* rewrite (interp_reify_cast_multi xltrxx). *) *)
+(* (* by rewrite -interp_cast_multi. *) *)
+(* (* Qed. *) *)
 
-(* (* (* Why can't we have simply : *) *) *)
-(* (* Canonical multinom_iDomain := *) *)
-(* (*   Eval hnf in IdomainType multi idomain_axiomm. *) *)
+(* (* Definition multinom_comUnitRingMixin :=  ComUnitRingMixin mulVm unitmPl invm_out. *) *)
+(* (* Canonical multinom_unitRing :=  *) *)
+(* (*   Eval hnf in UnitRingType multinom multinom_comUnitRingMixin. *) *)
 
-(* Canonical multinom_iDomain :=  *)
-(*   Eval hnf in IdomainType [comUnitRingType of multinom] idomain_axiomm. *)
 
-(* end hide *)
+(* (* Lemma idomain_axiomm : forall x y, *) *)
+(* (*   (mulm x y = zerom -> (x == zerom) || (y == zerom)). *) *)
+(* (* Proof. *) *)
+(* (* elim/quotW=> x; elim/quotW=> y; rewrite !qTE. *) *)
+(* (* move/eqP; rewrite -!eqmodP equivmP /equivm {1}[_ == _]/=. *) *)
+(* (* rewrite maxn0 (ringM_0 (multiC_morph _ _)). *) *)
+(* (* rewrite mulf_eq0. *) *)
+(* (* case/orP. *) *)
+(* (*   rewrite -!eqmodP equivmP. *) *)
+(* (*   rewrite (@interp_gtn (maxn (nbvar_term x) (nbvar_term y))). *) *)
+(* (*     by move/eqP->=> /=; rewrite (ringM_0 (multiC_morph _ _)) eqxx. *) *)
+(* (*   by rewrite maxn0 leq_max leqnn. *) *)
+(* (* move/eqP=> y0. *) *)
+(* (* apply/orP; right. *) *)
+(* (* rewrite -!eqmodP equivmP. *) *)
+(* (* rewrite (@interp_gtn (maxn (nbvar_term x) (nbvar_term y))). *) *)
+(* (*   by rewrite y0 /= (ringM_0 (multiC_morph _ _)) eqxx. *) *)
+(* (* by rewrite maxn0 leq_max leqnn orbT. *) *)
+(* (* Qed. *) *)
+
+(* (* (* (* Why can't we have simply : *) *) *) *)
+(* (* (* Canonical multinom_iDomain := *) *) *)
+(* (* (*   Eval hnf in IdomainType multi idomain_axiomm. *) *) *)
+
+(* (* Canonical multinom_iDomain :=  *) *)
+(* (*   Eval hnf in IdomainType [comUnitRingType of multinom] idomain_axiomm. *) *)
+(* (* end hide *) *)
 
 End Multinomial.
 End Multinomial.
