@@ -5418,8 +5418,7 @@ GEXTEND Gram
           let s = coerce_reference_to_id qid in
 	  Vernacexpr.VernacDefinition
 	    ((Decl_kinds.Global,Decl_kinds.CanonicalStructure),
-             (dummy_loc,s),(d  ),
-             (fun _ -> Recordops.declare_canonical_structure))
+             (dummy_loc,s),(d  ))
 (*It seems there is not need for these:
       (* Canonical structure *)
       | IDENT "Canonical"; IDENT "Structure"; qid = Constr.global ->
