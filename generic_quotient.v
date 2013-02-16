@@ -104,6 +104,10 @@ Reserved Notation "{eq_quot e }" (at level 0, T at level 0,
 Delimit Scope quotient_scope with qT.
 Local Open Scope quotient_scope.
 
+(*****************************************)
+(* Definition of the quotient interface. *)
+(*****************************************)
+
 Section QuotientDef.
 
 Variable T : Type.
@@ -137,6 +141,10 @@ Definition QuotType_clone (Q : Type) qT cT
 
 End QuotientDef.
 
+(****************************)
+(* Protecting some symbols. *)
+(****************************)
+
 Module Type PiSig.
 Parameter f : forall (T : Type) (qT : quotType T), phant qT -> T -> qT.
 Axiom E : f = pi_phant.
@@ -162,6 +170,10 @@ Definition f := repr_of.
 Definition E := erefl f.
 End Repr.
 
+(*******************)
+(* Fancy Notations *)
+(*******************)
+
 Notation repr := Repr.f.
 Notation "\pi_ Q" := (@Pi.f _ _ (Phant Q)) : quotient_scope.
 Notation "\pi" := (@Pi.f _ _ (Phant _))  (only parsing) : quotient_scope.
@@ -182,6 +194,10 @@ Notation "[ 'quotType' 'of' Q ]" := (@QuotType_clone _ Q _ _ id)
 
 Implicit Arguments repr [T qT].
 Prenex Implicits repr.
+
+(************************)
+(* Exporting the theory *)
+(************************)
 
 Section QuotTypeTheory.
 
@@ -644,20 +660,9 @@ Implicit Arguments eqmodE [D C DC CD eD encD].
 Implicit Arguments eqmodP [D C CD DC eD encD x y].
 Prenex Implicits eqmodE eqmodP.
 
-(* begin hide *)
-
-(* Module OK. *)
-(* Section OK. *)
-
-(* Variables (D : Type) (C : choiceType) (CD : C -> D) (DC : D -> C). *)
-(* Variables (eD : equiv_rel D) (encD : encModRel CD DC eD). *)
-(* Canonical encD_equiv_rel := EquivRelPack (enc_mod_rel_is_equiv encD). *)
-(* Check [equiv_rel of encD]. *)
-(* (* OK *) *)
-(* End OK. *)
-(* End OK. *)
-
-(* end hide *) 
+(***********************************************************)
+(* If the type is directly a choiceType, no need to encode *)
+(***********************************************************)
 
 Section DefaultEncodingModuloRel.
 
@@ -670,6 +675,9 @@ Canonical defaultEncModRel := EncModRelPack defaultEncModRelClass.
 
 End DefaultEncodingModuloRel.
 
+(***************************************************)
+(* Recovering a potential countable type structure *)
+(***************************************************)
 
 Section CountEncodingModuloRel.
 
@@ -683,17 +691,3 @@ Canonical eq_quot_countType := CountType {eq_quot encD} eq_quot_countMixin.
 
 End CountEncodingModuloRel.
 
-(* begin hide *)
-
-(* Module Error. *)
-(* Section Error. *)
-
-(* Variables (D : Type) (C : choiceType) (CD : C -> D) (DC : D -> C). *)
-(* Variables (eD : equiv_rel D) (encD : encModRel CD DC eD). *)
-(* Canonical encD_equiv_rel := EquivRelPack (enc_mod_rel_is_equiv encD). *)
-(* Check [equiv_rel of encD]. *)
-(* (* Error : Why ?? *) *)
-(* End Error. *)
-(* End Error. *)
-
-(* end hide *)

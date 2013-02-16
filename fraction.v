@@ -1,8 +1,11 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq choice tuple.
-Require Import bigop ssralg poly polydiv.
+Require Import bigop ssralg poly polydiv generic_quotient.
 
-Require Import generic_quotient.
+(* This file builds the field of fraction of any integral domain. *)
+(* The main result of this file is the existence of the field *)
+(* and of the tofrac function which is a injective ring morphism from R *)
+(* to its fraction field {fraction R} *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -19,6 +22,7 @@ Reserved Notation "x %:F" (at level 2, format "x %:F").
 Section FracDomain.
 Variable R : ringType.
 
+(* ratios are pairs of R, such that the second member is nonzero *)
 Inductive ratio := mkRatio { frac :> R * R; _ : frac.2 != 0 }.
 Definition ratio_of of phant R := ratio.
 Local Notation "{ 'ratio' T }" := (ratio_of (Phant T)).
@@ -82,6 +86,7 @@ Local Notation domP := denom_ratioP.
 
 Implicit Types x y z : dom.
 
+(* We define a relation in ratios *)
 Local Notation equivf_notation x y := (\n_x * \d_y == \d_x * \n_y).
 Definition equivf x y := equivf_notation x y.
 
@@ -100,13 +105,14 @@ move=> [x Px] [y Py] [z Pz]; rewrite /equivf /= mulrC => /eqP xy /eqP yz.
 by rewrite -(inj_eq (mulfI Px)) mulrA xy -mulrA yz mulrCA.
 Qed.
 
+(* we show that equivf is an equivalence *)
 Canonical equivf_equiv := EquivRel equivf equivf_refl equivf_sym equivf_trans.
-Canonical equivf_encModRel := defaultEncModRel equivf.
 
 Definition type := {eq_quot equivf}.
 Definition type_of of phant R := type.
 Notation "{ 'fraction' T }" := (type_of (Phant T)).
 
+(* we recover some structure for the quotient *)
 Canonical frac_quotType := [quotType of type].
 Canonical frac_eqType := [eqType of type].
 Canonical frac_choiceType := [choiceType of type].
@@ -117,6 +123,7 @@ Canonical frac_of_eqType := [eqType of {fraction R}].
 Canonical frac_of_choiceType := [choiceType of {fraction R}].
 Canonical frac_of_eqQuotType := [eqQuotType equivf of {fraction R}].
 
+(* we explain what was the equivalence on the quotient *)
 Lemma equivf_def (x y : ratio R) : x == y %[mod type]
                                     = (\n_x * \d_y == \d_x * \n_y).
 Proof. by rewrite eqmodE. Qed.
@@ -217,6 +224,7 @@ rewrite /addf /oppf !numden_Ratio ?(oner_eq0, mulf_neq0, domP) //.
 by rewrite mulr1 mulr0 mulNr addNr.
 Qed.
 
+(* fracions form an abelian group *)
 Definition frac_zmodMixin :=  ZmodMixin addA addC add0_l addN_l.
 Canonical frac_zmodType := Eval hnf in ZmodType type frac_zmodMixin.
 
@@ -254,6 +262,7 @@ Qed.
 Lemma nonzero1 : 1%:F != 0%:F :> type.
 Proof. by rewrite piE equivfE !numden_Ratio ?mul1r ?oner_eq0. Qed.
 
+(* fracions form a commutative ring *)
 Definition frac_comRingMixin := ComRingMixin mulA mulC mul1_l mul_addl nonzero1.
 Canonical frac_ringType := Eval hnf in RingType type frac_comRingMixin.
 Canonical frac_comRingType := Eval hnf in ComRingType type mulC.
@@ -273,6 +282,7 @@ do 2?case: insubP; rewrite //= ?eqxx ?oner_eq0 // => u _ hu _.
 by congr \pi; apply: val_inj; rewrite /= hu.
 Qed.
 
+(* fractions form a ring with explicit unit *)
 Definition RatFieldUnitMixin := FieldUnitMixin mulV_l inv0.
 Canonical frac_unitRingType := Eval hnf in UnitRingType type RatFieldUnitMixin.
 Canonical frac_comUnitRingType := [comUnitRingType of type].
@@ -280,6 +290,7 @@ Canonical frac_comUnitRingType := [comUnitRingType of type].
 Lemma field_axiom : GRing.Field.mixin_of frac_unitRingType.
 Proof. exact. Qed.
 
+(* fractions form a field *)
 Definition RatFieldIdomainMixin := (FieldIdomainMixin field_axiom).
 Canonical frac_idomainType :=
   Eval hnf in IdomainType type (FieldIdomainMixin field_axiom).
@@ -296,6 +307,7 @@ Section Canonicals.
 
 Variable R : idomainType.
 
+(* reexporting the structures *)
 Canonical FracField.frac_quotType.
 Canonical FracField.frac_eqType.
 Canonical FracField.frac_choiceType.
@@ -320,8 +332,6 @@ Canonical frac_of_fieldType := Eval hnf in [fieldType of {fraction R}].
 
 End Canonicals.
 
-Reserved Notation "{ 'polyfrac' T }" (at level 0, format "{ 'polyfrac'  T }").
-
 Section FracFieldTheory.
 
 Import FracField.
@@ -331,12 +341,7 @@ Variable R : idomainType.
 Lemma Ratio_numden (x : {ratio R}) : Ratio \n_x \d_x = x.
 Proof. exact: FracField.Ratio_numden. Qed.
 
-(* CoInductive ratio_spec (x : {ratio R}) : R -> R -> {ratio R} -> Type := *)
-(*   RatioSpec n d of x = Ratio n d & d != 0 : ratio_spec x n d (Ratio n d). *)
-
-(* Lemma ratioP x : ratio_spec x \n_x \d_x (Ratio \n_x \d_x). *)
-(* Proof. by constructor; rewrite ?Ratio_numden. Qed. *)
-
+(* exporting the embeding from R to {fraction R} *)
 Local Notation tofrac := (@FracField.tofrac R).
 Local Notation "x %:F" := (tofrac x).
 
@@ -357,6 +362,7 @@ Qed.
 
 Canonical tofrac_rmorphism := AddRMorphism tofrac_is_multiplicative.
 
+(* tests *)
 Lemma tofrac0 : 0%:F = 0. Proof. exact: rmorph0. Qed.
 Lemma tofracN : {morph tofrac: x / - x}. Proof. exact: rmorphN. Qed.
 Lemma tofracD : {morph tofrac: x y / x + y}. Proof. exact: rmorphD. Qed.
@@ -376,114 +382,3 @@ Qed.
 Lemma tofrac_eq0 (p : R): (p%:F == 0) = (p == 0).
 Proof. by rewrite tofrac_eq. Qed.
 End FracFieldTheory.
-
-(* Section PolyFracDef. *)
-
-(* Variable R : fieldType. *)
-
-(* Definition polyfrac_axiom (x : {ratio {poly R}}) := *)
-(*   (coprimep \n_x \d_x) && (monic \d_x). *)
-
-(* Record polynomialfrac := PolyFrac { *)
-(*   polyfrac :> {ratio {poly R}}; *)
-(*   _ : polyfrac_axiom polyfrac *)
-(* }. *)
-(* Definition polyfrac_of of phant R := polynomialfrac. *)
-(* Local Notation pfrac := (polyfrac_of (Phant R)). *)
-(* Identity Coercion type_pfrac_of : polyfrac_of >-> polynomialfrac. *)
-
-(* Lemma coprime_polyfrac (x : pfrac) : coprimep \n_x \d_x. *)
-(* Proof. by case: x=> pf /= /andP []. Qed. *)
-
-(* Lemma monic_polyfrac (x : pfrac) : monic \d_x. *)
-(* Proof. by case: x=> pf /= /andP []. Qed. *)
-
-(* End PolyFracDef. *)
-(* Notation "{ 'polyfrac' T }" := (polyfrac_of (Phant T)). *)
-
-(* Module PolyFraction. *)
-(* Section PolyFraction. *)
-
-(* Variable R : fieldType. *)
-
-(* Canonical polyfrac_subType := Eval hnf in *)
-(*   [subType for (@polyfrac R)]. *)
-(* Canonical poly_frac_of_subType := [subType of {polyfrac R}]. *)
-(* Definition polyfrac_EqMixin := Eval hnf in [eqMixin of polynomialfrac R by <:]. *)
-(* Canonical polyfrac_eqType := EqType (polynomialfrac R) polyfrac_EqMixin. *)
-(* Canonical poly_frac_of_eqType := [eqType of {polyfrac R}]. *)
-(* Definition polyfrac_ChoiceMixin := Eval hnf in [choiceMixin of polynomialfrac R by <:]. *)
-(* Canonical polyfrac_choiceType := ChoiceType (polynomialfrac R) polyfrac_ChoiceMixin. *)
-(* Canonical polyfrac_of_choiceType := [choiceType of {polyfrac R}]. *)
-
-(* Definition reduce (x : {ratio {poly R}}) : {ratio {poly R}} := *)
-(*   let g := gcdp \n_x \d_x in let lg := lead_coef g in *)
-(*     Ratio (\n_x %/ (lg^-1 *: g)) (\d_x %/ (lg^-1 *: g)). *)
-
-(* Definition normalize (x : {ratio {poly R}}) : {ratio {poly R}} := *)
-(*   Ratio ((lead_coef \d_x) *: \n_x) ((lead_coef \d_x)^-1 *: \d_x). *)
-
-(* Lemma canon0 : @polyfrac_axiom R (ratio0 _). *)
-(* Proof. by rewrite /polyfrac_axiom coprime0p eqpxx monic1. Qed. *)
-
-(* Definition canonize (x : {ratio {poly R}}) : {polyfrac R} := *)
-(*   insubd (PolyFrac canon0) (normalize (reduce x)). *)
-
-(* Lemma polyvalK : cancel (@polyfrac R) canonize. *)
-(* Proof. *)
-(* case=> [[[n d] /= hd]] /=; rewrite /polyfrac_axiom /= => hx. *)
-(* case/andP: (hx)=> cnd md. *)
-(* rewrite /canonize /normalize /reduce /=. *)
-(* set g := gcdp n d; set lg := lead_coef g. *)
-(* have hdng : d %/ (lg^-1 *: g) != 0. *)
-(*   suff: (lg^-1 *: g) %| d. *)
-(*     by rewrite dvdp_eq; apply: contraTneq=> ->; rewrite mul0r. *)
-(*   rewrite (eqp_dvdl _ (eqp_scale _ _)) ?dvdp_gcdr //. *)
-(*   by rewrite invr_eq0 lead_coef_eq0 gcdp_eq0 (negPf hd) andbF. *)
-(* rewrite !numden_Ratio //= /insubd. *)
-(* set n' : {poly R} := _ *: (_ %/ _); set d' : {poly R} := _ *: (_ %/ _). *)
-(* have hg : lg^-1 *: g = 1. *)
-(*   rewrite /lg /g; move: cnd; rewrite coprimep_def=> /size_poly1P [c hc ->]. *)
-(*   by rewrite lead_coefC -mul_polyC -rmorphM mulVr // unitfE. *)
-(* have -> : n' = n by rewrite /n' hg !divp1 (eqP md) scale1r. *)
-(* have -> : d' = d by rewrite /d' hg !divp1 (eqP md) invr1 scale1r. *)
-(* do 2! apply: val_inj => /=. *)
-(* by rewrite insubT /= /polyfrac_axiom !numden_Ratio // /Ratio /insubd insubT. *)
-(* Qed. *)
-
-
-(* Definition polyfrac_quotClass := QuotClass polyvalK. *)
-(* Canonical polyfrac_quotType := QuotType polyfrac_quotClass. *)
-(* Canonical pfrac_quotType := Eval hnf in [quotType of {polyfrac R}]. *)
-
-(* Lemma polyfrac_same_equivf (x y : {ratio {poly R}}) : *)
-(*   (x == y %[m {fraction {poly R}}]) = (x == y %[m {polyfrac R}]). *)
-(* Proof. *)
-(* rewrite eqmodE /=. *)
-(* move: x y => [[nx dx] /= hdx] [[ny dy] /= hdy]. *)
-(* rewrite /FracField.equivf //=. *)
-(* rewrite unlock /pi_of /= /canonize /normalize /reduce /=. *)
-(* rewrite !numden_Ratio. *)
-(* Admitted. *)
-
-(* Local Notation sequiv := polyfrac_same_equivf. *)
-
-(* Definition add : {polyfrac R} -> {polyfrac R} -> {polyfrac R} := *)
-(*   chgQuotOp2 (mop2_morph (@FracField.add_compat _)). *)
-(* Definition opp : {polyfrac R} -> {polyfrac R} := *)
-(*   chgQuotOp1 (mop1_morph (@FracField.opp_compat _)). *)
-(* Definition mul : {polyfrac R} -> {polyfrac R} -> {polyfrac R} := *)
-(*   chgQuotOp2 (mop2_morph (@FracField.mul_compat _)). *)
-(* Definition inv : {polyfrac R} -> {polyfrac R} := *)
-(*   chgQuotOp1 (mop1_morph (@FracField.inv_compat _)). *)
-
-(* Canonical add_morph := @MorphOp2 _ _ _ _ _ _ _ add (chgQuotOp2P _ sequiv). *)
-(* Canonical opp_morph := @MorphOp1 _ _ _ _ _ opp (chgQuotOp1P _ sequiv). *)
-(* Canonical mul_morph := @MorphOp2 _ _ _ _ _ _ _ mul (chgQuotOp2P _ sequiv). *)
-(* Canonical inv_morph := @MorphOp1 _ _ _ _ _ inv (chgQuotOp1P _ sequiv). *)
-
-(* (* To be continued *) *)
-
-(* End PolyFraction. *)
-(* End PolyFraction. *)
-
