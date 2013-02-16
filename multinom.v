@@ -401,14 +401,14 @@ Qed.
 Canonical multi_unitRing n := GRing.UnitRing.Pack
                                 (multi_unitClass n) (multi R n).
 
-Definition Unit (m : multi_term R) :=
-  let n := nbvar_term m in interp n m \in GRing.unit.
-Definition unitm := lift_fun1 {multinom R} Unit.
-Lemma pi_unitm : {mono \pi : x / Unit x >-> unitm x}.
-Proof.
-move=> x; unlock unitm; rewrite /Unit /=.
-Admitted.
-Canonical pi_unitm_morph := PiMono1 pi_unitm.
+(* Definition Unit (m : multi_term R) := *)
+(*   let n := nbvar_term m in interp n m \in GRing.unit. *)
+(* Definition unitm := lift_fun1 {multinom R} Unit. *)
+(* Lemma pi_unitm : {mono \pi : x / Unit x >-> unitm x}. *)
+(* Proof. *)
+(* move=> x; unlock unitm; rewrite /Unit /=. *)
+(* Admitted. *)
+(* Canonical pi_unitm_morph := PiMono1 pi_unitm. *)
 
 Lemma multi_idomain n : GRing.IntegralDomain.axiom (multi R n).
 Proof.
