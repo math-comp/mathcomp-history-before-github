@@ -670,9 +670,8 @@ case: (monic_comreg mond)=> Hc Hr; apply: (iffP idP).
 by case=> [qq]; move/eq_rdvdp.
 Qed.
 
-Lemma rdivpK p :
-  rdvdp d p -> (rdivp p d) * d = p * (lead_coef d ^+ rscalp p d)%:P.
-Proof. move=> dvddp; rewrite rdivpK // (eqP mond); exact: commr1. Qed.
+Lemma rdivpK p : rdvdp d p -> (rdivp p d) * d = p.
+Proof. by move=> dvddp; rewrite {2}[p]rdivp_eq rmodp_eq0 ?addr0. Qed.
 
 End MonicDivisor.
 End RingMonic.
