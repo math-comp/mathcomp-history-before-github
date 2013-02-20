@@ -2503,7 +2503,6 @@ let equality_inj l b id c gl =
   try Equality.inj l b c gl
   with
     | Compat.Exc_located(_,Errors.UserError (_,s))
-    | Loc.Exc_located(_,Errors.UserError (_,s))
     | Errors.UserError (_,s)
   when msg := Pp.string_of_ppcmds s;
        !msg = "Not a projectable equality but a discriminable one." ||
@@ -2764,9 +2763,13 @@ let tclDO n tac =
   let tac_err_at i gl =
     try tac gl
     with 
-    | Errors.UserError (l, s) -> raise (Errors.UserError (l, prefix i ++ s))
-    | Loc.Exc_located(loc, Errors.UserError (l, s))  -> 
-        raise (Loc.Exc_located(loc, Errors.UserError (l, prefix i ++ s)))
+    | Errors.UserError (l, s) as e ->
+        let e' = Errors.UserError (l, prefix i ++ s) in
+        let e' =
+          if Loc.get_loc e <> None then
+            Loc.add_loc e' (Option.get (Loc.get_loc e'))
+          else e' in
+        raise e'
     | Compat.Exc_located(loc, Errors.UserError (l, s))  -> 
         raise (Compat.Exc_located(loc, Errors.UserError (l, prefix i ++ s))) in
   let rec loop i gl =
