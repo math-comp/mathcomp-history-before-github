@@ -2765,11 +2765,7 @@ let tclDO n tac =
     with 
     | Errors.UserError (l, s) as e ->
         let e' = Errors.UserError (l, prefix i ++ s) in
-        let e' =
-          if Loc.get_loc e <> None then
-            Loc.add_loc e' (Option.get (Loc.get_loc e'))
-          else e' in
-        raise e'
+        raise (Exninfo.copy e e')
     | Compat.Exc_located(loc, Errors.UserError (l, s))  -> 
         raise (Compat.Exc_located(loc, Errors.UserError (l, prefix i ++ s))) in
   let rec loop i gl =
