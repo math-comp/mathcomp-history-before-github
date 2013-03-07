@@ -2379,7 +2379,7 @@ Implicit Types (p : {poly F}) (rs : seq F).
 Lemma poly2_root p : size p = 2 -> {r | root p r}.
 Proof.
 case: p => [[|p0 [|p1 []]] //= nz_p1]; exists (- p0 / p1).
-by rewrite /root addr_eq0 mul0r add0r mulrC divfK ?opprK.
+by rewrite /root addr_eq0 /= mul0r add0r mulrC divfK ?opprK.
 Qed.
 
 Lemma uniq_rootsE rs : uniq_roots rs = uniq rs.
