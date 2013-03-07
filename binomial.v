@@ -282,7 +282,7 @@ elim: n => [|n IHn]; rewrite big_ord_recl muln1 ?big_ord0 //.
 rewrite expnS {}IHn /= mulnDl !big_distrr /= big_ord_recl muln1 subn0.
 rewrite !big_ord_recr /= !binn !subnn bin0 !subn0 !mul1n -!expnS -addnA.
 congr (_ + _); rewrite addnA -big_split /=; congr (_ + _).
-apply: eq_bigr => i _; rewrite mulnCA (mulnA a) -expnS subnSK //.
+apply: eq_bigr => i _; rewrite mulnCA (mulnA a) -expnS subnSK //=.
 by rewrite (mulnC b) -2!mulnA -expnSr -mulnDl.
 Qed.
 Definition expnDn := Pascal.
@@ -307,7 +307,7 @@ case: k => [|k]; first by rewrite big_ord0.
 rewrite mulnBl !big_distrr big_ord_recl big_ord_recr /= subn0 muln1.
 rewrite subnn mul1n -!expnS subnDA; congr (_ - _); apply: canRL (addnK _) _.
 congr (_ + _); apply: eq_bigr => i _.
-by rewrite (mulnCA n) -expnS mulnA -expnS subnSK.
+by rewrite (mulnCA n) -expnS mulnA -expnS subnSK /=.
 Qed.
 
 Lemma predn_exp m k : (m ^ k).-1 = m.-1 * (\sum_(i < k) m ^ i).
