@@ -1369,8 +1369,8 @@ have ->: totient np = #|[pred d : 'I_np | coprime np d]|.
     move/eqP; rewrite def_np -!muln_modr ?modn_small //.
     by rewrite eqn_pmul2l // => eq_op12; exact/eqP.
   rewrite card_ord; congr (q + _); apply: eq_card => d /=.
-  rewrite !inE /= {6}[np]p_part coprime_pexpl ?prime_coprime //; congr (~~ _).
-  apply/codomP/idP=> [[d' -> /=] | /dvdnP[r def_d]].
+  rewrite !inE [np in coprime np _]p_part coprime_pexpl ?prime_coprime //.
+  congr (~~ _); apply/codomP/idP=> [[d' -> /=] | /dvdnP[r def_d]].
     by rewrite def_np -muln_modr // dvdn_mulr.
   do [rewrite mulnC; case: d => d ltd /=] in def_d *.
   have ltr: r < q by rewrite -(ltn_pmul2l p0) -def_np -def_d.
