@@ -1451,7 +1451,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
     exists (X1 k).
       apply/orthoPl=> psi /memv_span Ypsi.
       by rewrite (span_orthogonal (oRY k _)) // (zchar_span (R_X1 k rp_k)).
-    apply/eqP; rewrite def_xi -a_k defXbZ addrC -subr_eq0 eq_ab // addrK.
+    apply/eqP; rewrite -/a def_xi -a_k defXbZ addrC -subr_eq0 eq_ab // addrK.
     have n1eta1: '[eta1] = 1 by have [_ -> //] := orthonormalP oY; rewrite eqxx.
     rewrite -cfnorm_eq0 -(inj_eq (addrI '[b k *: Y1])).
     have [_ [|_]] := ub_alpha k rp_k.
