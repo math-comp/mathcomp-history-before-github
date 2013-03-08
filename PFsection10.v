@@ -608,7 +608,7 @@ have{nRT} uccT2: cfConjC_subset T2 calT.
   split; first 2 [by []].
     apply/and3P; rewrite /= !inE !negb_or -!(inv_eq (@cfConjCK _ S)) !cfConjCK.
     by rewrite lam'nu lams'nu !(hasPn nRT).
-  by apply/allP/and4P; rewrite !inE !{1}cfConjCK !eqxx !orbT.
+  by apply/allP/and4P; rewrite /= !inE !{1}cfConjCK !eqxx !orbT.
 have scohT2 := subset_subcoherent scohT uccT2.
 have [tau2 cohT2]: coherent T2 S^# tauS.
   apply: (uniform_degree_coherence scohT2); rewrite /= !cfunE nu_r_1 eqxx.
