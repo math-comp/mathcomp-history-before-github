@@ -606,7 +606,7 @@ have [[_ nRT ccT] _ _ _ _] := scohT.
 have{ccT} sT2T: {subset T2 <= calT} by apply/allP; rewrite /= ?Tlam ?Tnu_r ?ccT.
 have{nRT} uccT2: cfConjC_subset T2 calT.
   split; first 2 [by []].
-    apply/and3P; rewrite !inE !negb_or -!(inv_eq (@cfConjCK _ S)) !cfConjCK.
+    apply/and3P; rewrite /= !inE !negb_or -!(inv_eq (@cfConjCK _ S)) !cfConjCK.
     by rewrite lam'nu lams'nu !(hasPn nRT).
   by apply/allP/and4P; rewrite !inE !{1}cfConjCK !eqxx !orbT.
 have scohT2 := subset_subcoherent scohT uccT2.
