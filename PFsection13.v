@@ -1282,7 +1282,7 @@ have [q3 pge5]: q = 3 /\ (p >= 5)%N.
   rewrite ler_pdivr_mulr ?ltr0n ?expn_gt0 // mulrAC -natrM -expnS.
   rewrite prednK ?cardG_gt0 // ler_pmul ?invr_ge0 ?ler0n ?leC_nat ?leq_pred //.
   rewrite lef_pinv ?qualifE ?gt0CG ?ltr0n // leC_nat.
-  by rewrite -(subnKC c_gt1) ltnS dvdn_leq // -subSn ?subn2.
+  by rewrite -(subnKC c_gt1) ltnS dvdn_leq //= -subSn ?subn2.
 have [_ _ [//|lb_m lb_uc]] := lb_m_cases.
 pose sum3 r : algC := (r.+1 ^ 2)%:R^-1 + r.+1%:R^-1 + 1.
 have [b Dc1] := dvdnP dv_2q_c1; rewrite q3 in Dc1.

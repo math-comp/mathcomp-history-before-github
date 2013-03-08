@@ -1146,7 +1146,7 @@ have: #|[predC [:: x; y; z; t; u]]| !=0.
 case/existsP=> v; rewrite inE (mem_cat _ [:: _; _; _; _]).
 case/norP=> Hv Huv; exists v.
 rewrite (cat_uniq [:: x; y; z; t]) Uxt andTb.
-by rewrite 2!negb_or /= [~~ _]Hu Hv in_cons eq_sym Huv.
+by rewrite -rev_uniq /= negb_or Hu orbF Hv Huv.                                 
 Qed.
 
 Lemma card_n4 : forall x y z t : cube, uniq [:: x; y; z; t] ->
