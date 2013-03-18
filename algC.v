@@ -482,7 +482,7 @@ by exists i; rewrite i2N1 !big_ord_recl big_ord0 mul0r !addr0 mulr1.
 Qed.
 
 Let Re2 z := z + z^*.
-Let nnegIm z := 0 <= sval algCi_subproof * (z^* - z).
+Definition nnegIm z := 0 <= sval algCi_subproof * (z^* - z).
 Definition argCle y z := nnegIm z ==> nnegIm y && (Re2 z <= Re2 y).
 
 CoInductive rootC_spec n (x : algC) : Type :=
