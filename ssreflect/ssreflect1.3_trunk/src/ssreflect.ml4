@@ -1313,7 +1313,7 @@ let interp_modloc mr =
   let mr_out, mr_in = List.partition fst mr in
   let interp_bmod b rmods =
     if rmods = [] then fun _ _ _ -> true else
-    Search.filter_by_module_from_list (List.map interp_mod rmods, b) in
+    Search.module_filter (List.map interp_mod rmods, b) in
   let is_in = interp_bmod false mr_in and is_out = interp_bmod true mr_out in
   fun gr env typ -> is_in gr env typ && is_out gr env typ
 
