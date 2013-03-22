@@ -561,7 +561,7 @@ elim: {k}(k : nat) {1 3}k (erefl (k : nat)) => [|m IHm] k def_k.
   rewrite (_ : k = ord0) ?lift_perm1 ?odd_perm1 //; exact: val_inj.
 have le_mn: m < n.+1 by [rewrite -def_k ltnW]; pose j := Ordinal le_mn.
 rewrite -(mulg1 1)%g -(lift_permM _ j) odd_permM {}IHm // addbC.
-rewrite (_ : _ k _ = tperm j k); first by rewrite odd_tperm neq_ltn def_k leqnn.
+rewrite (_ : _ 1 = tperm j k); first by rewrite odd_tperm neq_ltn def_k leqnn.
 apply/permP=> i; case: (unliftP j i) => [i'|] ->; last first.
   by rewrite lift_perm_id tpermL.
 apply: ord_inj; rewrite lift_perm_lift !permE /= eq_sym -if_neg neq_lift.
