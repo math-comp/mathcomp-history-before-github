@@ -1621,6 +1621,12 @@ rewrite -{4}(cat_take_drop n0 m) -{4}(cat_take_drop n0 s) mask_cat //.
 by rewrite rot_size_cat.
 Qed.
 
+Lemma resize_mask m s : {m1 | size m1 = size s & mask m s = mask m1 s}.
+Proof.
+by exists (take (size s) m ++ nseq (size s - size m) false);
+   elim: s m => [|x s IHs] [|b m] //=; rewrite (size_nseq, mask_false, IHs).
+Qed.
+
 End Mask.
 
 Section EqMask.
@@ -1691,6 +1697,9 @@ have sz_i_s2: size (take i s2) = i by apply: size_takel; rewrite sz_m in lt_i_m.
 rewrite lastI cat_rcons !mask_cat ?size_nseq ?size_belast ?mask_false //=.
 by rewrite (drop_nth true) // nth_index -?index_mem.
 Qed.
+
+Lemma mask_subseq m s : subseq (mask m s) s.
+Proof. by apply/subseqP; have [m1] := resize_mask m s; exists m1. Qed.
 
 Lemma subseq_trans : transitive subseq.
 Proof.

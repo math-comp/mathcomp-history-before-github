@@ -8,6 +8,7 @@ Require Import ssreflect.
 (* - Pair projections:                                                        *)
 (*    p.1  == first element of a pair                                         *)
 (*    p.2  == second element of a pair                                        *)
+(*   These notations also apply to p : P /\ Q, via an and >-> pair coercion.  *)
 (*                                                                            *)
 (* - Simplifying functions, beta-reduced by /= and simpl:                     *)
 (*           [fun : T => E] == constant function from type T that returns E   *)
@@ -41,6 +42,22 @@ Require Import ssreflect.
 (*                    Structure inference, as in the implementation of        *)
 (*                    the mxdirect predicate in matrix.v.                     *)
 (*                                                                            *)
+(* - Sigma types:                                                             *)
+(*           tag w == the i of w : {i : I & T i}.                             *)
+(*        tagged w == the T i component of w : {i : I & T i}.                 *)
+(*      Tagged T x == the {i : I & T i} with component x : T i.               *)
+(*          tag2 w == the i of w : {i : I & T i & U i}.                       *)
+(*       tagged2 w == the T i component of w : {i : I & T i & U i}.           *)
+(*      tagged2' w == the U i component of w : {i : I & T i & U i}.           *)
+(* Tagged2 T U x y == the {i : I & T i} with components x : T i and y : U i.  *)
+(*          sval u == the x of u : {x : T | P x}.                             *)
+(*         s2val u == the x of u : {x : T | P x & Q x}.                       *)
+(*   The properties of sval u, s2val u are given by lemmas svalP, s2valP, and *)
+(*   s2valP'. We provide coercions sigT2 >-> sigT and sig2 >-> sig >-> sigT.  *)
+(*   A suite of lemmas (all_sig, ...) let us skolemize sig, sig2, sigT, sigT2 *)
+(*   and pair, e.g.,                                                          *)
+(*     have /all_sig[f fP] (x : T): {y : U | P y} by ...                      *)
+(*   yields an f : T -> U such that fP : forall x, P (f x).                   *)
 (* - Identity functions:                                                      *)
 (*    id           == NOTATION for the explicit identity function fun x => x. *)
 (*    @id T        == notation for the explicit identity at type T.           *)
@@ -59,7 +76,7 @@ Require Import ssreflect.
 (* calling @foo T sT idfun. The phant_id type allows us to extend this trick  *)
 (* to non-Type canonical projections. It also allows us to sidestep           *)
 (* dependent type constraints when building explicit records, e.g., given     *)
-(*    Record r := R { x; y : T(x)}.                                           *)
+(*    Record r := R {x; y : T(x)}.                                            *)
 (* if we need to build an r from a given y0 while inferring some x0, such     *)
 (* that y0 : T(x0), we pose                                                   *)
 (*    Definition mk_r .. y .. (x := ...) y' & phant_id y y' := R x y'.        *)
@@ -82,6 +99,7 @@ Require Import ssreflect.
 (*          [eta f] == the explicit eta-expansion of f, i.e., fun x => f x    *)
 (*                     CAVEAT: conditional (non-maximal) implicit arguments   *)
 (*                     of f are NOT inserted in this context.                 *)
+(*          fun=> v := the constant function fun _ => v.                      *)
 (*        f1 \o f2  == composition of f1 and f2.                              *)
 (*                     Note: (f1 \o f2) x simplifies to f1 (f2 x).            *)
 (*         f1 \; f2 == categorical composition of f1 and f2. This expands to  *)
@@ -224,11 +242,16 @@ Notation "@^~ x" := (fun f => f x)
 Delimit Scope pair_scope with PAIR.
 Open Scope pair_scope.
 
-(* Notations for pair projections *)
+(* Notations for pair/conjunction projections *)
 Notation "p .1" := (fst p)
   (at level 2, left associativity, format "p .1") : pair_scope.
 Notation "p .2" := (snd p)
   (at level 2, left associativity, format "p .2") : pair_scope.
+
+Coercion pair_of_and P Q (PandQ : P /\ Q) := (proj1 PandQ, proj2 PandQ).
+
+Definition all_pair I T U (w : forall i : I, T i * U i) :=
+  (fun i => (w i).1, fun i => (w i).2).
 
 (* Reserved notation for evaluation *)
 Reserved Notation "e .[ x ]"
@@ -324,6 +347,30 @@ Notation obind := Option.bind.
 Notation omap := Option.map.
 Notation some := (@Some _) (only parsing).
 
+(* Shorthand for some basic equality lemmas. *)
+
+Notation erefl := refl_equal.
+Notation ecast i T e x := (let: erefl in _ = i := e return T in x).
+Definition esym := sym_eq.
+Definition nesym := sym_not_eq.
+Definition etrans := trans_eq.
+Definition congr1 := f_equal.
+Definition congr2 := f_equal2.
+(* Force at least one implicit when used as a view. *)
+Prenex Implicits esym nesym.
+
+(* A predicate for singleton types.                                           *)
+Definition all_equal_to T (x0 : T) := forall x, unkeyed x = x0.
+
+Lemma unitE : all_equal_to tt. Proof. by case. Qed.
+
+(* A generic wrapper type *)
+
+Structure wrapped T := Wrap {unwrap : T}.
+Canonical wrap T x := @Wrap T x.
+
+Prenex Implicits unwrap wrap Wrap.
+
 (* Syntax for defining auxiliary recursive function.          *)
 (*  Usage:                                                    *)
 (* Section FooDefinition.                                     *)
@@ -405,30 +452,6 @@ Notation "[ 'fun' ( x : xT ) ( y : yT ) => E ]" :=
 (* For delta functions in eqtype.v. *)
 Definition SimplFunDelta aT rT (f : aT -> aT -> rT) := [fun z => f z z].
 
-(* Shorthand for some basic equality lemmas. *)
-
-Notation erefl := refl_equal.
-Notation ecast i T e x := (let: erefl in _ = i := e return T in x).
-Definition esym := sym_eq.
-Definition nesym := sym_not_eq.
-Definition etrans := trans_eq.
-Definition congr1 := f_equal.
-Definition congr2 := f_equal2.
-(* Force at least one implicit when used as a view. *)
-Prenex Implicits esym nesym.
-
-(* A predicate for singleton types.                                           *)
-Definition all_equal_to T (x0 : T) := forall x, unkeyed x = x0.
-
-Lemma unitE : all_equal_to tt. Proof. by case. Qed.
-
-(* A generic wrapper type *)
-
-Structure wrapped T := Wrap {unwrap : T}.
-Canonical wrap T x := @Wrap T x.
-
-Prenex Implicits unwrap wrap Wrap.
-
 (* Extensional equality, for unary and binary functions, including syntactic  *)
 (* sugar.                                                                     *)
 
@@ -489,6 +512,8 @@ Notation "f1 \; f2" := (catcomp tt f1 f2)
 Notation "[ 'eta' f ]" := (fun x => f x)
   (at level 0, format "[ 'eta'  f ]") : fun_scope.
 
+Notation "'fun' => E" := (fun _ => E) (at level 200, only parsing) : fun_scope.
+
 Notation id := (fun x => x).
 Notation "@ 'id' T" := (fun x : T => x)
   (at level 10, T at level 8, only parsing) : fun_scope.
@@ -500,6 +525,77 @@ Notation "@ 'idfun' T " := (@id_head T explicit_id_key)
   (at level 10, T at level 8, format "@ 'idfun'  T") : fun_scope.
 
 Definition phant_id T1 T2 v1 v2 := phantom T1 v1 -> phantom T2 v2.
+
+(* Strong sigma types. *)
+
+Section Tag.
+
+Variables (I : Type) (i : I) (T_ U_ : I -> Type).
+
+Definition tag := projS1.
+Definition tagged : forall w, T_(tag w) := @projS2 I [eta T_].
+Definition Tagged x := @existS I [eta T_] i x.
+
+Definition tag2 (w : @sigT2 I T_ U_) := let: existT2 i _ _ := w in i.
+Definition tagged2 w : T_(tag2 w) := let: existT2 _ x _ := w in x.
+Definition tagged2' w : U_(tag2 w) := let: existT2 _ _ y := w in y.
+Definition Tagged2 x y := @existS2 I [eta T_] [eta U_] i x y.
+
+End Tag.
+
+Implicit Arguments Tagged [I i].
+Implicit Arguments Tagged2 [I i].
+Prenex Implicits tag tagged Tagged tag2 tagged2 tagged2' Tagged2.
+
+Coercion tag_of_tag2 I T_ U_ (w : @sigT2 I T_ U_) :=
+  Tagged (fun i => T_ i * U_ i)%type (tagged2 w, tagged2' w).
+
+Lemma all_tag I T U :
+   (forall x : I, {y : T x & U x y}) ->
+  {f : forall x, T x & forall x, U x (f x)}.
+Proof. by move=> fP; exists (fun x => tag (fP x)) => x; case: (fP x). Qed.
+
+Lemma all_tag2 I T U V :
+    (forall i : I, {y : T i & U i y & V i y}) ->
+  {f : forall i, T i & forall i, U i (f i) & forall i, V i (f i)}.
+Proof. by case/all_tag=> f /all_pair[]; exists f. Qed.
+
+(* Refinement types. *)
+
+(* Prenex Implicits and renaming. *)
+Notation sval := (@proj1_sig _ _).
+Notation "@ 'sval'" := (@proj1_sig) (at level 10, format "@ 'sval'").
+
+Section Sig.
+
+Variables (T : Type) (P Q : T -> Prop).
+
+Lemma svalP (u : sig P) : P (sval u). Proof. by case: u. Qed.
+
+Definition s2val (u : sig2 P Q) := let: exist2 x _ _ := u in x.
+
+Lemma s2valP u : P (s2val u). Proof. by case: u. Qed.
+
+Lemma s2valP' u : Q (s2val u). Proof. by case: u. Qed.
+
+End Sig.
+
+Prenex Implicits svalP s2val s2valP s2valP'.
+
+Coercion tag_of_sig I P (u : @sig I P) := Tagged P (svalP u).
+
+Coercion sig_of_sig2 I P Q (u : @sig2 I P Q) :=
+  exist (fun i => P i /\ Q i) (s2val u) (conj (s2valP u) (s2valP' u)).
+
+Lemma all_sig I T P :
+    (forall x : I, {y : T x | P x y}) ->
+  {f : forall x, T x | forall x, P x (f x)}.
+Proof. by case/all_tag=> f; exists f. Qed.
+
+Lemma all_sig2 I T P Q :
+    (forall x : I, {y : T x | P x y & Q x y}) ->
+  {f : forall x, T x | forall x, P x (f x) & forall x, Q x (f x)}.
+Proof. by case/all_sig=> f /all_pair[]; exists f. Qed.
 
 Section Morphism.
 

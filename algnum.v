@@ -108,19 +108,13 @@ suffices [Qs [QsC [z1 z1C z1gen]]]:
     by rewrite rpredMn ?seqv_sub_adjoin ?mem_nth // size_map sz_ps.
   apply: (fmorph_inj QsC); rewrite z1C Dz rmorph_sum; apply: eq_bigr => i _.
   by rewrite rmorphMn {1}Ds !(nth_map 0) ?sz_ps //= inQsK.
-have [r [Dr mon_r] dv_r] := minCpolyP z; have nz_r := monic_neq0 mon_r.
+have [r [Dr /monic_neq0 nz_r] dv_r] := minCpolyP z.
 have rz0: root (pQtoC r) z by rewrite dv_r.
-have [q qz0 nz_q | QsV] := Wrap (VectMixin (min_subfx_vectAxiom rz0 nz_r _)).
-  by rewrite dvdp_leq // -dv_r.
-pose Qs := [FalgType rat of _ for VectType rat _ QsV].
-exists [fieldExtType rat of Qs], (subfx_inj_rmorphism QtoCm z r).
-exists (subfx_eval _ z r 'X) => [|x].
-  by rewrite /= subfx_inj_eval ?map_polyX ?hornerX.
-have{x} [p ->] := subfxE x; exists p.
-apply: (@fmorph_inj _ _ (subfx_inj_rmorphism _ z r)).
-rewrite -horner_map -map_poly_comp [rhs in _ = rhs]subfx_inj_eval //.
-congr _.[_]; last by rewrite /= subfx_inj_eval // map_polyX hornerX.
-apply: eq_map_poly; exact: subfx_inj_base.
+have irr_r: irreducible_poly r.
+  by apply/(subfx_irreducibleP rz0 nz_r)=> q qz0 nzq; rewrite dvdp_leq // -dv_r.
+exists (SubFieldExtType rz0 irr_r), (subfx_inj_rmorphism QtoCm z r).
+exists (subfx_root _ z r) => [|x]; first exact: subfx_inj_root.
+by have{x} [p ->] := subfxEroot rz0 nz_r x; exists p.
 Qed.
 
 Definition in_Crat_span s x :=

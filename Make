@@ -77,9 +77,9 @@ vector.v
 falgebra.v
 amodule.v
 galgebra.v
-fieldext.v
-fib.v
 generic_quotient.v
+ring_quotient.v
+fieldext.v
 separable.v
 galois.v
 finfield.v
@@ -89,8 +89,8 @@ rat.v
 intdiv.v
 interval.v
 closed_field.v
-complex.v
 countalg.v
+algebraics_fundamentals.v
 algC.v
 classfun.v
 character.v
@@ -118,14 +118,15 @@ PFsection12.v
 PFsection13.v
 PFsection14.v
 stripped_odd_order_theorem.v
+fib.v
 fraction.v
 bigenough.v
 cauchyreals.v
 polyXY.v
 realalg.v
+complex.v
 ordered_qelim.v
 qe_rcf.v
-ring_quotient.v
 
 COQC = ssrcoq
 COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"

@@ -3025,7 +3025,20 @@ rewrite ltr_pmul2r //= eqxx -addrA mulrDr mulrC -subr_gt0 addrAC -mulrBl.
 by rewrite -opprB mulNr addrC mulrC -mulrBr mulr_gt0 ?subr_gt0.
 Qed.
 
+(* Polynomial bound. *)
+
+Implicit Type p : {poly R}.
+
+Lemma poly_disk_bound p b : {ub | forall x, `|x| <= b -> `|p.[x]| <= ub}.
+Proof.
+exists (\sum_(j < size p) `|p`_j| * b ^+ j) => x le_x_b.
+rewrite horner_coef (ler_trans (ler_norm_sum _ _ _)) ?ler_sum // => j _.
+rewrite normrM normrX ler_wpmul2l ?ler_expn2r ?unfold_in ?normr_ge0 //.
+exact: ler_trans (normr_ge0 x) le_x_b.
+Qed.
+
 End NumDomainOperationTheory.
+
 Hint Resolve ler_opp2 ltr_opp2 real0 real1 normr_real.
 Implicit Arguments ler_sqr [[R] x y].
 Implicit Arguments ltr_sqr [[R] x y].
@@ -3277,8 +3290,31 @@ rewrite -/n -mulr_suml (eq_bigr _ (in1W defE')); congr (_ <= _ ?= iff _).
 by do 2![apply: eq_forallb_in => ? _]; rewrite -(eqr_pmuln2r n_gt0) !defE'.
 Qed.
 
-Import GroupScope.
+Implicit Type p : {poly F}.
+Lemma Cauchy_root_bound p : p != 0 -> {b | forall x, root p x -> `|x| <= b}.
+Proof.
+move=> nz_p; set a := lead_coef p; set n := (size p).-1.
+have [q Dp]: {q | forall x, x != 0 -> p.[x] = (a - q.[x^-1] / x) * x ^+ n}.
+  exists (- \poly_(i < n) p`_(n - i.+1)) => x nz_x.
+  rewrite hornerN mulNr opprK horner_poly mulrDl !mulr_suml addrC.
+  rewrite horner_coef polySpred // big_ord_recr (reindex_inj rev_ord_inj) /=.
+  rewrite -/n -lead_coefE; congr (_ + _); apply: eq_bigr=> i _.
+  by rewrite exprB ?unitfE // -exprVn mulrA mulrAC exprSr mulrA.
+have [b ub_q] := poly_disk_bound q 1; exists (b / `|a| + 1) => x px0.
+have b_ge0: 0 <= b by rewrite (ler_trans (normr_ge0 q.[1])) ?ub_q ?normr1.
+have{b_ge0} ba_ge0: 0 <= b / `|a| by rewrite divr_ge0 ?normr_ge0.
+rewrite real_lerNgt ?rpredD ?rpred1 ?ger0_real ?normr_ge0 //.
+apply: contraL px0 => lb_x; rewrite rootE.
+have x_ge1: 1 <= `|x| by rewrite (ler_trans _ (ltrW lb_x)) // ler_paddl.
+have nz_x: x != 0 by rewrite -normr_gt0 (ltr_le_trans ltr01).
+rewrite {}Dp // mulf_neq0 ?expf_neq0 // subr_eq0 eq_sym.
+have: (b / `|a|) < `|x| by rewrite (ltr_trans _ lb_x) // ltr_spaddr ?ltr01.
+apply: contraTneq => /(canRL (divfK nz_x))Dax.
+rewrite ltr_pdivr_mulr ?normr_gt0 ?lead_coef_eq0 // mulrC -normrM -{}Dax.
+by rewrite ler_gtF // ub_q // normfV invf_le1 ?normr_gt0.
+Qed.
 
+Import GroupScope.
 
 Lemma natf_indexg (gT : finGroupType) (G H : {group gT}) :
   H \subset G -> #|G : H|%:R = (#|G|%:R / #|H|%:R)%R :> F.
@@ -3817,6 +3853,38 @@ Lemma minNr x : min (- x) x = - `|x|.
 Proof. by rewrite -[minr _ _]opprK oppr_min opprK maxrN. Qed.
 
 End MinMax.
+
+Section PolyBounds.
+
+Variable p : {poly R}.
+
+Lemma poly_itv_bound a b : {ub | forall x, a <= x <= b -> `|p.[x]| <= ub}.
+Proof.
+have [ub le_p_ub] := poly_disk_bound p (Num.max `|a| `|b|).
+exists ub => x /andP[le_a_x le_x_b]; rewrite le_p_ub // ler_maxr !ler_normr.
+by have [_|_] := ler0P x; rewrite ?ler_opp2 ?le_a_x ?le_x_b orbT.
+Qed.
+
+Lemma monic_Cauchy_bound : p \is monic -> {b | forall x, x >= b -> p.[x] > 0}.
+Proof.
+move/monicP=> mon_p; pose n := (size p - 2)%N.
+have [p_le1 | p_gt1] := leqP (size p) 1.
+  exists 0 => x _; rewrite (size1_polyC p_le1) hornerC.
+  by rewrite -[p`_0]lead_coefC -size1_polyC // mon_p ltr01.
+pose lb := \sum_(j < n.+1) `|p`_j|; exists (lb + 1) => x le_ub_x.
+have x_ge1: 1 <= x; last have x_gt0 := ltr_le_trans ltr01 x_ge1.
+  by rewrite -(ler_add2l lb) ler_paddl ?sumr_ge0 // => j _; apply: normr_ge0.
+rewrite horner_coef -(subnK p_gt1) -/n addnS big_ord_recr /= addn1.
+rewrite [in p`__]subnSK // subn1 -lead_coefE mon_p mul1r -ltr_subl_addl sub0r.
+apply: ler_lt_trans (_ : lb * x ^+ n < _); last first.
+  rewrite exprS ltr_pmul2r ?exprn_gt0 ?(ltr_le_trans ltr01) //.
+  by rewrite -(ltr_add2r 1) ltr_spaddr ?ltr01.
+rewrite -sumrN mulr_suml ler_sum // => j _; apply: ler_trans (ler_norm _) _.
+rewrite normrN normrM ler_wpmul2l ?normr_ge0 // normrX.
+by rewrite ger0_norm ?(ltrW x_gt0) // ler_weexpn2l ?leq_ord.
+Qed.
+
+End PolyBounds.
 
 End RealDomainOperations.
 

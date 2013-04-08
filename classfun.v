@@ -1092,7 +1092,7 @@ elim: S notS0 => [|phi S IH] /=; first by left.
 rewrite inE eq_sym andbT => /norP[nz_phi /IH{IH}IH].
 have [opS | not_opS] := allP; last first.
   right=> [[/andP[notSp _] opS]]; case: not_opS => psi Spsi /=.
-  by rewrite opS ?mem_head 1?mem_behead // eq_sym (memPn notSp).
+  by rewrite opS ?mem_head 1?mem_behead // (memPnC notSp).
 rewrite (contra (opS _)) /= ?cfnorm_eq0 //.
 apply: (iffP IH) => [] [uniqS oSS]; last first.
   by split=> //; apply: sub_in2 oSS => psi Spsi; exact: mem_behead.

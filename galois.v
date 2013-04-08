@@ -261,9 +261,6 @@ move/(kHomSl (sub1v _))/kHom_lrmorphism=> fM.
 by apply/lker0P; apply: (fmorph_inj (RMorphism fM)).
 Qed.
 
-Lemma AEnd_lker0 (f : 'AEnd(L)) : lker f == 0%VS.
-Proof. exact: kAutf_lker0 (k1AHom _ f). Qed.
-
 Lemma inv_kHomf K f : kHom K {:L} f -> kHom K {:L} f^-1.
 Proof.
 move=> homKf; have [[fM idKf] kerf0] := (kHomP homKf, kAutf_lker0 homKf).
@@ -472,6 +469,20 @@ suffices [[p rs] /andP[]]: {ps | factF F L ps.1 ps.2 & <<1 & ps.2>> = {:L}}%VS.
 apply: sig2_eqW; have [p F0p [rs splitLp genLrs]] := splittingFieldP.
 by exists (p, rs); rewrite // /factF F0p splitLp.
 Qed.
+
+Fact fieldOver_splitting E : SplittingField.axiom (fieldOver_fieldExtType E).
+Proof.
+have [p Fp [r Dp defL]] := splittingFieldP; exists p.
+  apply/polyOverP=> j; rewrite trivial_fieldOver.
+  by rewrite (subvP (sub1v E)) ?(polyOverP Fp).
+exists r => //; apply/vspaceP=> x; rewrite memvf.
+have [L0 [_ _ defL0]] :=  @aspaceOverP _ _ E <<1 & r : seq (fieldOver E)>>.
+rewrite defL0; have: x \in <<1 & r>>%VS by rewrite defL (@memvf _ L).
+apply: subvP; apply/Fadjoin_seqP; rewrite -memvE -defL0 mem1v.
+by split=> // y r_y; rewrite -defL0 seqv_sub_adjoin.
+Qed.
+Canonical fieldOver_splittingFieldType E :=
+  SplittingFieldType (subvs_of E) (fieldOver E) (fieldOver_splitting E).
 
 Lemma enum_AEnd : {kAutL : seq 'AEnd(L) | forall f, f \in kAutL}.
 Proof.
@@ -1472,6 +1483,15 @@ set n := #|G|; set m := \dim (fixedField G); rewrite -defE (directvP Edirect).
 rewrite -[n]card_ord -(@mulnK #|'I_n| m) ?adim_gt0 //= -sum_nat_const.
 congr (_ %/ _)%N; apply: eq_bigr => i _.
 by rewrite dim_cosetv ?(memPn nzw) ?mem_tnth.
+Qed.
+
+Lemma dim_fixed_galois K E (G : {group gal_of E}) :
+    galois K E -> G \subset 'Gal(E / K) ->
+  \dim_K (fixedField G) = #|'Gal(E / K) : G|.
+Proof.
+move=> galE sGgal; have [sFE _ _] := and3P galE; apply/eqP.
+rewrite -divgS // eqn_div ?cardSg // dim_fixedField -galois_dim //.
+by rewrite mulnC muln_divA ?divnK ?field_dimS ?capvSl -?galois_connection.
 Qed.
 
 Lemma gal_fixedField E (G : {group gal_of E}): 'Gal(E / fixedField G) = G.

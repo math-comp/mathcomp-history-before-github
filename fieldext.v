@@ -41,6 +41,15 @@ Require Import poly polydiv mxpoly generic_quotient.
 (*   inj_subfx iota z p x == The injection of F into F^iota(z).               *)
 (*  subfx_eval iota z p q == Given q : {poly F} returns q.[z] as a value of   *)
 (*                           type F^iota(z).                                  *)
+(*    subfx_root iota z p == The generator of F^iota(z) over F.               *)
+(* SubFieldExtType pz0 irr_p == A fieldExtType F structure for F^iota(z)      *)
+(*                           (more precisely, subFExtend iota z p), given     *)
+(*                           proofs pz0: root (map_poly iota p) z and         *)
+(*                           irr_p : irreducible_poly p. The corresponding    *)
+(*                           vectType substructure (SubfxVectType pz0 irr_p)  *)
+(*                           has dimension (size p).-1 over F.                *)
+(*                                                                            *)
+(*                                                                            *)
 (*                                                                            *)
 (*            minPoly K x == the monic minimal polynomial of x over the       *)
 (*                           subfield K.                                      *)
@@ -258,326 +267,10 @@ Export FieldExt.Exports.
 Notation "\dim_ E V" := (divn (\dim V) (\dim E))
   (at level 10, E at level 2, V at level 8, format "\dim_ E  V") : nat_scope.
 
-Section SubFieldExtension.
-
-Local Open Scope quotient_scope.
-
-Variables (F L : fieldType) (iota : {rmorphism F -> L}).
-Variables (z : L) (p : {poly F}).
-
-Local Notation "p ^iota" := (map_poly (GRing.RMorphism.apply iota) p)
-  (at level 2, format "p ^iota") : ring_scope.
-
-Let wf_p := (p != 0) && root p^iota z.
-Let p0 : {poly F} := if wf_p then (lead_coef p)^-1 *: p else 'X.
-Let z0 := if wf_p then z else 0.
-Let n := (size p0).-1.
-
-Let p0_mon : p0 \is monic.
-Proof.
-rewrite /p0; case: ifP => [/andP[nz_p _] | _]; last exact: monicX.
-by rewrite monicE lead_coefZ mulVf ?lead_coef_eq0.
-Qed.
-
-Let nz_p0 : p0 != 0. Proof. by rewrite monic_neq0 // p0_mon. Qed.
-
-Let p0z0 : root p0^iota z0.
-Proof.
-rewrite /p0 /z0; case: ifP => [/andP[_ pz0]|]; last by rewrite map_polyX rootX.
-by rewrite map_polyZ rootE hornerZ (rootP pz0) mulr0.
-Qed.
-
-Let n_gt0: 0 < n.
-Proof.
-rewrite /n -subn1 subn_gt0 -(size_map_poly iota).
-by rewrite (root_size_gt1 _ p0z0) ?map_poly_eq0.
-Qed.
-
-Let z0Ciota : commr_rmorph iota z0. Proof. by move=> x; apply: mulrC. Qed.
-Local Notation iotaPz := (horner_morph z0Ciota).
-Let iotaFz (x : 'rV[F]_n) := iotaPz (rVpoly x).
-
-Definition equiv_subfext x y := (iotaFz x == iotaFz y).
-
-Fact equiv_subfext_is_equiv : equiv_class_of equiv_subfext.
-Proof. by rewrite /equiv_subfext; split=> x // y w /eqP->. Qed.
-
-Canonical equiv_subfext_equiv := EquivRelPack equiv_subfext_is_equiv.
-Canonical equiv_subfext_encModRel := defaultEncModRel equiv_subfext.
-
-Definition subFExtend := {eq_quot equiv_subfext}.
-Canonical subFExtend_eqType := [eqType of subFExtend].
-Canonical subFExtend_choiceType := [choiceType of subFExtend].
-Canonical subFExtend_quotType := [quotType of subFExtend].
-Canonical subFExtend_eqQuotType := [eqQuotType equiv_subfext of subFExtend].
-
-Definition subfx_inj := lift_fun1 subFExtend iotaFz.
-
-Fact pi_subfx_inj : {mono \pi : x / iotaFz x >-> subfx_inj x}.
-Proof.
-unlock subfx_inj => x; apply/eqP; rewrite -/(equiv_subfext _ x).
-by rewrite -eqmodE reprK.
-Qed.
-Canonical pi_subfx_inj_morph := PiMono1 pi_subfx_inj.
-
-Let iotaPz_repr x : iotaPz (rVpoly (repr (\pi_(subFExtend) x))) = iotaFz x.
-Proof. by rewrite -/(iotaFz _) -!pi_subfx_inj reprK. Qed.
-
-Definition subfext0 := lift_cst subFExtend 0.
-Canonical subfext0_morph := PiConst subfext0.
-
-Definition subfext_add := lift_op2 subFExtend +%R.
-Fact pi_subfext_add : {morph \pi : x y / x + y >-> subfext_add x y}.
-Proof.
-unlock subfext_add => x y /=; apply/eqmodP/eqP.
-by rewrite /iotaFz !linearD /= !iotaPz_repr.
-Qed.
-Canonical pi_subfx_add_morph := PiMorph2 pi_subfext_add.
-
-Definition subfext_opp := lift_op1 subFExtend -%R.
-Fact pi_subfext_opp : {morph \pi : x / - x >-> subfext_opp x}.
-Proof.
-unlock subfext_opp => y /=; apply/eqmodP/eqP. 
-by rewrite /iotaFz !linearN /= !iotaPz_repr.
-Qed.
-Canonical pi_subfext_opp_morph := PiMorph1 pi_subfext_opp.
-
-Fact addfxA : associative subfext_add.
-Proof. by move=> x y t; rewrite -[x]reprK -[y]reprK -[t]reprK !piE addrA. Qed.
-
-Fact addfxC : commutative subfext_add.
-Proof. by move=> x y; rewrite -[x]reprK -[y]reprK !piE addrC. Qed.
-
-Fact add0fx : left_id subfext0 subfext_add.
-Proof. by move=> x; rewrite -[x]reprK !piE add0r. Qed.
-
-Fact addfxN : left_inverse subfext0 subfext_opp subfext_add.
-Proof. by move=> x; rewrite -[x]reprK !piE addNr. Qed.
-
-Definition subfext_zmodMixin :=  ZmodMixin addfxA addfxC add0fx addfxN.
-Canonical subfext_zmodType :=
-  Eval hnf in ZmodType subFExtend subfext_zmodMixin.
-
-Let poly_rV_modp_K q : rVpoly (poly_rV (q %% p0) : 'rV[F]_n) = q %% p0.
-Proof. by apply: poly_rV_K; rewrite -ltnS -polySpred // ltn_modp. Qed.
-
-Let iotaPz_modp q : iotaPz (q %% p0) = iotaPz q.
-Proof.
-rewrite {2}(divp_eq q p0) rmorphD rmorphM /=.
-by rewrite [iotaPz p0](rootP p0z0) mulr0 add0r.
-Qed.
-
-Definition subfx_mul_rep (x y : 'rV[F]_n) : 'rV[F]_n :=
-  poly_rV ((rVpoly x) * (rVpoly y) %% p0).
-
-Definition subfext_mul := lift_op2 subFExtend subfx_mul_rep.
-Fact pi_subfext_mul :
-  {morph \pi : x y / subfx_mul_rep x y >-> subfext_mul x y}.
-Proof.
-unlock subfext_mul => x y /=; apply/eqmodP/eqP.
-by rewrite /iotaFz !poly_rV_modp_K !iotaPz_modp !rmorphM /= !iotaPz_repr.
-Qed.
-Canonical pi_subfext_mul_morph := PiMorph2 pi_subfext_mul.
-
-Definition subfext1 := lift_cst subFExtend (poly_rV 1).
-Canonical subfext1_morph := PiConst subfext1.
-
-Fact mulfxA : associative (subfext_mul).
-Proof.
-elim/quotW=> x; elim/quotW=> y; elim/quotW=> w; rewrite !piE /subfx_mul_rep.
-by rewrite !poly_rV_modp_K [_ %% p0 * _]mulrC !modp_mul // mulrA mulrC.
-Qed.
-
-Fact mulfxC : commutative subfext_mul.
-Proof.
-by elim/quotW=> x; elim/quotW=> y; rewrite !piE /subfx_mul_rep /= mulrC.
-Qed.
-
-Fact mul1fx : left_id subfext1 subfext_mul.
-Proof.
-elim/quotW=> x; rewrite !piE /subfx_mul_rep poly_rV_K ?size_poly1 // mul1r.
-by rewrite modp_small ?rVpolyK // (polySpred nz_p0) ltnS size_poly.
-Qed.
-
-Fact mulfx_addl : left_distributive subfext_mul subfext_add.
-Proof.
-elim/quotW=> x; elim/quotW=> y; elim/quotW=> w; rewrite !piE /subfx_mul_rep.
-by rewrite linearD /= mulrDl modp_add linearD.
-Qed.
-
-Fact nonzero1fx : subfext1 != subfext0.
-Proof.
-rewrite !piE /equiv_subfext /iotaFz !linear0.
-by rewrite poly_rV_K ?rmorph1 ?oner_eq0 // size_poly1.
-Qed.
-
-Definition subfext_comRingMixin :=
-  ComRingMixin mulfxA mulfxC mul1fx mulfx_addl nonzero1fx.
-Canonical subfext_Ring := Eval hnf in RingType subFExtend subfext_comRingMixin.
-Canonical subfext_comRing := Eval hnf in ComRingType subFExtend mulfxC.
-
-Definition subfx_poly_inv (q : {poly F}) : {poly F} :=
-  if iotaPz q == 0 then 0 else
-  let r := gdcop q p0 in let: (u, v) := egcdp q r in
-  ((u * q + v * r)`_0)^-1 *: u.
-
-Let subfx_poly_invE q : iotaPz (subfx_poly_inv q) = (iotaPz q)^-1.
-Proof.
-rewrite /subfx_poly_inv.
-have [-> | nzq] := altP eqP; first by rewrite rmorph0 invr0.
-rewrite [nth]lock -[_^-1]mul1r; apply: canRL (mulfK nzq) _; rewrite -rmorphM /=.
-have rz0: iotaPz (gdcop q p0) = 0.
-  by apply/rootP; rewrite gdcop_map root_gdco ?map_poly_eq0 // p0z0 nzq.
-do [case: gdcopP => r _; rewrite (negPf nz_p0) orbF => co_r_q _] in rz0 *.
-case: (egcdp q r) (egcdpE q r) => u v /=/eqp_size/esym/eqP.
-rewrite coprimep_size_gcd 1?coprimep_sym // => /size_poly1P[a nz_a Da].
-rewrite Da -scalerAl (canRL (addrK _) Da) -lock coefC linearZ linearB /=.
-by rewrite rmorphM /= rz0 mulr0 subr0 horner_morphC -rmorphM mulVf ?rmorph1.
-Qed.
-
-Definition subfx_inv_rep (x : 'rV[F]_n) : 'rV[F]_n :=
-  poly_rV (subfx_poly_inv (rVpoly x) %% p0).
-
-Definition subfext_inv := lift_op1 subFExtend subfx_inv_rep.
-Fact pi_subfext_inv : {morph \pi : x / subfx_inv_rep x >-> subfext_inv x}.
-Proof.
-unlock subfext_inv => x /=; apply/eqmodP/eqP; rewrite /iotaFz.
-by rewrite 2!{1}poly_rV_modp_K 2!{1}iotaPz_modp !subfx_poly_invE iotaPz_repr.
-Qed.
-Canonical pi_subfext_inv_morph := PiMorph1 pi_subfext_inv.
-
-Fact subfx_fieldAxiom :
-  GRing.Field.axiom (subfext_inv : subFExtend -> subFExtend).
-Proof.
-elim/quotW=> x; apply: contraNeq; rewrite !piE /equiv_subfext /iotaFz !linear0.
-apply: contraR => nz_x; rewrite poly_rV_K ?size_poly1 // !poly_rV_modp_K.
-by rewrite iotaPz_modp rmorph1 rmorphM /= iotaPz_modp subfx_poly_invE mulVf.
-Qed.
-
-Fact subfx_inv0 : subfext_inv (0 : subFExtend) = (0 : subFExtend).
-Proof.
-apply/eqP; rewrite !piE /equiv_subfext /iotaFz /subfx_inv_rep !linear0.
-by rewrite /subfx_poly_inv rmorph0 eqxx mod0p !linear0.
-Qed.
-
-Definition subfext_unitRingMixin := FieldUnitMixin subfx_fieldAxiom subfx_inv0.
-Canonical subfext_unitRingType :=
-  Eval hnf in UnitRingType subFExtend subfext_unitRingMixin.
-Canonical subfext_comUnitRing := Eval hnf in [comUnitRingType of subFExtend].
-Definition subfext_fieldMixin := @FieldMixin _ _ subfx_fieldAxiom subfx_inv0.
-Definition subfext_idomainMixin := FieldIdomainMixin subfext_fieldMixin.
-Canonical subfext_idomainType :=
-  Eval hnf in IdomainType subFExtend subfext_idomainMixin.
-Canonical subfext_fieldType :=
-  Eval hnf in FieldType subFExtend subfext_fieldMixin.
-
-Fact subfx_inj_is_rmorphism : rmorphism subfx_inj.
-Proof.
-do 2?split; last by rewrite piE /iotaFz poly_rV_K ?rmorph1 ?size_poly1.
-  by elim/quotW=> x; elim/quotW=> y; rewrite !piE /iotaFz linearB rmorphB.
-elim/quotW=> x; elim/quotW=> y; rewrite !piE /subfx_mul_rep /iotaFz.
-by rewrite poly_rV_modp_K iotaPz_modp rmorphM.
-Qed.
-Canonical subfx_inj_additive := Additive subfx_inj_is_rmorphism.
-Canonical subfx_inj_rmorphism := RMorphism subfx_inj_is_rmorphism.
-
-Definition subfx_eval := lift_embed subFExtend (fun q => poly_rV (q %% p0)).
-Canonical subfx_eval_morph := PiEmbed subfx_eval.
-
-Lemma subfx_eval_is_rmorphism : rmorphism subfx_eval.
-Proof.
-do 2?split=> [x y|] /=; apply/eqP; rewrite piE.
-- by rewrite -linearB modp_add modNp.
-- by rewrite /subfx_mul_rep !poly_rV_modp_K !(modp_mul, mulrC _ y).
-by rewrite modp_small // size_poly1 -subn_gt0 subn1.
-Qed.
-Canonical subfx_eval_additive := Additive subfx_eval_is_rmorphism.
-Canonical subfx_eval_rmorphism := AddRMorphism subfx_eval_is_rmorphism.
-
-Lemma subfx_inj_eval q :
-  p != 0 -> root p^iota z -> subfx_inj (subfx_eval q) = q^iota.[z].
-Proof.
-move=> nz_p pz0; rewrite piE /iotaFz poly_rV_modp_K iotaPz_modp /iotaPz.
-by rewrite /z0 /wf_p nz_p pz0.
-Qed.
-
-Definition inj_subfx := (subfx_eval \o polyC).
-Canonical inj_subfx_addidive := [additive of inj_subfx].
-Canonical inj_subfx_rmorphism := [rmorphism of inj_subfx].
-
-Lemma subfxE x: exists p, x = subfx_eval p.
-Proof.
-elim/quotW: x => x; exists (rVpoly x); apply/eqP; rewrite piE /equiv_subfext.
-by rewrite /iotaFz poly_rV_modp_K iotaPz_modp.
-Qed.
-
-Definition subfx_scale a x := inj_subfx a * x.
-Fact subfx_scalerA a b x :
-  subfx_scale a (subfx_scale b x) = subfx_scale (a * b) x.
-Proof. by rewrite /subfx_scale rmorphM mulrA. Qed.
-Fact subfx_scaler1r : left_id 1 subfx_scale.
-Proof. by move=> x; rewrite /subfx_scale rmorph1 mul1r. Qed.
-Fact subfx_scalerDr : right_distributive subfx_scale +%R.
-Proof. by move=> a; exact: mulrDr. Qed.
-Fact subfx_scalerDl x : {morph subfx_scale^~ x : a b / a + b}.
-Proof. by move=> a b; rewrite /subfx_scale rmorphD mulrDl. Qed.
-Definition subfx_lmodMixin :=
-  LmodMixin subfx_scalerA subfx_scaler1r subfx_scalerDr subfx_scalerDl.
-Canonical subfx_lmodType := LmodType F subFExtend subfx_lmodMixin.
-
-Fact subfx_scaleAl : GRing.Lalgebra.axiom ( *%R : subFExtend -> _).
-Proof. by move=> a; apply: mulrA. Qed.
-Canonical subfx_lalgType := LalgType F subFExtend subfx_scaleAl.
-
-Fact subfx_scaleAr : GRing.Algebra.axiom subfx_lalgType.
-Proof. by move=> a; apply: mulrCA. Qed.
-Canonical subfx_algType := AlgType F subFExtend subfx_scaleAr.
-
-Fact subfx_evalZ : scalable subfx_eval.
-Proof. by move=> a q; rewrite -mul_polyC rmorphM. Qed.
-Canonical subfx_eval_linear := AddLinear subfx_evalZ.
-Canonical subfx_eval_lrmorphism := [lrmorphism of subfx_eval].
-
-Hypotheses (pz0 : root p^iota z) (nz_p : p != 0).
-
-Lemma subfx_injZ b x : subfx_inj (b *: x) = iota b * subfx_inj x.
-Proof. by rewrite rmorphM /= subfx_inj_eval // map_polyC hornerC. Qed.
-
-Lemma subfx_inj_base b : subfx_inj b%:A = iota b.
-Proof. by rewrite subfx_injZ rmorph1 mulr1. Qed.
-
-(* The Vector axiom requires irreducibility. *)
-Lemma min_subfx_vectAxiom :
-    (forall q, root q^iota z -> q != 0 -> size p <= size q) ->
-  Vector.axiom (size p).-1 subfx_lmodType.
-Proof.
-move=> min_p; set d := (size p).-1; have Dd: d.+1 = size p by rewrite polySpred.
-pose Fz2v x : 'rV_d := poly_rV (sval (sig_eqW (subfxE x)) %% p).
-pose vFz : 'rV_d -> subFExtend := subfx_eval \o @rVpoly F d.
-have FLinj: injective subfx_inj by apply: fmorph_inj.
-have Fz2vK: cancel Fz2v vFz.
-  move=> x; rewrite /vFz /Fz2v; case: (sig_eqW _) => /= q ->.
-  apply: FLinj; rewrite !subfx_inj_eval // {2}(divp_eq q p) rmorphD rmorphM /=.
-  by rewrite !hornerE (eqP pz0) mulr0 add0r poly_rV_K // -ltnS Dd ltn_modpN0.
-have vFzK: cancel vFz Fz2v.
-  apply: inj_can_sym Fz2vK _ => v1 v2 /(congr1 subfx_inj)/eqP.
-  rewrite -subr_eq0 -!raddfB /= subfx_inj_eval // => /min_p/implyP.
-  rewrite leqNgt implybNN -Dd ltnS size_poly linearB subr_eq0 /=.
-  by move/eqP/(can_inj (@rVpolyK _ _)).
-by exists Fz2v; [apply: can2_linear Fz2vK | exists vFz].
-Qed.
-
-End SubFieldExtension.
-
-Prenex Implicits subfx_inj.
-
 Section FieldExtTheory.
 
 Variables (F0 : fieldType) (L : fieldExtType F0).
 Implicit Types (U V J : {vspace L}) (E F K : {subfield L}).
-
-Lemma charf_ext : [char L] =i [char F0].
-Proof. exact: fmorph_char [rmorphism of in_alg L]. Qed.
 
 Lemma dim_cosetv U x : x != 0 -> \dim (U * <[x]>) = \dim U.
 Proof.
@@ -611,15 +304,18 @@ Proof.
 by apply/eqP; rewrite eqEsubv sub_agenv agenv_sub_idealr ?sub1v ?asubv.
 Qed.
 
-Fact aimg_is_aspace (aT : FalgType F0) (f : 'AHom(L,aT)) K : is_aspace (f @: K).
+Lemma AHom_lker0 (rT : FalgType F0) (f : 'AHom(L, rT)) : lker f == 0%VS.
+Proof. by apply/lker0P; apply: fmorph_inj. Qed.
+
+Lemma AEnd_lker0 (f : 'AEnd(L)) : lker f == 0%VS. Proof. exact: AHom_lker0. Qed.
+
+Fact aimg_is_aspace (rT : FalgType F0) (f : 'AHom(L, rT)) (E : {subfield L}) :
+  is_aspace (f @: E).
 Proof.
-apply/andP; split.
-  by apply/has_algid1/memv_imgP; exists 1; rewrite ?mem1v ?rmorph1.
-apply/prodvP => _ _ /memv_imgP[a Ha ->] /memv_imgP[b Hb ->].
-by rewrite -rmorphM memv_img // memv_mul.
+rewrite /is_aspace -aimgM limgS ?prodv_id // has_algid1 //.
+by apply/memv_imgP; exists 1; rewrite ?mem1v ?rmorph1.
 Qed.
-Canonical ahom_img_aspace aT f K : {aspace _} :=
-  Eval hnf in ASpace (@aimg_is_aspace aT f K).
+Canonical aimg_aspace rT f E := ASpace (@aimg_is_aspace rT f E).
 
 Lemma Fadjoin_idP {K x} : reflect (<<K; x>>%VS = K) (x \in K).
 Proof.
@@ -649,6 +345,12 @@ apply: (iffP idP) => [sKrsE | [sKE /span_subvP/(conj sKE)/andP]].
   by rewrite (subvP sKrsE) ?seqv_sub_adjoin.
 by rewrite -subv_add => /agenvS; rewrite subfield_closed.
 Qed.
+
+Lemma alg_polyOver E p : map_poly (in_alg L) p \is a polyOver E.
+Proof. by apply/(polyOverS (subvP (sub1v _)))/polyOver1P; exists p. Qed.
+
+Lemma sub_adjoin1v x E : (<<1; x>> <= E)%VS = (x \in E)%VS.
+Proof. by rewrite (sameP FadjoinP andP) sub1v. Qed.
 
 Fact vsval_multiplicative K : multiplicative (vsval : subvs_of K -> L).
 Proof. by split => //=; exact: algid1. Qed.
@@ -1019,6 +721,14 @@ move=> sKE; apply: minPoly_dvdp; last exact: root_minPoly.
 by apply: (polyOverSv sKE); rewrite minPolyOver.
 Qed.
 
+Implicit Arguments Fadjoin_polyP [K x v].
+Lemma Fadjoin1_polyP x v :
+  reflect (exists p, v = (map_poly (in_alg L) p).[x]) (v \in <<1; x>>%VS).
+Proof.
+apply: (iffP Fadjoin_polyP) => [[_ /polyOver1P]|] [p ->]; first by exists p.
+by exists (map_poly (in_alg L) p) => //; apply: alg_polyOver.
+Qed.
+
 Section Horner.
 
 Variables z : L.
@@ -1044,13 +754,45 @@ End FieldExtTheory.
 
 Notation "E :&: F" := (capv_aspace E F) : aspace_scope.
 Notation "E * F" := (prodv_aspace E F) : aspace_scope.
+Notation "f @: E" := (aimg_aspace f E) : aspace_scope.
 
 Implicit Arguments Fadjoin_idP [F0 L K x].
 Implicit Arguments FadjoinP [F0 L K x E].
 Implicit Arguments Fadjoin_seqP [F0 L K rs E].
 Implicit Arguments polyOver_subvs [F0 L K p].
-Implicit Arguments Fadjoin_polyP [F0 L K v].
+Implicit Arguments Fadjoin_polyP [F0 L K x v].
+Implicit Arguments Fadjoin1_polyP [F0 L x v].
 Implicit Arguments minPoly_XsubC [F0 L K x].
+
+Section MapMinPoly.
+
+Variables (F0 : fieldType) (L rL : fieldExtType F0) (f : 'AHom(L, rL)).
+Variables (K : {subfield L}) (x : L).
+
+Lemma adjoin_degree_aimg : adjoin_degree (f @: K) (f x) = adjoin_degree K x.
+Proof.
+rewrite !adjoin_degreeE -aimg_adjoin.
+by rewrite !limg_dim_eq ?(eqP (AHom_lker0 f)) ?capv0.
+Qed.
+
+Lemma map_minPoly :  map_poly f (minPoly K x) = minPoly (f @: K) (f x).
+Proof.
+set fp := minPoly (f @: K) (f x); pose fM := [rmorphism of f].
+have [p Kp Dp]: exists2 p, p \is a polyOver K & map_poly f p = fp.
+  have Kfp: fp \is a polyOver (f @: K)%VS by apply: minPolyOver.
+  exists (map_poly f^-1%VF fp).
+    apply/polyOver_poly=> j _; have /memv_imgP[y Ky ->] := polyOverP Kfp j.
+    by rewrite lker0_lfunK ?AHom_lker0.
+  rewrite -map_poly_comp map_poly_id // => _ /(allP Kfp)/memv_imgP[y _ ->].
+  by rewrite /= limg_lfunVK ?memv_img ?memvf.
+apply/eqP; rewrite -eqp_monic ?monic_map ?monic_minPoly // -Dp eqp_map.
+have: ~~ (p %= 1) by rewrite -size_poly_eq1 -(size_map_poly fM) Dp size_minPoly.
+apply: implyP; rewrite implyNb orbC eqp_sym minPoly_irr //.
+rewrite -(dvdp_map fM) Dp minPoly_dvdp ?fmorph_root ?root_minPoly //.
+by apply/polyOver_poly=> j _; apply/memv_img/polyOverP/minPolyOver.
+Qed.
+
+End MapMinPoly.
 
 (* Changing up the reference field of a fieldExtType. *)
 Section FieldOver.
@@ -1136,6 +878,13 @@ Canonical fieldOver_FalgType := [FalgType K_F of L_F].
 Canonical fieldOver_fieldExtType := [fieldExtType K_F of L_F].
 
 Implicit Types (V : {vspace L}) (E : {subfield L}).
+
+Lemma trivial_fieldOver : (1%VS : {vspace L_F}) =i F.
+Proof.
+move=> x; apply/vlineP/idP=> [[{x}x ->] | Fx].
+  by rewrite fieldOver_scaleE mulr1 (valP x).
+by exists (vsproj F x); rewrite fieldOver_scaleE mulr1 vsprojK.
+Qed.
 
 Definition vspaceOver V := <<vbasis V : seq L_F>>%VS.
 
@@ -1405,6 +1154,366 @@ Lemma base_aspaceOver (E : {subfield L}) :
 Proof. by rewrite -sup_field_ideal; exact: base_idealOver. Qed.
 
 End MoreFieldOver.
+
+Section SubFieldExtension.
+
+Local Open Scope quotient_scope.
+
+Variables (F L : fieldType) (iota : {rmorphism F -> L}).
+Variables (z : L) (p : {poly F}).
+
+Local Notation "p ^iota" := (map_poly (GRing.RMorphism.apply iota) p)
+  (at level 2, format "p ^iota") : ring_scope.
+
+Let wf_p := (p != 0) && root p^iota z.
+Let p0 : {poly F} := if wf_p then (lead_coef p)^-1 *: p else 'X.
+Let z0 := if wf_p then z else 0.
+Let n := (size p0).-1.
+
+Let p0_mon : p0 \is monic.
+Proof.
+rewrite /p0; case: ifP => [/andP[nz_p _] | _]; last exact: monicX.
+by rewrite monicE lead_coefZ mulVf ?lead_coef_eq0.
+Qed.
+
+Let nz_p0 : p0 != 0. Proof. by rewrite monic_neq0 // p0_mon. Qed.
+
+Let p0z0 : root p0^iota z0.
+Proof.
+rewrite /p0 /z0; case: ifP => [/andP[_ pz0]|]; last by rewrite map_polyX rootX.
+by rewrite map_polyZ rootE hornerZ (rootP pz0) mulr0.
+Qed.
+
+Let n_gt0: 0 < n.
+Proof.
+rewrite /n -subn1 subn_gt0 -(size_map_poly iota).
+by rewrite (root_size_gt1 _ p0z0) ?map_poly_eq0.
+Qed.
+
+Let z0Ciota : commr_rmorph iota z0. Proof. by move=> x; apply: mulrC. Qed.
+Local Notation iotaPz := (horner_morph z0Ciota).
+Let iotaFz (x : 'rV[F]_n) := iotaPz (rVpoly x).
+
+Definition equiv_subfext x y := (iotaFz x == iotaFz y).
+
+Fact equiv_subfext_is_equiv : equiv_class_of equiv_subfext.
+Proof. by rewrite /equiv_subfext; split=> x // y w /eqP->. Qed.
+
+Canonical equiv_subfext_equiv := EquivRelPack equiv_subfext_is_equiv.
+Canonical equiv_subfext_encModRel := defaultEncModRel equiv_subfext.
+
+Definition subFExtend := {eq_quot equiv_subfext}.
+Canonical subFExtend_eqType := [eqType of subFExtend].
+Canonical subFExtend_choiceType := [choiceType of subFExtend].
+Canonical subFExtend_quotType := [quotType of subFExtend].
+Canonical subFExtend_eqQuotType := [eqQuotType equiv_subfext of subFExtend].
+
+Definition subfx_inj := lift_fun1 subFExtend iotaFz.
+
+Fact pi_subfx_inj : {mono \pi : x / iotaFz x >-> subfx_inj x}.
+Proof.
+unlock subfx_inj => x; apply/eqP; rewrite -/(equiv_subfext _ x).
+by rewrite -eqmodE reprK.
+Qed.
+Canonical pi_subfx_inj_morph := PiMono1 pi_subfx_inj.
+
+Let iotaPz_repr x : iotaPz (rVpoly (repr (\pi_(subFExtend) x))) = iotaFz x.
+Proof. by rewrite -/(iotaFz _) -!pi_subfx_inj reprK. Qed.
+
+Definition subfext0 := lift_cst subFExtend 0.
+Canonical subfext0_morph := PiConst subfext0.
+
+Definition subfext_add := lift_op2 subFExtend +%R.
+Fact pi_subfext_add : {morph \pi : x y / x + y >-> subfext_add x y}.
+Proof.
+unlock subfext_add => x y /=; apply/eqmodP/eqP.
+by rewrite /iotaFz !linearD /= !iotaPz_repr.
+Qed.
+Canonical pi_subfx_add_morph := PiMorph2 pi_subfext_add.
+
+Definition subfext_opp := lift_op1 subFExtend -%R.
+Fact pi_subfext_opp : {morph \pi : x / - x >-> subfext_opp x}.
+Proof.
+unlock subfext_opp => y /=; apply/eqmodP/eqP. 
+by rewrite /iotaFz !linearN /= !iotaPz_repr.
+Qed.
+Canonical pi_subfext_opp_morph := PiMorph1 pi_subfext_opp.
+
+Fact addfxA : associative subfext_add.
+Proof. by move=> x y t; rewrite -[x]reprK -[y]reprK -[t]reprK !piE addrA. Qed.
+
+Fact addfxC : commutative subfext_add.
+Proof. by move=> x y; rewrite -[x]reprK -[y]reprK !piE addrC. Qed.
+
+Fact add0fx : left_id subfext0 subfext_add.
+Proof. by move=> x; rewrite -[x]reprK !piE add0r. Qed.
+
+Fact addfxN : left_inverse subfext0 subfext_opp subfext_add.
+Proof. by move=> x; rewrite -[x]reprK !piE addNr. Qed.
+
+Definition subfext_zmodMixin :=  ZmodMixin addfxA addfxC add0fx addfxN.
+Canonical subfext_zmodType :=
+  Eval hnf in ZmodType subFExtend subfext_zmodMixin.
+
+Let poly_rV_modp_K q : rVpoly (poly_rV (q %% p0) : 'rV[F]_n) = q %% p0.
+Proof. by apply: poly_rV_K; rewrite -ltnS -polySpred // ltn_modp. Qed.
+
+Let iotaPz_modp q : iotaPz (q %% p0) = iotaPz q.
+Proof.
+rewrite {2}(divp_eq q p0) rmorphD rmorphM /=.
+by rewrite [iotaPz p0](rootP p0z0) mulr0 add0r.
+Qed.
+
+Definition subfx_mul_rep (x y : 'rV[F]_n) : 'rV[F]_n :=
+  poly_rV ((rVpoly x) * (rVpoly y) %% p0).
+
+Definition subfext_mul := lift_op2 subFExtend subfx_mul_rep.
+Fact pi_subfext_mul :
+  {morph \pi : x y / subfx_mul_rep x y >-> subfext_mul x y}.
+Proof.
+unlock subfext_mul => x y /=; apply/eqmodP/eqP.
+by rewrite /iotaFz !poly_rV_modp_K !iotaPz_modp !rmorphM /= !iotaPz_repr.
+Qed.
+Canonical pi_subfext_mul_morph := PiMorph2 pi_subfext_mul.
+
+Definition subfext1 := lift_cst subFExtend (poly_rV 1).
+Canonical subfext1_morph := PiConst subfext1.
+
+Fact mulfxA : associative (subfext_mul).
+Proof.
+elim/quotW=> x; elim/quotW=> y; elim/quotW=> w; rewrite !piE /subfx_mul_rep.
+by rewrite !poly_rV_modp_K [_ %% p0 * _]mulrC !modp_mul // mulrA mulrC.
+Qed.
+
+Fact mulfxC : commutative subfext_mul.
+Proof.
+by elim/quotW=> x; elim/quotW=> y; rewrite !piE /subfx_mul_rep /= mulrC.
+Qed.
+
+Fact mul1fx : left_id subfext1 subfext_mul.
+Proof.
+elim/quotW=> x; rewrite !piE /subfx_mul_rep poly_rV_K ?size_poly1 // mul1r.
+by rewrite modp_small ?rVpolyK // (polySpred nz_p0) ltnS size_poly.
+Qed.
+
+Fact mulfx_addl : left_distributive subfext_mul subfext_add.
+Proof.
+elim/quotW=> x; elim/quotW=> y; elim/quotW=> w; rewrite !piE /subfx_mul_rep.
+by rewrite linearD /= mulrDl modp_add linearD.
+Qed.
+
+Fact nonzero1fx : subfext1 != subfext0.
+Proof.
+rewrite !piE /equiv_subfext /iotaFz !linear0.
+by rewrite poly_rV_K ?rmorph1 ?oner_eq0 // size_poly1.
+Qed.
+
+Definition subfext_comRingMixin :=
+  ComRingMixin mulfxA mulfxC mul1fx mulfx_addl nonzero1fx.
+Canonical subfext_Ring := Eval hnf in RingType subFExtend subfext_comRingMixin.
+Canonical subfext_comRing := Eval hnf in ComRingType subFExtend mulfxC.
+
+Definition subfx_poly_inv (q : {poly F}) : {poly F} :=
+  if iotaPz q == 0 then 0 else
+  let r := gdcop q p0 in let: (u, v) := egcdp q r in
+  ((u * q + v * r)`_0)^-1 *: u.
+
+Let subfx_poly_invE q : iotaPz (subfx_poly_inv q) = (iotaPz q)^-1.
+Proof.
+rewrite /subfx_poly_inv.
+have [-> | nzq] := altP eqP; first by rewrite rmorph0 invr0.
+rewrite [nth]lock -[_^-1]mul1r; apply: canRL (mulfK nzq) _; rewrite -rmorphM /=.
+have rz0: iotaPz (gdcop q p0) = 0.
+  by apply/rootP; rewrite gdcop_map root_gdco ?map_poly_eq0 // p0z0 nzq.
+do [case: gdcopP => r _; rewrite (negPf nz_p0) orbF => co_r_q _] in rz0 *.
+case: (egcdp q r) (egcdpE q r) => u v /=/eqp_size/esym/eqP.
+rewrite coprimep_size_gcd 1?coprimep_sym // => /size_poly1P[a nz_a Da].
+rewrite Da -scalerAl (canRL (addrK _) Da) -lock coefC linearZ linearB /=.
+by rewrite rmorphM /= rz0 mulr0 subr0 horner_morphC -rmorphM mulVf ?rmorph1.
+Qed.
+
+Definition subfx_inv_rep (x : 'rV[F]_n) : 'rV[F]_n :=
+  poly_rV (subfx_poly_inv (rVpoly x) %% p0).
+
+Definition subfext_inv := lift_op1 subFExtend subfx_inv_rep.
+Fact pi_subfext_inv : {morph \pi : x / subfx_inv_rep x >-> subfext_inv x}.
+Proof.
+unlock subfext_inv => x /=; apply/eqmodP/eqP; rewrite /iotaFz.
+by rewrite 2!{1}poly_rV_modp_K 2!{1}iotaPz_modp !subfx_poly_invE iotaPz_repr.
+Qed.
+Canonical pi_subfext_inv_morph := PiMorph1 pi_subfext_inv.
+
+Fact subfx_fieldAxiom :
+  GRing.Field.axiom (subfext_inv : subFExtend -> subFExtend).
+Proof.
+elim/quotW=> x; apply: contraNeq; rewrite !piE /equiv_subfext /iotaFz !linear0.
+apply: contraR => nz_x; rewrite poly_rV_K ?size_poly1 // !poly_rV_modp_K.
+by rewrite iotaPz_modp rmorph1 rmorphM /= iotaPz_modp subfx_poly_invE mulVf.
+Qed.
+
+Fact subfx_inv0 : subfext_inv (0 : subFExtend) = (0 : subFExtend).
+Proof.
+apply/eqP; rewrite !piE /equiv_subfext /iotaFz /subfx_inv_rep !linear0.
+by rewrite /subfx_poly_inv rmorph0 eqxx mod0p !linear0.
+Qed.
+
+Definition subfext_unitRingMixin := FieldUnitMixin subfx_fieldAxiom subfx_inv0.
+Canonical subfext_unitRingType :=
+  Eval hnf in UnitRingType subFExtend subfext_unitRingMixin.
+Canonical subfext_comUnitRing := Eval hnf in [comUnitRingType of subFExtend].
+Definition subfext_fieldMixin := @FieldMixin _ _ subfx_fieldAxiom subfx_inv0.
+Definition subfext_idomainMixin := FieldIdomainMixin subfext_fieldMixin.
+Canonical subfext_idomainType :=
+  Eval hnf in IdomainType subFExtend subfext_idomainMixin.
+Canonical subfext_fieldType :=
+  Eval hnf in FieldType subFExtend subfext_fieldMixin.
+
+Fact subfx_inj_is_rmorphism : rmorphism subfx_inj.
+Proof.
+do 2?split; last by rewrite piE /iotaFz poly_rV_K ?rmorph1 ?size_poly1.
+  by elim/quotW=> x; elim/quotW=> y; rewrite !piE /iotaFz linearB rmorphB.
+elim/quotW=> x; elim/quotW=> y; rewrite !piE /subfx_mul_rep /iotaFz.
+by rewrite poly_rV_modp_K iotaPz_modp rmorphM.
+Qed.
+Canonical subfx_inj_additive := Additive subfx_inj_is_rmorphism.
+Canonical subfx_inj_rmorphism := RMorphism subfx_inj_is_rmorphism.
+
+Definition subfx_eval := lift_embed subFExtend (fun q => poly_rV (q %% p0)).
+Canonical subfx_eval_morph := PiEmbed subfx_eval.
+
+Definition subfx_root := subfx_eval 'X.
+
+Lemma subfx_eval_is_rmorphism : rmorphism subfx_eval.
+Proof.
+do 2?split=> [x y|] /=; apply/eqP; rewrite piE.
+- by rewrite -linearB modp_add modNp.
+- by rewrite /subfx_mul_rep !poly_rV_modp_K !(modp_mul, mulrC _ y).
+by rewrite modp_small // size_poly1 -subn_gt0 subn1.
+Qed.
+Canonical subfx_eval_additive := Additive subfx_eval_is_rmorphism.
+Canonical subfx_eval_rmorphism := AddRMorphism subfx_eval_is_rmorphism.
+
+Definition inj_subfx := (subfx_eval \o polyC).
+Canonical inj_subfx_addidive := [additive of inj_subfx].
+Canonical inj_subfx_rmorphism := [rmorphism of inj_subfx].
+
+Lemma subfxE x: exists p, x = subfx_eval p.
+Proof.
+elim/quotW: x => x; exists (rVpoly x); apply/eqP; rewrite piE /equiv_subfext.
+by rewrite /iotaFz poly_rV_modp_K iotaPz_modp.
+Qed.
+
+Definition subfx_scale a x := inj_subfx a * x.
+Fact subfx_scalerA a b x :
+  subfx_scale a (subfx_scale b x) = subfx_scale (a * b) x.
+Proof. by rewrite /subfx_scale rmorphM mulrA. Qed.
+Fact subfx_scaler1r : left_id 1 subfx_scale.
+Proof. by move=> x; rewrite /subfx_scale rmorph1 mul1r. Qed.
+Fact subfx_scalerDr : right_distributive subfx_scale +%R.
+Proof. by move=> a; exact: mulrDr. Qed.
+Fact subfx_scalerDl x : {morph subfx_scale^~ x : a b / a + b}.
+Proof. by move=> a b; rewrite /subfx_scale rmorphD mulrDl. Qed.
+Definition subfx_lmodMixin :=
+  LmodMixin subfx_scalerA subfx_scaler1r subfx_scalerDr subfx_scalerDl.
+Canonical subfx_lmodType := LmodType F subFExtend subfx_lmodMixin.
+
+Fact subfx_scaleAl : GRing.Lalgebra.axiom ( *%R : subFExtend -> _).
+Proof. by move=> a; apply: mulrA. Qed.
+Canonical subfx_lalgType := LalgType F subFExtend subfx_scaleAl.
+
+Fact subfx_scaleAr : GRing.Algebra.axiom subfx_lalgType.
+Proof. by move=> a; apply: mulrCA. Qed.
+Canonical subfx_algType := AlgType F subFExtend subfx_scaleAr.
+Canonical subfext_unitAlgType := [unitAlgType F of subFExtend].
+
+Fact subfx_evalZ : scalable subfx_eval.
+Proof. by move=> a q; rewrite -mul_polyC rmorphM. Qed.
+Canonical subfx_eval_linear := AddLinear subfx_evalZ.
+Canonical subfx_eval_lrmorphism := [lrmorphism of subfx_eval].
+
+Hypothesis (pz0 : root p^iota z).
+
+Section NonZero.
+
+Hypothesis nz_p : p != 0.
+
+Lemma subfx_inj_eval q : subfx_inj (subfx_eval q) = q^iota.[z].
+Proof.
+by rewrite piE /iotaFz poly_rV_modp_K iotaPz_modp /iotaPz /z0 /wf_p nz_p pz0.
+Qed.
+
+Lemma subfx_inj_root : subfx_inj subfx_root = z.
+Proof. by rewrite subfx_inj_eval // map_polyX hornerX. Qed.
+
+Lemma subfx_injZ b x : subfx_inj (b *: x) = iota b * subfx_inj x.
+Proof. by rewrite rmorphM /= subfx_inj_eval // map_polyC hornerC. Qed.
+
+Lemma subfx_inj_base b : subfx_inj b%:A = iota b.
+Proof. by rewrite subfx_injZ rmorph1 mulr1. Qed.
+
+Lemma subfxEroot x : {q | x = (map_poly (in_alg subFExtend) q).[subfx_root]}.
+Proof.
+have /sig_eqW[q ->] := subfxE x; exists q.
+apply: (fmorph_inj subfx_inj_rmorphism).
+rewrite -horner_map /= subfx_inj_root subfx_inj_eval //.
+by rewrite -map_poly_comp (eq_map_poly subfx_inj_base).
+Qed.
+
+Lemma subfx_irreducibleP :
+ (forall q, root q^iota z -> q != 0 -> size p <= size q) <-> irreducible_poly p.
+Proof.
+split=> [min_p | irr_p q qz0 nz_q].
+  split=> [|q nonC_q q_dv_p].
+    by rewrite -(size_map_poly iota) (root_size_gt1 _ pz0) ?map_poly_eq0.
+  have /dvdpP[r Dp] := q_dv_p; rewrite -dvdp_size_eqp // eqn_leq dvdp_leq //=.
+  have [nz_r nz_q]: r != 0 /\ q != 0 by apply/norP; rewrite -mulf_eq0 -Dp.
+  have: root r^iota z || root q^iota z by rewrite -rootM -rmorphM -Dp.
+  case/orP=> /min_p; [case/(_ _)/idPn=> // | exact].
+  rewrite polySpred // -leqNgt Dp size_mul //= polySpred // -subn2 ltn_subRL.
+  by rewrite addSnnS addnC ltn_add2l ltn_neqAle eq_sym nonC_q size_poly_gt0.
+pose r := gcdp p q; have nz_r: r != 0 by rewrite gcdp_eq0 (negPf nz_p).
+suffices /eqp_size <-: r %= p by rewrite dvdp_leq ?dvdp_gcdr.
+rewrite (irr_p _) ?dvdp_gcdl // -(size_map_poly iota) gtn_eqF //.
+by rewrite (@root_size_gt1 _ z) ?map_poly_eq0 // gcdp_map root_gcd pz0.
+Qed.
+
+End NonZero.
+
+Section Irreducible.
+
+Hypothesis irr_p : irreducible_poly p.
+Let nz_p : p != 0. Proof. exact: irredp_neq0. Qed.
+
+(* The Vector axiom requires irreducibility. *)
+Lemma min_subfx_vectAxiom : Vector.axiom (size p).-1 subfx_lmodType.
+Proof.
+move/subfx_irreducibleP: irr_p => /=/(_ nz_p) min_p; set d := (size p).-1.
+have Dd: d.+1 = size p by rewrite polySpred.
+pose Fz2v x : 'rV_d := poly_rV (sval (sig_eqW (subfxE x)) %% p).
+pose vFz : 'rV_d -> subFExtend := subfx_eval \o @rVpoly F d.
+have FLinj: injective subfx_inj by apply: fmorph_inj.
+have Fz2vK: cancel Fz2v vFz.
+  move=> x; rewrite /vFz /Fz2v; case: (sig_eqW _) => /= q ->.
+  apply: FLinj; rewrite !subfx_inj_eval // {2}(divp_eq q p) rmorphD rmorphM /=.
+  by rewrite !hornerE (eqP pz0) mulr0 add0r poly_rV_K // -ltnS Dd ltn_modpN0.
+suffices vFzK: cancel vFz Fz2v.
+  by exists Fz2v; [apply: can2_linear Fz2vK | exists vFz].
+apply: inj_can_sym Fz2vK _ => v1 v2 /(congr1 subfx_inj)/eqP.
+rewrite -subr_eq0 -!raddfB /= subfx_inj_eval // => /min_p/implyP.
+rewrite leqNgt implybNN -Dd ltnS size_poly linearB subr_eq0 /=.
+by move/eqP/(can_inj (@rVpolyK _ _)).
+Qed.
+
+Definition SubfxVectMixin := VectMixin min_subfx_vectAxiom.
+Definition SubfxVectType := VectType F subFExtend SubfxVectMixin.
+Definition SubfxFalgType := Eval simpl in [FalgType F of SubfxVectType].
+Definition SubFieldExtType := Eval simpl in [fieldExtType F of SubfxFalgType].
+
+End Irreducible.
+
+End SubFieldExtension.
+
+Prenex Implicits subfx_inj.
 
 Lemma irredp_FAdjoin (F : fieldType) (p : {poly F}) :
     irreducible_poly p ->

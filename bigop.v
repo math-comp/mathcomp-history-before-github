@@ -584,13 +584,8 @@ Notation "\big [ op / idx ]_ ( i 'in' A | P ) F" :=
 Notation "\big [ op / idx ]_ ( i 'in' A ) F" :=
   (\big[op/idx]_(i | i \in A) F) : big_scope.
 
-(* GG - why do we need to inline the \bigop notation below?
-Notation BIG_F := (F in \bigop[_/_]_(i <- _ | _) F i)%pattern.
-Notation BIG_P := (P in \bigop[_/_]_(i <- _ | P i) _)%pattern.
-*)
-
-Notation BIG_F := (F in bigop _ _ (fun i => BigBody i _ _ (F i)))%pattern.
-Notation BIG_P := (P in bigop _ _ (fun i => BigBody i _ (P i) _))%pattern.
+Notation BIG_F := (F in \big[_/_]_(i <- _ | _) F i)%pattern.
+Notation BIG_P := (P in \big[_/_]_(i <- _ | P i) _)%pattern.
 
 Local Notation "+%N" := addn (at level 0, only parsing).
 Notation "\sum_ ( i <- r | P ) F" :=

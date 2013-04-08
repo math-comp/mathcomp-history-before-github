@@ -390,7 +390,7 @@ have fM: rmorphism f.
   rewrite /f; do 2?split=> [x y|]; rewrite ?exprMn ?expr1n //.
   have [p _ charFp] := finCharP F; rewrite (card_primeChar charFp).
   elim: (logn _ _) => // n IHn; rewrite expnSr !exprM {}IHn.
-  by rewrite -(charf_ext L) in charFp; rewrite -Frobenius_autE rmorphB.
+  by rewrite -(char_lalg L) in charFp; rewrite -Frobenius_autE rmorphB.
 have fZ: linear f.
   move=> a x y; rewrite -mulr_algl [f _](rmorphD (RMorphism fM)) rmorphM /=.
   by rewrite (idfP _ _) ?mulr_algl ?memvZ // memv_line.

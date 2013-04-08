@@ -1724,14 +1724,16 @@ Proof.
 by move=> f0; rewrite coef_poly; case: ltnP => // le_p_i; rewrite nth_default.
 Qed.
 
+Lemma map_Poly_id0 s : f 0 = 0 -> (Poly s)^f = Poly (map f s).
+Proof.
+move=> f0; apply/polyP=> j; rewrite coef_map_id0 ?coef_Poly //.
+have [/(nth_map 0 0)->// | le_s_j] := ltnP j (size s).
+by rewrite !nth_default ?size_map.
+Qed.
+
 Lemma map_poly_comp_id0 (g : iR -> aR) p :
   f 0 = 0 -> map_poly (f \o g) p = (map_poly g p)^f.
-Proof.
-move=> f0; apply/polyP => i; rewrite !coef_poly.
-have [lt_i_p | _] := ifP; last by rewrite f0 if_same.
-case: ifPn => //=; rewrite -leqNgt; move/leq_sizeP; move/(_ _ (leqnn _)).
-by rewrite coef_poly lt_i_p; move->.
-Qed.
+Proof. by move=> f0; rewrite map_polyE map_comp -map_Poly_id0 -?map_polyE. Qed.
 
 Lemma size_map_poly_id0 p : f (lead_coef p) != 0 -> size p^f = size p.
 Proof. by move=> nz_fp; apply: size_poly_eq. Qed.
@@ -1778,6 +1780,9 @@ Local Notation "p ^f" := (map_poly (GRing.Additive.apply f) p) : ring_scope.
 
 Lemma coef_map p i : p^f`_i = f p`_i.
 Proof. exact: coef_map_id0 (raddf0 f). Qed.
+
+Lemma map_Poly s : (Poly s)^f = Poly (map f s).
+Proof. exact: map_Poly_id0 (raddf0 f). Qed.
 
 Lemma map_poly_comp (g : iR -> aR) p :
   map_poly (f \o g) p = map_poly f (map_poly g p).
@@ -2319,6 +2324,8 @@ by congr (_ && _); apply: eq_forallb => i; rewrite fmorph_unity_root.
 Qed.
 
 End MapFieldPoly.
+
+Implicit Arguments map_poly_inj [[F] [R] x1 x2].
 
 Section MaxRoots.
 

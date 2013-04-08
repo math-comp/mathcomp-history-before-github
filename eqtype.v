@@ -36,10 +36,7 @@ Require Import ssreflect ssrfun ssrbool.
 (* Equality on an eqType is proof-irrelevant (lemma eq_irrelevance).          *)
 (*   The eqType interface is implemented for most standard datatypes:         *)
 (*  bool, unit, void, option, prod (denoted A * B), sum (denoted A + B),      *)
-(*  sig (denoted {x | P}), sigT (denoted {i : I & T}).                        *)
-(*   The fields of sig, sig2, and sigT are renamed sval, svalP, s2val,        *)
-(* s2valP, s2valP', tag, and tagged, respectively. We also define             *)
-(*   Tagged T_ x == eta-friendly constructor for {i : I | T_ i}, x : T_ i.    *)
+(*  sig (denoted {x | P}), sigT (denoted {i : I & T}). We also define         *)
 (*   tagged_as u v == v cast as T_(tag u) if tag v == tag u, else u.          *)
 (*  -> We have u == v <=> (tag u == tag v) && (tagged u == tagged_as u v).    *)
 (* The subType interface supports the following operations:                   *)
@@ -219,6 +216,9 @@ apply: (iffP idP) => [notDx y | notDx]; first by apply: contraTneq => ->.
 exact: contraL (notDx x) _.
 Qed.
 
+Lemma memPnC A x : reflect {in A, forall y, x != y} (x \notin A).
+Proof. by apply: (iffP (memPn A x)) => A'x y /A'x; rewrite eq_sym. Qed.
+
 Lemma ifN_eq R x y vT vF : x != y -> (if x == y then vT else vF) = vF :> R.
 Proof. exact: ifN. Qed.
 
@@ -228,6 +228,7 @@ Proof. by rewrite eq_sym; apply: ifN. Qed.
 End Contrapositives.
 
 Implicit Arguments memPn [T A x].
+Implicit Arguments memPnC [T A x].
 
 Theorem eq_irrelevance (T : eqType) x y : forall e1 e2 : x = y :> T, e1 = e2.
 Proof.

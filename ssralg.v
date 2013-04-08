@@ -4686,6 +4686,9 @@ Qed.
 
 End ModuleTheory.
 
+Lemma char_lalg (A : lalgType F) : [char A] =i [char F].
+Proof. by move=> p; rewrite inE -scaler_nat scaler_eq0 oner_eq0 orbF. Qed.
+
 Section Predicates.
 
 Context (S : pred_class) (divS : @divrPred F S) (kS : keyed_pred divS).
@@ -5489,6 +5492,7 @@ Definition rpredV := rpredV.
 Definition rpred_div := rpred_div.
 Definition rpredXN := rpredXN.
 Definition rpredZeq := rpredZeq.
+Definition char_lalg := char_lalg.
 Definition rpredMr := rpredMr.
 Definition rpredMl := rpredMl.
 Definition rpred_divr := rpred_divr.

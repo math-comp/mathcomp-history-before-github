@@ -2127,7 +2127,7 @@ have [Gamma [S4_Gamma normGamma [b Dbeta]]]:
       rewrite -mulr2n oS1ua -muln_divA // mul2n -addrA addrCA -natrX mulrBl.
       by congr (_ + (_ - _)); rewrite -mulrnAl -mulrnA muln2 mulrC.
     rewrite Itau // cfnormBd; last first.
-      by rewrite cfdotZr oSS ?mulr0 // eq_sym (memPn S1'lam1).
+      by rewrite cfdotZr oSS ?mulr0 // (memPnC S1'lam1).
     by rewrite cfnormZ normr_nat n1psi1 n1lam1 mulr1 addrC -natrX.
   have ubDelta: '[G] <= '[G] + '[Delta] ?= iff (Delta == 0).
     rewrite addrC -lerif_subLR subrr -cfnorm_eq0 eq_sym.

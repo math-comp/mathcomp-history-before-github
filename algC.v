@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq choice div fintype.
 Require Import path bigop finset prime ssralg poly polydiv mxpoly.
 Require Import generic_quotient countalg ssrnum ssrint rat intdiv.
-Require complex.
+Require Import algebraics_fundamentals.
 
 (******************************************************************************)
 (* This file provides an axiomatic construction of the algebraic numbers.     *)
@@ -185,23 +185,6 @@ have normD x y : le (norm (x + y)) (norm x + norm y).
 by exists (Num.Mixin normD sposD norm_eq0 pos_linear normM (rrefl _) (rrefl _)).
 Qed.
 
-(* A "purely algebraic" statement of the Fundamental Theorem of Algebra. *)
-
-Module UseComplex.
-Import realalg complex.
-
-Theorem complex_closed_field_exists :
-  {L : closedFieldType &
-     {conj : {rmorphism L -> L} | involutive conj & ~ conj =1 id}}.
-Proof.
-exists [closedFieldType of complexalg].
-exists [rmorphism of (@conjc [ringType of realalg])]; first exact: conjcK.
-move=> /(_ 'i) /= [] /eqP; rewrite eq_sym -subr_eq0 opprK.
-by rewrite paddr_eq0 ?ler01 // oner_eq0.
-Qed.
-End UseComplex.
-Definition complex_closed_field_exists := UseComplex.complex_closed_field_exists.
-
 Module Algebraics.
 
 Module Type Specification.
@@ -258,16 +241,16 @@ End Specification.
 
 Module Implementation : Specification.
 
-Definition L := tag complex_closed_field_exists.
+Definition L := tag Fundamental_Theorem_of_Algebraics.
 
 Definition conjL : {rmorphism L -> L} :=
-  s2val (tagged complex_closed_field_exists).
+  s2val (tagged Fundamental_Theorem_of_Algebraics).
 
 Fact conjL_K : involutive conjL.
-Proof. exact: s2valP (tagged complex_closed_field_exists). Qed.
+Proof. exact: s2valP (tagged Fundamental_Theorem_of_Algebraics). Qed.
 
 Fact conjL_nt : ~ conjL =1 id.
-Proof. exact: s2valP' (tagged complex_closed_field_exists). Qed.
+Proof. exact: s2valP' (tagged Fundamental_Theorem_of_Algebraics). Qed.
 
 Definition LnumMixin := ComplexNumMixin conjL_K conjL_nt.
 Definition Lnum := NumDomainType L (sval LnumMixin).
@@ -279,7 +262,6 @@ Definition rootQtoL p_j :=
   if p_j.1 == 0 then 0 else
   (sval (closed_field_poly_normal (pQtoL p_j.1)))`_p_j.2.
 
-(* ?!!?! generic_quotient does not support quotient-by-projection ??!?! *)
 Definition eq_root p_j q_k := rootQtoL p_j == rootQtoL q_k.
 Fact eq_root_is_equiv : equiv_class_of eq_root.
 Proof. by rewrite /eq_root; split=> // [? | ? ? ? /eqP->]. Qed.
@@ -476,10 +458,7 @@ Local Notation ZtoC := (intr : int -> algC).
 Local Notation Creal := (Num.real : qualifier 0 algC).
 
 Fact algCi_subproof : {i : algC | i ^+ 2 = -1}.
-Proof. 
-have /sig_eqW[i i2N1] := solve_monicpoly (nth 0 [:: -1 : algC]) (isT : 0 < 2)%N.
-by exists i; rewrite i2N1 !big_ord_recl big_ord0 mul0r !addr0 mulr1.
-Qed.
+Proof. exact: imaginary_exists. Qed.
 
 Let Re2 z := z + z^*.
 Definition nnegIm z := 0 <= sval algCi_subproof * (z^* - z).
@@ -523,69 +502,12 @@ Qed.
 
 CoInductive getCrat_spec : Type := GetCrat_spec CtoQ of cancel QtoC CtoQ.
 
-(* Reconstructed rational subring. *)
-(* Note that this proof is contrived so that it depends only on the fact that *)
-(* QtoC is a field embedding, and not on the order structure assumed for C.   *)
-(* Thus, it could be used in (and moved to) the construction of C.            *)
 Fact getCrat_subproof : getCrat_spec.
 Proof.
-have QtoCinj: injective QtoC by exact: fmorph_inj.
-have ZtoQinj: injective ZtoQ by exact: intr_inj.
-have defZtoC: ZtoC =1 QtoC \o ZtoQ by move=> m; rewrite /= rmorph_int.
-suffices CtoQ x: {xa : seq rat | forall a, x = QtoC a -> a \in xa}.
-  exists (fun x => let: exist xa _ := CtoQ x in xa`_(index x (map QtoC xa))).
-  move=> a /=; case: (CtoQ _) => xa /= /(_ a (erefl _)) xa_a; apply: QtoCinj.
-  by rewrite -(nth_map _ 0) ?nth_index -?(size_map QtoC) ?index_mem ?map_f.
-have [-> | nz_x] := eqVneq x 0.
-  by exists [:: 0] => a; rewrite inE -(inj_eq QtoCinj) rmorph0 => <-.
-have /sig2_eqW[q mon_q qx0] := algebraic x.
-have [p [a nz_a Dq]] := rat_poly_scale q.
-have{mon_q} Da: lead_coef p = a.
-  apply: ZtoQinj; rewrite -{2}(monicP mon_q) Dq lead_coefZ.
-  rewrite -(mulrzr _ a) (mulrC _^-1) divfK ?intr_eq0 //.
-  by rewrite !lead_coefE size_rat_int_poly coef_map.
-have{q Dq qx0} px0: root (map_poly ZtoC p) x.
-  rewrite Dq map_polyZ -map_poly_comp -(eq_map_poly defZtoC) rootZ // in qx0.
-  by rewrite fmorph_eq0 invr_eq0 intr_eq0.  
-without loss{nz_x} nz_p0: p Da px0 / p`_0 != 0.
-  move=> IH; elim/poly_ind: p => [| p c IHp] in Da px0.
-    by rewrite -Da lead_coef_eq0 eqxx in nz_a.
-  have [c0 | nz_c] := eqVneq c 0; last first.
-    by apply: IH Da px0 _; rewrite coefD coefC coefMX add0r.
-  rewrite c0 addr0 lead_coefM lead_coefX mulr1 mulrC rmorphM /= in Da px0.
-  by apply: IHp Da _; rewrite rootM map_polyX rootX (negPf nz_x) in px0.
-pose q e m := ZtoQ ((-1) ^+ e * m%:Z) / ZtoQ a.
-exists [seq q e m | e <- iota 0 2, m <- divisors `|a * p`_0|] => y Dx.
-rewrite {x}Dx (eq_map_poly defZtoC) map_poly_comp fmorph_root /root in px0.
-have [n Dn]: {n | size p = n.+2}.
-  exists (size p - 2)%N; rewrite -addn2 subnK //.
-  rewrite -size_rat_int_poly (root_size_gt1 _ px0) // -size_poly_eq0.
-  by rewrite size_rat_int_poly size_poly_eq0 -lead_coef_eq0 Da.
-pose m := numq y; pose d := denq y.
-have co_md: coprimez m d by exact: coprime_num_den.
-have{px0} [c /eqP Dc]: {c | a * m ^+ n.+1 + p`_0 * d ^+ n.+1 == c * m * d}.
-  exists (- \sum_(i < n) p`_i.+1 * m ^+ i * d ^+ (n - i.+1)).
-  rewrite -mulrA mulNr mulr_suml -addr_eq0 -addrA addrC; apply/eqP/ZtoQinj.
-  rewrite raddf0 -(mul0r (ZtoQ d ^+ n.+1)) -(rootP px0).
-  rewrite horner_coef mulr_suml size_rat_int_poly Dn big_ord_recr big_ord_recl.
-  rewrite lead_coefE Dn in Da; rewrite !coef_map {}Da !raddfD raddf_sum mulr1.
-  rewrite -rmorphX -rmorphM; congr (_ + _ + _); last first.
-    by rewrite rmorphX -mulrA -exprMn -numqE -rmorphX -rmorphM.
-  apply: eq_bigr => k _; rewrite coef_map; move: (nth 0 p) => p_ /=.
-  rewrite !rmorphM !rmorphX /= numqE exprMn -/d -!mulrA; congr (_ * _).
-  rewrite -!(mulrCA y) mulrA -exprS -expr2 -!exprD; congr (_ * _ ^+ _).
-  by rewrite addnCA addn2 addnS subnK.
-have dv_d_a: (d %| a)%Z.
-  rewrite -(@Gauss_dvdzl _ _ (m ^+ n.+1)) 1?coprimez_sym ?coprimez_expl //.
-  by rewrite (canRL (addrK _) Dc) exprSr !mulrA -mulrBl dvdz_mull.
-have dv_m_p0: (m %| p`_0)%Z.
-  rewrite -(@Gauss_dvdzl _ _ (d ^+ n.+1)) ?coprimez_expr //.
-  by rewrite (canRL (addKr _) Dc) addrC mulrAC exprSr mulrA -mulrBl dvdz_mull.
-pose ma := (a %/ d)%Z * m; apply/allpairsP; exists (ma < 0 : nat, `|ma|%N).
-rewrite mem_iota ltnS leq_b1 -dvdn_divisors ?absz_gt0 ?mulf_neq0 //.
-rewrite /q -intEsign -dvdzE rmorphM dvdz_mul //= ?numqE -/d.
-  by rewrite mulrCA -rmorphM divzK ?mulfK ?intr_eq0.
-by apply/dvdzP; exists d; rewrite mulrC divzK.
+have isQ := rat_algebraic_decidable algebraic.
+exists (fun z => if isQ z is left Qz then sval (sig_eqW Qz) else 0) => a.
+case: (isQ _) => [Qa | []]; last by exists a.
+by case: (sig_eqW _) => b /= /fmorph_inj.
 Qed.
 
 Fact floorC_subproof x : {m | x \is Creal -> ZtoC m <= x < ZtoC (m + 1)}.
@@ -598,73 +520,26 @@ without loss x_ge0: x Rx / x >= 0.
   case: eqP => [-> _ | _ /and3P[lt_x_m _ le_m_x]].
     by exists (- m) => _; rewrite lerr rmorphD ltr_addl ltr01.
   by exists (- m - 1); rewrite le_m_x subrK.
-suffices /ex_minnP[n lt_x_n1 min_n]: exists n, x < n.+1%:R.
-  exists n%:Z => _; rewrite addrC -intS lt_x_n1 andbT.
-  case Dn: n => // [n1]; rewrite -Dn.
-  have [||//|] := @real_lerP _ n%:R x; rewrite ?rpred_nat //.
-  by rewrite Dn => /min_n; rewrite Dn ltnn.
-suffices [n x_le_n]: exists n, x <= n%:R.
-  by exists n; rewrite (ler_lt_trans x_le_n) ?ltr_nat.
-have [||| x_gt1] := @real_lerP _ x 1; rewrite ?rpred1 //; first by exists 1%N.
-have [p mon_p px0] := algebraic x; have nz_p: p != 0 := monic_neq0 mon_p.
-pose n := (size p).-2; have Dn: n.+2 = size p.
-  rewrite /n -subn2 -addn2 subnK // -(size_map_poly QtoCm).
-  by rewrite (root_size_gt1 _ px0) // map_poly_eq0.
-have xk_gt0 k: 0 < x ^+ k by rewrite exprn_gt0 // (ltr_trans ltr01).
-exists (\sum_(i < n.+1) `|numq p`_i|)%N.
-have ->: x = QtoC (lead_coef p) * x by rewrite (monicP mon_p) rmorph1 mul1r.
-rewrite -[_ * x]subr0 -(ler_pmul2r (xk_gt0 n)) mulrBl mul0r -mulrA -exprS.
-rewrite -(eqP px0) horner_coef size_map_poly lead_coefE -Dn.
-rewrite big_ord_recr opprD addrC coef_map subrK -sumrN /= natr_sum mulr_suml.
-apply: ler_sum => k _; rewrite coef_map -mulNr -rmorphN /=.
-apply: (@ler_trans _ (`|numq p`_k|%:~R * x ^+ k)); last first.
-  by rewrite -abszE ler_wpmul2l ?ler0n // ler_eexpn2l ?leq_ord.
-rewrite ler_pmul2r // -(rmorph_int QtoCm) intr_norm ler_rat numqE normrM.
-apply: ler_trans (real_ler_norm (num_real _)) _.
-by rewrite normrN ler_pemulr ?normr_ge0 // -intr_norm ler1n absz_gt0.
+have /ex_minnP[n lt_x_n1 min_n]: exists n, x < n.+1%:R.
+  have [n le_x_n] := rat_algebraic_archimedean algebraic x.
+  by exists n; rewrite -(ger0_norm x_ge0) (ltr_trans le_x_n) ?ltr_nat.
+exists n%:Z => _; rewrite addrC -intS lt_x_n1 andbT.
+case Dn: n => // [n1]; rewrite -Dn.
+have [||//|] := @real_lerP _ n%:R x; rewrite ?rpred_nat //.
+by rewrite Dn => /min_n; rewrite Dn ltnn.
 Qed.
 
 Fact minCpoly_subproof (x : algC) :
-  {p | p \is monic & forall q, root (pQtoC q) x = (p %| q)}.
+  {p | p \is monic & forall q, root (pQtoC q) x = (p %| q)%R}.
 Proof.
-have /sig2_eqW[p0 mon_p0 p0x] := algebraic x.
-have [r Dp0] := closed_field_poly_normal (map_poly QtoC p0).
-rewrite (monicP _) ?monic_map {mon_p0}// scale1r in Dp0.
-have r_x: x \in r by rewrite Dp0 root_prod_XsubC in p0x.
-pose p_ (I : {set 'I_(size r)}) := \prod_(i <- enum I) ('X - (r`_i)%:P).
-have [CtoQ QtoC_K] := getCrat_subproof.
-pose Crat : pred type := fun z => QtoC (CtoQ z) == z.
-pose Qpx I := root (p_ I) x && (p_ I \is a polyOver Crat).
-have{p0 p0x Dp0} /minset_exists[I /minsetP[]]: Qpx setT.
-  rewrite /Qpx; have ->: p_ setT = pQtoC p0.
-     rewrite Dp0 (big_nth 0) big_mkord /p_ big_filter /=.
-     by apply: eq_bigl => i; rewrite inE.
-   rewrite p0x; apply/(all_nthP 0) => i _ /=.
-   by rewrite coef_map unfold_in QtoC_K.
-case/andP=> pIx QpI minI _; pose p := map_poly CtoQ (p_ I).
-have DpI: p_ I = pQtoC p.
-  rewrite -[p_ I]coefK; apply/polyP=> i; rewrite -map_poly_comp !coef_poly.
-  by case: ifP => //= lti_pI; apply/esym/eqP/(allP QpI)/mem_nth.
-exists p => [|q]; first by rewrite -(map_monic QtoCm) -DpI monic_prod_XsubC.
-apply/idP/idP=> [qx0 | /dvdpP[{q} q ->]]; last first.
-  by rewrite rmorphM rootM /= -DpI pIx orbT.
-pose q1 := gcdp p q; have /dvdp_prod_XsubC[m Dq1]: pQtoC q1 %| p_ I.
-  by rewrite gcdp_map DpI dvdp_gcdl.
-pose B := [set i in mask m (enum I)].
-have{Dq1} Dq1: pQtoC q1 %= p_ B.
-  congr (_ %= _): Dq1; apply: eq_big_perm.
-  by rewrite uniq_perm_eq ?mask_uniq ?enum_uniq // => i; rewrite mem_enum inE.
-rewrite -(dvdp_map QtoCm) -DpI -(minI B); last 1 first.
-- by apply/subsetP=> i; rewrite inE => /mem_mask; rewrite mem_enum.
-- by rewrite -(eqp_dvdl _ Dq1) gcdp_map dvdp_gcdr.
-rewrite /Qpx -(eqp_root Dq1) gcdp_map root_gcd qx0 -DpI pIx.
-have{Dq1} /eqpP[[d1 d2] /= /andP[nz_d1 nz_d2] Dq1] := Dq1.
-rewrite -[p_ B](scalerK nz_d2) -Dq1 scalerA mulrC.
-have ->: d1 / d2 = (QtoC (lead_coef q1))^-1.
-  have /esym := congr1 lead_coef Dq1; rewrite !lead_coefZ lead_coef_map.
-  by rewrite (monicP _) ?monic_prod_XsubC // mulr1 => ->; rewrite invfM mulVKf.
-apply/(all_nthP 0)=> i _; rewrite coefZ coef_map mulrC /=.
-by rewrite -fmorph_div unfold_in QtoC_K.
+have isQ := rat_algebraic_decidable algebraic.
+have [p [mon_p px0 irr_p]] := minPoly_decidable_closure isQ (algebraic x).
+exists p => // q; apply/idP/idP=> [qx0 | /dvdpP[r ->]]; last first.
+  by rewrite rmorphM rootM px0 orbT.
+suffices /eqp_dvdl <-: gcdp p q %= p by apply: dvdp_gcdr.
+rewrite irr_p ?dvdp_gcdl ?gtn_eqF // -(size_map_poly QtoCm) gcdp_map /=.
+rewrite (@root_size_gt1 _ x) ?root_gcd ?px0 //.
+by rewrite gcdp_eq0 negb_and map_poly_eq0 monic_neq0.
 Qed.
 
 Definition algC_divisor (x : algC) := x : divisor.
@@ -1864,7 +1739,7 @@ Qed.
 Lemma minCpolyP x :
    {p | minCpoly x = pQtoC p /\ p \is monic
       & forall q, root (pQtoC q) x = (p %| q)%R}.
-Proof. by unlock minCpoly; case: (minCpoly_subproof x) => p /=; exists p. Qed.
+Proof. by rewrite /minCpoly; case: (minCpoly_subproof x) => p; exists p. Qed.
 
 Lemma minCpoly_monic x : minCpoly x \is monic.
 Proof. by have [p [-> mon_p] _] := minCpolyP x; rewrite map_monic. Qed.

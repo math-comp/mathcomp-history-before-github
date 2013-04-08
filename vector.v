@@ -1539,10 +1539,11 @@ Qed.
 Lemma memv_ker f v : (v \in lker f) = (f v == 0).
 Proof. by rewrite -memv0 !memvE subv0 lkerE limg_line. Qed.
 
+Lemma eqlfunP f g v : reflect (f v = g v) (v \in lker (f - g)).
+Proof. by rewrite memv_ker !lfun_simp subr_eq0; apply: eqP. Qed.
+
 Lemma eqlfun_inP V f g : reflect {in V, f =1 g} (V <= lker (f - g))%VS.
-Proof.
-by apply: (iffP subvP) => E x /E; rewrite memv_ker !lfun_simp subr_eq0 => /eqP.
-Qed.
+Proof. by apply: (iffP subvP) => E x /E/eqlfunP. Qed.
 
 Lemma limg_ker_compl f U : (f @: (U :\: lker f) = f @: U)%VS.
 Proof. 
@@ -1596,6 +1597,8 @@ End LinearImage.
 Implicit Arguments memv_imgP [K aT rT f U w].
 Implicit Arguments lfunPn [K aT rT f g].
 Implicit Arguments lker0P [K aT rT f].
+Implicit Arguments eqlfunP [K aT rT f g v].
+Implicit Arguments eqlfun_inP [K aT rT f g V].
 
 Section FixedSpace.
 

@@ -171,8 +171,8 @@ Require Import ssreflect ssrfun.
 (* KeyedQualifier k_q == an instance of the interface structure that attaches *)
 (*                  (k_q : pred_key q) to (q : qualifier n T).                *)
 (* DefaultPredKey p == a default value for pred_key p; the vernacular command *)
-(*                  Import DefaultPredKeying attaches this key to all         *)
-(*                  predicates that are not explicitly keyed.                 *)
+(*                  Import DefaultKeying attaches this key to all predicates  *)
+(*                  that are not explicitly keyed.                            *)
 (* Keys can be used to attach properties to predicates, qualifiers and        *)
 (* generic nouns in a way that allows them to be used tranparently. The key   *)
 (* projection of a predicate property structure such as unsignedPred should   *)
@@ -1380,6 +1380,31 @@ Canonical default_keyed_qualifier T n (q : qualifier n T) :=
   KeyedQualifier (DefaultPredKey q).
 
 End DefaultKeying.
+
+(* Skolemizing with conditions. *)
+
+Lemma all_tag_cond_dep I T (C : pred I) U :
+    (forall x, T x) -> (forall x, C x -> {y : T x & U x y}) ->
+  {f : forall x, T x & forall x, C x -> U x (f x)}.
+Proof.
+move=> f0 fP; apply: all_tag (fun x y => C x -> U x y) _ => x.
+by case Cx: (C x); [case/fP: Cx => y; exists y | exists (f0 x)].
+Qed.
+
+Lemma all_tag_cond I T (C : pred I) U :
+    T -> (forall x, C x -> {y : T & U x y}) ->
+  {f : I -> T & forall x, C x -> U x (f x)}.
+Proof. by move=> y0; apply: all_tag_cond_dep. Qed.
+
+Lemma all_sig_cond_dep I T (C : pred I) P :
+    (forall x, T x) -> (forall x, C x -> {y : T x | P x y}) ->
+  {f : forall x, T x | forall x, C x -> P x (f x)}.
+Proof. by move=> f0 /(all_tag_cond_dep f0)[f]; exists f. Qed.
+
+Lemma all_sig_cond I T (C : pred I) P :
+    T -> (forall x, C x -> {y : T | P x y}) ->
+  {f : I -> T | forall x, C x -> P x (f x)}.
+Proof. by move=> y0; apply: all_sig_cond_dep. Qed.
 
 Section RelationProperties.
 

@@ -537,6 +537,16 @@ Lemma aspacef_subproof : is_aspace fullv.
 Proof. by rewrite /is_aspace subvf has_algid1 ?memvf. Qed.
 Canonical aspacef : {aspace aT} := ASpace aspacef_subproof.
 
+Lemma polyOver1P p :
+  reflect (exists q, p = map_poly (in_alg aT) q) (p \is a polyOver 1%VS).
+Proof.
+apply: (iffP idP) => [/allP/=Qp | [q ->]]; last first.
+  by apply/polyOverP=> j; rewrite coef_map rpredZ ?memv_line.
+exists (map_poly (coord [tuple 1] 0) p).
+rewrite -map_poly_comp map_poly_id // => _ /Qp/vlineP[a ->] /=.
+by rewrite linearZ /= (coord_free 0) ?mulr1 // seq1_free ?oner_eq0.
+Qed.
+
 End FalgebraTheory.
 
 Delimit Scope aspace_scope with AS.
@@ -557,6 +567,7 @@ Notation "[ 'aspace' 'of' U 'for' A ]" := (@clone_aspace _ _ U A _ idfun)
 
 Implicit Arguments prodvP [K aT U V W].
 Implicit Arguments has_algidP [K aT U].
+Implicit Arguments polyOver1P [K aT p].
 
 Section AspaceTheory.
 
@@ -920,6 +931,10 @@ Canonical ahom_eqType := Eval hnf in EqType ahom ahom_eqMixin.
 Definition ahom_choiceMixin := [choiceMixin of ahom by <:].
 Canonical ahom_choiceType := Eval hnf in ChoiceType ahom ahom_choiceMixin.
 
+Fact linfun_is_ahom (f : {lrmorphism aT -> rT}) : ahom_in {:aT} (linfun f).
+Proof. by apply/ahom_inP; split=> [x y|]; rewrite !lfunE ?rmorphM ?rmorph1. Qed.
+Canonical linfun_ahom f := AHom (linfun_is_ahom f).
+
 End Class_Def.
 
 Implicit Arguments ahom_in [aT rT].
@@ -942,6 +957,7 @@ Qed.
 
 Lemma id_is_ahom (V : {vspace aT}) : ahom_in V \1.
 Proof. by apply/ahom_inP; split=> [x y|] /=; rewrite !id_lfunE. Qed.
+Canonical id_ahom := AHom (id_is_ahom (aspacef aT)).
 
 Lemma comp_is_ahom (V : {vspace aT}) (f : 'Hom(rT, sT)) (g : 'Hom(aT, rT)) :
   ahom_in {:rT} f -> ahom_in V g -> ahom_in V (f \o g).
@@ -949,9 +965,6 @@ Proof.
 move=> /ahom_inP fM /ahom_inP gM; apply/ahom_inP.
 by split=> [x y Vx Vy|] /=; rewrite !comp_lfunE gM // fM ?memvf.
 Qed.
-
-Canonical id_ahom := AHom (id_is_ahom (aspacef aT)).
-
 Canonical comp_ahom (f : ahom rT sT) (g : ahom aT rT) :=
   AHom (comp_is_ahom (valP f) (valP g)).
 
@@ -988,17 +1001,18 @@ Lemma aimg_adjoin_seq (f : ahom aT rT) U xs :
   (f @: <<U & xs>> = <<f @: U & map f xs>>)%VS.
 Proof. by rewrite aimg_agen limg_add limg_span. Qed.
 
+Fact ker_sub_ahom_is_aspace (f g : ahom aT rT) :
+  is_aspace (lker (ahval f - ahval g)).
+Proof.
+rewrite /is_aspace has_algid1; last by apply/eqlfunP; rewrite !rmorph1.
+apply/prodvP=> a b /eqlfunP Dfa /eqlfunP Dfb.
+by apply/eqlfunP; rewrite !rmorphM /= Dfa Dfb.
+Qed.
+Canonical ker_sub_ahom_aspace f g := ASpace (ker_sub_ahom_is_aspace f g).
+
 End LRMorphism.
 
-Variable (aT : FalgType K) (f : ahom aT aT).
-
-Fact fixedSpace_is_aspace : is_aspace (fixedSpace f).
-Proof.
-apply/andP; split; first exact/has_algid1/fixedSpaceP/rmorph1.
-apply/prodvP => a b /fixedSpaceP fa_a /fixedSpaceP fb_b.
-by apply/fixedSpaceP; rewrite rmorphM /= fa_a fb_b.
-Qed.
-Canonical fixedSpace_aspace : {aspace aT} := ASpace fixedSpace_is_aspace.
+Canonical fixedSpace_aspace aT (f : ahom aT aT) := [aspace of fixedSpace f].
 
 End AHom.
 

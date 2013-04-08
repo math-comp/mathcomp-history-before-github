@@ -2229,13 +2229,13 @@ Proof. exact: scalar_mxC. Qed.
 Lemma mul_mx_scalar m n a (A : 'M[R]_(m, n)) : A *m a%:M = a *: A.
 Proof. by rewrite scalar_mxC mul_scalar_mx. Qed.
 
-Lemma mxtrace_mulC m n (A : 'M[R]_(m, n)) (B : 'M_(n, m)) :
-  \tr (A *m B) = \tr (B *m A).
+Lemma mxtrace_mulC m n (A : 'M[R]_(m, n)) B :
+   \tr (A *m B) = \tr (B *m A).
 Proof.
-transitivity (\sum_i \sum_j A i j * B j i).
+have expand_trM C D: \tr (C *m D) = \sum_i \sum_j C i j * D j i.
   by apply: eq_bigr => i _; rewrite mxE.
-rewrite exchange_big; apply: eq_bigr => i _ /=; rewrite mxE.
-apply: eq_bigr => j _; exact: mulrC.
+rewrite !{}expand_trM exchange_big /=.
+by do 2!apply: eq_bigr => ? _; apply: mulrC.
 Qed.
 
 (* The theory of determinants *)

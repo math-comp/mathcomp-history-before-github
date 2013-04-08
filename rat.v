@@ -690,6 +690,23 @@ Proof. by move=> a; rewrite -{1}[a]divq_num_den fmorph_div !rmorph_int. Qed.
 
 End Fmorph.
 
+Section Linear.
+
+Implicit Types (U V : lmodType rat) (A B : lalgType rat).
+
+Lemma rat_linear U V (f : U -> V) : additive f -> linear f.
+Proof.
+move=> fB a u v; pose phi := Additive fB; rewrite [f _](raddfD phi).
+congr (_ + _); rewrite -{2}[a]divq_num_den mulrC -scalerA.
+apply: canRL (scalerK _) _; first by rewrite intr_eq0 denq_neq0.
+by rewrite !scaler_int -raddfMz scalerMzl -mulrzr -numqE scaler_int raddfMz.
+Qed.
+
+Lemma rat_lrmorphism A B (f : A -> B) : rmorphism f -> lrmorphism f.
+Proof. by case=> /rat_linear fZ fM; do ?split=> //; apply: fZ. Qed.
+
+End Linear.
+
 Section InPrealField.
 
 Variable F : numFieldType.
