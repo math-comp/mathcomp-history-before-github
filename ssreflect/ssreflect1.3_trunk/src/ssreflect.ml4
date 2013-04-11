@@ -1318,9 +1318,9 @@ let interp_modloc mr =
     try Nametab.full_name_module qid with Not_found ->
     Errors.user_err_loc (loc, "interp_modloc", str "No Module " ++ pr_qualid qid) in
   let mr_out, mr_in = List.partition fst mr in
-  let interp_bmod b = functio n
+  let interp_bmod b = function
   | [] -> fun _ _ _ -> true
- | rmods -> Search.module_filter (List.map interp_mod rmods, b) in
+  | rmods -> Search.module_filter (List.map interp_mod rmods, b) in
   let is_in = interp_bmod false mr_in and is_out = interp_bmod true mr_out in
   fun gr env typ -> is_in gr env typ && is_out gr env typ
 
