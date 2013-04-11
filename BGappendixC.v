@@ -546,325 +546,178 @@ rewrite -oP0 cardG_gt1 negbK -subG1 -(Frobenius_trivg_cent frobH) subsetI sP0P.
 apply/commG1P/trivgP; rewrite -tiPU commg_subI // subsetI ?subxx //.
 by rewrite sP0P -eqP10.
 Qed.
-  
+
 (* This is B & G, Appendix C, Lemma C.3, Step 4. *)
-Fact BGappendixC3_Ediv : E = [set (x^-1)%R | x in E].
+Fact BGappendixC3_Ediv : E = [set x^-1 | x in E]%R.
 Proof.
-have HtP1 : t \in P1 by rewrite memJ_conjg.
-have HUconj r : r \in P1 -> U :^ r = U by move/(subsetP nUP0y)/normP.
-have HutnU u n : u \in U -> u ^ (t ^+ n) \in U.
-  by rewrite memJ_norm // groupX // (subsetP nUP0y).
-have HutNnU u n : u \in U -> u ^ (t ^- n) \in U.
-  by rewrite memJ_norm // groupV groupX // (subsetP nUP0y).
-have HtsQ i : s ^- i * t ^+ i \in Q.
-  rewrite -conjXg !mulgA groupM // -mulgA memJ_norm ?groupV // groupX //.
-  by apply: (subsetP nQP0).
-suffices Hsuff a: a \in U -> psi a \in E -> psi (a^-1 ^ (t ^+ 3)) \in E.
-  suffices sE'E: [set (x^-1)%R | x in E] \subset E.
-    apply/esym/eqP; rewrite eqEcard sE'E card_imset //=.
-    exact: can_inj (@invrK _).
-  apply/subsetP => _ /imsetP [x Ex ->].
-  have /imsetP[a Ua Dx]: x \in psi @: U.
-    by rewrite im_psi !inE in Ex *; case/andP: Ex.
-  suffices: psi (a^-1 ^ 1) \in E by rewrite conjg1 Dx sigmaE.
-  have /eqP <- : (t ^+ (3 * p ^ q)) == 1.
-    by rewrite -order_dvdn dvdn_mull // orderJ -oP order_dvdG.
-  rewrite -(odd_double_half (p ^ q)) odd_exp odd_p orbT addnC.
-  elim: _./2 => [|n /= IHn]; first by rewrite Hsuff -?Dx.
-  rewrite doubleS 2!addSn !mulnSr 2!expgD 2!conjgM.
-  by rewrite -[u in u ^ t ^+ 3]invgK -conjVg !Hsuff ?(HutnU, groupV).
-rewrite 2!inE => Ha /andP[_ Hb].
-have Hainvt3 : a^-1 ^ t ^+ 3 \in U by rewrite HutnU ?groupV.
-pose goal v1 := s ^+ 2 = s ^ v1 * s ^ a^-1 ^ t ^+ 3.
-suffices [v1 Hv1U /(congr1 sigma)]: exists2 v1, v1 \in U & goal v1.
-  rewrite sigmaX // sigma_s sigmaM ?memJ_P -?psiE // => /(canLR (addrK _))->.
-  by rewrite -!im_psi !mem_imset.
-have{Hb} /imsetP[b Hb]: 2%:R - psi a \in psi @: U by rewrite im_psi.
-move/(canRL (subrK _))/esym; rewrite addrC => Hab.
-(* In the book k is aribtrary in Fp; however only k := 3 is used *)
-pose k := 3.
-have [_ HPU _ HPUI] := sdprodP defH.
-have C5inH m n r u : u \in U -> s ^+ m * u ^ t ^+ r * s ^- n \in H.
-  move => Hu.
-  apply: groupM; first apply groupM; rewrite ?groupV ?groupX // -HPU.
-  - by apply: (subsetP (mulG_subl U P)).
-  - by apply: (subsetP (mulG_subr P U)); apply: HutnU.
-  - by apply: (subsetP (mulG_subl U P)).
-have [|u1 Hu1 [v1 Hv1 [s1 Hs1 Husv1]]] :=
-         @splitH (s ^+ k.-2 * a^-1 ^ t ^+ k * s ^- k.-1).
-  by apply: C5inH; rewrite groupV.
-have [|u2 Hu2 [v2 Hv2 [s2 Hs2 Husv2]]] :=
-         @splitH (s ^+ k * (a * b^-1) ^ t ^+ k.-1 * s ^- k.-2).
-  by apply: C5inH; rewrite groupM ?groupV.
-have [|{C5inH} u3 Hu3 [v3 Hv3 [s3 Hs3 Husv3]]] :=
-         @splitH (s ^+ k.-1 * b ^ t ^+ k.-2 * s ^- k).
-  by apply: C5inH.
-exists v1; first done.
-have C6 m n r u ui vi si : s ^+ m * u ^ t ^+ r * s ^- n = ui * si * vi ->
-  s ^+ m != s ^+ n -> (s ^+ m != 1) || (s ^- n != 1) ->
-  u \in U -> ui \in U -> vi \in U -> si != 1.
-- case: (eqVneq si 1) => [->|//].
-  rewrite mulg1 => Huv Hmn HmVn Hu Hui Hvi.
-  have Hsm : s ^+ m \in P0 by apply: groupX.
-  have Hsn : s ^- n \in P0 by rewrite groupV; apply: groupX.
-  have Hut : u ^ t ^+ r \in U by apply: HutnU.
-  have := groupM Hui Hvi; rewrite -Huv.
-  case/(not_splitU Hsm Hsn Hut)/orP.
-    by move: HmVn; rewrite -negb_and; case: (_ && _).
-  by rewrite -eq_mulgV1 andbC; case: (s ^+ _ == _) Hmn.
-have ss_neq_1 : s ^+ 2 != 1.
-  rewrite -order_dvdn gtnNdvd // odd_gt2 ?order_gt1 // orderE defP0.
-  by rewrite (oddSg sP0P) // oP odd_exp odd_p orbT.
-have s1neq1 : s1 != 1.
-  move/C6: Husv1 => -> //; rewrite ?groupV //.
-    by rewrite eq_mulVg1 !(expg1, expgS) mulKg.
-  by rewrite expg1 nt_s.
-have{C6} s3neq1 : s3 != 1.
-  move/C6: Husv3 => -> //; last by rewrite ss_neq_1.
-  by rewrite eq_mulVg1 !(expg1, expgS) !invMg -!mulgA !mulKg.
-pose w1 := v2 ^ t^-1 * u3.
-pose w2 := v3 * u1 ^ t ^- 2.
-pose w3 := v1 * u2 ^ t.
-wlog suff{s1neq1 s3neq1 goal Hainvt3} C7_gen : a b u1 s1 v1 u2 s2 v2 u3 s3 v3 
-  Husv1 Husv2 Husv3 Hab Ha Hb Hu1 Hs1 Hv1 Hu2 Hs2 Hv2 Hu3 Hs3 Hv3
-  @w1 @w2 @w3  /
-  t^-1 * s2 * t^-1 = ((w1 * s3 * w2) * (t ^+ 2 * s1 * w3))^-1; last first.
-- apply/eqP; rewrite invMg -(canF_eq (mulgK _)) eq_sym eq_invg_mul; apply/eqP.
-  have: s ^- 2 * (s ^ a * s ^ b) == 1.
-    by rewrite -(morph_injm_eq1 inj_sigma) ?{1}(sigmaE, in_PU) // Hab addNr.
-  pose l := (k - 2)%N; rewrite -(conjg_eq1 _ (t ^+ l)).
-  rewrite [X in X == _](_ : _ = 
-    ((t ^- l * s ^+ l) * (s ^- k * t ^+ k)) * a^-1 ^ t ^+ k *
-    ((t ^- k * s ^+ k) * (s ^- k.-1 * t ^+ k.-1)) * (a * b^-1) ^ t ^+ k.-1 * 
-    ((t ^- k.-1 * s ^+ k.-1) * (s ^- l * t ^+ l)) * b ^ t ^+ l *
-    s ^- k * s ^+ k); last by rewrite /t !conjgE !invMg !mulgA !mulgK !mulgKV.
-  have ts_commute m n : commute (t ^- m * s ^+ m) (s ^- n * t ^+ n).
-    apply: (centsP (abelem_abelian abelQ)) => //.
-    by rewrite -groupV invMg invgK.
-  rewrite !ts_commute {ts_commute} -(conjg_eq1 _ (s ^- k)).
-  set C5a := s ^+ k.-2 * a^-1 ^ t ^+ k * s ^- k.-1.
-  set C5b := s ^+ k * (a * b^-1) ^ t ^+ k.-1 * s ^- k.-2.
-  set C5c := s ^+ k.-1 * b ^ t ^+ k.-2 * s ^- k.
-  rewrite [X in X == _](_ : _ = t ^+ 2 * C5a * t^-1 * C5b * t^-1 * C5c);
-      last first.
-    rewrite /C5a /C5b /C5c expgS expg1 /t !conjgE.
-    by rewrite !invMg -!mulgA !mulKg !mulKVg !invgK.
-  rewrite [C5a]Husv1 [C5b]Husv2 [C5c]Husv3 -(conjg_eq1 _ (u1 ^ t ^- 2)).
-  move/eqP <-; rewrite /w1 /w2 /w3 -!conjXg !conjgE !(invgK, invMg) !mulgA.
-  by rewrite !(mulgK, mulgKV).
-have C7 : t^-1 * s2 * t^-1 = (w1 * s3 * w2 * (t ^+ 2 * s1 * w3))^-1.
-  by apply: (C7_gen a b).
-have moduloP u ui si vi m n r : s ^+ m * u ^ t ^+ r * s ^- n = ui * si * vi ->
-  u \in U -> ui \in U -> si \in P0 -> vi \in U -> ui * vi = u ^ t ^+ r.
-- rewrite [_ * si]conjgCV -2!mulgA [_ * s ^- n]conjgCV {1}mulgA.
-  move/(canRL (mulgK _)); rewrite -mulgA; move/(canLR (mulKg _)) => Husvi.
-  move => Hu Hui Hsi Hvi.
-  apply/eqP; rewrite eq_mulgV1; apply/eqP/set1P.
-  rewrite -[[set 1]]HPUI inE -{1}Husvi.
-  by rewrite !(HutnU, memJ_P, groupV, groupM) ?groupX // (subsetP sP0P).
-have: t^-1 * s2 * t^-1 = (w1 ^+ p * s3 * w2 ^+ p * (t ^+ 2 * s1 * w3 ^+ p))^-1.
-  pose ap := a ^+ p; pose bp := b ^+ p.
-  have Hapbp : psi ap + psi bp = 2%:R.
-    by rewrite !sigmaE // -!Frobenius_autE -rmorphD Hab rmorph_nat.
-  suff Husvp u ui si vi m n r : s ^+ m * u ^ t ^+ r * s ^- n = ui * si * vi ->
-    u \in U -> ui \in U -> si \in P0 -> vi \in U ->
-    s ^+ m * (u ^+ p) ^ t ^+ r * s ^- n = ui ^+ p * si * vi ^+ p.
-  - have -> : w1 ^+ p = (v2 ^+ p) ^ t^-1 * u3 ^+ p.
-      rewrite conjXg expgMn //; apply: (centsP cUU) => //.
-      by rewrite -[t]expg1 HutNnU.
-    have -> : w2 ^+ p = v3 ^+ p * (u1 ^+ p) ^ t ^- 2.
-      rewrite conjXg expgMn //; apply: (centsP cUU) => //.
-      by rewrite HutNnU.
-    have -> : w3 ^+ p = v1 ^+ p * (u2 ^+ p) ^ t.
-      rewrite conjXg expgMn //; apply: (centsP cUU) => //.
-      by rewrite -[t]expg1 HutnU.
-    apply: (C7_gen ap bp) => //; try apply: groupX => //.
-    - by rewrite -[ap^-1]expgVn; apply: Husvp => //; rewrite groupV.
-    - rewrite -[bp^-1]expgVn -expgMn; last first.
-        by apply: (centsP cUU); rewrite // groupV.
-      by apply: Husvp => //; rewrite groupM // groupV.
-    - by apply: Husvp => //.
-  move => Husvi Hu Hui Hsi Hvi.
-  have Huivi := moduloP _ _ _ _ _ _ _ Husvi Hu Hui Hsi Hvi.
-  move: (Husvi).
-  rewrite [_ * si]conjgCV -2!mulgA [_ * s ^- n]conjgCV {1}mulgA -Huivi.
-  move/(can_inj (mulgK _))/eqP; rewrite eq_sym.
-  rewrite (canF_eq (conjgKV _)) conjMg -conjgM invMg mulgKV conjVg !conjXg.
-  move/eqP/(congr1 (fun x => Frobenius_aut charFp (sigma x)))/eqP.
-  rewrite morphM ?morphV ?morphX -?psiE ?groupV ?groupX ?memJ_P ?groupV //.
-  rewrite rmorphB !zmodXgE -![val _ *+ _]mulr_natl !rmorphM !rmorph_nat /=.
-  rewrite !Frobenius_autE.
-  have : sigma si \in Fp by rewrite -sigmaP0 morphimEsub ?mem_imset.
-  rewrite [_ \in _]Fermat's_little_theorem dimv1 oF_p => /eqP->.
-  rewrite -!psiX ?groupV // !mulr_natl !psiE ?groupX ?groupV //.
-  rewrite -!sigmaE.1.2 ?in_PU //.
-  rewrite (inj_in_eq (injmP inj_sigma)) ?in_PU // ?(subsetP sP0P) //.
-  rewrite -!conjXg -conjVg expgVn => /eqP->; rewrite mulgA -conjgC.
-  rewrite -3!mulgA -conjgCV; congr (_ * _); rewrite mulgA; congr (_ * _).
-  by rewrite -expgMn ?Huivi -?conjXg //; apply: (centsP cUU).
-rewrite C7 {C7_gen} => /invg_inj.
-rewrite [X in X = _](_ : _ = w1 * s3 * w2 * t ^+ 2 * (s1 * w3));
-  last by rewrite !mulgA.
-rewrite [X in _ = X](_ : _ = w1 ^+ p * s3 * w2 ^+ p * t ^+ 2 * (s1 * w3 ^+ p));
-  last by rewrite !mulgA.
-move/(canLR (mulKg _)); rewrite mulgA; move/(canRL (mulgK _)).
-rewrite [X in X = _](_ : _ = 
-  ((w1 ^+ p * s3 * w2 ^+ p)^-1 * (w1 * s3 * w2)) ^ t ^+ 2); last first.
-- by rewrite conjgE !(invMg, mulgA).
-move => Hw.
-have Hw1 : w1 \in U by rewrite groupM // -[t]expg1 HutNnU.
-have Hw2 : w2 \in U by rewrite groupM // HutNnU.
-have Hw3 : w3 \in U by by rewrite groupM // -[t]expg1 HutnU.
-have : (s1 == 1) && (s1^-1 == 1) || (w3 ^+ p * w3^-1 == 1) && (s1 * s1^-1 == 1).
-  apply: not_splitU; rewrite ?groupV //.
-  - by rewrite groupM ?groupV ?groupX. 
-  have Ht2 : t ^+ 2 \in P1^#.
-    by rewrite 2!inE groupX // andbT -conjXg conjg_eq1.
-  rewrite [X in X \in _](_ : _ =  s1 * w3 ^+ p * (s1 * w3)^-1);
-    last by rewrite !invMg !mulgA.
-  rewrite -(tiH_P1 Ht2) inE -{2}Hw {Hw}.
-  have /subsetP HUH : U \subset H by rewrite -HPU; apply: mulG_subr.
-  move: w1 w2 w3 {C7 Hw1 Hw2 Hw3} (HUH _ Hw1) (HUH _ Hw2) (HUH _ Hw3).
-  move => w1 w2 w3 Hw1 Hw2 Hw3.
-  by apply/andP; split; last apply: mem_imset;
-     rewrite !(groupV, groupM, groupX) // -HPU;
-     apply: (subsetP (mulG_subl U P)); apply (subsetP sP0P).
-rewrite eq_invg1 andbb (negbTE s1neq1) /=.
-rewrite -[p]prednK ?prime_gt0 // expgSr mulgK.
-have Hwp1 wi : wi \in U -> wi ^+ p.-1 == 1 -> wi = 1.
-  by move=> Uwi /eqP/(canRL_in (expgK _) Uwi)->; rewrite ?expg1n ?oU.
-case/andP => /(Hwp1 _ Hw3) w3_eq1 _.
-move/eqP: Hw.
-rewrite w3_eq1 expg1n mulg1 mulgV conjg_eq1 -eq_mulVg1.
-rewrite -(canF_eq (mulKVg _)) invMg !mulgA (canF_eq (mulgK _)) => /eqP Hw.
-have : (s3^-1 == 1) && (s3 == 1) || (w1^-1 * w1 ^+ p == 1) && (s3^-1 * s3 == 1).
-  by apply: not_splitU; rewrite ?groupV // ?mulgA ?Hw groupM ?groupV ?groupX.
-rewrite eq_invg1 andbb (negbTE s3neq1) /=.
-rewrite -[p]prednK ?prime_gt0 // expgS mulKg.
-case/andP => /(Hwp1 _ Hw1) w1_eq1 _.
-move/eqP: Hw.
-rewrite !w1_eq1 invg1 expg1n !mulg1 mulVg eq_sym -eq_mulgV1 eq_mulVg1.
-rewrite -[p]prednK ?prime_gt0 // expgS mulKg.
-move/(Hwp1 _ Hw2) => w2_eq1.
-move: C7.
-rewrite {} w1_eq1 {} w2_eq1  {} w3_eq1 {w1 w2 w3 Hw1 Hw2 Hw3 Hwp1}.
-rewrite !(mulg1, mul1g) => C7.
-have P0_abelian : abelian P0 by rewrite -defP0 cycle_abelian.
-have /eqP : s3 * s1 * s2 = 1.
-  have := C7.
-  have tiP0Q: P0 :&: Q = 1 by rewrite setIC coprime_TIg ?(coprimegS sP0P).
-  pose st := (s ^- 1 * t ^+ 1).
-  have -> : t^-1 = st ^-1 * s^-1.
-    by rewrite /st -invMg !expg1 mulKVg.
-  rewrite -[t ^+ 2](mulKVg (s ^+ 2)).
-  set st2 := (s ^-2 * t ^+ 2).
-  rewrite 3!invMg -!mulgA.
-  move/(canRL (mulKVg _)).
-  rewrite [st^-1 * _]conjgC 3!mulgA [st * _]conjgC -[X in _ = X]mulgA.
-  move/(canRL (mulgK _)).
-  rewrite -[X in _ = X]mulgA.
-  move/(canLR (mulKVg _)).
-  rewrite [X in _ = X * _]mulgA [_ * (s ^- 2 * _)]conjgC -[X in _ = X]mulgA.
-  rewrite -invMg.
-  move/(canLR (mulKVg _)).
-  have -> : commute s^-1 s2.
-    by apply: (centsP P0_abelian); rewrite ?groupV.
-  rewrite -[s2 * _ * _]mulgA [s1 * _]mulgA -invMg.
-  have -> : commute (s1 * s2) (s * s)^-1.
-    by apply: (centsP P0_abelian); rewrite !(groupV, groupM).
-  rewrite mulgA expgS expg1 mulgK mulgA => Hs123.
-  apply/set1P; rewrite -set1gE -tiP0Q inE {2}Hs123 2?groupM //; last first.
-    by rewrite groupV memJ_norm groupV ?HtsQ // (subsetP nQP0).
-  rewrite memJ_norm; last by rewrite (subsetP nQP0) // groupV !groupM.
-  rewrite groupM //; last by rewrite groupV HtsQ.
-  by rewrite memJ_norm ?HtsQ // groupV (subsetP nQP0).
-rewrite -eq_invg_mul eq_sym => /eqP s2E.
-move/eqP: C7.
-rewrite {}s2E {u2 v2 s2 Hu2 Hv2 Hs2 Husv2}.
-rewrite [X in _ == X]invMg -(canF_eq (mulKg _)) eq_mulgV1 invgK.
-rewrite -conjXg -{1}[s1](mulKg (s ^+ 2)) -conjVg.
-rewrite -{1}(_ : (s^-2 * s) ^ s1 = s^-1); last first.
-  rewrite invMg mulgKV.
-  by apply/conjg_fixP/commgP; apply: (centsP P0_abelian); rewrite ?groupV.
-rewrite -{1}[s3](mulgKV s) -{2}[s^-1](_ : s^-1 ^ s3^-1 = _); last first.
-  by apply/conjg_fixP/commgP; apply: (centsP P0_abelian); rewrite ?groupV.
-rewrite [X in X == _](_ : _ = 
-  y^-1 * y ^ s ^- 2 * y^-1 ^ (s1^-1 * s ^- 2) * y ^ (s1^-1 * s^-1) *
-  y^-1 ^ (s3 * s^-1) * y ^ s3); last by rewrite !conjgE !invMg !invgK !mulgA.
+suffices sEV_E: [set x^-1 | x in E]%R \subset E.
+  by apply/esym/eqP; rewrite eqEcard sEV_E card_imset //=; apply: invr_inj.
+have /mulG_sub[/(subset_trans sP0P)/subsetP sP0H /subsetP sUH] := sdprodW defH.
+have Hs := sP0H s P0s; have P1t: t \in P1 by rewrite memJ_conjg.
+have nUP1 t1: t1 \in P1 -> U :^ t1 = U by move/(subsetP nUP0y)/normP.
+have nUtn n u: u \in U -> u ^ (t ^+ n) \in U.
+  by rewrite -mem_conjgV nUP1 ?groupV ?groupX.
+have nUtVn n u: u \in U -> u ^ (t ^- n) \in U.
+  by rewrite -mem_conjg nUP1 ?groupX.
+have Qsti i: s ^- i * t ^+ i \in Q.
+  by rewrite -conjXg -commgEl (subsetP sQP0Q) // commGC mem_commg ?groupX.
+pose is_sUs m a j n u s1 v :=
+  [/\ a \in U, u \in U, v \in U, s1 \in P0
+    & s ^+ m * a ^ t ^+ j * s ^- n = u * s1 * v].
+have split_sUs m a j n:
+  a \in U -> exists u, exists s1, exists v, is_sUs m a j n u s1 v.
+- move=> Ua; suffices: s ^+ m * a ^ t ^+ j * s ^- n \in H.
+    by case/splitH=> u Uu [v Uv [s1 P0s1 Dusv1]]; exists u, s1, v.
+  by rewrite 2?groupM ?groupV ?groupX // sUH ?nUtn.
+have nt_sUs m j n a u s1 v:
+  (m == n.+1) || (n == m.+1) -> is_sUs m a j n u s1 v -> s1 != 1.
+- move/pred2P=> Dmn [Ua Uu Uv _ Dusv]; have{Dmn}: s ^+ m != s ^+ n.
+    by case: Dmn => ->; last rewrite eq_sym; rewrite expgS eq_mulgV1 ?mulgK.
+  apply: contraNneq => s1_1; rewrite {s1}s1_1 mulg1 in Dusv.
+  have:= groupM Uu Uv; rewrite -Dusv => /(not_splitU _ _ (nUtn j a Ua))/orP.
+  by rewrite !in_group // eq_invg1 -eq_mulgV1 => -[]// /andP[? /eqP->].
+have sUs_modP m a j n u s1 v: is_sUs m a j n u s1 v -> a ^ t ^+ j = u * v.
+  have [nUP /isom_inj/injmP/=quoUP_inj] := sdprod_isom defH.
+  case=> Ua Uu Uv P0s1 /(congr1 (coset P)); rewrite (conjgCV u) -(mulgA _ u).
+  rewrite coset_kerr ?groupV 2?coset_kerl ?groupX //; last first.
+    by rewrite -mem_conjg (normsP nUP) // (subsetP sP0P).
+  by move/quoUP_inj->; rewrite ?nUtn ?groupM.
+have expUMp u v Uu Uv := expgMn p (centsP cUU u v Uu Uv).
+have sUsXp m a j n u s1 v:
+  is_sUs m a j n u s1 v -> is_sUs m (a ^+ p) j n (u ^+ p) s1 (v ^+ p).
+- move=> Dusv; have{Dusv} [/sUs_modP Duv [Ua Uu Vv P0s1 Dusv]] := (Dusv, Dusv).
+  split; rewrite ?groupX //; move: P0s1 Dusv; rewrite -defP0 => /cycleP[k ->].
+  rewrite conjXg -!(mulgA _ (s ^+ k)) ![s ^+ k * _]conjgC 2!mulgA -expUMp //.
+  rewrite {}Duv ![s ^+ m * _]conjgC !conjXg -![_ * _ * s ^- n]mulgA.
+  move/mulgI/(congr1 (Frobenius_aut charFp \o sigma))=> /= Duv_p.
+  congr (_ * _); apply/(injmP inj_sigma); rewrite ?in_PU //.
+  by rewrite !{1}sigmaE ?in_PU // rmorphB !rmorphMn rmorph1 in Duv_p *.
+have odd_P: odd #|P| by rewrite oP odd_exp odd_p orbT.
+suffices EpsiV a: a \in U -> psi a \in E -> psi (a^-1 ^ t ^+ 3) \in E.
+  apply/subsetP => _ /imsetP[x Ex ->].
+  have /imsetP[a Ua Dx]: x \in psi @: U by rewrite im_psi; case/setIdP: Ex.
+  suffices: psi (a^-1 ^ t ^+ (3 * #|P|)) \in E.
+    rewrite Dx -psiV // -{2}(conjg1 a^-1); congr (psi (_ ^ _) \in E).
+    by apply/eqP; rewrite -order_dvdn orderJ dvdn_mull ?order_dvdG.
+  rewrite -(odd_double_half #|P|) odd_P addnC.
+  elim: _./2 => [|n /EpsiV/EpsiV/=]; first by rewrite EpsiV -?Dx.
+  by rewrite conjVg invgK -!conjgM -!expgD -!mulnSr !(groupV, nUtn) //; apply.
+move=> Ua Ea; have{Ea} [b Ub Dab]: exists2 b, b \in U & psi a + psi b = 2%:R.
+  case/setIdP: Ea => _; rewrite -im_psi => /imsetP[b Ub Db]; exists b => //.
+  by rewrite -Db addrC subrK.
+(* In the book k is arbitrary in Fp; however only k := 3 is used. *)
+have [u2 [s2 [v2 usv2P]]] := split_sUs 3 (a * _) 2 1%N (groupM Ua (groupVr Ub)).
+have{Ua} [u1 [s1 [v1 usv1P]]] := split_sUs 1%N a^-1 3 2 (groupVr Ua).
+have{Ub} [u3 [s3 [v3 usv3P]]] := split_sUs 2 b 1%N 3 Ub.
+pose s2def w1 w2 w3 := t * s2^-1 * t = w1 * s3 * w2 * t ^+ 2 * s1 * w3.
+pose w1 := v2 ^ t^-1 * u3; pose w2 := v3 * u1 ^ t ^- 2; pose w3 := v1 * u2 ^ t.
+have stXC m n: (m <= n)%N -> s ^- n ^ t ^+ m = s ^- m ^ t ^+ n * s ^- (n - m).
+  move/subnK=> Dn; apply/(mulgI (s ^- (n - m) * t ^+ n))/(mulIg (t ^+ (n - m))).
+  rewrite -{1}[in t ^+ n]Dn expgD !mulgA !mulgK -invMg -2!mulgA -!expgD.
+  by rewrite addnC Dn (centsP (abelem_abelian abelQ)) ?mulgA.
+wlog suffices Ds2: a b u1 v1 u2 v2 u3 v3 @w1 @w2 @w3 Dab usv1P usv2P usv3P /
+  s2def w1 w2 w3; last first.
+- apply/esym; rewrite -[_ * t]mulgA [_ * t]conjgC mulgA -(expgS _ 1) conjVg.
+  rewrite /w2 mulgA; apply: (canRL (mulKVg _)); rewrite 2!mulgA -conjgE.
+  rewrite conjMg conjgKV /w3 mulgA; apply: (canLR (mulgKV _)).
+  rewrite /w1 -4!mulgA (mulgA u1) (mulgA u3) conjMg -conjgM mulKg -mulgA.
+  have [[[Ua _ _ _ <-] [_ _ _ _ Ds2]] [Ub _ _ _ <-]] := (usv1P, usv2P, usv3P).
+  apply: (canLR (mulKVg _)); rewrite -!invMg -!conjMg -{}Ds2 groupV in Ua *.
+  rewrite -[t]expg1 2!conjMg -conjgM -expgS 2!conjMg -conjgM -expgSr mulgA.
+  apply: (canLR (mulgK _)); rewrite 2!invMg -!conjVg invgK invMg invgK -4!mulgA.
+  rewrite (mulgA _ s) stXC // mulgKV -!conjMg stXC // mulgKV -conjMg conjgM.
+  apply: (canLR (mulKVg _)); rewrite -2!conjVg 2!mulgA -conjMg (stXC 1%N) //.
+  rewrite mulgKV -conjgM -expgSr -mulgA -!conjMg; congr (_ ^ t ^+ 3).
+  apply/(canLR (mulKVg _))/(canLR (mulgK _))/(canLR invgK).
+  rewrite -!mulgA (mulgA _ b) mulgA invMg -!conjVg !invgK.
+  by apply/(injmP inj_sigma); rewrite 1?groupM ?sigmaE ?memJ_P.
+have [[Ua Uu1 Uv1 P0s1 Dusv1] /sUs_modP-Duv1] := (usv1P, usv1P).
+have [[_ Uu2 Uv2 P0s2 _] [Ub Uu3 Uv3 P0s3 _]] := (usv2P, usv3P).
+suffices /(congr1 sigma): s ^+ 2 = s ^ v1 * s ^ a^-1 ^ t ^+ 3.
+  rewrite inE sigmaX // sigma_s sigmaM ?memJ_P -?psiE ?nUtn // => ->.
+  by rewrite addrK -!im_psi !mem_imset ?nUtn.
+rewrite groupV in Ua; have [Hs1 Hs3]: s1 \in H /\ s3 \in H by rewrite !sP0H.
+have nt_s1: s1 != 1 by apply: nt_sUs usv1P.
+have nt_s3: s3 != 1 by apply: nt_sUs usv3P.
+have{sUsXp} Ds2p: s2def (w1 ^+ p) (w2 ^+ p) (w3 ^+ p).
+  have [/sUsXp-usv1pP /sUsXp-usv2pP /sUsXp-usv3pP] := And3 usv1P usv2P usv3P.
+  rewrite expUMp ?groupV // !expgVn in usv1pP usv2pP.
+  rewrite !(=^~ conjXg _ _ p, expUMp) ?groupV -1?[t]expg1 ?nUtn ?nUtVn //.
+  apply: Ds2 usv1pP usv2pP usv3pP => //.
+  by rewrite !psiX // -!Frobenius_autE -rmorphD Dab rmorph_nat.
+have{Ds2} Ds2: s2def w1 w2 w3 by apply: Ds2 usv1P usv2P usv3P.
+wlog [Uw1 Uw2 Uw3]: w1 w2 w3 Ds2p Ds2 / [/\ w1 \in U, w2 \in U & w3 \in U].
+  by move/(_ w1 w2 w3)->; rewrite ?(nUtVn, nUtVn 1%N, nUtn 1%N, in_group).
+have{Ds2p} Dw3p: (w2 ^- p * w1 ^- p.-1 ^ s3 * w2) ^ t ^+ 2 = w3 ^+ p.-1 ^ s1^-1.
+  rewrite -[w1 ^+ _](mulKg w1) -[w3 ^+ _](mulgK w3) -expgS -expgSr !prednK //.
+  rewrite -(canLR (mulKg _) Ds2p) -(canLR (mulKg _) Ds2) 6!invMg !invgK.
+  by rewrite mulgA mulgK [2]lock /conjg !mulgA mulVg mul1g mulgK.
+have w_id w: w \in U -> w ^+ p.-1 == 1 -> w = 1.
+  by move=> Uw /eqP/(canRL_in (expgK _) Uw)->; rewrite ?expg1n ?oU.
+have{Uw3} Dw3: w3 = 1.
+  apply: w_id => //; have:= @not_splitU s1^-1^-1 s1^-1 (w3 ^+ p.-1).
+  rewrite !groupV mulVg eqxx andbT {2}invgK (negPf nt_s1) groupX //= => -> //.
+  have /tiH_P1 <-: t ^+ 2 \in P1^#.
+    rewrite 2!inE groupX // andbT -order_dvdn gtnNdvd // orderJ.
+    by rewrite odd_gt2 ?order_gt1 // orderE defP0 (oddSg sP0P).
+  by rewrite -mulgA -conjgE inE -{2}Dw3p memJ_conjg !in_group ?Hs1 // sUH.
+have{Dw3p} Dw2p: w2 ^+ p.-1 = w1 ^- p.-1 ^ s3.
+  apply/(mulIg w2)/eqP; rewrite -expgSr prednK // eq_mulVg1 mulgA.
+  by rewrite (canRL (conjgK _) Dw3p) Dw3 expg1n !conj1g.
+have{Uw1} Dw1: w1 = 1.
+  apply: w_id => //; have:= @not_splitU s3^-1 s3 (w1 ^- p.-1).
+  rewrite mulVg (negPf nt_s3) andbF -mulgA -conjgE -Dw2p !in_group //=.
+  by rewrite eqxx andbT eq_invg1 /= => ->.
+have{w1 w2 w3 Dw1 Dw3 w_id Uw2 Dw2p Ds2} Ds2: t * s2^-1 * t = s3 * t ^+ 2 * s1.
+  by rewrite Ds2 Dw3 [w2]w_id ?mulg1 ?Dw2p ?Dw1 ?mul1g // expg1n invg1 conj1g.
+have /centsP abP0: abelian P0 by rewrite -defP0 cycle_abelian.
+have QP0ys := memJ_norm y (subsetP (commg_normr P0 Q) _ _).
+have{QP0ys} memQP0 := (QP0ys, groupV, groupM); have nQ_P0 := subsetP nQP0.
 have sQP0_Q: [~: Q, P0] \subset Q by rewrite commg_subl.
-have QP0_abelian : abelian [~: Q, P0].
-  by apply: (abelianS sQP0_Q); apply: (abelem_abelian abelQ).
-have /subsetP QP0_norm := commg_normr P0 Q.
-pose x := y^-1 ^ s3 * y ^ s^-1 * y^-1 ^ (s1^-1 * s^-1) * y.
-rewrite [X in X == _](_ : _ = x ^ s^-1 * x^-1); last first.
-  rewrite 4!invMg -!conjVg invgK 3!conjMg -3!conjgM mulgA.
-  set ysN2 := y ^ (s^-1 * s^-1).
-  set yNs1N1sN2 := y^-1 ^ (s1^-1 * s^-1 * s^-1).
-  set ys1N1sN1 := y ^ (s1^-1 * s^-1).
-  set yNs3sN1 :=  y^-1 ^ (s3 * s^-1).
-  set ys3 := y ^ s3.
-  rewrite mulgA.
-  have -> : commute (yNs3sN1 * ysN2 * yNs1N1sN2 * y ^ s^-1) y^-1.
-    by apply: (centsP QP0_abelian);
-      rewrite !(memJ_norm, QP0_norm, groupV, groupM) //.
-  rewrite [ys1N1sN1 * _]mulgA.
-  have -> : commute ys1N1sN1 (y^-1 ^ s^-1).
-    by apply: (centsP QP0_abelian);
-      rewrite !(memJ_norm, QP0_norm, groupV, groupM) //.
-  rewrite 3!mulgA conjVg mulgK -[yNs3sN1 * _ * yNs1N1sN2]mulgA.
-  rewrite -[X in _ = X * _]mulgA -[yNs3sN1 * _ * ys1N1sN1]mulgA.
-  have -> : commute yNs3sN1  (ysN2 * yNs1N1sN2 * ys1N1sN1).
-    by apply: (centsP QP0_abelian);
-      rewrite !(memJ_norm, QP0_norm, groupV, groupM) //.
-  by rewrite 3!mulgA.
-rewrite -eq_mulgV1 => /eqP Hx.
-have {Hx} : x == 1.
-  apply/eqP/set1P.
-  have HxQP0 : x \in [~: Q, P0].
-    by rewrite !(memJ_norm, QP0_norm, groupV, groupM) //.
-  have [_ _ _ tiCP0_QP0] := dprodP defQ.
-  rewrite -set1gE -tiCP0_QP0 2!inE (subsetP sQP0_Q) HxQP0 //= andbT.
-  by rewrite -defP0 -cycleV cent_cycle cent1C !inE conjg_set1 Hx.
-pose t1 := s1 ^ y.
-pose t3 := s3 ^ y.
-have {x} -> : x = s3^-1 * (t3 * t) * (s1 * (t * t1)^-1).
-  by rewrite /x conjVg !conjgE !invMg !mulgA !invgK !mulgK !mulgKV.
-rewrite -eq_invg_mul invMg invgK => /eqP Hs1s3.
-case: (eqVneq (t * t1)^-1 1) => [|Ht1t]; last first.
-  suff Utriv u : u \in U -> u = 1.
-    by rewrite /goal (Utriv v1) // (Utriv a) // invg1 conj1g conjg1 expgS expg1.
-  have Ht1tP1 : (t * t1)^-1 \in P1^#.
-    by rewrite 2!inE Ht1t groupV groupM //; apply: mem_imset.
-  move => Hu.
-  suff : (u ^ s1) ^ (t * t1)^-1 \in U.
-    rewrite -mem_conjg HUconj; last by apply: groupM => //; apply: mem_imset.
-    rewrite conjgE mulgA => Hus1U.
-    have : (s1^-1 == 1) && (s1 == 1) || (u == 1) && (s1^-1 * s1 == 1).
-      by apply: not_splitU; rewrite ?groupV.
-    rewrite (negbTE s1neq1) andbF /=.
-    by case/andP => /eqP.
-  have Hs1H : s1 \in H.
-    by rewrite -HPU (subsetP (mulG_subl _ _)) // (subsetP sP0P).
-  have Hs3H : s3 \in H.
-    by rewrite -HPU (subsetP (mulG_subl _ _)) // (subsetP sP0P).
-  rewrite -(tiH_P1 Ht1tP1) inE; apply/andP; split; last first.
-    apply: mem_imset.
-    by rewrite !groupM ?groupV // -HPU (subsetP (mulG_subr _ _)).
-  rewrite -conjgM -Hs1s3 conjgM.
-  apply: groupM; first by rewrite groupV; apply Hs3H.
-  apply: groupM; last by apply Hs3H.
-  rewrite -HPU (subsetP (mulG_subr _ _)) // -mem_conjg HUconj //.
-  by apply: groupM => //; apply: mem_imset.
-move/eqP.
-rewrite {Hs1s3 t3 u3 v3 s3 Hu3 Hv3 Hs3 Husv3 s3neq1} -conjMg eq_invg1 conjg_eq1.
-rewrite -eq_invg_mul => /eqP Hs1s.
-have := moduloP _ _ _ _ _ _ _ Husv1 _ Hu1 Hs1 Hv1.
-rewrite groupV; move/(_ Ha) => Hu1v1.
-move/(canRL (mulgKV _))/(canLR (mulKg _)) : Husv1.
-rewrite -{}Hs1s expg1 !invMg invgK /goal => <-.
-rewrite [s * _ ^ _]conjgC.
-rewrite mulgA; congr (_ * _); rewrite -!mulgA; congr (_ * (_ * _)).
-by rewrite -Hu1v1 mulKg.
+have /centsP abQP0 := abelianS sQP0_Q (abelem_abelian abelQ).
+have{s2def} Ds312: s3 * s1 * s2 = 1.
+  apply/set1P; rewrite -set1gE -(coprime_TIg coQP) inE.
+  rewrite coset_idr ?(subsetP sP0P) ?nQ_P0 ?groupM //.
+  rewrite -mulgA -[s2](mulgK s) [_ * s]abP0 // -[s2](mulKVg s).
+  rewrite -!mulgA [s * _]mulgA [s1 * _]mulgA [s1 * _]abP0 ?groupM //.
+  rewrite 2!(mulgA s3) [s^-1 * _]mulgA !(morphM, morphV) ?nQ_P0 ?in_group //=.
+  have ->: coset Q s = coset Q t by rewrite coset_kerl ?groupV ?coset_kerr.
+  have nQt: t \in 'N(Q) by rewrite -(conjGid Qy) normJ memJ_conjg nQ_P0.
+  rewrite -morphV // -!morphM ?(nQt, groupM) ?groupV // ?nQ_P0 //= -Ds2.
+  by rewrite 2!mulgA mulgK mulgKV mulgV morph1.
+pose x := (y ^ s3)^-1 * y ^ s^-1 * (y ^ (s * s1)^-1)^-1 * y.
+have{abP0} Dx: x ^ s^-1 = x.
+  rewrite 3!conjMg !conjVg -!conjgM -!invMg (mulgA s) -(expgS _ 1).
+  rewrite [x]abQP0 ?memQP0 // [rhs in y * rhs]abQP0 ?memQP0 //.
+  apply/(canRL (mulKVg _)); rewrite 4!mulgA; congr (_ * _).
+  rewrite [RHS]abQP0 ?memQP0 //; apply/(canRL (mulgK _))/eqP.
+  rewrite -3!mulgA [rhs in y^-1 * rhs]abQP0 ?memQP0 // -eq_invg_sym eq_invg_mul.
+  apply/eqP; transitivity (t ^+ 2 * s1 * (t^-1 * s2 * t^-1) * s3); last first.
+    by rewrite -[s2]invgK -!invMg mulgA Ds2 -(mulgA s3) invMg mulKVg mulVg.
+  rewrite (canRL (mulKg _) Ds312) -2![_ * t^-1]mulgA.
+  have Dt1 si: si \in P0 -> t^-1 = (s^-1 ^ si) ^ y.
+    by move=> P0si; rewrite {2}/conjg -conjVg -(abP0 si) ?groupV ?mulKg.
+  by rewrite {1}(Dt1 s1) // (Dt1 s3^-1) ?groupV // -conjXg /conjg !{1}gnorm.
+have{Dx memQP0} Dx1: x = 1.
+  apply/set1P; rewrite -set1gE; have [_ _ _ <-] := dprodP defQ.
+  rewrite setIAC (setIidPr sQP0_Q) inE -{2}defP0 -cycleV cent_cycle.
+  by rewrite (sameP cent1P commgP) commgEl Dx mulVg eqxx !memQP0.
+pose t1 := s1 ^ y; pose t3 := s3 ^ y.
+have{x Dx1} Ds13: s1 * (t * t1)^-1 = (t3 * t)^-1 * s3.
+  by apply/eqP; rewrite eq_sym eq_mulVg1 invMg invgK -Dx1 /x /conjg !gnorm.
+suffices Ds1: s1 = s^-1.
+  rewrite -(canLR (mulKg _) (canRL (mulgKV _) Dusv1)) Ds1 Duv1.
+  by rewrite !invMg invgK /conjg !gnorm.
+have [_ _ /trivgPn[u Uu nt_u] _ _] := Frobenius_context frobH.
+apply: (conjg_inj y); apply: contraNeq nt_u.
+rewrite -/t1 conjVg -/t eq_mulVg1 -invMg => nt_tt1.
+have Hu := sUH u Uu; have P1tt1: t * t1 \in P1 by rewrite groupM ?memJ_conjg.
+have /tiH_P1 defU: (t * t1)^-1 \in P1^# by rewrite 2!inE nt_tt1 groupV.
+suffices: (u ^ s1) ^ (t * t1)^-1 \in U.
+  rewrite -mem_conjg nUP1 // conjgE mulgA => /(not_splitU _ _ Uu).
+  by rewrite groupV (negPf nt_s1) andbF mulVg eqxx andbT /= => /(_ _ _)/eqP->.
+rewrite -defU inE memJ_conjg -conjgM Ds13 conjgM groupJ ?(groupJ _ Hs1) //.
+by rewrite sUH // -mem_conjg nUP1 // groupM ?memJ_conjg.
 Qed.
 
 End AppendixC3.
