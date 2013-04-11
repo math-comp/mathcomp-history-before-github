@@ -1273,17 +1273,24 @@ let rec interp_head_pat hpat =
 
 let all_true _ = true
 
-let interp_search_arg a =
-  let hpat, a1 = match a with
+let rec interp_search_about args accu = match args with
+| [] -> accu
+| (flag, arg) :: rem ->
+  fun gr env typ ->
+    let ans = Search.search_about_filter arg gr env typ in
+    (if flag then ans else not ans) && interp_search_about rem accu gr env typ
+
+let interp_search_arg arg =
+  let hpat, a1 = match arg with
   | (_, Search.GlobSearchSubPattern (Pattern.PMeta _)) :: a' -> all_true, a'
   | (true, Search.GlobSearchSubPattern p) :: a' ->
      let filter_head, p = interp_head_pat p in
-     if filter_head then p, a' else all_true, a
-  | _ -> all_true, a in
+     if filter_head then p, a' else all_true, arg
+  | _ -> all_true, arg in
   let is_string =
     function (_, Search.GlobSearchString _) -> true | _ -> false in
   let a2, a3 = List.partition is_string a1 in
-  hpat, a2 @ a3
+  interp_search_about (a2 @ a3) (fun gr env typ -> hpat typ)
 
 (* Module path postfilter *)
 
@@ -1311,9 +1318,9 @@ let interp_modloc mr =
     try Nametab.full_name_module qid with Not_found ->
     Errors.user_err_loc (loc, "interp_modloc", str "No Module " ++ pr_qualid qid) in
   let mr_out, mr_in = List.partition fst mr in
-  let interp_bmod b rmods =
-    if rmods = [] then fun _ _ _ -> true else
-    Search.module_filter (List.map interp_mod rmods, b) in
+  let interp_bmod b = functio n
+  | [] -> fun _ _ _ -> true
+ | rmods -> Search.module_filter (List.map interp_mod rmods, b) in
   let is_in = interp_bmod false mr_in and is_out = interp_bmod true mr_out in
   fun gr env typ -> is_in gr env typ && is_out gr env typ
 
@@ -1325,10 +1332,13 @@ let ssrdisplaysearch gr env t =
 
 VERNAC COMMAND EXTEND SsrSearchPattern
 | [ "Search" ssr_search_arg(a) ssr_modlocs(mr) ] ->
-  [ let hpat, a' = interp_search_arg a in
+  [ let hpat = interp_search_arg a in
     let in_mod = interp_modloc mr in
-    let post_filter gr env typ = in_mod gr env typ && hpat typ in
-    Search.raw_search_about post_filter ssrdisplaysearch a' ]
+    let post_filter gr env typ = in_mod gr env typ && hpat gr env typ in
+    let display gr env typ =
+      if post_filter gr env typ then ssrdisplaysearch gr env typ
+    in
+    Search.generic_search display ]
 END
 
 (* }}} *)
@@ -3327,7 +3337,7 @@ END
 
 (* We just add a numeric version that clears the n top assumptions. *)
 
-let poptac ?ist n = introstac ?ist (List.tabulate (fun _ -> IpatWild) n)
+let poptac ?ist n = introstac ?ist (List.init n (fun _ -> IpatWild))
 
 TACTIC EXTEND ssrclear
   | [ "clear" natural(n) ltacctx(ctx) ] -> [poptac ~ist:(get_ltacctx ctx) n]
