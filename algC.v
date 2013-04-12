@@ -264,7 +264,7 @@ Definition rootQtoL p_j :=
 
 Definition eq_root p_j q_k := rootQtoL p_j == rootQtoL q_k.
 Fact eq_root_is_equiv : equiv_class_of eq_root.
-Proof. by rewrite /eq_root; split=> // [? | ? ? ? /eqP->]. Qed.
+Proof. by rewrite /eq_root; split=> [ ? | ? ? | ? ? ? ] // /eqP->. Qed.
 Canonical eq_root_equiv := EquivRelPack eq_root_is_equiv.
 Definition type : Type := {eq_quot eq_root}%qT.
 
