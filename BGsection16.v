@@ -1246,7 +1246,7 @@ without loss {defX} ->: X / X = 'A0(M).
   have sDD0: D \subset D0 by rewrite /D /D0 !setIdE setSI.
   split=> [|x Ax a Axa|x Dx]; first exact: subset_trans sDD0 sD0A1.
     by apply: tameA0; exact: (subsetP sAA0).
-  have [-> -> [-> coA0L -> -> frobL]] := signD0 x (subsetP sDD0 x Dx).
+  have [/= -> -> [-> coA0L -> -> frobL]] := signD0 x (subsetP sDD0 x Dx).
   by do 2![split=> //] => y Ay; rewrite coA0L // (subsetP sAA0).
 move=> {X} D; pose Ms := M`_\sigma.
 have tiA0A x a: x \in 'A0(M) :\: 'A(M) -> x ^ a \notin 'A(M).

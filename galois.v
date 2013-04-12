@@ -1257,7 +1257,7 @@ Lemma galois_factors K E :
 Proof.
 move=> sKE; apply: (iffP and3P) => [[_ sepKE nKE] a Ea | galKE].
   have [r galEr splitEa] := normalField_factors sKE nKE a Ea.
-  exists r; rewrite -separable_prod_XsubC !big_map -splitEa.
+  exists r; rewrite /= -separable_prod_XsubC !big_map -splitEa.
   by split=> //; apply: separableP Ea.
 split=> //.
   apply/separableP => a /galKE[r [_ Ur_a splitKa]].
