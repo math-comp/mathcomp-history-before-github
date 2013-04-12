@@ -568,7 +568,7 @@ have{part_a} part_a: {in X &, forall x, {subset x ^: G <= x ^: M}}.
   move=> x y A0x A0y /= /imsetP[g Gg def_y]; rewrite def_y.
   by apply/imsetP/part_a; rewrite -?def_y.
 do [split=> //; first split=> //] => x /part_c[_ ] //.
-rewrite -(mem_iota 1) !inE => -> [-> ? -> -> L2_frob].
+rewrite /= -(mem_iota 1) !inE => -> [-> ? -> -> L2_frob].
 by do 2![split=> //] => /L2_frob[E /FrobeniusWker].
 Qed.
 
