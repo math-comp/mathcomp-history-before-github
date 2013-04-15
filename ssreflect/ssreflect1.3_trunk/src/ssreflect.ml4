@@ -1019,7 +1019,8 @@ let declare_one_prenex_implicit locality f =
 
 VERNAC COMMAND EXTEND Ssrpreneximplicits
   | [ "Prenex" "Implicits" ne_global_list(fl) ]
-  -> [ let locality = Locality.use_section_locality () in
+  -> [ let locality =
+         Locality.make_section_locality (Locality.LocalityFixme.consume ()) in
        List.iter (declare_one_prenex_implicit locality) fl ]
 END
 
@@ -1029,7 +1030,7 @@ GEXTEND Gram
   GLOBAL: gallina_ext;
   gallina_ext:
    [ [ IDENT "Import"; IDENT "Prenex"; IDENT "Implicits" ->
-      Vernacexpr.VernacUnsetOption (None, ["Printing"; "Implicit"; "Defensive"])
+      Vernacexpr.VernacUnsetOption (["Printing"; "Implicit"; "Defensive"])
    ] ]
   ;
 END
@@ -5426,7 +5427,7 @@ GEXTEND Gram
           d = def_body ->
           let s = coerce_reference_to_id qid in
 	  Vernacexpr.VernacDefinition
-	    ((Decl_kinds.Global,Decl_kinds.CanonicalStructure),
+	    ((Some Decl_kinds.Global,Decl_kinds.CanonicalStructure),
              (dummy_loc,s),(d  ))
 (*It seems there is not need for these:
       (* Canonical structure *)
