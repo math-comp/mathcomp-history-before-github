@@ -1174,7 +1174,7 @@ move=> p a b x []; first by move->; rewrite /next_root eqxx.
       by case/orP: (ler_total y y')=> lyy' hw; [|symmetry]; apply: hw.
     case: ltrgtP=> // hyy' _; move: (hp' y).
     by rewrite rootE py0 eqxx inE /= (itvP hy) hyy'; move/(_ isT).
-  move=> c p0 ->; case: maxrP=> hab; last by rewrite itv_gte // ltrW.
+  move=> c p0 ->; case: maxrP=> hab; last by rewrite itv_gte //= ltrW.
   by move=> hpz _ py0 hy; move/hpz:hy; rewrite rootE py0 eqxx.
 case: next_rootP=> //; first by move->; rewrite eqxx.
   by move=> y np0 py0 hy _ c _ _;  move/(_ _ hy); rewrite rootE py0 eqxx.
@@ -1243,7 +1243,7 @@ move=> p a b x []; first by move->; rewrite /prev_root eqxx.
   by move=> c _ _ hpz _ py0 hy; move/hpz:hy; rewrite rootE py0 eqxx.
 case: prev_rootP=> //; first by move->; rewrite eqxx.
   move=> y ? py0 hy _ c _ ->; case: minrP hy=> hab; last first.
-    by rewrite itv_gte // ltrW.
+    by rewrite itv_gte //= ltrW.
   by move=> hy; move/(_ _ hy); rewrite rootE py0 eqxx.
 by move=> c  _ -> _ c' _ ->.
 Qed.
@@ -1500,7 +1500,7 @@ case: (@neighpr_wit (p * p^`()) x b)=> [||m hm].
     move=> u hu /=; rewrite (@next_noroot _ x b) //.
     by apply: subitvPr hu; rewrite /= (itvP hmp').
   rewrite ihn ?size_deriv ?sp /neighpr //.
-  by rewrite (subitvP _ (@mid_in_itv _ false false _ _ _)) //= ?lerr (itvP hmp').
+  by rewrite (subitvP _ (@mid_in_itv _ true true _ _ _)) //= ?lerr (itvP hmp').
 Qed.
 
 Lemma sgr_neighpl : forall a p x,
@@ -1545,7 +1545,7 @@ case: (@neighpl_wit (p * p^`()) a x)=> [||m hm].
     move=> u hu /=; rewrite (@prev_noroot _ a x) //.
     by apply: subitvPl hu; rewrite /= (itvP hmp').
   rewrite ihn ?size_deriv ?sp /neighpl //; last first.
-    by rewrite (subitvP _ (@mid_in_itv _ false false _ _ _)) //= ?lerr (itvP hmp').
+    by rewrite (subitvP _ (@mid_in_itv _ true true _ _ _)) //= ?lerr (itvP hmp').
   rewrite mu_deriv // odd_sub ?mu_gt0 //=; last by rewrite -size_poly_eq0 sp.
   by rewrite signr_addb /= mulrN1 mulNr opprK.
 Qed.

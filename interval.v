@@ -2,6 +2,29 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice fintype.
 Require Import bigop ssralg finset fingroup zmodp ssrint ssrnum.
 
+(**************************************************************************)
+(* This file provide support for intervals in numerical and real domains. *)
+(* The datatype (interval R) gives a formal characterization of an        *)
+(* interval, in terms of its right and left bounds.                       *)
+(*    interval R    == the type of formal intervals on R.                 *)
+(*    x \in i       == when i is a formal interval on a numeric domain,   *)
+(*                   \in can be used to test membership.                  *)
+(*    itvP x_in_i   == where x_in_i has type x \in i, if i is ground,     *)
+(*                   gives a set of rewrite rules that x_in_i imply.      *)
+(* x <= y ?< if c   == x is smaller than y, and strictly if c is true     *)
+(*                                                                        *)
+(* We provide a set of notations to write intervals (see below)           *)
+(* `[a, b], `]a, b], ..., `]-oo, a], ..., `]-oo, +oo[                     *)
+(* We also provide the lemma subitvP which computes the inequalities one  *)
+(* needs to prove when trying to prove the inclusion of intervals.        *)
+(*                                                                        *)
+(* Remark that equality of intervals on numeric domains is undecidable in *)
+(* general (e.g. `]0, 1[ = `]0, 0[ is undecidable), and that (interval R) *)
+(* is not really the type of intervals on R, as it may contain many       *)
+(* copies of the same interval. However it is decidable for real domains, *)
+(* and we should provide an extension for this case.                      *)
+(**************************************************************************)
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -13,8 +36,9 @@ Local Notation mid x y := ((x + y) / 2%:R).
 
 Section IntervalPo.
 
-CoInductive itv_bound (T : Type) : Type := BClose of bool & T | BInfty.
-
+CoInductive itv_bound (T : Type) : Type := BOpen_if of bool & T | BInfty.
+Notation BOpen := (BOpen_if true).
+Notation BClose := (BOpen_if false).
 CoInductive interval (T : Type) := Interval of itv_bound T & itv_bound T.
 
 Variable (R : numDomainType).
@@ -22,59 +46,60 @@ Variable (R : numDomainType).
 Definition pred_of_itv (i : interval R) : pred R :=
   [pred x | let: Interval l u := i in
       match l with
-        | BClose false a => a < x
-        | BClose _ a => a <= x
+        | BOpen a => a < x
+        | BClose a => a <= x
         | BInfty => true
       end &&
       match u with
-        | BClose false b => x < b
-        | BClose _ b => x <= b
+        | BOpen b => x < b
+        | BClose b => x <= b
         | BInfty => true
       end].
 Canonical Structure itvPredType := Eval hnf in mkPredType pred_of_itv.
 
-Notation "`[ a , b ]" := (Interval (BClose true a) (BClose true b))
+(* We provide the 9 following notations to help writing formal intervals *)
+Notation "`[ a , b ]" := (Interval (BClose a) (BClose b))
   (at level 0, a, b at level 9 , format "`[ a ,  b ]") : ring_scope.
-Notation "`] a , b ]" := (Interval (BClose false a) (BClose true b))
+Notation "`] a , b ]" := (Interval (BOpen a) (BClose b))
   (at level 0, a, b at level 9 , format "`] a ,  b ]") : ring_scope.
-Notation "`[ a , b [" := (Interval (BClose true a) (BClose false b))
+Notation "`[ a , b [" := (Interval (BClose a) (BOpen b))
   (at level 0, a, b at level 9 , format "`[ a ,  b [") : ring_scope.
-Notation "`] a , b [" := (Interval (BClose false a) (BClose false b))
+Notation "`] a , b [" := (Interval (BOpen a) (BOpen b))
   (at level 0, a, b at level 9 , format "`] a ,  b [") : ring_scope.
-Notation "`] '-oo' , b ]" := (Interval (BInfty _) (BClose true b))
+Notation "`] '-oo' , b ]" := (Interval (BInfty _) (BClose b))
   (at level 0, b at level 9 , format "`] '-oo' ,  b ]") : ring_scope.
-Notation "`] '-oo' , b [" := (Interval (BInfty _) (BClose false b))
+Notation "`] '-oo' , b [" := (Interval (BInfty _) (BOpen b))
   (at level 0, b at level 9 , format "`] '-oo' ,  b [") : ring_scope.
-Notation "`[ a , '+oo' [" := (Interval (BClose true a) (BInfty _))
+Notation "`[ a , '+oo' [" := (Interval (BClose a) (BInfty _))
   (at level 0, a at level 9 , format "`[ a ,  '+oo' [") : ring_scope.
-Notation "`] a , '+oo' [" := (Interval (BClose false a) (BInfty _))
+Notation "`] a , '+oo' [" := (Interval (BOpen a) (BInfty _))
   (at level 0, a at level 9 , format "`] a ,  '+oo' [") : ring_scope.
 Notation "`] -oo , '+oo' [" := (Interval (BInfty _) (BInfty _))
   (at level 0, format "`] -oo ,  '+oo' [") : ring_scope.
 
-
+(* we compute a set of rewrite rules associated to an interval *)
 Definition itv_rewrite (i : interval R) x : Type :=
   let: Interval l u := i in
     (match l with
-       | BClose true a => (a <= x) * (x < a = false)
-       | BClose false a => (a <= x) * (a < x) * (x <= a = false)
+       | BClose a => (a <= x) * (x < a = false)
+       | BOpen a => (a <= x) * (a < x) * (x <= a = false)
        | BInfty => forall x : R, x == x
      end *
     match u with
-       | BClose true b => (x <= b) * (b < x = false)
-       | BClose false b => (x <= b) * (x < b) * (b <= x = false)
+       | BClose b => (x <= b) * (b < x = false)
+       | BOpen b => (x <= b) * (x < b) * (b <= x = false)
        | BInfty => forall x : R, x == x
      end *
     match l, u with
-       | BClose true a, BClose true b =>
+       | BClose a, BClose b =>
          (a <= b) * (b < a = false) * (a \in `[a, b]) * (b \in `[a, b])
-       | BClose true a, BClose false b =>
+       | BClose a, BOpen b =>
          (a <= b) * (a < b) * (b <= a = false)
          * (a \in `[a, b]) * (a \in `[a, b[)* (b \in `[a, b]) * (b \in `]a, b])
-       | BClose false a, BClose true b =>
+       | BOpen a, BClose b =>
          (a <= b) * (a < b) * (b <= a = false)
          * (a \in `[a, b]) * (a \in `[a, b[)* (b \in `[a, b]) * (b \in `]a, b])
-       | BClose false a, BClose false b =>
+       | BOpen a, BOpen b =>
          (a <= b) * (a < b) * (b <= a = false)
          * (a \in `[a, b]) * (a \in `[a, b[)* (b \in `[a, b]) * (b \in `]a, b])
        | _, _ => forall x : R, x == x
@@ -83,13 +108,13 @@ Definition itv_rewrite (i : interval R) x : Type :=
 Definition itv_decompose (i : interval R) x : Prop :=
   let: Interval l u := i in
   ((match l with
-    | BClose true a => (a <= x) : Prop
-    | BClose _ a => (a < x) : Prop
+    | BClose a => (a <= x) : Prop
+    | BOpen a => (a < x) : Prop
     | BInfty => True
   end : Prop) *
   (match u with
-    | BClose true b => (x <= b) : Prop
-    | BClose _ b => (x < b) : Prop
+    | BClose b => (x <= b) : Prop
+    | BOpen b => (x < b) : Prop
     | BInfty => True
   end : Prop))%type.
 
@@ -99,42 +124,52 @@ Proof. by move=> x [[[] a|] [[] b|]]; apply: (iffP andP); case. Qed.
 
 Implicit Arguments itv_dec [x i].
 
-Definition ltreif (x y : R) b := if b then x <= y else x < y.
+Definition lersif (x y : R) b := if b then x < y else x <= y.
 
-Local Notation "x < y ?<= 'if' b" := (ltreif x y b)
+Local Notation "x <= y ?< 'if' b" := (lersif x y b)
   (at level 70, y at next level,
-  format "x '[hv'  <  y '/'  ?<=  'if'  b ']'") : ring_scope.
+  format "x '[hv'  <=  y '/'  ?<  'if'  b ']'") : ring_scope.
 
-Lemma ltreifxx : forall x b, (x < x ?<= if b) = b.
-Proof. by move=> x [] /=; rewrite lterr. Qed.
+Lemma lersifxx x b: (x <= x ?< if b) = ~~ b.
+Proof. by case: b; rewrite /= lterr. Qed.
 
-Lemma ltreif_trans : forall x y z b1 b2,
-  x < y ?<= if b1 -> y < z ?<= if b2 ->  x < z ?<= if b1 && b2.
+Lemma lersif_trans x y z b1 b2 :
+  x <= y ?< if b1 -> y <= z ?< if b2 ->  x <= z ?< if b1 || b2.
 Proof.
-by move=> x y z [] [] /=;
-[exact: ler_trans|exact: ler_lt_trans|exact: ltr_le_trans|exact: ltr_trans].
+move: b1 b2 => [] [] //=;
+by [exact: ler_trans|exact: ler_lt_trans|exact: ltr_le_trans|exact: ltr_trans].
 Qed.
 
-Lemma ltreifW : forall b x y, x < y ?<= if b -> x <= y.
-Proof. by case=> x y //; move/ltrW. Qed.
+Lemma lersifW b x y : x <= y ?< if b -> x <= y.
+Proof. by case: b => //; move/ltrW. Qed.
+
+Lemma lersifNF x y b : y <= x ?< if ~~ b ->  x <= y ?< if b = false.
+Proof. by case: b => /= [/ler_gtF|/ltr_geF]. Qed.
+
+Lemma lersifS x y b : x < y -> x <= y ?< if b.
+Proof. by case: b => //= /ltrW. Qed.
+
+Lemma lersifT x y : x <= y ?< if true = (x < y). Proof. by []. Qed.
+
+Lemma lersifF x y : x <= y ?< if false = (x <= y). Proof. by []. Qed.
 
 Definition le_boundl b1 b2 :=
   match b1, b2 with
-    | BClose b1 x1, BClose b2 x2 => x1 < x2 ?<= if (b2 ==> b1)
-    | BClose _ _, BInfty => false
+    | BOpen_if b1 x1, BOpen_if b2 x2 => x1 <= x2 ?< if (~~ b2 && b1)
+    | BOpen_if _ _, BInfty => false
     | _, _ => true
   end.
 
 Definition le_boundr b1 b2 :=
   match b1, b2 with
-    | BClose b1 x1, BClose b2 x2 => x1 < x2 ?<= if (b1 ==> b2)
-    | BInfty, BClose _ _ => false
+    | BOpen_if b1 x1, BOpen_if b2 x2 => x1 <= x2 ?< if (~~ b1 && b2)
+    | BInfty, BOpen_if _ _ => false
     | _, _ => true
   end.
 
 Lemma itv_boundlr bl br x :
-  x \in Interval bl br = le_boundl bl (BClose true x) 
-                      && le_boundr (BClose true x) br.
+  (x \in Interval bl br) =
+  (le_boundl bl (BClose x)) && (le_boundr (BClose x) br).
 Proof. by move: bl br => [[] a|] [[] b|]. Qed.
 
 Lemma le_boundr_refl : reflexive le_boundr.
@@ -147,31 +182,37 @@ Proof. by move=> [[] b|]; rewrite /le_boundl /= ?lerr. Qed.
 
 Hint Resolve le_boundl_refl.
 
-Lemma le_boundl_bb : forall x b1 b2, le_boundl (BClose b1 x) (BClose b2 x) = (b2 ==> b1).
-Proof. by move=> x b1 b2; rewrite /le_boundl //= ltreifxx. Qed.
+Lemma le_boundl_bb x b1 b2 :
+  le_boundl (BOpen_if b1 x) (BOpen_if b2 x) = (b1 ==> b2).
+Proof. by rewrite /le_boundl lersifxx andbC negb_and negbK implybE. Qed.
 
-Lemma le_boundr_bb : forall x b1 b2, le_boundr (BClose b1 x) (BClose b2 x) = (b1 ==> b2).
-Proof. by move=> x b1 b2; rewrite /le_boundr /= ltreifxx. Qed.
+Lemma le_boundr_bb x b1 b2 :
+  le_boundr (BOpen_if b1 x) (BOpen_if b2 x) = (b2 ==> b1).
+Proof. by rewrite /le_boundr lersifxx andbC negb_and negbK implybE. Qed.
 
-Lemma itv_xx : forall x bl br,
-  Interval (BClose bl x) (BClose br x) =i if bl && br then pred1 x else pred0.
-Proof. by move=> x [] [] y; rewrite !inE 1?eq_sym (eqr_le, lter_anti). Qed.
-
-Lemma itv_gte : forall ba xa bb xb, (if ba && bb then xb < xa else xb <= xa)
-  -> Interval (BClose ba xa) (BClose bb xb) =i pred0.
+Lemma itv_xx x bl br :
+  Interval (BOpen_if bl x) (BOpen_if br x) =i 
+  if ~~ (bl || br) then pred1 x else pred0.
 Proof.
-move=> ba xa bb xb hx y; rewrite itv_boundlr inE /=.
-apply/negP; case/andP; move/ltreif_trans=> hy; move/hy.
-by case: (_ && _) hx=> /=; [move/ltr_geF->|move/ler_gtF->].
+by move: bl br => [] [] y /=; rewrite !inE 1?eq_sym (eqr_le, lter_anti).
+Qed.
+
+Lemma itv_gte ba xa bb xb :  xb <= xa ?< if ~~ (ba || bb) 
+  -> Interval (BOpen_if ba xa) (BOpen_if bb xb) =i pred0.
+Proof.
+move=> hx y; rewrite itv_boundlr inE /=.
+by apply/negP => /andP [] /lersif_trans hy /hy {hy}; rewrite lersifNF.
 Qed.
 
 Lemma boundl_in_itv : forall ba xa b,
-  xa \in Interval (BClose ba xa) b = if ba then le_boundr (BClose true xa) b else false.
-Proof. by move=> [] xa [bb xb|] //=; rewrite inE lterr. Qed.
+  xa \in Interval (BOpen_if ba xa) b = 
+  if ba then false else le_boundr (BClose xa) b.
+Proof. by move=> [] xa [[] xb|] //=; rewrite inE lterr. Qed.
 
 Lemma boundr_in_itv : forall bb xb a,
-  xb \in Interval a (BClose bb xb) = if bb then le_boundl a (BClose true xb) else false.
-Proof. by move=> [] xb [ba xa|] //=; rewrite inE lterr ?andbT ?andbF. Qed.
+  xb \in Interval a (BOpen_if bb xb) =
+  if bb then false else le_boundl a (BClose xb).
+Proof. by move=> [] xb [[] xa|] //=; rewrite inE lterr ?andbT ?andbF. Qed.
 
 Definition bound_in_itv := (boundl_in_itv, boundr_in_itv).
 
@@ -215,28 +256,23 @@ Lemma subitvPl : forall (a1 a2 b : itv_bound R),
   le_boundl a2 a1 -> {subset (Interval a1 b) <= (Interval a2 b)}.
 Proof. by move=> a1 a2 b ha; apply: subitvP=> /=; rewrite ha /=. Qed.
 
-Lemma ltreif_in_itv : forall ba bb xa xb x,
-  x \in Interval (BClose ba xa) (BClose bb xb) -> xa < xb ?<= if ba && bb.
+Lemma lersif_in_itv : forall ba bb xa xb x,
+  x \in Interval (BOpen_if ba xa) (BOpen_if bb xb) ->
+        xa <= xb ?< if ba || bb.
 Proof.
-by move=> ba bb xa xb y; rewrite itv_boundlr; case/andP; apply: ltreif_trans.
+by move=> ba bb xa xb y; rewrite itv_boundlr; case/andP; apply: lersif_trans.
 Qed.
 
-Lemma ltr_in_itv : forall ba bb xa xb x, ~~ (ba && bb) ->
-  x \in Interval (BClose ba xa) (BClose bb xb) -> xa < xb.
+Lemma ltr_in_itv : forall ba bb xa xb x, ba || bb ->
+  x \in Interval (BOpen_if ba xa) (BOpen_if bb xb) -> xa < xb.
 Proof.
-move=> ba bb xa xb x; case bab: (_ && _)=> // _.
-by move/ltreif_in_itv; rewrite bab.
+move=> ba bb xa xb x; case bab: (_ || _) => // _.
+by move/lersif_in_itv; rewrite bab.
 Qed.
 
 Lemma ler_in_itv : forall ba bb xa xb x,
-  x \in Interval (BClose ba xa) (BClose bb xb) -> xa <= xb.
-Proof. by move=> ba bb xa xb x; move/ltreif_in_itv; move/ltreifW. Qed.
-
-(* Lemma subinP' : forall (i2 i1 : interval), reflect {subset i1 <= i2}  (subint i1 i2). *)
-(* Proof. *)
-(* move=> i2 i1; apply: (iffP idP); first exact: subitvP. *)
-(* move: i1 i2=> [[[] a1|] [[] b1|]] [[[] a2|] [[] b2|]] //=.  *)
-
+  x \in Interval (BOpen_if ba xa) (BOpen_if bb xb) -> xa <= xb.
+Proof. by move=> ba bb xa xb x; move/lersif_in_itv; move/lersifW. Qed.
 
 Lemma mem0_itvcc_xNx : forall x, (0 \in `[-x, x]) = (0 <= x).
 Proof.
@@ -252,145 +288,86 @@ Lemma itv_splitI : forall a b, forall x,
   x \in Interval a b = (x \in Interval a (BInfty _)) && (x \in Interval (BInfty _) b).
 Proof. by move=> [[] a|] [[] b|] x; rewrite ?inE ?andbT. Qed.
 
-Lemma ltreifNF : forall x y b, y < x ?<= if ~~ b ->  x < y ?<= if b = false.
-Proof. by move=> x y [] /=; [apply: ltr_geF|apply: ler_gtF]. Qed.
 
-Lemma ltreifS : forall b x y, x < y -> x < y ?<= if b.
-Proof. by case=> x y //; move/ltrW. Qed.
+Lemma real_lersifN x y b : x \in Num.real -> y \in Num.real ->
+  x <= y ?< if ~~b = ~~ (y <= x ?< if b).
+Proof. by case: b => [] xR yR /=; rewrite (real_ltrNge, real_lerNgt). Qed.
 
-Lemma ltreifT : forall x y, x < y ?<= if true = (x <= y). Proof. by []. Qed.
+Lemma oppr_itv ba bb (xa xb x : R) :
+  (-x \in Interval (BOpen_if ba xa) (BOpen_if bb xb)) = 
+  (x \in Interval (BOpen_if bb (-xb)) (BOpen_if ba (-xa))).
+Proof. by move: ba bb => [] []; rewrite ?inE lter_oppr andbC lter_oppl. Qed.
 
-Lemma ltreifF : forall x y, x < y ?<= if false = (x < y). Proof. by []. Qed.
+Lemma oppr_itvoo (a b x : R) : (-x \in `]a, b[) = (x \in `](-b), (-a)[).
+Proof. exact: oppr_itv. Qed.
 
-Lemma real_ltreifN : forall x y b, x \in Num.real -> y \in Num.real ->
-  x < y ?<= if ~~b = ~~ (y < x ?<= if b).
-Proof. by move=> x y [] xR yR /=; rewrite (real_ltrNge, real_lerNgt). Qed.
+Lemma oppr_itvco (a b x : R) : (-x \in `[a, b[) = (x \in `](-b), (-a)]).
+Proof. exact: oppr_itv. Qed.
 
-(* Lemma itv_splitU_po xc bc : xc \in Num.real -> *)
-(*   forall a b, xc \in Interval a b -> *)
-(*   forall y, y \in Interval a b = (y \in Interval a (BClose bc xc)) *)
-(*                               || (y \in Interval (BClose (~~bc) xc) b). *)
-(* Proof. *)
-(* move=> xc bc [ba xa|] [bb xb|] cab y cyc; move: cab; *)
-(* * case/andP=> hac hcb; case hay: ltreif=> /=; case hyb: ltreif=> //=. *)
-(*   + by case: bc=> /=; case: cpable3P cyc. *)
-(*   + rewrite ltreifN_po ?andbF // ltreifS // cpable_ltrNge 1?cpable_sym //. *)
-(*     move/negP:hyb; move/negP; apply: contra. *)
-(*     case: bb hcb=> /= hcb hyc; first exact: ler_trans hcb. *)
-(*     exact: ler_lt_trans hcb. *)
-(*   move/ltreifW:hyb=> hyb; suff: false by []. *)
-(*   by rewrite -hay -[ba]andbT (ltreif_trans hac). *)
-(* * rewrite !andbT; move=> hac; case hay: ltreif=> /=; symmetry. *)
-(*     by case: bc=> /=; case: cpable3P cyc. *)
-(*   apply: negbTE; move/negP: hay; move/negP; apply: contra. *)
-(*   by move/ltreifW; rewrite -[ba]andbT -ltreifT; move/(ltreif_trans _); apply. *)
-(* * move=> hcb; case hyb: ltreif=> /=; symmetry; rewrite ?(andbF, orbF). *)
-(*     by case: bc=> /=; case: cpable3P cyc. *)
-(*   apply: negbTE; move/negP: hyb; move/negP; apply: contra. *)
-(*   by move/ltreifW; rewrite -ltreifT; move/ltreif_trans; apply. *)
-(* by case: bc=> /=; case: cpable3P cyc. *)
-(* Qed. *)
+Lemma oppr_itvoc (a b x : R) : (-x \in `]a, b]) = (x \in `[(-b), (-a)[).
+Proof. exact: oppr_itv. Qed.
 
-(* Lemma itv_splitU2_po : forall x a b, x \in Interval a b -> *)
-(*   forall y, Num.cpable y x -> y \in Interval a b = *)
-(*     [|| (y \in Interval a (BClose false x)), (y == x) *)
-(*       | (y \in Interval (BClose false x) b)]. *)
-(* Proof. *)
-(* move=> x a b hx y cxy; rewrite (@itv_splitU_po x false) //. *)
-(* case hyx: (_ \in _); rewrite //= (@itv_splitU_po x true) ?itv_xx //=. *)
-(* by rewrite bound_in_itv; move: hx; rewrite itv_boundlr; case/andP. *)
-(* Qed. *)
-
-(* Lemma itvUff : forall x y b1 b2 a b, *)
-(*   x \in Interval (BClose b2 y) b -> y \in Interval a (BClose b1 x) -> *)
-(*   forall z, Num.cpable z x -> Num.cpable z y -> *)
-(*     (z \in Interval a (BClose b1 x)) || (z \in Interval (BClose b2 y) b) *)
-(*       = (z \in Interval a b). *)
-(* Proof. *)
-(* move=> x y b1 b2 a b /= hx hy z czx czy. *)
-(* rewrite (itv_splitU_po (~~b2) hy) //; rewrite (itv_splitU_po b1 hx) //. *)
-(* rewrite negbK orbA orbC -!orbA orbb orbC; symmetry. *)
-(* rewrite (@itv_splitU_po y (~~b2)) //. *)
-(*   by rewrite -orbA; congr orb; rewrite (@itv_splitU_po x b1) ?negbK. *)
-(* apply: subitvP hy=> /=; rewrite le_boundl_refl /=. *)
-(* move: hx; rewrite itv_boundlr; case/andP=> _. *)
-(* rewrite /le_boundr; case: b=> [[] b|] //=. *)
-(*   by rewrite implybT. *)
-(* exact: ltreifS. *)
-(* Qed. *)
-
-Lemma oppr_itv : forall ba bb (xa xb x : R),
-  (-x \in Interval (BClose ba xa) (BClose bb xb))
-= (x \in Interval (BClose bb (-xb)) (BClose ba (-xa))).
-Proof. by move=> [] [] xa xb x; rewrite ?inE lter_oppr andbC lter_oppl. Qed.
-
-Lemma oppr_itvoo : forall (a b x : R), (-x \in `]a, b[) = (x \in `](-b), (-a)[).
-Proof. by move=> a b x; apply: oppr_itv. Qed.
-
-Lemma oppr_itvco : forall (a b x : R), (-x \in `[a, b[) = (x \in `](-b), (-a)]).
-Proof. by move=> a b x; apply: oppr_itv. Qed.
-
-Lemma oppr_itvoc : forall (a b x : R), (-x \in `]a, b]) = (x \in `[(-b), (-a)[).
-Proof. by move=> a b x; apply: oppr_itv. Qed.
-
-Lemma oppr_itvcc : forall (a b x : R), (-x \in `[a, b]) = (x \in `[(-b), (-a)]).
-Proof. by move=> a b x; apply: oppr_itv. Qed.
+Lemma oppr_itvcc (a b x : R) : (-x \in `[a, b]) = (x \in `[(-b), (-a)]).
+Proof. exact: oppr_itv. Qed.
 
 End IntervalPo.
 
-Notation "`[ a , b ]" := (Interval (BClose true a) (BClose true b))
+Notation BOpen := (BOpen_if true).
+Notation BClose := (BOpen_if false).
+Notation "`[ a , b ]" := (Interval (BClose a) (BClose b))
   (at level 0, a, b at level 9 , format "`[ a ,  b ]") : ring_scope.
-Notation "`] a , b ]" := (Interval (BClose false a) (BClose true b))
+Notation "`] a , b ]" := (Interval (BOpen a) (BClose b))
   (at level 0, a, b at level 9 , format "`] a ,  b ]") : ring_scope.
-Notation "`[ a , b [" := (Interval (BClose true a) (BClose false b))
+Notation "`[ a , b [" := (Interval (BClose a) (BOpen b))
   (at level 0, a, b at level 9 , format "`[ a ,  b [") : ring_scope.
-Notation "`] a , b [" := (Interval (BClose false a) (BClose false b))
+Notation "`] a , b [" := (Interval (BOpen a) (BOpen b))
   (at level 0, a, b at level 9 , format "`] a ,  b [") : ring_scope.
-Notation "`] '-oo' , b ]" := (Interval (BInfty _) (BClose true b))
+Notation "`] '-oo' , b ]" := (Interval (BInfty _) (BClose b))
   (at level 0, b at level 9 , format "`] '-oo' ,  b ]") : ring_scope.
-Notation "`] '-oo' , b [" := (Interval (BInfty _) (BClose false b))
+Notation "`] '-oo' , b [" := (Interval (BInfty _) (BOpen b))
   (at level 0, b at level 9 , format "`] '-oo' ,  b [") : ring_scope.
-Notation "`[ a , '+oo' [" := (Interval (BClose true a) (BInfty _))
+Notation "`[ a , '+oo' [" := (Interval (BClose a) (BInfty _))
   (at level 0, a at level 9 , format "`[ a ,  '+oo' [") : ring_scope.
-Notation "`] a , '+oo' [" := (Interval (BClose false a) (BInfty _))
+Notation "`] a , '+oo' [" := (Interval (BOpen a) (BInfty _))
   (at level 0, a at level 9 , format "`] a ,  '+oo' [") : ring_scope.
 Notation "`] -oo , '+oo' [" := (Interval (BInfty _) (BInfty _))
   (at level 0, format "`] -oo ,  '+oo' [") : ring_scope.
 
-Notation "x < y ?<= 'if' b" := (ltreif x y b)
+Notation "x <= y ?< 'if' b" := (lersif x y b)
   (at level 70, y at next level,
-  format "x '[hv'  <  y '/'  ?<=  'if'  b ']'") : ring_scope.
+  format "x '[hv'  <=  y '/'  ?<  'if'  b ']'") : ring_scope.
 
 Section IntervalOrdered.
 
 Variable R : realDomainType.
 
-Lemma ltreifN (x y : R) b : x < y ?<= if ~~b = ~~ (y < x ?<= if b).
-Proof. by rewrite real_ltreifN ?num_real. Qed.
+Lemma lersifN (x y : R) b : (x <= y ?< if ~~ b) = ~~ (y <= x ?< if b).
+Proof. by rewrite real_lersifN ?num_real. Qed.
 
 Lemma itv_splitU (xc : R) bc a b : xc \in Interval a b ->
   forall y, y \in Interval a b =
-    (y \in Interval a (BClose bc xc)) || (y \in Interval (BClose (~~bc) xc) b).
+    (y \in Interval a (BOpen_if (~~ bc) xc))
+    || (y \in Interval (BOpen_if bc xc) b).
 Proof.
 move=> hxc y; rewrite !itv_boundlr [le_boundr]lock /=.
 have [la /=|nla /=] := boolP (le_boundl a _); rewrite -lock.
   have [lb /=|nlb /=] := boolP (le_boundr _ b); rewrite ?andbT ?andbF ?orbF //.
-    by rewrite /le_boundl /le_boundr /= ltreifN orbN.
+    by case: bc => //=; case: ltrgtP.
   symmetry; apply: contraNF nlb; rewrite /le_boundr /=.
   case: b hxc => // bb xb hxc hyc.
-  suff /(ltreif_trans hyc) : xc < xb ?<= if bb.
-     by case: bc {hyc}=> //= /ltreifS.
+  suff /(lersif_trans hyc) : xc <= xb ?< if bb.
+    by case: bc {hyc} => //= /lersifS.
   by case: a bb hxc {la} => [[] ?|] [] /= /itvP->.
 symmetry; apply: contraNF nla => /andP [hc _].
 case: a hxc hc => [[] xa|] hxc; rewrite /le_boundl //=.
-  by move=> /ltreifW /(ler_trans _) -> //; move: b hxc=> [[] ?|] /itvP->.
-by move=> /ltreifW /(ltr_le_trans _) -> //; move: b hxc=> [[] ?|] /itvP->.
+  by move=> /lersifW /(ltr_le_trans _) -> //; move: b hxc=> [[] ?|] /itvP->.
+by move=> /lersifW /(ler_trans _) -> //; move: b hxc=> [[] ?|] /itvP->.
 Qed.
 
 Lemma itv_splitU2 (x : R) a b : x \in Interval a b ->
   forall y, y \in Interval a b =
-    [|| (y \in Interval a (BClose false x)), (y == x)
-      | (y \in Interval (BClose false x) b)].
+    [|| (y \in Interval a (BOpen x)), (y == x)
+      | (y \in Interval (BOpen x) b)].
 Proof.
 move=> xab y; rewrite (itv_splitU false xab y); congr (_ || _).
 rewrite (@itv_splitU x true _ _ _ y); first by rewrite itv_xx inE.
@@ -403,8 +380,8 @@ Section IntervalField.
 
 Variable R : realFieldType.
 
-Lemma mid_in_itv : forall ba bb (xa xb : R), xa < xb ?<= if (ba && bb)
-  -> mid xa xb \in Interval (BClose ba xa) (BClose bb xb).
+Lemma mid_in_itv : forall ba bb (xa xb : R), xa <= xb ?< if (ba || bb)
+  -> mid xa xb \in Interval (BOpen_if ba xa) (BOpen_if bb xb).
 Proof.
 by move=> [] [] xa xb /= hx; apply/itv_dec=> /=; rewrite ?midf_lte // ?ltrW.
 Qed.

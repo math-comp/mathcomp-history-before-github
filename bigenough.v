@@ -1,6 +1,22 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 
+(****************************************************************************)
+(* This is a small library to do epsilon - N reasonning.                    *)
+(* In order to use it, one only has to know the following tactics:          *)
+(*                                                                          *)
+(*      pose_big_enough i == pose a big enough natural number i             *)
+(*   pose_big_modulus m F == pose a function m : F -> nat which should      *)
+(*                           provide a big enough return value              *)
+(* exists_big_modulus m F := pose_big_modulus m F; exists m                 *)
+(*             big_enough == replaces a big enough constraint x <= i        *)
+(*                           by true and implicity remembers that i should  *)
+(*                           be bigger than x.                              *)
+(*                close   == all "pose" tactics create a dummy subgoal to   *)
+(*                           force the user to explictely indicate that all *)
+(*                           constraints have been found                    *)
+(****************************************************************************)
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.

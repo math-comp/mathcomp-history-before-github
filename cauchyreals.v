@@ -3,6 +3,13 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import bigop ssralg ssrnum ssrint rat poly polydiv polyorder.
 Require Import perm matrix mxpoly polyXY binomial bigenough.
 
+(***************************************************************************)
+(* This is a standalone construction of Cauchy reals over an arbitrary     *)
+(* discrete archimedian field R.                                           *)
+(*   creals R == setoid of Cauchy sequences, it is not discrete and        *)
+(*               cannot be equipped with any ssreflect algebraic structure *)
+(***************************************************************************)
+
 Import GRing.Theory Num.Theory Num.Def BigEnough.
 
 Set Implicit Arguments.

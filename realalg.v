@@ -4,14 +4,45 @@ Require Import bigop ssralg ssrnum ssrint rat poly polydiv polyorder.
 Require Import perm matrix mxpoly polyXY binomial generic_quotient.
 Require Import cauchyreals separable zmodp bigenough.
 
+(*************************************************************************)
+(* This files constructs the real closure of an archimedian field in the *)
+(* way described in Cyril Cohen. Construction of real algebraic numbers  *)
+(* in Coq. In Lennart Beringer and Amy Felty, editors, ITP - 3rd         *)
+(* International Conference on Interactive Theorem Proving - 2012,       *)
+(* Princeton, United States, August 2012. Springer                       *)
+(*                                                                       *)
+(* The only definition one may want to use in this file is the operator  *)
+(* {realclosure R} which constructs the real closure of the archimedian  *)
+(* field R (for which rat is a prefect candidate)                        *)
+(*************************************************************************)
+
 Import GRing.Theory Num.Theory BigEnough.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Reserved Notation "{ 'realalg' T }" (at level 0, format "{ 'realalg'  T }").
+Reserved Notation "{ 'realclosure' T }"
+  (at level 0, format "{ 'realclosure'  T }").
 Reserved Notation "{ 'alg' T }" (at level 0, format "{ 'alg'  T }").
+
+Section extras.
+
+Local Open Scope ring_scope.
+Local Notation "p ^ f" := (map_poly f p) : ring_scope.
+
+Lemma map_comp_poly (aR : fieldType) (rR : idomainType)
+   (f : {rmorphism aR -> rR})
+   (p q : {poly aR}) : (p \Po q) ^ f = (p ^ f) \Po (q ^ f).
+Proof.
+rewrite !comp_polyE size_map_poly; apply: (big_ind2 (fun x y => x ^ f = y)).
++ by rewrite rmorph0.
++ by move=> u u' v v' /=; rewrite rmorphD /= => -> ->.
+move=> /= i _; rewrite -mul_polyC rmorphM /= map_polyC mul_polyC.
+by rewrite coef_map rmorphX.
+Qed.
+
+End extras.
 
 Module RealAlg.
 
@@ -22,6 +53,10 @@ Section RealAlg.
 
 Variable F : archiFieldType.
 Local Notation m0 := (fun _ => 0%N).
+
+(*********************************************************************)
+(* Construction of algebraic Cauchy reals : Cauchy real + polynomial *)
+(*********************************************************************)
 
 CoInductive algcreal := AlgCReal {
   creal_of_alg :> creal F;
@@ -117,8 +152,8 @@ have [//|/=|y *] := ihn (AlgCReal monic_p root_p); last by exists y.
 by rewrite size_divp ?size_polyX ?polyX_eq0 ?leq_subLR ?add1n.
 Qed.
 
-Lemma algcreal_eq0_dec (x : algcreal) :
-  {(x == 0)%CR} + {(x != 0)%CR}.
+(* Decidability of equality to 0 *)
+Lemma algcreal_eq0_dec (x : algcreal) : {(x == 0)%CR} + {(x != 0)%CR}.
 Proof.
 pose p := annul_creal x; move: {2}(size _)%N (leqnn (size p))=> n.
 elim: n x @p => [x p|n ihn x p le_sp_Sn].
@@ -226,7 +261,6 @@ Qed.
 Definition mul_algcreal (x y : algcreal) :=
   AlgCReal (@monic_annul_creal _) (@root_mul_algcreal x y).
 
-
 Lemma le_creal_neqVlt (x y : algcreal) : (x <= y)%CR -> {(x == y)%CR} + {(x < y)%CR}.
 Proof.
 case: (eq_algcreal_dec x y); first by left.
@@ -289,8 +323,9 @@ move=> x_gt0; apply: eq_crealP; exists_big_modulus m F.
 by close.
 Qed.
 
-(* Theory of algdom *)
-
+(**********************************************************************)
+(* Theory of the "domain" of algebraic numbers: polynomial + interval *)
+(**********************************************************************)
 CoInductive algdom := AlgDom {
   annul_algdom : {poly F};
   center_alg : F;
@@ -451,8 +486,10 @@ Qed.
 
 Definition to_algcreal_rec (x : algdom) :=
   AlgCReal (monic_annul_algdom x) (@to_algcrealP x).
+(* "Encoding" function from algdom to algcreal *)
 Definition to_algcreal := locked to_algcreal_rec.
 
+(* "Decoding" function, constructed interactively *)
 Lemma to_algdom_exists (x : algcreal) :
   { y : algdom | (to_algcreal y == x)%CR }.
 Proof.
@@ -521,10 +558,14 @@ Proof. by rewrite /to_algdom; case: to_algdom_exists. Qed.
 Lemma eq_algcreal_to_algdom x : eq_algcreal (to_algcreal (to_algdom x)) x.
 Proof. by apply/eq_algcrealP; apply: to_algdomK. Qed.
 
+(* Explicit encoding to a choice type *)
 Canonical eq_algcreal_encModRel := EncModRel eq_algcreal eq_algcreal_to_algdom.
 
 Local Open Scope quotient_scope.
 
+(***************************************************************************)
+(* Algebraic numbers are the quotient of algcreal by their setoid equality *)
+(***************************************************************************)
 Definition alg := {eq_quot eq_algcreal}.
 
 Definition alg_of of (phant F) := alg.
@@ -532,6 +573,7 @@ Identity Coercion type_alg_of : alg_of >-> alg.
 
 Notation "{ 'alg'  F }" := (alg_of (Phant F)).
 
+(* A lot of structure is inherited *)
 Canonical alg_eqType := [eqType of alg].
 Canonical alg_choiceType := [choiceType of alg].
 Canonical alg_quotType := [quotType of alg].
@@ -546,6 +588,7 @@ Definition to_alg_def (phF : phant F) : F -> {alg F} :=
 Notation to_alg := (@to_alg_def (Phant F)).
 Notation "x %:RA" := (to_alg x)
   (at level 2, left associativity, format "x %:RA").
+Local Notation "p ^ f" := (map_poly f p) : ring_scope.
 
 Canonical to_alg_pi_morph := PiEmbed to_alg.
 
@@ -626,6 +669,7 @@ Definition alg_zmodMixin :=  ZmodMixin add_algA add_algC add_0alg add_Nalg.
 Canonical alg_zmodType := Eval hnf in ZmodType alg alg_zmodMixin.
 Canonical alg_of_zmodType := Eval hnf in ZmodType {alg F} alg_zmodMixin.
 
+
 Lemma add_pi x y : \pi_{alg F} x + \pi_{alg F} y
   = \pi_{alg F} (add_algcreal x y).
 Proof. by rewrite [_ + _]piE. Qed.
@@ -697,6 +741,58 @@ rewrite !piE -equiv_alg /= /inv_algcreal.
 by case: eq_algcreal_dec=> //= zero_neq0; move: (eq_creal_refl zero_neq0).
 Qed.
 
+Lemma to_alg_additive : additive to_alg.
+Proof.
+move=> x y /=; rewrite !piE sub_pi -equiv_alg /=.
+by apply: eq_crealP; exists m0=> * /=; rewrite subrr normr0.
+Qed.
+
+Canonical to_alg_is_additive := Additive to_alg_additive.
+
+Lemma to_alg_multiplicative : multiplicative to_alg.
+Proof.
+split=> [x y |] //; rewrite !piE mul_pi -equiv_alg.
+by apply: eq_crealP; exists m0=> * /=; rewrite subrr normr0.
+Qed.
+
+Canonical to_alg_is_rmorphism := AddRMorphism to_alg_multiplicative.
+
+Lemma expn_pi (x : algcreal) (n : nat) :
+  (\pi_{alg F} x) ^+ n = \pi (exp_algcreal x n).
+Proof.
+rewrite /exp_algcreal; case: n=> [|n]; first by rewrite expr0 oneE.
+rewrite exprS iteropS; elim: n=> /= [|n ihn]; rewrite ?expr0 ?mulr1 //.
+by rewrite exprS ihn mul_pi.
+Qed.
+
+Lemma horner_pi (p : {poly F}) (x : algcreal) :
+  (p ^ to_alg).[\pi_alg x] = \pi (horner_algcreal p x).
+Proof.
+rewrite horner_coef /horner_algcreal size_map_poly.
+apply: (big_ind2 (fun x y => x = \pi_alg y)).
++ by rewrite zeroE.
++ by move=> u u' v v' -> ->; rewrite [_ + _]piE.
+by move=> i /= _; rewrite expn_pi coef_map /= [_ * _]piE.
+Qed.
+
+(* Defining annihilating polynomials for algebraics *)
+Definition annul_alg : {alg F} -> {poly F} := locked (annul_creal \o repr).
+
+Lemma root_annul_algcreal (x : algcreal) : ((annul_alg (\pi x)).[x] == 0)%CR.
+Proof. by unlock annul_alg; rewrite /= -pi_algK root_annul_creal. Qed.
+
+Lemma root_annul_alg (x : {alg F}) : root ((annul_alg x) ^ to_alg) x.
+Proof.
+apply/rootP; rewrite -[x]reprK horner_pi /= zeroE -equiv_alg.
+by rewrite horner_algcrealE root_annul_algcreal.
+Qed.
+
+Lemma monic_annul_alg (x : {alg F}) : annul_alg x \is monic.
+Proof. by unlock annul_alg; rewrite monic_annul_creal. Qed.
+
+Lemma annul_alg_neq0 (x : {alg F}) : annul_alg x != 0.
+Proof. by rewrite monic_neq0 ?monic_annul_alg. Qed.
+
 Definition AlgFieldUnitMixin := FieldUnitMixin mul_Valg inv_alg0.
 Canonical alg_unitRing :=
   Eval hnf in UnitRingType alg AlgFieldUnitMixin.
@@ -751,8 +847,10 @@ Qed.
 
 Canonical norm_alg_pi_morph := PiMorph1 norm_alg_pi.
 
+(* begin hide *)
 (* Lemma norm_pi (x : algcreal) : `|\pi_{alg F} x| = \pi (norm_algcreal x). *)
 (* Proof. by rewrite /norm_algcreal -lt_pi -zeroE -lerNgt fun_if -opp_pi. Qed. *)
+(* end hide *)
 
 Lemma add_alg_gt0 x y : lt_alg zero_alg x -> lt_alg zero_alg y ->
   lt_alg zero_alg (x + y).
@@ -867,70 +965,6 @@ Proof. by rewrite le_pi; apply: le_algcrealP. Qed.
 Implicit Arguments le_algP [x y].
 Prenex Implicits lt_algP le_algP.
 
-Lemma to_alg_additive : additive to_alg.
-Proof.
-move=> x y /=; rewrite !piE sub_pi -equiv_alg /=.
-by apply: eq_crealP; exists m0=> * /=; rewrite subrr normr0.
-Qed.
-
-Canonical to_alg_is_additive := Additive to_alg_additive.
-
-Lemma to_alg_multiplicative : multiplicative to_alg.
-Proof.
-split=> [x y |] //; rewrite !piE mul_pi -equiv_alg.
-by apply: eq_crealP; exists m0=> * /=; rewrite subrr normr0.
-Qed.
-
-Canonical to_alg_is_rmorphism := AddRMorphism to_alg_multiplicative.
-
-Definition annul_alg : {alg F} -> {poly F} := locked (annul_creal \o repr).
-
-Local Notation "p ^ f" := (map_poly f p) : ring_scope.
-Notation "'Y" := 'X%:P.
-
-Lemma expn_pi (x : algcreal) (n : nat) :
-  (\pi_{alg F} x) ^+ n = \pi (exp_algcreal x n).
-Proof.
-rewrite /exp_algcreal; case: n=> [|n]; first by rewrite expr0 oneE.
-rewrite exprS iteropS; elim: n=> /= [|n ihn]; rewrite ?expr0 ?mulr1 //.
-by rewrite exprS ihn mul_pi.
-Qed.
-
-Lemma horner_pi (p : {poly F}) (x : algcreal) :
-  (p ^ to_alg).[\pi_alg x] = \pi (horner_algcreal p x).
-Proof.
-rewrite horner_coef /horner_algcreal size_map_poly.
-apply: (big_ind2 (fun x y => x = \pi_alg y)).
-+ by rewrite zeroE.
-+ by move=> u u' v v' -> ->; rewrite [_ + _]piE.
-by move=> i /= _; rewrite expn_pi coef_map /= [_ * _]piE.
-Qed.
-
-Lemma root_annul_algcreal (x : algcreal) : ((annul_alg (\pi x)).[x] == 0)%CR.
-Proof. by unlock annul_alg; rewrite /= -pi_algK root_annul_creal. Qed.
-
-Lemma root_annul_alg (x : {alg F}) : root ((annul_alg x) ^ to_alg) x.
-Proof.
-apply/rootP; rewrite -[x]reprK horner_pi /= zeroE -equiv_alg.
-by rewrite horner_algcrealE root_annul_algcreal.
-Qed.
-
-Lemma monic_annul_alg (x : {alg F}) : annul_alg x \is monic.
-Proof. by unlock annul_alg; rewrite monic_annul_creal. Qed.
-
-Lemma annul_alg_neq0 (x : {alg F}) : annul_alg x != 0.
-Proof. by rewrite monic_neq0 ?monic_annul_alg. Qed.
-
-Lemma map_comp_poly (aR : fieldType) (rR : idomainType) (f : {rmorphism aR -> rR})
-   (p q : {poly aR}) : (p \Po q) ^ f = (p ^ f) \Po (q ^ f).
-Proof.
-rewrite !comp_polyE size_map_poly; apply: (big_ind2 (fun x y => x ^ f = y)).
-+ by rewrite rmorph0.
-+ by move=> u u' v v' /=; rewrite rmorphD /= => -> ->.
-move=> /= i _; rewrite -mul_polyC rmorphM /= map_polyC mul_polyC.
-by rewrite coef_map rmorphX.
-Qed.
-
 Lemma ler_to_alg : {mono to_alg : x y / x <= y}.
 Proof.
 apply: homo_mono=> x y lt_xy; rewrite !piE -(rwP lt_algP).
@@ -939,6 +973,14 @@ Qed.
 
 Lemma ltr_to_alg : {mono to_alg : x y / x < y}.
 Proof. by apply: lerW_mono; apply: ler_to_alg. Qed.
+
+Lemma normr_to_alg : { morph to_alg : x / `|x| }.
+Proof.
+move=> x /=; have [] := ger0P; have [] := ger0P x%:RA;
+  rewrite ?rmorph0 ?rmorphN ?oppr0 //=.
+  by rewrite ltr_to_alg lerNgt => ->.
+by rewrite ler_to_alg ltrNge => ->.
+Qed.
 
 Lemma inf_alg_proof x : {d | 0 < d & 0 < x -> (d%:RA < x)}.
 Proof.
@@ -983,22 +1025,27 @@ Proof.
 by unlock approx; case: approx_proof=> /= y hy /hy /ltr_le_trans hy' /hy'.
 Qed.
 
-Lemma pet_alg_proof (s : seq alg) :
-  { ap : {alg F} * seq {poly F} |
-    [forall i : 'I_(size s), (ap.2`_i ^ to_alg).[ap.1] == s`_i]
-    &  size ap.2 = size s }.
+Lemma alg_archi : Num.archimedean_axiom alg_of_numDomainType.
 Proof.
-apply: sig2_eqW; elim: s; first by exists (0,[::])=> //; apply/forallP=> [] [].
-move=> x s [[a sp] /forallP /= hs hsize].
-have:= char0_PET _ (root_annul_alg a) _ (root_annul_alg x).
-rewrite !annul_alg_neq0 => /(_ isT isT (char_num _)) /= [n [[p hp] [q hq]]].
-exists (x *+ n - a, q :: [seq r \Po p | r <- sp]); last first.
-  by rewrite /= size_map hsize.
-apply/forallP=> /=; rewrite -add1n=> i; apply/eqP.
-have [k->|l->] := splitP i; first by rewrite !ord1.
-rewrite add1n /= (nth_map 0) ?hsize // map_comp_poly /=.
-by rewrite horner_comp hp; apply/eqP.
+move=> x; move: {x}`|x| (normr_ge0 x) => x x_ge0.
+pose a := approx x 1%:RA; exists (Num.bound (a + 1)).
+have := @archi_boundP _ (a + 1); rewrite -ltr_to_alg rmorph_nat.
+have := @approxP x _ _ ltr01 (lerr _); rewrite ltr_distl -/a => /andP [_ hxa].
+rewrite -ler_to_alg rmorphD /= (ler_trans _ (ltrW hxa)) //.
+by move=> /(_ isT) /(ltr_trans _)->.
 Qed.
+
+Canonical alg_archiFieldType := ArchiFieldType alg alg_archi.
+Canonical alg_of_archiFieldType := [archiFieldType of {alg F}].
+
+(**************************************************************************)
+(* At this stage, algebraics form an archimedian field.  We now build the *)
+(* material to prove the intermediate value theorem.  We first prove a    *)
+(* "weak version", which expresses that the extension {alg F} indeed      *)
+(* contains solutions of the intermediate value probelem in F             *)
+(**************************************************************************)
+
+Notation "'Y" := 'X%:P.
 
 Lemma weak_ivt (p : {poly F}) (a b : F) : a <= b -> p.[a] <= 0 <= p.[b] ->
   { x : alg | a%:RA <= x <= b%:RA & root (p ^ to_alg) x }.
@@ -1028,30 +1075,40 @@ pose x := AlgDom monic_p r_ge0 hp; exists (\pi_alg (to_algcreal x)).
   by do [ unlock to_algcreal=> /=; apply: (@le_crealP _ 0%N)=> /= j _;
           have := @to_algcreal_ofP p c r 0%N j r_ge0 isT;
           rewrite ler_distl /= expr0 divr1 !hab=> /andP []].
-apply/rootP. rewrite horner_pi zeroE -equiv_alg horner_algcrealE /=.
+apply/rootP; rewrite horner_pi zeroE -equiv_alg horner_algcrealE /=.
 by rewrite -(@to_algcrealP x); unlock to_algcreal.
 Qed.
 
-Lemma alg_archi : Num.archimedean_axiom alg_of_numDomainType.
+(* any sequence of algebraic can be expressed as a sequence of
+polynomials in a unique algebraic *)
+Lemma pet_alg_proof (s : seq alg) :
+  { ap : {alg F} * seq {poly F} |
+    [forall i : 'I_(size s), (ap.2`_i ^ to_alg).[ap.1] == s`_i]
+    &  size ap.2 = size s }.
 Proof.
-move=> x; move: {x}`|x| (normr_ge0 x) => x x_ge0.
-pose a := approx x 1%:RA; exists (Num.bound (a + 1)).
-have := @archi_boundP _ (a + 1); rewrite -ltr_to_alg rmorph_nat.
-have := @approxP x _ _ ltr01 (lerr _); rewrite ltr_distl -/a => /andP [_ hxa].
-rewrite -ler_to_alg rmorphD /= (ler_trans _ (ltrW hxa)) //.
-by move=> /(_ isT) /(ltr_trans _)->.
+apply: sig2_eqW; elim: s; first by exists (0,[::])=> //; apply/forallP=> [] [].
+move=> x s [[a sp] /forallP /= hs hsize].
+have:= char0_PET _ (root_annul_alg a) _ (root_annul_alg x).
+rewrite !annul_alg_neq0 => /(_ isT isT (char_num _)) /= [n [[p hp] [q hq]]].
+exists (x *+ n - a, q :: [seq r \Po p | r <- sp]); last first.
+  by rewrite /= size_map hsize.
+apply/forallP=> /=; rewrite -add1n=> i; apply/eqP.
+have [k->|l->] := splitP i; first by rewrite !ord1.
+rewrite add1n /= (nth_map 0) ?hsize // map_comp_poly /=.
+by rewrite horner_comp hp; apply/eqP.
 Qed.
 
-Canonical alg_archiFieldType := ArchiFieldType alg alg_archi.
-Canonical alg_of_archiFieldType := [archiFieldType of {alg F}].
-
-Lemma normr_to_alg : { morph to_alg : x / `|x| }.
-Proof.
-move=> x /=; have [] := ger0P; have [] := ger0P x%:RA;
-  rewrite ?rmorph0 ?rmorphN ?oppr0 //=.
-  by rewrite ltr_to_alg lerNgt => ->.
-by rewrite ler_to_alg ltrNge => ->.
-Qed.
+(****************************************************************************)
+(* Given a sequence s of algebraics (seq {alg F})                           *)
+(*        pet_alg == primitive algebraic                                    *)
+(*   pet_alg_poly == sequence of polynomials such that when instanciated in *)
+(*                   pet_alg gives back the sequence s (cf. pet_algK)       *)
+(*                                                                          *)
+(* Given a polynomial p on algebraic {poly {alg F}}                         *)
+(*     pet_ground == bivariate polynomial such that when the inner          *)
+(*                   variable ('Y) is instanciated in pet_alg gives back    *)
+(*                   the polynomial p.                                      *)
+(****************************************************************************)
 
 Definition pet_alg s : {alg F} :=
   let: exist2 (a, _) _ _ := pet_alg_proof s in a.
