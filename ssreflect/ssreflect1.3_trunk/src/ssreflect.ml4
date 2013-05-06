@@ -27,6 +27,8 @@ open Pp
 open Pcoq
 open Genarg
 open Term
+open Vars
+open Context
 open Topconstr
 open Libnames
 open Tactics
@@ -447,7 +449,7 @@ let is_pf_var c = isVar c && not_section_id (destVar c)
 
 let pf_ids_of_proof_hyps gl =
   let add_hyp (id, _, _) ids = if not_section_id id then id :: ids else ids in
-  Sign.fold_named_context add_hyp (pf_hyps gl) ~init:[]
+  Context.fold_named_context add_hyp (pf_hyps gl) ~init:[]
 
 (* Basic tactics *)
 
@@ -670,7 +672,7 @@ let pf_abs_evars gl (sigma, c0) =
     let abs_dc c = function
     | x, Some b, t -> mkNamedLetIn x b t (mkArrow t c)
     | x, None, t -> mkNamedProd x t c in
-    let t = Sign.fold_named_context_reverse abs_dc ~init:evi.evar_concl dc in
+    let t = Context.fold_named_context_reverse abs_dc ~init:evi.evar_concl dc in
     Evarutil.nf_evar sigma t in
   let rec put evlist c = match kind_of_term c with
   | Evar (k, a) ->  
@@ -722,7 +724,7 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
     let abs_dc c = function
     | x, Some b, t -> mkNamedLetIn x b t (mkArrow t c)
     | x, None, t -> mkNamedProd x t c in
-    let t = Sign.fold_named_context_reverse abs_dc ~init:evi.evar_concl dc in
+    let t = Context.fold_named_context_reverse abs_dc ~init:evi.evar_concl dc in
     Evarutil.nf_evar sigma t in
   let rec put evlist c = match kind_of_term c with
   | Evar (k, a) ->  
@@ -1662,7 +1664,7 @@ let rec check_hyps_uniq ids = function
   | [] -> ()
 
 let check_hyp_exists hyps (SsrHyp(_, id)) =
-  try ignore(Sign.lookup_named id hyps)
+  try ignore(Context.lookup_named id hyps)
   with Not_found -> errorstrm (str"No assumption is named " ++ pr_id id)
 
 let interp_hyps ist gl ghyps =
@@ -2586,7 +2588,7 @@ let clear_with_wilds wilds clr0 gl =
     let vars = global_vars_set_of_decl (pf_env gl) nd in
     let occurs id' = Idset.mem id' vars in
     if List.exists occurs clr then id :: clr else clr in
-  clear (Sign.fold_named_context_reverse extend_clr ~init:clr0 (pf_hyps gl)) gl
+  clear (Context.fold_named_context_reverse extend_clr ~init:clr0 (pf_hyps gl)) gl
 
 let tclTHENS_nonstrict tac tacl taclname gl =
   let tacres = tac gl in

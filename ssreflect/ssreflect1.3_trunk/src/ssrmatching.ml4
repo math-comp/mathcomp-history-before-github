@@ -12,6 +12,7 @@ open Pp
 open Pcoq
 open Genarg
 open Term
+open Vars
 open Topconstr
 open Libnames
 open Tactics
@@ -429,7 +430,7 @@ let evars_for_FO ~hack env sigma0 (ise0:evar_map) c0 =
     | x, Some b, t -> d, mkNamedLetIn x (put b) (put t) c
     | x, None, t -> mkVar x :: d, mkNamedProd x (put t) c in
     let a, t =
-      Sign.fold_named_context_reverse abs_dc ~init:([], (put evi.evar_concl)) dc in
+      Context.fold_named_context_reverse abs_dc ~init:([], (put evi.evar_concl)) dc in
     let m = Evarutil.new_meta () in
     ise := meta_declare m t !ise;
     sigma := Evd.define k (applist (mkMeta m, a)) !sigma;
@@ -949,12 +950,12 @@ let interp_pattern ist gl red redty =
     let h_k = match kind_of_term h with Evar (k,_) -> k | _ -> assert false in
     let to_clean, update = (* handle rename if x is already used *)
       let ctx = pf_hyps gl in
-      let len = Sign.named_context_length ctx in
+      let len = Context.named_context_length ctx in
       let name = ref None in
-      try ignore(Sign.lookup_named x ctx); (name, fun k ->
+      try ignore(Context.lookup_named x ctx); (name, fun k ->
         if !name = None then
         let nctx = Evd.evar_context (Evd.find sigma k) in
-        let nlen = Sign.named_context_length nctx in
+        let nlen = Context.named_context_length nctx in
         if nlen > len then begin
           name := Some (pi1 (List.nth nctx (nlen - len - 1)))
         end)
