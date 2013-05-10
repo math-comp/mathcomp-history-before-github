@@ -728,13 +728,13 @@ Lemma dirr_opp v : (- v \in dirr G) = (v \in dirr G). Proof. exact: rpredN. Qed.
 Lemma dirr_sign n v : ((-1)^+ n *: v \in dirr G) = (v \in dirr G).
 Proof. exact: rpredZsign. Qed.
 
-Lemma mem_dirr i : 'chi_i \in dirr G.
+Lemma irr_dirr i : 'chi_i \in dirr G.
 Proof. by rewrite !inE mem_irr. Qed.
 
 Lemma dirrP f :
   reflect (exists b : bool, exists i, f = (-1) ^+ b *: 'chi_i) (f \in dirr G).
 Proof.
-apply: (iffP idP) => [| [b [i ->]]]; last by rewrite dirr_sign mem_dirr. 
+apply: (iffP idP) => [| [b [i ->]]]; last by rewrite dirr_sign irr_dirr. 
 case/orP=> /irrP[i Hf]; first by exists false, i; rewrite scale1r.
 by exists true, i; rewrite scaleN1r -Hf opprK.
 Qed.

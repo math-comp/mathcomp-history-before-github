@@ -518,7 +518,7 @@ have{ij DkW} [i DkW]: exists i, 'Res 'chi_k = w_ i 0.
   by rewrite cfResRes // sub_cfker_Res // (subset_trans sW2K kerKk).
 apply/imsetP; exists i => //=; apply/irr_inj.
 suffices ->: 'chi_k = delta_ 0 *: mu2_ i 0 by rewrite prTIsign0 scale1r.
-rewrite -cycTIiso_prTIirr -(eq_in_cycTIiso _ (mem_dirr k)) // => x /setDP[Wx _].
+rewrite -cycTIiso_prTIirr -(eq_in_cycTIiso _ (irr_dirr k)) // => x /setDP[Wx _].
 by rewrite -/(w_ i 0) -DkW cfResE.
 Qed.
 

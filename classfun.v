@@ -398,6 +398,7 @@ Notation "''CF' ( G )" := (classfun G) : type_scope.
 Notation "''CF' ( G )" := (@fullv _ (cfun_vectType G)) : vspace_scope.
 Notation "''1_' A" := (cfun_indicator _ A) : ring_scope.
 Notation "''CF' ( G , A )" := (classfun_on G A) : ring_scope.
+Notation "1" := (@GRing.one (cfun_ringType _)) (only parsing) : cfun_scope.
 
 Notation "phi ^*" := (cfAut conjC phi) : cfun_scope.
 Notation conjC_closed := (cfAut_closed conjC).

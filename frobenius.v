@@ -409,6 +409,13 @@ apply: regular_norm_dvd_pred Frobenius_reg_ker.
 by have[/sdprodP[]] := Frobenius_context.
 Qed.
 
+Lemma ltn_odd_Frobenius_ker : odd #|G| -> #|H|.*2 < #|K|.
+Proof.
+move/oddSg=> oddG.
+have [/sdprodW/mulG_sub[sKG sHG] ntK _ _ _] := Frobenius_context.
+by rewrite dvdn_double_ltn ?oddG ?cardG_gt1 ?Frobenius_dvd_ker1.
+Qed.
+
 Lemma Frobenius_index_dvd_ker1 : #|G : K| %| #|K|.-1.
 Proof.
 have[defG _ _ /andP[sKG _] _] := Frobenius_context.

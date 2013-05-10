@@ -822,6 +822,15 @@ Qed.
 Lemma Gauss_dvdl m n p : coprime m p -> (m %| n * p) = (m %| n).
 Proof. by rewrite mulnC; apply: Gauss_dvdr. Qed.
 
+Lemma dvdn_double_leq m n : m %| n -> odd m -> ~~ odd n -> 0 < n -> m.*2 <= n.
+Proof.
+move=> m_dv_n odd_m even_n n_gt0.
+by rewrite -muln2 dvdn_leq // Gauss_dvd ?coprimen2 ?m_dv_n ?dvdn2.
+Qed.
+
+Lemma dvdn_double_ltn m n : m %| n.-1 -> odd m -> odd n -> 1 < n -> m.*2 < n.
+Proof. by case: n => //; apply: dvdn_double_leq. Qed.
+
 Lemma Gauss_gcdr p m n : coprime p m -> gcdn p (m * n) = gcdn p n.
 Proof.
 move=> co_pm; apply/eqP; rewrite eqn_dvd !dvdn_gcd !dvdn_gcdl /=.

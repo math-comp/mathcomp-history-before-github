@@ -854,9 +854,9 @@ Let w_ i j := cyclicTIirr defW i j.
 Let w1 := #|W1|.
 Let w2 := #|W2|.
 
-Lemma cyclicTIirrC (defW21 : W2 \x W1 = W) i j :
-  cyclicTIirr defW21 j i = w_ i j.
-Proof. by rewrite (dprod_IirrC defW21 defW). Qed.
+Lemma cyclicTIirrC (xdefW : W2 \x W1 = W) i j :
+  cyclicTIirr xdefW j i = w_ i j.
+Proof. by rewrite (dprod_IirrC xdefW defW). Qed.
 
 Lemma cycTIirrP chi : chi \in irr W -> {i : Iirr W1 & {j | chi = w_ i j}}.
 Proof.
@@ -952,7 +952,7 @@ Let oddW : odd #|W|. Proof. by case: ctiW. Qed.
 Let tiV : normedTI V G W. Proof. by case: ctiW. Qed.
 Let ntV : V != set0. Proof. by case/andP: tiV. Qed.
 
-Lemma cyclicTIhyp_sym (defW21 : W2 \x W1 = W) : cyclicTI_hypothesis G defW21.
+Lemma cyclicTIhyp_sym (xdefW : W2 \x W1 = W) : cyclicTI_hypothesis G xdefW.
 Proof. by split; rewrite // /cyclicTIset setUC. Qed.
 
 Let cycW1 : cyclic W1. Proof. exact: cyclicS cycW. Qed.
@@ -1363,7 +1363,7 @@ End CyclicTIisoBasis.
 
 (* This is PeterFalvi, Theorem (3.2)(a, b, c). *)
 Theorem cyclicTIiso_exists :
-  {sigma : {linear 'CF(W) -> 'CF(G)} |
+  {sigma : 'Hom(cfun_vectType W, cfun_vectType G) |
     [/\ {in 'Z[irr W], isometry sigma, to 'Z[irr G]}, sigma 1 = 1
       & {in 'CF(W, V), forall phi : 'CF(W), sigma phi = 'Ind[G] phi}]}.
 Proof.
@@ -1373,16 +1373,16 @@ pose sigma_base f := [seq (dchi (f k) : 'CF(G)) | k : Iirr W].
 pose sigma_spec f := sigmaP (sval (linear_of_free (irr W) (sigma_base f))).
 suffices /sigW[f /and3P[]]: exists f : {ffun _}, sigma_spec f.
   case: linear_of_free => /=sigma Dsigma o1sigma /eqP sigma1 /eqlfun_inP sigmaV.
-  exists sigma; split=> // [| phi /sigmaV]; last by rewrite !lfunE.
+  exists (linfun sigma); split=> [|| phi /sigmaV]; try by rewrite !lfunE.
   do [rewrite size_map !size_tuple => /(_ (irr_free W) (card_ord _))] in Dsigma.
   have [inj_sigma dot_sigma] := orthonormalP o1sigma.
   rewrite -(map_tnth_enum (irr W)) -map_comp in Dsigma inj_sigma.
   move/eq_in_map in Dsigma; move/injectiveP in inj_sigma.
   split=> [|_ /zchar_tuple_expansion[z Zz ->]].
-    apply: isometry_in_zchar=> _ _ /irrP[k1 ->] /irrP[k2 ->].
-    by rewrite dot_sigma ?map_f ?mem_irr // cfdot_irr (inj_eq inj_sigma).
+    apply: isometry_in_zchar=> _ _ /irrP[k1 ->] /irrP[k2 ->] /=.
+    by rewrite !lfunE dot_sigma ?map_f ?mem_irr // cfdot_irr (inj_eq inj_sigma).
   rewrite linear_sum rpred_sum // => k _; rewrite linearZ rpredZ_Cint //=.
-  by rewrite -tnth_nth [sigma _]Dsigma ?mem_enum ?dchi_vchar.
+  by rewrite -tnth_nth lfunE [sigma _]Dsigma ?mem_enum ?dchi_vchar.
 have [xi_ [xi00 Zxi Dxi o1xi]] := cyclicTIiso_basis_exists.
 pose f := [ffun k => dirr_dIirr (prod_curry xi_) (inv_dprod_Iirr defW k)].
 exists f; apply/and3P; case: linear_of_free => /= sigma Dsigma.
@@ -1403,7 +1403,7 @@ Qed.
 
 Fact cyclicTIiso_key : unit. Proof. by []. Qed.
 Definition cyclicTIiso :=
-  locked_with cyclicTIiso_key (sval cyclicTIiso_exists).
+  locked_with cyclicTIiso_key (lfun_linear (sval cyclicTIiso_exists)).
 Local Notation sigma := cyclicTIiso.
 Let im_sigma := map sigma (irr W).
 Let eta_ i j := sigma (w_ i j).
@@ -1434,7 +1434,7 @@ Proof. by rewrite cycTIisometry. Qed.
 Lemma cfnorm_cycTIiso i j : '[eta_ i j] = 1.
 Proof. by rewrite cycTIisometry cfnorm_irr. Qed.
 
-Lemma cycTIiso_dirr i j : sigma (w_ i j) \in dirr G.
+Lemma cycTIiso_dirr i j : eta_ i j \in dirr G.
 Proof. by rewrite dirrE cycTIiso_vchar /= cfnorm_cycTIiso. Qed.
 
 Lemma cycTIiso_orthonormal : orthonormal im_sigma.
@@ -1526,7 +1526,7 @@ Qed.
 Lemma cycTI_NC_irr i : (NC 'chi_i <= 1)%N.
 Proof.
 apply: wlog_neg; rewrite -ltnNge => /ltnW/card_gt0P[[i1 j1]].
-rewrite inE cfdot_dirr ?(mem_dirr, cycTIiso_dirr) //=.
+rewrite inE cfdot_dirr ?(irr_dirr, cycTIiso_dirr) //=.
 case: ('chi_i =P _) => [-> | _]; first by rewrite cycTI_NC_opp cycTI_NC_iso.
 by case: ('chi_i =P _)=> [-> | _]; rewrite (cycTI_NC_iso, eqxx).
 Qed.
@@ -1740,7 +1740,7 @@ have ZpsiV: {in V, forall g, psi g = 0}=> [g GiV|].
 pose a i j := '[psi, eta_ i j]; pose S := [set ij | a ij.1 ij.2 != 0].
 case: (boolP ((i1, j1) \in S))=> [I1J1iS|]; last first.
   rewrite inE negbK /a  cfdotBl cfdot_cycTIiso !eqxx /=.
-  rewrite cfdot_dirr ?(mem_dirr, cycTIiso_dirr) //.
+  rewrite cfdot_dirr ?(irr_dirr, cycTIiso_dirr) //.
   case: (boolP (phi == _))=> [|_].
     by rewrite opprK -(natrD _ 1 1) pnatr_eq0.
   case: (boolP (phi == _))=> [/eqP //|].
@@ -1821,22 +1821,34 @@ End Three.
 
 Implicit Arguments ortho_cycTIiso_vanish [gT G W W1 W2 defW psi].
 
-Lemma cycTIisoC (gT : finGroupType) (G W W1 W2 : {group gT})  
-                (defW12 : W1 \x W2 = W) (ctiW12 : cyclicTI_hypothesis G defW12)
-                (defW21 : W2 \x W1 = W) (ctiW21 : cyclicTI_hypothesis G defW21)
-                i j :
-   cyclicTIiso ctiW12 (cyclicTIirr defW12 i j)
-     = cyclicTIiso ctiW21 (cyclicTIirr defW21 j i).
+Section ThreeSymmetry.
+
+Variables (gT : finGroupType) (G W W1 W2 : {group gT}).
+Implicit Types (defW : W1 \x W2 = W) (xdefW : W2 \x W1 = W).
+Local Notation sigma_ := (@cyclicTIiso gT G W _ _).
+Local Notation w_ defW i j := (cyclicTIirr defW i j).
+
+Lemma cycTIisoC defW xdefW ctiW xctiW i j :
+  @sigma_ defW ctiW (w_ defW i j) = @sigma_ xdefW xctiW (w_ xdefW j i).
 Proof.
 apply: eq_in_cycTIiso; first exact: cycTIiso_dirr.
-by rewrite /cyclicTIset setUC dprod_IirrC; apply: cycTIiso_restrict.
+by rewrite /cyclicTIset setUC cyclicTIirrC; apply: cycTIiso_restrict.
 Qed.
 
-Lemma cycTIiso_irrel (gT : finGroupType) (G W W1 W2 : {group gT})  
-                (defW : W1 \x W2 = W) (ctiW : cyclicTI_hypothesis G defW)
-                (defW' : W1 \x W2 = W) (ctiW' : cyclicTI_hypothesis G defW') :
-   cyclicTIiso ctiW = cyclicTIiso ctiW'.
+Lemma cycTIiso_irrelC defW xdefW ctiW xctiW :
+  @sigma_ defW ctiW = @sigma_ xdefW xctiW.
 Proof.
-case: ctiW'; rewrite (eq_irrelevance defW' defW).
-by case: ctiW => *; congr (cyclicTIiso (And3 _ _ _)); apply: eq_irrelevance.
+suffices: sigma_ ctiW =1 sigma_ xctiW by rewrite ![sigma_ _]unlock => /lfunP->.
+move=> phi; have [z_ ->] := cfun_irr_sum phi; rewrite !linear_sum.
+apply/eq_bigr=> ij _; have [i [j ->]] := cycTIirrP defW (mem_irr ij).
+by rewrite !linearZ /= {1}cycTIisoC cyclicTIirrC.
 Qed.
+
+Lemma cycTIiso_irrel defW defW' ctiW ctiW' :
+  @sigma_ defW ctiW = @sigma_ defW' ctiW'.
+Proof.
+have xdefW: W2 \x W1 = W by rewrite dprodC.
+by rewrite !(cycTIiso_irrelC _ (cyclicTIhyp_sym ctiW xdefW)).
+Qed.
+
+End ThreeSymmetry.

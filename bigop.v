@@ -1007,6 +1007,11 @@ case: r => /= [|x0 r]; first by rewrite big_nil big_ord0.
 by rewrite (big_nth x0) big_mkord; apply: eq_big => i; rewrite (tnth_nth x0).
 Qed.
 
+Lemma big_tuple I n (t : n.-tuple I) (P : pred I) F :
+  \big[op/idx]_(i <- t | P i) F i
+     = \big[op/idx]_(i < n | P (tnth t i)) F (tnth t i).
+Proof. by rewrite big_tnth tvalK; case: _ / (esym _). Qed.
+
 Lemma big_ord_narrow_cond n1 n2 (P : pred 'I_n2) F (le_n12 : n1 <= n2) :
     let w := widen_ord le_n12 in
   \big[op/idx]_(i < n2 | P i && (i < n1)) F i

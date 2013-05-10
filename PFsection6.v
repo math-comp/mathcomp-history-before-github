@@ -961,9 +961,8 @@ have caseA_coh12: caseA -> coherent (X ++ Y) L^# tau.
   - move=> IH; have [q0 | nz_q] := eqVneq q 0.
       by apply: (IH tau1) => //; rewrite Dpsi1 Db q0 mul0r scale0r addr0.
     have m1_ge1: 1 <= m - 1.
-      have /irrY/irrP[j1 Deta1] := Yeta1; rewrite Deta1 in Yeta1.
       rewrite -(@ler_add2r _ 1) subrK (ler_nat _ 2).
-      exact: seqInd_nontrivial Yeta1.
+      exact: seqInd_nontrivial (irrY _ Yeta1) (Yeta1).
     have q1: q = 1.
       apply: contraNeq maxq; rewrite -subr_eq0 => nz_q1.
       rewrite ler_add // ?sqr_Cint_ge1 ?rpredB //.
@@ -1054,23 +1053,19 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
     have sW2G: W2 \subset G by rewrite -defW2 subIset // (subset_trans sHL).
     have [u Du _]:= make_pi_cfAut G cokw2.
     rewrite -Du ?Ztau1 ?seqInd_zcharW //; last by rewrite orderE -cycZ defZ.
-    have /irrY/irrP[j def_eta] := Yeta; rewrite def_eta in Yeta *.
     have nAL: L \subset 'N(A) by rewrite normD1 normal_norm.
     pose ddA := restr_Dade_hyp PtypeL (subsetUl _ _) nAL.
-    have cohY_Dade: coherent_with Y A (Dade ddA) tau1.
-      split=> // phi YAphi; have Aphi := zchar_on YAphi.
-      by rewrite Dtau1 ?Dade_Ind // (zchar_onS (setSD _ sHL)).
-    rewrite (cfAut_Dade_coherent cohY_Dade); last by []; last first.
-    - rewrite seqInd_free // (seqInd_nontrivial_irr _ _ _ Yeta) //.
-      by split; last exact: cfAut_seqInd.
-    - exact: zcharD1_seqInd.
-    rewrite -[cfAut u _](subrK 'chi_j) raddfD cfunE.
+    have cohY_Dade: coherent_with Y L^# (Dade ddA) tau1.
+      split=> // phi Yphi; rewrite Dtau1 ?Dade_Ind //.
+      by rewrite (@zchar_on _ _ Y) -?zcharD1_seqInd.
+    rewrite (cfAut_Dade_coherent cohY_Dade) ?irrY //; last first.
+      split; last exact: cfAut_seqInd.
+      exact: seqInd_nontrivial_irr (irrY _ Yeta) (Yeta).
+    rewrite -[cfAut u _](subrK eta) raddfD cfunE.
     apply: canLR (subrK _) _; rewrite subrr.
     have [_ ->] := cohY_Dade; last first.
-      rewrite -rpredN opprB -zcharD1_seqInd //.
-      rewrite sub_aut_zchar ?zchar_onG ?seqInd_zcharW ?cfAut_seqInd //.
-      exact: seqInd_vcharW.
-    rewrite -{j}def_eta in Yeta *; rewrite Dade_id; last first.
+      by rewrite -opprB rpredN zcharD1_seqInd // seqInd_sub_aut_zchar.
+    rewrite Dade_id; last first.
       by rewrite !inE -cycle_eq1 -cycle_subG -cycZ ntZ.
     rewrite !cfunE cfker1 ?aut_Cnat ?subrr ?(Cnat_seqInd1 Yeta) //.
     rewrite -cycle_subG -cycZ (subset_trans sZH') //.
@@ -1215,8 +1210,8 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
         by rewrite mem_rem_uniq // => /andP[/negPf-> _]; rewrite subrr scale0r.
       by rewrite addr0 opprK.
     have m1_ge1: 1 <= m - 1.
-      case/irrY/irrP: Yeta1 (Yeta1) => j1 -> /seqInd_nontrivial ntY.
-      by rewrite -(@ler_add2r _ 1) subrK (ler_nat _ 2) ntY.
+      rewrite -(@ler_add2r _ 1) subrK (ler_nat _ 2).
+      exact: seqInd_nontrivial (irrY _ Yeta1) (Yeta1).
     right; have x_eq1: x = 1.
       apply: contraNeq ub_xm; rewrite -subr_eq0 => nz_x1; apply: ler_add.
         by rewrite sqr_Cint_ge1 // rpredB.

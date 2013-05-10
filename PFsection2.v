@@ -187,7 +187,6 @@ move=> Lx; rewrite {1}/dd1 DadeJ // -conjg_set1 -conjsMg.
 by rewrite class_supportGidl ?(subsetP sLG).
 Qed.
 
-
 Let piHA a u : a \in A -> u \in H a :* a -> u.`_pi = a.
 Proof.
 move=> Aa /rcosetP[{u}u Hu ->]; have pi'u: pi^'.-elt u by apply: mem_p_elt Hu.

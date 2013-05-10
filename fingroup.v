@@ -2692,9 +2692,12 @@ move=> nBA; rewrite -normCs setC_bigcup norms_bigcap //.
 by rewrite (eq_bigr _ (fun _ _ => normCs _)).
 Qed.
 
+Lemma normsD1 A B : A \subset 'N(B) -> A \subset 'N(B^#).
+Proof. by move/normsD->; rewrite ?norms1. Qed.
+
 Lemma normD1 A : 'N(A^#) = 'N(A).
 Proof.
-apply/eqP; rewrite eqEsubset normsD ?norms1 //.
+apply/eqP; rewrite eqEsubset normsD1 //.
 rewrite -{2}(setID A 1) setIC normsU //; apply/normsP=> x _; apply/setP=> y.
 by rewrite conjIg conjs1g !inE mem_conjg; case: eqP => // ->; rewrite conj1g.
 Qed.

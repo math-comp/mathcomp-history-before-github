@@ -16,13 +16,14 @@ Require Import PFsection5 PFsection6 PFsection8.
 (* H := M`_\F we define :                                                     *)
 (*  Ptype_Fcore_kernel MtypeP == a maximal normal subgroup of M contained     *)
 (*               (locally) H0    in H and containing 'C_H(U), provided M is   *)
-(*                               a maximal subgroup not of type V.            *)
+(*                               not a maximal subgroup of type V.            *)
 (*  Ptype_Fcore_kernel MtypeP == the stabiliser of Hbar := H / H0 in U; this  *)
 (*   (locally to this file) C    is locked for performance reasons.           *)
 (*        typeP_Galois MtypeP <=> U acts irreducibly on Hbar; this implies    *)
 (*                               that M / H0C is isomorphic to a Galois group *)
-(*                               acting on the additive and a subgroup of the *)
-(*                               multiplicative group of a finite field).     *)
+(*                               acting on the semidirect product of the      *)
+(*                               additive group of a finite field with a      *)
+(*                               a subgroup of its multiplicative group.      *)
 (* --> This predicate reflects alternative (b) in Peterfalvi (9.7).           *)
 (******************************************************************************)
 
@@ -116,7 +117,7 @@ Lemma typeII_IV_core (p := #|W2|) :
 Proof.
 have [_ _ nHUW1 _] := sdprodP defHUW1.
 have /= [oH _ oH1] := Frobenius_Wielandt_fixpoint frobUW1 nHUW1 coH_UW1 solH.
-have [Mtype2 {oH}| notMtype2 {oH1}] := ifPn.
+have [Mtype2 {oH}| notMtype2 {oH1}] := boolP (FTtype M == 2).
   suffices regHU: 'C_H(U) = 1 by rewrite -defW2 oH1.
   have [_ _ _ HUtypeF defHUF] := compl_of_typeII maxM MtypeP Mtype2.
   have [_ _ [U0 [sU0U _]]] := HUtypeF; rewrite {}defHUF => frobHU0.
@@ -125,7 +126,7 @@ have [Mtype2 {oH}| notMtype2 {oH1}] := ifPn.
   apply/trivgP; rewrite -(Frobenius_reg_ker frobHU0 U0x) setIS // -cent_cycle.
   by rewrite centS // cycle_subG (subsetP sU0U) //; case/setD1P: U0x.
 have p_pr: prime p.
-  have [S pairMS [defW21 [U_S StypeP]]] := FTtypeP_pair_witness maxM MtypeP.
+  have [S pairMS [xdefW [U_S StypeP]]] := FTtypeP_pair_witness maxM MtypeP.
   have [[_ _ maxS] _] := pairMS; rewrite {1}(negPf notMtype2) /= => Stype2 _ _.
   by have [[]] := compl_of_typeII maxS StypeP Stype2.
 rewrite -/q -/p centY setICA defW2 setIC in oH *.
@@ -255,7 +256,7 @@ by rewrite !quotient_der ?cosetpreK ?subsetIl.
 Qed.
 Local Notation nsH0xx_M := Ptype_Fcore_extensions_normal.
 
-Let Du: u = #|HU : HC|.
+Let Du : u = #|HU : HC|.
 Proof.
 have nCU := subset_trans (joing_subl U W1) (normal_norm nsCUW1).
 by rewrite -(index_sdprodr defHU) -?card_quotient.
@@ -479,8 +480,8 @@ Qed.
 
 (* This is Peterfalvi (9.7)(b). *)
 (* Note that part of this statement feeds directly into the final chapter of  *)
-(* the proof (BGappendixC), and is not used before, so it may be useful to    *)
-(* reformulate to suit the needs of this part.                                *)
+(* the proof (PFsection14 and BGappendixC) and is not used before; we have    *)
+(* thus chosen to formulate the statement of (9.7)(b) accordingly.            *)
 (*   For example, we supply separately the three component of the semi-direct *)
 (* product isomorphism, because no use is made of the global isomorphism. We  *)
 (* also state explicitly that the image of W2bar is Fp because this is the    *)
@@ -1480,9 +1481,9 @@ have sU'C: U' \subset C.
 have uS0: uniq (S_ H0C') by apply: seqInd_uniq.
 have [rmR scohS0]: exists R : 'CF(M) -> seq 'CF(G), subcoherent (S_ H0C') tau R.
   move: (FTtypeP_coh_base _ _) (FTtypeP_subcoherent maxM MtypeP) => R scohR.
-  exists R; apply: (subset_subcoherent scohR); split=> //; last first.
-    exact: cfAut_seqInd.
-  by apply: seqIndS; rewrite Iirr_kerDS ?sub1G //= /M`_\s; case: ifP.
+  exists R; apply: (subset_subcoherent scohR).
+  split=> //; last exact: cfAut_seqInd.
+  by apply: seqIndS; rewrite Iirr_kerDS ?sub1G ?Fcore_sub_FTcore.
 have [GalM | Gal'M] := boolP typeP_Galois.
   have [_ XOC'u _ _] := typeP_Galois_characters GalM.
   apply: uniform_degree_coherence scohS0 _.

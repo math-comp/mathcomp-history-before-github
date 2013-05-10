@@ -178,6 +178,9 @@ move=> phi; rewrite zcharD1E (zchar_split _ K^#) cfun_onD1.
 by apply: andb_id2l => /(zchar_trans_on seqInd_zchar)/zchar_on->.
 Qed.
 
+Lemma zcharD1_seqInd_on : {subset 'Z[S, L^#] <= 'CF(L, K^#)}.
+Proof. by move=> phi; rewrite zcharD1_seqInd => /zchar_on. Qed.
+
 Lemma zcharD1_seqInd_Dade A :
   1%g \notin A -> {subset S <= 'CF(L, 1%g |: A)} -> 'Z[S, L^#] =i 'Z[S, A].
 Proof.
@@ -388,26 +391,30 @@ by rewrite seqInd_conjC_ortho.
 Qed.
 
 Lemma seqInd_notReal : ~~ has cfReal S.
-Proof. by apply/hasPn; exact: seqInd_conjC_neq. Qed.
+Proof. exact/hasPn/seqInd_conjC_neq. Qed.
 
-Variable r : Iirr L.
-Local Notation chi := 'chi_r.
-Hypothesis Schi : chi \in S.
+Variable chi : 'CF(L).
+Hypotheses (irr_chi : chi \in irr L) (Schi : chi \in S).
 
 Lemma seqInd_conjC_ortho2 : orthonormal (chi :: chi^*)%CF.
 Proof.
-by rewrite /orthonormal/= cfnorm_conjC cfnorm_irr seqInd_conjC_ortho ?eqxx.
+by rewrite /orthonormal/= cfnorm_conjC irrWnorm ?seqInd_conjC_ortho ?eqxx.
 Qed.
 
-Lemma seqInd_nontrivial_irr : (count (mem (irr L)) S > 1)%N.
+Lemma seqInd_nontrivial_irr : (#|[set i | 'chi_i \in S]| > 1)%N.
 Proof.
-rewrite (perm_eqP (perm_to_rem Schi)) /= mem_irr ltnS -has_count.
-apply/hasP; exists chi^*%CF; last by rewrite /= -conjC_IirrE mem_irr.
-by rewrite mem_rem_uniq ?seqInd_uniq // !inE seqInd_conjC_neq ?cfAut_seqInd.
+have /irrP[i Dchi] := irr_chi; rewrite (cardsD1 i) (cardsD1 (conjC_Iirr i)).
+rewrite !inE -(inj_eq irr_inj) conjC_IirrE -Dchi seqInd_conjC_neq //.
+by rewrite cfAut_seqInd Schi.
 Qed.
 
 Lemma seqInd_nontrivial : (size S > 1)%N.
-Proof. exact: leq_trans seqInd_nontrivial_irr (count_size _ _). Qed.
+Proof.
+apply: (@leq_trans (size [seq 'chi_i | i in [pred i | 'chi_i \in S]])).
+  by rewrite size_map -cardE -cardsE seqInd_nontrivial_irr.
+apply: uniq_leq_size => [| _ /imageP[i Schi_i ->] //].
+exact/dinjectiveP/(in2W irr_inj).
+Qed.
 
 End Odd.
 
@@ -431,10 +438,28 @@ Section Defs.
 Variables L G : {group gT}.
 
 (* This is Peterfalvi, Definition (5.1). *)
-(* We depart from the text in Section 5 by dropping non-triviality condition, *)
-(* which is not used consistently in the rest of the proof; in particular, it *)
-(* is incompatible with the use of "not coherent" in (6.2), and it is only    *)
-(* really used in (7.8), where a weaker condition (size S > 1) would suffice. *)
+(* We depart from the text in Section 5 on three points:                      *)
+(*   - We drop non-triviality condition in Z[S, A], which is not used         *)
+(*     consistently in the rest of the proof. In particular, it is            *)
+(*     incompatible with the use of "not coherent" in (6.2), and it is only   *)
+(*     really used in (7.8), where it is equivalent to the simpler condition  *)
+(*     (size S > 1). For us the empty S is coherent; this avoids duplicate    *)
+(*     work in some inductive proofs, e.g., subcoherent_norm - Lemma (5.4) -  *)
+(*     belom.                                                                 *)
+(*   - The preconditions for coherence (A < L, S < Z[irr L], and tau Z-linear *)
+(*     on some E < Z[irr L]) are not part of the definition of "coherent".    *)
+(*     These will be captured as separate requirements; in particular in the  *)
+(*     Odd Order proof tau will always be C-linear on all of 'CF(L).          *)
+(*   - By contrast, our "coherent" only supplies an additive (Z-linear)       *)
+(*     isometry, where the source text ambiguously specifies "linear" one.    *)
+(*     When S consists of virtual characters this implies the existence of    *)
+(*     a C-linear one: the linear extension of the restriction of the         *)
+(*     isometry to a basis of the Z-module Z[S]; the latter being given by    *)
+(*     the Smith normal form (see intdiv.v). The weaker requirement lets us   *)
+(*     use the dual_iso construction when size S = 2.                         *)
+(* Finally, note that although we have retained the A parameter, in the       *)
+(* sequel we shall always take A = L^#, as in the text it is always the case  *)
+(* that Z[S, A] = Z[S, L^#].                                                  *)
 Definition coherent_with S A tau (tau1 : {additive 'CF(L) -> 'CF(G)}) :=
   {in 'Z[S], isometry tau1, to 'Z[irr G]} /\ {in 'Z[S, A], tau1 =1 tau}.
 
@@ -1489,19 +1514,22 @@ Variable u : {rmorphism algC -> algC}.
 Local Notation "alpha ^u" := (cfAut u alpha).
 
 (* This is Peterfalvi (5.9)(a), slightly reformulated to allow calS to also   *)
-(* contain non-irreducible characters; for groups of odd order, the first     *)
+(* contain non-irreducible characters; for groups of odd order, the second    *)
 (* assumption holds uniformly for all calS of the form seqIndD.               *)
-Lemma cfAut_Dade_coherent calS tau1 i (chi := 'chi_i) : 
-    coherent_with calS A tau tau1 -> 'Z[calS, L^#] =i 'Z[calS, A] -> 
-    [/\ 1 < count (mem (irr L)) calS, free calS & cfAut_closed u calS]%N ->
-    chi \in calS ->
+(* We have stated the coherence assumption directly over L^#; this lets us    *)
+(* drop the Z{S, A] = Z{S, L^#] assumption, and is more consistent with the   *)
+(* rest of the proof.                                                         *)
+Lemma cfAut_Dade_coherent calS tau1 chi : 
+    coherent_with calS L^# tau tau1 ->
+    (1 < #|[set i | 'chi_i \in calS]|)%N /\ cfAut_closed u calS ->
+    chi \in irr L -> chi \in calS ->
   (tau1 chi)^u = tau1 (chi^u).
 Proof.
-case=> [[Itau1 Ztau1] tau1_tau] defZA [irrS_gt1 freeS sSuS] Schi.
-have sSZS: {subset calS <= 'Z[calS]} by move=> phi Sphi; exact: mem_zchar.
-pose mu j := 'chi_j 1%g *: chi - chi 1%g *: 'chi_j.
-have ZAmu j: 'chi_j \in calS -> mu j \in 'Z[calS, A].
-  move=> Sxj; rewrite -defZA zcharD1E !cfunE mulrC subrr.
+case=> [[Itau1 Ztau1] tau1_tau] [irrS_gt1 sSuS] /irrP[i {chi}->] Schi.
+have sSZS: {subset calS <= 'Z[calS]} by move=> phi Sphi; apply: mem_zchar.
+pose mu j := 'chi_j 1%g *: 'chi_i - 'chi_i 1%g *: 'chi_j.
+have ZAmu j: 'chi_j \in calS -> mu j \in 'Z[calS, L^#].
+  move=> Sxj; rewrite zcharD1E !cfunE mulrC subrr.
   by rewrite rpredB //= scale_zchar ?sSZS // ?Cint_Cnat ?Cnat_irr1.
 have Npsi j: 'chi_j \in calS -> '[tau1 'chi_j] = 1%:R.
   by move=> Sxj; rewrite Itau1 ?sSZS ?cfnorm_irr.
@@ -1519,18 +1547,17 @@ have{Dtau1} Dtau1 j: 'chi_j \in calS -> exists t, tau1 'chi_j = eps *: 'chi_t.
   by rewrite tau1_chi cfunE mulrCA signrMK mulr_ge0 ?Cnat_ge0 ?Cnat_irr1.
 have SuSirr j: 'chi_j \in calS -> 'chi_(aut_Iirr u j) \in calS.
   by rewrite aut_IirrE => /sSuS.
-have [j Sxj neq_ij]: exists2 j, 'chi_j \in calS & chi != 'chi_j.
-  move: irrS_gt1; rewrite (perm_eqP (perm_to_rem Schi)) /= mem_irr ltnS.
-  rewrite -has_count => /hasP[xj]; rewrite mem_rem_uniq ?free_uniq // !inE.
-  by case/andP=> neq_ji Sxj /irrP[j Dxj]; exists j; rewrite -Dxj // eq_sym.
+have [j Sxj neq_ij]: exists2 j, 'chi_j \in calS & 'chi_i != 'chi_j.
+  move: irrS_gt1; rewrite (cardsD1 i) inE Schi ltnS card_gt0 => /set0Pn[j].
+  by rewrite !inE -(inj_eq irr_inj) eq_sym => /andP[]; exists j.
 have: (tau1 (mu j))^u == tau1 (mu j)^u.
   by rewrite !tau1_tau ?cfAut_zchar ?ZAmu ?Dade_aut.
 rewrite !raddfB [-%R]lock !raddfZ_Cnat ?Cnat_irr1 //= -lock -!aut_IirrE.
 have [/Dtau1[ru ->] /Dtau1[tu ->]] := (SuSirr i Schi, SuSirr j Sxj).
-have: (tau1 chi)^u != (tau1 'chi_j)^u.
-  have inj_tau1 := isometry_raddf_inj Itau1 (@rpredB _ _ _ _).
-  by rewrite (inj_eq (@cfAut_inj _ _ _)) (inj_in_eq inj_tau1) ?sSZS.
-have /Dtau1[t ->] := Sxj; rewrite tau1_chi !cfAutZ_Cint ?GRing.rpred_sign //.
+have: (tau1 'chi_i)^u != (tau1 'chi_j)^u.
+  apply: contraNneq neq_ij => /cfAut_inj/(isometry_raddf_inj Itau1)/eqP.
+  by apply; rewrite ?sSZS //; apply: rpredB.
+have /Dtau1[t ->] := Sxj; rewrite tau1_chi !cfAutZ_Cint ?rpred_sign //.
 rewrite !scalerA -!(mulrC eps) -!scalerA -!scalerBr -!aut_IirrE.
 rewrite !(inj_eq (scalerI _)) ?signr_eq0 // (inj_eq irr_inj) => /negPf neq_urt.
 have [/CnatP[a ->] /CnatP[b xj1]] := (Cnat_irr1 i, Cnat_irr1 j).
@@ -1542,22 +1569,24 @@ End DadeAutIrr.
 
 (* This covers all the uses of (5.9)(a) in the rest of Peterfalvi, except     *)
 (* one instance in (6.8.2.1).                                                 *)
-Lemma cfConjC_Dade_coherent K H M (calS := seqIndD K L H M) tau1 i :
-    coherent_with calS A (Dade ddA) tau1 -> 'Z[calS, L^#] =i 'Z[calS, A] ->
-    [/\ odd #|G|, K <| L & H \subset K] -> 'chi_i \in calS ->
-  (tau1 'chi_i)^*%CF = tau1 ('chi_i)^*%CF.
+Lemma cfConjC_Dade_coherent K H M (calS := seqIndD K L H M) tau1 chi :
+    coherent_with calS L^# (Dade ddA) tau1 ->
+    [/\ odd #|G|, K <| L & H \subset K] -> chi \in irr L -> chi \in calS ->
+  (tau1 chi)^*%CF = tau1 chi^*%CF.
 Proof.
-move=> cohS defZA [oddG nsKL sHK] Schi; apply: (cfAut_Dade_coherent cohS) => //.
-split; [ | exact: seqInd_free | exact: cfAut_seqInd].
+move=> cohS [oddG nsKL sHK] irr_chi Schi.
+apply: (cfAut_Dade_coherent cohS) => //; split; last exact: cfAut_seqInd.
 have oddL: odd #|L| by apply: oddSg oddG; have [_] := ddA.
 exact: seqInd_nontrivial_irr Schi.
 Qed.
 
 (* This is Peterfalvi (5.9)(b). *)
-Lemma Dade_irr_sub_conjC i (chi := 'chi_i) (phi := chi - chi^*%CF):
-  chi \in 'CF(L, 1%g |: A) -> exists t, phi^\tau = 'chi_t - ('chi_t)^*%CF.
+Lemma Dade_irr_sub_conjC chi (phi := chi - chi^*%CF) :
+    chi \in irr L -> chi \in 'CF(L, 1%g |: A) ->
+  exists t, phi^\tau = 'chi_t - ('chi_t)^*%CF.
 Proof.
-have [Rchi | notRchi Achi] := eqVneq (conjC_Iirr i) i.
+case/irrP=> i Dchi Achi; rewrite {chi}Dchi in phi Achi *.
+have [Rchi | notRchi] := eqVneq (conjC_Iirr i) i.
   by exists 0; rewrite irr0 cfConjC_cfun1 /phi -conjC_IirrE Rchi !subrr linear0.
 have Zphi: phi \in 'Z[irr L, A].
   have notA1: 1%g \notin A by have [] := ddA.

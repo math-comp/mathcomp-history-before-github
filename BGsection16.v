@@ -216,7 +216,7 @@ Implicit Types A E H K L M Mstar N P Q Qstar R S T U V W X Y Z : {group gT}.
 
 (* Structural properties of the M`_\s definition. *)
 Lemma FTcore_char M : M`_\s \char M.
-Proof. by rewrite /FTcore; case: ifP => _; exact: gFchar. Qed.
+Proof. by rewrite /FTcore; case: ifP; rewrite gFchar. Qed.
 
 Lemma FTcore_normal M : M`_\s <| M.
 Proof. by rewrite char_normal ?FTcore_char. Qed.
@@ -226,6 +226,24 @@ Proof. by rewrite char_norm ?FTcore_char. Qed.
 
 Lemma FTcore_sub M : M`_\s \subset M.
 Proof. by rewrite char_sub ?FTcore_char. Qed.
+
+Lemma FTcore_type1 M : FTtype M == 1%N -> M`_\s = M`_\F.
+Proof. by rewrite /M`_\s => /eqP->. Qed.
+
+Lemma FTcore_type2 M : FTtype M == 2 -> M`_\s = M`_\F.
+Proof. by rewrite /M`_\s => /eqP->. Qed.
+
+Lemma FTcore_type_gt2 M : FTtype M > 2 -> M`_\s = M^`(1).
+Proof. by rewrite /M`_\s => /subnKC <-. Qed.
+
+Lemma FTsupp1_type1 M : FTtype M == 1%N -> 'A1(M) = M`_\F^#.
+Proof. by move/FTcore_type1 <-. Qed.
+
+Lemma FTsupp1_type2 M : FTtype M == 2 -> 'A1(M) = M`_\F^#.
+Proof. by move/FTcore_type2 <-. Qed.
+
+Lemma FTsupp1_type_gt2 M : FTtype M > 2 -> 'A1(M) = M^`(1)^#.
+Proof. by move/FTcore_type_gt2 <-. Qed.
 
 (* This section covers the characterization of the F, P, P1 and P2 types of   *)
 (* maximal subgroups summarized at the top of p. 125. in B & G.               *)
