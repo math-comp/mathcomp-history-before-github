@@ -154,7 +154,7 @@ let get_index = function ArgArg i -> i | _ ->
 let glob_constr ist gsigma genv = function
   | _, Some ce ->
     let ltacvars = List.map fst ist.lfun, [] in
-    Constrintern.intern_gen (OfType None) ~ltacvars:ltacvars gsigma genv ce
+    Constrintern.intern_gen WithoutTypeConstraint ~ltacvars:ltacvars gsigma genv ce
   | rc, None -> rc
 
 (* Term printing utilities functions for deciding bracketing.  *)
@@ -2150,7 +2150,7 @@ let viewtab : glob_constr list array = Array.make 3 []
 
 let _ =
   let init () = Array.fill viewtab 0 3 [] in
-  let freeze () = Array.copy viewtab in
+  let freeze _ = Array.copy viewtab in
   let unfreeze vt = Array.blit vt 0 viewtab 0 3 in
   Summary.declare_summary "ssrview"
     { Summary.freeze_function   = freeze;
@@ -3948,7 +3948,7 @@ let apply_rconstr ?ist t gl =
   let rec loop i =
     if i > n then
       errorstrm (str"Cannot apply lemma "++pf_pr_glob_constr gl t)
-    else try pf_match gl (mkRlemma i) cl with _ -> loop (i + 1) in
+    else try pf_match gl (mkRlemma i) (OfType cl) with _ -> loop (i + 1) in
   refine_with (loop 0) gl
 
 let mkRAppView ist gl rv gv =

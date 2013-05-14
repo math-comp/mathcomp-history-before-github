@@ -79,7 +79,7 @@ let get_index = function ArgArg i -> i | _ ->
 let glob_constr ist gsigma genv = function
   | _, Some ce ->
     let ltacvars = List.map fst ist.lfun, [] in
-    Constrintern.intern_gen (OfType None) ~ltacvars:ltacvars gsigma genv ce
+    Constrintern.intern_gen WithoutTypeConstraint ~ltacvars:ltacvars gsigma genv ce
   | rc, None -> rc
 
 (* Term printing utilities functions for deciding bracketing.  *)
