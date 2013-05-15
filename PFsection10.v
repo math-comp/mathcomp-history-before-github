@@ -256,7 +256,7 @@ Definition FTtype345_bridge i j :=  mu2_ i j - delta *: mu2_ i 0 - n *: zeta.
 Local Notation alpha_ := FTtype345_bridge.
 
 (* This is the first part of Peterfalvi (10.5), which does not depend on the  *)
-(* coherence assumption that will ultimately be falsified on (10.8).          *)
+(* coherence assumption that will ultimately be refuted by (10.8).            *)
 Lemma supp_FTtype345_bridge i j : j != 0 -> alpha_ i j \in 'CF(M, 'A0(M)).
 Proof.
 move=> nz_j; have [Dd Ddelta _ _] := FTtype345_constants.
@@ -604,10 +604,9 @@ have [lam'nu lams'nu]: lambda != nu r /\ lambda^*%CF != nu r.
 have [[_ nRT ccT] _ _ _ _] := scohT.
 have{ccT} sT2T: {subset T2 <= calT} by apply/allP; rewrite /= ?Tlam ?Tnu_r ?ccT.
 have{nRT} uccT2: cfConjC_subset T2 calT.
-  split; first 2 [by []].
-    apply/and3P; rewrite /= !inE !negb_or -!(inv_eq (@cfConjCK _ S)) !cfConjCK.
-    by rewrite lam'nu lams'nu !(hasPn nRT).
-  by apply/allP/and4P; rewrite /= !inE !{1}cfConjCK !eqxx !orbT.
+  split; last 1 [by [] | by apply/allP; rewrite /= !inE !cfConjCK !eqxx !orbT].
+  rewrite /uniq /T2 !inE !negb_or -!(inv_eq (@cfConjCK _ S)) !cfConjCK.
+  by rewrite lam'nu lams'nu !(hasPn nRT).
 have scohT2 := subset_subcoherent scohT uccT2.
 have [tau2 cohT2]: coherent T2 S^# tauS.
   apply: (uniform_degree_coherence scohT2); rewrite /= !cfunE nu_r_1 eqxx.
@@ -619,8 +618,8 @@ have [T2lam T2nu_r]: lambda \in T2 /\ nu r \in T2 by rewrite !inE !eqxx !orbT.
 have Tbeta: beta \in 'Z[T2, S^#].
   by rewrite zcharD1E rpredB ?mem_zchar //= !cfunE nu_r_1 subrr.
 have /eqP/idPn[] := oST _ _ Salpha (zchar_subset sT2T Tbeta).
-have [[_ <- //] [_ <- //]] := (cohS, cohT2); rewrite !raddfB raddfZnat /=.
-rewrite subr_eq0 !cfdotBl !cfdotZl.
+have [[_ <- //] [_ <- //]] := (cohS, cohT2).
+rewrite !raddfB raddfZnat /= subr_eq0 !cfdotBl !cfdotZl.
 have [|[dr r'] -> _] := FTtypeP_coherent_TIred _ cohT2 lam_irr T2lam T2nu_r.
   by rewrite -DcalTs.
 set sigS := cyclicTIiso _ => /=.
@@ -707,13 +706,11 @@ have lb_rho: 1 - w1%:R / #|M'|%:R <= '[rho chi].
   rewrite -leC_nat in lb_M'bar; apply: ler_trans lb_M'bar _.
   rewrite ler_subr_addl -mulrS prednK ?cardG_gt0 // leC_nat.
   by rewrite dvdn_leq ?dvdn_quotient.
-have{lb_rho ub_rho}: 1 - #|G1|%:R/ #|G|%:R - w1%:R^-1 < w1%:R / #|M'|%:R :> rat.
-  rewrite -(ltr_rat _ _ _ : (_ < _ :> algC) = _) !rmorphB !fmorph_div /=.
-  rewrite fmorphV !rmorph_nat rmorph1 -addrA -opprD ltr_subl_addr.
-  rewrite -ltr_subl_addl (ler_lt_trans (ler_trans lb_rho ub_rho)) //.
-  rewrite addrC ltr_add2l ltr_pdivr_mulr ?gt0CG // -(sdprod_card defM).
-  rewrite mulrC natrM mulfK ?neq0CG // defA ltC_nat.
-  by rewrite (cardsD1 1%g M') ?group1.
+have{lb_rho ub_rho}: 1 - #|G1|%:R/ #|G|%:R - w1%:R^-1 < w1%:R / #|M'|%:R :> algC.
+  rewrite -addrA -opprD ltr_subl_addr -ltr_subl_addl.
+  apply: ler_lt_trans (ler_trans lb_rho ub_rho) _; rewrite addrC ltr_add2l.
+  rewrite ltr_pdivr_mulr ?gt0CG // mulrC -(sdprod_card defM) natrM.
+  by rewrite mulfK ?neq0CG // defA ltC_nat (cardsD1 1%g M') group1.
 have frobHU: [Frobenius HU with kernel H] by apply: Frob_der1_type2.
 have tiH: normedTI H^# G S.
   by have [_ _] := FTtypeII_ker_TI maxS Stype2; rewrite FTsupp1_type2.
@@ -749,7 +746,7 @@ have sG1_HVG: G1 \subset class_support H^# G :|: class_support V G.
   have /mulG_sub[sHHU _] := sdprodW defHU.
   rewrite (contra (fun p'xy => pi'_p'group p'xy (piSg sHHU piHp))) //.
   by rewrite pgroupE p'natE // cycleJ cardJg p_dv_x.
-have ub_G1: #|G1|%:R / #|G|%:R <= #|H|%:R / #|S|%:R + #|V|%:R / #|W|%:R :> rat.
+have ub_G1: #|G1|%:R / #|G|%:R <= #|H|%:R / #|S|%:R + #|V|%:R / #|W|%:R :> algC.
   rewrite ler_pdivr_mulr ?ltr0n ?cardG_gt0 // mulrC mulrDr !mulrA.
   rewrite ![_ * _ / _]mulrAC -!natf_indexg ?subsetT //= -!natrM -natrD ler_nat.
   apply: leq_trans (subset_leq_card sG1_HVG) _.
@@ -772,18 +769,15 @@ rewrite cards1 natrB ?addn_gt0 ?cardG_gt0 // addnC natrD -addrA mulrDl mulrBl.
 rewrite {1}mulnC !natrM !invfM !mulVKf ?natrG_neq0 // opprD -addrA ler_add2l.
 rewrite mul1r -{1}[_^-1]mul1r addrC ler_oppr [- _]opprB -!mulrBl.
 rewrite -addrA -opprD ler_pdivl_mulr; last by rewrite natrG_gt0.
-apply: ler_trans (_ : 2%:R^-1 <= _); last first.
-  apply: ler_trans (_ : 1 - (3%:R^-1 + 7%:R^-1) <= _); first by compute.
+apply: ler_trans (_ : 1 - (3%:R^-1 + 7%:R^-1) <= _); last first.
   rewrite ler_add2l ler_opp2.
-  rewrite ler_add // lef_pinv ?qualifE ?ltr0n ?ler_nat ?cardG_gt0 //.
-  rewrite -(ltn_subRL 1) (@leq_trans w2.*2) ?(leq_double 3) // -mul2n.
-  rewrite dvdn_leq ?subn_gt0 ?cardG_gt1 // Gauss_dvd ?coprime2n ?mFT_odd //.
-  rewrite dvdn2 odd_sub // mFT_odd /= subn1 regular_norm_dvd_pred // => x W2x.
-  have [_ sUHU _ _ tiHU] := sdprod_context defHU.
-  have [_ _ _ [_ _ _ _ prHU_W2] _] := StypeP.
-  rewrite -(setIidPl sUHU) -setIA prHU_W2 //= setIC.
-  by apply/trivgP; rewrite -tiHU setSI.
-rewrite mulrAC ler_pdivr_mulr 1?natrG_gt0 // ler_pdivl_mull ?ltr0n //.
+  rewrite ler_add // lef_pinv ?qualifE ?gt0CG ?ltr0n ?ler_nat //.
+  have notStype5: FTtype S != 5 by rewrite (eqP Stype2).
+  have frobUW2 := Ptype_compl_Frobenius maxS StypeP notStype5.
+  apply: leq_ltn_trans (ltn_odd_Frobenius_ker frobUW2 (mFT_odd _)).
+  by rewrite (leq_double 3).
+apply: ler_trans (_ : 2%:R^-1 <= _); last by rewrite -!CratrE; compute.
+rewrite mulrAC ler_pdivr_mulr 1?gt0CG // ler_pdivl_mull ?ltr0n //.
 rewrite -!natrM ler_nat mulnA -(Lagrange (normal_sub nsM''M')) mulnC leq_mul //.
   by rewrite subset_leq_card //; have [_ _ _ []] := MtypeP.
 by rewrite -card_quotient ?normal_norm // mulnC -(prednK (cardG_gt0 _)) leqW.

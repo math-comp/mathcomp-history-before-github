@@ -197,8 +197,8 @@ have [_ ntU _ tiFS] := compl_of_typeII_IV maxS StypeP notStype5.
 have [_ /mulG_sub[_ sUPU] nPU tiPU] := sdprodP defPU.
 have cUU: abelian U by case/orP: type23 => [/compl2facts | /compl3facts] [_ ->].
 split.
-- split=> //; first by rewrite ltnNge; apply: contraR => /type34facts[_ /ltnW].
-  exact: Ptype_compl_Frobenius StypeP _.
+- split=> //; last exact: Ptype_compl_Frobenius StypeP _.
+  by rewrite ltnNge; apply: contraR => /type34facts[_ /ltnW].
 - by have [/type2facts[] | /type34ker1[]] := boolP (FTtype S == 2).
 - have ->: u = #|U / C|%g by rewrite card_quotient ?normsI ?normG ?norms_cent.
   have p1gt0: (0 < p.-1)%N by rewrite -(subnKC pgt2).
@@ -1176,7 +1176,7 @@ Let lb_m_cases :
  [/\ (*a*) (q >= 7)%N -> m > 8%:R / 10%:R,
      (*b*) (q >= 5)%N -> m > 7%:R / 10%:R
    & (*c*) q = 3 ->
-           m > 49%:R / 100 %:R /\ u%:R / c%:R > (p ^ 2).-1%:R / 6 %:R :> algC].
+           m > 49%:R / 100 %:R /\ u%:R / c%:R > (p ^ 2).-1%:R / 6%:R :> algC].
 Proof.
 pose mkrat b d := fracq (b, d%:Z).
 pose test r b d := 1 - mkrat 1 r.-1 - mkrat 1 (r ^ 2)%N > mkrat b%:Z d.
@@ -1653,8 +1653,7 @@ Lemma FTtypeII_support_facts T L (Q := T`_\F) (H := L`_\F) :
     FTtype S == 2 -> typeP_pair S T defW -> L \in 'M('N(U)) ->
   [/\ (*a*) [Frobenius L with kernel H],
       (*b*) U \subset H
-    & (*c*) H ><| W1 = L
-         \/ (exists2 y, y \in Q & H ><| (W1 <*> W2 :^ y) = L)].
+    & (*c*) H ><| W1 = L \/ (exists2 y, y \in Q & H ><| (W1 <*> W2 :^ y) = L)].
 Proof.
 move=> Stype2 pairST /setIdP[maxL sNU_L].
 have [pgt0 qgt0] := (ltnW (ltnW pgt2), ltnW (ltnW qgt2)).
@@ -1899,7 +1898,7 @@ have oGamma1: '[Gamma, 1] = 0.
 have defGamma j: j != 0 -> tau (beta_ j) - 1 + eta_ 0 j = Gamma.
   move=> nzj; apply/eqP; rewrite -subr_eq0 opprD addrACA opprB !addrA subrK.
   rewrite -linearB opprD addrACA subrr add0r -opprD linearN /=.
-  move/prDade_sub_TIirr: pddS => -> //=; last first.
+  move/prDade_sub_TIirr: pddS => -> //; last first.
     by apply: (mulfI (neq0CG W1)); rewrite -!prTIred_1 !FTprTIred1.
   by rewrite -/sigma FTprTIsign // scale1r -addrA addNr.
 have GammaReal: cfReal Gamma.
@@ -1908,7 +1907,7 @@ have GammaReal: cfReal Gamma.
   by rewrite -Dtau ?A0beta ?defGamma ?aut_Iirr_eq0.
 split=> // X Y defXY oXY oYeta; pose a := '[Gamma, eta01].
 have Za: a \in Cint.
-  rewrite Cint_cfdot_vchar ?rpredD ?rpredN ?rpred1 ?cycTIiso_vchar //.
+  rewrite Cint_cfdot_vchar ?(rpredB, rpredD, rpred1, cycTIiso_vchar) //.
   by rewrite Dtau ?A0beta // !(cfInd_vchar, rpredB) ?rpred1 ?irr_vchar.
 have{oYeta} oYeta j: '[Y, eta_ 0 j] = 0.
   by rewrite (orthoPl oYeta) ?map_f ?mem_irr.
@@ -2025,9 +2024,10 @@ have tiA_PWG: 'A~(L) :&: PWG = set0.
 have ZsubL psi: psi \in calL -> psi - psi^*%CF \in 'Z[calL, L^#].
   have ZcalL: {subset calL <= 'Z[irr L]} by apply: seqInd_vcharW.
   by move=> Lpsi; rewrite sub_aut_zchar ?zchar_onG ?mem_zchar ?cfAut_seqInd.
+have mem_eta j: eta_ 0 j \in map sigma (irr W) by rewrite map_f ?mem_irr.
 have otau1eta: orthogonal (map tau1 calL) (map sigma (irr W)).
-  apply/orthogonalP=> _ eta /mapP[psi Lpsi ->].
-  case/mapP=> _ /(cycTIirrP defW)[i [j ->]] ->{eta}; rewrite -/(w_ i j).
+  apply/orthogonalP=> _ _ /mapP[psi Lpsi ->] /mapP[w irr_w ->].
+  have{w irr_w} [i [j ->]] := cycTIirrP defW irr_w; rewrite -/(w_ i j). 
   pose Psi := tau1 (psi - psi^*%CF); pose NC := cyclicTI_NC ctiWG.
   have [[Itau1 Ztau1] Dtau1] := cohL.
   have Lpsis: psi^*%CF \in calL by rewrite cfAut_seqInd.
@@ -2076,8 +2076,8 @@ have RealGammaL: cfReal GammaL.
   rewrite rmorphB /= cfAutInd rmorph1 addrC opprB addrA subrK.
   by rewrite (cfConjC_Dade_coherent cohL) ?mFT_odd // -raddfB Dtau1 // ZsubL.
 have:= Dade_Ind1_sub_lin cohL _ irr_phi Lphi; rewrite -/betaL -/tauL -/calL.
-case=> //; first by rewrite (seqInd_nontrivial _ _ _ irr_phi) ?mFT_odd.
-case=> o_tauL_1 o_betaL_1 ZbetaL ub_betaL _.
+rewrite (seqInd_nontrivial _ _ _ irr_phi) ?odd_Frobenius_index_ler ?mFT_odd //.
+case=> // -[o_tauL_1 o_betaL_1 ZbetaL] ub_betaL _.
 have{o_tauL_1 o_betaL_1} o_GaL_1: '[GammaL, 1] = 0.
   by rewrite !cfdotBl cfnorm1 o_betaL_1 (orthoPr o_tauL_1) ?map_f ?subr0 ?subrr.
 have Zt1phi: tau1 phi \in 'Z[irr G] by rewrite Ztau1 ?mem_zchar.
@@ -2100,10 +2100,9 @@ have{Gamma_even} odd_bSphi_bLeta: (bSphi + bLeta == 1 %[mod 2])%C.
   rewrite 2!cfdotDl 2!['[_, eta01]]cfdotDl 2!['[_, Gamma]]cfdotDl !cfdotNl.
   rewrite cfnorm1 o_GaL_1 ['[1, Gamma]]cfdotC Ga1 conjC0 addr0 add0r.
   have ->: 1 = eta_ 0 0 by rewrite /w_ cycTIirr00 cycTIiso1.
-  rewrite cfdot_cycTIiso /= [0 == #1]eq_sym (negPf (Iirr1_neq0 _)) // !add0r.
-  rewrite 2?(orthogonalP otau1eta _ _ (map_f _ _) (map_f _ _)) ?mem_irr //.
-  rewrite oppr0 !add0r addr0 addrA addrC -addrA -opprD addrA subr_eq0.
-  by rewrite eq_sym addrC /eqCmod => /eqP->; rewrite addrK.
+  rewrite cfdot_cycTIiso mulrb ifN_eqC ?Iirr1_neq0 // add0r. 
+  rewrite 2?(orthogonalP otau1eta _ _ (map_f _ _) (mem_eta _)) // oppr0 !add0r.
+  by rewrite addr0 addrA addrC addr_eq0 !opprB addrA /eqCmod => /eqP <-.
 have abs_mod2 a: a \in Cint -> {b : bool | a == b%:R %[mod 2]}%C.
   move=> Za; pose n := truncC `|a|; exists (odd n).
   apply: eqCmod_trans (eqCmod_addl_mul _ (rpred_nat _ n./2) _).
@@ -2133,8 +2132,8 @@ case is_c1: bS; [left | right].
     rewrite -[X](addrK D) -dGa cfdotBl (orthoPl oDtau1) ?map_f // subr0.
     rewrite cfdotC cfdotDr cfdotBr -/betaS -/eta01.
     have ->: 1 = eta_ 0 0 by rewrite /w_ cycTIirr00 cycTIiso1.
-    rewrite 2?(orthogonalP otau1eta _ _ (map_f _ _) (map_f _ _)) ?mem_irr //.
-    rewrite subrK -cfdotC -(conj_Cnat (Na_ _ Lpsi)) -cfdotZr -cfdotBr.
+    rewrite 2?(orthogonalP otau1eta _ _ (map_f _ _) (mem_eta _)) // subrK.
+    rewrite -cfdotC -(conj_Cnat (Na_ _ Lpsi)) -cfdotZr -cfdotBr.
     rewrite -raddfZ_Cnat ?Na_ // -raddfB cfdotC.
     rewrite Dtau1; last by rewrite zcharD1_seqInd ?seqInd_sub_lin_vchar.
     by rewrite o_tauL_S ?Iirr1_neq0 ?conjC0.
@@ -2155,14 +2154,8 @@ case is_c1: bS; [left | right].
   by rewrite -exprMn divfK ?neq0CiG.
 rewrite is_c1 /= in xor_bS_bL; rewrite xor_bS_bL in DbL; split=> //.
 have nz_bL: bLeta != 0 by apply: contraTneq DbL => ->.
-have{ub_betaL} [X [otau1X oX1 [a Za]]] := ub_betaL; rewrite -/e => defX.
-case=> [|_ ubX].
-  rewrite ler_pdivl_mulr ?ltr0n // -natrM -(natrB _ (cardG_gt0 H)) leC_nat.
-  rewrite dvdn_leq ?subn_gt0 ?cardG_gt1 ?mmax_Fcore_neq1 //.
-  rewrite Gauss_dvd ?coprimen2 ?(dvdn_odd (dvdn_indexg _ _)) ?mFT_odd //.
-  rewrite dvdn2 odd_sub ?cardG_gt0 ?mFT_odd // subn1.
-  by rewrite Frobenius_ker_dvd_ker1.
-rewrite -leC_nat -(ler_add2r (-1)); apply: ler_trans ubX.
+have{ub_betaL} [X [otau1X oX1 [a Za defX]] [//|_ ubX]] := ub_betaL.
+rewrite -/e in defX; rewrite -leC_nat -(ler_add2r (-1)); apply: ler_trans ubX.
 pose calX0 := [seq w_ 0 j | j in predC1 0].
 have ooX0: orthonormal calX0.
   apply: sub_orthonormal (irr_orthonormal W).
@@ -2177,11 +2170,10 @@ rewrite cfnormDd ?ler_paddl ?cfnorm_ge0 //; last first.
   have {xi X0xi}[j nzj ->] := imageP X0xi; rewrite inE /= in nzj.
   rewrite -[bLeta](betaLeta j nzj) defX cfdotDl -addrA cfdotDl.
   have ->: 1 = eta_ 0 0 by rewrite /w_ cycTIirr00 cycTIiso1.
-  rewrite cfdot_cycTIiso /= [0 == j]eq_sym (negPf nzj) add0r.
-  rewrite [lhs in lhs + _](span_orthogonal otau1eta) ?add0r //.
-    rewrite big_seq rpredD ?rpredN ?rpredZ ?rpred_sum ?memv_span ?map_f //.
-    by move=> xi Lxi; rewrite rpredZ ?memv_span ?map_f.
-  by rewrite memv_span ?map_f ?mem_irr.
+  rewrite cfdot_cycTIiso mulrb (ifN_eqC _ _ nzj) add0r eq_sym -subr_eq0 addrK.
+  rewrite (span_orthogonal otau1eta) //; last by rewrite memv_span ?mem_eta.
+  rewrite big_seq rpredD ?(rpredN, rpredZ, rpred_sum) ?memv_span ?map_f //.
+  by move=> xi Lxi; rewrite rpredZ ?memv_span ?map_f.
 rewrite cfnormZ cfnorm_map_orthonormal // size_image cardC1 nirrW2.
 rewrite -(natrB _ (prime_gt0 pr_p)) Cint_normK // subn1.
 by rewrite ler_pemull ?ler0n ?sqr_Cint_ge1.
