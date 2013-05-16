@@ -1368,21 +1368,21 @@ Qed.
 Lemma coherent_prDade_TIred (G H L K W W1 W2 : {group gT}) A A0 S
                             k (tau1 : {additive 'CF(L) -> 'CF(G)})
     (defW : W1 \x W2 = W) (ddA : prime_Dade_hypothesis G L K H A A0 defW)
-    (sigma := cyclicTIiso ddA) (w_ := fun i j => cyclicTIirr defW i j)
+    (sigma := cyclicTIiso ddA) (eta_ := fun i j => sigma (cyclicTIirr defW i j))
     (mu := primeTIred ddA) (dk := primeTIsign ddA k) (tau := Dade ddA) :
   cfConjC_subset S (seqIndD K L H 1) ->
   [/\ ~~ has cfReal S, has (mem (irr L)) S & mu k \in S] ->
   coherent_with S L^# tau tau1 ->
   let j := conjC_Iirr k in
-     tau1 (mu k) = dk *: (\sum_i sigma (w_ i k))
-  \/ tau1 (mu k) = - dk *: (\sum_i sigma (w_ i j))
+     tau1 (mu k) = dk *: (\sum_i eta_ i k)
+  \/ tau1 (mu k) = - dk *: (\sum_i eta_ i j)
   /\ (forall ell, mu ell \in S -> mu ell 1%g = mu k 1%g -> ell = k \/ ell = j).
 Proof.
-move=> uccS [nrS /hasP[zeta Szeta irr_zeta] Sk] cohS j.
-pose sum_sw a l := \sum_i a i l *: sigma (w_ i l).
+set phi := tau1 (mu k) => uccS [nrS /hasP[zeta Szeta irr_zeta] Sk] cohS j.
+pose sum_eta a ell := \sum_i a i ell *: eta_ i ell.
 have [R [subcohS oS1sig defR]] := prDade_subcoherent ddA uccS nrS.
 have [[charS _ ccS] _ /orthogonal_free freeS Rok _] := subcohS.
-have [Itau1 Dtau1] := cohS.
+have [[Itau1 _] Dtau1] := cohS.
 have natS1 xi: xi \in S -> xi 1%g \in Cnat by move/charS/Cnat_char1.
 have k'j: j != k by rewrite -(inj_eq (prTIred_inj ddA)) prTIred_aut (hasPn nrS).
 have nzSmu l (Sl : mu l \in S): l != 0.
@@ -1391,35 +1391,34 @@ have nzSmu l (Sl : mu l \in S): l != 0.
 have [nzk nzj]: k != 0 /\ j != 0 by rewrite !nzSmu // /mu (prTIred_aut ddA) ccS.
 have sSS: cfConjC_subset S S by have:= free_uniq freeS; split.
 have{sSS} Dtau1S:= mem_coherent_sum_subseq subcohS sSS cohS.
-have o_sumsw_neq a j1 i j2: j1 != j2 -> '[sum_sw a j1, sigma (w_ i j2)] = 0.
+have o_sum_eta a j1 i j2: j1 != j2 -> '[sum_eta a j1, eta_ i j2] = 0.
   move/negPf=> neq_j; rewrite cfdot_suml big1 // => i1 _.
   by rewrite cfdotZl cfdot_cycTIiso neq_j andbF mulr0.
-have o_sumsw_eq a i j1: '[sum_sw a j1, sigma (w_ i j1)] = a i j1.
+have proj_sum_eta a i j1: '[sum_eta a j1, eta_ i j1] = a i j1.
   rewrite cfdot_suml (bigD1 i) //= cfdotZl cfdot_cycTIiso !eqxx mulr1.
   rewrite big1 ?addr0 // => i1 /negPf i'i1.
   by rewrite cfdotZl cfdot_cycTIiso i'i1 mulr0.
-have [a Dmuk Da0]: exists2 a, tau1 (mu k) = sum_sw a k + sum_sw a j
+have [a Dphi Da0]: exists2 a, phi = sum_eta a k + sum_eta a j
   & pred2 0 dk (a 0 k) /\ pred2 0 (- dk) (a 0 j).
 - have uRk: uniq (R (mu k)) by have [_ /orthonormal_free/free_uniq] := Rok _ Sk.
-  have [E sER ->] := Dtau1S _ Sk; rewrite (subseq_uniqP uRk sER).
-  pose a i l (alpha := dk *: sigma (w_ i l)) :=
+  have [E sER Dphi] := Dtau1S _ Sk; rewrite /phi Dphi (subseq_uniqP uRk sER).
+  pose a i ell (alpha := dk *: eta_ i ell) :=
     if alpha \in E then dk else if - alpha \in E then - dk else 0.
   have sign_eq := inj_eq (can_inj (signrZK _)).
-  have E'Nsk i: (- (dk *: sigma (w_ i k)) \in E) = false.
+  have E'Nsk i: (- (dk *: eta_ i k) \in E) = false.
     apply/idP=> /(mem_subseq sER); rewrite defR -/dk -/sigma mem_cat -map_comp.
     case/orP=> /codomP[i1 /esym/eqP/idPn[]].
       by rewrite -scalerN sign_eq cycTIiso_neqN.
     by rewrite (inj_eq oppr_inj) sign_eq cycTIiso_eqE (negPf k'j) andbF.
-  have E'sj i: (dk *: sigma (w_ i j) \in E) = false.
+  have E'sj i: (dk *: eta_ i j \in E) = false.
     apply/idP=> /(mem_subseq sER); rewrite defR -/dk -/sigma mem_cat -map_comp.
     case/orP=> /codomP[i1 /eqP/idPn[]].
       by rewrite sign_eq cycTIiso_eqE (negPf k'j) andbF.
     by rewrite /= -scalerN sign_eq cycTIiso_neqN.
   exists a; last first.
-    rewrite !(fun_if (pred2 _ _)) /= !eqxx !orbT /=.
-    by split; [rewrite E'Nsk | rewrite E'sj]; rewrite if_same.
-  rewrite big_filter big_mkcond defR big_cat /= !big_map -/dk -/sigma -/w_ -/j.
-  rewrite /a; congr (_ + _); apply: eq_bigr => i _.
+    by rewrite !(fun_if (pred2 _ _)) /= !eqxx !orbT E'Nsk !(if_same, E'sj).
+  rewrite big_filter big_mkcond defR big_cat !big_map -/dk -/sigma /=.
+  congr (_ + _); apply: eq_bigr => i _; rewrite /a -/(eta_ i _).
     by rewrite E'Nsk; case: ifP => // _; rewrite scale0r.
   by rewrite E'sj; case: ifP => _; rewrite (scaleNr, scale0r).
 pose V := cyclicTIset defW; have zetaV0: {in V, tau1 zeta =1 \0}.
@@ -1431,70 +1430,65 @@ pose zeta1 := zeta 1%g *: mu k - mu k 1%g *: zeta.
 have Zzeta1: zeta1 \in 'Z[S, L^#].
   rewrite zcharD1E !cfunE mulrC subrr eqxx andbT.
   by rewrite rpredB ?scale_zchar ?mem_zchar // CintE ?natS1.
-have zeta1V0: {in V, zeta1 =1 \0}.
-  have /cfun_onP A1zeta1: zeta1 \in 'CF(L, 1%g |: A).
-    rewrite memvB ?memvZ ?prDade_TIred_on //; have [_ sSS0 _] := uccS.
-    have /seqIndP[kz /setIdP[kerH'kz _] Dzeta] := sSS0 _ Szeta.
-    by rewrite Dzeta (prDade_Ind_irr_on ddA) //; rewrite inE in kerH'kz.
+have /cfun_onP A1zeta1: zeta1 \in 'CF(L, 1%g |: A).
+  rewrite memvB ?memvZ ?prDade_TIred_on //; have [_ sSS0 _] := uccS.
+  have /seqIndP[kz /setIdP[kerH'kz _] Dzeta] := sSS0 _ Szeta.
+  by rewrite Dzeta (prDade_Ind_irr_on ddA) //; rewrite inE in kerH'kz.
+have{A1zeta1} zeta1V0: {in V, zeta1 =1 \0}.
   move=> x Vx; rewrite /= A1zeta1 // -in_setC.
   apply: subsetP (subsetP (prDade_supp_disjoint ddA) x Vx); rewrite setCS.
   by rewrite subUset sub1G; have [/= _ _ _ [_ [_ _ /subsetD1P[->]]]] := ddA.
-have /(cycTIiso_cfdot_exchange ddA) EkW: {in V, tau1 (mu k) =1 \0}.
-  move=> x Vx; have: tau zeta1 x == 0.
+have o_phi_0 i: '[phi, eta_ i 0] = 0 by rewrite Dphi cfdotDl !o_sum_eta ?addr0.
+have{o_phi_0 zeta1V0} proj_phi0 i ell: '[phi, eta_ i ell] = '[phi, eta_ 0 ell].
+  rewrite -[LHS]add0r -(o_phi_0 0) -[RHS]addr0 -(o_phi_0 i).
+  rewrite [LHS](cycTIiso_cfdot_exchange ddA) -/V // => x Vx.
+  have: tau zeta1 x == 0.
     have [_ _ defA0] := prDade_def ddA; rewrite Dade_id ?zeta1V0 //.
     by rewrite defA0 inE orbC mem_class_support.
   rewrite -Dtau1 // raddfB !raddfZ_Cnat ?natS1 // !cfunE zetaV0 //.
   rewrite oppr0 mulr0 addr0 mulf_eq0 => /orP[/idPn[] | /eqP->//].
-  by have /irrP[? ->] := irr_zeta; exact: irr1_neq0.
-rewrite -/sigma -/w_ in EkW.
-have o_muk_0 i: '[tau1 (mu k), sigma (w_ i 0)] = 0.
-  by rewrite Dmuk cfdotDl !o_sumsw_neq // addr0.
-have Ekj i: '[tau1 (mu k), sigma (w_ i j)] = a i j.
-  by rewrite Dmuk cfdotDl o_sumsw_neq 1?eq_sym // add0r o_sumsw_eq.
-have Ekk i: '[tau1 (mu k), sigma (w_ i k)] = a i k.
-  by rewrite Dmuk cfdotDl o_sumsw_eq o_sumsw_neq // addr0.
-have Eaj i: a i j = a 0 j.
-  by have:= EkW i 0 0 j; rewrite 2?{1}o_muk_0 // add0r addr0 !Ekj.
-have{EkW o_muk_0} Eak i: a i k = a 0 k.
-  by have:= EkW i 0 0 k; rewrite 2?{1}o_muk_0 // add0r addr0 !Ekk.
-pose w1 := #|W1|; have Dw1: w1 = #|Iirr W1|.
+  by have /irrP[iz ->] := irr_zeta; apply: irr1_neq0.
+have Dphi_j i: '[phi, eta_ i j] = a i j.
+  by rewrite Dphi cfdotDl proj_sum_eta o_sum_eta 1?eq_sym ?add0r.
+have Dphi_k i: '[phi, eta_ i k] = a i k.
+  by rewrite Dphi cfdotDl proj_sum_eta o_sum_eta ?addr0.
+have Da_j i: a i j = a 0 j by rewrite -!Dphi_j.
+have{proj_phi0} Da_k i: a i k = a 0 k by rewrite -!Dphi_k.
+have oW1: #|W1| = #|Iirr W1|.
   by rewrite card_Iirr_cyclic //; have [[]] := prDade_prTI ddA.
-have n_muk: '[tau1 (mu k)] = w1%:R.
-  by have [->] := Itau1; rewrite ?mem_zchar // => _; rewrite cfnorm_prTIred.
-have: `|a 0 j| ^+ 2 + `|a 0 k| ^+ 2 == 1.
-  apply/eqP/(mulfI (neq0CG W1)); rewrite mulr1 -/w1 -{2}n_muk.
-  rewrite {2}Dmuk cfdotDr !cfdot_sumr mulrDr addrC !mulr_natl Dw1.
-  rewrite -!sumr_const; congr (_ + _); apply: eq_bigr => i _.
-    by rewrite cfdotZr mulrC Ekk Eak -normCK.
-  by rewrite cfdotZr mulrC Ekj Eaj -normCK.
-have abs_dk: `|dk| ^+ 2 = 1 by rewrite normCK rmorph_sign [_ * _]sqrr_sign.
-have [/pred2P[]Dak /pred2P[]Daj] := Da0; rewrite Dak Daj; last 2 first.
-- left; rewrite Dmuk [sum_sw a j]big1 ?addr0 => [|i _]; last first.
-    by rewrite Eaj Daj scale0r.
-  by rewrite raddf_sum; apply: eq_bigr => i _; rewrite Eak Dak.
-- by rewrite normrN abs_dk (eqr_nat _ 2 1%N).
-- by rewrite normCK mul0r add0r eq_sym oner_eq0.
-have{Dmuk} Dmuk: tau1 (mu k) = - dk *: (\sum_i sigma (w_ i j)).
-  rewrite Dmuk [sum_sw a k]big1 ?add0r => [|i _]; last first.
-    by rewrite Eak Dak scale0r.
-  by rewrite raddf_sum; apply: eq_bigr => i _; rewrite Eaj Daj.
+have{oW1}: `|a 0 j| ^+ 2 + `|a 0 k| ^+ 2 == 1.
+  apply/eqP/(mulfI (neq0CG W1)); rewrite mulr1 {}[in LHS]oW1.
+  transitivity '[phi]; last by rewrite Itau1 ?mem_zchar ?cfnorm_prTIred.
+  rewrite {2}Dphi cfdotDr !cfdot_sumr mulrDr addrC !mulr_natl -!sumr_const.
+  congr (_ + _); apply: eq_bigr => i _; rewrite cfdotZr mulrC normCK.
+    by rewrite Dphi_k (Da_k i).
+  by rewrite Dphi_j (Da_j i).
+have{Da0}[/pred2P[]Da0k /pred2P[]Da0j] := Da0; rewrite Da0k Da0j; last 2 first.
+- left; rewrite Dphi [sum_eta a j]big1 ?addr0 => [|i _]; last first.
+    by rewrite Da_j Da0j scale0r.
+  by rewrite scaler_sumr; apply: eq_bigr => i _; rewrite Da_k Da0k.
+- by rewrite normrN normr_sign expr1n (eqr_nat _ 2 1).
+- by rewrite normr0 expr0n add0r (eqr_nat _ 0 1).
+have{Dphi} Dphi: phi = - dk *: (\sum_i eta_ i j).
+  rewrite Dphi [sum_eta a k]big1 ?add0r => [|i _]; last first.
+    by rewrite Da_k Da0k scale0r.
+  by rewrite raddf_sum; apply: eq_bigr => i _; rewrite Da_j Da0j.
 clear 1; right; split=> // l Sl deg_l; apply/pred2P.
-have [structT [tau2 Dtau2 [_ Dtau]]] := uniform_prTIred_coherent ddA nzk.
-have{structT} [/orthogonal_free Tfree _ _ _ _] := structT.
+have [_ [tau2 Dtau2 [_ Dtau]]] := uniform_prTIred_coherent ddA nzk.
 have nz_l: l != 0 := nzSmu l Sl.
 have Tmukl: mu k - mu l \in 'Z[uniform_prTIred_seq ddA k, L^#].
   rewrite zcharD1E !cfunE deg_l subrr eqxx andbT.
   by rewrite rpredB ?mem_zchar ?image_f // !inE ?nzk ?nz_l ?deg_l eqxx.
 pose ak (_ : Iirr W1) (_ : Iirr W2) := dk.
-have: tau1 (mu k) - tau1 (mu l) = sum_sw ak k - sum_sw ak l.
+have: phi - tau1 (mu l) = sum_eta ak k - sum_eta ak l.
   rewrite -raddfB Dtau1; last first.
     by rewrite zcharD1E rpredB ?mem_zchar //= !cfunE deg_l subrr.
   by rewrite -[tau _]Dtau // raddfB /= !Dtau2 2!raddf_sum.
 have [E /mem_subseq sER ->] := Dtau1S _ Sl.
-move/(congr1 (cfdotr (sigma (w_ 0 k))))/eqP; apply: contraLR => /norP[k'l j'l].
-rewrite /= !cfdotBl Ekk Dak o_sumsw_eq o_sumsw_neq // cfdot_suml big_seq.
-rewrite eq_sym big1 ?subr0 ?signr_eq0 // => aa /sER; rewrite defR -map_comp.
-rewrite mem_cat => /orP[]/codomP[i ->].
+move/esym/(congr1 (cfdotr (eta_ 0 k))); apply: contra_eqT => /norP[k'l j'l] /=.
+rewrite !cfdotBl Dphi_k Da0k proj_sum_eta o_sum_eta // cfdot_suml.
+rewrite big_seq big1 ?subr0 ?signr_eq0 // => aa /sER; rewrite defR -map_comp.
+rewrite mem_cat => /orP[]/codomP[/= i ->]; rewrite -/(eta_ i _).
   by rewrite cfdotZl cfdot_cycTIiso (negPf k'l) andbF mulr0.
 rewrite cfdotNl cfdotZl cfdot_cycTIiso (inv_eq (@conjC_IirrK _ _)) -/j.
 by rewrite (negPf j'l) andbF mulr0 oppr0.
