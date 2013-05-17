@@ -1438,10 +1438,11 @@ have{A1zeta1} zeta1V0: {in V, zeta1 =1 \0}.
   move=> x Vx; rewrite /= A1zeta1 // -in_setC.
   apply: subsetP (subsetP (prDade_supp_disjoint ddA) x Vx); rewrite setCS.
   by rewrite subUset sub1G; have [/= _ _ _ [_ [_ _ /subsetD1P[->]]]] := ddA.
-have o_phi_0 i: '[phi, eta_ i 0] = 0 by rewrite Dphi cfdotDl !o_sum_eta ?addr0.
+have o_phi_0 i: '[phi, eta_ i 0] = 0.
+  by rewrite Dphi cfdotDl !{1}o_sum_eta ?addr0.
 have{o_phi_0 zeta1V0} proj_phi0 i ell: '[phi, eta_ i ell] = '[phi, eta_ 0 ell].
   rewrite -[LHS]add0r -(o_phi_0 0) -[RHS]addr0 -(o_phi_0 i).
-  rewrite [LHS](cycTIiso_cfdot_exchange ddA) -/V // => x Vx.
+  apply: (cycTIiso_cfdot_exchange ddA); rewrite -/V => x Vx.
   have: tau zeta1 x == 0.
     have [_ _ defA0] := prDade_def ddA; rewrite Dade_id ?zeta1V0 //.
     by rewrite defA0 inE orbC mem_class_support.
@@ -1449,9 +1450,9 @@ have{o_phi_0 zeta1V0} proj_phi0 i ell: '[phi, eta_ i ell] = '[phi, eta_ 0 ell].
   rewrite oppr0 mulr0 addr0 mulf_eq0 => /orP[/idPn[] | /eqP->//].
   by have /irrP[iz ->] := irr_zeta; apply: irr1_neq0.
 have Dphi_j i: '[phi, eta_ i j] = a i j.
-  by rewrite Dphi cfdotDl proj_sum_eta o_sum_eta 1?eq_sym ?add0r.
+  by rewrite Dphi cfdotDl addrC {1}proj_sum_eta o_sum_eta 1?eq_sym ?addr0.
 have Dphi_k i: '[phi, eta_ i k] = a i k.
-  by rewrite Dphi cfdotDl proj_sum_eta o_sum_eta ?addr0.
+  by rewrite Dphi cfdotDl {1}proj_sum_eta o_sum_eta ?addr0.
 have Da_j i: a i j = a 0 j by rewrite -!Dphi_j.
 have{proj_phi0} Da_k i: a i k = a 0 k by rewrite -!Dphi_k.
 have oW1: #|W1| = #|Iirr W1|.
