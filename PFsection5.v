@@ -1365,21 +1365,21 @@ by rewrite /= !cfAut_char1 ?N_S // eqxx eq_phi12_1.
 Qed.
 
 (* This is Peterfalvi (5.8). *)
-Lemma coherent_prDade_TIred (G H L K W W1 W2 : {group gT}) A A0 S
+Lemma coherent_prDade_TIred (G H L K W W1 W2 : {group gT}) S A A0
                             k (tau1 : {additive 'CF(L) -> 'CF(G)})
     (defW : W1 \x W2 = W) (ddA : prime_Dade_hypothesis G L K H A A0 defW)
     (sigma := cyclicTIiso ddA)
+    (eta_ := fun i j => sigma (cyclicTIirr defW i j))
     (mu := primeTIred ddA) (dk := primeTIsign ddA k) (tau := Dade ddA) :
   cfConjC_subset S (seqIndD K L H 1) ->
   [/\ ~~ has cfReal S, has (mem (irr L)) S & mu k \in S] ->
   coherent_with S L^# tau tau1 ->
-  let eta_ i j := sigma (cyclicTIirr defW i j) in
   let j := conjC_Iirr k in
      tau1 (mu k) = dk *: (\sum_i eta_ i k)
   \/ tau1 (mu k) = - dk *: (\sum_i eta_ i j)
   /\ (forall ell, mu ell \in S -> mu ell 1%g = mu k 1%g -> ell = k \/ ell = j).
 Proof.
-set phi := tau1 (mu k) => uccS [nrS /hasP[zeta Szeta irr_zeta] Sk] cohS eta_ j.
+set phi := tau1 (mu k) => uccS [nrS /hasP[zeta Szeta irr_zeta] Sk] cohS j.
 pose sum_eta a ell := \sum_i a i ell *: eta_ i ell.
 have [R [subcohS oS1sig defR]] := prDade_subcoherent ddA uccS nrS.
 have [[charS _ ccS] _ /orthogonal_free freeS Rok _] := subcohS.
@@ -1439,8 +1439,7 @@ have{A1zeta1} zeta1V0: {in V, zeta1 =1 \0}.
   move=> x Vx; rewrite /= A1zeta1 // -in_setC.
   apply: subsetP (subsetP (prDade_supp_disjoint ddA) x Vx); rewrite setCS.
   by rewrite subUset sub1G; have [/= _ _ _ [_ [_ _ /subsetD1P[->]]]] := ddA.
-have o_phi_0 i: '[phi, eta_ i 0] = 0.
-  by rewrite Dphi cfdotDl !{1}o_sum_eta ?addr0.
+have o_phi_0 i: '[phi, eta_ i 0] = 0 by rewrite Dphi cfdotDl !o_sum_eta ?addr0.
 have{o_phi_0 zeta1V0} proj_phi0 i ell: '[phi, eta_ i ell] = '[phi, eta_ 0 ell].
   rewrite -[LHS]add0r -(o_phi_0 0) -[RHS]addr0 -(o_phi_0 i).
   apply: (cycTIiso_cfdot_exchange ddA); rewrite -/V => x Vx.
@@ -1451,9 +1450,9 @@ have{o_phi_0 zeta1V0} proj_phi0 i ell: '[phi, eta_ i ell] = '[phi, eta_ 0 ell].
   rewrite oppr0 mulr0 addr0 mulf_eq0 => /orP[/idPn[] | /eqP->//].
   by have /irrP[iz ->] := irr_zeta; apply: irr1_neq0.
 have Dphi_j i: '[phi, eta_ i j] = a i j.
-  by rewrite Dphi cfdotDl addrC {1}proj_sum_eta o_sum_eta 1?eq_sym ?addr0.
+  by rewrite Dphi cfdotDl proj_sum_eta o_sum_eta 1?eq_sym ?add0r.
 have Dphi_k i: '[phi, eta_ i k] = a i k.
-  by rewrite Dphi cfdotDl {1}proj_sum_eta o_sum_eta ?addr0.
+  by rewrite Dphi cfdotDl proj_sum_eta o_sum_eta ?addr0.
 have Da_j i: a i j = a 0 j by rewrite -!Dphi_j.
 have{proj_phi0} Da_k i: a i k = a 0 k by rewrite -!Dphi_k.
 have oW1: #|W1| = #|Iirr W1|.
