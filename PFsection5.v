@@ -1368,17 +1368,18 @@ Qed.
 Lemma coherent_prDade_TIred (G H L K W W1 W2 : {group gT}) A A0 S
                             k (tau1 : {additive 'CF(L) -> 'CF(G)})
     (defW : W1 \x W2 = W) (ddA : prime_Dade_hypothesis G L K H A A0 defW)
-    (sigma := cyclicTIiso ddA) (eta_ := fun i j => sigma (cyclicTIirr defW i j))
+    (sigma := cyclicTIiso ddA)
     (mu := primeTIred ddA) (dk := primeTIsign ddA k) (tau := Dade ddA) :
   cfConjC_subset S (seqIndD K L H 1) ->
   [/\ ~~ has cfReal S, has (mem (irr L)) S & mu k \in S] ->
   coherent_with S L^# tau tau1 ->
+  let eta_ i j := sigma (cyclicTIirr defW i j) in
   let j := conjC_Iirr k in
      tau1 (mu k) = dk *: (\sum_i eta_ i k)
   \/ tau1 (mu k) = - dk *: (\sum_i eta_ i j)
   /\ (forall ell, mu ell \in S -> mu ell 1%g = mu k 1%g -> ell = k \/ ell = j).
 Proof.
-set phi := tau1 (mu k) => uccS [nrS /hasP[zeta Szeta irr_zeta] Sk] cohS j.
+set phi := tau1 (mu k) => uccS [nrS /hasP[zeta Szeta irr_zeta] Sk] cohS eta_ j.
 pose sum_eta a ell := \sum_i a i ell *: eta_ i ell.
 have [R [subcohS oS1sig defR]] := prDade_subcoherent ddA uccS nrS.
 have [[charS _ ccS] _ /orthogonal_free freeS Rok _] := subcohS.
