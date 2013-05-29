@@ -1175,32 +1175,6 @@ let is_wildcard = function
   | _,(_,Some (CHole _)|GHole _,None) -> true
   | _ -> false
 
-type ltacctx = int
-
-let pr_ltacctx _ _ _ _ = mt ()
-
-let ltacctxs = ref (1, [])
-
-let interp_ltacctx ist gl n0 =
-  Tacmach.project gl,
-  if n0 = 0 then 0 else
-  let n, s = !ltacctxs in
-  let n' = if n >= max_int then 1 else n + 1 in
-  ltacctxs := (n', (n, ist) :: s); n
-
-let noltacctx = 0
-let rawltacctx = 1
-
-ARGUMENT EXTEND ltacctx TYPED AS int PRINTED BY pr_ltacctx
-  INTERPRETED BY interp_ltacctx
-| [ ] -> [ rawltacctx ]
-END
-
-let get_ltacctx i = match !ltacctxs with
-| _ when i = noltacctx -> Errors.anomaly (str"Missing Ltac context")
-| n, (i', ist) :: s when i' = i -> ltacctxs := (n, s); ist
-| _ -> Errors.anomaly (str"Bad scope in SSR tactical")
-
 (* "ssrpattern" *)
 let pr_ssrpatternarg _ _ _ cpat = pr_rpattern cpat
 
@@ -1210,8 +1184,7 @@ ARGUMENT EXTEND ssrpatternarg
 | [ "[" rpattern(pat) "]" ] -> [ pat ]
 END
 
-let ssrpatterntac ctx arg gl =
-  let ist = get_ltacctx ctx in
+let ssrpatterntac ist arg gl =
   let pat = interp_rpattern ist gl arg in
   let sigma0 = project gl in
   let concl0 = pf_concl gl in
@@ -1221,7 +1194,7 @@ let ssrpatterntac ctx arg gl =
   convert_concl concl DEFAULTcast gl
 
 TACTIC EXTEND ssrat
-| [ "ssrpattern" ssrpatternarg(arg) ltacctx(ctx) ] -> [ ssrpatterntac ctx arg ]
+| [ "ssrpattern" ssrpatternarg(arg) ] -> [ ssrpatterntac ist arg ]
 END
 
 

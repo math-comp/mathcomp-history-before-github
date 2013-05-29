@@ -111,21 +111,6 @@ val fill_occ_pattern :
   pattern -> occ -> int ->
     constr * constr
 
-(** Grammar entry to grab [Ltac] context, needed for the functions above.
-    It must appear after the last tactic argument and only once.
-    For example {[
-  TACTIC EXTEND ssrclear
-    | [ "clear" natural(n) ltacctx(ctx) ] -> [poptac ~ist:(get_ltacctx ctx) n]
-  END ]} *)
-type ltacctx
-
-val get_ltacctx : ltacctx -> Tacinterp.interp_sign
-
-val ltacctx         : ltacctx Pcoq.Gram.entry
-val globwit_ltacctx : (ltacctx, glevel) abstract_argument_type
-val rawwit_ltacctx  : (ltacctx, rlevel) abstract_argument_type
-val wit_ltacctx     : (ltacctx, tlevel) abstract_argument_type
-
 (** *************************** Low level APIs ****************************** *)
 
 (* The primitive matching facility. It matches of a term with holes, like 
@@ -241,9 +226,7 @@ val loc_of_cpattern : cpattern -> Loc.t
 val id_of_cpattern : cpattern -> Names.variable option
 val is_wildcard : cpattern -> bool
 val cpattern_of_id : Names.variable -> cpattern
-val rawltacctx : ltacctx
 val cpattern_of_id : Names.variable -> cpattern
-val rawltacctx : ltacctx
 val pr_constr_pat : constr -> Pp.std_ppcmds
 
 (* One can also "Set SsrMatchingDebug" from a .v *)
