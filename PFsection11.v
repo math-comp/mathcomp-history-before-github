@@ -283,7 +283,7 @@ have UsCHO : U \subset 'C(H0).
   have Frob := Ptype_compl_Frobenius maxM MtypeP notMtype5.
   have nUW1_NH0 : U <*> W1 \subset 'N(H0).
     have [/andP[sHUM _] sW1M _ _ _] := sdprod_context defM.
-    have/andP[/maxgroupp/andP[_ nH0M _]] := chiefH0.
+    have /andP[/maxgroupp/andP[_ nH0M _]] := chiefH0.
     by rewrite join_subG !(subset_trans _ nH0M) // (subset_trans _ sHUM).
   have [||_->]// := Frobenius_Wielandt_fixpoint Frob nUW1_NH0.
   - by apply: coprimeSg (Ptype_Fcore_coprime MtypeP).
@@ -298,54 +298,28 @@ have UsCHO : U \subset 'C(H0).
   - have [_] := Ptype_Fcore_factor_facts maxM MtypeP notMtype5.
     rewrite /= (typeP_cent_core_compl  MtypeP) //.
     by rewrite (def_Ptype_factor_prime maxM MtypeP) // => ->.
-  - case/andP : chiefH0 => /maxgroupp/andP[_ /(subset_trans _)-> //].
-    by case/sdprod_context : defM.
+  - have /andP[/maxgroupp/andP[_ /(subset_trans _)-> //]] := chiefH0.
+    by have /sdprod_context[] := defM.
   apply: (coprimeSg (normal_sub nsH0H) (coprimegS (joing_subr U W1) _)).
   by exact: Ptype_Fcore_coprime MtypeP.
-split=> //.
-(* p.-group H *)
-- apply/pnatP=> //= r Pr rDh; rewrite -topredE /=; case: eqP=> // /eqP rDp.
-  have CrHr : (#|'C_H(U)|`_r = #|H|`_r)%N.
-    have /= := typeII_IV_core maxM MtypeP notMtype5.
-    rewrite (negPf notMtype2) -/p -/q => [[_ _ ->]].
-    rewrite !(partnM,partnX) // ?(expn_gt0, prime_gt0) //.
-    rewrite [X in (X ^ _)%N]part_p'nat ?(exp1n, mul1n) // p'natE //.
-    by apply/prime_nt_dvdP=> //; [case: (r) Pr=> // [[|[]]] | apply/eqP].
-  have rDC : r %| #|'C_H(U)|.
-    apply: (dvdn_trans _ (dvdn_part \pi(r) _)).
-    move: CrHr; rewrite -!(eq_partn _ (pi_of_prime Pr))=>->.
-    by rewrite -{1}[r]partn_pi ?prime_gt0 // partn_dvd.
-  case: (Sylow_exists r 'C_H(U))=> R1 S_CR1.
-  have R1sH := subset_trans (pHall_sub S_CR1) (subsetIl _ _).
-  suff : (R1^`(1) == R1)%g.
-    rewrite eqEproper=> /andP[_ /negP[]].
-    apply: (sol_der1_proper (nilpotent_sol nH) R1sH).
-    apply/negP=> trivR1; move/card_Hall : S_CR1.
-    move/eqP; rewrite (eqP trivR1) CrHr cards1 eq_sym p_part_eq1 /=.
-    move: (pi_of_dvd rDh (cardG_gt0 _))=> -> //.
-    by rewrite pi_of_prime // inE.
-  have /setIidPl {2}<- : R1 \subset (HU^`(1))%g.
-   rewrite derg1 -dergSn derM2_HC; case/dprodP : defHC=> _ <- _ _.
-   by rewrite (subset_trans _ (mulg_subl _ _)).
-  suff def1HU : R1 \x ('O_r^'(H) <*> U) = HU.
-    case/(der_dprod 1)/dprodP : (def1HU)=> _ <- _ _.
-    rewrite  setIC -group_modl ?der_sub // setIC.
-    suff-> : (R1 :&: ('O_r^'(H) <*> U)^`(1) = 1)%g by rewrite mulg1.
-    apply/trivgP/(subset_trans (setIS _ (der_sub _ _)))/trivgP.
-    by case/dprodP : def1HU.
-  have /dprodP[_ eRO OsCR tRiO] : R1 \x 'O_r^'(H) = H.
-    rewrite -{2}(nilpotent_pcoreC r nH); congr (_ \x _).
-    apply: (eq_Hall_pcore (nilpotent_pcore_Hall r nH)).
-    by rewrite pHallE R1sH -CrHr; case/pHallP : S_CR1=> _ ->/=.
-  have UnN : U \subset 'N('O_r^'(H)).
-    by case/sdprodP : defHU=> _ _ /char_norm_trans->//; apply: pcore_char.
-  rewrite dprodE /=.
-  - by rewrite norm_joinEr // mulgA eRO.
-  - rewrite join_subG OsCR centsC.
-    by case/pHallP : S_CR1; rewrite subsetI=> /andP[].
-  rewrite norm_joinEr // - (setIidPl R1sH).
-  rewrite -setIA [_ :&: (_ * _)%g]setIC -group_modl ?pcore_sub //.
-  by rewrite [U :&: _]setIC tHiU mulg1 tRiO.
+split=> //; last first.
+(* C = U' *)
+  apply/eqP; rewrite eqEsubset andbC.
+  rewrite subsetI der_sub; have[_ [->/= _] _ _] := typeP_context MtypeP.
+  have/subset_trans->// : C \subset (M^`(2) :&: U)%g.
+    rewrite derM2_HC -(dprodW defHC) setIC -group_modr ?subsetIl // setIC.
+    by rewrite tHiU mul1g.
+  have-> : (U^`(1) = (H <*> U^`(1)) :&: U)%g.
+    rewrite norm_joinEr; last by apply: (subset_trans (der_sub _ _)).
+    by rewrite setIC -group_modr ?der_sub // setIC tHiU mul1g.
+  have-> : (M^`(2))%g = [~: HU, HU] by [].
+  apply: setSI.
+  rewrite -{1}HeU commMG; last by apply: normsRr.
+  rewrite -HeU commGC [[~: U, _]]commGC !commMG; last 2 first.
+  - by apply: normsRr.
+  - by apply: char_norm_trans (der_char 1 _) _.
+  by rewrite [[~: U, _]]commGC mulgA !mul_subG ?joing_subr //;
+      apply: subset_trans (joing_subl _ _); rewrite ?(der_sub 1). 
 (* H0 = (H^`(1))%g *)
 - pose H1 := (H / H^`(1))%g.
   pose U1 := (U / H^`(1))%g.
@@ -354,63 +328,86 @@ split=> //.
   rewrite der1_min ?(abelem_abelian pabHbar) //=; last by case/andP: nsH0H.
   rewrite -quotient_sub1; last by case/andP: nsH0H=> /subset_trans->.
   suff <- : 'C_H1(U1) = 1%g.
-    rewrite subsetI quotientS //=.
-    by apply: quotient_cents; rewrite // centsC // -quotient_sub1.
+    by rewrite subsetI quotientS //= quotient_cents // centsC // -quotient_sub1.
+  suff /eqP : ('C_H1(U1) = 'C_H1(U1)^`(1))%g.
+    rewrite eq_sym eqEproper=> /andP[_ NP].
+    apply/eqP/(contraR _ NP)=> Ntriv.
+    apply: (sol_der1_proper (quotient_sol _ (nilpotent_sol nH))) => //.
+    by apply: subsetIl.
+  have {1}<- : ('C_H1(U1) :&: HU1^`(1) = 'C_H1(U1))%g.
+    rewrite -quotient_der ?[(HU^`(1))%g]derM2_HC; last by rewrite -HeU mul_subG.
+    apply/setIidPl/(subset_trans (subsetIl _ _)).
+    have/dprodP[_ <- _ _] := defHC.
+    by apply: quotientS (mulG_subl _ _).
+  suff defHU1 : ('C_H1(U1) \x  ([~: H1, U1] <*> U1) = HU1)%g.
+    have /dprodP[_ <- CHH1 tHH1] := der_dprod 1 defHU1.
+    rewrite setIC -group_modl ?der_sub //= -/U1 -/H1.
+    rewrite -[X in _ = X]mulg1; congr (_ * _)%g.
+    rewrite setIC; apply/trivgP.
+    have /dprodP[_ _ _ /trivgP/(subset_trans _)->] // := defHU1. 
+    by rewrite setIS // der_sub.
   have defH1 : ('C_H1(U1) \x [~: H1, U1] = H1)%g. 
     rewrite dprodC.
     apply: coprime_abelian_cent_dprod (der_abelian _ _).
       by apply: quotient_norms; case/sdprodP: defHU.
     apply: coprime_morph.
     by apply: coprimegS (joing_subl U W1) (Ptype_Fcore_coprime MtypeP).
-  have defHU1 : ('C_H1(U1) \x  ([~: H1, U1] <*> U1) = HU1)%g.
-    have/dprodP[_ _ cH1U1sC tCicH1U1] := defH1.
-    rewrite /HU1 -(sdprodWY defHU) quotientY //= -[X in _ = X <*> _]defH1.
-    rewrite  !dprodEY ?joingA //.
-      by rewrite join_subG [X in _ && X]centsC subsetIr andbT.
-    apply/trivgP; rewrite /= norm_joinEr.
-    move/setIidPl: (subsetIl H1 'C(U1))<-.
-    rewrite -[_ :&: H1 :&: _]setIA [_ :&: (_ * _)%g]setIC -group_modl.
-    rewrite -quotientIG ?der_sub // [U :&: _]setIC tHiU.
-    - by rewrite quotient1 mulg1 tCicH1U1.
-    - by rewrite /= -quotientR ?quotientS.
+  have /dprodP[_ H cH1U1sC tCicH1U1] := defH1.
+  rewrite /HU1 -(sdprodWY defHU) quotientY //= -[X in _ = X <*> _]defH1.
+  rewrite  !dprodEY ?joingA //.
+    by rewrite join_subG [X in _ && X]centsC subsetIr andbT.
+  apply/trivgP; rewrite /= norm_joinEr; last first.
     apply: normsR (normG _).
     by apply: subset_trans (quotientS _ _) (quotient_norm _ _).
-  suff: ('C_H1(U1) == 'C_H1(U1)^`(1))%g.
-    rewrite eq_sym eqEproper=> /andP[_ NP].
-    apply/eqP; apply: contraR NP=> Ntriv.
-    apply: (sol_der1_proper (quotient_sol _ (nilpotent_sol nH)))=> //.
-    by apply: subsetIl.
-  have {1}<- : ('C_H1(U1) :&: HU1^`(1) = 'C_H1(U1))%g.
-    rewrite -quotient_der; last by rewrite -HeU mul_subG.
-    rewrite [(HU^`(1))%g]derM2_HC .
-    apply/setIidPl/(subset_trans (subsetIl _ _)).
-    apply: quotientS; case/dprodP: defHC=> _ <- _ _.
-    by apply: mulG_subl.
-  rewrite -(der_dprod 1 defHU1).
-  have/dprodP[_ _ CHH1 tHH1] := (der_dprod 1 defHU1).
-  rewrite dprodE // setIC -group_modl ?der_sub //= -/U1 -/H1.
-  suff-> : (([~: H1, U1] <*> U1)^`(1) :&: 'C_H1(U1) = 1)%g by rewrite mulg1.
-  rewrite setIC; apply/trivgP.
-  case/dprodP: defHU1 => _ _ _ /trivgP/(subset_trans _)->//.
-  by rewrite setIS // der_sub.
-(* C = U' *)
-apply/eqP; rewrite eqEsubset andbC.
-rewrite subsetI der_sub; have[_ [->/= _] _ _] := typeP_context MtypeP.
-have/subset_trans->// : C \subset (M^`(2) :&: U)%g.
-  rewrite derM2_HC -(dprodW defHC) setIC -group_modr ?subsetIl // setIC.
-  by rewrite tHiU mul1g.
-have-> : (U^`(1) = (H <*> U^`(1)) :&: U)%g.
-  rewrite norm_joinEr; last by apply: (subset_trans (der_sub _ _)).
-  by rewrite setIC -group_modr ?der_sub // setIC tHiU mul1g.
-apply: setSI.
-have-> : (M^`(2))%g = [~: HU, HU] by done.
-rewrite -{1}HeU commMG; last by apply: normsRr.
-rewrite -HeU commGC [[~: U, _]]commGC !commMG; last 2 first.
-- by apply: normsRr.
-- by apply: char_norm_trans (der_char 1 _) _.
-rewrite [[~: U, _]]commGC mulgA !mul_subG //;
-  try by apply: subset_trans (joing_subl _ _); rewrite ?(der_sub 1). 
-by exact: joing_subr.
+  have /setIidPl<- := subsetIl H1 'C(U1).
+  rewrite -[_ :&: H1 :&: _]setIA [_ :&: (_ * _)%g]setIC -group_modl.
+    rewrite -quotientIG ?der_sub // [U :&: _]setIC tHiU.
+    by rewrite quotient1 mulg1 tCicH1U1.
+  by rewrite /= -quotientR ?quotientS.
+(* p.-group H *)
+apply/pnatP=> //= r Pr rDh; rewrite -topredE /=; case: eqP=> // /eqP rDp.
+case: (Sylow_exists r 'C_H(U))=> R1 S_CR1.
+have R1sH := subset_trans (pHall_sub S_CR1) (subsetIl _ _).
+suff /eqP: (R1^`(1) = R1)%g.
+  rewrite eqEproper=> /andP[_ /negP[]].
+  apply: (sol_der1_proper (nilpotent_sol nH) R1sH).
+  apply/negP=> trivR1; move/card_Hall/eqP : S_CR1.
+  suff CrHr : (#|'C_H(U)|`_r = #|H|`_r)%N.
+    rewrite (eqP trivR1) CrHr cards1 eq_sym p_part_eq1 /=.
+    have -> // := pi_of_dvd rDh (cardG_gt0 _).
+    by rewrite pi_of_prime // inE.
+  have /= := typeII_IV_core maxM MtypeP notMtype5.
+  rewrite (negPf notMtype2) -/p -/q => [[_ _ ->]].
+  rewrite !(partnM,partnX) // ?(expn_gt0, prime_gt0) //.
+  rewrite [X in (X ^ _)%N]part_p'nat ?(exp1n, mul1n) // p'natE //.
+  by apply/prime_nt_dvdP=> //; [case: (r) Pr=> // [[|[]]] | apply/eqP].
+have /setIidPl {2}<- : R1 \subset (HU^`(1))%g.
+  have /dprodP [_ HCE _ _] := defHC.
+  by rewrite derg1 -dergSn derM2_HC -HCE (subset_trans _ (mulg_subl _ _)).
+suff def1HU : R1 \x ('O_r^'(H) <*> U) = HU.
+  have /(der_dprod 1)/dprodP[_ <- _ _] := def1HU.
+  have /dprodP[_ _ _ R1OI1] := def1HU.
+  rewrite  setIC -group_modl ?der_sub // setIC -[X in X = _]mulg1.
+  congr (_ * _)%g.
+ by apply/sym_equal/trivgP/(subset_trans (setIS _ (der_sub _ _)))/trivgP.
+have /dprodP[_ eRO OsCR tRiO] : R1 \x 'O_r^'(H) = H.
+  rewrite -{2}(nilpotent_pcoreC r nH); congr (_ \x _).
+  apply: (eq_Hall_pcore (nilpotent_pcore_Hall r nH)).
+  suff CrHr : (#|'C_H(U)|`_r = #|H|`_r)%N.
+    by rewrite pHallE R1sH -CrHr; case/pHallP : S_CR1=> _ ->/=.
+  have /= := typeII_IV_core maxM MtypeP notMtype5.
+  rewrite (negPf notMtype2) -/p -/q => [[_ _ ->]].
+  rewrite !(partnM,partnX) // ?(expn_gt0, prime_gt0) //.
+  rewrite [X in (X ^ _)%N]part_p'nat ?(exp1n, mul1n) // p'natE //.
+  by apply/prime_nt_dvdP=> //; [case: (r) Pr=> // [[|[]]] | apply/eqP].
+have UnN : U \subset 'N('O_r^'(H)).
+  by have /sdprodP[_ _ /char_norm_trans-> //] := defHU; apply: pcore_char.
+rewrite dprodE /=; first by rewrite /= norm_joinEr // mulgA eRO.
+  rewrite join_subG OsCR centsC.
+  by have /pHallP[] := S_CR1; rewrite subsetI => /andP[].
+rewrite norm_joinEr // -(setIidPl R1sH).
+rewrite -setIA [_ :&: (_ * _)%g]setIC -group_modl ?pcore_sub //.
+by rewrite [U :&: _]setIC tHiU mulg1 tRiO.
 Qed.
 
 (* This is Peterfalvi (11.7). *)
@@ -645,6 +642,7 @@ Qed.
 
 Let sub_co_SHC_tau : subcoherent (S_ HC) tau R.
 Proof.  apply: (subset_subcoherent subc_M); exact: seqInd_conjC_subset1. Qed.
+
 Let co_SHC_tau : coherent (S_ HC) M^# tau.
 Proof.
 apply: uniform_degree_coherence sub_co_SHC_tau _.
@@ -705,8 +703,7 @@ have [[Ztau1 Ptau1] Ctau1] := co_w_SHC_tau.
 pose chi : 'CF(G) := \sum_i eta_ i 0 - tau (mu_ 0 - z).
 have chiE : tau (mu_ 0 - z) = \sum_i eta_ i 0 - chi.
   by rewrite opprB [X in _ = X]addrC subrK.
-have [chiEz|chiDz] := (chi =P tau1 z).
-  by exists tau1; rewrite -?chiEz //.
+have [chiEz|chiDz] := (chi =P tau1 z); first by exists tau1; rewrite -?chiEz.
 have dirrChi : chi \in dirr G.
   apply: dirr_norm1.
     rewrite rpredB ?Dade_vchar ?rpred_sum 1?zchar_split // => [i _|].
