@@ -17,15 +17,11 @@ val pr_cpattern : cpattern -> Pp.std_ppcmds
 
 (** CS cpattern: (f _), (X in t), (t in X in t), (t as X in t) *)
 val cpattern         : cpattern Pcoq.Gram.entry
-val globwit_cpattern : (cpattern, glevel) abstract_argument_type
-val rawwit_cpattern  : (cpattern, rlevel) abstract_argument_type
-val wit_cpattern     : (cpattern, tlevel) abstract_argument_type
+val wit_cpattern     : cpattern uniform_genarg_type
 
 (** OS cpattern: f _, (X in t), (t in X in t), (t as X in t) *)
 val lcpattern         : cpattern Pcoq.Gram.entry
-val globwit_lcpattern : (cpattern, glevel) abstract_argument_type
-val rawwit_lcpattern  : (cpattern, rlevel) abstract_argument_type
-val wit_lcpattern     : (cpattern, tlevel) abstract_argument_type
+val wit_lcpattern     : cpattern uniform_genarg_type
 
 (** The type of rewrite patterns, the patterns of the [rewrite] tactic.
     These patterns also include patterns that identify all the subterms
@@ -35,9 +31,7 @@ val pr_rpattern : rpattern -> Pp.std_ppcmds
 
 (** OS rpattern: f _, in t, X in t, in X in t, t in X in t, t as X in t *)
 val rpattern         : rpattern Pcoq.Gram.entry
-val globwit_rpattern : (rpattern, glevel) abstract_argument_type
-val rawwit_rpattern  : (rpattern, rlevel) abstract_argument_type
-val wit_rpattern     : (rpattern, tlevel) abstract_argument_type
+val wit_rpattern     : rpattern uniform_genarg_type
 
 (** Pattern interpretation and matching *)
 

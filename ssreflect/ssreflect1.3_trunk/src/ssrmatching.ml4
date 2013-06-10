@@ -116,17 +116,16 @@ let prl_term (k, c) = pr_guarded (guard_term k) prl_glob_constr_and_expr c
 
 (** Adding a new uninterpreted generic argument type *)
 let add_genarg tag pr =
-  let wit, globwit, rawwit as wits = create_arg None tag in
-  let glob _ rarg = in_gen globwit (out_gen rawwit rarg) in
+  let wit = create_arg None tag in
+  let glob _ rarg = in_gen (glbwit wit) (out_gen (rawwit wit) rarg) in
   Tacintern.add_intern_genarg tag glob;
-  let interp _ gl garg = Tacmach.project gl,in_gen wit (out_gen globwit garg) in
+  let interp _ gl garg = Tacmach.project gl,in_gen (topwit wit) (out_gen (glbwit wit) garg) in
   Tacinterp.add_interp_genarg tag interp;
   let subst _ garg = garg in
   Tacsubst.add_genarg_subst tag subst;
   let gen_pr _ _ _ = pr in
-  Pptactic.declare_extra_genarg_pprule
-    (rawwit, gen_pr) (globwit, gen_pr) (wit, gen_pr);
-  wits
+  Pptactic.declare_extra_genarg_pprule wit gen_pr gen_pr gen_pr;
+  wit
 
 (** Constructors for cast type *)
 let dC t = CastConv t
@@ -803,8 +802,7 @@ let pr_ssrpattern_squarep _ _ _ = pr_pattern_squarep
 let pr_pattern_roundp = pr_option (fun r -> str "(" ++ pr_pattern r ++ str ")")
 let pr_ssrpattern_roundp  _ _ _ = pr_pattern_roundp
 
-let wit_rpatternty, globwit_rpatternty, rawwit_rpatternty =
-  add_genarg "rpatternty" pr_pattern
+let wit_rpatternty = add_genarg "rpatternty" pr_pattern
 
 ARGUMENT EXTEND rpattern TYPED AS rpatternty PRINTED BY pr_rpattern
   | [ lconstr(c) ] -> [ T (mk_lterm c) ]
@@ -840,13 +838,13 @@ let id_of_Cterm t = match id_of_cpattern t with
   | Some x -> x
   | None -> loc_error (loc_of_cpattern t) "Only identifiers are allowed here"
 
-let interp_wit globwit wit ist gl x = 
-  let globarg = in_gen globwit x in
+let interp_wit wit ist gl x = 
+  let globarg = in_gen (glbwit wit) x in
   let sigma, arg = interp_genarg ist gl globarg in
-  sigma, out_gen wit arg
-let interp_constr = interp_wit globwit_constr wit_constr
+  sigma, out_gen (topwit wit) arg
+let interp_constr = interp_wit wit_constr
 let interp_open_constr ist gl gc =
-  interp_wit globwit_open_constr wit_open_constr ist gl ((), gc)
+  interp_wit wit_open_constr ist gl ((), gc)
 let pf_intern_term ist gl (_, c) = glob_constr ist (project gl) (pf_env gl) c
 let interp_term ist gl (_, c) = snd (interp_open_constr ist gl c)
 let glob_ssrterm gs = function

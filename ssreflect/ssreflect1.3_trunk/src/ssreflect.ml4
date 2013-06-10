@@ -194,17 +194,16 @@ let prl_term (k, c) = pr_guarded (guard_term k) prl_glob_constr_and_expr c
 
 (** Adding a new uninterpreted generic argument type *)
 let add_genarg tag pr =
-  let wit, globwit, rawwit as wits = create_arg None tag in
-  let glob _ rarg = in_gen globwit (out_gen rawwit rarg) in
+  let wit = create_arg None tag in
+  let glob _ rarg = in_gen (glbwit wit) (out_gen (rawwit wit) rarg) in
   Tacintern.add_intern_genarg tag glob;
-  let interp _ gl garg = Tacmach.project gl,in_gen wit (out_gen globwit garg) in
+  let interp _ gl garg = Tacmach.project gl,in_gen (topwit wit) (out_gen (glbwit wit) garg) in
   Tacinterp.add_interp_genarg tag interp;
   let subst _ garg = garg in
   Tacsubst.add_genarg_subst tag subst;
   let gen_pr _ _ _ = pr in
-  Pptactic.declare_extra_genarg_pprule
-    (rawwit, gen_pr) (globwit, gen_pr) (wit, gen_pr);
-  wits
+  Pptactic.declare_extra_genarg_pprule wit gen_pr gen_pr gen_pr;
+  wit
 
 (** Constructors for cast type *)
 let dC t = CastConv t
@@ -913,21 +912,21 @@ let ssrevaltac ist gtac =
 (** Generic argument-based globbing/typing utilities *)
 
 
-let interp_wit globwit wit ist gl x = 
-  let globarg = in_gen globwit x in
+let interp_wit wit ist gl x = 
+  let globarg = in_gen (glbwit wit) x in
   let sigma, arg = interp_genarg ist gl globarg in
-  sigma, out_gen wit arg
+  sigma, out_gen (topwit wit) arg
 
-let interp_intro_pattern = interp_wit globwit_intro_pattern wit_intro_pattern
+let interp_intro_pattern = interp_wit wit_intro_pattern
 
-let interp_constr = interp_wit globwit_constr wit_constr
+let interp_constr = interp_wit wit_constr
 
 let interp_open_constr ist gl gc =
-  interp_wit globwit_open_constr wit_open_constr ist gl ((), gc)
+  interp_wit wit_open_constr ist gl ((), gc)
 
 let interp_refine ist gl rc =
    let roc = (), (rc, None) in
-   interp_wit globwit_casted_open_constr wit_casted_open_constr ist gl roc
+   interp_wit wit_casted_open_constr ist gl roc
 
 let pf_match = pf_apply (fun e s c t -> understand_tcc s e ~expected_type:t c)
 
@@ -1057,8 +1056,7 @@ let pr_search_item = function
   | Search.GlobSearchString s -> str s
   | Search.GlobSearchSubPattern p -> pr_constr_pattern p
 
-let wit_ssr_searchitem, globwit_ssr_searchitem, rawwit_ssr_searchitem =
-  add_genarg "ssr_searchitem" pr_search_item
+let wit_ssr_searchitem = add_genarg "ssr_searchitem" pr_search_item
 
 let interp_search_notation loc s opt_scope =
   try
@@ -1283,8 +1281,7 @@ let interp_search_arg arg =
 
 let pr_modloc (b, m) = if b then str "-" ++ pr_reference m else pr_reference m
 
-let wit_ssrmodloc, globwit_ssrmodloc, rawwit_ssrmodloc =
-  add_genarg "ssrmodloc" pr_modloc
+let wit_ssrmodloc = add_genarg "ssrmodloc" pr_modloc
 
 let pr_ssr_modlocs _ _ _ ml =
   if ml = [] then str "" else spc () ++ str "in " ++ pr_list spc pr_modloc ml
@@ -1552,7 +1549,7 @@ TACTIC EXTEND ssrtclstar
 END
 set_pr_ssrtac "tclstar" 5 [ArgSep "- "; ArgSsr "tclarg"]
 
-let gen_tclarg = in_gen rawwit_ssrtclarg
+let gen_tclarg = in_gen (rawwit wit_ssrtclarg)
 
 GEXTEND Gram
   GLOBAL: tactic tactic_mode;
@@ -1591,7 +1588,7 @@ GEXTEND Gram
   ssrhint: [[ "by"; arg = ssrhintarg -> arg ]];
   simple_tactic: [
   [ "by"; arg = ssrhintarg ->
-    let garg = in_gen rawwit_ssrhint arg in
+    let garg = in_gen (rawwit wit_ssrhint) arg in
     ssrtac_atom !@loc "tclby" [garg]
   ] ];
 END
@@ -1611,19 +1608,18 @@ let hyp_id (SsrHyp (_, id)) = id
 let pr_hyp (SsrHyp (_, id)) = pr_id id
 let pr_ssrhyp _ _ _ = pr_hyp
 
-let wit_ssrhyprep, globwit_ssrhyprep, rawwit_ssrhyprep =
-  add_genarg "ssrhyprep" pr_hyp
+let wit_ssrhyprep = add_genarg "ssrhyprep" pr_hyp
 
 let hyp_err loc msg id =
   Errors.user_err_loc (loc, "ssrhyp", str msg ++ pr_id id)
 
 let intern_hyp ist (SsrHyp (loc, id) as hyp) =
-  let _ = Tacintern.intern_genarg ist (in_gen rawwit_var (loc, id)) in
+  let _ = Tacintern.intern_genarg ist (in_gen (rawwit wit_var) (loc, id)) in
   if not_section_id id then hyp else
   hyp_err loc "Can't clear section hypothesis " id
 
 let interp_hyp ist gl (SsrHyp (loc, id)) =
-  let s, id' = interp_wit globwit_var wit_var ist gl (loc, id) in
+  let s, id' = interp_wit wit_var ist gl (loc, id) in
   if not_section_id id' then s, SsrHyp (loc, id') else
   hyp_err loc "Can't clear section hypothesis " id'
 
@@ -1739,8 +1735,7 @@ let pr_clseq = function
   | InHypsSeq       -> str " |-"
   | InAllHyps       -> str "* |-"
 
-let wit_ssrclseq, globwit_ssrclseq, rawwit_ssrclseq =
-  add_genarg "ssrclseq" pr_clseq
+let wit_ssrclseq = add_genarg "ssrclseq" pr_clseq
 
 (* type ssrahyps = ssrhyp list * string list *)
 
@@ -1755,8 +1750,7 @@ let pr_ahyp (SsrHyp (_, id), mode) = match mode with
 let pr_ahyps (a,b) = pr_list pr_spc pr_ahyp (List.combine a b)
 let pr_ssrahyps _ _ _ = pr_ahyps
 
-let wit_ssrahyps, globwit_ssrahyps, rawwit_ssrahyps =
-  add_genarg "ssrahyps" pr_ahyps
+let wit_ssrahyps = add_genarg "ssrahyps" pr_ahyps
 
 ARGUMENT EXTEND ssrclausehyps 
 TYPED AS ssrhyps * string list PRINTED BY pr_ssrahyps
@@ -1923,8 +1917,7 @@ let pr_simpl = function
 
 let pr_ssrsimpl _ _ _ = pr_simpl
 
-let wit_ssrsimplrep, globwit_ssrsimplrep, rawwit_ssrsimplrep =
-  add_genarg "ssrsimplrep" pr_simpl
+let wit_ssrsimplrep = add_genarg "ssrsimplrep" pr_simpl
 
 ARGUMENT EXTEND ssrsimpl_ne TYPED AS ssrsimplrep PRINTED BY pr_ssrsimpl
 | [ "/=" ] -> [ Simpl ]
@@ -1958,8 +1951,7 @@ let rewritetac dir c =
   (* Due to the new optional arg ?tac, application shouldn't be too partial *)
   Equality.general_rewrite (dir = L2R) AllOccurrences true false c
 
-let wit_ssrdir, globwit_ssrdir, rawwit_ssrdir =
-  add_genarg "ssrdir" pr_dir
+let wit_ssrdir = add_genarg "ssrdir" pr_dir
 
 let dir_org = function L2R -> 1 | R2L -> 2
 
@@ -2292,8 +2284,7 @@ let rec pr_ipat = function
 and pr_iorpat iorpat = pr_list pr_bar pr_ipats iorpat
 and pr_ipats ipats = pr_list spc pr_ipat ipats
 
-let wit_ssripatrep, globwit_ssripatrep, rawwit_ssripatrep =
-  add_genarg "ssripatrep" pr_ipat
+let wit_ssripatrep = add_genarg "ssripatrep" pr_ipat
 
 let pr_ssripat _ _ _ = pr_ipat
 let pr_ssripats _ _ _ = pr_ipats
@@ -2495,7 +2486,7 @@ let revtoptac n0 gl =
 
 let equality_inj l b id c gl =
   let msg = ref "" in
-  try Equality.inj l b c gl
+  try Equality.inj (Some l) b c gl
   with
     | Compat.Exc_located(_,Errors.UserError (_,s))
     | Errors.UserError (_,s)
@@ -2715,7 +2706,7 @@ END
 set_pr_ssrtac "tclintros" 0 [ArgSsr "introsarg"]
 
 let tclintros_expr loc tac ipats =
-  let args = [in_gen rawwit_ssrintrosarg (tac, ipats)] in
+  let args = [in_gen (rawwit wit_ssrintrosarg) (tac, ipats)] in
   ssrtac_expr loc "tclintros" args
 
 GEXTEND Gram
@@ -2734,7 +2725,7 @@ type ssrmmod = May | Must | Once
 
 let pr_mmod = function May -> str "?" | Must -> str "!" | Once -> mt ()
 
-let wit_ssrmmod, globwit_ssrmmod, rawwit_ssrmmod = add_genarg "ssrmmod" pr_mmod
+let wit_ssrmmod = add_genarg "ssrmmod" pr_mmod
 let ssrmmod = Gram.Entry.create "ssrmmod"
 GEXTEND Gram
   GLOBAL: ssrmmod;
@@ -2801,7 +2792,7 @@ set_pr_ssrtac "tcldo" 3 [ArgSep "do "; ArgSsr "doarg"]
 
 let ssrdotac_expr loc n m tac clauses =
   let arg = ((n, m), tac), clauses in
-  ssrtac_expr loc "tcldo" [in_gen rawwit_ssrdoarg arg]
+  ssrtac_expr loc "tcldo" [in_gen (rawwit wit_ssrdoarg) arg]
 
 GEXTEND Gram
   GLOBAL: tactic_expr;
@@ -2965,9 +2956,9 @@ END
 set_pr_ssrtac "tclseq" 5 [ArgSsr "tclarg"; ArgSsr "seqdir"; ArgSsr "seqarg"]
 
 let tclseq_expr loc tac dir arg =
-  let arg1 = in_gen rawwit_ssrtclarg tac in
-  let arg2 = in_gen rawwit_ssrseqdir dir in
-  let arg3 = in_gen rawwit_ssrseqarg (check_seqtacarg dir arg) in
+  let arg1 = in_gen (rawwit wit_ssrtclarg) tac in
+  let arg2 = in_gen (rawwit wit_ssrseqdir) dir in
+  let arg3 = in_gen (rawwit wit_ssrseqarg) (check_seqtacarg dir arg) in
   ssrtac_expr loc "tclseq" [arg1; arg2; arg3]
 
 GEXTEND Gram
@@ -4152,8 +4143,7 @@ let pr_rwkind = function
   | RWdef -> str "/"
   | RWeq -> mt ()
 
-let wit_ssrrwkind, globwit_ssrrwkind, rawwit_ssrrwkind =
-  add_genarg "ssrrwkind" pr_rwkind
+let wit_ssrrwkind = add_genarg "ssrrwkind" pr_rwkind
 
 let pr_rule = function
   | RWred s, _ -> pr_simpl s
@@ -4876,8 +4866,7 @@ type ssrfwdfmt = ssrfwdkind * ssrbindfmt list
 let pr_fwdkind = function FwdHint s -> str (s ^ " ") | _ -> str " :=" ++ spc ()
 let pr_fwdfmt (fk, _ : ssrfwdfmt) = pr_fwdkind fk
 
-let wit_ssrfwdfmt, globwit_ssrfwdfmt, rawwit_ssrfwdfmt =
-  add_genarg "ssrfwdfmt" pr_fwdfmt
+let wit_ssrfwdfmt = add_genarg "ssrfwdfmt" pr_fwdfmt
 
 (* type ssrfwd = ssrfwdfmt * ssrterm *)
 
