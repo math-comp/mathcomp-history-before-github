@@ -2486,7 +2486,7 @@ let revtoptac n0 gl =
 
 let equality_inj l b id c gl =
   let msg = ref "" in
-  try Equality.inj (Some l) b c gl
+  try Equality.inj l b c gl
   with
     | Compat.Exc_located(_,Errors.UserError (_,s))
     | Errors.UserError (_,s)
@@ -2497,7 +2497,7 @@ let equality_inj l b id c gl =
     discharge_hyp (id, (id, "")) gl
 
 let injectidl2rtac id c gl =
-  tclTHEN (equality_inj [] true id c) (revtoptac (pf_nb_prod gl)) gl
+  tclTHEN (equality_inj None true id c) (revtoptac (pf_nb_prod gl)) gl
 
 let injectl2rtac c = match kind_of_term c with
 | Var id -> injectidl2rtac id (mkVar id, NoBindings)
