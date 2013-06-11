@@ -1983,15 +1983,21 @@ let interp_index ist gl idx =
   match idx with
   | ArgArg _ -> idx
   | ArgVar (loc, id) ->
-    let i = try match List.assoc id ist.lfun with
-    | VInteger i -> i
-    | VConstr ([],c) ->
-      let rc = Detyping.detype false [] [] c in
-      begin match Notation.uninterp_prim_token rc with
-      | _, Numeral bigi -> int_of_string (Bigint.to_string bigi)
-      | _ -> raise Not_found
-      end
-    | _ -> raise Not_found
+    let i =
+      try
+        let v = List.assoc id ist.lfun in
+        begin match Value.to_int v with
+        | Some i -> i
+        | None ->
+        begin match Value.to_constr v with
+        | Some c ->
+          let rc = Detyping.detype false [] [] c in
+          begin match Notation.uninterp_prim_token rc with
+          | _, Numeral bigi -> int_of_string (Bigint.to_string bigi)
+          | _ -> raise Not_found
+          end
+        | None -> raise Not_found
+        end end
     with _ -> loc_error loc "Index not a number" in
     ArgArg (check_index loc i)
 
@@ -2223,7 +2229,7 @@ let interp_view ist si env sigma gv rid =
 let top_id = mk_internal_id "top assumption"
 
 let with_view ist si env gl0 c name cl prune =
-  let c2r ist x = { ist with lfun = (top_id, VConstr ([], x)) :: ist.lfun } in
+  let c2r ist x = { ist with lfun = (top_id, Value.of_constr x) :: ist.lfun } in
   let rec loop (sigma, c') = function
   | f :: view ->
       let rid, ist = match kind_of_term c' with
@@ -4030,7 +4036,7 @@ let congrtac ((n, t), ty) ist gl =
   pp(lazy(str"===congr==="));
   pp(lazy(str"concl=" ++ pr_constr (pf_concl gl)));
   let _, f = pf_abs_evars gl (interp_term ist gl t) in
-  let ist' = {ist with lfun = [pattern_id, VConstr ([],f)]} in
+  let ist' = {ist with lfun = [pattern_id, Value.of_constr f]} in
   let rf = mkRltacVar pattern_id in
   let m = pf_nbargs gl f in
   let _, cf = if n > 0 then
