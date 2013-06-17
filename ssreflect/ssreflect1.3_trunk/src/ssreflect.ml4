@@ -904,7 +904,10 @@ let ssrtac_expr loc name args = TacAtom (loc, ssrtac_atom loc name args)
 
 
 let ssrevaltac ist gtac =
-  interp_tac_gen ist.lfun [] ist.debug (globTacticIn (fun _ -> gtac))
+  let debug = match TacStore.get ist.extra f_debug with
+  | None -> Tactic_debug.DebugOff | Some level -> level
+  in
+  interp_tac_gen ist.lfun [] debug (globTacticIn (fun _ -> gtac))
 
 (* fun gl -> let lfun = [tacarg_id, val_interp ist gl gtac] in
   interp_tac_gen lfun [] ist.debug tacarg_expr gl *)
