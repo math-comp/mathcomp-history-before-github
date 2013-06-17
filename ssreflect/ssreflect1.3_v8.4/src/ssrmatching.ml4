@@ -839,9 +839,9 @@ let glob_ssrterm gs = function
   | ct -> ct
 let subst_ssrterm s (k, c) = k, Tacinterp.subst_glob_constr_and_expr s c
 let pr_ssrterm _ _ _ = pr_term
-let input_ssrtermkind strm = match Stream.npeek 1 strm with
-  | [Tok.KEYWORD "("] -> '('
-  | [Tok.KEYWORD "@"] -> '@'
+let input_ssrtermkind strm = match Compat.get_tok (stream_nth 0 strm) with
+  | Tok.KEYWORD "(" -> '('
+  | Tok.KEYWORD "@" -> '@'
   | _ -> ' '
 let ssrtermkind = Gram.Entry.of_parser "ssrtermkind" input_ssrtermkind
 

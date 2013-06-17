@@ -395,20 +395,20 @@ let _ =
 (** Primitive parsing to avoid syntax conflicts with basic tactics. *)
 
 let accept_before_syms syms strm =
-  match Stream.npeek 2 strm with
-  | [_; Tok.KEYWORD sym] when List.mem sym syms -> ()
+  match Compat.get_tok (stream_nth 1 strm) with
+  | Tok.KEYWORD sym when List.mem sym syms -> ()
   | _ -> raise Stream.Failure
 
 let accept_before_syms_or_any_id syms strm =
-  match Stream.npeek 2 strm with
-  | [_; Tok.KEYWORD sym] when List.mem sym syms -> ()
-  | [_; Tok.IDENT _] -> ()
+  match Compat.get_tok (stream_nth 1 strm) with
+  | Tok.KEYWORD sym when List.mem sym syms -> ()
+  | Tok.IDENT _ -> ()
   | _ -> raise Stream.Failure
 
 let accept_before_syms_or_ids syms ids strm =
-  match Stream.npeek 2 strm with
-  | [_; Tok.KEYWORD sym] when List.mem sym syms -> ()
-  | [_; Tok.IDENT id] when List.mem id ids -> ()
+  match Compat.get_tok (stream_nth 1 strm) with
+  | Tok.KEYWORD sym when List.mem sym syms -> ()
+  | Tok.IDENT id when List.mem id ids -> ()
   | _ -> raise Stream.Failure
 
 (** Pretty-printing utilities *)
@@ -1668,9 +1668,9 @@ END
 
 type ssrtermkind = char (* print flag *)
 
-let input_ssrtermkind strm = match Stream.npeek 1 strm with
-  | [Tok.KEYWORD "("] -> '('
-  | [Tok.KEYWORD "@"] -> '@'
+let input_ssrtermkind strm = match Compat.get_tok (stream_nth 0 strm) with
+  | Tok.KEYWORD "(" -> '('
+  | Tok.KEYWORD "@" -> '@'
   | _ -> ' '
 
 let ssrtermkind = Gram.Entry.of_parser "ssrtermkind" input_ssrtermkind
@@ -2843,8 +2843,8 @@ let sq_brace_tacnames =
    ["first"; "solve"; "do"; "rewrite"; "have"; "suffices"; "wlog"]
    (* "by" is a keyword *)
 let accept_ssrseqvar strm =
-  match Stream.npeek 1 strm with
-  | [Tok.IDENT id] when not (List.mem id sq_brace_tacnames) ->
+  match Compat.get_tok (stream_nth 0 strm) with
+  | Tok.IDENT id when not (List.mem id sq_brace_tacnames) ->
      accept_before_syms_or_ids ["["] ["first";"last"] strm
   | _ -> raise Stream.Failure
 
@@ -3230,10 +3230,10 @@ ARGUMENT EXTEND ssreqid TYPED AS ssripatrep option PRINTED BY pr_ssreqid
 END
 
 let accept_ssreqid strm =
-  match Stream.npeek 1 strm with
-  | [Tok.IDENT _] -> accept_before_syms [":"] strm
-  | [Tok.KEYWORD ":"] -> ()
-  | [Tok.KEYWORD pat] when List.mem pat ["_"; "?"; "->"; "<-"] ->
+  match Compat.get_tok (Util.stream_nth 0 strm) with
+  | Tok.IDENT _ -> accept_before_syms [":"] strm
+  | Tok.KEYWORD ":" -> ()
+  | Tok.KEYWORD pat when List.mem pat ["_"; "?"; "->"; "<-"] ->
                       accept_before_syms [":"] strm
   | _ -> raise Stream.Failure
 
@@ -4636,8 +4636,8 @@ let test_ssr_rw_syntax =
   let test strm  =
     if not !ssr_rw_syntax then raise Stream.Failure else
     if ssr_loaded () then () else
-    match Stream.npeek 1 strm with
-    | [Tok.KEYWORD key] when List.mem key.[0] ['{'; '['; '/'] -> ()
+    match Compat.get_tok (Util.stream_nth 0 strm) with
+    | Tok.KEYWORD key when List.mem key.[0] ['{'; '['; '/'] -> ()
     | _ -> raise Stream.Failure in
   Gram.Entry.of_parser "test_ssr_rw_syntax" test
 
@@ -4710,8 +4710,8 @@ ARGUMENT EXTEND ssrfwdid TYPED AS ident PRINTED BY pr_ssrfwdid
 END
 
 let accept_ssrfwdid strm =
-  match Stream.npeek 1 strm with
-  | [Tok.IDENT id] -> accept_before_syms_or_any_id [":"; ":="; "("] strm
+  match Compat.get_tok (stream_nth 0 strm) with
+  | Tok.IDENT id -> accept_before_syms_or_any_id [":"; ":="; "("] strm
   | _ -> raise Stream.Failure
 
 
