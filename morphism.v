@@ -140,8 +140,8 @@ Definition ker mph := morphpre mph 1.
 
 End MorphismOps1.
 
-Arguments Scope morphim [_ _ group_scope _ _].
-Arguments Scope morphpre [_ _ group_scope _ _].
+Arguments Scope morphim [_ _ group_scope _ _ group_scope].
+Arguments Scope morphpre [_ _ group_scope _ _ group_scope].
 
 Notation "''dom' f" := (dom (MorPhantom f))
   (at level 10, f at level 8, format "''dom'  f") : group_scope.

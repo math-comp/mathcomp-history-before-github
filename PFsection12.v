@@ -650,7 +650,7 @@ have [Ltype1 | notLtype1] := boolP (FTtype L == 1)%N; last first.
     rewrite /Ptype_Fcompl_kernel unlock /= astabQ /=.
     have [_ _ ->] := FTtype34_Fcore_kernel_trivial maxL LtypeP notLtype2.
     rewrite -morphpreIim -injm_cent ?injmK ?ker_coset ?norms1 //.
-    have [_ _ _ ->] := Mtype34_facts maxL LtypeP notLtype2.
+    have [_ _ _ ->] := FTtype34_facts maxL LtypeP notLtype2.
     by apply/derG1P; have [] := compl_of_typeIII maxL LtypeP Ltype3.
   have sP0L': P0 \subset L^`(1) by rewrite -FTcore_type_gt2 ?(eqP Ltype3).
   have [_ [_ _ _ defL'] _ _ _] := LtypeP.
