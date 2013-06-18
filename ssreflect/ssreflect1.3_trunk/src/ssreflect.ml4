@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 
 (* This line is read by the Makefile's dist target: do not remove. *)
-let ssrversion = "1.3pl1";;
+let ssrversion = "1.5";;
 let ssrAstVersion = 1;;
 let () = Mltop.add_known_plugin (fun () ->
   if Flags.is_verbose () && not !Flags.batch_mode then begin
@@ -458,6 +458,7 @@ let reduct_in_concl t = reduct_in_concl (t, DEFAULTcast)
 let havetac id = pose_proof (Name id)
 let settac id c = letin_tac None (Name id) c None
 let posetac id cl = settac id cl nowhere
+let basecuttac name c = apply (mkApp (mkSsrConst name, [|c|]))
 
 (* we reduce head beta redexes *)
 let betared env = 
@@ -5172,8 +5173,6 @@ END
 
 (* Tactic. *)
 
-let basecuttac name c = apply (mkApp (mkSsrConst name, [|c|]))
-
 let havegentac ist t gl =
   let c = pf_abs_ssrterm ist gl t in
   apply_type (mkArrow (pf_type_of gl c) (pf_concl gl)) [c] gl
@@ -5313,65 +5312,128 @@ ARGUMENT EXTEND ssrwlogfwd TYPED AS ssrwgen list * ssrfwd
 | [ ":" ssrwgen_list(gens) "/" lconstr(t) ] -> [ gens, mkFwdHint "/" t]
 END
 
-let wlogtac ist (((clr0, pats),_),_) (gens, ((_, ct))) hint suff gl =
-  let mkabs = function 
-    | (_, (Some (SsrHyp (_, x), mode))) -> (match mode with
-      | "@" -> mkNamedProd_or_LetIn (pf_get_hyp gl x)
-      | _ -> mkNamedProd x (pf_get_hyp_typ gl x))
-    | _, None -> fun x -> x
-  in
+let wlogtac ist (((clr0, pats),_),_) (gens, ((_, ct))) hint suff ghave gl =
+  let mkabs gen c = match gen with
+  | (_, (Some (SsrHyp (_, x), mode))) -> (match mode with
+    | "@" -> mkNamedProd_or_LetIn (pf_get_hyp gl x) c
+    | _ -> mkNamedProd x (pf_get_hyp_typ gl x) c)
+  | _, None -> c in
   let mkclr = function 
    | (clr, Some (x, _)) -> fun clrs -> cleartac clr :: cleartac [x] :: clrs
    | (clr, None) -> fun clrs -> cleartac clr :: clrs in
   let mkpats = function
    | (_, Some (SsrHyp (_, x), _)) -> fun pats -> IpatId x :: pats
    | _ -> fun x -> x in
+  let hyp2Var = function
+   | (_, Some (SsrHyp (_, x), _)) -> [mkVar x]
+   | _ -> [] in
   let ct = match ct with
   | (a, (b, Some (CCast (_, _, CastConv cty)))) -> a, (b, Some cty)
   | (a, (GCast (_, _, CastConv cty), None)) -> a, (cty, None)
   | _ -> anomaly "wlog: ssr cast hole deleted by typecheck" in
-  let cl0 = mkArrow (pi2 (pf_interp_ty ist gl ct)) (pf_concl gl) in
-  let cl0 = if not suff then cl0 else let _,t,_ = destProd cl0 in t in
+  let cut_implies_goal = not (suff || ghave <> `NoGen) in
+  let _, ct, _ = pf_interp_ty ist gl ct in
+  let cl0 = if cut_implies_goal then mkArrow ct (pf_concl gl) else ct in
   let c = List.fold_right mkabs gens cl0 in
-  let tacipat = introstac ~ist pats in
+  let tacipat pats = introstac ~ist pats in
   let tacigens = 
     tclTHEN (tclTHENLIST (List.rev(List.fold_right mkclr gens [cleartac clr0])))
       (introstac ~ist (List.fold_right mkpats gens [])) in
   let hinttac = hinttac ist true hint in
-  tclTHENS (basecuttac "ssr_wlog" c)
-    (if suff then [tclTHEN hinttac tacipat; tacigens]
-     else [hinttac; tclTHEN tacigens tacipat]) gl
+  let cut_kind, fst_goal_tac, snd_goal_tac =
+    match suff, ghave with
+    | true, `NoGen -> "ssr_wlog", tclTHEN hinttac (tacipat pats), tacigens
+    | false, `NoGen -> "ssr_wlog", hinttac, tclTHEN tacigens (tacipat pats)
+    | true, `Gen _ -> assert false
+    | false, `Gen id ->
+      if gens = [] then errorstrm(str"gen have requires some generalizations");
+      let id, name_general_hyp, cleanup, pats = match id, pats with
+      | None, (IpatId id as ip)::pats -> Some id, tacipat [ip], tclIDTAC, pats
+      | None, _ -> None, tclIDTAC, tclIDTAC, pats
+      | Some (Some id),_ -> Some id, introid id, tclIDTAC, pats
+      | Some _,_ ->
+          let id = mk_anon_id "tmp" gl in
+          Some id, introid id, clear [id], pats in
+      let tac_specialize = match id with
+      | None -> tclIDTAC
+      | Some id ->
+        if pats = [] then tclIDTAC else
+        let args = Array.of_list (List.flatten (List.map hyp2Var gens)) in
+        tclTHENS (basecuttac "ssr_have" ct)
+          [apply (mkApp (mkVar id,args)); tclIDTAC] in
+      "ssr_have",
+      (if hint = nohint then tacigens else hinttac),
+      tclTHENLIST [name_general_hyp; tac_specialize; tacipat pats; cleanup]
+  in
+  tclTHENS (basecuttac cut_kind c) [fst_goal_tac; snd_goal_tac] gl
 
 TACTIC EXTEND ssrwlog
 | [ "wlog" ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ wlogtac ist pats fwd hint false ]
+  [ wlogtac ist pats fwd hint false `NoGen ]
 END
 
 TACTIC EXTEND ssrwlogs
 | [ "wlog" "suff" ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ wlogtac ist pats fwd hint true ]
+  [ wlogtac ist pats fwd hint true `NoGen ]
 END
 
 TACTIC EXTEND ssrwlogss
 | [ "wlog" "suffices" ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ]->
-  [ wlogtac ist pats fwd hint true ]
+  [ wlogtac ist pats fwd hint true `NoGen ]
 END
 
 TACTIC EXTEND ssrwithoutloss
 | [ "without" "loss" ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ wlogtac ist pats fwd hint false ]
+  [ wlogtac ist pats fwd hint false `NoGen ]
 END
 
 TACTIC EXTEND ssrwithoutlosss
 | [ "without" "loss" "suff" 
     ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ wlogtac ist pats fwd hint true ]
+  [ wlogtac ist pats fwd hint true `NoGen ]
 END
 
 TACTIC EXTEND ssrwithoutlossss
 | [ "without" "loss" "suffices" 
     ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ]->
-  [ wlogtac ist pats fwd hint true ]
+  [ wlogtac ist pats fwd hint true `NoGen ]
+END
+
+(* Generally have *)
+let pr_idcomma _ _ _ = function
+  | None -> mt()
+  | Some None -> str"_, "
+  | Some (Some id) -> pr_id id ++ str", "
+
+ARGUMENT EXTEND ssr_idcomma TYPED AS ident option option PRINTED BY pr_idcomma
+  | [ ] -> [ None ]
+END
+
+let accept_idcomma strm =
+  match Compat.get_tok (stream_nth 0 strm) with
+  | Tok.IDENT _ | Tok.KEYWORD "_" -> accept_before_syms [","] strm
+  | _ -> raise Stream.Failure
+
+let test_idcomma = Gram.Entry.of_parser "test_idcomma" accept_idcomma
+
+GEXTEND Gram
+  GLOBAL: ssr_idcomma;
+  ssr_idcomma: [ [ test_idcomma; 
+    ip = [ id = IDENT -> Some (id_of_string id) | "_" -> None ]; "," ->
+    Some ip
+  ] ];
+END
+
+TACTIC EXTEND ssrgenhave
+| [ "gen" "have"
+    ssr_idcomma(id) ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
+  [ wlogtac ist pats fwd hint false (`Gen id) ]
+END
+
+TACTIC EXTEND ssrgenhave2
+| [ "generally" "have"
+    ssr_idcomma(id) ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
+  [ wlogtac ist pats fwd hint false (`Gen id) ]
 END
 
 (** Canonical Structure alias *)
