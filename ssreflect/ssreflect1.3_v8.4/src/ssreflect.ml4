@@ -4282,6 +4282,14 @@ let unfoldintac occ rdx t (kt,_) gl =
   convert_concl concl gl
 ;;
 
+let is_id_constr c = match kind_of_term c with
+  | Lambda(_,_,c) when isRel c -> 1 = destRel c
+  | _ -> false
+
+let red_product_skip_id env sigma c = match kind_of_term c with
+  | App(hd,args) when Array.length args = 1 && is_id_constr hd -> args.(0)
+  | _ -> try Tacred.red_product env sigma c with _ -> c
+
 let foldtac occ rdx ft gl = 
   let fs sigma x = Reductionops.nf_evar sigma x in
   let sigma0, concl0, env0 = project gl, pf_concl gl, pf_env gl in
@@ -4289,7 +4297,7 @@ let foldtac occ rdx ft gl =
   let fold, conclude = match rdx with
   | Some (_, (In_T _ | In_X_In_T _)) | None ->
     let ise = create_evar_defs sigma in
-    let ut = try Tacred.red_product env0 sigma t with _ -> t in
+    let ut = red_product_skip_id env0 sigma t in
     let ise, ut = mk_tpattern env0 sigma0 (ise,t) all_ok L2R ut in
     let find_T, end_T =
       mk_tpattern_matcher ~raise_NoMatch:true sigma0 occ (ise,[ut]) in
@@ -5254,17 +5262,23 @@ END
 (* type ssrwgen = ssrclear * ssrhyp * string *)
 
 let pr_wgen = function 
-  | (clr, Some (SsrHyp (loc, c), guard)) ->
-     spc () ++ pr_clear mt clr ++
-       pr_term (mk_term guard.[0] (CRef (Ident (loc, c))))
+  | (clr, Some((id,k),None)) -> spc() ++ pr_clear mt clr ++ str k ++ pr_id id
+  | (clr, Some((id,k),Some p)) ->
+      spc() ++ pr_clear mt clr ++ str"(" ++ str k ++ pr_id id ++ str ":=" ++
+        pr_cpattern p ++ str ")"
   | (clr, None) -> spc () ++ pr_clear mt clr
 let pr_ssrwgen _ _ _ = pr_wgen
 
 (* no globwith for char *)
 ARGUMENT EXTEND ssrwgen
-  TYPED AS ssrclear * (ssrhyp * string) option PRINTED BY pr_ssrwgen
+  TYPED AS ssrclear * ((ident * string) * cpattern option) option
+  PRINTED BY pr_ssrwgen
 | [ ssrclear_ne(clr) ] -> [ clr, None ]
-| [ ssrterm(id) ] -> [ [], Some (ssrhyp_of_ssrterm id) ]
+| [ ident(id) ]        -> [ [], Some((id, " "), None) ]
+| [ "@" ident(id) ]   -> [ [], Some((id, "@"), None) ]
+| [ "(" ident(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id," "),Some p) ]
+| [ "(@" ident(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id,"@"),Some p) ]
+| [ "(" "@" ident(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id,"@"),Some p) ]
 END
 
 (* type ssrwlogfwd = ssrwgen list * ssrfwd *)
@@ -5277,30 +5291,63 @@ ARGUMENT EXTEND ssrwlogfwd TYPED AS ssrwgen list * ssrfwd
 | [ ":" ssrwgen_list(gens) "/" lconstr(t) ] -> [ gens, mkFwdHint "/" t]
 END
 
+let destProd_or_LetIn c =
+  match kind_of_term c with
+  | Prod (n,ty,c) -> (n,None,ty), c
+  | LetIn (n,bo,ty,c) -> (n,Some bo,ty), c
+  | _ -> raise (Invalid_argument "destProd_or_LetIn")
+
 let wlogtac (((clr0, pats),_),_) (gens, ((_, ct), ctx)) hint suff ghave gl =
   let ist = get_ltacctx ctx in
   let mkabs gen c = match gen with
-  | (_, (Some (SsrHyp (_, x), mode))) -> (match mode with
-    | "@" -> mkNamedProd_or_LetIn (pf_get_hyp gl x) c
-    | _ -> mkNamedProd x (pf_get_hyp_typ gl x) c)
-  | _, None -> c in
-  let mkclr = function 
-   | (clr, Some (x, _)) -> fun clrs -> cleartac clr :: cleartac [x] :: clrs
-   | (clr, None) -> fun clrs -> cleartac clr :: clrs in
+  | _, Some ((x, "@"), None) -> mkNamedProd_or_LetIn (pf_get_hyp gl x) c
+  | _, Some ((x, _), None) -> mkNamedProd x (pf_get_hyp_typ gl x) c
+  | _, Some ((x, "@"), Some p) -> 
+     let p = interp_cpattern ist gl p None in
+     let t,c = fill_occ_pattern (pf_env gl) (project gl) c p None 1 in
+     let ut = red_product_skip_id (pf_env gl) (project gl) t in
+     mkLetIn(Name x,ut,pf_type_of gl t,c)
+  | _, Some ((x, _), Some p) ->
+     let p = interp_cpattern ist gl p None in
+     let t,c = fill_occ_pattern (pf_env gl) (project gl) c p None 1 in
+     mkProd(Name x,pf_type_of gl t,c)
+  | _ -> c in
+  let mkclr gen clrs = match gen with
+  | clr, Some ((x, _), None) ->
+      cleartac clr :: cleartac [SsrHyp(Util.dummy_loc,x)] :: clrs
+  | clr, _ -> cleartac clr :: clrs in
   let mkpats = function
-   | (_, Some (SsrHyp (_, x), _)) -> fun pats -> IpatId x :: pats
-   | _ -> fun x -> x in
+  | _, Some ((x, _), _) -> fun pats -> IpatId x :: pats
+  | _ -> fun x -> x in
   let hyp2Var = function
-   | (_, Some (SsrHyp (_, x), _)) -> [mkVar x]
-   | _ -> [] in
+  | _, Some ((x, _), _) -> [mkVar x]
+  | _ -> [] in
   let ct = match ct with
   | (a, (b, Some (CCast (_, _, CastConv (_, cty))))) -> a, (b, Some cty)
   | (a, (GCast (_, _, CastConv (_, cty)), None)) -> a, (cty, None)
   | _ -> anomaly "wlog: ssr cast hole deleted by typecheck" in
   let cut_implies_goal = not (suff || ghave <> `NoGen) in
-  let _, ct, _ = pf_interp_ty ist gl ct in
-  let cl0 = if cut_implies_goal then mkArrow ct (pf_concl gl) else ct in
-  let c = List.fold_right mkabs gens cl0 in
+  let c, ct =
+    let gens = List.filter (function _, Some _ -> true | _ -> false) gens in
+    let concl = pf_concl gl in
+    let c = mkProp in
+    let c = if cut_implies_goal then mkArrow c concl else c in
+    let c = List.fold_right mkabs gens c in
+    let env, _ =
+      List.fold_left (fun (env, c) _ ->
+        let rd, c = destProd_or_LetIn c in
+        Environ.push_rel rd env, c) (pf_env gl, c) gens in
+    let sigma, ev = Evarutil.new_evar (project gl) env Term.mkProp in
+    let k, _ = Term.destEvar ev in
+    let fake_gl = { Evd.it = Goal.build k; Evd.sigma = sigma } in
+    let _, ct, _ = pf_interp_ty ist fake_gl ct in
+    let rec subst c g s = match kind_of_term c, g with
+      | Prod(Anonymous,_,c), [] -> mkProd(Anonymous, subst_vars s ct, c)
+      | Sort _, [] -> subst_vars s ct
+      | LetIn(Name id as n,b,ty,c), _::g -> mkLetIn (n,b,ty,subst c g (id::s))
+      | Prod(Name id as n,ty,c), _::g -> mkProd (n,ty,subst c g (id::s))
+      | _ -> anomaly "SSR: wlog: subst" in
+    subst c gens [], ct in
   let tacipat pats = introstac ~ist pats in
   let tacigens = 
     tclTHEN (tclTHENLIST (List.rev(List.fold_right mkclr gens [cleartac clr0])))

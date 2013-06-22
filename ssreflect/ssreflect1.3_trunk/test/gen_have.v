@@ -1,6 +1,5 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 
-Set SsrDebug.
 Axiom P : nat -> Prop.
 
 Lemma test1 n (ngt0 : 0 < n) : P n.
@@ -59,45 +58,89 @@ Lemma test7 n (ngt0 : 0 < n) : P n.
 Fail gen have : n / (0 <= n) && (n != 0).
 Abort.
 
+Lemma test3wlog2 n (ngt0 : 0 < n) : P n.
+gen have H : (m := n) ngt0 / (0 <= m) && (m != 0).
+  match goal with
+    ngt0 : is_true(0 < m) |- is_true((0 <= m) && (m != 0)) => admit end.
+Check (H : forall n : nat, 0 < n -> (0 <= n) && (n != 0)).
+admit.
+Qed.
+
+Lemma test3wlog3 n (ngt0 : 0 < n) : P n.
+gen have H : {n ngt0} (m := n) (n := 0) ngt0 / (0 <= m) && (m != n).
+  match goal with
+    ngt0 : is_true(n < m) |- is_true((0 <= m) && (m != n)) => admit end.
+Check (H : forall m n : nat, n < m -> (0 <= m) && (m != n)).
+admit.
+Qed.
+
+Lemma testw1 n (ngt0 : 0 < n) : n <= 0.
+wlog H : (z := 0) (m := n) ngt0 / m != 0.
+  match goal with
+    |- (forall z m,
+          is_true(z < m) -> is_true(m != 0) -> is_true(m <= z)) ->
+       is_true(n <= 0) => admit end.
+Check(n : nat).
+Check(m : nat).
+Check(z : nat).
+Check(ngt0 : z < m).
+Check(H : m != 0).
+admit.
+Qed.
+
+Lemma testw2 n (ngt0 : 0 < n) : n <= 0.
+wlog H : (m := n) (z := (X in n <= X)) ngt0 / m != z.
+  match goal with
+    |- (forall m z : nat,
+          is_true(0 < m) -> is_true(m != z) -> is_true(m <= z)) -> 
+            is_true(n <= 0)   => idtac end.
+Restart.
+wlog H : (m := n) (one := (X in X <= _)) ngt0 / m != one.
+  match goal with
+    |- (forall m one : nat,
+          is_true(one <= m) -> is_true(m != one) -> is_true(m <= 0)) -> 
+            is_true(n <= 0)   => idtac end.
+Restart.
+wlog H : {n} (m := n) (z := (X in _ <= X)) ngt0 / m != z.
+  match goal with
+    |- (forall m z : nat,
+          is_true(0 < z) -> is_true(m != z) -> is_true(m <= 0)) -> 
+            is_true(n <= 0)   => idtac end.
+  admit.
+Fail Check n.
+admit.
+Qed.
+
+Section Test.
+Variable x : nat.
+Definition addx y := y + x.
+
+Lemma testw3 (m n : nat) (ngt0 : 0 < n) : n <= addx x.
+wlog H : (n0 := n) (y := x) (@twoy := (id _ as X in _ <= X)) / twoy = 2 * y.
+  admit.
+admit.
+Qed.
 
 
+Definition twox := x + x.
+Definition bis := twox.
 
+Lemma testw3x n (ngt0 : 0 < n) : n + x <= twox.
+wlog H : (y := x) (@twoy := (X in _ <= X)) / twoy = 2 * y.
+  match goal with
+    |- (forall y : nat,
+         let twoy := y + y in
+         twoy = 2 * y -> is_true(n + y <= twoy)) ->
+       is_true(n + x <= twox) => admit end.
+Restart.
+wlog H : (y := x) (@twoy := (id _ as X in _ <= X)) / twoy = 2 * y.
+  match goal with
+    |- (forall y : nat,
+         let twoy := twox in
+         twoy = 2 * y -> is_true(n + y <= twoy)) ->
+       is_true(n + x <= twox) => admit end.
+admit.
+Qed.
 
-(*
-Goal forall n, n >= 0 -> True.
-move=> n.
-elim E : 0 => [|m IHm].
-  admit.yes
-
-
-Notation "( x := t )" := t ().
-*)
-
-generally have P , ipat : hyps / type
-  have ipat : type
-  have P : forall hyps, type
-  assert hyps <> []
-
-wlog H : hyps (new_x := old_t) / typegit remote 
-  
-   =====
-   (forall new_x, type -> G[old_t -> new_x]) -> G
-
-new_x
-H : type
-====
-G[old_t -> new_x]
-
-
--------------------------------------------
-move: t => x; move: x.
-move: (x := t).
-
-====
-forall x, G[t -> x]
----------------------------
-elim E : t.
-
-
-
+End Test.
 
