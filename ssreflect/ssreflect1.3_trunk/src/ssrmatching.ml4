@@ -116,13 +116,8 @@ let prl_term (k, c) = pr_guarded (guard_term k) prl_glob_constr_and_expr c
 
 (** Adding a new uninterpreted generic argument type *)
 let add_genarg tag pr =
-  let wit = create_arg None tag in
-  let glob _ rarg = in_gen (glbwit wit) (out_gen (rawwit wit) rarg) in
-  Tacintern.add_intern_genarg tag glob;
-  let interp _ gl garg = Tacmach.project gl,in_gen (topwit wit) (out_gen (glbwit wit) garg) in
-  Tacinterp.add_interp_genarg tag interp;
-  let subst _ garg = garg in
-  Tacsubst.add_genarg_subst tag subst;
+  let arg = Genarg.default_uniform_arg0 tag in
+  let wit = Genarg.make0 None tag arg in
   let gen_pr _ _ _ = pr in
   Pptactic.declare_extra_genarg_pprule wit gen_pr gen_pr gen_pr;
   wit
