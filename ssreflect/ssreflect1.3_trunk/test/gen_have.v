@@ -67,7 +67,7 @@ admit.
 Qed.
 
 Lemma test3wlog3 n (ngt0 : 0 < n) : P n.
-gen have H : {n ngt0} (m := n) (n := 0) ngt0 / (0 <= m) && (m != n).
+gen have H : {n} (m := n) (n := 0) ngt0 / (0 <= m) && (m != n).
   match goal with
     ngt0 : is_true(n < m) |- is_true((0 <= m) && (m != n)) => admit end.
 Check (H : forall m n : nat, n < m -> (0 <= m) && (m != n)).
@@ -143,4 +143,9 @@ admit.
 Qed.
 
 End Test.
+
+Lemma test_in n k (def_k : k = 0)(ngtk : k < n) : P n.
+rewrite -(add0n n) in {def_k k ngtk} (m := k) (def_m := def_k) (ngtm := ngtk).
+rewrite def_m add0n in {ngtm} (e := erefl 0 ) (ngt0 := ngtm) => {def_m}.
+ in (k := m).
 

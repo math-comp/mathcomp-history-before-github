@@ -1688,6 +1688,49 @@ END
 (* assumptions. This is especially difficult for discharged "let"s, which  *)
 (* the default simpl and unfold tactics would erase blindly.               *)
 
+(** Clear switch *)
+
+type ssrclear = ssrhyps
+
+let pr_clear_ne clr = str "{" ++ pr_hyps clr ++ str "}"
+let pr_clear sep clr = if clr = [] then mt () else sep () ++ pr_clear_ne clr
+
+let pr_ssrclear _ _ _ = pr_clear mt
+
+ARGUMENT EXTEND ssrclear_ne TYPED AS ssrhyps PRINTED BY pr_ssrclear
+| [ "{" ne_ssrhyp_list(clr) "}" ] -> [ check_hyps_uniq [] clr; clr ]
+END
+
+ARGUMENT EXTEND ssrclear TYPED AS ssrclear_ne PRINTED BY pr_ssrclear
+| [ ssrclear_ne(clr) ] -> [ clr ]
+| [ ] -> [ [] ]
+END
+
+let cleartac clr = check_hyps_uniq [] clr; clear (hyps_ids clr)
+
+(* type ssrwgen = ssrclear * ssrhyp * string *)
+
+let pr_wgen = function 
+  | (clr, Some((id,k),None)) -> spc() ++ pr_clear mt clr ++ str k ++ pr_id id
+  | (clr, Some((id,k),Some p)) ->
+      spc() ++ pr_clear mt clr ++ str"(" ++ str k ++ pr_id id ++ str ":=" ++
+        pr_cpattern p ++ str ")"
+  | (clr, None) -> spc () ++ pr_clear mt clr
+let pr_ssrwgen _ _ _ = pr_wgen
+
+(* no globwith for char *)
+ARGUMENT EXTEND ssrwgen
+  TYPED AS ssrclear * ((ident * string) * cpattern option) option
+  PRINTED BY pr_ssrwgen
+| [ ssrclear_ne(clr) ] -> [ clr, None ]
+| [ ident(id) ]        -> [ [], Some((id, " "), None) ]
+| [ "@" ident(id) ]   -> [ [], Some((id, "@"), None) ]
+| [ "(" ident(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id," "),Some p) ]
+| [ "(" ident(id) ")" ] -> [ [], Some ((id,"("), None) ]
+| [ "(@" ident(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id,"@"),Some p) ]
+| [ "(" "@" ident(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id,"@"),Some p) ]
+END
+
 type ssrclseq = InGoal | InHyps
  | InHypsGoal | InHypsSeqGoal | InSeqGoal | InHypsSeq | InAll | InAllHyps
 
@@ -1703,50 +1746,33 @@ let pr_clseq = function
 let wit_ssrclseq, globwit_ssrclseq, rawwit_ssrclseq =
   add_genarg "ssrclseq" pr_clseq
 
-(* type ssrahyps = ssrhyp list * string list *)
-
-let ahyps_ids (ids, flags) = List.map hyp_id ids, flags
-let check_ahyps_uniq a (b,_) = check_hyps_uniq a b
-
-let pr_ahyp (SsrHyp (_, id), mode) = match mode with 
-  | "(" -> str "(" ++ pr_id id ++ str ")"
-  | "@" -> str "@" ++ pr_id id
-  | " " -> pr_id id
-  | _ -> anomaly "pr_ahyp: wrong annotation for ssrhyp"
-let pr_ahyps (a,b) = pr_list pr_spc pr_ahyp (List.combine a b)
-let pr_ssrahyps _ _ _ = pr_ahyps
-
-let wit_ssrahyps, globwit_ssrahyps, rawwit_ssrahyps =
-  add_genarg "ssrahyps" pr_ahyps
+let pr_clausehyps = pr_list pr_spc pr_wgen
+let pr_ssrclausehyps _ _ _ = pr_clausehyps
 
 ARGUMENT EXTEND ssrclausehyps 
-TYPED AS ssrhyps * string list PRINTED BY pr_ssrahyps
-| [ ssrterm(hyp) "," ssrclausehyps(hyps) ] ->
-  [ let hyp, flag = ssrhyp_of_ssrterm hyp in hyp :: fst hyps, flag :: snd hyps ]
-| [ ssrterm(hyp) ssrclausehyps(hyps) ] ->
-  [ let hyp, flag = ssrhyp_of_ssrterm hyp in hyp :: fst hyps, flag :: snd hyps ]
-| [ ssrterm(hyp) ] -> [ let hyp, flag = ssrhyp_of_ssrterm hyp in [hyp],[flag] ]
+TYPED AS ssrwgen list PRINTED BY pr_ssrclausehyps
+| [ ssrwgen(hyp) "," ssrclausehyps(hyps) ] -> [ hyp :: hyps ]
+| [ ssrwgen(hyp) ssrclausehyps(hyps) ] -> [ hyp :: hyps ]
+| [ ssrwgen(hyp) ] -> [ [hyp] ]
 END
 
 (* type ssrclauses = ssrahyps * ssrclseq *)
 
 let pr_clauses (hyps, clseq) = 
-  if clseq = InGoal then mt () else str "in " ++ pr_ahyps hyps ++ pr_clseq clseq
+  if clseq = InGoal then mt ()
+  else str "in " ++ pr_clausehyps hyps ++ pr_clseq clseq
 let pr_ssrclauses _ _ _ = pr_clauses
 
-let mkclause hyps clseq = 
-  check_hyps_uniq [] (fst hyps); (hyps, clseq)
-
-ARGUMENT EXTEND ssrclauses TYPED AS (ssrhyps * string list) * ssrclseq
+ARGUMENT EXTEND ssrclauses TYPED AS ssrwgen list * ssrclseq
     PRINTED BY pr_ssrclauses
-  | [ "in" ssrclausehyps(hyps) "|-" "*" ] -> [ mkclause hyps InHypsSeqGoal ]
-  | [ "in" ssrclausehyps(hyps) "|-" ]     -> [ mkclause hyps InHypsSeq ]
-  | [ "in" ssrclausehyps(hyps) "*" ]      -> [ mkclause hyps InHypsGoal ]
-  | [ "in" ssrclausehyps(hyps) ]          -> [ mkclause hyps InHyps ]
-  | [ "in" "|-" "*" ]                     -> [ mkclause ([],[]) InSeqGoal ]
-  | [ "in" "*" ]                          -> [ mkclause ([],[]) InAll ]
-  | [ "in" "*" "|-" ]                     -> [ mkclause ([],[]) InAllHyps ]
-  | [ ]                                   -> [ mkclause ([],[]) InGoal ]
+  | [ "in" ssrclausehyps(hyps) "|-" "*" ] -> [ hyps, InHypsSeqGoal ]
+  | [ "in" ssrclausehyps(hyps) "|-" ]     -> [ hyps, InHypsSeq ]
+  | [ "in" ssrclausehyps(hyps) "*" ]      -> [ hyps, InHypsGoal ]
+  | [ "in" ssrclausehyps(hyps) ]          -> [ hyps, InHyps ]
+  | [ "in" "|-" "*" ]                     -> [ [], InSeqGoal ]
+  | [ "in" "*" ]                          -> [ [], InAll ]
+  | [ "in" "*" "|-" ]                     -> [ [], InAllHyps ]
+  | [ ]                                   -> [ [], InGoal ]
 END
 
 let nohide = mkRel 0
@@ -1771,24 +1797,23 @@ let red_safe r e s c0 =
   | _ -> r e s c in
   red_to e c0 (safe_depth c0)
 
-let pf_clauseids gl (claids,_ as clahyps) clseq =
-  if claids <> [] then (check_ahyps_uniq [] clahyps; ahyps_ids clahyps) else
-  if clseq <> InAll && clseq <> InAllHyps then [],[] else
-  (*let _ =*) error "assumptions should be named explicitly" (*in*)
-(*
-  let dep_term var = mkNamedProd_or_LetIn (pf_get_hyp gl var) mkProp in
-  let rec rem_var var =  function
-  | [] -> raise Not_found
-  | id :: ids when id <> var -> id :: rem_var var ids
-  | _ :: ids -> rem_deps ids (dep_term var)
-  and rem_deps ids c =
-    try match kind_of_term c with
-    | Var id -> rem_var id ids
-    | _ -> fold_constr rem_deps ids c
-    with Not_found -> ids in
-  let ids = pf_ids_of_proof_hyps gl in
-  List.rev (if clseq = InAll then ids else rem_deps ids (pf_concl gl))
-*)
+let check_wgen_uniq gens =
+  let clears = List.flatten (List.map fst gens) in
+  check_hyps_uniq [] clears;
+  let ids = CList.map_filter
+    (function (_,Some ((id,_),_)) -> Some id | _ -> None) gens in
+  let rec check ids = function
+  | id :: _ when List.mem id ids ->
+    errorstrm (str"Duplicate generalization " ++ pr_id id)
+  | id :: hyps -> check (id :: ids) hyps
+  | [] -> () in
+  check [] ids
+
+let pf_clauseids gl gens clseq =
+  let keep_clears = List.map (fun x, _ -> x, None) in
+  if gens <> [] then (check_wgen_uniq gens; gens) else
+  if clseq <> InAll && clseq <> InAllHyps then keep_clears gens else
+  Errors.error "assumptions should be named explicitly"
 
 let hidden_clseq = function InHyps | InHypsSeq | InAllHyps -> true | _ -> false
 
@@ -1826,51 +1851,74 @@ let endclausestac id_map clseq gl_id cl0 gl =
   let ugtac gl' = convert_concl_no_check (unmark (pf_concl gl')) gl' in
   let ctacs = if hide_goal then [clear [gl_id]] else [] in
   let mktac itacs = tclTHENLIST (itacs @ utacs @ ugtac :: ctacs) in
-  let itac (_, (id, _)) = introduction id in
+  let itac (_, id) = introduction id in
   if fits false (id_map, List.rev dc) then mktac (List.map itac id_map) gl else
   let all_ids = ids_of_rel_context dc @ pf_ids_of_hyps gl in
   if List.for_all not_hyp' all_ids && not c_hidden then mktac [] gl else
   Util.error "tampering with discharged assumptions of \"in\" tactical"
+
+let is_id_constr c = match kind_of_term c with
+  | Lambda(_,_,c) when isRel c -> 1 = destRel c
+  | _ -> false
+
+let red_product_skip_id env sigma c = match kind_of_term c with
+  | App(hd,args) when Array.length args = 1 && is_id_constr hd -> args.(0)
+  | _ -> try Tacred.red_product env sigma c with _ -> c
+
+let abs_wgen keep_let ist gl f gen (args,c) =
+  let sigma, env = project gl, pf_env gl in
+  let evar_closed t p =
+    if occur_existential t then
+      Errors.user_err_loc (loc_of_cpattern p,"ssreflect",
+        pr_constr_pat t ++
+        str" contains holes and matches no subterm of the goal") in
+  match gen with
+  | _, Some ((x, mode), None) when mode = "@" || (mode = " " && keep_let) ->
+     let _, bo, ty = pf_get_hyp gl x in
+     (if bo <> None then args else mkVar x :: args),
+     mkProd_or_LetIn (Name (f x),bo,ty) (subst_var x c)
+  | _, Some ((x, _), None) ->
+     mkVar x :: args, mkProd (Name (f x), pf_get_hyp_typ gl x, subst_var x c)
+  | _, Some ((x, "@"), Some p) -> 
+     let cp = interp_cpattern ist gl p None in
+     let t, c =
+       try fill_occ_pattern ~raise_NoMatch:true env sigma c cp None 1
+       with NoMatch -> redex_of_pattern cp, c in
+     evar_closed t p;
+     let ut = red_product_skip_id env sigma t in
+     args, mkLetIn(Name (f x), ut, pf_type_of gl t, c)
+  | _, Some ((x, _), Some p) ->
+     let cp = interp_cpattern ist gl p None in
+     let t, c =
+       try fill_occ_pattern ~raise_NoMatch:true env sigma c cp None 1
+       with NoMatch -> redex_of_pattern cp, c in
+     evar_closed t p;
+     t :: args, mkProd(Name (f x), pf_type_of gl t, c)
+  | _ -> args, c
+
+let clr_of_wgen gen clrs = match gen with
+  | clr, Some ((x, _), None) ->
+     cleartac clr :: cleartac [SsrHyp(Util.dummy_loc,x)] :: clrs
+  | clr, _ -> cleartac clr :: clrs
     
-let tclCLAUSES tac (clahyps, clseq) gl =
+let tclCLAUSES ist tac (clahyps, clseq) gl =
   if clseq = InGoal || clseq = InSeqGoal then tac gl else
-  let cl_ids = pf_clauseids gl clahyps clseq in
-  let id_map = 
-    List.map (fun id, mode -> mk_discharged_id id, (id, mode))
-      (List.combine (fst cl_ids) (snd cl_ids)) in
+  let clr_gens = pf_clauseids gl gens clseq in
+  let clear = tclTHENLIST (List.rev(List.fold_right clr_of_wgen clr_gens [])) in
   let gl_id = mk_anon_id hidden_goal_tag gl in
   let cl0 = pf_concl gl in
-  let dtacs = 
-    List.map discharge_hyp (List.rev id_map) @ [clear (fst cl_ids)] in
-  let endtac = endclausestac id_map clseq gl_id cl0 in
-  tclTHENLIST (hidetacs clseq gl_id cl0 @ dtacs @ [tac; endtac]) gl
+  let dtac gl =
+    let c = pf_concl gl in
+    let args, c =
+      List.fold_right (abs_wgen true ist gl mk_discharged_id) gens ([], c) in
+    apply_type c args gl in
+  let endtac =
+    let id_map = CList.map_filter (function
+      | _, Some ((id,_),_) -> Some (mk_discharged_id id, id)
+      | _, None -> None) gens in
+    endclausestac id_map clseq gl_id cl0 in
+  tclTHENLIST (hidetacs clseq gl_id cl0 @ [dtac; clear; tac; endtac]) gl
 (* }}} *)
-
-(** Clear switch *)
-
-(* This code isn't actually used by the intro patterns below, because the *)
-(* Ltac interpretation of the clear switch in an intro pattern is         *)
-(* different than in terms: the hyps aren't necessarily in the context at *)
-(* the time the argument is interpreted, i.e., they could be introduced   *)
-(* earlier in the pattern.                                                *)
-
-type ssrclear = ssrhyps
-
-let pr_clear_ne clr = str "{" ++ pr_hyps clr ++ str "}"
-let pr_clear sep clr = if clr = [] then mt () else sep () ++ pr_clear_ne clr
-
-let pr_ssrclear _ _ _ = pr_clear mt
-
-ARGUMENT EXTEND ssrclear_ne TYPED AS ssrhyps PRINTED BY pr_ssrclear
-| [ "{" ne_ssrhyp_list(clr) "}" ] -> [ check_hyps_uniq [] clr; clr ]
-END
-
-ARGUMENT EXTEND ssrclear TYPED AS ssrclear_ne PRINTED BY pr_ssrclear
-| [ ssrclear_ne(clr) ] -> [ clr ]
-| [ ] -> [ [] ]
-END
-
-let cleartac clr = check_hyps_uniq [] clr; clear (hyps_ids clr)
 
 (** Simpl switch *)
 
@@ -2749,7 +2797,8 @@ END
 
 let ssrdotac (((n, m), (tac, ctx)), clauses) =
   let mul = get_index n, m in
-  tclCLAUSES (tclMULT mul (hinttac (get_ltacctx ctx) false tac)) clauses
+  let ist = get_ltacctx ctx in
+  tclCLAUSES ist (tclMULT mul (hinttac ist false tac)) clauses
 
 TACTIC EXTEND ssrtcldo
 | [ "Qed" "do" ssrdoarg(arg) ] -> [ ssrdotac arg ]
@@ -3345,7 +3394,7 @@ TACTIC EXTEND ssrmove
   [ let ist = ist_of_arg arg in
     tclTHEN (ssrmovetac ist arg) (introstac ~ist [pat]) ]
 | [ "move" ssrmovearg(arg) ssrclauses(clauses) ] ->
-  [ let ist = ist_of_arg arg in tclCLAUSES (ssrmovetac ist arg) clauses ]
+  [ let ist = ist_of_arg arg in tclCLAUSES ist (ssrmovetac ist arg) clauses ]
 | [ "move" ssrrpat(pat) ltacctx(ctx) ] ->
   [ introstac ~ist:(get_ltacctx ctx) [pat] ]
 | [ "move" ] -> [ movehnftac ]
@@ -3756,8 +3805,7 @@ ARGUMENT EXTEND ssrcasearg TYPED AS ssrarg PRINTED BY pr_ssrarg
 | [ ssrarg(arg) ] -> [ check_casearg arg ]
 END
 
-let ssrcasetac (view, (eqid, (dgens, (ipats, ctx)))) =
-  let ist = get_ltacctx ctx in
+let ssrcasetac ist (view, (eqid, (dgens, (ipats, _)))) =
   let ndefectcasetac view eqid ipats deps ((_, occ), _ as gen) ist gl =
     let simple = (eqid = None && deps = [] && occ = None) in
     let cl, c, clr = pf_interp_gen ist gl true gen in
@@ -3776,7 +3824,9 @@ let ssrcasetac (view, (eqid, (dgens, (ipats, ctx)))) =
 
 TACTIC EXTEND ssrcase
 | [ "case" ssrcasearg(arg) ssrclauses(clauses) ] ->
-  [ tclCLAUSES (ssrcasetac arg) clauses ]
+  [ let _, (_, (_, (_, ctx))) = arg in
+    let ist = get_ltacctx ctx in
+    tclCLAUSES ist (ssrcasetac ist arg) clauses ]
 | [ "case" ] -> [ with_top ssrscasetac ]
 END
 
@@ -3787,8 +3837,7 @@ END
 (* goal, the "all occurrences" {+} switch is used, or the equation switch  *)
 (* is used and there are no dependents.                                    *)
 
-let ssrelimtac (view, (eqid, (dgens, (ipats, ctx)))) =
-  let ist = get_ltacctx ctx in
+let ssrelimtac ist (view, (eqid, (dgens, (ipats, _)))) =
   let ndefectelimtac view eqid ipats deps gen ist gl =
     let elim = match view with [v] -> Some (snd(force_term ist gl v)) | _ -> None in
     ssrelim ~ist deps (`EGen gen) ?elim eqid ipats gl
@@ -3797,7 +3846,9 @@ let ssrelimtac (view, (eqid, (dgens, (ipats, ctx)))) =
 
 TACTIC EXTEND ssrelim
 | [ "elim" ssrarg(arg) ssrclauses(clauses) ] ->
-  [ tclCLAUSES (ssrelimtac arg) clauses ]
+  [ let _, (_, (_, (_, ctx))) = arg in
+    let ist = get_ltacctx ctx in
+    tclCLAUSES ist (ssrelimtac ist arg) clauses ]
 | [ "elim" ] -> [ with_top simplest_newelim ]
 END
 
@@ -4282,14 +4333,6 @@ let unfoldintac occ rdx t (kt,_) gl =
   convert_concl concl gl
 ;;
 
-let is_id_constr c = match kind_of_term c with
-  | Lambda(_,_,c) when isRel c -> 1 = destRel c
-  | _ -> false
-
-let red_product_skip_id env sigma c = match kind_of_term c with
-  | App(hd,args) when Array.length args = 1 && is_id_constr hd -> args.(0)
-  | _ -> try Tacred.red_product env sigma c with _ -> c
-
 let foldtac occ rdx ft gl = 
   let fs sigma x = Reductionops.nf_evar sigma x in
   let sigma0, concl0, env0 = project gl, pf_concl gl, pf_env gl in
@@ -4620,12 +4663,12 @@ END
 
 (** The "rewrite" tactic *)
 
-let ssrrewritetac (rwargs, ctx) =
-  tclTHENLIST (List.map (rwargtac (get_ltacctx ctx)) rwargs)
+let ssrrewritetac ist rwargs = tclTHENLIST (List.map (rwargtac ist) rwargs)
 
 TACTIC EXTEND ssrrewrite
   | [ "rewrite" ssrrwargs(args) ssrclauses(clauses) ] ->
-    [ tclCLAUSES (ssrrewritetac args) clauses ]
+    [ let ist = get_ltacctx (snd args) in
+      tclCLAUSES ist (ssrrewritetac ist (fst args)) clauses ]
 END
 
 (** The "unlock" tactic *)
@@ -4652,8 +4695,7 @@ let unfoldtac occ ko t kt gl =
   let f = if ko = None then Closure.betaiotazeta else Closure.betaiota in
   convert_concl (pf_reduce (Reductionops.clos_norm_flags f) gl cl') gl
 
-let unlocktac (args, ctx) =
-  let ist = get_ltacctx ctx in
+let unlocktac ist args =
   let utac (occ, gt) gl =
     unfoldtac occ occ (interp_term ist gl gt) (fst gt) gl in
   let locked = mkSsrConst "locked" in
@@ -4665,7 +4707,8 @@ let unlocktac (args, ctx) =
 
 TACTIC EXTEND ssrunlock
   | [ "unlock" ssrunlockargs(args) ssrclauses(clauses) ] ->
-    [  tclCLAUSES (unlocktac args) clauses ]
+    [ let ist = get_ltacctx (snd args) in
+      tclCLAUSES ist (unlocktac ist (fst args)) clauses ]
 END
 
 (** 8. Forward chaining tactics (pose, set, have, suffice, wlog) *)
@@ -5082,8 +5125,7 @@ PRINTED BY pr_ssrsetfwd
 | [ ":=" lcpattern(c) ] -> [ mkssrFwdVal FwdPose c, nodocc ]
 END
 
-let ssrsettac id (((_, (pat, pty)), ctx), (_, occ)) gl =
-  let ist = get_ltacctx ctx in
+let ssrsettac ist id (((_, (pat, pty)), _), (_, occ)) gl =
   let pat = interp_cpattern ist gl pat (Option.map snd pty) in
   let cl, sigma, env = pf_concl gl, project gl, pf_env gl in
   let c, cl = 
@@ -5100,7 +5142,9 @@ let ssrsettac id (((_, (pat, pty)), ctx), (_, occ)) gl =
 
 TACTIC EXTEND ssrset
 | [ "set" ssrfwdid(id) ssrsetfwd(fwd) ssrclauses(clauses) ] ->
-  [ tclCLAUSES (ssrsettac id fwd) clauses ]
+  [ let (_, ctx), _ = fwd in
+    let ist = get_ltacctx ctx in
+    tclCLAUSES ist (ssrsettac ist id fwd) clauses ]
 END
 
 (** The "have" tactic *)
@@ -5259,28 +5303,6 @@ END
 
 (** The "wlog" (Without Loss Of Generality) tactic *)
 
-(* type ssrwgen = ssrclear * ssrhyp * string *)
-
-let pr_wgen = function 
-  | (clr, Some((id,k),None)) -> spc() ++ pr_clear mt clr ++ str k ++ pr_id id
-  | (clr, Some((id,k),Some p)) ->
-      spc() ++ pr_clear mt clr ++ str"(" ++ str k ++ pr_id id ++ str ":=" ++
-        pr_cpattern p ++ str ")"
-  | (clr, None) -> spc () ++ pr_clear mt clr
-let pr_ssrwgen _ _ _ = pr_wgen
-
-(* no globwith for char *)
-ARGUMENT EXTEND ssrwgen
-  TYPED AS ssrclear * ((ident * string) * cpattern option) option
-  PRINTED BY pr_ssrwgen
-| [ ssrclear_ne(clr) ] -> [ clr, None ]
-| [ ident(id) ]        -> [ [], Some((id, " "), None) ]
-| [ "@" ident(id) ]   -> [ [], Some((id, "@"), None) ]
-| [ "(" ident(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id," "),Some p) ]
-| [ "(@" ident(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id,"@"),Some p) ]
-| [ "(" "@" ident(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id,"@"),Some p) ]
-END
-
 (* type ssrwlogfwd = ssrwgen list * ssrfwd *)
 
 let pr_ssrwlogfwd _ _ _ (gens, t) =
@@ -5299,40 +5321,22 @@ let destProd_or_LetIn c =
 
 let wlogtac (((clr0, pats),_),_) (gens, ((_, ct), ctx)) hint suff ghave gl =
   let ist = get_ltacctx ctx in
-  let mkabs gen c = match gen with
-  | _, Some ((x, "@"), None) -> mkNamedProd_or_LetIn (pf_get_hyp gl x) c
-  | _, Some ((x, _), None) -> mkNamedProd x (pf_get_hyp_typ gl x) c
-  | _, Some ((x, "@"), Some p) -> 
-     let p = interp_cpattern ist gl p None in
-     let t,c = fill_occ_pattern (pf_env gl) (project gl) c p None 1 in
-     let ut = red_product_skip_id (pf_env gl) (project gl) t in
-     mkLetIn(Name x,ut,pf_type_of gl t,c)
-  | _, Some ((x, _), Some p) ->
-     let p = interp_cpattern ist gl p None in
-     let t,c = fill_occ_pattern (pf_env gl) (project gl) c p None 1 in
-     mkProd(Name x,pf_type_of gl t,c)
-  | _ -> c in
-  let mkclr gen clrs = match gen with
-  | clr, Some ((x, _), None) ->
-      cleartac clr :: cleartac [SsrHyp(Util.dummy_loc,x)] :: clrs
-  | clr, _ -> cleartac clr :: clrs in
+  let mkabs gen = abs_wgen false ist gl (fun x -> x) gen in
+  let mkclr gen clrs = clr_of_wgen gen clrs in
   let mkpats = function
   | _, Some ((x, _), _) -> fun pats -> IpatId x :: pats
   | _ -> fun x -> x in
-  let hyp2Var = function
-  | _, Some ((x, _), _) -> [mkVar x]
-  | _ -> [] in
   let ct = match ct with
   | (a, (b, Some (CCast (_, _, CastConv (_, cty))))) -> a, (b, Some cty)
   | (a, (GCast (_, _, CastConv (_, cty)), None)) -> a, (cty, None)
   | _ -> anomaly "wlog: ssr cast hole deleted by typecheck" in
   let cut_implies_goal = not (suff || ghave <> `NoGen) in
-  let c, ct =
+  let c, args, ct =
     let gens = List.filter (function _, Some _ -> true | _ -> false) gens in
     let concl = pf_concl gl in
     let c = mkProp in
     let c = if cut_implies_goal then mkArrow c concl else c in
-    let c = List.fold_right mkabs gens c in
+    let args, c = List.fold_right mkabs gens ([],c) in
     let env, _ =
       List.fold_left (fun (env, c) _ ->
         let rd, c = destProd_or_LetIn c in
@@ -5347,10 +5351,11 @@ let wlogtac (((clr0, pats),_),_) (gens, ((_, ct), ctx)) hint suff ghave gl =
       | LetIn(Name id as n,b,ty,c), _::g -> mkLetIn (n,b,ty,subst c g (id::s))
       | Prod(Name id as n,ty,c), _::g -> mkProd (n,ty,subst c g (id::s))
       | _ -> anomaly "SSR: wlog: subst" in
-    subst c gens [], ct in
+    subst c gens [], args, ct in
   let tacipat pats = introstac ~ist pats in
   let tacigens = 
-    tclTHEN (tclTHENLIST (List.rev(List.fold_right mkclr gens [cleartac clr0])))
+    tclTHEN
+      (tclTHENLIST(List.rev(List.fold_right mkclr gens [cleartac clr0])))
       (introstac ~ist (List.fold_right mkpats gens [])) in
   let hinttac = hinttac ist true hint in
   let cut_kind, fst_goal_tac, snd_goal_tac =
@@ -5371,7 +5376,7 @@ let wlogtac (((clr0, pats),_),_) (gens, ((_, ct), ctx)) hint suff ghave gl =
       | None -> tclIDTAC
       | Some id ->
         if pats = [] then tclIDTAC else
-        let args = Array.of_list (List.flatten (List.map hyp2Var gens)) in
+        let args = Array.of_list args in
         tclTHENS (basecuttac "ssr_have" ct)
           [apply (mkApp (mkVar id,args)); tclIDTAC] in
       "ssr_have",
