@@ -155,7 +155,7 @@ let get_index = function ArgArg i -> i | _ ->
 (* Toplevel constr must be globalized twice ! *)
 let glob_constr ist gsigma genv = function
   | _, Some ce ->
-    let ltacvars = List.map fst (Id.Map.bindings ist.lfun), Id.Map.empty in
+    let ltacvars = List.map fst (Id.Map.bindings ist.lfun), Id.Set.empty in
     Constrintern.intern_gen WithoutTypeConstraint ~ltacvars:ltacvars gsigma genv ce
   | rc, None -> rc
 
