@@ -1938,7 +1938,7 @@ let abs_wgen keep_let ist gl f gen (args,c) =
 let clr_of_wgen gen clrs = match gen with
   | clr, Some ((x, _), None) ->
      cleartac clr :: cleartac [SsrHyp(Loc.ghost,x)] :: clrs
-  | clr, _ -> clr :: clrs
+  | clr, _ -> cleartac clr :: clrs
     
 let tclCLAUSES ist tac (gens, clseq) gl =
   if clseq = InGoal || clseq = InSeqGoal then tac gl else
