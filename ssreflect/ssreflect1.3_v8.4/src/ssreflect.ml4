@@ -1800,7 +1800,7 @@ let red_safe r e s c0 =
 let check_wgen_uniq gens =
   let clears = List.flatten (List.map fst gens) in
   check_hyps_uniq [] clears;
-  let ids = CList.map_filter
+  let ids = Util.list_map_filter
     (function (_,Some ((id,_),_)) -> Some id | _ -> None) gens in
   let rec check ids = function
   | id :: _ when List.mem id ids ->
@@ -1813,7 +1813,7 @@ let pf_clauseids gl gens clseq =
   let keep_clears = List.map (fun x, _ -> x, None) in
   if gens <> [] then (check_wgen_uniq gens; gens) else
   if clseq <> InAll && clseq <> InAllHyps then keep_clears gens else
-  Errors.error "assumptions should be named explicitly"
+  Util.error "assumptions should be named explicitly"
 
 let hidden_clseq = function InHyps | InHypsSeq | InAllHyps -> true | _ -> false
 
@@ -1830,7 +1830,7 @@ let discharge_hyp (id', (id, mode)) gl =
 
 let endclausestac id_map clseq gl_id cl0 gl =
   let not_hyp' id = not (List.mem_assoc id id_map) in
-  let orig_id id = try fst (List.assoc id id_map) with _ -> id in
+  let orig_id id = try List.assoc id id_map with _ -> id in
   let dc, c = Term.decompose_prod_assum (pf_concl gl) in
   let hide_goal = hidden_clseq clseq in
   let c_hidden = hide_goal && c = mkVar gl_id in
@@ -1869,7 +1869,7 @@ let abs_wgen keep_let ist gl f gen (args,c) =
   let sigma, env = project gl, pf_env gl in
   let evar_closed t p =
     if occur_existential t then
-      Errors.user_err_loc (loc_of_cpattern p,"ssreflect",
+      Util.user_err_loc (loc_of_cpattern p,"ssreflect",
         pr_constr_pat t ++
         str" contains holes and matches no subterm of the goal") in
   match gen with
@@ -1901,7 +1901,7 @@ let clr_of_wgen gen clrs = match gen with
      cleartac clr :: cleartac [SsrHyp(Util.dummy_loc,x)] :: clrs
   | clr, _ -> cleartac clr :: clrs
     
-let tclCLAUSES ist tac (clahyps, clseq) gl =
+let tclCLAUSES ist tac (gens, clseq) gl =
   if clseq = InGoal || clseq = InSeqGoal then tac gl else
   let clr_gens = pf_clauseids gl gens clseq in
   let clear = tclTHENLIST (List.rev(List.fold_right clr_of_wgen clr_gens [])) in
@@ -1913,7 +1913,7 @@ let tclCLAUSES ist tac (clahyps, clseq) gl =
       List.fold_right (abs_wgen true ist gl mk_discharged_id) gens ([], c) in
     apply_type c args gl in
   let endtac =
-    let id_map = CList.map_filter (function
+    let id_map = Util.list_map_filter (function
       | _, Some ((id,_),_) -> Some (mk_discharged_id id, id)
       | _, None -> None) gens in
     endclausestac id_map clseq gl_id cl0 in
