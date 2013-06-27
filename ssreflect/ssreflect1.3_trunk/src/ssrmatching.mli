@@ -1,6 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 
 open Genarg
+open Tacexpr
 open Environ
 open Evd
 open Proof_type

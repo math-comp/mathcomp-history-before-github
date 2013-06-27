@@ -27,6 +27,7 @@ open Pp
 open Pcoq
 open Genarg
 open Stdarg
+open Constrarg
 open Term
 open Vars
 open Context
@@ -154,7 +155,7 @@ let get_index = function ArgArg i -> i | _ ->
 (* Toplevel constr must be globalized twice ! *)
 let glob_constr ist gsigma genv = function
   | _, Some ce ->
-    let ltacvars = List.map fst ist.lfun, [] in
+    let ltacvars = List.map fst (Id.Map.bindings ist.lfun), Id.Map.empty in
     Constrintern.intern_gen WithoutTypeConstraint ~ltacvars:ltacvars gsigma genv ce
   | rc, None -> rc
 
@@ -195,9 +196,14 @@ let prl_term (k, c) = pr_guarded (guard_term k) prl_glob_constr_and_expr c
 
 (** Adding a new uninterpreted generic argument type *)
 let add_genarg tag pr =
-  let arg = Genarg.default_uniform_arg0 tag in
-  let wit = Genarg.make0 None tag arg in
+  let wit = Genarg.make0 None tag in
+  let glob ist x = (ist, x) in
+  let subst _ x = x in
+  let interp ist gl x = (gl.Evd.sigma, x) in
   let gen_pr _ _ _ = pr in
+  let () = Genintern.register_intern0 wit glob in
+  let () = Genintern.register_subst0 wit subst in
+  let () = Geninterp.register_interp0 wit interp in
   Pptactic.declare_extra_genarg_pprule wit gen_pr gen_pr gen_pr;
   wit
 
@@ -1838,7 +1844,7 @@ let discharge_hyp (id', (id, mode)) gl =
 
 let endclausestac id_map clseq gl_id cl0 gl =
   let not_hyp' id = not (List.mem_assoc id id_map) in
-  let orig_id id = try fst (List.assoc id id_map) with _ -> id in
+  let orig_id id = try List.assoc id id_map with _ -> id in
   let dc, c = Term.decompose_prod_assum (pf_concl gl) in
   let hide_goal = hidden_clseq clseq in
   let c_hidden = hide_goal && c = mkVar gl_id in
@@ -1985,7 +1991,7 @@ let interp_index ist gl idx =
   | ArgVar (loc, id) ->
     let i =
       try
-        let v = List.assoc id ist.lfun in
+        let v = Id.Map.find id ist.lfun in
         begin match Value.to_int v with
         | Some i -> i
         | None ->
@@ -2229,7 +2235,8 @@ let interp_view ist si env sigma gv rid =
 let top_id = mk_internal_id "top assumption"
 
 let with_view ist si env gl0 c name cl prune =
-  let c2r ist x = { ist with lfun = (top_id, Value.of_constr x) :: ist.lfun } in
+  let c2r ist x = { ist with lfun =
+    Id.Map.add top_id (Value.of_constr x) ist.lfun } in
   let rec loop (sigma, c') = function
   | f :: view ->
       let rid, ist = match kind_of_term c' with
@@ -2324,7 +2331,7 @@ let rec add_intro_pattern_hyps (loc, ipat) hyps = match ipat with
       of ipat interp_introid could return [HH] *) assert false
 
 let rec interp_ipat ist gl =
-  let ltacvar id = List.mem_assoc id ist.lfun in
+  let ltacvar id = Id.Map.mem id ist.lfun in
   let rec interp = function
   | IpatId id when ltacvar id ->
     ipat_of_intro_pattern (interp_introid ist gl id)
@@ -4036,7 +4043,8 @@ let congrtac ((n, t), ty) ist gl =
   pp(lazy(str"===congr==="));
   pp(lazy(str"concl=" ++ pr_constr (pf_concl gl)));
   let _, f = pf_abs_evars gl (interp_term ist gl t) in
-  let ist' = {ist with lfun = [pattern_id, Value.of_constr f]} in
+  let ist' = {ist with lfun =
+    Id.Map.add pattern_id (Value.of_constr f) Id.Map.empty } in
   let rf = mkRltacVar pattern_id in
   let m = pf_nbargs gl f in
   let _, cf = if n > 0 then

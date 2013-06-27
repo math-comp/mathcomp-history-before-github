@@ -11,6 +11,7 @@ open Names
 open Pp
 open Pcoq
 open Genarg
+open Constrarg
 open Term
 open Vars
 open Topconstr
@@ -78,7 +79,7 @@ let get_index = function ArgArg i -> i | _ ->
 (* Toplevel constr must be globalized twice ! *)
 let glob_constr ist gsigma genv = function
   | _, Some ce ->
-    let ltacvars = List.map fst ist.lfun, [] in
+    let ltacvars = List.map fst (Id.Map.bindings ist.lfun), Id.Map.empty in
     Constrintern.intern_gen WithoutTypeConstraint ~ltacvars:ltacvars gsigma genv ce
   | rc, None -> rc
 
@@ -116,9 +117,14 @@ let prl_term (k, c) = pr_guarded (guard_term k) prl_glob_constr_and_expr c
 
 (** Adding a new uninterpreted generic argument type *)
 let add_genarg tag pr =
-  let arg = Genarg.default_uniform_arg0 tag in
-  let wit = Genarg.make0 None tag arg in
+  let wit = Genarg.make0 None tag in
+  let glob ist x = (ist, x) in
+  let subst _ x = x in
+  let interp ist gl x = (gl.Evd.sigma, x) in
   let gen_pr _ _ _ = pr in
+  let () = Genintern.register_intern0 wit glob in
+  let () = Genintern.register_subst0 wit subst in
+  let () = Geninterp.register_interp0 wit interp in
   Pptactic.declare_extra_genarg_pprule wit gen_pr gen_pr gen_pr;
   wit
 
