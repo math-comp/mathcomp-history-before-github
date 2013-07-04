@@ -812,16 +812,16 @@ have betaE i j: j != 0 -> beta_ i j = beta.
   rewrite -(prDade_sub2_TIirr pddM) -!/(mu2_ _ _) !deltaZ -linearB /=.
   by rewrite opprB addrA subrK !deltaZ opprD opprK addrACA addrA.
 pose j := j1. (* The remainder of the proof only uses j = 1. *)
-(* This is the last part of (11.8.3). *)
+(* This is the second part of (11.8.3). *)
 have Rbeta: cfReal beta.
-  rewrite /cfReal eq_sym -subr_eq0 rmorphD !rmorphB /= opprD opprB.
-  rewrite -Dade_aut 2!cfAut_cycTIiso -!cycTIirr_aut !aut_Iirr0.
-  set k := aut_Iirr _ j; rewrite -(betaE 0 k) ?aut_Iirr_eq0 // addrACA.
-  rewrite addrC addr_eq0 !opprB opprD addrACA subrr addr0; apply/eqP.
-  rewrite Dn raddfZnat /= (cfConjC_Dade_coherent coh_tau1) ?mFT_odd // -Dn.
-  rewrite -!raddfB Dtau1 ?Zzeta_S1 ?cfAut_seqInd //= !rmorphB opprD addrACA /=.
-  rewrite !deltaZ /= -!prTIirr_aut !aut_Iirr0 subrr add0r -opprD opprB.
-  by rewrite Dn raddfZnat /= -scalerBr linearZ.
+  rewrite /cfReal eq_sym -subr_eq0 rmorphD !rmorphB /= opprB 2!opprD opprB -/j.
+  rewrite 2![(eta_ 0 _)^*%CF]cfAut_cycTIiso -!cycTIirr_aut !aut_Iirr0 -Dade_aut.
+  set k := aut_Iirr conjC j; rewrite -(betaE 0 k) ?aut_Iirr_eq0 // addrACA.
+  rewrite addrC addr_eq0 addrCA subrK opprD opprK Dn raddfZnat -!raddfB /= -Dn. 
+  apply/eqP; rewrite (cfConjC_Dade_coherent coh_tau1) ?mFT_odd // -raddfB.
+  rewrite Dtau1 ?Zzeta_S1 ?cfAut_seqInd //= -linearZ scalerBr; congr (tau _).
+  rewrite opprD !rmorphB !deltaZ /= -!prTIirr_aut !aut_Iirr0 addrACA subrr.
+  by rewrite add0r opprK addrC Dn -raddfZnat.
 (* This is the consequence of Peterfalvi (11.8.2) and (11.8.5). *)
 have tau_alpha i: tau (alpha_ i j) = eta_ i j - eta_ i 0 - n *: zeta1.
   set phi := tau (alpha_ i j); pose sum_tau1 := \sum_(xi <- S1) tau1 xi.
@@ -863,8 +863,9 @@ have tau_alpha i: tau (alpha_ i j) = eta_ i j - eta_ i 0 - n *: zeta1.
     rewrite defY cfdotBl scaler_sumr cfproj_sum_orthonormal //.
     rewrite cfdotZl Itau1 ?mem_zchar ?n1S1 // mulr1 rmorphB opprD opprK.
     by rewrite Dn rmorph_nat conj_Cint.
-  have a_even: (2 %| a)%C. (* Third internal part of (11.8.5). *)
+    have a_even: (2 %| a)%C. (* Third internal part of (11.8.5). *)
     have Zbeta: beta \in 'Z[irr G].
+
       rewrite -{1}(betaE i j) // rpredD ?rpredB ?Zphi ?cycTIiso_vchar //.
       by rewrite Dn rpredZnat // Ztau1 ?mem_zchar.
     rewrite -col0_beta cfdot_real_vchar_even ?mFT_odd //; first 1 last.
