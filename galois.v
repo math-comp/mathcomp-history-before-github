@@ -1023,7 +1023,7 @@ Qed.
 
 Lemma galNormV : {morph galNorm U V : a / a^-1}.
 Proof.
-by move=> a /=; rewrite -prodf_inv; apply: eq_bigr => x _; rewrite fmorphV.
+by move=> a /=; rewrite -prodfV; apply: eq_bigr => x _; rewrite fmorphV.
 Qed.
 
 Lemma galNormX n : {morph galNorm U V : a / a ^+ n}.
@@ -1456,7 +1456,7 @@ exists (fun i => tnth w i * v i 0) => [i _|]; last first.
   transitivity (wv (iG 1%g) 0); first by rewrite mxE enum_rankK_in ?gal_id.
   rewrite -[wv](mulKVmx uM) -/v; rewrite mxE; apply: eq_bigr => i _.
   by congr (_ * _); rewrite !mxE -enum_val_nth enum_rankK_in ?gal_id.
-rewrite mulrC memv_prod ?memv_line //; apply/fixedFieldP=> [|x Gx].
+rewrite mulrC memv_mul ?memv_line //; apply/fixedFieldP=> [|x Gx].
   rewrite mxE rpred_sum // => j _; rewrite !mxE rpredM //; last exact: memv_gal.
   have E_M k l: M w k l \in E by rewrite mxE memv_gal // Ew ?mem_tnth.
   have Edet n (N : 'M_n) (E_N : forall i j, N i j \in E): \det N \in E.

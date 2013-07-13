@@ -118,8 +118,9 @@ Require Import ssreflect.
 (*     A :|: B, a |: B  union, union with a singleton (of sets).              *)
 (*     A :\: B, A :\ b  relative complement (of sets, subspaces, ...).        *)
 (*        <<A>>, <[a]>  generated group/subspace, generated cycle/line.       *)
-(*       'C(A), 'C_B(A) centralisers (in groups, rings, and matrix algebras). *)
-(*                'Z(A) centers (in groups, rings, and matrix algebras).      *)
+(*       'C[x], 'C_A[x] point centralisers (in groups and F-algebras).        *)
+(*       'C(A), 'C_B(A) centralisers (in groups and matrix and F_algebras).   *)
+(*                'Z(A) centers (in groups and matrix and F-algebras).        *)
 (*       m %/ d, m %% d Euclidean division and remainder (nat, polynomials).  *)
 (*               d %| m Euclidean divisibility (nat, polynomial).             *)
 (*       m = n %[mod d] equality mod d (also defined for <>, ==, and !=).     *)
@@ -287,11 +288,15 @@ Reserved Notation "<< A >>"  (at level 0, format "<< A >>").
 Reserved Notation "<[ a ] >"  (at level 0, format "<[ a ] >").
 
 (* Reserved notation for centralisers and centers. *)
+Reserved Notation "''C' [ x ]" (at level 8, format "''C' [ x ]").
+Reserved Notation "''C_' A [ x ]"
+  (at level 8, A at level 2, format "''C_' A [ x ]").
 Reserved Notation "''C' ( A )" (at level 8, format "''C' ( A )").
 Reserved Notation "''C_' B ( A )"
   (at level 8, B at level 2, format "''C_' B ( A )").
 Reserved Notation "''Z' ( A )" (at level 8, format "''Z' ( A )").
 (* Compatibility with group action centraliser notation. *)
+Reserved Notation "''C_' ( A ) [ x ]" (at level 8, only parsing).
 Reserved Notation "''C_' ( B ) ( A )" (at level 8, only parsing).
 
 (* Reserved notation for Euclidean division and divisibility. *)

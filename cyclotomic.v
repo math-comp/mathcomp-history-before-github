@@ -194,7 +194,7 @@ Qed.
 Lemma prod_Cyclotomic n :
   (n > 0)%N -> \prod_(d <- divisors n) 'Phi_d = 'X^n - 1.
 Proof.
-  move=> n_gt0; have [z prim_z] := C_prim_root_exists n_gt0.
+move=> n_gt0; have [z prim_z] := C_prim_root_exists n_gt0.
 apply: (map_inj_poly (intr_inj : injective ZtoC)) => //.
 rewrite rmorphB rmorph1 rmorph_prod /= map_polyXn (prod_cyclotomic prim_z).
 apply: eq_big_seq => d; rewrite -dvdn_divisors // => d_dv_n.

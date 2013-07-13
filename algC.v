@@ -1194,7 +1194,7 @@ Proof. by rewrite normC_def -normCK normC2_Re_Im. Qed.
 
 Lemma normC_add_eq x y :
     `|x + y| = `|x| + `|y| ->
-  {k : algC | `|k| == 1 & (x, y) = (`|x| * k, `|y| * k)}.
+  {t : algC | `|t| == 1 & (x, y) = (`|x| * t, `|y| * t)}.
 Proof.
 move=> lin_xy; apply: sig2_eqW; pose u z := if z == 0 then 1 else z / `|z|.
 have uE z: (`|u z| = 1) * (`|z| * u z = z).
@@ -1205,7 +1205,7 @@ exists (u x); rewrite uE // /u (negPf nz_x); congr (_ , _).
 have{lin_xy} def2xy: `|x| * `|y| *+ 2 = x * y ^* + y * x ^*.
   apply/(addrI (x * x^*))/(addIr (y * y^*)); rewrite -2!{1}normCK -sqrrD.
   by rewrite addrA -addrA -!mulrDr -mulrDl -rmorphD -normCK lin_xy.
-have def_xy: x * y ^* = y * x^*.
+have def_xy: x * y^* = y * x^*.
   apply/eqP; rewrite -subr_eq0 -[_ == 0](@expf_eq0 _ _ 2).
   rewrite (canRL (subrK _) (subr_sqrDB _ _)) opprK -def2xy exprMn_n exprMn.
   by rewrite mulrN mulrAC mulrA -mulrA mulrACA -!normCK mulNrn addNr.
@@ -1217,7 +1217,7 @@ Qed.
 
 Lemma normC_sum_eq (I : finType) (P : pred I) (F : I -> algC) :
      `|\sum_(i | P i) F i| = \sum_(i | P i) `|F i| ->
-   {k : algC | `|k| == 1 & forall i, P i -> F i = `|F i| * k}.
+   {t : algC | `|t| == 1 & forall i, P i -> F i = `|F i| * t}.
 Proof.
 have [i /andP[Pi nzFi] | F0] := pickP [pred i | P i & F i != 0]; last first.
   exists 1 => [|i Pi]; first by rewrite normr1.
@@ -1237,10 +1237,10 @@ Qed.
 Lemma normC_sum_eq1 (I : finType) (P : pred I) (F : I -> algC) :
     `|\sum_(i | P i) F i| = (\sum_(i | P i) `|F i|) ->
      (forall i, P i -> `|F i| = 1) ->
-   {k : algC | `|k| == 1 & forall i, P i -> F i = k}.
+   {t : algC | `|t| == 1 & forall i, P i -> F i = t}.
 Proof.
-case/normC_sum_eq=> k k1 defF normF.
-by exists k => // i Pi; rewrite defF // normF // mul1r.
+case/normC_sum_eq=> t t1 defF normF.
+by exists t => // i Pi; rewrite defF // normF // mul1r.
 Qed.
 
 Lemma normC_sum_upper (I : finType) (P : pred I) (F G : I -> algC) :
@@ -1254,16 +1254,23 @@ have norm_sumG: `|sumG| = sumG by rewrite ger0_norm ?sumr_ge0.
 have norm_sumF: `|sumF| = \sum_(i | P i) `|F i|.
   apply/eqP; rewrite eqr_le ler_norm_sum eq_sumFG norm_sumG -subr_ge0 -sumrB.
   by rewrite sumr_ge0 // => i Pi; rewrite subr_ge0 ?leFG.
-have [k _ defF] := normC_sum_eq norm_sumF.
+have [t _ defF] := normC_sum_eq norm_sumF.
 have [/(psumr_eq0P posG) G0 i Pi | nz_sumG] := eqVneq sumG 0.
   by apply/eqP; rewrite G0 // -normr_eq0 eqr_le normr_ge0 -(G0 i Pi) leFG.
-have k1: k = 1.
+have t1: t = 1.
   apply: (mulfI nz_sumG); rewrite mulr1 -{1}norm_sumG -eq_sumFG norm_sumF.
   by rewrite mulr_suml -(eq_bigr _ defF).
-have /psumr_eq0P eqFG i : P i -> 0 <= G i - F i.
-  by move=> Pi; rewrite subr_ge0 defF // k1 mulr1 leFG.
+have /psumr_eq0P eqFG i: P i -> 0 <= G i - F i.
+  by move=> Pi; rewrite subr_ge0 defF // t1 mulr1 leFG.
 move=> i /eqFG/(canRL (subrK _))->; rewrite ?add0r //.
 by rewrite sumrB -/sumF eq_sumFG subrr.
+Qed.
+
+Lemma normC_sub_eq x y :
+  `|x - y| = `|x| - `|y| -> {t | `|t| == 1 & (x, y) = (`|x| * t, `|y| * t)}.
+Proof.
+rewrite -{-1}(subrK y x) => /(canLR (subrK _))/esym-Dx; rewrite Dx.
+by have [t ? [Dxy Dy]] := normC_add_eq Dx; exists t; rewrite // mulrDl -Dxy -Dy.
 Qed.
 
 (* Integer subset. *)

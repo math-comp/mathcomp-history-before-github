@@ -1023,8 +1023,12 @@ Lemma normr_nat n : `|n%:R| = n%:R :> R. Proof. exact: ger0_norm. Qed.
 Lemma normrMn x n : `|x *+ n| = `|x| *+ n.
 Proof. by rewrite -mulr_natl normrM normr_nat mulr_natl. Qed.
 
+Lemma normr_prod I r (P : pred I) (F : I -> R) :
+  `|\prod_(i <- r | P i) F i| = \prod_(i <- r | P i) `|F i|.
+Proof. exact: (big_morph norm normrM normr1). Qed.
+
 Lemma normrX n x : `|x ^+ n| = `|x| ^+ n.
-Proof. by elim: n => [|n IHn]; rewrite ?normr1 // !exprS normrM IHn. Qed.
+Proof. by rewrite -(card_ord n) -!prodr_const normr_prod. Qed.
 
 Lemma normr_unit : {homo (@norm R) : x / x \is a GRing.unit}.
 Proof.

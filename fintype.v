@@ -1391,6 +1391,11 @@ Coercion subFinType_finType sT :=
   Pack (@Class sT (sub_choiceClass sT) (subFin_mixin sT)) sT.
 Canonical subFinType_finType.
 
+Lemma codom_val sT x : (x \in codom (val : sT -> T)) = P x.
+Proof.
+by apply/codomP/idP=> [[u ->]|Px]; last exists (Sub x Px); rewrite ?valP ?SubK.
+Qed.
+
 End SubFinType.
 
 (* This assumes that T has both finType and subCountType structures. *)
@@ -1425,10 +1430,11 @@ Qed.
 Definition SubFinMixin := UniqFinMixin sub_enum_uniq mem_sub_enum.
 Definition SubFinMixin_for (eT : eqType) of phant eT :=
   eq_rect _ Finite.mixin_of SubFinMixin eT.
-Let sfT := FinType sT SubFinMixin.
+
+Variable sfT : subFinType P.
 
 Lemma card_sub : #|sfT| = #|[pred x | P x]|.
-Proof. by rewrite !cardE enumT unlock -(size_map val) val_sub_enum. Qed.
+Proof. by rewrite -(eq_card (codom_val sfT)) (card_image val_inj). Qed.
 
 Lemma eq_card_sub (A : pred sfT) : A =i predT -> #|A| = #|[pred x | P x]|.
 Proof. exact: eq_card_trans card_sub. Qed.

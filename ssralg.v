@@ -1182,17 +1182,20 @@ Proof. by rewrite (big_morph _ (exprD _) (erefl _)). Qed.
 Lemma prodrN (I : finType) (A : pred I) (F : I -> R) :
   \prod_(i in A) - F i = (- 1) ^+ #|A| * \prod_(i in A) F i.
 Proof.
-rewrite -sum1_card  -!(big_filter _ A) !unlock.
-elim: {A}(filter _ _) => /= [|i r ->]; first by rewrite mul1r.
-by rewrite mulrA -mulN1r (commrX _ (commrN1 _)) exprSr !mulrA.
+rewrite -sum1_card; elim/big_rec3: _ => [|i x n _ _ ->]; first by rewrite mulr1.
+by rewrite exprS !mulrA mulN1r !mulNr commrX //; apply: commrN1.
 Qed.
 
 Lemma prodrMn n (I : finType) (A : pred I) (F : I -> R) :
   \prod_(i in A) (F i *+ n) = \prod_(i in A) F i *+ n ^ #|A|.
 Proof.
-rewrite -sum1_card /= -!(big_filter _ A) !unlock.
-elim: {A}(filter _ _) => //= i r ->; by rewrite mulrnAr mulrnAl expnS mulrnA.
+rewrite -sum1_card; elim/big_rec3: _ => // i x m _ _ ->.
+by rewrite mulrnAr mulrnAl expnS mulrnA.
 Qed.
+
+Lemma natr_prod I r P (F : I -> nat) :
+  (\prod_(i <- r | P i) F i)%:R = \prod_(i <- r | P i) (F i)%:R :> R.
+Proof. exact: (big_morph _ natrM). Qed.
 
 Lemma exprDn_comm x y n (cxy : comm x y) :
   (x + y) ^+ n = \sum_(i < n.+1) (x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
@@ -3573,7 +3576,7 @@ Lemma rpredVr x : x \in kS -> x^-1 \in kS.
 Proof. by rewrite !keyed_predE; case: divS x. Qed.
 
 Lemma rpredV x : (x^-1 \in kS) = (x \in kS).
-Proof. by apply/idP/idP=> /rpredVr; rewrite ?invrK; apply. Qed.
+Proof. by apply/idP/idP=> /rpredVr; rewrite ?invrK. Qed.
 
 Lemma rpred_div : {in kS &, forall x y, x / y \in kS}.
 Proof. by move=> x y Sx Sy; rewrite /= rpredM ?rpredV. Qed.
@@ -4390,12 +4393,9 @@ Qed.
 
 Lemma natf0_char n : n > 0 -> n%:R == 0 :> R -> exists p, p \in [char R].
 Proof.
-elim: {n}_.+1 {-2}n (ltnSn n) => // m IHm n; rewrite ltnS => le_n_m.
-rewrite leq_eqVlt -pi_pdiv mem_primes; move: (pdiv n) => p.
-case/predU1P=> [<-|/and3P[p_pr n_gt0 /dvdnP[n']]]; first by rewrite oner_eq0.
-move=> def_n; rewrite def_n muln_gt0 andbC prime_gt0 // in n_gt0 *.
-rewrite natrM mulf_eq0 orbC; case/orP; first by exists p; exact/andP.
-by apply: IHm (leq_trans _ le_n_m) _; rewrite // def_n ltn_Pmulr // prime_gt1.
+move=> n_gt0 nR_0; exists (pdiv n`_[char R]).
+apply: pnatP (pdiv_dvd _); rewrite ?part_pnat // ?pdiv_prime //.
+by rewrite ltn_neqAle eq_sym partn_eq1 // -natf_neq0 nR_0 /=.
 Qed.
 
 Lemma charf'_nat n : [char R]^'.-nat n = (n%:R != 0 :> R).
@@ -4553,11 +4553,10 @@ Section FieldTheory.
 Variable F : fieldType.
 Implicit Types x y : F.
 
+Lemma fieldP : Field.mixin_of F. Proof. by case: F => T []. Qed.
+
 Lemma unitfE x : (x \in unit) = (x != 0).
-Proof.
-apply/idP/idP=> [Ux |]; last by case: F x => T [].
-by apply/eqP=> x0; rewrite x0 unitr0 in Ux.
-Qed.
+Proof. by apply/idP/idP=> [/(memPn _)-> | /fieldP]; rewrite ?unitr0. Qed.
 
 Lemma mulVf x : x != 0 -> x^-1 * x = 1.
 Proof. by rewrite -unitfE; exact: mulVr. Qed.
@@ -4591,9 +4590,14 @@ Qed.
 Lemma expfB m n x : n < m -> x ^+ (m - n) = x ^+ m / x ^+ n.
 Proof. by move=> lt_n_m; apply: expfB_cond; case: eqP => // _; apply: ltnW. Qed.
 
-Lemma prodf_inv I r (P : pred I) (E : I -> F) :
+Lemma prodfV I r (P : pred I) (E : I -> F) :
   \prod_(i <- r | P i) (E i)^-1 = (\prod_(i <- r | P i) E i)^-1.
-Proof. by rewrite (big_morph _ invfM (invr1 _)). Qed.
+Proof. by rewrite (big_morph _ invfM (invr1 F)). Qed.
+
+Lemma prodf_div I r (P : pred I) (E D : I -> F) :
+  \prod_(i <- r | P i) (E i / D i) =
+     \prod_(i <- r | P i) E i / \prod_(i <- r | P i) D i.
+Proof. by rewrite big_split prodfV. Qed.
 
 Lemma addf_div x1 y1 x2 y2 :
   y1 != 0 -> y2 != 0 -> x1 / y1 + x2 / y2 = (x1 * y2 + x2 * y1) / (y1 * y2).
@@ -5411,6 +5415,7 @@ Definition prodrXl := prodrXl.
 Definition prodrXr := prodrXr.
 Definition prodrN := prodrN.
 Definition prodrMn := prodrMn.
+Definition natr_prod := natr_prod.
 Definition exprDn := exprDn.
 Definition exprBn := exprBn.
 Definition subrXX := subrXX.
@@ -5522,6 +5527,7 @@ Definition mulfI := mulfI.
 Definition mulIf := mulIf.
 Definition sqrf_eq1 := sqrf_eq1.
 Definition expfS_eq1 := expfS_eq1.
+Definition fieldP := fieldP.
 Definition unitfE := unitfE.
 Definition mulVf := mulVf.
 Definition mulfV := mulfV.
@@ -5534,7 +5540,8 @@ Definition divfK := divfK.
 Definition invfM := invfM.
 Definition expfB_cond := expfB_cond.
 Definition expfB := expfB.
-Definition prodf_inv := prodf_inv.
+Definition prodfV := prodfV.
+Definition prodf_div := prodf_div.
 Definition addf_div := addf_div.
 Definition mulf_div := mulf_div.
 Definition char0_natf_div := char0_natf_div.

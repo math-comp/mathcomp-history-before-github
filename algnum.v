@@ -104,7 +104,7 @@ suffices [Qs [QsC [z1 z1C z1gen]]]:
   elim/poly_ind: p => [|p b ApQs]; first by rewrite /inQs rmorph0 mem0v.
   rewrite /inQs rmorphD rmorphM /= fieldExt_hornerX fieldExt_hornerC -/inQs /=.
   suffices ->: z1 = \sum_(i < size s) s1`_i *+ a i.
-    rewrite memvD ?memvZ ?mem1v ?memv_mul ?memv_suml // => i _.
+    rewrite memvD ?memvZ ?mem1v ?memvM ?memv_suml // => i _.
     by rewrite rpredMn ?seqv_sub_adjoin ?mem_nth // size_map sz_ps.
   apply: (fmorph_inj QsC); rewrite z1C Dz rmorph_sum; apply: eq_bigr => i _.
   by rewrite rmorphMn {1}Ds !(nth_map 0) ?sz_ps //= inQsK.

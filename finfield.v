@@ -1,29 +1,30 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div.
-Require Import fintype bigop finset prime fingroup ssralg finalg cyclic abelian.
-Require Import tuple finfun choice matrix vector falgebra fieldext separable.
-Require Import pgroup poly polydiv galois morphism mxabelem zmodp.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype div.
+Require Import tuple bigop prime finset fingroup ssralg poly polydiv.
+Require Import morphism action finalg zmodp cyclic center pgroup abelian.
+Require Import matrix mxabelem vector falgebra fieldext separable galois.
+Require ssrnum ssrint algC cyclotomic.
 
 (******************************************************************************)
 (*  Additional constructions and results on finite fields.                    *)
 (*                                                                            *)
-(*         FinFieldExtType L == a FinFieldType structure on the carrier of L, *)
+(*         FinFieldExtType L == A FinFieldType structure on the carrier of L, *)
 (*                              where L IS a fieldExtType F structure for an  *)
 (*                              F that has a finFieldType structure. This     *)
 (*                              does not take any existing finType structure  *)
 (*                              on L; this should not be made canonical.      *)
-(* FinSplittingFieldType F L == a SplittingFieldType F structure on the       *)
+(* FinSplittingFieldType F L == A SplittingFieldType F structure on the       *)
 (*                              carrier of L, where L IS a fieldExtType F for *)
 (*                              an F with a finFieldType structure; this      *)
 (*                              should not be made canonical.                 *)
-(*          Import FinVector :: declares canonical default finType, finRing,  *)
+(*          Import FinVector :: Declares canonical default finType, finRing,  *)
 (*                              etc structures (including FinFieldExtType     *)
 (*                              above) for abstract vectType, FalgType and    *)
 (*                              fieldExtType over a finFieldType. This should *)
 (*                              be used with caution (e.g., local to a proof) *)
 (*                              as the finType so obtained may clash with the *)
 (*                              canonical one for standard types like matrix. *)
-(*      PrimeCharType charRp == the carrier of a ringType R such that         *)
+(*      PrimeCharType charRp == The carrier of a ringType R such that         *)
 (*                              charRp : p \in [char R] holds. This type has  *)
 (*                              canonical ringType, ..., fieldType structures *)
 (*                              compatible with those of R, as well as        *)
@@ -31,16 +32,26 @@ Require Import pgroup poly polydiv galois morphism mxabelem zmodp.
 (*                              structures, plus an FalgType structure if R   *)
 (*                              is a finUnitRingType and a splittingFieldType *)
 (*                              struture if R is a finFieldType.              *)
+(*   FinDomainFieldType domR == A finFieldType structure on a finUnitRingType *)
+(*                              R, given domR : GRing.IntegralDomain.axiom R. *)
+(*                              This is intended to be used inside proofs,    *)
+(*                              where one cannot declare Canonical instances. *)
+(*                              Otherwise one should construct explicitly the *)
+(*                              intermediate structures using the ssralg and  *)
+(*                              finalg constructors, and finDomain_mulrC domR *)
+(*                              finDomain_fieldP domR to prove commutativity  *)
+(*                              and field axioms (the former is Wedderburn's  *)
+(*                              little theorem).                              *)
+(* FinDomainSplittingFieldType domR charRp == A splittingFieldType structure  *)
+(*                              that repackages the two constructions above.  *)
 (******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Open Local Scope group_scope.
-Open Local Scope ring_scope.
-Import GRing.Theory.
-Import FinRing.Theory.
+Import GroupScope GRing.Theory FinRing.Theory.
+Local Open Scope ring_scope.
 
 Section FinRing.
 
@@ -443,3 +454,132 @@ by apply/fixedFieldP/eqP=> [|-> | alpha_x _ /set1P->]; rewrite ?memvf ?set11.
 Qed.
 
 End FinSplittingField.
+
+Section FinDomain.
+
+Import ssrnum ssrint algC cyclotomic Num.Theory.
+Local Infix "%|" := dvdn. (* Hide polynomial divisibility. *)
+
+Variable R : finUnitRingType.
+
+Hypothesis domR : GRing.IntegralDomain.axiom R.
+Implicit Types x y : R.
+
+Let lregR x : x != 0 -> GRing.lreg x.  
+Proof. by move=> xnz; apply: mulrI0_lreg => y /domR/orP[/idPn | /eqP]. Qed.
+
+Lemma finDomain_field : GRing.Field.mixin_of R. 
+Proof.
+move=> x /lregR-regx; apply/unitrP; exists (invF regx 1).
+by split; first apply: (regx); rewrite ?mulrA f_invF // mulr1 mul1r.
+Qed.
+
+(* This is Witt's proof of Wedderburn's little theorem. *)
+Theorem finDomain_mulrC : @commutative R R *%R.
+Proof.
+have fieldR := finDomain_field.
+have [p p_pr charRp]: exists2 p, prime p & p \in [char R].
+  have [e /prod_prime_decomp->]: {e | (e > 0)%N & e%:R == 0 :> R}.
+    by exists #|[set: R]%G|; rewrite // -order_dvdn order_dvdG ?inE. 
+  rewrite big_seq; elim/big_rec: _ => [|[p m] /= n]; first by rewrite oner_eq0.
+  case/mem_prime_decomp=> p_pr _ _ IHn.
+  elim: m => [|m IHm]; rewrite ?mul1n {IHn}// expnS -mulnA natrM.
+  by case/eqP/domR/orP=> //; exists p; last exact/andP.
+pose Rp := PrimeCharType charRp; pose L : {vspace Rp} := fullv.
+pose G := [set: {unit R}]; pose ofG : {unit R} -> Rp := val.
+pose projG (E : {vspace Rp}) := [preim ofG of E].
+have inG t nzt: Sub t (finDomain_field nzt) \in G by rewrite inE.
+have card_projG E: #|projG E| = (p ^ \dim E - 1)%N.
+  transitivity #|E|.-1; last by rewrite subn1 card_vspace card_Fp.
+  rewrite (cardD1 0) mem0v (card_preim val_inj) /=.
+  apply: eq_card => x; congr (_ && _); rewrite [LHS]codom_val.
+  by apply/idP/idP=> [/(memPn _ _)-> | /fieldR]; rewrite ?unitr0.
+pose C u := 'C[ofG u]%AS; pose Q := 'C(L)%AS; pose q := (p ^ \dim Q)%N.
+have defC u: 'C[u] =i projG (C u).
+  by move=> v; rewrite cent1E !inE (sameP cent1vP eqP).
+have defQ: 'Z(G) =i projG Q.
+  move=> u; rewrite !inE.
+  apply/centP/centvP=> cGu v _; last exact/val_inj/cGu/memvf.
+  by have [-> | /inG/cGu[]] := eqVneq v 0; first by rewrite commr0.
+have q_gt1: (1 < q)%N by rewrite (ltn_exp2l 0) ?prime_gt1 ?adim_gt0.
+pose n := \dim_Q L; have oG: #|G| = (q ^ n - 1)%N.
+  rewrite -expnM mulnC divnK ?skew_field_dimS ?subvf // -card_projG.
+  by apply: eq_card => u; rewrite !inE memvf.
+have oZ: #|'Z(G)| = (q - 1)%N by rewrite -card_projG; apply: eq_card.
+suffices n_le1: (n <= 1)%N.
+  move=> u v; apply/centvsP: (memvf (u : Rp)) (memvf (v : Rp)) => {u v}.
+  rewrite -(geq_leqif (dimv_leqif_sup (subvf Q))) -/L.
+  by rewrite leq_divLR ?mul1n ?skew_field_dimS ?subvf in n_le1.
+without loss n_gt1: / (1 < n)%N by rewrite ltnNge; apply: wlog_neg.
+have [q_gt0 n_gt0] := (ltnW q_gt1, ltnW n_gt1).
+have [z z_prim] := C_prim_root_exists n_gt0.
+have zn1: z ^+ n = 1 by apply: prim_expr_order.
+have /eqP-n1z: `|z| == 1.
+  by rewrite -(pexpr_eq1 n_gt0) ?normr_ge0 // -normrX zn1 normr1.
+suffices /eqP/normC_sub_eq[t n1t [Dq Dz]]: `|q%:R - z| == `|q%:R| - `|z|.
+  suffices z1: z == 1 by rewrite leq_eqVlt -dvdn1 (prim_order_dvd z_prim) z1.
+  by rewrite Dz n1z mul1r -(eqr_pmuln2r q_gt0) Dq normr_nat mulr_natl.
+pose aq d : algC := (cyclotomic (z ^+ (n %/ d)) d).[q%:R].
+suffices: `|aq n| <= (q - 1)%:R.
+  rewrite eqr_le ler_sub_dist andbT n1z normr_nat natrB //; apply: ler_trans.
+  rewrite {}/aq horner_prod divnn n_gt0 expr1 normr_prod.
+  rewrite (bigD1 (Ordinal n_gt1)) ?coprime1n //= !hornerE ler_pemulr //.
+  elim/big_ind: _ => // [|d _]; first exact: mulr_ege1.
+  rewrite !hornerE; apply: ler_trans (ler_sub_dist _ _).
+  by rewrite normr_nat normrX n1z expr1n ler_subr_addl (leC_nat 2).
+have Zaq d: d %| n -> aq d \in Cint.
+  move/(dvdn_prim_root z_prim)=> zd_prim. 
+  rewrite rpred_horner ?rpred_nat //= -Cintr_Cyclotomic //.
+  by apply/polyOverP=> i; rewrite coef_map ?rpred_int.
+suffices: (aq n %| (q - 1)%:R)%C.
+  rewrite {1}[aq n]CintEsign ?Zaq // -(rpredMsign _ (aq n < 0)%R).
+  rewrite dvdC_mul2l ?signr_eq0 //.
+  have /CnatP[m ->]: `|aq n| \in Cnat by rewrite Cnat_norm_Cint ?Zaq.
+  by rewrite leC_nat dvdC_nat; apply: dvdn_leq; rewrite subn_gt0.
+have prod_aq m: m %| n -> \prod_(d < n.+1 | d %| m) aq d = (q ^ m - 1)%:R.
+  move=> m_dv_n; transitivity ('X^m - 1).[q%:R : algC]; last first.
+    by rewrite !hornerE hornerXn -natrX natrB ?expn_gt0 ?prime_gt0.
+  rewrite (prod_cyclotomic (dvdn_prim_root z_prim m_dv_n)).
+  have def_divm: perm_eq (divisors m) [seq d <- index_iota 0 n.+1 | d %| m].
+    rewrite uniq_perm_eq ?divisors_uniq ?filter_uniq ?iota_uniq // => d.
+    rewrite -dvdn_divisors ?(dvdn_gt0 n_gt0) // mem_filter mem_iota ltnS /=.
+    by apply/esym/andb_idr=> d_dv_m; rewrite dvdn_leq ?(dvdn_trans d_dv_m).
+  rewrite (eq_big_perm _ def_divm) big_filter big_mkord horner_prod.
+  by apply: eq_bigr => d d_dv_m; rewrite -exprM muln_divA ?divnK.
+have /rpredBl<-: (aq n %| #|G|%:R)%C.
+  rewrite oG -prod_aq // (bigD1 ord_max) //= dvdC_mulr //.
+  by apply: rpred_prod => d /andP[/Zaq].
+rewrite center_class_formula addrC oZ natrD addKr natr_sum /=.
+apply: rpred_sum => _ /imsetP[u /setDP[_ Z'u] ->]; rewrite -/G /=.
+have sQC: (Q <= C u)%VS by apply/subvP=> v /centvP-cLv; apply/cent1vP/cLv/memvf.
+have{sQC} /dvdnP[m Dm]: \dim Q %| \dim (C u) by apply: skew_field_dimS.
+have m_dv_n: m %| n by rewrite dvdn_divRL // -?Dm ?skew_field_dimS ?subvf.
+have m_gt0: (0 < m)%N := dvdn_gt0 n_gt0 m_dv_n.
+have{Dm} oCu: #|'C[u]| = (q ^ m - 1)%N.
+  by rewrite -expnM mulnC -Dm (eq_card (defC u)) card_projG.
+have ->: #|u ^: G|%:R = \prod_(d < n.+1 | d %| n) (aq d / aq d ^+ (d %| m)).
+  rewrite -index_cent1 natf_indexg ?subsetT //= setTI prodf_div prod_aq // -oG.
+  congr (_ / _); rewrite big_mkcond oCu -prod_aq //= big_mkcond /=.
+  by apply: eq_bigr => d _; case: ifP => [/dvdn_trans->| _]; rewrite ?if_same.
+rewrite (bigD1 ord_max) //= [n %| m](contraNF _ Z'u) => [|n_dv_m]; last first.
+  rewrite -sub_cent1 subEproper eq_sym eqEcard subsetT oG oCu leq_sub2r //.
+  by rewrite leq_exp2l // dvdn_leq.
+rewrite divr1 dvdC_mulr //; apply/rpred_prod => d /andP[/Zaq-Zaqd _].
+have [-> | nz_aqd] := eqVneq (aq d) 0; first by rewrite mul0r.
+by rewrite -[aq d]expr1 -exprB ?leq_b1 ?unitfE ?rpredX.
+Qed.
+
+Definition FinDomainFieldType : finFieldType :=
+  let fin_unit_class := FinRing.UnitRing.class R in
+  let com_class := GRing.ComRing.Class finDomain_mulrC in
+  let com_unit_class := @GRing.ComUnitRing.Class R com_class fin_unit_class in
+  let dom_class := @GRing.IntegralDomain.Class R com_unit_class domR in
+  let field_class := @GRing.Field.Class R dom_class finDomain_field in
+  let finfield_class := @FinRing.Field.Class R field_class fin_unit_class in
+  FinRing.Field.Pack finfield_class R.
+
+Definition FinDomainSplittingFieldType p (charRp : p \in [char R]) :=
+   let RoverFp := @primeChar_splittingFieldType p FinDomainFieldType charRp in
+   [splittingFieldType 'F_p of R for RoverFp].
+
+End FinDomain.

@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq path choice fintype.
-Require Import tuple finfun bigop ssralg finalg zmodp matrix vector poly.
+Require Import div tuple finfun bigop ssralg finalg zmodp matrix vector poly.
 
 (******************************************************************************)
 (* Finite dimensional free algebras, usually known as F-algebras.             *)
@@ -16,6 +16,7 @@ Require Import tuple finfun bigop ssralg finalg zmodp matrix vector poly.
 (*                       both algType and vectType structures.                *)
 (*   Any aT with an FalgType structure inherits all the Vector, Ring and      *)
 (* Algebra operations, and supports the following additional operations:      *)
+(*           \dim_A M == (\dim M %/ dim A)%N -- free module dimension.        *)
 (*            amull u == the linear function v |-> u * v, for u, v : aT.      *)
 (*            amulr u == the linear function v |-> v * u, for u, v : aT.      *)
 (*   1, f * g, f ^+ n == the identity function, the composite g \o f, the nth *)
@@ -29,6 +30,11 @@ Require Import tuple finfun bigop ssralg finalg zmodp matrix vector poly.
 (*         (U * V)%VS == the smallest subspace of aT that contains all        *)
 (*                       products u * v for u in U, v in V.                   *)
 (*        (U ^+ n)%VS == (U * U * ... * U), n-times.  U ^+ 0 = 1%VS           *)
+(*           'C[u]%VS == the centraliser subspace of the vector u.            *)
+(*         'C_U[v]%VS := (U :&: 'C[v])%VS.                                    *)
+(*           'C(V)%VS == the centraliser subspace of the subspace V.          *)
+(*         'C_U(V)%VS := (U :&: 'C(V))%VS.                                    *)
+(*           'Z(V)%VS == the center subspace of the subspace V.               *)
 (*            agenv U == the smallest subalgebra containing U ^+ n for all n. *)
 (*        <<U; v>>%VS == agenv (U + <[v]>) (adjoin v to U).                   *)
 (*      <<U & vs>>%VS == agenv (U + <<vs>>) (adjoin vs to U).                 *)
@@ -77,6 +83,9 @@ Reserved Notation "<< U ; x >>" (at level 0, format "<< U ;  x >>").
 Reserved Notation "''AHom' ( T , rT )"
   (at level 8, format "''AHom' ( T ,  rT )").
 Reserved Notation "''AEnd' ( T )" (at level 8, format "''AEnd' ( T )").
+
+Notation "\dim_ E V" := (divn (\dim V) (\dim E))
+  (at level 10, E at level 2, V at level 8, format "\dim_ E  V") : nat_scope.
 
 Import GRing.Theory.
 
@@ -282,14 +291,14 @@ Definition amull u : 'End(aT) := linfun (u \*o @idfun aT).
 Definition amulr u : 'End(aT) := linfun (u \o* @idfun aT).
 
 Lemma amull_inj : injective amull.
-Proof. by move=> x y /lfunP/(_ 1); rewrite !lfunE /= !mulr1. Qed.
+Proof. by move=> u v /lfunP/(_ 1); rewrite !lfunE /= !mulr1. Qed.
 
 Lemma amulr_inj : injective amulr.
-Proof. by move=> x y /lfunP/(_ 1); rewrite !lfunE /= !mul1r. Qed.
+Proof. by move=> u v /lfunP/(_ 1); rewrite !lfunE /= !mul1r. Qed.
 
 Fact amull_is_linear : linear amull.
 Proof.
-move=> a x y; apply/lfunP => z.
+move=> a u v; apply/lfunP => w.
 by rewrite !lfunE /= scale_lfunE !lfunE /= mulrDl scalerAl.
 Qed.
 Canonical amull_additive := Eval hnf in Additive amull_is_linear.
@@ -299,20 +308,26 @@ Canonical amull_linear := Eval hnf in AddLinear amull_is_linear.
 Lemma amull1 : amull 1 = \1%VF.
 Proof. by apply/lfunP => z; rewrite id_lfunE lfunE /= mul1r. Qed.
 
-Lemma amullM x y : (amull (x * y) = amull y * amull x)%VF.
-Proof. by apply/lfunP => z; rewrite comp_lfunE !lfunE /= mulrA. Qed.
+Lemma amullM u v : (amull (u * v) = amull v * amull u)%VF.
+Proof. by apply/lfunP => w; rewrite comp_lfunE !lfunE /= mulrA. Qed.
 
 Lemma amulr_is_lrmorphism : lrmorphism amulr.
 Proof.
-split=> [|a x]; last by apply/lfunP=> z; rewrite scale_lfunE !lfunE /= scalerAr.
-split=> [x y|]; first by apply/lfunP => z; do 3!rewrite !lfunE /= ?mulrBr.
-split=> [x y|]; last by apply/lfunP=> z; rewrite id_lfunE !lfunE /= mulr1.
-by apply/lfunP=> z; rewrite comp_lfunE !lfunE /= mulrA.
+split=> [|a u]; last by apply/lfunP=> w; rewrite scale_lfunE !lfunE /= scalerAr.
+split=> [u v|]; first by apply/lfunP => w; do 3!rewrite !lfunE /= ?mulrBr.
+split=> [u v|]; last by apply/lfunP=> w; rewrite id_lfunE !lfunE /= mulr1.
+by apply/lfunP=> w; rewrite comp_lfunE !lfunE /= mulrA.
 Qed.
 Canonical amulr_additive := Eval hnf in Additive amulr_is_lrmorphism.
 Canonical amulr_linear := Eval hnf in AddLinear amulr_is_lrmorphism.
 Canonical amulr_rmorphism := Eval hnf in AddRMorphism amulr_is_lrmorphism.
 Canonical amulr_lrmorphism := Eval hnf in LRMorphism amulr_is_lrmorphism.
+
+Lemma lker0_amull u : u \is a GRing.unit -> lker (amull u) == 0%VS.
+Proof. by move=> Uu; apply/lker0P=> v w; rewrite !lfunE; apply: mulrI. Qed.
+
+Lemma lker0_amulr u : u \is a GRing.unit -> lker (amulr u) == 0%VS.
+Proof. by move=> Uu; apply/lker0P=> v w; rewrite !lfunE; apply: mulIr. Qed.
 
 Lemma lfun1_poly (p : {poly aT}) : map_poly \1%VF p = p.
 Proof. by apply: map_poly_id => u _; apply: id_lfunE. Qed.
@@ -323,7 +338,7 @@ Definition prodv :=
 Canonical prodv_unlockable := [unlockable fun prodv].
 Local Notation "A * B" := (prodv A B) : vspace_scope.
 
-Lemma memv_prod U V : {in U & V, forall u v, u * v \in (U * V)%VS}.
+Lemma memv_mul U V : {in U & V, forall u v, u * v \in (U * V)%VS}.
 Proof.
 move=> u v /coord_vbasis-> /coord_vbasis->.
 rewrite mulr_suml; apply: memv_suml => i _.
@@ -336,14 +351,14 @@ Lemma prodvP {U V W} :
   reflect {in U & V, forall u v, u * v \in W} (U * V <= W)%VS.
 Proof.
 apply: (iffP idP) => [sUVW u v Uu Vv | sUVW].
-  by rewrite (subvP sUVW) ?memv_prod.
+  by rewrite (subvP sUVW) ?memv_mul.
 rewrite [prodv]unlock; apply/span_subvP=> _ /allpairsP[[u v] /= [Uu Vv ->]].
 by rewrite sUVW ?vbasis_mem.
 Qed.
 
 Lemma prodv_line u v : (<[u]> * <[v]> = <[u * v]>)%VS.
 Proof.
-apply: subv_anti; rewrite -memvE memv_prod ?memv_line // andbT.
+apply: subv_anti; rewrite -memvE memv_mul ?memv_line // andbT.
 apply/prodvP=> _ _ /vlineP[a ->] /vlineP[b ->].
 by rewrite -scalerAr -scalerAl !memvZ ?memv_line.
 Qed.
@@ -383,20 +398,20 @@ Lemma prod1v : left_id 1%VS prodv.
 Proof.
 move=> U; apply/subv_anti/andP; split.
   by apply/prodvP=> _ u /vlineP[a ->] Uu; rewrite mulr_algl memvZ.
-by apply/subvP=> u Uu; rewrite -[u]mul1r memv_prod ?memv_line.
+by apply/subvP=> u Uu; rewrite -[u]mul1r memv_mul ?memv_line.
 Qed.
 
 Lemma prodv1 : right_id 1%VS prodv.
 Proof.
 move=> U; apply/subv_anti/andP; split.
   by apply/prodvP=> u _ Uu /vlineP[a ->]; rewrite mulr_algr memvZ.
-by apply/subvP=> u Uu; rewrite -[u]mulr1 memv_prod ?memv_line.
+by apply/subvP=> u Uu; rewrite -[u]mulr1 memv_mul ?memv_line.
 Qed.
 
 Lemma prodvS U1 U2 V1 V2 : (U1 <= U2 -> V1 <= V2 -> U1 * V1 <= U2 * V2)%VS.
 Proof.
 move/subvP=> sU12 /subvP sV12; apply/prodvP=> u v Uu Vv.
-by rewrite memv_prod ?sU12 ?sV12.
+by rewrite memv_mul ?sU12 ?sV12.
 Qed.
 
 Lemma prodvSl U1 U2 V : (U1 <= U2 -> U1 * V <= U2 * V)%VS.
@@ -410,7 +425,7 @@ Proof.
 move=> U1 U2 V; apply/esym/subv_anti/andP; split.
   by rewrite subv_add 2?prodvS ?addvSl ?addvSr.
 apply/prodvP=> _ v /memv_addP[u1 Uu1 [u2 Uu2 ->]] Vv.
-by rewrite mulrDl memv_add ?memv_prod.
+by rewrite mulrDl memv_add ?memv_mul.
 Qed.
 
 Lemma prodvDr : right_distributive prodv addv.
@@ -418,7 +433,7 @@ Proof.
 move=> U V1 V2; apply/esym/subv_anti/andP; split.
   by rewrite subv_add 2?prodvS ?addvSl ?addvSr.
 apply/prodvP=> u _ Uu /memv_addP[v1 Vv1 [v2 Vv2 ->]].
-by rewrite mulrDr memv_add ?memv_prod.
+by rewrite mulrDr memv_add ?memv_mul.
 Qed.
 
 Canonical addv_addoid := Monoid.AddLaw prodvDl prodvDr.
@@ -470,6 +485,50 @@ Proof.
 elim: n => [|n IH]; first by rewrite expr0 expv0.
 by rewrite exprS expvSl IH prodv_line.
 Qed.
+
+(* Centralisers and centers. *)
+
+Definition centraliser1_vspace u := lker (amulr u - amull u).
+Local Notation "'C [ u ]" := (centraliser1_vspace u) : vspace_scope.
+Definition centraliser_vspace V := (\bigcap_i 'C[tnth (vbasis V) i])%VS.
+Local Notation "'C ( V )" := (centraliser_vspace V) : vspace_scope.
+Definition center_vspace V := (V :&: 'C(V))%VS.
+Local Notation "'Z ( V )" := (center_vspace V) : vspace_scope.
+
+Lemma cent1vP u v : reflect (u * v = v * u) (u \in 'C[v]%VS).
+Proof. by rewrite (sameP eqlfunP eqP) !lfunE /=; apply: eqP. Qed.
+
+Lemma cent1v1 u : 1 \in 'C[u]%VS. Proof. by apply/cent1vP; rewrite commr1. Qed.
+Lemma cent1v_id u : u \in 'C[u]%VS. Proof. exact/cent1vP. Qed.
+Lemma cent1vX u n : u ^+ n \in 'C[u]%VS. Proof. exact/cent1vP/esym/commrX. Qed.
+Lemma cent1vC u v : (u \in 'C[v])%VS = (v \in 'C[u])%VS.
+Proof. exact/cent1vP/cent1vP. Qed.
+
+Lemma centvP u V : reflect {in V, forall v, u * v = v * u} (u \in 'C(V))%VS.
+Proof.
+apply: (iffP subv_bigcapP) => [cVu y /coord_vbasis-> | cVu i _].
+  apply/esym/cent1vP/rpred_sum=> i _; apply: rpredZ.
+  by rewrite -tnth_nth cent1vC memvE cVu.
+exact/cent1vP/cVu/vbasis_mem/mem_tnth.
+Qed.
+Lemma centvsP U V : reflect {in U & V, commutative *%R} (U <= 'C(V))%VS.
+Proof. by apply: (iffP subvP) => [cUV u v | cUV u] /cUV-/centvP; apply. Qed.
+
+Lemma subv_cent1 U v : (U <= 'C[v])%VS = (v \in 'C(U)%VS).
+Proof.
+by apply/subvP/centvP=> cUv u Uu; apply/cent1vP; rewrite 1?cent1vC cUv.
+Qed.
+
+Lemma centv1 V : 1 \in 'C(V)%VS.
+Proof. by apply/centvP=> v _; rewrite commr1. Qed.
+Lemma centvX V u n : u \in 'C(V)%VS -> u ^+ n \in 'C(V)%VS.
+Proof. by move/centvP=> cVu; apply/centvP=> v /cVu/esym/commrX->. Qed.
+Lemma centvC U V : (U <= 'C(V))%VS = (V <= 'C(U))%VS.
+Proof. by apply/centvsP/centvsP=> cUV u v UVu /cUV->. Qed.
+
+Lemma centerv_sub V : ('Z(V) <= V)%VS. Proof. exact: capvSl. Qed.
+Lemma cent_centerv V : (V <= 'C('Z(V)))%VS.
+Proof. by rewrite centvC capvSr. Qed.
 
 (* Building the predicate that checks is a vspace has a unit *)
 Definition is_algid e U :=
@@ -558,6 +617,14 @@ Arguments Scope clone_aspace [_ _ vspace_scope aspace_scope _ _].
 Notation "{ 'aspace' T }" := (aspace_of (Phant T)) : type_scope.
 Notation "A * B" := (prodv A B) : vspace_scope.
 Notation "A ^+ n" := (expv A n) : vspace_scope.
+Notation "'C [ u ]" := (centraliser1_vspace u) : vspace_scope.
+Notation "'C_ U [ v ]" := (capv U 'C[v]) : vspace_scope.
+Notation "'C_ ( U ) [ v ]" := (capv U 'C[v]) (only parsing) : vspace_scope.
+Notation "'C ( V )" := (centraliser_vspace V) : vspace_scope.
+Notation "'C_ U ( V )" := (capv U 'C(V)) : vspace_scope.
+Notation "'C_ ( U ) ( V )" := (capv U 'C(V)) (only parsing) : vspace_scope.
+Notation "'Z ( V )" := (center_vspace V) : vspace_scope.
+
 Notation "1" := (aspace1 _) : aspace_scope.
 Notation "{ : aT }" := (aspacef aT) : aspace_scope.
 Notation "[ 'aspace' 'of' U ]" := (@clone_aspace _ _ U _ _ id)
@@ -566,6 +633,9 @@ Notation "[ 'aspace' 'of' U 'for' A ]" := (@clone_aspace _ _ U A _ idfun)
   (at level 0, format "[ 'aspace'  'of'  U  'for'  A ]") : form_scope.
 
 Implicit Arguments prodvP [K aT U V W].
+Implicit Arguments cent1vP [K aT u v].
+Implicit Arguments centvP [K aT u V].
+Implicit Arguments centvsP [K aT U V].
 Implicit Arguments has_algidP [K aT U].
 Implicit Arguments polyOver1P [K aT p].
 
@@ -603,6 +673,9 @@ move/subvP=> idAe u /idAe/memv_capP[_].
 by rewrite memv_ker !lfun_simp /= subr_eq0 => /eqP.
 Qed.
 
+Lemma unitr_algid1 A u : u \in A -> u \is a GRing.unit -> algid A = 1.
+Proof. by move=> Eu /mulrI; apply; rewrite mulr1 algidr. Qed.
+
 Lemma algid_eq1 A : (algid A == 1) = (1 \in A).
 Proof. by apply/eqP/idP=> [<- | /algidr <-]; rewrite ?memv_algid ?mul1r. Qed.
 
@@ -630,13 +703,13 @@ Qed.
 Lemma asubv A : (A * A <= A)%VS.
 Proof. by have /andP[] := valP A. Qed.
 
-Lemma memv_mul A : {in A &, forall u v, u * v \in A}.
+Lemma memvM A : {in A &, forall u v, u * v \in A}.
 Proof. exact/prodvP/asubv. Qed.
 
 Lemma prodv_id A : (A * A)%VS = A.
 Proof.
 apply/eqP; rewrite eqEsubv asubv; apply/subvP=> u Au.
-by rewrite -(algidl Au) memv_prod // memv_algid.
+by rewrite -(algidl Au) memv_mul // memv_algid.
 Qed.
 
 Lemma prodv_sub U V A : (U <= A -> V <= A -> U * V <= A)%VS.
@@ -650,7 +723,7 @@ Proof.
 rewrite -(span_basis (vbasisP U)) limg_span !span_def big_distrl /= big_map.
 by apply: eq_bigr => u; rewrite prodv_line lfunE.
 Qed.
- 
+
 Lemma memv_cosetP {U v w} :
   reflect (exists2 u, u\in U & w = u * v) (w \in U * <[v]>)%VS.
 Proof.
@@ -658,18 +731,121 @@ rewrite -limg_amulr.
 by apply: (iffP memv_imgP) => [] [u] Uu ->; exists u; rewrite ?lfunE.
 Qed.
 
-Lemma aspace_cap_subproof A B : algid A = algid B -> is_aspace (A :&: B).
+Lemma dim_cosetv_unit V u : u \is a GRing.unit -> \dim (V * <[u]>) = \dim V.
 Proof.
-move=> eq_eAB; apply/andP; split.
-  apply/has_algidP; exists (algid A); split; rewrite ?algid_neq0 //.
-    by rewrite memv_cap {2}eq_eAB !memv_algid.
-  by move=> u /memv_capP[Au _]; rewrite algidl ?algidr.
-by rewrite -{3}(prodv_id A) -{3}(prodv_id B) subv_cap !prodvS ?capvSl ?capvSr.
+by move/lker0_amulr/eqP=> Uu; rewrite -limg_amulr limg_dim_eq // Uu capv0.
 Qed.
 
-Definition aspace_cap A B eq_eAB := ASpace (@aspace_cap_subproof A B eq_eAB).
+Lemma memvV A u : (u^-1 \in A) = (u \in A).
+Proof.
+suffices{u} invA: invr_closed A by apply/idP/idP=> /invA; rewrite ?invrK. 
+move=> u Au; have [Uu | /invr_out-> //] := boolP (u \is a GRing.unit).
+rewrite memvE -(limg_ker0 _ _ (lker0_amulr Uu)) limg_line lfunE /= mulVr //.
+suff ->: (amulr u @: A)%VS = A by rewrite -memvE -algid_eq1 (unitr_algid1 Au).
+by apply/eqP; rewrite limg_amulr -dimv_leqif_eq ?prodv_sub ?dim_cosetv_unit.
+Qed.
+
+Fact aspace_cap_subproof A B : algid A \in B -> is_aspace (A :&: B).
+Proof.
+move=> BeA; apply/andP.
+split; [apply/has_algidP | by rewrite subv_cap !prodv_sub ?capvSl ?capvSr].
+exists (algid A); rewrite /is_algid algid_neq0 memv_cap memv_algid.
+by split=> // u /memv_capP[Au _]; rewrite ?algidl ?algidr.
+Qed.
+Definition aspace_cap A B BeA := ASpace (@aspace_cap_subproof A B BeA).
+
+Fact centraliser1_is_aspace u : is_aspace 'C[u].
+Proof.
+rewrite /is_aspace has_algid1 ?cent1v1 //=.
+apply/prodvP=> v w /cent1vP-cuv /cent1vP-cuw.
+by apply/cent1vP; rewrite -mulrA cuw !mulrA cuv.
+Qed.
+Canonical centraliser1_aspace u := ASpace (centraliser1_is_aspace u).
+
+Fact centraliser_is_aspace V : is_aspace 'C(V).
+Proof.
+rewrite /is_aspace has_algid1 ?centv1 //=.
+apply/prodvP=> u w /centvP-cVu /centvP-cVw.
+by apply/centvP=> v Vv; rewrite /= -mulrA cVw // !mulrA cVu.
+Qed.
+Canonical centraliser_aspace V := ASpace (centraliser_is_aspace V).
+
+Lemma centv_algid A : algid A \in 'C(A)%VS.
+Proof. by apply/centvP=> u Au; rewrite algidl ?algidr. Qed.
+Canonical center_aspace A := [aspace of 'Z(A) for aspace_cap (centv_algid A)].
+
+Lemma algid_center A : algid 'Z(A) = algid A.
+Proof.
+rewrite -(algidl (subvP (centerv_sub A) _ (memv_algid _))) algidr //=.
+by rewrite memv_cap memv_algid centv_algid.
+Qed.
+
+Lemma Falgebra_FieldMixin :
+  GRing.IntegralDomain.axiom aT -> GRing.Field.mixin_of aT.
+Proof.
+move=> domT u nz_u; apply/unitrP.
+have kerMu: lker (amulr u) == 0%VS.
+  rewrite eqEsubv sub0v andbT; apply/subvP=> v; rewrite memv_ker lfunE /=.
+  by move/eqP/domT; rewrite (negPf nz_u) orbF memv0.
+have /memv_imgP[v _ vu1]: 1 \in limg (amulr u); last rewrite lfunE /= in vu1.
+  suffices /eqP->: limg (amulr u) == fullv by rewrite memvf.
+  by rewrite -dimv_leqif_eq ?subvf ?limg_dim_eq // (eqP kerMu) capv0.
+exists v; split=> //; apply: (lker0P kerMu).
+by rewrite !lfunE /= -mulrA -vu1 mulr1 mul1r.
+Qed.
+
+Section SkewField.
+
+Hypothesis fieldT : GRing.Field.mixin_of aT.
+
+Lemma skew_field_algid1 A : algid A = 1.
+Proof. by rewrite (unitr_algid1 (memv_algid A)) ?fieldT ?algid_neq0. Qed.
+
+Lemma skew_field_module_semisimple A M :
+  let sumA X := (\sum_(x <- X) A * <[x]>)%VS in
+  (A * M <= M)%VS -> {X | [/\ sumA X = M, directv (sumA X) & 0 \notin X]}.
+Proof.
+move=> sumA sAM_M; pose X := Nil aT; pose k := (\dim (A * M) - \dim (sumA X))%N.
+have: (\dim (A * M) - \dim (sumA X) < k.+1)%N by [].
+have: [/\ (sumA X <= A * M)%VS, directv (sumA X) & 0 \notin X].
+  by rewrite /sumA directvE /= !big_nil sub0v dimv0.
+elim: {X k}k.+1 (X) => // k IHk X [sAX_AM dxAX nzX]; rewrite ltnS => leAXk.
+have [sM_AX | /subvPn/sig2W[y My notAXy]] := boolP (M <= sumA X)%VS.
+  by exists X; split=> //; apply/eqP; rewrite eqEsubv (subv_trans sAX_AM).
+have nz_y: y != 0 by rewrite (memPnC notAXy) ?mem0v.
+pose AY := sumA (y :: X).
+have sAY_AM: (AY <= A * M)%VS by rewrite [AY]big_cons subv_add ?prodvSr.
+have dxAY: directv AY.
+  rewrite directvE /= !big_cons [_ == _]directv_addE dxAX directvE eqxx /=.
+  rewrite -/(sumA X) eqEsubv sub0v andbT -limg_amulr.
+  apply/subvP=> _ /memv_capP[/memv_imgP[a Aa ->]]; rewrite lfunE /= => AXay.
+  rewrite memv0 (mulIr_eq0 a (mulIr _)) ?fieldT //.
+  apply: contraR notAXy => /fieldT-Ua; rewrite -[y](mulKr Ua) /sumA.
+  by rewrite -big_distrr -(prodv_id A) /= -prodvA big_distrr memv_mul ?memvV.
+apply: (IHk (y :: X)); first by rewrite !inE eq_sym negb_or nz_y.
+rewrite -subSn ?dimvS // (directvP dxAY) /= big_cons -(directvP dxAX) /=.
+rewrite subnDA (leq_trans _ leAXk) ?leq_sub2r // leq_subLR -add1n leq_add2r.
+by rewrite dim_cosetv_unit ?fieldT ?adim_gt0.
+Qed.
+
+Lemma skew_field_module_dimS A M : (A * M <= M)%VS -> \dim A %| \dim M.
+Proof.
+case/skew_field_module_semisimple=> X [<- /directvP-> nzX] /=.
+rewrite big_seq prime.dvdn_sum // => x /(memPn nzX)nz_x.
+by rewrite dim_cosetv_unit ?fieldT.
+Qed.
+
+Lemma skew_field_dimS A B : (A <= B)%VS -> \dim A %| \dim B.
+Proof. by move=> sAB; rewrite skew_field_module_dimS ?prodv_sub. Qed.
+
+End SkewField.
 
 End AspaceTheory.
+
+(* Note that local centraliser might not be proper sub-algebras. *)
+Notation "'C [ u ]" := (centraliser1_aspace u) : aspace_scope.
+Notation "'C ( V )" := (centraliser_aspace V) : aspace_scope.
+Notation "'Z ( A )" := (center_aspace A) : aspace_scope.
 
 Implicit Arguments adim1P [K aT A].
 Implicit Arguments memv_cosetP [K aT U v w].
@@ -707,14 +883,14 @@ rewrite [lhs in lhs = _]agenvEl big_distrr big_distrl /=; congr (_ + _)%VS.
 by apply: eq_bigr => i _ /=; rewrite -expvSr -expvSl.
 Qed.
 
-Lemma agenv_ideall U V : (U * V <= V -> agenv U * V <= V)%VS.
+Lemma agenv_modl U V : (U * V <= V -> agenv U * V <= V)%VS.
 Proof.
 rewrite big_distrl /= => idlU_V; apply/subv_sumP=> [[i _] /= _].
 elim: i => [|i]; first by rewrite expv0 prod1v.
 by apply: subv_trans; rewrite expvSr -prodvA prodvSr.
 Qed.
 
-Lemma agenv_idealr U V : (V * U <= V -> V * agenv U <= V)%VS.
+Lemma agenv_modr U V : (V * U <= V -> V * agenv U <= V)%VS.
 Proof.
 rewrite big_distrr /= => idrU_V; apply/subv_sumP=> [[i _] /= _].
 elim: i => [|i]; first by rewrite expv0 prodv1.
@@ -724,7 +900,7 @@ Qed.
 Fact agenv_is_aspace U : is_aspace (agenv U).
 Proof.
 rewrite /is_aspace has_algid1; last by rewrite memvE agenvEl addvSl.
-by rewrite agenv_ideall // [V in (_ <= V)%VS]agenvEl addvSr.
+by rewrite agenv_modl // [V in (_ <= V)%VS]agenvEl addvSr.
 Qed.
 Canonical agenv_aspace U : {aspace aT} := ASpace (agenv_is_aspace U).
 
@@ -745,34 +921,34 @@ Proof.
 by case: n => [|n]; rewrite ?sub1_agenv // -(agenvX n) expvS // sub_agenv.
 Qed.
 
-Lemma agenv_sub_ideall U V : (1 <= V -> U * V <= V -> agenv U <= V)%VS.
+Lemma agenv_sub_modl U V : (1 <= V -> U * V <= V -> agenv U <= V)%VS.
 Proof.
-move=> s1V /agenv_ideall; apply: subv_trans.
+move=> s1V /agenv_modl; apply: subv_trans.
 by rewrite -[Us in (Us <= _)%VS]prodv1 prodvSr.
 Qed.
 
-Lemma agenv_sub_idealr U V : (1 <= V -> V * U <= V -> agenv U <= V)%VS.
+Lemma agenv_sub_modr U V : (1 <= V -> V * U <= V -> agenv U <= V)%VS.
 Proof.
-move=> s1V /agenv_idealr; apply: subv_trans.
+move=> s1V /agenv_modr; apply: subv_trans.
 by rewrite -[Us in (Us <= _)%VS]prod1v prodvSl.
 Qed.
 
 Lemma agenv_id U : agenv (agenv U) = agenv U.
 Proof.
 apply/eqP; rewrite eqEsubv sub_agenv andbT.
-by rewrite agenv_sub_ideall ?sub1_agenv ?agenvM.
+by rewrite agenv_sub_modl ?sub1_agenv ?agenvM.
 Qed.
 
 Lemma agenvS U V : (U <= V -> agenv U <= agenv V)%VS.
 Proof.
-move=> sUV; rewrite agenv_sub_ideall ?sub1_agenv //.
+move=> sUV; rewrite agenv_sub_modl ?sub1_agenv //.
 by rewrite -[Vs in (_ <= Vs)%VS]agenvM prodvSl ?(subv_trans sUV) ?sub_agenv.
 Qed.
 
 Lemma agenv_add_id U V : agenv (agenv U + V) = agenv (U + V).
 Proof.
 apply/eqP; rewrite eqEsubv andbC agenvS ?addvS ?sub_agenv //=.
-rewrite agenv_sub_ideall ?sub1_agenv //.
+rewrite agenv_sub_modl ?sub1_agenv //.
 rewrite -[rhs in (_ <= rhs)%VS]agenvM prodvSl // subv_add agenvS ?addvSl //=.
 exact: subv_trans (addvSr U V) (sub_agenv _).
 Qed.
@@ -835,7 +1011,7 @@ Variable (K : fieldType) (aT : FalgType K) (A : {aspace aT}).
 
 Definition subvs_one := Subvs (memv_algid A).
 Definition subvs_mul (u v : subvs_of A) := 
-  Subvs (subv_trans (memv_prod (subvsP u) (subvsP v)) (asubv _)).
+  Subvs (subv_trans (memv_mul (subvsP u) (subvsP v)) (asubv _)).
 
 Fact subvs_mulA : associative subvs_mul.
 Proof. by move=> x y z; apply/val_inj/mulrA. Qed.
@@ -865,25 +1041,20 @@ Canonical subvs_unitRingType := Eval hnf in FalgUnitRingType (subvs_of A).
 Canonical subvs_unitAlgType := Eval hnf in [unitAlgType K of subvs_of A].
 Canonical subvs_FalgType := Eval hnf in [FalgType K of subvs_of A].
 
-Lemma vsval_unitr (w : subvs_of A) :
-  vsval w \is a GRing.unit -> w \is a GRing.unit.
-Proof. 
-move=> Uv; have /memv_imgP[v1 Av1 v1w]: algid A \in (amulr (val w) @: A)%VS.
-  apply: subvP (memv_algid A); rewrite -dimv_leqif_sup.
-    rewrite limg_dim_eq // -(capv0 A); congr (_ :&: _)%VS.
-    by apply/eqP/lker0P=> v1 v2; rewrite !lfunE; apply: (mulIr Uv).
-  by rewrite -[V in (_ <= V)%VS]prodv_id limg_amulr prodvSr // -memvE (valP w).
-rewrite lfunE /= in v1w; apply/unitrP; exists (Subvs Av1).
-split; apply: val_inj => //; apply: (mulIr Uv).
-by rewrite /= -mulrA -v1w algidl ?algidr ?(valP w).
+Implicit Type w : subvs_of A.
+
+Lemma vsval_unitr w : vsval w \is a GRing.unit -> w \is a GRing.unit.
+Proof.
+case: w => /= u Au Uu; have Au1: u^-1 \in A by rewrite memvV.
+apply/unitrP; exists (Subvs Au1).
+by split; apply: val_inj; rewrite /= ?mulrV ?mulVr ?(unitr_algid1 Au).
 Qed.
 
-Lemma vsval_invr (w : subvs_of A) :
-  vsval w \is a GRing.unit -> val w^-1 = (vsval w)^-1.
-Proof. 
-by move=> Uv; apply: (mulIr Uv); rewrite -{4}[w](mulVKr (vsval_unitr Uv)) mulKr.
+Lemma vsval_invr w : vsval w \is a GRing.unit -> val w^-1 = (val w)^-1.
+Proof.
+move=> Uu; have def_w: w / w * w = w by rewrite divrK ?vsval_unitr.
+by apply: (mulrI Uu); rewrite -[in u in u / _]def_w ?mulrK.
 Qed.
-(* Note that this implies algid A = 1. *)
 
 End SubFalgType.
 
@@ -972,9 +1143,9 @@ Lemma aimgM (f : ahom aT rT) U V : (f @: (U * V) = f @: U * f @: V)%VS.
 Proof.
 apply/eqP; rewrite eqEsubv; apply/andP; split; last first.
   apply/prodvP=> _ _ /memv_imgP[u Hu ->] /memv_imgP[v Hv ->].
-  by rewrite -rmorphM memv_img // memv_prod.
+  by rewrite -rmorphM memv_img // memv_mul.
 apply/subvP=> _ /memv_imgP[w UVw ->]; rewrite memv_preim (subvP _ w UVw) //.
-by apply/prodvP=> u v Uu Vv; rewrite -memv_preim rmorphM memv_prod // memv_img.
+by apply/prodvP=> u v Uu Vv; rewrite -memv_preim rmorphM memv_mul // memv_img.
 Qed.
 
 Lemma aimg1 (f : ahom aT rT) : (f @: 1 = 1)%VS.
@@ -990,7 +1161,7 @@ Lemma aimg_agen (f : ahom aT rT) U : (f @: agenv U)%VS = agenv (f @: U).
 Proof.
 apply/eqP; rewrite eqEsubv; apply/andP; split.
   by rewrite limg_sum; apply/subv_sumP => i _; rewrite aimgX subX_agenv.
-apply: agenv_sub_ideall; first by rewrite -(aimg1 f) limgS // sub1_agenv.
+apply: agenv_sub_modl; first by rewrite -(aimg1 f) limgS // sub1_agenv.
 by rewrite -aimgM limgS // [rhs in (_ <= rhs)%VS]agenvEl addvSr.
 Qed.
 

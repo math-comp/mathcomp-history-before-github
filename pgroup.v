@@ -627,15 +627,15 @@ move=> p_pr; elim: {G}_.+1 {-2}G (ltnSn #|G|) => // n IHn G.
 rewrite ltnS => leGn pG; pose xpG := [pred x in G | #[x] == p].
 have [x /andP[Gx /eqP] | no_x] := pickP xpG; first by exists x.
 have{pG n leGn IHn} pZ: p %| #|'C_G(G)|.
-  have:= pG; rewrite -(cardsID 'C(G)) dvdn_addl //.
+  suffices /dvdn_addl <-:  p %| #|G :\: 'C(G)| by rewrite cardsID.
   have /acts_sum_card_orbit <-: [acts G, on G :\: 'C(G) | 'J].
     by apply/actsP=> x Gx y; rewrite !inE -!mem_conjgV -centJ conjGid ?groupV.
-  elim/big_ind: _ => //; first exact: dvdn_add.
-  move=> _ /imsetP[x /setDP[Gx nCx] ->]; rewrite card_orbit astab1J.
-  move: pG; rewrite -(Lagrange (subsetIl G 'C[x])) Euclid_dvdM // => /orP[] //.
-  case/IHn=> [|y /setIP[Gy _ /eqP oyp]]; last by case/andP: (no_x y).
-  apply: leq_trans leGn; apply: proper_card; rewrite properE subsetIl.
-  by rewrite subsetI subxx /= -cent_set1 centsC sub1set.
+  elim/big_rec: _ => // _ _ /imsetP[x /setDP[Gx nCx] ->] /dvdn_addl->.
+  have ltCx: 'C_G[x] \proper G by rewrite properE subsetIl subsetIidl sub_cent1.
+  have /negP: ~ p %| #|'C_G[x]|.
+    case/(IHn _ (leq_trans (proper_card ltCx) leGn))=> y /setIP[Gy _] /eqP-oy.
+    by have /andP[] := no_x y.
+  by apply/implyP; rewrite -index_cent1 indexgI implyNb -Euclid_dvdM ?LagrangeI.
 have [Q maxQ _]: {Q | [max Q | p^'.-subgroup('C_G(G)) Q] & 1%G \subset Q}.
   apply: maxgroup_exists; exact: psubgroup1.
 case/andP: (maxgroupp maxQ) => sQC; rewrite /pgroup p'natE // => /negP[].

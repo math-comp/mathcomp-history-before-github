@@ -789,7 +789,7 @@ have defF: F = \sum_(i < p) 'X^i.
 have{defF} <-: F.[1] = p :> Algebraics.divisor.
   rewrite -[p]card_ord -[rhs in _ = rhs]sumr_const defF horner_sum.
   by apply: eq_bigr => i _; rewrite hornerXn expr1n.
-rewrite -[p.-1]card_ord {F}horner_prod big_add1 big_mkord -prodf_inv.
+rewrite -[p.-1]card_ord {F}horner_prod big_add1 big_mkord -prodfV.
 rewrite -prodr_const -big_split rpred_prod //= => k _; rewrite !hornerE.
 rewrite -[n](divfK nz_e) -[_ * _ / _]mulrA rpredM {e_dv_n}//.
 have p'k: ~~ (p %| k.+1)%N by rewrite gtnNdvd // -{2}(prednK p_gt0) ltnS.

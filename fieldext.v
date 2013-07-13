@@ -27,7 +27,6 @@ Require Import poly polydiv mxpoly generic_quotient.
 (*      {vspace E}. These types only include the so called "detachable"       *)
 (*      subspaces (and subalgebras).                                          *)
 (*                                                                            *)
-(*               \dim_F E == (\dim E %/ dim F)%N.                             *)
 (* (E :&: F)%AS, (E * F)%AS == the intersection and product (meet and join)   *)
 (*                           of E and F as subfields.                         *)
 (*    subFExtend iota z p == Given a field morphism iota : F -> L, this is a  *)
@@ -48,9 +47,6 @@ Require Import poly polydiv mxpoly generic_quotient.
 (*                           irr_p : irreducible_poly p. The corresponding    *)
 (*                           vectType substructure (SubfxVectType pz0 irr_p)  *)
 (*                           has dimension (size p).-1 over F.                *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
 (*            minPoly K x == the monic minimal polynomial of x over the       *)
 (*                           subfield K.                                      *)
 (*      adjoin_degree K x == the degree of the minimial polynomial or the     *)
@@ -60,7 +56,7 @@ Require Import poly polydiv mxpoly generic_quotient.
 (*            fieldOver F == L, but with an extFieldType (subvs_of F)         *)
 (*                           structure, for F : {subfield L}                  *)
 (*         vspaceOver F V == the smallest subspace of fieldOver F containing  *)
-(*                           V; this coincides with V if V is an F-ideal.     *)
+(*                           V; this coincides with V if V is an F-module.    *)
 (*        baseFieldType L == L, but with an extFieldType F0 structure, when L *)
 (*                           has a canonical extFieldType F structure and F   *)
 (*                           in turn has an extFieldType F0 structure.        *)
@@ -264,13 +260,10 @@ End Exports.
 End FieldExt.
 Export FieldExt.Exports.
 
-Notation "\dim_ E V" := (divn (\dim V) (\dim E))
-  (at level 10, E at level 2, V at level 8, format "\dim_ E  V") : nat_scope.
-
 Section FieldExtTheory.
 
 Variables (F0 : fieldType) (L : fieldExtType F0).
-Implicit Types (U V J : {vspace L}) (E F K : {subfield L}).
+Implicit Types (U V M : {vspace L}) (E F K : {subfield L}).
 
 Lemma dim_cosetv U x : x != 0 -> \dim (U * <[x]>) = \dim U.
 Proof.
@@ -283,7 +276,7 @@ Lemma prodvC : commutative (@prodv F0 L).
 Proof.
 move=> U V; without loss suffices subC: U V / (U * V <= V * U)%VS.
   by apply/eqP; rewrite eqEsubv !{1}subC.
-by apply/prodvP=> x y Ux Vy; rewrite mulrC memv_prod.
+by apply/prodvP=> x y Ux Vy; rewrite mulrC memv_mul.
 Qed.
 Canonical prodv_comoid := Monoid.ComLaw prodvC.
 
@@ -293,15 +286,14 @@ Proof. exact: Monoid.mulmCA. Qed.
 Lemma prodvAC : right_commutative (@prodv F0 L).
 Proof. exact: Monoid.mulmAC. Qed.
 
-Lemma algid1 K : algid K = 1.
-Proof. by apply: (mulIf (algid_neq0 K)); rewrite mul1r algidl ?memv_algid. Qed.
+Lemma algid1 K : algid K = 1. Proof. exact/skew_field_algid1/fieldP. Qed.
 
-Lemma mem1v K : 1 \in K. Proof. by rewrite -(algid1 K) memv_algid. Qed.
+Lemma mem1v K : 1 \in K. Proof. by rewrite -algid_eq1 algid1. Qed.
 Lemma sub1v K : (1 <= K)%VS. Proof. exact: mem1v. Qed.
 
 Lemma subfield_closed K : agenv K = K.
 Proof.
-by apply/eqP; rewrite eqEsubv sub_agenv agenv_sub_idealr ?sub1v ?asubv.
+by apply/eqP; rewrite eqEsubv sub_agenv agenv_sub_modr ?sub1v ?asubv.
 Qed.
 
 Lemma AHom_lker0 (rT : FalgType F0) (f : 'AHom(L, rT)) : lker f == 0%VS.
@@ -353,7 +345,7 @@ Lemma sub_adjoin1v x E : (<<1; x>> <= E)%VS = (x \in E)%VS.
 Proof. by rewrite (sameP FadjoinP andP) sub1v. Qed.
 
 Fact vsval_multiplicative K : multiplicative (vsval : subvs_of K -> L).
-Proof. by split => //=; exact: algid1. Qed.
+Proof. by split => //=; apply: algid1. Qed.
 Canonical vsval_rmorphism K := AddRMorphism (vsval_multiplicative K).
 Canonical vsval_lrmorphism K := [lrmorphism of (vsval : subvs_of K -> L)].
 
@@ -364,10 +356,7 @@ by apply: vsval_invr; rewrite unitfE.
 Qed.
 
 Fact aspace_divr_closed K : divr_closed K.
-Proof.
-split=> [|u v Ku Kv]; first exact: mem1v.
-by rewrite -(vsval_invf (Subvs Kv)) memv_mul ?subvsP. 
-Qed.
+Proof. by split=> [|u v Ku Kv]; rewrite ?mem1v ?memvM ?memvV. Qed.
 Canonical aspace_mulrPred K := MulrPred (aspace_divr_closed K).
 Canonical aspace_divrPred K := DivrPred (aspace_divr_closed K).
 Canonical aspace_smulrPred K := SmulrPred (aspace_divr_closed K).
@@ -425,13 +414,12 @@ Qed.
 Fact prodv_is_aspace E F : is_aspace (E * F).
 Proof.
 rewrite /is_aspace prodvCA -!prodvA prodvA !prodv_id has_algid1 //=.
-by rewrite -[1]mulr1 memv_prod ?mem1v.
+by rewrite -[1]mulr1 memv_mul ?mem1v.
 Qed.
 Canonical prodv_aspace E F : {subfield L} := ASpace (prodv_is_aspace E F).
 
-Fact field_same_algid E F : algid E = algid F.
-Proof. by rewrite !algid1. Qed.
-Canonical capv_aspace E F : {subfield L} := aspace_cap (field_same_algid E F).
+Fact field_mem_algid E F : algid E \in F. Proof. by rewrite algid1 mem1v. Qed.
+Canonical capv_aspace E F : {subfield L} := aspace_cap (field_mem_algid E F).
 
 Lemma polyOverSv U V : (U <= V)%VS -> {subset polyOver U <= polyOver V}.
 Proof. by move/subvP=> sUV; apply: polyOverS. Qed.
@@ -442,63 +430,42 @@ Proof. by rewrite -{1}[U]prod1v prodvSl ?sub1v. Qed.
 Lemma field_subvMr U F : (U <= U * F)%VS.
 Proof. by rewrite prodvC field_subvMl. Qed.
 
-Lemma field_ideal_eq F J : (F * J <= J)%VS -> (F * J)%VS = J.
-Proof. by move=> idealJ; apply/eqP; rewrite eqEsubv idealJ field_subvMl. Qed.
+Lemma field_module_eq F M : (F * M <= M)%VS -> (F * M)%VS = M.
+Proof. by move=> modM; apply/eqP; rewrite eqEsubv modM field_subvMl. Qed.
 
-Lemma sup_field_ideal F E : (F * E <= E)%VS = (F <= E)%VS.
+Lemma sup_field_module F E : (F * E <= E)%VS = (F <= E)%VS.
 Proof.
 apply/idP/idP; first exact: subv_trans (field_subvMr F E).
 by move/(prodvSl E)/subv_trans->; rewrite ?asubv.
 Qed.
 
-Lemma field_ideal_semisimple F J (m := \dim_F J) (idealJ : (F * J <= J)%VS) :
-  {b : m.-tuple L | [/\ {subset b <= J}, 0 \notin b & \dim J = (m * \dim F)%N]
-     & let Sb := (\sum_(i < m) F * <[b`_i]>)%VS in Sb = J /\ directv Sb}.
-Proof.
-pose S n (b : n.-tuple L) := (\sum_(i < n) F * <[b`_i]>)%VS.
-pose m1 := (m + ~~ (\dim F %| \dim J))%N.
-suffices [b dimSb /andP[/allP sbJ nz_b]]:
-  {b | \dim (S m1 b) = (m1 * \dim F)%N & all (mem J) b && (0%R \notin b)}.
-- have defSb : S _ b = J.
-    apply/eqP; rewrite eqEdim dimSb; apply/andP; split.
-      apply/subv_sumP=> i _; apply: subv_trans idealJ.
-      by apply/prodvSr/sbJ/mem_nth; rewrite size_tuple.
-    rewrite (divn_eq (\dim J) (\dim F)) mulnDl leq_add2l /dvdn.
-    by case: eqP => [-> // | _]; rewrite mul1n ltnW // ltn_mod adim_gt0.
-  have ->: m = m1 by rewrite /m1 -defSb dimSb addnC dvdn_mull.
-  rewrite -{2}defSb; exists b; split=> //; apply/eqnP; rewrite /= dimSb.
-  rewrite -{1}[m1]card_ord -sum_nat_const; apply: eq_bigr => i _.
-  by rewrite dim_cosetv ?(memPn nz_b) ?memt_nth.
-have: (m1 * \dim F < \dim F + \dim J)%N.
-  rewrite addnC {1}(divn_eq (\dim J) (\dim F)) -addnA mulnDl ltn_add2l /dvdn.
-  by case: (_ %% _)%N => [|r]; rewrite ?adim_gt0 // mul1n ltnS leq_addl.
-elim: {m}m1 => [|m IHm] ltFmJ.
-  by exists [tuple] => //; rewrite /S big_ord0 dimv0.
-rewrite mulSn ltn_add2l in ltFmJ.
-have [b dimSb Jb] := IHm (leq_trans ltFmJ (leq_addl _ _)).
-have /subvPn/sig2W[x Jx S'x]: ~~ (J <= S _ b)%VS.
-  by apply: contraL ltFmJ => /dimvS; rewrite -dimSb -leqNgt.
-have nz_x: x != 0 by apply: contraNneq S'x => ->; exact: mem0v.
-exists [tuple of x :: b]; last by rewrite /= !inE Jx /= negb_or eq_sym nz_x.
-rewrite /S big_ord_recl /= -/(S _ _) mulSn.
-rewrite dimv_disjoint_sum ?dimSb ?dim_cosetv //; apply/eqP; rewrite -subv0. 
-apply/subvP=> y; rewrite memv_cap memv0 => /andP[/memv_cosetP[a Fa ->{y}] Sax].
-apply: contraR S'x; rewrite mulf_eq0 => /norP[/mulKf/( _ x)<- _].
-rewrite -[S _ _](@field_ideal_eq F) ?memv_prod ?rpredV //.
-by rewrite /S -big_distrr prodvA prodv_id.
-Qed.
-
-Lemma dim_field_ideal F J : (F * J <= J)%VS -> \dim J = (\dim_F J * \dim F)%N.
-Proof. by case/field_ideal_semisimple=> ? []. Qed.
-
-Lemma dim_sup_field F E : (F <= E)%VS -> \dim E = (\dim_F E * \dim F)%N.
-Proof. by rewrite -sup_field_ideal; apply: dim_field_ideal. Qed.
-
-Lemma ideal_dimS F J : (F * J <= J)%VS -> (\dim F %| \dim J)%N.
-Proof. by move/dim_field_ideal->; apply: dvdn_mull. Qed.
+Lemma field_module_dimS F M : (F * M <= M)%VS -> (\dim F %| \dim M)%N.
+Proof. exact/skew_field_module_dimS/fieldP. Qed.
 
 Lemma field_dimS F E : (F <= E)%VS -> (\dim F %| \dim E)%N.
-Proof. by rewrite -sup_field_ideal; apply: ideal_dimS. Qed.
+Proof. exact/skew_field_dimS/fieldP. Qed.
+
+Lemma dim_field_module F M : (F * M <= M)%VS -> \dim M = (\dim_F M * \dim F)%N.
+Proof. by move/field_module_dimS/divnK. Qed.
+
+Lemma dim_sup_field F E : (F <= E)%VS -> \dim E = (\dim_F E * \dim F)%N.
+Proof. by move/field_dimS/divnK. Qed.
+
+Lemma field_module_semisimple F M (m := \dim_F M) :
+    (F * M <= M)%VS ->
+  {X : m.-tuple L | {subset X <= M} /\ 0 \notin X
+     & let FX := (\sum_(i < m) F * <[X`_i]>)%VS in FX = M /\ directv FX}.
+Proof.
+move=> modM; have dimM: (m * \dim F)%N = \dim M by rewrite -dim_field_module.
+have [X [defM dxFX nzX]] := skew_field_module_semisimple (@fieldP L) modM.
+have szX: size X == m.
+  rewrite -(eqn_pmul2r (adim_gt0 F)) dimM -defM (directvP dxFX) /=.
+  rewrite -sum1_size big_distrl; apply/eqP/eq_big_seq => x Xx /=.
+  by rewrite mul1n dim_cosetv ?(memPn nzX).
+rewrite directvE /= !(big_nth 0) (eqP szX) !big_mkord -directvE /= in defM dxFX.
+exists (Tuple szX) => //; split=> // _ /tnthP[i ->]; rewrite (tnth_nth 0) /=.
+by rewrite -defM memvE (sumv_sup i) ?field_subvMl.
+Qed.
 
 Section FadjoinPolyDefinitions.
 
@@ -580,13 +547,13 @@ rewrite -leqNgt -(leq_pmul2r (adim_gt0 K)) -dim_Fadjoin.
 have{IHm} ->: (m.+1 * \dim K)%N = \dim S.
   rewrite -[m.+1]card_ord -sum_nat_const IHm.
   by apply: eq_bigr => i; rewrite dim_cosetv ?expf_neq0.
-apply/dimvS/agenv_sub_ideall; first by rewrite (sumv_sup 0) //= prodv1 sub1v.
+apply/dimvS/agenv_sub_modl; first by rewrite (sumv_sup 0) //= prodv1 sub1v.
 rewrite prodvDl subv_add -[S]big_distrr prodvA prodv_id subvv !big_distrr /=.
 apply/subv_sumP=> i _; rewrite -expv_line prodvCA -expvSl expv_line.
 have [ltim | lemi] := ltnP i m; first by rewrite (sumv_sup (Sub i.+1 _)).
 have{lemi} /eqP->: i == m :> nat by rewrite eqn_leq leq_ord.
 rewrite -big_distrr -2!{2}(prodv_id K) /= -!prodvA big_distrr -/S prodvSr //=.
-by rewrite -(canLR (mulKf nz_y) Dz) -memvE memv_prod ?rpredV.
+by rewrite -(canLR (mulKf nz_y) Dz) -memvE memv_mul ?rpredV.
 Qed.
 
 Let nz_x_i (i : 'I_n) : x ^+ i != 0.
@@ -626,7 +593,7 @@ Lemma Fadjoin_poly_unique p v :
   p \is a polyOver K -> size p <= n -> p.[x] = v -> Fadjoin_poly K x v = p.
 Proof.
 have polyKx q i: q \is a polyOver K -> q`_i * x ^+ i \in (K * <[x ^+ i]>)%VS.
-  by move/polyOverP=> Kq; rewrite memv_prod ?Kq ?memv_line.
+  by move/polyOverP=> Kq; rewrite memv_mul ?Kq ?memv_line.
 move=> Kp szp Dv; have /Fadjoin_poly_eq/eqP := mempx_Fadjoin Kp.
 rewrite {1}Dv {Dv} !(@horner_coef_wide _ n) ?size_poly //.
 move/polyKx in Kp; have /polyKx K_pv := Fadjoin_polyOver K x v.
@@ -753,6 +720,12 @@ End Horner.
 End FieldExtTheory.
 
 Notation "E :&: F" := (capv_aspace E F) : aspace_scope.
+Notation "'C_ E [ x ]" := (capv_aspace E 'C[x]) : aspace_scope.
+Notation "'C_ ( E ) [ x ]" := (capv_aspace E 'C[x])
+  (only parsing) : aspace_scope.
+Notation "'C_ E ( V )" := (capv_aspace E 'C(V)) : aspace_scope.
+Notation "'C_ ( E ) ( V )" := (capv_aspace E 'C(V))
+  (only parsing) : aspace_scope.
 Notation "E * F" := (prodv_aspace E F) : aspace_scope.
 Notation "f @: E" := (aimg_aspace f E) : aspace_scope.
 
@@ -850,11 +823,10 @@ Canonical fieldOver_unitAlgType := [unitAlgType K_F of L_F].
 
 Fact fieldOver_vectMixin : Vector.mixin_of fieldOver_lmodType.
 Proof.
-have [bL [_ nz_bL _] [defL dxSbL]] := field_ideal_semisimple (subvf (F * _)%VS).
-set n := (_ %/ _)%N in bL nz_bL defL dxSbL.
-set SbL := (\sum_i _)%VS in defL dxSbL.
+have [bL [_ nz_bL] [defL dxSbL]] := field_module_semisimple (subvf (F * _)).
+do [set n := \dim_F {:L} in bL nz_bL *; set SbL := (\sum_i _)%VS] in defL dxSbL.
 have in_bL i (a : K_F) : val a * (bL`_i : L_F) \in (F * <[bL`_i]>)%VS.
-  by rewrite memv_prod ?(valP a) ?memv_line.
+  by rewrite memv_mul ?(valP a) ?memv_line.
 have nz_bLi (i : 'I_n): bL`_i != 0 by rewrite (memPn nz_bL) ?memt_nth.
 pose r2v (v : 'rV[K_F]_n) : L_F := \sum_i v 0 i *: (bL`_i : L_F).
 have r2v_lin: linear r2v.
@@ -892,7 +864,7 @@ Lemma mem_vspaceOver V : vspaceOver V =i (F * V)%VS.
 Proof.
 move=> y; apply/idP/idP; last rewrite unlock; move=> /coord_span->.
   rewrite (@memv_suml F0 L) // => i _.
-  by rewrite memv_prod ?subvsP // vbasis_mem ?memt_nth.
+  by rewrite memv_mul ?subvsP // vbasis_mem ?memt_nth.
 rewrite memv_suml // => ij _; rewrite -tnth_nth; set x := tnth _ ij.
 have/allpairsP[[u z] /= [Fu Vz {x}->]]: x \in _ := mem_tnth ij _.
 by rewrite scalerAl (memvZ (Subvs _)) ?memvZ ?memv_span //= vbasis_mem.
@@ -900,36 +872,35 @@ Qed.
 
 Lemma mem_aspaceOver E : (F <= E)%VS -> vspaceOver E =i E.
 Proof.
-by move=> sFE y; rewrite mem_vspaceOver field_ideal_eq ?sup_field_ideal.
+by move=> sFE y; rewrite mem_vspaceOver field_module_eq ?sup_field_module.
 Qed.
 
 Fact aspaceOver_suproof E : is_aspace (vspaceOver E).
 Proof.
 rewrite /is_aspace has_algid1; last by rewrite mem_vspaceOver (@mem1v _ L).
-by apply/prodvP=> u v; rewrite !mem_vspaceOver; exact: memv_mul.
+by apply/prodvP=> u v; rewrite !mem_vspaceOver; exact: memvM.
 Qed.
 Canonical aspaceOver E := ASpace (aspaceOver_suproof E).
 
-Lemma dim_vspaceOver J : (F * J <= J)%VS -> \dim (vspaceOver J) = \dim_F J.
+Lemma dim_vspaceOver M : (F * M <= M)%VS -> \dim (vspaceOver M) = \dim_F M.
 Proof.
-move=> idealJ; have [] := field_ideal_semisimple idealJ; set n := (_ %/ _)%N.
-move=> b [Jb nz_b _] [defJ dx_b].
-suff: basis_of (vspaceOver J) b by exact: size_basis.
+move=> modM; have [] := field_module_semisimple modM.
+set n := \dim_F M => b [Mb nz_b] [defM dx_b].
+suff: basis_of (vspaceOver M) b by apply: size_basis.
 apply/andP; split.
   rewrite eqEsubv; apply/andP; split; apply/span_subvP=> u.
-    by rewrite mem_vspaceOver field_ideal_eq // => /Jb.
-  move/(@vbasis_mem _ _ _ J).
-  rewrite -defJ => /memv_sumP[{u}u Fu ->]; apply: memv_suml => i _.
-  have /memv_cosetP[a Fa ->] := Fu i isT; apply: (memvZ (Subvs Fa)).
-  by rewrite memv_span ?memt_nth.
+    by rewrite mem_vspaceOver field_module_eq // => /Mb.
+  move/(@vbasis_mem _ _ _ M); rewrite -defM => /memv_sumP[{u}u Fu ->].
+  apply: memv_suml => i _; have /memv_cosetP[a Fa ->] := Fu i isT.
+  by apply: (memvZ (Subvs Fa)); rewrite memv_span ?memt_nth.
 apply/freeP=> a /(directv_sum_independent dx_b) a_0 i.
 have{a_0}: a i *: (b`_i : L_F) == 0.
-  by rewrite a_0 {i}// => i _; rewrite memv_prod ?memv_line ?subvsP.
+  by rewrite a_0 {i}// => i _; rewrite memv_mul ?memv_line ?subvsP.
 by rewrite scaler_eq0=> /predU1P[] // /idPn[]; rewrite (memPn nz_b) ?memt_nth.
 Qed.
 
 Lemma dim_aspaceOver E : (F <= E)%VS -> \dim (vspaceOver E) = \dim_F E.
-Proof. by rewrite -sup_field_ideal; exact: dim_vspaceOver. Qed.
+Proof. by rewrite -sup_field_module; exact: dim_vspaceOver. Qed.
 
 Lemma vspaceOverP V_F :
   {V | [/\ V_F = vspaceOver V, (F * V <= V)%VS & V_F =i V]}.
@@ -940,7 +911,7 @@ suffices defVF: V_F = vspaceOver V.
   by exists V; split=> [||u]; rewrite ?defVF ?mem_vspaceOver ?idV.
 apply/vspaceP=> v; rewrite mem_vspaceOver idV.
 do [apply/idP/idP; last rewrite /V unlock] => [/coord_vbasis|/coord_span] ->.
-  by apply: memv_suml => i _; rewrite memv_prod ?subvsP ?memv_span ?memt_nth.
+  by apply: memv_suml => i _; rewrite memv_mul ?subvsP ?memv_span ?memt_nth.
 apply: memv_suml => i _; rewrite -tnth_nth; set xu := tnth _ i.
 have /allpairsP[[x u] /=]: xu \in _ := mem_tnth i _.
 case=> /vbasis_mem Fx /vbasis_mem Vu ->.
@@ -951,11 +922,11 @@ Qed.
 Lemma aspaceOverP (E_F : {subfield L_F}) :
   {E | [/\ E_F = aspaceOver E, (F <= E)%VS & E_F =i E]}.
 Proof.
-have [V [defEF idealV memV]] := vspaceOverP E_F.
+have [V [defEF modV memV]] := vspaceOverP E_F.
 have algE: has_algid V && (V * V <= V)%VS.
   rewrite has_algid1; last by rewrite -memV mem1v.
-  by apply/prodvP=> u v; rewrite -!memV; exact: memv_mul.
-by exists (ASpace algE); rewrite -sup_field_ideal; split; first exact: val_inj.
+  by apply/prodvP=> u v; rewrite -!memV; exact: memvM.
+by exists (ASpace algE); rewrite -sup_field_module; split; first exact: val_inj.
 Qed.
 
 End FieldOver.
@@ -1079,7 +1050,7 @@ Qed.
 Fact baseAspace_suproof (E : {subfield L}) : is_aspace (baseVspace E).
 Proof.
 rewrite /is_aspace has_algid1; last by rewrite mem_baseVspace (mem1v E).
-by apply/prodvP=> u v; rewrite !mem_baseVspace; exact: memv_mul.
+by apply/prodvP=> u v; rewrite !mem_baseVspace; exact: memvM.
 Qed.
 Canonical baseAspace E := ASpace (baseAspace_suproof E).
 
@@ -1091,29 +1062,29 @@ Notation F1 := refBaseField.
 Lemma dim_refBaseField : \dim F1 = n.
 Proof. by rewrite [F1]unlock dim_baseVspace dimv1 mul1n. Qed.
 
-Lemma baseVspace_ideal V (V0 := baseVspace V) : (F1 * V0 <= V0)%VS.
+Lemma baseVspace_module V (V0 := baseVspace V) : (F1 * V0 <= V0)%VS.
 Proof.
 apply/prodvP=> u v; rewrite [F1]unlock !mem_baseVspace => /vlineP[x ->] Vv.
 by rewrite -(@scalerAl F L) mul1r; exact: memvZ.
 Qed.
 
 Lemma sub_baseField (E : {subfield L}) : (F1 <= baseVspace E)%VS.
-Proof. by rewrite -sup_field_ideal baseVspace_ideal. Qed.
+Proof. by rewrite -sup_field_module baseVspace_module. Qed.
 
 Lemma vspaceOver_refBase V : vspaceOver F1 (baseVspace V) =i V.
 Proof.
-move=> v; rewrite mem_vspaceOver field_ideal_eq ?baseVspace_ideal //.
+move=> v; rewrite mem_vspaceOver field_module_eq ?baseVspace_module //.
 by rewrite mem_baseVspace.
 Qed.
 
-Lemma ideal_baseVspace J0 :
-  (F1 * J0 <= J0)%VS -> {V | J0 = baseVspace V & J0 =i V}.
+Lemma module_baseVspace M0 :
+  (F1 * M0 <= M0)%VS -> {V | M0 = baseVspace V & M0 =i V}.
 Proof.
-move=> J0ideal; pose V := <<vbasis (vspaceOver F1 J0) : seq L>>%VS.
-suffices memJ0: J0 =i V.
-  by exists V => //; apply/vspaceP=> v; rewrite mem_baseVspace memJ0.
-move=> v; rewrite -{1}(field_ideal_eq J0ideal) -(mem_vspaceOver J0) {}/V.
-move: (vspaceOver F1 J0) => J.
+move=> modM0; pose V := <<vbasis (vspaceOver F1 M0) : seq L>>%VS.
+suffices memM0: M0 =i V.
+  by exists V => //; apply/vspaceP=> v; rewrite mem_baseVspace memM0.
+move=> v; rewrite -{1}(field_module_eq modM0) -(mem_vspaceOver M0) {}/V.
+move: (vspaceOver F1 M0) => M.
 apply/idP/idP=> [/coord_vbasis|/coord_span]->; apply/memv_suml=> i _.
   rewrite /(_ *: _) /= /fieldOver_scale; case: (coord _ i _) => /= x.
   rewrite {1}[F1]unlock mem_baseVspace => /vlineP[{x}x ->].
@@ -1121,17 +1092,16 @@ apply/idP/idP=> [/coord_vbasis|/coord_span]->; apply/memv_suml=> i _.
 move: (coord _ i _) => x; rewrite -[_`_i]mul1r scalerAl -tnth_nth.
 have F1x: x%:A \in F1.
   by rewrite [F1]unlock mem_baseVspace (@memvZ F L) // mem1v.
-by congr (_ \in J): (memvZ (Subvs F1x) (vbasis_mem (mem_tnth i _))).
+by congr (_ \in M): (memvZ (Subvs F1x) (vbasis_mem (mem_tnth i _))).
 Qed.
 
-Lemma ideal_baseAspace (E0 : {subfield L0}) :
+Lemma module_baseAspace (E0 : {subfield L0}) :
   (F1 <= E0)%VS -> {E | E0 = baseAspace E & E0 =i E}.
 Proof.
-rewrite -sup_field_ideal => /ideal_baseVspace[E defE0 memE0].
-suffices algE: has_algid E && (E * E <= E)%VS.
-  by exists (ASpace algE); first exact: val_inj.
-rewrite has_algid1 -?memE0 ?mem1v //.
-by apply/prodvP=> u v; rewrite -!memE0; exact: memv_mul.
+rewrite -sup_field_module => /module_baseVspace[E defE0 memE0].
+suffices algE: is_aspace E by exists (ASpace algE); first exact: val_inj.
+rewrite /is_aspace has_algid1 -?memE0 ?mem1v //.
+by apply/prodvP=> u v; rewrite -!memE0; apply: memvM.
 Qed.
 
 End BaseField.
@@ -1146,12 +1116,12 @@ Variables (F0 : fieldType) (L : fieldExtType F0) (F : {subfield L}).
 Lemma base_vspaceOver V : baseVspace (vspaceOver F V) =i (F * V)%VS.
 Proof. by move=> v; rewrite mem_baseVspace mem_vspaceOver. Qed.
 
-Lemma base_idealOver V : (F * V <= V)%VS -> baseVspace (vspaceOver F V) =i V.
-Proof. by move=> /field_ideal_eq defV v; rewrite base_vspaceOver defV. Qed.
+Lemma base_moduleOver V : (F * V <= V)%VS -> baseVspace (vspaceOver F V) =i V.
+Proof. by move=> /field_module_eq defV v; rewrite base_vspaceOver defV. Qed.
 
 Lemma base_aspaceOver (E : {subfield L}) :
   (F <= E)%VS -> baseVspace (vspaceOver F E) =i E.
-Proof. by rewrite -sup_field_ideal; exact: base_idealOver. Qed.
+Proof. by rewrite -sup_field_module; apply: base_moduleOver. Qed.
 
 End MoreFieldOver.
 

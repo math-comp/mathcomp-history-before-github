@@ -117,6 +117,12 @@ Proof. exact: gFchar. Qed.
 Lemma center_idP A : reflect ('Z(A) = A) (abelian A).
 Proof. exact: setIidPl. Qed.
 
+Lemma center_class_formula G :
+  #|G| = #|'Z(G)| + \sum_(xG in [set x ^: G | x in G :\: 'C(G)]) #|xG|.
+Proof.
+by rewrite acts_sum_card_orbit ?cardsID // astabsJ normsD ?norms_cent ?normG.
+Qed.
+
 Lemma subcent1P A x y : reflect (y \in A /\ commute x y) (y \in 'C_A[x]).
 Proof.
 rewrite inE; case: (y \in A); last by right; case.
