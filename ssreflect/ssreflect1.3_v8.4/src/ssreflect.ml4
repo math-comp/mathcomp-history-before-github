@@ -1711,24 +1711,24 @@ let cleartac clr = check_hyps_uniq [] clr; clear (hyps_ids clr)
 (* type ssrwgen = ssrclear * ssrhyp * string *)
 
 let pr_wgen = function 
-  | (clr, Some((id,k),None)) -> spc() ++ pr_clear mt clr ++ str k ++ pr_id id
+  | (clr, Some((id,k),None)) -> spc() ++ pr_clear mt clr ++ str k ++ pr_hyp id
   | (clr, Some((id,k),Some p)) ->
-      spc() ++ pr_clear mt clr ++ str"(" ++ str k ++ pr_id id ++ str ":=" ++
+      spc() ++ pr_clear mt clr ++ str"(" ++ str k ++ pr_hyp id ++ str ":=" ++
         pr_cpattern p ++ str ")"
   | (clr, None) -> spc () ++ pr_clear mt clr
 let pr_ssrwgen _ _ _ = pr_wgen
 
 (* no globwith for char *)
 ARGUMENT EXTEND ssrwgen
-  TYPED AS ssrclear * ((ident * string) * cpattern option) option
+  TYPED AS ssrclear * ((ssrhyp * string) * cpattern option) option
   PRINTED BY pr_ssrwgen
 | [ ssrclear_ne(clr) ] -> [ clr, None ]
-| [ ident(id) ]        -> [ [], Some((id, " "), None) ]
-| [ "@" ident(id) ]   -> [ [], Some((id, "@"), None) ]
-| [ "(" ident(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id," "),Some p) ]
-| [ "(" ident(id) ")" ] -> [ [], Some ((id,"("), None) ]
-| [ "(@" ident(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id,"@"),Some p) ]
-| [ "(" "@" ident(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id,"@"),Some p) ]
+| [ ssrhyp(id) ]        -> [ [], Some((id, " "), None) ]
+| [ "@" ssrhyp(id) ]   -> [ [], Some((id, "@"), None) ]
+| [ "(" ssrhyp(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id," "),Some p) ]
+| [ "(" ssrhyp(id) ")" ] -> [ [], Some ((id,"("), None) ]
+| [ "(@" ssrhyp(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id,"@"),Some p) ]
+| [ "(" "@" ssrhyp(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id,"@"),Some p) ]
 END
 
 type ssrclseq = InGoal | InHyps
@@ -1801,7 +1801,7 @@ let check_wgen_uniq gens =
   let clears = List.flatten (List.map fst gens) in
   check_hyps_uniq [] clears;
   let ids = Util.list_map_filter
-    (function (_,Some ((id,_),_)) -> Some id | _ -> None) gens in
+    (function (_,Some ((SsrHyp (_,id),_),_)) -> Some id | _ -> None) gens in
   let rec check ids = function
   | id :: _ when List.mem id ids ->
     errorstrm (str"Duplicate generalization " ++ pr_id id)
@@ -1873,13 +1873,14 @@ let abs_wgen keep_let ist gl f gen (args,c) =
         pr_constr_pat t ++
         str" contains holes and matches no subterm of the goal") in
   match gen with
-  | _, Some ((x, mode), None) when mode = "@" || (mode = " " && keep_let) ->
+  | _, Some ((SsrHyp(_,x), mode), None)
+    when mode = "@" || (mode = " " && keep_let) ->
      let _, bo, ty = pf_get_hyp gl x in
      (if bo <> None then args else mkVar x :: args),
      mkProd_or_LetIn (Name (f x),bo,ty) (subst_var x c)
-  | _, Some ((x, _), None) ->
+  | _, Some ((SsrHyp(_,x), _), None) ->
      mkVar x :: args, mkProd (Name (f x), pf_get_hyp_typ gl x, subst_var x c)
-  | _, Some ((x, "@"), Some p) -> 
+  | _, Some ((SsrHyp(_,x), "@"), Some p) -> 
      let cp = interp_cpattern ist gl p None in
      let t, c =
        try fill_occ_pattern ~raise_NoMatch:true env sigma c cp None 1
@@ -1887,7 +1888,7 @@ let abs_wgen keep_let ist gl f gen (args,c) =
      evar_closed t p;
      let ut = red_product_skip_id env sigma t in
      args, mkLetIn(Name (f x), ut, pf_type_of gl t, c)
-  | _, Some ((x, _), Some p) ->
+  | _, Some ((SsrHyp(_,x), _), Some p) ->
      let cp = interp_cpattern ist gl p None in
      let t, c =
        try fill_occ_pattern ~raise_NoMatch:true env sigma c cp None 1
@@ -1897,8 +1898,7 @@ let abs_wgen keep_let ist gl f gen (args,c) =
   | _ -> args, c
 
 let clr_of_wgen gen clrs = match gen with
-  | clr, Some ((x, _), None) ->
-     cleartac clr :: cleartac [SsrHyp(Util.dummy_loc,x)] :: clrs
+  | clr, Some ((x, _), None) -> cleartac clr :: cleartac [x] :: clrs
   | clr, _ -> cleartac clr :: clrs
     
 let tclCLAUSES ist tac (gens, clseq) gl =
@@ -1914,7 +1914,7 @@ let tclCLAUSES ist tac (gens, clseq) gl =
     apply_type c args gl in
   let endtac =
     let id_map = Util.list_map_filter (function
-      | _, Some ((id,_),_) -> Some (mk_discharged_id id, id)
+      | _, Some ((SsrHyp(_,id),_),_) -> Some (mk_discharged_id id, id)
       | _, None -> None) gens in
     endclausestac id_map clseq gl_id cl0 in
   tclTHENLIST (hidetacs clseq gl_id cl0 @ [dtac; clear; tac; endtac]) gl
@@ -5324,7 +5324,7 @@ let wlogtac (((clr0, pats),_),_) (gens, ((_, ct), ctx)) hint suff ghave gl =
   let mkabs gen = abs_wgen false ist gl (fun x -> x) gen in
   let mkclr gen clrs = clr_of_wgen gen clrs in
   let mkpats = function
-  | _, Some ((x, _), _) -> fun pats -> IpatId x :: pats
+  | _, Some ((SsrHyp (_,x), _), _) -> fun pats -> IpatId x :: pats
   | _ -> fun x -> x in
   let ct = match ct with
   | (a, (b, Some (CCast (_, _, CastConv (_, cty))))) -> a, (b, Some cty)
