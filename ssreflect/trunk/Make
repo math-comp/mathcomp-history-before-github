@@ -16,3 +16,10 @@ src/ssreflect.ml4
 theories/ssreflect.mllib
 theories/ssrmatching.v
 theories/ssreflect.v
+theories/ssrfun.v
+theories/ssrbool.v
+theories/eqtype.v
+theories/ssrnat.v
+theories/seq.v
+theories/choice.v
+theories/fintype.v

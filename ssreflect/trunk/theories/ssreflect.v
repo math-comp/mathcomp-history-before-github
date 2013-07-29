@@ -44,6 +44,8 @@ Set SsrAstVersion.
 (* ssreflect manual, and in specific comments below.                          *)
 (******************************************************************************)
 
+Global Set Asymmetric Patterns.
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
