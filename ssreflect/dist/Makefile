@@ -58,8 +58,8 @@ test:
 	tar -xzf ssreflect-$(VERSION).tar.gz -C test-dist-static
 	tar -xzf ssreflect-$(VERSION).tar.gz -C test-dist-dynamic
 	sed -i 's/^#//' test-dist-static/ssreflect-$(VERSION)/Make
-	make -C test-dist-static/ssreflect-$(VERSION) all test & P1=$$!; \
-	make -C test-dist-dynamic/ssreflect-$(VERSION) all test & P2=$$!; \
+	make -C test-dist-static/ssreflect-$(VERSION) all & P1=$$!; \
+	make -C test-dist-dynamic/ssreflect-$(VERSION) all install & P2=$$!; \
 		wait $$P1 && wait $$P2
 	rm -rf test-dist-static test-dist-dynamic
 
