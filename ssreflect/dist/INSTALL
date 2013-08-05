@@ -9,7 +9,7 @@ Summary:
 
 REQUIREMENTS 
 ============ 
-- Coq version 8.4
+- Coq version 8.4 compiled with CamlP5
 
 BUILDING SSREFLECT
 ==================================================
