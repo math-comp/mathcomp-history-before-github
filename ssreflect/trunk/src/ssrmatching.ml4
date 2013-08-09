@@ -79,7 +79,8 @@ let get_index = function ArgArg i -> i | _ ->
 (* Toplevel constr must be globalized twice ! *)
 let glob_constr ist gsigma genv = function
   | _, Some ce ->
-    let ltacvars = List.map fst (Id.Map.bindings ist.lfun), Id.Set.empty in
+    let vars = Id.Map.fold (fun x _ accu -> Id.Set.add x accu) ist.lfun Id.Set.empty in
+    let ltacvars = vars, Id.Set.empty in
     Constrintern.intern_gen WithoutTypeConstraint ~ltacvars:ltacvars gsigma genv ce
   | rc, None -> rc
 
@@ -341,9 +342,9 @@ let unify_HO env sigma0 t1 t2 =
   sigma
 
 let pf_unify_HO gl t1 t2 =
-  let env, sigma0, si = pf_env gl, project gl, sig_it gl in
+  let env, sigma0, si, eff = pf_env gl, project gl, sig_it gl, sig_eff gl in
   let sigma = unify_HO env sigma0 t1 t2 in
-  re_sig si sigma
+  re_sig si eff sigma
 
 (* This is what the definition of iter_constr should be... *)
 let iter_constr_LR f c = match kind_of_term c with
@@ -1033,7 +1034,7 @@ let interp_pattern ist gl red redty =
     let _, h, _, rp = destLetIn rp in
     let sigma = cleanup_XinE h x rp sigma in
     let rp = subst1 h (Evarutil.nf_evar sigma rp) in
-    let sigma, e = interp_term ist (re_sig (sig_it gl) sigma) e in
+    let sigma, e = interp_term ist (re_sig (sig_it gl) (sig_eff gl) sigma) e in
     sigma, mk e h rp
 ;;
 let interp_cpattern ist gl red redty = interp_pattern ist gl (T red) redty;;

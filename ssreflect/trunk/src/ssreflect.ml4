@@ -433,8 +433,8 @@ let msgtac gl = pf_msg gl; tclIDTAC gl
 
 (** Tactic utilities *)
 
-let last_goal gls = let sigma, gll = Refiner.unpackage gls in
-   Refiner.repackage sigma (List.nth gll (List.length gll - 1))
+let last_goal gls = let sigma, gll, eff = Refiner.unpackage gls in
+   Refiner.repackage eff sigma (List.nth gll (List.length gll - 1))
 
 let pf_type_id gl t = id_of_string (hdchar (pf_env gl) t)
 
@@ -707,7 +707,9 @@ let ssrautoprop_tac = ref (fun gl -> assert false)
 
 (* Thanks to Arnaud Spiwack for this snippet *)
 let call_on_evar tac e s =
-  let { it = gs ; sigma = s } = tac { it = Goal.build e ; sigma = s } in gs, s
+  let { it = gs ; sigma = s } =
+    tac { it = Goal.build e ; sigma = s; eff=Declareops.no_seff } in
+  gs, s
 
 let pf_abs_evars_pirrel gl (sigma, c0) =
   pp(lazy(str"==PF_ABS_EVARS_PIRREL=="));
@@ -948,7 +950,8 @@ let interp_nbargs ist gl rc =
   try
     let rc6 = mkRApp rc (mkRHoles 6) in
     let sigma, t = interp_open_constr ist gl (rc6, None) in
-    let si = sig_it gl in let gl = re_sig si sigma in
+    let si, eff = sig_it gl, sig_eff gl in
+    let gl = re_sig si eff sigma in
     6 + nbargs_open_constr gl t
   with _ -> 5
 
@@ -960,7 +963,8 @@ let isAppInd gl c =
 let interp_view_nbimps ist gl rc =
   try
     let sigma, t = interp_open_constr ist gl (rc, None) in
-    let si = sig_it gl in let gl = re_sig si sigma in
+    let si, eff = sig_it gl, sig_eff gl in
+    let gl = re_sig si eff sigma in
     let pl, c = splay_open_constr gl t in
     if isAppInd gl c then List.length pl else ~-(List.length pl)
   with _ -> 0
@@ -1002,7 +1006,7 @@ let declare_one_prenex_implicit locality f =
   | impls ->
     Impargs.declare_manual_implicits locality fref ~enriching:false [impls]
 
-VERNAC COMMAND EXTEND Ssrpreneximplicits
+VERNAC COMMAND EXTEND Ssrpreneximplicits CLASSIFIED AS SIDEFF
   | [ "Prenex" "Implicits" ne_global_list(fl) ]
   -> [ let locality =
          Locality.make_section_locality (Locality.LocalityFixme.consume ()) in
@@ -1314,7 +1318,7 @@ let ssrdisplaysearch gr env t =
   let pr_res = pr_global gr ++ spc () ++ str " " ++ pr_lconstr_env env t in
   msg (hov 2 pr_res ++ fnl ())
 
-VERNAC COMMAND EXTEND SsrSearchPattern
+VERNAC COMMAND EXTEND SsrSearchPattern CLASSIFIED AS QUERY
 | [ "Search" ssr_search_arg(a) ssr_modlocs(mr) ] ->
   [ let hpat = interp_search_arg a in
     let in_mod = interp_modloc mr in
@@ -2192,7 +2196,7 @@ let print_view_hints i =
   let pp_hints = pr_list spc pr_rawhintref viewtab.(i) in
   ppnl (pp_viewname ++ hov 0 pp_hints ++ Pp.cut ())
 
-VERNAC COMMAND EXTEND PrintView
+VERNAC COMMAND EXTEND PrintView CLASSIFIED AS QUERY
 | [ "Print" "Hint" "View" ssrviewpos(i) ] -> [ mapviewpos print_view_hints i 3 ]
 END
 
@@ -2221,7 +2225,7 @@ let glob_view_hints lvh =
 
 let add_view_hints lvh i = Lib.add_anonymous_leaf (in_viewhint (i, lvh))
 
-VERNAC COMMAND EXTEND HintView
+VERNAC COMMAND EXTEND HintView CLASSIFIED AS QUERY
   |  [ "Hint" "View" ssrviewposspc(n) ne_ssrhintref_list(lvh) ] ->
      [ mapviewpos (add_view_hints (glob_view_hints lvh)) n 2 ]
 END
@@ -2256,27 +2260,27 @@ END
 let view_error s gv =
   errorstrm (str ("Cannot " ^ s ^ " view ") ++ pr_term gv)
 
-let interp_view ist si env sigma gv rid =
+let interp_view ist si eff env sigma gv rid =
   match intern_term ist sigma env gv with
   | GApp (loc, GHole _, rargs) ->
     let rv = GApp (loc, rid, rargs) in
-    snd (interp_open_constr ist (re_sig si sigma) (rv, None))
+    snd (interp_open_constr ist (re_sig si eff sigma) (rv, None))
   | rv ->
   let interp rc rargs =
-    interp_open_constr ist (re_sig si sigma) (mkRApp rc rargs, None) in
+    interp_open_constr ist (re_sig si eff sigma) (mkRApp rc rargs, None) in
   let rec simple_view rargs n =
     if n < 0 then view_error "use" gv else
     try interp rv rargs with _ -> simple_view (mkRHole :: rargs) (n - 1) in
-  let view_nbimps = interp_view_nbimps ist (re_sig si sigma) rv in
+  let view_nbimps = interp_view_nbimps ist (re_sig si eff sigma) rv in
   let view_args = [mkRApp rv (mkRHoles view_nbimps); rid] in
   let rec view_with = function
-  | [] -> simple_view [rid] (interp_nbargs ist (re_sig si sigma) rv)
+  | [] -> simple_view [rid] (interp_nbargs ist (re_sig si eff sigma) rv)
   | hint :: hints -> try interp hint view_args with _ -> view_with hints in
   snd (view_with (if view_nbimps < 0 then [] else viewtab.(0)))
 
 let top_id = mk_internal_id "top assumption"
 
-let with_view ist si env gl0 c name cl prune =
+let with_view ist si eff env gl0 c name cl prune =
   let c2r ist x = { ist with lfun =
     Id.Map.add top_id (Value.of_constr x) ist.lfun } in
   let rec loop (sigma, c') = function
@@ -2284,7 +2288,7 @@ let with_view ist si env gl0 c name cl prune =
       let rid, ist = match kind_of_term c' with
         | Var id -> mkRVar id, ist
         | _ -> mkRltacVar top_id, c2r ist c' in
-      loop (interp_view ist si env sigma f rid) view
+      loop (interp_view ist si eff env sigma f rid) view
   | [] ->
       let n, c' = pf_abs_evars gl0 (sigma, c') in
       let c' = if not prune then c' else pf_abs_cterm gl0 n c' in
@@ -2292,8 +2296,8 @@ let with_view ist si env gl0 c name cl prune =
   in loop
 
 let pf_with_view ist gl (prune, view) cl c =
-  let env, sigma, si = pf_env gl, project gl, sig_it gl in
-  with_view ist si env gl c (constr_name c) cl prune (sigma, c) view
+  let env, sigma, si, eff = pf_env gl, project gl, sig_it gl, sig_eff gl in
+  with_view ist si eff env gl c (constr_name c) cl prune (sigma, c) view
 (* }}} *)
  
 (** Extended intro patterns {{{ ***********************************************)
@@ -2927,9 +2931,9 @@ END
 
 let tclPERM perm tac gls =
   let subgls = tac gls in
-  let sigma, subgll = Refiner.unpackage subgls in
+  let sigma, subgll, eff = Refiner.unpackage subgls in
   let subgll' = perm subgll in
-  Refiner.repackage sigma subgll'
+  Refiner.repackage eff sigma subgll'
 (*
 let tclPERM perm tac gls =
   let mkpft n g r =
@@ -3115,9 +3119,9 @@ let saturate ?(beta=false) env sigma c ?(ty=Retyping.get_type_of env sigma c) m
    loop ty [] sigma m
 
 let pf_saturate ?beta gl c ?ty m = 
-  let env, sigma, si = pf_env gl, project gl, sig_it gl in
+  let env, sigma, si, eff = pf_env gl, project gl, sig_it gl, sig_eff gl in
   let t, ty, args, sigma = saturate ?beta env sigma c ?ty m in
-  t, ty, args, re_sig si sigma 
+  t, ty, args, re_sig si eff sigma 
 
 (** Rewrite redex switch *)
 
@@ -3508,9 +3512,9 @@ let applyn ~with_evars n t gl =
     Refine.refine (sigma, t) gl
   else
     let t, gl = if n = 0 then t, gl else
-      let sigma, si = project gl, sig_it gl in
+      let sigma, si, eff = project gl, sig_it gl, sig_eff gl in
       let rec loop sigma bo args = function (* saturate with metas *)
-        | 0 -> mkApp (t, Array.of_list (List.rev args)), re_sig si sigma 
+        | 0 -> mkApp (t, Array.of_list (List.rev args)), re_sig si eff sigma 
         | n -> match kind_of_term bo with
           | Lambda (_, ty, bo) -> 
               if not (closed0 ty) then raise dependent_apply_error;
@@ -4112,9 +4116,9 @@ let newssrcongrtac arg ist gl =
     | Some gl_c -> tclTHEN (convert_concl (fs gl_c c)) (t_ok (proj gl_c)) gl
     | None -> t_fail () gl in 
   let mk_evar gl ty = 
-    let env, sigma, si = pf_env gl, project gl, sig_it gl in
+    let env, sigma, si, eff = pf_env gl, project gl, sig_it gl, sig_eff gl in
     let sigma, x = Evarutil.new_evar (create_evar_defs sigma) env ty in
-    x, re_sig si sigma in
+    x, re_sig si eff sigma in
   let ssr_congr lr = mkApp (mkSsrConst "ssr_congr_arrow",lr) in
   (* here thw two cases: simple equality or arrow *)
   let equality, _, eq_args, gl' = pf_saturate gl (build_coq_eq ()) 3 in
@@ -5371,7 +5375,8 @@ let wlogtac ist (((clr0, pats),_),_) (gens, ((_, ct))) hint suff ghave gl =
         Environ.push_rel rd env, c) (pf_env gl, c) gens in
     let sigma, ev = Evarutil.new_evar (project gl) env Term.mkProp in
     let k, _ = Term.destEvar ev in
-    let fake_gl = { Evd.it = Goal.build k; Evd.sigma = sigma } in
+    let fake_gl =
+      {Evd.it = Goal.build k; Evd.sigma = sigma; Evd.eff =Declareops.no_seff} in
     let _, ct, _ = pf_interp_ty ist fake_gl ct in
     let rec subst c g s = match kind_of_term c, g with
       | Prod(Anonymous,_,c), [] -> mkProd(Anonymous, Vars.subst_vars s ct, c)
