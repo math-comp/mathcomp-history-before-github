@@ -557,7 +557,8 @@ Unset Printing Implicit Defensive.
 
 Reserved Notation "+%R" (at level 0).
 Reserved Notation "-%R" (at level 0).
-Reserved Notation "*%R" (at level 0).
+Reserved Notation "*%R" (at level 0, format " *%R").
+Reserved Notation "*:%R" (at level 0, format " *:%R").
 Reserved Notation "n %:R" (at level 2, left associativity, format "n %:R").
 Reserved Notation "k %:A" (at level 2, left associativity, format "k %:A").
 Reserved Notation "[ 'char' F ]" (at level 0, format "[ 'char'  F ]").
