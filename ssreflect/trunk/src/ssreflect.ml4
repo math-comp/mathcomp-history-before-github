@@ -117,17 +117,7 @@ let mkSsrConst name = constr_of_reference (mkSsrRef name)
 (* some caching, repeating the test only when the environment changes.  *)
 (*   We check for protect_term because it is the first constant loaded; *)
 (* ssr_have would ultimately be a better choice.                        *)
-let ssr_loaded =
-  let cache = ref (Global.safe_env (), false) in
-  fun () ->
-    Lexer.is_keyword "is" &&
-    let new_lbl = Global.safe_env () in
-    match !cache with
-    | lbl, loaded when lbl == new_lbl -> loaded
-    | _ ->
-       let loaded =
-         (try ignore (mkSsrRef "protect_term"); true with _ -> false) in
-       cache := new_lbl, loaded; loaded
+let ssr_loaded = ref false
 
 (* 0 cost pp function. Active only if env variable SSRDEBUG is set *)
 (* or if SsrDebug is Set                                                  *)
@@ -155,7 +145,8 @@ let get_index = function ArgArg i -> i | _ ->
 (* Toplevel constr must be globalized twice ! *)
 let glob_constr ist gsigma genv = function
   | _, Some ce ->
-    let ltacvars = List.map fst (Id.Map.bindings ist.lfun), Id.Set.empty in
+    let vars = Id.Map.fold (fun x _ accu -> Id.Set.add x accu) ist.lfun Id.Set.empty in
+    let ltacvars = vars, Id.Set.empty in
     Constrintern.intern_gen WithoutTypeConstraint ~ltacvars:ltacvars gsigma genv ce
   | rc, None -> rc
 
@@ -361,7 +352,9 @@ let mk_profiler s =
 let inVersion = Libobject.declare_object {
   (Libobject.default_object "SSRASTVERSION") with
   Libobject.load_function = (fun _ (_,v) -> 
-    if v <> ssrAstVersion then Errors.error "Please recompile your .vo files");
+    if v <> ssrAstVersion then Errors.error "Please recompile your .vo files";
+    ssr_loaded := true
+  );
   Libobject.classify_function = (fun v -> Libobject.Keep v);
 }
 
@@ -373,6 +366,7 @@ let _ =
       Goptions.optread  = (fun _ -> true);
       Goptions.optdepr  = false;
       Goptions.optwrite = (fun _ -> 
+        ssr_loaded := true;
         Lib.add_anonymous_leaf (inVersion ssrAstVersion)) }
 
 let tactic_expr = Tactic.tactic_expr
@@ -510,7 +504,7 @@ let add_internal_name pt = internal_names := pt :: !internal_names
 let is_internal_name s = List.exists (fun p -> p s) !internal_names
 
 let ssr_id_of_string loc s =
-  if is_ssr_reserved s && ssr_loaded () then begin
+  if is_ssr_reserved s && !ssr_loaded then begin
     if !ssr_reserved_ids then
       loc_error loc ("The identifier " ^ s ^ " is reserved.")
     else if is_internal_name s then
@@ -4691,7 +4685,7 @@ let _ =
 let test_ssr_rw_syntax =
   let test strm  =
     if not !ssr_rw_syntax then raise Stream.Failure else
-    if ssr_loaded () then () else
+    if !ssr_loaded then () else
     match Compat.get_tok (Util.stream_nth 0 strm) with
     | Tok.KEYWORD key when List.mem key.[0] ['{'; '['; '/'] -> ()
     | _ -> raise Stream.Failure in
