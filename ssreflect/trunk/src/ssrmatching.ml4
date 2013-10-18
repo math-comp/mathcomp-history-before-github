@@ -342,9 +342,9 @@ let unify_HO env sigma0 t1 t2 =
   sigma
 
 let pf_unify_HO gl t1 t2 =
-  let env, sigma0, si, eff = pf_env gl, project gl, sig_it gl, sig_eff gl in
+  let env, sigma0, si = pf_env gl, project gl, sig_it gl in
   let sigma = unify_HO env sigma0 t1 t2 in
-  re_sig si eff sigma
+  re_sig si sigma
 
 (* This is what the definition of iter_constr should be... *)
 let iter_constr_LR f c = match kind_of_term c with
@@ -1034,7 +1034,7 @@ let interp_pattern ist gl red redty =
     let _, h, _, rp = destLetIn rp in
     let sigma = cleanup_XinE h x rp sigma in
     let rp = subst1 h (Evarutil.nf_evar sigma rp) in
-    let sigma, e = interp_term ist (re_sig (sig_it gl) (sig_eff gl) sigma) e in
+    let sigma, e = interp_term ist (re_sig (sig_it gl) sigma) e in
     sigma, mk e h rp
 ;;
 let interp_cpattern ist gl red redty = interp_pattern ist gl (T red) redty;;
@@ -1050,7 +1050,7 @@ let eval_pattern ?raise_NoMatch env0 sigma0 concl0 pattern occ do_subst =
     let { Evd.evar_body = e_body } as e_def = Evd.find sigma e in
     let e_body = match e_body with Evar_defined c -> c
     | _ -> errorstrm (str "Matching the pattern " ++ pr_constr p ++
-          str " did not instantiate ?" ++ int e ++ spc () ++
+          str " did not instantiate ?" ++ int (Evar.repr e) ++ spc () ++
           str "Does the variable bound by the \"in\" construct occur "++
           str "in the pattern?") in
     let sigma = 

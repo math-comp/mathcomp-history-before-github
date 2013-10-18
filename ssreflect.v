@@ -60,6 +60,9 @@ Module SsrSyntax.
 Reserved Notation "(* x 'is' y 'of' z 'isn't' // /= //= *)" (at level 8).
 Reserved Notation "(* 69 *)" (at level 69).
 
+(* Non ambiguous keyword to check if the SsrSyntax module is imported *)
+Reserved Notation "(* Use to test if 'SsrSyntax_is_Imported' *)" (at level 8).
+
 End SsrSyntax.
 
 Export SsrMatchingSyntax.

@@ -86,7 +86,7 @@ let array_list_of_tl v =
 
 (* end patch *)
 
-module Intset = Int.Set
+module Intset = Evar.Set
 
 type loc = Loc.t
 let dummy_loc = Loc.ghost
@@ -117,7 +117,11 @@ let mkSsrConst name = constr_of_reference (mkSsrRef name)
 (* some caching, repeating the test only when the environment changes.  *)
 (*   We check for protect_term because it is the first constant loaded; *)
 (* ssr_have would ultimately be a better choice.                        *)
-let ssr_loaded = ref false
+let ssr_loaded = Summary.ref ~name:"SSR:loaded" false
+let is_ssr_loaded () =
+  !ssr_loaded ||
+  (if Lexer.is_keyword "SsrSyntax_is_Imported" then ssr_loaded:=true;
+   !ssr_loaded)
 
 (* 0 cost pp function. Active only if env variable SSRDEBUG is set *)
 (* or if SsrDebug is Set                                                  *)
@@ -352,9 +356,7 @@ let mk_profiler s =
 let inVersion = Libobject.declare_object {
   (Libobject.default_object "SSRASTVERSION") with
   Libobject.load_function = (fun _ (_,v) -> 
-    if v <> ssrAstVersion then Errors.error "Please recompile your .vo files";
-    ssr_loaded := true
-  );
+    if v <> ssrAstVersion then Errors.error "Please recompile your .vo files");
   Libobject.classify_function = (fun v -> Libobject.Keep v);
 }
 
@@ -366,7 +368,6 @@ let _ =
       Goptions.optread  = (fun _ -> true);
       Goptions.optdepr  = false;
       Goptions.optwrite = (fun _ -> 
-        ssr_loaded := true;
         Lib.add_anonymous_leaf (inVersion ssrAstVersion)) }
 
 let tactic_expr = Tactic.tactic_expr
@@ -377,7 +378,7 @@ let tactic_mode = G_vernac.tactic_mode
 (** 1. Utilities *)
 
 
-let ssroldreworder = ref true
+let ssroldreworder = Summary.ref ~name:"SSR:oldreworder" true
 let _ =
   Goptions.declare_bool_option
     { Goptions.optsync  = false;
@@ -433,8 +434,8 @@ let msgtac gl = pf_msg gl; tclIDTAC gl
 
 (** Tactic utilities *)
 
-let last_goal gls = let sigma, gll, eff = Refiner.unpackage gls in
-   Refiner.repackage eff sigma (List.nth gll (List.length gll - 1))
+let last_goal gls = let sigma, gll = Refiner.unpackage gls in
+   Refiner.repackage sigma (List.nth gll (List.length gll - 1))
 
 let pf_type_id gl t = id_of_string (hdchar (pf_env gl) t)
 
@@ -484,7 +485,7 @@ let introid name = tclTHEN (fun gl ->
 (* when the ssreflect Module is present this is normally an error,     *)
 (* but we provide a compatibility flag to reduce this to a warning.    *)
 
-let ssr_reserved_ids = ref true
+let ssr_reserved_ids = Summary.ref ~name:"SSR:idents" true
 
 let _ =
   Goptions.declare_bool_option
@@ -504,7 +505,7 @@ let add_internal_name pt = internal_names := pt :: !internal_names
 let is_internal_name s = List.exists (fun p -> p s) !internal_names
 
 let ssr_id_of_string loc s =
-  if is_ssr_reserved s && !ssr_loaded then begin
+  if is_ssr_reserved s && is_ssr_loaded () then begin
     if !ssr_reserved_ids then
       loc_error loc ("The identifier " ^ s ^ " is reserved.")
     else if is_internal_name s then
@@ -708,7 +709,7 @@ let ssrautoprop_tac = ref (fun gl -> assert false)
 (* Thanks to Arnaud Spiwack for this snippet *)
 let call_on_evar tac e s =
   let { it = gs ; sigma = s } =
-    tac { it = Goal.build e ; sigma = s; eff=Declareops.no_seff } in
+    tac { it = Goal.build e ; sigma = s; } in
   gs, s
 
 let pf_abs_evars_pirrel gl (sigma, c0) =
@@ -950,8 +951,8 @@ let interp_nbargs ist gl rc =
   try
     let rc6 = mkRApp rc (mkRHoles 6) in
     let sigma, t = interp_open_constr ist gl (rc6, None) in
-    let si, eff = sig_it gl, sig_eff gl in
-    let gl = re_sig si eff sigma in
+    let si = sig_it gl in
+    let gl = re_sig si sigma in
     6 + nbargs_open_constr gl t
   with _ -> 5
 
@@ -963,8 +964,8 @@ let isAppInd gl c =
 let interp_view_nbimps ist gl rc =
   try
     let sigma, t = interp_open_constr ist gl (rc, None) in
-    let si, eff = sig_it gl, sig_eff gl in
-    let gl = re_sig si eff sigma in
+    let si = sig_it gl in
+    let gl = re_sig si sigma in
     let pl, c = splay_open_constr gl t in
     if isAppInd gl c then List.length pl else ~-(List.length pl)
   with _ -> 0
@@ -2260,27 +2261,27 @@ END
 let view_error s gv =
   errorstrm (str ("Cannot " ^ s ^ " view ") ++ pr_term gv)
 
-let interp_view ist si eff env sigma gv rid =
+let interp_view ist si env sigma gv rid =
   match intern_term ist sigma env gv with
   | GApp (loc, GHole _, rargs) ->
     let rv = GApp (loc, rid, rargs) in
-    snd (interp_open_constr ist (re_sig si eff sigma) (rv, None))
+    snd (interp_open_constr ist (re_sig si sigma) (rv, None))
   | rv ->
   let interp rc rargs =
-    interp_open_constr ist (re_sig si eff sigma) (mkRApp rc rargs, None) in
+    interp_open_constr ist (re_sig si sigma) (mkRApp rc rargs, None) in
   let rec simple_view rargs n =
     if n < 0 then view_error "use" gv else
     try interp rv rargs with _ -> simple_view (mkRHole :: rargs) (n - 1) in
-  let view_nbimps = interp_view_nbimps ist (re_sig si eff sigma) rv in
+  let view_nbimps = interp_view_nbimps ist (re_sig si sigma) rv in
   let view_args = [mkRApp rv (mkRHoles view_nbimps); rid] in
   let rec view_with = function
-  | [] -> simple_view [rid] (interp_nbargs ist (re_sig si eff sigma) rv)
+  | [] -> simple_view [rid] (interp_nbargs ist (re_sig si sigma) rv)
   | hint :: hints -> try interp hint view_args with _ -> view_with hints in
   snd (view_with (if view_nbimps < 0 then [] else viewtab.(0)))
 
 let top_id = mk_internal_id "top assumption"
 
-let with_view ist si eff env gl0 c name cl prune =
+let with_view ist si env gl0 c name cl prune =
   let c2r ist x = { ist with lfun =
     Id.Map.add top_id (Value.of_constr x) ist.lfun } in
   let rec loop (sigma, c') = function
@@ -2288,7 +2289,7 @@ let with_view ist si eff env gl0 c name cl prune =
       let rid, ist = match kind_of_term c' with
         | Var id -> mkRVar id, ist
         | _ -> mkRltacVar top_id, c2r ist c' in
-      loop (interp_view ist si eff env sigma f rid) view
+      loop (interp_view ist si env sigma f rid) view
   | [] ->
       let n, c' = pf_abs_evars gl0 (sigma, c') in
       let c' = if not prune then c' else pf_abs_cterm gl0 n c' in
@@ -2296,8 +2297,8 @@ let with_view ist si eff env gl0 c name cl prune =
   in loop
 
 let pf_with_view ist gl (prune, view) cl c =
-  let env, sigma, si, eff = pf_env gl, project gl, sig_it gl, sig_eff gl in
-  with_view ist si eff env gl c (constr_name c) cl prune (sigma, c) view
+  let env, sigma, si = pf_env gl, project gl, sig_it gl in
+  with_view ist si env gl c (constr_name c) cl prune (sigma, c) view
 (* }}} *)
  
 (** Extended intro patterns {{{ ***********************************************)
@@ -2327,6 +2328,8 @@ let rec ipat_of_intro_pattern = function
   | IntroAnonymous -> IpatAnon
   | IntroRewrite b -> IpatRw (allocc, if b then L2R else R2L)
   | IntroFresh id -> IpatAnon
+  | IntroInjection ips ->
+      IpatCase [List.map ipat_of_intro_pattern (List.map remove_loc ips)]
   | IntroForthcoming _ -> (* Unable to determine which kind of ipat interp_introid could return [HH] *)
       assert false
 
@@ -2372,6 +2375,7 @@ let rec add_intro_pattern_hyps (loc, ipat) hyps = match ipat with
   | IntroAnonymous -> []
   | IntroFresh _ -> []
   | IntroRewrite _ -> hyps
+  | IntroInjection ips -> List.fold_right add_intro_pattern_hyps ips hyps
   | IntroForthcoming _ -> 
     (* As in ipat_of_intro_pattern, was unable to determine which kind
       of ipat interp_introid could return [HH] *) assert false
@@ -2931,9 +2935,9 @@ END
 
 let tclPERM perm tac gls =
   let subgls = tac gls in
-  let sigma, subgll, eff = Refiner.unpackage subgls in
+  let sigma, subgll = Refiner.unpackage subgls in
   let subgll' = perm subgll in
-  Refiner.repackage eff sigma subgll'
+  Refiner.repackage sigma subgll'
 (*
 let tclPERM perm tac gls =
   let mkpft n g r =
@@ -3119,9 +3123,9 @@ let saturate ?(beta=false) env sigma c ?(ty=Retyping.get_type_of env sigma c) m
    loop ty [] sigma m
 
 let pf_saturate ?beta gl c ?ty m = 
-  let env, sigma, si, eff = pf_env gl, project gl, sig_it gl, sig_eff gl in
+  let env, sigma, si = pf_env gl, project gl, sig_it gl in
   let t, ty, args, sigma = saturate ?beta env sigma c ?ty m in
-  t, ty, args, re_sig si eff sigma 
+  t, ty, args, re_sig si sigma 
 
 (** Rewrite redex switch *)
 
@@ -3512,9 +3516,9 @@ let applyn ~with_evars n t gl =
     Refine.refine (sigma, t) gl
   else
     let t, gl = if n = 0 then t, gl else
-      let sigma, si, eff = project gl, sig_it gl, sig_eff gl in
+      let sigma, si = project gl, sig_it gl in
       let rec loop sigma bo args = function (* saturate with metas *)
-        | 0 -> mkApp (t, Array.of_list (List.rev args)), re_sig si eff sigma 
+        | 0 -> mkApp (t, Array.of_list (List.rev args)), re_sig si sigma 
         | n -> match kind_of_term bo with
           | Lambda (_, ty, bo) -> 
               if not (closed0 ty) then raise dependent_apply_error;
@@ -3773,7 +3777,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
     let patterns_ev = List.map evars_of_term patterns in 
     let ev = List.fold_left Intset.union Intset.empty patterns_ev in
     let ty_ev = Intset.fold (fun i e ->
-         let ex = Evd.existential_of_int i in  
+         let ex = i in
          let i_ty = Evd.evar_concl (Evd.find (project gl) ex) in
          Intset.union e (evars_of_term i_ty))
       ev Intset.empty in
@@ -4116,9 +4120,9 @@ let newssrcongrtac arg ist gl =
     | Some gl_c -> tclTHEN (convert_concl (fs gl_c c)) (t_ok (proj gl_c)) gl
     | None -> t_fail () gl in 
   let mk_evar gl ty = 
-    let env, sigma, si, eff = pf_env gl, project gl, sig_it gl, sig_eff gl in
+    let env, sigma, si = pf_env gl, project gl, sig_it gl in
     let sigma, x = Evarutil.new_evar (create_evar_defs sigma) env ty in
-    x, re_sig si eff sigma in
+    x, re_sig si sigma in
   let ssr_congr lr = mkApp (mkSsrConst "ssr_congr_arrow",lr) in
   (* here thw two cases: simple equality or arrow *)
   let equality, _, eq_args, gl' = pf_saturate gl (build_coq_eq ()) 3 in
@@ -4675,7 +4679,7 @@ ARGUMENT EXTEND ssrrwargs TYPED AS ssrrwarg list PRINTED BY pr_ssrrwargs
   | [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
-let ssr_rw_syntax = ref true
+let ssr_rw_syntax = Summary.ref ~name:"SSR:rewrite" true
 
 let _ =
   Goptions.declare_bool_option
@@ -4689,7 +4693,7 @@ let _ =
 let test_ssr_rw_syntax =
   let test strm  =
     if not !ssr_rw_syntax then raise Stream.Failure else
-    if !ssr_loaded then () else
+    if is_ssr_loaded () then () else
     match Compat.get_tok (Util.stream_nth 0 strm) with
     | Tok.KEYWORD key when List.mem key.[0] ['{'; '['; '/'] -> ()
     | _ -> raise Stream.Failure in
@@ -5376,7 +5380,7 @@ let wlogtac ist (((clr0, pats),_),_) (gens, ((_, ct))) hint suff ghave gl =
     let sigma, ev = Evarutil.new_evar (project gl) env Term.mkProp in
     let k, _ = Term.destEvar ev in
     let fake_gl =
-      {Evd.it = Goal.build k; Evd.sigma = sigma; Evd.eff =Declareops.no_seff} in
+      {Evd.it = Goal.build k; Evd.sigma = sigma} in
     let _, ct, _ = pf_interp_ty ist fake_gl ct in
     let rec subst c g s = match kind_of_term c, g with
       | Prod(Anonymous,_,c), [] -> mkProd(Anonymous, Vars.subst_vars s ct, c)
