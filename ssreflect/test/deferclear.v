@@ -1,5 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect.
+Require Import ssrbool eqtype fintype ssrnat.
 
 Variable T : Type.
 
@@ -10,8 +11,6 @@ Variable P : T -> Prop.
 
 Lemma test1 : forall a b c : T, P a -> forall d : T, True.
 Proof. move=> a b {a} a _ d; exact I. Qed.
-
-Require Import ssrbool eqtype fintype ssrnat.
 
 Definition Q := forall x y : nat, x = y.
 Axiom L : 0 = 0 -> Q.
