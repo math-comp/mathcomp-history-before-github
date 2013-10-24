@@ -1173,7 +1173,7 @@ let interp_search_notation loc tag okey =
     let m = m_sc ++ pr_ntn ntn_pat ++ spc () ++ str "denotes " ++ m_body in
     msgnl (hov 0 m) in
   if List.length !scs > 1 then
-    let scs' = List.remove sc !scs in
+    let scs' = List.remove (=) sc !scs in
     let w = pr_ntn ntn ++ str " is also defined " ++ pr_scs scs' in
     msg_warning (hov 4 w)
   else if String.string_contains ntn " .. " then
