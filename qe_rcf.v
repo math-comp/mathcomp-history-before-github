@@ -916,7 +916,7 @@ rewrite (@eval_BigRgcd _ _ _ (fun p => if p != 0
     | 0 < ccount_weak bq sq'])).
   by rewrite !big_map.
 move=> p; rewrite eval_Isnull; case: eqP=> _ /=; last first.
-  by rewrite (eval_CcountWeak (>%R 0)).
+  by rewrite (eval_CcountWeak (> 0)).
 rewrite (eval_CcountWeak (fun n =>
    [|| \big[andb/true]_(q <- sq') (0 < lead_coef q),
     \big[andb/true]_(q <- sq') (0 < (-1) ^+ (size q).-1 * lead_coef q)
@@ -925,7 +925,7 @@ rewrite (eval_CcountWeak (fun n =>
 move=> n /=; rewrite -!BigOp.bigopE !big_map; congr [|| _, _| _].
   apply: (big_ind2 (fun u v => qf_eval e u = v))=> //=.
     by move=> u v u' v' -> ->.
-  by move=> i _; rewrite (eval_LeadCoef (>%R 0)).
+  by move=> i _; rewrite (eval_LeadCoef (> 0)).
 apply: (big_ind2 (fun u v => qf_eval e u = v))=> //=.
   by move=> u v u' v' -> ->.
 by move=> i _; rewrite eval_Size (eval_LeadCoef (fun lq =>

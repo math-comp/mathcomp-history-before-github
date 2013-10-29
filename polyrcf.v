@@ -740,7 +740,7 @@ by move: (hs (-x)); rewrite !opprK.
 Qed.
 
 Lemma min_roots_on : forall p a b x s,
-  all (>%R x) s -> roots_on p `]a, b[ (x :: s)
+  all (> x) s -> roots_on p `]a, b[ (x :: s)
   -> [/\ x \in `]a, b[, (roots_on p `]a, x[ [::]),
     (root p x) & (roots_on p `]x, b[ s)].
 Proof.
@@ -763,7 +763,7 @@ by apply: subitvPl; rewrite //= ?(itvP hx).
 Qed.
 
 Lemma max_roots_on : forall p a b x s,
-  all (<%R x) s -> roots_on p `]a, b[ (x :: s)
+  all (< x) s -> roots_on p `]a, b[ (x :: s)
   -> [/\ x \in `]a, b[, (roots_on p `]x, b[ [::]),
     (root p x) & (roots_on p `]a, x[ s)].
 Proof.
@@ -777,7 +777,7 @@ by split=> //; apply/roots_on_comp.
 Qed.
 
 Lemma roots_on_cons : forall p a b r s,
-  sorted >%R (r :: s) -> roots_on p `]a, b[ (r :: s) -> roots_on p `]r, b[ s.
+  sorted <%R (r :: s) -> roots_on p `]a, b[ (r :: s) -> roots_on p `]r, b[ s.
 Proof.
 move=> p a b r s /= hrs hr.
 have:= (order_path_min (@ltr_trans _) hrs)=> allrs.
@@ -795,13 +795,13 @@ Qed.
 (* Qed. *)
 
 Lemma roots_on_rcons : forall p a b r s,
-  sorted >%R (rcons s r) -> roots_on p `]a, b[ (rcons s r)
+  sorted <%R (rcons s r) -> roots_on p `]a, b[ (rcons s r)
   -> roots_on p `]a, r[ s.
 Proof.
 move=> p a b r s; rewrite -{1}[s]revK -!rev_cons rev_sorted /=.
 move=> hrs hr.
 have := (order_path_min (rev_trans (@ltr_trans _)) hrs)=> allrrs.
-have allrs: (all (<%R r) s).
+have allrs: (all (< r) s).
   by apply/allP=> x hx; move/allP:allrrs; apply; rewrite mem_rev.
 move/(@roots_on_same _ _ _ _ (r::s)):hr=>hr.
 case: (max_roots_on allrs (hr _))=> //.
@@ -883,7 +883,7 @@ Qed.
 Lemma cat_roots_on : forall (p : {poly R}) a b x,
   x \in `]a, b[ -> ~~ (root p x)
   -> forall s s',
-    sorted >%R s -> sorted >%R s'
+    sorted <%R s -> sorted <%R s'
     -> roots_on p `]a, x[ s -> roots_on p `]x, b[ s'
     -> roots_on p `]a, b[ (s ++ s').
 Proof.
@@ -910,7 +910,7 @@ CoInductive roots_spec (p : {poly R}) (i : pred R) (s : seq R) :
   {poly R} -> bool -> seq R -> Type :=
 | Roots0 of p = 0 :> {poly R} & s = [::] : roots_spec p i s 0 true [::]
 | Roots of p != 0 & roots_on p i s
-  & sorted >%R s : roots_spec p i s p false s.
+  & sorted <%R s : roots_spec p i s p false s.
 
 (* still much too long *)
 Lemma itv_roots : forall (p :{poly R}) (a b : R),
@@ -997,11 +997,11 @@ Lemma roots_on_roots : forall p a b, p != 0 ->
 Proof. by move=> a b p; case:rootsP. Qed.
 Hint Resolve roots_on_roots.
 
-Lemma sorted_roots : forall a b p, sorted >%R (roots p a b).
+Lemma sorted_roots : forall a b p, sorted <%R (roots p a b).
 Proof. by move=> p a b; case: rootsP. Qed.
 Hint Resolve sorted_roots.
 
-Lemma path_roots : forall p a b, path >%R a (roots p a b).
+Lemma path_roots : forall p a b, path <%R a (roots p a b).
 Proof.
 move=> p a b; case: rootsP=> //= p0 hp sp; rewrite path_min_sorted //.
 by move=> y; rewrite -hp; case/andP; move/itvP->.
@@ -1039,7 +1039,7 @@ by move: (hs x); rewrite itv_gte //= mem_head.
 Qed.
 
 Lemma roots_on_uniq : forall p a b s1 s2,
-  sorted >%R s1 -> sorted >%R s2 ->
+  sorted <%R s1 -> sorted <%R s2 ->
   roots_on p `]a, b[ s1 -> roots_on p `]a, b[ s2 -> s1 = s2.
 Proof.
 move=> p a b s1.
@@ -1127,7 +1127,7 @@ by move=> p a b; case: rootsP=> // *; apply: last_roots_on_le.
 Qed.
 
 Lemma roots_uniq : forall p a b s, p != 0 ->
-  roots_on p `]a, b[ s -> sorted >%R s -> s = roots p a b.
+  roots_on p `]a, b[ s -> sorted <%R s -> s = roots p a b.
 Proof.
 move=> p a b s; case: rootsP=> // p0 hs' ps' _ hs ss.
 exact: (@roots_on_uniq p a b)=> //.
@@ -1381,7 +1381,7 @@ Qed.
 Lemma uniq_roots : forall a b p, uniq (roots p a b).
 Proof.
 move=> a b p; case p0: (p == 0); first by rewrite (eqP p0) roots0.
-by apply: (@sorted_uniq _ >%R); [exact: ltr_trans | exact: ltrr|].
+by apply: (@sorted_uniq _ <%R); [exact: ltr_trans | exact: ltrr|].
 Qed.
 
 Hint Resolve uniq_roots.

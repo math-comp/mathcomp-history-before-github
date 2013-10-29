@@ -85,6 +85,18 @@ Require Import bigop ssralg finset fingroup zmodp poly.
 (*                     and n such that `|x| < n%:R.                           *)
 (*       Num.sqrt x == in a real-closed field, a positive square root of x if *)
 (*                     x >= 0, or 0 otherwise.                                *)
+(*                                                                            *)
+(*  There are now three distinct uses of the symbols <, <=, > and >=:         *)
+(*    0-ary, unary (prefix) and binary (infix).                               *)
+(*  0. <%R, <=%R, >%R, >=%R stand respectively for lt, le, gt and ge.         *)
+(*  1. (< x),  (<= x), (> x),  (>= x) stand respectively for                  *)
+(*     (gt x), (ge x), (lt x), (le x).                                        *)
+(*     So (< x) is a predicate characterizing elements smaller than x.        *)
+(*  2. (x < y), (x <= y), ... mean what they are expected to.                 *)
+(*  These convention are compatible with haskell's,                           *)
+(*   where ((< y) x) = (x < y) = ((<) x y),                                   *)
+(*   except that we write <%R instead of (<).                                 *)
+(*                                                                            *)
 (* - list of prefixes :                                                       *)
 (*   p : positive                                                             *)
 (*   n : negative                                                             *)
@@ -102,6 +114,15 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
 Import GRing.Theory.
+
+Reserved Notation "<= y" (at level 35).
+Reserved Notation ">= y" (at level 35).
+Reserved Notation "< y" (at level 35).
+Reserved Notation "> y" (at level 35).
+Reserved Notation "<= y :> T" (at level 35, y at next level).
+Reserved Notation ">= y :> T" (at level 35, y at next level).
+Reserved Notation "< y :> T" (at level 35, y at next level).
+Reserved Notation "> y :> T" (at level 35, y at next level).
 
 Module Num.
 
@@ -243,11 +264,21 @@ Import Def Keys.
 
 Notation "`| x |" := (norm x) : ring_scope.
 
-Notation ">%R" := lt : ring_scope.
-Notation "<%R" := gt : ring_scope.
-Notation ">=%R" := le : ring_scope.
-Notation "<=%R" := ge : ring_scope.
+Notation "<%R" := lt : ring_scope.
+Notation ">%R" := gt : ring_scope.
+Notation "<=%R" := le : ring_scope.
+Notation ">=%R" := ge : ring_scope.
 Notation "<?=%R" := lerif : ring_scope.
+
+Notation "< y" := (gt y) : ring_scope.
+Notation "< y :> T" := (< (y : T)) : ring_scope.
+Notation "> y" := (lt y) : ring_scope.
+Notation "> y :> T" := (> (y : T)) : ring_scope.
+
+Notation "<= y" := (ge y) : ring_scope.
+Notation "<= y :> T" := (<= (y : T)) : ring_scope.
+Notation ">= y"  := (le y) : ring_scope.
+Notation ">= y :> T" := (>= (y : T)) : ring_scope.
 
 Notation "x < y"  := (lt x y) : ring_scope.
 Notation "x < y :> T" := ((x : T) < (y : T)) : ring_scope.
@@ -1095,7 +1126,7 @@ Definition subr_cp0 := (subr_lte0, subr_gte0).
 
 (* Ordered ring properties. *)
 
-Lemma ler_asym : antisymmetric (>=%R : rel R).
+Lemma ler_asym : antisymmetric (<=%R : rel R).
 Proof.
 move=> x y; rewrite !ler_def distrC -opprB -addr_eq0 => /andP[/eqP->].
 by rewrite -mulr2n -mulr_natl mulf_eq0 subr_eq0 pnatr_eq0 => /eqP.
