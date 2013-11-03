@@ -452,9 +452,9 @@ let pf_ids_of_proof_hyps gl =
 let convert_concl_no_check t = convert_concl_no_check t DEFAULTcast
 let convert_concl t = convert_concl t DEFAULTcast
 let reduct_in_concl t = reduct_in_concl (t, DEFAULTcast)
-let havetac id = pose_proof (Name id)
+let havetac id c = Proofview.V82.of_tactic (pose_proof (Name id) c)
 let settac id c = letin_tac None (Name id) c None
-let posetac id cl = settac id cl nowhere
+let posetac id cl = Proofview.V82.of_tactic (settac id cl nowhere)
 let basecuttac name c = apply (mkApp (mkSsrConst name, [|c|]))
 
 (* we reduce head beta redexes *)
@@ -470,7 +470,7 @@ let introid name = tclTHEN (fun gl ->
      let g = Closure.whd_val (betared env) (Closure.inject g) in
      convert_concl_no_check g gl
    | _ -> tclIDTAC gl)
-  (intro_mustbe_force name)
+  (Proofview.V82.of_tactic (intro_mustbe_force name))
 ;;
 
 
@@ -907,7 +907,7 @@ let ssrevaltac ist gtac =
   let debug = match TacStore.get ist.extra f_debug with
   | None -> Tactic_debug.DebugOff | Some level -> level
   in
-  interp_tac_gen ist.lfun [] debug (globTacticIn (fun _ -> gtac))
+  Proofview.V82.of_tactic (interp_tac_gen ist.lfun [] debug (globTacticIn (fun _ -> gtac)))
 
 (* fun gl -> let lfun = [tacarg_id, val_interp ist gl gtac] in
   interp_tac_gen lfun [] ist.debug tacarg_expr gl *)
@@ -1438,7 +1438,7 @@ let donetac gl =
     with Not_found -> try Nametab.locate_tactic (ssrqid "done")
     with Not_found -> Errors.error "The ssreflect library was not loaded" in
   let tacexpr = dummy_loc, Tacexpr.Reference (ArgArg (dummy_loc, tacname)) in
-  eval_tactic (Tacexpr.TacArg tacexpr) gl
+  Proofview.V82.of_tactic (eval_tactic (Tacexpr.TacArg tacexpr)) gl
 
 let prof_donetac = mk_profiler "donetac";;
 let donetac gl = prof_donetac.profile donetac gl;;
@@ -1449,8 +1449,8 @@ let ssrautoprop gl =
       try Nametab.locate_tactic (qualid_of_ident (id_of_string "ssrautoprop"))
       with Not_found -> Nametab.locate_tactic (ssrqid "ssrautoprop") in
     let tacexpr = dummy_loc, Tacexpr.Reference (ArgArg (dummy_loc, tacname)) in
-    eval_tactic (Tacexpr.TacArg tacexpr) gl
-  with Not_found -> Auto.full_trivial [] gl
+    Proofview.V82.of_tactic (eval_tactic (Tacexpr.TacArg tacexpr)) gl
+  with Not_found -> Proofview.V82.of_tactic (Auto.full_trivial []) gl
 
 let () = ssrautoprop_tac := ssrautoprop
 
@@ -1540,17 +1540,17 @@ let hinttac ist is_by (is_or, atacs) =
 (* tactics that generate more than two subgoals).                     *)
 
 TACTIC EXTEND ssrtclplus
-| [ "Qed" "+" ssrtclarg(arg) ] -> [ eval_tclarg ist arg ]
+| [ "Qed" "+" ssrtclarg(arg) ] -> [ Proofview.V82.tactic (eval_tclarg ist arg) ]
 END
 set_pr_ssrtac "tclplus" 5 [ArgSep "+ "; ArgSsr "tclarg"]
 
 TACTIC EXTEND ssrtclminus
-| [ "Qed" "-" ssrtclarg(arg) ] -> [ eval_tclarg ist arg ]
+| [ "Qed" "-" ssrtclarg(arg) ] -> [ Proofview.V82.tactic (eval_tclarg ist arg) ]
 END
 set_pr_ssrtac "tclminus" 5 [ArgSep "- "; ArgSsr "tclarg"]
 
 TACTIC EXTEND ssrtclstar
-| [ "Qed" "*" ssrtclarg(arg) ] -> [ eval_tclarg ist arg ]
+| [ "Qed" "*" ssrtclarg(arg) ] -> [ Proofview.V82.tactic (eval_tclarg ist arg) ]
 END
 set_pr_ssrtac "tclstar" 5 [ArgSep "- "; ArgSsr "tclarg"]
 
@@ -1581,7 +1581,7 @@ ARGUMENT EXTEND ssrhint TYPED AS ssrhintarg PRINTED BY pr_ssrhint
 END
 
 TACTIC EXTEND ssrtclby
-| [ "Qed" ssrhint(tac) ] -> [ hinttac ist true tac ]
+| [ "Qed" ssrhint(tac) ] -> [ Proofview.V82.tactic (hinttac ist true tac) ]
 END
 set_pr_ssrtac "tclby" 0 [ArgSsr "hint"]
 
@@ -2002,7 +2002,9 @@ let pr_rwdir = function L2R -> mt() | R2L -> str "-"
 
 let rewritetac dir c =
   (* Due to the new optional arg ?tac, application shouldn't be too partial *)
-  Equality.general_rewrite (dir = L2R) AllOccurrences true false c
+  Proofview.V82.of_tactic begin
+    Equality.general_rewrite (dir = L2R) AllOccurrences true false c
+  end
 
 let wit_ssrdir = add_genarg "ssrdir" pr_dir
 
@@ -2549,7 +2551,7 @@ let revtoptac n0 gl =
 
 let equality_inj l b id c gl =
   let msg = ref "" in
-  try Equality.inj l b c gl
+  try Proofview.V82.of_tactic (Equality.inj l b c) gl
   with
     | Compat.Exc_located(_,Errors.UserError (_,s))
     | Errors.UserError (_,s)
@@ -2764,7 +2766,7 @@ END
 TACTIC EXTEND ssrtclintros
 | [ "Qed" ssrintrosarg(arg) ] ->
   [ let tac, intros = arg in
-    tclINTROS ist (fun ist -> ssrevaltac ist tac) intros ]
+    Proofview.V82.tactic (tclINTROS ist (fun ist -> ssrevaltac ist tac) intros) ]
 END
 set_pr_ssrtac "tclintros" 0 [ArgSsr "introsarg"]
 
@@ -2849,7 +2851,7 @@ let ssrdotac ist (((n, m), tac), clauses) =
   tclCLAUSES ist (tclMULT mul (hinttac ist false tac)) clauses
 
 TACTIC EXTEND ssrtcldo
-| [ "Qed" "do" ssrdoarg(arg) ] -> [ ssrdotac ist arg ]
+| [ "Qed" "do" ssrdoarg(arg) ] -> [ Proofview.V82.tactic (ssrdotac ist arg) ]
 END
 set_pr_ssrtac "tcldo" 3 [ArgSep "do "; ArgSsr "doarg"]
 
@@ -3014,7 +3016,7 @@ END
 
 TACTIC EXTEND ssrtclseq
 | [ "Qed" ssrtclarg(tac) ssrseqdir(dir) ssrseqarg(arg) ] ->
-  [ tclSEQAT ist tac dir arg ]
+  [ Proofview.V82.tactic (tclSEQAT ist tac dir arg) ]
 END
 set_pr_ssrtac "tclseq" 5 [ArgSsr "tclarg"; ArgSsr "seqdir"; ArgSsr "seqarg"]
 
@@ -3342,7 +3344,7 @@ let pushelimeqtac gl =
   let x, t, _ = destLambda args.(1) in
   let cl1 = mkApp (args.(1), Array.sub args 2 (Array.length args - 2)) in
   let cl2, eqc = mkEq L2R cl1 args.(2) t 1 in
-  tclTHEN (apply_type (mkProd (x, t, cl2)) [args.(2); eqc]) intro gl
+  tclTHEN (apply_type (mkProd (x, t, cl2)) [args.(2); eqc]) (Proofview.V82.of_tactic intro) gl
 
 (** Bookkeeping (discharge-intro) argument *)
 
@@ -3378,7 +3380,7 @@ END
 let poptac ist n = introstac ~ist (List.init n (fun _ -> IpatWild))
 
 TACTIC EXTEND ssrclear
-  | [ "clear" natural(n) ] -> [ poptac ist n ]
+  | [ "clear" natural(n) ] -> [ Proofview.V82.tactic (poptac ist n) ]
 END
 
 (** The "move" tactic *)
@@ -3438,11 +3440,11 @@ let ssrmovetac ist = function
 
 TACTIC EXTEND ssrmove
 | [ "move" ssrmovearg(arg) ssrrpat(pat) ] ->
-  [ tclTHEN (ssrmovetac ist arg) (introstac ~ist [pat]) ]
+  [ Proofview.V82.tactic (tclTHEN (ssrmovetac ist arg) (introstac ~ist [pat])) ]
 | [ "move" ssrmovearg(arg) ssrclauses(clauses) ] ->
-  [ tclCLAUSES ist (ssrmovetac ist arg) clauses ]
-| [ "move" ssrrpat(pat) ] -> [ introstac ~ist [pat] ]
-| [ "move" ] -> [ movehnftac ]
+  [ Proofview.V82.tactic (tclCLAUSES ist (ssrmovetac ist arg) clauses) ]
+| [ "move" ssrrpat(pat) ] -> [ Proofview.V82.tactic (introstac ~ist [pat]) ]
+| [ "move" ] -> [ Proofview.V82.tactic (movehnftac) ]
 END
 
 (* TASSI: given the type of an elimination principle, it finds the higher order
@@ -3513,7 +3515,7 @@ let applyn ~with_evars n t gl =
       let t, _, _, gl = pf_saturate gl t n in (* saturate with evars *)
       t, project gl in
     pp(lazy(str"Refine.refine " ++ pr_constr t));
-    Refine.refine (sigma, t) gl
+    Proofview.V82.of_tactic (Proofview.tclTHEN (Tactics.New.refine (sigma, t)) Proofview.shelve_unifiable) gl
   else
     let t, gl = if n = 0 then t, gl else
       let sigma, si = project gl, sig_it gl in
@@ -3872,8 +3874,8 @@ let ssrcasetac ist (view, (eqid, (dgens, ipats))) =
 
 TACTIC EXTEND ssrcase
 | [ "case" ssrcasearg(arg) ssrclauses(clauses) ] ->
-  [ tclCLAUSES ist (ssrcasetac ist arg) clauses ]
-| [ "case" ] -> [ with_top ssrscasetac ]
+  [ Proofview.V82.tactic (tclCLAUSES ist (ssrcasetac ist arg) clauses) ]
+| [ "case" ] -> [ Proofview.V82.tactic (with_top ssrscasetac) ]
 END
 
 (** The "elim" tactic *)
@@ -3892,8 +3894,8 @@ let ssrelimtac ist (view, (eqid, (dgens, ipats))) =
 
 TACTIC EXTEND ssrelim
 | [ "elim" ssrarg(arg) ssrclauses(clauses) ] ->
-  [ tclCLAUSES ist (ssrelimtac ist arg) clauses ]
-| [ "elim" ] -> [ with_top simplest_newelim ]
+  [ Proofview.V82.tactic (tclCLAUSES ist (ssrelimtac ist arg) clauses) ]
+| [ "elim" ] -> [ Proofview.V82.tactic (with_top simplest_newelim) ]
 END
 
 (** 6. Backward chaining tactics: apply, exact, congr. *)
@@ -4028,8 +4030,8 @@ let prof_ssrapplytac = mk_profiler "ssrapplytac";;
 let ssrapplytac arg gl = prof_ssrapplytac.profile (ssrapplytac arg) gl;;
 
 TACTIC EXTEND ssrapply
-| [ "apply" ssrapplyarg(arg) ] -> [ ssrapplytac ist arg ]
-| [ "apply" ] -> [ apply_top_tac ]
+| [ "apply" ssrapplyarg(arg) ] -> [ Proofview.V82.tactic (ssrapplytac ist arg) ]
+| [ "apply" ] -> [ Proofview.V82.tactic apply_top_tac ]
 END
 
 (** The "exact" tactic *)
@@ -4048,9 +4050,9 @@ END
 let vmexacttac pf gl = exact_no_check (mkCast (pf, VMcast, pf_concl gl)) gl
 
 TACTIC EXTEND ssrexact
-| [ "exact" ssrexactarg(arg) ] -> [ tclBY (ssrapplytac ist arg) ]
-| [ "exact" ] -> [ tclORELSE donetac (tclBY apply_top_tac) ]
-| [ "exact" "<:" lconstr(pf) ] -> [ vmexacttac pf ]
+| [ "exact" ssrexactarg(arg) ] -> [ Proofview.V82.tactic (tclBY (ssrapplytac ist arg)) ]
+| [ "exact" ] -> [ Proofview.V82.tactic (tclORELSE donetac (tclBY apply_top_tac)) ]
+| [ "exact" "<:" lconstr(pf) ] -> [ Proofview.V82.tactic (vmexacttac pf) ]
 END
 
 (** The "congr" tactic *)
@@ -4108,7 +4110,7 @@ let congrtac ((n, t), ty) ist gl =
       | Some cf -> cf
       | None -> loop (i + 1) in
       loop 1 in
-  tclTHEN (refine_with cf) (tclTRY reflexivity) gl
+  tclTHEN (refine_with cf) (tclTRY (Proofview.V82.of_tactic reflexivity)) gl
 
 let newssrcongrtac arg ist gl =
   pp(lazy(str"===newcongr==="));
@@ -4140,9 +4142,11 @@ let newssrcongrtac arg ist gl =
 TACTIC EXTEND ssrcongr
 | [ "congr" ssrcongrarg(arg) ] ->
 [ let arg, dgens = arg in
-  match dgens with
-  | [gens], clr -> tclTHEN (genstac (gens,clr) ist) (newssrcongrtac arg ist)
-  | _ -> errorstrm (str"Dependent family abstractions not allowed in congr")]
+  Proofview.V82.tactic begin
+    match dgens with
+    | [gens], clr -> tclTHEN (genstac (gens,clr) ist) (newssrcongrtac arg ist)
+    | _ -> errorstrm (str"Dependent family abstractions not allowed in congr")
+  end]
 END
 
 (** 7. Rewriting tactics (rewrite, unlock) *)
@@ -4711,7 +4715,7 @@ let ssrrewritetac ist rwargs =
 
 TACTIC EXTEND ssrrewrite
   | [ "rewrite" ssrrwargs(args) ssrclauses(clauses) ] ->
-    [ tclCLAUSES ist (ssrrewritetac ist args) clauses ]
+    [ Proofview.V82.tactic (tclCLAUSES ist (ssrrewritetac ist args) clauses) ]
 END
 
 (** The "unlock" tactic *)
@@ -4750,7 +4754,7 @@ let unlocktac ist args =
 
 TACTIC EXTEND ssrunlock
   | [ "unlock" ssrunlockargs(args) ssrclauses(clauses) ] ->
-[  tclCLAUSES ist (unlocktac ist args) clauses ]
+[  Proofview.V82.tactic (tclCLAUSES ist (unlocktac ist args) clauses) ]
 END
 
 (** 8. Forward chaining tactics (pose, set, have, suffice, wlog) *)
@@ -5128,9 +5132,9 @@ let prof_ssrposetac = mk_profiler "ssrposetac";;
 let ssrposetac arg gl = prof_ssrposetac.profile (ssrposetac arg) gl;;
   
 TACTIC EXTEND ssrpose
-| [ "pose" ssrfixfwd(ffwd) ] -> [ ssrposetac ist ffwd ]
-| [ "pose" ssrcofixfwd(ffwd) ] -> [ ssrposetac ist ffwd ]
-| [ "pose" ssrfwdid(id) ssrposefwd(fwd) ] -> [ ssrposetac ist (id, fwd) ]
+| [ "pose" ssrfixfwd(ffwd) ] -> [ Proofview.V82.tactic (ssrposetac ist ffwd) ]
+| [ "pose" ssrcofixfwd(ffwd) ] -> [ Proofview.V82.tactic (ssrposetac ist ffwd) ]
+| [ "pose" ssrfwdid(id) ssrposefwd(fwd) ] -> [ Proofview.V82.tactic (ssrposetac ist (id, fwd)) ]
 END
 
 (** The "set" tactic *)
@@ -5182,7 +5186,7 @@ let ssrsettac ist id ((_, (pat, pty)), (_, occ)) gl =
 
 TACTIC EXTEND ssrset
 | [ "set" ssrfwdid(id) ssrsetfwd(fwd) ssrclauses(clauses) ] ->
-  [ tclCLAUSES ist (ssrsettac ist id fwd) clauses ]
+  [ Proofview.V82.tactic (tclCLAUSES ist (ssrsettac ist id fwd) clauses) ]
 END
 
 (** The "have" tactic *)
@@ -5286,27 +5290,27 @@ let havetac arg a b gl = prof_havetac.profile (havetac arg a b) gl;;
 
 TACTIC EXTEND ssrhave
 | [ "have" ssrhavefwdwbinders(fwd) ] ->
-  [ havetac ist fwd false false ]
+  [ Proofview.V82.tactic (havetac ist fwd false false) ]
 END
 
 TACTIC EXTEND ssrhavesuff
 | [ "have" "suff" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ havetac ist (pats, fwd) true false ]
+  [ Proofview.V82.tactic (havetac ist (pats, fwd) true false) ]
 END
 
 TACTIC EXTEND ssrhavesuffices
 | [ "have" "suffices" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ havetac ist (pats, fwd) true false ]
+  [ Proofview.V82.tactic (havetac ist (pats, fwd) true false) ]
 END
 
 TACTIC EXTEND ssrsuffhave
 | [ "suff" "have" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ havetac ist (pats, fwd) true true ]
+  [ Proofview.V82.tactic (havetac ist (pats, fwd) true true) ]
 END
 
 TACTIC EXTEND ssrsufficeshave
 | [ "suffices" "have" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ havetac ist (pats, fwd) true true ]
+  [ Proofview.V82.tactic (havetac ist (pats, fwd) true true) ]
 END
 
 (** The "suffice" tactic *)
@@ -5331,11 +5335,11 @@ let sufftac ist ((((clr, pats),binders),simpl), ((_, c), hint)) =
   tclTHENS ctac [htac; tclTHEN (cleartac clr) (introstac ~ist (binders@simpl))]
 
 TACTIC EXTEND ssrsuff
-| [ "suff" ssrsufffwd(fwd) ] -> [ sufftac ist fwd ]
+| [ "suff" ssrsufffwd(fwd) ] -> [ Proofview.V82.tactic (sufftac ist fwd) ]
 END
 
 TACTIC EXTEND ssrsuffices
-| [ "suffices" ssrsufffwd(fwd) ] -> [ sufftac ist fwd ]
+| [ "suffices" ssrsufffwd(fwd) ] -> [ Proofview.V82.tactic (sufftac ist fwd) ]
 END
 
 (** The "wlog" (Without Loss Of Generality) tactic *)
@@ -5424,34 +5428,34 @@ let wlogtac ist (((clr0, pats),_),_) (gens, ((_, ct))) hint suff ghave gl =
 
 TACTIC EXTEND ssrwlog
 | [ "wlog" ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ wlogtac ist pats fwd hint false `NoGen ]
+  [ Proofview.V82.tactic (wlogtac ist pats fwd hint false `NoGen) ]
 END
 
 TACTIC EXTEND ssrwlogs
 | [ "wlog" "suff" ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ wlogtac ist pats fwd hint true `NoGen ]
+  [ Proofview.V82.tactic (wlogtac ist pats fwd hint true `NoGen) ]
 END
 
 TACTIC EXTEND ssrwlogss
 | [ "wlog" "suffices" ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ]->
-  [ wlogtac ist pats fwd hint true `NoGen ]
+  [ Proofview.V82.tactic (wlogtac ist pats fwd hint true `NoGen) ]
 END
 
 TACTIC EXTEND ssrwithoutloss
 | [ "without" "loss" ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ wlogtac ist pats fwd hint false `NoGen ]
+  [ Proofview.V82.tactic (wlogtac ist pats fwd hint false `NoGen) ]
 END
 
 TACTIC EXTEND ssrwithoutlosss
 | [ "without" "loss" "suff" 
     ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ wlogtac ist pats fwd hint true `NoGen ]
+  [ Proofview.V82.tactic (wlogtac ist pats fwd hint true `NoGen) ]
 END
 
 TACTIC EXTEND ssrwithoutlossss
 | [ "without" "loss" "suffices" 
     ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ]->
-  [ wlogtac ist pats fwd hint true `NoGen ]
+  [ Proofview.V82.tactic (wlogtac ist pats fwd hint true `NoGen) ]
 END
 
 (* Generally have *)
@@ -5482,13 +5486,13 @@ END
 TACTIC EXTEND ssrgenhave
 | [ "gen" "have"
     ssr_idcomma(id) ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ wlogtac ist pats fwd hint false (`Gen id) ]
+  [ Proofview.V82.tactic (wlogtac ist pats fwd hint false (`Gen id)) ]
 END
 
 TACTIC EXTEND ssrgenhave2
 | [ "generally" "have"
     ssr_idcomma(id) ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ wlogtac ist pats fwd hint false (`Gen id) ]
+  [ Proofview.V82.tactic (wlogtac ist pats fwd hint false (`Gen id)) ]
 END
 
 (** Canonical Structure alias *)

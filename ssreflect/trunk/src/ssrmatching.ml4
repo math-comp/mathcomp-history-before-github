@@ -1194,7 +1194,7 @@ let ssrpatterntac ist arg gl =
   convert_concl concl DEFAULTcast gl
 
 TACTIC EXTEND ssrat
-| [ "ssrpattern" ssrpatternarg(arg) ] -> [ ssrpatterntac ist arg ]
+| [ "ssrpattern" ssrpatternarg(arg) ] -> [ Proofview.V82.tactic (ssrpatterntac ist arg) ]
 END
 
 
