@@ -1356,7 +1356,7 @@ move=> xa yb; rewrite norm_joinEr //.
 move=> /imset2P[x a Ha Ka ->{xa}] /imset2P[y b Hy Kb ->{yb}].
 have Hya: y ^ a^-1 \in H by rewrite -mem_conjg (normsP nHK).
 rewrite mulgA -(mulgA x) (conjgCV a y) (mulgA x) -mulgA !pprodmE 1?groupMl //.
-by rewrite 2?morphM // actf ?groupV ?morphV // !mulgA mulgKV invgK.
+by rewrite morphM // actf ?groupV ?morphV // morphM // !mulgA mulgKV invgK.
 Qed.
 
 Canonical pprodm_morphism := Morphism pprodmM.
