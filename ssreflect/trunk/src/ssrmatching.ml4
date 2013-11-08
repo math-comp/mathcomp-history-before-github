@@ -299,7 +299,8 @@ let unif_HO_args env ise0 pa i ca =
 (* those cases, and HO matching will mop up the rest.                     *)
 let flags_FO = {Unification.default_no_delta_unify_flags with 
                 Unification.modulo_conv_on_closed_terms = None;
-                Unification.modulo_eta = false;
+                Unification.modulo_eta = true;
+                Unification.modulo_betaiota = true;
                 Unification.modulo_delta_types = full_transparent_state;
                 Unification.allow_K_in_toplevel_higher_order_unification=false} 
 let unif_FO env ise p c =
