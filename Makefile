@@ -14,7 +14,7 @@ all %.vo: Makefile.coq
 Makefile.coq: Make
 	@echo "Generating Makefile.coq for Coq $(V) with COQBIN=$(COQBIN)"
 	@grep -E -v '^COQ' Make > Make.coq
-	@echo -I ssreflect/$(V)/src/ >> Make.coq
+	@echo -I . -I ssreflect/$(V)/src/ >> Make.coq
 	@echo ssreflect.mllib >> Make.coq
 	@echo ssreflect/$(V)/src/ssrmatching.mli >> Make.coq
 	@echo ssreflect/$(V)/src/ssrmatching.ml4 >> Make.coq
