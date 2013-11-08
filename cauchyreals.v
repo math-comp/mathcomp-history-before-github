@@ -422,7 +422,7 @@ have gt_yr1' : y + r1 < a1.
   rewrite addrC; move: gt_yr1.
   rewrite (monoLR (addrNK _) (ltr_add2r _)).
  rewrite /z ltr_normr opprB=> /orP[|-> //].
-  rewrite (monoRL (addrK _) (ltr_add2r _))=> /ltr_trans /(_ lt_xy).
+  rewrite (monoRL (addrK a1) (ltr_add2r _))=> /ltr_trans /(_ lt_xy).
   by rewrite ltrNge addrC; move: le_xr1; rewrite ler_distl=> /andP [_ ->].
 have lt_yz : y < z by rewrite (monoRL (addrK _) (ltr_add2r _)).
 have hz2 : `|z - a2| <= r2.
