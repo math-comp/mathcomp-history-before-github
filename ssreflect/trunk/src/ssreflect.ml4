@@ -913,9 +913,8 @@ let set_pr_ssrtac name prec afmt =
   | ArgSep _ :: afmt' -> mk_akey afmt'
   | [] -> [] in
   let tacname = "ssr" ^ name in
-  Pptactic.declare_extra_tactic_pprule
-    { Pptactic.pptac_key = tacname;
-      Pptactic.pptac_args = mk_akey afmt;
+   Pptactic.declare_ml_tactic_pprule tacname
+    { Pptactic.pptac_args = mk_akey afmt;
       Pptactic.pptac_prods = (prec, fmt) }
 
 let ssrtac_atom loc name args = TacExtend (loc, "ssr" ^ name, args)
