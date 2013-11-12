@@ -1110,15 +1110,19 @@ let eval_pattern ?raise_NoMatch env0 sigma0 concl0 pattern occ do_subst =
     concl
 ;;
 
-let redex_of_pattern (sigma, p) = let e = match p with
+let redex_of_pattern ?(resolve_typeclasses=false) env (sigma, p) =
+  let e = match p with
   | In_T _ | In_X_In_T _ -> anomaly "pattern without redex"
   | T e | X_In_T (e, _) | E_As_X_In_T (e, _, _) | E_In_X_In_T (e, _, _) -> e in
+  let sigma =
+    if not resolve_typeclasses then sigma
+    else Typeclasses.resolve_typeclasses ~fail:false env sigma in
   Reductionops.nf_evar sigma e
 
 let fill_occ_pattern ?raise_NoMatch env sigma cl pat occ h =
   let find_R, conclude = let r = ref None in
     (fun env c h' -> do_once r (fun () -> c); mkRel (h'+h-1)),
-    (fun _ -> if !r = None then redex_of_pattern pat else assert_done r) in
+    (fun _ -> if !r = None then redex_of_pattern env pat else assert_done r) in
   let cl = eval_pattern ?raise_NoMatch env sigma cl (Some pat) occ find_R in
   let e = conclude cl in
   e, cl

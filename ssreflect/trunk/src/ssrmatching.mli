@@ -53,7 +53,7 @@ val pp_pattern : pattern -> Pp.std_ppcmds
 
 (** Extracts the redex and applies to it the substitution part of the pattern.
   @raise Anomaly if called on [In_T] or [In_X_In_T] *)
-val redex_of_pattern : pattern -> constr
+val redex_of_pattern : ?resolve_typeclasses:bool -> env -> pattern -> constr
 
 (** [interp_rpattern ise gl rpat] "internalizes" and "interprets" [rpat]
     in the current [Ltac] interpretation signature [ise] and tactic input [gl]*)

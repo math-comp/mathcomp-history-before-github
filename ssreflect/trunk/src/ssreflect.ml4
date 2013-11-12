@@ -388,6 +388,25 @@ let _ =
       Goptions.optdepr  = false;
       Goptions.optwrite = (fun b -> ssroldreworder := b) }
 
+let ssrhaveNOtcresolution = ref false
+
+let inHaveTCResolution = Libobject.declare_object {
+  (Libobject.default_object "SSRHAVETCRESOLUTION") with
+  Libobject.cache_function = (fun (_,v) -> ssrhaveNOtcresolution := v);
+  Libobject.load_function = (fun _ (_,v) -> ssrhaveNOtcresolution := v);
+  Libobject.classify_function = (fun v -> Libobject.Keep v);
+}
+
+let _ =
+  Goptions.declare_bool_option
+    { Goptions.optsync  = false;
+      Goptions.optname  = "have type classes";
+      Goptions.optkey   = ["SsrHave";"NoTCResolution"];
+      Goptions.optread  = (fun _ -> !ssrhaveNOtcresolution);
+      Goptions.optdepr  = false;
+      Goptions.optwrite = (fun b ->
+        Lib.add_anonymous_leaf (inHaveTCResolution b)) }
+
 
 (** Primitive parsing to avoid syntax conflicts with basic tactics. *)
 
@@ -1922,7 +1941,7 @@ let abs_wgen keep_let ist gl f gen (args,c) =
      let cp = interp_cpattern ist gl p None in
      let t, c =
        try fill_occ_pattern ~raise_NoMatch:true env sigma c cp None 1
-       with NoMatch -> redex_of_pattern cp, c in
+       with NoMatch -> redex_of_pattern env cp, c in
      evar_closed t p;
      let ut = red_product_skip_id env sigma t in
      args, mkLetIn(Name (f x), ut, pf_type_of gl t, c)
@@ -1930,7 +1949,7 @@ let abs_wgen keep_let ist gl f gen (args,c) =
      let cp = interp_cpattern ist gl p None in
      let t, c =
        try fill_occ_pattern ~raise_NoMatch:true env sigma c cp None 1
-       with NoMatch -> redex_of_pattern cp, c in
+       with NoMatch -> redex_of_pattern env cp, c in
      evar_closed t p;
      t :: args, mkProd(Name (f x), pf_type_of gl t, c)
   | _ -> args, c
@@ -3051,10 +3070,18 @@ END
 (* post-interpretation of terms *)
 let all_ok _ _ = true
 
-let pf_abs_ssrterm ist gl t =
-  let n, c = pf_abs_evars gl (interp_term ist gl t) in pf_abs_cterm gl n c
+let pf_abs_ssrterm ?(resolve_typeclasses=false) ist gl t =
+  let sigma, ct as t = interp_term ist gl t in
+  let t =
+    let env = pf_env gl in
+    if not resolve_typeclasses then t
+    else
+       let sigma = Typeclasses.resolve_typeclasses ~fail:false env sigma in
+       sigma, Evarutil.nf_evar sigma ct in
+  let n, c = pf_abs_evars gl t in
+  pf_abs_cterm gl n c
 
-let pf_interp_ty ist gl ty =
+let pf_interp_ty ?(resolve_typeclasses=false) ist gl ty =
    let n_binders = ref 0 in
    let ty = match ty with
    | a, (t, None) ->
@@ -3078,7 +3105,13 @@ let pf_interp_ty ist gl ty =
      | LetInType(n,v,ty,t) -> decr n_binders; mkLetIn (n, v, ty, aux t)
      | _ -> anomaly "pf_interp_ty: ssr Type cast deleted by typecheck" in
      sigma, aux t in
-   let ty = strip_cast (interp_term ist gl ty) in
+   let sigma, cty as ty = strip_cast (interp_term ist gl ty) in
+   let ty =
+     let env = pf_env gl in
+     if not resolve_typeclasses then ty
+     else
+       let sigma = Typeclasses.resolve_typeclasses ~fail:false env sigma in
+       sigma, Evarutil.nf_evar sigma cty in
    let n, c = pf_abs_evars gl ty in
    let lam_c = pf_abs_cterm gl n c in
    let ctx, c = decompose_lam_n n lam_c in
@@ -3158,8 +3191,8 @@ let interp_clr = function
 (* XXX the k of the redex should percolate out *)
 let pf_interp_gen_aux ist gl to_ind ((oclr, occ), t) =
   let pat = interp_cpattern ist gl t None in (* UGLY API *)
-  let c = redex_of_pattern pat in
   let cl, env, sigma = pf_concl gl, pf_env gl, project gl in
+  let c = redex_of_pattern env pat in
   let c, cl = 
     try fill_occ_pattern ~raise_NoMatch:true env sigma cl pat occ 1
     with NoMatch -> c, cl in
@@ -3604,7 +3637,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
     let t, _, _, sigma = saturate ~beta:true env sigma t n in
     match r with
     | X_In_T (e, p) -> sigma, E_As_X_In_T (t, e, p)
-    | _ -> try unify_HO env sigma t (redex_of_pattern p), r with _ -> p in
+    | _ -> try unify_HO env sigma t (redex_of_pattern env p), r with _ -> p in
   (* finds the eliminator applies it to evars and c saturated as needed  *)
   (* obtaining "elim ??? (c ???)". pred is the higher order evar         *)
   let cty, elim, elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl =
@@ -3687,7 +3720,8 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
       | ((oclr, occ), t):: deps, inf_t :: inf_deps ->
           let ist = match ist with Some x -> x | None -> assert false in
           let p = interp_cpattern ist orig_gl t None in
-          let clr_t = interp_clr (oclr,(tag_of_cpattern t,redex_of_pattern p))in
+          let clr_t =
+            interp_clr (oclr,(tag_of_cpattern t,redex_of_pattern env p))in
           (* if we are the index for the equation we do not clear *)
           let clr_t = if deps = [] && eqid <> None then [] else clr_t in
           let p = if is_undef_pat p then mkTpat gl inf_t else p in
@@ -3729,7 +3763,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
         cl, gl, post
       with 
       | NoMatch | NoProgress ->
-          let e = redex_of_pattern p in
+          let e = redex_of_pattern env p in
           let n, e =  pf_abs_evars gl (fst p, e) in
           let e, _, _, gl = pf_saturate ~beta:true gl e n in 
           let gl = try pf_unify_HO gl inf_t e with _ -> error gl e inf_t in
@@ -4927,11 +4961,12 @@ let rec format_glob_constr h0 c0 = match h0, c0 with
 (*   - Have: type option + value, no space before type     *)
 (*   - Pose: binders + value, space before binders.        *)
 
-type ssrfwdkind = FwdHint of string | FwdHave | FwdPose
+type ssrfwdkind = FwdHint of string * bool | FwdHave | FwdPose
 
 type ssrfwdfmt = ssrfwdkind * ssrbindfmt list
 
-let pr_fwdkind = function FwdHint s -> str (s ^ " ") | _ -> str " :=" ++ spc ()
+let pr_fwdkind = function
+  | FwdHint (s,_) -> str (s ^ " ") | _ -> str " :=" ++ spc ()
 let pr_fwdfmt (fk, _ : ssrfwdfmt) = pr_fwdkind fk
 
 let wit_ssrfwdfmt = add_genarg "ssrfwdfmt" pr_fwdfmt
@@ -4945,13 +4980,17 @@ let mkFwdCast fk loc t c = ((fk, [BFcast]), mk_term ' ' (CCast (loc, c, dC t)))
 let mkssrFwdCast fk loc t c = ((fk, [BFcast]), (c, Some t))
 
 let mkFwdHint s t =
-  let loc = constr_loc t in mkFwdCast (FwdHint s) loc t (CHole (loc, None))
+  let loc = constr_loc t in
+  mkFwdCast (FwdHint (s,false)) loc t (CHole (loc, None))
+let mkFwdHintNoTC s t =
+  let loc = constr_loc t in
+  mkFwdCast (FwdHint (s,true)) loc t (CHole (loc, None))
 
 let pr_gen_fwd prval prc prlc fk (bs, c) =
   let prc s = str s ++ spc () ++ prval prc prlc c in
   match fk, bs with
-  | FwdHint s, [Bcast t] -> str s ++ spc () ++ prlc t
-  | FwdHint s, _ ->  prc (s ^ "(* typeof *)")
+  | FwdHint (s,_), [Bcast t] -> str s ++ spc () ++ prlc t
+  | FwdHint (s,_), _ ->  prc (s ^ "(* typeof *)")
   | FwdHave, [Bcast t] -> str ":" ++ spc () ++ prlc t ++ prc " :="
   | _, [] -> prc " :="
   | _, _ -> spc () ++ pr_list spc (pr_binder prlc) bs ++ prc " :="
@@ -5174,7 +5213,7 @@ let ssrsettac ist id ((_, (pat, pty)), (_, occ)) gl =
   let cl, sigma, env = pf_concl gl, project gl, pf_env gl in
   let c, cl = 
     try fill_occ_pattern ~raise_NoMatch:true env sigma cl pat occ 1
-    with NoMatch -> redex_of_pattern pat, cl in
+    with NoMatch -> redex_of_pattern ~resolve_typeclasses:true env pat, cl in
   if occur_existential c then errorstrm(str"The pattern"++spc()++
     pr_constr_pat c++spc()++str"did not match and has holes."++spc()++
     str"Did you mean pose?") else
@@ -5198,6 +5237,7 @@ let pr_ssrhavefwd _ _ prt (fwd, hint) = pr_fwd fwd ++ pr_hint prt hint
 ARGUMENT EXTEND ssrhavefwd TYPED AS ssrfwd * ssrhint PRINTED BY pr_ssrhavefwd
 | [ ":" lconstr(t) ssrhint(hint) ] -> [ mkFwdHint ":" t, hint ]
 | [ ":" lconstr(t) ":=" lconstr(c) ] -> [ mkFwdCast FwdHave loc t c, nohint ]
+| [ ":" lconstr(t) ":=" ] -> [ mkFwdHintNoTC ":" t, nohint ]
 | [ ":=" lconstr(c) ] -> [ mkFwdVal FwdHave c, nohint ]
 END
 
@@ -5246,12 +5286,16 @@ let havetac ist ((((clr, pats), binders), simpl), (((fk, _), t), hint))
    tclTHEN (if binders <> [] then introstac ~ist (aux n) else tclIDTAC)
      (introstac ~ist binders) in
  let simpltac = introstac ~ist simpl in
+ let fixtc =
+   not !ssrhaveNOtcresolution &&
+   match fk with FwdHint(_,true) -> false | _ -> true in
  let hint = hinttac ist true hint in
  let cuttac t gl = basecuttac "ssr_have" t gl in
  let mkt t = mk_term ' ' t in
  let mkl t = (' ', (t, None)) in
- let interp t = pf_abs_ssrterm ist gl t in
- let interp_ty t = let a,b,_ = pf_interp_ty ist gl t in a, b in
+ let interp rtc t = pf_abs_ssrterm ~resolve_typeclasses:rtc ist gl t in
+ let interp_ty rtc t =
+   let a,b,_ = pf_interp_ty ~resolve_typeclasses:rtc ist gl t in a, b in
  let ct, cty, hole, loc = match t with
    | _, (_, Some (CCast (loc, ct, CastConv cty))) ->
      mkt ct, mkt cty, mkt (mkCHole dummy_loc), loc
@@ -5266,7 +5310,7 @@ let havetac ist ((((clr, pats), binders), simpl), (((fk, _), t), hint))
      errorstrm (str"Suff have does not accept a proof term")
    | FwdHave, false, true ->
      let cty = combineCG cty hole (mkCArrow loc) mkRArrow in
-     let t = interp (combineCG ct cty (mkCCast loc) mkRCast) in
+     let t = interp false (combineCG ct cty (mkCCast loc) mkRCast) in
      let ty = pf_type_of gl t in
      let ctx, _ = decompose_prod_n 1 ty in
      let assert_is_conv gl =
@@ -5275,12 +5319,12 @@ let havetac ist ((((clr, pats), binders), simpl), (((fk, _), t), hint))
          pr_constr (mkArrow (mkVar (id_of_string "_")) concl)) in
      ty, tclTHEN assert_is_conv (apply t), id, itac_c
    | FwdHave, false, false ->
-     let t = interp (combineCG ct cty (mkCCast loc) mkRCast) in
+     let t = interp false (combineCG ct cty (mkCCast loc) mkRCast) in
      pf_type_of gl t, apply t, id, tclTHEN itac_c simpltac
-   | _, true, true   -> mkArrow (snd (interp_ty cty)) concl, hint, itac, clr
-   | _, false, true  -> mkArrow (snd (interp_ty cty)) concl, hint, id, itac_c
+   | _,true,true  -> mkArrow (snd (interp_ty fixtc cty)) concl, hint, itac, clr
+   | _,false,true -> mkArrow (snd (interp_ty fixtc cty)) concl, hint, id, itac_c
    | _, false, false -> 
-     let n, cty = interp_ty cty in
+     let n, cty = interp_ty fixtc cty in
      cty, tclTHEN (binderstac n) hint, id, tclTHEN itac_c simpltac
    | _, true, false -> assert false in
  tclTHENS (cuttac cut) [ tclTHEN sol itac1; itac2 ] gl
