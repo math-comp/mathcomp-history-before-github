@@ -213,8 +213,8 @@ let isCVar = function CRef (Ident _) -> true | _ -> false
 let destCVar = function CRef (Ident (_, id)) -> id | _ ->
   anomaly "not a CRef"
 let rec mkCHoles loc n =
-  if n <= 0 then [] else CHole (loc, None) :: mkCHoles loc (n - 1)
-let mkCHole loc = CHole (loc, None)
+  if n <= 0 then [] else CHole (loc, None, None) :: mkCHoles loc (n - 1)
+let mkCHole loc = CHole (loc, None, None)
 let rec isCHoles = function CHole _ :: cl -> isCHoles cl | cl -> cl = []
 let mkCExplVar loc id n =
    CAppExpl (loc, (None, Ident (loc, id)), mkCHoles loc n)
@@ -226,7 +226,7 @@ let mkCArrow loc ty t =
    CProdN (loc, [[dummy_loc,Anonymous], Default Explicit, ty], t)
 let mkCCast loc t ty = CCast (loc,t, dC ty)
 (** Constructors for rawconstr *)
-let mkRHole = GHole (dummy_loc, InternalHole)
+let mkRHole = GHole (dummy_loc, InternalHole, None)
 let rec mkRHoles n = if n > 0 then mkRHole :: mkRHoles (n - 1) else []
 let rec isRHoles = function GHole _ :: cl -> isRHoles cl | cl -> cl = []
 let mkRApp f args = if args = [] then f else GApp (dummy_loc, f, args)
@@ -935,7 +935,7 @@ let ssrevaltac ist gtac =
 
 let interp_wit wit ist gl x = 
   let globarg = in_gen (glbwit wit) x in
-  let sigma, arg = interp_genarg ist gl globarg in
+  let sigma, arg = interp_genarg ist (pf_env gl) (project gl) (pf_concl gl) gl.Evd.it globarg in
   sigma, out_gen (topwit wit) arg
 
 let interp_intro_pattern = interp_wit wit_intro_pattern
@@ -4980,10 +4980,10 @@ let mkssrFwdCast fk loc t c = ((fk, [BFcast]), (c, Some t))
 
 let mkFwdHint s t =
   let loc = constr_loc t in
-  mkFwdCast (FwdHint (s,false)) loc t (CHole (loc, None))
+  mkFwdCast (FwdHint (s,false)) loc t (mkCHole loc)
 let mkFwdHintNoTC s t =
   let loc = constr_loc t in
-  mkFwdCast (FwdHint (s,true)) loc t (CHole (loc, None))
+  mkFwdCast (FwdHint (s,true)) loc t (mkCHole loc)
 
 let pr_gen_fwd prval prc prlc fk (bs, c) =
   let prc s = str s ++ spc () ++ prval prc prlc c in
@@ -5019,7 +5019,7 @@ let pr_ssrbvar prc _ _ v = prc v
 
 ARGUMENT EXTEND ssrbvar TYPED AS constr PRINTED BY pr_ssrbvar
 | [ ident(id) ] -> [ mkCVar loc id ]
-| [ "_" ] -> [ CHole (loc, None) ]
+| [ "_" ] -> [ mkCHole loc ]
 END
 
 let bvar_lname = function
@@ -5032,26 +5032,26 @@ ARGUMENT EXTEND ssrbinder TYPED AS ssrfwdfmt * constr PRINTED BY pr_ssrbinder
  | [ ssrbvar(bv) ] ->
    [ let xloc, _ as x = bvar_lname bv in
      (FwdPose, [BFvar]),
-     CLambdaN (loc,[[x],Default Explicit,CHole (xloc,None)],CHole (loc,None)) ]
+     CLambdaN (loc,[[x],Default Explicit,mkCHole xloc],mkCHole loc) ]
  | [ "(" ssrbvar(bv) ")" ] ->
    [ let xloc, _ as x = bvar_lname bv in
      (FwdPose, [BFvar]),
-     CLambdaN (loc,[[x],Default Explicit,CHole (xloc,None)],CHole (loc,None)) ]
+     CLambdaN (loc,[[x],Default Explicit,mkCHole xloc],mkCHole loc) ]
  | [ "(" ssrbvar(bv) ":" lconstr(t) ")" ] ->
    [ let x = bvar_lname bv in
      (FwdPose, [BFdecl 1]),
-     CLambdaN (loc, [[x], Default Explicit, t], CHole (loc, None)) ]
+     CLambdaN (loc, [[x], Default Explicit, t], mkCHole loc) ]
  | [ "(" ssrbvar(bv) ne_ssrbvar_list(bvs) ":" lconstr(t) ")" ] ->
    [ let xs = List.map bvar_lname (bv :: bvs) in
      let n = List.length xs in
      (FwdPose, [BFdecl n]),
-     CLambdaN (loc, [xs, Default Explicit, t], CHole (loc, None)) ]
+     CLambdaN (loc, [xs, Default Explicit, t], mkCHole loc) ]
  | [ "(" ssrbvar(id) ":" lconstr(t) ":=" lconstr(v) ")" ] ->
    [ let loc' = Loc.join_loc (constr_loc t) (constr_loc v) in
      let v' = CCast (loc', v, dC t) in
-     (FwdPose,[BFdef true]), CLetIn (loc,bvar_lname id, v',CHole (loc,None)) ]
+     (FwdPose,[BFdef true]), CLetIn (loc,bvar_lname id, v',mkCHole loc) ]
  | [ "(" ssrbvar(id) ":=" lconstr(v) ")" ] ->
-   [ (FwdPose,[BFdef false]), CLetIn (loc,bvar_lname id, v,CHole (loc,None)) ]
+   [ (FwdPose,[BFdef false]), CLetIn (loc,bvar_lname id, v,mkCHole loc) ]
 END
 
 GEXTEND Gram
@@ -5060,7 +5060,7 @@ GEXTEND Gram
   [  ["of" | "&"]; c = operconstr LEVEL "99" ->
      let loc = !@loc in
      (FwdPose, [BFvar]),
-     CLambdaN (loc,[[loc,Anonymous],Default Explicit,c],CHole (loc,None)) ]
+     CLambdaN (loc,[[loc,Anonymous],Default Explicit,c],mkCHole loc) ]
   ];
 END
 
@@ -5129,7 +5129,7 @@ ARGUMENT EXTEND ssrfixfwd TYPED AS ident * ssrfwd PRINTED BY pr_ssrfixfwd
       let c = Option.get oc in
       let has_cast, t', c' = match format_constr_expr h c with
       | [Bcast t'], c' -> true, t', c'
-      | _ -> false, CHole (constr_loc c, None), c in
+      | _ -> false, mkCHole (constr_loc c), c in
       let lb = fix_binders bs in
       let has_struct, i =
         let rec loop = function
@@ -5155,7 +5155,7 @@ ARGUMENT EXTEND ssrcofixfwd TYPED AS ssrfixfwd PRINTED BY pr_ssrcofixfwd
       let c = Option.get oc in
       let has_cast, t', c' = match format_constr_expr h c with
       | [Bcast t'], c' -> true, t', c'
-      | _ -> false, CHole (constr_loc c, None), c in
+      | _ -> false, mkCHole (constr_loc c), c in
       let h' = BFrec (false, has_cast) :: binders_fmts bs in
       let cofix = CCoFix (loc, lid, [lid, fix_binders bs, t', c']) in
       id, ((fk, h'), (ck, (rc, Some cofix)))
@@ -5244,8 +5244,8 @@ let intro_id_to_binder = List.map (function
   | IpatId id ->
       let xloc, _ as x = bvar_lname (mkCVar dummy_loc id) in
       (FwdPose, [BFvar]),
-        CLambdaN (dummy_loc, [[x], Default Explicit, CHole (xloc, None)],
-          CHole (dummy_loc, None))
+        CLambdaN (dummy_loc, [[x], Default Explicit, mkCHole xloc],
+          mkCHole dummy_loc)
   | _ -> anomaly "non-id accepted as binder")
 
 let binder_to_intro_id = List.map (function
