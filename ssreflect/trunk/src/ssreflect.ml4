@@ -3210,10 +3210,26 @@ let pf_interp_gen_aux ist gl to_ind ((oclr, occ), t) =
     false, pat, mkProd (constr_name c, pf_type_of gl p, pf_concl gl), p, clr
   else loc_error (loc_of_cpattern t) "generalized term didn't match"
 
-let genclrtac cl cs clr = tclTHEN (apply_type cl cs) (cleartac clr)
+let genclrtac cl cs clr =
+  let tclmyORELSE tac1 tac2 gl =
+    try tac1 gl
+    with e when Errors.noncritical e -> tac2 e gl in
+  (* apply_type may give a type error, but the useful message is
+   * the one of clear.  You type "move: x" and you get
+   * "x is used in hyp H" instead of
+   * "The term H has type T x but is expected to have type T x0". *)
+  tclTHEN
+    (tclmyORELSE
+      (apply_type cl cs)
+      (fun type_err gl ->
+         tclTHEN
+           (tclTHEN (elim_type (build_coq_False ())) (cleartac clr))
+           (fun gl -> raise type_err)
+           gl))
+    (cleartac clr)
 
 let gentac ist gen gl =
-  let conv, _, cl, c, clr = pf_interp_gen_aux ist gl false gen in 
+  let conv, _, cl, c, clr = pf_interp_gen_aux ist gl false gen in
   if conv then tclTHEN (convert_concl cl) (cleartac clr) gl
   else genclrtac cl [c] clr gl
 
