@@ -946,8 +946,18 @@ let interp_open_constr ist gl gc =
   interp_wit wit_open_constr ist gl ((), gc)
 
 let interp_refine ist gl rc =
-   let roc = (), (rc, None) in
-   interp_wit wit_casted_open_constr ist gl roc
+  let constrvars = extract_ltac_constr_values ist (pf_env gl) in
+  let vars = (constrvars, ist.lfun) in
+  let kind = OfType (pf_concl gl) in
+  let flags = {
+    use_typeclasses = true;
+    use_unif_heuristics = true;
+    use_hook = None;
+    fail_evar = false;
+    expand_evars = true }
+  in
+  let sigma, c = understand_ltac flags (project gl) (pf_env gl) vars kind rc in
+  (sigma, (sigma, c))
 
 let pf_match = pf_apply (fun e s c t -> understand_tcc s e ~expected_type:t c)
 
