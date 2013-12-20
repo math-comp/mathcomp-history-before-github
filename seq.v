@@ -810,6 +810,18 @@ case: n => [|n] lt_n_s; first by rewrite subn0 ltnn subnn.
 by rewrite -{2}(subnK lt_n_s) -addSnnS leq_addr /= -IHs.
 Qed.
 
+Lemma filter_rev a s : [seq x <- rev s | a x] = rev [seq x <- s | a x].
+Proof. by elim: s => //= b s IH; rewrite fun_if !rev_cons filter_rcons IH. Qed.
+
+Lemma count_rev a s : count a (rev s) = count a s.
+Proof. by rewrite !count_filter filter_rev size_rev. Qed.
+
+Lemma has_rev a s : has a (rev s) = has a s.
+Proof. by rewrite !has_count count_rev. Qed.
+
+Lemma all_rev a s : all a (rev s) = all a s.
+Proof. by rewrite !all_count count_rev size_rev. Qed.
+
 End Rev.
 
 (* Equality and eqType for seq.                                          *)
@@ -931,11 +943,6 @@ Proof. by move=> s0x; rewrite -(cat_take_drop n0 s) mem_cat /= s0x. Qed.
 Lemma mem_drop s x : x \in drop n0 s -> x \in s.
 Proof. by move=> s0'x; rewrite -(cat_take_drop n0 s) mem_cat /= s0'x orbT. Qed.
 
-Lemma mem_rev s : rev s =i s.
-Proof.
-by move=> y; elim: s => // x s IHs; rewrite rev_cons /= mem_rcons in_cons IHs.
-Qed.
-
 Section Filters.
 
 Variable a : pred T.
@@ -1026,6 +1033,9 @@ Proof. by apply/(hasP _ s2)/(hasP _ s1) => [] [x]; exists x. Qed.
 
 Lemma has_pred1 x s : has (pred1 x) s = (x \in s).
 Proof. by rewrite -(eq_has (mem_seq1^~ x)) (has_sym [:: x]) /= orbF. Qed.
+
+Lemma mem_rev s : rev s =i s.
+Proof. by move=> a; rewrite -!has_pred1 has_rev. Qed.
 
 (* Constant sequences, i.e., the image of nseq. *)
 
@@ -2505,4 +2515,3 @@ by apply: inj_f => //; apply/allpairsP; [exists (x, y1) | exists (x, y2)].
 Qed.
 
 End EqAllPairs.
-
