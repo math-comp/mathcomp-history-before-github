@@ -147,11 +147,11 @@ let safeDestApp c =
 let get_index = function ArgArg i -> i | _ ->
   anomaly "Uninterpreted index"
 (* Toplevel constr must be globalized twice ! *)
-let glob_constr ist gsigma genv = function
+let glob_constr ist genv = function
   | _, Some ce ->
     let vars = Id.Map.fold (fun x _ accu -> Id.Set.add x accu) ist.lfun Id.Set.empty in
     let ltacvars = vars, Id.Set.empty in
-    Constrintern.intern_gen WithoutTypeConstraint ~ltacvars:ltacvars gsigma genv ce
+    Constrintern.intern_gen WithoutTypeConstraint ~ltacvars:ltacvars genv ce
   | rc, None -> rc
 
 (* Term printing utilities functions for deciding bracketing.  *)
@@ -1223,7 +1223,7 @@ ARGUMENT EXTEND ssr_search_item TYPED AS ssr_searchitem
     [ interp_search_notation loc s (Some key) ]
   | [ constr_pattern(p) ] -> 
     [ try
-        let intern = Constrintern.intern_constr_pattern Evd.empty in
+        let intern = Constrintern.intern_constr_pattern in
         Search.GlobSearchSubPattern (snd (intern (Global.env()) p))
       with e -> raise (Cerrors.process_vernac_interp_error e)
   ]
@@ -1718,8 +1718,8 @@ let ssrhyp_of_ssrterm = function
 
 (* terms *)
 let pr_ssrterm _ _ _ = pr_term
-let pf_intern_term ist gl (_, c) = glob_constr ist (project gl) (pf_env gl) c
-let intern_term ist sigma env (_, c) = glob_constr ist sigma env c
+let pf_intern_term ist gl (_, c) = glob_constr ist (pf_env gl) c
+let intern_term ist sigma env (_, c) = glob_constr ist env c
 let interp_term ist gl (_, c) = snd (interp_open_constr ist gl c)
 let force_term ist gl (_, c) = interp_constr ist gl c
 let glob_ssrterm gs = function
@@ -2252,7 +2252,7 @@ let in_viewhint =
        Libobject.classify_function = classify_viewhint }
 
 let glob_view_hints lvh =
-  List.map (Constrintern.intern_constr Evd.empty (Global.env ())) lvh
+  List.map (Constrintern.intern_constr (Global.env ())) lvh
 
 let add_view_hints lvh i = Lib.add_anonymous_leaf (in_viewhint (i, lvh))
 
@@ -4002,7 +4002,7 @@ PRINTED BY pr_ssraarg
 END
 
 let interp_agen ist gl ((goclr, _), (k, gc)) (clr, rcs) =
-  let rc = glob_constr ist (project gl) (pf_env gl) gc in
+  let rc = glob_constr ist (pf_env gl) gc in
   let rcs' = rc :: rcs in
   match goclr with
   | None -> clr, rcs'
