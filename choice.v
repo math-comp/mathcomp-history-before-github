@@ -205,7 +205,7 @@ Canonical tree_eqType (T : eqType) := EqType (GenTree.tree T) (tree_eqMixin T).
 (* and only if P x0 holds. Both xchoose and choose are extensional in P and   *)
 (* do not depend on the witness exP or x0 (provided P x0 holds). Note that    *)
 (* xchoose is slightly more powerful, but less convenient to use.             *)
-(*   Howver, neither choose nor xchoose are composable: it would not be       *)
+(*   However, neither choose nor xchoose are composable: it would not be      *)
 (* be possible to extend the Choice structure to arbitrary pairs using only   *)
 (* these functions, for instance. Internally, the interfaces provides a       *)
 (* subtly stronger operation, Choice.InternalTheory.find, which performs a    *)
