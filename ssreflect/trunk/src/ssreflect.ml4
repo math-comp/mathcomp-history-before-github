@@ -2321,6 +2321,8 @@ let with_view ist si env gl0 c name cl prune =
         | _ -> mkRltacVar top_id, c2r ist c' in
       loop (interp_view ist si env sigma f rid) view
   | [] ->
+      let sigma = Typeclasses.resolve_typeclasses ~fail:false env sigma in
+      let c' = Reductionops.nf_evar sigma c' in
       let n, c' = pf_abs_evars gl0 (sigma, c') in
       let c' = if not prune then c' else pf_abs_cterm gl0 n c' in
       pf_abs_prod name gl0 c' (prod_applist cl [c]), c'
