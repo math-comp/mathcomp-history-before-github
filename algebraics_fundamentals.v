@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq choice div fintype.
 Require Import path tuple bigop finset prime ssralg poly polydiv mxpoly.
 Require Import countalg ssrnum ssrint rat intdiv.
-Require Import fingroup finalg zmodp cyclic pgroup sylow galois.
+Require Import fingroup finalg zmodp cyclic pgroup sylow.
 Require Import vector falgebra fieldext separable galois.
 
 (******************************************************************************)
