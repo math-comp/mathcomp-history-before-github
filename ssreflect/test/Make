@@ -32,8 +32,10 @@ set_pattern.v
 ssrsyntax1.v
 ssrsyntax2.v
 testmx.v
+tc.v
 unkeyed.v
 view_case.v
 wlogletin.v
 wlong_intro.v
 wlog_suff.v
+
