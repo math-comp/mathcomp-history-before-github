@@ -1085,9 +1085,13 @@ END
 
 (* Main prefilter *)
 
+type raw_glob_search_about_item =
+  | RGlobSearchSubPattern of constr_expr
+  | RGlobSearchString of Loc.t * string * string option
+
 let pr_search_item = function
-  | Search.GlobSearchString s -> str s
-  | Search.GlobSearchSubPattern p -> pr_constr_pattern p
+  | RGlobSearchString (_,s,_) -> str s
+  | RGlobSearchSubPattern p -> pr_constr_expr p
 
 let wit_ssr_searchitem = add_genarg "ssr_searchitem" pr_search_item
 
@@ -1216,17 +1220,9 @@ let interp_search_notation loc tag okey =
 
 ARGUMENT EXTEND ssr_search_item TYPED AS ssr_searchitem
   PRINTED BY pr_ssr_search_item
-  | [ string(s) ] ->
-    [ if is_ident_part s then Search.GlobSearchString s else
-      interp_search_notation loc s None ]
-  | [ string(s) "%" preident(key) ] ->
-    [ interp_search_notation loc s (Some key) ]
-  | [ constr_pattern(p) ] -> 
-    [ try
-        let intern = Constrintern.intern_constr_pattern in
-        Search.GlobSearchSubPattern (snd (intern (Global.env()) p))
-      with e -> raise (Cerrors.process_vernac_interp_error e)
-  ]
+  | [ string(s) ] -> [ RGlobSearchString (loc,s,None) ]
+  | [ string(s) "%" preident(key) ] -> [ RGlobSearchString (loc,s,Some key) ]
+  | [ constr_pattern(p) ] -> [ RGlobSearchSubPattern p ]
 END
 
 let pr_ssr_search_arg _ _ _ =
@@ -1299,6 +1295,15 @@ let rec interp_search_about args accu = match args with
     (if flag then ans else not ans) && interp_search_about rem accu gr env typ
 
 let interp_search_arg arg =
+  let arg = List.map (fun (x,arg) -> x, match arg with
+  | RGlobSearchString (loc,s,key) ->
+      if is_ident_part s then Search.GlobSearchString s else
+      interp_search_notation loc s key
+  | RGlobSearchSubPattern p ->
+      try
+        let intern = Constrintern.intern_constr_pattern in 
+        Search.GlobSearchSubPattern (snd (intern (Global.env()) p))
+      with e -> raise (Cerrors.process_vernac_interp_error e)) arg in
   let hpat, a1 = match arg with
   | (_, Search.GlobSearchSubPattern (Pattern.PMeta _)) :: a' -> all_true, a'
   | (true, Search.GlobSearchSubPattern p) :: a' ->
