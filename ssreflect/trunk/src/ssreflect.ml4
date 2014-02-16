@@ -2826,7 +2826,7 @@ type ssrmmod = May | Must | Once
 let pr_mmod = function May -> str "?" | Must -> str "!" | Once -> mt ()
 
 let wit_ssrmmod = add_genarg "ssrmmod" pr_mmod
-let ssrmmod = Gram.Entry.create "ssrmmod"
+let ssrmmod = Pcoq.create_generic_entry "ssrmmod" (Genarg.rawwit wit_ssrmmod)
 GEXTEND Gram
   GLOBAL: ssrmmod;
   ssrmmod: [[ "!" -> Must | LEFTQMARK -> May | "?" -> May]];
