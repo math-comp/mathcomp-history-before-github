@@ -126,7 +126,7 @@ by rewrite !fgraph_codom /= (eq_codom eq_f12).
 Qed.
 
 Lemma ffunK : cancel (@fun_of_fin aT rT) (@finfun aT rT).
-Proof. move=> f; apply/ffunP; exact: ffunE. Qed.
+Proof. by move=> f; apply/ffunP/ffunE. Qed.
 
 Definition family_mem mF := [pred f : fT | [forall x, in_mem (f x) (mF x)]].
 
@@ -250,55 +250,52 @@ Canonical finfun_of_finType := Eval hnf in [finType of fT for finfun_finType].
 Canonical finfun_of_subFinType := Eval hnf in [subFinType of fT].
 
 Lemma card_pfamily y0 D F :
-  #|pfamily y0 D F| = foldr (fun x m => #|F x| * m) 1 (enum D).
+  #|pfamily y0 D F| = foldr muln 1 [seq #|F x| | x in D].
 Proof.
-have:= enum_uniq D; have:= mem_enum D.
-elim: {D}(enum _) {2 4}D => [|x0 s IHs] D eqDs => [_|] /=.
-  rewrite -(card1 [ffun=> y0]); apply: eq_card => f.
-  apply/familyP/eqP=> [f_y0 | ->{f} x]; last by rewrite ffunE -eqDs !inE.
-  by apply/ffunP=> x; have:= f_y0 x; rewrite -eqDs ffunE => /eqP.
-case/andP=> /negPf nsx0 /(IHs (mem s)) <- {IHs}//.
-pose g1 (f : fT) := (f x0, [ffun x => if x == x0 then y0 else f x]).
-pose g2 (xf : rT * fT) := [ffun x => if x == x0 then xf.1 else xf.2 x].
-have g1K: cancel g1 g2.
-  by move=> f; apply/ffunP=> x; rewrite !ffunE; case: eqP => // ->.
-rewrite -cardX -(card_image (can_inj g1K)); apply: eq_card => [] [y f] /=.
-apply/imageP/andP=> /= [[f' /familyP F_f'] [-> ->]| [Fy /familyP Ff]].
-  split; first by have:= F_f' x0; rewrite -eqDs mem_head.
-  apply/familyP=> x; have:= F_f' x; rewrite ffunE -eqDs inE /=.
-  by case: eqP => //= -> _; rewrite nsx0 !inE.
-exists (g2 (y, f)); last first.
-  congr (_, _); first by rewrite ffunE eqxx.
-  apply/ffunP=> x; rewrite !ffunE /=; case: (x =P x0) => // ->{x}.
-  by have:= Ff x0; rewrite /= nsx0 => /eqP.
-by apply/familyP=> x; have:= Ff x; rewrite -eqDs ffunE !inE; case: eqP => // ->.
+rewrite /image_mem; transitivity #|pfamily y0 (enum D) F|.
+  by apply/eq_card=> f; apply/eq_forallb=> x /=; rewrite mem_enum.
+elim: {D}(enum D) (enum_uniq D) => /= [_|x0 s IHs /andP[s'x0 /IHs<-{IHs}]].
+  apply: eq_card1 [ffun=> y0] _ _ => f.
+  apply/familyP/eqP=> [y0_f|-> x]; last by rewrite ffunE inE.
+  by apply/ffunP=> x; rewrite ffunE (eqP (y0_f x)).
+pose g (xf : rT * fT) := finfun [eta xf.2 with x0 |-> xf.1].
+have gK: cancel (fun f : fT => (f x0, g (y0, f))) g.
+  by move=> f; apply/ffunP=> x; do !rewrite ffunE /=; case: eqP => // ->.
+rewrite -cardX -(card_image (can_inj gK)); apply: eq_card => [] [y f] /=.
+apply/imageP/andP=> [[f0 /familyP/=Ff0] [{f}-> ->]| [Fy /familyP/=Ff]].
+  split; first by have:= Ff0 x0; rewrite /= mem_head.
+  apply/familyP=> x; have:= Ff0 x; rewrite ffunE inE /=.
+  by case: eqP => //= -> _; rewrite ifN ?inE.
+exists (g (y, f)). 
+  by apply/familyP=> x; have:= Ff x; rewrite ffunE /= inE; case: eqP => // ->.
+congr (_, _); last apply/ffunP=> x; do !rewrite ffunE /= ?eqxx //.
+by case: eqP => // ->{x}; apply/eqP; have:= Ff x0; rewrite ifN.
 Qed.
 
-Lemma card_family F : #|family F| = foldr (fun x m => #|F x| * m) 1 (enum aT).
+Lemma card_family F : #|family F| = foldr muln 1 [seq #|F x| | x : aT].
 Proof.
-case: (pickP rT) => [y0 _ | rT0].
-  by rewrite -(card_pfamily y0); apply: eq_card.
-case: (enum _) (mem_enum aT) => [aT0 | x0 e _]; last first.
-  by rewrite /= !eq_card0 // => [f | y]; [have := rT0 (f x0) | have := rT0 y].
-have no_aT P (x : aT) : P by have:= aT0 x.
-rewrite /= -(card1 [ffun x => no_aT rT x]); apply: eq_card => f'.
-by apply/familyP/eqP=> _; [apply/ffunP | ] => x; exact: no_aT.
+have [y0 _ | rT0] := pickP rT; first exact: (card_pfamily y0 aT).
+rewrite /image_mem; case DaT: (enum aT) => [{rT0}|x0 e] /=; last first.
+  by rewrite !eq_card0 // => [f | y]; [have:= rT0 (f x0) | have:= rT0 y].
+have{DaT} no_aT P (x : aT) : P by have:= mem_enum aT x; rewrite DaT.
+apply: eq_card1 [ffun x => no_aT rT x] _ _ => f.
+by apply/familyP/eqP=> _; [apply/ffunP | ] => x; apply: no_aT.
 Qed.
 
 Lemma card_pffun_on y0 D R : #|pffun_on y0 D R| = #|R| ^ #|D|.
 Proof.
-by rewrite (cardE D) card_pfamily; elim: (enum _) => //= _ ? ->; rewrite expnS.
+rewrite (cardE D) card_pfamily /image_mem.
+by elim: (enum D) => //= _ e ->; rewrite expnS.
 Qed.
 
 Lemma card_ffun_on R : #|ffun_on R| = #|R| ^ #|aT|.
 Proof.
-by rewrite card_family cardT; elim: (enum _) => //= _ e ->; rewrite expnS.
+rewrite card_family /image_mem cardT.
+by elim: (enum aT) => //= _ e ->; rewrite expnS.
 Qed.
 
 Lemma card_ffun : #|fT| = #|rT| ^ #|aT|.
-Proof.
-by rewrite -card_ffun_on; apply: eq_card => f; symmetry; exact/forallP.
-Qed.
+Proof. by rewrite -card_ffun_on; apply/esym/eq_card=> f; apply/forallP. Qed.
 
 End FinTheory.
 Canonical exp_finType (T : finType) n := [finType of T ^ n].
