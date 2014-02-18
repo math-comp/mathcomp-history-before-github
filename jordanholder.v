@@ -44,7 +44,10 @@ Require Import gseries.
 (*       given group.                                                         *)
 (*    - StrongJordanHolderUniqueness extends the result to composition series *)
 (*       invariant by an external group action.                               *)
+(* See also "The Rooster and the Butterflies", proceedings of Calculemus 2013,*)
+(* by Assia Mahboubi.                                                         *)
 (******************************************************************************)
+
 
 Import GroupScope.
 
