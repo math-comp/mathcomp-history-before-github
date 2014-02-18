@@ -810,8 +810,8 @@ case: n => [|n] lt_n_s; first by rewrite subn0 ltnn subnn.
 by rewrite -{2}(subnK lt_n_s) -addSnnS leq_addr /= -IHs.
 Qed.
 
-Lemma filter_rev a s : [seq x <- rev s | a x] = rev [seq x <- s | a x].
-Proof. by elim: s => //= b s IH; rewrite fun_if !rev_cons filter_rcons IH. Qed.
+Lemma filter_rev a s : filter a (rev s) = rev (filter a s).
+Proof. by elim: s => //= x s IH; rewrite fun_if !rev_cons filter_rcons IH. Qed.
 
 Lemma count_rev a s : count a (rev s) = count a s.
 Proof. by rewrite !count_filter filter_rev size_rev. Qed.
