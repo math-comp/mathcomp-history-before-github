@@ -541,7 +541,8 @@ Qed.
 Lemma rdvdpp : rdvdp d d.
 Proof. apply/eqP; exact: rmodpp. Qed.
 
-Lemma rdivpK p : rdvdp d p -> (rdivp p d) * d = p * (lead_coef d ^+ rscalp p d)%:P.
+Lemma rdivpK p : rdvdp d p -> 
+  (rdivp p d) * d = p * (lead_coef d ^+ rscalp p d)%:P.
 Proof. by rewrite rdivp_eq /rdvdp; move/eqP->; rewrite addr0. Qed.
 
 End ComRegDivisor.
@@ -847,7 +848,7 @@ Qed.
 Lemma scalpE p q :
   scalp p q = if lead_coef q \in GRing.unit then 0%N else rscalp p q.
 Proof.
-by case ulcq: (lead_coef q \in GRing.unit); rewrite /scalp unlock redivp_def ulcq.
+by case h: (lead_coef q \in GRing.unit); rewrite /scalp unlock redivp_def h.
 Qed.
 
 Lemma dvdpE p q : p %| q = rdvdp p q.
@@ -865,15 +866,16 @@ Qed.
 
 Hint Resolve lc_expn_scalp_neq0.
 
-CoInductive edivp_spec (m d : {poly R}) : nat * {poly R} * {poly R} -> bool -> Type :=
-  |Redivp_spec k (q r: {poly R}) of
-    (lead_coef d ^+ k) *: m = q * d + r & lead_coef d \notin GRing.unit &
-   (d != 0 -> size r < size d) : edivp_spec m d (k, q, r) false
-  |Fedivp_spec (q r: {poly R}) of m = q * d + r & (lead_coef d \in GRing.unit) &
-   (d != 0 -> size r < size d) : edivp_spec m d (0%N, q, r) true.
+CoInductive edivp_spec (m d : {poly R}) :
+                                     nat * {poly R} * {poly R} -> bool -> Type :=
+|Redivp_spec k (q r: {poly R}) of
+  (lead_coef d ^+ k) *: m = q * d + r & lead_coef d \notin GRing.unit &
+  (d != 0 -> size r < size d) : edivp_spec m d (k, q, r) false
+|Fedivp_spec (q r: {poly R}) of m = q * d + r & (lead_coef d \in GRing.unit) &
+  (d != 0 -> size r < size d) : edivp_spec m d (0%N, q, r) true.
 
-
-(* Is this the most appropriate statement?*)
+(* There are several ways to state this fact. The most appropriate statement*)
+(* might be polished in light of usage. *)
 Lemma edivpP m d : edivp_spec m d (edivp m d) (lead_coef d \in GRing.unit).
 Proof.
 have hC : GRing.comm d (lead_coef d)%:P by rewrite /GRing.comm mulrC.
@@ -962,7 +964,8 @@ Lemma mulpK p q : q != 0 ->
 Proof.
 move=> qn0; move/rregP: (qn0); apply; rewrite -scalerAl divp_eq.
 suff -> : (p * q) %% q = 0 by rewrite addr0.
-rewrite modpE RingComRreg.rmodp_mull ?scaler0 ?if_same //; first by red; rewrite mulrC.
+rewrite modpE RingComRreg.rmodp_mull ?scaler0 ?if_same //.
+  by red; rewrite mulrC.
 by apply/rregP; rewrite lead_coef_eq0.
 Qed.
 
@@ -1201,7 +1204,8 @@ by rewrite !addnS /= eqn_add2r.
 Qed.
 
 Lemma dvdp_leq p q : q != 0 -> p %| q -> size p <= size q.
-move=> nq0 /modp_eq0P => rpq; case: (ltnP (size p) (size q)); first by move/ltnW->.
+move=> nq0 /modp_eq0P => rpq; case: (ltnP (size p) (size q)).
+   by move/ltnW->.
 rewrite leq_eqVlt; case/orP; first by move/eqP->.
 by move/modp_small; rewrite rpq => h; move: nq0; rewrite h eqxx.
 Qed.
@@ -1263,15 +1267,15 @@ Lemma dvdp_addr m d n : d %| m -> (d %| m + n) = (d %| n).
 Proof.
 case: (altP (d =P 0)) => [-> | dn0]; first by move/dvd0pP->; rewrite add0r.
 rewrite dvdp_eq; set c1 := _ ^+ _; set q1 := _ %/ _; move/eqP=> Eq1.
-apply/idP/idP; rewrite dvdp_eq; set c2 := _ ^+ _; set q2 := _ %/ _; move/eqP=> Eq2.
+apply/idP/idP; rewrite dvdp_eq; set c2 := _ ^+ _; set q2 := _ %/ _.
   have sn0 : c1 * c2 != 0.
     by rewrite !mulf_neq0 // expf_eq0 lead_coef_eq0 (negPf dn0) andbF.
-  apply: (@eq_dvdp _ (c1 *: q2 - c2 *: q1) _ _ sn0).
+  move/eqP=> Eq2; apply: (@eq_dvdp _ (c1 *: q2 - c2 *: q1) _ _ sn0).
   rewrite mulrDl -scaleNr -!scalerAl -Eq1 -Eq2 !scalerA.
   by rewrite mulNr mulrC scaleNr -scalerBr addrC addKr.
-  have sn0 : c1 * c2 != 0.
-    by rewrite !mulf_neq0 // expf_eq0 lead_coef_eq0 (negPf dn0) andbF.
-  apply: (@eq_dvdp _ (c1 *: q2 + c2 *: q1) _ _ sn0).
+have sn0 : c1 * c2 != 0.
+  by rewrite !mulf_neq0 // expf_eq0 lead_coef_eq0 (negPf dn0) andbF.
+move/eqP=> Eq2; apply: (@eq_dvdp _ (c1 *: q2 + c2 *: q1) _ _ sn0).
 by  rewrite mulrDl -!scalerAl -Eq1 -Eq2 !scalerA mulrC addrC scalerDr.
 Qed.
 
@@ -1298,18 +1302,20 @@ Proof.
 case: (altP (n =P 0)) => [-> | nn0]; first by rewrite modp0.
 case: (altP (d =P 0)) => [-> | dn0]; first by move/dvd0pP->; rewrite modp0.
 rewrite dvdp_eq; set c1 := _ ^+ _; set q1 := _ %/ _; move/eqP=> Eq1.
-apply/idP/idP; rewrite dvdp_eq; set c2 := _ ^+ _; set q2 := _ %/ _; move/eqP=> Eq2.
+apply/idP/idP; rewrite dvdp_eq; set c2 := _ ^+ _; set q2 := _ %/ _.
   have sn0 : c1 * c2 != 0.
    by rewrite !mulf_neq0 // expf_eq0 lead_coef_eq0 (negPf dn0) andbF.
   pose quo :=  (c1 * lead_coef n ^+ scalp m n) *: q2 - c2 *: (m %/ n) * q1.
-  apply: (@eq_dvdp _ quo _ _ sn0); rewrite mulrDl mulNr -!scalerAl -!mulrA.
-  rewrite  -Eq1 -Eq2 -scalerAr !scalerA mulrC [_ * c2]mulrC mulrA.
-  by rewrite -[((_ * _) * _) *: _]scalerA -scalerBr divp_eq addrC addKr.
+  move/eqP=> Eq2; apply: (@eq_dvdp _ quo _ _ sn0).
+  rewrite mulrDl mulNr -!scalerAl -!mulrA -Eq1 -Eq2 -scalerAr !scalerA.
+  rewrite mulrC [_ * c2]mulrC mulrA -[((_ * _) * _) *: _]scalerA -scalerBr.
+  by rewrite divp_eq addrC addKr.
 have sn0 : c1 * c2 * lead_coef n ^+ scalp m n != 0.
-  by rewrite !mulf_neq0 // expf_eq0 lead_coef_eq0 ?(negPf dn0) ?(negPf nn0) andbF.
-apply: (@eq_dvdp _ (c2 *: (m  %/ n) * q1 + c1 *: q2) _ _ sn0).
-  rewrite -scalerA divp_eq scalerDr -!scalerA Eq2 scalerAl scalerAr Eq1.
-  by rewrite scalerAl mulrDl mulrA.
+  rewrite !mulf_neq0 // expf_eq0 lead_coef_eq0 ?(negPf dn0) ?andbF //.
+  by rewrite (negPf nn0) andbF.
+move/eqP=> Eq2; apply: (@eq_dvdp _ (c2 *: (m  %/ n) * q1 + c1 *: q2) _ _ sn0).
+rewrite -scalerA divp_eq scalerDr -!scalerA Eq2 scalerAl scalerAr Eq1.
+by rewrite scalerAl mulrDl mulrA.
 Qed.
 
 Lemma dvdp_trans : transitive (@dvdp R).
@@ -2726,7 +2732,7 @@ Qed.
 
 Lemma mulpK q : (q * d) %/ d = q.
 Proof.
-have:= (sym_eq (addr0 (q * d))); case/edivpP; rewrite // size_poly0 size_poly_gt0.
+case/edivpP: (sym_eq (addr0 (q * d))); rewrite // size_poly0 size_poly_gt0.
 by rewrite  -lead_coef_eq0; apply: contraTneq ulcd => ->; rewrite unitr0.
 Qed.
 
@@ -2745,9 +2751,7 @@ Lemma divp_addl_mul q r : (q * d + r) %/ d = q + r %/ d.
 Proof. by rewrite divp_add mulpK. Qed.
 
 Lemma divpp : d %/ d = 1.
-rewrite divpE ulcd RingComRreg.rdivpp; [| by red; rewrite 1?mulrC | exact: mulIr].
-rewrite -mul_polyC -polyC_mul mulVr //; exact: unitrX.
-Qed.
+Proof. by rewrite -{1}(mul1r d) mulpK. Qed.
 
 Lemma leq_trunc_divp m : size (m %/ d * d) <= size m.
 Proof.
