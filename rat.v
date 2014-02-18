@@ -9,15 +9,14 @@ Require Import bigop ssralg div ssrnum ssrint.
 (*          rat == the type of rational number, with single constructor Rat   *)
 (*      Rat p h == the element of type rat build from p a pair of integers and*)
 (*                 h a proof of (0 < p.2) && coprime `|p.1| `|p.2|            *)
-(*          n%: == explicit cast from int to rat, postfix notation for the    *)
+(*         n%:Q == explicit cast from int to rat, postfix notation for the    *)
 (*                 ratz constant                                              *)
 (*       numq r == numerator of (r : rat)                                     *)
 (*       denq r == denominator of (r : rat)                                   *)
-(*      fracq x == an element of rat from x a pair of integers.               *)
 (* x \is a Qint == x is an element of rat whose denominator is equal to 1     *)
 (* x \is a Qnat == x is a positive element of rat whose denominator is equal  *)
 (*                 to 1                                                       *)
-(*       ratr x == generic injection of  (r : R) into an arbitrary unitring.  *)
+(*       ratr x == generic embedding of  (r : R) into an arbitrary unitring.  *)
 (******************************************************************************)
 
 Import GRing.Theory.
