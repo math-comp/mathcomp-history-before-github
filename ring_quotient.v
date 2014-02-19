@@ -3,15 +3,16 @@ Require Import eqtype choice ssreflect ssrbool ssrnat ssrfun seq.
 Require Import ssralg generic_quotient.
 
 (*****************************************************************************)
-(* This file describes  quotient of algebraic structures, and  is divided in *)
+(* This file describes quotients of  algebraic structures, and is divided in *)
 (* two parts. The first part contains a join between the algebraic hierarchy *)
-(* (up to  unit ring type) and  the quotient structure.  Every  structure in *)
+(* (up to  unit ring type) and  the quotient structure.   Every structure in *)
 (* that  (joint)  hierarchy  is  parametrized  by  the  base  type  and  the *)
-(* corresponding operations on  the base type (because the base  type is not *)
+(* corresponding operations on  the base type (because the  base type is not *)
 (* necessarly  an  algebraic  structure).   The canonical  surjection  is  a *)
 (* morphism  for these  operations.  The  second  part defines  what a  (non *)
-(* trivial) decidable ideal  is and provides a construction  of the quotient *)
-(* of a ring by an ideal.                                                    *)
+(* trivial) decidable ideal  is (as part of the  hierarchy of sub-structures *)
+(* defined in ssralg) and provides a  construction of the quotient of a ring *)
+(* by an ideal.                                                              *)
 (*                                                                           *)
 (* Structures:                                                               *)
 (* zmodQuotType T e z n a     == Z-module obtained by quotienting T with the *)
@@ -24,13 +25,28 @@ Require Import ssralg generic_quotient.
 (*                               inverse from i                              *)
 (*                                                                           *)
 (* Definitions:                                                              *)
-(*    idealr_closed I == the (boolean) predicate I represents an ideal       *)
-(*           idealr I == the type of ideals which are represented by I       *)
-(*     prime_idealr S == the type of prime ideals which are represented by I *)
-(*     {ideal_quot I} == quotient by the ideal I                             *)
+(*       nontivial_ideal S == the  collecive  predicate S : pred R is stable *)
+(*                            by product  with an element of R and does  not *)
+(*                            contain 1.                                     *)
+(*   prime_idealr_closed S := u * v \in S -> (u \in S) || (v \in S)          *)
+(*         idealr_closed S == the collective predicate S represents an ideal *)
 (*                                                                           *)
-(* Note: to quantify over over any predicate, quantify over                  *)
-(*  (kI : keyed_pred ideal) where ideal has type idealr I.                   *)
+(*          MkIdeal idealS == packs    idealS : nontrivial_ideal S  into  an *)
+(*                            idealr S  interface structure  associating the *)
+(*                            idealr_closed   property   to  the   canonical *)
+(*                            pred_key S  (see ssrbool), which  must already *)
+(*                            be an zmodPred (see ssralg).                   *)
+(*    MkPrimeIdeal pidealS == packs pidealS : prime_idealr_closed S  into an *)
+(*                            prime_idealr S interface structur  associating *)
+(*                            the  prime_idealr_closed   property   to   the *)
+(*                            canonical pred_key S (see ssrbool), which must *)
+(*                            already be an idealr (see above).              *)
+(*                                                                           *)
+(*         {ideal_quot kI} == quotient by the keyed predicate ideal kI       *)
+(*                                                                           *)
+(* Note: to quantify over over any predicate, quantify over (kI : keyed_pred *)
+(* ideal) where ideal has type idealr I  (see the  hierachy of algebraically *)
+(* closed predicates in ssralg).                                             *)
 (*****************************************************************************)
 
 Import GRing.Theory.
@@ -96,7 +112,7 @@ Canonical zmodQuotType_choiceType zqT :=
 Canonical zmodQuotType_zmodType zqT :=
   GRing.Zmodule.Pack (zmod_quot_class zqT) zqT.
 Canonical zmodQuotType_quotType zqT := QuotTypePack (zmod_quot_class zqT) zqT.
-Canonical zmodQuotType_eqQuotType zqT := EqQuotTypePack 
+Canonical zmodQuotType_eqQuotType zqT := EqQuotTypePack
   (zmod_eq_quot_class (zmod_quot_class zqT)) zqT.
 
 Coercion zmodQuotType_eqType : zmodQuotType >-> eqType.
@@ -106,17 +122,17 @@ Coercion zmodQuotType_quotType : zmodQuotType >-> quotType.
 Coercion zmodQuotType_eqQuotType : zmodQuotType >-> eqQuotType.
 
 Definition ZmodQuotType_pack Q :=
-  fun (qT : quotType T) (zT : zmodType) qc zc 
-  of phant_id (quot_class qT) qc & phant_id (GRing.Zmodule.class zT) zc => 
+  fun (qT : quotType T) (zT : zmodType) qc zc
+  of phant_id (quot_class qT) qc & phant_id (GRing.Zmodule.class zT) zc =>
     fun m => ZmodQuotTypePack (@ZmodQuotClass Q qc zc m) Q.
 
 Definition ZmodQuotMixin_pack Q :=
-  fun (qT : eqQuotType eqT) (qc : eq_quot_class_of eqT Q) 
+  fun (qT : eqQuotType eqT) (qc : eq_quot_class_of eqT Q)
       of phant_id (eq_quot_class qT) qc =>
   fun (zT : zmodType) zc of phant_id (GRing.Zmodule.class zT) zc =>
     fun e m0 mN mD => @ZmodQuotMixinPack Q qc zc e m0 mN mD.
 
-Definition ZmodQuotType_clone (Q : Type) qT cT 
+Definition ZmodQuotType_clone (Q : Type) qT cT
   of phant_id (zmod_quot_class qT) cT := @ZmodQuotTypePack Q cT Q.
 
 Lemma zmod_quot_mixinP zqT :
@@ -138,7 +154,7 @@ Canonical pi_add_quot_morph zqT := PiMorph2 (pi_addr zqT).
 
 End ZmodQuot.
 
-Notation ZmodQuotType z o a Q m := 
+Notation ZmodQuotType z o a Q m :=
   (@ZmodQuotType_pack _ _ z o a Q _ _ _ _ id id m).
 Notation "[ 'zmodQuotType' z , o & a 'of' Q ]" :=
   (@ZmodQuotType_clone _ _ z o a Q _ _ id)
@@ -217,18 +233,18 @@ Coercion ringQuotType_eqQuotType : ringQuotType >-> eqQuotType.
 Coercion ringQuotType_zmodQuotType : ringQuotType >-> zmodQuotType.
 
 Definition RingQuotType_pack Q :=
-  fun (qT : quotType T) (zT : ringType) qc rc 
-  of phant_id (quot_class qT) qc & phant_id (GRing.Ring.class zT) rc => 
+  fun (qT : quotType T) (zT : ringType) qc rc
+  of phant_id (quot_class qT) qc & phant_id (GRing.Ring.class zT) rc =>
     fun m => RingQuotTypePack (@RingQuotClass Q qc rc m) Q.
 
 Definition RingQuotMixin_pack Q :=
   fun (qT : zmodQuotType eqT zeroT oppT addT) =>
-  fun (qc : zmod_quot_class_of eqT zeroT oppT addT Q) 
+  fun (qc : zmod_quot_class_of eqT zeroT oppT addT Q)
       of phant_id (zmod_quot_class qT) qc =>
   fun (rT : ringType) rc of phant_id (GRing.Ring.class rT) rc =>
     fun mZ m1 mM => @RingQuotMixinPack Q qc rc mZ m1 mM.
 
-Definition RingQuotType_clone (Q : Type) qT cT 
+Definition RingQuotType_clone (Q : Type) qT cT
   of phant_id (ring_quot_class qT) cT := @RingQuotTypePack Q cT Q.
 
 Lemma ring_quot_mixinP rqT :
@@ -246,7 +262,7 @@ Canonical pi_mul_quot_morph rqT := PiMorph2 (pi_mulr rqT).
 
 End RingQuot.
 
-Notation RingQuotType o mul Q mix := 
+Notation RingQuotType o mul Q mix :=
   (@RingQuotType_pack _ _ _ _ _ o mul Q _ _ _ _ id id mix).
 Notation "[ 'ringQuotType' o & m 'of' Q ]" :=
   (@RingQuotType_clone _ _ _ _ _ o m Q _ _ id)
@@ -301,7 +317,7 @@ Record unitRingQuotType : Type := UnitRingQuotTypePack {
 Implicit Type rqT : unitRingQuotType.
 
 Definition unit_ring_quot_class rqT : unit_ring_quot_class_of rqT :=
-  let: UnitRingQuotTypePack _ cT _ as qT' := rqT 
+  let: UnitRingQuotTypePack _ cT _ as qT' := rqT
     return unit_ring_quot_class_of qT' in cT.
 
 Definition unit_ring_ring_quot_class rqT (rqc : unit_ring_quot_class_of rqT) :
@@ -321,7 +337,7 @@ Canonical unitRingQuotType_ringType rqT :=
   GRing.Ring.Pack (unit_ring_quot_class rqT) rqT.
 Canonical unitRingQuotType_unitRingType rqT :=
   GRing.UnitRing.Pack (unit_ring_quot_class rqT) rqT.
-Canonical unitRingQuotType_quotType rqT := 
+Canonical unitRingQuotType_quotType rqT :=
   QuotTypePack (unit_ring_quot_class rqT) rqT.
 Canonical unitRingQuotType_eqQuotType rqT :=
   EqQuotTypePack (unit_ring_eq_quot_class (unit_ring_quot_class rqT)) rqT.
@@ -341,18 +357,18 @@ Coercion unitRingQuotType_zmodQuotType : unitRingQuotType >-> zmodQuotType.
 Coercion unitRingQuotType_ringQuotType : unitRingQuotType >-> ringQuotType.
 
 Definition UnitRingQuotType_pack Q :=
-  fun (qT : quotType T) (rT : unitRingType) qc rc 
-  of phant_id (quot_class qT) qc & phant_id (GRing.UnitRing.class rT) rc => 
+  fun (qT : quotType T) (rT : unitRingType) qc rc
+  of phant_id (quot_class qT) qc & phant_id (GRing.UnitRing.class rT) rc =>
     fun m => UnitRingQuotTypePack (@UnitRingQuotClass Q qc rc m) Q.
 
 Definition UnitRingQuotMixin_pack Q :=
   fun (qT : ringQuotType eqT zeroT oppT addT oneT mulT) =>
-  fun (qc : ring_quot_class_of eqT zeroT oppT addT oneT mulT Q) 
+  fun (qc : ring_quot_class_of eqT zeroT oppT addT oneT mulT Q)
       of phant_id (zmod_quot_class qT) qc =>
   fun (rT : unitRingType) rc of phant_id (GRing.UnitRing.class rT) rc =>
     fun mR mU mV => @UnitRingQuotMixinPack Q qc rc mR mU mV.
 
-Definition UnitRingQuotType_clone (Q : Type) qT cT 
+Definition UnitRingQuotType_clone (Q : Type) qT cT
   of phant_id (unit_ring_quot_class qT) cT := @UnitRingQuotTypePack Q cT Q.
 
 Lemma unit_ring_quot_mixinP rqT :
@@ -370,7 +386,7 @@ Canonical pi_inv_quot_morph rqT := PiMorph1 (pi_invr rqT).
 
 End UnitRingQuot.
 
-Notation UnitRingQuotType u i Q mix := 
+Notation UnitRingQuotType u i Q mix :=
   (@UnitRingQuotType_pack _ _ _ _ _ _ _ u i Q _ _ _ _ id id mix).
 Notation "[ 'unitRingQuotType' u & i 'of' Q ]" :=
   (@UnitRingQuotType_clone _ _ _ _ _ _ _ u i Q _ _ id)
@@ -421,7 +437,7 @@ Lemma idealr1 : 1 \in kI = false.
 Proof. by apply: negPf; case: idealrI kI => ? /= [? _] [] /= _ ->. Qed.
 
 Lemma idealMr a u : u \in kI -> a * u \in kI.
-Proof. 
+Proof.
 by case: idealrI kI=> ? /= [? hI] [] /= ? hkI; rewrite !hkI; apply: hI.
 Qed.
 
