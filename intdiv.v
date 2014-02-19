@@ -448,6 +448,19 @@ Lemma divzDr m n d :
   (d %| n)%Z -> ((m + n) %/ d)%Z = (m %/ d)%Z + (n %/ d)%Z.
 Proof. by move=> dv_n; rewrite addrC divzDl // addrC. Qed.
 
+Lemma Qint_dvdz (m d : int) : (d %| m)%Z -> ((m%:~R / d%:~R : rat) \is a Qint).
+Proof.
+case/dvdzP=> z ->; rewrite rmorphM /=; case: (altP (d =P 0)) => [->|dn0].
+  by rewrite mulr0 mul0r.
+by rewrite mulfK ?intr_eq0 // rpred_int. 
+Qed.
+
+Lemma Qnat_dvd (m d : nat) : (d %| m)%N -> ((m%:R / d%:R : rat) \is a Qnat).
+Proof.
+move=> h; rewrite Qnat_def divr_ge0 ?ler0n // -[m%:R]/(m%:~R) -[d%:R]/(d%:~R).
+by rewrite Qint_dvdz.
+Qed.
+
 (* Greatest common divisor *)
 
 Lemma gcdzz m : gcdz m m = `|m|%:Z. Proof. by rewrite /gcdz gcdnn. Qed.

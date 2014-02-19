@@ -462,6 +462,11 @@ move=> cnd; have <- := fracqE (n, d).
 by rewrite /denq /= (eqP (cnd : _ == 1%N)) divn1; case: d {cnd}.
 Qed.
 
+Lemma denqVz (i : int) : i != 0 -> denq (i%:~R^-1) = `|i|.
+Proof.
+by move=> h; rewrite -div1r -[1]/(1%:~R) coprimeq_den /= ?coprime1n // (negPf h).
+Qed.
+
 Lemma numqE x : (numq x)%:~R = x * (denq x)%:~R.
 Proof. by rewrite -{2}[x]divq_num_den divfK // intq_eq0 denq_eq0. Qed.
 

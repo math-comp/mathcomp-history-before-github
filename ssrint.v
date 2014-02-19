@@ -933,6 +933,18 @@ Proof. by rewrite pmulrz_rle0. Qed.
 Lemma ltrz0 n : (n%:~R < 0 :> R) = (n < 0).
 Proof. by rewrite pmulrz_rlt0. Qed.
 
+Lemma ler1z (n : int) : (1 <= n%:~R :> R) = (1 <= n).
+Proof. by rewrite -[1]/(1%:~R) ler_int. Qed.
+
+Lemma ltr1z (n : int) : (1 < n%:~R :> R) = (1 < n).
+Proof. by rewrite -[1]/(1%:~R) ltr_int. Qed.
+
+Lemma lerz1 n : (n%:~R <= 1 :> R) = (n <= 1).
+Proof. by rewrite -[1]/(1%:~R) ler_int. Qed.
+
+Lemma ltrz1 n : (n%:~R < 1 :> R) = (n < 1).
+Proof. by rewrite -[1]/(1%:~R) ltr_int. Qed.
+
 Lemma intr_eq0 n : (n%:~R == 0 :> R) = (n == 0).
 Proof. by rewrite -(mulr0z 1) (inj_eq (mulrIz _)) // oner_eq0. Qed.
 
@@ -1145,6 +1157,9 @@ Proof. by move=> x_nz; rewrite expfz_eq0; apply/nandP; right. Qed.
 Lemma exprzMl x y n (ux : x \is a GRing.unit) (uy : y \is a GRing.unit) :
   (x * y) ^ n = x ^ n * y ^ n.
 Proof. by rewrite exprMz_comm //; apply: mulrC. Qed.
+
+Lemma expfV (x : R) (i : int) : (x ^ i) ^-1 = (x ^-1) ^ i.
+Proof. by rewrite invr_expz exprz_inv. Qed.
 
 End ExprzIdomain.
 
@@ -1676,6 +1691,12 @@ Proof. by rewrite {2}[m]intEsign rmorphMsign normrMsign abszE normr_nat. Qed.
 
 Lemma normrMz m (x : R) : `|x *~ m| = `|x| *~ `|m|.
 Proof. by rewrite -mulrzl normrM -intr_norm mulrzl. Qed.
+
+Lemma expN1r (i : int) : (-1 : R) ^ i = (-1) ^+ `|i|.
+Proof.
+case: i => n; first by rewrite exprnP absz_nat.
+by rewrite NegzE abszN  absz_nat -invr_expz expfV invrN1.
+Qed.
 
 End NormInt.
 

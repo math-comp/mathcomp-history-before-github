@@ -1010,6 +1010,12 @@ Proof. by rewrite ltr_neqAle; case: eqP => // ->; rewrite lerr. Qed.
 Lemma lt0r x : (0 < x) = (x != 0) && (0 <= x). Proof. by rewrite ltr_def. Qed.
 Lemma le0r x : (0 <= x) = (x == 0) || (0 < x). Proof. exact: le0r. Qed.
 
+Lemma lt0r_neq0 (x : R) : 0 < x  -> x != 0.
+Proof. by rewrite lt0r; case/andP. Qed.
+
+Lemma ltr0_neq0 (x : R) : 0 < x  -> x != 0.
+Proof. by rewrite lt0r; case/andP. Qed.
+
 Lemma gtr_eqF x y : y < x -> x == y = false.
 Proof. by rewrite ltr_def; case/andP; move/negPf=> ->. Qed.
 
@@ -2149,6 +2155,21 @@ Proof.
 move=> leE12; elim/(big_load (fun x => 0 <= x)): _.
 elim/big_rec2: _ => // i x2 x1 /leE12/andP[le0Ei leEi12] [x1ge0 le_x12].
 by rewrite mulr_ge0 // ler_pmul.
+Qed.
+
+Lemma ltr_prod (E1 E2 : nat -> R) (n m : nat) :
+   (m < n)%N -> (forall i, (m <= i < n)%N -> 0 <= E1 i < E2 i) ->
+  \prod_(m <= i < n) E1 i < \prod_(m <= i < n) E2 i.
+Proof.
+elim: n m => // n ihn m; rewrite ltnS leq_eqVlt; case/orP => [/eqP -> | ltnm hE].
+  by move/(_ n) => /andb_idr; rewrite !big_nat1 leqnn ltnSn /=; case/andP.
+rewrite big_nat_recr ?[X in _ < X]big_nat_recr ?(ltnW ltnm) //=.
+move/andb_idr: (hE n); rewrite leqnn ltnW //=; case/andP => h1n h12n.
+rewrite big_nat_cond [X in _ < X * _]big_nat_cond; apply: ltr_pmul => //=.
+- apply: prodr_ge0 => i; rewrite andbT; case/andP=> hm hn. 
+  by move/andb_idr: (hE i); rewrite hm /= ltnS ltnW //=; case/andP.
+rewrite -!big_nat_cond; apply: ihn => // i /andP [hm hn]; apply: hE.
+by rewrite hm ltnW.
 Qed.
 
 (* real of mul *)
