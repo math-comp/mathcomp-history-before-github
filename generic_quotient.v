@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 (* -*- coding : utf-8 -*- *)
 
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq fintype.
 
 (*****************************************************************************)
 (* Provided a base type T, this files defines an interface for quotients Q   *)
@@ -210,6 +210,12 @@ Variable qT : quotType T.
 Lemma reprK : cancel repr \pi_qT.
 Proof. by move=> x; rewrite !unlock repr_ofK. Qed.
 
+CoInductive pi_spec (x : T) : T -> Type :=
+  PiSpec y of x = y %[mod qT] : pi_spec x y.
+
+Lemma piP (x : T) : pi_spec x (repr (\pi_qT x)).
+Proof. by constructor; rewrite reprK. Qed.
+
 Lemma mpiE : \mpi =1 \pi_qT.
 Proof. by move=> x; rewrite !unlock. Qed.
 
@@ -399,19 +405,31 @@ Proof. by rewrite (sort_Sub u); apply: PK. Qed.
 Canonical subType  := SubType _ _ _ reprP qreprK.
 Definition eqMixin := Eval hnf in [eqMixin of qT by <:].
 
+Canonical eqType := EqType qT eqMixin.
+
 End SubTypeMixin.
 
 Definition choiceMixin (T : choiceType) (qT : quotType T) :=
   Eval hnf in [choiceMixin of qT by <:].
+Canonical choiceType (T : choiceType) (qT : quotType T) :=
+  ChoiceType qT (@choiceMixin T qT).
 
 Definition countMixin (T : countType) (qT : quotType T) :=
   Eval hnf in [countMixin of qT by <:].
+Canonical countType (T : countType) (qT : quotType T) :=
+  CountType qT (@countMixin T qT).
+
+Section finType.
+Variables (T : finType) (qT : quotType T).
+Canonical subCountType := [subCountType of qT].
+Definition finMixin := Eval hnf in [finMixin of qT by <:].
+End finType.
 
 End QuotSubType.
 
-Notation "[ 'subType' 'of' Q 'by' %/ ]" :=
-  (SubType Q _ _ QuotSubType.reprP QuotSubType.qreprK)
-  (at level 0, format "[ 'subType'  'of'  Q  'by'  %/ ]") : form_scope.
+Notation "[ 'subType' Q 'of' T 'by' %/ ]" :=
+(@SubType T _ Q _ _ (@QuotSubType.reprP _ _) (@QuotSubType.qreprK _ _))
+(at level 0, format "[ 'subType'  Q  'of'  T  'by'  %/ ]") : form_scope.
 
 Notation "[ 'eqMixin' 'of' Q 'by' <:%/ ]" := 
   (@QuotSubType.eqMixin _ _: Equality.class_of Q)
@@ -424,6 +442,10 @@ Notation "[ 'choiceMixin' 'of' Q 'by' <:%/ ]" :=
 Notation "[ 'countMixin' 'of' Q 'by' <:%/ ]" := 
   (@QuotSubType.countMixin _ _: Countable.mixin_of Q)
   (at level 0, format "[ 'countMixin'  'of'  Q  'by'  <:%/ ]") : form_scope.
+
+Notation "[ 'finMixin' 'of' Q 'by' <:%/ ]" := 
+  (@QuotSubType.finMixin _ _: Finite.mixin_of Q)
+  (at level 0, format "[ 'finMixin'  'of'  Q  'by'  <:%/ ]") : form_scope.
 
 (****************************************************)
 (* Definition of a (decidable) equivalence relation *)
@@ -610,8 +632,7 @@ Qed.
 
 Lemma equivQTP : cancel (CD \o erepr) (pi \o DC).
 Proof.
-move=> x /=.
-by rewrite (pi_CD _ (erepr x) _) ?ereprK /eC /= ?encDP.
+by move=> x; rewrite /= (pi_CD _ (erepr x) _) ?ereprK /eC /= ?encDP.
 Qed.
 
 Local Notation qT := (type_of (Phantom (rel D) encD)).
@@ -646,23 +667,6 @@ Notation "x = y %[mod_eq r ]" := (x = y %[mod {eq_quot r}]) : quotient_scope.
 Notation "x != y %[mod_eq r ]" := (x != y %[mod {eq_quot r}]) : quotient_scope.
 Notation "x <> y %[mod_eq r ]" := (x <> y %[mod {eq_quot r}]) : quotient_scope.
 
-Section EquivQuotTheory.
-
-Variables (D : Type) (C : choiceType) (CD : C -> D) (DC : D -> C).
-Variables (eD : equiv_rel D) (encD : encModRel CD DC eD).
-
-Lemma eqmodE x y : x == y %[mod_eq encD] = encD x y.
-Proof. by rewrite EquivQuot.eqmodE encModRelE. Qed.
-
-Lemma eqmodP x y : reflect (x = y %[mod_eq encD]) (encD x y).
-Proof. by rewrite encModRelE; apply: EquivQuot.eqmodP. Qed.
-
-End EquivQuotTheory.
-
-Implicit Arguments eqmodE [D C DC CD eD encD].
-Implicit Arguments eqmodP [D C CD DC eD encD x y].
-Prenex Implicits eqmodE eqmodP.
-
 (***********************************************************)
 (* If the type is directly a choiceType, no need to encode *)
 (***********************************************************)
@@ -694,3 +698,30 @@ Canonical eq_quot_countType := CountType {eq_quot encD} eq_quot_countMixin.
 
 End CountEncodingModuloRel.
 
+Section EquivQuotTheory.
+
+Variables (T : choiceType) (e : equiv_rel T) (Q : eqQuotType e).
+
+Lemma eqmodE x y : x == y %[mod_eq e] = e x y.
+Proof. by rewrite pi_eq_quot. Qed.
+
+Lemma eqmodP x y : reflect (x = y %[mod_eq e]) (e x y).
+Proof. by rewrite -eqmodE; apply/eqP. Qed.
+
+End EquivQuotTheory.
+
+Prenex Implicits eqmodE eqmodP.
+
+Section EqQuotTheory.
+
+Variables (T : Type) (e : rel T) (Q : eqQuotType e).
+
+Lemma eqquotE x y : x == y %[mod Q] = e x y.
+Proof. by rewrite pi_eq_quot. Qed.
+
+Lemma eqquotP x y : reflect (x = y %[mod Q]) (e x y).
+Proof. by rewrite -eqquotE; apply/eqP. Qed.
+
+End EqQuotTheory.
+
+Prenex Implicits eqquotE eqquotP.

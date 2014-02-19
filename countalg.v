@@ -896,14 +896,7 @@ have I_ideal : idealr_closed I.
 pose Iaddkey := GRing.Pred.Add (DefaultPredKey I) I_ideal.
 pose Iidkey := MkIdeal (GRing.Pred.Zmod Iaddkey I_ideal) I_ideal.
 pose E := ComRingType _ (@Quotient.mulqC _ _ _ (KeyedPred Iidkey)).
-have PtoEmorphism: rmorphism (\pi_E%qT : {poly F} -> E).
-(* GG - I have to repeat the proof of pi_rmorphism, which is unusable because *)
-(* it wants a quotType whose manifest equality is eq_op, whereas the equality *)
-(* of {ideal_quot _} is Quotient.equiv _; the two are not convertible because *)
-(* EquivQuot.eqMixin is opaque.                                               *)
-  split=> [q1 q2|]; first by rewrite Quotient.pi_add Quotient.pi_opp.
-  by split; [exact: Quotient.pi_mul | rewrite !piE].
-pose PtoE := RMorphism PtoEmorphism.
+pose PtoE : {rmorphism {poly F} -> E} := [rmorphism of \pi_E%qT : {poly F} -> E].
 have PtoEd i: PtoE (d i) = 0.
   by apply/eqP; rewrite piE Quotient.equivE subr0; apply/memI; exists i.
 pose Einv (z : E) (q := repr z) (dq := d (pickle q).+1) :=

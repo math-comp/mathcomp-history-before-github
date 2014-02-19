@@ -597,12 +597,12 @@ Local Notation one_alg := 1%:RA.
 
 Lemma equiv_alg (x y : algcreal) : (x == y)%CR <-> (x = y %[mod {alg F}]).
 Proof.
-split; first by move=> /eq_algcrealP /eqmodP.
-by move=> /eqmodP /eq_algcrealP.
+split; first by move=> /eq_algcrealP /eqquotP ->.
+by move=> /eqquotP /eq_algcrealP.
 Qed.
 
 Lemma nequiv_alg (x y : algcreal) : reflect (x != y)%CR (x != y %[mod {alg F}]).
-Proof. by rewrite eqmodE; apply: neq_algcrealP. Qed.
+Proof. by rewrite eqquotE; apply: neq_algcrealP. Qed.
 Implicit Arguments nequiv_alg [x y].
 Prenex Implicits nequiv_alg.
 
@@ -929,9 +929,9 @@ Proof. by have /implyP := @gt0_alg_nlt0 0; case: lt_alg. Qed.
 Lemma le_alg_def x y : le_alg x y = (y == x) || lt_alg x y.
 Proof.
 rewrite -[x]reprK -[y]reprK eq_sym piE [lt_alg _ _]piE; apply/le_algcrealP/orP.
-  move=> /le_creal_neqVlt [/eq_algcrealP/eqmodP/eqP-> //|lt_xy]; first by left.
+  move=> /le_creal_neqVlt [/eq_algcrealP/eqquotP/eqP-> //|lt_xy]; first by left.
   by right; apply/lt_algcrealP.
-by move=> [/eqP/eqmodP/eq_algcrealP-> //| /lt_algcrealP /lt_crealW].
+by move=> [/eqP/eqquotP/eq_algcrealP-> //| /lt_algcrealP /lt_crealW].
 Qed.
 
 Definition AlgNumFieldMixin := RealLtMixin add_alg_gt0 mul_alg_gt0

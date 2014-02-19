@@ -2,6 +2,37 @@
 Require Import eqtype choice ssreflect ssrbool ssrnat ssrfun seq.
 Require Import ssralg generic_quotient.
 
+(*****************************************************************************)
+(* This file describes  quotient of algebraic structures, and  is divided in *)
+(* two parts. The first part contains a join between the algebraic hierarchy *)
+(* (up to  unit ring type) and  the quotient structure.  Every  structure in *)
+(* that  (joint)  hierarchy  is  parametrized  by  the  base  type  and  the *)
+(* corresponding operations on  the base type (because the base  type is not *)
+(* necessarly  an  algebraic  structure).   The canonical  surjection  is  a *)
+(* morphism  for these  operations.  The  second  part defines  what a  (non *)
+(* trivial) decidable ideal  is and provides a construction  of the quotient *)
+(* of a ring by an ideal.                                                    *)
+(*                                                                           *)
+(* Structures:                                                               *)
+(* zmodQuotType T e z n a     == Z-module obtained by quotienting T with the *)
+(*                               relation e and where the zero comes from z, *)
+(*                               the negation from n and the addition from a *)
+(* ringQuotType T e z n a o m == ring  obtained  by quotienting T and  where *)
+(*                               the one comes from o and the multiplication *)
+(*                               comes from m                                *)
+(*   unitRingQuotType ... u i == unit ring where unit comes  from u  and the *)
+(*                               inverse from i                              *)
+(*                                                                           *)
+(* Definitions:                                                              *)
+(*    idealr_closed I == the (boolean) predicate I represents an ideal       *)
+(*           idealr I == the type of ideals which are represented by I       *)
+(*     prime_idealr S == the type of prime ideals which are represented by I *)
+(*     {ideal_quot I} == quotient by the ideal I                             *)
+(*                                                                           *)
+(* Note: to quantify over over any predicate, quantify over                  *)
+(*  (kI : keyed_pred ideal) where ideal has type idealr I.                   *)
+(*****************************************************************************)
+
 Import GRing.Theory.
 
 Set Implicit Arguments.
@@ -11,7 +42,7 @@ Unset Printing Implicit Defensive.
 Local Open Scope ring_scope.
 Local Open Scope quotient_scope.
 
-Reserved Notation "{ideal_quot I }" (at level 0, format "{ideal_quot I }").
+Reserved Notation "{ideal_quot I }" (at level 0, format "{ideal_quot  I }").
 Reserved Notation "m = n %[mod_ideal I ]" (at level 70, n at next level,
   format "'[hv ' m '/'  =  n '/'  %[mod_ideal  I ] ']'").
 Reserved Notation "m == n %[mod_ideal I ]" (at level 70, n at next level,
@@ -117,8 +148,8 @@ Notation ZmodQuotMixin Q m0 mN mD :=
 
 Section PiAdditive.
 
-Variable V : zmodType.
-Variable Q : @zmodQuotType V eq_op 0 -%R +%R.
+Variables (V : zmodType) (equivV : rel V) (zeroV : V).
+Variable Q : @zmodQuotType V equivV zeroV -%R +%R.
 
 Lemma pi_is_additive : additive \pi_Q.
 Proof. by move=> x y /=; rewrite !piE. Qed.
@@ -225,11 +256,12 @@ Notation RingQuotMixin Q m1 mM :=
 
 Section PiRMorphism.
 
-Variable R : ringType.
-Variable Q : @ringQuotType R eq_op 0 -%R +%R 1 *%R.
+Variables (R : ringType) (equivR : rel R) (zeroR : R).
+
+Variable Q : @ringQuotType R equivR zeroR -%R +%R 1 *%R.
 
 Lemma pi_is_multiplicative : multiplicative \pi_Q.
-Proof.  by split; do ?move=> x y /=; rewrite !piE. Qed.
+Proof. by split; do ?move=> x y /=; rewrite !piE. Qed.
 
 Canonical pi_rmorphism := AddRMorphism pi_is_multiplicative.
 
