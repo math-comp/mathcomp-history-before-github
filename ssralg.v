@@ -811,6 +811,17 @@ Lemma sumr_const (I : finType) (A : pred I) (x : V) :
   \sum_(i in A) x = x *+ #|A|.
 Proof. by rewrite big_const -iteropE. Qed.
 
+Lemma telescope_sum n m (f : nat -> V) : n <= m ->
+  \sum_(n <= k < m) (f (k + 1)%N - f k) = f m - f n.
+Proof.
+rewrite -{2}[n]add0n big_addn; elim: m => [ | m ihm].
+  by rewrite leqn0=> /eqP ->; rewrite subrr subnn big_mkord big_ord0.
+rewrite leq_eqVlt; case/orP=> [/eqP -> | n_lt_b1].
+  by rewrite subnn subrr big_geq.
+rewrite subSn ?big_nat_recr //= ihm ?subnK // addn1 addrC -addrA [- _ + _]addrA.
+by rewrite addNr sub0r.
+Qed.
+
 Section ClosedPredicates.
 
 Variable S : predPredType V.
@@ -922,6 +933,7 @@ Local Notation "x ^+ n" := (exp x n) : ring_scope.
 Local Notation "\prod_ ( i <- r | P ) F" := (\big[*%R/1]_(i <- r | P) F).
 Local Notation "\prod_ ( i | P ) F" := (\big[*%R/1]_(i | P) F).
 Local Notation "\prod_ ( i 'in' A ) F" := (\big[*%R/1]_(i in A) F).
+Local Notation "\prod_ ( m <= i < n ) F" := (\big[*%R/1%R]_(m <= i < n) F%R).
 
 (* The ``field'' characteristic; the definition, and many of the theorems,   *)
 (* has to apply to rings as well; indeed, we need the Frobenius automorphism *)
@@ -4599,6 +4611,19 @@ Lemma prodf_div I r (P : pred I) (E D : I -> F) :
   \prod_(i <- r | P i) (E i / D i) =
      \prod_(i <- r | P i) E i / \prod_(i <- r | P i) D i.
 Proof. by rewrite big_split prodfV. Qed.
+
+Lemma telescope_prod n m (f : nat -> F) :
+ (forall k, n <= k < m -> f k != 0) -> n < m ->
+  \prod_(n <= k < m) (f (k + 1)%N / f k) = f m / f n.
+Proof.
+move=> hf; rewrite -{2}[n]add0n big_addn; elim: m hf => [ | m ihm] hf //.
+rewrite ltnS leq_eqVlt; case/orP=> [/eqP -> | ltnm].
+  by rewrite subSn // subnn big_nat_recr //= big_nil mul1r add0n addn1.
+rewrite subSn ?big_nat_recr //= ?ihm ?subnK  ?(ltnW ltnm) //; last first.
+  by move=> k /andP [hnk hkm]; apply: hf; rewrite hnk ltnS ltnW. 
+rewrite addn1 -!mulrA mulrC -!mulrA mulVf; first by rewrite mulr1 mulrC.
+by apply: hf; rewrite ltnW //=.
+Qed.
 
 Lemma addf_div x1 y1 x2 y2 :
   y1 != 0 -> y2 != 0 -> x1 / y1 + x2 / y2 = (x1 * y2 + x2 * y1) / (y1 * y2).
