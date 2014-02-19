@@ -30,14 +30,14 @@ Qed.
 Lemma fact_prod n : n`! = \prod_(1 <= i < n.+1) i.
 Proof.
 elim: n => [|n IHn] //; first by rewrite big_nil.
-by apply sym_equal; rewrite factS IHn // !big_add1 big_nat_recr /= mulnC.
+by apply sym_equal; rewrite factS IHn // !big_add1 big_nat_recr //= mulnC.
 Qed.
 
 Lemma logn_fact p n : prime p -> logn p n`! = \sum_(1 <= k < n.+1) n %/ p ^ k.
 Proof.
 move=> p_prime; transitivity (\sum_(1 <= i < n.+1) logn p i).
   rewrite big_add1; elim: n => /= [|n IHn]; first by rewrite logn1 big_geq.
-  by rewrite big_nat_recr -IHn /= factS mulnC lognM ?fact_gt0.
+  by rewrite big_nat_recr // -IHn /= factS mulnC lognM ?fact_gt0.
 transitivity (\sum_(1 <= i < n.+1) \sum_(1 <= k < n.+1) (p ^ k %| i)).
   apply: eq_big_nat => i /andP[i_gt0 le_i_n]; rewrite logn_count_dvd //.
   rewrite -!big_mkcond (big_nat_widen _ _ n.+1) 1?ltnW //; apply: eq_bigl => k.
@@ -264,7 +264,8 @@ Qed.
 
 Lemma triangular_sum n : \sum_(0 <= i < n) i = 'C(n, 2).
 Proof.
-by elim: n => [|n IHn]; [rewrite big_geq | rewrite big_nat_recr IHn binS bin1].
+elim: n => [|n IHn]; first by rewrite big_geq. 
+by rewrite big_nat_recr // IHn binS bin1.
 Qed.
 
 Lemma textbook_triangular_sum n : \sum_(0 <= i < n) i = 'C(n, 2).

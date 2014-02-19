@@ -2097,7 +2097,7 @@ set m := {-7}n; transitivity #|fr m|.
 elim: m (leqnn m : m <= n) => [_|m IHm]; last move/ltnW=> le_mn.
   rewrite (@eq_card1 _ (0 : 'M_(0, n))) ?big_geq //= => A.
   by rewrite flatmx0 !inE !eqxx.
-rewrite big_nat_recr -{}IHm //= !subSS mulnBr muln1 -expnD subnKC //.
+rewrite big_nat_recr // -{}IHm //= !subSS mulnBr muln1 -expnD subnKC //.
 rewrite -sum_nat_const /= -sum1_card -add1n.
 rewrite (partition_big dsubmx (fr m)) /= => [|A]; last first.
   rewrite !inE -{1}(vsubmxK A); move: {A}(_ A) (_ A) => Ad Au Afull.
@@ -2128,7 +2128,7 @@ rewrite cardsT /= card_sub /GRing.unit /= big_add1 /= -triangular_sum -/n.
 elim: {n'}n => [|n IHn].
   rewrite !big_geq // mul1n (@eq_card _ _ predT) ?card_matrix //= => M.
   by rewrite {1}[M]flatmx0 -(flatmx0 1%:M) unitmx1.
-rewrite !big_nat_recr /= expnD mulnAC mulnA -{}IHn -mulnA mulnC.
+rewrite !big_nat_recr //= expnD mulnAC mulnA -{}IHn -mulnA mulnC.
 set LHS := #|_|; rewrite -[n.+1]muln1 -{2}[n]mul1n {}/LHS.
 rewrite -!card_matrix subn1 -(cardC1 0) -mulnA; set nzC := predC1 _.
 rewrite -sum1_card (partition_big lsubmx nzC) => [|A]; last first.

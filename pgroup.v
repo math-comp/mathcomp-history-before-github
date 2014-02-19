@@ -559,7 +559,7 @@ have: (lp #[x].+1).-elt x by apply/pnatP=> // p _; exact: dvdn_leq.
 move/constt_p_elt=> def_x; symmetry; rewrite -{1}def_x {def_x}.
 elim: _.+1 => [|p IHp].
   by rewrite big_nil; apply/constt1P; exact/pgroupP.
-rewrite big_nat_recr /= -{}IHp -(consttC (lp p) x.`__); congr (_ * _).
+rewrite big_nat_recr //= -{}IHp -(consttC (lp p) x.`__); congr (_ * _).
   rewrite sub_in_constt // => q _; exact: leqW.
 set y := _.`__; rewrite -(consttC p y) (constt1P p^' _ _) ?mulg1.
   by rewrite 2?sub_in_constt // => q _; move/eqnP->; rewrite !inE ?ltnn.

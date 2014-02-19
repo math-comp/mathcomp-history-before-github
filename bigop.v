@@ -949,10 +949,10 @@ Proof.
 by rewrite -addn1 big_addn subn1; apply: eq_big => ? *; rewrite addn1.
 Qed.
 
-Lemma big_nat_recl n F :
-  \big[op/idx]_(0 <= i < n.+1) F i =
-     op (F 0) (\big[op/idx]_(0 <= i < n) F i.+1).
-Proof. by rewrite big_ltn // big_add1. Qed.
+Lemma big_nat_recl n m F : m <= n ->
+  \big[op/idx]_(m <= i < n.+1) F i =
+     op (F m) (\big[op/idx]_(m <= i < n) F i.+1).
+Proof. by move=> lemn; rewrite big_ltn // big_add1. Qed.
 
 Lemma big_mkord n (P : pred nat) F :
   \big[op/idx]_(0 <= i < n | P i) F i = \big[op/idx]_(i < n | P i) F i.
@@ -1155,9 +1155,9 @@ Qed.
 Lemma big_nat1 n F : \big[*%M/1]_(n <= i < n.+1) F i = F n.
 Proof. by rewrite big_ltn // big_geq // mulm1. Qed.
 
-Lemma big_nat_recr n F :
-  \big[*%M/1]_(0 <= i < n.+1) F i = (\big[*%M/1]_(0 <= i < n) F i) * F n.
-Proof. by rewrite (@big_cat_nat n) ?leqnSn // big_nat1. Qed.
+Lemma big_nat_recr n m F : m <= n ->
+  \big[*%M/1]_(m <= i < n.+1) F i = (\big[*%M/1]_(m <= i < n) F i) * F n.
+Proof. by move=> lemn; rewrite (@big_cat_nat n) ?leqnSn // big_nat1. Qed.
 
 Lemma big_ord_recr n F :
   \big[*%M/1]_(i < n.+1) F i =
@@ -1165,7 +1165,7 @@ Lemma big_ord_recr n F :
 Proof.
 transitivity (\big[*%M/1]_(0 <= i < n.+1) F (inord i)).
   by rewrite big_mkord; apply: eq_bigr=> i _; rewrite inord_val.
-rewrite big_nat_recr big_mkord; congr (_ * F _); last first.
+rewrite big_nat_recr // big_mkord; congr (_ * F _); last first.
   by apply: val_inj; rewrite /= inordK.
 by apply: eq_bigr => [] i _; congr F; apply: ord_inj; rewrite inordK //= leqW.
 Qed.
