@@ -2,52 +2,80 @@
 Require Import eqtype choice ssreflect ssrbool ssrnat ssrfun seq.
 Require Import ssralg generic_quotient.
 
-(*****************************************************************************)
-(* This file describes quotients of  algebraic structures, and is divided in *)
-(* two parts. The first part contains a join between the algebraic hierarchy *)
-(* (up to  unit ring type) and  the quotient structure.   Every structure in *)
-(* that  (joint)  hierarchy  is  parametrized  by  the  base  type  and  the *)
-(* corresponding operations on  the base type (because the  base type is not *)
-(* necessarly  an  algebraic  structure).   The canonical  surjection  is  a *)
-(* morphism  for these  operations.  The  second  part defines  what a  (non *)
-(* trivial) decidable ideal  is (as part of the  hierarchy of sub-structures *)
-(* defined in ssralg) and provides a  construction of the quotient of a ring *)
-(* by an ideal.                                                              *)
-(*                                                                           *)
-(* Structures:                                                               *)
-(* zmodQuotType T e z n a     == Z-module obtained by quotienting T with the *)
-(*                               relation e and where the zero comes from z, *)
-(*                               the negation from n and the addition from a *)
-(* ringQuotType T e z n a o m == ring  obtained  by quotienting T and  where *)
-(*                               the one comes from o and the multiplication *)
-(*                               comes from m                                *)
-(*   unitRingQuotType ... u i == unit ring where unit comes  from u  and the *)
-(*                               inverse from i                              *)
-(*                                                                           *)
-(* Definitions:                                                              *)
-(*       nontivial_ideal S == the  collecive  predicate S : pred R is stable *)
-(*                            by product  with an element of R and does  not *)
-(*                            contain 1.                                     *)
-(*   prime_idealr_closed S := u * v \in S -> (u \in S) || (v \in S)          *)
-(*         idealr_closed S == the collective predicate S represents an ideal *)
-(*                                                                           *)
-(*          MkIdeal idealS == packs    idealS : nontrivial_ideal S  into  an *)
-(*                            idealr S  interface structure  associating the *)
-(*                            idealr_closed   property   to  the   canonical *)
-(*                            pred_key S  (see ssrbool), which  must already *)
-(*                            be an zmodPred (see ssralg).                   *)
-(*    MkPrimeIdeal pidealS == packs pidealS : prime_idealr_closed S  into an *)
-(*                            prime_idealr S interface structur  associating *)
-(*                            the  prime_idealr_closed   property   to   the *)
-(*                            canonical pred_key S (see ssrbool), which must *)
-(*                            already be an idealr (see above).              *)
-(*                                                                           *)
-(*         {ideal_quot kI} == quotient by the keyed predicate ideal kI       *)
-(*                                                                           *)
-(* Note: to quantify over over any predicate, quantify over (kI : keyed_pred *)
-(* ideal) where ideal has type idealr I  (see the  hierachy of algebraically *)
-(* closed predicates in ssralg).                                             *)
-(*****************************************************************************)
+
+(******************************************************************************)
+(*          This file describes quotients of algebraic structures.            *)
+(*                                                                            *)
+(* It defines a  join hierarchy mxing the structures defined  in file ssralg  *)
+(* (up to  unit ring type)  and the  quotType quotient structure  defined in  *)
+(* file  generic_quotient.   Every structure  in  that  (join) hierarchy  is  *)
+(* parametrized by  a base type  T and the  constants and operations  on the  *)
+(* base type  that will  be used  to confer its  algebraic structure  to the  *)
+(* quotient.  Note  that T  itself  is  in general  not  an  instance of  an  *)
+(* algebraic structure.  The  canonical surjection from T  onto its quotient  *)
+(* should be compatible with the parameter operations.                        *)
+(*                                                                            *)
+(* The  second part  of  the file  provides a  definition  of (non  trivial)  *)
+(* decidable ideals  (resp. prime ideals)  of an arbitrary instance  of ring  *)
+(* structure and a construction of the quotient  of a ring by such an ideal.  *)
+(* These definitions extend the hierarchy  of sub-structures defined in file  *)
+(* ssralg (see Module Pred in ssralg), following a similar methodology.       *)
+(* Although the definition of the (structure of) quotient of a ring by an     *)
+(* ideal is a general one, we do not provide infrastructure for the case of   *)
+(* non commutative ring and left or two-sided ideals.                         *)
+(*                                                                            *)
+(* The file defines the following Structures:                                 *)
+(* zmodQuotType T e z n a     == Z-module  obtained  by  quotienting type  T  *)
+(*                               with  the  relation  e  and  whose neutral,  *)
+(*                               opposite and addition are the images in the  *)
+(*                               quotient  of  the  parameters  z,  n and a,  *)
+(*                               respectively.                                *)
+(* ringQuotType T e z n a o m == ring  obtained  by quotienting  type T with  *)
+(*                               the relation e  and  whose zero opposite,    *)
+(*                               addition, one, and multiplication are  the   *)
+(*                               images  in  the  quotient  of the parameters *)
+(*                               z, n, a, o, m, respectively.                 *)
+(*   unitRingQuotType ... u i == As in the previous cases, instance of unit   *)
+(*                               ring whose unit predicate  is obtained from  *)
+(*                               u and the inverse from i.                    *)
+(*                 idealr R S == (S : pred R) is a non-trivial, decidable,    *)
+(*                               right ideal of the ring R.                   *)
+(*           prime_idealr R S == (S : pred R) is a non-trivial, decidable,    *)
+(*                               right, prime ideal of the ring R.            *)
+(*                                                                            *)
+(* The formalization of ideals features the following constructions:          *)
+(*       nontrivial_ideal S == the  collective predicate (S : pred R) on the  *)
+(*                             ring R is stable by the ring product and does  *)
+(*                             contain R's one.                               *)
+(*   prime_idealr_closed S  := u * v \in S -> (u \in S) || (v \in S)          *)
+(*          idealr_closed S == the collective predicate (S : pred R) on the   *)
+(*                             ring  R  represents  a  (right) ideal.  This   *)
+(*                             implies its being a nontrivial_ideal.          *)
+(*                                                                            *)
+(*           MkIdeal idealS == packs   idealS : nontrivial_ideal S   into  an *)
+(*                             idealr S  interface structure  associating the *)
+(*                             idealr_closed   property   to  the   canonical *)
+(*                             pred_key S  (see ssrbool), which  must already *)
+(*                             be an zmodPred (see ssralg).                   *)
+(*     MkPrimeIdeal pidealS == packs  pidealS : prime_idealr_closed S  into a *)
+(*                             prime_idealr S interface structure associating *)
+(*                             the  prime_idealr_closed   property   to   the *)
+(*                             canonical pred_key S (see ssrbool), which must *)
+(*                             already be an idealr (see above).              *)
+(*          {ideal_quot kI} == quotient by the keyed (right) ideal predicate  *)
+(*                             kI of a commutative ring R. Note that we indeed*)
+(*                             only provide canonical structures of ring      *)
+(*                             quotients for the case of commutative rings,   *)
+(*                             for which a right ideal is obviously a         *)
+(*                             two-sided ideal.                               *)
+(*                                                                            *)
+(* Note :                                                                     *)
+(* if (I : pred R) is a predicate over a ring R and (ideal : idealr I) is an  *)
+(* instance of (right) ideal, in order to quantify over an arbitrary (keyed)  *)
+(* predicate describing  ideal, use  type (keyed_pred  ideal), as  in:        *)
+(*     forall (kI : keyed_pred ideal),...                                     *)
+(******************************************************************************)
+
 
 Import GRing.Theory.
 
@@ -92,7 +120,7 @@ Record zmod_quot_class_of (Q : Type) : Type := ZmodQuotClass {
     zmod_quot_quot_class zmod_quot_zmod_class
 }.
 
-Record zmodQuotType : Type := ZmodQuotTypePack {
+Structure zmodQuotType : Type := ZmodQuotTypePack {
   zmod_quot_sort :> Type;
   _ : zmod_quot_class_of zmod_quot_sort;
   _ : Type
@@ -196,7 +224,7 @@ Record ring_quot_class_of (Q : Type) : Type := RingQuotClass {
     ring_quot_quot_class ring_quot_ring_class
 }.
 
-Record ringQuotType : Type := RingQuotTypePack {
+Structure ringQuotType : Type := RingQuotTypePack {
   ring_quot_sort :> Type;
   _ : ring_quot_class_of ring_quot_sort;
   _ : Type
@@ -308,7 +336,7 @@ Record unit_ring_quot_class_of (Q : Type) : Type := UnitRingQuotClass {
     unit_ring_quot_quot_class unit_ring_quot_ring_class
 }.
 
-Record unitRingQuotType : Type := UnitRingQuotTypePack {
+Structure unitRingQuotType : Type := UnitRingQuotTypePack {
   unit_ring_quot_sort :> Type;
   _ : unit_ring_quot_class_of unit_ring_quot_sort;
   _ : Type
@@ -415,12 +443,12 @@ Proof. by case=> S0 _ hS; split=> // x y xS yS; rewrite -mulN1r addrC hS. Qed.
 Coercion idealr_closedB : idealr_closed >-> zmod_closed.
 Coercion idealr_closed_nontrivial : idealr_closed >-> nontrivial_ideal.
 
-Record idealr (R : ringType) (S : predPredType R) := MkIdeal {
+Structure idealr (R : ringType) (S : predPredType R) := MkIdeal {
   idealr_zmod :> zmodPred S;
   _ : nontrivial_ideal S
 }.
 
-Record prime_idealr (R : ringType) (S : predPredType R) := MkPrimeIdeal {
+Structure prime_idealr (R : ringType) (S : predPredType R) := MkPrimeIdeal {
   prime_idealr_zmod :> idealr S;
   _ : prime_idealr_closed S
 }.
