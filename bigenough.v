@@ -104,7 +104,7 @@ Ltac olddone :=
 Ltac big_enough :=
   do ?[ apply context_big_enough;
         first do [do ?[ now apply instantiate_bigger_than
-                      | apply: next_bigger_than]]].
+                      | apply next_bigger_than]]].
 
 Ltac big_enough_trans :=
   match goal with
