@@ -494,22 +494,20 @@ Implicit Types G H K : {group gT}.
 
 Lemma ZgroupS G H : H \subset G -> Zgroup G -> Zgroup H.
 Proof.
-move=> sHG /forallP zgG; apply/forallP=> V.
-apply/implyP=> /SylowP[p p_pr /and3P[sVH]].
+move=> sHG /forallP zgG; apply/forall_inP=> V /SylowP[p p_pr /and3P[sVH]].
 case/(Sylow_superset (subset_trans sVH sHG))=> P sylP sVP _.
-have:= zgG P; rewrite (p_Sylow sylP); exact: cyclicS.
+by have:= zgG P; rewrite (p_Sylow sylP); apply: cyclicS.
 Qed.
 
 Lemma morphim_Zgroup G : Zgroup G -> Zgroup (f @* G).
 Proof.
 move=> zgG; wlog sGD: G zgG / G \subset D.
   by rewrite -morphimIdom; apply; rewrite (ZgroupS _ zgG, subsetIl) ?subsetIr.
-apply/forallP=> fV; apply/implyP => /SylowP[p pr_p sylfV].
+apply/forall_inP=> fV /SylowP[p pr_p sylfV].
 have [P sylP] := Sylow_exists p G.
 have [|z _ ->] := @Sylow_trans p _ _ (f @* P)%G _ _ sylfV.
-  apply: morphim_pHall (sylP); exact: subset_trans (pHall_sub sylP) sGD.
-rewrite cyclicJ morphim_cyclic // (implyP (forallP zgG P)) //.
-by apply/SylowP; exists p.
+  by apply: morphim_pHall (sylP); apply: subset_trans (pHall_sub sylP) sGD.
+by rewrite cyclicJ morphim_cyclic ?(forall_inP zgG) //; apply/SylowP; exists p.
 Qed.
 
 Lemma nil_Zgroup_cyclic G : Zgroup G -> nilpotent G -> cyclic G.

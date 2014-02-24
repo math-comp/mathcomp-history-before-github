@@ -140,7 +140,7 @@ Lemma intro_class_fun (G : {group gT}) f :
 Proof.
 move=> fJ Gf; apply/andP; split; last first.
   by apply/supportP=> x notAf; rewrite ffunE Gf.
-apply/forallP=> x; apply/forall_inP=> y Gy; apply/eqP; rewrite !ffunE.
+apply/'forall_eqfun_inP=> x y Gy; rewrite !ffunE.
 by have [/fJ-> // | notGx] := boolP (x \in G); rewrite !Gf ?groupJr.
 Qed.
 
@@ -184,7 +184,7 @@ Qed.
 Lemma cfunJgen phi x y : y \in G -> phi (x ^ y) = phi x.
 Proof.
 case: phi => f fP Gy; apply/eqP.
-by case: (andP fP) => /forallP/(_ x)/forall_inP->.
+by case: (andP fP) => /'forall_forall_inP->.
 Qed.
 
 Fact cfun_zero_subproof : is_class_fun G (0 : {ffun _}).
@@ -659,7 +659,7 @@ Fact cfker_is_group phi : group_set (cfker phi).
 Proof.
 apply/group_setP; split=> [|x y]; rewrite !inE ?group1.
   by apply/forallP=> y; rewrite mul1g.
-case/andP=> Gx /forallP Kx /andP[Gy /forallP Ky]; rewrite groupM //.
+case/andP=> Gx /forallP-Kx /andP[Gy /forallP-Ky]; rewrite groupM //.
 by apply/forallP=> z; rewrite -mulgA (eqP (Kx _)) Ky.
 Qed.
 Canonical cfker_group phi := Group (cfker_is_group phi).
@@ -670,7 +670,7 @@ Proof. by rewrite /cfker setIdE subsetIl. Qed.
 Lemma cfker_norm phi : G \subset 'N(cfker phi).
 Proof.
 apply/subsetP=> z Gz; have phiJz := cfunJ phi _ (groupVr Gz).
-rewrite inE; apply/subsetP=> _ /imsetP[x /setIdP[Gx /forallP Kx] ->].
+rewrite inE; apply/subsetP=> _ /imsetP[x /setIdP[Gx /forallP-Kx] ->].
 rewrite inE groupJ //; apply/forallP=> y.
 by rewrite -(phiJz y) -phiJz conjMg conjgK Kx.
 Qed.
@@ -679,7 +679,7 @@ Lemma cfker_normal phi : cfker phi <| G.
 Proof. by rewrite /normal cfker_sub cfker_norm. Qed.
 
 Lemma cfkerMl phi x y : x \in cfker phi -> phi (x * y)%g = phi y.
-Proof. by case/setIdP=> _ /forallP/(_ y)/eqP. Qed.
+Proof. by case/setIdP=> _ /eqfunP->. Qed.
 
 Lemma cfkerMr phi x y : x \in cfker phi -> phi (y * x)%g = phi y.
 Proof.
@@ -2382,7 +2382,7 @@ Lemma map_cfAut_free S : cfAut_closed u S -> free S -> free (map (cfAut u) S).
 Proof.
 set Su := map _ S => sSuS freeS; have uniqS := free_uniq freeS.
 have uniqSu: uniq Su by rewrite (map_inj_uniq cfAut_inj).
-have{sSuS} sSuS: {subset Su <= S} by move=> _ /mapP[phi Sphi ->]; exact: sSuS.
+have{sSuS} sSuS: {subset Su <= S} by move=> _ /mapP[phi Sphi ->]; apply: sSuS.
 have [|eqSuS _] := leq_size_perm uniqSu sSuS; first by rewrite size_map.
 by rewrite (perm_free (uniq_perm_eq uniqSu uniqS eqSuS)).
 Qed.

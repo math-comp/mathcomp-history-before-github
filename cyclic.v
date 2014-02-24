@@ -49,7 +49,7 @@ Implicit Types (a x y : gT) (A B : {set gT}) (G K H : {group gT}).
 Definition cyclic A := [exists x, A == <[x]>].
 
 Lemma cyclicP A : reflect (exists x, A = <[x]>) (cyclic A).
-Proof. by apply: (iffP existsP) => [] [x /eqP]; exists x. Qed.
+Proof. exact: exists_eqP. Qed.
 
 Lemma cycle_cyclic x : cyclic <[x]>.
 Proof. by apply/cyclicP; exists x. Qed.
@@ -528,7 +528,7 @@ Definition metacyclic A :=
 Lemma metacyclicP A : 
   reflect (exists H : {group gT}, [/\ cyclic H, H <| A & cyclic (A / H)]) 
           (metacyclic A).
-Proof. by apply: (iffP existsP) => [] [H /and3P]; exists H. Qed.
+Proof. exact: 'exists_and3P. Qed.
 
 Lemma metacyclic1 : metacyclic 1.
 Proof. 

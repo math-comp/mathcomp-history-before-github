@@ -811,15 +811,12 @@ Lemma sumr_const (I : finType) (A : pred I) (x : V) :
   \sum_(i in A) x = x *+ #|A|.
 Proof. by rewrite big_const -iteropE. Qed.
 
-Lemma telescope_sum n m (f : nat -> V) : n <= m ->
-  \sum_(n <= k < m) (f (k + 1)%N - f k) = f m - f n.
+Lemma telescope_sumr n m (f : nat -> V) : n <= m ->
+  \sum_(n <= k < m) (f k.+1 - f k) = f m - f n.
 Proof.
-rewrite -{2}[n]add0n big_addn; elim: m => [ | m ihm].
-  by rewrite leqn0=> /eqP ->; rewrite subrr subnn big_mkord big_ord0.
-rewrite leq_eqVlt; case/orP=> [/eqP -> | n_lt_b1].
-  by rewrite subnn subrr big_geq.
-rewrite subSn ?big_nat_recr //= ihm ?subnK // addn1 addrC -addrA [- _ + _]addrA.
-by rewrite addNr sub0r.
+rewrite leq_eqVlt => /predU1P[-> | ]; first by rewrite subrr big_geq.
+case: m => // m lenm; rewrite sumrB big_nat_recr // big_nat_recl //=.
+by rewrite addrC opprD addrA subrK addrC.
 Qed.
 
 Section ClosedPredicates.
@@ -2502,6 +2499,10 @@ Lemma prodrXl n I r (P : pred I) (F : I -> R) :
   \prod_(i <- r | P i) F i ^+ n = (\prod_(i <- r | P i) F i) ^+ n.
 Proof. by rewrite (big_morph _ (exprMn n) (expr1n _ n)). Qed.
 
+Lemma prodr_undup_exp_count (I : eqType) r (P : pred I) (F : I -> R) :
+  \prod_(i <- undup r | P i) F i ^+ count_mem i r = \prod_(i <- r | P i) F i.
+Proof. exact: big_undup_iterop_count.  Qed.
+
 Lemma exprDn x y n :
   (x + y) ^+ n = \sum_(i < n.+1) (x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
 Proof. by rewrite exprDn_comm //; exact: mulrC. Qed.
@@ -2810,6 +2811,19 @@ Proof. by move=> x Ux; exact: can_inj (mulKr Ux). Qed.
 
 Lemma mulIr : {in @unit R, left_injective *%R}.
 Proof. by move=> x Ux; exact: can_inj (mulrK Ux). Qed.
+
+(* Due to noncommutativity, fractions are inverted. *)
+Lemma telescope_prodr n m (f : nat -> R) :
+    (forall k, n < k < m -> f k \is a unit) -> n < m ->
+  \prod_(n <= k < m) (f k / f k.+1) = f n / f m.
+Proof.
+move=> Uf /subnK-Dm; do [rewrite -{}Dm; move: {m}(m - _)%N => m] in Uf *.
+rewrite unlock /index_iota -addSnnS addnK /= -mulrA; congr (_ * _).
+have{Uf}: all [preim f of unit] (iota n.+1 m).
+  by apply/allP=> k; rewrite mem_iota addnC => /Uf.
+elim: m n => [|m IHm] n /=; first by rewrite mulr1.
+by rewrite -mulrA addSnnS => /andP[/mulKr-> /IHm].
+Qed.
 
 Lemma commrV x y : comm x y -> comm x y^-1.
 Proof.
@@ -4231,7 +4245,7 @@ Proof.
 move=> P; rewrite ((big_morph qev) false orb) //= big_orE /=.
 apply/existsP/idP=> [[p] | true_at_P].
   rewrite ((big_morph qev) true andb) //= big_andE /=.
-  case/andP=> /forallP eq_p_P.
+  case/andP=> /forallP-eq_p_P.
   rewrite (@eq_pick _ _ P) => [|i]; first by case: pick.
   by move/(_ i): eq_p_P => /=; case: (p i) => //=; move/negbTE.
 exists [ffun i => P i] => /=; apply/andP; split.
@@ -4593,6 +4607,9 @@ case: (eqVneq y 0) => [-> |nzy]; first by rewrite !(mulr0, invr0).
 by rewrite mulrC invrM ?unitfE.
 Qed.
 
+Lemma invf_div x y : (x / y)^-1 = y / x.
+Proof. by rewrite invfM invrK mulrC. Qed.
+
 Lemma expfB_cond m n x : (x == 0) + n <= m -> x ^+ (m - n) = x ^+ m / x ^+ n.
 Proof.
 move/subnK=> <-; rewrite addnA addnK !exprD.
@@ -4612,17 +4629,12 @@ Lemma prodf_div I r (P : pred I) (E D : I -> F) :
      \prod_(i <- r | P i) E i / \prod_(i <- r | P i) D i.
 Proof. by rewrite big_split prodfV. Qed.
 
-Lemma telescope_prod n m (f : nat -> F) :
- (forall k, n <= k < m -> f k != 0) -> n < m ->
-  \prod_(n <= k < m) (f (k + 1)%N / f k) = f m / f n.
+Lemma telescope_prodf n m (f : nat -> F) :
+    (forall k, n < k < m -> f k != 0) -> n < m ->
+  \prod_(n <= k < m) (f k.+1 / f k) = f m / f n.
 Proof.
-move=> hf; rewrite -{2}[n]add0n big_addn; elim: m hf => [ | m ihm] hf //.
-rewrite ltnS leq_eqVlt; case/orP=> [/eqP -> | ltnm].
-  by rewrite subSn // subnn big_nat_recr //= big_nil mul1r add0n addn1.
-rewrite subSn ?big_nat_recr //= ?ihm ?subnK  ?(ltnW ltnm) //; last first.
-  by move=> k /andP [hnk hkm]; apply: hf; rewrite hnk ltnS ltnW. 
-rewrite addn1 -!mulrA mulrC -!mulrA mulVf; first by rewrite mulr1 mulrC.
-by apply: hf; rewrite ltnW //=.
+move=> nz_f ltnm; apply: invr_inj; rewrite prodf_div !invf_div -prodf_div.
+by apply: telescope_prodr => // k /nz_f; rewrite unitfE.
 Qed.
 
 Lemma addf_div x1 y1 x2 y2 :
@@ -4631,6 +4643,7 @@ Proof. by move=> nzy1 nzy2; rewrite invfM mulrDl !mulrA mulrAC !mulfK. Qed.
 
 Lemma mulf_div x1 y1 x2 y2 : (x1 / y1) * (x2 / y2) = (x1 * x2) / (y1 * y2).
 Proof. by rewrite mulrACA -invfM. Qed.
+
 
 Lemma char0_natf_div :
   [char F] =i pred0 -> forall m d, d %| m -> (m %/ d)%:R = m%:R / d%:R :> F.
@@ -5306,6 +5319,7 @@ Definition sumrB := sumrB.
 Definition sumrMnl := sumrMnl.
 Definition sumrMnr := sumrMnr.
 Definition sumr_const := sumr_const.
+Definition telescope_sumr := telescope_sumr.
 Definition mulr0n := mulr0n.
 Definition mulr1n := mulr1n.
 Definition mulr2n := mulr2n.
@@ -5442,6 +5456,7 @@ Definition prodrXr := prodrXr.
 Definition prodrN := prodrN.
 Definition prodrMn := prodrMn.
 Definition natr_prod := natr_prod.
+Definition prodr_undup_exp_count := prodr_undup_exp_count.
 Definition exprDn := exprDn.
 Definition exprBn := exprBn.
 Definition subrXX := subrXX.
@@ -5462,6 +5477,7 @@ Definition mulrVK := mulrVK.
 Definition divrK := divrK.
 Definition mulrI := mulrI.
 Definition mulIr := mulIr.
+Definition telescope_prodr := telescope_prodr.
 Definition commrV := commrV.
 Definition unitrE := unitrE.
 Definition invrK := invrK.
@@ -5564,10 +5580,12 @@ Definition mulfK := mulfK.
 Definition mulfVK := mulfVK.
 Definition divfK := divfK.
 Definition invfM := invfM.
+Definition invf_div := invf_div.
 Definition expfB_cond := expfB_cond.
 Definition expfB := expfB.
 Definition prodfV := prodfV.
 Definition prodf_div := prodf_div.
+Definition telescope_prodf := telescope_prodf.
 Definition addf_div := addf_div.
 Definition mulf_div := mulf_div.
 Definition char0_natf_div := char0_natf_div.

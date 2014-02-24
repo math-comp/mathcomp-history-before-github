@@ -1195,7 +1195,7 @@ Proof.
 move=> ntg; have [[x ell1x Rx'] | ] := altP exists_inP.
   rewrite /= negb_exists_in; apply/forall_inP=> y ell1y.
   set y' := y^-1 * g; set x' := x^-1 * g in Rx'.
-  apply/existsP=> [[M /and3P[MSyM CMy_y' kMy']]].
+  apply/existsP=> -[M /and3P[MSyM CMy_y' kMy']].
   have [maxM Ms_y] := setIdP MSyM; rewrite cycle_subG in Ms_y.
   have [nty'] := setD1P CMy_y'; case/setIP=> My'; move/cent1P=> cyy'.
   have [[nty _] sMy]:= (ell_sigma1P y ell1y, mem_p_elt (pcore_pgroup _ _) Ms_y).

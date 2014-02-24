@@ -205,7 +205,7 @@ have SRR1: SRR = 1.
   have [SR1 | ntSR] := eqVneq SR 1; first by rewrite /SRR SR1 comm1G. 
   have prSRR: SRR \proper SR.
     rewrite /proper sSRR_SR; apply: contra ntSR => sSR_SRR.
-    by rewrite (implyP (forallP nilR _)) // subsetI sSR_R.
+    by rewrite (forall_inP nilR) // subsetI sSR_R.
   have pSR := pgroupS sSR_R pR; have pSRR := pgroupS sSRR_SR pSR.
   have [_ _ [e oSR]] := pgroup_pdiv pSR ntSR; have [f oSRR] := p_natP pSRR.
   have e0: e = 0.
@@ -243,7 +243,7 @@ move=> oddG; apply/forallP/idP=> [ZgG | rG_1 P].
   have [sPG pP _] := and3P sylP; have oddP := oddSg sPG oddG.
   rewrite -(p_rank_Sylow sylP) -(odd_pgroup_rank1_cyclic pP) //.
   by apply: (implyP (ZgG P)); apply: (p_Sylow sylP).
-apply/implyP; case/SylowP=> p p_pr; case/and3P=> sPG pP _.
+apply/implyP=> /SylowP[p p_pr /and3P[sPG pP _]].
 rewrite (odd_pgroup_rank1_cyclic pP (oddSg sPG oddG)).
 by apply: leq_trans (leq_trans (p_rank_le_rank p G) rG_1); apply: p_rankS.
 Qed.

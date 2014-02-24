@@ -119,7 +119,7 @@ apply: intro_isoGrp => [|gT G].
   rewrite -!morphim_cycle ?norm_joinEr ?im_sdpair ?im_sdpair_norm ?eqxx //=.
   rewrite -!order_dvdn !order_injm ?injm_sdpair1 ?injm_sdpair2 // oa ob !dvdnn.
   by rewrite -sdpair_act // [act _ _ _]apermE /= eltm_id -morphX // -sb -def_s.
-case/existsP=> [[x y]] /=; case/eqP=> defG xq1 yp1 xy.
+case/existsP=> -[x y] /= /eqP[defG xq1 yp1 xy].
 have fxP: #[x] %| #[b] by rewrite order_dvdn ob xq1.
 have fyP: #[y] %| #[a] by rewrite order_dvdn oa yp1.
 have fP: {in <[b]> & <[a]>, morph_act gact 'J (eltm fxP) (eltm fyP)}.
@@ -457,7 +457,7 @@ Lemma generators_modular_group gT (G : {group gT}) :
   exists2 xy, extremal_generators G p n xy & modular_group_generators xy.
 Proof.
 case/(isoGrpP _ Grp_modular_group); rewrite card_modular_group // -/m => oG.
-case/existsP=> [[x y]] /= => /eqP[defG] xq yp xy.
+case/existsP=> -[x y] /= /eqP[defG xq yp xy].
 rewrite norm_joinEr ?norms_cycle ?xy ?mem_cycle // in defG.
 have [Gx Gy]: x \in G /\ y \in G.
   by apply/andP; rewrite -!cycle_subG -mulG_subG defG.
@@ -746,7 +746,7 @@ set B := [set: _]; have: B \homg Grp (u : v : (u ^+ q, v ^+ 4, u ^ v = u^-1)).
 have: #|B| = (q * 4)%N by rewrite card_ext_dihedral // mulnC -muln2 -mulnA.
 rewrite {}/B; move: (Extremal.gtype q 4 _) => gT.
 set B := [set: gT] => oB; set K := _ :\: _.
-case/existsP=> [[u v]] /=; case/eqP=> defB uq v4 uv.
+case/existsP=> -[u v] /= /eqP[defB uq v4 uv].
 have nUV: <[v]> \subset 'N(<[u]>) by rewrite norms_cycle uv groupV cycle_id.
 rewrite norm_joinEr // in defB.
 have le_ou: #[u] <= q by rewrite dvdn_leq ?expn_gt0 // order_dvdn uq. 
@@ -808,7 +808,7 @@ apply: intro_isoGrp => [|rT H].
   rewrite -/B -defB -norm_joinEr // quotientY ?nKB ?subsetT //= andbT.
   rewrite !quotient_cycle /= ?nKB ?in_setT ?eqxx //=.
   by rewrite -(coset_kerl _ (mem_gen Kw)) -mulgA -expgD v4 mulg1.
-case/existsP=> [[x y] /= /eqP[defH xq y2 xy]].
+case/existsP=> -[x y] /= /eqP[defH xq y2 xy].
 have ox: #[x] %| #[u] by rewrite ou order_dvdn xq.
 have oy: #[y] %| #[v].
   by rewrite ov order_dvdn (expgM y 2 2) y2 -expgM mulnC def2r xq.
@@ -859,7 +859,7 @@ Lemma generators_2dihedral :
 Proof.
 move=> n_gt1; have [def2q _ ltqm _] := def2qr n_gt1.
 case/(isoGrpP _ (Grp_2dihedral n_gt1)); rewrite card_2dihedral // -/ m => oG.
-case/existsP=> [[x y]] /=; rewrite -/q; case/eqP=> defG xq y2 xy.
+case/existsP=> -[x y] /=; rewrite -/q => /eqP[defG xq y2 xy].
 have{defG} defG: <[x]> * <[y]> = G.
   by rewrite -norm_joinEr // norms_cycle xy groupV cycle_id.
 have notXy: y \notin <[x]>.
@@ -881,7 +881,7 @@ Proof.
 move=> n_gt3; have [def2q _ ltqm _] := def2qr (ltnW (ltnW n_gt3)).
 case/(isoGrpP _ (Grp_semidihedral n_gt3)).
 rewrite card_semidihedral // -/m => oG.
-case/existsP=> [[x y]] /=; rewrite -/q -/r; case/eqP=> defG xq y2 xy.
+case/existsP=> -[x y] /=; rewrite -/q -/r => /eqP[defG xq y2 xy].
 have{defG} defG: <[x]> * <[y]> = G.
   by rewrite -norm_joinEr // norms_cycle xy mem_cycle.
 have notXy: y \notin <[x]>.
@@ -902,7 +902,7 @@ Lemma generators_quaternion :
 Proof.
 move=> n_gt2; have [def2q def2r ltqm _] := def2qr (ltnW n_gt2).
 case/(isoGrpP _ (Grp_quaternion n_gt2)); rewrite card_quaternion // -/m => oG.
-case/existsP=> [[x y]] /=; rewrite -/q -/r; case/eqP=> defG xq y2 xy.
+case/existsP=> -[x y] /=; rewrite -/q -/r => /eqP[defG xq y2 xy].
 have{defG} defG: <[x]> * <[y]> = G.
   by rewrite -norm_joinEr // norms_cycle xy groupV cycle_id.
 have notXy: y \notin <[x]>.

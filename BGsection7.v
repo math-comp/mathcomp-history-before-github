@@ -575,7 +575,7 @@ have: [exists (C : grT | 'C_Q1(C) != 1), cyclic (B / C) && (C <| B)].
   rewrite -val_eqE -subG1 /=; move/coprime_abelian_gen_cent <-; rewrite ?q'B //.
   rewrite gen_subG; apply/bigcupsP=> C cocyC; rewrite subG1.
   by apply: contraR trQ1 => ntCC; apply/existsP; exists C; rewrite ntCC.
-case/existsP=> C; case/and3P=> ntCQ1 cycBC nsCB; have [sCB nCB]:= andP nsCB.
+case/existsP=> C /and3P[ntCQ1 cycBC nsCB]; have [sCB nCB]:= andP nsCB.
 have{mB3} ncycC: ~~ cyclic C.
   rewrite (abelem_cyclic (quotient_abelem _ abelB)) ?card_quotient // in cycBC.
   rewrite -divgS // logn_div ?cardSg // leq_subLR addn1 (eqP mB3) in cycBC.
@@ -587,7 +587,7 @@ have: [exists (z | 'C_Q2[z] != 1), z \in C^#].
     by rewrite (coprimegS sCB) ?q'B.
   rewrite gen_subG; apply/bigcupsP=> z Cz.
   by apply: contraR trQ2 => ntCz; apply/existsP; exists z; rewrite -subG1 ntCz.
-case/existsP=> z; rewrite !inE; case/and3P=> ntzQ2 ntz Cz.
+case/existsP=> z; rewrite !inE => /and3P[ntzQ2 ntz Cz].
 have prCz: 'C[z] \proper G by rewrite -cent_cycle mFT_cent_proper ?cycle_eq1.
 have sACz: A \subset 'C[z] by rewrite sub_cent1 (subsetP cAB) ?(subsetP sCB).
 have [|//|k Kk defQ2]:= normed_constrained_meet_trans sACz prCz maxQ1 maxQ2.
@@ -625,7 +625,7 @@ have: [exists (z | 'C_Q[z] != 1), z \in B^#].
     by rewrite coprime_sym (coprimeSg sBA) ?coprime_pi' /pgroup ?(pi_pnat qQ).
   rewrite gen_subG; apply/bigcupsP=> z Cz; rewrite subG1.
   by apply: contraR trQ => ntCz; apply/existsP; exists z; rewrite ntCz.
-case/existsP=> z; rewrite 2!inE; case/and3P=> ntzQ ntz Bz.
+case/existsP=> z; rewrite 2!inE => /and3P[ntzQ ntz Bz].
 have prCz: 'C[z] \proper G by rewrite -cent_cycle mFT_cent_proper ?cycle_eq1.
 have sACz: A \subset 'C[z] by rewrite sub_cent1 (subsetP cAB).
 have [|//|k Kk defQ2]:= normed_constrained_meet_trans sACz prCz maxR maxQ.
@@ -688,12 +688,12 @@ have{p'S} [Q S_Q nQP]: exists2 Q, Q \in S & P \subset 'N(Q).
     move=> x Q Px; rewrite inE; move/maxgroupp; case/andP=> _ nQB.
     by rewrite /= modactE ?(subsetP nBP) ?afixJG ?setTI ?inE.
   have actsPB: [acts P / B, on S | 'JG %% B \ sTSB].
-    apply/subsetP=> Bx; case/morphimP => x Nx Px ->{Bx}.
+    apply/subsetP=> _ /morphimP[x Nx Px ->].
     rewrite !inE; apply/subsetP=> Q S_Q; rewrite inE /= modBE //.
     by rewrite (actsP (norm_acts_max_norm q B)).
   move: p'S; rewrite (pgroup_fix_mod pPB actsPB); set nQ := #|_|.
   case: (posnP nQ) => [->|]; first by rewrite mod0n.
-  rewrite lt0n; case/existsP=> Q; case/setIP=> Q_S fixQ; exists Q => //.
+  rewrite lt0n; case/existsP=> Q /setIP[Q_S fixQ]; exists Q => //.
   apply/normsP=> x Px; apply: congr_group; have Nx := subsetP nBP x Px.
   by have:= afixP fixQ (coset B x); rewrite /= modBE ?mem_morphim //= => ->.
 have [qQ _]:= mem_max_normed S_Q.

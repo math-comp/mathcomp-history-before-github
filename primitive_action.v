@@ -84,7 +84,7 @@ apply/forallP/maximal_eqP=> /= [primG | [_ maxCx] Q].
     case: (atransP2 trG Sx Sy) => a Ga ->.
     by exists ((to^*)%act X a); apply: mem_imset; rewrite // orbit_refl.
   apply/trivIsetP=> _ _ /imsetP[a Ga ->] /imsetP[b Gb ->].
-  apply: contraR => /existsP[_ /andP[/imsetP[_ /imsetP[a1 Ha1 ->] ->]]].
+  apply: contraR => /exists_inP[_ /imsetP[_ /imsetP[a1 Ha1 ->] ->]].
   case/imsetP=> _ /imsetP[b1 Hb1 ->] /(canLR (actK _ _)) /(canLR (actK _ _)).
   rewrite -(canF_eq (actKV _ _)) -!actM (sameP eqP astab1P) => /astab1P Cab.
   rewrite astab1_set (subsetP (subsetIr G _)) //= defH.
@@ -97,7 +97,7 @@ have QX: X \in Q by rewrite pblock_mem ?defS.
 have toX Y a: Y \in Q -> a \in G -> to x a \in Y -> sto X a = Y.
   move=> QY Ga Yxa; rewrite -(contraNeq (trivIsetP tIQ Y (sto X a) _ _)) //.
     by rewrite (actsP actQ).
-  by apply/existsP; exists (to x a); rewrite /= Yxa; exact: mem_imset.
+  by apply/existsP; exists (to x a); rewrite /= Yxa; apply: mem_imset.
 have defQ: Q = orbit (to^*)%act G X.
   apply/eqP; rewrite eqEsubset andbC acts_sub_orbit // QX.
   apply/subsetP=> Y QY.

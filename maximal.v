@@ -584,7 +584,7 @@ have defH: (1 : {perm gT}) @: H = H.
 have [|I] := @maxset_exists _ Iok 1.
   rewrite /Iok sub1G; apply/existsP; exists H.
   by rewrite /normal sHG nHG (big_pred1 1) => [|f]; rewrite ?defH /= ?inE.
-case/maxsetP=> /andP[Aut_I /existsP[M /andP[/andP[sMG nMG] /eqP defM]]] maxI.
+case/maxsetP=> /andP[Aut_I /exists_eq_inP[M /andP[sMG nMG] defM]] maxI.
 rewrite sub1set=> ntI; case/eqVproper: sMG => [defG | /andP[sMG not_sGM]].
   exists H; split=> //; last by exists I; rewrite ?defM.
   apply/mingroupP; rewrite ntH normG; split=> // N /andP[ntN nNH] sNH.

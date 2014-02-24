@@ -378,8 +378,8 @@ have fc0 c: (f c).[0] = -1 by rewrite !hornerE.
 have fc2 c: (f c).[2%:R] = 1 by rewrite !(subrr, hornerE) /= addrK.
 have /existsP[c nz_fc]: [exists c, ~~ [exists d, root (f c) d]].
   have nz_f_0 c: ~~ root (f c) 0 by rewrite /root fc0 oppr_eq0.
-  rewrite -negb_forall; apply/negP=> /forallP/(_ _)/existsP.
-  case/fin_all_exists=> /= rf rfP; suffices inj_rf: injective rf.
+  rewrite -negb_forall; apply/negP=> /'forall_existsP/fin_all_exists[/= rf rfP].
+  suffices inj_rf: injective rf.
     by have /negP[] := nz_f_0 (invF inj_rf 0); rewrite -{2}[0](f_invF inj_rf).
   move=> a b eq_rf_ab; apply/oppr_inj/(addrI (rf a)).
   have: (f a).[rf a] = (f b).[rf a] by rewrite {2}eq_rf_ab !(rootP _).
@@ -397,7 +397,7 @@ have fc_monic : f c \is monic.
 pose inF := [rmorphism of in_alg F]; pose fcF := map_poly inF (f c).
 have /existsP[a fcFa_0]: [exists a : F, root fcF a].
   suffices: ~~ coprimep (f c) ('X ^+ #|F| - 'X).
-    apply: contraR; rewrite -(coprimep_map inF) negb_exists => /forallP nz_fcF.
+    apply: contraR; rewrite -(coprimep_map inF) negb_exists => /forallP-nz_fcF.
     rewrite -/fcF rmorphB rmorphX /= map_polyX finField_genPoly.
     elim/big_rec: _ => [|x gF _ co_fcFg]; first exact: coprimep1.
     by rewrite coprimep_mulr coprimep_XsubC nz_fcF.

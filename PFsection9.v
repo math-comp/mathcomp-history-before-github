@@ -774,7 +774,7 @@ have nb_redM K:
   pose muK j := (primeTIred ptiWMb j %% K)%CF.
   apply/eqP; have <-: size (image muK (predC1 0)) = p.-1.
     by rewrite size_map -cardE cardC1 card_Iirr_cyclic ?oW2b.
-  rewrite count_filter -uniq_size_uniq ?filter_uniq ?seqInd_uniq // => [|phi].
+  rewrite -size_filter -uniq_size_uniq ?filter_uniq ?seqInd_uniq // => [|phi].
     by apply/dinjectiveP=> j1 j2 _ _ /(can_inj (cfModK nsKM))/prTIred_inj.
   rewrite mem_filter; apply/imageP/andP=> [[j nz_j ->] | [red_phi]]; last first.
     case/seqIndP=> s /setDP[kerK ker'H] Dphi; rewrite !inE in kerK ker'H.
@@ -798,7 +798,7 @@ have nb_redM K:
   by rewrite DmuKj Ds j1_0 -cfInd_prTIres !prTIres0 -cfIndMod ?rmorph1.
 have [sH0HU sH0M] := (subset_trans sH0H sHHU, subset_trans sH0H (gFsub _ _)).
 have sz_mu: size mu_ = p.-1.
-  by rewrite -count_filter nb_redM ?(setIidPl sH0H) // /normal sH0M.
+  by rewrite size_filter nb_redM ?(setIidPl sH0H) // /normal sH0M.
 have s_muC_mu: {subset filter redM (S_ H0C) <= mu_}.
   move=> phi; rewrite /= !mem_filter => /andP[->]; apply: seqIndS.
   by rewrite setSD // Iirr_kerS ?joing_subl.
@@ -808,7 +808,7 @@ have [|Dmu _] := leq_size_perm UmuC s_muC_mu; last first.
 have [nsH0C_M _ _ _] := nsH0xx_M.
 have sCHU := subset_trans sCU sUHU; have sCM := subset_trans sCHU sHUM.
 have sHOC_HU: H0C \subset HU by apply/joing_subP.
-rewrite sz_mu -count_filter nb_redM //= norm_joinEr ?(subset_trans sCM) //.
+rewrite sz_mu size_filter nb_redM //= norm_joinEr ?(subset_trans sCM) //.
 by rewrite -group_modl //= setIC [C]unlock setIA tiHU setI1g mulg1.
 Qed.
 
@@ -1218,7 +1218,7 @@ have injXtheta:
   rewrite Ds1 cfker_conjg ?(subsetP nHUW1) // quotientJ // -sub_conjgV.
   rewrite (subset_trans _ (kerH1c s2 Xs2)) // -(bigdprodWY defH1c) sub_gen //.
   by rewrite (bigcup_max (inMb w)^-1%g) // !inE ntw groupV mem_quotient.
-rewrite count_filter uniq_leq_size //.
+rewrite -size_filter uniq_leq_size //.
   apply/dinjectiveP=> s1 s2 Xs1 Xs2.
   case/(cfclass_Ind_irrP _ _ (der_normal 1 M))/cfclassP=> y My Ds2.
   by apply: irr_inj; rewrite Ds2 cfConjg_id ?(injXtheta y s1 s2).
@@ -1515,7 +1515,7 @@ pose S1 := filter [pred zeta : 'CF(M) | zeta 1%g == (q * a)%:R] (S_ H0C').
 have ntS1: (0 < size S1)%N.
   have [lb_dv lbS1] := lb_Sqa; apply: leq_trans (leq_trans lbS1 _).
     by rewrite ltn_divRL // mul0n muln_gt0 p1_gt0 cardG_gt0.
-  rewrite count_filter uniq_leq_size ?filter_uniq ?seqInd_uniq // => chi.
+  rewrite -size_filter uniq_leq_size ?filter_uniq ?seqInd_uniq // => chi.
   rewrite !mem_filter -andbA /= => /and3P[_ ->].
   by apply: seqIndS; rewrite Iirr_kerDS // genS ?setUS ?dergS ?subsetIl.
 have sS10: cfConjC_subset S1 (S_ H0C').
@@ -1530,7 +1530,7 @@ pose S3 := filter [predC S1] (S_ H0C'); move: {2}_.+1 (ltnSn (size S3)) => nS.
 move: @S3 (sS10) (cohS1); have: {subset S1 <= S1} by [].
 elim: nS {-1}S1 => // nS IHnS S2 => sS12 S3 sS20 cohS2; rewrite ltnS => leS3nS.
 have [ntS3|] := boolP (size S3 > 0)%N; last first.
-  rewrite -count_filter -has_count has_predC negbK => /allP sS02.
+  rewrite size_filter -has_count has_predC negbK => /allP sS02.
   exact: subset_coherent sS02 cohS2.
 (* Ultimateley we'll contradict the maximality of S2 in (9.11.1) & (9.11.8). *)
 suff [chi]: exists2 chi, chi \in S3 & coherent (chi :: chi^* :: S2)%CF M^# tau.
@@ -1612,7 +1612,7 @@ without loss [[eqS12 irrS1 H0C_S1] [Da_p defC] [S3qu ne_qa_qu] [oS1 oS1ua]]:
     rewrite -/lbS1' -mulnA -expnMn natrM mulrC -lock mono_lerif; last first.
       by apply: ler_pmul2l; rewrite ltr0n !muln_gt0 a_gt0 q_gt0.
     rewrite eq_sym lerif_nat; apply: leqif_eq; rewrite (leq_trans lbSqa) //.
-    rewrite count_filter uniq_leq_size ?filter_uniq ?seqInd_uniq // => psi.
+    rewrite -size_filter uniq_leq_size ?filter_uniq ?seqInd_uniq // => psi.
     rewrite !mem_filter -!andbA /= => /and3P[-> -> S0psi]; rewrite S0psi.
     by apply: seqIndS S0psi; rewrite Iirr_kerDS //= genS ?setUS ?dergS.
   have lbS1'2: sumnS S1' <= sumnS S2 ?= iff ~~ has [predC S1'] S2.

@@ -268,7 +268,7 @@ rewrite -!sum1dep_card -sum1_card (reindex_onto fA pfT) => [|f].
   - by apply/injectiveP=> u v; rewrite !ffunE => /perm_inj; exact: val_inj.
   move/eqP=> <- _ _; apply/subsetP=> x; rewrite !inE -pvalE val_insubd fun_if.
   by rewrite if_arg ffunE; case: insubP; rewrite // pvalE perm1 if_same eqxx.
-case/andP=> /forallP onA /injectiveP f_inj.
+case/andP=> /forallP-onA /injectiveP-f_inj.
 apply/ffunP=> u; rewrite ffunE -pvalE insubdK; first by rewrite ffunE valK.
 apply/injectiveP=> {u} x y; rewrite !ffunE.
 case: insubP => [u _ <-|]; case: insubP => [v _ <-|] //=; first by move/f_inj->.

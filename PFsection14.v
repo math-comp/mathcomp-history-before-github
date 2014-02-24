@@ -242,7 +242,7 @@ have ->: \sum_i `|b (sigma 'chi_i)| ^+ 2 = '[X].
   rewrite defX cfnorm_sum_orthonormal // big_map (big_nth 0) big_mkord.
   by rewrite size_tuple; apply: eq_bigr => ij _; rewrite -tnth_nth.
 rewrite -cfnormDd // -defGa cfnormDd // cfnorm1 -ler_subr_addr ubGa.
-case/and3P=> /eqP De /forallP/(_ _)/exists_eqP/=/fin_all_exists[n Dn] /eqP Y0.
+case/and3P=> /eqP-De /'forall_exists_eqP/fin_all_exists[/= n Dn] /eqP-Y0.
 pose chi := X - tauL betaL; split=> //; exists n, chi; last first.
   apply: canRL (addrK _) _; rewrite addrC subrK defX big_map (big_nth 0).
   by rewrite big_mkord size_tuple; apply: eq_bigr => ij; rewrite -tnth_nth Dn.

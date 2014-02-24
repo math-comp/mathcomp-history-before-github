@@ -81,11 +81,11 @@ Variable gT: finGroupType.
 Implicit Types (A B : {set gT}) (G H : {group gT}).
 
 Lemma nilpotent1 : nilpotent [1 gT].
-Proof. apply/forallP=> H; rewrite commG1 setIid -subG1; exact/implyP. Qed.
+Proof. by apply/forall_inP=> H; rewrite commG1 setIid -subG1. Qed.
 
 Lemma nilpotentS A B : B \subset A -> nilpotent A -> nilpotent B.
 Proof.
-move=> sBA nilA; apply/forallP=> H; apply/implyP=> sHR.
+move=> sBA nilA; apply/forall_inP=> H sHR.
 have:= forallP nilA H; rewrite (subset_trans sHR) //.
 by apply: subset_trans (setIS _ _) (setSI _ _); rewrite ?commgS.
 Qed.
@@ -103,7 +103,7 @@ Qed.
 Lemma nil_comm_properr G A H :
     nilpotent G -> H \subset G -> H :!=: 1 -> A \subset 'N_G(H) ->
   [~: A, H] \proper H.
-Proof. by rewrite commGC; exact: nil_comm_properl. Qed.
+Proof. by rewrite commGC; apply: nil_comm_properl. Qed.
  
 Lemma centrals_nil (s : seq {group gT}) G :
   G.-central.-series 1%G s -> last 1%G s = G -> nilpotent G.
@@ -649,9 +649,8 @@ Lemma cyclic_nilpotent_quo_der1_cyclic G :
 Proof.
 move=> nG; rewrite (isog_cyclic (quotient1_isog G)).
 have [-> // | ntG' cGG'] := (eqVneq G^`(1) 1)%g.
-suffices: 'L_2(G) == 1%g by move/eqP <-.
-apply: (implyP (forallP nG _)).
-rewrite subsetI lcn_sub -lcnSn /= -quotient_cents2 ?lcn_norm //.
+suffices: 'L_2(G) \subset G :&: 'L_3(G) by move/(eqfun_inP nG)=> <-.
+rewrite subsetI lcn_sub /= -quotient_cents2 ?lcn_norm //.
 apply: cyclic_factor_abelian (lcn_central 2 G) _.
 by rewrite (isog_cyclic (third_isog _ _ _)) ?lcn_normal // lcn_subS.
 Qed.
@@ -666,8 +665,7 @@ Implicit Types G H : {group gT}.
 Lemma nilpotent_sol G : nilpotent G -> solvable G.
 Proof.
 move=> nilG; apply/forall_inP=> H /subsetIP[sHG sHH'].
-apply: (implyP (forallP nilG H)).
-by rewrite subsetI sHG (subset_trans sHH') ?commgS.
+by rewrite (forall_inP nilG) // subsetI sHG (subset_trans sHH') ?commgS.
 Qed.
 
 Lemma abelian_sol G : abelian G -> solvable G.
@@ -678,7 +676,7 @@ Lemma solvable1 : solvable [1 gT]. Proof. exact: abelian_sol (abelian1 gT). Qed.
 Lemma solvableS G H : H \subset G -> solvable G -> solvable H.
 Proof.
 move=> sHG solG;  apply/forall_inP=> K /subsetIP[sKH sKK'].
-by apply: (implyP (forallP solG K)); rewrite subsetI (subset_trans sKH).
+by rewrite (forall_inP solG) // subsetI (subset_trans sKH).
 Qed.
 
 Lemma sol_der1_proper G H :
@@ -742,10 +740,9 @@ Proof.
 case/andP=> sHG nHG; apply/idP/andP=> [solG | [solH solGH]].
   by rewrite quotient_sol // (solvableS sHG).
 apply/forall_inP=> K /subsetIP[sKG sK'K].
-suffices sKH: K \subset H.
-  by apply: (implyP (forallP solH K)); rewrite subsetI sKH.
+suffices sKH: K \subset H by rewrite (forall_inP solH) // subsetI sKH.
 have nHK := subset_trans sKG nHG.
-rewrite -quotient_sub1 // subG1 (implyP (forallP solGH _)) //.
+rewrite -quotient_sub1 // subG1 (forall_inP solGH) //.
 by rewrite subsetI -morphimR ?morphimS.
 Qed.
 

@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype.
-Require Import finfun path.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div fintype.
+Require Import tuple finfun.
 
 (******************************************************************************)
 (* This file provides a generic definition for iterating an operator over a   *)
@@ -836,7 +836,7 @@ Proof. by rewrite -{1}(mkseq_nth x0 r) big_map /index_iota subn0. Qed.
 Lemma big_hasC r (P : pred I) F :
   ~~ has P r -> \big[op/idx]_(i <- r | P i) F i = idx.
 Proof.
-by rewrite -big_filter has_count count_filter -eqn0Ngt unlock => /nilP->.
+by rewrite -big_filter has_count -size_filter -eqn0Ngt unlock => /nilP->.
 Qed.
 
 Lemma big_pred0_eq (r : seq I) F : \big[op/idx]_(i <- r | false) F i = idx.
@@ -861,7 +861,7 @@ Lemma big_catr r1 r2 (P : pred I) F :
   \big[op/idx]_(i <- r1 ++ r2 | P i) F i = \big[op/idx]_(i <- r2 | P i) F i.
 Proof.
 rewrite -big_filter -(big_filter r2) filter_cat.
-by rewrite has_count count_filter; case: filter.
+by rewrite has_count -size_filter; case: filter.
 Qed.
 
 Lemma big_const_seq r (P : pred I) x :
@@ -997,7 +997,6 @@ Qed.
 Lemma big_ord0 P F : \big[op/idx]_(i < 0 | P i) F i = idx.
 Proof. by rewrite big_pred0 => [|[]]. Qed.
 
-Import tuple.
 Lemma big_tnth I r (P : pred I) F :
   let r_ := tnth (in_tuple r) in
   \big[op/idx]_(i <- r | P i) F i
@@ -1005,6 +1004,14 @@ Lemma big_tnth I r (P : pred I) F :
 Proof.
 case: r => /= [|x0 r]; first by rewrite big_nil big_ord0.
 by rewrite (big_nth x0) big_mkord; apply: eq_big => i; rewrite (tnth_nth x0).
+Qed.
+
+Lemma big_index_uniq (I : eqType) (r : seq I) (E : 'I_(size r) -> R) :
+    uniq r ->
+  \big[op/idx]_i E i = \big[op/idx]_(x <- r) oapp E idx (insub (index x r)).
+Proof.
+move=> Ur; apply/esym; rewrite big_tnth; apply: eq_bigr => i _.
+by rewrite index_uniq // valK.
 Qed.
 
 Lemma big_tuple I n (t : n.-tuple I) (P : pred I) F :
@@ -1052,7 +1059,7 @@ Qed.
 
 Lemma big_const (I : finType) (A : pred I) x :
   \big[op/idx]_(i in A) x = iter #|A| (op x) idx.
-Proof. by rewrite big_const_seq count_filter cardE. Qed.
+Proof. by rewrite big_const_seq -size_filter cardE. Qed.
 
 Lemma big_const_nat m n x :
   \big[op/idx]_(m <= i < n) x = iter (n - m) (op x) idx.
@@ -1061,6 +1068,14 @@ Proof. by rewrite big_const_seq count_predT size_iota. Qed.
 Lemma big_const_ord n x :
   \big[op/idx]_(i < n) x = iter n (op x) idx.
 Proof. by rewrite big_const card_ord. Qed.
+
+Lemma big_nseq_cond I n a (P : pred I) F :
+  \big[op/idx]_(i <- nseq n a | P i) F i = if P a then iter n (op (F a)) idx else idx.
+Proof. by rewrite unlock; elim: n => /= [|n ->]; case: (P a). Qed.
+
+Lemma big_nseq I n a (F : I -> R):
+  \big[op/idx]_(i <- nseq n a) F i = iter n (op (F a)) idx.
+Proof. exact: big_nseq_cond. Qed.
 
 End Extensionality.
 
@@ -1084,7 +1099,7 @@ Lemma eq_big_idx_seq idx' I r (P : pred I) F :
      right_id idx' *%M -> has P r ->
    \big[*%M/idx']_(i <- r | P i) F i =\big[*%M/1]_(i <- r | P i) F i.
 Proof.
-move=> op_idx'; rewrite -!(big_filter _ _ r) has_count count_filter.
+move=> op_idx'; rewrite -!(big_filter _ _ r) has_count -size_filter.
 case/lastP: (filter P r) => {r}// r i _.
 by rewrite -cats1 !(big_cat_nested, big_cons, big_nil) op_idx' mulm1.
 Qed.
@@ -1190,6 +1205,13 @@ rewrite -map_comp (map_comp (addn m)) val_enum_ord.
 by rewrite -iota_addl addn0 iota_add.
 Qed.
 
+Lemma big_flatten I rr (P : pred I) F :
+  \big[*%M/1]_(i <- flatten rr | P i) F i
+    = \big[*%M/1]_(r <- rr) \big[*%M/1]_(i <- r | P i) F i.
+Proof.
+by elim: rr => [|r rr IHrr]; rewrite ?big_nil //= big_cat big_cons -IHrr.
+Qed.
+
 End Plain.
 
 Section Abelian.
@@ -1219,14 +1241,6 @@ move=> uniq_r; rewrite -(big_filter _ _ _ (mem r)); apply: eq_big_perm.
 by rewrite filter_index_enum uniq_perm_eq ?enum_uniq // => i; rewrite mem_enum.
 Qed.
 
-Lemma big_index_uniq (I : eqType) (r : seq I) (E : 'I_(size r) -> R) :
-    uniq r ->
-  \big[*%M/1]_i E i = \big[*%M/1]_(x <- r) oapp E idx (insub (index x r)).
-Proof.
-move=> Ur; apply/esym; rewrite big_tnth; apply: eq_bigr => i _.
-by rewrite index_uniq // valK.
-Qed.
-
 Lemma big_rem (I : eqType) r x (P : pred I) F :
     x \in r ->
   \big[*%M/1]_(y <- r | P y) F y
@@ -1251,6 +1265,14 @@ Lemma eq_big_idem (I : eqType) (r1 r2 : seq I) (P : pred I) F :
 Proof.
 move=> idM eq_r; rewrite -big_undup // -(big_undup r2) //; apply/eq_big_perm.
 by rewrite uniq_perm_eq ?undup_uniq // => i; rewrite !mem_undup eq_r.
+Qed.
+
+Lemma big_undup_iterop_count (I : eqType) (r : seq I) (P : pred I) F :
+  \big[*%M/1]_(i <- undup r | P i) iterop (count_mem i r) *%M (F i) 1
+    = \big[*%M/1]_(i <- r | P i) F i.
+Proof.
+rewrite -[RHS](eq_big_perm _ F (perm_undup_count _)) big_flatten big_map.
+by rewrite big_mkcond; apply: eq_bigr => i _; rewrite big_nseq_cond iteropE.
 Qed.
 
 Lemma big_split I r (P : pred I) F1 F2 :

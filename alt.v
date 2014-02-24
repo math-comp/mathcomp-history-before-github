@@ -64,7 +64,7 @@ rewrite /morphim setIid=> ->; rewrite -card_bool; apply: eq_card => b.
 apply/imsetP; case: b => /=; last first.
   by exists (1 : {perm T}); [rewrite setIid inE | rewrite odd_perm1].
 case: (pickP T) lt1n => [x1 _ | d0]; last by rewrite /n eq_card0.
-rewrite /n (cardD1 x1) ltnS lt0n; case/existsP=> x2 /=.
+rewrite /n (cardD1 x1) ltnS lt0n => /existsP[x2 /=].
 by rewrite eq_sym andbT -odd_tperm; exists (tperm x1 x2); rewrite ?inE.
 Qed.
 
@@ -157,7 +157,7 @@ pose A3 := [set x : {perm T} | #[x] == 3]; suffices oA3: #|A :&: A3| = 8.
   have sQ2 P: P \in 'Syl_2(A) -> P :=: A :\: A3.
     rewrite inE pHallE oA p_part -natTrecE /= => /andP[sPA /eqP oP].
     apply/eqP; rewrite eqEcard -(leq_add2l 8) -{1}oA3 cardsID oA oP.
-    rewrite andbT subsetD sPA; apply/existsP=> [[x]] /= /andP[Px].
+    rewrite andbT subsetD sPA; apply/exists_inP=> -[x] /= Px.
     by rewrite inE => /eqP ox; have:= order_dvdG Px; rewrite oP ox.
   have [/= P sylP] := Sylow_exists 2 [group of A].
   rewrite -(([set P] =P 'Syl_2(A)) _) ?cards1 // eqEsubset sub1set inE sylP.

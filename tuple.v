@@ -333,9 +333,8 @@ Definition enum : seq (n.-tuple T) :=
 
 Lemma enumP : Finite.axiom enum.
 Proof.
-case=> /= t t_n; rewrite -(count_map val (pred1 t)).
-rewrite (pmap_filter (@insubK _ _ _)) count_filter -filter_predI.
-rewrite -count_filter -(@eq_count _ (pred1 t)) => [|s /=]; last first.
+case=> /= t t_n; rewrite -(count_map _ (pred1 t)) (pmap_filter (@insubK _ _ _)).
+rewrite count_filter -(@eq_count _ (pred1 t)) => [|s /=]; last first.
   by rewrite isSome_insub; case: eqP=> // ->.
 elim: n t t_n => [|m IHm] [|x t] //= {IHm}/IHm; move: (iter m _ _) => em IHm.
 transitivity (x \in T : nat); rewrite // -mem_enum codomE.

@@ -507,7 +507,7 @@ have: sorted ltn diff_n.
 have: all (ltn^~ h) diff_n.
   by apply/allP=> i; rewrite mem_filter mem_index_iota; case/andP.
 have: size diff_n = 2%N.
-  move: diff_n_1; rewrite -count_filter -(eqnP sum_dn1) /diff_n.
+  move: diff_n_1; rewrite size_filter -(eqnP sum_dn1) /diff_n.
   elim: (index_iota 0 h) => [|i e IHe]; rewrite (big_nil, big_cons) //=.
   by case def_i: (dn1 i) => [|[]] //=; rewrite def_i //; move/IHe->.
 case def_jk: diff_n diff_n_1 => [|j [|k []]] //=; case/and3P=> dn1j dn1k _ _.

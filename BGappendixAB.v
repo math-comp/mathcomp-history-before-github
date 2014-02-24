@@ -209,7 +209,7 @@ Let nCX := subset_trans sXG nCG.
 (* This is B & G, Theorem A.5.1; it does not depend on the solG assumption. *)
 Theorem odd_abelian_gen_stable : X / C \subset 'O_p(G / C).
 Proof.
-case/existsP: genX => gX /eqP defX.
+case/exists_eqP: genX => gX defX.
 rewrite -defN sub_quotient_pre // -defX gen_subG.
 apply/bigcupsP=> A gX_A; have [_ pA nAP cAA] := and4P gX_A.
 have{gX_A} sAX: A \subset X by rewrite -defX sub_gen ?bigcup_sup.
@@ -378,9 +378,9 @@ Qed.
 Lemma norm_abgen_pgroup p X G :
   p.-group G -> X --> G -> generated_by (p_norm_abelian p X) G.
 Proof.
-move=> pG /existsP[gG /eqP defG].
-have:= subxx G; rewrite -{1 3}defG gen_subG /= => /bigcupsP sGG.
-apply/existsP; exists gG; apply/eqP; congr <<_>>; apply: eq_bigl => A.
+move=> pG /exists_eqP[gG defG].
+have:= subxx G; rewrite -{1 3}defG gen_subG /= => /bigcupsP-sGG.
+apply/exists_eqP; exists gG; congr <<_>>; apply: eq_bigl => A.
 by rewrite andbA andbAC andb_idr // => /sGG/pgroupS->.
 Qed.
 

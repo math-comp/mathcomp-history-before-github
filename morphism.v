@@ -1413,11 +1413,10 @@ Definition homg rT aT (C : {set rT}) (D : {set aT}) :=
 Lemma homgP rT aT (C : {set rT}) (D : {set aT}) : 
   reflect (exists f : {morphism D >-> rT}, f @* D = C) (homg C D).
 Proof.
-apply: (iffP existsP) => [[f /andP[fM /eqP <-]] | [f <-]].
+apply: (iffP exists_eq_inP) => [[f fM <-] | [f <-]].
   by exists (morphm_morphism fM); rewrite /morphim /= setIid.
-exists (finfun f); apply/andP; split.
-  by apply/morphicP=> x y Dx Dy; rewrite !ffunE morphM.
-by apply/eqP; rewrite /morphim setIid; apply: eq_imset => x; rewrite ffunE.
+exists (finfun f); first by apply/morphicP=> x y Dx Dy; rewrite !ffunE morphM.
+by rewrite /morphim setIid; apply: eq_imset => x; rewrite ffunE.
 Qed.
 
 Lemma morphim_homg aT rT (A D : {set aT}) (f : {morphism D >-> rT}) :
@@ -1429,7 +1428,7 @@ Qed.
 
 Lemma leq_homg rT aT (C : {set rT}) (G : {group aT}) :
   homg C G -> #|C| <= #|G|.
-Proof. by case/homgP=> f <-; exact: leq_morphim. Qed.
+Proof. by case/homgP=> f <-; apply: leq_morphim. Qed.
 
 Lemma homg_refl aT (A : {set aT}) : homg A A.
 Proof. by apply/homgP; exists (idm_morphism A); rewrite im_idm. Qed.

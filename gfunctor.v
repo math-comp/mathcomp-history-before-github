@@ -272,7 +272,7 @@ Proof. by case F. Qed.
 Lemma gFchar gT (G : {group gT}) : F gT G \char G.
 Proof.
 apply/andP; split => //; first by apply: gFsub.
-apply/forallP=> f; apply/implyP=> Af; rewrite -{2}(im_autm Af) -(autmE Af).
+apply/forall_inP=> f Af; rewrite -{2}(im_autm Af) -(autmE Af).
 by rewrite -morphimEsub ?gFsub ?gFiso_cont ?injm_autm.
 Qed.
 

@@ -2199,7 +2199,7 @@ apply: (iffP idP) => [|[n [c Ac ->]]]; last first.
   by apply: group_prod => i _; rewrite mem_gen ?Ac.
 have [n ->] := gen_expgs A; rewrite /expgn /expgn_rec Monoid.iteropE.
 have ->: n = count 'I_n (index_enum _).
-  by rewrite count_filter filter_index_enum -cardT card_ord.
+  by rewrite -size_filter filter_index_enum -cardT card_ord.
 rewrite -big_const_seq; case/prodsgP=> /= c Ac def_x.
 have{Ac def_x} ->: x = \prod_(i | c i \in A) c i.
   rewrite big_mkcond {x}def_x; apply: eq_bigr => i _.

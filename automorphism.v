@@ -363,7 +363,7 @@ Proof.
 apply: (iffP andP) => [] [sHG chHG]; split=> //.
   move=> f injf Gf; apply/morphim_fixP=> //.
   by have:= forallP chHG (aut injf Gf); rewrite Aut_aut imset_autE.
-apply/forallP=> f; apply/implyP=> Af; have injf := injm_autm Af.
+apply/forall_inP=> f Af; have injf := injm_autm Af.
 move/(morphim_fixP injf _ sHG): (chHG _ injf (im_autm Af)).
 by rewrite /morphim (setIidPr _).
 Qed.

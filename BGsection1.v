@@ -1288,9 +1288,9 @@ Qed.
 
 Lemma norm_abgenS D1 D2 E : D1 \subset D2 -> D2 --> E -> D1 --> E.
 Proof.
-move=> sD12 /existsP[gE /eqP <-{E}].
-apply/existsP; exists [set A in gE | norm_abelian D2 A].
-apply/eqP; congr <<_>>; apply: eq_bigl => A; rewrite !inE.
+move=> sD12 /exists_eqP[gE <-{E}].
+apply/exists_eqP; exists [set A in gE | norm_abelian D2 A].
+congr <<_>>; apply: eq_bigl => A; rewrite !inE.
 apply: andb_idr => /and3P[_ nAD cAA].
 by apply/andP; rewrite (subset_trans sD12).
 Qed.

@@ -1218,8 +1218,8 @@ Let n_gt0 := prim_order_gt0.
 
 Lemma prim_expr_order : z ^+ n = 1.
 Proof.
-case/andP: prim_z => _; rewrite -(prednK n_gt0); move/forallP; move/(_ ord_max).
-by rewrite unity_rootE eqxx; do 2!move/eqP.
+case/andP: prim_z => _; rewrite -(prednK n_gt0) => /forallP/(_ ord_max).
+by rewrite unity_rootE eqxx eqb_id => /eqP.
 Qed.
 
 Lemma prim_expr_mod i : z ^+ (i %% n) = z ^+ i.
@@ -1229,7 +1229,7 @@ Lemma prim_order_dvd i : (n %| i) = (z ^+ i == 1).
 Proof.
 move: n_gt0; rewrite -prim_expr_mod /dvdn -(ltn_mod i).
 case: {i}(i %% n)%N => [|i] lt_i; first by rewrite !eqxx.
-case/andP: prim_z => _; move/forallP; move/(_ (Ordinal (ltnW lt_i))).
+case/andP: prim_z => _ /forallP/(_ (Ordinal (ltnW lt_i))).
 by move/eqP; rewrite unity_rootE eqn_leq andbC leqNgt lt_i.
 Qed.
 

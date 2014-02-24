@@ -918,7 +918,7 @@ have injw: {in 'Z(S) &, injective (irr_mode i0)}.
   by rewrite !{1}irr_center_scalar ?eq_xy; first by split.
 have prim_w e: 0 < e < p -> p.-primitive_root (w ^+ e).
   case/andP=> e_gt0 lt_e_p; apply/andP; split=> //.
-  apply/forallP=> [[d ltdp] /=]; apply/eqP; rewrite unity_rootE -exprM.
+  apply/eqfunP=> -[d ltdp] /=; rewrite unity_rootE -exprM.
   rewrite -(irr_mode1 i0) -irr_modeX // (inj_in_eq injw) ?groupX ?group1 //.
   rewrite -order_dvdn ozp Euclid_dvdM // gtnNdvd //=.
   move: ltdp; rewrite leq_eqVlt.

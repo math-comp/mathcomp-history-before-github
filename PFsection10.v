@@ -558,7 +558,7 @@ have DcalTs: calT = seqIndD HU S S`_\s 1.
 have notFrobM: ~~ [Frobenius M with kernel M`_\F].
   by apply/existsP=> [[U1 /Frobenius_of_typeF/(typePF_exclusion MtypeP)]].
 have{notFrobM} notSsupportM: ~~ [exists x, FTsupports M (S :^ x)].
-  apply: contra notFrobM => /existsP[x /existsP[y /and3P[Ay not_sCyM sCySx]]].
+  apply: contra notFrobM => /'exists_existsP[x [y /and3P[Ay not_sCyM sCySx]]].
   have [_ [_ /(_ y)uMS] /(_ y)] := FTsupport_facts maxM.
   rewrite inE (subsetP (FTsupp_sub0 _)) //= in uMS *.
   rewrite -(eq_uniq_mmax (uMS not_sCyM) _ sCySx) ?mmaxJ // FTtypeJ.

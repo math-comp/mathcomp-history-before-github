@@ -837,7 +837,7 @@ Proof. by apply/forallP=> i; rewrite linear0 rpred0. Qed.
 
 Fact add_char : addr_closed (@character G).
 Proof.
-split=> [|chi xi /forallP Nchi /forallP Nxi]; first exact: cfun0_char.
+split=> [|chi xi /forallP-Nchi /forallP-Nxi]; first exact: cfun0_char.
 by apply/forallP=> i; rewrite linearD rpredD /=.
 Qed.
 Canonical character_addrPred := AddrPred add_char.
@@ -845,7 +845,7 @@ Canonical character_addrPred := AddrPred add_char.
 Lemma char_sum_irrP {phi} :
   reflect (exists n, phi = \sum_i (n i)%:R *: 'chi_i) (phi \is a character).
 Proof.
-apply: (iffP idP)=> [/forallP Nphi | [n ->]]; last first.
+apply: (iffP idP)=> [/forallP-Nphi | [n ->]]; last first.
   by apply: rpred_sum => i _; rewrite scaler_nat rpredMn // irr_char.
 do [have [a ->] := cfun_irr_sum phi] in Nphi *; exists (truncC \o a).
 apply: eq_bigr => i _; congr (_ *: _); have:= eqP (Nphi i).
@@ -2909,7 +2909,7 @@ have [-> | ntG] := eqsVneq G [1]; first by exists 0; exact: cfker_sub.
 have{pG} [[p_pr _ _] pZ] := (pgroup_pdiv pG ntG, pgroupS (center_sub G) pG).
 have ntZ: 'Z(G) != [1] by rewrite center_nil_eq1.
 have{pZ} oZ: #|Z| = p by exact: Ohm1_cyclic_pgroup_prime.
-apply/existsP; apply: contraR ntZ; rewrite negb_exists => /forallP not_ffulG.
+apply/existsP; apply: contraR ntZ; rewrite negb_exists => /forallP-not_ffulG.
 rewrite -Ohm1_eq1 -subG1 /= -/Z -(TI_cfker_irr G); apply/bigcapsP=> i _.
 rewrite prime_meetG ?oZ // setIC meet_Ohm1 // meet_center_nil ?cfker_normal //.
 by rewrite -subG1 not_ffulG.
