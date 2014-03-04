@@ -489,7 +489,7 @@ let nb_cs_proj_args pc f u =
   try match kind_of_term f with
   | Prod _ -> na Prod_cs
   | Sort s -> na (Sort_cs (family_of_sort s))
-  | Const c' when c' = pc -> Array.length (snd (destApp u.up_f))
+  | Const c' when Constant.equal c' pc -> Array.length (snd (destApp u.up_f))
   | Var _ | Ind _ | Construct _ | Const _ -> na (Const_cs (global_of_constr f))
   | _ -> -1
   with Not_found -> -1
@@ -520,7 +520,7 @@ let filter_upat i0 f n u fpats =
   if n < na then fpats else
   let np = match u.up_k with
   | KpatConst when eq_constr u.up_f f -> na
-  | KpatFixed when u.up_f = f -> na 
+  | KpatFixed when eq_constr u.up_f f -> na 
   | KpatEvar k when isEvar_k k f -> na
   | KpatLet when isLetIn f -> na
   | KpatLam when isLambda f -> na
@@ -537,12 +537,12 @@ let filter_upat_FO i0 f n u fpats =
   if n < np then fpats else
   let ok = match u.up_k with
   | KpatConst -> eq_constr u.up_f f 
-  | KpatFixed -> u.up_f = f 
+  | KpatFixed -> eq_constr u.up_f f 
   | KpatEvar k -> isEvar_k k f
   | KpatLet -> isLetIn f
   | KpatLam -> isLambda f
   | KpatRigid -> isRigid f
-  | KpatProj pc -> f = mkConst pc
+  | KpatProj pc -> eq_constr f (mkConst pc)
   | KpatFlex -> i0 := n; true in
   if ok then begin if !i0 < np then i0 := np; (u, np) :: fpats end else fpats
 
@@ -692,7 +692,7 @@ let mk_tpattern_matcher
       let match_let f = match kind_of_term f with
       | LetIn (_, v, _, b) -> unif_EQ env sigma pv v && unif_EQ env' sigma pb b
       | _ -> false in match_let
-    | KpatFixed -> (=) u.up_f
+    | KpatFixed -> eq_constr u.up_f
     | KpatConst -> eq_constr u.up_f
     | KpatLam -> fun c ->
        (match kind_of_term c with

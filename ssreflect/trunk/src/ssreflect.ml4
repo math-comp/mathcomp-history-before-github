@@ -1336,7 +1336,7 @@ let rec interp_head_pat hpat =
   | Cast (c', _, _) -> loop c'
   | Prod (_, _, c') -> loop c'
   | LetIn (_, _, _, c') -> loop c'
-  | _ -> Matching.is_matching p c in
+  | _ -> ConstrMatching.is_matching p c in
   filter_head, loop
 
 let all_true _ = true
@@ -2661,7 +2661,7 @@ let injectl2rtac c = match kind_of_term c with
 
 let is_injection_case c gl =
   let mind, _ = pf_reduce_to_quantified_ind gl (pf_type_of gl c) in
-  mkInd mind = build_coq_eq ()
+  eq_constr (mkInd mind) (build_coq_eq ())
 
 let perform_injection c gl =
   let mind, t = pf_reduce_to_quantified_ind gl (pf_type_of gl c) in
@@ -4680,13 +4680,13 @@ let rwrxtac occ rdx_pat dir rule gl =
       | Prod (_, xt, at) ->
         let ise, x = Evarutil.new_evar (create_evar_defs sigma) env xt in
         loop d ise (mkApp (r, [|x|])) (subst1 x at) rs 0
-      | App (pr, a) when pr = coq_prod.Coqlib.typ ->
+      | App (pr, a) when eq_constr pr coq_prod.Coqlib.typ ->
         let sr = match kind_of_term (Tacred.hnf_constr env sigma r) with
-        | App (c, ra) when c = coq_prod.Coqlib.intro -> fun i -> ra.(i + 1)
+        | App (c, ra) when eq_constr c coq_prod.Coqlib.intro -> fun i -> ra.(i + 1)
         | _ -> let ra = Array.append a [|r|] in
           function 1 -> mkApp (coq_prod.Coqlib.proj1, ra)
                 | _ ->  mkApp (coq_prod.Coqlib.proj2, ra) in
-        if a.(0) = build_coq_True () then
+        if eq_constr a.(0) (build_coq_True ()) then
          loop (converse_dir d) sigma (sr 2) a.(1) rs 0
         else
          let sigma2, rs2 = loop d sigma (sr 2) a.(1) rs 0 in
@@ -5220,7 +5220,7 @@ ARGUMENT EXTEND ssrfixfwd TYPED AS ident * ssrfwd PRINTED BY pr_ssrfixfwd
       let lb = fix_binders bs in
       let has_struct, i =
         let rec loop = function
-          (l', Name id') :: _ when sid = Some id' -> true, (l', id')
+          (l', Name id') :: _ when Option.equal Id.equal sid (Some id') -> true, (l', id')
           | [l', Name id'] when sid = None -> false, (l', id')
           | _ :: bn -> loop bn
           | [] -> Errors.error "Bad structural argument" in
