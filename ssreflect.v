@@ -352,6 +352,10 @@ Proof. exact: unlock. Qed.
 Definition ssr_have Plemma Pgoal (step : Plemma) rest : Pgoal := rest step.
 Implicit Arguments ssr_have [Pgoal].
 
+Definition ssr_have_let Plemma step Pgoal
+  (rest : let x : Plemma := step in Pgoal) : Pgoal := rest.
+Implicit Arguments ssr_have_let [Pgoal].
+
 Definition ssr_suff Plemma Pgoal step (rest : Plemma) : Pgoal := step rest.
 Implicit Arguments ssr_suff [Pgoal].
 
@@ -399,3 +403,9 @@ End ApplyIff.
 
 Hint View for move/ iffLRn|2 iffRLn|2 iffLR|2 iffRL|2.
 Hint View for apply/ iffRLn|2 iffLRn|2 iffRL|2 iffLR|2.
+
+Definition ssrhideas (name : Prop -> Type) PGoal x : PGoal := x.
+Definition ssrhidden (T : Type) (t : T) : T := t.
+Notation "<hidden>" := (ssrhidden _) (at level 0).
+Definition ssrhiddenas (T1 : Type) (t1 : T1) (T2 : Type) (t2 : T2) : T1 := t1.
+Notation "<hidden X >" := (ssrhiddenas _ X) (at level 0, format "<hidden  X >").

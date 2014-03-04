@@ -261,6 +261,7 @@ let rec whdEtaApp c n =
   if n = 0 then c else match kind_of_term c with
   | Lambda (_, _, c') -> whdEtaApp c' (n - 1)
   | _ -> mkEtaApp (lift n c) n 1
+let mkType () = mkType (Univ.fresh_local_univ ())
 
 (* ssrterm conbinators *)
 let combineCG t1 t2 f g = match t1, t2 with
@@ -274,6 +275,59 @@ let loc_ofCG = function
 
 let mk_term k c = k, (mkRHole, Some c)
 let mk_lterm c = mk_term ' ' c
+
+let map_fold_constr g f ctx acc cstr =
+  let array_f ctx acc x = let x, acc = f ctx acc x in acc, x in
+  match kind_of_term cstr with
+  | (Rel _ | Meta _ | Var _   | Sort _ | Const _ | Ind _ | Construct _) ->
+      cstr, acc
+  | Cast (c,k, t) ->
+      let c', acc = f ctx acc c in
+      let t', acc = f ctx acc t in
+      (if c==c' && t==t' then cstr else mkCast (c', k, t')), acc
+  | Prod (na,t,c) ->
+      let t', acc = f ctx acc t in
+      let c', acc = f (g (na,None,t) ctx) acc c in
+      (if t==t' && c==c' then cstr else mkProd (na, t', c')), acc
+  | Lambda (na,t,c) ->
+      let t', acc = f ctx acc t in
+      let c', acc = f (g (na,None,t) ctx) acc c in
+      (if t==t' && c==c' then cstr else  mkLambda (na, t', c')), acc
+  | LetIn (na,b,t,c) ->
+      let b', acc = f ctx acc b in
+      let t', acc = f ctx acc t in
+      let c', acc = f (g (na,Some b,t) ctx) acc c in
+      (if b==b' && t==t' && c==c' then cstr else mkLetIn (na, b', t', c')), acc
+  | App (c,al) ->
+      let c', acc = f ctx acc c in
+      let acc, al' = CArray.smartfoldmap (array_f ctx) acc al in
+      (if c==c' && Array.for_all2 (==) al al' then cstr else mkApp (c', al')),
+      acc
+  | Evar (e,al) ->
+      let acc, al' = CArray.smartfoldmap (array_f ctx) acc al in
+      (if Array.for_all2 (==) al al' then cstr else mkEvar (e, al')), acc
+  | Case (ci,p,c,bl) ->
+      let p', acc = f ctx acc p in
+      let c', acc = f ctx acc c in
+      let acc, bl' = CArray.smartfoldmap (array_f ctx) acc bl in
+      (if p==p' && c==c' && Array.for_all2 (==) bl bl' then cstr else
+        mkCase (ci, p', c', bl')),
+      acc
+  | Fix (ln,(lna,tl,bl)) ->
+      let acc, tl' = CArray.smartfoldmap (array_f ctx) acc tl in
+      let ctx' = Array.fold_left2 (fun l na t -> g (na,None,t) l) ctx lna tl in
+      let acc, bl' = CArray.smartfoldmap (array_f ctx') acc bl in
+      (if Array.for_all2 (==) tl tl' && Array.for_all2 (==) bl bl'
+      then cstr
+      else mkFix (ln,(lna,tl',bl'))), acc
+  | CoFix(ln,(lna,tl,bl)) ->
+      let acc, tl' = CArray.smartfoldmap (array_f ctx) acc tl in
+      let ctx' = Array.fold_left2 (fun l na t -> g (na,None,t) l) ctx lna tl in
+      let acc,bl' = CArray.smartfoldmap (array_f ctx') acc bl in
+      (if Array.for_all2 (==) tl tl' && Array.for_all2 (==) bl bl'
+      then cstr
+      else mkCoFix (ln,(lna,tl',bl'))), acc
+
 
 (* }}} *)
 
@@ -5289,16 +5343,25 @@ let binder_to_intro_id = List.map (function
   | (FwdPose, [BFdef _]), CLetIn (_,(_,Anonymous),_,_) -> [IpatAnon]
   | _ -> anomaly "ssrbinder is not a binder")
 
-let pr_ssrhavefwdwbinders _ _ prt (hpats, (fwd, hint)) =
+let pr_ssrtransparent _ _ _ b = if b then str"@" else str""
+
+let pr_ssrhavefwdwbinders _ _ prt (tr,(hpats, (fwd, hint))) =
+  pr_ssrtransparent () () () tr ++       
   pr_hpats hpats ++ pr_fwd fwd ++ pr_hint prt hint
 
+ARGUMENT EXTEND ssrtransparent TYPED AS bool PRINTED BY pr_ssrtransparent
+| [ "@" ] -> [ true ]
+| [ ] -> [ false ]
+END
+
 ARGUMENT EXTEND ssrhavefwdwbinders
-  TYPED AS ssrhpats * (ssrfwd * ssrhint) PRINTED BY pr_ssrhavefwdwbinders
-| [ ssrhpats(pats) ssrbinder_list(bs) ssrhavefwd(fwd) ] ->
+  TYPED AS bool * (ssrhpats * (ssrfwd * ssrhint))
+  PRINTED BY pr_ssrhavefwdwbinders
+| [ ssrtransparent(tr) ssrhpats(pats) ssrbinder_list(bs) ssrhavefwd(fwd) ] ->
   [ let ((clr, pats), binders), simpl = pats in
     let allbs = intro_id_to_binder binders @ bs in
     let allbinders = binders @ List.flatten (binder_to_intro_id bs) in
-    (((clr, pats), allbinders), simpl), (bind_fwd allbs (fst fwd), snd fwd) ]
+    tr, ((((clr,pats), allbinders), simpl), (bind_fwd allbs (fst fwd),snd fwd))]
 END
 
 (* Tactic. *)
@@ -5307,7 +5370,7 @@ let havegentac ist t gl =
   let c = pf_abs_ssrterm ist gl t in
   apply_type (mkArrow (pf_type_of gl c) (pf_concl gl)) [c] gl
 
-let havetac ist ((((clr, pats), binders), simpl), (((fk, _), t), hint))
+let havetac ist (transp,((((clr, pats), binders), simpl), (((fk, _), t), hint)))
       suff namefst gl 
 =
  let concl = pf_concl gl in
@@ -5359,7 +5422,51 @@ let havetac ist ((((clr, pats), binders), simpl), (((fk, _), t), hint))
      let n, cty = interp_ty fixtc cty in
      cty, tclTHEN (binderstac n) hint, id, tclTHEN itac_c simpltac
    | _, true, false -> assert false in
- tclTHENS (cuttac cut) [ tclTHEN sol itac1; itac2 ] gl
+ if not transp then tclTHENS (cuttac cut) [ tclTHEN sol itac1; itac2 ] gl
+ else
+   let sigma0 = project gl in
+   let env = pf_env gl in
+   let sigma, term = Evarutil.new_evar sigma0 env cut in
+   let ev,_ = Term.destEvar term in
+   let ng, sigma = call_on_evar (tclTHEN sol itac1) ev sigma in
+   assert(ng = []);
+   let proof = Evarutil.nf_evar sigma term in
+   assert(closed0 proof);
+   let push x xs = x :: xs in
+   let ssrApp s a = mkApp (mkSsrConst s, a) in
+   let rec aux ctx subst t = match kind_of_term t with
+     | App (c, [|name;ty;tohide|]) when isLambda name ->
+         let name, _, _ = destLambda name in
+         let name = match name with Name x -> x | _ -> mk_anon_id "hidden" gl in
+         let _, args =
+           fold_rel_context_reverse ~init:(1,[]) (fun (i, l) (_,b,_) ->
+             if b = None then i+1, mkRel i::l else i+1, l) ctx in
+         (if args = [] then mkVar name
+         else ssrApp "ssrhiddenas"
+           [|ty; mkApp (mkVar name, Array.of_list args);
+             it_mkProd_or_LetIn ty ctx; mkVar name|]),
+         (it_mkLambda_or_LetIn tohide ctx,
+          it_mkProd_or_LetIn ty ctx,name)::subst
+     | _ -> map_fold_constr push aux ctx subst t in
+   let proof, ctxitems = aux empty_rel_context [] proof in
+   let rec mktac = function
+     | [] -> apply (ssrApp "ssr_have_let" [|cut;proof|])
+     | (t,ty,name) :: rest ->
+         let ty = ssrApp "ssrhidden" [|mkType(); ty|] in
+         tclTHENS (cuttac ty)
+           [ exact_check t;
+             tclTHEN (introstac ~ist [IpatId name]) (mktac rest) ] in
+   tclTHEN (mktac ctxitems) itac2 gl
+;;
+
+TACTIC EXTEND ssrhide
+| [ "hide" ] ->
+  [ let noname = mkLambda(Anonymous,mkProp,mkProp) in
+    Proofview.V82.tactic (apply (mkApp (mkSsrConst "ssrhideas",[|noname|]))) ]
+| [ "hide" "as" ident(id) ] ->
+  [ let name = mkLambda(Name id,mkProp,mkRel 1) in
+    Proofview.V82.tactic (apply (mkApp (mkSsrConst "ssrhideas",[|name|]))) ]
+END
 
 let prof_havetac = mk_profiler "havetac";;
 let havetac arg a b gl = prof_havetac.profile (havetac arg a b) gl;;
@@ -5371,28 +5478,31 @@ END
 
 TACTIC EXTEND ssrhavesuff
 | [ "have" "suff" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ Proofview.V82.tactic (havetac ist (pats, fwd) true false) ]
+  [ Proofview.V82.tactic (havetac ist (false, (pats, fwd)) true false) ]
 END
 
 TACTIC EXTEND ssrhavesuffices
 | [ "have" "suffices" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ Proofview.V82.tactic (havetac ist (pats, fwd) true false) ]
+  [ Proofview.V82.tactic (havetac ist (false, (pats, fwd)) true false) ]
 END
 
 TACTIC EXTEND ssrsuffhave
 | [ "suff" "have" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ Proofview.V82.tactic (havetac ist (pats, fwd) true true) ]
+  [ Proofview.V82.tactic (havetac ist (false, (pats, fwd)) true true) ]
 END
 
 TACTIC EXTEND ssrsufficeshave
 | [ "suffices" "have" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ Proofview.V82.tactic (havetac ist (pats, fwd) true true) ]
+  [ Proofview.V82.tactic (havetac ist (false, (pats, fwd)) true true) ]
 END
 
 (** The "suffice" tactic *)
 
+let pr_ssrsufffwdwbinders _ _ prt (hpats, (fwd, hint)) =
+  pr_hpats hpats ++ pr_fwd fwd ++ pr_hint prt hint
+
 ARGUMENT EXTEND ssrsufffwd
-  TYPED AS ssrhpats * (ssrfwd * ssrhint) PRINTED BY pr_ssrhavefwdwbinders
+  TYPED AS ssrhpats * (ssrfwd * ssrhint) PRINTED BY pr_ssrsufffwdwbinders
 | [ ssrhpats(pats) ssrbinder_list(bs)  ":" lconstr(t) ssrhint(hint) ] ->
   [ let ((clr, pats), binders), simpl = pats in
     let allbs = intro_id_to_binder binders @ bs in
