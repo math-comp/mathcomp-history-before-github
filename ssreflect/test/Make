@@ -15,6 +15,7 @@ gen_pattern.v
 havesuff.v
 have_view_idiom.v
 have_TC.v
+have_transp.v
 if_isnt.v
 indetLHS.v
 intro_beta.v

@@ -1,18 +1,43 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 
 
-Lemma test1 (n : nat) : False.
+Lemma test1 n : n >= 0.
 Proof.
-have @a : 'I_n.+1 by apply (Sub 0); hide; auto.
-
+have {&s} @h m : 'I_(n+m).+1.
+  apply: Sub 0 _.
+  hide: s m.
+  by auto.
 Show Proof.
+cut (forall m, 0 < (n+m).+1); last assumption.
+by [].
+Qed.
 
-have @b : 'I_n.+1 by apply (Sub 0); hide as fooo; auto.
+(*
+2 subgoals
+n : nat
+s : <skolem 5 >
+m : nat
+______________________________________(1/2)
+'I_(n + m).+1
+______________________________________(2/2)
+0 <= n
 
-have helper_4_auto x : O < n + x.+1 by rewrite addnS.
-have @h x y (w := x + y) z : 'I_(n + (z+w).+1)
-  by apply (Sub O); hide as blurb; auto.
 
 
+2 subgoals
+n : nat
+m : nat
+______________________________________(1/2)
+0 < (n + m).+1
+______________________________________(2/2)
+0 <= n
 
-Admitted.
+
+1 subgoal
+n : nat
+s : (forall m : nat, 0 < (n + m).+1)
+h := fun m : nat => Sub 0 (s m)
+  : forall m : nat, 'I_(n + m).+1
+______________________________________(1/1)
+0 <= n
+*)

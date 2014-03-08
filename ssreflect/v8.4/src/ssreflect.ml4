@@ -3622,10 +3622,10 @@ let dependent_apply_error =
  *
  * Refiner.refiner that does not handle metas with a non ground type but works
  * with dependently typed higher order metas. *)
-let applyn ~with_evars n t gl =
+let applyn ~with_evars ?beta n t gl =
   if with_evars then
     let t, sigma = if n = 0 then t, project gl else
-      let t, _, _, gl = pf_saturate gl t n in (* saturate with evars *)
+      let t, _, _, gl = pf_saturate ?beta gl t n in (* saturate with evars *)
       t, project gl in
     pp(lazy(str"Refine.refine " ++ pr_constr t));
     Refine.refine (sigma, t) gl
@@ -3644,7 +3644,7 @@ let applyn ~with_evars n t gl =
     pp(lazy(str"Refiner.refiner " ++ pr_constr t));
     Refiner.refiner (Proof_type.Prim (Proof_type.Refine t)) gl
 
-let refine_with ?(first_goes_last=false) ?(with_evars=true) oc gl =
+let refine_with ?(first_goes_last=false) ?beta ?(with_evars=true) oc gl =
   let rec mkRels = function 1 -> [] | n -> mkRel n :: mkRels (n-1) in
   let n, oc = pf_abs_evars_pirrel gl oc in
   let oc = if not first_goes_last || n <= 1 then oc else
@@ -3654,7 +3654,7 @@ let refine_with ?(first_goes_last=false) ?(with_evars=true) oc gl =
       (mkApp (compose_lam l c, Array.of_list (mkRel 1 :: mkRels n)))
   in
   pp(lazy(str"after: " ++ pr_constr oc));
-  try applyn ~with_evars n oc gl with _ -> raise dependent_apply_error
+  try applyn ~with_evars ?beta n oc gl with _ -> raise dependent_apply_error
 
 (** The "case" and "elim" tactic *)
 
@@ -4134,7 +4134,7 @@ let inner_ssrapplytac gviews ggenl gclr ist gl =
       (cleartac clr) gl
   | [], [agens] ->
     let clr', (_, lemma) = interp_agens ist gl agens in
-    tclTHENLIST [cleartac clr; refine_with lemma; cleartac clr'] gl
+    tclTHENLIST [cleartac clr; refine_with ~beta:true lemma; cleartac clr'] gl
   | _, _ -> tclTHEN apply_top_tac (cleartac clr) gl) gl
 
 let ssrapplytac (views, (_, ((gens, clr), intros))) =
@@ -5342,35 +5342,78 @@ let binder_to_intro_id = List.map (function
   | (FwdPose, [BFdef _]), CLetIn (_,(_,Anonymous),_,_) -> [IpatAnon]
   | _ -> anomaly "ssrbinder is not a binder")
 
-let pr_ssrtransparent _ _ _ b = if b then str"@" else str""
+let pr_ssrtransp _ _ _ b = if b then str"@" else str""
 
-let pr_ssrhavefwdwbinders _ _ prt (tr,(hpats, (fwd, hint))) =
-  pr_ssrtransparent () () () tr ++       
+let pr_ssrskols _ _ _ l =
+  if l = [] then str"" else str"{& " ++ pr_list spc pr_id l ++ str"}"
+
+let pr_ssrhavefwdwbinders _ _ prt (tr,(skols,(hpats, (fwd, hint)))) =
+  pr_ssrskols () () () skols ++
+  pr_ssrtransp () () () tr ++
   pr_hpats hpats ++ pr_fwd fwd ++ pr_hint prt hint
 
-ARGUMENT EXTEND ssrtransparent TYPED AS bool PRINTED BY pr_ssrtransparent
+ARGUMENT EXTEND ssrtransp TYPED AS bool PRINTED BY pr_ssrtransp
 | [ "@" ] -> [ true ]
 | [ ] -> [ false ]
 END
 
+ARGUMENT EXTEND ssrskols TYPED AS ident list PRINTED BY pr_ssrskols
+| [ "{" "&" ident_list(l) "}" ] -> [ l ]
+| [ "{&" ident_list(l) "}" ] -> [ l ]
+| [ ] -> [ [] ]
+END
+
 ARGUMENT EXTEND ssrhavefwdwbinders
-  TYPED AS bool * (ssrhpats * (ssrfwd * ssrhint))
+  TYPED AS bool * (ssrskols * (ssrhpats * (ssrfwd * ssrhint)))
   PRINTED BY pr_ssrhavefwdwbinders
-| [ ssrtransparent(tr) ssrhpats(pats) ssrbinder_list(bs) ssrhavefwd(fwd) ] ->
+| [ ssrskols(sk) ssrtransp(tr) ssrhpats(pats)
+    ssrbinder_list(bs) ssrhavefwd(fwd) ] ->
   [ let ((clr, pats), binders), simpl = pats in
     let allbs = intro_id_to_binder binders @ bs in
     let allbinders = binders @ List.flatten (binder_to_intro_id bs) in
-    tr, ((((clr,pats), allbinders), simpl), (bind_fwd allbs (fst fwd),snd fwd))]
+    let hint = bind_fwd allbs (fst fwd), snd fwd in
+    tr, (sk, ((((clr, pats), allbinders), simpl), hint)) ]
 END
 
 (* Tactic. *)
+
+let rec nat_of_n n =
+  if n = 0 then mkConstruct path_of_O
+  else mkApp (mkConstruct path_of_S, [|nat_of_n (n-1)|])
+
+let ssr_skolem_id = ref 0
+let _ =
+  Summary.declare_summary "SSR:skolemid"
+    { Summary.freeze_function   = (fun _ -> !ssr_skolem_id);
+      Summary.unfreeze_function = (fun x -> ssr_skolem_id := x);
+      Summary.init_function     = (fun () -> ssr_skolem_id := 0) }
+
+let mk_skolem_id () = incr ssr_skolem_id; nat_of_n !ssr_skolem_id
+
+let ssrskolem id gl =
+  let env, concl = pf_env gl, pf_concl gl in
+  let sigma, skolem_proof, skolem_ty =
+    let sigma, ty = Evarutil.new_type_evar Evd.empty env in
+    let sigma, lock = Evarutil.new_evar sigma env (mkSsrConst "skolem_lock") in
+    let skolem_ty = mkApp(mkSsrConst "skolem", [|ty;mk_skolem_id ();lock|]) in
+    let sigma, m = Evarutil.new_evar sigma env skolem_ty in
+    sigma, m, skolem_ty in
+  let sigma, kont =
+    let rd = Name id, None, skolem_ty in
+    Evarutil.new_evar sigma (Environ.push_rel rd env) concl in
+  let step =mkApp (mkLambda(Name id,skolem_ty,kont) ,[|skolem_proof|]) in
+  Refine.refine (sigma, step) gl
+
+let ssrskolemtac ids =
+  List.fold_right (fun id tac -> tclTHENFIRST (ssrskolem id) tac) ids tclIDTAC
 
 let havegentac ist t gl =
   let c = pf_abs_ssrterm ist gl t in
   apply_type (mkArrow (pf_type_of gl c) (pf_concl gl)) [c] gl
 
-let havetac (transp,((((clr, pats), binders), simpl), ((((fk, _), t), ctx), hint)))
-      suff namefst gl 
+let havetac
+  (transp,(skols,((((clr, pats), binders), simpl), ((((fk, _), t), ctx), hint))))
+  suff namefst gl 
 =
  let ist, concl = get_ltacctx ctx, pf_concl gl in
  let itac_c = introstac ~ist (IpatSimpl(clr,Nop) :: pats) in
@@ -5384,7 +5427,20 @@ let havetac (transp,((((clr, pats), binders), simpl), ((((fk, _), t), ctx), hint
    not !ssrhaveNOtcresolution &&
    match fk with FwdHint(_,true) -> false | _ -> true in
  let hint = hinttac ist true hint in
- let cuttac t gl = basecuttac "ssr_have" t gl in
+ let cuttac t gl =
+   if transp then
+     (* The v8.4 refiner is too stupid to deal with a let-in, apparently.
+      * Let's do things by hand... *)
+     let sigma, concl, env, g = project gl, pf_concl gl, pf_env gl, sig_it gl in
+     let sigma, extra = Evarutil.new_evar sigma env t in
+     let sigma, kont =
+       Evarutil.new_evar sigma env (mkLetIn (Anonymous,extra,t,lift 1 concl)) in
+     let step = mkApp (mkSsrConst "ssr_have_let", [|concl;t;extra;kont|]) in
+     let sigma = Goal.V82.partial_solution sigma g step in
+     let g1, g2 = fst (destEvar extra), fst (destEvar kont) in
+     re_sig [Goal.build g1; Goal.build g2] sigma
+   else
+     basecuttac "ssr_have" t gl in
  let mkt t = mk_term ' ' t in
  let mkl t = (' ', (t, None)) in
  let interp rtc t = pf_abs_ssrterm ~resolve_typeclasses:rtc ist gl t in
@@ -5421,50 +5477,97 @@ let havetac (transp,((((clr, pats), binders), simpl), ((((fk, _), t), ctx), hint
      let n, cty = interp_ty fixtc cty in
      cty, tclTHEN (binderstac n) hint, id, tclTHEN itac_c simpltac
    | _, true, false -> assert false in
- if not transp then tclTHENS (cuttac cut) [ tclTHEN sol itac1; itac2 ] gl
- else
-   let sigma0 = project gl in
-   let env = pf_env gl in
-   let sigma, term = Evarutil.new_evar sigma0 env cut in
-   let ev,_ = Term.destEvar term in
-   let ng, sigma = call_on_evar (tclTHEN sol itac1) ev sigma in
-   assert(ng = []);
-   let proof = Evarutil.nf_evar sigma term in
-   assert(closed0 proof);
-   let push x xs = x :: xs in
-   let ssrApp s a = mkApp (mkSsrConst s, a) in
-   let rec aux ctx subst t = match kind_of_term t with
-     | App (c, [|name;ty;tohide|]) when isLambda name ->
-         let name, _, _ = destLambda name in
-         let name = match name with Name x -> x | _ -> mk_anon_id "hidden" gl in
-         let _, args =
-           Sign.fold_rel_context_reverse ~init:(1,[]) (fun (i, l) (_,b,_) ->
-             if b = None then i+1, mkRel i::l else i+1, l) ctx in
-         (if args = [] then mkVar name
-         else ssrApp "ssrhiddenas"
-           [|ty; mkApp (mkVar name, Array.of_list args);
-             it_mkProd_or_LetIn ty ctx; mkVar name|]),
-         (it_mkLambda_or_LetIn tohide ctx,
-          it_mkProd_or_LetIn ty ctx,name)::subst
-     | _ -> map_fold_constr push aux ctx subst t in
-   let proof, ctxitems = aux empty_rel_context [] proof in
-   let rec mktac = function
-     | [] -> apply (ssrApp "ssr_have_let" [|cut;proof|])
-     | (t,ty,name) :: rest ->
-         let ty = ssrApp "ssrhidden" [|mkType(); ty|] in
-         tclTHENS (cuttac ty)
-           [ exact_check t;
-             tclTHEN (introstac ~ist [IpatId name]) (mktac rest) ] in
-   tclTHEN (mktac ctxitems) itac2 gl
+  tclTHENFIRST (ssrskolemtac skols)
+    (tclTHENS (cuttac cut) [ tclTHEN sol itac1; itac2 ]) gl
 ;;
 
+let unfold cl =
+  let module R = Reductionops in let module F = Closure.RedFlags in
+  reduct_in_concl (R.clos_norm_flags (F.mkflags
+    (List.map (fun c -> F.fCONST (destConst c)) cl @ [F.fBETA; F.fIOTA])))
+
+let ssrhide ctx gens last gl =
+  let ist = get_ltacctx ctx in
+  let main _ (_,cid) ist gl =
+    let proj1, proj2, prod =
+      let pdata = build_prod () in
+      pdata.Coqlib.proj1, pdata.Coqlib.proj2, pdata.Coqlib.typ in
+    let concl, env = pf_concl gl, pf_env gl in
+    let fire gl t = Reductionops.nf_evar (project gl) t in
+    let skolem, skolem_key = mkSsrConst "skolem", mkSsrConst "skolem_key" in
+    let id = mkVar (Option.get (id_of_cpattern cid)) in
+    let tid = pf_type_of gl id in
+    if not (isApp tid) || not (eq_constr (fst(destApp tid)) skolem) then
+      errorstrm(strbrk"not a skolem constant: "++pr_constr id);
+    let _, args_id = destApp tid in
+    if Array.length args_id <> 3 then
+      errorstrm(strbrk"not a proper skolem constant: "++pr_constr id);
+    if not (isEvar args_id.(2)) then
+      errorstrm(strbrk"skolem constant "++pr_constr id++str" already used");
+    let skolem_n = args_id.(1) in
+    let skolem_proof =
+      let l = Evd.fold_undefined (fun e ei l ->
+        match kind_of_term ei.Evd.evar_concl with
+        | App(hd, [|ty; n; lock|])
+          when occur_existential (fire gl ty) && isEvar (fire gl lock) &&
+          eq_constr hd skolem && eq_constr n skolem_n -> e::l
+        | _ -> l) (project gl) [] in
+      match l with
+      | [e] -> e
+      | _ -> errorstrm(strbrk"skolem constant "++pr_constr skolem_n++
+               strbrk" not found in the evar map exactly once. "++
+               strbrk"Did you tamper with it?") in
+    let gl, proof =
+      let pf_unify_HO gl a b =
+        try pf_unify_HO gl a b
+        with _ -> errorstrm(strbrk"The skolem variable "++pr_constr id++
+          strbrk" cannot hide this goal.  Did you generalize it?") in
+      let rec find_hole p t =
+        match kind_of_term t with
+        | Evar _ when last -> pf_unify_HO gl concl t, p
+        | Evar _ ->
+            let sigma, it = project gl, sig_it gl in
+            let sigma, ty = Evarutil.new_type_evar sigma env in
+            let gl = re_sig it sigma in
+            let p = mkApp (proj2,[|ty;concl;p|]) in
+            let concl = mkApp(prod,[|ty; concl|]) in
+            pf_unify_HO gl concl t, p
+        | App(hd, [|left; right|]) when eq_constr hd prod ->
+            find_hole (mkApp (proj1,[|left;right;p|])) left
+        | _ -> errorstrm(strbrk"skolem constant "++pr_constr skolem_n++
+               strbrk" has an unexpected shape. Did you tamper with it?")
+      in
+        find_hole
+          (if last then id
+           else mkApp(mkSsrConst "use_skolem",Array.append args_id [|id|]))
+          (fire gl args_id.(0)) in
+    let gl = if last then pf_unify_HO gl skolem_key args_id.(2) else gl in
+    let proof = fire gl proof in
+    if last then
+      let tacopen gl =
+        let stuff, g = Refiner.unpackage gl in
+        Refiner.repackage stuff [ g; Goal.build skolem_proof ] in
+      tclTHENS tacopen [ tclSOLVE [apply proof]; unfold [skolem;skolem_key] ] gl
+    else
+      apply proof gl
+  in
+  let introback ist (gens, _) =
+    introstac ~ist
+      (List.map (fun (_,cp) -> match id_of_cpattern cp with
+        | None -> IpatAnon
+        | Some id -> IpatId id)
+        (List.tl (List.hd gens))) in
+  tclTHEN (with_dgens gens main ist) (introback ist gens) gl
+
 TACTIC EXTEND ssrhide
-| [ "hide" ] ->
-  [ let noname = mkLambda(Anonymous,mkProp,mkProp) in
-    apply (mkApp (mkSsrConst "ssrhideas",[|noname|])) ]
-| [ "hide" "as" ident(id) ] ->
-  [ let name = mkLambda(Name id,mkProp,mkRel 1) in
-    apply (mkApp (mkSsrConst "ssrhideas",[|name|])) ]
+| [ "hide" ssrdgens(gens) ltacctx(ctx) ] -> [
+    if List.length (fst gens) <> 1 then
+      errorstrm (str"dependents switches '/' not allowed here");
+    ssrhide ctx gens true ]
+END
+
+TACTIC EXTEND ssrskolem
+| [ "skolem" ":" ident_list(ids) ] -> [ ssrskolemtac ids ]
 END
 
 let prof_havetac = mk_profiler "havetac";;
@@ -5477,22 +5580,22 @@ END
 
 TACTIC EXTEND ssrhavesuff
 | [ "have" "suff" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ havetac (false, (pats, fwd)) true false ]
+  [ havetac (false,([],(pats,fwd))) true false ]
 END
 
 TACTIC EXTEND ssrhavesuffices
 | [ "have" "suffices" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ havetac (false, (pats, fwd)) true false ]
+  [ havetac (false,([],(pats,fwd))) true false ]
 END
 
 TACTIC EXTEND ssrsuffhave
 | [ "suff" "have" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ havetac (false, (pats, fwd)) true true ]
+  [ havetac (false,([],(pats,fwd))) true true ]
 END
 
 TACTIC EXTEND ssrsufficeshave
 | [ "suffices" "have" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ havetac (false, (pats, fwd)) true true ]
+  [ havetac (false,([],(pats,fwd))) true true ]
 END
 
 (** The "suffice" tactic *)
