@@ -60,6 +60,12 @@ Module SsrSyntax.
 Reserved Notation "(* x 'is' y 'of' z 'isn't' // /= //= *)" (at level 8).
 Reserved Notation "(* 69 *)" (at level 69).
 
+(* Non ambiguous keyword to check if the SsrSyntax module is imported *)
+Reserved Notation "(* Use to test if 'SsrSyntax_is_Imported' *)" (at level 8).
+
+Reserved Notation "<hidden n >" (at level 200).
+Reserved Notation "T (* n *)" (at level 200, format "T  (* n *)").
+
 End SsrSyntax.
 
 Export SsrMatchingSyntax.
@@ -129,6 +135,16 @@ Notation "T : 'Type'" := (T%type : Type)
 (* Allow similarly Prop annotation for, e.g., rewrite multirules.             *)
 Notation "P : 'Prop'" := (P%type : Prop)
   (at level 100, only parsing) : core_scope.
+
+(* Constants for abstract: and [: name ] intro pattern *)
+Definition abstract_lock := unit.
+Definition abstract_key := tt.
+
+Definition abstract (statement : Type) (id : nat) (lock : abstract_lock) :=
+  let: tt := lock in statement.
+
+Notation "<hidden n >" := (abstract _ n _).
+Notation "T (* n *)" := (abstract T n abstract_key).
 
 (* Syntax for referring to canonical structures:                              *)
 (*      [the struct_type of proj_val by proj_fun]                             *)
@@ -349,6 +365,10 @@ Proof. exact: unlock. Qed.
 Definition ssr_have Plemma Pgoal (step : Plemma) rest : Pgoal := rest step.
 Implicit Arguments ssr_have [Pgoal].
 
+Definition ssr_have_let Pgoal Plemma step
+  (rest : let x : Plemma := step in Pgoal) : Pgoal := rest.
+Implicit Arguments ssr_have_let [Pgoal].
+
 Definition ssr_suff Plemma Pgoal step (rest : Plemma) : Pgoal := step rest.
 Implicit Arguments ssr_suff [Pgoal].
 
@@ -396,3 +416,4 @@ End ApplyIff.
 
 Hint View for move/ iffLRn|2 iffRLn|2 iffLR|2 iffRL|2.
 Hint View for apply/ iffRLn|2 iffLRn|2 iffRL|2 iffLR|2.
+

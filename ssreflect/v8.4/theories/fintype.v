@@ -117,6 +117,8 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 (*   [exists x : T, P], [exists x : T in A, P], etc.                          *)
 (* -> The outer brackets can be omitted when nesting finitary quantifiers,    *)
 (*    e.g., [forall i in I, forall j in J, exists a, f i j == a].             *)
+(*       'forall_pP == view for [forall x, p _], for pP : reflect .. (p _).   *)
+(*       'exists_pP == view for [exists x, p _], for pP : reflect .. (p _).   *)
 (*     [pick x | P] == Some x, for an x such that P holds, or None if there   *)
 (*                     is no such x.                                          *)
 (*     [pick x : T] == Some x with x : T, provided T is nonempty, else None.  *)
@@ -146,7 +148,7 @@ Section RawMixin.
 
 Variable T : eqType.
 
-Definition axiom e := forall x, count (@pred1 T x) e = 1.
+Definition axiom e := forall x : T, count_mem x e = 1.
 
 Lemma uniq_enumP e : uniq e -> e =i T -> axiom e.
 Proof. by move=> Ue sT x; rewrite count_uniq_mem ?sT. Qed.
@@ -471,7 +473,7 @@ Lemma enum0 : enum pred0 = Nil T. Proof. exact: filter_pred0. Qed.
 
 Lemma enum1 x : enum (pred1 x) = [:: x].
 Proof.
-rewrite [enum _](all_pred1P x _ _); first by rewrite -count_filter enumP.
+rewrite [enum _](all_pred1P x _ _); first by rewrite size_filter enumP.
 by apply/allP=> y; rewrite mem_enum.
 Qed.
 
@@ -520,7 +522,7 @@ Lemma eq_card1 x A : A =i pred1 x -> #|A| = 1.
 Proof. exact: eq_card_trans (card1 x). Qed.
 
 Lemma cardUI A B : #|[predU A & B]| + #|[predI A & B]| = #|A| + #|B|.
-Proof. by rewrite !cardE -!count_filter count_predUI. Qed.
+Proof. by rewrite !cardE !size_filter count_predUI. Qed.
 
 Lemma cardID B A : #|[predI A & B]| + #|[predD A & B]| = #|A|.
 Proof.
@@ -530,7 +532,7 @@ by rewrite !inE -!andbA andbC andbA andbN.
 Qed.
 
 Lemma cardC A : #|A| + #|[predC A]| = #|T|.
-Proof. by rewrite !cardE -!count_filter count_predC. Qed.
+Proof. by rewrite !cardE !size_filter count_predC. Qed.
 
 Lemma cardU1 x A : #|[predU1 x & A]| = (x \notin A) + #|A|.
 Proof.
@@ -801,7 +803,7 @@ Lemma disjoint_has s A : [disjoint s & A] = ~~ has (mem A) s.
 Proof.
 rewrite -(@eq_has _ (mem (enum A))) => [|x]; last exact: mem_enum.
 rewrite has_sym has_filter -filter_predI -has_filter has_count -eqn0Ngt.
-by rewrite count_filter /disjoint /pred0b unlock.
+by rewrite -size_filter /disjoint /pred0b unlock.
 Qed.
 
 Lemma disjoint_cat s1 s2 A :
@@ -827,35 +829,51 @@ Prenex Implicits pred0P pred0Pn subsetP subsetPn subset_eqP card_uniqP.
 (*                                                                    *)
 (**********************************************************************)
 
+Section QuantifierCombinators.
+
+Variables (T : finType) (P : pred T) (PP : T -> Prop).
+Hypothesis viewP : forall x, reflect (PP x) (P x).
+
+Lemma existsPP : reflect (exists x, PP x) [exists x, P x].
+Proof. by apply: (iffP pred0Pn) => -[x /viewP]; exists x. Qed.
+
+Lemma forallPP : reflect (forall x, PP x) [forall x, P x].
+Proof. by apply: (iffP pred0P) => /= allP x; have /viewP//=-> := allP x. Qed.
+
+End QuantifierCombinators.
+
+Notation "'exists_ view" := (existsPP (fun _ => view))
+  (at level 4, right associativity, format "''exists_' view").
+Notation "'forall_ view" := (forallPP (fun _ => view))
+  (at level 4, right associativity, format "''forall_' view").
+
 Section Quantifiers.
 
 Variables (T : finType) (rT : T -> eqType).
 Implicit Type (D P : pred T) (f : forall x, rT x).
 
 Lemma forallP P : reflect (forall x, P x) [forall x, P x].
-Proof. by apply: (iffP pred0P) => /= P_ x; rewrite /= ?P_ ?(negbFE (P_ x)). Qed.
+Proof. exact: 'forall_idP. Qed.
 
 Lemma eqfunP f1 f2 : reflect (forall x, f1 x = f2 x) [forall x, f1 x == f2 x].
-Proof. by apply: (iffP (forallP _)) => eq_f12 x; apply/eqP/eq_f12. Qed.
+Proof. exact: 'forall_eqP. Qed.
 
 Lemma forall_inP D P : reflect (forall x, D x -> P x) [forall (x | D x), P x].
-Proof. by apply: (iffP (forallP _)) => /= P_ x /=; apply/implyP; apply: P_. Qed.
+Proof. exact: 'forall_implyP. Qed.
 
 Lemma eqfun_inP D f1 f2 :
   reflect {in D, forall x, f1 x = f2 x} [forall (x | x \in D), f1 x == f2 x].
-Proof. by apply: (iffP (forall_inP _ _)) => eq_f12 x Dx; apply/eqP/eq_f12. Qed.
+Proof. by apply: (iffP 'forall_implyP) => eq_f12 x Dx; apply/eqP/eq_f12. Qed.
 
 Lemma existsP P : reflect (exists x, P x) [exists x, P x].
-Proof. by apply: (iffP pred0Pn) => [] [x]; exists x. Qed.
+Proof. exact: 'exists_idP. Qed.
 
 Lemma exists_eqP f1 f2 :
   reflect (exists x, f1 x = f2 x) [exists x, f1 x == f2 x].
-Proof. by apply: (iffP (existsP _)) => [] [x /eqP]; exists x. Qed.
+Proof. exact: 'exists_eqP. Qed.
 
 Lemma exists_inP D P : reflect (exists2 x, D x & P x) [exists (x | D x), P x].
-Proof.
-by apply: (iffP pred0Pn) => [[x /andP[]] | [x]]; exists x => //; apply/andP.
-Qed.
+Proof. by apply: (iffP 'exists_andP) => [[x []] | [x]]; exists x. Qed.
 
 Lemma exists_eq_inP D f1 f2 :
   reflect (exists2 x, D x & f1 x = f2 x) [exists (x | D x), f1 x == f2 x].
@@ -900,7 +918,9 @@ Implicit Arguments eqfunP [T rT f1 f2].
 Implicit Arguments forall_inP [T D P].
 Implicit Arguments eqfun_inP [T rT D f1 f2].
 Implicit Arguments existsP [T P].
+Implicit Arguments exists_eqP [T rT f1 f2].
 Implicit Arguments exists_inP [T D P].
+Implicit Arguments exists_eq_inP [T rT D f1 f2].
 
 Section Extrema.
 
@@ -1623,7 +1643,7 @@ Lemma enum_valP A i : @enum_val A i \in A.
 Proof. by rewrite -mem_enum mem_nth -?cardE. Qed.
 
 Lemma enum_val_nth A x i : @enum_val A i = nth x (enum A) i.
-Proof. by apply: set_nth_default; rewrite cardE in i *; exact: ltn_ord. Qed.
+Proof. by apply: set_nth_default; rewrite cardE in i *; apply: ltn_ord. Qed.
 
 Lemma nth_image T' y0 (f : T -> T') A (i : 'I_#|A|) :
   nth y0 (image f A) i = f (enum_val i).
@@ -1641,14 +1661,14 @@ by rewrite cardE [_ \in _]index_mem mem_enum.
 Qed.
 
 Lemma nth_enum_rank x0 : cancel enum_rank (nth x0 (enum T)).
-Proof. by move=> x; exact: nth_enum_rank_in. Qed.
+Proof. by move=> x; apply: nth_enum_rank_in. Qed.
 
 Lemma enum_rankK_in x0 A Ax0 :
    {in A, cancel (@enum_rank_in x0 A Ax0) enum_val}.
-Proof. by move=> x; exact: nth_enum_rank_in. Qed.
+Proof. by move=> x; apply: nth_enum_rank_in. Qed.
 
 Lemma enum_rankK : cancel enum_rank enum_val.
-Proof. by move=> x; exact: enum_rankK_in. Qed.
+Proof. by move=> x; apply: enum_rankK_in. Qed.
 
 Lemma enum_valK_in x0 A Ax0 : cancel enum_val (@enum_rank_in x0 A Ax0).
 Proof.
@@ -1658,13 +1678,13 @@ by rewrite index_uniq ?enum_uniq // -cardE.
 Qed.
 
 Lemma enum_valK : cancel enum_val enum_rank.
-Proof. by move=> x; exact: enum_valK_in. Qed.
+Proof. by move=> x; apply: enum_valK_in. Qed.
 
 Lemma enum_rank_inj : injective enum_rank.
 Proof. exact: can_inj enum_rankK. Qed.
 
 Lemma enum_val_inj A : injective (@enum_val A).
-Proof. by move=> i; exact: can_inj (enum_valK_in (enum_valP i)) (i). Qed.
+Proof. by move=> i; apply: can_inj (enum_valK_in (enum_valP i)) (i). Qed.
 
 Lemma enum_val_bij_in x0 A : x0 \in A -> {on A, bijective (@enum_val A)}.
 Proof.
@@ -1935,7 +1955,7 @@ Definition prod_enum := [seq (x1, x2) | x1 <- enum T1, x2 <- enum T2].
 Lemma predX_prod_enum (A1 : pred T1) (A2 : pred T2) :
   count [predX A1 & A2] prod_enum = #|A1| * #|A2|.
 Proof.
-rewrite !cardE -!count_filter -!enumT /prod_enum.
+rewrite !cardE !size_filter -!enumT /prod_enum.
 elim: (enum T1) => //= x1 s1 IHs; rewrite count_cat {}IHs count_map /preim /=.
 by case: (x1 \in A1); rewrite ?count_pred0.
 Qed.
@@ -1949,7 +1969,7 @@ Definition prod_finMixin := Eval hnf in FinMixin prod_enumP.
 Canonical prod_finType := Eval hnf in FinType (T1 * T2) prod_finMixin.
 
 Lemma cardX (A1 : pred T1) (A2 : pred T2) : #|[predX A1 & A2]| = #|A1| * #|A2|.
-Proof. by rewrite -predX_prod_enum unlock -count_filter unlock. Qed.
+Proof. by rewrite -predX_prod_enum unlock size_filter unlock. Qed.
 
 Lemma card_prod : #|{: T1 * T2}| = #|T1| * #|T2|.
 Proof. by rewrite -cardX; apply: eq_card; case. Qed.
@@ -1971,7 +1991,7 @@ Proof.
 case=> i x; rewrite -(enumP i) /tag_enum -enumT.
 elim: (enum I) => //= j e IHe.
 rewrite count_cat count_map {}IHe; congr (_ + _).
-rewrite count_filter -cardE /=; case: eqP => [-> | ne_j_i].
+rewrite -size_filter -cardE /=; case: eqP => [-> | ne_j_i].
   by apply: (@eq_card1 _ x) => y; rewrite -topredE /= tagged_asE ?eqxx.
 by apply: eq_card0 => y.
 Qed.
