@@ -34,6 +34,7 @@ ssrsyntax1.v
 ssrsyntax2.v
 testmx.v
 tc.v
+typeof.v
 unkeyed.v
 view_case.v
 wlogletin.v
