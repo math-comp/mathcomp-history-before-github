@@ -63,6 +63,9 @@ Reserved Notation "(* 69 *)" (at level 69).
 (* Non ambiguous keyword to check if the SsrSyntax module is imported *)
 Reserved Notation "(* Use to test if 'SsrSyntax_is_Imported' *)" (at level 8).
 
+Reserved Notation "<hidden n >" (at level 200).
+Reserved Notation "T (* n *)" (at level 200, format "T  (* n *)").
+
 End SsrSyntax.
 
 Export SsrMatchingSyntax.
@@ -132,6 +135,16 @@ Notation "T : 'Type'" := (T%type : Type)
 (* Allow similarly Prop annotation for, e.g., rewrite multirules.             *)
 Notation "P : 'Prop'" := (P%type : Prop)
   (at level 100, only parsing) : core_scope.
+
+(* Constants for abstract: and [: name ] intro pattern *)
+Definition abstract_lock := unit.
+Definition abstract_key := tt.
+
+Definition abstract (statement : Type) (id : nat) (lock : abstract_lock) :=
+  let: tt := lock in statement.
+
+Notation "<hidden n >" := (abstract _ n _).
+Notation "T (* n *)" := (abstract T n abstract_key).
 
 (* Syntax for referring to canonical structures:                              *)
 (*      [the struct_type of proj_val by proj_fun]                             *)
@@ -403,23 +416,4 @@ End ApplyIff.
 
 Hint View for move/ iffLRn|2 iffRLn|2 iffLR|2 iffRL|2.
 Hint View for apply/ iffRLn|2 iffLRn|2 iffRL|2 iffLR|2.
-
-Definition ssrhideas (name : Prop -> Type) PGoal x : PGoal := x.
-Definition ssrhidden (T : Type) (t : T) : T := t.
-Notation "<hidden>" := (ssrhidden _) (at level 0).
-Definition ssrhiddenas (T1 : Type) (t1 : T1) (T2 : Type) (t2 : T2) : T1 := t1.
-Notation "<hidden X >" := (ssrhiddenas _ X) (at level 0, format "<hidden  X >").
-
-(* Canonical names for unit and tt *)
-Definition skolem_lock := unit.
-Definition skolem_key := tt.
-
-Definition skolem (statement : Type) (skolem_id : nat) (lock : skolem_lock) :=
-  let: tt := lock in statement.
-
-Lemma use_skolem T n l (x : skolem T n l) : T.
-Proof. by case: l x. Qed.
-
-Notation "<skolem n >" := (skolem _ n _).
-Notation "( T )" := (skolem T _ skolem_key).
 

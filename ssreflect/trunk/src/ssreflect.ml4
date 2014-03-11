@@ -763,7 +763,7 @@ let pf_abs_evars gl (sigma, c0) =
     let t = abs_evar n k in (k, (n, t)) :: put evlist t
   | _ -> fold_constr put evlist c in
   let evlist = put [] c0 in
-  if evlist = [] then 0, c0 else
+  if evlist = [] then 0, c0,[] else
   let rec lookup k i = function
     | [] -> 0, 0
     | (k', (n, _)) :: evl -> if k = k' then i, n else lookup k (i + 1) evl in
@@ -777,7 +777,7 @@ let pf_abs_evars gl (sigma, c0) =
   | (_, (n, t)) :: evl ->
     loop (mkLambda (mk_evar_name n, get (i - 1) t, c)) (i - 1) evl
   | [] -> c in
-  List.length evlist, loop (get 1 c0) 1 evlist
+  List.length evlist, loop (get 1 c0) 1 evlist, List.map fst evlist
 
 
 
@@ -2394,7 +2394,7 @@ let with_view ist si env gl0 c name cl prune =
   | [] ->
       let sigma = Typeclasses.resolve_typeclasses ~fail:false env sigma in
       let c' = Reductionops.nf_evar sigma c' in
-      let n, c' = pf_abs_evars gl0 (sigma, c') in
+      let n, c', _ = pf_abs_evars gl0 (sigma, c') in
       let c' = if not prune then c' else pf_abs_cterm gl0 n c' in
       pf_abs_prod name gl0 c' (prod_applist cl [c]), c'
   in loop
@@ -2417,6 +2417,7 @@ type ssripat =
   | IpatAnon
   | IpatView of ssrtermrep list
   | IpatNoop
+  | IpatNewHidden of identifier list
 and ssripats = ssripat list
 
 let remove_loc = snd
@@ -2446,6 +2447,7 @@ let rec pr_ipat = function
   | IpatAnon -> str "?"
   | IpatView v -> pr_view v
   | IpatNoop -> str "-"
+  | IpatNewHidden l -> str "[:" ++ pr_list spc pr_id l ++ str "]"
 and pr_iorpat iorpat = pr_list pr_bar pr_ipats iorpat
 and pr_ipats ipats = pr_list spc pr_ipat ipats
 
@@ -2495,6 +2497,12 @@ let rec interp_ipat ist gl =
     let clr' = List.fold_right add_hyps clr [] in
     check_hyps_uniq [] clr'; IpatSimpl (clr', sim)
   | IpatCase iorpat -> IpatCase (List.map (List.map interp) iorpat)
+  | IpatNewHidden l ->
+      IpatNewHidden
+        (List.map (function
+           | IntroIdentifier id -> id
+           | _ -> assert false)
+        (List.map (interp_introid ist gl) l))
   | ipat -> ipat in
   interp
 
@@ -2536,6 +2544,7 @@ ARGUMENT EXTEND ssripat TYPED AS ssripatrep list PRINTED BY pr_ssripats
   | [ "-//" "=" ] -> [ [IpatNoop;IpatSimpl([],SimplCut)] ]
   | [ "-//=" ] -> [ [IpatNoop;IpatSimpl([],SimplCut)] ]
   | [ ssrview(v) ] -> [ [IpatView v] ]
+  | [ "[" ":" ident_list(idl) "]" ] -> [ [IpatNewHidden idl] ]
 END
 
 ARGUMENT EXTEND ssripats TYPED AS ssripat PRINTED BY pr_ssripats
@@ -2554,8 +2563,23 @@ ARGUMENT EXTEND ssriorpat TYPED AS ssripat list PRINTED BY pr_ssriorpat
 | [ ssripats(pats) ] -> [ [pats] ]
 END
 
+let reject_ssrhid strm =
+  match Compat.get_tok (stream_nth 0 strm) with
+  | Tok.KEYWORD "[" ->
+      (match Compat.get_tok (stream_nth 0 strm) with
+      | Tok.KEYWORD ":" -> raise Stream.Failure
+      | _ -> ())
+  | _ -> ()
+
+let test_nohidden = Gram.Entry.of_parser "test_ssrhid" reject_ssrhid
+
 ARGUMENT EXTEND ssrcpat TYPED AS ssripatrep PRINTED BY pr_ssripat
-  | [ "[" ssriorpat(iorpat) "]" ] -> [ IpatCase iorpat ]
+  | [ "Qed" ssriorpat(x) ] -> [ IpatCase x ]
+END
+
+GEXTEND Gram
+  GLOBAL: ssrcpat;
+  ssrcpat: [[ test_nohidden; "["; iorpat = ssriorpat; "]" -> IpatCase iorpat ]];
 END
 
 GEXTEND Gram
@@ -2605,10 +2629,18 @@ let single loc =
 let pr_hpats (((clr, ipat), binders), simpl) =
    pr_clear mt clr ++ pr_ipats ipat ++ pr_ipats binders ++ pr_ipats simpl
 let pr_ssrhpats _ _ _ = pr_hpats
+let pr_ssrhpats_wtransp _ _ _ (_, x) = pr_hpats x
 
 ARGUMENT EXTEND ssrhpats TYPED AS ((ssrclear * ssripat) * ssripat) * ssripat
 PRINTED BY pr_ssrhpats
   | [ ssripats(i) ] -> [ check_ssrhpats loc true i ]
+END
+
+ARGUMENT EXTEND ssrhpats_wtransp
+  TYPED AS bool * (((ssrclear * ssripat) * ssripat) * ssripat)
+  PRINTED BY pr_ssrhpats_wtransp
+  | [ ssripats(i) ] -> [ false,check_ssrhpats loc true i ]
+  | [ ssripats(i) "@" ssripats(j) ] -> [ true,check_ssrhpats loc true (i @ j) ]
 END
 
 ARGUMENT EXTEND ssrhpats_nobs 
@@ -2755,6 +2787,36 @@ let rec is_name_in_ipats name = function
 
 let move_top_with_view = ref (fun _ -> assert false)
 
+let rec nat_of_n n =
+  if n = 0 then mkConstruct path_of_O
+  else mkApp (mkConstruct path_of_S, [|nat_of_n (n-1)|])
+
+let ssr_abstract_id = Summary.ref "~name:SSR:abstractid" 0
+
+let mk_abstract_id () = incr ssr_abstract_id; nat_of_n !ssr_abstract_id
+
+let ssrmkabs id gl =
+  let env, concl = pf_env gl, pf_concl gl in
+  let sigma, abstract_proof, abstract_ty =
+    let sigma, ty = Evarutil.new_type_evar Evd.empty env in
+    let sigma,lock = Evarutil.new_evar sigma env (mkSsrConst "abstract_lock") in
+    let abstract_ty =
+      mkApp(mkSsrConst "abstract", [|ty;mk_abstract_id ();lock|]) in
+    let sigma, m = Evarutil.new_evar sigma env abstract_ty in
+    sigma, m, abstract_ty in
+  let sigma, kont =
+    let rd = Name id, None, abstract_ty in
+    Evarutil.new_evar sigma (Environ.push_rel rd env) concl in
+  pp(lazy(pr_constr concl));
+  let step = mkApp (mkLambda(Name id,abstract_ty,kont) ,[|abstract_proof|]) in
+  Proofview.V82.of_tactic
+    (Proofview.tclTHEN
+      (Tactics.New.refine (sigma, step))
+      (Proofview.tclFOCUS 1 3 Proofview.shelve)) gl
+
+let ssrmkabstac ids =
+  List.fold_right (fun id tac -> tclTHENFIRST (ssrmkabs id) tac) ids tclIDTAC
+
 (* introstac: for "move" and "clear", tclEQINTROS: for "case" and "elim" *)
 (* This block hides the spaghetti-code needed to implement the only two  *)
 (* tactics that should be used to process intro patters.                 *)
@@ -2789,6 +2851,7 @@ let introstac, tclEQINTROS =
     | IpatCase iorpat -> k, tclIORPAT ?ist k (with_top ssrscasetac) iorpat
     | IpatRw (occ, dir) -> k, with_top (!ipat_rewritetac occ dir)
     | IpatId id -> k, introid id
+    | IpatNewHidden idl -> k, ssrmkabstac idl
     | IpatSimpl (clr, sim) ->
       let to_clr = ref [] in
       to_clr :: k, tclTHEN (rename false to_clr rest clr) (simpltac sim)
@@ -3154,14 +3217,14 @@ let all_ok _ _ = true
 
 let pf_abs_ssrterm ?(resolve_typeclasses=false) ist gl t =
   let sigma, ct as t = interp_term ist gl t in
-  let t =
+  let sigma, _ as t =
     let env = pf_env gl in
     if not resolve_typeclasses then t
     else
        let sigma = Typeclasses.resolve_typeclasses ~fail:false env sigma in
        sigma, Evarutil.nf_evar sigma ct in
-  let n, c = pf_abs_evars gl t in
-  pf_abs_cterm gl n c
+  let n, c, abstracted_away = pf_abs_evars gl t in
+  List.fold_left Evd.remove sigma abstracted_away, pf_abs_cterm gl n c
 
 let pf_interp_ty ?(resolve_typeclasses=false) ist gl ty =
    let n_binders = ref 0 in
@@ -3194,7 +3257,7 @@ let pf_interp_ty ?(resolve_typeclasses=false) ist gl ty =
      else
        let sigma = Typeclasses.resolve_typeclasses ~fail:false env sigma in
        sigma, Evarutil.nf_evar sigma cty in
-   let n, c = pf_abs_evars gl ty in
+   let n, c, _ = pf_abs_evars gl ty in
    let lam_c = pf_abs_cterm gl n c in
    let ctx, c = decompose_lam_n n lam_c in
    n, compose_prod ctx c, lam_c
@@ -3290,7 +3353,7 @@ let pf_interp_gen_aux ist gl to_ind ((oclr, occ), t) =
       | name, Some bo, ty -> true, pat, mkLetIn (Name name, bo, ty, cl), c, clr
     else false, pat, pf_mkprod gl c cl, c, clr
   else if to_ind && occ = None then
-    let nv, p = pf_abs_evars gl (fst pat, c) in
+    let nv, p, _ = pf_abs_evars gl (fst pat, c) in
     if nv = 0 then anomaly "occur_existential but no evars" else
     false, pat, mkProd (constr_name c, pf_type_of gl p, pf_concl gl), p, clr
   else loc_error (loc_of_cpattern t) "generalized term didn't match"
@@ -3647,13 +3710,13 @@ let applyn ~with_evars ?beta ?(with_shelve=false) n t gl =
     let refine gl =
     let t, ty, args, gl = pf_saturate ?beta ~bi_types:true gl t n in
     let gl = pf_unify_HO gl ty (pf_concl gl) in
-    let gs = list_map_filter (fun (_, e) ->
+    let gs = CList.map_filter (fun (_, e) ->
       if isEvar (pf_nf_evar gl e) then Some e else None)
       args in
     pf_partial_solution gl t gs
     in
     Proofview.(V82.of_tactic
-      (tclTHEN refine
+      (tclTHEN (V82.tactic refine)
         (if with_shelve then shelve_unifiable else tclUNIT ()))) gl
   else
     let t, gl = if n = 0 then t, gl else
@@ -3735,11 +3798,11 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
     pp(lazy(str"     got: " ++ pr_constr c));
     c, cl in
   let mkTpat gl t = (* takes a term, refreshes it and makes a T pattern *)
-    let n, t = pf_abs_evars orig_gl (project gl, fire_subst gl t) in 
+    let n, t, _ = pf_abs_evars orig_gl (project gl, fire_subst gl t) in 
     let t, _, _, sigma = saturate ~beta:true env (project gl) t n in
     sigma, T t in
   let unif_redex gl (sigma, r as p) t = (* t is a hint for the redex of p *)
-    let n, t = pf_abs_evars orig_gl (project gl, fire_subst gl t) in 
+    let n, t, _ = pf_abs_evars orig_gl (project gl, fire_subst gl t) in 
     let t, _, _, sigma = saturate ~beta:true env sigma t n in
     match r with
     | X_In_T (e, p) -> sigma, E_As_X_In_T (t, e, p)
@@ -3870,7 +3933,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
       with 
       | NoMatch | NoProgress ->
           let e = redex_of_pattern env p in
-          let n, e =  pf_abs_evars gl (fst p, e) in
+          let n, e, _ =  pf_abs_evars gl (fst p, e) in
           let e, _, _, gl = pf_saturate ~beta:true gl e n in 
           let gl = try pf_unify_HO gl inf_t e with _ -> error gl e inf_t in
           cl, gl, post
@@ -4234,7 +4297,7 @@ let pattern_id = mk_internal_id "pattern value"
 let congrtac ((n, t), ty) ist gl =
   pp(lazy(str"===congr==="));
   pp(lazy(str"concl=" ++ pr_constr (pf_concl gl)));
-  let _, f = pf_abs_evars gl (interp_term ist gl t) in
+  let _, f, _ = pf_abs_evars gl (interp_term ist gl t) in
   let ist' = {ist with lfun =
     Id.Map.add pattern_id (Value.of_constr f) Id.Map.empty } in
   let rf = mkRltacVar pattern_id in
@@ -4613,7 +4676,7 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
 ;;
 
 let rwcltac cl rdx dir sr gl =
-  let n, r_n = pf_abs_evars gl sr in
+  let n, r_n,_ = pf_abs_evars gl sr in
   let r_n' = pf_abs_cterm gl n r_n in
   let r' = subst_var pattern_id r_n' in
   let rdxt = Retyping.get_type_of (pf_env gl) (fst sr) rdx in
@@ -5270,7 +5333,7 @@ ARGUMENT EXTEND ssrcofixfwd TYPED AS ssrfixfwd PRINTED BY pr_ssrcofixfwd
 END
 
 let ssrposetac ist (id, (_, t)) gl =
-  posetac id (pf_abs_ssrterm ist gl t) gl
+  posetac id (snd(pf_abs_ssrterm ist gl t)) gl
 
 
 let prof_ssrposetac = mk_profiler "ssrposetac";;
@@ -5363,79 +5426,69 @@ let binder_to_intro_id = List.map (function
   | (FwdPose, [BFdef _]), CLetIn (_,(_,Anonymous),_,_) -> [IpatAnon]
   | _ -> anomaly "ssrbinder is not a binder")
 
-let pr_ssrtransp _ _ _ b = if b then str"@" else str""
-
-let pr_ssrskols _ _ _ l =
-  if l = [] then str"" else str"{& " ++ pr_list spc pr_id l ++ str"}"
-
-let pr_ssrhavefwdwbinders _ _ prt (tr,(skols,(hpats, (fwd, hint)))) =
-  pr_ssrskols () () () skols ++
-  pr_ssrtransp () () () tr ++
+let pr_ssrhavefwdwbinders _ _ prt (tr,((hpats, (fwd, hint)))) =
   pr_hpats hpats ++ pr_fwd fwd ++ pr_hint prt hint
 
-ARGUMENT EXTEND ssrtransp TYPED AS bool PRINTED BY pr_ssrtransp
-| [ "@" ] -> [ true ]
-| [ ] -> [ false ]
-END
-
-ARGUMENT EXTEND ssrskols TYPED AS ident list PRINTED BY pr_ssrskols
-| [ "{" "&" ident_list(l) "}" ] -> [ l ]
-| [ "{&" ident_list(l) "}" ] -> [ l ]
-| [ ] -> [ [] ]
-END
-
 ARGUMENT EXTEND ssrhavefwdwbinders
-  TYPED AS bool * (ssrskols * (ssrhpats * (ssrfwd * ssrhint)))
+  TYPED AS bool * (ssrhpats * (ssrfwd * ssrhint))
   PRINTED BY pr_ssrhavefwdwbinders
-| [ ssrskols(sk) ssrtransp(tr) ssrhpats(pats)
-    ssrbinder_list(bs) ssrhavefwd(fwd) ] ->
-  [ let ((clr, pats), binders), simpl = pats in
+| [ ssrhpats_wtransp(trpats) ssrbinder_list(bs) ssrhavefwd(fwd) ] ->
+  [ let tr, pats = trpats in
+    let ((clr, pats), binders), simpl = pats in
     let allbs = intro_id_to_binder binders @ bs in
     let allbinders = binders @ List.flatten (binder_to_intro_id bs) in
     let hint = bind_fwd allbs (fst fwd), snd fwd in
-    tr, (sk, ((((clr, pats), allbinders), simpl), hint)) ]
+    tr, ((((clr, pats), allbinders), simpl), hint) ]
 END
 
 (* Tactic. *)
 
-let rec nat_of_n n =
-  if n = 0 then mkConstruct path_of_O
-  else mkApp (mkConstruct path_of_S, [|nat_of_n (n-1)|])
+let examine_abstract id gl =
+  let tid = pf_type_of gl id in
+  let abstract = mkSsrConst "abstract" in
+  if not (isApp tid) || not (eq_constr (fst(destApp tid)) abstract) then
+    errorstrm(strbrk"not an abstract constant: "++pr_constr id);
+  let _, args_id = destApp tid in
+  if Array.length args_id <> 3 then
+    errorstrm(strbrk"not a proper abstract constant: "++pr_constr id);
+  if not (isEvar args_id.(2)) then
+    errorstrm(strbrk"abstract constant "++pr_constr id++str" already used");
+  args_id
 
-let ssr_skolem_id = Summary.ref ~name:"SSR:skolemid" 0
+let pf_find_abstract_proof check_lock gl abstract_n = 
+  let fire gl t = Reductionops.nf_evar (project gl) t in
+  let abstract = mkSsrConst "abstract" in
+  let l = Evd.fold_undefined (fun e ei l ->
+    match kind_of_term ei.Evd.evar_concl with
+    | App(hd, [|ty; n; lock|])
+      when (not check_lock || 
+                 (occur_existential (fire gl ty) &&
+                  isEvar (fire gl lock))) &&
+      eq_constr hd abstract && eq_constr n abstract_n -> e::l
+    | _ -> l) (project gl) [] in
+  match l with
+  | [e] -> e
+  | _ -> errorstrm(strbrk"abstract constant "++pr_constr abstract_n++
+           strbrk" not found in the evar map exactly once. "++
+           strbrk"Did you tamper with it?")
 
-let mk_skolem_id () = incr ssr_skolem_id; nat_of_n !ssr_skolem_id
-
-let ssrskolem id gl =
-  let env, concl = pf_env gl, pf_concl gl in
-  let sigma, skolem_proof, skolem_ty =
-    let sigma, ty = Evarutil.new_type_evar Evd.empty env in
-    let sigma, lock = Evarutil.new_evar sigma env (mkSsrConst "skolem_lock") in
-    let skolem_ty = mkApp(mkSsrConst "skolem", [|ty;mk_skolem_id ();lock|]) in
-    let sigma, m = Evarutil.new_evar sigma env skolem_ty in
-    sigma, m, skolem_ty in
-  let sigma, kont =
-    let rd = Name id, None, skolem_ty in
-    Evarutil.new_evar sigma (Environ.push_rel rd env) concl in
-  let step =mkApp (mkLambda(Name id,skolem_ty,kont) ,[|skolem_proof|]) in
-  tclPERM (rot_hyps R2L 1)
-    (Proofview.V82.of_tactic
-      (Proofview.tclTHEN
-        (Tactics.New.refine (sigma, step))
-        (Proofview.tclFOCUS 1 3 Proofview.shelve))) gl
-
-let ssrskolemtac ids =
-  List.fold_right (fun id tac -> tclTHEN (ssrskolem id) tac) ids tclIDTAC
+let unfold cl =
+  let module R = Reductionops in let module F = Closure.RedFlags in
+  reduct_in_concl (R.clos_norm_flags (F.mkflags
+    (List.map (fun c -> F.fCONST (destConst c)) cl @ [F.fBETA; F.fIOTA])))
 
 let havegentac ist t gl =
-  let c = pf_abs_ssrterm ist gl t in
+  let _, c = pf_abs_ssrterm ist gl t in
   apply_type (mkArrow (pf_type_of gl c) (pf_concl gl)) [c] gl
 
 let havetac ist
-  (transp,(skols,((((clr, pats), binders), simpl), (((fk, _), t), hint))))
+  (transp,((((clr, pats), binders), simpl), (((fk, _), t), hint)))
   suff namefst gl 
 =
  let concl = pf_concl gl in
+ let skols, pats =
+   List.partition (function IpatNewHidden _ -> true | _ -> false) pats in
+ let itac_mkabs = introstac ~ist skols in
  let itac_c = introstac ~ist (IpatSimpl(clr,Nop) :: pats) in
  let itac, id, clr = introstac ~ist pats, tclIDTAC, cleartac clr in
  let binderstac n =
@@ -5452,89 +5505,95 @@ let havetac ist
      applyn ~with_evars:true ~with_shelve:false 2
        (mkApp (mkSsrConst "ssr_have_let", [|concl;t|])) gl
    else basecuttac "ssr_have" t gl in
- let mkt t = mk_term ' ' t in
- let mkl t = (' ', (t, None)) in
- let interp rtc t = pf_abs_ssrterm ~resolve_typeclasses:rtc ist gl t in
- let interp_ty rtc t =
-   let a,b,_ = pf_interp_ty ~resolve_typeclasses:rtc ist gl t in a, b in
- let ct, cty, hole, loc = match t with
-   | _, (_, Some (CCast (loc, ct, CastConv cty))) ->
-     mkt ct, mkt cty, mkt (mkCHole dummy_loc), loc
-   | _, (_, Some ct) ->
-     mkt ct, mkt (mkCHole dummy_loc), mkt (mkCHole dummy_loc), dummy_loc
-   | _, (GCast (loc, ct, CastConv cty), None) ->
-     mkl ct, mkl cty, mkl mkRHole, loc
-   | _, (t, None) -> mkl t, mkl mkRHole, mkl mkRHole, dummy_loc in
- let cut, sol, itac1, itac2 =
+ (* Introduce now abstract constants, so that everything sees them *)
+ let abstract_key = mkSsrConst "abstract_key" in
+ let unlock_abs args_id gl = pf_unify_HO gl args_id.(2) abstract_key in
+ tclTHENFIRST itac_mkabs (fun gl ->
+  let mkt t = mk_term ' ' t in
+  let mkl t = (' ', (t, None)) in
+  let interp gl rtc t = pf_abs_ssrterm ~resolve_typeclasses:rtc ist gl t in
+  let interp_ty gl rtc t =
+    let a,b,_ = pf_interp_ty ~resolve_typeclasses:rtc ist gl t in a, b in
+  let ct, cty, hole, loc = match t with
+    | _, (_, Some (CCast (loc, ct, CastConv cty))) ->
+      mkt ct, mkt cty, mkt (mkCHole dummy_loc), loc
+    | _, (_, Some ct) ->
+      mkt ct, mkt (mkCHole dummy_loc), mkt (mkCHole dummy_loc), dummy_loc
+    | _, (GCast (loc, ct, CastConv cty), None) ->
+      mkl ct, mkl cty, mkl mkRHole, loc
+    | _, (t, None) -> mkl t, mkl mkRHole, mkl mkRHole, dummy_loc in
+  let gl, cut, sol, itac1, itac2 =
    match fk, namefst, suff with
    | FwdHave, true, true ->
      errorstrm (str"Suff have does not accept a proof term")
    | FwdHave, false, true ->
      let cty = combineCG cty hole (mkCArrow loc) mkRArrow in
-     let t = interp false (combineCG ct cty (mkCCast loc) mkRCast) in
+     let _, t = interp gl false (combineCG ct cty (mkCCast loc) mkRCast) in
      let ty = pf_type_of gl t in
      let ctx, _ = decompose_prod_n 1 ty in
      let assert_is_conv gl =
        try convert_concl (compose_prod ctx concl) gl
        with _ -> errorstrm (str "Given proof term is not of type " ++
          pr_constr (mkArrow (mkVar (id_of_string "_")) concl)) in
-     ty, tclTHEN assert_is_conv (apply t), id, itac_c
+     gl, ty, tclTHEN assert_is_conv (apply t), id, itac_c
    | FwdHave, false, false ->
-     let t = interp false (combineCG ct cty (mkCCast loc) mkRCast) in
-     pf_type_of gl t, apply t, id, tclTHEN itac_c simpltac
-   | _,true,true  -> mkArrow (snd (interp_ty fixtc cty)) concl, hint, itac, clr
-   | _,false,true -> mkArrow (snd (interp_ty fixtc cty)) concl, hint, id, itac_c
+     let skols = List.flatten (List.map (function
+       | IpatNewHidden ids -> ids
+       | _ -> assert false) skols) in
+     let skols_args =
+       List.map (fun id -> examine_abstract (mkVar id) gl) skols in
+     let gl = List.fold_right unlock_abs skols_args gl in
+     let sigma, t = interp gl false (combineCG ct cty (mkCCast loc) mkRCast) in
+     let gl = re_sig (sig_it gl) sigma in
+     let gs =
+       List.map (fun a -> pf_find_abstract_proof false gl a.(1)) skols_args in
+     let tacopen_skols gl =
+        let stuff, g = Refiner.unpackage gl in
+        Refiner.repackage stuff ((List.map Goal.build gs) @ [g]) in
+     gl, pf_type_of gl t, apply t, id,
+       tclTHEN (tclTHEN itac_c simpltac)
+         (tclTHEN tacopen_skols (unfold [mkSsrConst "abstract";abstract_key]))
+   | _,true,true  ->
+     gl, mkArrow (snd (interp_ty gl fixtc cty)) concl, hint, itac, clr
+   | _,false,true ->
+     gl, mkArrow (snd (interp_ty gl fixtc cty)) concl, hint, id, itac_c
    | _, false, false -> 
-     let n, cty = interp_ty fixtc cty in
-     cty, tclTHEN (binderstac n) hint, id, tclTHEN itac_c simpltac
+     let n, cty = interp_ty gl fixtc cty in
+     gl, cty, tclTHEN (binderstac n) hint, id, tclTHEN itac_c simpltac
    | _, true, false -> assert false in
-  tclTHEN (ssrskolemtac skols)
-    (tclTHENS (cuttac cut) [ tclTHEN sol itac1; itac2 ]) gl
+  tclTHENS (cuttac cut) [ tclTHEN sol itac1; itac2 ] gl)
+ gl
 ;;
 
-let unfold cl =
-  let module R = Reductionops in let module F = Closure.RedFlags in
-  reduct_in_concl (R.clos_norm_flags (F.mkflags
-    (List.map (fun c -> F.fCONST (destConst c)) cl @ [F.fBETA; F.fIOTA])))
-
-let ssrhide ist gens last gl =
+(* to extend the abstract value one needs:
+  Utility lemma to partially instantiate an abstract constant type.
+  Lemma use_abstract T n l (x : abstract T n l) : T.
+  Proof. by case: l x. Qed.
+*)
+let ssrabstract ist gens (*last*) gl =
   let main _ (_,cid) ist gl =
+(*
     let proj1, proj2, prod =
       let pdata = build_prod () in
       pdata.Coqlib.proj1, pdata.Coqlib.proj2, pdata.Coqlib.typ in
+*)
     let concl, env = pf_concl gl, pf_env gl in
     let fire gl t = Reductionops.nf_evar (project gl) t in
-    let skolem, skolem_key = mkSsrConst "skolem", mkSsrConst "skolem_key" in
+    let abstract = mkSsrConst "abstract" in
+    let abstract_key = mkSsrConst "abstract_key" in
     let id = mkVar (Option.get (id_of_cpattern cid)) in
-    let tid = pf_type_of gl id in
-    if not (isApp tid) || not (eq_constr (fst(destApp tid)) skolem) then
-      errorstrm(strbrk"not a skolem constant: "++pr_constr id);
-    let _, args_id = destApp tid in
-    if Array.length args_id <> 3 then
-      errorstrm(strbrk"not a proper skolem constant: "++pr_constr id);
-    if not (isEvar args_id.(2)) then
-      errorstrm(strbrk"skolem constant "++pr_constr id++str" already used");
-    let skolem_n = args_id.(1) in
-    let skolem_proof =
-      let l = Evd.fold_undefined (fun e ei l ->
-        match kind_of_term ei.Evd.evar_concl with
-        | App(hd, [|ty; n; lock|])
-          when occur_existential (fire gl ty) && isEvar (fire gl lock) &&
-          eq_constr hd skolem && eq_constr n skolem_n -> e::l
-        | _ -> l) (project gl) [] in
-      match l with
-      | [e] -> e
-      | _ -> errorstrm(strbrk"skolem constant "++pr_constr skolem_n++
-               strbrk" not found in the evar map exactly once. "++
-               strbrk"Did you tamper with it?") in
+    let args_id = examine_abstract id gl in
+    let abstract_n = args_id.(1) in
+    let abstract_proof = pf_find_abstract_proof true gl abstract_n in 
     let gl, proof =
       let pf_unify_HO gl a b =
         try pf_unify_HO gl a b
-        with _ -> errorstrm(strbrk"The skolem variable "++pr_constr id++
-          strbrk" cannot hide this goal.  Did you generalize it?") in
+        with _ -> errorstrm(strbrk"The abstract variable "++pr_constr id++
+          strbrk" cannot abstract this goal.  Did you generalize it?") in
       let rec find_hole p t =
         match kind_of_term t with
-        | Evar _ when last -> pf_unify_HO gl concl t, p
+        | Evar _ (*when last*) -> pf_unify_HO gl concl t, p
+(*
         | Evar _ ->
             let sigma, it = project gl, sig_it gl in
             let sigma, ty = Evarutil.new_type_evar sigma env in
@@ -5544,22 +5603,22 @@ let ssrhide ist gens last gl =
             pf_unify_HO gl concl t, p
         | App(hd, [|left; right|]) when eq_constr hd prod ->
             find_hole (mkApp (proj1,[|left;right;p|])) left
-        | _ -> errorstrm(strbrk"skolem constant "++pr_constr skolem_n++
+*)
+        | _ -> errorstrm(strbrk"abstract constant "++pr_constr abstract_n++
                strbrk" has an unexpected shape. Did you tamper with it?")
       in
         find_hole
-          (if last then id
-           else mkApp(mkSsrConst "use_skolem",Array.append args_id [|id|]))
+          ((*if last then*) id
+          (*else mkApp(mkSsrConst "use_abstract",Array.append args_id [|id|])*))
           (fire gl args_id.(0)) in
-    let gl = if last then pf_unify_HO gl skolem_key args_id.(2) else gl in
+    let gl = (*if last then*) pf_unify_HO gl abstract_key args_id.(2) (*else gl*) in
     let proof = fire gl proof in
-    if last then
+(*     if last then *)
       let tacopen gl =
         let stuff, g = Refiner.unpackage gl in
-        Refiner.repackage stuff [ g; Goal.build skolem_proof ] in
-      tclTHENS tacopen [ tclSOLVE [apply proof]; unfold [skolem;skolem_key] ] gl
-    else
-      apply proof gl
+        Refiner.repackage stuff [ g; Goal.build abstract_proof ] in
+      tclTHENS tacopen [tclSOLVE [apply proof];unfold[abstract;abstract_key]] gl
+(* else apply proof gl *)
   in
   let introback ist (gens, _) =
     introstac ~ist
@@ -5569,25 +5628,19 @@ let ssrhide ist gens last gl =
         (List.tl (List.hd gens))) in
   tclTHEN (with_dgens gens main ist) (introback ist gens) gl
 
-TACTIC EXTEND ssrhide
-| [ "hide" ssrdgens(gens) ] -> [
+(* The standard TACTIC EXTEND does not work for abstract *)
+GEXTEND Gram
+  GLOBAL: tactic_expr;
+  tactic_expr: LEVEL "3"
+    [ RIGHTA [ IDENT "abstract"; gens = ssrdgens ->
+               Tacexpr.TacAtom(!@loc,Tacexpr.TacExtend (!@loc, "ssrabstract",
+                [Genarg.in_gen (Genarg.rawwit wit_ssrdgens) gens])) ]];
+END
+TACTIC EXTEND ssrabstract
+| [ "abstract" ssrdgens(gens) ] -> [
     if List.length (fst gens) <> 1 then
       errorstrm (str"dependents switches '/' not allowed here");
-    Proofview.V82.tactic (ssrhide ist gens true) ]
-END
-
-(*
-TACTIC EXTEND ssraccumulate
-| [ "accumulate" ssrdgens(gens) ] -> [
-    if List.length (fst gens) <> 1 then
-      Errors.error "dependents switches '/' not allowed here";
-    Proofview.V82.tactic (ssrhide ist gens false) ]
-END
-*)
-
-TACTIC EXTEND ssrskolem
-| [ "skolem" ":" ident_list(ids) ] ->
-  [ Proofview.V82.tactic (ssrskolemtac ids) ]
+    Proofview.V82.tactic (ssrabstract ist gens) ]
 END
 
 let prof_havetac = mk_profiler "havetac";;
@@ -5600,22 +5653,22 @@ END
 
 TACTIC EXTEND ssrhavesuff
 | [ "have" "suff" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ Proofview.V82.tactic (havetac ist (false,([],(pats,fwd))) true false) ]
+  [ Proofview.V82.tactic (havetac ist (false,(pats,fwd)) true false) ]
 END
 
 TACTIC EXTEND ssrhavesuffices
 | [ "have" "suffices" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ Proofview.V82.tactic (havetac ist (false,([],(pats,fwd))) true false) ]
+  [ Proofview.V82.tactic (havetac ist (false,(pats,fwd)) true false) ]
 END
 
 TACTIC EXTEND ssrsuffhave
 | [ "suff" "have" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ Proofview.V82.tactic (havetac ist (false,([],(pats,fwd))) true true) ]
+  [ Proofview.V82.tactic (havetac ist (false,(pats,fwd)) true true) ]
 END
 
 TACTIC EXTEND ssrsufficeshave
 | [ "suffices" "have" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
-  [ Proofview.V82.tactic (havetac ist (false,([],(pats,fwd))) true true) ]
+  [ Proofview.V82.tactic (havetac ist (false,(pats,fwd)) true true) ]
 END
 
 (** The "suffice" tactic *)
@@ -5895,8 +5948,9 @@ by_arg_tac: [
 *)
 END
 
-(*v8.3
-open Rewrite
+let constr_eval
+ : (Constrexpr.constr_expr,Obj.t,Obj.t) Genredexpr.may_eval Gram.Entry.e
+ = Obj.magic (Grammar.Entry.find (Obj.magic constr_may_eval) "constr_eval")
  
 let pr_ssrrelattr prc _ _ (a, c) = pr_id a ++ str " proved by " ++ prc c
 
