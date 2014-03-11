@@ -11,6 +11,16 @@ all: $(COQMAKEFILE)
 $(COQMAKEFILE): Make
 	$(COQBIN)coq_makefile -f Make > $(COQMAKEFILE)
 
+doc:
+	PATH="$(COQBIN):$$PATH" \
+	     sh -c '. extra/builddoc_lib.sh; mangle_sources theories/*.v'
+	$(MAKE) all
+	PATH="$(COQBIN):$$PATH" TITLE="Ssreflect" MAKEDOT=extra/ \
+	COQOPTS="-R theories Ssreflect" \
+	MANGLEDOT="sed -i s?URL=\"./?URL=\"Ssreflect.?"\
+	      sh -c '. extra/builddoc_lib.sh; build_doc theories/*.v'
+	cp extra/*.css extra/*.png html/
+
 install:
 	$(COQMAKE) install
 
