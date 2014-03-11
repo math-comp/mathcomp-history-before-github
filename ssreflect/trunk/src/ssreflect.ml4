@@ -5925,7 +5925,7 @@ let constr_eval
 GEXTEND Gram
   GLOBAL: constr_eval;
   constr_eval: [
-    [ IDENT "type"; "of"; c = Constr.constr -> ConstrTypeOf c ]
+    [ IDENT "type"; "of"; c = Constr.constr -> Genredexpr.ConstrTypeOf c ]
   ];
 END
 
