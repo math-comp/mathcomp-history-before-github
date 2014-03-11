@@ -520,6 +520,18 @@ let pf_ids_of_proof_hyps gl =
   let add_hyp (id, _, _) ids = if not_section_id id then id :: ids else ids in
   Context.fold_named_context add_hyp (pf_hyps gl) ~init:[]
 
+let pf_nf_evar gl e = Reductionops.nf_evar (project gl) e
+
+let pf_partial_solution gl t evl =
+  let sigma, g = project gl, sig_it gl in
+  let sigma = Goal.V82.partial_solution sigma g t in
+  re_sig (List.map (fun x -> Goal.build (fst (destEvar x))) evl) sigma
+
+let pf_new_evar gl ty =
+  let sigma, env, it = project gl, pf_env gl, sig_it gl in
+  let sigma, extra = Evarutil.new_evar sigma env ty in
+  re_sig it sigma, extra
+
 (* Basic tactics *)
 
 let convert_concl_no_check t = convert_concl_no_check t DEFAULTcast
@@ -3203,7 +3215,7 @@ let fake_pmatcher_end () = mkProp, L2R, (Evd.empty, mkProp)
 (* TASSI: given (c : ty), generates (c ??? : ty[???/...]) with m evars *)
 exception NotEnoughProducts
 let prof_saturate_whd = mk_profiler "saturate.whd";;
-let saturate ?(beta=false) env sigma c ?(ty=Retyping.get_type_of env sigma c) m 
+let saturate ?(beta=false) ?(bi_types=false) env sigma c ?(ty=Retyping.get_type_of env sigma c) m 
 =
   let rec loop ty args sigma n = 
   if n = 0 then 
@@ -3212,7 +3224,9 @@ let saturate ?(beta=false) env sigma c ?(ty=Retyping.get_type_of env sigma c) m
       (mkApp (c, Array.of_list (List.map snd args))), ty, args, sigma 
   else match kind_of_type ty with
   | ProdType (_, src, tgt) ->
-      let sigma, x = Evarutil.new_evar (create_evar_defs sigma) env src in
+      let sigma, x =
+        Evarutil.new_evar (create_evar_defs sigma) env
+          (if bi_types then Reductionops.nf_betaiota sigma src else src) in
       loop (subst1 x tgt) ((m - n,x) :: args) sigma (n-1)
   | CastType (t, _) -> loop t args sigma n 
   | LetInType (_, v, _, t) -> loop (subst1 v t) args sigma n
@@ -3227,9 +3241,9 @@ let saturate ?(beta=false) env sigma c ?(ty=Retyping.get_type_of env sigma c) m
   in
    loop ty [] sigma m
 
-let pf_saturate ?beta gl c ?ty m = 
+let pf_saturate ?beta ?bi_types gl c ?ty m = 
   let env, sigma, si = pf_env gl, project gl, sig_it gl in
-  let t, ty, args, sigma = saturate ?beta env sigma c ?ty m in
+  let t, ty, args, sigma = saturate ?beta ?bi_types env sigma c ?ty m in
   t, ty, args, re_sig si sigma 
 
 (** Rewrite redex switch *)
@@ -3630,13 +3644,17 @@ let dependent_apply_error =
  * with dependently typed higher order metas. *)
 let applyn ~with_evars ?beta ?(with_shelve=false) n t gl =
   if with_evars then
-    let t, sigma = if n = 0 then t, project gl else
-      let t, _, _, gl = pf_saturate ?beta gl t n in (* saturate with evars *)
-      t, project gl in
-    pp(lazy(str"Refine.refine " ++ pr_constr t));
+    let refine gl =
+    let t, ty, args, gl = pf_saturate ?beta ~bi_types:true gl t n in
+    let gl = pf_unify_HO gl ty (pf_concl gl) in
+    let gs = list_map_filter (fun (_, e) ->
+      if isEvar (pf_nf_evar gl e) then Some e else None)
+      args in
+    pf_partial_solution gl t gs
+    in
     Proofview.(V82.of_tactic
-      (tclTHEN (Tactics.New.refine (sigma, t))
-         (if with_shelve then shelve_unifiable else tclUNIT ()))) gl
+      (tclTHEN refine
+        (if with_shelve then shelve_unifiable else tclUNIT ()))) gl
   else
     let t, gl = if n = 0 then t, gl else
       let sigma, si = project gl, sig_it gl in
