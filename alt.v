@@ -434,7 +434,7 @@ have F11: [primitive Gx, on [set~ x] | 'P].
 have F12: K \subset Gx by rewrite setSI // normal_sub.
 have F13: K <| Gx by apply/andP; rewrite normsIG.
 have:= prim_trans_norm F11; case/(_ K) => //= => Ksub; last first.
-  have F14: Gx * H = 'Alt_T by exact/subgroup_transitiveP.
+  have F14: Gx * H = 'Alt_T by exact/(subgroup_transitiveP _ _ F3).
   have: simple Gx.
     by rewrite (isog_simple (rfd_iso x)) Hrec //= card_sig cardC1 Hde.
   case/simpleP=> _ simGx; case/simGx: F13 => /= HH2.
