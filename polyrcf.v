@@ -1029,8 +1029,8 @@ move=> p a b; case: rootsP=> // p0 hs ps _ s0 x axb.
 by move: (hs x); rewrite s0 in_nil !axb /= => ->.
 Qed.
 
-Lemma roots_in : forall p a b x, x \in roots p a b -> x \in `]a, b[.
-Proof. by move=> p a b x; case: rootsP=> // *; apply: roots_on_in. Qed.
+Lemma roots_in p a b x : x \in roots p a b -> x \in `]a, b[.
+Proof. by case: rootsP=> //= np0 ron_p *; exact: (roots_on_in ron_p). Qed.
 
 Lemma rootsEba : forall p a b, b <= a -> roots p a b = [::].
 Proof.

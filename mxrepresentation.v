@@ -1896,7 +1896,7 @@ Lemma hom_mxsemisimple_iso I P U W f :
 Proof.
 move=> V simU simW homVf sUVf; have [modU nzU _] := simU.
 have ssimVf: mxsemisimple (V *m f).
-  by apply: hom_mxsemisimple homVf; exact: intro_mxsemisimple simW.
+  by apply: hom_mxsemisimple homVf; exact: intro_mxsemisimple (eqmx_refl _) _.
 have [U' modU' defVf] := mxsemisimple_reducible ssimVf modU sUVf.
 move/mxdirect_addsP=> dxUU'; pose p := f *m proj_mx U U'.
 case: (pickP (fun i => P i && (W i *m p != 0))) => [i /andP[Pi nzWip] | no_i].
