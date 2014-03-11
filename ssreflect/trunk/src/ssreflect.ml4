@@ -5920,7 +5920,6 @@ END
 
 let constr_eval
  : (Constrexpr.constr_expr,Obj.t,Obj.t) Genredexpr.may_eval Gram.Entry.e
- : (Topconstr.constr_expr,Obj.t,Obj.t) Glob_term.may_eval Gram.Entry.e
  = Obj.magic (Grammar.Entry.find (Obj.magic constr_may_eval) "constr_eval")
  
 GEXTEND Gram
