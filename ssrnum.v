@@ -1666,7 +1666,7 @@ Definition ler_add2 := (ler_add2l, ler_add2r).
 Definition ltr_add2 := (ltr_add2l, ltr_add2r).
 Definition lter_add2 := (ler_add2, ltr_add2).
 
-(* Addition, substraction and transitivity *)
+(* Addition, subtraction and transitivity *)
 Lemma ler_add x y z t : x <= y -> z <= t -> x + z <= y + t.
 Proof. by move=> lxy lzt; rewrite (@ler_trans _ (y + z)) ?lter_add2. Qed.
 

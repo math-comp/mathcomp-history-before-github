@@ -949,7 +949,7 @@ End IntegralOverField.
 (* Lifting term, formula, envs and eval to matrices. Wlog, and for the sake  *)
 (* of simplicity, we only lift (tensor) envs to row vectors; we can always   *)
 (* use mxvec/vec_mx to store and retrieve matrices.                          *)
-(* We don't provide definitions for addition, substraction, scaling, etc,    *)
+(* We don't provide definitions for addition, subtraction, scaling, etc,     *)
 (* because they have simple matrix expressions.                              *)
 Module MatrixFormula.
 

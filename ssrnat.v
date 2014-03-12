@@ -17,7 +17,7 @@ Require Export Ring.
 (*                                                                            *)
 (*   basic arithmetic                                                         *)
 (*     m + n, m - n, m * n                                                    *)
-(*   Important: m - n denotes TRUNCATED substraction: m - n = 0 if m <= n.    *)
+(*   Important: m - n denotes TRUNCATED subtraction: m - n = 0 if m <= n.     *)
 (*   The definitions use the nosimpl tag to prevent undesirable computation   *)
 (*   computation during simplification, but remain compatible with the ones   *)
 (*   provided in the Coq.Init.Peano prelude.                                  *)
@@ -28,7 +28,7 @@ Require Export Ring.
 (*       Num 3 082 241 inputs the number 3082241                              *)
 (*         [Num of n]  outputs the value n                                    *)
 (*   There are coercions num >-> BinNat.N >-> nat; ssrnat rebinds the scope   *)
-(*   delimter for BinNat.N to %num, as it uses the shorter %N for its own     *)
+(*   delimiter for BinNat.N to %num, as it uses the shorter %N for its own    *)
 (*   notations (Peano notations are flagged with %coq_nat).                   *)
 (*                                                                            *)
 (*   doubling, halving, and parity                                            *)
@@ -90,14 +90,14 @@ Require Export Ring.
 (*      leq_eqVlt : (m <= n) = (m == n) || (m < n).                           *)
 (*   X - exponentiation, as in lognX : logn p (m ^ n) = logn p m * n in       *)
 (*         file prime.v (the suffix is not used in ths file).                 *)
-(* Suffixes that abreviate operations (D, B, M and X) are used to abbreviate  *)
+(* Suffixes that abbreviate operations (D, B, M and X) are used to abbreviate *)
 (* second-rank operations in equational lemma names that describe left-hand   *)
 (* sides (e.g., mulnDl); they are not used to abbreviate the main operation   *)
 (* of relational lemmas (e.g., leq_add2l).                                    *)
 (*   For the asymmetrical exponentiation operator expn (m ^ n) a right suffix *)
 (* indicates an operation on the exponent, e.g., expnM : m ^ (n1 * n2) = ...; *)
 (* a trailing "n" is used to indicate the left operand, e.g.,                 *)
-(* expnMn : (m1 * m2) ^ n = ... The operands of other operators a selected    *)
+(* expnMn : (m1 * m2) ^ n = ... The operands of other operators are selected  *)
 (* using the l/r suffixes.                                                    *)
 (******************************************************************************)
 
@@ -242,7 +242,7 @@ Lemma add3n m : 3 + m = m.+3. Proof. by []. Qed.
 Lemma addn4 m : m + 4 = m.+4. Proof. by rewrite addnC. Qed.
 Lemma add4n m : 4 + m = m.+4. Proof. by []. Qed.
 
-(* Protected, structurally decreasing substraction, and basic lemmas. *)
+(* Protected, structurally decreasing subtraction, and basic lemmas.  *)
 (* Further properties depend on ordering conditions.                  *)
 
 Definition subn_rec := minus.
