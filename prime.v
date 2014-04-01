@@ -584,6 +584,21 @@ Proof. by move=> p_pr; rewrite /pdiv primes_prime. Qed.
 Lemma pdiv_pfactor p k : prime p -> pdiv (p ^ k.+1) = p.
 Proof. by move=> p_pr; rewrite /pdiv primes_exp ?primes_prime. Qed.
 
+(* Primes are unbounded. *)
+
+Lemma dvdn_fact m n : 0 < m <= n -> m %| n`!.
+Proof.
+case: m => //= m; elim: n => //= n IHn; rewrite ltnS leq_eqVlt.
+by case/predU1P=> [-> | /IHn]; [apply: dvdn_mulr | apply: dvdn_mull].
+Qed.
+
+Lemma prime_above m : {p | m < p & prime p}.
+Proof.
+have /pdivP[p pr_p p_dv_m1]: 1 < m`! + 1 by rewrite addn1 ltnS fact_gt0.
+exists p => //; rewrite ltnNge; apply: contraL p_dv_m1 => p_le_m.
+by rewrite dvdn_addr ?dvdn_fact ?prime_gt0 // gtnNdvd ?prime_gt1.
+Qed.
+
 (* "prime" logarithms and p-parts. *)
 
 Fixpoint logn_rec d m r :=
