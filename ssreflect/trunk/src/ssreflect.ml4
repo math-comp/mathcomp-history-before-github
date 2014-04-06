@@ -3458,6 +3458,11 @@ let with_dgens (gensl, clr) maintac ist = match gensl with
   | [gen :: gens] -> tclTHEN (genstac (gens, clr) ist) (maintac [] gen ist)
   | _ -> with_defective maintac [] clr ist
 
+let first_goal gls =
+  let gl = gls.Evd.it and sig_0 = gls.Evd.sigma in
+  if List.is_empty gl then Errors.error "first_goal";
+  { Evd.it = List.hd gl; Evd.sigma = sig_0; }
+
 let with_deps deps0 maintac cl0 cs0 clr0 ist gl0 =
   let rec loop gl cl cs clr args clrs = function
   | [] ->
