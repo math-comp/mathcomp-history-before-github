@@ -865,7 +865,6 @@ have tau_alpha i: tau (alpha_ i j) = eta_ i j - eta_ i 0 - n *: zeta1.
     by rewrite Dn rmorph_nat conj_Cint.
     have a_even: (2 %| a)%C. (* Third internal part of (11.8.5). *)
     have Zbeta: beta \in 'Z[irr G].
-
       rewrite -{1}(betaE i j) // rpredD ?rpredB ?Zphi ?cycTIiso_vchar //.
       by rewrite Dn rpredZnat // Ztau1 ?mem_zchar.
     rewrite -col0_beta cfdot_real_vchar_even ?mFT_odd //; first 1 last.
