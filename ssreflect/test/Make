@@ -12,6 +12,7 @@ elim2.v
 elim_pattern.v
 first_n.v
 gen_pattern.v
+gen_have.v
 havesuff.v
 have_view_idiom.v
 have_TC.v

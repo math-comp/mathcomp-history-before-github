@@ -1,6 +1,15 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 
 Axiom P : nat -> Prop.
+Lemma clear_test (b1 b2 : bool) : b2 = b2.
+Proof.
+(* wlog gH : (b3 := b2) / b2 = b3. admit. *)
+gen have {b1} H, gH : (b3 := b2) (w := erefl 3) / b2 = b3.
+  admit.
+Fail exact (H b1).
+exact (H b2 (erefl _)).
+Qed.
+
 
 Lemma test1 n (ngt0 : 0 < n) : P n.
 gen have lt2le, /andP[H1 H2] : n ngt0 / (0 <= n) && (n != 0).
@@ -144,8 +153,8 @@ Qed.
 
 End Test.
 
-Lemma test_in n k (def_k : k = 0)(ngtk : k < n) : P n.
+Lemma test_in n k (def_k : k = 0) (ngtk : k < n) : P n.
 rewrite -(add0n n) in {def_k k ngtk} (m := k) (def_m := def_k) (ngtm := ngtk).
 rewrite def_m add0n in {ngtm} (e := erefl 0 ) (ngt0 := ngtm) => {def_m}.
- in (k := m).
-
+admit.
+Qed.

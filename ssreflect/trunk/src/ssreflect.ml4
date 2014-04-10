@@ -1850,24 +1850,24 @@ let cleartac clr = check_hyps_uniq [] clr; clear (hyps_ids clr)
 (* type ssrwgen = ssrclear * ssrhyp * string *)
 
 let pr_wgen = function 
-  | (clr, Some((id,k),None)) -> spc() ++ pr_clear mt clr ++ str k ++ pr_hyp id
+  | (clr, Some((id,k),None)) -> spc() ++ pr_clear mt clr ++ str k ++ pr_id id
   | (clr, Some((id,k),Some p)) ->
-      spc() ++ pr_clear mt clr ++ str"(" ++ str k ++ pr_hyp id ++ str ":=" ++
+      spc() ++ pr_clear mt clr ++ str"(" ++ str k ++ pr_id id ++ str ":=" ++
         pr_cpattern p ++ str ")"
   | (clr, None) -> spc () ++ pr_clear mt clr
 let pr_ssrwgen _ _ _ = pr_wgen
 
 (* no globwith for char *)
 ARGUMENT EXTEND ssrwgen
-  TYPED AS ssrclear * ((ssrhyp * string) * cpattern option) option
+  TYPED AS ssrclear * ((ident * string) * cpattern option) option
   PRINTED BY pr_ssrwgen
 | [ ssrclear_ne(clr) ] -> [ clr, None ]
-| [ ssrhyp(id) ]        -> [ [], Some((id, " "), None) ]
-| [ "@" ssrhyp(id) ]   -> [ [], Some((id, "@"), None) ]
-| [ "(" ssrhyp(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id," "),Some p) ]
-| [ "(" ssrhyp(id) ")" ] -> [ [], Some ((id,"("), None) ]
-| [ "(@" ssrhyp(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id,"@"),Some p) ]
-| [ "(" "@" ssrhyp(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id,"@"),Some p) ]
+| [ ident(id) ]        -> [ [], Some((id, " "), None) ]
+| [ "@" ident(id) ]   -> [ [], Some((id, "@"), None) ]
+| [ "(" ident(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id," "),Some p) ]
+| [ "(" ident(id) ")" ] -> [ [], Some ((id,"("), None) ]
+| [ "(@" ident(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id,"@"),Some p) ]
+| [ "(" "@" ident(id) ":=" lcpattern(p) ")" ] -> [ [], Some ((id,"@"),Some p) ]
 END
 
 type ssrclseq = InGoal | InHyps
@@ -1938,7 +1938,7 @@ let check_wgen_uniq gens =
   let clears = List.flatten (List.map fst gens) in
   check_hyps_uniq [] clears;
   let ids = CList.map_filter
-    (function (_,Some ((SsrHyp (_,id),_),_)) -> Some id | _ -> None) gens in
+    (function (_,Some ((id,_),_)) -> Some id | _ -> None) gens in
   let rec check ids = function
   | id :: _ when List.mem id ids ->
     errorstrm (str"Duplicate generalization " ++ pr_id id)
@@ -2010,14 +2010,13 @@ let abs_wgen keep_let ist gl f gen (args,c) =
         pr_constr_pat t ++
         str" contains holes and matches no subterm of the goal") in
   match gen with
-  | _, Some ((SsrHyp(_,x), mode), None)
-    when mode = "@" || (mode = " " && keep_let) ->
+  | _, Some ((x, mode), None) when mode = "@" || (mode = " " && keep_let) ->
      let _, bo, ty = pf_get_hyp gl x in
      (if bo <> None then args else mkVar x :: args),
      mkProd_or_LetIn (Name (f x),bo,ty) (subst_var x c)
-  | _, Some ((SsrHyp(_,x), _), None) ->
+  | _, Some ((x, _), None) ->
      mkVar x :: args, mkProd (Name (f x), pf_get_hyp_typ gl x, subst_var x c)
-  | _, Some ((SsrHyp(_,x), "@"), Some p) -> 
+  | _, Some ((x, "@"), Some p) -> 
      let cp = interp_cpattern ist gl p None in
      let t, c =
        try fill_occ_pattern ~raise_NoMatch:true env sigma c cp None 1
@@ -2025,7 +2024,7 @@ let abs_wgen keep_let ist gl f gen (args,c) =
      evar_closed t p;
      let ut = red_product_skip_id env sigma t in
      args, mkLetIn(Name (f x), ut, pf_type_of gl t, c)
-  | _, Some ((SsrHyp(_,x), _), Some p) ->
+  | _, Some ((x, _), Some p) ->
      let cp = interp_cpattern ist gl p None in
      let t, c =
        try fill_occ_pattern ~raise_NoMatch:true env sigma c cp None 1
@@ -2035,7 +2034,8 @@ let abs_wgen keep_let ist gl f gen (args,c) =
   | _ -> args, c
 
 let clr_of_wgen gen clrs = match gen with
-  | clr, Some ((x, _), None) -> cleartac clr :: cleartac [x] :: clrs
+  | clr, Some ((x, _), None) ->
+     cleartac clr :: cleartac [SsrHyp(Loc.ghost,x)] :: clrs
   | clr, _ -> cleartac clr :: clrs
     
 let tclCLAUSES ist tac (gens, clseq) gl =
@@ -2051,7 +2051,7 @@ let tclCLAUSES ist tac (gens, clseq) gl =
     apply_type c args gl in
   let endtac =
     let id_map = CList.map_filter (function
-      | _, Some ((SsrHyp(_,id),_),_) -> Some (mk_discharged_id id, id)
+      | _, Some ((id,_),_) -> Some (mk_discharged_id id, id)
       | _, None -> None) gens in
     endclausestac id_map clseq gl_id cl0 in
   tclTHENLIST (hidetacs clseq gl_id cl0 @ [dtac; clear; tac; endtac]) gl
@@ -5730,7 +5730,7 @@ let wlogtac ist (((clr0, pats),_),_) (gens, ((_, ct))) hint suff ghave gl =
   let mkabs gen = abs_wgen false ist gl (fun x -> x) gen in
   let mkclr gen clrs = clr_of_wgen gen clrs in
   let mkpats = function
-  | _, Some ((SsrHyp (_,x), _), _) -> fun pats -> IpatId x :: pats
+  | _, Some ((x, _), _) -> fun pats -> IpatId x :: pats
   | _ -> fun x -> x in
   let ct = match ct with
   | (a, (b, Some (CCast (_, _, CastConv cty)))) -> a, (b, Some cty)
@@ -5749,16 +5749,22 @@ let wlogtac ist (((clr0, pats),_),_) (gens, ((_, ct))) hint suff ghave gl =
         Environ.push_rel rd env, c) (pf_env gl, c) gens in
     let sigma, ev = Evarutil.new_evar (project gl) env Term.mkProp in
     let k, _ = Term.destEvar ev in
-    let fake_gl =
-      {Evd.it = Goal.build k; Evd.sigma = sigma} in
+    let fake_gl = {Evd.it = Goal.build k; Evd.sigma = sigma} in
     let _, ct, _ = pf_interp_ty ist fake_gl ct in
-    let rec subst c g s = match kind_of_term c, g with
+    let rec var2rel c g s = match kind_of_term c, g with
       | Prod(Anonymous,_,c), [] -> mkProd(Anonymous, Vars.subst_vars s ct, c)
       | Sort _, [] -> Vars.subst_vars s ct
-      | LetIn(Name id as n,b,ty,c), _::g -> mkLetIn (n,b,ty,subst c g (id::s))
-      | Prod(Name id as n,ty,c), _::g -> mkProd (n,ty,subst c g (id::s))
-      | _ -> Errors.anomaly(str"SSR: wlog: subst: " ++ pr_constr c) in
-    subst c gens [], args, ct in
+      | LetIn(Name id as n,b,ty,c), _::g -> mkLetIn (n,b,ty,var2rel c g (id::s))
+      | Prod(Name id as n,ty,c), _::g -> mkProd (n,ty,var2rel c g (id::s))
+      | _ -> Errors.anomaly(str"SSR: wlog: var2rel: " ++ pr_constr c) in
+    let c = var2rel c gens [] in
+    let rec pired c = function
+      | [] -> c
+      | t::ts as args -> match kind_of_term c with
+         | Prod(_,_,c) -> pired (subst1 t c) ts
+         | LetIn(id,b,ty,c) -> mkLetIn (id,b,ty,pired c args)
+         | _ -> Errors.anomaly(str"SSR: wlog: pired: " ++ pr_constr c) in
+    c, args, pired c args in
   let tacipat pats = introstac ~ist pats in
   let tacigens = 
     tclTHEN
@@ -5772,18 +5778,21 @@ let wlogtac ist (((clr0, pats),_),_) (gens, ((_, ct))) hint suff ghave gl =
     | true, `Gen _ -> assert false
     | false, `Gen id ->
       if gens = [] then errorstrm(str"gen have requires some generalizations");
+      let clear0 = cleartac clr0 in
       let id, name_general_hyp, cleanup, pats = match id, pats with
-      | None, (IpatId id as ip)::pats -> Some id, tacipat [ip], tclIDTAC, pats
-      | None, _ -> None, tclIDTAC, tclIDTAC, pats
-      | Some (Some id),_ -> Some id, introid id, tclIDTAC, pats
+      | None, (IpatId id as ip)::pats -> Some id, tacipat [ip], clear0, pats
+      | None, _ -> None, tclIDTAC, clear0, pats
+      | Some (Some id),_ -> Some id, introid id, clear0, pats
       | Some _,_ ->
           let id = mk_anon_id "tmp" gl in
-          Some id, introid id, clear [id], pats in
+          Some id, introid id, tclTHEN clear0 (clear [id]), pats in
       let tac_specialize = match id with
       | None -> tclIDTAC
       | Some id ->
         if pats = [] then tclIDTAC else
         let args = Array.of_list args in
+        pp(lazy(str"specialized="++pr_constr (mkApp (mkVar id,args))));
+        pp(lazy(str"specialized_ty="++pr_constr ct));
         tclTHENS (basecuttac "ssr_have" ct)
           [apply (mkApp (mkVar id,args)); tclIDTAC] in
       "ssr_have",
@@ -5849,16 +5858,20 @@ GEXTEND Gram
   ] ];
 END
 
+let augment_preclr clr1 (((clr0, x),y),z) = (((clr1 @ clr0, x),y),z)
+
 TACTIC EXTEND ssrgenhave
-| [ "gen" "have"
+| [ "gen" "have" ssrclear(clr)
     ssr_idcomma(id) ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ Proofview.V82.tactic (wlogtac ist pats fwd hint false (`Gen id)) ]
+  [ let pats = augment_preclr clr pats in
+    Proofview.V82.tactic (wlogtac ist pats fwd hint false (`Gen id)) ]
 END
 
 TACTIC EXTEND ssrgenhave2
-| [ "generally" "have"
+| [ "generally" "have" ssrclear(clr)
     ssr_idcomma(id) ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ Proofview.V82.tactic (wlogtac ist pats fwd hint false (`Gen id)) ]
+  [ let pats = augment_preclr clr pats in
+    Proofview.V82.tactic (wlogtac ist pats fwd hint false (`Gen id)) ]
 END
 
 (** Canonical Structure alias *)
