@@ -1741,7 +1741,8 @@ let hoi_id = hoik hyp_id
 let pr_hoi = hoik pr_hyp
 let pr_ssrhoi _ _ _ = pr_hoi
 
-let wit_ssrhoirep = add_genarg "ssrhoirep" pr_hoi
+let wit_ssrhoirep, globwit_ssrhoirep, rawwit_ssrhoirep =
+  add_genarg "ssrhoirep" pr_hoi
 
 let intern_ssrhoi ist = function
   | Hyp h -> Hyp (intern_hyp ist h)
