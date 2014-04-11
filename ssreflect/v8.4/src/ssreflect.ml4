@@ -2095,7 +2095,7 @@ let tclCLAUSES ist tac (gens, clseq) gl =
     apply_type c args gl in
   let endtac =
     let id_map = Util.list_map_filter (function
-      | _, Some ((id,_),_) -> let id = hoi_id x in Some (mk_discharged_id id, id)
+      | _, Some ((x,_),_) -> let id = hoi_id x in Some (mk_discharged_id id, id)
       | _, None -> None) gens in
     endclausestac id_map clseq gl_id cl0 in
   tclTHENLIST (hidetacs clseq gl_id cl0 @ [dtac; clear; tac; endtac]) gl
