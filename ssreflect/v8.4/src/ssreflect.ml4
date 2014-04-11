@@ -1746,7 +1746,7 @@ let wit_ssrhoirep = add_genarg "ssrhoirep" pr_hoi
 let intern_ssrhoi ist = function
   | Hyp h -> Hyp (intern_hyp ist h)
   | Id (SsrHyp (_, id)) as hyp ->
-    let _ = Tacintern.intern_genarg ist (in_gen (rawwit wit_ident) id) in
+    let _ = intern_genarg ist (in_gen (rawwit wit_ident) id) in
     hyp
 
 let interp_ssrhoi ist gl = function
