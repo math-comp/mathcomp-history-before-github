@@ -1746,13 +1746,13 @@ let wit_ssrhoirep = add_genarg "ssrhoirep" pr_hoi
 let intern_ssrhoi ist = function
   | Hyp h -> Hyp (intern_hyp ist h)
   | Id (SsrHyp (_, id)) as hyp ->
-    let _ = intern_genarg ist (in_gen (rawwit wit_ident) id) in
+    let _ = intern_genarg ist (in_gen rawwit_ident id) in
     hyp
 
 let interp_ssrhoi ist gl = function
   | Hyp h -> let s, h' = interp_hyp ist gl h in s, Hyp h'
   | Id (SsrHyp (loc, id)) ->
-    let s, id' = interp_wit wit_ident ist gl id in
+    let s, id' = interp_wit globwit_ident wit_ident ist gl id in
     s, Id (SsrHyp (loc, id'))
 
 ARGUMENT EXTEND ssrhoi_hyp TYPED AS ssrhoirep PRINTED BY pr_ssrhoi
