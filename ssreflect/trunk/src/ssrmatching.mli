@@ -53,7 +53,9 @@ val pp_pattern : pattern -> Pp.std_ppcmds
 
 (** Extracts the redex and applies to it the substitution part of the pattern.
   @raise Anomaly if called on [In_T] or [In_X_In_T] *)
-val redex_of_pattern : ?resolve_typeclasses:bool -> env -> pattern -> constr
+val redex_of_pattern :
+  ?resolve_typeclasses:bool -> env -> pattern ->
+     constr Evd.in_evar_universe_context
 
 (** [interp_rpattern ise gl rpat] "internalizes" and "interprets" [rpat]
     in the current [Ltac] interpretation signature [ise] and tactic input [gl]*)
@@ -104,7 +106,7 @@ val fill_occ_pattern :
   ?raise_NoMatch:bool ->
   env -> evar_map -> constr ->
   pattern -> occ -> int ->
-    constr * constr
+    constr Evd.in_evar_universe_context * constr
 
 (** *************************** Low level APIs ****************************** *)
 
@@ -148,7 +150,8 @@ type find_P =
   @return the instance of the pattern, the evarmap after the pattern
     instantiation, the proof term and the ssrdit stored in the tpattern
   @raise UserEerror if too many occurrences were specified *)
-type conclude = unit -> constr * ssrdir * (evar_map * constr)
+type conclude =
+  unit -> constr * ssrdir * (evar_map * Evd.evar_universe_context * constr)
 
 (** [mk_tpattern_matcher b o sigma0 occ sigma_tplist] creates a pair 
     a function [find_P] and [conclude] with the behaviour explained above.
@@ -223,6 +226,7 @@ val is_wildcard : cpattern -> bool
 val cpattern_of_id : Names.variable -> cpattern
 val cpattern_of_id : Names.variable -> cpattern
 val pr_constr_pat : constr -> Pp.std_ppcmds
+val pf_merge_uc : Evd.evar_universe_context -> goal Evd.sigma -> goal Evd.sigma
 
 (* One can also "Set SsrMatchingDebug" from a .v *)
 val debug : bool -> unit

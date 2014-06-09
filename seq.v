@@ -2233,7 +2233,7 @@ Implicit Arguments perm_eq_iotaP [[T] [s] [t]].
 
 Section FoldRight.
 
-Variables (T R : Type) (f : T -> R -> R) (z0 : R).
+Variables (T : Type) (R : Type) (f : T -> R -> R) (z0 : R).
 
 Fixpoint foldr s := if s is x :: s' then f x (foldr s') else z0.
 

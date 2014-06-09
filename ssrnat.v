@@ -1494,7 +1494,7 @@ Proof. by elim: p => //= p ->; rewrite !natTrecE. Qed.
 
 Lemma nat_of_addn_gt0 p q : (p + q)%positive = p + q :> nat.
 Proof.
-apply: fst (Pplus_carry p q = (p + q).+1 :> nat) _.
+apply: @fst _ (Pplus_carry p q = (p + q).+1 :> nat) _.
 elim: p q => [p IHp|p IHp|] [q|q|] //=; rewrite !natTrecE //;
   by rewrite ?IHp ?nat_of_succ_gt0 ?(doubleS, doubleD, addn1, addnS).
 Qed.

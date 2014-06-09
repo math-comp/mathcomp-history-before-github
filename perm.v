@@ -549,9 +549,9 @@ congr (_ (+) _); last first.
   case: (prod_tpermP s) => ts ->{s} _.
   elim: ts => [|t ts IHts] /=; first by rewrite big_nil lift_perm1 !odd_perm1.
   rewrite big_cons odd_mul_tperm -(lift_permM _ j) odd_permM {}IHts //.
-  congr (_ (+) _); rewrite (_ : _ j _ = tperm (lift j t.1) (lift j t.2)).
+  congr (_ (+) _); transitivity (tperm (lift j t.1) (lift j t.2)); last first.
     by rewrite odd_tperm (inj_eq (@lift_inj _ _)).
-  apply/permP=> k; case: (unliftP j k) => [k'|] ->.
+  congr odd_perm; apply/permP=> k; case: (unliftP j k) => [k'|] ->.
     rewrite lift_perm_lift inj_tperm //; exact: lift_inj.
   by rewrite lift_perm_id tpermD // eq_sym neq_lift.
 suff{i j s} odd_lift0 (k : 'I_n.+1): lift_perm ord0 k 1 = odd k :> bool.
