@@ -1779,8 +1779,14 @@ Qed.
 Lemma sumsmx_semisimple (I : finType) (P : pred I) V :
   (forall i, P i -> mxsemisimple (V i)) -> mxsemisimple (\sum_(i | P i) V i)%MS.
 Proof.
+(* FIXME: This proof is the original proof.  In the following one we inlined
+   the proof of big_ind in order to work around a universe inconsistency.
 move=> ssimV; elim/big_ind: _ => //; first exact: mxsemisimple0.
 exact: addsmx_semisimple.
+*)
+move=> ssimV; elim: (index_enum I) => [|a l IH]; rewrite ?(big_nil,big_cons).
+  exact: mxsemisimple0.
+by case: ifP => // pa; apply: addsmx_semisimple (ssimV _ pa) _.
 Qed.
 
 Lemma eqmx_semisimple U V : (U :=: V)%MS -> mxsemisimple U -> mxsemisimple V.
