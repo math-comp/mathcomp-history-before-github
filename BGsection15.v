@@ -46,7 +46,7 @@ Implicit Type p : nat.
 Lemma Fcore_normal : M`_\F <| M.
 Proof.
 rewrite -[M`_\F]bigprodGE.
-apply big_ind => [|P Q nsP nsG|P /andP[] //]; first exact: normal1.
+elim/big_ind: _ => [|P Q nsP nsG|P /andP[] //]; first exact: normal1.
 by rewrite /normal normsY ?normal_norm // join_subG ?normal_sub.
 Qed.
 Hint Resolve Fcore_normal.
@@ -338,7 +338,7 @@ have sMF_Ms: M`_\F \subset Ms := Fcore_sub_Msigma maxM.
 have ltM'M: M' \proper M by rewrite (sol_der1_proper solM) ?mmax_neq1.
 have sMsM': Ms \subset M' := Msigma_der1 maxM.
 have [-> | ltMF_Ms] := eqVproper sMF_Ms; first by rewrite eqxx Msigma_neq1.
-set KDpart := forall K D, _; suffices KD_holds: KDpart.
+set KDpart := (X in _ /\ X); suffices KD_holds: KDpart.
   do 2!split=> //;  have [K hallK] := Hall_exists \kappa(M) solM.
   pose q := #|'C_(M`_\sigma)(K)|; have [D hallD] := Hall_exists q^' solMs.
   have [_ [_ _ piMFq _] _ _ _] := KD_holds K D hallK (proper_neq ltMF_Ms) hallD.
