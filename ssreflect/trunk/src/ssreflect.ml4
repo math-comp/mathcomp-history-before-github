@@ -106,7 +106,16 @@ let mkSsrRef name =
   try locate_reference (ssrtopqid name) with Not_found ->
   Errors.error "Small scale reflection library not loaded"
 let mkSsrRRef name = GRef (dummy_loc, mkSsrRef name,None), None
-let mkSsrConst name = Universes.constr_of_global (mkSsrRef name)
+let mkSsrConst name env sigma =
+  Evd.fresh_global env sigma (mkSsrRef name)
+let pf_mkSsrConst name gl =
+  let sigma, env, it = project gl, pf_env gl, sig_it gl in
+  let sigma, t = mkSsrConst name env sigma in
+  t, re_sig it sigma
+let pf_fresh_global name gl =
+  let sigma, env, it = project gl, pf_env gl, sig_it gl in
+  let sigma,t  = Evd.fresh_global env sigma name in
+  t, re_sig it sigma
 
 (** Ssreflect load check. *)
 
@@ -251,9 +260,13 @@ let mkAppRed f c = match kind_of_term f with
 | Lambda (_, _, b) -> subst1 c b
 | _ -> mkApp (f, [|c|])
 
-let mkProt t c = mkApp (mkSsrConst "protect_term", [|t; c|])
+let mkProt t c gl =
+  let prot, gl = pf_mkSsrConst "protect_term" gl in
+  mkApp (prot, [|t; c|]), gl
 
-let mkRefl t c = mkApp (Universes.constr_of_global (build_coq_eq_data()).refl, [|t; c|])
+let mkRefl t c gl =
+  let refl, gl = pf_fresh_global (build_coq_eq_data()).refl gl in
+  mkApp (refl, [|t; c|]), gl
 
 
 (* Application to a sequence of n rels (for building eta-expansions). *)
@@ -556,7 +569,8 @@ let havetac id c = Proofview.V82.of_tactic (pose_proof (Name id) c)
 let settac id c = letin_tac None (Name id) c None
 let posetac id cl = Proofview.V82.of_tactic (settac id cl nowhere)
 let basecuttac name c gl =
-  let t = mkApp (mkSsrConst name, [|c|]) in
+  let hd, gl = pf_mkSsrConst name gl in
+  let t = mkApp (hd, [|c|]) in
   let gl, _ = pf_e_type_of gl t in
   apply t gl
 
@@ -2863,9 +2877,10 @@ let ssrmkabs id gl =
   let sigma, abstract_proof, abstract_ty =
     let sigma, (ty, _) =
       Evarutil.new_type_evar Evd.univ_flexible_alg Evd.empty env in
-    let sigma,lock = Evarutil.new_evar sigma env (mkSsrConst "abstract_lock") in
-    let abstract_ty =
-      mkApp(mkSsrConst "abstract", [|ty;mk_abstract_id ();lock|]) in
+    let sigma, ablock = mkSsrConst "abstract_lock" env sigma in
+    let sigma, lock = Evarutil.new_evar sigma env ablock in
+    let sigma, abstract = mkSsrConst "abstract" env sigma in
+    let abstract_ty = mkApp(abstract, [|ty;mk_abstract_id ();lock|]) in
     let sigma, m = Evarutil.new_evar sigma env abstract_ty in
     sigma, m, abstract_ty in
   let sigma, kont =
@@ -3589,24 +3604,24 @@ END
 
 (* creation *)
 
-let mkEq dir cl c t n =
+let mkEq dir cl c t n gl =
   let eqargs = [|t; c; c|] in eqargs.(dir_org dir) <- mkRel n;
-  mkArrow
-    (mkApp (Universes.constr_of_global (build_coq_eq()), eqargs))
-    (lift 1 cl), mkRefl t c
+  let eq, gl = pf_fresh_global (build_coq_eq()) gl in 
+  let refl, gl = mkRefl t c gl in
+  mkArrow (mkApp (eq, eqargs)) (lift 1 cl), refl, gl
 
-let pushmoveeqtac cl c =
+let pushmoveeqtac cl c gl =
   let x, t, cl1 = destProd cl in
-  let cl2, eqc = mkEq R2L cl1 c t 1 in
-  apply_type (mkProd (x, t, cl2)) [c; eqc]
+  let cl2, eqc, gl = mkEq R2L cl1 c t 1 gl in
+  apply_type (mkProd (x, t, cl2)) [c; eqc] gl
 
 let pushcaseeqtac cl gl =
   let cl1, args = destApplication cl in
   let n = Array.length args in
   let dc, cl2 = decompose_lam_n n cl1 in
   let _, t = List.nth dc (n - 1) in
-  let cl3, eqc = mkEq R2L cl2 args.(0) t n in
-  let prot = mkProt (pf_type_of gl cl) cl3 in
+  let cl3, eqc, gl = mkEq R2L cl2 args.(0) t n gl in
+  let prot, gl = mkProt (pf_type_of gl cl) cl3 gl in
   let cl4 = mkApp (compose_lam dc prot, args) in
   let gl, _ = pf_e_type_of gl cl4 in
   tclTHEN (apply_type cl4 [eqc]) (convert_concl cl4) gl
@@ -3615,8 +3630,9 @@ let pushelimeqtac gl =
   let _, args = destApplication (pf_concl gl) in
   let x, t, _ = destLambda args.(1) in
   let cl1 = mkApp (args.(1), Array.sub args 2 (Array.length args - 2)) in
-  let cl2, eqc = mkEq L2R cl1 args.(2) t 1 in
-  tclTHEN (apply_type (mkProd (x, t, cl2)) [args.(2); eqc]) (Proofview.V82.of_tactic intro) gl
+  let cl2, eqc, gl = mkEq L2R cl1 args.(2) t 1 gl in
+  tclTHEN (apply_type (mkProd (x, t, cl2)) [args.(2); eqc])
+    (Proofview.V82.of_tactic intro) gl
 
 (** Bookkeeping (discharge-intro) argument *)
 
@@ -3757,7 +3773,8 @@ let analyze_eliminator elimty env sigma =
  * since we don't want to wipe out let-ins, and it seems there is no flag
  * to change that behaviour in the standard unfold code *)
 let unprotecttac gl =
-  let prot, _ = destConst (mkSsrConst "protect_term") in
+  let c, gl = pf_mkSsrConst "protect_term" gl in
+  let prot, _ = destConst c in
   onClause (fun idopt ->
     let hyploc = Option.map (fun id -> id, InHyp) idopt in
     reduct_option 
@@ -3867,7 +3884,8 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   (* Utils of local interest only *)
   let iD s ?t gl = let t = match t with None -> pf_concl gl | Some x -> x in
     pp(lazy(str s ++ pr_constr t)); tclIDTAC gl in
-  let eq, protectC = Universes.constr_of_global (build_coq_eq ()), mkSsrConst "protect_term" in
+  let eq, gl = pf_fresh_global (build_coq_eq ()) gl in
+  let protectC, gl = pf_mkSsrConst "protect_term" gl in
   let fire_subst gl t = Reductionops.nf_evar (project gl) t in
   let fire_sigma sigma t = Reductionops.nf_evar sigma t in
   let is_undef_pat = function
@@ -3914,7 +3932,8 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
       let sort = elimination_sort_of_goal gl in
       let gl, elim =
         if not is_case then
-          gl, Universes.constr_of_global (Indrec.lookup_eliminator ind sort)
+          let t, gl = pf_fresh_global (Indrec.lookup_eliminator ind sort) gl in
+          gl, t
         else
           pf_eapply (fun env sigma ->
             Indrec.build_case_analysis_scheme env sigma indu true) gl sort in
@@ -4047,14 +4066,15 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
         let k = List.length deps in
         let c = fire_subst gl (List.assoc (n_elim_args - k - 1) elim_args) in
         let t = pf_type_of gl c in
-        let gen_eq_tac =
+        let gen_eq_tac, gl =
           let refl = mkApp (eq, [|t; c; c|]) in
           let new_concl = mkArrow refl (lift 1 (pf_concl orig_gl)) in 
           let new_concl = fire_subst gl new_concl in
-          let erefl = fire_subst gl (mkRefl t c) in
-          apply_type new_concl [erefl] in
+          let erefl, gl = mkRefl t c gl in
+          let erefl = fire_subst gl erefl in
+          apply_type new_concl [erefl], gl in
         let rel = k + if elim_is_dep then 1 else 0 in
-        let src = mkProt mkProp (mkApp (eq,[|t; c; mkRel rel|])) in
+        let src, gl = mkProt mkProp (mkApp (eq,[|t; c; mkRel rel|])) gl in
         let concl = mkArrow src (lift 1 concl) in
         let clr = if deps <> [] then clr else [] in
         concl, gen_eq_tac, clr, gl
@@ -4063,7 +4083,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
     let concl = List.fold_left mk_lam concl pred_rctx in
     let gl, concl = 
       if eqid <> None && is_rec then
-        let concl = mkProt (pf_type_of gl concl) concl in
+        let concl, gl = mkProt (pf_type_of gl concl) concl gl in
         let gl, _ = pf_e_type_of gl concl in
         gl, concl
       else gl, concl in
@@ -4132,7 +4152,8 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
           let refl = mkApp (eq, [|lift 1 case_ty; mkRel 1; lift 1 case|]) in
           let new_concl = fire_subst gl
             (mkProd (Name (name gl), case_ty, mkArrow refl (lift 2 concl))) in 
-          let erefl = fire_subst gl (mkRefl case_ty case) in
+          let erefl, gl = mkRefl case_ty case gl in
+          let erefl = fire_subst gl erefl in
           apply_type new_concl [case;erefl] gl in
         tclTHENLIST [gen_eq_tac; intro_lhs; introid ipat]
       | _ -> tclIDTAC in
@@ -4431,10 +4452,12 @@ let newssrcongrtac arg ist gl =
     let env, sigma, si = pf_env gl, project gl, sig_it gl in
     let sigma, x = Evarutil.new_evar (create_evar_defs sigma) env ty in
     x, re_sig si sigma in
-  let ssr_congr lr = mkApp (mkSsrConst "ssr_congr_arrow",lr) in
+  let arr, gl = pf_mkSsrConst "ssr_congr_arrow" gl in
+  let ssr_congr lr = mkApp (arr, lr) in
   (* here thw two cases: simple equality or arrow *)
   let equality, _, eq_args, gl' =
-    pf_saturate gl (Universes.constr_of_global (build_coq_eq ())) 3 in
+    let eq, gl = pf_fresh_global (build_coq_eq ()) gl in
+    pf_saturate gl eq 3 in
   tclMATCH_GOAL (equality, gl') (fun gl' -> fs gl' (List.assoc 0 eq_args))
   (fun ty -> congrtac (arg, Detyping.detype false [] [] ty) ist)
   (fun () ->
@@ -4739,16 +4762,16 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
     let sigma = create_evar_defs sigma in
     Evarutil.new_evar sigma env (beta (subst1 new_rdx pred)) in
   let pred = mkNamedLambda pattern_id rdx_ty pred in
-  let elim = 
+  let elim, gl = 
     let ((kn, i) as ind, _), unfolded_c_ty = pf_reduce_to_quantified_ind gl c_ty in
     let sort = elimination_sort_of_goal gl in
-    let elim = Universes.constr_of_global (Indrec.lookup_eliminator ind sort) in
-    if dir = R2L then elim else (* taken from Coq's rewrite *)
+    let elim, gl = pf_fresh_global (Indrec.lookup_eliminator ind sort) gl in
+    if dir = R2L then elim, gl else (* taken from Coq's rewrite *)
     let elim, _ = destConst elim in          
     let mp,dp,l = repr_con (constant_of_kn (canonical_con elim)) in
     let l' = label_of_id (Nameops.add_suffix (id_of_label l) "_r")  in 
     let c1' = Global.constant_of_delta_kn (canonical_con (make_con mp dp l')) in
-    mkConst c1' in
+    mkConst c1', gl in
   let proof = mkApp (elim, [| rdx_ty; new_rdx; pred; p; rdx; c |]) in
   (* We check the proof is well typed *)
   let sigma, proof_ty =
@@ -4881,19 +4904,24 @@ let rwrxtac occ rdx_pat dir rule gl =
         let ise, x = Evarutil.new_evar (create_evar_defs sigma) env xt in
         loop d ise (mkApp (r, [|x|])) (subst1 x at) rs 0
       | App (pr, a) when is_ind_ref pr coq_prod.Coqlib.typ ->
-        let sr = match kind_of_term (Tacred.hnf_constr env sigma r) with
+        let sr sigma = match kind_of_term (Tacred.hnf_constr env sigma r) with
         | App (c, ra) when is_construct_ref c coq_prod.Coqlib.intro ->
-          fun i -> ra.(i + 1)
+          fun i -> ra.(i + 1), sigma
         | _ -> let ra = Array.append a [|r|] in
           function 1 ->
-            mkApp (Universes.constr_of_global coq_prod.Coqlib.proj1, ra)
+            let sigma, pi1 = Evd.fresh_global env sigma coq_prod.Coqlib.proj1 in
+            mkApp (pi1, ra), sigma
           | _ ->
-            mkApp (Universes.constr_of_global coq_prod.Coqlib.proj2, ra) in
+            let sigma, pi2 = Evd.fresh_global env sigma coq_prod.Coqlib.proj2 in
+            mkApp (pi2, ra), sigma in
         if eq_constr a.(0) (build_coq_True ()) then
-         loop (converse_dir d) sigma (sr 2) a.(1) rs 0
+         let s, sigma = sr sigma 2 in
+         loop (converse_dir d) sigma s a.(1) rs 0
         else
-         let sigma2, rs2 = loop d sigma (sr 2) a.(1) rs 0 in
-         loop d sigma2 (sr 1) a.(0) rs2 0
+         let s, sigma = sr sigma 2 in
+         let sigma, rs2 = loop d sigma s a.(1) rs 0 in
+         let s, sigma = sr sigma 1 in
+         loop d sigma s a.(0) rs2 0
       | App (r_eq, a) when Hipattern.match_with_equality_type t != None ->
         let indu = destInd r_eq and rhs = Array.last a in
         let np, ndep = Inductiveops.inductive_nargs (fst indu) in
@@ -5066,15 +5094,15 @@ let unfoldtac occ ko t kt gl =
   let f = if ko = None then Closure.betaiotazeta else Closure.betaiota in
   convert_concl (pf_reduce (Reductionops.clos_norm_flags f) gl cl') gl
 
-let unlocktac ist args =
+let unlocktac ist args gl =
   let utac (occ, gt) gl =
     unfoldtac occ occ (interp_term ist gl gt) (fst gt) gl in
-  let locked = mkSsrConst "locked" in
-  let key = mkSsrConst "master_key" in
+  let locked, gl = pf_mkSsrConst "locked" gl in
+  let key, gl = pf_mkSsrConst "master_key" gl in
   let ktacs = [
     (fun gl -> unfoldtac None None (project gl,locked) '(' gl); 
     simplest_newcase key ] in
-  tclTHENLIST (List.map utac args @ ktacs)
+  tclTHENLIST (List.map utac args @ ktacs) gl
 
 TACTIC EXTEND ssrunlock
   | [ "unlock" ssrunlockargs(args) ssrclauses(clauses) ] ->
@@ -5568,7 +5596,7 @@ END
 
 let examine_abstract id gl =
   let tid = pf_type_of gl id in
-  let abstract = mkSsrConst "abstract" in
+  let abstract, gl = pf_mkSsrConst "abstract" gl in
   if not (isApp tid) || not (eq_constr (fst(destApp tid)) abstract) then
     errorstrm(strbrk"not an abstract constant: "++pr_constr id);
   let _, args_id = destApp tid in
@@ -5580,7 +5608,7 @@ let examine_abstract id gl =
 
 let pf_find_abstract_proof check_lock gl abstract_n = 
   let fire gl t = Reductionops.nf_evar (project gl) t in
-  let abstract = mkSsrConst "abstract" in
+  let abstract, gl = pf_mkSsrConst "abstract" gl in
   let l = Evd.fold_undefined (fun e ei l ->
     match kind_of_term ei.Evd.evar_concl with
     | App(hd, [|ty; n; lock|])
@@ -5626,11 +5654,12 @@ let havetac ist
  let hint = hinttac ist true hint in
  let cuttac t gl =
    if transp then
+     let have_let, gl = pf_mkSsrConst "ssr_have_let" gl in
      applyn ~with_evars:true ~with_shelve:false 2
-       (mkApp (mkSsrConst "ssr_have_let", [|concl;t|])) gl
+       (mkApp (have_let, [|concl;t|])) gl
    else basecuttac "ssr_have" t gl in
  (* Introduce now abstract constants, so that everything sees them *)
- let abstract_key = mkSsrConst "abstract_key" in
+ let abstract_key, gl = pf_mkSsrConst "abstract_key" gl in
  let unlock_abs args_id gl = pf_unify_HO gl args_id.(2) abstract_key in
  tclTHENFIRST itac_mkabs (fun gl ->
   let mkt t = mk_term ' ' t in
@@ -5679,7 +5708,9 @@ let havetac ist
      let gl, ty = pf_e_type_of gl t in
      gl, ty, apply t, id,
        tclTHEN (tclTHEN itac_c simpltac)
-         (tclTHEN tacopen_skols (unfold [mkSsrConst "abstract";abstract_key]))
+         (tclTHEN tacopen_skols (fun gl ->
+            let abstract, gl = pf_mkSsrConst "abstract" gl in
+            unfold [abstract; abstract_key] gl))
    | _,true,true  ->
      let _, ty, uc = interp_ty gl fixtc cty in let gl = pf_merge_uc uc gl in
      gl, mkArrow ty concl, hint, itac, clr
@@ -5708,8 +5739,8 @@ let ssrabstract ist gens (*last*) gl =
 *)
     let concl, env = pf_concl gl, pf_env gl in
     let fire gl t = Reductionops.nf_evar (project gl) t in
-    let abstract = mkSsrConst "abstract" in
-    let abstract_key = mkSsrConst "abstract_key" in
+    let abstract, gl = pf_mkSsrConst "abstract" gl in
+    let abstract_key, gl = pf_mkSsrConst "abstract_key" gl in
     let id = mkVar (Option.get (id_of_cpattern cid)) in
     let args_id = examine_abstract id gl in
     let abstract_n = args_id.(1) in
