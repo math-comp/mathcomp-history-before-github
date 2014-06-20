@@ -374,7 +374,7 @@ Lemma prod_repr_lin n2 (rG1 : reprG 1) (rG2 : reprG n2) :
   {in G, forall x, let cast_n2 := esym (mul1n n2) in
       prod_repr rG1 rG2 x = castmx (cast_n2, cast_n2) (rG1 x 0 0 *: rG2 x)}.
 Proof.
-move=> x Gx cast_n2; rewrite /prod_repr /= !mxE !lshift0.
+move=> x Gx /=; set cast_n2 := esym _; rewrite /prod_repr /= !mxE !lshift0.      
 apply/matrixP=> i j; rewrite castmxE /=.
 do 2![rewrite mxE; case: splitP => [? ? | []//]].
 by congr ((_ *: rG2 x) _ _); apply: val_inj.
