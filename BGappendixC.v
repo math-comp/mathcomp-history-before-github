@@ -435,7 +435,7 @@ exists a; rewrite !inE; apply/and3P; split.
     rewrite DfcF horner_prod -prodrN; apply: eq_bigr => beta _.
     by rewrite rmorph0 hornerXsubC add0r opprK.
   by rewrite -signr_odd mulr_sign oG horner_map fc0 rmorphN1 opprK.
-apply/eqP; transitivity fcF.[inF 2%:R]; last by rewrite horner_map fc2 rmorph1.
+apply/eqP; transitivity (fcF.[inF 2%:R]); last by rewrite horner_map fc2 rmorph1.
 rewrite DfcF horner_prod; apply: eq_bigr => beta _.
 by rewrite hornerXsubC rmorphB !rmorph_nat.
 Qed.
