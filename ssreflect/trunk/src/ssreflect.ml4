@@ -1041,7 +1041,7 @@ let interp_refine ist gl rc =
     expand_evars = true }
   in
   let sigma, c = understand_ltac flags (project gl) (pf_env gl) vars kind rc in
-  pp(lazy(str"sigma@interp_refine=" ++ pr_evar_map None sigma));
+(*   pp(lazy(str"sigma@interp_refine=" ++ pr_evar_map None sigma)); *)
   pp(lazy(str"c@interp_refine=" ++ pr_constr c));
   (sigma, (sigma, c))
 
@@ -3440,7 +3440,7 @@ let genclrtac cl cs clr =
     (cleartac clr)
 
 let gentac ist gen gl =
-  pp(lazy(str"sigma@gentac=" ++ pr_evar_map None (project gl)));
+(*   pp(lazy(str"sigma@gentac=" ++ pr_evar_map None (project gl))); *)
   let conv, _, cl, c, clr, ucst = pf_interp_gen_aux ist gl false gen in
   pp(lazy(str"c@gentac=" ++ pr_constr c));
   let gl = pf_merge_uc ucst gl in
@@ -3785,7 +3785,7 @@ let applyn ~with_evars ?beta ?(with_shelve=false) n t gl =
   if with_evars then
     let refine gl =
       let t, ty, args, gl = pf_saturate ?beta ~bi_types:true gl t n in
-      pp(lazy(str"sigma@saturate=" ++ pr_evar_map None (project gl)));
+(*       pp(lazy(str"sigma@saturate=" ++ pr_evar_map None (project gl))); *)
       let gl = pf_unify_HO gl ty (pf_concl gl) in
       let gs = CList.map_filter (fun (_, e) ->
         if isEvar (pf_nf_evar gl e) then Some e else None)
@@ -4243,7 +4243,7 @@ PRINTED BY pr_ssraarg
 END
 
 let interp_agen ist gl ((goclr, _), (k, gc)) (clr, rcs) =
-        pp(lazy(str"sigma@interp_agen=" ++ pr_evar_map None (project gl)));
+(* pp(lazy(str"sigma@interp_agen=" ++ pr_evar_map None (project gl))); *)
   let rc = glob_constr ist (pf_env gl) gc in
   let rcs' = rc :: rcs in
   match goclr with
@@ -4271,7 +4271,7 @@ let interp_agens ist gl gagens =
   | _ -> assert false
 
 let apply_rconstr ?ist t gl =
-        pp(lazy(str"sigma@apply_rconstr=" ++ pr_evar_map None (project gl)));
+(* pp(lazy(str"sigma@apply_rconstr=" ++ pr_evar_map None (project gl))); *)
   let n = match ist, t with
     | None, (GVar (_, id) | GRef (_, VarRef id,_)) -> pf_nbargs gl (mkVar id)
     | Some ist, _ -> interp_nbargs ist gl t
@@ -4306,7 +4306,7 @@ let apply_top_tac gl =
   tclTHENLIST [introid top_id; apply_rconstr (mkRVar top_id); clear [top_id]] gl
     
 let inner_ssrapplytac gviews ggenl gclr ist gl =
-        pp(lazy(str"sigma@inner=" ++ pr_evar_map None (project gl)));
+(*  pp(lazy(str"sigma@inner=" ++ pr_evar_map None (project gl))); *)
  let _, clr = interp_hyps ist gl gclr in
  let vtac gv i gl' = refine_interp_apply_view i ist gl' gv in
  let ggenl, tclGENTAC =
@@ -4732,7 +4732,7 @@ exception PRtype_error
 exception PRindetermined_rhs of constr
 
 let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
-        pp(lazy(str"sigma@pirrel_rewrite=" ++ pr_evar_map None sigma));
+(*   pp(lazy(str"sigma@pirrel_rewrite=" ++ pr_evar_map None sigma)); *)
   let env = pf_env gl in
   let beta = Reductionops.clos_norm_flags Closure.beta env sigma in
   let sigma, p = 
@@ -4791,7 +4791,7 @@ let rwcltac cl rdx dir sr gl =
   let r' = subst_var pattern_id r_n' in
   let gl = pf_merge_uc ucst gl in
   let rdxt = Retyping.get_type_of (pf_env gl) (fst sr) rdx in
-        pp(lazy(str"sigma@rwcltac=" ++ pr_evar_map None (fst sr)));
+(*         pp(lazy(str"sigma@rwcltac=" ++ pr_evar_map None (fst sr))); *)
         pp(lazy(str"r@rwcltac=" ++ pr_constr (snd sr)));
   let cvtac, rwtac, gl =
     if closed0 r' then 
