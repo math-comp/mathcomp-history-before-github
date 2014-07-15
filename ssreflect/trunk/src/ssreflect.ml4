@@ -1153,34 +1153,6 @@ GEXTEND Gram
   ;
 END
 
-(* Remove the silly restriction that forces coercion classes to be precise *)
-(* aliases, e.g., allowing notations that specify some class parameters.   *)
-
-let qualify_ref clref =
-  let loc, qid = qualid_of_reference clref in
-  try match Nametab.locate_extended qid with
-  | TrueGlobal _ -> clref
-  | SynDef kn ->
-    let rec head_of = function
-    |  NRef gref ->
-          Qualid (loc, Nametab.shortest_qualid_of_global Idset.empty gref)
-    |  NApp (rc, _) -> head_of rc
-    |  NCast (rc, _) -> head_of rc
-    |  NLetIn (_, _, rc) -> head_of rc
-    | rc ->
-       Errors.user_err_loc (loc, "qualify_ref",
-        str "The definition of " ++ Ppconstr.pr_qualid qid
-             ++ str " does not have a head constant") in
-    head_of (snd (Syntax_def.search_syntactic_definition kn))
-  with _ -> clref
-
-let class_rawexpr = G_vernac.class_rawexpr in
-GEXTEND Gram
-  GLOBAL: class_rawexpr;
-  ssrqref: [[ gref = global -> qualify_ref gref ]];
-  class_rawexpr: [[ class_ref = ssrqref -> Vernacexpr.RefClass (Misctypes.AN class_ref) ]];
-END
-
 (** Extend Search to subsume SearchAbout, also adding hidden Type coercions. *)
 
 (* Main prefilter *)
