@@ -2860,6 +2860,7 @@ let ssrmkabs id gl =
     Evarutil.new_evar sigma (Environ.push_rel rd env) concl in
   pp(lazy(pr_constr concl));
   let step = mkApp (mkLambda(Name id,abstract_ty,kont) ,[|abstract_proof|]) in
+  let sigma, _ = Typing.e_type_of env sigma step in
   Proofview.V82.of_tactic
     (Proofview.tclTHEN
       (Tactics.New.refine (sigma, step))
@@ -5576,7 +5577,7 @@ let examine_abstract id gl =
     errorstrm(strbrk"not a proper abstract constant: "++pr_constr id);
   if not (isEvar args_id.(2)) then
     errorstrm(strbrk"abstract constant "++pr_constr id++str" already used");
-  args_id
+  tid, args_id
 
 let pf_find_abstract_proof check_lock gl abstract_n = 
   let fire gl t = Reductionops.nf_evar (project gl) t in
@@ -5627,12 +5628,15 @@ let havetac ist
  let cuttac t gl =
    if transp then
      let have_let, gl = pf_mkSsrConst "ssr_have_let" gl in
-     applyn ~with_evars:true ~with_shelve:false 2
-       (mkApp (have_let, [|concl;t|])) gl
+     let step = mkApp (have_let, [|concl;t|]) in
+     let gl, _ = pf_e_type_of gl step in
+     applyn ~with_evars:true ~with_shelve:false 2 step gl
    else basecuttac "ssr_have" t gl in
  (* Introduce now abstract constants, so that everything sees them *)
  let abstract_key, gl = pf_mkSsrConst "abstract_key" gl in
- let unlock_abs args_id gl = pf_unify_HO gl args_id.(2) abstract_key in
+ let unlock_abs (idty,args_id) gl =
+    let gl, _ = pf_e_type_of gl idty in
+    pf_unify_HO gl args_id.(2) abstract_key in
  tclTHENFIRST itac_mkabs (fun gl ->
   let mkt t = mk_term ' ' t in
   let mkl t = (' ', (t, None)) in
@@ -5673,7 +5677,8 @@ let havetac ist
        interp gl false (combineCG ct cty (mkCCast loc) mkRCast) in
      let gl = re_sig (sig_it gl) (Evd.merge_universe_context sigma uc) in
      let gs =
-       List.map (fun a -> pf_find_abstract_proof false gl a.(1)) skols_args in
+       List.map (fun (_,a) ->
+         pf_find_abstract_proof false gl a.(1)) skols_args in
      let tacopen_skols gl =
         let stuff, g = Refiner.unpackage gl in
         Refiner.repackage stuff ((List.map Goal.build gs) @ [g]) in
@@ -5714,7 +5719,7 @@ let ssrabstract ist gens (*last*) gl =
     let abstract, gl = pf_mkSsrConst "abstract" gl in
     let abstract_key, gl = pf_mkSsrConst "abstract_key" gl in
     let id = mkVar (Option.get (id_of_cpattern cid)) in
-    let args_id = examine_abstract id gl in
+    let idty, args_id = examine_abstract id gl in
     let abstract_n = args_id.(1) in
     let abstract_proof = pf_find_abstract_proof true gl abstract_n in 
     let gl, proof =
@@ -5744,6 +5749,7 @@ let ssrabstract ist gens (*last*) gl =
           (*else mkApp(mkSsrConst "use_abstract",Array.append args_id [|id|])*))
           (fire gl args_id.(0)) in
     let gl = (*if last then*) pf_unify_HO gl abstract_key args_id.(2) (*else gl*) in
+    let gl, _ = pf_e_type_of gl idty in
     let proof = fire gl proof in
 (*     if last then *)
       let tacopen gl =
