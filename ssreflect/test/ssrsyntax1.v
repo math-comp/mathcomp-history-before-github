@@ -8,7 +8,7 @@ rewrite plus_comm, plus_comm.
 split.
 Abort.
 
-Section Foo.
+Module Foo.
 Import ssreflect.SsrSyntax.
 
 Goal (forall a b, a + b = b + a).
