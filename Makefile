@@ -22,7 +22,7 @@ MAKEFLAGS+=-B
 define coqmakefile
 	(echo "Generating Makefile.coq for Coq $(V) with COQBIN=$(COQBIN)";\
 	grep -E -v '^COQ' Make > Make.coq;\
-	echo -R theories/ ssreflect -I ssreflect/$(V)/src/ >> Make.coq;\
+	echo -R theories/ Ssreflect -I ssreflect/$(V)/src/ >> Make.coq;\
 	echo ssreflect/$(V)/src/ssreflect.mllib >> Make.coq;\
 	echo ssreflect/$(V)/src/ssrmatching.mli >> Make.coq;\
 	echo ssreflect/$(V)/src/ssrmatching.ml4 >> Make.coq;\
