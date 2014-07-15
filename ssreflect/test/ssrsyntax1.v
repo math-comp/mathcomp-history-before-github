@@ -9,7 +9,7 @@ split.
 Abort.
 
 Module Foo.
-Import ssreflect.SsrSyntax.
+Import ssreflect.
 
 Goal (forall a b, a + b = b + a).
 intros.
