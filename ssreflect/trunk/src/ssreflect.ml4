@@ -1003,6 +1003,11 @@ let pf_unabs_evars gl ise n c0 =
 
 type ssrargfmt = ArgSsr of string | ArgCoq of argument_type | ArgSep of string
 
+let ssrtac_name name = {
+  mltac_plugin = "ssreflect";
+  mltac_tactic = "ssr" ^ name;
+}
+
 let set_pr_ssrtac name prec afmt =
   let fmt = List.map (function ArgSep s -> Some s | _ -> None) afmt in
   let rec mk_akey = function
@@ -1010,12 +1015,12 @@ let set_pr_ssrtac name prec afmt =
   | ArgCoq a :: afmt' -> a :: mk_akey afmt'
   | ArgSep _ :: afmt' -> mk_akey afmt'
   | [] -> [] in
-  let tacname = "ssr" ^ name in
+  let tacname = ssrtac_name name in
    Pptactic.declare_ml_tactic_pprule tacname
     { Pptactic.pptac_args = mk_akey afmt;
       Pptactic.pptac_prods = (prec, fmt) }
 
-let ssrtac_atom loc name args = TacExtend (loc, "ssr" ^ name, args)
+let ssrtac_atom loc name args = TacExtend (loc, ssrtac_name name, args)
 let ssrtac_expr loc name args = TacAtom (loc, ssrtac_atom loc name args)
 
 
@@ -3251,7 +3256,7 @@ GEXTEND Gram
     | tac = ssr_first -> tac ]];
   tactic_expr: LEVEL "4" [ LEFTA
     [ tac1 = tactic_expr; ";"; IDENT "first"; tac2 = ssr_first_else ->
-      TacThen (tac1,[||], tac2,[||])
+      TacThen (tac1, tac2)
     | tac = tactic_expr; ";"; IDENT "first"; arg = ssrseqarg ->
       tclseq_expr !@loc tac L2R arg
     | tac = tactic_expr; ";"; IDENT "last"; arg = ssrseqarg ->
@@ -5771,7 +5776,7 @@ GEXTEND Gram
   GLOBAL: tactic_expr;
   tactic_expr: LEVEL "3"
     [ RIGHTA [ IDENT "abstract"; gens = ssrdgens ->
-               Tacexpr.TacAtom(!@loc,Tacexpr.TacExtend (!@loc, "ssrabstract",
+               Tacexpr.TacAtom(!@loc,Tacexpr.TacExtend (!@loc, ssrtac_name "abstract",
                 [Genarg.in_gen (Genarg.rawwit wit_ssrdgens) gens])) ]];
 END
 TACTIC EXTEND ssrabstract
