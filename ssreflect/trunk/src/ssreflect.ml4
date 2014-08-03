@@ -160,8 +160,9 @@ let get_index = function ArgArg i -> i | _ ->
 let glob_constr ist genv = function
   | _, Some ce ->
     let vars = Id.Map.fold (fun x _ accu -> Id.Set.add x accu) ist.lfun Id.Set.empty in
-    let ltacvars = vars, Id.Set.empty, Id.Map.empty in
-    Constrintern.intern_gen WithoutTypeConstraint ~ltacvars:ltacvars genv ce
+    let ltacvars = {
+      Constrintern.empty_ltac_sign with Constrintern.ltac_vars = vars } in
+    Constrintern.intern_gen WithoutTypeConstraint ~ltacvars genv ce
   | rc, None -> rc
 
 (* Term printing utilities functions for deciding bracketing.  *)
