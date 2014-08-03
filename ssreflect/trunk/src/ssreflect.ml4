@@ -3427,7 +3427,7 @@ let genclrtac cl cs clr =
       (apply_type cl cs)
       (fun type_err gl ->
          tclTHEN
-           (tclTHEN (elim_type (build_coq_False ())) (cleartac clr))
+           (tclTHEN (Proofview.V82.of_tactic (elim_type (build_coq_False ()))) (cleartac clr))
            (fun gl -> raise type_err)
            gl))
     (cleartac clr)
@@ -4902,7 +4902,7 @@ let rwrxtac occ rdx_pat dir rule gl =
          loop d sigma s a.(0) rs2 0
       | App (r_eq, a) when Hipattern.match_with_equality_type t != None ->
         let indu = destInd r_eq and rhs = Array.last a in
-        let np, ndep = Inductiveops.inductive_nargs (fst indu) in
+        let np = Inductiveops.inductive_nparamdecls (fst indu) in
         let ind_ct = Inductiveops.type_of_constructors env indu in
         let lhs0 = last_arg (strip_prod_assum ind_ct.(0)) in
         let rdesc = match kind_of_term lhs0 with
