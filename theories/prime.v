@@ -1016,8 +1016,7 @@ Lemma partn_biglcm (I : finType) (P : pred I) F pi :
   (\big[lcmn/1%N]_(i | P i) F i)`_pi = \big[lcmn/1%N]_(i | P i) (F i)`_pi.
 Proof.
 move=> F_gt0; set m := \big[lcmn/1%N]_(i | P i) F i.
-have m_gt0: 0 < m.
-  by elim/big_ind: (X in _ < X) => // p q p_gt0; rewrite lcmn_gt0 p_gt0.
+have m_gt0: 0 < m by elim/big_ind: m => // p q p_gt0; rewrite lcmn_gt0 p_gt0.
 apply/eqP; rewrite eqn_dvd andbC; apply/andP; split.
   by apply/dvdn_biglcmP=> i Pi; rewrite partn_dvd // (@biglcmn_sup _ i).
 rewrite -(dvdn_pmul2r (part_gt0 pi^' m)) partnC //.
