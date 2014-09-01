@@ -573,7 +573,7 @@ let basecuttac name c gl =
   let hd, gl = pf_mkSsrConst name gl in
   let t = mkApp (hd, [|c|]) in
   let gl, _ = pf_e_type_of gl t in
-  apply t gl
+  Proofview.V82.of_tactic (apply t) gl
 
 (* we reduce head beta redexes *)
 let betared env = 
@@ -833,7 +833,7 @@ let call_on_evar tac e s =
 let pf_abs_evars_pirrel gl (sigma, c0) =
   pp(lazy(str"==PF_ABS_EVARS_PIRREL=="));
   pp(lazy(str"c0= " ++ pr_constr c0));
-  let sigma0, ucst = project gl, Evd.evar_universe_context sigma in
+  let sigma0 = project gl in
   let nenv = env_size (pf_env gl) in
   let abs_evar n k =
     let evi = Evd.find sigma k in
@@ -854,7 +854,7 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
     let t = abs_evar n k in (k, (n, t, is_prop)) :: put evlist t
   | _ -> fold_constr put evlist c in
   let evlist = put [] c0 in
-  if evlist = [] then 0, c0, ucst else
+  if evlist = [] then 0, c0 else
   let pr_constr t = pr_constr (Reductionops.nf_beta (project gl) t) in
   let evplist = 
     let depev = List.fold_left (fun evs (_,(_,t,_)) -> 
@@ -907,8 +907,8 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
     loop (mkLambda (mk_evar_name n, t, c)) (i - 1) evl
   | [] -> c in
   let res = loop (get evlist 1 c0) 1 evlist in
-  pp(lazy(str"res= " ++ pr_constr res)); 
-  List.length evlist, res, ucst
+  pp(lazy(str"res= " ++ pr_constr res));
+  List.length evlist, res
 
 (* Strip all non-essential dependencies from an abstracted term, generating *)
 (* standard names for the abstracted holes.                                 *)
@@ -1021,8 +1021,8 @@ let set_pr_ssrtac name prec afmt =
     { Pptactic.pptac_args = mk_akey afmt;
       Pptactic.pptac_prods = (prec, fmt) }
 
-let ssrtac_atom loc name args = TacExtend (loc, ssrtac_name name, args)
-let ssrtac_expr loc name args = TacAtom (loc, ssrtac_atom loc name args)
+let ssrtac_atom loc name args = TacML (loc, ssrtac_name name, args)
+let ssrtac_expr = ssrtac_atom
 
 
 let ssrevaltac ist gtac =
@@ -1051,7 +1051,9 @@ let interp_open_constr ist gl gc =
 
 let interp_refine ist gl rc =
   let constrvars = extract_ltac_constr_values ist (pf_env gl) in
-  let vars = (constrvars, ist.lfun) in
+  let vars = { Pretyping.empty_lvar with
+    Pretyping.ltac_constrs = constrvars; ltac_genargs = ist.lfun
+  } in
   let kind = OfType (pf_concl gl) in
   let flags = {
     use_typeclasses = true;
@@ -1361,7 +1363,7 @@ let rec interp_head_pat hpat =
   | Cast (c', _, _) -> loop c'
   | Prod (_, _, c') -> loop c'
   | LetIn (_, _, _, c') -> loop c'
-  | _ -> ConstrMatching.is_matching p c in
+  | _ -> ConstrMatching.is_matching (Global.env()) Evd.empty p c in
   filter_head, loop
 
 let all_true _ = true
@@ -2478,16 +2480,17 @@ and ssripats = ssripat list
 let remove_loc = snd
 
 let rec ipat_of_intro_pattern = function
-  | IntroIdentifier id -> IpatId id
-  | IntroWildcard -> IpatWild
-  | IntroOrAndPattern iorpat ->
+  | IntroNaming (IntroIdentifier id) -> IpatId id
+  | IntroNaming IntroWildcard -> IpatWild
+  | IntroAction (IntroOrAndPattern iorpat) ->
     IpatCase 
       (List.map (List.map ipat_of_intro_pattern) 
 	 (List.map (List.map remove_loc) iorpat))
-  | IntroAnonymous -> IpatAnon
-  | IntroRewrite b -> IpatRw (allocc, if b then L2R else R2L)
-  | IntroFresh id -> IpatAnon
-  | IntroInjection ips ->
+  | IntroNaming IntroAnonymous -> IpatAnon
+  | IntroAction (IntroRewrite b) -> IpatRw (allocc, if b then L2R else R2L)
+  | IntroNaming (IntroFresh id) -> IpatAnon
+  | IntroAction (IntroApplyOn _) -> (* to do *) Errors.error "TO DO"
+  | IntroAction (IntroInjection ips) ->
       IpatCase [List.map ipat_of_intro_pattern (List.map remove_loc ips)]
   | IntroForthcoming _ -> (* Unable to determine which kind of ipat interp_introid could return [HH] *)
       assert false
@@ -2522,20 +2525,21 @@ let intern_ipat ist ipat =
 let intern_ipats ist = List.map (intern_ipat ist)
 
 let interp_introid ist gl id =
- try IntroIdentifier (hyp_id (snd (interp_hyp ist gl (SsrHyp (dummy_loc, id)))))
- with _ -> snd(snd (interp_intro_pattern ist gl (dummy_loc,IntroIdentifier id)))
+ try IntroNaming (IntroIdentifier (hyp_id (snd (interp_hyp ist gl (SsrHyp (dummy_loc, id))))))
+ with _ -> snd(snd (interp_intro_pattern ist gl (dummy_loc,IntroNaming (IntroIdentifier id))))
 
 let rec add_intro_pattern_hyps (loc, ipat) hyps = match ipat with
-  | IntroIdentifier id ->
+  | IntroNaming (IntroIdentifier id) ->
     if not_section_id id then SsrHyp (loc, id) :: hyps else
     hyp_err loc "Can't delete section hypothesis " id
-  | IntroWildcard -> hyps
-  | IntroOrAndPattern iorpat ->
+  | IntroNaming IntroWildcard -> hyps
+  | IntroAction (IntroOrAndPattern iorpat) ->
     List.fold_right (List.fold_right add_intro_pattern_hyps) iorpat hyps
-  | IntroAnonymous -> []
-  | IntroFresh _ -> []
-  | IntroRewrite _ -> hyps
-  | IntroInjection ips -> List.fold_right add_intro_pattern_hyps ips hyps
+  | IntroNaming IntroAnonymous -> []
+  | IntroNaming (IntroFresh _) -> []
+  | IntroAction (IntroRewrite _) -> hyps
+  | IntroAction (IntroInjection ips) -> List.fold_right add_intro_pattern_hyps ips hyps
+  | IntroAction (IntroApplyOn (c,pat)) -> add_intro_pattern_hyps pat hyps
   | IntroForthcoming _ -> 
     (* As in ipat_of_intro_pattern, was unable to determine which kind
       of ipat interp_introid could return [HH] *) assert false
@@ -2555,7 +2559,7 @@ let rec interp_ipat ist gl =
   | IpatNewHidden l ->
       IpatNewHidden
         (List.map (function
-           | IntroIdentifier id -> id
+           | IntroNaming (IntroIdentifier id) -> id
            | _ -> assert false)
         (List.map (interp_introid ist gl) l))
   | ipat -> ipat in
@@ -2739,7 +2743,7 @@ let revtoptac n0 gl =
 
 let equality_inj l b id c gl =
   let msg = ref "" in
-  try Proofview.V82.of_tactic (Equality.inj l b c) gl
+  try Proofview.V82.of_tactic (Equality.inj l b None c) gl
   with
     | Compat.Exc_located(_,Errors.UserError (_,s))
     | Errors.UserError (_,s)
@@ -2774,7 +2778,7 @@ let perform_injection c gl =
   let id = injecteq_id in
   let id_with_ebind = (mkVar id, NoBindings) in
   let injtac = tclTHEN (introid id) (injectidl2rtac id id_with_ebind) in 
-  tclTHENLAST (apply (compose_lam dc cl1)) injtac gl  
+  tclTHENLAST (Proofview.V82.of_tactic (apply (compose_lam dc cl1))) injtac gl  
 
 let simplest_newcase_ref = ref (fun t gl -> assert false)
 let simplest_newcase x gl = !simplest_newcase_ref x gl
@@ -3808,8 +3812,9 @@ let applyn ~with_evars ?beta ?(with_shelve=false) n t gl =
 
 let refine_with ?(first_goes_last=false) ?beta ?(with_evars=true) oc gl =
   let rec mkRels = function 1 -> [] | n -> mkRel n :: mkRels (n-1) in
-  let n, oc, ucst = pf_abs_evars_pirrel gl oc in
-  let gl = pf_merge_uc ucst gl in
+  let uct = Evd.evar_universe_context (fst oc) in
+  let n, oc = pf_abs_evars_pirrel gl oc in
+  let gl = pf_merge_uc uct gl in
   let oc = if not first_goes_last || n <= 1 then oc else
     let l, c = decompose_lam oc in
     if not (List.for_all_i (fun i (_,t) -> closedn ~-i t) (1-n) l) then oc else
@@ -4443,7 +4448,7 @@ let newssrcongrtac arg ist gl =
     let lhs, gl' = mk_evar gl mkProp in let rhs, gl' = mk_evar gl' mkProp in
     let arrow = mkArrow lhs (lift 1 rhs) in
     tclMATCH_GOAL (arrow, gl') (fun gl' -> [|fs gl' lhs;fs gl' rhs|])
-    (fun lr -> tclTHEN (apply (ssr_congr lr)) (congrtac (arg, mkRType) ist))
+    (fun lr -> tclTHEN (Proofview.V82.of_tactic (apply (ssr_congr lr))) (congrtac (arg, mkRType) ist))
     (fun _ _ -> errorstrm (str"Conclusion is not an equality nor an arrow")))
     gl
 ;;
@@ -5671,7 +5676,7 @@ let havetac ist
        try convert_concl (compose_prod ctx concl) gl
        with _ -> errorstrm (str "Given proof term is not of type " ++
          pr_constr (mkArrow (mkVar (id_of_string "_")) concl)) in
-     gl, ty, tclTHEN assert_is_conv (apply t), id, itac_c
+     gl, ty, tclTHEN assert_is_conv (Proofview.V82.of_tactic (apply t)), id, itac_c
    | FwdHave, false, false ->
      let skols = List.flatten (List.map (function
        | IpatNewHidden ids -> ids
@@ -5689,7 +5694,7 @@ let havetac ist
         let stuff, g = Refiner.unpackage gl in
         Refiner.repackage stuff ((List.map Goal.build gs) @ [g]) in
      let gl, ty = pf_e_type_of gl t in
-     gl, ty, apply t, id,
+     gl, ty, Proofview.V82.of_tactic (apply t), id,
        tclTHEN (tclTHEN itac_c simpltac)
          (tclTHEN tacopen_skols (fun gl ->
             let abstract, gl = pf_mkSsrConst "abstract" gl in
@@ -5761,7 +5766,7 @@ let ssrabstract ist gens (*last*) gl =
       let tacopen gl =
         let stuff, g = Refiner.unpackage gl in
         Refiner.repackage stuff [ g; Goal.build abstract_proof ] in
-      tclTHENS tacopen [tclSOLVE [apply proof];unfold[abstract;abstract_key]] gl
+      tclTHENS tacopen [tclSOLVE [Proofview.V82.of_tactic (apply proof)];unfold[abstract;abstract_key]] gl
 (* else apply proof gl *)
   in
   let introback ist (gens, _) =
@@ -5777,8 +5782,8 @@ GEXTEND Gram
   GLOBAL: tactic_expr;
   tactic_expr: LEVEL "3"
     [ RIGHTA [ IDENT "abstract"; gens = ssrdgens ->
-               Tacexpr.TacAtom(!@loc,Tacexpr.TacExtend (!@loc, ssrtac_name "abstract",
-                [Genarg.in_gen (Genarg.rawwit wit_ssrdgens) gens])) ]];
+               Tacexpr.TacML (!@loc, ssrtac_name "abstract",
+                [Genarg.in_gen (Genarg.rawwit wit_ssrdgens) gens]) ]];
 END
 TACTIC EXTEND ssrabstract
 | [ "abstract" ssrdgens(gens) ] -> [
@@ -5935,7 +5940,7 @@ let wlogtac ist (((clr0, pats),_),_) (gens, ((_, ct))) hint suff ghave gl =
         pp(lazy(str"specialized="++pr_constr (mkApp (mkVar id,args))));
         pp(lazy(str"specialized_ty="++pr_constr ct));
         tclTHENS (basecuttac "ssr_have" ct)
-          [apply (mkApp (mkVar id,args)); tclIDTAC] in
+          [Proofview.V82.of_tactic (apply (mkApp (mkVar id,args))); tclIDTAC] in
       "ssr_have",
       (if hint = nohint then tacigens else hinttac),
       tclTHENLIST [name_general_hyp; tac_specialize; tacipat pats; cleanup]
