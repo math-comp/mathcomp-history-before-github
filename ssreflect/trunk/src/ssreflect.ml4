@@ -3133,7 +3133,7 @@ let accept_ssrseqvar strm =
 
 let test_ssrseqvar = Gram.Entry.of_parser "test_ssrseqvar" accept_ssrseqvar
 
-let swaptacarg (loc, b) = (b, []), Some (TacAtom (loc, TacRevert []))
+let swaptacarg (loc, b) = (b, []), None
 
 let check_seqtacarg dir arg = match snd arg, dir with
   | ((true, []), Some (TacAtom (loc, _))), L2R ->
