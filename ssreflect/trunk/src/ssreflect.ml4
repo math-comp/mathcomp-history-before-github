@@ -218,7 +218,7 @@ let dC t = CastConv t
 
 (** Constructors for constr_expr *)
 let mkCProp loc = CSort (loc, GProp)
-let mkCType loc = CSort (loc, GType None)
+let mkCType loc = CSort (loc, GType [])
 let mkCVar loc id = CRef (Ident (loc, id),None)
 let isCVar = function CRef (Ident _,_) -> true | _ -> false
 let destCVar = function CRef (Ident (_, id),_) -> id | _ ->
@@ -244,7 +244,7 @@ let mkRApp f args = if args = [] then f else GApp (dummy_loc, f, args)
 let mkRVar id = GRef (dummy_loc, VarRef id,None)
 let mkRltacVar id = GVar (dummy_loc, id)
 let mkRCast rc rt =  GCast (dummy_loc, rc, dC rt)
-let mkRType =  GSort (dummy_loc, GType None)
+let mkRType =  GSort (dummy_loc, GType [])
 let mkRProp =  GSort (dummy_loc, GProp)
 let mkRArrow rt1 rt2 = GProd (dummy_loc, Anonymous, Explicit, rt1, rt2)
 let mkRConstruct c = GRef (dummy_loc, ConstructRef c,None)
