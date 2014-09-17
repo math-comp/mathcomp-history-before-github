@@ -40,7 +40,7 @@ Notation qf f := (qf_form f && rformula f).
 Definition polyF := seq (term F).
 
 Fixpoint eval_poly (e : seq F) pf := 
-  if pf is c::qf then (eval_poly e qf)*'X + (eval e c)%:P else 0.
+  if pf is c::q then (eval_poly e q)*'X + (eval e c)%:P else 0.
 
 Definition rpoly (p : polyF) := all (@rterm F) p.
 

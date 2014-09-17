@@ -463,7 +463,7 @@ Lemma right_trans (e : rel T) :
   symmetric e -> transitive e -> right_transitive e.
 Proof. by move=> s t ? * x; rewrite ![e x _]s; apply: left_trans. Qed.
 
-Record equiv_class_of (equiv : rel T) :=
+CoInductive equiv_class_of (equiv : rel T) :=
   EquivClass of reflexive equiv & symmetric equiv & transitive equiv.
 
 Record equiv_rel := EquivRelPack {
@@ -508,7 +508,7 @@ Section EncodingModuloRel.
 
 Variables (D E : Type) (ED : E -> D) (DE : D -> E) (e : rel D).
 
-Record encModRel_class_of (r : rel D) :=
+CoInductive encModRel_class_of (r : rel D) :=
   EncModRelClassPack of (forall x, r x x -> r (ED (DE x)) x) & (r =2 e).
 
 Record encModRel := EncModRelPack {
