@@ -174,7 +174,7 @@ Require Import ssreflect ssrfun.
 (*                  Import DefaultKeying attaches this key to all predicates  *)
 (*                  that are not explicitly keyed.                            *)
 (* Keys can be used to attach properties to predicates, qualifiers and        *)
-(* generic nouns in a way that allows them to be used tranparently. The key   *)
+(* generic nouns in a way that allows them to be used transparently. The key  *)
 (* projection of a predicate property structure such as unsignedPred should   *)
 (* be a pred_key, not a pred, and corresponding lemmas will have the form     *)
 (*    Lemma rpredN R S (oppS : @opprPred R S) (kS : keyed_pred oppS) :        *)
