@@ -2201,7 +2201,7 @@ let interp_index ist gl idx =
         | None ->
         begin match Value.to_constr v with
         | Some c ->
-          let rc = Detyping.detype false [] [] Evd.empty c in
+          let rc = Detyping.detype false [] (pf_env gl) (project gl) c in
           begin match Notation.uninterp_prim_token rc with
           | _, Numeral bigi -> int_of_string (Bigint.to_string bigi)
           | _ -> raise Not_found
@@ -4443,7 +4443,7 @@ let newssrcongrtac arg ist gl =
     let eq, gl = pf_fresh_global (build_coq_eq ()) gl in
     pf_saturate gl eq 3 in
   tclMATCH_GOAL (equality, gl') (fun gl' -> fs gl' (List.assoc 0 eq_args))
-  (fun ty -> congrtac (arg, Detyping.detype false [] [] (project gl) ty) ist)
+  (fun ty -> congrtac (arg, Detyping.detype false [] (pf_env gl) (project gl) ty) ist)
   (fun () ->
     let lhs, gl' = mk_evar gl mkProp in let rhs, gl' = mk_evar gl' mkProp in
     let arrow = mkArrow lhs (lift 1 rhs) in
