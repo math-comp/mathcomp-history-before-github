@@ -299,12 +299,22 @@ let unif_HO_args env ise0 pa i ca =
 (* evars into metas, since 8.2 does not TC metas. This means some lossage *)
 (* for HO evars, though hopefully Miller patterns can pick up some of     *)
 (* those cases, and HO matching will mop up the rest.                     *)
-let flags_FO = {Unification.default_no_delta_unify_flags () with 
-                Unification.modulo_conv_on_closed_terms = None;
-                Unification.modulo_eta = true;
-                Unification.modulo_betaiota = true;
-                Unification.modulo_delta_types = full_transparent_state;
-                Unification.allow_K_in_toplevel_higher_order_unification=false} 
+let flags_FO =
+  let flags =
+    { (Unification.default_no_delta_unify_flags ()).Unification.core_unify_flags
+      with
+        Unification.modulo_conv_on_closed_terms = None;
+        Unification.modulo_eta = true;
+        Unification.modulo_betaiota = true;
+        Unification.modulo_delta_types = full_transparent_state}
+  in
+  { Unification.core_unify_flags = flags;
+    Unification.merge_unify_flags = flags;
+    Unification.subterm_unify_flags = flags;
+    Unification.allow_K_in_toplevel_higher_order_unification = false;
+    Unification.resolve_evars =
+      (Unification.default_no_delta_unify_flags ()).Unification.resolve_evars
+  }
 let unif_FO env ise p c =
   Unification.w_unify env ise Reduction.CONV ~flags:flags_FO p c
 

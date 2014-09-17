@@ -529,7 +529,7 @@ let pf_pr_glob_constr gl = pr_glob_constr_env (pf_env gl)
 (* debug *)
 
 let pf_msg gl =
-   let ppgl = pr_lconstr_env (pf_env gl) (pf_concl gl) in
+   let ppgl = pr_lconstr_env (pf_env gl) (project gl) (pf_concl gl) in
    msgnl (str "goal is " ++ ppgl)
 
 let msgtac gl = pf_msg gl; tclIDTAC gl
@@ -558,7 +558,7 @@ let pf_partial_solution gl t evl =
 
 let pf_new_evar gl ty =
   let sigma, env, it = project gl, pf_env gl, sig_it gl in
-  let sigma, extra = Evarutil.new_evar sigma env ty in
+  let sigma, extra = Evarutil.new_evar env sigma ty in
   re_sig it sigma, extra
 
 (* Basic tactics *)
@@ -980,7 +980,7 @@ let pf_unabs_evars gl ise n c0 =
   | LetIn (x, b, t, c1) when i < j ->
     let _, _, c2 = destProd c1 in
     mk_evar j (push_rel (x, Some (unabs i b), unabs i t) env) (i + 1) c2
-  | _ -> Evarutil.e_new_evar ise env (unabs i c) in
+  | _ -> Evarutil.e_new_evar env ise (unabs i c) in
   let rec unabs_evars c =
     if !nev = n then unabs n c else match kind_of_term c with
   | Lambda (x, t, c1) when !nev < n ->
@@ -1062,12 +1062,12 @@ let interp_refine ist gl rc =
     fail_evar = false;
     expand_evars = true }
   in
-  let sigma, c = understand_ltac flags (project gl) (pf_env gl) vars kind rc in
+  let sigma, c = understand_ltac flags (pf_env gl) (project gl) vars kind rc in
 (*   pp(lazy(str"sigma@interp_refine=" ++ pr_evar_map None sigma)); *)
   pp(lazy(str"c@interp_refine=" ++ pr_constr c));
   (sigma, (sigma, c))
 
-let pf_match = pf_apply (fun e s c t -> understand_tcc s e ~expected_type:t c)
+let pf_match = pf_apply (fun e s c t -> understand_tcc e s ~expected_type:t c)
 
 (* Estimate a bound on the number of arguments of a raw constr. *)
 (* This is not perfect, because the unifier may fail to         *)
@@ -1430,7 +1430,7 @@ let interp_modloc mr =
 (* The unified, extended vernacular "Search" command *)
 
 let ssrdisplaysearch gr env t =
-  let pr_res = pr_global gr ++ spc () ++ str " " ++ pr_lconstr_env env t in
+  let pr_res = pr_global gr ++ spc () ++ str " " ++ pr_lconstr_env env Evd.empty t in
   msg (hov 2 pr_res ++ fnl ())
 
 VERNAC COMMAND EXTEND SsrSearchPattern CLASSIFIED AS QUERY
@@ -2201,7 +2201,7 @@ let interp_index ist gl idx =
         | None ->
         begin match Value.to_constr v with
         | Some c ->
-          let rc = Detyping.detype false [] [] c in
+          let rc = Detyping.detype false [] [] Evd.empty c in
           begin match Notation.uninterp_prim_token rc with
           | _, Numeral bigi -> int_of_string (Bigint.to_string bigi)
           | _ -> raise Not_found
@@ -2858,16 +2858,16 @@ let ssrmkabs id gl =
   let env, concl = pf_env gl, pf_concl gl in
   let sigma, abstract_proof, abstract_ty =
     let sigma, (ty, _) =
-      Evarutil.new_type_evar Evd.univ_flexible_alg Evd.empty env in
+      Evarutil.new_type_evar env Evd.empty Evd.univ_flexible_alg in
     let sigma, ablock = mkSsrConst "abstract_lock" env sigma in
-    let sigma, lock = Evarutil.new_evar sigma env ablock in
+    let sigma, lock = Evarutil.new_evar env sigma ablock in
     let sigma, abstract = mkSsrConst "abstract" env sigma in
     let abstract_ty = mkApp(abstract, [|ty;mk_abstract_id ();lock|]) in
-    let sigma, m = Evarutil.new_evar sigma env abstract_ty in
+    let sigma, m = Evarutil.new_evar env sigma abstract_ty in
     sigma, m, abstract_ty in
   let sigma, kont =
     let rd = Name id, None, abstract_ty in
-    Evarutil.new_evar sigma (Environ.push_rel rd env) concl in
+    Evarutil.new_evar (Environ.push_rel rd env) sigma concl in
   pp(lazy(pr_constr concl));
   let step = mkApp (mkLambda(Name id,abstract_ty,kont) ,[|abstract_proof|]) in
   let sigma, _ = Typing.e_type_of env sigma step in
@@ -3349,7 +3349,7 @@ let saturate ?(beta=false) ?(bi_types=false) env sigma c ?(ty=Retyping.get_type_
   else match kind_of_type ty with
   | ProdType (_, src, tgt) ->
       let sigma, x =
-        Evarutil.new_evar (create_evar_defs sigma) env
+        Evarutil.new_evar env (create_evar_defs sigma)
           (if bi_types then Reductionops.nf_betaiota sigma src else src) in
       loop (subst1 x tgt) ((m - n,x) :: args) sigma (n-1)
   | CastType (t, _) -> loop t args sigma n 
@@ -4434,7 +4434,7 @@ let newssrcongrtac arg ist gl =
     | None -> t_fail () gl in 
   let mk_evar gl ty = 
     let env, sigma, si = pf_env gl, project gl, sig_it gl in
-    let sigma, x = Evarutil.new_evar (create_evar_defs sigma) env ty in
+    let sigma, x = Evarutil.new_evar env (create_evar_defs sigma) ty in
     x, re_sig si sigma in
   let arr, gl = pf_mkSsrConst "ssr_congr_arrow" gl in
   let ssr_congr lr = mkApp (arr, lr) in
@@ -4443,7 +4443,7 @@ let newssrcongrtac arg ist gl =
     let eq, gl = pf_fresh_global (build_coq_eq ()) gl in
     pf_saturate gl eq 3 in
   tclMATCH_GOAL (equality, gl') (fun gl' -> fs gl' (List.assoc 0 eq_args))
-  (fun ty -> congrtac (arg, Detyping.detype false [] [] ty) ist)
+  (fun ty -> congrtac (arg, Detyping.detype false [] [] (project gl) ty) ist)
   (fun () ->
     let lhs, gl' = mk_evar gl mkProp in let rhs, gl' = mk_evar gl' mkProp in
     let arrow = mkArrow lhs (lift 1 rhs) in
@@ -4744,7 +4744,7 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
   let beta = Reductionops.clos_norm_flags Closure.beta env sigma in
   let sigma, p = 
     let sigma = create_evar_defs sigma in
-    Evarutil.new_evar sigma env (beta (subst1 new_rdx pred)) in
+    Evarutil.new_evar env sigma (beta (subst1 new_rdx pred)) in
   let pred = mkNamedLambda pattern_id rdx_ty pred in
   let elim, gl = 
     let ((kn, i) as ind, _), unfolded_c_ty = pf_reduce_to_quantified_ind gl c_ty in
@@ -4833,7 +4833,7 @@ let rwcltac cl rdx dir sr gl =
       if occur_existential (pf_concl gl)
       then errorstrm (str "Rewriting impacts evars")
       else errorstrm (str "Dependent type error in rewrite of "
-        ++ pf_pr_constr gl (mkNamedLambda pattern_id rdxt cl))
+        ++ pf_pr_constr gl (project gl) (mkNamedLambda pattern_id rdxt cl))
     | Errors.UserError _ as e -> raise e
     | e -> anomaly ("cvtac's exception: " ^ Printexc.to_string e);
   in
@@ -4871,7 +4871,7 @@ let prof_rwxrtac_find_rule = mk_profiler "rwrxtac.find_rule";;
 
 let closed0_check cl p gl =
   if closed0 cl then
-    errorstrm (str"No occurrence of redex "++pf_pr_constr gl p)
+    errorstrm (str"No occurrence of redex "++pf_pr_constr gl (project gl) p)
 
 let rwrxtac occ rdx_pat dir rule gl =
   let env = pf_env gl in
@@ -4885,7 +4885,7 @@ let rwrxtac occ rdx_pat dir rule gl =
       pp(lazy(str"rewrule="++pr_constr t));
       match kind_of_term t with
       | Prod (_, xt, at) ->
-        let ise, x = Evarutil.new_evar (create_evar_defs sigma) env xt in
+        let ise, x = Evarutil.new_evar env (create_evar_defs sigma) xt in
         loop d ise (mkApp (r, [|x|])) (subst1 x at) rs 0
       | App (pr, a) when is_ind_ref pr coq_prod.Coqlib.typ ->
         let sr sigma = match kind_of_term (Tacred.hnf_constr env sigma r) with
@@ -5893,7 +5893,7 @@ let wlogtac ist (((clr0, pats),_),_) (gens, ((_, ct))) hint suff ghave gl =
       List.fold_left (fun (env, c) _ ->
         let rd, c = destProd_or_LetIn c in
         Environ.push_rel rd env, c) (pf_env gl, c) gens in
-    let sigma, ev = Evarutil.new_evar (project gl) env Term.mkProp in
+    let sigma, ev = Evarutil.new_evar env (project gl) Term.mkProp in
     let k, _ = Term.destEvar ev in
     let fake_gl = {Evd.it = Goal.build k; Evd.sigma = sigma} in
     let _, ct, _, uc = pf_interp_ty ist fake_gl ct in
