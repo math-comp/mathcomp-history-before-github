@@ -3731,7 +3731,7 @@ let analyze_eliminator elimty env sigma =
   | _ ->
     let env' = Environ.push_rel_context ctx env in
     let t' = Reductionops.whd_betadeltaiota env' sigma t in
-    if not (eq_constr t t') then loop ctx t' else
+    if not (Term.eq_constr t t') then loop ctx t' else
       errorstrm (str"The eliminator has the wrong shape."++spc()++
       str"A (applied) bound variable was expected as the conclusion of "++
       str"the eliminator's"++Pp.cut()++str"type:"++spc()++pr_constr elimty) in
@@ -4108,7 +4108,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
           let rec intro_eq gl = match kind_of_type (pf_concl gl) with
           | ProdType (_, src, tgt) -> 
              (match kind_of_type src with
-             | AtomicType (hd, _) when eq_constr hd protectC -> 
+             | AtomicType (hd, _) when Term.eq_constr hd protectC -> 
                 tclTHENLIST [unprotecttac; introid ipat] gl
              | _ -> tclTHENLIST [ iD "IA"; introstac [IpatAnon]; intro_eq] gl)
           |_ -> errorstrm (str "Too many names in intro pattern") in
@@ -4127,7 +4127,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
           let concl = pf_concl gl in
           let ctx, last = decompose_prod_assum concl in
           let args = match kind_of_type last with
-          | AtomicType (hd, args) -> assert(eq_constr hd protectC); args
+          | AtomicType (hd, args) -> assert(Term.eq_constr hd protectC); args
           | _ -> assert false in
           let case = args.(Array.length args-1) in
           if not(closed0 case) then tclTHEN (introstac [IpatAnon]) gen_eq_tac gl
@@ -4671,12 +4671,12 @@ let unfoldintac occ rdx t (kt,_) gl =
       if const then
           let rec aux c = 
             match kind_of_term c with
-            | Const _ when eq_constr c t -> body env t t
-            | App (f,a) when eq_constr f t -> mkApp (body env f f,a)
+            | Const _ when Term.eq_constr c t -> body env t t
+            | App (f,a) when Term.eq_constr f t -> mkApp (body env f f,a)
             | _ -> let c = Reductionops.whd_betaiotazeta sigma0 c in
             match kind_of_term c with
-            | Const _ when eq_constr c t -> body env t t
-            | App (f,a) when eq_constr f t -> mkApp (body env f f,a)
+            | Const _ when Term.eq_constr c t -> body env t t
+            | App (f,a) when Term.eq_constr f t -> mkApp (body env f f,a)
             | Const f -> aux (body env c c)
             | App (f, a) -> aux (mkApp (body env f f, a))
             | _ -> errorstrm (str "The term "++pr_constr orig_c++
@@ -4719,7 +4719,7 @@ let foldtac occ rdx ft gl =
 
 let converse_dir = function L2R -> R2L | R2L -> L2R
 
-let rw_progress rhs lhs ise = not (eq_constr lhs (Evarutil.nf_evar ise rhs))
+let rw_progress rhs lhs ise = not (Term.eq_constr lhs (Evarutil.nf_evar ise rhs))
 
 (* Coq has a more general form of "equation" (any type with a single *)
 (* constructor with no arguments with_rect_r elimination lemmas).    *)
@@ -4898,7 +4898,7 @@ let rwrxtac occ rdx_pat dir rule gl =
           | _ ->
             let sigma, pi2 = Evd.fresh_global env sigma coq_prod.Coqlib.proj2 in
             mkApp (pi2, ra), sigma in
-        if eq_constr a.(0) (build_coq_True ()) then
+        if Term.eq_constr a.(0) (build_coq_True ()) then
          let s, sigma = sr sigma 2 in
          loop (converse_dir d) sigma s a.(1) rs 0
         else
@@ -5581,7 +5581,7 @@ END
 let examine_abstract id gl =
   let tid = pf_type_of gl id in
   let abstract, gl = pf_mkSsrConst "abstract" gl in
-  if not (isApp tid) || not (eq_constr (fst(destApp tid)) abstract) then
+  if not (isApp tid) || not (Term.eq_constr (fst(destApp tid)) abstract) then
     errorstrm(strbrk"not an abstract constant: "++pr_constr id);
   let _, args_id = destApp tid in
   if Array.length args_id <> 3 then
@@ -5599,7 +5599,7 @@ let pf_find_abstract_proof check_lock gl abstract_n =
       when (not check_lock || 
                  (occur_existential (fire gl ty) &&
                   isEvar (fire gl lock))) &&
-      eq_constr hd abstract && eq_constr n abstract_n -> e::l
+      Term.eq_constr hd abstract && Term.eq_constr n abstract_n -> e::l
     | _ -> l) (project gl) [] in
   match l with
   | [e] -> e
@@ -5749,7 +5749,7 @@ let ssrabstract ist gens (*last*) gl =
             let p = mkApp (proj2,[|ty;concl;p|]) in
             let concl = mkApp(prod,[|ty; concl|]) in
             pf_unify_HO gl concl t, p
-        | App(hd, [|left; right|]) when eq_constr hd prod ->
+        | App(hd, [|left; right|]) when Term.eq_constr hd prod ->
             find_hole (mkApp (proj1,[|left;right;p|])) left
 *)
         | _ -> errorstrm(strbrk"abstract constant "++pr_constr abstract_n++

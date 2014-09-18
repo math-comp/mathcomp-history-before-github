@@ -535,8 +535,8 @@ let filter_upat i0 f n u fpats =
   let na = Array.length u.up_a in
   if n < na then fpats else
   let np = match u.up_k with
-  | KpatConst when eq_constr u.up_f f -> na
-  | KpatFixed when eq_constr u.up_f f -> na 
+  | KpatConst when Term.eq_constr u.up_f f -> na
+  | KpatFixed when Term.eq_constr u.up_f f -> na 
   | KpatEvar k when isEvar_k k f -> na
   | KpatLet when isLetIn f -> na
   | KpatLam when isLambda f -> na
@@ -552,13 +552,13 @@ let filter_upat_FO i0 f n u fpats =
   let np = nb_args u.up_FO in
   if n < np then fpats else
   let ok = match u.up_k with
-  | KpatConst -> eq_constr u.up_f f 
-  | KpatFixed -> eq_constr u.up_f f 
+  | KpatConst -> Term.eq_constr u.up_f f 
+  | KpatFixed -> Term.eq_constr u.up_f f 
   | KpatEvar k -> isEvar_k k f
   | KpatLet -> isLetIn f
   | KpatLam -> isLambda f
   | KpatRigid -> isRigid f
-  | KpatProj pc -> eq_constr f (mkConst pc)
+  | KpatProj pc -> Term.eq_constr f (mkConst pc)
   | KpatFlex -> i0 := n; true in
   if ok then begin if !i0 < np then i0 := np; (u, np) :: fpats end else fpats
 
@@ -709,8 +709,8 @@ let mk_tpattern_matcher
       let match_let f = match kind_of_term f with
       | LetIn (_, v, _, b) -> unif_EQ env sigma pv v && unif_EQ env' sigma pb b
       | _ -> false in match_let
-    | KpatFixed -> eq_constr u.up_f
-    | KpatConst -> eq_constr u.up_f
+    | KpatFixed -> Term.eq_constr u.up_f
+    | KpatConst -> Term.eq_constr u.up_f
     | KpatLam -> fun c ->
        (match kind_of_term c with
        | Lambda _ -> unif_EQ env sigma u.up_f c
