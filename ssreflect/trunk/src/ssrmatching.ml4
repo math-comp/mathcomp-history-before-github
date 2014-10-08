@@ -137,14 +137,14 @@ let dC t = CastConv t
 let isCVar = function CRef (Ident _, _) -> true | _ -> false
 let destCVar = function CRef (Ident (_, id), _) -> id | _ ->
   Errors.anomaly (str"not a CRef")
-let mkCHole loc = CHole (loc, None, None)
+let mkCHole loc = CHole (loc, None, IntroAnonymous, None)
 let mkCLambda loc name ty t = 
    CLambdaN (loc, [[loc, name], Default Explicit, ty], t)
 let mkCLetIn loc name bo t = 
    CLetIn (loc, (loc, name), bo, t)
 let mkCCast loc t ty = CCast (loc,t, dC ty)
 (** Constructors for rawconstr *)
-let mkRHole = GHole (dummy_loc, InternalHole, None)
+let mkRHole = GHole (dummy_loc, InternalHole, IntroAnonymous, None)
 let mkRApp f args = if args = [] then f else GApp (dummy_loc, f, args)
 let mkRCast rc rt =  GCast (dummy_loc, rc, dC rt)
 let mkRLambda n s t = GLambda (dummy_loc, n, Explicit, s, t)
@@ -1034,7 +1034,7 @@ let interp_pattern ist gl red redty =
   pp(lazy(str"typed as: " ++ pr_pattern_w_ids red));
   let mkXLetIn loc x (a,(g,c)) = match c with
   | Some b -> a,(g,Some (mkCLetIn loc x (mkCHole loc) b))
-  | None -> a,(GLetIn (loc,x,(GHole (loc, BinderType x, None)), g), None) in
+  | None -> a,(GLetIn (loc,x,(GHole (loc, BinderType x, IntroAnonymous, None)), g), None) in
   match red with
   | T t -> let sigma, t = interp_term ist gl t in sigma, T t
   | In_T t -> let sigma, t = interp_term ist gl t in sigma, In_T t

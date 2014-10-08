@@ -224,8 +224,8 @@ let isCVar = function CRef (Ident _,_) -> true | _ -> false
 let destCVar = function CRef (Ident (_, id),_) -> id | _ ->
   anomaly "not a CRef"
 let rec mkCHoles loc n =
-  if n <= 0 then [] else CHole (loc, None, None) :: mkCHoles loc (n - 1)
-let mkCHole loc = CHole (loc, None, None)
+  if n <= 0 then [] else CHole (loc, None, IntroAnonymous, None) :: mkCHoles loc (n - 1)
+let mkCHole loc = CHole (loc, None, IntroAnonymous, None)
 let rec isCHoles = function CHole _ :: cl -> isCHoles cl | cl -> cl = []
 let mkCExplVar loc id n =
    CAppExpl (loc, (None, Ident (loc, id), None), mkCHoles loc n)
@@ -237,7 +237,7 @@ let mkCArrow loc ty t =
    CProdN (loc, [[dummy_loc,Anonymous], Default Explicit, ty], t)
 let mkCCast loc t ty = CCast (loc,t, dC ty)
 (** Constructors for rawconstr *)
-let mkRHole = GHole (dummy_loc, InternalHole, None)
+let mkRHole = GHole (dummy_loc, InternalHole, IntroAnonymous, None)
 let rec mkRHoles n = if n > 0 then mkRHole :: mkRHoles (n - 1) else []
 let rec isRHoles = function GHole _ :: cl -> isRHoles cl | cl -> cl = []
 let mkRApp f args = if args = [] then f else GApp (dummy_loc, f, args)
@@ -858,7 +858,7 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
   let pr_constr t = pr_constr (Reductionops.nf_beta (project gl) t) in
   let evplist = 
     let depev = List.fold_left (fun evs (_,(_,t,_)) -> 
-        Intset.union evs (Evarutil.evars_of_term t)) Intset.empty evlist in
+        Intset.union evs (Evarutil.undefined_evars_of_term sigma t)) Intset.empty evlist in
     List.filter (fun i,(_,_,b) -> b && Intset.mem i depev) evlist in
   let evlist, evplist, sigma = 
     if evplist = [] then evlist, [], sigma else
@@ -896,7 +896,7 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
   | [] -> c in
   let rec loop c i = function
   | (_, (n, t, _)) :: evl ->
-    let evs = Evarutil.evars_of_term t in
+    let evs = Evarutil.undefined_evars_of_term sigma t in
     let t_evplist = List.filter (fun (k,_) -> Intset.mem k evs) evplist in
     let t = loopP t_evplist (get t_evplist 1 t) 1 t_evplist in
     let t = get evlist (i - 1) t in
@@ -2481,7 +2481,7 @@ let remove_loc = snd
 
 let rec ipat_of_intro_pattern = function
   | IntroNaming (IntroIdentifier id) -> IpatId id
-  | IntroNaming IntroWildcard -> IpatWild
+  | IntroAction IntroWildcard -> IpatWild
   | IntroAction (IntroOrAndPattern iorpat) ->
     IpatCase 
       (List.map (List.map ipat_of_intro_pattern) 
@@ -2532,7 +2532,7 @@ let rec add_intro_pattern_hyps (loc, ipat) hyps = match ipat with
   | IntroNaming (IntroIdentifier id) ->
     if not_section_id id then SsrHyp (loc, id) :: hyps else
     hyp_err loc "Can't delete section hypothesis " id
-  | IntroNaming IntroWildcard -> hyps
+  | IntroAction IntroWildcard -> hyps
   | IntroAction (IntroOrAndPattern iorpat) ->
     List.fold_right (List.fold_right add_intro_pattern_hyps) iorpat hyps
   | IntroNaming IntroAnonymous -> []
@@ -4078,7 +4078,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   let gl = pf_unify_HO gl pred elim_pred in
   (* check that the patterns do not contain non instantiated dependent metas *)
   let () = 
-    let evars_of_term = Evarutil.evars_of_term in
+    let evars_of_term = Evarutil.undefined_evars_of_term (project gl) in
     let patterns = List.map (fun (_,_,t,_) -> fire_subst gl t) patterns in
     let patterns_ev = List.map evars_of_term patterns in 
     let ev = List.fold_left Intset.union Intset.empty patterns_ev in
@@ -4775,7 +4775,7 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
           | ProdType (name, _, t) -> name :: aux t (n-1)
           | _ -> assert false in aux hd_ty (Array.length args) in
         hd_ty, Util.List.map_filter (fun (t, name) ->
-          let evs = Intset.elements (Evarutil.evars_of_term t) in
+          let evs = Intset.elements (Evarutil.undefined_evars_of_term sigma t) in
           let open_evs = List.filter (fun k ->
             InProp <> Retyping.get_sort_family_of
               env sigma (Evd.evar_concl (Evd.find sigma k)))
