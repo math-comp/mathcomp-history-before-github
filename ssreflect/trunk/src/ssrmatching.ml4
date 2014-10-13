@@ -1223,7 +1223,7 @@ let ssrpatterntac ist arg gl =
     fill_occ_pattern (Global.env()) sigma0 concl0 pat noindex 1 in
   let tty = pf_type_of gl t in
   let concl = mkLetIn (Name (id_of_string "toto"), t, tty, concl_x) in
-  convert_concl concl DEFAULTcast gl
+  Proofview.V82.of_tactic (convert_concl concl DEFAULTcast) gl
 
 TACTIC EXTEND ssrat
 | [ "ssrpattern" ssrpatternarg(arg) ] -> [ Proofview.V82.tactic (ssrpatterntac ist arg) ]

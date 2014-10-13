@@ -586,7 +586,7 @@ let introid name = tclTHEN (fun gl ->
    match kind_of_term g with
    | App (hd, _) when isLambda hd -> 
      let g = Closure.whd_val (betared env) (Closure.inject g) in
-     convert_concl_no_check g gl
+     Proofview.V82.of_tactic (convert_concl_no_check g) gl
    | _ -> tclIDTAC gl)
   (Proofview.V82.of_tactic (intro_mustbe_force name))
 ;;
@@ -2006,14 +2006,16 @@ let hidden_clseq = function InHyps | InHypsSeq | InAllHyps -> true | _ -> false
 
 let hidetacs clseq idhide cl0 =
   if not (hidden_clseq clseq) then  [] else
-  [posetac idhide cl0; convert_concl_no_check (mkVar idhide)]
+  [posetac idhide cl0;
+   Proofview.V82.of_tactic (convert_concl_no_check (mkVar idhide))]
 
 let discharge_hyp (id', (id, mode)) gl =
   let cl' = subst_var id (pf_concl gl) in
   match pf_get_hyp gl id, mode with
   | (_, None, t), _ | (_, Some _, t), "(" -> 
      apply_type (mkProd (Name id', t, cl')) [mkVar id] gl
-  | (_, Some v, t), _ -> convert_concl (mkLetIn (Name id', v, t, cl')) gl
+  | (_, Some v, t), _ ->
+     Proofview.V82.of_tactic (convert_concl (mkLetIn (Name id', v, t, cl'))) gl
 
 let endclausestac id_map clseq gl_id cl0 gl =
   let not_hyp' id = not (List.mem_assoc id id_map) in
@@ -2033,9 +2035,13 @@ let endclausestac id_map clseq gl_id cl0 gl =
   | LetIn (Name id, v, t, c') when List.mem_assoc id id_map ->
     mkLetIn (Name (orig_id id), unmark v, unmark t, unmark c')
   | _ -> map_constr unmark c in
-  let utac hyp = convert_hyp_no_check (map_named_declaration unmark hyp) in
+  let utac hyp =
+    Proofview.V82.of_tactic 
+     (convert_hyp_no_check (map_named_declaration unmark hyp)) in
   let utacs = List.map utac (pf_hyps gl) in
-  let ugtac gl' = convert_concl_no_check (unmark (pf_concl gl')) gl' in
+  let ugtac gl' =
+    Proofview.V82.of_tactic
+      (convert_concl_no_check (unmark (pf_concl gl'))) gl' in
   let ctacs = if hide_goal then [clear [gl_id]] else [] in
   let mktac itacs = tclTHENLIST (itacs @ utacs @ ugtac :: ctacs) in
   let itac (_, id) = introduction id in
@@ -2142,7 +2148,7 @@ END
 
 let safe_simpltac gl =
   let cl' = red_safe Tacred.simpl (pf_env gl) (project gl) (pf_concl gl) in
-  convert_concl_no_check cl' gl
+  Proofview.V82.of_tactic (convert_concl_no_check cl') gl
 
 let simpltac = function
   | Simpl -> safe_simpltac
@@ -3442,7 +3448,8 @@ let gentac ist gen gl =
   let conv, _, cl, c, clr, ucst = pf_interp_gen_aux ist gl false gen in
   pp(lazy(str"c@gentac=" ++ pr_constr c));
   let gl = pf_merge_uc ucst gl in
-  if conv then tclTHEN (convert_concl cl) (cleartac clr) gl
+  if conv
+  then tclTHEN (Proofview.V82.of_tactic (convert_concl cl)) (cleartac clr) gl
   else genclrtac cl [c] clr gl
 
 let pf_interp_gen ist gl to_ind gen =
@@ -3607,7 +3614,8 @@ let pushcaseeqtac cl gl =
   let prot, gl = mkProt (pf_type_of gl cl) cl3 gl in
   let cl4 = mkApp (compose_lam dc prot, args) in
   let gl, _ = pf_e_type_of gl cl4 in
-  tclTHEN (apply_type cl4 [eqc]) (convert_concl cl4) gl
+  tclTHEN (apply_type cl4 [eqc])
+    (Proofview.V82.of_tactic (convert_concl cl4)) gl
 
 let pushelimeqtac gl =
   let _, args = destApplication (pf_concl gl) in
@@ -4430,7 +4438,9 @@ let newssrcongrtac arg ist gl =
   let fs gl t = Reductionops.nf_evar (project gl) t in
   let tclMATCH_GOAL (c, gl_c) proj t_ok t_fail gl =
     match try Some (pf_unify_HO gl_c (pf_concl gl) c) with _ -> None with  
-    | Some gl_c -> tclTHEN (convert_concl (fs gl_c c)) (t_ok (proj gl_c)) gl
+    | Some gl_c ->
+        tclTHEN (Proofview.V82.of_tactic (convert_concl (fs gl_c c)))
+          (t_ok (proj gl_c)) gl
     | None -> t_fail () gl in 
   let mk_evar gl ty = 
     let env, sigma, si = pf_env gl, project gl, sig_it gl in
@@ -4623,7 +4633,9 @@ let simplintac occ rdx sim gl =
   let simptac gl = 
     let sigma0, concl0, env0 = project gl, pf_concl gl, pf_env gl in
     let simp env c _ = red_safe Tacred.simpl env sigma0 c in
-    convert_concl_no_check (eval_pattern env0 sigma0 concl0 rdx occ simp) gl in
+    Proofview.V82.of_tactic
+      (convert_concl_no_check (eval_pattern env0 sigma0 concl0 rdx occ simp))
+      gl in
   match sim with
   | Simpl -> simptac gl
   | SimplCut -> tclTHEN simptac (tclTRY donetac) gl
@@ -4691,7 +4703,7 @@ let unfoldintac occ rdx t (kt,_) gl =
     try beta env0 (eval_pattern env0 sigma0 concl0 rdx occ unfold) 
     with Option.IsNone -> errorstrm (str"Failed to unfold " ++ pr_constr_pat t) in
   let _ = conclude () in
-  convert_concl concl gl
+  Proofview.V82.of_tactic (convert_concl concl) gl
 ;;
 
 let foldtac occ rdx ft gl = 
@@ -4714,7 +4726,7 @@ let foldtac occ rdx ft gl =
     fake_pmatcher_end in
   let concl = eval_pattern env0 sigma0 concl0 rdx occ fold in
   let _ = conclude () in
-  convert_concl concl gl
+  Proofview.V82.of_tactic (convert_concl concl) gl
 ;;
 
 let converse_dir = function L2R -> R2L | R2L -> L2R
@@ -4813,7 +4825,7 @@ let rwcltac cl rdx dir sr gl =
           let cl' = mkApp (mkNamedLambda pattern_id rdxt cl, [|rdx|]) in
           let sigma, _ = Typing.e_type_of env sigma cl' in
           let gl = pf_merge_uc_of sigma gl in
-          convert_concl cl', rewritetac dir r', gl
+          Proofview.V82.of_tactic (convert_concl cl'), rewritetac dir r', gl
     else
       let dc, r2 = decompose_lam_n n r' in
       let r3, _, r3t  = 
@@ -5076,7 +5088,8 @@ let unfoldtac occ ko t kt gl =
   let cl, c = pf_fill_occ_term gl occ (fst (strip_unfold_term t kt)) in
   let cl' = subst1 (pf_unfoldn [OnlyOccurrences [1], get_evalref c] gl c) cl in
   let f = if ko = None then Closure.betaiotazeta else Closure.betaiota in
-  convert_concl (pf_reduce (Reductionops.clos_norm_flags f) gl cl') gl
+  Proofview.V82.of_tactic
+    (convert_concl (pf_reduce (Reductionops.clos_norm_flags f) gl cl')) gl
 
 let unlocktac ist args gl =
   let utac (occ, gt) gl =
@@ -5525,7 +5538,7 @@ let ssrsettac ist id ((_, (pat, pty)), (_, occ)) gl =
   | _ -> c, pf_type_of gl c in
   let cl' = mkLetIn (Name id, c, cty, cl) in
   let gl = pf_merge_uc ucst gl in
-  tclTHEN (convert_concl cl') (introid id) gl
+  tclTHEN (Proofview.V82.of_tactic (convert_concl cl')) (introid id) gl
 
 TACTIC EXTEND ssrset
 | [ "set" ssrfwdid(id) ssrsetfwd(fwd) ssrclauses(clauses) ] ->
@@ -5673,7 +5686,7 @@ let havetac ist
      let ty = pf_type_of gl t in
      let ctx, _ = decompose_prod_n 1 ty in
      let assert_is_conv gl =
-       try convert_concl (compose_prod ctx concl) gl
+       try Proofview.V82.of_tactic (convert_concl (compose_prod ctx concl)) gl
        with _ -> errorstrm (str "Given proof term is not of type " ++
          pr_constr (mkArrow (mkVar (id_of_string "_")) concl)) in
      gl, ty, tclTHEN assert_is_conv (Proofview.V82.of_tactic (apply t)), id, itac_c
