@@ -554,7 +554,7 @@ let pf_nf_evar gl e = Reductionops.nf_evar (project gl) e
 let pf_partial_solution gl t evl =
   let sigma, g = project gl, sig_it gl in
   let sigma = Goal.V82.partial_solution sigma g t in
-  re_sig (List.map (fun x -> Goal.build (fst (destEvar x))) evl) sigma
+  re_sig (List.map (fun x -> (fst (destEvar x))) evl) sigma
 
 let pf_new_evar gl ty =
   let sigma, env, it = project gl, pf_env gl, sig_it gl in
@@ -827,7 +827,7 @@ let ssrautoprop_tac = ref (fun gl -> assert false)
 (* Thanks to Arnaud Spiwack for this snippet *)
 let call_on_evar tac e s =
   let { it = gs ; sigma = s } =
-    tac { it = Goal.build e ; sigma = s; } in
+    tac { it = e ; sigma = s; } in
   gs, s
 
 let pf_abs_evars_pirrel gl (sigma, c0) =
@@ -5705,7 +5705,7 @@ let havetac ist
          pf_find_abstract_proof false gl a.(1)) skols_args in
      let tacopen_skols gl =
         let stuff, g = Refiner.unpackage gl in
-        Refiner.repackage stuff ((List.map Goal.build gs) @ [g]) in
+        Refiner.repackage stuff (gs @ [g]) in
      let gl, ty = pf_e_type_of gl t in
      gl, ty, Proofview.V82.of_tactic (apply t), id,
        tclTHEN (tclTHEN itac_c simpltac)
@@ -5778,7 +5778,7 @@ let ssrabstract ist gens (*last*) gl =
 (*     if last then *)
       let tacopen gl =
         let stuff, g = Refiner.unpackage gl in
-        Refiner.repackage stuff [ g; Goal.build abstract_proof ] in
+        Refiner.repackage stuff [ g; abstract_proof ] in
       tclTHENS tacopen [tclSOLVE [Proofview.V82.of_tactic (apply proof)];unfold[abstract;abstract_key]] gl
 (* else apply proof gl *)
   in
@@ -5908,7 +5908,7 @@ let wlogtac ist (((clr0, pats),_),_) (gens, ((_, ct))) hint suff ghave gl =
         Environ.push_rel rd env, c) (pf_env gl, c) gens in
     let sigma, ev = Evarutil.new_evar env (project gl) Term.mkProp in
     let k, _ = Term.destEvar ev in
-    let fake_gl = {Evd.it = Goal.build k; Evd.sigma = sigma} in
+    let fake_gl = {Evd.it = k; Evd.sigma = sigma} in
     let _, ct, _, uc = pf_interp_ty ist fake_gl ct in
     let rec var2rel c g s = match kind_of_term c, g with
       | Prod(Anonymous,_,c), [] -> mkProd(Anonymous, Vars.subst_vars s ct, c)

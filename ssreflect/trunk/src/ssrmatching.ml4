@@ -992,9 +992,8 @@ let interp_pattern ist gl red redty =
       List.fold_left (fun sigma e ->
         if Evd.is_defined sigma e then sigma else (* clear may be recursiv *)
         let name = Option.get !to_clean in
-        let g = Goal.build e in
         pp(lazy(pr_id name));
-        try snd(Logic.prim_refiner (Proof_type.Thin [name]) sigma g)
+        try snd(Logic.prim_refiner (Proof_type.Thin [name]) sigma e)
         with Evarutil.ClearDependencyError _ -> sigma)
       sigma new_evars in
     sigma in
