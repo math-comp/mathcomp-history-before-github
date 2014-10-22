@@ -2862,24 +2862,26 @@ let mk_abstract_id () = incr ssr_abstract_id; nat_of_n !ssr_abstract_id
 
 let ssrmkabs id gl =
   let env, concl = pf_env gl, pf_concl gl in
-  let sigma, abstract_proof, abstract_ty =
-    let sigma, (ty, _) =
-      Evarutil.new_type_evar env Evd.empty Evd.univ_flexible_alg in
-    let sigma, ablock = mkSsrConst "abstract_lock" env sigma in
-    let sigma, lock = Evarutil.new_evar env sigma ablock in
-    let sigma, abstract = mkSsrConst "abstract" env sigma in
-    let abstract_ty = mkApp(abstract, [|ty;mk_abstract_id ();lock|]) in
-    let sigma, m = Evarutil.new_evar env sigma abstract_ty in
-    sigma, m, abstract_ty in
-  let sigma, kont =
-    let rd = Name id, None, abstract_ty in
-    Evarutil.new_evar (Environ.push_rel rd env) sigma concl in
-  pp(lazy(pr_constr concl));
-  let step = mkApp (mkLambda(Name id,abstract_ty,kont) ,[|abstract_proof|]) in
-  let sigma, _ = Typing.e_type_of env sigma step in
+  let step sigma =
+    let sigma, abstract_proof, abstract_ty =
+      let sigma, (ty, _) =
+        Evarutil.new_type_evar env sigma Evd.univ_flexible_alg in
+      let sigma, ablock = mkSsrConst "abstract_lock" env sigma in
+      let sigma, lock = Evarutil.new_evar env sigma ablock in
+      let sigma, abstract = mkSsrConst "abstract" env sigma in
+      let abstract_ty = mkApp(abstract, [|ty;mk_abstract_id ();lock|]) in
+      let sigma, m = Evarutil.new_evar env sigma abstract_ty in
+      sigma, m, abstract_ty in
+    let sigma, kont =
+      let rd = Name id, None, abstract_ty in
+      Evarutil.new_evar (Environ.push_rel rd env) sigma concl in
+    pp(lazy(pr_constr concl));
+    let term = mkApp (mkLambda(Name id,abstract_ty,kont) ,[|abstract_proof|]) in
+    let sigma, _ = Typing.e_type_of env sigma term in
+    sigma, term in
   Proofview.V82.of_tactic
     (Proofview.tclTHEN
-      (Tactics.New.refine (sigma, step))
+      (Tactics.New.refine step)
       (Proofview.tclFOCUS 1 3 Proofview.shelve)) gl
 
 let ssrmkabstac ids =
