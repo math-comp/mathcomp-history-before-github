@@ -5593,6 +5593,17 @@ END
 
 (* Tactic. *)
 
+let is_Evar_or_CastedMeta x =
+  isEvar_or_Meta x ||
+  (isCast x && isEvar_or_Meta (pi1 (destCast x)))
+
+let occur_existential_or_casted_meta c =
+  let rec occrec c = match kind_of_term c with
+    | Evar _ -> raise Not_found
+    | Cast (m,_,_) when isMeta m -> raise Not_found
+    | _ -> iter_constr occrec c
+  in try occrec c; false with Not_found -> true
+
 let examine_abstract id gl =
   let tid = pf_type_of gl id in
   let abstract, gl = pf_mkSsrConst "abstract" gl in
@@ -5601,7 +5612,7 @@ let examine_abstract id gl =
   let _, args_id = destApp tid in
   if Array.length args_id <> 3 then
     errorstrm(strbrk"not a proper abstract constant: "++pr_constr id);
-  if not (isEvar args_id.(2)) then
+  if not (is_Evar_or_CastedMeta args_id.(2)) then
     errorstrm(strbrk"abstract constant "++pr_constr id++str" already used");
   tid, args_id
 
@@ -5612,8 +5623,8 @@ let pf_find_abstract_proof check_lock gl abstract_n =
     match kind_of_term ei.Evd.evar_concl with
     | App(hd, [|ty; n; lock|])
       when (not check_lock || 
-                 (occur_existential (fire gl ty) &&
-                  isEvar (fire gl lock))) &&
+                 (occur_existential_or_casted_meta (fire gl ty) &&
+                  is_Evar_or_CastedMeta (fire gl lock))) &&
       Term.eq_constr hd abstract && Term.eq_constr n abstract_n -> e::l
     | _ -> l) (project gl) [] in
   match l with
@@ -5756,6 +5767,8 @@ let ssrabstract ist gens (*last*) gl =
       let rec find_hole p t =
         match kind_of_term t with
         | Evar _ (*when last*) -> pf_unify_HO gl concl t, p
+        | Meta _ (*when last*) -> pf_unify_HO gl concl t, p
+        | Cast(m,_,_) when isEvar_or_Meta m (*when last*) -> pf_unify_HO gl concl t, p
 (*
         | Evar _ ->
             let sigma, it = project gl, sig_it gl in
