@@ -2912,7 +2912,7 @@ let introstac, tclEQINTROS =
           let x' = mk_anon_id (string_of_id x) gl in
           SsrHyp (dummy_loc, x'), (x, x')) clr) in
       let () = to_clr := ren_clr in
-      rename_hyp ren gl 
+      Proofview.V82.of_tactic (rename_hyp ren) gl 
     else
       let () = to_clr := clr in
       tclIDTAC gl in
