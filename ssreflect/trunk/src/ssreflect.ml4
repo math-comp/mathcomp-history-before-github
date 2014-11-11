@@ -2044,7 +2044,7 @@ let endclausestac id_map clseq gl_id cl0 gl =
       (convert_concl_no_check (unmark (pf_concl gl'))) gl' in
   let ctacs = if hide_goal then [clear [gl_id]] else [] in
   let mktac itacs = tclTHENLIST (itacs @ utacs @ ugtac :: ctacs) in
-  let itac (_, id) = introduction id in
+  let itac (_, id) = Proofview.V82.of_tactic (introduction id) in
   if fits false (id_map, List.rev dc) then mktac (List.map itac id_map) gl else
   let all_ids = ids_of_rel_context dc @ pf_ids_of_hyps gl in
   if List.for_all not_hyp' all_ids && not c_hidden then mktac [] gl else
