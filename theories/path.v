@@ -278,50 +278,49 @@ Definition mem2 p x y := y \in drop (index x p) p.
 
 Lemma mem2l p x y : mem2 p x y -> x \in p.
 Proof.
-by rewrite /mem2 -!index_mem size_drop => /ltn_predK; rewrite -subn_gt0 => <-.
+by rewrite /mem2 -!index_mem size_drop ltn_subRL; apply/leq_ltn_trans/leq_addr.
 Qed.
 
 Lemma mem2lf {p x y} : x \notin p -> mem2 p x y = false.
-Proof. by apply: contraNF; exact: mem2l. Qed.
+Proof. exact/contraNF/mem2l. Qed.
 
 Lemma mem2r p x y : mem2 p x y -> y \in p.
 Proof.
-rewrite /mem2 => pxy.
-by rewrite -(cat_take_drop (index x p) p) mem_cat pxy orbT.
+by rewrite -[in y \in p](cat_take_drop (index x p) p) mem_cat orbC /mem2 => ->.
 Qed.
 
 Lemma mem2rf {p x y} : y \notin p -> mem2 p x y = false.
-Proof. by apply: contraNF; exact: mem2r. Qed.
+Proof. exact/contraNF/mem2r. Qed.
 
 Lemma mem2_cat p1 p2 x y :
   mem2 (p1 ++ p2) x y = mem2 p1 x y || mem2 p2 x y || (x \in p1) && (y \in p2).
 Proof.
-rewrite {1}/mem2 index_cat drop_cat; have [p1x | p1'x] := boolP (x \in p1).
-  rewrite index_mem p1x mem_cat /= -orbA.
-  by have [|p2'y] := boolP (y \in p2); [rewrite !orbT | rewrite (mem2rf p2'y)].
-by rewrite ltnNge leq_addr /= orbF addKn (mem2lf p1'x).
+rewrite [LHS]/mem2 index_cat fun_if if_arg !drop_cat addKn.
+case: ifPn => [p1x | /mem2lf->]; last by rewrite ltnNge leq_addr orbF.
+by rewrite index_mem p1x mem_cat -orbA (orb_idl (@mem2r _ _ _)).
 Qed.
 
 Lemma mem2_splice p1 p3 x y p2 :
-   mem2 (p1 ++ p3) x y -> mem2 (p1 ++ p2 ++ p3) x y.
+  mem2 (p1 ++ p3) x y -> mem2 (p1 ++ p2 ++ p3) x y.
 Proof.
-move=> p13xy; move: p13xy; rewrite !mem2_cat mem_cat -orbA.
-by case/or3P=> [-> | -> | /andP[-> ->]]; rewrite ?orbT.
+by rewrite !mem2_cat mem_cat andb_orr orbC => /or3P[]->; rewrite ?orbT.
 Qed.
 
 Lemma mem2_splice1 p1 p3 x y z :
   mem2 (p1 ++ p3) x y -> mem2 (p1 ++ z :: p3) x y.
-Proof. exact: (mem2_splice [::z]). Qed.
+Proof. exact: mem2_splice [::z]. Qed.
 
-Lemma mem2_cons x p y :
-  mem2 (x :: p) y =1 (if x == y then mem (x :: p) : pred T else mem2 p y).
-Proof. by move=> z; rewrite {1}/mem2 /=; case (x == y). Qed.
+Lemma mem2_cons x p y z :
+  mem2 (x :: p) y z = (if x == y then z \in x :: p else mem2 p y z).
+Proof. by rewrite [LHS]/mem2 /=; case: ifP. Qed.
 
-Lemma mem2_last y0 p x : mem2 (y0 :: p) x (last y0 p) = (x \in y0 :: p).
+Lemma mem2_seq1 x y z : mem2 [:: x] y z = (y == x) && (z == x).
+Proof. by rewrite mem2_cons eq_sym inE. Qed.
+
+Lemma mem2_last y0 p x : mem2 p x (last y0 p) = (x \in p).
 Proof.
-apply/idP/idP; first exact: mem2l.
-rewrite -index_mem /mem2; move: (index x _) => i le_ip.
-by rewrite lastI drop_rcons ?size_belast // mem_rcons mem_head.
+apply/idP/idP; first exact: mem2l; rewrite -index_mem /mem2 => p_x.
+by rewrite -nth_last -(subnKC p_x) -nth_drop mem_nth // size_drop subnSK.
 Qed.
 
 Lemma mem2l_cat {p1 p2 x} : x \notin p1 -> mem2 (p1 ++ p2) x =1 mem2 p2 x.
