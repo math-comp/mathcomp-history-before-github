@@ -3029,23 +3029,22 @@ move=> Rx Ry; rewrite sqrrD addrAC (mulrnDr _ 2) -lerif_subLR addrK.
 exact: real_lerif_mean_square_scaled.
 Qed.
 
-Lemma lerif_AGM_scaled (I : finType) (A : pred I) (E : I -> R) :
-    let n := #|A| in {in A, forall i, 0 <= E i *+ n} ->
+Lemma lerif_AGM_scaled (I : finType) (A : pred I) (E : I -> R) (n := #|A|) :
+    {in A, forall i, 0 <= E i *+ n} ->
   \prod_(i in A) (E i *+ n) <= (\sum_(i in A) E i) ^+ n
                             ?= iff [forall i in A, forall j in A, E i == E j].
 Proof.
-elim: {A}_.+1 {-2}A (ltnSn #|A|) => // m IHm A leAm in E * => n Ege0.
-apply/lerifP; case: ifPn => [/forall_inP Econstant | Enonconstant].
-  have [i /= Ai | A0] := pickP (mem A); last first.
-    by rewrite /n eq_card0 // big_pred0.
-  have /eqfun_inP E_i := Econstant i Ai; rewrite -(eq_bigr _ E_i) sumr_const.
+elim: {A}_.+1 {-2}A (ltnSn #|A|) => // m IHm A leAm in E n * => Ege0.
+apply/lerifP; case: ifPn => [/forall_inP-Econstant | Enonconstant].
+  have [i /= Ai | A0] := pickP (mem A); last by rewrite [n]eq_card0 ?big_pred0.
+  have /eqfun_inP-E_i := Econstant i Ai; rewrite -(eq_bigr _ E_i) sumr_const.
   by rewrite exprMn_n prodrMn -(eq_bigr _ E_i) prodr_const.
-set mu := \sum_(i in A) _.
-pose En i := E i *+ n; pose cmp_mu s := [pred i | s * mu < s * En i].
+set mu := \sum_(i in A) E i; pose En i := E i *+ n.
+pose cmp_mu s := [pred i | s * mu < s * En i].
 have{Enonconstant} has_cmp_mu e (s := (-1) ^+ e): {i | i \in A & cmp_mu s i}.
   apply/sig2W/exists_inP; apply: contraR Enonconstant.
-  rewrite negb_exists_in => /forall_inP mu_s_A.
-  have n_gt0 i: i \in A -> (0 < n)%N by rewrite /n (cardD1 i) => ->.
+  rewrite negb_exists_in => /forall_inP-mu_s_A.
+  have n_gt0 i: i \in A -> (0 < n)%N by rewrite [n](cardD1 i) => ->.
   have{mu_s_A} mu_s_A i: i \in A -> s * En i <= s * mu.
     move=> Ai; rewrite real_lerNgt ?mu_s_A ?rpredMsign ?ger0_real ?Ege0 //.
     by rewrite -(pmulrn_lge0 _ (n_gt0 i Ai)) -sumrMnl sumr_ge0.
@@ -3053,10 +3052,10 @@ have{Enonconstant} has_cmp_mu e (s := (-1) ^+ e): {i | i \in A & cmp_mu s i}.
   rewrite sumr_const -/n -mulr_sumr sumrMnl -/mu mulrnAr eqxx => A_mu.
   apply/forall_inP=> i Ai; apply/eqfun_inP=> j Aj.
   by apply: (pmulrnI (n_gt0 i Ai)); apply: (can_inj (signrMK e)); rewrite !A_mu.
-have [[i Ai Ei_lt_mu] [j Aj Ej_gt_mu]] := (has_cmp_mu true, has_cmp_mu false).
+have [[i Ai Ei_lt_mu] [j Aj Ej_gt_mu]] := (has_cmp_mu 1, has_cmp_mu 0)%N.
 rewrite {cmp_mu has_cmp_mu}/= !mul1r !mulN1r ltr_opp2 in Ei_lt_mu Ej_gt_mu.
 pose A' := [predD1 A & i]; pose n' := #|A'|.
-have [Dn n_gt0]: n = n'.+1 /\ (n > 0)%N  by rewrite /n (cardD1 i) Ai.
+have [Dn n_gt0]: n = n'.+1 /\ (n > 0)%N  by rewrite [n](cardD1 i) Ai.
 have i'j: j != i by apply: contraTneq Ej_gt_mu => ->; rewrite ltr_gtF.
 have{i'j} A'j: j \in A' by rewrite !inE Aj i'j.
 have mu_gt0: 0 < mu := ler_lt_trans (Ege0 i Ai) Ei_lt_mu.
@@ -3077,8 +3076,8 @@ rewrite prodrMn exprMn_n -/n' ler_pmuln2r ?expn_gt0; last by case: (n').
 have ->: \prod_(k in A') E' k = E' j * pi.
   by rewrite (bigD1 j) //=; congr *%R; apply: eq_bigr => k /andP[_ /negPf->].
 rewrite -(ler_pmul2l mu_gt0) -exprS -Dn mulrA; apply: ltr_le_trans.
-rewrite ltr_pmul2r //= eqxx -addrA mulrDr mulrC -subr_gt0 addrAC -mulrBl.
-by rewrite -opprB mulNr addrC mulrC -mulrBr mulr_gt0 ?subr_gt0.
+rewrite ltr_pmul2r //= eqxx -addrA mulrDr mulrC -ltr_subl_addl -mulrBl. 
+by rewrite mulrC ltr_pmul2r ?subr_gt0.
 Qed.
 
 (* Polynomial bound. *)
