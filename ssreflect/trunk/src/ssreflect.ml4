@@ -4086,6 +4086,8 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
   pp(lazy(str"elim_pred=" ++ pp_term gl elim_pred));
   pp(lazy(str"elim_pred_ty=" ++ pp_term gl pty));
   let gl = pf_unify_HO gl pred elim_pred in
+  let elim = fire_subst gl elim in
+  let gl, _ = pf_e_type_of gl elim in
   (* check that the patterns do not contain non instantiated dependent metas *)
   let () = 
     let evars_of_term = Evarutil.undefined_evars_of_term (project gl) in
@@ -4107,7 +4109,7 @@ let ssrelim ?(is_case=false) ?ist deps what ?elim eqid ipats gl =
     end
   in
   (* the elim tactic, with the eliminator and the predicated we computed *)
-  let elim = project gl, fire_subst gl elim in 
+  let elim = project gl, elim in 
   let elim_tac gl = 
     tclTHENLIST [refine_with ~with_evars:false elim; cleartac clr] gl in
   (* handling of following intro patterns and equation introduction if any *)
