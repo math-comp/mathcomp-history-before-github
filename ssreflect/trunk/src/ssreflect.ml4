@@ -834,6 +834,7 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
   pp(lazy(str"==PF_ABS_EVARS_PIRREL=="));
   pp(lazy(str"c0= " ++ pr_constr c0));
   let sigma0 = project gl in
+  let c0 = Evarutil.nf_evar sigma0 (Evarutil.nf_evar sigma c0) in
   let nenv = env_size (pf_env gl) in
   let abs_evar n k =
     let evi = Evd.find sigma k in
@@ -842,7 +843,7 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
     | x, Some b, t -> mkNamedLetIn x b t (mkArrow t c)
     | x, None, t -> mkNamedProd x t c in
     let t = Context.fold_named_context_reverse abs_dc ~init:evi.evar_concl dc in
-    Evarutil.nf_evar sigma t in
+    Evarutil.nf_evar sigma0 (Evarutil.nf_evar sigma t) in
   let rec put evlist c = match kind_of_term c with
   | Evar (k, a) ->  
     if List.mem_assoc k evlist || Evd.mem sigma0 k then evlist else
@@ -856,6 +857,8 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
   let evlist = put [] c0 in
   if evlist = [] then 0, c0 else
   let pr_constr t = pr_constr (Reductionops.nf_beta (project gl) t) in
+  pp(lazy(str"evlist=" ++ pr_list (fun () -> str";")
+    (fun (k,_) -> str(Evd.string_of_existential k)) evlist));
   let evplist = 
     let depev = List.fold_left (fun evs (_,(_,t,_)) -> 
         Intset.union evs (Evarutil.undefined_evars_of_term sigma t)) Intset.empty evlist in
