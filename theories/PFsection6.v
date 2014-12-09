@@ -1252,7 +1252,7 @@ have{caseA_coh12} cohXY: coherent (X ++ Y) L^# tau.
       have{Nchi lin_chi} /irrP[i defRk] : 'Res chi \in irr Z.
         by rewrite lin_char_irr // qualifE cfRes_char // cfRes1.
       have{chi defRk defRkZ} defRk: 'Res 'chi_k = a *: 'chi_i.
-        by rewrite -defRk -linearZ Da -defRkZ /= cfResRes ?cfcenter_sub.
+        by rewrite -defRk -linearZ -/a Da -defRkZ /= cfResRes ?cfcenter_sub.
       exists i => //; apply: contra kerZ'k.
       rewrite -subGcfker => /subsetP sZker.
       apply/subsetP=> t Zt; rewrite cfkerEirr inE.
