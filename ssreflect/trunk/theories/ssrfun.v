@@ -490,7 +490,7 @@ Notation "f1 =1 f2 :> A" := (f1 =1 (f2 : A))
 Notation "f1 =2 f2" := (eqrel f1 f2)
   (at level 70, no associativity) : fun_scope.
 Notation "f1 =2 f2 :> A" := (f1 =2 (f2 : A))
-  (at level 70, f2 at next level, A, B at level 90) : fun_scope.
+  (at level 70, f2 at next level, A at level 90) : fun_scope.
 
 Section Composition.
 
