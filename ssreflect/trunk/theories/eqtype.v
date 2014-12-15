@@ -450,7 +450,7 @@ Notation "[ 'fun' z => F 'with' d1 , .. , dn ]" :=
 Notation "[ 'eta' f 'with' d1 , .. , dn ]" :=
   (SimplFunDelta (fun _ =>
      app_fdelta d1%FUN_DELTA .. (app_fdelta dn%FUN_DELTA f) ..))
-  (at level 0, format
+  (at level 0, z ident, format
   "'[hv' [ '[' 'eta' '/ '  f ']' '/'  'with'  '[' d1 , '/'  .. , '/'  dn ']' ] ']'"
   ) : fun_scope.
 
