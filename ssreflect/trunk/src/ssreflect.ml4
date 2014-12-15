@@ -1444,7 +1444,7 @@ VERNAC COMMAND EXTEND SsrSearchPattern CLASSIFIED AS QUERY
     let display gr env typ =
       if post_filter gr env typ then ssrdisplaysearch gr env typ
     in
-    Search.generic_search display ]
+    Search.generic_search 1 display ]
 END
 
 (* }}} *)
