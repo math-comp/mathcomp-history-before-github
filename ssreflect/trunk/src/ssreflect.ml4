@@ -1387,7 +1387,7 @@ let interp_search_arg arg =
       try
         let intern = Constrintern.intern_constr_pattern in 
         Search.GlobSearchSubPattern (snd (intern (Global.env()) p))
-      with e -> raise (Cerrors.process_vernac_interp_error e)) arg in
+      with e -> let e = Errors.push e in iraise (Cerrors.process_vernac_interp_error e)) arg in
   let hpat, a1 = match arg with
   | (_, Search.GlobSearchSubPattern (Pattern.PMeta _)) :: a' -> all_true, a'
   | (true, Search.GlobSearchSubPattern p) :: a' ->
@@ -1444,7 +1444,7 @@ VERNAC COMMAND EXTEND SsrSearchPattern CLASSIFIED AS QUERY
     let display gr env typ =
       if post_filter gr env typ then ssrdisplaysearch gr env typ
     in
-    Search.generic_search 1 display ]
+    Search.generic_search None display ]
 END
 
 (* }}} *)
@@ -3049,8 +3049,9 @@ let tclDO n tac =
     try tac gl
     with 
     | Errors.UserError (l, s) as e ->
+        let _, info = Errors.push e in
         let e' = Errors.UserError (l, prefix i ++ s) in
-        raise (Exninfo.copy e e')
+        Util.iraise (e', info)
     | Compat.Exc_located(loc, Errors.UserError (l, s))  -> 
         raise (Compat.Exc_located(loc, Errors.UserError (l, prefix i ++ s))) in
   let rec loop i gl =
