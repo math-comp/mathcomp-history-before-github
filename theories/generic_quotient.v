@@ -101,7 +101,7 @@ Reserved Notation "x != y %[mod_eq e ]" (at level 70, y at next level,
   no associativity,   format "'[hv ' x '/'  !=  y '/'  %[mod_eq  e ] ']'").
 Reserved Notation "x <> y %[mod_eq e ]" (at level 70, y at next level,
   no associativity,   format "'[hv ' x '/'  <>  y '/'  %[mod_eq  e ] ']'").
-Reserved Notation "{eq_quot e }" (at level 0, T at level 0,
+Reserved Notation "{eq_quot e }" (at level 0, e at level 0,
   format "{eq_quot  e }", only parsing).
 
 Delimit Scope quotient_scope with qT.
