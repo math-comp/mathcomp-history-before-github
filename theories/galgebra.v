@@ -12,7 +12,7 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Reserved Notation "g %:FG"
-  (at level 2, g at level 1, left associativity, format "g %:FG").
+  (at level 2, left associativity, format "g %:FG").
 
 Open Local Scope ring_scope.
 Import GRing.Theory.
