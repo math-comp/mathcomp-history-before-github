@@ -430,7 +430,7 @@ set f := _ \o _; set g := _ \o _.
 have hg : g =1 f.
   by move=> sx; rewrite /g /f /= poly_comb_cons comb_expE expr0z mul1r.
 rewrite -[(poly_comb _ _).[_]]/(f _) -{4}hg.
-rewrite -![_ _ :: _]/(map _ (_ ::_)) (eq_map hg) !sgr_cp0.
+rewrite -![g s :: _]/(map _ (_ ::_)) (eq_map hg) !sgr_cp0.
 by case: (sgzP q.[x])=> _; rewrite ?(addr0, add0r).
 Qed.
 
