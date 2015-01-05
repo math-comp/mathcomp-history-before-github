@@ -495,7 +495,7 @@ case Ez: (pred0b
             (predD1 (predD1 (predD1 (predD1 T x) (h x)) (g x)) ((h * g) x))).
 - move: oT; rewrite /pred0b in Ez.
   rewrite (cardD1 x) (cardD1 (h x)) (cardD1 (g x)) (cardD1 ((h * g) x)).
-  by rewrite (eqP Ez); do 3!case: (_ x \in _).
+  by rewrite (eqP Ez) addnC; do 3!case: (_ x \in _).
 case/pred0Pn: Ez => z.
 case/and5P=> diff_hgx_z diff_gx_z diff_hx_z diff_x_z /= Hz.
 pose S1 := [tuple x; h x; g x; z].
