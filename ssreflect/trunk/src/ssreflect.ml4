@@ -1366,7 +1366,7 @@ let rec interp_head_pat hpat =
   | Cast (c', _, _) -> loop c'
   | Prod (_, _, c') -> loop c'
   | LetIn (_, _, _, c') -> loop c'
-  | _ -> ConstrMatching.is_matching (Global.env()) Evd.empty p c in
+  | _ -> Constr_matching.is_matching (Global.env()) Evd.empty p c in
   filter_head, loop
 
 let all_true _ = true
