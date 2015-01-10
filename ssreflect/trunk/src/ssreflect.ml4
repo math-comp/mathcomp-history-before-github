@@ -3836,7 +3836,7 @@ let refine_with ?(first_goes_last=false) ?beta ?(with_evars=true) oc gl =
       (mkApp (compose_lam l c, Array.of_list (mkRel 1 :: mkRels n)))
   in
   pp(lazy(str"after: " ++ pr_constr oc));
-  try applyn ~with_evars ?beta n oc gl with _ -> raise dependent_apply_error
+  try applyn ~with_evars ~with_shelve:true ?beta n oc gl with _ -> raise dependent_apply_error
 
 let pf_fresh_inductive_instance ind gl =
   let sigma, env, it = project gl, pf_env gl, sig_it gl in
@@ -4327,7 +4327,6 @@ let apply_top_tac gl =
   tclTHENLIST [introid top_id; apply_rconstr (mkRVar top_id); clear [top_id]] gl
     
 let inner_ssrapplytac gviews ggenl gclr ist gl =
-(*  pp(lazy(str"sigma@inner=" ++ pr_evar_map None (project gl))); *)
  let _, clr = interp_hyps ist gl gclr in
  let vtac gv i gl' = refine_interp_apply_view i ist gl' gv in
  let ggenl, tclGENTAC =
@@ -4350,9 +4349,6 @@ let inner_ssrapplytac gviews ggenl gclr ist gl =
 
 let ssrapplytac ist (views, (_, ((gens, clr), intros))) =
   tclINTROS ist (inner_ssrapplytac views gens clr) intros
-
-let prof_ssrapplytac = mk_profiler "ssrapplytac";;
-let ssrapplytac arg gl = prof_ssrapplytac.profile (ssrapplytac arg) gl;;
 
 TACTIC EXTEND ssrapply
 | [ "apply" ssrapplyarg(arg) ] -> [ Proofview.V82.tactic (ssrapplytac ist arg) ]

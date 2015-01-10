@@ -539,10 +539,41 @@ let pf_ids_of_proof_hyps gl =
 
 let pf_nf_evar gl e = Reductionops.nf_evar (project gl) e
 
-let pf_partial_solution gl t evl =
+let pf_partial_solution ?(shelve=false) gl t evl =
   let sigma, g = project gl, sig_it gl in
+  let evars_of_term c =
+    let rec evrec acc c =
+      match kind_of_term c with
+      | Evar (n, l) -> Evd.ExistentialSet.add n (Array.fold_left evrec acc l)
+      | _ -> fold_constr evrec acc c
+    in
+    evrec Evd.ExistentialSet.empty c in
+  let evars_of_named_context nc =
+    List.fold_right (fun (_, b, t) s ->
+      Option.fold_left (fun s t ->
+        Evd.ExistentialSet.union s (evars_of_term t))
+        (Evd.ExistentialSet.union s (evars_of_term t)) b)
+      nc Evd.ExistentialSet.empty in
+  let evars_of_filtered_evar_info evi =
+    Evd.ExistentialSet.union (evars_of_term evi.evar_concl)
+      (Evd.ExistentialSet.union
+          (match evi.evar_body with
+          | Evar_empty -> Evd.ExistentialSet.empty
+          | Evar_defined b -> evars_of_term b)
+          (evars_of_named_context (evar_filtered_context evi))) in
+  let depends_on src tgt =
+    let evi = Evd.find sigma tgt in
+    Evd.ExistentialSet.mem src
+      (evars_of_filtered_evar_info (Evarutil.nf_evar_info sigma evi)) in
+  let occurs_in_another_statement ev =
+    List.exists (fun x ->
+      let ev', _ = destEvar x in
+      not (ev = ev') && depends_on ev ev') evl in
   let sigma = Goal.V82.partial_solution sigma g t in
-  re_sig (List.map (fun x -> Goal.build (fst (destEvar x))) evl) sigma
+  re_sig (Util.list_map_filter (fun x ->
+     let ev, _ = destEvar x in
+     if occurs_in_another_statement ev then None
+     else Some (Goal.build ev)) evl) sigma
 
 let pf_new_evar gl ty =
   let sigma, env, it = project gl, pf_env gl, sig_it gl in
@@ -3749,7 +3780,7 @@ let applyn ~with_evars ?beta n t gl =
     let gs = list_map_filter (fun (_, e) ->
       if isEvar (pf_nf_evar gl e) then Some e else None)
       args in
-    pf_partial_solution gl t gs
+    pf_partial_solution ~shelve:true gl t gs
   else
     let t, gl = if n = 0 then t, gl else
       let sigma, si = project gl, sig_it gl in
