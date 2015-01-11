@@ -572,7 +572,7 @@ let pf_partial_solution ?(shelve=false) gl t evl =
   let sigma = Goal.V82.partial_solution sigma g t in
   re_sig (Util.list_map_filter (fun x ->
      let ev, _ = destEvar x in
-     if occurs_in_another_statement ev then None
+     if shelve && occurs_in_another_statement ev then None
      else Some (Goal.build ev)) evl) sigma
 
 let pf_new_evar gl ty =
