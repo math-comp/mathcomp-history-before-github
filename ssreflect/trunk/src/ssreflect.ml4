@@ -1001,7 +1001,7 @@ let pf_unabs_evars gl ise n c0 =
 (* tacticals, because:                                              *)
 (*  - the concrete syntax must start with a fixed string            *)
 (*   We use the following workaround:                               *)
-(*  - We use the (unparsable) "Qed"  token for tacticals that      *)
+(*  - We use the (unparsable) "YouShouldNotTypeThis"  token for tacticals that      *)
 (*    don't start with a token, then redefine the grammar and       *)
 (*    printer using GEXTEND and set_pr_ssrtac, respectively.        *)
 
@@ -1582,7 +1582,7 @@ let tclBY tac = tclTHEN tac donetac
 (* Force use of the tactic_expr parsing entry, to rule out tick marks. *)
 let pr_ssrtacarg _ _ prt = prt tacltop
 ARGUMENT EXTEND ssrtacarg TYPED AS tactic PRINTED BY pr_ssrtacarg
-| [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
+| [ "YouShouldNotTypeThis" ] -> [ anomaly "Grammar placeholder match" ]
 END
 GEXTEND Gram
   GLOBAL: ssrtacarg;
@@ -1657,17 +1657,17 @@ let hinttac ist is_by (is_or, atacs) =
 (* tactics that generate more than two subgoals).                     *)
 
 TACTIC EXTEND ssrtclplus
-| [ "Qed" "+" ssrtclarg(arg) ] -> [ Proofview.V82.tactic (eval_tclarg ist arg) ]
+| [ "YouShouldNotTypeThis" "+" ssrtclarg(arg) ] -> [ Proofview.V82.tactic (eval_tclarg ist arg) ]
 END
 set_pr_ssrtac "tclplus" 5 [ArgSep "+ "; ArgSsr "tclarg"]
 
 TACTIC EXTEND ssrtclminus
-| [ "Qed" "-" ssrtclarg(arg) ] -> [ Proofview.V82.tactic (eval_tclarg ist arg) ]
+| [ "YouShouldNotTypeThis" "-" ssrtclarg(arg) ] -> [ Proofview.V82.tactic (eval_tclarg ist arg) ]
 END
 set_pr_ssrtac "tclminus" 5 [ArgSep "- "; ArgSsr "tclarg"]
 
 TACTIC EXTEND ssrtclstar
-| [ "Qed" "*" ssrtclarg(arg) ] -> [ Proofview.V82.tactic (eval_tclarg ist arg) ]
+| [ "YouShouldNotTypeThis" "*" ssrtclarg(arg) ] -> [ Proofview.V82.tactic (eval_tclarg ist arg) ]
 END
 set_pr_ssrtac "tclstar" 5 [ArgSep "- "; ArgSsr "tclarg"]
 
@@ -1698,7 +1698,7 @@ ARGUMENT EXTEND ssrhint TYPED AS ssrhintarg PRINTED BY pr_ssrhint
 END
 
 TACTIC EXTEND ssrtclby
-| [ "Qed" ssrhint(tac) ] -> [ Proofview.V82.tactic (hinttac ist true tac) ]
+| [ "YouShouldNotTypeThis" ssrhint(tac) ] -> [ Proofview.V82.tactic (hinttac ist true tac) ]
 END
 set_pr_ssrtac "tclby" 0 [ArgSsr "hint"]
 
@@ -1855,7 +1855,7 @@ ARGUMENT EXTEND ssrterm
      GLOBALIZED BY glob_ssrterm SUBSTITUTED BY subst_ssrterm
      RAW_TYPED AS cpattern RAW_PRINTED BY pr_ssrterm
      GLOB_TYPED AS cpattern GLOB_PRINTED BY pr_ssrterm
-| [ "Qed" constr(c) ] -> [ mk_lterm c ]
+| [ "YouShouldNotTypeThis" constr(c) ] -> [ mk_lterm c ]
 END
 
 GEXTEND Gram
@@ -2642,7 +2642,7 @@ let reject_ssrhid strm =
 let test_nohidden = Gram.Entry.of_parser "test_ssrhid" reject_ssrhid
 
 ARGUMENT EXTEND ssrcpat TYPED AS ssripatrep PRINTED BY pr_ssripat
-  | [ "Qed" ssriorpat(x) ] -> [ IpatCase x ]
+  | [ "YouShouldNotTypeThis" ssriorpat(x) ] -> [ IpatCase x ]
 END
 
 GEXTEND Gram
@@ -2995,11 +2995,11 @@ let pr_ssrintrosarg _ _ prt (tac, ipats) =
 
 ARGUMENT EXTEND ssrintrosarg TYPED AS tactic * ssrintros
    PRINTED BY pr_ssrintrosarg
-| [ "Qed" ssrtacarg(arg) ssrintros_ne(ipats) ] -> [ arg, ipats ]
+| [ "YouShouldNotTypeThis" ssrtacarg(arg) ssrintros_ne(ipats) ] -> [ arg, ipats ]
 END
 
 TACTIC EXTEND ssrtclintros
-| [ "Qed" ssrintrosarg(arg) ] ->
+| [ "YouShouldNotTypeThis" ssrintrosarg(arg) ] ->
   [ let tac, intros = arg in
     Proofview.V82.tactic (tclINTROS ist (fun ist -> ssrevaltac ist tac) intros) ]
 END
@@ -3079,7 +3079,7 @@ let pr_ssrdoarg prc _ prt (((n, m), tac), clauses) =
 ARGUMENT EXTEND ssrdoarg
   TYPED AS ((ssrindex * ssrmmod) * ssrhintarg) * ssrclauses
   PRINTED BY pr_ssrdoarg
-| [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
+| [ "YouShouldNotTypeThis" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 let ssrdotac ist (((n, m), tac), clauses) =
@@ -3087,7 +3087,7 @@ let ssrdotac ist (((n, m), tac), clauses) =
   tclCLAUSES ist (tclMULT mul (hinttac ist false tac)) clauses
 
 TACTIC EXTEND ssrtcldo
-| [ "Qed" "do" ssrdoarg(arg) ] -> [ Proofview.V82.tactic (ssrdotac ist arg) ]
+| [ "YouShouldNotTypeThis" "do" ssrdoarg(arg) ] -> [ Proofview.V82.tactic (ssrdotac ist arg) ]
 END
 set_pr_ssrtac "tcldo" 3 [ArgSep "do "; ArgSsr "doarg"]
 
@@ -3131,7 +3131,7 @@ let pr_ssrseqarg _ _ prt = function
 (* an unindexed tactic.                                            *)
 ARGUMENT EXTEND ssrseqarg TYPED AS ssrindex * (ssrhintarg * tactic option)
                           PRINTED BY pr_ssrseqarg
-| [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
+| [ "YouShouldNotTypeThis" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 let sq_brace_tacnames =
@@ -3247,11 +3247,11 @@ let pr_ssrseqdir _ _ _ = function
   | R2L -> str ";" ++ spc () ++ str "last "
 
 ARGUMENT EXTEND ssrseqdir TYPED AS ssrdir PRINTED BY pr_ssrseqdir
-| [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
+| [ "YouShouldNotTypeThis" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 TACTIC EXTEND ssrtclseq
-| [ "Qed" ssrtclarg(tac) ssrseqdir(dir) ssrseqarg(arg) ] ->
+| [ "YouShouldNotTypeThis" ssrtclarg(tac) ssrseqdir(dir) ssrseqarg(arg) ] ->
   [ Proofview.V82.tactic (tclSEQAT ist tac dir arg) ]
 END
 set_pr_ssrtac "tclseq" 5 [ArgSsr "tclarg"; ArgSsr "seqdir"; ArgSsr "seqarg"]
@@ -3564,7 +3564,7 @@ let pr_ssreqid _ _ _ = pr_eqid
 (* We must use primitive parsing here to avoid conflicts with the  *)
 (* basic move, case, and elim tactics.                             *)
 ARGUMENT EXTEND ssreqid TYPED AS ssripatrep option PRINTED BY pr_ssreqid
-| [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
+| [ "YouShouldNotTypeThis" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 let accept_ssreqid strm =
@@ -5032,7 +5032,7 @@ let rwargtac ist ((dir, mult), (((oclr, occ), grx), (kind, gt))) gl =
 let pr_ssrrwargs _ _ _ rwargs = pr_list spc pr_rwarg rwargs
 
 ARGUMENT EXTEND ssrrwargs TYPED AS ssrrwarg list PRINTED BY pr_ssrrwargs
-  | [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
+  | [ "YouShouldNotTypeThis" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 let ssr_rw_syntax = Summary.ref ~name:"SSR:rewrite" true
@@ -5121,7 +5121,7 @@ let pr_ssrfwdid _ _ _ id = pr_spc () ++ pr_id id
 (* We use a primitive parser for the head identifier of forward *)
 (* tactis to avoid syntactic conflicts with basic Coq tactics. *)
 ARGUMENT EXTEND ssrfwdid TYPED AS ident PRINTED BY pr_ssrfwdid
-  | [ "Qed" ] -> [ anomaly "Grammar placeholder match" ]
+  | [ "YouShouldNotTypeThis" ] -> [ anomaly "Grammar placeholder match" ]
 END
 
 let accept_ssrfwdid strm =
