@@ -5818,8 +5818,8 @@ GEXTEND Gram
   GLOBAL: tactic_expr;
   tactic_expr: LEVEL "3"
     [ RIGHTA [ IDENT "abstract"; gens = ssrdgens ->
-               Tacexpr.TacML (!@loc, ssrtac_name "abstract",
-                [Genarg.in_gen (Genarg.rawwit wit_ssrdgens) gens]) ]];
+               ssrtac_expr !@loc "abstract"
+                [Genarg.in_gen (Genarg.rawwit wit_ssrdgens) gens] ]];
 END
 TACTIC EXTEND ssrabstract
 | [ "abstract" ssrdgens(gens) ] -> [
