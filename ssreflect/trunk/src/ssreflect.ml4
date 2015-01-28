@@ -1025,11 +1025,12 @@ let set_pr_ssrtac name prec afmt =
   | ArgSep _ :: afmt' -> mk_akey afmt'
   | [] -> [] in
   let tacname = ssrtac_name name in
-   Pptactic.declare_ml_tactic_pprule tacname
+   Pptactic.declare_ml_tactic_pprule tacname [|
     { Pptactic.pptac_args = mk_akey afmt;
       Pptactic.pptac_prods = (prec, fmt) }
+   |]
 
-let ssrtac_atom loc name n args = TacML (loc, ssrtac_entry name n, args)
+let ssrtac_atom loc name args = TacML (loc, ssrtac_entry name 0, args)
 let ssrtac_expr = ssrtac_atom
 
 
@@ -1681,9 +1682,9 @@ let gen_tclarg = in_gen (rawwit wit_ssrtclarg)
 GEXTEND Gram
   GLOBAL: tactic tactic_mode;
   tactic: [
-    [ "+"; tac = ssrtclarg -> ssrtac_expr !@loc "tclplus" 5 [gen_tclarg tac]
-    | "-"; tac = ssrtclarg -> ssrtac_expr !@loc "tclminus" 5 [gen_tclarg tac]
-    | "*"; tac = ssrtclarg -> ssrtac_expr !@loc "tclstar" 5 [gen_tclarg tac] 
+    [ "+"; tac = ssrtclarg -> ssrtac_expr !@loc "tclplus" [gen_tclarg tac]
+    | "-"; tac = ssrtclarg -> ssrtac_expr !@loc "tclminus" [gen_tclarg tac]
+    | "*"; tac = ssrtclarg -> ssrtac_expr !@loc "tclstar" [gen_tclarg tac] 
     ] ];
   tactic_mode: [
     [ "+"; tac = G_vernac.subgoal_command -> tac None
@@ -1716,7 +1717,7 @@ GEXTEND Gram
   simple_tactic: [
   [ "by"; arg = ssrhintarg ->
     let garg = in_gen (rawwit wit_ssrhint) arg in
-    ssrtac_atom !@loc "tclby" 0 [garg]
+    ssrtac_atom !@loc "tclby" [garg]
   ] ];
 END
 (* }}} *)
@@ -3012,7 +3013,7 @@ set_pr_ssrtac "tclintros" 0 [ArgSsr "introsarg"]
 
 let tclintros_expr loc tac ipats =
   let args = [in_gen (rawwit wit_ssrintrosarg) (tac, ipats)] in
-  ssrtac_expr loc "tclintros" 0 args
+  ssrtac_expr loc "tclintros" args
 
 GEXTEND Gram
   GLOBAL: tactic_expr;
@@ -3098,7 +3099,7 @@ set_pr_ssrtac "tcldo" 3 [ArgSep "do "; ArgSsr "doarg"]
 
 let ssrdotac_expr loc n m tac clauses =
   let arg = ((n, m), tac), clauses in
-  ssrtac_expr loc "tcldo" 3 [in_gen (rawwit wit_ssrdoarg) arg]
+  ssrtac_expr loc "tcldo" [in_gen (rawwit wit_ssrdoarg) arg]
 
 GEXTEND Gram
   GLOBAL: tactic_expr;
@@ -3265,7 +3266,7 @@ let tclseq_expr loc tac dir arg =
   let arg1 = in_gen (rawwit wit_ssrtclarg) tac in
   let arg2 = in_gen (rawwit wit_ssrseqdir) dir in
   let arg3 = in_gen (rawwit wit_ssrseqarg) (check_seqtacarg dir arg) in
-  ssrtac_expr loc "tclseq" 5 [arg1; arg2; arg3]
+  ssrtac_expr loc "tclseq" [arg1; arg2; arg3]
 
 GEXTEND Gram
   GLOBAL: tactic_expr;
