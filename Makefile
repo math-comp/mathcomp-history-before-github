@@ -2,10 +2,12 @@ ifeq "$(COQBIN)" ""
 COQBIN=$(dir $(shell which coqtop))/
 endif
 
-ifeq "$(shell $(COQBIN)/coqtop -v | head | grep 8.4)" ""
+
+ifeq "$(shell $(COQBIN)/coqtop -v | head -1 | grep trunk | wc -l)" "1"
 V=trunk
 else
-V=v8.4
+V=$(shell $(COQBIN)/coqtop -v | head -1 | \
+  sed 's/.*version \([0-9]\.[0-9]\)[^ ]* .*/v\1/')
 endif
 
 .DEFAULT_GOAL:=all
