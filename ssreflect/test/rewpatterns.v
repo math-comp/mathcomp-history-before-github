@@ -93,14 +93,11 @@ Require Import fintype ssrnat finset fingroup gproduct.
 
 Goal (forall (gT : finGroupType) (G H: {set gT}) (Z : {group gT}), G = Z).
 move=> gT G H K. suff: G \x H = K. case/dprodP=> {G H} [[G H -> -> defK _ _]].
-admit.
-admit.
-Qed.
+Admitted.
 
 Goal (exists x : 'I_3, x > 0).
 apply: (ex_intro _ (@Ordinal _ 2 _)).
-admit.
-Qed.
+Admitted.
 
 Goal (forall y, 1 < y < 2 -> exists x : 'I_3, x > 0).
 move=> y; case/andP=> y_gt1 y_lt2; apply: (ex_intro _ (@Ordinal _ y _)).
@@ -111,8 +108,7 @@ Qed.
 Goal (forall x y : nat, forall P : nat -> Prop, x = y -> True).
 move=> x y P E.
 have: P x -> P y by suff: x = y by move=> ?; congr (P _).
-by admit.
-Qed.
+Admitted.
 
 Goal forall a : bool, a -> true && a || false && a.
 by move=> a ?; rewrite [true && _]/= [_ && a]/= orbC [_ || _]//=.

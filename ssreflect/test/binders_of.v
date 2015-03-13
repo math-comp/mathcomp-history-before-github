@@ -7,6 +7,4 @@ have f of seq nat & nat : nat.
 have g of nat := 3.
 have h of nat : nat := 3.
 have _ : f [::] 3 = g 3 + h 4.
-  by admit.
-by admit.
-Qed.
+Admitted.
