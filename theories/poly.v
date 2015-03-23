@@ -1321,7 +1321,7 @@ by rewrite qualifE polyseqC; case: eqP => [->|] /=; rewrite ?andbT ?rpred0.
 Qed.
 
 Fact polyOver_addr_closed : addr_closed (polyOver kS).
-Proof. 
+Proof.
 split=> [|p q Sp Sq]; first exact: polyOver0.
 by apply/polyOverP=> i; rewrite coefD rpredD ?(polyOverP _).
 Qed.
@@ -1351,7 +1351,7 @@ Canonical polyOver_semiringPred := SemiringPred polyOver_mulr_closed.
 
 Lemma polyOverZ : {in kS & polyOver kS, forall c p, c *: p \is a polyOver kS}.
 Proof.
-by move=> c p Sc /polyOverP Sp; apply/polyOverP=> i; rewrite coefZ rpredM ?Sp. 
+by move=> c p Sc /polyOverP Sp; apply/polyOverP=> i; rewrite coefZ rpredM ?Sp.
 Qed.
 
 Lemma polyOverX : 'X \in polyOver kS.
@@ -1456,7 +1456,7 @@ by rewrite deriv_mulC IHp !mulrDl -!mulrA !commr_polyX !addrA.
 Qed.
 
 Definition derivE := Eval lazy beta delta [morphism_2 morphism_1] in
-  (derivZ, deriv_mulC, derivC, derivX, derivMXaddC, derivXsubC, derivM, derivB, 
+  (derivZ, deriv_mulC, derivC, derivX, derivMXaddC, derivXsubC, derivM, derivB,
    derivD, derivN, derivXn, derivM, derivMn).
 
 (* Iterated derivative. *)
@@ -2276,6 +2276,19 @@ rewrite coefZ (nth_default 0 (leq_trans _ le_qp_i)) ?mulr0 //=.
 by rewrite polySpred ?expf_neq0 // !size_exp -(subnKC q_gt1) ltn_pmul2l.
 Qed.
 
+Theorem max_poly_roots p rs :
+  p != 0 -> all (root p) rs -> uniq rs -> size rs < size p.
+Proof.
+elim: rs p => [p pn0 _ _ | r rs ihrs p pn0] /=; first by rewrite size_poly_gt0.
+case/andP => rpr arrs /andP [rnrs urs]; case/factor_theorem: rpr => q epq.
+case: (altP (q =P 0)) => [q0 | ?]; first by move: pn0; rewrite epq q0 mul0r eqxx.
+have -> : size p = (size q).+1.
+   by rewrite epq size_Mmonic ?monicXsubC // size_XsubC addnC.
+suff /eq_in_all h : {in rs, root q =1 root p} by apply: ihrs => //; rewrite h.
+move=> x xrs; rewrite epq rootM root_XsubC orbC; case: (altP (x =P r)) => // exr.
+by move: rnrs; rewrite -exr xrs.
+Qed.
+
 End PolynomialIdomain.
 
 Section MapFieldPoly.
@@ -2394,10 +2407,6 @@ Proof.
 elim: rs => //= r rs ->; congr (_ && _); rewrite -has_pred1 -all_predC.
 by apply: eq_all => t; rewrite /diff_roots mulrC eqxx unitfE subr_eq0.
 Qed.
-
-Theorem max_poly_roots p rs :
-  p != 0 -> all (root p) rs -> uniq rs -> size rs < size p.
-Proof. by rewrite -uniq_rootsE; exact: max_ring_poly_roots. Qed.
 
 Section UnityRoots.
 
