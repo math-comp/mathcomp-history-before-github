@@ -132,5 +132,5 @@ theories/qe_rcf.v
 # One should add there just:
 #   ssreflect/v8.4/src/ssreflect.mllib
 # This is really from another era:
-#COQC = ssrcoq
-#COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
+COQC = ssrcoq
+COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
