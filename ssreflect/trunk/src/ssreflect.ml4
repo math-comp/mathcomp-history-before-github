@@ -2640,7 +2640,7 @@ END
 let reject_ssrhid strm =
   match Compat.get_tok (stream_nth 0 strm) with
   | Tok.KEYWORD "[" ->
-      (match Compat.get_tok (stream_nth 0 strm) with
+      (match Compat.get_tok (stream_nth 1 strm) with
       | Tok.KEYWORD ":" -> raise Stream.Failure
       | _ -> ())
   | _ -> ()
