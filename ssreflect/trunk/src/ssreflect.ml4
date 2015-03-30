@@ -66,6 +66,9 @@ open Notation_ops
 open Locus
 open Locusops
 
+open Compat
+open Tok
+
 open Ssrmatching
 
 
@@ -862,7 +865,7 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
   let evplist = 
     let depev = List.fold_left (fun evs (_,(_,t,_)) -> 
         Intset.union evs (Evarutil.undefined_evars_of_term sigma t)) Intset.empty evlist in
-    List.filter (fun i,(_,_,b) -> b && Intset.mem i depev) evlist in
+    List.filter (fun (i,(_,_,b)) -> b && Intset.mem i depev) evlist in
   let evlist, evplist, sigma = 
     if evplist = [] then evlist, [], sigma else
     List.fold_left (fun (ev, evp, sigma) (i, (_,t,_) as p) ->
@@ -2006,7 +2009,7 @@ let check_wgen_uniq gens =
   check [] ids
 
 let pf_clauseids gl gens clseq =
-  let keep_clears = List.map (fun x, _ -> x, None) in
+  let keep_clears = List.map (fun (x, _) -> x, None) in
   if gens <> [] then (check_wgen_uniq gens; gens) else
   if clseq <> InAll && clseq <> InAllHyps then keep_clears gens else
   Errors.error "assumptions should be named explicitly"
@@ -3160,7 +3163,7 @@ let check_seqtacarg dir arg = match snd arg, dir with
     loc_error loc "expected \"first\""
   | _, _ -> arg
 
-let ssrorelse = Gram.Entry.create "ssrorelse"
+let ssrorelse = Gram.entry_create "ssrorelse"
 GEXTEND Gram
   GLOBAL: ssrorelse ssrseqarg;
   ssrseqidx: [
@@ -6058,9 +6061,6 @@ END
 
 (** Canonical Structure alias *)
 
-let def_body : Vernacexpr.definition_expr Gram.Entry.e = Obj.magic
-   (Grammar.Entry.find (Obj.magic gallina_ext) "vernac:def_body") in
-
 GEXTEND Gram
   GLOBAL: gallina_ext;
 
@@ -6071,7 +6071,7 @@ GEXTEND Gram
       | IDENT "Canonical"; ntn = Prim.by_notation ->
 	  Vernacexpr.VernacCanonical (ByNotation ntn)
       | IDENT "Canonical"; qid = Constr.global;
-          d = def_body ->
+          d = G_vernac.def_body ->
           let s = coerce_reference_to_id qid in
 	  Vernacexpr.VernacDefinition
 	    ((Some Decl_kinds.Global,Decl_kinds.CanonicalStructure),
@@ -6093,18 +6093,11 @@ END
 (* Coq v8.3 defines "by" as a keyword, some hacks are not needed any   *)
 (* longer and thus comment out. Such comments are marked with v8.3     *)
 
-let tac_ent = List.fold_left Grammar.Entry.find (Obj.magic simple_tactic) in
-let hypident_ent =
-  tac_ent ["clause_dft_all"; "in_clause"; "hypident_occ"; "hypident"] in
-let id_or_meta : Obj.t Gram.Entry.e = Obj.magic
-   (Grammar.Entry.find hypident_ent "id_or_meta") in
-let hypident : (Obj.t * hyp_location_flag) Gram.Entry.e =
-   Obj.magic hypident_ent in
 GEXTEND Gram
-  GLOBAL: hypident;
-hypident: [
-  [ "("; IDENT "type"; "of"; id = id_or_meta; ")" -> id, InHypTypeOnly
-  | "("; IDENT "value"; "of"; id = id_or_meta; ")" -> id, InHypValueOnly
+  GLOBAL: Tactic.hypident;
+  Tactic.hypident: [
+  [ "("; IDENT "type"; "of"; id = Prim.identref; ")" -> id, InHypTypeOnly
+  | "("; IDENT "value"; "of"; id = Prim.identref; ")" -> id, InHypValueOnly
   ] ];
 END
 
@@ -6118,13 +6111,9 @@ hloc: [
   ] ];
 END
 
-let constr_eval
- : (Constrexpr.constr_expr,Obj.t,Obj.t) Genredexpr.may_eval Gram.Entry.e
- = Obj.magic (Grammar.Entry.find (Obj.magic constr_may_eval) "constr_eval")
- 
 GEXTEND Gram
-  GLOBAL: constr_eval;
-  constr_eval: [
+  GLOBAL: Tactic.constr_eval;
+  Tactic.constr_eval: [
     [ IDENT "type"; "of"; c = Constr.constr -> Genredexpr.ConstrTypeOf c ]
   ];
 END
