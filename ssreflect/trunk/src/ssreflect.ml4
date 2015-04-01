@@ -1838,14 +1838,6 @@ let input_ssrtermkind strm = match Compat.get_tok (stream_nth 0 strm) with
 
 let ssrtermkind = Gram.Entry.of_parser "ssrtermkind" input_ssrtermkind
 
-let id_of_Cterm t = match id_of_cpattern t with
-  | Some x -> x
-  | None -> loc_error (loc_of_cpattern t) "Only identifiers are allowed here"
-let ssrhyp_of_ssrterm = function
-  | k, (_, Some c) as o ->
-     SsrHyp (constr_loc c, id_of_Cterm (cpattern_of_term o)), String.make 1 k
-  | _, (_, None) -> assert false
-
 (* terms *)
 let pr_ssrterm _ _ _ = pr_term
 let pf_intern_term ist gl (_, c) = glob_constr ist (pf_env gl) c
@@ -3700,10 +3692,12 @@ ARGUMENT EXTEND ssrmovearg TYPED AS ssrarg PRINTED BY pr_ssrarg
 END
 
 let viewmovetac_aux clear name_ref (_, vl as v) _ gen ist gl =
-  let cl, c, clr, gl = pf_interp_gen ist gl false gen in
+  let cl, c, clr, gl, gen_pat =
+    let _, gen_pat, a, b, c, ucst = pf_interp_gen_aux ist gl false gen in
+    a, b ,c, pf_merge_uc ucst gl, gen_pat in
   let cl, c, gl = if vl = [] then cl, c, gl else pf_with_view ist gl v cl c in
   let clr = if clear then clr else [] in
-  name_ref := (match id_of_cpattern (snd gen) with Some id -> id | _ -> top_id);
+  name_ref := (match id_of_pattern gen_pat with Some id -> id | _ -> top_id);
   genclrtac cl [c] clr gl
 
 let () = move_top_with_view := 
@@ -5766,7 +5760,8 @@ let ssrabstract ist gens (*last*) gl =
     let fire gl t = Reductionops.nf_evar (project gl) t in
     let abstract, gl = pf_mkSsrConst "abstract" gl in
     let abstract_key, gl = pf_mkSsrConst "abstract_key" gl in
-    let id = mkVar (Option.get (id_of_cpattern cid)) in
+    let cid_interpreted = interp_cpattern ist gl cid None in
+    let id = mkVar (Option.get (id_of_pattern cid_interpreted)) in
     let idty, args_id = examine_abstract id gl in
     let abstract_n = args_id.(1) in
     let abstract_proof = pf_find_abstract_proof true gl abstract_n in 
@@ -5810,7 +5805,7 @@ let ssrabstract ist gens (*last*) gl =
   in
   let introback ist (gens, _) =
     introstac ~ist
-      (List.map (fun (_,cp) -> match id_of_cpattern cp with
+      (List.map (fun (_,cp) -> match id_of_pattern (interp_cpattern ist gl cp None) with
         | None -> IpatAnon
         | Some id -> IpatId id)
         (List.tl (List.hd gens))) in
