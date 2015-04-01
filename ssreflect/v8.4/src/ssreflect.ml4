@@ -48,6 +48,9 @@ open Extraargs
 open Ppconstr
 open Printer
 
+open Compat
+open Tok
+
 open Ssrmatching
 
 (** look up a name in the ssreflect internals module *)
@@ -870,7 +873,7 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
   let evplist = 
     let depev = List.fold_left (fun evs (_,(_,t,_)) -> 
         Intset.union evs (Evarutil.evars_of_term t)) Intset.empty evlist in
-    List.filter (fun i,(_,_,b) -> b && Intset.mem i depev) evlist in
+    List.filter (fun (i,(_,_,b)) -> b && Intset.mem i depev) evlist in
   let evlist, evplist, sigma = 
     if evplist = [] then evlist, [], sigma else
     List.fold_left (fun (ev, evp, sigma) (i, (_,t,_) as p) ->
@@ -2009,7 +2012,7 @@ let check_wgen_uniq gens =
   check [] ids
 
 let pf_clauseids gl gens clseq =
-  let keep_clears = List.map (fun x, _ -> x, None) in
+  let keep_clears = List.map (fun (x, _) -> x, None) in
   if gens <> [] then (check_wgen_uniq gens; gens) else
   if clseq <> InAll && clseq <> InAllHyps then keep_clears gens else
   Util.error "assumptions should be named explicitly"
@@ -3139,7 +3142,7 @@ let check_seqtacarg dir arg = match snd arg, dir with
     loc_error loc "expected \"first\""
   | _, _ -> arg
 
-let ssrorelse = Gram.Entry.create "ssrorelse"
+let ssrorelse = Gram.entry_create "ssrorelse"
 GEXTEND Gram
   GLOBAL: ssrorelse ssrseqarg;
   ssrseqidx: [
@@ -5943,9 +5946,6 @@ END
 
 (** Canonical Structure alias *)
 
-let def_body : Vernacexpr.definition_expr Gram.Entry.e = Obj.magic
-   (Grammar.Entry.find (Obj.magic gallina_ext) "vernac:def_body") in
-
 GEXTEND Gram
   GLOBAL: gallina_ext;
 
@@ -5956,7 +5956,7 @@ GEXTEND Gram
       | IDENT "Canonical"; ntn = Prim.by_notation ->
 	  Vernacexpr.VernacCanonical (ByNotation ntn)
       | IDENT "Canonical"; qid = Constr.global;
-          d = def_body ->
+          d = G_vernac.def_body ->
           let s = coerce_reference_to_id qid in
 	  Vernacexpr.VernacDefinition
 	    ((Decl_kinds.Global,Decl_kinds.CanonicalStructure),
