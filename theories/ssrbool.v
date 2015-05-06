@@ -44,6 +44,11 @@ Require Import ssreflect ssrfun.
 (*           classically P <-> hP : P can be assumed when proving is_true b   *)
 (*                         := forall b : bool, (P -> b) -> b.                 *)
 (*                            This is equivalent to ~ (~ P) when P : Prop.    *)
+(*             implies P Q == wrapper coinductive type that coerces to P -> Q *)
+(*                            and can be used as a P -> Q view unambigously.  *)
+(*                            Useful to avoid spurious insertion of <-> views *)
+(*                            when Q is a conjunction of foralls, as in Lemma *)
+(*                            all_and2 below; also supports contrapositives.  *)
 (*                  a && b == the boolean conjunction of a and b.             *)
 (*                  a || b == then boolean disjunction of a and b.            *)
 (*                 a ==> b == the boolean implication of b by a.              *)
@@ -660,27 +665,38 @@ Notation "[ ==> b1 , b2 , .. , bn => c ]" :=
    (b1 ==> (b2 ==> .. (bn ==> c) .. )) : bool_scope.
 Notation "[ ==> b1 => c ]" := (b1 ==> c) (only parsing) : bool_scope.
 
+CoInductive implies (P Q : Prop) : Prop := Implies of P -> Q.
+Lemma impliesP P Q : implies P Q -> P -> Q. Proof. by case. Qed.
+Lemma impliesPn P Q : implies P Q -> ~ Q -> ~ P. Proof. by case=> iP ? /iP. Qed.
+Coercion impliesP : implies >-> Funclass.
+Hint View for move/ impliesPn|2 impliesP|2.
+
 Section AllAnd.
 
 Variables (T : Type) (P1 P2 P3 P4 P5 : T -> Prop).
 Local Notation a P := (forall x, P x).
 
-Lemma all_and2 (hP : forall x, [/\ P1 x & P2 x]) : [/\ a P1 & a P2].
-Proof. by split=> x; case: (hP x). Qed.
+Lemma all_and2 : implies (forall x, [/\ P1 x & P2 x]) [/\ a P1 & a P2].
+Proof. by split=> haveP; split=> x; case: (haveP x). Qed.
 
-Lemma all_and3 (hP : forall x, [/\ P1 x, P2 x & P3 x]) :
-  [/\ a P1, a P2 & a P3].
-Proof. by split=> x; case: (hP x). Qed.
+Lemma all_and3 : implies (forall x, [/\ P1 x, P2 x & P3 x])
+                         [/\ a P1, a P2 & a P3].
+Proof. by split=> haveP; split=> x; case: (haveP x). Qed.
 
-Lemma all_and4 (hP : forall x, [/\ P1 x, P2 x, P3 x & P4 x]) :
-  [/\ a P1, a P2, a P3 & a P4].
-Proof. by split=> x; case: (hP x). Qed.
+Lemma all_and4 : implies (forall x, [/\ P1 x, P2 x, P3 x & P4 x])
+                         [/\ a P1, a P2, a P3 & a P4].
+Proof. by split=> haveP; split=> x; case: (haveP x). Qed.
 
-Lemma all_and5 (hP : forall x, [/\ P1 x, P2 x, P3 x, P4 x & P5 x]) :
-  [/\ a P1, a P2, a P3, a P4 & a P5].
-Proof. by split=> x; case: (hP x). Qed.
+Lemma all_and5 : implies (forall x, [/\ P1 x, P2 x, P3 x, P4 x & P5 x])
+                         [/\ a P1, a P2, a P3, a P4 & a P5].
+Proof. by split=> haveP; split=> x; case: (haveP x). Qed.
 
 End AllAnd.
+
+Implicit Arguments all_and2 [[T] [P1] [P2]].
+Implicit Arguments all_and3 [[T] [P1] [P2] [P3]].
+Implicit Arguments all_and4 [[T] [P1] [P2] [P3] [P4]].
+Implicit Arguments all_and5 [[T] [P1] [P2] [P3] [P4] [P5]].
 
 Lemma pair_andP P Q : P /\ Q <-> P * Q. Proof. by split; case. Qed.
 
