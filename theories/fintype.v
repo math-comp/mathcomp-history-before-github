@@ -17,7 +17,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 (*    We define the following interfaces and structures:                      *)
 (*         finType == the packed class type of the Finite interface.          *)
 (*       FinType m == the packed class for the Finite mixin m.                *)
-(*  Finite.axiom e == every x : T occurs exactly once in e : seq T.           *)
+(*  Finite.axiom e <-> every x : T occurs exactly once in e : seq T.          *)
 (*   FinMixin ax_e == the Finite mixin for T, encapsulating                   *)
 (*                    ax_e : Finite.axiom e for some e : seq T.               *)
 (*  UniqFinMixin uniq_e total_e == an alternative mixin constructor that uses *)
@@ -34,12 +34,15 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 (* [finMixin of T by <:] == a finType structure for T, when T has a subType   *)
 (*                   structure over an existing finType.                      *)
 (*   We define or propagate the finType structure appropriately for all basic *)
-(* basic types : unit, bool, option, prod, sum, sig and sigT. We also define  *)
-(* a generic type constructor for finite subtypes based on an explicit        *)
+(* types : unit, bool, option, prod, sum, sig and sigT. We also define a      *)
+(* generic type constructor for finite subtypes based on an explicit          *)
 (* enumeration:                                                               *)
-(*        seq_sub s == the subType of all x \in s, where s : seq T and T has  *)
-(*                     a choiceType structure; the seq_sub s type has a       *)
-(*                     canonical finType structure.                           *)
+(*          seq_sub s == the subType of all x \in s, where s : seq T for some *)
+(*                       eqType T; seq_sub s has a canonical finType instance *)
+(*                       when T is a choiceType.                              *)
+(*   adhoc_seq_sub_choiceType s, adhoc_seq_sub_finType s ==                   *)
+(*                       non-canonical instances for seq_sub s, s : seq T,    *)
+(*                       which can be used when T is not a choiceType.        *)
 (* Bounded integers are supported by the following type and operations:       *)
 (*    'I_n, ordinal n == the finite subType of integers i < n, whose          *)
 (*                       enumeration is {0, ..., n.-1}. 'I_n coerces to nat,  *)
@@ -1293,56 +1296,6 @@ End EqImage.
 
 (* Standard finTypes *)
 
-Section SeqFinType.
-
-Variables (T : eqType) (s : seq T).
-
-Record seq_sub : Type := SeqSub {ssval : T; ssvalP : in_mem ssval (@mem T _ s)}.
-
-Canonical seq_sub_subType := Eval hnf in [subType for ssval].
-Definition seq_sub_eqMixin := Eval hnf in [eqMixin of seq_sub by <:].
-Canonical seq_sub_eqType := Eval hnf in EqType seq_sub seq_sub_eqMixin.
-
-Definition seq_sub_enum : seq seq_sub := undup (pmap insub s).
-
-Lemma mem_seq_sub_enum x : x \in seq_sub_enum.
-Proof. by rewrite mem_undup mem_pmap -valK map_f ?ssvalP. Qed.
-
-Lemma val_seq_sub_enum : uniq s -> map val seq_sub_enum = s.
-Proof.
-move=> Us; rewrite /seq_sub_enum undup_id ?pmap_sub_uniq //.
-rewrite (pmap_filter (@insubK _ _ _)); apply/all_filterP.
-by apply/allP => x; rewrite isSome_insub.
-Qed.
-
-Definition seq_sub_pickle x := index x seq_sub_enum.
-Definition seq_sub_unpickle n := nth None (map some seq_sub_enum) n.
-Lemma seq_sub_pickleK : pcancel seq_sub_pickle seq_sub_unpickle.
-Proof.
-rewrite /seq_sub_unpickle => x.
-by rewrite (nth_map x) ?nth_index ?index_mem ?mem_seq_sub_enum.
-Qed.
-
-Definition seq_sub_choiceMixin := PcanChoiceMixin seq_sub_pickleK.
-Canonical seq_sub_choiceType :=
-  Eval hnf in ChoiceType seq_sub seq_sub_choiceMixin.
-
-Definition seq_sub_countMixin := CountMixin seq_sub_pickleK.
-Canonical seq_sub_countType := Eval hnf in CountType seq_sub seq_sub_countMixin.
-
-Definition seq_sub_finMixin :=
-  Eval hnf in UniqFinMixin (undup_uniq _) mem_seq_sub_enum.
-Canonical seq_sub_finType := Eval hnf in FinType seq_sub seq_sub_finMixin.
-
-Lemma card_seq_sub : uniq s -> #|{:seq_sub}| = size s.
-Proof.
-by move=> Us; rewrite cardE enumT -(size_map val) unlock val_seq_sub_enum.
-Qed.
-
-End SeqFinType.
-
-Canonical seq_sub_subCountType (T : choiceType) (s : seq T) := Eval hnf in [subCountType of (seq_sub s)].
-
 Lemma unit_enumP : Finite.axiom [::tt]. Proof. by case. Qed.
 Definition unit_finMixin := Eval hnf in FinMixin unit_enumP.
 Canonical unit_finType := Eval hnf in FinType unit unit_finMixin.
@@ -1425,9 +1378,6 @@ End SubFinType.
 Notation "[ 'subFinType' 'of' T ]" := (@pack_subFinType _ _ T _ _ _ id _ _ id)
   (at level 0, format "[ 'subFinType'  'of'  T ]") : form_scope.
 
-Canonical seq_sub_subFinType (T : choiceType) s :=
-  Eval hnf in [subFinType of @seq_sub T s].
-
 Section FinTypeForSub.
 
 Variables (T : finType) (P : pred T) (sT : subCountType P).
@@ -1500,6 +1450,73 @@ Lemma card_sig : #|{: {x | P x}}| = #|[pred x | P x]|.
 Proof. exact: card_sub. Qed.
 
 End CardSig.
+
+(* Subtype for an explicit enumeration. *)
+Section SeqSubType.
+
+Variables (T : eqType) (s : seq T).
+
+Record seq_sub : Type := SeqSub {ssval : T; ssvalP : in_mem ssval (@mem T _ s)}.
+
+Canonical seq_sub_subType := Eval hnf in [subType for ssval].
+Definition seq_sub_eqMixin := Eval hnf in [eqMixin of seq_sub by <:].
+Canonical seq_sub_eqType := Eval hnf in EqType seq_sub seq_sub_eqMixin.
+
+Definition seq_sub_enum : seq seq_sub := undup (pmap insub s).
+
+Lemma mem_seq_sub_enum x : x \in seq_sub_enum.
+Proof. by rewrite mem_undup mem_pmap -valK map_f ?ssvalP. Qed.
+
+Lemma val_seq_sub_enum : uniq s -> map val seq_sub_enum = s.
+Proof.
+move=> Us; rewrite /seq_sub_enum undup_id ?pmap_sub_uniq //.
+rewrite (pmap_filter (@insubK _ _ _)); apply/all_filterP.
+by apply/allP => x; rewrite isSome_insub.
+Qed.
+
+Definition seq_sub_pickle x := index x seq_sub_enum.
+Definition seq_sub_unpickle n := nth None (map some seq_sub_enum) n.
+Lemma seq_sub_pickleK : pcancel seq_sub_pickle seq_sub_unpickle.
+Proof.
+rewrite /seq_sub_unpickle => x.
+by rewrite (nth_map x) ?nth_index ?index_mem ?mem_seq_sub_enum.
+Qed.
+
+Definition seq_sub_countMixin := CountMixin seq_sub_pickleK.
+Fact seq_sub_axiom : Finite.axiom seq_sub_enum.
+Proof. exact: Finite.uniq_enumP (undup_uniq _) mem_seq_sub_enum. Qed.
+Definition seq_sub_finMixin := Finite.Mixin seq_sub_countMixin seq_sub_axiom.
+
+(* Beware: these are not the canonical instances, as they are not consistent  *)
+(* the generic sub_choiceType canonical instance.                             *)
+Definition adhoc_seq_sub_choiceMixin := PcanChoiceMixin seq_sub_pickleK.
+Definition adhoc_seq_sub_choiceType :=
+  Eval hnf in ChoiceType seq_sub adhoc_seq_sub_choiceMixin.
+Definition adhoc_seq_sub_finType :=
+  [finType of seq_sub for FinType adhoc_seq_sub_choiceType seq_sub_finMixin].
+
+End SeqSubType.
+
+Section SeqFinType.
+
+Variables (T : choiceType) (s : seq T).
+Local Notation sT := (seq_sub s).
+
+Definition seq_sub_choiceMixin := [choiceMixin of sT by <:].
+Canonical seq_sub_choiceType := Eval hnf in ChoiceType sT seq_sub_choiceMixin.
+
+Canonical seq_sub_countType := Eval hnf in CountType sT (seq_sub_countMixin s).
+Canonical seq_sub_subCountType := Eval hnf in [subCountType of sT].
+Canonical seq_sub_finType := Eval hnf in FinType sT (seq_sub_finMixin s).
+Canonical seq_sub_subFinType := Eval hnf in [subFinType of sT].
+
+Lemma card_seq_sub : uniq s -> #|{:sT}| = size s.
+Proof.
+by move=> Us; rewrite cardE enumT -(size_map val) unlock val_seq_sub_enum.
+Qed.
+
+End SeqFinType.
+
 
 (**********************************************************************)
 (*                                                                    *)
