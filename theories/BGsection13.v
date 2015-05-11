@@ -774,7 +774,7 @@ without loss sylS_L: L maxL sLq notMGL / q.-Sylow(L) S.
   have [T sylT] := Sylow_exists q L; have sylT_G := sigma_Sylow_G maxL sLq sylT.
   have [x Gx ->] := Sylow_trans sylT_G (sigma_Sylow_G maxM sMq sylS_M).
   case/(_ (L :^ x)%G); rewrite ?mmaxJ ?sigmaJ ?pHallJ2 //.
-  by rewrite (orbit_transr _ (mem_orbit 'Js L Gx)).
+  by rewrite (orbit_transl _ (mem_orbit 'Js L Gx)).
 have [[sSL _] [[E1 hallE1] [E3 hallE3]]] := (andP sylS_L, ex_tau13_compl hallE).
 have [E2 hallE2 complEi] := ex_tau2_compl hallE hallE1 hallE3.
 have E2_1: E2 :==: 1.

@@ -13,7 +13,7 @@ Require Import PFsection1 PFsection2 PFsection3 PFsection4 PFsection5.
 (* Some Coherence Theorems                                                    *)
 (* Defined here:                                                              *)
 (*   odd_Frobenius_quotient K L M <->                                         *)
-(*      L has odd order, M <| L, K with K / M is nilpotent, and L / H1 is a   *)
+(*      L has odd order, M <| L, K with K / M nilpotent, and L / H1 is a      *)
 (*      Frobenius group with kernel K / H1, where H1 / M = (K / M)^(1).       *)
 (*      This is the statement of Peterfalvi, Hypothesis (6.4), except for     *)
 (*      the K <| L and subcoherence assumptions, to be required separately.   *)
@@ -461,7 +461,7 @@ have{actsGC} PdvKa i j s:
   suffices inZ k y: y \in C k -> ~~ dC k Z^# -> y ^ x = y -> y \in Z.
     apply/exists_inP; exists (u * v)%g => //=.
     by rewrite groupM // (inZ i u, inZ j v).
-  rewrite /dC /C; have /imsetP[_ _ ->{k} /class_transr <-] := enum_valP k.
+  rewrite /dC /C; have /imsetP[_ _ ->{k} /class_eqP <-] := enum_valP k.
   case/exists_inP=> _ /imsetP[g Gg ->] /setD1P[nt_yg Zyg] yx.
   have xy: (x ^ y = x)%g by rewrite /conjg (conjgCV x) -{2}yx conjgK mulKg.
   rewrite -(memJ_conjg _ g) (normsP nZL) //.
@@ -540,7 +540,7 @@ have Dalpha2 i j: ~~ dC i Z^# ->  ~~ dC j Z^# ->
   rewrite eqAmod0_rat ?rpred_nat // dvdC_nat PdvKa //.
   rewrite -(setD1K (group1 Z)) [dC _ _]disjoint_sym disjoints_subset.
   rewrite subUset sub1set inE -disjoints_subset disjoint_sym.
-  rewrite (contra _ ntCs) // [C s]defCs => /class_transr.
+  rewrite (contra _ ntCs) // [C s]defCs => /class_eqP.
   by rewrite -(inj_eq enum_val_inj) defCs -/(C _) CE => ->.
 have zG'z1: (z^-1 \notin z ^: G)%g.
   have genL2 y: y \in L -> <[y]> = <[y ^+ 2]>.
@@ -554,7 +554,7 @@ have zG'z1: (z^-1 \notin z ^: G)%g.
   by rewrite -(memJ_P1 z) -?zy ?in_setD ?groupV ?inE ?ntz.
 have a110: a i1 i1 i0 = 0%N.
   apply: contraNeq zG'z1 => /existsP[[u v] /setIdP[/andP[/=]]].
-  rewrite rCi10 -!/(C _) !CE -eq_invg_mul => /imsetP[x Gx ->] /class_transr <-.
+  rewrite rCi10 -!/(C _) !CE -eq_invg_mul => /imsetP[x Gx ->] /class_eqP <-.
   by move/eqP <-; rewrite -conjVg classGidl ?class_refl.
 have a120: a i1 i2 i0 = #|C i1|.
   rewrite -(card_imset _ (@can_inj _ _ (fun y => (y, y^-1)%g) (@fst _ _) _)) //.

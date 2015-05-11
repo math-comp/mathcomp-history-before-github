@@ -649,7 +649,7 @@ rewrite (card_afix_irr_classes Lz actsL_KK) => [|k x y Kx /=]; last first.
 apply: leq_trans (subset_leq_card _) (leq_imset_card (class^~ K) _).
 apply/subsetP=> _ /setIP[/imsetP[x Kx ->] /afix1P/normP nxKz].
 suffices{Kx} /pred0Pn[t /setIP[xKt czt]]: #|'C_(x ^: K)[z]| != 0%N.
-  rewrite -(class_transr xKt); apply: mem_imset; have [y Ky Dt] := imsetP xKt.
+  rewrite -(class_eqP xKt); apply: mem_imset; have [y Ky Dt] := imsetP xKt.
   by rewrite -(@prKW1 z) ?(czt, inE) ?ntz // Dt groupJ.
 have{coKp}: ~~ (p %| #|K|) by rewrite -prime_coprime // coprime_sym.
 apply: contraNneq => /(congr1 (modn^~ p))/eqP; rewrite mod0n.

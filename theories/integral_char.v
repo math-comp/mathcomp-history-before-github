@@ -137,7 +137,7 @@ rewrite scaler_sumr; apply: eq_bigr => g Kk_g; rewrite scaler_nat.
 rewrite (set_gring_classM_coef _ _ Kk_g) -sumr_const; apply: eq_big => [] [x y].
   rewrite !inE /= dKi dKj /h1 /h2 /=; apply: andb_id2r => /eqP ->.
   have /imsetP[zk Gzk dKk] := enum_valP k; rewrite dKk in Kk_g.
-  by rewrite (class_transr Kk_g) -dKk enum_valK_in eqxx andbT.
+  by rewrite (class_eqP Kk_g) -dKk enum_valK_in eqxx andbT.
 by rewrite /h2 /= => /andP[_ /eqP->].
 Qed.
 
@@ -489,7 +489,7 @@ move=> a /= Kg1 Kg2 Kg; rewrite mulrAC; apply: canRL (mulfK (neq0CG G)) _.
 transitivity (\sum_j (#|G| * a j)%:R *+ (j == k) : algC).
   by rewrite (bigD1 k) //= eqxx -natrM mulnC big1 ?addr0 // => j /negPf->.
 have defK (j : 'I_#|classes G|) x: x \in enum_val j -> enum_val j = x ^: G.
-  by have /imsetP[y Gy ->] := enum_valP j => /class_transr.
+  by have /imsetP[y Gy ->] := enum_valP j => /class_eqP.
 have Gg: g \in G.
   by case/imsetP: (enum_valP k) Kg => x Gx -> /imsetP[y Gy ->]; apply: groupJ.
 transitivity (\sum_j \sum_i 'omega_i['K_j] * 'chi_i 1%g * ('chi_i g)^* *+ a j).

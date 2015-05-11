@@ -3953,7 +3953,7 @@ rewrite rowK !linearZ /= mxvecK -(inj_eq enum_val_inj) def_k eq_sym.
 have [z Gz ->] := imsetP (enum_valP k').
 move/eqP=> not_Gxz; rewrite linear_sum big1 ?scaler0 //= => y zGy.
 rewrite gring_projE ?(groupCl Gz zGy) //.
-by case: eqP zGy => // <- /class_transr.
+by case: eqP zGy => // <- /class_eqP.
 Qed.
 
 Lemma classg_base_center : (classg_base :=: 'Z(R_G))%MS.

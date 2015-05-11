@@ -957,7 +957,7 @@ have{PG} ->: PG = [set class_support M^~~ G | M : {group gT} in 'M].
 have [c1 c2] := mFT_partition gT.
 split=> [M H maxM maxH eq_MH | Gtype1 | S T W W1 W2 defW VG pairST].
 - apply: injMG => //; move/sMG_M in maxM; move/sMG_M in maxH.
-  apply/orbit_transl/idPn => not_HG_M.
+  apply/orbit_eqP/idPn => not_HG_M.
   have /negP[]: ~~ [disjoint 'A1~(M) & 'A1~(H)].
    rewrite eq_MH -setI_eq0 setIid -defDsup //.
    by apply: contraNneq not_PG_set0 => <-; exact: mem_imset.
@@ -965,7 +965,7 @@ split=> [M H maxM maxH eq_MH | Gtype1 | S T W W1 W2 defW VG pairST].
   apply/bigcupsP=> x /class_supportGidr <- /=; rewrite -conjIg sub_conjg conj0g.
   rewrite class_supportEr big_distrr /=; apply/bigcupsP=> {x}x _.
   rewrite subset0 setI_eq0 -sigma_supportJ sigma_support_disjoint ?mmaxJ //.
-  by rewrite (orbit_transr _ (mem_orbit _ _ _)) ?in_setT // orbit_sym.
+  by rewrite (orbit_transl _ (mem_orbit _ _ _)) ?in_setT // orbit_sym.
 - rewrite c1 // setD_eq0; apply/subsetP=> M maxM.
   by rewrite FTtype_Fmax ?(forall_inP Gtype1).
 have [[[cycW maxS _] _ _ _ _] [U_S StypeP]] := (pairST, typeP_pairW pairST).
@@ -1074,7 +1074,7 @@ have part_b S T (maxS : S \in 'M) (maxT : T \in 'M) (ncST : NC S T) :
   rewrite class_supportGidr ?inE {z}//.
   case/imset2P=> _ z /rcosetP[y Hy ->] _ def_x2.
   exists z^-1%g; rewrite part_a1 ?mmaxJ //; last first.
-    by rewrite /NC (orbit_transr _ (mem_orbit _ _ _)) ?inE.
+    by rewrite /NC (orbit_transl _ (mem_orbit _ _ _)) ?inE.
   apply/pred0Pn; exists x1; rewrite /= A1Sx1 FTsuppJ mem_conjgV; apply/bigcupP.
   pose ddS := FT_Dade1_hyp maxS; have [/andP[sA1S _] _ notA1_1 _ _] := ddS.
   have [ntx1 Sx1] := (memPn notA1_1 _ A1Sx1, subsetP sA1S _ A1Sx1).
@@ -1093,7 +1093,7 @@ move=> S T maxS maxT ncST; split; first split; auto.
 apply/orP/idPn; rewrite negb_or -part_b // => /andP[suppST /negP[]].
 without loss{suppST} suppST: T maxT ncST / FTsupports S T.
   move=> IH; case/existsP: suppST => x /IH {IH}.
-  rewrite FT_Dade1_supportJ (orbit_transr _ (mem_orbit _ _ _)) ?in_setT //.
+  rewrite FT_Dade1_supportJ (orbit_transl _ (mem_orbit _ _ _)) ?in_setT //.
   by rewrite mmaxJ => ->.
 have{suppST} [y /and3P[ASy not_sCyS sCyT]] := existsP suppST.
 have Dy: y \in [set z in 'A0(S) | ~~ ('C[z] \subset S)] by rewrite !inE ASy.
@@ -1101,7 +1101,7 @@ have [_ [_ /(_ y Dy) uCy]  /(_ y Dy)[_ coTcS _ typeT]] := FTsupport_facts maxS.
 rewrite  -mem_iota -(eq_uniq_mmax uCy maxT sCyT) !inE in coTcS typeT.
 apply/negbNE; rewrite -part_b /NC 1?orbit_sym // negb_exists.
 apply/forallP=> x; rewrite part_a1 ?mmaxJ ?negbK //; last first.
-  by rewrite /NC (orbit_transr _ (mem_orbit _ _ _)) ?in_setT // orbit_sym.
+  by rewrite /NC (orbit_transl _ (mem_orbit _ _ _)) ?in_setT // orbit_sym.
 rewrite -setI_eq0 -subset0 FTsuppJ -bigcupJ big_distrr; apply/bigcupsP=> z Sxz.
 rewrite conjD1g /= -setDIl coprime_TIg ?setDv //= cardJg.
 rewrite -(Fcore_eq_FTcore maxT _) ?inE ?orbA; last by have [->] := typeT.

@@ -307,7 +307,7 @@ apply: (iffP andP) => [[neqHG] | [sT S to [ffulG transG regG ntH [u Su defH]]]].
     rewrite -(cards1 Hy) => /setIP[/imsetP[y Gy ->{Hy}] cHyx].
     apply/subset_leq_card/subsetP=> _ /setIP[/imsetP[z Gz ->] cHzx].
     rewrite -!sub_astab1 !astab1_act !sub1set astab1Rs in cHyx cHzx *.
-    rewrite !rcosetE; apply/set1P/rcoset_transl; rewrite mem_rcoset.
+    rewrite !rcosetE; apply/set1P/rcoset_eqP; rewrite mem_rcoset.
     apply: tiHG; [by rewrite !in_group | apply/pred0Pn; exists (x ^ y^-1)].
     by rewrite conjD1g !inE conjg_eq1 ntx -mem_conjg cHyx conjsgM memJ_conjg.
   have ntH: H :!=: 1 by rewrite -subG1 -setD_eq0.

@@ -285,7 +285,7 @@ pose nu y := (\sum_(Px in rcosets P G) mu (repr Px) y)%R.
 have rHmul: {in G &, forall x y, rH (x * y) = rH x * rH y * val (mu x y)}.
   move=> x y Gx Gy; rewrite /= fmodK ?mulKVg // -mem_lcoset lcoset_sym.
   rewrite -norm_rlcoset; last by rewrite nHG ?GrH ?groupM.
-  by rewrite (rcoset_transl (HrH _)) -rcoset_mul ?nHG ?GrH // mem_mulg.
+  by rewrite (rcoset_eqP (HrH _)) -rcoset_mul ?nHG ?GrH // mem_mulg.
 have actrH a x: x \in G -> (a ^@ rH x = a ^@ x)%R.
   move=> Gx; apply: val_inj; rewrite /= !fmvalJ ?nHG ?GrH //.
   case/rcosetP: (HrH x) => b /(fmodK abelH) <- ->; rewrite conjgM.
@@ -512,7 +512,7 @@ have HGgHzg: Hzg \in HG :* <[g]>.
   by rewrite mem_mulg ?set11 // -rcosetE mem_imset.
 have Hzg_x: x \in Hzg by rewrite (repr_mem_pblock trX).
 exists x; first by rewrite (repr_mem_transversal trX).
-case/mulsgP: Hzg_x => y u /rcoset_transl <- /(orbit_act 'Rs) <- -> /=.
+case/mulsgP: Hzg_x => y u /rcoset_eqP <- /(orbit_act 'Rs) <- -> /=.
 by rewrite rcosetE -rcosetM.
 Qed.
 
@@ -565,7 +565,7 @@ have trY: is_transversal Y HG G.
     by rewrite -[x](mulgK (g ^+ i)) mem_mulg ?rcoset_refl // groupV mem_cycle.
   apply/set1P; rewrite /y eq_xx'; congr (_ * _ ^+ _) => //; apply/eqP.
   rewrite -(@nth_uniq _ (H :* x) (traj x)) ?size_traj // ?eq_xx' //.
-  by rewrite !nth_traj ?(rcoset_transl Hy_x'gj) // -eq_xx'.
+  by rewrite !nth_traj ?(rcoset_eqP Hy_x'gj) // -eq_xx'.
 have rYE x i : x \in X -> i < n_ x -> rY (H :* x :* g ^+ i) = x * g ^+ i.
   move=> Xx lt_i_x; rewrite -rcosetM; apply: (canLR_in (pblockK trY 1)).
     by apply/bigcupP; exists x => //; apply/imsetP; exists (Ordinal lt_i_x).

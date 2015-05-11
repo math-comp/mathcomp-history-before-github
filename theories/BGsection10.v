@@ -291,7 +291,7 @@ have M0tC_M2: M2 \in orbit 'Js 'C(X) (M0 :^ t).
   rewrite (atransP (IHX _ ltXX2 pX2)) inE; first by case/setIdP: O_M2 => ->.
   rewrite (acts_act (acts_orbit _ _ _)) ?inE ?MG_M0 //.
   by rewrite (subset_trans sX2Pt) ?conjSg.
-rewrite (orbit_transl M0C_M1) (orbit_transr _ M0tC_M2).
+rewrite (orbit_eqP M0C_M1) (orbit_transl _ M0tC_M2).
 have maxM0 := maxOM _ _ O_M0; have ltMG := mmax_proper maxM0.
 have [rPgt2 | rPle2] := ltnP 2 'r(P).
   have uP: P \in 'U by rewrite rank3_Uniqueness ?(mFT_pgroup_proper pP).
@@ -302,7 +302,7 @@ have pl1L: p.-length_1 L.
   by case/rank2_der1_complement; rewrite ?mFT_sol ?plength1_pseries2_quo.
 have [|u v nLPu Lp'_v ->] := imset2P (_ : t \in 'N_L(P) * 'O_p^'(L)).
   by rewrite normC ?plength1_Frattini // subIset ?gFnorm.
-rewrite actM (orbit_transr _ (mem_orbit _ _ _)); last first.
+rewrite actM (orbit_transl _ (mem_orbit _ _ _)); last first.
   have coLp'X: coprime #|'O_p^'(L)| #|X| := p'nat_coprime (pcore_pgroup _ _) pX.
   apply: subsetP Lp'_v; have [sLp'L nLp'L] := andP (pcore_normal p^' L).
   rewrite -subsetIidl -coprime_norm_cent ?subsetIidl //.

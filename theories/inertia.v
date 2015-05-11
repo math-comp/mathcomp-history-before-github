@@ -411,7 +411,7 @@ Qed.
 Lemma cfclass_refl phi : phi \in (phi ^: G)%CF.
 Proof. by apply/cfclassP; exists 1%g => //; rewrite cfConjgJ1. Qed.
 
-Lemma cfclass_transl phi psi :
+Lemma cfclass_transr phi psi :
   (psi \in phi ^: G)%CF -> (phi ^: G =i psi ^: G)%CF.
 Proof.
 rewrite -cfclassInorm; case/cfclassP=> x Gx -> xi; rewrite -!cfclassInorm.
@@ -422,7 +422,7 @@ by exists (x * y)%g; rewrite -?cfConjgMnorm ?groupM ?nHN.
 Qed.
 
 Lemma cfclass_sym phi psi : (psi \in phi ^: G)%CF = (phi \in psi ^: G)%CF.
-Proof. by apply/idP/idP=> /cfclass_transl <-; exact: cfclass_refl. Qed.
+Proof. by apply/idP/idP=> /cfclass_transr <-; exact: cfclass_refl. Qed.
 
 Lemma cfclass_uniq phi : H <| G -> uniq (phi ^: G)%CF.
 Proof.
@@ -430,7 +430,7 @@ move=> nsHG; rewrite map_inj_in_uniq ?enum_uniq // => Ty Tz; rewrite !mem_enum.
 move=> {Ty}/rcosetsP[y Gy ->] {Tz}/rcosetsP[z Gz ->] /eqP.
 case: repr_rcosetP => u Iphi_u; case: repr_rcosetP => v Iphi_v.
 have [[Gu _] [Gv _]] := (setIdP Iphi_u, setIdP Iphi_v).
-rewrite cfConjg_eqE ?groupM // => /rcoset_transl.
+rewrite cfConjg_eqE ?groupM // => /rcoset_eqP.
 by rewrite !rcosetM (rcoset_id Iphi_v) (rcoset_id Iphi_u).
 Qed.
 
@@ -456,7 +456,7 @@ Lemma eq_cfclass_IirrE i j :
   (cfclass_Iirr G j == cfclass_Iirr G i) = (j \in cfclass_Iirr G i).
 Proof.
 apply/eqP/idP=> [<- | iGj]; first by rewrite cfclass_IirrE cfclass_refl.
-by apply/setP=> k; rewrite !cfclass_IirrE in iGj *; apply/esym/cfclass_transl.
+by apply/setP=> k; rewrite !cfclass_IirrE in iGj *; apply/esym/cfclass_transr.
 Qed.
 
 Lemma im_cfclass_Iirr i :

@@ -1646,7 +1646,7 @@ have [Mi MXi P2maxMi]: exists2 Mi, Mi \in MX & Mi \in 'M_'P2.
     have [[PmaxMi _] [PmaxMj _]] := (PmaxMX _ MXi, PmaxMX _ MXj).
     have [[maxMi _] [maxMj _]] := (setDP PmaxMi, setDP PmaxMj).
     apply: sigma_support_disjoint; rewrite ?mmaxJ //.
-    rewrite (orbit_transr _ (mem_orbit _ _ _)) ?inE //=.
+    rewrite (orbit_transl _ (mem_orbit _ _ _)) ?inE //=.
     apply: contra (ntKsX _ MXi); case/imsetP=> y _ /= defMj; rewrite -/(Ks_ _).
     have sKisKj: Ks_ Mi \subset K_ Mj by rewrite sKsKX // eq_sym.
     rewrite -(setIidPl sKisKj) coprime_TIg //.
@@ -1884,7 +1884,7 @@ rewrite {}/S {}/Ls in Sx; without loss a1: a H L PmaxH hallL Sx / a = 1.
   move/(_ 1 (H :^ a)%G (L :^ a)%G); rewrite conjsg1 PtypeJ PmaxH pHallJ2.
   rewrite (eq_pHall _ _ (kappaJ H a)) hallL MsigmaJ centJ.
   rewrite -conjIg -conjYg -conjUg -conjDg Sx !inE.
-  by rewrite !(orbit_transr _ (mem_orbit _ _ _)) ?inE //; exact.
+  by rewrite !(orbit_transl _ (mem_orbit _ _ _)) ?inE //; exact.
 have [_ [defNL _] [_ uniqH] _ _] := Ptype_structure PmaxH hallL.
 do [rewrite {a}a1 conjsg1; set Ls := 'C_(_)(L)] in Sx defNL.
 have{x Sx Tx} [Mk MXk ntLsMks]: exists2 Mk, Mk \in MX & Ls :&: Ks_ Mk != 1.
@@ -1962,8 +1962,8 @@ have tiPcover: trivIset Pcover.
   rewrite -setI_eq0 !{1}class_supportEr big_distrr big1 //= => a Ga.
   rewrite big_distrl big1 //= => b Gb; apply/eqP.
   rewrite -!{1}sigma_supportJ setI_eq0 sigma_support_disjoint ?mmaxJ //.
-  apply: contra notMGH; rewrite {a Ga}(orbit_transr _ (mem_orbit _ _ Ga)).
-  rewrite {b Gb}(orbit_transl (mem_orbit _ _ Gb))=> /imsetP[c Gc ->] /=.
+  apply: contra notMGH; rewrite {a Ga}(orbit_transl _ (mem_orbit _ _ Ga)).
+  rewrite {b Gb}(orbit_eqP (mem_orbit _ _ Gb))=> /imsetP[c Gc ->] /=.
   by rewrite sigma_supportJ class_supportGidl.
 have ntPcover: cover Pcover \subset G^#.
   apply/bigcupsP=> _ /imsetP[M maxM ->]; rewrite class_supportEr.

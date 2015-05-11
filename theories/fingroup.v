@@ -922,7 +922,7 @@ Lemma memV_invg x A : (x^-1 \in A^-1) = (x \in A).
 Proof. by rewrite inE invgK. Qed.
 
 Lemma card_invg A : #|A^-1| = #|A|.
-Proof. by apply: card_preimset; exact: invg_inj. Qed.
+Proof. exact/card_preimset/invg_inj. Qed.
 
 (* Product with singletons. *)
 
@@ -1039,14 +1039,11 @@ Proof. by rewrite -(rcosetS x^-1) rcosetK. Qed.
 Lemma sub_rcosetV x A B : (A \subset B :* x^-1) = (A :* x \subset B).
 Proof. by rewrite sub_rcoset invgK. Qed.
 
-(* Inverse map lcosets to rcosets *)
-
-Lemma lcosets_invg A B : lcosets A^-1 B^-1 = invg @^-1: rcosets A B.
+(* Inverse maps lcosets to rcosets *)
+Lemma invg_lcosets A B : (lcosets A B)^-1 = rcosets A^-1 B^-1.
 Proof.
-apply/setP=> C; rewrite inE.
-apply/imsetP/imsetP=> [] [a]; rewrite -memV_invg ?invgK => Aa;
-  try move/(canRL invgK); move->; exists a^-1;
-  by rewrite // lcosetE rcosetE invMg invg_set1 ?invgK.
+rewrite /A^-1/= -![_^-1](can_imset_pre _ invgK) -[RHS]imset_comp -imset_comp.
+by apply: eq_imset => x /=; rewrite lcosetE rcosetE invMg invg_set1.
 Qed.
 
 (* Conjugates. *)
@@ -1546,20 +1543,20 @@ Proof. by rewrite mem_lcoset mulVg group1. Qed.
 Lemma lcoset_sym x y : (x \in y *: G) = (y \in x *: G).
 Proof. by rewrite !mem_lcoset -groupV invMg invgK. Qed.
 
-Lemma lcoset_transl x y : x \in y *: G -> x *: G = y *: G.
+Lemma lcoset_eqP {x y} : reflect (x *: G = y *: G) (x \in y *: G).
 Proof.
-move=> Gyx; apply/setP=> u; rewrite !mem_lcoset in Gyx *.
-by rewrite -{2}(mulKVg x u) mulgA (groupMl _ Gyx).
+suffices <-: (x *: G == y *: G) = (x \in y *: G) by apply: eqP.
+by rewrite eqEsubset !mulSG !sub1set lcoset_sym andbb.
 Qed.
 
-Lemma lcoset_transr x y z : x \in y *: G -> (x \in z *: G) = (y \in z *: G).
-Proof. by move=> Gyx; rewrite -2!(lcoset_sym z) (lcoset_transl Gyx). Qed.
+Lemma lcoset_transl x y z : x \in y *: G -> (x \in z *: G) = (y \in z *: G).
+Proof. by move=> Gyx; rewrite -2!(lcoset_sym z) (lcoset_eqP Gyx). Qed.
 
 Lemma lcoset_trans x y z : x \in y *: G -> y \in z *: G -> x \in z *: G.
-Proof. by move/lcoset_transr->. Qed.
+Proof. by move/lcoset_transl->. Qed.
 
 Lemma lcoset_id x : x \in G -> x *: G = G.
-Proof. rewrite -{-2}(mul1g G); exact: lcoset_transl. Qed.
+Proof. by move=> Gx; rewrite (lcoset_eqP (_ : x \in 1 *: G)) mul1g. Qed.
 
 (* Right cosets, with an elimination form for repr. *)
 
@@ -1569,20 +1566,20 @@ Proof. by rewrite mem_rcoset mulgV group1. Qed.
 Lemma rcoset_sym x y : (x \in G :* y) = (y \in G :* x).
 Proof. by rewrite -!memV_lcosetV lcoset_sym. Qed.
 
-Lemma rcoset_transl x y : x \in G :* y -> G :* x = G :* y.
+Lemma rcoset_eqP {x y} : reflect (G :* x = G :* y) (x \in G :* y).
 Proof.
-move=> Gyx; apply: invg_inj; rewrite !invg_rcoset.
-by apply: lcoset_transl; rewrite memV_lcosetV.
+suffices <-: (G :* x == G :* y) = (x \in G :* y) by apply: eqP.
+by rewrite eqEsubset !mulGS !sub1set rcoset_sym andbb.
 Qed.
 
-Lemma rcoset_transr x y z : x \in G :* y -> (x \in G :* z) = (y \in G :* z).
-Proof. by move=> Gyx; rewrite -2!(rcoset_sym z) (rcoset_transl Gyx). Qed.
+Lemma rcoset_transl x y z : x \in G :* y -> (x \in G :* z) = (y \in G :* z).
+Proof. by move=> Gyx; rewrite -2!(rcoset_sym z) (rcoset_eqP Gyx). Qed.
 
-Lemma rcoset_trans x y z : y \in G :* x -> z \in G :* y -> z \in G :* x.
+Lemma rcoset_trans x y z : x \in G :* y -> y \in G :* z -> x \in G :* z.
 Proof. by move/rcoset_transl->. Qed.
 
 Lemma rcoset_id x : x \in G -> G :* x = G.
-Proof. by rewrite -{-2}(mulg1 G); exact: rcoset_transl. Qed.
+Proof. by move=> Gx; rewrite (rcoset_eqP (_ : x \in G :* 1)) mulg1. Qed.
 
 (* Elimination form. *)
 
@@ -1600,22 +1597,20 @@ by rewrite -[repr _](mulgKV x); split; rewrite -mem_rcoset mem_repr_rcoset.
 Qed.
 
 Lemma rcoset_repr x : G :* (repr (G :* x)) = G :* x.
-Proof. by apply: rcoset_transl; exact: mem_repr (rcoset_refl x). Qed.
+Proof. exact/rcoset_eqP/mem_repr_rcoset. Qed.
 
 (* Coset spaces. *)
 
-Lemma mem_lcosets A x : (x *: G \in lcosets G A) = (x \in A * G).
-Proof.
-apply/imsetP/mulsgP=> [[a Aa eqxaG] | [a g Aa Gg ->{x}]].
-  exists a (a^-1 * x); rewrite ?mulKVg //.
-  by rewrite -mem_lcoset -lcosetE -eqxaG lcoset_refl.
-by exists a; rewrite // lcosetM lcosetE lcoset_id.
-Qed.
-
 Lemma mem_rcosets A x : (G :* x \in rcosets G A) = (x \in G * A).
 Proof.
-rewrite -memV_invg invMg invGid -mem_lcosets.
-by rewrite -{4}invGid lcosets_invg inE invg_lcoset invgK.
+apply/rcosetsP/mulsgP=> [[a Aa /rcoset_eqP/rcosetP[g]] | ]; first by exists g a.
+by case=> g a Gg Aa ->{x}; exists a; rewrite // rcosetM rcoset_id.
+Qed.
+
+Lemma mem_lcosets A x : (x *: G \in lcosets G A) = (x \in A * G).
+Proof.
+rewrite -[LHS]memV_invg invg_lcoset invg_lcosets.
+by rewrite -[RHS]memV_invg invMg invGid mem_rcosets.
 Qed.
 
 (* Conjugates. *)
@@ -1647,17 +1642,19 @@ Lemma classGidr x : {in G, normalised (x ^: G)}.
 Proof. by move=> y Gy /=; rewrite -class_rcoset rcoset_id. Qed.
 
 Lemma class_refl x : x \in x ^: G.
-Proof. by apply/imsetP; exists (1 : gT); rewrite ?conjg1. Qed.
+Proof. by apply/imsetP; exists 1; rewrite ?conjg1. Qed.
 Hint Resolve class_refl.
 
-Lemma class_transr x y : x \in y ^: G -> x ^: G = y ^: G.
-Proof. by case/imsetP=> z Gz ->; rewrite classGidl. Qed.
+Lemma class_eqP x y : reflect (x ^: G = y ^: G) (x \in y ^: G).
+Proof.
+by apply: (iffP idP) => [/imsetP[z Gz ->] | <-]; rewrite ?class_refl ?classGidl.
+Qed.
 
 Lemma class_sym x y : (x \in y ^: G) = (y \in x ^: G).
-Proof. by apply/idP/idP=> /class_transr->. Qed.
+Proof. by apply/idP/idP=> /class_eqP->. Qed.
 
 Lemma class_transl x y z : x \in y ^: G -> (x \in z ^: G) = (y \in z ^: G).
-Proof. by rewrite -!(class_sym z) => /class_transr->. Qed.
+Proof. by rewrite -!(class_sym z) => /class_eqP->. Qed.
 
 Lemma class_trans x y z : x \in y ^: G -> y \in z ^: G -> x \in z ^: G.
 Proof. by move/class_transl->. Qed.
@@ -1821,9 +1818,7 @@ rewrite -mulgA mulGS mulgA mulSG -eqEcard eq_sym; exact: eqP.
 Qed.
 
 Lemma card_lcosets G H : #|lcosets H G| = #|G : H|.
-Proof.
-by rewrite -[#|G : H|](card_preimset _ invg_inj) -lcosets_invg !invGid.
-Qed.
+Proof. by rewrite -card_invg invg_lcosets !invGid. Qed.
 
 (* Group Modularity equations *)
 
@@ -1858,11 +1853,14 @@ Bind Scope group_scope with subg_of.
 
 Implicit Arguments trivgP [gT G].
 Implicit Arguments trivGP [gT G].
+Implicit Arguments lcoset_eqP [gT G x y].
+Implicit Arguments rcoset_eqP [gT G x y].
 Implicit Arguments mulGidPl [gT G H].
 Implicit Arguments mulGidPr [gT G H].
 Implicit Arguments comm_group_setP [gT G H].
+Implicit Arguments class_eqP [gT G x y].
 Implicit Arguments repr_classesP [gT G xG].
-Prenex Implicits trivgP trivGP comm_group_setP.
+Prenex Implicits trivgP trivGP lcoset_eqP rcoset_eqP comm_group_setP class_eqP.
 
 Section GroupInter.
 
@@ -1884,8 +1882,7 @@ Variables (I : finType) (P : pred I) (F : I -> {group gT}).
 
 Lemma group_set_bigcap : group_set (\bigcap_(i | P i) F i).
 Proof.
-elim/big_rec: _ => [|i G _ gG]; first exact: groupP.
-exact: group_setI (Group gG).
+by elim/big_rec: _ => [|i G _ gG]; rewrite -1?(insubdK 1%G gG) groupP.
 Qed.
 
 Canonical bigcap_group := group group_set_bigcap.
@@ -1898,6 +1895,10 @@ Canonical commutator_group A B : {group _} := Eval hnf in [group of [~: A, B]].
 Canonical joing_group A B : {group _} := Eval hnf in [group of A <*> B].
 Canonical cycle_group x : {group _} := Eval hnf in [group of <[x]>].
 
+Definition joinG G H := joing_group G H.
+
+Definition subgroups A := [set G : {group gT} | G \subset A].
+
 Lemma order_gt0 (x : gT) : 0 < #[x].
 Proof. exact: cardG_gt0. Qed.
 
@@ -1905,13 +1906,9 @@ End GroupInter.
 
 Hint Resolve order_gt0.
 
-Definition joinG (gT : finGroupType) (G H : {group gT}) := joing_group G H.
-
-Definition subgroups (gT : finGroupType) (G : {set gT}) :=
-  [set H : {group gT} | H \subset G].
-
 Arguments Scope generated_group [_ group_scope].
 Arguments Scope joing_group [_ group_scope group_scope].
+Arguments Scope subgroups [_ group_scope].
 
 Notation "G :&: H" := (setI_group G H) : Group_scope.
 Notation "<< A >>"  := (generated_group A) : Group_scope.
@@ -1920,7 +1917,7 @@ Notation "[ ~: A1 , A2 , .. , An ]" :=
   (commutator_group .. (commutator_group A1 A2) .. An) : Group_scope.
 Notation "A <*> B" := (joing_group A B) : Group_scope.
 Notation "G * H" := (joinG G H) : Group_scope.
-Prenex Implicits joinG.
+Prenex Implicits joinG subgroups.
 
 Notation "\prod_ ( i <- r | P ) F" :=
   (\big[joinG/1%G]_(i <- r | P%B) F%G) : Group_scope.
@@ -1957,8 +1954,7 @@ Proof.
 rewrite -[#|G|]sum1_card (partition_big_imset (rcoset H)) /=.
 rewrite mulnC -sum_nat_const; apply: eq_bigr => _ /rcosetsP[x Gx ->].
 rewrite -(card_rcoset _ x) -sum1_card; apply: eq_bigl => y.
-rewrite rcosetE eqEcard mulGS !card_rcoset leqnn andbT.
-by rewrite group_modr sub1set // inE.
+by rewrite rcosetE (sameP eqP rcoset_eqP) group_modr (sub1set, inE).
 Qed.
 
 Lemma divgI G H : #|G| %/ #|G :&: H| = #|G : H|.
@@ -1992,10 +1988,10 @@ Lemma divg_indexS G H : H \subset G -> #|G| %/ #|G : H| = #|H|.
 Proof. by move/Lagrange <-; rewrite mulnK. Qed.
 
 Lemma coprimeSg G H p : H \subset G -> coprime #|G| p -> coprime #|H| p.
-Proof. by move=> sHG; exact: coprime_dvdl (cardSg sHG). Qed.
+Proof. by move=> sHG; apply: coprime_dvdl (cardSg sHG). Qed.
 
 Lemma coprimegS G H p : H \subset G -> coprime p #|G| -> coprime p #|H|.
-Proof. by move=> sHG; exact: coprime_dvdr (cardSg sHG). Qed.
+Proof. by move=> sHG; apply: coprime_dvdr (cardSg sHG). Qed.
 
 Lemma indexJg G H x : #|G :^ x : H :^ x| = #|G : H|.
 Proof. by rewrite -!divgI -conjIg !cardJg. Qed.
@@ -2048,26 +2044,23 @@ Proof. by rewrite -divgS ?sub1G // cards1 divn1. Qed.
 
 Lemma indexMg G A : #|G * A : G| = #|A : G|.
 Proof.
-congr #|(_ : {set _})|; apply/eqP; rewrite eqEsubset andbC imsetS ?mulG_subr //.
-by apply/subsetP=> _ /imsetP[x GAx ->]; rewrite rcosetE mem_rcosets.
+apply/eq_card/setP/eqP; rewrite eqEsubset andbC imsetS ?mulG_subr //.
+by apply/subsetP=> _ /rcosetsP[x GAx ->]; rewrite mem_rcosets.
 Qed.
 
 Lemma rcosets_partition_mul G H : partition (rcosets H G) (H * G).
 Proof.
-have eqiR: {in H * G & &, equivalence_rel [rel x y | y \in rcoset H x]}.
-  by move=> *; rewrite /= !rcosetE rcoset_refl; split=> // /rcoset_transl->.
-congr (partition _ _): (equivalence_partitionP eqiR); apply/setP=> Hx.
-apply/imsetP/idP=> [[x HGx defHx] | /rcosetsP[x Gx ->]].
-  suffices ->: Hx = H :* x by rewrite mem_rcosets.
-  apply/setP=> y; rewrite defHx inE /= rcosetE andb_idl //.
-  by apply: subsetP y; rewrite mulGS sub1set.
-exists (1 * x); rewrite ?mem_mulg // mul1g.
-apply/setP=> y; rewrite inE /= rcosetE andb_idl //.
-by apply: subsetP y; rewrite mulgS ?sub1set.
+set HG := H * G; have sGHG: {subset G <= HG} by apply/subsetP/mulG_subr.
+have defHx x: x \in HG -> [set y in HG | rcoset H x == rcoset H y] = H :* x.
+  move=> HGx; apply/setP=> y; rewrite inE !rcosetE (sameP eqP rcoset_eqP).
+  by rewrite rcoset_sym; apply/andb_idl/subsetP; rewrite mulGS sub1set.
+have:= preim_partitionP (rcoset H) HG; congr (partition _ _); apply/setP=> Hx.
+apply/imsetP/idP=> [[x HGx ->] | ]; first by rewrite defHx // mem_rcosets.
+by case/rcosetsP=> x /sGHG-HGx ->; exists x; rewrite ?defHx.
 Qed.
 
 Lemma rcosets_partition G H : H \subset G -> partition (rcosets H G) G.
-Proof. by move/mulSGid=> {2}<-; exact: rcosets_partition_mul. Qed.
+Proof. by move=> sHG; have:= rcosets_partition_mul G H; rewrite mulSGid. Qed.
 
 Lemma LagrangeMl G H : (#|G| * #|H : G|)%N = #|G * H|.
 Proof.
@@ -2108,9 +2101,9 @@ Qed.
 
 Lemma prime_TIg G H : prime #|G| -> ~~ (G \subset H) -> G :&: H = 1.
 Proof.
-case/primeP=> _; move/(_ _ (cardSg (subsetIl G H))).
-rewrite (sameP setIidPl eqP) eqEcard subsetIl -ltnNge ltn_neqAle -trivg_card1.
-by case/predU1P=> ->.
+case/primeP=> _ /(_ _ (cardSg (subsetIl G H))).
+rewrite (sameP setIidPl eqP) eqEcard subsetIl => /pred2P[/card1_trivg|] //= ->.
+by case/negP.
 Qed.
 
 Lemma prime_meetG G H : prime #|G| -> G :&: H != 1 -> G \subset H.

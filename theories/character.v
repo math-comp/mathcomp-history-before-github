@@ -1441,10 +1441,10 @@ transitivity ((#|'C_G[repr (y ^: G)]|%:R *: (X' *m X)) i_y i_x).
   rewrite scalemxAl !mxE; apply: eq_bigr => k _; rewrite !mxE mulrC -!mulrA.
   by rewrite !class_IirrK ?mem_classes // !cfun_repr mulVKf ?neq0CG.
 rewrite mulmx1C // !mxE -!divg_index !(index_cent1, =^~ indexgI).
-rewrite (class_transr (mem_repr y _)) ?class_refl // mulr_natr.
+rewrite (class_eqP (mem_repr y _)) ?class_refl // mulr_natr.
 rewrite (can_in_eq class_IirrK) ?mem_classes //.
 have [-> | not_yGx] := altP eqP; first by rewrite class_refl.
-by rewrite [x \in _](contraNF _ not_yGx) // => /class_transr->.
+by rewrite [x \in _](contraNF _ not_yGx) // => /class_eqP->.
 Qed.
 
 Lemma eq_irr_mem_classP x y :

@@ -1250,7 +1250,7 @@ have nVjR Vj: Vj \in S :\: D -> 'C_K(Vj) = [~: K, R].
     by rewrite (actsP actsR) //= S1 mem_imset.
   rewrite (subset_trans sCVj) // class_supportEr -(bigdprodWY defU) genS //.
   apply/bigcupsP=> x Rx; rewrite (bigcup_max (Vj :^ x)%G) // inE.
-  by rewrite (actsP actsR) // Sj andbT (orbit_transr _ (mem_orbit 'JG Vj Rx)).
+  by rewrite (actsP actsR) // Sj andbT (orbit_transl _ (mem_orbit 'JG Vj Rx)).
 have sDS: D \subset S.
   by rewrite acts_sub_orbit //; apply: subset_trans actsPR; exact: joing_subr.
 have [eqDS | ltDS] := eqVproper sDS.

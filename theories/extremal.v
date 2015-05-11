@@ -1034,7 +1034,7 @@ have maxMt: {in G :\: X, forall t, maximal <<t ^: G>> G}.
 have X'xy: x * y \in G :\: X by rewrite !inE !groupMl ?cycle_id ?notXy.
 have ti_yG_xyG: [disjoint yG & xyG].
   apply/pred0P=> t; rewrite /= /yG /xyG !def_tG //; apply/andP=> [[yGt]].
-  rewrite rcoset_sym (rcoset_transl yGt) mem_rcoset mulgK; move/order_dvdG.
+  rewrite rcoset_sym (rcoset_eqP yGt) mem_rcoset mulgK; move/order_dvdG.
   by rewrite -orderE ox2 ox gtnNdvd.
 have s_tG_X': {in G :\: X, forall t, t ^: G \subset G :\: X}.
   by move=> t X't /=; rewrite class_sub_norm // normsD ?normG.
@@ -1067,7 +1067,7 @@ split.
   case sHX: (H \subset X) => //=; case/subsetPn: sHX => t Ht notXt.
   have: t \in yG :|: xyG by rewrite defX' inE notXt (subsetP sHG).
   rewrite !andbT !gen_subG /yG /xyG.
-  by case/setUP; move/class_transr <-; rewrite !class_sub_norm ?Ht ?orbT.
+  by case/setUP; move/class_eqP <-; rewrite !class_sub_norm ?Ht ?orbT.
 rewrite eqn_leq n_gt1; case: leqP n2_abelG => //= n_gt2 _.
 have ->: 'Z(G) = <[x ^+ r]>.
   apply/eqP; rewrite eqEcard andbC -orderE oxr -{1}(setIidPr (center_sub G)).
@@ -1239,7 +1239,7 @@ have maxMt: {in G :\: X, forall t, maximal <<t ^: G>> G}.
 have X'xy: x * y \in G :\: X by rewrite !inE !groupMl ?cycle_id ?notXy.
 have ti_yG_xyG: [disjoint yG & xyG].
   apply/pred0P=> t; rewrite /= /yG /xyG !def_tG //; apply/andP=> [[yGt]].
-  rewrite rcoset_sym (rcoset_transl yGt) mem_rcoset mulgK; move/order_dvdG.
+  rewrite rcoset_sym (rcoset_eqP yGt) mem_rcoset mulgK; move/order_dvdG.
   by rewrite -orderE ox2 ox gtnNdvd.
 have s_tG_X': {in G :\: X, forall t, t ^: G \subset G :\: X}.
   by move=> t X't /=; rewrite class_sub_norm // normsD ?normG.
@@ -1278,7 +1278,7 @@ rewrite pprodE //; split=> // [|||n_gt3].
   case sHX: (H \subset X) => //=; case/subsetPn: sHX => z Hz notXz.
   have: z \in yG :|: xyG by rewrite defX' inE notXz (subsetP sHG).
   rewrite !andbT !gen_subG /yG /xyG.
-  by case/setUP=> /class_transr <-; rewrite !class_sub_norm ?Hz ?orbT.
+  by case/setUP=> /class_eqP <-; rewrite !class_sub_norm ?Hz ?orbT.
 have isoMt: {in G :\: X, forall z, <<z ^: G>> \isog 'Q_q}.
   have n1_gt2: n.-1 > 2 by rewrite -(subnKC n_gt3).
   move=> z X'z /=; rewrite isogEcard card_quaternion ?oMt // leqnn andbT.
@@ -1377,7 +1377,7 @@ have defG1: 'Mho^1(G) = <[x ^+ 2]>.
     by case/cycleP: Xz => i ->; rewrite -expgM mulnC expgM mem_cycle.
   have{Xz Gz} [xi Xxi ->{z}]: exists2 xi, xi \in X & z = xi * y.
     have Uvy: y \in <[u]> :* v by rewrite defUv -(defU x).
-    apply/rcosetP; rewrite /X defU // (rcoset_transl Uvy) defUv.
+    apply/rcosetP; rewrite /X defU // (rcoset_eqP Uvy) defUv.
     by rewrite inE -(defU x) ?Xz.
   rewrite expn1 expgS {2}(conjgC xi) -{2}[y]/(y ^+ 2.-1) -{1}oy -invg_expg.
   rewrite mulgA mulgK invXX' // -expgS prednK // /r -(subnKC n_gt3) expnS.
@@ -1426,7 +1426,7 @@ have maxMt: {in G :\: X, forall t, maximal <<t ^: G>> G}.
 have X'xy: x * y \in G :\: X by rewrite !inE !groupMl ?cycle_id ?notXy.
 have ti_yG_xyG: [disjoint yG & xyG].
   apply/pred0P=> t; rewrite /= /yG /xyG !def_tG //; apply/andP=> [[yGt]].
-  rewrite rcoset_sym (rcoset_transl yGt) mem_rcoset mulgK; move/order_dvdG.
+  rewrite rcoset_sym (rcoset_eqP yGt) mem_rcoset mulgK; move/order_dvdG.
   by rewrite -orderE ox2 ox gtnNdvd.
 have s_tG_X': {in G :\: X, forall t, t ^: G \subset G :\: X}.
   by move=> t X't /=; rewrite class_sub_norm // normsD ?normG.
@@ -1473,7 +1473,7 @@ split.
   case sHX: (H \subset X) => //=; case/subsetPn: sHX => t Ht notXt.
   have: t \in yG :|: xyG by rewrite defX' inE notXt (subsetP sHG).
   rewrite !andbT !gen_subG /yG /xyG.
-  by case/setUP=> /class_transr <-; rewrite !class_sub_norm ?Ht ?orbT.
+  by case/setUP=> /class_eqP <-; rewrite !class_sub_norm ?Ht ?orbT.
 have n1_gt2: n.-1 > 2 by [rewrite -(subnKC n_gt3)]; have n1_gt1 := ltnW n1_gt2.
 rewrite !isogEcard card_2dihedral ?card_quaternion ?oMt // leqnn !andbT.
 have invX2X': {in G :\: X, forall t, x ^+ 2 ^ t == x ^- 2}.

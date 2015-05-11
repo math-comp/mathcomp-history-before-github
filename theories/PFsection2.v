@@ -357,7 +357,7 @@ have [tiP_A injFA]: trivIset P_A /\ {in T &, injective (class^~ L)}.
   apply: trivIimset => [_ _ /imsetP[a Aa ->] /imsetP[b Ab ->] |]; last first.
     by apply/imsetP=> [[a _ /esym/eqP/set0Pn[]]]; exists a; exact: class_refl.
   rewrite !rLid; apply: contraR => /pred0Pn[c /andP[/=]].
-  by do 2!move/class_transr <-.
+  by do 2!move/class_eqP <-.
 rewrite big_trivIset //= big_imset {P_A tiP_A injFA}//=.
 apply: canRL (mulKf (neq0CG G)) _; rewrite mulrA big_distrr /=.
 apply: eq_bigr => a /sTA=> {T sTA}Aa.
@@ -605,9 +605,9 @@ transitivity (- (\sum_(B in calP) n1 B * aa1 B)); last first.
     by move=> _ /imsetP[x Lx ->]; rewrite dBJ.
   have dB: B \in calP := dB1L B B1L_B.
   rewrite (eq_bigl (mem (B :^: L))) => [|B2 /=]; last first.
-    apply/andP/idP=> [[_ /eqP <-] | /(orbit_trans B1L_B) B1L_B2].
+    apply/andP/idP=> [[_ /eqP <-] | /orbit_trans/(_ B1L_B)-B1L_B2].
       by rewrite orbit_sym (mem_repr B2) ?orbit_refl.
-    by rewrite [B2 :^: L](orbit_transl B1L_B2) -defB dB1L.
+    by rewrite [B2 :^: L](orbit_eqP B1L_B2) -defB dB1L.
   rewrite (eq_bigr (fun _ => n1 B * aa1 B)) => [|_ /imsetP[x Lx ->]].
     rewrite cfunE sumr_const -mulr_natr mulrAC card_orbit astab1Js divfK //.
     by rewrite pnatr_eq0 -lt0n indexg_gt0.

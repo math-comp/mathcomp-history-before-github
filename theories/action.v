@@ -535,10 +535,10 @@ Proof. by rewrite -{2}(setD1K (group1 G)) afixU afix1 setTI. Qed.
 Lemma orbit_refl G x : x \in orbit to G x.
 Proof. by rewrite -{1}[x]act1 mem_orbit. Qed.
 
-Local Notation orbit_rel A := (fun x y => y \in orbit to A x).
+Local Notation orbit_rel A := (fun x y => x \in orbit to A y).
 
 Lemma contra_orbit G x y : x \notin orbit to G y -> x != y.
-Proof. by apply: contraNneq => ->; exact: orbit_refl. Qed.
+Proof. by apply: contraNneq => ->; apply: orbit_refl. Qed.
 
 Lemma orbit_in_sym G : G \subset D -> symmetric (orbit_rel G).
 Proof.
@@ -548,31 +548,31 @@ Qed.
 
 Lemma orbit_in_trans G : G \subset D -> transitive (orbit_rel G).
 Proof.
-move=> sGD _ x _ /imsetP[a Ga ->] /imsetP[b Gb ->].
+move=> sGD _ _ z /imsetP[a Ga ->] /imsetP[b Gb ->].
 by rewrite -actMin ?mem_orbit ?groupM // (subsetP sGD).
 Qed.
 
-Lemma orbit_in_transl G x y :
-  G \subset D -> y \in orbit to G x -> orbit to G y = orbit to G x.
+Lemma orbit_in_eqP G x y :
+  G \subset D -> reflect (orbit to G x = orbit to G y) (x \in orbit to G y).
 Proof.
-move=> sGD Gxy; apply/setP=> z.
-by apply/idP/idP; apply: orbit_in_trans; rewrite // orbit_in_sym.
+move=> sGD; apply: (iffP idP) => [yGx|<-]; last exact: orbit_refl.
+by apply/setP=> z; apply/idP/idP=> /orbit_in_trans-> //; rewrite orbit_in_sym.
 Qed.
 
-Lemma orbit_in_transr G x y z :
+Lemma orbit_in_transl G x y z :
     G \subset D -> y \in orbit to G x ->
   (y \in orbit to G z) = (x \in orbit to G z).
 Proof.
-by move=> sGD Gxy; rewrite !(orbit_in_sym _ z) ?(orbit_in_transl _ Gxy).
+by move=> sGD Gxy; rewrite !(orbit_in_sym sGD _ z) (orbit_in_eqP y x sGD Gxy).
 Qed.
 
 Lemma orbit_act_in x a G :
   G \subset D -> a \in G -> orbit to G (to x a) = orbit to G x.
-Proof. by move=> sGD /mem_orbit/orbit_in_transl->. Qed.
+Proof. by move=> sGD /mem_orbit/orbit_in_eqP->. Qed.
 
 Lemma orbit_actr_in x a G y :
   G \subset D -> a \in G -> (to y a \in orbit to G x) = (y \in orbit to G x).
-Proof. by move=> sGD /mem_orbit/orbit_in_transr->. Qed.
+Proof. by move=> sGD /mem_orbit/orbit_in_transl->. Qed.
 
 Lemma orbit_inv_in A x y :
   A \subset D -> (y \in orbit to A^-1 x) = (x \in orbit to A y).
@@ -626,7 +626,7 @@ Lemma orbit_partition G S :
 Proof.
 move=> actsGS; have sGD := acts_dom actsGS.
 have eqiG: {in S & &, equivalence_rel [rel x y | y \in orbit to G x]}.
-  by move=> x y z * /=; rewrite orbit_refl; split=> // /orbit_in_transl->.
+  by move=> x y z * /=; rewrite orbit_refl; split=> // /orbit_in_eqP->.
 congr (partition _ _): (equivalence_partitionP eqiG).
 apply: eq_in_imset => x Sx; apply/setP=> y.
 by rewrite inE /= andb_idl // => /acts_in_orbit->.
@@ -838,7 +838,7 @@ Qed.
 Lemma atransPin G S :
      G \subset D -> [transitive G, on S | to] ->
   forall x, x \in S -> orbit to G x = S.
-Proof. by move=> sGD /imsetP[y _ ->] x; exact: orbit_in_transl. Qed.
+Proof. by move=> sGD /imsetP[y _ ->] x; apply/orbit_in_eqP. Qed.
 
 Lemma atransP2in G S :
     G \subset D -> [transitive G, on S | to] ->
@@ -875,9 +875,10 @@ End PartialAction.
 
 Arguments Scope orbit_transversal
   [_ group_scope _ action_scope group_scope group_scope].
+Implicit Arguments orbit_in_eqP [aT D rT to G x y].
 Implicit Arguments orbit1P [aT D rT to G x].
 Implicit Arguments contra_orbit [aT D rT x y].
-Prenex Implicits orbit1P.
+Prenex Implicits orbit_in_eqP orbit1P.
 
 Notation "''C' ( S | to )" := (astab_group to S) : Group_scope.
 Notation "''C_' A ( S | to )" := (setI_group A 'C(S | to)) : Group_scope.
@@ -918,33 +919,31 @@ Proof. by rewrite !actM actK. Qed.
 Lemma actCJV a b x : to (to x a) b = to (to x (b ^ a^-1)) a.
 Proof. by rewrite (actCJ _ a) conjgKV. Qed.
 
-Lemma orbit_sym G x y : (y \in orbit to G x) = (x \in orbit to G y).
-Proof. by apply: orbit_in_sym; exact: subsetT. Qed.
+Lemma orbit_sym G x y : (x \in orbit to G y) = (y \in orbit to G x).
+Proof. exact/orbit_in_sym/subsetT. Qed.
 
 Lemma orbit_trans G x y z :
-  y \in orbit to G x -> z \in orbit to G y -> z \in orbit to G x.
-Proof. by apply: orbit_in_trans; exact: subsetT. Qed.
+  x \in orbit to G y -> y \in orbit to G z -> x \in orbit to G z.
+Proof. exact/orbit_in_trans/subsetT. Qed.
 
-Lemma orbit_transl G x y : y \in orbit to G x -> orbit to G y = orbit to G x.
-Proof.
-move=> Gxy; apply/setP=> z; apply/idP/idP; apply: orbit_trans => //.
-by rewrite orbit_sym.
-Qed.
+Lemma orbit_eqP G x y :
+  reflect (orbit to G x = orbit to G y) (x \in orbit to G y).
+Proof. exact/orbit_in_eqP/subsetT. Qed.
 
-Lemma orbit_transr G x y z :
+Lemma orbit_transl G x y z :
   y \in orbit to G x -> (y \in orbit to G z) = (x \in orbit to G z).
-Proof. by move=> Gxy; rewrite orbit_sym (orbit_transl Gxy) orbit_sym. Qed.
+Proof. exact/orbit_in_transl/subsetT. Qed.
 
 Lemma orbit_act G a x: a \in G -> orbit to G (to x a) = orbit to G x.
-Proof. by move/mem_orbit/orbit_transl; exact. Qed.
+Proof. exact/orbit_act_in/subsetT. Qed.
   
 Lemma orbit_actr G a x y :
   a \in G -> (to y a \in orbit to G x) = (y \in orbit to G x).
-Proof. by move/mem_orbit/orbit_transr; exact. Qed.
+Proof. by move/mem_orbit/orbit_transl; apply. Qed.
 
 Lemma orbit_eq_mem G x y :
   (orbit to G x == orbit to G y) = (x \in orbit to G y).
-Proof. by apply/eqP/idP=> [<-|]; [exact: orbit_refl | exact: orbit_transl]. Qed.
+Proof. exact: sameP eqP (orbit_eqP G x y). Qed.
 
 Lemma orbit_inv A x y : (y \in orbit to A^-1 x) = (x \in orbit to A y).
 Proof. by rewrite orbit_inv_in ?subsetT. Qed.
@@ -1027,7 +1026,7 @@ Proof. by rewrite -astab_setact /setact imset_set1. Qed.
 
 Lemma atransP G S : [transitive G, on S | to] ->
   forall x, x \in S -> orbit to G x = S.
-Proof. by case/imsetP=> x _ -> y; exact: orbit_transl. Qed.
+Proof. by case/imsetP=> x _ -> y; apply/orbit_eqP. Qed.
 
 Lemma atransP2 G S : [transitive G, on S | to] ->
   {in S &, forall x y, exists2 a, a \in G & y = to x a}.
@@ -1135,12 +1134,13 @@ Qed.
 End TotalActions.
 
 Implicit Arguments astabP [aT rT to S a].
+Implicit Arguments orbit_eqP [aT rT to G x y].
 Implicit Arguments astab1P [aT rT to x a].
 Implicit Arguments astabsP [aT rT to S a].
 Implicit Arguments atransP [aT rT to G S].
 Implicit Arguments actsP [aT rT to A S].
 Implicit Arguments faithfulP [aT rT to A S].
-Prenex Implicits astabP astab1P astabsP atransP actsP faithfulP.
+Prenex Implicits astabP orbit_eqP astab1P astabsP atransP actsP faithfulP.
 
 Section Restrict.
 
@@ -1330,14 +1330,14 @@ Qed.
 
 Lemma qactEcond x a :
     x \in 'N(H) ->
-  quotient_action (coset H x) a =
-     (if a \in qact_dom then coset H (to x a) else coset H x).
+  quotient_action (coset H x) a
+    = coset H (if a \in qact_dom then to x a else x).
 Proof.
 move=> Nx; apply: val_inj; rewrite val_subact //= qact_subdomE.
 have: H :* x \in rcosets H 'N(H) by rewrite -rcosetE mem_imset.
 case nNa: (a \in _); rewrite // -(astabs_act _ nNa).
 rewrite !val_coset ?(acts_act acts_qact_dom nNa) //=.
-case/rcosetsP=> y Ny defHy; rewrite defHy; apply: rcoset_transl.
+case/rcosetsP=> y Ny defHy; rewrite defHy; apply: rcoset_eqP.
 by rewrite rcoset_sym -defHy (mem_imset (_^~_)) ?rcoset_refl.
 Qed.
 
@@ -2173,8 +2173,8 @@ Proof.
 move=> sHR; apply/setP=> a; apply/idP/idP=> nHa; have Da := astabs_dom nHa.
   rewrite !inE Da; apply/subsetP=> x Hx; rewrite inE -(rcoset1 H).
   have /rcosetsP[y Ny defHy]: to^~ a @: H \in rcosets H 'N(H).
-    by rewrite (astabs_act _ nHa) -{1}(mulg1 H) -rcosetE mem_imset ?group1.
-  by rewrite (@rcoset_transl _ H 1 y) -defHy -1?(gact1 Da) mem_setact.
+    by rewrite (astabs_act _ nHa); apply/rcosetsP; exists 1; rewrite ?mulg1.
+  by rewrite (rcoset_eqP (_ : 1 \in H :* y)) -defHy -1?(gact1 Da) mem_setact.
 rewrite !inE Da; apply/subsetP=> Hx; rewrite inE => /rcosetsP[x Nx ->{Hx}].
 apply/imsetP; exists (to x a).
   case Rx: (x \in R); last by rewrite gact_out ?Rx.

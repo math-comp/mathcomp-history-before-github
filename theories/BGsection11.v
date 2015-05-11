@@ -308,7 +308,7 @@ have EpA2: A2 \in 'E_p^1(A) by rewrite -(normP nAg2) pnElemJ.
 have{neMg12} neqA12: A1 :!=: A2.
   rewrite -(canF_eq (conjsgKV g2)) -conjsgM (sameP eqP normP).
   rewrite (contra (subsetP sNA0_M _)) // -mem_rcoset.
-  by apply: contra neMg12 => g1Mg2; rewrite defMg1 defMg2 (rcoset_transl g1Mg2).
+  by apply: contra neMg12 => g1Mg2; rewrite defMg1 defMg2 (rcoset_eqP g1Mg2).
 have{notMg1 nAg1} regA1: 'C_Ms(A1) = 1.
   by case/exceptional_TI_MsigmaJ: notMg1; rewrite // -(normP nAg1) conjSg.
 have{notMg2 nAg2} regA2: 'C_Ms(A2) = 1.

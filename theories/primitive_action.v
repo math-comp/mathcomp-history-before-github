@@ -74,7 +74,7 @@ apply/forallP/maximal_eqP=> /= [primG | [_ maxCx] Q].
   - rewrite card_orbit astab1_set defH -(@ltn_pmul2l #|H|) ?Lagrange // muln1.
     rewrite oHG -(@ltn_pmul2l #|H|) ?Lagrange // -(card_orbit_stab to G x).
     by rewrite -(atransP trG x Sx) mulnC card_orbit ltn_pmul2r.
-  - by apply/actsP=> a Ga Y; apply: orbit_transr; exact: mem_orbit.
+  - by apply/actsP=> a Ga Y; apply: orbit_transl; exact: mem_orbit.
   apply/and3P; split; last 1 first.
   - rewrite orbit_sym; apply/imsetP=> [[a _]] /= defX.
     by rewrite defX /setact imset0 inE in Xx.

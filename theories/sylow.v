@@ -114,7 +114,7 @@ have{defCS} oG_mod: {in S &, forall P Q, #|oG P| = (Q \in oG P) %[mod p]}.
   move=> P Q S_P S_Q; have [sQG pQ] := S_pG _ S_Q.
   have soP_S: oG P \subset S by rewrite acts_sub_orbit.
   have /pgroup_fix_mod-> //: [acts Q, on oG P | 'JG].
-    apply/actsP=> x /(subsetP sQG) Gx R; apply: orbit_transr.
+    apply/actsP=> x /(subsetP sQG) Gx R; apply: orbit_transl.
     exact: mem_orbit.
   rewrite -{1}(setIidPl soP_S) -setIA defCS // (cardsD1 Q) setDE.
   by rewrite -setIA setICr setI0 cards0 addn0 inE set11 andbT.

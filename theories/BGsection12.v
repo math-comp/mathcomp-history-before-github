@@ -2376,7 +2376,7 @@ without loss sXMs: M maxM sM_Y sMq / X \subset M`_\sigma.
     by exists (y * x^-1); rewrite conjsgM sub_conjgV -MsigmaJ.
   have:= parts_ab (E :^ x)%G p H; rewrite tau1J /= cardJg pHallJ2.
   rewrite (eq_pHall _ _ (eq_negn (sigmaJ _ _))).
-  by rewrite 2!orbit_sym (orbit_transl (mem_orbit _ _ _)) //; apply.
+  by rewrite 2!orbit_sym (orbit_eqP (mem_orbit _ _ _)) //; apply.
 have pre_part_a E p H:
      \sigma(M)^'.-Hall(M) E -> p \in \pi(E) ->
   H \in 'M(Y) -> gval H \notin M :^: G -> 'r_p(H :&: M) <= 1.

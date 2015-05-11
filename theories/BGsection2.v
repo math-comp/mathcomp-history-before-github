@@ -149,7 +149,7 @@ have card_sH: #|sH| = #|G : 'C_G[W | 'Cl]|.
     apply/eqP; rewrite eqEsubset subsetT.
     have /imsetP[W' _ defW'] := Clifford_atrans irrG sH.
     have WW': W' \in orbit 'Cl G W by rewrite orbit_in_sym // -defW' inE.
-    by rewrite defW' andbT; apply/subsetP=> W''; exact: orbit_in_trans.
+    by rewrite defW' andbT; apply/subsetP=> W'' /orbit_in_trans->.
   rewrite orbit_stabilizer // card_in_imset //. 
   exact: can_in_inj (act_reprK _).
 have sHcW: H \subset 'C_G[W | 'Cl].

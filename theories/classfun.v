@@ -548,7 +548,7 @@ apply/cfun_inP=> x Gx; rewrite sum_cfunE (bigD1 (x ^: G)) ?mem_classes //=.
 rewrite cfunE cfun_repr cfun_classE Gx class_refl mulr1.
 rewrite big1 ?addr0 // => _ /andP[/imsetP[y Gy ->]]; apply: contraNeq.
 rewrite cfunE cfun_repr cfun_classE Gy mulf_eq0 => /norP[_].
-by rewrite pnatr_eq0 -lt0n lt0b => /class_transr->.
+by rewrite pnatr_eq0 -lt0n lt0b => /class_eqP->.
 Qed.
 Implicit Arguments cfun_onP [A phi].
 
@@ -563,7 +563,7 @@ move=> FJ; rewrite {1}(partition_big _  _ ((@mem_classes gT)^~ G)) /=.
 apply: eq_bigr => _ /imsetP[x Gx ->]; have [y Gy ->] := repr_class G x.
 rewrite mulr_natl -sumr_const FJ {y Gy}//; apply/esym/eq_big=> y /=.
   apply/idP/andP=> [xGy | [Gy /eqP<-]]; last exact: class_refl.
-  by rewrite (class_transr xGy) (subsetP (class_subG Gx (subxx _))).
+  by rewrite (class_eqP xGy) (subsetP (class_subG Gx (subxx _))).
 by case/imsetP=> z Gz ->; rewrite FJ.
 Qed.
 
@@ -579,7 +579,7 @@ apply: contraNeq; rewrite b_i !cfunE mulf_eq0 => /norP[_].
 rewrite -(inj_eq enum_val_inj).
 have /setIdP[/imsetP[x _ ->] _] := enum_valP i; rewrite cfun_repr.
 have /setIdP[/imsetP[y Gy ->] _] := enum_valP j; rewrite cfun_classE Gy.
-by rewrite pnatr_eq0 -lt0n lt0b => /class_transr->.
+by rewrite pnatr_eq0 -lt0n lt0b => /class_eqP->.
 Qed.
 
 Lemma dim_cfun : \dim 'CF(G) = #|classes G|.

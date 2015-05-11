@@ -148,7 +148,7 @@ Lemma coset_mem y xbar : y \in xbar -> coset y = xbar.
 Proof.
 case: xbar => /= Hx NHx Hxy; apply: val_inj=> /=.
 case/rcosetsP: NHx (NHx) Hxy => x Nx -> NHx Hxy.
-by rewrite val_insubd /= (rcoset_transl Hxy) NHx.
+by rewrite val_insubd /= (rcoset_eqP Hxy) NHx.
 Qed.
 
 (* coset is an inverse to repr *)
