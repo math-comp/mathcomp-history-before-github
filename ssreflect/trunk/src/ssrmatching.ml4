@@ -162,6 +162,8 @@ let loc_ofCG = function
 let mk_term k c = k, (mkRHole, Some c)
 let mk_lterm = mk_term ' '
 
+let pf_type_of gl t = let sigma, ty = pf_type_of gl t in re_sig (sig_it gl)  sigma, ty
+
 (* }}} *)
 
 (** Profiling {{{ *************************************************************)
@@ -1224,7 +1226,7 @@ let ssrpatterntac ist arg gl =
   let concl0 = pf_concl gl in
   let (t, uc), concl_x =
     fill_occ_pattern (Global.env()) sigma0 concl0 pat noindex 1 in
-  let tty = pf_type_of gl t in
+  let gl, tty = pf_type_of gl t in
   let concl = mkLetIn (Name (id_of_string "toto"), t, tty, concl_x) in
   Proofview.V82.of_tactic (convert_concl concl DEFAULTcast) gl
 
