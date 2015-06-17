@@ -3,7 +3,7 @@ COQBIN=$(dir $(shell which coqtop))/
 endif
 
 
-ifeq "$(shell $(COQBIN)/coqtop -v | head -1 | grep trunk | wc -l)" "1"
+ifeq "$(shell $(COQBIN)/coqtop -v | head -1 | grep trunk | wc -l | sed 's/ *//g')" "1"
 V=trunk
 else
 V=$(shell $(COQBIN)/coqtop -v | head -1 | \
