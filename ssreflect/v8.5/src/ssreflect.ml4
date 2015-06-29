@@ -3834,7 +3834,7 @@ let refine_with ?(first_goes_last=false) ?beta ?(with_evars=true) oc gl =
   let rec mkRels = function 1 -> [] | n -> mkRel n :: mkRels (n-1) in
   let uct = Evd.evar_universe_context (fst oc) in
   let n, oc = pf_abs_evars_pirrel gl oc in
-  let gl = pf_merge_uc uct gl in
+  let gl = pf_unsafe_merge_uc uct gl in
   let oc = if not first_goes_last || n <= 1 then oc else
     let l, c = decompose_lam oc in
     if not (List.for_all_i (fun i (_,t) -> closedn ~-i t) (1-n) l) then oc else
@@ -4819,7 +4819,7 @@ let rwcltac cl rdx dir sr gl =
   let n, r_n,_, ucst = pf_abs_evars gl sr in
   let r_n' = pf_abs_cterm gl n r_n in
   let r' = subst_var pattern_id r_n' in
-  let gl = pf_merge_uc ucst gl in
+  let gl = pf_unsafe_merge_uc ucst gl in
   let rdxt = Retyping.get_type_of (pf_env gl) (fst sr) rdx in
 (*         pp(lazy(str"sigma@rwcltac=" ++ pr_evar_map None (fst sr))); *)
         pp(lazy(str"r@rwcltac=" ++ pr_constr (snd sr)));

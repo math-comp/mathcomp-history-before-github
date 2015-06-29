@@ -359,7 +359,7 @@ let pf_unif_HO gl sigma pt p c =
 let unify_HO env sigma0 t1 t2 =
   let sigma = unif_HO env sigma0 t1 t2 in
   let sigma, uc, _ = unif_end env sigma0 sigma t2 (fun _ -> true) in
-  Evd.merge_universe_context sigma uc
+  Evd.set_universe_context sigma uc
 
 let pf_unify_HO gl t1 t2 =
   let env, sigma0, si = pf_env gl, project gl, sig_it gl in
@@ -1219,6 +1219,9 @@ END
   
 let pf_merge_uc uc gl =
   re_sig (sig_it gl) (Evd.merge_universe_context (project gl) uc)
+
+let pf_unsafe_merge_uc uc gl =
+  re_sig (sig_it gl) (Evd.set_universe_context (project gl) uc)
 
 let ssrpatterntac ist arg gl =
   let pat = interp_rpattern ist gl arg in
