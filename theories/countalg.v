@@ -912,7 +912,7 @@ have EmulV: GRing.Field.axiom Einv.
     by rewrite piE -{1}[z]reprK -Quotient.idealrBE subr0 in nz_z.
   apply/eqP; case: sig_eqW => {ex_uv} [uv uv1]; set i := _.+1 in uv1 *.
   rewrite piE /= -[z]reprK -(rmorphM PtoE) -Quotient.idealrBE.
-  by rewrite -uv1 opprD addNKr -mulNr; apply/memI; exists i; exact: dvdp_mull.
+  by rewrite -uv1 opprD addNKr -mulNr; apply/memI; exists i; apply: dvdp_mull.
 pose EringU := [comUnitRingType of UnitRingType _ (FieldUnitMixin EmulV Einv0)].
 have Eunitf := @FieldMixin _ _ EmulV Einv0.
 pose Efield := FieldType (IdomainType EringU (FieldIdomainMixin Eunitf)) Eunitf.

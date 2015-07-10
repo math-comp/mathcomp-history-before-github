@@ -1234,7 +1234,7 @@ case: (altP ((\prod_(q0 <- sq) q0) =P 0)) => [ | pn0].
   by rewrite in_cons ht orbT.
 rewrite big_cons size_mul // (eqP (ih _)) //; last first.
   by move=> t ht; apply: hs; rewrite in_cons ht orbT.
-rewrite addnS addn0; apply/eqP; apply: hs; exact: mem_head.
+by rewrite addnS addn0; apply/eqP; apply: hs; apply: mem_head.
 Qed.
 
 Definition ccount_gt0 (sp sq : seq {poly R}) :=

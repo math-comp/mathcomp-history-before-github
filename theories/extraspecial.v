@@ -324,7 +324,7 @@ Lemma Ohm1_extraspecial_odd (gT : finGroupType) (G : {group gT}) :
 Proof.
 move=> pG esG oddG Y; have [spG _] := esG.
 have [defPhiG defG'] := spG; set Z := 'Z(G) in defPhiG defG'.
-have{spG} expG: exponent G %| p ^ 2 by exact: exponent_special.
+have{spG} expG: exponent G %| p ^ 2 by apply: exponent_special.
 have p_pr := extraspecial_prime pG esG.
 have p_gt1 := prime_gt1 p_pr; have p_gt0 := ltnW p_gt1.
 have oZ: #|Z| = p := card_center_extraspecial pG esG.
@@ -333,7 +333,7 @@ have nsYG: Y <| G := Ohm_normal 1 G; have [sYG nYG] := andP nsYG.
 have ntZ: Z != 1 by rewrite -cardG_gt1 oZ.
 have sZY: Z \subset Y.
   by apply: contraR ntZ => ?; rewrite -(setIidPl sZG) TI_Ohm1 ?prime_TIg ?oZ.
-have ntY: Y != 1 by apply: contra ntZ; rewrite -!subG1; exact: subset_trans.
+have ntY: Y != 1 by apply: subG1_contra ntZ.
 have p_odd: odd p by rewrite -oZ (oddSg sZG).
 have expY: exponent Y %| p by rewrite exponent_Ohm1_class2 // nil_class2 defG'.
 rewrite (prime_nt_dvdP p_pr _ expY) -?dvdn1 -?trivg_exponent //.
@@ -364,7 +364,7 @@ have iYG: #|G : Y| = p.
   have [sVG [u Gu notVu]] := properP (maxgroupp maxV).
   without loss [v Vv notYv]: / exists2 v, v \in V & v \notin Y.
     have [->| ] := eqVneq Y V; first by rewrite (p_maximal_index pG).
-    by rewrite eqEsubset sYV => not_sVY; apply; exact/subsetPn.
+    by rewrite eqEsubset sYV => not_sVY; apply; apply/subsetPn.
   pose U := <[u]> <*> <[v]>; have Gv := subsetP sVG v Vv.
   have sUG: U \subset G by rewrite join_subG !cycle_subG Gu.
   have Uu: u \in U by rewrite -cycle_subG joing_subl.
@@ -410,7 +410,7 @@ have iC1U (U : {group gT}) x:
   rewrite -(@dvdn_pmul2l (#|U| * #|'C_G[x]|)) ?muln_gt0 ?cardG_gt0 //.
   have maxCx: maximal 'C_G[x] G.
     rewrite cent1_extraspecial_maximal //; apply: contra not_cUx.
-    by rewrite inE Gx; exact: subsetP (centS sUG) _.
+    by rewrite inE Gx; apply: subsetP (centS sUG) _.
   rewrite {1}mul_cardG setIA (setIidPl sUG) -(p_maximal_index pG maxCx) -!mulnA.
   rewrite !Lagrange ?subsetIl // mulnC dvdn_pmul2l //.
   have [sCxG nCxG] := andP (p_maximal_normal pG maxCx).
@@ -424,7 +424,7 @@ have oCG (U : {group gT}):
     by apply/subsetPn; rewrite eqEsubset sZU subsetI sUG centsC in neZU.
   pose W := 'C_U[x]; have iWU: #|U : W| = p by rewrite iC1U // inE not_cUx.
   have maxW: maximal W U by rewrite p_index_maximal ?subsetIl ?iWU.
-  have ltWU: W \proper U by exact: maxgroupp maxW.
+  have ltWU: W \proper U by apply: maxgroupp maxW.
   have [sWU [u Uu notWu]] := properP ltWU.
   have defU: W * <[u]> = U.
     have nsWU: W <| U := p_maximal_normal (pgroupS sUG pG) maxW.
@@ -540,8 +540,8 @@ have not_cEE: ~~ abelian E.
   by apply: contra not_le_p3_p => cEE; rewrite -oE -oZ -defZE (center_idP _).
 have sES: E \subset S by rewrite -defET mulG_subl.
 have sTS: T \subset S by rewrite -defET mulG_subr.
-have expE: exponent E %| p by exact: dvdn_trans (exponentS sES) expG.
-have expT: exponent T %| p by exact: dvdn_trans (exponentS sTS) expG.
+have expE: exponent E %| p by apply: dvdn_trans (exponentS sES) expG.
+have expT: exponent T %| p by apply: dvdn_trans (exponentS sTS) expG.
 have{expE not_cEE} isoE: E \isog p^{1+2}.
   apply: isog_pX1p2 => //.
   by apply: card_p3group_extraspecial p_pr oE _; rewrite defZE.
@@ -581,7 +581,7 @@ Qed.
 
 Lemma Q8_extraspecial : extraspecial 'Q_8.
 Proof.
-have gt32: 3 > 2 by []; have isoQ: 'Q_8 \isog 'Q_(2 ^ 3) by exact: isog_refl.
+have gt32: 3 > 2 by []; have isoQ: 'Q_8 \isog 'Q_(2 ^ 3) by apply: isog_refl.
 have [[x y] genQ _] := generators_quaternion gt32 isoQ.
 have [_ [defQ' defPhiQ _ _]] := quaternion_structure gt32 genQ isoQ.
 case=> defZ oZ _ _ _ _ _; split; last by rewrite oZ.
@@ -665,9 +665,9 @@ rewrite subEproper; case/predU1P=> [defG1 | ltZG1].
   have [n' n'_gt2 isoG]: exists2 n', n' > 2 & G \isog 'Q_(2 ^ n').
     apply/quaternion_classP; apply/eqP.
     have not_cycG: ~~ cyclic G.
-      by apply: contra (extraspecial_nonabelian esG); exact: cyclic_abelian.
+      by apply: contra (extraspecial_nonabelian esG); apply: cyclic_abelian.
     move: oZ; rewrite defG1; move/prime_Ohm1P; rewrite (negPf not_cycG) /=.
-    by apply=> //; apply: contra not_cycG; move/eqP->; exact: cyclic1.
+    by apply=> //; apply: contra not_cycG; move/eqP->; apply: cyclic1.
   have [n0 n'3]: n = 0%N /\ n' = 3.
     have [[x y] genG _] := generators_quaternion n'_gt2 isoG.
     have n'3: n' = 3.
@@ -681,7 +681,7 @@ rewrite subEproper; case/predU1P=> [defG1 | ltZG1].
   by rewrite center_ncprod0.
 case/andP: ltZG1 => _; rewrite (OhmE _ pG) gen_subG.
 case/subsetPn=> x; case/LdivP=> Gx x2 notZx.
-have ox: #[x] = 2 by exact: nt_prime_order (group1_contra notZx).
+have ox: #[x] = 2 by apply: nt_prime_order (group1_contra notZx).
 have Z'x: x \in G :\: 'Z(G) by rewrite inE notZx.
 have [E [R [[oE oR] [defG ziER]]]] := split1_extraspecial pG esG Z'x.
 case=> defZE defZR [esE Ex] esR.
@@ -736,8 +736,8 @@ Qed.
 Lemma rank_Dn n : 'r_2('D^n) = n.+1.
 Proof.
 elim: n => [|n IHn]; first by rewrite p_rank_abelem ?prime_abelem ?card_pX1p2n.
-have oDDn: #|'D^n.+1| = (2 ^ n.+1.*2.+1)%N by exact: card_pX1p2n.
-have esDDn: extraspecial 'D^n.+1 by exact: pX1p2n_extraspecial.
+have oDDn: #|'D^n.+1| = (2 ^ n.+1.*2.+1)%N by apply: card_pX1p2n.
+have esDDn: extraspecial 'D^n.+1 by apply: pX1p2n_extraspecial.
 do [case: pX1p2S => gz isoZ; set DDn := [set: _]] in oDDn esDDn *.
 have pDDn: 2.-group DDn by rewrite /pgroup oDDn pnat_exp.
 apply/eqP; rewrite eqn_leq; apply/andP; split.
@@ -779,7 +779,7 @@ have esDnQ: extraspecial 'D^n*Q := DnQ_extraspecial n.
 do [case: DnQ_P => gz isoZ; set DnQ := setT] in pDnQ esDnQ *.
 suffices [E]: exists2 E, E \in 'E*_2(DnQ) & logn 2 #|E| = n.+1.
   by rewrite (pmaxElem_extraspecial pDnQ esDnQ); case/pnElemP=> _ _ <-.
-have oZ: #|'Z(DnQ)| = 2 by exact: card_center_extraspecial.
+have oZ: #|'Z(DnQ)| = 2 by apply: card_center_extraspecial.
 pose Dn := cpairg1 isoZ @* 'D^n; pose Q := cpair1g isoZ @* 'Q_8.
 have [injDn injQ] := (injm_cpairg1 isoZ, injm_cpair1g isoZ).
 have [E EprE]:= p_rank_witness 2 [group of Dn].

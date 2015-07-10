@@ -204,7 +204,7 @@ Lemma pffun_onP y D R f :
           (f \in pffun_on_mem y (mem D) (mem R)).
 Proof.
 apply: (iffP (pfamilyP y D (fun _ => R) f)) => [] [-> f_fam]; split=> //.
-  by move=>  _ /imageP[x Ax ->]; exact: f_fam.
+  by move=>  _ /imageP[x Ax ->]; apply: f_fam.
 by move=> x Ax; apply: f_fam; apply/imageP; exists x.
 Qed.
 

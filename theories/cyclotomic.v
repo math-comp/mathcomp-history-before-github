@@ -153,7 +153,7 @@ rewrite /'Phi_n; case: (C_prim_root_exists _) => z /=.
 have n_gt0 := prim_order_gt0 prim_z0; rewrite prednK // => prim_z.
 have [uDn _ inDn] := divisors_correct n_gt0.
 pose q := \prod_(d <- rem n (divisors n)) 'Phi_d.
-have mon_q: q \is monic by apply: monic_prod => d _; exact: Cyclotomic_monic.
+have mon_q: q \is monic by apply: monic_prod => d _; apply: Cyclotomic_monic.
 have defXn1: cyclotomic z n * pZtoC q = 'X^n - 1.
   rewrite (prod_cyclotomic prim_z) (big_rem n) ?inDn //=.
   rewrite divnn n_gt0 rmorph_prod /=; congr (_ * _).
@@ -222,7 +222,7 @@ Lemma minCpoly_cyclotomic n z :
 Proof.
 move=> prim_z; have n_gt0 := prim_order_gt0 prim_z.
 have Dpz := Cintr_Cyclotomic prim_z; set pz := cyclotomic z n in Dpz *.
-have mon_pz: pz \is monic by exact: cyclotomic_monic.
+have mon_pz: pz \is monic by apply: cyclotomic_monic.
 have pz0: root pz z by rewrite root_cyclotomic.
 have [pf [Dpf mon_pf] dv_pf] := minCpolyP z.
 have /dvdpP_rat_int[f [af nz_af Df] [g /esym Dfg]]: pf %| pZtoQ 'Phi_n.

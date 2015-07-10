@@ -4,14 +4,14 @@ Require Import fintype tuple finfun bigop prime finset.
 
 (******************************************************************************)
 (* This files contains the definition of:                                     *)
+(*   'C(n, m) == the binomial coeficient n choose m.                          *)
 (*     n ^_ m == the falling (or lower) factorial of n with m terms, i.e.,    *)
-(*               the product n * (n - 1) * ... * (n - m + 1)                  *)
-(*               Note that n ^_ m = 0 if m > n.                               *)
-(*   'C(n, m) == the binomial coeficient n choose m                           *)
-(*            := n ^_ m %/ fact m                                             *)
+(*               the product n * (n - 1) * ... * (n - m + 1).                 *)
+(*               Note that n ^_ m = 0 if m > n, and 'C(n, m) = n ^_ m %/ m/!. *)
 (*                                                                            *)
-(* In additions to the properties of these functions, triangular_sum, Wilson  *)
-(* and Pascal are examples of how to manipulate expressions with bigops.      *)
+(* In additions to the properties of these functions, we prove a few seminal  *)
+(* results such as triangular_sum, Wilson and Pascal; their proofs are good   *)
+(* examples of how to manipulate expressions with bigops.                     *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -53,7 +53,7 @@ have dFact n: 0 < n -> (n.-1)`! = \prod_(0 <= i < n | i != 0) i.
   by rewrite all_predC has_pred1 mem_iota.
 move=> lt1p; have p_gt0 := ltnW lt1p.
 apply/idP/idP=> [pr_p | dv_pF]; last first.
-  apply/primeP; split=> // d dv_dp; have: d <= p by exact: dvdn_leq.
+  apply/primeP; split=> // d dv_dp; have: d <= p by apply: dvdn_leq.
   rewrite orbC leq_eqVlt => /orP[-> // | ltdp].
   have:= dvdn_trans dv_dp dv_pF; rewrite dFact // big_mkord.
   rewrite (bigD1 (Ordinal ltdp)) /=; last by rewrite -lt0n (dvdn_gt0 p_gt0).
@@ -63,7 +63,7 @@ have ltp1p: p.-1 < p by [rewrite prednK]; pose Fpn1 := Ordinal ltp1p.
 case eqF1n1: (Fp1 == Fpn1); first by rewrite -{1}[p]prednK -1?((1 =P p.-1) _).
 have toFpP m: m %% p < p by rewrite ltn_mod.
 pose toFp := Ordinal (toFpP _); pose mFp (i j : 'I_p) := toFp (i * j).
-have Fp_mod (i : 'I_p) : i %% p = i by exact: modn_small.
+have Fp_mod (i : 'I_p) : i %% p = i by apply: modn_small.
 have mFpA: associative mFp.
   by move=> i j k; apply: val_inj; rewrite /= modnMml modnMmr mulnA.
 have mFpC: commutative mFp by move=> i j; apply: val_inj; rewrite /= mulnC.
@@ -356,7 +356,7 @@ Lemma card_inj_ffuns_on D T (R : pred T) :
 Proof.
 rewrite -card_uniq_tuples.
 have bijFF: {on (_ : pred _), bijective (@Finfun D T)}.
-  by exists val => // x _; exact: val_inj.
+  by exists val => // x _; apply: val_inj.
 rewrite -(on_card_preimset (bijFF _)); apply: eq_card => t.
 rewrite !inE -(codom_ffun (Finfun t)); congr (_ && _); apply: negb_inj.
 by rewrite -has_predC has_map enumT has_filter -size_eq0 -cardE.
@@ -398,7 +398,7 @@ rewrite -ffactnn -card_inj_ffuns -sum1dep_card; apply: eq_bigl => p.
 apply/andP/injectiveP=> [[/injectiveP inj_f0p _] i j eq_pij | inj_p].
   by apply: inj_f0p; rewrite !ffunE eq_pij.
 set f := finfun _.
-have injf: injective f by move=> i j; rewrite !ffunE => /inj_f0; exact: inj_p.
+have injf: injective f by move=> i j; rewrite !ffunE => /inj_f0; apply: inj_p.
 split; first exact/injectiveP.
 rewrite eqEcard card_imset // cardAk card_ord leqnn andbT -im_f0.
 by apply/subsetP=> x /imsetP[i _ ->]; rewrite ffunE mem_imset.

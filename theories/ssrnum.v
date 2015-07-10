@@ -867,7 +867,7 @@ Canonical nneg_mulrPred := MulrPred nneg_divr_closed.
 Canonical nneg_divrPred := DivrPred nneg_divr_closed.
 
 Fact nneg_addr_closed : addr_closed (@nneg R).
-Proof. by split; [exact: lerr | exact: addr_ge0]. Qed.
+Proof. by split; [apply: lerr | apply: addr_ge0]. Qed.
 Canonical nneg_addrPred := AddrPred nneg_addr_closed.
 Canonical nneg_semiringPred := SemiringPred nneg_divr_closed.
 
@@ -2157,19 +2157,23 @@ elim/big_rec2: _ => // i x2 x1 /leE12/andP[le0Ei leEi12] [x1ge0 le_x12].
 by rewrite mulr_ge0 // ler_pmul.
 Qed.
 
-Lemma ltr_prod (E1 E2 : nat -> R) (n m : nat) :
+Lemma ltr_prod I r (P : pred I) (E1 E2 : I -> R) :
+    has P r -> (forall i, P i -> 0 <= E1 i < E2 i) ->
+  \prod_(i <- r | P i) E1 i < \prod_(i <- r | P i) E2 i.
+Proof.
+elim: r => //= i r IHr; rewrite !big_cons; case: ifP => {IHr}// Pi _ ltE12.
+have /andP[le0E1i ltE12i] := ltE12 i Pi; set E2r := \prod_(j <- r | P j) E2 j.
+apply: ler_lt_trans (_ : E1 i * E2r < E2 i * E2r).
+  by rewrite ler_wpmul2l ?ler_prod // => j /ltE12/andP[-> /ltrW].
+by rewrite ltr_pmul2r ?prodr_gt0 // => j /ltE12/andP[le0E1j /ler_lt_trans->].
+Qed.
+
+Lemma ltr_prod_nat (E1 E2 : nat -> R) (n m : nat) :
    (m < n)%N -> (forall i, (m <= i < n)%N -> 0 <= E1 i < E2 i) ->
   \prod_(m <= i < n) E1 i < \prod_(m <= i < n) E2 i.
 Proof.
-elim: n m => // n ihn m; rewrite ltnS leq_eqVlt; case/orP => [/eqP -> | ltnm hE].
-  by move/(_ n) => /andb_idr; rewrite !big_nat1 leqnn ltnSn /=; case/andP.
-rewrite big_nat_recr ?[X in _ < X]big_nat_recr ?(ltnW ltnm) //=.
-move/andb_idr: (hE n); rewrite leqnn ltnW //=; case/andP => h1n h12n.
-rewrite big_nat_cond [X in _ < X * _]big_nat_cond; apply: ltr_pmul => //=.
-- apply: prodr_ge0 => i; rewrite andbT; case/andP=> hm hn. 
-  by move/andb_idr: (hE i); rewrite hm /= ltnS ltnW //=; case/andP.
-rewrite -!big_nat_cond; apply: ihn => // i /andP [hm hn]; apply: hE.
-by rewrite hm ltnW.
+move=> lt_mn ltE12; rewrite !big_nat ltr_prod {ltE12}//.
+by apply/hasP; exists m; rewrite ?mem_index_iota leqnn.
 Qed.
 
 (* real of mul *)

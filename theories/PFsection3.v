@@ -634,7 +634,7 @@ Proof. by case: set_cl => th1 [Uth /Uth]. Qed.
 
 Lemma unsat_wlog_cases th1 th2 :
   (unsat th1 -> unsat th2) -> unsat th1 -> (true /\ unsat th1) /\ unsat th2.
-Proof. by move=> Uth2 Uth1; split; last exact: Uth2. Qed.
+Proof. by move=> Uth2 Uth1; split; last apply: Uth2. Qed.
 
 (* Extend the orthonormal basis *)
 

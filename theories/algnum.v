@@ -75,7 +75,7 @@ suffices /sig_eqW[[n [|px [|pz []]]]// [Dpx Dpz]]:
   by rewrite map_comp_poly horner_comp -Dpz.
 have [rx nz_rx rx0] := r_exists x.
 have [rz nz_rz rz0] := r_exists (- z).
-have char0_Q: [char rat] =i pred0 by exact: char_num.
+have char0_Q: [char rat] =i pred0 by apply: char_num.
 have [n [[pz Dpz] [px Dpx]]] := char0_PET nz_rz rz0 nz_rx rx0 char0_Q.
 by exists (n, [:: px; - pz]); rewrite /= !raddfN hornerN -[z]opprK Dpz Dpx.
 Qed.
@@ -191,7 +191,7 @@ by rewrite mulr_sumr; apply: eq_bigr => i _; rewrite ffunE mulrA -rmorphM.
 Qed.
 
 Lemma Crat_spanM b : {in Crat & Crat_span b, forall a x, a * x \in Crat_span b}.
-Proof. by move=> _ x /CratP[a ->]; exact: Crat_spanZ. Qed.
+Proof. by move=> _ x /CratP[a ->]; apply: Crat_spanZ. Qed.
 
 (* In principle CtoQn could be taken to be additive and Q-linear, but this    *)
 (* would require a limit construction.                                        *)
@@ -228,7 +228,7 @@ Lemma map_Qnum_poly (nu : {rmorphism algC -> algC}) p :
   p \in polyOver 1%VS -> map_poly (nu \o QnC) p = (map_poly QnC p).
 Proof.
 move=> Qp; apply/polyP=> i; rewrite /= !coef_map /=.
-have /vlineP[a ->]: p`_i \in 1%VS by exact: polyOverP.
+have /vlineP[a ->]: p`_i \in 1%VS by apply: polyOverP.
 by rewrite alg_num_field !fmorph_rat.
 Qed.
 
@@ -477,7 +477,7 @@ have pzn_zk0: root (map_poly \1%VF (minPoly 1 zn)) (zn ^+ k).
   set p1 := map_poly _ _.
   have [q1 Dp1]: exists q1, p1 = pQtoC q1.
     have aP i: (minPoly 1 zn)`_i \in 1%VS.
-      by apply/polyOverP; exact: minPolyOver.
+      by apply/polyOverP; apply: minPolyOver.
     have{aP} a_ i := sig_eqW (vlineP _ _ (aP i)).
     exists (\poly_(i < size (minPoly 1 zn)) sval (a_ i)).
     apply/polyP=> i; rewrite coef_poly coef_map coef_poly /=.
@@ -578,7 +578,7 @@ have IY_0: 0 \in IY by apply/familyP=> // i; rewrite ffunE.
 pose inIY := enum_rank_in IY_0.
 pose Y := [seq \prod_(i < m) X`_i ^+ (f : 'I_N ^ m) i | f in IY].
 have S_P := Cint_spanP [tuple of Y]; set S := Cint_span _ in S_P.
-have sYS: {subset Y <= S} by exact: mem_Cint_span.
+have sYS: {subset Y <= S} by apply: mem_Cint_span.
 have S_1: 1 \in S.
   by apply/sYS/imageP; exists 0 => //; rewrite big1 // => i; rewrite ffunE.
 have SmulX (i : 'I_m): {in S, forall x, x * X`_i \in S}.
@@ -590,7 +590,7 @@ have SmulX (i : 'I_m): {in S, forall x, x * X`_i \in S}.
       by rewrite inordK // ltnS (bigmax_sup i).
     exists (finfun [eta f with i |-> inord (f i).+1]).
       apply/familyP=> i1; rewrite inE ffunE /= fun_if fiK.
-      by case: eqP => [-> // | _]; exact: fP.
+      by case: eqP => [-> // | _]; apply: fP.
     rewrite (bigD1 i isT) ffunE /= eqxx fiK; congr (_ * _).
     by apply: eq_bigr => i1; rewrite ffunE /= => /negPf->.
   have [/monicP ] := (minCpoly_monic X`_i, root_minCpoly X`_i).
@@ -603,7 +603,7 @@ have SmulX (i : 'I_m): {in S, forall x, x * X`_i \in S}.
   have eK: (inord e : 'I_N) = e :> nat by rewrite inordK // ltnS (bigmax_sup i).
   exists (finfun [eta f with i |-> inord e]).
     apply/familyP=> i1; rewrite inE ffunE /= fun_if eK.
-    by case: eqP => [-> // | _]; exact: fP.
+    by case: eqP => [-> // | _]; apply: fP.
   rewrite (bigD1 i isT) ffunE /= eqxx eK; congr (_ * _).
   by apply: eq_bigr => i1; rewrite ffunE /= => /negPf->.
 exists S; last by exists (Tagged (fun n => n.-tuple _) [tuple of Y]).
@@ -727,7 +727,9 @@ Proof. by rewrite !(addrC x) eqAmodDr. Qed.
 
 Lemma eqAmodD e x1 x2 y1 y2 :
   (x1 == x2 %[mod e] -> y1 == y2 %[mod e] -> x1 + y1 == x2 + y2 %[mod e])%A.
-Proof. rewrite -(eqAmodDl e x2 y1) -(eqAmodDr e y1); exact: eqAmod_trans. Qed.
+Proof.
+by rewrite -(eqAmodDl e x2 y1) -(eqAmodDr e y1); apply: eqAmod_trans.
+Qed.
 
 Lemma eqAmodm0 e : (e == 0 %[mod e])%A.
 Proof. by rewrite /eqAmod subr0 unfold_in; case: ifPn => // /divff->. Qed.

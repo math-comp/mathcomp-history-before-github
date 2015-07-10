@@ -11,8 +11,8 @@ Require Import binomial fingroup morphism automorphism quotient gfunctor.
 (*           G^`(0) ==  G                                                     *)
 (*       G^`(n.+1) == [~: G^`(n), G^`(n)]                                     *)
 (* as several classical results involve the (first) derived group G^`(1),     *)
-(* such as the equivalence H <| G /\ G / H abelian <-> G^`(1) \subset H. The  *)
-(* connection between the derived series and solvable groups will only be     *)
+(* such as the equivalence H <| G /\ G / H abelian <-> G^`(1) \subset H.      *)
+(* The connection between the derived series and solvable groups will only be *)
 (* established in nilpotent.v, however.                                       *)
 (******************************************************************************)
 
@@ -43,7 +43,7 @@ Lemma derg1 A : A^`(1) = [~: A, A]. Proof. by []. Qed.
 Lemma dergSn n A : A^`(n.+1) = [~: A^`(n), A^`(n)]. Proof. by []. Qed.
 
 Lemma der_group_set G n : group_set G^`(n).
-Proof. by case: n => [|n]; exact: groupP. Qed.
+Proof. by case: n => [|n]; apply: groupP. Qed.
 
 Canonical derived_at_group G n := Group (der_group_set G n).
 
@@ -124,7 +124,7 @@ Variables (i j : nat) (x y : gT).
 Hypotheses (cxz : commute x [~ x, y]) (cyz : commute y [~ x, y]).
 
 Lemma commXXg : [~ x ^+ i, y ^+ j] = [~ x, y] ^+ (i * j).
-Proof. rewrite expgM commgX commXg //; exact: commuteX. Qed.
+Proof. by rewrite expgM commgX commXg //; apply: commuteX. Qed.
 
 Lemma expMg_Rmul : (y * x) ^+ i = y ^+ i * x ^+ i * [~ x, y] ^+ 'C(i, 2).
 Proof.
@@ -170,10 +170,10 @@ Lemma commg_normal G H : [~: G, H] <| G <*> H.
 Proof. by rewrite /(_ <| _) commg_sub commg_norm. Qed.
 
 Lemma normsRl A G B : A \subset G -> A \subset 'N([~: G, B]).
-Proof. by move=> sAG; exact: subset_trans (commg_norml G B). Qed.
+Proof. by move=> sAG; apply: subset_trans (commg_norml G B). Qed.
 
 Lemma normsRr A G B : A \subset G -> A \subset 'N([~: B, G]).
-Proof. by move=> sAG; exact: subset_trans (commg_normr G B). Qed.
+Proof. by move=> sAG; apply: subset_trans (commg_normr G B). Qed.
 
 Lemma commg_subr G H : ([~: G, H] \subset H) = (G \subset 'N(H)).
 Proof.
@@ -219,7 +219,7 @@ Lemma sub_der1_normal G H : G^`(1) \subset H -> H \subset G -> H <| G.
 Proof. by move=> sG'H sHG; rewrite /(H <| G) sHG sub_der1_norm. Qed.
 
 Lemma sub_der1_abelian G H : G^`(1) \subset H -> abelian (G / H).
-Proof. by move=> sG'H; exact: quotient_cents2r. Qed.
+Proof. by move=> sG'H; apply: quotient_cents2r. Qed.
 
 Lemma der1_min G H : G \subset 'N(H) -> abelian (G / H) -> G^`(1) \subset H.
 Proof. by move=> nHG abGH; rewrite -quotient_cents2. Qed.
@@ -335,7 +335,7 @@ by rewrite !dergSn -IHn morphimR ?(subset_trans (der_sub n G)).
 Qed.
 
 Lemma dergS n G H : G \subset H -> G^`(n) \subset H^`(n).
-Proof. by move=> sGH; elim: n => // n IHn; exact: commgSS. Qed.
+Proof. by move=> sGH; elim: n => // n IHn; apply: commgSS. Qed.
 
 Lemma quotient_der n G H : G \subset 'N(H) -> G^`(n) / H = (G / H)^`(n).
 Proof. exact: morphim_der. Qed.

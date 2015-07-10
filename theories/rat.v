@@ -723,7 +723,7 @@ Variable F : numFieldType.
 
 Fact ratr_is_rmorphism : rmorphism (@ratr F).
 Proof.
-have injZtoQ: @injective rat int intr by exact: intr_inj.
+have injZtoQ: @injective rat int intr by apply: intr_inj.
 have nz_den x: (denq x)%:~R != 0 :> F by rewrite intr_eq0 denq_eq0.
 do 2?split; rewrite /ratr ?divr1 // => x y; last first.
   rewrite mulrC mulrAC; apply: canLR (mulKf (nz_den _)) _; rewrite !mulrA.

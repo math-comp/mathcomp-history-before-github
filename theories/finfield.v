@@ -484,7 +484,7 @@ have [p p_pr charRp]: exists2 p, prime p & p \in [char R].
   rewrite big_seq; elim/big_rec: _ => [|[p m] /= n]; first by rewrite oner_eq0.
   case/mem_prime_decomp=> p_pr _ _ IHn.
   elim: m => [|m IHm]; rewrite ?mul1n {IHn}// expnS -mulnA natrM.
-  by case/eqP/domR/orP=> //; exists p; last exact/andP.
+  by case/eqP/domR/orP=> //; exists p; last apply/andP.
 pose Rp := PrimeCharType charRp; pose L : {vspace Rp} := fullv.
 pose G := [set: {unit R}]; pose ofG : {unit R} -> Rp := val.
 pose projG (E : {vspace Rp}) := [preim ofG of E].

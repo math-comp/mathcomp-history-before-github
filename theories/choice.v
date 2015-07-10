@@ -334,12 +334,12 @@ by rewrite eqn_leq minQn ?minPm.
 Qed.
 
 Lemma sigW P : (exists x, P x) -> {x | P x}.
-Proof. by move=> exP; exists (xchoose exP); exact: xchooseP. Qed.
+Proof. by move=> exP; exists (xchoose exP); apply: xchooseP. Qed.
 
 Lemma sig2W P Q : (exists2 x, P x & Q x) -> {x | P x & Q x}.
 Proof.
 move=> exPQ; have [|x /andP[]] := @sigW (predI P Q); last by exists x.
-by have [x Px Qx] := exPQ; exists x; exact/andP.
+by have [x Px Qx] := exPQ; exists x; apply/andP.
 Qed.
 
 Lemma sig_eqW (vT : eqType) (lhs rhs : T -> vT) :
@@ -365,13 +365,13 @@ Lemma chooseP P x0 : P x0 -> P (choose P x0).
 Proof. by move=> Px0; rewrite /choose insubT xchooseP. Qed.
 
 Lemma choose_id P x0 y0 : P x0 -> P y0 -> choose P x0 = choose P y0.
-Proof. by move=> Px0 Py0; rewrite /choose !insubT /=; exact: eq_xchoose. Qed.
+Proof. by move=> Px0 Py0; rewrite /choose !insubT /=; apply: eq_xchoose. Qed.
 
 Lemma eq_choose P Q : P =1 Q -> choose P =1 choose Q.
 Proof.
 rewrite /choose => eqPQ x0.
 do [case: insubP; rewrite eqPQ] => [[x Px] Qx0 _| ?]; last by rewrite insubN.
-by rewrite insubT; exact: eq_xchoose.
+by rewrite insubT; apply: eq_xchoose.
 Qed.
 
 Section CanChoice.

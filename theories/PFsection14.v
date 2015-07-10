@@ -331,7 +331,7 @@ have [[Itau1 Ztau1] Dtau1] := cohM.
 have o1M: orthonormal (map tau1M calM).
   apply: map_orthonormal Itau1 _.
   exact: sub_orthonormal (undup_uniq _) (irr_orthonormal M).
-have Lgt1: (1 < size calL)%N by apply: seqInd_nontrivial (mFT_odd _ ) _ _ Lphi.
+have Lgt1: (1 < size calL)%N by apply: seqInd_nontrivial (mFT_odd _ ) _ Lphi.
 have [[_ _]] := Dade_Ind1_sub_lin cohL Lgt1 irr_phi Lphi phi1.
 rewrite -/tauL -/betaL -/calL => ZbetaL [Gamma [_ _ [b _ Dbeta]]]. 
 rewrite odd_Frobenius_index_ler ?mFT_odd // -/u => -[]// [_ ub_Ga] _ nz_a.
@@ -343,7 +343,7 @@ suffices ->: '[X] = (a / v) ^+ 2 * (\sum_(xi <- calM) xi 1%g ^+ 2 / '[xi]).
   rewrite exprMn !mulrA divfK ?neq0CiG // mulrAC -mulrA.
   by rewrite ler_pemull ?sqr_Cint_ge1 // divr_ge0 ?ler0n.
 have [_ -> defX] := orthonormal_span o1M M_X.
-have Mgt1: (1 < size calM)%N by apply: seqInd_nontrivial (mFT_odd _ ) _ _ Mpsi.
+have Mgt1: (1 < size calM)%N by apply: seqInd_nontrivial (mFT_odd _ ) _ Mpsi.
 have [[oM1 _ _] _ _] := Dade_Ind1_sub_lin cohM Mgt1 irr_psi Mpsi psi1.
 rewrite exprMn -(Cint_normK Za) -[v]normr_nat -normfV -/v mulr_sumr.
 rewrite defX cfnorm_sum_orthonormal // big_map; apply: eq_big_seq => xi Mxi.
@@ -596,7 +596,7 @@ have{x ntx R0x ntCPx} sZR_R0: 'Z(R) \subset R0.
     by rewrite subsetI sR0R sub_cent1 (subsetP abR0).
   by rewrite subIset ?sCxS ?orbT.
 pose R1 := 'Ohm_1('Z(R))%G; pose m := logn r #|R1|.
-have sR10: R1 \subset R0 by rewrite (subset_trans (Ohm_sub 1 _)).
+have sR10: R1 \subset R0 by apply: gFsub_trans.
 have oR1: #|R1| = (r ^ m)%N by rewrite -card_pgroup ?(pgroupS sR10).
 have{sZR_R0 rR0_2} m12: pred2 1%N 2 m.
   transitivity (0 < m < 1 + 2)%N; first by rewrite -mem_iota !inE.
@@ -605,9 +605,8 @@ have{sZR_R0 rR0_2} m12: pred2 1%N 2 m.
   by rewrite (subG1_contra sR0R) // -rank_gt0 rR0_2.
 have [y Qy defLy] := defL; have [_ _ /joing_subP[_ nHW2y] _] := sdprodP defLy.
 have chR1H: R1 \char H.
-  apply: char_trans (char_trans (Ohm_char 1 _) (center_char R)) _.
-  by rewrite (nilpotent_Hall_pcore (Fcore_nil L) sylR) gFchar.
-have nR1W2y: W2 :^ y \subset 'N(R1) := char_norm_trans chR1H nHW2y.
+  by rewrite !gFchar_trans // (nilpotent_Hall_pcore (Fcore_nil L) sylR) gFchar.
+have nR1W2y: W2 :^ y \subset 'N(R1) by apply: char_norm_trans chR1H nHW2y.
 have regR1W2y: semiregular R1 (W2 :^ y).
   have /Frobenius_reg_ker regHW12y := set_Frobenius_compl defLy frobL.
   exact: semiregularS (char_sub chR1H) (joing_subr _ _) regHW12y.
@@ -619,10 +618,10 @@ apply: leq_trans (_ : p.-1 <= r)%N.
   by rewrite -divn2 ltn_divLR // -{1}[p.-1]muln1 -(subnKC pgt2) ltn_pmul2l.
 have: p %| (r ^ m).-1.
   by have:= regular_norm_dvd_pred nR1W2y regR1W2y; rewrite cardJg oR1.
-rewrite -[p.-1]subn1 leq_subLR  predn_exp Euclid_dvdM // => /orP[]/dvdn_leq.
-  by rewrite -(subnKC (prime_gt1 pr_r)) => /implyP/leq_trans->; rewrite 2?ltnW.
-move/implyP; case/pred2P: m12 => ->; rewrite !big_ord_recl big_ord0 ?addn0 //=.
-by rewrite -(subnKC pgt2).
+rewrite -[p.-1]subn1 leq_subLR predn_exp Euclid_dvdM // => /orP[]/dvdn_leq.
+  by rewrite -(subnKC (prime_gt1 pr_r)) => /(_ isT)/leq_trans->; rewrite 2?ltnW.
+case/pred2P: m12 => ->; rewrite ?(big_ord_recl 1) big_ord1 => /(_ isT) //.
+by move/leq_trans->.
 Qed.
 
 (* This is Peterfalvi (14.7). *)

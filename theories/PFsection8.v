@@ -245,7 +245,7 @@ have piU0p: p \in \pi(U0).
   rewrite -pi_of_exponent expU0 pi_of_exponent (pi_of_dvd _ _ piW1p) //=.
   rewrite -(@dvdn_pmul2l #|H|) ?cardG_gt0 // (sdprod_card defM_K).
   rewrite -(sdprod_card defM) dvdn_pmul2r ?cardSg //.
-  by case/sdprodP: defM' => _ <- _ _; exact: mulG_subl.
+  by case/sdprodP: defM' => _ <- _ _; apply: mulG_subl.
 have [|X EpX]:= @p_rank_geP _ p 1 U0 _; first by rewrite p_rank_gt0.
 have [ntX [sXU0 abelX _]] := (nt_pnElem EpX isT, pnElemP EpX).
 have piW1_X: \pi(W1).-group X by apply: pi_pgroup piW1p; case/andP: abelX.
@@ -307,7 +307,7 @@ have ctiW: cyclicTI_hypothesis G defW by split; rewrite ?mFT_odd.
 split=> //; first by rewrite dprodE ?subsetIr //= setIA tiHU setI1g.
 split.
   apply: subset_trans (_ : U :&: 'F(M) \subset _).
-    by rewrite subsetI der_sub (subset_trans (dergS 1 sUM')).
+    by rewrite subsetI gFsub (subset_trans (dergS 1 sUM')).
   by rewrite -defF -group_modr ?subsetIl // setIC tiHU mul1g subsetIr.
 apply: contra => cHU; rewrite -subG1 -tiHU subsetIidr (subset_trans sUM') //.
 by rewrite (Fcore_max hallM') ?der_normal // -mulHU mulg_nil ?Fcore_nil.
@@ -512,7 +512,7 @@ split=> // [|S /SylowP[p _ sylS] ntS].
   exact: pHall_subl (pcore_sub _ M) (Fcore_Hall M).
 have s_p: p \in \sigma(M).
   by rewrite (pnatPpi sMs) // -p_rank_gt0 -(rank_Sylow sylS) rank_gt0.
-by apply: (norm_sigma_Sylow s_p); exact: (subHall_Sylow (Msigma_Hall maxM)).
+by apply: (norm_sigma_Sylow s_p); apply: (subHall_Sylow (Msigma_Hall maxM)).
 Qed.
 
 (* This is Peterfalvi (8.12). *)
@@ -601,7 +601,7 @@ Let is_FTsignalizer : is_Dade_signalizer G M 'A0(M) 'R_M.
 Proof.
 rewrite /'R_M => x A0x /=; rewrite setTI.
 case: ifPn => [sCxM | not_sCxM]; first by rewrite sdprod1g (setIidPr sCxM).
-by have [_ _ /(_ x)[| [] //]] := FTsupport_facts; exact/setIdP.
+by have [_ _ /(_ x)[| [] //]] := FTsupport_facts; apply/setIdP.
 Qed.
 
 (* This is Peterfalvi (8.15), second assertion. *)
@@ -960,7 +960,7 @@ split=> [M H maxM maxH eq_MH | Gtype1 | S T W W1 W2 defW VG pairST].
   apply/orbit_eqP/idPn => not_HG_M.
   have /negP[]: ~~ [disjoint 'A1~(M) & 'A1~(H)].
    rewrite eq_MH -setI_eq0 setIid -defDsup //.
-   by apply: contraNneq not_PG_set0 => <-; exact: mem_imset.
+   by apply: contraNneq not_PG_set0 => <-; apply: mem_imset.
   rewrite -!defDsup // -setI_eq0 class_supportEr big_distrl -subset0.
   apply/bigcupsP=> x /class_supportGidr <- /=; rewrite -conjIg sub_conjg conj0g.
   rewrite class_supportEr big_distrr /=; apply/bigcupsP=> {x}x _.
@@ -1035,16 +1035,16 @@ have part_a2 S T (maxS : S \in 'M) (maxT : T \in 'M) (ncST : NC S T) :
       by rewrite sub1set !inE ntx.
     by apply/trivgPn; exists z; rewrite //= -defTs inE Ts_z cent_set1 cent1C.
   split; last by case/mem_uniq_mmax: uniqCx.
-  by apply: contra ncST => /(eq_uniq_mmax uniqCx maxS)->; exact: orbit_refl.
+  by apply: contra ncST => /(eq_uniq_mmax uniqCx maxS)->; apply: orbit_refl.
 have part_a1 S T (maxS : S \in 'M) (maxT : T \in 'M) (ncST : NC S T) :
   FTsupports S T = ~~ [disjoint 'A1(S) & 'A(T)].
 - apply/existsP/pred0Pn=> [[x /and3P[ASx not_sCxS sCxT]] | [x /andP[A1Sx Atx]]].
     have [_ [/subsetP]] := FTsupport_facts maxS; set D := finset _.
     have Dx: x \in D by rewrite !inE ASx.
     move=> /(_ x Dx) A1x /(_ x Dx)uniqCx /(_ x Dx)[_ _ /setDP[ATx _] _].
-    by rewrite (eq_uniq_mmax uniqCx maxT sCxT); exists x; exact/andP.
+    by rewrite (eq_uniq_mmax uniqCx maxT sCxT); exists x; apply/andP.
   exists x; rewrite (subsetP (FTsupp1_sub maxS)) //=.
-  by apply/andP/part_a2=> //; exact/setIP.
+  by apply/andP/part_a2=> //; apply/setIP.
 have part_b S T (maxS : S \in 'M) (maxT : T \in 'M) (ncST : NC S T) :
   [exists x, FTsupports S (T :^ x)] = ~~ [disjoint 'A1~(S) & 'A~(T)].
 - apply/existsP/pred0Pn=> [[x] | [y /andP[/= A1GSy AGTy]]].

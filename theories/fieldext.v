@@ -840,9 +840,9 @@ have v2rP x: {r : 'rV[K_F]_n | x = r2v r}.
 pose v2r x := sval (v2rP x).
 have v2rK: cancel v2r (Linear r2v_lin) by rewrite /v2r => x; case: (v2rP x).
 suffices r2vK: cancel r2v v2r.
-  by exists n, v2r; [exact: can2_linear v2rK | exists r2v].
+  by exists n, v2r; [apply: can2_linear v2rK | exists r2v].
 move=> r; apply/rowP=> i; apply/val_inj/(mulIf (nz_bLi i))/eqP; move: i isT.
-by apply/forall_inP; move/directv_sum_unique: dxSbL => <- //; exact/eqP/v2rK.
+by apply/forall_inP; move/directv_sum_unique: dxSbL => <- //; apply/eqP/v2rK.
 Qed.
 
 Canonical fieldOver_vectType := VectType K_F L_F fieldOver_vectMixin.
@@ -878,7 +878,7 @@ Qed.
 Fact aspaceOver_suproof E : is_aspace (vspaceOver E).
 Proof.
 rewrite /is_aspace has_algid1; last by rewrite mem_vspaceOver (@mem1v _ L).
-by apply/prodvP=> u v; rewrite !mem_vspaceOver; exact: memvM.
+by apply/prodvP=> u v; rewrite !mem_vspaceOver; apply: memvM.
 Qed.
 Canonical aspaceOver E := ASpace (aspaceOver_suproof E).
 
@@ -900,7 +900,7 @@ by rewrite scaler_eq0=> /predU1P[] // /idPn[]; rewrite (memPn nz_b) ?memt_nth.
 Qed.
 
 Lemma dim_aspaceOver E : (F <= E)%VS -> \dim (vspaceOver E) = \dim_F E.
-Proof. by rewrite -sup_field_module; exact: dim_vspaceOver. Qed.
+Proof. by rewrite -sup_field_module; apply: dim_vspaceOver. Qed.
 
 Lemma vspaceOverP V_F :
   {V | [/\ V_F = vspaceOver V, (F * V <= V)%VS & V_F =i V]}.
@@ -925,8 +925,8 @@ Proof.
 have [V [defEF modV memV]] := vspaceOverP E_F.
 have algE: has_algid V && (V * V <= V)%VS.
   rewrite has_algid1; last by rewrite -memV mem1v.
-  by apply/prodvP=> u v; rewrite -!memV; exact: memvM.
-by exists (ASpace algE); rewrite -sup_field_module; split; first exact: val_inj.
+  by apply/prodvP=> u v; rewrite -!memV; apply: memvM.
+by exists (ASpace algE); rewrite -sup_field_module; split; first apply: val_inj.
 Qed.
 
 End FieldOver.
@@ -1050,7 +1050,7 @@ Qed.
 Fact baseAspace_suproof (E : {subfield L}) : is_aspace (baseVspace E).
 Proof.
 rewrite /is_aspace has_algid1; last by rewrite mem_baseVspace (mem1v E).
-by apply/prodvP=> u v; rewrite !mem_baseVspace; exact: memvM.
+by apply/prodvP=> u v; rewrite !mem_baseVspace; apply: memvM.
 Qed.
 Canonical baseAspace E := ASpace (baseAspace_suproof E).
 
@@ -1065,7 +1065,7 @@ Proof. by rewrite [F1]unlock dim_baseVspace dimv1 mul1n. Qed.
 Lemma baseVspace_module V (V0 := baseVspace V) : (F1 * V0 <= V0)%VS.
 Proof.
 apply/prodvP=> u v; rewrite [F1]unlock !mem_baseVspace => /vlineP[x ->] Vv.
-by rewrite -(@scalerAl F L) mul1r; exact: memvZ.
+by rewrite -(@scalerAl F L) mul1r; apply: memvZ.
 Qed.
 
 Lemma sub_baseField (E : {subfield L}) : (F1 <= baseVspace E)%VS.
@@ -1099,7 +1099,7 @@ Lemma module_baseAspace (E0 : {subfield L0}) :
   (F1 <= E0)%VS -> {E | E0 = baseAspace E & E0 =i E}.
 Proof.
 rewrite -sup_field_module => /module_baseVspace[E defE0 memE0].
-suffices algE: is_aspace E by exists (ASpace algE); first exact: val_inj.
+suffices algE: is_aspace E by exists (ASpace algE); first apply: val_inj.
 rewrite /is_aspace has_algid1 -?memE0 ?mem1v //.
 by apply/prodvP=> u v; rewrite -!memE0; apply: memvM.
 Qed.
@@ -1380,7 +1380,7 @@ Proof. by rewrite /subfx_scale rmorphM mulrA. Qed.
 Fact subfx_scaler1r : left_id 1 subfx_scale.
 Proof. by move=> x; rewrite /subfx_scale rmorph1 mul1r. Qed.
 Fact subfx_scalerDr : right_distributive subfx_scale +%R.
-Proof. by move=> a; exact: mulrDr. Qed.
+Proof. by move=> a; apply: mulrDr. Qed.
 Fact subfx_scalerDl x : {morph subfx_scale^~ x : a b / a + b}.
 Proof. by move=> a b; rewrite /subfx_scale rmorphD mulrDl. Qed.
 Definition subfx_lmodMixin :=
@@ -1599,7 +1599,7 @@ have unitE: GRing.Field.mixin_of urL.
   have nz_q: q != 0 by rewrite -(can_eq (@rVpolyK _ _)) raddf0 in nz_x.
   have /Bezout_eq1_coprimepP[u upq1]: coprimep p q.
     have /contraR := irr_p _ _ (dvdp_gcdl p q); apply.
-    have: size (gcdp p q) <= size q by exact: leq_gcdpr.
+    have: size (gcdp p q) <= size q by apply: leq_gcdpr.
     rewrite leqNgt;apply:contra;move/eqp_size ->.
     by rewrite (polySpred nz_p) ltnS size_poly.
   suffices: x * toL u.2 = 1 by exists (toL u.2); rewrite mulrC.

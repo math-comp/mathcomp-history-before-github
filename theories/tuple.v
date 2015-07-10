@@ -12,7 +12,7 @@ Unset Printing Implicit Defensive.
 (*                       The size of s must be known: specifically, Coq must  *)
 (*                       be able to infer a Canonical tuple projecting on s.  *)
 (*         in_tuple s == the (size s)-tuple with value s.                     *)
-(*            [tuple] == the empty tuple, and                                 *)
+(*            [tuple] == the empty tuple.                                     *)
 (* [tuple x1; ..; xn] == the explicit n.-tuple <x1; ..; xn>.                  *)
 (*  [tuple E | i < n] == the n.-tuple with general term E (i : 'I_n is bound  *)
 (*                       in E).                                               *)
@@ -223,7 +223,7 @@ CoInductive tuple1_spec : n.+1.-tuple T -> Type :=
 Lemma tupleP u : tuple1_spec u.
 Proof.
 case: u => [[|x s] //= sz_s]; pose t := @Tuple n _ s sz_s.
-rewrite (_ : Tuple _ = [tuple of x :: t]) //; exact: val_inj.
+by rewrite (_ : Tuple _ = [tuple of x :: t]) //; apply: val_inj.
 Qed.
 
 Lemma tnth_map f t i : tnth [tuple of map f t] i = f (tnth t i) :> rT.
@@ -236,7 +236,7 @@ Lemma tnth_behead n T (t : n.+1.-tuple T) i :
 Proof. by case/tupleP: t => x t; rewrite !(tnth_nth x) inordK ?ltnS. Qed.
 
 Lemma tuple_eta n T (t : n.+1.-tuple T) : t = [tuple of thead t :: behead t].
-Proof. by case/tupleP: t => x t; exact: val_inj. Qed.
+Proof. by case/tupleP: t => x t; apply: val_inj. Qed.
 
 Section TupleQuantifiers.
 

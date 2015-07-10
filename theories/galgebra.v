@@ -213,7 +213,7 @@ case/memv_sumP: Hu => u_ Hu ->; rewrite big_distrl /=.
 apply: memv_suml=> i Hi.
 case/memv_sumP: Hv => v_ Hv ->; rewrite big_distrr /=.
 apply: memv_suml=> j Hj.
-rewrite /gvspace (bigD1 (i*j)%g) /=; last by exact: groupM.
+rewrite /gvspace (bigD1 (i*j)%g) /=; last by apply: groupM.
 apply: subv_trans (addvSl _ _).
 case/vlineP: (Hu _ Hi)=> k ->; case/vlineP: (Hv _ Hj)=> l ->.
 apply/vlineP; exists (k * l).
