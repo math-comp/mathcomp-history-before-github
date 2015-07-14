@@ -1013,8 +1013,8 @@ Lemma le0r x : (0 <= x) = (x == 0) || (0 < x). Proof. exact: le0r. Qed.
 Lemma lt0r_neq0 (x : R) : 0 < x  -> x != 0.
 Proof. by rewrite lt0r; case/andP. Qed.
 
-Lemma ltr0_neq0 (x : R) : 0 < x  -> x != 0.
-Proof. by rewrite lt0r; case/andP. Qed.
+Lemma ltr0_neq0 (x : R) : x < 0  -> x != 0.
+Proof. by rewrite ltr_neqAle; case/andP. Qed.
 
 Lemma gtr_eqF x y : y < x -> x == y = false.
 Proof. by rewrite ltr_def; case/andP; move/negPf=> ->. Qed.
@@ -1031,7 +1031,7 @@ by rewrite !le0r mulf_eq0; case: eqP => // [-> /negPf[] | _ /pmulr_rgt0->].
 Qed.
 
 (* Integer comparisons and characteristic 0. *)
-Lemma ler01 : 0 <= 1 :> R. Proof. exact: ler01. Qed. 
+Lemma ler01 : 0 <= 1 :> R. Proof. exact: ler01. Qed.
 Lemma ltr01 : 0 < 1 :> R. Proof. exact: ltr01. Qed.
 Lemma ler0n n : 0 <= n%:R :> R. Proof. by rewrite -nnegrE rpred_nat. Qed.
 Hint Resolve ler01 ltr01 ler0n.
@@ -2979,7 +2979,7 @@ by move=> xR; rewrite ger0_def eq_sym; apply: lerif_eq; rewrite real_ler_norm.
 Qed.
 
 Lemma lerif_pmul x1 x2 y1 y2 C1 C2 :
-    0 <= x1 -> 0 <= x2 -> x1 <= y1 ?= iff C1 -> x2 <= y2 ?= iff C2 -> 
+    0 <= x1 -> 0 <= x2 -> x1 <= y1 ?= iff C1 -> x2 <= y2 ?= iff C2 ->
   x1 * x2 <= y1 * y2 ?= iff (y1 * y2 == 0) || C1 && C2.
 Proof.
 move=> x1_ge0 x2_ge0 le_xy1 le_xy2; have [y_0 | ] := altP (_ =P 0).
@@ -2996,7 +2996,7 @@ by apply: lerif_trans; rewrite (mono_lerif _ (ler_pmul2r _)) // ltr_def x2nz.
 Qed.
 
 Lemma lerif_nmul x1 x2 y1 y2 C1 C2 :
-    y1 <= 0 -> y2 <= 0 -> x1 <= y1 ?= iff C1 -> x2 <= y2 ?= iff C2 -> 
+    y1 <= 0 -> y2 <= 0 -> x1 <= y1 ?= iff C1 -> x2 <= y2 ?= iff C2 ->
   y1 * y2 <= x1 * x2 ?= iff (x1 * x2 == 0) || C1 && C2.
 Proof.
 rewrite -!oppr_ge0 -mulrNN -[x1 * x2]mulrNN => y1le0 y2le0 le_xy1 le_xy2.
@@ -3080,7 +3080,7 @@ rewrite prodrMn exprMn_n -/n' ler_pmuln2r ?expn_gt0; last by case: (n').
 have ->: \prod_(k in A') E' k = E' j * pi.
   by rewrite (bigD1 j) //=; congr *%R; apply: eq_bigr => k /andP[_ /negPf->].
 rewrite -(ler_pmul2l mu_gt0) -exprS -Dn mulrA; apply: ltr_le_trans.
-rewrite ltr_pmul2r //= eqxx -addrA mulrDr mulrC -ltr_subl_addl -mulrBl. 
+rewrite ltr_pmul2r //= eqxx -addrA mulrDr mulrC -ltr_subl_addl -mulrBl.
 by rewrite mulrC ltr_pmul2r ?subr_gt0.
 Qed.
 
