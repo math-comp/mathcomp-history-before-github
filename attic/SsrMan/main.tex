@@ -1,0 +1,131 @@
+\newif\ifelec\elecfalse
+
+%turn on for colors
+\electrue
+
+\documentclass[a4paper]{article}
+
+\usepackage{url}
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsfonts}
+\usepackage{latexsym}
+\usepackage{color}
+\usepackage{pst-node}
+\usepackage{ae,aecompl,amsbsy,amssymb}
+\usepackage{listings}
+\usepackage{a4wide}
+\usepackage{color}
+\usepackage{url}
+\usepackage{ifpdf}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{graphics}
+%\usepackage[microsoft]{RR}
+\usepackage{RR}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    citecolor=blue,
+    linkcolor=blue,
+    urlcolor=blue,
+    hyperfigures=true,
+}
+\usepackage{fancybox}
+
+
+\input{macro}
+
+
+\RRNo{6455}
+\RRdate{July 2009}
+
+%% revisions
+\RRversion{release 1.5}
+\RRdater{July 2015}
+
+\RCSaclay
+\RRauthor{Georges Gonthier\thanks{Microsoft Research, Cambridge, R-U,
+    Centre commun Inria Microsoft Research}
+\and
+ Assia  Mahboubi\thanks{Équipe-projet SpecFun, Inria Saclay --
+   Île-de-France , Centre commun Inria Microsoft Research}
+\and
+ Enrico  Tassi\thanks{Équipe-projet SpecFun, Inria Sophia Antipolis --
+   Méditerranée, Centre
+   commun Inria Microsoft Research}}
+
+\authorhead{G. Gonthier \& A. Mahboubi \& E. Tassi}
+
+\RRtitle{A Small Scale Reflection Extension for the \Coq{} system}
+\RRetitle{A Small Scale Reflection Extension for the \Coq{} system}
+\titlehead{A Small Scale Reflection Extension for the \Coq{} system}
+
+\RRresume{Ce rapport est le manuel de référence se \ssr{},
+une extension du langage de tactiques de l'assistant de preuve
+\Coq{}. Cette extension a été con\c cue
+pour améliorer le support d'une méthodologie de preuve formelle,
+appelée réflexion à petite échelle. Néanmoins, la majeure partie de
+ses apports sont des améliorations d'ordre général des
+fonctionnalités du système \Coq{} comme la structuration des scripts,
+la gestion des contextes de preuve, et la réécriture. C'est pourquoi,
+en dépit du titre de ce document, la plupart des fonctionnalités
+décrites ici sont susceptibles d'intéresser tout utilisateur de \Coq{},
+utilisant ou non les techniques de réflexion à petite échelle.
+}
+
+\RRabstract{This is the user manual de \ssr{}, a set of extensions to the proof scripting language of the \Coq{} proof assistant. While these extensions were
+developed to support a particular proof methodology - small-scale
+reflection - most of them actually are of a quite general nature,
+improving the functionality of \Coq{} in basic areas such as script
+layout and structuring, proof context management, and
+rewriting. Consequently, and in spite of the title of this document,
+most of the extensions described here should be of interest for all
+\Coq{} users, whether they embrace small-scale reflection or not.
+}
+
+\RRmotcle{assistants à la preuve, preuve formelle, Coq, réflexion à
+  petite échelle, tactiques}
+\RRkeyword{proof assistants, formal proofs, Coq, small scale
+  reflection, tactics}
+
+\RRprojets{Composants Mathématiques, Centre Commun
+ INRIA Microsoft Research}
+\begin{document}
+
+\makeRR   % cas d'un rapport de recherche
+\includegraphics[scale=.5]{jointcentre_us}
+
+% Highlights identifiers, |* id *| in underlined red, can we do better?
+\lstset{moredelim=[is][\color{red}\bfseries\ttfamily\underbar]{|*}{*|}}
+%Highlights metalevel expressions in italic rm font
+\lstset{moredelim=*[is][\itshape\rmfamily]{/*}{*/}}
+
+%\maketitle
+
+% \begin{abstract}
+% \input{abstract}
+% \end{abstract}
+\tableofcontents
+\newpage
+
+\input{intro}
+\input{usage}
+\input{gallina}
+\input{defs}
+\input{book}
+\input{control}
+\input{rewrite}
+\input{cpatterns}
+\input{reflection}
+\input{search}
+\input{libs}
+\input{grammar}
+\input{changes}
+
+
+%\bibliographystyle{plain}
+%\bibliography{main}
+
+\end{document}

@@ -1,0 +1,50 @@
+
+Intro
+
+I Usage
+I.1 Using ssr
+I.2 Compatibility issues
+
+II Gallina extensions
+II.1 Pattern assignment
+II.2 Pattern conditional
+II.3 Parametric polymorphism
+II.4 Wildcards
+
+III Definitions
+III.1 Definition (pose)
+III.2 Abbreviation (set)
+III.3 Occurence selection
+III.4 Localisation (in)
+
+IV Bookkeeping
+IV.1 The proof stack
+IV.2 Basic tactics (move/case/elim/apply)
+IV.3 Introduction (=>)
+IV.4 Discharge (:)
+IV.5 Type families
+IV.6 Equations
+
+V Control flow
+V.1 Indentation and bullets
+V.2 Terminators (by/done/exact)
+V.3 Selectors (first/last)
+V.4 Iteration (do)
+V.5 Structure (have/suff/wlog)
+
+VI Rewriting
+VI.1 Rewrite
+VI.2 Selection of occurrences for rewriting
+VI.3 Locking, unlocking (* incl. nosimpl *)
+VI.4 Congruence
+
+VII Reflection
+VII.1 Boolean reflection
+VII.2 The reflect predicate
+VII.3 View mechanism
+
+Concl (libs, stats)
+
+Annexe Résumé des tactiques (grammaire commentée)
+
+

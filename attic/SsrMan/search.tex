@@ -1,0 +1,113 @@
+\section{\ssr{} searching tool}
+
+\ssr{} proposes an extension of the \C{Search} command of standard
+\Coq{}. Its syntax is:
+
+
+$$\C{Search}\ [\N{pattern}]\ [\ [\C{\-}][\ \N{string}[\C{\%}\N{key}]\
+|\ \N{pattern}]\ ]^*\
+[\C{in}\ [\ [\C{\-}]\N{name}\ ]^+]\C{.}$$
+
+% \begin{lstlisting}
+%   Search [[\~]$\N{string}$]$^*$ [$\N{pattern}$] [[$\N{pattern}_1 \dots $ $\N{pattern}_n$]] $[[$inside$|$outside$]$ $M_1 \dots M_n$].
+% \end{lstlisting}
+
+% This tactic returns the list of defined constants matching the
+%  given criteria:
+% \begin{itemize}
+% \item \L+[[-]$\N{string}$]$^*$+ is an open sequence of strings, which sould
+%   all appear in the name of the returned constants. The optional \L+-+
+%   prefixes strings that are required  \emph{not} to appear.
+% % \item $\N{pattern}$ should be a subterm of the
+% %   \emph{conclusion} of the lemmas found by the command. If a lemma features
+% %   an occurrence
+% %   of this pattern only in one or several of its assumptions, it will not be
+% %   selected by the searching tool.
+% \item
+% \L=[$\N{pattern}^+$]=
+% is a list of \ssr{} terms, which may
+% include types, that are required to appear in the returned constants.
+% Terms with holes should be surrounded by parentheses.
+% \item $\C{in}\ [[\C{\-}]M]^+$ limits the search to the signature
+%   of open modules given in the list, but the ones preceeded by the
+%   $\C{\-}$ flag. The
+%   command:
+% \begin{lstlisting}
+%   Search in M.
+% \end{lstlisting}
+% is hence a way of obtaining the complete signature of the module \L{M}.
+% \end{itemize}
+where $\N{name}$ is the name of a open module.
+This command searches returns the list of lemmas:
+\begin{itemize}
+\item whose \emph{conclusion} contains a subterm matching the optional
+  first $\N{pattern}$. A $\C{-}$ reverses the test, producing the list
+  of lemmas whose conclusion does not contain any subterm matching
+  the pattern;
+\item whose name contains the given strings. A $\C{-}$ prefix reverses
+  the test, producing the list of lemmas whose name does not contain the
+  string. A string that contains symbols or
+is followed by a scope $\N{key}$, is interpreted as the constant whose
+notation involves that string (e.g., \L=+= for \L+addn+), if this is
+unambiguous; otherwise the diagnostic includes the output of the
+\C{Locate} standard vernacular command.
+
+\item whose statement, including assumptions and types contains a
+  subterm matching the next patterns. If a pattern is prefixed by
+  $\C{-}$, the test is reversed;
+\item contained in the given list of modules, except the ones in the
+  given modules prefixed by a $\C{-}$.
+\end{itemize}
+
+Note that:
+\begin{itemize}
+\item As for regular terms, patterns can feature scope
+  indications. For instance, the command:
+\begin{lstlisting}
+  Search _ (_ + _)%N.
+\end{lstlisting}
+lists all the lemmas whose statement (conclusion or hypotheses)
+involve an application of the binary operation denoted by the infix
+\C{+} symbol in the \C{N} scope (which is \ssr{} scope for natural numbers).
+\item Patterns with holes should be surrounded by parentheses.
+\item Search always volunteers the expansion of the notation, avoiding the
+  need to execute Locate independently. Moreover, a string fragment
+  looks for any notation that contains fragment as
+  a substring. If the \L+ssrbool+ library is imported, the command:
+\begin{lstlisting}
+  Search "~~".
+\end{lstlisting}
+answers :
+\begin{lstlisting}
+"~~" is part of notation (~~ _)
+In bool_scope, (~~ b) denotes negb b
+negbT  forall b : bool, b = false -> ~~ b
+contra  forall c b : bool, (c -> b) -> ~~ b -> ~~ c
+introN  forall (P : Prop) (b : bool), reflect P b -> ~ P -> ~~ b
+\end{lstlisting}
+ \item A diagnostic is issued if there are different matching notations;
+  it is an error if all matches are partial.
+\item Similarly, a diagnostic warns about multiple interpretations, and
+  signals an error if there is no default one.
+\item The command  \C{Search in M.}
+is a way of obtaining the complete signature of the module \L{M}.
+\item Strings and pattern indications can be interleaved, but the
+  first indication has a special status if it is a pattern, and only
+  filters the conclusion of lemmas:
+\begin{itemize}
+  \item The command :
+    \begin{lstlisting}
+      Search (_ =1 _) "bij".
+    \end{lstlisting}
+lists all the lemmas whose conclusion features a '$\C{=1}$' and whose
+name contains the string \verb+bij+.
+\item The command :
+    \begin{lstlisting}
+      Search  "bij" (_ =1 _).
+    \end{lstlisting}
+lists all the lemmas whose statement, including hypotheses, features a
+'$\C{=1}$' and whose name contains the string \verb+bij+.
+
+\end{itemize}
+
+\end{itemize}

@@ -1,0 +1,223 @@
+\section{Gallina extensions}
+
+Small-scale reflection makes an extensive use of the programming
+subset of Gallina, \Coq{}'s logical specification language. This subset
+is quite suited to the description of functions on representations,
+because it closely follows the well-established design of the ML
+programming language.The \ssr{} extension provides three additions
+to Gallina, for pattern assignment, pattern testing, and polymorphism;
+these mitigate minor but annoying discrepancies between Gallina and ML.
+
+\subsection{Pattern assignment}\label{ssec:patass}
+The \ssr{} extension provides the following construct for
+irrefutable pattern matching, that is, destructuring assignment:
+\begin{lstlisting}
+  let: $\N{pattern}$ := $\N{term}_1$ in $\N{term}_2$
+\end{lstlisting}
+Note the colon `\L+:+' after the \C{let} keyword, which avoids any
+ambiguity with a function
+definition or \Coq{}'s basic destructuring \C{let}. The \C{let:}
+construct differs from the latter in that
+\begin{itemize}
+\item The pattern can be nested (deep pattern matching), in
+  particular, this allows expression of the form:
+\begin{lstlisting}
+ let: exist (x, y) p_xy := Hp in ...
+\end{lstlisting}
+\item The destructured constructor is explicitly given in the
+  pattern, and is used for type inference, e.g.,
+\begin{lstlisting}
+  Let f u := let: (m, n) := u in m + n.
+\end{lstlisting}
+using a colon \C{let:}, infers \C{f : nat * nat -> nat}, whereas
+\begin{lstlisting}
+  Let f u := let (m, n) := u in m + n.
+\end{lstlisting}
+with a standard \C{let}, requires an extra type annotation.
+\end{itemize}
+The \C{let:} construct is just (more legible) notation for the primitive Gallina expression
+\begin{lstlisting}
+  match $\N{term}_1$ with $\N{pattern}$ => $\N{term}_2$ end
+\end{lstlisting}
+Due to limitations of the \Coq{} v8 display API, a \C{let:} expression
+will always be displayed with the \Coq{} v8.2 \L+let 'C ...+ syntax, which
+does not handle user notation and clashes with the lexical conventions of the
+\ssr{} library.
+
+The \ssr{} destructuring assignment supports all the dependent match
+annotations; the  full syntax is
+
+\[ \C{let:} \N{pattern}_1\ \C{as}\ \N{ident}\ \C{in}\ \N{pattern}_2\ \C{:=}\ \N{term}_1\ \C{return}\ \N{term}_2\ \C{in}\ \N{term}_3\]
+
+where $\N{pattern}_2$ is a \emph{type} pattern and $\N{term}_1$ and
+$\N{term}_2$ are types.
+
+When the \C{as} and \C{return} are both present, then $\N{ident}$ is bound
+in both the type $\N{term}_2$ and the expression $\N{term}_3$;
+variables in the optional type pattern $\N{pattern}_2$ are
+bound only in the type $\N{term}_2$, and other variables in $\N{pattern}_1$ are
+bound only in the expression $\N{term}_3$, however.
+
+\subsection{Pattern conditional}\label{ssec:patcond}
+The following construct can be used for a refutable pattern matching,
+that is, pattern testing:
+\[\C{if}\ \N{term}_1\ \C{is}\ \N{pattern}_1\ \C{then}\ \N{term}_2\ \C{else}
+\ \N{term}_3\]
+Although this construct is not strictly ML (it does exits in variants
+such as the pattern calculus or the $\rho$-calculus), it turns out to be
+very convenient for writing functions on representations,
+because most such functions manipulate simple datatypes such as Peano
+integers, options,
+lists, or binary trees, and the pattern conditional above is almost
+always the right construct
+for analysing such simple types. For example, the \C{|*null*|} and
+\C{|*all*|} list function(al)s can be defined as follows:
+\begin{lstlisting}
+  Variable d: Set.
+  Fixpoint |*null*| (s : list d) := if s is nil then true else false.
+  Variable a : d -> bool.
+  Fixpoint |*all*| (s : list d) : bool :=
+     if s is cons x s' then a x && all s' else true.
+\end{lstlisting}
+
+The pattern conditional also provides a notation for destructuring
+assignment with a refutable pattern, adapted to the pure functional
+setting of Gallina, which lacks a \\\texttt{Match\_Failure} exception.
+
+Like \C{let:} above, the \C{if$\dots$is} construct is just (more legible)
+notation for the primitive Gallina expression:
+\[\C{match}\ \N{term}_1\ \C{with}\ \N{pattern}\ \C{=>}\ \N{term}_2\ \C{| _ =>}\ \N{term}_3\ \C{end}\]
+Similarly, it will always be displayed as the expansion of this form
+in terms of primitive \C{match} expressions (where the default
+expression $\N{term}_3$ may be replicated).
+
+
+Explicit pattern testing also largely subsumes the generalisation of
+the \C{if} construct to all binary datatypes; compare:
+\begin{lstlisting}
+  if $\N{term}$ is inl _ then $\N{term}_l$ else $\N{term}_r$
+\end{lstlisting}
+and:
+\begin{lstlisting}
+  if $\N{term}$ then  $\N{term}_l$ else  $\N{term}_r$
+\end{lstlisting}
+The latter appears to be marginally shorter, but it is quite
+ambiguous, and indeed often
+requires an explicit annotation term : \C{{_}+{_}} to type-check,
+which evens the character count.
+
+Therefore, \ssr{} restricts by default the condition of a plain \C{if}
+construct to the standard bool type; this avoids spurious type
+annotations, e.g., in:
+\begin{lstlisting}
+  Definition |*orb*| b1 b2 := if b1 then true else b2.
+\end{lstlisting}
+As pointed out in section 1.2, this restriction can be removed with
+the command:
+\begin{lstlisting}
+  Close Scope boolean_if_scope.
+\end{lstlisting}
+Like \C{let:} above, the \C{if$\dots$is} construct supports the dependent
+\C{match} annotations:
+\begin{lstlisting}
+  if $\N{term}_1$ is $\N{pattern}_1$ as $\N{ident}$ in $\N{pattern}_2$ return $\N{term}_2$
+    then $\N{term}_3$
+    else $\N{term}_4$
+\end{lstlisting}
+As in \C{let:} the variable $\N{ident}$ (and those in
+the type pattern $\N{pattern}_2$) are bound in $\N{term}_2$; $\N{ident}$ is
+also bound in $\N{term}_3$ (but not in $\N{term}_4$), while the
+variables in $\N{pattern}_1$ are bound only in $\N{term}_3$.
+
+\noindent
+Another variant allows to treat the else case first:
+\[\C{if}\ \N{term}_1\ \C{isn't }\N{pattern}_1\ \C{then}\ \N{term}_2\ \C{else}
+\ \N{term}_3\]
+Note that $\N{pattern}_1$ eventually binds variables in $\N{term}_3$
+and not $\N{term}_2$.
+
+\subsection{Parametric polymorphism}\label{ssec:parampoly}
+Unlike ML, polymorphism in core Gallina is explicit: the type
+parameters of polymorphic  functions must be declared explicitly, and
+supplied at each point of use. However, \Coq{} provides two features
+to suppress redundant parameters:
+\begin{itemize}
+\item Sections are used to provide (possibly implicit) parameters for
+  a set of definitions.
+\item Implicit arguments declarations are used to tell \Coq{} to use
+  type inference to deduce some parameters from the context at each
+  point of call.
+\end{itemize}
+The combination of these features provides a fairly good emulation of ML-style
+polymorphism, but unfortunately this emulation breaks down for
+higher-order programming. Implicit arguments are indeed not inferred
+at all points of use, but only at
+points of call, leading to  expressions such as
+\begin{lstlisting}
+  Definition |*all_null*| (s : list d) := all (@null d) s.
+\end{lstlisting}
+Unfortunately, such higher-order expressions are quite frequent in
+representation functions, especially those which use \Coq{}'s
+\C{Structure}s to emulate Haskell type classes.
+
+Therefore, \ssr{} provides a variant of \Coq{}'s implicit argument
+declaration, which  causes \Coq{} to fill in some implicit parameters
+at each point of use, e.g., the above definition can be written:
+\begin{lstlisting}
+  Definition |*all_null*| (s : list d) := all null s.
+\end{lstlisting}
+Better yet, it can be omitted entirely, since \C{all_null s} isn't
+much of an improvement over \C{all null s}.
+
+The syntax of the new declaration is
+\begin{lstlisting}
+  Prenex Implicits $\N{ident}^+$.
+\end{lstlisting}
+Let us denote $const_1 \dots const_n$ the list of identifiers given to a
+\L+Prenex Implicits+ command.
+The command checks that each \C{/*const$_i$*/}  is the name of a functional
+constant, whose implicit arguments are prenex, i.e., the first $n_i >
+0$ arguments of \C{/*const$_i$*/} are implicit; then it assigns
+\L+Maximal Implicit+ status to these arguments.
+
+As these prenex implicit arguments are ubiquitous and have often large
+diaplay strings, it is strongly recommended to change the default
+display settings of \Coq{} so that they are not printed (except after a
+\C{$\texttt{\textcolor{dkviolet}{Set }}$ Printing All} command).
+All \ssr{} library files thus start with the incantation
+\begin{lstlisting}
+  Set Implicit Arguments.
+  Unset Strict Implicit.
+  Unset Printing Implicit Defensive.
+\end{lstlisting}
+
+\subsection{Anonymous arguments}
+When in a definition, the type of a certain argument is mandatory, but
+not its name, one usually use ``arrow'' abstractions for prenex
+arguments, or the \L+(_ : $\N{term}$)+ syntax for inner arguments.
+In \ssr{}, the latter can be replaced by the open syntax `\L+of $\N{term}$+'
+or (equivalently)  `\L+& $\N{term}$+', which are both syntactically
+equivalent to the standard \Coq{} \L+(_ : $\N{term}$)+ expression.
+
+Hence the following declaration:
+\begin{lstlisting}
+  Inductive list (A : Type) : Type := nil | cons of A & list A.
+\end{lstlisting}
+defines a type which is syntactically equal to the type \L+list+ of
+the \Coq{} standard {\tt List} library.
+
+
+\subsection{Wildcards}\label{ssec:wild}
+
+As in standard Gallina, the terms passed as arguments
+to \ssr{} tactics can contain \emph{holes}, materialised by wildcards
+\C{_}.
+Since \ssr{} allows a more powerful form of type inference for these
+arguments, it enhances the possibilities of using such wildcards.
+These holes are in particular used as a convenient shorthand for
+abstractions, especially in local definitions or type expressions.
+
+Wildcards may be interpreted as abstractions (see for example sections
+\ref{ssec:pose} and \ref{ssec:struct}), or their content can be
+inferred from the whole
+context of the goal (see for example section \ref{ssec:set}).

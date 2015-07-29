@@ -1,0 +1,147 @@
+\section{Introduction}\label{sec:intro}
+Small-scale reflection is a formal proof methodology based on the
+pervasive use of computation with symbolic representations. Symbolic
+representations are usually hidden in traditional computational
+reflection (e.g., as used in the
+\Coq{}\footnote{\url{http://coq.inria.fr}} \C{ring}, or \C{romega}):
+they are generated on-the-fly by some heuristic algorithm and directly
+fed to some decision or simplification procedure whose output is
+translated back to "logical" form before being displayed to the
+user. By contrast, in small-scale reflection symbolic representations
+are ubiquitous; the statements of many top-level lemmas, and of most
+proof subgoals, explicitly contain symbolic representations;
+translation between logical and symbolic representations is performed
+under the explicit, fine-grained control of the proof script.
+
+The efficiency of small-scale reflection hinges on the fact that
+fixing a particular symbolic representation strongly directs the
+behaviour of a theorem-prover: 
+
+\begin{itemize}
+\item Logical case analysis is done by
+enumerating the symbols according to their inductive type: the
+representation describes which cases should be considered.  
+\item Many
+logical functions and predicates are represented by concrete
+functions on the symbolic representation, which can be computed once
+(part of) the symbolic representation of objects is known: the
+representation describes what should be done in each case. 
+\end{itemize}
+
+Thus by controlling the representation we also control the automated
+behaviour of the theorem prover, which can be quite complex,
+for example if a predicate is represented by a sophisticated decision
+procedure. The real strength of small-scale reflection, however, is
+that even very simple representations provide useful procedures. For
+example, the truth-table representation of connectives, evaluated
+left-to-right
+on the Boolean representation of propositions, provides sufficient
+automation for most propositional reasoning.
+
+Small-scale reflection defines a basis for dividing the proof workload
+between the user and the prover: the prover engine provides computation
+and database functions (via partial evaluation, and definition and
+type lookup, respectively), and the user script guides the execution
+of these functions, step by step. User scripts comprise three kinds of
+steps: 
+
+\begin{itemize}
+\item Deduction steps directly specify part of the construction of
+the proof, either top down (so-called forward steps), or bottom-up
+(backward steps). A reflection step that switches between logical and
+symbolic representation is just a special kind of deductive step.  
+\item
+Bookkeeping steps manage the proof context, introducing, renaming,
+discharging, or splitting constants and assumptions. Case-splitting on
+symbolic representations is an efficient way to drive the prover
+engine, because most of the data required for the splitting can be
+retrieved from the representation type, and because specialising a
+single representation often triggers the evaluation of several
+representation functions.  
+\item Rewriting steps use equations to locally
+change parts of the goal or assumptions.  Rewriting is often used to
+complement partial evaluation, bypassing unknown parameters (e.g.,
+simplifying \C{b && false} to \C{false}). Obviously, it's also used to
+implement equational reasoning at the logical level, for instance,
+switching to a different representation.  
+\end{itemize}
+
+It is a characteristic of the
+small-scale reflection style that the three kinds of steps are roughly
+equinumerous, and interleaved; there are strong reasons for this,
+chief among them the fact that goals and contexts tend to grow rapidly
+through the partial evaluation of representations.  This makes it
+impractical to embed most intermediate goals in the proof script - the
+so-called declarative style of proof, which hinges on the exclusive
+use of forward steps. This also means that subterm selection,
+especially in rewriting, is often an issue.
+
+The basic \Coq{} tactic language is not well adapted to small-scale
+reflection proofs. It is heavily biased towards backward steps, with
+little support for forward steps, or even script layout (these are
+deferred to the "vernacular", i.e., \C{Section}/\C{Module} layer of
+the input language). The support for rewriting is primitive, requiring
+a separate tactic for each kind of basic step, and the behaviour of
+subterm selection is undocumented. Many of the basic tactics, such as
+\C{intros}, \C{induction} and \C{inversion}, implement fragile context
+manipulation heuristics which hinder precise bookkeeping; on the other
+hand the under-utilised "intro patterns" provide excellent support for
+case splitting.
+
+The extensions presented here were designed to improve the
+functionality of \Coq{} in all those areas, providing:
+
+\begin{itemize}
+\item support for better script layout
+\item better support for forward steps
+\item common
+support for bookkeeping in all tactics
+\item common support for subterm
+selection in all tactics
+\item a unified interface for rewriting,
+definition expansion, and partial evaluation
+\item improved robustness
+with respect to evaluation and conversion
+\item support for reflection
+steps.
+\end{itemize}
+ We should point out that only the last functionality is specific
+to small-scale reflection. All the others are of general use.
+Moreover most of these features are introduced not
+by adding new tactics, but by extending the functionality of existing
+ones: indeed we introduce only three new tactics, rename three others,
+but all subsume more than a dozen of the basic \Coq{} tactics.
+
+
+\subsection*{How to read this documentation}
+
+
+The syntax of the tactics is presented as follows:
+\begin{itemize}
+\item \L+terminals+ are in typewriter font and $\N{non terminals}$ are
+  between angle brackets.
+\item Optional parts of the grammar are surrounded by $[\ ]$
+  brackets. These should not be confused with verbatim brackets 
+  \L+[ ]+, which are delimiters in the \ssr{} syntax.
+\item A vertical rule $|$ indicates an alternative in the syntax, and
+  should not be confused with a
+  verbatim vertical rule between verbatim brackets \L+[ | ]+.
+\item A non empty list of non terminals (at least one item should be
+  present) is represented by $\N{non terminals}^+$. A possibly empty
+  one is represented by $\N{non terminals}^*$.
+\item In a list of non terminals, items are separated by blanks.
+\end{itemize}
+
+
+\noindent We follow the default color scheme of the \ssr{} mode for
+ProofGeneral provided in the distribution:
+
+\centerline{
+\textcolor{dkblue}{\texttt{tactic}} or \textcolor{dkviolet}{\tt
+  Command} or \textcolor{dkgreen}{\tt keyword} or
+\textcolor{dkpink}{\tt tactical}}
+
+\noindent Closing tactics/tacticals like \L+exact+ or \L+by+ (see section
+\ref{ssec:termin}) are in red.
+
+\newpage

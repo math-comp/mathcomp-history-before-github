@@ -1,0 +1,458 @@
+\section{Using the libraries}
+
+This section contains a short description of the libraries
+present in the Ssreflect and Mathematical Components
+distributions. For further information, please
+refer to the comments included in the {\tt .v} source files of the
+distributed libraries.
+
+
+\subsection{Some general design choices}
+
+\subsubsection*{Use of CoInductive types}
+
+Coinductive types declared throughout the libraries should be
+considered as data structures enjoying case analysis but not induction.
+This design choice is meant
+to stop the user from doing meaningless induction rather than
+to represent infinite objects.
+
+\subsubsection*{Boolean propositions, support for small scale reflection}
+
+The {\tt ssreflect} library
+provides basic support for the view mechanism, together with some
+technical lemmas and definitions, dedicated to the
+internal mechanism of some \ssr{} tactics, and to the reduction tags
+(\L+nosimpl+, \L+lock+, see section \ref{ssec:lock}). This {\tt
+  ssreflect.v} file being devoted to technical infrastructure, like
+ {\tt ssreflect.ml}, it does not contain much insight on the
+ constructions provided.
+
+
+
+The {\tt ssrbool} library extends the possibilities of the view
+mechanism by providing the support needed for small scale reflection.
+
+The main ingredients of this support are:
+\begin{itemize}
+\item The \L+|*is_true*| : bool >-> Prop+ coercion;
+\item The definition of the \L+|*reflect*|+ predicate (see
+section \ref{ssec:reflpred}), together with the:
+\begin{lstlisting}
+  Coercion |*elimT*| : reflect >-> Funclass
+\end{lstlisting}
+which makes possible to apply directly a reflection lemma to a boolean
+assertion;
+\item A bunch of reflection lemmas, which directly reflect
+  boolean connectives into their logical counterparts (like \L+|*andP*|+),
+  or propagate negations (like \L+|*norP*|+);
+\item Predefined view hints, which help the reflection mechanism
+  handle complex boolean statements to be reflected into logical ones
+  (like \L+|*introNTF*|+).
+\end{itemize}
+
+The {\tt ssrbool} library also contains several tool-kits for handling
+boolean predicates that become pervasive in a boolean small scale
+reflection setting, like :
+\begin{itemize}
+\item Properties of boolean connectives, including the
+  various commutativity, associativity, distributivity (rewritable)
+  properties and a \L+bool_congr+ heuristic for weeding out common
+  terms from boolean equalities;
+\item Iterated boolean operations, comprising some convenient n-ary
+  ``list-style'' notations for these kind of predicates, in the form:
+
+\centerline{\L+[op arg1, arg2, ... last_separator last_arg]+}
+
+\noindent See the comments in {\tt ssrbool.v} for more details.
+\item Support for applicative and collective predicate, where
+  collective predicates deserve infix notation like \L+(x \ in p)+;
+\item Properties and predicates on boolean relations and the localized
+
+\end{itemize}
+
+For more details, please refer to the comments in {\tt ssrbool}.
+
+\subsubsection*{Canonical Structures}
+
+The use of \L+Canonical Structure+s is pervasive in \ssr{} libraries.
+This provides in particular a mechanism of proof inference, used as a
+Prolog-like proof inference engine as often as possible.
+
+For instance, once the following irrelevance
+result on \L+eqType+ structures (see {\tt eqtype.v}) is proved:
+\begin{lstlisting}
+  Theorem |*eq_irrelevance*| (T : eqType) (x y : T) (e1 e2 : x = y) : e1 = e2.
+\end{lstlisting}
+it is instantiated for booleans (see again \texttt{eqtype.v}), and
+proved in this way:
+\begin{lstlisting}
+  Lemma |*bool_irrelevance*| : forall (x y : bool) (E E' : x = y), E = E'.
+  Proof. exact: eq_irrelevance. Qed.
+\end{lstlisting}
+Notice that the \L+eqType+ structure of booleans, which is required to
+apply the \L+eq_irrelevance+ theorem, is automatically
+inferred by the system from the \L+bool+ type of \L+x+ and \L+y+.
+
+Notice also that the tactic:
+\begin{lstlisting}
+  exact eq_irrelevance.
+\end{lstlisting}
+(without the '\L+:+ tactical) would fail closing the goal because
+the unification algorithm used by the standard \L+exact+
+tactic does not take \L+Canonical Structure+ equations into
+account. On the other hand, the standard \L+refine+ and \L+apply+
+tactics  know about these equations (with standard \Coq{} version
+$\geq$ 8.4 ).
+%  This is why the combinations
+% \L+apply:+ and \L+exact:+ make the use of \L+Canonical Structure+s
+% really tractable, when this feature of standard \Coq{} is convenient
+% to use in practice with standard 8.4 \Coq{}.
+
+In fact, \Coq{}'s \L+Canonical Structure+ mechanism pre-computes some
+projection equations that are later used as hints during
+unification. Canonical structures are hence inferred automatically
+when a statement explicitly involves projections \emph{values}.
+In contrast, canonical structure inference cannot directly unify the
+structure \emph{type} with that of its projections, despite the fact
+that \L+Coercion+s may give the illusion that this happens.
+
+For example, the following script will be accepted
+\begin{lstlisting}
+  Require Import ssreflect eqtype.
+  Variables A B C : eqType.
+  Hypothesis BtimesCisA : (B * C = A)%type.
+\end{lstlisting}
+because type-checking will insert the \L+Equality.sort+ coercion projection
+to \L+A+ in the right-hand side of the equation. However,
+\begin{lstlisting}
+  Hypothesis AisBtimesC : (A = B * C)%type.
+\end{lstlisting}
+raises the error message: \texttt{Error: The term "(B *
+  C)\%type" has type "Type" while it is expected to have type "eqType"}
+even though the \texttt{eqtype} library contains a canonical construction
+of the eqType structure of the Cartesian product of two eqType
+structures: unlike canonical projections, coercions only work one way.
+
+This illustrates the need for a way of directly looking up a canonical
+structure. This operation is supported, with the general syntax:
+$$\C{[}struct\_type\ \C{of}\ carrier\_type\ [\C{for}\ t\ ]\C{]}$$
+This computes the canonical structure of type
+$struct\_type$ declared up to conversion on the type $carrier\_type$.
+The structure inferred should be convertible to the optional argument
+$t$.
+
+Going back to the previous example:
+\begin{lstlisting}
+  Hypothesis AisBtimesC : A = [eqType of (B * C)%type].
+\end{lstlisting}
+is accepted by the system.
+
+
+Some types are defined by requiring a structure on their
+parameter. For instance, the type \L+polynomial+ of polynomials (in
+{\tt poly.v} in the Mathematical Components distribution) has one
+parameter, which should be equipped with a ring structure. In that
+case, a curly bracket notation is provided to allow \Coq{} to infer said
+structure rather that having to supply it explicitly. This notation
+should always be preferred to the type itself. Hence one should always
+use \L+{poly R}+, rather than \L+(polynomial R_ringType)+, when
+\L+R_ringType+ would be the ring structure with carrier \L+R+. If this
+\L+R_ringType+structure is canonical, it will automatically be
+inferred in \L+{poly R}+.
+
+\subsection{\ssr{} proving guidelines}
+
+Here are a few tips to write proofs using \ssr{}.
+
+\subsubsection*{Proof formatting guidelines}
+
+\begin{itemize}
+\item {\bf Loaded libraries.} The order matters! For instance, {\tt
+    bigop} should be loaded before {\tt ssralg}, to make the
+  notations work.
+
+\item {\bf Delimiters.} A space should always follow a delimiter
+  symbol, and spaces should surround operator symbols. Similarly,
+  spaces should always surround a type casting colon.
+
+\item {\bf How to write pairs.} A tuple is parenthesized and the
+  commas therein (delimiters) are each followed by a space:
+  \L+(1, 2)+.
+
+\item {\bf How to write sequences.} Write \L+ x :: l+ with spaces around
+  the \L+::+ (since :: is an infix operator, hence surrounded by
+  spaces) and \L+[:: x1; x2; x3]+ or \L+[:: x1, x2 & tl]+ (since \L+,+
+  is a delimiter, hence followed by a space).
+
+\item  {\bf How to write auto-simplifying functions.} Auto-simplifying
+  functions should be defined using the bracket notation provided by
+  the \texttt{ssrfun} library. The expression \L+[fun x y => f x y]+
+  denotes the auto-simplifying version of the binary function \L+f+.
+
+\item {\bf How to write auto-simplifying predicates.} Following the
+  bracket notation for auto-simplifying functions, the \texttt{ssrbool}
+  library provides a
+  comprehension-style notation for auto-simplifying boolean predicates,
+  in the form: \texttt{[type var separator expr]}. For instance
+  \L+[pred x | x == y]+ is the auto-simplifying boolean comparison to \L+y+.
+
+
+\item {\bf How to write composed predicates.} The \texttt{ssrbool}
+  library
+  provides sequence-like notations for the
+  iteration of a right associative operator on a list of
+  predicates (boolean or not).
+  For instance \L+[/\ P1, P2 & P3]+ (resp. \L+[\/ P1, P2 | P3]+)
+  denotes \L+P1 /\ P2 /\ P3+ (resp. \L+P1 \/ P2 \/ P3+). See comments
+  and reserved notations in \texttt{ssrbool.v} for the complete list of
+   available notations.
+
+
+\item {\bf How to write operators symbols.} For sake of readability,
+  operators symbols should
+  be separated from their arguments by spaces, like in \L+x * y+ or
+  \texttt{a (+)  b}.
+  Perhaps more importantly,  this should prevent
+  \Coq{} from confusing them with multi-characters notations.
+
+\item {\bf How to write a partial application w.r.t. to the {\it second}
+    argument.}
+The {\tt fun } library provides a convenient ``placeholder'' notation
+for such abstractions:
+\begin{lstlisting}
+  Notation "f ^~ y" := (fun x => f x y)
+\end{lstlisting}
+
+\item {\bf How to cast an equality.} To force the application of an
+  existing coercion on the left hand side of a Leibniz equality, and
+  hence in the type provided to \L+eq+, use the \L+:>+ cast. For
+  instance \L+(true = 1)+ is not type-checked, but \L+(true = 1 :> nat)+
+  is\footnote{The {\tt ssrnat} library defines such a coercion from
+    {\tt bool} to {\tt nat}.}. Note that this feature is provided by
+  the standard \Coq{}.
+
+\item {\bf How to state standard properties on operators.} Use the
+  predicates defined in the {\bf ssrfun} library :
+  \L+|*left_inverse*|+, \L+|*right_distributive*|+,
+  \L+|*commutative*|+, etc to normalize these statements.
+
+
+\end{itemize}
+
+\subsubsection*{Layout of proofs}
+
+\begin{itemize}
+\item {\bf Width of the page.} The library has been developed using a
+  80 characters wide page. Maintaining this convention in your
+  developments improves the readability of scripts. This is specially
+  relevant in \ssr{} scripts, where tactics are usually chained in
+  longer lines than in most standard \Coq{} scripts.
+
+\item{\bf Starting a proof.} Start each proof with
+  \L+Proof+. If the scripts of the proof is a single line of tactics,
+  then this line should start with \L+Proof.+ and finish with \L+Qed.+
+  If it doesn't the first line of the script should only contain
+  \L+Proof.+ and the last line should only contain \L+Qed.+.
+
+
+\item {\bf Lines of tactics in a proof.} Tactics should be chained on
+  the whole line using the semi-colon (or chained rewriting steps for
+  instance), but a block between two points should never take more
+  than one line. This often helps lines having a semantic unity.
+
+  Start a new line each time you start a new subgoal
+  proof, or use a forward chaining tactic, or state a local definition
+  or an abbreviation.
+
+\item{\bf Linearity of scripts.} Try to make your script as linear as
+  possible. Only open an indented piece of script for a non trivial
+  subgoal. To improve linearity use the closing switch \L+//+ and the
+  optional rewrite switch \L+?+ as often as needed. The
+  \L+first+ and \L+last+ selectors also help closing an easy goal on the
+  same line as the tactic which had created it.
+
+\item {\bf Indentation of proofs.} Use indentation to separate the
+  scripts of two-cases proofs (like when using a forward
+  chaining tactic). If the proof of one of the goals is short enough,
+  use selectors (see section \ref{ssec:select}) to close it as soon
+  as it is created. If a branching proof has more that two cases,
+  use bullets (see section \ref{ssec:indent}) to separate the
+  corresponding scripts.
+
+\item{\bf Grabbing subterms in the goal. } Do not copy and paste large
+  subterms from the current goal to the script. Most often patterns
+  with wildcards
+  will do the job for you, for instance by the mean of an abbreviation
+  (see section \ref{ssec:set}).
+
+\item {\bf Closing goals.} The last tactic of a script, which  closes
+  the goal, should be a closing tactic. Remember any tactic is turned
+  into a closing one by being preceded by the \L+by+ tactical. When
+  the last tactic of a script takes a whole line of possibly chained
+  tactics, the \L+by+ tactical should start this line.
+
+
+\end{itemize}
+
+\subsubsection*{Name Policy}
+
+  Lemmas in the distributed libraries respect the following name policy:
+\begin{itemize}
+\item{\bf Generalities}
+  \begin{itemize}
+  \item Most of the time the name of a lemma can be read off its
+    statement: a lemma named \L+|*fee_fie_foe*|+ will say something about
+    \L+(fee .. (fie ..(foe ..) ..) ..)+, e.g. lemma \L+|*size_cat*|+ in
+    {\tt seq.v}.
+  \item We often use a one-letter suffix to resolve overloaded
+    notation, e.g., addn, addb, addr denote nat, boolean, ring
+    addition, respectively. This policy does not necessarily apply to
+    constants that should always be hidden behind a generic notation,
+    and handled by a more generic theory.
+  \item Finally, a handful of theorems have a historical name,
+    e.g, \L+|*Cayley_Hamilton*|+ or \L+|*factor_theorem*|+.
+  \end{itemize}
+\item{\bf Structures and Records}
+  \begin{itemize}
+  \item Each structure type starts with a
+    lower case letter, and its constructor has the same name but with a
+    capital first letter.
+  \item Each instance of a structure type has a name formed with the
+    name of the carrier type, followed by an underscore and the one of
+    the structure type like in \L+seq_sub_subType+, the structure of
+    \L+subType+ defined on \L+seq_sub+ (see {\tt fintype.v}). Notable
+    exceptions to this rule are canonical constructions taking
+    benefits of modular name spaces, like in {\tt ssralg.v}.
+  \end{itemize}
+\item {\bf Suffixes}
+  \begin{itemize}
+  \item Lemma whose conclusion is a predicate, or an equality
+    for a predicate: that predicate is a suffix of the lemma name,
+    like in \L+|*addn_eq0*|+ or \L+|*rev_uniq*|+.
+  \item Lemmas whose conclusion is a standard property such as
+    \L+\char+, \L+<|+, etc.\footnote{These examples are taken from
+      libraries in the Mathematical Component distribution.}:
+    the property should be
+    indicated by a suffix (like \L+ _char+, \L+_normal+, etc), so
+    the lemma name
+    should start by a description of the argument of the property, such as
+    its key property, or its head constant.
+    Thus we have \L+|*quotient_normal*|+, not \L+normal_quotient+, etc. This
+    convention does not apply to monotony rules, for which we either
+    use the name of the property with the suffix for the operator
+    (e.g., \L+|*groupM*|+), or the name of the operator with the S
+    suffix for subset monotony (e.g., \L+|*mulgS*|+).
+  \item We try to use and maintain the following set of lemma suffixes:
+    \begin{itemize}
+    \item {\tt 0} : zero, or the empty set
+    \item {\tt 1} : unit, or the singleton set (use \L+_set1+ for
+      the latter to disambiguate)
+    \item {\tt 2} : two, doubling, doubletons
+    \item {\tt 3} etc, similarly
+    \item {\tt A} : associativity
+    \item {\tt C} : commutativity, or set complement (use \L+Cr+
+      for trailing complement)
+    \item {\tt D} : set difference, addition
+    \item {\tt E} : definition elimination (often conversion
+      lemmas)
+    \item {\tt F} : boolean false, finite type variant (as in
+      \L+|*canF_eq*|+), or group functor
+    \item {\tt G} : group argument
+    \item {\tt I} : set intersection, injectivity for binary operators
+    \item {\tt J} : group conjugation
+    \item {\tt K} : cancellation lemmas
+    \item {\tt L} : left hand side (in \L+|*canLR*|+)
+    \item {\tt M} : group multiplication
+    \item {\tt N} : boolean negation, additive opposite
+    \item {\tt P} : characteristic properties (often reflection
+      lemmas)
+    \item {\tt R} : group commutator, or right hand side (in
+      \L+|*canRL*|+)
+    \item {\tt S} : subset argument, or integer successor
+    \item {\tt T} : boolean truth and Type-wide sets
+    \item {\tt U} : set union
+    \item {\tt V} : group or ring multiplicative inverse
+    \item {\tt W} : weakening
+    \item {\tt X} : exponentiation, or set cartesian product
+    \item {\tt Y} : group join
+    \item {\tt Z} : module/vector space scaling
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+% \subsubsection*{Name Policy}
+
+% In addition to the searching tool, the lemmas and
+% constructors follow some conventions helping the user to guess their
+% names when possible:
+% \begin{itemize}
+% \item Each structure type starts with a lower case letter, and its
+%   constructor has
+%   the same name but with a capital first letter;
+% \item Each instance of a structure type has a name formed with the
+%   name of the carrier type, followed by an underscore and the one of
+%   the structure type. For instance, \L+bool_eqType+ is an \L+EqType+
+%   structure of carrier \L+bool+.
+% \item Properties of operators are prefixed with the name of
+%   the operator and postfixed with a description of the property (like
+%   \L+addnC+ for the commutativity of the \L+addn+ operations, \L+addnA+
+%   for its associativity, \L+addnE+ for the elimination (of the static
+%   \L+nosimpl+ tag) lemma...).
+% \end{itemize}
+
+
+
+\subsubsection*{Syntax for Gallina extensions}
+\begin{itemize}
+\item {\bf Irrefutable patterns.} Use the \ssr{} syntax
+\L+let: ... in+ for irrefutable patterns (see section
+\ref{ssec:patass}).
+\item {\bf Type annotations for anonymous arguments.} Using the open
+  \ssr{} syntax '\L+& $\N{term}$+' and '\L+of $\N{term}$+' instead of the
+  standard  \L+(_ : $\N{term}$)+ like in:
+\begin{lstlisting}
+  Inductive list (A : Type) : Type := nil | cons of A & (list A).
+\end{lstlisting}
+tend to make type annotations in definitions much more readable.
+\item{\bf Open syntax.} Several \ssr{} tactics (\L+pose+, \L+have+,...)
+  support open syntax and applicative-style definitions for functions,
+  which improves the readability of statements.
+  It is hence recommended practice to use for instance:
+\begin{lstlisting}
+  pose f x y := x + y.
+\end{lstlisting}
+instead of the standard \Coq{} equivalent tactic:
+\begin{lstlisting}
+  pose f := (fun x y => x + y).
+\end{lstlisting}
+
+\end{itemize}
+
+\subsection{Interfaces}
+
+Figure \ref{fig:hier} summarizes the main interfaces available in
+the present distribution, and their interdependencies. % Blue, starred
+% boxes are dedicated to interfaces that would collapse either on a
+% brown unstarred box or on \L+Type+ in an untyped, classical setting.
+
+The definition of each of these interfaces obeys a systematic
+pattern. However, unless the user wants to add a new structure to this
+this picture, it should not be necessary to delve into the details of
+these definition. On the other hand, this systematic way of defining
+the interfaces leads to a systematic way of populating them. Please
+refer to comments in the files for the rationale of each interface and
+for a review of the constructions provided.
+
+% Note that a {\tt coqdoc} snapshot of the distributed libraries,
+% including a search tool, is browsable on-line at \url{http://coqfinitgroup.gforge.inria.fr/}.
+
+\newpage
+
+\begin{figure}[!h]
+  \begin{center}
+      \includegraphics[width=\linewidth]{Figs/classes1}
+   \caption{Interfaces defined in the ssreflect
+     libraries. Note that the {\tt finalg} library defines a clone of the ssralg
+     sub-hierarchy for structures based on finite carriers.}\label{fig:hier}
+\end{center}
+\end{figure}

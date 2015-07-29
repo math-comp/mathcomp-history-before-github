@@ -1,0 +1,703 @@
+\section{Rewriting}\label{sec:rw}
+The generalised use of reflection implies that most of the
+intermediate results handled are properties of effectively computable
+functions. The most efficient mean of establishing such results are
+computation and simplification of expressions involving such
+functions, i.e., rewriting. We have therefore defined an extended
+\C{rewrite} tactic that unifies and combines most of the rewriting
+functionalities.
+\subsection{An extended \C{rewrite} tactic}\label{ssec:extrw}
+The main improvements brought to the standard \Coq{} \C{rewrite}
+tactic are:
+\begin{itemize}
+\item Whereas the primitive \C{rewrite} tactic can only perform a
+  single rewriting
+operation in the goal or in the context, the extended \C{rewrite}
+can perform an entire series of such operations in any subset of the
+goal and/or context;
+\item The \ssr{} \C{rewrite} tactic allows to perform rewriting,
+  simplifications, folding/unfolding of definitions, closing of goals;
+\item Several rewriting operations can be chained in a single tactic;
+\item Control over the occurrence at which rewriting is to be performed is
+  significantly enhanced.
+\end{itemize}
+
+
+The general form of an \ssr{} rewrite tactic is:
+\begin{lstlisting}
+   rewrite $\N{rstep}^+$.
+\end{lstlisting}
+The combination of a rewrite tactic with the \C{in} tactical (see
+section \ref{ssec:loc}) performs rewriting in both the context and the
+goal.
+
+A rewrite step $\N{rstep}$ has the general form:
+$$[\N{r-prefix}]\N{r-item}$$
+where:
+
+\begin{eqnarray*}
+\N{r-prefix} & \equiv &
+[\C{-}]\ [\N{mult}]\ [\N{occ-switch} | \N{clear-switch}]\ [\C{[}\N{r-pattern}\C{]}]\\
+\N{r-pattern} & \equiv &
+   \N{term}\ |\ \C{in}\ [\N{ident}\ \C{in}]\ \N{term} \ 
+   |\ [\N{term}\ \C{in}\ |\ \N{term}\ \C{as}]\ \N{ident}\ \C{in}\ \N{term}\\
+\N{r-item} & \equiv &
+ [\C{/}]\N{term} \ |\ \N{s-item} \\
+\end{eqnarray*}
+
+
+% \begin{eqnarray*}
+% \N{r-prefix} & \equiv &
+% [\C{-}]\ [\N{mult}][\N{occ-switch} | \N{cl-item}][\N{term}]\\
+% \N{r-item} & \equiv &
+% [\C{-}]\N{term}\ |\ [\C{-}]\C{[}\N{term}_1\C{]}\C{/(}\N{term}_2\C{)} \ |\
+% \N{simpl switch} \ |\  \\
+% && \N{eq-term} \ |\  \C{(} \N{eq-term}_1\C{,}\dots
+% \C{,}\N{eq-term}_n \C{)} \ |\  \C{(_ :}\N{eq-term} \C{)}
+% \end{eqnarray*}
+
+
+An $\N{r-prefix}$ contains annotations to qualify where and how   the
+rewrite operation should be performed:
+\begin{itemize}
+\item The optional initial \L+-+ indicates the direction of the rewriting
+  of $\N{r-item}$.
+\item The multiplier $\N{mult}$ (see section \ref{ssec:iter})
+  specifies if and how the rewrite operation should be repeated.
+\item A rewrite operation matches the occurrences of a \emph{rewrite
+  pattern}, and replaces these occurrences by an other term, according
+  to the given $\N{r-item}$.
+  The optional \emph{redex switch} $\C{[}\N{r-pattern}\C{]}$, which
+  should always be surrounded by brackets, gives explicitly this
+  rewrite pattern. In its simplest form, it is a regular term.
+  If no explicit redex switch
+  is present the rewrite pattern to be matched is inferred from the
+  $\N{r-item}$.
+\item This optional $\N{term}$, or
+  the $\N{r-item}$, may be preceded by an
+  occurrence switch (see section \ref{ssec:select}) or a clear item
+  (see section \ref{ssec:discharge}), these two possibilities being
+  exclusive. An occurrence switch selects the occurrences of the
+  rewrite pattern which should be affected by the rewrite operation.
+\end{itemize}
+
+
+An $\N{r-item}$ can be:
+
+
+\begin{itemize}
+\item A \emph{simplification r-item}, represented by a
+  $\N{s-item}$ (see section \ref{ssec:intro}).
+% In some cases, $\N{r-prefix}$es are not supported.
+  Simplification operations are
+  intertwined with the possible other rewrite operations specified by
+  the list of r-items.
+\item A \emph{folding/unfolding r-item}. The tactic:
+\begin{lstlisting}
+  rewrite //*term*/
+\end{lstlisting}
+unfolds the head constant of \textit{term} in every occurrence of the
+first matching of \textit{term} in the goal. In particular, if
+\L+my_def+ is a (local or global) defined constant, the tactic:
+\begin{lstlisting}
+  rewrite /my_def.
+\end{lstlisting}
+is in principle\footnote{The implementation of these fold/unfold tactics does
+  not call standard \Coq{} \C{fold} and \C{unfold}.} equivalent to:
+\begin{lstlisting}
+  unfold my_def.
+\end{lstlisting}
+Conversely:
+\begin{lstlisting}
+  rewrite -/my_def.
+\end{lstlisting}
+is equivalent to:
+\begin{lstlisting}
+  fold my_def.
+\end{lstlisting}
+%\emph{Warning} The combination of redex switch with unfold
+%$\N{r-item}$ is not yet implemented.
+
+When an unfold r-item is combined with a redex pattern, a conversion
+operation is performed. A tactic of the form:
+\begin{lstlisting}
+  rewrite -[$\N{term}_1$]/$\N{term}_2$.
+\end{lstlisting}
+is equivalent to:
+\begin{lstlisting}
+  change $\N{term}_1$ with $\N{term}_2$.
+\end{lstlisting}
+
+If \C{$\N{term}_2$} is a single constant and \C{$\N{term}_1$} head symbol
+is not \C{$\N{term}_2$}, then the head symbol of \C{$\N{term}_1$} is 
+repeatedly unfolded until \C{$\N{term}_2$} appears.
+
+\begin{lstlisting}
+  Definition double x := x + x.
+  Definition ddouble x := double (double x).
+  Lemma ex1 x : ddouble x = 4 * x.
+  rewrite [ddouble _]/double. 
+\end{lstlisting}
+
+The resulting goal is:
+
+\begin{lstlisting}
+  double x + double x = 4 * x
+\end{lstlisting}
+
+\emph{Warning} The \ssr{} terms containing holes are \emph{not}
+typed as abstractions in this context. Hence the following script:
+\begin{lstlisting}
+  Definition f := fun x y => x + y.
+  Goal forall x y, x +  y = f y x.
+  move=> x y.
+  rewrite -[f y]/(y + _).
+\end{lstlisting}
+raises the error message
+\begin{verbatim}
+   User error: fold pattern (y + _) does not match redex (f y)
+\end{verbatim}
+but the script obtained by replacing the last line with:
+\begin{lstlisting}
+  rewrite -[f y x]/(y + _).
+\end{lstlisting}
+is valid.
+
+
+\item A term, which can be:
+  \begin{itemize}
+    \item A term whose type has the form:
+      $$\C{forall}\ (x_1\ :\ A_1)\dots(x_n\ :\ A_n),\ eq\ term_1\ term_2$$
+      where $eq$ is the Leibniz equality or a registered setoid
+      equality. %In the case of setoid relations, the only supported
+      %r-prefix is the directional \L+-+.
+    \item A list of terms $(t_1,\dots,t_n)$, each $t_i$ having a type of the
+      form: $$\C{forall}\ (x_1\ :\ A_1)\dots(x_n\ :\ A_n),\ eq\ term_1\ term_2$$ where
+      $eq$ is the Leibniz equality or a registered setoid
+      equality. The tactic:
+      \begin{lstlisting}
+        rewrite /*r-prefix*/ ($t_1$,$\dots$,$t_n$).
+      \end{lstlisting}
+      is equivalent to:
+\begin{lstlisting}
+  do [rewrite /*r-prefix*/ $t_1$ | $\dots$ | rewrite /*r-prefix*/ $t_n$].
+\end{lstlisting}
+    \item An anonymous rewrite lemma
+      \L+(_ : /*term*/)+, where \textit{term} has again the form:
+      $$\C{forall}\ (x_1\ :\ A_1)\dots(x_n\ :\ A_n),\ eq\ term_1\ term_2$$
+      The tactic:
+      \begin{lstlisting}
+        rewrite (_ : /*term*/)
+      \end{lstlisting}
+      is in fact equivalent to the standard \Coq{}:
+      \begin{lstlisting}
+        cutrewrite (/*term*/).
+      \end{lstlisting}
+
+  \end{itemize}
+
+\end{itemize}
+
+
+
+
+\subsection{Remarks and examples}\label{ssec:rwex}
+
+\subsubsection*{Rewrite redex selection}
+The general strategy of \ssr{}
+is to grasp as many redexes as possible and to let the user select the
+ones to be rewritten thanks to the improved syntax for the control of
+rewriting.
+
+This may be a source of incompatibilities between \ssr{} and standard
+\Coq{}.
+
+In a rewrite tactic of the form:
+\begin{lstlisting}
+  rewrite $\N{occ-switch}$[$\N{term}_1$]$\N{term}_2$.
+\end{lstlisting}
+$\N{term}_1$ is the explicit rewrite redex and 
+$\N{term}_2$ is the
+rewrite rule. This execution of this tactic unfolds as follows:
+
+\begin{itemize}
+\item First $\N{term}_1$ and $\N{term}_2$ are $\beta\iota$ normalised. Then
+  $\N{term}_2$ is put in head normal form if the Leibniz equality
+  constructor \C{eq} is not the head symbol. This may involve $\zeta$
+  reductions.
+\item Then, the matching algorithm (see section \ref{ssec:set})
+  determines the first subterm of the goal matching the rewrite pattern.
+  The rewrite pattern is
+  given by $\N{term}_1$, if an explicit redex pattern switch is provided, or by
+  the type of $\N{term}_2$ otherwise. However, matching skips over
+  matches that would lead to trivial rewrites. All the
+  occurrences of this subterm in the goal are candidates for rewriting.
+\item Then only the occurrences coded by $\N{occ-switch}$ (see again
+  section \ref{ssec:set}) are finally selected for rewriting.
+\item The left hand side of $\N{term}_2$ is unified with the subterm found
+  by the matching algorithm, and if this succeeds, all the selected
+  occurrences in the goal are replaced by the right hand side of
+  $\N{term}_2$.
+\item Finally the goal is $\beta\iota$ normalised.
+\end{itemize}
+
+In the case $\N{term}_2$ is a list of terms, the first top-down (in
+the goal) left-to-right (in the list) matching rule gets selected.
+
+\subsubsection*{Chained rewritings}
+
+
+The possibility to chain rewrite operations in a single tactic makes
+scripts more compact and gathers in a single command line a bunch
+of surgical
+operations  which would be described by a one sentence in a pen and
+paper proof.
+
+Performing rewrite and simplification operations in a single tactic
+enhances significantly the concision of scripts. For instance the
+tactic:
+\begin{lstlisting}
+  rewrite /my_def {2}[f _]/= my_eq //=.
+\end{lstlisting}
+unfolds \C{my_def} in the goal, simplifies the second occurrence of the
+first subterm matching pattern \L+[f _]+, rewrites \C{my_eq},
+simplifies the whole goal and closes trivial goals.
+
+Here are some concrete examples of chained rewrite operations, in the
+proof of basic results on natural numbers arithmetic:
+
+\begin{lstlisting}
+  Lemma |*addnS*| : forall m n, m + n.+1 = (m + n).+1.
+  Proof. by move=> m n; elim: m. Qed.
+
+  Lemma |*addSnnS*| : forall m n, m.+1 + n = m + n.+1.
+  Proof. move=> *; rewrite addnS; apply addSn. Qed.
+
+  Lemma |*addnCA*| : forall m n p, m + (n + p) = n + (m + p).
+  Proof. by move=> m n; elim: m => [|m Hrec] p; rewrite ?addSnnS -?addnS. Qed.
+
+  Lemma |*addnC*| : forall m n, m + n = n + m.
+  Proof. by move=> m n; rewrite -{1}[n]addn0 addnCA addn0. Qed.
+\end{lstlisting}
+
+Note the use of the \L+?+ switch for parallel rewrite operations in
+the proof of \L+|*addnCA*|+.
+
+\subsubsection*{Explicit redex switches are matched first}
+If an $\N{r-prefix}$ involves a \emph{redex switch}, the first step is to
+find a subterm matching this redex pattern, independently from the left hand
+side \C{t1} of the equality the user wants to rewrite.
+
+For instance, if \L-H : forall t u, t + u = u + t- is in the context of a
+goal \L-x + y = y + x-, the tactic:
+\begin{lstlisting}
+  rewrite [y + _]H.
+\end{lstlisting}
+transforms the goal into \L-x + y = x + y-.
+
+Note that if this first pattern matching is not compatible with the
+\emph{r-item}, the rewrite fails, even if the goal contains a correct
+redex matching both the redex switch and the left hand side of the
+equality. For instance, if \L-H : forall t u, t + u * 0 = t- is
+in the context of a goal \L-x + y * 4 + 2 * 0 = x + 2 * 0-, then tactic:
+\begin{lstlisting}
+  rewrite [x + _]H.
+\end{lstlisting}
+raises the error message:
+\begin{verbatim}
+  User error: rewrite rule H doesn't match redex (x + y * 4)
+\end{verbatim}
+while the tactic:
+\begin{lstlisting}
+  rewrite (H _ 2).
+\end{lstlisting}
+transforms the goal into \L-x + y * 4 = x + 2 * 0-.
+
+
+\subsubsection*{Occurrence switches and redex switches}
+The tactic:
+\begin{lstlisting}
+  rewrite {2}[_ + y + 0](_: forall z, z + 0 = z).
+\end{lstlisting}
+transforms the goal:
+\begin{lstlisting}
+  x + y + 0 = x + y + y + 0 + 0 + (x + y + 0)
+\end{lstlisting}
+into:
+\begin{lstlisting}
+  x + y + 0 = x + y + y + 0 + 0 + (x + y)
+\end{lstlisting}
+and generates a second subgoal:
+\begin{lstlisting}
+  forall z : nat, z + 0 = z
+\end{lstlisting}
+The second subgoal is generated by the use of an anonymous lemma in
+the rewrite tactic. The effect of the tactic on the initial goal is to
+rewrite this lemma at the second occurrence of the first matching
+\L-x + y + 0- of the explicit rewrite redex \L-_ + y + 0-.
+
+
+\subsubsection*{Occurrence selection and repetition}
+Occurrence selection has priority over repetition switches. This means
+the repetition of a rewrite tactic specified by a multiplier
+will perform matching each time an elementary rewrite operation is
+performed. Repeated rewrite tactics apply to every subgoal generated
+by the previous tactic, including the previous instances of the
+repetition. For example:
+\begin{lstlisting}
+  Goal forall x y z : nat,  x + 1 = x + y + 1.
+  move=> x y z.
+\end{lstlisting}
+creates a goal \C{ x + 1 = x + y + 1}, which is turned into \C{z = z}
+by the additional tactic:
+\begin{lstlisting}
+  rewrite 2!(_ : _ + 1 = z).
+\end{lstlisting}
+Moreover, this last tactic generates \emph{three} other subgoals,
+respectively,
+\C{ x + y + 1 = z}, \C{ z = z} and \C{x + 1 = z}. Indeed, the second
+rewrite operation specified with the \C{2!} multiplier applies to
+the two subgoals generated by the first rewrite.
+
+\subsubsection*{Multi-rule rewriting}
+When provided with both a \emph{list} of rewrite rules and a
+multiplier switch, the \C{rewrite} tactic iterates the rewrite
+operations prescribed by the rules on the current goal. This feature
+can for instance be used to implement simplification or transformation
+procedures, to be applied on terms of small to medium size. For
+instance the library \L{ssrnat} provides two implementations for
+arithmetic operations on natural numbers: an elementary one and a tail
+recursive version, less inefficient but also less convenient for
+reasoning purposes. The library also provides one lemma per such
+operation, stating that both versions return the same values when
+applied to the same arguments:
+
+\begin{lstlisting}
+Lemma |*addE*| : add =2 addn.
+Lemma |*doubleE*| : double =1 doublen.
+Lemma |*add_mulE*| n m s : add_mul n m s = addn (muln n m) s.
+Lemma |*mulE*| : mul =2 muln.
+Lemma |*mul_expE*| m n p : mul_exp m n p = muln (expn m n) p.
+Lemma |*expE*| : exp =2 expn.
+Lemma |*oddE*| : odd =1 oddn.
+\end{lstlisting}
+
+The operation on the left hand side of each lemma is the efficient
+version, and the corresponding naive implementation is on the right
+hand side. In order to reason conveniently on expressions involving
+the efficient operations, we define gather all these rules in the
+terms \L+|*trecE*|+:
+\begin{lstlisting}
+Definition |*trecE*| := (addE, (doubleE, oddE), (mulE, add_mulE, (expE, mul_expE))).
+\end{lstlisting}
+The tactic:
+\begin{lstlisting}
+  rewrite !trecE.
+\end{lstlisting}
+restores the naive versions of each operation in a goal involving the
+efficient ones, e.g. for the purpose of a correctness proof. Note that
+the inner parentheses of \L+trecE+ guide the rewrite strategy operated
+by this tactic.
+
+\subsubsection*{Wildcards vs abstractions}
+     The \C{rewrite} tactic supports r-items containing holes. For example
+      in the tactic $(1)$:
+\begin{lstlisting}
+  rewrite (_ : _ * 0 = 0).
+\end{lstlisting}
+      the term \C{_ * 0 = 0} is interpreted as \C{forall n : nat, n * 0 = 0}.
+      Anyway this tactic is \emph{not} equivalent to the tactic $(2)$:
+\begin{lstlisting}
+  rewrite (_ : forall x, x * 0 = 0).
+\end{lstlisting}
+      The tactic $(1)$ transforms the goal
+      \L-(y * 0) + y * (z * 0) = 0- into \L+y * (z * 0) = 0+
+      and generates a new subgoal to prove the statement \L+y * 0 = 0+,
+      which is the \emph{instance} of the\\ \L+forall x, x * 0 = 0+
+      rewrite rule that
+      has been used to perform the rewriting. On the other hand, tactic
+      $(2)$ performs the same rewriting on the current goal but generates a
+      subgoal to prove \C{forall x, x * 0 = 0}.
+
+\subsubsection*{When \ssr{} \C{rewrite} fails on standard \Coq{} licit rewrite}
+In a few cases, the \ssr{} \C{rewrite} tactic fails
+rewriting some redexes which standard \Coq{} successfully rewrites.
+There are two main cases:
+
+\begin{itemize}
+\item \ssr{} never accepts to rewrite indeterminate patterns like:
+\begin{lstlisting}
+  Lemma |*foo*| : forall x : unit, x = tt.
+\end{lstlisting}
+\ssr{} will however accept the $\eta\zeta$ expansion of this rule:
+\begin{lstlisting}
+  Lemma |*fubar*| : forall x : unit, (let u := x in u) = tt.
+\end{lstlisting}
+\item In standard \Coq{}, suppose that we work in the following context:
+\begin{lstlisting}
+  Variable g : nat -> nat.
+  Definition |*f*| := g.
+\end{lstlisting}
+then rewriting \C{H : forall x, f x = 0} in the goal
+\C{g 3 + g 3 = g 6} succeeds
+and transforms the goal into \C{0 + 0 = g 6}.
+
+This rewriting is not possible in \ssr{} because there is no
+occurrence of the head symbol \C{f} of the rewrite rule in the goal.
+\end{itemize}
+
+\subsubsection*{Existential metavariables and rewriting}
+\label{ssec:rewcaveats}
+The \C{rewrite} tactic will not instantiate existing existential
+metavariables when matching a redex pattern.
+
+If a rewriting rule generates a goal
+with new existential metavariables, these will be generalized as for \C{apply} 
+(see page~\pageref{sssec:apply}) and corresponding new goals will be generated.
+For example, consider the following script:
+
+\begin{lstlisting}
+  Lemma |*ex3*| (x : 'I_2) y (le_1 : y < 1) (E : val x = y) : Some x = insub y.
+  rewrite insubT ?(leq_trans le_1)// => le_2.
+\end{lstlisting}
+
+Since \C{insubT} has the following type:
+
+\begin{lstlisting}
+  forall T P (sT : subType P) (x : T) (Px : P x), insub x = Some (Sub x Px)
+\end{lstlisting}
+
+and since the implicit argument corresponding to the \C{Px} abstraction is not
+supplied by the user, the resulting goal should be \C{Some x = Some (Sub y
+$\;\;?_{Px}$)}. Instead, \ssr{} \C{rewrite} tactic generates the two following 
+goals: 
+\begin{lstlisting}
+  y < 2
+  forall Hyp0 : y < 2, Some x = Some (Sub y Hyp0)
+\end{lstlisting}
+The script closes the former with \C{?(leq_trans le_1)//}, then it introduces
+the new generalization naming it \C{le_2}.
+
+\begin{lstlisting}
+  x : 'I_2
+  y : nat
+  le_1 : y < 1
+  E : val x = y
+  le_2 : y < 2
+  ============================
+   Some x = Some (Sub y le_2)
+\end{lstlisting}
+
+As a temporary limitation, this behaviour is available only if the rewriting
+rule is stated using Leibniz equality (as oposed to setoid relations). 
+It will be extended to other rewriting relations in the future.
+
+\subsection{Locking, unlocking }\label{ssec:lock}
+
+As program proofs tend to generate large goals, it is important to be
+able to control the partial evaluation performed by the simplification
+operations that are performed by the tactics. These evaluations can
+for example come from a \C{/=} simpl switch, or from rewrite steps
+which may expand large terms while performing conversion. We definitely
+want to avoid repeating large subterms of the goal in
+the proof script. We do this by
+``clamping down'' selected function symbols in the goal, which
+prevents them from
+being considered in simplification or rewriting steps. This clamping
+is accomplished by using the occurrences switches (see section
+\ref{sssec:occselect}) together with ``term tagging'' operations.
+
+\ssr{} provides two levels of tagging.
+
+The first one uses auxiliary definitions to introduce a provably equal
+copy of any term \C{t}, which is \emph{not convertible} to \C{t}.
+The job is done by the following construction:
+\begin{lstlisting}
+  Lemma |*master_key*| : unit. Proof. exact tt. Qed.
+  Definition |*locked*| A := let: tt := master_key in fun x : A => x.
+  Lemma |*lock*| : forall A x, x = locked x :> A.
+\end{lstlisting}
+Note that the definition of \C{|*master_key*|} is explicitly opaque.
+The equation \C{t = locked t} given by the \C{lock} lemma can be used
+for selective rewriting, blocking on the fly the reduction in the
+term \C{t}.
+For example the script:
+\begin{lstlisting}
+  Require Import List.
+  Variable A : Type.
+
+  Fixpoint |*my_has*| (p : A -> bool)(l : list A){struct l} : bool:=
+    match l with
+      |nil => false
+      |cons x l => p x || (my_has p l)
+    end.
+
+
+  Goal forall a x y l, a x = true -> my_has a ( x :: y :: l) = true.
+  move=> a x y l Hax.
+\end{lstlisting}
+where \L{||} denotes the boolean disjunction, results in a goal
+\L+my_has a ( x :: y :: l) = true+. The tactic:
+\begin{lstlisting}
+  rewrite {2}[cons]lock /= -lock.
+\end{lstlisting}
+turns it into \C{a x || my_has a (y :: l) = true}.
+Let us now start by reducing the initial goal without blocking reduction.
+The script:
+\begin{lstlisting}
+  Goal forall a x y l, a x = true -> my_has a ( x :: y :: l) = true.
+  move=> a x y l Hax /=.
+\end{lstlisting}
+creates a goal \C{(a x) || (a y) || (my_has a l) = true}. Now the
+tactic:
+\begin{lstlisting}
+  rewrite {1}[orb]lock orbC -lock.
+\end{lstlisting}
+where \L+|*orbC*|+ states the commutativity of \L+orb+, changes the
+goal into\\ \L+(a x) || (my_has a l) || (a y) = true+: only the
+arguments of the second disjunction where permuted.
+
+
+It is sometimes desirable to globally prevent a definition from being
+expanded by simplification; this is done by adding \L+locked+ in the
+definition.
+
+For instance, the function \L+|*fgraph_of_fun*|+ maps a function whose
+domain and codomain are finite types to a concrete representation of
+its (finite) graph. Whatever implementation of this transformation we
+may use, we want it to be hidden to simplifications and tactics, to
+avoid the collapse of the graph object:
+\begin{lstlisting}
+  Definition |*fgraph_of_fun*| :=
+    locked
+    (fun (d1 :finType) (d2 :eqType) (f : d1 -> d2) => Fgraph (size_maps f _)).
+\end{lstlisting}
+
+We provide a special tactic \C{unlock} for unfolding such definitions
+while removing ``locks'', e.g., the tactic:
+\begin{lstlisting}
+  unlock $\N{occ-switch}$fgraph_of_fun.
+\end{lstlisting}
+replaces the occurrence(s) of \C{cube} coded by the $\N{occ-switch}$
+with \C{(Hypermap cube_monic3)} in the goal.
+
+We found that it was usually preferable to prevent the expansion of
+some functions by the partial evaluation switch ``/='', unless
+this allowed the evaluation of a condition. This is possible thanks to
+an other mechanism of term tagging, resting on the following
+\emph{Notation}:
+\begin{lstlisting}
+  Notation "'nosimpl' t" := (let: tt := tt in t).
+\end{lstlisting}
+
+The term \C{(nosimpl t)} simplifies to t \emph{except} in a
+definition. More precisely,
+given:
+\begin{lstlisting}
+  Definition |*foo*| := (nosimpl bar).
+\end{lstlisting}
+the term \C{foo (or (foo t'))} will \emph{not} be expanded by the
+\emph{simpl} tactic unless it is in a forcing context (e.g., in
+\C{match foo t' with ... end}, \C{foo t'} will be reduced if this allows
+\C{match} to be reduced). Note that \C{nosimpl bar} is simply notation
+for a term that reduces to \C{bar}; hence \C{unfold foo} will replace
+    \C{foo} by \C{bar}, and \C{fold foo} will replace \C{bar} by
+    \C{foo}.
+
+\emph{Warning} The \C{nosimpl} trick only works if no reduction is
+apparent in \C{t}; in particular, the declaration:
+\begin{lstlisting}
+  Definition |*foo*| x := nosimpl (bar x).
+\end{lstlisting}
+will usually not work. Anyway, the common practice is to tag only the
+function, and to use the following definition, which blocks the
+reduction as expected:
+\begin{lstlisting}
+  Definition |*foo*| x := nosimpl bar x.
+\end{lstlisting}
+
+
+A standard example making this technique shine is the case of
+arithmetic operations. We define for instance:
+\begin{lstlisting}
+  Definition |*addn*| := nosimpl plus.
+\end{lstlisting}
+The operation \C{addn} behaves exactly like plus, except that
+\L+(addn (S n) m)+ will not
+simplify spontaneously to \L+(S (addn n m))+ (the two terms, however, are
+inter-convertible). In addition, the unfolding step:
+\begin{lstlisting}
+rewrite /addn
+\end{lstlisting}
+will replace \C{addn} directly with \C{plus}, so the \C{nosimpl} form
+is essentially invisible.
+
+\subsection{Congruence}\label{ssec:congr}
+
+Because of the way matching interferes with type families parameters,
+the tactic:
+\begin{lstlisting}
+  apply: my_congr_property.
+\end{lstlisting}
+will generally fail to perform congruence simplification, even on
+rather simple cases. We therefore provide a
+more robust alternative in which the function is supplied:
+$$\C{congr}\ [\N{int}]\ \N{term}$$
+
+This tactic:
+\begin{itemize}
+\item checks that the goal is a Leibniz equality
+\item matches both sides of this equality with ``$\N{term}$ applied to
+  some arguments'', infering the right number of arguments from the goal
+  and the type of $\N{term}$. This may
+  expand some definitions or fixpoints.
+\item generates the subgoals corresponding to pairwise equalities of
+  the arguments present in the goal.
+\end{itemize}
+
+The goal can be a non dependent product \C{P -> Q}.
+In that case, the system asserts the equation \C{P = Q}, uses it to solve
+the goal, and calls the \C{congr} tactic on the remainig goal 
+\C{P = Q}. For example, 
+this allows for the idiom \C{congr (_ = _): H} to perform a transitivity step
+using \C{H}.
+
+The optional $\N{int}$ forces the number of arguments for which the
+tactic should generate equality proof obligations.
+
+This tactic supports equalities between applications with dependent
+arguments. Anyway as in standard
+\Coq{}, dependent arguments should have exactly the same
+parameters on both sides, and these parameters should appear as first
+arguments.
+
+The following script:
+\begin{lstlisting}
+  Definition f n := match n with 0 => plus | S _ => mult end.
+  Definition g (n m : nat) := plus.
+
+  Goal forall x y, f 0 x y = g 1 1 x y.
+  by move=> x y; congr plus.
+  Qed.
+\end{lstlisting}
+shows that the \L+congr+ tactic matches \L+plus+ with \L+f 0+ on the
+left hand side and \L+g 1 1+ on the right hand side, and solves the goal.
+
+The script:
+\begin{lstlisting}
+  Goal forall n m, m <= n -> S m + (S n - S m) = S n.
+  move=> n m Hnm; congr S; rewrite -/plus.
+\end{lstlisting}
+generates the subgoal \C{m + (S n - S m) = n}. The tactic
+\C{rewrite -/plus} folds back the expansion of \C{plus} which was
+necessary for matching both sides of the equality with an application
+of \C{S}.
+
+Like most \ssr{} arguments, $\N{term}$ can contain wildcards.
+The script:
+\begin{lstlisting}
+  Goal forall x y, x + (y * (y + x - x)) = x * 1 + (y + 0) * y.
+  move=> x y; congr ( _ + (_ * _)).
+\end{lstlisting}
+generates three subgoals, respectively \C{x = x * 1}, \C{y = y + 0}
+and \C{ y + x - x = y}.

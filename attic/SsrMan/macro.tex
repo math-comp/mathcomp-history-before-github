@@ -1,0 +1,26 @@
+
+\newcommand{\Coq}{{\sc Coq}}
+\newcommand{\ssr}{{\sc SSReflect}}
+\newcommand{\C}[1]{\mbox{\lstinline`#1`}}
+\newcommand\N[1]{\langle\mbox{\itshape\rmfamily\small #1}\rangle}
+\let\L=\lstinline
+\newcommand{\FCT}{Four Colour theorem}
+\newcommand{\iitem}{{\it i-item}}
+\newcommand{\ditem}{{\it d-item}}
+
+\definecolor{dkblue}{rgb}{0,0.1,0.5} 
+\definecolor{lightblue}{rgb}{0,0.5,0.5} 
+\definecolor{dkgreen}{rgb}{0,0.4,0} 
+\definecolor{dk2green}{rgb}{0.4,0,0} 
+\definecolor{dkviolet}{rgb}{0.6,0,0.8}
+\definecolor{dkpink}{rgb}{1.2,0,1.6}
+
+\def\lstlanguagefiles{defManSSR.tex}
+\lstset{language=SSR}
+
+\newenvironment{new}%
+  {\begin{Sbox}\begin{minipage}{0.97\textwidth}%
+    \begin{flushright}\textcolor{red}{\fbox{Version 1.3}}%
+      \end{flushright}\noindent}%
+  {\end{minipage}\end{Sbox}\noindent\doublebox{\TheSbox}}
+

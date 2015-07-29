@@ -1,0 +1,259 @@
+\section{Contextual patterns}
+\label{ssec:rewp}
+
+The simple form of patterns used so far, $\N{term}s$ possibly containing 
+wild cards, often require an additional $\N{occ-switch}$ to be specified.
+While this may work pretty fine for small goals, the use of polymorphic
+functions and dependent types may lead to an invisible duplication of functions
+arguments. These copies usually end up in types hidden by the implicit
+arguments machinery or by user defined notations.  In these situations
+computing the right occurrence numbers is very tedious because they must be
+counted on the goal as printed after setting the \C{Printing All} flag.
+Moreover the resulting script is not really informative for the reader, since
+it refers to occurrence numbers he cannot easily see.
+
+Contextual patterns mitigate these issues allowing to specify occurrences
+according to the context they occur in.
+
+\subsection{Syntax}
+
+The following table summarises the full syntax of
+$\N{c-pattern}$ and the corresponding subterm(s) identified
+by the pattern.
+In the third column we use s.m.r. for
+``the subterms matching the redex'' specified in the second column.
+
+\begin{center}
+\begin{tabularx}{\textwidth}{>{\arraybackslash}m{0.30\textwidth}|>{\arraybackslash}m{0.21\textwidth}|>{\arraybackslash}m{0.39\textwidth}}
+$\N{c-pattern}$ & redex & subterms affected \\
+\hline
+$\N{term}$ & $\N{term}$ & all occurrences of $\N{term}$\\
+\hline
+$\N{ident}\ \C{in}\ \N{term}$ & 
+  subterm of $\N{term}$ selected by $\N{ident}$ &
+  all the subterms identified by $\N{ident}$ in all 
+  the occurrences of $\N{term}$ \\
+\hline
+$\N{term}_1\ \C{in}\ \N{ident}\ \C{in}\ \N{term}_2$ & $\N{term}_1$ &
+  in all  s.m.r. in all the subterms identified by $\N{ident}$ in all 
+  the occurrences of $\N{term}_2$ \\
+\hline
+$\N{term}_1\ \C{as}\ \N{ident}\ \C{in}\ \N{term}_2$ & $\N{term}_1$ &
+  in all the subterms identified by $\N{ident}$ in all 
+  the occurrences of $\N{term}_2[\N{term}_1/\N{ident}]$\\
+\hline
+\end{tabularx}
+\end{center}
+
+The \C{rewrite} tactic supports two more patterns obtained
+prefixing the first two with \C{in}. The intended meaning is that the 
+pattern identifies all subterms of the specified context. The 
+\C{rewrite} tactic will infer a pattern for the redex looking at the
+rule used for rewriting.
+
+\begin{center}
+\begin{tabularx}{\textwidth}{>{\arraybackslash}m{0.30\textwidth}|>{\arraybackslash}m{0.21\textwidth}|>{\arraybackslash}m{0.39\textwidth}}
+$\N{r-pattern}$ & redex & subterms affected \\
+\hline
+$\C{in}\ \N{term}$ & inferred from rule & 
+  in all  s.m.r. in all occurrences of $\N{term}$\\
+\hline
+$\C{in}\ \N{ident}\ \C{in}\ \N{term}$ & inferred from rule &
+  in all  s.m.r. in all the subterms identified by $\N{ident}$ in all 
+  the occurrences of $\N{term}$ \\
+\hline
+\end{tabularx}
+\end{center}
+
+The first $\N{c-pattern}$ is the simplest form matching any
+context but selecting a specific redex and has been described in the
+previous sections. We have seen so far that the possibility of
+selecting a redex using a term with holes is already a powerful mean of redex
+selection. Similarity, any $\N{term}$s provided by the
+user in the more complex forms of $\N{c-pattern}$s presented in the
+tables above can contain holes. 
+
+For a quick glance at what can be expressed with the last 
+$\N{r-pattern}$ consider the goal \C{a = b} and the tactic 
+\begin{lstlisting}
+  rewrite [in X in _ = X]rule.
+\end{lstlisting}
+It rewrites all occurrences of the left hand side of \C{rule} inside
+\C{b} only (\C{a}, and the hidden type of the equality, are ignored).
+Note that the variant \C{rewrite [X in _ = X]rule} would have
+rewritten \C{b} exactly (i.e., it would only work if \C{b} and the
+left hand side of \C{rule} were unifiable).
+
+\subsection{Matching contextual patterns}
+
+The $\N{c-pattern}$s and $\N{r-pattern}$s involving 
+$\N{term}$s with holes are matched
+against the goal in order to find a closed instantiation. This
+matching proceeds as follows:
+
+\begin{center}
+\begin{tabularx}{\textwidth}{>{\arraybackslash}m{0.30\textwidth}|>{\arraybackslash}m{0.65\textwidth}}
+$\N{c-pattern}$ & instantiation order and place for $\N{term}_i$ and redex\\
+\hline
+$\N{term}$ & $\N{term}$ is matched against the goal, redex is unified with
+    the instantiation of $\N{term}$\\
+\hline
+$\N{ident}\ \C{in}\ \N{term}$ & 
+    $\N{term}$ is matched against the goal, redex is 
+    unified with the subterm of the 
+    instantiation of $\N{term}$ identified by $\N{ident}$\\
+\hline
+$\N{term}_1\ \C{in}\ \N{ident}\ \C{in}\ \N{term}_2$ & 
+    $\N{term}_2$ is matched against the goal, $\N{term}_1$ is 
+    matched against the subterm of the 
+    instantiation of $\N{term}_1$ identified by $\N{ident}$, 
+    redex is unified with the instantiation of $\N{term}_1$\\
+\hline
+$\N{term}_1\ \C{as}\ \N{ident}\ \C{in}\ \N{term}_2$ &
+    $\N{term}_2[\N{term}_1/\N{ident}]$
+    is matched against the goal, 
+    redex is unified with the instantiation of $\N{term}_1$\\
+\hline
+\end{tabularx}
+\end{center}
+
+In the following patterns, the redex is intended to be inferred from the
+rewriting rule.
+
+\begin{center}
+\begin{tabularx}{\textwidth}{>{\arraybackslash}m{0.30\textwidth}|>{\arraybackslash}m{0.65\textwidth}}
+$\N{r-pattern}$ & instantiation order and place for $\N{term}_i$ and redex\\
+\hline
+$\C{in}\ \N{ident}\ \C{in}\ \N{term}$ & 
+    $\N{term}$ is matched against the goal, the redex is 
+    matched against the subterm of the 
+    instantiation of $\N{term}$ identified by $\N{ident}$\\
+\hline
+$\C{in}\ \N{term}$ & $\N{term}$ is matched against the goal, redex is 
+   matched against the instantiation of $\N{term}$\\
+\hline
+\end{tabularx}
+\end{center}
+
+\subsection{Examples}
+
+\subsubsection{Contextual pattern in \C{set} and the \C{:} tactical}
+
+As already mentioned in section~\ref{ssec:set} the \C{set} tactic
+takes as an argument a term in open syntax. This term is interpreted
+as the simplest for of $\N{c-pattern}$. To void confusion in the grammar,
+open syntax is supported only for the simplest form of patterns, while
+round parentheses are required around more complex patterns.
+
+\begin{lstlisting}
+set t := (X in _ = X).
+set t := (a + _ in X in _ = X).
+\end{lstlisting}
+
+Given the goal \C{a + b + 1 = b + (a + 1)} the first tactic
+captures \C{b + (a + 1)}, while the latter \C{a + 1}.
+
+Since the user may define an infix notation for \C{in} the former 
+tactic may result ambiguous. The disambiguation rule implemented is
+to prefer patterns over simple terms, but to interpret a pattern with
+double round parentheses as a simple term. For example
+the following tactic would capture any occurrence of the term `\C{a in A}'.
+
+\begin{lstlisting}
+set t := ((a in A)).
+\end{lstlisting}
+
+Contextual pattern can also be used as arguments of the \C{:} tactical.
+For example:
+\begin{lstlisting}
+elim: n (n in _ = n) (refl_equal n).
+\end{lstlisting}
+
+\subsubsection{Contextual patterns in \C{rewrite}}
+As a more comprehensive example consider the following goal:
+\begin{lstlisting}
+    (x.+1 + y) + f (x.+1 + y) (z + (x + y).+1) = 0
+\end{lstlisting}
+The tactic \C{rewrite [in f _ _]addSn} turns it into:
+\begin{lstlisting}
+    (x.+1 + y) + f (x + y).+1 (z + (x + y).+1) = 0
+\end{lstlisting}
+since the simplification rule \C{addSn} is applied only under the \C{f} symbol.
+Then we simplify also the first addition and expand \C{0} into \C{0+0}.
+\begin{lstlisting}
+    rewrite addSn -[X in _ = X]addn0.
+\end{lstlisting}
+obtaining:
+\begin{lstlisting}
+    (x + y).+1 + f (x + y).+1 (z + (x + y).+1) = 0 + 0
+\end{lstlisting}
+Note that the right hand side of \C{addn0} is undetermined, but the
+rewrite pattern specifies the redex explicitly. The right hand side of 
+\C{addn0} is unified with the term identified by \C{X}, \C{0} here.
+
+The following pattern does not specify a redex, since it
+identifies an entire region, hence the rewriting rule has to be instantiated 
+explicitly. Thus the tactic:
+\begin{lstlisting}
+    rewrite -{2}[in X in _ = X](addn0 0).
+\end{lstlisting}
+changes the goal as follows:
+\begin{lstlisting}
+    (x + y).+1 + f (x + y).+1 (z + (x + y).+1) = 0 + (0 + 0)
+\end{lstlisting}
+The following tactic is quite tricky:
+\begin{lstlisting}
+    rewrite [_.+1 in X in f _ X](addnC x.+1).
+\end{lstlisting}
+and the resulting goals is:
+\begin{lstlisting}
+    (x + y).+1 + f (x + y).+1 (z + (y + x.+1)) = 0 + (0 + 0)
+\end{lstlisting}
+The explicit redex \C{_.+1} is important since its head
+constant \C{S} differs from the head constant inferred from 
+\C{(addnC x.+1)} (that is \C{addn}, denoted \C{+} here).
+Moreover, the pattern \C{f _ X} is important to rule out the first occurrence
+of \C{(x + y).+1}. Last, only the subterms of \C{f _ X} identified by \C{X} are
+rewritten, thus the first argument of \C{f} is skipped too.
+Also note the pattern \C{_.+1} is interpreted in the context
+identified by \C{X}, thus it gets instantiated to \C{(y + x).+1} and
+not \C{(x + y).+1}.
+
+The last rewrite pattern allows to specify exactly the shape of the term
+identified by \C{X}, that is thus unified with the left hand side of the
+rewriting rule.
+\begin{lstlisting}
+    rewrite [x.+1 + y as X in f X _]addnC.
+\end{lstlisting}
+The resulting goal is:
+\begin{lstlisting}
+    (x + y).+1 + f (y + x.+1) (z + (y + x.+1)) = 0 + (0 + 0)
+\end{lstlisting}
+
+\subsection{Patterns for recurrent contexts}
+
+The user can define shortcuts for recurrent contexts corresponding to the
+\C{$\N{ident}$ in $\N{term}$} part. The notational scope identified
+with \C{\%pattern} provides a special notation `\C{(X in t)}' the user 
+must adopt to define contexts shortcuts.
+
+The following example is taken from \C{ssreflect.v} where the 
+\C{LHS} and \C{RHS} shortcuts are defined.
+
+\begin{lstlisting}
+Notation RHS := (X in _ = X)%pattern.
+Notation LHS := (X in X = _)%pattern.
+\end{lstlisting}
+
+Shortcuts defined this way can be freely used in place of the
+trailing \C{$\N{ident}$ in $\N{term}$} part of any contextual
+pattern.
+Some examples follow:
+
+\begin{lstlisting}
+set rhs := RHS.
+rewrite [in RHS]rule.
+case: (a + _ in RHS).
+\end{lstlisting}
+
+

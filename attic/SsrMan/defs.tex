@@ -1,0 +1,391 @@
+\section{Definitions}
+
+\subsection{Definitions}\label{ssec:pose}
+
+The standard \L+pose+ tactic allows to add a defined constant to a
+proof context. \ssr{} generalises this tactic in several ways.
+In particular, the \ssr{} \L+pose+ tactic supports \emph{open syntax}:
+the body of
+the definition does not need surrounding parentheses. For instance:
+\begin{lstlisting}
+  pose t := x + y.
+\end{lstlisting}
+is a valid tactic expression.
+
+The standard \C{pose} tactic is also improved for the
+local definition of higher order terms.
+Local definitions of functions can use the same syntax as
+global ones. The tactic:
+\begin{lstlisting}
+  pose f x y := x + y.
+\end{lstlisting}
+adds to the context the defined constant:
+\begin{lstlisting}
+  f := fun x y : nat => x + y : nat -> nat -> nat
+\end{lstlisting}
+
+The \ssr{} \C{pose} tactic also supports (co)fixpoints,
+by providing the local counterpart of the 
+\C{Fixpoint f := ... } and \C{CoFixpoint f := ... } constructs.
+For instance, the following tactic:
+\begin{lstlisting}
+  pose fix f (x y : nat) {struct x} : nat := 
+      if x is S p then S (f p y) else 0.
+\end{lstlisting}
+defines a local fixpoint \C{f}, which mimics the standard \C{plus}
+operation on natural numbers.
+
+Similarly, local cofixpoints can be defined by a tactic of the form:
+\begin{lstlisting}
+  pose cofix f (arg : T) ...
+\end{lstlisting}
+
+The possibility to include wildcards in the body of the definitions
+ offers a smooth
+way of defining local abstractions. The type of ``holes'' is
+guessed by type inference, and the holes are abstracted.
+For instance the tactic:
+\begin{lstlisting}
+  pose f := _ + 1.
+\end{lstlisting}
+is shorthand for:
+\begin{lstlisting}
+  pose f n := n + 1.
+\end{lstlisting}
+
+When the local definition of a function involves both arguments and
+holes, hole abstractions appear first. For instance, the
+tactic:
+\begin{lstlisting}
+  pose f x := x + _.
+\end{lstlisting}
+is shorthand for:
+\begin{lstlisting}
+  pose f n x := x + n.
+\end{lstlisting}
+
+
+The interaction of the \C{pose} tactic with the interpretation of
+implicit arguments results in a powerful and concise syntax for local
+definitions involving dependant types.
+For instance, the tactic:
+\begin{lstlisting}
+  pose f x y := (x, y).
+\end{lstlisting}
+adds to the context the local definition:
+\begin{lstlisting}
+  pose f (Tx Ty : Type) (x : Tx) (y : Ty) := (x, y).
+\end{lstlisting}
+The generalisation of wildcards makes the use of the \L+pose+ tactic
+ressemble ML-like definitions of polymorphic functions.
+
+% The use of \C{Prenex Implicits} declarations (see section
+% \ref{ssec:parampoly}), makes this feature specially convenient.
+% Note that this combines with the interpretation of wildcards, and that
+% it is possible to define:
+% \begin{lstlisting}
+%   pose g x y : prod _ nat := (x, y).
+% \end{lstlisting}
+% which is equivalent to:
+% \begin{lstlisting}
+%   pose g x (y : nat) := (x, y).
+% \end{lstlisting}
+
+
+
+\subsection{Abbreviations}\label{ssec:set}
+
+
+The \ssr{} \L+set+ tactic performs abbreviations: it introduces a
+defined constant for a subterm appearing in the goal and/or in the
+context.
+
+\ssr{} extends the standard \Coq{} \C{set} tactic by supplying:
+\begin{itemize}
+\item an open syntax, similarly to the \L+pose+ tactic;
+\item a more aggressive matching algorithm;
+% (which may cause some
+%  script incompatibilities with standard \Coq{});
+\item an improved interpretation of wildcards, taking advantage of the
+  matching algorithm;
+\item an improved occurrence selection mechanism allowing to abstract only
+  selected occurrences of a term.
+\end{itemize}
+
+The general syntax of this tactic is
+\[\C{set}\ \N{ident}\ [\C{:}\ \N{term}_1]\ \C{:=}\ [\N{occ-switch}]\;\N{term}_2\]
+
+\[\N{occ-switch}\ \equiv\ \C{\{}[\C{+}|\C{-}]\;\N{num}^*\C{\}}\]
+
+
+where:
+
+\begin{itemize}
+\item $\N{ident}$ is a fresh identifier chosen by the user.
+\item $\N{term}_1$ is 
+an optional type annotation. The type annotation $\N{term}_1$ can be
+given in open syntax (no surrounding parentheses). If no $\N{occ-switch}$ 
+(described hereafter) is present, it is also
+the case for $\N{term}_2$.
+On the other hand, in  presence of $\N{occ-switch}$, parentheses
+surrounding $\N{term}_2$ are mandatory.
+\item In the occurrence switch $\N{occ-switch}$, if the first element
+  of the list is a $\N{num}$, this element should be a number, and not
+  an $\mathcal{L}$-tac variable. The empty list \L+{}+ is not interpreted as a
+  valid occurrence switch.
+\end{itemize}
+% For example, the script:
+% \begin{lstlisting}
+%   Goal forall (f : nat -> nat)(x y : nat), f x + f x = f x.
+%   move=> f x y.
+% \end{lstlisting}
+
+The tactic:
+\begin{lstlisting}
+  set t := f _.
+\end{lstlisting}
+transforms the goal \C{ f x + f x = f x} into \C{t + t = t}, adding
+\C{t := f x} to the context, and the tactic:
+\begin{lstlisting}
+  set t := {2}(f _).
+\end{lstlisting}
+transforms it into \C{f x + t = f x}, adding \C{t := f x} to the context.
+
+The type annotation $\N{term}_1$ may
+contain wildcards, which will be filled with the appropriate value by
+the matching process.
+
+The tactic first tries to find a subterm of the goal matching
+$\N{term}_2$ (and its type $\N{term}_1$),
+and stops at the first subterm it finds. Then the occurrences
+of this subterm selected by the optional $\N{occ-switch}$ are replaced
+by $\N{ident}$ and a definition \C{$\N{ident}$ := $\N{term}$} is added to
+the context. If no $\N{occ-switch}$ is present, then all the
+occurrences are abstracted.
+
+\subsubsection*{Matching}
+
+The matching algorithm compares a pattern \textit{term}
+ with a subterm of the goal by comparing their heads
+and then pairwise unifying their arguments (modulo conversion). Head
+symbols match under the following conditions:
+
+\begin{itemize}
+\item If the head of \textit{term} is a constant, then it
+  should be syntactically equal to the head symbol of the subterm.
+\item If this head is a projection of a canonical structure,
+  then canonical structure equations are used for the matching.
+\item If the head of \textit{term} is \emph{not} a constant, the
+  subterm should have the same structure ($\lambda$ abstraction,
+  \L+let$\dots$in+ structure ...).
+\item If the head of \textit{term} is a hole, the subterm should have
+  at least as many arguments as  \textit{term}. For instance the tactic:
+\begin{lstlisting}
+  set t := _ x.
+\end{lstlisting}
+transforms the goal \L-x + y = z- into \L+t y = z+ and adds
+\L+t := plus x : nat -> nat+ to the context.
+
+\item In the special case where \textit{term} is of the form 
+\L+(let f := $t_0$ in f) $t_1\dots t_n$+,
+ then the pattern \textit{term} is treated
+as \L+(_ $t_1\dots t_n$)+. For each subterm in
+the goal having the form $(A\  u_1\dots u_{n'})$ with $n' \geq n$, the
+matching algorithm successively tries to find the largest
+partial application $(A\ u_1\dots u_{i'})$ convertible to the head 
+$t_0$ of \textit{term}. For instance the following tactic:
+\begin{lstlisting}
+  set t := (let g y z := y.+1 + z in g) 2.
+\end{lstlisting}
+transforms the goal
+\begin{lstlisting}  
+  (let f x y z := x + y + z in f 1) 2 3 = 6.
+\end{lstlisting}
+into \C{t 3 = 6} and adds the local definition of \C{t} to the
+context.
+\end{itemize}
+
+Moreover:
+\begin{itemize}
+\item Multiple holes in \textit{term} are treated as independent
+  placeholders. For instance, the tactic:
+\begin{lstlisting}
+  set t := _ + _.
+\end{lstlisting}
+transforms the goal \C{x + y = z} into \C{t = z} and pushes 
+\C{t := x + y : nat} in the context.
+\item The type of the subterm matched should fit the type
+  (possibly casted by some type annotations) of the pattern
+  \textit{term}.
+\item The replacement of the subterm found by the instanciated pattern
+  should not capture variables, hence the following script:
+\begin{lstlisting}
+  Goal forall x : nat, x + 1 = 0.
+  set u := _ + 1.
+\end{lstlisting}
+raises an error message, since \L+x+ is bound in the goal.
+\item Typeclass inference should fill in any residual hole, but
+matching should never assign a value to a global existential variable.
+
+\end{itemize}
+
+
+\subsubsection*{Occurrence selection}\label{sssec:occselect}
+
+\ssr{} provides a generic syntax for the selection of occurrences by
+their position indexes. These \emph{occurrence switches} are shared by
+all
+\ssr{} tactics which require control on subterm selection like rewriting,
+generalisation, ... 
+
+An \emph{occurrence switch} can be:
+\begin{itemize}
+\item A list \C{ \{+$\N{num}^*$ \} } of occurrences affected by the
+  tactic. 
+For instance, the tactic:
+\begin{lstlisting}
+  set x := {1 3}(f 2).
+\end{lstlisting}
+transforms the goal \C{f 2 + f 8 = f 2 + f 2} into
+\C{x + f 8 = f 2  + x}, and adds the abbreviation
+\L+x := f 2+ in the
+context. Notice that, like in standard \Coq{},
+ some occurrences of a
+given term may be hidden to the user, for example because of a
+notation. The vernacular \C{$\texttt{\textcolor{dkviolet}{Set }}$
+  Printing All} command displays all
+these hidden occurrences and should be used to find the correct
+coding of the occurrences to be selected\footnote{Unfortunately,
+even after a call to the Set Printing All command, some occurrences are
+still not displayed to the user, essentially the ones possibly hidden
+in the predicate of a dependent match structure.}. For instance, both
+in \ssr{} and in standard \Coq{}, the following script:
+\begin{lstlisting}
+  Notation "a < b":= (le (S a) b).
+  Goal forall x y, x < y -> S x < S y.
+  intros x y; set t := S x.
+\end{lstlisting}
+generates the goal
+\L+t <= y -> t < S y+ since \L+x < y+ is now a notation for 
+\L+S x <= y+.
+\item A list \L-{$\N{num}^+$}-. This is equivalent to
+    \L-{+$\N{num}^+$}- but the list should start with a number, and
+  not with an $\mathcal{L}$-tac variable.
+\item A list \L+{-$\N{num}^*$}+ of occurrences \emph{not} to be
+  affected by the tactic. For instance, the tactic:
+\begin{lstlisting}
+  set x := {-2}(f 2).
+\end{lstlisting}
+behaves like
+\begin{lstlisting}
+  set x := {1 3}(f 2).
+\end{lstlisting}
+on the goal \L-f 2 + f 8 = f 2 + f 2- which has three occurrences of
+the the term \L+f 2+
+\item In particular, the switch \L-{+}- selects \emph{all} the
+  occurrences. This switch is useful to turn
+  off the default behaviour of a tactic which automatically clears 
+  some assumptions (see section \ref{ssec:discharge} for instance).
+\item The switch \L+{-}+ imposes that \emph{no} occurrences of the
+  term should be affected by the tactic. The tactic:
+\begin{lstlisting}
+  set x := {-}(f 2).
+\end{lstlisting}
+leaves the goal unchanged and adds the definition \L+x := f 2+ to the
+context. This kind of tactic may be used to take advantage of the
+power of the matching algorithm in a local definition, instead of
+copying large terms by hand.
+\end{itemize}
+
+
+It is important to remember that matching \emph{precedes} occurrence
+selection, hence the tactic:
+\begin{lstlisting}
+  set a := {2}(_ + _).
+\end{lstlisting}
+transforms the goal \C{x + y = x + y + z} into \C{x + y = a + z}
+and fails on the goal \\
+\C{(x + y) + (z + z) = z + z} with the error message:
+\begin{lstlisting}
+  User error: only 1 < 2 occurrence of (x + y + (z + z))
+\end{lstlisting}
+
+
+\subsection{Localisation}\label{ssec:loc}
+
+
+It is possible to define an abbreviation for a term appearing in the
+context of a goal thanks to the \L+in+ tactical.
+
+A tactic of the form:
+\begin{lstlisting}
+  set x := /*term*/ in /*fact$_1$*/ $\dots$/*fact$_n$*/.
+\end{lstlisting}
+introduces a defined constant called \L+x+ in the context, and folds
+it in the facts \textit{fact$_1 \dots$ fact$_n$}
+The body of \L+x+ is the first subterm matching \textit{term} in 
+\textit{fact$_1 \dots$ fact$_n$}.
+
+A tactic of the form:
+\begin{lstlisting}
+  set x := /*term*/ in /*fact$_1$*/ $\dots$/*fact$_n$*/ *.
+\end{lstlisting}
+matches $\N{term}$ and then folds \L+x+ similarly in
+\textit{fact$_1 \dots$ fact$_n$}, but also folds \L+x+ in the goal.
+
+A goal \L-x + t = 4-, whose context contains \L+Hx : x = 3+, is left
+unchanged by the tactic:
+\begin{lstlisting}
+  set z := 3 in Hx.
+\end{lstlisting}
+but the context is extended with the definition \L+z := 3+ and \L+Hx+ becomes
+\L+Hx : x = z+.
+On the same goal and context, the tactic:
+\begin{lstlisting}
+  set z := 3 in Hx *.
+\end{lstlisting}
+will moreover change the goal into \L-x + t = S z-. Indeed, remember
+that \C{4} is just a notation for \C{(S 3)}.
+
+The use of the \L+in+ tactical is not limited to the localisation of
+abbreviations: for a complete description of the \L+in+ tactical, see
+section \ref{ssec:profstack}.
+
+
+
+% The restriction on the tactics that can be put on the left side of a
+% \C{in} tactical is motivated by the risk of clash with the standard $\mathcal{L}$-tac
+% \C{in}. Nevertheless, prefixing the tactic by the \C{do} tactical
+% makes any localisation  possible. This combination \C{do ... in} is
+% described in section \ref{ssec:iter}.
+
+% If the tactic passed to the \C{in} tactical creates knew
+% facts and/or performs introduction or discharge operations, the
+% tactic will still succeed if the reintroduction step of the \C{in}
+% internal behaviour is possible. For instance the following script is
+% valid:
+% \begin{lstlisting}
+%   Inductive test : Prop := T1 : nat -> nat -> test.
+
+%   Goal forall t1 t2: test, t1 = t2 -> True.
+%   move=> t1 t2 H.
+%   move: t1 => [x1 x2] /= in H.
+% \end{lstlisting}
+% and it changes the introduced hypothesis \C{H : t1 = t2} into 
+% \C{T1 x1 x2 = t2}, while adding \C{x1 x2 : nat} in the context of the
+% proof.
+
+%  If an abbreviation is present in the list of facts on the right side
+%  of a \C{in} tactical and if the tactic of the left side performs $\zeta$
+%  reduction (like the standard \C{simpl} does), then the tactic may
+%  fail. Indeed,
+%  the abbreviation is generalised and vanishes after the reduction,
+%  hence it cannot be re-introduced.
+
+% In fact tactics of the form \C{simpl in ...} should be replaced by 
+% \C{rewrite /= in ...}(see section \ref{sec:rw}). This last tactic
+% prevents the untimely reduction
+% of $\zeta$ redexes created by the generalisation phase of tactical \C{in}. 
+
+% {\huge centrer l'explication sur set, signaler a la fin que c'est une
+%   tacticielle et renvoyer a la section suivante}

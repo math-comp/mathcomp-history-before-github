@@ -1,0 +1,86 @@
+\section{Distribution}
+
+\subsection{Files}\label{sec:files}
+The Ssreflect package distributes the implementation of the
+small-scale reflection extension. It comprises
+two Caml extension modules ({\tt ssreflect.ml4} and {\tt
+  ssrmatching.ml4}), which provides the tactic language, as well as several
+\Coq{} vernacular files:
+\begin{itemize}
+\item {\tt ssreflect}, {\tt ssrmatching}: technical results for \ssr{} tactics
+\item {\tt ssrfun}: functions, functional equality, bijectivity,
+  injectivity, surjectivity,...
+\item {\tt ssrbool}: extended toolkit for reflection
+\item {\tt eqtype}: structure for type with decidable intentional equality
+\item {\tt choice}: structures for types with a choice operator and for
+  countable types
+\item {\tt ssrnat}: natural numbers, arithmetic
+\item {\tt seq}: lists
+\item {\tt fintype}: structure for finite types
+          (types with finitely many elements)
+\end{itemize}
+% Note that some files from the \ssr{}~1.2 distribution have been renamed
+% (trailing {\tt s} are dropped, and {\tt connect} becomes {\tt
+%   fingraph}).
+More \Coq{} vernacular files are available from the
+Mathematical Components and Odd Order Theorem packages.
+
+
+\subsection{Compatibility issues}\label{sec:compat}
+Every effort has been made to make the small-scale reflection
+extensions upward compatible with the basic \Coq{}, but a few
+discrepancies were unavoidable:
+\begin{itemize}
+\item New keywords (\C{is}) might clash with variable, constant,
+tactic or tactical names, or with quasi-keywords in tactic or
+vernacular notations.
+\item New tactic(al)s names (\L+last+, \L+done+, \L+have+,
+  \L+suffices+, \L+suff+,
+  \L+without loss+, \L+wlog+, \L+congr+, \L+unlock+) might clash
+  with user tactic names.
+\item Identifiers with both leading and trailing \L+_+, such as \L+_x_+,
+are reserved by \ssr{} and cannot appear in scripts.
+\item The extensions to the \L+rewrite+ tactic are partly
+incompatible with those now available in current versions of \Coq{};
+in particular:
+\L+rewrite .. in (type of k)+ or \\ \L+rewrite .. in *+ or any other
+variant of \L+rewrite+ will not work, and the \ssr{} syntax and semantics for occurrence selection and
+rule chaining is different.
+% Moreover \ssr{} looks for redexes more aggressively than $\mathcal{L}$-tac.
+Use an explicit rewrite direction (\L+rewrite <-+ ... or \L+rewrite ->+ ...)
+to access the \Coq{} \L+rewrite+ tactic.
+\item New symbols (\L+//, /=, //=+) might clash with adjacent symbols
+(e.g., '\L+//+') instead of '$/$''$/$'). This can be avoided by
+inserting white spaces.
+\item New constant and theorem names might clash with the user
+theory. This can be avoided by not importing all of \ssr{}:
+\begin{lstlisting}
+  Require ssreflect.
+  Import ssreflect.SsrSyntax.
+\end{lstlisting}
+Note that \ssr{} extended rewrite syntax and reserved identifiers are
+enabled only if the \C{ssreflect} module has been required and if
+\C{SsrSyntax} has been imported. Thus a file that requires (without importing)
+ \C{ssreflect} and imports \C{SsrSyntax}, can be
+required and imported without automatically enabling \ssr{}'s
+extended rewrite syntax and reserved identifiers.
+\item Some user notations (in particular, defining an infix ';') might
+interfere with "open term" syntax of tactics such as \L+have+, \L+set+
+and \L+pose+.
+\item The generalization of \L+if+ statements to non-Boolean
+conditions is turned off by \ssr{}, because it is mostly subsumed by
+\L+Coercion+ to \L+bool+ of the \L+sum+XXX types (declared in
+\L+ssrfun.v+) and the \L+if ... is+ construct (see
+\ref{ssec:patcond}). To use the generalized form, turn off the \ssr{}
+Boolean \L+if+ notation using the command:
+\begin{lstlisting}
+  Close Scope boolean_if_scope.
+\end{lstlisting}
+\item The following two options can be unset to disable the
+      incompatible \L+rewrite+ syntax and allow
+      reserved identifiers to appear in scripts.
+\begin{lstlisting}
+  Unset SsrRewrite.
+  Unset SsrIdents.
+\end{lstlisting}
+\end{itemize}

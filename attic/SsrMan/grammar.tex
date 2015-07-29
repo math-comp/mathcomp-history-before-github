@@ -1,0 +1,178 @@
+\section{Synopsis and Index}
+
+
+
+\subsection*{Parameters}
+
+\begin{minipage}[c]{\textwidth}\renewcommand{\footnoterule}{}
+\begin{longtable}{lcl}
+$\N{d-tactic}$ && one of the
+  \C{elim}, \C{case}, \C{congr}, \C{apply}, \C{exact} 
+  and \C{move} \ssr{} tactics \\
+$\N{fix-body}$ && standard \Coq{} \textit{fix\_body}\\
+$\N{ident}$ && standard \Coq{} identifier\\
+$\N{int}$ && integer literal \\
+$\N{key}$ && notation scope\\
+$\N{name}$ && module name\\
+$\N{num}$ && $\N{int}$ or $\mathcal{L}$-tac variable denoting a standard \Coq{} numeral\footnote{The name of this $\mathcal{L}$-tac variable should not be the name of a tactic which can be followed by a bracket
+  \L+[+, like  \L+do+, \L+ have+,...}\\
+$\N{pattern}$ && synonym for $\N{term}$\\
+$\N{string}$ && standard \Coq{} string\\
+$\N{tactic}$ && standard \Coq{} tactic or \ssr{} tactic\\
+$\N{term}$ & \hspace{1cm} & Gallina term, possibly containing wildcards\\
+%$\N{view}$ && global constant\\
+\end{longtable}
+\end{minipage}
+
+\subsection*{Items and switches}
+
+\begin{longtable}{lclr}
+$\N{binder}$  & $\N{ident} \;|\; \C{(} \N{ident} [ \C{:} \N{term} ] \C{)}$ & 
+  binder& p. \pageref{ssec:pose}\\
+\\
+$\N{clear-switch}$  & $\C{\{} \N{ident}^+ \C{\}}$ & clear switch &
+p. \pageref{ssec:discharge}\\
+\\
+$\N{c-pattern}$ & 
+  $[\N{term}\ \C{in}\ |\ \N{term}\ \C{as}]\ \N{ident}\ \C{in}\ \N{term}$
+  & context pattern & p. \pageref{ssec:rewp} \\
+\\
+$\N{d-item}$ & $[\N{occ-switch} \;|\; \N{clear-switch}]\;
+  [\N{term}|\C{(}\N{c-pattern}\C{)}]$ &
+discharge item &
+p. \pageref{ssec:discharge}\\
+\\
+$\N{gen-item}$  & $[\C{@}]\N{ident}\ |\ \C{(}\N{ident}\C{)}\ |\ \C{(}[\C{@}]\N{ident}\ \C{:=}\ \N{c-pattern}\C{)}$ & generalization item &
+p. \pageref{ssec:struct}\\
+\\
+$\N{i-pattern}$ & $\N{ident} \;|\; \C{_} \;|\; \C{?} \;|\; \C{*}\;|\; 
+  [\N{occ-switch}]\C{->} \;|\; [\N{occ-switch}]\C{<-} \;|$ &  intro pattern &
+p. \pageref{ssec:intro}\\
+
+& $ \C{[} \N{i-item}^* \;\C{|}\;\dots\;\C{|}\;\N{i-item}^* \C{]}\;|\;
+    \C{-}\;|\;\C{[:} \N{ident}^+\C{]}
+ $ &\\
+\\
+$\N{i-item}$ & $\N{clear-switch} \;|\; \N{s-item} \;|\;
+\N{i-pattern} \;|\; \C{/}\N{term}$ & intro item & p. \pageref{ssec:intro}\\
+\\
+$\N{int-mult}$ & [$\N{int}$]$\N{mult-mark}$ & multiplier &
+ p. \pageref{ssec:iter}\\
+\\
+$\N{occ-switch}$ & \L+{+$[\C{+}|\C{-}]\N{num}^*$\L+}+ &
+ occur. switch &  p. \pageref{sssec:occselect}\\
+\\
+$\N{mult}$ & [$\N{num}$]$\N{mult-mark}$ & multiplier &
+ p. \pageref{ssec:iter}\\
+\\
+$\N{mult-mark}$ &  \L+?+ | \L+!+ & multiplier mark &  p. \pageref{ssec:iter}\\
+\\
+$\N{r-item}$ &  $[\C{/}]\N{term} \ |\ \N{s-item}$ & rewrite item & p. \pageref{ssec:extrw}\\
+\\
+$\N{r-prefix}$ & $[\C{-}][\N{int-mult}][\N{occ-switch} |
+\N{clear-switch}][\C{[}\N{r-pattern}\C{]}]$ & rewrite prefix & p. \pageref{ssec:extrw}\\
+\\
+$\N{r-pattern}$ &
+   $\N{term}\ |\ \N{c-pattern}\ |\ \C{in}\ [\N{ident}\ \C{in}]\ \N{term} $ & 
+   rewrite pattern & p. \pageref{ssec:extrw}\\
+\\
+$\N{r-step}$ & $[\N{r-prefix}]\N{r-item}$ & rewrite step & p. \pageref{ssec:extrw}\\
+\\
+$\N{s-item}$ & $\C{/=} \;|\; \C{//} \;|\; \C{//=}$ &
+simplify switch & p. \pageref{ssec:intro}\\
+\\
+\end{longtable}
+
+
+\subsection*{Tactics} 
+\emph{Note}: \C{without loss} and \C{suffices} are synonyms for \C{wlog} and
+\C{suff} respectively.
+
+\begin{longtable}{llr}
+\L+move+ & \textcolor{dkblue}{\texttt{idtac}} or \L+hnf+& p. \pageref{ssec:profstack} \\
+\L+apply+ & application & p. \pageref{ssec:basictac}\\
+\L+exact+ &&\\
+\L+abstract+ && p. \pageref{ssec:abstract}, \pageref{sec:havetransparent}\\
+\\
+\L+elim+ & induction & p. \pageref{ssec:basictac}\\
+\L+case+ & case analysis  & p. \pageref{ssec:basictac}\\
+\\
+\L+rewrite+ $\N{rstep}^+$& rewrite& p. \pageref{ssec:extrw}\\
+\\
+\L+have $\N{i-item}^* \; [\N{i-pattern}] \; 
+     [\;\N{s-item}\;|\;\N{binder}^+\;]\;[$: $\N{term}]$ := $\N{term}$+ & 
+   forward & p. \pageref{ssec:struct}\\
+\L+have $\N{i-item}^* \; [\N{i-pattern}] \; 
+     [\;\N{s-item}\;|\;\N{binder}^+\;]$ : $\N{term} \; [$by $\N{tactic}]$+ & 
+   chaining & \\
+\L+have suff $[\N{clear-switch}]\ [\N{i-pattern}]\;[$: $\N{term}]$ := $\N{term}$+ & & \\
+\L+have suff $[\N{clear-switch}]\ [\N{i-pattern}]$ : $\N{term} \; [$by $\N{tactic}]$+ & & \\
+\L+gen have $[\N{ident}$,$]\ [\N{i-pattern}]$ : $\N{gen-item}^+$ / $\N{term} \; [$by $\N{tactic}]$+ & & \\
+\\
+\L+wlog $[$suff$]\ [\N{i-item}]$ : $[\N{gen-item}|\N{clear-switch}]^*$ / $\N{term}$+ & specializing &  p. \pageref{ssec:struct} \\
+\\
+\L/suff $\N{i-item}^* \; [\N{i-pattern}] \; [\N{binder}^+]$ : $\N{term}$ $[$by $\N{tactic}]$/ & backchaining & p. \pageref{ssec:struct}\\
+\L+suff $[$have$]\ [\N{clear-switch}]\ [\N{i-pattern}]$ : $\N{term}$ $[$by $\N{tactic}]$+ & & \\
+%\L+suff $[\N{clear-switch}][\N{i-pattern}]$ : $\N{term}$ $[$by $\N{tactic}]$+ & chaining & \\
+\\
+\L+pose $\N{ident}$ := $\N{term}$+ & local definition&
+p. \pageref{ssec:pose}\\
+\L+pose $\N{ident}$ $\N{binder}^+$:= $\N{term}$+ & 
+  \rlap{local function definition}& \\
+\L+pose fix $\N{fix-body}$+ & 
+  \rlap{local fix definition} & \\
+\L+pose cofix $\N{fix-body}$+ & 
+  \rlap{local cofix definition} &  \\
+\\
+\L+set $\N{ident}$ $[$:$\N{term}]$ := $[\N{occ-switch}]\ 
+  [\N{term}|$($\N{c-pattern}$)$]$+
+& abbreviation&p. \pageref{ssec:set}\\
+\\
+\L+unlock $[[\N{r-prefix}]\N{ident}]^*$+ & unlock & p. \pageref{ssec:lock}\\
+\\
+\L+congr $[\N{int}]\ \N{term}$+ & congruence& p. \pageref{ssec:congr}\\
+\end{longtable}
+
+\subsection*{Tacticals}
+
+\begin{longtable}{lclr}
+$\N{d-tactic}\ [\N{ident}] \C{:}\ \N{d-item}^{+}\ [\N{clear-switch}]$ &
+ & discharge &  p. \pageref{ssec:discharge}\\
+\\
+$ \N{tactic}\ \C{=>}\ \N{i-item}^+$ && introduction & p. \pageref{ssec:intro}\\
+\\
+\L+$\N{tactic}$ in $[\N{gen-item} | \N{clear-switch}]^+\ [$*$]$+ && localisation 
+& p. \pageref{ssec:gloc}\\
+\\
+\L+do $[\N{mult}]$[$\N{tactic}$|...|$\N{tactic}$]+&& iteration & p. \pageref{ssec:iter}\\
+\L+do $\N{mult} \N{tactic}$+&& & \\
+% $[$in $\N{hypothesis}^+\ [$*$]]$+ && iteration tactical\\
+\\
+\L+ $\N{tactic}$; first $\N{num}$ [$[\N{tactic}]$|$\dots$|$[\N{tactic}]$] $[$|| $\N{tactic}]$+ 
+&& selector & p. \pageref{ssec:select}\\
+\L+ $\N{tactic}$; last $\N{num}$ [$[\N{tactic}]$|$\dots$|$[\N{tactic}]$] $[$|| $\N{tactic}]$+ &&\\
+\\
+\L+ $\N{tactic}$; first $[\N{num}]$ last+ && subgoals & p. \pageref{ssec:select}\\
+\L+ $\N{tactic}$; last $[\N{num}]$ first+ && rotation & \\
+\\
+\L+by [$[\N{tactic}]$|$\dots$|$[\N{tactic}]$]+ && closing & p. \pageref{ssec:termin}\\
+\L+by []+ \\
+\L+by $\N{tactic}$+ \\
+\end{longtable}
+
+\subsection*{Commands}
+\begin{longtable}{lclr}
+\L+Hint View for $[$move$|$apply$]$/ $\N{ident}$[|$\N{num}$]+ && view hint
+declaration & p. \pageref{ssec:vhints}\\
+\\
+\L+Hint View for apply// $\N{ident}$[|$\N{num}$]+ && right hand side double
+ & p. \pageref{ssec:vhints}\\
+&&  view hint declaration &\\
+\\
+%\L+Import Prenex Implicits+ && enable prenex implicits &
+%p. \pageref{ssec:parampoly}\\
+%\\
+\L+Prenex Implicits $[\N{ident}]^+$+ & \hspace{.6cm} & prenex implicits decl.
+ & p. \pageref{ssec:parampoly}\\
+
+\end{longtable}

@@ -1,0 +1,162 @@
+\section{Changes}
+
+\subsection{\ssr{} version 1.3}
+All changes are retrocompatible extensions but for:
+\begin{itemize}
+\item Occurrences in the type family switch now refer only to the goal, while
+      before they used to refer also to the types in the abstractions of the 
+      predicate used by the eliminator. This bug used to affect lemmas like 
+      \C{boolP}. See the relative comments in \C{ssrbool.v}.
+\item Clear switches can only mention existing hypothesis and
+      otherwise fail. This can in particular affect intro patterns
+      simultaneously applied to several goals.
+      % commit: 2686
+\item A bug in the \C{rewrite} tactic allowed to
+      instantiate existential metavariables occurring in the goal.
+      This is not the case any longer (see section~\ref{ssec:rewcaveats}).
+\item The \C{fold} and \C{unfold} $\N{r-items}$ for \C{rewrite} used to 
+      fail silently when used in combination with a $\N{r-pattern}$ matching no
+      goal subterm. They now fail. The old behaviour can be obtained using
+      the \C{?} multiplier (see section~\ref{ssec:extrw}).
+\item Coq 8.2 users with a statically linked toplevel must comment out the\\
+      \C{Declare ML Module "ssreflect".}\\
+      line at the beginning of \C{ssreflect.v} to compile the 1.3 library.
+\end{itemize}
+New features:
+\begin{itemize}
+\item Contextual \C{rewrite} patterns.
+      The context surrounding the redex can now be used to specify which
+      redex occurrences should be rewritten (see section~\ref{ssec:rewp}).\\
+      \C{rewrite [in X in _ = X]addnC.}
+      % commit: 2690, 2689, 2718, 2733
+\item Proof irrelevant interpretation of goals with existential metavariables.
+      Goals containing an existential metavariable of sort \C{Prop} are
+      generalized over it, and a new goal for the missing subproof is 
+      generated (see page~\pageref{sssec:apply} and 
+      section~\ref{ssec:rewcaveats}).\\
+      \C{apply: (ex_intro _ (@Ordinal _ y _)).}\\
+      \C{rewrite insubT.}
+      % commit: 2553, 2544, 2543, 2733
+\item Views are now part of $\N{i-pattern}$ and can thus be used
+      inside intro patterns (see section~\ref{ssec:intro}).\\
+      \C{move=> a b /andP [Ha Hb].}
+      % commit: 2720
+\item Multiple views for \C{move}, \C{move ... in} and \C{apply} 
+      (see section~\ref{ssec:multiview}).\\
+      \C{move/v1/v2/v3.}\\
+      \C{move/v1/v2/v3 in H.}\\
+      \C{apply/v1/v2/v3.}
+      % commit: 2720
+\item \C{have} and \C{suff} idiom with view (see section~\ref{sssec:hypview}).
+\begin{lstlisting}
+  Lemma |*test*| (a b : bool) (pab : a && b) : b.
+  have {pab} /= /andP [pa ->] // : true && (a && b) := pab.
+\end{lstlisting}
+      % commit: 2726
+\item \C{have suff}, \C{suff have} and \C{wlog suff} forward reasoning 
+      tactics (see section~\ref{ssec:struct}).\\
+      \C{have suff H : P.}
+      % commit: 2633
+\item Binders support in \C{have} (see section~\ref{sssec:have}).\\
+      \C{have H x y (r : R x y) : P x -> Q y.}
+      % commit: 2633
+\item Deferred clear switches. Clears are deferred to the end of the 
+      intro pattern. In the meanwhile, cleared variables are still
+      part of the context, thus the goal can mention them, but are 
+      renamed to non accessible dummy names (see section~\ref{ssec:intro}).\\
+      \C{suff: G \\x H = K; first case/dprodP=> \{G H\} [[G H -> -> defK]].}
+      % commit: 2660
+\item Relaxed alternation condition in intro patterns. The
+      $\N{i-item}$ grammar rule is simplified (see section~\ref{ssec:intro}).\\
+       \C{move=> a \{H\} /= \{H1\} // b c /= \{H2\}.}
+      % commit: 2713
+\item Occurrence selection for \C{->} and \C{<-} intro pattern
+       (see section~\ref{ssec:intro}).\\
+      \C{move=> a b H \{2\}->.}
+      % commit: 2714
+\item Modifiers for the discharging '\C{:}' and \C{in} tactical to override 
+      the default behaviour when dealing with local definitions (let-in):
+      \C{@f} forces the body of \C{f} to be kept, \C{(f)} forces the body of
+      \C{f} to be dropped  (see sections~\ref{ssec:discharge} 
+      and~\ref{ssec:gloc}).\\
+      \C{move: x y @f z.}\\
+      \C{rewrite rule in (f) $\;\;$H.}
+      %commit: 2659, 2710
+\item Type family switch in \C{elim} and \C{case}
+      can contain patterns with occurrence switch
+      (see section~\ref{ssec:typefam}).\\
+      \C{case: \{2\}(_ == x) / eqP.}
+      % commit: 2593, 2598, 2539, 2538, 2527, 2529
+\item Generic second order predicate support for \C{elim}
+      (see section~\ref{sec:views}).\\
+      \C{elim/big\_prop: _}
+      % commit: 2767
+\item The \C{congr} tactic now also works on products (see
+      section~\ref{ssec:congr}).
+\begin{lstlisting}
+  Lemma |*test*| x (H : P x) : P y. 
+  congr (P _): H.
+\end{lstlisting}
+      % commit: 2608
+\item Selectors now support $\mathcal{L}$-tac variables 
+      (see section~\ref{ssec:select}).\\
+      \C{let n := 3 in tac; first n last.}
+      % commit: 2725
+\item Deprecated use of \C{Import Prenex Implicits} directive. 
+      It must be replaced with the standard \Coq{} \C{Unset Printing
+        Implicit Defensive} vernacular command.
+\item New synonym \C{Canonical} for \C{Canonical Structure}.
+\end{itemize}
+\subsection{\ssr{} version 1.4}
+New features:
+\begin{itemize}
+\item User definable recurrent contexts (see section~\ref{ssec:rewp}).\\
+      \C{Notation RHS := (X in _ = X)\%pattern} 
+\item Contextual patterns in 
+      \C{set} and `\C{:}' (see section~\ref{ssec:rewp}).\\
+      \C{set t := (a + _ in RHS)}
+\item NO-OP intro pattern (see section~\ref{ssec:intro}).\\
+      \C{move=> /eqP-H /fooP-/barP}
+\item \C{if ... isn't }notation (see section~\ref{ssec:patcond}).\\
+      \C{if x isn't Some y then simple else complex y}
+\end{itemize}
+\subsection{\ssr{} version 1.5}
+Incompatibilities:
+\begin{itemize}
+\item The \C{have} tactic now performs type classes resolution.  The old
+	behavior can be restored with \C{Set SsrHave NoTCResolution}
+\end{itemize}
+Fixes:
+\begin{itemize}
+\item The \C{let foo := type of t in} syntax of standard \C{Ltac} has
+	been made compatible with \ssr{} and can be freely used even if
+	the \ssr{} plugin is loaded
+\end{itemize}
+New features:
+\begin{itemize}
+\item Generalizations supported in have (see section~\ref{ssec:struct}).\\
+      \C{generally have hx2px, pa : a ha / P a.}
+\item Renaming and patterns in wlog (see section~\ref{ssec:struct} and
+  page \pageref{par:advancedgen}).\\
+      \C{wlog H : (n := m)$\;$ (x := m + _)$\;$ / T x}.\\
+      \C{wlog H : (n := m)$\;$ (@ldef := secdef m)$\;$ / T x}.
+\item Renaming, patterns and clear switches in \C{in}
+      tactical (see section~\ref{ssec:gloc}).\\
+      \C{... in H1 \{H2\} (n := m).}
+\item Handling of type classes in \C{have}
+	(see page~\pageref{ssec:havetcresolution}).\\
+	\C{have foo : ty. (* TC inference for ty *)}\\
+	\C{have foo : ty := . (* no TC inference for ty *)}\\
+	\C{have foo : ty := t. (* no TC inference for ty and t *)}\\
+	\C{have foo := t. (* no TC inference for t *)}
+\item Transparent flag for \C{have} to generate a \C{let in} context entry
+	(see page~\pageref{sec:havetransparent}).\\
+        \C{have @i : 'I\_n by apply: (Sub m); auto.} 
+\item Intro pattern \C{[: foo bar ]} to create abstract variables
+	(see page~\pageref{ssec:introabstract}).
+\item Tactic \C{abstract:} to assign an abstract variable
+	(see page~\pageref{ssec:abstract}).\\
+  \C{have [: blurb ] @i : 'I\_n by apply: (Sub m); abstract: blurb; auto.}\\
+  \C{have [: blurb ] i : 'I\_n := Sub m  blurb; first by auto.}
+
+\end{itemize}

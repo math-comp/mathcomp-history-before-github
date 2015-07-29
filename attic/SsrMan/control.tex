@@ -1,0 +1,771 @@
+\section{Control flow}
+\subsection{Indentation and bullets}\label{ssec:indent}
+
+The linear development of \Coq{} scripts gives little information on
+the structure of the proof. In addition, replaying a proof after some
+changes in the statement to be proved will usually not display information to
+distinguish between the various branches of case analysis for instance.
+
+To help the user in this organisation of the proof script at
+development time, \ssr{} provides some bullets to highlight the
+structure of branching proofs. The available bullets are \C{-}, 
+\C{+} and \C{*}. Combined with tabulation, this lets us highlight four
+nested levels of branching; the most we have ever
+needed is three. Indeed, the use of ``simpl and closing'' switches, of
+terminators (see above section \ref{ssec:termin}) and selectors (see
+ section \ref{ssec:select}) is powerful enough
+to avoid most of the time more than two levels of indentation.
+
+Here is a fragment of such a structured script:
+
+\begin{lstlisting}
+case E1: (abezoutn _ _) => [[| k1] [| k2]].
+- rewrite !muln0 !gexpn0 mulg1 => H1. 
+  move/eqP: (sym_equal F0); rewrite -H1 orderg1 eqn_mul1.
+  by case/andP; move/eqP. 
+- rewrite muln0 gexpn0 mulg1 => H1. 
+  have F1: t %| t * S k2.+1 - 1.
+    apply: (@dvdn_trans (orderg x)); first by rewrite F0; exact: dvdn_mull.
+    rewrite orderg_dvd; apply/eqP; apply: (mulgI x).
+    rewrite -{1}(gexpn1 x) mulg1 gexpn_add leq_add_sub //.
+    by move: P1; case t.
+  rewrite dvdn_subr in F1; last by exact: dvdn_mulr.
+  + rewrite H1 F0 -{2}(muln1 (p ^ l)); congr (_ * _).
+    by apply/eqP; rewrite -dvdn1.
+  + by move: P1; case: (t) => [| [| s1]].
+- rewrite muln0  gexpn0 mul1g => H1. 
+...
+\end{lstlisting}
+
+\subsection{Terminators}\label{ssec:termin}
+To further structure scripts, \ssr{}
+supplies \emph{terminating} tacticals to explicitly close off tactics. 
+When replaying scripts, we then have the nice property that
+an error immediately occurs when a closed tactic fails to prove its
+subgoal.
+
+It is hence recommended practise that the proof of any subgoal should
+end with a tactic which \emph{fails if it does not solve the current
+  goal}. Standard \Coq{} already provides some tactics of this kind,
+like \C{discriminate}, \C{contradiction} or \C{assumption}.
+
+\ssr{} provides a generic tactical which turns any tactic into a closing
+one. Its general syntax is:
+\begin{lstlisting}
+  by $\N{tactic}$.
+\end{lstlisting}
+The $\mathcal{L}$-tac expression:
+\begin{lstlisting}
+  by [$\N{tactic}_1$ | [$\N{tactic}_2$ | ...].
+\end{lstlisting}
+is equivalent to:
+\begin{lstlisting}
+  [by $\N{tactic}_1$ | by $\N{tactic}_2$ | ...].
+\end{lstlisting}
+and this form should be preferred to the former.
+
+In the script provided as example in section \ref{ssec:indent}, the
+paragraph corresponding to each subcase ends with a tactic line prefixed
+with a \C{by}, like in:
+\begin{lstlisting}
+  by apply/eqP; rewrite -dvdn1.
+\end{lstlisting}
+
+The \C{by} tactical is implemented using the user-defined,
+and extensible \C{done} tactic. This \C{done} tactic tries to solve
+the current goal by some trivial means and fails if it doesn't succeed.
+Indeed, the tactic expression:
+\begin{lstlisting}
+  by $\N{tactic}$.
+\end{lstlisting}
+is equivalent to:
+\begin{lstlisting}
+  $\N{tactic}$; done.
+\end{lstlisting}
+Conversly, the tactic
+\begin{lstlisting}
+  by [ ].
+\end{lstlisting}
+is equivalent to:
+\begin{lstlisting}
+  done.
+\end{lstlisting}
+The default implementation of the \C{done} tactic, in the {\tt
+  ssreflect.v} file, is:
+
+\begin{lstlisting}
+Ltac done :=
+  trivial; hnf; intros; solve
+   [ do ![solve [trivial | apply: sym_equal; trivial]
+         | discriminate | contradiction | split]
+   | case not_locked_false_eq_true; assumption
+   | match goal with H : ~ _ |- _ => solve [case H; trivial] end ].
+\end{lstlisting}
+
+The lemma \C{|*not_locked_false_eq_true*|} is needed to discriminate
+\emph{locked} boolean predicates (see section \ref{ssec:lock}).
+The iterator tactical \C{do} is presented in section
+\ref{ssec:iter}.
+This tactic can be customised by the user, for instance to include an
+\C{auto} tactic.
+
+A natural and common way of closing a goal is to apply a lemma which
+is the \C{exact} one needed for the goal to be solved. The defective
+form of the tactic:
+\begin{lstlisting}
+  exact.
+\end{lstlisting}
+is equivalent to:
+\begin{lstlisting}
+  do [done | by move=> top; apply top].
+\end{lstlisting}
+where \C{top} is a fresh name affected to the top assumption of the goal.
+This applied form is supported by the  \C{:} discharge tactical, and
+the tactic:
+\begin{lstlisting}
+  exact: MyLemma.
+\end{lstlisting}
+is equivalent to:
+\begin{lstlisting}
+  by apply: MyLemma.
+\end{lstlisting}
+(see section \ref{sss:strongapply} for the documentation of the \C{apply:}
+combination).
+
+\textit{Warning} The list of tactics, possibly chained by
+semi-columns, that follows a \C{by} keyword is considered as a
+parenthesised block
+applied to the current goal. Hence for example if the tactic:
+\begin{lstlisting}
+   by rewrite my_lemma1.
+\end{lstlisting} 
+succeeds, then the tactic:
+\begin{lstlisting}
+   by rewrite my_lemma1; apply my_lemma2.
+\end{lstlisting}
+usually fails since it is equivalent to:
+\begin{lstlisting}
+   by (rewrite my_lemma1; apply my_lemma2).
+\end{lstlisting}
+
+\subsection{Selectors}\label{ssec:select}
+
+When composing tactics, the two tacticals \C{first} and
+\C{last} let the user restrict the application of a tactic to only one
+of the subgoals generated by the previous tactic. This
+covers the frequent cases where a tactic generates two subgoals one of
+which can be easily disposed of.
+
+This is an other powerful way of linearisation of scripts, since it
+happens very often that a trivial subgoal can be solved in a less than
+one line tactic. For instance, the tactic:
+\begin{lstlisting}
+  $\N{tactic}_1$; last by $\N{tactic}_2$.
+\end{lstlisting}
+tries to solve the last subgoal generated by $\N{tactic}_1$ using the
+$\N{tactic}_2$, and fails if it does not succeeds. Its analogous
+\begin{lstlisting}
+  $\N{tactic}_1$; first by $\N{tactic}_2$.
+\end{lstlisting}
+tries to solve the first subgoal generated by $\N{tactic}_1$ using the
+tactic $\N{tactic}_2$, and fails if it does not succeeds.
+
+
+\ssr{} also offers an extension of this facility, by supplying
+tactics to \emph{permute}  the subgoals generated by a tactic. 
+The tactic:
+\begin{lstlisting}
+  $\N{tactic}$; last first.
+\end{lstlisting}
+inverts the order of the subgoals generated by $\N{tactic}$. It is
+equivalent to:
+\begin{lstlisting}
+  $\N{tactic}$; first last.
+\end{lstlisting}
+
+More generally, the tactic:
+\begin{lstlisting}
+  $\N{tactic}$; last $\N{num}$ first.
+\end{lstlisting}
+where $\N{num}$ is 
+standard \Coq{} numeral or $\mathcal{L}$-tac variable denoting\\
+a standard \Coq{} numeral having the value $k$,
+rotates the $n$ subgoals $G_1,
+\dots, G_n$ generated by $\N{tactic}$. The first subgoal becomes
+$G_{n + 1 - k}$ and the circular order of subgoals remains unchanged. 
+
+Conversly, the tactic:
+\begin{lstlisting}
+  $\N{tactic}$; first $\N{num}$ last.
+\end{lstlisting}
+rotates the $n$ subgoals $G_1,
+\dots, G_n$ generated by \C{tactic} in order that the first subgoal
+becomes $G_{k}$.
+
+Finally, the tactics \C{last} and \C{first} combine with the
+branching syntax of $\mathcal{L}$-tac: 
+if the tactic $\N{tactic}_0$ generates $n$
+subgoals on a given goal, then the tactic
+\begin{lstlisting}
+  $tactic_0$; last $\N{num}$ [$tactic_1$|...|$tactic_m$] || $tactic_{m+1}$.
+\end{lstlisting}
+where $\N{num}$ denotes the integer $k$ as above, applies $tactic_1$ to the
+$n -k + 1$-th goal, $\dots tactic_m$ to the $n -k + 2 - m$-th
+goal and \C{$tactic_{m+1}$} to the others.
+
+For instance, the script:
+\begin{lstlisting}
+  Inductive test : nat ->  Prop := 
+    C1 : forall n, test n | C2 : forall n, test n |
+    C3 : forall n, test n | C4 : forall n, test n.
+
+  Goal forall n, test n -> True.
+  move=> n t; case: t; last 2 [move=> k| move=> l]; idtac.
+\end{lstlisting}
+
+creates a goal with four subgoals, the first and the last being 
+\C{nat -> True}, the second and the third being \C{True} with
+respectively \C{k : nat} and \C{l : nat} in their context.
+
+\subsection{Iteration}\label{ssec:iter}
+
+\ssr{} offers an accurate control on the repetition of 
+tactics, thanks to the \C{do} tactical, whose general syntax is:
+  $$\C{do}\ [\N{mult}]\C{[}\N{tactic}_1 \C{|} ... \C{|} \N{tactic}_n\C{]}$$ 
+where $\N{mult}$ is a \emph{multiplier}.
+
+Brackets can only be omitted if a single tactic is given \emph{and} a
+multiplier is present.
+
+A tactic of the form:
+\begin{lstlisting}
+  do [$tactic_1$ | ... | $tactic_n$].
+\end{lstlisting}
+is equivalent to the standard $\mathcal{L}$-tac expression:
+\begin{lstlisting}
+  first [$tactic_1$ | ... | $tactic_n$].
+\end{lstlisting}
+
+The optional multiplier $\N{mult}$ specifies how many times
+the action of $\N{tactic}$ should be repeated on the current subgoal.
+
+There are four kinds of multipliers:
+  \begin{itemize}
+  \item \C{$n$!}: the step $\N{tactic}$ is repeated exactly $n$ times
+    (where $n$ is a positive integer argument).
+  \item \C{!}: the step $\N{tactic}$ is repeated as many times as possible,
+    and done at least once.
+  \item \C{?}: the step $\N{tactic}$ is repeated as many times as possible,
+    optionally.
+  \item \C{$n$?}: the step $\N{tactic}$ is repeated up to $n$ times,
+    optionally.
+  \end{itemize}
+
+For instance, the tactic:
+\begin{lstlisting}
+  $\N{tactic}$; do 1?rewrite mult_comm.
+\end{lstlisting}
+rewrites at most one time the lemma \C{mult_com} in all the subgoals
+generated by $\N{tactic}$, whereas the tactic:
+\begin{lstlisting}
+  $\N{tactic}$; do 2!rewrite mult_comm.
+\end{lstlisting}
+rewrites exactly two times the lemma \C{mult_com} in all the subgoals
+generated by $\N{tactic}$, and fails if this rewrite is not possible
+in some subgoal.
+
+Note that the combination of multipliers and \C{rewrite} is so often
+used that multipliers are in fact integrated to the syntax of the \ssr{}
+\C{rewrite} tactic, see section \ref{sec:rw}.
+
+\subsection{Localisation}\label{ssec:gloc}
+
+In sections \ref{ssec:loc} and \ref{ssec:profstack}, we have already
+presented the \emph{localisation} tactical \L+in+, whose general
+syntax is:
+$$\N{tactic}\ \C{in}\ \N{ident}^+ [\C{*}]$$
+where $\N{ident}^+$ is a non empty list of fact
+names in the context. On the left side of \C{in}, $\N{tactic}$ can be 
+\C{move}, \C{case}, \C{elim}, \C{rewrite}, \C{set},
+ or any tactic formed with the general iteration tactical \C{do} (see
+ section \ref{ssec:iter}).
+
+The operation described by $\N{tactic}$ is performed in the facts
+listed in $\N{ident}^+$ and in the goal if a \C{*} ends
+the list.
+
+The \C{in} tactical successively:
+\begin{itemize}
+\item generalises the selected hypotheses, possibly ``protecting'' the
+ goal if \C{*} is not present,
+\item performs $\N{tactic}$, on the obtained goal,
+\item reintroduces the generalised facts, under the same names.
+\end{itemize}
+
+This defective form of the \L+do+ tactical is useful to avoid clashes
+between standard $\mathcal{L}$-tac \C{in} and the \ssr{} tactical \C{in}.
+For example, in the following script:
+\begin{lstlisting}
+  Ltac |*mytac*| H := rewrite H.
+
+  Goal forall x y, x = y -> y = 3 -> x + y  = 6.
+  move=> x y H1 H2.
+  do [mytac H2] in H1 *.
+\end{lstlisting}
+the last tactic rewrites the hypothesis \C{H2 : y = 3} both in
+\C{H1 : x = y} and in the goal \C{x + y = 6}.
+
+By default \C{in} keeps the body of local definitions. To erase
+the body of a local definition during the generalization phase, 
+the name of the local definition must be written between parentheses, 
+like in \C{rewrite H in H1 (def_n) $\;\;$H2}.
+
+From \ssr{} 1.5 the grammar for the \C{in} tactical has been extended
+to the following one:
+
+$$\N{tactic}\ \C{in}\ [ \N{clear-switch}\ |\ 
+                        [\C{@}]\N{ident}\ |\ 
+                        \C{(}\N{ident}\C{)}\ |\ 
+                        \C{(}[\C{@}]\N{ident}\ \C{:=}\ \N{c-pattern}\C{)} 
+                      ]^+ [\C{*}]$$
+
+In its simplest form the last option lets one rename hypotheses that can't be
+cleared (like section variables).  For example \C{(y := x)} generalises
+over \C{x} and reintroduces the generalised
+variable under the name \C{y} (and does not clear \C{x}).\\
+For a more precise description the $\C{(}[\C{@}]\N{ident}\ \C{:=}\ \N{c-pattern}\C{)}$
+item refer to the ``Advanced generalization'' paragraph at page~\pageref{par:advancedgen}.
+
+\subsection{Structure}\label{ssec:struct}
+
+Forward reasoning structures the script by explicitly specifying some
+assumptions to be added to the proof context. It is closely associated
+with the declarative style of proof, since an extensive use of these
+highlighted statements
+make the script closer to a (very detailed) text book proof.
+
+Forward chaining tactics allow to state an intermediate lemma and start a
+piece of script dedicated to the proof of this statement. The use of
+closing tactics (see section \ref{ssec:termin}) and of
+indentation makes syntactically explicit the portion of the script
+building the proof of the intermediate statement.
+
+\subsubsection*{The \C{have} tactic.}
+\label{sssec:have}
+
+The main \ssr{} forward reasoning tactic is the \C{have} tactic. It
+can be use in two modes: one starts a new (sub)proof for an
+intermediate result in the main proof, and the other
+provides explicitly a proof term for this intermediate step.
+
+In the first mode, the syntax of \C{have} in its defective form is:
+\begin{lstlisting}
+  have: $\N{term}$.
+\end{lstlisting}
+This tactic supports open syntax for $\N{term}$. Apart from the open
+syntax, when $\N{term}$ does
+not contain any wildcard, this tactic
+is almost\footnote{The \C{assert} tactic creates a $\zeta$ redex,
+  whereas the \C{have} tactic creates a $\beta$ redex, and it
+  introduces the lemma under an automatically chosen fresh name.}
+equivalent to the standard \Coq{}:
+\begin{lstlisting}
+  assert $\N{term}$.
+\end{lstlisting}
+Applied to a goal \C{G}, it generates a first subgoal requiring a
+proof of $\N{term}$ is the context of \C{G}. The difference with
+the standard \Coq{} tactic is that the second subgoal generated is of
+the form \C{$\N{term}$ -> G}, where $\N{term}$ becomes the new top
+assumption, instead of being introduced with a fresh name.
+
+Like in the case of the \C{pose} tactic (see section \ref{ssec:pose}),
+the types of the holes are abstracted in $\N{term}$.
+For instance, the tactic:
+\begin{lstlisting}
+  have: _ * 0 = 0.
+\end{lstlisting}
+is equivalent to:
+\begin{lstlisting}
+  have: forall n : nat, n * 0 = 0.
+\end{lstlisting}
+The \C{have} tactic also enjoys the same abstraction mechanism as the
+\C{pose} tactic for the non-inferred implicit arguments. For instance,
+the tactic:
+\begin{lstlisting}
+  have: forall x y, (x, y) = (x, y + 0).
+\end{lstlisting}
+opens a new subgoal to prove that:
+
+\noindent\C{forall (T : Type) (x : T) (y : nat), (x, y) = (x, y + 0)}
+
+
+The behaviour of the defective \C{have} tactic makes it possible to
+generalise it in the
+following general construction:
+  $$\C{have }\ \;\N{i-item}^* \; [\N{i-pattern}] \; 
+     [\N{s-item}\;|\;\N{binder}^+]\;[\C{:} \N{term}_1]\;
+     [\C{:=} \N{term}_2 \;|\; \C{by }\N{tactic}]$$ 
+
+Open syntax is supported for $\N{term}_1$ and $\N{term}_2$. For the
+description of
+\iitem{}s and clear switches see section \ref{ssec:intro}.
+The first mode of the \L+have+ tactic, which opens a subproof for an
+intermediate result, uses tactics of the form:
+\begin{lstlisting}
+  have $\N{clear-switch}$ $\N{i-item}$ : /*term*/ by /*tactic*/.
+\end{lstlisting}
+which behave like:
+\begin{lstlisting}
+  have: /*term*/; first by /*tactic*/.
+  move=> $\N{clear-switch}$ $\N{i-item}$.
+\end{lstlisting}
+Note that the $\N{clear-switch}$ \emph{precedes} the
+$\N{i-item}$, which allows to reuse a name of the context, possibly used
+by the proof of the assumption, to introduce the new assumption
+itself. 
+
+Hence the standard \Coq{}:
+\begin{lstlisting}
+  assert $\N{term}$.
+\end{lstlisting}
+is in fact equivalent\footnote{again, except that the kind of redex
+  created is different} up to the open syntax to:
+\begin{lstlisting}
+  have ?: $\N{term}$.
+\end{lstlisting}
+
+The \C{by} feature is especially convenient when the proof script of the
+statement is very short, basically when it fits in one line like in:
+\begin{lstlisting}
+  have H : forall x y, x + y = y + x by move=> x y; rewrite addnA.
+\end{lstlisting}
+
+The possibility of using \iitem{}s supplies a very concise
+syntax for the further use of the intermediate step. For instance,
+\begin{lstlisting}
+  have -> : forall x, x * a = a.
+\end{lstlisting}
+on a goal \C{G}, opens a new subgoal asking for a proof of 
+\C{forall x, x * a = a}, and a second subgoal in which the lemma
+ \C{forall x, x * a = a} has been rewritten in the goal \C{G}. Note
+ that in this last subgoal, the intermediate result does not appear in
+ the context.
+Note that, thanks to the deferred execution of clears, the following 
+idiom is supported (assuming \C{x} occurs in the goal only):
+\begin{lstlisting}
+  have {x} -> : x = y
+\end{lstlisting}
+
+An other frequent use of the intro patterns combined with \C{have} is the
+destruction of existential assumptions like in the tactic:
+\begin{lstlisting}
+  have [x Px]: exists x : nat, x > 0.
+\end{lstlisting}
+which opens a new subgoal asking for a proof of \C{exists x : nat, x >
+  0} and  a second subgoal in which the witness is introduced under
+the name \C{x : nat}, and its property under the name \C{Px : x > 0}.
+
+An alternative use of the \C{have} tactic is to provide the explicit proof
+term for the intermediate lemma, using tactics of the form:
+\begin{lstlisting}
+  have $[\N{ident}]$ := $\N{term}$.
+\end{lstlisting}
+This tactic creates a new assumption of type the type of
+$\N{term}$. If the
+optional $\N{ident}$ is present, this assumption is introduced under
+the name $\N{ident}$. Note that the body of the constant is lost for
+the user.
+
+Again, non inferred implicit arguments and explicit holes are abstracted. For
+instance, the tactic:
+\begin{lstlisting}
+  have H := forall x, (x, x) = (x, x).
+\end{lstlisting}
+adds to the context \C{H : Type -> Prop}. This is a schematic example but
+the feature is specially useful when the proof term to give involves
+for instance a lemma with some hidden implicit arguments.
+
+After the $\N{i-pattern}$, a list of binders is allowed. 
+For example, if \C{Pos_to_P} is a lemma that proves that
+\C{P} holds for any positive, the following command:
+\begin{lstlisting}
+  have H x (y : nat) : 2 * x + y = x + x + y by auto.
+\end{lstlisting}
+will put in the context \C{H : forall x, 2 * x = x + x}. A proof term
+provided after \C{:=} can mention these bound variables (that are
+automatically introduced with the given names). 
+Since the $\N{i-pattern}$ can be omitted, to avoid ambiguitiy, bound variables
+can be surrounded with parentheses even if no type is specified:
+\begin{lstlisting}
+  have (x) : 2 * x = x + x by auto.
+\end{lstlisting}
+
+The $\N{i-item}$s and $\N{s-item}$ can be used to interpret the
+asserted hypothesis with views (see section~\ref{sec:views}) or
+simplify the resulting goals. 
+
+The \C{have} tactic also supports a \C{suff} modifier which allows for
+asserting that a given statement implies the current goal without
+copying the goal itself. For example, given a goal \C{G} the tactic
+\C{have suff H : P} results in the following two goals:
+\begin{lstlisting}
+   |- P -> G
+   H : P -> G |- G
+\end{lstlisting}
+Note that \C{H} is introduced in the second goal. The \C{suff}
+modifier is not compatible with the presence of a list of binders.
+
+\subsubsection*{Generating \C{let in} context entries with \C{have}}
+\label{sec:havetransparent}
+
+Since \ssr{} 1.5 the \C{have} tactic supports a ``transparent'' modifier to
+generate \C{let in} context entries: the \C{@} symbol in front of the context
+entry name.  For example:
+
+\begin{lstlisting}
+have @i : 'I_n by apply: (Sub m); auto.
+\end{lstlisting}
+generates the following two context entry:
+\begin{lstlisting}
+i := Sub m proof_produced_by_auto : 'I_n
+\end{lstlisting}
+
+Note that the subterm produced by \C{auto} is in general huge and
+uninteresting, and hence one may want to hide it.
+
+For this purpose the \C{[: name ]} intro pattern and the tactic
+\C{abstract} (see page~\pageref{ssec:abstract}) are provided.
+Example:
+\begin{lstlisting}
+have [:blurb] @i : 'I_n by apply: (Sub m); abstract: blurb; auto.
+\end{lstlisting}
+generates the following two context entries:
+\begin{lstlisting}
+blurb : (m < n) (*1*)
+i := Sub m blurb : 'I_n
+\end{lstlisting}
+The type of \C{blurb} can be cleaned up by its annotations by just simplifying
+it.  The annotations are there for technical reasons only.
+
+When intro patterns for abstract constants are used in conjunction
+with \C{have} and an explicit term, they must be used as follows:
+
+\begin{lstlisting}
+have [:blurb] @i : 'I_n := Sub m blurb.
+  by auto.
+\end{lstlisting}
+
+In this case the abstract constant \C{blurb} is assigned by using it
+in the term that follows \C{:=} and its corresponding goal is left to
+be solved.  Goals corresponding to intro patterns for abstract constants
+are opened in the order in which the abstract constants are declared (not
+in the ``order'' in which they are used in the term).
+
+Note that if abstract constants do respect scopes.  Hence if a variable
+is declared after their introduction it has to be properly generalized (i.e.
+explicitly passed to the abstract constant when one makes use of it).
+For example any of the following two lines:
+\begin{lstlisting}
+have [:blurb] @i k : 'I_(n+k) by apply: (Sub m); abstract: blurb k; auto.
+have [:blurb] @i k : 'I_(n+k) := apply: Sub m (blurb k); first by auto.
+\end{lstlisting}
+generates the following context:
+\begin{lstlisting}
+blurb : (forall k, m < n+k) (*1*)
+i := fun k => Sub m (blurb k) : forall k, 'I_(n+k)
+\end{lstlisting}
+
+Last, notice that the use of intro patterns for abstract constants is
+orthogonal to the transparent flag \C{@} for \C{have}.
+
+\subsubsection*{The \C{have} tactic and type classes resolution}
+\label{ssec:havetcresolution}
+
+Since \ssr{} 1.5 the \C{have} tactic behaves as follows with respect to type
+classes inference.
+
+\begin{itemize}
+\item \C{have foo : ty.}
+	Full inference for \C{ty}.
+	The first subgoal demands a proof of such instantiated statement.
+\item \C{have foo : ty := .}
+	No inference for \C{ty}. Unresolved instances are quantified in
+	\C{ty}.  The first subgoal demands a proof of such quantified
+	statement.  Note that no proof term follows \C{:=}, hence two
+	subgoals are generated.
+\item \C{have foo : ty := t.}
+	No inference for \C{ty} and \C{t}.
+\item \C{have foo := t.}
+	No inference for \C{t}. Unresolved instances are quantified in the
+	(inferred) type of \C{t} and abstracted in \C{t}.
+\end{itemize}
+
+The behavior of \ssr{} 1.4 and below (never resolve type classes)
+can be restored with the option \C{Set SsrHave NoTCResolution}.
+
+\subsubsection*{Variants: the \C{suff} and  \C{wlog} tactics.}
+
+As it is often the case  in mathematical textbooks, forward
+reasoning may be used in slightly different variants.
+One of these variants is to show that the intermediate step $L$
+easily implies the initial goal $G$. By easily we mean here that
+the proof of $L \Rightarrow G$ is shorter than the one of $L$
+itself. This kind of reasoning step usually starts with: 
+``It suffices to show that ...''.
+
+This is such a frequent way of reasoning that \ssr{} has a variant of the
+\C{have} tactic called \C{suffices} (whose abridged name is
+\C{suff}). The \C{have} and \C{suff} tactics are equivalent and
+have the same syntax but:
+\begin{itemize}
+\item the order of the generated subgoals is inversed
+\item but the optional clear item is still performed in the
+  \emph{second} branch. This means that the tactic:
+\begin{lstlisting}
+  suff {H} H : forall x : nat, x >= 0.
+\end{lstlisting}
+fails if the context of the current goal indeed contains an
+assumption named \C{H}.
+\end{itemize}
+The rationale of this clearing policy is to make possible ``trivial''
+refinements of an assumption, without changing its name in the main
+branch of the reasoning.
+
+The \C{have} modifier can follow the \C{suff} tactic.
+For example, given a goal \C{G} the tactic
+\C{suff have H : P} results in the following two goals:
+\begin{lstlisting}
+  H : P |- G
+  |- (P -> G) -> G
+\end{lstlisting}
+Note that, in contrast with \C{have suff}, the name \C{H} has been introduced
+in the first goal.
+
+Another useful construct is reduction,
+showing that a particular case is in fact general enough to prove
+a general property. This kind of reasoning step usually starts with:
+``Without loss of generality, we can suppose that ...''.
+Formally, this corresponds to the proof of a goal \C{G} by introducing
+a cut \C{/*wlog_statement*/ -> G}. Hence the user shall provide a
+proof for both \C{(/*wlog_statement*/ -> G) -> G} and
+\C{/*wlog_statement*/ -> G}.
+
+\ssr{} implements this kind of reasoning step through the \C{without loss}
+tactic, whose short name is \C{wlog}. 
+The general syntax of \C{without loss} is:
+\begin{lstlisting}
+wlog $[$suff$][\N{clear-switch}][\N{i-item}]$ : $[\N{ident}_1 \dots\N{ident}_n]$ / $\N{term}$
+\end{lstlisting}
+where $\N{ident}_1\ \dots\ \N{ident}_n$ are identifiers for constants
+in the context of the goal. Open syntax is supported for $\N{term}$.
+
+In its defective form:
+\begin{lstlisting}
+  wlog: / $\N{term}$.
+\end{lstlisting}
+on a goal \C{G}, it creates two subgoals: a first one to prove the formula
+\C{($\N{term}$ -> G) -> G} and a second one to prove the formula
+\C{$\N{term}$ -> G}.
+
+If the optional list $\N{ident}_1\ \dots\ \N{ident}_n$ is present on the left
+side of \C{/}, these constants are generalised in the premise
+\C{($\N{term}$ -> G)} of the first subgoal. By default the body of
+local definitions  is erased. This behaviour can be inhibited
+prefixing the name of the local definition with the \C{@} character.
+
+In the second subgoal, the tactic:
+\begin{lstlisting}
+  move=> $\N{clear-switch}$ $\N{i-item}$.
+\end{lstlisting}
+is performed if at least one of these optional switches is present in
+the \C{wlog} tactic.
+
+The \C{wlog} tactic is specially useful when a symmetry argument
+simplifies a proof. Here is an example showing the begining of the
+proof that quotient and reminder of natural number euclidean division
+are unique.
+\begin{lstlisting}
+  Lemma quo_rem_unicity: forall d q1 q2 r1 r2, 
+     q1*d + r1 = q2*d + r2 -> r1 < d -> r2 < d -> (q1, r1) =  (q2, r2).
+  move=> d q1 q2 r1 r2.
+  wlog: q1 q2 r1 r2 / q1 <= q2.
+    by case (le_gt_dec q1 q2)=> H; last symmetry; eauto with arith.
+\end{lstlisting}
+
+The \C{wlog suff} variant is simpler, since it cuts
+\C{/*wlog_statement*/} instead of \C{/*wlog_statement*/ -> G}. It thus 
+opens the goals \C{/*wlog_statement*/ -> G} and \C{/*wlog_statement*/}.
+
+In its simplest form
+the \C{generally have :...} tactic
+is equivalent to \C{wlog suff :...} followed by \C{last first}.
+When the \C{have} tactic
+is used with the \C{generally} (or \C{gen}) modifier it accepts an
+extra identifier followed by a comma before the usual intro pattern.
+The identifier will name the new hypothesis in its more general form,
+while the intro pattern will be used to process its instance.  For example:
+\begin{lstlisting}
+  Lemma simple n (ngt0 : 0 < n ) : P n.
+  gen have ltnV, /andP[nge0 neqn0] : n ngt0 / (0 <= n) && (n != 0).
+\end{lstlisting}
+The first subgoal will be
+\begin{lstlisting}
+  n : nat
+  ngt0 : 0 < n
+  ====================
+  (0 <= n) && (n != 0)
+\end{lstlisting}
+while the second one will be
+\begin{lstlisting}
+  n : nat
+  ltnV : forall n, 0 < n -> (0 <= n) && (n != 0)
+  nge0 : 0 <= n
+  neqn0 : n != 0
+  ====================
+  P n
+\end{lstlisting}
+
+\paragraph{Advanced generalization}\label{par:advancedgen}
+The complete syntax for the items on the left hand side of the \C{/}
+separator is the following one:
+$$
+\N{clear-switch}\ |\ [\C{@}]\N{ident}\ |\ \C{(}[\C{@}]\N{ident}\ \C{:=}\ \N{c-pattern}\C{)}
+$$
+These clear operations are intertwined with the generalisation ones, which
+helps in particular avoiding dependency issues while generalising some facts.
+
+\noindent
+If an $\N{ident}$ is prefixed with \C{@} then its body (if any) is kept as
+a let-in.  The syntax $\C{(}\N{ident}\C{:=}\N{c-pattern}\C{)}$ lets one
+generalize an arbitrary term under a given name.  Note that the simplest
+form \C{(x := y)} morally renames \C{y} to \C{x}; in this way one can
+generalize over a section variable, since renaming does not require
+the original variable to be cleared.  
+
+\noindent
+The syntax \C{(@x := y)} generates a let-in abstraction but with the following
+caveat: \C{x} will not bind \C{y}, but its body, whenever \C{y} can be
+unfolded (i.e. not only in the case of a local definition, but also of a
+global one).  Example:
+
+\begin{lstlisting}
+Section Test.
+Variable x : nat.
+Definition addx y := y + x.
+Lemma test : x <= addx x.
+wlog H : (y := x) (@twoy := addx x) / twoy = 2 * y.
+\end{lstlisting}
+\noindent
+The first subgoal is:
+\begin{lstlisting}
+   (forall y : nat, let twoy := y + y in twoy = 2 * y -> y <= twoy) ->
+   x <= addx x
+\end{lstlisting}
+\noindent
+To avoid unfolding the term captured by the pattern \C{add x} one 
+can use the pattern \C{id (addx x)}, that would produce the following first
+subgoal:
+\begin{lstlisting}
+   (forall y : nat, let twoy := addx y in twoy = 2 * y -> y <= twoy) ->
+   x <= addx x
+\end{lstlisting}
